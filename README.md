@@ -14,11 +14,14 @@ Does not require any external library or framework (except linking to OpenGL and
 
 [![Support via Paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=JTNWA35PBQS7A)
 
-Supported compilers:
+What is supported?
+----------------
+
+Compilers:
 * FPC 2.6.2 and up
 * Delphi 7
 
-Supported platforms:
+Platforms:
 * Windows
 * Linux
 * OSX
@@ -26,28 +29,31 @@ Supported platforms:
 * Android
 * OUYA
 
-Supported renderers:
+Renderers:
 * OpenGL (both shader-based and fixed pipeline)
 * OpenGL ES
 
-Supported image formats:
+File formats
+----------------
+
+Images:
 * PNG
 * JPG
 * BMP
 * TGA
 * GIF (including animation)
 
-Supported font formats:
+Font:
 * TTF
 * FNT (Angelcode)
 
-Supported sound formats:
+Audio:
 * WAV
 * OGG
 * MIDI 
 * MP3 (Windows/Android/iOS only) 
 
-Supported mesh formats:
+3D Models:
 * OBJ
 * MS3D (Milkshape)
 * SMD
