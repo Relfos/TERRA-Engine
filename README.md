@@ -46,13 +46,14 @@ Images:
 * GIF (including animation)
 * PVR (Android)
 
-Font:
+Fonts:
 * TTF
 * FNT (Angelcode)
 
 Audio:
 * WAV
 * OGG
+* MOD
 * MIDI 
 * MP3 (Windows/Android/iOS only) 
 

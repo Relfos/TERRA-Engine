@@ -40,7 +40,7 @@ Begin
   GraphicsManager.Instance.SetScene(_Scene);
 
   // Load a Tex
-  Tex := TextureManager.Instance.GetTexture('mario');
+  Tex := TextureManager.Instance.GetTexture('ghost');
 
   GraphicsManager.Instance.BackgroundColor := ColorBlue;
 
