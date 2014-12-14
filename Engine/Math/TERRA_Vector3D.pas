@@ -1,3 +1,26 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Vector3D
+ * Implements a vector 3d class
+ ***********************************************************************************************************************
+}
 {$IFDEF OXYGENE}
 namespace TERRA;
 {$ELSE}
@@ -103,7 +126,7 @@ Function GetTriangleHeight(H0,H1,H2:Single; X,Y:Single; Var Normal:Vector3D):Sin
 
 
 Implementation
-Uses Math{$IFDEF NEON_FPU},TERRA_NEON{$ENDIF};
+{$IFDEF NEON_FPU}Uses TERRA_NEON;{$ENDIF}
 
 
 Function Vector3D.Get(Index:Integer):Single;

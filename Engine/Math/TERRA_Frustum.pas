@@ -1,13 +1,25 @@
-{
-@abstract(Frustum routines)
-@author(Sergio Flores <relfos@gmail.com>)
-@created(March 19, 2005)
-@lastmod(February 25, 2006)
-The Frustum unit provides functions for testing visibility of objects inside
-the view frustum.
-
-Version History
-   18/3/06  • Implemented Frustum and Plane classes
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Frustum
+ * Implements a frustum class
+ ***********************************************************************************************************************
 }
 
 Unit TERRA_Frustum;
@@ -16,7 +28,7 @@ Unit TERRA_Frustum;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Math, TERRA_BoundingBox, TERRA_Plane,
-  TERRA_Vector3D, TERRA_Matrix;
+  TERRA_Vector3D, TERRA_Matrix4x4;
 
 Type
   Frustum = Packed Object
@@ -27,23 +39,23 @@ Type
         Procedure Normalize;
 
 	  Public
-        Procedure Update(Const Projection, Camera:Matrix);
+        Procedure Update(Const Projection, Camera:Matrix4x4);
         Function PointVisible(Point:Vector3D):Boolean;
         Function SphereVisible(Sphere:BoundingSphere):Boolean;
         Function BoxVisible(Box:BoundingBox):Boolean;
 
-        Function GetVertices(CameraMatrix, ProjectionMatrix:Matrix):BoundingBoxVertices; Overload;
+        Function GetVertices(CameraMatrix4x4, ProjectionMatrix4x4:Matrix4x4):BoundingBoxVertices; Overload;
 
         Property Vertices:BoundingBoxVertices Read _Vertices;
     End;
 
 Implementation
-Uses TERRA_Quaternion;
+Uses TERRA_Vector4D;
 
-Function Frustum.GetVertices(CameraMatrix, ProjectionMatrix:Matrix):BoundingBoxVertices;
+Function Frustum.GetVertices(CameraMatrix4x4, ProjectionMatrix4x4:Matrix4x4):BoundingBoxVertices;
 Var
   I:Integer;
-  Mat:Matrix;
+  Mat:Matrix4x4;
   P:Vector4D;
 Begin
   Result[1] := VectorCreate(1,-1,-1);
@@ -55,11 +67,11 @@ Begin
   Result[7] := VectorCreate(1,1,1);
   Result[8] := VectorCreate(-1,1,1);
 
-  Mat := MatrixMultiply4x4(ProjectionMatrix, CameraMatrix);
-  Mat := MatrixInverse(Mat);
+  Mat := Matrix4x4Multiply4x4(ProjectionMatrix4x4, CameraMatrix4x4);
+  Mat := Matrix4x4Inverse(Mat);
   For I:=1 To 8 Do
   Begin
-    P := QuaternionCreate(Result[I]);
+    P := Vector4DCreate(Result[I]);
     P.Transform(Mat);
     If (P.W = 0) Then
       P.W := 1.0;
@@ -67,9 +79,9 @@ Begin
   End;
 End;
 
-Procedure Frustum.Update(Const Projection, Camera:Matrix);
+Procedure Frustum.Update(Const Projection, Camera:Matrix4x4);
 Var
-  Clip:Matrix;
+  Clip:Matrix4x4;
 Begin
   _Vertices := GetVertices(Camera, Projection);
 

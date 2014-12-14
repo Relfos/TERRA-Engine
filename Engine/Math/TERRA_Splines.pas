@@ -1,9 +1,32 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Splines
+ * Implements a 3D spline class
+ ***********************************************************************************************************************
+}
 Unit TERRA_Splines;
 
 {$I terra.inc}
 Interface
 Uses TERRA_Utils, TERRA_Math, TERRA_Vector3D, TERRA_Color,
-  TERRA_Quaternion, TERRA_IO, TERRA_BoundingBox;
+  TERRA_Vector4D, TERRA_IO, TERRA_BoundingBox;
 
 Type
   SplineControlPoint = Record
@@ -43,7 +66,7 @@ Type
       Destructor Destroy; Override;
 
       Function GetPosition(T:Single):Vector3D;
-      Function GetOrientation(T:Single):Quaternion;
+      Function GetOrientation(T:Single):Vector4D;
 
 	    Procedure SetPoint(Index:Integer; P:Vector3D);
 	    Procedure AddPoint(P:Vector3D);
@@ -335,7 +358,7 @@ Begin
   Result := V;
 End;
 
-Function Spline.GetOrientation(T: Single): Quaternion;
+Function Spline.GetOrientation(T: Single): Vector4D;
 Var
   N:Integer;
   Delta:Single;
@@ -354,7 +377,7 @@ Begin
   V.Y := CatmullRomInterpolate(T0.Y, T1.Y, T2.Y, T3.Y, Delta);
   V.Z := CatmullRomInterpolate(T0.Z, T1.Z, T2.Z, T3.Z, Delta);
 
-  Result := QuaternionLookRotation(V, VectorUp);
+  Result := Vector4DLookRotation(V, VectorUp);
 End;
 
 Procedure Spline.Render(MyColor:Color);
