@@ -1,3 +1,27 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Application
+ * Implements the engine Application class, which provides cross platform support
+ ***********************************************************************************************************************
+}
+
 {$IFDEF OXYGENE}
 namespace TERRA;
 
@@ -227,8 +251,6 @@ Type
   End;
 
 	Application = Class(TERRAObject)
-  private
-    function GetAspectRatio: Single;
 		Protected
 			_Handle:Cardinal;   // Global window handle
 			_Running:Boolean;
@@ -262,6 +284,7 @@ Type
       _AntialiasSamples:Integer;
 			_FullScreen:Boolean;
       _IgnoreCursor:Boolean;
+      _IsConsole:Boolean;
 
       _PauseStart:Cardinal;
       _PauseCounter:Cardinal;
@@ -324,6 +347,8 @@ Type
 
       Procedure ProcessMessages; Virtual;
 
+      Function InitSettings:Boolean; Virtual; 
+
 			Function InitGraphics:Boolean; Virtual; Abstract;
       Procedure CloseGraphics; Virtual; Abstract;
 
@@ -335,6 +360,8 @@ Type
 
       Procedure ConvertCoords(Var X,Y:Integer);
 
+      Function GetAspectRatio: Single;
+      
       //Procedure UpdateCallbacks;
       //Procedure SetProcessorAffinity;
 
@@ -487,6 +514,8 @@ Type
       Property PreviousOrientation:Integer Read _PreviousOrientation;
 
       Property AspectRatio:Single Read GetAspectRatio;
+
+      Property IsConsole:Boolean Read _IsConsole;
 	End;
 
 Var
@@ -507,6 +536,7 @@ Function GetProgramName():AnsiString;
 
 Function IsLandscapeOrientation(Orientation:Integer):Boolean;
 Function IsPortraitOrientation(Orientation:Integer):Boolean;
+Function IsInvalidOrientation(Orientation:Integer):Boolean;
 
 Implementation
 Uses TERRA_Error, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
@@ -521,6 +551,11 @@ Var
   _ApplicationComponentCount:Integer;
 
   _RefreshingComponents:Boolean = False;
+
+Function IsInvalidOrientation(Orientation:Integer):Boolean;
+Begin
+    Result := (Orientation<0) Or (Orientation>=4);
+End;
 
 Function IsLandscapeOrientation(Orientation:Integer): Boolean;
 Begin
@@ -689,7 +724,11 @@ End;
 Procedure Application.ShutdownSystem;
 Begin
   ShutdownComponents;
-  CloseGraphics;
+
+  If (Not _IsConsole) Then
+  Begin
+    CloseGraphics();
+  End;
 
   _Ready := False;
   _CanReceiveEvents := False;
@@ -702,7 +741,7 @@ Begin
   End;
   {$ENDIF}
 
-  If Not _Managed Then
+  If (Not _Managed) And (Not _IsConsole) Then
   Begin
     CloseWindow;
   End;
@@ -723,7 +762,7 @@ Begin
   {$ENDIF}
 
   {$IFDEF PC}
-  _TapjoyCredits := 250;
+  //_TapjoyCredits := 250;
   {$ENDIF}
 
   Log(logDebug, 'App', 'Creating critical section for input');
@@ -732,15 +771,6 @@ Begin
   _InputMutex := CriticalSection.Create('app_input');
   {$ENDIF}
 
-  Log(logDebug, 'App', 'Initializing app path');
-  {$IFDEF OXYGENE}
-  _Path := System.IO.Directory.GetCurrentDirectory();
-  {$ELSE}
-  GetDir(0, _Path);
-  {$ENDIF}
-  _Language := 'EN';
-  _ContextCounter := 1;
-  _CPUCores := 1;
 
   Log(logDebug, 'App', 'Initializing window');
 
@@ -748,39 +778,51 @@ Begin
   _OrientationTime := 0;
   _PreviousOrientation := _Orientation;
 
+  If Assigned(Client) Then
+    _IsConsole := Client.IsConsole()
+  Else
+    _IsConsole := False;
+
   _Ready := False;
   {$IFNDEF MOBILE}
-  If (Not _Managed) Then
+  If (Not _Managed) And (Not _IsConsole) Then
   {$ENDIF}
     InitWindow;
+
+  Log(logDebug, 'App', 'Initializing settings');
+  If (Not InitSettings()) Then
+    Halt(0);
 
   {$IFDEF STEAM}
   If (IsSupportedLanguage(Steam.Instance.Language)) Then
     _Language := Steam.Instance.Language;
   {$ENDIF}
 
-  Log(logDebug, 'App', 'Initializing graphics');
-  If (Not InitGraphics) Then
-    Halt(0);
-
-  Self.SetViewport(0,0,_Width,_Height);
-
-  If Assigned(Client) Then
+  If (Not _IsConsole) Then
   Begin
-    _UIWidth := _Width;
-    _UIHeight := _Height;
-    Client.SelectResolution2D(_UIWidth, _UIHeight);
-    Log(logDebug, 'App', 'Selected UI resolution: '+IntToString(_UIWidth)+' x ' +IntToString(_UIHeight));
+    Log(logDebug, 'App', 'Initializing graphics');
+    If (Not InitGraphics) Then
+      Halt(0);
+
+    Self.SetViewport(0,0,_Width,_Height);
+
+    If Assigned(Client) Then
+    Begin
+      _UIWidth := _Width;
+      _UIHeight := _Height;
+      Client.SelectResolution2D(_UIWidth, _UIHeight);
+      Log(logDebug, 'App', 'Selected UI resolution: '+IntToString(_UIWidth)+' x ' +IntToString(_UIHeight));
+    End;
   End;
-
+  
   Log(logDebug, 'App', 'Found ' + IntToString(_ApplicationComponentCount)+' Components!');
-  For I:=0 To (_ApplicationComponentCount-1) Do
+  For I:=0 To Pred(_ApplicationComponentCount) Do
   Begin
- {$IFDEF OXYGENE}
-  S := _ApplicationComponents[I].Component.GetType().Name;
-{$ELSE}
-  S := _ApplicationComponents[I].Component.ClassName;
-{$ENDIF}
+    {$IFDEF OXYGENE}
+      S := _ApplicationComponents[I].Component.GetType().Name;
+    {$ELSE}
+      S := _ApplicationComponents[I].Component.ClassName;
+    {$ENDIF}
     Log(logDebug, 'App', 'Starting '+S);
   End;
 
@@ -947,6 +989,9 @@ Begin
 
     _ClientInit := True;
     _StartTime := GetElapsedTime();
+
+    If (_IsConsole) Then
+      _Managed := True;
 
     _Startup := False;
     If (_Managed) Or (_Hidden) Then
@@ -1665,8 +1710,14 @@ Var
 Begin
   Result := False;
 
+  If (IsInvalidOrientation(Value)) Then
+    Begin
+        Log(logDebug, 'App', 'Invalid orientation change: '+IntToString(Value));
+        Exit;
+    End;
+
   Delta := GetOrientationDelta();
-  If (_Orientation = Value) Or (Delta<1) Then
+If (_Orientation = Value) {Or (Delta<1)} Then
   Begin
     Log(logDebug, 'App', 'Failed orientation change (delta='+FloatToString(Delta)+')');
     Exit;
@@ -1676,6 +1727,29 @@ Begin
   _PreviousOrientation := _Orientation;
   _OrientationTime := GetTime();
   _Orientation := Value;
+
+    Case _Orientation Of
+    orientationLandscapeLeft:
+    Begin
+        Log(logDebug, 'App', 'Changing orientation to landscape-left');
+    End;
+
+    orientationLandscapeRight:
+    Begin
+        Log(logDebug, 'App', 'Changing orientation to landscape-right');
+    End;
+
+    orientationPortrait:
+    Begin
+        Log(logDebug, 'App', 'Changing orientation to portrait');
+    End;
+
+    orientationPortraitInverted:
+    Begin
+        Log(logDebug, 'App', 'Changing orientation to portrait-inverted');
+    End;
+End;
+
 
   For I:=0 To (_ApplicationComponentCount-1) Do
   Begin
@@ -1882,9 +1956,10 @@ Begin
         Log(logDebug, 'App', 'DeviceX2:'+IntToString(_DeviceX2)+ ' DeviceY2:'+IntToString(_DeviceY2));
         Log(logDebug, 'App', 'DeviceWidth:'+IntToString(_DeviceWidth)+ ' DeviceHeight:'+IntToString(_DeviceHeight));
         }
-        If (_MouseOnAdArea) Then
+
+        {If (_MouseOnAdArea) Then
           Client.OnAdClick(Input.Mouse.X, Input.Mouse.Y)
-        Else
+        Else}
           Client.OnMouseDown(Input.Mouse.X, Input.Mouse.Y, _Events[I].Value);
       End;
 
@@ -1933,7 +2008,7 @@ Begin
       Begin
         Log(logDebug, 'App', 'Device viewport, X1:'+IntToString(Trunc(_Events[I].X))+ ' Y1:'+IntToString(Trunc(_Events[I].Y))+
         ' X2:'+IntToString(Trunc(_Events[I].Z))+ ' Y2:'+IntToString(Trunc(_Events[I].W)));
-        Self.SetViewport(Trunc(_Events[I].X), Trunc(_Events[I].Y), Trunc(_Events[I].Z), Trunc(_Events[I].W));
+        //Self.SetViewport(Trunc(_Events[I].X), Trunc(_Events[I].Y), Trunc(_Events[I].Z), Trunc(_Events[I].W));
       End;
 
     eventAccelerometer:
@@ -2105,6 +2180,21 @@ End;
 Function Application.GetAspectRatio: Single;
 Begin
   Result := SafeDiv(_Height, _Width, 1.0);
+End;
+
+Function Application.InitSettings: Boolean;
+Begin
+  Log(logDebug, 'App', 'Initializing app path');
+  {$IFDEF OXYGENE}
+  _Path := System.IO.Directory.GetCurrentDirectory();
+  {$ELSE}
+  GetDir(0, _Path);
+  {$ENDIF}
+  _Language := 'EN';
+  _ContextCounter := 1;
+  _CPUCores := 1;
+
+  Result := True;
 End;
 
 Initialization

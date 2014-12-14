@@ -1,3 +1,27 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Client
+ * Implements a generic Application client that can respond to input events and other events, in a portable way
+ ***********************************************************************************************************************
+}
+
 {$IFDEF OXYGENE}
 namespace TERRA;
 {$ELSE}
@@ -55,14 +79,10 @@ Type
 
       Procedure OnOrientation(Orientation:Integer); Virtual;
 
-      Procedure OnAdClick(X,Y:Integer); Virtual;
-
       Procedure OnIAP_Error(ErrorCode:Integer); Virtual;
       Procedure OnIAP_Purchase(ID:AnsiString); Overload; Virtual;
       Procedure OnIAP_Purchase(Credits:Integer); Overload; Virtual;
       Procedure OnIAP_External(Const PurchaseID:AnsiString; UserData:Pointer); Virtual;
-
-      Function ServeAd(Width,Height:Integer):Image; Virtual;
 
       Procedure OnAPIResult(API, Code:Integer); Virtual;
 
@@ -88,10 +108,15 @@ Type
       Function GetAntialiasSamples:Integer; Virtual;
       Function GetLogging:Boolean; Virtual;
 
-      Function GetAppID:AnsiString; Virtual;
-      Function GetAdMobID:AnsiString; Virtual;
+      Function IsConsole():Boolean; Virtual;
 
-      Function GetInterstitialID:AnsiString; Virtual;
+      Function GetAppID:AnsiString; Virtual;
+
+      Function GetAdMobBannerID:AnsiString; Virtual;
+      Function GetAdMobInterstitialID:AnsiString; Virtual;
+
+      Function GetAdBuddizID:AnsiString; Virtual;
+
       Function GetFlurryID:AnsiString; Virtual;
       Function GetTestFlightID:AnsiString; Virtual;
       Function GetFacebookID:AnsiString; Virtual;
@@ -105,6 +130,16 @@ Type
 
       Function GetTapjoyID:AnsiString; Virtual;
       Function GetTapjoySecret:AnsiString; Virtual;
+
+      Function GetVungleID:AnsiString; Virtual;
+  End;
+
+  ConsoleClient = Class(AppClient)
+      Function GetWidth:Word; Override;
+      Function GetHeight:Word; Override;
+      Function GetVSync:Boolean; Override;
+
+      Function IsConsole():Boolean; Override;
   End;
 
 
@@ -243,21 +278,6 @@ Begin
   Application.Instance.SetOrientation(Orientation);
 End;
 
-Procedure AppClient.OnAdClick(X, Y: Integer);
-Begin
-  Log(logWarning, 'Client', 'Please implement Client.OnAdClick');
-End;
-
-Function AppClient.ServeAd(Width, Height: Integer):Image;
-Begin
-  Result := Nil;
-End;
-
-Function AppClient.GetAdMobID:AnsiString;
-Begin
-  Result := '';
-End;
-
 Function AppClient.GetAntialiasSamples: Integer;
 Begin
   Result := 0;
@@ -324,7 +344,12 @@ Begin
   Self.OnIAP_Error(-1);
 End;
 
-Function AppClient.GetInterstitialID:AnsiString;
+Function AppClient.GetAdMobBannerID:AnsiString;
+Begin
+  Result := '';
+End;
+
+Function AppClient.GetAdMobInterstitialID:AnsiString;
 Begin
   Result := '';
 End;
@@ -377,6 +402,43 @@ End;
 Function AppClient.GetChartboostSecret: AnsiString;
 Begin
   Result := '';
+End;
+
+Function AppClient.GetAdBuddizID: AnsiString;
+Begin
+  Result := '';
+End;
+
+Function AppClient.GetVungleID: AnsiString;
+Begin
+  Result := '';
+End;
+
+Function AppClient.IsConsole: Boolean;
+Begin
+  Result := False;
+End;
+
+{ ConsoleClient }
+
+Function ConsoleClient.IsConsole: Boolean;
+Begin
+  Result := True;
+End;
+
+Function ConsoleClient.GetVSync: Boolean;
+Begin
+  Result := False;
+End;
+
+Function ConsoleClient.GetWidth: Word;
+Begin
+  Result := 0;
+End;
+
+Function ConsoleClient.GetHeight: Word;
+Begin
+  Result := 0;
 End;
 
 

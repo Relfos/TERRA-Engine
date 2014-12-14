@@ -1,45 +1,27 @@
-{
-@abstract(File and Memory Streams)
-@author(Sergio Flores <relfos@gmail.com>)
-@created(March 15, 2005)
-@lastmod(January 4, 2006)
-The IO unit provides stream classes for reading/writing data.
-
-Version History
-   15/3/05  • Implemented TStream object
-               • Implemented TFileStream object
-               • Implemented TMemoryStream object
-            • Implemented TResourceStream object
-   16/3/05  • Implemented TList and TQueueList objects
-               • FIFO like stream for use with fixed size items
-            • Added CopyStream() function - not implemented yet
-            • Implemented TCompressedStream
-               • Uses a combination of LZSS compression and adaptative Huffman coding
-   17/3/05  • Implemented CopyStream()
-            • CopyStream replaced with Copy method of TStream
-   12/6/05  • Create() overloaded method of LFileStream renamed to Open()
-            • Added Delete() destructor to LFileStream
-            • Stream.Copy overload version now allows offset and size arguments
-            . Added Rename method to LFileStream
-   27/6/05  • Fixed bug in Stream.Copy that caused segmentation fault
-   28/6/05  • Fixed another bug in Stream.Copy
-   30/7/05  • Added ReadString and ReadLine methods
--            • Optimized MemoryStream for single byte,word and dword reads/writes
-   11/8/05  • Implemented CopyText()
-               • Allows to copy a stream into another, formated as text
-               • Useful for reading text files
-   14/8/05  • Implemented Stream.Skip()
-   1/11/05  • Implemented LBitStream class
-    7/7/06  • Extended LFileStream.Open method
-               • Now supports following sintax
-                  [Path\][Package:]Filename
-    8/7/06  • Fixed bug with FileStream size when offset>0
-    9/7/06  • Resource file Loading now supports load external resources
-   18/8/06  • Added tests to FileStream to prevent some IO errors when file not exists
-   22/8/06  • Added byteorder properties, to simplify reading BigEndian/LittleEndian streams
-            • Added support for writing with byteorder
-
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_IO
+ * Implements generic input/output stream
+ ***********************************************************************************************************************
 }
+
 {$IFDEF OXYGENE}
 namespace TERRA;
 {$ELSE}

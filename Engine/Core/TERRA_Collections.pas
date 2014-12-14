@@ -1,4 +1,28 @@
-Unit TERRA_Classes;
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Collections
+ * Implements generic collection classes (lists, queues, stacks, etc)
+ ***********************************************************************************************************************
+}
+
+Unit TERRA_Collections;
 
 {$I terra.inc}
 
@@ -82,7 +106,11 @@ Type
       Function ContainsReference(Item:ListObject):Boolean; Virtual; Abstract;
       Function ContainsDuplicate(Item:ListObject):Boolean; Virtual; Abstract;
 
+      Function GetItemByIndex(Index:Integer):ListObject; Virtual; Abstract;
+
       Function FindByKey(Key:AnsiString):ListObject; Virtual;
+
+      Property Objects[Index: Integer]:ListObject Read GetItemByIndex; Default;
 
       Property Count:Integer Read _ItemCount;
       Property Options:Integer Read _Options;
@@ -101,6 +129,8 @@ Type
 
       Function Push(Item:ListObject):Boolean; Virtual;
       Function Pop():ListObject; Virtual;
+
+      Function GetItemByIndex(Index:Integer):ListObject; Override;
 
       Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):ListObject; Override;
       Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Override;
@@ -128,6 +158,8 @@ Type
       Procedure Clear(); Override;
       Function CreateIterator:Iterator; Override;
 
+      Function GetItemByIndex(Index:Integer):ListObject; Override;
+
       // adds copies of items, not references!
       Function Merge(C:Collection):List;
 
@@ -141,8 +173,6 @@ Type
 
       Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):ListObject; Override;
       Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Override;
-
-      Function GetItemByIndex(Index:Integer):ListObject;
 
       Property First:ListObject Read _First;
   End;
@@ -198,6 +228,8 @@ Type
 
       Function ContainsReference(Item:ListObject):Boolean; Override;
       Function ContainsDuplicate(Item:ListObject):Boolean; Override;
+
+      Function GetItemByIndex(Index:Integer):ListObject; Override;
 
       Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):ListObject; Override;
       Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Override;
@@ -287,7 +319,7 @@ Type
 Function LoadKeypairList(SourceFile:AnsiString):List;
 
 Implementation
-Uses TERRA_Error, TERRA_Application, TERRA_Log, TERRA_FileIO, TERRA_IO;
+Uses TERRA_Error, TERRA_Log, TERRA_FileIO, TERRA_IO;
 
 Function GetStringHashKey(S:AnsiString):HashKey;
 Var
@@ -385,6 +417,53 @@ Begin
   _First := Nil;
   _ItemCount := 0;
 End;
+
+Function List.GetItemByIndex(Index:Integer):ListObject;
+Var
+  I:Integer;
+Begin
+  If (Index<0) Or (Index>=Self.Count) Then
+  Begin
+    Result := Nil;
+    Exit;
+  End;
+
+  Result := _First;
+  If (Index=0) Then
+    Exit;
+
+  I := 0;
+  While (Result<>Nil) Do
+  Begin
+    Result := Result.Next;
+    Inc(I);
+
+    If (I = Index) Then
+      Exit;
+  End;
+
+  Result := Nil;
+End;
+
+(*Function List.GetItemByIndex(Index:Integer):ListObject;
+Var
+  I:Iterator;
+Begin
+  Result:=Nil;
+  If (Index<0) Or (Index>=Self.Count) Then
+    Exit;
+
+  I := Self.CreateIterator;
+  While I.HasNext Do
+  Begin
+    Result := I.GetNext;
+    If (Index=0) Then
+      Break
+    Else
+      Dec(Index);
+  End;
+  I.Destroy();
+End;*)
 
 Function List.Merge(C:Collection):List;
 Var
@@ -627,25 +706,6 @@ Begin
   Result := False;
 End;
 
-Function List.GetItemByIndex(Index:Integer):ListObject;
-Var
-  I:Iterator;
-Begin
-  Result:=Nil;
-  If (Index<0) Or (Index>=Self.Count) Then
-    Exit;
-
-  I := Self.CreateIterator;
-  While I.HasNext Do
-  Begin
-    Result := I.GetNext;
-    If (Index=0) Then
-      Break
-    Else
-      Dec(Index);
-  End;
-  I.Destroy();
-End;
 
 Function List.CreateIterator:Iterator;
 Begin
@@ -711,7 +771,7 @@ Begin
   SetLength(_Table, _TableSize);
 End;
 
-Function HashTable.SearchWithHash(HashKey:Word; Visitor:CollectionVisitor; UserData:Pointer = Nil):ListObject; 
+Function HashTable.SearchWithHash(HashKey:Word; Visitor:CollectionVisitor; UserData:Pointer = Nil):ListObject;
 Var
   Key:Word;
 Begin
@@ -721,6 +781,33 @@ Begin
 
   If Assigned(_Table[Key]) Then
     Result := _Table[Key].Search(Visitor, UserData);
+End;
+
+Function HashTable.GetItemByIndex(Index: Integer): ListObject;
+Var
+  I, K, Count:Integer;
+Begin
+  If (Index<0) Or (Index>=Self.Count) Then
+  Begin
+    Result := Nil;
+    Exit;
+  End;
+
+  K := 0;
+  For I:=0 To Pred(_TableSize) Do
+    If (Assigned(_Table[I])) Then
+    Begin
+      Count := _Table[I].Count;
+      If (Index>=K) And (Index< K + Count) Then
+      Begin
+        Result := _Table[I].GetItemByIndex(Index - K);
+        Exit;
+      End;
+
+      Inc(K, Count);
+    End;
+
+  Result := Nil;
 End;
 
 Function HashTable.Search(Visitor: CollectionVisitor; UserData:Pointer = Nil): ListObject;
@@ -771,6 +858,12 @@ Function HashTable.Add(Item:ListObject):Boolean;
 Var
   Key:HashKey;
 Begin
+  If Item = Nil Then
+  Begin
+    Result := False;
+    Exit;
+  End;
+
   {$IFDEF DEBUG}Log(logDebug, 'HashTable', 'Obtaining an hash for this item...');{$ENDIF}
   Key := Item.GetHashKey();
   {$IFDEF DEBUG}Log(logDebug, 'HashTable', 'Got hash index: '+HexStr(Key));{$ENDIF}
@@ -1085,6 +1178,33 @@ Begin
   Result := Nil;
 End;
 
+Function Queue.GetItemByIndex(Index:Integer):ListObject;
+Var
+  I:Integer;
+Begin
+  If (Index<0) Or (Index>=Self.Count) Then
+  Begin
+    Result := Nil;
+    Exit;
+  End;
+
+  Result := _First;
+  If (Index = 0) Then
+    Exit;
+
+  I := 0;
+  While (Result<>Nil) Do
+  Begin
+    Result := Result.Next;
+    Inc(I);
+
+    If (I = Index) Then
+      Exit;
+  End;
+
+  Result := Nil;
+End;
+
 Function Queue.Pop:ListObject;
 Var
   P:ListObject;
@@ -1230,7 +1350,10 @@ End;
 
 Function ListObject.Sort(Other: ListObject): Integer;
 Begin
-  Result := 0;
+  If (Other<>Nil) Then
+    Result := 0
+  Else
+    Result := 1;
 End;
 
 Function ListObject.ToString:AnsiString;

@@ -1,3 +1,27 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Log
+ * Implements portable logging utilities
+ ***********************************************************************************************************************
+}
+
 {$IFDEF OXYGENE}
 namespace TERRA;
 {$ELSE}
@@ -19,7 +43,9 @@ Uses TERRA_FileIO
 {$IFDEF WINDOWS},Windows{$ENDIF}
 ;
 
-{$IFNDEF IPHONE}
+{$IFDEF IPHONE}
+{$UNDEF USE_LOGFILE}
+{$ELSE}
 {$DEFINE USE_LOGFILE}
 {$ENDIF}
 
@@ -74,10 +100,10 @@ Var
   {$IFNDEF USE_SYSLOG}
   _LogFile:FileStream;
 {$ENDIF}
-  _LogStarted:Boolean;
-  _LogActive:Boolean;
 {$ENDIF}
 
+    _LogActive:Boolean;
+    _LogStarted:Boolean;
 
   _LogFileName:AnsiString;
 

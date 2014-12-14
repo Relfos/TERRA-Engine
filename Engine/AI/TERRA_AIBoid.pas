@@ -3,7 +3,7 @@ Unit TERRA_AIBoid;
 {$I terra.inc}
 Interface
 
-Uses TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix, TERRA_Color, TERRA_Mesh;
+Uses TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix4x4, TERRA_Color, TERRA_Mesh;
 
 Const
    BoidSpeed = 20;
