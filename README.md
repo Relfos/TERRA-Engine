@@ -9,10 +9,10 @@ Does not require any external library or framework (except linking to OpenGL and
 * Author: [Sérgio Flores](https://github.com/relfos)
 * License: [APACHE](http://opensource.org/licenses/Apache-2.0)
 * [Reporting Issues](https://github.com/relfos/terra_engine/issues)
-* 1-on-1 support is available by donating $25 USD or greater.
- * Support can be obtained via [Email](mailto:admin@minimon3d.com)
+* Support can be obtained via [Email](mailto:admin@minimon3d.com)
+* If you require some specific feature please contact for a quote.
 
-[![Support via Paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=JTNWA35PBQS7A)
+[![Support via Paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=MQ7UQ6V92PZ8L)
 
 What is supported?
 ----------------
@@ -115,4 +115,9 @@ Integrated Mobile SDKs
 * Admob
 * Tapjoy
 * Fortumo
+* Chartboost
 * Adbuddiz
+
+Projects using TERRA
+---------------------
+* Minimon (http://minimon3d.com)
