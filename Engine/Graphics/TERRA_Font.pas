@@ -1,17 +1,26 @@
-{
-TERRA_Font
-GraphicsManager for bitmap fonts created with AngelCodeFontTool
-Fnt binary file only, supports multi-page fonts
-
-History
-  7/02/10   - Binary FNT loader and GraphicsManager
-
-ToDo
-  - Add support to unicode strings
-  - Fix multi-page (only page 0 is used now)
-  - Fix kerning
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Font
+ * Implements a Font Resource with unicode text support
+ ***********************************************************************************************************************
 }
-
 Unit TERRA_Font;
 
 {$I terra.inc}
@@ -19,7 +28,7 @@ Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Utils, TERRA_Resource, TERRA_IO, TERRA_Image, TERRA_Color, TERRA_Vector2D,
   TERRA_Math, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Texture, TERRA_SpriteManager,
-  TERRA_ResourceManager, TERRA_Matrix, TERRA_Matrix2D, TERRA_Classes;
+  TERRA_ResourceManager, TERRA_Matrix4x4, TERRA_Matrix3x3, TERRA_Collections;
 
 
 Const
@@ -85,7 +94,7 @@ Type
       _OptimizedWidth:Cardinal;
       _OptimizedHeight:Cardinal;
 
-      Procedure DrawGlyph(X,Y,Z:Single; Const Transform:Matrix2D; Scale:Single; Glyph:FontGlyph; Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean);
+      Procedure DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Scale:Single; Glyph:FontGlyph; Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean);
 
     Public
       Constructor Create(ID:Integer);
@@ -159,7 +168,7 @@ Type
       Procedure SetGradient(A,B:Color; Width, Height:Single; GradientMode:Integer);
       Procedure SetColor(FontColor:Color);
 
-      Procedure GetColors(Var A,B,C,D:Color);
+      Procedure GetColors(Out A,B,C,D:Color);
 
       Property Position:Vector2D Read _TargetPosition;
       Property Blink:Boolean Read _Blink;
@@ -230,9 +239,9 @@ Type
       Class Function GetManager:Pointer; Override;
 
       Procedure DrawText(Const X,Y,Layer:Single; Const Text:AnsiString; Const Color:Color; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
-      Procedure DrawTextWithTransform(Const X,Y,Layer:Single; Const Text:AnsiString; Const Color:Color; Const Transform:Matrix2D; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
-      Procedure DrawTextWithOutline(Const X,Y,Layer:Single; Const Text:AnsiString; Const Color, Outline:Color; Const Transform:Matrix2D; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
-      Procedure DrawTextWithGradient(X,Y,Layer:Single; Const Text:AnsiString; Const Color1, Color2, Outline:Color; Const Transform:Matrix2D; Const GradientMode:Integer; Scale:Single = 1.0; DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
+      Procedure DrawTextWithTransform(Const X,Y,Layer:Single; Const Text:AnsiString; Const Color:Color; Const Transform:Matrix3x3; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
+      Procedure DrawTextWithOutline(Const X,Y,Layer:Single; Const Text:AnsiString; Const Color, Outline:Color; Const Transform:Matrix3x3; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
+      Procedure DrawTextWithGradient(X,Y,Layer:Single; Const Text:AnsiString; Const Color1, Color2, Outline:Color; Const Transform:Matrix3x3; Const GradientMode:Integer; Scale:Single = 1.0; DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
 
       Procedure DrawTextToImage(Target:Image; X,Y:Integer; Const Text:AnsiString; ForceBlend:Boolean = True);
 
@@ -295,6 +304,7 @@ Var
 
 Function DefaultFontImageResolver(Fnt:Font; Const ImageName:AnsiString):AnsiString; CDecl;
 Begin
+  Fnt.IsReady();
   Result := ImageName;
 End;
 
@@ -712,7 +722,7 @@ Begin
     _Image.Destroy();
 End;
 
-Procedure FontPage.DrawGlyph(X,Y,Z:Single; Const Transform:Matrix2D; Scale:Single; Glyph:FontGlyph; Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean);
+Procedure FontPage.DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Scale:Single; Glyph:FontGlyph; Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean);
 Var
   S:Sprite;
 Begin
@@ -971,7 +981,7 @@ Begin
   _GradientMode := GradientMode;
 End;
 
-Procedure FontRenderer.GetColors(Var A, B, C, D:Color);
+Procedure FontRenderer.GetColors(Out A, B, C, D:Color);
 Var
   N, Delta1, Delta2:Single;
 Begin
@@ -1650,26 +1660,26 @@ Begin
   Self.DrawTextWithGradient(X, Y, Layer, Text, Color, Color, ColorNull, MatrixIdentity2D, gradientNone, Scale, DropShadow, Clip);
 End;
 
-Procedure Font.DrawTextWithTransform(Const X,Y,Layer:Single; Const Text:AnsiString; Const Color:Color; Const Transform:Matrix2D; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
+Procedure Font.DrawTextWithTransform(Const X,Y,Layer:Single; Const Text:AnsiString; Const Color:Color; Const Transform:Matrix3x3; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
 Begin
   Self.DrawTextWithGradient(X, Y, Layer, Text, Color, Color, ColorNull, Transform, gradientNone, Scale, DropShadow, Clip);
 End;
 
-Procedure Font.DrawTextWithOutline(Const X,Y,Layer:Single; Const Text:AnsiString; Const Color, Outline:Color; Const Transform:Matrix2D; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
+Procedure Font.DrawTextWithOutline(Const X,Y,Layer:Single; Const Text:AnsiString; Const Color, Outline:Color; Const Transform:Matrix3x3; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
 Begin
   Self.DrawTextWithGradient(X, Y, Layer, Text, Color, Color, Outline, Transform, gradientNone, Scale, DropShadow, Clip);
 End;
 
 Procedure Font.DrawTextWithGradient(X,Y,Layer:Single; Const Text:AnsiString;
                                     Const Color1, Color2, Outline:Color;
-                                    Const Transform:Matrix2D; Const GradientMode:Integer;
+                                    Const Transform:Matrix3x3; Const GradientMode:Integer;
                                     Scale:Single = 1.0; DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
 Var
   Glyph:FontGlyph;
   FR:FontRenderer;
   Alpha:Integer;
   DropShadowColor:TERRA_Color.Color;
-  Projection:Matrix;
+  Projection:Matrix4x4;
   A,B,C,D:Color;
   Size:Vector2D;
   I:Integer;
@@ -1738,7 +1748,7 @@ Var
   FR:FontRenderer;
   Alpha:Integer;
   DropShadowColor:TERRA_Color.Color;
-  Projection:Matrix;
+  Projection:Matrix4x4;
   A,B,C,D:Color;
   I:Integer;
   GG:Image;
@@ -1759,7 +1769,7 @@ Begin
 
   Glyph := Self.GetGlyph(Ord('E'));
   If Assigned(Glyph) Then
-    Y := Trunc(Y - Glyph.YOfs);
+    Y := Y - Glyph.YOfs;
 
   Self.GetTextRect(Text, 1.0); // TODO CHECK REALLY NECESSARY HERE?
 

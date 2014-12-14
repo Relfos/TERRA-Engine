@@ -1,11 +1,27 @@
-//http://www.opengl.org/discussion_boards/ubbthreads.php?ubb=showflat&Number=210762
-//http://www710.univ-lyon1.fr/~jciehl/Public/educ/GAMA/2007/Deferred_Shading_Tutorial_SBGAMES2005.pdf
-
-{ TODO
-  - IsVisible methods
-  - calculate scissor rects
-  - volumetric lights
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Lights
+ * Implements the various light classes
+ ***********************************************************************************************************************
 }
+
 Unit TERRA_Lights;
 
 {-$DEFINE DRAWVOLUMES}
@@ -13,7 +29,7 @@ Unit TERRA_Lights;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Shader, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Utils, TERRA_Math, TERRA_Texture, TERRA_Matrix,
+  TERRA_Shader, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Utils, TERRA_Math, TERRA_Texture, TERRA_Matrix4x4,
   TERRA_Vector3D, TERRA_Color, TERRA_Application, TERRA_BoundingBox;
 
 Const
@@ -112,13 +128,13 @@ Type
       _Direction:Vector3D;
       _OuterAngle:Single;
       _InnerAngle:Single;
-      _ProjectionMatrix:Matrix;
+      _ProjectionMatrix4x4:Matrix4x4;
       {$IFDEF DRAWVOLUMES}
       _Instance:Pointer;
       _Alpha:Single;
       {$ENDIF}
 
-      Procedure UpdateMatrix();
+      Procedure UpdateMatrix4x4();
       Procedure SetupUniforms(Index:Integer; Var TextureSlot:Integer); Override;
 
       Procedure UpdateDistance(Target:Vector3D); Override;
@@ -558,20 +574,20 @@ End;
 Procedure SpotLight.SetAlpha(A: Single);
 Begin
   _Alpha := A;
-  UpdateMatrix();
+  UpdateMatrix4x4();
 End;
 {$ENDIF}
 
 Procedure SpotLight.SetDirection(Dir: Vector3D);
 Begin
   _Direction := Dir;
-  UpdateMatrix();
+  UpdateMatrix4x4();
 End;
 
 Procedure SpotLight.SetPosition(Pos: Vector3D);
 Begin
   _Position := Pos;
-  UpdateMatrix();
+  UpdateMatrix4x4();
 End;
 
 Procedure SpotLight.SetupUniforms(Index: Integer; Var TextureSlot:Integer);
@@ -587,7 +603,7 @@ Begin
   _Shader.SetUniform('slightCosInnerAngle'+IntToString(Index), Cos(_InnerAngle));
   _Shader.SetUniform('slightCosOuterAngle'+IntToString(Index), Cos(_OuterAngle));
   _Shader.SetUniform('slightColor'+IntToString(Index), _Color);
-  _Shader.SetUniform('slightMatrix'+IntToString(Index), _ProjectionMatrix);
+  _Shader.SetUniform('slightMatrix'+IntToString(Index), _ProjectionMatrix4x4);
   _Shader.SetUniform('slightCookie'+IntToString(Index), TextureSlot);
 
   If Assigned(Cookie) Then
@@ -609,19 +625,19 @@ Begin
   _Distance := _Position.Distance(Target);
 End;
 
-Procedure SpotLight.UpdateMatrix;
+Procedure SpotLight.UpdateMatrix4x4;
 Var
   Roll:Vector3D;
-  M, M2:Matrix;
+  M, M2:Matrix4x4;
 Begin
   If (Abs(_Direction.Y)>=0.999) Then
     Roll := VectorCreate(0, 0, 1)
   Else
     Roll := VectorUp;
 
-  M := MatrixLookAt(_Position, VectorAdd(_Position, VectorScale(_Direction, 50)), Roll);
-  M2 := MatrixPerspective(DEG*_OuterAngle, 1.0, 0.1, 1000);
-  _ProjectionMatrix := MatrixMultiply4x4(M2, M);
+  M := Matrix4x4LookAt(_Position, VectorAdd(_Position, VectorScale(_Direction, 50)), Roll);
+  M2 := Matrix4x4Perspective(DEG*_OuterAngle, 1.0, 0.1, 1000);
+  _ProjectionMatrix4x4 := Matrix4x4Multiply4x4(M2, M);
 
   {$IFDEF DRAWVOLUMES}
   Inst := _Instance;
@@ -630,9 +646,9 @@ Begin
     Len := 100;
     S := Tan(_OuterAngle) * Len;
     If (Abs(_Direction.Y)>=0.999) Then
-      M := MatrixTransform(_Position, VectorCreate(0.0, 0.0, -_Direction.Y*180*RAD), VectorCreate(S, Len, S))
+      M := Matrix4x4Transform(_Position, VectorCreate(0.0, 0.0, -_Direction.Y*180*RAD), VectorCreate(S, Len, S))
     Else
-      M := MatrixOrientation(_Position, _Direction, VectorCreate(0, 1.0, 0.0), VectorCreate(S, Len, S));
+      M := Matrix4x4Orientation(_Position, _Direction, VectorCreate(0, 1.0, 0.0), VectorCreate(S, Len, S));
     Inst.SetTransform(M);
   End;
   {$ENDIF}

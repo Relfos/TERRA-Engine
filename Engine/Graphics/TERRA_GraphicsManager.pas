@@ -1,36 +1,29 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_GraphicsManager
+ * Implements the global graphics manager
+ ***********************************************************************************************************************
+}
+
 Unit TERRA_GraphicsManager;
 {$I terra.inc}
-
-  //_RenderBuckets[bucketReflection]._Sort := Unsorted;
-  //_RenderBuckets[bucketOpaque]._Sort := SortFrontToBack;
-  //_RenderBuckets[bucketAlpha]._Sort := SortBackToFront;
-
-
-{
-  mesh input
-    texture #1
-    rgba - diffuse + alpha
-
-    texture #2
-    r - emission
-    g - specular
-    b - height
-
-    texture #3
-    rgb - lightmap
-
-  light params
-  r - shadow factor
-  g - emission factor
-  b - specular factor
-  a - light mask
-
-  light output
-  r - shading factor
-  g - emission factor
-  b - specular factor
-  a - free
-}
 
 {$IFDEF WINDOWS}
 {$DEFINE PRECISIONTIMER}
@@ -45,10 +38,10 @@ Uses {$IFNDEF DEBUG_LEAKS}TERRA_MemoryManager,{$ENDIF} {$IFDEF USEDEBUGUNIT}TERR
   {$IFDEF POSTPROCESSING}TERRA_ScreenFX,{$ENDIF}
   {$IFDEF SHADOWMAPS}TERRA_ShadowMaps,{$ENDIF}
   {$IFDEF PRECISIONTIMER}TERRA_Timer,{$ENDIF}
-  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_BoundingBox, TERRA_Camera, TERRA_Color, TERRA_Matrix,
+  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_BoundingBox, TERRA_Camera, TERRA_Color, TERRA_Matrix4x4,
   TERRA_Utils, TERRA_Texture, TERRA_Scene, TERRA_Vector3D,
   TERRA_RenderTarget, TERRA_Viewport, TERRA_Application,
-  TERRA_Image, TERRA_Math, TERRA_Vector2D, TERRA_Ray,TERRA_Classes;
+  TERRA_Image, TERRA_Math, TERRA_Vector2D, TERRA_Ray, TERRA_Collections;
 
 Type
   GraphicsManagerCallback = Procedure;
@@ -262,7 +255,7 @@ Type
 
       Procedure Update; Override;
       
-      Procedure SetTransform(Transform:Matrix; Width,Height:Single);
+      Procedure SetTransform(Transform:Matrix4x4; Width,Height:Single);
 
       Function PointOccluded(P:Vector3D):Boolean;
       Function BoxOccluded(Box:BoundingBox):Boolean;
@@ -342,8 +335,8 @@ Type
       _RenderStage:Integer;
       _FrameID:Cardinal;
 
-      _Projection:Matrix;
-      _OrientationMatrix:Matrix;
+      _Projection:Matrix4x4;
+      _OrientationMatrix4x4:Matrix4x4;
 
       _ViewX:Integer;
       _ViewY:Integer;
@@ -351,13 +344,6 @@ Type
       _ViewHeight:Integer;
 
       _NeedsContextRestore:Boolean;
-
-      {$IFDEF SHOWADS}
-      _AdTex:Texture;
-      _AdWidth:Integer;
-      _AdHeight:Integer;
-      _AdOnBottom:Boolean;
-      {$ENDIF}
 
       _StencilID:Byte;
 
@@ -374,10 +360,6 @@ Type
       Procedure RenderSceneInternal(View:Viewport; Pass:Integer);
       Procedure RenderViewport(View:Viewport);
       Procedure RenderList(RenderList:List; TranslucentPass:Boolean);
-
-      {$IFDEF SHOWADS}
-      Procedure RenderAds;
-      {$ENDIF}
 
       Procedure ResetGLState();
 
@@ -396,8 +378,8 @@ Type
       ShowWireframe:Boolean;
       ShowDebugTarget:Integer;
 
-      ReflectionMatrix:Matrix;
-      ReflectionMatrixSky:Matrix;
+      ReflectionMatrix:Matrix4x4;
+      ReflectionMatrixSky:Matrix4x4;
       ReflectionActive:Boolean;
 
       {$IFDEF REFLECTIONS_WITH_STENCIL}
@@ -483,9 +465,9 @@ Type
 
       Function GetScreenshot():Image;
 
-      Function EnableColorShader(MyColor:Color; Transform:Matrix):Shader;
-      Function EnableTextureShader(MyColor:Color; Tex:Texture; Transform:Matrix):Shader;
-      Function EnableColoredTextureShader(Tex:Texture; Transform:Matrix):Shader;
+      Function EnableColorShader(MyColor:Color; Transform:Matrix4x4):Shader;
+      Function EnableTextureShader(MyColor:Color; Tex:Texture; Transform:Matrix4x4):Shader;
+      Function EnableColoredTextureShader(Tex:Texture; Transform:Matrix4x4):Shader;
 
       Procedure EnableReflection(Const ReflectionPoint, ReflectionNormal:Vector3D);
 
@@ -515,7 +497,7 @@ Type
       Property Vendor:AnsiString Read _Vendor;
       Property Version:TERRAVersion Read _Version;
 
-      Property ProjectionMatrix:Matrix Read _Projection;
+      Property ProjectionMatrix:Matrix4x4 Read _Projection;
 
       Property LightModel:Integer Read _LightModel Write _LightModel;
 
@@ -717,7 +699,7 @@ Begin
 End;
 
 { Occluder }
-Procedure Occluder.SetTransform(Transform:Matrix; Width,Height:Single);
+Procedure Occluder.SetTransform(Transform:Matrix4x4; Width,Height:Single);
 Var
   X1,X2,Y1,Y2:Single;
 Begin
@@ -840,7 +822,7 @@ Begin
   If (TranslucentPass) Then
     Exit;
 
-  GraphicsManager.Instance.EnableColorShader(ColorWhite, MatrixIdentity);
+  GraphicsManager.Instance.EnableColorShader(ColorWhite, Matrix4x4Identity);
   glLineWidth(3);
 //  glLineStipple(1, $FF);
 //  glEnable(GL_LINE_STIPPLE);
@@ -1238,6 +1220,8 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
   _Settings.ShadowMapSize := 1024;
   _Settings.ShadowBias := 2.0;
 
+  Log(logDebug, 'GraphicsManager', 'Device resolution: '+IntToString(_Width)+' x ' +IntToString(_Height));
+
   _DeviceViewport := Viewport.Create('device', _Width, _Height);
 
   OW := _Width;
@@ -1378,8 +1362,7 @@ Begin
   Dec(_CameraCount);
 End;
 
-{$IFDEF SHOWADS}
-Procedure GraphicsManager.RenderAds;
+(*Procedure GraphicsManager.RenderAds;
 Var
   MyShader:Shader;
 Begin
@@ -1395,7 +1378,7 @@ Begin
   GraphicsManager.Instance.SetBlendMode(blendBlend);
   GraphicsManager.Instance.SetBlendMode(blendNone);
 
-{$IFDEF IPHONE}
+{$IFDEF EMULATED_LANDSCAPE}
     If (_AdOnBottom) Then
         GraphicsManager.Instance.DrawFullscreenQuad(MyShader, 1.0 - (_AdHeight/_Width), 0.0, 1.0, 1.0)
     Else
@@ -1407,7 +1390,7 @@ Begin
     GraphicsManager.Instance.DrawFullscreenQuad(MyShader, 0.0, 0.0, 1.0, _AdHeight/_Height);
 {$ENDIF}
 End;
-{$ENDIF}
+*)
 
 Procedure GraphicsManager.RenderUI;
 Var
@@ -1436,8 +1419,8 @@ Begin
     Self.SetFog(False);
     //glEnable(GL_SCISSOR_TEST);
 
-    _Projection := MatrixOrtho(0.0, _UIViewport.Width, _UIViewport.Height, 0.0, 0, 100);
-    _Projection := MatrixMultiply4x4(_Projection, MatrixTranslation(0.375, 0.375, 0.0));
+    _Projection := Matrix4x4Ortho(0.0, _UIViewport.Width, _UIViewport.Height, 0.0, 0, 100);
+    _Projection := Matrix4x4Multiply4x4(_Projection, Matrix4x4Translation(0.375, 0.375, 0.0));
 
     GraphicsManager.Instance.SetViewArea(0, 0, _UIViewport.Width, _UIViewport.Height);
 
@@ -1499,8 +1482,8 @@ Begin
   If Self.ReflectionMask = Nil Then
     Exit;
 
-  Self.ReflectionMatrix := MatrixMirror(_ReflectionPoint, _ReflectionNormal);
-  Self.ReflectionMatrixSky := MatrixMirror(VectorZero, _ReflectionNormal);
+  Self.ReflectionMatrix := Matrix4x4Mirror(_ReflectionPoint, _ReflectionNormal);
+  Self.ReflectionMatrixSky := Matrix4x4Mirror(VectorZero, _ReflectionNormal);
     Normal := VectorScale(_ReflectionNormal, -1.0);
     {_Plane.A := Normal.X;
     _Plane.B := Normal.Y;
@@ -1521,8 +1504,8 @@ Begin
 
   ActiveViewport.Camera.RemoveClipPlane();
 
-  Self.ReflectionMatrixSky := MatrixIdentity;
-  Self.ReflectionMatrix := MatrixIdentity;
+  Self.ReflectionMatrixSky := Matrix4x4Identity;
+  Self.ReflectionMatrix := Matrix4x4Identity;
 
   {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
@@ -1570,8 +1553,8 @@ Begin
     Self.DrawFullscreenQuad(_FullscreenColorShader, 0, 0, 1, 1);
     {$ENDIF}
 
-    Self.ReflectionMatrix := MatrixMirror(Obj.ReflectionPoint, Obj.ReflectionNormal);
-    Self.ReflectionMatrixSky := MatrixMirror(VectorZero, Obj.ReflectionNormal);
+    Self.ReflectionMatrix4x4 := Matrix4x4Mirror(Obj.ReflectionPoint, Obj.ReflectionNormal);
+    Self.ReflectionMatrix4x4Sky := Matrix4x4Mirror(VectorZero, Obj.ReflectionNormal);
     Normal := VectorScale(Obj.ReflectionNormal, -1.0);
     {_Plane.A := Normal.X;
     _Plane.B := Normal.Y;
@@ -1650,8 +1633,8 @@ Begin
   End;
 
   _renderStage := renderStageDiffuse;
-  Self.ReflectionMatrixSky := MatrixIdentity;
-  Self.ReflectionMatrix := MatrixIdentity;
+  Self.ReflectionMatrix4x4Sky := Matrix4x4Identity;
+  Self.ReflectionMatrix4x4 := Matrix4x4Identity;
 
   {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
@@ -1915,7 +1898,7 @@ Begin
         Target.ClearColor := ColorNull;
 
       captureTargetReflection:
-        Target.ClearColor := ColorRed;
+        Target.ClearColor := ColorBlack;
 
       captureTargetColor:
         Target.ClearColor := View.BackgroundColor;
@@ -2092,7 +2075,7 @@ End;
 
 Procedure GraphicsManager.DrawFullscreenQuad(CustomShader:Shader; X1,Y1,X2,Y2:Single);
 Var
-  M,Projection:Matrix;
+  M,Projection:Matrix4x4;
   I:Integer;
   PositionHandle, UVHandle:Integer;
   //Delta:Single;
@@ -2135,7 +2118,7 @@ Begin
   {$ENDIF}
     InitFullScreenQuad(FullscreenQuad, X1,Y1,X2,Y2, Application.Instance.Orientation);
 
-  Projection := MatrixOrtho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
+  Projection := Matrix4x4Ortho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
 
   glDisable(GL_CULL_FACE);
   glDisable(GL_DEPTH_TEST);
@@ -2147,7 +2130,7 @@ Begin
     glMatrixMode(GL_PROJECTION);
     glLoadMatrixf(@Projection);
 
-    M := MatrixIdentity;
+    M := Matrix4x4Identity;
 
     glMatrixMode(GL_MODELVIEW);
     glLoadMatrixf(@M);
@@ -2208,8 +2191,8 @@ End;
 Var
   I:Integer;
 Begin
-	glMatrixMode(GL_PROJECTION);
-	glPushMatrix();
+	glMatrix4x4Mode(GL_PROJECTION);
+	glPushMatrix4x4();
 	glLoadIdentity();
 	gluPerspective(90.0, 1.0, 0.1, CAMERA_ZFAR);
 
@@ -2236,8 +2219,8 @@ Begin
 				break;
 		End;
 
-		glMatrixMode(GL_MODELVIEW);
-		glPushMatrix();
+		glMatrix4x4Mode(GL_MODELVIEW);
+		glPushMatrix4x4();
 		glLoadIdentity();
 		gluLookAt(pos.x, pos.y, pos.z, pos.x + v.x, pos.y + v.y, pos.z + v.z, up.x, up.y, up.z);
 
@@ -2248,15 +2231,15 @@ Begin
 			RenderSkyBox();
 		_rtCubemap->EndCapture();
 
-		glPopMatrix();
+		glPopMatrix4x4();
 
 		char ss[50];
 		sprintf(ss, "%s_%s.png", fileName.c_str(), CubeMapTexture::GetFaceName(I));
 		_rtCubemap->Save(ss);
 	End;
 
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
+	glMatrix4x4Mode(GL_PROJECTION);
+	glPopMatrix4x4();
 End;}
 
 Procedure InsertIntoPool(Target:Pool; MyRenderable:Renderable; Unsorted:Boolean);
@@ -2468,7 +2451,7 @@ Begin
   _CurrentBlendMode := BlendMode;
 End;
 
-Function GraphicsManager.EnableColorShader(MyColor:Color; Transform:Matrix):Shader;
+Function GraphicsManager.EnableColorShader(MyColor:Color; Transform:Matrix4x4):Shader;
 Begin
   If (Not Assigned(_SimpleColor)) Then
   Begin
@@ -2487,7 +2470,7 @@ Begin
   Result.SetUniform('out_color', MyColor);
 End;
 
-Function GraphicsManager.EnableTextureShader(MyColor:Color; Tex:Texture; Transform:Matrix):Shader;
+Function GraphicsManager.EnableTextureShader(MyColor:Color; Tex:Texture; Transform:Matrix4x4):Shader;
 Begin
   If (Not Assigned(_SimpleTexture)) Then
   Begin
@@ -2509,7 +2492,7 @@ Begin
   Result.SetUniform('out_texture', 0);
 End;
 
-Function GraphicsManager.EnableColoredTextureShader(Tex:Texture; Transform:Matrix):Shader;
+Function GraphicsManager.EnableColoredTextureShader(Tex:Texture; Transform:Matrix4x4):Shader;
 Begin
   If (Not Assigned(_SimpleTextureColored)) Then
   Begin
@@ -2662,13 +2645,6 @@ Begin
 
   If (Render2D) And (Self.ShowDebugTarget<=0) Then
     _UIViewport.DrawToTarget(False);
-
-  {$IFDEF SHOWADS}
-  If Assigned(_AdTex) Then
-  Begin
-    RenderAds();
-  End;
-  {$ENDIF}
 
   {$IFDEF IPHONE}
   FrameBufferObject(Target).PresentToScreen();
@@ -2930,23 +2906,6 @@ Begin
   Log(logDebug, 'GraphicsManager', 'Restoring rendering context');
   Self.ResetGLState();
 
-  {$IFDEF SHOWADS}
-  If Assigned(_AdTex) Then
-  Begin
-    Img := Application.Instance.Client.ServeAd(_AdWidth, _AdHeight);
-    If Assigned(Img) Then
-    Begin
-      _AdTex.Unload();
-      _AdTex.Update();
-      _AdTex.UpdateRect(Img);
-      Img.Destroy();
-    End Else
-    Begin
-      _AdTex.Destroy();
-    End;
-  End;
-  {$ENDIF}
-
   _DeviceViewport.OnContextLost();
   _UIViewport.OnContextLost();
 
@@ -3065,51 +3024,12 @@ Var
   Img:Image;
   I:Integer;
 Begin
-  If _DeviceViewport = Nil Then
-    Exit;
+    If _DeviceViewport = Nil Then
+        Exit;
 
-  {$IFDEF SHOWADS}
-  {$IFDEF IPHONE}
-  If ((X1>0) Or (X2<_Height)) Then
-  Begin
-    _AdWidth := _Height;
-    _AdHeight := _Width - (X2-X1);
-    _AdOnBottom := (X1=0);
-  End Else
-  {$ELSE}
-  If ((Y1>0) Or (Y2<_Height)) Then
-  Begin
-    _AdWidth := _Width;
-    _AdHeight := _Height - (Y2-Y1);
-    _AdOnBottom := (Y1=0);
-  End Else
-  {$ENDIF}
-  Begin
-    _AdWidth := 0;
-    _AdHeight := 0;
-  End;
-
-  If (_AdWidth>0) And (_AdHeight>0) And (_AdTex = Nil) Then
-  Begin
-    Log(logDebug, 'GraphicsManager', 'Adquiring ad banner...');
-    Img := Application.Instance.Client.ServeAd(_AdWidth, _AdHeight);
-
-    If Assigned(Img) Then
-    Begin
-      _AdTex := Texture.New('adtex', Img);
-      _AdTex.Uncompressed := False;
-      _AdTex.Wrap := False;
-      _AdTex.MipMapped := False;
-      _AdTex.BilinearFilter := False;
-      Img.Destroy();
-    End Else
-      Log(logDebug, 'GraphicsManager', 'Ad banner not found!');
-  End;
-
-  _DeviceViewport.OffsetX := X1;
+ (* _DeviceViewport.OffsetX := X1;
   _DeviceViewport.OffsetY := (_Height - Y2);
-  _DeviceViewport.Resize(X2-X1, Y2-Y1);
-  {$ENDIF}
+  _DeviceViewport.Resize(X2-X1, Y2-Y1);*)
 End;
 
 Function GraphicsManager.GenerateStencilID:Byte;

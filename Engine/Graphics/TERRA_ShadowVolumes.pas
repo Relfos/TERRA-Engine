@@ -1,27 +1,25 @@
-{
-@abstract(Shadow volumes)
-@author(Sergio Flores <relfos@gmail.com>)
-@created(July 9, 2006)
-@lastmod(July 9, 2006)
-The Shadows unit allows creation of shadow volumes from arbitraty meshes.
-The shadows volumes are used for rendering Stencil Shadows. 
-
-  Version History
-  27/7/05  • Started implementation
-  28/7/05  • Fixed bug with STENCILOP
-  30/7/05  • Fixed integer overflow bug with EdgeList
- 30/11/05  • Optimized shadow volume rendering
-             • Disables colorBuffer instead of alphamasking
-           • Fixed invisible geometry bug
-           • Implemented boundingbox culling
- 6/12/05   • Added optimization
-             • Shadows capped at terrain height
-           • Added suport for fog
- 9/12/05   • Remodeled for LEAF2
- 12/07/06  • Added suport for geometry shaders
- 17/07/06  • Shadows correctly generated using transform matrix
- 15/02/08  • Added depth fail implementation
-
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_ShadowVolumes
+ * Implements hard shadows via shadow volumes
+ ***********************************************************************************************************************
 }
 
 Unit TERRA_ShadowVolumes;
@@ -71,7 +69,7 @@ Type
 
 Implementation
 Uses TERRA_OS, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_GraphicsManager, TERRA_Lights, TERRA_Shader, TERRA_Mesh,
-  TERRA_MeshFilter, TERRA_Log, TERRA_Matrix;
+  TERRA_MeshFilter, TERRA_Log, TERRA_Matrix4x4;
 
 Type
   GroupVertex = Record
@@ -136,7 +134,7 @@ Var
   ShowGroup:Array Of Boolean;
   V:MeshVertex;
 
-  TM:PMatrix;
+  TM:PMatrix4x4;
 
   T:Triangle;
   Group:MeshGroup;

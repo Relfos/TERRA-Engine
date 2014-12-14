@@ -1,10 +1,33 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_DebugDraw
+ * Implements debug drawing objects
+ ***********************************************************************************************************************
+}
 Unit TERRA_DebugDraw;
 
 {$I terra.inc}
 Interface
 
 Uses TERRA_GraphicsManager, TERRA_Color, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_BoundingBox, TERRA_Frustum,
-  TERRA_Ray, TERRA_Matrix, TERRA_Vector3D, TERRA_Vector2D, TERRA_Utils, TERRA_SpriteManager,
+  TERRA_Ray, TERRA_Matrix4x4, TERRA_Vector3D, TERRA_Vector2D, TERRA_Utils, TERRA_SpriteManager,
   TERRA_MeshAnimation, TERRA_Collision2D, TERRA_Splines, TERRA_Shader;
 
 // 3d drawing
@@ -16,8 +39,8 @@ Procedure DrawSpline(Const S:Spline; Color:TERRA_Color.Color; KeepAlive:Boolean 
 Procedure DrawFrustum(Const MyFrustum:Frustum; Color:TERRA_Color.Color);
 Procedure DrawPlane(Const Position, Normal:Vector3D; Scale:Single; Color:TERRA_Color.Color);
 
-Procedure DrawSkeleton(Const MySkeleton:MeshSkeleton; MyColor:Color; State:AnimationState; Transform:Matrix; DrawJoints:Boolean = True; UseBoneColors:Boolean = False);
-Procedure DrawBone(Const MySkeleton:MeshSkeleton; BoneID:Integer; Color:Color; State:AnimationState; Transform:Matrix; Width:Single=2);
+Procedure DrawSkeleton(Const MySkeleton:MeshSkeleton; MyColor:Color; State:AnimationState; Transform:Matrix4x4; DrawJoints:Boolean = True; UseBoneColors:Boolean = False);
+Procedure DrawBone(Const MySkeleton:MeshSkeleton; BoneID:Integer; Color:Color; State:AnimationState; Transform:Matrix4x4; Width:Single=2);
 
 
 // 2d drawing
@@ -222,7 +245,7 @@ Var
   _Vertices:BoundingBoxVertices;
 Begin
 {$IFDEF PC}
-  GraphicsManager.Instance.EnableColorShader(Color, MatrixIdentity);
+  GraphicsManager.Instance.EnableColorShader(Color, Matrix4x4Identity);
 
   _Vertices := MyFrustum.Vertices;
 
@@ -275,7 +298,7 @@ Begin
 {$IFDEF PC}
   glDepthMask(True);                      
   glDepthRange(0,0.0001);                 
-  GraphicsManager.Instance.EnableColorShader(Color, MatrixIdentity);
+  GraphicsManager.Instance.EnableColorShader(Color, Matrix4x4Identity);
   GraphicsManager.Instance.SetBlendMode(blendBlend);
 	glLineWidth(2.0); 
   glPointSize(10);
@@ -288,7 +311,7 @@ Begin
 End;
 
 
-Procedure DrawSkeleton(Const MySkeleton:MeshSkeleton; MyColor:Color; State:AnimationState; Transform:Matrix; DrawJoints, UseBoneColors:Boolean);
+Procedure DrawSkeleton(Const MySkeleton:MeshSkeleton; MyColor:Color; State:AnimationState; Transform:Matrix4x4; DrawJoints, UseBoneColors:Boolean);
 Var
   Bone:MeshBone;
   A,B:Vector3D;
@@ -355,7 +378,7 @@ Begin
 {$ENDIF}
 End;
 
-Procedure DrawBone(Const MySkeleton:MeshSkeleton; BoneID:Integer; Color:Color; State:AnimationState; Transform:Matrix; Width:Single);
+Procedure DrawBone(Const MySkeleton:MeshSkeleton; BoneID:Integer; Color:Color; State:AnimationState; Transform:Matrix4x4; Width:Single);
 Var
   Bone:MeshBone;
   A,B:Vector3D;
@@ -410,7 +433,7 @@ Begin
   D := VectorAdd(VectorScale(U, Scale), VectorScale(V, -Scale));
 
 {$IFDEF PC}
-  GraphicsManager.Instance.EnableColorShader(Color, MatrixTranslation(Position));
+  GraphicsManager.Instance.EnableColorShader(Color, Matrix4x4Translation(Position));
 
   	glBegin(GL_QUADS);
   	glVertex3f(A.x, A.y, A.z);
@@ -603,7 +626,7 @@ Begin
   {$IFDEF PC}
   If (_AlwaysOnTop) Then
     glDisable(GL_DEPTH_TEST);
-  MyShader := GraphicsManager.Instance.EnableColorShader(MyColor, MatrixIdentity);
+  MyShader := GraphicsManager.Instance.EnableColorShader(MyColor, Matrix4x4Identity);
   Position := MyShader.GetAttribute('terra_position');
 
 	glLineWidth(2.0); 
@@ -714,7 +737,7 @@ Begin
   If (_AlwaysOnTop) Then
     glDisable(GL_DEPTH_TEST);
 
-  MyShader := GraphicsManager.Instance.EnableColorShader(MyColor, MatrixIdentity);
+  MyShader := GraphicsManager.Instance.EnableColorShader(MyColor, Matrix4x4Identity);
   Position := MyShader.GetAttribute('terra_position');
 
   glBegin(GL_LINE_STRIP);
@@ -776,7 +799,7 @@ Begin
   If (_AlwaysOnTop) Then
     glDisable(GL_DEPTH_TEST);
 
-  MyShader := GraphicsManager.Instance.EnableColorShader(MyColor, MatrixIdentity);
+  MyShader := GraphicsManager.Instance.EnableColorShader(MyColor, Matrix4x4Identity);
   Position := MyShader.GetAttribute('terra_position');
 
 	glLineWidth(2.0);
@@ -821,7 +844,7 @@ Begin
   If (_AlwaysOnTop) Then
     glDisable(GL_DEPTH_TEST);
 
-  MyShader := GraphicsManager.Instance.EnableColorShader(MyColor, MatrixIdentity);
+  MyShader := GraphicsManager.Instance.EnableColorShader(MyColor, Matrix4x4Identity);
   Position := MyShader.GetAttribute('terra_position');
 
 	glLineWidth(Self.Thickness);

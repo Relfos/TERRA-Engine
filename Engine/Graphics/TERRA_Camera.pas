@@ -1,10 +1,33 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Camera
+ * Implements a generic camera class
+ ***********************************************************************************************************************
+}
 Unit TERRA_Camera;
 
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Utils, TERRA_Frustum, TERRA_BoundingBox,
-  TERRA_Vector3D, TERRA_Matrix, TERRA_Math, TERRA_Plane;
+  TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Math, TERRA_Plane;
 
 Const
   MoveSpeed = 0.05;
@@ -32,10 +55,10 @@ Type
       _Roll:Vector3D;
       _Speed:Single;
 
-      _Transform:Matrix;
-      _ScreenMatrix:Matrix;
+      _Transform:Matrix4x4;
+      _ScreenMatrix4x4:Matrix4x4;
 
-			_ProjectionMatrix:Matrix;
+			_ProjectionMatrix4x4:Matrix4x4;
       _Ortho:Boolean;
 
       _OrthoX1:Single;
@@ -64,7 +87,7 @@ Type
       _Up:Vector3D;
       _Right:Vector3D;
 
-      Procedure UpdateMatrix;
+      Procedure UpdateMatrix4x4;
 
       Function ConvertPlaneWorldToCameraSpace(Point, Normal:Vector3D):Plane;
 
@@ -110,10 +133,10 @@ Type
       Property Ortho:Boolean Read _Ortho;
       Property OrthoScale:Single Read _OrthoScale Write SetOrthoScale;
 
-      Property Transform:Matrix Read _Transform;
-      Property Projection:Matrix Read _ProjectionMatrix;
+      Property Transform:Matrix4x4 Read _Transform;
+      Property Projection:Matrix4x4 Read _ProjectionMatrix4x4;
 
-      Property ScreenMatrix:Matrix Read _ScreenMatrix;
+      Property ScreenMatrix4x4:Matrix4x4 Read _ScreenMatrix4x4;
       Property Speed:Single Read _Speed Write _Speed;
 
       Property Near:Single Read _Near Write SetNear;
@@ -174,17 +197,17 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Procedure Camera.UpdateMatrix;
+Procedure Camera.UpdateMatrix4x4;
 Const
   ZoomFactor = 1;
 Var
   P:Vector3D;
   Zoom:Single;
-  Proj:Matrix;
+  Proj:Matrix4x4;
 Begin
   _NeedsUpdate := False;
 
-{$IFDEF IPHONE}
+{$IFDEF EMULATED_LANDSCAPE}
  // If (Application.Instance.IsLandscape()) And (_Target<>Nil) Then
     _Ratio := SafeDiv(_Height, _Width, 1.0) * SafeDiv(GraphicsManager.Instance.Height, GraphicsManager.Instance.Width, 1.0);
 {$ELSE}
@@ -193,10 +216,10 @@ Begin
 
 
   If (_Ortho) Then
-    _ProjectionMatrix := MatrixOrtho(Ratio*_OrthoX1*_OrthoScale, Ratio*_OrthoX2*_OrthoScale,
+    _ProjectionMatrix4x4 := Matrix4x4Ortho(Ratio*_OrthoX1*_OrthoScale, Ratio*_OrthoX2*_OrthoScale,
                                        _OrthoY1*_OrthoScale, _OrthoY2*_OrthoScale, _Near, _Far)
   Else
-    _ProjectionMatrix := MatrixPerspective(_FOV, Ratio, _Near, _Far);
+    _ProjectionMatrix4x4 := Matrix4x4Perspective(_FOV, Ratio, _Near, _Far);
 
 //Log(logDebug, 'Viewport', 'X:'+IntToString(Trunc(_X)) +' Y:'+IntToString(Trunc(_Y)));
 //  Log(logDebug, 'Viewport', 'W:'+IntToString(Trunc(_Width)) +' W:'+IntToString(Trunc(_Height)));
@@ -206,8 +229,8 @@ Begin
     _Up := VectorCreate(_Roll.Y, _Roll.X, _Roll.Z)
   Else}
 
-  _Transform := MatrixLookAt(P, VectorAdd(_Position, _View), _Roll);
-  _ScreenMatrix := _Transform;
+  _Transform := Matrix4x4LookAt(P, VectorAdd(_Position, _View), _Roll);
+  _ScreenMatrix4x4 := _Transform;
 
   _Up := _Roll;
 {  If (Abs(_Up.Dot(_View))>=0.9) Then
@@ -226,9 +249,9 @@ Begin
   //_Up.Normalize;
 
   {If Self._UseClipPlane Then
-    CalculateObliqueMatrixClipPlane(_ProjectionMatrix, _Transform, _ClipPlane);}
+    CalculateObliqueMatrix4x4ClipPlane(_ProjectionMatrix4x4, _Transform, _ClipPlane);}
 
-	_Frustum.Update(_ProjectionMatrix, Self._Transform);
+	_Frustum.Update(_ProjectionMatrix4x4, Self._Transform);
 End;
 
 Procedure Camera.SetOrthoScale(Value:Single);
@@ -260,7 +283,7 @@ Begin
   _Height := Height;
 
   If (_NeedsUpdate) Then
-    UpdateMatrix;
+    UpdateMatrix4x4;
 End;
 
 Procedure Camera.Rotate(rotX, rotY:Single);
@@ -292,7 +315,7 @@ Begin
   _Shader.SetUniform('cameraPosition', _Position);
   _Shader.SetUniform('cameraView', _View);
   _Shader.SetUniform('cameraMatrix', _Transform);
-  _Shader.SetUniform('projectionMatrix', _ProjectionMatrix);
+  _Shader.SetUniform('projectionMatrix', _ProjectionMatrix4x4);
   _Shader.SetUniform('zNear', _Near);
   _Shader.SetUniform('zFar', _Far);
 
@@ -517,7 +540,7 @@ Begin
     Exit;
   End;
 
-  UpdateMatrix();
+  UpdateMatrix4x4();
 End;
 
 Procedure Camera.RemoveClipPlane;
@@ -535,7 +558,7 @@ Begin
     Exit;
   End;
 
-  UpdateMatrix();
+  UpdateMatrix4x4();
 End;
 
 Procedure Camera.SetRatio(Value: Single);

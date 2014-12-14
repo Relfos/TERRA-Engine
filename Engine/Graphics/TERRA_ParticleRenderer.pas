@@ -1,3 +1,26 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_ParticleRender
+ * Implements an optimized particle renderer
+ ***********************************************************************************************************************
+}
 Unit TERRA_ParticleRenderer;
 {$I terra.inc}
 
@@ -5,7 +28,7 @@ Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Utils, TERRA_GraphicsManager, TERRA_Texture, TERRA_Application,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_IO, TERRA_Plane,
-  TERRA_Matrix, TERRA_Math, TERRA_Canvas, TERRA_BoundingBox,
+  TERRA_Matrix4x4, TERRA_Math, TERRA_TextureAtlas, TERRA_BoundingBox,
   TERRA_Shader, TERRA_UI, TERRA_Image,
   TERRA_FileManager;
 
@@ -58,7 +81,7 @@ Type
 
   ParticleType = Class
     Name:AnsiString;
-    Item:CanvasItem;
+    Item:TextureAtlasItem;
     U1,V1,U2,V2:Single;
   End;
 
@@ -235,7 +258,7 @@ Type
   ParticleManager = Class(ApplicationComponent)
     Protected
       _Instance:ParticleManager;
-      _Canvas:Canvas;
+      _TextureAtlas:TextureAtlas;
 
       _NormalTexture:Texture;
       _NormalImage:Image;
@@ -738,10 +761,10 @@ End;
 Procedure ParticleManager.Init;
 Begin
   _NeedsRebuild := False;
-  _Canvas := Canvas.Create('particle', 512, 512);
-  _NormalImage := Image.Create(_Canvas.Width, _Canvas.Height);
-  _GlowImage := Image.Create(_Canvas.Width, _Canvas.Height);
-  _RefractionImage := Image.Create(_Canvas.Width, _Canvas.Height);
+  _TextureAtlas := TextureAtlas.Create('particle', 512, 512);
+  _NormalImage := Image.Create(_TextureAtlas.Width, _TextureAtlas.Height);
+  _GlowImage := Image.Create(_TextureAtlas.Width, _TextureAtlas.Height);
+  _RefractionImage := Image.Create(_TextureAtlas.Width, _TextureAtlas.Height);
 End;
 
 Destructor ParticleManager.Destroy;
@@ -754,8 +777,8 @@ Begin
     _Types[I].Destroy;
   _TypeCount := 0;
 
-  If Assigned(_Canvas) Then
-    _Canvas.Destroy;
+  If Assigned(_TextureAtlas) Then
+    _TextureAtlas.Destroy;
 
   If Assigned(_NormalTexture) Then
     _NormalTexture.Destroy;
@@ -806,7 +829,7 @@ Begin
   SetLength(_Types, _TypeCount);
   Result := ParticleType.Create;
   Result.Name := UpStr(GetFileName(Name,True));
-  Result.Item := _Canvas.Get(Name);
+  Result.Item := _TextureAtlas.Get(Name);
   _Types[Pred(_TypeCount)] := Result;
 
   If Not Assigned(Result.Item) Then
@@ -815,7 +838,7 @@ Begin
     If S<>'' Then
     Begin
       Source := Image.Create(S);
-      Result.Item := _Canvas.Add(Source, Name);
+      Result.Item := _TextureAtlas.Add(Source, Name);
       _NeedsRebuild := True;
       Source.Destroy;
     End Else
@@ -880,10 +903,10 @@ Function ParticleManager.GetTexture(Target:ParticleCollection): Texture;
 Var
   I:Integer;
   Source:Image;
-  Item:CanvasItem;
+  Item:TextureAtlasItem;
   S:AnsiString;
 Begin
-  If Not Assigned(_Canvas) Then
+  If Not Assigned(_TextureAtlas) Then
   Begin
     Result := Nil;
     Exit;
@@ -892,11 +915,11 @@ Begin
   If _NeedsRebuild Then
   Begin
     _NeedsRebuild := False;
-    _Canvas.Update;
+    _TextureAtlas.Update;
 
-    For I:=0 To Pred(_Canvas.ItemCount) Do
+    For I:=0 To Pred(_TextureAtlas.ItemCount) Do
     Begin
-      Item := _Canvas.Get(I);
+      Item := _TextureAtlas.Get(I);
 
       S := LowStr(GetFileName(Item.Name, True))+'_normal.png';
       S := FileManager.Instance.SearchResourceFile(S);
@@ -907,7 +930,7 @@ Begin
         Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
         Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
       End;
-      _NormalImage.Blit(Trunc(Item.X*_Canvas.Width), Trunc(Item.Y*_Canvas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
+      _NormalImage.Blit(Trunc(Item.X*_TextureAtlas.Width), Trunc(Item.Y*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
       Source.Destroy();
 
       S := LowStr(GetFileName(Item.Name, True))+'_glow.png';
@@ -919,7 +942,7 @@ Begin
         Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
         Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
       End;
-      _GlowImage.Blit(Trunc(Item.X*_Canvas.Width), Trunc(Item.Y*_Canvas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
+      _GlowImage.Blit(Trunc(Item.X*_TextureAtlas.Width), Trunc(Item.Y*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
       Source.Destroy;
 
       S := LowStr(GetFileName(Item.Name, True))+'_refraction.png';
@@ -931,42 +954,42 @@ Begin
         Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
         Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
       End;
-      _RefractionImage.Blit(Trunc(Item.X*_Canvas.Width), Trunc(Item.Y*_Canvas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
+      _RefractionImage.Blit(Trunc(Item.X*_TextureAtlas.Width), Trunc(Item.Y*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
       Source.Destroy();
     End;
 
     If (_NormalTexture = Nil) Then
     Begin
-      _NormalTexture := Texture.New('particles_normal', _Canvas.Width, _Canvas.Height);
+      _NormalTexture := Texture.New('particles_normal', _TextureAtlas.Width, _TextureAtlas.Height);
       _NormalTexture.Update;
     End;
     _NormalTexture.UpdateRect(_NormalImage, 0, 0);
 
     If (_GlowTexture = Nil) Then
     Begin
-      _GlowTexture := Texture.New('particles_glow', _Canvas.Width, _Canvas.Height);
+      _GlowTexture := Texture.New('particles_glow', _TextureAtlas.Width, _TextureAtlas.Height);
       _GlowTexture.Update;
     End;
     _GlowTexture.UpdateRect(_GlowImage, 0, 0);
 
     If (_RefractionTexture = Nil) Then
     Begin
-      _RefractionTexture := Texture.New('particles_refraction', _Canvas.Width, _Canvas.Height);
+      _RefractionTexture := Texture.New('particles_refraction', _TextureAtlas.Width, _TextureAtlas.Height);
       _RefractionTexture.Update();
     End;
     _RefractionTexture.UpdateRect(_RefractionImage, 0, 0);
 
     //_RefractionImage.Save('reffi.png');
 
-    {_Canvas.GetTexture(0).GetImage.Save('canvas.png');
+    {_TextureAtlas.GetTexture(0).GetImage.Save('TextureAtlas.png');
     _NormalImage.Save('normal.png');}
 
     For I:=0 To Pred(_TypeCount) Do
     Begin
       _Types[I].U1 := _Types[I].Item.X;
       _Types[I].V1 := _Types[I].Item.Y;
-      _Types[I].U2 := _Types[I].Item.X + (Pred(_Types[I].Item.Buffer.Width) / _Canvas.Width);
-      _Types[I].V2 := _Types[I].Item.Y + (Pred(_Types[I].Item.Buffer.Height) / _Canvas.Height);
+      _Types[I].U2 := _Types[I].Item.X + (Pred(_Types[I].Item.Buffer.Width) / _TextureAtlas.Width);
+      _Types[I].V2 := _Types[I].Item.Y + (Pred(_Types[I].Item.Buffer.Height) / _TextureAtlas.Height);
     End;
   End;
 
@@ -979,7 +1002,7 @@ Begin
   If (GraphicsManager.Instance.RenderStage = renderStageGlow) Then
     Result := _GlowTexture
   Else
-    Result := _Canvas.GetTexture(0);
+    Result := _TextureAtlas.GetTexture(0);
 
   Result.BilinearFilter := False;
   Result.MipMapped := False;

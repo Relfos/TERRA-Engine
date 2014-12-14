@@ -1,15 +1,36 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Mesh
+ * Implements the Mesh resource and Mesh Instance classes
+ ***********************************************************************************************************************
+}
 Unit TERRA_Mesh;
 {$I terra.inc}
-
-//http://www.flipcode.com/archives/Dirtypunks_Column-Issue_04_View_Independent_Progressive_Meshes.shtml
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Utils, TERRA_Texture, TERRA_IO, TERRA_Resource, TERRA_MeshAnimation,
-  TERRA_VertexBufferObject, TERRA_ResourceManager, TERRA_FileUtils, TERRA_Quaternion,
-  TERRA_Math, TERRA_Ray, TERRA_Classes, TERRA_ShadowVolumes, TERRA_GraphicsManager, TERRA_MeshFilter,
+  TERRA_VertexBufferObject, TERRA_ResourceManager, TERRA_FileUtils, TERRA_Vector4D,
+  TERRA_Math, TERRA_Ray, TERRA_Collections, TERRA_ShadowVolumes, TERRA_GraphicsManager, TERRA_MeshFilter,
   TERRA_BoundingBox, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_RenderTarget,
-  TERRA_Matrix2D, TERRA_Matrix, TERRA_ParticleRenderer, TERRA_ParticleEmitters, TERRA_Lights, TERRA_Shader
+  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ParticleRenderer, TERRA_ParticleEmitters, TERRA_Lights, TERRA_Shader
 //  {$IFDEF PC}, TERRA_Fur, TERRA_Cloth{$ENDIF}
 ;
 
@@ -19,6 +40,11 @@ Const
   MaxTrailSize = 5;
   TrailDelay = 500;
   TrailDecay = 1000;
+
+  customTransformNone   = 0;
+  customTransformLocal  = 1;
+  customTransformGlobal = 2;
+
 
   MinDelta = 0.01;
 
@@ -69,7 +95,7 @@ Type
   MeshAttach = Record
     AttachMesh:Mesh;
     BoneIndex:Integer;
-    Matrix:TERRA_Matrix.Matrix;
+    Matrix:Matrix4x4;
     Color:TERRA_Color.Color;
     IsStencil:Boolean;
   End;
@@ -149,7 +175,7 @@ Type
     Protected
       _Mesh:Mesh;
       _BoundingBox:BoundingBox;
-      _Transform:Matrix;
+      _Transform:Matrix4x4;
 
       _FX:Array Of MeshFX;
       _FXCount:Integer;
@@ -161,10 +187,10 @@ Type
       _Materials:Array Of MeshMaterial;
       _TempAlpha:Array Of Byte;
 
-      _UVTransforms:Array Of Matrix;
+      _UVTransforms:Array Of Matrix4x4;
 
-      _Transforms:Array Of Matrix;
-      _CustomTransform:Array Of Boolean;
+      _Transforms:Array Of Matrix4x4;
+      _CustomTransform:Array Of Integer;
 
       _AttachList:Array Of MeshAttach;
       _AttachCount:Integer;
@@ -183,7 +209,7 @@ Type
 
       _MotionBlur:Boolean;
       _RenderTrails:Boolean;
-      _OldTransforms:Array[0..Pred(MaxTrailSize)] Of Matrix;
+      _OldTransforms:Array[0..Pred(MaxTrailSize)] Of Matrix4x4;
       _LastTrailUpdate:Cardinal;
       _LastMotionBlur:Cardinal;
 
@@ -201,7 +227,7 @@ Type
       _Lights:Array Of PositionalLight;
       _LightCount:Integer;
 
-      Procedure DrawMesh(Const MyTransform:Matrix; TranslucentPass, StencilTest:Boolean);
+      Procedure DrawMesh(Const MyTransform:Matrix4x4; TranslucentPass, StencilTest:Boolean);
 
       Procedure DrawParticles();
 
@@ -301,8 +327,8 @@ Type
       Procedure SetWaterFlowSpeed(GroupID:Integer; Speed:Single);
       Function GetWaterFlowSpeed(GroupID:Integer):Single;          
 
-      Procedure SetTextureTransform(GroupID:Integer; Transform:Matrix);
-      Function GetTextureTransform(GroupID:Integer):Matrix;
+      Procedure SetTextureTransform(GroupID:Integer; Transform:Matrix4x4);
+      Function GetTextureTransform(GroupID:Integer):Matrix4x4;
 
       Function GetVegetationBend(GroupID: Integer): Single;
       Procedure SetVegetationBend(GroupID: Integer; Bend:Single);
@@ -317,16 +343,17 @@ Type
       Procedure SetBlendMode(GroupID:Integer; Mode:Integer);
       Function GetBlendMode(GroupID:Integer):Integer;
 
-      Procedure SetGroupTransform(GroupID:Integer; Transform:Matrix);
+      Procedure SetGroupGlobalTransform(GroupID:Integer; Const Transform:Matrix4x4);
+      Procedure SetGroupLocalTransform(GroupID:Integer; Const Transform:Matrix4x4);
 
       Procedure SetPosition(P:Vector3D);
       Procedure SetRotation(P:Vector3D);
       Procedure SetScale(P:Vector3D);
-      Procedure SetTransform(M:Matrix);
+      Procedure SetTransform(M:Matrix4x4);
 
       Procedure SetMotionBlur(Enabled:Boolean);
 
-      Procedure AddAttach(AttachMesh:Mesh; BoneIndex:Integer; M:Matrix; C:Color; IsStencil:Boolean = False);
+      Procedure AddAttach(AttachMesh:Mesh; BoneIndex:Integer; M:Matrix4x4; C:Color; IsStencil:Boolean = False);
       Procedure ClearAttachs;
 
       Constructor Create(MyMesh:Mesh);
@@ -340,7 +367,7 @@ Type
       Property Position:Vector3D Read _Position Write SetPosition;
       Property Rotation:Vector3D Read _Rotation Write SetRotation;
       Property Scale:Vector3D Read _Scale Write SetScale;
-      Property Transform:Matrix Read _Transform Write SetTransform;
+      Property Transform:Matrix4x4 Read _Transform Write SetTransform;
 
       Property CastShadows:Boolean Read _CastShadows Write _CastShadows;
       Property MotionBlur:Boolean Read _MotionBlur Write SetMotionBlur;
@@ -416,7 +443,7 @@ Type
 
       _Links:Array Of MeshVertexLink;
 
-      Procedure SetupUniforms(Transform:Matrix; State:MeshInstance; Outline:Boolean; Const Material:MeshMaterial);
+      Procedure SetupUniforms(Transform:Matrix4x4; State:MeshInstance; Outline:Boolean; Const Material:MeshMaterial);
 
       Procedure SetCombineWithColor(C:Color);
       Procedure BindMaterial(Var Slot:Integer; Const Material:MeshMaterial);
@@ -549,16 +576,16 @@ Type
 	  	Procedure AddQuad(A,B,C,D:MeshVertex; FastInsert:Boolean = False);
       Procedure AddVertexPin(ID:Word);
 
-      Procedure CullTriangles(Box:BoundingBox; Transform:Matrix);
+      Procedure CullTriangles(Box:BoundingBox; Transform:Matrix4x4);
       Procedure UncullTriangles();
 
-      Function Render(Const Transform:Matrix; State:MeshInstance):Boolean;
+      Function Render(Const Transform:Matrix4x4; State:MeshInstance):Boolean;
 
       Function DuplicateVertex(Index:Integer):Integer;
 
       Procedure OnContextLost();
 
-      Function Intersect(Const R:Ray; Var T:Single; Const Transform:Matrix):Boolean;
+      Function Intersect(Const R:Ray; Var T:Single; Const Transform:Matrix4x4):Boolean;
 
       Function GetVertex(Index:Integer):MeshVertex;
       Function GetTriangle(Index:Integer):Triangle;
@@ -642,10 +669,10 @@ Type
 
       Class Function GetManager:Pointer; Override;
 
-      Procedure CullTriangles(Box:BoundingBox; Transform:Matrix);
+      Procedure CullTriangles(Box:BoundingBox; Transform:Matrix4x4);
       Procedure UncullTriangles();
 
-//			Procedure AddMesh(MyMesh:Mesh; Const Transform:Matrix);
+//			Procedure AddMesh(MyMesh:Mesh; Const Transform:Matrix4x4);
 			Procedure AddTriangle(A,B,C:MeshVertex; Group:MeshGroup);
 			Procedure AddQuad(A,B,C,D:MeshVertex; Group:MeshGroup);
 
@@ -682,7 +709,7 @@ Type
 
       Function Clone():Mesh;
 
-      Function Intersect(Const R:Ray; Var T:Single; Const Transform:Matrix):Boolean;
+      Function Intersect(Const R:Ray; Var T:Single; Const Transform:Matrix4x4):Boolean;
 
 			Property BoundingBox:BoundingBox Read _BoundingBox;
 
@@ -1472,7 +1499,7 @@ Begin
 End;
 
 { MeshInstance }
-Procedure MeshInstance.AddAttach(AttachMesh:Mesh; BoneIndex:Integer; M:Matrix; C:Color; IsStencil:Boolean);
+Procedure MeshInstance.AddAttach(AttachMesh:Mesh; BoneIndex:Integer; M:Matrix4x4; C:Color; IsStencil:Boolean);
 Var
   P:Vector3D;
 Begin
@@ -1480,7 +1507,7 @@ Begin
     Exit;
 
   P := Self._Mesh.Skeleton.BindPose[Succ(BoneIndex)].Transform(VectorZero);
-  M := MatrixMultiply4x4(MatrixInverse(Self._Mesh.Skeleton.BindPose[Succ(BoneIndex)]), MatrixMultiply4x4(M, MatrixTranslation(P)));
+  M := Matrix4x4Multiply4x4(Matrix4x4Inverse(Self._Mesh.Skeleton.BindPose[Succ(BoneIndex)]), Matrix4x4Multiply4x4(M, Matrix4x4Translation(P)));
 
   Inc(_AttachCount);
   SetLength(_AttachList, _AttachCount);
@@ -1581,7 +1608,7 @@ Begin
   _UVTransforms[GroupID].V[5] := Y;
 End;
 
-Procedure MeshInstance.SetTextureTransform(GroupID:Integer; Transform:Matrix);
+Procedure MeshInstance.SetTextureTransform(GroupID:Integer; Transform:Matrix4x4);
 Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Exit;
@@ -1589,10 +1616,10 @@ Begin
   _UVTransforms[GroupID] := Transform;
 End;
 
-Function MeshInstance.GetTextureTransform(GroupID:Integer):Matrix;
+Function MeshInstance.GetTextureTransform(GroupID:Integer):Matrix4x4;
 Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
-    Result := MatrixIdentity
+    Result := Matrix4x4Identity
   Else
     Result := _UVTransforms[GroupID];
 End;
@@ -1683,7 +1710,7 @@ End;
 Function MeshInstance.GetWaterFlowBounds(GroupID:Integer):Vector4D;
 Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
-    Result := QuaternionZero
+    Result := Vector4DZero
   Else
     Result := _Materials[GroupID].FlowBounds;
 End;
@@ -1789,7 +1816,7 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Procedure MeshInstance.SetTransform(M: Matrix);
+Procedure MeshInstance.SetTransform(M: Matrix4x4);
 Begin
   _NeedsUpdate := False;
   _NeedsRebuild := True;
@@ -1800,10 +1827,10 @@ Begin
   UpdateBoundingBox;
 End;
 
-Procedure MeshInstance.SetGroupTransform(GroupID:Integer; Transform: Matrix);
+{Procedure MeshInstance.SetGroupTransform(GroupID:Integer; Transform: Matrix4x4);
 Var
   Center:Vector3D;
-  A,B:Matrix;
+  A,B:Matrix4x4;
 Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Exit;
@@ -1814,6 +1841,24 @@ Begin
   B := MatrixTranslation(Center);
   _Transforms[GroupID] := MatrixMultiply4x4(A, MatrixMultiply4x4(Transform, B));
   _CustomTransform[GroupID] := True;
+End;}
+
+Procedure MeshInstance.SetGroupLocalTransform(GroupID:Integer; Const Transform: Matrix4x4);
+Begin
+  If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
+    Exit;
+
+  _Transforms[GroupID] := Transform;
+  _CustomTransform[GroupID] := customTransformLocal;
+End;
+
+Procedure MeshInstance.SetGroupGlobalTransform(GroupID:Integer; Const Transform: Matrix4x4);
+Begin
+  If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
+    Exit;
+
+  _Transforms[GroupID] := Transform;
+  _CustomTransform[GroupID] := customTransformGlobal;
 End;
 
 Procedure MeshInstance.UpdateBoundingBox;
@@ -1831,7 +1876,7 @@ Begin
     Exit;
 
   _NeedsUpdate := False;
-  _Transform := MatrixTransform(_Position, _Rotation, _Scale);
+  _Transform := Matrix4x4Transform(_Position, _Rotation, _Scale);
   UpdateBoundingBox;
 End;
 
@@ -1895,8 +1940,8 @@ Begin
   Begin
     _Visibility[I] := (_Mesh._Groups[I].Flags And meshGroupHidden=0);
     _Materials[I].Reset();
-    _CustomTransform[I] := False;
-    _UVTransforms[I] := MatrixIdentity;
+    _CustomTransform[I] := customTransformNone;
+    _UVTransforms[I] := Matrix4x4Identity;
 
     If (_Mesh._Groups[I].Flags And meshGroupCastShadow<>0) Then
       Inc(N);
@@ -1952,7 +1997,7 @@ Var
   I,J, N:Integer;
   S:Single;
   B:MeshBone;
-  M:Matrix;
+  M:Matrix4x4;
 Begin
   If (_Mesh = Nil) Or (Not _Mesh.IsReady) Then
     Exit;
@@ -1980,7 +2025,7 @@ End;
 Procedure MeshInstance.RenderLights;
 Var
   I:Integer;
-  M, Transform:Matrix;
+  M, Transform:Matrix4x4;
   Box:BoundingBox;
   GroupTransform:Boolean;
   MyLight:MeshLight;
@@ -2020,7 +2065,7 @@ Begin
     If (MyLight.BoneIndex>=0) Then
     Begin
       M := Animation.Transforms[Succ(MyLight.BoneIndex)];
-      M := MatrixMultiply4x3(_Transform, M);
+      M := Matrix4x4Multiply4x3(_Transform, M);
     End Else
       M := _Transform;
 
@@ -2054,7 +2099,7 @@ End;
 Procedure MeshInstance.DrawParticles();
 Var
   I, J, ID,ID2:Integer;
-  M, Transform:Matrix;
+  M, Transform:Matrix4x4;
   Box:BoundingBox;
   GroupTransform:Boolean;
   Emitter:MeshEmitter;
@@ -2108,7 +2153,7 @@ Begin
       If (Emitter.BoneIndex>=0) Then
       Begin
         M := Animation.Transforms[Succ(Emitter.BoneIndex)];
-        M := MatrixMultiply4x3(_Transform, M);
+        M := Matrix4x4Multiply4x3(_Transform, M);
       End Else
         M := _Transform;
     End;
@@ -2124,10 +2169,10 @@ Begin
   End;
 End;
 
-Procedure MeshInstance.DrawMesh(Const MyTransform:Matrix; TranslucentPass, StencilTest:Boolean);
+Procedure MeshInstance.DrawMesh(Const MyTransform:Matrix4x4; TranslucentPass, StencilTest:Boolean);
 Var
   I:Integer;
-  M, Transform:Matrix;
+  M, Transform:Matrix4x4;
   Box:BoundingBox;
   GroupTransform:Boolean;
   Emitter:MeshEmitter;
@@ -2150,12 +2195,15 @@ Begin
     If (_Mesh._Groups[I].Flags And meshGroupStencilMask<>0) Then
       Continue;
 
-    GroupTransform := (_CustomTransform<>Nil) And (_CustomTransform[I]);
+    If (_CustomTransform = Nil) Then
+      _CustomTransform[I] := customTransformNone;
 
-    If (GroupTransform) Then
-      Transform := MatrixMultiply4x4(MyTransform, _Transforms[I])
-    Else
-      Transform := MyTransform;
+    Case _CustomTransform[I] Of
+      customTransformLocal: Transform := Matrix4x4Multiply4x4(MyTransform, _Transforms[I]);
+      customTransformGlobal: Transform := _Transforms[I];
+      Else
+        Transform := MyTransform;
+    End;
 
     If (CullGroups) Then
     Begin
@@ -2175,8 +2223,8 @@ Var
   C:Color;
   Time:Cardinal;
   I, J:Integer;
-  M:Matrix;
-  Temp:Matrix;
+  M:Matrix4x4;
+  Temp:Matrix4x4;
   S:Single;
 Begin
   If (_Mesh=Nil) Then
@@ -2258,7 +2306,7 @@ Begin
     For I:=0 To Pred(_AttachCount) Do
     If (_AttachList[I].IsStencil) Then
     Begin
-      M := MatrixMultiply4x3(_Transform, MatrixMultiply4x3(Animation.Transforms[Succ(_AttachList[I].BoneIndex)], _AttachList[I].Matrix));
+      M := Matrix4x4Multiply4x3(_Transform, Matrix4x4Multiply4x3(Animation.Transforms[Succ(_AttachList[I].BoneIndex)], _AttachList[I].Matrix));
 
       _AttachList[I].AttachMesh.Prefetch();
 
@@ -2322,7 +2370,7 @@ Begin
       If _RenderTrails Then
       Begin
         S := 0.75 + 0.25 * (1.0 - (J/Pred(MaxTrailSize)));
-        _Transform := MatrixMultiply4x3(_OldTransforms[J], MatrixScale(S, S, S));
+        _Transform := Matrix4x4Multiply4x3(_OldTransforms[J], Matrix4x4Scale(S, S, S));
         DrawMesh( _Transform, TranslucentPass, False);
       End;
     End;
@@ -2338,7 +2386,7 @@ Begin
 {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Rendering attach '+IntToString(I));{$ENDIF}
 
     //M := MatrixMultiply4x3(_Transform, MatrixMultiply4x3(Animation.Transforms[Succ(_AttachList[I].BoneIndex)], _AttachList[I].Matrix));
-    M := MatrixMultiply4x3(_Transform, MatrixMultiply4x3(Animation.Transforms[Succ(_AttachList[I].BoneIndex)], _AttachList[I].Matrix));
+    M := Matrix4x4Multiply4x3(_Transform, Matrix4x4Multiply4x3(Animation.Transforms[Succ(_AttachList[I].BoneIndex)], _AttachList[I].Matrix));
 
     If Not _AttachList[I].AttachMesh.IsReady() Then
       Continue;
@@ -2777,7 +2825,7 @@ End;
 Procedure MeshGroup.SetupSkeleton;
 Var
   Index, J:Integer;
-  M:Matrix;
+  M:Matrix4x4;
   Skel:MeshSkeleton;
 Begin
   _NeedsSkeletonSetup := False;
@@ -2806,7 +2854,7 @@ Var
 Procedure MeshGroup.DrawGeometry(State:MeshInstance; ShowWireframe:Boolean);
 Var
   I, N:Integer;
-  M:Matrix;
+  M:Matrix4x4;
   PositionHandle, UVHandle, UVHandle2, ColorHandle, NormalHandle:Integer;
 Begin
   If (_CullGeometry) And (_VisibleTriangleCount>=_TriangleCount) Then
@@ -3654,7 +3702,7 @@ Procedure MeshGroup.UpdateBoundingBox;
 Var
   I,N:Integer;
   P:Vector3D;
-  M:Matrix;
+  M:Matrix4x4;
 Begin
   If (_VertexCount>0) And (_Vertices<>Nil) Then
   Begin
@@ -3691,7 +3739,7 @@ Begin
   End;
 End;
 
-Function MeshGroup.Intersect(const R: Ray; var T: Single; Const Transform:Matrix): Boolean;
+Function MeshGroup.Intersect(const R: Ray; var T: Single; Const Transform:Matrix4x4): Boolean;
 Var
   I:Integer;
   V0,V1,V2:Vector3D;
@@ -3721,19 +3769,19 @@ Begin
 End;
 
 
-Procedure MeshGroup.SetupUniforms(Transform:Matrix; State:MeshInstance; Outline:Boolean; Const Material:MeshMaterial);
+Procedure MeshGroup.SetupUniforms(Transform:Matrix4x4; State:MeshInstance; Outline:Boolean; Const Material:MeshMaterial);
 Var
   I:Integer;
-  TextureMatrix, M, M2:Matrix;
+  TextureMatrix, M, M2:Matrix4x4;
   C:Color;
   BoneVectorLocation:Integer;
-  BoneVectors:Array[0..(Succ(MaxBones)*3)] Of Quaternion;
-  M2D:Matrix2D;
+  BoneVectors:Array[0..(Succ(MaxBones)*3)] Of Vector4D;
+  M2D:Matrix3x3;
   Bend,Delta:Single;
 
-  Procedure UploadBoneMatrix(ID:Integer; Mat:Matrix);
+  Procedure UploadBoneMatrix(ID:Integer; Mat:Matrix4x4);
   Var
-    B1,B2,B3:Quaternion;
+    B1,B2,B3:Vector4D;
   Begin
     //Mat := MatrixTranspose(Mat);
     B1.X := Mat.Get(0, 0);
@@ -3757,12 +3805,12 @@ Var
   End;
 Begin                            
   If (GraphicsManager.Instance.ReflectionActive) Then
-    Transform := MatrixMultiply4x4(GraphicsManager.Instance.ReflectionMatrix, Transform);
+    Transform := Matrix4x4Multiply4x4(GraphicsManager.Instance.ReflectionMatrix, Transform);
 
   If Assigned(State) Then
     TextureMatrix := State._UVTransforms[Self._ID]
   Else
-    TextureMatrix := MatrixIdentity;
+    TextureMatrix := Matrix4x4Identity;
 
   {$IFDEF PC}
   If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
@@ -3771,7 +3819,7 @@ Begin
     glLoadMatrixf(@TextureMatrix);
     M := GraphicsManager.Instance.ActiveViewport.Camera.Projection;
     M2 := GraphicsManager.Instance.ActiveViewport.Camera.Transform;
-    M := MatrixMultiply4x4(M, M2);
+    M := Matrix4x4Multiply4x4(M, M2);
     glMatrixMode(GL_PROJECTION);
     glLoadMatrixf(@M);
     glMatrixMode(GL_MODELVIEW);
@@ -3823,11 +3871,12 @@ Begin
     If (BoneVectorLocation<0) Then
       Exit;
 
-    UploadBoneMatrix(0, MatrixIdentity);
+    UploadBoneMatrix(0, Matrix4x4Identity);
 
     If (_Owner.Skeleton.BoneCount>MaxBones) Then
     Begin
-      Log(logWarning, 'Mesh', 'Bone limit reached, '+IntToString(_Owner.Skeleton.BoneCount)+' bones');
+      Log(logWarning, 'Mesh', 'Bone limit reached, '+IntToString(_Owner.Skeleton.BoneCount)+' bones'
+        + ', mesh name = "' + _Owner.Name + '"');
       Exit;
     End;
 
@@ -3887,7 +3936,7 @@ Begin
    {$ENDIF}
 End;
 
-Function MeshGroup.Render(Const Transform:Matrix; State:MeshInstance):Boolean;
+Function MeshGroup.Render(Const Transform:Matrix4x4; State:MeshInstance):Boolean;
 Var
   UseOutline, ShowWireframe:Boolean;
   I,J,K, PassCount:Integer;
@@ -3895,7 +3944,7 @@ Var
   Transparency:Boolean;
   SM:Single;
   Slot, VolSlot:Integer;
-  M:Matrix;
+  M:Matrix4x4;
 
   DestMaterial:MeshMaterial;
 
@@ -4979,7 +5028,7 @@ Begin
   Result := False;
 End;
 
-Procedure MeshGroup.CullTriangles(Box: BoundingBox; Transform:Matrix);
+Procedure MeshGroup.CullTriangles(Box: BoundingBox; Transform:Matrix4x4);
 Var
   Visibility:Array Of Boolean;
   I,J:Integer;
@@ -5349,7 +5398,7 @@ Begin
 	Group.AddQuad(A,B,C,D);
 End;
 
-{Procedure Mesh.AddMesh(MyMesh:Mesh; Const Transform:Matrix);
+{Procedure Mesh.AddMesh(MyMesh:Mesh; Const Transform:Matrix4x4);
 Var
 	I,J:Integer;
 	Group, NewGroup:MeshGroup;
@@ -5557,7 +5606,7 @@ Begin
   Result := True;
 End;
 
-Function Mesh.Intersect(const R: Ray; var T:Single; Const Transform:Matrix): Boolean;
+Function Mesh.Intersect(const R: Ray; var T:Single; Const Transform:Matrix4x4): Boolean;
 Var
   I:Integer;
 Begin
@@ -5900,7 +5949,7 @@ Begin
   Result := False;
 End;
 
-Procedure Mesh.CullTriangles(Box: BoundingBox; Transform:Matrix);
+Procedure Mesh.CullTriangles(Box: BoundingBox; Transform:Matrix4x4);
 Var
   I:Integer;
 Begin
@@ -6180,7 +6229,9 @@ Begin
     Exit;
   End;
 
-  MeshManager.Instance.PreFetch(Source);
+  Source.Prefetch();
+  Dest.Prefetch();
+
   Log(logDebug, 'Mesh', 'Beginning merging '+Source.Name+' into '+Dest.Name);
 
   Init := Dest.PolyCount;

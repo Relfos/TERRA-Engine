@@ -1,21 +1,26 @@
-{
-@abstract(Skybox class)
-@author(Sergio Flores <relfos@gmail.com>)
-@created(August 6, 2005)
-@lastmod(December 2, 2006)
-The Skybox unit implements a static skybox system.
-
-  Version History
-   6/8/05  • Moved class implementation from LEAF_Scene
-           • Cleaned code
-           • Code is now full commented
-           • Skybox.Render: Ambient color no longer is changed
-           • Added SetColor, for changing sky color
-   7/8/05  • Fixed bug with clouds moviment
-  2/12/06  • Converted to LEAF2
-
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Skybox
+ * Implements a skybox
+ ***********************************************************************************************************************
 }
-
 Unit TERRA_Skybox;
 
 {$i terra.inc}
@@ -121,7 +126,7 @@ Begin
   Line('uniform lowp vec4 skyColor;');
   Line('  void main()	{');
   Line('  highp vec3 n = normalize(normal);');
-  If (OutputMode And shaderOutputNormal<>0) Then
+  If (OutputMode And shader_OutputNormal<>0) Then
   Begin
     Line('  n *= 0.5; n += vec3(0.5, 0.5, 0.5);');
     Line('  gl_FragColor = vec4(n, 0.0);}');
@@ -199,7 +204,7 @@ Begin
   Begin
     If (_SkyboxNormalShader = Nil) Then
     Begin
-      _SkyboxNormalShader := Shader.CreateFromString(GetShader_Skybox(shaderOutputNormal), 'skybox_normal');
+      _SkyboxNormalShader := Shader.CreateFromString(GetShader_Skybox(shader_OutputNormal), 'skybox_normal');
       ShaderManager.Instance.AddShader(_SkyboxNormalShader);
     End;
     MyShader := _SkyboxNormalShader;

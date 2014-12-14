@@ -1,33 +1,27 @@
-{
-@abstract(OBJ Loader)
-@author(Sergio Flores <relfos@gmail.com>)
-@created(March 19, 2005)
-@lastmod(February 25, 2006)
-The OBJ unit provides support for loading Alias Wavefront OBJ mesh files.
-
-Supported features
-#############################################
-#   Geometry    Yes                         #
-#   Normals     Yes                         #
-#   Groups      Yes                         #
-#   Materials   Yes, external               #
-#   Textures    Yes, external               #
-#   Shaders     No                          #
-#   LODs        No                          #
-#   Emitters    No                          #
-#   Bones       No                          #
-#   Animation   No                          #
-#   Actions     No                          #
-#############################################
-
-Version History
-   18/8/05  • Implemented OBJ loader Class
-            • Optimized vertex storage by group using a vertexpool
-            • Added triangle fan generation
-   21/1/07  • Added OBJ exporter
-   22/1/07  • Fixed some bugs in the loader
-   29/5/07  • Fixed a bug in the Save method
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_OBJ
+ * Implements a OBJ model loader/writer/meshfilter
+ ***********************************************************************************************************************
 }
+
 Unit TERRA_OBJ;
 
 {$I terra.inc}
@@ -78,7 +72,7 @@ Type
     Vertex:Integer;
   End;
 
-  ModelOBJ = Class(MeshFilter)
+  OBJModel = Class(MeshFilter)
     Protected
       _MaterialFile:AnsiString;
 
@@ -166,7 +160,7 @@ Begin
 end;
 
 //  Reads Vertex coords, Normals and Texture coords from a String
-Procedure ModelOBJ.ReadVertexData(S:AnsiString);
+Procedure OBJModel.ReadVertexData(S:AnsiString);
 Var
   C:Vector3D;
   T:Vector2D;
@@ -195,7 +189,7 @@ End;
 
 //  Reads the faces/triangles info for the model
 //  Data is stored as "f f f" OR "f/t f/t /ft" OR "f/t/n .. f/t/n"
-Procedure ModelOBJ.ReadFaceData(S:AnsiString);
+Procedure OBJModel.ReadFaceData(S:AnsiString);
 Const
   MaxPolySize=32;
 Var
@@ -260,7 +254,7 @@ Begin
 End;
 
 //  Get the name of the material for the group
-Procedure ModelOBJ.GetMaterialName(S:AnsiString);
+Procedure OBJModel.GetMaterialName(S:AnsiString);
 Var
   I,P:Integer;
 Begin
@@ -279,7 +273,7 @@ Begin
 End;
 
 //  Create a new material
-Procedure ModelOBJ.CreateMaterial(S:AnsiString);
+Procedure OBJModel.CreateMaterial(S:AnsiString);
 Var
   Material:POBJMaterial;
 Begin
@@ -301,7 +295,7 @@ Begin
 End;
 
 //  Get Material Color values
-Procedure ModelOBJ.ReadMaterial(S:AnsiString);
+Procedure OBJModel.ReadMaterial(S:AnsiString);
 Var
   MyColor:Color;
   P,P2:Integer;
@@ -328,7 +322,7 @@ Begin
 End;
 
 //  Get material specular highlight
-Procedure ModelOBJ.ReadShininess(S:AnsiString);
+Procedure OBJModel.ReadShininess(S:AnsiString);
 Begin
   S:=Trim(Copy(S, 3, Length(S)));
   ReplaceText(',', '.', S);
@@ -337,7 +331,7 @@ Begin
 End;
 
 //  Load texture for material
-Procedure ModelOBJ.ReadTexture(S:AnsiString);
+Procedure OBJModel.ReadTexture(S:AnsiString);
 Var
   I:Integer;
   Tag:AnsiString;
@@ -353,7 +347,7 @@ Begin
 End;
 
 //  Load the materials from the material file
-Procedure ModelOBJ.LoadMaterials(S:AnsiString);
+Procedure OBJModel.LoadMaterials(S:AnsiString);
 Var
   P:Integer;
   Filename:AnsiString;
@@ -393,7 +387,7 @@ Begin
   F.Destroy;
 End;
 
-Function ModelOBJ.GetMaterial(Index:Integer): POBJMaterial;
+Function OBJModel.GetMaterial(Index:Integer): POBJMaterial;
 Begin
   If _GroupList[Index].MaterialIndex<>-1 Then
     Result := @(_MaterialList[_GroupList[Index].MaterialIndex])
@@ -401,7 +395,7 @@ Begin
     Result := Nil;
 End;
 
-Function ModelOBJ.Load(Source:Stream):Boolean;
+Function OBJModel.Load(Source:Stream):Boolean;
 Var
   S,S2:AnsiString;
   Index:Integer;
@@ -530,7 +524,7 @@ Begin
 End;
 
 
-Class Function ModelOBJ.Save(Dest:Stream; MyMesh:MeshFilter):Boolean;
+Class Function OBJModel.Save(Dest:Stream; MyMesh:MeshFilter):Boolean;
 Var
   I,J,K, N:Integer;
   Count:Integer;
@@ -681,7 +675,7 @@ Begin
   End;
 End;
 
-Function ModelOBJ.GetDiffuseColor(GroupID: Integer): Color;
+Function OBJModel.GetDiffuseColor(GroupID: Integer): Color;
 Var
   Mat:POBJMaterial;
 Begin
@@ -692,7 +686,7 @@ Begin
     Result := ColorWhite;
 End;
 
-Function ModelOBJ.GetDiffuseMapName(GroupID: Integer):AnsiString;
+Function OBJModel.GetDiffuseMapName(GroupID: Integer):AnsiString;
 Var
   Mat:POBJMaterial;
 Begin
@@ -703,27 +697,27 @@ Begin
     Result := '';
 End;
 
-Function ModelOBJ.GetEmissiveMapName(GroupID: Integer):AnsiString;
+Function OBJModel.GetEmissiveMapName(GroupID: Integer):AnsiString;
 Begin
   Result := '';
 End;
 
-Function ModelOBJ.GetGroupBlendMode(GroupID: Integer): Cardinal;
+Function OBJModel.GetGroupBlendMode(GroupID: Integer): Cardinal;
 Begin
   Result := blendBlend;
 End;
 
-Function ModelOBJ.GetGroupCount: Integer;
+Function OBJModel.GetGroupCount: Integer;
 Begin
   Result := _GroupCount;
 End;
 
-Function ModelOBJ.GetGroupName(GroupID: Integer):AnsiString;
+Function OBJModel.GetGroupName(GroupID: Integer):AnsiString;
 Begin
   Result := _GroupList[GroupID].Name;
 End;
 
-{Function ModelOBJ.GetSpecularColor(GroupID: Integer): Color;
+{Function OBJModel.GetSpecularColor(GroupID: Integer): Color;
 Var
   Mat:POBJMaterial;
 Begin
@@ -734,7 +728,7 @@ Begin
     Result := ColorBlack;
 End;
 
-Function ModelOBJ.GetSpecularFactor(GroupID: Integer): Single;
+Function OBJModel.GetSpecularFactor(GroupID: Integer): Single;
 Var
   Mat:POBJMaterial;
 Begin
@@ -745,7 +739,7 @@ Begin
     Result := 0.0;
 End;}
 
-Function ModelOBJ.GetSpecularMapName(GroupID: Integer):AnsiString;
+Function OBJModel.GetSpecularMapName(GroupID: Integer):AnsiString;
 Var
   Mat:POBJMaterial;
 Begin
@@ -756,41 +750,41 @@ Begin
     Result := '';
 End;
 
-Function ModelOBJ.GetTriangle(GroupID, Index: Integer): Triangle;
+Function OBJModel.GetTriangle(GroupID, Index: Integer): Triangle;
 Begin
   Result := _GroupList[GroupID].Triangles[Index];
 End;
 
-Function ModelOBJ.GetTriangleCount(GroupID: Integer): Integer;
+Function OBJModel.GetTriangleCount(GroupID: Integer): Integer;
 Begin
   Result := _GroupList[GroupID].FaceCount;
 End;
 
-Function ModelOBJ.GetVertexCount(GroupID: Integer): Integer;
+Function OBJModel.GetVertexCount(GroupID: Integer): Integer;
 Begin
   Result := _GroupList[GroupID].VertexCount;
 End;
 
-Function ModelOBJ.GetVertexFormat(GroupID: Integer): Cardinal;
+Function OBJModel.GetVertexFormat(GroupID: Integer): Cardinal;
 Begin
   Result := meshFormatNormal Or meshFormatUV1;
 End;
 
-Function ModelOBJ.GetVertexNormal(GroupID, Index: Integer): Vector3D;
+Function OBJModel.GetVertexNormal(GroupID, Index: Integer): Vector3D;
 Begin
   Result := _GroupList[GroupID].Vertices[Index].Normal;
 End;
 
-Function ModelOBJ.GetVertexPosition(GroupID, Index: Integer): Vector3D;
+Function OBJModel.GetVertexPosition(GroupID, Index: Integer): Vector3D;
 Begin
   Result := _GroupList[GroupID].Vertices[Index].Position;
 End;
 
-Function ModelOBJ.GetVertexUV(GroupID, Index: Integer): Vector2D;
+Function OBJModel.GetVertexUV(GroupID, Index: Integer): Vector2D;
 Begin
   Result := _GroupList[GroupID].Vertices[Index].TextureCoords;
 End;
 
 Initialization
-  RegisterMeshFilter(ModelOBJ, 'OBJ');
+  RegisterMeshFilter(OBJModel, 'OBJ');
 End.

@@ -1,10 +1,33 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_SpriteManager
+ * Implements the global sprite manager
+ ***********************************************************************************************************************
+}
 Unit TERRA_SpriteManager;
 
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_GraphicsManager, TERRA_Texture,
-  TERRA_Application, TERRA_Shader, TERRA_Matrix2D, TERRA_Matrix;
+  TERRA_Application, TERRA_Shader, TERRA_Matrix3x3, TERRA_Matrix4x4;
 
 Type
   SpriteManager = Class;
@@ -20,6 +43,8 @@ Type
   ClipRect = Class(TERRAObject)
     X, Y:Single;
     Width, Height:Single;
+
+    Procedure GetRealRect(Out X1, Y1, X2, Y2:Single{; Landscape:Boolean});
 
     Destructor Destroy; Override;
   End;
@@ -51,7 +76,7 @@ Type
       _ColorTable:Texture;
       {$ENDIF}
 
-      _Transform:Matrix2D;
+      _Transform:Matrix3x3;
       _HasTransform:Boolean;
       _IsFont:Boolean;
 
@@ -80,8 +105,8 @@ Type
 
       Destructor Destroy; Override;
 
-      Procedure SetTransform(Const Mat:Matrix2D); Overload;
-      Procedure SetTransform(Const Center:Vector2D; Const Mat:Matrix2D); Overload;
+      Procedure SetTransform(Const Mat:Matrix3x3); Overload;
+      Procedure SetTransform(Const Center:Vector2D; Const Mat:Matrix3x3); Overload;
 
       Procedure SetScale(Const Center:Vector2D; ScaleX, ScaleY:Single); Overload;
       Procedure SetScale(ScaleX, ScaleY:Single); Overload;
@@ -96,7 +121,7 @@ Type
       Procedure SetScaleRelative(Const Center:Vector2D; Scale:Single); Overload;
       Procedure SetScaleAndRotationRelative(Const Center:Vector2D; ScaleX, ScaleY:Single; Rotation:Single ); Overload;
       Procedure SetScaleAndRotationRelative(Const Center:Vector2D; Scale:Single; Rotation:Single ); Overload;
-      Procedure SetTransformRelative(Const Center:Vector2D; Const Mat:Matrix2D);
+      Procedure SetTransformRelative(Const Center:Vector2D; Const Mat:Matrix3x3);
 
       Procedure SetColors(A, B, C, D:Color);
       Procedure SetColor(C:Color);
@@ -305,7 +330,7 @@ Begin
   Result := S;
 End;
 
-Procedure ClipVertex(V:PSpriteVertex; Clip:ClipRect; Width, Height, USize, VSize:Single);
+Procedure ClipVertex(V:PSpriteVertex; Clip:ClipRect; Width, Height, USize, VSize:Single{; Landscape:Boolean});
 Var
   X1,X2,Y1,Y2:Single;
   Dist:Single;
@@ -313,10 +338,7 @@ Begin
   If (Width=0) Or (Height=0) Then
     Exit;
 
-  X1 := Clip.X;
-  X2 := X1 + Clip.Width;
-  Y1 := Clip.Y;
-  Y2 := Y1 + Clip.Height;
+  Clip.GetRealRect(X1, Y1, X2, Y2{, Landscape});
 
   If (V.Position.X<X1) Then
   Begin
@@ -534,7 +556,7 @@ Var
   Min:Single;
   Total, Index:Integer;
   //Count:Integer;
-  Projection, M:Matrix;
+  Projection, M:Matrix4x4;
 Begin
   {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'Render');{$ENDIF}
 
@@ -550,7 +572,7 @@ Begin
     glMatrixMode(GL_PROJECTION);
     glLoadMatrixf(@Projection);
 
-    M := MatrixIdentity;
+    M := Matrix4x4Identity;
 
     glMatrixMode(GL_MODELVIEW);
     glLoadMatrixf(@M);
@@ -643,7 +665,7 @@ End;
 Procedure SpriteManager.SetShader(MyShader: Shader);
 Var
   PositionHandle, UVHandle, ColorHandle, SaturationHandle:Integer;
-  Projection:Matrix;
+  Projection:Matrix4x4;
 Begin
   If (_CurrentShader = MyShader) Then
     Exit;
@@ -699,7 +721,7 @@ Begin
 End;
 
 { Sprite }
-Procedure Sprite.SetTransform(Const Mat: Matrix2D);
+Procedure Sprite.SetTransform(Const Mat: Matrix3x3);
 Var
   I:Integer;
 Begin
@@ -715,14 +737,14 @@ Begin
   _HasTransform := False;
 End;
 
-Procedure Sprite.SetTransform(Const Center:Vector2D; Const Mat: Matrix2D);
+Procedure Sprite.SetTransform(Const Center:Vector2D; Const Mat: Matrix3x3);
 Begin
   SetTransform(MatrixTransformAroundPoint2D(Center, Mat));
 End;
 
 Procedure Sprite.SetScaleAndRotation(Const Center:Vector2D; ScaleX, ScaleY:Single; Rotation:Single);
 Var
-  Mat:Matrix2D;
+  Mat:Matrix3x3;
 Begin
   Mat := MatrixRotationAndScale2D(Rotation, ScaleX, ScaleY);
   SetTransform(Center, Mat);
@@ -743,7 +765,7 @@ Begin
   SetScale(Self.Position, ScaleX, ScaleY);
 End;
 
-Procedure Sprite.SetTransformRelative(Const Center:Vector2D; Const Mat:Matrix2D);
+Procedure Sprite.SetTransformRelative(Const Center:Vector2D; Const Mat:Matrix3x3);
 Var
   Dest:Vector2D;
   W,H:Single;
@@ -771,7 +793,7 @@ End;
 
 Procedure Sprite.SetScaleAndRotationRelative(Const Center:Vector2D; ScaleX, ScaleY:Single; Rotation:Single);
 Var
-  Mat:Matrix2D;
+  Mat:Matrix3x3;
 Begin
   Mat := MatrixRotationAndScale2D(Rotation, ScaleX, ScaleY);
   SetTransformRelative(Center, Mat);
@@ -939,13 +961,15 @@ Var
   W,H, K:Single;
   MaxX,MinX, MaxY,MinY:Single;
   V:PSpriteVertex;
-  FullyClipped:Boolean;
+  Landscape, FullyClipped:Boolean;
   USize, VSize:Single;
   Slot:Integer;
 Begin
   _Closed := False;
   If (_Count<=0) Then
     Exit;
+
+  Landscape := IsLandscapeOrientation(Application.Instance.Orientation);
 
   {$IFDEF PC}
   If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
@@ -956,7 +980,7 @@ Begin
 
     Slot := 0;
     If (_Saturation<1.0) Then
-      SetupSaturationCombiners(Slot);
+      SetupSaturationCombiners(Slot); //BIBI
   End;
   {$ENDIF}
 
@@ -1055,7 +1079,7 @@ Begin
       For J:=0 To 5 Do
       Begin
         V := @_Vertices[Ofs + J];
-        ClipVertex(V, S.ClipRect, W, H, USize, VSize);
+        ClipVertex(V, S.ClipRect, W, H, USize, VSize{, Landscape});
         MinX := FloatMin(MinX, V.Position.X);
         MinY := FloatMin(MinY, V.Position.Y);
         MaxX := FloatMax(MaxX, V.Position.X);
@@ -1205,6 +1229,27 @@ End;
 Destructor ClipRect.Destroy;
 Begin
   // do nothing
+End;
+
+Procedure ClipRect.GetRealRect(Out X1, Y1, X2, Y2: Single{; Landscape:Boolean});
+Var
+  UIWidth, UIHeight:Integer;
+Begin
+{  If (Landscape) Then
+  Begin
+    UIWidth := GraphicsManager.Instance.UIViewport.Width;
+    UIHeight := GraphicsManager.Instance.UIViewport.Height;
+    X2 := UIWidth - (Self.Y);
+    X1 := UIWidth - (X2 + Self.Height);
+    Y2 := UIHeight - (Self.X);
+    Y1 := UIHeight - (Y2 + Self.Width);
+  End Else}
+  Begin
+    X1 := Self.X;
+    X2 := X1 + Self.Width;
+    Y1 := Self.Y;
+    Y2 := Y1 + Self.Height;
+  End;
 End;
 
 Initialization

@@ -1,5 +1,25 @@
-{
-  Giles mesh loader/saver
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Giles
+ * Implements [g]iles lightmapper loader/writer/mesh filter
+ ***********************************************************************************************************************
 }
 
 Unit TERRA_Giles;
@@ -7,7 +27,44 @@ Unit TERRA_Giles;
 {$I terra.inc}
 Interface
 Uses TERRA_Utils, TERRA_Math, TERRA_IO, TERRA_INI, TERRA_Vector3D, TERRA_Vector2D,
-  TERRA_Color, TERRA_FileIO, TERRA_FileUtils, TERRA_Quaternion, TERRA_MeshFilter;
+  TERRA_Color, TERRA_FileIO, TERRA_FileUtils, TERRA_Vector4D, TERRA_MeshFilter;
+
+Const
+  gilesLight_Directional = 1;
+  gilesLight_Omni = 2;
+  gilesLight_Spot = 3;
+  gilesLight_Ambient = 4;
+
+  gilesMatFX_FullBright = 1;
+  gilesMatFX_VertexColor = 2;
+  gilesMatFX_FlatShade = 4;
+  gilesMatFX_NoFog = 8;
+  gilesMatFX_TwoSided = 16;
+  gilesMatFX_VertexAlpha = 32;
+
+  gilesMatBlendAlpha = 1;
+  gilesMatBlendMultiply = 2;
+  gilesMatBlendAdditive = 3;
+
+  gilesLight_Unlit = 0;
+  gilesLight_Dynamic = 1;
+  gilesLight_Lightmap = 2;
+
+  gilesTexture_Color = 1;
+  gilesTexture_Alpha = 2;
+  gilesTexture_Masked = 4;
+  gilesTexture_MipMap = 8;
+  gilesTexture_ClampU = 16;
+  gilesTexture_ClampV = 32;
+  gilesTexture_SphereMap = 64;
+  gilesTexture_CubeMap = 128;
+  gilesTexture_VRam = 256;
+  gilesTexture_HiColor = 512;
+
+  gilesTexBlendAlpha = 1;
+  gilesTexBlendMultiply = 2;
+  gilesTexBlendAdditive = 3;
+  gilesTexBlendDot3 = 4;
 
 Type
   GilesObject = Class
@@ -54,12 +111,114 @@ Type
   End;
 
   GilesLight = Class(GilesObject)
+    LightType:Byte;
+    LightActive:Boolean;
+    CastShadows:Boolean;
+    Infinite:Boolean;
+    Overshoot:Boolean;
+    Radius:Single;
+    ColorRed:Single;
+    ColorGreen:Single;
+    ColorBlue:Single;
+    Intensity:Single;
+    NearValue:Single;
+    FarValue:Single;
+    InnerCone:Single;
+    OuterCone:Single;
+    ToonShading:Boolean;
+    ToonLevels:Byte; //???
+  End;
+
+  GilesMaterial = Class
+    Name:AnsiString;
+    ColorRed:Single;
+    ColorGreen:Single;
+    ColorBlue:Single;
+    ColorAlpha:Single;
+    SelfIllum:Single;
+    Shininess:Single;
+    Effects:Cardinal;
+    BlendMode:Cardinal;
+    LighMode:Byte;
+    LightMapIndex:SmallInt;
+    ReceiveBackLight:Boolean;
+    ReceiveShadow:Boolean;
+    CastShadow:Boolean;
+    ReceiveGI:Boolean;
+    AffectGI:Boolean;
+    TextureLayer:Byte;
+    TextureIndex:SmallInt;
+
+    DiffuseColor:Color;
+  End;
+
+  GilesTexture = Class
+    FileName:AnsiString;
+    ScaleU:Single;
+    ScaleV:Single;
+    OfsU:Single;
+    OfsV:Single;
+    Angle:Single;
+    Flags:Cardinal;
+    BlendMode:Cardinal;
+    CoordSet:Byte;
+  End;
+
+  GilesLightmap = Class
+    Name:AnsiString;
+    FileName:AnsiString; // to export
+    Width:Word;
+    Height:Word;
+    NoUniform:Boolean;
+    UseCustomTexel:Boolean;
+    CustomTexel:Single;
+    Repack:Boolean;
+    Data:Array Of Byte;
+  End;
+
+  GilesSettings = Record
+    ClearBeforeRender:Boolean;
+    DirectIllum:Boolean;
+    GlobalIllum:Boolean;
+    RayBias:Single;
+    DirectMultiply:Single;
+    CastShadowBackFace:Boolean;
+    DirectShadows:Boolean;
+    SoftShadows:Boolean;
+    SoftShadowSamples:Byte;
+    GI_IgnoreTextures:Boolean;
+    GI_Iterations:Byte;
+    GI_Density:Single; // 1.0 to 100.0
+    GI_Samples:Integer;
+    GI_Multiply:Single;
+    GI_SkyEnable:Boolean;
+    GI_SkyRed:Single;
+    GI_SkyGreen:Single;
+    GI_SkyBlue:Single;
+    GI_SkyMultiply:Single; // not used
+    AutoBlur:Boolean;
+    AutoExpand:Boolean;
+    AutoBlurRadius:Byte;
   End;
 
   GilesModel = Class(MeshFilter)
     Protected
       _Objects:Array Of GilesObject;
       _ObjectCount:Integer;
+
+      _Groups:Array Of GilesSurface;
+      _GroupCount:Integer;
+
+      _Materials:Array Of GilesMaterial;
+      _MaterialCount:Integer;
+
+      _Textures:Array Of GilesTexture;
+      _TextureCount:Integer;
+
+      _Lightmaps:Array Of GilesLightmap;
+      _LightmapCount:Integer;
+
+      _Settings:GilesSettings;
 
       Function ReadObject(Source:Stream; ChunkEnd:Integer; Parent:GilesObject):Boolean;
       Function ReadMesh(Source:Stream; ChunkEnd:Integer; Obj:GilesMesh):Boolean;
@@ -68,6 +227,12 @@ Type
 
       Function ReadSurface(Source:Stream; ChunkEnd:Integer; Surface:GilesSurface):Boolean;
 
+      Function ReadMaterial(Source:Stream; ChunkEnd:Integer):Boolean;
+      Function ReadTexture(Source:Stream; ChunkEnd:Integer):Boolean;
+      Function ReadLightmap(Source:Stream; ChunkEnd:Integer):Boolean;
+
+      Function ReadRenderSettings(Source:Stream; ChunkEnd:Integer):Boolean;
+
       Function FindChunk(Source:Stream; ID:Cardinal; Var ChunkSize:Cardinal):Boolean;
 
     Public
@@ -75,7 +240,6 @@ Type
       Class Function Save(Dest:Stream; MyMesh:MeshFilter):Boolean; Override;
 
       Function GetGroupCount:Integer; Override;
-      Function GetGroupName(GroupID:Integer):AnsiString; Override;
       Function GetGroupFlags(GroupID:Integer):Cardinal; Override;
       Function GetGroupBlendMode(GroupID:Integer):Cardinal; Override;
 
@@ -86,20 +250,17 @@ Type
       Function GetVertexFormat(GroupID:Integer):Cardinal; Override;
       Function GetVertexPosition(GroupID, Index:Integer):Vector3D; Override;
       Function GetVertexNormal(GroupID, Index:Integer):Vector3D; Override;
-      Function GetVertexBone(GroupID, Index:Integer):Integer; Override;
       Function GetVertexUV(GroupID, Index:Integer):Vector2D; Override;
 
       Function GetDiffuseColor(GroupID:Integer):Color; Override;
 
       Function GetDiffuseMapName(GroupID:Integer):AnsiString; Override;
-      Function GetSpecularMapName(GroupID:Integer):AnsiString; Override;
-      Function GetEmissiveMapName(GroupID:Integer):AnsiString; Override;
   End;
 
 
 Implementation
-Uses TERRA_Log, TERRA_Canvas, TERRA_Image, TERRA_Application, TERRA_ResourceManager,
-  Math;
+Uses TERRA_Log, TERRA_Error, TERRA_TextureAtlas, TERRA_Image, TERRA_Application,
+  TERRA_GraphicsManager, TERRA_ResourceManager;
 
 Const
   GLS_HEADER = $FFFF;
@@ -324,6 +485,11 @@ Begin
           Obj.Surfaces[Pred(Obj.SurfaceCount)] := Surface;
 
           ReadSurface(Source, Source.Position + ChunkSize, Surface);
+
+          Inc(_GroupCount);
+          SetLength(_Groups, _GroupCount);
+          _Groups[Pred(_GroupCount)] := Surface;
+
         Until (Source.Position>=SurfaceEnd);
       End;
 
@@ -377,40 +543,89 @@ Var
   ChunkID:Cardinal;
   ChunkSize:Cardinal;
 Begin
-sds
   Repeat
     Source.Read(@ChunkID, 4);
     Source.Read(@ChunkSize, 4);
 
     Case ChunkID Of
-    GLS_MESH_OVERRIDE:
+      GLS_LIGHT_TYPE:
       Begin
-        Source.Read(@Obj.OverrideLighting, 1);
+        Source.Read(@Obj.LightType, 1);
       End;
 
-    GLS_MESH_BACKLIGHT:
+      GLS_LIGHT_ACTIVE:
       Begin
-        Source.Read(@Obj.BackLight, 1);
+        Source.Read(@Obj.LightActive, 1);
       End;
 
-    GLS_MESH_RECEIVESHADOW:
+      GLS_LIGHT_CASTSHADOWS:
       Begin
-        Source.Read(@Obj.ReceiveShadow, 1);
+        Source.Read(@Obj.CastShadows, 1);
       End;
 
-    GLS_MESH_CASTSHADOW:
+      GLS_LIGHT_INFINITE:
       Begin
-        Source.Read(@Obj.CastShadow, 1);
+        Source.Read(@Obj.Infinite, 1);
       End;
 
-    GLS_MESH_RECEIVEGI:
+      GLS_LIGHT_OVERSHOOT:
       Begin
-        Source.Read(@Obj.ReceiveGI, 1);
+        Source.Read(@Obj.Overshoot, 1);
       End;
 
-    GLS_MESH_AFFECTGI:
+      GLS_LIGHT_RADIUS:
       Begin
-        Source.Read(@Obj.AffectGI, 1);
+        Source.Read(@Obj.Radius, 4);
+      End;
+
+      GLS_LIGHT_RED:
+      Begin
+        Source.Read(@Obj.ColorRed, 4);
+      End;
+
+      GLS_LIGHT_GREEN:
+      Begin
+        Source.Read(@Obj.ColorGreen, 4);
+      End;
+
+      GLS_LIGHT_BLUE:
+      Begin
+        Source.Read(@Obj.ColorBlue, 4);
+      End;
+
+      GLS_LIGHT_INTENSITY:
+      Begin
+        Source.Read(@Obj.Intensity, 4);
+      End;
+
+      GLS_LIGHT_NEAR:
+      Begin
+        Source.Read(@Obj.NearValue, 4);
+      End;
+
+      GLS_LIGHT_FAR:
+      Begin
+        Source.Read(@Obj.FarValue, 4);
+      End;
+
+      GLS_LIGHT_INNER:
+      Begin
+        Source.Read(@Obj.InnerCone, 4);
+      End;
+
+      GLS_LIGHT_OUTER:
+      Begin
+        Source.Read(@Obj.OuterCone, 4);
+      End;
+
+      GLS_LIGHT_TOON:
+      Begin
+        Source.Read(@Obj.ToonShading, 1);
+      End;
+
+      GLS_LIGHT_TOONLEVELS:
+      Begin
+        Source.Read(@Obj.ToonLevels, 4);
       End;
 
     Else
@@ -522,6 +737,388 @@ Begin
   Result := True;
 End;
 
+Function GilesModel.ReadMaterial(Source:Stream; ChunkEnd:Integer): Boolean;
+Var
+  ChunkID, ChunkSize:Cardinal;
+  Mat:GilesMaterial;
+Begin
+  Mat := GilesMaterial.Create();
+  Inc(_MaterialCount);
+  SetLength(_Materials, _MaterialCount);
+  _Materials[Pred(_MaterialCount)] := Mat;
+
+  Repeat
+    Source.Read(@ChunkID, 4);
+    Source.Read(@ChunkSize, 4);
+
+    Case ChunkID Of
+    GLS_MAT_NAME:
+      Begin
+        Source.ReadString(Mat.Name, True);
+      End;
+
+    GLS_MAT_RED:
+      Begin
+        Source.Read(@Mat.ColorRed, 4);
+      End;
+
+    GLS_MAT_GREEN:
+      Begin
+        Source.Read(@Mat.ColorGreen, 4);
+      End;
+
+    GLS_MAT_BLUE:
+      Begin
+        Source.Read(@Mat.ColorBlue, 4);
+      End;
+
+    GLS_MAT_ALPHA:
+      Begin
+        Source.Read(@Mat.ColorAlpha, 4);
+      End;
+
+    GLS_MAT_SELFILLUMINATION:
+      Begin
+        Source.Read(@Mat.SelfIllum, 4);
+      End;
+
+    GLS_MAT_SHININESS:
+      Begin
+        Source.Read(@Mat.Shininess, 4);
+      End;
+
+    GLS_MAT_FX:
+      Begin
+        Source.Read(@Mat.Effects, 4);
+      End;
+
+    GLS_MAT_BLEND:
+      Begin
+        Source.Read(@Mat.BlendMode, 4); //??
+      End;
+
+    GLS_MAT_LIGHTMETHOD:
+      Begin
+        Source.Read(@Mat.LighMode, 1);
+      End;
+
+    GLS_MAT_LIGHTMAP:
+      Begin
+        Source.Read(@Mat.LightMapIndex, 2);
+      End;
+
+    GLS_MAT_RECEIVEBACK:
+      Begin
+        Source.Read(@Mat.ReceiveBackLight, 1);
+      End;
+
+    GLS_MAT_RECEIVESHADOW:
+      Begin
+        Source.Read(@Mat.ReceiveShadow, 1);
+      End;
+
+    GLS_MAT_CASTSHADOW:
+      Begin
+        Source.Read(@Mat.CastShadow, 1);
+      End;
+
+    GLS_MAT_RECEIVEGI:
+      Begin
+        Source.Read(@Mat.ReceiveGI, 1);
+      End;
+
+    GLS_MAT_AFFECTGI:
+      Begin
+        Source.Read(@Mat.AffectGI, 1);
+      End;
+
+    GLS_MAT_TEXLAYER:
+      Begin
+        Source.Read(@Mat.TextureLayer, 1);
+        Source.Read(@Mat.TextureIndex, 2);
+      End;
+
+    Else
+      Source.Skip(ChunkSize);
+    End;
+
+  Until (Source.Position>=ChunkEnd);
+
+  Mat.DiffuseColor := ColorCreate(Mat.ColorRed, Mat.ColorGreen, Mat.ColorBlue, Mat.ColorAlpha);
+
+  Result := True;
+End;
+
+Function GilesModel.ReadTexture(Source:Stream; ChunkEnd:Integer):Boolean;
+Var
+  ChunkID, ChunkSize:Cardinal;
+  Tex:GilesTexture;
+Begin
+  Tex := GilesTexture.Create();
+  Inc(_TextureCount);
+  SetLength(_Textures, _TextureCount);
+  _Textures[Pred(_TextureCount)] := Tex;
+
+  Repeat
+    Source.Read(@ChunkID, 4);
+    Source.Read(@ChunkSize, 4);
+
+    Case ChunkID Of
+    GLS_TEX_FILE:
+      Begin
+        Source.ReadString(Tex.FileName, True);
+      End;
+
+    GLS_TEX_SCALEU:
+      Begin
+        Source.Read(@Tex.ScaleU, 4);
+      End;
+
+    GLS_TEX_SCALEV:
+      Begin
+        Source.Read(@Tex.ScaleV, 4);
+      End;
+
+    GLS_TEX_OFFSETU:
+      Begin
+        Source.Read(@Tex.OfsU, 4);
+      End;
+
+    GLS_TEX_OFFSETV:
+      Begin
+        Source.Read(@Tex.OfsV, 4);
+      End;
+
+    GLS_TEX_ANGLE:
+      Begin
+        Source.Read(@Tex.Angle, 4);
+      End;
+
+    GLS_TEX_FLAGS:
+      Begin
+        Source.Read(@Tex.Flags, 4);
+      End;
+
+    GLS_TEX_BLEND:
+      Begin
+        Source.Read(@Tex.BlendMode, 4);
+      End;
+
+    GLS_TEX_COORDSET:
+      Begin
+        Source.Read(@Tex.CoordSet, 1);
+      End;
+
+    Else
+      Source.Skip(ChunkSize);
+    End;
+
+  Until (Source.Position>=ChunkEnd);
+
+  Result := True;
+End;
+
+Function GilesModel.ReadLightmap(Source:Stream; ChunkEnd:Integer):Boolean;
+Var
+  ChunkID, ChunkSize:Cardinal;
+  LMap:GilesLightmap;
+  LSize:Integer;
+Begin
+  LMap := GilesLightmap.Create();
+  Inc(_LightmapCount);
+  SetLength(_Lightmaps, _LightmapCount);
+  _Lightmaps[Pred(_LightmapCount)] := LMap;
+
+  Repeat
+    Source.Read(@ChunkID, 4);
+    Source.Read(@ChunkSize, 4);
+
+    Case ChunkID Of
+    GLS_LMAP_NAME:
+      Begin
+        Source.ReadString(LMap.Name, True);
+      End;
+
+    GLS_LMAP_FILE:
+      Begin
+        Source.ReadString(LMap.FileName, True);
+      End;
+
+    GLS_LMAP_WIDTH:
+      Begin
+        Source.Read(@LMap.Width, 2);
+      End;
+
+    GLS_LMAP_HEIGHT:
+      Begin
+        Source.Read(@LMap.Height, 2);
+      End;
+
+    GLS_LMAP_NONUNIFORM:
+      Begin
+        Source.Read(@LMap.NoUniform, 1);
+      End;
+
+    GLS_LMAP_USECUSTOMTEXEL:
+      Begin
+        Source.Read(@LMap.UseCustomTexel, 1);
+      End;
+
+    GLS_LMAP_CUSTOMTEXEL:
+      Begin
+        Source.Read(@LMap.CustomTexel, 4);
+      End;
+
+    GLS_LMAP_REPACK:
+      Begin
+        Source.Read(@LMap.Repack, 1);
+      End;
+
+    GLS_LMAP_DATA:
+      Begin
+        LSize := LMap.Width * LMap.Height * 3;
+        SetLength(LMap.Data, LSize);
+        Source.Read(@LMap.Data[0], LSize);
+      End;
+
+    Else
+      Source.Skip(ChunkSize);
+    End;
+
+  Until (Source.Position>=ChunkEnd);
+
+  Result := True;
+End;
+
+
+Function GilesModel.ReadRenderSettings(Source:Stream; ChunkEnd:Integer):Boolean;
+Var
+  ChunkID, ChunkSize:Cardinal;
+Begin
+  Repeat
+    Source.Read(@ChunkID, 4);
+    Source.Read(@ChunkSize, 4);
+
+    Case ChunkID Of
+    GLS_RENDER_CLEARBEFORERENDER:
+      Begin
+        Source.Read(@_Settings.ClearBeforeRender, 1);
+      End;
+
+    GLS_RENDER_DIRENABLE:
+      Begin
+        Source.Read(@_Settings.DirectIllum, 1);
+      End;
+
+    GLS_RENDER_GIENABLE:
+      Begin
+        Source.Read(@_Settings.GlobalIllum, 1);
+      End;
+
+    GLS_RENDER_RAYBIAS:
+      Begin
+        Source.Read(@_Settings.RayBias, 4);
+      End;
+
+    GLS_RENDER_DIRMULTIPLY:
+      Begin
+        Source.Read(@_Settings.DirectMultiply, 4);
+      End;
+
+    GLS_RENDER_DIRBACKSHAD:
+      Begin
+        Source.Read(@_Settings.CastShadowBackFace, 1);
+      End;
+
+    GLS_RENDER_DIRSHADOWS:
+      Begin
+        Source.Read(@_Settings.DirectShadows, 1);
+      End;
+
+    GLS_RENDER_DIRSOFT:
+      Begin
+        Source.Read(@_Settings.SoftShadows, 1);
+      End;
+
+    GLS_RENDER_DIRSOFTSAMPLES:
+      Begin
+        Source.Read(@_Settings.SoftShadowSamples, 1);
+      End;
+
+    GLS_RENDER_GIIGNORETEX:
+      Begin
+        Source.Read(@_Settings.GI_IgnoreTextures, 1);
+      End;
+
+    GLS_RENDER_GIITERATIONS:
+      Begin
+        Source.Read(@_Settings.GI_Iterations, 1);
+      End;
+
+    GLS_RENDER_GIDENSITY:
+      Begin
+        Source.Read(@_Settings.GI_Density, 1);
+      End;
+
+    GLS_RENDER_GISAMPLES:
+      Begin
+        Source.Read(@_Settings.GI_Samples, 1);
+      End;
+
+    GLS_RENDER_GIMULTIPLY:
+      Begin
+        Source.Read(@_Settings.GI_Multiply, 1);
+      End;
+
+    GLS_RENDER_SKYENABLE:
+      Begin
+        Source.Read(@_Settings.GI_SkyEnable, 1);
+      End;
+
+    GLS_RENDER_SKYRED:
+      Begin
+        Source.Read(@_Settings.GI_SkyRed, 1);
+      End;
+
+    GLS_RENDER_SKYGREEN:
+      Begin
+        Source.Read(@_Settings.GI_SkyGreen, 1);
+      End;
+
+    GLS_RENDER_SKYBLUE:
+      Begin
+        Source.Read(@_Settings.GI_SkyBlue, 1);
+      End;
+
+    GLS_RENDER_SKYMULTIPLY:
+      Begin
+        Source.Read(@_Settings.GI_SkyMultiply, 1);
+      End;
+
+    GLS_RENDER_AUTOBLUR:
+      Begin
+        Source.Read(@_Settings.AutoBlur, 1);
+      End;
+
+    GLS_RENDER_AUTOEXPAND:
+      Begin
+        Source.Read(@_Settings.AutoExpand, 1);
+      End;
+
+    GLS_RENDER_AUTOBLURRADIUS:
+      Begin
+        Source.Read(@_Settings.AutoBlurRadius, 1);
+      End;
+      
+    Else
+      Source.Skip(ChunkSize);
+    End;
+
+  Until (Source.Position>=ChunkEnd);
+
+  Result := True;
+End;
+
 Function GilesModel.FindChunk(Source:Stream; ID:Cardinal; Var ChunkSize:Cardinal):Boolean;
 Var
   ChunkID:Cardinal;
@@ -559,6 +1156,45 @@ Begin
           ReadObject(Source, Source.Position + ChunkSize, Nil);
         Until (Source.Position>=ChunkEnd);
       End;
+
+    GLS_MATERIALS:
+      Begin
+        ChunkEnd := Source.Position + ChunkSize;
+        Repeat
+          If Not FindChunk(Source, GLS_MAT, ChunkSize) Then
+            Exit;
+
+          ReadMaterial(Source, Source.Position + ChunkSize);
+        Until (Source.Position>=ChunkEnd);
+      End;
+
+    GLS_TEXTURES:
+      Begin
+        ChunkEnd := Source.Position + ChunkSize;
+        Repeat
+          If Not FindChunk(Source, GLS_TEX, ChunkSize) Then
+            Exit;
+
+          ReadTexture(Source, Source.Position + ChunkSize);
+        Until (Source.Position>=ChunkEnd);
+      End;
+
+    GLS_LIGHTMAPS:
+      Begin
+        ChunkEnd := Source.Position + ChunkSize;
+        Repeat
+          If Not FindChunk(Source, GLS_LMAP, ChunkSize) Then
+            Exit;
+
+          ReadLightmap(Source, Source.Position + ChunkSize);
+        Until (Source.Position>=ChunkEnd);
+      End;
+
+    GLS_RENDER:
+      Begin
+        ReadRenderSettings(Source, Source.Position + ChunkSize);
+      End;
+
     Else
       Source.Skip(ChunkSize);
     End;
@@ -566,6 +1202,95 @@ Begin
   Until Source.EOF;
 End;
 
+Function GilesModel.GetGroupCount: Integer;
+Begin
+  Result := Self._GroupCount;
+End;
+
+Function GilesModel.GetDiffuseColor(GroupID: Integer): Color;
+Begin
+  Result := _Materials[_Groups[GroupID].MaterialIndex].DiffuseColor;
+End;
+
+Function GilesModel.GetDiffuseMapName(GroupID: Integer): AnsiString;
+Begin
+  Result := _Textures[_Materials[_Groups[GroupID].MaterialIndex].TextureIndex].FileName;
+End;
+
+Function GilesModel.GetGroupBlendMode(GroupID: Integer): Cardinal;
+Var
+  Mat:GilesMaterial;
+Begin
+  Mat := _Materials[_Groups[GroupID].MaterialIndex];
+  Case Mat.BlendMode Of
+  gilesMatBlendAlpha:     Result := blendBlend;
+  gilesMatBlendMultiply:  Result := blendModulate;
+  gilesMatBlendAdditive:  Result := blendAdd;
+  Else
+    Result := blendNone;
+  End;
+End;
+
+Function GilesModel.GetGroupFlags(GroupID: Integer): Cardinal;
+Var
+  Mat:GilesMaterial;
+Begin
+  Result := 0;
+
+  Mat := _Materials[_Groups[GroupID].MaterialIndex];
+
+  If ((Mat.Effects And gilesMatFX_TwoSided)<>0) Then
+  Begin
+    Result := Result Or meshGroupDoubleSided;
+  End;
+
+  {gilesMatFX_FullBright = 1;
+  gilesMatFX_VertexColor = 2;
+  gilesMatFX_FlatShade = 4;
+  gilesMatFX_NoFog = 8;
+  gilesMatFX_TwoSided = 16;
+  gilesMatFX_VertexAlpha = 32;}
+End;
+
+Function GilesModel.GetTriangleCount(GroupID: Integer): Integer;
+Begin
+  Result := _Groups[GroupID].TriangleCount;
+End;
+
+Function GilesModel.GetTriangle(GroupID, Index: Integer): Triangle;
+Begin
+  Result := _Groups[GroupID].Triangles[Index];
+End;
+
+Function GilesModel.GetVertexCount(GroupID: Integer): Integer;
+Begin
+  Result := _Groups[GroupID].VertexCount;
+End;
+
+Function GilesModel.GetVertexFormat(GroupID: Integer): Cardinal;
+Begin
+  Result := meshFormatNormal Or meshFormatColor Or meshFormatUV1; //  meshFormatUV2
+End;
+
+Function GilesModel.GetVertexPosition(GroupID, Index: Integer): Vector3D;
+Begin
+  Result := _Groups[GroupID].Vertices[Index].Position;
+End;
+
+Function GilesModel.GetVertexNormal(GroupID, Index: Integer): Vector3D;
+Begin
+  Result := _Groups[GroupID].Vertices[Index].Normal;
+End;
+
+Function GilesModel.GetVertexUV(GroupID, Index: Integer): Vector2D;
+Begin
+  Result := _Groups[GroupID].Vertices[Index].TextureCoords;
+End;
+
+Class function GilesModel.Save(Dest: Stream; MyMesh: MeshFilter): Boolean;
+Begin
+
+End;
 
 Initialization
   RegisterMeshFilter(GilesModel, 'GLS');

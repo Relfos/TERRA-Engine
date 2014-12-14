@@ -1,3 +1,27 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Solids
+ * Implements generic platonic solid meshes
+ ***********************************************************************************************************************
+}
+
 Unit TERRA_Solids;
 {$I terra.inc}
 
@@ -5,7 +29,7 @@ Unit TERRA_Solids;
 
 Interface
 Uses TERRA_Utils, TERRA_Math, TERRA_GraphicsManager, TERRA_BoundingBox, TERRA_Vector3D,
-  TERRA_Vector2D, TERRA_Matrix, TERRA_Color, TERRA_Mesh, TERRA_MeshFilter, TERRA_Texture;
+  TERRA_Vector2D, TERRA_Matrix4x4, TERRA_Color, TERRA_Mesh, TERRA_MeshFilter, TERRA_Texture;
 
 Type
 	SolidVertex = Packed Record
@@ -36,7 +60,7 @@ Type
       Procedure FillVertexBuffer(VertexBuffer:Cardinal);
       Procedure FillIndexBuffer(IndexBuffer:Cardinal);
 
-      Procedure Transform(MyMatrix:Matrix);
+      Procedure Transform(MyMatrix:Matrix4x4);
       Procedure Weld(Radius:Single);
 
       Function GetBoundingBox:BoundingBox; Override;
@@ -147,7 +171,7 @@ Begin
   If (_IndexCount<=0) Or (Translucent) Then
     Exit;
 
-  GraphicsManager.Instance.EnableColorShader(ColorWhite, MatrixIdentity);
+  GraphicsManager.Instance.EnableColorShader(ColorWhite, Matrix4x4Identity);
 
   {$IFDEF PC}
   glDisable(GL_CULL_FACE);
@@ -174,7 +198,7 @@ Begin
   Result := Pred(_VertexCount);
 End;
 
-Procedure SolidMesh.Transform(MyMatrix:Matrix);
+Procedure SolidMesh.Transform(MyMatrix:Matrix4x4);
 Var
   I:Integer;
 Begin
@@ -622,11 +646,11 @@ Const
   Size = 1.0;
 Var
   Mesh:SolidMesh;
-  MyMatrix:Matrix;
+  MyMatrix:Matrix4x4;
   I:Integer;
 Begin
   Mesh := PlaneMesh.Create(VectorCreate(0,0,1.0), SubDivisions);
-  MyMatrix := MatrixTranslation(-Size, -Size, Size);
+  MyMatrix := Matrix4x4Translation(-Size, -Size, Size);
   Mesh.Transform(MyMatrix);
   For I:=0 To Pred(Mesh._VertexCount) Do
   Begin
@@ -637,7 +661,7 @@ Begin
   Mesh.Destroy;
 
   Mesh := PlaneMesh.Create(VectorCreate(0,0,-1.0), SubDivisions);
-  MyMatrix := MatrixTranslation(0, -Size, 0);
+  MyMatrix := Matrix4x4Translation(0, -Size, 0);
   Mesh.Transform(MyMatrix);
   For I:=0 To Pred(Mesh._VertexCount) Do
   Begin
@@ -656,7 +680,7 @@ Begin
   Mesh.Destroy;
 
   Mesh := PlaneMesh.Create(VectorCreate(-1.0,0,0.0), SubDivisions);
-  MyMatrix := MatrixTranslation(-Size, 0, Size);
+  MyMatrix := Matrix4x4Translation(-Size, 0, Size);
   For I:=0 To Pred(Mesh._VertexCount) Do
   Begin
     Mesh._VertexList[I].TextureCoords.X := 1.0 - Mesh._VertexList[I].TextureCoords.X;
@@ -666,13 +690,13 @@ Begin
   Mesh.Destroy;
 
   Mesh := PlaneMesh.Create(VectorCreate(0.0,1.0,0.0), SubDivisions);
-  MyMatrix := MatrixTranslation(-Size, 0, 0);
+  MyMatrix := Matrix4x4Translation(-Size, 0, 0);
   Mesh.Transform(MyMatrix);
   Self.AddMesh(Mesh);
   Mesh.Destroy;
 
   Mesh := PlaneMesh.Create(VectorCreate(0.0,-1.0,0.0), SubDivisions);
-  MyMatrix := MatrixTranslation(-Size, -Size, Size);
+  MyMatrix := Matrix4x4Translation(-Size, -Size, Size);
   Mesh.Transform(MyMatrix);
   For I:=0 To Pred(Mesh._VertexCount) Do
   Begin

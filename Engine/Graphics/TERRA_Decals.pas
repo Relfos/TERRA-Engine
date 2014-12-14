@@ -1,10 +1,33 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Decals
+ * Implements decal rendering (eg: footprints, tire trails)
+ ***********************************************************************************************************************
+}
 Unit TERRA_Decals;
 {$I terra.inc}
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Color, TERRA_Vector3D, TERRA_Canvas, TERRA_Shader, TERRA_Texture,
-  TERRA_Matrix, TERRA_MeshFilter, TERRA_Lights, TERRA_Application;
+  TERRA_Color, TERRA_Vector3D, TERRA_TextureAtlas, TERRA_Shader, TERRA_Texture,
+  TERRA_Matrix4x4, TERRA_MeshFilter, TERRA_Lights, TERRA_Application;
 
 Const
   DecalDecayDuration = 2000;
@@ -18,7 +41,7 @@ Type
     Color:TERRA_Color.Color;
     Time:Cardinal;
     Life:Cardinal;
-    Item:CanvasItem;
+    Item:TextureAtlasItem;
   End;
 
   DecalManager = Class(ApplicationComponent)
@@ -26,8 +49,8 @@ Type
       _Decals:Array Of Decal;
       _DecalCount:Integer;
 
-      _Canvas:Canvas;
-      _NeedCanvasRebuild:Boolean;
+      _TextureAtlas:TextureAtlas;
+      _NeedTextureAtlasRebuild:Boolean;
       _NeedGeometryRebuild:Boolean;
       _Shader:Shader;
 
@@ -67,10 +90,10 @@ Var
   I:Integer;
   Img:Image;
   Info:ImageClassInfo;
-  Item:CanvasItem;
+  Item:TextureAtlasItem;
 Begin
   Name := GetFileName(TextureName, True);
-  Item := _Canvas.Get(Name);
+  Item := _TextureAtlas.Get(Name);
   If Item = Nil Then
   Begin
     Log(logDebug, 'Game', 'Seaching decals');
@@ -90,8 +113,8 @@ Begin
       Src := FileStream.Open(S);
       Img := Image.Create(Src);
       Src.Destroy;
-      Item := _Canvas.Add(Img, S);
-      _NeedCanvasRebuild := True;
+      Item := _TextureAtlas.Add(Img, S);
+      _NeedTextureAtlasRebuild := True;
       Img.Destroy();
     End Else
     Begin
@@ -131,10 +154,10 @@ Begin
   Ofs := 0;
   For I:=0 To Pred(_DecalCount) Do
   Begin
-    U1 := _Decals[I].Item.X / Self._Canvas.Width;
-    V1 := _Decals[I].Item.Y / Self._Canvas.Height;
-    U2 := (_Decals[I].Item.X + _Decals[I].Item.Buffer.Width) / Self._Canvas.Width;
-    V2 := (_Decals[I].Item.Y + _Decals[I].Item.Buffer.Height) / Self._Canvas.Height;
+    U1 := _Decals[I].Item.X / Self._TextureAtlas.Width;
+    V1 := _Decals[I].Item.Y / Self._TextureAtlas.Height;
+    U2 := (_Decals[I].Item.X + _Decals[I].Item.Buffer.Width) / Self._TextureAtlas.Width;
+    V2 := (_Decals[I].Item.Y + _Decals[I].Item.Buffer.Height) / Self._TextureAtlas.Height;
 
     Angle := _Decals[I].Rotation + (PI/4);
     Pos := _Decals[I].Position;
@@ -185,14 +208,14 @@ End;
 
 Procedure DecalManager.Init;
 Begin
-  _NeedCanvasRebuild := False;
-  _Canvas := Canvas.Create('decal', 256, 256);
+  _NeedTextureAtlasRebuild := False;
+  _TextureAtlas := TextureAtlas.Create('decal', 256, 256);
 End;
 
 Destructor DecalManager.Destroy;
 Begin
-  If Assigned(_Canvas) Then
-    _Canvas.Destroy;
+  If Assigned(_TextureAtlas) Then
+    _TextureAtlas.Destroy;
 
   _DecalInstance := Nil;
 End;
@@ -256,10 +279,10 @@ Begin
 
   Center.Scale(1/_DecalCount);
 
-  If (_NeedCanvasRebuild) Then
+  If (_NeedTextureAtlasRebuild) Then
   Begin
-    _Canvas.Update;
-    _NeedCanvasRebuild := False;
+    _TextureAtlas.Update;
+    _NeedTextureAtlasRebuild := False;
   End;
 
   FxFlags := shaderAlphaTest;
@@ -288,8 +311,8 @@ Begin
   GraphicsManager.Instance.ActiveViewport.Camera.SetupUniforms;
 
   _Shader.SetUniform('texture0', 0);
-  _Shader.SetUniform('modelMatrix', MatrixIdentity);
-  _Shader.SetUniform('textureMatrix', MatrixIdentity);
+  _Shader.SetUniform('modelMatrix', Matrix4x4Identity);
+  _Shader.SetUniform('textureMatrix', Matrix4x4Identity);
 
   _Shader.SetUniform('diffuse_color', ColorWhite);
   _Shader.SetUniform('specular_power', 0);
@@ -300,7 +323,7 @@ Begin
   GraphicsManager.Instance.SetBlendMode(blendBlend);
 
   glDepthMask(False);                                                               
-  _Canvas.GetTexture(0).Bind(0);
+  _TextureAtlas.GetTexture(0).Bind(0);
 
   glVertexAttribPointer(PositionHandle, 3, GL_FLOAT, False, SizeOf(_Buffer[0]), @(_Buffer[0].Position));    
   glVertexAttribPointer(UVHandle, 2, GL_FLOAT, False, SizeOf(_Buffer[0]), @(_Buffer[0].TextureCoords));    

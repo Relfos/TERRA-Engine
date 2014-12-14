@@ -1,3 +1,27 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Shader
+ * Implements Shader resource class
+ ***********************************************************************************************************************
+}
+
 Unit TERRA_Shader;
 {$I terra.inc}
 
@@ -8,10 +32,10 @@ Unit TERRA_Shader;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Classes, TERRA_IO,
+  TERRA_Utils, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Collections, TERRA_IO,
   TERRA_Application, TERRA_ResourceManager, TERRA_Resource,
-  TERRA_Vector2D, TERRA_Vector3D, TERRA_Quaternion, TERRA_Matrix, TERRA_Plane,
-  TERRA_Color, TERRA_Matrix2D, TERRA_FileManager, SysUtils;
+  TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Plane,
+  TERRA_Color, TERRA_Matrix4x4, TERRA_Matrix3x3, TERRA_FileManager, SysUtils;
 
 Type
   ShaderAttribute = Record
@@ -64,11 +88,11 @@ Type
 			Procedure SetUniform(Const Name:AnsiString; Const Value:Single); Overload;
 			Procedure SetUniform(Const Name:AnsiString; Const Value:Vector2D); Overload;
 			Procedure SetUniform(Const Name:AnsiString; const Value:Vector3D); Overload;
-			Procedure SetUniform(Const Name:AnsiString; const Value:Quaternion); Overload;
+			Procedure SetUniform(Const Name:AnsiString; const Value:Vector4D); Overload;
 			Procedure SetUniform(Const Name:AnsiString; const Value:Plane); Overload;
 			Procedure SetUniform(Const Name:AnsiString; const Value:Color); Overload;
-      Procedure SetUniform(Const Name:AnsiString; Value:Matrix); Overload;
-      Procedure SetUniform(Const Name:AnsiString; Value:Matrix2D); Overload;
+      Procedure SetUniform(Const Name:AnsiString; Value:Matrix4x4); Overload;
+      Procedure SetUniform(Const Name:AnsiString; Value:Matrix3x3); Overload;
 
       Function GetUniform(Const Name:AnsiString):Integer;
 
@@ -100,8 +124,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_GraphicsManager, //TERRA_UI, TERRA_Widgets,
-  TERRA_FileUtils, TERRA_FileIO;
+Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_GraphicsManager, TERRA_FileUtils, TERRA_FileIO;
 
 Var
   _ShaderManager_Instance:ApplicationObject = Nil;
@@ -724,7 +747,7 @@ Begin
     UniformError(Name);
 End;
 
-Procedure Shader.SetUniform(Const Name:AnsiString; Const Value:Quaternion);
+Procedure Shader.SetUniform(Const Name:AnsiString; Const Value:Vector4D);
 Var
   ID:Integer;
 Begin
@@ -774,7 +797,7 @@ Begin
     UniformError(Name);
 End;
 
-Procedure Shader.SetUniform(Const Name:AnsiString; Value:Matrix2D);
+Procedure Shader.SetUniform(Const Name:AnsiString; Value:Matrix3x3);
 Var
   ID:Integer;
 Begin
@@ -789,7 +812,7 @@ Begin
     UniformError(Name);
 End;
 
-Procedure Shader.SetUniform(Const Name:AnsiString; Value:Matrix);
+Procedure Shader.SetUniform(Const Name:AnsiString; Value:Matrix4x4);
 Var
   ID:Integer;
   IsModelMatrix:Boolean;
@@ -814,7 +837,7 @@ Begin
       End;
 
       If IsModelMatrix Then
-        Value := MatrixMultiply4x3(GraphicsManager.Instance().ReflectionMatrix, Value);
+        Value := Matrix4x4Multiply4x3(GraphicsManager.Instance().ReflectionMatrix, Value);
     End;
       
 

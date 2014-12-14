@@ -1,9 +1,32 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_MeshAnimation 
+ * Implements the Animation resource and other Animation classes 
+ ***********************************************************************************************************************
+}
 Unit TERRA_MeshAnimation;
 {$I terra.inc}
 
 Interface
 Uses TERRA_Utils, TERRA_IO, TERRA_Resource, TERRA_Vector3D, TERRA_Math,
-  TERRA_Matrix, TERRA_Vector2D, TERRA_Color, TERRA_Quaternion, TERRA_ResourceManager;
+  TERRA_Matrix4x4, TERRA_Vector2D, TERRA_Color, TERRA_Vector4D, TERRA_ResourceManager;
 
 Const
   animationTargetDiffuse  = 1;
@@ -34,12 +57,12 @@ Type
     {$IFNDEF NO_ROTS}
     StartRotation:Vector3D;
 
-    AbsoluteRotation:Quaternion;
-    RelativeRotation:Quaternion;
+    AbsoluteRotation:Vector4D;
+    RelativeRotation:Vector4D;
     {$ENDIF}
 
-    AbsoluteMatrix:Matrix;
-    RelativeMatrix:Matrix;
+    AbsoluteMatrix:Matrix4x4;
+    RelativeMatrix:Matrix4x4;
 
     Ready:Boolean;
 
@@ -60,7 +83,7 @@ Type
 
     Public
       Name:String;
-      BindPose:Array Of Matrix;
+      BindPose:Array Of Matrix4x4;
 
       Destructor Destroy; Override;
 
@@ -77,7 +100,7 @@ Type
 
       Function GetBoneLength(Index:Integer):Single;
 
-      Procedure Render(Const Transform:Matrix; Instance:Pointer);
+      Procedure Render(Const Transform:Matrix4x4; Instance:Pointer);
 
       Property BoneCount:Integer Read _BoneCount;
   End;
@@ -126,7 +149,7 @@ Type
   AnimationTransformBlock = Object
     Translation:Vector3D;
     Scale:Vector3D;
-    Rotation:Quaternion;
+    Rotation:Vector4D;
   End;
 
   BoneAnimation = Class(TERRAObject)
@@ -296,8 +319,8 @@ Type
     _Block:AnimationTransformBlock;
     _Ready:Boolean;
     _Parent:AnimationBoneState;
-    _AbsoluteMatrix:Matrix;
-    _FrameMatrix:Matrix;
+    _AbsoluteMatrix:Matrix4x4;
+    _FrameMatrix:Matrix4x4;
     _Bone:MeshBone;
 
     Procedure UpdateTransform;
@@ -341,7 +364,7 @@ Type
 
     Public
       Processor:AnimationProcessor;
-      Transforms:Array Of Matrix;
+      Transforms:Array Of Matrix4x4;
 
       Constructor Create(Name:AnsiString; MySkeleton:MeshSkeleton);
       Destructor Destroy; Override;
@@ -353,8 +376,8 @@ Type
       Procedure SetRoot(Node:AnimationObject);
       Procedure SetCallback(Callback:AnimationCallback; UserData:Pointer = Nil; CallbackFrame:Integer=-1);
 
-      Function GetAbsoluteMatrix(Index:Integer):Matrix;
-      Function GetRelativeMatrix(Index:Integer):Matrix;
+      Function GetAbsoluteMatrix(Index:Integer):Matrix4x4;
+      Function GetRelativeMatrix(Index:Integer):Matrix4x4;
 
       Function Play(Name:AnsiString; Rescale:Single=0):Boolean; Overload;
       Function Play(MyAnimation:Animation; Rescale:Single=0):Boolean; Overload;
@@ -473,10 +496,10 @@ Begin
     Parent.Init;
 
 {$IFNDEF NO_ROTS}
-  RelativeMatrix := MatrixMultiply4x3(MatrixTranslation(startPosition), MatrixRotation(startRotation));
-  RelativeRotation := QuaternionRotation(StartRotation);
+  RelativeMatrix := Matrix4x4Multiply4x3(Matrix4x4Translation(startPosition), Matrix4x4Rotation(startRotation));
+  RelativeRotation := Vector4DRotation(StartRotation);
 {$ELSE}
-  RelativeMatrix := MatrixTranslation(startPosition);
+  RelativeMatrix := Matrix4x4Translation(startPosition);
 {$ENDIF}
 
 	// Each bone's final matrix is its relative matrix concatenated onto its
@@ -486,14 +509,14 @@ Begin
   Begin
     AbsoluteMatrix := RelativeMatrix;
     {$IFNDEF NO_ROTS}
-    AbsoluteRotation := QuaternionZero;
+    AbsoluteRotation := Vector4DZero;
     {$ENDIF}
   End Else									// not the root node
 	Begin
 		// m_final := parent's m_final * m_rel (matrix concatenation)
-    AbsoluteMatrix := MatrixMultiply4x3(Parent.AbsoluteMatrix, RelativeMatrix);
+    AbsoluteMatrix := Matrix4x4Multiply4x3(Parent.AbsoluteMatrix, RelativeMatrix);
     {$IFNDEF NO_ROTS}
-    AbsoluteRotation := QuaternionMultiply(Parent.AbsoluteRotation, RelativeRotation);
+    AbsoluteRotation := Vector4DMultiply(Parent.AbsoluteRotation, RelativeRotation);
     {$ENDIF}
 	End;
 
@@ -553,7 +576,7 @@ Begin
     Result := (_BoneList[Index]);
 End;
 
-Procedure MeshSkeleton.Render(Const Transform:Matrix; Instance:Pointer);
+Procedure MeshSkeleton.Render(Const Transform:Matrix4x4; Instance:Pointer);
 Var
   I:Integer;
   A, B:Vector3D;
@@ -670,12 +693,12 @@ Begin
     _BoneList[I].Init();
 
   SetLength(BindPose, Succ(_BoneCount));
-  BindPose[0] := MatrixIdentity;
+  BindPose[0] := Matrix4x4Identity;
   For I:=0 To Pred(_BoneCount) Do
     BindPose[Succ(I)] := _BoneList[I].AbsoluteMatrix;
 
   For I:=0 To Pred(_BoneCount) Do
-    _BoneList[I].AbsoluteMatrix := MatrixInverse(_BoneList[I].AbsoluteMatrix);
+    _BoneList[I].AbsoluteMatrix := Matrix4x4Inverse(_BoneList[I].AbsoluteMatrix);
 End;
 
 Procedure MeshSkeleton.Write(Dest: Stream);
@@ -691,8 +714,12 @@ Destructor MeshSkeleton.Destroy;
 Var
   I:Integer;
 Begin
+  _BoneCount := Length(_BoneList);
+
   For I:=0 To Pred(_BoneCount) Do
     _BoneList[I].Destroy;
+
+  SetLength(_BoneList, 0);
 End;
 
 Function MeshSkeleton.GetBone(Name:AnsiString): MeshBone;
@@ -1003,7 +1030,7 @@ Var
   DeltaTime : Single;
 	Fraction : Single;
 
-  Q1,Q2:Quaternion;
+  Q1,Q2:Vector4D;
 Begin
   // Find appropriate position key frame
   Key := Positions.GetKey(Time);
@@ -1050,15 +1077,15 @@ Begin
     If (Fraction>1.0) Then
       Fraction := 1.0;
 
-   	Q1 := QuaternionRotation(Rotations.Keyframes[LastKey].Value);
-	  Q2 := QuaternionRotation(Rotations.Keyframes[Key].Value);
-  	Block.Rotation := QuaternionSlerp(Q1,Q2, Fraction);
+   	Q1 := Vector4DRotation(Rotations.Keyframes[LastKey].Value);
+	  Q2 := Vector4DRotation(Rotations.Keyframes[Key].Value);
+  	Block.Rotation := Vector4DSlerp(Q1,Q2, Fraction);
   End Else
   If (Key=0) And (Rotations.Count>0) Then
   Begin
-    Block.Rotation := QuaternionRotation(Rotations.Keyframes[Key].Value);
+    Block.Rotation := Vector4DRotation(Rotations.Keyframes[Key].Value);
   End Else
-    Block.Rotation := QuaternionRotation(VectorZero);
+    Block.Rotation := Vector4DRotation(VectorZero);
 
     //TODO
   Block.Scale := VectorOne;
@@ -1373,7 +1400,7 @@ Var
   I:Integer;
   Time, Delta:Cardinal;
 Begin
-  Transforms[0] := MatrixIdentity;
+  Transforms[0] := Matrix4x4Identity;
 
   If (_Next<>'') Then
   Begin
@@ -1398,7 +1425,7 @@ Begin
       Transforms[Succ(I)] := _Skeleton.BindPose[Succ(I)];}
 
     For I:=1 To _BoneCount Do
-      Transforms[I] := MatrixIdentity;
+      Transforms[I] := Matrix4x4Identity;
 
     Exit;
   End;
@@ -1411,6 +1438,9 @@ Begin
    }
 
   _LastTime := Time;
+
+  If Length(_BoneStates)<_BoneCount Then
+    Exit;
 
   // Get all bones tranformations
   For I:=0 To Pred(_BoneCount) Do
@@ -1566,12 +1596,12 @@ Begin
   _Root := AnimationCrossfader.Create(_Root, AnimationNode.Create(Self, MyAnimation), Duration);
 End;
 
-Function AnimationState.GetAbsoluteMatrix(Index: Integer): Matrix;
+Function AnimationState.GetAbsoluteMatrix(Index: Integer): Matrix4x4;
 Begin
   Result := Transforms[Index+1];
 End;
 
-Function AnimationState.GetRelativeMatrix(Index: Integer): Matrix;
+Function AnimationState.GetRelativeMatrix(Index: Integer): Matrix4x4;
 Begin
   Result := _BoneStates[Index]._FrameMatrix;
 End;
@@ -1627,10 +1657,10 @@ Begin
 
 	// Create a transformation matrix from the position and rotation
 	// m_frame: additional transformation for this frame of the animation
-  _FrameMatrix := MatrixMultiply4x3(MatrixTranslation(_Block.Translation), QuaternionMatrix(_Block.Rotation));
+  _FrameMatrix := Matrix4x4Multiply4x3(Matrix4x4Translation(_Block.Translation), Vector4DMatrix4x4(_Block.Rotation));
 
 	// Add the animation state to the rest position
-  _FrameMatrix := MatrixMultiply4x3(_Bone.RelativeMatrix, _FrameMatrix);
+  _FrameMatrix := Matrix4x4Multiply4x3(_Bone.RelativeMatrix, _FrameMatrix);
 
 	If (_Parent = nil ) Then					// this is the root node
   Begin
@@ -1638,7 +1668,7 @@ Begin
   End Else									// not the root node
 	Begin
 		// m_final := parent's m_final * m_rel (matrix concatenation)
-    _AbsoluteMatrix := MatrixMultiply4x3(_Parent._AbsoluteMatrix, _FrameMatrix);
+    _AbsoluteMatrix := Matrix4x4Multiply4x3(_Parent._AbsoluteMatrix, _FrameMatrix);
 	End;
 
   _Ready := True;
@@ -1677,7 +1707,7 @@ Begin
     Result.Translation.Y := SB.Translation.Y * Alpha + SA.Translation.Y * Beta;
     Result.Translation.Z := SB.Translation.Z * Alpha + SA.Translation.Z * Beta;
 
-    Result.Rotation := QuaternionSlerp(SA.Rotation, SB.Rotation, Alpha);
+    Result.Rotation := Vector4DSlerp(SA.Rotation, SB.Rotation, Alpha);
 
     Result.Scale.X := SB.Scale.X * Alpha + SA.Scale.X * Beta;
     Result.Scale.Y := SB.Scale.Y * Alpha + SA.Scale.Y * Beta;
@@ -1820,7 +1850,7 @@ Begin
   Else
   Begin
     Result.Translation := VectorZero;
-    Result.Rotation := QuaternionZero;
+    Result.Rotation := Vector4DZero;
     Result.Scale := VectorOne;
   End;
 End;

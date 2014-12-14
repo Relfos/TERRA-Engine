@@ -1,6 +1,26 @@
-// rendertotexture: http://forum.gbadev.org/viewtopic.php?t=16251&highlight=render+texture
-// bloom: http://forum.gbadev.org/viewtopic.php?t=7958
-// http://a128.atspace.com/twopass.tgz
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_FrameBufferObject
+ * Implements a framebuffer object
+ ***********************************************************************************************************************
+}
 
 Unit TERRA_FrameBufferObject;
 {$I terra.inc}
@@ -139,6 +159,8 @@ Begin
 
   _Ratio := VectorCreate2D(1.0, 1.0);
 
+  Log(logDebug,'Framebuffer', 'Creating Framebuffer with size: '+IntToString(_Width)+' x '+IntToString(_Height));
+  
   {$IFDEF PC}
 	If (_type = FBO_COLOR16) Then
 		_internalformat := GL_RGBA16F
@@ -330,7 +352,7 @@ Begin
 
     glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, @_Width);
     glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, @_Height);
-    Log(logDebug,'Framebuffer', 'Framebuffer size: W: '+IntToString(_Width)+' H: '+IntToString(_Height));
+    Log(logDebug,'Framebuffer', 'Framebuffer size:  '+IntToString(_Width)+' x '+IntToString(_Height));
 
     _depth_rb := GraphicsManager.Instance.GenerateRenderBuffer();
     glBindRenderbuffer(GL_RENDERBUFFER, _depth_rb);

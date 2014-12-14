@@ -1,3 +1,27 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Milkshape
+ * Implements a Milkshape loader/writer/mesh filter
+ ***********************************************************************************************************************
+}
+
 {
 @abstract(MS3D Loader)
 @author(Sergio Flores <relfos@gmail.com>)
@@ -61,12 +85,12 @@ Version History
 
 }
 
-Unit TERRA_MS3D;
+Unit TERRA_Milkshape;
 
 {$I terra.inc}
 Interface
-Uses TERRA_Utils, TERRA_Math, TERRA_IO, TERRA_INI, TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix,
-  TERRA_Color, TERRA_FileIO, TERRA_FileUtils, TERRA_Quaternion, TERRA_MeshFilter;
+Uses TERRA_Utils, TERRA_Math, TERRA_IO, TERRA_INI, TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix4x4,
+  TERRA_Color, TERRA_FileIO, TERRA_FileUtils, TERRA_Vector4D, TERRA_MeshFilter;
 
 Const
   MS3D_HEADER='MS3D000000';
@@ -160,8 +184,8 @@ Type
     Parent:PMilkshape3DJoint;
     AbsolutePosition:Vector3D;
     RelativePosition:Vector3D;
-    AbsoluteMatrix:Matrix;
-    RelativeMatrix:Matrix;
+    AbsoluteMatrix:Matrix4x4;
+    RelativeMatrix:Matrix4x4;
     Ready:Boolean;
 
     Procedure Init;
@@ -206,7 +230,7 @@ Type
     Function IsJointUsed(Index:Integer):Boolean;
     Procedure RemoveJoint(Index:Integer);
 
-    Function ConvertTexturesToCanvas(FileName:AnsiString):Boolean;
+    Function ConvertTexturesToTextureAtlas(FileName:AnsiString):Boolean;
 
     Function GetMaterialFile(MaterialIndex:Integer; SourceFile:AnsiString):AnsiString;
   End;
@@ -229,7 +253,7 @@ Type
     Flags:Cardinal;
   End;
 
-  ModelMilkshape3D = Class(MeshFilter)
+  Milkshape3DModel = Class(MeshFilter)
     Protected
       _MS3D:Milkshape3DObject;
       _Groups:Array Of MS3DGroup;
@@ -266,7 +290,7 @@ Type
 
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_Canvas, TERRA_Image, TERRA_Application, TERRA_ResourceManager,
+Uses TERRA_Error, TERRA_Log, TERRA_TextureAtlas, TERRA_Image, TERRA_Application, TERRA_ResourceManager,
   Math;
 
 { Milkshape3DObject }
@@ -469,7 +493,8 @@ Begin
       Dest.Write(@Flags,SizeOf(Flags));
       Dest.Write(@Name,SizeOf(Name));
       Dest.Write(@NumTriangles,SizeOf(NumTriangles));
-      Dest.Write(@TriangleIndices[0],SizeOf(Word)*NumTriangles);
+      If NumTriangles>0 Then
+        Dest.Write(@TriangleIndices[0], SizeOf(Word)*NumTriangles);
       Dest.Write(@MaterialIndex,SizeOf(MaterialIndex));
     End;
 
@@ -547,16 +572,16 @@ Begin
 
 End;
 
-Function Milkshape3DObject.ConvertTexturesToCanvas(FileName:AnsiString):Boolean;
+Function Milkshape3DObject.ConvertTexturesToTextureAtlas(FileName:AnsiString):Boolean;
 Var
   I,J,K:Integer;
   Index:Integer;
   S:AnsiString;
-  MyCanvas:Canvas;
+  MyTextureAtlas:TextureAtlas;
   CW,CH:Integer;
   Img:Image;
   Textures:Array Of Image;
-  CI:Array Of CanvasItem;
+  CI:Array Of TextureAtlasItem;
 
   UOffset,UScale:Single;
   VOffset,VScale:Single;
@@ -583,16 +608,16 @@ Begin
   CH := NearestPowerOfTwo(CH);
 
   Repeat
-    MyCanvas := Canvas.Create('ms3d', CW, CH);
+    MyTextureAtlas := TextureAtlas.Create('ms3d', CW, CH);
     For I:=0 To Pred(NumMaterials) Do
-      CI[I] := MyCanvas.Add(Textures[I], Materials[I].Name);
+      CI[I] := MyTextureAtlas.Add(Textures[I], Materials[I].Name);
 
-    Result := MyCanvas.Update;
+    Result := MyTextureAtlas.Update;
 
     If Result Then
     Begin
       TextureName := 'textures\'+GetFileName(FileName,True)+'.png';
-      Img := MyCanvas.GetTexture(0).GetImage;
+      Img := MyTextureAtlas.GetTexture(0).GetImage;
       Img.Save(TextureName);
       Img.Destroy;
     End Else
@@ -601,7 +626,7 @@ Begin
         CW := CW * 2
       Else
         CH := CH * 2;
-      MyCanvas.Destroy;
+      MyTextureAtlas.Destroy;
 
       If (CW>2048) Or (CH>2048) Then
         Exit;
@@ -632,7 +657,7 @@ Begin
     End;
   End;
 
-  MyCanvas.Destroy;
+  MyTextureAtlas.Destroy;
 
   NumMaterials := 1;
   S:=TextureName;
@@ -744,9 +769,9 @@ Begin
     SetLength(Joints, 0);
 End;
 
-{ ModelMilkshape3D }
+{ Milkshape3DModel }
 
-Function ModelMilkshape3D.GetMaterial(GroupID: Integer): PMilkshape3DMaterial;
+Function Milkshape3DModel.GetMaterial(GroupID: Integer): PMilkshape3DMaterial;
 Var
   Index:Integer;
 Begin
@@ -758,7 +783,7 @@ Begin
 End;
 
 
-Function ModelMilkshape3D.Load(Source: Stream): Boolean;
+Function Milkshape3DModel.Load(Source: Stream): Boolean;
 Var
   I,J,K:Integer;
   N,W,Z:Integer;
@@ -812,7 +837,7 @@ Begin
   Result := True;
 End;
 
-Class Function ModelMilkshape3D.Save(Dest:Stream; MyMesh:MeshFilter):Boolean;
+Class Function Milkshape3DModel.Save(Dest:Stream; MyMesh:MeshFilter):Boolean;
 Var
   I,J,K, N:Integer;
   AnimID:Integer;
@@ -1017,7 +1042,7 @@ Begin
   Result.A := Trunc(C.A*255);
 End;
 
-Function ModelMilkshape3D.GetDiffuseColor(GroupID:Integer):Color;
+Function Milkshape3DModel.GetDiffuseColor(GroupID:Integer):Color;
 Var
   Mat:PMilkshape3DMaterial;
 Begin
@@ -1030,7 +1055,7 @@ Begin
     Result := ColorWhite;
 End;
 
-{Function ModelMilkshape3D.GetSpecularColor(GroupID: Integer): Color;
+{Function Milkshape3DModel.GetSpecularColor(GroupID: Integer): Color;
 Var
   Mat:PMilkshape3DMaterial;
 Begin
@@ -1041,7 +1066,7 @@ Begin
     Result := ColorWhite;
 End;
 
-Function ModelMilkshape3D.GetSpecularFactor(GroupID: Integer): Single;
+Function Milkshape3DModel.GetSpecularFactor(GroupID: Integer): Single;
 Var
   Mat:PMilkshape3DMaterial;
 Begin
@@ -1052,7 +1077,7 @@ Begin
     Result := 0.0;
 End;}
 
-Function ModelMilkshape3D.GetSpecularMapName(GroupID: Integer):AnsiString;
+Function Milkshape3DModel.GetSpecularMapName(GroupID: Integer):AnsiString;
 Var
   S:AnsiString;
 Begin
@@ -1063,7 +1088,7 @@ Begin
     Result := '';
 End;
 
-Function ModelMilkshape3D.GetEmissiveMapName(GroupID: Integer):AnsiString;
+Function Milkshape3DModel.GetEmissiveMapName(GroupID: Integer):AnsiString;
 Var
   S:AnsiString;
 Begin
@@ -1074,7 +1099,7 @@ Begin
     Result := '';
 End;
 
-Function ModelMilkshape3D.GetDiffuseMapName(GroupID: Integer):AnsiString;
+Function Milkshape3DModel.GetDiffuseMapName(GroupID: Integer):AnsiString;
 Var
   I:Integer;
   Mat:PMilkshape3DMaterial;
@@ -1094,7 +1119,7 @@ Begin
     Result := '';
 End;
 
-{Function ModelMilkshape3D.GetEmissiveFactor(GroupID: Integer): Single;
+{Function Milkshape3DModel.GetEmissiveFactor(GroupID: Integer): Single;
 Var
   Mat:PMilkshape3DMaterial;
 Begin
@@ -1105,22 +1130,22 @@ Begin
     Result := 0.0;
 End;}
 
-Function ModelMilkshape3D.GetGroupBlendMode(GroupID: Integer): Cardinal;
+Function Milkshape3DModel.GetGroupBlendMode(GroupID: Integer): Cardinal;
 Begin
   Result := _Groups[GroupID].BlendMode;
 End;
 
-Function ModelMilkshape3D.GetGroupCount: Integer;
+Function Milkshape3DModel.GetGroupCount: Integer;
 Begin
   Result := Self._MS3D.NumGroups;
 end;
 
-Function ModelMilkshape3D.GetGroupFlags(GroupID: Integer): Cardinal;
+Function Milkshape3DModel.GetGroupFlags(GroupID: Integer): Cardinal;
 Begin
   Result := _Groups[GroupID].Flags;
 End;
 
-Function ModelMilkshape3D.GetGroupName(GroupID: Integer):AnsiString;
+Function Milkshape3DModel.GetGroupName(GroupID: Integer):AnsiString;
 Var
   I:Integer;
 Begin
@@ -1132,42 +1157,42 @@ Begin
     Break;
 End;
 
-Function ModelMilkshape3D.GetTriangle(GroupID, Index: Integer): Triangle;
+Function Milkshape3DModel.GetTriangle(GroupID, Index: Integer): Triangle;
 Begin
   Result := _Groups[GroupID].Triangles[Index];
 End;
 
-Function ModelMilkshape3D.GetTriangleCount(GroupID: Integer): Integer;
+Function Milkshape3DModel.GetTriangleCount(GroupID: Integer): Integer;
 Begin
   Result := _MS3D.Groups[GroupID].NumTriangles;
 End;
 
-Function ModelMilkshape3D.GetVertexCount(GroupID: Integer): Integer;
+Function Milkshape3DModel.GetVertexCount(GroupID: Integer): Integer;
 Begin
   Result := _Groups[GroupID].VertexCount;
 end;
 
-Function ModelMilkshape3D.GetVertexFormat(GroupID: Integer): Cardinal;
+Function Milkshape3DModel.GetVertexFormat(GroupID: Integer): Cardinal;
 Begin
   Result := meshFormatNormal Or meshFormatUV1 Or meshFormatBone;
 End;
 
-Function ModelMilkshape3D.GetVertexBone(GroupID, Index: Integer): Integer;
+Function Milkshape3DModel.GetVertexBone(GroupID, Index: Integer): Integer;
 Begin
   Result := _Groups[GroupID].Vertices[Index].BoneIndex;
 End;
 
-Function ModelMilkshape3D.GetVertexNormal(GroupID, Index: Integer): Vector3D;
+Function Milkshape3DModel.GetVertexNormal(GroupID, Index: Integer): Vector3D;
 Begin
   Result := _Groups[GroupID].Vertices[Index].Normal;
 End;
 
-Function ModelMilkshape3D.GetVertexPosition(GroupID, Index: Integer): Vector3D;
+Function Milkshape3DModel.GetVertexPosition(GroupID, Index: Integer): Vector3D;
 Begin
   Result := _Groups[GroupID].Vertices[Index].Position;
 End;
 
-Function ModelMilkshape3D.GetVertexUV(GroupID, Index: Integer): Vector2D;
+Function Milkshape3DModel.GetVertexUV(GroupID, Index: Integer): Vector2D;
 Begin
   Result := _Groups[GroupID].Vertices[Index].TexCoords;
 End;
@@ -1182,7 +1207,7 @@ Begin
   If (Assigned(Parent)) And (Not Parent.Ready) Then
     Parent.Init;
 
-  RelativeMatrix := MatrixMultiply4x3(MatrixTranslation(Position), MatrixRotation(Rotation));
+  RelativeMatrix := Matrix4x4Multiply4x3(Matrix4x4Translation(Position), Matrix4x4Rotation(Rotation));
 
 	// Each bone's final matrix is its relative matrix concatenated onto its
 	// parent's final matrix (which in turn is ....)
@@ -1193,12 +1218,12 @@ Begin
   End Else									// not the root node
 	Begin
 		// m_final := parent's m_final * m_rel (matrix concatenation)
-    AbsoluteMatrix := MatrixMultiply4x3(Parent.AbsoluteMatrix, RelativeMatrix);
+    AbsoluteMatrix := Matrix4x4Multiply4x3(Parent.AbsoluteMatrix, RelativeMatrix);
 	End;
 
   Ready := True;
 End;
 
 Initialization
-  RegisterMeshFilter(ModelMilkshape3D, 'MS3D');
+  RegisterMeshFilter(Milkshape3DModel, 'MS3D');
 End.

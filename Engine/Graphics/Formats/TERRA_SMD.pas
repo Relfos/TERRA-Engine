@@ -1,10 +1,33 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_SMD
+ * Implements SMD (from Valve) model loader/mesh filter
+ ***********************************************************************************************************************
+}
 Unit TERRA_SMD;
 
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_IO, TERRA_Vector3D, TERRA_Matrix, TERRA_Math, TERRA_Color,
-  TERRA_Quaternion, TERRA_Vector2D, TERRA_MeshFilter, TERRA_FileIO, TERRA_FileUtils,
+  TERRA_Utils, TERRA_IO, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Math, TERRA_Color,
+  TERRA_Vector4D, TERRA_Vector2D, TERRA_MeshFilter, TERRA_FileIO, TERRA_FileUtils,
   TERRA_OS, Math;
 
 Type
@@ -34,8 +57,8 @@ Type
 
     Position:Vector3D;
 
-    RelativeMatrix:Matrix;
-    AbsoluteMatrix:Matrix;
+    RelativeMatrix:Matrix4x4;
+    AbsoluteMatrix:Matrix4x4;
   End;
 
   SMDAnimation = Object
@@ -58,11 +81,11 @@ Type
 
       Procedure Update(Time: Single);
 
-      Procedure Render(Transform:Matrix);
+      Procedure Render(Transform:Matrix4x4);
 
       Function GetBone(Index:Integer):PSMDBone;
       Function GetFramePosition(BoneIndex:Integer):Vector3D;
-      Function GetFrameRotation(BoneIndex:Integer):Quaternion;
+      Function GetFrameRotation(BoneIndex:Integer):Vector4D;
 
       Function GetFrame(Index:Integer):SMDFrame;
 
@@ -232,7 +255,7 @@ Begin
 
   T := _Frames[FrameIndex].Values[Bone.Index].Position;
   R := _Frames[FrameIndex].Values[Bone.Index].Rotation;
-  Bone.RelativeMatrix := MatrixMultiply4x3(MatrixTranslation(T), MatrixRotation(R));
+  Bone.RelativeMatrix := Matrix4x4Multiply4x3(Matrix4x4Translation(T), Matrix4x4Rotation(R));
 
 	// Each bone's final matrix is its relative matrix concatenated onto its
 	// parent's final matrix (which in turn is ....)
@@ -243,7 +266,7 @@ Begin
   End Else									// not the root node
 	Begin
 		// m_final := parent's m_final * m_rel (matrix concatenation)
-    Bone.AbsoluteMatrix := MatrixMultiply4x3(Bone.Parent.AbsoluteMatrix, Bone.RelativeMatrix);
+    Bone.AbsoluteMatrix := Matrix4x4Multiply4x3(Bone.Parent.AbsoluteMatrix, Bone.RelativeMatrix);
 	End;
 
   Bone.Ready := True;
@@ -263,26 +286,26 @@ Begin
   Result := VectorInterpolate(_Frames[A].Values[BoneIndex].Position, _Frames[B].Values[BoneIndex].Position, _CurrentDelta);
 End;
 
-Function SMDAnimation.GetFrameRotation(BoneIndex:Integer):Quaternion;
+Function SMDAnimation.GetFrameRotation(BoneIndex:Integer):Vector4D;
 Var
   A, B:Integer;
-  Q1, Q2:Quaternion;
+  Q1, Q2:Vector4D;
 Begin
   A := _CurrentFrame;
   B := (A + 1) Mod _FrameCount;
 
-  Q1 := QuaternionRotation(_Frames[A].Values[BoneIndex].Rotation);
-  Q2 := QuaternionRotation(_Frames[B].Values[BoneIndex].Rotation);
+  Q1 := Vector4DRotation(_Frames[A].Values[BoneIndex].Rotation);
+  Q2 := Vector4DRotation(_Frames[B].Values[BoneIndex].Rotation);
 
-  Result := QuaternionSlerp(Q1, Q2, _CurrentDelta);
-//  Result := QuaternionConjugate(Result);
+  Result := Vector4DSlerp(Q1, Q2, _CurrentDelta);
+//  Result := Vector4DConjugate(Result);
 End;
 
 Procedure SMDAnimation.Update(Time: Single);
 Var
   J, I, N:Integer;
   Delta, K:Single;
-  Q1, Q2:Quaternion;
+  Q1, Q2:Vector4D;
   PA,PB:Array Of Vector3D;
 Begin
   _Time := Time;
@@ -344,7 +367,7 @@ Begin
   End;
 End;
 
-Procedure SMDAnimation.Render(Transform: Matrix);
+Procedure SMDAnimation.Render(Transform: Matrix4x4);
 Var
   A, B:Vector3D;
   I:Integer;

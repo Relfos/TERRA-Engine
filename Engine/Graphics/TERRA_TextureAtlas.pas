@@ -1,191 +1,363 @@
-//BASED ON: http://www.gamedev.net/community/forums/mod/journal/journal.asp?jn=263350&reply_id=3198944
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_
+ * Implements a texture atlas, which can be used to pack multiple textures
+ ***********************************************************************************************************************
+}
 Unit TERRA_TextureAtlas;
-
 {$I terra.inc}
+
 Interface
-Uses TERRA_Utils, TERRA_Image, TERRA_Texture;
+Uses TERRA_Utils, TERRA_Image, TERRA_Texture, TERRA_Packer;
 
 Type
-  TextureAtlas = Class(Texture)
+  TextureAtlasItem = Class(TERRAObject)
     Protected
-      _MipMaps:Array Of Image;
-      _MipMapCount:Integer;
-      _TilesPerRow:Integer;
-
-      _SourceList:Array Of Image;
-      _SourceIDs:Array Of Integer;
-      _SourceCount:Integer;
-      _SourceSize:Integer;
-
-      Procedure Build(); Override;
+      _Packed:Boolean;
+      _Name:AnsiString;
 
     Public
-      Destructor Destroy;
+      ID:Integer;
+      PageID:Integer;
+      X:Single;
+      Y:Single;
+      Buffer:Image;
+      
+      Destructor Destroy; Override;
 
-      Procedure Add(Source:Image; ID:Integer=-1); Overload;
-      Procedure Add(Source:AnsiString; ID:Integer=-1); Overload;
+      Property Name:AnsiString Read _Name;
+  End;
 
-      Procedure GenerateAtlas;
+  TextureAtlas = Class(TERRAObject)
+    Protected
+      _Name:AnsiString;
+      _Width:Integer;
+      _Height:Integer;
+      _ItemList:Array Of TextureAtlasItem;
+      _ItemCount:Integer;
+      _Textures:Array Of Texture;
+      _RefCount:Integer;
+      _PageCount:Integer;
 
-      Function GetAtlasImage(Level:Integer):Image;
+      _ContextLost:Boolean;
 
-      Procedure ExportAtlas(ExportName:AnsiString);
+      Procedure CreateTexture(ID:Integer);
 
-      Property LevelCount:Integer Read _MipMapCount;
-      Property TilesPerRow:Integer Read _TilesPerRow Write _TilesPerRow;
+      Procedure RedoAfterContextLost;
+
+    Public
+      Constructor Create(Name:AnsiString; Width, Height:Integer);
+      Destructor Destroy; Override;
+
+      Function Add(Source:Image; Name:AnsiString):TextureAtlasItem;
+      Procedure Delete(ID:Integer);
+      Function Get(ID:Integer):TextureAtlasItem; Overload;
+      Function Get(Name:AnsiString):TextureAtlasItem; Overload;
+
+      Procedure Clear;
+      Procedure Bind(PageID:Integer);
+      Function GetTexture(PageID:Integer):Texture;
+
+      Procedure OnContextLost;
+
+      Function Update:Boolean;
+
+      Property Width:Integer Read _Width;
+      Property Height:Integer Read _Height;
+      Property PageCount:Integer Read _PageCount;
+
+      Property ItemCount:Integer Read _ItemCount;
   End;
 
 Implementation
-Uses {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_IO, TERRA_GraphicsManager, TERRA_FileManager;
+Uses TERRA_Error, TERRA_FileUtils, TERRA_Log,  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
+
+// LTextureAtlas
+Constructor TextureAtlas.Create(Name:AnsiString; Width, Height:Integer);
+Begin
+  _Name := Name;
+  _Width := Width;
+  _Height := Height;
+  _ItemCount := 0;
+  _RefCount := 0;
+  _PageCount := 1;
+  SetLength(_Textures, 1);
+End;
 
 Destructor TextureAtlas.Destroy;
 Var
   I:Integer;
 Begin
-  For I:=0 To Pred(_SourceCount) Do
-    _SourceList[I].Destroy;
+  For I:=0 To Pred(Length(_Textures)) Do
+  If Assigned(_Textures[I]) Then
+    _Textures[I].Destroy;
 
-  For I:=0 To Pred(_MipMapCount) Do
-  If Assigned(_MipMaps[I]) Then
-    _MipMaps[I].Destroy;
-
-  Inherited;
+  Clear;
 End;
 
-Procedure TextureAtlas.Add(Source:Image; ID:Integer=-1);
-Begin
-  Inc(_SourceCount);
-  SetLength(_SourceList, _SourceCount);
-  SetLength(_SourceIDS, _SourceCount);
-
-  If (_SourceSize<=0) Then
-    _SourceSize := Source.Width;
-
-  If (ID<0) Then
-    ID := Pred(_SourceCount);
-
-  _SourceList[Pred(_SourceCount)] := Image.Create(Source);
-  _SourceIDs[Pred(_SourceCount)] := ID;
-  Source := _SourceList[Pred(_SourceCount)];
-  If (Source.Width <> _SourceSize) Or (Source.Height <> _SourceSize) Then
-    Source.Resize(_SourceSize, _SourceSize);
-End;
-
-Procedure TextureAtlas.GenerateAtlas;
-Var
-  I, J, X, Y:Integer;
-  N, K, Size, S:Integer;
-  Temp:Image;
-Begin
-  _MipMapCount := 1;
-
-  K := _TilesPerRow;
-  If (K<=0) Then
-    K := Trunc(Sqrt(_SourceCount));
-
-  If (Odd(K)) Then
-    Inc(K);
-  S := _SourceSize * K;
-  While (S>1) Do
-  Begin
-    Inc(_MipMapCount);
-    S := S Shr 1;
-  End;
-  SetLength(_MipMaps, _MipMapCount);
-
-  S := _SourceSize;
-  Size := S * K;
-  For J:=0 To Pred(LevelCount) Do
-  Begin
-    _MipMaps[J] := Image.Create(Size, Size);
-    If (J = 0) Then
-    Begin
-      _Width := _MipMaps[J].Width;
-      _Height := _MipMaps[J].Height;
-    End;
-
-    For I:=0 To Pred(_SourceCount) Do
-    Begin
-      N := _SourceIDs[I];
-      X := N Mod K;
-      Y := N Div K;
-      Temp := _SourceList[I];
-      If (S>1) Then
-        Temp.Resize(S, S);
-      If (_MipMaps[J].Width>1) Then
-        _MipMaps[J].Blit(X * S, Y * S, 0,0, Temp.Width, Temp.Height, Temp);
-    End;
-
-    {If (_MipMaps[J]<>Nil) And (_MipMaps[J].Width>2) Then
-      _MipMaps[J].Save('atlas_'+IntToString(J)+'.png');}
-
-    S := S Shr 1;
-    Size := Size Shr 1;
-  End;
-End;
-
-Function TextureAtlas.GetAtlasImage(Level:Integer):Image;
-Begin
-  If (Level<0) Or (Level>=_MipMapCount) Then
-    Result := Nil
-  Else
-    Result := _MipMaps[Level];
-End;
-
-Procedure TextureAtlas.Build();
-Var
-  I:Integer;
-  Temp:Image;
-Begin
-  If (_FrameCount<=0) Then
-  Begin
-    _FrameCount := 1;
-    SetLength(_Handles, _FrameCount);
-    _Handles[0] := GraphicsManager.Instance.GenerateTexture();
-  End;
-
-  glActiveTexture(GL_TEXTURE0);
-  {$IFDEF PC}
-  glEnable(GL_TEXTURE_2D);
-  {$ENDIF}
-
-  glBindTexture(GL_TEXTURE_2D, _Handles[0]);
-
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-  For I:=0 To Pred(LevelCount) Do
-  Begin
-    Temp := _MipMaps[I];
-    glTexImage2D(GL_TEXTURE_2D, I, GL_RGBA8, Temp.Width, Temp.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, Temp.Pixels);
-  End;
-
-  glBindTexture(GL_TEXTURE_2D, 0);
-End;
-
-Procedure TextureAtlas.ExportAtlas(ExportName:AnsiString);
+Procedure TextureAtlas.Clear;
 Var
   I:Integer;
 Begin
-  For I:=0 To Pred(LevelCount) Do
-    _MipMaps[I].Save(ExportName+IntToString(I)+'.png');
+  For I:=0 To Pred(_ItemCount) Do
+  Begin
+    _ItemList[I].Buffer.Destroy;
+    _ItemList[I].Destroy;
+  End;
+  _ItemCount := 0;
 End;
 
-Procedure TextureAtlas.Add(Source:AnsiString; ID:Integer=-1);
-Var
-  S:AnsiString;
-  F:Stream;
-  Src:Image;
+Function TextureAtlas.Add(Source: Image; Name:AnsiString): TextureAtlasItem;
 Begin
-  S := FileManager.Instance.SearchResourceFile(Source);
-  If S='' Then
+  Name := UpStr(GetFileName(Name, True));
+  Inc(_ItemCount);
+  SetLength(_ItemList, _ItemCount);
+  Log(logDebug, 'Game', 'Creating TextureAtlas item');
+  Result := TextureAtlasItem.Create;
+  _ItemList[Pred(_ItemCount)] := Result;
+  Result._Name := Name;
+  Log(logDebug, 'Game', 'Creating image from source');
+  Result.Buffer := Image.Create(Source);
+  Result.ID := _RefCount;
+  Inc(_RefCount);
+  Log(logDebug, 'Game', 'TextureAtlas element added');
+End;
+
+Procedure TextureAtlas.Delete(ID:Integer);
+Var
+  I, N:Integer;
+Begin
+  N := -1;
+  For I:=0 To Pred(_ItemCount) Do
+  If (_ItemList[I].ID = ID) Then
+  Begin
+    N := I;
+    Break;
+  End;
+
+  If (N<0) Then
     Exit;
 
-  F := FileManager.Instance.OpenFileStream(S);
-  Src := Image.Create(F);
-  Add(Src, ID);
-  Src.Destroy;
-  F.Destroy;
+  _ItemList[N].Buffer.Destroy;
+  _ItemList[N] := _ItemList[Pred(_ItemCount)];
+  Dec(_ItemCount);
+End;
+
+Function TextureAtlas.Get(ID:Integer):TextureAtlasItem;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_ItemCount) Do
+  If (_ItemList[I].ID = ID) Then
+  Begin
+    Result := (_ItemList[I]);
+    Exit;
+  End;
+  Result := Nil;
+End;
+
+Function TextureAtlas.Get(Name:AnsiString):TextureAtlasItem;
+Var
+  I:Integer;
+Begin
+  Name := UpStr(GetFileName(Name, True));
+
+  For I:=0 To Pred(_ItemCount) Do
+  If (_ItemList[I]._Name = Name) Then
+  Begin
+    Result := (_ItemList[I]);
+    Exit;
+  End;
+  Result := Nil;
+End;
+
+{$DEFINE CPUBUFFER}
+Function TextureAtlas.Update:Boolean;
+Var
+  I, X, Y, W, H:Integer;
+  Packer:RectanglePacker;
+  LastCount, Count:Integer;
+  {$IFDEF CPUBUFFER}
+  Buffer:Image;
+  {$ENDIF}
+Begin
+  Log(logDebug, 'TextureAtlas', 'Updating');
+
+  _PageCount := 0;
+  For I:=0 To Pred(_ItemCount) Do
+  Begin
+    _ItemList[I]._Packed := False;
+    _ItemList[I].PageID := -1;
+  End;
+
+  LastCount := Succ(_ItemCount);
+  Repeat
+    {$IFDEF CPUBUFFER}
+    Buffer := Image.Create(_Width, _Height);
+    {$ENDIF}
+
+    Packer := RectanglePacker.Create;
+    For I:=0 To Pred(_ItemCount) Do
+    If Not _ItemList[I]._Packed Then
+    Begin
+      W := _ItemList[I].Buffer.Width + 1;
+      H := _ItemList[I].Buffer.Height + 1;
+      If (H<Self._Height) Then
+        Inc(H);
+      Packer.AddRect(W, H, _ItemList[I].ID);
+    End;
+
+    Count := Packer.Pack(Self._Width, Self._Height);
+    If (Count=LastCount) Then
+    Begin
+      RaiseError('Not enough space to pack TextureAtlas.');
+      Result := False;
+      Packer.Destroy;
+      Exit;
+    End;
+
+    LastCount := Count;
+    Inc(_PageCount);
+    If Length(_Textures)<_PageCount Then
+      SetLength(_Textures, _PageCount);
+    If Not Assigned(_Textures[Pred(_PageCount)]) Then
+      CreateTexture(Pred(_PageCount));
+
+    For I:=0 To Pred(_ItemCount) Do
+    Begin
+      If (_ItemList[I]._Packed) Then
+        Continue;
+
+      X := 0;
+      Y := 0;
+      If (Packer.GetRect(_ItemList[I].ID, X, Y)) Then
+      Begin
+        _ItemList[I].X := (Succ(X) / Self._Width);
+        _ItemList[I].Y := (Succ(Y) / Self._Height);
+        _ItemList[I].PageID := Pred(_PageCount);
+        _ItemList[I]._Packed := True;
+
+        If (Assigned(_ItemList[I].Buffer)) Then
+        {$IFNDEF CPUBUFFER}
+          _Textures[Pred(_PageCount)].UpdateRect(_ItemList[I].Buffer, X, Y);
+        {$ELSE}
+          Buffer.Blit(X, Y, 0, 0, _ItemList[I].Buffer.Width, _ItemList[I].Buffer.Height, _ItemList[I].Buffer);
+        {$ENDIF}
+      End Else
+        Log(logError, 'TextureAtlas', 'Could not pack '+_ItemList[I]._Name);
+    End;
+    Packer.Destroy;
+
+    {$IFDEF CPUBUFFER}
+    _Textures[Pred(_PageCount)].UpdateRect(Buffer);
+
+    //Buffer.Save(_Name+'_TextureAtlas'+IntToString(_PageCount)+'.png', 'png','depth=32');
+    Buffer.Destroy;
+    {$ENDIF}
+  Until (Count = 0);
+
+  Result := True;
+  Log(logDebug, 'TextureAtlas', 'TextureAtlas is now updated');
+End;
+
+Procedure TextureAtlas.Bind(PageID:Integer);
+Begin
+  _Textures[PageID].Bind(0);
+End;
+
+Function TextureAtlas.GetTexture(PageID:Integer):Texture;
+Begin
+  If (_ContextLost) Then
+  Begin
+    Self.RedoAfterContextLost();
+    _ContextLost := False;
+  End;
+
+  If (PageID<Length(_Textures)) Then
+    Result := _Textures[PageID]
+  Else
+    Result := Nil;
+End;
+
+Procedure TextureAtlas.RedoAfterContextLost;
+Var
+  I,J:Integer;
+  X,Y:Integer;
+  {$IFDEF CPUBUFFER}
+  Buffer:Image;
+  {$ENDIF}
+Begin
+  For J:=0 To Pred(_PageCount) Do
+  If Assigned(_Textures[J]) Then
+  Begin
+    {$IFDEF CPUBUFFER}
+    Buffer := Image.Create(_Width, _Height);
+    {$ENDIF}
+
+    _Textures[J].Destroy();
+    Self.CreateTexture(J);
+
+    For I:=0 To Pred(_ItemCount) Do
+    Begin
+      If (_ItemList[I].PageID <> J) Then
+        Continue;
+
+      X := Pred(Trunc(_ItemList[I].X * Self._Width));
+      Y := Pred(Trunc(_ItemList[I].Y * Self._Height));
+
+      If (Assigned(_ItemList[I].Buffer)) Then
+      {$IFNDEF CPUBUFFER}
+      _Textures[J].UpdateRect(_ItemList[I].Buffer, X, Y);
+      {$ELSE}
+      Buffer.Blit(X, Y, 0, 0, _ItemList[I].Buffer.Width, _ItemList[I].Buffer.Height, _ItemList[I].Buffer);
+      {$ENDIF}
+    End;
+
+    {$IFDEF CPUBUFFER}
+    _Textures[Pred(_PageCount)].UpdateRect(Buffer);
+
+    //Buffer.Save(_Name+'_TextureAtlas'+IntToString(_PageCount)+'.png', 'png','depth=32');
+    Buffer.Destroy;
+    {$ENDIF}
+  End
+End;
+
+Procedure TextureAtlas.OnContextLost;
+Begin
+  Self._ContextLost := True;
+End;
+
+Procedure TextureAtlas.CreateTexture(ID: Integer);
+Var
+  S:AnsiString;
+Begin
+  S := _Name+'_page'+IntToString(ID);
+  Log(logDebug, 'TextureAtlas', 'Creating TextureAtlas texture: '+S);
+
+  _Textures[ID] := TERRA_Texture.Texture.New(S, Width, Height);
+  _Textures[ID].MipMapped := False;
+  _Textures[ID].Update();
+End;
+
+Destructor TextureAtlasItem.Destroy;
+Begin
 End;
 
 End.

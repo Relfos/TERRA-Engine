@@ -1,10 +1,33 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Viewport
+ * Implements a viewport class
+ ***********************************************************************************************************************
+}
 Unit TERRA_Viewport;
 {$I terra.inc}
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Utils, TERRA_Camera, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
-  TERRA_Ray, TERRA_Vector3D, TERRA_Matrix, 
+  TERRA_Ray, TERRA_Vector3D, TERRA_Matrix4x4, 
   TERRA_Color, TERRA_RenderTarget, TERRA_Downsampler, TERRA_Shader
 {$IFDEF POSTPROCESSING},TERRA_ScreenFX{$ENDIF};
 
@@ -123,7 +146,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_GraphicsManager, TERRA_Application, TERRA_Log, TERRA_OS, TERRA_Texture, TERRA_Quaternion
+Uses TERRA_Error, TERRA_GraphicsManager, TERRA_Application, TERRA_Log, TERRA_OS, TERRA_Texture, TERRA_Vector4D
 {$IFDEF POSTPROCESSING},TERRA_FrameBufferObject{$ENDIF};
 
 {$IFDEF POSTPROCESSING}
@@ -254,9 +277,9 @@ End;
 
 Function Viewport.ProjectPoint(Pos:Vector3D):Vector3D;
 Var
-  modelview:Matrix;
+  modelview:Matrix4x4;
   temp:Array[0..7] Of Single;
-  Proj:Matrix;
+  Proj:Matrix4x4;
 Begin
   If _Camera = Nil Then
   Begin
@@ -308,7 +331,7 @@ End;
 
 Function Viewport.UnprojectVector(WX,WY,WZ:Single):Vector3D;
 Var
-  M:Matrix;
+  M:Matrix4x4;
   P:Vector4D;
 Begin
   If _Camera = Nil Then
@@ -318,9 +341,9 @@ Begin
   End;
 
   //Calculation for inverting a matrix, compute projection x modelview and store in A
-  M := MatrixMultiply4x4(Camera.Projection, Camera.Transform);
+  M := Matrix4x4Multiply4x4(Camera.Projection, Camera.Transform);
   //Now compute the inverse of matrix A
-  M := MatrixInverse(M);
+  M := Matrix4x4Inverse(M);
 
   //Transformation of normalized coordinates between -1 and 1
   P.X := ((WX/_Width) *2.0) - 1.0;
@@ -379,6 +402,9 @@ End;
 Procedure Viewport.SetRenderTargetState(TargetType: Integer; Enabled: Boolean);
 Begin
   If (TargetType<0) Or (TargetType>=MaxCaptureTargets) Then
+    Exit;
+
+  If (Application.Instance.IsConsole) Then
     Exit;
 
   If (TargetType = captureTargetEmission) And (Enabled) And (Not GraphicsManager.Instance.Settings.FrameBufferObject.Avaliable) Then
@@ -699,7 +725,7 @@ Function Viewport.GetFXChain: ScreenFXChain;
 Begin
   If Not GraphicsManager.Instance.Settings.PostProcessing.Avaliable Then
   Begin
-    RaiseError('Postprocessing not supported in this device!');
+    Log(logError, 'Viewport', 'Postprocessing not supported in this device!');
     Result := Nil;
     Exit;
   End;
