@@ -26,6 +26,9 @@ Var
 { Game }
 Procedure MyGame.OnCreate;
 Begin
+  // Added Asset folder to search path
+  FileManager.Instance.AddPath('assets');
+
   // Load a Tex
   Tex := TextureManager.Instance.GetTexture('ghost');
 

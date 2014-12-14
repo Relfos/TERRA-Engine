@@ -35,6 +35,9 @@ Var
   I:Integer;
   W,H:Single;
 Begin
+  // Added Asset folder to search path
+  FileManager.Instance.AddPath('assets');
+
   // Create a scene and set it as the current scene
   _Scene := MyScene.Create;
   GraphicsManager.Instance.SetScene(_Scene);
