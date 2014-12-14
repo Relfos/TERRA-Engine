@@ -41,7 +41,10 @@ Images:
 * JPG
 * BMP
 * TGA
+* DDS
+* PSD
 * GIF (including animation)
+* PVR (Android)
 
 Font:
 * TTF
@@ -56,8 +59,11 @@ Audio:
 3D Models:
 * OBJ
 * MS3D (Milkshape)
-* SMD
+* SMD (Valve)
 * 3DS
+* Collada
+* GLS ([g]iles)
+* X (Microsoft DirectX)
 
 Cores Features
 ----------------
@@ -69,7 +75,6 @@ Cores Features
 * Input management (keyboard, mouse, touch, gamepad)
 * Thread management system (tasks, etc)
 * Image manipulation framework (resize, crop, etc)
-* Network framework (Sockets, HTTP, FTP, etc)
 * 2D/3D sound system based on OpenAL
 * Can be used standalone or integrated into a Delphi/Lazarus form
 * Localization system (with UTF8 support)
@@ -80,10 +85,11 @@ Renderer Features
 ----------------
 * Optimized sprite rendering with batching
 * Mesh skinning with skeletal animation (both on GPU and CPU)
-* Mesh dynamic deformation system (water, explosions, etc)
+* Inverse kinematics animation
+* Mesh dynamic deformation system (water, explosions, cloth rendering, etc)
 * Uber shader system (forward and deferred rendering)
 * Shadows (stencil-based and shadowmaps)
-* Particle system (sprites, lines and meshes)
+* Particle systems (sprites, lines and meshes)
 * Dynamic light system with culling (infinite number of lights per scene, supports point, directional and spot)
 * Infinite reflective surfaces (water, mirrors, etc)
 * Water shading with flow map support
@@ -92,21 +98,37 @@ Renderer Features
 * Screen based effects (color correction, outlines, refractions, SSAO, etc)
 * Font rendering (including density field fonts)
 * Billboards and decals
-* Skyboxes and skydomes
+* Fur rendering
+* Terrain rendering
+* Voxel/metaballs rendering
+* Software rasterization support
+* Lightmapping support (both rendering and generation)
+* Cartoon/celshading support
+* Skyboxes, skydomes and volumetric cloud rendering
 * Standard solids procedural meshes
+* Spline based mesh extrusions
+* Optimized 2D sprite rendering (including tilemaps from Tiled map editor)
 
 GUI Features
 ----------------
 * Optimized batched rendering
 * Standard widgets (buttons, labels, images, comboboxes, etc)
 * Widget animation (colors, opacity, size, rotation, etc)
-* Custom virtual keyboard 
+* Custom virtual keyboard (supports Russian, Korean, Japonese and Chinese)
+* Transition effects (fade out, slides, etc)
 
 Artificial Inteligence
 ----------------
 * Path finding
 * Boids
 * Navigation mesh
+
+Networking features
+----------------
+* Portable sockets API
+* Client and Server for multiplayer
+* Support for HTTP and FTP protocols 
+* UPNP support for NAT punchthrough
 
 Integrated Mobile SDKs 
 ---------------------
@@ -117,6 +139,7 @@ Integrated Mobile SDKs
 * Fortumo
 * Chartboost
 * Adbuddiz
+* Vungle
 
 Projects using TERRA
 ---------------------

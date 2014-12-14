@@ -1,28 +1,25 @@
-{
-@abstract(TGA Loader)
-@author(Sergio Flores <relfos@gmail.com>)
-@created(October 29, 2005)
-@lastmod(October 30, 2005)
-Allows loading of TGA image files.
-
-Supported features
-Features marked with * are supported in the format, but not in the loader
-#############################################
-#   Colors        24 and 32bits             #
-#   Greyscale     No                        #
-#   Alpha         32bits                    #
-#   Transparency  No                        #
-#   Animation     No                        #
-#   Layers        No                        #
-#############################################
-
-Version History
-   31/10/05  • Implemented basic TGA loader
-   13/07/06  • Fixed RLE decompression
-             • Added support for 32-bit TGAs with Alphachannel
-             • Now correctly loads vertical flipped TGAs
-   24/01/07  • Added support for saving TGAs
-
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_TGA
+ * Implements TGA loader
+ ***********************************************************************************************************************
 }
 
 Unit TERRA_TGA;
