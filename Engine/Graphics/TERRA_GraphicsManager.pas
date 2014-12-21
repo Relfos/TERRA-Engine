@@ -365,7 +365,6 @@ Type
 
       Procedure OnSettingsChange();
 
-      Procedure OnAppSplash; Override;
       Procedure OnAppResize; Override;
       Procedure OnContextLost; Override;
       Procedure OnOrientationChange; Override;
@@ -509,8 +508,8 @@ Function GetDefaultFullScreenShader():Shader;
 Implementation
 Uses TERRA_OS, TERRA_Log, TERRA_UI, TERRA_ResourceManager,
   TERRA_Frustum, TERRA_Lights, TERRA_SpriteManager, TERRA_Mesh,
-  TERRA_Decals, TERRA_Billboards, TERRA_ParticleRenderer, TERRA_DebugDraw 
-  {$IFDEF SPLASHSCREEN},TERRA_SplashScreen{$ENDIF};
+  TERRA_Decals, TERRA_Billboards, TERRA_ParticleRenderer, TERRA_DebugDraw
+;
 
 Var
   _GraphicsManager_Instance:ApplicationObject = Nil;
@@ -1267,11 +1266,9 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
   _Settings.FogDensity := 30.0;
   _Settings.FogStart := 0.2;
 
-  {$IFDEF SPLASHSCREEN}
-  If (TrialMode) Then
-    SetScene(SplashScreen.Create());
-  {$ENDIF}
-
+  Self.ReflectionMatrixSky := Matrix4x4Identity;
+  Self.ReflectionMatrix := Matrix4x4Identity;
+  
   {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 
@@ -1506,7 +1503,6 @@ Begin
 
   Self.ReflectionMatrixSky := Matrix4x4Identity;
   Self.ReflectionMatrix := Matrix4x4Identity;
-
   {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 
@@ -2511,14 +2507,6 @@ Begin
   Result.SetUniform('projectionMatrix', ActiveViewport.Camera.Projection);
   Result.SetUniform('modelMatrix', Transform);
   Result.SetUniform('out_texture', 0);
-End;
-
-Procedure GraphicsManager.OnAppSplash;
-Begin
-  {$IFDEF SPLASHSCREEN}
-  If (Assigned(_Scene)) And (_Scene Is SplashScreen) Then
-    SetScene(Nil);
-  {$ENDIF}
 End;
 
 Destructor GraphicsManager.Destroy;

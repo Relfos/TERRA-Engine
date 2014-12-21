@@ -90,9 +90,9 @@ Type
 			Procedure SetUniform(Const Name:AnsiString; const Value:Vector3D); Overload;
 			Procedure SetUniform(Const Name:AnsiString; const Value:Vector4D); Overload;
 			Procedure SetUniform(Const Name:AnsiString; const Value:Plane); Overload;
-			Procedure SetUniform(Const Name:AnsiString; const Value:Color); Overload;
+			Procedure SetUniform(Const Name:AnsiString; Const Value:Color); Overload;
       Procedure SetUniform(Const Name:AnsiString; Value:Matrix4x4); Overload;
-      Procedure SetUniform(Const Name:AnsiString; Value:Matrix3x3); Overload;
+      Procedure SetUniform(Const Name:AnsiString; Const Value:Matrix3x3); Overload;
 
       Function GetUniform(Const Name:AnsiString):Integer;
 
@@ -136,6 +136,13 @@ Begin
   If (Assigned(Result)) And (Result.Handle<=0) Then
     Result := Nil;
 End;}
+
+Procedure Shader.UniformError(Const Name:AnsiString);
+Begin
+  {$IFDEF PC}
+//    Log(logWarning, 'Shader', 'Invalid uniform: '+Name+' in '+Self._Name);
+  {$ENDIF}
+End;
 
 Function Shader.HasUniform(Const Name:AnsiString):Boolean;
 Begin
@@ -797,7 +804,7 @@ Begin
     UniformError(Name);
 End;
 
-Procedure Shader.SetUniform(Const Name:AnsiString; Value:Matrix3x3);
+Procedure Shader.SetUniform(Const Name:AnsiString; Const Value:Matrix3x3);
 Var
   ID:Integer;
 Begin
@@ -844,13 +851,6 @@ Begin
     glUniformMatrix4fv(Id, 1, False, @(Value.V[0]));
   End Else
     UniformError(Name);
-End;
-
-Procedure Shader.UniformError(Const Name:AnsiString);
-Begin
-  {$IFDEF PC}
-//  Log(logWarning, 'Shader', 'Invalid uniform: '+Name+' in '+Self._Name);
-  {$ENDIF}
 End;
 
 { ShaderManager }

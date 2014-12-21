@@ -2458,13 +2458,6 @@ Begin
     MyWidget := MyWidget._Next;
   End;
 
-
-  {$IFDEF SPLASHSCREEN}
-  {If (_FontCount>0) And (Assigned(_Fonts[0]._Font)) Then
-    _Fonts[0]._Font.DrawText(0,0, 99, 'Trial version', ColorWhite);
-  }
-  {$ENDIF}
-
   //glDisable(glCoverage);
 End;
 

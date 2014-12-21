@@ -170,10 +170,6 @@ Const
   settingsHintHigh   = 2;
   settingsHintVeryHigh   = 3;
 
-  {$IFDEF SPLASHSCREEN}
-  SplashScreenDuration = 4000;
-  {$ENDIF}
-
 Type
 	PCursor=^MouseCursor;
 	MouseCursor=Record
@@ -206,7 +202,6 @@ Type
   ApplicationComponent = Class(TERRAObject)
     Protected
       Procedure OnAppResize; Virtual;
-      Procedure OnAppSplash; Virtual;
       Procedure Suspend; Virtual;
       Procedure Resume; Virtual;
       Procedure OnLanguageChange; Virtual;
@@ -463,8 +458,6 @@ Type
       Function GetPlatform:Cardinal;
 
       Function CanHandleEvents:Boolean;
-
-      Function InSplashScreen:Boolean;
 
       Function FrameTime:Cardinal;
 
@@ -1021,13 +1014,8 @@ Begin
 
     If Assigned(Client) Then
     Begin
-      If (_ClientInit) {$IFDEF SPLASHSCREEN} And ((DebuggerPresent) Or (GetCurrentTime-_StartTime>SplashScreenDuration)){$ENDIF} Then
+      If (_ClientInit) Then
       Begin
-        {$IFDEF SPLASHSCREEN}
-        For I:=Pred(_ApplicationComponentCount) DownTo 0 Do
-          _ApplicationComponents[I].Component.OnAppSplash;
-        {$ENDIF}
-
         Client.OnCreate;
         _ClientInit := False;
         _CanReceiveEvents := True;
@@ -1277,7 +1265,6 @@ End;
 
 Procedure ApplicationComponent.Init; Begin End;
 Procedure ApplicationComponent.OnAppResize;  Begin End;
-Procedure ApplicationComponent.OnAppSplash;  Begin End;
 Procedure ApplicationComponent.Update;  Begin End;
 Procedure ApplicationComponent.Resume;  Begin End;
 Procedure ApplicationComponent.Suspend; Begin End;
@@ -1514,15 +1501,6 @@ Begin
   _RefreshingComponents := False;
 
   {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
-End;
-
-function Application.InSplashScreen: Boolean;
-begin
-{$IFDEF SPLASHSCREEN}
-  Result := GetTime-_StartTime<=SplashScreenDuration;
-{$ELSE}
-  Result := False;
-{$ENDIF}
 End;
 
 Procedure Sleep(Time:Cardinal);

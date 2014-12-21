@@ -161,6 +161,7 @@ Type
       Procedure LineDecodeBGR32(Buffer:Pointer; Line:Cardinal);
 
       Function GetPixelOffset(X,Y:Integer):PColor;
+      Function GetLineOffset(Y:Integer):PColor;
 
       Property Width:Cardinal Read _Width;
       Property Height:Cardinal Read _Height;
@@ -1240,6 +1241,23 @@ Begin
   End;
 End;
 
+Function Image.GetLineOffset(Y:Integer):PColor;
+Begin
+  If (_Height<=0) Then
+  Begin
+    Result := Nil;
+    Exit;
+  End;
+
+  If (Y<0) Then
+    Y := 0
+  Else
+  If (Y>=_Height) Then
+    Y := Pred(_Height);
+
+  Result := @_Pixels._Data[Y * Width];
+End;
+
 Function Image.GetPixelOffset(X,Y:Integer):PColor;
 Begin
   If (X<0) Then
@@ -1412,7 +1430,10 @@ Var
   Dest:PByte;
 Begin
 fsdfs
-  Dest:=PByte(Cardinal(_Data)+(Line*_Width*PixelSize));
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Move(Buffer^, Dest^, _Width);
 End;
 
@@ -1422,10 +1443,13 @@ Var
   Dest:PByte;
   Count:Integer;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
 sfds
   Count:=_Width;
   Source:=Buffer;
-  Dest:=PByte(Cardinal(_Data)+(Line*_Width*PixelSize));
+
   While (Count>0) Do
   Begin
 //    Dest^:=ColorRGB16To8(Source^);
@@ -1442,9 +1466,13 @@ Var
   Temp:Color;
   Count:Integer;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Count:=_Width;
   Source:=Buffer;
-  Dest:=PByte(Cardinal(_Data)+(Line*_Width*PixelSize));
+
   Temp.A:=255;
   While (Count>0) Do
   Begin
@@ -1470,9 +1498,13 @@ Var
   Dest:PByte;
   Count:Integer;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Count:=_Width;
   Source:=Buffer;
-  Dest:=PByte(Cardinal(_Data)+(Line*_Width*PixelSize));
+
   While (Count>0) Do
   Begin
     Dest^:=ColorRGB32To8(Source^);
@@ -1491,9 +1523,13 @@ Var
   Temp:Color;
   A,B:Byte;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Count:=_Width Shr 1;
   Source:=Buffer;
-  Dest:=PByte(Cardinal(_Data)+(Line*_Width*PixelSize));
+
   Temp.A:=255;
   While (Count>0) Do
   Begin
@@ -1541,9 +1577,13 @@ Var
   Index:Integer;
   Temp:Color;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Count:=_Width;
   Source:=Buffer;
-  Dest:=PByte(Cardinal(_Data)+(Line*_Width*PixelSize));
+
   Temp.A:=255;
   While (Count>0) Do
   Begin
@@ -1570,7 +1610,10 @@ Procedure Image.LineDecodeBGR8(Buffer: Pointer; Line:Cardinal);
 Var
   Dest:PByte;
 Begin
-  Dest:=PByte(Cardinal(_Data)+(Line*_Width*PixelSize));
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Move(Buffer^, Dest^, _Width);
 End;
 
@@ -1580,9 +1623,13 @@ Var
   Dest:PByte;
   Count:Integer;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Count:=_Width;
   Source:=Buffer;
-  Dest:=PByte(Cardinal(_Data)+(Line*_Width*PixelSize));
+
   While (Count>0) Do
   Begin
 //    Dest^:=ColorBGR16To8(Source^);
@@ -1599,9 +1646,13 @@ Var
   Temp:Color;
   Count:Integer;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Count:=_Width;
   Source:=Buffer;
-  Dest:=PByte(Cardinal(_Data)+(Line*_Width*PixelSize));
+
   Temp.A:=255;
   While (Count>0) Do
   Begin
@@ -1627,9 +1678,13 @@ Var
   Dest:PByte;
   Count:Integer;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Count:=_Width;
   Source:=Buffer;
-  Dest:=PByte(Cardinal(_Data)+(Line*_Width*PixelSize));
+
   While (Count>0) Do
   Begin
     Dest^:=ColorBGR32To8(Source^);
@@ -1648,9 +1703,13 @@ Var
   Temp:Color;
   A,B:Byte;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Count:=_Width Shr 1;
   Source:=Buffer;
-  Dest:=PByte(Cardinal(_Data)+(Line*_Width*PixelSize));
+
   Temp.A:=255;
   While (Count>0) Do
   Begin
@@ -1698,9 +1757,13 @@ Var
   Index:Integer;
   Temp:Color;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Count := _Width;
   Source := Buffer;
-  Dest:= PByte(Cardinal(_Data)+(Line*_Width*PixelSize));
+
   Temp.A := 255;
   While (Count>0) Do
   Begin
@@ -1732,9 +1795,13 @@ Var
   Dest:PColor;
   Count:Integer;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Count:=_Width;
   Source:=Buffer;
-  Dest := @_Pixels._Data[(Line*_Width*PixelSize)];
+
   While (Count>0) Do
   Begin
     Dest ^:= ColorRGB8To32(Source^);
@@ -1750,9 +1817,13 @@ Var
   Dest:PColor;
   Count:Integer;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Count:=_Width;
   Source:=Buffer;
-  Dest := @_Pixels._Data[(Line*_Width*PixelSize)];
+
   While (Count>0) Do
   Begin
     Dest^:=ColorRGB16To32(Source^);
@@ -1768,9 +1839,12 @@ Var
   Dest:PColor;
   Count:Integer;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Count:=_Width;
   Source:=Buffer;
-  Dest := @_Pixels._Data[(Line*_Width*PixelSize)];
   While (Count>0) Do
   Begin
     {$IFDEF RGB}
@@ -1793,7 +1867,10 @@ Procedure Image.LineDecodeRGB32(Buffer: Pointer; Line:Cardinal);
 Var
   Dest:PColor;
 Begin
-  Dest := @_Pixels._Data[(Line*_Width*PixelSize)];
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Move(Buffer^, Dest^, _Width*PixelSize);
 End;
 
@@ -1804,9 +1881,13 @@ Var
   Count:Integer;
   A,B:Byte;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Count := _Width;
   Source := Buffer;
-  Dest := @_Pixels._Data[(Line*_Width*PixelSize)];
+
   While (Count>0) Do
   Begin
     A:=Source^;
@@ -1828,9 +1909,12 @@ Var
   Dest:PColor;
   Count:Integer;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Count:=_Width;
   Source:=Buffer;
-  Dest := @_Pixels._Data[(Line*_Width*PixelSize)];
   While (Count>0) Do
   Begin
     Dest^ := PColorPalette(Palette)[Source^];
@@ -1846,9 +1930,12 @@ Var
   Dest:PColor;
   Count:Integer;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Count:=_Width;
   Source:=Buffer;
-  Dest := @_Pixels._Data[(Line*_Width*PixelSize)];
   While (Count>0) Do
   Begin
     Dest^:=ColorBGR8To32(Source^);
@@ -1864,9 +1951,13 @@ Var
   Dest:PColor;
   Count:Integer;
 Begin
-  Count:=_Width;
-  Source:=Buffer;
-  Dest := @_Pixels._Data[(Line*_Width*PixelSize)];
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
+  Count := _Width;
+  Source := Buffer;
+
   While (Count>0) Do
   Begin
     Dest^:=ColorBGR16To32(Source^);
@@ -1882,22 +1973,29 @@ Var
   Dest:PColor;
   Count:Integer;
 Begin
-  Count:=_Width;
+  If (Line>=_Height) Or (Buffer = Nil) Then
+    Exit;
+
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
+  Count := _Width;
   Source := Buffer;
-  Dest := @_Pixels._Data[(Line*_Width*PixelSize)];
+
   While (Count>0) Do
   Begin
     {$IFDEF BGR}
-    Dest.R:=Source^; Inc(Source);
-    Dest.G:=Source^; Inc(Source);
-    Dest.B:=Source^; Inc(Source);
+    Dest.R := Source^; Inc(Source);
+    Dest.G := Source^; Inc(Source);
+    Dest.B := Source^; Inc(Source);
     {$ENDIF}
     {$IFDEF RGB}
-    Dest.B:=Source^; Inc(Source);
-    Dest.G:=Source^; Inc(Source);
-    Dest.R:=Source^; Inc(Source);
+    Dest.B := Source^; Inc(Source);
+    Dest.G := Source^; Inc(Source);
+    Dest.R := Source^; Inc(Source);
     {$ENDIF}
-    Dest.A:=255;
+    Dest.A := 255;
     Inc(Dest);
     Dec(Count);
   End;
@@ -1907,7 +2005,10 @@ Procedure Image.LineDecodeBGR32(Buffer: Pointer; Line:Cardinal);
 Var
   Dest:PColor;
 Begin
-  Dest := @_Pixels._Data[(Line*_Width*PixelSize)];
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Move(Buffer^, Dest^, _Width*PixelSize);
 End;
 
@@ -1918,9 +2019,13 @@ Var
   Count:Integer;
   A,B:Byte;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Count:=_Width;
   Source:=Buffer;
-  Dest := @_Pixels._Data[(Line*_Width*PixelSize)];
+
   While (Count>0) Do
   Begin
     A:=Source^;
@@ -1942,9 +2047,13 @@ Var
   Dest:PColor;
   Count:Integer;
 Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
   Count:=_Width;
   Source:=Buffer;
-  Dest := @_Pixels._Data[(Line*_Width*PixelSize)];
+
   While (Count>0) Do
   Begin
     Dest^:=PColorPalette(Palette)[Source^];
