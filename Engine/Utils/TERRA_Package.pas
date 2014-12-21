@@ -4,7 +4,7 @@ Unit TERRA_Package;
 {-$DEFINE ALLOWEXTERNAL}
 
 Interface
-Uses TERRA_FileUtils, TERRA_IO, TERRA_Classes, TERRA_Resource;
+Uses TERRA_FileUtils, TERRA_IO, TERRA_Collections, TERRA_Resource;
 
 Const
   terraHeader:FileHeader = 'TePK';
@@ -397,8 +397,7 @@ Function Package.FindResource(ResourceName:AnsiString):PResourceInfo;
 Var
   I:Integer;
 Begin
-  //ResourceName := UpStr(FindResourceClass(ResourceName)+'.'+GetFileName(ResourceName,True));
-  ResourceName := UpStr('TEXTURE.'+GetFileName(ResourceName,True));
+  ResourceName := UpStr(FindResourceClass(ResourceName)+'.'+GetFileName(ResourceName,True));
 
   Result := Nil;
   For I:=0 To Pred(_ResourceCount) Do

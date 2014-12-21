@@ -12,7 +12,7 @@ Unit TERRA_GL;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, Math;
+Uses Math;
 
 Const
   libname = 'libGLESv2.so';
@@ -174,7 +174,6 @@ Function glGetExtensionString():AnsiString;
 Procedure glClearDepth(depth:Single);
 
 Implementation
-Uses TERRA_Error, TERRA_Application;
 
 Var
   ExtensionsList:AnsiString='';

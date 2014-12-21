@@ -5,7 +5,7 @@ Unit TERRA_OS;
 
 Interface
 Uses cmem, TERRA_Error, TERRA_Utils, TERRA_Application, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
-    TERRA_Vector3D, TERRA_Java, TERRA_Classes, TERRA_Client,
+    TERRA_Vector3D, TERRA_Java, TERRA_Collections, TERRA_Client,
     sysutils,dateutils,unix, jni;
 
 Const
@@ -97,6 +97,7 @@ Type
       _TestedDebug:Boolean;
       _DebuggerAttached:Boolean;
 
+      Function InitSettings:Boolean; Override;
       Function InitWindow:Boolean; Override;
       Function InitGraphics:Boolean; Override;
       Procedure CloseGraphics; Override;
@@ -234,51 +235,8 @@ Begin
 End;
 
 Function AndroidApplication.InitWindow:Boolean;
-var
-  Params:JavaArguments;
-  S:JavaObject;
-  Frame:JavaFrame;
 Begin
-  _ApplicationInstance := Self;
-
-  Log(logDebug, 'App', 'Starting Android App!');
-  Java_Begin(Frame);
-
-  Log(logDebug, 'App', 'Getting terra utils class');
-  _Utils := JavaClass.Create(UtilsClassPath, Frame);
-
-  Log(logDebug, 'App', 'Getting internal write path');
-  _Path := _Utils.CallStaticStringMethod('getInternalDir', Nil);
-  _StoragePath := _Path;
-  Log(logDebug, 'App', 'Found internal app path: '+_Path);
-
-  Log(logDebug, 'App', 'Getting external write path');
-  _Path := _Utils.CallStaticStringMethod('getExternalDir', Nil);
-  _TempPath := _Path;
-  _DocumentPath := _Path;
-  Log(logDebug, 'App', 'Found external app path: '+_Path);
-
-
-  Log(logDebug, 'App', 'Getting user country');
-  _Country := UpStr(_Utils.CallStaticStringMethod('getCountry', Nil));
-  Log(logDebug, 'App', 'Found country '+_Country);
-
-  Log(logDebug, 'App', 'Getting local language');
-  _Language := UpStr(_Utils.CallStaticStringMethod('getLanguage', Nil));
-  Log(logDebug, 'App', 'Found language: '+_Language);
-
-  Log(logDebug, 'App', 'Getting screen dimensions');
-  _Width := _Utils.CallStaticIntMethod('getScreenWidth', Nil);
-  _Height := _Utils.CallStaticIntMethod('getScreenHeight', Nil);
-  Log(logDebug, 'App', 'Dimensions: '+IntToString(_Width)+'x'+IntToString(_Height));
-
-  Log(logDebug, 'App', 'Getting cpu cores');
-  _CPUCores := _Utils.CallStaticIntMethod('getCPUCores', Nil);
-  Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
-
-  Java_End(Frame);
-
-	Result := True;
+  Result := True;
 End;
 
 Procedure AndroidApplication.PostToFacebook(msg, link, desc, imageURL:AnsiString);
@@ -362,7 +320,7 @@ Begin
   Log(logDebug, 'App', 'Caching fullscreen ads..');
   Java_Begin(Frame);
   Params := JavaArguments.Create(Frame);
-  Params.AddString(Application.Instance.Client.GetAdMobID());
+  Params.AddString(Application.Instance.Client.GetAdMobBannerID());
   _Utils.CallStaticVoidMethod('enableAds', Params);
   Params.Destroy();
   Java_End(Frame);
@@ -743,6 +701,56 @@ Begin
 
   AppClass.Destroy();
   Java_End(Frame);
+End;
+
+Function AndroidApplication.InitSettings: Boolean;
+Var
+  Params:JavaArguments;
+  S:JavaObject;
+  Frame:JavaFrame;
+Begin
+  Inherited InitSettings;
+
+  _ApplicationInstance := Self;
+
+  Log(logDebug, 'App', 'Starting Android App!');
+  Java_Begin(Frame);
+
+  Log(logDebug, 'App', 'Getting terra utils class');
+  _Utils := JavaClass.Create(UtilsClassPath, Frame);
+
+  Log(logDebug, 'App', 'Getting internal write path');
+  _Path := _Utils.CallStaticStringMethod('getInternalDir', Nil);
+  _StoragePath := _Path;
+  Log(logDebug, 'App', 'Found internal app path: '+_Path);
+
+  Log(logDebug, 'App', 'Getting external write path');
+  _Path := _Utils.CallStaticStringMethod('getExternalDir', Nil);
+  _TempPath := _Path;
+  _DocumentPath := _Path;
+  Log(logDebug, 'App', 'Found external app path: '+_Path);
+
+
+  Log(logDebug, 'App', 'Getting user country');
+  _Country := UpStr(_Utils.CallStaticStringMethod('getCountry', Nil));
+  Log(logDebug, 'App', 'Found country '+_Country);
+
+  Log(logDebug, 'App', 'Getting local language');
+  _Language := UpStr(_Utils.CallStaticStringMethod('getLanguage', Nil));
+  Log(logDebug, 'App', 'Found language: '+_Language);
+
+  Log(logDebug, 'App', 'Getting screen dimensions');
+  _Width := _Utils.CallStaticIntMethod('getScreenWidth', Nil);
+  _Height := _Utils.CallStaticIntMethod('getScreenHeight', Nil);
+  Log(logDebug, 'App', 'Dimensions: '+IntToString(_Width)+'x'+IntToString(_Height));
+
+  Log(logDebug, 'App', 'Getting cpu cores');
+  _CPUCores := _Utils.CallStaticIntMethod('getCPUCores', Nil);
+  Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
+
+  Java_End(Frame);
+
+	Result := True;
 End;
 
 End.

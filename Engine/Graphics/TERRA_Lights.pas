@@ -207,7 +207,7 @@ Type
 
 Implementation
 Uses TERRA_GraphicsManager, TERRA_Mesh
-  {$IFDEF DRAWVOLUMES},TERRA_Solids, Math{$ENDIF};
+  {$IFDEF DRAWVOLUMES},TERRA_Solids{$ENDIF};
 
 Var
   _LightManager_Instance:ApplicationObject = Nil;

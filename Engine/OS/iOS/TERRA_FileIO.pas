@@ -21,8 +21,8 @@ Type
         Destructor Delete;
         Procedure Rename(NewName:AnsiString);
         Procedure Truncate;Override;
-        Function Read(Data:Pointer; Length:Integer):Integer;Override;
-        Function Write(Data:Pointer; Length:Integer):Integer;Override;
+        Function Read(Data:Pointer; Length:Cardinal):Cardinal;Override;
+        Function Write(Data:Pointer; Length:Cardinal):Cardinal;Override;
         Procedure Seek(NewPosition:Cardinal);Override;
 
         Procedure Flush;
@@ -184,41 +184,45 @@ Begin
     Exit;
 End;
 
-Function FileStream.Read(Data:Pointer;  Length:Integer):Integer;
+Function FileStream.Read(Data:Pointer;  Length:Cardinal):Cardinal;
 Begin
-  If (Length=0)Or(Not _Open) Then
+   Result:=0;
+
+  If (Length=0) Or(Not _Open) Then
   Begin
-    Result:=0;
     Exit;
   End;
 
   If (_Mode And smRead=0)Or(_Pos>=_Size) Then
   Begin
-    Result:=0;
     RaiseError('Cannot read from file. ['+_Name+']');
     Exit;
   End;
 
-  If (_Pos+Length>_Size)Then
-    Length:=_Size-_Pos;
+  If (_Pos+Length >_Size)Then
+  Begin
+    If (_Size<_Pos) Then
+        Exit;
+    Length := _Size - _Pos;
+  End;
 
   If (Length<=0) Then
   Begin
-    Result:=0;
     Exit;
   End;
 
   Length := fread(Data, 1, Length, _File);
 
   Inc(_Pos, Length);
-  Result:=Length;
+  Result := Length;
 End;
 
-Function FileStream.Write(Data:Pointer; Length:Integer):Integer;
+Function FileStream.Write(Data:Pointer; Length:Cardinal):Cardinal;
 Begin
   Log(logDebug, 'App', 'Writing to file! ' + Self._Name);
 
-  Result:=0;
+  Result := 0;
+
   If (Not _Open) Then
     Exit;
 
@@ -228,7 +232,7 @@ Begin
     Exit;
   End;
 
-  If (_Pos+Length>_Size)And(_Mode And smDynamic=0) Then
+  If (_Pos+Length>_Size) And (_Mode And smDynamic=0) Then
   Begin
     RaiseError('Cannot write to file.['+_Name+']');
     Exit;
@@ -238,7 +242,7 @@ Begin
 
   Inc(_Pos, Length);
   If _Pos>_Size Then
-    _Size:=_Pos;
+    _Size := _Pos;
 
   Result := Length;
 End;

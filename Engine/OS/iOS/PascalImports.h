@@ -17,7 +17,7 @@ void ApplicationMoveTouch(int x, int y);
 void ApplicationEndTouch(int x, int y);
 
 void ApplicationSetOrientation(int orientation);
-void ApplicationSetViewport(int x1, int y1, int x2, int y2);
+//void ApplicationSetViewport(int x1, int y1, int x2, int y2);
 
 void ApplicationOnAccelerometer(float x, float y, float z);
 void ApplicationOnGyroscope(float x, float y, float z);
@@ -30,6 +30,8 @@ void ApplicationOnFacebookPost();
 void ApplicationOnFacebookError();
 
 void ApplicationSendInput(char s);
+
+void ApplicationOnContextLost();
 
 void ApplicationOnCamera(int width, int height, char* buffer);
 
@@ -55,9 +57,14 @@ void ApplicationSetLanguage(char *lang);
 	
 char* ApplicationGetAppID();
 char* ApplicationGetFlurryID();
-char* ApplicationGetAdMobID();
+char* ApplicationGetAdMobBannerID();
+char* ApplicationGetAdMobInterstitialID();
 char* ApplicationGetFacebookID();
 char* ApplicationGetTestFlightID();
+char* ApplicationGetAdBuddizID();
+char* ApplicationGetChartboostID();
+char* ApplicationGetChartboostSecret();
+char* ApplicationGetVungleID();
 	
 #ifdef __cplusplus
 }

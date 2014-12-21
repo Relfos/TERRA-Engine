@@ -22,15 +22,25 @@ Function GetCRC32(Source:Stream; Start,Length:Integer; Table:CRC32Table = Nil):C
 Function GetCRC32(Source:AnsiString; Table:CRC32Table = Nil):Cardinal;Overload;
 Function GetCRC32(Source:Pointer; Size:Integer; Table:CRC32Table = Nil):Cardinal;Overload;
 
+Procedure CRC32_Update(Var CRC:Cardinal; Const Value:Byte; Table:CRC32Table = Nil);
+
 Implementation
 Uses TERRA_Log, TERRA_Utils;
 
 Var
   _DefaultTable:CRC32Table;
 
+Procedure CRC32_Update(Var CRC:Cardinal; Const Value:Byte; Table:CRC32Table = Nil);
+Begin
+  If Table = Nil Then
+    Table := _DefaultTable;
+
+  CRc :=  (CRC Shl 8) Xor Table._Values[Value Xor (CRC Shr 24)];
+End;
+
 Function GetCRC32(Source:Stream; Table:CRC32Table = Nil):Cardinal;
 Begin
-  Result := GetCRC32(Source, 0, Source.Size);
+  Result := GetCRC32(Source, 0, Source.Size, Table);
 End;
 
 Function GetCRC32(Source:Stream; Start,Length:Integer; Table:CRC32Table = Nil):Cardinal;
@@ -74,7 +84,7 @@ Begin
   If Table = Nil Then
     Table := _DefaultTable;
 
-  CRC:=$FFFFFFFF;
+  CRC := $FFFFFFFF;
   For I:=1 To Size Do
   Begin
     N := PByte(Source)^;

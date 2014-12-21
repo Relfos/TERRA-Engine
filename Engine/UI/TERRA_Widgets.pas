@@ -1,3 +1,26 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Widgets
+ * Implements all common engine widgets (buttons, windows, images, etc)
+ ***********************************************************************************************************************
+}
 Unit TERRA_Widgets;
 {$I terra.inc}
 
@@ -9,7 +32,7 @@ Unit TERRA_Widgets;
 
 Interface
 Uses TERRA_Utils, TERRA_UI, TERRA_Tween, TERRA_Vector2D, TERRA_Math, TERRA_Color,
-  TERRA_FileManager, TERRA_SpriteManager, TERRA_Texture, TERRA_Font, TERRA_Classes;
+  TERRA_FileManager, TERRA_SpriteManager, TERRA_Texture, TERRA_Font, TERRA_Collections;
 
 Const
   layoutHorizontal = 0;
@@ -67,7 +90,7 @@ Type
       Function GetTabAt(X,Y:Integer):Integer;
       Function GetSelectedCaption: AnsiString;
 
-      Procedure GetTabProperties(Const Selected:Boolean; Var TabColor:Color; Var TabFont:TERRA_Font.Font); Virtual;
+      Procedure GetTabProperties(Const Selected:Boolean; Out TabColor:Color; Out TabFont:TERRA_Font.Font); Virtual;
 
     Public
       Constructor Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; ComponentBG:AnsiString=''); Overload;
@@ -615,7 +638,7 @@ Begin
   If Result Then
     Exit;
 
-  If (FrameLess) Or (OnRegion(X,Y)) Then
+  If (Not FrameLess) And (OnRegion(X,Y)) Then
   Begin
     Result := True;
 
@@ -851,6 +874,8 @@ Var
   S:UIScrollbar;
 Begin
   Result := False;
+
+  RemoveHint(X+Y); //TODO - check this stupid hint
 
   For I:=0 To Pred(Self._ChildrenCount) Do
   If (_ChildrenList[I] Is UIScrollbar) Then
@@ -1389,6 +1414,7 @@ End;
 
 Function UISlider.OnMouseUp(X,Y:Integer;Button:Word):Boolean;
 Begin
+  RemoveHint(X+Y+Button); //TODO - check this stupid hint
   _Dragging := False;
   Result := False;
 End;
@@ -1608,6 +1634,8 @@ End;
 { UIScrollBarHandle }
 Function UIScrollBarHandle.OnMouseDown(X,Y:Integer;Button:Word):Boolean;
 Begin
+  RemoveHint(Button); //TODO - check this stupid hint
+
   Result := False;
 
   If Not Visible Then
@@ -1623,6 +1651,8 @@ End;
 
 Function UIScrollBarHandle.OnMouseUp(X,Y:Integer;Button:Word):Boolean;
 Begin
+  IntToString(X+Y+Button); //TODO - check this stupid hint
+  
   If (UI.Dragger = Self) Then
   Begin
     UI.Dragger := Nil;
@@ -1811,6 +1841,8 @@ Var
 Begin
   Result := False;
 
+  RemoveHint(Button); //TODO - check this stupid hint
+
   If Not Visible Then
     Exit;
 
@@ -1879,7 +1911,7 @@ Begin
     Begin
       Self.DrawComponent(0, VectorCreate(J*_BarSlices, 0, 0.0), 0.25, 0.0, 0.75, 1.0, ColorWhite);
     End;
-    Self.DrawComponent(0, VectorCreate(-Trunc(_BarWidth*0.75)+(_Width)*_BarSlices, 0, 0.0), 0.75, 0.0, 1.0, 1.0, ColorWhite);
+    Self.DrawComponent(0, VectorCreate(-_BarWidth*0.75 + _Width *_BarSlices, 0, 0.0), 0.75, 0.0, 1.0, 1.0, ColorWhite);
   End;
 
   Self.DrawComponent(1, VectorCreate(_HandlePos, 0, 0.0), 0.0, 0.0, 1.0, 1.0, ColorWhite);
@@ -2080,6 +2112,7 @@ End;
 
 Function UIEditText.OnMouseUp(X, Y: Integer; Button: Word): Boolean;
 Begin
+  RemoveHint(X+Y+Button); //TODO - check this stupid hint
   {If (Assigned(Self._HorScroll)) And (_HorScroll.OnRegion(X,Y)) Then
   Begin
     Result := _HorScroll.OnMouseUp(X, Y, Button);
@@ -2103,6 +2136,8 @@ Begin
 
   If Not Visible Then
     Exit;
+
+  RemoveHint(Button); //TODO - check this stupid hint
 
   {If (Assigned(Self._HorScroll)) And (_HorScroll.OnRegion(X,Y)) Then
   Begin
@@ -2470,6 +2505,8 @@ End;
 { UILayout }
 Constructor UILayout.Create(Name:AnsiString; UI:UI; X,Y,Z:Single; Width,Height, LayoutMode:Integer; TabIndex:Integer=-1);
 Begin
+  RemoveHint(LayoutMode);
+  
   Self._Visible := True;
   Self._Name := Name;
   Self._Parent := Parent;
@@ -2690,6 +2727,8 @@ Function UISprite.OnMouseUp(X, Y: Integer; Button: Word): Boolean;
 Var
     Pos:Vector2D;
 Begin
+  RemoveHint(Button);
+
   If (OnRegion(X,Y)) And (Self.Visible) And (Assigned(OnMouseClick)) Then
   Begin
     Result := True;
@@ -3080,7 +3119,7 @@ Begin
   Result := Inherited OnMouseMove(X,Y);
 End;
 
-Procedure UITabList.GetTabProperties(const Selected: Boolean; Var TabColor: Color; var TabFont: Font);
+Procedure UITabList.GetTabProperties(const Selected: Boolean; Out TabColor: Color; Out TabFont: Font);
 Begin
   If Selected Then
     TabColor := Self.Color

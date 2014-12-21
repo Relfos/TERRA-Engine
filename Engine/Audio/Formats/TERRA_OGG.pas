@@ -1,7 +1,25 @@
-{
-@abstract(TERRA OGG Loader)
-@author(Sergio Flores <relfos@gmail.com>)
-Allows loading of OGG sound files.
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_OGG
+ * Implements a OGG loader/decoder
+ ***********************************************************************************************************************
 }
 
 Unit TERRA_OGG;
@@ -472,12 +490,7 @@ const
    FAST_HUFFMAN_TABLE_SIZE =  1 shl STB_VORBIS_FAST_HUFFMAN_LENGTH;
    FAST_HUFFMAN_TABLE_MASK = FAST_HUFFMAN_TABLE_SIZE - 1;
    
-   CRC32_POLY =  $04c11db7;   // from spec
-
-   //#ifndef M_PI
-   //  #define M_PI  3.14159265358979323846264f  // from CRC
-   //#endif
-   M_PI = PI;
+//   CRC32_POLY =  $04c11db7;   // from spec
 
    // code length assigned to a value with no huffman encoding
    NO_CODE = 255;
@@ -498,10 +511,10 @@ const
    inverse_db_table: array[0..256-1] of single =
    (
       1.0649863e-07, 1.1341951e-07, 1.2079015e-07, 1.2863978e-07,
-      1.3699951e-07, 1.4590251e-07, 1.5538408e-07, 1.6548181e-07, 
-      1.7623575e-07, 1.8768855e-07, 1.9988561e-07, 2.1287530e-07, 
-      2.2670913e-07, 2.4144197e-07, 2.5713223e-07, 2.7384213e-07, 
-      2.9163793e-07, 3.1059021e-07, 3.3077411e-07, 3.5226968e-07, 
+      1.3699951e-07, 1.4590251e-07, 1.5538408e-07, 1.6548181e-07,
+      1.7623575e-07, 1.8768855e-07, 1.9988561e-07, 2.1287530e-07,
+      2.2670913e-07, 2.4144197e-07, 2.5713223e-07, 2.7384213e-07,
+      2.9163793e-07, 3.1059021e-07, 3.3077411e-07, 3.5226968e-07,
       3.7516214e-07, 3.9954229e-07, 4.2550680e-07, 4.5315863e-07, 
       4.8260743e-07, 5.1396998e-07, 5.4737065e-07, 5.8294187e-07,
       6.2082472e-07, 6.6116941e-07, 7.0413592e-07, 7.4989464e-07, 
@@ -623,22 +636,13 @@ type
       VORBIS_bad_packet_type,
       VORBIS_cant_find_last_page,
       VORBIS_seek_failed );
-   uint8 = Byte;
-   int8 = Shortint;
-   uint16 = Word;
-   int16 = Smallint;
-   uint32 = LongWord;
-   int32 = Longint;
+   Integer = Longint;
 {$IFDEF FPC}
    uint64 = QWord;
    //int64 = int64;
 {$ENDIF}
-   puint8 = ^uint8;
-   pint8 = ^int8;
-   puint16 = ^uint16;
-   pint16 = ^int16;
-   puint32 = ^uint32;
-   pint32 = ^int32;
+   pSmallInt = ^SmallInt;
+   pInteger = ^Integer;
 {$IFDEF FPC}
    puint64 = ^QWord;
 {$ENDIF}
@@ -649,7 +653,7 @@ type
    FArray = Array of Single;
    PFArray = ^FArray;
 
-   BArray = Array of uint8;
+   BArray = Array of Byte;
    PBArray = ^BArray;
 
    FFArray = Array of Array of Single;
@@ -667,26 +671,26 @@ type
    SSArray = Array of Array of ShortInt;
    PSSArray = ^SSArray;
 
-//   BBArray = array of array of uint8;
+//   BBArray = array of array of Byte;
    BBArray = array of BArray;
    PBBArray = ^BBArray;
 
-   WWArray = array of array of uint16;
+   WWArray = array of array of Word;
    PWWArrary = ^WWArray;
 
-   IArray = array of int16;
+   IArray = array of SmallInt;
    PIArrary = ^IArray;
 
-   IIArray = array of array of int16;
+   IIArray = array of array of SmallInt;
    PIIArrary = ^IIArray;
 
-   BPArray = Array of array of Puint8;
+   BPArray = Array of array of PByte;
    PBPArray = ^BPArray;
 
-   BBPArray = Array of array of array of  Puint8;
+   BBPArray = Array of array of array of  PByte;
    PBBPArray = ^BBPArray;
 
-//   BBBArray = Array of array of array of  uint8;
+//   BBBArray = Array of array of array of  Byte;
    BBBArray = array of BBArray;
    PBBBArray = ^BBBArray;
 
@@ -697,12 +701,12 @@ type
    pstb_vorbis_alloc = ^stb_vorbis_alloc;
 
    stb_vorbis_info = record
-      sample_rate: uint16;
+      sample_rate: Word;
       channels: Integer;
 
-      setup_memory_required: uint32;
-      setup_temp_memory_required: uint32;
-      temp_memory_required: uint32;
+      setup_memory_required: Cardinal;
+      setup_temp_memory_required: Cardinal;
+      temp_memory_required: Cardinal;
 
       max_frame_size: Integer;
    end;
@@ -711,7 +715,7 @@ type
    {$IFDEF STB_VORBIS_CODEBOOK_FLOATS}
    codetype = Single;
    {$ELSE}
-   codetype = uint16;
+   codetype = Word;
    {$ENDIF}
    pcodetype = ^codetype;
       
@@ -720,47 +724,47 @@ type
       codeword_lengths: BArray;
       minimum_value: Single;
       delta_value: Single;
-      value_bits: uint8;
-      lookup_type: uint8;
-      sequence_p: uint8;
-      sparse: uint8;
-      lookup_values: uint32;
+      value_bits: Byte;
+      lookup_type: Byte;
+      sequence_p: Byte;
+      sparse: Byte;
+      lookup_values: Cardinal;
       multiplicands: Array of codetype;
-      codewords: array of uint32;
+      codewords: array of Cardinal;
       {$IFDEF STB_VORBIS_FAST_HUFFMAN_SHORT}
-      fast_huffman: array [0..FAST_HUFFMAN_TABLE_SIZE-1] of int16;
+      fast_huffman: array [0..FAST_HUFFMAN_TABLE_SIZE-1] of SmallInt;
       {$ELSE}
-      fast_huffman: array [0..FAST_HUFFMAN_TABLE_SIZE-1] of int32;
+      fast_huffman: array [0..FAST_HUFFMAN_TABLE_SIZE-1] of Integer;
       {$ENDIF}
-      sorted_codewords: array of uint32;
+      sorted_codewords: array of Cardinal;
       sorted_values: array of Integer;
       sorted_entries: Integer;
    end;
    PCodebook = ^Codebook;
    
    TFloor0 = record
-      order: uint8;
-      rate: uint16;
-      bark_map_size: uint16;
-      amplitude_bits: uint8;
-      amplitude_offset: uint8;
-      number_of_books: uint8;
-      book_list: array [0..16-1] of uint8; // varies
+      order: Byte;
+      rate: Word;
+      bark_map_size: Word;
+      amplitude_bits: Byte;
+      amplitude_offset: Byte;
+      number_of_books: Byte;
+      book_list: array [0..16-1] of Byte; // varies
    end;
    PFloor0 = ^TFloor0;
    
    TFloor1 = record
-      partitions: uint8;
-      partition_class_list: array [0..32-1] of uint8; // varies
-      class_dimensions: array [0..16-1] of uint8; // varies
-      class_subclasses: array [0..16-1] of uint8; // varies
-      class_masterbooks: array [0..16-1] of uint8; // varies
-      subclass_books: array [0..16-1,0..8-1] of int16; // varies
-      Xlist: array [0..31*8+2-1] of uint16; // varies
-      sorted_order: array [0..31*8+2-1] of uint8;
-      neighbors: array [0..31*8+2-1,0..2-1] of uint8;
-      floor1_multiplier: uint8;
-      rangebits: uint8;
+      partitions: Byte;
+      partition_class_list: array [0..32-1] of Byte; // varies
+      class_dimensions: array [0..16-1] of Byte; // varies
+      class_subclasses: array [0..16-1] of Byte; // varies
+      class_masterbooks: array [0..16-1] of Byte; // varies
+      subclass_books: array [0..16-1,0..8-1] of SmallInt; // varies
+      Xlist: array [0..31*8+2-1] of Word; // varies
+      sorted_order: array [0..31*8+2-1] of Byte;
+      neighbors: array [0..31*8+2-1,0..2-1] of Byte;
+      floor1_multiplier: Byte;
+      rangebits: Byte;
       values: Integer;
    end;
    PFloor1 = ^TFloor1;
@@ -772,56 +776,56 @@ type
       end;
    PFloor=^TFloor;
 
-   ResidueBooks = Array [0..8-1] of int16;
+   ResidueBooks = Array [0..8-1] of SmallInt;
    PResidueBooks =^ResidueBooks;
    Residue = record
-      _begin, _end: uint32;
-      part_size: uint32;
-      classifications: uint8;
-      classbook: uint8;
+      _begin, _end: Cardinal;
+      part_size: Cardinal;
+      classifications: Byte;
+      classbook: Byte;
       classdata: BBArray;
       residue_books: Array  of ResidueBooks;
    end;
    PResidue = ^Residue;
 
    MappingChannel = record
-      magnitude: uint8;
-      angle: uint8;
-      mux: uint8;
+      magnitude: Byte;
+      angle: Byte;
+      mux: Byte;
    end;
    PMappingChannel = ^MappingChannel;
 
    Mapping = record
-      coupling_steps: uint16;
+      coupling_steps: Word;
       chan: Array of MappingChannel;
-      submaps: uint8;
-      submap_floor: array [0..15-1] of uint8; // varies
-      submap_residue: array [0..15-1] of uint8; // varies
+      submaps: Byte;
+      submap_floor: array [0..15-1] of Byte; // varies
+      submap_residue: array [0..15-1] of Byte; // varies
    end;
    PMapping = ^Mapping;
 
    TMode = record
-      blockflag: uint8;
-      mapping: uint8;
-      windowtype: uint16;
-      transformtype: uint16;
+      blockflag: Byte;
+      mapping: Byte;
+      windowtype: Word;
+      transformtype: Word;
    end;
    PMode = ^TMode;
 
    CRCscan = record
-      goal_crc: uint32;    // expected crc if match
+      goal_crc: Cardinal;    // expected crc if match
       bytes_left: Integer;  // bytes left in packet
-      crc_so_far: uint32;  // running crc
+      crc_so_far: Cardinal;  // running crc
       bytes_done: Integer;  // bytes processed in _current_ chunk
-      sample_loc: uint32;  // granule pos encoded in page
+      sample_loc: Cardinal;  // granule pos encoded in page
    end;
    PCRCscan = ^CRCscan;
 
    ProbedPage = record
-      page_start, page_end: uint32;
-      after_previous_page_start: uint32;
-      first_decoded_sample: uint32;
-      last_decoded_sample: uint32;
+      page_start, page_end: Cardinal;
+      after_previous_page_start: Cardinal;
+      first_decoded_sample: Cardinal;
+      last_decoded_sample: Cardinal;
    end;
    PProbedPage =^ProbedPage;
 
@@ -830,38 +834,38 @@ type
 
    stb_vorbis = record
       // user-accessible info
-      sample_rate: uint32;
+      sample_rate: Cardinal;
       channels: Integer;
 
-      setup_memory_required: uint32;
-      temp_memory_required: uint32;
-      setup_temp_memory_required: uint32;
+      setup_memory_required: Cardinal;
+      temp_memory_required: Cardinal;
+      setup_temp_memory_required: Cardinal;
 
       // input config
       {$IFNDEF STB_VORBIS_NO_STDIO}
       f:TFileHandle;
       f_len:LongInt;
       f_pos:LongInt;
-      f_start: uint32;
+      f_start: Cardinal;
       close_on_free: boolean;
       {$ENDIF}
 
-      stream: puint8;
-      stream_start: puint8;
-      stream_end: puint8;
+      stream: pByte;
+      stream_start: pByte;
+      stream_end: pByte;
 
-      stream_len: uint32;
+      stream_len: Cardinal;
 
       push_mode: Boolean;
 
-      first_audio_page_offset: uint32;
+      first_audio_page_offset: Cardinal;
 
       p_first, p_last: ProbedPage;
 
       // memory management
       alloc: stb_vorbis_alloc;
-      setup_offset: UInt32;
-      temp_offset: UInt32;
+      setup_offset: Cardinal;
+      temp_offset: Cardinal;
 
       // run-time results
       eof: Boolean;
@@ -875,17 +879,17 @@ type
       codebook_count: Integer;
       codebooks:array of codebook;
       floor_count: Integer;
-      floor_types: array [0..64-1] of uint16; // varies
+      floor_types: array [0..64-1] of Word; // varies
       floor_config: array of TFloor;
       residue_count: Integer;
-      residue_types: array [0..64-1] of uint16; // varies
+      residue_types: array [0..64-1] of Word; // varies
       residue_config: array of Residue;
       mapping_count: Integer;
       mapping: array of Mapping;
       mode_count: Integer;
       mode_config: array [0..64-1] of TMode;  // varies
 
-      total_samples: uint32;
+      total_samples: Cardinal;
 
       // decode buffer
       channel_buffers: TOutput;
@@ -895,38 +899,38 @@ type
       previous_length: Integer;
 
       {$IFNDEF STB_VORBIS_NO_DEFER_FLOOR}
-      finalY: array [0..STB_VORBIS_MAX_CHANNELS-1] of array of int16;
+      finalY: array [0..STB_VORBIS_MAX_CHANNELS-1] of array of SmallInt;
       {$ELSE}
       floor_buffers: TOutput;
       {$ENDIF}
 
-      current_loc: uint32; // sample location of next frame to decode
+      current_loc: Cardinal; // sample location of next frame to decode
       current_loc_valid: Boolean;
 
       // per-blocksize precomputed data
 
       // twiddle factors
       A,B,C,window: array [0..2-1] of array of Single;
-      bit_reverse: array [0..2-1] of array of uint16;
+      bit_reverse: array [0..2-1] of array of Word;
 
       // current page/packet/segment streaming info
-      serial: uint32; // stream serial number for verification
+      serial: Cardinal; // stream serial number for verification
       last_page: Integer;
       segment_count: Integer;
-      segments:array[0..255-1] of uint8;
-      page_flag: uint8;
-      bytes_in_seg: uint8;
+      segments:array[0..255-1] of Byte;
+      page_flag: Byte;
+      bytes_in_seg: Byte;
       first_decode: Boolean;
       next_seg: Integer;
       last_seg: Boolean;  // flag that we're on the last segment
       last_seg_which: Integer; // what was the segment number of the last seg?
-      acc: uint32;
+      acc: Cardinal;
       valid_bits: Integer;
       packet_bytes: Integer;
       end_seg_with_known_loc: Integer;
-      known_loc_for_packet: uint32;
+      known_loc_for_packet: Cardinal;
       discard_samples_deferred: Integer;
-      samples_output: uint32;
+      samples_output: Cardinal;
 
       // push mode scanning
       page_crc_tests: Integer; // only in push_mode: number of tests active; -1 if not searching
@@ -944,16 +948,16 @@ type
 
    // this has been repurposed so y is now the original index instead of y
    Point = record
-      x,y: uint16;
+      x,y: Word;
    end;
    PPoint = ^Point;
 
 {$IFDEF STB_VORBIS_DIVIDE_TABLE}
-   integer_divide_table array [DIVTAB_NUMER][DIVTAB_DENOM] of int8; // 2KB
+   integer_divide_table array [DIVTAB_NUMER][DIVTAB_DENOM] of ShortInt; // 2KB
 {$ENDIF}
 
 {$IFNDEF STB_VORBIS_NO_DEFER_FLOOR}
-   YTYPE = int16 ;
+   YTYPE = SmallInt ;
 {$ELSE}
    YTYPE = int;
 {$ENDIF}
@@ -990,8 +994,8 @@ type
 
 
    function stb_vorbis_open_pushdata(
-//            data: array of uint8;
-            data: puint8;
+//            data: array of Byte;
+            data: pByte;
             data_len:integer;            // the memory available for decoding
             var data_used:integer;       // only defined if result is not NULL
             var _error:STBVorbisError;
@@ -1007,8 +1011,8 @@ type
 
    function stb_vorbis_decode_frame_pushdata(
             f:pvorb;                 // the file we're decoding
-            data:puint8;
-            //data:array of uint8; 
+            data:pByte;
+            //data:array of Byte; 
             data_len:integer;        // the memory available for decoding
             var channels:integer;    // place to write number of float * buffers
             output:POutput;      // place to write float ** array of float * buffers
@@ -1061,16 +1065,16 @@ type
 
    {$IFNDEF STB_VORBIS_NO_STDIO}
    {$IFNDEF STB_VORBIS_NO_INTEGER_CONVERSION}
-   function stb_vorbis_decode_filename(filename:AnsiString; var channels:integer; var output:pint16):integer;
+   function stb_vorbis_decode_filename(filename:AnsiString; var channels:integer; var output:pSmallInt):integer;
    {$ENDIF}
    {$ENDIF}
-   function stb_vorbis_decode_memory(mem:puint8; len:integer; var channels, SampleRate:integer; var output:pint16):Integer;
+   function stb_vorbis_decode_memory(mem:pByte; len:integer; var channels, SampleRate:integer; var output:pSmallInt):Integer;
    // decode an entire file and output the data interleaved into a malloc()ed
    // buffer stored in *output. The return value is the number of samples
    // decoded, or -1 if the file could not be opened or was not an ogg vorbis file.
    // When you're done with it, just free() the pointer returned in *output.
 
-   function stb_vorbis_open_memory(data: puint8; len: uint32; var _error: STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
+   function stb_vorbis_open_memory(data: pByte; len: Cardinal; var _error: STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
    // create an ogg vorbis decoder from an ogg vorbis stream in memory (note
    // this must be the entire stream!). on failure, returns NULL and sets *error
 
@@ -1090,7 +1094,7 @@ type
    // function, stb_vorbis_open_file_section(), to limit it.
 
    function stb_vorbis_open_file_section(var _file: TFileHandle; close_on_free:boolean;
-            var _error:STBVorbisError; alloc: pstb_vorbis_alloc; length:uint32):pvorb;
+            var _error:STBVorbisError; alloc: pstb_vorbis_alloc; length:Cardinal):pvorb;
    // create an ogg vorbis decoder from an open FILE *, looking for a stream at
    // the _current_ seek point (ftell); the stream will be of length 'len' bytes.
    // on failure, returns NULL and sets *error. note that stb_vorbis must "own"
@@ -1098,8 +1102,8 @@ type
    // confused.
    {$ENDIF}
 
-   function stb_vorbis_seek_frame(f:pvorb; sample_number:uint32):Boolean;
-   function stb_vorbis_seek(f:pvorb; sample_number:uint32):Boolean;
+   function stb_vorbis_seek_frame(f:pvorb; sample_number:Cardinal):Boolean;
+   function stb_vorbis_seek(f:pvorb; sample_number:Cardinal):Boolean;
    // NOT WORKING YET
    // these functions seek in the Vorbis file to (approximately) 'sample_number'.
    // after calling seek_frame(), the next call to get_frame_*() will include
@@ -1127,8 +1131,8 @@ type
    // and stb_vorbis_get_samples_*(), since the latter calls the former.
 
    {$IFNDEF STB_VORBIS_NO_INTEGER_CONVERSION}
-   function stb_vorbis_get_frame_short_interleaved(f:pvorb; num_c:integer; buffer:pint16; num_shorts:integer):uint32;
-   function stb_vorbis_get_frame_short(f:pvorb; num_c:integer;  buffer:pint16; num_samples:integer):uint32;
+   function stb_vorbis_get_frame_short_interleaved(f:pvorb; num_c:integer; buffer:pSmallInt; num_shorts:integer):Cardinal;
+   function stb_vorbis_get_frame_short(f:pvorb; num_c:integer;  buffer:pSmallInt; num_samples:integer):Cardinal;
    {$ENDIF}
    // decode the next frame and return the number of samples per channel. the
    // data is coerced to the number of channels you request according to the
@@ -1161,8 +1165,8 @@ type
 
    {$IFNDEF STB_VORBIS_NO_INTEGER_CONVERSION}
    function stb_vorbis_get_samples_short_interleaved(f:pvorb; channels:integer;
-            buffer:array of int16; num_shorts:integer):integer;
-   function stb_vorbis_get_samples_short(f:pvorb; channels:integer; buffer:array of int16; len:integer):integer;
+            buffer:array of SmallInt; num_shorts:integer):integer;
+   function stb_vorbis_get_samples_short(f:pvorb; channels:integer; buffer:array of SmallInt; len:integer):integer;
    {$ENDIF}
    // gets num_samples samples, not necessarily on a frame boundary--this requires
    // buffering so you have to supply the buffers. Applies the coercion rules above
@@ -1172,42 +1176,42 @@ type
 
    {$ENDIF}
 
-function IncPointer(p:PInt8; i:integer):PInt8; overload;
-function IncPointer(p:PUInt8; i:integer):PUInt8; overload;
-function IncPointer(p:PInt16; i:integer):PInt16; overload;
+function IncPointer(p:PShortInt; i:integer):PShortInt; overload;
+function IncPointer(p:PByte; i:integer):PByte; overload;
+function IncPointer(p:PSmallInt; i:integer):PSmallInt; overload;
 function IncPointer(p:PYTYPE; i:integer):PYTYPE; overload;
-function IncPointer(p:PUInt16; i:integer):PUInt16; overload;
-function IncPointer(p:PInt32; i:integer):PInt32; overload;
+function IncPointer(p:PWord; i:integer):PWord; overload;
+function IncPointer(p:PInteger; i:integer):PInteger; overload;
 function IncPointer(p:PSingle; i:integer):PSingle; overload;
 function IncPointer(p:PFPArray; i:integer):PFPArray; overload;
 
 {$ENDIF}
 
 Implementation
-Uses TERRA_FileUtils, TERRA_Error{$IFNDEF USELIBVORBIS},Sysutils, Math{$ENDIF}, TERRA_Math;
+Uses TERRA_FileUtils, TERRA_Error{$IFNDEF USELIBVORBIS},Sysutils{$ENDIF}, TERRA_CRC32, TERRA_Math;
 
 {$IFNDEF USELIBVORBIS}
 var
-   crc_table: array [0..256-1] of uint32;
+   crc_table: array [0..256-1] of Cardinal;
 {$IFNDEF STB_VORBIS_DIVIDES_IN_RESIDUE}
    part_classdata: BBBArray;
 {$ELSE}
    classifications:array of array of int;
 {$ENDIF}
 
-function IncPointer(p:PInt8; i:integer):PInt8; overload;
+function IncPointer(p:PShortInt; i:integer):PShortInt; overload;
 begin
   Result := p;
   Inc(Result, i);
 end;
 
-function IncPointer(p:PUInt8; i:integer):PUInt8; overload;
+function IncPointer(p:PByte; i:integer):PByte; overload;
 begin
   Result := p;
   Inc(Result, i);
 end;
 
-function IncPointer(p:PInt16; i:integer):PInt16; overload;
+function IncPointer(p:PSmallInt; i:integer):PSmallInt; overload;
 begin
   Result := p;
   Inc(Result, i);
@@ -1219,13 +1223,13 @@ begin
   Inc(Result, i);
 end;
 
-function IncPointer(p:PUInt16; i:integer):PUInt16; overload;
+function IncPointer(p:PWord; i:integer):PWord; overload;
 begin
   Result := p;
   Inc(Result, i);
 end;
 
-function IncPointer(p:PInt32; i:integer):PInt32; overload;
+function IncPointer(p:PInteger; i:integer):PInteger; overload;
 begin
   Result := p;
   Inc(Result, i);
@@ -1254,10 +1258,10 @@ begin
   Result := System.ReallocMemory(p, Size)
 end;
 
-procedure qsort(var A: array of uint32; len:uint32);
-   procedure sort(l,r: int32);
-     var i,j:int32;
-     x,y: uint32;
+procedure qsort(var A: array of Cardinal; len:Cardinal);
+   procedure sort(l,r: Integer);
+     var i,j:Integer;
+     x,y: Cardinal;
    begin
      i := l;
      j := r;
@@ -1281,10 +1285,10 @@ begin
    sort(0,len-1);
 end;
 
-procedure qsort_points(var A: array of Point; len:uint32);
-   procedure sort(l,r: int32);
+procedure qsort_points(var A: array of Point; len:Cardinal);
+   procedure sort(l,r: Integer);
    var
-     i,j: int32;
+     i,j: Integer;
      x,y:Point;
    begin
      i := l;
@@ -1352,7 +1356,7 @@ begin
    Result := count*(sizeof(Pointer)+(size));
 end;
 
-function setup_temp_malloc(f:pvorb; sz:UInt32):Pointer;
+function setup_temp_malloc(f:pvorb; sz:Cardinal):Pointer;
 begin
    sz := (sz+3) and  (not 3);
    if f.alloc.alloc_buffer<>nil then begin
@@ -1366,7 +1370,7 @@ begin
    end;
    GetMem(Result, sz);
 end;
-   
+
 function temp_alloc(f:pvorb; size:Integer):Pointer;
 begin
    if f.alloc.alloc_buffer<>nil then
@@ -1386,7 +1390,7 @@ begin
    Result := f.temp_offset;
 end;
 
-function setup_malloc(f:pvorb; sz:UInt32):Pointer;
+function setup_malloc(f:pvorb; sz:Cardinal):Pointer;
 begin
    sz := (sz+3) and (not 3);
    f.setup_memory_required := f.setup_memory_required+sz;
@@ -1412,7 +1416,7 @@ begin
    FreeMem(p);
 end;
 
-procedure setup_temp_free(f:pvorb; p:Pointer; sz:uint32);
+procedure setup_temp_free(f:pvorb; p:Pointer; sz:Cardinal);
 begin
    if (f.alloc.alloc_buffer<>nil) then begin 
       f.temp_offset := f.temp_offset + ((sz+3) and (not 3));
@@ -1421,10 +1425,10 @@ begin
    FreeMem(p);
 end;
 
-procedure crc32_init;
+{procedure crc32_init;
 var
    i,j: integer;
-   s: uint32;
+   s: Cardinal;
 begin
    for i:=0 to 255 do begin
       s:=i shl 24;
@@ -1436,13 +1440,13 @@ begin
    end;
 end;
 
-function crc32_update(crc:uint32; byte:uint8):uint32;
+function crc32_update(crc:Cardinal; byte:Byte):Cardinal;
 begin
    Result :=  (crc shl 8) xor crc_table[byte xor (crc shr 24)];
-end;
+end;}
 
 // used in setup, and for huffman that doesn't go fast path
-function  bit_reverse(n:uint32):uint32;
+function  bit_reverse(n:Cardinal):Cardinal;
 begin
   n := ((n and $AAAAAAAA) shr  1) or ((n and $55555555) shl 1);
   n := ((n and $CCCCCCCC) shr  2) or ((n and $33333333) shl 2);
@@ -1451,40 +1455,35 @@ begin
   Result := (n shr 16) or (n shl 16);
 end;
 
-function square(x:Single):Single;
-begin
-   Result := x*x;
-end;
-
 // this is a weird definition of log2() for which log2(1) = 1, log2(2) = 2, log2(4) = 3
 // as required by the specification. fast(?) implementation from stb.h
 // @OPTIMIZE: called multiple times per-packet with "constants"; move to setup
-function ilog(n:int32):int32;
+function ilog(n:Integer):Integer;
    const log2_4: array [0..15] of Byte = ( 0,1,2,2,3,3,3,3,4,4,4,4,4,4,4,4 );
-   var one:uint32;
+   var one:Cardinal;
 begin
    one:=1;
    Result:=0;
    // 2 compares if n < 16, 3 compares otherwise (4 if signed or n > 1<<29)
-   if (n < Int32(one shl 14)) then begin
-      if (n < Int32(one shl 4)) then Result:=0+log2_4[n]
+   if (n < Integer(one shl 14)) then begin
+      if (n < Integer(one shl 4)) then Result:=0+log2_4[n]
       else begin
-         if (n < Int32(one shl 9)) then Result:=5+log2_4[n shr 5]
+         if (n < Integer(one shl 9)) then Result:=5+log2_4[n shr 5]
          else Result:=10+log2_4[n shr 10];
       end;
    end
    else begin
-      if (n < Int32(one shl 24)) then begin
-         if (n < Int32(one shl 19)) then Result:=15+log2_4[n shr 15]
+      if (n < Integer(one shl 24)) then begin
+         if (n < Integer(one shl 19)) then Result:=15+log2_4[n shr 15]
          else Result:=20+log2_4[n shr 20];
        end
        else begin
-         if (n < Int32(one shl 29)) then Result:=25+log2_4[n shr 25]
+         if (n < Integer(one shl 29)) then Result:=25+log2_4[n shr 25]
          else begin
-            if (n < Int32(one shl 31)) then Result:=30+log2_4[n shr 30]
+            if (n < Integer(one shl 31)) then Result:=30+log2_4[n shr 30]
             else Result:=0; // signed n returns 0
          end;    
-       end;           
+       end;
    end;               
 end;
 
@@ -1493,18 +1492,6 @@ end;
 // these functions are only called at setup, and only a few times
 // per file
 
-function float32_unpack(x:uint32):Single;
-var
-   mantissa, sign, exp :uint32;
-   res: extended;
-begin
-   // from the specification
-   mantissa := x and $1fffff;
-   sign := x and $80000000;
-   exp := (x and $7fe00000) shr 21;
-   if sign=0 then res:=Integer(mantissa) else res:=-Integer(mantissa);
-   Result:=ldexp(res, exp-788);
-end;
 
 
 // zlib & jpeg huffman tables assume that the output symbols
@@ -1514,8 +1501,8 @@ end;
 // vorbis allows a huffman table with non-sorted lengths. This
 // requires a more sophisticated construction, since symbols in
 // order do not map to huffman codes "in order".
-//static void add_entry(Codebook *c, uint32 huff_code, int symbol, int count, int len, uint32 *values)
-procedure add_entry(c:PCodebook; huff_code:uint32; symbol:integer; count:integer; len:integer; var values:array of uint32);
+//static void add_entry(Codebook *c, Cardinal huff_code, int symbol, int count, int len, Cardinal *values)
+procedure add_entry(c:PCodebook; huff_code:Cardinal; symbol:integer; count:integer; len:integer; var values:array of Cardinal);
 begin
    if c.sparse=0 then c.codewords[symbol] := huff_code
    else begin
@@ -1525,11 +1512,11 @@ begin
    end;
 end;
 
-function compute_codewords(c:PCodebook; len:array of uint8; n:integer; var values:array of uint32):Boolean;
+function compute_codewords(c:PCodebook; len:array of Byte; n:integer; var values:array of Cardinal):Boolean;
 var
    i,k,m: integer;
-   available: array[1..32] of uint32;
-   res: uint32;
+   available: array[1..32] of Cardinal;
+   res: Cardinal;
    z,y : integer;
 begin
    m:=0;
@@ -1577,8 +1564,8 @@ end;
 // of length <= STB_VORBIS_FAST_HUFFMAN_LENGTH
 procedure compute_accelerated_huffman(c:PCodebook);
 var
-   i,len: uint16;
-   z: uint32;
+   i,len: Word;
+   z: Cardinal;
 begin
    for i:=0 to FAST_HUFFMAN_TABLE_SIZE-1 do c.fast_huffman[i]:=-1;
    if c.sparse>0 then len:=c.sorted_entries else len:=c.entries;
@@ -1598,14 +1585,14 @@ begin
    end;
 end;
 
-function uint32_compare(p,q: puint32):integer;
+function Cardinal_compare(p,q: pCardinal):integer;
 begin
    if p^ = q^ then Result:=0
    else if p^ < q^ then Result:=-1
    else Result:=1;
 end;
 
-function include_in_sort(c:PCodebook; len:uint8):Boolean;
+function include_in_sort(c:PCodebook; len:Byte):Boolean;
 begin
    if c.sparse<>0 then begin  assert(len<>NO_CODE); Result:=true; Exit; end;
    if len=NO_CODE then begin Result:=false; Exit; end;
@@ -1615,10 +1602,10 @@ end;
 
 // if the fast table above doesn't work, we want to binary
 // search them... need to reverse the bits
-procedure compute_sorted_huffman(c:PCodebook; lengths: array of uint8; values: array of uint32);
+procedure compute_sorted_huffman(c:PCodebook; lengths: array of Byte; values: array of Cardinal);
 var
    i,len,k,x,n,m,huff_len: integer;
-   code: uint32;
+   code: Cardinal;
 begin
    // build a list of all the entries
    // OPTIMIZATION: don't include the short ones, since they'll be caught by FAST_HUFFMAN.
@@ -1705,7 +1692,7 @@ Begin
   r := floor(N);
 
   //Log(logDebug, 'OGG', 'l2');
-  if floor(power(r+1,dim))<=entries then
+  if floor(power(r+1, dim))<=entries then
     inc(r);
 
 //  Log(logDebug, 'OGG', 'l3');
@@ -1746,10 +1733,10 @@ var n2,i: integer;
 begin
    n2 := n shr 1;
    for i:=0 to n2-1 do
-      window[i] := sin(0.5 * PI * square(sin((i - 0 + 0.5) / n2 * 0.5 * PI)));
+      window[i] := sin(0.5 * PI * Sqr(sin((i - 0 + 0.5) / n2 * 0.5 * PI)));
 end;
 
-procedure compute_bitreverse(n:integer; var rev:array of uint16);
+procedure compute_bitreverse(n:integer; var rev:array of Word);
 var ld,i,n8: integer;
 begin
    ld := ilog(n) - 1; // ilog is off-by-one from normal definitions
@@ -1776,7 +1763,7 @@ begin
    Result:=true;
 end;
 
-procedure neighbors(x: array of uint16; n:integer; var plow, phigh: integer);
+procedure neighbors(x: array of Word; n:integer; var plow, phigh: integer);
 var low,high,i: integer;
 begin
    low := -1;
@@ -1807,7 +1794,7 @@ begin
 {$ENDIF}
 end;
 
-function get8(z:pvorb):uint8;
+function get8(z:pvorb):Byte;
 begin
    Result:=0;
    if USE_MEMORY(z) then begin
@@ -1825,7 +1812,7 @@ begin
    {$ENDIF}
 end;
 
-function get32(f:pvorb):uint32;
+function get32(f:pvorb):Cardinal;
 begin
    Result := get8(f);
    Result := Result+(get8(f) shl 8);
@@ -1833,7 +1820,7 @@ begin
    Result := Result+(get8(f) shl 24);
 end;
 
-function getn(z:pvorb; var data:array of uint8; n:integer):Boolean;
+function getn(z:pvorb; var data:array of Byte; n:integer):Boolean;
 var nread,i:integer;
 begin
    Result:=false;
@@ -1869,7 +1856,7 @@ begin
    {$ENDIF}
 end;
 
-function set_file_offset(f:pvorb; loc:UInt32):boolean;
+function set_file_offset(f:pvorb; loc:Cardinal):boolean;
 begin
    Result:=false;
    {$IFNDEF STB_VORBIS_NO_PUSHDATA_API}
@@ -1917,7 +1904,7 @@ end;
 
 function start_page_no_capturepattern(f:pvorb):Boolean;
 var 
-   loc0,loc1,n:uint32;
+   loc0,loc1,n:Cardinal;
    i,len:integer;
    p:ProbedPage;
 begin
@@ -1999,7 +1986,7 @@ begin
 end;
 
 function maybe_start_packet(f:pvorb):Boolean;
-var x:uint8;
+var x:Byte;
 begin
    Result:=false;
    if f.next_seg = -1 then begin
@@ -2074,9 +2061,9 @@ end;
 
 // @OPTIMIZE: this is the secondary bit decoder, so it's probably not as important
 // as the huffman decoder?
-function get_bits(f:pvorb; n:integer):uint32;
+function get_bits(f:pvorb; n:integer):Cardinal;
 var 
-   z: uint32;
+   z: Cardinal;
    iz:integer;
 begin
    Result:=0;
@@ -2108,8 +2095,8 @@ begin
    Result:=z;
 end;
 
-function get_bits_signed(f:pvorb; n:integer):int32;
-var z:uint32;
+function get_bits_signed(f:pvorb; n:integer):Integer;
+var z:Cardinal;
 begin
    z := get_bits(f, n);
    if (z and (1 shl (n-1)))<>0 then
@@ -2139,7 +2126,7 @@ end;
 function codebook_decode_scalar_raw(f:pvorb; c:PCodebook):integer;
 var
    i,x,n,m,len: integer;
-   code: uint32;
+   code: Cardinal;
 begin
    prep_huffman(f);
 
@@ -2677,7 +2664,7 @@ begin
    setLength(part_classdata,f.channels);
    
    For i:=0 to Pred(f.channels) Do
-    setlength(part_classdata[i],part_read);//part_classdata[i]:=getMem(part_read*sizeof(puint8));
+    setlength(part_classdata[i],part_read);//part_classdata[i]:=getMem(part_read*sizeof(pByte));
 
    {$ELSE}
    setLength(classifications,0,0);
@@ -3158,7 +3145,7 @@ var
    buffer2: array of single;
    buf2,A,A0,u,v,d,e,AA,e_stop,d0,d1,d2,d3,e0,e1,C,B: psingle;
    v40_20,v41_21,a02,a11,b0,b1,b2,b3,p0,p1,p2,p3: single;
-   bitrev: puint16;
+   bitrev: pWord;
 begin
    n2 := n shr 1;
    n4 := n shr 2;
@@ -3456,7 +3443,7 @@ begin
    Result:=nil;
 end;
 
-function do_floor(f:pvorb; map:pmapping; i,n:integer; target:psingle; finalY: PYTYPE; step2_flag: puint8):boolean;
+function do_floor(f:pvorb; map:pmapping; i,n:integer; target:psingle; finalY: PYTYPE; step2_flag: pByte):boolean;
 var
    n2,s, floor,j,q,lx,ly,hy,hx: integer;
    g: PFloor1;
@@ -3567,14 +3554,14 @@ var
    zero_channel: array [0..256-1] of Boolean;
    really_zero_channel: array [0..256-1] of Boolean;
    g: PFloor1;
-   finalY: pint16;
-   step2_flag: array [0..256-1] of uint8;
+   finalY: pSmallInt;
+   step2_flag: array [0..256-1] of Byte;
    cb: PCodebook;
    residue_buffers: FPArray;
    do_not_decode: array [0..256-1] of Boolean;
    a,m: pSingle;
    a2,m2: Single;
-   current_end: uint32;
+   current_end: Cardinal;
 begin
    val:=0;
 // WINDOWING
@@ -3925,7 +3912,7 @@ function is_whole_packet_present(f:pvorb; end_page: Boolean):Boolean;
 var
    s,n: integer;
    first: boolean;
-   p,q: puint8;
+   p,q: pByte;
 begin
    // make sure that we have the packet available before continuing...
    // this requires a full ogg parse, but we know we can fetch from f->stream
@@ -4018,22 +4005,22 @@ end;
 function start_decoder(f:pvorb):Boolean;
 label _skip;
 var
-   header:Array [0..5] of uint8;
-   x,y: uint8;
+   header:Array [0..5] of Byte;
+   x,y: Byte;
    len,i,j,k,max_submaps,longest_floorlist,
    log0,log1,ordered,sorted_count,total,
    current_entry,current_length,limit,n,
    present,ii,q,sparse,z,_div,off,
    max_class,c,low,hi,temp,classwords,
    mapping_type,max_part_read,n_read,part_read: integer;
-   values: array of uint32;
+   values: array of Cardinal;
    lengths: BArray;
-   size,zz,imdct_mem,classify_mem: uint32;
-   mults:array of uint16;
+   size,zz,imdct_mem,classify_mem: Cardinal;
+   mults:array of Word;
    //p: array [0..31*8+2-1] of Point;
    p: array of Point;
-   residue_cascade: array [0..64-1] of uint8;
-   high_bits,low_bits: uint8;
+   residue_cascade: array [0..64-1] of Byte;
+   high_bits,low_bits: Byte;
    cb:PCodeBook;
    r: PResidue;
    m: PMapping; 
@@ -4166,7 +4153,7 @@ begin
    end;
    {$ENDIF}
 
-   crc32_init(); // always init it, to avoid multithread race conditions
+   //crc32_init(); // always init it, to avoid multithread race conditions
 
    if get8_packet(f)<>VORBIS_packet_setup then begin
       result:=error(f, VORBIS_invalid_setup);
@@ -4206,10 +4193,10 @@ begin
       if ordered<>0 then cb.sparse:=0 else cb.sparse:=get_bits(f,1);
 
       if cb.sparse<>0 then begin
-         //lengths = (uint8 *) setup_temp_malloc(f, c->entries);
+         //lengths = (Byte *) setup_temp_malloc(f, c->entries);
          setlength(lengths,cb.entries);
       end else begin
-         //lengths = c->codeword_lengths = (uint8 *) setup_malloc(f, c->entries);
+         //lengths = c->codeword_lengths = (Byte *) setup_malloc(f, c->entries);
          setlength(cb.codeword_lengths,cb.entries);
          lengths:=cb.codeword_lengths;
       end;
@@ -4246,7 +4233,7 @@ begin
          if cb.entries>f.setup_temp_memory_required then
             f.setup_temp_memory_required := cb.entries;
 
-         //c->codeword_lengths = (uint8 *) setup_malloc(f, c->entries);
+         //c->codeword_lengths = (Byte *) setup_malloc(f, c->entries);
          //memcpy(c->codeword_lengths, lengths, c->entries);
          setlength(cb.codeword_lengths,cb.entries);
          for ii:=0 to cb.entries-1 do cb.codeword_lengths[ii]:=lengths[ii];
@@ -4272,19 +4259,19 @@ begin
       setlength(values,0);
 
       if cb.sparse=0 then begin
-         //c->codewords = (uint32 *) setup_malloc(f, sizeof(c->codewords[0]) * c->entries);
+         //c->codewords = (Cardinal *) setup_malloc(f, sizeof(c->codewords[0]) * c->entries);
          setlength(cb.codewords,cb.entries);
       end else begin
          if cb.sorted_entries<>0 then begin
-            //c->codeword_lengths = (uint8 *) setup_malloc(f, c->sorted_entries);
+            //c->codeword_lengths = (Byte *) setup_malloc(f, c->sorted_entries);
             setlength(cb.codeword_lengths,cb.sorted_entries);
-            //c->codewords = (uint32 *) setup_temp_malloc(f, sizeof( *c->codewords) * c->sorted_entries);
+            //c->codewords = (Cardinal *) setup_temp_malloc(f, sizeof( *c->codewords) * c->sorted_entries);
             setlength(cb.codewords,cb.sorted_entries);
-            //values = (uint32 *) setup_temp_malloc(f, sizeof( *values) * c->sorted_entries);
+            //values = (Cardinal *) setup_temp_malloc(f, sizeof( *values) * c->sorted_entries);
             setlength(values,cb.sorted_entries);
          end;
          //size = c->entries + (sizeof( *c->codewords) + sizeof( *values)) * c->sorted_entries;
-         size := cb.entries + (sizeof(uint32) + sizeof(uint32)) * cb.sorted_entries;
+         size := cb.entries + (sizeof(Cardinal) + sizeof(Cardinal)) * cb.sorted_entries;
          if size>f.setup_temp_memory_required then
             f.setup_temp_memory_required := size;
       end;
@@ -4298,7 +4285,7 @@ begin
 
       if cb.sorted_entries<>0 then begin
          // allocate an extra slot for sentinels
-         //c->sorted_codewords = (uint32 *) setup_malloc(f, sizeof( *c->sorted_codewords) * (c->sorted_entries+1));
+         //c->sorted_codewords = (Cardinal *) setup_malloc(f, sizeof( *c->sorted_codewords) * (c->sorted_entries+1));
          setlength(cb.sorted_codewords,cb.sorted_entries+1);
          // allocate an extra slot at the front so that c->sorted_values[-1] is defined
          // so that we can catch that case without an extra if
@@ -4341,7 +4328,7 @@ begin
          Begin
             cb.lookup_values := cb.entries * cb.dimensions;
          End;
-         //mults = (uint16 *) setup_temp_malloc(f, sizeof(mults[0]) * c->lookup_values);
+         //mults = (Word *) setup_temp_malloc(f, sizeof(mults[0]) * c->lookup_values);
          setlength(mults, cb.lookup_values);
 
          for j:=0 to Pred(cb.lookup_values) do
@@ -4470,7 +4457,7 @@ _skip:
                end;
             end;
             for k:=0 to (1 shl g1.class_subclasses[j])-1 do begin
-               g1.subclass_books[j][k] := Int16(get_bits(f,8))-1;
+               g1.subclass_books[j][k] := SmallInt(get_bits(f,8))-1;
                if g1.subclass_books[j][k]>=f.codebook_count then begin
                   result:=error(f, VORBIS_invalid_setup);
                   Exit;
@@ -4547,14 +4534,14 @@ _skip:
       end;
       // precompute the classifications[] array to avoid inner-loop mod/divide
       // call it 'classdata' since we already have r->classifications
-      //r->classdata = (uint8 **) setup_malloc(f, sizeof( *r->classdata) * f->codebooks[r->classbook].entries);
+      //r->classdata = (Byte **) setup_malloc(f, sizeof( *r->classdata) * f->codebooks[r->classbook].entries);
       setlength(r.classdata, f.codebooks[r.classbook].entries);
       //if (!r->classdata) return error(f, VORBIS_outofmem);
       //memset(r->classdata, 0, sizeof( *r->classdata) * f->codebooks[r->classbook].entries);
       for j:=0 to f.codebooks[r.classbook].entries-1 do begin
          classwords := f.codebooks[r.classbook].dimensions;
          temp := j;
-         //r->classdata[j] = (uint8 *) setup_malloc(f, sizeof(r->classdata[j][0]) * classwords);
+         //r->classdata[j] = (Byte *) setup_malloc(f, sizeof(r->classdata[j][0]) * classwords);
          setlength(r.classdata[j], classwords);
          for k:=classwords-1 downto 0 do begin
             r.classdata[j][k] := temp mod r.classifications;
@@ -4631,7 +4618,7 @@ _skip:
       getMem(f.channel_buffers[i], f.blocksize_1*sizeof(single));
       //f->previous_window[i] = (float *) setup_malloc(f, sizeof(float) * f->blocksize_1/2);
       getMem(f.previous_window[i], sizeof(single)*f.blocksize_1 div 2);
-      //f->finalY[i]          = (int16 *) setup_malloc(f, sizeof(int16) * longest_floorlist);
+      //f->finalY[i]          = (SmallInt *) setup_malloc(f, sizeof(SmallInt) * longest_floorlist);
       setlength(f.finalY[i], longest_floorlist);
       {$IFDEF STB_VORBIS_NO_DEFER_FLOOR}
       //f->floor_buffers[i]   = (float *) setup_malloc(f, sizeof(float) * f->blocksize_1/2);
@@ -4664,7 +4651,7 @@ _skip:
    end;
 
    {$IFNDEF STB_VORBIS_DIVIDES_IN_RESIDUE}
-   classify_mem := f.channels * (sizeof(pointer) + max_part_read * sizeof(puint8));
+   classify_mem := f.channels * (sizeof(pointer) + max_part_read * sizeof(pByte));
    {$ELSE}
    classify_mem := f.channels * (sizeof(pointer) + max_part_read * sizeof(pint));
    {$ENDIF}
@@ -4822,11 +4809,11 @@ begin
    f.channel_buffer_end := 0;
 end;
 
-//function vorbis_search_for_page_pushdata(f:pvorb; data: array of uint8; data_len:integer):integer;
-function vorbis_search_for_page_pushdata(f:pvorb; data: puint8; data_len:integer):integer;
+//function vorbis_search_for_page_pushdata(f:pvorb; data: array of Byte; data_len:integer):integer;
+function vorbis_search_for_page_pushdata(f:pvorb; data: pByte; data_len:integer):integer;
 var
    i,n,j,len,m: integer;
-   crc: uint32;
+   crc: Cardinal;
 begin
    for i:=0 to f.page_crc_tests-1 do
       f.scan[i].bytes_done := 0;
@@ -4854,11 +4841,12 @@ begin
                // scan everything up to the embedded crc (which we must 0)
                crc := 0;
                for j:=0 to 22-1 do
-                  crc := crc32_update(crc, IncPointer(data,+i+j)^);
+                  {crc := }crc32_update(crc, IncPointer(data,+i+j)^);
+
                j := 22;
                // now process 4 0-bytes
                while j<26 do begin
-                  crc := crc32_update(crc, 0);
+                  {crc := }crc32_update(crc, 0);
                   Inc(j);
                end;
                // len is the total number of bytes we need to scan
@@ -4890,7 +4878,7 @@ begin
       // m is the bytes to scan in the current chunk
       crc:=f.scan[i].crc_so_far;
       for j:=0 to m-1 do
-         crc := crc32_update(crc, IncPointer(data,+n+j)^);
+         {crc := }crc32_update(crc, IncPointer(data,+n+j)^);
       f.scan[i].bytes_left := f.scan[i].bytes_left - m;
       f.scan[i].crc_so_far := crc;
       if f.scan[i].bytes_left=0 then begin
@@ -4921,8 +4909,8 @@ end;
 // return value: number of bytes we used
 function stb_vorbis_decode_frame_pushdata(
          f:pvorb;                 // the file we're decoding
-         data:puint8;
-         //data:array of uint8;
+         data:pByte;
+         //data:array of Byte;
          data_len:integer;        // the memory available for decoding
          var channels:integer;    // place to write number of float * buffers
          output:POutput;      // place to write float ** array of float * buffers
@@ -4997,8 +4985,8 @@ begin
 end;
 
 function stb_vorbis_open_pushdata(
-         data: puint8;
-//         data: array of uint8;
+         data: pByte;
+//         data: array of Byte;
          data_len:integer;            // the memory available for decoding
          var data_used:integer;       // only defined if result is not NULL
          var _error:STBVorbisError;
@@ -5027,7 +5015,7 @@ begin
 end;
 {$ENDIF} // STB_VORBIS_NO_PUSHDATA_API
 
-function stb_vorbis_get_file_offset(f:pvorb):uint32;
+function stb_vorbis_get_file_offset(f:pvorb):Cardinal;
 begin
    result:=0;
    {$IFNDEF STB_VORBIS_NO_PUSHDATA_API}
@@ -5044,12 +5032,12 @@ end;
 // DATA-PULLING API
 //
 
-function vorbis_find_page(f:pvorb; var _end,last: uint32):Boolean;
+function vorbis_find_page(f:pvorb; var _end,last: Cardinal):Boolean;
 label invalid;
 var
    n,i,s: integer;
-   retry_loc, crc, goal, len:uint32;
-   header: array [0..27-1] of uint8;
+   retry_loc, crc, goal, len:Cardinal;
+   header: array [0..27-1] of Byte;
 begin
    while true do begin
       if f.eof then begin result:=false; exit; end;
@@ -5074,17 +5062,26 @@ begin
             goal := header[22] + (header[23] shl 8) + (header[24] shl 16) + (header[25] shl 24);
             for i:=22 to 26-1 do header[i] := 0;
             crc := 0;
-            for i:=0 to 27-1 do crc := crc32_update(crc, header[i]);
+            for i:=0 to 27-1 do {crc := }crc32_update(crc, header[i]);
             len := 0;
             for i:=0 to header[26]-1 do begin
                s := get8(f);
-               crc := crc32_update(crc, s);
+               {crc := }crc32_update(crc, s);
                len := len + s;
             end;
-            if (len<>0) and f.eof then begin result:=false; exit; end;
-            for i:=0 to len-1 do crc := crc32_update(crc, get8(f));
+
+            if (len<>0) and f.eof Then
+            Begin
+              Result := False;
+              Exit;
+            End;
+
+            For I:=0 To Pred(len) Do
+              {crc := }crc32_update(crc, get8(f));
+
             // finished parsing probable page
-            if crc=goal then begin
+            If crc=goal Then
+            Begin
                // we could now check that it's either got the last
                // page flag set, OR it's followed by the capture
                // pattern, but I guess TECHNICALLY you could have
@@ -5094,13 +5091,15 @@ begin
                // another 2^32, not worth it since it would hose those
                // invalid-but-useful files?
                _end := stb_vorbis_get_file_offset(f);
-               if (header[5] and $04)>0 then last := 1
-               else last := 0;
+               if (header[5] and $04)>0 then
+                last := 1
+               else
+                last := 0;
                set_file_offset(f, retry_loc-1);
-               result:=true;
+               Result := true;
                Exit;
-            end;
-         end;
+            End;
+         End;
 invalid:
          // not a valid page, so rewind and look for next one
          set_file_offset(f, retry_loc);
@@ -5125,12 +5124,12 @@ end;
 function vorbis_analyze_page(f:pvorb; z:PProbedPage):Boolean;
 label bail;
 var
-   header: array [0..27-1] of uint8;
-   lacing: array [0..255-1] of uint8;
-   packet_type: array [0..255-1] of uint8;
+   header: array [0..27-1] of Byte;
+   lacing: array [0..255-1] of Byte;
+   packet_type: array [0..255-1] of Byte;
    num_packet,i,len: integer;//,previous
-   samples: uint32;
-   n,b: uint8;//,m
+   samples: Cardinal;
+   n,b: Byte;//,m
    packet_start:boolean;
 begin
    //previous:=0;
@@ -5252,11 +5251,11 @@ bail:
    result:=false;
 end;
 
-function vorbis_seek_frame_from_page(f:pvorb; page_start,first_sample,target_sample:uint32; fine:boolean):Boolean;
+function vorbis_seek_frame_from_page(f:pvorb; page_start,first_sample,target_sample:Cardinal; fine:boolean):Boolean;
 var
    left_start,left_end,right_start,right_end,mode,i,
    frame,frames_to_skip, data_to_skip,start,j,n: integer;
-   frame_start: uint32;
+   frame_start: Cardinal;
    ff: TOutput;
 begin
    frame:=0;
@@ -5359,12 +5358,12 @@ begin
    result:=true;
 end;
 
-function vorbis_seek_base(f:pvorb; sample_number:uint32; fine:boolean):Boolean;
+function vorbis_seek_base(f:pvorb; sample_number:Cardinal; fine:boolean):Boolean;
 var
    p: array [0..2-1] of ProbedPage;
    q: ProbedPage;
    z,probe,start_offset,end_offset,start_sample,
-   end_sample,probe2, tmp: uint32;
+   end_sample,probe2, tmp: Cardinal;
    attempts: integer;
    ff:single;
 begin
@@ -5448,12 +5447,12 @@ begin
    end;
 end;
 
-function stb_vorbis_seek_frame(f:pvorb; sample_number:uint32):Boolean;
+function stb_vorbis_seek_frame(f:pvorb; sample_number:Cardinal):Boolean;
 begin
    result:=vorbis_seek_base(f, sample_number, FALSE);
 end;
 
-function stb_vorbis_seek(f:pvorb; sample_number:uint32):Boolean;
+function stb_vorbis_seek(f:pvorb; sample_number:Cardinal):Boolean;
 begin
    result:=vorbis_seek_base(f, sample_number, TRUE);
 end;
@@ -5468,11 +5467,11 @@ begin
    vorbis_pump_first_frame(f);
 end;
 
-function stb_vorbis_stream_length_in_samples(f:pvorb):uint32;
+function stb_vorbis_stream_length_in_samples(f:pvorb):Cardinal;
 label done;
 var
    restore_offset,previous_safe,_end,
-   last_page_loc,lo,hi,last: uint32;
+   last_page_loc,lo,hi,last: Cardinal;
    header: array [0..6-1] of byte;
 begin
 
@@ -5582,7 +5581,7 @@ end;
 {$IFNDEF STB_VORBIS_NO_STDIO}
 
 function stb_vorbis_open_file_section(var _file: TFileHandle; close_on_free:boolean;
-         var _error:STBVorbisError; alloc: pstb_vorbis_alloc; length:uint32):pvorb;
+         var _error:STBVorbisError; alloc: pstb_vorbis_alloc; length:Cardinal):pvorb;
 
 var f: pvorb;
 begin
@@ -5610,7 +5609,7 @@ end;
 function stb_vorbis_open_file(var _file:TFileHandle; close_on_free:boolean;
          var _error: STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
 var
-   len: uint32;
+   len: Cardinal;
    cp:LongInt;
 begin
    cp := FileSeek(_file, 0, 1);
@@ -5634,7 +5633,7 @@ end;
 
 {$ENDIF} // STB_VORBIS_NO_STDIO
 
-function stb_vorbis_open_memory(data: puint8; len: uint32; var _error: STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
+function stb_vorbis_open_memory(data: pByte; len: Cardinal; var _error: STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
 Var
   f:pvorb;
 Begin
@@ -5693,13 +5692,13 @@ end;
    
 //#define FAST_SCALED_FLOAT_TO_INT(temp,x,s) (temp.f = (x) + MAGIC(s), temp.i - ADDEND(s))
 
-function FAST_SCALED_FLOAT_TO_INT(x:Single; s:Integer) : Int32;
+function FAST_SCALED_FLOAT_TO_INT(x:Single; s:Integer) : Integer;
 type
    float_conv = packed record
       case Integer of
          0:(f:single);
-         1:(i:int32);
-//         1:(i:int16);
+         1:(i:Integer);
+//         1:(i:SmallInt);
       end;
 var 
    temp: float_conv;
@@ -5711,7 +5710,7 @@ end;
 
 {$ELSE}
 
-function FAST_SCALED_FLOAT_TO_INT(x:Single; s:Integer) : Int16;
+function FAST_SCALED_FLOAT_TO_INT(x:Single; s:Integer) : SmallInt;
 begin
    Result := Floor(x * (1 shl s));
 end;
@@ -5720,10 +5719,10 @@ end;
 
 
 
-//procedure copy_samples(dest:array of int16; src: array of single; len:uint32);
-procedure copy_samples(dest: pint16; src: pSingle; len:uint32);
+//procedure copy_samples(dest:array of SmallInt; src: array of single; len:Cardinal);
+procedure copy_samples(dest: pSmallInt; src: pSingle; len:Cardinal);
 var 
-   i:int16;
+   i:SmallInt;
    v:longint;
 begin
    for i:=0 to len-1 do begin
@@ -5734,7 +5733,7 @@ begin
    end;
 end;
 
-procedure compute_samples(mask:integer; output:pint16; num_c:integer; data:pOutput; d_offset,len:integer);
+procedure compute_samples(mask:integer; output:pSmallInt; num_c:integer; data:pOutput; d_offset,len:integer);
 const  BUFFER_SIZE = 32;
 var
    buffer: array [0..BUFFER_SIZE-1] of single;
@@ -5761,7 +5760,7 @@ begin
    end;
 end;
 
-procedure compute_stereo_samples(output: pint16; num_c:integer; data:POutput; d_offset,len:integer);
+procedure compute_stereo_samples(output: pSmallInt; num_c:integer; data:POutput; d_offset,len:integer);
 const  BUFFER_SIZE = 32;
 var
    buffer: array [0..BUFFER_SIZE-1] of single;
@@ -5804,7 +5803,7 @@ begin
    end;
 end;
 
-procedure convert_samples_short(buf_c:integer; buffer: pint16; b_offset,data_c:integer;
+procedure convert_samples_short(buf_c:integer; buffer: pSmallInt; b_offset,data_c:integer;
           data:POutput; d_offset,samples:integer);
 var i,j,limit:integer;
 begin
@@ -5823,7 +5822,7 @@ begin
    end;
 end;
 
-function stb_vorbis_get_frame_short(f:pvorb; num_c:integer;  buffer: pint16; num_samples:integer):uint32;
+function stb_vorbis_get_frame_short(f:pvorb; num_c:integer;  buffer: pSmallInt; num_samples:integer):Cardinal;
 var 
    output:TOutput;
    len,channels:integer;
@@ -5835,7 +5834,7 @@ begin
    result:=len;
 end;
 
-procedure convert_channels_short_interleaved(buf_c:integer; buffer: pint16; data_c:integer;
+procedure convert_channels_short_interleaved(buf_c:integer; buffer: pSmallInt; data_c:integer;
           data:POutput; d_offset,len:integer);
 var
    i,j,limit,k:integer;          
@@ -5868,7 +5867,7 @@ begin
    end;
 end;
 
-function stb_vorbis_get_frame_short_interleaved(f:pvorb; num_c:integer; buffer:pint16; num_shorts:integer):uint32;
+function stb_vorbis_get_frame_short_interleaved(f:pvorb; num_c:integer; buffer:pSmallInt; num_shorts:integer):Cardinal;
 var
    output: TOutput;
    len,channels:integer;
@@ -5883,11 +5882,11 @@ begin
 end;
 
 function stb_vorbis_get_samples_short_interleaved(f:pvorb; channels:integer; 
-         buffer:array of int16; num_shorts:integer):integer;
+         buffer:array of SmallInt; num_shorts:integer):integer;
 var
    outputs: TOutput;
    len,n,z,k,kk,ch:integer;     
-   buf:array of int16;    
+   buf:array of SmallInt;    
 begin
    len := num_shorts div channels;
    n:=0;
@@ -5911,7 +5910,7 @@ begin
    result:=n;
 end;
 
-function stb_vorbis_get_samples_short(f:pvorb; channels:integer; buffer:array of int16; len:integer):integer;
+function stb_vorbis_get_samples_short(f:pvorb; channels:integer; buffer:array of SmallInt; len:integer):integer;
 var
    outputs: TOutput;
    n,z,k,ch: Integer;
@@ -5933,11 +5932,11 @@ begin
 end;
 
 {$IFNDEF STB_VORBIS_NO_STDIO}
-function stb_vorbis_decode_filename(filename:AnsiString; var channels:integer; var output:pint16):integer;
+function stb_vorbis_decode_filename(filename:AnsiString; var channels:integer; var output:pSmallInt):integer;
 var
    data_len,n,offset,total,limit: Cardinal;
    _error: STBVorbisError;
-   //data: array of int16;
+   //data: array of SmallInt;
    v: pvorb;
 begin
    v := stb_vorbis_open_filename(filename, _error, nil);
@@ -5947,7 +5946,7 @@ begin
    offset := 0;
    data_len := 0;
    total := limit;
-   getMem(output, total*sizeof(int16));
+   getMem(output, total*sizeof(SmallInt));
    while true do begin
       n := stb_vorbis_get_frame_short_interleaved(v, v.channels, IncPointer(output,offset), total-offset);
       if n=0 then break;
@@ -5955,14 +5954,14 @@ begin
       offset := offset+ n*v.channels;
       if offset+limit > total then begin
          total := total * 2;
-         output:=reallocMem(output,total*sizeof(int16));
+         output:=reallocMem(output,total*sizeof(SmallInt));
       end;
    end;
    result:=data_len;
 end;
 {$ENDIF} // NO_STDIO
 
-function stb_vorbis_decode_memory(mem:puint8; len:integer; var channels, SampleRate:integer; var output:pint16):Integer;
+function stb_vorbis_decode_memory(mem:pByte; len:integer; var channels, SampleRate:integer; var output:pSmallInt):Integer;
 Var
   data_len,offset,total,limit,n: integer;
   _error: STBVorbisError;
@@ -5982,7 +5981,7 @@ Begin
    offset:=0;
    data_len:=0;
    total := limit;
-   getMem(output, total*sizeof(int16));
+   getMem(output, total*sizeof(SmallInt));
    While true Do
    Begin
       n := stb_vorbis_get_frame_short_interleaved(v, v.channels, IncPointer(output, offset), total-offset);
@@ -5995,7 +5994,7 @@ Begin
       If offset+limit > total Then
       Begin
          total := total * 2;
-         output:=reallocMem(output,total*sizeof(int16));
+         output:=reallocMem(output,total*sizeof(SmallInt));
       End;
    End;
 
@@ -6132,7 +6131,7 @@ Function OGGLoad(Source:Stream; MySound:Sound):Boolean;
 Var
   Mem:Array Of Byte;
   Samples, Channels, SampleRate, Size:Integer;
-  Output:pint16;
+  Output:pSmallInt;
 Begin
   Result := False;
 

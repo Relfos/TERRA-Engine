@@ -13,7 +13,7 @@ Unit TERRA_GL;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Log, TERRA_Utils, TERRA_Matrix, TERRA_Math,Windows;
+Uses TERRA_Log, TERRA_Matrix4x4, TERRA_Math,Windows;
 
 {$IFDEF WINDOWS}{$UNDEF MOBILE}{$DEFINE PC}{$UNDEF ANDROID}{$ENDIF}
 

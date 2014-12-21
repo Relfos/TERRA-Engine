@@ -210,10 +210,22 @@ Begin
   Result := StringToJava(Application.Instance.Client.GetFlurryID());
 End;
 
-Function Java_com_pascal_terra_TERRALibrary_ApplicationInterstitialGetID(env, obj:Pointer):JavaString; stdcall; export;  [public];
+Function Java_com_pascal_terra_TERRALibrary_ApplicationAdMobInterstitialGetID(env, obj:Pointer):JavaString; stdcall; export;  [public];
 Begin
   //Log(logDebug, 'App', 'TERRA APP IAP CANCEL');
-  Result := StringToJava(Application.Instance.Client.GetInterstitialID());
+  Result := StringToJava(Application.Instance.Client.GetAdMobInterstitialID());
+End;
+
+Function Java_com_pascal_terra_TERRALibrary_ApplicationAdBuddizGetID(env, obj:Pointer):JavaString; stdcall; export;  [public];
+Begin
+  //Log(logDebug, 'App', 'TERRA APP IAP CANCEL');
+  Result := StringToJava(Application.Instance.Client.GetAdBuddizID());
+End;
+
+Function Java_com_pascal_terra_TERRALibrary_ApplicationVungleGetID(env, obj:Pointer):JavaString; stdcall; export;  [public];
+Begin
+  //Log(logDebug, 'App', 'TERRA APP IAP CANCEL');
+  Result := StringToJava(Application.Instance.Client.GetVungleID());
 End;
 
 Function Java_com_pascal_terra_TERRALibrary_ApplicationIAPGetID(env, obj:Pointer):JavaString; stdcall; export;  [public];
@@ -273,7 +285,9 @@ exports
         Java_com_pascal_terra_TERRALibrary_ApplicationTouchBegin,
         Java_com_pascal_terra_TERRALibrary_ApplicationTouchEnd,
 		Java_com_pascal_terra_TERRALibrary_ApplicationFlurryGetID,
-		Java_com_pascal_terra_TERRALibrary_ApplicationInterstitialGetID,
+		Java_com_pascal_terra_TERRALibrary_ApplicationAdMobInterstitialGetID,
+        Java_com_pascal_terra_TERRALibrary_ApplicationAdBuddizGetID,
+        Java_com_pascal_terra_TERRALibrary_ApplicationVungleGetID,
 		Java_com_pascal_terra_TERRALibrary_ApplicationIAPConfirm,
 		Java_com_pascal_terra_TERRALibrary_ApplicationIAPError,
 		Java_com_pascal_terra_TERRALibrary_ApplicationIAPCredits,

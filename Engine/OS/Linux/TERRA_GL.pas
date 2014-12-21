@@ -12,7 +12,7 @@ Unit TERRA_GL;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Log, TERRA_Utils, TERRA_Matrix, TERRA_Math, GLX,DynLibs;
+Uses TERRA_Log, TERRA_Utils, TERRA_Math, GLX,DynLibs;
 
 Const
   OpenGLLibName='libGL.so';
@@ -498,7 +498,7 @@ Var
   ExtensionsList:AnsiString='';
 
 Implementation
-Uses TERRA_Application;
+Uses TERRA_Application, TERRA_Error;
 
 Function glGetExtensionString():AnsiString;
 Begin

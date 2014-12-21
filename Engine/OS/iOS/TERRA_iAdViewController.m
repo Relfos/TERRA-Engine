@@ -1,6 +1,10 @@
 #import "TERRA_iAdViewController.h"
-#import "TERRA_AppDelegate.h"
+#import "TERRA_EngineDelegate.h"
+
+#include "TERRA_Utils.h"
 #include "PascalImports.h"
+
+
 
 NSString * const BannerViewActionWillBegin = @"BannerViewActionWillBegin";
 NSString * const BannerViewActionDidFinish = @"BannerViewActionDidFinish";
@@ -34,7 +38,10 @@ NSString * const BannerViewActionDidFinish = @"BannerViewActionDidFinish";
 
 - (void)loadView
 {
-    UIView *contentView = [[UIView alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+    CGRect screen = GetScreenBounds();
+    // CGRect screen =[UIScreen mainScreen] bounds];
+
+    UIView *contentView = [[UIView alloc] initWithFrame:screen];
     
     [contentView addSubview:_bannerView];
     
@@ -44,6 +51,10 @@ NSString * const BannerViewActionDidFinish = @"BannerViewActionDidFinish";
     [_contentController didMoveToParentViewController:self];
     
     self.view = contentView;
+    
+    _contentController.view.frame = screen;
+    
+    return;
 }
 
 
@@ -51,17 +62,20 @@ NSString * const BannerViewActionDidFinish = @"BannerViewActionDidFinish";
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
 {
     return [_contentController shouldAutorotateToInterfaceOrientation:interfaceOrientation];
+    //return YES;
 }
 #endif
 
 - (UIInterfaceOrientation)preferredInterfaceOrientationForPresentation
 {
-    return [_contentController preferredInterfaceOrientationForPresentation];
+    return UIInterfaceOrientationLandscapeLeft;
+   //return [_contentController preferredInterfaceOrientationForPresentation];
 }
 
 - (NSUInteger)supportedInterfaceOrientations
 {
-    return [_contentController supportedInterfaceOrientations];
+   return [_contentController supportedInterfaceOrientations];
+   // return  UIInterfaceOrientationMaskAll;
 }
 
 - (void)viewDidLayoutSubviews
@@ -86,42 +100,43 @@ NSString * const BannerViewActionDidFinish = @"BannerViewActionDidFinish";
     // At this point in this method contentFrame=self.view.bounds, so we'll use that size for the layout.
     bannerFrame.size = [_bannerView sizeThatFits:contentFrame.size];
 #endif
-    
+
+    CGRect screen = GetScreenBounds();
+
     // Check if the banner has an ad loaded and ready for display.  Move the banner off
     // screen if it does not have an ad.
     if (_bannerView.bannerLoaded) {
         
-        /*
-        TERRA_AppDelegate* inst = [TERRA_AppDelegate getInstance];
-        if (inst!=NULL)
-        {
-            [inst hideAdMobView];
-        }*/
+        //EngineDelegate* inst = [EngineDelegate getInstance];
+        //if (inst!=NULL){            [inst hideAdMobView];}
 
         NSLog(@"iad status: loaded");
 
-     //   ApplicationSetViewport(bannerFrame.size.height, 0, [[UIScreen mainScreen]bounds].size.width, [[UIScreen mainScreen]bounds].size.height);
-        ApplicationSetViewport(0, 0, [[UIScreen mainScreen]bounds].size.width - bannerFrame.size.height, [[UIScreen mainScreen]bounds].size.height);
-        
-        contentFrame.size.height -= bannerFrame.size.height;
-      //  bannerFrame.origin.y = contentFrame.size.height;
+    //    ApplicationSetViewport(0, bannerFrame.size.height, screen.size.width, screen.size.height);
 
-//        bannerFrame.origin.y = contentFrame.size.height - bannerFrame.size.height;
-        contentFrame.origin.y = bannerFrame.size.height;
+//                ApplicationSetViewport(0, 0, screen.size.width - bannerFrame.size.height, screen.size.height);
+//        ApplicationSetViewport(0, 0, screen.size.width ,screen.size.height);
+
+        
+       contentFrame.size.height -= bannerFrame.size.height;
+//        contentFrame.size.width -= bannerFrame.size.width;
+
+     contentFrame.origin.y = bannerFrame.size.height;
+     //   contentFrame.origin.x = bannerFrame.size.width;
+    
         bannerFrame.origin.y = 0;
+        //bannerFrame.origin.x = 0;
     } else {
 
         NSLog(@"iad status: failed");
         contentFrame.origin.y = 0;
         bannerFrame.origin.y = contentFrame.size.height;
         
-        ApplicationSetViewport(0, 0, [[UIScreen mainScreen]bounds].size.width - 25, [[UIScreen mainScreen]bounds].size.height);
+    //   ApplicationSetViewport(0, 0, screen.size.width - 25,screen.size.height);
         
-/*        TERRA_AppDelegate* inst = [TERRA_AppDelegate getInstance];
-        if (inst!=NULL)
-        {
-            [inst showAdMobView];
-        }*/
+     //   ApplicationSetViewport(0, 0, screen.size.width,screen.size.height);
+        
+//        EngineDelegate* inst = [EngineDelegate getInstance]; if (inst!=NULL){[inst showAdMobView];}
         
     }
 

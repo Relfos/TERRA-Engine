@@ -3,6 +3,8 @@
 #import "GADBannerView.h"
 #include "GADAdSize.h"
 #include "GADRequest.h"
+
+#include "TERRA_Utils.h"
 #include "PascalImports.h"
 
 @interface AdMobViewController () <GADBannerViewDelegate>
@@ -10,7 +12,7 @@
 @end
 
 @implementation AdMobViewController {
-    GADBannerView *adBanner;
+    GADBannerView *_bannerView;
     UIViewController *_contentController;
     BOOL visible;
 }
@@ -26,13 +28,13 @@
     
     if (self != nil)
     {
-        adBanner = [[[GADBannerView alloc]
+        _bannerView = [[[GADBannerView alloc]
                           initWithAdSize:kGADAdSizeSmartBannerLandscape] autorelease];
         
         // Need to set this to no since we're creating this custom view.
-        adBanner.translatesAutoresizingMaskIntoConstraints = NO;
+        _bannerView.translatesAutoresizingMaskIntoConstraints = NO;
         
-        char* _id = ApplicationGetAdMobID();
+        char* _id = ApplicationGetAdMobBannerID();
         if (strlen(_id)<=0)
         {
             NSLog(@"AdMob ID not defined!");
@@ -43,28 +45,35 @@
         
         _contentController = contentController;
         
-        adBanner.adUnitID = myid;
-        adBanner.delegate = self;
+        _bannerView.adUnitID = myid;
+        _bannerView.delegate = self;
     }
     return self;
 }
 
 - (void)loadView
 {
-    UIView *contentView = [[UIView alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+    CGRect screen = GetScreenBounds();
+    UIView *contentView = [[UIView alloc] initWithFrame:screen];
     
-    [contentView addSubview:adBanner];
+    [contentView addSubview:_bannerView];
     
     // Setup containment of the _contentController.
     [self addChildViewController:_contentController];
+    
+    
     [contentView addSubview:_contentController.view];
     [_contentController didMoveToParentViewController:self];
     
     self.view = contentView;
     
+    _contentController.view.frame = screen;
+    
+
     visible = true;
     
-    [adBanner setRootViewController:self];
+    [_bannerView setRootViewController:self];
+    [self startRequest];
 }
 
 
@@ -77,7 +86,8 @@
 
 - (UIInterfaceOrientation)preferredInterfaceOrientationForPresentation
 {
-    return [_contentController preferredInterfaceOrientationForPresentation];
+    return UIInterfaceOrientationLandscapeLeft;
+//    return [_contentController preferredInterfaceOrientationForPresentation];
 }
 
 - (NSUInteger)supportedInterfaceOrientations
@@ -110,7 +120,14 @@
     
     int height = CGSizeFromGADAdSize(kGADAdSizeSmartBannerLandscape).height;
     
-    ApplicationSetViewport(0, 0, [[UIScreen mainScreen]bounds].size.width - height, [[UIScreen mainScreen]bounds].size.height);
+    CGRect contentFrame = self.view.bounds;
+    
+    contentFrame.size.height -= height;
+    contentFrame.origin.y = height;
+  
+    _contentController.view.frame = contentFrame;
+
+   // ApplicationSetViewport(0, 0, [[UIScreen mainScreen]bounds].size.width - height, [[UIScreen mainScreen]bounds].size.height);
     
 }
 
@@ -121,7 +138,7 @@ didFailToReceiveAdWithError:(GADRequestError *)error {
 
 - (void)startRequest {
     NSLog(@"Requesting ad");
-    [adBanner loadRequest:[self createRequest]];
+    [_bannerView loadRequest:[self createRequest]];
 }
 
 - (void)show {
@@ -131,7 +148,7 @@ didFailToReceiveAdWithError:(GADRequestError *)error {
     }
     
     visible = true;
-    [self.view addSubview:adBanner];
+    [self.view addSubview:_bannerView];
 }
 
 - (void)hide {
@@ -142,7 +159,7 @@ didFailToReceiveAdWithError:(GADRequestError *)error {
     }
     
     visible = false;
-    [adBanner removeFromSuperview];
+    [_bannerView removeFromSuperview];
 }
 
 

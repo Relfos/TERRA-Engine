@@ -44,11 +44,22 @@ Const
 	osUnknown = 0;
 	osWindows = 1;
 	osLinux   = 2;
-	osMacOS   = 4;
+	osOSX     = 4;
   osiOS     = 8;
   osAndroid = 16;
   osOuya    = 32;
   osWindowsPhone     = 64;
+  osWii         = 128;
+  osNintendoDS  = 256;
+  osPSVita      = 512;
+  osHTML5       = 1024;
+  osFlash       = 2048;
+
+  osDesktop = osWindows Or osLinux or osOSX;
+  osMobile = osAndroid Or osiOS Or osWindowsPhone;
+  osConsole = osOUYA Or osWii Or osPSVita Or osNintendoDS;
+  osWeb = osHTML5 Or osFlash;
+  osEverything = $FFFFFFFF;
 
 	MaxTimers = 16;
 
@@ -1105,7 +1116,7 @@ Begin
   Case OS Of
   osWindows:Result := 'Windows';
   osLinux:  Result := 'Linux';
-  osMacOS:  Result := 'MacOS';
+  osOSX:  Result := 'OSX';
   osWindowsPhone:    Result := 'WP8';
   osiOS:    Result := 'iOS';
   osAndroid:Result := 'Android';
@@ -1151,6 +1162,7 @@ End;
 
 Procedure ApplicationStart(Client:AppClient);
 Begin
+  _FatalError := False;
   LoggingDisabled := Not Client.GetLogging();
 
   Log(logDebug,'App', 'Loading application settings.');

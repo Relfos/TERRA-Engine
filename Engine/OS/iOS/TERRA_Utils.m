@@ -33,7 +33,18 @@ bool isSocialFrameworkAvailable()
     return available;
 }
 
-BOOL isiPad() 
+CGRect GetScreenBounds() {
+   CGRect bounds = [UIScreen mainScreen].bounds;
+//    return bounds;
+
+    if (([[[UIDevice currentDevice] systemVersion] floatValue] >= 8.0) && UIInterfaceOrientationIsLandscape([UIApplication sharedApplication].statusBarOrientation))
+    {
+        bounds.size = CGSizeMake(bounds.size.height, bounds.size.width);
+    }
+    return bounds;
+}
+
+BOOL isiPad()
 {
     return (IS_IPAD() == YES);
 }
@@ -132,6 +143,26 @@ int fileExists(char *name)
 		return 0;
 	}
 
+}
+
+int getCurrentOrientation() {
+    //Obtaining the current device orientation
+    UIDeviceOrientation orientation;
+    orientation = [[UIDevice currentDevice] orientation];
+    
+    NSLog(@"Detected orientation %i", orientation);
+    int result;
+    switch (orientation)
+    {
+        case UIDeviceOrientationPortrait:	result = 0; break;
+        case UIDeviceOrientationLandscapeLeft:	result = 1; break;
+        case UIDeviceOrientationLandscapeRight:	result = 2; break;
+        case UIDeviceOrientationPortraitUpsideDown:	result = 3; break;
+        default: result = -1; break;
+    }
+    
+    NSLog(@"Returning %i", result);
+    return result;
 }
 
 NSUserDefaults *prefs = NULL;

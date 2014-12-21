@@ -155,7 +155,7 @@ Function LongMax(Const A,B:Cardinal):Cardinal;
 Function LongMin(Const A,B:Cardinal):Cardinal;
 
 Function GetNextLine(Var S:AnsiString):AnsiString;
-Function GetNextWord(Var S:AnsiString; Separator:AnsiChar=' '):AnsiString;
+Function GetNextWord(Var S:AnsiString; Separator:AnsiString=' '):AnsiString;
 Function GetNextArg(Var S:AnsiString):AnsiString;
 Function GetNextToken(Var S:AnsiString; Separator:AnsiChar=','; Op:AnsiChar='(';Ed:AnsiChar=')'):AnsiString;
 Function FindCloseBracket(Const S:AnsiString; Op:AnsiChar='(';Ed:AnsiChar=')'):Integer;
@@ -232,6 +232,8 @@ Procedure DebugBreak(Condition:Boolean = True);
 
 Procedure RemoveSpecialHTMLChars(Var S:AnsiString);
 
+Procedure RemoveHint(X:Integer);
+
 Type
   TERRAObject = Class
     Public
@@ -294,7 +296,7 @@ End;
 
 Function ArcTan(S:Single):Single;
 Begin
-    Result := System.Math.Atan(S); 
+    Result := System.Math.Atan(S);
 End;
 
 Function Sqrt(S:Single):Single;
@@ -378,7 +380,7 @@ Begin
   S := '';
 End;
 
-Function GetNextWord(Var S:AnsiString; Separator:AnsiChar=' '):AnsiString;
+Function GetNextWord(Var S:AnsiString; Separator:AnsiString=' '):AnsiString;
 Var
   I:Integer;
 Begin
@@ -389,7 +391,7 @@ Begin
     Exit;
   End;
 
-  I := Pos(Separator,S);
+  I := Pos(Separator, S);
   If I<1 Then
   Begin
     Result := S;
@@ -1357,6 +1359,10 @@ Begin
   ReplaceText('&quot;', '"', S);
   ReplaceText('&lt;', '<', S);
   ReplaceText('&gt;', '>', S);
+End;
+
+Procedure RemoveHint(X:Integer);
+Begin
 End;
 
 { ProgressNotifier }

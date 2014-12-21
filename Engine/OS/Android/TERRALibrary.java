@@ -121,7 +121,10 @@ public class TERRALibrary {
        
 	
 	public static native String ApplicationFlurryGetID();
-	public static native String ApplicationInterstitialGetID();
+    public static native String ApplicationAdBuddizGetID();
+    public static native String ApplicationVungleGetID();
+    
+	public static native String ApplicationAdMobInterstitialGetID();
 	public static native String ApplicationIAPGetID();
 	public static native String ApplicationIAPGetServiceID();
 	public static native String ApplicationIAPGetServiceSecret();

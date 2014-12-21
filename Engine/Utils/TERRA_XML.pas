@@ -140,7 +140,7 @@ Function XMLConvertToBinary(SourceFile, DestFile, ConstantFile:AnsiString):Boole
 Function XMLLoadBinary(SourceFile:AnsiString):XMLDocument;
 
 Implementation
-Uses TERRA_Error, TERRA_Classes, TERRA_FileManager, TERRA_FileIO, TERRA_Log, TERRA_Unicode;
+Uses TERRA_Error, TERRA_Collections, TERRA_FileManager, TERRA_FileIO, TERRA_Log, TERRA_Unicode;
 
 // LXMLNode
 
@@ -248,6 +248,10 @@ Begin
     Case GetTagType(S) Of
       xmlBeginTag:  Begin
                       Node := XMLNode.Create(_Document, Source, S);
+
+                      If (S='<i>') Then
+                        IntTOString(2);
+
                       AddNode(Node);
                     End;
 
@@ -351,7 +355,7 @@ Var
 Begin
   If (_Document._TempBuffer<>'') Then
   Begin
-    I := ucs2_Pos('</', _Document._TempBuffer);
+    I := ucs2_Pos('<', _Document._TempBuffer);
     J := ucs2_Pos('>', _Document._TempBuffer);
 
     If (I=1) Then
@@ -1100,13 +1104,29 @@ End;
 
 Procedure XMLConvertNode(Node:XMLNode; Constants:List);
 Var
-  I, N:Integer;
+  I, J, N, Len:Integer;
   P:KeyPairObject;
-  ConstName:AnsiString;
+  S, ConstName:AnsiString;
+
+Function IsValidChar(Const C:Char):Boolean;
 Begin
-  If (Pos('@',Node.Value)=1) Then
+  Result := ((C>='0') And (C<='9')) Or ((C>='A') And (C<='Z')) Or ((C>='a') And (C<='z')) Or (C='_');
+End;
+Begin
+  J := ucs2_Pos('@', Node.Value);
+  While (J>0) Do
   Begin
-    ConstName := Copy(Node.Value, 2, MaxInt);
+    N := 1;
+    Len := ucs2_Length(Node.Value);
+    For I:=Succ(J) To Len Do
+    If (IsValidChar(ucs2_ascii(Node.Value, I))) Then
+      Inc(N)
+    Else
+      Break;
+
+    S := ucs2_Copy(Node.Value, J, N);
+
+    ConstName := Copy(S, 2, MaxInt);
     P := KeyPairObject(Constants.FindByKey(ConstName));
     If P = Nil Then
     Begin
@@ -1114,7 +1134,9 @@ Begin
       Exit;
     End;
 
-    Node.Value := P.Value;
+    ucs2_ReplaceText(S, P.Value, Node._Value);
+
+    J := ucs2_Pos('@', Node.Value);
   End;
 
   For I:=0 To Pred(Node.ChildCount) Do

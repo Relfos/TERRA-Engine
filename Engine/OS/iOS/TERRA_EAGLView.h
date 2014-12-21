@@ -25,6 +25,7 @@ Note that setting the view non-opaque will only work if the EAGL surface has an 
     GLint backingWidth;
     GLint backingHeight;
     
+    
     EAGLContext *context;
     
     /* OpenGL names for the renderbuffer and framebuffers used to render to this view */
@@ -39,7 +40,6 @@ Note that setting the view non-opaque will only work if the EAGL surface has an 
     GLuint msaaRenderBuffer;
 	GLuint msaaDepthBuffer;
 	
-	UIDeviceOrientation currentOrientation;
     
 	bool hasMsaa;
 	bool hasStencil;
@@ -54,16 +54,9 @@ Note that setting the view non-opaque will only work if the EAGL surface has an 
     
 }
 
-@property NSTimeInterval animationInterval;
-@property float screenscale;
-@property GLint backingWidth;
-@property GLint backingHeight;
-@property bool started;
-
 - (void)startAnimation;
 - (void)stopAnimation;
 - (void)drawView;
-- (void)beginDraw;
-- (void)endDraw;
--(void)initAccel;
+- (void)setAnimationInterval:(float)interval;
+
 @end

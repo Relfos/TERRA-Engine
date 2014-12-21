@@ -76,6 +76,8 @@ import java.io.File;
 import java.util.Hashtable;
 
 import com.chartboost.sdk.*;
+import com.chartboost.sdk.Model.CBError.CBImpressionError;
+
 
 import com.google.android.gms.ads.*;
 /*import com.google.android.gms.common.ConnectionResult;
@@ -88,11 +90,17 @@ import com.purplebrain.adbuddiz.sdk.AdBuddiz;
 import com.purplebrain.adbuddiz.sdk.AdBuddizDelegate;
 import com.purplebrain.adbuddiz.sdk.AdBuddizError;
 
+/*
+import com.vungle.publisher.VunglePub;
+import com.vungle.publisher.EventListener;
+import com.vungle.publisher.AdConfig;*/
+
 import com.terra.minimon3d.R;
 
 public class TERRAActivity extends PaymentActivity 
 implements /*AdListener,*/ PurchaseProcessor.IBillingHandler, SensorEventListener, 
 TapjoyNotifier, TJEventCallback,
+AdBuddizDelegate,
 android.content.DialogInterface.OnClickListener
 //, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener
 {
@@ -109,11 +117,23 @@ android.content.DialogInterface.OnClickListener
     
 	public static String developerEmail = null;
 	public static String interstitialID = null;	
-		
+    
+    public static boolean adbuddizEnabled = false;
+    private boolean showedAdBuddiz = false;
+
+    private boolean usingChartboost = false;    
+    private boolean showedCharboost = false;
+    
+	public InterstitialAd interstitial = null;
+    private boolean showedAdMob = false;
+
+    /*public static boolean vungleEnabled = false;
+    private boolean showedVungle = false;
+    private VunglePub vunglePub = null;*/
+
 	public PurchaseProcessor billmaster;
 	public String purchaseID;
  	
-	public InterstitialAd interstitial = null;
  
 	
 	private int currentDialog = 0;
@@ -126,9 +146,8 @@ android.content.DialogInterface.OnClickListener
 	
 	private boolean usingAccelerometer = false;
 	private boolean usingGyroscope = false;
-	private boolean usingCompass = false;
+	private boolean usingCompass = false;   
     
-    private boolean usingChartboost = false;
 
 	private SensorManager mSensorManager; 
 	private Sensor mAccelerometer; 
@@ -148,7 +167,7 @@ android.content.DialogInterface.OnClickListener
 	//private TERRACloudBackup backup = null;
 	
     private String EULA_PREFIX = "eula_";
-    
+        
 	class MainView extends RelativeLayout
 	{
 	
@@ -331,8 +350,6 @@ android.content.DialogInterface.OnClickListener
 		hasAccel = (mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null);
 		hasGyro = (mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null);
 		hasCompass = (mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION) != null);
-				
-		AdBuddiz.cacheAds(this);		
 				
 		String permission = "com.terra.minimon3d.PAYMENT_BROADCAST_PERMISSION";
 		mp.MpUtils.enablePaymentBroadcast(this, permission);						
@@ -560,20 +577,8 @@ android.content.DialogInterface.OnClickListener
 	
     private ChartboostDelegate chartboostDelegate;
     
-	public void initInterstitials()
-	{
-		Log.d("TERRA", "Getting Interstials key...");		
-		interstitialID = TERRALibrary.ApplicationInterstitialGetID();		
-		if (interstitialID != null)
-        {
-            Log.d("TERRA", "Initialized adMob interstitial ads");				
-        } 
-        else
-		{
-			Log.d("TERRA", "Failed initializing adMob interstitial ads...");					
-		}
-		
-        
+    public void initChartboost() 
+    {
         String chartboostID = TERRALibrary.ApplicationChartboostGetKey();		
         String chartboostSecret = TERRALibrary.ApplicationChartboostGetSecret();		
         usingChartboost = false;
@@ -590,6 +595,11 @@ android.content.DialogInterface.OnClickListener
                         TERRAActivity.instance.glView.purchaseCode = 0;		
                         TERRAActivity.instance.glView.purchaseCredits = reward;
                     }
+                    
+                    @Override  
+                    public void didFailToLoadInterstitial(String location, CBImpressionError error) {
+                        TERRAActivity.instance.showRandomAd();
+                    }                    
             
                 };            
                 
@@ -604,6 +614,119 @@ android.content.DialogInterface.OnClickListener
                 e.printStackTrace();
             }
         }
+    }
+    
+    public void initAdMobInterstitial() {
+		Log.d("TERRA", "Getting AdMobInterstials key...");		
+		interstitialID = TERRALibrary.ApplicationAdMobInterstitialGetID();		
+		if (interstitialID != null)
+        {
+            Log.d("TERRA", "Initialized adMob interstitial ads");				
+        } 
+        else
+		{
+			Log.d("TERRA", "Failed initializing adMob interstitial ads...");					
+		}
+    }
+    
+    public void initAdBuddiz() {
+		String adbuddizID = TERRALibrary.ApplicationAdBuddizGetID();		
+        adbuddizEnabled = false;
+		if (adbuddizID != null) {
+            try {
+                AdBuddiz.setPublisherKey(adbuddizID);      
+                AdBuddiz.setDelegate(this);
+                AdBuddiz.cacheAds(this);		
+                adbuddizEnabled = true;
+                Log.d("TERRA", "Initialized adBuddiz interstitial ads");				
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            
+        } 
+        
+        if (!adbuddizEnabled) {
+			Log.d("TERRA", "Failed initializing adBuddiz interstitial ads...");					            
+		}
+    }
+    
+    @Override
+    public void didFailToShowAd(AdBuddizError error) { // no Ad was displayed 
+        showRandomAd();
+    }
+ 
+    @Override
+    public void didCacheAd() {   // an Ad was cached
+    } 
+    
+    @Override
+    public void didShowAd() {  // an Ad was displayed
+    }  
+    
+    @Override
+    public void didClick() { // the Ad was clicked
+    }
+    
+    @Override
+    public void didHideAd() {
+    }   
+    
+    /*private final EventListener vungleListener = new EventListener() {
+        @Override
+        public void onVideoView(boolean isCompletedView, int watchedMillis, int videoDurationMillis) {
+        // Called each time a video completes. isCompletedView is true if >= 80% of the video was watched.
+        }
+        
+        @Override
+        public void onAdStart() {
+        // Called before playing an ad.
+        }
+        
+        @Override
+        public void onAdUnavailable(String reason) {
+            TERRAActivity.instance.showRandomAd();
+        }
+        
+        @Override
+        public void onAdEnd(boolean wasCallToActionClicked) {
+        // Called when the user leaves the ad and control is returned to your application.
+        }
+        
+        @Override
+        public void onCachedAdAvailable() {
+        // Called when ad playability changes.
+        }
+    };    
+    
+    public void initVungle() {
+        vunglePub = VunglePub.getInstance();
+        
+		String vungleID = TERRALibrary.ApplicationVungleGetID();		
+        vungleEnabled = false;
+		if (vungleID != null) {
+            try {
+                vunglePub.init(this, vungleID);
+                vunglePub.setEventListener(vungleListener);            
+                
+                vungleEnabled = true;
+                Log.d("TERRA", "Initialized vungle interstitial ads");				                
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            
+        } 
+        
+        if (!vungleEnabled) {
+			Log.d("TERRA", "Failed initializing vungle interstitial ads...");					            
+		}
+    }*/
+    
+    
+	public void initInterstitials() {   
+        initAdMobInterstitial();
+        initAdBuddiz();
+		initChartboost();
+        //initVungle();        
 	}
 	
     public static boolean isBillingAvailable(Context context) {
@@ -937,9 +1060,9 @@ android.content.DialogInterface.OnClickListener
     
     public boolean showAdmobInterstitial() 
     {
-		if (interstitialID==null)
+		if (interstitialID==null || showedAdMob)
 		{
-			Log.d("App", "Interstial ads not correctly setup!");		
+			//Log.d("App", "Interstial ads not correctly setup!");		
 			return false;
 		}
 
@@ -949,7 +1072,16 @@ android.content.DialogInterface.OnClickListener
 			interstitial = new InterstitialAd(this);
 			interstitial.setAdUnitId(interstitialID);
 		
-			interstitial.setAdListener(new AdListener(){ public void onAdLoaded(){ interstitial.show(); } });										
+			interstitial.setAdListener(new AdListener(){ 
+                public void onAdLoaded() { 
+                    interstitial.show(); 
+                } 
+                
+                public void onAdFailedToLoad(int errorCode) {
+                    showRandomAd();
+                }
+                
+                });
 		}
 		
 		Log.d("App", "Sending interstial ad request...");		
@@ -964,12 +1096,13 @@ android.content.DialogInterface.OnClickListener
 			interstitial.show();
 		}*/
         
+        showedAdMob = true;
         return true;
     }
 
     public boolean showChartboostInterstitial() 
     {      
-        if (!usingChartboost)  {
+        if (!usingChartboost || showedCharboost)  {
             return false;
         }        
 
@@ -979,6 +1112,7 @@ android.content.DialogInterface.OnClickListener
         Log.d("TERRA", "Showing chartboost ads");				
         Chartboost.showInterstitial(CBLocation.LOCATION_DEFAULT);                
         
+        showedCharboost = true;
         return true;
     }
         
@@ -997,45 +1131,78 @@ android.content.DialogInterface.OnClickListener
         return true;
     }
     
-    public boolean showAdBuddizInterstitial() 
-    {
+    public boolean showAdBuddizInterstitial()  {
+        if (!adbuddizEnabled || showedAdBuddiz) {
+            return false;
+        }
+        
         AdBuddiz.showAd(TERRAActivity.instance);
+        showedAdBuddiz = true;
         return true;
     }
     
-    public static void showRandomAd(int tryCount)
+    /*public boolean showVungleInterstitial()  {
+        if (!vungleEnabled || showedVungle) {
+            return false;
+        }
+        
+        AdConfig overrideConfig = new AdConfig();
+        //overrideConfig.setIncentivized(true);
+        overrideConfig.setSoundEnabled(true);        
+
+        vunglePub.playAd(overrideConfig);
+        
+        showedVungle = true;
+        return true;
+    }*/
+    
+    
+    private static int adTryCount = 0;
+    
+    public static void showRandomAd()
     {
+        boolean firstTurn = (adTryCount<=0);
+        
+        adTryCount++;
         //instance.showChartboostInterstitial();
     
-        int randomNum = (int)(Math.random()*5); 
+        int randomNum = (int)(Math.random()*8); 
         
         /*if (randomNum==2 && instance.usingChartboost) {
             instance.showChartboostInterstitialWithReward();
         }
         else*/
         
-        randomNum = 3;
+        //randomNum = 4;
         
         boolean result = false;
         
         switch (randomNum) {
+        case 0: result = instance.showChartboostInterstitial(); break;
         case 1: result = instance.showChartboostInterstitial(); break;
-        case 2: result = instance.showChartboostInterstitial(); break;
-        case 3: result = instance.showAdBuddizInterstitial(); break;
+        case 2:
+        case 3: if (!firstTurn) result = instance.showAdBuddizInterstitial(); break;
+        //case 4: if (!firstTurn) result = instance.showVungleInterstitial(); break;
                
         default:    
             result = instance.showAdmobInterstitial(); break;
         }
         
-        if (!result && tryCount<20) {
-            showRandomAd(tryCount+1);
+        if (!result && adTryCount<20) {
+            showRandomAd();
         }
 
     }
 
 	public static void showFullscreenAds()
 	{	
-        showRandomAd(0);
+        adTryCount = 0;
+        instance.showedCharboost = false;
+        instance.showedAdBuddiz = false;
+        //instance.showedVungle = false;
+        instance.showedAdMob = false;
+        
+        showRandomAd();
     }
     
     private Hashtable<String,Object> connectFlags = new Hashtable<String,Object>();

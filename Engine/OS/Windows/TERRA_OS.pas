@@ -163,6 +163,7 @@ Type
 
       Function AddGamePad(DeviceID:Integer; XInput:Boolean):Boolean;
 
+      Function InitSettings:Boolean; Override;
       Function InitWindow:Boolean; Override;
       Function InitGraphics:Boolean; Override;
       Procedure CloseGraphics; Override;
@@ -282,6 +283,7 @@ Function CreateApplicationClass(Client:AppClient):Application;
 Begin
   Result := WindowsApplication.Create(Client);
 End;
+
 
 //WM_WINDOWPOSCHANGING
 Function WndProc(hWnd:HWND;Msg:UINT;wParam:wPARAM;lParam:LPARAM):LRESULT; Stdcall;
@@ -546,12 +548,8 @@ Var
   dwExStyle:Cardinal;          // Extended window styles
   Inst:HINST;             // Current instance
   X,Y,BW,BH:Integer;
-  Size:Cardinal;
-  Buf:Array[0..1023] Of AnsiChar;
   joyInfo:GamepadInfoEx;      // extended information
   dwResult:Cardinal;
-  SystemInfo:TSystemInfo;
-  Mask, ProcessAffinityMask, SystemAffinityMask:PtrUInt;
 Begin
   Result := False;
 
@@ -564,26 +562,6 @@ Begin
   {$ENDIF}
 
 //  FatalErrorHandler := WindowsErrorCallback;
-
-  If (_TempPath = '') Then
-  Begin
-    GetTempPathA(1024, @(Buf[0]));
-    _TempPath := Buf;
-    SetLength(_TempPath, Pred(Length(_TempPath)));
-  End;
-
-  If (_FontPath = '') Then
-  Begin
-    GetWindowsDirectoryA(@(Buf[0]), 1024);
-    _FontPath := Buf;
-    _FontPath := _FontPath + PathSeparator + 'Fonts';
-  End;
-
-  If (_CurrentUser = '') Then
-  Begin
-    GetUserNameA(@(Buf[0]), Size);
-    _CurrentUser := Buf;
-  End;
 
   Inst := GetModuleHandle(Nil);        // Grab an instance for our window
 
@@ -676,42 +654,9 @@ Begin
       //joyGetDevCaps(0, @_JoyCaps, SizeOf(_JoyCaps));
   End;
 
-  // Detect system language
-  Size := GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SABBREVLANGNAME, Nil, 0);
-  SetLength(_Language, Succ(Size));
-  GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SABBREVLANGNAME, @(_Language[1]), Size);
-  SetLength(_Language, 2);
-  _Language := UpStr(_Language);
-
-  Size := GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SISO3166CTRYNAME, Nil, 0);
-  SetLength(_Country, Succ(Size));
-  GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SISO3166CTRYNAME, PChar(_Country), Size);
-  SetLength(_Country, 2);
-  _Country := UpStr(_Country);
-
   //_Width := 600;
   //_Height := 1136;
   //SetWindowPos(_Handle, Cardinal(00), Cardinal(00), 0, _Width, _Height, $400);
-
-  GetSystemInfo(SystemInfo);
-
-  Log(logDebug, 'App', 'Getting cpu cores');
-  _CPUCores := 0;
-  If GetProcessAffinityMask(GetCurrentProcess(), ProcessAffinityMask, SystemAffinityMask) Then
-  Begin
-    For I:=0 To 31 Do
-    Begin
-      Mask := DWord(1) shl i;
-      If (ProcessAffinityMask and Mask)<>0 then
-        Inc(_CPUCores);
-    End;
-  End;
-
-  If (_CPUCores<=0) Then
-    _CPUCores := SystemInfo.dwNumberOfProcessors;
-  Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
-
-  Self.SetProcessorAffinity();
 
   _CanReceiveEvents := False;
   _Ready := True;
@@ -1215,11 +1160,11 @@ Begin
   If Not Result Then
     Exit;
 
-  If ((IsLandscapeOrientation(Self.Orientation)) <> Temp) Then
+  {If ((IsLandscapeOrientation(Self.Orientation)) <> Temp) Then
   Begin
     GetWindowRect(_Handle, Rect);
     SetWindowPos(_Handle, 0, Rect.Left, Rect.Top, _Height, _Width, $400);
-  End;
+  End;}
 End;
 
 Procedure WindowsApplication.DisableAds;
@@ -1382,6 +1327,72 @@ Begin
   Result := ReadDirectoryChangesW(_State.DirHandle, @_State.Buffer[0], Sizeof(_State.Buffer), False, $FFFFFFFF{_State.NotifyFilter}, 0, @_State.Overlapped, @WatchCallback);
 End;
 {$ENDIF}
+
+Function WindowsApplication.InitSettings: Boolean;
+Var
+  I:Integer;
+  Size:Cardinal;
+  Buf:Array[0..1023] Of AnsiChar;
+  SystemInfo:TSystemInfo;
+  Mask, ProcessAffinityMask, SystemAffinityMask:PtrUInt;
+Begin
+  Inherited InitSettings;
+
+  If (_TempPath = '') Then
+  Begin
+    GetTempPathA(1024, @(Buf[0]));
+    _TempPath := Buf;
+    SetLength(_TempPath, Pred(Length(_TempPath)));
+  End;
+
+  If (_FontPath = '') Then
+  Begin
+    GetWindowsDirectoryA(@(Buf[0]), 1024);
+    _FontPath := Buf;
+    _FontPath := _FontPath + PathSeparator + 'Fonts';
+  End;
+
+  If (_CurrentUser = '') Then
+  Begin
+    GetUserNameA(@(Buf[0]), Size);
+    _CurrentUser := Buf;
+  End;
+
+  // Detect system language
+  Size := GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SABBREVLANGNAME, Nil, 0);
+  SetLength(_Language, Succ(Size));
+  GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SABBREVLANGNAME, @(_Language[1]), Size);
+  SetLength(_Language, 2);
+  _Language := UpStr(_Language);
+
+  Size := GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SISO3166CTRYNAME, Nil, 0);
+  SetLength(_Country, Succ(Size));
+  GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SISO3166CTRYNAME, PChar(_Country), Size);
+  SetLength(_Country, 2);
+  _Country := UpStr(_Country);
+
+  GetSystemInfo(SystemInfo);
+
+  Log(logDebug, 'App', 'Getting cpu cores');
+  _CPUCores := 0;
+  If GetProcessAffinityMask(GetCurrentProcess(), ProcessAffinityMask, SystemAffinityMask) Then
+  Begin
+    For I:=0 To 31 Do
+    Begin
+      Mask := DWord(1) shl i;
+      If (ProcessAffinityMask and Mask)<>0 then
+        Inc(_CPUCores);
+    End;
+  End;
+
+  If (_CPUCores<=0) Then
+    _CPUCores := SystemInfo.dwNumberOfProcessors;
+  Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
+
+  Self.SetProcessorAffinity();
+
+  Result := True;
+End;
 
 Initialization
   LoadMultimedia();

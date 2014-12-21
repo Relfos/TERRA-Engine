@@ -4,7 +4,7 @@ Unit TERRA_OS;
 {$I terra.inc}
 
 Interface
-Uses sysutils, TERRA_Utils, TERRA_Application, unix, baseunix, dateutils, GLX,X,Xlib,Xutil,Keysym;
+Uses sysutils, TERRA_Utils, TERRA_Application, TERRA_Client, unix, baseunix, dateutils, GLX,X,Xlib,Xutil,Keysym;
 
 Const
 	PathSeparator = '/';
@@ -75,7 +75,7 @@ Procedure DisplayMessage(S:AnsiString);
 Function GetCurrentTime:TERRATime;
 Function GetCurrentDate:TERRADate;
 Function GetTime:Cardinal;
-Function CreateApplicationClass:Application;
+Function CreateApplicationClass(Client:AppClient):Application;
 
 Type
   LinuxApplication = Class(Application)
@@ -86,6 +86,8 @@ Type
 			_Attr:TXSetWindowAttributes;
 			_Ctx:GLXContext;
 
+      Function InitSettings:Boolean; Override;
+
       Function InitWindow:Boolean; Override;
       Function InitGraphics:Boolean; Override;
       Procedure CloseGraphics; Override;
@@ -94,14 +96,13 @@ Type
 
       Function TrySettings(zDepth:Integer; msaaSamples:Integer):PXVisualInfo;
 
-	Procedure ToggleFullscreen; Override;
-	Procedure SwapBuffers; Override;
-	Procedure SetState(State:Cardinal); Override;
-
+    Public
+    	Procedure SwapBuffers; Override;
+    	Procedure SetState(State:Cardinal); Override;
   End;
 
 Implementation
-Uses ctypes, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
+Uses ctypes, TERRA_Error, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
 
 Procedure DisplayMessage(S:AnsiString);
 Begin
@@ -153,9 +154,9 @@ begin
 //   Result := Trunc(Now * 24 * 60 * 60 * 1000);
 End;
 
-Function CreateApplicationClass:Application;
+Function CreateApplicationClass(Client:AppClient):Application;
 Begin
-  Result := LinuxApplication.Create();
+  Result := LinuxApplication.Create(Client);
 End;
 
 Const
@@ -200,14 +201,13 @@ Var
   Cursor:TCursor;
   CursorMask:TPixmap;
   DummyColor:TXColor;
-
-  Lang:AnsiString;
 Begin
-  _Display:=XOpenDisplay(0);
+  Result := False;
+
+  _Display := XOpenDisplay(Nil);
   If (Not Assigned(_Display)) Then
   Begin
     RaiseError('CreateWindow: Cannot connect to X server.');
-    Result:=False;
     Exit;
   End;
 
@@ -222,17 +222,16 @@ Begin
   If (Not Assigned(VI)) Then
   Begin
     RaiseError('CreateWindow: glXChooseVisual failed.');
-    Result:=False;
     Exit;
   End;
 
   // create a GLX context
-  _Ctx:=glXCreateContext(_Display, Vi, 0, True);
+  _Ctx := glXCreateContext(_Display, Vi, Nil, True);
 
-  Root:=RootWindow(_Display, Vi.Screen);
+  Root := RootWindow(_Display, Vi.Screen);
 
   // create a color map
-  CMap:=XCreateColormap(_Display, Root, Vi.visual, AllocNone);
+  CMap := XCreateColormap(_Display, Root, Vi.visual, AllocNone);
   _Attr.Colormap:=CMap;
   _Attr.border_pixel:=0;
 
@@ -242,7 +241,7 @@ Begin
   _Attr.Event_mask := _Attr.Event_mask Or ButtonPressMask Or ButtonReleaseMask;
   _Attr.Event_mask := _Attr.Event_mask Or ExposureMask;
 
-  _Window:= XCreateWindow(_Display, Root, 0, 0, _Width, _Height,
+  _Window := XCreateWindow(_Display, Root, 0, 0, _Width, _Height,
                          0, CopyFromParent, InputOutput, Vi.visual,
                          CWBorderPixel Or CWColormap Or CWEventMask,
                          @_Attr);
@@ -266,29 +265,6 @@ Begin
     XFreePixmap(_Display, Cursormask);
     XDefineCursor(_Display, _Window, Cursor);
   End;
-
-  Log(logDebug,'App', 'Getting user locale...');
-  lang := GetEnvironmentVariable('LANG');
-  _Language := GetNextWord(Lang, '_');
-  _Country := GetNextWord(Lang, '.');
-
-  If (_Country='') Then
-    _Country := _Language;
-
-  SetLength(_Language, 2);
-  SetLength(_Country, 2);
-
-  _Language := UpStr(_Language);
-  _Country := UpStr(_Country);
-
-  Log(logDebug, 'App', 'Country: '+_Country);
-  Log(logDebug, 'App', 'Language: '+_Language);
-
-
-
-  Log(logDebug,'App', 'Getting cpu core count...');
-  _CPUCores := sysconf(_SC_NPROCESSORS_ONLN);
-  Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
 
   _Ready := True;
   Result:=True;
@@ -327,10 +303,6 @@ End;
 Procedure LinuxApplication.CloseWindow;
 Begin
   XDestroyWindow(_Display, _Window);
-End;
-
-Procedure LinuxApplication.ToggleFullscreen;
-Begin
 End;
 
 Procedure LinuxApplication.SwapBuffers;
@@ -390,6 +362,38 @@ Begin
                       End;
       End;
     End;
+End;
+
+Function LinuxApplication.InitSettings: Boolean;
+Var
+  Lang:AnsiString;
+Begin
+  Inherited InitSettings;
+  
+  Log(logDebug,'App', 'Getting user locale...');
+  lang := GetEnvironmentVariable('LANG');
+  _Language := GetNextWord(Lang, '_');
+  _Country := GetNextWord(Lang, '.');
+
+  If (_Country='') Then
+    _Country := _Language;
+
+  SetLength(_Language, 2);
+  SetLength(_Country, 2);
+
+  _Language := UpStr(_Language);
+  _Country := UpStr(_Country);
+
+  Log(logDebug, 'App', 'Country: '+_Country);
+  Log(logDebug, 'App', 'Language: '+_Language);
+
+
+
+  Log(logDebug,'App', 'Getting cpu core count...');
+  _CPUCores := sysconf(_SC_NPROCESSORS_ONLN);
+  Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
+
+  Result := True;
 End;
 
 End.

@@ -1,12 +1,35 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_UI
+ * Implements the UI class
+ ***********************************************************************************************************************
+}
 Unit TERRA_UI;
 {$I terra.inc}
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Shader,
-  TERRA_Font, TERRA_Classes, TERRA_Image, TERRA_Utils, TERRA_Canvas, TERRA_Application,
-  TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix2D, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween,
-  TERRA_SpriteManager, TERRA_Quaternion, TERRA_UITransition, TERRA_UIBG;
+  TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
+  TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween,
+  TERRA_SpriteManager, TERRA_Vector4D, TERRA_UITransition;
 
 Const
   // widget tween
@@ -43,20 +66,20 @@ Const
   widgetAnimatePosX_Bottom = 64;
   widgetAnimatePosY_Bottom = 128;
 
-  CanvasWidth = 1024;
-  CanvasHeight = 512;
+  TextureAtlasWidth = 1024;
+  TextureAtlasHeight = 512;
 
 Type
   UI = Class;
 
   UISkinLayout = Class(TERRAObject)
     Protected
-      _Target:CanvasItem;
+      _Target:TextureAtlasItem;
     Public
       X:Array[0..2] Of Single;
       Y:Array[0..2] Of Single;
 
-      Constructor Create(Source:CanvasItem);
+      Constructor Create(Source:TextureAtlasItem);
       Destructor Destroy; Override;
 
       Function GCSX(I:Integer): Single;
@@ -70,7 +93,7 @@ Type
     Protected
       _UI:UI;
       _Name:AnsiString;
-      _Item:CanvasItem;
+      _Item:TextureAtlasItem;
       _OfsX:Integer;
       _OfsY:Integer;
 
@@ -100,7 +123,7 @@ Type
 			_Position:Vector2D;
       _Layer:Single;
       _Picked:Boolean;
-      _ComponentList:Array Of CanvasItem;
+      _ComponentList:Array Of TextureAtlasItem;
       _ComponentCount:Integer;
       _TweenList:Array Of Tween;
       _TweenCount:Integer;
@@ -119,7 +142,7 @@ Type
       _ChildrenList:Array Of Widget;
       _ChildrenCount:Integer;
 
-      _Transform:Matrix2D;
+      _Transform:Matrix3x3;
       _TransformChanged:Boolean;
       _Corners:Array[0..3] Of Vector2D;
 
@@ -154,7 +177,7 @@ Type
       _Scroll:Widget;
       _ScrollValue:Single;
 
-      _VisibleFrame:Integer;
+      _VisibleFrame:Cardinal;
 
       Procedure CopyValue(Other:ListObject); Override;
       Function Sort(Other:ListObject):Integer; Override;
@@ -233,7 +256,7 @@ Type
 
       Procedure SetPositionRelative(Other:Widget; OfsX, OfsY:Single);
 
-      Procedure GetScrollOffset(Var OfsX, OfsY:Single);
+      Procedure GetScrollOffset(Out OfsX, OfsY:Single);
 
       Function AddTween(TweenType:Integer; TargetValue:Single; Time:Integer; Delay:Integer=0):Tween;
       Function HasTweens:Boolean;
@@ -257,7 +280,7 @@ Type
       Procedure SetName(Const Value:AnsiString);
 
       Procedure DrawComponent(Index:Integer; Const Offset:Vector3D; X1,Y1,X2,Y2:Single; Color:Color; ScaleColor:Boolean=True);
-      Procedure DrawWindow(Index:Integer; Const Offset:Vector3D; Width, Height:Integer; Layout:UISkinLayout; Color:Color; ScaleColor:Boolean=True);
+      Procedure DrawWindow(Index:Integer; Const Offset:Vector3D; Width, Height:Integer; Layout:UISkinLayout; Color:Color);
       Procedure DrawText(Const Text:AnsiString; Const Offset:Vector3D; C:Color; Scale:Single; DropShadow:Boolean = True; UseFont:Font = Nil);
 
       Function IsHighlighted():Boolean;
@@ -356,7 +379,6 @@ Type
       _Saturation:Single;
 
       _Transition:UITransition;
-      _Background:UIBackground;
       _Widgets:HashTable;
 
       _DefaultFont:Font;
@@ -421,7 +443,7 @@ Type
       Procedure WrapControlsHorizontal(Left, Right:AnsiString); Overload;
 
       Procedure AddQuad(Const StartPos, EndPos:Vector2D; Const TexCoord1, TexCoord2:Vector2D; MyColor:Color; Z:Single; PageID:Integer;
-        Const Transform:Matrix2D; Saturation:Single; ColorTable:Texture; Clip:ClipRect);
+        Const Transform:Matrix3x3; Saturation:Single; ColorTable:Texture; Clip:ClipRect);
 
       Procedure Clear;
 
@@ -440,7 +462,6 @@ Type
 
       Procedure SetFocus(W:Widget);
       Procedure SetTransition(MyTransition:UITransition);
-      Procedure SetBackground(MyBackground:UIBackground);
 
       Function GetVirtualKeyboard():Widget;
 
@@ -460,7 +481,6 @@ Type
       Property Dragger:Widget Read _Dragger Write SetDragger;
 
       Property Transition:UITransition Read _Transition Write SetTransition;
-      Property Background:UIBackground Read _Background Write SetBackground;
 
       Property VirtualKeyboard:Widget Read GetVirtualKeyboard;
 
@@ -477,8 +497,8 @@ Type
 
   UIManager = Class(ApplicationComponent)
     Protected
-      _Canvas:Canvas;
-      _UpdateCanvas:Boolean;
+      _TextureAtlas:TextureAtlas;
+      _UpdateTextureAtlas:Boolean;
       _CutsceneShader:Shader;
 
       _UIList:Array Of UI;
@@ -495,7 +515,7 @@ Type
       Function GetWidth:Integer;
       Function GetHeight:Integer;
 
-      Function GetCanvas:Canvas;
+      Function GetTextureAtlas:TextureAtlas;
 
       Function GetCutSceneShader:Shader;
 
@@ -511,7 +531,7 @@ Type
       Procedure AddUI(UI:UI);
       Procedure RemoveUI(UI:UI);
 
-      Procedure CanvasClear();
+      Procedure TextureAtlasClear();
 
       Procedure Render;
       Procedure AfterEffects;
@@ -521,7 +541,7 @@ Type
       Property Width:Integer Read GetWidth;
       Property Height:Integer Read GetHeight;
 
-      Property Canvas:Canvas Read _Canvas;
+      Property TextureAtlas:TextureAtlas Read _TextureAtlas;
 
       Property Ratio:Single Read _Ratio;
 
@@ -532,7 +552,7 @@ Function GetSpriteZOnTop(W:Widget; Ofs:Single = 1.0):Single;
 
 Implementation
 Uses TERRA_Error, TERRA_OS, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_GraphicsManager, TERRA_Widgets, TERRA_IO,
-  TERRA_Matrix, TERRA_Log, TERRA_FileUtils, TERRA_FileManager,
+  TERRA_Matrix4x4, TERRA_Log, TERRA_FileUtils, TERRA_FileManager,
   TERRA_UIVirtualKeyboard;
 
 Var
@@ -643,6 +663,7 @@ End;
 
 Function Widget.CreateCustomTween(TweenType: Integer; TargetValue: Single): Tween;
 Begin
+  RemoveHint(TweenType + Trunc(TargetValue));
   Result := Nil;
 End;
 
@@ -686,6 +707,7 @@ End;
 
 Procedure Widget.CopyValue(Other: ListObject);
 Begin
+  RemoveHint(Cardinal(Other));
   RaiseError('Not implemented!');
 End;
 
@@ -1076,13 +1098,13 @@ Var
   Source, Temp:Image;
   MyStream:Stream;
   S:AnsiString;
-  Item:CanvasItem;
+  Item:TextureAtlasItem;
   Ext:ImageClassInfo;
 Begin
   Name := GetFileName(Name, True);
 
   Log(logDebug, 'UI', 'Getting '+Name);
-  Item := UIManager.Instance.GetCanvas.Get(Name);
+  Item := UIManager.Instance.GetTextureAtlas.Get(Name);
   If Assigned(Item) Then
   Begin
     Result := _ComponentCount;
@@ -1118,12 +1140,12 @@ Begin
     Inc(_ComponentCount);
     SetLength(_ComponentList, _ComponentCount);
 
-    Log(logDebug, 'Game', 'Adding to canvas');
+    Log(logDebug, 'Game', 'Adding to TextureAtlas');
 
-    _ComponentList[Pred(_ComponentCount)] := UIManager.Instance.GetCanvas.Add(Source, Name);
-    UIManager.Instance._UpdateCanvas := True;
+    _ComponentList[Pred(_ComponentCount)] := UIManager.Instance.GetTextureAtlas.Add(Source, Name);
+    UIManager.Instance._UpdateTextureAtlas := True;
 
-    Log(logDebug, 'Game', 'Canvas added');
+    Log(logDebug, 'Game', 'TextureAtlas added');
 
     Source.Destroy;
     MyStream.Destroy;
@@ -1142,7 +1164,7 @@ Var
   ShadowOffset:Vector2D;
   TC1, TC2:Vector2D;
   Source:Image;
-  MyCanvas:Canvas;
+  MyTextureAtlas:TextureAtlas;
   Saturation:Single;
   ColorTable:Texture;
   OfsX,OfsY:Single;
@@ -1153,7 +1175,7 @@ Begin
   If (Self.HasTweens) Then
     _TransformChanged := True;
 
-  MyCanvas := UIManager.Instance.GetCanvas();
+  MyTextureAtlas := UIManager.Instance.GetTextureAtlas();
   Source := _ComponentList[Index].Buffer;
   P := Self.GetAbsolutePosition();
   Z := Self.GetLayer + Offset.Z;
@@ -1167,10 +1189,10 @@ Begin
 
   StartPos := VectorCreate2D(Trunc(P.X + Trunc(X1 * Source.Width)), Trunc(P.Y + Trunc(Y1 * Source.Height)));
   EndPos := VectorCreate2D(Round(P.X + Trunc(X2 * Source.Width)), Round(P.Y + Trunc(Y2 * Source.Height)));
-  TC1.X := (_ComponentList[Index].X + ( (X1*Pred(Source.Width)) / MyCanvas.Width));
-  TC1.Y := (_ComponentList[Index].Y + ( (Y1*Pred(Source.Height)) / MyCanvas.Height));
-  TC2.X := (_ComponentList[Index].X + ( ((X2*Pred(Source.Width))) / MyCanvas.Width));
-  TC2.Y := (_ComponentList[Index].Y + ( ((Y2*Pred(Source.Height))) / MyCanvas.Height));
+  TC1.X := (_ComponentList[Index].X + ( (X1*Pred(Source.Width)) / MyTextureAtlas.Width));
+  TC1.Y := (_ComponentList[Index].Y + ( (Y1*Pred(Source.Height)) / MyTextureAtlas.Height));
+  TC2.X := (_ComponentList[Index].X + ( ((X2*Pred(Source.Width))) / MyTextureAtlas.Width));
+  TC2.Y := (_ComponentList[Index].Y + ( ((Y2*Pred(Source.Height))) / MyTextureAtlas.Height));
 
   Saturation := Self.GetSaturation();
   ColorTable := Self.GetColorTable();
@@ -1187,7 +1209,7 @@ Begin
   UI.AddQuad(StartPos, EndPos, TC1, TC2, Color, Z, _ComponentList[Index].PageID, _Transform, Saturation, ColorTable, Self._ClipRect);
 End;
 
-Procedure Widget.DrawWindow(Index:Integer; Const Offset:Vector3D; Width, Height:Integer; Layout:UISkinLayout; Color:Color; ScaleColor:Boolean=True);
+Procedure Widget.DrawWindow(Index:Integer; Const Offset:Vector3D; Width, Height:Integer; Layout:UISkinLayout; Color:Color);
 Var
   IX,IY:Integer;
   I,J:Integer;
@@ -1205,28 +1227,28 @@ Begin
   LY := Layout.GCSY(0) + Height * Layout.GCSY(1);
   LY := LY - Layout.Y[2] * IY;
 
-  Self.DrawComponent(0, VectorZero, 0.0, 0.0, Layout.X[1], Layout.Y[1], Color);
-  Self.DrawComponent(0, VectorCreate(LX, 0.0, 0.0), Layout.X[2], 0.0, 1.0, Layout.Y[1], Color);
+  Self.DrawComponent(0, Offset, 0.0, 0.0, Layout.X[1], Layout.Y[1], Color);
+  Self.DrawComponent(0, VectorCreate(Offset.X + LX, Offset.Y, Offset.Z), Layout.X[2], 0.0, 1.0, Layout.Y[1], Color);
 
-  Self.DrawComponent(0, VectorCreate(0.0, LY, 0.0), 0.0, Layout.Y[2], Layout.X[1], 1.0, Color);
-  Self.DrawComponent(0, VectorCreate(LX, LY, 0.0), Layout.X[2], Layout.Y[2], 1.0, 1.0, Color);
+  Self.DrawComponent(0, VectorCreate(Offset.X, Offset.Y + LY, Offset.Z), 0.0, Layout.Y[2], Layout.X[1], 1.0, Color);
+  Self.DrawComponent(0, VectorCreate(Offset.X + LX, Offset.Y + LY, Offset.Z), Layout.X[2], Layout.Y[2], 1.0, 1.0, Color);
 
   For I:=1 To Width Do
   Begin
-    Self.DrawComponent(0, VectorCreate(Layout.GCSX(1) * Pred(I), 0.0, 0.0), Layout.X[1], Layout.Y[0], Layout.X[2], Layout.Y[1], Color);
-    Self.DrawComponent(0, VectorCreate(Layout.GCSX(1) * Pred(I), LY, 0.0), Layout.X[1], Layout.Y[2], Layout.X[2], 1.0, Color);
+    Self.DrawComponent(0, VectorCreate(Offset.X + Layout.GCSX(1) * Pred(I), Offset.Y, Offset.Z), Layout.X[1], Layout.Y[0], Layout.X[2], Layout.Y[1], Color);
+    Self.DrawComponent(0, VectorCreate(Offset.X + Layout.GCSX(1) * Pred(I), Offset.Y + LY, Offset.Z), Layout.X[1], Layout.Y[2], Layout.X[2], 1.0, Color);
   End;
 
   For I:=1 To Height Do
   Begin
-    Self.DrawComponent(0, VectorCreate(0.0, Layout.GCSY(1) * Pred(I), 0.0), 0.0, Layout.Y[1], Layout.X[1],  Layout.Y[2], Color);
-    Self.DrawComponent(0, VectorCreate(LX, Layout.GCSY(1) * Pred(I), 0.0), Layout.X[2], Layout.Y[1], 1.0, Layout.Y[2], Color);
+    Self.DrawComponent(0, VectorCreate(Offset.X, Offset.Y + Layout.GCSY(1) * Pred(I), Offset.Z), 0.0, Layout.Y[1], Layout.X[1],  Layout.Y[2], Color);
+    Self.DrawComponent(0, VectorCreate(Offset.X + LX, Offset.Y + Layout.GCSY(1) * Pred(I), Offset.Z), Layout.X[2], Layout.Y[1], 1.0, Layout.Y[2], Color);
   End;
 
   For J:=1 To Height Do
   For I:=1 To Width Do
   Begin
-    Self.DrawComponent(0, VectorCreate(Layout.GCSX(1)*Pred(I), Layout.GCSY(1)*Pred(J), 0.0), Layout.X[1], Layout.Y[1], Layout.X[2], Layout.Y[2], Color);
+    Self.DrawComponent(0, VectorCreate(Offset.X + Layout.GCSX(1)*Pred(I), Offset.Y + Layout.GCSY(1)*Pred(J), Offset.Z), Layout.X[1], Layout.Y[1], Layout.X[2], Layout.Y[2], Color);
   End;
 End;
 
@@ -1266,16 +1288,19 @@ End;
 
 Function Widget.OnKeyDown(Key:Word):Boolean;
 Begin
+  RemoveHint(Key);
 	Result := False;
 End;
 
 Function Widget.OnKeyUp(Key:Word):Boolean;
 Begin
+  RemoveHint(Key);
 	Result := False;
 End;
 
 Function Widget.OnKeyPress(Key:Word):Boolean;
 Begin
+  RemoveHint(Key);
 	Result := False;
 End;
 
@@ -1730,7 +1755,7 @@ Begin
   Self._ClipRect := Value;
 End;
 
-Procedure Widget.GetScrollOffset(Var OfsX, OfsY: Single);
+Procedure Widget.GetScrollOffset(Out OfsX, OfsY: Single);
 Var
   TX, TY:Single;
   Bar:UIScrollBar;
@@ -1779,6 +1804,8 @@ Begin
 End;
 
 Function Widget.OutsideClipRect(X, Y: Integer): Boolean;
+Var
+  X1, Y1, X2, Y2:Single;
 Begin
   If (Self._ClipRect = Nil) Then
   Begin
@@ -1786,7 +1813,9 @@ Begin
     Exit;
   End;
 
-  Result := (X<_ClipRect.X) Or (Y<_ClipRect.Y) Or (X>=_ClipRect.X + _ClipRect.Width) Or (Y>=_ClipRect.Y + _ClipRect.Height);
+  _ClipRect.GetRealRect(X1, Y1, X2, Y2{, IsLandscapeOrientation(Application.Instance.Orientation)});
+
+  Result := (X<X1) Or (Y<Y1) Or (X>=X2) Or (Y>=Y2);
 End;
 
 Procedure Widget.SetGreyedOut(Enabled: Boolean);
@@ -1872,7 +1901,7 @@ Var
   MyStream:Stream;
 Begin
   _UI := UI;
-  _Item := UIManager.Instance.GetCanvas.Get(Name);
+  _Item := UIManager.Instance.GetTextureAtlas.Get(Name);
 
   If Not Assigned(_Item) Then
   Begin
@@ -1881,8 +1910,8 @@ Begin
     Begin
       MyStream := FileManager.Instance.OpenFileStream(Name);
       Source := Image.Create(MyStream);
-      _Item := UIManager.Instance.GetCanvas.Add(Source, Name);
-      UIManager.Instance._UpdateCanvas := True;
+      _Item := UIManager.Instance.GetTextureAtlas.Add(Source, Name);
+      UIManager.Instance._UpdateTextureAtlas := True;
       Source.Destroy;
       MyStream.Destroy;
     End;
@@ -1902,7 +1931,7 @@ Procedure UICursor.Render;
 Var
   StartPos, EndPos:Vector2D;
   T1, T2:Vector2D;
-  MyCanvas:Canvas;
+  MyTextureAtlas:TextureAtlas;
   MyColor:Color;
 Begin
   If (Not Assigned(_Item)) Then
@@ -1912,9 +1941,9 @@ Begin
   EndPos.X := StartPos.X + _Item.Buffer.Width;
   EndPos.Y := StartPos.Y + _Item.Buffer.Height;
   T1 := VectorCreate2D(_Item.X, _Item.Y);
-  MyCanvas := UIManager.Instance.GetCanvas;
-  T2.X := T1.X + (_Item.Buffer.Width / MyCanvas.Width);
-  T2.Y := T1.Y + (_Item.Buffer.Height / MyCanvas.Height);
+  MyTextureAtlas := UIManager.Instance.GetTextureAtlas;
+  T2.X := T1.X + (_Item.Buffer.Width / MyTextureAtlas.Width);
+  T2.Y := T1.Y + (_Item.Buffer.Height / MyTextureAtlas.Height);
   MyColor := ColorGrey(255, UI._Color.A);
   UI.AddQuad(StartPos, EndPos, T1, T2, MyColor, 99, _Item.PageID, MatrixIdentity2D, 1, Nil, Nil);
 End;
@@ -1956,7 +1985,6 @@ Begin
     DestroyObject(@_CursorList[I]);
 
   DestroyObject(@_Transition);
-  DestroyObject(@_Background);
 
 	DestroyObject(@_Widgets);
 End;
@@ -1968,7 +1996,6 @@ Begin
   _Widgets.Clear;
 
   _CutsceneAlpha := 0.0;
-  SetBackground(Nil);
   SetTransition(Nil);
   Log(logError, 'UI', 'UI is now clear.');
 End;
@@ -2043,10 +2070,27 @@ End;
 
 Function UI.AllowsEvents(W: Widget): Boolean;
 Begin
-  If (Not W.Visible) Then
-    Result := False
-  Else
-    Result := (_Modal=Nil) Or (W = _Modal) Or (Not _Modal.Visible) Or ((W.Parent<>Nil) And (W.Parent = _Modal));
+  If (W = Nil) Or (Not W.Visible) Then
+  Begin
+    Result := False;
+    Exit;
+  End;
+
+  If (_Modal = Nil) Or  (W = _Modal) Then
+  Begin
+    Result := True;
+    Exit;
+  End;
+
+  If (Not _Modal.Visible) Then
+  Begin
+    _Modal := Nil;
+    Result := True;
+    Exit;
+  End;
+
+
+  Result := Self.AllowsEvents(W.Parent);
 End;
 
 Procedure UI.GetFirstHighLight;
@@ -2258,12 +2302,12 @@ End;
 
 
 Procedure UI.AddQuad(Const StartPos, EndPos:Vector2D; Const TexCoord1, TexCoord2:Vector2D; MyColor:Color; Z:Single; PageID:Integer;
-                    Const Transform:Matrix2D; Saturation:Single; ColorTable:Texture; Clip:ClipRect);
+                    Const Transform:Matrix3x3; Saturation:Single; ColorTable:Texture; Clip:ClipRect);
 Var
   Tex:Texture;
   S:Sprite;
 Begin
-  Tex := UIManager.Instance.Canvas.GetTexture(PageID);
+  Tex := UIManager.Instance.TextureAtlas.GetTexture(PageID);
   S := SpriteManager.Instance.AddSprite(StartPos.X, StartPos.Y, 100-Z, Tex, ColorTable, blendBlend, Saturation);
   If (S = Nil) Then
     Exit;
@@ -2362,8 +2406,8 @@ Var
   S:AnsiString;
   X,Y:Single;
   PositionHandle, UVHandle, ColorHandle:Integer;
-  Transform:Matrix;
-  Q:Quaternion;
+  Transform:Matrix4x4;
+  Q:Vector4D;
 Begin
   _Draw := False;
   _CursorPos.X := Application.Instance.Input.Mouse.X;
@@ -2382,9 +2426,6 @@ Begin
 
   //glEnable(glCoverage);
 
-  If Assigned(_Background) Then
-    _Background.Render;
-
   (*ShaderManager.Instance.Bind(Self.GetShader);
   _Shader.SetUniform('texture', 0);
   _Shader.SetUniform('projectionMatrix', GraphicsManager.Instance.ProjectionMatrix);
@@ -2399,7 +2440,7 @@ Begin
   ColorHandle := _Shader.GetAttribute('terra_color');
   *)
 
-  If (UIManager.Instance._UpdateCanvas) Then
+  If (UIManager.Instance._UpdateTextureAtlas) Then
     Exit;
 
   GraphicsManager.Instance.SetBlendMode(blendBlend);
@@ -2444,14 +2485,6 @@ Begin
         SetTransition(Nil);
     End;
   End;
-End;
-
-Procedure UI.SetBackground(MyBackground:UIBackground);
-Begin
-  If Assigned(_Background) Then
-    _Background.Destroy;
-
-  _Background := MyBackground;
 End;
 
 Procedure UI.SetTransition(MyTransition:UITransition);
@@ -2625,7 +2658,7 @@ Begin
         Continue;
       End;
 
-      If (MyWidget.GetLayer>Z) Then
+      If (MyWidget.GetLayer>Z) And (AllowsEvents(MyWidget)) Then
       Begin
         Z := MyWidget.GetLayer;
         Pick := MyWidget;
@@ -2636,12 +2669,6 @@ Begin
 
     If (Assigned(Pick)) Then
     Begin
-      If (Not AllowsEvents(Pick)) Then
-      Begin
-        Result := Nil;
-        Exit;
-      End;
-
       {$IFDEF DEBU_GUI}Log(logDebug, 'Game', 'Found a Widget for MouseDown: '+Pick.Name);{$ENDIF}
 
       Pick._Picked := True;
@@ -2720,7 +2747,7 @@ Begin
         Continue;
       End;
 
-      If (MyWidget.GetLayer>Z) Then
+      If (MyWidget.GetLayer>Z) And (AllowsEvents(MyWidget)) Then
       Begin
         Z := MyWidget.GetLayer;
         Pick := MyWidget;
@@ -2731,12 +2758,6 @@ Begin
 
     If (Assigned(Pick)) Then
     Begin
-      If (Not AllowsEvents(Pick)) Then
-      Begin
-        Result := Nil;
-        Exit;
-      End;
-
       Pick._Picked := True;
       Dec(Count);
 
@@ -3175,7 +3196,7 @@ Begin
 End;
 
 { UISkinLayout }
-Constructor UISkinLayout.Create(Source: CanvasItem);
+Constructor UISkinLayout.Create(Source: TextureAtlasItem);
 Var
   I:Integer;
 Begin
@@ -3228,9 +3249,9 @@ End;
 { UIManager }
 Procedure UIManager.Init;
 Begin
-  _Canvas := Nil;
+  _TextureAtlas := Nil;
   _Ratio := 1.0;
-  _UpdateCanvas := False;
+  _UpdateTextureAtlas := False;
 End;
 
 Destructor UIManager.Destroy;
@@ -3242,8 +3263,8 @@ Begin
 
   _UICount := 0;
 
-  If (Assigned(_Canvas)) Then
-    _Canvas.Destroy;
+  If (Assigned(_TextureAtlas)) Then
+    _TextureAtlas.Destroy;
   _UIManager_Instance := Nil;
 End;
 
@@ -3288,12 +3309,12 @@ Begin
   Result := _CutsceneShader;
 End;
 
-Function UIManager.GetCanvas: Canvas;
+Function UIManager.GetTextureAtlas: TextureAtlas;
 Begin
-  If (Not Assigned(_Canvas)) Then
-    _Canvas := TERRA_Canvas.Canvas.Create('UI', CanvasWidth, CanvasHeight);
+  If (Not Assigned(_TextureAtlas)) Then
+    _TextureAtlas := TERRA_TextureAtlas.TextureAtlas.Create('UI', TextureAtlasWidth, TextureAtlasHeight);
 
-  Result := _Canvas;
+  Result := _TextureAtlas;
 End;
 
 Function UIManager.GetWidth: Integer;
@@ -3332,17 +3353,17 @@ Begin
 End;}
 
 
-Procedure UIManager.CanvasClear();
+Procedure UIManager.TextureAtlasClear();
 Begin
-  _UpdateCanvas := True;
+  _UpdateTextureAtlas := True;
 End;
 
 Procedure UIManager.OnContextLost;
 Begin
-  If (Assigned(_Canvas)) Then
-    _Canvas.OnContextLost();
+  If (Assigned(_TextureAtlas)) Then
+    _TextureAtlas.OnContextLost();
 
-  _UpdateCanvas := True;
+  _UpdateTextureAtlas := True;
 End;
 
 Class Function UIManager.Instance: UIManager;
@@ -3363,25 +3384,25 @@ End;
 
 Procedure UIManager.Resume;
 Begin
-  _UpdateCanvas := True;
+  _UpdateTextureAtlas := True;
 End;
 
 Procedure UIManager.Render;
 Var
   I:Integer;
 Begin
-  If (_UpdateCanvas) Then
+  If (_UpdateTextureAtlas) Then
   Begin
-    Log(logDebug, 'UI', 'Updating UI canvas');
+    Log(logDebug, 'UI', 'Updating UI TextureAtlas');
 
-    Self.GetCanvas.Update();
-    _UpdateCanvas := False;
+    Self.GetTextureAtlas.Update();
+    _UpdateTextureAtlas := False;
 
-    For I:=0 To Pred(_Canvas.PageCount) Do
-      _Canvas.GetTexture(I).BilinearFilter := True;
+    For I:=0 To Pred(_TextureAtlas.PageCount) Do
+      _TextureAtlas.GetTexture(I).BilinearFilter := True;
 
     For I:=0 To Pred(_UICount) Do
-      SetLength(_UIList[I]._Geometry, _Canvas.PageCount);
+      SetLength(_UIList[I]._Geometry, _TextureAtlas.PageCount);
   End;
 
   For I:=0 To Pred(_UICount) Do
@@ -3412,13 +3433,9 @@ End;
 
 Procedure UIManager.UpdateRatio;
 Begin
-  (*{$IFDEF IPHONE}
-  If (IsPortraitOrientation(Application.Instance.Orientation)) Then
-  {$ELSE}*)
-  If (IsLandscapeOrientation(Application.Instance.Orientation)) Then
-//  {$ENDIF}
+ (* If (IsLandscapeOrientation(Application.Instance.Orientation)) Then
     _Ratio := (Height/Width)
-  Else
+  Else*)
     _Ratio := 1.0;
 End;
 

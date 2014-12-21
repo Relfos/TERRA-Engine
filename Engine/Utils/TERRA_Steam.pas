@@ -37,7 +37,7 @@ Type
 
 
 Implementation
-Uses TERRA_OS, TERRA_Log, TERRA_GraphicsManager, Math;
+Uses TERRA_OS, TERRA_Log, TERRA_GraphicsManager;
 
 Var
   _Steam_Instance:ApplicationObject = Nil;

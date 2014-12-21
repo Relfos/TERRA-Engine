@@ -142,7 +142,7 @@ Function GetEaseWiggle(t, b,c,d:Single):Single;
 Function GetEase(Delta:Single; EaseType:Integer):Single;
 
 Implementation
-Uses TERRA_OS, TERRA_GraphicsManager, Math;
+Uses TERRA_OS, TERRA_GraphicsManager;
 
 Var
   _TweenManager_Instance:ApplicationObject = Nil;
@@ -429,7 +429,7 @@ Begin
     s := p/4;
   End Else
   Begin
-    s := p/(2*PI) * ArcSin (c/a);
+    s := p/(2*PI) * ArcSin(c/a);
   End;
 
   Result := (a*Pow(2,-10*t) * Sin( (t*d-s)*(2*PI)/p ) + c + b);

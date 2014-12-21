@@ -1,3 +1,26 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_UITransition
+ * Implements UI transitions (fades, etc)
+ ***********************************************************************************************************************
+}
 Unit TERRA_UITransition;
 
 {$I terra.inc}
@@ -6,7 +29,7 @@ Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Utils, TERRA_Math, TERRA_Vector2D, TERRA_Vector3D, TERRA_Texture,
   {$IFDEF POSTPROCESSING}TERRA_ScreenFX, {$ENDIF}
-  TERRA_RenderTarget, TERRA_Image, TERRA_Color, TERRA_Shader, TERRA_Matrix;
+  TERRA_RenderTarget, TERRA_Image, TERRA_Color, TERRA_Shader, TERRA_Matrix4x4;
 
 Type
   FadeCallback = Procedure(Arg:Pointer);  CDecl;
@@ -224,7 +247,7 @@ Var
   FadeVertices:Array[0..6] Of FadeVertex;
   PositionHandle, UVHandle:Integer;
   _Shader:Shader;
-  M:Matrix;
+  M:Matrix4x4;
   StencilID:Byte;
   Delta:Single;
 Begin
@@ -281,7 +304,7 @@ Begin
     glMatrixMode(GL_PROJECTION);
     glLoadMatrixf(@M);
     glMatrixMode(GL_MODELVIEW);
-    M := MatrixIdentity;
+    M := Matrix4x4Identity;
     glLoadMatrixf(@M);
     glMatrixMode(GL_TEXTURE);
     glLoadMatrixf(@M);

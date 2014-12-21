@@ -576,7 +576,13 @@ Begin
   For I:=0 To Pred(_TaskCount) Do
     N := N + _Tasks[I].Progress * S;
 
-  Result := Trunc(N*100);
+  Result := Trunc(N);
+
+  If (Result<0) Then
+    Result := 0
+  Else
+  If (Result>100) Then
+    Result := 100;
 End;
 
 Function TaskGroup.IsFinished:Boolean;

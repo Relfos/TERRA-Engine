@@ -24,6 +24,8 @@ void openAppStore(char *appid);
 
 bool isSocialFrameworkAvailable();
 
+CGRect GetScreenBounds();
+
 AVAudioPlayer *audioOpen(char *name);
 void audioPlay(AVAudioPlayer *audioPlayer);
 void audioStop(AVAudioPlayer *audioPlayer);
@@ -48,6 +50,8 @@ void stopAVCapture();
 
 void AnalyticsLog(char *s);
 void AnalyticsLogWithParams(char *s, char *s2);
+
+int getCurrentOrientation();
 
 void showAds();
 

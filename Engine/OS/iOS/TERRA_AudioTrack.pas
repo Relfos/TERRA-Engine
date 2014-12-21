@@ -35,7 +35,7 @@ End;
 
 Procedure AudioMusicTrack.Init();
 Begin
-  _Player := audioOpen(PAnsiChar(SourceName));
+  _Player := audioOpen(PAnsiChar(FileName));
 End;
 
 Procedure AudioMusicTrack.Play();

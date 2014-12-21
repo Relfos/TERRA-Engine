@@ -30,6 +30,9 @@ Unit TERRA_Math;
 {$I terra.inc}
 {$ENDIF}
 
+{$RANGECHECKS OFF}
+{$OVERFLOWCHECKS OFF}
+
 Interface
 
 Const
@@ -81,10 +84,55 @@ Function Sgn(Const X:Single):Single;
 Function SmoothCurve(Delta:Single):Single;
 Function SmoothCurveWithOffset(Delta, Offset:Single):Single;
 
-Function Ln(X:Single):Single;
-Function LNXP1(x:Single):Single;
+Function Ln(Const X:Single):Single;
+Function Log2(Const X:Single):Single; Overload;
+Function Log2(X:Integer):Single; Overload;
+Function LNXP1(Const x:Single):Single;
+
+Function float32_unpack(Const x:Cardinal):Single;
+
+Function ArcSin(Const X:Single):Single;
+Function ArcCos(Const X:Single):Single;
+
+Function Floor(Const X:Single):Integer;
+Function Ceil(Const X:Single):Integer;
+
+Function Power(Base:Single; Const Power: Integer): Single; Overload;
+Function Power(Const Base, Power:Integer):Single; Overload;
+Function Power(Const Base,Power:Single):Single; Overload;
 
 Implementation
+Uses Math;
+
+Function Power(Const Base, Power:Integer):Single;
+Var
+  I:Integer;
+Begin
+  Result := 1;
+
+  For I:=0 To Pred(Power) Do
+    Result := Result * Base;
+End;
+
+Function Floor(Const X:Single):Integer;
+Begin
+  Result := Math.Floor(X);
+End;
+
+Function Ceil(Const X:Single):Integer;
+Begin
+  Result := Math.Ceil(X);
+End;
+
+Function ArcCos(Const X:Single):Single;
+Begin
+  Result := Math.ArcCos(X);
+End;
+
+Function ArcSin(Const X:Single):Single;
+Begin
+  Result := Math.ArcSin(X);
+End;
 
 Function Sgn(Const X:Single):Single;
 Begin
@@ -95,6 +143,22 @@ Begin
     Result := 1
   Else
     Result := 0
+End;
+
+Function Log2(Const X:Single):Single;
+Begin
+  Result := Ln(x) * 1.4426950408889634079;    // 1/ln(2)
+End;
+
+Function Log2(X:Integer):Single;
+Begin
+  Result := 0;
+  X := X Shr 1;
+  While X<>0 Do
+  Begin
+    X := X Shr 1;
+    Result := Result + 1;
+  End;
 End;
 
 {$IFDEF CPU386}
@@ -145,28 +209,34 @@ Begin
   result := n - d * i;
 End;
 
-Function IntPower(X:Single; I: Integer): Single;
-var
-  Y: Integer;
+Function Power(Base:Single; Const Power: Integer): Single;
+Var
+  Y:Integer;
 begin
-  Y := Abs(I);
+  Y := Abs(Power);
   Result := 1.0;
   While Y > 0 do
   Begin
     While Not Odd(Y) do
     Begin
       Y := Y Shr 1;
-      X := X * X;
+      Base := Base * Base;
     End;
     Dec(Y);
-    Result := Result * X;
+    Result := Result * Base;
   End;
-  if I < 0.0 Then
+
+  If Power < 0.0 Then
     Result := 1.0 / Result;
 End;
 
-// LN reimplemented here because FPC implementation of LN crashes on Android devices with Tegra 2 cpus.. 
-Function ln(X:Single):Single;
+Function Power(Const Base,Power:Single):Single; Overload;
+Begin
+  Result := Exp(Power * Ln(Base));
+End;
+
+// LN reimplemented here because FPC implementation of LN crashes on Android devices with Tegra 2 cpus..
+Function Ln(Const X:Single):Single;
 Var
   Lo, Hi, Mid, Val, E:Single;
 Begin
@@ -214,7 +284,32 @@ Begin
   End;
 End;
 
-Function LNXP1(x:Single):Single;
+// ldexp() multiplies x by 2**n.
+Function ldexp( x: Real; N: Integer):Real;
+Var
+  r:Real;
+Begin
+  R := 1;
+  If N>0 Then
+  Begin
+    While N>0 do
+    Begin
+      R:=R*2;
+      Dec(N);
+    End;
+  End Else
+  Begin
+    While N<0 Do
+    Begin
+      R:=R/2;
+      Inc(N);
+    End;
+  End;
+
+  Result := x * R;
+End;
+
+Function LNXP1(Const x:Single):Single;
 Var
   y:Single;
 begin
@@ -418,6 +513,21 @@ Begin
 End;
 
 {$ENDIF}
+
+
+Function float32_unpack(Const x:Cardinal):Single;
+Var
+  mantissa, sign, exp :Cardinal;
+  res:extended;
+Begin
+   // from the specification
+   mantissa := x and $1fffff;
+   sign := x and $80000000;
+   exp := (x and $7fe00000) shr 21;
+   if sign=0 then res:=Integer(mantissa) else res:=-Integer(mantissa);
+   Result := ldexp(res, exp-788);
+End;
+
 End.
 
 

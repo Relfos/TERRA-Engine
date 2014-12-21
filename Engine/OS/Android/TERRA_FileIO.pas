@@ -306,6 +306,8 @@ Begin
 
       AAsset_read(Asset, _Buffer, _Size);
       AAsset_close(Asset);
+
+      _Open := True;
       Exit;
     End;
   End;
@@ -340,7 +342,10 @@ Begin
   Java_End(Frame);
 
   If (FSize>=0) Then
+  Begin
+    _Open := True;
     Exit;
+  End;
 
   Log(logDebug, 'FileIO', 'Not an asset, loading normally.');
   // not an asset, use normal file functions
@@ -386,17 +391,17 @@ End;
 
 Function FileStream.Read(Data:Pointer; Length:Cardinal):Cardinal;
 Begin
+  Result:=0;
+
+  If (Not _Open) Or (Length=0) Then
+  Begin
+    Exit;
+  End;
+
   If Assigned(_Buffer) Then
   Begin
     //Log(logDebug,'FileIO', 'Reading from memory '+IntToString(Length)+' bytes');
     Result := Inherited Read(Data, Length);
-    Exit;
-  End;
-
-  //Log(logDebug,'FileIO', 'Reading from disk '+IntToString(Length)+' bytes');
-  If (Length=0) Then
-  Begin
-    Result:=0;
     Exit;
   End;
 
@@ -419,6 +424,7 @@ Begin
   End;
 
   //Log(logDebug,'FileIO', 'Length= '+IntToString(Length)+' bytes');
+  //Log(logDebug,'FileIO', 'Reading from disk '+IntToString(Length)+' bytes');
   Length := fread(Data, 1, Length, _File);
 
   Inc(_Pos, Length);
@@ -428,6 +434,13 @@ End;
 
 Function FileStream.Write(Data:Pointer; Length:Cardinal):Cardinal;
 Begin
+  Result := 0;
+
+  If (Not _Open) Or (Length=0) Then
+  Begin
+    Exit;
+  End;
+
   If Assigned(_Buffer) Then
   Begin
     Log(logDebug, 'App', 'Writing to assets not supported! ' + Self._Name);
@@ -435,10 +448,6 @@ Begin
   End;
 
   //Log(logDebug, 'App', 'Writing to file! ' + Self._Name);
-
-  Result := 0;
-  If (Not _Open) Then
-    Exit;
 
   If (_Mode And smWrite=0)Then
   Begin
@@ -463,6 +472,9 @@ End;
 
 Procedure FileStream.Seek(NewPosition:Cardinal);
 Begin
+  If (Not _Open) Then
+    Exit;
+
   If Assigned(_Buffer) Then
   Begin
     Inherited Seek(NewPosition);
@@ -474,7 +486,7 @@ Begin
     RaiseError('Cannot seek in file.['+_Name+']');
     Exit;
   End;
-  
+
   _Pos := NewPosition;
 
 	fseek(_File, _Pos + _Offset, SEEK_SET);
@@ -499,6 +511,9 @@ End;
 
 Procedure FileStream.Flush;
 Begin
+  If (Not _Open) Then
+    Exit;
+
   {If (Application.Instance = Nil) Or (Not Application.Instance.CanReceiveEvents) Then
     Exit;}
 

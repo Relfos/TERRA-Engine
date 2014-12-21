@@ -80,9 +80,11 @@ Function CreateApplicationClass(Client:AppClient):Application;
 Type
   iPhoneApplication = Class(Application)
     Protected
+
       //Procedure ConvertCoords(Var X,Y:Integer);
       Procedure SetScale(Scale:Single);
 
+      Function InitSettings:Boolean; Override;
       Function InitWindow:Boolean; Override;
       Function InitGraphics:Boolean; Override;
       Procedure CloseGraphics; Override;
@@ -94,6 +96,8 @@ Type
       Procedure SetState(State:Cardinal); Override;
 
       Procedure EnableAds; Override;
+      Procedure ShowFullscreenAd; Override;
+
       Procedure OpenAppStore(AppID:AnsiString); Override;
 
       Function IsDeviceRooted: Boolean; Override;
@@ -120,6 +124,7 @@ Procedure setPrefString(key, data:PAnsiChar); cdecl; external;
 Procedure getPrefString(key, dest:PAnsiChar); cdecl; external;
 Procedure savePref(); cdecl; external;
 Procedure showAds(); cdecl; external;
+Procedure showFullscreenAds(); cdecl; external;
 Procedure openAppStore(S:PAnsiChar); cdecl; external;
 Procedure initAppViews(); cdecl; external;
 Function getCPUCores():Integer; cdecl; external;
@@ -175,6 +180,8 @@ Procedure AppUnlockAchievement(ID:PAnsiChar);cdecl; external;
 
 Procedure iCloudSynchronize; Cdecl; external;
 
+Function getCurrentOrientation():Integer; Cdecl; external;
+
 
 {Procedure ApplicationSendInput(s:AnsiChar); cdecl; export;
 Procedure ApplicationSetScreenRegion(width, height:Integer); cdecl; export;
@@ -224,6 +231,7 @@ Var
   _iOSLanguage:AnsiString;
   _iOSCountry:AnsiString;
 
+(*
 Procedure ApplicationSetViewport(x1, y1, x2, y2:Integer); cdecl; export;
 Begin
   If (_Application_Instance=Nil) Then
@@ -231,8 +239,9 @@ Begin
 
 	Log(logDebug, 'App', 'Viewport request x1:' + IntToString(x1)+' y1:' + IntToString(y1)+' x2:' + IntToString(x2)+' y2:' + IntToString(y2));
 
-  _Application_Instance.AddRectEvent(eventViewport, Trunc(x1*iOSScale), Trunc(y1*iOSScale), Trunc(x2*iOSScale), Trunc(y2*iOSScale));
+  //_Application_Instance.AddRectEvent(eventViewport, Trunc(x1*iOSScale), Trunc(y1*iOSScale), Trunc(x2*iOSScale), Trunc(y2*iOSScale));
 End;
+*)
 
 Procedure ApplicationSetOrientation(orientation:Integer); cdecl; export;
 Var
@@ -371,46 +380,21 @@ Var
 
 Begin
   initAppViews();
-  Log(logDebug,'App', 'Setuping app folder');
-
-  mach_timebase_info(timeinfo);
-  basetime := mach_absolute_time();
 
   Log(logDebug,'App', 'Creating window');
-
-  Log(logDebug, 'App', 'Temp Folder: '+ _iOSTempPath);
-  _TempPath := _iOSTempPath;
-
-  Log(logDebug, 'App', 'Document Folder: '+ _iOSDocumentPath);
-  _DocumentPath := _iOSDocumentPath;
-  _StoragePath := _DocumentPath;
 
   _Width := Trunc(_ScreenWidth * iOSScale);
   _Height := Trunc(_ScreenHeight * iOSScale);
 	Log(logDebug, 'App', 'Resolution: ' + IntToString(_Width)+' x' +IntToString(_Height));
 
-  _Country := _iOSCountry;
-	Log(logDebug, 'App', 'Country = ' + _Country);
-
-  _Language := _iOSLanguage;
-	Log(logDebug, 'App', 'Lang = ' + _Language);
-
-  Log(logDebug, 'App', 'Getting cpu cores');
-_CPUCores := getCPUCores();
-  Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
-
-  {$IFDEF NEON_FPU}
-  Log(logDebug, 'App', 'Enabling fast fpu mode');
-  enable_runfast();
-  {$ENDIF}
 
   Log(logDebug,'App', 'OK!');
   _Application_Instance := Self;
 
-  _OrientationTime := GetTime();
-  _Orientation := orientationLandscapeLeft;
+    _OrientationTime := 0;
+    _Orientation := -1;
 
-	Result := True;
+    Result := True;
 End;
 
 Function iPhoneApplication.InitGraphics:Boolean;
@@ -420,6 +404,7 @@ Var
 Begin
 	glLoadExtensions();
   initScale();
+
 	Result := True;
 End;
 
@@ -435,6 +420,12 @@ End;
 
 Procedure iPhoneApplication.SwapBuffers;
 Begin
+    If (IsInvalidOrientation(_Orientation)) Then
+    Begin
+        _OrientationTime := 0;
+        //SetOrientation(getCurrentOrientation());
+        SetOrientation(orientationLandscapeLeft);
+    End;
 End;
 
 Procedure iPhoneApplication.SetState(State:Cardinal);
@@ -552,6 +543,11 @@ Begin
   _Application_Instance.AddValueEvent(eventKeyUp, Key);
 End;
 
+Procedure ApplicationOnContextLost(); cdecl; export;
+Begin
+  _Application_Instance.AddValueEvent(eventContextLost, 0);
+End;
+
 Procedure ApplicationEnterState(state:Integer); cdecl; export;
 Begin
     If (Not Assigned(_Application_Instance)) Or (Not Assigned(_Application_Instance.Client))  Then
@@ -633,10 +629,16 @@ End;
 
 Procedure iPhoneApplication.EnableAds;
 Begin
-  Self.SetViewport(0, 50, Application.Instance.Width, Application.Instance.Height);
+  //Self.SetViewport(0, 50, Application.Instance.Width, Application.Instance.Height);
 
   Log(logDebug, 'game','Trying to enable ads...');
   TERRA_OS.showAds();
+End;
+
+Procedure iPhoneApplication.ShowFullscreenAd;
+Begin
+  Log(logDebug, 'game','Showing fullscreen ads...');
+  TERRA_OS.showFullscreenAds();
 End;
 
 Function iPhoneApplication.GetDeviceID:AnsiString;
@@ -688,9 +690,34 @@ Begin
   Result := GetStringBuffer(Application.Instance.Client.GetFlurryID());
 End;
 
-Function ApplicationGetAdMobID():PAnsiChar; cdecl; export;
+Function ApplicationGetAdMobBannerID():PAnsiChar; cdecl; export;
 Begin
-  Result := GetStringBuffer(Application.Instance.Client.GetadMobID());
+  Result := GetStringBuffer(Application.Instance.Client.GetadMobBannerID());
+End;
+
+Function ApplicationGetAdMobInterstitialID():PAnsiChar; cdecl; export;
+Begin
+  Result := GetStringBuffer(Application.Instance.Client.GetAdMobInterstitialID());
+End;
+
+Function ApplicationGetChartboostID():PAnsiChar; cdecl; export;
+Begin
+    Result := GetStringBuffer(Application.Instance.Client.GetChartboostID());
+End;
+
+Function ApplicationGetChartboostSecret():PAnsiChar; cdecl; export;
+Begin
+    Result := GetStringBuffer(Application.Instance.Client.GetChartboostSecret());
+End;
+
+Function ApplicationGetAdBuddizID():PAnsiChar; cdecl; export;
+Begin
+  Result := GetStringBuffer(Application.Instance.Client.GetAdBuddizID());
+End;
+
+Function ApplicationGetVungleID():PAnsiChar; cdecl; export;
+Begin
+    Result := GetStringBuffer(Application.Instance.Client.GetVungleID());
 End;
 
 Function ApplicationGetFacebookID():PAnsiChar; cdecl; export;
@@ -749,6 +776,37 @@ Begin
   StopGyroscope();
 End;
 
-//Initialization
-  //  iPhoneLog := Nil;
+Function iPhoneApplication.InitSettings: Boolean;
+Begin
+  Inherited InitSettings;
+
+  Log(logDebug,'App', 'Setuping app time');
+  mach_timebase_info(timeinfo);
+  basetime := mach_absolute_time();
+
+  Log(logDebug, 'App', 'Temp Folder: '+ _iOSTempPath);
+  _TempPath := _iOSTempPath;
+
+  Log(logDebug, 'App', 'Document Folder: '+ _iOSDocumentPath);
+  _DocumentPath := _iOSDocumentPath;
+  _StoragePath := _DocumentPath;
+
+  _Country := _iOSCountry;
+	Log(logDebug, 'App', 'Country = ' + _Country);
+
+  _Language := _iOSLanguage;
+	Log(logDebug, 'App', 'Lang = ' + _Language);
+
+  Log(logDebug, 'App', 'Getting cpu cores');
+_CPUCores := getCPUCores();
+  Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
+
+  {$IFDEF NEON_FPU}
+  Log(logDebug, 'App', 'Enabling fast fpu mode');
+  enable_runfast();
+  {$ENDIF}
+
+  Result := True;
+End;
+
 End.

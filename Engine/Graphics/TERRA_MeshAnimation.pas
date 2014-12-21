@@ -1400,6 +1400,11 @@ Var
   I:Integer;
   Time, Delta:Cardinal;
 Begin
+  If (Length(Transforms)<=0) Then
+  Begin
+    SetLength(Transforms, Succ(_BoneCount));
+  End;
+  
   Transforms[0] := Matrix4x4Identity;
 
   If (_Next<>'') Then

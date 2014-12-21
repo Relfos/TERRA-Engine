@@ -267,7 +267,7 @@ Type
   End;
 
 implementation
-Uses TERRA_GraphicsManager, TERRA_Math, Math;
+Uses TERRA_GraphicsManager, TERRA_Math;
 
 { BoidAgent }
 Constructor BoidAgent.Create(direction, magnitude, xPos, yPos, heightOfs, maxSpeed,

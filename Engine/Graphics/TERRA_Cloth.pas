@@ -41,7 +41,7 @@ Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Utils, TERRA_GraphicsManager, TERRA_Texture, TERRA_Quaternion, TERRA_Classes, TERRA_Math,
   TERRA_BoundingBox, TERRA_Vector3D, TERRA_Vector2D, TERRA_Ray, TERRA_Particles, TERRA_VerletParticle,
-  TERRA_Color, Math ,TERRA_Shader;
+  TERRA_Color, TERRA_Shader;
 
 Type
   VerletCloth = Class

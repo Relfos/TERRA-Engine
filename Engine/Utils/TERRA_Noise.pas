@@ -51,7 +51,7 @@ Type
     End;
 
 Implementation
-Uses TERRA_Color, TERRA_OS, TERRA_Math, Math;
+Uses TERRA_Color, TERRA_OS, TERRA_Math;
 
 { NoiseGenerator }
 Destructor NoiseGenerator.Destroy;

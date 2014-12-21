@@ -117,7 +117,7 @@ Type
   Function CreateMeshFromSolid(S:SolidMesh; Tex:Texture = Nil):Mesh;
 
 Implementation
-Uses {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Error, Math;
+Uses {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Error;
 
 {Procedure SolidMesh.AddPolygon(IndexList:Array Of Word; Count:Integer);
 Var

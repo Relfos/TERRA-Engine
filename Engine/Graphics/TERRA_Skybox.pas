@@ -28,7 +28,7 @@ Unit TERRA_Skybox;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Utils, TERRA_Math, TERRA_Texture, TERRA_IO, TERRA_Vector3D, TERRA_Vector2D,
-  TERRA_Color, TERRA_Shader, TERRA_ShaderFactory,TERRA_Matrix, TERRA_Cubemap;
+  TERRA_Color, TERRA_Shader, TERRA_ShaderFactory, TERRA_Matrix4x4, TERRA_Cubemap;
 
 Type
   SkyboxVertex = Packed Record
@@ -174,7 +174,7 @@ Procedure SkyBox.Render(BlendMode:Integer);
 Var
   I:Integer;
   Vertices:BoundingBoxVertices;
-  Projection:Matrix;
+  Projection:Matrix4x4;
   V:Array[0..6] Of SkyboxVertex;
   Camera:TERRA_Camera.Camera;
   PositionHandle:Integer;
@@ -231,7 +231,7 @@ Begin
 
   Vertices := Camera.Frustum.Vertices;
 
-  Projection := MatrixOrtho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
+  Projection := Matrix4x4Ortho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
 
   V[0].Normal := GetNormal(Vertices[5]);
 	V[0].Position := VectorCreate2D( 1.0, 0.0);
@@ -267,7 +267,7 @@ Begin
   MyShader.SetUniform('skyTexture', 0);
   MyShader.SetUniform('skyColor', _Color);
 
-  MyShader.SetUniform('rotationMatrix', MatrixRotation(0, _Rotation, 0));
+  MyShader.SetUniform('rotationMatrix', Matrix4x4Rotation(0, _Rotation, 0));
   MyShader.SetUniform('projectionMatrix', Projection);
   MyShader.SetUniform('reflectionMatrix', GraphicsManager.Instance.ReflectionMatrixSky);
 
@@ -290,7 +290,7 @@ Procedure Skybox.RenderFixedPipeline;
 Var
   I,J:Integer;
   Size:Single;
-  M,M2:Matrix;
+  M,M2:Matrix4x4;
   Cam:Camera;
   Ofs:Vector3D;
 Begin
@@ -312,7 +312,7 @@ Begin
   glMatrixMode(GL_MODELVIEW);
   glLoadMatrixf(@M);
 
-  M := MatrixIdentity;
+  M := Matrix4x4Identity;
   glMatrixMode(GL_TEXTURE);
   glLoadMatrixf(@M);
 

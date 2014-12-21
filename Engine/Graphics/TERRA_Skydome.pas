@@ -47,7 +47,7 @@ Type
 
 Implementation
 Uses TERRA_OS, TERRA_GraphicsManager, TERRA_ResourceManager, TERRA_Image, TERRA_IO,
-  TERRA_BoundingBox, TERRA_Vector3D, TERRA_Camera, Math;
+  TERRA_BoundingBox, TERRA_Vector3D, TERRA_Camera;
 
 // Creates a Skydome
 Constructor Skydome.Create;
