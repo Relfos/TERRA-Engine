@@ -62,9 +62,12 @@ Begin
   Begin
     _Font.DrawText(50, 70, 10, ' Hello World!', ColorWhite, 1.0, True);
     _Font.DrawText(200, 160, 10, ' This is a\nline break!', ColorYellow, 1.0, True);
+
     _Font.DrawText(200, 100, 10, ' \wWavy text!', ColorBlue, 1.0, True);
 
-    // unicode rendering 
+    _Font.DrawText(400, 100, 10, ' \iItalic text!', ColorGreen, 1.0, True);
+
+    // unicode rendering
     _Font.DrawText(50, 200, 10, GetLanguageDescription(language_Russian), ColorWhite, 1.0, True);
     _Font.DrawText(50, 230, 10, GetLanguageDescription(language_Chinese), ColorWhite, 1.0, True);
     _Font.DrawText(50, 260, 10, GetLanguageDescription(language_Korean), ColorWhite, 1.0, True);
