@@ -21,7 +21,7 @@
  * Implements color ramps/palettes via shaders
  ***********************************************************************************************************************
 }
-Unit TERRA_ColorTable;
+Unit TERRA_ColorGrading;
 
 {$I terra.inc}
 
@@ -161,24 +161,28 @@ Begin
   Line('  color = min(rescaler, color);');
   Line('  color /= color_table_scale;');
 
-  Line('  mediump vec3 delta = fract(color);');
-  Line('  mediump vec3 rgb1 = floor(color);');
-  Line('  mediump vec3 rgb2 = ceil(color);');
-  Line('  rgb2 = min(rgb2, color_table_clamp);');
+  //Line('  mediump vec3 delta = fract(color);');
+  //Line('  mediump vec3 rgb_ofs = floor(color);');
+  //Line('  mediump vec3 rgb2 = ceil(color);');
+  //Line('  rgb2 = min(rgb2, color_table_clamp);');
+
+  Line('  mediump float blue1 = floor(color.b);');
+  Line('  mediump float blue2 = ceil(color.b);');
 
   // loop up first color
-  Line('  mediump vec2 ofs = vec2(rgb1.r + rgb1.b * color_table_elements, rgb1.g);');
+  Line('  mediump vec2 ofs = vec2(color.r + blue1 * color_table_elements, color.g);');
   Line('  ofs.x /= (color_table_elements*color_table_elements);');
   Line('  ofs.y /= color_table_elements;');
   Line('  mediump vec3 temp = texture2D(color_table_texture, ofs).rgb;');
 
   // loop up second color
-  Line('  ofs = vec2(rgb2.r + rgb2.b * color_table_elements, rgb2.g);');
+  Line('  ofs = vec2(color.r + blue2 * color_table_elements, color.g);');
   Line('  ofs.x /= (color_table_elements*color_table_elements);');
   Line('  ofs.y /= color_table_elements;');
   Line('  mediump vec3 temp2 = texture2D(color_table_texture, ofs).rgb;');
 
   // interpolate
+  Line('lowp float delta = fract(color.b);');
   Line('return mix(temp, temp2, delta);	}');
 
   Result := S;
