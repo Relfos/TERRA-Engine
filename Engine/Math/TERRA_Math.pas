@@ -49,92 +49,100 @@ Const
   RAND_MAX = (MAXINT-1);
   INV_RAND_MAX = 1.0 / (RAND_MAX + 1);
 
-Function FloatMax(Const A,B:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
-Function FloatMin(Const A,B:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Type  
+  Float = Double;
 
-Function RandomFloat:Single; Overload;
-Function RandomFloat(Const min,max:Single):Single; Overload;
+Function FloatMax(Const A,B:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
+Function FloatMin(Const A,B:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
+
+Function RandomFloat:Float; Overload;
+Function RandomFloat(Const min,max:Float):Float; Overload;
 Function RandomInt(Const min,max:Integer):Integer;
 
-Function RealMod(Const n,d: Single): Single;
+Function RealMod(Const n,d: Float): Float;
 
-Function Atan2(Y,X : extended): Extended;
+Function Atan2(Y,X :Float):Float;
 
-Function SmoothStep(A,B,X:Single):Single;
+Function SmoothStep(A,B,X:Float):Float;
 
 Function NearestPowerOfTwo(P:Cardinal):Cardinal;
 
-Function LinearInterpolate(a,b, mu:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
-Function CubicInterpolate(y0, y1, y2, y3, mu:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
-Function CatmullRomInterpolate(y0, y1, y2, y3, mu:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
-Function HermiteInterpolate(pA, pB, vA, vB, u:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Function LinearInterpolate(a,b, mu:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
+Function CubicInterpolate(y0, y1, y2, y3, mu:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
+Function CatmullRomInterpolate(y0, y1, y2, y3, mu:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
+Function HermiteInterpolate(pA, pB, vA, vB, u:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
 
-Function QuadraticBezierCurve(y0, y1, y2, mu:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
-Function CubicBezierCurve(y0, y1, y2, y3, mu:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Function QuadraticBezierCurve(y0, y1, y2, mu:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
+Function CubicBezierCurve(y0, y1, y2, y3, mu:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
 
-Function InvSqrt(X:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Function InvSqrt(X:Single):Float; {$IFDEF FPC} Inline;{$ENDIF}
 
 
-Function Pow(X, Y:Single):Single;
+Function FloatMod(const x,y: Float):Float;
 
-Function FloatMod(const x,y: Single):Single;
+Function Sgn(Const X:Float):Float;
 
-Function Sgn(Const X:Single):Single;
+Function SmoothCurve(Delta:Float):Float;
+Function SmoothCurveWithOffset(Delta, Offset:Float):Float;
 
-Function SmoothCurve(Delta:Single):Single;
-Function SmoothCurveWithOffset(Delta, Offset:Single):Single;
-
-Function Ln(Const X:Single):Single;
-Function Log2(Const X:Single):Single; Overload;
-Function Log2(X:Integer):Single; Overload;
-Function LNXP1(Const x:Single):Single;
+Function Ln(Const X:Float):Float;
+Function Log2(Const X:Float):Float;
+//Function Log2(X:Integer):Float; Overload;
+Function LNXP1(Const x:Float):Float;
 
 Function float32_unpack(Const x:Cardinal):Single;
 
-Function ArcSin(Const X:Single):Single;
-Function ArcCos(Const X:Single):Single;
+Function ArcSin(Const X:Float):Float;
+Function ArcCos(Const X:Float):Float;
 
-Function Floor(Const X:Single):Integer;
-Function Ceil(Const X:Single):Integer;
+Function Floor(Const X:Float):Integer;
+Function Ceil(Const X:Float):Integer;
 
-Function Power(Base:Single; Const Power: Integer): Single; Overload;
-Function Power(Const Base, Power:Integer):Single; Overload;
-Function Power(Const Base,Power:Single):Single; Overload;
+Function Power(Base:Float; Const Power: Integer): Float; Overload;
+Function Power(Const Base, Power:Integer):Float; Overload;
+Function Power(Const Base,Power:Float):Float; Overload;
+
+Function Exp(Const X:Float): Float;
 
 Implementation
 Uses Math;
 
-Function Power(Const Base, Power:Integer):Single;
+Const EulerNumber = 2.71828182846;
+
+Function Power(Const Base, Power:Integer):Float;
 Var
   I:Integer;
+  Temp:Double;
 Begin
-  Result := 1;
+  Temp := 1;
 
   For I:=0 To Pred(Power) Do
-    Result := Result * Base;
+    Temp := Temp * Base;
+
+  Result := Temp;
 End;
 
-Function Floor(Const X:Single):Integer;
+Function Floor(Const X:Float):Integer;
 Begin
   Result := Math.Floor(X);
 End;
 
-Function Ceil(Const X:Single):Integer;
+Function Ceil(Const X:Float):Integer;
 Begin
   Result := Math.Ceil(X);
 End;
 
-Function ArcCos(Const X:Single):Single;
+Function ArcCos(Const X:Float):Float;
 Begin
   Result := Math.ArcCos(X);
 End;
 
-Function ArcSin(Const X:Single):Single;
+Function ArcSin(Const X:Float):Float;
 Begin
   Result := Math.ArcSin(X);
 End;
 
-Function Sgn(Const X:Single):Single;
+Function Sgn(Const X:Float):Float;
 Begin
   If (X<0) Then
     Result := -1
@@ -145,12 +153,12 @@ Begin
     Result := 0
 End;
 
-Function Log2(Const X:Single):Single;
+Function Log2(Const X:Float):Float;
 Begin
   Result := Ln(x) * 1.4426950408889634079;    // 1/ln(2)
 End;
 
-Function Log2(X:Integer):Single;
+{Function Log2(X:Integer):Float;
 Begin
   Result := 0;
   X := X Shr 1;
@@ -159,10 +167,10 @@ Begin
     X := X Shr 1;
     Result := Result + 1;
   End;
-End;
+End;}
 
-{$IFDEF CPU386}
-Function FloatMod(Const X,Y:Single):Single; Assembler; Register;
+(*{$IFDEF CPU386}
+Function FloatMod(Const X,Y:Float):Float; Assembler; Register;
 Asm
   fld dword ptr[y]
   fld dword ptr[x]
@@ -173,35 +181,37 @@ Asm
   jp @r
   fstp st(1)
 End;
-{$ELSE}
-Function FloatMod(const x,y: Single):Single;
+{$ELSE}*)
+
+Function FloatMod(const x,y: Float):Float;
 Var
   I:Integer;
 Begin
   I := trunc(x / y);
   Result := x - y * i;
 End;
-{$ENDIF}
+//{$ENDIF}
 
-{$IFDEF NOTUSED_WINDOWS}
-Function Atan2(Y,X : extended): Extended;
+{Function Atan2(Y,X :Float): Float;
 Assembler;
 asm
   fld [y]
   fld [x]
   fpatan
-end;
-{$ELSE}
+end;}
 
-Function atan2 (y, x : Extended) : Extended;
+Function atan2 (y, x :Float):Float;
 Begin
-  if x > 0       then  result := arctan (y/x)
-  else if x < 0  then  result := arctan (y/x) + pi
-  else                 result := pi/2 * sgn (y);
+  If x > 0 Then
+    Result := arctan (y/x)
+  Else
+  If x < 0 Then
+    Result := arctan (y/x) + pi
+  Else
+    Result := pi/2 * sgn (y);
 End;
-{$ENDIF}
 
-Function RealMod(Const n,d: Single): Single;
+Function RealMod(Const n,d: Float): Float;
 Var
   i: integer;
 Begin
@@ -209,12 +219,13 @@ Begin
   result := n - d * i;
 End;
 
-Function Power(Base:Single; Const Power: Integer): Single;
+Function Power(Base:Float; Const Power: Integer): Float;
 Var
   Y:Integer;
+  Temp:Double;
 begin
   Y := Abs(Power);
-  Result := 1.0;
+  Temp := 1.0;
   While Y > 0 do
   Begin
     While Not Odd(Y) do
@@ -223,22 +234,51 @@ begin
       Base := Base * Base;
     End;
     Dec(Y);
-    Result := Result * Base;
+    Temp := Temp * Base;
   End;
 
   If Power < 0.0 Then
-    Result := 1.0 / Result;
+    Temp := 1.0 / Temp;
+
+  Result := Temp;
 End;
 
-Function Power(Const Base,Power:Single):Single; Overload;
+Function Exp(Const X:Float): Float;
+Var
+  I, N:Integer;
+  D:Double;
+Begin
+  If (X = 1.0) Then
+    Result := EulerNumber
+  Else
+  If (x < 0) Then
+    Result := 1.0 / Exp(-X)
+  Else
+  Begin
+    N := 2;
+    Result := 1.0 + X;
+    Repeat
+      D := X;
+      For I:=2 To N Do
+      Begin
+        D := D * (X / I);
+      End;
+
+      Result := Result + D;
+      Inc(N);
+    Until (d <= Epsilon);
+  End;
+End;
+
+Function Power(Const Base,Power:Float):Float; Overload;
 Begin
   Result := Exp(Power * Ln(Base));
 End;
 
 // LN reimplemented here because FPC implementation of LN crashes on Android devices with Tegra 2 cpus..
-Function Ln(Const X:Single):Single;
+Function Ln(Const X:Float):Float;
 Var
-  Lo, Hi, Mid, Val, E:Single;
+  Lo, Hi, Mid, Val:Float;
 Begin
   If(X<0) Then
   Begin
@@ -253,11 +293,9 @@ Begin
     Exit;
   End;
 
-  E := exp(1);
-
-  If (X>E) Then
+  If (X > EulerNumber) Then
   Begin
-    Result := ln(X/E) + 1;
+    Result := Ln(X / EulerNumber) + 1;
     Exit;
   End;
 
@@ -309,9 +347,9 @@ Begin
   Result := x * R;
 End;
 
-Function LNXP1(Const x:Single):Single;
+Function LNXP1(Const x:Float):Float;
 Var
-  y:Single;
+  y:Float;
 begin
   If (x>=4.0) Then
       Result := ln(1.0+x)
@@ -330,7 +368,7 @@ begin
   End;
 End;
 
-Function Pow(X, Y:Single):Single;
+{Function Pow(X, Y:Float):Float;
 Begin
   If (X<=0) Then
     Result := 0
@@ -343,7 +381,7 @@ Begin
     Result := IntPower(X, Integer(Trunc(Y)))
   Else
     Result := Exp(Y * Ln(X));
-End;
+End;}
 
 Function NearestPowerOfTwo(P:Cardinal):Cardinal;
 Var
@@ -360,7 +398,7 @@ Begin
   End;
 End;
 
-Function SmoothCurveWithOffset(Delta,Offset:Single):Single;
+Function SmoothCurveWithOffset(Delta,Offset:Float):Float;
 Begin
 {  Offset := Offset * 2;
   Delta := SmoothCurve(Delta) * Offset;}
@@ -377,19 +415,19 @@ Begin
   End;
 End;
 
-Function SmoothCurve(Delta:Single):Single;
+Function SmoothCurve(Delta:Float):Float;
 Begin
   Result := Abs(Sin(Delta*PI));
 End;
 
-Function LinearInterpolate(a,b, mu:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Function LinearInterpolate(a,b, mu:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result := (B * Mu) + A * (1.0 - Mu);
 End;
 
-Function CubicInterpolate(y0, y1, y2, y3, mu:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Function CubicInterpolate(y0, y1, y2, y3, mu:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
 Var
-   a0,a1,a2,a3,mu2:Single;
+   a0,a1,a2,a3,mu2:Float;
 Begin
    mu2 := (mu*mu);
    a0 := y3 - y2 - y0 + y1;
@@ -399,9 +437,9 @@ Begin
    Result := (a0 * mu * mu2) + (a1 * mu2) + (a2 * mu) + a3;
 End;
 
-Function CatmullRomInterpolate(y0, y1, y2, y3, mu:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Function CatmullRomInterpolate(y0, y1, y2, y3, mu:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
 Var
-   a0,a1,a2,a3,mu2:Single;
+   a0,a1,a2,a3,mu2:Float;
 Begin
    mu2 := (mu*mu);
    a0 := (-0.5 * y0) + (1.5 * y1) - (1.5 * y2) + (0.5 * y3);
@@ -411,9 +449,9 @@ Begin
    Result := (a0 * mu * mu2) + (a1 * mu2) + (a2 * mu) + a3;
 End;
 
-Function HermiteInterpolate(pA, pB, vA, vB, u:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Function HermiteInterpolate(pA, pB, vA, vB, u:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
 Var
-  u2, u3, B0,B1,B2,B3:Single;
+  u2, u3, B0,B1,B2,B3:Float;
 Begin
   u2 := (u*u);
   u3 := u2*u;
@@ -424,22 +462,22 @@ Begin
   Result := ( B0*pA + B1*pB + B2*vA + B3*vB );
 End;
 
-Function QuadraticBezierCurve(y0, y1, y2,  mu:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Function QuadraticBezierCurve(y0, y1, y2,  mu:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result := Sqr(1-mu) * y0 + 2 * (1-mu) * y1  + Sqr(mu) * y2;
 End;
 
-Function CubicBezierCurve(y0, y1, y2, y3, mu:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Function CubicBezierCurve(y0, y1, y2, y3, mu:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result := (1-mu) * Sqr(1-mu) * y0 + 3 * Sqr(1-mu) * y1  + 3 * (1-mu) * Sqr(mu) * y2 + Sqr(mu) * mu * y3;
 End;
 
-Function FloatMax(Const A,B:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Function FloatMax(Const A,B:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   If A>B Then Result:=A Else Result:=B;
 End;
 
-Function FloatMin(Const A,B:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Function FloatMin(Const A,B:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   If A<B Then Result:=A Else Result:=B;
 End;
@@ -450,7 +488,7 @@ Var
     {$ENDIF}
 
 
-Function RandomFloat:Single; {$IFNDEF OXYGENE} Overload; {$ENDIF}
+Function RandomFloat:Float; {$IFNDEF OXYGENE} Overload; {$ENDIF}
 Begin
   {$IFDEF OXYGENE}
   If (Rnd = Nil) Then
@@ -461,7 +499,7 @@ Begin
   {$ENDIF}
 End;
 
-Function RandomFloat(Const min,max:Single):Single; {$IFNDEF OXYGENE} Overload; {$ENDIF}
+Function RandomFloat(Const min,max:Float):Float; {$IFNDEF OXYGENE} Overload; {$ENDIF}
 Begin
   {$IFDEF OXYGENE}
     If (Rnd = Nil) Then
@@ -477,7 +515,7 @@ Begin
   Result := Random(Succ(Max-Min)) + Min;
 End;
 
-Function SmoothStep(A, B, X:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Function SmoothStep(A, B, X:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   If (x < a) Then
     Result := 0.0
@@ -492,18 +530,19 @@ Begin
 End;
 
 {$IFDEF OXYGENE}
-Function InvSqrt(X:Single):Single;
+Function InvSqrt(X:Single):Float;
 Begin
     Result := 1.0 / System.Math.Sqrt(X);
 End;
 {$ELSE}
 {$OVERFLOWCHECKS OFF}
-Function InvSqrt(X:Single):Single; {$IFDEF FPC} Inline;{$ENDIF}
+
+Function InvSqrt(X:Single):Float; {$IFDEF FPC} Inline;{$ENDIF}
 Var
   I:Cardinal;
   xhalf:Single;
 Begin
-  xhalf := 0.5*x;
+  xhalf := 0.5 * x;
   i := PCardinal(@x)^;         // get bits for floating value
   i := $5f3759df - (i Shr 1);   // give initial guess y0
   x := PSingle(@i)^;           // convert bits back to float

@@ -200,7 +200,7 @@ Type
 Implementation
 Uses {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
   TERRA_RenderTarget, TERRA_OS, TERRA_Math
-  {$IFNDEF DISABLECOLORGRADING},TERRA_ColorTable {$ENDIF};
+  {$IFNDEF DISABLECOLORGRADING},TERRA_ColorGrading {$ENDIF};
 
 Const
   BatchSize = 128 ;

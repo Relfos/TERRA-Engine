@@ -819,7 +819,7 @@ Type
 Implementation
 Uses TERRA_Error, TERRA_Application, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, 
   TERRA_CubeMap, TERRA_ShaderFactory, TERRA_OS,
-  TERRA_FileManager, TERRA_ColorTable, TERRA_Solids;
+  TERRA_FileManager, TERRA_ColorGrading, TERRA_Solids;
 
 Type
   MeshDataBlockHandler = Function(Target:Mesh; Size:Integer; Source:Stream):Boolean;

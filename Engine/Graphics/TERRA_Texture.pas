@@ -170,7 +170,7 @@ Procedure RegisterTextureFormat(ClassType:TextureClass; Extension:AnsiString);
 
 Implementation
 Uses TERRA_Error, TERRA_Utils, TERRA_Application, TERRA_Log, TERRA_GraphicsManager, TERRA_OS,
-  TERRA_FileUtils, TERRA_FileIO, TERRA_FileManager, TERRA_ColorTable
+  TERRA_FileUtils, TERRA_FileIO, TERRA_FileManager, TERRA_ColorGrading
   {$IFDEF FRAMEBUFFEROBJECTS},TERRA_FramebufferObject{$ENDIF};
 
 Var

@@ -1,5 +1,8 @@
 Unit TERRA_ZLib;
 
+{$RANGECHECKS OFF}
+{$OVERFLOWCHECKS OFF}
+
 {$I terra.inc}
 
 Interface
@@ -3404,8 +3407,7 @@ begin
           Inc(s.sub.trees.index);
         end;
         s.sub.trees.bb := 7;
-        t := inflate_trees_bits(s.sub.trees.blens^, s.sub.trees.bb,
-                                s.sub.trees.tb, s.hufts^, z);
+        t := inflate_trees_bits(s.sub.trees.blens^, s.sub.trees.bb, s.sub.trees.tb, s.hufts^, z);
         if (t <> Z_OK) then
         begin
           ZFREE(z, s.sub.trees.blens);

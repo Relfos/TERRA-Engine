@@ -894,17 +894,18 @@ End;
 
 Procedure Widget.SetVisible(Value:Boolean);
 Begin
+  {If (Self = Nil) Then
+    Exit;}
+
   If (Value = _Visible) Then
     Exit;
 
-//  Log(logDebug,'UI',Self._Name+' visibility is now '+BoolToString(Value));
+  //Log(logDebug,'UI', Self._Name+' visibility is now '+BoolToString(Value));
+    
   _Visible := Value;
 
   If Value Then
     _VisibleFrame := GraphicsManager.Instance.FrameID;
-
-  If (_Name='MENUBTN') Then
-    IntToString(2);
 
   If (Not Value) And (_UsingHighLightProperties) Then
     Self.StopHighlight();

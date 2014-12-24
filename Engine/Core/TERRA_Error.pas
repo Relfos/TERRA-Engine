@@ -109,7 +109,7 @@ Begin
   Log(logDebug,'System','Callstack'+crLf+CallStack);
   {$ENDIF}
 
-    Raise TERRAException.Create(Desc);
+  Raise TERRAException.Create(Desc);
 End;
 
 

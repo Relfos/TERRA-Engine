@@ -136,7 +136,8 @@ Var
 {$ENDIF}
 Begin
 {$IFDEF STEAM}
-  Application.Instance.Client.OnIAP_External(ID, UserData);
+  IAP_Callback_Canceled(PAnsiChar(ID));
+  //Application.Instance.Client.OnIAP_External(ID, UserData);
   Exit;
 {$ENDIF}
 

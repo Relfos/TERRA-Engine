@@ -53,7 +53,6 @@ Const
 Type
   Stream = Class(TERRAObject)
      Protected
-      _Offset:Cardinal;
       _Pos:Cardinal;
       _Size:Cardinal;
       _Mode:Integer;
@@ -134,7 +133,6 @@ Begin
   _Name:='';
   _Mode:=StreamMode;
   _Pos:=0;
-  _Offset:=0;
 End;
 
 Destructor Stream.Destroy;

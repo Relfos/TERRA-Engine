@@ -142,7 +142,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Utils, TERRA_Mesh, TERRA_GraphicsManager, TERRA_ColorTable, TERRA_OS,
+Uses TERRA_Utils, TERRA_Mesh, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_OS,
   {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
 Var
   _ShaderFactory_Instance:ApplicationObject;

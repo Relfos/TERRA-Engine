@@ -294,7 +294,7 @@ Begin
   If (t<=0) Then
     Result := B
   Else
-    Result :=  c * Pow(2, 10 * (t/d - 1)) + b - c * 0.001;
+    Result :=  c * Power(2, 10 * (t/d - 1)) + b - c * 0.001;
 End;
 
 // Easing equation float for an exponential (2^t) easing out: decelerating from zero velocity.
@@ -303,7 +303,7 @@ Begin
   If (t>=d) Then
     Result := b+c
   Else
-    Result := c * 1.001 * (-Pow(2, -10 * t/d) + 1) + b;
+    Result := c * 1.001 * (-Power(2, -10 * t/d) + 1) + b;
 End;
 
 // Easing equation float for an exponential (2^t) easing in/out: acceleration until halfway, then deceleration.
@@ -319,9 +319,9 @@ Begin
   Begin
     T := T / D;
     If (T/2 < 1) Then
-      Result := c/2 * Pow(2, 10 * (t - 1)) + b - c * 0.0005
+      Result := c/2 * Power(2, 10 * (t - 1)) + b - c * 0.0005
     Else
-      Result := c/2 * 1.0005 * (-Pow(2, -10 * --t) + 2) + b;
+      Result := c/2 * 1.0005 * (-Power(2, -10 * --t) + 2) + b;
   End;
 End;
 
@@ -398,7 +398,7 @@ Begin
   S := p/4;
 
   T := T - 1;
-  PostFix := a*pow(2,10*T);
+  PostFix := a*Power(2,10*T);
   Result := -(postFix * sin((t*d-s)*(2*PI)/p )) + b;
 End;
 
@@ -432,7 +432,7 @@ Begin
     s := p/(2*PI) * ArcSin(c/a);
   End;
 
-  Result := (a*Pow(2,-10*t) * Sin( (t*d-s)*(2*PI)/p ) + c + b);
+  Result := (a*Power(2,-10*t) * Sin( (t*d-s)*(2*PI)/p ) + c + b);
 End;
 
 // Easing equation float for an elastic (exponentially decaying sine wave) easing in/out: acceleration until halfway, then deceleration.
@@ -460,12 +460,12 @@ Begin
   If (t < 1) Then
   Begin
     T := T - 1;
-    postFix := a*pow(2,10*t); // postIncrement is evil
+    postFix := a*Power(2,10*t); // postIncrement is evil
     Result := -0.5*(postFix* sin( (t*d-s)*(2*PI)/p )) + b;
   End Else
   Begin
     T := T - 1;
-    postFix := a*pow(2,-10*t); // postIncrement is evil
+    postFix := a*Power(2,-10*t); // postIncrement is evil
     Result := postFix * sin( (t*d-s)*(2*PI)/p )*0.5 + c + b;
   End;
       {

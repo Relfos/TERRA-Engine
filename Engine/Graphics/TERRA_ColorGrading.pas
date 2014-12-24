@@ -111,7 +111,9 @@ End;
 Function ColorTableBind(ColorTableTex:Texture; Slot:Integer):Boolean;
 Var
   MyShader:Shader;
-  Scale, Elements:Single;
+  Scale:Single;
+  TableWidth:Single;
+  Elements:Single;
 Begin
   Result := False;
 
@@ -130,10 +132,12 @@ Begin
   End;
 
   Elements := ColorTableTex.Height;
+  TableWidth := ColorTableTex.Width;
 
   MyShader.SetUniform(ColorTableUniformName, Slot);
-  MyShader.SetUniform('color_table_elements', 1.0 / Sqr(Elements));
-  MyShader.SetUniform('color_table_scale', 1.0 / Elements);
+  MyShader.SetUniform('color_table_elements', Elements);
+  MyShader.SetUniform('color_table_width', 1 / TableWidth);
+  MyShader.SetUniform('color_table_scale', VectorCreate(Elements, 1.0 / Elements, 1.0 / (Elements - 1)));
 //  MyShader.SetUniform('color_table_clamp', VectorUniform(Elements-1));
 
   ColorTableTex.BilinearFilter := True;
@@ -150,39 +154,43 @@ Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
 	Line('  uniform sampler2D color_table_texture;');
-  Line('  uniform mediump float color_table_elements;');
-  Line('  uniform mediump float color_table_scale;');
-  Line('  uniform mediump vec3 color_table_clamp;');
+  Line('  uniform highp float color_table_elements;');
+  Line('  uniform highp float color_table_width;');
+  Line('  uniform mediump vec3 color_table_scale;');
+
 	Line('lowp vec3 ColorTableLookup(highp vec3 color)	{');
 
-  Line('  mediump float delta = color.b * 255.0;');
-  Line('  mediump float blue1 = delta;');
-  Line('  mediump float blue2 = delta;');
+  Line('  color *= color_table_scale.x;');
 
-  Line('  delta = delta  * color_table_scale;');
+  Line('  mediump float delta = fract(color.b);');
 
-  Line('  delta = fract(delta);');
+  Line('  highp float red = floor(color.r);');
+  Line('  highp float green = floor(color.g);');
+  Line('  highp float blue1 = floor(color.b);');
 
-  Line('  blue1 = floor(blue1 * color_table_scale);');
-  Line('  blue2 = ceil(blue2 * color_table_scale);');
+//  calculate first offset
+  Line('  highp float px = (color_table_elements * blue1 + red + 0.5) * color_table_width;');
+  Line('  highp float py = green * color_table_scale.z;');
 
-  Line('  blue1 = blue1 / 255.0;');
-  Line('  blue2 = blue2 / 255.0;');
+  Line('  highp float minpx = (color_table_elements * blue1 + 0.5) * color_table_width;');
+  Line('  highp float maxpx = (color_table_elements * (blue1 + 1.0) - 0.5) * color_table_width;');
 
-  Line('  mediump float green = color.g;');
-  Line('  mediump float red = color.r * color_table_elements;');
+  Line('  px = min(px, maxpx);');
+  Line('  px = max(px, minpx);');
 
   // loop up first color
-  Line('  mediump vec2 ofs = vec2(red + blue1, green);');
+  Line('  mediump vec2 ofs = vec2(px, py);');
   Line('  mediump vec3 temp1 = texture2D(color_table_texture, ofs).rgb;');
 
+//  calculate second offset
+  Line('  px += color_table_scale.y;');
+  Line('  px = min(px, 1.0);');
+
   // loop up second color
-  Line('  ofs = vec2(red + blue2, green);');
+  Line('  ofs = vec2(px, py);');
   Line('  mediump vec3 temp2 = texture2D(color_table_texture, ofs).rgb;');
 
   // interpolate
-  //Line('return vec4(delta);	}');
-  //Line('return temp1;	}');
   Line('return mix(temp1, temp2, delta);	}');
 
   Result := S;
