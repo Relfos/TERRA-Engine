@@ -535,6 +535,9 @@ Begin
     If (_Encoding<>seASCII) Then
       S := '';
   End;
+  
+  A := 0;
+  B := 0;
 
   While (Not Self.EOF) Do
   Begin
@@ -714,9 +717,10 @@ Var
   P, P2:PByte;
   I:Integer;
 Begin
+  Result := 0;
+  
   If (Length=0) Then
   Begin
-    Result := 0;
     Exit;
   End;
 
@@ -725,7 +729,6 @@ Begin
   If Not Assigned(_Buffer) Then
   Begin
     RaiseError('Buffer not assigned.');
-    Result := 0;
     Exit;
   End;
 
@@ -756,7 +759,7 @@ Begin
   End;
 
   Inc(_Pos,Length);
-  Result:=Length;
+  Result := Length;
 End;
 
 Function MemoryStream.Write(Data:Pointer; Length:Cardinal):Cardinal;

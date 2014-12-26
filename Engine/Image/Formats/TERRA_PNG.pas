@@ -839,7 +839,9 @@ Var
   ChunkHandler:LPNGChunkHandler;
   Loader:PNGLoader;
 Begin
-  {$IFDEF LOGGING}
+  {$IFDEF DEBUG_CORE}
+  Log(logDebug, 'PNG', 'Got PNG stream: '+Source.Name+' -> '+IntToString(Source.Position)+' / '+IntToString(Source.Size));
+
   Log(logDebug, 'PNG', 'Reading header...');
   {$ENDIF}
 
@@ -861,7 +863,7 @@ Begin
 
   // Load chunks
   Repeat
-    {$IFDEF LOGGING}
+    {$IFDEF DEBUG_CORE}
     Log(logDebug, 'PNG', 'Reading chunks...'+IntToString(Source.Position));
     {$ENDIF}
 
@@ -869,7 +871,7 @@ Begin
     ByteSwap32(Cardinal(Chunk.Size));
     Source.Read(@Chunk.Name[0], 4);
 
-    {$IFDEF LOGGING}
+    {$IFDEF DEBUG_CORE}
     Log(logDebug, 'PNG', 'Found chunk: '+Chunk.Name + ' , size: '+IntToString(Chunk.Size));
     {$ENDIF}
 

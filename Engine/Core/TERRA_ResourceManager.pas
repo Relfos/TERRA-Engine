@@ -446,13 +446,18 @@ Begin
 End;
 
 Function ResourceManager.ResolveResourceLink(Const ResourceName: AnsiString):AnsiString;
+Const
+	LinkExtension = '.link';
 Var
   Name:AnsiString;
   Src:Stream;
 Begin
   Result := '';
+  
+  If Pos(LinkExtension, ResourceName)>0 Then
+  	Exit;
 
-  Src := FileManager.Instance.OpenFileStream(ResourceName + '.link');
+  Src := FileManager.Instance.OpenFileStream(ResourceName + LinkExtension);
   If Assigned(Src) Then
   Begin
     Src.ReadLine(Name);

@@ -212,7 +212,9 @@ End;
 Function GetImageExtension(Index:Integer):ImageClassInfo;
 Begin
   If (Index>=0) And (Index<_ImageExtensionCount) Then
-    Result := _ImageExtensions[Index];
+    Result := _ImageExtensions[Index]
+  Else
+  	FillChar(Result, SizeOf(Result), 0);
 End;
 
 Function GetImageLoader(Source:Stream):ImageLoader;

@@ -2283,6 +2283,12 @@ Begin
     Result := False;
     Exit;
   End;
+  
+  If (Key = keyShift) Or (Key = keyControl) Or (Key = keyAlt) Then
+  Begin
+    Result := False;
+    Exit;
+  End;
 
   {$IFDEF DEBUG_CORE}Log(logDebug, 'UI', 'EditText: Got key : '+IntToString(Key));{$ENDIF}
   {$IFDEF DEBUG_CORE}Log(logDebug, 'UI', 'Backspace Is  '+IntToString(keyBackspace));{$ENDIF}
@@ -2591,6 +2597,7 @@ Begin
     layoutVertical: Max := VerticalSpacing;
   End;
 
+  Max := 0.0;
   For I:=0 To Pred(Self.ChildrenCount) Do
   Begin
     W := Self.GetChild(I);
@@ -2605,6 +2612,7 @@ Begin
     End;
   End;
 
+  Padding := 0.0;
   Case LayoutMode Of
     layoutHorizontal: Padding := Width - Max;
     layoutVertical: Padding := Height - Max;

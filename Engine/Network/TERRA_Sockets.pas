@@ -606,6 +606,7 @@ Var
   N:Byte;
 Begin
   S:='';
+  N := 0;
   Repeat
     If (Read(@N,1)<1) Or (N=10) Then
       Break;

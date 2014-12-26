@@ -239,8 +239,12 @@ end;
 
 function EdgeList.Get(Index: Integer): Pointer;
 begin
-  if (Index < 0) or (Index >= FCount) then
-    Exit;
+  If (Index < 0) or (Index >= FCount) then
+  Begin
+  	Result := Nil;
+  	Exit;
+  End;
+  
   Result := FList^[Index];
 end;
 

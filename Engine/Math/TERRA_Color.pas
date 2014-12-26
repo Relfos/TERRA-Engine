@@ -157,7 +157,10 @@ Function ColorCreate(HexValue:AnsiString):Color;
   End;
 Begin
   If (Length(HexValue)<6) Then
+  Begin
+  	Result := ColorNull;
     Exit;
+  End;
 
   If (HexValue[1]='#') Then
     HexValue := Copy(HexValue, 2, MaxInt);

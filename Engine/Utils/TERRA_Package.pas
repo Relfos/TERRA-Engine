@@ -418,6 +418,8 @@ Var
   I, N, Count:Integer;
   CRC:Cardinal;
 Begin
+	Result := Nil;
+	
   If Not Assigned(Resource) Then
   Begin
     RaiseError('Package.LoadResource(): Null resource');

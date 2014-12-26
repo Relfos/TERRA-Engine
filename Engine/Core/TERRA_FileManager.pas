@@ -314,6 +314,8 @@ Var
     _Locations.Add(Location);
   End;
 Begin
+  Result := '';
+
   If (FileName='') Then
     Exit;
 
@@ -429,7 +431,7 @@ Var
 Begin
   Result:=Nil;
 
-  Log(logDebug, 'FileManager', 'Searching providers');
+  Log(logDebug, 'FileManager', 'Searching providers for '+FileName);
   For I:=0 To Pred(_ProviderCount) Do
   Begin
     If (_Providers[I].HasStream(FileName)) Then
@@ -477,7 +479,8 @@ Begin
       If (I>0) Then
         Result := Self.OpenFileStream(FileName, Mode)
       Else
-        Result := FileStream.Open(FileName,Mode);
+        Result := MemoryStream.Create(FileName, Mode);
+        //Result := FileStream.Open(FileName,Mode);
 
      (* If (Result.Size<=0) Then
       Begin

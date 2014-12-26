@@ -316,7 +316,10 @@ Begin
   If (Index>=0) And (Index<_VertexCount) Then
     Result := _VertexList[Index]
   Else
+  Begin
+  	Result.Position := VectorZero;
     RaiseError('Invalid vertex index');
+  End;
 End;
 
 Function SolidMesh.GetIndex(Index:Integer):Integer;

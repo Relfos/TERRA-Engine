@@ -483,9 +483,6 @@ Begin
     If (Not Assigned(_Application_Instance)) Or (Not Assigned(_Application_Instance.Client))  Then
         Exit;
 
-    If (_Application_Instance.InSplashScreen()) Then
-      Exit;
-
 //	Log(logDebug, 'App', 'ScreenWidth:' + IntToString(_ScreenWidth)+' ScreenHeight:' + IntToString(_ScreenHeight));
     Log(logDebug, 'game','got touch X:'+IntToString(X)+', Y:'+InTToString(Y));
 
@@ -503,9 +500,6 @@ Begin
     If (Not Assigned(_Application_Instance)) Or (Not Assigned(_Application_Instance.Client))  Then
         Exit;
 
-    If (_Application_Instance.InSplashScreen()) Then
-      Exit;
-
 //	Log(logDebug, 'game','untouch move X:'+IntToString(X)+', Y:'+InTToString(Y));
 //    iPhoneApplication(_Application_Instance).ConvertCoords(X,Y);
 //	Log(logDebug, 'game','convert move X:'+IntToString(X)+', Y:'+InTToString(Y));
@@ -521,9 +515,6 @@ Procedure ApplicationEndTouch(x,y:Integer); cdecl; export;
 Begin
     If (Not Assigned(_Application_Instance)) Or (Not Assigned(_Application_Instance.Client))  Then
         Exit;
-
-    If (_Application_Instance.InSplashScreen()) Then
-      Exit;
 
     X := Trunc(X * iOSScale);
     Y := Trunc(Y * iOSScale);
@@ -561,9 +552,6 @@ Begin
     If Not Assigned(_Application_Instance) Then
         Exit;
 
-    If (_Application_Instance.InSplashScreen()) Then
-      Exit;
-
   Application.Instance.AddVectorEvent(eventAccelerometer, x,y ,z);
 //Log(logDebug, 'game','accel X:'+FloatToString(X)+', Y:'+FloatToString(Y)+', Z:'+FloatToString(Z));
 End;
@@ -573,9 +561,6 @@ Begin
     If Not Assigned(_Application_Instance) Then
         Exit;
 
-    If (_Application_Instance.InSplashScreen()) Then
-      Exit;
-
   Application.Instance.AddVectorEvent(eventGyroscope, x,y ,z);
 //Log(logDebug, 'game','accel X:'+FloatToString(X)+', Y:'+FloatToString(Y)+', Z:'+FloatToString(Z));
 End;
@@ -584,9 +569,6 @@ Procedure ApplicationOnCompass(Heading, Pitch, Roll: Single); cdecl; export;
 Begin
     If Not Assigned(_Application_Instance) Then
         Exit;
-
-    If (_Application_Instance.InSplashScreen()) Then
-      Exit;
 
   Application.Instance.AddVectorEvent(eventCompass, Heading, Pitch, Roll);
 //Log(logDebug, 'game','accel X:'+FloatToString(X)+', Y:'+FloatToString(Y)+', Z:'+FloatToString(Z));

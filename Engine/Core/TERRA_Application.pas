@@ -339,6 +339,10 @@ Type
 
       _FolderManager:FolderManager;
 
+  		_DebuggerPresent:Boolean;
+
+      Function IsDebuggerPresent:Boolean; Virtual;
+
 			{$IFDEF HASTHREADS}
       //_InputThread:Thread;
       {$ENDIF}
@@ -401,7 +405,7 @@ Type
 			Procedure SwapBuffers; Virtual;
       Procedure Yeld; Virtual;
 
-      Procedure SetFullscreenMode(UseFullScreen:Boolean); Virtual;
+      Function SetFullscreenMode(UseFullScreen:Boolean):Boolean; Virtual;
       Procedure ToggleFullscreen;
 
       // ads
@@ -473,7 +477,6 @@ Type
       Procedure StopGyroscope(); Virtual;
       Procedure StopCompass(); Virtual;
 
-      Function IsDebuggerPresent:Boolean; Virtual;
       Function IsAppRunning(Name:AnsiString):Boolean; Virtual;
       Function IsAppInstalled(Name:AnsiString):Boolean; Virtual;
       Function IsDeviceRooted:Boolean; Virtual;
@@ -520,11 +523,13 @@ Type
       Property AspectRatio:Single Read GetAspectRatio;
 
       Property IsConsole:Boolean Read _IsConsole;
+      
+      Property DebuggerPresent:Boolean Read _DebuggerPresent;
+
 	End;
 
 Var
   Prefetching:Boolean;
-  DebuggerPresent:Boolean;
 
 Procedure ApplicationStart(Client:AppClient);
 Function InitializeApplicationComponent(TargetClass, DestroyBefore:ApplicationComponentClass):ApplicationObject;
@@ -1114,14 +1119,19 @@ Begin
   End;
 End;
 
-Procedure Application.SetFullscreenMode(UseFullScreen: Boolean);
+Function Application.SetFullscreenMode(UseFullScreen: Boolean):Boolean;
 Begin
   Log(logError, 'App','ToggleFullscreen not implemented!');
+  Result := False;
 End;
 
 Procedure Application.ToggleFullscreen;
+Var
+   NewMode:Boolean;
 Begin
-  SetFullscreenMode(Not Self._Fullscreen);
+     NewMode := Not Self._Fullscreen;
+     If SetFullscreenMode(NewMode) Then
+        Self._Fullscreen := NewMode;
 End;
 
 Procedure Application.SwapBuffers;
@@ -1157,8 +1167,6 @@ Begin
 
   _Application_Ready := True;
   _Application_Instance := CreateApplicationClass(Client);
-
-  DebuggerPresent := _Application_Instance.IsDebuggerPresent();
 
   Log(logDebug,'App', 'Starting engine.');
 
@@ -1541,7 +1549,7 @@ Begin
   {$ENDIF}
 
 	{$IFDEF OSX}
-  Result := osMacOS;
+  Result := osOSX;
   {$ENDIF}
 
 	{$IFDEF ANDROID}
@@ -2184,6 +2192,9 @@ Begin
   _ContextCounter := 1;
   _CPUCores := 1;
 
+
+  _DebuggerPresent := Self.IsDebuggerPresent();
+
   Result := True;
 End;
 
@@ -2195,4 +2206,4 @@ Initialization
 Finalization
   //ShutdownComponents;
 {$ENDIF}
-End.
+End.

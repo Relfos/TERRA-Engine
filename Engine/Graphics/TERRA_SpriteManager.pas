@@ -215,6 +215,7 @@ Var
   S:AnsiString;
 Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
 Begin
+	S := '';
 	Line('  const lowp vec3 LumCoeff = vec3(0.2125, 0.7154, 0.0721);');
 	Line('  const lowp float middleGray = 0.5;');
 	Line('lowp vec3 AdjustSaturation(lowp vec3 color, lowp float saturation)	{');
@@ -972,13 +973,13 @@ Begin
   Landscape := IsLandscapeOrientation(Application.Instance.Orientation);
 
   {$IFDEF PC}
+  Slot := 0;
   If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
   Begin
     glVertexPointer(3, GL_FLOAT, SizeOf(SpriteVertex), @_Vertices[0].Position);
     glTexCoordPointer(2, GL_FLOAT, SizeOf(SpriteVertex), @_Vertices[0].TexCoord);
     glColorPointer(4, GL_UNSIGNED_BYTE, SizeOf(SpriteVertex), @_Vertices[0].Color);
 
-    Slot := 0;
     If (_Saturation<1.0) Then
       SetupSaturationCombiners(Slot); //BIBI
   End;

@@ -368,7 +368,7 @@ Begin
   SendCommand('PASV');
   If GetStatus<>227 Then
   Begin
-    EndSession(ftp_TransferError);
+    Result := EndSession(ftp_TransferError);
     Exit;
   End;
 

@@ -177,7 +177,7 @@ Begin
   Exit;
 {$ENDIF}
 
-  If Application.Instance.IsDebuggerPresent() Then
+  If Application.Instance.DebuggerPresent Then
     IAP_Callback_Purchase(PAnsiChar(ID))
   Else
     IAP_Callback_Canceled(PAnsiChar(ID));

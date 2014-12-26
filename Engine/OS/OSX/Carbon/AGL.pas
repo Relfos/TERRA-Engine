@@ -33,7 +33,7 @@ type
 ** AGL opaque data.
  }
 
-   TAGLRendererInfo = Pointer;
+   TAGLGraphicsManagerInfo = Pointer;
 
    TAGLPixelFormat = Pointer;
 
@@ -48,8 +48,8 @@ type
 
 const
    AGL_NONE = 0;
-{ choose from all available renderers           }
-   AGL_ALL_RENDERERS = 1;     
+{ choose from all available GraphicsManagers           }
+   AGL_ALL_GraphicsManagerS = 1;     
 { depth of the index buffer                     }
    AGL_BUFFER_SIZE = 2;     
 { level in plane stacking                       }
@@ -91,9 +91,9 @@ const
    AGL_MINIMUM_POLICY = 51;     
 { choose largest buffers of type requested      }
    AGL_MAXIMUM_POLICY = 52;     
-{ choose an off-screen capable renderer         }
+{ choose an off-screen capable GraphicsManager         }
    AGL_OFFSCREEN = 53;     
-{ choose a full-screen capable renderer         }
+{ choose a full-screen capable GraphicsManager         }
    AGL_FULLSCREEN = 54;     
 { number of multi sample buffers                }
    AGL_SAMPLE_BUFFERS_ARB = 55;
@@ -110,23 +110,23 @@ const
 { request alpha filtering                       }
    AGL_SAMPLE_ALPHA = 61;     
 {
-** Renderer management
+** GraphicsManager management
  }
-{ request renderer by ID                        }
-   AGL_RENDERER_ID = 70;     
-{ choose a single renderer for all screens      }
-   AGL_SINGLE_RENDERER = 71;     
+{ request GraphicsManager by ID                        }
+   AGL_GraphicsManager_ID = 70;     
+{ choose a single GraphicsManager for all screens      }
+   AGL_SINGLE_GraphicsManager = 71;     
 { disable all failure recovery systems          }
    AGL_NO_RECOVERY = 72;     
-{ choose a hardware accelerated renderer        }
+{ choose a hardware accelerated GraphicsManager        }
    AGL_ACCELERATED = 73;     
 { choose the closest color buffer to request    }
    AGL_CLOSEST_POLICY = 74;     
-{ renderer does not need failure recovery       }
+{ GraphicsManager does not need failure recovery       }
    AGL_ROBUST = 75;     
 { back buffer contents are valid after swap     }
    AGL_BACKING_STORE = 76;     
-{ renderer is multi-processor safe              }
+{ GraphicsManager is multi-processor safe              }
    AGL_MP_SAFE = 78;     
 { can be used to render to a window             }
    AGL_WINDOW = 80;     
@@ -134,7 +134,7 @@ const
    AGL_MULTISCREEN = 81;     
 { virtual screen number                         }
    AGL_VIRTUAL_SCREEN = 82;     
-{ renderer is opengl compliant                  }
+{ GraphicsManager is opengl compliant                  }
    AGL_COMPLIANT = 83;    
    
    AGL_DISPLAY_MASK = 84;
@@ -144,11 +144,11 @@ const
 { can be used to render offline to a pbuffer	   }
    AGL_REMOTE_PBUFFER = 91;     
 {
-** Property names for aglDescribeRenderer
+** Property names for aglDescribeGraphicsManager
  }
 { #define AGL_OFFSCREEN          53  }
 { #define AGL_FULLSCREEN         54  }
-{ #define AGL_RENDERER_ID        70  }
+{ #define AGL_GraphicsManager_ID        70  }
 { #define AGL_ACCELERATED        73  }
 { #define AGL_ROBUST             75  }
 { #define AGL_BACKING_STORE      76  }
@@ -167,7 +167,7 @@ const
    AGL_MAX_AUX_BUFFERS = 107;     
    AGL_VIDEO_MEMORY = 120;     
    AGL_TEXTURE_MEMORY = 121;     
-   AGL_RENDERER_COUNT = 128;     
+   AGL_GraphicsManager_COUNT = 128;     
 {
 ** Integer parameter names
  }
@@ -216,8 +216,8 @@ const
    AGL_FORMAT_CACHE_SIZE = 501;     
 { Reset the pixel format cache                   }
    AGL_CLEAR_FORMAT_CACHE = 502;     
-{ Whether to retain loaded renderers in memory   }
-   AGL_RETAIN_RENDERERS = 503;     
+{ Whether to retain loaded GraphicsManagers in memory   }
+   AGL_RETAIN_GraphicsManagerS = 503;     
 { buffer_modes  }
    AGL_MONOSCOPIC_BIT = $00000001;     
    AGL_STEREOSCOPIC_BIT = $00000002;     
@@ -313,11 +313,11 @@ const
    AGL_NO_ERROR = 0;     
 { invalid pixel format attribute   }
    AGL_BAD_ATTRIBUTE = 10000;     
-{ invalid renderer property        }
+{ invalid GraphicsManager property        }
    AGL_BAD_PROPERTY = 10001;     
 { invalid pixel format             }
    AGL_BAD_PIXELFMT = 10002;     
-{ invalid renderer info            }
+{ invalid GraphicsManager info            }
    AGL_BAD_RENDINFO = 10003;     
 { invalid context                  }
    AGL_BAD_CONTEXT = 10004;     
@@ -368,16 +368,16 @@ function aglDevicesOfPixelFormat(pix:TAGLPixelFormat; ndevs:Integer):PAGLDevice;
 function aglSetWindowRef(ctx:TAGLContext;  window:WindowRef):Boolean;cdecl;external;
 
 {
-** Renderer information functions
+** GraphicsManager information functions
  }
 (* Const before type ignored *)
-function aglQueryRendererInfo(gdevs:PAGLDevice; ndev:Integer):TAGLRendererInfo;cdecl;external;
+function aglQueryGraphicsManagerInfo(gdevs:PAGLDevice; ndev:Integer):TAGLGraphicsManagerInfo;cdecl;external;
 
-procedure aglDestroyRendererInfo(rend:TAGLRendererInfo);cdecl;external;
+procedure aglDestroyGraphicsManagerInfo(rend:TAGLGraphicsManagerInfo);cdecl;external;
 
-function aglNextRendererInfo(rend:TAGLRendererInfo):TAGLRendererInfo;cdecl;external;
+function aglNextGraphicsManagerInfo(rend:TAGLGraphicsManagerInfo):TAGLGraphicsManagerInfo;cdecl;external;
 
-function aglDescribeRenderer(rend:TAGLRendererInfo; prop:Integer; value:Integer):Boolean;cdecl;external;
+function aglDescribeGraphicsManager(rend:TAGLGraphicsManagerInfo; prop:Integer; value:Integer):Boolean;cdecl;external;
 
 {
 ** Context functions
@@ -456,7 +456,7 @@ function aglUseFont(ctx:TAGLContext; fontID:Integer; face:Byte; size:Integer; fi
 function aglGetError:Integer;cdecl;external;
 
 (* Const before type ignored *)
-function aglErrorString(code:Integer):PChar;cdecl;external;
+function aglErrorString(code:Integer):PAnsiChar;cdecl;external;
 
 {
 ** Soft reset function
@@ -503,14 +503,14 @@ type
   PCGLContextObj = ^CGLContextObj;
   CGLPixelFormatObj = Pointer;
   PCGLPixelFormatObj = ^CGLPixelFormatObj;
-  CGLRendererInfoObj = Pointer;
+  CGLGraphicsManagerInfoObj = Pointer;
   CGLPBufferObj = Pointer;
 
 {
 ** Attribute names for CGLChoosePixelFormat and CGLDescribePixelFormat.
 }
   CGLPixelFormatAttribute = (
-	kCGLPFAAllRenderers       =   1,	{ choose from all available renderers          }
+	kCGLPFAAllGraphicsManagers       =   1,	{ choose from all available GraphicsManagers          }
 	kCGLPFADoubleBuffer       =   5,	{ choose a double buffered pixel format        }
 	kCGLPFAStereo             =   6,	{ stereo buffering supported                   }
 	kCGLPFAAuxBuffers         =   7,	{ number of aux buffers                        }
@@ -521,8 +521,8 @@ type
 	kCGLPFAAccumSize          =  14,	{ number of accum buffer bits                  }
 	kCGLPFAMinimumPolicy      =  51,	{ never choose smaller buffers than requested  }
 	kCGLPFAMaximumPolicy      =  52,	{ choose largest buffers of type requested     }
-	kCGLPFAOffScreen          =  53,	{ choose an off-screen capable renderer        }
-	kCGLPFAFullScreen         =  54,	{ choose a full-screen capable renderer        }
+	kCGLPFAOffScreen          =  53,	{ choose an off-screen capable GraphicsManager        }
+	kCGLPFAFullScreen         =  54,	{ choose a full-screen capable GraphicsManager        }
 	kCGLPFASampleBuffers      =  55,	{ number of multi sample buffers               }
 	kCGLPFASamples            =  56,	{ number of samples per multi sample buffer    }
 	kCGLPFAAuxDepthStencil    =  57,	{ each aux buffer has its own depth stencil    }
@@ -531,17 +531,17 @@ type
 	kCGLPFASupersample        =  60,	{ choose supersampling                         }
 	kCGLPFASampleAlpha        =  61,	{ request alpha filtering                      }
 
-	kCGLPFARendererID         =  70,	{ request renderer by ID                       }
-	kCGLPFASingleRenderer     =  71,	{ choose a single renderer for all screens     }
+	kCGLPFAGraphicsManagerID         =  70,	{ request GraphicsManager by ID                       }
+	kCGLPFASingleGraphicsManager     =  71,	{ choose a single GraphicsManager for all screens     }
 	kCGLPFANoRecovery         =  72,	{ disable all failure recovery systems         }
-	kCGLPFAAccelerated        =  73,	{ choose a hardware accelerated renderer       }
+	kCGLPFAAccelerated        =  73,	{ choose a hardware accelerated GraphicsManager       }
 	kCGLPFAClosestPolicy      =  74,	{ choose the closest color buffer to request   }
-	kCGLPFARobust             =  75,	{ renderer does not need failure recovery      }
+	kCGLPFARobust             =  75,	{ GraphicsManager does not need failure recovery      }
 	kCGLPFABackingStore       =  76,	{ back buffer contents are valid after swap    }
-	kCGLPFAMPSafe             =  78,	{ renderer is multi-processor safe             }
+	kCGLPFAMPSafe             =  78,	{ GraphicsManager is multi-processor safe             }
 	kCGLPFAWindow             =  80,	{ can be used to render to an onscreen window  }
 	kCGLPFAMultiScreen        =  81,	{ single window can span multiple screens      }
-	kCGLPFACompliant          =  83,	{ renderer is opengl compliant                 }
+	kCGLPFACompliant          =  83,	{ GraphicsManager is opengl compliant                 }
 	kCGLPFADisplayMask        =  84,	{ mask limiting supported displays             }
 	kCGLPFAPBuffer            =  90,	{ can be used to render to a pbuffer           }
 	kCGLPFARemotePBuffer      =  91,	{ can be used to render offline to a pbuffer   }
@@ -549,12 +549,12 @@ type
 );
   PCGLPixelFormatAttribute = ^CGLPixelFormatAttribute;
 {
-** Property names for CGLDescribeRenderer.
+** Property names for CGLDescribeGraphicsManager.
 }
-  CGLRendererProperty = (
+  CGLGraphicsManagerProperty = (
 	kCGLRPOffScreen           =  53,
 	kCGLRPFullScreen          =  54,
-	kCGLRPRendererID          =  70,
+	kCGLRPGraphicsManagerID          =  70,
 	kCGLRPAccelerated         =  73,
 	kCGLRPRobust              =  75,
 	kCGLRPBackingStore        =  76,
@@ -575,9 +575,9 @@ type
 	kCGLRPSampleAlpha         = 111,	{ support for alpha sampling                    }
 	kCGLRPVideoMemory         = 120,	{ total video memory                            }
 	kCGLRPTextureMemory       = 121,	{ video memory useable for texture storage      }
-	kCGLRPGPUVertProcCapable  = 122,	{ renderer capable of GPU vertex processing     }
-	kCGLRPGPUFragProcCapable  = 123,	{ renderer capable of GPU fragment processing   }
-	kCGLRPRendererCount       = 128 	{ the number of renderers in this renderer info }
+	kCGLRPGPUVertProcCapable  = 122,	{ GraphicsManager capable of GPU vertex processing     }
+	kCGLRPGPUFragProcCapable  = 123,	{ GraphicsManager capable of GPU fragment processing   }
+	kCGLRPGraphicsManagerCount       = 128 	{ the number of GraphicsManagers in this GraphicsManager info }
 );
 
 {
@@ -618,7 +618,7 @@ type
 { AGL_SURFACE_VOLATILE		 306    }
 	kCGLCPSurfaceSurfaceVolatile = 306,	{ 1 param.   Surface volatile state                                     }
 	kCGLCPReclaimResources		 = 308,	{ 0 params.  }
-	kCGLCPCurrentRendererID      = 309,	{ 1 param.   Retrieves the current renderer ID         }
+	kCGLCPCurrentGraphicsManagerID      = 309,	{ 1 param.   Retrieves the current GraphicsManager ID         }
 	kCGLCPGPUVertexProcessing	 = 310, { 1 param.   Currently processing vertices with GPU (get) }
 	kCGLCPGPUFragmentProcessing	 = 311 { 1 param.   Currently processing fragments with GPU (get) }
 );
@@ -629,7 +629,7 @@ type
   CGLGlobalOption = (
 	kCGLGOFormatCacheSize  = 501,	{ Set the size of the pixel format cache        }
 	kCGLGOClearFormatCache = 502,	{ Reset the pixel format cache if true          }
-	kCGLGORetainRenderers  = 503,	{ Whether to retain loaded renderers in memory  }
+	kCGLGORetainGraphicsManagers  = 503,	{ Whether to retain loaded GraphicsManagers in memory  }
 	kCGLGOResetLibrary     = 504,	{ *** DEPRECATED in MacOS X 10.4 ***            }
 	                             	{ Do a soft reset of the CGL library if true    }
 	kCGLGOUseErrorHandler  = 505	{ Call the Core Graphics handler on CGL errors  }
@@ -641,9 +641,9 @@ type
   CGLError = (
 	kCGLNoError            = 0,     { no error }
 	kCGLBadAttribute       = 10000,	{ invalid pixel format attribute  }
-	kCGLBadProperty        = 10001,	{ invalid renderer property       }
+	kCGLBadProperty        = 10001,	{ invalid GraphicsManager property       }
 	kCGLBadPixelFormat     = 10002,	{ invalid pixel format            }
-	kCGLBadRendererInfo    = 10003,	{ invalid renderer info           }
+	kCGLBadGraphicsManagerInfo    = 10003,	{ invalid GraphicsManager info           }
 	kCGLBadContext         = 10004,	{ invalid context                 }
 	kCGLBadDrawable        = 10005,	{ invalid drawable                }
 	kCGLBadDisplay         = 10006,	{ invalid graphics device         }

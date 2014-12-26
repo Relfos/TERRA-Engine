@@ -144,6 +144,11 @@ Begin
         Result.StartVertex := VectorCreate(Center.X, Center.Y, Center.Z);
         Result.EndVertex := VectorCreate(_Size.EndVertex.X, _Size.EndVertex.Y, _Size.EndVertex.Z);
       End;
+  Else
+  	Begin
+  		Result.StartVertex := VectorZero;
+  		FillChar(Result, SizeOf(Result), 0);
+  	End;
   End;
 End;
 

@@ -166,6 +166,8 @@ Begin
     3:  Dir := VectorCreate(0, 0, -1);
     4:  Dir := VectorCreate(0, 0.9999, 0.0001);
     5:  Dir := VectorCreate(0, -0.9999, 0.0001);
+    Else
+    	Dir := VectorUp;
     End;
     Cam.SetView(Dir);
 

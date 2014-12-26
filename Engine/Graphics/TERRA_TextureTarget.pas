@@ -97,12 +97,15 @@ End;
 
 Procedure TextureRenderTarget.EndCapture;
 Begin
+  If (Length(_Handles)>0) Then
+  Begin
 	glBindTexture(GL_TEXTURE_2D, _Handles[0]);			// Bind To The Blur Texture
 
 	// Copy viewPort To target texture
 	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 0, 0, _Width, _Height, 0);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
+  End;
 
   _Active := False;
 End;
@@ -116,4 +119,4 @@ Begin
 	glBindTexture(GL_TEXTURE_2D, _Handles[0]);
 End;
 
-End.
+End.

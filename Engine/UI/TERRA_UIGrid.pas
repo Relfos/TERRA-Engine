@@ -321,6 +321,8 @@ Begin
   _ColumnShift := Columns;
   _ColumnChange := _ColumnShift;
 
+  T := Nil;
+  
   For J:=0 To Pred(_GridY) Do
   For I:=0 To Pred(_GridX*3) Do
   Begin
@@ -331,8 +333,11 @@ Begin
     End;
   End;
 
-  T.OnFinished := ShiftColumnsRight;
-  T.UserData := Self;
+  If Assigned(T) Then
+  Begin
+  	T.OnFinished := ShiftColumnsRight;
+  	T.UserData := Self;
+  End;
 End;
 
 Procedure UIGrid.MoveRight(Columns:Integer);
@@ -344,6 +349,8 @@ Begin
   _ColumnShift := Columns;
   _ColumnChange := _ColumnShift;
 
+  T := Nil;
+	
   For J:=0 To Pred(_GridY) Do
   For I:=0 To Pred(_GridX*3) Do
   Begin
@@ -354,8 +361,11 @@ Begin
     End;
   End;
 
-  T.OnFinished := ShiftColumnsLeft;
-  T.UserData := Self;
+	If Assigned(T) Then
+	Begin
+  		T.OnFinished := ShiftColumnsLeft;
+ 	 	T.UserData := Self;
+ 	 End;
 End;
 
 

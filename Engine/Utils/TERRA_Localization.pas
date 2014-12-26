@@ -91,7 +91,7 @@ Function IsSupportedLanguage(Const Lang:AnsiString):Boolean;
 
 Function GetCurrencyForCountry(Const Country:AnsiString):AnsiString;
 
-Function GetLanguageDescription(Const Lang:AnsiString):AnsiString;
+Function GetLanguageDescription(Lang:AnsiString):AnsiString;
 
 Implementation
 Uses TERRA_Application, TERRA_FileManager, TERRA_Log, TERRA_Unicode;
@@ -673,8 +673,10 @@ Begin
   Result := True;
 End;
 
-Function GetLanguageDescription(Const Lang:AnsiString):AnsiString;
+Function GetLanguageDescription(Lang:AnsiString):AnsiString;
 Begin
+  Lang := UpStr(Lang);
+
   If Lang = language_English Then
     Result := 'English'
   Else

@@ -2156,6 +2156,10 @@ Begin
         M := Matrix4x4Multiply4x3(_Transform, M);
       End Else
         M := _Transform;
+    End Else
+    Begin
+    	M := Matrix4x4Identity;
+    	P := VectorZero;
     End;
 
     If _ParticleSystems[I].Emitter Is PositionalParticleEmitter Then
@@ -3035,13 +3039,17 @@ End;
 Function MeshGroup.GetVertex(Index:Integer):MeshVertex;  {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   If (Index>=0) And (Index<_VertexCount) Then
-    Result := _Vertices[Index];
+    Result := _Vertices[Index]
+   Else
+   	FillChar(Result, SizeOf(Result), 0);
 End;
 
 Function MeshGroup.GetTriangle(Index:Integer):Triangle;  {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   If (Index>=0) And (Index<_TriangleCount) Then
-    Result := _Triangles[Index];
+    Result := _Triangles[Index]
+   Else
+   	FillChar(Result, SizeOf(Result), 0);
 End;
 
 Function MeshGroup.GetVertexPointer(Index: Integer): PMeshVertex;
@@ -4065,6 +4073,8 @@ Begin
   Else
 {$ENDIF}
     PassCount := 1;
+    
+   UseOutline := False;
 
   For K:=1 To PassCount Do
   Begin
@@ -6109,7 +6119,8 @@ Begin
     Bone := _Animations[AnimationID].GetBone(BoneID);
     Result.Value := Bone.Positions.Keyframes[KeyID].Value;
     Result.Time := Bone.Positions.Keyframes[KeyID].Time;
-  End;
+  End Else
+  	FillChar(Result, SizeOf(Result), 0);
 End;
 
 Function CustomMeshFilter.GetPositionKeyCount(AnimationID, BoneID: Integer): Integer;
@@ -6133,7 +6144,8 @@ Begin
     Bone := _Animations[AnimationID].GetBone(BoneID);
     Result.Value := Bone.Rotations.Keyframes[KeyID].Value;
     Result.Time := Bone.Rotations.Keyframes[KeyID].Time;
-  End;
+  End Else
+  	FillChar(Result, SizeOf(Result), 0);
 End;
 
 Function CustomMeshFilter.GetRotationKeyCount(AnimationID, BoneID: Integer): Integer;
@@ -6695,4 +6707,4 @@ Finalization
     _MeshManager.Destroy;
 End.
 
-
+

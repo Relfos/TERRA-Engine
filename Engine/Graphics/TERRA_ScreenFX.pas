@@ -521,7 +521,7 @@ Procedure OutlineFX.GenerateUniforms;
 Begin
 	Line('uniform lowp float offX;');
 	Line('uniform lowp float offY;');
-  Line('uniform mediump float outlineWidth;');
+//  Line('uniform mediump float outlineWidth;');
   Line('uniform sampler2D outline_texture;');
   Self.RequireTarget(captureTargetNormal);
   Self.RequireTarget(captureTargetOutline);
@@ -534,7 +534,7 @@ Begin
   View := GraphicsManager.Instance.ActiveViewport;
   Sh.SetUniform('offX', (1 / View.Width) {* LineWidth});
   Sh.SetUniform('offY', (1 / View.Height) {* LineWidth});
-  Sh.SetUniform('outlineWidth', LineWidth);
+  //Sh.SetUniform('outlineWidth', LineWidth);
 
   GraphicsManager.Instance.ActiveViewport.BindStageTexture(captureTargetOutline, TextureSlot);
   Sh.SetUniform('outline_texture', TextureSlot);

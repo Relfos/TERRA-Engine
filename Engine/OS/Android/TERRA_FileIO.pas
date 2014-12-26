@@ -18,7 +18,7 @@ Type
      Public
 
         Constructor Create(FileName:AnsiString; StreamMode:Integer=smDefault);Overload;
-        Constructor Open(FileName:AnsiString; StreamMode:Integer=smDefault; Offset:Integer=0; MaxSize:Integer=-1);
+        Constructor Open(FileName:AnsiString; StreamMode:Integer=smDefault);
         Destructor Destroy;Override;
 
         Procedure Truncate();Override;
@@ -245,7 +245,6 @@ Begin
   _Name := '';
   _Mode := StreamMode;
   _Pos := 0;
-  _Offset := 0;
   _Buffer := Nil;
 
   FileName := GetOSIndependentFileName(FileName);
@@ -270,7 +269,7 @@ Begin
   End;
 End;
 
-Constructor FileStream.Open(FileName:AnsiString; StreamMode:Integer=smDefault; Offset:Integer=0; MaxSize:Integer=-1);
+Constructor FileStream.Open(FileName:AnsiString; StreamMode:Integer=smDefault);
 Var
   Assets:JavaObject;
   Params:JavaArguments;
@@ -297,8 +296,6 @@ Begin
     If (Assigned(asset)) Then
     Begin
       _Size := AAsset_getLength(asset);
-      If (MaxSize>0) And (MaxSize<_Size) Then
-        _Size := MaxSize;
 
     	Log(logDebug, 'IO', 'filesize '+IntToString(_Size));
 
@@ -350,7 +347,6 @@ Begin
   Log(logDebug, 'FileIO', 'Not an asset, loading normally.');
   // not an asset, use normal file functions
   _Open := False;
-  _Offset := Offset;
 
 	_File := fopen(PAnsiChar(_Name), PAnsiChar('rb'));
 	If Not Assigned(_File) Then
@@ -367,15 +363,6 @@ Begin
     _Size := 0;
 
   Log(logDebug, 'IO', 'filesize '+IntToString(_Size));
-
-  If (MaxSize>0) And (MaxSize<_Size) Then
-    _Size := MaxSize;
-
-  If _Offset>0 Then
-  Begin
-    Self.Seek(_Offset);
-    _Pos := 0;
-  End;
 
   _Buffer := Nil;
   _Open:=True;
@@ -489,7 +476,7 @@ Begin
 
   _Pos := NewPosition;
 
-	fseek(_File, _Pos + _Offset, SEEK_SET);
+	fseek(_File, _Pos, SEEK_SET);
 End;
 
 

@@ -758,6 +758,7 @@ Begin
   Log(logDebug, 'UI', 'Showing '+Self.Name+' with animation '+IntToString(AnimationFlags));
 
   _Visible := True;
+  Result := Nil;
 
   If EaseType<0 Then
     EaseType := UI.DefaultEaseType;
@@ -825,6 +826,8 @@ Var
 Begin
   _OriginalPosition := _Position;
   _OriginalColor := _Color;
+
+  Result := Nil;
 
   If EaseType<0 Then
     EaseType := UI.DefaultEaseType;
@@ -3048,6 +3051,8 @@ Begin
       0:  N := 0;
       1:  N := -100;
       2:  N := 100;
+      Else
+      	N := 0;
       End;
 
       System_Btn[I] := UIButton.Create(System_Name_Btn+IntToString(I), Self, System_Wnd, N, 20, 0.5, 'Ok');

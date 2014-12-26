@@ -33,15 +33,7 @@ Unit TERRA_Log;
 {$IFDEF WINDOWS}{$UNDEF ANDROID}{$ENDIF}
 
 
-{$IFDEF OSX}{$DEFINE USE_SYSLOG}{$ENDIF}
-
 Interface
-
-Uses TERRA_FileIO
-{$IFDEF ANDROID},Android_Log{$ENDIF}
-{$IFDEF USE_SYSLOG},systemlog{$ENDIF}
-{$IFDEF WINDOWS},Windows{$ENDIF}
-;
 
 {$IFDEF IPHONE}
 {$UNDEF USE_LOGFILE}
@@ -54,9 +46,16 @@ Uses TERRA_FileIO
 {$ENDIF}
 
 {$IFDEF OSX}
-{-$DEFINE CONSOLEWINDOW}
+{$DEFINE USE_SYSLOG}
+{.$DEFINE CONSOLEWINDOW}
 {$ENDIF}
 
+
+Uses TERRA_FileIO
+{$IFDEF ANDROID},Android_Log{$ENDIF}
+{$IFDEF USE_SYSLOG},systemlog{$ENDIF}
+{$IFDEF WINDOWS},Windows{$ENDIF}
+;
 
 Const
   logDebug   = 0;
@@ -344,4 +343,4 @@ End;
 Initialization
 Finalization
   Log_Shutdown();
-End.
+End.

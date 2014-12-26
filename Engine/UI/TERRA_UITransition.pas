@@ -324,6 +324,7 @@ Begin
   End Else
   {$ENDIF}
   Begin
+  	StencilID := 0;
     glVertexAttribPointer(PositionHandle, 2, GL_FLOAT, False, 16, @(FadeVertices[0].Position));
     glVertexAttribPointer(UVHandle, 2, GL_FLOAT, False, 16, @(FadeVertices[0].UV));
   End;

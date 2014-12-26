@@ -69,6 +69,9 @@ Begin
   Result := (Header = BMFFont);
   If Not Result Then
     Exit;
+    
+  FileNames := Nil;
+  PageCount := 0;
 
   Repeat
     Source.Read(@Tag, 1);

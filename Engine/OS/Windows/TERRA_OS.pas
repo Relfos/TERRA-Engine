@@ -135,6 +135,7 @@ Type
     Protected
 			_HDC:HDC;           // HDC of window
 			_hRC:HGLRC;         // OpenGL rendering context
+      _Icon:HICON;
       _PixelFormat:Cardinal;
       _MultisampleFormat:Cardinal;
       _MultiSampleInitialized:Boolean;
@@ -163,6 +164,8 @@ Type
 
       Function AddGamePad(DeviceID:Integer; XInput:Boolean):Boolean;
 
+      Procedure InitIcon();
+
       Function InitSettings:Boolean; Override;
       Function InitWindow:Boolean; Override;
       Function InitGraphics:Boolean; Override;
@@ -177,9 +180,9 @@ Type
       Procedure SetProcessorAffinity;
 
       Procedure ProcessMessages; Override;
-      
+
     Public
-      Procedure SetFullscreenMode(UseFullScreen:Boolean); Override;
+      Function SetFullscreenMode(UseFullScreen:Boolean):Boolean; Override;
       Procedure SwapBuffers; Override;
       Procedure SetState(State:Cardinal); Override;
       Procedure Yeld; Override;
@@ -206,7 +209,8 @@ Type
 
 Implementation
 Uses TERRA_Error, SysUtils, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
-  TERRA_GraphicsManager, TERRA_Log, TERRA_XInput, TERRA_MusicManager, TERRA_Unicode, TERRA_NetBios;
+  TERRA_GraphicsManager, TERRA_Log, TERRA_IO, TERRA_FileUtils, TERRA_FileManager, TERRA_MusicManager,
+  TERRA_Unicode, TERRA_XInput, TERRA_NetBios;
 
 Const
   FILE_READ_DATA         = $0001; // file & pipe
@@ -548,8 +552,6 @@ Var
   dwExStyle:Cardinal;          // Extended window styles
   Inst:HINST;             // Current instance
   X,Y,BW,BH:Integer;
-  joyInfo:GamepadInfoEx;      // extended information
-  dwResult:Cardinal;
 Begin
   Result := False;
 
@@ -640,20 +642,6 @@ Begin
 
   Assert(_Handle<>0,'Unable to create window.');
 
-  // Initialize joysticks
-  For I:=0 To 3 Do
-  Begin
-    If XIsControllerConnected(I) Then
-      AddGamePad(I, True);
-
-    FillChar(JoyInfo, SizeOf(JoyInfo), 0);
-    JoyInfo.dwSize := SizeOf(JoyInfo);
-    dwResult := joyGetPosEx(I, joyInfo);
-    If (dwResult = JOYERR_NOERROR) Then
-      AddGamePad(I, False);
-      //joyGetDevCaps(0, @_JoyCaps, SizeOf(_JoyCaps));
-  End;
-
   //_Width := 600;
   //_Height := 1136;
   //SetWindowPos(_Handle, Cardinal(00), Cardinal(00), 0, _Width, _Height, $400);
@@ -661,6 +649,8 @@ Begin
   _CanReceiveEvents := False;
   _Ready := True;
   Result := True;
+
+  InitIcon();
 
   If (Self.IsDebuggerPresent()) Then
     ForceLogFlush := True;
@@ -870,7 +860,7 @@ Begin
   End;
 End;
 
-Procedure WindowsApplication.SetFullscreenMode(UseFullScreen:Boolean);
+Function WindowsApplication.SetFullscreenMode(UseFullScreen:Boolean):Boolean;
 Var
   FullWidth, FullHeight:Integer;
   ScreenSettings:DevMode;
@@ -926,6 +916,8 @@ Begin
     SetWindowLong(_Handle, GWL_STYLE, _savedStyle);
     SetWindowPos(_Handle, HWND_NOTOPMOST, _rcSaved.left, _rcSaved.top, _rcSaved.Right - _rcSaved.Left, _rcSaved.Bottom - _rcSaved.top, SWP_SHOWWINDOW);
   End;
+  
+  Result := True;
 End;
 
 Procedure WindowsApplication.ProcessMessages;
@@ -1027,9 +1019,6 @@ Var
 
 Function WindowsApplication.IsDebuggerPresent: Boolean;
 Begin
-  Result := True;
-  Exit;
-
   If (Self = Nil) Then
   Begin
     Result := False;
@@ -1335,6 +1324,9 @@ Var
   Buf:Array[0..1023] Of AnsiChar;
   SystemInfo:TSystemInfo;
   Mask, ProcessAffinityMask, SystemAffinityMask:PtrUInt;
+
+  joyInfo:GamepadInfoEx;      // extended information
+  dwResult:Cardinal;
 Begin
   Inherited InitSettings;
 
@@ -1391,7 +1383,54 @@ Begin
 
   Self.SetProcessorAffinity();
 
+  // Initialize joysticks
+  For I:=0 To 3 Do
+  Begin
+    If XIsControllerConnected(I) Then
+      AddGamePad(I, True);
+
+    FillChar(JoyInfo, SizeOf(JoyInfo), 0);
+    JoyInfo.dwSize := SizeOf(JoyInfo);
+    dwResult := joyGetPosEx(I, joyInfo);
+    If (dwResult = JOYERR_NOERROR) Then
+      AddGamePad(I, False);
+      //joyGetDevCaps(0, @_JoyCaps, SizeOf(_JoyCaps));
+  End;
+
   Result := True;
+End;
+
+Procedure WindowsApplication.InitIcon;
+Const
+  iconSize = 64;
+Var
+  Name:AnsiString;
+  Src:Stream;
+  offset:Integer;
+Begin
+  Name := GetFileName(ParamStr(0), True)+'.ico';
+  Src := FileManager.Instance.OpenFileStream(Name);
+  If (Src = Nil) Or (Not (Src Is MemoryStream)) Then
+    Exit;
+
+  // Ahhh, this is the magic API.
+  offset := LookupIconIdFromDirectoryEx(MemoryStream(Src).Buffer, True, iconSize, iconSize, LR_DEFAULTCOLOR);
+
+  If (offset <> 0) Then
+  Begin
+    If (_Icon <> 0) Then
+    Begin
+      DestroyIcon(_Icon);
+    End;
+
+    _Icon := CreateIconFromResourceEx(Pointer(PtrInt(MemoryStream(Src).Buffer) + Offset), Src.Size, True, $30000, iconSize, iconSize, LR_DEFAULTCOLOR Or LR_DEFAULTSIZE);
+
+    SendMessage(_Handle, WM_SETICON, ICON_SMALL, _Icon);
+    SendMessage(_Handle, WM_SETICON, ICON_BIG, _Icon);
+    //This will ensure that the application icon gets changed too.
+{    SendMessage(GetWindow(_Handle, GW_OWNER), WM_SETICON, ICON_SMALL, _Icon);
+    SendMessage(GetWindow(_Handle, GW_OWNER), WM_SETICON, ICON_BIG, _Icon);}
+  End;
 End;
 
 Initialization

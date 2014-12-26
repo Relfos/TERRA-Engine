@@ -6,12 +6,13 @@ Unit TERRA_OS;
 {$LINKFRAMEWORK Carbon}
 
 Interface
-Uses TERRA_Utils, TERRA_Application, {$IFDEF GLDEBUG}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, MacOSAll, AGL;
+Uses TERRA_Utils, TERRA_Application, TERRA_Client, MacOSAll, AGL;
 
 Const
 	PathSeparator = '/';
 	CrLf = #10;
 
+        keyCommand = 1;
 	keyBackspace  = 8;
 	keyTab        = 9;
 	keyEnter      = 13;
@@ -76,38 +77,104 @@ Const
   keyY = Ord('Y');
   keyZ = Ord('Z');
 
-Procedure DisplayMessage(S:String);
+Procedure DisplayMessage(S:AnsiString);
 Function GetCurrentTime:TERRATime;
 Function GetCurrentDate:TERRADate;
 Function GetTime:Cardinal;
-Function CreateApplicationClass:Application;
+Function CreateApplicationClass(Client:AppClient):Application;
 
 Type
-  MacApplication = Class(Application)
+
+  { CarbonApplication }
+
+  CarbonApplication = Class(Application)
     Protected
       _Context: TAGLContext;
       _Window:WindowRef;
       _Rect: MacOSAll.Rect;
-           
+      _InitRect: MacOSAll.Rect;
+      _Screen:MacOSAll.Rect;
+      _Clipboard:PasteboardRef;
+
+      _Display: GDHandle;
+
+      _ToolbarHeight:Integer;
+
+      Function InitSettings:Boolean; Override;
       Function InitWindow:Boolean; Override;
       Function InitGraphics:Boolean; Override;
       Procedure CloseGraphics; Override;
       Procedure CloseWindow; Override;
       Procedure ProcessMessages; Override;
+
+      Function GetClipboardContent():AnsiString;
+
+      Procedure UpdateScreenSize();
+
+      Function IsDebuggerPresent():Boolean; Override;
+   Public
       Procedure SwapBuffers; Override;
-      Procedure ToggleFullscreen; Override;
       Procedure SetState(State:Cardinal); Override;
+
+      Function SetFullscreenMode(UseFullScreen:Boolean):Boolean; Override;
   End;
 
+
 Implementation
-Uses TERRA_Log, TERRA_Unicode, dateutils, sysutils, TERRA_FileUtils;
+Uses TERRA_Error, TERRA_Log, TERRA_FileUtils, TERRA_Unicode,  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
+     machapi, machexc, dateutils, sysutils, ctypes, sysctl;
 
-Type
-TRect = Record
- Left, Top, Right,Bottom:Integer;
-End;
+Var
+   kUTTypeUTF16PlainText:CFStringRef;
+   kUTTypeUTF8PlainText:CFStringRef;
 
-Procedure DisplayMessage(S:String);
+procedure CreateCFString(const Data: CFDataRef; Encoding: CFStringEncoding; out AString: CFStringRef);
+begin
+  AString := nil;
+  if Data = nil then Exit;
+  AString := CFStringCreateWithBytes(nil, CFDataGetBytePtr(Data),
+    CFDataGetLength(Data), Encoding, False);
+end;
+
+function CFStringToStr(AString: CFStringRef; Encoding: CFStringEncoding = kCFStringEncodingUTF8): AnsiString;
+var
+  Str: Pointer;
+  StrSize: CFIndex;
+  StrRange: CFRange;
+begin
+  if AString = nil then
+  begin
+    Result := '';
+    Exit;
+  end;
+
+  // Try the quick way first
+  Str := CFStringGetCStringPtr(AString, Encoding);
+  if Str <> nil then
+    Result := PChar(Str)
+  else
+  begin
+    // if that doesn't work this will
+    StrRange.location := 0;
+    StrRange.length := CFStringGetLength(AString);
+
+    CFStringGetBytes(AString, StrRange, Encoding,
+      Ord('?'), False, nil, 0, StrSize{%H-});
+    SetLength(Result, StrSize);
+
+    if StrSize > 0 then
+      CFStringGetBytes(AString, StrRange, Encoding,
+        Ord('?'), False, @Result[1], StrSize, StrSize);
+  end;
+end;
+
+procedure FreeCFString(var AString: CFStringRef);
+begin
+  if AString <> nil then
+    CFRelease(Pointer(AString));
+end;
+
+Procedure DisplayMessage(S:AnsiString);
 Var
   alert:DialogRef;
   outHit:DialogItemIndex;
@@ -169,31 +236,31 @@ Function mach_absolute_time:Int64; Cdecl; External;
 
 Function GetTime:Cardinal;
 Var
-	t:Int64;
+	t:UInt64;
 	f:Single;
 Begin
 	t := mach_absolute_time() - basetime;
 	f := t / timeinfo.denom;
 	f := f * timeinfo.numer;
-	Result := Trunc(f / 1000000);
+	Result := Cardinal(Trunc(f / 1000000));
 End;
 
-Function CreateApplicationClass:Application;
+Function CreateApplicationClass(Client:AppClient):Application;
 Begin
-	Result := MacApplication.Create();
+  Result := CarbonApplication.Create(Client);
 End;
 
 Function Carbon_CloseWindow(ANextHandler:EventHandlerCallRef; AEvent:EventRef; UserData:Pointer):OSStatus;  MWPascal;
 Var
-  App:MacApplication;
+  App:CarbonApplication;
 Begin
   Result := CallNextEventHandler(AnextHandler, AEvent);
 
-  App := MacApplication(UserData);
+  App := CarbonApplication(UserData);
   If Not Assigned(App) Then
     Exit;
 
-	App.Terminate;
+  App.Terminate(True);
 End;
 
 Function Carbon_ResizeWindow(ANextHandler:EventHandlerCallRef; AEvent:EventRef; UserData:Pointer):OSStatus; MWPascal;
@@ -202,7 +269,7 @@ Var
   theBounds:Rect;
   Width:Cardinal;
   Height:Cardinal;
-  App:MacApplication;
+  App:CarbonApplication;
 Begin
   GetEventParameter(AEvent, kEventParamDirectObject, typeWindowRef, Nil, sizeof(WindowRef), Nil, @theWindow);
   GetEventParameter(AEvent, kEventParamCurrentBounds, typeQDRectangle, Nil, sizeof(Rect), Nil, @theBounds);
@@ -211,7 +278,7 @@ Begin
 
   Result := CallNextEventHandler(AnextHandler, AEvent);
 
-  App := MacApplication(UserData);
+  App := CarbonApplication(UserData);
   If Not Assigned(App) Then
     Exit;
 
@@ -223,11 +290,11 @@ Function CarbonWindow_ShowWindow(ANextHandler:EventHandlerCallRef; AEvent:EventR
 Var
   EventKind: Cardinal;
   Minimized, Fullscreen:Boolean;
-  App:MacApplication;
+  App:CarbonApplication;
 Begin
   Result := CallNextEventHandler(ANextHandler, AEvent);
 
-	App := MacApplication(UserData);
+	App := CarbonApplication(UserData);
 	If Not Assigned(App) Then
 		Exit;
 
@@ -242,7 +309,7 @@ Begin
       Fullscreen := IsWindowInStandardState(App._Window, Nil, Nil);
       //LCLSendSizeMsg(AWidget.LCLObject, WidgetBounds.Right - WidgetBounds.Left, idgetBounds.Bottom - WidgetBounds.Top, Size_SourceIsInterface or Kind);
     End Else
-      TERRA_Log.Log.Instance.Write(logDebug, 'App','CarbonWindow_ShowWindow invalid event kind');
+      TERRA_Log.Log(logDebug, 'App','CarbonWindow_ShowWindow invalid event kind');
   End;
 End;
 
@@ -272,20 +339,20 @@ End;
 
 Function CarbonWindow_MouseProc(ANextHandler: EventHandlerCallRef; AEvent: EventRef; UserData:Pointer):OSStatus; MWPascal;
 Var
-  App:MacApplication;
+  App:CarbonApplication;
   EventKind: UInt32;
   MouseButton: Integer;
   MousePoint: HIPoint;
   Delta:Integer;
 Begin
   Result := EventNotHandledErr;
-  App := MacApplication(UserData);
+  App := CarbonApplication(UserData);
   If Not Assigned(App) Then
   	Exit;
 
   GetEventParameter(AEvent, kEventParamWindowMouseLocation, typeHIPoint, nil,  SizeOf(MousePoint), nil, @MousePoint);
-  {App.Mouse.X :=  - App._Rect.Left;
-  App.Mouse.Y := Trunc(MousePoint.Y) - App._Rect.Top;}
+  MousePoint.X := MousePoint.X - App._Rect.Left;
+  MousePoint.Y := MousePoint.Y - App._Rect.Top;
 
   EventKind := GetEventKind(AEvent);
   Case EventKind of
@@ -315,7 +382,7 @@ Begin
       End;
   Else
     Begin
-      TERRA_Log.Log.Instance.Write(logError, 'App', 'Invalid mouse event: '+IntToString(EventKind));
+      TERRA_Log.Log(logError, 'App', 'Invalid mouse event: '+IntToString(EventKind));
       Exit;
     End;
   End;
@@ -328,11 +395,14 @@ Var
 
 Function CarbonWindow_KeyboardProc(ANextHandler: EventHandlerCallRef; AEvent: EventRef;  UserData:Pointer): OSStatus; MWPascal;
 Var
-  App:MacApplication;
-  TempChar:Char;           //Ascii char, when possible (xx_(SYS)CHAR)
+  App:CarbonApplication;
+  TemPAnsiChar:AnsiChar;           //Ascii char, when possible (xx_(SYS)CHAR)
   VKKeyCode:Word;         //VK_ code
   IsSysKey: Boolean;        //Is alt (option) key down?
   EventKind: UInt32;        //The kind of this event
+
+  I:Integer;
+  S:AnsiString;
 
   // See what changed in the modifiers flag so that we can emulate a keyup/keydown
   // Note: this function assumes that only a bit of the flag can be modified at
@@ -343,7 +413,7 @@ Var
   Begin
     GetEventParameter(AEvent, kEventParamKeyModifiers, typeUInt32, nil, SizeOf(CurMod), nil, @CurMod);
 
-    {$IFDEF DEBUGAPP}Log.Instance.Write(logDebug, 'App', 'Got key modifier: '+IntToString(CurMod));{$ENDIF}
+    {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got key modifier: '+IntToString(CurMod));{$ENDIF}
 
     //see what changed. we only care of bits 8 through 12
     diff := (PrevKeyModifiers xor CurMod) and $1F00;
@@ -362,6 +432,9 @@ Var
       0          : exit;  //nothing (that we cared of) changed
       controlKey : VKKeyCode := keyControl; //command mapped to control
       shiftKey   : VKKeyCode := keyShift;
+      cmdKey     : VKKeyCode := keyCommand;
+      optionKey  : VKKeyCode := keyAlt;
+
       ////alphaLock  : VKKeyCode := VK_CAPITAL; //caps lock
       //optionKey  : VKKeyCode := VK_MENU;    //option is alt
       //cmdKey     : VKKeyCode := VK_LWIN;    //meta... map to left Windows Key?
@@ -382,6 +455,7 @@ Var
     Layout: UCKeyboardLayoutPtr;
     KeyboardLayout: KeyboardLayoutRef;
     CurrentKeyModifiers:Cardinal;
+
   Begin
     IsSysKey := (GetCurrentEventKeyModifiers and cmdKey)>0;
 
@@ -389,7 +463,7 @@ Var
     //for these keys, only send keydown/keyup (not char or UTF8KeyPress)
     GetEventParameter(AEvent, kEventParamKeyCode, typeUInt32, nil, Sizeof(VKKeyCode), nil, @VKKeyCode);
 
-    {$IFDEF DEBUGAPP}Log.Instance.Write(logDebug, 'App', 'Got keycode: '+IntToString(VKKeyCode));{$ENDIF}
+    {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got keycode: '+IntToString(VKKeyCode));{$ENDIF}
 
     // get untranslated key (key without modifiers)
     KLGetCurrentKeyboardLayout(KeyboardLayout);
@@ -405,13 +479,13 @@ Var
     Begin
       UCKeyTranslate(Layout^, VKKeyCode, kUCKeyActionDisplay, CurrentKeyModifiers, LMGetKbdType, kUCKeyTranslateNoDeadKeysMask, DeadKeys, 6, TextLen, @WideBuf[1]);
 
-      {$IFDEF DEBUGAPP}Log.Instance.Write(logDebug, 'App', 'Called UCKeyTranslate: '+IntToString(TextLen));{$ENDIF}
+      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called UCKeyTranslate: '+IntToString(TextLen));{$ENDIF}
 
       If TextLen>0 Then
       Begin
         u := UTF16CharacterToUnicode(@WideBuf[1], CharLen);
 
-        {$IFDEF DEBUGAPP}Log.Instance.Write(logDebug, 'App', 'Got Unicode: '+IntToString(U));{$ENDIF}
+        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got Unicode: '+IntToString(U));{$ENDIF}
 
         If CharLen>0 Then
         Begin
@@ -419,12 +493,11 @@ Var
 
           If (VKKeyCode>127) Then //not ascii, get the Mac character.
           Begin
-            GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TempChar), nil, @TempChar);
-            VKKeyCode := Ord(TempChar);
+            GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TemPAnsiChar), nil, @TemPAnsiChar);
+            VKKeyCode := Ord(TemPAnsiChar);
           End;
 
-          {$IFDEF DEBUGAPP}Log.Instance.Write(logDebug, 'App', 'Final key result: '+IntToString(VKKeyCode));{$ENDIF}
-
+          {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Final key result: '+IntToString(VKKeyCode));{$ENDIF}
           Exit;
         End;
       End;
@@ -436,7 +509,7 @@ Var
         DeadKeys := 0;
         UCKeyTranslate(Layout^, VKKeyCode, kUCKeyActionDisplay, CurrentKeyModifiers, LMGetKbdType,
             kUCKeyTranslateNoDeadKeysMask, DeadKeys, 6, TextLen, @WideBuf[1]);
-      {$IFDEF DEBUGAPP}Log.Instance.Write(logDebug, 'App', 'Called UCKeyTranslate (syskey): '+IntToString(TextLen));{$ENDIF}
+      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called UCKeyTranslate (syskey): '+IntToString(TextLen));{$ENDIF}
       End;
 
       Exit;
@@ -447,7 +520,7 @@ Var
       VKKeyCode := KeyTranslate(Layout, VKKeyCode, DeadKeys) And 255;
       // TODO: workaround for Command modifier suppressing shift?
 
-      {$IFDEF DEBUGAPP}Log.Instance.Write(logDebug, 'App', 'Called KeyTranslate (nolayout): '+IntToString(VkKeyCode));{$ENDIF}
+      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called KeyTranslate (nolayout): '+IntToString(VkKeyCode));{$ENDIF}
       Exit;
     End;
 
@@ -455,7 +528,7 @@ Var
     If TextLen = 0 Then
     Begin
       GetEventParameter(AEvent, kEventParamKeyUnicodes, typeUnicodeText, nil, 6, @TextLen, @WideBuf[1]);
-      {$IFDEF DEBUGAPP}Log.Instance.Write(logDebug, 'App', 'Called GetEventParameter: '+IntToString(TextLen));{$ENDIF}
+      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called GetEventParameter: '+IntToString(TextLen));{$ENDIF}
 
 
       If TextLen>0 Then
@@ -464,14 +537,14 @@ Var
         If CharLen=0 Then
           Exit;
 
-      {$IFDEF DEBUGAPP}Log.Instance.Write(logDebug, 'App', 'Got Unicode2: '+IntToString(U));{$ENDIF}
+      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got Unicode2: '+IntToString(U));{$ENDIF}
 
         VKKeyCode := Word(U);
 
         If (VKKeyCode>127) Then  //not ascii, get the Mac character.
         Begin
-          GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TempChar), nil, @TempChar);
-          VKKeyCode := Ord(TempChar);
+          GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TemPAnsiChar), nil, @TemPAnsiChar);
+          VKKeyCode := Ord(TemPAnsiChar);
         End;
 
         // the VKKeyCode is independent of the modifier
@@ -484,7 +557,7 @@ Var
 
 Begin
   Result := CallNextEventHandler(ANextHandler, AEvent);
-  App := MacApplication(UserData);
+  App := CarbonApplication(UserData);
   If Not Assigned(App) Then
   	Exit;
 
@@ -503,12 +576,26 @@ Begin
     kEventRawKeyDown,
     kEventRawKeyRepeat:
     Begin
-      {$IFDEF DEBUGAPP}Log.Instance.Write(logDebug, 'App', 'Keyevent: '+IntToString(VKKeycode));{$ENDIF}
+      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Keyevent: '+IntToString(VKKeycode));{$ENDIF}
 
-      App.AddValueEvent(eventKeyPress, VKKeyCode);
+      // clipboard paste
+      If (VKKeyCode = 118) And (App.Input.Keys[keyCommand]) Then
+      Begin
+           S := App.GetClipboardContent();
+           For I:=1 To Length(S) Do
+               App.AddValueEvent(eventKeyPress, Ord(S[I]));
+      End Else
+      // full screen
+      If (VKKeyCode = keyEnter) And (App.Input.Keys[keyAlt]) Then
+      Begin
+         App._ChangeToFullScreen := True;
+      End Else
+      Begin
+           App.AddValueEvent(eventKeyPress, VKKeyCode);
 
-      If (VKKeyCode<256) Then
-        App.AddValueEvent(eventKeyDown, VKKeyCode);
+           If (VKKeyCode<256) Then
+              App.AddValueEvent(eventKeyDown, VKKeyCode);
+      End;
     End;
 
     kEventRawKeyUp:
@@ -519,13 +606,13 @@ Begin
   End;
 End;
 
-Function GetDocumentsFolder():String;
+Function GetDocumentsFolder():AnsiString;
 Const
   kMaxPath = 1024;
 var
   theError: OSErr;
   theRef: FSRef;
-  pathBuffer: PChar;
+  pathBuffer: PAnsiChar;
 begin
   pathBuffer := Allocmem(kMaxPath);
   Try
@@ -543,7 +630,7 @@ begin
       Result := Result + PathSeparator + GetFileName(ParamStr(0), True);
       If Not DirectoryExists(Result) Then
       Begin
-        Log.Instance.Write(logDebug,'App', 'Creating dir '+Result);
+        Log(logDebug,'App', 'Creating dir '+Result);
         CreateDir(Result);
       End;
     End;
@@ -552,7 +639,67 @@ begin
   End;
 End;
 
-Function MacApplication.InitWindow:Boolean;
+Const
+  _SC_NPROCESSORS_ONLN = 83;
+
+Function sysconf(i:Integer):Clong; CDecl; External Name 'sysconf';
+
+Const
+  BundleResourceFolder = '/Contents/Resources/';
+
+function CarbonApplication.InitSettings: Boolean;
+Var
+  loc:CFLocaleRef;
+  countryCode:CFStringRef;
+  langs:CFArrayRef;
+  langCode:CFStringRef;
+
+  pathRef: CFURLRef;
+  pathCFStr: CFStringRef;
+  pathStr: shortstring;
+  pathMedia:AnsiString;
+
+  Temp:Array[0..255] Of AnsiChar;
+Begin
+  Inherited InitSettings;
+  
+  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
+  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+  CFRelease(pathRef);
+  CFRelease(pathCFStr);
+
+  pathMedia := pathStr + BundleResourceFolder;
+  ChDir(PathMedia);
+
+  _DocumentPath := GetDocumentsFolder();
+  _StoragePath := _DocumentPath;
+  Log(logDebug,'App', 'Documents folder is '+_DocumentPath);
+
+  loc := CFLocaleCopyCurrent();
+  Log(logDebug,'App', 'Getting user country...');
+  countryCode := CFStringRef(CFLocaleGetValue(loc, kCFLocaleCountryCode));
+  CFStringGetPascalString(countryCode, @Temp[0], 255, CFStringGetSystemEncoding());
+  _Country := Temp[1] + Temp[2];
+  _Country := UpStr(_Country);
+  Log(logDebug, 'App', 'Country: '+_Country);
+
+  Log(logDebug,'App', 'Getting user language');
+  langs := CFLocaleCopyPreferredLanguages();
+  langCode := CFStringRef(CFArrayGetValueAtIndex (langs, 0));
+  CFStringGetPascalString(langCode, @Temp[0], 255, CFStringGetSystemEncoding());
+  _Language := Temp[1] + Temp[2];
+  _Language := UpStr(_Language);
+  Log(logDebug, 'App', 'Language: '+_Language);
+
+  Log(logDebug,'App', 'Getting cpu core count...');
+  _CPUCores := sysconf(_SC_NPROCESSORS_ONLN);
+  Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
+
+  Result := True;
+End;
+
+function CarbonApplication.InitWindow: Boolean;
 Var
   MouseSpec: array [0..6] of EventTypeSpec;
   TmpSpec: EventTypeSpec;
@@ -561,59 +708,48 @@ Var
   WinContent: HIViewRef;
   Attributes: WindowAttributes;
   NewWindowClass: Integer;
-  MinSize, MaxSize: HISize;
   GroupClass:Integer;
-  RC:MacOSAll.Rect;
   WndRect, ClientRect:MacOSAll.Rect;
-  disp: GDHandle;
+
+  kPasteboardClipboard:CFStringRef;
 Begin
-  Log.Instance.Write(logDebug,'App', 'Creating window');
+  Result := False;
+
+  Log(logDebug,'App', 'Creating window');
 
   Attributes := kWindowInWindowMenuAttribute Or kWindowStandardFloatingAttributes Or kWindowStandardHandlerAttribute;
-  Attributes := Attributes Or kWindowLiveResizeAttribute Or {kWindowHideOnFullScreenAttribute Or kWindowCompositingAttribute Or} kWindowStandardDocumentAttributes;
+  Attributes := Attributes Or kWindowResizableAttribute {Or kWindowLiveResizeAttribute};
+  Attributes := Attributes Or kWindowStandardDocumentAttributes {Or kWindowHideOnFullScreenAttribute Or kWindowCompositingAttribute Or} ;
   GroupClass := kDocumentWindowClass;
   NewWindowClass := kDocumentWindowClass;
 
   // get current resolution
-  disp := GetMainDevice ();
-  GetAvailableWindowPositioningBounds(disp, RC);
+  _Display := GetMainDevice ();
+  GetAvailableWindowPositioningBounds(_Display, _Screen);
+  _Rect := _Screen;
 
-  RC.left := ((RC.right - RC.left) Shr 1) - (_Width Shr 1);
-  RC.top := ((RC.bottom - RC.top) Shr 1) - (_Height Shr 1);
+  _Rect.left := ((_Rect.right - _Rect.left) Shr 1) - (_Width Shr 1);
+  _Rect.top := ((_Rect.bottom - _Rect.top) Shr 1) - (_Height Shr 1);
 
-	RC.right := RC.left + _Width;
-  RC.bottom := RC.top + _Height;
+  _Rect.right := _Rect.left + _Width;
+  _Rect.bottom := _Rect.top + _Height;
+  _InitRect := _Rect;
 
-  _DocumentPath := GetDocumentsFolder();
-  _StoragePath := _DocumentPath;
-  Log.Instance.Write(logDebug,'App', 'Documents folder is '+_DocumentPath);
-  
-  Log.Instance.Write(logDebug,'App', 'Calling createwindow()');
+  Log(logDebug,'App', 'Calling createwindow()');
 
-  If CreateNewWindow(NewWindowClass, Attributes, RC, _Window)<>noErr Then
+  If CreateNewWindow(NewWindowClass, Attributes, _InitRect, _Window)<>noErr Then
   Begin
     RaiseError('Unable to create a window!');
     Exit;
   End;
-  
- Log.Instance.Write(logDebug,'App', 'Changing title');
+
+
+ Log(logDebug,'App', 'Changing title');
 
   SetWTitle(_Window, _Title); // Set the windows title
   SetWindowGroup(_Window, GetWindowGroupOfClass(GroupClass));
 
-  // creating wrapped views
- // HIViewFindByID(HIViewGetRoot(_Window), kHIViewWindowContentID, fWinContent);
-
-  //SetWindowProperty(_Window, LAZARUS_FOURCC, WIDGETINFO_FOURCC, SizeOf(Self), @Self);
-  //SetControlProperty(fWinContent, LAZARUS_FOURCC, WIDGETINFO_FOURCC, SizeOf(Self), @Self);
-
-  MinSize.width := 320;
-  MinSize.height := 240;
-  MaxSize.width := _Width;
-  MaxSize.height := _Height;
-  SetWindowResizeLimits(_Window, @MinSize, @MaxSize);
-
-Log.Instance.Write(logDebug,'App', 'Installing closewindow event');
+  Log(logDebug,'App', 'Installing closewindow event');
 
   // Window Events
   TmpSpec.eventClass := kEventClassWindow;
@@ -621,7 +757,7 @@ Log.Instance.Write(logDebug,'App', 'Installing closewindow event');
   InstallEventHandler(GetWindowEventTarget(_Window), NewEventHandlerUPP(Carbon_CloseWindow), 1, @TmpSpec, Pointer(Self), nil);
 
 
-Log.Instance.Write(logDebug,'App', 'Installing mouse events');
+  Log(logDebug,'App', 'Installing mouse events');
   MouseSpec[0].eventClass := kEventClassMouse;
   MouseSpec[0].eventKind := kEventMouseDown;
   MouseSpec[1].eventClass := kEventClassMouse;
@@ -639,7 +775,7 @@ Log.Instance.Write(logDebug,'App', 'Installing mouse events');
   InstallEventHandler(GetWindowEventTarget(_Window), NewEventHandlerUPP(CarbonWindow_MouseProc), 7, @MouseSpec[0], Pointer(Self), nil);
 
 
-Log.Instance.Write(logDebug,'App', 'Installing key events');
+  Log(logDebug,'App', 'Installing key events');
   KeySpecs[0].eventClass := kEventClassKeyboard;
   KeySpecs[0].eventKind := kEventRawKeyDown;
   KeySpecs[1].eventClass := kEventClassKeyboard;
@@ -651,8 +787,8 @@ Log.Instance.Write(logDebug,'App', 'Installing key events');
   InstallEventHandler(GetWindowEventTarget(_Window), NewEventHandlerUPP(CarbonWindow_KeyboardProc), 4, @KeySpecs[0], Pointer(Self), nil);
 
 
-Log.Instance.Write(logDebug,'App', 'Installing window events');
-    ShowWindowSpecs[0].eventClass := kEventClassWindow;
+  Log(logDebug,'App', 'Installing window events');
+  ShowWindowSpecs[0].eventClass := kEventClassWindow;
   ShowWindowSpecs[0].eventKind := kEventWindowCollapsed;
   ShowWindowSpecs[1].eventClass := kEventClassWindow;
   ShowWindowSpecs[1].eventKind := kEventWindowExpanded;
@@ -668,8 +804,8 @@ eventType.eventKind = kEventWindowDeactivated;
   *)
   
 
-  Log.Instance.Write(logDebug,'App', 'Installing resize events');
-  
+  Log(logDebug,'App', 'Installing resize events');
+
   TmpSpec.eventClass := kEventClassWindow;
   TmpSpec.eventKind := kEventWindowBoundsChanged;
   InstallEventHandler(GetWindowEventTarget(_Window), Carbon_ResizeWindow, 1, @TmpSpec, Pointer(Self), nil);
@@ -682,18 +818,36 @@ eventType.eventKind = kEventWindowDeactivated;
   _Rect.Right := ClientRect.Right - WndRect.Left;
   _Rect.Bottom := ClientRect.Bottom - WndRect.Top;
 
- Log.Instance.Write(logDebug,'App', 'OK!');
- ShowWindow(_Window);
+  _ToolbarHeight := _Rect.Top;
 
+  Log(logDebug,'App', 'Initializing clipboard...');
+  kPasteboardClipboard := CFSTR('com.apple.pasteboard.clipboard');
+  PasteboardCreate(kPasteboardClipboard, _Clipboard);
+
+  kUTTypeUTF8PlainText := CFSTR('public.utf8-plain-text');
+  kUTTypeUTF16PlainText := CFSTR('public.utf16-plain-text');
+
+  Log(logDebug,'App', 'OK!');
+  ShowWindow(_Window);
+
+  UpdateScreenSize();
+
+  If (_FullScreen) Then
+  Begin
+    ToggleFullScreen;
+  End;
+
+  Result := True;
 End;
 
-Function MacApplication.InitGraphics:Boolean;
+function CarbonApplication.InitGraphics: Boolean;
 Var
   displayID:CGDirectDisplayID;
   openGLDisplayMask:CGOpenGLDisplayMask;
   attrib:Array[0..64] Of Integer;
   fmt:TAGLPixelFormat;
-  index, Count:Integer;
+  index, Samples:Integer;
+  Swap:Integer;
 
 	Procedure AddAttrib(ID:Integer); Overload;
 	Begin
@@ -705,17 +859,17 @@ Var
 		Attrib[Index] := Value; Inc(Index);
 	End;
 Begin
-//	Log.Instance.Write(logDebug, 'App', 'Init graphics');
+//	Log(logDebug, 'App', 'Init graphics');
 // get display ID to use for a mask
 	// the main display as configured via System Preferences
   displayID := CGMainDisplayID();
 	openGLDisplayMask := CGDisplayIDToOpenGLDisplayMask(displayID);
 
 // Solely as an example of possible use, this pixel format limits
-// the possible renderers to those supported by the screen mask.
+// the possible GraphicsManagers to those supported by the screen mask.
 // In this case the main display.
-	Count := 0;
-	Repeat
+  Samples := Client.GetAntialiasSamples();
+    Repeat
 		Index := 0;
 		AddAttrib(AGL_RGBA);
 		AddAttrib(AGL_DOUBLEBUFFER);
@@ -729,18 +883,18 @@ Begin
 		AddAttrib(AGL_CLOSEST_POLICY);
 		AddAttrib(AGL_NO_RECOVERY);
 		AddAttrib(AGL_DISPLAY_MASK, openGLDisplayMask);
-		If (Count=0) Then
-		Begin
-			AddAttrib(AGL_MULTISAMPLE);
-			AddAttrib(AGL_SAMPLE_BUFFERS_ARB, 1);
-			AddAttrib(AGL_SAMPLES_ARB, 4);
-		End;
-		AddAttrib(AGL_NONE);
+      If (Samples>0) Then
+      Begin
+        AddAttrib(AGL_MULTISAMPLE);
+        AddAttrib(AGL_SAMPLE_BUFFERS_ARB, 1);
+        AddAttrib(AGL_SAMPLES_ARB, Samples);
+      End;
+      AddAttrib(AGL_NONE);
 		
 		fmt := aglCreatePixelFormat(attrib); // New to Mac OS X v10.5
 
-		Inc(Count);
-	Until (Assigned(Fmt)) Or (Count>=2);
+      Samples := Samples Div 2;
+    Until (Assigned(Fmt)) Or (Samples<=0);
 
 	If (fmt = Nil) Then
   Begin
@@ -765,20 +919,32 @@ Begin
 	// make the context the current context
 	aglSetCurrentContext(_context);
 
-	// VBL SYNC
-	//GLint swap = 1;
-	//aglSetInteger(m_context, AGL_SWAP_INTERVAL, &swap);
+        If (Not Client.GetVSync()) Then
+        Begin
+	     swap := 1;
+	     aglSetInteger(_context, AGL_SWAP_INTERVAL, @swap);
+        End;
 
-	glLoadExtensions;
-	Result := True;	
-//	Log.Instance.Write(logDebug, 'App', 'Graphics ok');
+	glLoadExtensions();
+	Result := True;
+
+  Log(logDebug, 'App', 'Clearing graphic buffers');
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+  glClear(GL_COLOR_BUFFER_BIT Or GL_DEPTH_BUFFER_BIT Or GL_STENCIL_BUFFER_BIT);
+  Self.SwapBuffers(); 
+
+
+  If (Not _FullScreen) Then
+     SetWindowBounds(_Window, kWindowContentRgn, _InitRect);
+
+  Log(logDebug, 'App', 'Graphics ok');
 End;
 
-Procedure MacApplication.CloseGraphics;
+procedure CarbonApplication.CloseGraphics;
 Begin
 	If (Assigned(_context)) Then
 	Begin
-		aglSetWindowRef(_context, 0);
+		aglSetWindowRef(_context, Nil);
 
 		aglSetCurrentContext(Nil);
 		aglDestroyContext(_context);
@@ -787,34 +953,107 @@ Begin
 	End;
 End;
 
-Procedure MacApplication.CloseWindow;
+procedure CarbonApplication.CloseWindow;
 Begin
-	Log.Instance.Write(logDebug,'App', 'Destroying window');
+  If Assigned(_Clipboard) Then
+  Begin
+    CFRelease(_Clipboard);
+    _Clipboard := Nil;
+  End;
+
+  Log(logDebug,'App', 'Destroying window');
+
   If Assigned(_Window) Then
   Begin
-//    DisposeWindow(_Window); // crashes here, BUG?
+    DisposeWindow(_Window);
     _Window := Nil;
   End;
 
-	Log.Instance.Write(logDebug,'App', 'Ok');
+	Log(logDebug,'App', 'Ok');
 End;
 
-Procedure MacApplication.SwapBuffers;
+procedure CarbonApplication.SwapBuffers;
 Begin
 	aglSwapBuffers(_Context);
 End;
 
-Procedure MacApplication.SetState(State:Cardinal);
+procedure CarbonApplication.SetState(State: Cardinal);
 Begin
   // TODO
 End;
 
-Procedure MacApplication.ToggleFullscreen;
+Function CarbonApplication.SetFullscreenMode(UseFullScreen: Boolean):Boolean;
+Var
+    setAttr:Array[0..5] Of Integer;
+    clearAttr:Array[0..5] Of Integer;
 Begin
- Log.Instance.Write(logDebug, 'App', 'Toggling fullscreen');
+  setAttr[0] := kHIWindowBitCloseBox;
+  setAttr[1] := kHIWindowBitZoomBox;
+  setAttr[2] := 0;
+  clearAttr[0] := kHIWindowBitNoTitleBar;
+  clearAttr[1] := 0;
+
+  If (UseFullScreen) Then
+   Begin
+        HideMenuBar();
+        UpdateScreenSize();
+
+        _Rect := _Screen;
+
+        HIWindowChangeAttributes(_Window, @clearAttr[0], @setAttr[0]);
+  End Else
+  Begin
+    ShowMenuBar();
+    UpdateScreenSize();
+
+    _Rect := _InitRect;
+
+    HIWindowChangeAttributes(_Window, @setAttr[0], @clearAttr[0]);
+  End;
+
+
+ (* _Width := _Rect.Right - _Rect.left;
+  _Height := _Rect.Bottom - _Rect.Top;
+   *)
+
+   Self.AddCoordEvent(eventWindowResize, _Width, _Height, 0);
+   SetWindowBounds(_Window, kWindowContentRgn, _Rect);
+
+
+  Result := True;
 End;
 
-Procedure MacApplication.ProcessMessages;
+//http://stackoverflow.com/questions/2200277/detecting-debugger-on-mac-os-x
+function CarbonApplication.IsDebuggerPresent: Boolean;
+Var
+   count:mach_msg_type_number_t;
+   masks:TException_Mask_array;
+   ports:TException_Handler_Array;
+   behaviors:Texception_behavior_Array;
+   flavors:TException_Flavor_Array;
+   mask:exception_mask_t;
+   res:kern_return_t;
+   portIndex:mach_msg_type_number_t;
+Begin
+  count := 0;
+  mask := EXC_MASK_BREAKPOINT; //EXC_MASK_ALL And (Not (EXC_MASK_RESOURCE Or EXC_MASK_GUARD));
+  res := task_get_exception_ports(mach_task_self(), mask, @masks, count, @ports, @behaviors, @flavors);
+  if (res = KERN_SUCCESS) Then
+  Begin
+        For portIndex := 0 To Pred(count) Do
+        Begin
+            if (ports[portIndex]<>0) And ((Not ports[portIndex])<>0) Then
+            Begin
+                Result := True;
+                Exit;
+            End;
+        End;
+  End;
+  Result := False;
+End;
+
+
+procedure CarbonApplication.ProcessMessages;
 var
   Target: EventTargetRef;
   Event: EventRef;
@@ -834,25 +1073,88 @@ Begin
    End;
 End;
 
-
-Const
-  BundleResourceFolder = '/Contents/Resources/';
-
+function CarbonApplication.GetClipboardContent: AnsiString;
 Var
-  pathRef: CFURLRef;
-  pathCFStr: CFStringRef;
-  pathStr: shortstring;
-  pathMedia: String;
+   I:Integer;
+   Count:LongWord;
+   ID: PasteboardItemID;
+   Flavors: CFArrayRef;
+   FlavorData: CFDataRef;
+   UTI, CFString: CFStringRef;
+   Encoding: CFStringEncoding;
+   S:AnsiString;
+
+   Function HasFormat(Format: CFStringRef): Boolean;
+   Var
+     FlavorCount: CFIndex;
+     J: Integer;
+   Begin
+     Result := False;
+     FlavorCount := CFArrayGetCount(Flavors);
+     for J := 0 to Pred(FlavorCount) do
+       if UTTypeEqual(Format, CFArrayGetValueAtIndex(Flavors, J)) then
+       begin
+         Result := True;
+         Break;
+       end;
+   End;
+
+Begin
+     Result := '';
+     PasteboardSynchronize(_Clipboard);
+     PasteboardGetItemCount(_Clipboard, Count{%H-});
+     If (Count<1 ) Then
+        Exit;
+
+     For I:=Count DownTo 1 Do
+     Begin
+          PasteboardGetItemIdentifier(_Clipboard, I, ID{%H-});
+          PasteboardCopyItemFlavors(_Clipboard, ID, Flavors{%H-});
+
+          If HasFormat(kUTTypeUTF8PlainText) then
+          Begin
+             UTI := kUTTypeUTF8PlainText;   // check UTF-8 text
+             Encoding := kCFStringEncodingUTF8;
+          End Else
+          If HasFormat(kUTTypeUTF16PlainText) then
+          Begin
+             UTI := kUTTypeUTF16PlainText; // check UTF-16 text
+             Encoding := kCFStringEncodingUTF16;
+          End Else
+            Exit;
+
+          // plain Encoding := CFStringGetSystemEncoding;
+
+          PasteboardCopyItemFlavorData(_Clipboard, ID, UTI, FlavorData{%H-});
+
+          If CFDataGetLength(FlavorData) = 0 Then
+             Exit;
+
+          CreateCFString(FlavorData, Encoding, CFString);
+          S := CFStringtoStr(CFString);
+          Result := S;
+          FreeCFString(CFString);
+          CFRelease(FlavorData);
+          Exit;
+     End;
+End;
+
+Procedure CarbonApplication.UpdateScreenSize;
+Var
+   MinSize, MaxSize: HISize;
+begin
+  //HIWindowGetAvailablePositioningBounds(kCGNullDirectDisplay,kHICoordSpace72DPIGlobal, _Screen);
+  GetAvailableWindowPositioningBounds(_Display, _Screen);
+
+  MinSize.width := 320;
+  MinSize.height := 240;
+  MaxSize.width := _Screen.Right - _Screen.Left;
+  MaxSize.height := _Screen.Bottom - _Screen.Top;
+  SetWindowResizeLimits(_Window, @MinSize, @MaxSize);
+end;
+
 Initialization
 //	BaseTime := Now;
   mach_timebase_info(timeinfo);
   basetime := mach_absolute_time();
-  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
-  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
-  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
-  CFRelease(pathRef);
-  CFRelease(pathCFStr);
-
-  pathMedia := pathStr + BundleResourceFolder;
-  ChDir(PathMedia);
 End.

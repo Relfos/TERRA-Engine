@@ -117,7 +117,10 @@ Begin
   GL_UNSIGNED_INT:  Size := Count * 4;
   {$ENDIF}
   Else
-    Log(logWarning, 'VBO', 'Invalid VBO attribute type ['+IntToString(Format)+']');
+  	Begin
+  		Size := 0;
+    	Log(logWarning, 'VBO', 'Invalid VBO attribute type ['+IntToString(Format)+']');
+    End;
   End;
 
   If (Not Skip) Then

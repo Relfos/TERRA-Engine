@@ -79,7 +79,7 @@ Type
 	GraphicsManagerSettings = Class(TERRAObject)
     Protected
       _MaxAnisotrophy:Integer;
-			_MaxTextureSize:Integer;
+      _MaxTextureSize:Integer;
       _MaxTextureUnits:Integer;
       _multiSampleCount:Integer;
       _maxRenderTargets:Integer;
@@ -141,11 +141,11 @@ Type
       Property ShadowBias:Single Read _ShadowBias Write _ShadowBias;
 
       Property MaxAnisotrophy:Integer Read _MaxAnisotrophy;
-			Property MaxTextureSize:Integer Read _MaxTextureSize;
+      Property MaxTextureSize:Integer Read _MaxTextureSize;
       Property MaxTextureUnits:Integer Read _MaxTextureUnits;
       Property MultiSampleCount:Integer Read _multiSampleCount;
       Property VertexCacheSize:Integer Read _VertexCacheSize;
-	End;
+    End;
 
 Const
   blendNone     = 0;
@@ -2658,8 +2658,9 @@ Begin
   _Height := Application.Instance.Height;
 
   Log(logDebug, 'GraphicsManager', 'Resizing viewports');
-  If Assigned(_DeviceViewport) Then
-    _DeviceViewport.Resize(_Width, _Height);
+  {If Assigned(_DeviceViewport) Then
+    _DeviceViewport.Resize(_Width, _Height);}
+  OnViewportChange(0, 0, _Width, _Height);
 End;
 
 Procedure GraphicsManager.SetScene(MyScene: Scene);
@@ -3015,9 +3016,9 @@ Begin
     If _DeviceViewport = Nil Then
         Exit;
 
- (* _DeviceViewport.OffsetX := X1;
+  _DeviceViewport.OffsetX := X1;
   _DeviceViewport.OffsetY := (_Height - Y2);
-  _DeviceViewport.Resize(X2-X1, Y2-Y1);*)
+  _DeviceViewport.Resize(X2-X1, Y2-Y1);
 End;
 
 Function GraphicsManager.GenerateStencilID:Byte;
@@ -3070,4 +3071,4 @@ Begin
   {$ENDIF}
 End;
 
-End.
+End.

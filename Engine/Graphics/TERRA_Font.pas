@@ -1698,8 +1698,10 @@ Begin
     Alpha := 0;
 
   If (Alpha<=0) Then
-    DropShadow := False
-  Else
+  Begin
+    DropShadow := False;
+    DropShadowColor := ColorNull;
+  End Else
     DropShadowColor := ColorGrey(0, Alpha);
 
   Layer := -(99-Layer);

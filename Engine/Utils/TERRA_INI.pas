@@ -142,7 +142,10 @@ Begin
                   End;
      tkKey:      Result := GetKeyName(PInteger(Source)^);
      Else
-      RaiseError('Invalid token format.['+CardinalToString(Cardinal(Format))+']');
+     	Begin
+     		Result := '';
+			RaiseError('Invalid token format.['+CardinalToString(Cardinal(Format))+']');
+		End;
     End;
 End;
 

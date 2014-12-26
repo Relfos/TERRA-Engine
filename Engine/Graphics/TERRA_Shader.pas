@@ -140,7 +140,7 @@ End;}
 Procedure Shader.UniformError(Const Name:AnsiString);
 Begin
   {$IFDEF PC}
-//    Log(logWarning, 'Shader', 'Invalid uniform: '+Name+' in '+Self._Name);
+  //  Log(logWarning, 'Shader', 'Invalid uniform: '+Name+' in '+Self._Name);
   {$ENDIF}
 End;
 
@@ -1040,4 +1040,4 @@ End;
 Begin
   Log(logDebug, 'Shaders', 'Initializing');
   RegisterResourceClass(Shader);
-End.
+End.

@@ -1566,7 +1566,7 @@ Begin
 
   If Not Assigned(_Root) Then
   Begin
-    Self.Play(MyAnimation);
+    Result := Self.Play(MyAnimation);
     Exit;
   End;
 
@@ -2002,4 +2002,4 @@ End;
 
 Initialization
   RegisterResourceClass(Animation);
-End.
+End.

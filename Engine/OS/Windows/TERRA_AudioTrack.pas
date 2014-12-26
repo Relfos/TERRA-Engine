@@ -47,10 +47,13 @@ Begin
     Exit;
   End;
 
+  FillChar(ErrMsg, SizeOf(ErrMsg), 0);
+
   // get error message and raise exception
-  If( mciGetErrorString( aError,ErrMsg,SizeOf( ErrMsg ) ) )then
-    SetString(strMsg, ErrMsg, Length(ErrMsg))
-  Else
+  If( mciGetErrorString( aError,ErrMsg,SizeOf( ErrMsg ) ) ) Then
+  Begin
+    SetString(strMsg, ErrMsg, Length(ErrMsg));
+  End Else
     strMsg := 'Unknown error code';
 
   Result := True;

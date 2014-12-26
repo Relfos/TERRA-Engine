@@ -680,6 +680,7 @@ Var
   S:AnsiString;
   I:Integer;
 Begin
+	FillChar(Result, SizeOf(Result), 0);
   Name := UpStr(Name);
 
   I := Pos('.', Name);
