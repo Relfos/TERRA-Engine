@@ -288,7 +288,6 @@ Begin
   Result := WindowsApplication.Create(Client);
 End;
 
-
 //WM_WINDOWPOSCHANGING
 Function WndProc(hWnd:HWND;Msg:UINT;wParam:wPARAM;lParam:LPARAM):LRESULT; Stdcall;
 Var
@@ -359,7 +358,7 @@ Begin
         Begin
           If (App.FullScreen)  And (Not App._FullscreenActive) Then
             App.SetFullscreenMode(True);
-        End;
+        End;                    
 
         App._FullScreen := Temp;
       End;
@@ -547,11 +546,12 @@ End;
 Function WindowsApplication.InitWindow:Boolean;
 Var
   I:Integer;
-  wndClass:TWndClass;         // Window class
+  wndClass:TWndClassW;         // Window class
   dwStyle:Cardinal;            // Window styles
   dwExStyle:Cardinal;          // Extended window styles
   Inst:HINST;             // Current instance
   X,Y,BW,BH:Integer;
+  TitleStr:AnsiString;
 Begin
   Result := False;
 
@@ -576,14 +576,14 @@ Begin
      Style:=CS_HREDRAW Or  // Redraws entire window if length changes
             CS_VREDRAW Or  // Redraws entire window if height changes
             CS_OWNDC;      // Unique device context for the window
-     lpfnWndProc:=@WndProc;  // Set the window procedure to our func WndProc
-     hInstance:=Inst;
-     hCursor:=LoadCursor(0,IDC_ARROW);
-     hIcon:=LoadIcon(Inst,'IDI_MAIN_ICON');
+     lpfnWndProc := @WndProc;  // Set the window procedure to our func WndProc
+     hInstance := Inst;
+     hCursor := LoadCursor(0,IDC_ARROW);
+     hIcon := LoadIcon(Inst,'IDI_MAIN_ICON');
      lpszClassName:='TERRA';
     End;
 
-    If (RegisterClass(wndClass)=0) Then  // Attemp to register the window class
+    If (RegisterClassW(wndClass)=0) Then  // Attemp to register the window class
     Begin
       RaiseError('Failed to register the window class.');
       Exit;
@@ -627,10 +627,12 @@ Begin
 
   _CanReceiveEvents:=True;
 
+  TitleStr := Self.Title;
+
   // Attempt to create the actual window
-  _Handle := CreateWindowExA(dwExStyle,    // Extended window styles
+  _Handle := CreateWindowExW(dwExStyle,    // Extended window styles
                           'TERRA',       // Class name
-                          PAnsiChar(Title), // Window title (caption)
+                          @(TitleStr[1]), // Window title (caption)
                           dwStyle,      // Window styles
                           X,Y,          // Window position
                           Width+BW,     // Size of window
@@ -927,7 +929,7 @@ Var
   JoyInfo:GamepadInfoEx;
   XState:TXInputGamepad;
 Begin
-  If (PeekMessage(Msg, _Handle, 0, 0, PM_REMOVE)) Then // Check if there is a message for this window
+  If (PeekMessageW(Msg, 0 {_Handle}, 0, 0, PM_REMOVE)) Then // Check if there is a message for this window
   Begin
     If (Msg.Message=WM_QUIT) Then     // If WM_QUIT message received then we are done
     Begin
@@ -936,7 +938,7 @@ Begin
     End Else
     Begin   // Else translate and dispatch the message to this window
       TranslateMessage(msg);
-      DispatchMessage(msg);
+      DispatchMessageW(msg);
     End;
   End;
 
