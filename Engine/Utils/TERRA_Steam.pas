@@ -7,6 +7,7 @@ Uses TERRA_Utils, TERRA_Math, TERRA_Application, SteamAPI;
 Type
   Steam = Class(ApplicationComponent)
     Protected
+      _Enabled:Boolean;
       _Running:Boolean;
       _LoggedOn:Boolean;
       _StatsRequested:Boolean;
@@ -33,6 +34,7 @@ Type
       Property Language:AnsiString Read _Language;
       Property SteamID:AnsiString Read _SteamID;
       Property AppID:AnsiString Read _AppID;
+      Property Enabled:Boolean Read _Enabled;
   End;
 
 
@@ -54,8 +56,18 @@ End;
 
 Procedure Steam.Init;
 Begin
-  _Running := SteamAPI_InitSafe();
   _LoggedOn := False;
+
+  Log(logDebug, 'Steam', 'Trying to load Steam library...');
+  _Enabled := LoadSteamAPI();
+  If Not _Enabled Then
+  Begin
+    Log(logWarning, 'Steam', 'Failed to hook into Steam...');
+    _Running := False;
+    Exit;
+  End;
+
+  _Running := SteamAPI_InitSafe();
 
   If Not _Running Then
     Exit;
@@ -121,4 +133,4 @@ Begin
 End;
 
 End.
-
+

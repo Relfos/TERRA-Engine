@@ -2283,7 +2283,7 @@ Begin
     Result := False;
     Exit;
   End;
-  
+
   If (Key = keyShift) Or (Key = keyControl) Or (Key = keyAlt) Then
   Begin
     Result := False;

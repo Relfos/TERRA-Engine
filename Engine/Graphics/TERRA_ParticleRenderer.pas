@@ -94,7 +94,7 @@ Type
     EndValue:Single;
   End;
 
-  ParticleProperty = Object
+  ParticleProperty = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     Graphs:Array Of ParticlePropertyGraph;
     GraphCount:Integer;
     CurrentGraph:Integer;
@@ -115,7 +115,7 @@ Type
   ParticleEmitter = Class;
 
   PParticle = ^Particle;
-  Particle = Object
+  Particle = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     Private
       Vertices:Array[0..3] Of PParticleVertex;
 

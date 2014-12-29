@@ -32,7 +32,7 @@ Type
   BoundingBoxVertices=Array[1..8] Of Vector3D;
 
   PBoundingBox = ^ BoundingBox;
-  BoundingBox = Packed Object
+  BoundingBox = Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     Public
       StartVertex:Vector3D;
       EndVertex:Vector3D;

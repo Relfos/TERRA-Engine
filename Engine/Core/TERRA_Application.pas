@@ -550,7 +550,7 @@ Function IsInvalidOrientation(Orientation:Integer):Boolean;
 Implementation
 Uses TERRA_Error, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   {TERRA_Callstack, }TERRA_Log, TERRA_OS, TERRA_IAP, TERRA_Localization, TERRA_FileUtils, TERRA_FileManager
-  {$IFDEF STEAM},TERRA_Steam{$ENDIF};
+  {$IFDEF PC}, TERRA_Steam{$ENDIF};
 
 Var
   _Application_Ready:Boolean;
@@ -793,19 +793,20 @@ Begin
     _IsConsole := False;
 
   _Ready := False;
-  {$IFNDEF MOBILE}
-  If (Not _Managed) And (Not _IsConsole) Then
-  {$ENDIF}
-    InitWindow;
 
   Log(logDebug, 'App', 'Initializing settings');
   If (Not InitSettings()) Then
     Halt(0);
 
-  {$IFDEF STEAM}
-  If (IsSupportedLanguage(Steam.Instance.Language)) Then
+  {$IFDEF PC}
+  If (Steam.Instance.Enabled) And (IsSupportedLanguage(Steam.Instance.Language)) Then
     _Language := Steam.Instance.Language;
   {$ENDIF}
+
+  {$IFNDEF MOBILE}
+  If (Not _Managed) And (Not _IsConsole) Then
+  {$ENDIF}
+    InitWindow;
 
   If (Not _IsConsole) Then
   Begin

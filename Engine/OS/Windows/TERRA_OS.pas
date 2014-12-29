@@ -5,6 +5,8 @@ Unit TERRA_OS;
 
 {-$DEFINE FOLDERWATCH}
 
+{-$DEFINE TRUE_FULLSCREEN}
+
 Interface
 Uses TERRA_Utils, TERRA_Application, TERRA_Client, TERRA_Multimedia,
   Windows, Messages;
@@ -349,6 +351,7 @@ Begin
 
     WM_ACTIVATE,WM_ACTIVATEAPP:
       Begin
+        {$IFDEF TRUE_FULLSCREEN}
         Temp := App._FullScreen;
         If (wParam = 0) Then
         Begin
@@ -358,9 +361,10 @@ Begin
         Begin
           If (App.FullScreen)  And (Not App._FullscreenActive) Then
             App.SetFullscreenMode(True);
-        End;                    
+        End;
 
         App._FullScreen := Temp;
+        {$ENDIF}
       End;
 
     WM_SIZING:Begin
@@ -378,16 +382,13 @@ Begin
                   WMSZ_TOP, WMSZ_BOTTOM:
                     Begin
                       // Modify the Width of the window
-                      sz.right := Trunc(H * (1 / App.AspectRatio)) + sz.left;
+                      sz.right := Trunc(H / App.AspectRatio) + sz.left;
                     End;
 
                   WMSZ_TOPRIGHT, WMSZ_TOPLEFT, WMSZ_BOTTOMRIGHT, WMSZ_BOTTOMLEFT:
                   Begin
                     // Adjust the width and height of the window to match aspect ratio
-                    If (h/w > App.aspectRatio) Then
-                      w := Trunc(h / App.aspectRatio)
-                    Else
-                      h := Trunc(w * App.aspectRatio);
+                    h := Trunc(w * App.aspectRatio);
 
                     // Adjust Height
                     If (wParam = WMSZ_TOPLEFT) Or (wParam = WMSZ_TOPRIGHT) Then
@@ -608,7 +609,6 @@ Begin
 //    dwStyle := WS_POPUP Or WS_BORDER;
     X := (_FullscreenWidth - Width) Div 2;
     Y := (_FullscreenHeight - Height) Div 2;
-    Y:=0;
 
     //BW := GetSystemMetrics(SM_CXFIXEDFRAME)+GetSystemMetrics(SM_CXEDGE)*2;
     BH := GetSystemMetrics(SM_CYCAPTION)+GetSystemMetrics(SM_CYSIZEFRAME)*2+GetSystemMetrics(SM_CYEDGE)*2;
@@ -878,13 +878,12 @@ Begin
     _savedStyle := GetWindowLong(_Handle, GWL_STYLE);
     GetWindowRect(_Handle, _rcSaved);
 
-    //FullWidth := _OriginalWidth;
-    //FullHeight := _OriginalHeight;
-    FullWidth := 1024;
-    FullHeight := 768;
+    {$IFDEF TRUE_FULLSCREEN}
+    FullWidth := _OriginalWidth;
+    FullHeight := _OriginalHeight;
 
     ZeroMemory(@ScreenSettings,SizeOf(ScreenSettings));
-    ScreenSettings.dmDisplayFrequency := 60;
+    //ScreenSettings.dmDisplayFrequency := 60;
 
     EnumDisplaySettings(Nil, 0, ScreenSettings);
 
@@ -905,17 +904,30 @@ Begin
       Exit;
     End;
 
+    {$ELSE}
+    FullWidth := _FullscreenWidth;
+    FullHeight := _FullscreenHeight;
+    {$ENDIF}
+
     Flags := WS_POPUP Or WS_CLIPCHILDREN Or WS_CLIPSIBLINGS;
     SetWindowLong(_Handle, GWL_EXSTYLE, 0);
     SetWindowLong(_Handle, GWL_STYLE, Flags);
+
+    {$IFDEF TRUE_FULLSCREEN}
     SetWindowPos(_Handle, HWND_TOPMOST, 0, 0, FullWidth, FullHeight, SWP_FRAMECHANGED Or SWP_SHOWWINDOW);
+    {$ELSE}
+    SetWindowPos(_Handle, 0, 0, 0, FullWidth, FullHeight, SWP_FRAMECHANGED Or SWP_SHOWWINDOW);
+    {$ENDIF}
   End Else
   Begin
+    {$IFDEF TRUE_FULLSCREEN}
     ChangeDisplaySettings(Nil, 0);
+    {$ENDIF}
 
     // Moving back to windowed mode.
     SetWindowLong(_Handle, GWL_EXSTYLE, _savedExStyle);
     SetWindowLong(_Handle, GWL_STYLE, _savedStyle);
+
     SetWindowPos(_Handle, HWND_NOTOPMOST, _rcSaved.left, _rcSaved.top, _rcSaved.Right - _rcSaved.Left, _rcSaved.Bottom - _rcSaved.top, SWP_SHOWWINDOW);
   End;
   
@@ -1409,6 +1421,7 @@ Var
   Name:AnsiString;
   Src:Stream;
   offset:Integer;
+  Data:PByteArray;
 Begin
   Name := GetFileName(ParamStr(0), True)+'.ico';
   Src := FileManager.Instance.OpenFileStream(Name);
@@ -1425,7 +1438,8 @@ Begin
       DestroyIcon(_Icon);
     End;
 
-    _Icon := CreateIconFromResourceEx(Pointer(PtrInt(MemoryStream(Src).Buffer) + Offset), Src.Size, True, $30000, iconSize, iconSize, LR_DEFAULTCOLOR Or LR_DEFAULTSIZE);
+    Data := PByteArray(MemoryStream(Src).Buffer);
+    _Icon := CreateIconFromResourceEx(@(Data[Offset]), Src.Size, True, $30000, iconSize, iconSize, LR_DEFAULTCOLOR Or LR_DEFAULTSIZE);
 
     SendMessage(_Handle, WM_SETICON, ICON_SMALL, _Icon);
     SendMessage(_Handle, WM_SETICON, ICON_BIG, _Icon);

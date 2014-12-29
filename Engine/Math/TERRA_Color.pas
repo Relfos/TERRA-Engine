@@ -31,7 +31,7 @@ Uses TERRA_Utils;
 
 Type
   PColor = ^Color;
-  Color=Packed Object
+  Color=Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
   {$IFDEF BGR}
     B:Byte;
     G:Byte;

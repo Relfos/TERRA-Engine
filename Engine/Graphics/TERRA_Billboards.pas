@@ -34,7 +34,7 @@ Type
   PBillboard = ^Billboard;
   PBillboardGroup = ^BillboardGroup;
 
-  Billboard = Object
+  Billboard = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     Position:Vector3D;
     Width, Height:Single;
     AnchorX, AnchorY:Single;

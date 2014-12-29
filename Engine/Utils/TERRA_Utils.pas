@@ -111,6 +111,8 @@ Const
   iTrue='TRUE';
   iFalse='FALSE';
 
+  Tab = #9;
+
 Type
   // Triangle struct
   {$IFDEF OXYGENE}
@@ -142,11 +144,11 @@ Function Cos(S:Single):Single;
 Function ArcTan(S:Single):Single;
 Function Sqrt(S:Single):Single;
 Function Sqr(S:Single):Single;
-Function Pos(S2, S:AnsiString):Integer;
+Function Pos(Const S2, S:AnsiString):Integer;
 Function Odd(N:Integer):Boolean;
 Procedure Halt(ExitCode:Integer);
 Procedure Delete(Var S:AnsiString; Ind, Count:Integer);
-Function Copy(S:AnsiString; Ind,Count:Integer):AnsiString;
+Function Copy(Const S:AnsiString; Ind,Count:Integer):AnsiString;
 {$ENDIF}
 
 Function IntMax(Const A,B:Integer):Integer;
@@ -167,8 +169,8 @@ Function UpStr(Const S:AnsiString):AnsiString;
 Function LowStr(Const S:AnsiString):AnsiString;
 Function CapStr(Const S:AnsiString):AnsiString;
 
-Function StrLPad(S:AnsiString;N:Integer; Token:AnsiChar='0'):AnsiString;
-Function StrRPad(S:AnsiString;N:Integer; Token:AnsiChar='0'):AnsiString;
+Function StrLPad(Const S:AnsiString; N:Integer; Token:AnsiChar='0'):AnsiString;
+Function StrRPad(Const S:AnsiString; N:Integer; Token:AnsiChar='0'):AnsiString;
 Function StrClean(Const S:AnsiString):AnsiString;
 
 Function TicksToTime(Ticks:Cardinal):TERRATime;
@@ -656,18 +658,18 @@ Begin
   Result.Build := StringToInt(S1);
 End;
 
-Function StrLPad(S:AnsiString;N:Integer; Token:AnsiChar='0'):AnsiString;
+Function StrLPad(Const S:AnsiString;N:Integer; Token:AnsiChar='0'):AnsiString;
 Begin
-  While Length(S)<N Do
-    S:=Token+S;
-  Result:=S;
+  Result := S;
+  While Length(Result)<N Do
+    Result := Token + Result;
 End;
 
-Function StrRPad(S:AnsiString;N:Integer; Token:AnsiChar='0'):AnsiString;
+Function StrRPad(Const S:AnsiString;N:Integer; Token:AnsiChar='0'):AnsiString;
 Begin
-  While Length(S)<N Do
-    S:=S+Token;
-  Result:=S;
+  Result := S;
+  While Length(Result)<N Do
+    Result := Result + Token;
 End;
 
 {$IFDEF OXYGENE}

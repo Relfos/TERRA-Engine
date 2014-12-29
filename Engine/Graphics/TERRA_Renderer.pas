@@ -96,7 +96,7 @@ Type
       Function GetUniform(Name:AnsiString):Integer; Virtual; Abstract;
   End;
 
-	GraphicsManagerSetting = Object
+	GraphicsManagerSetting = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
 		Protected
 			_Enabled:Boolean;
 			_Avaliable:Boolean;
@@ -108,7 +108,7 @@ Type
       Procedure SetValue(Value:Boolean);
 	End;
 
-	RendererVariableSetting = Object(RendererSetting)
+	RendererVariableSetting = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}(RendererSetting)
 		Protected
 			_Quality:Integer;
 

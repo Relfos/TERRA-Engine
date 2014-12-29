@@ -95,6 +95,8 @@ Type
       Property PathCount:Integer Read _PathCount;
   End;
 
+Function IsPackageFileName(Const FileName:AnsiString):Boolean;
+
 Implementation
 Uses TERRA_Error, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_OS, TERRA_Image, TERRA_GraphicsManager, TERRA_Utils, TERRA_Color,
   TERRA_FileUtils;
@@ -105,6 +107,24 @@ Var
 {$IFDEF IPHONE}
 Procedure ExcludeFileFromCloud(fileName:PAnsiChar);Cdecl; external;
 {$ENDIF}
+
+Function IsPackageFileName(Const FileName:AnsiString):Boolean;
+Var
+  I,J:Integer;
+Begin
+  Result := Pos('.TERRA', UpStr(FileName))>0;
+  {Result := False;
+
+  I := Pos('.', FileName);
+  If I<=0 Then
+    Exit;
+
+  J := PosRev(PathSeparator, FileName);
+  If J<=0 Then
+    Exit;
+
+  Result := I<J;}
+End;
 
 Function SearchFileLocation(P:ListObject; UserData:Pointer):Boolean; CDecl;
 Begin
@@ -310,6 +330,9 @@ Var
   Location:FileLocation;
   Procedure RegisterLocation();
   Begin
+    If IsPackageFileName(FileName) Then
+      Exit;
+      
     Location := FileLocation.Create(FileName, Result);
     _Locations.Add(Location);
   End;
@@ -441,12 +464,12 @@ Begin
     End;
   End;
 
-  I := Pos('.TERRA'+PathSeparator, UpStr(FileName));
   // load from package
-  If (I>0) Then
+  If (IsPackageFileName(FileName)) Then
   Begin
-    PackageName := Copy(FileName,1, Pred(I+Length('.TERRA')));
-    ResourceName := Copy(FileName, I+Length('.TERRA'+PathSeparator),MaxInt);
+    I := PosRev(PathSeparator, FileName);
+    PackageName := Copy(FileName,1, Pred(I));
+    ResourceName := Copy(FileName, Succ(I), MaxInt);
 
     MyPackage := Self.GetPackage(PackageName);
 
@@ -475,8 +498,7 @@ Begin
     Begin
       Log(logDebug, 'FileManager', 'Opening file '+FileName);
 
-      I := Pos('.TERRA'+PathSeparator, UpStr(FileName));
-      If (I>0) Then
+      If (IsPackageFileName(FileName)) Then
         Result := Self.OpenFileStream(FileName, Mode)
       Else
         Result := MemoryStream.Create(FileName, Mode);

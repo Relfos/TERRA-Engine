@@ -23,7 +23,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_FileManager, TERRA_Log, TERRA_OS, TERRA_IO, TERRA_Math;
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_FileManager, TERRA_FileIO, TERRA_IO, TERRA_Math;
 
 Const
   mpNotReady = 0;
@@ -202,6 +202,7 @@ End;
 
 Procedure AudioMusicTrack.Init();
 Var
+  Src, Dest:Stream;
   OpenParm:MCI_OPEN_PARAMS;
   lMode :Integer;
   intFlags:Integer;
@@ -212,6 +213,21 @@ Begin
   Begin
     // close player if active
     Self.Stop();
+
+
+    // extract from package if necessary
+    If IsPackageFileName(FileName) Then
+    Begin
+      Src := FileManager.Instance.OpenFileStream(FileName);
+      If Not Assigned(Src) Then
+        Exit;
+
+      _FileName := Application.Instance.TempPath + PathSeparator + GetFileName(FileName, False);
+      Dest := FileStream.Create(_FileName);
+      Src.Copy(Dest);
+      Dest.Destroy();
+      Src.Destroy();
+    End;
 
     // open player
     OpenParm.dwCallback := 0;

@@ -15,7 +15,7 @@ Const
   SprayDistance = 0.15;
 
 Type
-  VectorDequeue = Object
+  VectorDequeue = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     Values:Array Of Vector3D;
     Size:Integer;
 
@@ -25,7 +25,7 @@ Type
     Function Front:Vector3D;
   End;
 
-  NavMeshGeometryBuffer = Object
+  NavMeshGeometryBuffer = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     _Vertices:Array Of Vector3D;
     _VertexCount:Integer;
     _Triangles:Array Of Triangle;

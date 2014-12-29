@@ -29,7 +29,7 @@ Uses TERRA_Math, TERRA_Vector3D, TERRA_Matrix4x4;
 
 Type
   PVector4D = ^Vector4D;
-  Vector4D=Packed Object
+  Vector4D=Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     X:Single;
     Y:Single;
     Z:Single;

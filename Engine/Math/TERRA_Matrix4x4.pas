@@ -31,7 +31,7 @@ Type
   MatrixColumns = Array[0..2] Of Vector3D;
 
   PMatrix4x4 = ^Matrix4x4;
-  Matrix4x4 = Packed Object
+  Matrix4x4 = Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     V:Array [0..15] Of Single;
 
     //Function GetAngles:Vector3D;

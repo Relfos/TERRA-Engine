@@ -29,7 +29,7 @@ Uses TERRA_Vector2D, TERRA_Vector3D, TERRA_Matrix4x4;
 
 Type
   PMatrix3x3 = ^Matrix3x3;
-  Matrix3x3=Packed Object
+  Matrix3x3=Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     V:Array [0..8] Of Single;
 
     Function Transform(Const P:Vector2D):Vector2D; Overload;

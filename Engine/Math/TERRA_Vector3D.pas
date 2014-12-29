@@ -36,7 +36,7 @@ Type
   Vector3D = Class
   {$ELSE}
   PVector3D = ^Vector3D;
-  Vector3D = Packed Object
+  Vector3D = Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
   {$ENDIF}
     X:Single;
     Y:Single;

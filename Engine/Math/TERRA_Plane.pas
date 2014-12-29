@@ -29,7 +29,7 @@ Uses TERRA_Vector3D;
 
 Type
   PPlane =^ Plane;
-  Plane = Packed Object
+  Plane = Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     A,B,C,D:Single;
 
     Function Distance(X,Y,Z:Single):Single; Overload;

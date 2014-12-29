@@ -197,7 +197,7 @@ Type
 	  Comment:Array Of AnsiChar;  // comment
   End;
 
-  Milkshape3DObject = Object
+  Milkshape3DObject = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     Header:Milkshape3DHeader;
     NumVertices:SmallInt;
     Vertices:Array Of Milkshape3DVertex;

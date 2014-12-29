@@ -3566,6 +3566,9 @@ begin
    val:=0;
 // WINDOWING
 
+   FillChar(do_not_decode, SizeOf(do_not_decode), 0);
+   FillChar(zero_channel, SizeOf(zero_channel), 0);
+
    n := f.blocksize[_mode.blockflag];
    //window_center := n shr 1;
 
@@ -4039,6 +4042,9 @@ begin
     Result := false;
     Exit;
    End;
+   
+   FillChar(residue_cascade, SizeOf(residue_cascade), 0);
+   cb := nil;
 
    // validate page flag
    if (f.page_flag and PAGEFLAG_first_page)=0 then begin
@@ -5166,6 +5172,8 @@ begin
    // page, which is the first decoded sample of the 2nd page
 
    num_packet:=0;
+   
+   FillChar(packet_type, SizeOf(packet_type), 0);
    
    packet_start := ((header[5] and 1)=0);
 

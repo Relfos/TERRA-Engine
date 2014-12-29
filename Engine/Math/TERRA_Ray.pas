@@ -29,7 +29,7 @@ Uses TERRA_Math, TERRA_BoundingBox, TERRA_Vector3D, TERRA_Plane;
 
 Type
   PRay=^Ray;
-  Ray = Packed Object
+  Ray = Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     Public
       Origin:Vector3D;
       Direction:Vector3D;

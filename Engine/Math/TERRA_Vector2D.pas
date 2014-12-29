@@ -35,7 +35,7 @@ Type
   Vector2D = Class
   {$ELSE}
   PVector2D=^Vector2D;
-  Vector2D=Packed Object
+  Vector2D=Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
   {$ENDIF}
     X,Y:Single;
 

@@ -31,7 +31,7 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Vector3D, TERRA_Matrix4x4;
 
 Type
-  Frustum = Packed Object
+  Frustum = Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     Protected
         _Planes:Array[0..5]Of Plane;
         _Vertices:BoundingBoxVertices;

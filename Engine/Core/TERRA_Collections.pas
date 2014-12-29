@@ -260,7 +260,7 @@ Type
       Function GetNext:ListObject; Override;
   End;
 
-  IntegerArray = Object
+  IntegerArray = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     Items:Array Of Integer;
     Count:Integer;
 
