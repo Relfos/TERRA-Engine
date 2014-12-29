@@ -41,7 +41,7 @@ Const
 
 Type
   PVerletParticle = ^VerletParticle;
-  VerletParticle = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  VerletParticle = Object
     Protected
 	    _Fixed:Boolean; // can the particle move or not ? used to pin parts of the cloth
       _Mass:Single; // the mass of the particle (is always 1 in this example)
@@ -64,7 +64,7 @@ Type
       Property Fixed:Boolean Read _Fixed Write _Fixed;
     End;
 
-  VerletConstraint = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  VerletConstraint = Object
     Protected
 	    _RestDistance:Single; // the length between particle p1 and p2 in rest configuration
 	    P1,P2:PVerletParticle; // the two particles that are connected through this constraint

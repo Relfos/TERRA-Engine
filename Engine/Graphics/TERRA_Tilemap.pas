@@ -48,7 +48,7 @@ Type
   End;
 
   PTileObject = ^TileObject;
-  TileObject = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  TileObject = Object
     X,Y:Single;
     Width,Height:Single;
     TX,TY:Integer;

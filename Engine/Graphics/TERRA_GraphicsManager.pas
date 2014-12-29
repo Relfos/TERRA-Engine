@@ -46,7 +46,7 @@ Uses {$IFNDEF DEBUG_LEAKS}TERRA_MemoryManager,{$ENDIF} {$IFDEF USEDEBUGUNIT}TERR
 Type
   GraphicsManagerCallback = Procedure;
 
-	GraphicsManagerFeature = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+	GraphicsManagerFeature = Object
 		Protected
 			_Avaliable:Boolean;
 
@@ -54,7 +54,7 @@ Type
 			Property Avaliable:Boolean Read _Avaliable;
 	End;
 
-	GraphicsManagerSetting = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+	GraphicsManagerSetting = Object
 		Protected
 			_Enabled:Boolean;
 			_Avaliable:Boolean;
@@ -264,7 +264,7 @@ Type
       Function GetBoundingBox:BoundingBox; Override;
   End;
 
-  GraphicsManagerStats = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  GraphicsManagerStats = Object
     Public
       TriangleCount:Integer;
       ShaderSwitches:Integer;

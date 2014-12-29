@@ -64,7 +64,7 @@ Type
     Vertex:Array[0..2] Of Vector2D;
   End;
 
-  UnwrapCluster = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  UnwrapCluster = Object
     Public
       Index:Integer;
       U1,V1:Single;
@@ -84,7 +84,7 @@ Type
   End;
 
   PUnwrapTriangle = ^UnwrapTriangle;
-  UnwrapTriangle = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  UnwrapTriangle = Object
     Public
       Cluster:PUnwrapCluster;
     Protected

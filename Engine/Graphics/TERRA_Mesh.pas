@@ -134,7 +134,7 @@ Type
     Procedure Update; Virtual; Abstract;
   End;
 
-  MeshMaterial = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  MeshMaterial = Object
     BlendMode:Integer;
 
     AmbientColor:Color;

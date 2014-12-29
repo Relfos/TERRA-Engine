@@ -50,7 +50,7 @@ Type
   End;
 
 
-  TextureRect = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  TextureRect = Object
     Public
       Texture:Texture;
       Width:Integer;
@@ -132,7 +132,7 @@ Type
       Property Texture:TERRA_Texture.Texture Read Rect.Texture;
   End;
 
-  SpriteBatch = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  SpriteBatch = Object
     Protected
       _First:Sprite;
       _Count:Integer;

@@ -146,7 +146,7 @@ Type
   Animation = Class;
 
   PAnimationTransformBlock = ^AnimationTransformBlock;
-  AnimationTransformBlock = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  AnimationTransformBlock = Object
     Translation:Vector3D;
     Scale:Vector3D;
     Rotation:Vector4D;

@@ -61,7 +61,7 @@ Type
     AbsoluteMatrix:Matrix4x4;
   End;
 
-  SMDAnimation = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  SMDAnimation = Object
     Protected
       _Bones:Array Of SMDBone;
       _BoneCount:Integer;
@@ -104,7 +104,7 @@ Type
     Rotation:Vector3D;
   End;
 
-  SMDReference = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  SMDReference = Object
     Vertices:Array Of SMDVertex;
     VertexCount:Integer;
     Triangles:Array Of Triangle;

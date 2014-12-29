@@ -28,7 +28,7 @@ Interface
 Uses TERRA_Utils, TERRA_Math, TERRA_Vector2D, TERRA_Color;
 
 Type
-  Circle = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  Circle = Object
     Center:Vector2D;
     Radius:Single;
 
@@ -38,7 +38,7 @@ Type
     Function Intersect(C:Circle):Boolean;
   End;
 
-  Polygon2D = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  Polygon2D = Object
       Vertices:Array Of Vector2D;
       VertexCount:Integer;
 
@@ -53,7 +53,7 @@ Type
       Function Intersect(C:Circle; Hit:PVector2D = Nil):Boolean;
   End;
 
-  Line2D = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  Line2D = Object
     P1:Vector2D;
     P2:Vector2D;
 
@@ -64,7 +64,7 @@ Type
     Function PointInside(P:Vector2D):Boolean;
   End;
 
-  PointCloud2D = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  PointCloud2D = Object
     Points:Array Of Vector2D;
     PointCount:Integer;
 

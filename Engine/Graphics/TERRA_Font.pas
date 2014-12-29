@@ -110,7 +110,7 @@ Type
     Arg:AnsiString;
   End;
 
-  FontRenderer = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  FontRenderer = Object
     Protected
       _Text:AnsiString;
       _Mode:Integer;

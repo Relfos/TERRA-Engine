@@ -47,7 +47,7 @@ Type
   ParticleSettingsEmitter = Class;
 
   PParticleSettingsEmitterGroup = ^ParticleSettingsEmitterGroup;
-  ParticleSettingsEmitterGroup = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  ParticleSettingsEmitterGroup = Object
       SpawnRange:Single;
       SpawnPercent:Integer;
       EmissionRate:Integer;

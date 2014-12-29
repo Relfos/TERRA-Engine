@@ -57,7 +57,7 @@ Type
   End;
 
   POBJGroup = ^OBJGroup;
-  OBJGroup = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  OBJGroup = Object
     Name:AnsiString;
     FaceCount:Integer;            // Number of faces
     FaceList:Array Of OBJFace;   // The faces in the group
