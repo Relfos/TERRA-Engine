@@ -150,6 +150,8 @@ Function Sound.Update:Boolean;
 Begin
   Inherited Update();
   
+  Result := False;
+  
   If (_Buffer=0) Then
   Begin
     alGenBuffers(1, @_Buffer);  {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}

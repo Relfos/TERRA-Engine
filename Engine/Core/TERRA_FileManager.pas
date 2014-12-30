@@ -112,7 +112,7 @@ Function IsPackageFileName(Const FileName:AnsiString):Boolean;
 Var
   I,J:Integer;
 Begin
-  Result := Pos('.TERRA', UpStr(FileName))>0;
+  Result := Pos('.TERRA'+PathSeparator, UpStr(FileName))>0;
   {Result := False;
 
   I := Pos('.', FileName);

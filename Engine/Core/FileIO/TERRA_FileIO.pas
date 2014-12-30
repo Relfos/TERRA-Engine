@@ -1,3 +1,27 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License. 
+ *
+ **********************************************************************************************************************
+ * TERRA_FileIO
+ * Implements a generic file input stream
+ ***********************************************************************************************************************
+}
+
 {
 @abstract(File and Memory Streams)
 @author(Sergio Flores <relfos@gmail.com>)
@@ -57,7 +81,7 @@ Type
      Public
 
         Constructor Create(FileName:AnsiString; StreamMode:Integer=smDefault);Overload;
-        Constructor Open(FileName:AnsiString; StreamMode:Integer=smDefault; Offset:Integer=0; MaxSize:Integer=-1);
+        Constructor Open(FileName:AnsiString; StreamMode:Integer=smDefault);
         Destructor Destroy;Override;
         Procedure Delete;
         Procedure Rename(NewName:AnsiString);
@@ -123,7 +147,7 @@ Begin
   FileName := GetOSIndependentFileName(FileName);
   FileManager.Instance.RemoveFromCache(FileName);
 
-  Log(logDebug,'IO','Opening '+FileName);
+  Log(logDebug,'IO','Creating '+FileName);
   If StreamMode=0 Then
     RaiseError('Invalid file mode.['+FileName+']')
   Else
@@ -139,7 +163,7 @@ Begin
   End;
 End;
 
-Constructor FileStream.Open(FileName:AnsiString; StreamMode:Integer=smDefault; Offset:Integer=0; MaxSize:Integer=-1);
+Constructor FileStream.Open(FileName:AnsiString; StreamMode:Integer=smDefault);
 Begin
   Inherited Create(StreamMode);
 
@@ -162,25 +186,15 @@ Begin
     Exit;
   End Else
   Begin
-    _Offset := Offset;
-
     If (_Mode And smWrite <>0) Then
       FileMode := 2
     Else
       FileMode := 0;
 
+  Log(logDebug,'IO','Opening '+FileName);
     AssignFile(_File,_Name);
     Reset(_File,1);
     _Size := FileSize(_File);
-
-    If (MaxSize>0) And (MaxSize<_Size) Then
-      _Size := MaxSize;
-
-    If _Offset>0 Then
-    Begin
-      Self.Seek(_Offset);
-      _Pos := 0;
-    End;
 
     _Open:=True;
   End;
@@ -308,7 +322,7 @@ Begin
   End;
   _Pos := NewPosition;
 
-  FileSeek(_File, _Pos+_Offset);
+  FileSeek(_File, _Pos);
 End;
 
 Class procedure FileStream.CopyFile(SourceName, DestName:AnsiString);
@@ -328,7 +342,7 @@ Begin
   FileMode := 2;
   AssignFile(_File,_Name);
   Reset(_File,1);
-  FileSeek(_File, _Pos+_Offset);
+  FileSeek(_File, _Pos);
 End;
 
 End.

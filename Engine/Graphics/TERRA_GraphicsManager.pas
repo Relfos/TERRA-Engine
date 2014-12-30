@@ -66,7 +66,7 @@ Type
       Procedure SetValue(Value:Boolean);
 	End;
 
-	GraphicsManagerVariableSetting = {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}(GraphicsManagerSetting)
+	GraphicsManagerVariableSetting = Object(GraphicsManagerSetting)
 		Protected
 			_Quality:Integer;
 
