@@ -13,11 +13,12 @@ Type
       Function CheckError(aError: integer):Boolean;
       Function GetMode :Integer;
 
+      Procedure ChangeVolume(Volume:Single); Override;
+
     Public
       Procedure Init(); Override;
       Procedure Play(); Override;
       Procedure Stop; Override;
-      Procedure SetVolume(Volume:Single); Override;
 
       Class Function Supports(Const Extension:AnsiString):Boolean; Override;
   End;
@@ -185,13 +186,10 @@ Begin
 End; *)
 
 
-Procedure AudioMusicTrack.SetVolume(Volume:Single);
+Procedure AudioMusicTrack.ChangeVolume(Volume:Single);
 Var
-  intError :integer;
-
+  intError:integer;
 Begin
-  Inherited SetVolume(Volume);
-
   // exit if player is not active
   If (_DeviceID = 0 ) Or (_IsMIDI) Then
     Exit;
@@ -218,7 +216,7 @@ Begin
     // extract from package if necessary
     If IsPackageFileName(FileName) Then
     Begin
-      Src := FileManager.Instance.OpenFileStream(FileName);
+      Src := FileManager.Instance.OpenStream(FileName);
       If Not Assigned(Src) Then
         Exit;
 

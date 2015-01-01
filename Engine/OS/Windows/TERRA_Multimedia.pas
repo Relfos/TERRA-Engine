@@ -403,6 +403,19 @@ Type
     dwTo: Cardinal;
   End;
 
+// midi  
+  HMIDIIN = Integer;
+  HMIDIOUT = Integer;
+
+Const
+  CALLBACK_TYPEMASK   = $00070000;    { callback type mask }
+  CALLBACK_NULL       = $00000000;    { no callback }
+  CALLBACK_WINDOW     = $00010000;    { dwCallback is a HWND }
+  CALLBACK_TASK       = $00020000;    { dwCallback is a HTASK }
+  CALLBACK_FUNCTION   = $00030000;    { dwCallback is a FARPROC }
+  CALLBACK_THREAD     = CALLBACK_TASK;{ thread ID replaces 16 bit task }
+  CALLBACK_EVENT      = $00050000;    { dwCallback is an EVENT Handle }
+
 Var
   timeGetTime:Function:Cardinal; stdcall;
 
@@ -421,6 +434,11 @@ Var
   mciSendCommand:Function (mciId:Integer; uMessage:Cardinal; Param1,Param2:Cardinal): Integer; stdcall;
   mciGetDeviceIDFromElementID:Function (ElementID:Cardinal; strType:PAnsiChar): Integer; stdcall;
   mciExecute:Function (Command:LPCSTR): BOOL; stdcall;
+
+  midiOutOpen:Function(Out lphMidiOut: HMIDIOUT; uDeviceID:Cardinal; dwCallback, dwInstance, dwFlags:Cardinal):Integer; stdcall;
+  midiOutClose:Function(hMidiOut: HMIDIOUT):Integer; stdcall;
+  midiOutShortMsg:Function(hMidiOut: HMIDIOUT; dwMsg: Cardinal): Integer; stdcall;
+
 
 Procedure LoadMultimedia();
 
@@ -524,6 +542,21 @@ Begin
     Result := Alternative;
 End;
 
+Function _midiOutOpen(Out lphMidiOut: HMIDIOUT; uDeviceID:Cardinal; dwCallback, dwInstance, dwFlags:Cardinal):Integer; stdcall;
+Begin
+  Result := 0;
+End;
+
+Function _midiOutClose(hMidiOut: HMIDIOUT):Integer; stdcall;
+Begin
+  Result := 0;
+End;
+
+Function _midiOutShortMsg(hMidiOut: HMIDIOUT; dwMsg: Cardinal): Integer; stdcall;
+Begin
+  Result := 0;
+End;
+
 Procedure LoadMultimedia();
 Begin
   Log(logDebug, 'Multimedia', 'Loading Windows Multimedia librar');
@@ -545,6 +578,10 @@ Begin
   mciSendCommand := LoadFunction('mciSendCommand', @_mciSendCommand);
   mciGetDeviceIDFromElementID := LoadFunction('mciGetDeviceIDFromElementID', @_mciGetDeviceIDFromElementID);
   mciExecute := LoadFunction('mciExecute', @_mciExecute);
+
+  midiOutOpen := LoadFunction('midiOutOpen', @_midiOutOpen);
+  midiOutClose := LoadFunction('midiOutClose', @_midiOutClose);
+  midiOutShortMsg := LoadFunction('midiOutShortMsg', @_midiOutShortMsg);
 End;
 
 End.

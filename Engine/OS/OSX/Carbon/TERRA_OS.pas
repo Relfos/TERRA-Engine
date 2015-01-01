@@ -122,7 +122,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_FileUtils, TERRA_Unicode,  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
-     machapi, machexc, dateutils, sysutils, ctypes, sysctl;
+     machapi, machexc, dateutils, sysutils, ctypes, sysctl, TERRA_MIDI_IO, TERRA_MIDI;
 
 Var
    kUTTypeUTF16PlainText:CFStringRef;
@@ -263,6 +263,47 @@ Begin
   App.Terminate(True);
 End;
 
+Const
+  CarbonQuitCommand = 'tiuq';  //kHICommandQuit
+  CarbonWindowActivate = 'niws';  //kHICommandQuit
+
+Function Carbon_HandleCommand(ANextHandler:EventHandlerCallRef; AEvent:EventRef; UserData:Pointer):OSStatus;  MWPascal;
+Var
+  App:CarbonApplication;
+  Cmd:HICommand;
+  CmdType:Array[0..3] Of AnsiChar;
+Begin
+  GetEventParameter(AEvent, kEventParamDirectObject, typeHICommand, Nil, sizeof(HICommand), Nil, @Cmd);
+
+  Result := CallNextEventHandler(AnextHandler, AEvent);
+
+  App := CarbonApplication(UserData);
+  If Not Assigned(App) Then
+    Exit;
+
+  System.Move(Cmd.commandID, CmdType, 4);
+
+  If (CmdType = CarbonWindowActivate) Then
+     Exit;
+
+  If (CmdType = CarbonQuitCommand) Then
+     App.Terminate(True);
+End;
+
+Function Carbon_QuitEventHandler(var {%H-}AEvent: AppleEvent; var {%H-}Reply: AppleEvent;
+  {%H-}Data: SInt32): OSErr; MWPascal;
+Var
+  App:CarbonApplication;
+Begin
+  App := CarbonApplication(Application.Instance);
+  If Not Assigned(App) Then
+     Exit;
+
+  App.Terminate(True);
+
+  Result := NoErr;
+End;
+
 Function Carbon_ResizeWindow(ANextHandler:EventHandlerCallRef; AEvent:EventRef; UserData:Pointer):OSStatus; MWPascal;
 Var
   theWindow:WindowRef;
@@ -270,6 +311,8 @@ Var
   Width:Cardinal;
   Height:Cardinal;
   App:CarbonApplication;
+  ClientRect:MacOSAll.Rect;
+  bufferRect:Array[0..3] Of Integer;
 Begin
   GetEventParameter(AEvent, kEventParamDirectObject, typeWindowRef, Nil, sizeof(WindowRef), Nil, @theWindow);
   GetEventParameter(AEvent, kEventParamCurrentBounds, typeQDRectangle, Nil, sizeof(Rect), Nil, @theBounds);
@@ -282,7 +325,24 @@ Begin
   If Not Assigned(App) Then
     Exit;
 
-  App.AddCoordEvent(eventWindowResize, Width, Height, 0);
+  SizeWindow(App._Window, Width, Height, True);
+  GetWindowBounds(App._Window, kWindowContentRgn, ClientRect);
+
+  If (App._Context <> Nil) Then
+  Begin
+    // Set the AGL buffer rectangle (i.e. the bounds that we will use)
+    bufferRect[0] := 0; // 0 = left edge
+    bufferRect[1] := 0; // 0 = bottom edge
+    bufferRect[2] := clientRect.Right - clientRect.Left; // width of buffer rect
+    bufferRect[3] := clientRect.Bottom - clientRect.Top; // height of buffer rect
+
+    aglSetInteger(App._Context, AGL_BUFFER_RECT, @bufferRect);
+
+    aglEnable(App._Context, AGL_BUFFER_RECT);
+    aglUpdateContext(App._Context);
+
+    App.AddCoordEvent(eventWindowResize, Width, Height, 0);
+  End;
 End;
 
 
@@ -337,6 +397,12 @@ Begin
   End;
 End;
 
+Function noteoff(P:Pointer):Boolean; CDecl;
+Begin
+  MIDI_Out(MIDIEvent_NoteOff(0, 60, 127));
+Result := False;
+End;
+
 Function CarbonWindow_MouseProc(ANextHandler: EventHandlerCallRef; AEvent: EventRef; UserData:Pointer):OSStatus; MWPascal;
 Var
   App:CarbonApplication;
@@ -358,6 +424,10 @@ Begin
   Case EventKind of
     kEventMouseDown:
       Begin
+        //MIDI_Out(MIDIEvent_SetInstrument(0, instrumentStringEnsemble));
+        //MIDI_Out(MIDIEvent_NoteOn(0, 60, 127));
+        //App.ExecuteLater(noteOff, 2000);
+
         MouseButton := GetCarbonMouseButton(AEvent);
         App.AddCoordEvent(eventMouseDown, Trunc(MousePoint.X), Trunc(MousePoint.Y), MouseButton);
       End;
@@ -711,6 +781,8 @@ Var
   GroupClass:Integer;
   WndRect, ClientRect:MacOSAll.Rect;
 
+  QuitAEHandler: AEEventHandlerUPP;
+
   kPasteboardClipboard:CFStringRef;
 Begin
   Result := False;
@@ -726,10 +798,9 @@ Begin
   // get current resolution
   _Display := GetMainDevice ();
   GetAvailableWindowPositioningBounds(_Display, _Screen);
-  _Rect := _Screen;
 
-  _Rect.left := ((_Rect.right - _Rect.left) Shr 1) - (_Width Shr 1);
-  _Rect.top := ((_Rect.bottom - _Rect.top) Shr 1) - (_Height Shr 1);
+  _Rect.left := _Screen.left + ((_Screen.right - _Screen.left) - _Width) Shr 1;
+  _Rect.top := _Screen.top + ((_Screen.bottom - _Screen.top)  - _Height) Shr 1;
 
   _Rect.right := _Rect.left + _Width;
   _Rect.bottom := _Rect.top + _Height;
@@ -748,6 +819,7 @@ Begin
 
   SetWTitle(_Window, _Title); // Set the windows title
   SetWindowGroup(_Window, GetWindowGroupOfClass(GroupClass));
+
 
   Log(logDebug,'App', 'Installing closewindow event');
 
@@ -803,9 +875,15 @@ eventType.eventClass = kEventClassWindow;
 eventType.eventKind = kEventWindowDeactivated;
   *)
   
+  Log(logDebug,'App', 'Installing command events');
+  TmpSpec.eventClass := kEventClassCommand;
+  TmpSpec.eventKind := kEventCommandProcess;
+  InstallEventHandler(GetWindowEventTarget(_Window), Carbon_HandleCommand, 1, @TmpSpec, Pointer(Self), nil);
+
+  QuitAEHandler := NewAEEventHandlerUPP(AEEventHandlerProcPtr(Pointer(@Carbon_QuitEventHandler)));
+  AEInstallEventHandler(kCoreEventClass, kAEQuitApplication, QuitAEHandler, 0, False);
 
   Log(logDebug,'App', 'Installing resize events');
-
   TmpSpec.eventClass := kEventClassWindow;
   TmpSpec.eventKind := kEventWindowBoundsChanged;
   InstallEventHandler(GetWindowEventTarget(_Window), Carbon_ResizeWindow, 1, @TmpSpec, Pointer(Self), nil);
@@ -873,15 +951,15 @@ Begin
 		Index := 0;
 		AddAttrib(AGL_RGBA);
 		AddAttrib(AGL_DOUBLEBUFFER);
-		AddAttrib(AGL_WINDOW);
+		//AddAttrib(AGL_WINDOW);
 		AddAttrib(AGL_RED_SIZE, 8);
 		AddAttrib(AGL_GREEN_SIZE, 8);
 		AddAttrib(AGL_BLUE_SIZE, 8);
 		AddAttrib(AGL_ALPHA_SIZE, 8);
 		AddAttrib(AGL_DEPTH_SIZE, 32);
-		AddAttrib(AGL_ACCELERATED);
-		AddAttrib(AGL_CLOSEST_POLICY);
-		AddAttrib(AGL_NO_RECOVERY);
+		AddAttrib(AGL_ACCELERATED, 1);
+		AddAttrib(AGL_NO_RECOVERY, 1);
+		//AddAttrib(AGL_CLOSEST_POLICY);
 		AddAttrib(AGL_DISPLAY_MASK, openGLDisplayMask);
       If (Samples>0) Then
       Begin
@@ -919,7 +997,7 @@ Begin
 	// make the context the current context
 	aglSetCurrentContext(_context);
 
-        If (Not Client.GetVSync()) Then
+        If (Client.GetVSync()) Then
         Begin
 	     swap := 1;
 	     aglSetInteger(_context, AGL_SWAP_INTERVAL, @swap);
@@ -1014,9 +1092,8 @@ Begin
 
  (* _Width := _Rect.Right - _Rect.left;
   _Height := _Rect.Bottom - _Rect.Top;
-   *)
-
    Self.AddCoordEvent(eventWindowResize, _Width, _Height, 0);
+   *)
    SetWindowBounds(_Window, kWindowContentRgn, _Rect);
 
 

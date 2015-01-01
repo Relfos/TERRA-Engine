@@ -3,6 +3,8 @@ Unit TERRA_OS;
 
 {$I terra.inc}
 
+{$RANGECHECKS OFF}
+
 {-$DEFINE FOLDERWATCH}
 
 {-$DEFINE TRUE_FULLSCREEN}
@@ -1424,7 +1426,7 @@ Var
   Data:PByteArray;
 Begin
   Name := GetFileName(ParamStr(0), True)+'.ico';
-  Src := FileManager.Instance.OpenFileStream(Name);
+  Src := FileManager.Instance.OpenStream(Name);
   If (Src = Nil) Or (Not (Src Is MemoryStream)) Then
     Exit;
 
