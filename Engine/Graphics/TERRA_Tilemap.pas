@@ -196,7 +196,7 @@ Begin
   If (Pos('.', SourceFile)<=0) Then
     SourceFile := SourceFile + '.' + TileMapExtension;
 
-  S := FileManager.Instance.OpenFileStream(SourceFile);
+  S := FileManager.Instance.OpenStream(SourceFile);
   If Assigned(S) Then
   Begin
     Create(S);

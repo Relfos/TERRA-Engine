@@ -565,7 +565,7 @@ Var
 Begin
   If _CRC=0 Then
   Begin
-    Source := FileManager.Instance.OpenFileStream(_Location);
+    Source := FileManager.Instance.OpenStream(_Location);
     _CRC := GetCRC32(Source);
     Source.Destroy;
   End;

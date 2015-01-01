@@ -36,6 +36,8 @@ Type
       _FileName:AnsiString;
       _Volume:Single;
 
+      Procedure ChangeVolume(Volume:Single); Virtual; Abstract;
+
     Public
       Constructor Create(FileName:AnsiString; Volume:Single);
       Destructor Destroy; Override;
@@ -45,7 +47,7 @@ Type
       Procedure Update; Virtual;
       Procedure Stop; Virtual; Abstract;
 
-      Procedure SetVolume(Volume:Single); Virtual;
+      Procedure SetVolume(Volume:Single);
 
       Class Function Supports(Const Extension:AnsiString):Boolean; Virtual;
 
@@ -57,6 +59,8 @@ Type
     Protected
       _Stream:SoundStream;
 
+      Procedure ChangeVolume(Volume:Single); Override;
+
     Public
       Destructor Destroy; Override;
 
@@ -64,7 +68,6 @@ Type
       Procedure Play(); Override;
       Procedure Update; Override;
       Procedure Stop; Override;
-      Procedure SetVolume(Volume:Single); Override;
 
       Class Function Supports(Const Extension:AnsiString):Boolean; Override;
   End;
@@ -86,13 +89,17 @@ End;
 
 Procedure MusicTrack.SetVolume(Volume: Single);
 Begin
-  Self._Volume := Volume;
-
-  If (_Volume<0) Then
-    _Volume := 0
+  If (Volume<0) Then
+    Volume := 0
   Else
-  If (_Volume>1) Then
-    _Volume := 1;
+  If (Volume>1) Then
+    Volume := 1;
+
+  If (Volume = _Volume) Then
+    Exit;
+
+  _Volume := Volume;
+  Self.ChangeVolume(Volume);
 End;
 
 Class Function MusicTrack.Supports(const Extension: AnsiString): Boolean;
@@ -113,7 +120,7 @@ Begin
   If (OpenALHandle=0) Then
     Exit;
 
-  Source := FileManager.Instance().OpenFileStream(FileName);
+  Source := FileManager.Instance().OpenStream(FileName);
   _Stream := CreateSoundStream(Source);
 End;
 
@@ -144,10 +151,8 @@ Begin
     _Stream.Stop;
 End;
 
-Procedure StreamingMusicTrack.SetVolume(Volume:Single);
+Procedure StreamingMusicTrack.ChangeVolume(Volume:Single);
 Begin
-  Inherited SetVolume(Volume);
-
   If Assigned(_Stream) Then
     _Stream.Volume := _Volume;
 End;
@@ -157,6 +162,5 @@ Class Function StreamingMusicTrack.Supports(Const Extension: AnsiString):Boolean
 Begin
   Result := (Extension = 'ogg');
 End;
-
 
 End.

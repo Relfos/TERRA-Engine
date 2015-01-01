@@ -875,7 +875,7 @@ Begin
     SetLength(_Settings, _SettingsCount);
     _Settings[Pred(_SettingsCount)] := Result;
 
-    Source := FileManager.Instance.OpenFileStream(S);
+    Source := FileManager.Instance.OpenStream(S);
     If Assigned(Source) Then
     Begin
       Result.Load(Source);

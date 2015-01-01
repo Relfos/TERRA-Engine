@@ -96,6 +96,7 @@ Const
   eventIAPError       = 16;
 
   EventBufferSize = 512;
+  CallbackBufferSize = 64;
 
   keyGamepadIndex   = 255;
 	keyGamepadLeft    = keyGamepadIndex + 0;
@@ -186,11 +187,12 @@ Type
   End;
 
 
-  ApplicationCallback = Procedure(P:Pointer); Cdecl;
+  ApplicationCallback = Function(P:Pointer):Boolean; Cdecl;
 
   ApplicationCallbackEntry = Record
     Callback:ApplicationCallback;
     Time:Cardinal;
+    Delay:Cardinal;
     AllowPause:Boolean;
     Arg:Pointer;
   End;
@@ -256,7 +258,9 @@ Type
       Procedure AddWatcher(Notifier:AssetWatchNotifier);
   End;
 
-	Application = Class(TERRAObject)
+        { Application }
+
+ Application = Class(TERRAObject)
 		Protected
 			_Handle:Cardinal;   // Global window handle
 			_Running:Boolean;
@@ -281,11 +285,15 @@ Type
       _InputMutex:CriticalSection;
       {$ENDIF}
 
+      _Callbacks:Array[0..Pred(CallbackBufferSize)] Of ApplicationCallbackEntry;
+      _CallbackCount:Integer;
+
       _Client:AppClient;
       _ClientInit:Boolean;
 
-			_Width:Integer;
-			_Height:Integer;
+      _Width:Integer;
+      _Height:Integer;
+
       _AspectRatio:Single;
       _AntialiasSamples:Integer;
 			_FullScreen:Boolean;
@@ -298,9 +306,6 @@ Type
 
       _ContextWasLost:Boolean;
       _ContextCounter:Integer;
-
-      _Callbacks:Array Of ApplicationCallbackEntry;
-      _CallbackCount:Integer;
 
       _UIWidth:Integer;
       _UIHeight:Integer;
@@ -356,6 +361,7 @@ Type
 			Procedure ShutdownSystem;
 
       Procedure ProcessMessages; Virtual;
+      Procedure ProcessCallbacks;
 
       Function InitSettings:Boolean; Virtual; 
 
@@ -418,9 +424,13 @@ Type
 
       Function SaveToCloud():Boolean; Virtual;
 
+      Function InputForceFeedback(ControllerID, PadID:Integer; Duration:Integer):Boolean; Virtual;
+
       Function HasInternet:Boolean; Virtual;
 
       Function HasFatalError:Boolean;
+
+      Function ExecuteLater(Callback:ApplicationCallback; Const Delay:Cardinal; Arg:Pointer = Nil):Boolean;
 
       //analytics
       Procedure SendAnalytics(EventName:AnsiString); {$IFNDEF OXYGENE}Overload; {$ENDIF} Virtual;
@@ -672,7 +682,7 @@ Begin
 End;*)
 {$ENDIF}
 
-Class Function Application.Instance:Application;
+class function Application.Instance: Application;
 Begin  {
   If (Not Assigned(_Application_Instance)) And (_Application_Ready) Then
   Begin
@@ -730,7 +740,7 @@ Begin
   Until _ApplicationComponentCount<=0;
 End;
 
-Procedure Application.ShutdownSystem;
+procedure Application.ShutdownSystem;
 Begin
   ShutdownComponents;
 
@@ -759,7 +769,7 @@ Begin
 End;
 
 
-Procedure Application.InitSystem;
+procedure Application.InitSystem;
 Var
   I:Integer;
   S:AnsiString;
@@ -839,7 +849,7 @@ Begin
   FileManager.Instance.AddPath(Application.Instance.DocumentPath);
 End;
 
-Constructor Application.Create(Client:AppClient);
+constructor Application.Create(Client: AppClient);
 Begin
   _Client := Client;
 
@@ -874,7 +884,7 @@ Begin
   {$ENDIF}
 End;
 
-Procedure Application.Finish();
+procedure Application.Finish;
 Begin
   _Running := False;
 
@@ -895,7 +905,7 @@ Begin
   Log(logWarning, 'App', 'Application has shutdown.')
 End;
 
-Procedure Application.Terminate(ForceClose:Boolean);
+procedure Application.Terminate(ForceClose: Boolean);
 Begin
   If (Self = Nil) Then
     Halt;
@@ -911,7 +921,7 @@ Begin
   {$ENDIF}
 End;
 
-Procedure Application.Resize(Width, Height:Integer);
+procedure Application.Resize(Width, Height: Integer);
 Var
   I:Integer;
 Begin
@@ -931,7 +941,7 @@ Begin
 End;
 
 
-Procedure Application.SetViewport(X1, Y1, X2, Y2:Integer);
+procedure Application.SetViewport(X1, Y1, X2, Y2: Integer);
 Var
   I:Integer;
 Begin
@@ -958,7 +968,7 @@ Begin
   Self.SwapBuffers();
 End;
 
-Procedure Application.SetKeyPress(ID:Integer; Value:Boolean);
+procedure Application.SetKeyPress(ID: Integer; Value: Boolean);
 Begin
   If (Input.Keys[ID]=Value) Then
     Exit;
@@ -973,7 +983,7 @@ Begin
   End;
 End;
 
-Function Application.Run:Boolean;
+Function Application.Run: Boolean;
 Begin
   If (_Terminated) Then
   Begin
@@ -1017,6 +1027,10 @@ Begin
     {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Processing messages');{$ENDIF}{$ENDIF}
     Self.ProcessMessages;
     {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'All messages processed');{$ENDIF}{$ENDIF}
+
+    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Processing callbacks');{$ENDIF}{$ENDIF}
+    Self.ProcessCallbacks;
+    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'All callbacks processed');{$ENDIF}{$ENDIF}
 
     If Assigned(Client) Then
     Begin
@@ -1120,13 +1134,13 @@ Begin
   End;
 End;
 
-Function Application.SetFullscreenMode(UseFullScreen: Boolean):Boolean;
+function Application.SetFullscreenMode(UseFullScreen: Boolean): Boolean;
 Begin
   Log(logError, 'App','ToggleFullscreen not implemented!');
   Result := False;
 End;
 
-Procedure Application.ToggleFullscreen;
+procedure Application.ToggleFullscreen;
 Var
    NewMode:Boolean;
 Begin
@@ -1135,22 +1149,22 @@ Begin
         Self._Fullscreen := NewMode;
 End;
 
-Procedure Application.SwapBuffers;
+procedure Application.SwapBuffers;
 Begin
  Log(logError, 'App','SwapBuffers not implemented!');
 End;
 
-Procedure Application.SetState(State:Cardinal);
+procedure Application.SetState(State: Cardinal);
 Begin
  Log(logError, 'App','SetState not implemented!');
 End;
 
-Procedure Application.Yeld;
+procedure Application.Yeld;
 Begin
  Log(logError, 'App','Yeld not implemented!');
 End;
 
-Function Application.KeyPressed(Key:Word):Boolean;
+function Application.KeyPressed(Key: Word): Boolean;
 Begin
   {If Key=Ord('P') Then
     IntToString(2);}
@@ -1176,7 +1190,7 @@ Begin
   {$ENDIF}
 End;
 
-Procedure Application.SetPause(Value: Boolean);
+procedure Application.SetPause(Value: Boolean);
 Var
   N:Cardinal;
 Begin
@@ -1196,7 +1210,7 @@ Begin
   End;
 End;
 
-Function Application.GetElapsedTime(): Cardinal; {$IFDEF FPC}Inline;{$ENDIF}
+function Application.GetElapsedTime: Cardinal;
 Begin
   If (Application.Instance.Paused) Then
     Result := _PauseStart
@@ -1247,10 +1261,10 @@ Begin
 End;}
 
 // do nothing
-Procedure Application.EnableAds; Begin End;
-Procedure Application.DisableAds; Begin End;
+procedure Application.EnableAds; Begin End;
+procedure Application.DisableAds; Begin End;
 
-Procedure Application.OpenAppStore(AppID:AnsiString); Begin End;
+procedure Application.OpenAppStore(AppID: AnsiString); Begin End;
 
 { ApplicationObject }
 Destructor ApplicationObject.Destroy;
@@ -1282,9 +1296,10 @@ Procedure ApplicationComponent.OnContextLost; Begin End;
 Procedure ApplicationComponent.OnOrientationChange; Begin End;
 Procedure ApplicationComponent.OnViewportChange(X1, Y1, X2, Y2:Integer); Begin End;
 
-Procedure Application.SendAnalytics(EventName, Parameters:AnsiString); Begin End;
-Procedure Application.UnlockAchievement(AchievementID:AnsiString); Begin End;
-Function Application.IsDebuggerPresent:Boolean; Begin Result := False; End;
+procedure Application.SendAnalytics(EventName: AnsiString;
+  Parameters: AnsiString); Begin End;
+procedure Application.UnlockAchievement(AchievementID: AnsiString); Begin End;
+function Application.IsDebuggerPresent: Boolean; Begin Result := False; End;
 
 
 Function Blink(Period:Cardinal):Boolean;
@@ -1435,24 +1450,24 @@ Begin
 End;
 {$ENDIF}
 
-Procedure Application.OnShutdown;
+procedure Application.OnShutdown;
 Begin
 
 End;
 
-Procedure Application.PostToFacebook(msg, link, desc, imageURL:AnsiString);
+procedure Application.PostToFacebook(msg, link, desc, imageURL: AnsiString);
 Begin
   If Assigned(Client) Then
     Client.OnAPIResult(apiFacebook, facebookConnectionError);
 End;
 
-Procedure Application.LikeFacebookPage(page, url:AnsiString);
+procedure Application.LikeFacebookPage(page, url: AnsiString);
 Begin
   If Assigned(Client) Then
     Client.OnAPIResult(apiFacebook, facebookLikeError);
 End;
 
-Procedure Application.SetTitle(Const Name:AnsiString); 
+procedure Application.SetTitle(const Name: AnsiString);
 Begin
 	If (Name = _Title) Or (Name='') Then
 		Exit;
@@ -1460,7 +1475,7 @@ Begin
 	_Title := Name;
 End;
 
-Procedure Application.SetSuspend(Value:Boolean);
+procedure Application.SetSuspend(Value: Boolean);
 Var
   I:Integer;
 Begin
@@ -1482,12 +1497,12 @@ Begin
   End;
 End;
 
-Function Application.CanHandleEvents: Boolean;
+function Application.CanHandleEvents: Boolean;
 Begin
   Result := _CanReceiveEvents;
 End;
 
-Procedure Application.RefreshComponents();
+procedure Application.RefreshComponents;
 Var
   I:Integer;
 Begin
@@ -1522,22 +1537,22 @@ Begin
   Until (Delta >= Time);
 End;
 
-Procedure Application.ShowFullscreenAd;
+procedure Application.ShowFullscreenAd;
 Begin
   // do nothing
 End;
 
-Function Application.IsAppRunning(Name:AnsiString):Boolean;
+function Application.IsAppRunning(Name: AnsiString): Boolean;
 Begin
   Result := False;
 End;
 
-Function Application.IsAppInstalled(Name:AnsiString):Boolean;
+function Application.IsAppInstalled(Name: AnsiString): Boolean;
 Begin
   Result := False;
 End;
 
-Function Application.GetPlatform: Cardinal;
+function Application.GetPlatform: Cardinal;
 Begin
 	Result := osUnknown;
   
@@ -1570,67 +1585,67 @@ Begin
   {$ENDIF}
 End;
 
-Function Application.GetDeviceID:AnsiString;
+function Application.GetDeviceID: AnsiString;
 Begin
   Result := '';
 End;
 
-Function Application.GetControllerCount:Integer;
+function Application.GetControllerCount: Integer;
 Begin
   Result := 0;
 End;
 
-Procedure Application.SendEmail(DestEmail, Subject, Body:AnsiString);
+procedure Application.SendEmail(DestEmail, Subject, Body: AnsiString);
 Begin
 End;
 
-Function Application.IsDeviceRooted: Boolean;
+function Application.IsDeviceRooted: Boolean;
 Begin
   Result := False;
 End;
 
-Function Application.HasInternet: Boolean;
+function Application.HasInternet: Boolean;
 Begin
   Result := True;
 End;
 
 
-Procedure Application.SendAnalytics(EventName:AnsiString);
+procedure Application.SendAnalytics(EventName: AnsiString);
 Begin
   Self.SendAnalytics(EventName, '');
 End;
 
-Function Application.InitAccelerometer: Boolean;
+function Application.InitAccelerometer: Boolean;
 Begin
   Result := False;
 End;
 
-Function Application.InitCompass: Boolean;
+function Application.InitCompass: Boolean;
 Begin
   Result := False;
 End;
 
-Function Application.InitGyroscope: Boolean;
+function Application.InitGyroscope: Boolean;
 Begin
   Result := False;
 End;
 
-Procedure Application.StopAccelerometer;
+procedure Application.StopAccelerometer;
 Begin
   // do nothing
 End;
 
-Procedure Application.StopCompass;
+procedure Application.StopCompass;
 Begin
   // do nothing
 End;
 
-Procedure Application.StopGyroscope;
+procedure Application.StopGyroscope;
 Begin
   // do nothing
 End;
 
-Procedure Application.SetLanguage(Language:AnsiString);
+procedure Application.SetLanguage(Language: AnsiString);
 Var
   I:Integer;
 Begin
@@ -1667,12 +1682,12 @@ End;
 
 {$IFNDEF OXYGENE}
 
-Function Application.HasFatalError: Boolean;
+function Application.HasFatalError: Boolean;
 Begin
   Result := _FatalError;
 End;
 
-Destructor Application.Destroy;
+destructor Application.Destroy;
 Begin
     If Assigned(_Client) Then
     Begin
@@ -1683,7 +1698,7 @@ Begin
     End;
 End;
 
-Procedure Application.UpdateContextLost;
+procedure Application.UpdateContextLost;
 Var
   I:Integer;
 Begin
@@ -1702,7 +1717,7 @@ Begin
   {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 
-Function Application.SetOrientation(Value: Integer):Boolean;
+function Application.SetOrientation(Value: Integer): Boolean;
 Var
   Delta:Single;
   I:Integer;
@@ -1761,7 +1776,7 @@ End;
   Result := True;
 End;
 
-Function Application.GetOrientationDelta: Single;
+function Application.GetOrientationDelta: Single;
 Begin
   Result := GetTime - _OrientationTime;
   Result := Result / OrientationAnimationDuration;
@@ -1772,7 +1787,7 @@ Begin
     Result := 0;
 End;
 
-Procedure Application.ConvertCoords(var X, Y: Integer);
+procedure Application.ConvertCoords(var X, Y: Integer);
 Var
   PX, PY:Single;
   SX, SY:Single;
@@ -1831,7 +1846,8 @@ Begin
 //  Log(logDebug, 'App', 'PRE4 X'+IntToString(X)+' Y:'+IntToString(Y));
 End;
 
-Procedure Application.AddEventToQueue(Action:Integer; X,Y,Z,W:Single; Value:Integer; S:AnsiString; HasCoords:Boolean);
+procedure Application.AddEventToQueue(Action: Integer; X, Y, Z, W: Single;
+  Value: Integer; S: AnsiString; HasCoords: Boolean);
 Var
   N:Integer;
 Begin
@@ -1866,27 +1882,27 @@ Begin
 End;
 
 
-Procedure Application.AddRectEvent(Action: Integer; X1, Y1, X2, Y2: Single);
+procedure Application.AddRectEvent(Action: Integer; X1, Y1, X2, Y2: Single);
 Begin
   Self.AddEventToQueue(Action, X1, Y1, X2, Y2, 0, '', True);
 End;
 
-Procedure Application.AddVectorEvent(Action:Integer; X,Y,Z:Single);
+procedure Application.AddVectorEvent(Action: Integer; X, Y, Z: Single);
 Begin
   Self.AddEventToQueue(Action, X, Y, Z, 0, 0,  '', True);
 End;
 
-Procedure Application.AddCoordEvent(Action:Integer; X,Y, Value:Integer);
+procedure Application.AddCoordEvent(Action: Integer; X, Y, Value: Integer);
 Begin
   Self.AddEventToQueue(Action, X, Y, 0, 0, Value, '', True);
 End;
 
-Procedure Application.AddValueEvent(Action:Integer; Value:Integer);
+procedure Application.AddValueEvent(Action: Integer; Value: Integer);
 Begin
   Self.AddEventToQueue(Action, 0, 0, 0, 0, Value, '', False);
 End;
 
-Procedure Application.AddStringEvent(Action:Integer; S:AnsiString);
+procedure Application.AddStringEvent(Action: Integer; S: AnsiString);
 Begin
   Self.AddEventToQueue(Action, 0, 0, 0, 0, 0, S, False);
 End;
@@ -1918,7 +1934,7 @@ Begin
 End;
 {$ENDIF}
 
-Procedure Application.ProcessEvents;
+procedure Application.ProcessEvents;
 Var
   I:Integer;
   PX,PY:Integer;
@@ -2085,17 +2101,22 @@ Begin
   {$ENDIF}
 End;
 
-Procedure Application.ProcessMessages;
+procedure Application.ProcessMessages;
 Begin
   // do nothing
 End;
 
-Function Application.SaveToCloud: Boolean;
+function Application.SaveToCloud: Boolean;
 Begin
   Result := False;
 End;
 
-Function Application.GetRecommendedSettings: Integer;
+Function Application.InputForceFeedback(ControllerID, PadID: Integer; Duration: Integer):Boolean;
+Begin
+     Result := False;
+End;
+
+function Application.GetRecommendedSettings: Integer;
 Begin
   If (Self.Width<480) Or (Self.Height<480) Then
     Result := settingsHintLow
@@ -2103,45 +2124,45 @@ Begin
     Result := settingsHintMedium;
 End;
 
-Procedure Application.Tapjoy_ShowOfferWall;
+procedure Application.Tapjoy_ShowOfferWall;
 Begin
   If Assigned(Client) Then
     Client.OnAPIResult(apiTapJoy, tapjoyConnectionError);
 End;
 
-Procedure Application.Tapjoy_ShowVideo;
+procedure Application.Tapjoy_ShowVideo;
 Begin
   If Assigned(Client) Then
     Client.OnAPIResult(apiTapJoy, tapjoyConnectionError);
 End;
 
-Procedure Application.Tapjoy_SpendCredits(Ammount: Integer);
+procedure Application.Tapjoy_SpendCredits(Ammount: Integer);
 Begin
   If Assigned(Client) Then
     Client.OnAPIResult(apiTapJoy, tapjoyConnectionError);
 End;
 
-Procedure Application.Tapjoy_Update(Credits: Integer);
+procedure Application.Tapjoy_Update(Credits: Integer);
 Begin
   _TapjoyCredits := IntMax(0, Credits);
 End;
 
-Function Application.GetDocumentPath: AnsiString;
+function Application.GetDocumentPath: AnsiString;
 Begin
   Result := _DocumentPath;
 End;
 
-Function Application.GetStoragePath: AnsiString;
+function Application.GetStoragePath: AnsiString;
 Begin
   Result := _StoragePath;
 End;
 
-Function Application.GetTempPath: AnsiString;
+function Application.GetTempPath: AnsiString;
 Begin
   Result := _TempPath;
 End;
 
-Function Application.FrameTime: Cardinal;
+function Application.FrameTime: Cardinal;
 Begin
   Result := GetTime() - _FrameStart;
 End;
@@ -2179,6 +2200,44 @@ End;
 Function Application.GetAspectRatio: Single;
 Begin
   Result := SafeDiv(_Height, _Width, 1.0);
+End;
+
+Function Application.ExecuteLater(Callback:ApplicationCallback; Const Delay:Cardinal; Arg:Pointer):Boolean;
+Begin
+     If (_CallbackCount>=CallbackBufferSize) Then
+     Begin
+          Result := False;
+          Exit;
+     End;
+
+     _Callbacks[_CallbackCount].Callback := Callback;
+     _Callbacks[_CallbackCount].Time := GetTime() + Delay;
+     _Callbacks[_CallbackCount].Delay := Delay;
+     _Callbacks[_CallbackCount].Arg := Arg;
+
+     Inc(_CallbackCount);
+End;
+
+Procedure Application.ProcessCallbacks();
+Var
+   T:Cardinal;
+   I:Integer;
+Begin
+  T := GetTime();
+  I := 0;
+  While (I<_CallbackCount) Do
+  If (_Callbacks[I].Time<=T) Then
+  Begin
+       If _Callbacks[I].Callback(_Callbacks[I].Arg) Then
+       Begin
+            _Callbacks[I].Time := GetTime() + _Callbacks[I].Delay;
+       End Else
+       Begin
+            _Callbacks[Pred(_CallbackCount)] := _Callbacks[I];
+            Dec(_CallbackCount);
+       End;
+  End Else
+      Inc(I);
 End;
 
 Function Application.InitSettings: Boolean;

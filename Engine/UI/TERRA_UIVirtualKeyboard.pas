@@ -908,7 +908,7 @@ Var
   Src:Stream;
   S,Data:AnsiString;
 Begin
-  Src := FileManager.Instance.OpenFileStream(SourceFile);
+  Src := FileManager.Instance.OpenStream(SourceFile);
   If Src = Nil Then
     Exit;
 

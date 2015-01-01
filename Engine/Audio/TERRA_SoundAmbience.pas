@@ -123,7 +123,7 @@ Begin
     Exit;
   End;
 
-  Source := FileManager.Instance().OpenFileStream(Name);
+  Source := FileManager.Instance().OpenStream(Name);
   If Assigned(Source) Then
   Begin
     Result := Load(Source);

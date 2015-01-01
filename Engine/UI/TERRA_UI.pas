@@ -1132,7 +1132,7 @@ Begin
   If S<>'' Then
   Begin
     Log(logDebug, 'Game', 'Opening stream');
-    MyStream := FileManager.Instance.OpenFileStream(S);
+    MyStream := FileManager.Instance.OpenStream(S);
     Log(logDebug, 'Game', 'Creating image: '+S);
 
     Source := Image.Create(MyStream);
@@ -1912,7 +1912,7 @@ Begin
     Name := FileManager.Instance.SearchResourceFile(Name);
     If Name<>'' Then
     Begin
-      MyStream := FileManager.Instance.OpenFileStream(Name);
+      MyStream := FileManager.Instance.OpenStream(Name);
       Source := Image.Create(MyStream);
       _Item := UIManager.Instance.GetTextureAtlas.Add(Source, Name);
       UIManager.Instance._UpdateTextureAtlas := True;

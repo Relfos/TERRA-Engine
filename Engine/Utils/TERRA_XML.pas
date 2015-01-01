@@ -1212,7 +1212,7 @@ Begin
   End;
 
   Result := XMLDocument.Create;
-  Src := FileManager.Instance.OpenFileStream(S);
+  Src := FileManager.Instance.OpenStream(S);
   Result._Root := XMLNode.Create('');
   XMLLoadNode(Src, Result.Root);
   Src.Destroy;

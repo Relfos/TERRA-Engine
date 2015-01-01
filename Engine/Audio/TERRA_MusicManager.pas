@@ -28,6 +28,9 @@ Interface
 
 Uses TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_MusicTrack;
 
+Const
+  DefaultMusicCrossFadeDuration = 6000;
+
 Type
   MusicManager = Class(ApplicationComponent)
     Protected
@@ -40,11 +43,15 @@ Type
       _CurrentTrack:MusicTrack;
       _PreviousTrackName:AnsiString;
 
-      _CrossFade:Integer;
+      _CrossFadeDuration:Integer;
       _CrossFadeTime:Cardinal;
       _CrossVolume:Single;
+      _CrossFadeState:Integer;
+      _CrossFadeTrack:AnsiString;
 
       Procedure SetEnabled(const Value: Boolean);
+
+      Procedure InitTrack(Const SourceName:AnsiString);
 
     Public
       Class Function Instance:MusicManager;
@@ -54,24 +61,24 @@ Type
 
       Procedure Init; Override;
       Procedure Update; Override;
-      
-      Procedure Play(SourceName:AnsiString);
+
+      Procedure Play(SourceName:AnsiString; CrossFadeDuration:Integer = DefaultMusicCrossFadeDuration);
       Procedure Stop;
 
       Procedure SetVolume(Volume:Single);
       Procedure SetMute(Value:Boolean);
-      Procedure SetCrossFade(Value:Integer);
 
-      Property CrossFade:Integer Read _CrossFade Write SetCrossFade;
       Property Mute:Boolean Read _Mute Write SetMute;
 
       Property CurrentTrack:MusicTrack Read _CurrentTrack;
       Property Enabled:Boolean Read _Enabled Write SetEnabled;
       Property PreviousTrack:AnsiString Read _PreviousTrackName;
+
+      Property Volume:Single Read _Volume Write SetVolume;
   End;
 
 Implementation
-Uses TERRA_FileManager, TERRA_SoundManager, TERRA_Log, TERRA_OS, TERRA_IO, TERRA_Math
+Uses TERRA_FileManager, TERRA_SoundManager, TERRA_Log, TERRA_OS, TERRA_IO, TERRA_Math, TERRA_Midi
 {$IFNDEF OSX}, TERRA_AudioTrack{$ENDIF};
 
 Var
@@ -90,15 +97,49 @@ Begin
   SoundManager.Instance(); // load open AL
 
   // set initial values
-  _Volume := 0.5;
+  _Volume := 0.8;
   _Enabled := True;
 End;
 
-Procedure MusicManager.Play(SourceName:AnsiString);
+Procedure MusicManager.Play(SourceName:AnsiString; CrossFadeDuration:Integer);
+Begin
+  {$IFDEF DISABLEMUSIC}
+  Log(logDebug, 'Music', 'Cannot play '+SourceName+', music is disabled');
+  Exit;
+  {$ENDIF}
+
+  SourceName := LowStr(SourceName);
+
+  If (Assigned(_CurrentTrack)) And (SourceName = GetFileName(_CurrentTrack.FileName, True)) Then
+    Exit;
+
+  If (SourceName = _CrossFadeTrack) Then
+    Exit;
+
+  If (Not _Enabled) Then
+  Begin
+    Log(logDebug, 'Music', 'Cannot play '+SourceName+', music is disabled');
+    Exit;
+  End;
+
+  If (CrossFadeDuration>0) And (Assigned(_CurrentTrack)) Then
+  Begin
+    _CrossFadeDuration := CrossFadeDuration;
+    _CrossFadeTrack := SourceName;
+    _CrossVolume := _Volume;
+    _CrossFadeTime := GetTime;
+    _CrossFadeState := 1;
+  End Else
+  Begin
+    _CrossFadeState := 0;
+    _CrossFadeTrack := '';
+    InitTrack(SourceName);
+  End;
+End;
+
+Procedure MusicManager.InitTrack(Const SourceName:AnsiString);
 Var
   S, Ext:AnsiString;
-  Source:Stream;
-
   Procedure TryExtension(Ext:AnsiString);
   Begin
     If S<>'' Then
@@ -116,18 +157,11 @@ Var
       _CurrentTrack := C.Create(S, Self._Volume);
   End;
 Begin
-  {$IFDEF DISABLEMUSIC}
-  Log(logDebug, 'Music', 'Cannot play '+SourceName+', music is disabled');
-  Exit;
-  {$ENDIF}
-
   If (SourceName='') Then
   Begin
     Self.Stop();
     Exit;
   End;
-
-  SourceName := LowStr(SourceName);
 
   If (Assigned(_CurrentTrack)) Then
   Begin
@@ -135,14 +169,11 @@ Begin
       Exit;
 
     _PreviousTrackName := _CurrentTrack.FileName;
-    Stop();
-  End Else
-    _PreviousTrackName := SourceName;
 
-  If (Not _Enabled) Then
+    Self.Stop();
+  End Else
   Begin
-    Log(logDebug, 'Music', 'Cannot play '+SourceName+', music is disabled');
-    Exit;
+    _PreviousTrackName := SourceName;
   End;
 
   S := '';
@@ -158,6 +189,7 @@ Begin
 
   _CurrentTrack := Nil;
 
+  TryClass(MidiTrack);
 {$IFNDEF OSX}
   TryClass(AudioMusicTrack);
 {$ENDIF}
@@ -171,6 +203,9 @@ Begin
 
   _CurrentTrack.Init();
   _CurrentTrack.Play();
+
+  //If (_CrossFadeState = 0) Then
+  _CurrentTrack.SetVolume(_Volume);
 End;
 
 Destructor MusicManager.Destroy;
@@ -186,7 +221,7 @@ End;
 
 Procedure MusicManager.SetVolume(Volume:Single);
 Begin
-  _Volume := Trunc(Volume);
+  _Volume := Volume;
   If (_Volume<0) Then
     _Volume := 0
   Else
@@ -202,14 +237,25 @@ Procedure MusicManager.Update;
 Var
   Delta:Single;
 Begin
-  If (_CrossFade>0) Then
+  If (_CrossFadeState>0) Then
   Begin
-    Delta := GetTime - _CrossFadeTime;
-    Delta := Delta / _CrossFade;
-    If (Delta>1) Then
+    Delta := GetTime() - _CrossFadeTime;
+    Delta := Delta / _CrossFadeDuration;
+
+    If (Delta>=1) Then
     Begin
-      Delta := 1;
-      _CrossFade := 0;
+      Delta := 1.0;
+      _CrossFadeDuration := 0;
+      _CrossFadeState := 0;
+      _CrossFadeTrack := '';
+    End Else
+    If (Delta>=0.5) Then
+    Begin
+      If (_CrossFadeState=1) Then
+      Begin
+        _CrossFadeState := 2;
+        Self.InitTrack(_CrossfadeTrack);
+      End;
     End;
 
     Delta := Abs(Cos(Delta*180*RAD));
@@ -234,21 +280,6 @@ Begin
     Self.SetVolume(Self._OldVolume);
 End;
 
-Procedure MusicManager.SetCrossFade(Value:Integer);
-Begin
-  Value := Value * 2;
-
-  If (_CrossFade = Value) Then
-    Exit;
-
-  If Value >0 Then
-  Begin
-    _CrossVolume := _Volume;
-    _CrossFadeTime := GetTime;
-  End;
-  _CrossFade := Value;
-End;
-
 Procedure MusicManager.SetEnabled(Const Value: Boolean);
 Begin
   If (Value = _Enabled) Then
@@ -270,4 +301,4 @@ Begin
   _CurrentTrack := Nil;
 End;
 
-End.
+End.

@@ -132,7 +132,7 @@ Begin
     Exit;
   End;
 
-  Source := FileManager.Instance.OpenFileStream(MyResource.Location, smRead);
+  Source := FileManager.Instance.OpenStream(MyResource.Location, smRead);
   If (Source=Nil) Then
   Begin
     Log(logDebug, 'ResourceManager', 'Could not open location...');
@@ -457,7 +457,7 @@ Begin
   If Pos(LinkExtension, ResourceName)>0 Then
   	Exit;
 
-  Src := FileManager.Instance.OpenFileStream(ResourceName + LinkExtension);
+  Src := FileManager.Instance.OpenStream(ResourceName + LinkExtension);
   If Assigned(Src) Then
   Begin
     Src.ReadLine(Name);

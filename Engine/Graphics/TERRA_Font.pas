@@ -294,7 +294,7 @@ Var
 
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Sort,
-  TERRA_PNG, TERRA_Log, TERRA_FileUtils,
+  TERRA_Log, TERRA_FileUtils,
   TERRA_GraphicsManager, TERRA_FileManager, TERRA_Packer;
 
 Var

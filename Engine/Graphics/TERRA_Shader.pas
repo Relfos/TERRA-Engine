@@ -228,7 +228,7 @@ Begin
         Begin
           IncludedList.Add(Lib);
 
-          Temp := FileManager.Instance().OpenFileStream(LibPath);
+          Temp := FileManager.Instance().OpenStream(LibPath);
           SetLength(Content, Temp.Size);
           Temp.Read(@Content[1], Temp.Size);
           Temp.Destroy;

@@ -844,7 +844,6 @@ Begin
 
   Log(logDebug, 'PNG', 'Reading header...');
   {$ENDIF}
-
   Source.Read(@Signature[0],8);
 
   If Signature<>PNGSignature then

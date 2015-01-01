@@ -12,6 +12,8 @@ Type
       _LoggedOn:Boolean;
       _StatsRequested:Boolean;
 
+      _HasController:Boolean;
+
       _SteamID:AnsiString;
       _AppID:AnsiString;
 
@@ -20,11 +22,11 @@ Type
 
       _LicenseResult:SteamUserHasLicenseForAppResult;
 
-      Procedure Update; Override;
-      Procedure Init; Override;
-
     Public
       Class Function Instance:Steam;
+
+      Procedure Update; Override;
+      Procedure Init; Override;
 
       Function UnlockAchievement(AchID:AnsiString):Boolean;
 
@@ -39,7 +41,7 @@ Type
 
 
 Implementation
-Uses TERRA_OS, TERRA_Log, TERRA_GraphicsManager;
+Uses TERRA_OS, TERRA_Log, TERRA_GraphicsManager, TERRA_FileManager;
 
 Var
   _Steam_Instance:ApplicationObject = Nil;
@@ -55,6 +57,8 @@ Begin
 End;
 
 Procedure Steam.Init;
+Var
+   ControllerPath:AnsiString;
 Begin
   _LoggedOn := False;
 
@@ -86,6 +90,14 @@ Begin
     _Language := Application.Instance.Language;
   Log(logDebug, 'Steam', 'Language: '+ _Language);
 
+
+  ControllerPath := FileManager.Instance.SearchResourceFile('controller.vdf');
+  _HasController := (ControllerPath<>'');
+  If (_HasController) Then
+  Begin
+       _HasController := ISteamController_Init(PAnsiChar(ControllerPath));
+  End;
+
   //_LicenseResult := ISteamGameServer_UserHasLicenseForApp(steamID:SteamID; appID:SteamAppId):
 End;
 
@@ -95,6 +107,11 @@ Var
 Begin
   If _Running Then
   Begin
+    If (_HasController) Then
+    Begin
+         ISteamController_Shutdown();
+    End;
+
     _Running := False;
     SteamAPI_Shutdown();
   End;
@@ -103,6 +120,9 @@ Begin
 End;
 
 Procedure Steam.Update;
+Var
+   I:Integer;
+   controllerState:SteamControllerState;
 Begin
   If Not _Running Then
     Exit;
@@ -119,6 +139,15 @@ Begin
   End;
 
   SteamAPI_RunCallbacks();
+
+
+  For I:=0 To 3 Do
+  Begin
+       If ISteamController_GetControllerState(I, controllerState) Then
+       Begin
+
+       End;
+  End;
 End;
 
 Function Steam.UnlockAchievement(AchID: AnsiString): Boolean;

@@ -3,7 +3,7 @@
  * TERRA Game Engine
  * ==========================================
  *
- * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ * Copyright (C) 2003, 2014 by SÃ©rgio Flores (relfos@gmail.com)
  *
  ***********************************************************************************************************************
  *
@@ -27,6 +27,11 @@ namespace TERRA;
 {$ELSE}
 
 Unit TERRA_IO;
+
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
 {$I terra.inc}
 {$ENDIF}
 

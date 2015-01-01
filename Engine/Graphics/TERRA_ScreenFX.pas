@@ -705,6 +705,10 @@ Constructor UnderwaterFX.Create(CausticsTex:Texture; Strength:Single);
 Begin
   Self._FXType := FXOffset;
   Self.Strength := Strength;
+
+  If CausticsTex = Nil Then
+    CausticsTex := TextureManager.Instance.NullTexture;
+      
   Self.Caustics := CausticsTex;
 End;
 

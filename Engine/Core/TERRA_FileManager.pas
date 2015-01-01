@@ -89,7 +89,7 @@ Type
 
       Function GetPackage(Name:AnsiString; ValidateError:Boolean = True):Package;
 
-      Function OpenFileStream(FileName:AnsiString; Mode:Integer = smRead):Stream;
+      Function OpenStream(FileName:AnsiString; Mode:Integer = smRead):Stream;
 
       Function OpenPackages(FileName:AnsiString):Boolean;
       Property PathCount:Integer Read _PathCount;
@@ -445,7 +445,7 @@ Begin
     RaiseError('Could not find package. ['+Name +']');
 End;
 
-Function FileManager.OpenFileStream(FileName:AnsiString; Mode:Integer):Stream;
+Function FileManager.OpenStream(FileName:AnsiString; Mode:Integer):Stream;
 Var
   I:Integer;
   PackageName,ResourceName:AnsiString;
@@ -499,7 +499,7 @@ Begin
       Log(logDebug, 'FileManager', 'Opening file '+FileName);
 
       If (IsPackageFileName(FileName)) Then
-        Result := Self.OpenFileStream(FileName, Mode)
+        Result := Self.OpenStream(FileName, Mode)
       Else
         Result := MemoryStream.Create(FileName, Mode);
         //Result := FileStream.Open(FileName,Mode);
@@ -507,7 +507,7 @@ Begin
      (* If (Result.Size<=0) Then
       Begin
         {$IFDEF PC}
-        Result := OpenFileStream(FileName, Mode);
+        Result := OpenStream(FileName, Mode);
         Halt;
         {$ENDIF}
       End;*)

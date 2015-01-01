@@ -141,7 +141,7 @@ Begin
   _NeedsShuffle := True;
 
   S := FXName + '.fx';
-  Source := FileManager.Instance.OpenFileStream(S);
+  Source := FileManager.Instance.OpenStream(S);
   If Assigned(Source) Then
   Begin
     Self.Load(Source);

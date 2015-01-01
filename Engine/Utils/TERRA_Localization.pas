@@ -462,7 +462,7 @@ Begin
   End;
 
   _StringCount := 0;
-  Source := FileManager.Instance.OpenFileStream(S);
+  Source := FileManager.Instance.OpenStream(S);
   _Lang := Lang;
   Self.MergeGroup(Source, -1);
   Source.Destroy;
@@ -568,7 +568,7 @@ Begin
   If (_PinyinCount>0) Then
     Exit;
 
-  Src := FileManager.Instance.OpenFileStream('pinyin.dat');
+  Src := FileManager.Instance.OpenStream('pinyin.dat');
   If Src = Nil Then
     Exit;
 

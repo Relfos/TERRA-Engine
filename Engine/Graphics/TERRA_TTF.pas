@@ -386,7 +386,7 @@ Constructor TTFFont.Create(FileName:AnsiString);
 Var
   Source:Stream;
 Begin
-  Source := FileManager.Instance.OpenFileStream(FileName);
+  Source := FileManager.Instance.OpenStream(FileName);
   If Assigned(Source) Then
   Begin
     Create(Source);
