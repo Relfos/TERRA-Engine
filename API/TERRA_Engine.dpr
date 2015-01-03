@@ -938,7 +938,7 @@ Begin
 End;*)
 
 //Shaders
-Function Shader_GetFromFactory(FxFlags, OutFlags, FogFlags:Cardinal; LightModel:Integer; DirLightCount:Integer;  PointLightCount:Integer;  SpotLightCount:Integer):TERRAShader; Cdecl;
+Function Shader_GetFromFactory(FxFlags:Cardinal; OutFlags:Cardinal;  FogFlags:Cardinal; LightModel:Integer; DirLightCount:Integer;  PointLightCount:Integer;  SpotLightCount:Integer):TERRAShader; Cdecl;
 Var
   Lights:LightBatch;
 Begin
@@ -1412,9 +1412,9 @@ Begin
     LightManager.Instance.AddLight(Light);
 End;
 
-Function Graphics_AddSprite(X:Single;  Y:Single;  Layer:Single; Tex:TERRATexture; ColorTable:TERRATexture; BlendMode:Integer;  Saturation:Single; BilinearFilter:Boolean):TERRASprite; Cdecl;
+Function Graphics_AddSprite(X:Single;  Y:Single;  Layer:Single; Tex:TERRATexture):TERRASprite; Cdecl;
 Begin
-  Result := SpriteManager.Instance.AddSprite(X, Y, Layer, Tex, ColorTable, BlendMode, Saturation, BilinearFilter);
+  Result := SpriteManager.Instance.AddSprite(X, Y, Layer, Tex);
 End;
 
 Procedure Graphics_FlushSprites(); CDecl;
@@ -2328,6 +2328,13 @@ Begin
   Sprite(Spr).SetScale(Scale);
 End;
 
+Procedure Sprite_SetRotation(Spr:TERRASprite; Angle:Single); CDecl;
+Begin
+  If Not ValidateType(Spr, Sprite) Then
+    Exit;
+
+  Sprite(Spr).SetScaleAndRotation(1.0, Angle);
+End;
 
 Procedure Sprite_SetScaleAndRotationOnCenter(Spr:TERRASprite; Const Center:Vector2D; ScaleX:Single; ScaleY:Single; Rotation:Single); CDecl;
 Begin
@@ -3112,6 +3119,7 @@ Exports
   Sprite_SetUniformScale,
   Sprite_SetScaleAndRotationOnCenter,
   Sprite_SetUniformScaleAndRotationOnCenter,
+  Sprite_SetRotation,
   Sprite_SetScaleAndRotation,
   Sprite_SetUniformScaleAndRotation,
   Sprite_SetScaleRelativeOnCenter,

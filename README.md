@@ -66,7 +66,7 @@ Audio:
 * GLS ([g]iles)
 * X (Microsoft DirectX)
 
-Cores Features
+Core Features
 ----------------
 * SIMD optimized math library (Vectors, Matrix, Colors, Rays, etc)
 * Full cross platform abstraction (write once, compile everywhere)
