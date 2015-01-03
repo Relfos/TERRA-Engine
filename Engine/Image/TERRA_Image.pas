@@ -1268,7 +1268,10 @@ Begin
   If (Y<0) Then
     Y := 0;
 
-  Result := @_Pixels._Data[Y * Width + X];
+  If (_Pixels._Data = Nil) Then
+    Result := Nil
+  Else
+    Result := @_Pixels._Data[Y * Width + X];
 End;
 
 Function Image.GetPixelByUV(Const U,V:Single):Color; {$IFDEF FPC}Inline;{$ENDIF}

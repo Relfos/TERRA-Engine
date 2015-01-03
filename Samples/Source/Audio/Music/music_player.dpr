@@ -3,8 +3,8 @@
 
 Uses TERRA_Application, TERRA_Client, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
   TERRA_IO, TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_UI, TERRA_Viewport, TERRA_Texture,
-  TERRA_PNG, TERRA_Lights, TERRA_ShaderFactory, TERRA_SpriteManager, TERRA_Vector2D,
-  TERRA_FileManager, TERRA_Scene, TERRA_Mesh, TERRA_Skybox, TERRA_Color, TERRA_Ogg,
+  TERRA_PNG, TERRA_Lights, TERRA_ShaderFactory, TERRA_SpriteManager, TERRA_Vector2D, TERRA_TTF,
+  TERRA_FileManager, TERRA_Scene, TERRA_Mesh, TERRA_Skybox, TERRA_Color, TERRA_FileUtils, TERRA_OGG,
   TERRA_MusicManager;
 
 Type
@@ -26,15 +26,16 @@ Var
 { Game }
 Procedure Game.OnCreate;
 Begin
-  Fnt := FontManager.Instance.DefaultFont;
   _Scene := MyScene.Create;
 
   FileManager.Instance.AddPath('Assets');
+  Fnt := FontManager.Instance.GetFont('droid@50');
 
   GraphicsManager.Instance.Scene := _Scene;
   GraphicsManager.Instance.BackgroundColor := ColorBlue;
 
-  MusicManager.Instance.Play('nox');
+  //MusicManager.Instance.Play('nox');
+  MusicManager.Instance.Play('mar');
 End;
 
 Procedure Game.OnDestroy;
@@ -47,6 +48,12 @@ Procedure Game.OnIdle;
 Begin
   If Keys[keyEscape] Then
     Application.Instance.Terminate;
+
+  If (Application.Instance.KeyPressed(keyLeft)) Then
+    MusicManager.Instance.SetVolume(MusicManager.Instance.Volume - 0.1)
+  Else
+  If (Application.Instance.KeyPressed(keyRight)) Then
+    MusicManager.Instance.SetVolume(MusicManager.Instance.Volume + 0.1);
 End;
 
 
@@ -58,7 +65,13 @@ Begin
   If Not Assigned(Fnt) Then
     Exit;
 
-  //Fnt.DrawText(5, 5, 5, 'FPS: '+IntToString(Renderer.Instance.Stats.FramesPerSecond), ColorWhite);
+  Fnt.DrawText(5, 5, 5, 'Volume: '+IntToString(Trunc(MusicManager.Instance.Volume * 100))+'%', ColorWhite);
+
+  If Assigned(MusicManager.Instance.CurrentTrack) Then
+  Begin
+    Fnt.DrawText(5, 40, 5, 'Title: '+ GetFileName(MusicManager.Instance.CurrentTrack.FileName, False), ColorWhite);
+    Fnt.DrawText(5, 75, 5, 'Type: '+ MusicManager.Instance.CurrentTrack.ClassName, ColorWhite);
+  End;
 End;
 
 {$IFDEF IPHONE}

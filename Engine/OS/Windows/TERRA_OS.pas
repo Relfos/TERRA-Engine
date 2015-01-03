@@ -574,6 +574,8 @@ Begin
   Begin
     FillChar(WndClass,SizeOf(wndClass),0); // Clear the window class structure
 
+    _Icon := LoadIcon(Inst,'MAIN_ICON');
+
     With wndClass Do                    // Set up the window class
     Begin
      Style:=CS_HREDRAW Or  // Redraws entire window if length changes
@@ -582,7 +584,7 @@ Begin
      lpfnWndProc := @WndProc;  // Set the window procedure to our func WndProc
      hInstance := Inst;
      hCursor := LoadCursor(0,IDC_ARROW);
-     hIcon := LoadIcon(Inst,'IDI_MAIN_ICON');
+     hIcon := _Icon;
      lpszClassName:='TERRA';
     End;
 
@@ -650,14 +652,23 @@ Begin
   //_Height := 1136;
   //SetWindowPos(_Handle, Cardinal(00), Cardinal(00), 0, _Width, _Height, $400);
 
-  _CanReceiveEvents := False;
-  _Ready := True;
+  If Not _Ready Then
+  Begin
+    _CanReceiveEvents := False;
+    _Ready := True;
+
+    If (_Icon<>0) Then
+    Begin
+      SendMessage(_Handle, WM_SETICON, ICON_SMALL, _Icon);
+      SendMessage(_Handle, WM_SETICON, ICON_BIG, _Icon);
+    End Else
+      InitIcon();
+
+    If (Self.IsDebuggerPresent()) Then
+      ForceLogFlush := True;
+  End;
+  
   Result := True;
-
-  InitIcon();
-
-  If (Self.IsDebuggerPresent()) Then
-    ForceLogFlush := True;
 End;
 
 Function WindowsApplication.InitGraphics:Boolean;

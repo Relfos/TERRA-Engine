@@ -15,10 +15,10 @@ Const
 	keyBackspace  = 8;
 	keyTab        = 9;
 	keyEnter      = 13;
-	keyShift      = $38;
-	keyControl    = $3B;
-	keyAlt        = $3A;
-	keyPause      = $71;
+	keyShift      = 1;
+	keyControl    = 2;
+	keyAlt        = 3;
+	keyPause      = 5;
 	keyEscape     = 4; // $35;
 	keySpace      = $31;
 	keyPageUp     = $74;

@@ -17,7 +17,7 @@
       </Item1>
     </RequiredPkgs>
     <UsageOptions>
-      <IncludePath Value="$(PkgDir)\Utils"/>
+      <IncludePath Value="$(PkgDir)\Utils;$(PkgDir)\Core"/>
       <UnitPath Value="$(PkgDir)\Utils;$(PkgDir)\Utils\FileIO;$(PkgDir)\Graphics;$(PkgDir)\Image;$(PkgDir)\Image\Formats;$(PkgDir)\OS\Windows;$(PkgDir)\Core;$(PkgDir)\UI;$(PkgDir)\AI;$(PkgDir)\Audio;$(PkgDir)\Audio\Formats;$(PkgDir)\Network;$(PkgDir)\Libs\pasJPEG;$(PkgDir)\Libs\Steamworks\headers;$(PkgDir)\Math;$(PkgDir)\Network\Protocols"/>
     </UsageOptions>
     <PublishOptions>

@@ -74,14 +74,17 @@ Type
       Function Write(Data:Pointer; Length:Cardinal):Cardinal; Virtual;
 
       Procedure ReadString(Var S:AnsiString; NullTerminated:Boolean = False);Virtual;
-      Procedure ReadLine(Var S:AnsiString);Virtual;
       Procedure WriteString(S:AnsiString; NullTerminated:Boolean = False);Virtual;
-      Procedure WriteLine(S:AnsiString='');Virtual;
+
+      Procedure ReadLine(Var S:AnsiString); Virtual;
+      Procedure WriteLine(Const S:AnsiString=''); Virtual;
+      Procedure WriteChars(Const S:AnsiString); Virtual;
 
       Procedure ReadLines(Var S:AnsiString); 
 
       Procedure ReadUnicodeLine(Var S:AnsiString);
-      Procedure WriteUnicode(S:AnsiString; Encoding:Integer);
+      Procedure WriteUnicodeLine(Const S:AnsiString; Encoding:Integer);
+      Procedure WriteUnicodeChars(Const S:AnsiString; Encoding:Integer);
 
       Procedure Copy(Dest:Stream);Overload;
       Procedure Copy(Dest:Stream;Offset,Count:Integer);Overload;
@@ -377,14 +380,13 @@ Begin
   End;
 End;
 
-Procedure Stream.WriteLine(S:AnsiString);
+Procedure Stream.WriteChars(Const S:AnsiString);
 {$IFDEF OXYGENE}
 Var
   C:AnsiChar;
   I:Integer;
 {$ENDIF}
 Begin
-  S:=S+#13#10;
   {$IFDEF OXYGENE}
   For I:=0 To (S.Length-1) Do
   Begin
@@ -394,6 +396,12 @@ Begin
   {$ELSE}
   Write(@S[1],Length(S));
   {$ENDIF}
+End;
+
+Procedure Stream.WriteLine(Const S:AnsiString);
+Begin
+  WriteChars(S);
+  WriteChars(#13#10);
 End;
 
 Procedure Stream.ReadLine(Var S:AnsiString);
@@ -429,7 +437,13 @@ Begin
   End;
 End;
 
-Procedure Stream.WriteUnicode(S:AnsiString; Encoding: Integer);
+Procedure Stream.WriteUnicodeLine(Const S:AnsiString; Encoding: Integer);
+Begin
+  WriteUnicodeChars(S, Encoding);
+  WriteUnicodeChars(#13#10, Encoding);
+End;
+
+Procedure Stream.WriteUnicodeChars(Const S:AnsiString; Encoding: Integer);
 Var
   I:Integer;
   A,B:Byte;

@@ -557,7 +557,11 @@ Begin
 
   For I:=0 To Pred(_FrameCount) Do
   Begin
-    _Source.SetCurrentFrame(I);
+    If (_FrameCount>0) Then
+    Begin
+      _Source.SetCurrentFrame(I);
+      Pixels := PWord(_Source.Pixels);
+    End;
 
     glActiveTexture(GL_TEXTURE0);
     {$IFDEF PC}
@@ -567,6 +571,8 @@ Begin
 
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Uploading texture frame '+IntToString(I));{$ENDIF}
     glTexImage2D(GL_TEXTURE_2D, 0, _TargetFormat, _Width, _Height, 0, _SourceFormat, _ByteFormat, Pixels);
+
+    //_Source.Save('debug\temp\pp'+IntTOString(I)+'.png');
 
 (*  If (_Format = GL_COMPRESSED_RGBA) Then
   Begin
@@ -878,7 +884,7 @@ Begin
     If (Delta>1) Then
       Delta := Frac(Delta);
 
-    Result := Trunc(Delta*Pred(_FrameCount));
+    Result := Trunc(Delta * Pred(_FrameCount));
   End;
 End;
 

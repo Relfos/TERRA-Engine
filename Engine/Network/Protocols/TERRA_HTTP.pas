@@ -80,6 +80,7 @@ Type
       _UserData:Pointer;
       _ChunkedTransfer:Boolean;
       _ClientName:AnsiString;
+      _Cookie:AnsiString;
 
       Function ReceiveHeader:Integer;
       Procedure Update;
@@ -88,7 +89,7 @@ Type
 
     Public
 
-      Constructor Create(URL:AnsiString; Dest:Stream; Callback:DownloadCallback = Nil; Port:Integer=HTTPPort; Const ClientName:AnsiString = DefaultClientName); // Returns file size in bytes
+      Constructor Create(URL:AnsiString; Const Cookie:AnsiString; Dest:Stream; Callback:DownloadCallback = Nil; Port:Integer=HTTPPort; Const ClientName:AnsiString = DefaultClientName); // Returns file size in bytes
       Destructor Destroy; Override;
 
       Function GetHeaderProperty(Name:AnsiString):AnsiString;
@@ -103,6 +104,7 @@ Type
       Property Target:Stream Read _Target;
       Property ErrorCode:Integer Read _ErrorCode;
       Property UserData:Pointer  Read _UserData;
+      Property Cookie:AnsiString Read _Cookie;
   End;
 
   DownloadManager = Class(ApplicationComponent)
@@ -125,8 +127,8 @@ Type
 
       Function GetDownload(Index:Integer):HTTPDownloader;
 
-      Function Start(Const URL:AnsiString; Dest:Stream; Callback:DownloadCallback = Nil; UserData:Pointer = Nil; Port:Integer=HTTPPort; Const ClientName:AnsiString = DefaultClientName):HTTPDownloader; Overload;
-      Function Start(URL:AnsiString; Callback:DownloadCallback = Nil; UserData:Pointer = Nil; Port:Integer=HTTPPort; AllowCache:Boolean=True; Const ClientName:AnsiString = DefaultClientName):HTTPDownloader; Overload;
+      Function StartWithCookie(URL:AnsiString; Const Cookie:AnsiString;  Dest:Stream = Nil; Callback:DownloadCallback = Nil; UserData:Pointer = Nil; Port:Integer=HTTPPort; AllowCache:Boolean=True; Const ClientName:AnsiString = DefaultClientName):HTTPDownloader;
+      Function Start(Const URL:AnsiString; Dest:Stream = Nil; Callback:DownloadCallback = Nil; UserData:Pointer = Nil; Port:Integer=HTTPPort; AllowCache:Boolean=True; Const ClientName:AnsiString = DefaultClientName):HTTPDownloader;
 
       Function Post(URL:AnsiString; Port:Integer=HTTPPort; Const ClientName:AnsiString = DefaultClientName):Integer;
 
@@ -155,7 +157,7 @@ End;
 
 // LHTTPDownloader class
 
-Constructor HTTPDownloader.Create(URL:AnsiString; Dest:Stream; Callback:DownloadCallback; Port:Integer; Const ClientName:AnsiString);
+Constructor HTTPDownloader.Create(URL:AnsiString; Const Cookie:AnsiString; Dest:Stream; Callback:DownloadCallback; Port:Integer; Const ClientName:AnsiString);
 Var
   I:Integer;
   Request:AnsiString;
@@ -231,12 +233,16 @@ Begin
     End;
 
     Log(logDebug, 'HTTP', 'Sending request to '+URL);
-    Request:= 'GET '+URL+' HTTP/1.1'+#13#10+
-              'User-Agent: '+ClientName+#13#10+
-              'Host: '+_HostName+#13#10+
-              'Accept: text/html, text/xml, image/gif, image/x-xbitmap, image/jpeg, */*'#13#10+
-//              'Connection: keep-alive'+#13#10+
-              #13#10;
+    Request:= 'GET '+URL+' HTTP/1.1'+#13#10;
+    Request := Request + 'User-Agent: ' + ClientName + #13#10;
+    Request := Request + 'Host: '+ _HostName + #13#10;
+    Request := Request + 'Accept: text/html, text/xml, image/gif, image/x-xbitmap, image/jpeg, */*'#13#10;
+
+    If (Cookie<>'') And (Pos('=', Cookie)>0) Then
+      Request := Request + 'Cookie: ' + Cookie;
+
+    //Request := Request + 'Connection: keep-alive'+#13#10;
+    Request := Request + #13#10;
 
     Socket(_Stream).Blocking := True;
     _Stream.Write(@Request[1], Length(Request));
@@ -283,6 +289,7 @@ Var
 Begin
   _TotalSize := -1;
   _ChunkedTransfer := False;
+  _Cookie := '';
 
   Len := _Stream.Read(_Buffer, BufferSize);
   If Len>0 Then
@@ -328,6 +335,11 @@ Begin
         SetLength(_Tags, _TagCount);
         _Tags[Pred(_TagCount)].Name := Tag;
         _Tags[Pred(_TagCount)].Value := Value;
+
+        If (Tag = 'SET-COOKIE') Then
+        Begin
+          Self._Cookie := Value;
+        End;
 
         If Tag='CONTENT-LENGTH' Then
         Begin
@@ -587,24 +599,9 @@ Begin
   End;
 End;
 
-Function DownloadManager.Start(Const URL:AnsiString; Dest:Stream; Callback:DownloadCallback; UserData:Pointer; Port:Integer; Const ClientName:AnsiString): HTTPDownloader;
-Var
-  Downloader :HTTPDownloader;
-Begin
-  Log(logError, 'HTTP', 'Starting download.');
-  Downloader := HTTPDownloader.Create(URL, Dest, Callback, Port, ClientName);
-  Downloader._UserData := UserData;
-  Inc(_DownloadCount);
-  SetLength(_Downloads, _DownloadCount);
-  _Downloads[Pred(_DownloadCount)] := Downloader;
-  Result := Downloader;
-  Log(logError, 'HTTP', 'Download dispatched.');
-End;
-
-Function DownloadManager.Start(URL:AnsiString; Callback:DownloadCallback; UserData:Pointer; Port:Integer; AllowCache:Boolean; Const ClientName:AnsiString): HTTPDownloader;
+Function DownloadManager.StartWithCookie(URL:AnsiString; Const Cookie:AnsiString; Dest:Stream; Callback:DownloadCallback; UserData:Pointer; Port:Integer; AllowCache:Boolean; Const ClientName:AnsiString):HTTPDownloader;
 Var
   S, FileName:AnsiString;
-  Dest:Stream;
   NoCache:Boolean;
 Begin
   FileName := URL;
@@ -613,27 +610,40 @@ Begin
   S := FileManager.Instance.SearchResourceFile(FileName);
 
   NoCache := Pos('.PHP', UpStr(URL))>0;
-  If (S<>'') And (Not NoCache) And (AllowCache) Then
-  Begin
-    Log(logDebug, 'HTTP', 'Cached: '+URL);
-    URL := 'file://'+S;
-    Dest := MemoryStream.Create(1024);
-  End Else
-  If (FileName<>'') Then
-  Begin
-    If NoCache Then
-    Begin
-      FileName := 'temp.php';
-      //S := FileName;
-      //FileName := GetNextWord(S, '?');
-      Dest := MemoryStream.Create(1024*1024);
-    End Else
-      Dest := FileStream.Create(GetTempPath + PathSeparator + FileName);
-  End Else
-    Dest := Nil;
 
-  Log(logDebug, 'HTTP', 'Starting..');
-  Result := Self.Start(URL, Dest, Callback, Userdata, Port, ClientName);
+  If (Dest = Nil) Then
+  Begin
+    If (S<>'') And (Not NoCache) And (AllowCache) Then
+    Begin
+      Log(logDebug, 'HTTP', 'Cached: '+URL);
+      URL := 'file://'+S;
+      Dest := MemoryStream.Create(1024);
+    End Else
+    If (FileName<>'') Then
+    Begin
+      If NoCache Then
+      Begin
+        FileName := 'temp.php';
+        //S := FileName;
+        //FileName := GetNextWord(S, '?');
+        Dest := MemoryStream.Create(1024*1024);
+      End Else
+        Dest := FileStream.Create(GetTempPath + PathSeparator + FileName);
+    End;
+  End;
+  
+  Log(logError, 'HTTP', 'Starting download.');
+  Result := HTTPDownloader.Create(URL, Cookie, Dest, Callback, Port, ClientName);
+  Result._UserData := UserData;
+  Inc(_DownloadCount);
+  SetLength(_Downloads, _DownloadCount);
+  _Downloads[Pred(_DownloadCount)] := Result;
+  Log(logError, 'HTTP', 'Download dispatched.');
+End;
+
+Function DownloadManager.Start(Const URL:AnsiString; Dest:Stream; Callback:DownloadCallback; UserData:Pointer; Port:Integer; AllowCache:Boolean; Const ClientName:AnsiString):HTTPDownloader;
+Begin
+  Result := StartWithCookie(URL, '', Dest, Callback, UserData, Port, AllowCache, ClientName);
 End;
 
 Function HTTPDownloader.GetTag(Name:AnsiString):AnsiString;

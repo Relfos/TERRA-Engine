@@ -14,6 +14,9 @@ import android.view.WindowManager;
 import android.os.SystemClock;
 import android.os.Process;
 
+import java.util.LinkedList;
+import java.util.Queue;
+
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.egl.EGLContext;
@@ -62,17 +65,28 @@ class TERRAView extends GLSurfaceView {
 	public static long rotationTime = 0;
 	private static int orientationChange = 0;
 	
-/*	private class TouchEvent 
-	{
+    public enum TouchType {
+        BEGIN, END, MOVE
+    }    
+    
+	private class TouchEvent 
+	{        
 		public int x;
 		public int y;
-		public int type;
+		public TouchType type;
+        private long time;
 		
-		public TouchEvent(int x, int y, int type)
+		public TouchEvent(int x, int y, TouchType type)
 		{
-		
+            this.x = x;
+            this.y = y;
+            this.type = type;
+            this.time = SystemClock.uptimeMillis();
 		}
-	}*/
+	}
+
+    private static Queue<TouchEvent> touchQueue = new LinkedList<TouchEvent>();
+    private static Object touchLock = new Object();
 	
 	public static boolean isInitialized()
 	{
@@ -193,20 +207,20 @@ class TERRAView extends GLSurfaceView {
 
 				if (!terminated)
 				{
-					synchronized (TERRAActivity.instance)
+					synchronized (touchLock)
 					{
 						switch (event.getAction())
 						{
 						case MotionEvent.ACTION_MOVE:
-							TERRALibrary.ApplicationTouchMove((int)x, (int)y);
+                            touchQueue.add(new TouchEvent((int)x, (int)y, TouchType.MOVE));
 							break;
 							
 						case MotionEvent.ACTION_DOWN:
-							TERRALibrary.ApplicationTouchBegin((int)x, (int)y);
+                            touchQueue.add(new TouchEvent((int)x, (int)y, TouchType.BEGIN));							
 							break;
 							
 						case MotionEvent.ACTION_UP:
-							TERRALibrary.ApplicationTouchEnd((int)x, (int)y);
+                            touchQueue.add(new TouchEvent((int)x, (int)y, TouchType.END));
 							break;
 						}
 					}
@@ -440,6 +454,37 @@ class TERRAView extends GLSurfaceView {
 			synchronized (TERRAActivity.instance)
 			{			
 				//Log.d("App", "Engine Thread ID: "+android.os.Process.myTid());
+
+                synchronized (touchLock)
+                {
+                    TouchEvent touch;
+
+                    long currentTime = SystemClock.uptimeMillis();
+                    int eventsProcessed = 0;
+                    
+                    do {
+                        touch = touchQueue.poll();
+                    
+                        if (touch!=null && ((currentTime - touch.time)<2000) ) {
+                            eventsProcessed ++;
+                            switch (touch.type)
+                            {
+                                case MOVE:
+                                    TERRALibrary.ApplicationTouchMove(touch.x, touch.y);
+                                    break;
+                                
+                                case BEGIN:
+                                    TERRALibrary.ApplicationTouchBegin(touch.x, touch.y);
+                                    break;
+                                
+                                case END:
+                                    TERRALibrary.ApplicationTouchEnd(touch.x, touch.y);
+                                    break;
+                            }
+                        }
+                        
+                    } while (touch!=null && eventsProcessed<8);
+                }
 				
 				//Log.d("App", "Calling On App Update");
 				if (!TERRALibrary.ApplicationUpdate())

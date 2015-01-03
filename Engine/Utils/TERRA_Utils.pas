@@ -195,6 +195,9 @@ Function HexStrToInt(Const S:AnsiString):Integer;
 Function StringToBase64(Buf:AnsiString):AnsiString;
 Function Base64ToString(B64:AnsiString):AnsiString;
 
+Function Tabs(Length:Integer):AnsiString;
+Function Spaces(Length:Integer):AnsiString;
+
 Procedure TimeStampToDateAndtime(TimeStamp:Integer; Var Date:TERRADate; Var Time:TERRATime);
 
 Procedure ReplaceText(Const Token,Value:AnsiString; Var S:AnsiString);
@@ -1343,6 +1346,24 @@ Begin
   Time.Minute := M;
   Time.Second := S;
   Time.MiliSecond := 0;
+End;
+
+Function Tabs(Length:Integer):AnsiString;
+Var
+  I:Integer;
+Begin
+  SetLength(Result, Length);
+  For I:=1 To Length Do
+    Result[I] := Tab;
+End;
+
+Function Spaces(Length:Integer):AnsiString;
+Var
+  I:Integer;
+Begin
+  SetLength(Result, Length);
+  For I:=1 To Length Do
+    Result[I] := ' ';
 End;
 
 Procedure DebugBreak(Condition:Boolean = True);
