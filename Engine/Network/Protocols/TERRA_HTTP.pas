@@ -239,7 +239,7 @@ Begin
     Request := Request + 'Accept: text/html, text/xml, image/gif, image/x-xbitmap, image/jpeg, */*'#13#10;
 
     If (Cookie<>'') And (Pos('=', Cookie)>0) Then
-      Request := Request + 'Cookie: ' + Cookie;
+      Request := Request + 'Cookie: ' + Cookie + #13#10;
 
     //Request := Request + 'Connection: keep-alive'+#13#10;
     Request := Request + #13#10;
@@ -338,7 +338,7 @@ Begin
 
         If (Tag = 'SET-COOKIE') Then
         Begin
-          Self._Cookie := Value;
+          Self._Cookie := GetNextWord(Value, ';');
         End;
 
         If Tag='CONTENT-LENGTH' Then
@@ -532,9 +532,7 @@ Begin
   If (Prefetching) Then
     Exit;
 
-  {$IFDEF WINDOWS}
-  Sleep(1);
-  {$ENDIF}
+  //Application.Instance.Yeld();
 
   I:=0;
   While (I<_DownloadCount) Do
@@ -632,13 +630,13 @@ Begin
     End;
   End;
   
-  Log(logError, 'HTTP', 'Starting download.');
+  Log(logDebug, 'HTTP', 'Starting download');
   Result := HTTPDownloader.Create(URL, Cookie, Dest, Callback, Port, ClientName);
   Result._UserData := UserData;
   Inc(_DownloadCount);
   SetLength(_Downloads, _DownloadCount);
   _Downloads[Pred(_DownloadCount)] := Result;
-  Log(logError, 'HTTP', 'Download dispatched.');
+  Log(logDebug, 'HTTP', 'Download dispatched.');
 End;
 
 Function DownloadManager.Start(Const URL:AnsiString; Dest:Stream; Callback:DownloadCallback; UserData:Pointer; Port:Integer; AllowCache:Boolean; Const ClientName:AnsiString):HTTPDownloader;

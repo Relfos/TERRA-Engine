@@ -98,6 +98,8 @@ Type
       Function GetNode(Name:AnsiString):XMLNode;
       Function GetChild(Index:Integer):XMLNode;
 
+      Function GetNodeByPath(Path:AnsiString; Const PathSeparator:AnsiString = '\'):XMLNode;
+
       Property Name:AnsiString Read _Name;
       Property Value:AnsiString Read _Value Write _Value;
 
@@ -321,6 +323,25 @@ Begin
       Result:='.'+Result;
     Result:=Node._Name+Result;
     Node:=Node._Parent;
+  End;
+End;
+
+Function XMLNode.GetNodeByPath(Path:AnsiString; Const PathSeparator:AnsiString): XMLNode;
+Var
+  First:AnsiString;
+Begin
+  First := GetNextWord(Path, PathSeparator);
+
+  If First = '' Then
+    Result := Nil
+  Else
+  Begin
+    Result := Self.GetNode(First);
+    If Not Assigned(Result) Then
+      Exit;
+
+    If Path <> '' Then
+      Result := Result.GetNodeByPath(Path);
   End;
 End;
 
@@ -1224,6 +1245,7 @@ Begin
   {$ENDIF}
 
 End;
+
 
 End.
 
