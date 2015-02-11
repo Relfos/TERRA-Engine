@@ -32,13 +32,13 @@ Uses TERRA_Utils, TERRA_Color, TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix4x4, 
   TERRA_Application, TERRA_ResourceManager, TERRA_Lights, TERRA_Shader, TERRA_FileManager,
   TERRA_Resource, TERRA_Client, TERRA_UI, TERRA_Skybox, TERRA_MusicManager,
   TERRA_Font, TERRA_Scene, TERRA_XML, TERRA_GraphicsManager, TERRA_SpriteManager,
-  TERRA_Mesh, TERRA_MeshAnimation, TERRA_IO, TERRA_Viewport,
+  TERRA_Mesh, TERRA_MeshAnimation, TERRA_Stream, TERRA_MemoryStream, TERRA_FileStream, TERRA_Viewport,
 
   TERRA_Log, TERRA_Localization, TERRA_Widgets, TERRA_Image, TERRA_ShaderFactory,
   TERRA_SoundManager, TERRA_Sound, TERRA_TextureAtlas, TERRA_Leaderboards,
-  TERRA_PNG, TERRA_Milkshape, TERRA_OBJ, TERRA_Collada, TERRA_TTF, TERRA_AngelCodeFont,
+  TERRA_PNG, TERRA_Milkshape, TERRA_OBJ, {TERRA_Collada, } TERRA_TTF, TERRA_AngelCodeFont,
   TERRA_ParticleRenderer, TERRA_ParticleEmitters, TERRA_OS,
-  TERRA_FileIO, TERRA_FileUtils, TERRA_HTTP, TERRA_AIPath, TERRA_Session,
+  TERRA_FileUtils, TERRA_HTTP, TERRA_AIPath, TERRA_Session,
   TERRA_Decals, TERRA_Billboards, TERRA_Network, TERRA_NetClient, TERRA_Sockets, TERRA_WAVE,
   {$IFNDEF MOBILE}TERRA_OGG,{$ENDIF}
   {$IFNDEF IPHONE}TERRA_JPG,{$ENDIF}
@@ -644,17 +644,17 @@ End;
 
 Procedure Input_SetKeyState(Key:Integer; State:Boolean); Cdecl;
 Begin
-  Application.Instance.Input.Keys[Key] := State;
+  Application.Instance.Input.Keys.SetState(Key, State);
 End;
 
 Function Input_KeyDown(Key:Integer):Boolean; Cdecl;
 Begin
-  Result := Application.Instance.Input.Keys[Key];
+  Result := Application.Instance.Input.Keys.IsDown(Key);
 End;
 
 Function Input_KeyPressed(Key:Integer):Boolean; Cdecl;
 Begin
-  Result := Application.Instance.KeyPressed(Key);
+  Result := Application.Instance.Input.Keys.WasPressed(Key);
 End;
 
 Function Input_GetMousePosition():Vector2D; Cdecl;
@@ -1287,7 +1287,7 @@ Begin
     Exit;
   End;
 
-  Result := TERRA_GraphicsManager.Occluder(Occluder).BoxOccluded(Box);
+  Result := TERRA_GraphicsManager.Occluder(Occluder).BoxOccluded(Box, GraphicsManager.Instance.ActiveViewport);
 End;
 
 Procedure Occluder_Destroy(Var Occluder:TERRAOccluder); Cdecl;
@@ -1306,7 +1306,7 @@ End;
 
 Procedure Graphics_SetBackgroundColor(Const MyColor:Color); Cdecl;
 Begin
-  GraphicsManager.Instance.BackgroundColor := MyColor;
+  GraphicsManager.Instance.ActiveViewport.BackgroundColor := MyColor;
 End;
 
 Procedure Graphics_SetDynamicShadows(Enabled:Boolean); Cdecl;
@@ -1414,7 +1414,7 @@ End;
 
 Function Graphics_AddSprite(X:Single;  Y:Single;  Layer:Single; Tex:TERRATexture):TERRASprite; Cdecl;
 Begin
-  Result := SpriteManager.Instance.AddSprite(X, Y, Layer, Tex);
+  Result := SpriteManager.Instance.DrawSprite(X, Y, Layer, Tex);
 End;
 
 Procedure Graphics_FlushSprites(); CDecl;
@@ -2714,7 +2714,7 @@ End;
 Function XML_GetNode(Node:TERRAXMLNode; Name:PAnsiChar):TERRAXMLNode; Cdecl;
 Begin
   If Assigned(Node) Then
-    Result := XMLNode(Node).GetNode(Name)
+    Result := XMLNode(Node).GetNodeByName(Name)
   Else
     Result := Nil;
 End;
@@ -2722,7 +2722,7 @@ End;
 Function XML_GetNodeByIndex(Node:TERRAXMLNode; ID:Integer):TERRAXMLNode; Cdecl;
 Begin
   If Assigned(Node) Then
-    Result := XMLNode(Node).GetChild(ID)
+    Result := XMLNode(Node).GetNodeByIndex(ID)
   Else
     Result := Nil;
 End;
@@ -2730,7 +2730,7 @@ End;
 Function XML_GetNodeCount(Node:TERRAXMLNode):Integer; Cdecl;
 Begin
   If Assigned(Node) Then
-    Result := XMLNode(Node).ChildCount
+    Result := XMLNode(Node).NodeCount
   Else
     Result := 0;
 End;

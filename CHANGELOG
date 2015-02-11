@@ -1,0 +1,10 @@
+Engine/API Changes
+
+February 2015
+
+TERRA_Unicode -> Replaced with TERRA_String
+TERRA_IO -> Replaced with TERRA_Stream and TERRA_MemoryStream
+TERRA_FileIO -> Replaced with TERRA_FileStream
+SpriteManager.Instance.AddSprite ->  SpriteManager.Instance.DrawSprite
+GraphicsManager.Instance.BackgroundColor -> GraphicsManager.Instance.ActiveViewport.BackgroundColor
+Keys -> No longer array, now class with methods isDown(), wasPressed(), wasReleased() etc
