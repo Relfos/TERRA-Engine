@@ -26,13 +26,13 @@ Unit TERRA_Debug;
 {$I terra.inc}
 Interface
 
-//Procedure DebugStack(S:AnsiString);
+//Procedure DebugStack(S:TERRAString);
 Procedure DebugOpenAL;
 
-Procedure PushCallstack(ClassType:TClass; S:AnsiString);
+Procedure PushCallstack(ClassType:TClass; S:TERRAString);
 Procedure PopCallstack();
 
-Function GetCallstack:AnsiString;
+Function GetCallstack:TERRAString;
 
 Implementation
 
@@ -47,7 +47,7 @@ Uses {$IFDEF WINDOWS}Windows,{$ENDIF}
 Var
   _Callstack:Stack;
 
-Procedure PushCallstack(ClassType:TClass; S:AnsiString);
+Procedure PushCallstack(ClassType:TClass; S:TERRAString);
 Begin
   If (_Callstack = Nil) Then
     _Callstack := Stack.Create();
@@ -93,7 +93,7 @@ var
   procedure DoIt;
   var             // This is done in a sub-routine because string variable is used and we want it finalized
     E: Exception;
-    S:AnsiString;
+    S:TERRAString;
   begin
     s:='--------------------------------------------------------'#13#10;
     s:=s+'New exception:'#13#10;
@@ -127,13 +127,13 @@ begin
   end;
 End;*)
 
-Procedure TERRADump(S:AnsiString);
+Procedure TERRADump(S:TERRAString);
 Begin
   Raise Exception.Create(S);
 End;
 
 {$ELSE}
-Procedure DebugStack(S:AnsiString);
+Procedure DebugStack(S:TERRAString);
 Var
   i:Integer;
   Frames: PPointer;
@@ -144,7 +144,7 @@ Begin
   Log(logError,'Callstack', S);
 End;
 
-Procedure TERRADump(S:AnsiString);
+Procedure TERRADump(S:TERRAString);
 Begin
   DebugStack('');
   RaiseError(S);
@@ -152,7 +152,7 @@ Begin
 End;
 {$ENDIF}
 
-Function GetCallstack:AnsiString;
+Function GetCallstack:TERRAString;
 Var
   P:StringObject;
 Begin
@@ -172,7 +172,7 @@ End;
 Procedure DebugOpenAL;
 Var
   ErrorCode:Cardinal;
-  S:AnsiString;
+  S:TERRAString;
 Begin
   ErrorCode := alGetError;
   If ErrorCode = GL_NO_ERROR Then

@@ -27,7 +27,7 @@ Unit TERRA_BMP;
 Interface
 
 Implementation
-Uses TERRA_Utils, TERRA_IO, TERRA_Image, TERRA_Error, TERRA_INI, TERRA_Application, TERRA_Color;
+Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Image, TERRA_Error, TERRA_INI, TERRA_Application, TERRA_Color;
 
 Type
  LBitmapFileHeader=Packed Record
@@ -189,7 +189,7 @@ Begin
   Image.Process(IMP_SwapChannels);
 End;
 
-Procedure BMPSave(Dest:Stream; Image:Image; Options:AnsiString='');
+Procedure BMPSave(Dest:Stream; Image:Image; Const Options:TERRAString);
 Var
   Header:LBitmapFileHeader;
   SizeImage:Cardinal;

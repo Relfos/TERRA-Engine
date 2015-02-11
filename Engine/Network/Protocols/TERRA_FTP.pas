@@ -30,7 +30,7 @@ Unit TERRA_FTP;
 // ftp://username:password@host/path
 
 Interface
-Uses TERRA_Error, TERRA_Utils, TERRA_IO, TERRA_Sockets;
+Uses TERRA_String, TERRA_Error, TERRA_Utils, TERRA_Stream, TERRA_Sockets;
 
 Const
   FTPPort = 21;
@@ -48,30 +48,30 @@ Type
   FTPSession = Class(TERRAObject)
     Protected
       _Stream:Socket;
-      _ServerAddress:AnsiString;
-      _LastResponse:AnsiString;
+      _ServerAddress:TERRAString;
+      _LastResponse:TERRAString;
       _LastCode:Integer;
 
       _Active:Boolean;
       _ErrorCode:Integer;
-      _LastCommand:AnsiString;
+      _LastCommand:TERRAString;
 
       Function GetStatus:Integer;
       Function EndSession(ErrorCode:Integer):Integer;
 
-      Procedure SendCommand(S:AnsiString);
+      Procedure SendCommand(S:TERRAString);
 
-      Function GetSocket(S:AnsiString):Socket;
+      Function GetSocket(S:TERRAString):Socket;
 
     Public
-      Constructor Create(URL:AnsiString; Port:Integer = FTPPort);
+      Constructor Create(URL:TERRAString; Port:Integer = FTPPort);
       Destructor Destroy; Override;
 
-      Function PutFile(FileName:AnsiString; Source:Stream; Notifier:ProgressNotifier=Nil):Integer; Overload;
-      Function GetFile(FileName:AnsiString; Dest:Stream; Notifier:ProgressNotifier=Nil):Integer; Overload;
+      Function PutFile(FileName:TERRAString; Source:Stream; Notifier:ProgressNotifier=Nil):Integer; Overload;
+      Function GetFile(FileName:TERRAString; Dest:Stream; Notifier:ProgressNotifier=Nil):Integer; Overload;
 
-      Function GetFile(FileName:AnsiString; DestFile:AnsiString=''; Notifier:ProgressNotifier=Nil):Integer; Overload;
-      Function PutFile(FileName:AnsiString; SourceFile:AnsiString=''; Notifier:ProgressNotifier=Nil):Integer; Overload;
+      Function GetFile(FileName:TERRAString; DestFile:TERRAString=''; Notifier:ProgressNotifier=Nil):Integer; Overload;
+      Function PutFile(FileName:TERRAString; SourceFile:TERRAString=''; Notifier:ProgressNotifier=Nil):Integer; Overload;
 
       Property Connected:Boolean Read _Active;
   End;
@@ -84,42 +84,42 @@ Type
       Function GetSession(Index:Integer):FTPSession;
 
     Public
-      Constructor Create(URLList:AnsiString='');
+      Constructor Create(URLList:TERRAString='');
       Destructor Destroy; Override;
 
-      Procedure NewConnection(URL:AnsiString);
+      Procedure NewConnection(URL:TERRAString);
 
-      Procedure PutFile(FileName:AnsiString; Source:Stream; Notifier:ProgressNotifier=Nil);Overload;
-      Procedure GetFile(FileName:AnsiString; Dest:Stream; Notifier:ProgressNotifier=Nil);Overload;
+      Procedure PutFile(FileName:TERRAString; Source:Stream; Notifier:ProgressNotifier=Nil);Overload;
+      Procedure GetFile(FileName:TERRAString; Dest:Stream; Notifier:ProgressNotifier=Nil);Overload;
 
-      Procedure GetFile(FileName:AnsiString; DestFile:AnsiString=''; Notifier:ProgressNotifier=Nil);Overload;
-      Procedure PutFile(FileName:AnsiString; SourceFile:AnsiString=''; Notifier:ProgressNotifier=Nil);Overload;
+      Procedure GetFile(FileName:TERRAString; DestFile:TERRAString=''; Notifier:ProgressNotifier=Nil);Overload;
+      Procedure PutFile(FileName:TERRAString; SourceFile:TERRAString=''; Notifier:ProgressNotifier=Nil);Overload;
 
       Property Session[Index:Integer]:FTPSession Read GetSession;
       Property SessionCount:Integer Read _SessionCount;
   End;
 
 Implementation
-Uses TERRA_Application, TERRA_OS, TERRA_Log, TERRA_FileIO, TERRA_FileUtils;
+Uses TERRA_Application, TERRA_OS, TERRA_Log, TERRA_FileStream, TERRA_FileUtils, TERRA_MemoryStream;
 
 Const
   BufferSize = High(Word);
 
-Procedure FormatFTPPath(Var Path:AnsiString);
+Procedure FormatFTPPath(Var Path:TERRAString);
 Begin
   If Path='' Then
     Exit;
 
-  If Path[1]<>'/' Then
-    Path:='/'+Path;
+  If StringFirstChar(Path)<> Ord('/') Then
+    StringPrependChar(Path, Ord('/'));
 
-  ReplaceText('\','/', Path);
+  StringReplaceChar(Ord('\'), Ord('/'), Path);
 End;
 
 { FTPSession }
 Function FTPSession.GetStatus():Integer;
 Var
-  S:AnsiString;
+  S:TERRAString;
   I:Integer;
 Begin
   _LastResponse:='';
@@ -136,23 +136,23 @@ Begin
     Result := StringToInt(Copy(S, 1, Pred(I)));
   Until Result<>_LastCode;
 
-  _LastResponse := TrimLeft(TrimRight(_LastResponse));
+  _LastResponse := StringTrim(_LastResponse);
   _LastCode := Result;
 
   Log(logDebug, 'FTP', _LastCommand+' -> '+IntToString(Result));
 End;
 
-Constructor FTPSession.Create(URL:AnsiString; Port:Integer);
+Constructor FTPSession.Create(URL:TERRAString; Port:Integer);
 Var
   I:Integer;
-  S,Path:AnsiString;
-  Username,Password:AnsiString;
+  S,Path:TERRAString;
+  Username,Password:TERRAString;
 Begin
   _Active := False;
   _ErrorCode := 0;
 
   I:=Pos('://', URL);
-  S:=UpStr(Copy(URL, 1, Pred(I)));
+  S:=StringUpper(Copy(URL, 1, Pred(I)));
   If S<>'FTP' Then
   Begin
     RaiseError('Invalid URL.'+#13#10+URL);
@@ -222,9 +222,9 @@ Begin
   EndSession(0);
 End;
 
-Function FTPSession.GetFile(FileName:AnsiString; Dest:Stream; Notifier:ProgressNotifier=Nil):Integer;
+Function FTPSession.GetFile(FileName:TERRAString; Dest:Stream; Notifier:ProgressNotifier=Nil):Integer;
 Var
-  Path:AnsiString;
+  Path:TERRAString;
   BlockSize, Count, FileSize:Integer;
   Buffer:Pointer;
   Source:Socket;
@@ -324,13 +324,13 @@ Begin
   Result := ftp_Success;
 End;
 
-Function FTPSession.PutFile(FileName:AnsiString; Source:Stream; Notifier:ProgressNotifier=Nil):Integer;
+Function FTPSession.PutFile(FileName:TERRAString; Source:Stream; Notifier:ProgressNotifier=Nil):Integer;
 Var
-  Path:AnsiString;
+  Path:TERRAString;
   BlockSize, FileSize, Count:Integer;
   Buffer:Pointer;
   Dest:Socket;
-  S:AnsiString;
+  S:TERRAString;
   I:Integer;
 Begin
   If Not Assigned(_Stream) Then
@@ -414,7 +414,7 @@ Begin
   Result := ftp_Success;
 End;
 
-Function FTPSession.GetFile(FileName, DestFile:AnsiString; Notifier:ProgressNotifier):Integer;
+Function FTPSession.GetFile(FileName, DestFile:TERRAString; Notifier:ProgressNotifier):Integer;
 Var
   Stream:FileStream;
 Begin
@@ -426,7 +426,7 @@ Begin
   Stream.Destroy;
 End;
 
-Function FTPSession.PutFile(FileName, SourceFile:AnsiString; Notifier:ProgressNotifier):Integer;
+Function FTPSession.PutFile(FileName, SourceFile:TERRAString; Notifier:ProgressNotifier):Integer;
 Var
   Stream:FileStream;
 Begin
@@ -461,36 +461,36 @@ Begin
   _Active := False;
 End;
 
-Procedure FTPSession.SendCommand(S:AnsiString);
+Procedure FTPSession.SendCommand(S:TERRAString);
 Begin
   _LastCommand := S;
   _Stream.WriteLine(S);
 End;
 
-Function FTPSession.GetSocket(S:AnsiString): Socket;
+Function FTPSession.GetSocket(S:TERRAString): Socket;
 Var
-  OutAddress:AnsiString;
+  OutAddress:TERRAString;
   I:Integer;
   A,B:Word;
   Port:Cardinal;
 begin
   Log(logDebug, 'FTP', 'FTP port: '+S);
 
-  I := Pos('(',S);
-  S := Copy(S, Succ(I), MaxInt);
+  I := StringPos('(',S);
+  S := StringCopy(S, Succ(I), MaxInt);
 
-  I := Pos(')',S);
-  S := Copy(S, 1, Pred(I));
+  I := StringPos(')',S);
+  S := StringCopy(S, 1, Pred(I));
 
   OutAddress := '';
   For I:=1 To 3 Do
-    OutAddress := OutAddress + GetNextWord(S,',') + '.';
+    OutAddress := OutAddress + StringGetNextSplit(S, Ord(',')) + '.';
 
-  OutAddress := OutAddress + GetNextWord(S,',');
+  OutAddress := OutAddress + StringGetNextSplit(S, Ord(','));
 
-  A := StringToInt(GetNextWord(S,','));
+  A := StringToInt(StringGetNextSplit(S, Ord(',')));
   Log(logDebug, 'FTP', 'Last:'+S);
-  B := StringToInt(GetNextWord(S,','));
+  B := StringToInt(StringGetNextSplit(S, Ord(',')));
 
   Log(logDebug, 'FTP', 'A: '+IntToString(A));
   Log(logDebug, 'FTP', 'B: '+IntToString(B));
@@ -500,18 +500,18 @@ begin
 End;
 
 { FTPMirrorSession }
-Constructor FTPMirrorSession.Create(URLList:AnsiString);
+Constructor FTPMirrorSession.Create(URLList:TERRAString);
 Var
-  URL:AnsiString;
+  URL:TERRAString;
 Begin
   While URLList<>'' Do
   Begin
-    URL:=GetNextWord(URLList,',');
+    URL := StringGetNextSplit(URLList, Ord(','));
     NewConnection(URL);
   End;
 End;
 
-Procedure FTPMirrorSession.NewConnection(URL:AnsiString);
+Procedure FTPMirrorSession.NewConnection(URL:TERRAString);
 Begin
   Inc(_SessionCount);
   SetLength(_SessionList,_SessionCount);
@@ -527,7 +527,7 @@ Begin
     _SessionList[I].Destroy;
 End;
 
-Procedure FTPMirrorSession.GetFile(FileName, DestFile:AnsiString; Notifier:ProgressNotifier);
+Procedure FTPMirrorSession.GetFile(FileName, DestFile:TERRAString; Notifier:ProgressNotifier);
 Var
   I:Integer;
 Begin
@@ -535,7 +535,7 @@ Begin
     _SessionList[I].GetFile(FileName, DestFile, Notifier);
 End;
 
-Procedure FTPMirrorSession.GetFile(FileName:AnsiString; Dest: Stream; Notifier:ProgressNotifier);
+Procedure FTPMirrorSession.GetFile(FileName:TERRAString; Dest: Stream; Notifier:ProgressNotifier);
 Var
   I:Integer;
 Begin
@@ -548,7 +548,7 @@ Begin
   Result:=_SessionList[Index];
 End;
 
-Procedure FTPMirrorSession.PutFile(FileName, SourceFile:AnsiString; Notifier:ProgressNotifier);
+Procedure FTPMirrorSession.PutFile(FileName, SourceFile:TERRAString; Notifier:ProgressNotifier);
 Var
   I:Integer;
 Begin
@@ -556,7 +556,7 @@ Begin
     _SessionList[I].PutFile(FileName, SourceFile, Notifier);
 End;
 
-Procedure FTPMirrorSession.PutFile(FileName:AnsiString; Source: Stream; Notifier:ProgressNotifier);
+Procedure FTPMirrorSession.PutFile(FileName:TERRAString; Source: Stream; Notifier:ProgressNotifier);
 Var
   I:Integer;
 Begin

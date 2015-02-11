@@ -61,7 +61,7 @@ Procedure glScissor(x, y: Integer; width, height: Integer);
 Procedure glViewport(x, y: Integer; width, height: Integer);
 
 Procedure glGetIntegerv(pname: Cardinal; params: PInteger);
-Function glGetString(name: Cardinal): PAnsiChar; 
+Function glGetString(name: Cardinal): PTERRAChar; 
 
 procedure glVertexAttribPointer(index: Cardinal; size: Integer; _type: Cardinal; normalized: Boolean; stride: Integer; const pointer: Pointer);
 Procedure glDrawArrays(mode: Cardinal; first: Integer; count: Integer);
@@ -100,7 +100,7 @@ procedure glDeleteFramebuffers(n: Integer; const framebuffers: PCardinal);
 procedure glGetRenderbufferParameteriv(target: Cardinal; pname: Cardinal; params: PInteger);
 
 Function glIsProgram(_program:Cardinal):Boolean;
-function glGetUniformLocation(_program: Cardinal; const name: PAnsiChar): Integer;
+function glGetUniformLocation(_program: Cardinal; const name: PTERRAChar): Integer;
 procedure glDetachShader(_program: Cardinal; shader: Cardinal);
 procedure glCompileShader(shader: Cardinal);
 procedure glLinkProgram(_program: Cardinal);
@@ -108,14 +108,14 @@ function glCreateProgram(): Cardinal;
 function glCreateShader(_type: Cardinal): Cardinal;
 procedure glDeleteProgram(_program: Cardinal);
 procedure glDeleteShader(shader: Cardinal);
-procedure glShaderSource(shader: Cardinal; count: Integer; const _string: PAnsiChar; const length: PInteger);
+procedure glShaderSource(shader: Cardinal; count: Integer; const _string: PTERRAChar; const length: PInteger);
 procedure glGetShaderiv(shader: Cardinal; pname: Cardinal; params: PInteger);
-procedure glGetShaderInfoLog(shader: Cardinal; bufSize: Integer; length: PInteger; infoLog: PAnsiChar);
+procedure glGetShaderInfoLog(shader: Cardinal; bufSize: Integer; length: PInteger; infoLog: PTERRAChar);
 procedure glAttachShader(_program: Cardinal; shader: Cardinal);
 procedure glGetProgramiv(_program: Cardinal; pname: Cardinal; params: PInteger);
-procedure glGetProgramInfoLog(_program: Cardinal; bufSize: Integer; length: PInteger; infoLog: PAnsiChar);
+procedure glGetProgramInfoLog(_program: Cardinal; bufSize: Integer; length: PInteger; infoLog: PTERRAChar);
 procedure glUseProgram(_program: Cardinal);
-function glGetAttribLocation(_program: Cardinal; const name: PAnsiChar): Integer;
+function glGetAttribLocation(_program: Cardinal; const name: PTERRAChar): Integer;
 
 procedure glDisableVertexAttribArray(index: Cardinal);
 procedure glEnableVertexAttribArray(index: Cardinal);
@@ -176,12 +176,12 @@ Function InitMultisample(hWnd: HWND; pfd: PIXELFORMATDESCRIPTOR;  h_dc: HDC):Car
 {$ENDIF}
 
 Procedure glLoadExtensions();
-Function glExtensionSupported(Extension:AnsiString):Boolean;
-Function glGetExtensionString():AnsiString;
+Function glExtensionSupported(Extension:TERRAString):Boolean;
+Function glGetExtensionString():TERRAString;
 
 Var
-  _LastGLCall:AnsiString;
-  _LastGLParams:AnsiString;
+  _LastGLCall:TERRAString;
+  _LastGLParams:TERRAString;
 
 Implementation
 Uses TERRA_Utils, TERRA_Log, TERRA_OS, TERRA_GL, TERRA_Shader, TERRA_Debug;
@@ -189,7 +189,7 @@ Uses TERRA_Utils, TERRA_Log, TERRA_OS, TERRA_GL, TERRA_Shader, TERRA_Debug;
 Procedure DebugOpenGL();
 Var
   ErrorCode:Cardinal;
-  S:AnsiString;
+  S:TERRAString;
 Begin
   {$IFDEF PC}
   S := GetCallstack();
@@ -262,7 +262,7 @@ Begin
   TERRA_GL.glEnableVertexAttribArray(index);
 DebugOpenGL(); End;
 
-function glGetAttribLocation(_program: Cardinal; const name: PAnsiChar): Integer;
+function glGetAttribLocation(_program: Cardinal; const name: PTERRAChar): Integer;
 Begin
   _LastGLCall := 'glGetAttribLocation';
   Result := TERRA_GL.glGetAttribLocation(_program, name);
@@ -316,7 +316,7 @@ Begin
   TERRA_GL.glUniform4fv(location, count, value);
 DebugOpenGL(); End;
 
-procedure glGetProgramInfoLog(_program: Cardinal; bufSize: Integer; length: PInteger; infoLog: PAnsiChar);
+procedure glGetProgramInfoLog(_program: Cardinal; bufSize: Integer; length: PInteger; infoLog: PTERRAChar);
 Begin
   _LastGLCall := 'glGetProgramInfoLog';
   TERRA_GL.glGetProgramInfoLog(_program, bufsize, length, infolog);
@@ -334,7 +334,7 @@ Begin
   TERRA_GL.glAttachShader(_program, shader);
 DebugOpenGL(); End;
 
-procedure glGetShaderInfoLog(shader: Cardinal; bufSize: Integer; length: PInteger; infoLog: PAnsiChar);
+procedure glGetShaderInfoLog(shader: Cardinal; bufSize: Integer; length: PInteger; infoLog: PTERRAChar);
 Begin
   _LastGLCall := 'glGetShaderInfoLog';
   TERRA_GL.glGetShaderInfoLog(shader, bufsize, length, infolog);
@@ -346,7 +346,7 @@ Begin
   TERRA_GL.glGetShaderiv(shader, pname, params);
 DebugOpenGL(); End;
 
-procedure glShaderSource(shader: Cardinal; count: Integer; const _string: PAnsiChar; const length: PInteger);
+procedure glShaderSource(shader: Cardinal; count: Integer; const _string: PTERRAChar; const length: PInteger);
 Begin
   _LastGLCall := 'glShaderSource';
   TERRA_GL.glShaderSource(shader, count, _string, length);
@@ -402,7 +402,7 @@ Begin
   Result := TERRA_GL.glIsProgram(_program);
 DebugOpenGL(); End;
 
-function glGetUniformLocation(_program: Cardinal; const name: PAnsiChar): Integer;
+function glGetUniformLocation(_program: Cardinal; const name: PTERRAChar): Integer;
 Begin
   _LastGLCall := 'glGetUniformLocation';
   Result := TERRA_GL.glGetUniformLocation(_program, name);
@@ -476,19 +476,19 @@ Begin
   TERRA_GL.glGenFramebuffers(n, framebuffers);
 DebugOpenGL(); End;
 
-Function glGetString(name: Cardinal): PAnsiChar;
+Function glGetString(name: Cardinal): PTERRAChar;
 Begin
   _LastGLCall := 'glGetString';
   Result := TERRA_GL.glGetString(name);
 DebugOpenGL(); End;
 
-Function glGetExtensionString():AnsiString;
+Function glGetExtensionString():TERRAString;
 Begin
   _LastGLCall := 'glGetExtensionString';
   Result := TERRA_GL.glGetExtensionString();
 DebugOpenGL(); End;
 
-Function glExtensionSupported(Extension:AnsiString):Boolean;
+Function glExtensionSupported(Extension:TERRAString):Boolean;
 Begin
   _LastGLCall := 'glExtensionSupported';
   Result := TERRA_GL.glExtensionSupported(extension);

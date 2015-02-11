@@ -25,7 +25,7 @@ Unit TERRA_MeshAnimation;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_IO, TERRA_Resource, TERRA_Vector3D, TERRA_Math,
+Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Resource, TERRA_Vector3D, TERRA_Math,
   TERRA_Matrix4x4, TERRA_Vector2D, TERRA_Color, TERRA_Vector4D, TERRA_ResourceManager;
 
 Const
@@ -45,7 +45,7 @@ Type
   AnimationCallback = Procedure (P:Pointer); Cdecl;
 
   MeshBone = Class(TERRAObject)
-    Name:AnsiString;
+    Name:TERRAString;
     Index:Integer;
     Parent:MeshBone;
     Owner:MeshSkeleton;
@@ -70,7 +70,7 @@ Type
 
     Destructor Destroy; Override;
 
-    Function Read(Source:Stream):AnsiString;
+    Function Read(Source:Stream):TERRAString;
     Procedure Write(Dest:Stream);
 
     Function GetLength():Single;
@@ -96,7 +96,7 @@ Type
 
       Function AddBone:MeshBone;
       Function GetBone(Index:Integer):MeshBone; Overload;
-      Function GetBone(Name:AnsiString):MeshBone; Overload;
+      Function GetBone(Const Name:TERRAString):MeshBone; Overload;
 
       Function GetBoneLength(Index:Integer):Single;
 
@@ -153,7 +153,7 @@ Type
   End;
 
   BoneAnimation = Class(TERRAObject)
-      Name:AnsiString;
+      Name:TERRAString;
       ID:Integer;
       Owner:Animation;
 
@@ -190,13 +190,13 @@ Type
       LoopPoint:Single;
       Speed:Single;
 
-      Next:AnsiString;
+      Next:TERRAString;
 
       Procedure Clone(Other:Animation);
 
       Function Load(Source:Stream):Boolean; Override;
       Procedure Save(Dest:Stream); Overload;
-      Procedure Save(FileName:AnsiString); Overload;
+      Procedure Save(FileName:TERRAString); Overload;
 
       Class Function GetManager:Pointer; Override;
 
@@ -205,9 +205,9 @@ Type
       Procedure Crop(Time:Single);
       Procedure CloseLoop();
 
-      Function AddBone(Name:AnsiString):BoneAnimation;
+      Function AddBone(Const Name:TERRAString):BoneAnimation;
       Function GetBone(Index:Integer):BoneAnimation;
-      Function GetBoneIndex(Name:AnsiString):Integer;
+      Function GetBoneIndex(Const Name:TERRAString):Integer;
 
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
@@ -221,7 +221,7 @@ Type
   AnimationState = Class;
 
   AnimationObject = Class(TERRAObject)
-      _Name:AnsiString;
+      _Name:TERRAString;
 
       Procedure UpdateAnimation(); Virtual;
 
@@ -332,8 +332,8 @@ Type
 
   AnimationState = Class(TERRAObject)
     Protected
-      _Name:AnsiString;
-      _Next:AnsiString;
+      _Name:TERRAString;
+      _Next:TERRAString;
 
       _Skeleton:MeshSkeleton;
 
@@ -343,7 +343,7 @@ Type
       _LastTime:Cardinal;
       _Root:AnimationObject;
 
-      _LastAnimation:AnsiString;
+      _LastAnimation:TERRAString;
 
       _QueueAnimation:Animation;
       _QueueDuration:Integer;
@@ -366,7 +366,7 @@ Type
       Processor:AnimationProcessor;
       Transforms:Array Of Matrix4x4;
 
-      Constructor Create(Name:AnsiString; MySkeleton:MeshSkeleton);
+      Constructor Create(Name:TERRAString; MySkeleton:MeshSkeleton);
       Destructor Destroy; Override;
 
       Procedure Update;
@@ -379,16 +379,16 @@ Type
       Function GetAbsoluteMatrix(Index:Integer):Matrix4x4;
       Function GetRelativeMatrix(Index:Integer):Matrix4x4;
 
-      Function Play(Name:AnsiString; Rescale:Single=0):Boolean; Overload;
+      Function Play(Name:TERRAString; Rescale:Single=0):Boolean; Overload;
       Function Play(MyAnimation:Animation; Rescale:Single=0):Boolean; Overload;
 
-      Function Crossfade(Name:AnsiString; Duration:Cardinal = DefaultCrossfadeDuration):Boolean; Overload;
+      Function Crossfade(Name:TERRAString; Duration:Cardinal = DefaultCrossfadeDuration):Boolean; Overload;
       Function Crossfade(MyAnimation:Animation; Duration:Cardinal = DefaultCrossfadeDuration):Boolean; Overload;
 
       Property Speed:Single Read _Speed Write SetSpeed;
       Property Root:AnimationObject Read _Root;
 
-      Property LastAnimation:AnsiString Read _LastAnimation;
+      Property LastAnimation:TERRAString Read _LastAnimation;
   End;
 
   AnimationManager = Class(ResourceManager)
@@ -396,12 +396,12 @@ Type
       Destructor Destroy; Override;
       Class Function Instance:AnimationManager;
 
-      Function GetAnimation(Name:AnsiString; ValidateError:Boolean = True):Animation;
+      Function GetAnimation(Name:TERRAString; ValidateError:Boolean = True):Animation;
    End;
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_Application, TERRA_OS, TERRA_FileManager,  TERRA_Mesh,
-  TERRA_GraphicsManager, TERRA_FileIO, TERRA_FileUtils;
+  TERRA_GraphicsManager, TERRA_FileStream, TERRA_FileUtils;
 
 Var
   _AnimationManager:ApplicationObject;
@@ -440,17 +440,17 @@ Begin
   _AnimationManager := Nil;
 End;
 
-Function AnimationManager.GetAnimation(Name:AnsiString; ValidateError:Boolean):Animation;
+Function AnimationManager.GetAnimation(Name:TERRAString; ValidateError:Boolean):Animation;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   Result := Nil;
-  Name := TrimLeft(TrimRight(Name));
+  Name := StringTrim(Name);
   If (Name='') Then
     Exit;
 
-  If (Name[1]='@') Then
-    Name := Copy(Name, 2, MaxInt);
+  If (StringFirstChar(Name) = Ord('@')) Then
+    Name := StringCopy(Name, 2, MaxInt);
 
   Result := Animation(GetResource(Name));
   If (Not Assigned(Result)) Then
@@ -523,14 +523,13 @@ Begin
   Ready := True;
 End;
 
-Function MeshBone.Read(Source:Stream):AnsiString;
+Function MeshBone.Read(Source:Stream):TERRAString;
 Var
   I:Integer;
 Begin
   Source.ReadString(Name);
   Source.ReadString(Result);
   Parent := Nil;
-  Result := UpStr(Result);
 
   Source.Read(@StartPosition, SizeOf(Vector3D));
   {$IFNDEF NO_ROTS}
@@ -656,7 +655,7 @@ End;
 
 Procedure MeshSkeleton.Read(Source: Stream);
 Var
-  Parents:Array Of AnsiString;
+  Parents:Array Of TERRAString;
   I:Integer;
 Begin
   Source.Read(@_BoneCount, 4);
@@ -722,13 +721,12 @@ Begin
   SetLength(_BoneList, 0);
 End;
 
-Function MeshSkeleton.GetBone(Name:AnsiString): MeshBone;
+Function MeshSkeleton.GetBone(Const Name:TERRAString): MeshBone;
 Var
   I:Integer;
 Begin
-  Name := Upstr(Name);
   For I:=0 To Pred(_BoneCount) Do
-  If (Name = UpStr(_BoneList[I].Name)) Then
+  If (StringEquals(Name, _BoneList[I].Name)) Then
   Begin
     Result := _BoneList[I];
     Exit;
@@ -880,7 +878,7 @@ Begin
   Source.Read(@Range, SizeOf(Vector3D));
   Source.Read(@MaxTime, 4);
 
- { If (LowStr(_Owner.Owner.Name)='monster084_idle') Then
+ { If (StringLower(_Owner.Owner.Name)='monster084_idle') Then
     IntToString(2);}
 
   SetLength(KeyFrames, Count);
@@ -1006,8 +1004,6 @@ End;
 Procedure BoneAnimation.Load(Source:Stream);
 Begin
   Source.ReadString(Name);
-  Name := UpStr(Name);
-
   Positions.Load(Source);
   Rotations.Load(Source);
   Scales.Load(Source);
@@ -1147,7 +1143,7 @@ Function Animation.Load(Source:Stream):Boolean;
 Var
   Header:FileHeader;
   I, J, Count:Integer;
-  S:AnsiString;
+  S:TERRAString;
   Bone:BoneAnimation;
 Begin
   Source.Read(@Header, 4);
@@ -1174,7 +1170,7 @@ Begin
   Result := True;
 End;
 
-Procedure Animation.Save(FileName:AnsiString);
+Procedure Animation.Save(FileName:TERRAString);
 Var
   Stream:FileStream;
 Begin
@@ -1202,13 +1198,12 @@ Begin
     _Bones[I].Save(Dest);
 End;
 
-Function Animation.GetBoneIndex(Name:AnsiString):Integer;
+Function Animation.GetBoneIndex(Const Name:TERRAString):Integer;
 Var
   I:Integer;
 Begin
-  Name := UpStr(Name);
   For I:=0 To Pred(Self._BoneCount) Do
-  If (Self._Bones[I].Name = Name) Then
+  If (StringEquals(Self._Bones[I].Name, Name)) Then
   Begin
     Result:=I;
     Exit;
@@ -1217,7 +1212,7 @@ Begin
   Result := -1;
 End;
 
-Function Animation.AddBone(Name:AnsiString):BoneAnimation;
+Function Animation.AddBone(Const Name:TERRAString):BoneAnimation;
 Begin
   Result := BoneAnimation.Create(_BoneCount, Self);
   Result.Name := Name;
@@ -1347,10 +1342,10 @@ Begin
 End;
 
 { AnimationState }
-Constructor AnimationState.Create(Name:AnsiString; MySkeleton:MeshSkeleton);
+Constructor AnimationState.Create(Name:TERRAString; MySkeleton:MeshSkeleton);
 Var
   I:Integer;
-  Parent:AnsiString;
+  Parent:TERRAString;
   B:MeshBone;
 Begin
   _Speed := 1;
@@ -1486,7 +1481,7 @@ Begin
     _Root.Destroy;
 End;
 
-Function AnimationState.Play(Name:AnsiString; Rescale:Single):Boolean;
+Function AnimationState.Play(Name:TERRAString; Rescale:Single):Boolean;
 Var
   MyAnimation: Animation;
 Begin
@@ -1535,7 +1530,7 @@ Begin
   Result := True;
 End;
 
-Function AnimationState.Crossfade(Name:AnsiString; Duration:Cardinal):Boolean;
+Function AnimationState.Crossfade(Name:TERRAString; Duration:Cardinal):Boolean;
 Var
   MyAnimation: Animation;
 Begin
@@ -1639,8 +1634,8 @@ End;
 Procedure AnimationState.UpdateAnimationName(MyAnimation: Animation);
 Begin
   _LastAnimation := MyAnimation.Name;
-  ReplaceText(_Name + '_', '', _LastAnimation);
-  _LastAnimation := LowStr(_LastAnimation);
+  StringReplaceText(_Name + '_', '', _LastAnimation);
+  _LastAnimation := StringLower(_LastAnimation);
 End;
 
 { AnimationBoneState }
@@ -1915,7 +1910,7 @@ End;
 Procedure AnimationNode.UpdateAnimation();
 Var
   I:Integer;
-  S:AnsiString;
+  S:TERRAString;
   MyAnimation:TERRA_MeshAnimation.Animation;
   Len:Single;
 Begin

@@ -53,7 +53,7 @@ Type
 
   PMemoryAllocStats = ^MemoryAllocStats;
   MemoryAllocStats = Record
-    Name:^AnsiString;
+    Name:^String;
     Line:Cardinal;
     AllocCount:Cardinal;
     AllocSize:SizeType;
@@ -99,10 +99,10 @@ Const
 Var
   _AllocStatsEnabled:Boolean;
   _AllocStats:Array[0..Pred(MaxAllocStats)] Of MemoryAllocStats;
-  _AllocStatsCount:Integer;
+  _AllocStatsCount:Cardinal;
 
   _PrevAllocStats:Array[0..Pred(MaxAllocStats)] Of MemoryAllocStats;
-  _PrevAllocStatsCount:Integer;
+  _PrevAllocStatsCount:Cardinal;
 
 Function TERRA_GetMem(Size: SizeType): Pointer;{$IFDEF FPC} {$IFDEF CPUARM }Stdcall;  {$ELSE}Register;{$ENDIF}{$ENDIF}
 Var
@@ -287,9 +287,10 @@ Var
   TERRAMemoryManager: TMemoryManager;
 
 Initialization
-  {$IFNDEF DEBUG_LEAKS}
   GetMemoryManager(PrevManager);
 
+  {$IFNDEF DEBUG_LEAKS}
+  {$IFNDEF DISABLEMEMORYMANAGER}
   TERRAMemoryManager := PrevManager;
 
   TERRAMemoryManager.GetMem := TERRA_GetMem;
@@ -298,5 +299,6 @@ Initialization
 
   SetMemoryManager(TERRAMemoryManager);
   //MemoryManager.Instance();
+  {$ENDIF}
   {$ENDIF}
 End.

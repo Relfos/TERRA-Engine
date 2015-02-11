@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations under the License. 
  *
  **********************************************************************************************************************
- * TERRA_FileIO
+ * TERRA_FileStream
  * Implements a generic file input stream
  ***********************************************************************************************************************
 }
@@ -64,12 +64,12 @@ Version History
             • Added support for writing with byteorder
 
 }
-Unit TERRA_FileIO;
+Unit TERRA_FileStream;
 
 {$I terra.inc}
 
 Interface
-Uses TERRA_IO, TERRA_FileUtils;
+Uses TERRA_Stream, TERRA_FileUtils, TERRA_String;
 
 Type
   FilePointer=File;
@@ -80,11 +80,11 @@ Type
         _Open:Boolean;
      Public
 
-        Constructor Create(FileName:AnsiString; StreamMode:Integer=smDefault);Overload;
-        Constructor Open(FileName:AnsiString; StreamMode:Integer=smDefault);
+        Constructor Create(FileName:TERRAString; StreamMode:Integer=smDefault);Overload;
+        Constructor Open(FileName:TERRAString; StreamMode:Integer=smDefault);
         Destructor Destroy;Override;
         Procedure Delete;
-        Procedure Rename(NewName:AnsiString);
+        Procedure Rename(NewName:TERRAString);
         Procedure Truncate;Override;
         Function Read(Data:Pointer; Length:Cardinal):Cardinal; Override;
         Function Write(Data:Pointer; Length:Cardinal):Cardinal; Override;
@@ -92,12 +92,12 @@ Type
 
         Procedure Flush;
 
-        Class Function Exists(FileName:AnsiString): Boolean;
-        Class Procedure CopyFile(SourceName, DestName:AnsiString);
+        Class Function Exists(FileName:TERRAString): Boolean;
+        Class Procedure CopyFile(SourceName, DestName:TERRAString);
      End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Application, TERRA_Utils, TERRA_FileManager, SysUtils;
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Application, TERRA_Utils, TERRA_FileManager, TERRA_MemoryStream, SysUtils;
 
 {$I-}
 
@@ -112,13 +112,13 @@ Begin
 End;
 
 
-Procedure FileRename(Var F:FilePointer; Name:AnsiString);
+Procedure FileRename(Var F:FilePointer; Name:TERRAString);
 Begin
   System.Rename(F, Name);
 End;
 
 {$IFDEF WINDOWS}
-Class Function FileStream.Exists(FileName:AnsiString): Boolean;
+Class Function FileStream.Exists(FileName:TERRAString): Boolean;
 Begin
   Log(logDebug, 'File', 'Testing file '+FileName);
   FileMode := 0;
@@ -126,7 +126,7 @@ Begin
   Result:=(FileAge(FileName)<>-1);
 End;
 {$ELSE}
-Class Function FileStream.Exists(FileName:AnsiString): Boolean;
+Class Function FileStream.Exists(FileName:TERRAString): Boolean;
 Begin
   {$IFDEF DEBUG_FILECACHE}Log(logDebug, 'FileManager', 'Testing for file '+FileName);{$ENDIF}
 
@@ -140,7 +140,7 @@ End;
    TFileStream Object
  **************************}
 
-Constructor FileStream.Create(FileName:AnsiString; StreamMode:Integer=smDefault);
+Constructor FileStream.Create(FileName:TERRAString; StreamMode:Integer=smDefault);
 Begin
   Inherited Create(StreamMode);
 
@@ -163,7 +163,7 @@ Begin
   End;
 End;
 
-Constructor FileStream.Open(FileName:AnsiString; StreamMode:Integer=smDefault);
+Constructor FileStream.Open(FileName:TERRAString; StreamMode:Integer=smDefault);
 Begin
   Inherited Create(StreamMode);
 
@@ -229,7 +229,7 @@ Begin
   _Size:=_Pos;
 End;
 
-Procedure FileStream.Rename(NewName:AnsiString);
+Procedure FileStream.Rename(NewName:TERRAString);
 Begin
   If Not _Open Then
     Exit;
@@ -325,7 +325,7 @@ Begin
   FileSeek(_File, _Pos);
 End;
 
-Class procedure FileStream.CopyFile(SourceName, DestName:AnsiString);
+Class procedure FileStream.CopyFile(SourceName, DestName:TERRAString);
 Var
   Source, Dest:Stream;
 Begin

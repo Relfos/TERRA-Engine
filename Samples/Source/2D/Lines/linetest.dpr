@@ -72,18 +72,19 @@ Begin
   _Scene := MyScene.Create;
   GraphicsManager.Instance.SetScene(_Scene);
 
-  GraphicsManager.Instance.BackgroundColor := ColorBlue;
+  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorBlue;
 End;
 
 // OnIdle is called once per frame, put your game logic here
 Procedure MyGame.OnIdle;
 Begin
-  If Keys[keyEscape] Then
+  If Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
 
-  If Application.Instance.KeyPressed(keyUp) Then
+  If Keys.WasPressed(keyLeft) Then
     Dec(EaseType);
-  If Application.Instance.KeyPressed(keyDown) Then
+
+  If Keys.WasPressed(keyRight) Then
     Inc(EaseType);
 End;
 

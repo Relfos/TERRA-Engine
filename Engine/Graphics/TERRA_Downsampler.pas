@@ -26,13 +26,12 @@ Unit TERRA_Downsampler;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Shader, TERRA_RenderTarget, TERRA_Math,
-  TERRA_Application, TERRA_Utils;
+  TERRA_String, TERRA_Shader, TERRA_RenderTarget, TERRA_Math, TERRA_Application, TERRA_Utils;
 
 Type
   RenderTargetDownSampler = Class(TERRAObject)
     Protected
-      _Name:AnsiString;
+      _Name:TERRAString;
 
 	    _Textures: Array Of RenderTarget;
       _TextureCount:Integer;
@@ -44,7 +43,7 @@ Type
 	    Procedure Release();
 
     Public
-	    Constructor Create(Name:AnsiString; Width, Height:Integer);
+	    Constructor Create(Const Name:TERRAString; Width, Height:Integer);
 	    Destructor Destroy; Override;
 
 
@@ -63,7 +62,7 @@ Implementation
 Uses {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_GraphicsManager, TERRA_Texture
 {$IFDEF FRAMEBUFFEROBJECTS},TERRA_FrameBufferObject{$ENDIF};
 
-Constructor RenderTargetDownSampler.Create(Name:AnsiString; Width, Height:Integer);
+Constructor RenderTargetDownSampler.Create(Const Name:TERRAString; Width, Height:Integer);
 Begin
   Self._Name := Name;
   Self.Init(Width, Height, {$IFDEF FRAMEBUFFEROBJECTS}FBO_COLOR8{$ELSE}0{$ENDIF});

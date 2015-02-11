@@ -26,7 +26,7 @@ Unit TERRA_Decals;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Color, TERRA_Vector3D, TERRA_TextureAtlas, TERRA_Shader, TERRA_Texture,
+  TERRA_String, TERRA_Color, TERRA_Vector3D, TERRA_TextureAtlas, TERRA_Shader, TERRA_Texture,
   TERRA_Matrix4x4, TERRA_MeshFilter, TERRA_Lights, TERRA_Application;
 
 Const
@@ -69,23 +69,23 @@ Type
       Class Function Instance:DecalManager;
 
 
-      Function AddDecal(TextureName:AnsiString; Position, Normal:Vector3D; DecalColor:Color; Size:Single; Rotation:Single = 0; Duration:Integer=20000):Boolean;
+      Function AddDecal(Const TextureName:TERRAString; Position, Normal:Vector3D; DecalColor:Color; Size:Single; Rotation:Single = 0; Duration:Integer=20000):Boolean;
 
       Procedure Render;
   End;
 
 Implementation
-Uses TERRA_OS, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_IO, TERRA_FileIO, TERRA_FileUtils, TERRA_BoundingBox,
+Uses TERRA_OS, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Stream, TERRA_FileStream, TERRA_FileUtils, TERRA_BoundingBox,
   TERRA_Image, TERRA_GraphicsManager, TERRA_ShaderFactory, TERRA_Log, TERRA_FileManager;
 
 Var
   _DecalInstance:ApplicationObject;
 
 { DecalManager }
-Function DecalManager.AddDecal(TextureName:AnsiString; Position,Normal:Vector3D; DecalColor:Color; Size:Single; Rotation:Single; Duration:Integer):Boolean;
+Function DecalManager.AddDecal(Const TextureName:TERRAString; Position,Normal:Vector3D; DecalColor:Color; Size:Single; Rotation:Single; Duration:Integer):Boolean;
 Var
   N:Integer;
-  S, Name:AnsiString;
+  S, Name:TERRAString;
   Src:Stream;
   I:Integer;
   Img:Image;

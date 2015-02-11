@@ -4,7 +4,7 @@ Unit TERRA_OS;
 
 
 Interface
-Uses TERRA_Utils, TERRA_Application, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Vector3D, TERRA_Client;
+Uses TERRA_String, TERRA_Utils, TERRA_Application, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Vector3D, TERRA_Client;
 
 Const
 	PathSeparator = '/';
@@ -71,7 +71,7 @@ Const
   keyY = Ord('Y');
   keyZ = Ord('Z');
 
-Procedure DisplayMessage(S:AnsiString);
+Procedure DisplayMessage(S:TERRAString);
 Function GetCurrentTime:TERRATime;
 Function GetCurrentDate:TERRADate;
 Function GetTime:Cardinal; {$IFDEF FPC} Inline;{$ENDIF}
@@ -98,7 +98,7 @@ Type
       Procedure EnableAds; Override;
       Procedure ShowFullscreenAd; Override;
 
-      Procedure OpenAppStore(AppID:AnsiString); Override;
+      Procedure OpenAppStore(AppID:TERRAString); Override;
 
       Function IsDeviceRooted: Boolean; Override;
 
@@ -110,22 +110,22 @@ Type
       Procedure StopGyroscope(); Override;
       Procedure StopCompass(); Override;
 
-      Procedure PostToFacebook(msg, link, desc, imageURL:AnsiString); Override;
+      Procedure PostToFacebook(msg, link, desc, imageURL:TERRAString); Override;
 
-      Function GetDeviceID():AnsiString; Override;
+      Function GetDeviceID():TERRAString; Override;
 
-      Procedure SendAnalytics(EventName:AnsiString; Params:AnsiString=''); Override;
+      Procedure SendAnalytics(EventName:TERRAString; Params:TERRAString=''); Override;
   End;
 
-Function getUniqueDeviceID():PAnsiChar; Cdecl; external;
-Procedure showAlert(message:PAnsiChar); cdecl; external;
+Function getUniqueDeviceID():PTERRAChar; Cdecl; external;
+Procedure showAlert(message:PTERRAChar); cdecl; external;
 Procedure vibrate(); cdecl; external;
-Procedure setPrefString(key, data:PAnsiChar); cdecl; external;
-Procedure getPrefString(key, dest:PAnsiChar); cdecl; external;
+Procedure setPrefString(key, data:PTERRAChar); cdecl; external;
+Procedure getPrefString(key, dest:PTERRAChar); cdecl; external;
 Procedure savePref(); cdecl; external;
 Procedure showAds(); cdecl; external;
 Procedure showFullscreenAds(); cdecl; external;
-Procedure openAppStore(S:PAnsiChar); cdecl; external;
+Procedure openAppStore(S:PTERRAChar); cdecl; external;
 Procedure initAppViews(); cdecl; external;
 Function getCPUCores():Integer; cdecl; external;
 
@@ -139,10 +139,10 @@ Function StopCompass():Boolean; Cdecl; external;
 
 Procedure submitScore(score:Integer); cdecl; external;
 Procedure showLeaderboard(); cdecl; external;
-Procedure changeLeaderboard(board:PAnsiChar); cdecl; external;
+Procedure changeLeaderboard(board:PTERRAChar); cdecl; external;
 
-Procedure AnalyticsLog(s:PAnsiChar); cdecl; external;
-Procedure AnalyticsLogWithParams(s, s2:PAnsiChar); cdecl; external;
+Procedure AnalyticsLog(s:PTERRAChar); cdecl; external;
+Procedure AnalyticsLogWithParams(s, s2:PTERRAChar); cdecl; external;
 
 Procedure enableAVCapture(); cdecl; external;
 Procedure startAVCapture(); cdecl; external;
@@ -151,20 +151,20 @@ Procedure stopAVCapture(); cdecl; external;
 Procedure SetRenderbufferStorage(); cdecl; external;
 Procedure PresentRenderBuffer(); cdecl; external;
 
-Procedure iPhoneLog(s:PAnsiChar); cdecl; external;
+Procedure iPhoneLog(s:PTERRAChar); cdecl; external;
 
-Procedure focusKeyboard(s:PAnsiChar); cdecl; external;
+Procedure focusKeyboard(s:PTERRAChar); cdecl; external;
 Function isDeviceJailbroken():Boolean; cdecl; external;
 
-Procedure IAP_RequestProduct(ID:PAnsiChar) cdecl; external;
+Procedure IAP_RequestProduct(ID:PTERRAChar) cdecl; external;
 Function IAP_CanPurchase():Boolean; cdecl; external;
-Procedure IAP_Purchase(s:PAnsiChar); cdecl; external;
+Procedure IAP_Purchase(s:PTERRAChar); cdecl; external;
 
 Function isSimulator():Boolean; cdecl; external;
 
-Function resolveHost(s:PAnsiChar):PAnsiChar; cdecl; external;
+Function resolveHost(s:PTERRAChar):PTERRAChar; cdecl; external;
 
-Function audioOpen (name:PAnsiChar):Pointer; cdecl; external;
+Function audioOpen (name:PTERRAChar):Pointer; cdecl; external;
 Procedure audioPlay (player:Pointer); cdecl; external;
 Procedure audioStop (player:Pointer); cdecl; external;
 Procedure audioSetVolume(player:Pointer; volume:Single); cdecl; external;
@@ -172,24 +172,24 @@ Procedure audioClose (player:Pointer); cdecl; external;
 
 Procedure initScale(); cdecl; external;
 
-Procedure postToFacebook(msg, link, desc, image:PAnsiChar); cdecl; external;
+Procedure postToFacebook(msg, link, desc, image:PTERRAChar); cdecl; external;
 
 Function shadersAvailable():Boolean; cdecl; external;
 
-Procedure AppUnlockAchievement(ID:PAnsiChar);cdecl; external;
+Procedure AppUnlockAchievement(ID:PTERRAChar);cdecl; external;
 
 Procedure iCloudSynchronize; Cdecl; external;
 
 Function getCurrentOrientation():Integer; Cdecl; external;
 
 
-{Procedure ApplicationSendInput(s:AnsiChar); cdecl; export;
+{Procedure ApplicationSendInput(s:TERRAChar); cdecl; export;
 Procedure ApplicationSetScreenRegion(width, height:Integer); cdecl; export;
 Procedure ApplicationSetOrigin(X,Y:Integer); cdecl; export;
-Procedure ApplicationSetResourcesPath(Path:PAnsiChar); cdecl; export;
-Procedure ApplicationTempPath(Path:PAnsiChar); cdecl; export;
-Procedure ApplicationDocumentPath(Path:PAnsiChar); cdecl; export;
-Procedure ApplicationSetLanguage(Lang:PAnsiChar); cdecl; export;
+Procedure ApplicationSetResourcesPath(Path:PTERRAChar); cdecl; export;
+Procedure ApplicationTempPath(Path:PTERRAChar); cdecl; export;
+Procedure ApplicationDocumentPath(Path:PTERRAChar); cdecl; export;
+Procedure ApplicationSetLanguage(Lang:PTERRAChar); cdecl; export;
 Procedure ApplicationUpdate; cdecl; export;
 Procedure ApplicationShutdown; cdecl; export;
 Procedure ApplicationSetScale(Value:Single); cdecl; export;
@@ -204,11 +204,11 @@ Procedure ApplicationOnAccelerometer(x, y, z:Single); cdecl; export;
 Procedure ApplicationOnGyroscope(x, y, z:Single); cdecl; export;
 Procedure ApplicationResize(Width,Height:Integer); cdecl; export;
 Procedure ApplicationMemoryWarning(); cdecl; export;
-Function ApplicationGetAppID():PAnsiChar; cdecl; export;
-Function ApplicationGetTestFlightID():PAnsiChar; cdecl; export;
-Function ApplicationGetFlurryID():PAnsiChar; cdecl; export;
-Function ApplicationGetAdMobID():PAnsiChar; cdecl; export;
-Function ApplicationGetFacebookID():PAnsiChar; cdecl; export;
+Function ApplicationGetAppID():PTERRAChar; cdecl; export;
+Function ApplicationGetTestFlightID():PTERRAChar; cdecl; export;
+Function ApplicationGetFlurryID():PTERRAChar; cdecl; export;
+Function ApplicationGetAdMobID():PTERRAChar; cdecl; export;
+Function ApplicationGetFacebookID():PTERRAChar; cdecl; export;
 Procedure ApplicationOnFacebookPost(); cdecl; export;
 Procedure ApplicationOnFacebookError(); cdecl; export;
 }
@@ -226,10 +226,10 @@ Var
   _ScreenHeight:Integer;
   _OriginX:Integer=0;
   _OriginY:Integer=0;
-  _iOSTempPath:AnsiString;
-  _iOSDocumentPath:AnsiString;
-  _iOSLanguage:AnsiString;
-  _iOSCountry:AnsiString;
+  _iOSTempPath:TERRAString;
+  _iOSDocumentPath:TERRAString;
+  _iOSLanguage:TERRAString;
+  _iOSCountry:TERRAString;
 
 (*
 Procedure ApplicationSetViewport(x1, y1, x2, y2:Integer); cdecl; export;
@@ -253,7 +253,7 @@ Begin
   _Application_Instance.AddValueEvent(eventOrientation, Orientation);
 End;
 
-Procedure ApplicationSendInput(s:AnsiChar); cdecl; export;
+Procedure ApplicationSendInput(s:TERRAChar); cdecl; export;
 Var
   I:Integer;
 Begin
@@ -276,27 +276,27 @@ Begin
   _OriginY := Y;
 End;
 
-Procedure ApplicationSetResourcesPath(Path:PAnsiChar); cdecl; export;
+Procedure ApplicationSetResourcesPath(Path:PTERRAChar); cdecl; export;
 Begin
   Log(logDebug, 'App', 'Resource Folder: '+ Path);
   ChDir(Path);
 End;
 
-Procedure ApplicationTempPath(Path:PAnsiChar); cdecl; export;
+Procedure ApplicationTempPath(Path:PTERRAChar); cdecl; export;
 Begin
   _iOSTempPath := Path;
   Log(logDebug, 'App', 'Temp Folder: '+ _iOSTempPath);
 End;
 
-Procedure ApplicationDocumentPath(Path:PAnsiChar); cdecl; export;
+Procedure ApplicationDocumentPath(Path:PTERRAChar); cdecl; export;
 Begin
   _iOSDocumentPath := Path;
   Log(logDebug, 'App', 'Document Folder: '+ _iOSDocumentPath);
 End;
 
-Procedure ApplicationSetLanguage(Lang:PAnsiChar); cdecl; export;
+Procedure ApplicationSetLanguage(Lang:PTERRAChar); cdecl; export;
 Begin
-  _iOSLanguage := UpStr(Lang);
+  _iOSLanguage := StringUpper(Lang);
   If (_iOSLanguage='') Then
     _iOSLanguage := 'EN'
   Else
@@ -304,9 +304,9 @@ Begin
 // special cases, IETF BCP 47
 End;
 
-Procedure ApplicationSetCountry(Country:PAnsiChar); cdecl; export;
+Procedure ApplicationSetCountry(Country:PTERRAChar); cdecl; export;
 Begin
-  _iOSCountry := UpStr(Country);
+  _iOSCountry := StringUpper(Country);
   If (_iOSCountry='') Then
     _iOSCountry := 'US'
   Else
@@ -314,11 +314,11 @@ Begin
 End;
 
 
-Procedure DisplayMessage(S:AnsiString);
+Procedure DisplayMessage(S:TERRAString);
 Begin
 	S := S +#0;
 	{If (Assigned(_Application_Instance)) Then
-		showAlert(PAnsiChar(S));}
+		showAlert(PTERRAChar(S));}
   Log(logWarning, 'App', S);
 End;
 
@@ -375,7 +375,7 @@ End;
 
 Function iPhoneApplication.InitWindow:Boolean;
 Var
-  buffer: Array[0..255] Of AnsiChar;
+  buffer: Array[0..255] Of TERRAChar;
   I:Integer;
 
 Begin
@@ -387,6 +387,8 @@ Begin
   _Height := Trunc(_ScreenHeight * iOSScale);
 	Log(logDebug, 'App', 'Resolution: ' + IntToString(_Width)+' x' +IntToString(_Height));
 
+  _Screen.Width := _Width;
+  _Screen.Height := _Height;
 
   Log(logDebug,'App', 'OK!');
   _Application_Instance := Self;
@@ -437,9 +439,9 @@ Procedure iPhoneApplication.ProcessMessages;
 Begin
 End;
 
-Procedure iPhoneApplication.PostToFacebook(msg, link, desc, imageURL:AnsiString);
+Procedure iPhoneApplication.PostToFacebook(msg, link, desc, imageURL:TERRAString);
 Begin
-  TERRA_OS.PostToFacebook(PAnsiChar(Msg), PAnsiChar(Link), PAnsiChar(Desc), PAnsiChar(ImageURL));
+  TERRA_OS.PostToFacebook(PTERRAChar(Msg), PTERRAChar(Link), PTERRAChar(Desc), PTERRAChar(ImageURL));
 End;
 
 {Procedure iPhoneApplication.ConvertCoords(Var X,Y:Integer);
@@ -623,31 +625,31 @@ Begin
   TERRA_OS.showFullscreenAds();
 End;
 
-Function iPhoneApplication.GetDeviceID:AnsiString;
+Function iPhoneApplication.GetDeviceID:TERRAString;
 Begin
   Result := TERRA_OS.getUniqueDeviceID();
 End;
 
-Procedure iPhoneApplication.OpenAppStore(AppID:AnsiString);
+Procedure iPhoneApplication.OpenAppStore(AppID:TERRAString);
 Begin
-  TERRA_OS.openAppStore(PAnsiChar(AppID));
+  TERRA_OS.openAppStore(PTERRAChar(AppID));
 End;
 
-Procedure iPhoneApplication.SendAnalytics(EventName, Params:AnsiString);
+Procedure iPhoneApplication.SendAnalytics(EventName, Params:TERRAString);
 Begin
   If (EventName='') Then
     Exit;
 
   If (Params<>'') Then
-    AnalyticsLogWithParams(PAnsiChar(EventName), PAnsiChar(Params))
+    AnalyticsLogWithParams(PTERRAChar(EventName), PTERRAChar(Params))
   Else
-    AnalyticsLog(PAnsiChar(EventName));
+    AnalyticsLog(PTERRAChar(EventName));
 End;
 
 Var
     Buffer:Array[0..255] Of Char;
 
-Function GetStringBuffer(S:String):PAnsiChar;
+Function GetStringBuffer(S:String):PTERRAChar;
 Var
     I:Integer;
 Begin
@@ -657,52 +659,52 @@ Begin
     Result := @Buffer[1];
 End;
 
-Function ApplicationGetAppID():PAnsiChar; cdecl; export;
+Function ApplicationGetAppID():PTERRAChar; cdecl; export;
 Begin
     Result := GetStringBuffer(Application.Instance.Client.GetAppID());
 End;
 
-Function ApplicationGetTestFlightID():PAnsiChar; cdecl; export;
+Function ApplicationGetTestFlightID():PTERRAChar; cdecl; export;
 Begin
     Result := GetStringBuffer(Application.Instance.Client.GetTestFlightID());
 End;
 
-Function ApplicationGetFlurryID():PAnsiChar; cdecl; export;
+Function ApplicationGetFlurryID():PTERRAChar; cdecl; export;
 Begin
   Result := GetStringBuffer(Application.Instance.Client.GetFlurryID());
 End;
 
-Function ApplicationGetAdMobBannerID():PAnsiChar; cdecl; export;
+Function ApplicationGetAdMobBannerID():PTERRAChar; cdecl; export;
 Begin
   Result := GetStringBuffer(Application.Instance.Client.GetadMobBannerID());
 End;
 
-Function ApplicationGetAdMobInterstitialID():PAnsiChar; cdecl; export;
+Function ApplicationGetAdMobInterstitialID():PTERRAChar; cdecl; export;
 Begin
   Result := GetStringBuffer(Application.Instance.Client.GetAdMobInterstitialID());
 End;
 
-Function ApplicationGetChartboostID():PAnsiChar; cdecl; export;
+Function ApplicationGetChartboostID():PTERRAChar; cdecl; export;
 Begin
     Result := GetStringBuffer(Application.Instance.Client.GetChartboostID());
 End;
 
-Function ApplicationGetChartboostSecret():PAnsiChar; cdecl; export;
+Function ApplicationGetChartboostSecret():PTERRAChar; cdecl; export;
 Begin
     Result := GetStringBuffer(Application.Instance.Client.GetChartboostSecret());
 End;
 
-Function ApplicationGetAdBuddizID():PAnsiChar; cdecl; export;
+Function ApplicationGetAdBuddizID():PTERRAChar; cdecl; export;
 Begin
   Result := GetStringBuffer(Application.Instance.Client.GetAdBuddizID());
 End;
 
-Function ApplicationGetVungleID():PAnsiChar; cdecl; export;
+Function ApplicationGetVungleID():PTERRAChar; cdecl; export;
 Begin
     Result := GetStringBuffer(Application.Instance.Client.GetVungleID());
 End;
 
-Function ApplicationGetFacebookID():PAnsiChar; cdecl; export;
+Function ApplicationGetFacebookID():PTERRAChar; cdecl; export;
 Begin
   Result := GetStringBuffer(Application.Instance.Client.GetFacebookID());
 End;

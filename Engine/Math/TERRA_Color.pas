@@ -25,7 +25,7 @@ Unit TERRA_Color;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils;
+Uses TERRA_String, TERRA_Utils;
 
 {$R-}
 
@@ -79,11 +79,11 @@ Const
 //#  Color functions  #
 //#####################
 
-Function ColorToString(Const N:Color):AnsiString;
+Function ColorToString(Const N:Color):TERRAString;
 
 Function ColorCreate(Const R,G,B:Byte;A:Byte=255):Color;Overload;
 Function ColorCreate(Const R,G,B:Single;A:Single=1.0):Color;Overload;
-Function ColorCreate(HexValue:AnsiString):Color;Overload;
+Function ColorCreate(HexValue:TERRAString):Color;Overload;
 
 // Mixes colors
 Function ColorMix(Const A,B:Color; Const Cur:Single):Color;Overload;
@@ -138,7 +138,7 @@ Function ColorRGBToHSL(Input:Color):Color;
 Implementation
 
 // Color functions
-Function ColorToString(Const N:Color):AnsiString;
+Function ColorToString(Const N:Color):TERRAString;
 Begin
   Result := IntToString(N.R)+'\'+
             IntToString(N.G)+'\'+
@@ -146,7 +146,7 @@ Begin
             IntToString(N.A);
 End;
 
-Function ColorCreate(HexValue:AnsiString):Color;
+Function ColorCreate(HexValue:TERRAString):Color;
   Function H(C:AnsiChar):Byte;
   Begin
     C := UpCase(C);

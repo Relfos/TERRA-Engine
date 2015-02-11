@@ -26,7 +26,7 @@ Unit TERRA_RenderTarget;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Color, TERRA_Image, TERRA_Vector2D, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Texture;
+  TERRA_String, TERRA_Utils, TERRA_Color, TERRA_Image, TERRA_Vector2D, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Texture;
 
 Const
   captureTargetColor    = 0;
@@ -38,11 +38,11 @@ Const
   captureTargetPosition = 6;
   MaxCaptureTargets = 7;
 
-  TargetNames:Array[0..Pred(MaxCaptureTargets)] Of AnsiString =
+  TargetNames:Array[0..Pred(MaxCaptureTargets)] Of TERRAString =
   ('diffuse', 'normal', 'emission', 'refraction', 'outline', 'reflection', 'position');
 
 Var
-  TargetTextureNames:Array[0..Pred(MaxCaptureTargets)] Of AnsiString;
+  TargetTextureNames:Array[0..Pred(MaxCaptureTargets)] Of TERRAString;
 
 
 Type
@@ -60,13 +60,13 @@ Type
 	    Procedure BeginCapture(Flags:Cardinal = GL_COLOR_BUFFER_BIT Or GL_DEPTH_BUFFER_BIT Or GL_STENCIL_BUFFER_BIT); 
 	    Procedure EndCapture; Virtual; Abstract;
 
-	    Procedure Save(FileName:AnsiString);
+	    Procedure Save(FileName:TERRAString);
 
       Property ClearColor:Color Read _ClearColor Write _ClearColor;
       Property Active:Boolean Read _Active;
   End;
 
-  Function CreateRenderTarget(Name:AnsiString; Width, Height:Integer; DepthBuffer, StencilBuffer:Boolean):RenderTarget;
+  Function CreateRenderTarget(Name:TERRAString; Width, Height:Integer; DepthBuffer, StencilBuffer:Boolean):RenderTarget;
 
 Implementation
 Uses TERRA_Application, TERRA_GraphicsManager, TERRA_Log, TERRA_TextureTarget
@@ -89,7 +89,7 @@ Type
       Function GetImage():Image; Override;
   End;
 
-Function CreateRenderTarget(Name:AnsiString; Width, Height:Integer; DepthBuffer, StencilBuffer:Boolean):RenderTarget;
+Function CreateRenderTarget(Name:TERRAString; Width, Height:Integer; DepthBuffer, StencilBuffer:Boolean):RenderTarget;
 Begin
 {$IFDEF FRAMEBUFFEROBJECTS}
   If GraphicsManager.Instance.Settings.FrameBufferObject.Avaliable Then
@@ -107,7 +107,7 @@ Begin
   InitCapture(Flags);
 End;
 
-Procedure RenderTarget.Save(fileName:AnsiString);
+Procedure RenderTarget.Save(fileName:TERRAString);
 Var
   MyImage:Image;
 Begin

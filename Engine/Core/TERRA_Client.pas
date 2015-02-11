@@ -30,7 +30,7 @@ Unit TERRA_Client;
 {$ENDIF}
 
 Interface
-Uses TERRA_Image;
+Uses TERRA_String, TERRA_Input;
 
 Const
   apiFacebook = 1;
@@ -50,19 +50,14 @@ Const
   tapjoyVideoUnvailable    = 35;
   tapjoyVideoSuccess       = 36;
   tapjoyOfferSuccess       = 37;
-
-  MaxKeys = 512;
-
 Type
-	PInputState = ^InputState;
-	InputState = Array[0..Pred(MaxKeys)] Of Boolean;
 
   AppClient = Class
     Public
-      Keys:PInputState;
+      Keys:InputState;
 
       Procedure SelectResolution3D(Var Width, Height:Integer); Virtual;
-      Procedure SelectResolution2D(Var Width, Height:Integer); Virtual;
+      Procedure SelectResolution2D(Var Width, Height:Integer; Var Scale:Single); Virtual;
 
 			Procedure OnKeyDown(Key:Word); Virtual;
 			Procedure OnKeyUp(Key:Word); Virtual;
@@ -80,13 +75,13 @@ Type
       Procedure OnOrientation(Orientation:Integer); Virtual;
 
       Procedure OnIAP_Error(ErrorCode:Integer); Virtual;
-      Procedure OnIAP_Purchase(ID:AnsiString); Overload; Virtual;
+      Procedure OnIAP_Purchase(Const ID:TERRAString); Overload; Virtual;
       Procedure OnIAP_Purchase(Credits:Integer); Overload; Virtual;
-      Procedure OnIAP_External(Const PurchaseID:AnsiString; UserData:Pointer); Virtual;
+      Procedure OnIAP_External(Const PurchaseID:TERRAString; UserData:Pointer); Virtual;
 
       Procedure OnAPIResult(API, Code:Integer); Virtual;
 
-      Procedure OnFatalError(Const ErrorMsg:AnsiString); Virtual;
+      Procedure OnFatalError(Const ErrorMsg:TERRAString); Virtual;
 
       Procedure OnContextLost(); Virtual;
 
@@ -97,7 +92,7 @@ Type
 
       Procedure OnGesture(StartX, StartY, EndX, EndY, GestureType:Integer; Delta:Single); Virtual;
 
-      Function GetTitle:AnsiString; Virtual;
+      Function GetTitle:TERRAString; Virtual;
       Function GetHandle:Cardinal; Virtual;
       Function GetWidth:Word; Virtual;
       Function GetHeight:Word; Virtual;
@@ -110,28 +105,28 @@ Type
 
       Function IsConsole():Boolean; Virtual;
 
-      Function GetAppID:AnsiString; Virtual;
+      Function GetAppID:TERRAString; Virtual;
 
-      Function GetAdMobBannerID:AnsiString; Virtual;
-      Function GetAdMobInterstitialID:AnsiString; Virtual;
+      Function GetAdMobBannerID:TERRAString; Virtual;
+      Function GetAdMobInterstitialID:TERRAString; Virtual;
 
-      Function GetAdBuddizID:AnsiString; Virtual;
+      Function GetAdBuddizID:TERRAString; Virtual;
 
-      Function GetFlurryID:AnsiString; Virtual;
-      Function GetTestFlightID:AnsiString; Virtual;
-      Function GetFacebookID:AnsiString; Virtual;
-      Function GetBillingID:AnsiString; Virtual;
+      Function GetFlurryID:TERRAString; Virtual;
+      Function GetTestFlightID:TERRAString; Virtual;
+      Function GetFacebookID:TERRAString; Virtual;
+      Function GetBillingID:TERRAString; Virtual;
 
-      Function GetFortumoID:AnsiString; Virtual;
-      Function GetFortumoSecret:AnsiString; Virtual;
+      Function GetFortumoID:TERRAString; Virtual;
+      Function GetFortumoSecret:TERRAString; Virtual;
 
-      Function GetChartboostID:AnsiString; Virtual;
-      Function GetChartboostSecret:AnsiString; Virtual;
+      Function GetChartboostID:TERRAString; Virtual;
+      Function GetChartboostSecret:TERRAString; Virtual;
 
-      Function GetTapjoyID:AnsiString; Virtual;
-      Function GetTapjoySecret:AnsiString; Virtual;
+      Function GetTapjoyID:TERRAString; Virtual;
+      Function GetTapjoySecret:TERRAString; Virtual;
 
-      Function GetVungleID:AnsiString; Virtual;
+      Function GetVungleID:TERRAString; Virtual;
   End;
 
   ConsoleClient = Class(AppClient)
@@ -196,7 +191,7 @@ Begin
   Log(logWarning, 'Client', 'Please implement Client.OnIAP_Cancel, error code = '+IntToString(ErrorCode));
 End;
 
-Procedure AppClient.OnIAP_Purchase(ID:AnsiString);
+Procedure AppClient.OnIAP_Purchase(Const ID:TERRAString);
 Begin
   Log(logWarning, 'Client', 'Please implement Client.OnIAP_Purchase, product ID = '+ID);
 End;
@@ -269,7 +264,7 @@ Procedure AppClient.SelectResolution3D(var Width, Height: Integer);
 Begin
 End;
 
-Procedure AppClient.SelectResolution2D(var Width, Height: Integer);
+Procedure AppClient.SelectResolution2D(var Width, Height: Integer; Var Scale:Single);
 Begin
 End;
 
@@ -283,22 +278,22 @@ Begin
   Result := 0;
 End;
 
-Function AppClient.GetAppID:AnsiString;
+Function AppClient.GetAppID:TERRAString;
 Begin
   Result := '0001';
 End;
 
-Function AppClient.GetBillingID:AnsiString;
+Function AppClient.GetBillingID:TERRAString;
 Begin
   Result := '';
 End;
 
-Function AppClient.GetFacebookID:AnsiString;
+Function AppClient.GetFacebookID:TERRAString;
 Begin
   Result := '';
 End;
 
-function AppClient.GetFlurryID:AnsiString;
+function AppClient.GetFlurryID:TERRAString;
 Begin
   Result := '';
 End;
@@ -334,22 +329,22 @@ Begin
 End;
 
 
-Procedure AppClient.OnFatalError(const ErrorMsg: AnsiString);
+Procedure AppClient.OnFatalError(const ErrorMsg: TERRAString);
 Begin
 
 End;
 
-Procedure AppClient.OnIAP_External(Const PurchaseID:AnsiString; UserData:Pointer);
+Procedure AppClient.OnIAP_External(Const PurchaseID:TERRAString; UserData:Pointer);
 Begin
   Self.OnIAP_Error(-1);
 End;
 
-Function AppClient.GetAdMobBannerID:AnsiString;
+Function AppClient.GetAdMobBannerID:TERRAString;
 Begin
   Result := '';
 End;
 
-Function AppClient.GetAdMobInterstitialID:AnsiString;
+Function AppClient.GetAdMobInterstitialID:TERRAString;
 Begin
   Result := '';
 End;
@@ -359,22 +354,22 @@ Begin
   Result := True;
 End;
 
-Function AppClient.GetFortumoID:AnsiString;
+Function AppClient.GetFortumoID:TERRAString;
 Begin
   Result := '';
 End;
 
-Function AppClient.GetFortumoSecret:AnsiString;
+Function AppClient.GetFortumoSecret:TERRAString;
 Begin
   Result := '';
 End;
 
-Function AppClient.GetTestFlightID:AnsiString;
+Function AppClient.GetTestFlightID:TERRAString;
 Begin
   Result := '';
 End;
 
-Function AppClient.GetTitle:AnsiString;
+Function AppClient.GetTitle:TERRAString;
 Begin
   Result := GetProgramName();
 End;
@@ -384,32 +379,32 @@ Begin
   Result := False;
 End;
 
-Function AppClient.GetTapjoyID: AnsiString;
+Function AppClient.GetTapjoyID: TERRAString;
 Begin
   Result := '';
 End;
 
-Function AppClient.GetTapjoySecret: AnsiString;
+Function AppClient.GetTapjoySecret: TERRAString;
 Begin
   Result := '';
 End;
 
-Function AppClient.GetChartboostID: AnsiString;
+Function AppClient.GetChartboostID: TERRAString;
 Begin
   Result := '';
 End;
 
-Function AppClient.GetChartboostSecret: AnsiString;
+Function AppClient.GetChartboostSecret: TERRAString;
 Begin
   Result := '';
 End;
 
-Function AppClient.GetAdBuddizID: AnsiString;
+Function AppClient.GetAdBuddizID: TERRAString;
 Begin
   Result := '';
 End;
 
-Function AppClient.GetVungleID: AnsiString;
+Function AppClient.GetVungleID: TERRAString;
 Begin
   Result := '';
 End;

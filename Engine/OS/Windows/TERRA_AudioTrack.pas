@@ -2,7 +2,7 @@ Unit TERRA_AudioTrack;
 {$I terra.inc}
 Interface
 
-Uses Windows, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_MusicTrack, TERRA_Multimedia;
+Uses Windows, TERRA_String, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_MusicTrack, TERRA_Multimedia;
 
 Type
   AudioMusicTrack = Class(MusicTrack)
@@ -20,11 +20,11 @@ Type
       Procedure Play(); Override;
       Procedure Stop; Override;
 
-      Class Function Supports(Const Extension:AnsiString):Boolean; Override;
+      Class Function Supports(Const Extension:TERRAString):Boolean; Override;
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_FileManager, TERRA_FileIO, TERRA_IO, TERRA_Math;
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_FileManager, TERRA_FileStream, TERRA_Stream, TERRA_Math;
 
 Const
   mpNotReady = 0;
@@ -51,7 +51,7 @@ Begin
   FillChar(ErrMsg, SizeOf(ErrMsg), 0);
 
   // get error message and raise exception
-  If( mciGetErrorString( aError,ErrMsg,SizeOf( ErrMsg ) ) ) Then
+  If( mciGetErrorString(aError, ErrMsg, SizeOf( ErrMsg ) ) ) Then
   Begin
     SetString(strMsg, ErrMsg, Length(ErrMsg));
   End Else
@@ -231,7 +231,7 @@ Begin
     OpenParm.dwCallback := 0;
     OpenParm.lpstrElementName := PAnsiChar(_FileName);
 
-    _IsMIDI := (UpStr(GetFileExtension(_FileName))='MID');
+    _IsMIDI := StringContains('mid', GetFileExtension(_FileName));
     If (_IsMIDI) Then
     Begin
       OpenParm.lpstrDeviceType := PAnsiChar(MCI_DEVTYPE_SEQUENCER);
@@ -349,7 +349,7 @@ Begin
   End;
 }
 
-Class Function AudioMusicTrack.Supports(Const Extension: AnsiString): Boolean;
+Class Function AudioMusicTrack.Supports(Const Extension: TERRAString): Boolean;
 Begin
   Result := (Extension = 'mid') Or (Extension = 'mp3') Or (Extension = 'wav');
 End;

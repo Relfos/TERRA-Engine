@@ -1,10 +1,10 @@
 // iOS custom IO
-Unit TERRA_FileIO;
+Unit TERRA_FileStream;
 
 {$I terra.inc}
 
 Interface
-Uses TERRA_IO, TERRA_FileUtils, SysUtils;
+Uses TERRA_Stream, TERRA_FileUtils, SysUtils;
 
 Type
   FilePointer = Pointer;
@@ -15,11 +15,11 @@ Type
         _Open:Boolean;
      Public
 
-        Constructor Create(FileName:AnsiString; StreamMode:Integer=smDefault);Overload;
-        Constructor Open(FileName:AnsiString; StreamMode:Integer=smDefault; Offset:Integer=0; MaxSize:Integer=-1);
+        Constructor Create(FileName:TERRAString; StreamMode:Integer=smDefault);Overload;
+        Constructor Open(FileName:TERRAString; StreamMode:Integer=smDefault; Offset:Integer=0; MaxSize:Integer=-1);
         Destructor Destroy;Override;
         Destructor Delete;
-        Procedure Rename(NewName:AnsiString);
+        Procedure Rename(NewName:TERRAString);
         Procedure Truncate;Override;
         Function Read(Data:Pointer; Length:Cardinal):Cardinal;Override;
         Function Write(Data:Pointer; Length:Cardinal):Cardinal;Override;
@@ -27,14 +27,14 @@ Type
 
         Procedure Flush;
 
-        Class Function Exists(Const FileName:AnsiString): Boolean;
-        Class Procedure CopyFile(SourceName, DestName:AnsiString);
+        Class Function Exists(Const FileName:TERRAString): Boolean;
+        Class Procedure CopyFile(SourceName, DestName:TERRAString);
      End;
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Application, TERRA_FileManager, TERRA_Utils;
 
-Function fopen (filename, mode :PAnsiChar):Pointer; cdecl; external;
+Function fopen (filename, mode :PTERRAChar):Pointer; cdecl; external;
 Function fclose (stream:Pointer):Integer; cdecl; external;
 Function fread(ptr:Pointer; size, count:Integer; stream:Pointer):Integer; cdecl; external;
 Function fwrite(ptr:Pointer; size, count:Integer; stream:Pointer):Integer; cdecl; external;
@@ -46,7 +46,7 @@ Const
   SEEK_CUR = 1;
   SEEK_END = 2;
 
-Function fileExists(name:PAnsiChar):Boolean;
+Function fileExists(name:PTERRAChar):Boolean;
 Var
 f:Pointer;
 Begin
@@ -73,12 +73,12 @@ Begin
 	Result := size;
 End;
 
-Class Function FileStream.Exists(Const FileName:AnsiString): Boolean;
+Class Function FileStream.Exists(Const FileName:TERRAString): Boolean;
 Begin
-  Result := FileExists(PAnsiChar(FileName));
+  Result := FileExists(PTERRAChar(FileName));
 End;
 
-Constructor FileStream.Create(FileName:AnsiString; StreamMode:Integer=smDefault);
+Constructor FileStream.Create(FileName:TERRAString; StreamMode:Integer=smDefault);
 Begin
   Inherited Create(StreamMode);
 
@@ -94,13 +94,13 @@ Begin
     _Size:=0;
     FileMode := 2;
 
-	  _File := fopen(PAnsiChar(_Name), PAnsiChar('wb'));
+	  _File := fopen(PTERRAChar(_Name), PTERRAChar('wb'));
 
     _Open := Assigned(_File);
   End;
 End;
 
-Constructor FileStream.Open(FileName:AnsiString; StreamMode:Integer=smDefault; Offset:Integer=0; MaxSize:Integer=-1);
+Constructor FileStream.Open(FileName:TERRAString; StreamMode:Integer=smDefault; Offset:Integer=0; MaxSize:Integer=-1);
 Var
   FSize:Integer;
 Begin
@@ -112,7 +112,7 @@ Begin
   _Open := False;
   _Name := FileName;
 
-  If Not FileExists(PAnsiChar(FileName)) Then
+  If Not FileExists(PTERRAChar(FileName)) Then
   Begin
     RaiseError('File not found. ['+FileName+']');
     Exit;
@@ -126,7 +126,7 @@ Begin
   Begin
     _Offset := Offset;
 
-	  _File := fopen(PAnsiChar(_Name), PAnsiChar('rb'));
+	  _File := fopen(PTERRAChar(_Name), PTERRAChar('rb'));
   	If Not Assigned(_File) Then
     Begin
       RaiseError('Cannot open file: '+FileName);
@@ -178,7 +178,7 @@ Begin
   _Size:=_Pos;
 End;
 
-Procedure FileStream.Rename(NewName:AnsiString);
+Procedure FileStream.Rename(NewName:TERRAString);
 Begin
   If Not _Open Then
     Exit;
@@ -260,7 +260,7 @@ Begin
 End;
 
 
-Class Procedure FileStream.CopyFile(SourceName, DestName:AnsiString);
+Class Procedure FileStream.CopyFile(SourceName, DestName:TERRAString);
 Var
   Source, Dest:Stream;
 Begin
@@ -276,7 +276,7 @@ Begin
   If (Assigned(_File)) And (_Open) Then
   Begin
     fclose(_File);
-	  _File := fopen(PAnsiChar(_Name), PAnsiChar('ab'));
+	  _File := fopen(PTERRAChar(_Name), PTERRAChar('ab'));
     _Open := Assigned(_File);
   End;
 End;

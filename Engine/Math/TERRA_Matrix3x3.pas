@@ -39,7 +39,7 @@ Type
   End;
 
 Const
- MatrixIdentity2D:Matrix3x3= (V:(1.0, 0.0, 0.0,
+ MatrixIdentity3x3:Matrix3x3= (V:(1.0, 0.0, 0.0,
                               0.0, 1.0, 0.0,
                               0.0, 0.0, 1.0));
 
@@ -56,6 +56,7 @@ Function MatrixTranslation2D(Const X,Y:Single):Matrix3x3;Overload; {$IFDEF FPC}I
 
 Function MatrixScale2D(Const Scale:Vector2D):Matrix3x3;Overload; {$IFDEF FPC}Inline;{$ENDIF}
 Function MatrixScale2D(Const X,Y:Single):Matrix3x3;Overload;   {$IFDEF FPC}Inline;{$ENDIF}
+Function MatrixScale2D(Const Scale:Single):Matrix3x3;Overload;   {$IFDEF FPC}Inline;{$ENDIF}
 
 Function MatrixInverse2D(Const Mat:Matrix3x3):Matrix3x3;
 
@@ -66,12 +67,6 @@ Function MatrixMultiply3x3(Const A,B:Matrix3x3):Matrix3x3;
 
 Implementation
 Uses Math{$IFDEF NEON_FPU},TERRA_NEON{$ENDIF};
-
-{
-  0 1 2
-  3 4 5
-  6 7 8
-}
 
 Function Matrix3x3.Transform(Const P:Vector2D):Vector2D;
 Begin
@@ -101,15 +96,38 @@ Begin
   Result.Z := P.Z;
 End;
 
+{
+  0 1 2
+  3 4 5
+  6 7 8
+}
+
+//http://www.cg.info.hiroshima-cu.ac.jp/~miyazaki/knowledge/teche23.html
 Function MatrixInverse2D(Const Mat:Matrix3x3):Matrix3x3;
 Var
-  Det:Double;
+  InvDet, Det:Double;
 Begin
-  Det := Mat.V[0]*Mat.V[3] - Mat.V[1]*Mat.V[2];
-  Result.V[0] := Mat.V[3]/det;
-  Result.V[1] := -Mat.V[1]/det;
-  Result.V[2] := -Mat.V[2]/det;
-  Result.V[3] := Mat.V[0]/det;
+  Det :=  Mat.V[0] * Mat.V[4] * Mat.V[8]+
+          Mat.V[3] * Mat.V[7] * Mat.V[2] +
+          Mat.V[6] * Mat.V[1] * Mat.V[5] -
+          Mat.V[0] * Mat.V[7] * Mat.V[5] -
+          Mat.V[6] * Mat.V[4] * Mat.V[2] -
+          Mat.V[3] * Mat.V[1] * Mat.V[8];
+
+  InvDet := 1.0 / Det;
+
+  Result.V[0] := ((Mat.V[4] * Mat.V[8]) - (Mat.V[5] * Mat.V[7])) * InvDet;
+  Result.V[1] := ((Mat.V[2] * Mat.V[7]) - (Mat.V[1] * Mat.V[8]))  * InvDet;
+  Result.V[2] := ((Mat.V[1] * Mat.V[5]) - (Mat.V[2] * Mat.V[4]))  * InvDet;
+
+
+  Result.V[3] := ((Mat.V[5] * Mat.V[6]) - (Mat.V[3] * Mat.V[8])) * InvDet;
+  Result.V[4] := ((Mat.V[0] * Mat.V[8]) - (Mat.V[2] * Mat.V[6]))  * InvDet;
+  Result.V[5] := ((Mat.V[2] * Mat.V[3]) - (Mat.V[0] * Mat.V[5]))  * InvDet;
+
+  Result.V[6] := ((Mat.V[3] * Mat.V[7]) - (Mat.V[4] * Mat.V[6])) * InvDet;
+  Result.V[7] := ((Mat.V[1] * Mat.V[6]) - (Mat.V[0] * Mat.V[7]))  * InvDet;
+  Result.V[8] := ((Mat.V[0] * Mat.V[4]) - (Mat.V[1] * Mat.V[3]))  * InvDet;
 End;
 
 Function MatrixRotation2D(Const Angle:Single):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
@@ -177,6 +195,11 @@ End;
 Function MatrixScale2D(Const Scale:Vector2D):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
 Begin
   Result := MatrixScale2D(Scale.X, Scale.Y);
+End;
+
+Function MatrixScale2D(Const Scale:Single):Matrix3x3;Overload;   {$IFDEF FPC}Inline;{$ENDIF}
+Begin
+  Result := MatrixScale2D(Scale, Scale);
 End;
 
 Function MatrixScale2D(Const X,Y:Single):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}

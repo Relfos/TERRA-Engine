@@ -25,31 +25,34 @@ Unit TERRA_HTTP;
 
 {$I terra.inc}
 Interface
-Uses SysUtils, TERRA_Utils, TERRA_Application, TERRA_OS, TERRA_IO, TERRA_Sockets,
-  TERRA_FileIO, TERRA_FileUtils, TERRA_FileManager;
+Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_OS, TERRA_Stream, TERRA_Sockets,
+  TERRA_FileStream, TERRA_FileUtils, TERRA_FileManager;
 
 Const
   HTTPProtocol='HTTP';
   FILEProtocol='FILE';
 
+  HTTPSeparator:TERRAChar = Ord('/');
+
   HTTPPort = 80;
   BufferSize = 1024;
   DefaultClientName = 'TERRA Downloader v1.1';
 
-  ConnectionTimeOut = 5000;
+  ConnectionTimeOut = 20000;
 
   httpOk                = 0;
-  httpInvalidURL        = 1;
-  httpInvalidProtocol   = 2;
-  httpNotFound          = 3;
-  httpConnectionFailed  = 4;
-  httpConnectionTimeOut = 5;
-  httpInvalidStream     = 6;
+  httpOffline           = 1;
+  httpInvalidURL        = 2;
+  httpInvalidProtocol   = 3;
+  httpNotFound          = 4;
+  httpConnectionFailed  = 5;
+  httpConnectionTimeOut = 6;
+  httpInvalidStream     = 7;
 
 Type
   HeaderTag = Record
-    Name:AnsiString;
-    Value:AnsiString;
+    Name:TERRAString;
+    Value:TERRAString;
   End;
 
   HTTPDownloader = Class;
@@ -58,29 +61,29 @@ Type
 
   HTTPDownloader = Class(TERRAObject)
     Protected
-      _URL:AnsiString;
-      _FileName:AnsiString;
+      _URL:TERRAString;
+      _FileName:TERRAString;
       _ErrorCode:Integer;
       _Offset:Integer;
       _Stream:Stream;
       _Target:Stream;
-      _TargetName:AnsiString;
+      _TargetName:TERRAString;
       _Callback:DownloadCallback;
       _Downloading:Boolean;
       _TotalSize:Integer;
       _Read:Integer;
-      _Response:AnsiString;
+      _Response:TERRAString;
       _Buffer:Pointer;
-      _Protocol:AnsiString;
-      _HostName:AnsiString;
+      _Protocol:TERRAString;
+      _HostName:TERRAString;
       _Tags:Array Of HeaderTag;
       _TagCount:Integer;
       _Progress:Integer;
       _UpdateTime:Cardinal;
       _UserData:Pointer;
       _ChunkedTransfer:Boolean;
-      _ClientName:AnsiString;
-      _Cookie:AnsiString;
+      _ClientName:TERRAString;
+      _Cookie:TERRAString;
 
       Function ReceiveHeader:Integer;
       Procedure Update;
@@ -89,22 +92,22 @@ Type
 
     Public
 
-      Constructor Create(URL:AnsiString; Const Cookie:AnsiString; Dest:Stream; Callback:DownloadCallback = Nil; Port:Integer=HTTPPort; Const ClientName:AnsiString = DefaultClientName); // Returns file size in bytes
+      Constructor Create(URL:TERRAString; Const Cookie:TERRAString; Dest:Stream; Callback:DownloadCallback = Nil; Port:Integer=HTTPPort; Const ClientName:TERRAString = DefaultClientName); // Returns file size in bytes
       Destructor Destroy; Override;
 
-      Function GetHeaderProperty(Name:AnsiString):AnsiString;
+      Function GetHeaderProperty(Name:TERRAString):TERRAString;
 
-      Function GetTag(Name:AnsiString):AnsiString;
+      Function GetTag(Const Name:TERRAString):TERRAString;
 
       Property TagCount:Integer Read _TagCount;
       Property Progress:Integer Read _Progress;
-      Property HostName:AnsiString Read _HostName;
-      Property URL:AnsiString Read _URL;
-      Property FileName:AnsiString Read _FileName;
+      Property HostName:TERRAString Read _HostName;
+      Property URL:TERRAString Read _URL;
+      Property FileName:TERRAString Read _FileName;
       Property Target:Stream Read _Target;
       Property ErrorCode:Integer Read _ErrorCode;
       Property UserData:Pointer  Read _UserData;
-      Property Cookie:AnsiString Read _Cookie;
+      Property Cookie:TERRAString Read _Cookie;
   End;
 
   DownloadManager = Class(ApplicationComponent)
@@ -127,24 +130,24 @@ Type
 
       Function GetDownload(Index:Integer):HTTPDownloader;
 
-      Function StartWithCookie(URL:AnsiString; Const Cookie:AnsiString;  Dest:Stream = Nil; Callback:DownloadCallback = Nil; UserData:Pointer = Nil; Port:Integer=HTTPPort; AllowCache:Boolean=True; Const ClientName:AnsiString = DefaultClientName):HTTPDownloader;
-      Function Start(Const URL:AnsiString; Dest:Stream = Nil; Callback:DownloadCallback = Nil; UserData:Pointer = Nil; Port:Integer=HTTPPort; AllowCache:Boolean=True; Const ClientName:AnsiString = DefaultClientName):HTTPDownloader;
+      Function StartWithCookie(URL:TERRAString; Cookie:TERRAString;  Dest:Stream = Nil; Callback:DownloadCallback = Nil; UserData:Pointer = Nil; Port:Integer=HTTPPort; AllowCache:Boolean=True; Const ClientName:TERRAString = DefaultClientName):HTTPDownloader;
+      Function Start(URL:TERRAString; Dest:Stream = Nil; Callback:DownloadCallback = Nil; UserData:Pointer = Nil; Port:Integer=HTTPPort; AllowCache:Boolean=True; Const ClientName:TERRAString = DefaultClientName):HTTPDownloader;
 
-      Function Post(URL:AnsiString; Port:Integer=HTTPPort; Const ClientName:AnsiString = DefaultClientName):Integer;
+      Function Post(URL:TERRAString; Port:Integer=HTTPPort; Const ClientName:TERRAString = DefaultClientName):Integer;
 
-      Function Put(URL:AnsiString; Source:Stream; Port:Integer=HTTPPort; Const ClientName:AnsiString = DefaultClientName):Integer;
+      Function Put(URL:TERRAString; Source:Stream; Port:Integer=HTTPPort; Const ClientName:TERRAString = DefaultClientName):Integer;
 
       Property Count:Integer Read _DownloadCount;
       Property Progress:Integer Read GetOverallProgress;
   End;
 
 Var
-  DownloadTempPath:AnsiString;
+  DownloadTempPath:TERRAString;
 
 Implementation
-Uses TERRA_Log, TERRA_ResourceManager;
+Uses TERRA_Log, TERRA_MemoryStream, TERRA_ResourceManager;
 
-Function GetTempPath:AnsiString;
+Function GetTempPath:TERRAString;
 Begin
   If DownloadTempPath<>'' Then
     Result := DownloadTempPath
@@ -155,12 +158,24 @@ Begin
     Result := '';
 End;
 
-// LHTTPDownloader class
-
-Constructor HTTPDownloader.Create(URL:AnsiString; Const Cookie:AnsiString; Dest:Stream; Callback:DownloadCallback; Port:Integer; Const ClientName:AnsiString);
+Procedure ExtractProtocol(Var URL:TERRAString; Out Protocol:TERRAString);
 Var
   I:Integer;
-  Request:AnsiString;
+Begin
+  I := StringPos('://', URL);
+  If I>0 Then
+  Begin
+    Protocol := StringUpper(Copy(URL,1,Pred(I)));
+    URL := Copy(URL,I+3,Length(URL));
+  End Else
+    Protocol := HTTPProtocol;
+End;
+
+{ HTTPDownloader }
+Constructor HTTPDownloader.Create(URL:TERRAString; Const Cookie:TERRAString; Dest:Stream; Callback:DownloadCallback; Port:Integer; Const ClientName:TERRAString);
+Var
+  I:Integer;
+  Request:TERRAString;
 Begin
   _Stream := Nil;
   _ErrorCode := httpOK;
@@ -188,21 +203,13 @@ Begin
     Exit;
   End;
 
-  For I:=1 To Length(URL) Do
-    If URL[I]='\' Then
-      URL[I]:='/';
+  StringReplaceChar(Ord('\'), HTTPSeparator, URL);
 
   // extract http:// from url
-  I:=Pos('://',URL);
-  If I>0 Then
-  Begin
-    _Protocol:=UpStr(Copy(URL,1,Pred(I)));
-    URL:=Copy(URL,I+3,Length(URL));
-  End Else
-    _Protocol:=HTTPProtocol;
+  ExtractProtocol(URL, _Protocol);
 
-  I := PosRev('/', URL);
-  _FileName := Copy(URL, Succ(I), MaxInt);
+  I := StringCharPosReverse(Ord('/'), URL);
+  _FileName := StringCopy(URL, Succ(I), MaxInt);
 
   _UpdateTime := GetTime;
   If (_Protocol = HTTPProtocol) Then
@@ -250,7 +257,7 @@ Begin
   End Else
   If (_Protocol=FILEProtocol) Then
   Begin
-    If Not FileExists(URL) Then
+    If Not FileStream.Exists(URL) Then
     Begin
       Log(logError, 'HTTP', 'File not found: '+_URL);
       _TotalSize := -1;
@@ -284,8 +291,8 @@ Content-Length: 3910
 Function HTTPDownloader.ReceiveHeader:Integer;
 Var
   I,X,Len:Integer;
-  Tag,Value,S:AnsiString;
-  Response:AnsiString;
+  Tag,Value,S:TERRAString;
+  Response:TERRAString;
 Begin
   _TotalSize := -1;
   _ChunkedTransfer := False;
@@ -304,7 +311,7 @@ Begin
       If I=0 Then
         I:=Length(Response);
 
-      Value:=TrimLeft(TrimRight(Copy(Response,1,I)));
+      Value:= StringTrim(StringCopy(Response,1,I));
       If (Value='') Then
       Begin
         Response := Copy(Response, 3, MaxInt);
@@ -325,9 +332,8 @@ Begin
       If (I=0)And(X>0) Then Break;
 
       Tag := Copy(Value,1,Pred(I));
-      Tag := UpStr(Tag);
-      Value:=Copy(Value,Succ(I),Length(Value));
-      Value:=TrimLeft(TrimRight(Value));
+      Value := StringCopy(Value, Succ(I), Length(Value));
+      Value := StringTrim(Value);
 
       If (Tag<>'') Then
       Begin
@@ -336,19 +342,19 @@ Begin
         _Tags[Pred(_TagCount)].Name := Tag;
         _Tags[Pred(_TagCount)].Value := Value;
 
-        If (Tag = 'SET-COOKIE') Then
+        If (StringEquals(Tag, 'set-cookie')) Then
         Begin
-          Self._Cookie := GetNextWord(Value, ';');
+          Self._Cookie := StringGetNextSplit(Value, Ord(';'));
         End;
 
-        If Tag='CONTENT-LENGTH' Then
+        If (StringEquals(Tag, 'content-length')) Then
         Begin
           _TotalSize := StringToInt(Value);
         End;
 
-        If (Tag='TRANSFER-ENCODING') Then
+        If (StringEquals(Tag, 'transfer-encoding')) Then
         Begin
-          If (UpStr(Value)='CHUNKED') Then
+          If (StringEquals(Value, 'chunked')) Then
             _ChunkedTransfer := True;
         End;
       End;
@@ -362,10 +368,10 @@ Begin
 
   If (_ChunkedTransfer) And (_Response<>'') Then
   Begin
-    I := Pos(#13, _Response);
-    S := Copy(_Response, 1, Pred(I));
-    _Response := Copy(_Response, (I+2), MaxInt);
-    Len := HexStrToInt(S) - Length(_Response);
+    I := StringCharPos(Ord(#13), _Response);
+    S := StringCopy(_Response, 1, Pred(I));
+    _Response := StringCopy(_Response, (I+2), MaxInt);
+    Len := HexStrToInt(S) - StringLength(_Response);
     WriteLeftovers();
     If Len<=0 Then
       _Progress := 100
@@ -434,7 +440,7 @@ End;
 Procedure HTTPDownloader.Update;
 Var
   I,Len, Count:Integer;
-  S:AnsiString;
+  S:TERRAString;
 Begin
   If (Not _Downloading) Then
     Exit;
@@ -484,7 +490,7 @@ Begin
     _Stream.Destroy;
 End;
 
-Function HTTPDownloader.GetHeaderProperty(Name:AnsiString):AnsiString;
+Function HTTPDownloader.GetHeaderProperty(Name:TERRAString):TERRAString;
 Var
   I:Integer;
 Begin
@@ -529,7 +535,7 @@ Var
   Remove:Boolean;
   I:Integer;
 Begin
-  If (Prefetching) Then
+  If (_Prefetching) Then
     Exit;
 
   //Application.Instance.Yeld();
@@ -550,12 +556,15 @@ Begin
 
       If Assigned(_Downloads[I]._Callback) Then
         _Downloads[I]._Callback(_Downloads[I]);
+
       Remove := True;
     End Else
     Begin
       _Downloads[I].Update;
       If (_Downloads[I].Progress>=100) Then
       Begin
+        Remove := True;
+
         Log(logDebug, 'HTTP', 'Download finished :'+_Downloads[i]._URL);
 
         If (_Downloads[I]._Target Is MemoryStream) Then
@@ -569,21 +578,7 @@ Begin
 
         Log(logDebug, 'HTTP', 'Invokating callback');
         If Assigned(_Downloads[I]._Callback) Then
-        Begin
-          {S := _Downloads[I]._URL;
-          ReplaceAllText('/', PathSeparator, S);
-          S := GetFileName(S, False);
-          S := GetTempPath + PathSeparator + S;
-
-          If (FileStream.Exists(S)) Then
-          Begin
-            _Downloads[I]._Target.Destroy;
-            _Downloads[I]._Target := MemoryStream.Create(S);
-          End;}
-
           _Downloads[I]._Callback(_Downloads[I]);
-        End;
-        Remove := True;
       End;
     End;
 
@@ -597,39 +592,41 @@ Begin
   End;
 End;
 
-Function DownloadManager.StartWithCookie(URL:AnsiString; Const Cookie:AnsiString; Dest:Stream; Callback:DownloadCallback; UserData:Pointer; Port:Integer; AllowCache:Boolean; Const ClientName:AnsiString):HTTPDownloader;
+Function DownloadManager.StartWithCookie(URL:TERRAString; Cookie:TERRAString; Dest:Stream; Callback:DownloadCallback; UserData:Pointer; Port:Integer; AllowCache:Boolean; Const ClientName:TERRAString):HTTPDownloader;
 Var
-  S, FileName:AnsiString;
+  S, FileName, CachedFile:TERRAString;
   NoCache:Boolean;
 Begin
-  FileName := URL;
-  ReplaceText('/', PathSeparator, FileName);
-  FileName := GetFileName(FileName, False);
-  S := FileManager.Instance.SearchResourceFile(FileName);
-
-  NoCache := Pos('.PHP', UpStr(URL))>0;
+  NoCache := StringContains('.php', URL);
+  If (NoCache) Then
+  Begin
+    AllowCache := False;
+    FileName := '';
+    CachedFile := '';
+  End Else
+  Begin
+    FileName := URL;
+    StringReplaceText(StringFromChar(HTTPSeparator), PathSeparator, FileName);
+    FileName := GetFileName(FileName, False);
+    CachedFile := FileManager.Instance.SearchResourceFile(FileName);
+  End;
 
   If (Dest = Nil) Then
   Begin
-    If (S<>'') And (Not NoCache) And (AllowCache) Then
-    Begin
-      Log(logDebug, 'HTTP', 'Cached: '+URL);
-      URL := 'file://'+S;
-      Dest := MemoryStream.Create(1024);
-    End Else
     If (FileName<>'') Then
+      Dest := FileStream.Create(GetTempPath + PathSeparator + FileName)
+    Else
     Begin
-      If NoCache Then
-      Begin
-        FileName := 'temp.php';
-        //S := FileName;
-        //FileName := GetNextWord(S, '?');
-        Dest := MemoryStream.Create(1024*1024);
-      End Else
-        Dest := FileStream.Create(GetTempPath + PathSeparator + FileName);
+      Dest := MemoryStream.Create(1024);
     End;
   End;
-  
+
+  If (CachedFile<>'') Then
+  Begin
+    Log(logDebug, 'HTTP', 'Cached: '+URL);
+    URL := 'file://' + CachedFile;
+  End;
+
   Log(logDebug, 'HTTP', 'Starting download');
   Result := HTTPDownloader.Create(URL, Cookie, Dest, Callback, Port, ClientName);
   Result._UserData := UserData;
@@ -639,18 +636,17 @@ Begin
   Log(logDebug, 'HTTP', 'Download dispatched.');
 End;
 
-Function DownloadManager.Start(Const URL:AnsiString; Dest:Stream; Callback:DownloadCallback; UserData:Pointer; Port:Integer; AllowCache:Boolean; Const ClientName:AnsiString):HTTPDownloader;
+Function DownloadManager.Start(URL:TERRAString; Dest:Stream; Callback:DownloadCallback; UserData:Pointer; Port:Integer; AllowCache:Boolean; Const ClientName:TERRAString):HTTPDownloader;
 Begin
   Result := StartWithCookie(URL, '', Dest, Callback, UserData, Port, AllowCache, ClientName);
 End;
 
-Function HTTPDownloader.GetTag(Name:AnsiString):AnsiString;
+Function HTTPDownloader.GetTag(Const Name:TERRAString):TERRAString;
 Var
   I:Integer;
 Begin
-  Name := UpStr(Name);
   For I:=0 To Pred(_TagCount) Do
-  If (UpStr(_Tags[I].Name) = Name) Then
+  If (StringEquals(_Tags[I].Name, Name)) Then
   Begin
     Result := _Tags[I].Value;
     Exit;
@@ -691,17 +687,15 @@ Begin
     Result := _Downloads[Index];
 End;
 
-Function DownloadManager.Post(URL:AnsiString; Port: Integer; Const ClientName:AnsiString): Integer;
+Function DownloadManager.Post(URL:TERRAString; Port: Integer; Const ClientName:TERRAString): Integer;
 Var
-  I:Integer;
+  It:StringIterator;
   Dest:Socket;
-  Protocol, Request, Data, HostName:AnsiString;
+  Protocol, Request, Data, HostName:TERRAString;
 Begin
-  I:=Pos('://',URL);
-  If I>0 Then
+  If StringPosIterator('://', URL, It) Then
   Begin
-    Protocol := UpStr(Copy(URL,1,Pred(I)));
-    URL := Copy(URL, I+3, Length(URL));
+    It.Split(Protocol, URL);
   End Else
     Protocol := HTTPProtocol;
 
@@ -711,11 +705,9 @@ Begin
     Exit;
   End;
 
-  I := Pos('/',URL);
-  If I>0 Then
+  If StringCharPosIterator(Ord('/'),URL, It) Then
   Begin
-    HostName := Copy(URL,1,Pred(I));
-    URL := Copy(URL,I,Length(URL));
+    It.Split(HostName, URL);
   End Else
   Begin
     Log(logError, 'HTTP', 'Invalid URL: '+URL);
@@ -723,11 +715,9 @@ Begin
     Exit;
   End;
 
-  I := Pos('?', URL);
-  If (I>0) Then
+  If StringCharPosIterator(Ord('?'),URL, It) Then
   Begin
-    Data := Copy(URL, Succ(I), MaxInt);
-    URL := Copy(URL, 1, Pred(I));
+    It.Split(URL, Data);
   End Else
   Begin
     Log(logError, 'HTTP', 'Invalid URL: '+URL);
@@ -760,13 +750,13 @@ Begin
   Result := httpOk;
 End;
 
-Function DownloadManager.Put(URL:AnsiString; Source: Stream; Port: Integer; Const ClientName:AnsiString): Integer;
+Function DownloadManager.Put(URL:TERRAString; Source: Stream; Port: Integer; Const ClientName:TERRAString): Integer;
 Var
   I:Integer;
   Dest:Socket;
   Len:Integer;
-  Protocol, Request, HostName:AnsiString;
-  Response:AnsiString;
+  Protocol, Request, HostName:TERRAString;
+  Response:TERRAString;
 Begin
   If (Source = Nil) Or (Source.Size<=0) Then
   Begin
@@ -778,8 +768,8 @@ Begin
   I:=Pos('://',URL);
   If I>0 Then
   Begin
-    Protocol := UpStr(Copy(URL,1,Pred(I)));
-    URL := Copy(URL, I+3, Length(URL));
+    Protocol := StringUpper(StringCopy(URL,1,Pred(I)));
+    URL := StringCopy(URL, I+3, Length(URL));
   End Else
     Protocol := HTTPProtocol;
 

@@ -6,7 +6,7 @@ Unit TERRA_ZLib;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_IO;
+Uses TERRA_String, TERRA_Utils, TERRA_Stream;
 
 {$DEFINE MAX_MATCH_IS_258}
 

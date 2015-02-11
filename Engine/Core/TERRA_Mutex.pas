@@ -25,7 +25,7 @@ Unit TERRA_Mutex;
 
 {$I terra.inc}
 Interface
-Uses TERRA_Utils,
+Uses TERRA_String, TERRA_Utils,
 {$IFDEF DEBUG_LOCKS} TERRA_Log, {$ENDIF}
 {$IFDEF WINDOWS}Windows
 {$ELSE}cmem, {ctypes,baseunix,}unixtype{$ENDIF};
@@ -46,10 +46,12 @@ Function pthread_mutex_destroy(__mutex:ppthread_mutex_t):longint; Cdecl; Externa
 Function pthread_mutex_lock(__mutex: ppthread_mutex_t):longint; Cdecl; External LibC;
 Function pthread_mutex_unlock(__mutex: ppthread_mutex_t):longint; Cdecl; External LibC;
 
+{$IFNDEF LINUX}
 Function sem_init(sem:ppthread_sem_t; pshared:Integer; value:Cardinal):Integer; Cdecl; External LibC;
 Function sem_wait(sem:ppthread_sem_t):Integer; Cdecl; External LibC;
 Function sem_post(sem:ppthread_sem_t):Integer; Cdecl; External LibC;
 Function sem_destroy(sem:ppthread_sem_t):Integer; Cdecl; External LibC;
+{$ENDIF}
 {$ENDIF}
 
 Type
@@ -63,7 +65,7 @@ Type
       {$ENDIF}
 
     Public
-      Constructor Create(Name:AnsiString);
+      Constructor Create(Const Name:TERRAString);
       Destructor Destroy; Override;
 
       Procedure Lock;
@@ -72,7 +74,7 @@ Type
 
   Semaphore = Class(TERRAObject)
     Protected
-      _Name:AnsiString;
+      _Name:TERRAString;
 
       {$IFDEF WINDOWS}
       _Handle:THandle;
@@ -81,7 +83,7 @@ Type
       {$ENDIF}
 
     Public
-      Constructor Create(Name:AnsiString; Count:Integer);
+      Constructor Create(Name:TERRAString; Count:Integer);
       Destructor Destroy; Override;
 
       Procedure Release;
@@ -96,7 +98,7 @@ Var
   SectionCount:Integer;
 {$ENDIF}
 
-Constructor CriticalSection.Create(Name:AnsiString);
+Constructor CriticalSection.Create(Const Name:TERRAString);
 Begin
   _Name := Name;
 
@@ -164,13 +166,17 @@ Begin
 End;
 
 { Semaphore }
-Constructor Semaphore.Create(Name: AnsiString; Count:Integer);
+Constructor Semaphore.Create(Name: TERRAString; Count:Integer);
 Begin
   Self._Name := Name;
   {$IFDEF WINDOWS}
   _Handle := CreateSemaphore(Nil, 0, Count, Nil);
   {$ELSE}
+
+  {$IFNDEF LINUX}
   sem_init(@_Handle, 0, Count);
+  {$ENDIF}
+  
   {$ENDIF}
 End;
 
@@ -179,7 +185,11 @@ Begin
   {$IFDEF WINDOWS}
   CloseHandle(_Handle);
   {$ELSE}
+
+  {$IFNDEF LINUX}
   sem_destroy(@_Handle);
+  {$ENDIF}
+  
   {$ENDIF}
 End;
 
@@ -188,7 +198,11 @@ Begin
   {$IFDEF WINDOWS}
   ReleaseSemaphore(_Handle,1, Nil); // unblock all the threads
   {$ELSE}
+
+  {$IFNDEF LINUX}
   sem_post(@_Handle);
+  {$ENDIF}
+  
   {$ENDIF}
 End;
 
@@ -197,7 +211,11 @@ Begin
   {$IFDEF WINDOWS}
   WaitForSingleObject(_Handle, INFINITE);
   {$ELSE}
+
+  {$IFNDEF LINUX}
   sem_wait(@_Handle);
+  {$ENDIF}
+  
   {$ENDIF}
 End;
 

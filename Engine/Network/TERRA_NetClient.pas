@@ -26,7 +26,7 @@ Unit TERRA_NetClient;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Application, TERRA_OS, TERRA_Sockets, TERRA_Network;
+Uses TERRA_String, TERRA_Application, TERRA_OS, TERRA_Sockets, TERRA_Network;
 
 Type
   NetClient = Class(NetObject)
@@ -34,27 +34,27 @@ Type
       _Status:NetStatus;             // Connection to server status
       _ServerAddress:SocketAddress;  // Address of the server
       _GUID:Word;                     // Random number used by the server to search for duplicate Clients
-      _LastPing:Cardinal;             // Used to check for dead connection
-      _Latency:Cardinal;      // Latency to server
       _PingStart:Cardinal;    // Used to measure latency
       _JoinTime:Cardinal;
 
       _IsConnecting:Boolean;
-      _UserName:AnsiString;
-      _Password:AnsiString;
+      _UserName:TERRAString;
+      _Password:TERRAString;
       _TCPSocket:Socket;
 
       Procedure ClearConnection(ErrorCode:Integer);
+
+      Procedure UpdateGUID();
 
     Public
       //Creates a new client instance
       Constructor Create();
 
       //Destroys the client instance
-      Destructor Destroy;Override;
+      Destructor Destroy; Override; 
 
       //Connects to a server
-      Procedure Connect(Port,Version:Word; Server,UserName,Password:AnsiString);
+      Procedure Connect(Port,Version:Word; Server,UserName,Password:TERRAString);
 
       //Disconnects from server
       Procedure Disconnect(ErrorCode:Integer=0);
@@ -62,7 +62,7 @@ Type
       //Handles messages
       Procedure Update; Override;
 
-      Function CreateJoinMessage(Username, Password, DeviceID:AnsiString; GUID:Word):NetMessage; //Creates a server message
+      Function CreateJoinMessage(Username, Password, DeviceID:TERRAString; GUID:Word):NetMessage; //Creates a server message
 
       //Send a message to the server
       Procedure SendMessage(Msg:NetMessage);
@@ -70,27 +70,25 @@ Type
       Procedure SendEmptyMessage(Opcode:Byte); 
 
       Procedure ConnectionStart; Virtual; //Event: When a connection start
-      Procedure ConnectionEnd(ErrorCode:Integer; ErrorLog:AnsiString); Virtual;   //Event: When a connection ends
+      Procedure ConnectionEnd(ErrorCode:Integer; ErrorLog:TERRAString); Virtual;   //Event: When a connection ends
 
       Function IsConnected():Boolean;
 
       Function ValidateMessage(Msg:NetMessage):Boolean; Override;
 
       //Message handlers
-      Procedure PingMessage(Msg:NetMessage; Sock:Socket);
-      Procedure ShutdownMessage(Msg:NetMessage; Sock:Socket);
+      Procedure OnShutdownMessage(Msg:NetMessage; Sock:Socket);
 
       Property IsConnecting:Boolean Read _IsConnecting;
 
       Property Status:NetStatus Read _Status;
-      Property Latency:Cardinal Read _Latency;
   End;
 
 Implementation
 Uses TERRA_Log;
 
 { NetClient }
-Function NetClient.CreateJoinMessage(Username, Password, DeviceID:AnsiString; GUID:Word):NetMessage; //Creates a server message
+Function NetClient.CreateJoinMessage(Username, Password, DeviceID:TERRAString; GUID:Word):NetMessage; //Creates a server message
 Begin
   Result := NetMessage.Create(nmClientJoin);
   Result.Owner := ID_UNKNOWN;
@@ -101,14 +99,7 @@ Begin
   Result.WriteString(DeviceID);
 End;
 
-//Ping message
-Procedure NetClient.PingMessage(Msg:NetMessage; Sock:Socket);
-Begin
-  Msg.Owner := _LocalId;
-  SendMessage(Msg); //Tell server that we are alive
-End;
-
-Procedure NetClient.ShutdownMessage(Msg:NetMessage; Sock:Socket);
+Procedure NetClient.OnShutdownMessage(Msg:NetMessage; Sock:Socket);
 Var
   Code:Word;
 Begin
@@ -124,13 +115,10 @@ Begin
   NetworkManager.Instance.AddObject(Self);
 
   _Status := nsDisconnected;
-  _Name := 'NetClient';
-  _LastPing := 0;
 
-  _OpcodeList[nmPing] := PingMessage;
-  _OpcodeList[nmServerShutdown] := ShutdownMessage;
+  _OpcodeList[nmServerShutdown] := OnShutdownMessage;
 
-  _GUID:= (GetTime() Mod 65214);
+  UpdateGUID();
 End;
 
 // Disconnects from server and destroys the client instance
@@ -152,10 +140,15 @@ Begin
 End;
 
 
+Procedure NetClient.UpdateGUID();
+Begin
+  _GUID := (GetTime() Mod 65214);
+End;
+
 Function NetClient.ValidateMessage(Msg:NetMessage):Boolean;
 Var
   Code:Word;
-  ErrorLog:AnsiString;
+  ErrorLog:TERRAString;
 Begin
   //Is this an ACK?
   Case Msg.Opcode Of
@@ -174,8 +167,7 @@ Begin
     nmServerError:
       Begin
         Msg.Read(@Code, 2);
-        If Not Msg.EOF Then
-          Msg.ReadString(ErrorLog);
+        Msg.ReadString(ErrorLog);
         Log(logError,'Network','ErrorMessage: '+GetNetErrorDesc(Code));
 
         Result := False;
@@ -187,8 +179,7 @@ Begin
         Begin
           _IsConnecting := False;
           Self.ConnectionEnd(Code, ErrorLog);
-          If (Code = errDuplicatedGUID) Then
-            _GUID := (GetTime() Mod 65214);
+          UpdateGUID();
           Exit;
         End;
       End;
@@ -197,7 +188,7 @@ Begin
   End;
 End;
 
-Procedure NetClient.Connect(Port,Version:Word; Server, UserName, Password:AnsiString);
+Procedure NetClient.Connect(Port,Version:Word; Server, UserName, Password:TERRAString);
 Var
   JoinMsg:NetMessage;
 Begin
@@ -211,7 +202,7 @@ Begin
 
   _IsConnecting := True;
 
-  Log(logDebug,'Network',_Name+'.Connect: '+Server);
+  Log(logDebug,'Network', Self.ClassName+'.Connect: '+Server);
 
   //Create a socket for sending/receiving messages
   _TCPSocket := Socket.Create(Server, _Port);
@@ -252,19 +243,12 @@ Begin
       _IsConnecting := False;
       Self.ClearConnection(errConnectionTimeOut);
     End;
-  End Else
-  If (GetTime - _LastPing>30*1000) Then
-  Begin
-    _LastPing := GetTime();
-    Log(logDebug,'Network',_Name+'.Update: Pong');
-
-    Self.SendEmptyMessage(nmPing); //Tell server that we are alive
   End;
 
   If (Self._TCPSocket<>Nil) And (Self._TCPSocket.Closed) Then
   Begin
     {$IFNDEF STAYALIVE}
-    Log(logWarning,'Network',_Name+'.Update: Connection lost');
+    Log(logWarning,'Network', Self.ClassName+'.Update: Connection lost');
     Disconnect(errConnectionLost); //Conection lost
     {$ENDIF}
   End;
@@ -290,8 +274,6 @@ Begin
 
   If (_Status <> nsConnected) And (Msg.Opcode<>nmClientJoin) Then
     Exit;
-
-  _LastPing := GetTime();
 
   //_NextPong := GetTime() + PONG_TIME;
   If (Msg.Opcode <> nmClientJoin) Then

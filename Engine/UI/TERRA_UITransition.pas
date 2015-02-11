@@ -27,9 +27,9 @@ Unit TERRA_UITransition;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Math, TERRA_Vector2D, TERRA_Vector3D, TERRA_Texture,
+  TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Vector2D, TERRA_Vector3D, TERRA_Texture,
   {$IFDEF POSTPROCESSING}TERRA_ScreenFX, {$ENDIF}
-  TERRA_RenderTarget, TERRA_Image, TERRA_Color, TERRA_Shader, TERRA_Matrix4x4;
+  TERRA_RenderTarget, TERRA_Image, TERRA_Color, TERRA_Shader, TERRA_Matrix4x4, TERRA_Matrix3x3;
 
 Type
   FadeCallback = Procedure(Arg:Pointer);  CDecl;
@@ -52,6 +52,7 @@ Type
       _Arg:Pointer;
       _EaseType:Integer;
       _FinishValue:Single;
+      _Transform:Matrix3x3;
 
       Procedure Render(Alpha:Single); Virtual; Abstract;
 
@@ -66,6 +67,8 @@ Type
       Property Duration:Integer Read _Duration;
       Property ID:Cardinal Read _ID;
       Property EaseType:Integer Read _EaseType Write _EaseType;
+
+      Property Transform:Matrix3x3 Read _Transform Write _Transform;
   End;
 
   UIFade = Class(UITransition)
@@ -101,10 +104,10 @@ Var
   _FadeShader:Shader;
   _SlideShader:Shader;
 
-Function GetShader_UIFade:AnsiString;
+Function GetShader_UIFade:TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('vertex {');
@@ -129,10 +132,10 @@ Begin
   Result := S;
 End;
 
-Function GetShader_UISlide:AnsiString;
+Function GetShader_UISlide:TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('vertex {');
@@ -243,6 +246,7 @@ End;
 
 Procedure UIFade.Render(Alpha:Single);
 Var
+  I:Integer;
   X,Y:Single;
   FadeVertices:Array[0..6] Of FadeVertex;
   PositionHandle, UVHandle:Integer;
@@ -250,6 +254,7 @@ Var
   M:Matrix4x4;
   StencilID:Byte;
   Delta:Single;
+  P:Vector2D;
 Begin
   If (_FadeOut) Then
     Alpha := 1.0 - Alpha;
@@ -295,6 +300,15 @@ Begin
   FadeVertices[4].Position.X := X;
   FadeVertices[4].Position.Y := 0.0;
   FadeVertices[5] := FadeVertices[0];
+
+  For I:=0 To 5 Do
+  Begin
+    P.X := FadeVertices[I].Position.X;
+    P.Y := FadeVertices[I].Position.Y;
+    P := _Transform.Transform(P);
+    FadeVertices[I].Position.X := P.X;
+    FadeVertices[I].Position.Y := P.Y;
+  End;
 
   glDisable(GL_DEPTH_TEST);
 
@@ -399,6 +413,8 @@ Var
   PositionHandle, UVHandle:Integer;
   StencilID:Integer;
   Delta:Single;
+  I:Integer;
+  P:Vector2D;
 Begin
   Delta := GetEase(Alpha, _EaseType);
 
@@ -440,6 +456,15 @@ Begin
   FadeVertices[4].UV.X := 1.0;
   FadeVertices[4].UV.Y := 1.0;
   FadeVertices[5] := FadeVertices[0];
+
+  For I:=0 To 5 Do
+  Begin
+    P.X := FadeVertices[I].Position.X;
+    P.Y := FadeVertices[I].Position.Y;
+    P := _Transform.Transform(P);
+    FadeVertices[I].Position.X := P.X;
+    FadeVertices[I].Position.Y := P.Y;
+  End;
 
   glVertexAttribPointer(PositionHandle, 2, GL_FLOAT, False, 16, @(FadeVertices[0].Position));    
   glVertexAttribPointer(UVHandle, 2, GL_FLOAT, False, 16, @(FadeVertices[0].UV));  

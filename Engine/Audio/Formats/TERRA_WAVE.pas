@@ -25,13 +25,13 @@
 Unit TERRA_WAVE;
 {$I terra.inc}
 Interface
-Uses TERRA_IO, TERRA_Sound;
+Uses TERRA_Stream, TERRA_Sound;
 
 Function ValidateWAV(Source:Stream):Boolean;
 Function WAVLoad(Source:Stream; MySound:Sound):Boolean;
 
 Implementation
-Uses TERRA_Error, TERRA_Utils, TERRA_FileIO, TERRA_FileUtils, TERRA_Log, TERRA_Application;
+Uses TERRA_Error, TERRA_Utils, TERRA_FileStream, TERRA_FileUtils, TERRA_Log, TERRA_Application;
 
 Const
   PCM_FORMAT =  1;

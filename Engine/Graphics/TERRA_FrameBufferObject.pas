@@ -27,7 +27,8 @@ Unit TERRA_FrameBufferObject;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Utils, TERRA_Image, TERRA_Color, TERRA_Vector2D, TERRA_RenderTarget;
+  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
+  TERRA_String, TERRA_Utils, TERRA_Image, TERRA_Color, TERRA_Vector2D, TERRA_RenderTarget;
 
 Const
   FBO_COLOR8	= 1;
@@ -62,13 +63,13 @@ Type
   	  // Free OpenGL memory
 	    Procedure Release;
 
-      Function GetErrorString(Code:Integer):AnsiString;
+      Function GetErrorString(Code:Integer):TERRAString;
 
 	    Procedure InitCapture(Flags:Cardinal); Override;
 
     Public
-	    Constructor Create(Name:AnsiString; Width, Height, ColorType:Integer; DepthBuffer, StencilBuffer, Multisample:Boolean; Targets:Integer);
-      Constructor CreateShared(Name:AnsiString; OtherFBO:FrameBufferObject; ColorType, Targets:Integer);
+	    Constructor Create(Name:TERRAString; Width, Height, ColorType:Integer; DepthBuffer, StencilBuffer, Multisample:Boolean; Targets:Integer);
+      Constructor CreateShared(Name:TERRAString; OtherFBO:FrameBufferObject; ColorType, Targets:Integer);
 	    Destructor Destroy; Override;
 
 	    // Use it as a texture
@@ -91,7 +92,7 @@ Type
 Implementation
 Uses TERRA_Error, TERRA_GraphicsManager, TERRA_Resource, TERRA_Texture, TERRA_Application, TERRA_OS, TERRA_Log;
 
-Function FrameBufferObject.GetErrorString(Code:Integer):AnsiString;
+Function FrameBufferObject.GetErrorString(Code:Integer):TERRAString;
 Begin
 	Case Code Of
 		GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
@@ -119,7 +120,7 @@ Begin
     End;
 End;
 
-Constructor FrameBufferObject.Create(Name:AnsiString; Width, Height, ColorType:Integer; DepthBuffer, StencilBuffer, Multisample:Boolean; Targets:Integer);
+Constructor FrameBufferObject.Create(Name:TERRAString; Width, Height, ColorType:Integer; DepthBuffer, StencilBuffer, Multisample:Boolean; Targets:Integer);
 Var
   I:Integer;
 Begin
@@ -171,7 +172,7 @@ Begin
   Self.Init();
 End;
 
-Constructor FrameBufferObject.CreateShared(Name:AnsiString; OtherFBO:FrameBufferObject; ColorType, Targets:Integer);
+Constructor FrameBufferObject.CreateShared(Name:TERRAString; OtherFBO:FrameBufferObject; ColorType, Targets:Integer);
 Var
   I, Status:Integer;
 Begin
@@ -575,7 +576,7 @@ Begin
   glDrawBuffers(_TargetCount, @_DrawBuffers[0]);
   {$ENDIF}
 
-  GraphicsManager.Instance.SetViewArea(0, 0, Width, _Height);
+  GraphicsManager.Instance.ActiveViewport.SetViewArea(0, 0, Width, _Height);
 
   If (Flags<>0) Then
   Begin

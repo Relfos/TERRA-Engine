@@ -22,75 +22,12 @@
  ***********************************************************************************************************************
 }
 
-{
-@abstract(MS3D Loader)
-@author(Sergio Flores <relfos@gmail.com>)
-@created(March 19, 2005)
-@lastmod(December, 2011)
-The MS3D unit provides support for loading of Milkshape3D mesh files.
-Based in the file "MilkShape 3D 1.7.3 File Format Specification" written by Mete Ciragan.
-
-Version History
-   19/3/05  • Implemented TMS3DMesh Class
-   24/3/05  • Create() method now also creates materials/textures
-            • The Render() method actually draws something,
-              but incorrectly
-               • Fixed, models are displayed correctly now
-            • Now TMS3DMesh class uses vertex and index buffers
-            • Oopps, fatal error crashed my pc.
-               • Delphi files become corrupted
-            • Bug, when loading models with more than one material
-   25/3/05  • Fixed Bug, with multimaterials mesh
-            • Fixed Bug, with materials without texture
-   26/3/05  • Fixed bug, vertex normals were incorrectly loaded
-   28/3/05  • Added support for animations
-            • Added Scale function
-              • Useful for resizing models to fit display window
-            • Animation bugs fixed -> Works fine now
-   09/4/05  • Fixed "pseudobug" in material loading
-              • When loading meshes i found that some have a default material name of "Material01"
-              • This was causing all meshes to use the same material, and therefore the same texture
-   08/6/05  • CellShaded meshes now are affected by ambient color
-   25/6/05  • CellShadedMesh.Render() now supports attached meshes
-            • Fixed bug in CellShadedMesh.Render() that disabled 2d texturing
-   27/6/05  • Mesh.Render() now supports attached meshes
-            • Some bug fixes in textures/material loading/uploading
-   29/6/05  • Fixed Mesh.Save()
-            • Added support for MS3D_HIDDEN flag for hiding groups
-   15/7/05  • Now its possible to change each group material individually
-   17/7/05  • Fixed bug with GroupsMaterials
-   23/7/05  • Now its possible to change each group color individually
-   28/7/05  • Remodeled code in order to work with the generic PMesh implementation
-            • Remodeled code in order to work with the new shader system
-               • LCellShadedMS3DMesh now longer exists, setup a shader to achieve the same effect
-   6/8/05   • Small optimization with static models without animations/Bones
-   9/8/05   • Remodeled code in order to work with the new GraphicsManager system
-  11/8/05   • Added support for skeletal colision
-               • Can be more than 75% faster for complex models
-               • Skeletal bones animation not implemented yet
-               • Static bones are used for colision test
-  18/8/05   • Minor optimization
-               • Parents bone uses indices, instead of name string
-  19/8/05   • Fixed colision skeleton loading
-               • Skeleteon should be correct for all models
-  21/8/05   • Fixed bug with bounding box detection for animated meshes
-               • Note: Bounding box isnt updated when mesh is animated
-  3/12/05   • Fixed animation FPS bug
-  25/2/06   • Loader now loads group comments
-  30/7/06   • Added LMS3DMesh class
-              • MS3D files can now be loaded directly
-  12/8/06   • MS3D loader now also loads model comment
-                • Model comment is now used to declare animationActions
-  23/8/06   • Fixed texture loading bug when compiling with FPC
-
-}
-
 Unit TERRA_Milkshape;
 
 {$I terra.inc}
 Interface
-Uses TERRA_Utils, TERRA_Math, TERRA_IO, TERRA_INI, TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix4x4,
-  TERRA_Color, TERRA_FileIO, TERRA_FileUtils, TERRA_Vector4D, TERRA_MeshFilter;
+Uses TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Stream, TERRA_INI, TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix4x4,
+  TERRA_Color, TERRA_FileStream, TERRA_FileUtils, TERRA_Vector4D, TERRA_MeshFilter;
 
 Const
   MS3D_HEADER='MS3D000000';
@@ -302,8 +239,7 @@ Begin
     Exit;
   End;
 
-  Result := StrClean(Materials[MaterialIndex].Texture);
-  Result := TrimLeft(TrimRight(Result));
+  Result := StringTrim(Materials[MaterialIndex].Texture);
   Result := GetOSIndependentFileName(Result);
   If (Pos('.',Result)<=0) Then
     Result := Result + '.png';
@@ -436,7 +372,7 @@ Begin
   Begin
     Joints[I].Parent := Nil;
     For J:=0 To Pred(NumJoints) Do
-    If (StrClean(Joints[J].Name) = StrClean(Joints[I].ParentName)) Then
+    If (StringEquals(StringTrim(Joints[J].Name), StringTrim(Joints[I].ParentName))) Then
     Begin
       Joints[I].Parent := @Joints[J];
       Break;
@@ -710,11 +646,11 @@ Var
   I:Integer;
   S, PName:AnsiString;
 Begin
-  PName := StrClean(Joints[Child].ParentName);
+  PName := StringTrim(Joints[Child].ParentName);
   For I:=0 To Pred(NumJoints) Do
   Begin
-    S := StrClean(Joints[I].Name);
-    If (S=PName) Then
+    S := StringTrim(Joints[I].Name);
+    If (StringEquals(S, PName)) Then
     Begin
       Result := I;
       Exit;
@@ -980,7 +916,7 @@ Begin
   Begin
     MS3D.NumModelComments := 1;
     MS3D.Comment := 'Name='+MyMEsh.GetAnimationName(AnimID)+', Start=1, End='+IntToString(MS3D.TotalFrames)+', Loop='+BoolToString(MyMesh.GetAnimationLoop(AnimID))+#0;
-    MS3D.Comment := LowStr(MS3D.Comment);
+    MS3D.Comment := StringLower(MS3D.Comment);
   End;
   
   MS3D.NumJoints := MyMesh.GetBoneCount;
@@ -1114,7 +1050,7 @@ Begin
     Else
       Break;
 
-    Result := TrimLeft(Result);
+    Result := StringTrimLeft(Result);
   End Else
     Result := '';
 End;

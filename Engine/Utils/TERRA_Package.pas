@@ -4,7 +4,7 @@ Unit TERRA_Package;
 {-$DEFINE ALLOWEXTERNAL}
 
 Interface
-Uses TERRA_FileUtils, TERRA_IO, TERRA_Collections, TERRA_Resource;
+Uses TERRA_String, TERRA_FileUtils, TERRA_Stream, TERRA_Collections, TERRA_Resource;
 
 Const
   terraHeader:FileHeader = 'TePK';
@@ -20,31 +20,31 @@ Type
     Protected
       _Owner:Package;
       _TypeClass:ResourceClass;    // Resource type tag
-      _Name:AnsiString;                // Resource name
+      _Name:TERRAString;                // Resource name
 
-      _FileName:AnsiString;            // Resource filename
+      _FileName:TERRAString;            // Resource filename
       _Offset:Cardinal;            // Offset of the resource
       _Size:Cardinal;              // Size of the resource (bytes)
       _Flags:Cardinal;             // Flags
       _CRC:Cardinal;
 
-      _ExternalPath:AnsiString;        // External path/override
+      _ExternalPath:TERRAString;        // External path/override
 
-      Function GetName:AnsiString;
+      Function GetName:TERRAString;
 
     Public
-      Function GetLocation:AnsiString;
+      Function GetLocation:TERRAString;
 
-      Property Name:AnsiString Read GetName;
-      Property FileName:AnsiString Read _FileName;
+      Property Name:TERRAString Read GetName;
+      Property FileName:TERRAString Read _FileName;
       Property Size:Cardinal Read _Size;
       Property Flags:Cardinal Read _Flags;
   End;
 
   Package = Class
     Private
-      _Name:AnsiString;
-      _Location:AnsiString;
+      _Name:TERRAString;
+      _Location:TERRAString;
       _File:Stream;
       _DataOffset:Cardinal;  // Header size, files data starts here
       _TableOffset:Cardinal; // Table position in the file
@@ -73,14 +73,14 @@ Type
       Function GetNewOffset(Size:Integer):Integer;
 
     Public
-      Path:AnsiString;  // File override path
-      Password:AnsiString;
+      Path:TERRAString;  // File override path
+      Password:TERRAString;
 
       // Create a new empty package
-      Constructor New(FileName:AnsiString);
+      Constructor New(FileName:TERRAString);
 
       // Load a package from disk
-      Constructor Open(FileName:AnsiString; EditMode:Boolean = False); Overload;
+      Constructor Open(FileName:TERRAString; EditMode:Boolean = False); Overload;
       Constructor Open(Source:Stream); Overload;
 
       Destructor Destroy; Reintroduce;
@@ -92,7 +92,7 @@ Type
       Function Update:Boolean;
 
       // Searches for a resource inside a package
-      Function FindResource(ResourceName:AnsiString):PResourceInfo;
+      Function FindResource(ResourceName:TERRAString):PResourceInfo;
 
       // Loads a resource into a stream
       // Note: If resource file is found in search path the is loaded from there
@@ -100,7 +100,7 @@ Type
       Function LoadResource(Resource:PResourceInfo; AllowPatches:Boolean = False):Stream;
 
       //Adds a resource to the package
-      Function AddResource(ResourceFileName:AnsiString; Flags:Cardinal=0):PResourceInfo;
+      Function AddResource(ResourceFileName:TERRAString; Flags:Cardinal=0):PResourceInfo;
 
       Procedure DeleteResource(Resource:PResourceInfo);
 
@@ -112,13 +112,13 @@ Type
       Function CreateIterator:Iterator;
 
       // Package name
-      Property Name:AnsiString Read _Name;
+      Property Name:TERRAString Read _Name;
       Property ResourceCount:Integer Read _ResourceCount;
     End;
 
 Implementation
 Uses TERRA_Error, TERRA_Utils, TERRA_CRC32, TERRA_Application, TERRA_OS, TERRA_Log, TERRA_ResourceManager,
-  TERRA_FileIO, TERRA_FileManager;
+  TERRA_FileStream, TERRA_FileManager, TERRA_MemoryStream;
 
 Type
   PackageIterator=Class(Iterator)
@@ -131,16 +131,16 @@ Type
       Function GetNext:ListObject; Override;
   End;
 
-Function ResourceInfo.GetName:AnsiString;
+Function ResourceInfo.GetName:TERRAString;
 Begin
   If Assigned(_TypeClass) Then
     Result := _TypeClass.ClassName+'.'+_Name
   Else
     Result := 'Resource.'+_Name;
-  Result := UpStr(Result);
+  Result := StringUpper(Result);
 End;
 
-Function ResourceInfo.GetLocation:AnsiString;
+Function ResourceInfo.GetLocation:TERRAString;
 Begin
    Result := _Owner._Location + PathSeparator + _Filename;
 End;
@@ -150,7 +150,7 @@ Function Package.Update:Boolean;
 Var
   I:Integer;
   MyResource:Resource;
-  NewLocation:AnsiString;
+  NewLocation:TERRAString;
   Manager:ResourceManager;
 Begin
   For I:=0 To Pred(_ResourceCount) Do
@@ -208,12 +208,12 @@ Begin
   End;
 End;
 
-Constructor Package.New(FileName:AnsiString);
+Constructor Package.New(FileName:TERRAString);
 Begin
   Log(logDebug,'Package', 'Creating package '+FileName);
 
   _Location := FileName;
-  _Name := UpStr(GetFileName(FileName, True));
+  _Name := StringUpper(GetFileName(FileName, True));
   _EditMode := True;
   _ResourceCount := 0;
   _TableOffset := 4 + Succ(Length(_Name)) + SizeOf(_ResourceCount) + SizeOf(_TableOffset);
@@ -302,7 +302,7 @@ End;
 Function Package.Load:Boolean;
 Var
   I,J:Integer;
-  S:AnsiString;
+  S:TERRAString;
   Header:FileHeader;
   Resource:PResourceInfo;
 Begin
@@ -329,7 +329,7 @@ Begin
     _File.ReadString(S); //Read resource name
     //Log(logDebug, 'Package', 'Read '+S);
     Resource._FileName := S;
-    Resource._Name := UpStr(GetFileName(S,True));
+    Resource._Name := StringUpper(GetFileName(S,True));
 
     S := FindResourceClass(Resource._FileName);
     Resource._TypeClass := GetResourceClass(S);
@@ -375,7 +375,7 @@ Begin
     _Location := _Name+'.leaf';
 End;
 
-Constructor Package.Open(FileName:AnsiString; EditMode:Boolean);
+Constructor Package.Open(FileName:TERRAString; EditMode:Boolean);
 Begin
   _Location := FileName;
   _Name := GetFileName(FileName, True);
@@ -393,11 +393,11 @@ End;
 
 //Searches for a resource within the file table
 //If not found returns nil
-Function Package.FindResource(ResourceName:AnsiString):PResourceInfo;
+Function Package.FindResource(ResourceName:TERRAString):PResourceInfo;
 Var
   I:Integer;
 Begin
-  ResourceName := UpStr(FindResourceClass(ResourceName)+'.'+GetFileName(ResourceName,True));
+  ResourceName := StringUpper(FindResourceClass(ResourceName)+'.'+GetFileName(ResourceName,True));
 
   Result := Nil;
   For I:=0 To Pred(_ResourceCount) Do
@@ -465,7 +465,7 @@ Begin
 End;
 
 // Adds a resource to the package
-Function Package.AddResource(ResourceFileName:AnsiString; Flags:Cardinal):PResourceInfo;
+Function Package.AddResource(ResourceFileName:TERRAString; Flags:Cardinal):PResourceInfo;
 Var
   Buffer:PByte;
   I, N, Count:Integer;
@@ -473,16 +473,16 @@ Var
   MyResourceClass:ResourceClass;
 
   Source:MemoryStream;
-  Name:AnsiString;
+  Name:TERRAString;
 Begin
   Log(logDebug,'Package', 'Adding resource '+ResourceFileName);
 
   Name := FindResourceClass(ResourceFileName);
   MyResourceClass := GetResourceClass(Name);
 
-  Name := UpStr(GetFileName(ResourceFileName, True));
+  Name := StringUpper(GetFileName(ResourceFileName, True));
   If Assigned(MyResourceClass) Then
-    Name := UpStr(MyResourceClass.ClassName) + '.' + Name
+    Name := StringUpper(MyResourceClass.ClassName) + '.' + Name
   Else
     Name := 'Resource.'+Name;
 

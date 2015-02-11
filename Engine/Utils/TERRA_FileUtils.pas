@@ -30,18 +30,19 @@ Unit TERRA_FileUtils;
 {$ENDIF}
 
 Interface
+Uses TERRA_String;
 
 Type
   FileHeader = Array[1..4] Of AnsiChar;
 
-Function GetFilePath(FileName:AnsiString):AnsiString;
-Function GetLastFilePath(FileName:AnsiString):AnsiString;
-Function GetFirstFilePath(FileName:AnsiString):AnsiString;
-Function GetFileName(FileName:AnsiString;Const RemoveExt:Boolean):AnsiString;
-Function GetFileExtension(FileName:AnsiString):AnsiString;
+Function GetFilePath(FileName:TERRAString):TERRAString;
+Function GetLastFilePath(FileName:TERRAString):TERRAString;
+Function GetFirstFilePath(FileName:TERRAString):TERRAString;
+Function GetFileName(Const FileName:TERRAString;Const RemoveExt:Boolean):TERRAString;
+Function GetFileExtension(FileName:TERRAString):TERRAString;
 
-Function GetOSIndependentFileName(FileName:AnsiString):AnsiString;
-Function GetOSIndependentFilePath(Path:AnsiString):AnsiString;
+Function GetOSIndependentFileName(FileName:TERRAString):TERRAString;
+Function GetOSIndependentFilePath(Path:TERRAString):TERRAString;
 
 Function CompareFileHeader(Const A, B:FileHeader):Boolean;
 
@@ -53,12 +54,12 @@ Begin
   Result := (A[1] = B[1]) And (A[2] = B[2])  And (A[3] = B[3]) And (A[4] = B[4]);
 End;
 
-Function GetFilePath(FileName:AnsiString):AnsiString;
+Function GetFilePath(FileName:TERRAString):TERRAString;
 Var
   I:Integer;
-  S:AnsiString;
+  S:TERRAString;
 Begin
-  I := Pos(PathSeparator,FileName);
+  I := StringCharPos(Ord(PathSeparator), FileName);
   S := '';
   While I>=1 Do
   Begin
@@ -69,7 +70,7 @@ Begin
   Result := S;
 End;
 
-Function GetLastFilePath(FileName:AnsiString):AnsiString;
+Function GetLastFilePath(FileName:TERRAString):TERRAString;
 Var
   I:Integer;
 Begin
@@ -83,10 +84,10 @@ Begin
   End;
 End;
 
-Function GetFirstFilePath(FileName:AnsiString):AnsiString;
+Function GetFirstFilePath(FileName:TERRAString):TERRAString;
 Var
   I:Integer;
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := GetFilePath(FileName);
   S := Copy(S, 1, Length(S)-1);
@@ -100,32 +101,33 @@ Begin
   End;
 End;
 
-Function GetFileName(FileName:AnsiString;Const RemoveExt:Boolean):AnsiString;
+Function GetFileName(Const FileName:TERRAString; Const RemoveExt:Boolean):TERRAString;
 Var
   I:Integer;
+  List:StringArray;
 Begin
-  I := Pos(':',FileName);
+  I := StringCharPos(Ord(':'), FileName);
   If I>=1 Then
-    FileName := Copy(FileName, (I+1), MaxInt);
+    Result := StringCopy(FileName, (I+1), MaxInt)
+  Else
+    Result :=  FileName;
 
-  I := Pos(PathSeparator,FileName);
-  While I>=1 Do
+
+  I := StringCharPosReverse(Ord(PathSeparator), Result);
+  If (I>0) Then
   Begin
-    FileName := Copy(FileName, I+1, MaxInt);
-    I := PosRev(PathSeparator, FileName);
+    Result := StringCopy(Result, Succ(I), MaxInt);
   End;
-
-  Result:=FileName;
 
   If RemoveExt Then
   Begin
-    I := PosRev('.',FileName);
-    If I>=1 Then 
-        Result := Copy(FileName, 1, I-1);
+    I := StringCharPosReverse(Ord('.'), Result);
+    If I>0 Then
+      Result := StringCopy(Result, 1, Pred(I));
   End;
 End;
 
-Function GetFileExtension(FileName:AnsiString):AnsiString;
+Function GetFileExtension(FileName:TERRAString):TERRAString;
 Var
   I:Integer;
 Begin
@@ -140,7 +142,7 @@ Begin
   Until I<1;
 End;
 
-Function GetOSIndependentFileName(FileName:AnsiString):AnsiString;
+Function GetOSIndependentFileName(FileName:TERRAString):TERRAString;
 Var
   I:Integer;
 Begin
@@ -152,7 +154,7 @@ Begin
       Result := Result + FileName[I];
 End;
 
-Function GetOSIndependentFilePath(Path:AnsiString):AnsiString;
+Function GetOSIndependentFilePath(Path:TERRAString):TERRAString;
 Begin
   If (Path ='') Then
   Begin
@@ -166,7 +168,7 @@ Begin
 {$IFDEF PC}
 {  If (Not DirectoryExists(Path)) Then
   Begin
-    Path := LowStr(Path);
+    Path := StringLower(Path);
     If (Not DirectoryExists(Path)) Then
     Begin
       Path := CapStr(Path);

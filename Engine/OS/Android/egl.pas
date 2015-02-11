@@ -1,7 +1,7 @@
 {
 ** Copyright (c) 2007-2009 The Khronos Group Inc.
 **
-** Permission is hereby granted, free Of AnsiCharge, to any person obtaining a
+** Permission is hereby granted, free Of TERRACharge, to any person obtaining a
 ** copy of this software and/or associated documentation files (the
 ** "Materials"), to deal in the Materials without restriction, including
 ** without limitation the rights to use, copy, modify, merge, publish,
@@ -256,7 +256,7 @@ function eglGetDisplay(display_id: EGLNativeDisplayType): EGLDisplay; cdecl; ext
 function eglInitialize(dpy: EGLDisplay; major, minor: PEGLint): EGLBoolean; cdecl; external LibName;
 function eglTerminate(dpy: EGLDisplay): EGLBoolean; cdecl; external LibName;
 
-function eglQueryString(dpy: EGLDisplay; name_: EGLint): PAnsiChar; cdecl; external LibName;
+function eglQueryString(dpy: EGLDisplay; name_: EGLint): PTERRAChar; cdecl; external LibName;
 
 function eglGetConfigs(dpy: EGLDisplay; configs: PEGLConfig; config_size: EGLint; num_config: PEGLint): EGLBoolean; cdecl; external LibName;
 function eglChooseConfig(dpy: EGLDisplay; attrib_list: PEGLint; configs: PEGLConfig; config_size: EGLint; num_config: PEGLint): EGLBoolean; cdecl; external LibName;
@@ -296,7 +296,7 @@ function eglCopyBuffers(dpy: EGLDisplay; surface: EGLSurface; target: EGLNativeP
 type
   __eglMustCastToProperFunctionPointerType = procedure; cdecl;
 
-function eglGetProcAddress(procname: PAnsiChar): __eglMustCastToProperFunctionPointerType; cdecl; external LibName;
+function eglGetProcAddress(procname: PTERRAChar): __eglMustCastToProperFunctionPointerType; cdecl; external LibName;
 
 implementation
 

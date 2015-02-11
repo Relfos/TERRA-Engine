@@ -26,7 +26,7 @@ Unit TERRA_DebugDraw;
 {$I terra.inc}
 Interface
 
-Uses TERRA_GraphicsManager, TERRA_Color, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_BoundingBox, TERRA_Frustum,
+Uses TERRA_String, TERRA_GraphicsManager, TERRA_Color, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_BoundingBox, TERRA_Frustum,
   TERRA_Ray, TERRA_Matrix4x4, TERRA_Vector3D, TERRA_Vector2D, TERRA_Utils, TERRA_SpriteManager,
   TERRA_MeshAnimation, TERRA_Collision2D, TERRA_Splines, TERRA_Shader;
 
@@ -190,10 +190,10 @@ End;
 Var
   _Shader:Shader;
 
-Function MyColorShader():AnsiString;
+Function MyColorShader():TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('vertex {');
@@ -894,25 +894,25 @@ Begin
   MaxX := FloatMax(A.X, B.X);
   MaxY := FloatMax(A.Y, B.Y);
 
-  S := SpriteManager.Instance.AddSprite(MinX, MinY, Layer, Tex);
+  S := SpriteManager.Instance.DrawSprite(MinX, MinY, Layer, Tex);
   S.SetColor(MyColor);
   S.Rect.Width := Trunc(MaxX-MinX);
   S.Rect.Height := Self.Thickness;
   S.ClipRect := Clip;
 
-  S := SpriteManager.Instance.AddSprite(MinX, MaxY - Self.Thickness, Layer, Tex);
+  S := SpriteManager.Instance.DrawSprite(MinX, MaxY - Self.Thickness, Layer, Tex);
   S.SetColor(MyColor);
   S.Rect.Width := Trunc(MaxX-MinX);
   S.Rect.Height := Self.Thickness;
   S.ClipRect := Clip;
 
-  S := SpriteManager.Instance.AddSprite(MinX, MinY, Layer, Tex);
+  S := SpriteManager.Instance.DrawSprite(MinX, MinY, Layer, Tex);
   S.SetColor(MyColor);
   S.Rect.Width := Self.Thickness;
   S.Rect.Height := Trunc(MaxY-MinY);
   S.ClipRect := Clip;
 
-  S := SpriteManager.Instance.AddSprite(MaxX- Self.Thickness, MinY, Layer, Tex);
+  S := SpriteManager.Instance.DrawSprite(MaxX- Self.Thickness, MinY, Layer, Tex);
   S.SetColor(MyColor);
   S.Rect.Width := Self.Thickness;
   S.Rect.Height := Trunc(MaxY-MinY);

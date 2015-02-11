@@ -30,7 +30,7 @@ Interface
 
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Utils, TERRA_Math, TERRA_GraphicsManager, TERRA_Vector3D, TERRA_Matrix, TERRA_Color, TERRA_Vector2D, TERRA_Texture,
-  TERRA_BoundingBox, TERRA_Image, TERRA_Ray, TERRA_Plane, TERRA_DebugRender, TERRA_MS3D, TERRA_IO, TERRA_FileIO,
+  TERRA_BoundingBox, TERRA_Image, TERRA_Ray, TERRA_Plane, TERRA_DebugRender, TERRA_MS3D, TERRA_Stream, TERRA_FileStream,
   TERRA_VertexBufferObject, TERRA_ShaderFactory, TERRA_Shader, TERRA_Lights;
 
 Const
@@ -98,7 +98,7 @@ Type
       Function GetBoundingBox:BoundingBox; Override;
       Procedure Render; Override;
 
-      Procedure ExportMesh(FileName:AnsiString);
+      Procedure ExportMesh(FileName:TERRAString);
 
       Function GetNormalAt(P:Vector3D):Vector3D;
 
@@ -412,7 +412,7 @@ Begin
     Result := Nil;
 End;
 
-procedure Terrain.ExportMesh(FileName:AnsiString);
+procedure Terrain.ExportMesh(FileName:TERRAString);
 Var
   MS3d:Milkshape3DObject;
   Dest:FileStream;

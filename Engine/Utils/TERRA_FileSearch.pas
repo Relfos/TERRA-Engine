@@ -33,7 +33,7 @@ Unit TERRA_FileSearch;
 {$ENDIF}
 
 Interface
-Uses TERRA_Utils, TERRA_Collections
+Uses TERRA_String, TERRA_Utils, TERRA_Collections
 {$IFDEF USEJAVA},TERRA_Java{$ENDIF}
 {$IFDEF NDS}{$IFDEF GBFS},TERRA_GBFS{$ENDIF}{$IFDEF LIBFAT}Fat, CTypes{$ENDIF}
 {$ELSE}, SysUtils{$ENDIF};
@@ -41,12 +41,12 @@ Uses TERRA_Utils, TERRA_Collections
 Type
   FileInfo= Class(ListObject)
     Public
-      Name:AnsiString;
-      Path:AnsiString;
+      Name:TERRAString;
+      Path:TERRAString;
       Level:Integer;
       Size:Integer;
 
-      Function ToString():AnsiString; Override;
+      Function ToString():TERRAString; Override;
 
     Protected
       Procedure CopyValue(Other:ListObject); Override;
@@ -54,21 +54,21 @@ Type
       Function GetHashKey():HashKey; Override;
   End;
 
-  Function SearchFiles(Path:AnsiString; Filter:AnsiString; SearchSubDirectories:Boolean):List;
-  Function SearchFolders(Path:AnsiString):List;
+  Function SearchFiles(Path:TERRAString; Filter:TERRAString; SearchSubDirectories:Boolean):List;
+  Function SearchFolders(Path:TERRAString):List;
 
 {$IFDEF USEJAVA}
   Var
     IsFolderMode:Boolean;
-    CurrentPath:AnsiString;
+    CurrentPath:TERRAString;
     CurrentLevel:Integer;
     CurrentFileDir:List;
 {$ENDIF}
 
 Implementation
-Uses TERRA_OS, TERRA_IO, TERRA_FileIO, TERRA_FileUtils;
+Uses TERRA_OS, TERRA_Stream, TERRA_FileStream, TERRA_FileUtils;
 
-Function FileInfo.ToString():AnsiString;
+Function FileInfo.ToString():TERRAString;
 Begin
   Result := Path+PathSeparator+Name;
 End;
@@ -96,11 +96,11 @@ End;
 {$IFDEF NDS}
 {$DEFINE HAS_IMPLEMENTATION}
 {$IFDEF GBFS}
-Procedure FileSearch.Search(Path:AnsiString; Filter:AnsiString; SearchSubDirectories:Boolean; Level:Integer);
+Procedure FileSearch.Search(Path:TERRAString; Filter:TERRAString; SearchSubDirectories:Boolean; Level:Integer);
 Var
   I, Count, Len:Integer;
-  Buffer:Array[0..30] Of AnsiChar;
-  FileName:AnsiString;
+  Buffer:Array[0..30] Of TERRAChar;
+  FileName:TERRAString;
   P:PFileInfo;
 Begin
   Count := gbfs_count_objs(@data_gbfs);
@@ -124,18 +124,18 @@ End;
 {$ENDIF}
 
 {$IFDEF LIBFAT}
-Procedure FileSearch.Search(Path:AnsiString; Filter:AnsiString; SearchSubDirectories:Boolean; Level:Integer);
+Procedure FileSearch.Search(Path:TERRAString; Filter:TERRAString; SearchSubDirectories:Boolean; Level:Integer);
 Var
-  FileName:AnsiString;
+  FileName:TERRAString;
   dir: PDIR_ITER;
   P:PFileInfo;
   st:Stat;
 Begin
-  Dir := DirOpen(PAnsiChar(Path));
+  Dir := DirOpen(PTERRAChar(Path));
   If (Not Assigned(Dir)) Then
     Exit;
 
-  While DirNext(Dir, PAnsiChar(@Filename), @st) = 0 Do
+  While DirNext(Dir, PTERRAChar(@Filename), @st) = 0 Do
   Begin
     If Not MatchRegEx(FileName, Filter) Then
       Continue;
@@ -143,7 +143,7 @@ Begin
     // st.st_mode & _IFDIR indicates a directory
     If (st.st_mode and $4000) <> 0 Then
     Begin
-      Search(PAnsiChar(@filename), Filter, SearchSubDirectories, Succ(Level));
+      Search(PTERRAChar(@filename), Filter, SearchSubDirectories, Succ(Level));
     End Else
     Begin
       New(P);
@@ -165,7 +165,7 @@ End;
 {$IFDEF USEJAVA}
 {$DEFINE HAS_IMPLEMENTATION}
 
-Procedure CallJavaListing(Filter:AnsiString);
+Procedure CallJavaListing(Filter:TERRAString);
 Var
   AssetsClass:JavaClass;
   Params:JavaArguments;
@@ -183,7 +183,7 @@ Begin
   Java_End(Frame);
 End;
 
-Function Search(Path:AnsiString; Filter:AnsiString; SearchSubDirectories:Boolean; Level:Integer):List;
+Function Search(Path:TERRAString; Filter:TERRAString; SearchSubDirectories:Boolean; Level:Integer):List;
 Var
   Folders, Temp:List;
   It:ListObject;
@@ -214,7 +214,7 @@ Begin
   End;
 End;
 
-Function SearchFolders(Path:AnsiString):List;
+Function SearchFolders(Path:TERRAString):List;
 Begin
   Result := List.Create();
   IsFolderMode := True;
@@ -228,7 +228,7 @@ End;
 {$ENDIF}
 
 {$IFNDEF HAS_IMPLEMENTATION}
-Function Search(Path:AnsiString; Filter:AnsiString; SearchSubDirectories:Boolean; Level:Integer):List;
+Function Search(Path:TERRAString; Filter:TERRAString; SearchSubDirectories:Boolean; Level:Integer):List;
 Var
   Sr:TSearchRec;
   P:FileInfo;
@@ -284,7 +284,7 @@ Begin
   End;
 End;
 
-Function SearchFolders(Path:AnsiString):List;
+Function SearchFolders(Path:TERRAString):List;
 Var
   Sr:TSearchRec;
   FileAttrs:Integer;
@@ -308,7 +308,7 @@ Begin
 End;
 {$ENDIF}
 
-Function SearchFiles(Path:AnsiString; Filter:AnsiString; SearchSubDirectories:Boolean):List;
+Function SearchFiles(Path:TERRAString; Filter:TERRAString; SearchSubDirectories:Boolean):List;
 Begin
   If (Path<>'') Then
     Path := GetOSIndependentFilePath(Path)

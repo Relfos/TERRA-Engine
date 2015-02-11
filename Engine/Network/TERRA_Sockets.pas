@@ -21,20 +21,6 @@
  * Implements portable sockets class
  ***********************************************************************************************************************
 }
-{
-@abstract(Net Streams)
-@author(Sergio Flores <relfos@gmail.com>)
-@created(December 1, 2005)
-@lastmod(December 12, 2005)
-The HTTP unit provides support for downloading files using the HTPP protocol.
-
-Version History
-  1/12/06   • First implementation
-  3/12/06   • Some bug fixes
- 24/07/06   • Remodeled to work with LNetStream
- 28/12/06   • Added OpenIncomingStream, to work with incoming connections
- 11/01/07   • Fixed bug when using different incoming ports
-}
 
 Unit TERRA_Sockets;
 {$I terra.inc}
@@ -44,7 +30,7 @@ Unit TERRA_Sockets;
 {$IFDEF WINDOWS}{$UNDEF ANDROID}{$ENDIF}
 
 Interface
-Uses TERRA_Utils, TERRA_IO, TERRA_OS
+Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_OS
 {$IFDEF ANDROID},TERRA_Java{$ENDIF};
 
 Const
@@ -80,7 +66,7 @@ Type
     Family:Word;
     Port:Word;
     Address:Integer;
-    Zero:Array[1..8]Of AnsiChar;
+    Zero:Array[1..8]Of TERRAChar;
   End;
 
   PHostEntity=^THostEntity;
@@ -166,15 +152,11 @@ Type
 
     Public
       Constructor Create(CustomHandle:Integer); Overload;
-      Constructor Create(Host:AnsiString; Port:Word); Overload;
+      Constructor Create(Const Host:TERRAString; Port:Word); Overload;
       Destructor Destroy; Override;
 
       Function Read(Data:Pointer; Size:Cardinal):Cardinal;Override;
       Function Write(Data:Pointer; Size:Cardinal):Cardinal;Override;
-
-      Procedure WriteString(S:AnsiString; NullTerminated:Boolean = False);Override;
-      Procedure ReadString(Var S:AnsiString; NullTerminated:Boolean = False);Override;
-      Procedure ReadLine(Var S:AnsiString);Override;
 
       Procedure SetBlocking(Block:Boolean);
       Procedure SetDelay(Delay:Boolean);
@@ -188,16 +170,16 @@ Type
   End;
 
   // Returns IP from host address via DNS lookup
-  Function LookUpHostAddress(HostName:AnsiString):AnsiString;
+  Function LookUpHostAddress(HostName:TERRAString):TERRAString;
 
   // Retrieves name of localhost
-  Function GetLocalHost:AnsiString;
+  Function GetLocalHost:TERRAString;
 
   Procedure MakeNonBlocking(Handle:Integer; Block:Boolean);
 
   Function OpenIncomingStream(Port:Integer):Socket;
 
-  Function GetIP(IP:Cardinal):AnsiString;
+  Function GetIP(IP:Cardinal):TERRAString;
 
 {$IFNDEF WINDOWS}
 Function inet_addr(IP:PAnsiChar):Integer;
@@ -210,21 +192,21 @@ Uses TERRA_Error, TERRA_Log, TERRA_Application;
 {$IFNDEF WINDOWS}
 Function inet_addr(IP:PAnsiChar):Integer;
 Var
-    S:AnsiString;
-    I,j,k     : Longint;
-    Temp : Array[1..4] Of Byte;
+  S:TERRAString;
+  I,j,k:Cardinal;
+  Temp:Array[1..4] Of Byte;
 Begin
   Result := 0;
   S := IP;
-  Temp[4] := StringToInt(GetNextWord(S, '.'));
-  Temp[3] := StringToInt(GetNextWord(S, '.'));
-  Temp[2] := StringToInt(GetNextWord(S, '.'));
+  Temp[4] := StringToInt(StringGetNextSplit(S, Ord('.')));
+  Temp[3] := StringToInt(StringGetNextSplit(S, Ord('.')));
+  Temp[2] := StringToInt(StringGetNextSplit(S, Ord('.')));
   Temp[1] := StringToInt(S);
 
   Result := Temp[4];
-  Result := Result or Integer( (Temp[3]) shl 8);
-  Result := Result or Integer( (Temp[2]) shl 16);
-  Result := Result or Integer( (Temp[1]) shl 24);
+  Result := Result Or Integer( (Temp[3]) Shl 8);
+  Result := Result Or Integer( (Temp[2]) Shl 16);
+  Result := Result Or Integer( (Temp[1]) Shl 24);
 end;
 
 Function htons(host:Word):Word;
@@ -234,7 +216,7 @@ End;
 {$ENDIF}
 
 // Decodes an IP stored in 32bit integer format to a string
-Function GetIP(IP:Cardinal):AnsiString;
+Function GetIP(IP:Cardinal):TERRAString;
 Var
   N:Array[0..4]Of Byte;
 Begin
@@ -243,7 +225,7 @@ Begin
 End;
 
 {$IFDEF IPHONE}
-Function ResolveHostAddress(HostName:AnsiString):AnsiString;
+Function ResolveHostAddress(HostName:TERRAString):TERRAString;
 Begin
   Log(logDebug, 'Sockets', 'Looking up host: '+ HostName);
   Result := resolveHost(PAnsiChar(HostName));
@@ -252,7 +234,7 @@ End;
 
 {$ELSE}
 {$IFDEF ANDROID}
-Function ResolveHostAddress(HostName:AnsiString):AnsiString;
+Function ResolveHostAddress(HostName:TERRAString):TERRAString;
 Var
   Utils:JavaClass;
   Params:JavaArguments;
@@ -277,7 +259,7 @@ Begin
   Log(logDebug, 'Sockets', 'Result: '+ Result);
 End;
 {$ELSE}
-Function ResolveHostAddress(HostName:AnsiString):AnsiString;
+Function ResolveHostAddress(HostName:TERRAString):TERRAString;
 Var
   Host:PHostEntity;
 Begin
@@ -309,7 +291,7 @@ End;
 {$ENDIF}
 {$ENDIF}
 
-Function GetLocalHost:AnsiString;
+Function GetLocalHost:TERRAString;
 Var
   Len:Word;
   Buffer:Pointer;
@@ -323,19 +305,19 @@ End;
 
 Type
   AddressCache = Record
-    Name:AnsiString;
-    IP:AnsiString;
+    Name:TERRAString;
+    IP:TERRAString;
   End;
 
 Var
   _Addresses:Array Of AddressCache;
   _AddressCount:Integer = 0;
 
-Function LookUpHostAddress(HostName:AnsiString):AnsiString;
+Function LookUpHostAddress(HostName:TERRAString):TERRAString;
 Var
   I:Integer;
 Begin
-  HostName := LowStr(HostName);
+  HostName := StringLower(HostName);
 
   For I:=0 To Pred(_AddressCount) Do
   If (_Addresses[I].Name = HostName) Then
@@ -352,7 +334,7 @@ Begin
 End;
 
 
-(*Function LookUpHostAddress(HostName:AnsiString):AnsiString;
+(*Function LookUpHostAddress(HostName:TERRAString):TERRAString;
 Var
   Host:THostEntry;
 Begin
@@ -370,7 +352,7 @@ Begin
 End;
 
 
-Function GetLocalHost:AnsiString;
+Function GetLocalHost:TERRAString;
 Begin
   Result := GetHostName;
 End;
@@ -384,9 +366,9 @@ Begin
   _Blocking := False;
 End;
 
-Constructor Socket.Create(Host:AnsiString; Port:Word);
+Constructor Socket.Create(Const Host:TERRAString; Port:Word);
 Var
-  IP:AnsiString;
+  IP:TERRAString;
   N:Integer;
   Addr:SocketAddress;
 Begin
@@ -540,21 +522,21 @@ Function Socket.Read(Data:Pointer; Size:Cardinal):Cardinal;
 Var
   N:Integer;
 Begin
-  {$IFDEF NETDEBUG} WriteLn('Begin sock.read');{$ENDIF}
+  {$IFDEF DEBUG_NET} WriteLn('Begin sock.read');{$ENDIF}
   Result := 0;
   If (EOF) Or (Size<=0) Then
   Begin
-    {$IFDEF NETDEBUG}WriteLn('Bailout');{$ENDIF}
+    {$IFDEF DEBUG_NET}WriteLn('Bailout');{$ENDIF}
     Exit;
   End;
 
-  {$IFDEF NETDEBUG}WriteLn('recv() call');{$ENDIF}
+  {$IFDEF DEBUG_NET}WriteLn('recv() call');{$ENDIF}
   N := Recv(_Handle, Data^, Size, 0);
-  {$IFDEF NETDEBUG}WriteLn('result was ',N);{$ENDIF}
+  {$IFDEF DEBUG_NET}WriteLn('result was ',N);{$ENDIF}
 
   If (N = SOCKET_ERROR) Or (N<0) Then
   Begin
-    {$IFDEF NETDEBUG}WriteLn('socket returned error');{$ENDIF}
+    {$IFDEF DEBUG_NET}WriteLn('socket returned error');{$ENDIF}
     _Error := True;
     Result := 0;
     Exit;
@@ -562,7 +544,7 @@ Begin
 
   If (N=0) Then
   Begin
-    {$IFDEF NETDEBUG}WriteLn('socket was closed');{$ENDIF}
+    {$IFDEF DEBUG_NET}WriteLn('socket was closed');{$ENDIF}
     _Closed := True;
   End;
 
@@ -572,48 +554,6 @@ Begin
     Result := N;
 End;
 
-
-Procedure Socket.ReadLine(Var S:AnsiString);
-Var
-  C:AnsiChar;
-Begin
-  S:='';
-  C:=#0;
-  While (C<>#13)And(Not EOF) Do
-  Begin
-    If Read(@C,1)<=0 Then
-      Exit;
-
-    If (C<>#13) Then
-      S:=S+C;
-  End;
-  S:=TrimLeft(TrimRight(S));
-End;
-
-Procedure Socket.WriteString(S:AnsiString; NullTerminated:Boolean = False);
-Var
-  Len:Integer;
-Begin
-  If Pos(crLf,S)<=0 Then
-    S := S + crLf;
-  Len := Length(S);
-  If Len>0 Then
-    Write(@S[1],Len);
-End;
-
-Procedure Socket.ReadString(Var S:AnsiString; NullTerminated:Boolean = False);
-Var
-  N:Byte;
-Begin
-  S:='';
-  N := 0;
-  Repeat
-    If (Read(@N,1)<1) Or (N=10) Then
-      Break;
-    S:=S+Char(N);
-  Until (False);
-  S:=TrimLeft(TrimRight(S));
-End;
 
 Type
   WaitingSocket=Record
@@ -653,10 +593,10 @@ Begin
 
     MakeNonBlocking(WaitingList[ID].Handle, False);
 
+    Opv := 0;
     If (setsockOpt(WaitingList[ID].Handle, SOL_Socket, SO_REUSEADDR, @Opv, SizeOf(Opv)) = SOCKET_ERROR) Then
     Begin
-      RaiseError('Unable to change socket mode.');
-      Exit;
+      Log(logError, 'Sockets', 'Unable to change socket mode.');      
     End;
 
     Addr.Family := PF_INET;
@@ -670,6 +610,7 @@ Begin
       Exit;
     End;
 
+    Log(logDebug, 'Sockets', 'Listening for connections.');      
     Listen(WaitingList[ID].Handle, 5);
   End;
 

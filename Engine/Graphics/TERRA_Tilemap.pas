@@ -26,8 +26,8 @@ Unit TERRA_Tilemap;
 {$I terra.inc}
 
 Interface
-Uses TERRA_IO, TERRA_XML, TERRA_Utils, TERRA_Texture, TERRA_SpriteManager,
-  TERRA_FileUtils, TERRA_ZLIB,  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
+Uses TERRA_String, TERRA_Stream, TERRA_XML, TERRA_Utils, TERRA_Texture, TERRA_SpriteManager,
+  TERRA_FileUtils, TERRA_ZLib,  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
 
 Const
   TileMapExtension = 'tmx';
@@ -43,8 +43,8 @@ Type
   TileMap = Class;
 
   ObjectProperty = Record
-    Key:AnsiString;
-    Value:AnsiString;
+    Key:TERRAString;
+    Value:TERRAString;
   End;
 
   PTileObject = ^TileObject;
@@ -56,21 +56,21 @@ Type
     Properties:Array Of ObjectProperty;
     PropertyCount:Integer;
 
-    Constructor Create(PX,PY:Single; TileX, TileY:Integer; PropList:AnsiString);
+    Constructor Create(PX,PY:Single; TileX, TileY:Integer; PropList:TERRAString);
 
-    Function GetProperty(Key:AnsiString):AnsiString;
-    Function HasProperty(Key:AnsiString):Boolean;
-    Procedure AddProperty(Key,Value:AnsiString);
+    Function GetProperty(Key:TERRAString):TERRAString;
+    Function HasProperty(Key:TERRAString):Boolean;
+    Procedure AddProperty(Key,Value:TERRAString);
   End;
 
   TileExtraData = Record
-    Name:AnsiString;
+    Name:TERRAString;
     Data:Array Of Array Of Byte;
   End;
 
   TileLayer = Class(TERRAObject)
     Protected
-      _Name:AnsiString;
+      _Name:TERRAString;
       _Width:Integer;
       _Height:Integer;
       _TilesPerRow:Integer;
@@ -80,12 +80,12 @@ Type
       _ExtraCount:Integer;
       _Map:TileMap;
 
-      Function DecompressString(Source, Compression:AnsiString):AnsiString;
+      Function DecompressString(Source, Compression:TERRAString):TERRAString;
 
     Public
       Visible:Boolean;
 
-      Constructor Create(Name:AnsiString; W,H:Integer; Source, Compression:AnsiString; Map:TileMap); Overload;
+      Constructor Create(Name:TERRAString; W,H:Integer; Source, Compression:TERRAString; Map:TileMap); Overload;
       Constructor Create(P:XMLNode; Map:TileMap); Overload;
 
       Destructor Destroy; Override;
@@ -98,7 +98,7 @@ Type
       Procedure SetFlagAt(X, Y:Integer; Flag:Byte);
       Function GetFlagAt(X, Y:Integer):Integer;
 
-      Function GetDataLayer(Name:AnsiString):Integer;
+      Function GetDataLayer(Name:TERRAString):Integer;
       Function GetDataAt(X, Y, DataLayer:Integer):Integer;
 
       Property Width:Integer Read _Width;
@@ -134,17 +134,17 @@ Type
       _PropertyCount:Integer;
 
     Public
-      Name:AnsiString;
+      Name:TERRAString;
       CamX,CamY:Single;
       Scale:Single;
 
       Constructor Create(SourceFile:Stream); Overload;
-      Constructor Create(SourceFile:AnsiString); Overload;
+      Constructor Create(SourceFile:TERRAString); Overload;
       Constructor Create(TileWidth, TileHeight:Integer); Overload;
 
       Destructor Destroy; Override;
 
-      Function AddLayer(Width,Height:Integer; Name:AnsiString):TileLayer;
+      Function AddLayer(Width,Height:Integer; Name:TERRAString):TileLayer;
 
       Procedure Render(Depth:Single);
 
@@ -154,18 +154,18 @@ Type
       Procedure SetPosition(Var X,Y:Single);
 
       Function GetTileAt(X, Y:Integer; Layer:Integer=-1; UsePalette:Boolean = False):Integer; Cdecl;
-      Function GetTileProperty(ID:Integer; Key:AnsiString):AnsiString;
-      Function HasTileProperty(ID:Integer; Key:AnsiString):Boolean;
+      Function GetTileProperty(ID:Integer; Key:TERRAString):TERRAString;
+      Function HasTileProperty(ID:Integer; Key:TERRAString):Boolean;
 
       Procedure SetLayerVisibility(Index:Integer; Value:Boolean);
 
-      Function HasProperty(Key:AnsiString):Boolean;
-      Function GetProperty(Key:AnsiString):AnsiString;
+      Function HasProperty(Key:TERRAString):Boolean;
+      Function GetProperty(Key:TERRAString):TERRAString;
 
       Function GetObject(Index:Integer):PTileObject;
 
       Function GetLayer(Index:Integer):TileLayer; Overload;
-      Function GetLayer(Name:AnsiString):TileLayer; Overload;
+      Function GetLayer(Const Name:TERRAString):TileLayer; Overload;
 
       Property Tileset:Texture Read _Tileset;
 
@@ -179,7 +179,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_UI, TERRA_OS, TERRA_FileManager, TERRA_Log;
+Uses TERRA_UI, TERRA_OS, TERRA_FileManager, TERRA_MemoryStream, TERRA_Log;
 
 { TileMap }
 Constructor TileMap.Create(TileWidth, TileHeight: Integer);
@@ -189,7 +189,7 @@ Begin
   Self._LayerCount := 0;
 End;
 
-Constructor TileMap.Create(SourceFile:AnsiString);
+Constructor TileMap.Create(SourceFile:TERRAString);
 Var
   S:Stream;
 Begin
@@ -209,7 +209,7 @@ Constructor TileMap.Create(SourceFile: Stream);
 Var
   Doc:XMLDocument;
   Node, P, PP, PPP, PX:XMLNode;
-  Name, S:AnsiString;
+  Name, S:TERRAString;
   I, J, K, N, W, H:Integer;
 Begin
   Self.Scale := 1;
@@ -229,44 +229,44 @@ Begin
   Doc.Load(SourceFile);
 
   Node := Doc.Root;
-  P := Node.GetNode('properties');
+  P := Node.GetNodeByName('properties');
   _PropertyCount := 0;
   If Assigned(P) Then
   Begin
-    For I:=0 To Pred(P.ChildCount) Do
+    For I:=0 To Pred(P.NodeCount) Do
     Begin
-      PP := P.GetChild(I);
+      PP := P.GetNodeByIndex(I);
       Inc(Self._PropertyCount);
       SetLength(_Properties, _PropertyCount);
-      _Properties[Pred(_PropertyCount)].Key := PP.GetNode('name').Value;
-      _Properties[Pred(_PropertyCount)].Value := PP.GetNode('value').Value;
+      _Properties[Pred(_PropertyCount)].Key := PP.GetNodeByName('name').Value;
+      _Properties[Pred(_PropertyCount)].Value := PP.GetNodeByName('value').Value;
     End;
   End;
 
 
-  P := Node.GetNode('tileset');
+  P := Node.GetNodeByName('tileset');
 
-  PP := P.GetNode('tilewidth');
+  PP := P.GetNodeByName('tilewidth');
   _TileWidth := StringToInt(PP.Value);
 
-  PP := P.GetNode('tileheight');
+  PP := P.GetNodeByName('tileheight');
   _TileHeight := StringToInt(PP.Value);
 
-  For I:=0 To Pred(P.ChildCount) Do
+  For I:=0 To Pred(P.NodeCount) Do
   Begin
-    PP := P.GetChild(I);
+    PP := P.GetNodeByIndex(I);
     If (PP.Name<>'tile') Then
       Continue;
 
-    N := StringToInt(PP.GetNode('id').Value);
-    PP := PP.GetNode('properties');
-    _TileInfo[N].PropertyCount := PP.ChildCount;
+    N := StringToInt(PP.GetNodeByName('id').Value);
+    PP := PP.GetNodeByName('properties');
+    _TileInfo[N].PropertyCount := PP.NodeCount;
     SetLength(_TileInfo[N].Properties, _TileInfo[N].PropertyCount);
-    For J:=0 To Pred(PP.ChildCount) Do
+    For J:=0 To Pred(PP.NodeCount) Do
     Begin
-      PPP := PP.GetChild(J);
-      _TileInfo[N].Properties[J].Key := PPP.GetNode('name').Value;
-      _TileInfo[N].Properties[J].Value := PPP.GetNode('value').Value;
+      PPP := PP.GetNodeByIndex(J);
+      _TileInfo[N].Properties[J].Key := PPP.GetNodeByName('name').Value;
+      _TileInfo[N].Properties[J].Value := PPP.GetNodeByName('value').Value;
     End;
   End;
 
@@ -289,8 +289,8 @@ Begin
       _TileInfo[I].AnimationDuration := DefaultTileAnimationDuration;
   End;
 
-  PP := P.GetNode('image');
-  PPP := PP.GetNode('source');
+  PP := P.GetNodeByName('image');
+  PPP := PP.GetNodeByName('source');
   S := GetFileName(PPP.Value, True);
   _Tileset := TextureManager.Instance.GetTexture(S);
   If Assigned(_Tileset) Then
@@ -300,13 +300,13 @@ Begin
     _Tileset.MipMapped := False;
   End;
 
-  {PPP := PP.GetNode('height');
+  {PPP := PP.GetNodeByName('height');
   _TilesPerCol := StringToInt(PPP.Value) Div _TileHeight;}
 
   _LayerCount := 0;
-  For I:=0 To Pred(Node.ChildCount) Do
+  For I:=0 To Pred(Node.NodeCount) Do
   Begin
-    P := Node.GetChild(I);
+    P := Node.GetNodeByIndex(I);
     If (P.Name<>'layer') Then
       Continue;
 
@@ -316,15 +316,15 @@ Begin
   End;
 
   _ObjectCount := 0;
-  For I:=0 To Pred(Node.ChildCount) Do
+  For I:=0 To Pred(Node.NodeCount) Do
   Begin
-    P := Node.GetChild(I);
+    P := Node.GetNodeByIndex(I);
     If (P.Name<>'objectgroup') Then
       Continue;
 
-    For J:=0 To Pred(P.ChildCount) Do
+    For J:=0 To Pred(P.NodeCount) Do
     Begin
-      PP := P.GetChild(J);
+      PP := P.GetNodeByIndex(J);
       If (PP.Name<>'object') Then
         Continue;
 
@@ -332,19 +332,19 @@ Begin
       Inc(_ObjectCount);
       SetLength(_ObjectList, _ObjectCount);
 
-      PPP := PP.GetNode('x');
+      PPP := PP.GetNodeByName('x');
       If Assigned(PPP) Then
         _ObjectList[N].X := StringToInt(PPP.Value);
 
-      PPP := PP.GetNode('y');
+      PPP := PP.GetNodeByName('y');
       If Assigned(PPP) Then
         _ObjectList[N].Y := StringToInt(PPP.Value);
 
-      PPP := PP.GetNode('width');
+      PPP := PP.GetNodeByName('width');
       If Assigned(PPP) Then
         _ObjectList[N].Width := StringToInt(PPP.Value);
 
-      PPP := PP.GetNode('height');
+      PPP := PP.GetNodeByName('height');
       If Assigned(PPP) Then
         _ObjectList[N].Height := StringToInt(PPP.Value);
 
@@ -352,16 +352,16 @@ Begin
       _ObjectList[N].TY := Trunc(_ObjectList[N].Y / Self._TileHeight);
       _ObjectList[N].PropertyCount := 0;
 
-      PPP := PP.GetNode('properties');
+      PPP := PP.GetNodeByName('properties');
       If Assigned(PPP) Then
       Begin
-        _ObjectList[N].PropertyCount := PPP.ChildCount;
-        SetLength(_ObjectList[N].Properties, PPP.ChildCount);
-        For K:=0 To Pred(PPP.ChildCount) Do
+        _ObjectList[N].PropertyCount := PPP.NodeCount;
+        SetLength(_ObjectList[N].Properties, PPP.NodeCount);
+        For K:=0 To Pred(PPP.NodeCount) Do
         Begin
-          PX := PPP.GetChild(K);
-          _ObjectList[N].Properties[K].Key := PX.GetNode('name').Value;
-          _ObjectList[N].Properties[K].Value := PX.GetNode('value').Value;
+          PX := PPP.GetNodeByIndex(K);
+          _ObjectList[N].Properties[K].Key := PX.GetNodeByName('name').Value;
+          _ObjectList[N].Properties[K].Value := PX.GetNodeByName('value').Value;
         End;
       End;
     End;
@@ -371,7 +371,7 @@ Begin
 End;
 
 
-Function TileMap.AddLayer(Width,Height:Integer; Name:AnsiString):TileLayer;
+Function TileMap.AddLayer(Width,Height:Integer; Name:TERRAString):TileLayer;
 Begin
   Inc(_LayerCount);
   SetLength(_Layers, _LayerCount);
@@ -471,13 +471,12 @@ Begin
     Result := _Layers[Index];
 End;
 
-Function TileMap.GetLayer(Name:AnsiString): TileLayer;
+Function TileMap.GetLayer(Const Name:TERRAString): TileLayer;
 Var
   I:Integer;
 Begin
-  Name := UpStr(Name);
   For I:=0 To Pred(_LayerCount) Do
-  If (UpStr(_Layers[I]._Name) = Name) Then
+  If (StringEquals(_Layers[I]._Name, Name)) Then
   Begin
     Result := _Layers[I];
     Exit;
@@ -490,24 +489,24 @@ End;
 Constructor TileLayer.Create(P: XMLNode; Map:TileMap);
 Var
   X,Y, K :Integer;
-  Name:AnsiString;
+  Name:TERRAString;
   W, H, I: Integer;
-  Data, Compression:AnsiString;
+  Data, Compression:TERRAString;
   PP, PPP:XMLNode;
   B:Byte;
 Begin
-  PP := P.GetNode('name');
+  PP := P.GetNodeByName('name');
   Name := PP.Value;
 
-  PP := P.GetNode('width');
+  PP := P.GetNodeByName('width');
   W := StringToInt(PP.Value);
 
-  PP := P.GetNode('height');
+  PP := P.GetNodeByName('height');
   H := StringToInt(PP.Value);
 
-  PP := P.GetNode('data');
+  PP := P.GetNodeByName('data');
 
-  PPP := PP.GetNode('compression');
+  PPP := PP.GetNodeByName('compression');
   If Assigned(PPP) Then
     Compression := PPP.Value
   Else
@@ -516,21 +515,21 @@ Begin
   Self.Create(Name, W, H, PP.Value, Compression, Map);
 
 
-  For I:=0 To Pred(P.ChildCount) Do
+  For I:=0 To Pred(P.NodeCount) Do
   Begin
-    PP :=P.GetChild(I);
+    PP :=P.GetNodeByIndex(I);
     If PP.Name<>'extra' Then
       Continue;
 
     Inc(Self._ExtraCount);
     SetLength(Self._Extra, Self._ExtraCount);
 
-    PPP := PP.GetNode('name');
+    PPP := PP.GetNodeByName('name');
     Self._Extra[Pred(Self._ExtraCount)].Name := PPP.Value;
 
     Data := PP.Value;
 
-    PPP := PP.GetNode('compression');
+    PPP := PP.GetNodeByName('compression');
     If Assigned(PPP) Then
       Compression := PPP.Value
     Else
@@ -557,7 +556,7 @@ Begin
   End;
 End;
 
-Constructor TileLayer.Create(Name:AnsiString; W, H: Integer; Source, Compression:AnsiString; Map:TileMap);
+Constructor TileLayer.Create(Name:TERRAString; W, H: Integer; Source, Compression:TERRAString; Map:TileMap);
 Var
   X,Y, K :Integer;
   A,B,C,D:Byte;
@@ -603,11 +602,11 @@ Begin
   End;
 End;
 
-Function TileLayer.DecompressString(Source, Compression:AnsiString):AnsiString;
+Function TileLayer.DecompressString(Source, Compression:TERRAString):TERRAString;
 Var
   Mem, Dst:MemoryStream;
 Begin
-  Source := TrimRight(TrimLeft(Source));
+  Source := StringTrim(Source);
   Source := Base64ToString(Source);
 
   If (Source<>'') And (Compression='zlib') Then
@@ -693,7 +692,7 @@ Begin
         Z := Depth - 10
       Else
         Z := Depth;
-      S := SpriteManager.Instance.AddSprite(I*_Map._TileWidth*_Map.Scale - _Map.CamX, J*_Map._TileHeight*_Map.Scale - _Map.CamY, Z, _Map._Tileset);
+      S := SpriteManager.Instance.DrawSprite(I*_Map._TileWidth*_Map.Scale - _Map.CamX, J*_Map._TileHeight*_Map.Scale - _Map.CamY, Z, _Map._Tileset);
       Tx := (N Mod _TilesPerRow);
       Ty := (N Div _TilesPerRow);
       S.Rect.PixelRemap(Tx*_Map._TileWidth, Ty*_Map._TileWidth, Succ(Tx)*_Map._TileWidth-1, Succ(Ty)*_Map._TileWidth-1);
@@ -714,7 +713,7 @@ Begin
     Result := _Extra[DataLayer].Data[X,Y];
 End;
 
-Function TileLayer.GetDataLayer(Name:AnsiString): Integer;
+Function TileLayer.GetDataLayer(Name:TERRAString): Integer;
 Var
   I:Integer;
 Begin
@@ -734,7 +733,7 @@ Begin
 End;
 
 { TileObject }
-Procedure TileObject.AddProperty(Key, Value:AnsiString);
+Procedure TileObject.AddProperty(Key, Value:TERRAString);
 Begin
   If HasProperty(Key) Then
     Exit;
@@ -744,9 +743,9 @@ Begin
   Properties[Pred(PropertyCount)].Value := Value;
 End;
 
-Constructor TileObject.Create(PX, PY: Single; TileX, TileY:Integer; PropList:AnsiString);
+Constructor TileObject.Create(PX, PY: Single; TileX, TileY:Integer; PropList:TERRAString);
 Var
-  S2:AnsiString;
+  S2:TERRAString;
 Begin
   Self.X := PX;
   Self.Y := PY;
@@ -756,15 +755,15 @@ Begin
 
   While PropList<>'' Do
   Begin
-    S2 := GetNextWord(PropList,'|');
+    S2 := StringGetNextSplit(PropList, Ord('|'));
     Inc(Self.PropertyCount);
     SetLength(Properties, PropertyCount);
-    Properties[Pred(PropertyCount)].Key := GetNextWord(S2, '=');
+    Properties[Pred(PropertyCount)].Key := StringGetNextSplit(S2, Ord('='));
     Properties[Pred(PropertyCount)].Value := S2;
   End;
 End;
 
-Function TileObject.GetProperty(Key:AnsiString):AnsiString;
+Function TileObject.GetProperty(Key:TERRAString):TERRAString;
 Var
   I:Integer;
 Begin
@@ -777,7 +776,7 @@ Begin
   End;
 End;
 
-Function TileObject.HasProperty(Key:AnsiString): Boolean;
+Function TileObject.HasProperty(Key:TERRAString): Boolean;
 Var
   I:Integer;
 Begin
@@ -825,7 +824,7 @@ Begin
   End;
 End;
 
-Function TileMap.GetTileProperty(ID:Integer; Key:AnsiString):AnsiString;
+Function TileMap.GetTileProperty(ID:Integer; Key:TERRAString):TERRAString;
 Var
   I:Integer;
 Begin
@@ -841,7 +840,7 @@ Begin
   End;
 End;
 
-Function TileMap.HasTileProperty(ID:Integer; Key:AnsiString):Boolean;
+Function TileMap.HasTileProperty(ID:Integer; Key:TERRAString):Boolean;
 Var
   I:Integer;
 Begin
@@ -857,7 +856,7 @@ Begin
   End;
 End;
 
-Function TileMap.GetProperty(Key:AnsiString):AnsiString;
+Function TileMap.GetProperty(Key:TERRAString):TERRAString;
 Var
   I:Integer;
 Begin
@@ -870,7 +869,7 @@ Begin
   End;
 End;
 
-Function TileMap.HasProperty(Key:AnsiString):Boolean;
+Function TileMap.HasProperty(Key:TERRAString):Boolean;
 Var
   I:Integer;
 Begin

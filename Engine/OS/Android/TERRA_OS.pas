@@ -4,7 +4,7 @@ Unit TERRA_OS;
 
 
 Interface
-Uses cmem, TERRA_Error, TERRA_Utils, TERRA_Application, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
+Uses cmem, TERRA_String, TERRA_Error, TERRA_Utils, TERRA_Application, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
     TERRA_Vector3D, TERRA_Java, TERRA_Collections, TERRA_Client,
     sysutils,dateutils,unix, jni;
 
@@ -79,7 +79,7 @@ Const
 Type
   JavaString = JString;
 
-Procedure DisplayMessage(S:AnsiString);
+Procedure DisplayMessage(S:TERRAString);
 Function GetCurrentTime:TERRATime;
 Function GetCurrentDate:TERRADate;
 Function GetTime:Cardinal; {$IFDEF FPC} Inline;{$ENDIF}
@@ -115,10 +115,10 @@ Type
       Procedure EnableAds; Override;
       Procedure DisableAds; Override;
       Procedure ShowFullscreenAd; Override;
-      Procedure OpenAppStore(AppID:AnsiString); Override;
+      Procedure OpenAppStore(AppID:TERRAString); Override;
 
-      Procedure PostToFacebook(msg, link, desc, imageURL:AnsiString); Override;
-      Procedure LikeFacebookPage(page, url:AnsiString); Override;
+      Procedure PostToFacebook(msg, link, desc, imageURL:TERRAString); Override;
+      Procedure LikeFacebookPage(page, url:TERRAString); Override;
 
       Function InitAccelerometer():Boolean; Override;
       Function InitGyroscope():Boolean; Override;
@@ -132,22 +132,22 @@ Type
 
       Procedure ListFile(Name:Pointer; Size:Integer);
 
-      Procedure SendEmail(DestEmail, Subject, Body:AnsiString); Override;
+      Procedure SendEmail(DestEmail, Subject, Body:TERRAString); Override;
 
       Procedure Tapjoy_ShowOfferWall(); Override;
       Procedure Tapjoy_ShowVideo(); Override;
       Procedure Tapjoy_SpendCredits(Ammount:Integer); Override;
 
-      Function IsAppRunning(Name:AnsiString):Boolean; Override;
-      Function IsAppInstalled(Name:AnsiString):Boolean; Override;
+      Function IsAppRunning(Name:TERRAString):Boolean; Override;
+      Function IsAppInstalled(Name:TERRAString):Boolean; Override;
 
-      Function GetDeviceID():AnsiString; Override;
+      Function GetDeviceID():TERRAString; Override;
 
       Function GetControllerCount: Integer; Override;
 
       Function IsDebuggerPresent:Boolean; Override;
 
-      Procedure SendAnalytics(EventName:AnsiString; Values:AnsiString=''); Override;
+      Procedure SendAnalytics(EventName:TERRAString; Values:TERRAString=''); Override;
   End;
 
 Procedure focusKeyboard(s:PAnsiChar);
@@ -180,7 +180,7 @@ Begin
   Params.Destroy();
 End;
 
-Procedure DisplayMessage(S:AnsiString);
+Procedure DisplayMessage(S:TERRAString);
 Begin
 	S := S +#0;
 //  Log(logWarning, 'App', S);
@@ -239,7 +239,7 @@ Begin
   Result := True;
 End;
 
-Procedure AndroidApplication.PostToFacebook(msg, link, desc, imageURL:AnsiString);
+Procedure AndroidApplication.PostToFacebook(msg, link, desc, imageURL:TERRAString);
 Var
   FB:Facebook;
 Begin
@@ -256,7 +256,7 @@ Begin
 End;
 
 
-Procedure AndroidApplication.LikeFacebookPage(page, url:AnsiString);
+Procedure AndroidApplication.LikeFacebookPage(page, url:TERRAString);
 Var
   FB:Facebook;
 Begin
@@ -343,7 +343,7 @@ Begin
   {$ENDIF}
 End;
 
-Procedure AndroidApplication.OpenAppStore(AppID:AnsiString);
+Procedure AndroidApplication.OpenAppStore(AppID:TERRAString);
 Var
   Params:JavaArguments;
   Frame:JavaFrame;
@@ -366,7 +366,7 @@ Begin
   {$ENDIF}
 End;
 
-Procedure AndroidApplication.SendAnalytics(EventName, Values:AnsiString);
+Procedure AndroidApplication.SendAnalytics(EventName, Values:TERRAString);
 Var
   Params:JavaArguments;
   Frame:JavaFrame;
@@ -397,7 +397,7 @@ Begin
   //_Utils := Nil;
 End;
 
-Function AndroidApplication.IsAppRunning(Name:AnsiString): Boolean;
+Function AndroidApplication.IsAppRunning(Name:TERRAString): Boolean;
 Var
   Params:JavaArguments;
   Frame:JavaFrame;
@@ -417,7 +417,7 @@ Begin
   Java_End(Frame);
 End;
 
-Function AndroidApplication.IsAppInstalled(Name:AnsiString): Boolean;
+Function AndroidApplication.IsAppInstalled(Name:TERRAString): Boolean;
 Var
   Params:JavaArguments;
   Frame:JavaFrame;
@@ -437,7 +437,7 @@ Begin
   Java_End(Frame);
 End;
 
-Function AndroidApplication.GetDeviceID:AnsiString;
+Function AndroidApplication.GetDeviceID:TERRAString;
 Var
   Params:JavaArguments;
   Frame:JavaFrame;
@@ -573,7 +573,7 @@ End;
 
 Procedure AndroidApplication.ListFile(Name:Pointer; Size: Integer);
 Var
-  FileName:AnsiString;
+  FileName:TERRAString;
   P:FileInfo;
 Begin
   FileName := JavaToString(Name);
@@ -591,7 +591,7 @@ Begin
   End;
 End;
 
-Procedure AndroidApplication.SendEmail(DestEmail, Subject, Body:AnsiString);
+Procedure AndroidApplication.SendEmail(DestEmail, Subject, Body:TERRAString);
 Var
   Frame:JavaFrame;
   Params:JavaArguments;
@@ -732,16 +732,18 @@ Begin
 
 
   Log(logDebug, 'App', 'Getting user country');
-  _Country := UpStr(_Utils.CallStaticStringMethod('getCountry', Nil));
+  _Country := StringUpper(_Utils.CallStaticStringMethod('getCountry', Nil));
   Log(logDebug, 'App', 'Found country '+_Country);
 
   Log(logDebug, 'App', 'Getting local language');
-  _Language := UpStr(_Utils.CallStaticStringMethod('getLanguage', Nil));
+  _Language := StringUpper(_Utils.CallStaticStringMethod('getLanguage', Nil));
   Log(logDebug, 'App', 'Found language: '+_Language);
 
   Log(logDebug, 'App', 'Getting screen dimensions');
   _Width := _Utils.CallStaticIntMethod('getScreenWidth', Nil);
   _Height := _Utils.CallStaticIntMethod('getScreenHeight', Nil);
+  _Screen.Width := _Width;
+  _Screen.Height := _Height;
   Log(logDebug, 'App', 'Dimensions: '+IntToString(_Width)+'x'+IntToString(_Height));
 
   Log(logDebug, 'App', 'Getting cpu cores');

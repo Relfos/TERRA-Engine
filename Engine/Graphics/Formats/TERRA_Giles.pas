@@ -26,8 +26,8 @@ Unit TERRA_Giles;
 
 {$I terra.inc}
 Interface
-Uses TERRA_Utils, TERRA_Math, TERRA_IO, TERRA_INI, TERRA_Vector3D, TERRA_Vector2D,
-  TERRA_Color, TERRA_FileIO, TERRA_FileUtils, TERRA_Vector4D, TERRA_MeshFilter;
+Uses TERRA_Utils, TERRA_Math, TERRA_Stream, TERRA_INI, TERRA_Vector3D, TERRA_Vector2D,
+  TERRA_Color, TERRA_FileStream, TERRA_FileUtils, TERRA_Vector4D, TERRA_MeshFilter;
 
 Const
   gilesLight_Directional = 1;
@@ -68,12 +68,12 @@ Const
 
 Type
   GilesObject = Class
-    Name:AnsiString;
+    Name:TERRAString;
     Position:Vector3D;
     Rotation:Vector3D;
     Scale:Vector3D;
-    Props:AnsiString;
-    FileName:AnsiString;
+    Props:TERRAString;
+    FileName:TERRAString;
     Hidden:Byte;
 
     Parent:GilesObject;
@@ -130,7 +130,7 @@ Type
   End;
 
   GilesMaterial = Class
-    Name:AnsiString;
+    Name:TERRAString;
     ColorRed:Single;
     ColorGreen:Single;
     ColorBlue:Single;
@@ -153,7 +153,7 @@ Type
   End;
 
   GilesTexture = Class
-    FileName:AnsiString;
+    FileName:TERRAString;
     ScaleU:Single;
     ScaleV:Single;
     OfsU:Single;
@@ -165,8 +165,8 @@ Type
   End;
 
   GilesLightmap = Class
-    Name:AnsiString;
-    FileName:AnsiString; // to export
+    Name:TERRAString;
+    FileName:TERRAString; // to export
     Width:Word;
     Height:Word;
     NoUniform:Boolean;
@@ -254,7 +254,7 @@ Type
 
       Function GetDiffuseColor(GroupID:Integer):Color; Override;
 
-      Function GetDiffuseMapName(GroupID:Integer):AnsiString; Override;
+      Function GetDiffuseMapName(GroupID:Integer):TERRAString; Override;
   End;
 
 
@@ -1212,7 +1212,7 @@ Begin
   Result := _Materials[_Groups[GroupID].MaterialIndex].DiffuseColor;
 End;
 
-Function GilesModel.GetDiffuseMapName(GroupID: Integer): AnsiString;
+Function GilesModel.GetDiffuseMapName(GroupID: Integer): TERRAString;
 Begin
   Result := _Textures[_Materials[_Groups[GroupID].MaterialIndex].TextureIndex].FileName;
 End;

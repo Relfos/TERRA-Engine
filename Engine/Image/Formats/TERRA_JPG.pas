@@ -38,14 +38,14 @@ Unit TERRA_JPG;
 {$ENDIF}
 
 Interface
-Uses TERRA_Utils, TERRA_IO, TERRA_Image, TERRA_Log, TERRA_Application,
+Uses TERRA_Utils, TERRA_Stream, TERRA_Image, TERRA_Log, TERRA_Application,
     {$IFDEF USEPASJPEGLIB}
      jmorecfg, jpeglib, jerror, jdeferr, jdapimin,
      jdapistd, jdmarker, jdmaster
     {$ELSE}Classes, Graphics, JPEG{$ENDIF};
 
 Implementation
-Uses TERRA_Error, TERRA_FileIO, TERRA_FileUtils, TERRA_INI, TERRA_Color;
+Uses TERRA_Error, TERRA_FileStream, TERRA_FileUtils, TERRA_INI, TERRA_Color;
 
 {$IFDEF USEPASJPEGLIB}
 Const

@@ -3,7 +3,7 @@ Unit TERRA_Leaderboards;
 {$I terra.inc}
 Interface
 
-Uses TERRA_Network, TERRA_NetClient, TERRA_UI, TERRA_Widgets, TERRA_Vector2D;
+Uses TERRA_String, TERRA_Network, TERRA_NetClient, TERRA_UI, TERRA_Widgets, TERRA_Vector2D;
 
 {$IFDEF IPHONE}
 {-$DEFINE USEGAMECENTER}
@@ -1023,7 +1023,7 @@ $00,$00,$00,$00,$00,$00,$80,$C2,$78,$03,$67,$7A,$84,$0D,$BE,$CE,$81,$13,$00,$00,
 
 Type
   LeaderboardScore = Record
-    Name:AnsiString;
+    Name:TERRAString;
     Score:Integer;
   End;
 
@@ -1034,7 +1034,7 @@ Type
       _Names:Array[0..9] Of UILabel;
       _Values:Array[0..9] Of UILabel;
 
-      _CurrentLeaderboard:AnsiString;
+      _CurrentLeaderboard:TERRAString;
       _Client:NetClient;
 
       _Scores:Array Of LeaderboardScore;
@@ -1045,27 +1045,27 @@ Type
     Public
       Constructor Create(UI:UI);
 
-      Procedure SelectBoard(Name:AnsiString);
+      Procedure SelectBoard(Name:TERRAString);
       Procedure ShowBoard();
       Procedure RefreshBoard();
-      Procedure SubmitScore(Value:Cardinal; User:AnsiString='');
+      Procedure SubmitScore(Value:Cardinal; User:TERRAString='');
 
       Function GetScore(Index:Integer):LeaderboardScore;
-      Procedure SetScore(Index:Integer; Name:AnsiString; Score:Integer);
+      Procedure SetScore(Index:Integer; Name:TERRAString; Score:Integer);
 
       Procedure SetClient(Client:NetClient);
 
-      Procedure UnlockAchievement(ID:AnsiString);
+      Procedure UnlockAchievement(ID:TERRAString);
 
-      Procedure InitializeFromString(S:AnsiString);
+      Procedure InitializeFromString(S:TERRAString);
 
       Property UI:UI Read _UI;
   End;
 
 Implementation
-Uses TERRA_HTTP, TERRA_IO, TERRA_Utils, TERRA_Application,
+Uses TERRA_HTTP, TERRA_Stream, TERRA_Utils, TERRA_Application,
   TERRA_Scene, TERRA_GraphicsManager, TERRA_Texture, TERRA_Viewport,
-  TERRA_SpriteManager, TERRA_Localization, TERRA_Tween, TERRA_FileManager,TERRA_OS;
+  TERRA_SpriteManager, TERRA_Localization, TERRA_Tween, TERRA_FileManager, TERRA_MemoryStream, TERRA_OS;
 
 Type
   LeaderboardScene = Class(Scene)
@@ -1078,18 +1078,18 @@ Var
 
 Type
   LDBProvider = Class(ResourceProvider)
-    Function GetStream(Name:AnsiString): Stream; Override;
-    Function HasStream(Name:AnsiString):Boolean; Override;
+    Function GetStream(Const Name:TERRAString): Stream; Override;
+    Function HasStream(Const Name:TERRAString):Boolean; Override;
   End;
 
 {$IFDEF USEGAMECENTER}
 Procedure submitScore(score:Integer); cdecl; external;
 Procedure showLeaderboard(); cdecl; external;
-Procedure changeLeaderboard(board:PAnsiChar); cdecl; external;
-Function getGameCenterAlias():PAnsiChar; cdecl; external;
+Procedure changeLeaderboard(board:PTERRAChar); cdecl; external;
+Function getGameCenterAlias():PTERRAChar; cdecl; external;
 {$ENDIF}
 
-Function LDBProvider.GetStream(Name:AnsiString):Stream;
+Function LDBProvider.GetStream(Const Name:TERRAString):Stream;
 Begin
   If (Name='ldb_bg.png') Then
   Begin
@@ -1110,7 +1110,7 @@ Begin
     Result := Nil;
 End;
 
-Function LDBProvider.HasStream(Name:AnsiString):Boolean;
+Function LDBProvider.HasStream(Const Name:TERRAString):Boolean;
 Begin
   If (Name='ldb_bg.png') Then
   Begin
@@ -1140,7 +1140,7 @@ Begin
   If Tex = Nil Then
     Tex := TextureManager.Instance.GetTexture('ldb_bg');
 
-  S := SpriteManager.Instance.AddSprite(0, 0, 4, Tex);
+  S := SpriteManager.Instance.DrawSprite(0, 0, 4, Tex);
   If Assigned(S) Then
   Begin
     S.Rect.Width := UIManager.Instance.Width;
@@ -1175,7 +1175,7 @@ End;
 
 Procedure LeaderboardCallback(Download:HTTPDownloader); Cdecl;
 Var
-  S:AnsiString;
+  S:TERRAString;
   Board:Leaderboard;
 Begin
 {  If (ErrorCode<>httpOk) Or (Target = Nil) Then
@@ -1204,7 +1204,7 @@ End;
 
 Procedure Leaderboard.InitUI;
 Var
-  SS:AnsiString;
+  SS:TERRAString;
   Lb:UILabel;
   Btn:UIButton;
   I:Integer;
@@ -1255,10 +1255,10 @@ Begin
   End;
 End;
 
-procedure Leaderboard.InitializeFromString(S:AnsiString);
+procedure Leaderboard.InitializeFromString(S:TERRAString);
 Var
   I, Index:Integer;
-  Score,Name:AnsiString;
+  Score,Name:TERRAString;
 Begin
   For I:=0 To 9 Do
   Begin
@@ -1272,11 +1272,11 @@ Begin
   Index := 0;
   While (Length(S)>1) Do
   Begin
-    Name := GetNextWord(S, ',');
+    Name := StringGetNextSplit(S, Ord(','));
     _Names[Index].Visible := True;
     _Names[Index].Caption := Name;
 
-    Score := GetNextWord(S, ',');
+    Score := StringGetNextSplit(S, Ord(','));
     _Values[Index].Visible := True;
     _Values[Index].Caption := Score;
 
@@ -1289,7 +1289,7 @@ End;
 Procedure Leaderboard.RefreshBoard;
 Var
   I:Integer;
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := '';
   For I:=0 To Pred(_ScoreCount) Do
@@ -1297,7 +1297,7 @@ Begin
   Self.InitializeFromString(S);
 End;
 
-Procedure Leaderboard.SelectBoard(Name:AnsiString);
+Procedure Leaderboard.SelectBoard(Name:TERRAString);
 Var
   Str:NetMessage;
 Begin
@@ -1306,7 +1306,7 @@ Begin
 
   _CurrentLeaderboard := Name;
   {$IFDEF USEGAMECENTER}
-  TERRA_GameCenter.changeLeaderboard(PAnsiChar(Name));
+  TERRA_GameCenter.changeLeaderboard(PTERRAChar(Name));
   Exit;
   {$ENDIF}
 
@@ -1321,7 +1321,7 @@ Begin
   End;
 End;
 
-Procedure Leaderboard.SetScore(Index: Integer; Name:AnsiString; Score: Integer);
+Procedure Leaderboard.SetScore(Index: Integer; Name:TERRAString; Score: Integer);
 Begin
   If (Index>=_ScoreCount) Then
   Begin
@@ -1335,9 +1335,9 @@ End;
 
 Procedure Leaderboard.ShowBoard;
 Var
-  URL:AnsiString;
+  URL:TERRAString;
   Dest:MemoryStream;
-  AppID:AnsiString;
+  AppID:TERRAString;
 Begin
   {$IFDEF USEGAMECENTER}
   TERRA_GameCenter.showLeaderboard;
@@ -1366,9 +1366,9 @@ Begin
   {$ENDIF}
 End;
 
-Procedure Leaderboard.SubmitScore(Value: Cardinal; User:AnsiString='');
+Procedure Leaderboard.SubmitScore(Value: Cardinal; User:TERRAString='');
 Var
-  AppID, URL:AnsiString;
+  AppID, URL:TERRAString;
 Begin
   {$IFDEF USEGAMECENTER}
   TERRA_GameCenter.submitScore(Value);
@@ -1386,10 +1386,10 @@ Begin
   DownloadManager.Instance.Start(URL);
 End;
 
-Procedure Leaderboard.UnlockAchievement(ID:AnsiString);
+Procedure Leaderboard.UnlockAchievement(ID:TERRAString);
 Begin
   {$IFDEF USEGAMECENTER}
-  AppUnlockAchievement(PAnsiChar(ID));
+  AppUnlockAchievement(PTERRAChar(ID));
   {$ENDIF}
 end;
 

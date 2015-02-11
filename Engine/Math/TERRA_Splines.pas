@@ -25,8 +25,8 @@ Unit TERRA_Splines;
 
 {$I terra.inc}
 Interface
-Uses TERRA_Utils, TERRA_Math, TERRA_Vector3D, TERRA_Color,
-  TERRA_Vector4D, TERRA_IO, TERRA_BoundingBox;
+Uses TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Vector3D, TERRA_Color,
+  TERRA_Vector4D, TERRA_Stream, TERRA_BoundingBox;
 
 Type
   SplineControlPoint = Record
@@ -80,9 +80,9 @@ Type
       Procedure Synchronize(OtherSpline:Spline);
 
       Procedure Load(Source:Stream); Overload;
-      Procedure Load(FileName:AnsiString); Overload;
+      Procedure Load(Const FileName:TERRAString); Overload;
       Procedure Save(Dest:Stream); Overload;
-      Procedure Save(FileName:AnsiString); Overload;
+      Procedure Save(FileName:TERRAString); Overload;
 
       Property Speed:Single Read _Speed Write _Speed;
       Property Time:Single Read GetTime Write SetTime;
@@ -94,7 +94,7 @@ Type
     End;
 
 Implementation
-Uses TERRA_Error, TERRA_Application, TERRA_FileIO, TERRA_DebugDraw, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
+Uses TERRA_Error, TERRA_Application, TERRA_FileStream, TERRA_DebugDraw, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
 
 { Spline }
 Constructor Spline.Create;
@@ -274,7 +274,7 @@ Begin
     Dest.Write(@_Points[I].Position, SizeOf(Vector3D));
 End;
 
-Procedure Spline.Save(FileName:AnsiString);
+Procedure Spline.Save(FileName:TERRAString);
 Var
   Dest:Stream;
 Begin
@@ -283,7 +283,7 @@ Begin
   Dest.Destroy;
 End;
 
-Procedure Spline.Load(FileName:AnsiString);
+Procedure Spline.Load(Const FileName:TERRAString);
 Var
   Source:Stream;
 Begin

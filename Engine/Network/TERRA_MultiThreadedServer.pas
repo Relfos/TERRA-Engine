@@ -28,7 +28,7 @@ Unit TERRA_MultiThreadedServer;
 {-$DEFINE DEBUGMODE}
 
 Interface
-Uses TERRA_Utils, TERRA_OS, TERRA_Network, TERRA_NetServer, TERRA_Sockets, TERRA_ThreadPool
+Uses TERRA_Utils, TERRA_OS, TERRA_Network, TERRA_NetServer, TERRA_Sockets, TERRA_Threads
   {$IFDEF WINDOWS},Windows{$ENDIF};
 
 Type
@@ -44,7 +44,7 @@ Type
       Procedure DispatchNewPlayer(Sock:Socket);
     Public
       // Creates a new server instance
-      Constructor Create(Name:AnsiString; Version,Port:Word; MaxClients:Word);
+      Constructor Create(Version,Port:Word; MaxClients:Word);
 
       // Handles messages
       Procedure Update; Override;
@@ -82,7 +82,7 @@ End;
 Procedure ServerThread.Execute;
 Var
   Client:ClientInfo;
-  Msg:LNetMessage;
+  Msg:NetMessage;
 Begin
   {$IFDEF DEBUGMODE}Log(logDebug, 'MT', '-------------->Thread '+IntToString(_PlayerID)+' running!');{$ENDIF}
 
@@ -101,7 +101,7 @@ Begin
       Exit;
     End;
 
-    If Not _ServerInstance.ReceivePacket(Client.Socket, @Msg) Then
+    If Not _ServerInstance.ReceivePacket(Client.Socket) Then
     Begin
       {$IFDEF DEBUGMODE}Log(logDebug, 'MT', '-------------->Player '+IntToString(_PlayerID)+' timed out!');{$ENDIF}
       Break;
@@ -114,9 +114,9 @@ End;
 
 { NetMultithreadedServer }
 // Creates a new server instance
-Constructor NetMultithreadedServer.Create(Name:AnsiString; Version,Port:Word; MaxClients:Word);
+Constructor NetMultithreadedServer.Create(Version,Port:Word; MaxClients:Word);
 Begin
-  Inherited Create(Name, Version, Port, MaxClients);
+  Inherited Create(Version, Port, MaxClients);
   SetLength(_Threads, Succ(_ClientCount));
   SetLength(_LastTime, Succ(_ClientCount));
   _ServerInstance := Self;
@@ -161,8 +161,8 @@ End;
 Procedure NetMultithreadedServer.Update;
 Var
   I:Integer;
-  Msg:PNetMessage;
-  Rm:LNetMessage;
+  Msg:NetMessage;
+  Rm:NetMessage;
   ValidMsg:Boolean;
   Client:ClientInfo;
   Sock:Socket;
@@ -185,8 +185,8 @@ Begin
   I := 0;
   While (I<_WaitingCount) Do
   Begin
-    {$IFDEF NETDEBUG}WriteLn('Processing waiting connection #',I);{$ENDIF}
-    If (ReceivePacket(_WaitingConnections[I], @RM)) Then
+    {$IFDEF DEBUG_NET}WriteLn('Processing waiting connection #',I);{$ENDIF}
+    If (ReceivePacket(_WaitingConnections[I])) Then
     Begin
       DispatchNewPlayer(_WaitingConnections[I]);
       _WaitingConnections[I] := _WaitingConnections[Pred(_WaitingCount)];

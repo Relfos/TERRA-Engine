@@ -27,7 +27,7 @@ Unit TERRA_MeshFilter;
 
 Interface
 
-Uses TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_IO;
+Uses TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_Stream;
 
 Const
   meshFormatNormal  = 1;
@@ -106,7 +106,7 @@ Type
   MeshFilter = Class
     Public
       Function GetGroupCount:Integer; Virtual;
-      Function GetGroupName(GroupID:Integer):AnsiString; Virtual;
+      Function GetGroupName(GroupID:Integer):TERRAString; Virtual;
       Function GetGroupFlags(GroupID:Integer):Cardinal; Virtual;
       Function GetGroupBlendMode(GroupID:Integer):Cardinal; Virtual;
 
@@ -127,24 +127,24 @@ Type
       Function GetDiffuseColor(GroupID:Integer):Color; Virtual;
       Function GetAmbientColor(GroupID:Integer):Color; Virtual;
 
-      Function GetDiffuseMapName(GroupID:Integer):AnsiString; Virtual;
-      Function GetTriplanarMapName(GroupID:Integer):AnsiString; Virtual;
-      Function GetGlowMapName(GroupID:Integer):AnsiString; Virtual;
-      Function GetRefractionMapName(GroupID:Integer):AnsiString; Virtual;
-      Function GetSpecularMapName(GroupID:Integer):AnsiString; Virtual;
-      Function GetEmissiveMapName(GroupID:Integer):AnsiString; Virtual;
-      Function GetAlphaMapName(GroupID:Integer):AnsiString; Virtual;
-      Function GetLightMapName(GroupID:Integer):AnsiString; Virtual;
-      Function GetColorRampName(GroupID:Integer):AnsiString; Virtual;
+      Function GetDiffuseMapName(GroupID:Integer):TERRAString; Virtual;
+      Function GetTriplanarMapName(GroupID:Integer):TERRAString; Virtual;
+      Function GetGlowMapName(GroupID:Integer):TERRAString; Virtual;
+      Function GetRefractionMapName(GroupID:Integer):TERRAString; Virtual;
+      Function GetSpecularMapName(GroupID:Integer):TERRAString; Virtual;
+      Function GetEmissiveMapName(GroupID:Integer):TERRAString; Virtual;
+      Function GetAlphaMapName(GroupID:Integer):TERRAString; Virtual;
+      Function GetLightMapName(GroupID:Integer):TERRAString; Virtual;
+      Function GetColorRampName(GroupID:Integer):TERRAString; Virtual;
 
       Function GetBoneCount():Integer; Virtual;
-      Function GetBoneName(BoneID:Integer):AnsiString; Virtual;
+      Function GetBoneName(BoneID:Integer):TERRAString; Virtual;
       Function GetBoneParent(BoneID:Integer):Integer; Virtual;
       Function GetBonePosition(BoneID:Integer):Vector3D; Virtual;
       Function GetBoneRotation(BoneID:Integer):Vector3D; Virtual;
 
       Function GetAnimationCount():Integer; Virtual;
-      Function GetAnimationName(AnimationID:Integer):AnsiString; Virtual;
+      Function GetAnimationName(AnimationID:Integer):TERRAString; Virtual;
       Function GetAnimationFrameRate(AnimationID:Integer):Single; Virtual;
       Function GetAnimationDuration(AnimationID:Integer):Single; Virtual;
       Function GetAnimationLoop(AnimationID:Integer):Boolean; Virtual;
@@ -158,39 +158,39 @@ Type
       Function GetRotationKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshVectorKey; Virtual;
 
       Function Load(Source:Stream):Boolean; Overload; Virtual;
-      Function Load(FileName:AnsiString):Boolean; Overload;
+      Function Load(FileName:TERRAString):Boolean; Overload;
 
       Class Function Save(Dest:Stream; MyMesh:MeshFilter):Boolean; Overload; Virtual;
-      Class Function Save(FileName:AnsiString; MyMesh:MeshFilter):Boolean; Overload;
+      Class Function Save(FileName:TERRAString; MyMesh:MeshFilter):Boolean; Overload;
     End;
 
   MeshFilterClass = Class Of MeshFilter;
   MeshFilterType = Record
     Filter:MeshFilterClass;
-    Extension:AnsiString;
+    Extension:TERRAString;
   End;
 
-  Procedure RegisterMeshFilter(Filter:MeshFilterClass; Extension:AnsiString);
-  Function CreateMeshFilter(FileName:AnsiString):MeshFilter;
+  Procedure RegisterMeshFilter(Filter:MeshFilterClass; Extension:TERRAString);
+  Function CreateMeshFilter(FileName:TERRAString):MeshFilter;
 
 Var
   MeshFilterList:Array Of MeshFilterType;
   MeshFilterCount:Integer = 0;
 
 Implementation
-Uses TERRA_FileIO, TERRA_GraphicsManager, TERRA_FileUtils;
+Uses TERRA_FileStream, TERRA_FileUtils, TERRA_MemoryStream, TERRA_GraphicsManager;
 
-Procedure RegisterMeshFilter(Filter:MeshFilterClass; Extension:AnsiString);
+Procedure RegisterMeshFilter(Filter:MeshFilterClass; Extension:TERRAString);
 Begin
   Inc(MeshFilterCount);
   SetLength(MeshFilterList, MeshFilterCount);
   MeshFilterList[Pred(MeshFilterCount)].Filter := Filter;
-  MeshFilterList[Pred(MeshFilterCount)].Extension := UpStr(Extension);
+  MeshFilterList[Pred(MeshFilterCount)].Extension := Extension;
 End;
 
-Function CreateMeshFilter(FileName:AnsiString):MeshFilter;
+Function CreateMeshFilter(FileName:TERRAString):MeshFilter;
 Var
-  Ext:AnsiString;
+  Ext:TERRAString;
   Src:Stream;
   I:Integer;
 Begin
@@ -198,9 +198,9 @@ Begin
   If Not FileStream.Exists(FileName) Then
     Exit;
 
-  Ext := UpStr(GetFileExtension(FileName));
+  Ext := GetFileExtension(FileName);
   For I:=0 To Pred(MeshFilterCount) Do
-  If (MeshFilterList[I].Extension = Ext) Then
+  If (StringEquals(MeshFilterList[I].Extension, Ext)) Then
   Begin
     Src := MemoryStream.Create(FileName);
     Result := MeshFilterList[I].Filter.Create;
@@ -216,12 +216,12 @@ Begin
   Result := ColorWhite;
 End;
 
-Function MeshFilter.GetDiffuseMapName(GroupID: Integer):AnsiString;
+Function MeshFilter.GetDiffuseMapName(GroupID: Integer):TERRAString;
 Begin
   Result := '';
 End;
 
-Function MeshFilter.GetEmissiveMapName(GroupID: Integer):AnsiString;
+Function MeshFilter.GetEmissiveMapName(GroupID: Integer):TERRAString;
 Begin
   Result := '';
 End;
@@ -236,12 +236,12 @@ Begin
   Result := meshGroupCastShadow Or meshGroupPick;
 End;
 
-Function MeshFilter.GetGroupName(GroupID: Integer):AnsiString;
+Function MeshFilter.GetGroupName(GroupID: Integer):TERRAString;
 Begin
   Result := 'Group'+IntToString(Succ(GroupID));
 End;
 
-Function MeshFilter.GetSpecularMapName(GroupID: Integer):AnsiString;
+Function MeshFilter.GetSpecularMapName(GroupID: Integer):TERRAString;
 Begin
   Result := '';
 end;
@@ -320,7 +320,7 @@ Begin
   Result := False;
 End;
 
-Function MeshFilter.Load(FileName:AnsiString): Boolean;
+Function MeshFilter.Load(FileName:TERRAString): Boolean;
 Var
   Src:Stream;
 Begin
@@ -329,7 +329,7 @@ Begin
   Src.Destroy;
 End;
 
-Class Function MeshFilter.Save(FileName:AnsiString; MyMesh: MeshFilter): Boolean;
+Class Function MeshFilter.Save(FileName:TERRAString; MyMesh: MeshFilter): Boolean;
 Var
   Dest:Stream;
 Begin
@@ -348,7 +348,7 @@ Begin
   Result := 0;
 End;
 
-Function MeshFilter.GetBoneName(BoneID: Integer):AnsiString;
+Function MeshFilter.GetBoneName(BoneID: Integer):TERRAString;
 Begin
   Result := 'bone'+IntToString(BoneID);
 End;
@@ -396,7 +396,7 @@ Begin
   Result := 0;
 End;
 
-Function MeshFilter.GetAnimationName(AnimationID: Integer):AnsiString;
+Function MeshFilter.GetAnimationName(AnimationID: Integer):TERRAString;
 Begin
   Result := 'animation'+IntToString(AnimationID);
 End;
@@ -426,7 +426,7 @@ Begin
   Result := False;
 End;
 
-Function MeshFilter.GetAlphaMapName(GroupID: Integer):AnsiString;
+Function MeshFilter.GetAlphaMapName(GroupID: Integer):TERRAString;
 Begin
   Result := '';
 End;
@@ -436,27 +436,27 @@ Begin
   Result := ColorBlack;
 End;
 
-Function MeshFilter.GetColorRampName(GroupID: Integer):AnsiString;
+Function MeshFilter.GetColorRampName(GroupID: Integer):TERRAString;
 Begin
   Result := '';
 End;
 
-Function MeshFilter.GetGlowMapName(GroupID: Integer):AnsiString;
+Function MeshFilter.GetGlowMapName(GroupID: Integer):TERRAString;
 Begin
   Result := '';
 End;
 
-Function MeshFilter.GetLightMapName(GroupID: Integer):AnsiString;
+Function MeshFilter.GetLightMapName(GroupID: Integer):TERRAString;
 Begin
   Result := '';
 End;
 
-Function MeshFilter.GetRefractionMapName(GroupID: Integer):AnsiString;
+Function MeshFilter.GetRefractionMapName(GroupID: Integer):TERRAString;
 Begin
   Result := '';
 End;
 
-Function MeshFilter.GetTriplanarMapName(GroupID: Integer):AnsiString;
+Function MeshFilter.GetTriplanarMapName(GroupID: Integer):TERRAString;
 Begin
   Result := '';
 End;

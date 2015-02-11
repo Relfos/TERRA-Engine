@@ -26,7 +26,7 @@ Unit TERRA_MusicManager;
 {$I terra.inc}
 Interface
 
-Uses TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_MusicTrack;
+Uses TERRA_String, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_MusicTrack;
 
 Const
   DefaultMusicCrossFadeDuration = 6000;
@@ -41,17 +41,17 @@ Type
       _Volume:Single;
 
       _CurrentTrack:MusicTrack;
-      _PreviousTrackName:AnsiString;
+      _PreviousTrackName:TERRAString;
 
       _CrossFadeDuration:Integer;
       _CrossFadeTime:Cardinal;
       _CrossVolume:Single;
       _CrossFadeState:Integer;
-      _CrossFadeTrack:AnsiString;
+      _CrossFadeTrack:TERRAString;
 
       Procedure SetEnabled(const Value: Boolean);
 
-      Procedure InitTrack(Const SourceName:AnsiString);
+      Procedure InitTrack(Const SourceName:TERRAString);
 
     Public
       Class Function Instance:MusicManager;
@@ -62,7 +62,7 @@ Type
       Procedure Init; Override;
       Procedure Update; Override;
 
-      Procedure Play(SourceName:AnsiString; CrossFadeDuration:Integer = DefaultMusicCrossFadeDuration);
+      Procedure Play(SourceName:TERRAString; CrossFadeDuration:Integer = DefaultMusicCrossFadeDuration);
       Procedure Stop;
 
       Procedure SetVolume(Volume:Single);
@@ -72,14 +72,15 @@ Type
 
       Property CurrentTrack:MusicTrack Read _CurrentTrack;
       Property Enabled:Boolean Read _Enabled Write SetEnabled;
-      Property PreviousTrack:AnsiString Read _PreviousTrackName;
+      Property PreviousTrack:TERRAString Read _PreviousTrackName;
 
       Property Volume:Single Read _Volume Write SetVolume;
   End;
 
 Implementation
-Uses TERRA_FileManager, TERRA_SoundManager, TERRA_Log, TERRA_OS, TERRA_IO, TERRA_Math, TERRA_Midi
-{$IFNDEF OSX}, TERRA_AudioTrack{$ENDIF};
+Uses TERRA_FileManager, TERRA_SoundManager, TERRA_Log, TERRA_OS, TERRA_Stream, TERRA_Math
+{$IFDEF HAS_MIDI}, TERRA_Midi{$ENDIF}
+{$IFDEF HAS_AUDIOTRACK}, TERRA_AudioTrack{$ENDIF};
 
 Var
   _MusicManager_Instance:ApplicationObject;
@@ -101,14 +102,14 @@ Begin
   _Enabled := True;
 End;
 
-Procedure MusicManager.Play(SourceName:AnsiString; CrossFadeDuration:Integer);
+Procedure MusicManager.Play(SourceName:TERRAString; CrossFadeDuration:Integer);
 Begin
   {$IFDEF DISABLEMUSIC}
   Log(logDebug, 'Music', 'Cannot play '+SourceName+', music is disabled');
   Exit;
   {$ENDIF}
 
-  SourceName := LowStr(SourceName);
+  SourceName := StringLower(SourceName);
 
   If (Assigned(_CurrentTrack)) And (SourceName = GetFileName(_CurrentTrack.FileName, True)) Then
     Exit;
@@ -137,10 +138,10 @@ Begin
   End;
 End;
 
-Procedure MusicManager.InitTrack(Const SourceName:AnsiString);
+Procedure MusicManager.InitTrack(Const SourceName:TERRAString);
 Var
-  S, Ext:AnsiString;
-  Procedure TryExtension(Ext:AnsiString);
+  S, Ext:TERRAString;
+  Procedure TryExtension(Ext:TERRAString);
   Begin
     If S<>'' Then
       Exit;
@@ -189,10 +190,14 @@ Begin
 
   _CurrentTrack := Nil;
 
+{$IFDEF HAS_MIDI}  
   TryClass(MidiTrack);
-{$IFNDEF OSX}
+{$ENDIF}
+  
+{$IFDEF HAS_AUDIOTRACK}
   TryClass(AudioMusicTrack);
 {$ENDIF}
+  
   TryClass(StreamingMusicTrack);
 
   If _CurrentTrack=Nil Then
@@ -301,4 +306,4 @@ Begin
   _CurrentTrack := Nil;
 End;
 
-End.
+End.

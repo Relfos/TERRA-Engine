@@ -26,7 +26,7 @@ Unit TERRA_UIGrid;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_UI, TERRA_Tween, TERRA_Vector2D;
+Uses TERRA_String, TERRA_Utils, TERRA_UI, TERRA_Tween, TERRA_Vector2D;
 
 Type
   UIGrid = Class;
@@ -83,7 +83,7 @@ Type
       _Elements:Array Of UIGridElement;
       _ElementCount:Integer;
 
-      Function CreateGridCell(UI:UI; Parent:Widget; Name:AnsiString):Widget; Virtual; Abstract;
+      Function CreateGridCell(UI:UI; Parent:Widget; Name:TERRAString):Widget; Virtual; Abstract;
 
       Procedure ResetPositions();
 
@@ -97,7 +97,7 @@ Type
       Procedure UpdateGrid();
 
     Public
-      Constructor Create(Name:AnsiString; UI:UI; X,Y,Z:Single; GridX, GridY:Integer; Width, Height:Single; SpaceX:Single = 30; SpaceY:Single = 30);
+      Constructor Create(Name:TERRAString; UI:UI; X,Y,Z:Single; GridX, GridY:Integer; Width, Height:Single; SpaceX:Single = 30; SpaceY:Single = 30);
       Destructor Destroy; Override;
 
       Procedure MoveRight(Columns:Integer);
@@ -169,7 +169,7 @@ Begin
 End;
 
 { UIGrid }
-Constructor UIGrid.Create(Name:AnsiString; UI:UI; X,Y,Z:Single; GridX, GridY:Integer; Width, Height:Single; SpaceX, SpaceY:Single);
+Constructor UIGrid.Create(Name:TERRAString; UI:UI; X,Y,Z:Single; GridX, GridY:Integer; Width, Height:Single; SpaceX, SpaceY:Single);
 Var
   I,J:Integer;
   WndTotX, WndTotY:Integer;
@@ -696,11 +696,11 @@ End;
 
 Procedure UIGrid.GetIndicesOf(W: Widget; Var X, Y: Integer);
 Var
-  S, S2:AnsiString;
+  S, S2:TERRAString;
 Begin
   S := W.Name;
-  S2 := GetNextWord(S, '#');
-  S2 := GetNextWord(S, '_');
+  S2 := StringGetNextSplit(S, Ord('#'));
+  S2 := StringGetNextSplit(S, Ord('_'));
   X := StringToInt(S2);
   Y := StringToInt(S);
   Dec(X, _GridX);

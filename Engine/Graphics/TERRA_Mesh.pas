@@ -26,7 +26,7 @@ Unit TERRA_Mesh;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Texture, TERRA_IO, TERRA_Resource, TERRA_MeshAnimation,
+  TERRA_String, TERRA_Utils, TERRA_Texture, TERRA_Stream, TERRA_Resource, TERRA_MeshAnimation,
   TERRA_VertexBufferObject, TERRA_ResourceManager, TERRA_FileUtils, TERRA_Vector4D,
   TERRA_Math, TERRA_Ray, TERRA_Collections, TERRA_ShadowVolumes, TERRA_GraphicsManager, TERRA_MeshFilter,
   TERRA_BoundingBox, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_RenderTarget,
@@ -101,11 +101,11 @@ Type
   End;
 
   MeshEmitter = Class(TERRAObject)
-    Name:AnsiString;
-    Content:AnsiString;
+    Name:TERRAString;
+    Content:TERRAString;
     Position:Vector3D;
     BoneIndex:Integer;
-    ParentBone:AnsiString;
+    ParentBone:TERRAString;
     Owner:Mesh;
 
     Constructor Create(Owner:Mesh);
@@ -113,11 +113,11 @@ Type
   End;
 
   MeshLight = Class(TERRAObject)
-    Name:AnsiString;
+    Name:TERRAString;
     Owner:Mesh;
     Position:Vector3D;
     BoneIndex:Integer;
-    ParentBone:AnsiString;
+    ParentBone:TERRAString;
 
     LightType:Byte;
     LightColor:Color;
@@ -252,7 +252,7 @@ Type
 
       Procedure RenderLights; Override;
 
-      Function GetName():AnsiString; Override;
+      Function GetName():TERRAString; Override;
 
       Procedure SetDiffuseMap(GroupID:Integer; Map:Texture);
       Function GetDiffuseMap(GroupID:Integer):Texture;
@@ -308,7 +308,7 @@ Type
 
       Function AddEffect(FX:MeshFX):Mesh;
 
-      Function AddParticleEmitter(Const Name:AnsiString; Position: Vector3D; Const Content:AnsiString; Const ParentBone:AnsiString = ''):MeshEmitter;
+      Function AddParticleEmitter(Const Name:TERRAString; Position: Vector3D; Const Content:TERRAString; Const ParentBone:TERRAString = ''):MeshEmitter;
 
       Procedure SetDiffuseColor(MyColor:Color); Overload;
       Procedure SetDiffuseColor(GroupID:Integer; MyColor:Color); Overload;
@@ -401,7 +401,7 @@ Type
     Protected
       _ID:Integer;
       _Owner:Mesh;
-	  	_Name:AnsiString;
+	  	_Name:TERRAString;
 
       _Buffer:VBO;
 
@@ -423,7 +423,7 @@ Type
       _Cloth:VerletCloth;
       {$ENDIF}
 
-      _EmitterFX:AnsiString;
+      _EmitterFX:TERRAString;
 
       _Vertices:Array Of MeshVertex;
     	_VertexCount:Integer;
@@ -469,7 +469,7 @@ Type
       FurSettings:TERRA_Fur.FurSettings;
       {$ENDIF}
 
-      Constructor Create(ID:Integer; Parent:Mesh; Name:AnsiString='');
+      Constructor Create(ID:Integer; Parent:Mesh; Name:TERRAString='');
       Destructor Destroy; Reintroduce;
 
 		  Procedure Clean; Virtual;
@@ -545,7 +545,7 @@ Type
       Function GetVertexMorph(ID, VertexIndex:Integer):Vector3D;
       Procedure SetVertexMorph(ID, VertexIndex:Integer; Value:Vector3D);
 
-      Property Name:AnsiString Read _Name Write _Name;
+      Property Name:TERRAString Read _Name Write _Name;
 
 		  Property DiffuseMap:Texture Read GetDiffuseMap Write SetDiffuseMap;
 		  Property DecalMap:Texture Read GetDecalMap Write SetDecalMap;
@@ -562,7 +562,7 @@ Type
       Property LightMap:Texture Read GetLightMap Write SetLightmap;
       Property ColorRamp:Texture Read GetColorRamp Write SetColorRamp;
 
-      Property EmitterFX:AnsiString Read _EmitterFX Write _EmitterFX;
+      Property EmitterFX:TERRAString Read _EmitterFX Write _EmitterFX;
 
       Property AmbientColor:Color Read GetAmbientColor Write SetAmbientColor;
       Property DiffuseColor:Color  Read GetDiffuseColor Write SetDiffuseColor;
@@ -608,9 +608,9 @@ Type
 	End;
 
   MeshMetadata = Class
-    Name:AnsiString;
+    Name:TERRAString;
     Position:Vector3D;
-    Content:AnsiString;
+    Content:TERRAString;
   End;
 
   MeshBoneMorph = Record
@@ -676,21 +676,21 @@ Type
 			Procedure AddTriangle(A,B,C:MeshVertex; Group:MeshGroup);
 			Procedure AddQuad(A,B,C,D:MeshVertex; Group:MeshGroup);
 
-			Function AddGroup(Name:AnsiString=''):MeshGroup;
-      Function DuplicateGroup(Group:MeshGroup; Name:AnsiString=''):MeshGroup;
-			Function GetGroup(Name:AnsiString):MeshGroup; Overload;
+			Function AddGroup(Name:TERRAString=''):MeshGroup;
+      Function DuplicateGroup(Group:MeshGroup; Name:TERRAString=''):MeshGroup;
+			Function GetGroup(Name:TERRAString):MeshGroup; Overload;
       Function GetGroup(Index:Integer):MeshGroup; Overload;
 
-      Function GetGroupIndex(Name:AnsiString):Integer;
+      Function GetGroupIndex(Name:TERRAString):Integer;
 
-      Procedure AddMetadata(Name:AnsiString; Position:Vector3D; Content:AnsiString='');
-      Function GetMetadata(Name:AnsiString):MeshMetadata; Overload;
+      Procedure AddMetadata(Name:TERRAString; Position:Vector3D; Content:TERRAString='');
+      Function GetMetadata(Const Name:TERRAString):MeshMetadata; Overload;
       Function GetMetadata(Index:Integer):MeshMetadata; Overload;
 
-      Function AddEmitter(Name:AnsiString; Position:Vector3D; Content:AnsiString; ParentBone:AnsiString):MeshEmitter;
+      Function AddEmitter(Name:TERRAString; Position:Vector3D; Content:TERRAString; ParentBone:TERRAString):MeshEmitter;
       Function GetEmitter(Index:Integer):MeshEmitter;
 
-      Function AddLight(Name:AnsiString; Position:Vector3D; LightType:Integer; LightColor:Color; Param1, Param2, Param3:Vector3D; ParentBone:AnsiString):MeshLight; Overload;
+      Function AddLight(Name:TERRAString; Position:Vector3D; LightType:Integer; LightColor:Color; Param1, Param2, Param3:Vector3D; ParentBone:TERRAString):MeshLight; Overload;
       Function AddLight(OtherLight:MeshLight):MeshLight; Overload;
       Function GetLight(Index:Integer):MeshLight;
 
@@ -742,7 +742,7 @@ Type
       _TargetGroup:MeshGroup;
 
     Public
-      Constructor Create(Const FXName:AnsiString; Target:MeshGroup);
+      Constructor Create(Const FXName:TERRAString; Target:MeshGroup);
       Procedure Emit(Target:PParticle); Override;
   End;
 
@@ -756,7 +756,7 @@ Type
       Procedure AddAnimation(Anim:Animation);
 
       Function GetGroupCount:Integer; Override;
-      Function GetGroupName(GroupID:Integer):AnsiString; Override;
+      Function GetGroupName(GroupID:Integer):TERRAString; Override;
       Function GetGroupFlags(GroupID:Integer):Cardinal; Override;
 
       Function GetTriangleCount(GroupID:Integer):Integer; Override;
@@ -773,16 +773,16 @@ Type
       Function GetVertexUV2(GroupID, Index:Integer):Vector2D; Override;
 
       Function GetDiffuseColor(GroupID:Integer):Color; Override;
-      Function GetDiffuseMapName(GroupID:Integer):AnsiString; Override;
+      Function GetDiffuseMapName(GroupID:Integer):TERRAString; Override;
 
       Function GetBoneCount():Integer; Override;
-      Function GetBoneName(BoneID:Integer):AnsiString; Override;
+      Function GetBoneName(BoneID:Integer):TERRAString; Override;
       Function GetBoneParent(BoneID:Integer):Integer; Override;
       Function GetBonePosition(BoneID:Integer):Vector3D; Override;
       Function GetBoneRotation(BoneID:Integer):Vector3D; Override;
 
       Function GetAnimationCount():Integer; Override;
-      Function GetAnimationName(AnimationID:Integer):AnsiString; Override;
+      Function GetAnimationName(AnimationID:Integer):TERRAString; Override;
       Function GetAnimationFrameRate(AnimationID:Integer):Single; Override;
       Function GetAnimationLoop(AnimationID:Integer):Boolean; Override;
 
@@ -796,17 +796,20 @@ Type
   MeshManager = Class(ResourceManager)
     Protected
       _CubeMesh:Mesh;
+      _SphereMesh:Mesh;
 
       Function GetCubeMesh:Mesh;
+      Function GetSphereMesh:Mesh;
 
     Public
       Destructor Destroy; Override;
       Class Function Instance:MeshManager;
 
-      Function GetMesh(Name:AnsiString; ValidateError:Boolean = True):Mesh;
-      Function CloneMesh(Name:AnsiString; ValidateError:Boolean = True):Mesh;
+      Function GetMesh(Name:TERRAString; ValidateError:Boolean = True):Mesh;
+      Function CloneMesh(Name:TERRAString; ValidateError:Boolean = True):Mesh;
 
       Property CubeMesh:Mesh Read GetCubeMesh;
+      Property SphereMesh:Mesh Read GetSphereMesh;
    End;
 
 
@@ -1202,7 +1205,7 @@ End;
 
 Function GroupReadMaterialDiffuse(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := '';
 
@@ -1215,7 +1218,7 @@ End;
 
 Function GroupReadMaterialTriplanar(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := '';
 
@@ -1227,7 +1230,7 @@ End;
 
 Function GroupReadMaterialSpecular(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := '';
 
@@ -1239,7 +1242,7 @@ End;
 
 Function GroupReadMaterialBump(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := '';
 
@@ -1257,7 +1260,7 @@ End;
 
 Function GroupReadMaterialLightmap(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := '';
 
@@ -1275,7 +1278,7 @@ End;
 
 Function GroupReadMaterialRefraction(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := '';
 
@@ -1288,7 +1291,7 @@ End;
 
 Function GroupReadMaterialReflective(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := '';
 
@@ -1301,7 +1304,7 @@ End;
 
 Function GroupReadMaterialEnvMap(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := '';
 
@@ -1313,7 +1316,7 @@ End;
 
 Function GroupReadMaterialGlow(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := '';
 
@@ -1325,7 +1328,7 @@ End;
 
 Function GroupReadMaterialAlphaMap(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := '';
 
@@ -1337,7 +1340,7 @@ End;
 
 Function GroupReadMaterialRamp(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := '';
 
@@ -1414,14 +1417,14 @@ Begin
   _MeshManager := Nil;
 End;
 
-Function MeshManager.GetMesh(Name:AnsiString; ValidateError:Boolean):Mesh;
+Function MeshManager.GetMesh(Name:TERRAString; ValidateError:Boolean):Mesh;
 Var
   I, N:Integer;
-  S:AnsiString;
+  S:TERRAString;
   Filter:MeshFilter;
 Begin
   Result := Nil;
-  Name := TrimLeft(TrimRight(Name));
+  Name := StringTrim(Name);
   If (Name='') Then
     Exit;
 
@@ -1460,12 +1463,12 @@ Begin
   End;
 End;
 
-Function MeshManager.CloneMesh(Name:AnsiString; ValidateError:Boolean):Mesh;
+Function MeshManager.CloneMesh(Name:TERRAString; ValidateError:Boolean):Mesh;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   Log(logDebug, 'ResourceManager', 'Cloning mesh '+Name);
-  Name := TrimLeft(TrimRight(Name));
+  Name := StringTrim(Name);
   If (Name='') Then
   Begin
     Result := Nil;
@@ -1496,6 +1499,20 @@ Begin
   End;
 
   Result := _CubeMesh;
+End;
+
+function MeshManager.GetSphereMesh: Mesh;
+Var
+  Sphere:TERRA_Solids.SphereMesh;
+Begin
+  If _SphereMesh = Nil Then
+  Begin
+    Sphere := TERRA_Solids.SphereMesh.Create(8);
+    _SphereMesh := CreateMeshFromSolid(Sphere);
+    Sphere.Destroy();
+  End;
+
+  Result := _SphereMesh;
 End;
 
 { MeshInstance }
@@ -1959,19 +1976,19 @@ Begin
   Inherited;
 
   For I:=0 To Pred(Self._ParticleSystemCount) Do
-    DestroyObject(@_ParticleSystems[I]);
+    FreeAndNil(_ParticleSystems[I]);
   _ParticleSystemCount := 0;
 
   For I:=0 To Pred(Self._EmitterCount) Do
-    DestroyObject(@_Emitters[I]);
+    FreeAndNil(_Emitters[I]);
   _EmitterCount := 0;
 
   For I:=0 To Pred(Self._LightCount) Do
-    DestroyObject(@_Lights[I]);
+    FreeAndNil(_Lights[I]);
   _LightCount := 0;
 
-  DestroyObject(@_ShadowVolume);
-  DestroyObject(@_Animation);
+  FreeAndNil(_ShadowVolume);
+  FreeAndNil(_Animation);
 
   If Assigned(_Mesh) Then
   Begin
@@ -2418,7 +2435,7 @@ Begin
     Result := @_AttachList[Index];
 End;
 
-Function MeshInstance.GetName:AnsiString;
+Function MeshInstance.GetName:TERRAString;
 Begin
   If Assigned(_Mesh) Then
     Result := _Mesh.Name + '(X:'+FloatToString(_Position.X)+ ', Y:'+FloatToString(_Position.Y)+ ', Z:'+FloatToString(_Position.Z)+')'
@@ -2515,7 +2532,7 @@ Begin
   Result := True;
 End;
 
-Function MeshInstance.AddParticleEmitter(Const Name:AnsiString; Position: Vector3D; Const Content:AnsiString; Const ParentBone:AnsiString):MeshEmitter;
+Function MeshInstance.AddParticleEmitter(Const Name:TERRAString; Position: Vector3D; Const Content:TERRAString; Const ParentBone:TERRAString):MeshEmitter;
 Begin
   If (Name = '') Then
   Begin
@@ -3138,7 +3155,7 @@ Procedure MeshGroup.Load(Source:Stream);
 Var
 	K:Cardinal;
   I, Size:Integer;
-  S:AnsiString;
+  S:TERRAString;
   Tex:Texture;
   Tag:FileHeader;
   Handler:GroupDataBlockHandler;
@@ -3167,7 +3184,7 @@ End;
 Procedure MeshGroup.Save(Dest:Stream);
 Var
   I, J, Size:Integer;
-  Name:AnsiString;
+  Name:TERRAString;
   Tag:FileHeader;
   Index, Handness:Shortint;
   ShouldStore:Boolean;
@@ -4857,7 +4874,7 @@ Begin
   SetFlag(Self.Flags, meshGroupTransparency, NeedTransparency);
 End;
 
-Constructor MeshGroup.Create(ID: Integer; Parent: Mesh; Name:AnsiString);
+Constructor MeshGroup.Create(ID: Integer; Parent: Mesh; Name:TERRAString);
 Begin
   If Name='' Then
     Name := 'group'+IntToString(ID);
@@ -5333,14 +5350,14 @@ Begin
     Result := Nil;
 End;
 
-Function Mesh.GetGroup(Name:AnsiString):MeshGroup;
+Function Mesh.GetGroup(Name:TERRAString):MeshGroup;
 Var
 	I:Integer;
 Begin
   Self.Prefetch();
 
 	For I:=0 To Pred(_GroupCount) Do
-	If UpStr(Name)=UpStr(_Groups[I]._Name) Then
+	If StringEquals(Name, _Groups[I]._Name) Then
 	Begin
 		Result := _Groups[I];
 		Exit;
@@ -5349,12 +5366,12 @@ Begin
 	Result := Nil;
 End;
 
-Function Mesh.GetGroupIndex(Name:AnsiString):Integer;
+Function Mesh.GetGroupIndex(Name:TERRAString):Integer;
 Var
 	I:Integer;
 Begin
 	For I:=0 To Pred(_GroupCount) Do
-	If UpStr(Name)=UpStr(_Groups[I]._Name) Then
+	If StringEquals(Name, _Groups[I]._Name) Then
 	Begin
 		Result := I;
 		Exit;
@@ -5364,7 +5381,7 @@ Begin
 End;
 
 
-Function Mesh.AddGroup(Name:AnsiString=''):MeshGroup;
+Function Mesh.AddGroup(Name:TERRAString=''):MeshGroup;
 Begin
 	Inc(_GroupCount);
 	SetLength(_Groups, _GroupCount);
@@ -5373,7 +5390,7 @@ Begin
   _Groups[Pred(_GroupCount)] := Result;
 End;
 
-Function Mesh.DuplicateGroup(Group:MeshGroup; Name:AnsiString=''):MeshGroup;
+Function Mesh.DuplicateGroup(Group:MeshGroup; Name:TERRAString=''):MeshGroup;
 Var
   I:Integer;
 Begin
@@ -5521,7 +5538,7 @@ Function Mesh.Save(Dest:Stream):Boolean;
 Var
   I,J, Size, Temp, Temp2, Count:Integer;
   Tag:FileHeader;
-  S:AnsiString;
+  S:TERRAString;
 Begin
   Self.UpdateBoundingBox;
 
@@ -5687,7 +5704,7 @@ Constructor Mesh.CreateFromFilter(Source:MeshFilter);
 Var
   I, J, N:Integer;
   Format:Integer;
-  S:AnsiString;
+  S:TERRAString;
   B:MeshBone;
   P:Vector2D;
 Begin
@@ -5786,7 +5803,7 @@ Begin
     Result := (_Emitters[Index]);
 End;
 
-Function Mesh.AddEmitter(Name:AnsiString; Position: Vector3D; Content:AnsiString; ParentBone:AnsiString):MeshEmitter;
+Function Mesh.AddEmitter(Name:TERRAString; Position: Vector3D; Content:TERRAString; ParentBone:TERRAString):MeshEmitter;
 Begin
   Result := MeshEmitter.Create(Self);
   Result.Name := Name;
@@ -5808,7 +5825,7 @@ Begin
     Result := (_Lights[Index]);
 End;
 
-Function Mesh.AddLight(Name:AnsiString; Position:Vector3D; LightType:Integer; LightColor:Color; Param1, Param2, Param3:Vector3D; ParentBone:AnsiString):MeshLight;
+Function Mesh.AddLight(Name:TERRAString; Position:Vector3D; LightType:Integer; LightColor:Color; Param1, Param2, Param3:Vector3D; ParentBone:TERRAString):MeshLight;
 Begin
   Result := MeshLight.Create(Self);
   Result.Name := Name;
@@ -5831,7 +5848,7 @@ Begin
   Result := Self.AddLight(OtherLight.Name, OtherLight.Position, OtherLight.LightType, OtherLight.LightColor, OtherLight.Param1, OtherLight.Param2, OtherLight.Param3, OtherLight.ParentBone);
 End;
 
-Procedure Mesh.AddMetadata(Name:AnsiString; Position: Vector3D; Content:AnsiString);
+Procedure Mesh.AddMetadata(Name:TERRAString; Position: Vector3D; Content:TERRAString);
 Begin
   Inc(_MetaDataCount);
   SetLength(_Metadata, _MetaDataCount);
@@ -5841,13 +5858,12 @@ Begin
   _Metadata[Pred(_MetaDataCount)].Content := Content;
 End;
 
-Function Mesh.GetMetadata(Name:AnsiString): MeshMetadata;
+Function Mesh.GetMetadata(Const Name:TERRAString): MeshMetadata;
 Var
   I:Integer;
 Begin
-  Name := UpStr(Name);
   For I:=0 To Pred(_MetadataCount) Do
-  If (UpStr(_Metadata[I].Name) = Name) Then
+  If (StringEquals(_Metadata[I].Name, Name)) Then
   Begin
     Result := _Metadata[I];
     Exit;
@@ -6038,7 +6054,7 @@ Begin
     Result := False;
 End;
 
-Function CustomMeshFilter.GetAnimationName(AnimationID: Integer):AnsiString;
+Function CustomMeshFilter.GetAnimationName(AnimationID: Integer):TERRAString;
 Begin
   If (AnimationID>=0) And (AnimationID<_AnimationCount) Then
   Begin
@@ -6053,7 +6069,7 @@ Begin
   Result := _Mesh.Skeleton.BoneCount;
 End;
 
-Function CustomMeshFilter.GetBoneName(BoneID: Integer):AnsiString;
+Function CustomMeshFilter.GetBoneName(BoneID: Integer):TERRAString;
 Begin
   Result := _Mesh.Skeleton.GetBone(BoneID).Name;
 End;
@@ -6085,7 +6101,7 @@ Begin
   Result := _Mesh._Groups[GroupID]._Material.DiffuseColor;
 End;
 
-Function CustomMeshFilter.GetDiffuseMapName(GroupID: Integer):AnsiString;
+Function CustomMeshFilter.GetDiffuseMapName(GroupID: Integer):TERRAString;
 Begin
   If Assigned(_Mesh._Groups[GroupID]._Material.DiffuseMap) Then
   Begin
@@ -6105,7 +6121,7 @@ Begin
   Result := _Mesh._Groups[GroupID].Flags;
 End;
 
-Function CustomMeshFilter.GetGroupName(GroupID: Integer):AnsiString;
+Function CustomMeshFilter.GetGroupName(GroupID: Integer):TERRAString;
 Begin
   Result := _Mesh._Groups[GroupID].Name;
 End;
@@ -6459,7 +6475,7 @@ Begin
 End;
 
 { MeshParticleEmitter }
-Constructor MeshParticleEmitter.Create(Const FXName:AnsiString; Target: MeshGroup);
+Constructor MeshParticleEmitter.Create(Const FXName:TERRAString; Target: MeshGroup);
 Begin
   Self._TargetGroup := Target;
   Inherited Create(FXName, VectorZero);

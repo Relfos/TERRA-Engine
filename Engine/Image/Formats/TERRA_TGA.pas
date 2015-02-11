@@ -28,7 +28,7 @@ Unit TERRA_TGA;
 Interface
 
 Implementation
-Uses TERRA_Error, TERRA_Utils, TERRA_IO, TERRA_Image, TERRA_Application, TERRA_Color;
+Uses TERRA_String, TERRA_Error, TERRA_Utils, TERRA_Stream, TERRA_Image, TERRA_Application, TERRA_Color;
 
 Type
  LTGAHeader=Packed Record   // Header type for TGA images
@@ -161,7 +161,7 @@ Begin
     Image.HasAlpha:=True;
 End;
 
-Procedure TGASave(Dest:Stream; Image:Image; Options:AnsiString);
+Procedure TGASave(Dest:Stream; Image:Image; Const Options:TERRAString);
 Var
   I,J:Integer;
   Header:LTGAHeader;
@@ -184,12 +184,12 @@ End;
 
 Function ValidateTGA(Stream:Stream):Boolean;
 Var
-  ID:Array[1..2] Of AnsiChar;
+  ID:Word;
 Begin
-  Stream.Read(@ID,2);
-  Result:=(ID=#0#0);
+  Stream.ReadWord(ID);
+  Result := (ID=0);
 End;
 
 Begin
-  RegisterImageFormat('TGA',ValidateTGA,TGALoad,TGASave);
+  RegisterImageFormat('TGA', ValidateTGA, TGALoad, TGASave);
 End.

@@ -26,10 +26,9 @@ Unit TERRA_UI;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Shader,
-  TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
+  TERRA_String, TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween,
-  TERRA_SpriteManager, TERRA_Vector4D, TERRA_UITransition;
+  TERRA_SpriteManager, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_UITransition;
 
 Const
   // widget tween
@@ -92,7 +91,7 @@ Type
   UICursor = Class(TERRAObject)
     Protected
       _UI:UI;
-      _Name:AnsiString;
+      _Name:TERRAString;
       _Item:TextureAtlasItem;
       _OfsX:Integer;
       _OfsY:Integer;
@@ -100,7 +99,7 @@ Type
       Procedure Render;
 
     Public
-      Constructor Create(Name:AnsiString; UI:UI; OfsX:Integer = 0; OfsY:Integer=0);
+      Constructor Create(Name:TERRAString; UI:UI; OfsX:Integer = 0; OfsY:Integer=0);
       Destructor Destroy; Override;
 
       Property UI:UI Read _UI;
@@ -115,9 +114,10 @@ Type
       _UI:UI;
       _Next:Widget;
       _Tested:Boolean;
+      _RenderFrameID:Cardinal;
 
 		Protected
-			_Name:AnsiString;
+			_Name:TERRAString;
 			_Parent:Widget;
 			_Visible:Boolean;
 			_Position:Vector2D;
@@ -127,7 +127,7 @@ Type
       _ComponentCount:Integer;
       _TweenList:Array Of Tween;
       _TweenCount:Integer;
-      _Tooltip:AnsiString;
+      _Tooltip:TERRAString;
       _Align:Integer;
       _NeedsUpdate:Boolean;
 
@@ -197,7 +197,7 @@ Type
       Procedure SetScale(const Value: Single);
       Procedure SetFont(const Value: TERRA_Font.Font);
 
-      Function LoadComponent(Name:AnsiString):Integer;
+      Function LoadComponent(Name:TERRAString):Integer;
 
       Function GetTabControl():Widget;
       
@@ -218,17 +218,19 @@ Type
       Procedure StartHighlight(); Virtual;
       Procedure StopHighlight(); Virtual;
 
-      Function OnRegion(X,Y:Integer): Boolean; Virtual;
 			Procedure OnLanguageChange();Virtual;
 
       Function OutsideClipRect(X,Y:Integer):Boolean;
 
+      Function CanRender():Boolean;
+
+      Procedure ResetClipRect();
+
 		Public
       Tag:Integer;
-      IsVisibleInCutscenes:Boolean;
       DisableHighlights:Boolean;
       DisableUIColor:Boolean;
-      UserData:AnsiString;
+      UserData:TERRAString;
       AllowDragging:Boolean;
 
       OnMouseClick:WidgetEventHandler;
@@ -244,7 +246,7 @@ Type
 			Procedure Render; Virtual;
 
       Procedure UpdateRects; Virtual; Abstract;
-      Procedure UpdateTransform(); Virtual;
+      Function UpdateTransform():Boolean; Virtual;
 
 			Function IsVisible:Boolean;
 			Function GetAbsolutePosition:Vector2D;
@@ -261,9 +263,12 @@ Type
       Function AddTween(TweenType:Integer; TargetValue:Single; Time:Integer; Delay:Integer=0):Tween;
       Function HasTweens:Boolean;
 
+      Function OnRegion(X,Y:Integer): Boolean; Virtual;
+      Function OnCustomRegion(X,Y:Integer; X1,Y1,X2,Y2:Single):Boolean;
+      
       Procedure AddChild(W:Widget);
       Function GetChild(Index:Integer):Widget; Overload;
-      Function GetChild(Name:AnsiString):Widget; Overload;
+      Function GetChild(Const Name:TERRAString):Widget; Overload;
       Function GetChild(ChildClass:WidgetClass; Index:Integer = 0):Widget; Overload;
 
       Procedure OnSelectRight(); Virtual;
@@ -277,11 +282,11 @@ Type
       Function GetClipRect():ClipRect;
       Procedure UpdateClipRect(Clip:ClipRect; LeftBorder:Single = 0.0; TopBorder:Single = 0.0; RightBorder:Single = 0.0; BottomBorder:Single = 0.0);
 
-      Procedure SetName(Const Value:AnsiString);
+      Procedure SetName(Const Value:TERRAString);
 
       Procedure DrawComponent(Index:Integer; Const Offset:Vector3D; X1,Y1,X2,Y2:Single; Color:Color; ScaleColor:Boolean=True);
       Procedure DrawWindow(Index:Integer; Const Offset:Vector3D; Width, Height:Integer; Layout:UISkinLayout; Color:Color);
-      Procedure DrawText(Const Text:AnsiString; Const Offset:Vector3D; C:Color; Scale:Single; DropShadow:Boolean = True; UseFont:Font = Nil);
+      Procedure DrawText(Const Text:TERRAString; Const Offset:Vector3D; C:Color; Scale:Single; DropShadow:Boolean = True; UseFont:Font = Nil; Clip:ClipRect = Nil);
 
       Function IsHighlighted():Boolean;
       Function CanHighlight():Boolean;
@@ -316,7 +321,7 @@ Type
       Property Pivot:Vector2D Read _Pivot Write _Pivot;
       Property Size:Vector2D Read GetSize;
 			Property Layer:Single Read GetLayer Write SetLayer;
-			Property Name:AnsiString Read _Name Write SetName;
+			Property Name:TERRAString Read _Name Write SetName;
       
       Property TabIndex:Integer Read _TabIndex Write _TabIndex;
       Property TabControl:Widget Read GetTabControl Write _TabControl;
@@ -382,7 +387,7 @@ Type
       _Widgets:HashTable;
 
       _DefaultFont:Font;
-      _Language:AnsiString;
+      _Language:TERRAString;
 
       _WndCallback1:WidgetEventHandler;
       _WndCallback2:WidgetEventHandler;
@@ -390,9 +395,11 @@ Type
 
       _LastWidget:Widget;
 
-      Procedure UpdateLanguage();
+      _Transform:Matrix3x3;
+      _InverseTransform:Matrix3x3;
+      _ClipRect:ClipRect;
 
-//      Procedure DrawCutsceneBars;
+      Procedure UpdateLanguage();
 
       Procedure SetColorTable(const Value:Texture);
       Procedure SetDefaultFont(const Value: Font);
@@ -408,8 +415,8 @@ Type
 
       Procedure SetVisible(const Value: Boolean);
 
+
     Public
-      _CutsceneAlpha:Single;
       CloseButton:Widget;
 
       Key_Up:Integer;
@@ -432,20 +439,23 @@ Type
 
       Procedure AddWidget(MyWidget:Widget);
       Procedure DeleteWidget(MyWidget:Widget);
-      Function GetWidget(Const Name:AnsiString):Widget;
+      Function GetWidget(Const Name:TERRAString):Widget;
 
       Function AllowsEvents(W:Widget):Boolean;
 
       Procedure GetFirstHighLight();
       Procedure WrapControlsVertical(Up, Down:Widget); Overload;
       Procedure WrapControlsHorizontal(Left, Right:Widget); Overload;
-      Procedure WrapControlsVertical(Up, Down:AnsiString); Overload;
-      Procedure WrapControlsHorizontal(Left, Right:AnsiString); Overload;
+      Procedure WrapControlsVertical(Up, Down:TERRAString); Overload;
+      Procedure WrapControlsHorizontal(Left, Right:TERRAString); Overload;
 
       Procedure AddQuad(Const StartPos, EndPos:Vector2D; Const TexCoord1, TexCoord2:Vector2D; MyColor:Color; Z:Single; PageID:Integer;
         Const Transform:Matrix3x3; Saturation:Single; ColorTable:Texture; Clip:ClipRect);
 
       Procedure Clear;
+
+      Procedure ConvertGlobalToLocal(Var X, Y:Integer);
+      Procedure ConvertLocalToGlobal(Var X, Y:Integer);
 
 		  Procedure OnKeyDown(Key:Word);
 		  Procedure OnKeyUp(Key:Word);
@@ -460,15 +470,17 @@ Type
 
       Procedure AfterEffects;
 
+      Procedure SetTransform(Const M:Matrix3x3);
+
       Procedure SetFocus(W:Widget);
       Procedure SetTransition(MyTransition:UITransition);
 
       Function GetVirtualKeyboard():Widget;
 
-      Function LoadCursor(Const Name:AnsiString; OfsX:Integer = 0; OfsY:Integer = 0):UICursor;
+      Function LoadCursor(Const Name:TERRAString; OfsX:Integer = 0; OfsY:Integer = 0):UICursor;
 
-      Procedure MessageBox(Msg:AnsiString; Callback: WidgetEventHandler = Nil);
-      Procedure ChoiceBox(Msg, Option1, Option2:AnsiString; Callback1:WidgetEventHandler = Nil; Callback2: WidgetEventHandler = Nil);
+      Procedure MessageBox(Msg:TERRAString; Callback: WidgetEventHandler = Nil);
+      Procedure ChoiceBox(Msg, Option1, Option2:TERRAString; Callback1:WidgetEventHandler = Nil; Callback2: WidgetEventHandler = Nil);
       Procedure ClearChoiceBox();
       Procedure ShowModal(W:Widget);
       Procedure InitTempWidgets();
@@ -493,13 +505,14 @@ Type
       Property Highlight:Widget Read GetHighlight Write SetHighlight;
 
       Property Visible:Boolean Read _Visible Write SetVisible;
+
+      Property Transform:Matrix3x3 Read _Transform Write SetTransform;
     End;
 
   UIManager = Class(ApplicationComponent)
     Protected
       _TextureAtlas:TextureAtlas;
       _UpdateTextureAtlas:Boolean;
-      _CutsceneShader:Shader;
 
       _UIList:Array Of UI;
       _UICount:Integer;
@@ -516,8 +529,6 @@ Type
       Function GetHeight:Integer;
 
       Function GetTextureAtlas:TextureAtlas;
-
-      Function GetCutSceneShader:Shader;
 
 
     Public
@@ -551,31 +562,12 @@ Type
 Function GetSpriteZOnTop(W:Widget; Ofs:Single = 1.0):Single;
 
 Implementation
-Uses TERRA_Error, TERRA_OS, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_GraphicsManager, TERRA_Widgets, TERRA_IO,
+Uses TERRA_Error, TERRA_OS, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Widgets, TERRA_Stream,
   TERRA_Matrix4x4, TERRA_Log, TERRA_FileUtils, TERRA_FileManager,
   TERRA_UIVirtualKeyboard;
 
 Var
   _UIManager_Instance:ApplicationObject = Nil;
-
-Function GetShader_Cutscene:AnsiString;
-Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
-Begin
-  S := '';
-  Line('vertex {');
-  Line('  attribute highp vec4 terra_position;');
-  Line('  uniform mat4 projectionMatrix;');
-	Line('void main()	{');
-  Line('  gl_Position = projectionMatrix * terra_position;');
-  Line('}}');
-  Line('fragment {');
-	Line('  void main()	{');
-  Line('    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);}');
-  Line('}  ');
-  Result := S;
-End;
 
 Function GetSpriteZOnTop(W:Widget; Ofs:Single):Single;
 Begin
@@ -1096,12 +1088,12 @@ Begin
   Result.Delay := Delay;
 End;
 
-Function Widget.LoadComponent(Name:AnsiString):Integer;
+Function Widget.LoadComponent(Name:TERRAString):Integer;
 Var
   I:Integer;
   Source, Temp:Image;
   MyStream:Stream;
-  S:AnsiString;
+  S:TERRAString;
   Item:TextureAtlasItem;
   Ext:ImageClassInfo;
 Begin
@@ -1256,7 +1248,7 @@ Begin
   End;
 End;
 
-Procedure Widget.DrawText(Const Text:AnsiString; Const Offset:Vector3D; C:Color; Scale:Single; DropShadow:Boolean; UseFont:Font);
+Procedure Widget.DrawText(Const Text:TERRAString; Const Offset:Vector3D; C:Color; Scale:Single; DropShadow:Boolean; UseFont:Font; Clip:ClipRect);
 Var
   P:Vector2D;
   Z:Single;
@@ -1286,8 +1278,16 @@ Begin
     Fnt := UseFont
   Else
     Fnt := Self.GetFont();
-    
-  Fnt.DrawTextWithTransform(P.X, P.Y, Z, Text, C, _Transform, Self.Scale * Scale, DropShadow, Self._ClipRect);
+
+  If Clip = Nil Then
+  Begin
+    If Assigned(Self._ClipRect) Then
+      Clip := Self._ClipRect
+    Else
+      Clip := Self._UI._ClipRect;
+  End;
+
+  Fnt.DrawTextWithTransform(P.X, P.Y, Z, Text, C, _Transform, Self.Scale * Scale, DropShadow, Clip);
 End;
 
 Function Widget.OnKeyDown(Key:Word):Boolean;
@@ -1310,20 +1310,20 @@ End;
 
 Function Widget.OnRegion(X,Y:Integer): Boolean;
 Begin
-  {$IFDEF DEBU_GUI}Log(logDebug, 'UI', 'X:'+IntToString(X)+' Y:'+IntToString(Y));{$ENDIF}
-  {$IFDEF DEBU_GUI}Log(logDebug, 'UI', _Name+ '.OnRegion called');{$ENDIF}
-  {$IFDEF DEBU_GUI}Log(logDebug, 'UI', 'X1:'+IntToString(Trunc(_Corners[0].X))+' Y1:'+IntToString(Trunc(_Corners[0].Y)));{$ENDIF}
-  {$IFDEF DEBU_GUI}Log(logDebug, 'UI', 'X2:'+IntToString(Trunc(_Corners[2].X))+' Y2:'+IntToString(Trunc(_Corners[2].Y)));{$ENDIF}
+  {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'X:'+IntToString(X)+' Y:'+IntToString(Y));{$ENDIF}
+  {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', _Name+ '.OnRegion called');{$ENDIF}
+  {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'X1:'+IntToString(Trunc(_Corners[0].X))+' Y1:'+IntToString(Trunc(_Corners[0].Y)));{$ENDIF}
+  {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'X2:'+IntToString(Trunc(_Corners[2].X))+' Y2:'+IntToString(Trunc(_Corners[2].Y)));{$ENDIF}
 
   If (GraphicsManager.Instance.FrameID = Self._VisibleFrame) Or (OutsideClipRect(X,Y)) Then
   Begin
     Result := False;
-    {$IFDEF DEBU_GUI}Log(logDebug, 'UI', 'Cliprect clipped!');{$ENDIF}
+    {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Cliprect clipped!');{$ENDIF}
     Exit;
   End;
 
   Result := (X>= _Corners[0].X) And (X <= _Corners[2].X) And (Y >= _Corners[0].Y) And (Y <= _Corners[2].Y);
-  {$IFDEF DEBU_GUI}Log(logDebug, 'UI', 'Region result for '+_Name+' was '+BoolToString(Result));{$ENDIF}
+  {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Region result for '+_Name+' was '+BoolToString(Result));{$ENDIF}
 End;
 
 Function Widget.OnMouseDown(X,Y:Integer;Button:Word):Boolean;
@@ -1332,14 +1332,14 @@ Var
 Begin
   Result := False;
 
-  {$IFDEF DEBU_GUI}Log(logDebug, 'UI', _Name+ '.OnMouseDown called');{$ENDIF}
+  {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', _Name+ '.OnMouseDown called');{$ENDIF}
 
   If (Not Self.Visible) Then
     Exit;
 
   If (Self.HasTweens) Then
   Begin
-    {$IFDEF DEBU_GUI}Log(logDebug, 'UI', _Name+ ' has tweens!');{$ENDIF}
+    {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', _Name+ ' has tweens!');{$ENDIF}
     Exit;
   End;
 
@@ -1392,7 +1392,7 @@ Begin
       Exit;
     End;
 
-    {$IFDEF DEBU_GUI}Log(logDebug, 'UI', 'Found, and has handler: '+BoolToString(Assigned(OnMouseClick)));{$ENDIF}
+    {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Found, and has handler: '+BoolToString(Assigned(OnMouseClick)));{$ENDIF}
     If (Assigned(OnMouseClick)) And (Pos('KEY_', Self.Name)<>1) Then
     Begin
       Result := True;
@@ -1418,7 +1418,7 @@ Begin
     Exit;
   End;
 
-  {$IFDEF DEBU_GUI}Log(logDebug, 'UI', _Name+ '.OnMouseUp called');{$ENDIF}
+  {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', _Name+ '.OnMouseUp called');{$ENDIF}
 
   If (Not Self.Visible) Or (Self.HasTweens) Then
     Exit;
@@ -1578,7 +1578,7 @@ Begin
   _TransformChanged := True;
 End;
 
-Procedure Widget.UpdateTransform();
+Function Widget.UpdateTransform():Boolean;
 Var
   I:Integer;
   Center:Vector2D;
@@ -1586,6 +1586,7 @@ Var
   W,H, Ratio:Single;
   OfsX,OfsY:Single;
 Begin
+  Result := False;
   If (Not _TransformChanged) Then
     Exit;
 
@@ -1613,7 +1614,9 @@ Begin
   _Transform := MatrixTransformAroundPoint2D(Center, _Transform);
 
   If Assigned(_Parent) Then
-    _Transform := MatrixMultiply3x3(_Transform, Parent._Transform);
+    _Transform := MatrixMultiply3x3(_Transform, Parent._Transform)
+  Else
+    _Transform := MatrixMultiply3x3(_Transform, _UI._Transform);
 
   Pos := Self.GetAbsolutePosition();
   W := Pos.X + Size.X;
@@ -1631,6 +1634,8 @@ Begin
     _Corners[I].Add(VectorCreate2D(OfsX, OfsY));
     _Corners[I] := _Transform.Transform(_Corners[I]);
   End;
+
+  Result := True;
 End;
 
 Function Widget.GetChild(Index:Integer): Widget;
@@ -1641,13 +1646,12 @@ Begin
     Result := Nil;
 End;
 
-Function Widget.GetChild(Name:AnsiString): Widget;
+Function Widget.GetChild(Const Name:TERRAString): Widget;
 Var
   I:Integer;
 Begin
-  Name := UpStr(Name);
   For I:=0 To Pred(_ChildrenCount) Do
-  If (_ChildrenList[I]._Name = Name) Then
+  If (StringEquals(_ChildrenList[I]._Name, Name)) Then
   Begin
     Result := _ChildrenList[I];
     Exit;
@@ -1693,16 +1697,8 @@ Begin
   If (Not Self.Visible) Then
     Exit;
 
-  If Assigned(_ClipRect) Then
-  Begin
-    _ClipRect.X := Self.Position.X;
-    _ClipRect.Y := Self.Position.Y;
-    _ClipRect.Width := Self.Size.X;
-    _ClipRect.Height := Self.Size.Y;
-  End;
-
   For I:=0 To Pred(_ChildrenCount) Do
-  If (_ChildrenList[I].Visible) Then
+  If (_ChildrenList[I].Visible) And (_ChildrenList[I].CanRender()) Then
     _ChildrenList[I].Render();
 End;
 
@@ -1802,7 +1798,7 @@ Begin
   _TransformChanged := True;
 End;
 
-Procedure Widget.SetName(const Value:AnsiString);
+Procedure Widget.SetName(const Value:TERRAString);
 Begin
   _Name := Value;
 End;
@@ -1871,10 +1867,10 @@ End;
 
 Function Widget.GetIndex: Integer;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := Self._Name;
-  GetNextWord(S, '_');
+  StringGetNextSplit(S, Ord('_'));
   Result := StringToInt(S); 
 End;
 
@@ -1898,8 +1894,56 @@ Begin
     _ChildrenList[I].Visible := Visibility;
 End;
 
+Function Widget.CanRender: Boolean;
+Var
+  CurrentFrameID:Cardinal;
+Begin
+  CurrentFrameID := GraphicsManager.Instance.FrameID;
+  If (_RenderFrameID = CurrentFrameID) Then
+  Begin
+    Result := False;
+    Exit;
+  End;
+
+  _RenderFrameID := CurrentFrameID;
+  Result := True;
+End;
+
+Procedure Widget.ResetClipRect;
+Begin
+  If _ClipRect = Nil Then
+    Exit;
+
+  _ClipRect.X := Self.Position.X;
+  _ClipRect.Y := Self.Position.Y;
+  _ClipRect.Width := Self.Size.X;
+  _ClipRect.Height := Self.Size.Y;
+  _ClipRect.Transform(_UI.Transform);
+End;
+
+Function Widget.OnCustomRegion(X, Y:Integer; X1, Y1, X2, Y2:Single): Boolean;
+Var
+  I:Integer;
+  Pos:Vector2D;
+  P:Array[0..3] Of Vector2D;
+Begin
+  Pos := Self.GetAbsolutePosition();
+  P[0] := VectorCreate2D(X1, Y1);
+  P[1] := VectorCreate2D(X2, Y1);
+  P[2] := VectorCreate2D(X2, Y2);
+  P[3] := VectorCreate2D(X1, Y2);
+
+  For I:=0 To 3 Do
+  Begin
+    P[I].Add(Pos);
+    P[I] := _Transform.Transform(P[I]);
+  End;
+
+  Result := (X>= P[0].X) And (X <= P[2].X) And (Y >= P[0].Y) And (Y <= P[2].Y);
+End;
+
 { UICursor }
-Constructor UICursor.Create(Name:AnsiString; UI:UI; OfsX, OfsY:Integer);
+Constructor UICursor.Create(Name:TERRAString; UI:UI; OfsX, OfsY:Integer);
 Var
   Source:Image;
   MyStream:Stream;
@@ -1949,7 +1993,7 @@ Begin
   T2.X := T1.X + (_Item.Buffer.Width / MyTextureAtlas.Width);
   T2.Y := T1.Y + (_Item.Buffer.Height / MyTextureAtlas.Height);
   MyColor := ColorGrey(255, UI._Color.A);
-  UI.AddQuad(StartPos, EndPos, T1, T2, MyColor, 99, _Item.PageID, MatrixIdentity2D, 1, Nil, Nil);
+  UI.AddQuad(StartPos, EndPos, T1, T2, MyColor, 99, _Item.PageID, MatrixIdentity3x3, 1, Nil, Nil);
 End;
 
 { UI }
@@ -1965,7 +2009,9 @@ Begin
   _Color := ColorCreate(1.0, 1.0, 1.0, 1.0);
   _Saturation := 1.0;
   _ColorTable := Nil;
-                                  
+
+  SetTransform(MatrixIdentity3x3);
+
   DefaultEaseType := easeInSine;
 
   SetLength(_Geometry, 4);
@@ -1986,11 +2032,13 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_CursorCount) Do
-    DestroyObject(@_CursorList[I]);
+    FreeAndNil(_CursorList[I]);
 
-  DestroyObject(@_Transition);
+  FreeAndNil(_ClipRect);
 
-	DestroyObject(@_Widgets);
+  FreeAndNil(_Transition);
+
+	FreeAndNil(_Widgets);
 End;
 
 Procedure UI.Clear;
@@ -1999,7 +2047,6 @@ Begin
   _First := Nil;
   _Widgets.Clear;
 
-  _CutsceneAlpha := 0.0;
   SetTransition(Nil);
   Log(logError, 'UI', 'UI is now clear.');
 End;
@@ -2138,7 +2185,7 @@ Begin
   Down._UpControl := Up;
 End;
 
-Procedure UI.WrapControlsHorizontal(Left, Right:AnsiString);
+Procedure UI.WrapControlsHorizontal(Left, Right:TERRAString);
 Var
   A,B:Widget;
 Begin
@@ -2147,7 +2194,7 @@ Begin
   WrapControlsHorizontal(A, B);
 End;
 
-Procedure UI.WrapControlsVertical(Up, Down:AnsiString);
+Procedure UI.WrapControlsVertical(Up, Down:TERRAString);
 Begin
   WrapControlsVertical(Self.GetWidget(Up), Self.GetWidget(Down));
 End;
@@ -2157,7 +2204,7 @@ Begin
   Self._ColorTable := Value;
 End;
 
-Function UI.LoadCursor(Const Name:AnsiString; OfsX, OfsY:Integer):UICursor;
+Function UI.LoadCursor(Const Name:TERRAString; OfsX, OfsY:Integer):UICursor;
 Begin
   Inc(_CursorCount);
   SetLength(_CursorList, _CursorCount);
@@ -2173,7 +2220,6 @@ Var
   Found:Boolean;
   I:Iterator;
 Begin
-  MyWidget._Name := UpStr(MyWidget.Name);
   MyWidget._Visible := True;
 
   MyWidget._Pivot := VectorCreate2D(0.5, 0.5);
@@ -2296,11 +2342,11 @@ Begin
   Result := (Widget(P).Name = PString(Userdata)^);
 End;
 
-Function UI.GetWidget(Const Name:AnsiString):Widget;
+Function UI.GetWidget(Const Name:TERRAString):Widget;
 Var
-  WidgetName:AnsiString;
+  WidgetName:TERRAString;
 Begin
-  WidgetName := UpStr(GetFileName(Name, True));
+  WidgetName := GetFileName(Name, True);
   Result := Widget(_Widgets.Search(SearchWidgetByName, @WidgetName));
 End;
 
@@ -2312,12 +2358,18 @@ Var
   S:Sprite;
 Begin
   Tex := UIManager.Instance.TextureAtlas.GetTexture(PageID);
-  S := SpriteManager.Instance.AddSprite(StartPos.X, StartPos.Y, 100-Z, Tex, ColorTable, blendBlend, Saturation);
+  S := SpriteManager.Instance.DrawSprite(StartPos.X, StartPos.Y, 100-Z, Tex, ColorTable, blendBlend, Saturation);
   If (S = Nil) Then
     Exit;
 
   S.Rect.Width := Trunc(EndPos.X - StartPos.X);
   S.Rect.Height := Trunc(EndPos.Y - StartPos.Y);
+
+  If Assigned(Clip) Then
+    IntToString(Trunc(Clip.X));
+
+  If Clip = Nil Then
+    Clip := Self._ClipRect;
   S.ClipRect := Clip;
 
   S.SetTransform(Transform);
@@ -2407,7 +2459,7 @@ Var
   I, J:Integer;
   Temp:Image;
   W,H:Integer;
-  S:AnsiString;
+  S:TERRAString;
   X,Y:Single;
   PositionHandle, UVHandle, ColorHandle:Integer;
   Transform:Matrix4x4;
@@ -2455,9 +2507,8 @@ Begin
   MyWidget := _First;
   While (Assigned(MyWidget)) Do
   Begin
-    If (Not Assigned(MyWidget._Parent)) And (MyWidget.IsVisible)
-    And ((MyWidget.IsVisibleInCutscenes) Or  (Self._CutsceneAlpha<=0)) Then
-      MyWidget.Render;
+    If (Not Assigned(MyWidget._Parent)) And (MyWidget.IsVisible) And (MyWidget.CanRender()) Then
+      MyWidget.Render();
 
     MyWidget := MyWidget._Next;
   End;
@@ -2492,7 +2543,10 @@ Begin
   _Transition := MyTransition;
 
   If Assigned(_Transition) Then
+  Begin
     _Transition.EaseType := Self.DefaultEaseType;
+    _Transition.Transform := Self.Transform;
+  End;
 End;
 
 Procedure UI.OnKeyDown(Key:Word);
@@ -2602,6 +2656,8 @@ Var
 Begin
   _LastWidget := Nil;
 
+//  ConvertGlobalToLocal(X, Y);
+
   If (Assigned(_VirtualKeyboard)) And (_VirtualKeyboard.Visible) And (_VirtualKeyboard.OnRegion(X,Y)) Then
   Begin
     If _VirtualKeyboard.OnMouseDown(X,Y, Button) Then
@@ -2623,7 +2679,7 @@ Begin
     MyWidget := MyWidget._Next;
 	End;
 
-  {$IFDEF DEBU_GUI}Log(logDebug, 'Game', IntToString(Count)+' widgets visible');{$ENDIF}
+  {$IFDEF DEBUG_GUI}Log(logDebug, 'Game', IntToString(Count)+' widgets visible');{$ENDIF}
 
   While (Count>0) Do
   Begin
@@ -2666,7 +2722,7 @@ Begin
 
     If (Assigned(Pick)) Then
     Begin
-      {$IFDEF DEBU_GUI}Log(logDebug, 'Game', 'Found a Widget for MouseDown: '+Pick.Name);{$ENDIF}
+      {$IFDEF DEBUG_GUI}Log(logDebug, 'Game', 'Found a Widget for MouseDown: '+Pick.Name);{$ENDIF}
 
       Pick._Picked := True;
       Dec(Count);
@@ -2674,7 +2730,7 @@ Begin
       If (Self.Modal<>Nil) And (Not Pick.IsSameFamily(Modal)) Then
       Begin
         Pick := Nil;
-        {$IFDEF DEBU_GUI}Log(logDebug, 'Game', 'Cancelled because of modal...');{$ENDIF}
+        {$IFDEF DEBUG_GUI}Log(logDebug, 'Game', 'Cancelled because of modal...');{$ENDIF}
       End;
 
       If (Pick=Nil) Then
@@ -2685,7 +2741,7 @@ Begin
         //Log(logDebug, 'Game', 'Found a Widget for MouseDown: '+Pick.Name);
         Result := Pick;
         _LastWidget := Result;
-        {$IFDEF DEBU_GUI}Log(logDebug, 'Game', 'MouseDown event accepted!');{$ENDIF}
+        {$IFDEF DEBUG_GUI}Log(logDebug, 'Game', 'MouseDown event accepted!');{$ENDIF}
   		  Exit;
       End;
     End Else
@@ -2702,6 +2758,8 @@ Var
   Z:Single;
 Begin
   _LastWidget := Nil;
+
+//  ConvertGlobalToLocal(X, Y);
 
   If (Assigned(_VirtualKeyboard)) And (_VirtualKeyboard.Visible) And (_VirtualKeyboard.OnRegion(X,Y)) Then
   Begin
@@ -2784,6 +2842,8 @@ Var
   Z:Single;
 Begin
   _LastWidget := Nil;
+
+//  ConvertGlobalToLocal(X, Y);
 
   If Assigned(_Dragger) Then
   Begin
@@ -2874,6 +2934,8 @@ Begin
   _LastWidget := Nil;
   Result := Nil;
   
+  ConvertGlobalToLocal(X, Y);
+
 	If Assigned(_Focus) Then
   Begin
 		If _Focus.OnMouseWheel(X, Y, Delta) Then
@@ -3042,7 +3104,7 @@ Begin
 
   If Not Assigned(System_Wnd) Then
   Begin
-    System_Wnd := UIWindow.Create(System_Name_Wnd, Self, 0, 0, 97, 8, 5);
+    System_Wnd := UIWindow.Create(System_Name_Wnd, Self, Nil, 0, 0, 97, 8, 5);
     System_Wnd.Visible := False;
     System_Text := UILabel.Create(System_Name_Text, Self, System_Wnd, 20, 20, 0.5, '??');
     For I:=0 To 2 Do
@@ -3090,7 +3152,7 @@ Begin
   System_Btn[2].OnMouseClick := CloseMsgBox2;
 End;
 
-Procedure UI.MessageBox(Msg:AnsiString; Callback: WidgetEventHandler);
+Procedure UI.MessageBox(Msg:TERRAString; Callback: WidgetEventHandler);
 Var
   I:Integer;
 Begin
@@ -3107,7 +3169,7 @@ Begin
 End;
 
 
-Procedure UI.ChoiceBox(Msg, Option1, Option2:AnsiString; Callback1:WidgetEventHandler = Nil; Callback2: WidgetEventHandler = Nil);
+Procedure UI.ChoiceBox(Msg, Option1, Option2:TERRAString; Callback1:WidgetEventHandler = Nil; Callback2: WidgetEventHandler = Nil);
 Var
   I:Integer;
 Begin
@@ -3194,6 +3256,59 @@ Begin
   Result := _Highlight;
 End;
 
+Procedure UI.ConvertGlobalToLocal(Var X, Y: Integer);
+Var
+  P:Vector2D;
+Begin
+  P.X := X;
+  P.Y := Y;
+
+  P := _InverseTransform.Transform(P);
+
+  X := Trunc(P.X);
+  Y := Trunc(P.Y);
+End;
+
+Procedure UI.ConvertLocalToGlobal(Var X, Y: Integer);
+Var
+  P:Vector2D;
+Begin
+  P.X := X;
+  P.Y := Y;
+
+  P := _Transform.Transform(P);
+
+  X := Trunc(P.X);
+  Y := Trunc(P.Y);
+End;
+
+Procedure UI.SetTransform(const M: Matrix3x3);
+Var
+  It:Iterator;
+  W:Widget;
+Begin
+  _Transform := M;
+  _InverseTransform := MatrixInverse2D(M);
+
+  If _ClipRect = Nil Then
+    _ClipRect := ClipRect.Create();
+
+  _ClipRect.X := 0;
+  _ClipRect.Y := 0;
+  _ClipRect.Width := UIManager.Instance.Width;
+  _ClipRect.Height := UIManager.Instance.Height;
+  _ClipRect.Transform(M);
+
+  It := Self.Widgets.CreateIterator();
+  While It.HasNext() Do
+  Begin
+    W := Widget(It.GetNext());
+
+    W._TransformChanged := True;
+  End;
+  It.Destroy();
+End;
+
 { UISkinLayout }
 Constructor UISkinLayout.Create(Source: TextureAtlasItem);
 Var
@@ -3258,7 +3373,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_UICount) Do
-    DestroyObject(@_UIList[I]);
+    FreeAndNil(_UIList[I]);
 
   _UICount := 0;
 
@@ -3295,17 +3410,6 @@ Begin
     Dec(_UICount);
   End Else
     Inc(I);
-End;
-
-Function UIManager.GetCutSceneShader:Shader;
-Begin
-  If Not Assigned(_CutsceneShader) Then
-  Begin
-    _CutsceneShader := TERRA_Shader.Shader.CreateFromString(GetShader_Cutscene(), 'Cutscene');
-    ShaderManager.Instance.AddShader(_CutsceneShader);
-  End;
-
-  Result := _CutsceneShader;
 End;
 
 Function UIManager.GetTextureAtlas: TextureAtlas;

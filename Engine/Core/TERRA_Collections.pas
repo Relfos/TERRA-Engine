@@ -29,13 +29,13 @@ Unit TERRA_Collections;
 {-$DEFINE DEBUG}
 
 Interface
-Uses TERRA_Utils;
+Uses TERRA_String, TERRA_Utils;
 
 Type
   HashKey = Word;
 
-Function GetStringHashKey(S:AnsiString):HashKey;
-Function GetStringSort(A,B:AnsiString):Integer;
+Function GetStringHashKey(Const S:TERRAString):HashKey;
+Function GetStringSort(Const A,B:TERRAString):Integer;
 
 Const
   coAppend          = 1;
@@ -56,7 +56,7 @@ Type
       _Collection:Collection;
       _Next:ListObject;
 
-      Procedure CopyValue(Other:ListObject); Virtual; Abstract;
+      Procedure CopyValue(Other:ListObject); Virtual; 
       Function Sort(Other:ListObject):Integer; Virtual; // if not implemented, no sort will happen
       Function GetHashKey():HashKey; Virtual; // does not need to be unique
 
@@ -67,7 +67,7 @@ Type
     Public
       Destructor Destroy; Override;
 
-      Function ToString():AnsiString; {$IFDEF FPC} Override; {$ELSE} Virtual; {$ENDIF}
+      Function ToString():TERRAString; {$IFDEF FPC} Override; {$ELSE} Virtual; {$ENDIF}
 
       Property Collection:Collection Read _Collection;
       Property  Next:ListObject Read _Next;
@@ -108,7 +108,7 @@ Type
 
       Function GetItemByIndex(Index:Integer):ListObject; Virtual; Abstract;
 
-      Function FindByKey(Key:AnsiString):ListObject; Virtual;
+      Function FindByKey(Const Key:TERRAString):ListObject; Virtual;
 
       Property Objects[Index: Integer]:ListObject Read GetItemByIndex; Default;
 
@@ -278,10 +278,10 @@ Type
   // sample list objects
   StringObject=Class(ListObject)
     Public
-      Value:AnsiString;
+      Value:TERRAString;
 
-      Constructor Create(S:AnsiString);
-      Function ToString():AnsiString; Override;
+      Constructor Create(S:TERRAString);
+      Function ToString():TERRAString; Override;
 
     Protected
       Procedure CopyValue(Other:ListObject); Override;
@@ -294,7 +294,7 @@ Type
       Value:Integer;
 
       Constructor Create(S:Integer);
-      Function ToString():AnsiString; Override;
+      Function ToString():TERRAString; Override;
 
     Protected
       Procedure CopyValue(Other:ListObject); Override;
@@ -304,11 +304,11 @@ Type
 
   KeyPairObject=Class(ListObject)
     Public
-      Key:AnsiString;
-      Value:AnsiString;
+      Key:TERRAString;
+      Value:TERRAString;
 
-      Constructor Create(Key, Value:AnsiString);
-      Function ToString():AnsiString; Override;
+      Constructor Create(Key, Value:TERRAString);
+      Function ToString():TERRAString; Override;
 
     Protected
       Procedure CopyValue(Other:ListObject); Override;
@@ -316,12 +316,12 @@ Type
       Function GetHashKey():HashKey; Override;
   End;
 
-Function LoadKeypairList(SourceFile:AnsiString):List;
+Function LoadKeypairList(SourceFile:TERRAString):List;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_FileIO, TERRA_IO;
+Uses TERRA_Error, TERRA_Log, TERRA_FileStream, TERRA_Stream;
 
-Function GetStringHashKey(S:AnsiString):HashKey;
+Function GetStringHashKey(Const S:TERRAString):HashKey;
 Var
   N, I:Integer;
 Begin
@@ -336,7 +336,7 @@ Begin
   End;
 End;
 
-Function GetStringSort(A,B:AnsiString):Integer;
+Function GetStringSort(Const A,B:TERRAString):Integer;
 Begin
   If (A<B) Then
     Result := 1
@@ -390,18 +390,17 @@ Begin
   _Options := Value;
 End;
 
-Function Collection.FindByKey(Key:AnsiString): ListObject;
+Function Collection.FindByKey(Const Key:TERRAString): ListObject;
 Var
   It:Iterator;
   P:ListObject;
 Begin
-  Key := UpStr(Key);
   Result := Nil;
   It := Self.CreateIterator;
   While It.HasNext() Do
   Begin
     P := It.GetNext();
-    If UpStr(P.ToString()) = Key Then
+    If StringEquals(P.ToString(), Key) Then
     Begin
       Result := P;
       Break;
@@ -1317,6 +1316,11 @@ Begin
 End;
 
 { ListObject }
+Procedure ListObject.CopyValue(Other: ListObject);
+Begin
+  // do nothing
+End;
+
 Destructor ListObject.Destroy;
 Begin
   // do nothing
@@ -1356,7 +1360,7 @@ Begin
     Result := 1;
 End;
 
-Function ListObject.ToString:AnsiString;
+Function ListObject.ToString:TERRAString;
 Begin
   Result := Self.ClassName+'@'+HexStr(Cardinal(Self));
 End;
@@ -1367,7 +1371,7 @@ Begin
   Self.Value := StringObject(Other).Value;
 End;
 
-Constructor StringObject.Create(S:AnsiString);
+Constructor StringObject.Create(S:TERRAString);
 Begin
   Self.Value := S;
 End;
@@ -1379,20 +1383,20 @@ End;
 
 Function StringObject.Sort(Other: ListObject): Integer;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := StringObject(Other).Value;
   Result := GetStringSort(Self.Value, S);
 End;
 
-Function StringObject.ToString:AnsiString;
+Function StringObject.ToString:TERRAString;
 Begin
   Result := Value;
 End;
 
 
 { KeyPairObject }
-Constructor KeyPairObject.Create(Key, Value:AnsiString);
+Constructor KeyPairObject.Create(Key, Value:TERRAString);
 Begin
   Self.Key := Key;
   Self.Value := Value;
@@ -1411,21 +1415,21 @@ End;
 
 Function KeyPairObject.Sort(Other: ListObject): Integer;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := KeyPairObject(Other).Key;
   Result := GetStringSort(Self.Key, S);
 End;
 
-Function KeyPairObject.ToString:AnsiString;
+Function KeyPairObject.ToString:TERRAString;
 Begin
   Result := Key;
 End;
 
-Function LoadKeypairList(SourceFile:AnsiString):List;
+Function LoadKeypairList(SourceFile:TERRAString):List;
 Var
   Source:Stream;
-  S,S2:AnsiString;
+  S,S2:TERRAString;
 Begin
   S := '';
   Result := List.Create;
@@ -1434,9 +1438,8 @@ Begin
     Source :=  FileStream.Open(SourceFile);
     While Not Source.EOF Do
     Begin
-      Source.ReadUnicodeLine(S);
-      S2 := GetNextWord(S, ',');
-      S2 := UpStr(S2);
+      Source.ReadLine(S);
+      S2 := StringGetNextSplit(S, Ord(','));
       Result.Add(KeyPairObject.Create(S2,S));
     End;
     Source.Destroy;
@@ -1474,7 +1477,7 @@ Begin
 End;
 
 
-Function IntegerObject.ToString:AnsiString;
+Function IntegerObject.ToString:TERRAString;
 Begin
   Result := IntToString(Value);
 End;
@@ -1510,7 +1513,7 @@ Begin
   Inherited;
 
   For I:=0 To Pred(_ObjectCount) Do
-    DestroyObject(@_Objects[I].Obj);
+    FreeAndNil(_Objects[I].Obj);
 End;
 
 Procedure Pool.InsertPoolObject(Obj: ListObject);

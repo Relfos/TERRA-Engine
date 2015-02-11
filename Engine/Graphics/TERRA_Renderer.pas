@@ -69,7 +69,7 @@ Type
       Function Generate(VertexData, IndexData, EdgeData:Pointer; VertexCount, TriangleCount:Integer; VertexSize:Integer; DynamicUsage:Boolean):Boolean;
       Destructor Destroy; Override;
 
-      Procedure AddAttribute(Name:AnsiString; Count:Integer; Format:Integer; Normalized:Boolean; Skip:Boolean = False);
+      Procedure AddAttribute(Name:TERRAString; Count:Integer; Format:Integer; Normalized:Boolean; Skip:Boolean = False);
       Procedure SetIndexList(IndexList:Pointer; TriangleCount:Integer);
 
       Procedure Draw(Wireframe:Boolean);
@@ -81,19 +81,19 @@ Type
     Protected
 
     Public
-      Function Generate(VertexCode, FragmentCode:AnsiString):Boolean; Virtual; Abstract;
+      Function Generate(VertexCode, FragmentCode:TERRAString):Boolean; Virtual; Abstract;
 
       Procedure Bind(); Virtual; Abstract;
 
-			Procedure SetIntegerUniform(Const Name:AnsiString; Const Value:Integer); Virtual; Abstract;
-			Procedure SetFloatUniform(Const Name:AnsiString; Const Value:Single); Virtual; Abstract;
-			Procedure SetVec2Uniform(Const Name:AnsiString; Const Value:Vector2D); Virtual; Abstract;
-			Procedure SetVec3Uniform(Const Name:AnsiString; const Value:Vector3D); Virtual; Abstract;
-			Procedure SetVec4Uniform(Const Name:AnsiString; const Value:Quaternion); Virtual; Abstract;
-      Procedure SetMat3Uniform(Const Name:AnsiString; Value:Matrix2D); Virtual; Abstract;
-      Procedure SetMat4Uniform(Const Name:AnsiString; Value:Matrix); Virtual; Abstract;
+			Procedure SetIntegerUniform(Const Name:TERRAString; Const Value:Integer); Virtual; Abstract;
+			Procedure SetFloatUniform(Const Name:TERRAString; Const Value:Single); Virtual; Abstract;
+			Procedure SetVec2Uniform(Const Name:TERRAString; Const Value:Vector2D); Virtual; Abstract;
+			Procedure SetVec3Uniform(Const Name:TERRAString; const Value:Vector3D); Virtual; Abstract;
+			Procedure SetVec4Uniform(Const Name:TERRAString; const Value:Quaternion); Virtual; Abstract;
+      Procedure SetMat3Uniform(Const Name:TERRAString; Value:Matrix2D); Virtual; Abstract;
+      Procedure SetMat4Uniform(Const Name:TERRAString; Value:Matrix); Virtual; Abstract;
 
-      Function GetUniform(Name:AnsiString):Integer; Virtual; Abstract;
+      Function GetUniform(Name:TERRAString):Integer; Virtual; Abstract;
   End;
 
 	GraphicsManagerSetting = Object

@@ -34,7 +34,7 @@ Unit TERRA_ShaderFactory;
 {-$DEFINE DEBUG_LIGHTMAP}
 
 Interface
-Uses TERRA_Shader, TERRA_Application, TERRA_Lights, TERRA_BoundingBox, TERRA_Vector4D;
+Uses TERRA_String, TERRA_Shader, TERRA_Application, TERRA_Lights, TERRA_BoundingBox, TERRA_Vector4D;
 
 Const
   NormalMapUniformName = 'normalMap';
@@ -98,9 +98,9 @@ Type
 
   ShaderEmitter = Class
     Protected
-      _Buffer:AnsiString;
+      _Buffer:TERRAString;
 
-      Procedure Line(S2:AnsiString);
+      Procedure Line(S2:TERRAString);
 
       Procedure Init; Virtual;
 
@@ -110,7 +110,7 @@ Type
       Procedure FragmentUniforms(FxFlags, OutFlags,FogFlags:Cardinal); Virtual;
       Procedure CustomShading(FxFlags, OutFlags,FogFlags:Cardinal); Virtual;
       Procedure FinalPass(FxFlags, OutFlags,FogFlags:Cardinal); Virtual;
-      Procedure EmitReflectionCoord(FxFlags, OutFlags,FogFlags:Cardinal; Const NormalVarName:AnsiString);
+      Procedure EmitReflectionCoord(FxFlags, OutFlags,FogFlags:Cardinal; Const NormalVarName:TERRAString);
 
       Procedure EmitDecodeBoneMat;
 
@@ -118,7 +118,7 @@ Type
       Procedure Bind(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch); Virtual;
 
     Public
-      Function Emit(FxFlags, OutFlags, FogFlags, LightModel:Cardinal; Const Lights:LightBatch):AnsiString;
+      Function Emit(FxFlags, OutFlags, FogFlags, LightModel:Cardinal; Const Lights:LightBatch):TERRAString;
   End;
 
   ShaderFactory = Class(ApplicationComponent)
@@ -149,7 +149,7 @@ Var
 
 
 { ShaderEmitter }
-Procedure ShaderEmitter.Line(S2:AnsiString);
+Procedure ShaderEmitter.Line(S2:TERRAString);
 Begin
   _Buffer := _Buffer + S2 + crLf;
 End;
@@ -380,7 +380,7 @@ Begin
   Line('return result;}');
 End;
 
-Procedure ShaderEmitter.EmitReflectionCoord(FxFlags, OutFlags,FogFlags:Cardinal; Const NormalVarName:AnsiString);
+Procedure ShaderEmitter.EmitReflectionCoord(FxFlags, OutFlags,FogFlags:Cardinal; Const NormalVarName:TERRAString);
 Begin
   If (FxFlags and shaderCubeMap<>0) Then
   Begin
@@ -397,10 +397,10 @@ Begin
   End;
 End;
 
-Function ShaderEmitter.Emit(FxFlags, OutFlags, FogFlags, LightModel:Cardinal; Const Lights:LightBatch):AnsiString;
+Function ShaderEmitter.Emit(FxFlags, OutFlags, FogFlags, LightModel:Cardinal; Const Lights:LightBatch):TERRAString;
 Var
   N, I:Integer;
-  S2:AnsiString;
+  S2:TERRAString;
 Begin
   _Buffer := '';
 
@@ -1172,8 +1172,8 @@ Function ShaderFactory.GetShader(FxFlags, OutFlags, FogFlags, LightModel:Cardina
 Var
   I:Integer;
   S:^ShaderEntry;
-  Location:AnsiString;
-  SS, Name:AnsiString;
+  Location:TERRAString;
+  SS, Name:TERRAString;
 Begin
   {$IFDEF DEBUG_GRAPHICS}
   Log(logDebug, 'ShaderFactory', 'Searching for shader with flags '+CardinalToString(Flags));
@@ -1310,10 +1310,11 @@ Begin
   If Lights.SpotLightCount>0 Then
     name := name + 'SL'+IntToString(Lights.SpotLightCount)+';';
 
-  Name := LowStr(Name);
-  ReplaceText(';', '_', Name);
-  If Pos('_',Name)>0 Then
-    SetLength(Name, Pred(Length(Name)));
+  Name := StringLower(Name);
+  StringReplaceText(';', '_', Name);
+
+  If StringContains('_', Name) Then
+    StringDropChars(Name, -1);
 
   {$IFDEF DEBUG_GRAPHICS}
   Log(logDebug, 'ShaderFactory', 'Preparing shader '+Name);

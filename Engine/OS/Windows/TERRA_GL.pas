@@ -13,7 +13,7 @@ Unit TERRA_GL;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Log, TERRA_Matrix4x4, TERRA_Math,Windows;
+Uses TERRA_String, TERRA_Log, TERRA_Matrix4x4, TERRA_Math,Windows;
 
 {$IFDEF WINDOWS}{$UNDEF MOBILE}{$DEFINE PC}{$UNDEF ANDROID}{$ENDIF}
 
@@ -515,8 +515,8 @@ Var
   glActiveStencilFaceEXT: Procedure(face: Integer); stdcall;
 
 Procedure glLoadExtensions;
-Function glExtensionSupported(Extension:AnsiString):Boolean;
-Function glGetExtensionString():AnsiString;
+Function glExtensionSupported(Const Extension:TERRAString):Boolean;
+Function glGetExtensionString():TERRAString;
 
 Function InitMultisample(hWnd: HWND; pfd: PIXELFORMATDESCRIPTOR;  h_dc: HDC):Cardinal;
 
@@ -524,9 +524,9 @@ Implementation
 Uses TERRA_Error, TERRA_Application, Math;
 
 Var
-  ExtensionsList:AnsiString='';
+  ExtensionsList:TERRAString='';
 
-Function glGetExtensionString():AnsiString;
+Function glGetExtensionString():TERRAString;
 Begin
   Result := ExtensionsList;
 End;
@@ -537,7 +537,7 @@ Var
   glExtGetProcAddress:function(proc:PAnsiChar):Pointer; {$IFDEF MSWINDOWS}stdcall;{$ENDIF}
   OpenGLHandle:THandle;
 
-Function glGetProcAddress(Proc:AnsiString; Alt:AnsiString=''):Pointer;cdecl;
+Function glGetProcAddress(Proc:TERRAString; Alt:TERRAString=''):Pointer;cdecl;
 Begin
   Result:=glExtGetProcAddress(PAnsiChar(Proc));
   If Not Assigned(Result) Then
@@ -550,7 +550,7 @@ Begin
       Log(logWarning,'GL', 'Function '+Proc+' not avaliable.');
 End;
 
-Procedure LoadOpenGL(LibName:AnsiString);
+Procedure LoadOpenGL(LibName:TERRAString);
 Begin
   Log(logDebug, 'OpenGL', 'Loading OpenGL.');
 
@@ -841,7 +841,7 @@ Begin
     FreeLibrary(OpenGLHandle);
 End;
 
-Function glExtensionSupported(Extension:AnsiString):Boolean;
+Function glExtensionSupported(Const Extension:TERRAString):Boolean;
 Begin
   If (Extension='') Then
   Begin
@@ -855,7 +855,7 @@ Begin
   Result := Pos(Extension,ExtensionsList)>0;
 End;
 
-Function wglExtensionSupported(const extension:AnsiString): boolean;             // Je rozšíøení podporováno?
+Function wglExtensionSupported(const extension:TERRAString): boolean;             // Je rozšíøení podporováno?
 var
   wglGetExtString: function(hdc: HDC): PAnsiChar; stdcall;
   supported: PAnsiChar;

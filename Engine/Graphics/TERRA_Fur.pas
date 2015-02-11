@@ -34,7 +34,7 @@ Const
 
 Type
   FurSettings = Record
-		Pattern:AnsiString;
+		Pattern:TERRAString;
     Thickness:Single;
     Waviness:Single;
     Length:Single;

@@ -25,7 +25,7 @@ Const
 Var
   glActiveTexture:Procedure (texture:Integer); cdecl;
   glAttachShader:Procedure (programname, shader:Cardinal); cdecl;
-  glBindAttribLocation:Procedure (_program:Integer; index:Integer; name:PAnsiChar); cdecl;
+  glBindAttribLocation:Procedure (_program:Integer; index:Integer; name:PTERRAChar); cdecl;
   glBindBuffer:Procedure (target, buffer:Integer); cdecl;
   glBindFramebuffer:Procedure (target, framebuffer:Cardinal); cdecl;
   glBindRenderbuffer:Procedure (target, renderbuffer:Cardinal); cdecl;
@@ -77,10 +77,10 @@ Var
   glGenFramebuffers:Procedure (n:Cardinal; framebuffers:PCardinal); cdecl;
   glGenRenderbuffers:Procedure (n:Cardinal; renderbuffers:PCardinal); cdecl;
   glGenTextures:Procedure (n:Cardinal; textures:PCardinal); cdecl;
-  glGetActiveAttrib:Procedure (_program, index, bufsize:Cardinal; Var length, size, _type:Integer; name:PAnsiChar); cdecl;
-  glGetActiveUniform:Procedure (_program, index, bufsize:Cardinal; Var length, size, _type:Integer; name:PAnsiChar); cdecl;
+  glGetActiveAttrib:Procedure (_program, index, bufsize:Cardinal; Var length, size, _type:Integer; name:PTERRAChar); cdecl;
+  glGetActiveUniform:Procedure (_program, index, bufsize:Cardinal; Var length, size, _type:Integer; name:PTERRAChar); cdecl;
   glGetAttachedShaders:Procedure (_program, maxcount:Cardinal; Var count:Integer; shaders:PCardinal); cdecl;
-  glGetAttribLocation:Function (_program:Cardinal; name:PAnsiChar):Integer; cdecl;
+  glGetAttribLocation:Function (_program:Cardinal; name:PTERRAChar):Integer; cdecl;
   glGetBooleanv:Procedure (pname:Cardinal; params:PBoolean); cdecl;
   glGetBufferParameteriv:Procedure (target, pname:Cardinal; params:PInteger); cdecl;
   glGetError:Function ():Integer; cdecl;
@@ -88,18 +88,18 @@ Var
   glGetFramebufferAttachmentParameteriv:Procedure (target, attachment, pname:Cardinal; params:PInteger); cdecl;
   glGetIntegerv :Procedure(pname:Cardinal; params:PInteger); cdecl;
   glGetProgramiv :Procedure(_program,pname:Cardinal; params:PInteger); cdecl;
-  glGetProgramInfoLog: procedure(_program: Cardinal; bufSize: Integer; length: PInteger; infoLog: PAnsiChar); cdecl;
+  glGetProgramInfoLog: procedure(_program: Cardinal; bufSize: Integer; length: PInteger; infoLog: PTERRAChar); cdecl;
   glGetRenderbufferParameteriv:Procedure (target, pname:Cardinal; params:PInteger); cdecl;
   glGetShaderiv:Procedure (shader, pname:Cardinal; params:PInteger); cdecl;
-  glGetShaderInfoLog: procedure(shader: Cardinal; bufSize: Integer; length: PInteger; infoLog: PAnsiChar); cdecl;
+  glGetShaderInfoLog: procedure(shader: Cardinal; bufSize: Integer; length: PInteger; infoLog: PTERRAChar); cdecl;
   glGetShaderPrecisionFormat:Procedure (shadertype, precisiontype:Cardinal; Var range, precision:Integer); cdecl;
-  glGetShaderSource:Procedure (shader, bufsize:Cardinal; Var length:Integer; source:PAnsiChar); cdecl;
-  glGetString:Function (name:Cardinal):PAnsiChar; cdecl;
+  glGetShaderSource:Procedure (shader, bufsize:Cardinal; Var length:Integer; source:PTERRAChar); cdecl;
+  glGetString:Function (name:Cardinal):PTERRAChar; cdecl;
   glGetTexParameterfv:Procedure (target, pname:Cardinal; params:PSingle); cdecl;
   glGetTexParameteriv:Procedure (target, pname:Cardinal; params:PInteger); cdecl;
   glGetUniformfv:Procedure (_program, location:Cardinal;  params:PSingle); cdecl;
   glGetUniformiv:Procedure (_program, location:Cardinal; params:PInteger); cdecl;
-  glGetUniformLocation:Function (_program:Cardinal; name:PAnsiChar):Integer; cdecl;
+  glGetUniformLocation:Function (_program:Cardinal; name:PTERRAChar):Integer; cdecl;
   glGetVertexAttribfv:Procedure (index, pname:Cardinal; params:PSingle); cdecl;
   glGetVertexAttribiv:Procedure (index, pname:Cardinal; params:PInteger); cdecl; 
   glGetVertexAttribPointerv:Procedure (index, pname:Cardinal; pointer:PPointer); cdecl;
@@ -121,7 +121,7 @@ Var
   glSampleCoverage:Procedure (value:Single; invert:Boolean); cdecl;
   glScissor:Procedure (x, y, width, height:Cardinal); cdecl;
   glShaderBinary:Procedure (n:Cardinal; shaders:PCardinal; binaryformat:Cardinal; binary:Pointer; length:Cardinal); cdecl;
-  glShaderSource:Procedure (shader: Cardinal; count: Integer; const _string: PAnsiChar; const length: PInteger); cdecl;
+  glShaderSource:Procedure (shader: Cardinal; count: Integer; const _string: PTERRAChar; const length: PInteger); cdecl;
   glStencilFunc:Procedure (func, ref, mask:Cardinal); cdecl;
   glStencilFuncSeparate:Procedure (face, func, ref, mask:Cardinal); cdecl;
   glStencilMask :Procedure(mask:Cardinal); cdecl;
@@ -190,8 +190,8 @@ Procedure glClearDepth(depth:Single);
   
 Procedure glLoadExtensions;
 
-Function glExtensionSupported(Extension:AnsiString):Boolean;
-Function glGetExtensionString():AnsiString;
+Function glExtensionSupported(Extension:TERRAString):Boolean;
+Function glGetExtensionString():TERRAString;
 
 
 Implementation
@@ -199,7 +199,7 @@ Uses TERRA_Error, TERRA_Application;
 
 Var
   OpenGLHandle:TLibHandle;
-  ExtensionsList:AnsiString='';
+  ExtensionsList:TERRAString='';
 
 
 Procedure glClearDepth(depth:Single);
@@ -207,33 +207,33 @@ Begin
   glClearDepthf(depth);
 End;
   
-Function glGetExtensionString():AnsiString;
+Function glGetExtensionString():TERRAString;
 Begin
   Result := ExtensionsList;
 End;
 
-Function glGetProcAddress(Proc:AnsiString):Pointer;
+Function glGetProcAddress(Proc:TERRAString):Pointer;
 Begin
-  Result := GetProcAddress(OpenGLHandle, PAnsiChar(Proc));
+  Result := GetProcAddress(OpenGLHandle, PTERRAChar(Proc));
   If Not Assigned(Result) Then
-    Result := GetProcAddress(OpenGLHandle, PAnsiChar(Proc+'OES'));
+    Result := GetProcAddress(OpenGLHandle, PTERRAChar(Proc+'OES'));
 
   If Not Assigned(Result) Then
-    Result := GetProcAddress(OpenGLHandle, PAnsiChar(Proc+'APPLE'));
+    Result := GetProcAddress(OpenGLHandle, PTERRAChar(Proc+'APPLE'));
 
   If Not Assigned(Result) Then
-    Result := GetProcAddress(OpenGLHandle, PAnsiChar(Proc+'EXT'));
+    Result := GetProcAddress(OpenGLHandle, PTERRAChar(Proc+'EXT'));
 
   If Not Assigned(Result) Then
     Log(logWarning,'GL', 'Function '+Proc+' not avaliable.');
 End;
 
-Procedure LoadOpenGL(LibName:AnsiString);
+Procedure LoadOpenGL(LibName:TERRAString);
 Begin
 	TERRA_Log.Log(logDebug, 'GL', 'loading openGL');
   Log(logDebug, 'OpenGL', 'Loading library');
 
-  OpenGLHandle := LoadLibrary(PAnsiChar(LibName));
+  OpenGLHandle := LoadLibrary(PTERRAChar(LibName));
   If OpenGLHandle=0 Then
   Begin
     RaiseError('Error loading OpenGL from '+LibName);
@@ -412,7 +412,7 @@ Begin
     FreeLibrary(OpenGLHandle);
 End;
 
-Function glExtensionSupported(Extension:AnsiString):Boolean;
+Function glExtensionSupported(Extension:TERRAString):Boolean;
 Begin
   If (Extension='') Then
   Begin
@@ -422,7 +422,7 @@ Begin
 
   If (ExtensionsList='') Then
   Begin
-    ExtensionsList := PAnsiChar(glGetString(GL_EXTENSIONS));
+    ExtensionsList := PTERRAChar(glGetString(GL_EXTENSIONS));
   End;
 
   Result := Pos(Extension,ExtensionsList)>0;

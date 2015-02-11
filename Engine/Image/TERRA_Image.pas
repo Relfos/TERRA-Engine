@@ -26,7 +26,7 @@ Unit TERRA_Image;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_IO, TERRA_Color;
+Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Color;
 
 Const
   // Image processing flags
@@ -80,15 +80,15 @@ Type
     Public
       Constructor Create(Width, Height:Integer);Overload;
       Constructor Create(Source:Stream);Overload;
-      Constructor Create(FileName:AnsiString);Overload;
+      Constructor Create(FileName:TERRAString);Overload;
       Constructor Create(Source:Image);Overload;
       Destructor Destroy; Override;
 
       Procedure Load(Source:Stream);Overload;
-      Procedure Load(FileName:AnsiString);Overload;
+      Procedure Load(FileName:TERRAString);Overload;
 
-      Procedure Save(Dest:Stream; Format:AnsiString; Options:AnsiString='');Overload;
-      Procedure Save(Filename:AnsiString; Format:AnsiString=''; Options:AnsiString='');Overload;
+      Procedure Save(Dest:Stream; Format:TERRAString; Options:TERRAString='');Overload;
+      Procedure Save(Filename:TERRAString; Format:TERRAString=''; Options:TERRAString='');Overload;
 
       Procedure Copy(Source:Image);
       Procedure Resize(Const NewWidth,NewHeight:Cardinal);
@@ -178,18 +178,18 @@ Type
 
   ImageStreamValidateFunction = Function(Source:Stream):Boolean;
   ImageLoader = Procedure(Source:Stream; Image:Image);
-  ImageSaver = Procedure(Source:Stream; Image:Image; Options:AnsiString='');
+  ImageSaver = Procedure(Source:Stream; Image:Image; Const Options:TERRAString='');
 
   ImageClassInfo = Record
-    Name:AnsiString;
+    Name:TERRAString;
     Validate:ImageStreamValidateFunction;
     Loader:ImageLoader;
     Saver:ImageSaver;
   End;
 
   Function GetImageLoader(Source:Stream):ImageLoader;
-  Function GetImageSaver(Format:AnsiString):ImageSaver;
-  Procedure RegisterImageFormat(Name:AnsiString;
+  Function GetImageSaver(Const Format:TERRAString):ImageSaver;
+  Procedure RegisterImageFormat(Name:TERRAString;
                                 Validate:ImageStreamValidateFunction;
                                 Loader:ImageLoader;
                                 Saver:ImageSaver=Nil);
@@ -198,7 +198,7 @@ Type
   Function GetImageExtension(Index:Integer):ImageClassInfo;
 
 Implementation
-Uses TERRA_FileIO, TERRA_FileUtils, TERRA_FileManager, TERRA_Math, TERRA_Log;
+Uses TERRA_FileStream, TERRA_FileUtils, TERRA_FileManager, TERRA_Math, TERRA_Log;
 
 Var
   _ImageExtensions:Array Of ImageClassInfo;
@@ -242,29 +242,28 @@ Begin
   Source.Seek(Pos);
 End;
 
-Function GetImageSaver(Format:AnsiString):ImageSaver;
+Function GetImageSaver(Const Format:TERRAString):ImageSaver;
 Var
   I:Integer;
 Begin
   Result := Nil;
-  Format := UpStr(Format);
 
   For I:=0 To Pred(_ImageExtensionCount) Do
-  If UpStr(_ImageExtensions[I].Name)=Format Then
+  If StringEquals(_ImageExtensions[I].Name, Format) Then
   Begin
     Result := _ImageExtensions[I].Saver;
     Exit;
   End;
 End;
 
-Procedure RegisterImageFormat(Name:AnsiString;
+Procedure RegisterImageFormat(Name:TERRAString;
                               Validate:ImageStreamValidateFunction;
                               Loader:ImageLoader;
                               Saver:ImageSaver=Nil);
 Var
   I,N:Integer;
 Begin
-  Name := LowStr(Name);
+  Name := StringLower(Name);
 
   For I:=0 To Pred(_ImageExtensionCount) Do
   If (_ImageExtensions[I].Name = Name) Then
@@ -292,7 +291,7 @@ Begin
   Load(Source);
 End;
 
-Constructor Image.Create(FileName:AnsiString);
+Constructor Image.Create(FileName:TERRAString);
 Begin
   Load(FileName);
 End;
@@ -481,7 +480,7 @@ Begin
       srcY := srcY + srcYStep;
     End;
 
-    DestroyObject(@_Frames[K]);
+    FreeAndNil(_Frames[K]);
     _Frames[K]:= Dest;
   End;
 
@@ -539,7 +538,7 @@ Begin
       NX:=0;
     End;
 
-    DestroyObject(@_Frames[K]);
+    FreeAndNil(_Frames[K]);
     _Frames[K] := Buffer;
   End;
 
@@ -577,7 +576,7 @@ Begin
   For I:=0 To Pred(_FrameCount) Do
   If Assigned(_Frames[I]) Then
   Begin
-    DestroyObject(@_Frames[I]);
+    FreeAndNil(_Frames[I]);
     _Frames[I] := Nil;
   End;
 
@@ -1362,7 +1361,7 @@ Begin
   {$ENDIF}
 End;
 
-Procedure Image.Load(FileName:AnsiString);
+Procedure Image.Load(FileName:TERRAString);
 Var
   Source:Stream;
 Begin
@@ -1398,7 +1397,7 @@ Begin
   Log(logDebug, 'Image', 'Image loaded');
 End;
 
-Procedure Image.Save(Dest:Stream; Format:AnsiString; Options:AnsiString='');
+Procedure Image.Save(Dest:Stream; Format:TERRAString; Options:TERRAString='');
 Var
   Saver:ImageSaver;
 Begin
@@ -1416,12 +1415,12 @@ Begin
   Saver(Dest, Self, Options);
 End;
 
-Procedure Image.Save(Filename:AnsiString; Format:AnsiString=''; Options:AnsiString='');
+Procedure Image.Save(Filename:TERRAString; Format:TERRAString=''; Options:TERRAString='');
 Var
   Dest:Stream;
 Begin
   If Format='' Then
-    Format := UpStr(GetFileExtension(FileName));
+    Format := GetFileExtension(FileName);
 
   Dest := FileStream.Create(FileName);
   Save(Dest, Format, Options);

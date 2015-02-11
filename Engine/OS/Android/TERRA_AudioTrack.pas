@@ -18,11 +18,11 @@ Type
       Procedure Stop; Override;
       Procedure SetVolume(Volume:Single); Override;
 
-      Class Function Supports(Const Extension:AnsiString):Boolean; Override;
+      Class Function Supports(Const Extension:TERRAString):Boolean; Override;
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_FileManager, TERRA_Log, TERRA_OS, TERRA_IO, TERRA_Math;
+Uses TERRA_Error, TERRA_FileManager, TERRA_Log, TERRA_OS, TERRA_Stream, TERRA_Math;
 
 { AudioMusicTrack }
 Procedure AudioMusicTrack.SetVolume(Volume:Single);
@@ -89,7 +89,7 @@ Begin
   Java_End(Frame);
 End;
 
-Class Function AudioMusicTrack.Supports(Const Extension: AnsiString): Boolean;
+Class Function AudioMusicTrack.Supports(Const Extension: TERRAString): Boolean;
 Begin
   Result := (Extension = 'mid') Or (Extension = 'mp3') Or (Extension = 'ogg');
 End;

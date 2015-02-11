@@ -3,7 +3,7 @@ Unit TERRA_Facebook;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Java, JNI;
+Uses TERRA_String, TERRA_Utils, TERRA_Java, JNI;
 
 Const
   FacebookClassPath = 'com.pascal.terra.TERRAFacebook';
@@ -17,8 +17,8 @@ Type
       Constructor Create();
       Destructor Destroy; Override;
 
-      Procedure Post(msg, link, desc, imageURL:AnsiString);
-      Procedure LikePage(page, url:AnsiString);
+      Procedure Post(msg, link, desc, imageURL:TERRAString);
+      Procedure LikePage(page, url:TERRAString);
   End;
 
 Implementation
@@ -49,7 +49,7 @@ Begin
   Java_End(Frame);
 End;
 
-Procedure Facebook.LikePage(page, url:AnsiString);
+Procedure Facebook.LikePage(page, url:TERRAString);
 Var
   Params:JavaArguments;
   Frame:JavaFrame;
@@ -65,7 +65,7 @@ Begin
   Java_End(Frame);
 End;
 
-Procedure Facebook.Post(msg, link, desc, imageURL:AnsiString);
+Procedure Facebook.Post(msg, link, desc, imageURL:TERRAString);
 Var
   Params:JavaArguments;
   Frame:JavaFrame;

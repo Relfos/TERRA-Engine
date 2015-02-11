@@ -28,20 +28,20 @@ Unit TERRA_SceneGraph;
 Interface
 Uses TERRA_Utils, TERRA_Mesh, TERRA_Matrix, TERRA_Vector3D, TERRA_Vector2D,
   TERRA_BoundingBox, TERRA_Math, TERRA_GraphicsManager, TERRA_Ray, TERRA_Lights,
-  TERRA_FileIO, TERRA_IO;
+  TERRA_FileStream, TERRA_Stream;
 
 Type
   SceneNode = Class;
 
   SceneProperty = Record
     Internal:Boolean;
-    Key:AnsiString;
-    Value:AnsiString;
+    Key:TERRAString;
+    Value:TERRAString;
   End;
 
   SceneNode = Class
     Protected
-      _Name:AnsiString;
+      _Name:TERRAString;
 
       _Parent:SceneNode;
 
@@ -57,10 +57,10 @@ Type
       _Static:Boolean;
       _Transform:Matrix;
 
-      Function SameKey(A,B:AnsiString):Boolean;
-      Procedure OnPropertyChange(Key, Value:AnsiString); Virtual;
+      Function SameKey(Const A,B:TERRAString):Boolean;
+      Procedure OnPropertyChange(Const Key, Value:TERRAString); Virtual;
 
-      Function FindNode(Name:AnsiString):SceneNode;
+      Function FindNode(Name:TERRAString):SceneNode;
       Function GetBaseNode():SceneNode;
 
       Procedure Save(Dest:Stream; Tabs:Integer);
@@ -78,18 +78,18 @@ Type
       Procedure SetRotation(P:Vector3D);
       Procedure SetScale(P:Vector3D);
 
-      Procedure SetName(S:AnsiString);
+      Procedure SetName(S:TERRAString);
       Procedure SetParent(Parent:SceneNode);
 
-      Function GetProperty(Key:AnsiString):AnsiString; Overload;
-      Procedure AddProperty(Key, Value:AnsiString; Internal:Boolean = False);
-      Procedure SetProperty(Key, Value:AnsiString);
+      Function GetProperty(Key:TERRAString):TERRAString; Overload;
+      Procedure AddProperty(Key, Value:TERRAString; Internal:Boolean = False);
+      Procedure SetProperty(Key, Value:TERRAString);
 
-      Function GetPropertyName(Index:Integer):AnsiString; Overload;
-      Function GetPropertyValue(Index:Integer):AnsiString; Overload;
+      Function GetPropertyName(Index:Integer):TERRAString; Overload;
+      Function GetPropertyValue(Index:Integer):TERRAString; Overload;
       Function IsCustomProperty(Index:Integer):Boolean;
 
-      Procedure DeleteProperty(Key:AnsiString); Overload;
+      Procedure DeleteProperty(Key:TERRAString); Overload;
       Procedure DeleteProperty(Index:Integer); Overload;
 
       Function GetBoundingBox:BoundingBox; Virtual;
@@ -97,7 +97,7 @@ Type
 
       Procedure Render(); Virtual;
 
-      Property Name:AnsiString Read _Name Write SetName;
+      Property Name:TERRAString Read _Name Write SetName;
       Property Parent:SceneNode Read _Parent Write SetParent;
       Property Position:Vector3D Read _Position Write SetPosition;
       Property Rotation:Vector3D Read _Rotation Write SetRotation;
@@ -110,7 +110,7 @@ Type
     Protected
       _Instance:MeshInstance;
 
-      Procedure OnPropertyChange(Key, Value:AnsiString); Override;
+      Procedure OnPropertyChange(Const Key, Value:TERRAString); Override;
 
     Public
       Constructor Create(Parent:SceneNode; Pos:Vector3D; MyMesh:Mesh);
@@ -131,7 +131,7 @@ Type
   End;
 
 Procedure SaveNodes(Node:SceneNode; Dest:Stream); Overload;
-Procedure SaveNodes(Node:SceneNode; FileName:AnsiString); Overload;
+Procedure SaveNodes(Node:SceneNode; FileName:TERRAString); Overload;
 
 Var
   AutoSnap:Single = 1;
@@ -144,7 +144,7 @@ Begin
   Node.Save(Dest, 0);
 End;
 
-Procedure SaveNodes(Node:SceneNode; FileName:AnsiString);
+Procedure SaveNodes(Node:SceneNode; FileName:TERRAString);
 Var
   S:Stream;
 Begin
@@ -157,7 +157,7 @@ End;
 { SceneNode }
 Constructor SceneNode.Create(Parent:SceneNode; Pos:Vector3D);
 Var
-  ParentName:AnsiString;
+  ParentName:TERRAString;
 Begin
   If Assigned(Parent) Then
   Begin
@@ -266,10 +266,8 @@ Begin
   _Scale := P;
 End;
 
-Procedure SceneNode.OnPropertyChange(Key, Value:AnsiString);
+Procedure SceneNode.OnPropertyChange(Const Key, Value:TERRAString);
 Begin
-  Key := UpStr(Key);
-
   If (SameKey(Key, 'name')) Then
   Begin
     _Name := Value;
@@ -316,12 +314,12 @@ Begin
   End;
 End;
 
-Procedure SceneNode.AddProperty(Key, Value:AnsiString; Internal: Boolean);
+Procedure SceneNode.AddProperty(Key, Value:TERRAString; Internal: Boolean);
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(Self._PropertyCount) Do
-  If (UpStr(_Properties[I].Key) = UpStr(Key)) Then
+  If (StringUpper(_Properties[I].Key) = StringUpper(Key)) Then
     Exit;
 
   Inc(_PropertyCount);
@@ -331,13 +329,13 @@ Begin
   _Properties[Pred(_PropertyCount)].Internal := Internal;
 End;
 
-Function SceneNode.GetProperty(Key:AnsiString):AnsiString;
+Function SceneNode.GetProperty(Key:TERRAString):TERRAString;
 Var
   I:Integer;
 Begin
-  Key := UpStr(Key);
+  Key := StringUpper(Key);
   For I:=0 To Pred(Self._PropertyCount) Do
-  If (UpStr(_Properties[I].Key) = Key) Then
+  If (StringUpper(_Properties[I].Key) = Key) Then
   Begin
     Result := _Properties[I].Value;
     Exit;
@@ -346,23 +344,23 @@ Begin
   Result := '';
 End;
 
-Function SceneNode.GetPropertyName(Index: Integer):AnsiString;
+Function SceneNode.GetPropertyName(Index: Integer):TERRAString;
 Begin
   Result := _Properties[Index].Key;
 End;
 
-Function SceneNode.GetPropertyValue(Index: Integer):AnsiString;
+Function SceneNode.GetPropertyValue(Index: Integer):TERRAString;
 Begin
   Result := _Properties[Index].Value;
 End;
 
-Procedure SceneNode.SetProperty(Key, Value:AnsiString);
+Procedure SceneNode.SetProperty(Key, Value:TERRAString);
 Var
   I:Integer;
 Begin
-  Key := UpStr(Key);
+  Key := StringUpper(Key);
   For I:=0 To Pred(Self._PropertyCount) Do
-  If (UpStr(_Properties[I].Key) = Key) Then
+  If (StringUpper(_Properties[I].Key) = Key) Then
   Begin
     _Properties[I].Value := Value;
     Self.OnPropertyChange(Key, Value);
@@ -372,7 +370,7 @@ Begin
   AddProperty(Key, Value);
 End;
 
-Procedure SceneNode.SetName(S:AnsiString);
+Procedure SceneNode.SetName(S:TERRAString);
 Begin
   _Name := S;
   SetProperty('name', S);
@@ -380,7 +378,7 @@ End;
 
 Procedure SceneNode.SetParent(Parent: SceneNode);
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   If Assigned(Parent) Then
     S := Parent.Name
@@ -391,18 +389,18 @@ Begin
   SetProperty('parent', S);
 End;
 
-Function SceneNode.SameKey(A, B:AnsiString): Boolean;
+Function SceneNode.SameKey(Const A, B:TERRAString): Boolean;
 Begin
-  Result := UpStr(A) = UpStr(B);
+  Result := StringEquals(A, B);
 End;
 
-Function SceneNode.FindNode(Name:AnsiString): SceneNode;
+Function SceneNode.FindNode(Name:TERRAString): SceneNode;
 Var
   I:Integer;
 Begin
-  Name := UpStr(Name);
+  Name := StringUpper(Name);
   For I:=0 To Pred(_ChildCount) Do
-  If (UpStr(_Childs[I].Name) = Name) Then
+  If (StringUpper(_Childs[I].Name) = Name) Then
   Begin
     Result := _Childs[I];
     Exit;
@@ -449,7 +447,7 @@ End;
 Procedure SceneNode.Save(Dest: Stream; Tabs:Integer);
 Var
   I:Integer;
-  S, S2:AnsiString;
+  S, S2:TERRAString;
 Begin
   SetLength(S2, Tabs);
   For I:=1 To Tabs Do
@@ -468,11 +466,11 @@ Begin
   Dest.WriteLine(S2+'</'+Self.ClassName+'>');
 End;
 
-Procedure SceneNode.DeleteProperty(Key:AnsiString);
+Procedure SceneNode.DeleteProperty(Key:TERRAString);
 Var
   I:Integer;
 Begin
-  Key := UpStr(Key);
+  Key := StringUpper(Key);
   For I:=0 To Pred(_PropertyCount) Do
   If (SameKey(_Properties[I].Key, Key)) Then
   Begin
@@ -499,11 +497,11 @@ End;
 { SceneMesh }
 Constructor SceneMesh.Create(Parent:SceneNode; Pos:Vector3D; MyMesh:Mesh);
 Var
-  MeshName:AnsiString;
+  MeshName:TERRAString;
 Begin
   Inherited Create(Parent, Pos);
 
-  MeshName := LowStr(GetFileName(MyMesh.Location, True));
+  MeshName := StringLower(GetFileName(MyMesh.Location, True));
 
   _Instance := MeshInstance.Create(MyMesh);
   AddProperty('mesh', MeshName, True);
@@ -530,7 +528,7 @@ Begin
     Result := Nil;
 End;
 
-Procedure SceneMesh.OnPropertyChange(Key, Value:AnsiString);
+Procedure SceneMesh.OnPropertyChange(Key, Value:TERRAString);
 Var
   MyMesh:Mesh;
 Begin

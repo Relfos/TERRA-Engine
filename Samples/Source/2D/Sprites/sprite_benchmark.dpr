@@ -21,7 +21,7 @@ Type
   End;
 
 Const
-  Limit = 5000;
+  Limit = 500;
 
 Var
   Tex:Texture = Nil;
@@ -45,7 +45,7 @@ Begin
   // Load a Tex
   Tex := TextureManager.Instance.GetTexture('ghost');
 
-  GraphicsManager.Instance.BackgroundColor := ColorBlue;
+  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorBlue;
 
   W := UIManager.Instance.Width;
   H := UIManager.Instance.Height;
@@ -60,7 +60,7 @@ End;
 // OnIdle is called once per frame, put your game logic here
 Procedure MyGame.OnIdle;
 Begin
-  If Keys[keyEscape] Then
+  If Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
 End;
 
@@ -76,7 +76,7 @@ Begin
 
   For I:=0 To Pred(Limit) Do
   Begin
-    S := SpriteManager.Instance.AddSprite(Pos[I].X, Pos[I].Y, Pos[I].Z, Tex);
+    S := SpriteManager.Instance.DrawSprite(Pos[I].X, Pos[I].Y, Pos[I].Z, Tex);
     S.Mirror := Odd(I);    // Each odd sprite in line will be reflected
     //S.SetScaleAndRotation(1, RAD * (I*360 Div 8));
 

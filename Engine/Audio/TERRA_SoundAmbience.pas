@@ -28,12 +28,12 @@ Unit TERRA_SoundAmbience;
 Interface
 
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Math, TERRA_IO, TERRA_SoundSource;
+  TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Stream, TERRA_SoundSource;
 
 Type
   SoundAmbience = Class(TERRAObject)
     Protected
-      _Name:AnsiString;
+      _Name:TERRAString;
 	    _Density: Single;
 	    _Diffusion: Single;
 	    _Gain: Single;
@@ -68,7 +68,7 @@ Type
       Destructor Destroy; Override;
 
       Function Load(Source:Stream):Boolean; Overload;
-      Function Load(Name:AnsiString):Boolean; Overload;
+      Function Load(Name:TERRAString):Boolean; Overload;
       Function Save(Dest:Stream):Boolean;
 
       Property Handle:Integer Read _SlotHandle;
@@ -105,7 +105,7 @@ Const
 
 { SoundAmbience }
 
-Function SoundAmbience.Load(Name:AnsiString):Boolean;
+Function SoundAmbience.Load(Name:TERRAString):Boolean;
 Var
   Source:Stream;
 Begin

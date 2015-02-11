@@ -3,7 +3,7 @@ Unit TERRA_Session;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_IO, TERRA_OS;
+Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_MemoryStream, TERRA_OS;
 
 {-$DEFINE ALLOWBACKUPS}
 
@@ -12,14 +12,14 @@ Const
   
 Type
   KeyValue = Record
-    Key:AnsiString;
-    Value:AnsiString;
+    Key:TERRAString;
+    Value:TERRAString;
   End;
 
   Session = Class(TERRAObject)
     Protected
-      _Path:AnsiString;
-      _FileName:AnsiString;
+      _Path:TERRAString;
+      _FileName:TERRAString;
 
       _Data:Array Of KeyValue;
       _DataCount:Integer;
@@ -29,38 +29,38 @@ Type
       _Backup:Boolean;
 
 
-      Function getKeyID(Key:AnsiString):Integer;
+      Function getKeyID(Const Key:TERRAString):Integer;
 
-      Function GetDefaultFilePath():AnsiString;
+      Function GetDefaultFilePath():TERRAString;
 
-      Function FixPath(S:AnsiString):AnsiString;
+      Function FixPath(S:TERRAString):TERRAString;
 
       Function GetDataCount: Integer;
 
-      Function GetBackUpFileName():AnsiString;
+      Function GetBackUpFileName():TERRAString;
 
     Public
 
-      Constructor Create(FileName:AnsiString; Backup:Boolean = False);
+      Constructor Create(FileName:TERRAString; Backup:Boolean = False);
 
       Destructor Destroy; Override;
 
-      Procedure SetValue(Key, Value:AnsiString);
-      Function GetValue(Key:AnsiString):AnsiString;
+      Procedure SetValue(Const Key, Value:TERRAString);
+      Function GetValue(Const Key:TERRAString):TERRAString;
 
-      Function HasKey(Key:AnsiString):Boolean;
+      Function HasKey(Const Key:TERRAString):Boolean;
 
-      Function LoadFromFile(SourceFile:AnsiString):Boolean;
+      Function LoadFromFile(SourceFile:TERRAString):Boolean;
       Function LoadFromStream(Source:MemoryStream):Boolean;
 
-      Function GetKeyByIndex(Index:Integer):AnsiString;
+      Function GetKeyByIndex(Index:Integer):TERRAString;
 
-      Function GetSaveFileName():AnsiString;
+      Function GetSaveFileName():TERRAString;
 
       Procedure Clear;
 
-      Procedure SetFileName(FileName:AnsiString);
-      Procedure SetPath(Path:AnsiString);
+      Procedure SetFileName(FileName:TERRAString);
+      Procedure SetPath(Path:TERRAString);
 
       Procedure CopyKeys(Other:Session);
 
@@ -69,17 +69,17 @@ Type
       Function Restore():Boolean;
 
       Property KeyCount:Integer Read GetDataCount;
-      Property Path:AnsiString Read _Path;
-      Property FileName:AnsiString Read _FileName;
+      Property Path:TERRAString Read _Path;
+      Property FileName:TERRAString Read _FileName;
   End;
 
 Implementation
-Uses TERRA_FileIO, TERRA_Application, TERRA_FileUtils, TERRA_Unicode, TERRA_Log, TERRA_ZLib;
+Uses TERRA_FileStream, TERRA_Application, TERRA_FileUtils, TERRA_Log, TERRA_ZLib;
 
 Const
   SessionHeader:FileHeader = 'TESS';
 
-Function IsNumber(S:AnsiString):Boolean;
+Function IsNumber(S:TERRAString):Boolean;
 Var
   I:Integer;
 Begin
@@ -96,7 +96,7 @@ Begin
   Result := True;
 End;
 
-Function OldSessionCypher(const Str:AnsiString):AnsiString;
+Function OldSessionCypher(const Str:TERRAString):TERRAString;
 Var
   I:Integer;
 Begin
@@ -105,18 +105,22 @@ Begin
     result := Result + Char(255 - Ord(Str[I]));
 End;
 
-Function InvalidString(S:AnsiString):Boolean;
+Function InvalidString(Const S:TERRAString):Boolean;
 Var
-  I,Len:Integer;
+  It:StringIterator;
+  C:TERRAChar;
 Begin
-  Len := ucs2_Length(S);
-  For I:=1 To Len Do
-  If (ucs2_ascii(S, I)<#32) Then
+  StringCreateIterator(S, It);
+  While It.HasNext() Do
   Begin
-    Result := True;
-    Exit;
+    C := It.GetNext();
+    If (C<Ord(' ')) Then
+    Begin
+      Result := True;
+      Exit;
+    End;
   End;
-
+  
   Result := False;
 End;
 
@@ -126,12 +130,11 @@ Const
 Function Session.LoadFromStream(Source:MemoryStream):Boolean;
 Var
   I,J ,N ,Count, Len:Integer;
-  Key, Path, S, S2:AnsiString;
+  Key, Path, S, S2:TERRAString;
   Pref:MemoryStream;
   Data:Array Of Byte;
   Header:FileHeader;
   OldSession:Boolean;
-
   ZLIB:z_stream;
 Begin
   _DataCount := 0;
@@ -148,7 +151,7 @@ Begin
   Begin
     OldSession := False;
 
-    Source.Read(@Len, 4);
+    Source.ReadInteger(Len);
 
     // Fill record
     FillChar(ZLIB,SizeOf(ZLIB),0);
@@ -200,7 +203,7 @@ Begin
         S2 := S2 + IntToString(Data[J]);
     End;
 
-    If (InvalidString(Key)) Or (InvalidString(S2)) Then
+    If (Key = '') Or (InvalidString(Key)) Or (InvalidString(S2)) Then
       Continue;
 
     I := _DataCount;
@@ -221,7 +224,7 @@ Begin
   Result := True;
 End;
 
-Function Session.LoadFromFile(SourceFile:AnsiString):Boolean;
+Function Session.LoadFromFile(SourceFile:TERRAString):Boolean;
 Var
   Temp:MemoryStream;
 Begin
@@ -237,9 +240,9 @@ Begin
   Temp.Destroy();
 End;
 
-Function Session.GetSaveFileName:AnsiString;
+Function Session.GetSaveFileName:TERRAString;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := FixPath(Path);
   If S<>'' Then
@@ -256,8 +259,8 @@ Var
   I, J, N, Len:Integer;
   Dest, Temp:MemoryStream;
   Pref:Stream;
-  Key, S, S2, S3:AnsiString;
-  FileName:AnsiString;
+  Key, S, S2, S3:TERRAString;
+  FileName:TERRAString;
   Header:FileHeader;
 Begin
   FileName := Self.GetSaveFileName();
@@ -333,7 +336,7 @@ Begin
     Header := SessionHeader;
     Pref := FileStream.Create(FileName);
     Pref.Write(@Header, 4);
-    Pref.Write(@Len, 4);
+    Pref.WriteInteger(Len);
     Temp.Copy(Pref);
     Result := Pref.Size>=Temp.Size;
 
@@ -360,15 +363,14 @@ Begin
 End;
 
 
-Function Session.getKeyID(Key:AnsiString):Integer;
+Function Session.getKeyID(Const Key:TERRAString):Integer;
 Var
   I:Integer;
 Begin
-  Key := UpStr(Key);
-
   Result := -1;
+
   For I:=0 To Pred(_DataCount) Do
-  If _Data[I].Key = Key Then
+  If StringEquals(_Data[I].Key, Key) Then
   Begin
     Result := I;
     Exit;
@@ -381,7 +383,7 @@ Begin
   _Data[Result].Key := Key;
 End;
 
-Procedure Session.SetValue(Key,Value:AnsiString);
+Procedure Session.SetValue(Const Key,Value:TERRAString);
 Var
   N:Integer;
 Begin
@@ -389,10 +391,10 @@ Begin
   _Data[N].Value := Value;
 End;
 
-Function Session.GetValue(Key:AnsiString):AnsiString;
+Function Session.GetValue(Const Key:TERRAString):TERRAString;
 Var
   N:Integer;
-  S:AnsiString;
+  S:TERRAString;
 Begin
   If (Not _Read) Then
   Begin
@@ -409,7 +411,7 @@ Begin
 
 End;
 
-Function Session.GetKeyByIndex(Index: Integer):AnsiString;
+Function Session.GetKeyByIndex(Index: Integer):TERRAString;
 Begin
   If (Index>=0) And (Index<_DataCount) Then
   Begin
@@ -420,7 +422,7 @@ End;
 
 Function Session.Restore:Boolean;
 Var
-  FileName:AnsiString;
+  FileName:TERRAString;
 Begin
   Result := False;
   FileName := Self.GetBackUpFileName();
@@ -432,7 +434,7 @@ Begin
   Result := True;
 End;
 
-Function Session.GetDefaultFilePath:AnsiString;
+Function Session.GetDefaultFilePath:TERRAString;
 Begin
   If Assigned(Application.Instance()) Then
     Result := Application.Instance.DocumentPath + PathSeparator
@@ -440,7 +442,7 @@ Begin
     Result := '';
 End;
 
-Function Session.GetBackUpFileName:AnsiString;
+Function Session.GetBackUpFileName:TERRAString;
 Begin
 (*  {$IFDEF ANDROID}
   Result := '/sdcard/';
@@ -450,7 +452,7 @@ Begin
   Result := Path + PathSeparator + Application.Instance.Client.GetAppID() +'_'+ GetFileName(_FileName, True) + '.bak';
 End;
 
-Constructor Session.Create(FileName:AnsiString; Backup:Boolean);
+Constructor Session.Create(FileName:TERRAString; Backup:Boolean);
 Begin
   If (FileName = '') Then
     FileName := DefaultSessionFileName;
@@ -462,12 +464,12 @@ Begin
   Self._FileName := FileName;
 End;
 
-Procedure Session.SetPath(Path:AnsiString);
+Procedure Session.SetPath(Path:TERRAString);
 Begin
   Self._Path := Path;
 End;
 
-Function Session.FixPath(S:AnsiString):AnsiString;
+Function Session.FixPath(S:TERRAString):TERRAString;
 Begin
   Result := S;
   If (Result<>'') And ((Result[Length(Result)]='/') Or (Result[Length(Result)]='\')) Then
@@ -491,10 +493,10 @@ Begin
   End;
 End;
 
-Procedure Session.SetFileName(FileName:AnsiString);
+Procedure Session.SetFileName(FileName:TERRAString);
 Begin
   If FileName<>'' Then
-    _FileName := LowStr(FileName);
+    _FileName := StringLower(FileName);
 End;
 
 Procedure Session.Clear;
@@ -514,7 +516,7 @@ Begin
   Result := _DataCount;
 End;
 
-Function Session.HasKey(Key:AnsiString): Boolean;
+Function Session.HasKey(Const Key:TERRAString): Boolean;
 Var
   I:Integer;
 Begin
@@ -523,10 +525,8 @@ Begin
     LoadFromFile(Self.GetSaveFileName());
   End;
 
-  Key := UpStr(Key);
-
   For I:=0 To Pred(_DataCount) Do
-  If _Data[I].Key = Key Then
+  If StringEquals(_Data[I].Key, Key) Then
   Begin
     Result := True;
     Exit;

@@ -21,117 +21,20 @@
  * Implements engine generic network objects
  ***********************************************************************************************************************
 }
-{-$DEFINE DEBUGMODE}
 {-$DEFINE NETDEBUG}
 
-{
-@abstract(Network)
-@author(Sergio Flores <relfos@gmail.com>)
-@created(March 18, 2005)
-@lastmod(September 29, 2005)
-The Network unit provides a solid client/server system.
-Uses UDP, with support for reliable messages.
-
-Version History
-   18/3/05  • Added type definitions and DLL functions import definitions
-   24/3/05  • Bug resolved: External declarations need the StdCall directive
-            • Implemented LNetServer and LNetClient classes
-   25/3/05  • Implemented master class LNetObject
-              • WinSock routines are now methods of this class
-              • LNetServer and LNetClient are now descendants of this class
-              • Contains a message queueing system
-            • Finally Client-Server sample doesnt fail connecting to server
-              • Bug: The same Client is duplicated when enter the server
-                 • This is because of multiple Join packets send
-            • Added AddClient and RemoveClient virtual methods
-            • While watching the log files, some messages seem to be corrupted
-              • Added EndOfMessage flag, to verify data integrity
-            • Took me a whole day to remove all major bugs
-              • Client-Server Network session now works stable
-            • Added ConnectionStart and ConnectionEnd virtual methods
-            • Bug: Only one client can connect to server
-               • Other clients trying to connect will receive a duplicate GUID error
-               • Fixed: Remove old debug code used to force duplicated GUIDs
-    3/6/05  • Bug:Solved, Server side - Ping check wasnt working correctly.
-                    • All Clients were dropped instantly
-                    • The same Clients were droped constatly
-                    • The droped client wasnt notified of the disconection
-   26/6/05  • NetClient.Connect() changed, now use a username and password method.
-            • NetServer.Validate is used to validate users.
-                • Default implementation validates any user/password
-            • NetClient.Connect bug fixed
-                • JoinTimer wasnt initialized to zero
-                • Lesson -> Always initialize variables, even with zero
-   27/6/05  • NetClient.Validate() now returns a error code instead of a boolean
-            • Now NetClient checks if the conection was lost and disconnects.
-   28/6/05  • CreateServerMessage() renamed to CreateMessage()
-            • Added CreateExtendedMessage()
-   2/7/05   • Fixed some bugs
-            • Added Network Output/Input bandwith usage status
-            • Added login with version check
-            • Implemented Pong messages
-   3/7/05   • Implemented server behavior, allows switching between
-              a small centered server, or a large scale aproach
-                • The main diference is that when in large scale mode,
-                  some broadcasts are avoided, like Client drops.
-                  This reduces the server overload, but in order to
-                  notify the other Clients, the server should
-                  implement their own broadcasting system, with a
-                  localized clustering selection.
-                  The following event broadcasts are supressed
-                  • ClientJoin: The AddClient event should handle this
-                  • ClientLeave,
-                    ClientDrop: The RemoveClient event should handle this
-            • Fixed bug in server responding to Pong queries
-            • Pong querie delay was too short, the overload was desneccessary
-               • Now if the server doesnt respond in 5 seconds, a Pong message is sent
-               • Then if the server doesnt respond in 15 seconds, the connection is shutdown
-   4/7/05   • Implemented reliable message system
-               • Just put a ERM instead of a EOM in the message tail
-               • Then message will be resent until an ack is received
-               • After 25 resends, the message will be ignored
-            • Fixed reliable message system infinite loop
-            • Download/Upload were switched
-   6/7/05   • RM messages caused duplicated messages to be received
-               • Added a GIDSliderWindow to check for duplicated messages
-   7/7/05   • Implemented GIDFlush method
-   8/7/05   • Implemented messages flags
-               • The following flags are implemented
-                 • msgEOM - EndOfMessage, for integrity check
-                 • msgRM - Reliable Message
-                 • msgRMO - Reliable Message, no reply
-                 • msgNGID - Disable GID, Ignore duplicates
-            • Fixed disconection bug
-   12/7/05  • Added msgNGID flag to some server messages
-            • Server no longer pings dead Clients
-   17/7/05  • Remodeled and optimized opcode system
-              • Now uses messages handlers
-              • The new system also makes possible to replace default messages
-            • Client now can resolve hostnames
-              • Its possible now to connect to something like "xpow.gameserver.net"
-            • Now reliable messages have individual resend timers
-              • This reduces some desnecessary resends
-   19/7/05  • GID messages now expire after some time
-              • This removes the necessity of combining msgNGID and msgRM flags
-              • Some network messagin problems fixed with this
-   24/7/05  • RM message resend default timer changed to 1500 ms
-   22/8/05  • Fixed memory leak with receive buffer
-   29/8/05  • Fixed Client login bugs
-            • Better debug log support
-}
 
 Unit TERRA_Network;
 {$I terra.inc}
 
 Interface
-Uses SysUtils,
-  TERRA_Utils, TERRA_IO, TERRA_OS, TERRA_Sockets, TERRA_Application;
+Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_MemoryStream, TERRA_OS, TERRA_Sockets, TERRA_Application;
 
 Const
 //Message types
   nmIgnore          = 0;  // Dummy message
-  nmPing            = 1;  // Ping message
-  nmUnused          = 2;  // Pong message
+  nmUnused          = 1;  // Ping message
+  nmUnused2         = 2;  // Pong message
   nmServerAck       = 3;  // Server ack,Ok
   nmServerError     = 4;  // Server error
   nmServerShutdown  = 5;  // Server shutdown
@@ -195,6 +98,8 @@ Type
 
       Function GetOpcode: Byte;
 
+      Procedure AdjustSize();
+
     Public
       Constructor Create(Opcode:Byte);
 
@@ -219,10 +124,9 @@ Type
       Procedure OnPacketReceived(Sock:Socket; Msg:NetMessage); Virtual;
 
     Public
-      _Name:AnsiString;             // Local Client Name
       _Address:SocketAddress;  // Local Address
       _Sender:SocketAddress;   // Address of message sender
-      _HostName:AnsiString;         // Local host name
+      _HostName:TERRAString;         // Local host name
       _LocalID:Word;            // Local ID
       _Port:Word;               // Local port
       _Version:Word;            // Object Version
@@ -233,15 +137,10 @@ Type
       _Download:Cardinal;       // Current download kb/s
       _OpcodeList:Array[0..255]Of MessageHandler;
 
-      // Encodes a message
-      EncodeMessage:Procedure (Data:PByteArray;Size:Integer);
-      // Decodes a message
-      DecodeMessage:Procedure (Data:PByteArray;Size:Integer);
-
       Constructor Create();  //Creates a new object instance
       Destructor Destroy;Reintroduce;Virtual; //Shutdown the object
 
-      Function MakeSocketAddress(Var SockAddr:SocketAddress; Port:Word; Hostname:AnsiString):SmallInt;
+      Function MakeSocketAddress(Var SockAddr:SocketAddress; Port:Word; Hostname:TERRAString):SmallInt;
 
       Function ReceivePacket(Sock:Socket):Boolean;
       Procedure UpdateIO; //Updates upload/download status
@@ -252,10 +151,16 @@ Type
       // Validates a message
       Function ValidateMessage(Msg:NetMessage):Boolean; Virtual; Abstract;
 
-      Procedure ReturnMessage(Sock:Socket; Msg:NetMessage); // Sends a message to the last sender
+      Procedure ReturnMessage(Sock:Socket; Msg:NetMessage; AutoRelease:Boolean = False); // Sends a message to the last sender
+
+      // Encodes a message
+      Function EncodeMessage(Msg:NetMessage):NetMessage; Virtual;
+
+      // Decodes a message
+      Function DecodeMessage(Msg:NetMessage):NetMessage; Virtual;
 
       // Message Handlers -> Need one of this for each message type
-      Procedure InvalidMessage(Msg:NetMessage; Sock:Socket);
+      Procedure OnInvalidMessage(Msg:NetMessage; Sock:Socket);
       Procedure IgnoreMessage(Msg:NetMessage; Sock:Socket);
   End;
 
@@ -276,8 +181,8 @@ Type
   End;
 
 
-Function GetMsgDesc(MsgId:Byte):AnsiString;
-Function GetNetErrorDesc(ErrorCode:Word):AnsiString;
+Function GetMsgDesc(MsgId:Byte):TERRAString;
+Function GetNetErrorDesc(ErrorCode:Word):TERRAString;
 
 //Function CreateMessageWithWord(Opcode:Byte; Code:Word):NetMessage;  // Creates a server message
 
@@ -287,7 +192,7 @@ Uses TERRA_Error, TERRA_Log;
 Var
   _NetworkManager:ApplicationObject;
 
-Function GetNetErrorDesc(ErrorCode:Word):AnsiString;
+Function GetNetErrorDesc(ErrorCode:Word):TERRAString;
 Begin
   Case ErrorCode Of
     errNoError:             Result:='No error.';
@@ -309,12 +214,12 @@ Begin
   End;
 End;
 
-Function _GetOpcode(MsgId:Byte):AnsiString;
+Function _GetOpcode(MsgId:Byte):TERRAString;
 Begin
   Result:='Unknown message type['+IntToString(MsgId)+']';
 End;
 
-Function GetMsgDesc(MsgId:Byte):AnsiString;
+Function GetMsgDesc(MsgId:Byte):TERRAString;
 Begin
   Case MsgId Of
     nmServerAck:      Result:='Server.Ack';
@@ -323,15 +228,14 @@ Begin
     nmClientJoin:     Result:='Client.Join';
     nmClientDrop:     Result:='Client drop';
     nmIgnore:         Result:='Ignore';
-    nmPing:           Result:='Ping';
   Else
     Result := 'opcode #'+IntToString(MsgID);
   End;
 End;
 
-Procedure LogMsg(Prefix:AnsiString;Msg:NetMessage;Postfix:AnsiString);
+Procedure LogMsg(Prefix:TERRAString;Msg:NetMessage;Postfix:TERRAString);
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S:=Prefix+' "'+GetMsgDesc(Msg.Opcode)+'" Size='+IntToString(Msg.Length)+' ';
   S:=S+Postfix;
@@ -359,9 +263,9 @@ Begin
   MakeNonBlocking(Result, False);
 End;
 
-Function NetObject.MakeSocketAddress(Var SockAddr:SocketAddress; Port:Word; Hostname:AnsiString):SmallInt;
+Function NetObject.MakeSocketAddress(Var SockAddr:SocketAddress; Port:Word; Hostname:TERRAString):SmallInt;
 Var
-  IP:AnsiString;
+  IP:TERRAString;
 Begin
   Result:=0;
 
@@ -379,7 +283,7 @@ Begin
   //Check for error in IP
   If SockAddr.Address=-1 Then
   Begin
-    RaiseError('Network.'+_Name+'.MakeSocketAddress: Unable to resolve IP address from '+ Hostname +'.');
+    RaiseError(Self.ClassName+'.MakeSocketAddress: Unable to resolve IP address from '+ Hostname +'.');
     Result := SOCKET_ERROR;
     Exit;
   End;
@@ -395,7 +299,7 @@ Begin
   Opv:=1;
   If (setsockOpt(_UDPSocket, SOL_Socket, SO_REUSEADDR,@Opv,SizeOf(Opv))=SOCKET_ERROR) Then
   Begin
-    RaiseError('Network.'+_Name+'.BindSocket: Unable to change socket mode.');
+    RaiseError(Self.ClassName+'.BindSocket: Unable to change socket mode.');
     Result:=SOCKET_ERROR;
     Exit;
   End;
@@ -411,7 +315,7 @@ Begin
   //Check for errors
   If Result=SOCKET_ERROR Then
   Begin
-    RaiseError('Network.'+_Name+'.BindSocket: Unable to bind socket on port ' + IntToString(Port) + '.');
+    RaiseError(Self.ClassName+'.BindSocket: Unable to bind socket on port ' + IntToString(Port) + '.');
     Exit;
   End;
 End;
@@ -423,20 +327,29 @@ Var
   Timer:Cardinal;
   P:PByte;
 Begin
+  Result := False;
   If (Sock.Closed) Then
+    Exit;
+
+  Msg.AdjustSize();
+
+  Msg := Self.EncodeMessage(Msg);
+  If (Msg = Nil) Then
   Begin
-    Result := False;
+    {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Packet was dropped during encription');{$ENDIF}
     Exit;
   End;
 
-  Msg.Length := Msg.Position - SizeOf(MessageHeader);
-  {$IFDEF NETDEBUG}WriteLn('Packet size: ',Msg.Length);{$ENDIF}
+  Msg.AdjustSize();
+
+
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Packet size: ',Msg.Length);{$ENDIF}
   //LogMsg(_Name+'.Send():',@Rm,' to '+GetIP(Dest.Address));
 
     //EncodeMessage(Msg);
 
   //Send packet
-  {$IFDEF NETDEBUG}WriteLn('Writing to socket');{$ENDIF}
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Writing to socket');{$ENDIF}
   Len := Msg.Length + SizeOf(MessageHeader);
   Count := Len;
   P := Msg.Buffer;
@@ -466,8 +379,6 @@ Begin
     End;
   Until (GetTime() - Timer > 500);
 
-  //Check for errors
-  Result := False;
   //Log(logWarning,'Network',_Name+'.SendPacket: Socket error');
 End;
 
@@ -493,7 +404,7 @@ Begin
 
   //T := GetTime();
 
-  {$IFDEF NETDEBUG}WriteLn('Reading from socket');{$ENDIF}
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Reading from socket');{$ENDIF}
 
   //Check for a message
   Cnt := 0;
@@ -501,7 +412,7 @@ Begin
   Repeat
     Rem := SizeOf(MessageHeader) - Cnt;
     N := Sock.Read(P, Rem);
-    {$IFDEF NETDEBUG}WriteLn('Read result: ',N);{$ENDIF}
+    {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Read result: ',N);{$ENDIF}
 
    //Check for errors
     If (N=SOCKET_ERROR) Or (N<=0) Then //There was no message waiting
@@ -540,16 +451,24 @@ Begin
     Until (Cnt >= Header.Length);
   End;
 
+  Msg := Self.DecodeMessage(Msg);
+  If Msg = Nil Then
+  Begin
+    {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'A message was dropped when decoding...');{$ENDIF}
+    Result := False;
+    Exit;
+  End;
+
   OnPacketReceived(Sock, Msg);
 
-  {$IFDEF NETDEBUG}WriteLn('Validating message');{$ENDIF}
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Validating message');{$ENDIF}
   Msg.Seek(SizeOf(MessageHeader));
   ValidMsg := ValidateMessage(Msg);
-  //WriteLn('Rec: ',Msg.Opcode);
+  //Log(logDebug, 'Network', 'Rec: ',Msg.Opcode);
 
   If ValidMsg Then
   Begin
-    {$IFDEF NETDEBUG}WriteLn('Invoking opcode ',Msg.Opcode);{$ENDIF}
+    {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Invoking opcode ',Msg.Opcode);{$ENDIF}
     If Assigned(_OpcodeList[Header.Opcode]) Then
     Begin
       Msg.Seek(SizeOf(MessageHeader));
@@ -557,14 +476,16 @@ Begin
     End;
   End Else
   If (Header.Opcode<>nmServerAck) Then
-    Log(logWarning,'Network','Network.'+_Name+'.Update: Invalid opcode ['+IntToString(Header.Opcode)+']');
+    Log(logWarning,'Network',Self.ClassName+'.Update: Invalid opcode ['+IntToString(Header.Opcode)+']');
 
-  DestroyObject(@Msg);
+  FreeAndNil(Msg);
 
-  {$IFDEF NETDEBUG}WriteLn('Opcode ',Header.Opcode,' processed');{$ENDIF}
+  Result := True;
+
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Opcode ',Header.Opcode,' processed');{$ENDIF}
 End;
 
-Procedure NetObject.InvalidMessage(Msg:NetMessage; Sock:Socket);
+Procedure NetObject.OnInvalidMessage(Msg:NetMessage; Sock:Socket);
 Begin
   Log(logError, 'Network', 'InvalidMessage: Unknown opcode.['+IntToString(Msg.Opcode)+']');
 End;
@@ -578,8 +499,6 @@ Constructor NetObject.Create();
 Var
  I:Integer;
 Begin
-  _Name:='NetObject';
-
   _Upload := 0;
   _Download := 0;
   _Input := 0;
@@ -587,7 +506,7 @@ Begin
   _TotalUpload := 0;
   _TotalDownload := 0;
   For I:=0 To 255 Do
-    _OpcodeList[I] := InvalidMessage;
+    _OpcodeList[I] := OnInvalidMessage;
   _OpcodeList[nmIgnore] := IgnoreMessage;
 
   _UDPSocket := -1;
@@ -597,6 +516,8 @@ Destructor NetObject.Destroy;
 Begin
   If (_UDPSocket<>-1) Then
     CloseSocket(_UDPSocket);
+
+  NetworkManager.Instance.RemoveObject(Self);
 End;
 
 Procedure NetObject.UpdateIO;
@@ -613,9 +534,15 @@ Begin
   End;
 End;
 
-Procedure NetObject.ReturnMessage(Sock:Socket; Msg:NetMessage); //Sends a message to the last sender
+Procedure NetObject.ReturnMessage(Sock:Socket; Msg:NetMessage; AutoRelease:Boolean); //Sends a message to the last sender
 Begin
+  If Msg = Nil Then
+    Exit;
+
   SendPacket(_Sender, Sock, Msg);
+
+  If AutoRelease  Then
+    FreeAndNil(Msg);
 End;
 
 
@@ -633,7 +560,13 @@ Begin
 End;
 
 Procedure NetworkManager.AddObject(Obj: NetObject);
+Var
+  I:Integer;
 Begin
+  For I:=0 To Pred(_ObjectCount) Do
+  If (_Objects[I]= Obj) Then
+    Exit;
+
   Inc(_ObjectCount);
   SetLength(_Objects, _ObjectCount);
   _Objects[Pred(_ObjectCount)] := Obj;
@@ -668,19 +601,29 @@ Begin
   Result := True;
 End;
 
-{$IFDEF DEBUGMODE}
-Procedure NetLogFilter(S,S2:AnsiString);
-Begin
-  WriteLn(S2);
-End;
-{$ENDIF}
-
 Procedure NetObject.OnPacketReceived(Sock:Socket; Msg: NetMessage);
 Begin
   // do nothing
 End;
 
+
+Function NetObject.DecodeMessage(Msg: NetMessage): NetMessage;
+Begin
+  Result := Msg;
+End;
+
+Function NetObject.EncodeMessage(Msg: NetMessage): NetMessage;
+Begin
+  Result := Msg;
+End;
+
 { NetMessage }
+Procedure NetMessage.AdjustSize;
+Begin
+  If Length<=0 Then
+    Length := Self.Position - SizeOf(MessageHeader);
+End;
+
 Constructor NetMessage.Create(Opcode: Byte);
 Var
   Header:MessageHeader;
@@ -734,9 +677,4 @@ Begin
   Header.Owner := Value;
 End;
 
-Initialization
-{$IFDEF DEBUGMODE}
-  Log.Instance.SetFilter(logDebug, NetLogFilter);
-  Log.Instance.SetFilter(logWarning, NetLogFilter);
-{$ENDIF}
 End.

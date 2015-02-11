@@ -2,7 +2,7 @@ Unit TERRA_Steam;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Math, TERRA_Application, SteamAPI;
+Uses TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Application, SteamAPI;
 
 Type
   Steam = Class(ApplicationComponent)
@@ -14,11 +14,11 @@ Type
 
       _HasController:Boolean;
 
-      _SteamID:AnsiString;
-      _AppID:AnsiString;
+      _SteamID:TERRAString;
+      _AppID:TERRAString;
 
-      _UserName:AnsiString;
-      _Language:AnsiString;
+      _UserName:TERRAString;
+      _Language:TERRAString;
 
       _LicenseResult:SteamUserHasLicenseForAppResult;
 
@@ -28,14 +28,14 @@ Type
       Procedure Update; Override;
       Procedure Init; Override;
 
-      Function UnlockAchievement(AchID:AnsiString):Boolean;
+      Function UnlockAchievement(AchID:TERRAString):Boolean;
 
       Destructor Destroy; Override;
 
-      Property UserName:AnsiString Read _UserName;
-      Property Language:AnsiString Read _Language;
-      Property SteamID:AnsiString Read _SteamID;
-      Property AppID:AnsiString Read _AppID;
+      Property UserName:TERRAString Read _UserName;
+      Property Language:TERRAString Read _Language;
+      Property SteamID:TERRAString Read _SteamID;
+      Property AppID:TERRAString Read _AppID;
       Property Enabled:Boolean Read _Enabled;
   End;
 
@@ -58,7 +58,7 @@ End;
 
 Procedure Steam.Init;
 Var
-   ControllerPath:AnsiString;
+   ControllerPath:TERRAString;
 Begin
   _LoggedOn := False;
 
@@ -150,7 +150,7 @@ Begin
   End;
 End;
 
-Function Steam.UnlockAchievement(AchID: AnsiString): Boolean;
+Function Steam.UnlockAchievement(AchID: TERRAString): Boolean;
 Begin
   Result := False;
 

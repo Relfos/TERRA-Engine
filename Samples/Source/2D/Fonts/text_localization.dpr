@@ -37,7 +37,7 @@ Begin
   // Add asset folders
   FileManager.Instance.AddPath('assets');
 
-  GraphicsManager.Instance.BackgroundColor := ColorRed;
+  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorRed;
 
   // Load a font
   _Font := FontManager.Instance.GetFont('droid');
@@ -57,16 +57,16 @@ End;
 
 Procedure MyGame.OnIdle;
 Begin
-  If (Application.Instance.KeyPressed(keyEscape)) Then
+  If (Application.Instance.Input.Keys.WasPressed(keyEscape)) Then
     Application.Instance.Terminate;
 
-  If (Application.Instance.KeyPressed(keyLeft)) And (_SelectedLanguage>1) Then
+  If (Application.Instance.Input.Keys.WasPressed(keyLeft)) And (_SelectedLanguage>1) Then
   Begin
     Dec(_SelectedLanguage);
     StringManager.Instance.SetLanguage(LanguageList[_SelectedLanguage]);
   End;
 
-  If (Application.Instance.KeyPressed(keyright)) And (_SelectedLanguage<LanguageCount) Then
+  If (Application.Instance.Input.Keys.WasPressed(keyright)) And (_SelectedLanguage<LanguageCount) Then
   Begin
     Inc(_SelectedLanguage);
     StringManager.Instance.SetLanguage(LanguageList[_SelectedLanguage]);
@@ -86,7 +86,7 @@ Begin
     Else
       Saturation := 0.0;
       
-    SpriteManager.Instance.AddSprite(10 + I * 70, 10, 10, TextureManager.Instance.GetTexture('flag_'+LanguageList[I]), Nil, blendBlend, Saturation);
+    SpriteManager.Instance.DrawSprite(10 + I * 70, 10, 10, TextureManager.Instance.GetTexture('flag_'+LanguageList[I]), Nil, blendBlend, Saturation);
   End;
 
   // render some text

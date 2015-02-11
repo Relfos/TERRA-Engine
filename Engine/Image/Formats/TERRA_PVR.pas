@@ -26,7 +26,7 @@ Unit TERRA_PVR;
 {$I terra.inc}
 
 Interface
-Uses TERRA_IO, TERRA_FileUtils, TERRA_Utils, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Log,
+Uses TERRA_Stream, TERRA_FileUtils, TERRA_Utils, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Log,
   TERRA_Texture, TERRA_Resource;
 
 Type

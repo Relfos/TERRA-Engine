@@ -29,7 +29,7 @@ Unit TERRA_ShadowVolumes;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Vector3D, TERRA_BoundingBox, TERRA_Math, TERRA_IO;
+  TERRA_Utils, TERRA_Vector3D, TERRA_BoundingBox, TERRA_Math, TERRA_Stream;
 
 Const
   MinShadowAngle = 0.5;

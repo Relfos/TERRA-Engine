@@ -36,13 +36,13 @@ Begin
   _Scene := MyScene.Create;
   GraphicsManager.Instance.SetScene(_Scene);
 
-  GraphicsManager.Instance.BackgroundColor := ColorBlue;
+  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorBlue;
 End;
 
 // OnIdle is called once per frame, put your game logic here
 Procedure MyGame.OnIdle;
 Begin
-  If Keys[keyEscape] Then
+  If Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
 End;
 
@@ -65,41 +65,41 @@ Begin
   //        Sprites with higher layer values appear below the others
 
   // Create a simple fliped sprite
-  S := SpriteManager.Instance.AddSprite(220, 60, 50, Tex);
+  S := SpriteManager.Instance.DrawSprite(220, 60, 50, Tex);
   S.Flip := True;
 
   // Create a line of sprites
   For I:=0 To 8 Do
   Begin
-    S := SpriteManager.Instance.AddSprite(16 + Tex.Width * I, 10, 50, Tex);
+    S := SpriteManager.Instance.DrawSprite(16 + Tex.Width * I, 10, 50, Tex);
     S.Mirror := Odd(I);    // Each odd sprite in line will be reflected
   End;
 
   // Create a line of rotated sprites
   For I:=0 To 8 Do
   Begin
-    S := SpriteManager.Instance.AddSprite(16 + Tex.Width * I, 300, 50, Tex);
+    S := SpriteManager.Instance.DrawSprite(16 + Tex.Width * I, 300, 50, Tex);
     S.SetScaleAndRotationRelative(VectorCreate2D(0.5, 0.5), 1, RAD * (I*360 Div 8));
   End;
 
   // Some scaled sprites
-  S := SpriteManager.Instance.AddSprite(10,120,55, Tex);
+  S := SpriteManager.Instance.DrawSprite(10,120,55, Tex);
   S.SetScale(2.0);    // Double size
 
-  S := SpriteManager.Instance.AddSprite(110,130,55, Tex);
+  S := SpriteManager.Instance.DrawSprite(110,130,55, Tex);
   S.SetScale(1.5);    // 1.5 Size
 
-  S := SpriteManager.Instance.AddSprite(180,145,55, Tex);
+  S := SpriteManager.Instance.DrawSprite(180,145,55, Tex);
   S.SetScale(0.5);    // Half size
 
   // An alpha blended sprite
-  S := SpriteManager.Instance.AddSprite(85, 60, 55, Tex);
+  S := SpriteManager.Instance.DrawSprite(85, 60, 55, Tex);
   S.SetColor(ColorCreate(255, 255, 255, 128));
 
   // Some colored sprites
   For I:=0 To 4 Do
   Begin
-    S := SpriteManager.Instance.AddSprite(300 + Tex.Width * I,120,50, Tex);
+    S := SpriteManager.Instance.DrawSprite(300 + Tex.Width * I,120,50, Tex);
 
     Case I Of
     0:  S.SetColor(ColorCreate(255,128,255)); // Purple tint
@@ -112,7 +112,7 @@ Begin
 
   // A rotating sprite in the bottom, with Scale = 2x
   Angle := RAD * ((GetTime() Div 15) Mod 360);
-  S := SpriteManager.Instance.AddSprite(300, 400, 50, Tex);
+  S := SpriteManager.Instance.DrawSprite(300, 400, 50, Tex);
   S.SetScaleAndRotationRelative(VectorCreate2D(0.5, 0.5), 2.0, Angle);  // Calculate rotation, in degrees, from current time
 End;
 

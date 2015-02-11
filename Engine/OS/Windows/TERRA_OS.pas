@@ -10,7 +10,7 @@ Unit TERRA_OS;
 {-$DEFINE TRUE_FULLSCREEN}
 
 Interface
-Uses TERRA_Utils, TERRA_Application, TERRA_Client, TERRA_Multimedia,
+Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Client, TERRA_Input, TERRA_Multimedia,
   Windows, Messages;
 
 Const
@@ -81,7 +81,7 @@ Const
   keyY = Ord('Y');
   keyZ = Ord('Z');
 
-Procedure DisplayMessage(S:AnsiString);
+Procedure DisplayMessage(Const S:TERRAString);
 Function GetCurrentTime:TERRATime;
 Function GetCurrentDate:TERRADate;
 Function GetTime:Cardinal;
@@ -111,10 +111,10 @@ Type
   FolderWatcher = Class(TERRAObject)
     Protected
       _State:FolderWatcherState;
-	    _Path:AnsiString;
+	    _Path:TERRAString;
 
     Public
-      Constructor Create(Const Path:AnsiString);
+      Constructor Create(Const Path:TERRAString);
       Destructor Destroy; Override;
 
       Procedure Clear();
@@ -131,7 +131,7 @@ Type
       Procedure Update; Override;
       Destructor Destroy; Override;
 
-      Function WatchFolder(Const Path:AnsiString):Boolean; Override;
+      Function WatchFolder(Const Path:TERRAString):Boolean; Override;
   End;
   {$ENDIF}
 
@@ -155,8 +155,6 @@ Type
       _OriginalWidth:Integer;
       _OriginalHeight:Integer;
 
-      _FullscreenWidth:Integer;
-      _FullscreenHeight:Integer;
       _FullscreenActive:Boolean;
 
 			_JoystickCount:Integer;
@@ -176,10 +174,10 @@ Type
       Procedure CloseGraphics; Override;
       Procedure CloseWindow; Override;
 
-      Function GetClipboard():AnsiString;
+      Function GetClipboard():TERRAString;
 
-      Function GetDocumentPath():AnsiString; Override;
-      Function GetStoragePath():AnsiString; Override;
+      Function GetDocumentPath():TERRAString; Override;
+      Function GetStoragePath():TERRAString; Override;
 
       Procedure SetProcessorAffinity;
 
@@ -197,24 +195,24 @@ Type
 
       Function GetRecommendedSettings: Integer; Override;
 
-      Procedure OpenAppStore(URL:AnsiString); Override;
+      Procedure OpenAppStore(URL:TERRAString); Override;
 
       Procedure EnableAds(); Override;
       Procedure DisableAds(); Override;
 
-      Procedure SetTitle(Const Name:AnsiString); Override;
+      Procedure SetTitle(Const Name:TERRAString); Override;
 
-      Procedure SendEmail(DestEmail, Subject, Body:AnsiString); Override;
+      Procedure SendEmail(DestEmail, Subject, Body:TERRAString); Override;
 
       Function IsDebuggerPresent:Boolean; Override;
 
-      Function GetDeviceID():AnsiString; Override;
+      Function GetDeviceID():TERRAString; Override;
   End;
 
 Implementation
 Uses TERRA_Error, SysUtils, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
-  TERRA_GraphicsManager, TERRA_Log, TERRA_IO, TERRA_FileUtils, TERRA_FileManager, TERRA_MusicManager,
-  TERRA_Unicode, TERRA_XInput, TERRA_NetBios;
+  TERRA_GraphicsManager, TERRA_Log, TERRA_Stream, TERRA_FileUtils, TERRA_FileManager, TERRA_MemoryStream, TERRA_MusicManager,
+  TERRA_XInput, TERRA_NetBios;
 
 Const
   FILE_READ_DATA         = $0001; // file & pipe
@@ -242,7 +240,7 @@ Function SetWindowLong(hWnd: HWND; nIndex: Integer; dwNewLong:Cardinal): Longint
 Function GetProcessAffinityMask(hProcess: THandle; Var lpProcessAffinityMask, lpSystemAffinityMask: PtrUInt):Boolean; stdcall; external 'kernel32.dll';
 
 
-Procedure DisplayMessage(S:AnsiString);
+Procedure DisplayMessage(Const S:TERRAString);
 Begin
   Windows.MessageBoxA(0, PAnsiChar(S), PAnsiChar(GetProgramName), MB_OK Or MB_ICONERROR);
 End;
@@ -298,7 +296,7 @@ Var
   Delta:Integer;
   P:MouseCursor;
   W,H, I:Integer;
-  S:AnsiString;
+  S:TERRAString;
   sz:TRECT;
   Temp:Boolean;
   App:WindowsApplication;
@@ -501,7 +499,7 @@ Begin
 
     WM_KILLFOCUS: If (App._CanReceiveEvents) Then
                   Begin
-                    FillChar(App.Input.Keys[0],255,False);
+                    App.Input.Keys.Reset();
                     //App.OnDeactivate;
                   End;
 
@@ -512,7 +510,7 @@ Begin
   End;
 End;
 
-Function WindowsApplication.GetClipboard():AnsiString;
+Function WindowsApplication.GetClipboard():TERRAString;
 Var
   pText:THandle;
   P:PWord;
@@ -530,7 +528,7 @@ Begin
       If (N=0) Then
         Break;
 
-      Result := Result + UnicodeToUCS2(N);
+      StringAppendChar(Result, N);
       Inc(P);
     Until False;
 
@@ -539,7 +537,7 @@ Begin
   GlobalUnlock(pText);
 End;
 
-Procedure WindowsErrorCallback(Msg:AnsiString); Cdecl;
+Procedure WindowsErrorCallback(Msg:TERRAString); Cdecl;
 Begin
   MessageBoxA(0, PAnsiChar(Msg), 'Fatal error!', MB_OK);
   Application.Instance.Terminate();
@@ -554,7 +552,7 @@ Var
   dwExStyle:Cardinal;          // Extended window styles
   Inst:HINST;             // Current instance
   X,Y,BW,BH:Integer;
-  TitleStr:AnsiString;
+  TitleStr:TERRAString;
 Begin
   Result := False;
 
@@ -595,9 +593,6 @@ Begin
     End;
   End;
 
-  _FullscreenWidth := GetSystemMetrics(SM_CXSCREEN);
-  _FullscreenHeight := GetSystemMetrics(SM_CYSCREEN);
-
   If (_FullScreen) Then
   Begin
     dwExStyle := WS_EX_APPWINDOW;
@@ -611,8 +606,8 @@ Begin
     dwExStyle := WS_EX_OVERLAPPEDWINDOW{ Or WS_EX_COMPOSITED};
     dwStyle := WS_OVERLAPPED Or WS_MINIMIZEBOX Or WS_MAXIMIZEBOX Or WS_SIZEBOX Or WS_CAPTION Or WS_SYSMENU;
 //    dwStyle := WS_POPUP Or WS_BORDER;
-    X := (_FullscreenWidth - Width) Div 2;
-    Y := (_FullscreenHeight - Height) Div 2;
+    X := (_Screen.Width - Width) Div 2;
+    Y := (_Screen.Height - Height) Div 2;
 
     //BW := GetSystemMetrics(SM_CXFIXEDFRAME)+GetSystemMetrics(SM_CXEDGE)*2;
     BH := GetSystemMetrics(SM_CYCAPTION)+GetSystemMetrics(SM_CYSIZEFRAME)*2+GetSystemMetrics(SM_CYEDGE)*2;
@@ -918,8 +913,8 @@ Begin
     End;
 
     {$ELSE}
-    FullWidth := _FullscreenWidth;
-    FullHeight := _FullscreenHeight;
+    FullWidth := _Screen.Width;
+    FullHeight := _Screen.Height;
     {$ENDIF}
 
     Flags := WS_POPUP Or WS_CLIPCHILDREN Or WS_CLIPSIBLINGS;
@@ -975,20 +970,20 @@ Begin
     Begin
       PlayerID := _Gamepads[I].LocalID;
       XState := XGetControllerState();
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadUp, (XState.Buttons And XINPUT_GAMEPAD_DPAD_UP)<>0);
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadDown, (XState.Buttons And XINPUT_GAMEPAD_DPAD_DOWN)<>0);
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadLeft, (XState.Buttons And XINPUT_GAMEPAD_DPAD_LEFT)<>0);
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadRight, (XState.Buttons And XINPUT_GAMEPAD_DPAD_RIGHT)<>0);
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadUp, (XState.Buttons And XINPUT_GAMEPAD_DPAD_UP)<>0);
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadDown, (XState.Buttons And XINPUT_GAMEPAD_DPAD_DOWN)<>0);
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadLeft, (XState.Buttons And XINPUT_GAMEPAD_DPAD_LEFT)<>0);
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadRight, (XState.Buttons And XINPUT_GAMEPAD_DPAD_RIGHT)<>0);
 
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadMenu, (XState.Buttons And XINPUT_GAMEPAD_START)<>0);
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadMenu, (XState.Buttons And XINPUT_GAMEPAD_START)<>0);
 
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadA, (XState.Buttons And XINPUT_GAMEPAD_A)<>0);
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadB, (XState.Buttons And XINPUT_GAMEPAD_B)<>0);
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadX, (XState.Buttons And XINPUT_GAMEPAD_X)<>0);
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadY, (XState.Buttons And XINPUT_GAMEPAD_Y)<>0);
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadA, (XState.Buttons And XINPUT_GAMEPAD_A)<>0);
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadB, (XState.Buttons And XINPUT_GAMEPAD_B)<>0);
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadX, (XState.Buttons And XINPUT_GAMEPAD_X)<>0);
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadY, (XState.Buttons And XINPUT_GAMEPAD_Y)<>0);
 
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadL, (XState.Buttons And XINPUT_GAMEPAD_LEFT_SHOULDER)<>0);
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadR, (XState.Buttons And XINPUT_GAMEPAD_RIGHT_SHOULDER)<>0);
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadL, (XState.Buttons And XINPUT_GAMEPAD_LEFT_SHOULDER)<>0);
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadR, (XState.Buttons And XINPUT_GAMEPAD_RIGHT_SHOULDER)<>0);
     End Else
     Begin
       PlayerID := _Gamepads[I].LocalID;
@@ -998,23 +993,23 @@ Begin
       JoyInfo.dwFlags := JOY_RETURNALL;
       joyGetPosEx(0, JoyInfo);
 
-      Windows.SetWindowText(Handle, PAnsiChar(IntToString(JoyInfo.wXpos)));
+      //Windows.SetWindowText(Handle, PAnsiChar(IntToString(JoyInfo.wXpos)));
       //Windows.SetWindowText(Handle, PAnsiChar(IntToString(JoyInfo.wButtons)));
 
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadUp, (JoyInfo.wYpos=0));
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadDown, (JoyInfo.wYpos=65535));
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadLeft, (JoyInfo.wXpos=0));
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadRight, (JoyInfo.wXpos=65535));
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadUp, (JoyInfo.wYpos=0));
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadDown, (JoyInfo.wYpos=65535));
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadLeft, (JoyInfo.wXpos=0));
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadRight, (JoyInfo.wXpos=65535));
 
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadA, (JoyInfo.wButtons And $2<>0));
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadB, (JoyInfo.wButtons And $4<>0));
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadX, (JoyInfo.wButtons And $8<>0));
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadY, (JoyInfo.wButtons And $1<>0));
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadA, (JoyInfo.wButtons And $2<>0));
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadB, (JoyInfo.wButtons And $4<>0));
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadX, (JoyInfo.wButtons And $8<>0));
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadY, (JoyInfo.wButtons And $1<>0));
 
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadL, (JoyInfo.wButtons And $10<>0));
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadR, (JoyInfo.wButtons And $20<>0));
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadD, (JoyInfo.wButtons And $40<>0));
-      SetKeyPress(keyGamepadCount * PlayerID + keyGamePadZ, (JoyInfo.wButtons And $80<>0));
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadL, (JoyInfo.wButtons And $10<>0));
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadR, (JoyInfo.wButtons And $20<>0));
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadD, (JoyInfo.wButtons And $40<>0));
+      SetKeyState(keyGamepadCount * PlayerID + keyGamePadZ, (JoyInfo.wButtons And $80<>0));
     End;
   End;
 End;
@@ -1026,7 +1021,7 @@ End;
 
 Function ShellExecute(hWnd: HWND; Operation, FileName, Parameters, Directory: PAnsiChar; ShowCmd: Integer): HINST; stdcall; external 'shell32.dll' name 'ShellExecuteA';
 
-Procedure WindowsApplication.OpenAppStore(URL:AnsiString);
+Procedure WindowsApplication.OpenAppStore(URL:TERRAString);
 Var
   S:PAnsiChar;
 Begin
@@ -1068,7 +1063,7 @@ Begin
     Result := False;
 End;
 
-Function GetMACAdress():AnsiString;
+Function GetMACAdress():TERRAString;
 var
   NCB: PNCB;
   Adapter: PAdapterStatus;
@@ -1077,8 +1072,8 @@ var
   RetCode: AnsiChar;
   I: integer;
   Lenum: PlanaEnum;
-  _SystemID:AnsiString;
-  TMPSTR:AnsiString;
+  _SystemID:TERRAString;
+  TMPSTR:TERRAString;
 begin
   Result    := '';
   _SystemID := '';
@@ -1132,7 +1127,7 @@ begin
   GetMacAdress := _SystemID;
 End;
 
-Function WindowsApplication.GetDeviceID:AnsiString;
+Function WindowsApplication.GetDeviceID:TERRAString;
 Begin
   Result := GetMACAdress();
 End;
@@ -1159,7 +1154,7 @@ Begin
   Result := True;
 End;
 
-Procedure WindowsApplication.SendEmail(DestEmail, Subject, Body:AnsiString);
+Procedure WindowsApplication.SendEmail(DestEmail, Subject, Body:TERRAString);
 Begin
 
 End;
@@ -1198,13 +1193,13 @@ Begin
   {$ENDIF}
 End;
 
-Function WindowsApplication.GetStoragePath: AnsiString;
+Function WindowsApplication.GetStoragePath: TERRAString;
 Begin
   _StoragePath := Self.GetDocumentPath();
   Result := _StoragePath;
 End;
 
-Function WindowsApplication.GetDocumentPath:AnsiString;
+Function WindowsApplication.GetDocumentPath:TERRAString;
 Begin
   _DocumentPath := GetCurrentDir() + PathSeparator + 'Data';
   If Not DirectoryExists(_DocumentPath) Then
@@ -1223,7 +1218,7 @@ Begin
     Result := settingsHintHigh;
 End;
 
-Procedure WindowsApplication.SetTitle(Const Name: AnsiString);
+Procedure WindowsApplication.SetTitle(Const Name: TERRAString);
 Begin
 	Inherited SetTitle(Name);
   SetWindowText(Handle, PAnsiChar(Name));
@@ -1243,7 +1238,7 @@ Procedure WindowsFolderManager.Update;
 Begin
 End;
 
-Function WindowsFolderManager.WatchFolder(const Path: AnsiString): Boolean;
+Function WindowsFolderManager.WatchFolder(const Path: TERRAString): Boolean;
 Begin
   Inc(_WatchCount);
   SetLength(_Watchers, _WatchCount);
@@ -1265,7 +1260,7 @@ Var
   count, offset, I:Integer;
   State:PFolderWatcherState;
   WC:PWideChar;
-  FileName:AnsiString;
+  FileName:TERRAString;
 Begin
   If (dwNumberOfBytesTransfered <= 0) Then
     Exit;
@@ -1297,7 +1292,7 @@ Begin
 End;
 
 { FolderWatcher }
-Constructor FolderWatcher.Create(const Path: AnsiString);
+Constructor FolderWatcher.Create(const Path: TERRAString);
 Begin
   _Path := Path;
   _State.Owner := Self;
@@ -1357,6 +1352,9 @@ Var
 Begin
   Inherited InitSettings;
 
+  _Screen.Width := GetSystemMetrics(SM_CXSCREEN);
+  _Screen.Height := GetSystemMetrics(SM_CYSCREEN);
+
   If (_TempPath = '') Then
   Begin
     GetTempPathA(1024, @(Buf[0]));
@@ -1382,13 +1380,13 @@ Begin
   SetLength(_Language, Succ(Size));
   GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SABBREVLANGNAME, @(_Language[1]), Size);
   SetLength(_Language, 2);
-  _Language := UpStr(_Language);
+  _Language := StringUpper(_Language);
 
   Size := GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SISO3166CTRYNAME, Nil, 0);
   SetLength(_Country, Succ(Size));
   GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SISO3166CTRYNAME, PChar(_Country), Size);
   SetLength(_Country, 2);
-  _Country := UpStr(_Country);
+  _Country := StringUpper(_Country);
 
   GetSystemInfo(SystemInfo);
 
@@ -1431,7 +1429,7 @@ Procedure WindowsApplication.InitIcon;
 Const
   iconSize = 64;
 Var
-  Name:AnsiString;
+  Name:TERRAString;
   Src:Stream;
   offset:Integer;
   Data:PByteArray;

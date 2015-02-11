@@ -2,7 +2,7 @@ Unit TERRA_CRC32;
 {$I terra.inc}
 
 Interface
-Uses TERRA_IO;
+Uses TERRA_String, TERRA_Stream;
 
 Const
   TERRAPolynomial = $04c11db7;
@@ -19,7 +19,7 @@ Type
 
 Function GetCRC32(Source:Stream; Table:CRC32Table = Nil):Cardinal;Overload;
 Function GetCRC32(Source:Stream; Start,Length:Integer; Table:CRC32Table = Nil):Cardinal;Overload;
-Function GetCRC32(Source:AnsiString; Table:CRC32Table = Nil):Cardinal;Overload;
+Function GetCRC32(Const Source:TERRAString; Table:CRC32Table = Nil):Cardinal;Overload;
 Function GetCRC32(Source:Pointer; Size:Integer; Table:CRC32Table = Nil):Cardinal;Overload;
 
 Procedure CRC32_Update(Var CRC:Cardinal; Const Value:Byte; Table:CRC32Table = Nil);
@@ -95,7 +95,7 @@ Begin
   Result := CRC;
 End;
 
-Function GetCRC32(Source:AnsiString; Table:CRC32Table = Nil):Cardinal;
+Function GetCRC32(Const Source:TERRAString; Table:CRC32Table = Nil):Cardinal;
 Var
  N:Byte;
  I:Integer;

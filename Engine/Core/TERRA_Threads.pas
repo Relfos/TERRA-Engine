@@ -76,7 +76,7 @@ function pthread_cond_wait(__cond:ppthread_cond_t; __mutex:ppthread_mutex_t):lon
 __value:dword):cint;cdecl;external libthreads;
   function sem_destroy(__sem:Psem_t):cint;cdecl;external libthreads;
   function sem_close(__sem:Psem_t):cint;cdecl;external libthreads;
-  function sem_unlink(__name:PAnsiChar):cint;cdecl;external libthreads;
+  function sem_unlink(__name:PTERRAChar):cint;cdecl;external libthreads;
   function sem_wait(__sem:Psem_t):cint;cdecl;external libthreads;
   function sem_trywait(__sem:Psem_t):cint;cdecl;external libthreads;
   function sem_post(__sem:Psem_t):cint;cdecl;external libthreads;

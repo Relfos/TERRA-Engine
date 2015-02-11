@@ -25,13 +25,13 @@ Unit TERRA_TextureAtlas;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Image, TERRA_Texture, TERRA_Packer;
+Uses TERRA_String, TERRA_Utils, TERRA_Image, TERRA_Texture, TERRA_Packer;
 
 Type
   TextureAtlasItem = Class(TERRAObject)
     Protected
       _Packed:Boolean;
-      _Name:AnsiString;
+      _Name:TERRAString;
 
     Public
       ID:Integer;
@@ -42,12 +42,12 @@ Type
       
       Destructor Destroy; Override;
 
-      Property Name:AnsiString Read _Name;
+      Property Name:TERRAString Read _Name;
   End;
 
   TextureAtlas = Class(TERRAObject)
     Protected
-      _Name:AnsiString;
+      _Name:TERRAString;
       _Width:Integer;
       _Height:Integer;
       _ItemList:Array Of TextureAtlasItem;
@@ -63,13 +63,13 @@ Type
       Procedure RedoAfterContextLost;
 
     Public
-      Constructor Create(Name:AnsiString; Width, Height:Integer);
+      Constructor Create(Name:TERRAString; Width, Height:Integer);
       Destructor Destroy; Override;
 
-      Function Add(Source:Image; Name:AnsiString):TextureAtlasItem;
+      Function Add(Source:Image; Name:TERRAString):TextureAtlasItem;
       Procedure Delete(ID:Integer);
       Function Get(ID:Integer):TextureAtlasItem; Overload;
-      Function Get(Name:AnsiString):TextureAtlasItem; Overload;
+      Function Get(Const Name:TERRAString):TextureAtlasItem; Overload;
 
       Procedure Clear;
       Procedure Bind(PageID:Integer);
@@ -90,7 +90,7 @@ Implementation
 Uses TERRA_Error, TERRA_FileUtils, TERRA_Log,  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
 
 // LTextureAtlas
-Constructor TextureAtlas.Create(Name:AnsiString; Width, Height:Integer);
+Constructor TextureAtlas.Create(Name:TERRAString; Width, Height:Integer);
 Begin
   _Name := Name;
   _Width := Width;
@@ -124,9 +124,9 @@ Begin
   _ItemCount := 0;
 End;
 
-Function TextureAtlas.Add(Source: Image; Name:AnsiString): TextureAtlasItem;
+Function TextureAtlas.Add(Source: Image; Name:TERRAString): TextureAtlasItem;
 Begin
-  Name := UpStr(GetFileName(Name, True));
+  Name := GetFileName(Name, True);
   Inc(_ItemCount);
   SetLength(_ItemList, _ItemCount);
   Log(logDebug, 'Game', 'Creating TextureAtlas item');
@@ -173,14 +173,15 @@ Begin
   Result := Nil;
 End;
 
-Function TextureAtlas.Get(Name:AnsiString):TextureAtlasItem;
+Function TextureAtlas.Get(Const Name:TERRAString):TextureAtlasItem;
 Var
+  S:TERRAString;
   I:Integer;
 Begin
-  Name := UpStr(GetFileName(Name, True));
+  S := GetFileName(Name, True);
 
   For I:=0 To Pred(_ItemCount) Do
-  If (_ItemList[I]._Name = Name) Then
+  If StringEquals(_ItemList[I]._Name, S) Then
   Begin
     Result := (_ItemList[I]);
     Exit;
@@ -346,7 +347,7 @@ End;
 
 Procedure TextureAtlas.CreateTexture(ID: Integer);
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := _Name+'_page'+IntToString(ID);
   Log(logDebug, 'TextureAtlas', 'Creating TextureAtlas texture: '+S);

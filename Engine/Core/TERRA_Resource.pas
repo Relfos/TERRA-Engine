@@ -25,7 +25,7 @@ Unit TERRA_Resource;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Collections, TERRA_IO;
+Uses TERRA_String, TERRA_Collections, TERRA_Stream;
 
 Const
   rsUnloaded  = 0;
@@ -38,9 +38,9 @@ Type
 
   Resource = Class(ListObject)
     Protected
-      _Name:AnsiString;
+      _Name:TERRAString;
       _Time:Cardinal;
-      _Location:AnsiString;
+      _Location:TERRAString;
       _Status:Integer;
       _Size:Integer;
       _KeepStream:Boolean;
@@ -54,7 +54,7 @@ Type
       InBackground:Boolean;
       Priority:Integer;
 
-      Constructor Create(Location:AnsiString);
+      Constructor Create(Location:TERRAString);
       Destructor Destroy; Override;
 
       Function IsReady:Boolean;
@@ -66,31 +66,31 @@ Type
       Function Update:Boolean; Virtual;
       Procedure OnContextLost(); Virtual;
 
-      Function ToString():AnsiString; Override;
+      Function ToString():TERRAString; Override;
       
       Procedure Prefetch;
 
       Function ShouldUnload():Boolean;
 
-      Property Name:AnsiString Read _Name Write _Name;
-      Property Location:AnsiString Read _Location;
+      Property Name:TERRAString Read _Name Write _Name;
+      Property Location:TERRAString Read _Location;
       Property Time:Cardinal Read _Time Write _Time;
       Property Status:Integer Read _Status Write _Status;
       Property Size:Integer Read _Size;
       Property KeepStream:Boolean Read _KeepStream Write _KeepStream;
   End;
 
-Function GetResourceClass(Name:AnsiString):ResourceClass;
-Function FindResourceClass(ResourceName:AnsiString):AnsiString;
+Function GetResourceClass(Const Name:TERRAString):ResourceClass;
+Function FindResourceClass(Const ResourceName:TERRAString):TERRAString;
 Procedure RegisterResourceClass(MyResourceClass:ResourceClass);
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Utils, TERRA_ResourceManager, TERRA_FileIO, TERRA_GraphicsManager,
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Utils, TERRA_ResourceManager, TERRA_FileStream, TERRA_GraphicsManager,
   TERRA_FileUtils, TERRA_Application;
 
 Type
   ResourceClassEntry = Record
-    _Name:AnsiString;
+    _Name:TERRAString;
     _ResourceClass:ResourceClass;
   End;
 
@@ -98,17 +98,16 @@ Var
   ResourceClassList:Array Of ResourceClassEntry;
   ResourceClassCount:Integer = 0;
 
-Function GetResourceClass(Name:AnsiString):ResourceClass;
+Function GetResourceClass(Const Name:TERRAString):ResourceClass;
 Var
   I:Integer;
 Begin
-  Name := UpStr(Name);
   Result := Nil;
-  If (Name='RESOURCE') Then
+  If (StringEquals(Name, 'resource')) Then
     Exit;
 
   For I:=0 To Pred(ResourceClassCount) Do
-  If (ResourceClassList[I]._Name = Name) Then
+  If (StringEquals(ResourceClassList[I]._Name, Name)) Then
   Begin
     Result := ResourceClassList[I]._ResourceClass;
     Exit;
@@ -121,33 +120,33 @@ Begin
   Inc(ResourceClassCount);
   SetLength(ResourceClassList, ResourceClassCount);
   ResourceClassList[Pred(ResourceClassCount)]._ResourceClass := MyResourceClass;
-  ResourceClassList[Pred(ResourceClassCount)]._Name := UpStr(MyResourceClass.ClassName);
+  ResourceClassList[Pred(ResourceClassCount)]._Name := MyResourceClass.ClassName;
 End;
 
-Function FindResourceClass(ResourceName:AnsiString):AnsiString;
+Function FindResourceClass(Const ResourceName:TERRAString):TERRAString;
 Var
-  Ext:AnsiString;
+  Ext:TERRAString;
 Begin
-  Ext := UpStr(GetFileExtension(ResourceName));
-  If (Ext='PNG') Then
+  Ext := GetFileExtension(ResourceName);
+  If (StringEquals(Ext, 'PNG')) Or (StringEquals(Ext, 'JPG')) Or (StringEquals(Ext, 'TGA')) Or (StringEquals(Ext, 'PSD')) Then
     Result := 'Texture'
   Else
-  If (Ext='MESH') Then
+  If (StringEquals(Ext, 'MESH')) Then
     Result := 'Mesh'
   Else
-  If (Ext='ANIM') Then
+  If (StringEquals(Ext, 'ANIM')) Then
     Result := 'Animation'
   Else
-  If (Ext='FNT') Then
+  If (StringEquals(Ext, 'FNT')) Then
     Result := 'Font'
   Else
-  If (Ext='WAV') Or (Ext='OGG') Or (Ext='MID') Or (Ext='MOD') Then
+  If (StringEquals(Ext, 'WAV')) Or (StringEquals(Ext, 'OGG')) Or (StringEquals(Ext, 'MID')) Or (StringEquals(Ext, 'MOD')) Then
     Result := 'Sound'
   Else
-  If (Ext='GLSL') Then
+  If (StringEquals(Ext, 'GLSL')) Then
     Result := 'Shader'
   Else
-  If (Ext='INST') Then
+  If (StringEquals(Ext, 'INST')) Then
     Result := 'Instrument'
   Else
     Result := 'Resource';
@@ -158,17 +157,17 @@ Begin
   RaiseError('Not implemented!');
 End;
 
-Constructor Resource.Create(Location:AnsiString);
+Constructor Resource.Create(Location:TERRAString);
 Var
   I:Integer;
 Begin
   If Pos('@', Location) = 1 Then
   Begin
-    Self._Name := UpStr(Location);
+    Self._Name := Location;
     Self._Location := '';
   End Else
   Begin
-    Self._Name := UpStr(GetFileName(Location,True));
+    Self._Name := GetFileName(Location,True);
     Self._Location := Location;
   End;
 
@@ -223,7 +222,7 @@ Begin
   If (Status <> rsUnloaded) Then
     Exit;
 
-  If (Not Prefetching) And (Application.Instance<>Nil) And (Application.Instance.FrameTime>500) Then
+  If (Not _Prefetching) And (Application.Instance<>Nil) And (Application.Instance.FrameTime>500) Then
   Begin
     Result := False;
     Exit;
@@ -271,7 +270,7 @@ Begin
   If Self.IsReady() Then
     Exit;
 
-  If Prefetching Then
+  If _Prefetching Then
   Begin
     Log(logDebug, 'Resource', 'Prefetch overflow!');
     Exit;
@@ -284,7 +283,7 @@ Begin
   End;
 
   Log(logDebug, 'Resource', 'Prefetching '+Self.Name);
-  Prefetching := True;
+  _Prefetching := True;
   While (Not Self.IsReady) Do
   Begin
     Application.Instance.RefreshComponents();
@@ -293,7 +292,7 @@ Begin
       Break;
 
   End;
-  Prefetching := False;
+  _Prefetching := False;
 
   If (Self._Status = rsInvalid) Then
     Log(logError, 'Resource', 'Error prefetching resource')
@@ -306,7 +305,7 @@ Begin
   Result := GetStringSort(Self.Name, Resource(Other).Name);
 End;
 
-Function Resource.ToString:AnsiString;
+Function Resource.ToString:TERRAString;
 Begin
   Result := Self.Name;
 End;

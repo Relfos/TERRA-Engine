@@ -26,8 +26,8 @@ Unit TERRA_Camera;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Utils, TERRA_Frustum, TERRA_BoundingBox,
-  TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Math, TERRA_Plane;
+  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
+  TERRA_String, TERRA_Utils, TERRA_Frustum, TERRA_BoundingBox, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Math, TERRA_Plane;
 
 Const
   MoveSpeed = 0.05;
@@ -48,7 +48,7 @@ Const
 Type
   Camera = Class(TERRAObject)
     Protected
-      _Name:AnsiString;
+      _Name:TERRAString;
 
       _View:Vector3D;
       _Position:Vector3D;
@@ -92,7 +92,7 @@ Type
       Function ConvertPlaneWorldToCameraSpace(Point, Normal:Vector3D):Plane;
 
     Public
-      Constructor Create(Name:AnsiString);
+      Constructor Create(Name:TERRAString);
       Destructor Destroy; Override;
 
       Procedure Update(Width, Height:Integer);
@@ -148,7 +148,7 @@ Type
       Property Up:Vector3D Read _Up;
       Property Right:Vector3D Read _Right;
 
-      Property Name:AnsiString Read _Name Write _Name;
+      Property Name:TERRAString Read _Name Write _Name;
 
       Property Ratio:Single Read _Ratio Write SetRatio;
 
@@ -160,7 +160,7 @@ Uses TERRA_Shader, TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsMana
 
 // Camera
 
-Constructor Camera.Create(Name:AnsiString);
+Constructor Camera.Create(Name:TERRAString);
 Begin
   _Name := Name;
   _Roll := VectorUp;
@@ -400,43 +400,43 @@ Var
 Begin
   Walk_Speed := GraphicsManager.Instance.ElapsedTime * Speed * 3.0;
 
-	If (Application.Instance.Input.Keys[keyShift]) Then
+	If (Application.Instance.Input.Keys.IsDown(keyShift)) Then
     Walk_speed := Walk_speed * 8;
 
-	If (Application.Instance.Input.Keys[Ord('W')]) Then
+	If (Application.Instance.Input.Keys.IsDown(keyW)) Then
     Move(camDirForward, Walk_Speed);
 
-	If (Application.Instance.Input.Keys[Ord('S')]) Then
+	If (Application.Instance.Input.Keys.IsDown(keyS)) Then
     Move(camDirBackward, Walk_Speed);
 
-	If (Application.Instance.Input.Keys[Ord('A')]) Then
+	If (Application.Instance.Input.Keys.IsDown(keyA)) Then
     Move(camDirLeft, Walk_Speed);
 
-	If (Application.Instance.Input.Keys[Ord('D')]) Then
+	If (Application.Instance.Input.Keys.IsDown(keyD)) Then
     Move(camDirRight, Walk_Speed);
 
-	If (Application.Instance.Input.Keys[Ord('Q')]) Then
+	If (Application.Instance.Input.Keys.IsDown(keyQ)) Then
 		_position.y := _position.y -walk_speed;
 
-	If (Application.Instance.Input.Keys[Ord('E')]) Then
+	If (Application.Instance.Input.Keys.IsDown(keyE)) Then
 		_position.y := _position.y + walk_speed;
-        
+
   {$IFDEF MOBILE}
   Rot := 0.125;
   {$ELSE}
   Rot := 0.5;
   {$ENDIF}
 
-  If (Application.Instance.Input.Keys[keyLEFT]) Then
+  If (Application.Instance.Input.Keys.IsDown(keyLEFT)) Then
     GraphicsManager.Instance.ActiveViewport.Camera.Rotate(Rot, 0.0);
 
-  If (Application.Instance.Input.Keys[keyRight]) Then
+  If (Application.Instance.Input.Keys.IsDown(keyRight)) Then
     GraphicsManager.Instance.ActiveViewport.Camera.Rotate(-Rot, 0.0);
 
-  If (Application.Instance.Input.Keys[keyUp]) Then
+  If (Application.Instance.Input.Keys.IsDown(keyUp)) Then
     GraphicsManager.Instance.ActiveViewport.Camera.Rotate(0.0, Rot);
 
-  If (Application.Instance.Input.Keys[keyDown]) Then
+  If (Application.Instance.Input.Keys.IsDown(keyDown)) Then
     GraphicsManager.Instance.ActiveViewport.Camera.Rotate(0.0, -Rot);
 
   _NeedsUpdate := True;

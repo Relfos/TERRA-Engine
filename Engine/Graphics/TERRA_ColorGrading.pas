@@ -26,7 +26,7 @@ Unit TERRA_ColorGrading;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Texture, TERRA_Shader, TERRA_Color, TERRA_Image, TERRA_Vector3D;
+Uses TERRA_String, TERRA_Utils, TERRA_Texture, TERRA_Shader, TERRA_Color, TERRA_Image, TERRA_Vector3D;
 
 Const
   ColorTableUniformName = 'color_table_texture';
@@ -38,7 +38,7 @@ Type
   Function ColorTableLookUp(ColorTable:Image; Source:Color):Color;
   Procedure ColorTableTransform(Dest, ColorTable:Image);
 
-  Function GetColorTableShaderCode():AnsiString;
+  Function GetColorTableShaderCode():TERRAString;
   Function ColorTableBind(ColorTableTex:Texture; Slot:Integer):Boolean;
 
 Implementation
@@ -147,10 +147,10 @@ Begin
   Result := True;
 End;
 
-Function GetColorTableShaderCode():AnsiString;
+Function GetColorTableShaderCode():TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
 	Line('  uniform sampler2D color_table_texture;');

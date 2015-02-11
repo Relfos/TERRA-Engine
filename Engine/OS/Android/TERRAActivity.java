@@ -132,9 +132,6 @@ android.content.DialogInterface.OnClickListener
     private VunglePub vunglePub = null;*/
 
 	public PurchaseProcessor billmaster;
-	public String purchaseID;
- 	
- 
 	
 	private int currentDialog = 0;
 	
@@ -987,10 +984,7 @@ android.content.DialogInterface.OnClickListener
         Log.d("App", "Purchased: " + productId);
 		glView.purchaseID = productId;
 		glView.purchaseCode = 0;
-        
-        if (billmaster!=null)  {
-            billmaster.consumePurchase(productId);
-        }
+        billmaster.consumePurchase(productId);
     }
 
     @Override
@@ -1013,7 +1007,6 @@ android.content.DialogInterface.OnClickListener
 		//sku = "android.test.purchased";
         
         if (TERRAActivity.instance.billmaster != null) {        
-            TERRAActivity.instance.purchaseID = sku;
             TERRAActivity.instance.billmaster.purchase(sku);
          }
          else {

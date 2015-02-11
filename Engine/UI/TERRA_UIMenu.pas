@@ -34,7 +34,7 @@ Type
   UIMenuItem = Class(Widget)
     Protected
       _Open:Boolean;
-      _Caption:AnsiString;
+      _Caption:TERRAString;
 
       _Entries:Array Of UIMenuItem;
       _EntryCount:Integer;
@@ -53,7 +53,7 @@ Type
     Public
       OnMouseClick:WidgetEventHandler;
 
-      Constructor Create(Caption:AnsiString; Z:Single = 0.3);
+      Constructor Create(Caption:TERRAString; Z:Single = 0.3);
       Destructor Destroy;
 
       Procedure Render; Override;
@@ -63,7 +63,7 @@ Type
 
       Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
 
-      Property Caption:AnsiString Read _Caption Write _Caption;
+      Property Caption:TERRAString Read _Caption Write _Caption;
   End;
 
 Implementation
@@ -121,7 +121,7 @@ Begin
   Self.UpdateRects();
 End;
 
-Constructor UIMenuItem.Create(Caption:AnsiString; Z:Single);
+Constructor UIMenuItem.Create(Caption:TERRAString; Z:Single);
 Begin
   Self._Visible := True;
   Self._Name := Name;

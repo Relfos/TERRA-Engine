@@ -2,7 +2,7 @@ Unit TERRA_MusicManager;
 {$I terra.inc}
 Interface
 
-Uses TERRA_Error, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_Java, TERRA_OS, TERRA_FileManager;
+Uses TERRA_String, TERRA_Error, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_Java, TERRA_OS, TERRA_FileManager;
 
 Const
   JavaPlayerClassName = 'com.pascal.terra.TERRAMusicPlayer';
@@ -11,7 +11,7 @@ Type
   MusicManager = Class(ApplicationComponent)
     Protected
       _Volume:Integer;
-      _CurrentTrack:AnsiString;
+      _CurrentTrack:TERRAString;
 
       _CrossFade:Integer;
       _CrossFadeTime:Cardinal;
@@ -22,11 +22,8 @@ Type
 
       _Player:JavaObject;
 
-      _PreviousTrack:AnsiString;
+      _PreviousTrack:TERRAString;
       _Enabled:Boolean;
-
-      Procedure Init; Override;
-      Procedure Update; Override;
 
       Procedure Start;
 
@@ -35,7 +32,10 @@ Type
     Public
       Class Function Instance:MusicManager;
 
-      Procedure Play(SourceName:AnsiString);
+      Procedure Init; Override;
+      Procedure Update; Override;
+
+      Procedure Play(SourceName:TERRAString);
       Destructor Destroy; Override;
 
       Procedure SetVolume(Volume:Single);
@@ -49,12 +49,12 @@ Type
       Property Mute:Boolean Read _Mute Write SetMute;
 
       Property Enabled:Boolean Read _Enabled Write SetEnabled;
-      Property PreviousTrack:AnsiString Read _PreviousTrack;
+      Property PreviousTrack:TERRAString Read _PreviousTrack;
   End;
 
 Implementation
-Uses TERRA_ResourceManager, TERRA_Log, TERRA_IO,
-  TERRA_FileIO, TERRA_Math, jni;
+Uses TERRA_ResourceManager, TERRA_Log, TERRA_Stream,
+  TERRA_FileStream, TERRA_Math, jni;
 
 Var
   _MusicManager_Instance:ApplicationObject;
@@ -81,13 +81,13 @@ Begin
   _Player := Nil;
 End;
 
-Procedure MusicManager.Play(SourceName:AnsiString);
+Procedure MusicManager.Play(SourceName:TERRAString);
 Var
-  S:AnsiString;
+  S:TERRAString;
   Params:JavaArguments;
   Frame:JavaFrame;
 
-  Procedure TryExtension(Ext:AnsiString);
+  Procedure TryExtension(Ext:TERRAString);
   Begin
     S := FileManager.Instance.SearchResourceFile(SourceName+'.'+Ext);
   End;
@@ -101,7 +101,9 @@ Begin
   If (Not _Enabled) Then
     Exit;
 
-  If (UpStr(SourceName)=UpStr(GetFileName(_CurrentTrack, True))) Then
+  SourceName := GetFileName(SourceName, True);
+
+  If (StringEquals(SourceName, _CurrentTrack)) Then
     Exit;
 
   _CurrentTrack := SourceName;

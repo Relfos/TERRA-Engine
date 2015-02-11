@@ -27,7 +27,7 @@ Unit TERRA_Skybox;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Math, TERRA_Texture, TERRA_IO, TERRA_Vector3D, TERRA_Vector2D,
+  TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Texture, TERRA_Stream, TERRA_Vector3D, TERRA_Vector2D,
   TERRA_Color, TERRA_Shader, TERRA_ShaderFactory, TERRA_Matrix4x4, TERRA_Cubemap;
 
 Type
@@ -53,7 +53,7 @@ Type
       {$ENDIF}
 
     Public
-      Constructor Create(SkyTexture:AnsiString);
+      Constructor Create(SkyTexture:TERRAString);
       Destructor Destroy; Override;
 
       Procedure Render(BlendMode:Integer = 0);  // Renders the skybox
@@ -71,10 +71,10 @@ Var
   _SkyboxShader :Shader = Nil;
   _SkyboxNormalShader :Shader = Nil;
 
-(*Function GetShader_Skybox:AnsiString;
+(*Function GetShader_Skybox:TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('version { 110 }');
@@ -102,10 +102,10 @@ Begin
   Result := S;
 End;*)
 
-Function GetShader_Skybox(OutputMode:Integer):AnsiString;
+Function GetShader_Skybox(OutputMode:Integer):TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('vertex {');
@@ -140,10 +140,10 @@ Begin
 End;
 
 { Skybox }
-Constructor SkyBox.Create(SkyTexture:AnsiString);
+Constructor SkyBox.Create(SkyTexture:TERRAString);
 Var
   I, N:Integer;
-  S:AnsiString;
+  S:TERRAString;
 Begin
   _Color := ColorWhite;
 

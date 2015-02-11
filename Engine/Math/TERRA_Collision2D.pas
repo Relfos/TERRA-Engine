@@ -405,7 +405,7 @@ Begin
   End;}
 End;
 
-{Procedure PointCloud2D.Load(FileName:AnsiString);
+{Procedure PointCloud2D.Load(FileName:TERRAString);
 Var
   Source:FileStream;
 Begin
@@ -416,7 +416,7 @@ Begin
   Source.Destroy;
 End;
 
-Procedure PointCloud2D.Save(FileName:AnsiString);
+Procedure PointCloud2D.Save(FileName:TERRAString);
 Var
   Dest:FileStream;
 Begin
@@ -437,7 +437,7 @@ Begin
   Result := (Sqr(Dx) + Sqr(Dy) < Sqr(R));
 End;
 
-{Procedure Polygon2D.Load(FileName:AnsiString);
+{Procedure Polygon2D.Load(FileName:TERRAString);
 Var
   Source:FileStream;
 Begin
@@ -449,7 +449,7 @@ Begin
   Source.Destroy;
 End;
 
-Procedure Polygon2D.Save(FileName:AnsiString);
+Procedure Polygon2D.Save(FileName:TERRAString);
 Var
   Dest:FileStream;
 Begin

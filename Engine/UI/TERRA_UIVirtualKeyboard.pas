@@ -26,7 +26,7 @@ Unit TERRA_UIVirtualKeyboard;
 {$I terra.inc}
 
 Interface
-Uses TERRA_UI, TERRA_Utils, TERRA_Color, TERRA_Log, TERRA_Localization;
+Uses TERRA_String, TERRA_UI, TERRA_Utils, TERRA_Color, TERRA_Log, TERRA_Localization;
 
 Const
   // key types
@@ -39,13 +39,13 @@ Const
 
 Type
   KeyboardLayoutKey = Record
-    Value:Word;
-    Alt:Word;
+    Value:TERRAChar;
+    Alt:TERRAChar;
   End;
 
   KeyboardLayout = Class
     Protected
-      _Desc:AnsiString;
+      _Desc:TERRAString;
       _Lines:Array[0..Pred(MaxKeyboardRows), 0..MaxKeyboardLines-2] Of KeyboardLayoutKey;
       _HasShift:Boolean;
       _HasPinyin:Boolean;
@@ -55,7 +55,7 @@ Type
 
   UIVirtualKeyboardKey = Class(Widget)
     Protected
-      _Label:AnsiString;
+      _Label:TERRAString;
       _Suggestion:Integer;
       _Row:Integer;
       _Line:Integer;
@@ -105,7 +105,7 @@ Type
       _Pinyin:PinyinConverter;
 
       Function AddKey(Row, Line:Integer):UIVirtualKeyboardKey; Overload;
-      Function AddKey(KeyType:Integer; Name:AnsiString; Row, Line:Integer; Callback:WidgetEventHandler):UIVirtualKeyboardKey; Overload;
+      Function AddKey(KeyType:Integer; Name:TERRAString; Row, Line:Integer; Callback:WidgetEventHandler):UIVirtualKeyboardKey; Overload;
 
 
       Procedure StartHighlight; Override;
@@ -122,7 +122,7 @@ Type
       Procedure UpdatePinyin();
 
     Public
-      Constructor Create(Name:AnsiString; UI:UI; Z:Single);
+      Constructor Create(Name:TERRAString; UI:UI; Z:Single);
       Destructor Destroy; Override;
 
       Procedure Render; Override;
@@ -143,10 +143,10 @@ Type
   End;
 
 Procedure AddDefaultKeyboardLayout();
-Procedure AddKeyboardLayout(SourceFile:AnsiString);
-Procedure AddKeyboardLayoutFromString(Src:AnsiString);
+Procedure AddKeyboardLayout(SourceFile:TERRAString);
+Procedure AddKeyboardLayoutFromString(Src:TERRAString);
 
-Function GetKeyboardLayout(ID:AnsiString):KeyboardLayout;
+Function GetKeyboardLayout(ID:TERRAString):KeyboardLayout;
 
 Procedure ClearKeyboardLayouts();
 
@@ -157,7 +157,7 @@ Const
 Implementation
 Uses TERRA_Vector2D, TERRA_Vector3D, TERRA_SpriteManager, TERRA_SoundManager,
   TERRA_Widgets, TERRA_Texture, TERRA_Application, TERRA_OS, TERRA_FileManager,
-  TERRA_IO, TERRA_Unicode;
+  TERRA_Stream;
 
 Var
   _KeyboardLayouts:Array Of KeyboardLayout;
@@ -191,7 +191,7 @@ Begin
   End;
 End;
 
-Function StringToValue(S:AnsiString):Integer;
+Function StringToValue(S:TERRAString):Integer;
 Begin
   If (S='') Then
     Result := 0
@@ -205,7 +205,7 @@ Begin
   Result := AddKey(keyNormal, '', Row, Line, Nil);
 End;
 
-Function VirtualKeyboard.AddKey(KeyType:Integer; Name:AnsiString; Row, Line:Integer; Callback:WidgetEventHandler):UIVirtualKeyboardKey;
+Function VirtualKeyboard.AddKey(KeyType:Integer; Name:TERRAString; Row, Line:Integer; Callback:WidgetEventHandler):UIVirtualKeyboardKey;
 Var
   I:Integer;
   Key:UIVirtualKeyboardKey;
@@ -214,7 +214,7 @@ Begin
   Key._KeyType := KeyType;
   Key.Callback := Callback;
   Key._Suggestion := -1;
-  Key._Name := UpStr('key_'+IntToString(Row)+'_'+IntToString(Line));
+  Key._Name := StringUpper('key_'+IntToString(Row)+'_'+IntToString(Line));
   Key._Label := Name;
   Key._Row := Row;
   Key._Line := Line;
@@ -337,7 +337,7 @@ Begin
   End;
 End;
 
-Constructor VirtualKeyboard.Create(Name:AnsiString; UI:UI; Z: Single);
+Constructor VirtualKeyboard.Create(Name:TERRAString; UI:UI; Z: Single);
 Var
   I:Integer;
 Begin
@@ -692,7 +692,7 @@ End;
 Procedure VirtualKeyboard.DoKeyEvent(Row, Line: Integer);
 Var
   Value:Word;
-  Text:AnsiString;
+  Text:TERRAString;
 Begin
   If (_Keys[Row, Line]._Suggestion>=0) And (Self._Pinyin<>Nil)
   And (Assigned(UI.Focus)) And (UI.Focus Is UIEditText) Then
@@ -715,7 +715,7 @@ End;
 
 Procedure VirtualKeyboard.UpdatePinyin;
 Var
-  Text:AnsiString;
+  Text:TERRAString;
   N,I:Integer;
 Begin
   If (_KeyboardLayouts[_CurrentLayout]._HasPinyin)
@@ -808,7 +808,7 @@ End;
 Procedure UIVirtualKeyboardKey.Render;
 Var
   W, H:Integer;
-  SS:AnsiString;
+  SS:TERRAString;
   MyColor:TERRA_Color.Color;
   HG:Widget;
   TextScale:Single;
@@ -840,19 +840,21 @@ Begin
   End Else
   Begin
     Value := VirtualKeyboard(Parent).GetKeyValue(_Row, _Line);
+    SS := '';
+
     If Value = Ord('@') Then
     Begin
       If (_Suggestion>=0) And (Assigned(VirtualKeyboard(Parent)._Pinyin)) Then
       Begin
-         Value := VirtualKeyboard(Parent)._Pinyin.GetResult(_Suggestion);
-        SS := UnicodeToUCS2(Value);
+        Value := VirtualKeyboard(Parent)._Pinyin.GetResult(_Suggestion);
+        StringAppendChar(SS, Value);
         IntToString(_Row+_Line);
-      End Else
-        SS := '';
+      End;
+
       TextScale := 1.0;
     End Else
     Begin
-      SS := UnicodeToUCS2(Value);
+      StringAppendChar(SS, Value);
       TextScale := 1.0 /Self.Scale;
     End;
   End;
@@ -883,7 +885,7 @@ Begin
   _KeyboardLayoutCount := 0;
 End;
 
-Function GetKeyboardLayout(ID:AnsiString):KeyboardLayout;
+Function GetKeyboardLayout(ID:TERRAString):KeyboardLayout;
 Var
   I:Integer;
 Begin
@@ -903,10 +905,10 @@ Begin
   AddKeyboardLayoutFromString(DefaultKeyboardLayout);
 End;
 
-Procedure AddKeyboardLayout(SourceFile:AnsiString);
+Procedure AddKeyboardLayout(SourceFile:TERRAString);
 Var
   Src:Stream;
-  S,Data:AnsiString;
+  S,Data:TERRAString;
 Begin
   Src := FileManager.Instance.OpenStream(SourceFile);
   If Src = Nil Then
@@ -916,7 +918,7 @@ Begin
   S := '';
   While Not Src.EOF Do
   Begin
-    Src.ReadUnicodeLine(S);
+    Src.ReadLine(S);
     Data := Data + S + '|';
   End;
   Src.Destroy();
@@ -924,16 +926,17 @@ Begin
   AddKeyboardLayoutFromString(Data);
 End;
 
-Procedure AddKeyboardLayoutFromString(Src:AnsiString);
+Procedure AddKeyboardLayoutFromString(Src:TERRAString);
 Var
   Layout:KeyboardLayout;
-  N,I,J,K:Integer;
+  I,J,K:Integer;
+  It:StringIterator;
   A,B:Byte;
-  Value:Word;
-  Desc, Line:AnsiString;
+  Value:TERRAChar;
+  Desc, Line:TERRAString;
   IsSymbol:Boolean;
 Begin
-  Desc := ucs2_GetNextWord(Src, '|');
+  Desc := StringGetNextSplit(Src, Ord('|'));
   IsSymbol := (Desc='123');
 
   Layout := GetKeyboardLayout(Desc);
@@ -963,7 +966,7 @@ Begin
   Begin
     For J:=0 To MaxKeyboardLines-2 Do
     Begin
-      Line := ucs2_GetNextWord(Src, '|');
+      Line := StringGetNextSplit(Src, Ord('|'));
 
       If (Line='') And (K=2) Then
       Begin
@@ -972,30 +975,23 @@ Begin
         Continue;
       End;
 
-      N := 1;
       I := 0;
-      While N<=Length(Line) Do
+      StringCreateIterator(Line, It);
+      While It.HasNext() Do
       Begin
-        If (Line[N]=#255) Then
-        Begin
-          Inc(N); A := Ord(Line[N]);
-          Inc(N); B := Ord(Line[N]);
+        Value := It.GetNext();
 
-          Value := A * 256 + B;
-        End Else
-        Begin
-          Value := Ord(Line[N]);
+        If (IsSymbol) And (Value = Ord('E')) Then
+          Value := 8364 // euro symbol
+        Else
+        If (IsSymbol) And (Value = Ord('L')) Then
+          Value := 163 // pound symbol
+        Else
+        If (IsSymbol) And (Value = Ord('Y')) Then
+          Value := 165; // yen symbol
 
-          If (IsSymbol) And (Line[N]='E') Then
-            Value := 8364; // euro symbol
-          If (IsSymbol) And (Line[N]='L') Then
-            Value := 163; // pound symbol
-          If (IsSymbol) And (Line[N]='Y') Then
-            Value := 165; // yen symbol
-
-          If (Line[N]='@') Then
-            Layout._HasPinyin := True;
-        End;
+        If (Value= Ord('@')) Then
+          Layout._HasPinyin := True;
 
         If (K=2) Then
         Begin
@@ -1004,7 +1000,6 @@ Begin
         End Else
           Layout._Lines[I, J].Value := Value;
 
-        Inc(N);
         Inc(I);
         If (I>=MaxKeyboardRows) Then
           Break;

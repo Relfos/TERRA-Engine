@@ -269,7 +269,7 @@ Begin
   if Not Failed(Result) then
     _pMesh := pTempMesh
   Else
-    RaiseError(PAnsiChar(Warnings.GetBufferPointer));
+    RaiseError(PTERRAChar(Warnings.GetBufferPointer));
 
   _pMesh.OptimizeInplace(D3DXMESHOPT_VERTEXCACHE Or D3DXMESHOPT_DEVICEINDEPENDENT, _pAdjacency, _pAdjacency, nil, nil);
 End;

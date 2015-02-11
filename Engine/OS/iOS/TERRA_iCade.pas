@@ -10,7 +10,7 @@ Procedure UpdateiCadeKeyUp(Var Key:Word);
 Implementation
 Uses TERRA_Client, TERRA_Application, TERRA_Log, TERRA_Utils;
 
-Function GetKeyUp(C:AnsiChar):Integer;
+Function GetKeyUp(C:TERRAChar):Integer;
 Begin
   Case C Of
     'E',#33: Result := keyGamepadUp;
@@ -30,7 +30,7 @@ Begin
   End;
 End;
 
-Function GetKeyDown(C:AnsiChar):Integer;
+Function GetKeyDown(C:TERRAChar):Integer;
 Begin
   Case C Of
     'W',#51: Result := keyGamepadUp;
@@ -52,7 +52,7 @@ End;
 
 Procedure UpdateiCadeKeyDown(Var Key:Word);
 Var
-  C:AnsiChar;
+  C:TERRAChar;
   Up,Down:Integer;
 Begin
   If (Key>255) Then
@@ -74,7 +74,7 @@ End;
 
 Procedure UpdateiCadeKeyUp(Var Key:Word);
 Var
-  C:AnsiChar;
+  C:TERRAChar;
   Up,Down:Integer;
 Begin
   If (Key>255) Then

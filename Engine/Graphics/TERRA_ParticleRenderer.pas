@@ -26,8 +26,8 @@ Unit TERRA_ParticleRenderer;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_GraphicsManager, TERRA_Texture, TERRA_Application,
-  TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_IO, TERRA_Plane,
+  TERRA_String, TERRA_Utils, TERRA_GraphicsManager, TERRA_Texture, TERRA_Application,
+  TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_Stream, TERRA_Plane,
   TERRA_Matrix4x4, TERRA_Math, TERRA_TextureAtlas, TERRA_BoundingBox,
   TERRA_Shader, TERRA_UI, TERRA_Image,
   TERRA_FileManager;
@@ -80,7 +80,7 @@ Type
   End;
 
   ParticleType = Class
-    Name:AnsiString;
+    Name:TERRAString;
     Item:TextureAtlasItem;
     U1,V1,U2,V2:Single;
   End;
@@ -292,10 +292,10 @@ Type
       Procedure Clear;
       Procedure Render;
 
-      Function GetParticleType(Name:AnsiString):ParticleType;
+      Function GetParticleType(Name:TERRAString):ParticleType;
 
       Procedure AddParticleCollection(Particles:ParticleCollection);
-      //Procedure Spawn(Name:AnsiString; Position:Vector3D);
+      //Procedure Spawn(Name:TERRAString; Position:Vector3D);
       Procedure Spawn(Emitter:ParticleEmitter);
 
       Function GetTexture(Target:ParticleCollection):Texture;
@@ -305,15 +305,15 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Camera, TERRA_Mesh,
-  TERRA_INI, TERRA_FileIO, TERRA_FileUtils;
+  TERRA_INI, TERRA_FileStream, TERRA_FileUtils;
 
 Var
   _ParticleManager_Instance:ApplicationObject = Nil;
 
-Function GetShader_Particles():AnsiString;
+Function GetShader_Particles():TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('version { 120 }');
@@ -392,7 +392,7 @@ Destructor ParticleCollection.Destroy;
 Begin
   Inherited;
 
-  DestroyObject(@_Emitter);
+  FreeAndNil(_Emitter);
 End;
 
 Procedure ParticleCollection.Init;
@@ -801,10 +801,10 @@ Begin
   _ParticleManager_Instance := Nil;
 End;
 
-Function ParticleManager.GetParticleType(Name:AnsiString): ParticleType;
+Function ParticleManager.GetParticleType(Name:TERRAString): ParticleType;
 Var
   I:Integer;
-  S:AnsiString;
+  S:TERRAString;
   Source:Image;
 Begin
   If (Name='') Then
@@ -813,7 +813,7 @@ Begin
     Exit;
   End;
 
-  Name := UpStr(GetFileName(Name, True));
+  Name := StringUpper(GetFileName(Name, True));
   For I:=0 To Pred(_TypeCount) Do
   If (_Types[I].Name = Name) Then
   Begin
@@ -828,7 +828,7 @@ Begin
   Inc(_TypeCount);
   SetLength(_Types, _TypeCount);
   Result := ParticleType.Create;
-  Result.Name := UpStr(GetFileName(Name,True));
+  Result.Name := StringUpper(GetFileName(Name,True));
   Result.Item := _TextureAtlas.Get(Name);
   _Types[Pred(_TypeCount)] := Result;
 
@@ -849,13 +849,13 @@ Begin
   End;
 End;
 
-{Function ParticleManager.GetSettings(Name:AnsiString): ParticleSettings;
+{Function ParticleManager.GetSettings(Name:TERRAString): ParticleSettings;
 Var
-  S:AnsiString;
+  S:TERRAString;
   I:Integer;
   Source:Stream;
 Begin
-  S := UpStr(GetFileName(Name, True));
+  S := StringUpper(GetFileName(Name, True));
   For I:=0 To Pred(_SettingsCount) Do
   If (_Settings[I]._Name = S) Then
   Begin
@@ -870,7 +870,7 @@ Begin
   If S<>'' Then
   Begin
     Result := ParticleSettings.Create;
-    Result._Name := UpStr(GetFileName(Name, True));
+    Result._Name := StringUpper(GetFileName(Name, True));
     Inc(_SettingsCount);
     SetLength(_Settings, _SettingsCount);
     _Settings[Pred(_SettingsCount)] := Result;
@@ -904,7 +904,7 @@ Var
   I:Integer;
   Source:Image;
   Item:TextureAtlasItem;
-  S:AnsiString;
+  S:TERRAString;
 Begin
   If Not Assigned(_TextureAtlas) Then
   Begin
@@ -921,7 +921,7 @@ Begin
     Begin
       Item := _TextureAtlas.Get(I);
 
-      S := LowStr(GetFileName(Item.Name, True))+'_normal.png';
+      S := StringLower(GetFileName(Item.Name, True))+'_normal.png';
       S := FileManager.Instance.SearchResourceFile(S);
       If S<>'' Then
         Source := Image.Create(S)
@@ -933,7 +933,7 @@ Begin
       _NormalImage.Blit(Trunc(Item.X*_TextureAtlas.Width), Trunc(Item.Y*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
       Source.Destroy();
 
-      S := LowStr(GetFileName(Item.Name, True))+'_glow.png';
+      S := StringLower(GetFileName(Item.Name, True))+'_glow.png';
       S := FileManager.Instance.SearchResourceFile(S);
       If S<>'' Then
         Source := Image.Create(S)
@@ -945,7 +945,7 @@ Begin
       _GlowImage.Blit(Trunc(Item.X*_TextureAtlas.Width), Trunc(Item.Y*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
       Source.Destroy;
 
-      S := LowStr(GetFileName(Item.Name, True))+'_refraction.png';
+      S := StringLower(GetFileName(Item.Name, True))+'_refraction.png';
       S := FileManager.Instance.SearchResourceFile(S);
       If S<>'' Then
         Source := Image.Create(S)

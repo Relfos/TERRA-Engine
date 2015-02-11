@@ -26,7 +26,7 @@ Unit TERRA_Font;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Resource, TERRA_IO, TERRA_Image, TERRA_Color, TERRA_Vector2D,
+  TERRA_String, TERRA_Utils, TERRA_Resource, TERRA_Stream, TERRA_Image, TERRA_Color, TERRA_Vector2D,
   TERRA_Math, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Texture, TERRA_SpriteManager,
   TERRA_ResourceManager, TERRA_Matrix4x4, TERRA_Matrix3x3, TERRA_Collections;
 
@@ -46,6 +46,19 @@ Const
   fontmode_Sprite   = 0;
   fontmode_Measure  = 1;
   fontmode_Offscreen=2;
+
+  fontControlColor = 1;
+  fontControlCornerColorA = 2;
+  fontControlCornerColorB = 3;
+  fontControlCornerColorC = 4;
+  fontControlCornerColorD = 5;
+  fontControlTab = 8;
+  fontControlBlink = 9;
+  fontControlItalics = 11;
+  fontControlWave = 12;
+  fontControlNewLine = 13;
+  fontControlSprite = 14;
+  fontControlEnd = 31;
 
 Type
   PFontKerning = ^FontKerning;
@@ -106,16 +119,16 @@ Type
   End;
 
   FontEffect = Record
-    Effect:AnsiChar;
-    Arg:AnsiString;
+    Effect:TERRAChar;
+    Arg:TERRAString;
   End;
 
   FontRenderer = Object
     Protected
-      _Text:AnsiString;
+      _Text:TERRAString;
+      _Iterator:StringIterator;
       _Mode:Integer;
-      _Index:Integer;
-      _Next:Cardinal;
+      _Next:TERRAChar;
       _Started:Boolean;
 
       _Font:Font;
@@ -156,13 +169,13 @@ Type
 
       _ClipRect:ClipRect;
 
-      Function GetNextChar:Cardinal;
-      Function GetNextArg:AnsiString;
+      Function GetNextChar:TERRAChar;
+      Function GetNextArg:TERRAString;
 
       Procedure DoEffects();
 
     Public
-      Procedure Start(S:AnsiString; Mode:Integer; X,Y, Layer, Scale:Single; MyFont:Font; MyClipRect:ClipRect; DropShadow:Boolean = False);
+      Procedure Start(S:TERRAString; Mode:Integer; X,Y, Layer, Scale:Single; MyFont:Font; MyClipRect:ClipRect; DropShadow:Boolean = False);
       Function RenderNext():Boolean;
 
       Procedure SetGradient(A,B:Color; Width, Height:Single; GradientMode:Integer);
@@ -183,7 +196,7 @@ Type
       Property RevealCount:Integer Read _RevealCount Write _RevealCount;
   End;
 
-  FontImageResolver = Function (Fnt:Font; Const ImageName:AnsiString):AnsiString; CDecl;
+  FontImageResolver = Function (Fnt:Font; Const ImageName:TERRAString):TERRAString; CDecl;
 
   FontGlyphFactory = Class
     Protected
@@ -218,7 +231,7 @@ Type
       BilinearFilter:Boolean;
 
       Function Load(Source:Stream):Boolean; Override;
-      //Function Save(FileName:AnsiString):Boolean;
+      //Function Save(FileName:TERRAString):Boolean;
 
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
@@ -228,29 +241,29 @@ Type
       Function GetPage(Index:Integer):FontPage;
 
       Function AddGlyph(ID:Cardinal; Source:Image; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; Overload;
-      Function AddGlyph(ID:Cardinal; Const FileName:AnsiString; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; Overload;
+      Function AddGlyph(ID:Cardinal; Const FileName:TERRAString; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; Overload;
       Function AddEmptyGlyph():FontGlyph;
       Function GetGlyph(ID:Cardinal; CreatedIfNeeded:Boolean = True):FontGlyph;
       Procedure SortGlyphs();
-      Procedure CacheGlyphs(Const S:AnsiString);
+      Procedure CacheGlyphs(Const S:TERRAString);
 
       Procedure RecalculateMetrics();
 
       Class Function GetManager:Pointer; Override;
 
-      Procedure DrawText(Const X,Y,Layer:Single; Const Text:AnsiString; Const Color:Color; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
-      Procedure DrawTextWithTransform(Const X,Y,Layer:Single; Const Text:AnsiString; Const Color:Color; Const Transform:Matrix3x3; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
-      Procedure DrawTextWithOutline(Const X,Y,Layer:Single; Const Text:AnsiString; Const Color, Outline:Color; Const Transform:Matrix3x3; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
-      Procedure DrawTextWithGradient(X,Y,Layer:Single; Const Text:AnsiString; Const Color1, Color2, Outline:Color; Const Transform:Matrix3x3; Const GradientMode:Integer; Scale:Single = 1.0; DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
+      Procedure DrawText(Const X,Y,Layer:Single; Const Text:TERRAString; Const Color:Color; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
+      Procedure DrawTextWithTransform(Const X,Y,Layer:Single; Const Text:TERRAString; Const Color:Color; Const Transform:Matrix3x3; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
+      Procedure DrawTextWithOutline(Const X,Y,Layer:Single; Const Text:TERRAString; Const Color, Outline:Color; Const Transform:Matrix3x3; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
+      Procedure DrawTextWithGradient(X,Y,Layer:Single; Const Text:TERRAString; Const Color1, Color2, Outline:Color; Const Transform:Matrix3x3; Const GradientMode:Integer; Scale:Single = 1.0; DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
 
-      Procedure DrawTextToImage(Target:Image; X,Y:Integer; Const Text:AnsiString; ForceBlend:Boolean = True);
+      Procedure DrawTextToImage(Target:Image; X,Y:Integer; Const Text:TERRAString; ForceBlend:Boolean = True);
 
-      Function AutoWrapText(S:AnsiString; Width:Single; Scale:Single = 1.0):AnsiString;
+      Function AutoWrapText(Const Text:TERRAString; Width:Single; Scale:Single = 1.0):TERRAString;
 
-      Function GetTextWidth(Const Text:AnsiString; Scale:Single = 1.0):Single;
-      Function GetTextHeight(Const Text:AnsiString; Scale:Single = 1.0):Single;
-      Function GetTextRect(Const Text:AnsiString; Scale:Single = 1.0):Vector2D;
-      Function GetLength(Const Text:AnsiString):Integer;
+      Function GetTextWidth(Const Text:TERRAString; Scale:Single = 1.0):Single;
+      Function GetTextHeight(Const Text:TERRAString; Scale:Single = 1.0):Single;
+      Function GetTextRect(Const Text:TERRAString; Scale:Single = 1.0):Vector2D;
+      Function GetLength(Const Text:TERRAString):Integer;
 
       Procedure AddGlyphFactory(Factory:FontGlyphFactory; Scale:Single = 1.0);
 
@@ -265,7 +278,7 @@ Type
   FontLoader = Function(Source:Stream; Font:Font):Boolean;
 
   FontClassInfo = Record
-    Name:AnsiString;
+    Name:TERRAString;
     Validate:FontStreamValidateFunction;
     Loader:FontLoader;
   End;
@@ -281,20 +294,22 @@ Type
 
       Class Function Instance:FontManager;
 
-      Function GetFont(Name:AnsiString; ValidateError:Boolean = True):Font;
+      Function GetFont(Name:TERRAString; ValidateError:Boolean = True):Font;
 
       Property DefaultFont:Font Read GetDefaultFont;
    End;
 
   Function GetFontLoader(Source:Stream):FontLoader;
-  Procedure RegisterFontFormat(Name:AnsiString; Validate:FontStreamValidateFunction; Loader:FontLoader);
+  Procedure RegisterFontFormat(Name:TERRAString; Validate:FontStreamValidateFunction; Loader:FontLoader);
+
+  Function ConvertFontCodes(S:TERRAString):TERRAString;
 
 Var
   _FontImageResolver:FontImageResolver;
 
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Sort,
-  TERRA_Log, TERRA_FileUtils,
+  TERRA_Log, TERRA_FileUtils, TERRA_MemoryStream,
   TERRA_GraphicsManager, TERRA_FileManager, TERRA_Packer;
 
 Var
@@ -302,7 +317,7 @@ Var
   _FontExtensionCount:Integer;
   _FontManager_Instance:ApplicationObject;
 
-Function DefaultFontImageResolver(Fnt:Font; Const ImageName:AnsiString):AnsiString; CDecl;
+Function DefaultFontImageResolver(Fnt:Font; Const ImageName:TERRAString):TERRAString; CDecl;
 Begin
   Fnt.IsReady();
   Result := ImageName;
@@ -379,11 +394,11 @@ Begin
   Source.Seek(Pos);
 End;
 
-Procedure RegisterFontFormat(Name:AnsiString; Validate:FontStreamValidateFunction; Loader:FontLoader);
+Procedure RegisterFontFormat(Name:TERRAString; Validate:FontStreamValidateFunction; Loader:FontLoader);
 Var
   I,N:Integer;
 Begin
-  Name := LowStr(Name);
+  Name := StringLower(Name);
 
   For I:=0 To Pred(_FontExtensionCount) Do
   If (_FontExtensions[I].Name = Name) Then
@@ -409,7 +424,7 @@ End;
 Type
   PFontSearch = ^FontSearch;
   FontSearch = Record
-    Name:AnsiString;
+    Name:TERRAString;
     TextSize:Integer;
   End;
 
@@ -418,21 +433,20 @@ Begin
   Result := (Resource(P).Name = PFontSearch(Userdata).Name) And (Font(P).TextSize = PFontSearch(Userdata).TextSize);
 End;
 
-Function FontManager.GetFont(Name:AnsiString; ValidateError:Boolean):Font;
+Function FontManager.GetFont(Name:TERRAString; ValidateError:Boolean):Font;
 Var
-  FontName, FileName, S:AnsiString;
+  FontName, FileName, S:TERRAString;
   I:Integer;
   Size:Integer;
   Params:FontSearch;
 Begin
-  Name := TrimLeft(TrimRight(Name));
   If (Name='') Then
   Begin
     Result := Nil;
     Exit;
   End;
 
-  I := PosRev('@', Name);
+  I := StringCharPosReverse(Ord('@'), Name);
   If (I>0) Then
   Begin
     FontName := Copy(Name, 1, Pred(I));
@@ -470,7 +484,7 @@ Begin
     Result := Font.Create(S);
     Result._TextSize := Size;
     Result.Priority := 90;
-    Result._Name := UpStr(Name);
+    Result._Name := Name;
     Self.AddResource(Result);
   End Else
   If ValidateError Then
@@ -481,7 +495,7 @@ Destructor FontManager.Destroy;
 Begin
   Inherited;
 
-  DestroyObject(@_DefaultFont);
+  FreeAndNil(_DefaultFont);
   _FontManager_Instance := Nil;
 End;
 
@@ -726,7 +740,7 @@ Procedure FontPage.DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Scale:Sing
 Var
   S:Sprite;
 Begin
-  S := SpriteManager.Instance.AddSpriteWithOutline(X + Glyph.XOfs * Scale, Y + Glyph.YOfs* Scale, Z, _Texture, Outline, Nil, blendBlend, 1.0, Self._Font.BilinearFilter, True);
+  S := SpriteManager.Instance.DrawSpriteWithOutline(X + Glyph.XOfs * Scale, Y + Glyph.YOfs* Scale, Z, _Texture, Outline, Nil, blendBlend, 1.0, Self._Font.BilinearFilter, True);
   S.SetColors(A,B,C,D);
 
   S.SetTransform(Transform);
@@ -761,7 +775,7 @@ Begin
 End;
 
 { FontRenderer }
-Procedure FontRenderer.Start(S:AnsiString; Mode:Integer; X, Y, Layer, Scale: Single; MyFont:Font; MyClipRect:ClipRect; DropShadow:Boolean);
+Procedure FontRenderer.Start(S:TERRAString; Mode:Integer; X, Y, Layer, Scale: Single; MyFont:Font; MyClipRect:ClipRect; DropShadow:Boolean);
 Begin
   _Font := MyFont;
 
@@ -769,9 +783,9 @@ Begin
     _Font.RecalculateMetrics();
 
   _Mode := Mode;
-  _Index := 0;
   _DropShadow := DropShadow;
   _Text := S;
+  StringCreateIterator(_Text, _Iterator);
   _Layer := Layer;
   _StartPosition.X := X;
   _StartPosition.Y := Y;
@@ -803,80 +817,46 @@ Begin
   _Next := GetNextChar;
 End;
 
-Function FontRenderer.GetNextArg:AnsiString;
+Function FontRenderer.GetNextArg:TERRAString;
 Var
-  I:Integer;
+  C:TERRAChar;
 Begin
-  Result := Copy(_Text, (_Index+2), MaxInt);
-  I := Pos('}', Result);
-  Result := Copy(Result, 1, Pred(I));
-  Inc(_Index, Length(Result) + 2);
+  Result := '';
+
+  While _Iterator.HasNext() Do
+  Begin
+    C := _Iterator.GetNext();
+    If C = fontControlEnd Then
+      Break;
+
+    StringAppendChar(Result, C);
+  End;
 End;
 
 Function FontRenderer.GetNextChar:Cardinal;
 Var
   Len:Integer;
-  Before, After:AnsiChar;
+  Current, Before, After:TERRAChar;
 Begin
-  Result := 0;
-  Inc(_Index);
-
-  Len := Length(_Text);
-  If (_Index>Len) Then
+  If (Not _Iterator.HasNext()) Then
   Begin
-    //IntToString(_Index+Len);
+    Result := NullChar;
     Exit;
   End;
 
-  If (_Index>1) Then
-    Before := _Text[Pred(_Index)]
-  Else
-    Before := #0;
+  Result := _Iterator.GetNext();
 
-  If (_Index<Len) Then
-    After := _Text[Succ(_Index)]
-  Else
-    After := #0;
-
-  If (_Text[_Index]='\') Then
+  If (Result>0) And (Result<32) Then
   Begin
-    If (After='\') Then
-    Begin
-      Result := GetNextChar();
-      Exit;
-    End Else
-    If (Before<>'\') Then
-    Begin
-      Inc(_Index);
-      If (_Index<Length(_Text)) Then
-      Begin
-        _Effects[_EffectCount].Effect := UpCase(_Text[_Index]);
+    _Effects[_EffectCount].Effect := Result;
 
-        If (_Index<Length(_Text)) And (_Text[Succ(_Index)]='{') Then
-        _Effects[_EffectCount].Arg := GetNextArg()
-        Else
-          _Effects[_EffectCount].Arg := '';
+    If (Result>fontControlNewLine) And (Result<fontControlEnd) Then
+      _Effects[_EffectCount].Arg := GetNextArg()
+    Else
+      _Effects[_EffectCount].Arg := '';
+    Inc(_EffectCount);
 
-        Inc(_EffectCount);
-      End;
-
-      Result := GetNextChar();
-      Exit;
-    End;
-  End;
-
-  Result := Byte(_Text[_Index]);
-
-  If (Result=255) Then
-  Begin
-    Inc(_Index);
-    If (_Index<=Len) Then
-    Begin
-      Result := Byte(_Text[_Index]);
-      Inc(_Index);
-      If (_Index<=Len) Then
-        Result := Result * 256 + Byte(_Text[_Index]);
-    End;
+    Result := GetNextChar();
   End;
 End;
 
@@ -1034,12 +1014,12 @@ Var
   I:Integer;
   Tex:Texture;
   S:Sprite;
-  SS:AnsiString;
+  SS:TERRAString;
   C:Color;
 Begin
   For I:=0 To Pred(_EffectCount) Do
   Case _Effects[I].Effect Of
-  'C':
+  fontControlColor:
       If (_Effects[I].Arg<>'') Then
       Begin
         C := ColorCreate(_Effects[I].Arg);
@@ -1047,7 +1027,7 @@ Begin
         Self._Color2 := C;
       End;
 
-  'P':
+  fontControlSprite:
       If (_Effects[I].Arg<>'') Then
       Begin
         SS := _Effects[I].Arg;
@@ -1067,12 +1047,12 @@ Begin
           Begin
             If _DropShadow Then
             Begin
-              S := SpriteManager.Instance.AddSprite(_CurrentPosition.X - 1, _CurrentPosition.Y - Tex.Height + 1, Self._Layer-1, Tex);
+              S := SpriteManager.Instance.DrawSprite(_CurrentPosition.X - 1, _CurrentPosition.Y - Tex.Height + 1, Self._Layer-1, Tex);
               S.SetColor(ColorGrey(0, _Color1.A));
               S.ClipRect := Self._ClipRect;
             End;
 
-            S := SpriteManager.Instance.AddSprite(_CurrentPosition.X, _CurrentPosition.Y - Tex.Height, Self._Layer, Tex);
+            S := SpriteManager.Instance.DrawSprite(_CurrentPosition.X, _CurrentPosition.Y - Tex.Height, Self._Layer, Tex);
             S.SetColor(ColorGrey(255, _Color1.A));
             S.ClipRect := Self._ClipRect;
           End;
@@ -1087,30 +1067,31 @@ Begin
         End;
       End;
 
-      '#':  Begin
-            // do nothing
-            End;
-
-      'W':  Begin
+  fontControlWave:
+            Begin
               _WavyText := Not _WavyText;
             End;
 
-      'I':  Begin
+  fontControlItalics:
+            Begin
               _Italics := Not _Italics;
             End;
 
-      'B':  Begin
+  fontControlBlink:
+            Begin
               If (_RevealActive) Then
                 _Blink := False
               Else
                 _Blink := Not _Blink;
             End;
 
-      'T':  Begin
+  fontControlTab:
+            Begin
               _CurrentPosition.X := (Trunc(_CurrentPosition.X/TabSize)+1)*TabSize*_Scale;
             End;
 
-      'N':  Begin
+  fontControlNewLine:
+            Begin
               _CurrentPosition.X := _StartPosition.X;
               If Assigned(_Font) Then
                 _CurrentPosition.Y := _CurrentPosition.Y + 4.0 + _Font._AvgHeight * _Scale;
@@ -1300,17 +1281,17 @@ Begin
     Result := _Pages[Index];
 End;
 
-Function Font.GetTextWidth(Const Text:AnsiString; Scale:Single):Single;
+Function Font.GetTextWidth(Const Text:TERRAString; Scale:Single):Single;
 Begin
   Result := GetTextRect(Text, Scale).X ;
 End;
 
-Function Font.GetTextHeight(Const Text:AnsiString; Scale:Single):Single;
+Function Font.GetTextHeight(Const Text:TERRAString; Scale:Single):Single;
 Begin
   Result := GetTextRect(Text, Scale).Y ;
 End;
 
-Function Font.GetTextRect(Const Text:AnsiString; Scale:Single):Vector2D;
+Function Font.GetTextRect(Const Text:TERRAString; Scale:Single):Vector2D;
 Var
   FR:FontRenderer;
 Begin
@@ -1329,7 +1310,7 @@ Begin
   Result.Y := FR.MaxY / FontQuality;
 End;
 
-Function Font.GetLength(Const Text:AnsiString):Integer;
+Function Font.GetLength(Const Text:TERRAString):Integer;
 Var
   FR:FontRenderer;
 Begin
@@ -1339,42 +1320,16 @@ Begin
     Inc(Result);
 End;
 
-Function GetNextWord(Var S:AnsiString):AnsiString;
-Var
-  I,J:Integer;
-Begin
-  S:=TrimLeft(S);
-  If S='' Then
-  Begin
-    Result:='';
-    Exit;
-  End;
 
-  I := Pos(' ',S);
-  J := Pos('\n',S);
-  If (J>1) And (J<I) Then
-  Begin
-    Result := Copy(S,1,Pred(J));
-    S := Copy(S,J,MaxInt);
-  End Else
-  If I<=0 Then
-  Begin
-    Result:=S;
-    S:='';
-  End Else
-  Begin
-    Result:=Copy(S,1,Pred(I));
-    S:=Copy(S,Succ(I),MaxInt);
-  End;
-  S:=TrimLeft(S);
-End;
-
-Function Font.AutoWrapText(S:AnsiString; Width, Scale: Single):AnsiString;
+Function Font.AutoWrapText(Const Text:TERRAString; Width, Scale: Single):TERRAString;
 Var
-  Temp, Temp2, S2:AnsiString;
+  Temp, Temp2, S, S2:TERRAString;
   I:Integer;
   X:Single;
-Begin
+  Separator:TERRAChar;
+Begin        
+  S := ConvertFontCodes(Text);
+
   //Log(logDebug,'AdWall', 'Starting autowrap');
   If (Self.Status<>rsReady) Then
     Self.Prefetch();
@@ -1385,26 +1340,31 @@ Begin
   Temp := '';
   While (S<>'') Do
   Begin
-    S2 := GetNextWord(S);
+    S2 := StringExtractNextWord(S, Separator);
     //Log(logDebug,'AdWall', 'Next word: '+S2);
     Temp2 := Temp;
     Temp := Temp + S2;
 
-    If (S<>'') Then
-      Temp := Temp + ' ';
+    If (Separator<>NullChar) Then
+    Begin
+      StringAppendChar(Temp, Separator);
+    End;
 
     X := Self.GetTextWidth(Temp, Scale);
     //Log(logDebug,'AdWall', 'TexWidth ok');
     If (X>Width) Then
     Begin
       Temp := Temp2;
-      Result := Result + Temp + '\n';
-      Temp := S2+' ';
+      Result := Result + Temp;
+
+      Temp := S2;
+
+      If Separator <> NewLineChar Then
+        StringAppendChar(Result, NewLineChar);
     End;
   End;
 
   Result := Result + Temp;
-    //Log(logDebug,'AdWall', 'Autowrap done!');
 End;
 
 
@@ -1466,7 +1426,7 @@ Begin
   Factory._Next := Nil;
 End;
 
-Procedure Font.CacheGlyphs(Const S:AnsiString);
+Procedure Font.CacheGlyphs(Const S:TERRAString);
 Begin
   Self.GetTextRect(S, 1.0);
 End;
@@ -1480,7 +1440,7 @@ Begin
   _Glyphs[Pred(_GlyphCount)] := Result;
 End;
 
-Function Font.AddGlyph(ID: Cardinal; Const FileName:AnsiString; XOfs, YOfs, XAdvance: SmallInt):FontGlyph;
+Function Font.AddGlyph(ID: Cardinal; Const FileName:TERRAString; XOfs, YOfs, XAdvance: SmallInt):FontGlyph;
 Var
   Source: Image;
 Begin
@@ -1544,7 +1504,7 @@ Var
   Packer:RectanglePacker;
   Pics:Array Of Image;
   Temp:Image;
-  S:AnsiString;
+  S:TERRAString;
 
   Function Finished():Boolean;
   Var
@@ -1655,22 +1615,22 @@ Begin
   RecalculateMetrics();
 End;
 
-Procedure Font.DrawText(Const X,Y, Layer:Single; Const Text:AnsiString; Const Color:Color; Const Scale:Single; Const DropShadow:Boolean; Const Clip:ClipRect);
+Procedure Font.DrawText(Const X,Y, Layer:Single; Const Text:TERRAString; Const Color:Color; Const Scale:Single; Const DropShadow:Boolean; Const Clip:ClipRect);
 Begin
-  Self.DrawTextWithGradient(X, Y, Layer, Text, Color, Color, ColorNull, MatrixIdentity2D, gradientNone, Scale, DropShadow, Clip);
+  Self.DrawTextWithGradient(X, Y, Layer, Text, Color, Color, ColorNull, MatrixIdentity3x3, gradientNone, Scale, DropShadow, Clip);
 End;
 
-Procedure Font.DrawTextWithTransform(Const X,Y,Layer:Single; Const Text:AnsiString; Const Color:Color; Const Transform:Matrix3x3; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
+Procedure Font.DrawTextWithTransform(Const X,Y,Layer:Single; Const Text:TERRAString; Const Color:Color; Const Transform:Matrix3x3; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
 Begin
   Self.DrawTextWithGradient(X, Y, Layer, Text, Color, Color, ColorNull, Transform, gradientNone, Scale, DropShadow, Clip);
 End;
 
-Procedure Font.DrawTextWithOutline(Const X,Y,Layer:Single; Const Text:AnsiString; Const Color, Outline:Color; Const Transform:Matrix3x3; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
+Procedure Font.DrawTextWithOutline(Const X,Y,Layer:Single; Const Text:TERRAString; Const Color, Outline:Color; Const Transform:Matrix3x3; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
 Begin
   Self.DrawTextWithGradient(X, Y, Layer, Text, Color, Color, Outline, Transform, gradientNone, Scale, DropShadow, Clip);
 End;
 
-Procedure Font.DrawTextWithGradient(X,Y,Layer:Single; Const Text:AnsiString;
+Procedure Font.DrawTextWithGradient(X,Y,Layer:Single; Const Text:TERRAString;
                                     Const Color1, Color2, Outline:Color;
                                     Const Transform:Matrix3x3; Const GradientMode:Integer;
                                     Scale:Single = 1.0; DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
@@ -1726,7 +1686,6 @@ Begin
     Begin
       If (FR.Glyph = Nil) Then
       Begin
-        IntToString(FR._Index);
         Continue;
       End;
 
@@ -1743,7 +1702,7 @@ Begin
   End;
 End;
 
-Procedure Font.DrawTextToImage(Target:Image; X, Y: Integer; const Text:AnsiString; ForceBlend:Boolean);
+Procedure Font.DrawTextToImage(Target:Image; X, Y: Integer; const Text:TERRAString; ForceBlend:Boolean);
 Var
   Next:Cardinal;
   Glyph:FontGlyph;
@@ -1809,6 +1768,53 @@ Begin
 
   Self._ContextID := Application.Instance.ContextID;
   _NeedsRebuild := True;
+End;
+
+Function ConvertFontCodes(S:TERRAString):TERRAString;
+Var
+  S2:TERRAString;
+  C:TERRAChar;
+  It:StringIterator;
+Begin
+  Result := '';
+
+  While StringCharPosIterator(Ord('\'), S, It) Do
+  Begin
+    It.Split(S2, S);
+
+    Result := Result + S2;
+
+    C := CharLower(StringFirstChar(S));
+    S := StringCopy(S, 2, MaxInt);
+
+    Case C Of
+    Ord('n'):  Result := Result + StringFromChar(fontControlNewLine);
+    Ord('t'):  Result := Result + StringFromChar(fontControlTab);
+    Ord('b'):  Result := Result + StringFromChar(fontControlBlink);
+    Ord('i'):  Result := Result + StringFromChar(fontControlItalics);
+    Ord('w'):  Result := Result + StringFromChar(fontControlWave);
+
+    Ord('p'):
+      Begin
+        S2 := StringGetNextSplit(S, Ord('}'));
+        S2 := StringCopy(S2, 2, MaxInt);
+        Result := Result + StringFromChar(fontControlSprite) + S2 + StringFromChar(fontControlEnd);
+      End;
+
+    Ord('c'):
+      Begin
+        S2 := StringGetNextSplit(S, Ord('}'));
+        S2 := StringCopy(S2, 2, MaxInt);
+        Result := Result + StringFromChar(fontControlColor) + S2 + StringFromChar(fontControlEnd);
+      End;
+
+    Else
+      Result := Result + StringFromChar(C);
+
+    End;
+  End;
+
+  Result := Result + S;
 End;
 
 Initialization

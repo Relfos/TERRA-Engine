@@ -456,7 +456,7 @@ function aglUseFont(ctx:TAGLContext; fontID:Integer; face:Byte; size:Integer; fi
 function aglGetError:Integer;cdecl;external;
 
 (* Const before type ignored *)
-function aglErrorString(code:Integer):PAnsiChar;cdecl;external;
+function aglErrorString(code:Integer):PTERRAChar;cdecl;external;
 
 {
 ** Soft reset function

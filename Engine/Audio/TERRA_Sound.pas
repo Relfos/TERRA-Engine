@@ -26,7 +26,7 @@ Unit TERRA_Sound;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_IO, TERRA_Resource, TERRA_Collections, TERRA_AL;
+  TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Resource, TERRA_Collections, TERRA_AL;
 
 Const
   DefaultSampleRate = 44100;
@@ -84,19 +84,19 @@ Type
 
   SoundStreamValidateFunction=Function(Source:Stream):Boolean;
   SoundLoader=Function(Source:Stream; Sound:Sound):Boolean;
-  SoundSaver=Procedure(Source:Stream; Sound:Sound; Options:AnsiString='');
+  SoundSaver=Procedure(Source:Stream; Sound:Sound; Const Options:TERRAString='');
 
   PSoundClassInfo = ^SoundClassInfo;
   SoundClassInfo = Record
-    Name:AnsiString;
+    Name:TERRAString;
     Validate:SoundStreamValidateFunction;
     Loader:SoundLoader;
     Saver:SoundSaver;
   End;
 
 Function GetSoundLoader(Source:Stream):SoundLoader;
-//Function GetSoundSaver(Format:AnsiString):SoundSaver;
-Procedure RegisterSoundFormat(Name:AnsiString;
+//Function GetSoundSaver(Format:TERRAString):SoundSaver;
+Procedure RegisterSoundFormat(Name:TERRAString;
                               Validate:SoundStreamValidateFunction;
                               Loader:SoundLoader;
                               Saver:SoundSaver=Nil);
@@ -312,14 +312,14 @@ Begin
 End;
 
 
-Procedure RegisterSoundFormat(Name:AnsiString;
+Procedure RegisterSoundFormat(Name:TERRAString;
                               Validate:SoundStreamValidateFunction;
                               Loader:SoundLoader;
                               Saver:SoundSaver=Nil);
 Var
   I,N:Integer;
 Begin
-  Name := LowStr(Name);
+  Name := StringLower(Name);
 
   For I:=0 To Pred(_SoundExtensionCount) Do
   If (_SoundExtensions[I].Name = Name) Then

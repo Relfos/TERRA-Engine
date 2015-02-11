@@ -29,7 +29,7 @@ Interface
 
 Type
   CallInfo = Record
-    Name:^AnsiString;
+    Name:^String;
     Line:Cardinal;
   End;
 
@@ -37,7 +37,7 @@ Type
 
 Procedure GetCurrentCall(Var Info:CallInfo);
 
-//Function TextualDebugInfoForAddress(Const TheAddress: Cardinal):AnsiString;
+//Function TextualDebugInfoForAddress(Const TheAddress: Cardinal):TERRAString;
 
 Var
   SettingCallStack:Boolean = False;
@@ -77,26 +77,26 @@ Type
 
 	UnitDebugInfos = class
 	  Public
-  		Name:AnsiString;
+  		Name:String;
 	  	Addresses: array of AddressToLine;
       ShowOnCallstack:Boolean;
 
-		  Constructor Create(const AName:AnsiString; const NbLines: Cardinal);
+		  Constructor Create(const AName:String; const NbLines: Cardinal);
 
   		Function LineWhichContainsAddress(const Address: Cardinal):Integer;
 	  End;
 
   RoutineDebugInfos = class
 	  Public
-		  Name:AnsiString;
+		  Name:String;
   		StartAddress: Cardinal;
 	  	EndAddress: Cardinal;
 
-		  Constructor Create(const AName:AnsiString; const AStartAddress: Cardinal; const ALength: Cardinal);
+		  Constructor Create(const AName:String; const AStartAddress: Cardinal; const ALength: Cardinal);
 	  End;
 
 
-Constructor UnitDebugInfos.Create(const AName:AnsiString; const NbLines: Cardinal);
+Constructor UnitDebugInfos.Create(const AName:String; const NbLines: Cardinal);
 Begin
 	Name := AName;
 
@@ -105,7 +105,7 @@ Begin
 	SetLength(Addresses, NbLines);
 End;
 
-constructor RoutineDebugInfos.Create(const AName:AnsiString; const AStartAddress: Cardinal; const ALength: Cardinal);
+constructor RoutineDebugInfos.Create(const AName:String; const AStartAddress: Cardinal; const ALength: Cardinal);
 Var
   I:Integer;
 begin
@@ -204,7 +204,7 @@ Begin
     Result := B;
 End;
 
-procedure AddRoutine(const Name:AnsiString; const Start, Len: Cardinal);
+procedure AddRoutine(const Name:String; const Start, Len: Cardinal);
 begin
 	if Length(Routines) <= RoutinesCount then
 		SetLength(Routines, Max(RoutinesCount * 2, 1000));
@@ -267,7 +267,7 @@ end;
 Const
   PathSeparator = '\';
   
-Function ExtractFileName(FileName:AnsiString):AnsiString;
+Function ExtractFileName(FileName:String):String;
 Var
   I, Len:Integer;
 Begin
@@ -340,7 +340,7 @@ var
 	SstFrame: PArrayOfByte;
 	ifabase: Integer;
 	cdir, cbdirentry: word;
-	FileName:AnsiString;
+	FileName:String;
   DebugOffset:Integer;
   I, Size:Integer;
   Id:Integer;
@@ -548,7 +548,7 @@ begin
 		end;
 End;
 
-(*Function TextualDebugInfoForAddress(Const TheAddress: Cardinal):AnsiString;
+(*Function TextualDebugInfoForAddress(Const TheAddress: Cardinal):String;
 var
 	U:UnitDebugInfos;
 	AddressInDebugInfos: Cardinal;

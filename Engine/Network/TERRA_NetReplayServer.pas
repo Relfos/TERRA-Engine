@@ -27,7 +27,7 @@ Unit TERRA_NetReplayServer;
 {$DEFINE NETDEBUG}
 
 Interface
-Uses TERRA_Utils, TERRA_IO, TERRA_FileIO, TERRA_Network, TERRA_NetLogger, TERRA_NetServer;
+Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_FileStream, TERRA_Network, TERRA_NetLogger, TERRA_NetServer;
 
 Type
   NetworkReplayServer = Class(NetServer)
@@ -40,9 +40,9 @@ Type
 
     Public
       // Creates a new server instance
-      Constructor Create(Name:AnsiString; Version,Port:Word; MaxClients:Word);
+      Constructor Create(Version,Port:Word; MaxClients:Word);
 
-      Procedure SendMessage(Msg:PNetMessage; ClientID:Word); Override;
+      Function SendMessage(Msg:NetMessage; ClientID:Word = 0; AutoRelease:Boolean = False):Boolean; Override;
 
       // Handles messages
       Procedure Update; Override;
@@ -50,16 +50,16 @@ Type
 
 
 Implementation
-Uses TERRA_OS, TERRA_Log, TERRA_ThreadPool, TERRA_Sockets;
+Uses TERRA_OS, TERRA_Log, TERRA_Threads, TERRA_Mutex, TERRA_Sockets;
 
 { NetworkReplayServer }
-Constructor NetworkReplayServer.Create(Name:AnsiString; Version, Port, MaxClients: Word);
+Constructor NetworkReplayServer.Create(Version, Port, MaxClients: Word);
 Var
   I:Integer;
 Begin
   _LocalId := 0;  //Servers always have a localID of zero
-  _NetObject := Self;
-  _Name := Name;
+  NetworkManager.Instance.AddObject(Self);
+
   _Port := Port;
   _WaitingCount := 0;
   _ClientCount := MaxClients;
@@ -67,11 +67,10 @@ Begin
   _Version := Version;
 
   For I:=0 To 255 Do
-    _OpcodeList[I] := InvalidMessage;
+    _OpcodeList[I] := OnInvalidMessage;
   _OpcodeList[nmIgnore] := IgnoreMessage;
-  _OpcodeList[nmPing] := PingMessage;
-  _OpcodeList[nmClientJoin] := JoinMessage;
-  _OpcodeList[nmClientDrop] := DropMessage;
+  _OpcodeList[nmClientJoin] := OnJoinMessage;
+  _OpcodeList[nmClientDrop] := OnDropMessage;
 
   _Mutex := CriticalSection.Create('');
   _PacketMutex := CriticalSection.Create('');
@@ -80,15 +79,9 @@ Begin
   _ClientList[0] := ClientInfo.Create;
   With _ClientList[0] Do
   Begin
-    Name := 'Server';
     Ping := 0;
     GUID := 0;
   End;
-
-  For I:=1 To 255 Do
-    _PacketImportant[I] := True;
-
-  _PacketImportant[nmPing] := False;
 
   For I:=1 To _ClientCount Do
     _ClientList[I] := Nil;
@@ -110,7 +103,7 @@ Procedure NetworkReplayServer.OnNewClient;
 Var
   N:Integer;
   Client:ClientInfo;
-  Username, Password, DeviceID, ErrorLog:AnsiString;
+  Username, Password, DeviceID, ErrorLog:TERRAString;
 Begin
   _Stream.Read(@N, 4);
   _Stream.ReadString(UserName);
@@ -140,38 +133,43 @@ Procedure NetworkReplayServer.OnPacket;
 Var
   N:Integer;
   Client:ClientInfo;
-  Msg:LNetMessage;
+  Msg:NetMessage;
   ValidMsg:Boolean;
+  Size:Integer;
 Begin
   _Stream.Read(@N, 4);
-  _Stream.Read(@Msg, SizeOf(LNetMessage));
+  _Stream.Read(@Size, 4);
+  Msg := NetMessage.Create(0);
+  _Stream.Copy(Msg, _Stream.Position, Size);
+  Msg.Seek(0);
 
   If (Msg.Opcode<10) Then
     Exit;
 
-  If (Msg.Opcode=108) Then
-    IntToString(2);
+  {If (Msg.Opcode=108) Then
+    IntToString(2);}
 
   Client := Self.GetClient(N);
 
-  {$IFDEF NETDEBUG}WriteLn('Validating message');{$ENDIF}
+  {$IFDEF DEBUG_NET}WriteLn('Validating message');{$ENDIF}
   ValidMsg := ValidateMessage(@Msg);
   //WriteLn('Rec: ',Msg.Opcode);
 
   If ValidMsg Then
   Begin
-    {$IFDEF NETDEBUG}WriteLn('Invoking opcode ',Msg.Opcode);{$ENDIF}
+    {$IFDEF DEBUG_NET}WriteLn('Invoking opcode ',Msg.Opcode);{$ENDIF}
     If Assigned(_OpcodeList[Msg.Opcode]) Then
       _OpcodeList[Msg.Opcode](@Msg, Client.Socket) // Call message handler
   End Else
-    Log(logWarning,'Network','Network.'+_Name+'.Update: Invalid opcode ['+IntToString(Msg.Opcode)+']');
+    Log(logWarning,'Network', Self.ClassName+'.Update: Invalid opcode ['+IntToString(Msg.Opcode)+']');
 
-  {$IFDEF NETDEBUG}WriteLn('Opcode ',Msg.Opcode,' processed');{$ENDIF}
+  {$IFDEF DEBUG_NET}WriteLn('Opcode ',Msg.Opcode,' processed');{$ENDIF}
 
 End;
 
-Procedure NetworkReplayServer.SendMessage(Msg:PNetMessage; ClientID:Word);
+Function NetworkReplayServer.SendMessage(Msg:NetMessage; ClientID:Word; AutoRelease:Boolean):Boolean;
 Begin
+  Result := True;
   // do nothing
 End;
 
@@ -194,7 +192,7 @@ Begin
     End;
 
     If (_Stream.EOF) Then
-  {$IFDEF NETDEBUG}WriteLn('Session finished!');{$ENDIF}
+  {$IFDEF DEBUG_NET}WriteLn('Session finished!');{$ENDIF}
   End;
 End;
 

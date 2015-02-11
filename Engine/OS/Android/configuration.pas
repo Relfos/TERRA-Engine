@@ -133,26 +133,26 @@ procedure AConfiguration_setMnc(config: PAConfiguration; mnc: cint32); cdecl; ex
  * be filled with an array of two characters.  They are not 0-terminated.  If
  * a language is not set, they will be 0.
   *)
-procedure AConfiguration_getLanguage(config: PAConfiguration; outLanguage: PAnsiChar); cdecl; external LibName;
+procedure AConfiguration_getLanguage(config: PAConfiguration; outLanguage: PTERRAChar); cdecl; external LibName;
 
 (**
  * Set the current language code in the configuration, from the first two
  * characters in the string.
   *)
-procedure AConfiguration_setLanguage(config: PAConfiguration; language: PAnsiChar); cdecl; external LibName;
+procedure AConfiguration_setLanguage(config: PAConfiguration; language: PTERRAChar); cdecl; external LibName;
 
 (**
  * Return the current country code set in the configuration.  The output will
  * be filled with an array of two characters.  They are not 0-terminated.  If
  * a country is not set, they will be 0.
   *)
-procedure AConfiguration_getCountry(config: PAConfiguration; outCountry: PAnsiChar); cdecl; external LibName;
+procedure AConfiguration_getCountry(config: PAConfiguration; outCountry: PTERRAChar); cdecl; external LibName;
 
 (**
  * Set the current country code in the configuration, from the first two
  * characters in the string.
   *)
-procedure AConfiguration_setCountry(config: PAConfiguration; country: PAnsiChar); cdecl; external LibName;
+procedure AConfiguration_setCountry(config: PAConfiguration; country: PTERRAChar); cdecl; external LibName;
 
 (**
  * Return the current ACONFIGURATION_ORIENTATION_* set in the configuration.

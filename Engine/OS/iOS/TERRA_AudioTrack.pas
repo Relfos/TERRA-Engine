@@ -15,11 +15,11 @@ Type
       Procedure Stop; Override;
       Procedure SetVolume(Volume:Single); Override;
 
-      Class Function Supports(Const Extension:AnsiString):Boolean; Override;
+      Class Function Supports(Const Extension:TERRAString):Boolean; Override;
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_FileManager, TERRA_Log, TERRA_OS, TERRA_IO, TERRA_Math;
+Uses TERRA_Error, TERRA_FileManager, TERRA_Log, TERRA_OS, TERRA_Stream, TERRA_Math;
 
 { AudioMusicTrack }
 Procedure AudioMusicTrack.SetVolume(Volume:Single);
@@ -35,7 +35,7 @@ End;
 
 Procedure AudioMusicTrack.Init();
 Begin
-  _Player := audioOpen(PAnsiChar(FileName));
+  _Player := audioOpen(PTERRAChar(FileName));
 End;
 
 Procedure AudioMusicTrack.Play();
@@ -52,7 +52,7 @@ Begin
     audioStop(_player);
 End;
 
-Class Function AudioMusicTrack.Supports(Const Extension: AnsiString): Boolean;
+Class Function AudioMusicTrack.Supports(Const Extension: TERRAString): Boolean;
 Begin
   Result := (Extension = 'm4a') Or (Extension = 'mp3');
 End;

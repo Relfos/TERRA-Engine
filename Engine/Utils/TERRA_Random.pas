@@ -9,7 +9,7 @@ Unit TERRA_Random;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_IO;
+Uses TERRA_Utils, TERRA_Stream;
 
 Const
   { Period parameters }

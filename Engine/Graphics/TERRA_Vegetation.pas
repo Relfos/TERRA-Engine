@@ -95,10 +95,10 @@ Uses TERRA_OS, TERRA_UI, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
 Var
   _VegetationShader:Shader;
 
-Function GetShader_Vegetation():AnsiString;
+Function GetShader_Vegetation():TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('version { 120 }');

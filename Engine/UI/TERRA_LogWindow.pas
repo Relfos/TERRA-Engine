@@ -35,15 +35,15 @@ Const
   MaxLines = 16;
 
 Var
-  LogLines:Array[0..MaxLines] Of AnsiString;
+  LogLines:Array[0..MaxLines] Of TERRAString;
   LogWnd:UIWindow;
   LogText:UILabel;
   Working:Boolean = False;
 
-Procedure MyLogFilter(Module, Desc:AnsiString);
+Procedure MyLogFilter(Module, Desc:TERRAString);
 Var
   N,I:Integer;
-  S:AnsiString;
+  S:TERRAString;
 Begin
   If (UI.Instance.DefaultFont=Nil) Or (Working) Then
     Exit;

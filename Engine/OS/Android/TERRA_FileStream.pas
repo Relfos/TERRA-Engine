@@ -1,10 +1,10 @@
 // Android custom IO
-Unit TERRA_FileIO;
+Unit TERRA_FileStream;
 
 {$I terra.inc}
 
 Interface
-Uses TERRA_Error, TERRA_IO, TERRA_FileUtils, SysUtils, TERRA_Java;
+Uses TERRA_Error, TERRA_String, TERRA_Stream, TERRA_MemoryStream, TERRA_FileUtils, SysUtils, TERRA_Java;
 
 Const
   FileIOClassPath = 'com.pascal.terra.TERRAFileIO';
@@ -17,8 +17,8 @@ Type
         _Open:Boolean;
      Public
 
-        Constructor Create(FileName:AnsiString; StreamMode:Integer=smDefault);Overload;
-        Constructor Open(FileName:AnsiString; StreamMode:Integer=smDefault);
+        Constructor Create(FileName:TERRAString; StreamMode:Integer=smDefault);Overload;
+        Constructor Open(FileName:TERRAString; StreamMode:Integer=smDefault);
         Destructor Destroy;Override;
 
         Procedure Truncate();Override;
@@ -29,8 +29,8 @@ Type
         Function Write(Data:Pointer; Length:Cardinal):Cardinal;Override;
         Procedure Seek(NewPosition:Cardinal);Override;
 
-        Class Function Exists(FileName:AnsiString): Boolean;
-        Class Procedure CopyFile(SourceName, DestName:AnsiString);
+        Class Function Exists(FileName:TERRAString): Boolean;
+        Class Procedure CopyFile(SourceName, DestName:TERRAString);
      End;
 
 Implementation
@@ -181,7 +181,7 @@ Begin
 	Result := size;
 End;
 
-Class Function FileStream.Exists(FileName:AnsiString): Boolean;
+Class Function FileStream.Exists(FileName:TERRAString): Boolean;
 Var
   Assets:JavaClass;
   Params:JavaArguments;
@@ -240,7 +240,7 @@ Begin
     Result := False;
 End;
 
-Constructor FileStream.Create(FileName:AnsiString; StreamMode:Integer=smDefault);
+Constructor FileStream.Create(FileName:TERRAString; StreamMode:Integer=smDefault);
 Begin
   _Name := '';
   _Mode := StreamMode;
@@ -269,7 +269,7 @@ Begin
   End;
 End;
 
-Constructor FileStream.Open(FileName:AnsiString; StreamMode:Integer=smDefault);
+Constructor FileStream.Open(FileName:TERRAString; StreamMode:Integer=smDefault);
 Var
   Assets:JavaObject;
   Params:JavaArguments;
@@ -485,7 +485,7 @@ Begin
   _Size := _Pos;
 End;
 
-Class procedure FileStream.CopyFile(SourceName, DestName:AnsiString);
+Class procedure FileStream.CopyFile(SourceName, DestName:TERRAString);
 Var
   Source, Dest:Stream;
 Begin

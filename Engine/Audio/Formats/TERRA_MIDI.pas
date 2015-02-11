@@ -24,7 +24,7 @@ Unit TERRA_MIDI;
 {.$DEFINE USE_INTERNAL_SYNTH}
 
 Interface
-Uses TERRA_Utils, TERRA_IO, TERRA_OS, TERRA_MusicTrack;
+Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_OS, TERRA_MusicTrack;
 
 Type
   ChunkType = (MIDI_illegal, MIDI_header, MIDI_track);
@@ -56,7 +56,7 @@ Type
     _Channel:Byte;
     _Data1: byte;
     _Data2: byte;
-    _String:AnsiString;
+    _String:TERRAString;
     _dticks: integer;
     _Time: integer;
     _ms:Cardinal;
@@ -71,8 +71,8 @@ Type
     _Events: Array Of MidiEvent;
     _EventCount:Integer;
     _LastTempoEventIndex:Integer;
-    _Name:AnsiString;
-    _Instrument:AnsiString;
+    _Name:TERRAString;
+    _Instrument:TERRAString;
     _CurrentTime:Integer;
     _CurrentPos:Integer;
 
@@ -88,8 +88,8 @@ Type
     Procedure putEvent(event: MidiEvent);
     Function getEvent(index: integer): PMidiEvent;
 
-    Property Name:AnsiString Read _Name;
-    Property Instrument:AnsiString Read _Name;
+    Property Name:TERRAString Read _Name;
+    Property Instrument:TERRAString Read _Name;
     Property EventCount:Integer Read _EventCount;
     Property Duration:Cardinal Read GetTrackDuration;
   End;
@@ -105,11 +105,11 @@ Type
     _Time:Cardinal;
 
     // Protected declarations
-    _chunkType: ChunkType;
-    _chunkLength: integer;
-    _chunkData: PByte;
-    _chunkIndex: PByte;
-    _chunkEnd: PByte;
+    _chunkType:ChunkType;
+    _chunkLength:Integer;
+    _chunkData:Array Of Byte;
+    _chunkIndex:Integer;
+    _chunkEnd:Integer;
 
     // midi file attributes
     FileFormat: MidiFileFormat;
@@ -138,7 +138,7 @@ Type
     procedure ProcessHeaderChunk;
     procedure ProcessTrackChunk;
     function ReadVarLength: integer;
-    function ReadString(l: integer):AnsiString;
+    function ReadString(l: integer):TERRAString;
 
     Procedure Clear;
 
@@ -158,7 +158,7 @@ Type
     Function GetCurrentTime:Integer;
     Function  GetTrackDuration:Cardinal;
 
-    Class Function Supports(Const Extension:AnsiString):Boolean; Override;
+    Class Function Supports(Const Extension:TERRAString):Boolean; Override;
 
     Property TrackCount: integer read _EventTrackCount;
     Property TicksPerQuarter: integer read deltaTicks;
@@ -167,7 +167,7 @@ Type
 Type
   MidiPatchInfo=Record
     ID:Byte;
-    Name:AnsiString;
+    Name:TERRAString;
   End;
 
 Const
@@ -700,8 +700,7 @@ End;
 
 Destructor MidiTrack.Destroy;
 Begin
-  If Not (_chunkData = Nil) Then
-    FreeMem(_chunkData);
+  SetLength(_chunkData, 0);
 
   Clear;
 End;
@@ -858,16 +857,10 @@ End;
 
 procedure MidiTrack.ReadChunkContent(Source:Stream);
 Begin
-  If Assigned(_chunkData) then
-  Begin
-    FreeMem(_chunkData);
-    _chunkData := Nil;
-  End;
-
-  GetMem(_chunkData, _chunkLength + 10);
-  Source.Read(_chunkData, _chunkLength);
-  _chunkIndex := _chunkData;
-  _chunkEnd := PByte(integer(_chunkIndex) + integer(_chunkLength) - 1);
+  SetLength(_chunkData, _chunkLength + 10);
+  Source.Read(@(_chunkData[0]), _chunkLength);
+  _chunkIndex := 0;
+  _chunkEnd := Pred(_chunkLength);
 end;
 
 procedure MidiTrack.ReadChunk(Source:Stream);
@@ -885,31 +878,30 @@ End;
 
 Procedure MidiTrack.ProcessHeaderChunk;
 Begin
-  _chunkIndex := _chunkData;
   Inc(_chunkIndex);
 
   If _chunkType = midi_header then
   Begin
-    Case _chunkIndex^ of
+    Case _ChunkData[_chunkIndex] of
       0: fileFormat := midi_single;
       1: fileFormat := midi_multi_synch;
       2: fileFormat := midi_multi_asynch;
     End;
 
     inc(_chunkIndex);
-    _EventTrackCount := _chunkIndex^ * $100;
+    _EventTrackCount := _ChunkData[_chunkIndex] * $100;
 
     inc(_chunkIndex);
-    _EventTrackCount := _EventTrackCount + _chunkIndex^;
+    _EventTrackCount := _EventTrackCount + _ChunkData[_chunkIndex];
 
     SetLength(_EventTracks, _EventTrackCount);
     _LastTrackIndex := 0;
 
     Inc(_chunkIndex);
-    deltaTicks := _chunkIndex^ * $100;
+    deltaTicks := _ChunkData[_chunkIndex] * $100;
 
     Inc(_chunkIndex);
-    deltaTicks := deltaTicks + _chunkIndex^;
+    deltaTicks := deltaTicks + _ChunkData[_chunkIndex];
   End;
 End;
 
@@ -918,12 +910,11 @@ Var
   dTime: integer;
   event: integer;
   len: integer;
-  str:AnsiString;
+  str:TERRAString;
   midiEvent: TERRA_Midi.MidiEvent;
   i: integer;
 Begin
-  _chunkIndex := _chunkData;
-//  inc(chunkIndex);
+  //inc(_chunkIndex);
   event := 0;
   if _chunkType = midi_track then
   Begin
@@ -932,13 +923,13 @@ Begin
     _CurrentChannel._ID := _LastTrackIndex;
     _EventTracks[_LastTrackIndex] := _CurrentChannel;
     Inc(_LastTrackIndex);
-    While Integer(_chunkIndex) < Integer(_chunkEnd) Do
+    While _chunkIndex < _chunkEnd Do
     Begin
       // each event starts with var length delta time
       dTime := ReadVarLength;
-      If _chunkIndex^ >= $80 Then
+      If _ChunkData[_chunkIndex] >= $80 Then
       Begin
-        event := _chunkIndex^;
+        event := _ChunkData[_chunkIndex];
         inc(_chunkIndex);
       End;
       // else it is a running status event (just the same event as before)
@@ -946,7 +937,7 @@ Begin
       If Event = $FF then
       Begin
         midiEvent._Opcode := MidiMessage_MetaEvent;
-        midiEvent._data1 := _chunkIndex^; // type is stored in data1
+        midiEvent._data1 := _ChunkData[_chunkIndex]; // type is stored in data1
         midiEvent._dticks := dtime;
 
         inc(_chunkIndex);
@@ -962,48 +953,48 @@ Begin
             Begin
               midiEvent._Opcode := MidiMessage_NoteOff;
               midiEvent._Channel := Event - MidiMessage_NoteOff;
-              midiEvent._data1 := _chunkIndex^; inc(_chunkIndex);
-              midiEvent._data2 := _chunkIndex^; inc(_chunkIndex);
+              midiEvent._data1 := _ChunkData[_chunkIndex]; inc(_chunkIndex);
+              midiEvent._data2 := _ChunkData[_chunkIndex]; inc(_chunkIndex);
             End;
           $90..$9F: // note on
             Begin
               midiEvent._Opcode := MidiMessage_NoteOn;
               midiEvent._Channel := Event - MidiMessage_NoteOn;
-              midiEvent._data1 := _chunkIndex^; inc(_chunkIndex);
-              midiEvent._data2 := _chunkIndex^; inc(_chunkIndex);
+              midiEvent._data1 := _ChunkData[_chunkIndex]; inc(_chunkIndex);
+              midiEvent._data2 := _ChunkData[_chunkIndex]; inc(_chunkIndex);
             End;
           $A0..$AF: // key aftertouch
             Begin
               midiEvent._Opcode := MidiMessage_NoteAftertouch;
               midiEvent._Channel := Event - MidiMessage_NoteAftertouch;
-              midiEvent._data1 := _chunkIndex^; inc(_chunkIndex);
-              midiEvent._data2 := _chunkIndex^; inc(_chunkIndex);
+              midiEvent._data1 := _ChunkData[_chunkIndex]; inc(_chunkIndex);
+              midiEvent._data2 := _ChunkData[_chunkIndex]; inc(_chunkIndex);
             End;
           $B0..$BF: // control change
             Begin
               midiEvent._Opcode := MidiMessage_ControlChange;
               midiEvent._Channel := Event - MidiMessage_ControlChange;
-              midiEvent._data1 := _chunkIndex^; inc(_chunkIndex);
-              midiEvent._data2 := _chunkIndex^; inc(_chunkIndex);
+              midiEvent._data1 := _ChunkData[_chunkIndex]; inc(_chunkIndex);
+              midiEvent._data2 := _ChunkData[_chunkIndex]; inc(_chunkIndex);
             End;
           $E0..$EF: // pitch wheel change
             Begin
               midiEvent._Opcode := MidiMessage_PitchBend;
               midiEvent._Channel := Event - MidiMessage_PitchBend;
-              midiEvent._data1 := _chunkIndex^; inc(_chunkIndex);
-              midiEvent._data2 := _chunkIndex^; inc(_chunkIndex);
+              midiEvent._data1 := _ChunkData[_chunkIndex]; inc(_chunkIndex);
+              midiEvent._data2 := _ChunkData[_chunkIndex]; inc(_chunkIndex);
             End;
           $C0..$CF: // program change
             Begin
               midiEvent._Opcode := MidiMessage_ProgramChange;
               midiEvent._Channel := Event - MidiMessage_ProgramChange;
-              midiEvent._data1 := _chunkIndex^; inc(_chunkIndex);
+              midiEvent._data1 := _ChunkData[_chunkIndex]; inc(_chunkIndex);
             End;
           $D0..$DF: // channel aftertouch
             Begin
               midiEvent._Opcode := MidiMessage_ChannelAftertouch;
               midiEvent._Channel := Event - MidiMessage_ChannelAftertouch;
-              midiEvent._data1 := _chunkIndex^; inc(_chunkIndex);
+              midiEvent._data1 := _ChunkData[_chunkIndex]; inc(_chunkIndex);
             End;
         Else
           Log(logWarning, 'MIDI', 'Unknown midi event: '+IntToString(event));
@@ -1023,24 +1014,24 @@ var
 Begin
   b := 128;
   i := 0;
-  while b > 127 do
+  While b > 127 do
   Begin
     i := i shl 7;
-    b := _chunkIndex^;
+    b := _ChunkData[_chunkIndex];
     i := i + b and $7F;
     inc(_chunkIndex);
   End;
   result := i;
 end;
 
-Function MidiTrack.ReadString(l: integer):AnsiString;
+Function MidiTrack.ReadString(l: integer):TERRAString;
 Var
   I:Integer;
 Begin
   SetLength(Result, L);
   For I := 1 to L Do
   Begin
-    Result[i] := AnsiChar(_chunkIndex^);
+    Result[i] := AnsiChar(_ChunkData[_chunkIndex]);
     Inc(_chunkIndex);
   End;
 End;
@@ -1079,7 +1070,7 @@ End;
 Procedure MidiTrack.ProcessMidiEvent(Event:PMidiEvent; Channel:Integer);
 Var
   I:Integer;
-  S, S2:AnsiString;
+  S, S2:TERRAString;
   Velocity:Integer;
 Begin
   Case Event._Opcode of
@@ -1160,7 +1151,7 @@ Begin
   End;
 End;
 
-Class Function MidiTrack.Supports(Const Extension: AnsiString): Boolean;
+Class Function MidiTrack.Supports(Const Extension: TERRAString): Boolean;
 Begin
   Result := (Extension = 'mid');
 End;

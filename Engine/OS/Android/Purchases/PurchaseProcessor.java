@@ -242,14 +242,18 @@ public class PurchaseProcessor extends PurchaseBase {
 					else if (eventHandler != null)
 						eventHandler.onBillingError(PurchaseProcessor.BILLING_ERROR_LOST_CONTEXT, null);
 				} else if (response == PurchaseProcessor.BILLING_RESPONSE_RESULT_ITEM_ALREADY_OWNED) {
-					if (!isPurchased(productId) && !isSubscribed(productId))
+					if (!isPurchased(productId) && !isSubscribed(productId)) {
 						loadOwnedPurchasesFromGoogle();
+                    }
+                    
 					if (eventHandler != null) {
 						TransactionDetails details = getPurchaseTransactionDetails(productId);
 						if (details == null)
 							details = getSubscriptionTransactionDetails(productId);
+                        
 						eventHandler.onProductPurchased(productId, details);
 					}
+                    
 				} else if (eventHandler != null)
 					eventHandler.onBillingError(PurchaseProcessor.BILLING_ERROR_FAILED_TO_INITIALIZE_PURCHASE, null);
 			}
@@ -360,8 +364,11 @@ public class PurchaseProcessor extends PurchaseBase {
                     if (verifyPurchaseSignature(purchaseData, dataSignature)) {
                         PurchaseCache cache = purchasedSubscription ? cachedSubscriptions : cachedProducts;
                         cache.put(productId, purchaseData, dataSignature);
-                        if (eventHandler != null)
+                        
+                        if (eventHandler != null) {
                             eventHandler.onProductPurchased(productId, new TransactionDetails(new PurchaseInfo(purchaseData, dataSignature)));
+                        }
+                        
                         Log.e(LOG_TAG, "Purchase done");
                     } else {
                         Log.e(LOG_TAG, "Public key signature doesn't match!");
@@ -442,15 +449,17 @@ public class PurchaseProcessor extends PurchaseBase {
             throw e;
         }
     }
-        
+   
+    public static final String TERRA_BILLING_KEY = "ACGs1a7KNIlawqtS0rI0Zp16q+7mfNV+wlwou3QAyRAfQhP8aYoeJKACAOm6W8oZBLLTrwGyfl8U26bbUrma8xJ/fKKcO2+ZfepQDXYjEv/3ZnMpt5UKrdiLst4g6QpwZBEIyFrxfZ7saaWl1YLXJx6eVs3SdtV5K/clQxxp8Lj5";
+   
     private static boolean confirmPurchaseSignature(String signedData, String signature) {
-            PublicKey key = getPublicKey(verifyServiceKey());
+            PublicKey key = getPublicKey(TERRA_BILLING_KEY);
             Signature sig;
             try {
                 sig = Signature.getInstance(SIGNATURE_ALGORITHM);
                 sig.initVerify(key);
                 sig.update(signedData.getBytes());
-                if (!sig.verify(Base64.decode(signature, Base64.DEFAULT))) {
+                if (!sig.verify(Base64.decode(signature, Base64.DEFAULT))) { 
                     Log.e(LOG_TAG, "Signature verification failed.");
                     return true;
                 }
@@ -466,8 +475,7 @@ public class PurchaseProcessor extends PurchaseBase {
             }
             return false;
         }
-    
-    public static final String TERRA_BILLING_KEY = "ACGs1a7KNIlawqtS0rI0Zp16q+7mfNV+wlwou3QAyRAfQhP8aYoeJKACAOm6W8oZBLLTrwGyfl8U26bbUrma8xJ/fKKcO2+ZfepQDXYjEv/3ZnMpt5UKrdiLst4g6QpwZBEIyFrxfZ7saaWl1YLXJx6eVs3SdtV5K/clQxxp8Lj5";
+       
     
      /**
      * Verifies that the data was signed with the given signature, and returns

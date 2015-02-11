@@ -33,7 +33,7 @@ Type
       Procedure Resume;
       Function Start(DeviceID:Integer): integer;
 
-      Function GetDeviceName(ID:Integer):AnsiString;
+      Function GetDeviceName(ID:Integer):TERRAString;
 
       Property Width: Integer Read _Width;
       Property Height: Integer Read _Height;
@@ -191,7 +191,7 @@ Begin
   _CameraOn := True;
 End;
 
-Function Webcam.GetDeviceName(ID:Integer):AnsiString;
+Function Webcam.GetDeviceName(ID:Integer):TERRAString;
 Begin
   If (ID=0) Then
     Result := 'iOS Camera'

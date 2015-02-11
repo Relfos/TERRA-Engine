@@ -45,13 +45,17 @@ Interface
 {-$DEFINE CONSOLEWINDOW}
 {$ENDIF}
 
+{$IFDEF LINUX}
+{$DEFINE CONSOLEWINDOW}
+{$ENDIF}
+
 {$IFDEF OSX}
 {$DEFINE USE_SYSLOG}
 {.$DEFINE CONSOLEWINDOW}
 {$ENDIF}
 
 
-Uses TERRA_FileIO
+Uses TERRA_FileStream, TERRA_String
 {$IFDEF ANDROID},Android_Log{$ENDIF}
 {$IFDEF USE_SYSLOG},systemlog{$ENDIF}
 {$IFDEF WINDOWS},Windows{$ENDIF}
@@ -65,25 +69,25 @@ Const
   logFilterCount = 4;
 
 Type
-  LogFilterHandler = Procedure(ModuleName, Description:AnsiString);
+  LogFilterHandler = Procedure(ModuleName, Description:TERRAString);
 
   {$IFDEF OXYGENE}
   LogEntry = Class
   {$ELSE}
   LogEntry = Record
   {$ENDIF}
-    ModuleName:AnsiString;
-    Description:AnsiString;
+    ModuleName:TERRAString;
+    Description:TERRAString;
   End;
 
   LogFilter = Record
     FilterType:Integer;
-    Modules:AnsiString;
+    Modules:TERRAString;
     Handler:LogFilterHandler;
   End;
 
-Procedure Log(LogType:Integer; ModuleName, Description:AnsiString);
-Procedure AddLogFilter(LogType:Integer; Modules:AnsiString; Handler:LogFilterHandler);
+Procedure Log(LogType:Integer; ModuleName, Description:TERRAString);
+Procedure AddLogFilter(LogType:Integer; Modules:TERRAString; Handler:LogFilterHandler);
 
 Var
   LoggingDisabled:Boolean;
@@ -104,7 +108,7 @@ Var
     _LogActive:Boolean;
     _LogStarted:Boolean;
 
-  _LogFileName:AnsiString;
+  _LogFileName:TERRAString;
 
   _Filters:Array Of LogFilter;
   _FilterCount:Integer;
@@ -115,7 +119,7 @@ Var
 
   _LastWrite:Cardinal;
 
-Function LogFormatStr(LogType:Integer; ModuleName, Description:AnsiString):AnsiString;
+Function LogFormatStr(LogType:Integer; ModuleName, Description:TERRAString):TERRAString;
 Begin
   If ModuleName<>'' Then
   Begin
@@ -131,7 +135,7 @@ Begin
   Result := Description;
 End;
 
-Procedure AddLogFilter(LogType:Integer; Modules:AnsiString; Handler:LogFilterHandler);
+Procedure AddLogFilter(LogType:Integer; Modules:TERRAString; Handler:LogFilterHandler);
 Begin
   If (LogType<0) Or (LogType>=logFilterCount) Or (@Handler = Nil) Then
     Exit;
@@ -139,11 +143,11 @@ Begin
   Inc(_FilterCount);
   SetLength(_Filters, _FilterCount);
   _Filters[Pred(_FilterCount)].FilterType := LogType;
-  _Filters[Pred(_FilterCount)].Modules := LowStr(Modules);
+  _Filters[Pred(_FilterCount)].Modules := StringLower(Modules);
   _Filters[Pred(_FilterCount)].Handler := Handler;
 End;
 
-Procedure WriteToLog(S:AnsiString);
+Procedure WriteToLog(S:TERRAString);
 Var
   T:Cardinal;
 Begin
@@ -268,10 +272,10 @@ End;
 {$IFNDEF OXYGENE}
 {$I-}
 {$ENDIF}
-Procedure Log(LogType:Integer; ModuleName, Description:AnsiString);
+Procedure Log(LogType:Integer; ModuleName, Description:TERRAString);
 Var
   I:Integer;
-  S:AnsiString;
+  S:TERRAString;
 Begin
   If _LogShutdown Then
     Exit;
@@ -316,9 +320,8 @@ Begin
     Exit;
   {$ENDIF}
 
-  S := LowStr(ModuleName);
   For I:=0 To Pred(_FilterCount) Do
-  If (_Filters[I].FilterType = LogType) And ((_Filters[I].Modules='') Or (Pos(S, _Filters[I].Modules)>0)) Then
+  If (_Filters[I].FilterType = LogType) And ((_Filters[I].Modules='') Or (StringContains(ModuleName, _Filters[I].Modules))) Then
   Begin
     _Filters[I].Handler(ModuleName, Description);
     Exit;
@@ -343,4 +346,4 @@ End;
 Initialization
 Finalization
   Log_Shutdown();
-End.
+End.

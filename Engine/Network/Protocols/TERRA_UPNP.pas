@@ -34,18 +34,18 @@ Type
 	    status:NAT_STAT;
       time_out:Integer;
       interval:Integer;
-	    service_type:AnsiString;
-	    describe_ur:AnsiString;
-	    control_url:AnsiString;
-	    base_url:AnsiString;
-      describe_url:AnsiString;
-	    description_info:AnsiString;
-	    last_error:AnsiString;
-	    mapping_info:AnsiString;
+	    service_type:TERRAString;
+	    describe_ur:TERRAString;
+	    control_url:TERRAString;
+	    base_url:TERRAString;
+      describe_url:TERRAString;
+	    description_info:TERRAString;
+	    last_error:TERRAString;
+	    mapping_info:TERRAString;
 
 	    Function get_description():Boolean;
 	    Function parser_description():Boolean;
-	    Function tcp_connect(Const _host:AnsiString; _port:Word):Boolean;
+	    Function tcp_connect(Const _host:TERRAString; _port:Word):Boolean;
 	    //Function parse_mapping_info():Boolean;
 
     Public
@@ -59,18 +59,18 @@ Type
 	 **** _destination_port: internal port
 	 **** _protocal: TCP or UDP
 	 ***)
-	    Function add_port_mapping(_description, _destination_ip:AnsiString; _port_ex, _port_in:Word; _protocol:AnsiString):Boolean;//add port mapping
+	    Function add_port_mapping(_description, _destination_ip:TERRAString; _port_ex, _port_in:Word; _protocol:TERRAString):Boolean;//add port mapping
 
-      Function get_last_error():AnsiString;
+      Function get_last_error():TERRAString;
   End;
 
-Function AddUPnPEntry(Port: Integer; const Name: ShortString; LAN_IP:AnsiString):Boolean;
+Function AddUPnPEntry(Port: Integer; const Name: ShortString; LAN_IP:TERRAString):Boolean;
 
 Implementation
 Uses TERRA_Log, TERRA_XML, TERRA_Application, TERRA_OS
 {$IFDEF WINDOWS},ActiveX, Comobj{$ENDIF};
 
-Function AddUPnPEntry(Port: Integer; const Name: ShortString; LAN_IP:AnsiString):Boolean;
+Function AddUPnPEntry(Port: Integer; const Name: ShortString; LAN_IP:TERRAString):Boolean;
 {$IFDEF WINDOWS}
 Var
   Nat: Variant;
@@ -108,7 +108,7 @@ Begin
 End;
 {$ENDIF}
 
-Function UPNP.get_last_error():AnsiString;
+Function UPNP.get_last_error():TERRAString;
 Begin
   Result := last_error;
 End;
@@ -116,9 +116,9 @@ End;
 Const
   MAX_BUFF_SIZE = 102400;
 
-Function parseUrl(url:AnsiString; Var host:AnsiString; Var port:Word; Var path:AnsiString):Boolean;
+Function parseUrl(url:TERRAString; Var host:TERRAString; Var port:Word; Var path:TERRAString):Boolean;
 Var
-  str_url, str_port:AnsiString;
+  str_url, str_port:TERRAString;
   I, pos1,pos2,pos3:Integer;
 Begin
 	str_url := url;
@@ -258,7 +258,7 @@ Begin
 	status := NAT_INIT;
 End;
 
-Function UPNP.tcp_connect(Const _host:AnsiString; _port:Word):Boolean;
+Function UPNP.tcp_connect(Const _host:TERRAString; _port:Word):Boolean;
 Var
   ret,i:Integer;
   T, StartTime:Cardinal;
@@ -268,7 +268,7 @@ Begin
 
   r_address.Family := PF_INET;
 	r_address.Port := htons(_port);
-  r_address.Address := inet_addr(PAnsiChar(_host));
+  r_address.Address := inet_addr(PTERRAChar(_host));
 
   StartTime := GetTime();
 	For i:=1 To time_out Do
@@ -298,8 +298,8 @@ Var
   val:Integer;
   udp_socket_fd:Integer;
   i,j,ret:Integer;
-  send_buff, recv_buff:AnsiString;
-  buff:Array[0..MAX_BUFF_SIZE+1] Of AnsiChar; //buff should be enough big
+  send_buff, recv_buff:TERRAString;
+  buff:Array[0..MAX_BUFF_SIZE+1] Of TERRAChar; //buff should be enough big
   r_address, temp2:SocketAddress;
   bOptVal,bOptLen:Integer;
   Temp, _begin, _end:Integer;
@@ -385,12 +385,12 @@ End;
 
 Function UPNP.get_description():Boolean;
 Var
-	host,path:AnsiString;
+	host,path:TERRAString;
   port:Word;
   ret:Boolean;
-  http_request, response:AnsiString;
-  request:AnsiString[200];
-  buff:Array[0..MAX_BUFF_SIZE+1] Of AnsiChar;
+  http_request, response:TERRAString;
+  request:TERRAString[200];
+  buff:Array[0..MAX_BUFF_SIZE+1] Of TERRAChar;
 Begin
 	ret := parseUrl(describe_url, host, port, path);
 	if (Not ret) Then
@@ -431,7 +431,7 @@ End;
 Function UPNP.parser_description():Boolean;
 Var
   doc:XMLDocument;
-  serviceType:AnsiString;
+  serviceType:TERRAString;
   node, baseURL_node, controlURL_node:XMLNode;
   device_node,deviceList_node,deviceType_node:XMLNode;
   serviceList_node,service_node,serviceType_node:XMLNode;
@@ -627,14 +627,14 @@ Begin
 	Result := True;
 End;
 
-Function UPNP.add_port_mapping(_description, _destination_ip:AnsiString; _port_ex, _port_in:Word; _protocol:AnsiString):Boolean;
+Function UPNP.add_port_mapping(_description, _destination_ip:TERRAString; _port_ex, _port_in:Word; _protocol:TERRAString):Boolean;
 Var
 	ret:Boolean;
-	host,path:AnsiString;
+	host,path:TERRAString;
 	port:Word;
-	action_params, soap_message, action_message:AnsiString;
-  response, http_request:AnsiString;
-  buff:Array[0..MAX_BUFF_SIZE+1] Of AnsiChar;
+	action_params, soap_message, action_message:TERRAString;
+  response, http_request:TERRAString;
+  buff:Array[0..MAX_BUFF_SIZE+1] Of TERRAChar;
 Begin
 	ret := parseUrl(control_url, host, port, path);
 	if (Not ret) Then

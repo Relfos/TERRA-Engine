@@ -90,10 +90,10 @@ Procedure DrawPath(Poly:Polygon2D; Layer:Single; Fill:VectorBrush; Width:Single 
 Implementation
 Uses {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_GraphicsManager, TERRA_Math;
 
-Function GetShader_SolidVector:AnsiString;
+Function GetShader_SolidVector:TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('vertex {');
@@ -112,10 +112,10 @@ Begin
   Result := S;
 End;
 
-Function GetShader_RadialVector:AnsiString;
+Function GetShader_RadialVector:TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('vertex {');
@@ -141,10 +141,10 @@ Begin
   Result := S;
 End;
 
-Function GetShader_LinearVector:AnsiString;
+Function GetShader_LinearVector:TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('vertex {');

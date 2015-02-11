@@ -26,9 +26,9 @@ Unit TERRA_Collada;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_OS, TERRA_IO, TERRA_XML, TERRA_Math, TERRA_Vector3D,
+Uses TERRA_String, TERRA_Utils, TERRA_OS, TERRA_Stream, TERRA_XML, TERRA_Math, TERRA_Vector3D,
   TERRA_Vector2D, TERRA_Log, TERRA_Color, TERRA_MeshFilter, TERRA_FileUtils,
-  TERRA_FileIO;
+  TERRA_FileStream;
 
 Type
   PColladaSource = ^ColladaSource;
@@ -269,18 +269,18 @@ Begin
       S := FA.Value;
       While (S<>'') Do
       Begin
-        S2 := GetNextWord(S);
+        S2 := StringGetNextSplit(S, Ord(' '));
         Sources[Pred(SourceCount)].Values[N].X := StringToFloat(S2);
 
         If (Sources[Pred(SourceCount)].Stride>=2) Then
         Begin
-          S2 := GetNextWord(S);
+          S2 := StringGetNextSplit(S, Ord(' '));
           Sources[Pred(SourceCount)].Values[N].Y := StringToFloat(S2);
         End;
 
         If (Sources[Pred(SourceCount)].Stride>=3) Then
         Begin
-          S2 := GetNextWord(S);
+          S2 := StringGetNextSplit(S, Ord(' '));
           Sources[Pred(SourceCount)].Values[N].Z := StringToFloat(S2);
         End;
 
@@ -346,13 +346,13 @@ Begin
           K := 0;
           While S<>'' Do
           Begin
-            S2 := GetNextWord(S);
+            S2 := StringGetNextSplit(S, Ord(' '));
             O1 := StringToInt(S2);
 
-            S2 := GetNextWord(S);
+            S2 := StringGetNextSplit(S, Ord(' '));
             O2 := StringToInt(S2);
 
-            S2 := GetNextWord(S);
+            S2 := StringGetNextSplit(S, Ord(' '));
             O3 := StringToInt(S2);
 
             AddTriangle(N, K, O1, O2, O3);
@@ -434,16 +434,16 @@ Var
   Var
     S2:AnsiString;
   Begin
-    S2 := GetNextWord(S, ' ');
+    S2 := StringGetNextSplit(S, Ord(' '));
     Result.R := Trunc(StringToFloat(S2) * 255);
 
-    S2 := GetNextWord(S, ' ');
+    S2 := StringGetNextSplit(S, Ord(' '));
     Result.G := Trunc(StringToFloat(S2) * 255);
 
-    S2 := GetNextWord(S, ' ');
+    S2 := StringGetNextSplit(S, Ord(' '));
     Result.B := Trunc(StringToFloat(S2) * 255);
 
-    S2 := GetNextWord(S, ' ');
+    S2 := StringGetNextSplit(S, Ord(' '));
     If (S2='') Then
       S2 := '1';
     Result.A := Trunc(StringToFloat(S2) * 255);

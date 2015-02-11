@@ -26,17 +26,18 @@ Unit TERRA_Error;
 {$I terra.inc}
 
 Interface
+Uses TERRA_String;
 
 Var
   _FatalError:Boolean;
 
-Procedure RaiseError(Const Desc:AnsiString);
+Procedure RaiseError(Const Desc:TERRAString);
 
 Implementation
 Uses SysUtils, TERRA_Log;
 
 
-Function DumpCallstack:AnsiString;
+Function DumpCallstack:TERRAString;
 {$IFDEF FPC}
 Var
   I: Longint;
@@ -88,12 +89,12 @@ Type
   TERRAException = Class(Exception)
   End;
 
-Procedure RaiseError(Const Desc:AnsiString);
+Procedure RaiseError(Const Desc:TERRAString);
 Var
-  S:AnsiString;
+  S:TERRAString;
   {$IFDEF CALLSTACKINFO}
   I:Integer;
-  CallStack:AnsiString;
+  CallStack:TERRAString;
   {$ENDIF}
 Begin
   If _FatalError Then

@@ -26,7 +26,7 @@ Unit TERRA_NetLogger;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_IO, TERRA_FileIO, TERRA_Network;
+Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_FileStream, TERRA_Network;
 
 Const
   networkNewConnection      = 0;
@@ -42,9 +42,9 @@ Type
 
     Public
       Class Function Instance:NetworkLogger;
-      Procedure LogConnectionStart(ID:Integer; UserName,Password,DeviceID:AnsiString);
+      Procedure LogConnectionStart(ID:Integer; UserName,Password,DeviceID:TERRAString);
       Procedure LogConnectionEnd(ID:Integer);
-      Procedure LogPacket(ID:Integer; Msg:PNetMessage);
+      Procedure LogPacket(ID:Integer; Msg:NetMessage);
   End;
 
 
@@ -62,7 +62,7 @@ Begin
   Result := _LoggerInstance;
 End;
 
-Procedure NetworkLogger.LogConnectionStart(ID: Integer; UserName, Password, DeviceID:AnsiString);
+Procedure NetworkLogger.LogConnectionStart(ID: Integer; UserName, Password, DeviceID:TERRAString);
 Begin
   Self.InitStream(networkNewConnection);
   _Stream.Write(@ID, 4);
@@ -77,11 +77,16 @@ Begin
   _Stream.Write(@ID, 4);
 End;
 
-Procedure NetworkLogger.LogPacket(ID: Integer; Msg: PNetMessage);
+Procedure NetworkLogger.LogPacket(ID: Integer; Msg: NetMessage);
+Var
+  Size:Integer;
 Begin
+  Size := Msg.Size;
+  
   Self.InitStream(networkPacket);
   _Stream.Write(@ID, 4);
-  _Stream.Write(Msg, SizeOf(LNetMessage));
+  _Stream.Write(@Size, 4);
+  Msg.Copy(_Stream);
 End;
 
 procedure NetworkLogger.InitStream(Opcode:Byte);

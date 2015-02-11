@@ -34,7 +34,7 @@ Unit TERRA_OGG;
 {$ENDIF}
 
 Interface
-Uses TERRA_Utils, TERRA_IO, TERRA_SoundStreamer, TERRA_Sound, TERRA_Log;
+Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_SoundStreamer, TERRA_Sound, TERRA_Log;
 
 
 {$IFDEF USELIBVORBIS}
@@ -89,8 +89,8 @@ Const
 
 Type
 // Array types
-  p_PAnsiChar_array = ^t_PAnsiChar_array;
-  t_PAnsiChar_array = packed array[0..maxint div SizeOf(PAnsiChar)-1] Of PAnsiChar;
+  p_PTERRAChar_array = ^t_PTERRAChar_array;
+  t_PTERRAChar_array = packed array[0..maxint div SizeOf(PTERRAChar)-1] Of PTERRAChar;
 
   p_int_array = ^t_int_array;
   t_int_array = packed array[0..maxint div SizeOf(Integer)-1] Of Integer;
@@ -108,7 +108,7 @@ Type
 
   POggStreamState=^TOggStreamState;
   TOggStreamState=Record
-      BodyData: PAnsiChar;          // bytes from packet bodies
+      BodyData: PTERRAChar;          // bytes from packet bodies
       BodyStorage:Integer;      // storage elements allocated
       BodyFill:Integer;         // elements stored; fill mark
       BodyReturned:Integer;     // elements of fill returned
@@ -121,7 +121,7 @@ Type
       LacingPacket: Integer;
       LacingReturned: Integer;
 
-      Header:Array[0..282] Of AnsiChar;   // working space for header encode
+      Header:Array[0..282] Of TERRAChar;   // working space for header encode
       HeaderFill:Integer;
       EOS:Integer;                    // set when we have buffered the last packet in the logical bitstream
       BOS:Integer;                    // set after we've written the initial page of a logical bitstream
@@ -136,7 +136,7 @@ Type
 
   POggSyncState=^TOggSyncState;
   TOggSyncState=Record
-    Data:PAnsiChar;
+    Data:PTERRAChar;
     Storage:Integer;
     Fill:Integer;
     Returned:Integer;
@@ -194,8 +194,8 @@ Type
   TOggPackBuffer=Record
     EndByte:Integer;
     EndBit:Integer;
-    Buffer:PAnsiChar;
-    Ptr:PAnsiChar;
+    Buffer:PTERRAChar;
+    Ptr:PTERRAChar;
     Storage:Integer;
   End;
 
@@ -231,10 +231,10 @@ Type
 
   PVorbisComment=^TVorbisComment;
   TVorbisComment=Record
-    UserComments:p_PAnsiChar_array;
+    UserComments:p_PTERRAChar_array;
     CommentLengths: p_int_array;
     Comments:Integer;
-    Vendor:PAnsiChar;
+    Vendor:PTERRAChar;
   End;
 
 
@@ -286,7 +286,7 @@ Type
     End;
 
 Function ov_clear(var vf: TOggVorbisFile):Integer; cdecl; external VorbisfileLib;
-Function ov_open_callbacks(const datasource; var vf: TOggVorbisFile; initial: PAnsiChar; ibytes: Integer; callbacks: TOggCallbacks):Integer; cdecl; external VorbisfileLib;
+Function ov_open_callbacks(const datasource; var vf: TOggVorbisFile; initial: PTERRAChar; ibytes: Integer; callbacks: TOggCallbacks):Integer; cdecl; external VorbisfileLib;
  {
 Function ov_bitrate(var vf: TOggVorbisFile; i:Integer): Integer; cdecl; external VorbisfileLib;
 Function ov_bitrate_instant(var vf: TOggVorbisFile): Integer; cdecl; external VorbisfileLib;
@@ -1065,7 +1065,7 @@ type
 
    {$IFNDEF STB_VORBIS_NO_STDIO}
    {$IFNDEF STB_VORBIS_NO_INTEGER_CONVERSION}
-   function stb_vorbis_decode_filename(filename:AnsiString; var channels:integer; var output:pSmallInt):integer;
+   function stb_vorbis_decode_filename(filename:TERRAString; var channels:integer; var output:pSmallInt):integer;
    {$ENDIF}
    {$ENDIF}
    function stb_vorbis_decode_memory(mem:pByte; len:integer; var channels, SampleRate:integer; var output:pSmallInt):Integer;
@@ -1079,7 +1079,7 @@ type
    // this must be the entire stream!). on failure, returns NULL and sets *error
 
    {$IFNDEF STB_VORBIS_NO_STDIO}
-   function stb_vorbis_open_filename(filename:AnsiString; var _error:STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
+   function stb_vorbis_open_filename(filename:TERRAString; var _error:STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
    // create an ogg vorbis decoder from a filename via fopen(). on failure,
    // returns NULL and sets *error (possibly to VORBIS_file_open_failure).
 
@@ -5626,7 +5626,7 @@ begin
    result:=stb_vorbis_open_file_section(_file, close_on_free, _error, alloc, len);
 end;
 
-function stb_vorbis_open_filename(filename:AnsiString; var _error:STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
+function stb_vorbis_open_filename(filename:TERRAString; var _error:STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
 var f: TFileHandle;
 begin
    f := FileOpen(filename, fmOpenRead or fmShareDenyNone);
@@ -5940,7 +5940,7 @@ begin
 end;
 
 {$IFNDEF STB_VORBIS_NO_STDIO}
-function stb_vorbis_decode_filename(filename:AnsiString; var channels:integer; var output:pSmallInt):integer;
+function stb_vorbis_decode_filename(filename:TERRAString; var channels:integer; var output:pSmallInt):integer;
 var
    data_len,n,offset,total,limit: Cardinal;
    _error: STBVorbisError;
@@ -6228,7 +6228,7 @@ Begin
   Result := Stream(DataSource).Position;
 End;
 
-Function GetVorbisErrorName(ErrorCode:Integer):AnsiString;
+Function GetVorbisErrorName(ErrorCode:Integer):TERRAString;
 Begin
   Case ErrorCode of
     OV_FALSE:      Result:='OV_FALSE';

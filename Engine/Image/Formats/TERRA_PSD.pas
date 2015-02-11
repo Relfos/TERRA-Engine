@@ -25,7 +25,7 @@ Unit TERRA_PSD;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_IO, TERRA_Image;
+Uses TERRA_Utils, TERRA_Stream, TERRA_Image;
 
 Implementation
 Uses TERRA_INI, TERRA_Color, TERRA_Log;
@@ -88,7 +88,7 @@ Begin
 
   // Read the number of channels (R, G, B, A, etc).
   Source.Read(@channelCount, 2);
-  If (channelCount < 0) Or (channelCount > 16) Then
+  If (channelCount > 16) Then
   Begin
     Log(logError, 'PSD', 'Unsupported number of channels in PSD: '+ Source.Name + ', channels= '+ IntToString(channelCount));
     Exit;

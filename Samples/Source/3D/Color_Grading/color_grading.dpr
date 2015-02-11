@@ -55,7 +55,7 @@ Begin
   _Scene := MyScene.Create;
   GraphicsManager.Instance.SetScene(_Scene);
 
-  GraphicsManager.Instance.BackgroundColor := ColorWhite;
+  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorWhite;
 
   Percent := 0.5;
 End;
@@ -65,15 +65,15 @@ Procedure MyGame.OnIdle;
 Var
   Delta:Single;
 Begin
-  If Keys[keyEscape] Then
+  If Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
 
   Delta := GraphicsManager.Instance.ElapsedTime;
 
-  If (Application.Instance.Input.Keys[keyLeft]) Then
+  If (Application.Instance.Input.Keys.WasPressed(keyLeft)) Then
     Percent := Percent - Delta;
 
-  If (Application.Instance.Input.Keys[keyRight]) Then
+  If (Application.Instance.Input.Keys.WasPressed(keyRight)) Then
     Percent := Percent + Delta;
 
   If (Percent<0) Then
@@ -92,14 +92,14 @@ Begin
   If Not Assigned(Tex) Then
     Exit;
 
-  S := SpriteManager.Instance.AddSprite(0, 0, 80, Tex);
+  S := SpriteManager.Instance.DrawSprite(0, 0, 80, Tex);
   S.Rect.Width := UIManager.Instance.Width;
   S.Rect.Height := UIManager.Instance.Height;
 
 
   If (Percent>0) Then
   Begin
-    S := SpriteManager.Instance.AddSprite(0, 0, 50, Tex, CurrentGrad);
+    S := SpriteManager.Instance.DrawSprite(0, 0, 50, Tex, CurrentGrad);
     S.Rect.Width := Trunc(UIManager.Instance.Width * Percent);
     S.Rect.Height := UIManager.Instance.Height;
 

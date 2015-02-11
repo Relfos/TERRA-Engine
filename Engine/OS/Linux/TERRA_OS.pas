@@ -4,7 +4,7 @@ Unit TERRA_OS;
 {$I terra.inc}
 
 Interface
-Uses sysutils, TERRA_Utils, TERRA_Application, TERRA_Client, unix, baseunix, dateutils, GLX,X,Xlib,Xutil,Keysym;
+Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Client, unix, baseunix, dateutils, GLX,X,Xlib,Xutil,Keysym;
 
 Const
 	PathSeparator = '/';
@@ -71,7 +71,7 @@ Const
   keyY = Ord('Y');
   keyZ = Ord('Z');
 
-Procedure DisplayMessage(S:AnsiString);
+Procedure DisplayMessage(S:TERRAString);
 Function GetCurrentTime:TERRATime;
 Function GetCurrentDate:TERRADate;
 Function GetTime:Cardinal;
@@ -81,7 +81,7 @@ Type
   LinuxApplication = Class(Application)
     Protected
 			_Display:PDisplay;
-			_Screen:Integer;
+			_ScreenHandle:Integer;
 			_Window:TWindow;
 			_Attr:TXSetWindowAttributes;
 			_Ctx:GLXContext;
@@ -102,9 +102,9 @@ Type
   End;
 
 Implementation
-Uses ctypes, TERRA_Error, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
+Uses sysutils, ctypes, xrandr, TERRA_Input, TERRA_Error, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
 
-Procedure DisplayMessage(S:AnsiString);
+Procedure DisplayMessage(S:TERRAString);
 Begin
 //  TERRA_Log.Log(logNone,'System',S);
 End;
@@ -183,7 +183,7 @@ Begin
   End Else
     Attr[6] := None;
 
-  Result := glXChooseVisual(_Display, _Screen, @Attr);
+  Result := glXChooseVisual(_Display, _ScreenHandle, @Attr);
 End;
 
 Const
@@ -209,10 +209,10 @@ Begin
   Begin
     RaiseError('CreateWindow: Cannot connect to X server.');
     Exit;
-  End;
+  End; 
 
-  _Screen:=DefaultScreen(_Display);
-
+  _ScreenHandle := DefaultScreen(_Display);
+  
   VI := TrySettings(24, 4);
   If Not Assigned(VI) Then
     VI := TrySettings(24, 2);
@@ -364,16 +364,28 @@ Begin
     End;
 End;
 
+Type
+  PXRRScreenSizeArray = ^XRRScreenSizeArray;
+  XRRScreenSizeArray = Array[0..128] Of TXRRScreenSize;
+
+//http://www.blitzbasic.com/Community/posts.php?topic=86911
 Function LinuxApplication.InitSettings: Boolean;
 Var
-  Lang:AnsiString;
+  Lang:TERRAString;
+  Root:TWindow;
+  xrrs:PXRRScreenSizeArray;
+  num_sizes:Integer;
+  original_rotation:PRotation;
+  original_size_id:TSizeID;
+  conf:PXRRScreenConfiguration;
+  current_rate:Integer;
 Begin
   Inherited InitSettings;
-  
+
   Log(logDebug,'App', 'Getting user locale...');
   lang := GetEnvironmentVariable('LANG');
-  _Language := GetNextWord(Lang, '_');
-  _Country := GetNextWord(Lang, '.');
+  _Language := StringGetNextSplit(Lang, Ord('_'));
+  _Country := StringGetNextSplit(Lang, Ord('.'));
 
   If (_Country='') Then
     _Country := _Language;
@@ -381,18 +393,40 @@ Begin
   SetLength(_Language, 2);
   SetLength(_Country, 2);
 
-  _Language := UpStr(_Language);
-  _Country := UpStr(_Country);
+  _Language := StringUpper(_Language);
+  _Country := StringUpper(_Country);
 
   Log(logDebug, 'App', 'Country: '+_Country);
   Log(logDebug, 'App', 'Language: '+_Language);
-
 
 
   Log(logDebug,'App', 'Getting cpu core count...');
   _CPUCores := sysconf(_SC_NPROCESSORS_ONLN);
   Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
 
+  Log(logDebug,'App', 'Getting screen resolution...');
+  
+  _Display := XOpenDisplay(Nil);
+  If (Not Assigned(_Display)) Then
+  Begin
+    RaiseError('CreateWindow: Cannot connect to X server.');
+    Exit;
+  End;
+
+  original_rotation := Nil;
+
+  Root := RootWindow(_Display, 0);
+  
+  xrrs := PXRRScreenSizeArray(XRRSizes(_Display, 0, @num_sizes));
+  
+  conf := XRRGetScreenInfo(_Display, Root);
+  current_rate := XRRConfigCurrentRate(conf);
+  original_size_id := XRRConfigCurrentConfiguration(conf, @original_rotation);
+  _Screen.Width := xrrs[original_size_id].width;
+  _Screen.Height := xrrs[original_size_id].height;
+
+  XCloseDisplay(_Display); 
+ 
   Result := True;
 End;
 

@@ -25,7 +25,7 @@ Unit TERRA_TTF;
 
 {$I terra.inc}
 Interface
-Uses TERRA_Utils, TERRA_IO, TERRA_Font, TERRA_Color, TERRA_Image;
+Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Font, TERRA_Color, TERRA_Image;
 
 {$RANGECHECKS OFF}
 
@@ -154,7 +154,7 @@ Type
 
     Public
       Constructor Create(Source:Stream); Overload;
-      Constructor Create(FileName:AnsiString); Overload;
+      Constructor Create(Const FileName:TERRAString); Overload;
 
       Destructor Destroy; Override;
 
@@ -382,7 +382,7 @@ end;
 
 
 { TTF }
-Constructor TTFFont.Create(FileName:AnsiString);
+Constructor TTFFont.Create(Const FileName:TERRAString);
 Var
   Source:Stream;
 Begin

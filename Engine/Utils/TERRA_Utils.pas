@@ -1,3 +1,28 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Utils
+ * Various unsorted util functions
+ ***********************************************************************************************************************
+}
+
+
 {$IFDEF OXYGENE}
 namespace TERRA;
 
@@ -8,21 +33,7 @@ Unit TERRA_Utils;
 
 Interface
 
-{$IFDEF VER150}
-{$IFDEF WINDOWS}
-{$IFDEF FULLDEBUG}
-{$DEFINE USE_MEMCHECK}
-{$ENDIF}
-{$ENDIF}
-{$ENDIF}
-
-{$IFDEF USE_MEMCHECK}
-Uses MemCheck;
-{$ELSE}
-{$IFNDEF DEBUG_LEAKS}
-Uses TERRA_MemoryManager;
-{$ENDIF}
-{$ENDIF}
+Uses TERRA_String;
 
 Type
   TERRATime=Record
@@ -144,11 +155,11 @@ Function Cos(S:Single):Single;
 Function ArcTan(S:Single):Single;
 Function Sqrt(S:Single):Single;
 Function Sqr(S:Single):Single;
-Function Pos(Const S2, S:AnsiString):Integer;
+Function Pos(Const S2, S:TERRAString):Integer;
 Function Odd(N:Integer):Boolean;
 Procedure Halt(ExitCode:Integer);
-Procedure Delete(Var S:AnsiString; Ind, Count:Integer);
-Function Copy(Const S:AnsiString; Ind,Count:Integer):AnsiString;
+Procedure Delete(Var S:TERRAString; Ind, Count:Integer);
+Function Copy(Const S:TERRAString; Ind,Count:Integer):TERRAString;
 {$ENDIF}
 
 Function IntMax(Const A,B:Integer):Integer;
@@ -156,64 +167,41 @@ Function IntMin(Const A,B:Integer):Integer;
 Function LongMax(Const A,B:Cardinal):Cardinal;
 Function LongMin(Const A,B:Cardinal):Cardinal;
 
-Function GetNextLine(Var S:AnsiString):AnsiString;
-Function GetNextWord(Var S:AnsiString; Separator:AnsiString=' '):AnsiString;
-Function GetNextArg(Var S:AnsiString):AnsiString;
-Function GetNextToken(Var S:AnsiString; Separator:AnsiChar=','; Op:AnsiChar='(';Ed:AnsiChar=')'):AnsiString;
-Function FindCloseBracket(Const S:AnsiString; Op:AnsiChar='(';Ed:AnsiChar=')'):Integer;
-
-Function TrimLeft(Const S:AnsiString):AnsiString;
-Function TrimRight(Const S:AnsiString):AnsiString;
-
-Function UpStr(Const S:AnsiString):AnsiString;
-Function LowStr(Const S:AnsiString):AnsiString;
-Function CapStr(Const S:AnsiString):AnsiString;
-
-Function StrLPad(Const S:AnsiString; N:Integer; Token:AnsiChar='0'):AnsiString;
-Function StrRPad(Const S:AnsiString; N:Integer; Token:AnsiChar='0'):AnsiString;
-Function StrClean(Const S:AnsiString):AnsiString;
+//Function GetNextLine(Var S:TERRAString):TERRAString;
+//Function StringExtractNextWord(Var S:TERRAString; Separator:TERRAString=' '):TERRAString;
+//Function GetNextArg(Var S:TERRAString):TERRAString;
+//Function GetNextToken(Var S:TERRAString; Separator, Op, Ed:TERRAChar):TERRAString;
+//Function FindCloseBracket(Const S:TERRAString; Op, Ed:TERRAChar):Integer;
 
 Function TicksToTime(Ticks:Cardinal):TERRATime;
 
-Function IntToString(Const N:Integer):AnsiString;
-Function CardinalToString(Const N:Cardinal):AnsiString;Overload;
-Function Int64ToString(Const N:Int64):AnsiString;
-Function UInt64ToString(Const N:UInt64):AnsiString;
-Function FloatToString(Const N:Single; DecimalPlaces:Integer = 4):AnsiString;
-Function BoolToString(Const N:Boolean):AnsiString;Overload;
-Function TimeToString(Const N:TERRATime):AnsiString;Overload;
-Function VersionToString(Const N:TERRAVersion):AnsiString;Overload;
-//Function TicksToString(Const N:Cardinal):AnsiString;Overload;
+Function IntToString(Const N:Integer):TERRAString;
+Function CardinalToString(Const N:Cardinal):TERRAString;Overload;
+Function Int64ToString(Const N:Int64):TERRAString;
+Function UInt64ToString(Const N:UInt64):TERRAString;
+Function FloatToString(Const N:Single; DecimalPlaces:Integer = 4):TERRAString;
+Function BoolToString(Const N:Boolean):TERRAString;Overload;
+Function TimeToString(Const N:TERRATime):TERRAString;Overload;
+Function VersionToString(Const N:TERRAVersion):TERRAString;Overload;
+//Function TicksToString(Const N:Cardinal):TERRAString;Overload;
 
-Function HexStr(Const Value:Byte):AnsiString;Overload;
-Function HexStr(Const Value:Word):AnsiString;Overload;
-Function HexStr(Const Value:Cardinal):AnsiString;Overload;
-Function HexStr(Const Value:UInt64):AnsiString;Overload;
+Function HexStr(Const Value:Byte):TERRAString;Overload;
+Function HexStr(Const Value:Word):TERRAString;Overload;
+Function HexStr(Const Value:Cardinal):TERRAString;Overload;
+Function HexStr(Const Value:UInt64):TERRAString;Overload;
 
-Function HexStrToInt(Const S:AnsiString):Integer;
+Function HexStrToInt(Const S:TERRAString):Integer;
 
-Function StringToBase64(Buf:AnsiString):AnsiString;
-Function Base64ToString(B64:AnsiString):AnsiString;
+Function StringToBase64(Buf:TERRAString):TERRAString;
+Function Base64ToString(B64:TERRAString):TERRAString;
 
-Function Tabs(Length:Integer):AnsiString;
-Function Spaces(Length:Integer):AnsiString;
+Procedure TimeStampToDateAndtime(TimeStamp:Cardinal; Var Date:TERRADate; Var Time:TERRATime);
 
-Procedure TimeStampToDateAndtime(TimeStamp:Integer; Var Date:TERRADate; Var Time:TERRATime);
-
-Procedure ReplaceText(Const Token,Value:AnsiString; Var S:AnsiString);
-
-Function PosRev(Const SubStr,Str:AnsiString):Integer;
-
-Function UnicodePos(C:AnsiChar; S:AnsiString):Integer;
-Function UnicodeChar(Code:Word):AnsiString;
-
-Function StringToInt(Const S:AnsiString):Integer;
-Function StringToCardinal(Const S:AnsiString):Cardinal;
-Function StringToBool(Const S:AnsiString):Boolean;
-Function StringToVersion(Const S:AnsiString):TERRAVersion;
-Function StringToFloat(Const S:AnsiString):Single;
-
-Function StringWithDoubleParagraphs(Const S:AnsiString):AnsiString;
+Function StringToInt(Const S:TERRAString):Integer;
+Function StringToCardinal(Const S:TERRAString):Cardinal;
+Function StringToBool(Const S:TERRAString):Boolean;
+Function StringToVersion(Const S:TERRAString):TERRAVersion;
+Function StringToFloat(Const S:TERRAString):Single;
 
 Procedure FillByte(Var Dest; Count:Integer; Value:Byte);
 Procedure FillWord(Var Dest; Count:Integer; Value:Word);
@@ -235,9 +223,9 @@ Function MinutesToTicks(Minutes:Single):Cardinal;
 
 Procedure DebugBreak(Condition:Boolean = True);
 
-Procedure RemoveSpecialHTMLChars(Var S:AnsiString);
-
 Procedure RemoveHint(X:Integer);
+
+Procedure FreeAndNil(var Obj);
 
 Type
   TERRAObject = Class
@@ -245,7 +233,6 @@ Type
       Destructor Destroy; Override;
   End;
 
-Procedure DestroyObject(Obj:Pointer);
 
 Implementation
 Uses TERRA_Log;
@@ -319,7 +306,7 @@ Begin
     Result := (N Mod 2)<>0; 
 End;
 
-Function Pos(S2, S:AnsiString):Integer;
+Function Pos(S2, S:TERRAString):Integer;
 Begin
     Result := S.IndexOf(S2);
 End;
@@ -329,17 +316,17 @@ Begin
     System.Windows.Forms.Application.Exit();
 End;
 
-Procedure Delete(Var S:AnsiString; Ind, Count:Integer);
+Procedure Delete(Var S:TERRAString; Ind, Count:Integer);
 Begin
     S.Remove(Ind, Count); 
 End;
 
-Function Copy(S:AnsiString; Ind,Count:Integer):AnsiString;
+Function Copy(S:TERRAString; Ind,Count:Integer):TERRAString;
 Begin
     Result := S.Substring(Ind, Count);
 End;
 
-Function StringEqual(A,B:AnsiString):Boolean;
+Function StringEqual(A,B:TERRAString):Boolean;
 Begin
     If ((A=nil) And (B='')) Or ((A='') And (B=nil)) Then
         Result := True
@@ -347,45 +334,16 @@ Begin
         Result := A.Equals(B);
 End;
 
-Function StringEnd(A:AnsiString):Integer;
+Function StringEnd(A:TERRAString):Integer;
 Begin
     Result := A.Length - 1;
 End;
 
 {$ENDIF}
 
-Function GetNextLine(Var S:AnsiString):AnsiString;
-Var
-  I,J:Integer;
-Begin
-  If S =  '' Then
-  Begin
-    Result := '';
-    Exit;
-  End;
+(*
 
-  I := 1;
-  While I<Length(S) Do
-  If (S[I]=#255) Then
-    Inc(I, 3)
-  Else
-  If (S[I]=#10) Or (S[I]=#13) Then
-  Begin
-    J := Pred(I);
-    If (S[I+1]=#10) Or (S[I+1]=#13) Then
-      Inc(I);
-
-    Result := Copy(S, 1, J);
-    S := Copy(S, Succ(I), MaxInt);
-    Exit;
-  End Else
-    Inc(I);
-
-  Result := S;
-  S := '';
-End;
-
-Function GetNextWord(Var S:AnsiString; Separator:AnsiString=' '):AnsiString;
+Function StringExtractNextWord(Var S:TERRAString; Separator:TERRAString=' '):TERRAString;
 Var
   I:Integer;
 Begin
@@ -407,9 +365,9 @@ Begin
     S := Copy(S, (I+1), MaxInt);
   End;
   S := TrimLeft(S);
-End;
+End;*)
 
-Function GetNextToken(Var S:AnsiString; Separator:AnsiChar=','; Op:AnsiChar='(';Ed:AnsiChar=')'):AnsiString;
+{Function GetNextToken(Var S:TERRAString; Separator, Op, Ed:TERRAChar):TERRAString;
 Var
  I,J,K:Integer;
 Begin
@@ -452,7 +410,7 @@ Begin
   S := TrimLeft(S);
 End;
 
-Function GetNextArg(Var S:AnsiString):AnsiString;
+Function GetNextArg(Var S:TERRAString):TERRAString;
 Var
   I:Integer;
 Begin
@@ -468,22 +426,7 @@ Begin
   End;
 End;
 
-Function GetFileExt(FileName:AnsiString):AnsiString;
-Var
-  I:Integer;
-Begin
-  Result:='';
-  Repeat
-    I:=Pos('.',FileName);
-    If I>=1 Then
-    Begin
-      Result := Copy(FileName,I+1,Length(FileName)-I);
-      FileName := Copy(FileName, (I+1), MaxInt);
-    End;
-  Until I<1;
-End;
-
-Function FindCloseBracket(Const S:AnsiString; Op:AnsiChar='(';Ed:AnsiChar=')'):Integer;
+Function FindCloseBracket(Const S:TERRAString; Op:TERRAChar='(';Ed:TERRAChar=')'):Integer;
 Var
  K,I:Integer;
 Begin
@@ -502,23 +445,10 @@ Begin
     End Else
       Dec(K);
   End;
-End;
+End;}
 
-Function StrClean(Const S:AnsiString):AnsiString;
-Var
-  I,N:Integer;
-Begin
-  N := Length(S);
-  For I:=1 To Length(S) Do
-    If (S[I]<' ') Then
-    Begin
-      N := (I-1);
-      Break;
-    End;
-  Result := Copy(S, 1, N);
-End;
 
-Function TrimLeft(Const S:AnsiString):AnsiString;
+(*Function TrimLeft(Const S:TERRAString):TERRAString;
 Var
   I,L:Integer;
 Begin
@@ -533,7 +463,7 @@ Begin
   Result := Copy(S,I,Maxint);
 End;
 
-Function TrimRight(Const S:AnsiString):AnsiString;
+Function TrimRight(Const S:TERRAString):TERRAString;
 Var
   I:Integer;
 Begin
@@ -544,16 +474,16 @@ Begin
   Result:=Copy(S,1,I);
 End;
 
-Function UpCase(Const C:AnsiChar):AnsiChar;
+Function UpCase(Const C:TERRAChar):TERRAChar;
 Begin
     If (C>='a')And(C<='z') Then
-        Result := AnsiChar(Byte(C) - 32)
+        Result := TERRAChar(Byte(C) - 32)
     Else
         Result := C;
 End;
 
 //Converts a string to upcase
-Function UpStr(Const S:AnsiString):AnsiString;
+Function StringUpper(Const S:TERRAString):TERRAString;
 Var
   I:Integer;
 Begin
@@ -563,10 +493,10 @@ Begin
 End;
 
 //Converts a string to lowercase
-Function LowStr(Const S:AnsiString):AnsiString;
+Function StringLower(Const S:TERRAString):TERRAString;
 Var
   I:Integer;
-  C:AnsiChar;
+  C:TERRAChar;
 Begin
   Result:='';
   For I:=1 To Length(S) Do
@@ -578,44 +508,44 @@ Begin
   End;
 End;
 
-Function CapStr(Const S:AnsiString):AnsiString;
+Function CapStr(Const S:TERRAString):TERRAString;
 Begin
-  Result := LowStr(S);
+  Result := StringLower(S);
   If Result<>'' Then
     Result[1] := UpCase(Result[1]);
-End;
+End;*)
 
 {$IFDEF OXYGENE}
-Function StringToInt(Const S:AnsiString):Integer;
+Function StringToInt(Const S:TERRAString):Integer;
 Begin
   Result := System.Convert.ToInt32(S);
 End;
 
-Function StringToCardinal(Const S:AnsiString):Cardinal;
+Function StringToCardinal(Const S:TERRAString):Cardinal;
 Begin
   Result := System.Convert.ToUInt32(S);
 End;
 
-Function StringToBool(Const S:AnsiString):Boolean;
+Function StringToBool(Const S:TERRAString):Boolean;
 Begin
-  Result := UpStr(S).Equals(iTrue);
+  Result := StringUpper(S).Equals(iTrue);
 End;
 
 //Converts a string to an Single
-Function StringToFloat(Const S:AnsiString):Single;
+Function StringToFloat(Const S:TERRAString):Single;
 Begin
   Result := System.Convert.ToSingle(S);
 End;
 
 {$ELSE}
-Function StringToInt(Const S:AnsiString):Integer;
+Function StringToInt(Const S:TERRAString):Integer;
 Var
  K:Integer;
 Begin
   Val(S,Result,K);
 End;
 
-Function StringToCardinal(Const S:AnsiString):Cardinal;
+Function StringToCardinal(Const S:TERRAString):Cardinal;
 Var
   K:Integer;
 Begin
@@ -625,13 +555,13 @@ Begin
     Val(S, Result, K);
 End;
 
-Function StringToBool(Const S:AnsiString):Boolean;
+Function StringToBool(Const S:TERRAString):Boolean;
 Begin
-  Result:=(UpStr(S)=UpStr(iTrue));
+  Result:=(StringUpper(S)=StringUpper(iTrue));
 End;
 
 //Converts a string to an Single
-Function StringToFloat(Const S:AnsiString):Single;
+Function StringToFloat(Const S:TERRAString):Single;
 Var
   I:Integer;
   X:Single;
@@ -641,73 +571,51 @@ Begin
 End;
 {$ENDIF}
 
-Function StringWithDoubleParagraphs(Const S:AnsiString):AnsiString;
-Begin
-  Result := S;
-  ReplaceText('\n \n', '##', Result);
-  ReplaceText('\n', '##', Result);
-  ReplaceText('##', '\n \n', Result);
-End;
-
-Function StringToVersion(Const S:AnsiString):TERRAVersion;
+Function StringToVersion(Const S:TERRAString):TERRAVersion;
 Var
-  S1,S2:AnsiString;
+  S1,S2:TERRAString;
 Begin
   S1 := S;
-  S2 := GetNextWord(S1,'.');
+  S2 := StringGetNextSplit(S1, Ord('.'));
   Result.Major := StringToInt(S2);
-  S2 := GetNextWord(S1,'.');
+  S2 := StringGetNextSplit(S1, Ord('.'));
   Result.Minor := StringToInt(S2);
   Result.Build := StringToInt(S1);
 End;
 
-Function StrLPad(Const S:AnsiString;N:Integer; Token:AnsiChar='0'):AnsiString;
-Begin
-  Result := S;
-  While Length(Result)<N Do
-    Result := Token + Result;
-End;
-
-Function StrRPad(Const S:AnsiString;N:Integer; Token:AnsiChar='0'):AnsiString;
-Begin
-  Result := S;
-  While Length(Result)<N Do
-    Result := Result + Token;
-End;
-
 {$IFDEF OXYGENE}
-Function IntToString(Const N:Integer):AnsiString;
+Function IntToString(Const N:Integer):TERRAString;
 Begin
   Result := System.Convert.ToString(N);
 End;
 {$ELSE}
-Function IntToString(Const N:Integer):AnsiString;
+Function IntToString(Const N:Integer):TERRAString;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   Str(N,S);
   Result := S;
 End;
 {$ENDIF}
 
-Function Int64ToString(Const N:Int64):AnsiString;
+Function Int64ToString(Const N:Int64):TERRAString;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   Str(N,S);
   Result := S;
 End;
 
-Function UInt64ToString(Const N:UInt64):AnsiString;
+Function UInt64ToString(Const N:UInt64):TERRAString;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   Str(N,S);
   Result := S;
 End;
 
 
-Function BoolToString(Const N:Boolean):AnsiString;
+Function BoolToString(Const N:Boolean):TERRAString;
 Begin
   If N Then
     Result := iTrue
@@ -715,7 +623,7 @@ Begin
     Result := iFalse;
 End;
 
-Function TimeToString(Const N:TERRATime):AnsiString;
+Function TimeToString(Const N:TERRATime):TERRAString;
 Begin
   Result := CardinalToString(N.Hour) + ':' +
             CardinalToString(N.Minute) + ':' +
@@ -723,21 +631,21 @@ Begin
 End;
 
 {$IFDEF OXYGENE}
-Function CardinalToString(Const N:Cardinal):AnsiString;
+Function CardinalToString(Const N:Cardinal):TERRAString;
 Begin
     Result := System.Convert.ToString(N);
 End;
 {$ELSE}
-Function CardinalToString(Const N:Cardinal):AnsiString;
+Function CardinalToString(Const N:Cardinal):TERRAString;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   Str(N,S);
   Result:=S;
 End;
 {$ENDIF}
 
-Function VersionToString(Const N:TERRAVersion):AnsiString;
+Function VersionToString(Const N:TERRAVersion):TERRAString;
 Begin
   Result := CardinalToString(N.Major)+'.'+CardinalToString(N.Minor)+'.'+CardinalToString(N.Build);
 End;
@@ -751,12 +659,12 @@ Begin
 End;
 
 {$IFDEF OXYGENE}
-Function FloatToString(Const N:Single):AnsiString;
+Function FloatToString(Const N:Single):TERRAString;
 Begin
   Result := System.Convert.ToString(N);
 End;
 {$ELSE}
-Function FloatToString(Const N:Single; DecimalPlaces:Integer):AnsiString;
+Function FloatToString(Const N:Single; DecimalPlaces:Integer):TERRAString;
 Var
   P,X:Single;
   A,B, I:Integer;
@@ -778,9 +686,9 @@ Begin
 End;
 {$ENDIF}
 
-{Function TicksToString(Const N:Cardinal):AnsiString;
+{Function TicksToString(Const N:Cardinal):TERRAString;
 Var
-  Ext:AnsiString;
+  Ext:TERRAString;
   X:Single;
   Int,Rem:Integer;
 Begin
@@ -816,15 +724,15 @@ Begin
  Result:=(Major*1000)+(Minor*100)+Build;
 End;
 
-Procedure ReplaceText(Const Token,Value:AnsiString; Var S:AnsiString);
+(*Procedure ReplaceText(Const Token,Value:TERRAString; Var S:TERRAString);
 Var
   I:Integer;
-  S2:AnsiString;
+  S2:TERRAString;
 Begin
   If (Token = Value) Then
     Exit;
 
-  I := Pos(Upstr(Token),Upstr(S));
+  I := Pos(StringUpper(Token),StringUpper(S));
   If (I>=1) Then
   Begin
     S2 := Copy(S,I+Length(Token),Length(S)-I);
@@ -832,15 +740,15 @@ Begin
     ReplaceText(Token, Value, S2);
     S := S + Value + S2;
   End;
-End;
+End;*)
 
 Const
   Hex : Array[0..15] of AnsiChar = '0123456789ABCDEF';
 
 {$IFDEF OXYGENE}
-Function HexStr(Const Value:Byte):AnsiString;
+Function HexStr(Const Value:Byte):TERRAString;
 Var
-  txt:AnsiString;
+  txt:TERRAString;
 Begin
   txt := new String('0', 2);
   txt[1] := Hex[(value SHR  4) AND $0F];
@@ -848,9 +756,9 @@ Begin
   Result := txt;
 End;
 
-Function HexStr(Const Value:Word):AnsiString;
+Function HexStr(Const Value:Word):TERRAString;
 Var
-  txt:AnsiString;
+  txt:TERRAString;
 Begin
   txt := new String('0', 4);
   txt[1] := Hex[(value SHR 12) AND $0F];
@@ -860,9 +768,9 @@ Begin
   Result := txt;
 End;
 
-Function HexStr(Const Value:Cardinal):AnsiString;
+Function HexStr(Const Value:Cardinal):TERRAString;
 Var
-  txt :AnsiString;
+  txt :TERRAString;
 Begin
   txt := new String('0', 8);
   txt[1]:= Hex[(value SHR 28) AND $0F];
@@ -876,14 +784,14 @@ Begin
   Result:= txt;
 End;
 {$ELSE}
-Function HexStr(Const Value:Byte):AnsiString;
+Function HexStr(Const Value:Byte):TERRAString;
 Begin
   SetLength(Result, 2);
   Result[1] := Hex[(value SHR  4) AND $0F];
   Result[2] := Hex[value AND $0F];
 End;
 
-Function HexStr(Const Value:Word):AnsiString;
+Function HexStr(Const Value:Word):TERRAString;
 Begin
   SetLength(Result, 4);
   Result[1]:= Hex[(value SHR 12) AND $0F];
@@ -892,7 +800,7 @@ Begin
   Result[4]:= Hex[value AND $0F];
 End;
 
-Function HexStr(Const Value:Cardinal):AnsiString;
+Function HexStr(Const Value:Cardinal):TERRAString;
 Begin
   SetLength(Result, 8);
   Result[1]:= Hex[(value SHR 28) AND $0F];
@@ -905,7 +813,7 @@ Begin
   Result[8]:= Hex[value AND $0F];
 End;
 
-Function HexStr(Const Value:UInt64):AnsiString;Overload;
+Function HexStr(Const Value:UInt64):TERRAString;Overload;
 Begin
   SetLength(Result, 16);
   Result[1]:= Hex[(value SHR 60) AND $0F];
@@ -927,7 +835,7 @@ Begin
 End;
 {$ENDIF}
 
-Function HexStrToInt(Const S:AnsiString):Integer;
+Function HexStrToInt(Const S:TERRAString):Integer;
 Var
   I,J,K:Integer;
 Begin
@@ -947,12 +855,12 @@ Begin
 End;
 
 Const
-  Base64Code:AnsiString= 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'+
+  Base64Code:TERRAString= 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'+
                         'abcdefghijklmnopqrstuvwxyz'+
                         '0123456789+/';
   Pad = '=';
 
-Function StringToBase64(Buf:AnsiString):AnsiString;
+Function StringToBase64(Buf:TERRAString):TERRAString;
 Var
   I:Integer;
   x1,x2,x3,x4:Byte;
@@ -1006,7 +914,7 @@ Begin
   End;
 
  // if needed, finish by forcing padding chars ('=')
- // at end Of AnsiString
+ // at end Of TERRAString
   If PadCount>0 Then
     For i := Length( Result ) DownTo 1 do
     Begin
@@ -1023,7 +931,7 @@ Var
   I:Integer;
 Begin
   For I:=1 To Length(Base64Code) Do
-  If Base64Code[i]=c Then
+  If Base64Code[i]=C Then
   Begin
     Result := (I-1);
     Exit;
@@ -1032,10 +940,10 @@ Begin
 End;
 
 {$RANGECHECKS OFF}
-Function Base64ToString(B64:AnsiString):AnsiString;
+Function Base64ToString(B64:TERRAString):TERRAString;
 Var
   I,PadCount:Integer;
-  Block:AnsiString;
+  Block:TERRAString;
   N:Integer;
   A,B,C,D:Byte;
 Begin
@@ -1088,58 +996,6 @@ Begin
     Delete(Result, Length(Result), 1);
     Dec(PadCount);
   End;
-End;
-
-Function UnicodePos(C:AnsiChar; S:AnsiString):Integer;
-Var
-  I:Integer;
-Begin
-  I :=1;
-  While (I<=Length(S)) Do
-  If (S[I]=C) Then
-  Begin
-    Result := I;
-    Exit;
-  End Else
-  If (S[I]=#255) Then
-    Inc(I, 3)
-  Else
-    Inc(I);
-
-  Result := -1;
-End;
-
-Function UnicodeChar(Code:Word):AnsiString;
-Var
-  A,B:Byte;
-Begin
-  A := Byte(Code And $FF);
-  B := Byte((Code Shr 8) And $FF);
-  Result := #255 + Chr(B) + Chr(A);
-End;
-
-//Returns the position of a substring inside of a string
-//Search starts from the end of the string.
-Function PosRev(Const SubStr,Str:AnsiString):Integer;
-Var
- I,K,N:Integer;
-Begin
- K := 0;
- N := Length(SubStr);
- For I:=Length(Str) DownTo 1 Do
- Begin
-  If Str[I]=SubStr[N] Then
-  Begin
-   If N=1 Then
-   Begin
-    K:=I;
-    Break;
-   End Else
-    Dec(N);
-  End Else
-   N:=Length(SubStr);
- End;
- Result:=K;
 End;
 
 Procedure SetFlag(Var N:Byte; Const Flag:Byte; Const Value:Boolean);
@@ -1272,19 +1128,28 @@ End;
 
 
 Destructor TERRAObject.Destroy;
-Var
-  S:AnsiString;
+{Var
+  S:TERRAString;}
 Begin
-  S := Self.ClassName;
-  Log(logWarning, 'App', S + ' destructor needs override.');
+{  S := Self.ClassName;
+  Log(logWarning, 'App', S + ' destructor needs override.');}
 
   Inherited;
 End;
 
-Procedure DestroyObject(Obj:Pointer);
+Procedure FreeAndNil(var Obj);
+var
+  Temp: TObject;
+begin
+  Temp := TObject(Obj);
+  Pointer(Obj) := nil;
+  Temp.Free;
+end;
+
+(*Procedure DestroyObject(Obj:Pointer);
 Var
   Temp:TERRAObject;
-  S:AnsiString;
+  S:TERRAString;
 Begin
   If (Obj = Nil) Then
     Exit;
@@ -1308,14 +1173,14 @@ Begin
   End;
 
   Cardinal(Obj^) := 0;
-End;
+End;*)
 
 Function MinutesToTicks(Minutes:Single):Cardinal;
 Begin
   Result := Trunc(1000*60*Minutes);
 End;
 
-Procedure TimeStampToDateAndtime(TimeStamp:Integer; Var Date:TERRADate; Var Time:TERRATime);
+Procedure TimeStampToDateAndtime(TimeStamp:Cardinal; Var Date:TERRADate; Var Time:TERRATime);
 Var
   S,H,M,X,B,C,D,E,F:Integer;
 Begin
@@ -1348,24 +1213,6 @@ Begin
   Time.MiliSecond := 0;
 End;
 
-Function Tabs(Length:Integer):AnsiString;
-Var
-  I:Integer;
-Begin
-  SetLength(Result, Length);
-  For I:=1 To Length Do
-    Result[I] := Tab;
-End;
-
-Function Spaces(Length:Integer):AnsiString;
-Var
-  I:Integer;
-Begin
-  SetLength(Result, Length);
-  For I:=1 To Length Do
-    Result[I] := ' ';
-End;
-
 Procedure DebugBreak(Condition:Boolean = True);
 Begin
   {$IFNDEF FPC}
@@ -1374,14 +1221,6 @@ Begin
     Int 3;
   End;
   {$ENDIF}
-End;
-
-Procedure RemoveSpecialHTMLChars(Var S:AnsiString);
-Begin
-  ReplaceText('&amp;', '&', S);
-  ReplaceText('&quot;', '"', S);
-  ReplaceText('&lt;', '<', S);
-  ReplaceText('&gt;', '>', S);
 End;
 
 Procedure RemoveHint(X:Integer);

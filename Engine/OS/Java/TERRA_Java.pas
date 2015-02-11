@@ -2,7 +2,7 @@
 Unit TERRA_Java;
                
 Interface
-Uses TERRA_Utils, JNI;
+Uses TERRA_String, TERRA_Utils, JNI;
 
 Type
   JavaClass = Class;
@@ -75,7 +75,7 @@ Function JavaToString(S:JObject):AnsiString;
 //Procedure Java_AttachThread(Var Env:PJNIEnv);
 Procedure Java_DetachThread();
 
-Procedure Java_Begin(Var Frame:JavaFrame);
+Procedure Java_Begin(Out Frame:JavaFrame);
 Procedure Java_End(Var Frame:JavaFrame);
 
 Implementation
@@ -196,7 +196,7 @@ Begin
 
   {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Finding class: '+Name);{$ENDIF}
 
-  ReplaceText('.','/',Name);
+  StringReplaceChar(Ord('.'), Ord('/'), Name);
   Result := JClass(Env^^.FindClass(Env, PAnsiChar(Name)));
 
   If Result = Nil Then
@@ -545,7 +545,7 @@ Var
   Method:JMethodID;
   Obj:JObject;
 Begin
-  ReplaceText('.','/',Name);
+  StringReplaceChar(Ord('.'), Ord('/'), Name);
   Method := Self.GetStaticMethod(_Frame, Name, Args, 'L'+ObjClass+';');
 
   If (Assigned(Method)) Then
@@ -724,7 +724,7 @@ Var
 End;
 
 { JavaFrame }
-Procedure Java_Begin(Var Frame:JavaFrame);
+Procedure Java_Begin(Out Frame:JavaFrame);
 Begin
 {  If Assigned(Frame) Then
   Begin

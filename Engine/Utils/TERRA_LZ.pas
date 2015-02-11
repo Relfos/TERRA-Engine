@@ -2,13 +2,13 @@ Unit TERRA_LZ;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_IO;
+Uses TERRA_Utils, TERRA_Stream;
 
 {$R-}
 
 Const
 // LZSS Parameters
-  _N=4096; // Size Of AnsiString buffer
+  _N=4096; // Size Of TERRAString buffer
   _F=60;   // Size of look-ahead buffer
   THRESHOLD=2;
   _NULL=_N; // End of tree's node

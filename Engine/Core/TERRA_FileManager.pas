@@ -27,32 +27,32 @@ Unit TERRA_FileManager;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-    TERRA_Resource, TERRA_Collections, TERRA_IO, TERRA_FileIO, TERRA_Application, TERRA_Package;
+    TERRA_String, TERRA_Resource, TERRA_Collections, TERRA_Stream, TERRA_FileStream, TERRA_Application, TERRA_Package;
 
 Type
   ResourceProvider = Class
-    Function GetStream(Name:AnsiString): Stream; Virtual; Abstract;
-    Function HasStream(Name:AnsiString):Boolean; Virtual; Abstract;
+    Function GetStream(Const Name:TERRAString):Stream; Virtual; Abstract;
+    Function HasStream(Const Name:TERRAString):Boolean; Virtual; Abstract;
   End;
 
   FileLocation = Class(ListObject)
     Public
-      Name:AnsiString;
-      Path:AnsiString;
+      Name:TERRAString;
+      Path:TERRAString;
 
-      Function ToString():AnsiString; Override;
+      Function ToString():TERRAString; Override;
 
-      Constructor Create(Name, Path:AnsiString);
+      Constructor Create(Const Name, Path:TERRAString);
       Procedure CopyValue(Other:ListObject); Override;
       Function GetHashKey():HashKey; Override;
   End;
 
   FileManager = Class(ApplicationComponent)
     Protected
-      _SourceList:Array Of AnsiString;
+      _SourceList:Array Of TERRAString;
       _SourceCount:Integer;
 
-      _PathList:Array Of AnsiString;
+      _PathList:Array Of TERRAString;
       _PathCount:Integer;
 
       _PackageList:Array Of Package;
@@ -69,61 +69,50 @@ Type
       Class Function Instance:FileManager;
       Destructor Destroy; Override;
 
-      Function SearchResourceFile(FileName:AnsiString):AnsiString;
+      Function SearchResourceFile(FileName:TERRAString):TERRAString;
 
-      Procedure AddPath(Path:AnsiString);
-      Procedure RemovePath(Path:AnsiString);
-      Function GetPath(Index:Integer):AnsiString;
-      Function AddPackage(FileName:AnsiString; Password:AnsiString='*'):Package; Overload;
+      Procedure AddPath(Path:TERRAString);
+      Procedure RemovePath(Path:TERRAString);
+      Function GetPath(Index:Integer):TERRAString;
+      Function AddPackage(FileName:TERRAString; Password:TERRAString='*'):Package; Overload;
       Function AddPackage(MyPackage:Package):Package; Overload;
 
-      Procedure AddSource(Source:AnsiString);
-      Procedure RemoveSource(Source:AnsiString);
+      Procedure AddSource(Source:TERRAString);
+      Procedure RemoveSource(Source:TERRAString);
 
       Procedure AddResourceProvider(Provider:ResourceProvider);
       Procedure DeleteResourceProvider(Provider:ResourceProvider);
 
-      Procedure RemoveFromCache(FileName:AnsiString);
+      Procedure RemoveFromCache(FileName:TERRAString);
 
       Procedure ExcludeFileFromBackup(Source:FileStream);
 
-      Function GetPackage(Name:AnsiString; ValidateError:Boolean = True):Package;
+      Function GetPackage(Name:TERRAString; ValidateError:Boolean = True):Package;
 
-      Function OpenStream(FileName:AnsiString; Mode:Integer = smRead):Stream;
+      Function OpenStream(FileName:TERRAString; Mode:Integer = smRead):Stream;
 
-      Function OpenPackages(FileName:AnsiString):Boolean;
+      Function OpenPackages(FileName:TERRAString):Boolean;
       Property PathCount:Integer Read _PathCount;
   End;
 
-Function IsPackageFileName(Const FileName:AnsiString):Boolean;
+Function IsPackageFileName(Const FileName:TERRAString):Boolean;
 
 Implementation
 Uses TERRA_Error, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_OS, TERRA_Image, TERRA_GraphicsManager, TERRA_Utils, TERRA_Color,
-  TERRA_FileUtils;
+  TERRA_FileUtils, TERRA_MemoryStream;
 
 Var
   _FileManager:ApplicationObject = Nil;
 
 {$IFDEF IPHONE}
-Procedure ExcludeFileFromCloud(fileName:PAnsiChar);Cdecl; external;
+Procedure ExcludeFileFromCloud(fileName:PTERRAChar);Cdecl; external;
 {$ENDIF}
 
-Function IsPackageFileName(Const FileName:AnsiString):Boolean;
+Function IsPackageFileName(Const FileName:TERRAString):Boolean;
 Var
   I,J:Integer;
 Begin
-  Result := Pos('.TERRA'+PathSeparator, UpStr(FileName))>0;
-  {Result := False;
-
-  I := Pos('.', FileName);
-  If I<=0 Then
-    Exit;
-
-  J := PosRev(PathSeparator, FileName);
-  If J<=0 Then
-    Exit;
-
-  Result := I<J;}
+  Result := StringContains('.terra'+PathSeparator, FileName);
 End;
 
 Function SearchFileLocation(P:ListObject; UserData:Pointer):Boolean; CDecl;
@@ -145,12 +134,12 @@ Begin
   Self.AddSource('');
 End;
 
-Procedure FileManager.RemoveFromCache(FileName:AnsiString);
+Procedure FileManager.RemoveFromCache(FileName:TERRAString);
 Var
   Location:FileLocation;
 Begin
 {$IFNDEF DISABLEFILECACHE}
-  FileName := LowStr(FileName);
+  FileName := StringLower(FileName);
   FileName := GetFileName(FileName, False);
 
   Location := FileLocation(_Locations.Search(SearchFileLocation, @FileName));
@@ -163,14 +152,14 @@ Procedure FileManager.ExcludeFileFromBackup(Source: FileStream);
 Begin
   {$IFDEF IPHONE}
   If (Source.Name<>'') Then
-    ExcludeFileFromCloud(PAnsiChar(Source.Name));
+    ExcludeFileFromCloud(PTERRAChar(Source.Name));
   {$ENDIF}
 End;
 
-Function FileManager.OpenPackages(FileName:AnsiString):Boolean;
+Function FileManager.OpenPackages(FileName:TERRAString):Boolean;
 Type
   FileEntry = Record
-    Name:AnsiString;
+    Name:TERRAString;
     Offset:Cardinal;
     Size:Cardinal;
   End;
@@ -248,7 +237,7 @@ Begin
   Dec(_ProviderCount);
 End;
 
-Function FileManager.GetPath(Index: Integer):AnsiString;
+Function FileManager.GetPath(Index: Integer):TERRAString;
 Begin
   If (Index>=0) And (Index<_PathCount) Then
     Result := _PathList[Index]
@@ -256,7 +245,7 @@ Begin
     Result := '';
 End;
 
-Procedure FileManager.AddPath(Path:AnsiString);
+Procedure FileManager.AddPath(Path:TERRAString);
 Var
   I:Integer;
   FM:FolderManager;
@@ -278,7 +267,7 @@ Begin
     FM.WatchFolder(Path);
 End;
 
-Procedure FileManager.RemovePath(Path:AnsiString);
+Procedure FileManager.RemovePath(Path:TERRAString);
 Var
   I, N:Integer;
 Begin
@@ -309,7 +298,7 @@ Begin
   Result.Update;
 End;
 
-Function FileManager.AddPackage(FileName, Password:AnsiString):Package;
+Function FileManager.AddPackage(FileName, Password:TERRAString):Package;
 Begin
   If (Pos('.',FileName)<=0) Then
     FileName := FileName + '.terra';
@@ -322,9 +311,9 @@ Begin
   Result.Update;
 End;
 
-Function FileManager.SearchResourceFile(FileName:AnsiString):AnsiString;
+Function FileManager.SearchResourceFile(FileName:TERRAString):TERRAString;
 Var
-  S:AnsiString;
+  S:TERRAString;
   I, J:Integer;
   Resource:PResourceInfo;
   Location:FileLocation;
@@ -342,7 +331,7 @@ Begin
   If (FileName='') Then
     Exit;
 
-  FileName := LowStr(FileName);
+  FileName := StringLower(FileName);
   FileName := GetFileName(FileName, False);
 
   {$IFDEF DEBUG_FILECACHE}Log(logDebug, 'FileManager', 'Searching for file '+FileName+' in cache');{$ENDIF}
@@ -422,11 +411,11 @@ Begin
   RegisterLocation();
 End;
 
-Function FileManager.GetPackage(Name:AnsiString; ValidateError:Boolean):Package;
+Function FileManager.GetPackage(Name:TERRAString; ValidateError:Boolean):Package;
 Var
   I:Integer;
 Begin
-  Name := UpStr(GetFileName(TrimLeft(TrimRight(Name)), True));
+  Name := GetFileName(StringTrim(Name), True);
   If (Name='') Then
   Begin
     Result := Nil;
@@ -434,7 +423,7 @@ Begin
   End;
 
   For I:=0 To Pred(_PackageCount) Do
-  If (UpStr(_PackageList[I].Name) = Name) Then
+  If (StringEquals(_PackageList[I].Name, Name)) Then
   Begin
     Result := _PackageList[I];
     Exit;
@@ -445,10 +434,10 @@ Begin
     RaiseError('Could not find package. ['+Name +']');
 End;
 
-Function FileManager.OpenStream(FileName:AnsiString; Mode:Integer):Stream;
+Function FileManager.OpenStream(FileName:TERRAString; Mode:Integer):Stream;
 Var
   I:Integer;
-  PackageName,ResourceName:AnsiString;
+  PackageName,ResourceName:TERRAString;
   MyPackage:Package;
   Resource:PResourceInfo;
 Begin
@@ -467,9 +456,9 @@ Begin
   // load from package
   If (IsPackageFileName(FileName)) Then
   Begin
-    I := PosRev(PathSeparator, FileName);
-    PackageName := Copy(FileName,1, Pred(I));
-    ResourceName := Copy(FileName, Succ(I), MaxInt);
+    I := StringPosReverse(PathSeparator, FileName);
+    PackageName := StringCopy(FileName,1, Pred(I));
+    ResourceName := StringCopy(FileName, Succ(I), MaxInt);
 
     MyPackage := Self.GetPackage(PackageName);
 
@@ -534,7 +523,7 @@ Begin
   _FileManager := Nil;
 End;
 
-Procedure FileManager.AddSource(Source:AnsiString);
+Procedure FileManager.AddSource(Source:TERRAString);
 Var
   I:Integer;
 Begin
@@ -546,7 +535,7 @@ Begin
   _SourceList[Pred(_SourceCount)] := Source;
 End;
 
-Procedure FileManager.RemoveSource(Source:AnsiString);
+Procedure FileManager.RemoveSource(Source:TERRAString);
 Var
   I:Integer;
 Begin
@@ -561,9 +550,9 @@ Begin
 End;
 
 { FileLocation }
-Constructor FileLocation.Create(Name, Path:AnsiString);
+Constructor FileLocation.Create(Const Name, Path:TERRAString);
 Begin
-  Self.Name := LowStr(GetFileName(Name, False));
+  Self.Name := StringLower(GetFileName(Name, False));
   Self.Path := Path;
 End;
 
@@ -573,7 +562,7 @@ Begin
   Self.Path := FileLocation(Other).Path;
 End;
 
-Function FileLocation.ToString:AnsiString;
+Function FileLocation.ToString:TERRAString;
 Begin
   Result := Self.Name;
 End;

@@ -25,7 +25,7 @@ Unit TERRA_SoundManager;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Sound, TERRA_Application, TERRA_Collections, TERRA_Vector3D,
+  TERRA_String, TERRA_Utils, TERRA_Sound, TERRA_Application, TERRA_Collections, TERRA_Vector3D,
   TERRA_Log, TERRA_SoundSource, TERRA_SoundAmbience, TERRA_ResourceManager,TERRA_AL;
 
 Type
@@ -57,12 +57,12 @@ Type
       Destructor Destroy; Override;
 
       Function Play(MySound:Sound):SoundSource; Overload;
-      Function Play(Name:AnsiString):SoundSource; Overload;
+      Function Play(Const Name:TERRAString):SoundSource; Overload;
 
       Function Spawn(MySound:Sound; Position:Vector3D; Volume:Single=1.0):SoundSource;
       Procedure Delete(Source:SoundSource);
 
-      Function GetSound(Name:AnsiString; ValidateError:Boolean = True):Sound;
+      Function GetSound(Name:TERRAString; ValidateError:Boolean = True):Sound;
 
       Procedure ValidateSource(Var Source:SoundSource);
 
@@ -161,12 +161,12 @@ Begin
   _SoundManager_Instance := Nil;
 End;
 
-Function SoundManager.GetSound(Name:AnsiString; ValidateError:Boolean):Sound;
+Function SoundManager.GetSound(Name:TERRAString; ValidateError:Boolean):Sound;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   Result := Nil;
-  Name := TrimLeft(TrimRight(Name));
+  Name := StringTrim(Name);
   If (Name='') Then
     Exit;
 
@@ -198,7 +198,7 @@ End;
 
 Procedure SoundManager.LoadDeviceList(var DeviceList:List; QueryID: Integer);
 Var
-  S:AnsiString;
+  S:TERRAString;
   List:PAnsiChar;
 Begin
 S := '';
@@ -362,7 +362,7 @@ Begin
   Source := Nil;
 End;
 
-Function SoundManager.Play(Name:AnsiString): SoundSource;
+Function SoundManager.Play(Const Name:TERRAString): SoundSource;
 Var
   Snd:Sound;
 Begin
@@ -378,7 +378,7 @@ End;
 
 Procedure SoundManager.SetEnabled(const Value: Boolean);
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   If (Self._Enabled = Value) Then
     Exit;

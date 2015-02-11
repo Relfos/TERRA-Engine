@@ -2,7 +2,7 @@
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
 Uses TERRA_Application, TERRA_Client, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
-  TERRA_IO, TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_UI, TERRA_Viewport,
+  TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_UI, TERRA_Viewport, TERRA_Texture,
   TERRA_JPG, TERRA_PNG, TERRA_Lights, TERRA_ShaderFactory,
   TERRA_FileManager, TERRA_Scene, TERRA_Mesh, TERRA_Skybox, TERRA_Color, TERRA_Matrix4x4;
 
@@ -26,7 +26,6 @@ Type
   End;
 
 Var
-  SphereMesh:Mesh;
   Sphere:MeshInstance;
   P:Occluder;
   Fnt:Font;
@@ -34,6 +33,8 @@ Var
 
 { Game }
 Procedure Game.OnCreate;
+Var
+  DiffuseTex:Texture;
 Begin
   FileManager.Instance.AddPath('Assets');
 
@@ -45,8 +46,11 @@ Begin
 //  GraphicsManager.Instance.Settings.ColorCorrection.SetValue(False);
 //  GraphicsManager.Instance.Settings.Bloom.SetValue(False);
 
-  SphereMesh := MeshManager.Instance.GetMesh('sphere');
-  Sphere := MeshInstance.Create(SphereMesh);
+  DiffuseTex := TextureManager.Instance.GetTexture('cobble');
+
+  Sphere := MeshInstance.Create(MeshManager.Instance.SphereMesh);
+  Sphere.SetDiffuseMap(0, DiffuseTex);
+  Sphere.SetScale(VectorUniform(20.0));
   Sphere.SetPosition(VectorCreate(0, -30, -80));
 
   P := Occluder.Create;
@@ -66,7 +70,7 @@ End;
 
 Procedure Game.OnIdle;
 Begin
-  If Keys[keyEscape] Then
+  If Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
 
   GraphicsManager.Instance.ActiveViewport.Camera.FreeCam;

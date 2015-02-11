@@ -26,7 +26,7 @@ Unit TERRA_TextureTarget;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Color, TERRA_Image, TERRA_RenderTarget, TERRA_Vector2D, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
+  TERRA_String, TERRA_Utils, TERRA_Color, TERRA_Image, TERRA_RenderTarget, TERRA_Vector2D, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
 
 Type
   TextureRenderTarget = Class(RenderTarget)
@@ -34,7 +34,7 @@ Type
 	    Procedure InitCapture(Flags:Cardinal);  Override;
 
     Public
-      Constructor Create(Name:AnsiString; Width, Height:Integer);
+      Constructor Create(Const Name:TERRAString; Width, Height:Integer);
       Destructor Destroy; Override;
 
 	    // Use it as a texture
@@ -47,7 +47,7 @@ Type
 Implementation
 Uses TERRA_GraphicsManager, TERRA_Resource, TERRA_Math;
 
-Constructor TextureRenderTarget.Create(Name:AnsiString; Width, Height: Integer);
+Constructor TextureRenderTarget.Create(Const Name:TERRAString; Width, Height: Integer);
 Begin
   Self._Location := '';
   Self._Name := Name;
@@ -84,7 +84,7 @@ End;
 
 Procedure TextureRenderTarget.InitCapture(Flags: Cardinal);
 Begin
-	GraphicsManager.Instance.SetViewArea(0,0, _Width, _Height);					// Set Our Viewport (Match Texture Size)
+	GraphicsManager.Instance.ActiveViewport.SetViewArea(0,0, _Width, _Height);					// Set Our Viewport (Match Texture Size)
 
   If (Flags<>0) Then
   Begin

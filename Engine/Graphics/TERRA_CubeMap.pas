@@ -25,11 +25,11 @@ Unit TERRA_CubeMap;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Image, TERRA_FileManager, TERRA_Vector3D,
+Uses TERRA_String, TERRA_Utils, TERRA_Image, TERRA_FileManager, TERRA_Vector3D,
   {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
 
 Const
-  CubeFaceNames:Array[0..5] Of AnsiString = ( 'right', 'left', 'top','down', 'front', 'back');
+  CubeFaceNames:Array[0..5] Of String = ( 'right', 'left', 'top','down', 'front', 'back');
 
 Type
   CubeMapTexture = Class(TERRAObject)
@@ -41,12 +41,12 @@ Type
 
     Public
       Constructor Create(Size:Cardinal); Overload;
-      Constructor Create(Name:AnsiString);  Overload;
+      Constructor Create(Const Name:TERRAString);  Overload;
       Destructor Destroy; Override;
 
       Class Procedure Bind(MyTexture:CubeMapTexture; Slot:Integer = 0);
 
-      Procedure Save(Name:AnsiString);
+      Procedure Save(Name:TERRAString);
 
 	    Procedure Render(Position:Vector3D);
 
@@ -64,9 +64,9 @@ Begin
   Init;
 End;
 
-Constructor CubeMapTexture.Create(Name:AnsiString);
+Constructor CubeMapTexture.Create(Const Name:TERRAString);
 Var
-  S, Ext:AnsiString;
+  S, Ext:TERRAString;
   I, N:Integer;
   Src:Image;
   Info:ImageClassInfo;
@@ -189,7 +189,7 @@ Begin
   End;
 End;
 
-Procedure CubeMapTexture.Save(Name:AnsiString);
+Procedure CubeMapTexture.Save(Name:TERRAString);
 Var
   I:Integer;
   Src:Image;

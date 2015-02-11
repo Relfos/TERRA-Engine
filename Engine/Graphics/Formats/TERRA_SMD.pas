@@ -26,9 +26,9 @@ Unit TERRA_SMD;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_IO, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Math, TERRA_Color,
-  TERRA_Vector4D, TERRA_Vector2D, TERRA_MeshFilter, TERRA_FileIO, TERRA_FileUtils,
-  TERRA_OS, Math;
+  TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Math, TERRA_Color,
+  TERRA_Vector4D, TERRA_Vector2D, TERRA_MeshFilter, TERRA_FileStream, TERRA_FileUtils,
+  TERRA_OS, TERRA_MemoryStream;
 
 Type
   SMDValue = Record
@@ -182,14 +182,14 @@ Begin
   Source.ReadLine(S); // nodes
   Repeat
     Source.ReadLine(S);
-    If (UpStr(S)='END') Then
+    If (StringUpper(S)='END') Then
       Break;
 
     Inc(Self._BoneCount);
     SetLength(_Bones, _BoneCount);
-    S2 := GetNextWord(S);
+    S2 := StringGetNextSplit(S, Ord(' '));
     S := Copy(S,2, MaxInt);
-    S2 := GetNextWord(S,'"');
+    S2 := StringGetNextSplit(S, Ord('"'));
     _Bones[Pred(_BoneCount)].Name := S2;
     _Bones[Pred(_BoneCount)].Index := Pred(_BoneCount);
     SetLEngth(Parents, _BoneCount);
@@ -205,10 +205,10 @@ Begin
   Source.ReadLine(S); // skeleton
   Repeat
     Source.ReadLine(S);
-    If (UpStr(S)='END') Then
+    If (StringUpper(S)='END') Then
       Break;
 
-    GetNextWord(S);
+    StringGetNextSplit(S, Ord(' '));
     N := _FrameCount;
     Inc(_FrameCount);
     SetLength(_Frames, _FrameCount);
@@ -220,15 +220,15 @@ Begin
     For I:=0 To Pred(_BoneCount) Do
     Begin
       Source.ReadLine(S);
-      GetNextWord(S); // skip index
+      StringGetNextSplit(S, Ord(' ')); // skip index
 
-      V.Position.X := StringToFloat(GetNextWord(S));
-      V.Position.Z := StringToFloat(GetNextWord(S));
-      V.Position.Y := StringToFloat(GetNextWord(S));
+      V.Position.X := StringToFloat(StringGetNextSplit(S, Ord(' ')));
+      V.Position.Z := StringToFloat(StringGetNextSplit(S, Ord(' ')));
+      V.Position.Y := StringToFloat(StringGetNextSplit(S, Ord(' ')));
 
-      V.Rotation.X := StringToFloat(GetNextWord(S));
-      V.Rotation.Z := StringToFloat(GetNextWord(S));
-      V.Rotation.Y := StringToFloat(GetNextWord(S));
+      V.Rotation.X := StringToFloat(StringGetNextSplit(S, Ord(' ')));
+      V.Rotation.Z := StringToFloat(StringGetNextSplit(S, Ord(' ')));
+      V.Rotation.Y := StringToFloat(StringGetNextSplit(S, Ord(' ')));
       _Frames[N].Values[I] := V;
     End;
   Until (False);
@@ -442,14 +442,14 @@ Begin
   Source.ReadLine(S); // nodes
   Repeat
     Source.ReadLine(S);
-    If (UpStr(S)='END') Then
+    If (StringUpper(S)='END') Then
       Break;
 
     Inc(Self._BoneCount);
     SetLength(_Bones, _BoneCount);
-    S2 := GetNextWord(S);
+    S2 := StringGetNextSplit(S, Ord(' '));
     S := Copy(S,2, MaxInt);
-    S2 := GetNextWord(S,'"');
+    S2 := StringGetNextSplit(S, Ord('"'));
     _Bones[Pred(_BoneCount)].Name := S2;
     _Bones[Pred(_BoneCount)].Index := Pred(_BoneCount);
     _Bones[Pred(_BoneCount)].Parent := StringToInt(S);
@@ -460,15 +460,15 @@ Begin
   For I:=0 To Pred(_BoneCount) Do
   Begin
     Source.ReadLine(S);
-    GetNextWord(S); // skip index
+    StringGetNextSplit(S, Ord(' ')); // skip index
 
-    _Bones[I].Position.X := StringToFloat(GetNextWord(S));
-    _Bones[I].Position.Y := StringToFloat(GetNextWord(S));
-    _Bones[I].Position.Z := StringToFloat(GetNextWord(S));
+    _Bones[I].Position.X := StringToFloat(StringGetNextSplit(S, Ord(' ')));
+    _Bones[I].Position.Y := StringToFloat(StringGetNextSplit(S, Ord(' ')));
+    _Bones[I].Position.Z := StringToFloat(StringGetNextSplit(S, Ord(' ')));
 
-    _Bones[I].Rotation.X := StringToFloat(GetNextWord(S));
-    _Bones[I].Rotation.Y := StringToFloat(GetNextWord(S));
-    _Bones[I].Rotation.Z := StringToFloat(GetNextWord(S));
+    _Bones[I].Rotation.X := StringToFloat(StringGetNextSplit(S, Ord(' ')));
+    _Bones[I].Rotation.Y := StringToFloat(StringGetNextSplit(S, Ord(' ')));
+    _Bones[I].Rotation.Z := StringToFloat(StringGetNextSplit(S, Ord(' ')));
   End;
 
   Source.ReadLine(S); //end
@@ -487,26 +487,26 @@ Begin
       Source.ReadLine(S);
       Inc(VertexCount);
       SetLength(Vertices, VertexCount);
-      S2 := GetNextWord(S, ' ');
+      S2 := StringGetNextSplit(S, Ord(' '));
       Vertices[Pred(VertexCount)].BoneIndex := StringToInt(S2);
 
-      S2 := GetNextWord(S, ' ');
+      S2 := StringGetNextSplit(S, Ord(' '));
       Vertices[Pred(VertexCount)].Position.X := StringToFloat(S2);
-      S2 := GetNextWord(S, ' ');
+      S2 := StringGetNextSplit(S, Ord(' '));
       Vertices[Pred(VertexCount)].Position.Y := StringToFloat(S2);
-      S2 := GetNextWord(S, ' ');
+      S2 := StringGetNextSplit(S, Ord(' '));
       Vertices[Pred(VertexCount)].Position.Z := StringToFloat(S2);
 
-      S2 := GetNextWord(S, ' ');
+      S2 := StringGetNextSplit(S, Ord(' '));
       Vertices[Pred(VertexCount)].Normal.X := StringToFloat(S2);
-      S2 := GetNextWord(S, ' ');
+      S2 := StringGetNextSplit(S, Ord(' '));
       Vertices[Pred(VertexCount)].Normal.Y := StringToFloat(S2);
-      S2 := GetNextWord(S, ' ');
+      S2 := StringGetNextSplit(S, Ord(' '));
       Vertices[Pred(VertexCount)].Normal.Z := StringToFloat(S2);
 
-      S2 := GetNextWord(S, ' ');
+      S2 := StringGetNextSplit(S, Ord(' '));
       Vertices[Pred(VertexCount)].UV.X := StringToFloat(S2);
-      S2 := GetNextWord(S, ' ');
+      S2 := StringGetNextSplit(S, Ord(' '));
       Vertices[Pred(VertexCount)].UV.Y := StringToFloat(S2);
     End;
 

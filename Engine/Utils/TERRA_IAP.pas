@@ -2,7 +2,7 @@ Unit TERRA_IAP;
 
 {$I terra.inc}
 Interface
-Uses TERRA_Utils, TERRA_OS, TERRA_Application
+Uses TERRA_String, TERRA_Utils, TERRA_OS, TERRA_Application
   {$IFDEF ANDROID},TERRA_JAVA{$ENDIF};
 
 {$IFDEF WINDOWS}{$UNDEF ANDROID}{$ENDIF}
@@ -19,10 +19,10 @@ Const
 Type
   PIAPCatalogEntry = ^IAPCatalogEntry;
   IAPCatalogEntry = Record
-    ID:AnsiString;
-    Title:AnsiString;
-    Description:AnsiString;
-    Price:AnsiString;
+    ID:TERRAString;
+    Title:TERRAString;
+    Description:TERRAString;
+    Price:TERRAString;
   End;
 
   IAPCatalog = Class(TERRAObject)
@@ -30,7 +30,7 @@ Type
       _CatalogList:Array Of IAPCatalogEntry;
       _CatalogCount:Integer;
 
-      Procedure AddInfo(ID, Title, Description, Price:AnsiString);
+      Procedure AddInfo(ID, Title, Description, Price:TERRAString);
 
     Public
       Constructor Create;
@@ -38,20 +38,18 @@ Type
 
       Class Function Instance:IAPCatalog;
 
-      //Procedure AddCatalogEntry(ID, Title, Description,Price:AnsiString);
-      Function GetInfo(ID:AnsiString):PIAPCatalogEntry;
-      Procedure Purchase(ID:AnsiString; UserData:Pointer);
+      //Procedure AddCatalogEntry(ID, Title, Description,Price:TERRAString);
+      Function GetInfo(ID:TERRAString):PIAPCatalogEntry;
+      Procedure Purchase(ID:TERRAString; UserData:Pointer);
       Procedure PurchaseCredits(UserData:Pointer);
   End;
 
 Procedure IAP_Callback_Canceled(ID:PAnsiChar); cdecl; export;
 Procedure IAP_Callback_Purchase(ID:PAnsiChar); cdecl; export;
-//Procedure IAP_Callback_Info(ID, Title, Description, Price:PAnsiChar); cdecl; export;
+//Procedure IAP_Callback_Info(ID, Title, Description, Price:PTERRAChar); cdecl; export;
 
 Implementation
-Uses TERRA_Log, TERRA_Unicode
-{$IFDEF STEAM},TERRA_Steam{$ENDIF}
-;
+Uses TERRA_Log{$IFDEF STEAM},TERRA_Steam{$ENDIF};
 
 Var
   _IAPCatalog_Instance:IAPCatalog = Nil;
@@ -73,7 +71,7 @@ End;
 
 {Procedure IAP_Callback_Info(ID, Title, Description, Price:PAnsiChar); cdecl; export;
 Var
-  S2,S3,S4:AnsiString;
+  S2,S3,S4:TERRAString;
 Begin
 Exit;
   S2 := utf8_to_ucs2(Title);
@@ -127,7 +125,7 @@ Begin
   IAP_Callback_Canceled('credits');
 End;
 
-Procedure IAPCatalog.Purchase(ID:AnsiString; UserData:Pointer);
+Procedure IAPCatalog.Purchase(ID:TERRAString; UserData:Pointer);
 {$IFDEF ANDROID}
 Var
   Utils:JavaClass;
@@ -183,7 +181,7 @@ Begin
     IAP_Callback_Canceled(PAnsiChar(ID));
 End;
 
-(*Procedure IAPCatalog.AddCatalogEntry(ID, Title, Description,Price:AnsiString);
+(*Procedure IAPCatalog.AddCatalogEntry(ID, Title, Description,Price:TERRAString);
 Var
   I:Integer;
 Begin
@@ -197,7 +195,7 @@ Begin
 {$ENDIF}
 End;*)
 
-Procedure IAPCatalog.AddInfo(ID, Title, Description, Price:AnsiString);
+Procedure IAPCatalog.AddInfo(ID, Title, Description, Price:TERRAString);
 Var
   I, N:Integer;
 Begin
@@ -222,7 +220,7 @@ Begin
   _CatalogList[Pred(_CatalogCount)].Price := Price;
 End;
 
-Function IAPCatalog.GetInfo(ID:AnsiString): PIAPCatalogEntry;
+Function IAPCatalog.GetInfo(ID:TERRAString): PIAPCatalogEntry;
 Var
   I:Integer;
 Begin

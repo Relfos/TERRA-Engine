@@ -35,7 +35,7 @@ Unit TERRA_Application;
 {$ENDIF}
 
 Interface
-Uses {$IFNDEF DEBUG_LEAKS}TERRA_MemoryManager,{$ENDIF}SysUtils, TERRA_Client, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D
+Uses TERRA_String, SysUtils, TERRA_Client, TERRA_Utils, TERRA_Input, TERRA_Vector2D, TERRA_Vector3D
   {$IFNDEF DISABLEINPUTMUTEX},TERRA_Mutex{$ENDIF}
   ;
 
@@ -98,74 +98,6 @@ Const
   EventBufferSize = 512;
   CallbackBufferSize = 64;
 
-  keyGamepadIndex   = 255;
-	keyGamepadLeft    = keyGamepadIndex + 0;
-	keyGamepadUp      = keyGamepadIndex + 1;
-	keyGamepadRight   = keyGamepadIndex + 2;
-	keyGamepadDown    = keyGamepadIndex + 3;
-	keyGamepadA       = keyGamepadIndex + 4;
-	keyGamepadB       = keyGamepadIndex + 5;
-	keyGamepadC       = keyGamepadIndex + 6;
-	keyGamepadD       = keyGamepadIndex + 7;
-	keyGamepadX       = keyGamepadIndex + 8;
-	keyGamepadY       = keyGamepadIndex + 9;
-	keyGamepadZ       = keyGamepadIndex + 10;
-	keyGamepadR       = keyGamepadIndex + 11;
-	keyGamepadL       = keyGamepadIndex + 12;
-  keyGamepadMenu    = keyGamepadIndex + 13;
-  keyGamepadCount   = 32;
-
-	keyGamepadLeft2    = keyGamepadLeft + keyGamepadCount * 1;
-	keyGamepadUp2      = keyGamepadUp + keyGamepadCount * 1;
-	keyGamepadRight2   = keyGamepadRight + keyGamepadCount * 1;
-	keyGamepadDown2    = keyGamepadDown + keyGamepadCount * 1;
-	keyGamepadA2       = keyGamepadA + keyGamepadCount * 1;
-	keyGamepadB2       = keyGamepadB + keyGamepadCount * 1;
-	keyGamepadC2       = keyGamepadC + keyGamepadCount * 1;
-	keyGamepadD2       = keyGamepadD + keyGamepadCount * 1;
-	keyGamepadX2       = keyGamepadX + keyGamepadCount * 1;
-	keyGamepadY2       = keyGamepadY + keyGamepadCount * 1;
-	keyGamepadZ2       = keyGamepadZ + keyGamepadCount * 1;
-	keyGamepadR2       = keyGamepadR + keyGamepadCount * 1;
-	keyGamepadL2       = keyGamepadL + keyGamepadCount * 1;
-  keyGamepadMenu2    = keyGamepadMenu + keyGamepadCount * 1;
-
-	keyGamepadLeft3    = keyGamepadLeft + keyGamepadCount * 2;
-	keyGamepadUp3      = keyGamepadUp + keyGamepadCount * 2;
-	keyGamepadRight3   = keyGamepadRight + keyGamepadCount * 2;
-	keyGamepadDown3    = keyGamepadDown + keyGamepadCount * 2;
-	keyGamepadA3       = keyGamepadA + keyGamepadCount * 2;
-	keyGamepadB3       = keyGamepadB + keyGamepadCount * 2;
-	keyGamepadC3       = keyGamepadC + keyGamepadCount * 2;
-	keyGamepadD3       = keyGamepadD + keyGamepadCount * 2;
-	keyGamepadX3       = keyGamepadX + keyGamepadCount * 2;
-	keyGamepadY3       = keyGamepadY + keyGamepadCount * 2;
-	keyGamepadZ3       = keyGamepadZ + keyGamepadCount * 2;
-	keyGamepadR3       = keyGamepadR + keyGamepadCount * 2;
-	keyGamepadL3       = keyGamepadL + keyGamepadCount * 2;
-  keyGamepadMenu3    = keyGamepadMenu + keyGamepadCount * 2;
-
-	keyGamepadLeft4    = keyGamepadLeft + keyGamepadCount * 3;
-	keyGamepadUp4      = keyGamepadUp + keyGamepadCount * 3;
-	keyGamepadRight4   = keyGamepadRight + keyGamepadCount * 3;
-	keyGamepadDown4    = keyGamepadDown + keyGamepadCount * 3;
-	keyGamepadA4       = keyGamepadA + keyGamepadCount * 3;
-	keyGamepadB4       = keyGamepadB + keyGamepadCount * 3;
-	keyGamepadC4       = keyGamepadC + keyGamepadCount * 3;
-	keyGamepadD4       = keyGamepadD + keyGamepadCount * 3;
-	keyGamepadX4       = keyGamepadX + keyGamepadCount * 3;
-	keyGamepadY4       = keyGamepadY + keyGamepadCount * 3;
-	keyGamepadZ4       = keyGamepadZ + keyGamepadCount * 3;
-	keyGamepadR4       = keyGamepadR + keyGamepadCount * 3;
-	keyGamepadL4       = keyGamepadL + keyGamepadCount * 3;
-  keyGamepadMenu4    = keyGamepadMenu + keyGamepadCount * 3;
-
-  MaxGamePads = 4;
-
-  keyMouseLeft   = keyGamepadIndex + 1 + keyGamepadCount * MaxGamePads;
-  keyMouseRight  = keyGamepadIndex + 2 + keyGamepadCount * MaxGamePads;
-  keyMouseMiddle = keyGamepadIndex + 3 + keyGamepadCount * MaxGamePads;
-
   settingsHintLow   = 0;
   settingsHintMedium = 1;
   settingsHintHigh   = 2;
@@ -180,12 +112,16 @@ Type
 
   ApplicationEvent = Record
     X,Y,Z,W:Single;
-    S:AnsiString;
+    S:TERRAString;
     Value:Integer;
     Action:Integer;
     HasCoords:Boolean;
   End;
 
+  ApplicationScreenDimensions = Record
+    Width:Integer;
+    Height:Integer;
+  End;
 
   ApplicationCallback = Function(P:Pointer):Boolean; Cdecl;
 
@@ -193,7 +129,7 @@ Type
     Callback:ApplicationCallback;
     Time:Cardinal;
     Delay:Cardinal;
-    AllowPause:Boolean;
+    Canceled:Boolean;
     Arg:Pointer;
   End;
 
@@ -235,13 +171,13 @@ Type
 
   ApplicationInput = Record
 		Mouse:MouseCursor;
-		Keys:InputState; //Keyboard state
+		Keys:InputState; //Keyboard/mouse/gamepad state
     Accelerometer:Vector3D;
     Gyroscope:Vector3D;
     Compass:Vector3D; // (heading, pitch, roll)
   End;
 
-  AssetWatchNotifier = Procedure(Const FileName:AnsiString); Cdecl;
+  AssetWatchNotifier = Procedure(Const FileName:TERRAString); Cdecl;
 
   FolderManager = Class(ApplicationComponent)
     Protected
@@ -251,14 +187,12 @@ Type
     Public
       Class Function Instance:FolderManager;
 
-      Function WatchFolder(Const Path:AnsiString):Boolean; Virtual;
+      Function WatchFolder(Const Path:TERRAString):Boolean; Virtual;
 
-      Procedure NotifyFileChange(Const FileName:AnsiString);
+      Procedure NotifyFileChange(Const FileName:TERRAString);
 
       Procedure AddWatcher(Notifier:AssetWatchNotifier);
   End;
-
-        { Application }
 
  Application = Class(TERRAObject)
 		Protected
@@ -270,13 +204,15 @@ Type
       _Suspended:Boolean;
 			_Startup:Boolean;
       _StartTime:Cardinal;
-			_Title:AnsiString;
+			_Title:TERRAString;
 			_State:Cardinal;
-			_Path:AnsiString;
+			_Path:TERRAString;
       _Managed:Boolean;
 
-      _Language:AnsiString;
-      _Country:AnsiString;
+      _Screen:ApplicationScreenDimensions;
+
+      _Language:TERRAString;
+      _Country:TERRAString;
 
       _Events:Array[0..Pred(EventBufferSize)] Of ApplicationEvent;
       _EventCount:Integer;
@@ -309,6 +245,7 @@ Type
 
       _UIWidth:Integer;
       _UIHeight:Integer;
+      _UIScale:Single;
 
       _DeviceX1:Integer;
       _DeviceY1:Integer;
@@ -319,7 +256,7 @@ Type
       _DeviceScaleX:Single;
       _DeviceScaleY:Single;
 
-      _CurrentUser:AnsiString;
+      _CurrentUser:TERRAString;
 
       _ChangeToFullScreen:Boolean;
 
@@ -335,10 +272,10 @@ Type
 
       _TapjoyCredits:Integer;
 
-      _DocumentPath:AnsiString;
-      _StoragePath:AnsiString;
-      _TempPath:AnsiString;
-      _FontPath:AnsiString;
+      _DocumentPath:TERRAString;
+      _StoragePath:TERRAString;
+      _TempPath:TERRAString;
+      _FontPath:TERRAString;
 
       _FrameStart:Cardinal;
 
@@ -381,11 +318,11 @@ Type
       //Procedure UpdateCallbacks;
       //Procedure SetProcessorAffinity;
 
-      Function GetTempPath():AnsiString; Virtual;
-      Function GetDocumentPath():AnsiString; Virtual;
-      Function GetStoragePath():AnsiString; Virtual;
+      Function GetTempPath():TERRAString; Virtual;
+      Function GetDocumentPath():TERRAString; Virtual;
+      Function GetStoragePath():TERRAString; Virtual;
 
-      Procedure AddEventToQueue(Action:Integer; X,Y,Z,W:Single; Value:Integer; S:AnsiString; HasCoords:Boolean);
+      Procedure AddEventToQueue(Action:Integer; X,Y,Z,W:Single; Value:Integer; S:TERRAString; HasCoords:Boolean);
 
     Public
       Input:ApplicationInput;
@@ -403,13 +340,15 @@ Type
       Procedure AddVectorEvent(Action:Integer; X,Y,Z:Single); Overload;
       Procedure AddCoordEvent(Action:Integer; X,Y, Value:Integer); Overload;
       Procedure AddValueEvent(Action:Integer; Value:Integer); Overload;
-      Procedure AddStringEvent(Action:Integer; S:AnsiString); Overload;
+      Procedure AddStringEvent(Action:Integer; S:TERRAString); Overload;
 
       Function SetOrientation(Value:Integer):Boolean; Virtual;
 
 			Procedure SetState(State:Cardinal); Virtual;
 			Procedure SwapBuffers; Virtual;
       Procedure Yeld; Virtual;
+
+      Procedure SetKeyState(ID: Integer; Value: Boolean);
 
       Function SetFullscreenMode(UseFullScreen:Boolean):Boolean; Virtual;
       Procedure ToggleFullscreen;
@@ -419,8 +358,8 @@ Type
       Procedure DisableAds; Virtual;
       Procedure ShowFullscreenAd; Virtual;
 
-      Procedure OpenAppStore(AppID:AnsiString); Virtual;
-      Procedure SendEmail(DestEmail, Subject, Body:AnsiString); Virtual;
+      Procedure OpenAppStore(AppID:TERRAString); Virtual;
+      Procedure SendEmail(DestEmail, Subject, Body:TERRAString); Virtual;
 
       Function SaveToCloud():Boolean; Virtual;
 
@@ -431,17 +370,18 @@ Type
       Function HasFatalError:Boolean;
 
       Function ExecuteLater(Callback:ApplicationCallback; Const Delay:Cardinal; Arg:Pointer = Nil):Boolean;
+      Procedure CancelCallback(Arg:Pointer);
 
       //analytics
-      Procedure SendAnalytics(EventName:AnsiString); {$IFNDEF OXYGENE}Overload; {$ENDIF} Virtual;
-      Procedure SendAnalytics(EventName:AnsiString; Parameters:AnsiString); {$IFNDEF OXYGENE}Overload;{$ENDIF} Virtual;
+      Procedure SendAnalytics(EventName:TERRAString); {$IFNDEF OXYGENE}Overload; {$ENDIF} Virtual;
+      Procedure SendAnalytics(EventName:TERRAString; Parameters:TERRAString); {$IFNDEF OXYGENE}Overload;{$ENDIF} Virtual;
 
       // achievements
-      Procedure UnlockAchievement(AchievementID:AnsiString); Virtual;
+      Procedure UnlockAchievement(AchievementID:TERRAString); Virtual;
 
       // facebook
-      Procedure PostToFacebook(msg, link, desc, imageURL:AnsiString); Virtual;
-      Procedure LikeFacebookPage(page, url:AnsiString); Virtual;
+      Procedure PostToFacebook(msg, link, desc, imageURL:TERRAString); Virtual;
+      Procedure LikeFacebookPage(page, url:TERRAString); Virtual;
 
       //tapjoy
       Procedure Tapjoy_ShowOfferWall(); Virtual;
@@ -453,19 +393,14 @@ Type
 
       Procedure SetSuspend(Value:Boolean);
 
-      Procedure SetTitle(Const Name:AnsiString); Virtual;
+      Procedure SetTitle(Const Name:TERRAString); Virtual;
 
-      Procedure SetLanguage(Language:AnsiString);
+      Procedure SetLanguage(Language:TERRAString);
 
       Procedure ProcessEvents;
       Procedure RefreshComponents();
 
-      //Procedure AddCallback(Callback:ApplicationCallback; Delay:Integer; Argument:Pointer = Nil; AllowPause:Boolean = True);
-
-      Function KeyPressed(Key:Word):Boolean;
-			Procedure SetKeyPress(ID:Integer; Value:Boolean);
-
-      Function GetDeviceID():AnsiString; Virtual;
+      Function GetDeviceID():TERRAString; Virtual;
 
       Function GetElapsedTime:Cardinal;
 
@@ -487,8 +422,8 @@ Type
       Procedure StopGyroscope(); Virtual;
       Procedure StopCompass(); Virtual;
 
-      Function IsAppRunning(Name:AnsiString):Boolean; Virtual;
-      Function IsAppInstalled(Name:AnsiString):Boolean; Virtual;
+      Function IsAppRunning(Name:TERRAString):Boolean; Virtual;
+      Function IsAppInstalled(Name:TERRAString):Boolean; Virtual;
       Function IsDeviceRooted:Boolean; Virtual;
 
       Function GetOrientationDelta:Single;
@@ -501,22 +436,23 @@ Type
 
 			Property Handle:Cardinal Read _Handle;
 			Property OS:Cardinal Read GetPlatform;
-			Property CurrentPath:AnsiString Read _Path;
-      Property TempPath:AnsiString Read GetTempPath;
-      Property StoragePath:AnsiString Read GetStoragePath;
-      Property DocumentPath:AnsiString Read GetDocumentPath;
-      Property FontPath:AnsiString Read _FontPath;
+			Property CurrentPath:TERRAString Read _Path;
+      Property TempPath:TERRAString Read GetTempPath;
+      Property StoragePath:TERRAString Read GetStoragePath;
+      Property DocumentPath:TERRAString Read GetDocumentPath;
+      Property FontPath:TERRAString Read _FontPath;
 
-			Property Title:AnsiString Read _Title;
+			Property Title:TERRAString Read _Title;
 			Property Width:Integer Read _Width;
 			Property Height:Integer Read _Height;
 			Property FullScreen:Boolean Read _Fullscreen;
-      Property Language:AnsiString Read _Language Write SetLanguage;
-      Property Country:AnsiString Read _Country;
-      Property CurrentUser:AnsiString Read _CurrentUser;
+      Property Language:TERRAString Read _Language Write SetLanguage;
+      Property Country:TERRAString Read _Country;
+      Property CurrentUser:TERRAString Read _CurrentUser;
 
       Property UI_Width:Integer Read _UIWidth;
       Property UI_Height:Integer Read _UIHeight;
+      Property UI_Scale:Single Read _UIScale;
 
       Property IsRunning:Boolean Read _Running;
 
@@ -533,13 +469,15 @@ Type
       Property AspectRatio:Single Read GetAspectRatio;
 
       Property IsConsole:Boolean Read _IsConsole;
-      
+
+      Property Screen:ApplicationScreenDimensions Read _Screen;
+
       Property DebuggerPresent:Boolean Read _DebuggerPresent;
 
 	End;
 
 Var
-  Prefetching:Boolean;
+  _Prefetching:Boolean;
 
 Procedure ApplicationStart(Client:AppClient);
 Function InitializeApplicationComponent(TargetClass, DestroyBefore:ApplicationComponentClass):ApplicationObject;
@@ -547,15 +485,17 @@ Function InitializeApplicationComponent(TargetClass, DestroyBefore:ApplicationCo
 Function Blink(Period:Cardinal):Boolean;
 Procedure Sleep(Time:Cardinal);
 
-Function GetKeyByName(KeyName:AnsiString):Integer;
-Function GetKeyName(Key:Integer):AnsiString;
+Function GetKeyByName(Const KeyName:TERRAString):Integer;
+Function GetKeyName(Key:Integer):TERRAString;
 
-Function GetOSName(OS:Integer=0):AnsiString;
-Function GetProgramName():AnsiString;
+Function GetOSName(OS:Integer=0):TERRAString;
+Function GetProgramName():TERRAString;
 
 Function IsLandscapeOrientation(Orientation:Integer):Boolean;
 Function IsPortraitOrientation(Orientation:Integer):Boolean;
 Function IsInvalidOrientation(Orientation:Integer):Boolean;
+
+Function TranslateGamepadKey(Key, GamePadID:Integer):Integer;
 
 Implementation
 Uses TERRA_Error, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
@@ -593,7 +533,7 @@ Var
 Function InitializeApplicationComponent(TargetClass, DestroyBefore:ApplicationComponentClass):ApplicationObject;
 Var
   I:Integer;
-  S:AnsiString;
+  S:TERRAString;
 Begin
   If TargetClass = Nil Then
   Begin
@@ -643,7 +583,7 @@ Procedure DumpExceptionCallStack(E: Exception);
 var
   I: Integer;
   Frames: PPointer;
-  Report:AnsiString;
+  Report:TERRAString;
 begin
   Report := 'Fatal Exception! ' + CrLf;
   If E <> nil Then
@@ -695,12 +635,12 @@ End;
 Procedure ShutdownComponents;
 Var
   I:Integer;
-  S:AnsiString;
+  S:TERRAString;
 
   Function GetDependencyCount(T:ApplicationComponentClass):Integer;
   Var
     J:Integer;
-    S3,S2:AnsiString;
+    S3,S2:TERRAString;
   Begin
     Result := 0;
     For J:=0 To (_ApplicationComponentCount-1) Do
@@ -772,7 +712,7 @@ End;
 procedure Application.InitSystem;
 Var
   I:Integer;
-  S:AnsiString;
+  S:TERRAString;
 Begin
   Log(logDebug, 'App', 'Initializing randomizer');
 
@@ -808,6 +748,12 @@ Begin
   If (Not InitSettings()) Then
     Halt(0);
 
+  _Title := Self.Client.GetTitle();
+  _Width := Self.Client.GetWidth();
+  _Height := Self.Client.GetHeight();
+  _Fullscreen := Self.Client.GetFullscreen();
+  _AntialiasSamples := Self.Client.GetAntialiasSamples();
+
   {$IFDEF PC}
   If (Steam.Instance.Enabled) And (IsSupportedLanguage(Steam.Instance.Language)) Then
     _Language := Steam.Instance.Language;
@@ -830,8 +776,10 @@ Begin
     Begin
       _UIWidth := _Width;
       _UIHeight := _Height;
-      Client.SelectResolution2D(_UIWidth, _UIHeight);
+      _UIScale := 1.0;
+      Client.SelectResolution2D(_UIWidth, _UIHeight, _UIScale);
       Log(logDebug, 'App', 'Selected UI resolution: '+IntToString(_UIWidth)+' x ' +IntToString(_UIHeight));
+      Log(logDebug, 'App', 'Selected UI scale: '+FloatToString(_UIScale));
     End;
   End;
   
@@ -855,17 +803,15 @@ Begin
 
   _Startup := True;
   _CanReceiveEvents := False;
-  _Title := Self.Client.GetTitle();
-  _Width := Self.Client.GetWidth();
-  _Height := Self.Client.GetHeight();
-  _Fullscreen := Self.Client.GetFullscreen();
-  _AntialiasSamples := Self.Client.GetAntialiasSamples();
   _Hidden := Self.Client.GetHidden();
   _Handle := Self.Client.GetHandle();
   _State := wsNormal;
 
+  Input.Keys := InputState.Create();
+
   If Assigned(_Client) Then
-    _Client.Keys := @(Input.Keys[0]);
+    _Client.Keys := Input.Keys;
+
   _IgnoreCursor := Self.Client.GetIgnoreCursor;
 
 {  _UsesAccelerometer := ApplicationSettings.UsesAccelerometer;
@@ -968,12 +914,11 @@ Begin
   Self.SwapBuffers();
 End;
 
-procedure Application.SetKeyPress(ID: Integer; Value: Boolean);
+Procedure Application.SetKeyState(ID: Integer; Value: Boolean);
 Begin
-  If (Input.Keys[ID]=Value) Then
+  If (Not Input.Keys.SetState(ID, Value)) Then
     Exit;
 
-  Input.Keys[ID] := Value;
   If (Assigned(_Client)) Then
   Begin
     If (Value) Then
@@ -1024,12 +969,15 @@ Begin
   Begin
   Try
 
+    If (Not _IsConsole) Then
+    Begin
     {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Processing messages');{$ENDIF}{$ENDIF}
-    Self.ProcessMessages;
+      Self.ProcessMessages();
     {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'All messages processed');{$ENDIF}{$ENDIF}
+    End;
 
     {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Processing callbacks');{$ENDIF}{$ENDIF}
-    Self.ProcessCallbacks;
+    Self.ProcessCallbacks();
     {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'All callbacks processed');{$ENDIF}{$ENDIF}
 
     If Assigned(Client) Then
@@ -1047,7 +995,7 @@ Begin
         If _FatalError Then
         Begin
           {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logWarning, 'App', 'Fatal error!!!!');{$ENDIF}{$ENDIF}
-          If (Self.Input.Keys[keyEscape]) Then
+          If (Self.Input.Keys.IsDown(keyEscape)) Then
             Self.Terminate(False);
         End Else
         Begin
@@ -1084,16 +1032,17 @@ Begin
     End;
     {$ENDIF}
 
-    //Log(logDebug, 'App', 'Updating callbacks');
-    //Self.UpdateCallbacks;
 
-    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Swapping buffers');{$ENDIF}{$ENDIF}
-    Self.SwapBuffers;
-
-    If (_ChangeToFullScreen) Then
+    If (Not _IsConsole) Then
     Begin
-      _ChangeToFullScreen := False;
-      ToggleFullScreen;
+      {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Swapping buffers');{$ENDIF}{$ENDIF}
+      Self.SwapBuffers;
+
+      If (_ChangeToFullScreen) Then
+      Begin
+	_ChangeToFullScreen := False;
+	ToggleFullScreen;
+      End;
     End;
 
     If (_Managed) Then
@@ -1116,7 +1065,7 @@ Begin
 End;
 
 
-Function GetOSName(OS:Integer=0):AnsiString;
+Function GetOSName(OS:Integer=0):TERRAString;
 Begin
   If (OS = 0) Then
     OS := Application.Instance.GetPlatform();
@@ -1164,15 +1113,6 @@ Begin
  Log(logError, 'App','Yeld not implemented!');
 End;
 
-function Application.KeyPressed(Key: Word): Boolean;
-Begin
-  {If Key=Ord('P') Then
-    IntToString(2);}
-
-  Result := Input.Keys[Key];
-  Input.Keys[Key] := False;
-End;
-
 Procedure ApplicationStart(Client:AppClient);
 Begin
   _FatalError := False;
@@ -1218,58 +1158,16 @@ Begin
     Result := GetTime() - _PauseCounter;
 End;
 
-{Procedure Application.AddCallback(Callback:ApplicationCallback; Delay:Integer; Argument:Pointer = Nil; AllowPause:Boolean = True);
-Var
-  T:Cardinal;
-Begin
-  If AllowPause Then
-    T := Self.GetTime
-  Else
-    T := TERRA_OS.GetTime;
-  T := T + Delay;
-  Inc(_CallbackCount);
-  SetLength(_Callbacks, _CallbackCount);
-  _Callbacks[Pred(_CallbackCount)].Callback := Callback;
-  _Callbacks[Pred(_CallbackCount)].Time := T;
-  _Callbacks[Pred(_CallbackCount)].Arg := Argument;
-  _Callbacks[Pred(_CallbackCount)].AllowPause := AllowPause;
-End;}
-
-{Procedure Application.UpdateCallbacks;
-Var
-  I:Integer;
-  Done:Boolean;
-Begin
-  I := 0;
-  While (I<_CallbackCount) Do
-  Begin
-    Done := False;
-    If (_Callbacks[I].AllowPause) And (_Callbacks[I].Time<Self.GetTime) Then
-      Done := True
-    Else
-    If (Not _Callbacks[I].AllowPause) And (_Callbacks[I].Time<TERRA_OS.GetTime) Then
-      Done := True;
-
-    If (Done) Then
-    Begin
-      _Callbacks[I].Callback(_Callbacks[I].Arg);
-      _Callbacks[I] := _Callbacks[Pred(_CallbackCount)];
-      Dec(_CallbackCount);
-    End Else
-      Inc(I);
-  End;
-End;}
-
 // do nothing
 procedure Application.EnableAds; Begin End;
 procedure Application.DisableAds; Begin End;
 
-procedure Application.OpenAppStore(AppID: AnsiString); Begin End;
+procedure Application.OpenAppStore(AppID: TERRAString); Begin End;
 
 { ApplicationObject }
 Destructor ApplicationObject.Destroy;
 Begin
-  DestroyObject(@_Instance);
+  FreeAndNil(_Instance);
 End;
 
 { ApplicationComponent }
@@ -1296,9 +1194,9 @@ Procedure ApplicationComponent.OnContextLost; Begin End;
 Procedure ApplicationComponent.OnOrientationChange; Begin End;
 Procedure ApplicationComponent.OnViewportChange(X1, Y1, X2, Y2:Integer); Begin End;
 
-procedure Application.SendAnalytics(EventName: AnsiString;
-  Parameters: AnsiString); Begin End;
-procedure Application.UnlockAchievement(AchievementID: AnsiString); Begin End;
+procedure Application.SendAnalytics(EventName: TERRAString;
+  Parameters: TERRAString); Begin End;
+procedure Application.UnlockAchievement(AchievementID: TERRAString); Begin End;
 function Application.IsDebuggerPresent: Boolean; Begin Result := False; End;
 
 
@@ -1307,7 +1205,7 @@ Begin
   Result := ((GetTime() Shr 4) Mod Period<(Period Shr 1));
 End;
 
-Function GetKeyName(Key:Integer):AnsiString;
+Function GetKeyName(Key:Integer):TERRAString;
 Begin
   Case Key Of
     keyBackspace: Result:='Back';
@@ -1414,7 +1312,7 @@ Begin
   End;
 End;
 
-Function GetKeyByName(KeyName:AnsiString):Integer;
+Function GetKeyByName(Const KeyName:TERRAString):Integer;
 Var
   I:Integer;
 Begin
@@ -1422,9 +1320,8 @@ Begin
   If KeyName='' Then
     Exit;
 
-  KeyName := UpStr(KeyName);
   For I:=1 To keyGamepadL4 Do
-  If UpStr(GetKeyName(I)) = KeyName Then
+  If StringEquals(GetKeyName(I), KeyName) Then
   Begin
     Result:=I;
     Exit;
@@ -1433,13 +1330,13 @@ Begin
   Result := StringToInt(KeyName);
 End;
 
-Function GetProgramName:AnsiString;
+Function GetProgramName:TERRAString;
 Begin
     {$IFDEF OXYGENE}
     Result := 'TERRA';
     {$ELSE}
   Result := GetFileName(ParamStr(0), True);
-  Result := CapStr(Result);
+  //Result := CapStr(Result);
     {$ENDIF}
 End;
 
@@ -1455,19 +1352,19 @@ Begin
 
 End;
 
-procedure Application.PostToFacebook(msg, link, desc, imageURL: AnsiString);
+procedure Application.PostToFacebook(msg, link, desc, imageURL: TERRAString);
 Begin
   If Assigned(Client) Then
     Client.OnAPIResult(apiFacebook, facebookConnectionError);
 End;
 
-procedure Application.LikeFacebookPage(page, url: AnsiString);
+procedure Application.LikeFacebookPage(page, url: TERRAString);
 Begin
   If Assigned(Client) Then
     Client.OnAPIResult(apiFacebook, facebookLikeError);
 End;
 
-procedure Application.SetTitle(const Name: AnsiString);
+procedure Application.SetTitle(const Name: TERRAString);
 Begin
 	If (Name = _Title) Or (Name='') Then
 		Exit;
@@ -1542,12 +1439,12 @@ Begin
   // do nothing
 End;
 
-function Application.IsAppRunning(Name: AnsiString): Boolean;
+function Application.IsAppRunning(Name: TERRAString): Boolean;
 Begin
   Result := False;
 End;
 
-function Application.IsAppInstalled(Name: AnsiString): Boolean;
+function Application.IsAppInstalled(Name: TERRAString): Boolean;
 Begin
   Result := False;
 End;
@@ -1585,7 +1482,7 @@ Begin
   {$ENDIF}
 End;
 
-function Application.GetDeviceID: AnsiString;
+function Application.GetDeviceID: TERRAString;
 Begin
   Result := '';
 End;
@@ -1595,7 +1492,7 @@ Begin
   Result := 0;
 End;
 
-procedure Application.SendEmail(DestEmail, Subject, Body: AnsiString);
+procedure Application.SendEmail(DestEmail, Subject, Body: TERRAString);
 Begin
 End;
 
@@ -1610,7 +1507,7 @@ Begin
 End;
 
 
-procedure Application.SendAnalytics(EventName: AnsiString);
+procedure Application.SendAnalytics(EventName: TERRAString);
 Begin
   Self.SendAnalytics(EventName, '');
 End;
@@ -1645,7 +1542,7 @@ Begin
   // do nothing
 End;
 
-procedure Application.SetLanguage(Language: AnsiString);
+procedure Application.SetLanguage(Language: TERRAString);
 Var
   I:Integer;
 Begin
@@ -1663,7 +1560,7 @@ End;
 {$IFDEF FPC}
 Procedure CatchUnhandledException(Obj: TObject; Addr: Pointer; FrameCount: Longint; Frames: PPointer);
 Var
-  Result:AnsiString;
+  Result:TERRAString;
   I:Integer;
 Begin
   Result := 'An unhandled exception occurred at 0x'+ HexStr(PtrUInt(Addr))+ CrLf;
@@ -1680,22 +1577,20 @@ Begin
 End;
 {$ENDIF}
 
-{$IFNDEF OXYGENE}
-
-function Application.HasFatalError: Boolean;
+Function Application.HasFatalError: Boolean;
 Begin
   Result := _FatalError;
 End;
 
-destructor Application.Destroy;
+Destructor Application.Destroy;
 Begin
-    If Assigned(_Client) Then
-    Begin
-      {$IFNDEF OXYGENE}
-      Client.Destroy;
-      {$ENDIF}
-      _Client := Nil;
-    End;
+  Input.Keys.Destroy();
+
+  If Assigned(_Client) Then
+  Begin
+    Client.Destroy();
+    _Client := Nil;
+  End;
 End;
 
 procedure Application.UpdateContextLost;
@@ -1847,7 +1742,7 @@ Begin
 End;
 
 procedure Application.AddEventToQueue(Action: Integer; X, Y, Z, W: Single;
-  Value: Integer; S: AnsiString; HasCoords: Boolean);
+  Value: Integer; S: TERRAString; HasCoords: Boolean);
 Var
   N:Integer;
 Begin
@@ -1902,13 +1797,13 @@ Begin
   Self.AddEventToQueue(Action, 0, 0, 0, 0, Value, '', False);
 End;
 
-procedure Application.AddStringEvent(Action: Integer; S: AnsiString);
+procedure Application.AddStringEvent(Action: Integer; S: TERRAString);
 Begin
   Self.AddEventToQueue(Action, 0, 0, 0, 0, 0, S, False);
 End;
 
 {$IFDEF DEBUG_CORE}
-Function GetEventTypeName(N:Integer):AnsiString;
+Function GetEventTypeName(N:Integer):TERRAString;
 Begin
   Case N Of
   eventMouseUp   : Result := 'eventMouseUp';
@@ -1964,7 +1859,7 @@ Begin
     eventMouseDown:
       Begin
         {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Mouse down, X:'+IntToString(Input.Mouse.X)+ ' Y:'+IntToString(Input.Mouse.Y));{$ENDIF}
-        Self.SetKeyPress(_Events[I].Value, True);
+        Self.SetKeyState(_Events[I].Value, True);
 
         {Log(logDebug, 'App', 'Mouse down, X:'+IntToString(Input.Mouse.X)+ ' Y:'+IntToString(Input.Mouse.Y));
         Log(logDebug, 'App', 'DeviceX1:'+IntToString(_DeviceX1)+ ' DeviceY1:'+IntToString(_DeviceY1));
@@ -1982,7 +1877,7 @@ Begin
       Begin
         {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Mouse up, X:'+IntToString(Input.Mouse.X)+ ' Y:'+IntToString(Input.Mouse.Y));{$ENDIF}
 
-        Self.SetKeyPress(_Events[I].Value, False);
+        Self.SetKeyState(_Events[I].Value, False);
         If (Not _MouseOnAdArea) Then
           Client.OnMouseUp(Input.Mouse.X, Input.Mouse.Y, _Events[I].Value);
       End;
@@ -2004,12 +1899,12 @@ Begin
 
     eventKeyDown:
       Begin
-        Self.SetKeyPress(_Events[I].Value, True);
+        Self.SetKeyState(_Events[I].Value, True);
       End;
 
     eventKeyUp:
       Begin
-        Self.SetKeyPress(_Events[I].Value, False);
+        Self.SetKeyState(_Events[I].Value, False);
       End;
 
     eventWindowResize:
@@ -2147,17 +2042,17 @@ Begin
   _TapjoyCredits := IntMax(0, Credits);
 End;
 
-function Application.GetDocumentPath: AnsiString;
+function Application.GetDocumentPath: TERRAString;
 Begin
   Result := _DocumentPath;
 End;
 
-function Application.GetStoragePath: AnsiString;
+function Application.GetStoragePath: TERRAString;
 Begin
   Result := _StoragePath;
 End;
 
-function Application.GetTempPath: AnsiString;
+function Application.GetTempPath: TERRAString;
 Begin
   Result := _TempPath;
 End;
@@ -2183,7 +2078,7 @@ Begin
     Result := Nil;
 End;
 
-Procedure FolderManager.NotifyFileChange(const FileName: AnsiString);
+Procedure FolderManager.NotifyFileChange(const FileName: TERRAString);
 Var
   I:Integer;
 Begin
@@ -2191,7 +2086,7 @@ Begin
     _Notifiers[I](FileName);
 End;
 
-Function FolderManager.WatchFolder(const Path: AnsiString):Boolean;
+Function FolderManager.WatchFolder(const Path: TERRAString):Boolean;
 Begin
   // do nothing
   Result := False;
@@ -2203,41 +2098,63 @@ Begin
 End;
 
 Function Application.ExecuteLater(Callback:ApplicationCallback; Const Delay:Cardinal; Arg:Pointer):Boolean;
-Begin
-     If (_CallbackCount>=CallbackBufferSize) Then
-     Begin
-          Result := False;
-          Exit;
-     End;
+Begin 
+  If (_CallbackCount>=CallbackBufferSize) Then
+  Begin
+    Result := False;
+    Exit;
+  End;
 
-     _Callbacks[_CallbackCount].Callback := Callback;
-     _Callbacks[_CallbackCount].Time := GetTime() + Delay;
-     _Callbacks[_CallbackCount].Delay := Delay;
-     _Callbacks[_CallbackCount].Arg := Arg;
+  _Callbacks[_CallbackCount].Callback := Callback;
+  _Callbacks[_CallbackCount].Time := GetTime() + Delay;
+  _Callbacks[_CallbackCount].Delay := Delay;
+  _Callbacks[_CallbackCount].Arg := Arg;
+  _Callbacks[_CallbackCount].Canceled := False;
 
-     Inc(_CallbackCount);
+  Inc(_CallbackCount);
+
+  Result := True;
 End;
 
 Procedure Application.ProcessCallbacks();
 Var
-   T:Cardinal;
-   I:Integer;
+  I:Integer;
 Begin
-  T := GetTime();
-  I := 0;
-  While (I<_CallbackCount) Do
-  If (_Callbacks[I].Time<=T) Then
+  For I:=0 To Pred(_CallbackCount) Do
   Begin
-       If _Callbacks[I].Callback(_Callbacks[I].Arg) Then
-       Begin
-            _Callbacks[I].Time := GetTime() + _Callbacks[I].Delay;
-       End Else
-       Begin
-            _Callbacks[Pred(_CallbackCount)] := _Callbacks[I];
-            Dec(_CallbackCount);
-       End;
+    If (_Callbacks[I].Canceled) Then
+      Continue;
+
+    If (_Callbacks[I].Time<=GetTime()) Then
+    Begin
+      Log(logDebug, 'Game','Executing callback...');
+      
+      If _Callbacks[I].Callback(_Callbacks[I].Arg) Then
+      Begin
+        _Callbacks[I].Time := GetTime() + _Callbacks[I].Delay;
+      End Else
+        _Callbacks[I].Canceled := True;
+    End;
+  End;
+
+  While (I<_CallbackCount) Do
+  If (_Callbacks[I].Canceled) Then
+  Begin
+    _Callbacks[Pred(_CallbackCount)] := _Callbacks[I];
+    Dec(_CallbackCount);
   End Else
-      Inc(I);
+    Inc(I);
+End;
+
+Procedure Application.CancelCallback(Arg:Pointer);
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_CallbackCount) Do
+  If (_Callbacks[I].Arg = Arg) Then
+  Begin
+    _Callbacks[I].Canceled := True;
+  End;
 End;
 
 Function Application.InitSettings: Boolean;
@@ -2258,6 +2175,32 @@ Begin
   Result := True;
 End;
 
+Function TranslateGamepadKey(Key, GamePadID:Integer):Integer;
+Var
+  I, BaseKey, MaxKey:Integer;
+Begin
+  Result := Key;
+
+  If (Key < keyGamepadIndex) Then
+    Exit;
+
+  For I:=0 To Pred(MaxGamePads) Do
+  Begin
+    BaseKey := keyGamepadIndex + keyGamepadCount * I;
+    MaxKey := Pred(BaseKey + keyGamepadCount);
+    If (Key>=BaseKey) And (Key<=MaxKey) Then
+    Begin
+      Dec(Key, BaseKey);
+
+      BaseKey := keyGamepadIndex + keyGamepadCount * GamePadID;
+      Inc(Key, BaseKey);
+
+      Result := Key;
+      Exit;
+    End;
+  End;
+End;
+
 Initialization
   {$IFDEF FPC}
   ExceptProc := CatchUnhandledException;
@@ -2265,5 +2208,4 @@ Initialization
 
 Finalization
   //ShutdownComponents;
-{$ENDIF}
-End.
+End.

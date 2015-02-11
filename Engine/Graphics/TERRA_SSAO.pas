@@ -24,7 +24,7 @@
 Unit TERRA_SSAO;
 
 Interface
-Uses TERRA_Utils, TERRA_Shader, TERRA_ScreenFX, TERRA_Texture, TERRA_IO, TERRA_FileManager;
+Uses TERRA_Utils, TERRA_Shader, TERRA_ScreenFX, TERRA_Texture, TERRA_Stream, TERRA_FileManager;
 
 Type
   SSAOFX = Class(ScreenFX)
@@ -159,16 +159,16 @@ Implementation
 
 Type
   SSAOProvider = Class(ResourceProvider)
-    Function GetStream(Name:AnsiString): Stream; Override;
-    Function HasStream(Name:AnsiString):Boolean; Override;
+    Function GetStream(Name:TERRAString): Stream; Override;
+    Function HasStream(Name:TERRAString):Boolean; Override;
   End;
 
-Function SSAOProvider.HasStream(Name:AnsiString):Boolean;
+Function SSAOProvider.HasStream(Name:TERRAString):Boolean;
 Begin
   Result := (Name='randomssao.png');
 End;
 
-Function SSAOProvider.GetStream(Name:AnsiString):Stream;
+Function SSAOProvider.GetStream(Name:TERRAString):Stream;
 Begin
   If (Name='randomssao.png') Then
   Begin

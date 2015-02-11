@@ -98,11 +98,11 @@ Type
       Source:Image;
 
     Public
-      FileName:AnsiString;
+      FileName:TERRAString;
       Scale:Single;
       Offset:Single;
 
-    Constructor Create(FileName:AnsiString; Scale, Offset:Single);
+    Constructor Create(FileName:TERRAString; Scale, Offset:Single);
     Function Evaluate(P:Vector3D):Single; Override;
 
     Procedure XMLRegisterStructure; Override;
@@ -151,7 +151,7 @@ Type
       Function AddVertex(P:Vector3D):Word;
       Procedure AddTriangle(A,B,C:Integer);
 
-      Function XMLNewElement(Name:AnsiString):XMLElement; Override;
+      Function XMLNewElement(Name:TERRAString):XMLElement; Override;
       Function XMLGetElement(Index:Integer):XMLElement; Override;
       Function XMLGetElementCount():Integer; Override;
 
@@ -167,7 +167,7 @@ Type
       Function GetBoundingBox:BoundingBox; Override;
       Procedure Render; Override;
 
-      Procedure ExportMesh(ExportFileName:AnsiString);
+      Procedure ExportMesh(ExportFileName:TERRAString);
 
       Procedure DeleteLastObject;
 
@@ -176,7 +176,7 @@ Type
   End;
 
 Implementation
-Uses {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_IO, TERRA_FileIO, TERRA_FileUtils, TERRA_MS3D,
+Uses {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Stream, TERRA_FileStream, TERRA_FileUtils, TERRA_MS3D,
   TERRA_Shader, TERRA_ResourceManager;
 
 {$I marchingcubes.inc}
@@ -433,7 +433,7 @@ Begin
   //Self.ExportMesh('export.ms3d');
 End;
 
-Procedure MetaCollection.ExportMesh(ExportFileName:AnsiString);
+Procedure MetaCollection.ExportMesh(ExportFileName:TERRAString);
 Var
   MS3d:Milkshape3DObject;
   Dest:FileStream;
@@ -644,7 +644,7 @@ Begin
 End;
 
 { MetaTerrain }
-Constructor MetaTerrain.Create(FileName:AnsiString; Scale, Offset:Single);
+Constructor MetaTerrain.Create(FileName:TERRAString; Scale, Offset:Single);
 Begin
   Self.Scale := Scale;
   Self.Offset := Offset;
@@ -683,7 +683,7 @@ Begin
   Result := _MetaCount;
 End;
 
-Function MetaCollection.XMLNewElement(Name:AnsiString): XMLElement;
+Function MetaCollection.XMLNewElement(Name:TERRAString): XMLElement;
 Begin
   If Name = 'MetaBall' Then
     Result := MetaBall.Create(VectorZero, 1)

@@ -84,7 +84,7 @@ End;
 
 Procedure Game.OnIdle;
 Begin
-  If Keys[keyEscape] Then
+  If Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
 End;
 

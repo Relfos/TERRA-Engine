@@ -90,9 +90,9 @@ Type
   End;
 
   EffectEntry = Record
-    name:AnsiString;
+    name:TERRAString;
     effecttype:Integer;
-    ename:AnsiString;
+    ename:TERRAString;
     val:Integer;
   End;
 
@@ -159,7 +159,7 @@ Type
 
   AudioBackEnd = Class
     Protected
-      _Name:AnsiString;
+      _Name:TERRAString;
 
     Public
       Destructor Destroy; Virtual; Abstract;
@@ -167,20 +167,20 @@ Type
       Function Init():Boolean; Virtual; Abstract;
       Function GetCapabilities():Integer; Virtual; Abstract;
 
-      Function OpenPlayback(Device:PALCdevice; S:AnsiString):Integer; Virtual; Abstract;
+      Function OpenPlayback(Device:PALCdevice; S:TERRAString):Integer; Virtual; Abstract;
       Procedure ClosePlayback(Device:PALCdevice); Virtual; Abstract;
       Function ResetPlayback(Device:PALCdevice):Boolean; Virtual; Abstract;
       Procedure StartPlayback(Device:PALCdevice); Virtual; Abstract;
       Procedure StopPlayback(Device:PALCdevice); Virtual; Abstract;
 
-      Function OpenCapture(Device:PALCdevice; S:AnsiString):Integer; Virtual; Abstract;
+      Function OpenCapture(Device:PALCdevice; S:TERRAString):Integer; Virtual; Abstract;
       Procedure CloseCapture(Device:PALCdevice); Virtual; Abstract;
       Procedure StartCapture(Device:PALCdevice); Virtual; Abstract;
       Procedure StopCapture(Device:PALCdevice); Virtual; Abstract;
       Function CaptureSamples(Device:PALCdevice; Buffer:Pointer; N:Integer):Integer; Virtual; Abstract;
       Function AvailableSamples(Device:PALCdevice):Integer; Virtual; Abstract;
 
-      Property Name:AnsiString Read _Name;
+      Property Name:TERRAString Read _Name;
   End;
 
   PALlistener = ^ALlistener;
@@ -363,7 +363,7 @@ Type
     FmtChans:Integer;
     FmtType:Integer;
 
-    DeviceName:AnsiString;
+    DeviceName:TERRAString;
 
     LastError:Integer;
 
@@ -442,7 +442,7 @@ Type
     MaxActiveEffectSlots:Integer;
 
     Device:ALCdevice;
-    ExtensionList:AnsiString;
+    ExtensionList:TERRAString;
   End;
 
 Const
@@ -812,7 +812,7 @@ Const
   Procedure alGetIntegerv(param: Integer; data: PInteger); CDecl;
   Procedure alGetFloatv(param: Integer; data: PSingle); CDecl;
   Procedure alGetDoublev(param: Integer; data: PDouble); CDecl;
-  Function alGetString(param: Integer): PAnsiChar; CDecl;
+  Function alGetString(param: Integer): PTERRAChar; CDecl;
 
   //ERROR support.
 
@@ -822,15 +822,15 @@ Const
   //EXTENSION support.
 
   // Verify is extension is avaliable
-  Function alIsExtensionPresent(fname: PAnsiChar): Boolean; CDecl;
+  Function alIsExtensionPresent(fname: PTERRAChar): Boolean; CDecl;
 
   { Obtain the address of a Function (usually an extension)
     with the name fname. All addresses are context-independent.
   }
-  Function alGetProcAddress(fname: PAnsiChar): Pointer; CDecl;
+  Function alGetProcAddress(fname: PTERRAChar): Pointer; CDecl;
 
   //Obtain the integer value of an enumeration (usually an extension) with the name ename.
-  //Function alGetEnumValue(ename: PAnsiChar): Integer; CDecl;
+  //Function alGetEnumValue(ename: PTERRAChar): Integer; CDecl;
 
   //LISTENER
   { Listener is the sample position for a given context.
@@ -973,17 +973,17 @@ Const
 
   Function alcGetCurrentContext: PALCcontext; CDecl;
 
-  Function alcOpenDevice(deviceName: PAnsiChar): PALCdevice; CDecl;
+  Function alcOpenDevice(deviceName: PTERRAChar): PALCdevice; CDecl;
   Procedure alcCloseDevice(device: PALCdevice); CDecl;
 
-  Function alcIsExtensionPresent(device: PALCdevice; extName: PAnsiChar): Boolean; CDecl;
-  Function alcGetProcAddress(device: PALCdevice; funcName: PAnsiChar):Pointer; CDecl;
-  Function alcGetEnumValue(device: PALCdevice; enumName: PAnsiChar):Integer; CDecl;
+  Function alcIsExtensionPresent(device: PALCdevice; extName: PTERRAChar): Boolean; CDecl;
+  Function alcGetProcAddress(device: PALCdevice; funcName: PTERRAChar):Pointer; CDecl;
+  Function alcGetEnumValue(device: PALCdevice; enumName: PTERRAChar):Integer; CDecl;
 
   Function alcGetContextsDevice(context: PALCcontext): PALCdevice; CDecl;
 
   //Query Functions
-  Function alcGetString(device: PALCdevice; param: Integer): PAnsiChar; CDecl;
+  Function alcGetString(device: PALCdevice; param: Integer): PTERRAChar; CDecl;
   Procedure alcGetIntegerv(device: PALCdevice; param:Integer; size: Integer; data: PInteger); CDecl;
 
   // EFX
@@ -1327,7 +1327,7 @@ Begin
   End;
 End;
 
-Function alGetString(param: Integer): PAnsiChar; CDecl;
+Function alGetString(param: Integer): PTERRAChar; CDecl;
 Begin
   Result := '';
   If (_CurrentContext=Nil) Then
@@ -1344,7 +1344,7 @@ Begin
       Result := 'TERRA.AL';
 
     AL_EXTENSIONS:
-      Result := PAnsiChar(_CurrentContext.ExtensionList);
+      Result := PTERRAChar(_CurrentContext.ExtensionList);
 
     AL_NO_ERROR:
       Result := 'No error';
@@ -1443,7 +1443,7 @@ Begin
   End;
 End;
 
-Function alIsExtensionPresent(fname: PAnsiChar): Boolean; CDecl;
+Function alIsExtensionPresent(fname: PTERRAChar): Boolean; CDecl;
 Begin
   Result := False;
 
@@ -1453,12 +1453,12 @@ Begin
   Result := Pos(fName, _CurrentContext.ExtensionList)>0;
 End;
 
-Function alGetProcAddress(fname: PAnsiChar): Pointer; CDecl;
+Function alGetProcAddress(fname: PTERRAChar): Pointer; CDecl;
 Begin
   Result := Nil;
 End;
 
-{Function alGetEnumValue(ename: PAnsiChar): Integer; CDecl;
+{Function alGetEnumValue(ename: PTERRAChar): Integer; CDecl;
 Var
   I:Integer;
 Begin

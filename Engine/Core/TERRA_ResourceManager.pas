@@ -27,7 +27,7 @@ Unit TERRA_ResourceManager;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-    TERRA_Resource, TERRA_Collections, TERRA_IO, TERRA_Application,TERRA_Threads, TERRA_Mutex;
+    TERRA_String, TERRA_Resource, TERRA_Collections, TERRA_Stream, TERRA_Application,TERRA_Threads, TERRA_Mutex;
 
 
 Const
@@ -39,7 +39,7 @@ Type
     Public
       Value:Resource;
 
-      Function ToString():AnsiString; Override;
+      Function ToString():TERRAString; Override;
 
       Constructor Create(MyResource:Resource);
       Procedure CopyValue(Other:ListObject); Override;
@@ -71,13 +71,13 @@ Type
       Procedure Update; Override;
       Procedure OnContextLost; Override;
 
-      Function GetResource(Name:AnsiString):Resource;
+      Function GetResource(Name:TERRAString):Resource;
       Procedure AddResource(MyResource:Resource);
       Procedure ReloadResource(Resource:Resource; InBackground:Boolean=True);
 
       Function GetLoadedResourceCount:Integer;
 
-      Function ResolveResourceLink(Const ResourceName:AnsiString):AnsiString;
+      Function ResolveResourceLink(Const ResourceName:TERRAString):TERRAString;
 
 
       Function Busy:Boolean;
@@ -95,7 +95,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_OS, TERRA_Image, TERRA_GraphicsManager, TERRA_Utils, TERRA_Color,
-  TERRA_FileUtils, TERRA_FileIO, TERRA_FileManager;
+  TERRA_FileUtils, TERRA_FileStream, TERRA_FileManager;
 
 Type
   ResourceLoader = Class(Task)
@@ -223,10 +223,10 @@ End;
 
 Function SearchResourceByName(P:ListObject; UserData:Pointer):Boolean; CDecl;
 Begin
-  Result := (Resource(P).Name = PString(Userdata)^);
+  Result := StringEquals(Resource(P).Name , PString(Userdata)^);
 End;
 
-Function ResourceManager.GetResource(Name:AnsiString): Resource;
+Function ResourceManager.GetResource(Name:TERRAString): Resource;
 Begin
   If _Resources = Nil Then
   Begin
@@ -235,9 +235,14 @@ Begin
     Exit;
   End;
 
-  Name := UpStr(GetFileName(Name, True));
+  Name := GetFileName(Name, True);
   Result := Resource(_Resources.Search(SearchResourceByName, @Name));
-  //Log(logDebug, 'Resource', 'Search for '+Name+': '+BoolToString(Assigned(Result)));
+
+
+  If Assigned(Result) Then
+    Log(logDebug, 'Resource', 'Searched for '+Name+': got '+Result.Name)
+  Else
+    Log(logDebug, 'Resource', 'Searched for '+Name+': got (NIL)');
 End;
 
 Procedure ResourceManager.ReloadResource(Resource: Resource; InBackground:Boolean=True);
@@ -419,7 +424,7 @@ Begin
   Self.Value := ResourceEntry(Other).Value;
 End;
 
-Function ResourceEntry.ToString:AnsiString;
+Function ResourceEntry.ToString:TERRAString;
 Begin
   Result := Value.Name;
 End;
@@ -445,11 +450,11 @@ Begin
   I.Destroy;
 End;
 
-Function ResourceManager.ResolveResourceLink(Const ResourceName: AnsiString):AnsiString;
+Function ResourceManager.ResolveResourceLink(Const ResourceName: TERRAString):TERRAString;
 Const
 	LinkExtension = '.link';
 Var
-  Name:AnsiString;
+  Name:TERRAString;
   Src:Stream;
 Begin
   Result := '';
@@ -463,7 +468,7 @@ Begin
     Src.ReadLine(Name);
     Src.Destroy;
 
-    If (LowStr(Name) = LowStr(ResourceName)) Then
+    If (StringLower(Name) = StringLower(ResourceName)) Then
       Exit;
 
     Result := Name;

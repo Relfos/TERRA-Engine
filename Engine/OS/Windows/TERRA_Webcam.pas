@@ -68,7 +68,7 @@ TYPE
                     SSize  : cardinal;
                     OIndex : integer;
                     pmt    : PAMMediaType;
-                    FourCC : ARRAY[0..3] Of AnsiChar;
+                    FourCC : ARRAY[0..3] Of TERRAChar;
                   END;
 
   TVideoSample  = class(TObject)
@@ -97,7 +97,7 @@ TYPE
                       FormatArr   : ARRAY OF TFormatInfo;
                       FUNCTION    GetInterfaces(ForceRGB: boolean; WhichMethodToCallback: integer): HRESULT;
                       FUNCTION    SetupVideoWindow(): HRESULT;
-                      FUNCTION    ConnectToCaptureDevice(DeviceName:AnsiString; VAR DeviceSelected:AnsiString; VAR ppIBFVideoSource: IBaseFilter): HRESULT;
+                      FUNCTION    ConnectToCaptureDevice(DeviceName:TERRAString; VAR DeviceSelected:TERRAString; VAR ppIBFVideoSource: IBaseFilter): HRESULT;
                       FUNCTION    RestartVideoEx(Visible: boolean):HRESULT;
                       FUNCTION    ShowPropertyDialogEx(const IBF: IUnknown; FilterName:  PWideChar): HResult;
                       FUNCTION    LoadListOfResolution: HResult;
@@ -106,14 +106,14 @@ TYPE
 
                     public
                       {$ifdef DXErr}
-                        DXErrString:AnsiString;  // for debugging
+                        DXErrString:TERRAString;  // for debugging
                       {$endif}
                       constructor Create(VideoCanvasHandle: THandle; ForceRGB: boolean; WhichMethodToCallback: integer; VAR HR: HResult);
                       destructor  Destroy; override;
                       property    PlayState: TPLAYSTATE read g_psCurrent;
                       procedure   ResizeVideoWindow();
                       FUNCTION    RestartVideo:HRESULT;
-                      FUNCTION    StartVideo(CaptureDeviceName:AnsiString; Visible: boolean; VAR DeviceSelected:AnsiString):HRESULT;
+                      FUNCTION    StartVideo(CaptureDeviceName:TERRAString; Visible: boolean; VAR DeviceSelected:TERRAString):HRESULT;
                       FUNCTION    PauseVideo: HResult;  // Pause running video
                       FUNCTION    ResumeVideo: HResult; // Re-start paused video
                       FUNCTION    StopVideo: HResult;
@@ -173,7 +173,7 @@ TYPE
               fFourCC       : cardinal;
 
               _DeviceCount : Integer;
-              _DeviceList:  Array Of AnsiString;
+              _DeviceList:  Array Of TERRAString;
 
               fImagePtr     : ARRAY[0..CBufferCnt] OF pointer; // Local copy of image data
               fImagePtrSize : ARRAY[0..CBufferCnt] OF integer;
@@ -219,7 +219,7 @@ TYPE
               Property      FramesPerSecond: double read fFPS;
               Property      FramesSkipped: integer read fSkipCnt;
 
-              Function GetDeviceName(ID:Integer):AnsiString;
+              Function GetDeviceName(ID:Integer):TERRAString;
 
               Procedure     Stop;
               Procedure     Pause;
@@ -238,7 +238,7 @@ TYPE
               Function SetVideoPropertySettings(VP: TVideoProperty; Actual: integer; AutoMode: boolean): HResult;
             End;
 
-//FUNCTION GetVideoPropertyName(VP: TVideoProperty):AnsiString;
+//FUNCTION GetVideoPropertyName(VP: TVideoProperty):TERRAString;
 
 
 // http://www.fourcc.org/yuv.php#UYVY
@@ -259,12 +259,12 @@ CONST
 Implementation
 Uses TERRA_GraphicsManager, TERRA_OS, TERRA_Math, TERRA_Log;
 
-Procedure DXErrString(S:AnsiString);
+Procedure DXErrString(S:TERRAString);
 Begin
   Log(logError, 'Webcam', S);
 End;
 
-FUNCTION GetVideoPropertyName(VP: TVideoProperty):AnsiString;
+FUNCTION GetVideoPropertyName(VP: TVideoProperty):TERRAString;
 BEGIN
   CASE VP OF
     VP_Brightness           : Result := 'Brightness';
@@ -452,7 +452,7 @@ VAR
   Result:HResult;
   pDevEnum     : ICreateDevEnum;
   pClassEnum   : IEnumMoniker;
-  st           :AnsiString;
+  st           :TERRAString;
 
           // Okay, in the original C code from the microsoft samples this
           // is not a subroutine.
@@ -460,7 +460,7 @@ VAR
           // me free pMoniker or pPropertyBag myself. ( ":= nil" )
           // Hopefully ending the subroutine will clean up all instances of
           // these interfaces automatically...
-          FUNCTION GetNextDeviceName(VAR Name:AnsiString): boolean;
+          FUNCTION GetNextDeviceName(VAR Name:TERRAString): boolean;
           VAR
             pMoniker     : IMoniker;
             pPropertyBag : IPropertyBag;
@@ -526,7 +526,7 @@ begin
   End;
 End;
 
-Function Webcam.GetDeviceName(ID:Integer):AnsiString;
+Function Webcam.GetDeviceName(ID:Integer):TERRAString;
 Begin
   If (_DeviceCount<=0) Then
     Self.InitDeviceList;
@@ -574,10 +574,10 @@ end;
 function Webcam.Start(DeviceID:Integer): integer;
 VAR
   hr     : HResult;
-  st     :AnsiString;
+  st     :TERRAString;
   W, H   : integer;
   FourCC : cardinal;
-  DeviceName:AnsiString;
+  DeviceName:TERRAString;
 begin
   fSkipCnt       := 0;
   fFrameCnt      := 0;
@@ -755,7 +755,7 @@ procedure Webcam.UnpackFrame(Size: integer; pData: pointer);
 var
   {f       : file;}
   Unknown : boolean;
-  FourCCSt:AnsiString[4];
+  FourCCSt:TERRAString[4];
 begin
   IF pData = nil then exit;
   Unknown := false;
@@ -1066,7 +1066,7 @@ end;
 
 
 
-FUNCTION TVideoSample.ConnectToCaptureDevice(DeviceName:AnsiString; VAR DeviceSelected:AnsiString; VAR ppIBFVideoSource: IBaseFilter): HRESULT;
+FUNCTION TVideoSample.ConnectToCaptureDevice(DeviceName:TERRAString; VAR DeviceSelected:TERRAString; VAR ppIBFVideoSource: IBaseFilter): HRESULT;
 VAR
   pDevEnum   : ICreateDevEnum;
   pClassEnum : IEnumMoniker;
@@ -1075,13 +1075,13 @@ VAR
 
 
           // see also: http://msdn.microsoft.com/en-us/library/ms787619.aspx
-          FUNCTION CheckNextDeviceName(Name:AnsiString; VAR Found: boolean): HResult;
+          FUNCTION CheckNextDeviceName(Name:TERRAString; VAR Found: boolean): HResult;
           VAR
             pMoniker     : IMoniker;
             pPropertyBag : IPropertyBag;
             v            : OLEvariant;
             cFetched     : ulong;
-            MonName      :AnsiString;
+            MonName      :TERRAString;
           BEGIN
             Found  := false;
             pMoniker := nil;
@@ -1338,7 +1338,7 @@ BEGIN
 END; {RestartVideo}
 
 
-FUNCTION TVideoSample.StartVideo(CaptureDeviceName:AnsiString; Visible: boolean; VAR DeviceSelected:AnsiString):HRESULT;
+FUNCTION TVideoSample.StartVideo(CaptureDeviceName:TERRAString; Visible: boolean; VAR DeviceSelected:TERRAString):HRESULT;
 BEGIN
   pIBFVideoSource := nil;
   FVisible   := Visible;

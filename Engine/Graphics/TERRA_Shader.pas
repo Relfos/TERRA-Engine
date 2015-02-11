@@ -32,21 +32,21 @@ Unit TERRA_Shader;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Collections, TERRA_IO,
-  TERRA_Application, TERRA_ResourceManager, TERRA_Resource,
+  TERRA_Utils, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Collections, TERRA_Stream,
+  TERRA_String, TERRA_Application, TERRA_ResourceManager, TERRA_Resource,
   TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Plane,
   TERRA_Color, TERRA_Matrix4x4, TERRA_Matrix3x3, TERRA_FileManager, SysUtils;
 
 Type
   ShaderAttribute = Record
-    Name:AnsiString;
+    Name:TERRAString;
     Handle:Integer;
   End;
 
   Shader = Class (Resource)
     Protected
-      _VertexCode:AnsiString;
-	    _FragmentCode:AnsiString;
+      _VertexCode:TERRAString;
+	    _FragmentCode:TERRAString;
 
 	    _VertexShaderHandle:Cardinal;
 	    _FragmentShaderHandle:Cardinal;
@@ -58,45 +58,45 @@ Type
       _Attributes:Array Of ShaderAttribute;
       _AttributeCount:Integer;
 
-      Procedure ProcessIncludes(Var S:AnsiString; IncludedList:List);
+      Procedure ProcessIncludes(Var S:TERRAString; IncludedList:List);
 
-      Procedure UniformError(Const Name:AnsiString);
+      Procedure UniformError(Const Name:TERRAString);
 
-      Procedure AddAttributes(Source:AnsiString);
+      Procedure AddAttributes(Source:TERRAString);
 
-      Function CompileShader(Source:AnsiString; ShaderType:Cardinal; Var Shader:Cardinal):Boolean;
+      Function CompileShader(Source:TERRAString; ShaderType:Cardinal; Var Shader:Cardinal):Boolean;
       Function LinkProgram:Boolean;
 
 			Procedure Bind();
       Procedure Unbind();
 
     Public
-      Defines:AnsiString;
+      Defines:TERRAString;
 
-      Constructor CreateFromString(Source:AnsiString; Name:AnsiString = ''; Defines:AnsiString = '');
+      Constructor CreateFromString(Source:TERRAString; Name:TERRAString = ''; Defines:TERRAString = '');
 
       Function Load(Source:Stream):Boolean; Override;
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
       Procedure OnContextLost; Override;
 
-      Function GetAttribute(Name:AnsiString):Integer;
+      Function GetAttribute(Name:TERRAString):Integer;
 
       Class Function GetManager:Pointer; Override;
 
-			Procedure SetUniform(Const Name:AnsiString; Const Value:Integer); Overload;
-			Procedure SetUniform(Const Name:AnsiString; Const Value:Single); Overload;
-			Procedure SetUniform(Const Name:AnsiString; Const Value:Vector2D); Overload;
-			Procedure SetUniform(Const Name:AnsiString; const Value:Vector3D); Overload;
-			Procedure SetUniform(Const Name:AnsiString; const Value:Vector4D); Overload;
-			Procedure SetUniform(Const Name:AnsiString; const Value:Plane); Overload;
-			Procedure SetUniform(Const Name:AnsiString; Const Value:Color); Overload;
-      Procedure SetUniform(Const Name:AnsiString; Value:Matrix4x4); Overload;
-      Procedure SetUniform(Const Name:AnsiString; Const Value:Matrix3x3); Overload;
+			Procedure SetUniform(Const Name:TERRAString; Const Value:Integer); Overload;
+			Procedure SetUniform(Const Name:TERRAString; Const Value:Single); Overload;
+			Procedure SetUniform(Const Name:TERRAString; Const Value:Vector2D); Overload;
+			Procedure SetUniform(Const Name:TERRAString; const Value:Vector3D); Overload;
+			Procedure SetUniform(Const Name:TERRAString; const Value:Vector4D); Overload;
+			Procedure SetUniform(Const Name:TERRAString; const Value:Plane); Overload;
+			Procedure SetUniform(Const Name:TERRAString; Const Value:Color); Overload;
+      Procedure SetUniform(Const Name:TERRAString; Value:Matrix4x4); Overload;
+      Procedure SetUniform(Const Name:TERRAString; Const Value:Matrix3x3); Overload;
 
-      Function GetUniform(Const Name:AnsiString):Integer;
+      Function GetUniform(Const Name:TERRAString):Integer;
 
-      Function HasUniform(Const Name:AnsiString):Boolean;
+      Function HasUniform(Const Name:TERRAString):Boolean;
 
       Property Handle:Cardinal Read _Program;
       Property MRT:Boolean Read _MRT;
@@ -113,7 +113,7 @@ Type
 
 			Procedure Bind(MyShader:Shader);
 
-      Function GetShader(Name:AnsiString; ValidateError:Boolean = True):Shader;
+      Function GetShader(Name:TERRAString; ValidateError:Boolean = True):Shader;
 
       Procedure AddShader(MyShader:Shader);
       Procedure DeleteShader(MyShader:Shader);
@@ -124,7 +124,8 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_GraphicsManager, TERRA_FileUtils, TERRA_FileIO;
+Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_GraphicsManager,
+  TERRA_FileUtils, TERRA_FileStream, TERRA_MemoryStream;
 
 Var
   _ShaderManager_Instance:ApplicationObject = Nil;
@@ -137,24 +138,24 @@ Begin
     Result := Nil;
 End;}
 
-Procedure Shader.UniformError(Const Name:AnsiString);
+Procedure Shader.UniformError(Const Name:TERRAString);
 Begin
   {$IFDEF PC}
   //  Log(logWarning, 'Shader', 'Invalid uniform: '+Name+' in '+Self._Name);
   {$ENDIF}
 End;
 
-Function Shader.HasUniform(Const Name:AnsiString):Boolean;
+Function Shader.HasUniform(Const Name:TERRAString):Boolean;
 Begin
   Result := GetUniform(Name)>=0;
 End;
 
-Function Shader.GetUniform(Const Name:AnsiString):Integer;
+Function Shader.GetUniform(Const Name:TERRAString):Integer;
 Begin
   Result := glGetUniformLocation(_Program, PAnsiChar(Name));
 End;
 
-Constructor Shader.CreateFromString(Source, Name, Defines:AnsiString);
+Constructor Shader.CreateFromString(Source, Name, Defines:TERRAString);
 Var
   MyStream:MemoryStream;
 Begin
@@ -179,7 +180,7 @@ Begin
 End;
 
 
-Function Shader.GetAttribute(Name:AnsiString):Integer;
+Function Shader.GetAttribute(Name:TERRAString):Integer;
 Var
   I:Integer;
 Begin
@@ -195,22 +196,21 @@ Begin
 End;
 
 // Shader
-Procedure Shader.ProcessIncludes(Var S:AnsiString; IncludedList:List);
+Procedure Shader.ProcessIncludes(Var S:TERRAString; IncludedList:List);
 Var
   Lib:StringObject;
-  S2, S3, Content, LibPath:AnsiString;
-  I, J, K:Integer;
+  S2, S3, Content, LibPath:TERRAString;
+  I, J:Integer;
   Temp:Stream;
 Begin
-  K := Pos('#MATERIAL', S);
-  If (K>0) Then
+  If StringContains('#material', S) Then
   Begin
-    ReplaceText('#MATERIAL', 'phong', S);
+    StringReplaceText('#material', 'phong', S);
   End;
 
   Repeat
-    S2 := UpStr(S);
-    I := Pos('INCLUDE(', S2);
+    S2 := StringUpper(S);
+    I := StringPos('INCLUDE(', S2);
     If (I>0) Then
     Begin
       S2 := Copy(S2, I+9, MaxInt);
@@ -218,11 +218,11 @@ Begin
       S3 := Copy(S2,1, J-2);
       LibPath := FileManager.Instance().SearchResourceFile('lib_' + S3 + '.glsl');
       If (LibPath='') Then
-        LibPath := FileManager.Instance().SearchResourceFile('mat_' + LowStr(S3) + '.glsl');
+        LibPath := FileManager.Instance().SearchResourceFile('mat_' + StringLower(S3) + '.glsl');
 
       If (LibPath<>'') Then
       Begin
-        Lib := StringObject.Create(UpStr(GetFileName(LibPath, True)));
+        Lib := StringObject.Create(StringUpper(GetFileName(LibPath, True)));
 
         If (Not IncludedList.ContainsDuplicate(Lib)) Then
         Begin
@@ -250,14 +250,14 @@ Begin
   Until I<=0;
 End;
 
-Procedure Shader.AddAttributes(Source:AnsiString);
+Procedure Shader.AddAttributes(Source:TERRAString);
 Var
   I:Integer;
-  S, S2:AnsiString;
+  S, S2:TERRAString;
 Begin
   _AttributeCount := 0;
   S := Source;
-  ReplaceText('gl_Position', 'IGNORE',S);
+  StringReplaceText('gl_Position', 'IGNORE',S);
   If (Pos('gl_', S)>0) Then
   Begin
      Log(logWarning, 'Shader', 'The following shader has deprecated attributes: '+_Name);
@@ -269,11 +269,11 @@ Begin
       Break;
 
     Source := Copy(Source, I + 10, MaxInt);
-    S := GetNextWord(Source, ' ');      // type
-    S := UpStr(S);
+    S := StringGetNextSplit(Source, Ord(' '));      // type
+    S := StringUpper(S);
     If (S='HIGHP') Or (S='LOWP') Or (S='MEDIUMP') Then
-      S := GetNextWord(Source, ' ');      // type
-    S2 := GetNextWord(Source, ';');      // name
+      S := StringGetNextSplit(Source, Ord(' '));      // type
+    S2 := StringGetNextSplit(Source, Ord(';'));      // name
 
     Inc(_AttributeCount);
     SetLength(_Attributes, _AttributeCount);
@@ -289,16 +289,16 @@ End;
 
 Function Shader.Load(Source:Stream):Boolean;
 Var
-  S:AnsiString;
-  Version:AnsiString;
+  S:TERRAString;
+  Version:TERRAString;
 
-Function ReadBlock(Name:AnsiString):AnsiString;
+Function ReadBlock(Name:TERRAString):TERRAString;
 Var
-  S2:AnsiString;
+  S2:TERRAString;
   I:Integer;
   N:Integer;
 Begin
-  I := Pos(UpStr(Name), UpStr(S));
+  I := Pos(StringUpper(Name), StringUpper(S));
   If (I>0) Then
   Begin
     S2 := Copy(S, I +1, MaxInt);
@@ -328,16 +328,16 @@ Begin
   Result := TrimLeft(TrimRight(Result));
 End;
 
-Function PreProcess(Source:AnsiString):AnsiString;
+Function PreProcess(Source:TERRAString):TERRAString;
 Var
   I,J,K:Integer;
   Found:Boolean;
-  S,S2,S3, SB, SN:AnsiString;
-  Defines:AnsiString;
+  S,S2,S3, SB, SN:TERRAString;
+  Defines:TERRAString;
 Begin
   Defines := '';
   Repeat
-    I := Pos('#DEFINE', UpStr(Source));
+    I := Pos('#DEFINE', StringUpper(Source));
     If (I<=0) Then
       Break;
 
@@ -347,16 +347,16 @@ Begin
     SN := Copy(S, Succ(J), MaxInt);
     S := Copy(S, 1, Pred(J));
     J := Pos(' ', S);
-    S2 := UpStr(Copy(S, 1, Pred(J)));
+    S2 := StringUpper(Copy(S, 1, Pred(J)));
 
     S := Copy(S, Succ(J), MaxInt);
     S := TrimRight(S);
-    Defines := Defines + UpStr(S) +',';
+    Defines := Defines + StringUpper(S) +',';
     Source := SB + SN;
   Until (False);
 
   Repeat
-    I := Pos('#UNDEF', UpStr(Source));
+    I := Pos('#UNDEF', StringUpper(Source));
     If (I<=0) Then
       Break;
 
@@ -366,35 +366,36 @@ Begin
     SN := Copy(S, Succ(J), MaxInt);
     S := Copy(S, 1, Pred(J));
     J := Pos(' ', S);
-    S2 := UpStr(Copy(S, 1, Pred(J)));
+    S2 := StringUpper(Copy(S, 1, Pred(J)));
 
     S := Copy(S, Succ(J), MaxInt);
     S := TrimRight(S);
-    ReplaceText(UpStr(S)+',', '', Defines);
+    StringReplaceText(StringUpper(S)+',', '', Defines);
     Source := SB + SN;
   Until (False);
 
   Repeat
-    I := PosRev('#IF', UpStr(Source));
+    I := StringPosReverse('#IF', StringUpper(Source));
     If (I<=0) Then
       Break;
+      
     SB := Copy(Source, 1, Pred(I));
     S := Copy(Source, Succ(I), MaxInt);
     J := Pos(#10, S);
     SN := Copy(S, Succ(J), MaxInt);
     S := Copy(S, 1, Pred(J));
     J := Pos(' ', S);
-    S2 := UpStr(Copy(S, 1, Pred(J)));
+    S2 := StringUpper(Copy(S, 1, Pred(J)));
 
     S := Copy(S, Succ(J), MaxInt);
-    S := UpStr(TrimRight(S));
+    S := StringUpper(TrimRight(S));
     If (S2='IFNDEF') Then
       Found := Pos(S +',', Defines)<=0
     Else
       Found := Pos(S +',', Defines)>0;
 
-    J := Pos('#ELSE', UpStr(SN));
-    K := Pos('#ENDIF', UpStr(SN));
+    J := Pos('#ELSE', StringUpper(SN));
+    K := Pos('#ENDIF', StringUpper(SN));
 
     If (J>0) And (J<K) Then // #else found
     Begin
@@ -424,7 +425,7 @@ Var
   I:Integer;
   IncludedList:List;
   HasGLSL120:Boolean;
-  S1, S2:AnsiString;
+  S1, S2:TERRAString;
 Begin
   SetLength(S, Source.Size);
   Source.Read(@S[1], Source.Size);
@@ -469,7 +470,7 @@ Begin
   S1 := Self.Defines;
   While (S1<>'') Do
   Begin
-    S2 := GetNextWord(S1,';');
+    S2 := StringGetNextSplit(S1, Ord(';'));
     If (S2<>'') Then
       Version := Version + '#define ' + S2 + crLf;
   End;
@@ -560,7 +561,7 @@ Begin
     Begin
       glDeleteProgram(_Program);
     End;
-    
+
     _Program := 0;
   End;
 
@@ -570,15 +571,15 @@ Begin
 	Result := True;
 End;
 
-Function Shader.CompileShader(Source:AnsiString; ShaderType:Cardinal; Var Shader:Cardinal):Boolean;
+Function Shader.CompileShader(Source:TERRAString; ShaderType:Cardinal; Var Shader:Cardinal):Boolean;
 Var
-  ShaderCode:PAnsiChar;
   CompileStatus, ShaderLength:Integer;
-  LogInfo,PS:AnsiString;
+  LogInfo,PS:TERRAString;
   LogLength,slen:Integer;
   Dest:FileStream;
+  P:Pointer;
   {$IFDEF DEBUG_SHADERS}
-  FileName:AnsiString;
+  FileName:TERRAString;
   {$ENDIF}
 Begin
   Result := False;
@@ -593,23 +594,23 @@ Begin
   ReplaceAllText('@', '}', Source);
 *)
   {$IFDEF PC}
-  ReplaceText('highp', '', Source);
-  ReplaceText('lowp', '', Source);
-  ReplaceText('mediump', '', Source);
+  StringReplaceText('highp', '', Source);
+  StringReplaceText('lowp', '', Source);
+  StringReplaceText('mediump', '', Source);
   {$ENDIF}
 
   // Create shader
-  ShaderCode := PAnsiChar(Source);
   ShaderLength := Length(Source);
 
-  Shader := glCreateShader(ShaderType);  
+  Shader := glCreateShader(ShaderType);
 
-  glShaderSource(Shader,1 ,@ShaderCode, @ShaderLength);   
-  glCompileShader(Shader);                                
-  glGetShaderiv(Shader, GL_COMPILE_STATUS, @CompileStatus);  
+  P := PAnsiChar(Source);
+  glShaderSource(Shader,1 ,@P, @ShaderLength);
+  glCompileShader(Shader);
+  glGetShaderiv(Shader, GL_COMPILE_STATUS, @CompileStatus);
 
   {$IFDEF DEBUG_SHADERS}
-  FileName := LowStr(Name);
+  FileName := StringLower(Name);
   If ShaderType=GL_VERTEX_SHADER Then
     FileName:=FileName+'.vs'
   Else
@@ -648,10 +649,10 @@ Begin
     Else
       PS:='Fragment';
 
-    ReplaceText('ERROR:','@', LogInfo);
-    ReplaceText('@',crLf+'ERROR:', LogInfo);
+    StringReplaceText('ERROR:','@', LogInfo);
+    StringReplaceText('@',crLf+'ERROR:', LogInfo);
     Delete(LogInfo, 1, Length(crLf));
-    Log(logDebug,'Shader', ShaderCode);
+    Log(logDebug,'Shader', Source);
     RaiseError(Name+'.'+PS+': ' + LogInfo);
     Result:=False;
   End Else
@@ -661,7 +662,7 @@ End;
 Function Shader.LinkProgram:Boolean;
 Var
   LinkStatus:Integer;
-  LogInfo:AnsiString;
+  LogInfo:TERRAString;
   LogLength,slen:Integer;
 Begin
   Result := False;
@@ -694,7 +695,7 @@ Begin
   Result := True;
 End;
 
-Procedure Shader.SetUniform(Const Name:AnsiString; Const Value:Single);
+Procedure Shader.SetUniform(Const Name:TERRAString; Const Value:Single);
 Var
   ID:Integer;
 Begin
@@ -709,7 +710,7 @@ Begin
     UniformError(Name);
 End;
 
-Procedure Shader.SetUniform(Const Name:AnsiString; Const Value:Integer);
+Procedure Shader.SetUniform(Const Name:TERRAString; Const Value:Integer);
 Var
   ID:Integer;
 Begin
@@ -724,7 +725,7 @@ Begin
     UniformError(Name);
 End;
 
-Procedure Shader.SetUniform(Const Name:AnsiString; Const Value:Vector2D);
+Procedure Shader.SetUniform(Const Name:TERRAString; Const Value:Vector2D);
 Var
   ID:Integer;
 Begin
@@ -739,7 +740,7 @@ Begin
     UniformError(Name);
 End;
 
-Procedure Shader.SetUniform(Const Name:AnsiString; Const Value:Vector3D);
+Procedure Shader.SetUniform(Const Name:TERRAString; Const Value:Vector3D);
 Var
   ID:Integer;
 Begin
@@ -754,7 +755,7 @@ Begin
     UniformError(Name);
 End;
 
-Procedure Shader.SetUniform(Const Name:AnsiString; Const Value:Vector4D);
+Procedure Shader.SetUniform(Const Name:TERRAString; Const Value:Vector4D);
 Var
   ID:Integer;
 Begin
@@ -769,7 +770,7 @@ Begin
     UniformError(Name);
 End;
 
-Procedure Shader.SetUniform(Const Name:AnsiString; Const Value:Plane);
+Procedure Shader.SetUniform(Const Name:TERRAString; Const Value:Plane);
 Var
   ID:Integer;
 Begin
@@ -784,7 +785,7 @@ Begin
     UniformError(Name);
 End;
 
-Procedure Shader.SetUniform(Const Name:AnsiString; Const Value:Color);
+Procedure Shader.SetUniform(Const Name:TERRAString; Const Value:Color);
 Var
   ID:Integer;
   P:Array[0..3] Of Single;
@@ -804,7 +805,7 @@ Begin
     UniformError(Name);
 End;
 
-Procedure Shader.SetUniform(Const Name:AnsiString; Const Value:Matrix3x3);
+Procedure Shader.SetUniform(Const Name:TERRAString; Const Value:Matrix3x3);
 Var
   ID:Integer;
 Begin
@@ -819,7 +820,7 @@ Begin
     UniformError(Name);
 End;
 
-Procedure Shader.SetUniform(Const Name:AnsiString; Value:Matrix4x4);
+Procedure Shader.SetUniform(Const Name:TERRAString; Value:Matrix4x4);
 Var
   ID:Integer;
   IsModelMatrix:Boolean;
@@ -830,7 +831,7 @@ Begin
 	ID := GetUniform(Name);
   If (ID>=0) Then
   Begin
-    {If (GraphicsManager.Instance().RenderStage = renderStageReflection) And (UpStr(Name)='MODELMATRIX') Then
+    {If (GraphicsManager.Instance().RenderStage = renderStageReflection) And (StringUpper(Name)='MODELMATRIX') Then
       Value := MatrixMultiply4x3(GraphicsManager.Instance().ReflectionMatrix, Value);}
 
     If (GraphicsManager.Instance().RenderStage = renderStageReflection) Then
@@ -989,9 +990,9 @@ Begin
   Self.AddResource(MyShader);
 End;
 
-Function ShaderManager.GetShader(Name:AnsiString; ValidateError:Boolean):Shader;
+Function ShaderManager.GetShader(Name:TERRAString; ValidateError:Boolean):Shader;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   Name := TrimLeft(TrimRight(Name));
   If (Name='') Then

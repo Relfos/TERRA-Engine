@@ -25,7 +25,7 @@ Unit TERRA_ScreenFX;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_OS, TERRA_Shader, TERRA_Matrix4x4, TERRA_Texture, TERRA_RenderTarget;
+Uses TERRA_String, TERRA_Utils, TERRA_OS, TERRA_Shader, TERRA_Matrix4x4, TERRA_Texture, TERRA_RenderTarget;
 
 Const
   MaxVignetteScale = 20.0;
@@ -39,12 +39,12 @@ Type
   ScreenFX = Class(TERRAObject)
     Protected
       _FXType:Integer;
-      _Buffer:AnsiString;
+      _Buffer:TERRAString;
       _RequireTarget:Array[0..Pred(MaxCaptureTargets)] Of Boolean;
       _Enabled:Boolean;
       _Owner:ScreenFXChain;
 
-      Procedure Line(S2:AnsiString);
+      Procedure Line(S2:TERRAString);
       Procedure RequireTarget(ID:Integer);
       Procedure SetEnabled(const Value: Boolean);
 
@@ -69,7 +69,7 @@ Type
 
       _NeedsUpdate:Boolean;
 
-      Function GetShaderName():AnsiString;
+      Function GetShaderName():TERRAString;
 
     Public
       Constructor Create;
@@ -241,7 +241,7 @@ Begin
   End;
 End;
 
-Function ScreenFXChain.GetShaderName():AnsiString;
+Function ScreenFXChain.GetShaderName():TERRAString;
 Var
   I:Integer;
 Begin
@@ -252,9 +252,9 @@ End;
 
 Function ScreenFXChain.GetShader: Shader;
 Var
-  S:AnsiString;
+  S:TERRAString;
   I, J:Integer;
-  Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   If (_NeedsUpdate) Then
   Begin
@@ -398,7 +398,7 @@ Begin
   _Buffer := '';
 End;
 
-Procedure ScreenFX.Line(S2:AnsiString);
+Procedure ScreenFX.Line(S2:TERRAString);
 Begin
   _Buffer := _Buffer + S2 + crLf;
 End;

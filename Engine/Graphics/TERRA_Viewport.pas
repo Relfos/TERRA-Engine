@@ -27,7 +27,7 @@ Unit TERRA_Viewport;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Utils, TERRA_Camera, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
-  TERRA_Ray, TERRA_Vector3D, TERRA_Matrix4x4, 
+  TERRA_String, TERRA_Ray, TERRA_Vector3D, TERRA_Matrix4x4, 
   TERRA_Color, TERRA_RenderTarget, TERRA_Downsampler, TERRA_Shader
 {$IFDEF POSTPROCESSING},TERRA_ScreenFX{$ENDIF};
 
@@ -38,14 +38,16 @@ Const
 Type
   Viewport = Class(TERRAObject)
     Protected
-      _Name:AnsiString;
+      _Name:TERRAString;
       _Active:Boolean;
       _Visible:Boolean;
 
       _OfsX:Integer;
       _OfsY:Integer;
 
-      _Width, _Height:Integer;
+      _Width:Integer;
+      _Height:Integer;
+      _Scale:Single;
 
       _Camera:Camera;
 
@@ -57,6 +59,11 @@ Type
       _TargetY1:Single;
       _TargetY2:Single;
 
+      _ViewX:Integer;
+      _ViewY:Integer;
+      _ViewWidth:Integer;
+      _ViewHeight:Integer;
+      
       _ContextID:Integer;
 
       _Buffers:Array[0..Pred(MaxCaptureTargets)]  Of RenderTarget;
@@ -79,7 +86,7 @@ Type
       {$ENDIF}
 
     Public
-      Constructor Create(Name:AnsiString; Width,Height:Integer);
+      Constructor Create(Name:TERRAString; Width,Height:Integer; Scale:Single = 1.0);
 
       Destructor Destroy; Override;
 
@@ -94,6 +101,8 @@ Type
       Function GetRenderTarget(TargetType:Integer):RenderTarget;
       Function IsRenderTargetEnabled(TargetType:Integer):Boolean;
       Function IsDirectDrawing():Boolean;
+
+      Procedure SetViewArea(X,Y,Width,Height:Integer);
 
       Procedure SetPostProcessingState(Enabled:Boolean);
       Function IsPostProcessingEnabled():Boolean; {$IFDEF FPC}Inline; {$ENDIF}
@@ -129,7 +138,7 @@ Type
       Property FXChain:ScreenFXChain Read GetFXChain;
       {$ENDIF}
 
-      Property Name:AnsiString Read _Name Write _Name;
+      Property Name:TERRAString Read _Name Write _Name;
 
       Property Width:Integer Read _Width;
       Property Height:Integer Read _Height;
@@ -154,10 +163,10 @@ Var
   _BlurShader:Shader;
 {$ENDIF}
 
-Function GetShader_Blur():AnsiString;
+Function GetShader_Blur():TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('version { 110 }');
@@ -215,7 +224,7 @@ Begin
   Result := S;
 End;
 
-Constructor Viewport.Create(Name:AnsiString; Width,Height:Integer);
+Constructor Viewport.Create(Name:TERRAString; Width,Height:Integer; Scale:Single);
 Begin
   _Name := Name;
   _Active := True;
@@ -224,6 +233,7 @@ Begin
 
   _Width := Width;
   _Height := Height;
+  _Scale := Scale;
 
   _OfsX := 0;
   _OfsY := 0;
@@ -236,7 +246,7 @@ Begin
 
   SetOffScreenState(False);
 
-  Log(logDebug, 'Viewport', 'Created viewport '+Name+' with size '+IntToString(_Width) +' x '+IntToString(_Height));
+  Log(logDebug, 'Viewport', 'Created viewport '+Name+' with size '+IntToString(_Width) +' x '+IntToString(_Height)+' and scale = '+FloatToString(_Scale));
 End;
 
 
@@ -253,7 +263,7 @@ End;
 
 Procedure Viewport.Restore(Clear:Boolean);
 Begin
-  GraphicsManager.Instance.SetViewArea(_OfsX, _OfsY, _Width, _Height);
+  Self.SetViewArea(_OfsX, _OfsY, _Width, _Height);
 
   If (Clear) Then
     Self.Clear();
@@ -264,14 +274,14 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(MaxCaptureTargets) Do
-  DestroyObject(@_Buffers[I]);
+  FreeAndNil(_Buffers[I]);
 
   ClearDownSampler();
 
-  DestroyObject(@_Camera);
+  FreeAndNil(_Camera);
 
   {$IFDEF POSTPROCESSING}
-  DestroyObject(@_FXChain);
+  FreeAndNil(_FXChain);
   {$ENDIF}
 End;
 
@@ -418,7 +428,7 @@ Begin
   If Enabled Then
   Begin
     Log(logDebug, 'GraphicsManager', 'Initializing '+TargetNames[TargetType]+' target for '+Self.Name);
-    _Buffers[TargetType] := CreateRenderTarget(_Name+'_target'+IntToString(TargetType),_Width, _Height, True, True);
+    _Buffers[TargetType] := CreateRenderTarget(_Name+'_target'+IntToString(TargetType), Trunc(_Width * _Scale), Trunc(_Height * _Scale), True, True);
 
     {$IFDEF POSTPROCESSING}
     If (TargetType = captureTargetEmission) And (GraphicsManager.Instance.Settings.FrameBufferObject.Avaliable) Then
@@ -618,11 +628,11 @@ Var
   UseScissors:Boolean;
   Flags:Integer;
 Begin
-  UseScissors := (_Width<GraphicsManager.Instance.Width) Or (_Height<GraphicsManager.Instance.Height);
+  UseScissors := (Trunc(_Width*_Scale)<GraphicsManager.Instance.Width) Or (Trunc(_Height*_Scale)<GraphicsManager.Instance.Height);
 
   If (UseScissors) Then
   Begin
-    glScissor(0, 0, _Width, _Height);
+    glScissor(0, 0, Trunc(_Width*_Scale), Trunc(_Height*_Scale));
     glEnable(GL_SCISSOR_TEST);
   End;
 
@@ -677,6 +687,16 @@ Begin
     SetTarget(Target, SafeDiv(X1, Target.Width), SafeDiv(Y1, Target.Height), SafeDiv(X2, Target.Width), SafeDiv(Y2, Target.Height))
   Else
     SetTarget(Nil, 0.0, 0.0, 1.0, 1.0);
+End;
+
+Procedure Viewport.SetViewArea(X, Y, Width, Height: Integer);
+Begin
+  _ViewX := X;
+  _ViewY := Y;
+  _ViewWidth := Width;
+  _ViewHeight := Height;
+
+  glViewport(Trunc(X * _Scale), Trunc(Y * _Scale), Trunc(Width * _Scale), Trunc(Height * _Scale));
 End;
 
 

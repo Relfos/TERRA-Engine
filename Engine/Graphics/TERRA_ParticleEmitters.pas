@@ -27,7 +27,7 @@ Unit TERRA_ParticleEmitters;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_IO, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_ParticleRenderer;
+Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_ParticleRenderer;
 
 Const
   particleEmitterSphere   = 0;
@@ -79,13 +79,13 @@ Type
       Owner:ParticleSettingsEmitter;
 
       Procedure Reset;
-      Procedure Load(S:AnsiString);
+      Procedure Load(S:TERRAString);
       Function GetParticleCount:Integer;
   End;
 
   ParticleSettingsEmitter = Class(PositionalParticleEmitter)
     Protected
-      _Name:AnsiString;
+      _Name:TERRAString;
       _Groups:Array Of ParticleSettingsEmitterGroup;
       _GroupCount:Integer;
       _NeedsShuffle:Boolean;
@@ -94,7 +94,7 @@ Type
       Function GetRandomGroup():Integer;
 
     Public
-      Constructor Create(Const FXName:AnsiString; Position:Vector3D);
+      Constructor Create(Const FXName:TERRAString; Position:Vector3D);
 
       Procedure Copy(Source:ParticleSettingsEmitter);
 
@@ -105,7 +105,7 @@ Type
       Procedure Emit(Target:PParticle); Override;
       Function GetParticleCount: Integer; Override;
 
-      Property Name:AnsiString Read _Name;
+      Property Name:TERRAString Read _Name;
   End;
 
 Implementation
@@ -131,9 +131,9 @@ Begin
   End;
 End;
 
-Constructor ParticleSettingsEmitter.Create(Const FXName:AnsiString; Position:Vector3D);
+Constructor ParticleSettingsEmitter.Create(Const FXName:TERRAString; Position:Vector3D);
 Var
-  S:AnsiString;
+  S:TERRAString;
   Source:Stream;
 Begin
   _Position := Position;
@@ -161,7 +161,7 @@ End;
 Procedure ParticleSettingsEmitter.Load(Source: Stream);
 Var
   I:Integer;
-  S, S2:AnsiString;
+  S, S2:TERRAString;
 Begin
   S := '';
   S2 := '';
@@ -172,20 +172,19 @@ Begin
   End;
 
   _GroupCount := 0;
-  S := UpStr(S);
   While S<>'' Do
   Begin
-    I := Pos('{', S);
+    I := StringCharPos(Ord('{'), S);
     If (I<=0) Then
       Break;
 
-    S := System.Copy(S, I + 1, MaxInt);
-    I := Pos('}', S);
+    S := StringCopy(S, I + 1, MaxInt);
+    I := StringCharPos(Ord('}'), S);
     If (I<=0) Then
-      I := Succ(Length(S));
+      I := Succ(StringLength(S));
 
-    S2 := System.Copy(S, 1, Pred(I));
-    S := System.Copy(S, I + 1, MaxInt);
+    S2 := StringCopy(S, 1, Pred(I));
+    S := StringCopy(S, I + 1, MaxInt);
 
     Inc(_GroupCount);
     SetLength(_Groups, _GroupCount);
@@ -398,13 +397,13 @@ Begin
   MaxLife := 20.0;
 End;
 
-Procedure ParticleSettingsEmitterGroup.Load(S:AnsiString);
+Procedure ParticleSettingsEmitterGroup.Load(S:TERRAString);
 Var
-  Tex:AnsiString;
+  Tex:TERRAString;
   Parser:INIParser;
 Begin
   Reset();
-  ReplaceText(#9, '', S);
+  StringReplaceText(#9, '', S);
   Parser := INIParser.Create;
   Parser.AddToken('spawnrange', tkFloat, @SpawnRange);
   Parser.AddToken('emissionrate', tkInteger, @EmissionRate);

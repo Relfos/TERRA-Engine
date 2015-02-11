@@ -89,7 +89,7 @@ Begin
     Tileset.MipMapped := False;
   End;
 
-  GraphicsManager.Instance.BackgroundColor := ColorBlack;
+  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorBlack;
 
   For J:=0 To Pred(MapHeight) Do
   Begin
@@ -130,7 +130,7 @@ Procedure Game.OnIdle;
 Var
   Delta:Single;
 Begin
-  If Application.Instance.KeyPressed(keyEscape) Then
+  If Application.Instance.Input.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate();
 
   Delta := Application.Instance.GetElapsedTime() - LastUpdate;
@@ -140,19 +140,16 @@ Begin
     LastUpdate := Application.Instance.GetElapsedTime();
     //Delta := 1.5;
 
-    If Application.Instance.Input.Keys[keyUp] Then
+    If Application.Instance.Input.Keys.IsDown(keyUp) Then
       MapY := MapY - Delta;
-    If Application.Instance.Input.Keys[keyDown] Then
+    If Application.Instance.Input.Keys.IsDown(keyDown) Then
       MapY := MapY + Delta;
 
-    If Application.Instance.Input.Keys[keyLeft] Then
+    If Application.Instance.Input.Keys.IsDown(keyLeft) Then
       MapX := MapX - Delta;
-    If Application.Instance.Input.Keys[keyRight] Then
+    If Application.Instance.Input.Keys.IsDown(keyRight) Then
       MapX := MapX + Delta;
   End;
-
-  If Keys[keyEscape] Then
-    Application.Instance.Terminate;
 End;
 
 { MyScene }
@@ -170,7 +167,7 @@ Var
   S:Sprite;
   X,Y, XOfs:Single;
   TileID:Byte;
-  I,J,K,Layer:Integer;
+  I,J,K:Integer;
 Begin
   // Draw all tiles in our map
     For J:=0 To Pred(MapHeight) Do
@@ -191,7 +188,7 @@ Begin
           // We add a new sprite for each tile
           // The scroll effect is created by adding MapX/MapY variables the sprite position
           Y := -MapY+ J * 16 - 32 * K;
-          S := SpriteManager.Instance.AddSprite(X, Y, 10-K*0.1, Tileset);
+          S := SpriteManager.Instance.DrawSprite(X, Y, 10-K*0.1, Tileset);
           S.Rect.TileRemap(TileID Mod 10, TileID Div 10, 10, 16);
 
           S.Rect.Width := 67;
@@ -203,7 +200,7 @@ Begin
         If TileID=0 Then
           Continue;
 
-          S := SpriteManager.Instance.AddSprite(X,Y, 9, Tileset);
+          S := SpriteManager.Instance.DrawSprite(X,Y, 9, Tileset);
           S.Rect.TileRemap(TileID Mod 10, TileID Div 10, 10, 16);
       End;
     End;

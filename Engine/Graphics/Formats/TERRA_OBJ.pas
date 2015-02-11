@@ -26,9 +26,9 @@ Unit TERRA_OBJ;
 
 {$I terra.inc}
 Interface
-Uses TERRA_Utils, TERRA_IO, TERRA_Color, TERRA_Vector3D, TERRA_Vector2D, TERRA_Texture,
+Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Color, TERRA_Vector3D, TERRA_Vector2D, TERRA_Texture,
   TERRA_Math, TERRA_Mesh, TERRA_Resource, TERRA_MeshFilter, TERRA_OS, TERRA_FileUtils,
-  TERRA_FileManager, TERRA_FileIO;
+  TERRA_FileManager, TERRA_FileStream, TERRA_MemoryStream;
 
 Type
   POBJMaterial=^OBJMaterial;
@@ -215,13 +215,13 @@ Begin
   Index:=0;
   While (Length(S)>0) Do
   begin
-    S2 := GetNextWord(S, ' ');
+    S2 := StringGetNextSplit(S, Ord(' '));
 
     Inc(Index);
-    S3 := GetNextWord(S2, '/');
+    S3 := StringGetNextSplit(S2, Ord('/'));
     VertexIndices[Pred(Index)] := Pred(StringToInt(S3));
 
-    S3 := GetNextWord(S2, '/');
+    S3 := StringGetNextSplit(S2, Ord('/'));
     If (S3<>'') Then
       UVIndices[Pred(Index)] := Pred(StringToInt(S3)) 
     Else
@@ -302,7 +302,7 @@ Var
   Ch:AnsiChar;
   Material:POBJMaterial;
 Begin
-  Ch:=S[2];
+  Ch := S[2];
   S:=Trim(Copy(S, 3, Length(S)));
   P:=Pos(' ', S);
   P2:=PosEx(' ', S, P+1);
@@ -339,10 +339,10 @@ Begin
   I := Pos(' ', S);
   Tag := Copy(S, 1, Pred(I));
   S := Copy(S, Succ(I), MaxInt);
-  If (UpStr(Tag) = 'MAP_KD') Then
+  If (StringUpper(Tag) = 'MAP_KD') Then
     _MaterialList[Pred(_MaterialCount)].DiffuseTexture := S
   Else
-  If (UpStr(Tag) = 'MAP_KS') Then
+  If (StringUpper(Tag) = 'MAP_KS') Then
     _MaterialList[Pred(_MaterialCount)].SpecularTexture := S;
 End;
 

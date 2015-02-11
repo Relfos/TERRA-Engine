@@ -2,7 +2,7 @@
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
 Uses TERRA_Application, TERRA_Client, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
-  TERRA_IO, TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_UI, TERRA_Viewport, TERRA_Texture,
+  TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_UI, TERRA_Viewport, TERRA_Texture,
   TERRA_PNG, TERRA_Lights, TERRA_ShaderFactory, TERRA_SpriteManager, TERRA_Vector2D, TERRA_TTF,
   TERRA_FileManager, TERRA_Scene, TERRA_Mesh, TERRA_Skybox, TERRA_Color, TERRA_FileUtils, TERRA_OGG,
   TERRA_MusicManager;
@@ -32,10 +32,10 @@ Begin
   Fnt := FontManager.Instance.GetFont('droid@50');
 
   GraphicsManager.Instance.Scene := _Scene;
-  GraphicsManager.Instance.BackgroundColor := ColorBlue;
+  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorBlue;
 
-  //MusicManager.Instance.Play('nox');
-  MusicManager.Instance.Play('mar');
+  MusicManager.Instance.Play('nox');
+  //MusicManager.Instance.Play('mar');
 End;
 
 Procedure Game.OnDestroy;
@@ -46,13 +46,13 @@ End;
 
 Procedure Game.OnIdle;
 Begin
-  If Keys[keyEscape] Then
+  If Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
 
-  If (Application.Instance.KeyPressed(keyLeft)) Then
+  If (Keys.WasPressed(keyLeft)) Then
     MusicManager.Instance.SetVolume(MusicManager.Instance.Volume - 0.1)
   Else
-  If (Application.Instance.KeyPressed(keyRight)) Then
+  If (Keys.WasPressed(keyRight)) Then
     MusicManager.Instance.SetVolume(MusicManager.Instance.Volume + 0.1);
 End;
 

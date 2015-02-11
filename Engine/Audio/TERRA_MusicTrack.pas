@@ -26,20 +26,20 @@ Unit TERRA_MusicTrack;
 {$I terra.inc}
 Interface
 
-Uses TERRA_Utils, TERRA_AL, TERRA_OGG, TERRA_SoundStreamer;
+Uses TERRA_String, TERRA_Utils, TERRA_AL, TERRA_OGG, TERRA_SoundStreamer;
 
 Type
   MusicTrackClass = Class Of MusicTrack;
   
   MusicTrack = Class(TERRAObject)
     Protected
-      _FileName:AnsiString;
+      _FileName:TERRAString;
       _Volume:Single;
 
       Procedure ChangeVolume(Volume:Single); Virtual; Abstract;
 
     Public
-      Constructor Create(FileName:AnsiString; Volume:Single);
+      Constructor Create(FileName:TERRAString; Volume:Single);
       Destructor Destroy; Override;
 
       Procedure Init(); Virtual; Abstract;
@@ -49,9 +49,9 @@ Type
 
       Procedure SetVolume(Volume:Single);
 
-      Class Function Supports(Const Extension:AnsiString):Boolean; Virtual;
+      Class Function Supports(Const Extension:TERRAString):Boolean; Virtual;
 
-      Property FileName:AnsiString Read _FileName;
+      Property FileName:TERRAString Read _FileName;
       Property Volume:Single Read _Volume Write SetVolume;
   End;
 
@@ -69,14 +69,14 @@ Type
       Procedure Update; Override;
       Procedure Stop; Override;
 
-      Class Function Supports(Const Extension:AnsiString):Boolean; Override;
+      Class Function Supports(Const Extension:TERRAString):Boolean; Override;
   End;
 
 Implementation
-Uses TERRA_FileManager, TERRA_IO;
+Uses TERRA_FileManager, TERRA_Stream;
 
 { MusicTrack }
-Constructor MusicTrack.Create(FileName: AnsiString; Volume:Single);
+Constructor MusicTrack.Create(FileName: TERRAString; Volume:Single);
 Begin
   _FileName := FileName;
   _Volume := Volume;
@@ -102,7 +102,7 @@ Begin
   Self.ChangeVolume(Volume);
 End;
 
-Class Function MusicTrack.Supports(const Extension: AnsiString): Boolean;
+Class Function MusicTrack.Supports(const Extension: TERRAString): Boolean;
 Begin
   Result := False;
 End;
@@ -126,7 +126,7 @@ End;
 
 Destructor StreamingMusicTrack.Destroy;
 Begin
-  DestroyObject(@_Stream);
+  FreeAndNil(_Stream);
 End;
 
 
@@ -158,7 +158,7 @@ Begin
 End;
 
 
-Class Function StreamingMusicTrack.Supports(Const Extension: AnsiString):Boolean;
+Class Function StreamingMusicTrack.Supports(Const Extension: TERRAString):Boolean;
 Begin
   Result := (Extension = 'ogg');
 End;

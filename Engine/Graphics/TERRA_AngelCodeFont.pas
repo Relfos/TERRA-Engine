@@ -26,7 +26,7 @@ Unit TERRA_AngelCodeFont;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Font, TERRA_IO, TERRA_FileUtils, TERRA_Image;
+Uses TERRA_String, TERRA_Utils, TERRA_Font, TERRA_Stream, TERRA_FileUtils, TERRA_Image;
 
 Implementation
 
@@ -43,7 +43,7 @@ End;
 
 Function LoadFNT(Source:Stream; Font:Font):Boolean;
 Var
-  S:AnsiString;
+  S:TERRAString;
   I,J:Integer;
   BlockSize, CharCount:Integer;
   Tag:Byte;
@@ -58,7 +58,7 @@ Var
 
   Img:Image;
 
-  FileNames:Array Of AnsiString;
+  FileNames:Array Of TERRAString;
 
   _LineHeight:Word;
   _Base:Word;
@@ -173,9 +173,9 @@ Begin
   Result := True;
 End;
 
-{Function Font.Save(FileName:AnsiString): Boolean;
+{Function Font.Save(FileName:TERRAString): Boolean;
 Var
-  S:AnsiString;
+  S:TERRAString;
   I,J:Integer;
   BlockSize:Integer;
   Tag:Byte;

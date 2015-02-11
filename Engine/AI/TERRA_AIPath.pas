@@ -3,7 +3,7 @@ Unit TERRA_AIPath;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_IO;
+Uses TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Stream;
 
 Const
   //  Search flags
@@ -118,9 +118,9 @@ Type
       Function GetNearestVertex(Pos:Vector3D):PPathVertex3D;
       Procedure AddEdge(A,B:PPathVertex3D);
 
-      Procedure Load(FileName:AnsiString); Overload;
+      Procedure Load(FileName:TERRAString); Overload;
       Procedure Load(Source:Stream); Overload;
-      Procedure Save(FileName:AnsiString); Overload;
+      Procedure Save(FileName:TERRAString); Overload;
       Procedure Save(Dest:Stream); Overload;
 
       Function Search(StartPos, EndPos:Vector3D;
@@ -131,7 +131,7 @@ Type
 Function PathNode2DCreate(X,Y:Integer):PathNode2D;
 
 Implementation
-Uses TERRA_OS, TERRA_FileIO;
+Uses TERRA_OS, TERRA_FileStream;
 
 Function PathNode2DCreate(X,Y:Integer):PathNode2D;
 Begin
@@ -663,7 +663,7 @@ Begin
   End;
 End;
 
-Procedure Pathfinder3D.Load(FileName:AnsiString);
+Procedure Pathfinder3D.Load(FileName:TERRAString);
 Var
   Source:Stream;
 Begin
@@ -672,7 +672,7 @@ Begin
   Source.Destroy;
 End;
 
-Procedure Pathfinder3D.Save(FileName:AnsiString);
+Procedure Pathfinder3D.Save(FileName:TERRAString);
 Var
   Dest:Stream;
 Begin

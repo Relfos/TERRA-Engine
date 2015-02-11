@@ -31,7 +31,7 @@ Unit TERRA_Widgets;
 {$IFDEF WINDOWS}{$UNDEF MOBILE}{$ENDIF}
 
 Interface
-Uses TERRA_Utils, TERRA_UI, TERRA_Tween, TERRA_Vector2D, TERRA_Math, TERRA_Color,
+Uses TERRA_String, TERRA_Utils, TERRA_UI, TERRA_Tween, TERRA_Vector2D, TERRA_Math, TERRA_Color,
   TERRA_FileManager, TERRA_SpriteManager, TERRA_Texture, TERRA_Font, TERRA_Collections;
 
 Const
@@ -49,15 +49,15 @@ Type
 
   UICaption = Class(Widget)
     Protected
-      _Caption:AnsiString;
+      _Caption:TERRAString;
       _TextRect:Vector2D;
       _PreviousFont:Font;
-      _OriginalValue:AnsiString;
+      _OriginalValue:TERRAString;
 
     Public
       DropShadow:Boolean;
 
-      Procedure SetCaption(Value:AnsiString);
+      Procedure SetCaption(Value:TERRAString);
 
       Procedure UpdateRects; Override;
 
@@ -65,12 +65,13 @@ Type
 
 			Procedure OnLanguageChange(); Override;
 
-      Property Caption:AnsiString Read _Caption Write SetCaption;
+      Property Caption:TERRAString Read _Caption Write SetCaption;
   End;
 
   UITabEntry = Record
     Visible:Boolean;
-    Name:AnsiString;
+    Caption:TERRAString;
+    Name:TERRAString;
     Index:Integer;
   End;
 
@@ -88,25 +89,27 @@ Type
       _SelectedIndex:Integer;
 
       Function GetTabAt(X,Y:Integer):Integer;
-      Function GetSelectedCaption: AnsiString;
+      Function GetSelectedCaption: TERRAString;
 
       Procedure GetTabProperties(Const Selected:Boolean; Out TabColor:Color; Out TabFont:TERRA_Font.Font); Virtual;
 
     Public
-      Constructor Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; ComponentBG:AnsiString=''); Overload;
+      Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; ComponentBG:TERRAString=''); Overload;
 
       Procedure Render; Override;
       Procedure UpdateRects; Override;
 
-      Procedure AddTab(Name:AnsiString; Index:Integer);
+      Procedure AddTab(Name:TERRAString; Index:Integer);
       Procedure SetTabVisibility(Index:Integer; Visibility:Boolean);
       Procedure ClearTabs();
 
       Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
       Function OnMouseMove(X,Y:Integer):Boolean; Override;
 
+			Procedure OnLanguageChange(); Override;
+
       Property SelectedIndex:Integer Read _SelectedIndex Write _SelectedIndex;
-      Property SelectedCaption:AnsiString Read GetSelectedCaption;
+      Property SelectedCaption:TERRAString Read GetSelectedCaption;
   End;
 
   UIWindow = Class(Widget)
@@ -116,7 +119,7 @@ Type
 
       _WndLayout:UISkinLayout;
 
-      _Caption:AnsiString;
+      _Caption:TERRAString;
 
       _IX:Integer;
       _IY:Integer;
@@ -132,7 +135,7 @@ Type
 
       Procedure EnableHighlights();
 
-      Procedure SetCaption(Const Value:AnsiString);
+      Procedure SetCaption(Const Value:TERRAString);
       Procedure SetHeight(Const Value: Integer);
       Procedure SetWidth(Const Value: Integer);
 
@@ -140,8 +143,8 @@ Type
 			Function OnMouseUp(X,Y:Integer;Button:Word):Boolean; Override;
 			Function OnMouseWheel(X,Y:Integer; Delta:Integer):Boolean; Override;
 
-      Constructor Create(Name:AnsiString; UI:UI; X,Y,Z:Single; Width, Height:Integer; ComponentBG:AnsiString=''); Overload;
-      Constructor Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Width, Height:Integer; ComponentBG:AnsiString=''); Overload;
+      Constructor Create(Name:TERRAString; UI:UI; X,Y,Z:Single; Width, Height:Integer; ComponentBG:TERRAString=''); Overload;
+      Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Width, Height:Integer; ComponentBG:TERRAString=''); Overload;
       Destructor Destroy; Override;
 
       Property Layout:UISkinLayout Read _WndLayout;
@@ -149,7 +152,7 @@ Type
       Property Width: Integer Read _Width Write SetWidth;
       Property Height: Integer Read _Height Write SetHeight;
 
-      Property Caption:AnsiString Read _Caption Write SetCaption;
+      Property Caption:TERRAString Read _Caption Write SetCaption;
   End;
 
   UILabel = Class(UICaption)
@@ -160,7 +163,7 @@ Type
     Public
       OnReveal:WidgetEventHandler;
 
-      Constructor Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:AnsiString; TabIndex:Integer=-1);
+      Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:TERRAString; TabIndex:Integer=-1);
 
       Procedure Render; Override;
       Procedure UpdateRects; Override;
@@ -179,7 +182,7 @@ Type
       Disabled:Boolean;
       TextColor:Color;
 
-      Constructor Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:AnsiString; Skin:AnsiString=''; TabIndex:Integer=-1);
+      Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:TERRAString; Skin:TERRAString=''; TabIndex:Integer=-1);
 
       Procedure Render; Override;
       Procedure UpdateRects; Override;
@@ -197,7 +200,7 @@ Type
       BilinearFilter:Boolean;
       Offset:Single;
 
-      Constructor Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Skin:AnsiString=''; TabIndex:Integer=-1);
+      Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Skin:TERRAString=''; TabIndex:Integer=-1);
       Procedure SetTexture(Tex:Texture);
 
       Procedure Render; Override;
@@ -212,7 +215,7 @@ Type
       _Base:Integer;
 
     Public
-      Constructor Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Icon:AnsiString; TabIndex:Integer=-1);
+      Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Icon:TERRAString; TabIndex:Integer=-1);
 
       Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
 
@@ -227,7 +230,7 @@ Type
   UISprite = Class(Widget)
     Protected
 
-      Function OnRegion(X,Y:Integer): Boolean; Override;
+      //Function OnRegion(X,Y:Integer): Boolean; Override;
 
     Public
       Rect:TextureRect;
@@ -235,7 +238,7 @@ Type
       Flip, Mirror:Boolean;
       BilinearFilter:Boolean;
 
-      Constructor Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Picture:AnsiString = ''; TabIndex:Integer=-1);
+      Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Picture:TERRAString = ''; TabIndex:Integer=-1);
 
       Procedure SetTexture(Tex:Texture);
 
@@ -258,7 +261,7 @@ Type
       Function HasMouseOver():Boolean; Override;
 
     Public
-      Constructor Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:AnsiString; Skin:AnsiString = ''; TabIndex:Integer=-1);
+      Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:TERRAString; Skin:TERRAString = ''; TabIndex:Integer=-1);
 
       Procedure Render; Override;
       Procedure UpdateRects; Override;
@@ -280,7 +283,7 @@ Type
 
       Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
 
-      Constructor Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:AnsiString; TabIndex:Integer=-1);
+      Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:TERRAString; TabIndex:Integer=-1);
   End;
 
   UISlider = Class(Widget)
@@ -299,7 +302,7 @@ Type
     Public
       OnChange:WidgetEventHandler;
 
-      Constructor Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; TabIndex:Integer=-1);
+      Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; TabIndex:Integer=-1);
 
       Procedure Render; Override;
       Procedure UpdateRects; Override;
@@ -354,7 +357,7 @@ Type
 
       //Function OnHandleRegion(X,Y:Integer):Boolean;
 
-      Constructor Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Size:Integer; Horizontal:Boolean; TabIndex:Integer=-1);
+      Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Size:Integer; Horizontal:Boolean; TabIndex:Integer=-1);
 
       Procedure Render; Override;
       Procedure UpdateRects; Override;
@@ -378,7 +381,7 @@ Type
       Function CreateCustomTween(TweenType:Integer; TargetValue:Single):Tween; Override;
 
     Public
-      Constructor Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Skin:AnsiString = ''; TabIndex:Integer=-1);
+      Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Skin:TERRAString = ''; TabIndex:Integer=-1);
 
       Procedure Render; Override;
       Procedure UpdateRects; Override;
@@ -413,7 +416,7 @@ Type
     Public
       ShowLabelOnly:Boolean;
 
-      Constructor Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Width:Integer; TabIndex:Integer=-1);
+      Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Width:Integer; TabIndex:Integer=-1);
 
       Procedure Render; Override;
       Procedure UpdateRects; Override;
@@ -425,7 +428,7 @@ Type
 
       Procedure SetContent(Content:List);
 
-      Procedure Select(Const Value:AnsiString);
+      Procedure Select(Const Value:TERRAString);
 
       Property ItemIndex:Integer Read _ItemIndex Write SetItemIndex;
       Property Items[Index:Integer]:ListObject Read GetItem;
@@ -437,7 +440,7 @@ Type
       _Width:Integer;
       _Height:Single;
       _LineCount:Integer;
-      _Lines:Array Of AnsiString;
+      _Lines:Array Of TERRAString;
       _LineIndex:Integer;
       _MaxLines:Integer;
 
@@ -456,6 +459,8 @@ Type
 
       Procedure UpdateJamos();
 
+      Function UpdateTransform():Boolean; Override;
+
       Procedure StartHighlight(); Override;
       Procedure StopHighlight(); Override;
 
@@ -465,7 +470,7 @@ Type
       TextColor:Color;
       Centered:Boolean;
 
-      Constructor Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Width:Integer; Skin:AnsiString=''; TabIndex:Integer=-1);
+      Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Width:Integer; Skin:TERRAString=''; TabIndex:Integer=-1);
       Destructor Destroy; Override;
 
       Procedure Render; Override;
@@ -473,20 +478,20 @@ Type
 
       Procedure SetFocus(ShowKeyboard:Boolean);
 
-      Procedure SetText(Const Value:AnsiString);
-      Function GetText:AnsiString;
+      Procedure SetText(Const Value:TERRAString);
+      Function GetText:TERRAString;
 
       Procedure SetLineCount(const Value: Integer);
 
-      Function GetCurrentLine:AnsiString;
-      Procedure SetCurrentLine(const Value:AnsiString);
+      Function GetCurrentLine:TERRAString;
+      Procedure SetCurrentLine(const Value:TERRAString);
 
       Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
       Function OnMouseUp(X,Y:Integer;Button:Word):Boolean; Override;
       Function OnKeyPress(Key:Word):Boolean; Override;
 
-      Property Text:AnsiString Read GetText Write SetText;
-      Property Line:AnsiString Read GetCurrentLine Write SetCurrentLine;
+      Property Text:TERRAString Read GetText Write SetText;
+      Property Line:TERRAString Read GetCurrentLine Write SetCurrentLine;
       Property LineCount:Integer Read _LineCount Write SetLineCount;
   End;
 
@@ -502,7 +507,7 @@ Type
       Procedure UpdateRects; Override;
 
 
-      Constructor Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:AnsiString=''; Skin:AnsiString='');
+      Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:TERRAString=''; Skin:TERRAString='');
   End;
 
   UILayout = Class(Widget)
@@ -516,7 +521,7 @@ Type
       VerticalSpacing:Integer;
       LayoutMode:Integer;
 
-      Constructor Create(Name:AnsiString; UI:UI; X,Y,Z:Single; Width, Height, LayoutMode:Integer; TabIndex:Integer=-1);
+      Constructor Create(Name:TERRAString; UI:UI; X,Y,Z:Single; Width, Height, LayoutMode:Integer; TabIndex:Integer=-1);
 
       Procedure Render; Override;
 
@@ -531,8 +536,18 @@ Var
 
 Implementation
 Uses TERRA_OS, TERRA_Application, TERRA_GraphicsManager, TERRA_Vector3D, TERRA_Log, 
-  TERRA_FileUtils, TERRA_Localization, TERRA_Unicode
+  TERRA_FileUtils, TERRA_Localization
   {$IFDEF VIRTUALKEYBOARD},TERRA_UIVirtualKeyboard{$ENDIF};
+
+Function GetLocalizedString(Value:TERRAString):TERRAString;
+Begin
+  If (Value<>'') And (Value[1]='#') Then
+  Begin
+    Value := Copy(Value, 2, MaxInt);
+    Result := StringManager.Instance.GetString(Value);
+  End Else
+    Result := Value;
+End;
 
 Function UICaption.GetSize: Vector2D;
 Begin
@@ -547,17 +562,14 @@ Begin
   Self.SetCaption(Self._OriginalValue);
 End;
 
-Procedure UICaption.SetCaption(Value:AnsiString);
+Procedure UICaption.SetCaption(Value:TERRAString);
 Begin
   _OriginalValue := Value;
   _NeedsUpdate := True;
 
-  If (Value<>'') And (Value[1]='#') Then
-  Begin
-    Value := Copy(Value, 2, MaxInt);
-    Value := StringManager.Instance.GetString(Value);
-  End;
-  _Caption := Value;
+  _Caption := GetLocalizedString(Value);
+
+  _Caption := ConvertFontCodes(_Caption);
 End;
 
 Procedure UICaption.UpdateRects;
@@ -575,7 +587,7 @@ Begin
 End;
 
 { UIWindow }
-Constructor UIWindow.Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Width, Height:Integer; ComponentBG:AnsiString);
+Constructor UIWindow.Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Width, Height:Integer; ComponentBG:TERRAString);
 Begin
   Self._Visible := True;
   Self._Name := Name;
@@ -604,7 +616,7 @@ Begin
   Self.UpdateRects();
 End;
 
-Constructor UIWindow.Create(Name:AnsiString; UI:UI; X,Y,Z:Single; Width, Height:Integer; ComponentBG:AnsiString);
+Constructor UIWindow.Create(Name:TERRAString; UI:UI; X,Y,Z:Single; Width, Height:Integer; ComponentBG:TERRAString);
 Begin
   Create(Name, UI, Nil, X,Y,Z, Width, Height, ComponentBG);
 End;
@@ -747,7 +759,7 @@ Begin
   Inherited Render();
 End;
 
-Constructor UIButton.Create(Name:AnsiString;  UI:UI;Parent:Widget; X,Y,Z:Single; Caption:AnsiString; Skin:AnsiString; TabIndex:Integer);
+Constructor UIButton.Create(Name:TERRAString;  UI:UI;Parent:Widget; X,Y,Z:Single; Caption:TERRAString; Skin:TERRAString; TabIndex:Integer);
 Begin
   Self._Visible := True;
   Self._TabIndex := TabIndex;
@@ -850,7 +862,7 @@ Begin
     Result := Inherited OnMouseDown(X,Y, Button);
 End;
 
-Procedure UIWindow.SetCaption(const Value:AnsiString);
+Procedure UIWindow.SetCaption(const Value:TERRAString);
 Begin
   _Caption := Value;
 End;
@@ -892,7 +904,7 @@ Begin
 End;
 
 { UISpriteButton }
-Constructor UISpriteButton.Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Skin:AnsiString; TabIndex:Integer);
+Constructor UISpriteButton.Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Skin:TERRAString; TabIndex:Integer);
 Begin
   Inherited Create(Name, UI, Parent, X,Y,Z, '', Skin, TabIndex);
   Self.BilinearFilter := False;
@@ -911,7 +923,7 @@ Begin
   W := _Texture.Width;
   H := (_Size.Y - _Texture.Height) * 0.5;
   Pos := Self.GetAbsolutePosition();
-  SpriteManager.Instance.AddSprite(Pos.X + (_Width-W) * 0.5, H + Offset + Pos.Y, 100-(Layer+0.5), _Texture, Nil, BlendBlend, Saturation, BilinearFilter);
+  SpriteManager.Instance.DrawSprite(Pos.X + (_Width-W) * 0.5, H + Offset + Pos.Y, 100-(Layer+0.5), _Texture, Nil, BlendBlend, Saturation, BilinearFilter);
 End;
 
 Procedure UISpriteButton.SetTexture(Tex: Texture);
@@ -919,9 +931,9 @@ Begin
   Self._Texture := Tex;
 End;
 
-Constructor UIIcon.Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Icon:AnsiString; TabIndex:Integer);
+Constructor UIIcon.Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Icon:TERRAString; TabIndex:Integer);
 Var
-  Base:AnsiString;
+  Base:TERRAString;
 Begin
   Self._Visible := True;
   Self._TabIndex := TabIndex;
@@ -931,7 +943,7 @@ Begin
   Self._Layer := Z;
 
   If Pos('|',Icon)>0 Then
-    Base := GetNextWord(Icon,'|')
+    Base := StringGetNextSplit(Icon, Ord('|'))
   Else
     Base := '';
 
@@ -1006,8 +1018,11 @@ Begin
 End;
 
 Function UIIcon.OnMouseDown(X, Y: Integer; Button: Word): Boolean;
+Var
+  Touched:Boolean;
 Begin
-  If (OnRegion(X,Y)) And (Self.Visible) And (Assigned(OnMouseClick))  And (Not Self.HasTweens) Then
+  Touched := OnRegion(X,Y);
+  If (Touched) And (Self.Visible) And (Assigned(OnMouseClick))  And (Not Self.HasTweens) Then
   Begin
     Self.OnHit();
     OnMouseClick(Self);
@@ -1019,7 +1034,7 @@ Begin
 End;
 
 
-Constructor UILabel.Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:AnsiString; TabIndex:Integer);
+Constructor UILabel.Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:TERRAString; TabIndex:Integer);
 Begin
   Self._Visible := True;
   Self._TabIndex := TabIndex;
@@ -1086,7 +1101,7 @@ End;
 
 Procedure UILabel.Render();
 Var
-  S:AnsiString;
+  S:TERRAString;
   Time:Cardinal;
   Delta:Single;
   Color:TERRA_Color.Color;
@@ -1152,7 +1167,7 @@ End;
 
 
 { UICheckBox }
-Constructor UICheckBox.Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:AnsiString; Skin:AnsiString; TabIndex:Integer);
+Constructor UICheckBox.Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:TERRAString; Skin:TERRAString; TabIndex:Integer);
 Begin
   Self._Visible := True;
   Self._TabIndex := TabIndex;
@@ -1257,7 +1272,7 @@ Begin
   Inherited;
 End;
 
-Constructor UIRadioButton.Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:AnsiString; TabIndex:Integer);
+Constructor UIRadioButton.Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:TERRAString; TabIndex:Integer);
 Begin
   Self._Visible := True;
   Self._TabIndex := TabIndex;
@@ -1330,7 +1345,7 @@ Begin
 End;
 
 
-Constructor UISlider.Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; TabIndex:Integer);
+Constructor UISlider.Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; TabIndex:Integer);
 Begin
   Self._Visible := True;
   Self._TabIndex := TabIndex;
@@ -1434,9 +1449,9 @@ Begin
 End;
 
 {UIScrollBar}
-Constructor UIScrollBar.Create(Name:AnsiString; UI:UI; Parent:Widget; X,Y,Z:Single; Size:Integer; Horizontal:Boolean;TabIndex:Integer);
+Constructor UIScrollBar.Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Size:Integer; Horizontal:Boolean;TabIndex:Integer);
 Var
-  S, HandleTex:AnsiString;
+  S, HandleTex:TERRAString;
 Begin
   Self._Visible := True;
   Self._TabIndex := TabIndex;
@@ -1675,7 +1690,7 @@ Begin
 End;
 
 { UIProgressBar }
-Constructor UIProgressBar.Create(Name:AnsiString; UI:UI; Parent:Widget; X, Y, Z: Single; Skin:AnsiString; TabIndex:Integer);
+Constructor UIProgressBar.Create(Name:TERRAString; UI:UI; Parent:Widget; X, Y, Z: Single; Skin:TERRAString; TabIndex:Integer);
 Begin
   Self._Visible := True;
   Self._TabIndex := TabIndex;
@@ -1745,7 +1760,7 @@ End;
 
 { UIComboBox }
 
-Constructor UIComboBox.Create(Name:AnsiString; UI:UI; Parent:Widget; X, Y, Z: Single; Width:Integer; TabIndex:Integer);
+Constructor UIComboBox.Create(Name:TERRAString; UI:UI; Parent:Widget; X, Y, Z: Single; Width:Integer; TabIndex:Integer);
 Begin
   Self._Visible := True;
   Self._Name := Name;
@@ -1896,7 +1911,7 @@ Var
   MyColor:TERRA_Color.Color;
   P:ListObject;
   ZOfs:Single;
-  S:AnsiString;
+  S:TERRAString;
 Begin
   Self.UpdateRects();
   Self.UpdateTransform();
@@ -1989,7 +2004,7 @@ Begin
   _Size.Y := Self._HandleHeight;
 End;
 
-Procedure UIComboBox.Select(const Value: AnsiString);
+Procedure UIComboBox.Select(const Value: TERRAString);
 Var
   P:ListObject;
   I:Integer;
@@ -2009,7 +2024,7 @@ Begin
 End;
 
 { UIEditText }
-Constructor UIEditText.Create(Name:AnsiString; UI:UI; Parent:Widget; X, Y, Z: Single; Width:Integer; Skin:AnsiString; TabIndex:Integer);
+Constructor UIEditText.Create(Name:TERRAString; UI:UI; Parent:Widget; X, Y, Z: Single; Width:Integer; Skin:TERRAString; TabIndex:Integer);
 Begin
   Self._Visible := True;
   Self._Name := Name;
@@ -2159,23 +2174,39 @@ Begin
   End;
 End;
 
+Function UIEditText.UpdateTransform:Boolean;
+Var
+  P:Vector2D;
+Begin
+  Result := Inherited UpdateTransform;
+  If Not Result Then
+    Exit;
+
+  P := Self.GetAbsolutePosition();
+
+  _Clip.X := P.X;
+  _Clip.Y := P.Y;
+  _Clip.Width := Size.X;
+  _Clip.Height := Size.Y;
+//  _Clip.Name := Self.Name;
+
+  _Clip.Transform(Self.UI.Transform);
+
+  Self._ClipRect := _Clip;
+End;
+
 Procedure UIEditText.Render;
 Var
   I,J,N, Count:Integer;
   A,B,X:Single;
   MyColor:TERRA_Color.Color;
-  S:AnsiString;
+  S:TERRAString;
   P, Tx:Vector2D;
 Begin
   Self.UpdateRects();
   Self.UpdateTransform();
 
   P := Self.GetAbsolutePosition();
-  _Clip.X := P.X;
-  _Clip.Y := P.Y;
-  _Clip.Width := Size.X;
-  _Clip.Height := Size.Y;
-  Self._ClipRect := _Clip;
 
   If (UI.Highlight<>Nil) And (Not Self.IsHighlighted())
   And (UI.Focus=Self) And (Pos('KEY_', UI.Highlight.Name)<>1) Then
@@ -2266,13 +2297,14 @@ Begin
     Jamo := (_KoreanInitialJamo*588)+(_KoreanMedialJamo*28)+N+44032;
   End Else
     Jamo := _KoreanBaseJamo;
-  _Lines[_LineIndex] := _Lines[_LineIndex] + UnicodeToUCS2(Jamo);
+    
+  StringAppendChar(_Lines[_LineIndex], Jamo);
 End;
 
 Function UIEditText.OnKeyPress(Key:Word): Boolean;
 Var
   I, Len:Integer;
-  KeyValue:AnsiString;
+  //KeyValue:TERRAString;
   W,W2:Single;
   ChangedLine, Found:Boolean;
   It:Iterator;
@@ -2311,28 +2343,30 @@ Begin
     End Else
     Begin
       _KoreanInitialJamo := -1;
-      Len := ucs2_Length(_Lines[_LineIndex]);
+      Len := StringLength(_Lines[_LineIndex]);
 
-      If (Length(_Lines[_LineIndex])>=2) And (ucs2_ascii(_Lines[_LineIndex], Len-1)='\') Then
-        _Lines[_LineIndex] := ucs2_copy(_Lines[_LineIndex], 1, Len-2)
-      Else
+      // check for font control chars/effects
+      If (Len>=2) And (StringGetChar(_Lines[_LineIndex], -1) = Ord('\')) Then
+      Begin
+        StringDropChars(_Lines[_LineIndex], -2);
+      End Else
       If (_Lines[_LineIndex]<>'') Then
       Begin
         I := Len;
-        If (ucs2_ascii(_Lines[_LineIndex], I)='}') Then
+        If (StringLastChar(_Lines[_LineIndex]) = Ord('}')) Then
         Begin
           While (I>=1) Do
-          If (ucs2_ascii(_Lines[_LineIndex], I)='\') Then
+          If (StringGetChar(_Lines[_LineIndex], I) = Ord('\')) Then
             Break
           Else
             Dec(I);
 
           If (I>0) Then
-            _Lines[_LineIndex] := ucs2_Copy(_Lines[_LineIndex], 1, Pred(I))
+            _Lines[_LineIndex] := StringCopy(_Lines[_LineIndex], 1, Pred(I))
           Else
-            _Lines[_LineIndex] := ucs2_Copy(_Lines[_LineIndex], 1, Pred(Len));
+            _Lines[_LineIndex] := StringCopy(_Lines[_LineIndex], 1, Pred(Len));
         End Else
-          _Lines[_LineIndex] := ucs2_Copy(_Lines[_LineIndex], 1, Pred(Len));
+          _Lines[_LineIndex] := StringCopy(_Lines[_LineIndex], 1, Pred(Len));
       End Else
       If (_LineCount>1) And (_LineIndex>0) Then
       Begin
@@ -2395,7 +2429,7 @@ Begin
     End;
   End Else
   Begin
-    KeyValue := UnicodeToUCS2(Key);
+    //KeyValue := UnicodeToUCS2(Key);
 
     If (Assigned(Self.Font)) Then
     Begin
@@ -2407,7 +2441,7 @@ Begin
         _KoreanMedialJamo := -1;
         _KoreanFinalJamo := -1;
         _KoreanBaseJamo := Key;
-        _Lines[_LineIndex] := _Lines[_LineIndex] + KeyValue;
+        StringAppendChar(_Lines[_LineIndex], Key);
       End Else
       If (_KoreanMedialJamo<0) And (_KoreanFinalJamo<0) Then
       Begin
@@ -2415,7 +2449,7 @@ Begin
         If _KoreanMedialJamo<0 Then
         Begin
           _KoreanInitialJamo := GetKoreanInitialJamo(Key);
-          _Lines[_LineIndex] := _Lines[_LineIndex] + KeyValue;
+          StringAppendChar(_Lines[_LineIndex], Key);
         End Else
           UpdateJamos();
       End Else
@@ -2427,12 +2461,12 @@ Begin
         Begin
           _KoreanInitialJamo := GetKoreanInitialJamo(Key);
           _KoreanMedialJamo := -1;
-          _Lines[_LineIndex] := _Lines[_LineIndex] + KeyValue;
+          StringAppendChar(_Lines[_LineIndex], Key);
         End Else
           UpdateJamos();
       End Else
       Begin
-        _Lines[_LineIndex] := _Lines[_LineIndex] + KeyValue;
+        StringAppendChar(_Lines[_LineIndex], Key);
       End;
 
       W2 := Self.Font.GetTextWidth(_Lines[_LineIndex]);
@@ -2449,7 +2483,7 @@ Begin
   _Value := X;
 End;
 
-Procedure UIEditText.SetText(const Value:AnsiString);
+Procedure UIEditText.SetText(const Value:TERRAString);
 Begin
   Self._KoreanInitialJamo := -1;
   Self._KoreanMedialJamo := -1;
@@ -2462,7 +2496,7 @@ Begin
   Self._Lines[0] := Value;
 End;
 
-Function UIEditText.GetText:AnsiString;
+Function UIEditText.GetText:TERRAString;
 Var
   I:Integer;
 Begin
@@ -2481,12 +2515,12 @@ Begin
 End;
 
 
-Function UIEditText.GetCurrentLine:AnsiString;
+Function UIEditText.GetCurrentLine:TERRAString;
 Begin
   Result := _Lines[_LineIndex];
 End;
 
-Procedure UIEditText.SetCurrentLine(const Value:AnsiString);
+Procedure UIEditText.SetCurrentLine(const Value:TERRAString);
 Begin
   _Lines[_LineIndex] := Value;
 End;
@@ -2503,13 +2537,13 @@ End;
 
 Destructor UIEditText.Destroy;
 Begin
-  DestroyObject(@Self._Clip);
+  FreeAndNil(Self._Clip);
 
   Inherited;
 End;
 
 { UILayout }
-Constructor UILayout.Create(Name:AnsiString; UI:UI; X,Y,Z:Single; Width,Height, LayoutMode:Integer; TabIndex:Integer=-1);
+Constructor UILayout.Create(Name:TERRAString; UI:UI; X,Y,Z:Single; Width,Height, LayoutMode:Integer; TabIndex:Integer=-1);
 Begin
   RemoveHint(LayoutMode);
   
@@ -2681,7 +2715,7 @@ Begin
 End;
 
 { UISprite }
-Constructor UISprite.Create(Name:AnsiString; UI:UI; Parent:Widget; X, Y, Z: Single;  Picture:AnsiString; TabIndex: Integer);
+Constructor UISprite.Create(Name:TERRAString; UI:UI; Parent:Widget; X, Y, Z: Single;  Picture:TERRAString; TabIndex: Integer);
 Begin
   Self._Visible := True;
   Self._TabIndex := TabIndex;
@@ -2744,7 +2778,7 @@ Begin
     Result := False;
 End;
 
-Function UISprite.OnRegion(X, Y: Integer): Boolean;
+{Function UISprite.OnRegion(X, Y: Integer): Boolean;
 Var
   WH, Pos:Vector2d;
   OfsX, OfsY:Single;
@@ -2763,7 +2797,7 @@ Begin
   WH := Self.Size;
 
   Result := (X>=Pos.X) And (Y>=Pos.Y) And (X<=Pos.X+WH.X*Scale) And (Y<=Pos.Y+WH.Y*Scale);
-End;
+End;}
 
 Procedure UISprite.Render;
 Var
@@ -2815,7 +2849,7 @@ Begin
   Center.Y := Center.Y * _Pivot.Y * Scale;
   Center.Add(Pos);
 
-  S := SpriteManager.Instance.AddSprite(Pos.X, Pos.Y, 100-Layer, Rect.Texture, Nil, BlendBlend, Self.GetSaturation(), BilinearFilter);
+  S := SpriteManager.Instance.DrawSprite(Pos.X, Pos.Y, 100-Layer, Rect.Texture, Nil, BlendBlend, Self.GetSaturation(), BilinearFilter);
   S.Anchor := Anchor;
   S.SetColor(MyColor);
   S.Rect := Rect;
@@ -2861,7 +2895,7 @@ End;
 
 
 { UITooltip }
-Constructor UITooltip.Create(Name: AnsiString; UI: UI; Parent: Widget; X, Y, Z: Single; Caption, Skin:AnsiString);
+Constructor UITooltip.Create(Name: TERRAString; UI: UI; Parent: Widget; X, Y, Z: Single; Caption, Skin:TERRAString);
 Begin
   Self._Visible := True;
   Self._TabIndex := -1;
@@ -2915,7 +2949,7 @@ Begin
 End;
 
 { UITabList }
-Constructor UITabList.Create(Name: AnsiString; UI: UI; Parent: Widget; X, Y, Z: Single; ComponentBG: AnsiString);
+Constructor UITabList.Create(Name: TERRAString; UI: UI; Parent: Widget; X, Y, Z: Single; ComponentBG: TERRAString);
 Begin
   Self._Visible := True;
   Self._Name := Name;
@@ -2957,7 +2991,7 @@ Begin
   _TabCount := 0;
 End;
 
-Procedure UITabList.AddTab(Name: AnsiString; Index: Integer);
+Procedure UITabList.AddTab(Name: TERRAString; Index: Integer);
 Var
   I:Integer;
 Begin
@@ -2973,6 +3007,7 @@ Begin
   _Tabs[Pred(_TabCount)].Name := Name;
   _Tabs[Pred(_TabCount)].Index := Index;
   _Tabs[Pred(_TabCount)].Visible := True;
+  _Tabs[Pred(_TabCount)].Caption := GetLocalizedString(Name);
 End;
 
 Procedure UITabList.SetTabVisibility(Index: Integer; Visibility: Boolean);
@@ -3006,12 +3041,9 @@ End;
 Function UITabList.GetTabAt(X, Y: Integer): Integer;
 Var
   I:Integer;
-  P:Vector2D;
   TX,WW:Single;
 Begin
-  P := Self.GetAbsolutePosition();
-
-  TX := P.X;
+  TX := 0;
   For I:=0 To Pred(_TabCount) Do
   If (_Tabs[I].Visible) Then
   Begin
@@ -3020,7 +3052,7 @@ Begin
     Else
       WW := _TabWidthOff;
 
-    If (X>=TX) And (X<TX+WW) And (Y>=P.Y) And (Y<P.Y+_TabHeightOn)Then
+    If (Self.OnCustomRegion(X, Y, TX, 0, TX+WW, _TabHeightOn)) Then
     Begin
       Result := _Tabs[I].Index;
       Exit;
@@ -3032,14 +3064,14 @@ Begin
   Result := -1;
 End;
 
-Function UITabList.GetSelectedCaption: AnsiString;
+Function UITabList.GetSelectedCaption: TERRAString;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_TabCount) Do
   If (_Tabs[I].Index = Self._SelectedIndex) Then
   Begin
-    Result := _Tabs[I].Name;
+    Result := _Tabs[I].Caption;
     Exit;
   End;
 
@@ -3086,8 +3118,8 @@ Begin
       Add := _TabHeightOn - _TabHeightOff;
     End;
 
-    Rect := Fnt.GetTextRect(_Tabs[I].Name);
-    Self.DrawText(_Tabs[I].Name, VectorCreate(X + ((WW-Rect.X) * 0.5), Add + (HH - Rect.Y) * 0.5, 1.0), MyColor, Scale, True, Fnt);
+    Rect := Fnt.GetTextRect(_Tabs[I].Caption);
+    Self.DrawText(_Tabs[I].Caption, VectorCreate(X + ((WW-Rect.X) * 0.5), Add + (HH - Rect.Y) * 0.5, 1.0), MyColor, Scale, True, Fnt);
 
     X := X + WW;
   End;
@@ -3135,6 +3167,14 @@ Begin
     TabColor := ColorGrey(200, Self.Color.A);
 
   TabFont := Self.GetFont();
+End;
+
+Procedure UITabList.OnLanguageChange;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_TabCount) Do
+    _Tabs[I].Caption := GetLocalizedString(_Tabs[I].Name);
 End;
 
 End.

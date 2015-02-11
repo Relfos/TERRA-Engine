@@ -27,7 +27,7 @@ Unit TERRA_Instrument;
 
 {$DEFINE CUBIC_INTERPOLATION}
 Interface
-Uses TERRA_Utils, TERRA_IO, TERRA_Resource, TERRA_Math, TERRA_ResourceManager,
+Uses TERRA_Utils, TERRA_Stream, TERRA_Resource, TERRA_Math, TERRA_ResourceManager,
   TERRA_FileManager, TERRA_Application, TERRA_Log;
 
 {$RANGECHECKS OFF}
@@ -63,7 +63,7 @@ Type
       Destructor Destroy;
 
  {$IFDEF EDITOR}
-      Constructor Import(FileName:AnsiString); // loads from WAV
+      Constructor Import(FileName:TERRAString); // loads from WAV
       Function Save(Dest:Stream):Boolean;
       Procedure FindLoopShort;
       Procedure FindLoopWide;
@@ -98,7 +98,7 @@ Type
       Function AddSample(S:Sample):Integer;
       Procedure DeleteSample(Index:Integer);
       Function GetSample(Index:Integer):Sample;
-      Procedure Save(FileName:AnsiString);
+      Procedure Save(FileName:TERRAString);
       {$ENDIF}
 
       Procedure RemapSample(Index:Integer);
@@ -123,11 +123,11 @@ Type
 
     Public
       Class Function Instance:InstrumentManager;
-      Function GetInstrument(Name:AnsiString; ValidateError:Boolean = True):Instrument;
+      Function GetInstrument(Name:TERRAString; ValidateError:Boolean = True):Instrument;
   End;
 
-  Function GetNoteIndex(S:AnsiString):Integer;
-  Function GetNoteName(N:Integer):AnsiString;
+  Function GetNoteIndex(S:TERRAString):Integer;
+  Function GetNoteName(N:Integer):TERRAString;
 
 Implementation
 Uses TERRA_OS {$IFDEF EDITOR},TERRA_FFT{$ENDIF};
@@ -143,9 +143,9 @@ Begin
   Result := _InstrumentManager;
 End;
 
-Function InstrumentManager.GetInstrument(Name:AnsiString; ValidateError:Boolean = True):Instrument;
+Function InstrumentManager.GetInstrument(Name:TERRAString; ValidateError:Boolean = True):Instrument;
 Var
-  S:AnsiString;
+  S:TERRAString;
 Begin
   Name := TrimLeft(TrimRight(Name));
   If (Name='') Then
@@ -172,9 +172,9 @@ Begin
 End;
 
 Const
-  Notes:Array[0..11] Of AnsiString = ('C','C#','D','D#','E','F','F#','G','G#','A','A#','B');
+  Notes:Array[0..11] Of TERRAString = ('C','C#','D','D#','E','F','F#','G','G#','A','A#','B');
 
-Function GetNoteIndex(S:AnsiString):Integer;
+Function GetNoteIndex(S:TERRAString):Integer;
 Var
   I, N:Integer;
 Begin
@@ -190,7 +190,7 @@ Begin
   Result := InvalidNote;
 End;
 
-Function GetNoteName(N:Integer):AnsiString;
+Function GetNoteName(N:Integer):TERRAString;
 Var
   Octave, Note:Integer;
 Begin
@@ -344,7 +344,7 @@ Begin
   Until (Result) Or (Source.Position>=Source.Size);
 End;
 
-Constructor Sample.Import(FileName:AnsiString);
+Constructor Sample.Import(FileName:TERRAString);
 Var
   Chunk:TWaveChunk;
   Header:TWaveHeader;
@@ -826,7 +826,7 @@ Begin
     _Mapping[I] := Nil;
 End;
 
-Procedure Instrument.Save(FileName:AnsiString);
+Procedure Instrument.Save(FileName:TERRAString);
 Var
   I:Integer;
   Stream:FileStream;

@@ -26,7 +26,7 @@ Unit TERRA_SpriteManager;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_GraphicsManager, TERRA_Texture,
+  TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_GraphicsManager, TERRA_Texture,
   TERRA_Application, TERRA_Shader, TERRA_Matrix3x3, TERRA_Matrix4x4;
 
 Type
@@ -41,12 +41,27 @@ Type
   End;
 
   ClipRect = Class(TERRAObject)
-    X, Y:Single;
-    Width, Height:Single;
+    Protected
+      _X, _Y:Single;
+      _Width, _Height:Single;
 
-    Procedure GetRealRect(Out X1, Y1, X2, Y2:Single{; Landscape:Boolean});
+      Procedure SetHeight(const Value: Single);
+      Procedure SetWidth(const Value: Single);
+      Procedure SetX(const Value: Single);
+      Procedure SetY(const Value: Single);
 
-    Destructor Destroy; Override;
+    Public
+      Procedure GetRealRect(Out X1, Y1, X2, Y2:Single{; Landscape:Boolean});
+
+      Procedure Transform(Const M:Matrix3x3);
+
+      Destructor Destroy; Override;
+
+      Property X:Single Read _X Write SetX;
+      Property Y:Single Read _Y Write SetY;
+
+      Property Width:Single Read _Width Write SetWidth;
+      Property Height:Single Read _Height Write SetHeight;
   End;
 
 
@@ -77,7 +92,6 @@ Type
       {$ENDIF}
 
       _Transform:Matrix3x3;
-      _HasTransform:Boolean;
       _IsFont:Boolean;
 
       _Saturation:Single;
@@ -123,6 +137,8 @@ Type
       Procedure SetScaleAndRotationRelative(Const Center:Vector2D; Scale:Single; Rotation:Single ); Overload;
       Procedure SetTransformRelative(Const Center:Vector2D; Const Mat:Matrix3x3);
 
+      Procedure ConcatTransform(Const Mat:Matrix3x3);
+
       Procedure SetColors(A, B, C, D:Color);
       Procedure SetColor(C:Color);
       Procedure SetAlpha(Alpha:Byte);
@@ -130,6 +146,8 @@ Type
       Procedure SetScroll(U,V:Single);
 
       Property Texture:TERRA_Texture.Texture Read Rect.Texture;
+
+      Property Transform:Matrix3x3 Read _Transform;
   End;
 
   SpriteBatch = Object
@@ -193,8 +211,8 @@ Type
 
       Procedure Flush;
 
-      Function AddSprite(X,Y,Layer:Single; SpriteTexture:Texture; ColorTable:Texture = Nil; BlendMode:Integer = blendBlend; Saturation:Single = 1.0; BilinearFilter:Boolean=False; IsFont:Boolean = False):Sprite;
-      Function AddSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:Texture; Outline:Color; ColorTable:Texture = Nil; BlendMode:Integer = blendBlend;  Saturation:Single = 1.0; BilinearFilter:Boolean=False; IsFont:Boolean = False):Sprite;
+      Function DrawSprite(X,Y,Layer:Single; SpriteTexture:Texture; ColorTable:Texture = Nil; BlendMode:Integer = blendBlend; Saturation:Single = 1.0; BilinearFilter:Boolean=False; IsFont:Boolean = False):Sprite;
+      Function DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:Texture; Outline:Color; ColorTable:Texture = Nil; BlendMode:Integer = blendBlend;  Saturation:Single = 1.0; BilinearFilter:Boolean=False; IsFont:Boolean = False):Sprite;
   End;
 
 Implementation
@@ -210,10 +228,10 @@ Var
   _SpriteManager_Instance:ApplicationObject = Nil;
   _NullSprite:Sprite;
 
-Function GetSaturationAndConstrast():AnsiString;
+Function GetSaturationAndConstrast():TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
 	S := '';
 	Line('  const lowp vec3 LumCoeff = vec3(0.2125, 0.7154, 0.0721);');
@@ -226,10 +244,10 @@ Begin
   Result := S;
 End;
 
-Function GetShader_Sprite(DoColorGrading:Boolean):AnsiString;
+Function GetShader_Sprite(DoColorGrading:Boolean):TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('vertex {');
@@ -275,10 +293,10 @@ Begin
   Result := S;
 End;
 
-Function GetShader_Font():AnsiString;
+Function GetShader_Font():TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('vertex {');
@@ -379,12 +397,12 @@ Begin
 End;
 
 
-Function SpriteManager.AddSprite(X,Y,Layer:Single; SpriteTexture:Texture; ColorTable:Texture; BlendMode:Integer;  Saturation:Single; BilinearFilter:Boolean; IsFont:Boolean): Sprite;
+Function SpriteManager.DrawSprite(X,Y,Layer:Single; SpriteTexture:Texture; ColorTable:Texture; BlendMode:Integer;  Saturation:Single; BilinearFilter:Boolean; IsFont:Boolean): Sprite;
 Begin
-  Result := Self.AddSpriteWithOutline(X,Y,Layer, SpriteTexture, ColorNull, ColorTable, BlendMode,  Saturation, BilinearFilter, IsFont);
+  Result := Self.DrawSpriteWithOutline(X,Y,Layer, SpriteTexture, ColorNull, ColorTable, BlendMode,  Saturation, BilinearFilter, IsFont);
 End;
 
-Function SpriteManager.AddSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:Texture; Outline:Color; ColorTable:Texture; BlendMode:Integer;  Saturation:Single; BilinearFilter:Boolean; IsFont:Boolean):Sprite;
+Function SpriteManager.DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:Texture; Outline:Color; ColorTable:Texture; BlendMode:Integer;  Saturation:Single; BilinearFilter:Boolean; IsFont:Boolean):Sprite;
 Var
   N, I:Integer;
   HasShaders:Boolean;
@@ -425,7 +443,6 @@ Begin
   {$IFNDEF DISABLECOLORGRADING}
   Result._ColorTable := ColorTable;
   {$ENDIF}
-  Result._HasTransform := False;
   Result.Anchor := VectorCreate2D(0, 0);
   Result.Flip := False;
   Result.Mirror := False;
@@ -723,19 +740,8 @@ End;
 
 { Sprite }
 Procedure Sprite.SetTransform(Const Mat: Matrix3x3);
-Var
-  I:Integer;
 Begin
   _Transform := Mat;
-
-  For I:=0 To 8 Do
-  If (Mat.V[I] <> MatrixIdentity2D.V[I]) Then
-  Begin
-    _HasTransform := True;
-    Exit;
-  End;
-
-  _HasTransform := False;
 End;
 
 Procedure Sprite.SetTransform(Const Center:Vector2D; Const Mat: Matrix3x3);
@@ -839,6 +845,12 @@ Begin
   _B.A := Alpha;
   _C.A := Alpha;
   _D.A := Alpha;
+End;
+
+
+Procedure Sprite.ConcatTransform(const Mat: Matrix3x3);
+Begin
+  Self._Transform := MatrixMultiply3x3(_Transform, Mat);
 End;
 
 Procedure Sprite.SetScale(Scale: Single);
@@ -1064,11 +1076,8 @@ Begin
       _Vertices[Ofs + J].Position.Y := _Vertices[Ofs + J].Position.Y + S.Position.Y - S.Anchor.Y *H;
     End;
 
-    If (S._HasTransform) Then
-    Begin
-      For J:=0 To 5 Do
-        _Vertices[Ofs + J].Position := S._Transform.Transform(_Vertices[Ofs + J].Position);
-    End;
+    For J:=0 To 5 Do
+      _Vertices[Ofs + J].Position := S._Transform.Transform(_Vertices[Ofs + J].Position);
 
     If Assigned(S.ClipRect) Then
     Begin
@@ -1251,6 +1260,75 @@ Begin
     Y1 := Self.Y;
     Y2 := Y1 + Self.Height;
   End;
+End;
+
+Procedure ClipRect.SetHeight(const Value: Single);
+Begin
+  _Height := Value;
+End;
+
+Procedure ClipRect.SetWidth(const Value: Single);
+Begin
+  _Width := Value;
+End;
+
+Procedure ClipRect.SetX(const Value: Single);
+Begin
+  _X := Value;
+End;
+
+Procedure ClipRect.SetY(const Value: Single);
+Begin
+  _Y := Value;
+End;
+
+Procedure ClipRect.Transform(const M: Matrix3x3);
+Var
+  I:Integer;
+  P:Array[0..3] Of Vector2D;
+  T:Vector2D;
+  MinX, MinY, MaxX, MaxY:Single;
+Begin
+  P[0].X := _X;
+  P[0].Y := _Y;
+
+  P[1].X := _X + _Width;
+  P[1].Y := _Y;
+
+  P[2].X := _X + _Width;
+  P[2].Y := _Y + _Height;
+
+  P[3].X := _X;
+  P[3].Y := _Y + _Height;
+
+  MaxX := -9999;
+  MaxY := -9999;
+
+  MinX := 9999;
+  MinY := 9999;
+
+  For I:=0 To 3 Do
+  Begin
+    T := M.Transform(P[I]);
+
+    If (T.X>MaxX) Then
+      MaxX := T.X;
+
+    If (T.Y>MaxY) Then
+      MaxY := T.Y;
+
+    If (T.X<MinX) Then
+      MinX := T.X;
+
+    If (T.Y<MinY) Then
+      MinY := T.Y;
+  End;
+
+  Self.X := MinX;
+  Self.Y := MinY;
+
+  Self.Width := MaxX - MinX;
+  Self.Height := MaxY - MinY;
 End;
 
 Initialization

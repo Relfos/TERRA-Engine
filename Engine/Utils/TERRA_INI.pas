@@ -2,7 +2,7 @@ Unit TERRA_INI;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Math, TERRA_IO;
+Uses TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Stream;
 
 Type
   TokenFormat=(tkInteger, tkCardinal, tkFloat,
@@ -12,8 +12,8 @@ Type
 
   PINIToken=^INIToken;
   INIToken=Record
-    Name:AnsiString;
-    Default:AnsiString;
+    Name:TERRAString;
+    Default:TERRAString;
     Format:TokenFormat;
     Data:Pointer;
     Found:Boolean;
@@ -30,25 +30,26 @@ Type
       Constructor Create;
       Destructor Destroy; Override;
 
-      Procedure AddToken(Token:AnsiString; Format:TokenFormat; Data:Pointer; Default:AnsiString='');
-      Function GetToken(Token:AnsiString):PINIToken;
+      Procedure AddToken(Token:TERRAString; Format:TokenFormat; Data:Pointer; Default:TERRAString='');
+      Function GetToken(Token:TERRAString):PINIToken;
       Procedure DiscardTokens;
 
       Procedure Load(Source:Stream; IgnoreWarnings:Boolean=False);Overload;
-      Procedure Load(Filename:AnsiString; IgnoreWarnings:Boolean=False);Overload;
+      Procedure Load(Filename:TERRAString; IgnoreWarnings:Boolean=False);Overload;
 
-      Procedure LoadFromString(S:AnsiString; IgnoreWarnings:Boolean=False);
-      Function SaveToString(IgnoreDefaults:Boolean=True):AnsiString;
+      Procedure LoadFromString(S:TERRAString; IgnoreWarnings:Boolean=False);
+      Function SaveToString(IgnoreDefaults:Boolean=True):TERRAString;
 
       Procedure Save(Dest:Stream; IgnoreDefaults:Boolean=True);Overload;
-      Procedure Save(Filename:AnsiString; IgnoreDefaults:Boolean=True);Overload;
+      Procedure Save(Filename:TERRAString; IgnoreDefaults:Boolean=True);Overload;
   End;
 
-  Procedure ConvertFromToken(Source:AnsiString; Dest:Pointer; Format:TokenFormat);
-  Function ConvertToToken(Source:Pointer; Format:TokenFormat):AnsiString;
+  Procedure ConvertFromToken(Source:TERRAString; Dest:Pointer; Format:TokenFormat);
+  Function ConvertToToken(Source:Pointer; Format:TokenFormat):TERRAString;
 
 Implementation
-Uses TERRA_Error, TERRA_FileIO, TERRA_Log, TERRA_Application, TERRA_Color, TERRA_Vector3D;
+Uses TERRA_Error, TERRA_FileStream, TERRA_MemoryStream, TERRA_Log, TERRA_Application,
+    TERRA_Color, TERRA_Vector3D;
 
 // LINIParser
 
@@ -63,7 +64,7 @@ Begin
   SetLength(_TokenList,0);
 End;
 
-Procedure INIParser.AddToken(Token:AnsiString; Format:TokenFormat; Data:Pointer; Default:AnsiString='');
+Procedure INIParser.AddToken(Token:TERRAString; Format:TokenFormat; Data:Pointer; Default:TERRAString='');
 Begin
  If Assigned(GetToken(Token)) Then
   Exit;
@@ -77,28 +78,28 @@ Begin
   Inc(_TokenCount);
 End;
 
-Function INIParser.GetToken(Token:AnsiString): PINIToken;
+Function INIParser.GetToken(Token:TERRAString): PINIToken;
 Var
  I:Integer;
 Begin
   Result:=Nil;
-  Token:=UpStr(Token);
+  Token:=StringUpper(Token);
 
   For I:=0 To Pred(_TokenCount) Do
-  If UpStr(_TokenList[I].Name)=Token Then
+  If StringUpper(_TokenList[I].Name)=Token Then
   Begin
     Result:=@(_TokenList[I]);
     Break;
   End;
 End;
 
-Procedure ConvertFromToken(Source:AnsiString; Dest:Pointer; Format:TokenFormat);
+Procedure ConvertFromToken(Source:TERRAString; Dest:Pointer; Format:TokenFormat);
 Begin
   Case Format Of
     tkInteger:  PInteger(Dest)^ := StringToInt(Source);
     tkCardinal: PCardinal(Dest)^ := StringToCardinal(Source);
     tkFloat:   PSingle(Dest)^ := StringToFloat(Source);
-    tkBoolean:  PBoolean(Dest)^ := StringToBool(UpStr(Source));
+    tkBoolean:  PBoolean(Dest)^ := StringToBool(StringUpper(Source));
     tkByte:     PByte(Dest)^ := StringToInt(Source);
     tkString:   PString(Dest)^ := Source;
     tkColor:    If (Source<>'') And (Source[1]='#') Then
@@ -106,17 +107,17 @@ Begin
                   PColor(Dest)^ := ColorCreate(Source);
                 End Else
                 Begin
-                  PColor(Dest).R := StringToInt(GetNextWord(Source,'\'));
-                  PColor(Dest).G := StringToInt(GetNextWord(Source,'\'));
-                  PColor(Dest).B := StringToInt(GetNextWord(Source,'\'));
+                  PColor(Dest).R := StringToInt(StringGetNextSplit(Source, Ord('\')));
+                  PColor(Dest).G := StringToInt(StringGetNextSplit(Source, Ord('\')));
+                  PColor(Dest).B := StringToInt(StringGetNextSplit(Source, Ord('\')));
                   If Source<>'' Then
                     PColor(Dest).A := StringToInt(Source)
                   Else
                     PColor(Dest).A := 255;
                 End;
     tkVector:   Begin
-                  PVector3D(Dest).X := StringToFloat(GetNextWord(Source,'\'));
-                  PVector3D(Dest).Y := StringToFloat(GetNextWord(Source,'\'));
+                  PVector3D(Dest).X := StringToFloat(StringGetNextSplit(Source, Ord('\')));
+                  PVector3D(Dest).Y := StringToFloat(StringGetNextSplit(Source, Ord('\')));
                   PVector3D(Dest).Z := StringToFloat(Source);
                 End;
     tkKey:      PInteger(Dest)^ := GetKeyByName(Source);
@@ -125,13 +126,13 @@ Begin
   End;
 End;
 
-Function ConvertToToken(Source:Pointer; Format:TokenFormat):AnsiString;
+Function ConvertToToken(Source:Pointer; Format:TokenFormat):TERRAString;
 Begin
     Case Format Of
      tkInteger:   Result:=IntToString(PInteger(Source)^);
      tkCardinal:  Result:=CardinalToString(PCardinal(Source)^);
      tkFloat:     Result:=FloatToString(PSingle(Source)^);
-     tkBoolean:   Result:=LowStr(BoolToString(PBoolean(Source)^));
+     tkBoolean:   Result:=StringLower(BoolToString(PBoolean(Source)^));
      tkByte:      Result:=IntToString(PByte(Source)^);
      tkString:    Result:=PString(Source)^;
      tkColor:     Result:=ColorToString(PColor(Source)^);
@@ -157,7 +158,7 @@ End;
 
 Procedure INIParser.Load(Source:Stream; IgnoreWarnings:Boolean=False);
 Var
- Token,S,SK:AnsiString;
+ Token,S,SK:TERRAString;
  Info:PINIToken;
  I:Integer;
 Begin
@@ -178,7 +179,7 @@ Begin
       If I>0 Then
       Begin
         S:=Copy(SK,1,Pred(I));
-        SK:=TrimRight(TrimLeft(Copy(SK,Succ(I),Length(SK))));
+        SK := StringTrim(StringCopy(SK, Succ(I), MaxInt));
       End Else
       Begin
         S:=SK;
@@ -188,12 +189,12 @@ Begin
       I:=Pos('=',S);
       If I<=0 Then Break;
 
-      Token:=UpStr(Copy(S,1,Pred(I)));
-      Token:=TrimRight(TrimLeft(Token));
-      S:=Copy(S,Succ(I),Length(S)); // Get Token and Value
-      S:=TrimRight(TrimLeft(S));
+      Token := StringUpper(Copy(S,1,Pred(I)));
+      Token := StringTrim(Token);
+      S := StringCopy(S, Succ(I), MaxInt); // Get Token and Value
+      S := StringTrim(S);
 
-      Info:=GetToken(Token);
+      Info := GetToken(Token);
       If Not Assigned(Info) Then
       Begin
         If Not IgnoreWarnings Then
@@ -201,7 +202,7 @@ Begin
         Continue;
       End;
 
-      Info.Found:=True;
+      Info.Found := True;
       ConvertFromToken(S, Info.Data, Info.Format);
     End;
   End;
@@ -212,7 +213,7 @@ Begin
       ConvertFromToken(Default, Data, Format);
 End;
 
-Function INIParser.SaveToString(IgnoreDefaults:Boolean=True):AnsiString;
+Function INIParser.SaveToString(IgnoreDefaults:Boolean=True):TERRAString;
 Var
   Dest:MemoryStream;
 Begin
@@ -225,7 +226,7 @@ End;
 
 Procedure INIParser.Save(Dest:Stream; IgnoreDefaults:Boolean=True);
 Var
- S:AnsiString;
+ S:TERRAString;
  I:Integer;
  Info:PINIToken;
 Begin
@@ -234,12 +235,12 @@ Begin
     Info:=@(_TokenList[I]);
     S:=ConvertToToken(Info.Data, Info.Format);
 
-    If (Not IgnoreDefaults) Or (UpStr(S)<>UpStr(Info.Default)) Then
+    If (Not IgnoreDefaults) Or (StringUpper(S)<>StringUpper(Info.Default)) Then
       Dest.WriteLine(Info.Name+'='+S);
   End;
 End;
 
-Procedure INIParser.Load(Filename:AnsiString; IgnoreWarnings:Boolean=False);
+Procedure INIParser.Load(Filename:TERRAString; IgnoreWarnings:Boolean=False);
 Var
   Source:Stream;
 Begin
@@ -254,7 +255,7 @@ Begin
   Source.Destroy;
 End;
 
-Procedure INIParser.LoadFromString(S:AnsiString; IgnoreWarnings:Boolean=False);
+Procedure INIParser.LoadFromString(S:TERRAString; IgnoreWarnings:Boolean=False);
 Var
   Source:MemoryStream;
 Begin
@@ -266,7 +267,7 @@ Begin
   Source.Destroy;
 End;
 
-Procedure INIParser.Save(Filename:AnsiString; IgnoreDefaults:Boolean=True);
+Procedure INIParser.Save(Filename:TERRAString; IgnoreDefaults:Boolean=True);
 Var
   Dest:Stream;
 Begin

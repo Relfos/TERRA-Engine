@@ -3,8 +3,8 @@
 
 Uses
   {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
-  TERRA_Utils, TERRA_Application, TERRA_Scene, TERRA_Client, TERRA_UI, TERRA_GraphicsManager,
-  TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_OS, TERRA_FileManager, TERRA_Unicode,
+  TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Scene, TERRA_Client, TERRA_UI, TERRA_GraphicsManager,
+  TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_OS, TERRA_FileManager,
   TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_SpriteManager, TERRA_Localization;
 
 Type
@@ -32,7 +32,7 @@ Begin
   // Add asset folders
   FileManager.Instance.AddPath('assets');
 
-  GraphicsManager.Instance.BackgroundColor := ColorRed;
+  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorRed;
 
   // Load a font
   _Font := FontManager.Instance.GetFont('droid');
@@ -50,7 +50,7 @@ End;
 
 Procedure MyGame.OnIdle;
 Begin
-  If Keys[keyEscape] Then
+  If Keys.WasReleased(keyEscape) Then
     Application.Instance.Terminate;
 End;
 
@@ -62,7 +62,10 @@ Var
 Begin
   Result := '';
   For I:=1 To Length(S) Do
-    Result := Result + UnicodeToUCS2(Word(W));
+  Begin
+    W := S[I];
+    Result := Result + StringFromChar(TERRAChar(W));
+  End;
 End;
 
 { MyScene }
@@ -72,11 +75,11 @@ Begin
   If Assigned(_Font) Then
   Begin
     _Font.DrawText(50, 70, 10, ' Hello World!', ColorWhite, 1.0, True);
-    _Font.DrawText(200, 160, 10, ' This is a\nline break!', ColorYellow, 1.0, True);
+    _Font.DrawText(200, 160, 10, 'This is a'+StringFromChar(fontControlNewLine)+'line break!', ColorYellow, 1.0, True);
 
-    _Font.DrawText(200, 100, 10, ' \wWavy text!', ColorBlue, 1.0, True);
+    _Font.DrawText(200, 100, 10, StringFromChar(fontControlWave)+'Wavy text!', ColorBlue, 1.0, True);
 
-    _Font.DrawText(400, 100, 10, ' \iItalic text!', ColorGreen, 1.0, True);
+    _Font.DrawText(400, 100, 10, StringFromChar(fontControlItalics)+' Italic text!', ColorGreen, 1.0, True);
 
     // unicode rendering
     _Font.DrawText(50, 200, 10, GetLanguageDescription(language_Russian), ColorWhite, 1.0, True);

@@ -26,7 +26,7 @@ Unit TERRA_UIFileBrowser;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_UI, TERRA_Widgets, TERRA_FileSearch, TERRA_Collections, 
+Uses TERRA_String, TERRA_Utils, TERRA_UI, TERRA_Widgets, TERRA_FileSearch, TERRA_Collections, 
   TERRA_Vector2D, TERRA_Vector3D, TERRA_Color, TERRA_SpriteManager;
 
 Type
@@ -53,8 +53,8 @@ Type
 
       _ListSubFolders:Boolean;
       _SourceChanged:Boolean;
-      _Folder:AnsiString;
-      _Filter:AnsiString;
+      _Folder:TERRAString;
+      _Filter:TERRAString;
       _FileList:List;
       _FolderList:List;
 
@@ -67,7 +67,7 @@ Type
 
     Public
 
-      Constructor Create(Name:AnsiString; UI:UI; X,Y,Z:Single; Width, Height:Integer; ComponentBG:AnsiString=''); Overload;
+      Constructor Create(Name:TERRAString; UI:UI; X,Y,Z:Single; Width, Height:Integer; ComponentBG:TERRAString=''); Overload;
 
       Procedure Render; Override;
 
@@ -76,14 +76,14 @@ Type
       Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
 			Function OnMouseUp(X,Y:Integer;Button:Word):Boolean; Override;
 
-      Procedure SetFilter(Filter:AnsiString);
-      Procedure SetFolder(Folder:AnsiString);
+      Procedure SetFilter(Filter:TERRAString);
+      Procedure SetFolder(Folder:TERRAString);
   End;
 
 Implementation
 
 { UIFileBrowser }
-Constructor UIFileBrowser.Create(Name:AnsiString; UI:UI; X, Y, Z: Single; Width, Height: Integer; ComponentBG:AnsiString);
+Constructor UIFileBrowser.Create(Name:TERRAString; UI:UI; X, Y, Z: Single; Width, Height: Integer; ComponentBG:TERRAString);
 Begin
   Inherited Create(Name, UI, X, Y, Z, Width, Height, ComponentBG);
 
@@ -193,7 +193,7 @@ Begin
   Self.UpdateWorkArea();
 End;
 
-Procedure UIFileBrowser.SetFilter(Filter:AnsiString);
+Procedure UIFileBrowser.SetFilter(Filter:TERRAString);
 Begin
   If (Filter = _Filter) Then
     Exit;
@@ -202,7 +202,7 @@ Begin
   Self._SourceChanged := True;
 End;
 
-Procedure UIFileBrowser.SetFolder(Folder:AnsiString);
+Procedure UIFileBrowser.SetFolder(Folder:TERRAString);
 Begin
   If (Folder = _Folder) Then
     Exit;

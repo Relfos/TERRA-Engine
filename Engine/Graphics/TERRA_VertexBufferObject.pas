@@ -30,7 +30,7 @@ Unit TERRA_VertexBufferObject;
 {$DEFINE VBO}
 
 Interface
-Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF} TERRA_Utils;
+Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF} TERRA_String, TERRA_Utils;
 
 Type
   TriangleEdgesState = Record
@@ -41,7 +41,7 @@ Type
   TriangleEdgesStateArray = Array[0..1024*64] Of TriangleEdgesState;
 
   Attribute = Record
-    Name:AnsiString;
+    Name:TERRAString;
     Handle:Integer;
     Count:Integer;
     Size:Integer;
@@ -73,7 +73,7 @@ Type
       Constructor Create(VertexData, IndexData, EdgeData:Pointer; VertexCount, TriangleCount:Integer; VertexSize:Integer; DynamicUsage:Boolean);
       Destructor Destroy; Override;
 
-      Procedure AddAttribute(Name:AnsiString; Count:Integer; Format:Integer; Normalized:Boolean; Skip:Boolean = False);
+      Procedure AddAttribute(Name:TERRAString; Count:Integer; Format:Integer; Normalized:Boolean; Skip:Boolean = False);
 
       Procedure Draw(Wireframe:Boolean);
 
@@ -106,7 +106,7 @@ Begin
   _WireframeIndices := Nil;
 End;
 
-Procedure VBO.AddAttribute(Name:AnsiString; Count:Integer; Format:Integer; Normalized, Skip:Boolean);
+Procedure VBO.AddAttribute(Name:TERRAString; Count:Integer; Format:Integer; Normalized, Skip:Boolean);
 Var
   Size:Integer;
 Begin

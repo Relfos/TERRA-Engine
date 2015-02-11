@@ -28,11 +28,11 @@ Unit TERRA_PNG;
 {-$DEFINE LOGGING}
 
 Interface
-Uses TERRA_IO, TERRA_Image;
+Uses TERRA_String, TERRA_Stream, TERRA_Image;
 
 Function ValidatePNG(Source:Stream):Boolean;
 Procedure PNGLoad(Source:Stream; MyImage:Image);
-Procedure PNGSave(Dest:Stream; MyImage:Image; Options:AnsiString='');
+Procedure PNGSave(Dest:Stream; MyImage:Image; Const Options:TERRAString='');
 
 Implementation
 Uses TERRA_Error, TERRA_Utils, TERRA_CRC32, TERRA_INI, TERRA_Color, TERRA_Log, TERRA_ZLib;
@@ -961,7 +961,7 @@ Begin
   End;
 End;
 
-Procedure PNGSave(Dest:Stream; MyImage:Image; Options:AnsiString='');
+Procedure PNGSave(Dest:Stream; MyImage:Image; Const Options:TERRAString='');
 Const
   BUFFER = 5;
 Var
@@ -1101,7 +1101,7 @@ Begin
 End;
 
 Var
-  Signature:Array[0..7] Of AnsiChar;
+  Signature:Array[0..7] Of TERRAChar;
   OP,CRC:Cardinal;
   Depth:Integer;
   Parser:INIParser;

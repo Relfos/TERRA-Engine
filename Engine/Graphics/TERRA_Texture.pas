@@ -26,11 +26,11 @@ Unit TERRA_Texture;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Image, TERRA_IO, TERRA_Color, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
+  TERRA_String, TERRA_Image, TERRA_Stream, TERRA_Color, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
   TERRA_Vector2D, TERRA_Math, TERRA_Resource, TERRA_ResourceManager;
 
 {$IFDEF MOBILE}
-{$DEFINE TEXTURES16BIT}
+{´-$DEFINE TEXTURES16BIT}
 {$ENDIF}
 
 {-$DEFINE KEEPCOPYONRAM}
@@ -80,8 +80,8 @@ Type
       Uncompressed:Boolean;
       PreserveQuality:Boolean;
 
-      Constructor New(Name:AnsiString; TextureWidth, TextureHeight:Cardinal); Overload;
-      Constructor New(Name:AnsiString; Source:Image); Overload;
+      Constructor New(Const Name:TERRAString; TextureWidth, TextureHeight:Cardinal); Overload;
+      Constructor New(Const Name:TERRAString; Source:Image); Overload;
 
       Procedure Build(); Virtual;
 
@@ -118,7 +118,7 @@ Type
 
   TextureClass = Class Of Texture;
   TextureFormat = Record
-    Extension:AnsiString;
+    Extension:TERRAString;
     ClassType:TextureClass;
   End;
 
@@ -134,7 +134,7 @@ Type
       Function GetDefaultNormalMap:Texture;
       Function GetDefaultColorTable:Texture;
 
-      Function CreateTextureWithColor(Name:AnsiString; TexColor:Color):Texture;
+      Function CreateTextureWithColor(Name:TERRAString; TexColor:Color):Texture;
       Procedure FillTextureWithColor(Tex:Texture; TexColor:Color);
 
       Function GetWhiteTexture:Texture;
@@ -146,7 +146,7 @@ Type
       Procedure OnContextLost; Override;
 
       Class Function Instance:TextureManager;
-      Function GetTexture(Name:AnsiString; ValidateError:Boolean = False):Texture;
+      Function GetTexture(Name:TERRAString; ValidateError:Boolean = False):Texture;
 
       Destructor Destroy; Override;
 
@@ -168,17 +168,17 @@ Var
   _TextureFormatCount:Integer = 0;
   _TextureMemory:Cardinal;
 
-Procedure RegisterTextureFormat(ClassType:TextureClass; Extension:AnsiString);
+Procedure RegisterTextureFormat(ClassType:TextureClass; Extension:TERRAString);
 
 Implementation
 Uses TERRA_Error, TERRA_Utils, TERRA_Application, TERRA_Log, TERRA_GraphicsManager, TERRA_OS,
-  TERRA_FileUtils, TERRA_FileIO, TERRA_FileManager, TERRA_ColorGrading
+  TERRA_FileUtils, TERRA_FileStream, TERRA_FileManager, TERRA_ColorGrading
   {$IFDEF FRAMEBUFFEROBJECTS},TERRA_FramebufferObject{$ENDIF};
 
 Var
   _TextureManager:ApplicationObject = Nil;
 
-Procedure RegisterTextureFormat(ClassType:TextureClass; Extension:AnsiString);
+Procedure RegisterTextureFormat(ClassType:TextureClass; Extension:TERRAString);
 Begin
   Inc(_TextureFormatCount);
   SetLength(_TextureFormatList, _TextureFormatCount);
@@ -194,17 +194,17 @@ Begin
   Result := TextureManager(_TextureManager.Instance);
 End;
 
-Function TextureManager.GetTexture(Name:AnsiString; ValidateError:Boolean):Texture;
+Function TextureManager.GetTexture(Name:TERRAString; ValidateError:Boolean):Texture;
 Var
   I:Integer;
 Var
-  S:AnsiString;
+  S:TERRAString;
   TextureFormat:TextureClass;
   Info:ImageClassInfo;
 Begin
   Result := Nil;
 
-  Name := TrimLeft(TrimRight(Name));
+  Name := StringTrim(Name);
   Name := GetFileName(Name, True);
   If (Name='') Then
     Exit;
@@ -279,7 +279,7 @@ Begin
   End;
 End;
 
-Function TextureManager.CreateTextureWithColor(Name:AnsiString; TexColor:Color):Texture;
+Function TextureManager.CreateTextureWithColor(Name:TERRAString; TexColor:Color):Texture;
 Begin
   Result := Texture.New(Name, 64, 64);
   Result.Uncompressed := True;
@@ -409,7 +409,7 @@ Begin
   Result := _TextureMemory;
 End;
 
-Constructor Texture.New(Name:AnsiString; TextureWidth, TextureHeight:Cardinal);
+Constructor Texture.New(Const Name:TERRAString; TextureWidth, TextureHeight:Cardinal);
 Begin
   _Location := '';
   _Name := Name;
@@ -442,7 +442,7 @@ Begin
   _BilinearFilter := True;
 End;
 
-Constructor Texture.New(Name:AnsiString; Source:Image);
+Constructor Texture.New(Const Name:TERRAString; Source:Image);
 Begin
   If (Source = Nil) Then
     Self.New(Name, 128, 128)
@@ -471,7 +471,7 @@ Begin
   
   CheckNPOT();
 
-  If (Pos('_NORMAL', UpStr(Source.Name))>0) Then
+  If (StringContains('_normal', Source.Name)) Then
     Uncompressed := True;
 
   _SourceFormat := 0;

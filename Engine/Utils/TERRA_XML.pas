@@ -2,7 +2,7 @@ Unit TERRA_XML;
 {$I terra.inc}
 
 Interface
-Uses TERRA_IO, TERRA_Utils, TERRA_Vector3D, TERRA_Color;
+Uses TERRA_String, TERRA_Stream, TERRA_Utils, TERRA_Vector3D, TERRA_Color;
 
 Const
   xmlSaveHeader   = 1;
@@ -19,11 +19,11 @@ Type
   XMLNode=Class;
 
   XMLDescriptor=Object
-    Name:AnsiString;
+    Name:TERRAString;
     Address:Pointer;
     ElementCount:Integer;
     XMLType:XMLType;
-    Default:AnsiString;
+    Default:TERRAString;
     Found:Boolean;
 
     Procedure Read(Node:XMLNode);
@@ -36,8 +36,8 @@ Type
       _DescriptorCount:Integer;
       _Status:XMLStatus;
 
-      Procedure XMLRegisterElement(Name:AnsiString; Address:Pointer; XMLType:XMLType; Default:AnsiString='');
-      Procedure XMLRegisterArrayElement(Name:AnsiString; Address:Pointer; XMLType:XMLType; Size:Integer);
+      Procedure XMLRegisterElement(Const Name:TERRAString; Address:Pointer; XMLType:XMLType; Default:TERRAString='');
+      Procedure XMLRegisterArrayElement(Const Name:TERRAString; Address:Pointer; XMLType:XMLType; Size:Integer);
 
       Procedure XMLLoadElements(Source:XMLNode);Overload;
       Procedure XMLSaveElements(Document:XMLDocument; Parent:XMLNode=Nil);
@@ -55,14 +55,14 @@ Type
       Procedure XMLLoad(Source:Stream);Overload;
       Procedure XMLSave(Dest:Stream);Overload;
 
-      Procedure XMLLoad(FileName:AnsiString);Overload;
-      Procedure XMLSave(FileName:AnsiString);Overload;
+      Procedure XMLLoad(Const FileName:TERRAString);Overload;
+      Procedure XMLSave(Const FileName:TERRAString);Overload;
 
       Function XMLGetPropertyCount:Integer;
       Function XMLGetProperty(Index:Integer):XMLDescriptor; Overload;
-      Function XMLGetProperty(Name:AnsiString):XMLDescriptor; Overload;
+      Function XMLGetProperty(Name:TERRAString):XMLDescriptor; Overload;
 
-      Function XMLNewElement(Name:AnsiString):XMLElement;Virtual;
+      Function XMLNewElement(Const Name:TERRAString):XMLElement;Virtual;
       Function XMLGetElement(Index:Integer):XMLElement;Virtual;
       Function XMLGetElementCount():Integer;Virtual;
 
@@ -71,45 +71,45 @@ Type
 
   XMLNode = Class
     Protected
-      _Name:AnsiString;
-      _Value:AnsiString;
+      _Name:TERRAString;
+      _Value:TERRAString;
       _Childs:Array Of XMLNode;
-      _ChildCount:Integer;
+      _NodeCount:Integer;
       _Parent:XMLNode;
       _Document:XMLDocument;
 
       Procedure Save(Dest:Stream; SaveFlags:Cardinal);
-      Function Read(Source:Stream):AnsiString;
-      Function GetTagType(S:AnsiString):XMLTagType;
-      Function GetTagName(S:AnsiString):AnsiString;
-      Function GetPath:AnsiString;
+      Function Read(Source:Stream):TERRAString;
+      Function GetTagType(Const S:TERRAString):XMLTagType;
+      Function GetTagName(Const S:TERRAString):TERRAString;
+      Function GetPath:TERRAString;
       Function GetParentCount:Integer;
 
     Public
 
-      Constructor Create(Name:AnsiString; Value:AnsiString = ''); Overload;
-      Constructor Create(Document:XMLDocument; Source:Stream; InitTag:AnsiString = '');Overload;
+      Constructor Create(Const Name:TERRAString; Const Value:TERRAString = ''); Overload;
+      Constructor Create(Document:XMLDocument; Source:Stream; InitTag:TERRAString = '');Overload;
 
       Destructor Destroy;Reintroduce;
 
-      Function AddTag(Name,Value:AnsiString):XMLNode;
+      Function AddTag(Const Name,Value:TERRAString):XMLNode;
       Procedure AddNode(Node:XMLNode);
 
-      Function GetNode(Name:AnsiString):XMLNode;
-      Function GetChild(Index:Integer):XMLNode;
+      Function GetNodeByName(Const Name:TERRAString):XMLNode;
+      Function GetNodeByIndex(Index:Integer):XMLNode;
 
-      Function GetNodeByPath(Path:AnsiString; Const PathSeparator:AnsiString = '\'):XMLNode;
+      Function GetNodeByPath(Path:TERRAString; Const PathSeparator:TERRAChar):XMLNode;
 
-      Property Name:AnsiString Read _Name;
-      Property Value:AnsiString Read _Value Write _Value;
+      Property Name:TERRAString Read _Name;
+      Property Value:TERRAString Read _Value Write _Value;
 
-      Property ChildCount:Integer Read _ChildCount;
+      Property NodeCount:Integer Read _NodeCount;
   End;
 
   XMLDocument = Class
     Protected
       _Root:XMLNode;
-      _TempBuffer:AnsiString;
+      _TempBuffer:TERRAString;
 
     Public
       Destructor Destroy;Reintroduce;
@@ -117,50 +117,52 @@ Type
       Procedure Load(Source:Stream);
       Procedure Save(Dest:Stream; SaveFlags:Cardinal = 0);
 
-      Procedure LoadFromFile(FileName:AnsiString);
-      Procedure SaveToFile(FileName:AnsiString; SaveFlags:Cardinal = 0);
+      Procedure LoadFromFile(FileName:TERRAString; Encoding:StringEncoding = encodingUnknown);
+      Procedure SaveToFile(FileName:TERRAString; SaveFlags:Cardinal = 0);
 
-      Procedure LoadFromString(Data:AnsiString);
-      //Procedure SaveToFile(Var Data:AnsiString);Overload;
+      Procedure LoadFromString(Data:TERRAString);
+      //Procedure SaveToFile(Var Data:TERRAString);Overload;
 
       Procedure AddNode(Node:XMLNode; Parent:XMLNode=Nil);
-      Function GetNode(Name:AnsiString):XMLNode;
+      Function GetNodeByName(Const Name:TERRAString):XMLNode;
 
-      Function AddString(Name:AnsiString; Value:AnsiString=''; Parent:XMLNode=Nil):XMLNode;
-      Function AddBoolean(Name:AnsiString; Value:Boolean; Parent:XMLNode=Nil):XMLNode;
-      Function AddInteger(Name:AnsiString; Value:Integer; Parent:XMLNode=Nil):XMLNode;
-      Function AddCardinal(Name:AnsiString; Value:Cardinal; Parent:XMLNode=Nil):XMLNode;
-      Function AddSingle(Name:AnsiString; Value:Single; Parent:XMLNode=Nil):XMLNode;
-      Function AddVector(Name:AnsiString; Value:Vector3D; Parent:XMLNode=Nil):XMLNode;
-      Function AddColor(Name:AnsiString; Value:Color; Parent:XMLNode=Nil):XMLNode;
-      Function AddTime(Name:AnsiString; Value:TERRATime; Parent:XMLNode=Nil):XMLNode;
+      Function AddString(Const Name:TERRAString; Value:TERRAString=''; Parent:XMLNode=Nil):XMLNode;
+      Function AddBoolean(Const Name:TERRAString; Value:Boolean; Parent:XMLNode=Nil):XMLNode;
+      Function AddInteger(Const Name:TERRAString; Value:Integer; Parent:XMLNode=Nil):XMLNode;
+      Function AddCardinal(Const Name:TERRAString; Value:Cardinal; Parent:XMLNode=Nil):XMLNode;
+      Function AddSingle(Const Name:TERRAString; Value:Single; Parent:XMLNode=Nil):XMLNode;
+      Function AddVector(Const Name:TERRAString; Value:Vector3D; Parent:XMLNode=Nil):XMLNode;
+      Function AddColor(Const Name:TERRAString; Value:Color; Parent:XMLNode=Nil):XMLNode;
+      Function AddTime(Const Name:TERRAString; Value:TERRATime; Parent:XMLNode=Nil):XMLNode;
 
       Property Root:XMLNode Read _Root;
   End;
 
-Function XMLConvertToBinary(SourceFile, DestFile, ConstantFile:AnsiString):Boolean;
-Function XMLLoadBinary(SourceFile:AnsiString):XMLDocument;
+Function XMLConvertToBinary(SourceFile, DestFile, ConstantFile:TERRAString):Boolean;
+Function XMLLoadBinary(SourceFile:TERRAString):XMLDocument;
 
 Implementation
-Uses TERRA_Error, TERRA_Collections, TERRA_FileManager, TERRA_FileIO, TERRA_Log, TERRA_Unicode;
+Uses TERRA_Error, TERRA_Collections, TERRA_FileManager, TERRA_FileStream, TERRA_MemoryStream, TERRA_Log;
 
 // LXMLNode
 
-Constructor XMLNode.Create(Name:AnsiString; Value:AnsiString='');
+Constructor XMLNode.Create(Const Name:TERRAString; Const Value:TERRAString='');
 Begin
   Self._Name:=Name;
   Self._Value:=Value;
 End;
 
-Constructor XMLNode.Create(Document:XMLDocument; Source:Stream; InitTag:AnsiString);
+Constructor XMLNode.Create(Document:XMLDocument; Source:Stream; InitTag:TERRAString);
 Var
-  S, S2:AnsiString;
-  Tag, Value:AnsiString;
-  I,J,K,Len:Integer;
-  C:AnsiChar;
-  Inside:Boolean;
+  S, S2:TERRAString;
+  Tag, Value:TERRAString;
+  It:StringIterator;
+  J:Integer;
+  C:TERRAChar;
+  Inside, Found:Boolean;
   ShortTag:Boolean;
   Node:XMLNode;
+  Temp:TERRAString;
 Begin
   Self._Document := Document;
 
@@ -173,8 +175,10 @@ Begin
     Repeat
       If (Source.EOF) And (Self._Document._TempBuffer='') Then
         Exit;
+
       S := Read(Source);
-    Until (ucs2_Length(S)>=2) And (ucs2_ascii(S, 2)<>'?');
+      C := StringGetChar(S, 2);
+    Until (C <> Ord('?')) And (C <> Ord('!'));
   End Else
     S := InitTag;
 
@@ -184,60 +188,56 @@ Begin
     Exit;
   End;
 
-  ShortTag := ucs2_ascii(S, Pred(ucs2_Length(S))) = '/';
+  ShortTag := (StringGetChar(S, -2) = Ord('/'));
   S := GetTagName(S);
 
-  {If Pos('user_id',S)>0 Then
-    IntToString(2);}
-
-  I := ucs2_Pos(' ', S);
-  If (I>0) Then
+  If (StringCharPosIterator(Ord(' '), S, It)) Then
   Begin
-    S2 := ucs2_Copy(S, Succ(I), MaxInt);
-    S := ucs2_Copy(S, 1, Pred(I));
+    It.Split(S, S2);
     Self._Name := S;
 
     S := S2;
-    If (ucs2_ascii(S, ucs2_Length(S))='/') Then
-      S := ucs2_copy(S, 1, Pred(ucs2_Length(S)));
+    If (StringLastChar(S) = Ord('/')) Then
+      StringDropChars(S, -1);
 
     While (S<>'') Do
     Begin
-      Len := ucs2_Length(S);
+      StringCreateIterator(S, It);
       Inside := False;
-      K := -1;
-      For J:=1 To Len Do
+      Found := False;
+
+      While It.HasNext() Do
       Begin
-        C := ucs2_Ascii(S, J);
-        If (C='"') Then
+        C := It.GetNext();
+        If (C= Ord('"')) Then
           Inside := Not Inside
         Else
-        If (C=' ') And (Not Inside) Then
+        If (C = Ord(' ')) And (Not Inside) Then
         Begin
-          K := J;
+          It.Split(S2, S);
+          Found := True;
           Break;
         End;
       End;
 
-      If K<0 Then
+      If Not Found Then
       Begin
         S2 := S;
         S := '';
-      End Else
-      Begin
-        S2 := ucs2_Copy(S, 1, Pred(K));
-        S := ucs2_Copy(S, Succ(K), MaxInt);
       End;
 
-      I := ucs2_Pos('=', S2);
-      Tag := ucs2_Copy(S2, 1, Pred(I));
+      If StringCharPosIterator(Ord('='), S2, It) Then
+      Begin
+        It.Split(Tag, Value);
 
-      Value := ucs2_Copy(S2, I+1, MaxInt);
-      Value := ucs2_Trim(Value);
-      Value := ucs2_Copy(Value, 2, ucs2_Length(Value)-2);
+        Value := StringTrim(Value);
+        Temp := VAlue;
+        Value := StringCopy(Value, 2, -2);
 
-      Node := XMLNode.Create(Tag, Value);
-      AddNode(Node);
+        Node := XMLNode.Create(Tag, Value);
+        AddNode(Node);
+      End Else
+        Node := Nil;
     End;
   End Else
     Self._Name := S;
@@ -251,9 +251,6 @@ Begin
       xmlBeginTag:  Begin
                       Node := XMLNode.Create(_Document, Source, S);
 
-                      If (S='<i>') Then
-                        IntTOString(2);
-
                       AddNode(Node);
                     End;
 
@@ -261,11 +258,10 @@ Begin
 
       xmlData:
         Begin
-          Len := ucs2_Length(S);
-          If (ucs2_ascii(S,Len)='"') Then
-            S := ucs2_copy(S, 1, Pred(Len));
+          If (StringLastChar(S) = Ord('"')) Then
+            StringDropChars(S, -1);
 
-          RemoveSpecialHTMLChars(S);
+          StringRemoveSpecialHTMLChars(S);
           _Value := S;
         End;
     End;
@@ -276,26 +272,27 @@ Destructor XMLNode.Destroy;
 Var
   I:Integer;
 Begin
-  For I:=0 To Pred(_ChildCount) Do
+  For I:=0 To Pred(_NodeCount) Do
     _Childs[I].Destroy;
   SetLength(_Childs,0);
-  _ChildCount:=0;
+  _NodeCount:=0;
 End;
 
-Function XMLNode.GetTagType(S:AnsiString):XMLTagType;
+Function XMLNode.GetTagType(Const S:TERRAString):XMLTagType;
 Begin
-  If (S='') Or(ucs2_ascii(S, 1)<>'<') Or (ucs2_ascii(S, ucs2_Length(S))<>'>') Then
-    Result := xmlData
-  Else
-  If (ucs2_ascii(S, 2)='/') Then
-    Result := xmlEndTag
-  Else
-    Result := xmlBeginTag;
+  If (StringGetChar(S, 1) = Ord('<')) Then
+  Begin
+    If (StringGetChar(S, 2) = Ord('/')) Then
+      Result := xmlEndTag
+    Else
+      Result := xmlBeginTag;
+  End Else
+    Result := xmlData;
 End;
 
-Function XMLNode.GetTagName(S:AnsiString):AnsiString;
+Function XMLNode.GetTagName(Const S:TERRAString):TERRAString;
 Begin
-  Result := ucs2_Copy(S, 2 ,ucs2_Length(S)-2);
+  Result := StringCopy(S, 2, -2);
 End;
 
 Function XMLNode.GetParentCount:Integer;
@@ -311,7 +308,7 @@ Begin
   End;
 End;
 
-Function XMLNode.GetPath:AnsiString;
+Function XMLNode.GetPath:TERRAString;
 Var
   Node:XMLNode;
 Begin
@@ -326,58 +323,57 @@ Begin
   End;
 End;
 
-Function XMLNode.GetNodeByPath(Path:AnsiString; Const PathSeparator:AnsiString): XMLNode;
+Function XMLNode.GetNodeByPath(Path:TERRAString; Const PathSeparator:TERRAChar): XMLNode;
 Var
-  First:AnsiString;
+  First:TERRAString;
 Begin
-  First := GetNextWord(Path, PathSeparator);
+  First := StringGetNextSplit(Path, PathSeparator);
 
   If First = '' Then
     Result := Nil
   Else
   Begin
-    Result := Self.GetNode(First);
+    Result := Self.GetNodeByName(First);
     If Not Assigned(Result) Then
       Exit;
 
     If Path <> '' Then
-      Result := Result.GetNodeByPath(Path);
+      Result := Result.GetNodeByPath(Path, PathSeparator);
   End;
 End;
 
-Function XMLNode.GetChild(Index:Integer):XMLNode;
+Function XMLNode.GetNodeByIndex(Index:Integer):XMLNode;
 Begin
-  If (Index<0) Or (Index>=_ChildCount) Then
+  If (Index<0) Or (Index>=_NodeCount) Then
     Result := Nil
   Else
     Result := _Childs[Index];
 End;
 
-Function XMLNode.GetNode(Name:AnsiString):XMLNode;
+Function XMLNode.GetNodeByName(Const Name:TERRAString):XMLNode;
 Var
   I:Integer;
 Begin
-  Name:=UpStr(Name);
   Result:=Nil;
-  For I:=0 To Pred(_ChildCount) Do
-    If UpStr(_Childs[I].Name)=Name Then
+  For I:=0 To Pred(_NodeCount) Do
+    If StringEquals(_Childs[I].Name, Name) Then
     Begin
       Result:=_Childs[I];
       Exit;
     End;
 End;
 
-Function XMLNode.Read(Source:Stream):AnsiString;
+Function XMLNode.Read(Source:Stream):TERRAString;
 {Const
   BufferSize = 1024;}
 Var
-  S:AnsiString;
+  S:TERRAString;
   I,J:Integer;
 Begin
   If (_Document._TempBuffer<>'') Then
   Begin
-    I := ucs2_Pos('<', _Document._TempBuffer);
-    J := ucs2_Pos('>', _Document._TempBuffer);
+    I := StringCharPos(Ord('<'), _Document._TempBuffer);
+    J := StringCharPos(Ord('>'), _Document._TempBuffer);
 
     If (I=1) Then
       I := 0;
@@ -389,9 +385,9 @@ Begin
 
     If (I>1) Then
     Begin
-      Result := ucs2_Copy(_Document._TempBuffer, 1, Pred(I));
-      _Document._TempBuffer := ucs2_Copy(_Document._TempBuffer, I, MaxInt);
-      _Document._TempBuffer := ucs2_TrimLeft(_Document._TempBuffer);
+      Result := StringCopy(_Document._TempBuffer, 1, Pred(I));
+      _Document._TempBuffer := StringCopy(_Document._TempBuffer, I, MaxInt);
+      _Document._TempBuffer := StringTrimLeft(_Document._TempBuffer);
     End Else
     Begin
       Result := _Document._TempBuffer;
@@ -399,7 +395,7 @@ Begin
     End;
 
 
-    Result := ucs2_Trim(Result);
+    Result := StringTrim(Result);
 
     If (Result='') And (Not Source.EOF) Then
     Begin
@@ -411,9 +407,9 @@ Begin
   End;
 
   S := '';
-  Source.ReadUnicodeLine(S);
-  S := ucs2_TrimLeft(S);
-  ucs2_ReplaceText('/ >', '/>', S);
+  Source.ReadLine(S);
+  S := StringTrimLeft(S);
+  StringReplaceText('/ >', '/>', S);
 
   If (S='') And (Not Source.EOF) Then
   Begin
@@ -421,24 +417,24 @@ Begin
     Exit;
   End;
 
-  I := ucs2_Pos('</', S);
-  J := ucs2_Pos('>', S);
+  I := StringPos('</', S);
+  J := StringPos('>', S);
   If (I>0) And ((I<J) Or (J<1)) Then
   Begin
-    _Document._TempBuffer := ucs2_Copy(S, I, MaxInt);
-    S := ucs2_Copy(S, 1, Pred(I));
+    _Document._TempBuffer := StringCopy(S, I, MaxInt);
+    S := StringCopy(S, 1, Pred(I));
 
-    _Document._TempBuffer := ucs2_TrimLeft(_Document._TempBuffer);
+    _Document._TempBuffer := StringTrimLeft(_Document._TempBuffer);
   End Else
   If (J>0) Then
   Begin
-    _Document._TempBuffer := ucs2_Copy(S, Succ(J), MaxInt);
-    S := ucs2_Copy(S, 1, J);
+    _Document._TempBuffer := StringCopy(S, Succ(J), MaxInt);
+    S := StringCopy(S, 1, J);
 
-    _Document._TempBuffer := ucs2_TrimLeft(_Document._TempBuffer);
+    _Document._TempBuffer := StringTrimLeft(_Document._TempBuffer);
   End;
 
-  Result := ucs2_Trim(S);
+  Result := StringTrim(S);
 
   If (Result='') And (Not Source.EOF) Then
   Begin
@@ -449,7 +445,7 @@ End;
 
 Procedure XMLNode.Save(Dest:Stream; SaveFlags:Cardinal);
 Var
-  Tabs, S:AnsiString;
+  Tabs, S:TERRAString;
   I, Count:Integer;
 Begin
   Tabs:='';
@@ -460,7 +456,7 @@ Begin
 
   If Value<>'' Then
   Begin
-    For I:=0 To Pred(_ChildCount) Do
+    For I:=0 To Pred(_NodeCount) Do
     Begin
       S := S + ' '+ _Childs[I].Name + '="'+_Childs[I]._Value+'"';
     End;
@@ -472,25 +468,25 @@ Begin
 
     If ((SaveFlags And xmlSaveCompact)<>0) Then
     Begin
-      For I:=0 To Pred(_ChildCount) Do
-      If (_Childs[I]._ChildCount<=0) Then
+      For I:=0 To Pred(_NodeCount) Do
+      If (_Childs[I]._NodeCount<=0) Then
       Begin
         S := S + ' '+ _Childs[I].Name + '="'+_Childs[I]._Value+'"';
         Inc(Count);
       End;
 
-      If Count>=_ChildCount Then
+      If Count>=_NodeCount Then
         S := S + '/';
     End Else
       S := '';
 
     Dest.WriteLine(Tabs+'<'+Name+S+'>');
 
-    If Count>=_ChildCount Then
+    If Count>=_NodeCount Then
       Exit;
 
-    For I:=0 To Pred(_ChildCount) Do
-    If ((SaveFlags And xmlSaveCompact)=0) Or (_Childs[I]._ChildCount>0) Then
+    For I:=0 To Pred(_NodeCount) Do
+    If ((SaveFlags And xmlSaveCompact)=0) Or (_Childs[I]._NodeCount>0) Then
       _Childs[I].Save(Dest, SaveFlags);
 
     Dest.WriteLine(Tabs+'</'+Name+'>');
@@ -500,12 +496,12 @@ End;
 Procedure XMLNode.AddNode(Node:XMLNode);
 Begin
   Node._Parent:=Self;
-  Inc(_ChildCount);
-  SetLength(_Childs,_ChildCount);
-  _Childs[Pred(_ChildCount)]:=Node;
+  Inc(_NodeCount);
+  SetLength(_Childs,_NodeCount);
+  _Childs[Pred(_NodeCount)]:=Node;
 End;
 
-Function XMLNode.AddTag(Name, Value:AnsiString): XMLNode;
+Function XMLNode.AddTag(Const Name, Value:TERRAString): XMLNode;
 Var
   Node:XMLNode;
 Begin
@@ -521,11 +517,11 @@ Begin
     _Root.Destroy;
 End;
 
-Function XMLDocument.GetNode(Name:AnsiString):XMLNode;
+Function XMLDocument.GetNodeByName(Const Name:TERRAString):XMLNode;
 Begin
-  Result:=Nil;
+  Result := Nil;
   If Assigned(_Root) Then
-    Result:=_Root.GetNode(Name);
+    Result:=_Root.GetNodeByName(Name);
 End;
 
 Procedure XMLDocument.AddNode(Node:XMLNode; Parent:XMLNode=Nil);
@@ -541,7 +537,7 @@ Begin
   End;
 End;
 
-Function XMLDocument.AddString(Name:AnsiString; Value:AnsiString=''; Parent:XMLNode=Nil):XMLNode;
+Function XMLDocument.AddString(Const Name:TERRAString; Value:TERRAString=''; Parent:XMLNode=Nil):XMLNode;
 Begin
   If Assigned(Parent) Then
     Result:=Parent.AddTag(Name,Value)
@@ -556,22 +552,22 @@ Begin
   End;
 End;
 
-Function XMLDocument.AddBoolean(Name:AnsiString; Value:Boolean; Parent:XMLNode=Nil):XMLNode;
+Function XMLDocument.AddBoolean(Const Name:TERRAString; Value:Boolean; Parent:XMLNode=Nil):XMLNode;
 Begin
   Result := AddString(Name, BoolToString(Value), Parent);
 End;
 
-Function XMLDocument.AddInteger(Name:AnsiString; Value:Integer; Parent:XMLNode=Nil):XMLNode;
+Function XMLDocument.AddInteger(Const Name:TERRAString; Value:Integer; Parent:XMLNode=Nil):XMLNode;
 Begin
   Result := AddString(Name, IntToString(Value), Parent);
 End;
 
-Function XMLDocument.AddCardinal(Name:AnsiString; Value:Cardinal; Parent:XMLNode=Nil):XMLNode;
+Function XMLDocument.AddCardinal(Const Name:TERRAString; Value:Cardinal; Parent:XMLNode=Nil):XMLNode;
 Begin
   Result := AddString(Name, CardinalToString(Value), Parent);
 End;
 
-Function XMLDocument.AddSingle(Name:AnsiString; Value:Single; Parent:XMLNode=Nil):XMLNode;
+Function XMLDocument.AddSingle(Const Name:TERRAString; Value:Single; Parent:XMLNode=Nil):XMLNode;
 Begin
   Result := AddString(Name, FloatToString(Value), Parent);
 End;
@@ -579,15 +575,15 @@ End;
 Procedure DumpXML(Node:XMLNode; Dest:Stream; Level:Integer);
 Var
   I:Integer;
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := '';
   For I:=1 To Level Do
     S := S + '  ';
 
   Dest.WriteLine(S+Node.Name+':'+Node.Value);
-  For I:=0 To Pred(Node.ChildCount) Do
-    DumpXML(Node.GetChild(I), Dest, Succ(Level));
+  For I:=0 To Pred(Node.NodeCount) Do
+    DumpXML(Node.GetNodeByIndex(I), Dest, Succ(Level));
 End;
 
 Procedure XMLDocument.Load(Source:Stream);
@@ -611,16 +607,20 @@ Begin
   _Root.Save(Dest, SaveFlags);
 End;
 
-Procedure XMLDocument.LoadFromFile(FileName:AnsiString);
+Procedure XMLDocument.LoadFromFile(FileName:TERRAString; Encoding:StringEncoding = encodingUnknown);
 Var
   Source:FileStream;
 Begin
   Source := FileStream.Open(FileName);
+
+  If Encoding <> encodingUnknown Then
+    Source.Encoding := Encoding;
+
   Load(Source);
   Source.Destroy;
 End;
 
-Procedure XMLDocument.SaveToFile(FileName:AnsiString; SaveFlags:Cardinal);
+Procedure XMLDocument.SaveToFile(FileName:TERRAString; SaveFlags:Cardinal);
 Var
   Dest:FileStream;
 Begin
@@ -629,7 +629,7 @@ Begin
   Dest.Destroy;
 End;
 
-Procedure XMLDocument.LoadFromString(Data:AnsiString);
+Procedure XMLDocument.LoadFromString(Data:TERRAString);
 Var
   Source:MemoryStream;
 Begin
@@ -638,7 +638,7 @@ Begin
   Source.Destroy;
 End;
 
-Function XMLDocument.AddVector(Name:AnsiString; Value:Vector3D; Parent:XMLNode=Nil):XMLNode;
+Function XMLDocument.AddVector(Const Name:TERRAString; Value:Vector3D; Parent:XMLNode=Nil):XMLNode;
 Var
   Node:XMLNode;
 Begin
@@ -650,7 +650,7 @@ Begin
   Result:=Node;
 End;
 
-Function XMLDocument.AddColor(Name:AnsiString; Value:Color; Parent:XMLNode=Nil):XMLNode;
+Function XMLDocument.AddColor(Const Name:TERRAString; Value:Color; Parent:XMLNode=Nil):XMLNode;
 Var
   Node:XMLNode;
 Begin
@@ -663,7 +663,7 @@ Begin
   Result:=Node;
 End;
 
-Function XMLDocument.AddTime(Name:AnsiString; Value:TERRATime; Parent:XMLNode=Nil):XMLNode;
+Function XMLDocument.AddTime(Const Name:TERRAString; Value:TERRATime; Parent:XMLNode=Nil):XMLNode;
 Var
   Node:XMLNode;
 Begin
@@ -696,51 +696,50 @@ Begin
   Result := _Descriptors[Index];
 End;
 
-Function XMLElement.XMLGetProperty(Name:AnsiString):XMLDescriptor;
+Function XMLElement.XMLGetProperty(Name:TERRAString):XMLDescriptor;
 Var
-  S:AnsiString;
+  S:TERRAString;
   I:Integer;
 Begin
 	FillChar(Result, SizeOf(Result), 0);
-  Name := UpStr(Name);
 
-  I := Pos('.', Name);
+  I := StringPos('.', Name, True);
   If (I>0) Then
   Begin
-    S := Copy(Name, Succ(I), MaxInt);
-    Name := Copy(Name, 1, Pred(I));
+    S := StringCopy(Name, Succ(I), MaxInt);
+    Name := StringCopy(Name, 1, Pred(I));
     Result := XMLGetProperty(Name);
-    If (S='X') Then
+    If (StringEquals(S, 'x')) Then
     Begin
       Inc(PByte(Result.Address), 0);
       Result.XMLType := xmlSingle;
     End Else
-    If (S='Y') Then
+    If (StringEquals(S, 'Y')) Then
     Begin
       Inc(PByte(Result.Address), 4);
       Result.XMLType := xmlSingle;
     End Else
-    If (S='Z') Then
+    If (StringEquals(S, 'Z')) Then
     Begin
       Inc(PByte(Result.Address), 8);
       Result.XMLType := xmlSingle;
     End Else
-    If (S='RED') Or (S='R') Then
+    If (StringEquals(S, 'red')) Or (StringEquals(S, 'r')) Then
     Begin
       Inc(PByte(Result.Address), 0);
       Result.XMLType := xmlByte;
     End Else
-    If (S='GREEN') Or (S='G') Then
+    If (StringEquals(S, 'green')) Or (StringEquals(S, 'g')) Then
     Begin
       Inc(PByte(Result.Address), 1);
       Result.XMLType := xmlByte;
     End Else
-    If (S='BLUE') Or (S='B') Then
+    If (StringEquals(S, 'blue')) Or (StringEquals(S, 'b')) Then
     Begin
       Inc(PByte(Result.Address), 2);
       Result.XMLType := xmlByte;
     End Else
-    If (S='ALPHA') Or (S='A') Then
+    If (StringEquals(S, 'alpha')) Or (StringEquals(S, 'a')) Then
     Begin
       Inc(PByte(Result.Address), 3);
       Result.XMLType := xmlByte;
@@ -750,7 +749,7 @@ Begin
   End;
 
   For I:=0 To Pred(_DescriptorCount) Do
-  If (UpStr(_Descriptors[I].Name) = Name) Then
+  If (StringUpper(_Descriptors[I].Name) = Name) Then
     Result := _Descriptors[I];
 End;
 
@@ -764,13 +763,13 @@ Begin
   Result := 0;
 End;
 
-Function XMLElement.XMLNewElement(Name:AnsiString):XMLElement;
+Function XMLElement.XMLNewElement(Const Name:TERRAString):XMLElement;
 Begin
   Result := Nil;
 End;
 
-Procedure XMLElement.XMLRegisterElement(Name:AnsiString; Address:Pointer;
-                                        XMLType:XMLType; Default:AnsiString='');
+Procedure XMLElement.XMLRegisterElement(Const Name:TERRAString; Address:Pointer;
+                                        XMLType:XMLType; Default:TERRAString='');
 Begin
   Inc(_DescriptorCount);
   SetLength(_Descriptors,_DescriptorCount);
@@ -782,7 +781,7 @@ Begin
   _Descriptors[Pred(_DescriptorCount)].Found:=False;
 End;
 
-Procedure XMLElement.XMLRegisterArrayElement(Name:AnsiString; Address:Pointer;
+Procedure XMLElement.XMLRegisterArrayElement(Const Name:TERRAString; Address:Pointer;
                                              XMLType:XMLType; Size:Integer);
 Begin
   Inc(_DescriptorCount);
@@ -803,7 +802,7 @@ End;
 
 Procedure XMLDescriptor.Read(Node:XMLNode);
 Var
-  S,S2:AnsiString;
+  S,S2:TERRAString;
   K:Integer;
 Begin
   Found:=True;
@@ -854,7 +853,7 @@ Begin
         S2:=S;
         S:='';
       End Else
-        S2:=GetNextWord(S,',');
+        S2 := StringGetNextSplit(S, Ord(','));
       If (S2='') Then
       Begin
         Log(logError, 'XML', 'Number of array elements differs from declaration! ['+Node.GetPath+']');
@@ -908,7 +907,7 @@ End;
 
 Procedure XMLDescriptor.Write(Document:XMLDocument; Node:XMLNode);
 Var
-  S:AnsiString;
+  S:TERRAString;
   J:Integer;
 Begin
   S:='';
@@ -1001,13 +1000,13 @@ Begin
   XMLClearStructure;
   XMLRegisterStructure;
 
-  For I:=0 To Pred(Source._ChildCount) Do
+  For I:=0 To Pred(Source._NodeCount) Do
   Begin
     Node := Source._Childs[I];
     Found := False;
 
     For J:=0 To Pred(_DescriptorCount) Do
-    If (UpStr(_Descriptors[J].Name)=UpStr(Node.Name)) Then
+    If (StringUpper(_Descriptors[J].Name)=StringUpper(Node.Name)) Then
     Begin
       _Descriptors[J].Read(Node);
       Found := True;
@@ -1106,7 +1105,7 @@ Begin
   Document.Destroy;
 End;
 
-Procedure XMLElement.XMLLoad(FileName:AnsiString);
+Procedure XMLElement.XMLLoad(Const FileName:TERRAString);
 Var
   Source:Stream;
 Begin
@@ -1115,7 +1114,7 @@ Begin
   Source.Destroy;
 End;
 
-Procedure XMLElement.XMLSave(FileName:AnsiString);
+Procedure XMLElement.XMLSave(Const FileName:TERRAString);
 Var
   Dest:Stream;
 Begin
@@ -1126,29 +1125,36 @@ End;
 
 Procedure XMLConvertNode(Node:XMLNode; Constants:List);
 Var
+  It:StringIterator;
   I, J, N, Len:Integer;
   P:KeyPairObject;
-  S, ConstName:AnsiString;
+  S, ConstName:TERRAString;
+  C:TERRAChar;
 
-Function IsValidChar(Const C:Char):Boolean;
+Function IsValidChar(Const C:TERRAChar):Boolean;
 Begin
-  Result := ((C>='0') And (C<='9')) Or ((C>='A') And (C<='Z')) Or ((C>='a') And (C<='z')) Or (C='_');
+  Result := ((C>= Ord('0')) And (C<= Ord('9'))) Or ((C>= Ord('A')) And (C<= Ord('Z'))) Or ((C>=Ord('a')) And (C<=Ord('z'))) Or (C=Ord('_'));
 End;
+
 Begin
-  J := ucs2_Pos('@', Node.Value);
+  J := StringCharPos(Ord('@'), Node.Value);
   While (J>0) Do
   Begin
     N := 1;
-    Len := ucs2_Length(Node.Value);
-    For I:=Succ(J) To Len Do
-    If (IsValidChar(ucs2_ascii(Node.Value, I))) Then
-      Inc(N)
-    Else
-      Break;
+    StringCreateIterator(Node.Value, It);
+    It.Seek(Succ(J));
+    While It.HasNext Do
+    Begin
+      C := It.GetNext();
+      If (IsValidChar(C)) Then
+        Inc(N)
+      Else
+        Break;
+    End;
 
-    S := ucs2_Copy(Node.Value, J, N);
+    S := StringCopy(Node.Value, J, N);
 
-    ConstName := Copy(S, 2, MaxInt);
+    ConstName := StringCopy(S, 2, MaxInt);
     P := KeyPairObject(Constants.FindByKey(ConstName));
     If P = Nil Then
     Begin
@@ -1156,13 +1162,13 @@ Begin
       Exit;
     End;
 
-    ucs2_ReplaceText(S, P.Value, Node._Value);
+    StringReplaceText(S, P.Value, Node._Value);
 
-    J := ucs2_Pos('@', Node.Value);
+    J := StringCharPos(Ord('@'), Node.Value);
   End;
 
-  For I:=0 To Pred(Node.ChildCount) Do
-    XMLConvertNode(Node.GetChild(I), Constants);
+  For I:=0 To Pred(Node.NodeCount) Do
+    XMLConvertNode(Node.GetNodeByIndex(I), Constants);
 End;
 
 Procedure XMLWriteNode(Dest:Stream; Node:XMLNode);
@@ -1171,13 +1177,13 @@ Var
 Begin
   Dest.WriteString(Node.Name);
   Dest.WriteString(Node.Value);
-  N := Node.ChildCount;
+  N := Node.NodeCount;
   Dest.Write(@N, 4);
   For I:=0 To Pred(N) Do
-    XMLWriteNode(Dest, Node.GetChild(I));
+    XMLWriteNode(Dest, Node.GetNodeByIndex(I));
 End;
 
-Function XMLConvertToBinary(SourceFile, DestFile, ConstantFile:AnsiString):Boolean;
+Function XMLConvertToBinary(SourceFile, DestFile, ConstantFile:TERRAString):Boolean;
 Var
   Doc:XMLDocument;
   Dest:Stream;
@@ -1203,7 +1209,7 @@ Procedure XMLLoadNode(Src:Stream; Node:XMLNode);
 Var
   I, N:Integer;
   Child:XMLNode;
-  S:AnsiString;
+  S:TERRAString;
 Begin
   S := '';
   Src.ReadString(S);
@@ -1220,9 +1226,9 @@ Begin
 End;
 
 
-Function XMLLoadBinary(SourceFile:AnsiString):XMLDocument;
+Function XMLLoadBinary(SourceFile:TERRAString):XMLDocument;
 Var
-  S:AnsiString;
+  S:TERRAString;
   Dest, Src:Stream;
 Begin
   S := FileManager.Instance.SearchResourceFile(SourceFile);

@@ -18,34 +18,34 @@ Unit TERRA_SMTP;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_IO, TERRA_FileIO, TERRA_Sockets;
+Uses TERRA_Utils, TERRA_Stream, TERRA_FileStream, TERRA_Sockets;
 
 Type
   Mail = Class
     Protected
       _Stream:Socket;
-      _Attachments:Array Of AnsiString;
+      _Attachments:Array Of TERRAString;
       _AttachCount:Integer;
 
-      Function GetStatus(Var S:AnsiString):Integer;
+      Function GetStatus(Var S:TERRAString):Integer;
     Public
 
-      Sender:AnsiString;        // sender userID (optional)
-      SenderName:AnsiString;    // sender display name (optional)
-      ReplyTo:AnsiString;       // reply to userID (optional)
-      ReplyToName:AnsiString;   // reply to display name (optional)
-      MessageID:AnsiString;     // message ID (optional)
-      Subject:AnsiString;       // subject of message
-      Message:AnsiString;       // message text
+      Sender:TERRAString;        // sender userID (optional)
+      SenderName:TERRAString;    // sender display name (optional)
+      ReplyTo:TERRAString;       // reply to userID (optional)
+      ReplyToName:TERRAString;   // reply to display name (optional)
+      MessageID:TERRAString;     // message ID (optional)
+      Subject:TERRAString;       // subject of message
+      Message:TERRAString;       // message text
 
-      HostName:AnsiString;      // SMTP Provider
-      UserName:AnsiString;      // SMTP Username
-      Password:AnsiString;      // SMTP Password
+      HostName:TERRAString;      // SMTP Provider
+      UserName:TERRAString;      // SMTP Username
+      Password:TERRAString;      // SMTP Password
 
       Port:Integer;
 
-      Procedure AddAttachment(FileName:AnsiString);
-      Function Send(Address:AnsiString):Boolean;
+      Procedure AddAttachment(FileName:TERRAString);
+      Function Send(Address:TERRAString):Boolean;
 
       Constructor Create;
   End;
@@ -62,17 +62,17 @@ Begin
   Port := SMTP_PORT;
 End;
 
-Procedure Mail.AddAttachment(FileName:AnsiString);
+Procedure Mail.AddAttachment(FileName:TERRAString);
 Begin
   Inc(_AttachCount);
   SetLength(_Attachments,_AttachCount);
   _Attachments[Pred(_AttachCount)]:=FileName;
 End;
 
-Function Mail.GetStatus(Var S:AnsiString):Integer;
+Function Mail.GetStatus(Var S:TERRAString):Integer;
 Var
   I:Integer;
-  S2:AnsiString;
+  S2:TERRAString;
 Begin
   Repeat
     _Stream.ReadString(S2);
@@ -87,14 +87,14 @@ Begin
   Result := StringToInt(S2);
 End;
 
-Function Mail.Send(Address:AnsiString):Boolean;
+Function Mail.Send(Address:TERRAString):Boolean;
 Var
-  S,S2,MS:AnsiString;
+  S,S2,MS:TERRAString;
   I:Integer;
   K:Byte;
-  Host:AnsiString;
+  Host:TERRAString;
   Code:Integer;
-  FileName,Attach:AnsiString;
+  FileName,Attach:TERRAString;
   Bin:FileStream;
 Begin
   Result:=False;

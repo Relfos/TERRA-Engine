@@ -34,7 +34,7 @@ Unit TERRA_GraphicsManager;
 Interface
 Uses {$IFNDEF DEBUG_LEAKS}TERRA_MemoryManager,{$ENDIF} {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   {$IFDEF FRAMEBUFFEROBJECTS} TERRA_FrameBufferObject, {$ENDIF}
-  TERRA_Downsampler, TERRA_Shader, //TERRA_Renderer,
+  TERRA_String, TERRA_Downsampler, TERRA_Shader, //TERRA_Renderer,
   {$IFDEF POSTPROCESSING}TERRA_ScreenFX,{$ENDIF}
   {$IFDEF SHADOWMAPS}TERRA_ShadowMaps,{$ENDIF}
   {$IFDEF PRECISIONTIMER}TERRA_Timer,{$ENDIF}
@@ -202,7 +202,7 @@ Type
 
       Procedure Update; Virtual;
 
-      Function GetName():AnsiString; Virtual;
+      Function GetName():TERRAString; Virtual;
 
       Function GetBoundingBox:BoundingBox; Virtual; Abstract;
       Procedure Render(TranslucentPass:Boolean); Virtual; Abstract;
@@ -258,7 +258,7 @@ Type
       Procedure SetTransform(Transform:Matrix4x4; Width,Height:Single);
 
       Function PointOccluded(P:Vector3D):Boolean;
-      Function BoxOccluded(Box:BoundingBox):Boolean;
+      Function BoxOccluded(Box:BoundingBox; V:Viewport):Boolean;
 
       Procedure Render(TranslucentPass:Boolean); Override;
       Function GetBoundingBox:BoundingBox; Override;
@@ -324,8 +324,8 @@ Type
       _BucketReflection:Pool;
       {$ENDIF}
 
-      _Device:AnsiString;
-      _Vendor:AnsiString;
+      _Device:TERRAString;
+      _Vendor:TERRAString;
       _Version:TERRAVersion;
 
       _FogEnable:Boolean;
@@ -337,11 +337,6 @@ Type
 
       _Projection:Matrix4x4;
       _OrientationMatrix4x4:Matrix4x4;
-
-      _ViewX:Integer;
-      _ViewY:Integer;
-      _ViewWidth:Integer;
-      _ViewHeight:Integer;
 
       _NeedsContextRestore:Boolean;
 
@@ -410,7 +405,7 @@ Type
 
       Procedure Internal(Offset, Count:Integer);
 
-      //Procedure RenderCubeMapToFile(Position:LVector; FileName:AnsiString);
+      //Procedure RenderCubeMapToFile(Position:LVector; FileName:TERRAString);
 
       Function IsBoxVisible(Box: BoundingBox): Boolean;
 
@@ -422,8 +417,8 @@ Type
 
       Function GetPickRay(View:Viewport; TX,TY:Integer):Ray;
 
-      Function ProjectPoint(Pos:Vector3D):Vector3D;
-      Function ProjectBoundingBox(Box:BoundingBox):BoundingBox;
+      Function ProjectPoint(Pos:Vector3D; V:Viewport):Vector3D;
+      Function ProjectBoundingBox(Box:BoundingBox; V:Viewport):BoundingBox;
 
 			Property Settings:GraphicsManagerSettings Read _Settings;
 
@@ -460,8 +455,6 @@ Type
       Procedure DeleteFrameBuffer(Var Handle:Cardinal);
       Procedure DeleteRenderBuffer(Var Handle:Cardinal);
 
-      Procedure SetViewArea(X,Y,Width,Height:Integer);
-
       Function GetScreenshot():Image;
 
       Function EnableColorShader(MyColor:Color; Transform:Matrix4x4):Shader;
@@ -492,15 +485,13 @@ Type
       Property FrameID:Cardinal Read _FrameID;
       Property RenderStage:Integer Read _RenderStage;
 
-      Property Device:AnsiString Read _Device;
-      Property Vendor:AnsiString Read _Vendor;
+      Property Device:TERRAString Read _Device;
+      Property Vendor:TERRAString Read _Vendor;
       Property Version:TERRAVersion Read _Version;
 
       Property ProjectionMatrix:Matrix4x4 Read _Projection;
 
       Property LightModel:Integer Read _LightModel Write _LightModel;
-
-      Property BackgroundColor:Color Read _BackgroundColor Write SetBackgroundColor;
 	End;
 
 Function GetDefaultFullScreenShader():Shader;
@@ -527,10 +518,10 @@ Begin
 End;
 
 
-Function GetShader_SimpleColor():AnsiString;
+Function GetShader_SimpleColor():TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('version { 110 }');
@@ -550,10 +541,10 @@ Begin
   Result := S;
 End;
 
-Function GetShader_SimpleTexture():AnsiString;
+Function GetShader_SimpleTexture():TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('version { 110 }');
@@ -580,10 +571,10 @@ Begin
   Result := S;
 End;
 
-Function GetShader_ColoredTexture():AnsiString;
+Function GetShader_ColoredTexture():TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('version { 110 }');
@@ -614,10 +605,10 @@ Begin
   Result := S;
 End;
 
-Function GetShader_StencilVolumeShader():AnsiString;
+Function GetShader_StencilVolumeShader():TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('version { 110 }');
@@ -635,10 +626,10 @@ Begin
   Result := S;
 End;
 
-Function GetShader_FullscreenColor():AnsiString;
+Function GetShader_FullscreenColor():TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('vertex {');
@@ -655,10 +646,10 @@ Begin
   Result := S;
 End;
 
-Function GetShader_FullscreenQuad():AnsiString;
+Function GetShader_FullscreenQuad():TERRAString;
 Var
-  S:AnsiString;
-Procedure Line(S2:AnsiString); Begin S := S + S2 + crLf; End;
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('vertex {');
@@ -752,7 +743,7 @@ Begin
           And (Occ._EndVertex.X>_StartVertex.X) And (Occ._EndVertex.X<_EndVertex.X) And (Occ._EndVertex.Z>FloatMin(_StartVertex.Z, _EndVertex.Z));
 End;
 
-Function Occluder.BoxOccluded(Box:BoundingBox):Boolean;
+Function Occluder.BoxOccluded(Box:BoundingBox; V:Viewport):Boolean;
 Var
   K:Single;
   A,B:Vector3D;
@@ -766,14 +757,14 @@ Begin
     Exit;
   End;
 
-  {Snap := Application.Instance.KeyPressed(Ord('J'));
+  {Snap := Application.Instance.Input.Keys.WasPressed(Ord('J'));
   If Snap Then
   Begin
     Image := TERRA_Image.Image.Create;
     Image.New(GraphicsManager.Instance.Width, GraphicsManager.Instance.Height);
   End;}
 
-  Box := GraphicsManager.Instance.ProjectBoundingBox(Box);
+  Box := GraphicsManager.Instance.ProjectBoundingBox(Box, V);
   A := Box.StartVertex;
   B := Box.EndVertex;
 
@@ -898,7 +889,7 @@ Var
   I:Integer;
   V:Viewport;
   OW, OH:Integer;
-  S:AnsiString;
+  S:TERRAString;
   HasShaders:Boolean;
 Begin
   Log(logDebug, 'GraphicsManager', 'Initializing');
@@ -979,7 +970,7 @@ Begin
   Log(logDebug, 'GraphicsManager', 'Device: '+_Device);
   Log(logDebug, 'GraphicsManager', 'Vendor: '+_Vendor);
 
-  _Vendor := UpStr(_Vendor);
+  _Vendor := StringUpper(_Vendor);
   If Pos('INTEL', _Vendor)>0 Then
     _Vendor := 'INTEL'
   Else
@@ -1080,7 +1071,7 @@ Begin
     _Settings.VertexBufferObject._Enabled := False;
 
   S := ' ' + glGetExtensionString();
-  ReplaceText(' ', crLf+#9, S);
+  StringReplaceText(' ', crLf+#9, S);
   Log(logDebug, 'GraphicsManager', 'Extensions: '+ S);
 
   _Version := StringToVersion('0.0.0');
@@ -1252,7 +1243,7 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
   {$ENDIF}
 
   // make UI view
-  _UIViewport := Viewport.Create('UI', Application.Instance.UI_Width, Application.Instance.UI_Height);
+  _UIViewport := Viewport.Create('UI', Application.Instance.UI_Width, Application.Instance.UI_Height, Application.Instance.UI_Scale);
   _UIViewport.SetRenderTargetState(captureTargetColor, True);
   _UIViewport.SetTarget(_DeviceViewport, 0, 0, 1.0, 1.0);
 
@@ -1419,14 +1410,14 @@ Begin
     _Projection := Matrix4x4Ortho(0.0, _UIViewport.Width, _UIViewport.Height, 0.0, 0, 100);
     _Projection := Matrix4x4Multiply4x4(_Projection, Matrix4x4Translation(0.375, 0.375, 0.0));
 
-    GraphicsManager.Instance.SetViewArea(0, 0, _UIViewport.Width, _UIViewport.Height);
+    _UIViewport.SetViewArea(0, 0, _UIViewport.Width, _UIViewport.Height);
 
     Flags := GL_DEPTH_BUFFER_BIT  Or GL_STENCIL_BUFFER_BIT;
     If (Not Assigned(_Scene)) Or (_ViewportCount<=0) Then
       Flags := Flags Or GL_COLOR_BUFFER_BIT;
     glClear(Flags);
 
-    If (Not Prefetching) Then
+    If (Not _Prefetching) Then
     Begin
       UIManager.Instance.Render();
 
@@ -1438,7 +1429,7 @@ Begin
 
     SpriteManager.Instance.Render();
 
-    If ( Not Prefetching) Then
+    If ( Not _Prefetching) Then
     Begin
       UIManager.Instance.AfterEffects();
     End;
@@ -1474,7 +1465,7 @@ Begin
 
   {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'RenderReflections');{$ENDIF}
 
-  Self.ReflectionMask := Self._MainViewport.GetRenderTarget(captureTargetReflection);
+  Self.ReflectionMask := View.GetRenderTarget(captureTargetReflection);
 
   If Self.ReflectionMask = Nil Then
     Exit;
@@ -1912,13 +1903,13 @@ Begin
 
     Inc(Count);
 
-    {If (_RenderStage = renderStageDiffuse) And (Application.Instance.KeyPressed(keyMouseLeft)) Then
+    {If (_RenderStage = renderStageDiffuse) And (Application.Instance.Input.Keys.WasPressed(keyMouseLeft)) Then
       Target.Save(Application.Instance.DocumentPath+PathSeparator+ 'frame.png');}
     
     {$IFDEF PC}
-    {If (_RenderStage = renderStageGlow) And (Application.Instance.KeyPressed(Ord('M'))) Then
+    {If (_RenderStage = renderStageGlow) And (Application.Instance.Input.Keys.WasPressed(Ord('M'))) Then
       Target.Save('bloom.png');
-     If (_RenderStage = renderStageRefraction) And (Application.Instance.KeyPressed(Ord('N'))) Then
+     If (_RenderStage = renderStageRefraction) And (Application.Instance.Input.Keys.WasPressed(Ord('N'))) Then
       Target.Save('refraction.png');}
     {$ENDIF}
   End;
@@ -2300,7 +2291,7 @@ Begin
   // occlusion test
   Occ := _Occluders;
   While Assigned(Occ) Do
-  If (Occ.BoxOccluded(Box)) Then
+  If (Occ.BoxOccluded(Box, ActiveViewport)) Then
   Begin
     Exit;
   End Else
@@ -2517,27 +2508,27 @@ Begin
   Log(logDebug, 'GraphicsManager', 'Shutting down');
 
   For I:=0 To Pred(_CameraCount) Do
-    DestroyObject(@_Cameras[I]);
+    FreeAndNil(_Cameras[I]);
   _CameraCount := 0;
 
   For I:=0 To Pred(_ViewportCount) Do
-    DestroyObject(@_Viewports[I]);
+    FreeAndNil(_Viewports[I]);
   _ViewportCount := 0;
 
 
-  DestroyObject(@_BucketOpaque);
-  DestroyObject(@_BucketAlpha);
+  FreeAndNil(_BucketOpaque);
+  FreeAndNil(_BucketAlpha);
   {$IFDEF REFLECTIONS_WITH_STENCIL}
-  DestroyObject(@_BucketReflection);
+  FreeAndNil(_BucketReflection);
   {$ENDIF}
 
-  DestroyObject(@_UIViewport);
-  DestroyObject(@_DeviceViewport);
+  FreeAndNil(_UIViewport);
+  FreeAndNil(_DeviceViewport);
 
-  DestroyObject(@_Settings);
+  FreeAndNil(_Settings);
 
   {$IFDEF PRECISIONTIMER}
-  DestroyObject(@_Timer);
+  FreeAndNil(_Timer);
   {$ENDIF}
 
   SetScene(Nil);
@@ -2604,7 +2595,7 @@ Begin
 
   glClearColor(_BackgroundColor.R/255, _BackgroundColor.G/255, _BackgroundColor.B/255, 0{_BackgroundColor.A/255});
 
-  If (Not Prefetching) And (Render3D) Then
+  If (Not _Prefetching) And (Render3D) Then
     Self.RenderScene;
 
 
@@ -2628,7 +2619,7 @@ Begin
     Target.BeginCapture();
 
   For I:=0 To Pred(_ViewportCount) Do
-  If (_Viewports[I].Target = _DeviceViewport) Then
+  If (_Viewports[I].Active) And (_Viewports[I].Target = _DeviceViewport) Then
     _Viewports[I].DrawToTarget(True);
 
   If (Render2D) And (Self.ShowDebugTarget<=0) Then
@@ -2764,7 +2755,7 @@ Begin
   GraphicsManager.Instance.DeleteRenderable(Self);
 End;
 
-Function Renderable.GetName:AnsiString;
+Function Renderable.GetName:TERRAString;
 Begin
   Result := Self.ClassName + '_'+HexStr(Cardinal(Self));
 End;
@@ -2823,17 +2814,7 @@ Begin
   _CurrentViewport := V;
 End;
 
-Procedure GraphicsManager.SetViewArea(X, Y, Width, Height: Integer);
-Begin
-  _ViewX := X;
-  _ViewY := Y;
-  _ViewWidth := Width;
-  _ViewHeight := Height;
-
-  glViewport(X,Y, Width, Height);
-End;
-
-Function GraphicsManager.ProjectBoundingBox(Box: BoundingBox): BoundingBox;
+Function GraphicsManager.ProjectBoundingBox(Box: BoundingBox; V:Viewport): BoundingBox;
 Var
   I:Integer;
   Vertices:BoundingBoxVertices;
@@ -2841,7 +2822,7 @@ Begin
   Box.GetVertices(Vertices);
   For I:=1 To 8 Do
   Begin
-    Vertices[I] := ProjectPoint(Vertices[I]);
+    Vertices[I] := ProjectPoint(Vertices[I], V);
 
     If I=1 Then
     Begin
@@ -2855,13 +2836,13 @@ Begin
   End;
 End;
 
-Function GraphicsManager.ProjectPoint(Pos: Vector3D): Vector3D;
+Function GraphicsManager.ProjectPoint(Pos: Vector3D; V:Viewport): Vector3D;
 Var
   RX, RY:Single;
 Begin
-  Result := Self.MainViewport.ProjectPoint(Pos);
-  Rx := SafeDiv(Self.UIViewport.Width, Self.MainViewport.Width);
-  Ry := SafeDiv(Self.UIViewport.Height, Self.MainViewport.Height);
+  Result := V.ProjectPoint(Pos);
+  Rx := SafeDiv(Self.UIViewport.Width, V.Width);
+  Ry := SafeDiv(Self.UIViewport.Height, V.Height);
 
   Result.X := Result.X * Rx;
   Result.Y := Result.Y * Ry;
@@ -3038,25 +3019,25 @@ End;
 
 Procedure GraphicsManager.TestDebugKeys;
 Begin
-  If (Application.Instance.KeyPressed(Ord('1'))) Then
+  If (Application.Instance.Input.Keys.WasPressed(Ord('1'))) Then
     Self.ShowDebugTarget := -1;
 
-  If (Application.Instance.KeyPressed(Ord('2'))) Then
+  If (Application.Instance.Input.Keys.WasPressed(Ord('2'))) Then
     Self.ShowDebugTarget := captureTargetColor;
 
-  If (Application.Instance.KeyPressed(Ord('3'))) Then
+  If (Application.Instance.Input.Keys.WasPressed(Ord('3'))) Then
     Self.ShowDebugTarget := captureTargetNormal;
 
-  If (Application.Instance.KeyPressed(Ord('4'))) Then
+  If (Application.Instance.Input.Keys.WasPressed(Ord('4'))) Then
     Self.ShowDebugTarget := captureTargetEmission;
 
-  If (Application.Instance.KeyPressed(Ord('5'))) Then
+  If (Application.Instance.Input.Keys.WasPressed(Ord('5'))) Then
     Self.ShowDebugTarget := captureTargetRefraction;
 
-  If (Application.Instance.KeyPressed(Ord('6'))) Then
+  If (Application.Instance.Input.Keys.WasPressed(Ord('6'))) Then
     Self.ShowDebugTarget := captureTargetReflection;
 
-  If (Application.Instance.KeyPressed(Ord('7'))) Then
+  If (Application.Instance.Input.Keys.WasPressed(Ord('7'))) Then
     Self.ShowDebugTarget := captureTargetOutline;
 End;
 

@@ -6,7 +6,7 @@ Unit TERRA_OS;
 {$LINKFRAMEWORK Carbon}
 
 Interface
-Uses TERRA_Utils, TERRA_Application, TERRA_Client, MacOSAll, AGL;
+Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Client, MacOSAll, AGL;
 
 Const
 	PathSeparator = '/';
@@ -77,7 +77,7 @@ Const
   keyY = Ord('Y');
   keyZ = Ord('Z');
 
-Procedure DisplayMessage(S:AnsiString);
+Procedure DisplayMessage(S:TERRAString);
 Function GetCurrentTime:TERRATime;
 Function GetCurrentDate:TERRADate;
 Function GetTime:Cardinal;
@@ -93,7 +93,7 @@ Type
       _Window:WindowRef;
       _Rect: MacOSAll.Rect;
       _InitRect: MacOSAll.Rect;
-      _Screen:MacOSAll.Rect;
+      _ScreenRect:MacOSAll.Rect;
       _Clipboard:PasteboardRef;
 
       _Display: GDHandle;
@@ -107,7 +107,7 @@ Type
       Procedure CloseWindow; Override;
       Procedure ProcessMessages; Override;
 
-      Function GetClipboardContent():AnsiString;
+      Function GetClipboardContent():TERRAString;
 
       Procedure UpdateScreenSize();
 
@@ -136,7 +136,7 @@ begin
     CFDataGetLength(Data), Encoding, False);
 end;
 
-function CFStringToStr(AString: CFStringRef; Encoding: CFStringEncoding = kCFStringEncodingUTF8): AnsiString;
+function CFStringToStr(AString: CFStringRef; Encoding: CFStringEncoding = kCFStringEncodingUTF8): TERRAString;
 var
   Str: Pointer;
   StrSize: CFIndex;
@@ -174,7 +174,7 @@ begin
     CFRelease(Pointer(AString));
 end;
 
-Procedure DisplayMessage(S:AnsiString);
+Procedure DisplayMessage(S:TERRAString);
 Var
   alert:DialogRef;
   outHit:DialogItemIndex;
@@ -271,7 +271,7 @@ Function Carbon_HandleCommand(ANextHandler:EventHandlerCallRef; AEvent:EventRef;
 Var
   App:CarbonApplication;
   Cmd:HICommand;
-  CmdType:Array[0..3] Of AnsiChar;
+  CmdType:Array[0..3] Of TERRAChar;
 Begin
   GetEventParameter(AEvent, kEventParamDirectObject, typeHICommand, Nil, sizeof(HICommand), Nil, @Cmd);
 
@@ -466,13 +466,13 @@ Var
 Function CarbonWindow_KeyboardProc(ANextHandler: EventHandlerCallRef; AEvent: EventRef;  UserData:Pointer): OSStatus; MWPascal;
 Var
   App:CarbonApplication;
-  TemPAnsiChar:AnsiChar;           //Ascii char, when possible (xx_(SYS)CHAR)
+  TemPTERRAChar:TERRAChar;           //Ascii char, when possible (xx_(SYS)CHAR)
   VKKeyCode:Word;         //VK_ code
   IsSysKey: Boolean;        //Is alt (option) key down?
   EventKind: UInt32;        //The kind of this event
 
   I:Integer;
-  S:AnsiString;
+  S:TERRAString;
 
   // See what changed in the modifiers flag so that we can emulate a keyup/keydown
   // Note: this function assumes that only a bit of the flag can be modified at
@@ -563,8 +563,8 @@ Var
 
           If (VKKeyCode>127) Then //not ascii, get the Mac character.
           Begin
-            GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TemPAnsiChar), nil, @TemPAnsiChar);
-            VKKeyCode := Ord(TemPAnsiChar);
+            GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TemPTERRAChar), nil, @TemPTERRAChar);
+            VKKeyCode := Ord(TemPTERRAChar);
           End;
 
           {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Final key result: '+IntToString(VKKeyCode));{$ENDIF}
@@ -613,8 +613,8 @@ Var
 
         If (VKKeyCode>127) Then  //not ascii, get the Mac character.
         Begin
-          GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TemPAnsiChar), nil, @TemPAnsiChar);
-          VKKeyCode := Ord(TemPAnsiChar);
+          GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TemPTERRAChar), nil, @TemPTERRAChar);
+          VKKeyCode := Ord(TemPTERRAChar);
         End;
 
         // the VKKeyCode is independent of the modifier
@@ -676,13 +676,13 @@ Begin
   End;
 End;
 
-Function GetDocumentsFolder():AnsiString;
+Function GetDocumentsFolder():TERRAString;
 Const
   kMaxPath = 1024;
 var
   theError: OSErr;
   theRef: FSRef;
-  pathBuffer: PAnsiChar;
+  pathBuffer: PTERRAChar;
 begin
   pathBuffer := Allocmem(kMaxPath);
   Try
@@ -727,9 +727,9 @@ Var
   pathRef: CFURLRef;
   pathCFStr: CFStringRef;
   pathStr: shortstring;
-  pathMedia:AnsiString;
+  pathMedia:TERRAString;
 
-  Temp:Array[0..255] Of AnsiChar;
+  Temp:Array[0..255] Of TERRAChar;
 Begin
   Inherited InitSettings;
   
@@ -751,7 +751,7 @@ Begin
   countryCode := CFStringRef(CFLocaleGetValue(loc, kCFLocaleCountryCode));
   CFStringGetPascalString(countryCode, @Temp[0], 255, CFStringGetSystemEncoding());
   _Country := Temp[1] + Temp[2];
-  _Country := UpStr(_Country);
+  _Country := StringUpper(_Country);
   Log(logDebug, 'App', 'Country: '+_Country);
 
   Log(logDebug,'App', 'Getting user language');
@@ -759,12 +759,20 @@ Begin
   langCode := CFStringRef(CFArrayGetValueAtIndex (langs, 0));
   CFStringGetPascalString(langCode, @Temp[0], 255, CFStringGetSystemEncoding());
   _Language := Temp[1] + Temp[2];
-  _Language := UpStr(_Language);
+  _Language := StringUpper(_Language);
   Log(logDebug, 'App', 'Language: '+_Language);
 
   Log(logDebug,'App', 'Getting cpu core count...');
   _CPUCores := sysconf(_SC_NPROCESSORS_ONLN);
   Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
+
+  // get current resolution
+  Log(logDebug,'App', 'Getting screen resolution...');
+  _Display := GetMainDevice();
+  GetAvailableWindowPositioningBounds(_Display, _ScreenRect);
+
+  _Screen.Width := _ScreenRect.right - _ScreenRect.left;
+  _Screen.Height := _ScreenRect.bottom - _ScreenRect.top;
 
   Result := True;
 End;
@@ -795,12 +803,8 @@ Begin
   GroupClass := kDocumentWindowClass;
   NewWindowClass := kDocumentWindowClass;
 
-  // get current resolution
-  _Display := GetMainDevice ();
-  GetAvailableWindowPositioningBounds(_Display, _Screen);
-
-  _Rect.left := _Screen.left + ((_Screen.right - _Screen.left) - _Width) Shr 1;
-  _Rect.top := _Screen.top + ((_Screen.bottom - _Screen.top)  - _Height) Shr 1;
+  _Rect.left := _ScreenRect.left + (_Screen.Width - _Width) Shr 1;
+  _Rect.top := _ScreenRect.top + (_Screen.Height  - _Height) Shr 1;
 
   _Rect.right := _Rect.left + _Width;
   _Rect.bottom := _Rect.top + _Height;
@@ -1076,7 +1080,7 @@ Begin
         HideMenuBar();
         UpdateScreenSize();
 
-        _Rect := _Screen;
+        _Rect := _ScreenRect;
 
         HIWindowChangeAttributes(_Window, @clearAttr[0], @setAttr[0]);
   End Else
@@ -1150,7 +1154,7 @@ Begin
    End;
 End;
 
-function CarbonApplication.GetClipboardContent: AnsiString;
+function CarbonApplication.GetClipboardContent: TERRAString;
 Var
    I:Integer;
    Count:LongWord;
@@ -1159,7 +1163,7 @@ Var
    FlavorData: CFDataRef;
    UTI, CFString: CFStringRef;
    Encoding: CFStringEncoding;
-   S:AnsiString;
+   S:TERRAString;
 
    Function HasFormat(Format: CFStringRef): Boolean;
    Var
@@ -1220,13 +1224,13 @@ Procedure CarbonApplication.UpdateScreenSize;
 Var
    MinSize, MaxSize: HISize;
 begin
-  //HIWindowGetAvailablePositioningBounds(kCGNullDirectDisplay,kHICoordSpace72DPIGlobal, _Screen);
-  GetAvailableWindowPositioningBounds(_Display, _Screen);
+  //HIWindowGetAvailablePositioningBounds(kCGNullDirectDisplay,kHICoordSpace72DPIGlobal, _ScreenRect);
+  GetAvailableWindowPositioningBounds(_Display, _ScreenRect);
 
   MinSize.width := 320;
   MinSize.height := 240;
-  MaxSize.width := _Screen.Right - _Screen.Left;
-  MaxSize.height := _Screen.Bottom - _Screen.Top;
+  MaxSize.width := _ScreenRect.Right - _ScreenRect.Left;
+  MaxSize.height := _ScreenRect.Bottom - _ScreenRect.Top;
   SetWindowResizeLimits(_Window, @MinSize, @MaxSize);
 end;
 
