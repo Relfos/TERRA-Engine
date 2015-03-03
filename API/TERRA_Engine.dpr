@@ -36,7 +36,7 @@ Uses TERRA_Utils, TERRA_Color, TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix4x4, 
 
   TERRA_Log, TERRA_Localization, TERRA_Widgets, TERRA_Image, TERRA_ShaderFactory,
   TERRA_SoundManager, TERRA_Sound, TERRA_TextureAtlas, TERRA_Leaderboards,
-  TERRA_PNG, TERRA_Milkshape, TERRA_OBJ, {TERRA_Collada, } TERRA_TTF, TERRA_AngelCodeFont,
+  TERRA_PNG, TERRA_Milkshape, TERRA_OBJ, TERRA_Collada, TERRA_TTF, TERRA_AngelCodeFont,
   TERRA_ParticleRenderer, TERRA_ParticleEmitters, TERRA_OS,
   TERRA_FileUtils, TERRA_HTTP, TERRA_AIPath, TERRA_Session,
   TERRA_Decals, TERRA_Billboards, TERRA_Network, TERRA_NetClient, TERRA_Sockets, TERRA_WAVE,
@@ -2487,16 +2487,22 @@ End;
 {HERE}
 Function TileMap_Create(Source:PAnsiChar):TERRATileMap; Cdecl;
 Var
+  Map:TileMap;
   S:String;
 Begin
   S := Source;
   If (Pos('.', S)<=0) Then
     S := S + '.tmx';
 
+
   S := FileManager.Instance.SearchResourceFile(S);
+
   If (S <>'') Then
-    Result := TileMap.Create(S)
-  Else
+  Begin
+    Map := TileMap.Create();
+    Map.Load(S);
+    Result := Map;
+  End Else
     Result := Nil;
 End;
 
