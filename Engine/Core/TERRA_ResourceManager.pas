@@ -148,6 +148,12 @@ Begin
 
   Log(logDebug, 'Resources', 'Loading '+MyResource.Name);
 
+  If Source.Size = 0 Then
+  Begin
+    Source := FileManager.Instance.OpenStream(MyResource.Location, smRead);
+    Log(logWarning, 'Resources', 'Empty resource stream at '+MyResource.Location);
+  end;
+
   Result := MyResource.Load(Source);
   If (Not MyResource.KeepStream) Then
     Source.Destroy;

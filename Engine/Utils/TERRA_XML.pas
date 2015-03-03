@@ -100,7 +100,7 @@ Type
 
       Function GetNodeByPath(Path:TERRAString; Const PathSeparator:TERRAChar):XMLNode;
 
-      Property Name:TERRAString Read _Name;
+      Property Name:TERRAString Read _Name Write _Name;
       Property Value:TERRAString Read _Value Write _Value;
 
       Property NodeCount:Integer Read _NodeCount;
@@ -110,6 +110,8 @@ Type
     Protected
       _Root:XMLNode;
       _TempBuffer:TERRAString;
+
+      Procedure SetRoot(const Value: XMLNode);
 
     Public
       Destructor Destroy;Reintroduce;
@@ -135,11 +137,8 @@ Type
       Function AddColor(Const Name:TERRAString; Value:Color; Parent:XMLNode=Nil):XMLNode;
       Function AddTime(Const Name:TERRAString; Value:TERRATime; Parent:XMLNode=Nil):XMLNode;
 
-      Property Root:XMLNode Read _Root;
+      Property Root:XMLNode Read _Root Write SetRoot;
   End;
-
-Function XMLConvertToBinary(SourceFile, DestFile, ConstantFile:TERRAString):Boolean;
-Function XMLLoadBinary(SourceFile:TERRAString):XMLDocument;
 
 Implementation
 Uses TERRA_Error, TERRA_Collections, TERRA_FileManager, TERRA_FileStream, TERRA_MemoryStream, TERRA_Log;
@@ -1123,135 +1122,16 @@ Begin
   Dest.Destroy;
 End;
 
-Procedure XMLConvertNode(Node:XMLNode; Constants:List);
-Var
-  It:StringIterator;
-  I, J, N, Len:Integer;
-  P:KeyPairObject;
-  S, ConstName:TERRAString;
-  C:TERRAChar;
-
-Function IsValidChar(Const C:TERRAChar):Boolean;
+Procedure XMLDocument.SetRoot(const Value: XMLNode);
 Begin
-  Result := ((C>= Ord('0')) And (C<= Ord('9'))) Or ((C>= Ord('A')) And (C<= Ord('Z'))) Or ((C>=Ord('a')) And (C<=Ord('z'))) Or (C=Ord('_'));
-End;
-
-Begin
-  J := StringCharPos(Ord('@'), Node.Value);
-  While (J>0) Do
-  Begin
-    N := 1;
-    StringCreateIterator(Node.Value, It);
-    It.Seek(Succ(J));
-    While It.HasNext Do
-    Begin
-      C := It.GetNext();
-      If (IsValidChar(C)) Then
-        Inc(N)
-      Else
-        Break;
-    End;
-
-    S := StringCopy(Node.Value, J, N);
-
-    ConstName := StringCopy(S, 2, MaxInt);
-    P := KeyPairObject(Constants.FindByKey(ConstName));
-    If P = Nil Then
-    Begin
-      RaiseError('Constant not found: '+Node.Value);
-      Exit;
-    End;
-
-    StringReplaceText(S, P.Value, Node._Value);
-
-    J := StringCharPos(Ord('@'), Node.Value);
-  End;
-
-  For I:=0 To Pred(Node.NodeCount) Do
-    XMLConvertNode(Node.GetNodeByIndex(I), Constants);
-End;
-
-Procedure XMLWriteNode(Dest:Stream; Node:XMLNode);
-Var
-  I, N:Integer;
-Begin
-  Dest.WriteString(Node.Name);
-  Dest.WriteString(Node.Value);
-  N := Node.NodeCount;
-  Dest.Write(@N, 4);
-  For I:=0 To Pred(N) Do
-    XMLWriteNode(Dest, Node.GetNodeByIndex(I));
-End;
-
-Function XMLConvertToBinary(SourceFile, DestFile, ConstantFile:TERRAString):Boolean;
-Var
-  Doc:XMLDocument;
-  Dest:Stream;
-  Constants:List;
-Begin
-  Doc := XMLDocument.Create;
-  Doc.LoadFromFile(SourceFile);
-
-  Constants := LoadKeypairList(ConstantFile);
-  XMLConvertNode(Doc.Root, Constants);
-  Constants.Destroy();
-
-  Dest := FileStream.Create(DestFile);
-  XMLWriteNode(Dest, Doc.Root);
-  Dest.Destroy;
-
-  Doc.Destroy();
-
-  Result := True;
-End;
-
-Procedure XMLLoadNode(Src:Stream; Node:XMLNode);
-Var
-  I, N:Integer;
-  Child:XMLNode;
-  S:TERRAString;
-Begin
-  S := '';
-  Src.ReadString(S);
-  Node._Name := S;
-  Src.ReadString(S);
-  Node._Value := S;
-  Src.Read(@N, 4);
-  For I:=0 To Pred(N) Do
-  Begin
-    Child := XMLNode.Create();
-    Node.AddNode(Child);
-    XMLLoadNode(Src, Child);
-  End;
-End;
-
-
-Function XMLLoadBinary(SourceFile:TERRAString):XMLDocument;
-Var
-  S:TERRAString;
-  Dest, Src:Stream;
-Begin
-  S := FileManager.Instance.SearchResourceFile(SourceFile);
-  If (S='') Then
-  Begin
-    Result := Nil;
+  If Value = _Root Then
     Exit;
-  End;
 
-  Result := XMLDocument.Create;
-  Src := FileManager.Instance.OpenStream(S);
-  Result._Root := XMLNode.Create('');
-  XMLLoadNode(Src, Result.Root);
-  Src.Destroy;
+  If Assigned(_Root) Then
+    _Root.Destroy();
 
-  {$IFDEF PC}
-  {Dest := FileStream.Create('debug\'+GetFileName(SourceFile,False));
-  DumpXML(Result.Root, Dest, 0);
-  Dest.Destroy;}
-  {$ENDIF}
-
+  _Root := Value;
 End;
-
 
 End.
 

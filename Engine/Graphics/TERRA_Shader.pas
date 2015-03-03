@@ -124,7 +124,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_GraphicsManager,
+Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_GraphicsManager, TERRA_CollectionObjects,
   TERRA_FileUtils, TERRA_FileStream, TERRA_MemoryStream;
 
 Var

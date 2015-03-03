@@ -191,6 +191,8 @@ Begin
     Else
       FileMode := 0;
 
+    IOResult();
+
   Log(logDebug,'IO','Opening '+FileName);
     AssignFile(_File,_Name);
     Reset(_File,1);
@@ -260,8 +262,7 @@ Begin
   Begin
     Result := 0;
     {$IFDEF PC}
-    RaiseError('Cannot read from file: '+Self._Name+' ('+IntToString(_Pos)+'/'+IntToString(_Size)+')');
-    Exit;
+    Log(logWarning, 'IO', 'Cannot read from file: '+Self._Name+' ('+IntToString(_Pos)+'/'+IntToString(_Size)+')');
     {$ENDIF}
     FillChar(Data^, Length, 0);
     Exit;

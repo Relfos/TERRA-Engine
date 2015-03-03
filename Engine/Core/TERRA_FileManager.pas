@@ -74,7 +74,7 @@ Type
       Procedure AddPath(Path:TERRAString);
       Procedure RemovePath(Path:TERRAString);
       Function GetPath(Index:Integer):TERRAString;
-      Function AddPackage(FileName:TERRAString; Password:TERRAString='*'):Package; Overload;
+      Function AddPackage(FileName:TERRAString):Package; Overload;
       Function AddPackage(MyPackage:Package):Package; Overload;
 
       Procedure AddSource(Source:TERRAString);
@@ -91,7 +91,7 @@ Type
 
       Function OpenStream(FileName:TERRAString; Mode:Integer = smRead):Stream;
 
-      Function OpenPackages(FileName:TERRAString):Boolean;
+     // Function OpenPackages(FileName:TERRAString):Boolean;
       Property PathCount:Integer Read _PathCount;
   End;
 
@@ -155,7 +155,7 @@ Begin
     ExcludeFileFromCloud(PTERRAChar(Source.Name));
   {$ENDIF}
 End;
-
+                                 (*
 Function FileManager.OpenPackages(FileName:TERRAString):Boolean;
 Type
   FileEntry = Record
@@ -210,6 +210,7 @@ Begin
 
   Result := True;
 End;
+*)
 
 Procedure FileManager.AddResourceProvider(Provider: ResourceProvider);
 Begin
@@ -295,27 +296,24 @@ Begin
   SetLength(_PackageList, _PackageCount);
   _PackageList[Pred(_PackageCount)] := MyPackage;
   Result := _PackageList[Pred(_PackageCount)];
-  Result.Update;
 End;
 
-Function FileManager.AddPackage(FileName, Password:TERRAString):Package;
+Function FileManager.AddPackage(FileName:TERRAString):Package;
 Begin
   If (Pos('.',FileName)<=0) Then
     FileName := FileName + '.terra';
 
   Inc(_PackageCount);
   SetLength(_PackageList, _PackageCount);
-  _PackageList[Pred(_PackageCount)] := Package.Open(FileName);
+  _PackageList[Pred(_PackageCount)] := Package.Create(FileName);
   Result := _PackageList[Pred(_PackageCount)];
-  Result.Password := Password;
-  Result.Update;
 End;
 
 Function FileManager.SearchResourceFile(FileName:TERRAString):TERRAString;
 Var
   S:TERRAString;
   I, J:Integer;
-  Resource:PResourceInfo;
+  Resource:ResourceInfo;
   Location:FileLocation;
   Procedure RegisterLocation();
   Begin
@@ -398,7 +396,7 @@ Begin
   For I:=0 To Pred(_PackageCount) Do
   If Assigned(_PackageList[I]) Then
   Begin
-    Resource := _PackageList[I].FindResource(FileName);
+    Resource := _PackageList[I].FindResourceByName(FileName);
     If Assigned(Resource) Then
     Begin
       Result := Resource.GetLocation;
@@ -439,7 +437,7 @@ Var
   I:Integer;
   PackageName,ResourceName:TERRAString;
   MyPackage:Package;
-  Resource:PResourceInfo;
+  Resource:ResourceInfo;
 Begin
   Result:=Nil;
 
@@ -462,7 +460,7 @@ Begin
 
     MyPackage := Self.GetPackage(PackageName);
 
-    Resource := MyPackage.FindResource(ResourceName);
+    Resource := MyPackage.FindResourceByName(ResourceName);
 
     If Not Assigned(Resource) Then
     Begin
@@ -470,7 +468,7 @@ Begin
       Exit;
     End;
 
-    Result := MyPackage.LoadResource(Resource, True);
+    Result := MyPackage.LoadResource(Resource);
   End Else
   Begin
     If (Application.Instance = Nil) And (FileStream.Exists(FileName)) Then
@@ -573,4 +571,4 @@ Begin
 End;
 
 
-End.
+End.

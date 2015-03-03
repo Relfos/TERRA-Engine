@@ -30,6 +30,7 @@ Interface
 Type
   Sort = Class
     Protected
+      Class Function Partition(Data:Pointer; L, R:Integer):Integer;
       Class Procedure QuickSort(Data:Pointer; L,R:Integer);
 
     Public
@@ -46,40 +47,45 @@ Type
 Implementation
 
 { Sort }
-Class Procedure Sort.QuickSort(Data:Pointer; L,R:Integer);
-  Procedure _QuickSort(iLo,iHi:Integer);
-  Var
-    Lo, Hi: Integer;
+Class Function Sort.Partition(Data:Pointer; L, R:Integer):Integer;
+Var
+  I,J:Integer;
+Begin
+  I := L;
+  J := R;
+
+  SetPivot(Data, (R + L) Shr 1);
+
+  While (i <= j) Do
   Begin
-    Lo := iLo;
-    Hi := iHi;
-    SetPivot(Data, (Lo + Hi) Shr 1);
-    //WriteLn('Begin: ',Lo, ' -> ',Hi);
-    Repeat
-      While (Compare(Data, Lo)>0) Do
-        Inc(Lo);
+    While (Compare(Data, I)>0) Do
+      Inc(I);
 
-      While (Compare(Data, Hi)<0) Do
-        Dec(Hi);
+    While (Compare(Data, J)<0) Do
+      Dec(J);
 
-      If Lo <= Hi Then
-      Begin
-      //WriteLn('Swapping: ',Lo, ' -> ',Hi);
-        Swap(Data, Lo, Hi);
-        Inc(Lo);
-        Dec(Hi);
-      End;
-    Until Lo > Hi;
-    If Hi > iLo Then
-      _QuickSort(iLo, Hi);
-    If Lo < iHi Then
-      _QuickSort(Lo, iHi);
+    If (i <= j) Then
+    Begin
+      Swap(Data, I, J);
+      Inc(I);
+      Dec(J);
+    End;
   End;
 
+  Result := I;
+End;
+
+Class Procedure Sort.QuickSort(Data:Pointer; L,R:Integer);
+Var
+  index:Integer;
 Begin
-  If R<L Then
-    Exit;
-  _QuickSort(L, R);
+  Index := Partition(Data, L, R);
+
+  If (L < Pred(index)) Then
+    QuickSort(Data, L, Pred(index));
+
+  If (index < R) Then
+    QuickSort(Data, Index, R);
 End;
 
 Class procedure Sort.Sort(Data: Pointer; Count: Integer);

@@ -167,6 +167,7 @@ Type
       Function AddGamePad(DeviceID:Integer; XInput:Boolean):Boolean;
 
       Procedure InitIcon();
+      Procedure InitBuildInfo();
 
       Function InitSettings:Boolean; Override;
       Function InitWindow:Boolean; Override;
@@ -1339,6 +1340,36 @@ Begin
 End;
 {$ENDIF}
 
+Procedure WindowsApplication.InitBuildInfo();
+Var
+  VerInfoSize, VerValueSize, Dummy: DWORD;
+  VerInfo: Pointer;
+  VerValue: PVSFixedFileInfo;
+  FileName:PAnsiChar;
+Begin
+  Log(logDebug, 'App', 'Getting build info');
+
+  _BundleVersion := '';
+
+  FileName := PAnsiChar(ParamStr(0));
+  VerInfoSize := GetFileVersionInfoSize(FileName, Dummy);
+  if VerInfoSize > 0 then
+  begin
+      GetMem(VerInfo, VerInfoSize);
+      Try
+        If GetFileVersionInfo(FileName, 0, VerInfoSize, VerInfo) then
+        Begin
+          VerQueryValue(VerInfo, '\', Pointer(VerValue), VerValueSize);
+          //V1 := dwFileVersionMS shr 16;
+            _BundleVersion := CardinalToString(VerValue.dwFileVersionMS and $FFFF) + '.' + CardinalToString(VerValue.dwFileVersionLS shr 16) + '.'+ CardinalToString(VerValue.dwFileVersionLS and $FFFF);
+            Log(logDebug, 'App', 'Found '+_BundleVersion);
+        End;
+      finally
+        FreeMem(VerInfo, VerInfoSize);
+      end;
+  End;
+End;
+
 Function WindowsApplication.InitSettings: Boolean;
 Var
   I:Integer;
@@ -1421,6 +1452,9 @@ Begin
       AddGamePad(I, False);
       //joyGetDevCaps(0, @_JoyCaps, SizeOf(_JoyCaps));
   End;
+
+
+  Self.InitBuildInfo();
 
   Result := True;
 End;

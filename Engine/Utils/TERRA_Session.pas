@@ -54,6 +54,7 @@ Type
       Function LoadFromStream(Source:MemoryStream):Boolean;
 
       Function GetKeyByIndex(Index:Integer):TERRAString;
+      Function GetValueByIndex(Index:Integer):TERRAString;
 
       Function GetSaveFileName():TERRAString;
 
@@ -77,7 +78,8 @@ Implementation
 Uses TERRA_FileStream, TERRA_Application, TERRA_FileUtils, TERRA_Log, TERRA_ZLib;
 
 Const
-  SessionHeader:FileHeader = 'TESS';
+  SessionHeader:FileHeader = 'TES2';
+  OldSessionHeader:FileHeader = 'TESS';
 
 Function IsNumber(S:TERRAString):Boolean;
 Var
@@ -120,7 +122,7 @@ Begin
       Exit;
     End;
   End;
-  
+
   Result := False;
 End;
 
@@ -136,8 +138,29 @@ Var
   Header:FileHeader;
   OldSession:Boolean;
   ZLIB:z_stream;
+  IsOldFile:Boolean;
+
+    Procedure ReadOldString(Out S:TERRAString);
+    Var
+      Len2:Word;
+      B:Byte;
+    Begin
+      S := '';
+
+      Pref.ReadByte(B);
+      If B<255 Then
+        Len2 := B
+      Else
+        Pref.ReadWord(Len2);
+
+      SetLength(S, Len2);
+      If Len2>0 Then
+        Pref.Read(@S[1], Len2);
+    End;
+
 Begin
   _DataCount := 0;
+  IsOldFile := False;
 
   If (Source.Size<4) Then
   Begin
@@ -147,9 +170,11 @@ Begin
   End;
 
   Source.Read(@Header, 4);
-  If Header=SessionHeader Then
+  If (CompareFileHeader(Header, SessionHeader)) Or (CompareFileHeader(Header, OldSessionHeader)) Then
   Begin
     OldSession := False;
+
+    IsOldFile := (CompareFileHeader(Header, OldSessionHeader));
 
     Source.ReadInteger(Len);
 
@@ -176,7 +201,10 @@ Begin
 
   While Not Pref.EOF Do
   Begin
-    Pref.ReadString(S);
+    If IsOldFile Then
+      ReadOldString(S)
+    Else
+      Pref.ReadString(S);
 
     If (OldSession) And (S<>'') And (S[1]='@') Then
       S := OldSessionCypher(System.Copy(S, 2, MaxInt));
@@ -187,7 +215,10 @@ Begin
     If Pref.EOF Then
       Break;
 
-    Pref.ReadString(S2);
+    If IsOldFile Then
+      ReadOldString(S2)
+    Else
+      Pref.ReadString(S2);
 
     If (S2<>'') And (S2[1]='&') Then
     Begin
@@ -408,7 +439,7 @@ End;
 
 Destructor Session.Destroy;
 Begin
-
+  Self.Clear();
 End;
 
 Function Session.GetKeyByIndex(Index: Integer):TERRAString;
@@ -416,6 +447,15 @@ Begin
   If (Index>=0) And (Index<_DataCount) Then
   Begin
     Result := _Data[Index].Key;
+  End Else
+    Result := '';
+End;
+
+Function Session.GetValueByIndex(Index: Integer):TERRAString;
+Begin
+  If (Index>=0) And (Index<_DataCount) Then
+  Begin
+    Result := _Data[Index].Value;
   End Else
     Result := '';
 End;

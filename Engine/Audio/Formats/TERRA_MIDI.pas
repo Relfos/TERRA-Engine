@@ -24,7 +24,7 @@ Unit TERRA_MIDI;
 {.$DEFINE USE_INTERNAL_SYNTH}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_OS, TERRA_MusicTrack;
+Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_OS, TERRA_Application, TERRA_MusicTrack;
 
 Type
   ChunkType = (MIDI_illegal, MIDI_header, MIDI_track);
@@ -140,7 +140,8 @@ Type
     function ReadVarLength: integer;
     function ReadString(l: integer):TERRAString;
 
-    Procedure Clear;
+    Procedure Clear();
+    Procedure Reset();
 
     Procedure ChangeVolume(Volume:Single); Override;
 
@@ -495,12 +496,55 @@ Function MIDIEvent_SetInstrument(Channel, Instrument:Byte):Cardinal;
 Function MIDIEvent_SetVolume(Channel, Volume:Byte):Cardinal;
 Function MIDIEvent_SetPanning(Channel, Pan:Byte):Cardinal;
 
-// play a midi note with a certain duration and volume
-Function Midi_PlayNote(Channel, Note:Byte; Duration:Cardinal; Volume:Single = 0.8):Boolean;
-Function Midi_SetInstrument(Channel, Instrument:Byte):Boolean;
+Type
+  MidiNoteEvent = Class
+    Protected
+      _Channel:Byte;
+      _Note:Byte;
+      _Volume:Byte;
+      
+      _StartTime:Cardinal;
+      _EndTime:Cardinal;
+
+      _Active:Boolean;
+      _Managed:Boolean;
+
+    Public
+      Function Start(Channel, Note,Volume: Byte; Duration: Cardinal):Boolean;
+      Procedure Stop();
+  End;
+
+  MidiManager = Class(ApplicationComponent)
+    Protected
+      _Notes:Array Of MidiNoteEvent;
+      _NoteCount:Integer;
+
+      _Channels:Array[0..MaxMIDIChannels] Of MIDIChannel;
+
+      Function StartNote(Channel, Note, Volume:Byte):Boolean;
+      Function StopNote(Channel, Note, Volume:Byte):Boolean;
+
+      Function AddNote(Channel, Note, Volume: Byte; Duration: Cardinal):Boolean;
+
+    Public
+      Procedure Update; Override;
+
+      Class Function Instance:MidiManager;
+
+      // play a midi note with a certain duration and volume
+      Function PlayNote(Channel, Note:Byte; Duration:Cardinal; Volume:Single = 0.8):Boolean;
+
+      Function SetInstrument(Channel, Instrument:Byte):Boolean;
+      Function SetVolume(Channel, Volume:Byte):Boolean;
+      Function SetPanning(Channel:Byte; Pan:Single):Boolean;
+
+      Procedure Clear;
+
+      Destructor Destroy; Override;
+  End;
 
 Implementation
-Uses TERRA_FileManager, TERRA_Application, TERRA_MIDI_IO, TERRA_Log;
+Uses TERRA_FileManager, TERRA_MIDI_IO, TERRA_Log;
 
 Const
   MIDIVolumeBoost = 1.0;
@@ -509,29 +553,7 @@ Const
   DefaultMIDIPanning = 127;
 
 Var
-  _MidiChannels:Array[0..MaxMIDIChannels] Of MIDIChannel;
-
-Function MuteMidiNote(P:Pointer):Boolean; CDecl;
-Begin
-  MIDI_Out(Cardinal(P));
-  Result := False;
-End;
-
-Function Midi_PlayNote(Channel, Note:Byte; Duration:Cardinal; Volume:Single):Boolean;
-Var
-  MuteEvent:Cardinal;
-  VolData:Byte;
-Begin
-  VolData := Trunc(Volume*MaxMIDIVolume);
-  MuteEvent := MIDIEvent_NoteOff(Channel, Note, VolData);
-
-  Result := (MIDI_Out(MIDIEvent_NoteOn(Channel, Note, VolData))) And (Application.Instance.ExecuteLater(MuteMidiNote, Duration, Pointer(MuteEvent)));
-End;
-
-Function Midi_SetInstrument(Channel, Instrument:Byte):Boolean;
-Begin
-  Result := MIDI_Out(MIDIEvent_SetInstrument(Channel, Instrument));
-End;
+  _MidiManager_Instance:ApplicationObject;
 
 Function MIDIEvent_SetVolume(Channel, Volume:Byte):Cardinal;
 Begin
@@ -646,7 +668,7 @@ End;
 
 Procedure MidiEventTrack.Rewind;
 Begin
-  _currentPos := 0;
+  _CurrentPos := 0;
 End;
 
 Procedure MidiEventTrack.PlayUntil(Const CurrentTime:Cardinal);
@@ -741,24 +763,27 @@ End;
 
 
 Procedure MidiTrack.Play();
-Var
-  i: integer;
 Begin
   _Playing := (_EventTrackCount>0);
 
   If Not _Playing Then
     Exit;
 
+  Self.Reset();
+End;
+
+Procedure MidiTrack.Reset();
+Var
+  I:Integer;
+  Manager:MidiManager;
+Begin
+  Manager := MidiManager.Instance();
+
   For I:=0 To MaxMIDIChannels Do
   Begin
-    _MidiChannels[I].Instrument := instrumentAcousticGrand;
-    MIDI_Out(MIDIEvent_SetInstrument(I, _MidiChannels[I].Instrument));
-
-    _MidiChannels[I].Volume := Trunc(DefaultMIDIVolume * (_Volume * MIDIVolumeBoost));
-    MIDI_Out(MIDIEvent_SetVolume(I, _MidiChannels[I].Volume));
-
-    _MidiChannels[I].Panning := DefaultMIDIPanning;
-    MIDI_Out(MIDIEvent_SetPanning(I, _MidiChannels[I].Panning));
+    Manager.SetInstrument(I, instrumentAcousticGrand);
+    Manager.SetVolume(I, Trunc(DefaultMIDIVolume * (_Volume * MIDIVolumeBoost)));
+    Manager.SetPanning(I, 0.0);
   End;
 
   For I:=0 To Pred(_EventTrackCount) do
@@ -781,17 +806,17 @@ Begin
   Current := _LastTime - _StartTime;
   Length := Self.GetTrackDuration();
 
-  For I := 0 to Pred(_EventTrackCount) Do
-    _EventTracks[i].Update(Current, Length);
+  (*For I := 0 to Pred(_EventTrackCount) Do
+    _EventTracks[i].Update(Current, Length);    *)
   _Playing := false;
 End;
 
-function MidiTrack.GetCurrentTime: integer;
+Function MidiTrack.GetCurrentTime: integer;
 Begin
   Result := _currentTime;
 end;
 
-procedure MidiTrack.Update();
+Procedure MidiTrack.Update();
 Var
   I:Integer;
   Before, Current, Length:Cardinal;
@@ -814,19 +839,21 @@ Begin
 
     If (Current > Length) Then
     Begin
-      For I := 0 to Pred(_EventTrackCount) Do
+      Reset();
+      {For I := 0 to Pred(_EventTrackCount) Do
           _EventTracks[i].Update(Before, Length);
 
       Dec(Current, Length);
-       _LastTime := GetTime();
+      _StartTime := GetTime() - Current;
+      _LastTime := GetTime();
        _CurrentTime := _LastTime + Current;
 
         For I := 0 to Pred(_EventTrackCount) Do
-            _EventTracks[i].PlayUntil(Current);
+            _EventTracks[i].PlayUntil(Current);}
     End Else
     Begin
-         For I := 0 to Pred(_EventTrackCount) Do
-             _EventTracks[i].Update(Before, Current);
+      For I := 0 to Pred(_EventTrackCount) Do
+        _EventTracks[i].Update(Before, Current);
     End;
   End;
 
@@ -1072,7 +1099,10 @@ Var
   I:Integer;
   S, S2:TERRAString;
   Velocity:Integer;
+  Manager:MidiManager;
 Begin
+  Manager := MidiManager.Instance();
+
   Case Event._Opcode of
     MidiMessage_ProgramChange:
       Begin
@@ -1080,8 +1110,7 @@ Begin
         Write('Program change:', S, ' on track ',track,' channel ',Event._Channel,'...');
         {$ENDIF}
 
-        _MidiChannels[Event._Channel].Instrument := Event._Data1;
-        MIDI_Out(MIDIEvent_SetInstrument(Event._Channel, Event._Data1));
+        Manager.SetInstrument(Event._Channel, Event._Data1);
       End;
 
     MidiMessage_ControlChange:
@@ -1096,7 +1125,7 @@ Begin
         If (Velocity>MaxMIDIVolume) Then
           Velocity := MaxMIDIVolume;
 
-        _MidiChannels[Event._Channel].Volume := Event._Data2;
+        Manager._Channels[Event._Channel].Volume := Event._Data2;
 
         MIDI_Out(MIDIEvent_SetVolume(Event._Channel, Velocity));
       End Else
@@ -1106,18 +1135,9 @@ Begin
         WriteLn('Pan:', Event._Data2, ' on track ',track,' channel ',Event._Channel);
         {$ENDIF}
 
-        _MidiChannels[Event._Channel].Panning := Event._Data2;
+        Manager._Channels[Event._Channel].Panning := Event._Data2;
 
         MIDI_Out(MIDIEvent_SetPanning(Event._Channel, Event._Data2));
-      End;
-
-    MidiMessage_NoteOff:   // note off
-      Begin
-        {$IFDEF DEBUG_MIDI}
-        WriteLn('Off ',GetNoteName(Event._Data1));
-        {$ENDIF}
-
-        MIDI_Out(MIDIEvent_NoteOff(Event._Channel, Event._Data1, Event._Data2));
       End;
 
     MidiMessage_NoteOn: // note on
@@ -1126,8 +1146,18 @@ Begin
         WriteLn('On ',GetNoteName(Event._Data1));
         {$ENDIF}
 
-        MIDI_Out(MIDIEvent_NoteOn(Event._Channel, Event._Data1, Event._Data2));
+        Manager.StartNote(Event._Channel, Event._Data1, Event._Data2);
     End;
+
+
+    MidiMessage_NoteOff:   // note off
+      Begin
+        {$IFDEF DEBUG_MIDI}
+        WriteLn('Off ',GetNoteName(Event._Data1));
+        {$ENDIF}
+
+        Manager.StopNote(Event._Channel, Event._Data1, Event._Data2);
+      End;
 
     Else  // raw events
         Begin
@@ -1139,10 +1169,12 @@ End;
 Procedure MidiTrack.ChangeVolume(Volume: Single);
 Var
   I, Velocity:Integer;
+  Manager:MidiManager;
 Begin
+  Manager := MidiManager.Instance;
   For I:=0 To MaxMIDIChannels Do
   Begin
-    Velocity := Trunc(_MidiChannels[I].Volume * (_Volume * MIDIVolumeBoost));
+    Velocity := Trunc(Manager._Channels[I].Volume * (_Volume * MIDIVolumeBoost));
 
     If (Velocity>MaxMIDIVolume) Then
       Velocity := MaxMIDIVolume;
@@ -1175,6 +1207,167 @@ Begin
   Inherited;
 End;
 *)
+
+{ MidiManager }
+Destructor MidiManager.Destroy;
+Begin
+  Self.Clear();
+  Inherited;
+End;
+
+Class Function MidiManager.Instance:MidiManager;
+Begin
+  If _MidiManager_Instance = Nil Then
+    _MidiManager_Instance := InitializeApplicationComponent(MidiManager, Nil);
+
+  Result := MidiManager(_MidiManager_Instance.Instance);
+End;
+
+Procedure MidiManager.Clear;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_NoteCount) Do
+  Begin
+    _Notes[I].Stop();
+    _Notes[I].Destroy();
+  End;
+End;
+
+Function MidiManager.AddNote(Channel, Note, Volume: Byte; Duration: Cardinal):Boolean;
+Var
+  N,I, Len:Integer;
+Begin
+  N := -1;
+  For I:=0 To Pred(_NoteCount) Do
+  If ((_Notes[I]._Channel = Channel) And (_Notes[I]._Note = Note)) Or (Not _Notes[I]._Active) Then
+  Begin
+    N := I;
+    Break;
+  End;
+
+  If N<0 Then
+  Begin
+    N := _NoteCount;
+    Inc(_NoteCount);
+
+    Len := Length(_Notes);
+    If Len<_NoteCount Then
+    Begin
+      SetLength(_Notes, _NoteCount);
+      _Notes[Pred(_NoteCount)] := MidiNoteEvent.Create();
+    End;
+  End;
+
+  Result := _Notes[N].Start(Channel, Note, Volume, Duration);
+End;
+
+Function MidiManager.StartNote(Channel, Note, Volume: Byte): Boolean;
+Begin
+  Result := Self.AddNote(Channel, Note, Volume, 0);
+End;
+
+Function MidiManager.StopNote(Channel, Note, Volume: Byte): Boolean;
+Var
+  I:Integer;
+  T:Cardinal;
+Begin
+  I := 0;
+  While I<_NoteCount Do
+  If (_Notes[I]._Active) And (_Notes[I]._Channel = Channel) And (_Notes[I]._Note = Note) Then
+  Begin
+    _Notes[I]._Volume := Volume;
+    _Notes[I].Stop();
+    Result := True;
+    Exit;
+  End Else
+    Inc(I);
+  Result := False;
+End;
+
+Function MidiManager.PlayNote(Channel, Note: Byte; Duration: Cardinal; Volume:Single):Boolean;
+Var
+  VolData:Byte;
+Begin
+  VolData := Trunc(Volume*MaxMIDIVolume);
+  Result := Self.AddNote(Channel, Note, VolData, Duration);
+End;
+
+Procedure MidiManager.Update;
+Var
+  I:Integer;
+  T:Cardinal;
+Begin
+  I := 0;
+  T := GetTime();
+  While I<_NoteCount Do
+  If (_Notes[I]._Active) And (_Notes[I]._Managed) And (_Notes[I]._EndTime<T) Then
+  Begin
+    _Notes[I].Stop();
+  End Else
+    Inc(I);
+End;
+
+Function MidiManager.SetPanning(Channel:Byte; Pan:Single): Boolean;
+Var
+  PanData:Byte;
+Begin
+  PanData := Byte(Trunc(Pan * DefaultMIDIPanning) + DefaultMIDIPanning);
+  Result := MIDI_Out(MIDIEvent_SetPanning(Channel, PanData));
+  If Result Then
+    _Channels[Channel].Panning := PanData;
+End;
+
+Function MidiManager.SetVolume(Channel, Volume: Byte): Boolean;
+Begin
+  Result := MIDI_Out(MIDIEvent_SetVolume(Channel, Volume));
+  If Result Then
+    _Channels[Channel].Volume := Volume;
+End;
+
+Function MidiManager.SetInstrument(Channel, Instrument: Byte): Boolean;
+Begin
+  Result := MIDI_Out(MIDIEvent_SetInstrument(Channel, Instrument));
+  If Result Then
+    _Channels[Channel].Instrument := Instrument;
+End;
+
+
+{ MidiNoteEvent }
+Function MidiNoteEvent.Start(Channel, Note, Volume: Byte; Duration: Cardinal): Boolean;
+Var
+  T:Cardinal;
+Begin
+  _Channel := Channel;
+  _Note := Note;
+  _Volume := Volume;
+
+  Result := (MIDI_Out(MIDIEvent_NoteOn(Channel, Note, _Volume)));
+
+  _Active := True;
+
+  _Managed := (Duration>0);
+
+  If _Managed Then
+  Begin
+    T := GetTime();
+    _StartTime := T;
+    _EndTime := T + Duration;
+  End;
+End;
+
+Procedure MidiNoteEvent.Stop;
+Var
+  MuteEvent:Cardinal;
+Begin
+  If Not _Active Then
+    Exit;
+
+  MuteEvent := MIDIEvent_NoteOff(_Channel, _Note, _Volume);
+  MIDI_Out(MuteEvent);
+
+  _Active := False;
+End;
 
 End.
 

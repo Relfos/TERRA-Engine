@@ -2,7 +2,7 @@ Unit TERRA_Localization;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream;
+Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_FileUtils;
 
 Const
   language_English   = 'EN';
@@ -18,15 +18,12 @@ Const
 
   invalidString = '???';
 
+  Translation_Extension = 'ltx';
+  Translation_Header: FileHeader = 'LTX1';
+
   MaxPinyinSuggestions = 64;
 
 Type
-  LocalizationLoader = Class
-    Procedure Process(Var Key, Value:TERRAString); Virtual; Abstract;
-
-    Function GetString(Const Key:TERRAString):TERRAString; Virtual;
-  End;
-
   StringEntry = Record
     Key:TERRAString;
     Value:TERRAString;
@@ -40,8 +37,6 @@ Type
       _StringCount:Integer;
 
       Function GetLang:TERRAString;
-
-      Function FormatString(Const Text:TERRAString; Loader:LocalizationLoader = Nil):TERRAString;
 
     Public
       Constructor Create;
@@ -57,7 +52,7 @@ Type
       Procedure Reload();
 
       Procedure RemoveGroup(GroupID:Integer);
-      Procedure MergeGroup(Source:Stream; GroupID:Integer; Loader:LocalizationLoader = Nil);
+      Procedure MergeGroup(Source:Stream; GroupID:Integer; Const Prefix:TERRAString);
 
 
       Property Language:TERRAString Read GetLang Write SetLanguage;
@@ -87,9 +82,9 @@ Type
       Property Results:Integer Read _SuggestionCount;
   End;
 
-Function GetKoreanInitialJamo(N:Word):Integer;
-Function GetKoreanMedialJamo(N:Word):Integer;
-Function GetKoreanFinalJamo(N:Word):Integer;
+Function GetKoreanInitialJamo(N:TERRAChar):Integer;
+Function GetKoreanMedialJamo(N:TERRAChar):Integer;
+Function GetKoreanFinalJamo(N:TERRAChar):Integer;
 
 Function MemoryToString(Const N:Cardinal):TERRAString;
 
@@ -193,7 +188,7 @@ Begin
   End;
 End;
 
-Function GetKoreanInitialJamo(N:Word):Integer;
+Function GetKoreanInitialJamo(N:TERRAChar):Integer;
 Begin
   Case N Of
 	12593: Result := 0;
@@ -220,7 +215,7 @@ Begin
   End;
 End;
 
-Function GetKoreanMedialJamo(N:Word):Integer;
+Function GetKoreanMedialJamo(N:TERRAChar):Integer;
 Begin
   Case N Of
 	12623: Result := 0;
@@ -249,7 +244,7 @@ Begin
   End;
 End;
 
-Function GetKoreanFinalJamo(N:Word):Integer;
+Function GetKoreanFinalJamo(N:TERRAChar):Integer;
 Begin
   Case N Of
 	12593: Result := 1;
@@ -369,7 +364,7 @@ Begin
   Inc(_StringCount);
   SetLength(_Strings, _StringCount);
   _Strings[Pred(_StringCount)].Key := Key;
-  _Strings[Pred(_StringCount)].Value := FormatString(Value);
+  _Strings[Pred(_StringCount)].Value := Value;
   _Strings[Pred(_StringCount)].Group := Group;
 End;
 
@@ -399,10 +394,10 @@ Begin
   Result := _Manager;
 End;
 
-Procedure StringManager.MergeGroup(Source: Stream; GroupID:Integer; Loader:LocalizationLoader = Nil);
+Procedure StringManager.MergeGroup(Source: Stream; GroupID:Integer; Const Prefix:TERRAString);
 Var
-  Ofs, I:Integer;
-  S, S2:TERRAString;
+  Ofs, Count, I:Integer;
+  Header:FileHeader;
 Begin
   If (Source = Nil ) Then
     Exit;
@@ -410,41 +405,27 @@ Begin
   Log(logDebug, 'Strings', 'Merging strings from '+Source.Name);
   Ofs := _StringCount;
 
-  S := '';
-  While Not Source.EOF Do
+  Source.ReadHeader(Header);
+  If Not CompareFileHeader(Header, Translation_Header) Then
   Begin
-    Source.ReadLine(S);
-    If S='' Then
-      Continue;
-
-    S := StringTrimLeft(S);
-    If S='' Then
-      Continue;
-      
-    I := Pos(',', S);
-    S2 := Copy(S, 1, Pred(I));
-    S2 := StringTrimRight(S2);
-
-    S := Copy(S, Succ(I), MaxInt);
-    S := StringTrimLeft(S);
-
-    Inc(_StringCount);
-    SetLength(_Strings, _StringCount);
-
-    If Assigned(Loader) Then
-      Loader.Process(S2, S);
-
-    _Strings[Pred(_StringCount)].Key := S2;
-    _Strings[Pred(_StringCount)].Value := S;
-    _Strings[Pred(_StringCount)].Group := GroupID;
-
-    //Log(logDebug, 'Strings', 'Found '+S2 +' = '+S);
+    Log(logError, 'Strings', 'Invalid  file header in '+Source.Name);
+    Exit;
   End;
 
-  For I:=Ofs To Pred(_StringCount) Do
+  Source.ReadInteger(Count);
+  Inc(_StringCount, Count);
+  SetLength(_Strings, _StringCount);
+
+  For I:=0 To Pred(Count) Do
   Begin
-    _Strings[I].Value := FormatString(_Strings[I].Value, Loader);
-    //Log(logDebug, 'Localization', _Strings[I].Key + ' -> ' + _Strings[I].Value); 
+    Source.ReadString(_Strings[I+Ofs].Key);
+    Source.ReadString(_Strings[I+Ofs].Value);
+
+    If Prefix<>'' Then
+      _Strings[I+Ofs].Key := Prefix + _Strings[I+Ofs].Key;
+
+    _Strings[I+Ofs].Group := GroupID;
+    //Log(logDebug, 'Strings', 'Found '+_Strings[I+Ofs].Key +' = '+_Strings[I+Ofs].Value);
   End;
 End;
 
@@ -463,7 +444,7 @@ Begin
   If (_Lang = Lang) Then
     Exit;
 
-  S := 'translation_'+ StringLower(Lang)+'.txt';
+  S := 'translation_'+ StringLower(Lang)+'.'+ Translation_Extension;
   S := FileManager.Instance.SearchResourceFile(S);
   If S='' Then
   Begin
@@ -478,7 +459,7 @@ Begin
   _StringCount := 0;
   Source := FileManager.Instance.OpenStream(S);
   _Lang := Lang;
-  Self.MergeGroup(Source, -1);
+  Self.MergeGroup(Source, -1, '');
   Source.Destroy;
 
   If Application.Instance<>Nil Then
@@ -514,49 +495,6 @@ Begin
   Result := GetString(Key)<>Self.EmptyString;
 End;
 
-Function StringManager.FormatString(Const Text:TERRAString; Loader:LocalizationLoader = Nil):TERRAString;
-Var
-  S1, S2, S3, S4, Replacement:TERRAString;
-  C:TERRAChar;
-  It:StringIterator;
-  IsValidChar:Boolean;
-Begin
-  If Not StringSplitByChar(Text, S1, S2, Ord('@')) Then
-  Begin
-    Result := Text;
-    Exit;
-  End;
-
-  Replacement := '';
-  S4 := '';
-
-  StringCreateIterator(S2, It);
-  While It.HasNext Do
-  Begin
-    C := It.GetNext();
-    IsValidChar := ((C>=Ord('a')) And (C<=Ord('z'))) Or ((C>=Ord('A')) And (C<=Ord('Z'))) Or ((C>=Ord('0')) And (C<=Ord('9'))) Or (C=Ord('_'));
-
-    If Not IsValidChar Then
-    Begin
-      It.Split(S3, S4);
-      StringPrependChar(S4, C);
-
-      If Assigned(Loader) Then
-        Replacement := Loader.GetString(S3)
-      Else
-        Replacement := Self.GetString(S3);
-
-      If (Replacement = Self.EmptyString) Then
-      Begin
-        Log(logWarning, 'Localization', 'Could not find replacement string for "'+S3+'" in '+Text);
-      End;
-
-      Break;
-    End;
-  End;
-
-  Result := S1 + Replacement + FormatString(S4, Loader);
-End;
 
 Type
   PinyinEntry = Record
@@ -699,13 +637,13 @@ Begin
     Result := 'Deutsch'
   Else
   If Lang = language_Spanish Then
-    Result := 'Español'
+    Result := 'Espa'+StringFromChar(Ord('ñ'))+'ol'
   Else
   If Lang = language_Portuguese Then
-    Result := 'Português'
+    Result := 'Portugu'+StringFromChar(Ord('ê'))+'s'
   Else
   If Lang = language_French Then
-    Result := 'Français'
+    Result := 'Fran'+StringFromChar(Ord('ç'))+'ais'
   Else
   If Lang = language_Italian Then
     Result := 'Italiano'
@@ -723,12 +661,6 @@ Begin
     Result := StringFromChar(20013) + StringFromChar(22269)
   Else
     Result := invalidString;
-End;
-
-{ LocalizationLoader }
-Function LocalizationLoader.GetString(Const Key: TERRAString): TERRAString;
-Begin
-  Result := StringManager.Instance.GetString(Key);
 End;
 
 Initialization

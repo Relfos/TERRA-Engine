@@ -2247,8 +2247,8 @@ Begin
 
     If PasswordField Then
     Begin
-      SetLength(S, Length(_Lines[J]));
-      For I:=1 To Length(_Lines[J]) Do
+      SetLength(S, StringLength(_Lines[J]));
+      For I:=1 To Length(S) Do
         S[I] := '*';
     End Else
       S := _Lines[J];
@@ -2297,7 +2297,7 @@ Begin
     Jamo := (_KoreanInitialJamo*588)+(_KoreanMedialJamo*28)+N+44032;
   End Else
     Jamo := _KoreanBaseJamo;
-    
+
   StringAppendChar(_Lines[_LineIndex], Jamo);
 End;
 
@@ -2493,7 +2493,8 @@ Begin
     SetLineCount(1);
 
   Self._ScrollIndex := 0;
-  Self._Lines[0] := Value;
+  Self._LineIndex := 0;
+  Self.SetCurrentLine(Value);
 End;
 
 Function UIEditText.GetText:TERRAString;
@@ -2514,7 +2515,6 @@ Begin
   End;
 End;
 
-
 Function UIEditText.GetCurrentLine:TERRAString;
 Begin
   Result := _Lines[_LineIndex];
@@ -2522,7 +2522,7 @@ End;
 
 Procedure UIEditText.SetCurrentLine(const Value:TERRAString);
 Begin
-  _Lines[_LineIndex] := Value;
+  _Lines[_LineIndex] := ConvertFontCodes(Value);
 End;
 
 Procedure UIEditText.StartHighlight;

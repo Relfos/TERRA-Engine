@@ -181,9 +181,10 @@ Function Int64ToString(Const N:Int64):TERRAString;
 Function UInt64ToString(Const N:UInt64):TERRAString;
 Function FloatToString(Const N:Single; DecimalPlaces:Integer = 4):TERRAString;
 Function BoolToString(Const N:Boolean):TERRAString;Overload;
-Function TimeToString(Const N:TERRATime):TERRAString;Overload;
 Function VersionToString(Const N:TERRAVersion):TERRAString;Overload;
 //Function TicksToString(Const N:Cardinal):TERRAString;Overload;
+
+Function TimeToString(Const N:TERRATime; Const HourSep, MinSep, SecondSep:TERRAString):TERRAString;
 
 Function HexStr(Const Value:Byte):TERRAString;Overload;
 Function HexStr(Const Value:Word):TERRAString;Overload;
@@ -197,8 +198,8 @@ Function Base64ToString(B64:TERRAString):TERRAString;
 
 Procedure TimeStampToDateAndtime(TimeStamp:Cardinal; Var Date:TERRADate; Var Time:TERRATime);
 
-Function StringToInt(Const S:TERRAString):Integer;
-Function StringToCardinal(Const S:TERRAString):Cardinal;
+Function StringToInt(Const S:TERRAString; CheckError:Boolean = True):Integer;
+Function StringToCardinal(Const S:TERRAString; CheckError:Boolean = True):Cardinal;
 Function StringToBool(Const S:TERRAString):Boolean;
 Function StringToVersion(Const S:TERRAString):TERRAVersion;
 Function StringToFloat(Const S:TERRAString):Single;
@@ -235,7 +236,7 @@ Type
 
 
 Implementation
-Uses TERRA_Log;
+Uses TERRA_Log, TERRA_Error;
 
 Function SafeDiv(Const A,B:Single; WhenZero:Single = 0.0):Single;
 Begin
@@ -515,17 +516,90 @@ Begin
     Result[1] := UpCase(Result[1]);
 End;*)
 
+Function StringToInt(Const S:TERRAString; CheckError:Boolean):Integer;
+Var
+  Value, N:Integer;
+  It:StringIterator;
+  C:TERRAChar;
+  Negative:Boolean;
+Begin
+  Result := 0;
+  If S = '' Then
+    Exit;
+
+  N := 1;
+  Negative := False;
+  StringCreateReverseIterator(StringTrim(S), It);
+  While It.HasNext Do
+  Begin
+    C := It.GetNext();
+
+    If (C= Ord('-')) Then
+    Begin
+      Negative := True;
+      Continue;
+    End;
+
+    If (C<Ord('0')) Or (C>Ord('9')) Then
+    Begin
+      {$IFDEF PC}
+      If CheckError Then
+        RaiseError('String to int failure: '+S);
+      {$ENDIF}
+      Exit;
+    End;
+
+    Value := C - Ord('0');
+    Inc(Result, Value * N);
+
+    N := N * 10;
+  End;
+
+  If Negative Then
+    Result := -Result;
+End;
+
+Function StringToCardinal(Const S:TERRAString; CheckError:Boolean):Cardinal;
+Var
+  N:Int64;
+  Value:Cardinal;
+  It:StringIterator;
+  C:TERRAChar;
+Begin
+  Result := 0;
+
+  If S = '' Then
+    Exit;
+
+  If (StringFirstChar(S) = Ord('-')) Then
+  Begin
+    Exit;
+  End;
+
+  N := 1;
+  StringCreateReverseIterator(StringTrim(S), It);
+  While It.HasNext Do
+  Begin
+    C := It.GetNext();
+    If (C<Ord('0')) Or (C>Ord('9')) Then
+    Begin
+      {$IFDEF PC}
+      If CheckError Then
+        RaiseError('String to cardinal failure: '+S);
+      {$ENDIF}
+
+      Exit;
+    End;
+
+    Value := C - Ord('0');
+    Inc(Result, Value * N);
+
+    N := N * 10;
+  End;
+End;
+
+
 {$IFDEF OXYGENE}
-Function StringToInt(Const S:TERRAString):Integer;
-Begin
-  Result := System.Convert.ToInt32(S);
-End;
-
-Function StringToCardinal(Const S:TERRAString):Cardinal;
-Begin
-  Result := System.Convert.ToUInt32(S);
-End;
-
 Function StringToBool(Const S:TERRAString):Boolean;
 Begin
   Result := StringUpper(S).Equals(iTrue);
@@ -538,23 +612,6 @@ Begin
 End;
 
 {$ELSE}
-Function StringToInt(Const S:TERRAString):Integer;
-Var
- K:Integer;
-Begin
-  Val(S,Result,K);
-End;
-
-Function StringToCardinal(Const S:TERRAString):Cardinal;
-Var
-  K:Integer;
-Begin
-  If (S<>'') And (S[1]='-') Then
-    Result := 0
-  Else
-    Val(S, Result, K);
-End;
-
 Function StringToBool(Const S:TERRAString):Boolean;
 Begin
   Result:=(StringUpper(S)=StringUpper(iTrue));
@@ -623,11 +680,11 @@ Begin
     Result := iFalse;
 End;
 
-Function TimeToString(Const N:TERRATime):TERRAString;
+Function TimeToString(Const N:TERRATime; Const HourSep, MinSep, SecondSep:TERRAString):TERRAString;
 Begin
-  Result := CardinalToString(N.Hour) + ':' +
-            CardinalToString(N.Minute) + ':' +
-            CardinalToString(N.Second);
+  Result := CardinalToString(N.Hour) + HourSep +
+            CardinalToString(N.Minute) + MinSep +
+            CardinalToString(N.Second) + SecondSep;
 End;
 
 {$IFDEF OXYGENE}

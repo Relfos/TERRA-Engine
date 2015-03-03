@@ -112,13 +112,11 @@ Type
 
   NetObject = Class
     Protected
-      _UDPSocket:Integer;        //Socket handle
       _Input:Cardinal;        //Current input in bytes
       _Output:Cardinal;       //Current output in bytes
 
-      Function CreateSocket:Integer;
-      Function BindSocket(Port:Word):Integer;
-      Function SendPacket(Dest:SocketAddress; Sock:Socket; Msg:NetMessage):Boolean; 
+      //Function CreateSocket:Cardinal;
+      Function SendPacket(Dest:SocketAddress; Sock:Socket; Msg:NetMessage):Boolean;
 
       Function OnSendFail(Dest:SocketAddress; Sock:Socket; Msg:NetMessage):Boolean; Virtual;
       Procedure OnPacketReceived(Sock:Socket; Msg:NetMessage); Virtual;
@@ -140,7 +138,7 @@ Type
       Constructor Create();  //Creates a new object instance
       Destructor Destroy;Reintroduce;Virtual; //Shutdown the object
 
-      Function MakeSocketAddress(Var SockAddr:SocketAddress; Port:Word; Hostname:TERRAString):SmallInt;
+      //Function MakeSocketAddress(Var SockAddr:SocketAddress; Port:Word; Hostname:TERRAString):Boolean;
 
       Function ReceivePacket(Sock:Socket):Boolean;
       Procedure UpdateIO; //Updates upload/download status
@@ -249,8 +247,8 @@ Procedure NetObject.AddHandler(Opcode: Byte; Handler: MessageHandler);
 Begin
   Self._OpcodeList[Opcode] := Handler;
 End;
-
-Function NetObject.CreateSocket:Integer;
+        (*
+Function NetObject.CreateSocket:Cardinal;
 Begin
   Result := TERRA_Sockets._socket(PF_INET, SOCK_DGRAM, 0); //Create a network socket
   If Result = SOCKET_ERROR Then  //Check for errors
@@ -261,13 +259,13 @@ Begin
   End;
 
   MakeNonBlocking(Result, False);
-End;
-
-Function NetObject.MakeSocketAddress(Var SockAddr:SocketAddress; Port:Word; Hostname:TERRAString):SmallInt;
+End;  *)
+                          (*
+Function NetObject.MakeSocketAddress(Var SockAddr:SocketAddress; Port:Word; Hostname:TERRAString):Boolean;
 Var
   IP:TERRAString;
 Begin
-  Result:=0;
+  Result := False;
 
   IP := LookupHostAddress(Hostname);  //Resolve the server address
 
@@ -281,44 +279,15 @@ Begin
   FillChar(SockAddr.Zero[1],8,0); //Zero fill
 
   //Check for error in IP
-  If SockAddr.Address=-1 Then
+  If SockAddr.Address=SOCKET_ERROR Then
   Begin
     RaiseError(Self.ClassName+'.MakeSocketAddress: Unable to resolve IP address from '+ Hostname +'.');
-    Result := SOCKET_ERROR;
     Exit;
   End;
 
+  Result := True;
   Log(logDebug, 'Network', 'Socket is ready');
-End;
-
-Function NetObject.BindSocket(Port:Word):Integer;
-Var
-  SocketInfo:SocketAddress;
-  Opv:Integer;
-Begin
-  Opv:=1;
-  If (setsockOpt(_UDPSocket, SOL_Socket, SO_REUSEADDR,@Opv,SizeOf(Opv))=SOCKET_ERROR) Then
-  Begin
-    RaiseError(Self.ClassName+'.BindSocket: Unable to change socket mode.');
-    Result:=SOCKET_ERROR;
-    Exit;
-  End;
-
-  SocketInfo.Family:=PF_INET;   // Set the address format
-  SocketInfo.Port := htons(Port); // Convert to network byte order (using htons) and set port
-  SocketInfo.Address:=0;        // Specify local IP
-  FillChar(SocketInfo.Zero[1],8,0); // Zero fill
-
-   // Bind socket
-  Result := bind(_UDPSocket, SocketInfo, SizeOf(SocketInfo));
-
-  //Check for errors
-  If Result=SOCKET_ERROR Then
-  Begin
-    RaiseError(Self.ClassName+'.BindSocket: Unable to bind socket on port ' + IntToString(Port) + '.');
-    Exit;
-  End;
-End;
+End;   *)
 
 Function NetObject.SendPacket(Dest:SocketAddress;  Sock:Socket; Msg:NetMessage):Boolean;
 Var
@@ -508,15 +477,10 @@ Begin
   For I:=0 To 255 Do
     _OpcodeList[I] := OnInvalidMessage;
   _OpcodeList[nmIgnore] := IgnoreMessage;
-
-  _UDPSocket := -1;
 End;
 
 Destructor NetObject.Destroy;
 Begin
-  If (_UDPSocket<>-1) Then
-    CloseSocket(_UDPSocket);
-
   NetworkManager.Instance.RemoveObject(Self);
 End;
 
@@ -677,4 +641,4 @@ Begin
   Header.Owner := Value;
 End;
 
-End.
+End.

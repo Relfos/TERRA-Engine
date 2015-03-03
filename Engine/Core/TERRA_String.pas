@@ -94,6 +94,9 @@ Type
       Property Reverse:Boolean Read _Reverse;
   End;
 
+Const
+  CurrentStringEncoding = encodingUTF8;
+
 // string iterator functions
 Procedure StringCreateIterator(Const S:TERRAString; Out It:StringIterator; AutoCase:Boolean = False);
 Procedure StringCreateReverseIterator(Const S:TERRAString; Out It:StringIterator; AutoCase:Boolean = False);
@@ -108,6 +111,7 @@ Function StringEquals(Const A,B:TERRAString; IgnoreCase:Boolean = True):Boolean;
 Function StringSimilarityRatio(const Str1, Str2:TERRAString; IgnoreCase: Boolean):Single;
 
 Function StringContains(Const SubStr, Str:TERRAString):Boolean;
+Function StringContainsChar(Const C:TERRAChar; Const Str:TERRAString):Boolean;
 
 Function StringFirstChar(Const Str:TERRAString):TERRAChar;
 Function StringLastChar(Const Str:TERRAString):TERRAChar;
@@ -131,6 +135,9 @@ Procedure StringPrependChar(Var Str:TERRAString; Const C:TERRAChar);
 
 // removes N characters from begiinning or end (if count is negative)
 Procedure StringDropChars(Var Str:TERRAString; Count:Integer);
+
+// Compares two strings alphabetically
+Function StringCompare(Const A,B:TERRAString; IgnoreCase:Boolean = False):Integer;
 
 Function BytesToChar(A, B:Byte):TERRAChar;
 Function CharToByte(Const Value:TERRAChar):Byte;
@@ -383,6 +390,11 @@ End;
 Function StringContains(Const SubStr, Str:TERRAString):Boolean;
 Begin
   Result := StringPos(SubStr, Str, True)>0;
+End;
+
+Function StringContainsChar(Const C:TERRAChar; Const Str:TERRAString):Boolean;
+Begin
+  Result := StringCharPos(C, Str, True)>0;
 End;
 
 Function BytesToChar(A, B:Byte):TERRAChar;
@@ -1338,6 +1350,41 @@ Begin
     For I:=1 To Length Do
       StringAppendChar(Result, C);
   End;
+End;
+
+Function StringCompare(Const A,B:TERRAString; IgnoreCase:Boolean = False):Integer;
+Var
+  IA, IB:StringIterator;
+  CA,CB:TERRAChar;
+Begin
+  StringCreateIterator(A, IA, IgnoreCase);
+  StringCreateIterator(B, IB, IgnoreCase);
+
+  While (IA.HasNext) Or (IB.HasNext) Do
+  Begin
+    If (IA.HasNext) Then
+      CA := IA.GetNext()
+    Else
+      CA := 0;
+
+    If (IB.HasNext) Then
+      CB := IB.GetNext()
+    Else
+      CB := 0;
+
+    If (CA<CB) Then
+    Begin
+      Result := -1;
+      Exit;
+    End Else
+    If (CA>CB) Then
+    Begin
+      Result := 1;
+      Exit;
+    End;
+  End;
+
+  Result := 0;
 End;
 
 // note: using System.Copy here for speed, since we know the raw indices already!

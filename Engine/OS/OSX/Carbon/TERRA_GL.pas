@@ -117,7 +117,7 @@ Procedure glGetMaterialfv(face, pname: Cardinal; params: PSingle); {$IFDEF MSWIN
 Procedure glGetMaterialiv(face, pname: Cardinal; params: Integer); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF} External OpenGLLibName;
 Procedure glGetPointerv(pname: Cardinal; params: Pointer); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF} External OpenGLLibName;
 Procedure glGetPolygonStipple(mask: PByte); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF} External OpenGLLibName;
-Function glGetString(name: Cardinal): PTERRAChar; {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF} External OpenGLLibName;
+Function glGetString(name: Cardinal): PAnsiChar; {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF} External OpenGLLibName;
 Procedure glGetTexEnvfv(target, pname: Cardinal; params: PSingle); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF} External OpenGLLibName;
 Procedure glGetTexEnviv(target, pname: Cardinal; params: PInteger); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF} External OpenGLLibName;
 Procedure glGetTexGendv(coord, pname: Cardinal; params: PDouble); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF} External OpenGLLibName;
@@ -369,7 +369,7 @@ Var
   glStencilFuncSeparate: procedure(frontfunc: Cardinal; backfunc: Cardinal; ref: Integer; mask: Cardinal); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glStencilMaskSeparate: procedure(face: Cardinal; mask: Cardinal); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glAttachShader: procedure(_program: Cardinal; shader: Cardinal); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
-  glBindAttribLocation: procedure(_program: Cardinal; index: Cardinal; const name: PTERRAChar); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
+  glBindAttribLocation: procedure(_program: Cardinal; index: Cardinal; const name: PAnsiChar); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glCompileShader: procedure(shader: Cardinal); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glCreateProgram: function(): Cardinal; {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glCreateShader: function(_type: Cardinal): Cardinal; {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
@@ -378,16 +378,16 @@ Var
   glDetachShader: procedure(_program: Cardinal; shader: Cardinal); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glDisableVertexAttribArray: procedure(index: Cardinal); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glEnableVertexAttribArray: procedure(index: Cardinal); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
-  glGetActiveAttrib: procedure(_program: Cardinal; index: Cardinal; bufSize: Integer; length: PInteger; size: PInteger; _type: PCardinal; name: PTERRAChar); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
-  glGetActiveUniform: procedure(_program: Cardinal; index: Cardinal; bufSize: Integer; length: PInteger; size: PInteger; _type: PCardinal; name: PTERRAChar); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
+  glGetActiveAttrib: procedure(_program: Cardinal; index: Cardinal; bufSize: Integer; length: PInteger; size: PInteger; _type: PCardinal; name: PAnsiChar); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
+  glGetActiveUniform: procedure(_program: Cardinal; index: Cardinal; bufSize: Integer; length: PInteger; size: PInteger; _type: PCardinal; name: PAnsiChar); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glGetAttachedShaders: procedure(_program: Cardinal; maxCount: Integer; count: PInteger; obj: PCardinal); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
-  glGetAttribLocation: function(_program: Cardinal; const name: PTERRAChar): Integer; {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
+  glGetAttribLocation: function(_program: Cardinal; const name: PAnsiChar): Integer; {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glGetProgramiv: procedure(_program: Cardinal; pname: Cardinal; params: PInteger); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
-  glGetProgramInfoLog: procedure(_program: Cardinal; bufSize: Integer; length: PInteger; infoLog: PTERRAChar); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
+  glGetProgramInfoLog: procedure(_program: Cardinal; bufSize: Integer; length: PInteger; infoLog: PAnsiChar); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glGetShaderiv: procedure(shader: Cardinal; pname: Cardinal; params: PInteger); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
-  glGetShaderInfoLog: procedure(shader: Cardinal; bufSize: Integer; length: PInteger; infoLog: PTERRAChar); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
-  glGetShaderSource: procedure(shader: Cardinal; bufSize: Integer; length: PInteger; source: PTERRAChar); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
-  glGetUniformLocation: function(_program: Cardinal; const name: PTERRAChar): Integer; {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
+  glGetShaderInfoLog: procedure(shader: Cardinal; bufSize: Integer; length: PInteger; infoLog: PAnsiChar); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
+  glGetShaderSource: procedure(shader: Cardinal; bufSize: Integer; length: PInteger; source: PAnsiChar); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
+  glGetUniformLocation: function(_program: Cardinal; const name: PAnsiChar): Integer; {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glGetUniformfv: procedure(_program: Cardinal; location: Integer; params: PSingle); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glGetUniformiv: procedure(_program: Cardinal; location: Integer; params: PInteger); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glGetVertexAttribdv: procedure(index: Cardinal; pname: Cardinal; params: PDouble); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
@@ -397,7 +397,7 @@ Var
   glIsProgram: function(_program: Cardinal): Boolean; {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glIsShader: function(shader: Cardinal): Boolean; {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glLinkProgram: procedure(_program: Cardinal); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
-  glShaderSource: procedure(shader: Cardinal; count: Integer; const _string: PTERRAChar; const length: PInteger); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
+  glShaderSource: procedure(shader: Cardinal; count: Integer; const _string: PAnsiChar; const length: PInteger); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glUseProgram: procedure(_program: Cardinal); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glUniform1f: procedure(location: Integer; v0: Single); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
   glUniform2f: procedure(location: Integer; v0: Single; v1: Single); {$IFDEF MSWINDOWS}stdcall;{$ELSE}cdecl;{$ENDIF}
@@ -488,33 +488,33 @@ Var
 
 Procedure glLoadExtensions;
 
-Function glExtensionSupported(Extension:TERRAString):Boolean;
+Function glExtensionSupported(Extension:AnsiString):Boolean;
 
-Function glGetExtensionString():TERRAString;
+Function glGetExtensionString():AnsiString;
 
 Implementation
 Uses TERRA_Error;
 
 Var
-  glExtGetProcAddress:function(proc:PTERRAChar):Pointer;
+  glExtGetProcAddress:function(proc:PAnsiChar):Pointer;
   OpenGLHandle:TLibHandle;
-  ExtensionsList:TERRAString='';
+  ExtensionsList:AnsiString='';
 
-Function glGetExtensionString():TERRAString;
+Function glGetExtensionString():AnsiString;
 Begin
   Result := ExtensionsList;
 End;
 
-Function alxGetProcAddress(proc:PTERRAChar):Pointer;
+Function alxGetProcAddress(proc:PAnsiChar):Pointer;
 Begin
   Result := GetProcAddress(OpenGLHandle, proc);
 End;
 
-Function glGetProcAddress(Proc:TERRAString; Alt:TERRAString=''):Pointer;cdecl;
+Function glGetProcAddress(Proc:AnsiString; Alt:AnsiString=''):Pointer;cdecl;
 Begin
-  Result:=glExtGetProcAddress(PTERRAChar(Proc));
+  Result:=glExtGetProcAddress(PAnsiChar(Proc));
   If Not Assigned(Result) Then
-    Result:=glExtGetProcAddress(PTERRAChar(Proc+'ARB'));
+    Result:=glExtGetProcAddress(PAnsiChar(Proc+'ARB'));
 
   If (Not Assigned(Result))And(Alt<>'#') Then
     If Alt<>'' Then
@@ -523,14 +523,14 @@ Begin
       Log(logWarning,'GL', 'Function '+Proc+' not avaliable.');
 End;
 
-Procedure LoadOpenGL(LibName:TERRAString);
+Procedure LoadOpenGL(LibName:AnsiString);
 Begin
 	TERRA_Log.Log(logDebug, 'GL', 'loading openGL');
   Log(logDebug, 'OpenGL', 'Loading library');
 
   glExtGetProcAddress := alxGetProcAddress;
 
-  OpenGLHandle := LoadLibrary(PTERRAChar(LibName));
+  OpenGLHandle := LoadLibrary(PAnsiChar(LibName));
   If OpenGLHandle=0 Then
   Begin
     RaiseError('Error loading OpenGL from '+LibName);
@@ -770,7 +770,7 @@ Begin
     FreeLibrary(OpenGLHandle);
 End;
 
-Function glExtensionSupported(Extension:TERRAString):Boolean;
+Function glExtensionSupported(Extension:AnsiString):Boolean;
 Begin
   If (Extension='') Then
   Begin
@@ -780,7 +780,7 @@ Begin
 
   If (ExtensionsList='') Then
   Begin
-    ExtensionsList := PTERRAChar(glGetString(GL_EXTENSIONS));
+    ExtensionsList := PAnsiChar(glGetString(GL_EXTENSIONS));
   End;
 
   Result := Pos(Extension,ExtensionsList)>0;
@@ -792,4 +792,4 @@ Initialization
 Finalization
   FreeOpenGL;
 End.
-
+

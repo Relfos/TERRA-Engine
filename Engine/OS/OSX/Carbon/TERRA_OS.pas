@@ -121,7 +121,7 @@ Type
 
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_FileUtils, TERRA_Unicode,  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
+Uses TERRA_Error, TERRA_Log, TERRA_Input, TERRA_FileUtils,  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
      machapi, machexc, dateutils, sysutils, ctypes, sysctl, TERRA_MIDI_IO, TERRA_MIDI;
 
 Var
@@ -271,7 +271,7 @@ Function Carbon_HandleCommand(ANextHandler:EventHandlerCallRef; AEvent:EventRef;
 Var
   App:CarbonApplication;
   Cmd:HICommand;
-  CmdType:Array[0..3] Of TERRAChar;
+  CmdType:Array[0..3] Of AnsiChar;
 Begin
   GetEventParameter(AEvent, kEventParamDirectObject, typeHICommand, Nil, sizeof(HICommand), Nil, @Cmd);
 
@@ -466,12 +466,15 @@ Var
 Function CarbonWindow_KeyboardProc(ANextHandler: EventHandlerCallRef; AEvent: EventRef;  UserData:Pointer): OSStatus; MWPascal;
 Var
   App:CarbonApplication;
-  TemPTERRAChar:TERRAChar;           //Ascii char, when possible (xx_(SYS)CHAR)
+  TemPAnsiChar:AnsiChar;           //Ascii char, when possible (xx_(SYS)CHAR)
   VKKeyCode:Word;         //VK_ code
+  CharPress:TERRAChar;
+
   IsSysKey: Boolean;        //Is alt (option) key down?
   EventKind: UInt32;        //The kind of this event
 
   I:Integer;
+  It:StringIterator;
   S:TERRAString;
 
   // See what changed in the modifiers flag so that we can emulate a keyup/keydown
@@ -519,9 +522,7 @@ Var
   Var
     DeadKeys: UInt32;
     TextLen : UInt32;
-    CharLen : integer;
     widebuf: array[1..2] of widechar;
-    U: Cardinal;
     Layout: UCKeyboardLayoutPtr;
     KeyboardLayout: KeyboardLayoutRef;
     CurrentKeyModifiers:Cardinal;
@@ -543,7 +544,6 @@ Var
 
     TextLen := 0;
     DeadKeys := 0;
-    CharLen := 0;
 
     If Assigned(Layout) Then
     Begin
@@ -553,23 +553,18 @@ Var
 
       If TextLen>0 Then
       Begin
-        u := UTF16CharacterToUnicode(@WideBuf[1], CharLen);
+        CharPress := Word(WideBuf[1]);
 
-        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got Unicode: '+IntToString(U));{$ENDIF}
+        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got Unicode: '+CardinalToString(VKKeyCode));{$ENDIF}
 
-        If CharLen>0 Then
+        If (CharPress>127) Then //not ascii, get the Mac character.
         Begin
-          VKKeyCode := Word(U);
-
-          If (VKKeyCode>127) Then //not ascii, get the Mac character.
-          Begin
-            GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TemPTERRAChar), nil, @TemPTERRAChar);
-            VKKeyCode := Ord(TemPTERRAChar);
-          End;
-
-          {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Final key result: '+IntToString(VKKeyCode));{$ENDIF}
-          Exit;
+          GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TemPAnsiChar), nil, @TemPAnsiChar);
+          VKKeyCode := Ord(TemPAnsiChar);
         End;
+
+        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Final key result: '+IntToString(VKKeyCode));{$ENDIF}
+        Exit;
       End;
 
       TextLen := 0;
@@ -600,21 +595,16 @@ Var
       GetEventParameter(AEvent, kEventParamKeyUnicodes, typeUnicodeText, nil, 6, @TextLen, @WideBuf[1]);
       {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called GetEventParameter: '+IntToString(TextLen));{$ENDIF}
 
-
       If TextLen>0 Then
       Begin
-        u := UTF16CharacterToUnicode(@WideBuf[1], CharLen);
-        If CharLen=0 Then
-          Exit;
+        CharPress := Word(WideBuf[1]);
 
-      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got Unicode2: '+IntToString(U));{$ENDIF}
+        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got Unicode2: '+IntToString(VKKeyCode));{$ENDIF}
 
-        VKKeyCode := Word(U);
-
-        If (VKKeyCode>127) Then  //not ascii, get the Mac character.
+        If (CharPress>127) Then  //not ascii, get the Mac character.
         Begin
-          GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TemPTERRAChar), nil, @TemPTERRAChar);
-          VKKeyCode := Ord(TemPTERRAChar);
+          GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TemPAnsiChar), nil, @TemPAnsiChar);
+          VKKeyCode := Ord(TemPAnsiChar);
         End;
 
         // the VKKeyCode is independent of the modifier
@@ -632,14 +622,15 @@ Begin
   	Exit;
 
   VKKeyCode := 0;
+  CharPress := 0;
 
   EventKind := GetEventKind(AEvent);
   If EventKind = kEventRawKeyModifiersChanged Then
     CheckModifiers()
   Else
-    TranslateMacKeyCode();
+      TranslateMacKeyCode();
 
-  If (VKKeyCode=0) Then
+  If (VKKeyCode=0) And (CharPress=0) Then
     Exit;  
 
   Case EventKind of
@@ -649,19 +640,23 @@ Begin
       {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Keyevent: '+IntToString(VKKeycode));{$ENDIF}
 
       // clipboard paste
-      If (VKKeyCode = 118) And (App.Input.Keys[keyCommand]) Then
+      If (CharPress = 118) And (App.Input.Keys.IsDown(keyCommand)) Then
       Begin
            S := App.GetClipboardContent();
-           For I:=1 To Length(S) Do
-               App.AddValueEvent(eventKeyPress, Ord(S[I]));
+           StringCreateIterator(S, It);
+           While It.HasNext() Do
+           Begin
+               App.AddValueEvent(eventKeyPress,  It.GetNext());
+           End;
       End Else
       // full screen
-      If (VKKeyCode = keyEnter) And (App.Input.Keys[keyAlt]) Then
+      If (VKKeyCode = keyEnter) And (App.Input.Keys.IsDown(keyAlt)) Then
       Begin
          App._ChangeToFullScreen := True;
       End Else
       Begin
-           App.AddValueEvent(eventKeyPress, VKKeyCode);
+           If CharPress>0 Then
+              App.AddValueEvent(eventKeyPress, CharPress);
 
            If (VKKeyCode<256) Then
               App.AddValueEvent(eventKeyDown, VKKeyCode);
@@ -682,7 +677,7 @@ Const
 var
   theError: OSErr;
   theRef: FSRef;
-  pathBuffer: PTERRAChar;
+  pathBuffer: PAnsiChar;
 begin
   pathBuffer := Allocmem(kMaxPath);
   Try
@@ -729,7 +724,7 @@ Var
   pathStr: shortstring;
   pathMedia:TERRAString;
 
-  Temp:Array[0..255] Of TERRAChar;
+  Temp:Array[0..255] Of AnsiChar;
 Begin
   Inherited InitSettings;
   

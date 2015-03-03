@@ -156,8 +156,8 @@ Begin
   WriteLn(X.Name);
 
   // print all children
-  For I:=0 To Pred(X.ChildCount) Do
-    PrintXML(X.GetChild(I), Succ(Level));
+  For I:=0 To Pred(X.NodeCount) Do
+    PrintXML(X.GetNodeByIndex(I), Succ(Level));
 End;
 
 { ModelCollada }
@@ -229,39 +229,39 @@ Begin
   SetLength(_Groups, _GroupCount);
   Group := @(_Groups[Pred(_GroupCount)]);
   Group.VertexCount := 0;
-  P := Node.GetNode('name');
+  P := Node.GetNodeByName('name');
   If Assigned(P) Then
     Group.Name := P.Value
   Else
     Group.Name := 'Group'+IntToString(_GroupCount);
 
-  Node := Node.GetNode('mesh');
+  Node := Node.GetNodeByName('mesh');
   If Not Assigned(Node) Then
     Exit;
 
   SourceCount := 0;
-  For I:=0 To Pred(Node.ChildCount) Do
+  For I:=0 To Pred(Node.NodeCount) Do
   Begin
-    Child := Node.GetChild(I);
+    Child := Node.GetNodeByIndex(I);
     If Child.Name = 'source' Then
     Begin
-      P := Child.GetNode('id');
+      P := Child.GetNodeByName('id');
       If Not Assigned(P) Then
         Continue;
 
       Inc(SourceCount);
       SetLength(Sources, SourceCount);
       Sources[Pred(SourceCount)].ID := P.Value;
-      FA := Child.GetNode('float_array');
+      FA := Child.GetNodeByName('float_array');
 
-      P := Child.GetNode('technique_common');
-      P := P.GetNode('accessor');
+      P := Child.GetNodeByName('technique_common');
+      P := P.GetNodeByName('accessor');
       P2 := P;
 
-      P := P2.GetNode('count');
+      P := P2.GetNodeByName('count');
       Sources[Pred(SourceCount)].Count := StringToInt(P.Value);
 
-      P := P2.GetNode('stride');
+      P := P2.GetNodeByName('stride');
       Sources[Pred(SourceCount)].Stride := StringToInt(P.Value);
 
       SetLength(Sources[Pred(SourceCount)].Values, Sources[Pred(SourceCount)].Count);
@@ -291,10 +291,10 @@ Begin
     If (Child.Name = 'vertices') Then
     Begin
       Ok := False;
-      P := Child.GetNode('input');
+      P := Child.GetNodeByName('input');
       If Assigned(P) Then
       Begin
-        P := P.GetNode('source');
+        P := P.GetNodeByName('source');
         If Assigned(P) Then
         Begin
           SrcVtx := GetSource(P.Value);
@@ -307,34 +307,34 @@ Begin
     End Else
     If (Child.Name = 'triangles') Then
     Begin
-      P := Child.GetNode('count');
+      P := Child.GetNodeByName('count');
       Group.TriangleCount := StringToInt(P.Value);
       SetLength(Group.Triangles, Group.TriangleCount);
 
-      P := Child.GetNode('material');
+      P := Child.GetNodeByName('material');
       If Assigned(P) Then
         Group.Material := GetMaterial(P.Value);
 
       SrcNormal := Nil;
       SrcUV1 := Nil;
       SrcUV2 := Nil;
-      For J:=0 To Pred(Child.ChildCount) Do
+      For J:=0 To Pred(Child.NodeCount) Do
       Begin
-        P := Child.GetChild(J);
+        P := Child.GetNodeByIndex(J);
         If (P.Name='input') Then
         Begin
-          FA := P.GetNode('semantic');
+          FA := P.GetNodeByName('semantic');
           S := FA.Value;
 
           If (S='NORMAL') Then
           Begin
-            FA := P.GetNode('source');
+            FA := P.GetNodeByName('source');
             SrcNormal := GetSource(FA.Value);
           End;
 
           If (S='TEXCOORD') Then
           Begin
-            FA := P.GetNode('source');
+            FA := P.GetNodeByName('source');
             SrcUV1 := GetSource(FA.Value);
           End;
         End Else
@@ -457,10 +457,10 @@ Var
     If (ID[1]='#') Then
       ID := Copy(ID, 2, MaxInt);
 
-    For I:=0 To Pred(Node2.ChildCount) Do
+    For I:=0 To Pred(Node2.NodeCount) Do
     Begin
-      Child := Node2.GetChild(I);
-      P := Child.GetNode('id');
+      Child := Node2.GetNodeByIndex(I);
+      P := Child.GetNodeByName('id');
       If P = Nil Then
         Continue;
 
@@ -503,16 +503,16 @@ Begin
   SamplerCount := 0;
   SurfaceCount := 0;
 
-  For I:=0 To Pred(Node.ChildCount) Do
+  For I:=0 To Pred(Node.NodeCount) Do
   Begin
-    Child := Node.GetChild(I);
+    Child := Node.GetNodeByIndex(I);
     Inc(_MaterialCount);
     SetLength(_Materials, _MaterialCount);
-    P := Child.GetNode('id');
+    P := Child.GetNodeByName('id');
     Mat := @_Materials[Pred(_MaterialCount)];
     Mat.ID := P.Value;
-    P := Child.GetNode('instance_effect');
-    P := P.GetNode('url');
+    P := Child.GetNodeByName('instance_effect');
+    P := P.GetNodeByName('url');
     S := P.Value;
 
     Child := SearchEffect(S);
@@ -522,70 +522,70 @@ Begin
       Continue;
     End;
 
-    Child := Child.GetNode('profile_COMMON');
+    Child := Child.GetNodeByName('profile_COMMON');
     If Assigned(Child) Then
-    For J:=0 To Pred(Child.ChildCount) Do
+    For J:=0 To Pred(Child.NodeCount) Do
     Begin
-      P := Child.GetChild(J);
+      P := Child.GetNodeByIndex(J);
       If (P.Name = 'newparam') Then
       Begin
         P2 := P;
 
-        P := P2.GetNode('sid');
+        P := P2.GetNodeByName('sid');
         ID := P.Value;
 
-        P := P2.GetNode('surface');
+        P := P2.GetNodeByName('surface');
         If Assigned(P) Then
         Begin
           Inc(SurfaceCount);
           SetLength(Surfaces, SurfaceCount);
           Surfaces[Pred(SurfaceCount)].ID := ID;
-          P := P.GetNode('init_from');
+          P := P.GetNodeByName('init_from');
           If Assigned(P) Then
             Surfaces[Pred(SurfaceCount)].Image := P.Value;
         End;
 
-        P := P2.GetNode('sampler2D');
+        P := P2.GetNodeByName('sampler2D');
         If Assigned(P) Then
         Begin
           Inc(SamplerCount);
           SetLength(Samplers, SamplerCount);
           Samplers[Pred(SamplerCount)].ID := ID;
           
-          P := P.GetNode('source');
+          P := P.GetNodeByName('source');
           If Assigned(P) Then
             Samplers[Pred(SamplerCount)].Surface := P.Value;
         End;
       End Else
       If (P.Name = 'technique') Then
       Begin
-        P2 := P.GetNode('blinn');
+        P2 := P.GetNodeByName('blinn');
         If P2=Nil Then
-          P2 := P.GetNode('phong');
+          P2 := P.GetNodeByName('phong');
         If P2<>Nil Then
         Begin
-          For K:=0 To Pred(P2.ChildCount) Do
+          For K:=0 To Pred(P2.NodeCount) Do
           Begin
-            P := P2.GetChild(K);
+            P := P2.GetNodeByIndex(K);
             If (P.Name = 'emission') Then
             Begin
-              P := P.GetNode('color');
+              P := P.GetNodeByName('color');
               Mat.Emission := ReadColor(P.Value);
             End Else
             If (P.Name = 'specular') Then
             Begin
-              P := P.GetNode('color');
+              P := P.GetNodeByName('color');
               Mat.Specular := ReadColor(P.Value);
             End Else
             If (P.Name = 'shininess') Then
             Begin
-              P := P.GetNode('float');
+              P := P.GetNodeByName('float');
               Mat.Shininess := StringToFloat(P.Value);
             End Else
             If (P.Name = 'diffuse') Then
             Begin
-              P := P.GetNode('texture');
-              P := P.GetNode('texture');
+              P := P.GetNodeByName('texture');
+              P := P.GetNodeByName('texture');
               Mat.DiffuseMap := GetTexture(P.Value);
             End Else
               Log(logWarning, 'Collada', 'Material attribute ignored: '+P.Name);
@@ -608,9 +608,9 @@ Begin
   If Node = Nil Then
     Exit;
 
-  For I:=0 To Pred(Node.ChildCount) Do
+  For I:=0 To Pred(Node.NodeCount) Do
   Begin
-    Child := Node.GetChild(I);
+    Child := Node.GetNodeByIndex(I);
     If Child.Name = 'geometry' Then
       Self.AddGroup(Child);
   End;
@@ -627,16 +627,16 @@ Begin
   If (Node = Nil) Then
     Exit;
 
-  For I:=0 To Pred(Node.ChildCount) Do
+  For I:=0 To Pred(Node.NodeCount) Do
   Begin
-    P := Node.GetChild(I);
+    P := Node.GetNodeByIndex(I);
     If (P.Name<>'image') Then
       Continue;
 
     Inc(_ImageCount);
     SetLength(_Images, _ImageCount);
-    _Images[Pred(_ImageCount)].Id := P.GetNode('id').Value;
-    S := P.GetNode('init_from').Value;
+    _Images[Pred(_ImageCount)].Id := P.GetNodeByName('id').Value;
+    S := P.GetNodeByName('init_from').Value;
     S := GetOSIndependentFileName(S);
     S := GetFileName(S, False);
     _Images[Pred(_ImageCount)].Path := S;
@@ -657,14 +657,14 @@ Begin
   Result := S ='';
   PrintXML(Collada.Root, 0);
 
-  Node := Collada.Root.GetNode('library_images');
+  Node := Collada.Root.GetNodeByName('library_images');
   LoadImages(Node);
 
-  Node := Collada.Root.GetNode('library_materials');
-  Node2 := Collada.Root.GetNode('library_effects');
+  Node := Collada.Root.GetNodeByName('library_materials');
+  Node2 := Collada.Root.GetNodeByName('library_effects');
   LoadMaterials(Node, Node2);
 
-  Node := Collada.Root.GetNode('library_geometries');
+  Node := Collada.Root.GetNodeByName('library_geometries');
   LoadGeometry(Node);
 
   Collada.Destroy;

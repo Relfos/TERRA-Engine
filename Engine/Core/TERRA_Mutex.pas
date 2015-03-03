@@ -30,6 +30,8 @@ Uses TERRA_String, TERRA_Utils,
 {$IFDEF WINDOWS}Windows
 {$ELSE}cmem, {ctypes,baseunix,}unixtype{$ENDIF};
 
+{$DEFINE HAS_SEMAPHORES}
+  
 {$IFNDEF WINDOWS}
 Type
  ppthread_mutex_t = ^pthread_mutex_t;
@@ -46,7 +48,7 @@ Function pthread_mutex_destroy(__mutex:ppthread_mutex_t):longint; Cdecl; Externa
 Function pthread_mutex_lock(__mutex: ppthread_mutex_t):longint; Cdecl; External LibC;
 Function pthread_mutex_unlock(__mutex: ppthread_mutex_t):longint; Cdecl; External LibC;
 
-{$IFNDEF LINUX}
+{$IFNDEF HAS_SEMAPHORES}
 Function sem_init(sem:ppthread_sem_t; pshared:Integer; value:Cardinal):Integer; Cdecl; External LibC;
 Function sem_wait(sem:ppthread_sem_t):Integer; Cdecl; External LibC;
 Function sem_post(sem:ppthread_sem_t):Integer; Cdecl; External LibC;
@@ -173,7 +175,7 @@ Begin
   _Handle := CreateSemaphore(Nil, 0, Count, Nil);
   {$ELSE}
 
-  {$IFNDEF LINUX}
+  {$IFNDEF HAS_SEMAPHORES}
   sem_init(@_Handle, 0, Count);
   {$ENDIF}
   
@@ -186,7 +188,7 @@ Begin
   CloseHandle(_Handle);
   {$ELSE}
 
-  {$IFNDEF LINUX}
+  {$IFNDEF HAS_SEMAPHORES}
   sem_destroy(@_Handle);
   {$ENDIF}
   
@@ -199,7 +201,7 @@ Begin
   ReleaseSemaphore(_Handle,1, Nil); // unblock all the threads
   {$ELSE}
 
-  {$IFNDEF LINUX}
+  {$IFNDEF HAS_SEMAPHORES}
   sem_post(@_Handle);
   {$ENDIF}
   
@@ -212,7 +214,7 @@ Begin
   WaitForSingleObject(_Handle, INFINITE);
   {$ELSE}
 
-  {$IFNDEF LINUX}
+  {$IFNDEF HAS_SEMAPHORES}
   sem_wait(@_Handle);
   {$ENDIF}
   

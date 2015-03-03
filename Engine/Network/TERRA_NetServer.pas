@@ -25,7 +25,7 @@ Unit TERRA_NetServer;
 
 {$I terra.inc}
 
-{$DEFINE SAVEPACKETS}
+{-$DEFINE SAVEPACKETS}
 
 
 Interface

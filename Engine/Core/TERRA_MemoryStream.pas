@@ -153,7 +153,7 @@ Begin
   If (_Pos>=_Size) Then
   Begin
     {$IFDEF PC}
-    RaiseError('Cannot read from memory in '+Self._Name+' ('+IntToString(_Pos)+'/'+IntToString(_Size)+')');
+    Log(logWarning, 'IO', 'Cannot read from memory in '+Self._Name+' ('+IntToString(_Pos)+'/'+IntToString(_Size)+')');
     {$ENDIF}
     FillChar(Data^, Length, 0);
     Result := 0;
@@ -237,7 +237,7 @@ Procedure MemoryStream.Seek(NewPosition:Cardinal);
 Begin
   If NewPosition>_Size Then
   Begin
-    RaiseError('Cannot seek in memory.');
+    RaiseError('Cannot seek in memory inside '+Self.Name+ ' at pos ' + CardinalToString(NewPosition)+ ' -> '+ CardinalToString(_Size));
     Exit;
   End;
 

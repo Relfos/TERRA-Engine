@@ -138,11 +138,10 @@ Type
       CamX,CamY:Single;
       Scale:Single;
 
-      Constructor Create(SourceFile:Stream); Overload;
-      Constructor Create(SourceFile:TERRAString); Overload;
       Constructor Create(TileWidth, TileHeight:Integer); Overload;
-
       Destructor Destroy; Override;
+
+      Function Load(Const SourceName:TERRAString):Boolean;
 
       Function AddLayer(Width,Height:Integer; Name:TERRAString):TileLayer;
 
@@ -179,7 +178,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_UI, TERRA_OS, TERRA_FileManager, TERRA_MemoryStream, TERRA_Log;
+Uses TERRA_UI, TERRA_OS, TERRA_FileManager, TERRA_MemoryStream, TERRA_XMLBinary, TERRA_Log;
 
 { TileMap }
 Constructor TileMap.Create(TileWidth, TileHeight: Integer);
@@ -189,31 +188,36 @@ Begin
   Self._LayerCount := 0;
 End;
 
-Constructor TileMap.Create(SourceFile:TERRAString);
-Var
-  S:Stream;
-Begin
-  If (Pos('.', SourceFile)<=0) Then
-    SourceFile := SourceFile + '.' + TileMapExtension;
-
-  S := FileManager.Instance.OpenStream(SourceFile);
-  If Assigned(S) Then
-  Begin
-    Create(S);
-    S.Destroy;
-  End Else
-    Log(logError, 'Tilemap', 'File not found: '+SourceFile);
-End;
-
-Constructor TileMap.Create(SourceFile: Stream);
+Function TileMap.Load(Const SourceName:TERRAString):Boolean;
 Var
   Doc:XMLDocument;
   Node, P, PP, PPP, PX:XMLNode;
   Name, S:TERRAString;
   I, J, K, N, W, H:Integer;
+  Src:Stream;
 Begin
+  Result := False;
   Self.Scale := 1;
-  Self.Name := GetFileName(SourceFile.Name, True);
+  Self.Name := GetFileName(SourceName, True);
+
+  S := FileManager.Instance.SearchResourceFile(Self.Name+'.bin');
+  If S='' Then
+  Begin
+    S := FileManager.Instance.SearchResourceFile(Self.Name+'.'+TileMapExtension);
+    If S='' Then
+    Begin
+      Log(logError, 'Tilemap', 'File not found: '+Self.Name);
+      Exit;
+    End;
+
+    Src := MemoryStream.Create(S);
+    Doc := XMLDocument.Create;
+    Doc.Load(Src);
+    Src.Destroy();
+  End Else
+  Begin
+    Doc := XMLLoadBinary(S);
+  End;
 
   CamX := 0;
   CamY := 0;
@@ -225,8 +229,6 @@ Begin
     _Palette[I] := I;
   End;
 
-  Doc := XMLDocument.Create;
-  Doc.Load(SourceFile);
 
   Node := Doc.Root;
   P := Node.GetNodeByName('properties');
@@ -367,7 +369,9 @@ Begin
     End;
   End;
 
-  Doc.Destroy;
+  Doc.Destroy();
+
+  Result := True;  
 End;
 
 

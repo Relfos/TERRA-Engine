@@ -74,7 +74,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_GraphicsManager, TERRA_Camera, TERRA_FileManager;
+Uses TERRA_Error, TERRA_CollectionObjects, TERRA_GraphicsManager, TERRA_Camera, TERRA_FileManager;
 
 Var
   _SoundManager_Instance:ApplicationObject = Nil;
@@ -201,7 +201,7 @@ Var
   S:TERRAString;
   List:PAnsiChar;
 Begin
-S := '';
+  S := '';
   If Not Assigned(DeviceList) Then
   Begin
     DeviceList := TERRA_Collections.List.Create();

@@ -303,6 +303,7 @@ Type
   Procedure RegisterFontFormat(Name:TERRAString; Validate:FontStreamValidateFunction; Loader:FontLoader);
 
   Function ConvertFontCodes(S:TERRAString):TERRAString;
+  Function UnconvertFontCodes(S:TERRAString):TERRAString;
 
 Var
   _FontImageResolver:FontImageResolver;
@@ -1192,7 +1193,7 @@ Begin
       If (_Glyphs[Mid].ID < ID) Then
       Begin
         A := Mid + 1;
-        If (_Glyphs[Mid+1].ID = ID) Then // hack
+        If (_Glyphs[A].ID = ID) Then // hack
         Begin
           Inc(Mid);
           Break;
@@ -1815,6 +1816,57 @@ Begin
   End;
 
   Result := Result + S;
+End;
+
+Function UnconvertFontCodes(S:TERRAString):TERRAString;
+Var
+  S2:TERRAString;
+  C:TERRAChar;
+  It:StringIterator;
+Begin
+  Result := '';
+
+  StringCreateIterator(S, It);
+  While It.HasNext Do
+  Begin
+    C := It.GetNext();
+    Case C Of
+    fontControlNewLine: Result := Result + '\n';
+    fontControlTab: Result := Result + '\t';
+    fontControlBlink: Result := Result + '\b';
+    fontControlItalics: Result := Result + '\i';
+    fontControlWave: Result := Result + '\w';
+
+    fontControlSprite:
+      Begin
+        Result := Result + '\p{';
+        Repeat
+          C := It.GetNext();
+          If C = fontControlEnd Then
+            Break;
+
+          StringAppendChar(Result, C);
+        Until False;
+        Result := Result + '}';
+      End;
+
+    fontControlColor:
+      Begin
+        Result := Result + '\c{';
+        Repeat
+          C := It.GetNext();
+          If C = fontControlEnd Then
+            Break;
+
+          StringAppendChar(Result, C);
+        Until False;
+        Result := Result + '}';
+      End;
+
+    Else
+      StringAppendChar(Result, C);
+    End;
+  End;
 End;
 
 Initialization

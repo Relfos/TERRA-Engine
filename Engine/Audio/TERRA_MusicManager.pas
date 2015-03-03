@@ -79,7 +79,7 @@ Type
 
 Implementation
 Uses TERRA_FileManager, TERRA_SoundManager, TERRA_Log, TERRA_OS, TERRA_Stream, TERRA_Math
-{$IFDEF HAS_MIDI}, TERRA_Midi{$ENDIF}
+{$IFDEF HAS_MIDI}, TERRA_MIDI{$ENDIF}
 {$IFDEF HAS_AUDIOTRACK}, TERRA_AudioTrack{$ENDIF};
 
 Var

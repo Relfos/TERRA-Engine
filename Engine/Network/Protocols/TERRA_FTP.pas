@@ -64,7 +64,7 @@ Type
       Function GetSocket(S:TERRAString):Socket;
 
     Public
-      Constructor Create(URL:TERRAString; Port:Integer = FTPPort);
+      Constructor Create(URL:TERRAString; Const Username, Password:TERRAString; Port:Integer = FTPPort);
       Destructor Destroy; Override;
 
       Function PutFile(FileName:TERRAString; Source:Stream; Notifier:ProgressNotifier=Nil):Integer; Overload;
@@ -76,7 +76,7 @@ Type
       Property Connected:Boolean Read _Active;
   End;
 
-  FTPMirrorSession = Class(TERRAObject)
+{  FTPMirrorSession = Class(TERRAObject)
     Protected
       _SessionList:Array Of FTPSession;
       _SessionCount:Integer;
@@ -97,7 +97,7 @@ Type
 
       Property Session[Index:Integer]:FTPSession Read GetSession;
       Property SessionCount:Integer Read _SessionCount;
-  End;
+  End;}
 
 Implementation
 Uses TERRA_Application, TERRA_OS, TERRA_Log, TERRA_FileStream, TERRA_FileUtils, TERRA_MemoryStream;
@@ -120,21 +120,25 @@ End;
 Function FTPSession.GetStatus():Integer;
 Var
   S:TERRAString;
-  I:Integer;
+  I, J:Integer;
 Begin
-  _LastResponse:='';
+  _LastResponse := '';
   Result := ftp_UnknownError;
 
-  S := '';  
+  S := '';
   Repeat
-    _Stream.ReadString(S);
+    _Stream.ReadLine(S);
     If S='' Then
       Break;
 
-    I:=Pos(' ', S);
-    _LastResponse:=_LastResponse+Copy(S, Succ(I), MaxInt)+#13#10;
+    I := Pos(' ', S);
+    J := Pos('-', S);
+    If (J>0) And (J<I) Then
+      I := J;
+
+    _LastResponse := _LastResponse + Copy(S, Succ(I), MaxInt);
     Result := StringToInt(Copy(S, 1, Pred(I)));
-  Until Result<>_LastCode;
+  Until (Result<>_LastCode) And (Result>=100);
 
   _LastResponse := StringTrim(_LastResponse);
   _LastCode := Result;
@@ -142,26 +146,28 @@ Begin
   Log(logDebug, 'FTP', _LastCommand+' -> '+IntToString(Result));
 End;
 
-Constructor FTPSession.Create(URL:TERRAString; Port:Integer);
+Constructor FTPSession.Create(URL:TERRAString; Const Username, Password:TERRAString; Port:Integer);
 Var
   I:Integer;
   S,Path:TERRAString;
-  Username,Password:TERRAString;
 Begin
   _Active := False;
   _ErrorCode := 0;
 
-  I:=Pos('://', URL);
-  S:=StringUpper(Copy(URL, 1, Pred(I)));
-  If S<>'FTP' Then
+  I := Pos('://', URL);
+  If I>0 Then
   Begin
-    RaiseError('Invalid URL.'+#13#10+URL);
-    Exit;
+    S:=StringUpper(Copy(URL, 1, Pred(I)));
+    If S<>'FTP' Then
+    Begin
+      RaiseError('Invalid URL.'+#13#10+URL);
+      Exit;
+    End;
+
+    URL := Copy(URL, I+3, MaxInt);
   End;
 
-  URL:=Copy(URL, I+3, MaxInt);
-
-  I:=Pos('@', URL);
+  {I:=Pos('@', URL);
   If I>0 Then
   Begin
     S:=Copy(URL, 1, Pred(I));
@@ -174,7 +180,7 @@ Begin
   Begin
     Username:='anonymous';
     Password:='';
-  End;
+  End;}
 
   I:=Pos('/', URL);
   If I>0 Then
@@ -186,6 +192,7 @@ Begin
 
   _ServerAddress:=URL;
   _Stream := Socket.Create(_ServerAddress, Port);
+  _Stream.Encoding := encodingASCII;
   If (_Stream.EOF) Or (GetStatus<>220) Then
   Begin
     EndSession(ftp_InvalidSession);
@@ -263,7 +270,6 @@ Begin
     Result := EndSession(ftp_InvalidFile);
     Exit;
   End;
-
 
   FileSize := StringToInt(_LastResponse);
 
@@ -463,8 +469,9 @@ End;
 
 Procedure FTPSession.SendCommand(S:TERRAString);
 Begin
+  S := S + #13#10;
   _LastCommand := S;
-  _Stream.WriteLine(S);
+  _Stream.Write(@S[1], Length(S));
 End;
 
 Function FTPSession.GetSocket(S:TERRAString): Socket;
@@ -500,7 +507,7 @@ begin
 End;
 
 { FTPMirrorSession }
-Constructor FTPMirrorSession.Create(URLList:TERRAString);
+(*Constructor FTPMirrorSession.Create(URLList:TERRAString);
 Var
   URL:TERRAString;
 Begin
@@ -515,7 +522,7 @@ Procedure FTPMirrorSession.NewConnection(URL:TERRAString);
 Begin
   Inc(_SessionCount);
   SetLength(_SessionList,_SessionCount);
-  _SessionList[Pred(_SessionCount)]:=FTPSession.Create(URL);
+  _SessionList[Pred(_SessionCount)] := FTPSession.Create(URL);
 End;
 
 
@@ -562,6 +569,6 @@ Var
 Begin
   For I:=0 To Pred(_SessionCount) Do
     _SessionList[I].PutFile(FileName, Source, Notifier);
-End;
+End;*)
 
 End.

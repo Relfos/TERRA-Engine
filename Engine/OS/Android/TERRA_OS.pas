@@ -5,7 +5,7 @@ Unit TERRA_OS;
 
 Interface
 Uses cmem, TERRA_String, TERRA_Error, TERRA_Utils, TERRA_Application, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
-    TERRA_Vector3D, TERRA_Java, TERRA_Collections, TERRA_Client,
+    TERRA_Vector3D, TERRA_Java, TERRA_Collections, TERRA_Client, TERRA_CollectionObjects,
     sysutils,dateutils,unix, jni;
 
 Const
@@ -749,6 +749,10 @@ Begin
   Log(logDebug, 'App', 'Getting cpu cores');
   _CPUCores := _Utils.CallStaticIntMethod('getCPUCores', Nil);
   Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
+
+  Log(logDebug, 'App', 'Getting package version');
+  _BundleVersion := _Utils.CallStaticStringMethod('getBundleVersion', Nil);
+  Log(logDebug, 'App', 'Found version '+_BundleVersion);
 
   Java_End(Frame);
 

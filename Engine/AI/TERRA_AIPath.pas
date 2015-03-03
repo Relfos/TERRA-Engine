@@ -3,7 +3,7 @@ Unit TERRA_AIPath;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Stream;
+Uses TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Stream;
 
 Const
   //  Search flags

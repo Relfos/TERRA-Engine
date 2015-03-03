@@ -80,6 +80,17 @@ void iPhoneLog(char *s)
     NSLog(@"%s", s);
 }
 
+
+
+void getBundleVersion(char* dest)
+{
+	NSString *versionString = [[NSBundle mainBundle] objectForInfoDictionaryKey:(NSString*)kCFBundleVersionKey];
+    NSLog(@"Found version string %s", versionString);
+    strcpy(dest, [versionString UTF8String]);
+}
+
+
+
 AVAudioPlayer *audioOpen(char *name)
 {
 	AVAudioPlayer *audioPlayer;

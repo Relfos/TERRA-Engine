@@ -39,7 +39,7 @@ Uses TERRA_String, TERRA_Utils, TERRA_Collections
 {$ELSE}, SysUtils{$ENDIF};
 
 Type
-  FileInfo= Class(ListObject)
+  FileInfo = Class(ListObject)
     Public
       Name:TERRAString;
       Path:TERRAString;
@@ -52,6 +52,9 @@ Type
       Procedure CopyValue(Other:ListObject); Override;
       Function Sort(Other:ListObject):Integer; Override;
       Function GetHashKey():HashKey; Override;
+
+    Public
+      Function FullPath():TERRAString;
   End;
 
   Function SearchFiles(Path:TERRAString; Filter:TERRAString; SearchSubDirectories:Boolean):List;
@@ -66,12 +69,18 @@ Type
 {$ENDIF}
 
 Implementation
-Uses TERRA_OS, TERRA_Stream, TERRA_FileStream, TERRA_FileUtils;
+Uses TERRA_OS, TERRA_Stream, TERRA_FileStream, TERRA_FileUtils, TERRA_CollectionObjects;
 
 Function FileInfo.ToString():TERRAString;
 Begin
-  Result := Path+PathSeparator+Name;
+  Result := Self.FullPath();
 End;
+
+Function FileInfo.FullPath():TERRAString;
+Begin
+  Result := Path + PathSeparator + Name;
+End;
+
 
 Procedure FileInfo.CopyValue(Other:ListObject);
 Begin

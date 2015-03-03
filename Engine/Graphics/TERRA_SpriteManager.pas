@@ -80,6 +80,8 @@ Type
       Procedure TileRemapByID(TileID, TilesPerRow, TileSize:Integer);
       Procedure PixelRemap(X1,Y1, X2, Y2:Integer; W:Integer=0; H:Integer=0);
       Procedure UVRemap(_U1,_V1, _U2, _V2:Single);
+
+      Procedure FullRemap();
   End;
 
   Sprite = Class(TERRAObject)
@@ -369,7 +371,7 @@ Begin
   Begin
     Dist := (V.Position.X-X2)/Width;
     V.TexCoord.X := V.TexCoord.X - USize * Dist;
-    V.Position.X := Y2;
+    V.Position.X := X2;
   End;
 
   If (V.Position.Y<Y1) Then
@@ -1145,6 +1147,14 @@ Begin
   Self.V1 := _V1;
   Self.U2 := _U2;
   Self.V2 := _V2;
+End;
+
+Procedure TextureRect.FullRemap;
+Begin
+  Self.U1 := 0.0;
+  Self.V1 := 0.0;
+  Self.U2 := 1.0;
+  Self.V2 := 1.0;
 End;
 
 Procedure TextureRect.PixelRemap(X1, Y1, X2, Y2, W, H: Integer);

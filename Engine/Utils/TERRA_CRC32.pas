@@ -134,6 +134,9 @@ Begin
    End;
     _Values[I] := CRC;
   End;
+
+{  For I:=0 To 255 Do
+    Log(logDebug, 'CRC', CardinalToString(_Values[I]));}
 End;
 
 Initialization

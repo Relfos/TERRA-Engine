@@ -259,7 +259,7 @@ Begin
 
   CurrentTime := GetCurrentTime();
 
-  WriteToLog('Log session started at '+TimeToString(CurrentTime));
+  WriteToLog('Log session started at '+TimeToString(CurrentTime, ':', ':', ''));
   WriteToLog('Engine: TERRA '+VersionToString(EngineVersion){$IFDEF FULLDEBUG}+' [Debug mode]'{$ENDIF});
 {$ENDIF}
 

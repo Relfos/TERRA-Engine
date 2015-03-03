@@ -26,6 +26,7 @@ import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.PackageInfo;
 import android.content.pm.ApplicationInfo;
 import android.provider.Settings;
 import android.provider.Settings.System;
@@ -604,6 +605,20 @@ public class TERRAUtils{
     {
 		if (flurryID!=null)
 			FlurryAgent.onEndSession(TERRAActivity.instance);
+    }
+
+    public static String getBundleVersion()
+    {
+        Context context = TERRAActivity.instance;
+        try {
+            String packageName = context.getPackageName();
+            PackageManager pm = context.getPackageManager();        
+            PackageInfo packageInfo = pm.getPackageInfo(packageName, 0);
+            return packageInfo.versionName;        
+        } catch(Exception e)
+		{						
+			return null;
+		}
     }
     
 	/*public static void msgBox(String msg)

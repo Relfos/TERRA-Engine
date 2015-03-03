@@ -405,7 +405,7 @@ Begin
   Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
 
   Log(logDebug,'App', 'Getting screen resolution...');
-  
+
   _Display := XOpenDisplay(Nil);
   If (Not Assigned(_Display)) Then
   Begin
@@ -416,17 +416,19 @@ Begin
   original_rotation := Nil;
 
   Root := RootWindow(_Display, 0);
-  
-  xrrs := PXRRScreenSizeArray(XRRSizes(_Display, 0, @num_sizes));
-  
-  conf := XRRGetScreenInfo(_Display, Root);
-  current_rate := XRRConfigCurrentRate(conf);
-  original_size_id := XRRConfigCurrentConfiguration(conf, @original_rotation);
-  _Screen.Width := xrrs[original_size_id].width;
-  _Screen.Height := xrrs[original_size_id].height;
 
-  XCloseDisplay(_Display); 
- 
+  xrrs := PXRRScreenSizeArray(XRRSizes(_Display, 0, @num_sizes));
+  If Assigned(xrrs) Then
+  Begin
+    conf := XRRGetScreenInfo(_Display, Root);
+    current_rate := XRRConfigCurrentRate(conf);
+    original_size_id := XRRConfigCurrentConfiguration(conf, @original_rotation);
+    _Screen.Width := xrrs[original_size_id].width;
+    _Screen.Height := xrrs[original_size_id].height;
+  End;
+
+  XCloseDisplay(_Display);
+
   Result := True;
 End;
 

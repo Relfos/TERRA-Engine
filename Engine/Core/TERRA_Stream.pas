@@ -38,7 +38,7 @@ Unit TERRA_Stream;
 Interface
 
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  SysUtils, TERRA_Utils, TERRA_String;
+  SysUtils, TERRA_Utils, TERRA_FileUtils, TERRA_String;
 
 Const
  // Stream access/permission flags
@@ -50,6 +50,9 @@ Const
   smLargeAlloc = 32;
   smDefault = 7; //lfRead Or lfWrite or lfDynamic
 
+  EOL_Unix = 0;
+  EOL_Windows = 1;
+
 Type
   Stream = Class(TERRAObject)
      Protected
@@ -58,6 +61,7 @@ Type
       _Mode:Integer;
       _Name:TERRAString;
       _Encoding:StringEncoding;
+      _EOL:Integer;
 
       Function GetEOF:Boolean;Virtual;
 
@@ -94,6 +98,9 @@ Type
       Procedure ReadString(Out S:TERRAString; NullTerminated:Boolean = False);Virtual;
       Procedure WriteString(Const S:TERRAString; NullTerminated:Boolean = False);Virtual;
 
+      Function ReadHeader(Out S:FileHeader):Boolean; Virtual;
+      Function WriteHeader(Const S:FileHeader): Boolean; Virtual;
+
       Procedure ReadLine(Var S:TERRAString); Virtual;
       Procedure WriteLine(Const S:TERRAString=''); Virtual;
       Procedure WriteChars(Const S:TERRAString); Virtual;
@@ -117,6 +124,8 @@ Type
 
       Property EOF:Boolean Read GetEOF;
 
+      Property EOL:Integer Read _EOL Write _EOL;
+
       Property Name:TERRAString Read _Name Write _Name;
       Property Encoding:StringEncoding Read _Encoding Write _Encoding;
      End;
@@ -132,6 +141,7 @@ Begin
   _Mode := StreamMode;
   _Pos := 0;
   _Encoding := encodingUnknown;
+  _EOL := EOL_Unix;
 End;
 
 Destructor Stream.Destroy;
@@ -286,17 +296,24 @@ Var
   C:TERRAChar;
   I:Integer;
 {$ENDIF}
-  N:Byte;
+  Encoding:Byte;
   Len:Word;
   C:TERRAChar;
 Begin
+  S := '';
+
   If (Not NullTerminated) Then
   Begin
-    ReadByte(N);
-    If N < 255 Then
-      Len := N
-    Else
-      ReadWord(Len);
+    ReadWord(Len);
+    If (Len<=0) Then
+      Exit;
+
+    ReadByte(Encoding);
+    If Encoding <> Byte(CurrentStringEncoding) Then
+    Begin
+      Log(logError, 'IO', 'Unsupported binary string encoding in '+Self.Name);
+      Exit;
+    End;
 
     {$IFDEF OXYGENE}
     If (Len>0) Then
@@ -329,7 +346,6 @@ End;
 Procedure Stream.WriteString(Const S:TERRAString; NullTerminated:Boolean = False);
 Var
   Len:Word;
-  N:Byte;
 {$IFDEF OXYGENE}
   I:Integer;
   C:Byte;
@@ -338,15 +354,11 @@ Begin
   Len := Length(S);
   If (Not NullTerminated) Then
   Begin
-    If (Len<255) Then
-    Begin
-      N := Len;
-      WriteByte(N);
-    End Else
-    Begin
-      WriteByte(255);
-      WriteWord(Len);
-    End;
+    WriteWord(Len);
+    If Len<=0 Then
+      Exit;
+      
+    WriteByte(Byte(CurrentStringEncoding));
   End;
 
   {$IFDEF OXYGENE}
@@ -368,6 +380,9 @@ Procedure Stream.WriteChars(Const S:TERRAString);
 Var
   It:StringIterator;
 Begin
+  If S = '' Then
+    Exit;
+
   StringCreateIterator(S, It);
   While It.HasNext() Do
   Begin
@@ -378,7 +393,11 @@ End;
 Procedure Stream.WriteLine(Const S:TERRAString);
 Begin
   WriteChars(S);
-  WriteChar(NewLineChar);
+
+  If _EOL = EOL_Windows Then
+    WriteChars(#13#10)
+  Else
+    WriteChar(NewLineChar);
 End;
 
 Procedure Stream.ReadLine(Var S:TERRAString);
@@ -390,13 +409,12 @@ Begin
   While (Position<Size) Do
   Begin
     ReadChar(C);
+
     If (C = NewLineChar) Then
       Break
     Else
       StringAppendChar(S, C);
   End;
-
-//  S := StringTrimRight(S);
 End;
 
 Function Stream.GetEOF:Boolean;
@@ -541,9 +559,12 @@ Begin
     Self.ReadByte(A);
     If (A = NewLineChar) Then
     Begin
-      Self.ReadByte(B);
-      If (B<>10) Then
-        Self.Skip(-1);
+      If (Not Self.EOF) Then
+      Begin
+        Self.ReadByte(B);
+        If (B<>10) Then
+          Self.Skip(-1);
+      End;
 
       Value := NewLineChar;
     End Else
@@ -773,5 +794,30 @@ Begin
     End;
   End;
 End;
+
+Function Stream.ReadHeader(out S:FileHeader): Boolean;
+Var
+  I:Integer;
+Begin
+  For I:=1 To 4 Do
+  Begin
+    Result := Self.ReadByte(Byte(S[I]));
+    If Not Result  Then
+      Exit;
+  End;
+End;
+
+Function Stream.WriteHeader(const S:FileHeader): Boolean;
+Var
+  I:Integer;
+Begin
+  For I:=1 To 4 Do
+  Begin
+    Result := Self.WriteByte(Byte(S[I]));
+    If Not Result  Then
+      Exit;
+  End;
+End;
+
 
 End.

@@ -562,7 +562,7 @@ End;
 
 Function TaskGroup.GetProgress: Integer;
 Var
-  I:Integer;
+  I, Finished:Integer;
   N,S:Single;
 Begin
   If (_TaskCount<=0) Then
@@ -573,8 +573,20 @@ Begin
 
   N := 0;
   S := 1/_TaskCount;
+  Finished := 0;
+
   For I:=0 To Pred(_TaskCount) Do
+  Begin
     N := N + _Tasks[I].Progress * S;
+    If _Tasks[I].Progress>=100 Then
+      Inc(Finished);
+  End;
+
+  If (Finished>= _TaskCount) Then
+  Begin
+    Result := 100;
+    Exit;
+  End;
 
   Result := Trunc(N);
 

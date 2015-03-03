@@ -306,7 +306,7 @@ Begin
   S:=Trim(Copy(S, 3, Length(S)));
   P:=Pos(' ', S);
   P2:=PosEx(' ', S, P+1);
-  ReplaceText(',', '.', S);
+  StringReplaceText(',', '.', S);
 
   MyColor.R   := Round(StringToFloat(Copy(S, 1, P-1))*255);
   MyColor.G := Round(StringToFloat(Copy(S, P+1, P2-P-1))*255);
@@ -324,8 +324,8 @@ End;
 //  Get material specular highlight
 Procedure OBJModel.ReadShininess(S:AnsiString);
 Begin
-  S:=Trim(Copy(S, 3, Length(S)));
-  ReplaceText(',', '.', S);
+  S := StringTrim(Copy(S, 3, Length(S)));
+  StringReplaceText(',', '.', S);
 
   _MaterialList[Pred(_MaterialCount)].Shininess := StringToFloat(S);
 End;
@@ -564,7 +564,7 @@ Begin
     Begin
       P := MyMesh.GetVertexPosition(I, J);
       S := Format('v %8.6f %8.6f %8.6f', [P.X, P.Y, P.Z]);
-      ReplaceText(',', '.', S);
+      StringReplaceText(',', '.', S);
       Dest.WriteLine(S);
     End;
   End;
@@ -577,7 +577,7 @@ Begin
     Begin
       P := MyMesh.GetVertexNormal(I, J);
       S := Format('vn %8.6f %8.6f %8.6f', [P.X, P.Y, P.Z]);
-      ReplaceText(',', '.', S);
+      StringReplaceText(',', '.', S);
       Dest.WriteLine(S);
     End;
   End;
@@ -590,7 +590,7 @@ Begin
     Begin
       UV := MyMesh.GetVertexUV(I, J);
       S := Format('vt %8.6f %8.6f', [UV.X, 1.0-UV.Y]);
-      ReplaceText(',', '.', S);
+      StringReplaceText(',', '.', S);
       Dest.WriteLine(S);
     End;
   End;
@@ -637,24 +637,24 @@ Begin
 
       C := MyMesh.GetDiffuseColor(I);
       S := Format('Kd %8.6f %8.6f %8.6f', [C.R/255, C.G/255, C.B/255]);
-      ReplaceText(',', '.', S);
+      StringReplaceText(',', '.', S);
       Dest.WriteLine(S);
 
       If (C.A<255) Then
       Begin
         S := Format('Tr %8.6f', [C.A/255]);
-        ReplaceText(',', '.', S);
+        StringReplaceText(',', '.', S);
         Dest.WriteLine(S);
       End;
 
       C := ColorBlack; //MyMesh.GetSpecularColor(I);
       S := Format('Ks %8.6f %8.6f %8.6f', [C.R/255, C.G/255, C.B/255]);
-      ReplaceText(',', '.', S);
+      StringReplaceText(',', '.', S);
       Dest.WriteLine(S);
 
       F := 0.0; //MyMesh.GetSpecularFactor(I);
       S := Format('Ns %8.6f', [F]);
-      ReplaceText(',', '.', S);
+      StringReplaceText(',', '.', S);
       Dest.WriteLine(S);
 
       S := MyMesh.GetDiffuseMapName(I);

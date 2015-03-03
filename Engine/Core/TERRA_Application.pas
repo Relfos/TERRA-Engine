@@ -256,6 +256,8 @@ Type
       _DeviceScaleX:Single;
       _DeviceScaleY:Single;
 
+      _BundleVersion:TERRAString;
+
       _CurrentUser:TERRAString;
 
       _ChangeToFullScreen:Boolean;
@@ -448,6 +450,7 @@ Type
 			Property FullScreen:Boolean Read _Fullscreen;
       Property Language:TERRAString Read _Language Write SetLanguage;
       Property Country:TERRAString Read _Country;
+      Property BundleVersion:TERRAString Read _BundleVersion;
       Property CurrentUser:TERRAString Read _CurrentUser;
 
       Property UI_Width:Integer Read _UIWidth;
@@ -1058,7 +1061,9 @@ Begin
        Break;
      End;
   End;
-  End;
+End;
+
+  Log(logDebug, 'App', 'Application is finishing...');
 
   Self.Finish();
   Result := False;
@@ -1323,11 +1328,11 @@ Begin
   For I:=1 To keyGamepadL4 Do
   If StringEquals(GetKeyName(I), KeyName) Then
   Begin
-    Result:=I;
+    Result := I;
     Exit;
   End;
 
-  Result := StringToInt(KeyName);
+  Result := StringToInt(KeyName, False);
 End;
 
 Function GetProgramName:TERRAString;
@@ -1421,6 +1426,8 @@ Begin
   End;
   _RefreshingComponents := False;
 
+  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'Running', 'Finished refreshing components!');{$ENDIF}{$ENDIF}
+  
   {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 
@@ -2208,4 +2215,4 @@ Initialization
 
 Finalization
   //ShutdownComponents;
-End.
+End.

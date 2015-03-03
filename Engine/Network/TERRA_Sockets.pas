@@ -65,8 +65,8 @@ Type
   SocketAddress = Packed Record
     Family:Word;
     Port:Word;
-    Address:Integer;
-    Zero:Array[1..8]Of TERRAChar;
+    Address:Cardinal;
+    Zero:Array[1..8]Of Byte;
   End;
 
   PHostEntity=^THostEntity;
@@ -103,11 +103,11 @@ Type
   Function closesocket(socket:Integer):Integer;StdCall; external WinSockDLL;
   Function connect(socket:Integer;Var Addr:SocketAddress;AddrLen:Integer):Integer; Stdcall; external WinSockDLL;
   Function send(socket:Integer;Var Buffer;Length,Flags:Integer):Integer; Stdcall;external WinSockDLL;
-  Function sendto(socket:Integer;Var Buffer;Length:Longint;Flags:Longint;Var addrto:SocketAddress;tolen:Longint):Longint;StdCall; external WinSockDLL;
+  Function sendto(socket:Integer;Var Buffer;Length:Integer;Flags:Integer;Var addrto:SocketAddress;tolen:Integer):Integer;StdCall; external WinSockDLL;
   Function recv(socket:Integer;Var Buffer;len,flags:Integer):Integer;StdCall; external WinSockDLL;
   Function recvfrom(socket:Integer;Var Buffer;Len,Flags:Integer;Var AddrFrom:SocketAddress;Var FromLen:Integer):SmallInt;StdCall; external WinSockDLL;
-  Function inet_addr(Addr:PAnsiChar):Integer;StdCall; external WinSockDLL;
-  Function ioctlsocket(socket:Integer;cmd:Cardinal;var argp:Integer):Longint;StdCall; external WinSockDLL;
+  Function inet_addr(Addr:PAnsiChar):Cardinal;StdCall; external WinSockDLL;
+  Function ioctlsocket(socket:Integer;cmd:Cardinal;var argp:Integer):Integer;StdCall; external WinSockDLL;
   Function htons(hostshort:Word):Word;StdCall; external WinSockDLL;
   Function listen(socket:Integer;Backlog:Integer):Integer;StdCall; external WinSockDLL;
   Function accept(socket:Integer;Var Addr:SocketAddress;Var Len:Integer):Integer; StdCall; external WinSockDLL;
@@ -116,26 +116,27 @@ Type
   Function setsockopt(socket:Integer;level,optname:Integer;optval:Pointer;optlen:Integer): Integer;Stdcall;external WinSockDLL;
   Function shutdown(Socket:Integer;how:Integer):Integer; Stdcall;external WinSockDLL;
 {$ELSE}
-  function accept(s:longint; Var addr:SocketAddress; Var len:Integer):longint;cdecl;external 'libc' name 'accept';
-  function bind(s:longint; Var addr:SocketAddress; tolen:Integer):longint;cdecl;external 'libc' name 'bind';
-  function connect(s:longint; Var addr:SocketAddress; len:Integer):longint;cdecl;external 'libc' name 'connect';
-  function listen(s:longint; backlog:longint):longint;cdecl;external 'libc' name 'listen';
-  function recv(s:longint; Var buffer; len, flags:longint):integer;cdecl;external 'libc' name 'recv';
-  function recvfrom(s:longint; Var buf; len, flags:longint; Var from:Socketaddress;
+  function accept(s:Integer; Var addr:SocketAddress; Var len:Integer):Integer;cdecl;external 'libc' name 'accept';
+  function bind(s:Integer; Var addr:SocketAddress; tolen:Integer):Integer;cdecl;external 'libc' name 'bind';
+  function connect(s:Integer; Var addr:SocketAddress; len:Integer):Integer;cdecl;external 'libc' name 'connect';
+  function listen(s:Integer; backlog:Integer):Integer;cdecl;external 'libc' name 'listen';
+  function recv(s:Integer; Var buffer; len, flags:Integer):integer;cdecl;external 'libc' name 'recv';
+  function recvfrom(s:Integer; Var buf; len, flags:Integer; Var from:Socketaddress;
            Var fromlen:Integer):Integer;cdecl;external 'libc' name 'recvfrom';
-  function send(s:longint; Var buffer; len, flags:longint):Integer;cdecl;external 'libc' name 'send';
-  function sendto(s:longint; Var buffer; len, flags:longint; Var _to:Socketaddress;
+  function send(s:Integer; Var buffer; len, flags:Integer):Integer;cdecl;external 'libc' name 'send';
+  function sendto(s:Integer; Var buffer; len, flags:Integer; Var _to:Socketaddress;
            tolen:Integer):Integer;cdecl;external 'libc' name 'sendto';
-  function setsockopt(s:longint; level:longint; optname:longint; optval:pointer; optlen:Integer):longint;cdecl;external 'libc' name 'setsockopt';
-  function shutdown(s:longint; how:longint):longint;cdecl;external 'libc' name 'shutdown';
-  function _socket(domain:longint; _type:longint; protocol:longint):longint;cdecl;external 'libc' name 'socket';
-  function closesocket(sock:longint):Longint; external 'libc' name
+  function setsockopt(s:Integer; level:Integer; optname:Integer; optval:pointer; optlen:Integer):Integer;cdecl;external 'libc' name 'setsockopt';
+  function shutdown(s:Integer; how:Integer):Integer;cdecl;external 'libc' name 'shutdown';
+  function _socket(domain:Integer; _type:Integer; protocol:Integer):Integer;cdecl;external 'libc' name 'socket';
+  function closesocket(sock:Integer):Integer; external 'libc' name
   {$IFDEF OSX}'_close'{$ELSE}
   {$IFDEF IPHONE}'_close'{$ELSE}'close'{$ENDIF}{$ENDIF};
 
+
   Function gethostbyname(name:PAnsiChar):PHostEntity; cdecl; external 'libc' name 'gethostbyname';
-    Function gethostname(namee:PAnsiChar; length:longint):longint;cdecl;external 'libc' name 'gethostname';
-    function ioctl(_para1:longint; _para2:longint; arg3:Pointer):longint;cdecl; external 'libc' name 'ioctl';
+    Function gethostname(namee:PAnsiChar; length:Integer):Integer;cdecl;external 'libc' name 'gethostname';
+    function ioctl(_para1:Integer; _para2:Integer; arg3:Pointer):Integer;cdecl; external 'libc' name 'ioctl';
   Function fcntl(s, cmd:Integer; arg:Int64):Integer; cdecl; external 'libc' name 'fcntl';
 {$ENDIF}
 
@@ -145,7 +146,7 @@ Type
       _Handle:Integer;
       _Blocking:Boolean;
       _Closed:Boolean;
-      _Address:Integer;
+      _Address:Cardinal;
       _Error:Boolean;
 
       Function GetEOF:Boolean;Override;
@@ -155,8 +156,10 @@ Type
       Constructor Create(Const Host:TERRAString; Port:Word); Overload;
       Destructor Destroy; Override;
 
-      Function Read(Data:Pointer; Size:Cardinal):Cardinal;Override;
-      Function Write(Data:Pointer; Size:Cardinal):Cardinal;Override;
+      Function Read(Data:Pointer; Size:Cardinal):Cardinal; Override;
+      Function Write(Data:Pointer; Size:Cardinal):Cardinal; Override;
+
+      Procedure ReadLine(Var S:TERRAString); Override;
 
       Procedure SetBlocking(Block:Boolean);
       Procedure SetDelay(Delay:Boolean);
@@ -165,7 +168,7 @@ Type
 
       Property Closed:Boolean Read _Closed;
       Property Blocking:Boolean Read _Blocking Write SetBlocking;
-      Property Address:Integer Read _Address;
+      Property Address:Cardinal Read _Address;
       Property Error:Boolean Read _Error;
   End;
 
@@ -182,15 +185,15 @@ Type
   Function GetIP(IP:Cardinal):TERRAString;
 
 {$IFNDEF WINDOWS}
-Function inet_addr(IP:PAnsiChar):Integer;
-Function htons(host:Word):Word;
+Function inet_addr(IP:PAnsiChar):Cardinal;
+Function htons(Value:Word):Word;
 {$ENDIF}
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_Application;
 
 {$IFNDEF WINDOWS}
-Function inet_addr(IP:PAnsiChar):Integer;
+Function inet_addr(IP:PAnsiChar):Cardinal;
 Var
   S:TERRAString;
   I,j,k:Cardinal;
@@ -204,14 +207,14 @@ Begin
   Temp[1] := StringToInt(S);
 
   Result := Temp[4];
-  Result := Result Or Integer( (Temp[3]) Shl 8);
-  Result := Result Or Integer( (Temp[2]) Shl 16);
-  Result := Result Or Integer( (Temp[1]) Shl 24);
+  Result := Result Or (Temp[3]) Shl 8;
+  Result := Result Or (Temp[2]) Shl 16;
+  Result := Result Or (Temp[1]) Shl 24;
 end;
 
-Function htons(host:Word):Word;
+Function htons(Value:Word):Word;
 Begin
-    Result := Swap(Host);
+     Result := Swap(Value);
 End;
 {$ENDIF}
 
@@ -319,12 +322,12 @@ Var
 Begin
   HostName := StringLower(HostName);
 
-  For I:=0 To Pred(_AddressCount) Do
+{For I:=0 To Pred(_AddressCount) Do
   If (_Addresses[I].Name = HostName) Then
   Begin
     Result := _Addresses[I].IP;
     Exit;
-  End;
+  End;}
 
   Result := ResolveHostAddress(HostName);
   Inc(_AddressCount);
@@ -397,6 +400,9 @@ Begin
     Exit;
   End;
 
+  //Zero fill
+  FillChar(Addr, SizeOf(Addr), 0);
+
   //Set the address format
   Addr.Family := PF_INET;
   //Convert to network byte order (using htons) and set port
@@ -404,9 +410,6 @@ Begin
   //Specify the IP
   Addr.Address := inet_addr(PAnsiChar(IP));
   _Address := Addr.Address;
-
-  //Zero fill
-  FillChar(Addr.Zero[1], 8, 0);
 
   Log(logDebug, 'Sockets', 'Connecting');
   N := TERRA_Sockets.connect(_Handle, Addr, SizeOf(Addr));
@@ -431,8 +434,13 @@ Destructor Socket.Destroy;
 Begin
   If (_Handle>=0) Then
   Begin
+      Log(logDebug, 'Sockets', 'Shutting down socket '+IntToString(_Handle));
     Shutdown(_Handle, 2);
-    CloseSocket(_Handle);
+
+      Log(logDebug, 'Sockets', 'Closing down socket '+IntToString(_Handle));
+      CloseSocket(_Handle);
+
+      Log(logDebug, 'Sockets', 'Destroying socket... ');
   End;
 End;
 
@@ -554,6 +562,23 @@ Begin
     Result := N;
 End;
 
+Procedure Socket.ReadLine(Var S:TERRAString);
+Var
+  C:TERRAChar;
+Begin
+  S :='';
+  C := NullChar;
+  While (Not Self.EOF) Do
+  Begin
+    ReadChar(C);
+
+    If (C = NewLineChar) Then
+    Begin
+      Break;
+    End Else
+      StringAppendChar(S, C);
+  End;
+End;
 
 Type
   WaitingSocket=Record
@@ -593,10 +618,10 @@ Begin
 
     MakeNonBlocking(WaitingList[ID].Handle, False);
 
-    Opv := 0;
+    Opv := 1;
     If (setsockOpt(WaitingList[ID].Handle, SOL_Socket, SO_REUSEADDR, @Opv, SizeOf(Opv)) = SOCKET_ERROR) Then
     Begin
-      Log(logError, 'Sockets', 'Unable to change socket mode.');      
+      Log(logWarning, 'Sockets', 'Unable to change socket mode for socket with handle '+IntToString((WaitingList[ID].Handle)));      
     End;
 
     Addr.Family := PF_INET;
@@ -666,7 +691,7 @@ End;
 {$IFDEF WINDOWS}
 Var
  Data:WSADATA;
- N:Longint;
+ N:Integer;
 {$ENDIF}
 Initialization
 {$IFDEF WINDOWS}
@@ -680,4 +705,4 @@ Finalization
 {$IFDEF WINDOWS}
   WSACleanup;
 {$ENDIF}
-End.
+End.
