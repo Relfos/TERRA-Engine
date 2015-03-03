@@ -18,11 +18,12 @@ uses
   SysUtils,
   Ships_Opcodes,
   TERRA_Sockets,
+  TERRA_MultiThreadedServer,
   TERRA_NetServer,
   TERRA_Network;
 
 Type
-  MyServer = Class(NetServer)
+  MyServer = Class(NetMultithreadedServer)
     Constructor Create(Version,Port:Word; MaxClients:Word);
 
     Procedure OnClientAdd(Client:ClientInfo); Override;    //Event: When a new Client enter the server
