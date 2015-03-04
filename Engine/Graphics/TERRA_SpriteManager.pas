@@ -453,6 +453,8 @@ Begin
   Result._IsFont := IsFont;
   Result._Outline := Outline;
 
+  Result._Transform := MatrixIdentity3x3;
+
   SpriteTexture.BilinearFilter := BilinearFilter;
 //  SpriteTexture.Wrap := True;
   SpriteTexture.MipMapped := False;
