@@ -1,4 +1,4 @@
-Unit TERRA_AIPath;
+Unit TERRA_AIGraphPath;
 
 {$I terra.inc}
 
@@ -15,97 +15,42 @@ Const
 
 Type
   //  Search results
-  PathSearchResult=(
-    srSearchComplete      = 0,
-    srSearchTimeOut       = 1,
-    srSearchLimitReached  = 2,
-    srSearchFailed        = 3
-  );
-
   PathNodeState = (nsInactive,nsActive,nsDiscarded);
 
-  PPathNodeInfo2D = ^PathNodeInfo2D;
-  PathNodeInfo2D = Record
-    X,Y:Integer;
-    ID:Integer;
-    Previous:PPathNodeInfo2D;
-    Cost:Integer;
-    State:PathNodeState;
-  End;
 
-  PPathNode2D = ^PathNode2D;
-  PathNode2D = Packed Record
-    X:Integer;
-    Y:Integer;
-  End;
-
-  Path2D = Record
-    List:Array Of PathNode2D;
-    Size:Integer;
-    Position:Integer;
-  End;
-
-  Pathfinder2D = Class
+  GraphPathVertex = Class
     Protected
-      CurrentX:Integer;
-      CurrentY:Integer;
-
-      EndX:Integer;
-      EndY:Integer;
-
-      Function GetCost(X,Y:Integer):Integer; Virtual;
-      Procedure VisitNode(X,Y:Integer); Virtual;
-
-      Procedure CreatePath(Node:PPathNodeInfo2D; Var Path:Path2D);
+      _ID:Integer;
+      _Position:Vector3D;
+      _Adjacents:Array Of GraphPathVertex3D;
+      _AdjacentCount:Integer;
 
     Public
-
-      // Search a path in a limited area
-      Function Search(StartX,StartY:Integer;
-                      EndX,EndY:Integer;
-                      MinX,MinY:Integer;
-                      MaxX,MaxY:Integer;
-                      Var Path:Path2D;
-                      Flags:Integer=sfSearchTimeOut):PathSearchResult;Overload;
-
-      // Search a path in a infinite area
-      Function Search(StartX,StartY:Integer;
-                      EndX,EndY:Integer;
-                      Var Path:Path2D;
-                      Flags:Integer=sfSearchTimeOut):PathSearchResult;Overload;
-
+      Property Position:Vector3D Read _Position;
   End;
 
+  GraphPath = Class
+    Protected
+      _List:Array Of Vector3D;
+      _Size:Integer;
+      _Position:Integer;
+    Public
+  End;
 
-  PPathVertex3D = ^PathVertex3D;
-  PathVertex3D = Record
+  GraphPathNodeInfo = Record
+    Vertex:GraphPathVertex;
     ID:Integer;
-    Position:Vector3D;
-    Adjacents:Array Of PPathVertex3D;
-    AdjacentCount:Integer;
-  End;
-
-  Path3D = Record
-    List:Array Of Vector3D;
-    Size:Integer;
-    Position:Integer;
-  End;
-
-  PPathNodeInfo3D =^ PathNodeInfo3D;
-  PathNodeInfo3D = Record
-    Vertex:PPathVertex3D;
-    ID:Integer;
-    Previous:PPathNodeInfo3D;
+    Previous:GraphPathNodeInfo;
     Cost:Integer;
     State:PathNodeState;
   End;
 
-  Pathfinder3D = Class
+  GraphPathfinder = Class
     Protected
-      _VertexList:Array Of PathVertex3D;
+      _VertexList:Array Of GraphPathVertex;
       _VertexCount:Integer;
-      _CurrentVertex:PPathVertex3D;
-      _EndVertex:PPathVertex3D;
+      _CurrentVertex:GraphPathVertex;
+      _EndVertex:GraphPathVertex;
 
       Function GetCost(Vertex:PPathVertex3D):Integer;Virtual;
       Procedure VisitNode(Vertex:PPathVertex3D);Virtual;
@@ -188,9 +133,9 @@ Begin
   End;
 End;
 
-Function Pathfinder2D.Search(StartX,StartY,EndX,EndY:Integer;
+Function Pathfinder2D.SearchWithBounds(StartX,StartY,EndX,EndY:Integer;
                             MinX,MinY,MaxX,MaxY:Integer;
-                            Var Path:Path2D;
+                            Out Path:Path2D;
                             Flags:Integer=sfSearchTimeOut):PathSearchResult;
 Var
   NodeList:Array Of PathNodeInfo2D;
@@ -308,7 +253,7 @@ Begin
 End;
 
 Function Pathfinder2D.Search(StartX,StartY,EndX,EndY:Integer;
-                            Var Path:Path2D;
+                            Out Path:Path2D;
                             Flags:Integer=sfSearchTimeOut):PathSearchResult;
 Var
   NodeList:Array[0..Pred(MaxSearchNodes)] Of PathNodeInfo2D;
@@ -422,7 +367,7 @@ Begin
     Result:=srSearchTimeOut;
 End;
 
-// LPathfinder3D
+{ Pathfinder3D }
 
 Constructor Pathfinder3D.Create(VertexCount:Integer);
 Begin
