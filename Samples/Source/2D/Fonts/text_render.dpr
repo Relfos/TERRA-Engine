@@ -45,7 +45,7 @@ End;
 // OnIdle is called once per frame, put your game logic here
 Procedure MyGame.OnDestroy;
 Begin
-  _Scene.Destroy();
+  ReleaseObject(_Scene);
 End;
 
 Procedure MyGame.OnIdle;

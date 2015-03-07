@@ -40,7 +40,7 @@ Method ConnectionEnd() is called when connection ends or fails}
     Procedure OnPlayerData(Msg:NetMessage; Sock:Socket);
 
     Constructor Create;
-    Destructor Destroy;
+    Procedure Release; Override;
   End;
 
   Explosion = Record
@@ -136,7 +136,7 @@ Var
 Begin
   If (ConnectionFail) And (Assigned(_Client)) Then
   Begin
-    _Client.Destroy();
+    _Client.Release();
     _Client := Nil;
   End;
 
@@ -203,7 +203,7 @@ Begin
             Msg.WriteSingle(_Ships[I].Y);
             Msg.WriteSingle(_Ships[I].Rotation);
             _Client.SendMessage(Msg);  // send it
-            FreeAndNil(Msg);
+            ReleaseObject(Msg);
 
             NetUpdate := GetTime;
           End;
@@ -266,7 +266,7 @@ End;
 Procedure MyGame.OnDestroy;
 Begin
   If Assigned(_Client) Then
-    _Client.Destroy;
+    _Client.Release;
 End;
 
 Procedure MyGame.OnIdle;
@@ -313,21 +313,21 @@ End;
 { MyClient }
 Constructor MyNetClient.Create;
 Begin
-  Inherited Create();
+  Inherited;
   Self.AddHandler(netPlayerDrop, OnPlayerDrop);
   Self.AddHandler(netPlayerData, OnPlayerData);
 End;
 
-Destructor MyNetClient.Destroy;
+Procedure MyNetClient.Release;
 Var
   Msg:NetMessage;
 Begin
   Msg := NetMessage.Create(netPlayerDrop);
   Msg.WriteInteger(_MyID);
   SendMessage(Msg);
-  FreeAndNil(Msg);
+  ReleaseObject(Msg);
 
-  Inherited Destroy;
+  Inherited;
 End;
 
 Procedure MyNetClient.ConnectionStart;

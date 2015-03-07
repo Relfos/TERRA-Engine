@@ -63,9 +63,9 @@ End;
 
 Procedure Game.OnDestroy;
 Begin
-  Sphere.Destroy;
-  P.Destroy;
-  Sun.Destroy;
+  Sphere.Release;
+  P.Release;
+  Sun.Release;
 End;
 
 Procedure Game.OnIdle;
@@ -83,9 +83,9 @@ Begin
   Sky := Skybox.Create('sky');
 End;
 
-Destructor MyScene.Destroy;
+Destructor MyScene.Release;
 begin
-  Sky.Destroy;
+  Sky.Release;
 end;
 
 Procedure MyScene.RenderSprites;

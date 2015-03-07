@@ -13,6 +13,8 @@ Type
 
 			Procedure OnCreate; Override;
 			Procedure OnIdle; Override;
+
+			Procedure OnMouseMove(X,Y:Integer); Override;
   End;
 
   // A scene is used to render objects
@@ -62,25 +64,9 @@ End;
 
 // OnIdle is called once per frame, put your game logic here
 Procedure MyGame.OnIdle;
-Var
-  Delta:Single;
 Begin
   If Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
-
-  Delta := GraphicsManager.Instance.ElapsedTime;
-
-  If (Application.Instance.Input.Keys.WasPressed(keyLeft)) Then
-    Percent := Percent - Delta;
-
-  If (Application.Instance.Input.Keys.WasPressed(keyRight)) Then
-    Percent := Percent + Delta;
-
-  If (Percent<0) Then
-    Percent := 0
-  Else
-  If (Percent>1) Then
-    Percent := 1.0;
 End;
 
 { MyScene }
@@ -105,6 +91,12 @@ Begin
 
     S.Rect.U2 := S.Rect.Width / UIManager.Instance.Width;
   End;
+End;
+
+// Called every time the mouse moves
+Procedure MyGame.OnMouseMove(X, Y: Integer);
+Begin
+  Percent := X / Application.Instance.Width;
 End;
 
 Begin

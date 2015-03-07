@@ -52,7 +52,7 @@ End;
 // OnIdle is called once per frame, put your game logic here
 Procedure MyGame.OnDestroy;
 Begin
-  _Scene.Destroy();
+  ReleaseObject(_Scene);
 End;
 
 Procedure MyGame.OnIdle;
@@ -63,13 +63,13 @@ Begin
   If (Application.Instance.Input.Keys.WasPressed(keyLeft)) And (_SelectedLanguage>1) Then
   Begin
     Dec(_SelectedLanguage);
-    StringManager.Instance.SetLanguage(LanguageList[_SelectedLanguage]);
+    LocalizationManager.Instance.SetLanguage(LanguageList[_SelectedLanguage]);
   End;
 
   If (Application.Instance.Input.Keys.WasPressed(keyright)) And (_SelectedLanguage<LanguageCount) Then
   Begin
     Inc(_SelectedLanguage);
-    StringManager.Instance.SetLanguage(LanguageList[_SelectedLanguage]);
+    LocalizationManager.Instance.SetLanguage(LanguageList[_SelectedLanguage]);
   End;
 End;
 
@@ -93,9 +93,9 @@ Begin
   If Assigned(_Font) Then
   Begin
     _Font.DrawText(50, 90, 10, ' Language: ' + GetLanguageDescription(LanguageList[_SelectedLanguage]), ColorWhite, 1.0, True);
-    _Font.DrawText(100, 160, 10, StringManager.Instance.GetString('score') + ': 1000', ColorYellow, 1.0, True);
-    _Font.DrawText(100, 190, 10, StringManager.Instance.GetString('totaltime') + ': 1:23', ColorYellow, 1.0, True);
-    _Font.DrawText(100, 230, 10, StringManager.Instance.GetString('coinscollected') + ': 56', ColorYellow, 1.0, True);
+    _Font.DrawText(100, 160, 10, LocalizationManager.Instance['score'] + ': 1000', ColorYellow, 1.0, True);
+    _Font.DrawText(100, 190, 10, LocalizationManager.Instance['totaltime'] + ': 1:23', ColorYellow, 1.0, True);
+    _Font.DrawText(100, 230, 10, LocalizationManager.Instance['coinscollected'] + ': 56', ColorYellow, 1.0, True);
 
   End;
 End;

@@ -13,10 +13,9 @@ program sample_server;
   ValidateClient() - Used to autenthicate a client username/password. Return zero in case of sucess, or an error code in case of failure
 }
 
-uses
-  windows,
-  SysUtils,
+Uses
   Ships_Opcodes,
+  TERRA_Utils,
   TERRA_Sockets,
   TERRA_MultiThreadedServer,
   TERRA_NetServer,
@@ -66,9 +65,8 @@ begin
   WriteLn('Starting server version ',GameVersion,' at port ',GamePort);
   _Server := MyServer.Create(GameVersion, GamePort, MaxClients);
   Repeat
-    _Server.Update;
-    Sleep(1);
+    _Server.Update();
   Until False;
-  _Server.Destroy();
+  ReleaseObject(_Server);
 end.
 

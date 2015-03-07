@@ -24,7 +24,7 @@ Type
 
   MyScene = Class(Scene)
       Constructor Create;
-      Destructor Destroy; Reintroduce;
+      Procedure Release; Override;
   End;
 
 Var
@@ -79,7 +79,7 @@ End;
 
 Procedure Game.OnDestroy;
 Begin
-  _Scene.Destroy();
+  ReleaseObject(_Scene);
 End;
 
 Procedure Game.OnIdle;
@@ -214,7 +214,7 @@ Begin
   ShowBtn.OnMouseClick := OnShowClick; // Assign a onClick event handler
 End;
 
-Destructor MyScene.Destroy;
+Procedure MyScene.Release;
 Begin
 End;
 

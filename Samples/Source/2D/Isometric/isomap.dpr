@@ -42,9 +42,6 @@ Type
   End;
 
   MyScene = Class(Scene)
-      Constructor Create;
-      Destructor Destroy; Override;
-
       Procedure RenderSprites(V:Viewport); Override;
   End;
 
@@ -123,7 +120,7 @@ End;
 
 Procedure Game.OnDestroy;
 Begin
-  _Scene.Destroy();
+  ReleaseObject(_Scene);
 End;
 
 Procedure Game.OnIdle;
@@ -153,14 +150,6 @@ Begin
 End;
 
 { MyScene }
-Constructor MyScene.Create;
-Begin
-End;
-
-Destructor MyScene.Destroy;
-Begin
-End;
-
 // This is called every frame, so we put here our main loop code
 Procedure MyScene.RenderSprites(V:Viewport);
 Var

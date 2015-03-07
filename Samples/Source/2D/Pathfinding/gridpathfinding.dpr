@@ -156,9 +156,9 @@ End;
 Procedure MyGame.OnDestroy;
 Begin
   // Destroy pathfinder object
-  _Pathfinder.Destroy;
-  
-  _Scene.Destroy();
+  ReleaseObject(_Pathfinder);
+
+  ReleaseObject(_Scene);
 End;
 
 { MyScene }
@@ -237,8 +237,7 @@ Begin
       Inc(GhostPosition);
     End Else
     Begin
-      GhostPath.Destroy();
-      GhostPath := Nil;
+      ReleaseObject(GhostPath);
     End;
   End;
 
@@ -250,6 +249,7 @@ Procedure MyGame.SelectResolution2D(Var Width, Height:Integer; Var Scale:Single)
 Begin
   Width := MapSize * TileSize;
   Height := MapSize * TileSize;
+  Scale := 4.0;
 End;
 
 Procedure MyGame.OnMouseDown(X,Y:Integer;Button:Word);

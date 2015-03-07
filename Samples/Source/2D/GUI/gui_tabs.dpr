@@ -21,7 +21,6 @@ Type
 
   MyScene = Class(Scene)
       Constructor Create;
-      Destructor Destroy; Reintroduce;
   End;
 
 Var
@@ -131,10 +130,6 @@ Begin
   W := UILabel.Create('mylabel', MyUI, MyWnd, 10, 5, 10, 'This is an aligned text label.');
   W.Align := waBottomRight;
   W.TabIndex := 2;
-End;
-
-Destructor MyScene.Destroy;
-Begin
 End;
 
 {$IFDEF IPHONE}

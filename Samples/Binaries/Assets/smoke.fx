@@ -1,0 +1,28 @@
+group
+{
+	texture=smoke
+	emissionRate=60
+	spawnrange=3
+	minRed=200
+	maxRed=255
+	minGreen=0
+	maxGreen=50
+	minBlue=0
+	maxBlue=30
+	minAlpha=60
+	maxAlpha=200
+	colormode = 1
+	minSize=0.7
+	maxSize=2.2
+	minDecay=1.5
+	maxDecay=4
+	mindirx=-0.4
+    maxdirx=0.4
+	mindiry=1.0
+    maxdiry=1.0   
+	mindirz=-0.4
+    maxdirz=0.4
+	minvelocity=2.8
+	maxvelocity=4.8
+    frames=4 
+}

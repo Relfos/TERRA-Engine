@@ -5,7 +5,7 @@ Uses
 {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
   TERRA_Application, TERRA_Client, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
   TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_UI, TERRA_Lights, TERRA_Viewport,
-  TERRA_PNG, TERRA_RenderTarget, TERRA_Solids, TERRA_Texture,
+  TERRA_JPG, TERRA_PNG, TERRA_RenderTarget, TERRA_Solids, TERRA_Texture,
   TERRA_FileManager, TERRA_Scene, TERRA_Mesh, TERRA_Skybox, TERRA_Color, TERRA_Matrix4x4,
   TERRA_ScreenFX;
 
@@ -14,7 +14,7 @@ Type
       Sky:Skybox;
 
       Constructor Create;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure RenderSprites(V:Viewport); Override;
       Procedure RenderViewport(V:Viewport); Override;
@@ -76,10 +76,10 @@ End;
 
 Procedure Game.OnDestroy;
 Begin
-  _Scene.Destroy;
+  _Scene.Release;
 
-  Sun.Destroy();
-  Solid.Destroy;
+  Sun.Release();
+  Solid.Release;
 End;
 
 Procedure Game.OnIdle;
@@ -97,10 +97,10 @@ Begin
   Sky := Skybox.Create('sky');
 End;
 
-Destructor MyScene.Destroy;
-begin
-  Sky.Destroy;
-end;
+Procedure MyScene.Release;
+Begin
+  Sky.Release;
+End;
 
 Procedure MyScene.RenderSprites;
 Begin

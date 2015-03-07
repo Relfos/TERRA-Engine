@@ -41,7 +41,7 @@ End;
 Procedure Game.OnDestroy;
 Begin
   MusicManager.Instance.Stop();
-  _Scene.Destroy;
+  ReleaseObject(_Scene);
 End;
 
 Procedure Game.OnIdle;
