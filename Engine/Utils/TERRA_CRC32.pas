@@ -2,14 +2,14 @@ Unit TERRA_CRC32;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Stream;
+Uses TERRA_String, TERRA_Utils, TERRA_Stream;
 
 Const
   TERRAPolynomial = $04c11db7;
   PNGPolynomial   = $EDB88320;
 
 Type
-  CRC32Table = Class
+  CRC32Table = Class(TERRAObject)
     Protected
       _Values:Array[0..255]Of Cardinal;
 
@@ -25,7 +25,7 @@ Function GetCRC32(Source:Pointer; Size:Integer; Table:CRC32Table = Nil):Cardinal
 Procedure CRC32_Update(Var CRC:Cardinal; Const Value:Byte; Table:CRC32Table = Nil);
 
 Implementation
-Uses TERRA_Log, TERRA_Utils;
+Uses TERRA_Log;
 
 Var
   _DefaultTable:CRC32Table;
@@ -143,5 +143,5 @@ Initialization
   Log(logDebug, 'CRC', 'Initializing');
   _DefaultTable := CRC32Table.Create(TERRAPolynomial);
 Finalization
-  _DefaultTable.Destroy();
+  _DefaultTable.Release();
 End.

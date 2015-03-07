@@ -67,7 +67,7 @@ Type
 
     Public
       Function Generate(VertexData, IndexData, EdgeData:Pointer; VertexCount, TriangleCount:Integer; VertexSize:Integer; DynamicUsage:Boolean):Boolean;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure AddAttribute(Name:TERRAString; Count:Integer; Format:Integer; Normalized:Boolean; Skip:Boolean = False);
       Procedure SetIndexList(IndexList:Pointer; TriangleCount:Integer);
@@ -174,7 +174,7 @@ Type
       FogStart:Single;
       FogHeight:Single;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Property ShadowSplitCount:Integer Read _ShadowSplitCount Write _ShadowSplitCount;
       Property ShadowSplitWeight:Single Read _ShadowSplitWeight Write _ShadowSplitWeight;
@@ -188,7 +188,7 @@ Type
       Property VertexCacheSize:Integer Read _VertexCacheSize;
 	End;
 
-  Renderer = Class
+  Renderer = Class(TERRAObject)
     Function CreateTexture():TextureInterface; Virtual; Abstract;
     Function CreateVertexBuffer():VertexBufferInterface; Virtual; Abstract;
   End;

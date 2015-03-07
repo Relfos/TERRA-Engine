@@ -40,7 +40,7 @@ Begin
       S2 := StringGetNextSplit(S, Ord(','));
       Result.Add(KeyPairObject.Create(S2,S));
     End;
-    Source.Destroy;
+    Source.Release;
   End;
 End;
 

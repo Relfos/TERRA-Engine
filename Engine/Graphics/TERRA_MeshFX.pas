@@ -42,7 +42,6 @@ Type
 
   MeshExplosion = Class(MeshFX)
     Protected
-      _Target:Mesh;
       _StartTime:Cardinal;
       _Duration:Integer;
       _Radius:Single;
@@ -52,12 +51,15 @@ Type
       _DebrisCount:Integer;
       _Indices:Array Of Integer;
 
+      _Initialized:Boolean;
+
+      Procedure InitTarget();
       Procedure InitDebris(StartVertex, Index:Integer; Normal:Vector3D);
 
     Public
-      Constructor Create(Target:MeshInstance; Duration:Integer);
-      
-      Procedure Update; Override;
+      Constructor Create(Duration:Integer);
+
+      Function Update():Boolean; Override;
   End;
 
 
@@ -66,7 +68,13 @@ Uses TERRA_OS, TERRA_Math;
 
 
 { MeshExplosion }
-Constructor MeshExplosion.Create(Target: MeshInstance; Duration:Integer);
+Constructor MeshExplosion.Create(Duration:Integer);
+Begin
+  _Duration := Duration;
+  _Initialized := False;
+End;
+
+Procedure MeshExplosion.InitTarget();
 Var
   I,J,K:Integer;
   Group:MeshGroup;
@@ -75,16 +83,12 @@ Var
   P:PMeshVertex;
   CurrentDebris:Integer;
 Begin
-  _Target := Target.AddEffect(Self);
-  _Duration := Duration;
-
   If Target = Nil Then
     Exit;
 
-
-  For I:=0 To Pred(_Target.GroupCount) Do
+  For I:=0 To Pred(Target.GroupCount) Do
   Begin
-    Group := _Target.GetGroup(I);
+    Group := Target.GetGroup(I);
     Group.Flags := Group.Flags Or meshGroupDoubleSided;
 
     Group.CalculateTriangleNormals();
@@ -136,8 +140,8 @@ Begin
     End;
   End;
 
-  _Target.OnContextLost();
-
+  Target.OnContextLost();
+  
   _StartTime := GetTime();
 End;
 
@@ -158,7 +162,7 @@ Begin
   _Debris[Index].Rotation := Vector4DFromAxisAngle(Normal, 360*RAD);
 End;
 
-Procedure MeshExplosion.Update;
+Function MeshExplosion.Update():Boolean;
 Const
   FadeDelta = 0.8;
 Var
@@ -173,8 +177,17 @@ Var
   Q:Vector4D;
   M:Matrix4x4;
 Begin
-  If _Target = Nil Then
+  If Target = Nil Then
+  Begin
+    Result := False;
     Exit;
+  End;
+
+  If Not _Initialized Then
+  Begin
+    _Initialized := True;
+    Self.InitTarget();
+  End;
 
   Delta := GetTime - _StartTime;
   Delta := Delta / _Duration;
@@ -185,9 +198,9 @@ Begin
   If (Delta>1) Then
     Delta := 1;
 
-  For I:=0 To Pred(_Target.GroupCount) Do
+  For I:=0 To Pred(Target.GroupCount) Do
   Begin
-    Group := _Target.GetGroup(I);
+    Group := Target.GetGroup(I);
     P := Group.LockVertices(True);
 
     For J:=0 To Pred(Group.TriangleCount) Do
@@ -225,6 +238,8 @@ Begin
 
     Group.UnlockVertices();
   End;
+
+  Result := True;
 End;
 
 End.

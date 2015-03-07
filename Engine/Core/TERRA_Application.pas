@@ -153,7 +153,7 @@ Type
       Procedure Init; Virtual;
       Procedure Update; Virtual;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
   End;
 
   ApplicationObject = Class(TERRAObject)
@@ -161,8 +161,9 @@ Type
       _Component:ApplicationComponentClass;
       _Dependency:ApplicationComponentClass;
       _Instance:ApplicationComponent;
+
     Public
-      Destructor Destroy(); Override;
+      Procedure Release(); Override;
 
       Property Component:ApplicationComponentClass Read _Component;
       Property Dependency:ApplicationComponentClass Read _Dependency;
@@ -331,7 +332,7 @@ Type
 
 			Constructor Create(Client:AppClient);
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
 			Function Run:Boolean; Virtual;
 
@@ -665,16 +666,8 @@ Begin
         Inc(I)
       Else
       Begin
-        S := _ApplicationComponents[I].Component.ClassName;
-
-        Log(logDebug, 'App', 'Shutting down '+S);
-        If Assigned(_ApplicationComponents[I].Instance) Then
-        Begin
-          _ApplicationComponents[I].Instance.Destroy();
-          _ApplicationComponents[I]._Instance := Nil;
-        End;
-
-        _ApplicationComponents[I].Destroy();
+        ReleaseObject(_ApplicationComponents[I]);
+        
         _ApplicationComponents[I] := _ApplicationComponents[Pred(_ApplicationComponentCount)];
         Dec(_ApplicationComponentCount);
         Break;
@@ -696,11 +689,7 @@ Begin
   _CanReceiveEvents := False;
 
   {$IFNDEF DISABLEINPUTMUTEX}
-  If Assigned(_InputMutex) Then
-  Begin
-    _InputMutex.Destroy();
-    _InputMutex := Nil;
-  End;
+  ReleaseObject(_InputMutex);
   {$ENDIF}
 
   If (Not _Managed) And (Not _IsConsole) Then
@@ -846,7 +835,7 @@ Begin
 
   {$IFNDEF OXYGENE}
   If (Not _Managed) Then
-    Self.Destroy;
+    Self.Release;
   {$ENDIF}
 
   _Application_Instance := Nil;
@@ -1170,9 +1159,17 @@ procedure Application.DisableAds; Begin End;
 procedure Application.OpenAppStore(AppID: TERRAString); Begin End;
 
 { ApplicationObject }
-Destructor ApplicationObject.Destroy;
+Procedure ApplicationObject.Release;
+Var
+  S:TERRAString;
 Begin
-  FreeAndNil(_Instance);
+  If Assigned(_Instance) Then
+  Begin
+    S := _Instance.ClassName;
+    Log(logDebug, 'App', 'Shutting down '+S);
+  End;
+
+  ReleaseObject(_Instance);
 End;
 
 { ApplicationComponent }
@@ -1346,7 +1343,7 @@ Begin
 End;
 
 {$IFNDEF OXYGENE}
-Destructor ApplicationComponent.Destroy;
+Procedure ApplicationComponent.Release;
 Begin
   // FPC hack
 End;
@@ -1589,15 +1586,10 @@ Begin
   Result := _FatalError;
 End;
 
-Destructor Application.Destroy;
+Procedure Application.Release;
 Begin
-  Input.Keys.Destroy();
-
-  If Assigned(_Client) Then
-  Begin
-    Client.Destroy();
-    _Client := Nil;
-  End;
+  ReleaseObject(Input.Keys);
+  ReleaseObject(_Client);
 End;
 
 procedure Application.UpdateContextLost;

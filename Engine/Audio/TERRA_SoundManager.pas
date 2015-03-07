@@ -54,7 +54,7 @@ Type
       Procedure SetEnabled(Const Value: Boolean);
 
     Public
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function Play(MySound:Sound):SoundSource; Overload;
       Function Play(Const Name:TERRAString):SoundSource; Overload;
@@ -126,26 +126,21 @@ Begin
   _Enabled := True;
 End;
 
-Destructor SoundManager.Destroy;
+Procedure SoundManager.Release;
 Var
   I:Integer;
 Begin
   Inherited;
 
   For I := 0 To Pred(_SourceCount) Do
-  If Assigned(_Sources[I]) Then
-    _Sources[I].Destroy;
+    ReleaseObject(_Sources[I]);
     
   SetLength(_Sources, 0);
   _SourceCount := 0;
 
-  If Assigned(_Ambience) Then
-    _Ambience.Destroy;
-
-  If Assigned(_SoundDeviceList) Then
-    _SoundDeviceList.Destroy;
-  If Assigned(_SoundCaptureDeviceList) Then
-    _SoundCaptureDeviceList.Destroy;
+  ReleaseObject(_Ambience);
+  ReleaseObject(_SoundDeviceList);
+  ReleaseObject(_SoundCaptureDeviceList);
 
   If Assigned(_Context) Then
   Begin
@@ -156,7 +151,7 @@ Begin
   If Assigned(_Device) Then
     alcCloseDevice(_Device);                 //Close device
 
-  FreeOpenAL;
+  FreeOpenAL();
 
   _SoundManager_Instance := Nil;
 End;
@@ -246,7 +241,7 @@ Begin
   If (Not _Sources[I].Loop)  And (_Sources[I].Status = sndStopped) Then
   Begin
     _Sources[I].OnFinish();
-    _Sources[I].Destroy();
+    _Sources[I].Release();
     _Sources[I] := _Sources[Pred(_SourceCount)];
     Dec(_SourceCount);
   End Else
@@ -272,7 +267,7 @@ Begin
   If (N<0) Then
     Exit;
 
-  _Sources[N].Destroy;
+  _Sources[N].Release;
   _Sources[N] := _Sources[Pred(_SourceCount)];
   _Sources[Pred(_SourceCount)] := Nil;
   Dec(_SourceCount);

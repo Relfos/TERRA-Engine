@@ -25,7 +25,7 @@ Type
     pathSearchFailed = 4
   );
 
-  GridPathNodeInfo = Class
+  GridPathNodeInfo = Class(TERRAObject)
     X:Integer;
     Y:Integer;
     ID:Integer;
@@ -39,7 +39,7 @@ Type
     Y:Integer;
   End;
 
-  GridPath = Class
+  GridPath = Class(TERRAObject)
     Protected
       _List:Array Of GridPathNode;
       _Size:Integer;
@@ -50,7 +50,7 @@ Type
       Property Size:Integer Read _Size;
   End;
 
-  GridPathfinder = Class
+  GridPathfinder = Class(TERRAObject)
     Protected
       _CurrentX:Integer;
       _CurrentY:Integer;
@@ -244,8 +244,7 @@ Begin
 
   N := Length(NodeList);
   For I:=0 To Pred(N) Do
-  If Assigned(NodeList[I]) Then
-    NodeList[I].Destroy();
+    ReleaseObject(NodeList[I]);
 
   SetLength(NodeList, 0);
 End;

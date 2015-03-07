@@ -34,7 +34,7 @@ Type
 
     Public
       Constructor Create;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Class Function Instance:IAPCatalog;
 
@@ -90,7 +90,7 @@ Begin
 
 End;
 
-Destructor IAPCatalog.Destroy;
+Procedure IAPCatalog.Release;
 Begin
   _IAPCatalog_Instance := Nil;
 End;
@@ -115,7 +115,7 @@ Begin
   Utils := JavaClass.Create(ActivityClassPath, Frame);
   Log(logDebug, 'App', 'Purchasing credits');
   Utils.CallStaticVoidMethod('purchaseCredits', Nil);
-  Utils.Destroy();
+  Utils.Release();
   Java_End(Frame);
   Exit;
 {$ELSE}
@@ -153,14 +153,14 @@ Begin
     Params := JavaArguments.Create(Frame);
     Params.AddString(ID);
     Utils.CallStaticVoidMethod('purchase', Params);
-    Params.Destroy();
+    Params.Release();
   End Else
   Begin
     Log(logWarning, 'IAP', 'Purchases are disabled!');
     IAP_Callback_Canceled(PAnsiChar(ID));
   End;
 
-  Utils.Destroy();
+  Utils.Release();
   Java_End(Frame);
   Exit;
 {$ENDIF}
@@ -238,5 +238,5 @@ Initialization
 Log(logDebug, 'IAP', 'IAP Module started!');
 Finalization
   If Assigned(_IAPCatalog_Instance) Then
-    _IAPCatalog_Instance.Destroy;
+    _IAPCatalog_Instance.Release;
 End.

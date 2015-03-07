@@ -55,7 +55,7 @@ Type
       Priority:Integer;
 
       Constructor Create(Location:TERRAString);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function IsReady:Boolean;
 
@@ -80,77 +80,9 @@ Type
       Property KeepStream:Boolean Read _KeepStream Write _KeepStream;
   End;
 
-Function GetResourceClass(Const Name:TERRAString):ResourceClass;
-Function FindResourceClass(Const ResourceName:TERRAString):TERRAString;
-Procedure RegisterResourceClass(MyResourceClass:ResourceClass);
-
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Utils, TERRA_ResourceManager, TERRA_FileStream, TERRA_GraphicsManager,
   TERRA_FileUtils, TERRA_Application;
-
-Type
-  ResourceClassEntry = Record
-    _Name:TERRAString;
-    _ResourceClass:ResourceClass;
-  End;
-
-Var
-  ResourceClassList:Array Of ResourceClassEntry;
-  ResourceClassCount:Integer = 0;
-
-Function GetResourceClass(Const Name:TERRAString):ResourceClass;
-Var
-  I:Integer;
-Begin
-  Result := Nil;
-  If (StringEquals(Name, 'resource')) Then
-    Exit;
-
-  For I:=0 To Pred(ResourceClassCount) Do
-  If (StringEquals(ResourceClassList[I]._Name, Name)) Then
-  Begin
-    Result := ResourceClassList[I]._ResourceClass;
-    Exit;
-  End;
-End;
-
-Procedure RegisterResourceClass(MyResourceClass:ResourceClass);
-Begin
-  Log(logDebug, 'Resource', 'Registering '+MyResourceClass.ClassName);
-  Inc(ResourceClassCount);
-  SetLength(ResourceClassList, ResourceClassCount);
-  ResourceClassList[Pred(ResourceClassCount)]._ResourceClass := MyResourceClass;
-  ResourceClassList[Pred(ResourceClassCount)]._Name := MyResourceClass.ClassName;
-End;
-
-Function FindResourceClass(Const ResourceName:TERRAString):TERRAString;
-Var
-  Ext:TERRAString;
-Begin
-  Ext := GetFileExtension(ResourceName);
-  If (StringEquals(Ext, 'PNG')) Or (StringEquals(Ext, 'JPG')) Or (StringEquals(Ext, 'TGA')) Or (StringEquals(Ext, 'PSD')) Then
-    Result := 'Texture'
-  Else
-  If (StringEquals(Ext, 'MESH')) Then
-    Result := 'Mesh'
-  Else
-  If (StringEquals(Ext, 'ANIM')) Then
-    Result := 'Animation'
-  Else
-  If (StringEquals(Ext, 'FNT')) Then
-    Result := 'Font'
-  Else
-  If (StringEquals(Ext, 'WAV')) Or (StringEquals(Ext, 'OGG')) Or (StringEquals(Ext, 'MID')) Or (StringEquals(Ext, 'MOD')) Then
-    Result := 'Sound'
-  Else
-  If (StringEquals(Ext, 'GLSL')) Then
-    Result := 'Shader'
-  Else
-  If (StringEquals(Ext, 'INST')) Then
-    Result := 'Instrument'
-  Else
-    Result := 'Resource';
-End;
 
 Procedure Resource.CopyValue(Other: ListObject);
 Begin
@@ -177,7 +109,7 @@ Begin
   Self.InBackground := True;
 End;
 
-Destructor Resource.Destroy;
+Procedure Resource.Release;
 Begin
   Log(logDebug, 'Resource', 'Destroying resource '+Self.Name);
   {$IFNDEF ANDROID}

@@ -67,7 +67,7 @@ Var
 
 {$IFDEF SUPPORT_CALLSTACK}
 Type
-	AddressToLine = Class     
+	AddressToLine = Class
 	  Public
 		  Address: Cardinal;
 		  Line: Cardinal;
@@ -75,7 +75,7 @@ Type
 		  Constructor Create(const AAddress, ALine: Cardinal);
 	  End;
 
-	UnitDebugInfos = class
+	UnitDebugInfos = Class
 	  Public
   		Name:String;
 	  	Addresses: array of AddressToLine;
@@ -86,7 +86,7 @@ Type
   		Function LineWhichContainsAddress(const Address: Cardinal):Integer;
 	  End;
 
-  RoutineDebugInfos = class
+  RoutineDebugInfos = Class
 	  Public
 		  Name:String;
   		StartAddress: Cardinal;

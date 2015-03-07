@@ -42,7 +42,7 @@ Version History
    17/3/05  • Implemented CopyStream()
             • CopyStream replaced with Copy method of TStream
    12/6/05  • Create() overloaded method of LFileStream renamed to Open()
-            • Added Delete() destructor to LFileStream
+            • Added Delete() Procedure to LFileStream
             • Stream.Copy overload version now allows offset and size arguments
             . Added Rename method to LFileStream
    27/6/05  • Fixed bug in Stream.Copy that caused segmentation fault
@@ -82,7 +82,7 @@ Type
 
         Constructor Create(FileName:TERRAString; StreamMode:Integer=smDefault);Overload;
         Constructor Open(FileName:TERRAString; StreamMode:Integer=smDefault);
-        Destructor Destroy;Override;
+        Procedure Release;Override;
         Procedure Delete;
         Procedure Rename(NewName:TERRAString);
         Procedure Truncate;Override;
@@ -202,7 +202,7 @@ Begin
   End;
 End;
 
-Destructor FileStream.Destroy;
+Procedure FileStream.Release;
 Begin
   If Not _Open Then
     Exit;
@@ -333,8 +333,8 @@ Begin
   Source := MemoryStream.Create(SourceName);
   Dest := FileStream.Create(DestName);
   Source.Copy(Dest);
-  Source.Destroy;
-  Dest.Destroy;
+  Source.Release;
+  Dest.Release;
 End;
 
 Procedure FileStream.Flush;

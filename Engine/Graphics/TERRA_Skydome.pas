@@ -30,7 +30,7 @@ Uses TERRA_Utils, TERRA_Texture, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$
 
 Type
   // Skydome object
-  Skydome = Class
+  Skydome = Class(TERRAObject)
     Protected
       _Shader:Shader;
 
@@ -40,7 +40,7 @@ Type
 
     Public
       Constructor Create;
-      Destructor Destroy;
+      Procedure Release;
 
       Procedure Render; // Renders the Skydome
   End;
@@ -58,7 +58,7 @@ Begin
   _Shader := ResourceManager.Instance.GetShader('sky_color');
 End;
 
-Destructor Skydome.Destroy;
+Procedure Skydome.Release;
 Begin
 End;
 

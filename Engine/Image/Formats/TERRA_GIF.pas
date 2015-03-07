@@ -70,7 +70,7 @@ Type
   PPalette=^GIFPalette;
   GIFPalette=Array[0..255] Of Color;
 
-  GIFLoader=Class
+  GIFLoader = Class(TERRAObject)
     Protected
       MyImage:Image;
       TransparencyColor:Integer;
@@ -540,7 +540,7 @@ Begin
     End;
   Until (GIFBlockID=';') Or (Source.EOF);
 
-  FrameBuffer.Destroy();
+  FrameBuffer.Release();
   MyImage.SetCurrentFrame(0);
 End;
 
@@ -551,7 +551,7 @@ Begin
   Loader := GIFLoader.Create;
   Loader.MyImage := MyImage;
   Loader.Load(Source);
-  Loader.Destroy;
+  Loader.Release;
 
   MyImage.Process(IMP_SetColorKey, ColorCreate(255,0, 255, 255));
 End;

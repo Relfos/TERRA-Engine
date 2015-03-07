@@ -102,7 +102,7 @@ Type
       Function ValidateMessage(Msg:NetMessage):Boolean; Override;
 
       // Shutdown a server and destroy it
-      Destructor Destroy(ErrorCode:Word=errServerShutdown); Reintroduce;
+      Procedure Release(ErrorCode:Word=errServerShutdown); Reintroduce;
 
       // Message handlers
       Procedure OnPingMessage(Msg:NetMessage; Sock:Socket);
@@ -498,11 +498,11 @@ Begin
     _PacketMutex.Unlock();
 
     If (Not (Self Is NetworkReplayServer)) Then
-      Client.Socket.Destroy;
+      Client.Socket.Release;
     Client.Socket := Nil;
   End;
 
-  Client.Destroy;
+  Client.Release;
 End;
 
 Function NetServer.ValidateClient(UserName,Password, DeviceID:TERRAString; Var ErrorLog:TERRAString):Integer;
@@ -539,7 +539,7 @@ Begin
   End;
 
   If AutoRelease Then
-    FreeAndNil(Msg);
+    ReleaseObject(Msg);
 End;
 
 // Broadcast a message
@@ -555,7 +555,7 @@ Begin
     SendMessage(Msg, I);
 
   If AutoRelease Then
-    FreeAndNil(Msg);
+    ReleaseObject(Msg);
 End;
 
 // Removes a Client from the server
@@ -573,7 +573,7 @@ Begin
 End;
 
 // Shutdown a server and destroy it
-Destructor NetServer.Destroy(ErrorCode:Word=errServerShutdown);
+Procedure NetServer.Release(ErrorCode:Word=errServerShutdown);
 Var
   Client:ClientInfo;
   I:Integer;
@@ -581,21 +581,21 @@ Var
 Begin
   Msg := CreateShutdownMessage(ErrorCode); //Zero means normal shutdown
   BroadcastMessage(Msg); //Notify Clients of the server shutdown
-  FreeAndNil(Msg);
+  ReleaseObject(Msg);
 
   For I:=1 To _ClientCount Do  //Search for duplicated GUIDs
   Begin
     Client := GetClient(I);
     If (Assigned(Client)) And (Client.Socket <>Nil) Then
     Begin
-      Client.Socket.Destroy;
+      Client.Socket.Release;
       Client.Socket := Nil;
     End;
   End;
 
-  Inherited Destroy;
+  Inherited Release();
 
-  _Mutex.Destroy;
+  _Mutex.Release;
 End;
 
 Function NetServer.CreateIterator:Iterator;

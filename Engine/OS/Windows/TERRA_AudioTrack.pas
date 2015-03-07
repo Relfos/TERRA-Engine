@@ -223,8 +223,8 @@ Begin
       _FileName := Application.Instance.TempPath + PathSeparator + GetFileName(FileName, False);
       Dest := FileStream.Create(_FileName);
       Src.Copy(Dest);
-      Dest.Destroy();
-      Src.Destroy();
+      Dest.Release();
+      Src.Release();
     End;
 
     // open player

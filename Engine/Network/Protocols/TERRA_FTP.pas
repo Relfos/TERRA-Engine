@@ -30,7 +30,7 @@ Unit TERRA_FTP;
 // ftp://username:password@host/path
 
 Interface
-Uses TERRA_String, TERRA_Error, TERRA_Utils, TERRA_Stream, TERRA_Sockets;
+Uses TERRA_String, TERRA_Error, TERRA_Utils, TERRA_Stream, TERRA_ProgressNotifier, TERRA_Sockets;
 
 Const
   FTPPort = 21;
@@ -65,7 +65,7 @@ Type
 
     Public
       Constructor Create(URL:TERRAString; Const Username, Password:TERRAString; Port:Integer = FTPPort);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function PutFile(FileName:TERRAString; Source:Stream; Notifier:ProgressNotifier=Nil):Integer; Overload;
       Function GetFile(FileName:TERRAString; Dest:Stream; Notifier:ProgressNotifier=Nil):Integer; Overload;
@@ -85,7 +85,7 @@ Type
 
     Public
       Constructor Create(URLList:TERRAString='');
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure NewConnection(URL:TERRAString);
 
@@ -224,7 +224,7 @@ Begin
   End;
 End;
 
-Destructor FTPSession.Destroy;
+Procedure FTPSession.Release;
 Begin
   EndSession(0);
 End;
@@ -285,7 +285,7 @@ Begin
 
   If (GetStatus<>150) Then
   Begin
-    Source.Destroy();
+    Source.Release();
     Result := EndSession(ftp_TransferError);
     Exit;
   End;
@@ -298,7 +298,7 @@ Begin
     BlockSize:=Source.Read(Buffer, BlockSize);
     If BlockSize<0 Then
     Begin
-      Source.Destroy;
+      Source.Release;
       Result := EndSession(ftp_TransferError);
       Exit;
     End;
@@ -312,7 +312,7 @@ Begin
     End;
   End;
   FreeMem(Buffer);
-  Source.Destroy;
+  Source.Release;
 
   If GetStatus<>226 Then
   Begin
@@ -383,7 +383,7 @@ Begin
 
   If (GetStatus<>150) Or (Dest.EOF) Then
   Begin
-    Dest.Destroy;
+    Dest.Release;
     Result := EndSession(ftp_TransferError);
     Exit;
   End;
@@ -397,7 +397,7 @@ Begin
     BlockSize := Dest.Write(Buffer, BlockSize);
     If BlockSize<0 Then
     Begin
-      Dest.Destroy;
+      Dest.Release;
       Result := EndSession(ftp_TransferError);
       Exit;
     End;
@@ -409,7 +409,7 @@ Begin
       Notifier.Notify(Count/FileSize);
   End;
   FreeMem(Buffer);
-  Dest.Destroy;
+  Dest.Release;
 
   If GetStatus<>226 Then
   Begin
@@ -429,7 +429,7 @@ Begin
 
   Stream:= FileStream.Create(DestFile);
   Result := GetFile(FileName, Stream, Notifier);
-  Stream.Destroy;
+  Stream.Release;
 End;
 
 Function FTPSession.PutFile(FileName, SourceFile:TERRAString; Notifier:ProgressNotifier):Integer;
@@ -447,7 +447,7 @@ Begin
 
   Stream := FileStream.Open(SourceFile);
   Result := PutFile(FileName, Stream, Notifier);
-  Stream.Destroy;
+  Stream.Release;
 End;
 
 Function FTPSession.EndSession(ErrorCode:Integer):Integer;
@@ -461,7 +461,7 @@ Begin
   Log(logDebug, 'FTP', 'Ending FTP session, code: '+IntToString(ErrorCode));
 
   SendCommand('QUIT');
-  _Stream.Destroy();
+  _Stream.Release();
   _Stream := Nil;
 
   _Active := False;
@@ -526,12 +526,12 @@ Begin
 End;
 
 
-Destructor FTPMirrorSession.Destroy;
+Procedure FTPMirrorSession.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_SessionCount) Do
-    _SessionList[I].Destroy;
+    _SessionList[I].Release;
 End;
 
 Procedure FTPMirrorSession.GetFile(FileName, DestFile:TERRAString; Notifier:ProgressNotifier);

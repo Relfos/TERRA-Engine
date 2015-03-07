@@ -77,7 +77,7 @@ Type
     Protected
       Procedure InitCapture(Flags:Cardinal);  Override;
     Public
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
 	    // Use it as a texture
 	    Procedure Bind(Slot:Integer); Override;
@@ -113,11 +113,11 @@ Var
 Begin
   MyImage := Self.GetImage();
   MyImage.Save(FileName);
-	MyImage.Destroy;
+	MyImage.Release;
 End;
 
 { NullTarget }
-Destructor NullTarget.Destroy;
+Procedure NullTarget.Release;
 Begin
 End;
 

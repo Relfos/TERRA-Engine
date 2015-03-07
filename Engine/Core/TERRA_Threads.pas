@@ -27,7 +27,7 @@ Unit TERRA_Threads;
 {$I terra.inc}
 
 {$IFNDEF DISABLETHREADS}
-{$DEFINE USEPASCALTHREADS}
+{-$DEFINE USEPASCALTHREADS}
 {$ENDIF}
 
 Interface
@@ -102,7 +102,7 @@ Type
 
     Public
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function IsFinished():Boolean;
 
@@ -125,7 +125,7 @@ Type
       Property Progress:Integer Read GetProgress;
   End;
 
-  Thread = Class{$IFDEF USEPASCALTHREADS}(TThread){$ENDIF}
+  Thread = Class(TERRAObject){$IFDEF USEPASCALTHREADS}(TThread){$ENDIF}
     Protected
 		  _ID:Cardinal;
 
@@ -185,7 +185,7 @@ Type
 	  Public
 		  Procedure Init; Override;
 
-		  Destructor Destroy; Override;
+		  Procedure Release; Override;
 
 		  Function GetNextTask:Task;
 		  Property Active:Boolean Read _Active;
@@ -199,7 +199,7 @@ Type
     End;
 
 Implementation
-Uses TERRA_OS;
+Uses TERRA_Error, TERRA_OS;
 
 Var
   _ThreadPool_Instance:ApplicationObject  = Nil;
@@ -225,7 +225,7 @@ Begin
 
   Log(logDebug, 'Threads', 'Thread finished...');
 
-  Thread(P).Destroy();
+  Thread(P).Release();
   Thread(P).Terminate();
   Result := 0;
 End;
@@ -317,7 +317,7 @@ Begin
       _Pool.KillTask(MyTask);
     End Else
     Begin
-      _Pool._Semaphore.Wait();
+      _Pool._Semaphore.Lock();
     End;
   Until (Not _Pool.Active) {$IFDEF USEPASCALTHREADS}Or (Self.Terminated){$ENDIF};
 
@@ -353,7 +353,7 @@ Begin
   {$IFDEF DISABLETHREADS}
     MyTask.Execute();
     If Group = Nil Then
-      MyTask.Destroy();
+      MyTask.Release();
     Exit;
   {$ENDIF}
 
@@ -369,7 +369,7 @@ Begin
   Begin
     MyTask.Execute();
     If Group = Nil Then
-      MyTask.Destroy();
+      MyTask.Release();
     Exit;
   End;
 
@@ -390,7 +390,7 @@ Begin
 
 	_CriticalSection.Unlock();
 
-  _Semaphore.Release();  
+  _Semaphore.Unlock();  
   {$ENDIF}
 End;
 
@@ -468,7 +468,7 @@ Begin
 	_CriticalSection.Unlock;
 End;
 
-Destructor ThreadPool.Destroy;
+Procedure ThreadPool.Release;
 Var
   I, Count:Integer;
 Begin
@@ -486,18 +486,18 @@ Begin
 	  End;
 
     Application.Instance.Yeld();
-    _Semaphore.Release();
+    _Semaphore.Unlock();
   Until (Count<=0);
 
   For I:=0 To Pred(_MaxThreads) Do
   If (Assigned(_Threads[i])) Then
   Begin
     _Threads[I].Shutdown();
-		_Threads[I].Destroy;
+    _Threads[I].Release;
   End;
 
-  _CriticalSection.Destroy;
-  _Semaphore.Destroy();
+  _CriticalSection.Release;
+  _Semaphore.Unlock();
 
   _ThreadPool_Instance := Nil;
 End;
@@ -526,7 +526,7 @@ Begin
   End;
 
   If Not Assigned(MyTask._Group) Then
-    MyTask.Destroy();
+    MyTask.Release();
 
   _CriticalSection.Unlock();
 End;
@@ -549,12 +549,12 @@ Begin
 End;
 
 { TaskGroup }
-Destructor TaskGroup.Destroy;
+Procedure TaskGroup.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_TaskCount) Do
-    _Tasks[I].Destroy();
+    _Tasks[I].Release();
 
   SetLength(_Tasks, 0);
   _TaskCount := 0;

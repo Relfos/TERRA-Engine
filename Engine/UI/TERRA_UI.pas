@@ -79,7 +79,7 @@ Type
       Y:Array[0..2] Of Single;
 
       Constructor Create(Source:TextureAtlasItem);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function GCSX(I:Integer): Single;
       Function GCSY(J:Integer): Single;
@@ -100,7 +100,7 @@ Type
 
     Public
       Constructor Create(Name:TERRAString; UI:UI; OfsX:Integer = 0; OfsY:Integer=0);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Property UI:UI Read _UI;
   End;
@@ -241,7 +241,7 @@ Type
       OnBeginDrag:WidgetEventHandler;
       OnEndDrag:WidgetEventHandler;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
 			Procedure Render; Virtual;
 
@@ -435,7 +435,7 @@ Type
       DefaultEaseType:Integer;
 
       Constructor Create;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure AddWidget(MyWidget:Widget);
       Procedure DeleteWidget(MyWidget:Widget);
@@ -535,7 +535,7 @@ Type
       Procedure Init; Override;
       Procedure Resume; Override;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Class Function Instance:UIManager;
 
@@ -664,7 +664,7 @@ Begin
   // do nothing
 End;
 
-Destructor Widget.Destroy;
+Procedure Widget.Release;
 Begin
   TweenManager.Instance.RemoveTween(Self);
 
@@ -1150,8 +1150,8 @@ Begin
 
     Log(logDebug, 'Game', 'TextureAtlas added');
 
-    Source.Destroy;
-    MyStream.Destroy;
+    Source.Release;
+    MyStream.Release;
   End Else
   Begin
     Log(logWarning,'UI', 'UI component not found. ['+Name+']');
@@ -1967,8 +1967,8 @@ Begin
       Source := Image.Create(MyStream);
       _Item := UIManager.Instance.GetTextureAtlas.Add(Source, Name);
       UIManager.Instance._UpdateTextureAtlas := True;
-      Source.Destroy;
-      MyStream.Destroy;
+      Source.Release;
+      MyStream.Release;
     End;
   End;
 
@@ -1977,7 +1977,7 @@ Begin
   _OfsY := OfsY;
 End;
 
-Destructor UICursor.Destroy;
+Procedure UICursor.Release;
 Begin
   // do nothing
 End;
@@ -2034,18 +2034,18 @@ Begin
   UIManager.Instance.AddUI(Self);
 End;
 
-Destructor UI.Destroy;
+Procedure UI.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_CursorCount) Do
-    FreeAndNil(_CursorList[I]);
+    ReleaseObject(_CursorList[I]);
 
-  FreeAndNil(_ClipRect);
+  ReleaseObject(_ClipRect);
 
-  FreeAndNil(_Transition);
+  ReleaseObject(_Transition);
 
-	FreeAndNil(_Widgets);
+	ReleaseObject(_Widgets);
 End;
 
 Procedure UI.Clear;
@@ -2171,7 +2171,7 @@ Begin
         Self.SetHighlight(W);
     End;
   End;
-  It.Destroy;
+  It.Release;
 End;
 
 Procedure UI.WrapControlsHorizontal(Left, Right: Widget);
@@ -2263,7 +2263,7 @@ Begin
         Break;
       End;
     End;
-    I.Destroy;
+    I.Release;
 
     If Not Found Then
       Log(logWarning, 'UI', 'Error finding parent for '+ MyWidget.Name +'!');
@@ -2339,7 +2339,7 @@ Begin
         Break;
       End;
     End;
-    I.Destroy;
+    I.Release;
   End;
   _Widgets.Delete(MyWidget);
 End;
@@ -2457,7 +2457,7 @@ Begin
     MyWidget := Widget(It.GetNext());
     MyWidget.OnLanguageChange();
   End;
-  It.Destroy;
+  It.Release;
 End;
 
 Procedure UI.Render;
@@ -2545,7 +2545,7 @@ End;
 Procedure UI.SetTransition(MyTransition:UITransition);
 Begin
   If Assigned(_Transition) Then
-    _Transition.Destroy;
+    _Transition.Release;
 
   _Transition := MyTransition;
 
@@ -3247,7 +3247,7 @@ Begin
     If (MyWidget.Parent =  Nil) Then
       MyWidget._TransformChanged := True;
   End;
-  It.Destroy;
+  It.Release;
 End;
 
 Procedure UI.SetVisible(Const Value:Boolean);
@@ -3313,7 +3313,7 @@ Begin
 
     W._TransformChanged := True;
   End;
-  It.Destroy();
+  It.Release();
 End;
 
 { UISkinLayout }
@@ -3362,7 +3362,7 @@ Begin
   Result := Self.GCSY(0) + Self.GCSY(1) * Height + Self.GCSY(2);
 End;
 
-Destructor UISkinLayout.Destroy;
+Procedure UISkinLayout.Release;
 Begin
   // do nothing
 End;
@@ -3375,17 +3375,17 @@ Begin
   _UpdateTextureAtlas := False;
 End;
 
-Destructor UIManager.Destroy;
+Procedure UIManager.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_UICount) Do
-    FreeAndNil(_UIList[I]);
+    ReleaseObject(_UIList[I]);
 
   _UICount := 0;
 
   If (Assigned(_TextureAtlas)) Then
-    _TextureAtlas.Destroy;
+    _TextureAtlas.Release;
   _UIManager_Instance := Nil;
 End;
 

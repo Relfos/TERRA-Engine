@@ -31,7 +31,7 @@ Uses TERRA_Utils, TERRA_OS, TERRA_Matrix, TERRA_Color, TERRA_Vector3D, TERRA_Vec
   {$IFDEF FULLDEBUG}, TERRA_Debug{$ENDIF};
 
 Type
-  VectorBrush = Class
+  VectorBrush = Class(TERRAObject)
     Protected
       _Shader:Shader;
       _PositionHandle:Integer;

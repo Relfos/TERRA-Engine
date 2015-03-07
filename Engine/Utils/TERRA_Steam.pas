@@ -30,7 +30,7 @@ Type
 
       Function UnlockAchievement(AchID:TERRAString):Boolean;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Property UserName:TERRAString Read _UserName;
       Property Language:TERRAString Read _Language;
@@ -101,7 +101,7 @@ Begin
   //_LicenseResult := ISteamGameServer_UserHasLicenseForApp(steamID:SteamID; appID:SteamAppId):
 End;
 
-Destructor Steam.Destroy;
+Procedure Steam.Release;
 Var
   I:Integer;
 Begin

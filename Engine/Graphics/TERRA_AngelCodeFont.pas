@@ -167,7 +167,7 @@ Begin
       Continue;
 
     Page.SetImage(Img);
-    Img.Destroy;
+    Img.Release;
   End;
 
   Result := True;
@@ -245,7 +245,7 @@ Begin
       Dest.Write(@Kerning.Ammount, 2);
     End;
 
-  Dest.Destroy();
+  Dest.Release();
 	Result := True;
 End;
 }

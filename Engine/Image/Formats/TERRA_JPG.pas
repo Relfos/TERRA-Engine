@@ -275,7 +275,7 @@ Begin
 
   JPG:=TJPEGImage.Create;
   JPG.LoadFromStream(Stream);
-  Stream.Destroy;
+  Stream.Release;
 
   // Create Bitmap
   BMP:=TBitmap.Create;
@@ -302,8 +302,8 @@ Begin
     End;
   End;
 
-  BMP.Destroy;
-  JPG.Destroy;
+  BMP.Release;
+  JPG.Release;
 
   Image.Process(IMP_SwapChannels);
 End;
@@ -328,7 +328,7 @@ Begin
     Parser.ParseCommas:=True;
     Parser.AddToken('Quality',tkInteger,@Quality);
     Parser.LoadFromString(Options);
-    Parser.Destroy;
+    Parser.Release;
   End;
 
   Bitmap:=TBitmap.Create;
@@ -363,10 +363,10 @@ Begin
     Dec(Size, Count);
   End;
 
-  Stream.Destroy;
-  JPG.Destroy;
+  Stream.Release;
+  JPG.Release;
 
-  Bitmap.Destroy;
+  Bitmap.Release;
 End;
 
 {$ENDIF}

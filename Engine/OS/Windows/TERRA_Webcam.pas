@@ -50,7 +50,7 @@ TYPE
                           function  SampleCB(SampleTime: Double; pSample: IMediaSample): HResult; stdcall;
                           function  BufferCB(SampleTime: Double; pBuffer: PByte; BufferLen: longint): HResult; stdcall;
                         end;
-  TSampleGrabberCBImpl= class
+  TSampleGrabberCBImpl= class(TERRAObject)
                           CallBack    : TVideoSampleCallBack;
                           function  SampleCB(SampleTime: Double; pSample: IMediaSample): HResult; stdcall;
                           function  BufferCB(SampleTime: Double; pBuffer: PByte; BufferLen: longint): HResult; stdcall;
@@ -109,7 +109,7 @@ TYPE
                         DXErrString:TERRAString;  // for debugging
                       {$endif}
                       constructor Create(VideoCanvasHandle: THandle; ForceRGB: boolean; WhichMethodToCallback: integer; VAR HR: HResult);
-                      destructor  Destroy; override;
+                      Procedure  Destroy; override;
                       property    PlayState: TPLAYSTATE read g_psCurrent;
                       procedure   ResizeVideoWindow();
                       FUNCTION    RestartVideo:HRESULT;
@@ -199,7 +199,7 @@ TYPE
               Procedure InitDeviceList;
 
               Procedure Init; Override;
-              Destructor Destroy; Override;
+              Procedure Release; Override;
 
               Procedure Update; Override;
 
@@ -353,7 +353,7 @@ begin
   _Image := Nil;
 End;
 
-Destructor  Webcam.Destroy;
+Procedure  Webcam.Release;
 VAR
   i : integer;
 begin
@@ -368,10 +368,10 @@ begin
       end;
 
   If Assigned(_Texture) Then
-    _Texture.Destroy;
+    _Texture.Release;
 
   If Assigned(_Image) Then
-    _Image.Destroy;
+    _Image.Release;
 End;
 
 
@@ -1898,7 +1898,7 @@ END;
 
 
 
-destructor TVideoSample.Destroy;
+Procedure TVideoSample.Release;
 begin
   try
     SetPreviewState(false);
@@ -1908,7 +1908,7 @@ begin
     closeInterfaces;
   finally
     try
-      inherited destroy;
+      inherited Release();
     except
     end;
   end;

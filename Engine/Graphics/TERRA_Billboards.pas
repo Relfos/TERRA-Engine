@@ -67,7 +67,7 @@ Type
 
     Public
       Constructor Create;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Class Function Instance:BillboardManager;
 
@@ -188,7 +188,7 @@ Constructor BillboardManager.Create;
 Begin
 End;
 
-Destructor BillboardManager.Destroy;
+Procedure BillboardManager.Release;
 Begin
   _BillboardInstance := Nil;
 end;
@@ -359,5 +359,5 @@ End;
 Initialization
 Finalization
   If Assigned(_BillboardInstance) Then
-    _BillboardInstance.Destroy;
+    _BillboardInstance.Release;
 End.

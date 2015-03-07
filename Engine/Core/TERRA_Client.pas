@@ -30,7 +30,7 @@ Unit TERRA_Client;
 {$ENDIF}
 
 Interface
-Uses TERRA_String, TERRA_Input;
+Uses TERRA_String, TERRA_Utils, TERRA_Input;
 
 Const
   apiFacebook = 1;
@@ -52,7 +52,7 @@ Const
   tapjoyOfferSuccess       = 37;
 Type
 
-  AppClient = Class
+  AppClient = Class(TERRAObject)
     Public
       Keys:InputState;
 
@@ -143,7 +143,7 @@ Function IsKeyboardInput(Key:Integer):Boolean;
 Function IsGamepadInput(Key:Integer):Boolean;
 
 Implementation
-Uses TERRA_Utils, TERRA_Application, TERRA_OS, TERRA_Log;
+Uses TERRA_Application, TERRA_OS, TERRA_Log;
 
 Function IsMouseInput(Key:Integer):Boolean;
 Begin

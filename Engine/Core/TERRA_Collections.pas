@@ -65,7 +65,7 @@ Type
       Function Internal_Sort(Other:ListObject):Integer;
 
     Public
-      Destructor Destroy; Override;
+      Procedure Release(); Override;
 
       Function ToString():TERRAString; {$IFDEF FPC} Override; {$ELSE} Virtual; {$ENDIF}
 
@@ -78,7 +78,7 @@ Type
       Function HasNext():Boolean;Virtual; Abstract;
       Function GetNext():ListObject;Virtual; Abstract;
       Function Discard():Boolean; Virtual;
-      Destructor Destroy(); Override; 
+      Procedure Release(); Override; 
   End;
 
   CollectionVisitor = Function(Item:ListObject; UserData:Pointer):Boolean; CDecl;
@@ -91,7 +91,7 @@ Type
       Procedure SetOptions(Value:Integer);
 
     Public
-      Destructor Destroy; Override;
+      Procedure Release(); Override;
 
       Function CreateIterator:Iterator; Virtual;Abstract;
 
@@ -189,7 +189,7 @@ Type
       Procedure InsertPoolObject(Obj:ListObject);
 
     Public
-      Destructor Destroy(); Override;
+      Procedure Release(); Override;
 
       Procedure Clear(); Override;
 
@@ -308,7 +308,7 @@ End;
 //#    Collection   #
 //####################
 
-Destructor Collection.Destroy;
+Procedure Collection.Release();
 Begin
   Self.Clear();
 End;
@@ -363,7 +363,7 @@ Begin
       Break;
     End;
   End;
-  It.Destroy;
+  It.Release();
 End;
 
 { List }
@@ -418,7 +418,7 @@ Begin
     Else
       Dec(Index);
   End;
-  I.Destroy();
+  I.Release();
 End;*)
 
 Function List.Merge(C:Collection):List;
@@ -435,9 +435,9 @@ Begin
     N.CopyValue(Temp);
     Self.Add(N);
   End;
-  I.Destroy();
+  I.Release();
 
-  C.Destroy();
+  C.Release();
 
   Result := Self;
 End;
@@ -482,7 +482,7 @@ Begin
     While Assigned(List)Do
     Begin
       Next := List.Next;
-      List.Destroy;
+      List.Release();
       List := Next;
     End;
   End;
@@ -610,7 +610,7 @@ Begin
 
       Next := Item.Next;
 
-      Item.Destroy;
+      Item.Release();
       {$IFDEF DEBUG}Log(logDebug, 'List', 'Discarded item!');{$ENDIF}
 
       If Assigned(Prev) Then
@@ -707,7 +707,7 @@ Begin
   Else
     _List._First := _Item.Next;
 
-  _Item.Destroy;
+  _Item.Release();
 
   Dec(_List._ItemCount);
   _Item := Next;
@@ -807,7 +807,7 @@ Begin
       Result.Add(B);
     End;
   End;
-  It.Destroy;
+  It.Release();
 End;
 
 Function HashTable.Add(Item:ListObject):Boolean;
@@ -915,7 +915,7 @@ Begin
     If Assigned(_Table[I]) Then
     Begin
       Dec(_ItemCount, _Table[I].Count);
-      _Table[I].Destroy();
+      _Table[I].Release();
       _Table[I] := Nil;
     End;
 
@@ -1087,7 +1087,7 @@ Begin
     Temp := Self.Pop();
 
     If (Options And coUnmanaged=0) And (Assigned(Temp)) Then
-      Temp.Destroy();
+      Temp.Release();
   End;
 End;
 
@@ -1262,7 +1262,7 @@ Begin
 End;
 
 { Iterator }
-Destructor Iterator.Destroy;
+Procedure Iterator.Release();
 Begin
 
 End;
@@ -1278,7 +1278,7 @@ Begin
   // do nothing
 End;
 
-Destructor ListObject.Destroy;
+Procedure ListObject.Release();
 Begin
   // do nothing
 End;
@@ -1334,7 +1334,7 @@ Begin
     Next := List.Next;
 
     If (Not (List Is ListObject)) Then
-      List.Destroy;
+      List.Release();
 
     List := Next;
   End;
@@ -1346,14 +1346,14 @@ Begin
     _Objects[I].Used := False;
 End;
 
-Destructor Pool.Destroy;
+Procedure Pool.Release();
 Var
   I:Integer;
 Begin
   Inherited;
 
   For I:=0 To Pred(_ObjectCount) Do
-    FreeAndNil(_Objects[I].Obj);
+    ReleaseObject(_Objects[I].Obj);
 End;
 
 Procedure Pool.InsertPoolObject(Obj: ListObject);

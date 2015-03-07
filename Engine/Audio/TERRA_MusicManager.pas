@@ -56,7 +56,7 @@ Type
     Public
       Class Function Instance:MusicManager;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
 
       Procedure Init; Override;
@@ -213,12 +213,12 @@ Begin
   _CurrentTrack.SetVolume(_Volume);
 End;
 
-Destructor MusicManager.Destroy;
+Procedure MusicManager.Release;
 Begin
   If (Assigned(_CurrentTrack)) Then
   Begin
     _CurrentTrack.Stop();
-    _CurrentTrack.Destroy();
+    ReleaseObject(_CurrentTrack);
   End;
 
   _MusicManager_Instance := Nil;
@@ -302,8 +302,7 @@ Begin
     Exit;
 
   _CurrentTrack.Stop();
-  _CurrentTrack.Destroy();
-  _CurrentTrack := Nil;
+  ReleaseObject(_CurrentTrack);  
 End;
 
 End.

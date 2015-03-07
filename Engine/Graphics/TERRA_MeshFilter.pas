@@ -66,7 +66,6 @@ Const
   meshGroupReflective   = 1 Shl 26;
   meshGroupStencilMask  = 1 Shl 27;
   meshGroupReflectiveMap = 1 Shl 28;
-  meshGroupTextureMatrix = 1 Shl 29;
 
 {  mgMirror    = 2;  // Group is a reflective surface
   mgCullFace  = 4;  // Group is one sided/two sided
@@ -103,7 +102,7 @@ Type
     Time:Single;
   End;}
 
-  MeshFilter = Class
+  MeshFilter = Class(TERRAObject)
     Public
       Function GetGroupCount:Integer; Virtual;
       Function GetGroupName(GroupID:Integer):TERRAString; Virtual;
@@ -205,7 +204,7 @@ Begin
     Src := MemoryStream.Create(FileName);
     Result := MeshFilterList[I].Filter.Create;
     Result.Load(Src);
-    Src.Destroy;
+    Src.Release;
     Exit;
   End;
 End;
@@ -326,7 +325,7 @@ Var
 Begin
   Src := MemoryStream.Create(FileName);
   Result := Load(Src);
-  Src.Destroy;
+  Src.Release;
 End;
 
 Class Function MeshFilter.Save(FileName:TERRAString; MyMesh: MeshFilter): Boolean;
@@ -335,7 +334,7 @@ Var
 Begin
   Dest := FileStream.Create(FileName);
   Result := Save(Dest, MyMesh);
-  Dest.Destroy;
+  Dest.Release;
 End;
 
 Function MeshFilter.GetGroupBlendMode(GroupID: Integer): Cardinal;

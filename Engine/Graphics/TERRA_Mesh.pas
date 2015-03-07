@@ -29,7 +29,7 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Utils, TERRA_Texture, TERRA_Stream, TERRA_Resource, TERRA_MeshAnimation,
   TERRA_VertexBufferObject, TERRA_ResourceManager, TERRA_FileUtils, TERRA_Vector4D,
   TERRA_Math, TERRA_Ray, TERRA_Collections, TERRA_ShadowVolumes, TERRA_GraphicsManager, TERRA_MeshFilter,
-  TERRA_BoundingBox, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_RenderTarget,
+  TERRA_BoundingBox, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_RenderTarget, TERRA_PhysicsManager,
   TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ParticleRenderer, TERRA_ParticleEmitters, TERRA_Lights, TERRA_Shader
 //  {$IFDEF PC}, TERRA_Fur, TERRA_Cloth{$ENDIF}
 ;
@@ -130,8 +130,16 @@ Type
     Procedure UpdateBone();
   End;
 
+  MeshInstance = Class;
+
   MeshFX = Class(TERRAObject)
-    Procedure Update; Virtual; Abstract;
+    Private
+      _Target:Mesh;
+
+    Public
+      Function Update():Boolean; Virtual; Abstract;
+
+      Property Target:Mesh Read _Target;
   End;
 
   MeshMaterial = Object
@@ -171,26 +179,34 @@ Type
     Function Equals(Const Other:MeshMaterial):Boolean;
   End;
 
+  MeshGroupInstance = Record
+    Visibility:Boolean;
+    Wireframe:Boolean;
+
+    UseTextureMatrix:Boolean;
+    TextureTransform:Matrix4x4;
+
+    GeometryTransform:Matrix4x4;
+    GeometryTransformType:Integer;
+
+    TempAlpha:Byte;
+
+    Material:MeshMaterial;
+  End;
+
   MeshInstance = Class(Renderable)
     Protected
       _Mesh:Mesh;
       _BoundingBox:BoundingBox;
       _Transform:Matrix4x4;
 
+      _Body:PhysicsBody;
+
       _FX:Array Of MeshFX;
       _FXCount:Integer;
       _ClonedMesh:Boolean;
 
-      _Visibility:Array Of Boolean;
-      _Wireframe:Array Of Boolean;
-
-      _Materials:Array Of MeshMaterial;
-      _TempAlpha:Array Of Byte;
-
-      _UVTransforms:Array Of Matrix4x4;
-
-      _Transforms:Array Of Matrix4x4;
-      _CustomTransform:Array Of Integer;
+      _Groups:Array Of MeshGroupInstance;
 
       _AttachList:Array Of MeshAttach;
       _AttachCount:Integer;
@@ -199,8 +215,10 @@ Type
       _Rotation:Vector3D;
       _Scale:Vector3D;
 
-      _NeedsUpdate:Boolean;
-      _NeedsRebuild:Boolean;
+      _NeedsTransformUpdate:Boolean;
+      _NeedsPositionUpdate:Boolean;
+      _NeedsRotationUpdate:Boolean;
+      _NeedsShadowUpdate:Boolean;
 
       _CastShadows:Boolean;
       _ShadowVolume:ShadowVolume;
@@ -235,15 +253,21 @@ Type
 
       Function GetAnimation: AnimationState;
 
+      Procedure UpdateBoundingBox();
+      Procedure UpdateTransform();
+
+      Function GetPosition():Vector3D;
+      Function GetRotation():Vector3D;
+
     Public
       CullGroups:Boolean;
       CustomShader:Shader;
       Diffuse:Color;
       AlwaysOnTop:Boolean;
 
-      Procedure UpdateBoundingBox;
-      Procedure UpdateTransform;
       Procedure Update; Override;
+
+      Function ActivatePhysics(Mass:Single):Boolean;
 
       Function IsReady():Boolean;
 
@@ -349,7 +373,8 @@ Type
       Procedure SetPosition(P:Vector3D);
       Procedure SetRotation(P:Vector3D);
       Procedure SetScale(P:Vector3D);
-      Procedure SetTransform(M:Matrix4x4);
+
+      Function GetTransform():Matrix4x4;
 
       Procedure SetMotionBlur(Enabled:Boolean);
 
@@ -357,17 +382,17 @@ Type
       Procedure ClearAttachs;
 
       Constructor Create(MyMesh:Mesh);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function GetBoundingBox:BoundingBox; Override;
       Procedure Render(TranslucentPass:Boolean); Override;
 
       Function GetAttach(Index:Integer):PMeshAttach;
 
-      Property Position:Vector3D Read _Position Write SetPosition;
-      Property Rotation:Vector3D Read _Rotation Write SetRotation;
+      Property Position:Vector3D Read GetPosition Write SetPosition;
+      Property Rotation:Vector3D Read GetRotation Write SetRotation;
       Property Scale:Vector3D Read _Scale Write SetScale;
-      Property Transform:Matrix4x4 Read _Transform Write SetTransform;
+      Property Transform:Matrix4x4 Read GetTransform;
 
       Property CastShadows:Boolean Read _CastShadows Write _CastShadows;
       Property MotionBlur:Boolean Read _MotionBlur Write SetMotionBlur;
@@ -379,6 +404,8 @@ Type
 
       Property ParticleSystemsCount:Integer Read _ParticleSystemCount;
       Property EmitterCount:Integer Read _EmitterCount;
+
+      Property FXCount:Integer Read _FXCount;
   End;
 
   MeshGroup = Class;
@@ -397,7 +424,7 @@ Type
     Values:Array Of Vector3D;
   End;
 
-	MeshGroup = Class
+	MeshGroup = Class(TERRAObject)
     Protected
       _ID:Integer;
       _Owner:Mesh;
@@ -470,7 +497,7 @@ Type
       {$ENDIF}
 
       Constructor Create(ID:Integer; Parent:Mesh; Name:TERRAString='');
-      Destructor Destroy; Reintroduce;
+      Procedure Release; Reintroduce;
 
 		  Procedure Clean; Virtual;
       Procedure Init; Virtual;
@@ -607,7 +634,7 @@ Type
       Property ID:Integer Read _ID;
 	End;
 
-  MeshMetadata = Class
+  MeshMetadata = Class(TERRAObject)
     Name:TERRAString;
     Position:Vector3D;
     Content:TERRAString;
@@ -624,6 +651,8 @@ Type
 			_Groups:Array Of MeshGroup;
 			_GroupCount:Integer;
 			_BoundingBox:BoundingBox;
+
+      _Filter:MeshFilter;
 
       _AlphaStage:Integer;
 
@@ -653,9 +682,11 @@ Type
       Procedure RegisterInstance(Instance:MeshInstance);
       Procedure UnregisterInstance(Instance:MeshInstance);
 
+      Function GetMeshFilter:MeshFilter;
+
 		Public
       Constructor CreateFromFilter(Source:MeshFilter);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function Load(Source:Stream):Boolean; Override;
 	    Function Save(Dest:Stream):Boolean;
@@ -666,6 +697,8 @@ Type
       Procedure OnContextLost(); Override;
 
       Procedure ResolveLinks();
+
+      Property Filter:MeshFilter Read GetMeshFilter;
 
       Class Function GetManager:Pointer; Override;
 
@@ -731,7 +764,7 @@ Type
       Procedure ProcessGroup(Group:MeshGroup); Virtual;
 
     Public
-      Destructor Destroy; Override;
+      Procedure Release; Override;
       
       Function Merge(Source, Dest:Mesh; IndividualGroup:Boolean = False; MaxVertsPerGroup:Integer = -1; UpdateBox:Boolean = True):IntegerArray;
       Procedure MergeGroup(Source, Dest:MeshGroup; UpdateBox:Boolean = True);
@@ -802,25 +835,27 @@ Type
       Function GetSphereMesh:Mesh;
 
     Public
-      Destructor Destroy; Override;
+      Procedure Release; Override;
       Class Function Instance:MeshManager;
 
-      Function GetMesh(Name:TERRAString; ValidateError:Boolean = True):Mesh;
-      Function CloneMesh(Name:TERRAString; ValidateError:Boolean = True):Mesh;
+      Function GetMesh(Name:TERRAString):Mesh;
+      Function CloneMesh(Name:TERRAString):Mesh;
 
       Property CubeMesh:Mesh Read GetCubeMesh;
       Property SphereMesh:Mesh Read GetSphereMesh;
+
+      Property Meshes[Name:TERRAString]:Mesh Read GetMesh; Default;
    End;
 
 
-  Function CreateFilterFromMesh(MyMesh:Mesh):MeshFilter;
+  Function CreatePlaneMesh(Const Normal:Vector3D; SubDivisions:Cardinal):Mesh;
 
-  Function SelectMeshShader(Group:MeshGroup; Position:Vector3D; Outline:Boolean; Const DestMaterial:MeshMaterial):Shader;
+  Function SelectMeshShader(Group:MeshGroup; Position:Vector3D; Outline:Boolean; Const DestMaterial:MeshMaterial; UseTextureMatrix:Boolean):Shader;
 
   Function MakeWaterFlowBounds(Const Box:BoundingBox):Vector4D;
 
 Implementation
-Uses TERRA_Error, TERRA_Application, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, 
+Uses TERRA_Error, TERRA_Application, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
   TERRA_CubeMap, TERRA_ShaderFactory, TERRA_OS,
   TERRA_FileManager, TERRA_ColorGrading, TERRA_Solids;
 
@@ -1048,16 +1083,19 @@ Function GroupReadVertexUV0(Target:MeshGroup; Size:Integer; Source:Stream):Boole
 Var
   I:Integer;
   U,V:Byte;
-  CompressionRange:Vector2D;
+  //CompressionRange:Vector2D;
 Begin
-  Source.Read(@CompressionRange, SizeOf(Vector2D));
+  //Source.Read(@CompressionRange, SizeOf(Vector2D));
 
   For I:=0 To Pred(Target._VertexCount) Do
   Begin
-    Source.Read(@U, 1);
+    {Source.Read(@U, 1);
     Source.Read(@V, 1);
 
-    Target._Vertices[I].TextureCoords := VectorCreate2D((U/255)* CompressionRange.X, (V/255)* CompressionRange.Y);
+    Target._Vertices[I].TextureCoords := VectorCreate2D((U/255)* CompressionRange.X, (V/255)* CompressionRange.Y);}
+
+    Source.ReadSingle(Target._Vertices[I].TextureCoords.X);
+    Source.ReadSingle(Target._Vertices[I].TextureCoords.Y);
   End;
 
   Result := True;
@@ -1067,16 +1105,19 @@ Function GroupReadVertexUV1(Target:MeshGroup; Size:Integer; Source:Stream):Boole
 Var
   I:Integer;
   U,V:Byte;
-  CompressionRange:Vector2D;
+//  CompressionRange:Vector2D;
 Begin
-  Source.Read(@CompressionRange, SizeOf(Vector2D));
+  //Source.Read(@CompressionRange, SizeOf(Vector2D));
 
   For I:=0 To Pred(Target._VertexCount) Do
   Begin
-    Source.Read(@U, 1);
+{    Source.Read(@U, 1);
     Source.Read(@V, 1);
 
-    Target._Vertices[I].TextureCoords2 := VectorCreate2D((U/255)* CompressionRange.X, (V/255)* CompressionRange.Y);
+    Target._Vertices[I].TextureCoords2 := VectorCreate2D((U/255)* CompressionRange.X, (V/255)* CompressionRange.Y);}
+
+    Source.ReadSingle(Target._Vertices[I].TextureCoords2.X);
+    Source.ReadSingle(Target._Vertices[I].TextureCoords2.Y);
   End;
 
   Result := True;
@@ -1271,6 +1312,8 @@ Begin
   Begin
     Target._Material.LightMap.Uncompressed := True;
     Target._Material.LightMap.PreserveQuality := True;
+    Target._Material.LightMap.Wrap := False;
+    //Target._Material.LightMap.MipMapped := False;
   End;
 
   Result := True;
@@ -1390,7 +1433,6 @@ End;
   End Else
   }
 
-
 { MeshManager }
 Class Function MeshManager.Instance:MeshManager;
 Begin
@@ -1404,20 +1446,20 @@ Begin
 End;
 
 
-Destructor MeshManager.Destroy;
+Procedure MeshManager.Release;
 Begin
   Inherited;
 
   If Assigned(_CubeMesh) Then
   Begin
-    _CubeMesh.Destroy();
+    _CubeMesh.Release();
     _CubeMesh := Nil;
   End;
 
   _MeshManager := Nil;
 End;
 
-Function MeshManager.GetMesh(Name:TERRAString; ValidateError:Boolean):Mesh;
+Function MeshManager.GetMesh(Name:TERRAString):Mesh;
 Var
   I, N:Integer;
   S:TERRAString;
@@ -1455,15 +1497,13 @@ Begin
         Filter := MeshFilterList[N].Filter.Create;
         Filter.Load(S);
         Result := Mesh.CreateFromFilter(Filter);
-        Filter.Destroy;
-      End Else
-      If ValidateError Then
-        RaiseError('Could not find mesh. ['+Name +']');
+        ReleaseObject(Filter);
+      End;
     End;
   End;
 End;
 
-Function MeshManager.CloneMesh(Name:TERRAString; ValidateError:Boolean):Mesh;
+Function MeshManager.CloneMesh(Name:TERRAString):Mesh;
 Var
   S:TERRAString;
 Begin
@@ -1481,8 +1521,6 @@ Begin
     Result := Mesh.Create(S);
   End Else
   Begin
-    If ValidateError Then
-      RaiseError('Could not clone mesh. ['+Name +']');
     Result := Nil;
   End;
 End;
@@ -1495,7 +1533,7 @@ Begin
   Begin
     Cube := TERRA_Solids.CubeMesh.Create(2);
     _CubeMesh := CreateMeshFromSolid(Cube);
-    Cube.Destroy();
+    Cube.Release();
   End;
 
   Result := _CubeMesh;
@@ -1509,10 +1547,19 @@ Begin
   Begin
     Sphere := TERRA_Solids.SphereMesh.Create(8);
     _SphereMesh := CreateMeshFromSolid(Sphere);
-    Sphere.Destroy();
+    Sphere.Release();
   End;
 
   Result := _SphereMesh;
+End;
+
+Function CreatePlaneMesh(Const Normal:Vector3D; SubDivisions:Cardinal):Mesh;
+Var
+  Plane:TERRA_Solids.PlaneMesh;
+Begin
+  Plane := TERRA_Solids.PlaneMesh.Create(Normal, SubDivisions, -0.5, -0.5);
+  Result := CreateMeshFromSolid(Plane);
+  ReleaseObject(Plane);
 End;
 
 { MeshInstance }
@@ -1561,12 +1608,13 @@ End;
 
 Procedure MeshInstance.SetVisibility(GroupID:Integer; Visible:Boolean); {$IFDEF FPC}Inline;{$ENDIF}
 Begin
-  If (GroupID<0) Or (GroupID >= _Mesh._GroupCount) Or (_Visibility[GroupID] = Visible) Then
+  If (GroupID<0) Or (GroupID >= _Mesh._GroupCount) Or (_Groups[GroupID].Visibility = Visible) Then
     Exit;
 
-  _Visibility[GroupID] := Visible;
+  _Groups[GroupID].Visibility := Visible;
+  
   If _CastShadows Then
-    _NeedsRebuild := True;
+    _NeedsShadowUpdate := True;
 End;
 
 Function MeshInstance.GetVisibility(GroupID:Integer):Boolean; {$IFDEF FPC}Inline;{$ENDIF}
@@ -1574,15 +1622,15 @@ Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Result := False
   Else
-    Result := _Visibility[GroupID];
+    Result := _Groups[GroupID].Visibility;
 End;
 
 Procedure MeshInstance.SetWireframeMode(GroupID:Integer; Enabled:Boolean); {$IFDEF FPC}Inline;{$ENDIF}
 Begin
-  If (GroupID<0) Or (GroupID >= _Mesh._GroupCount) Or (_Wireframe[GroupID] = Enabled) Then
+  If (GroupID<0) Or (GroupID >= _Mesh._GroupCount) Or (_Groups[GroupID].Wireframe = Enabled) Then
     Exit;
 
-  _Wireframe[GroupID] := Enabled;
+  _Groups[GroupID].Wireframe := Enabled;
 End;
 
 Function MeshInstance.GetWireframeMode(GroupID:Integer):Boolean; {$IFDEF FPC}Inline;{$ENDIF}
@@ -1590,7 +1638,7 @@ Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Result := False
   Else
-    Result := _Wireframe[GroupID];
+    Result := _Groups[GroupID].Wireframe;
 End;
 
 Function MeshInstance.GetUVOffset(GroupID:Integer):Vector2D;
@@ -1598,7 +1646,7 @@ Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Result := VectorCreate2D(0, 0)
   Else
-    Result := VectorCreate2D(_UVTransforms[GroupID].V[12], _UVTransforms[GroupID].V[13]);
+    Result := VectorCreate2D(_Groups[GroupID].TextureTransform.V[12], _Groups[GroupID].TextureTransform.V[13]);
 End;
 
 Procedure MeshInstance.SetUVOffset(GroupID:Integer; X,Y:Single);
@@ -1606,11 +1654,9 @@ Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Exit;
 
-  If Assigned(_Mesh) Then
-    _Mesh._Groups[GroupID].Flags := _Mesh._Groups[GroupID].Flags Or meshGroupTextureMatrix;
-
-  _UVTransforms[GroupID].V[12] := X;
-  _UVTransforms[GroupID].V[13] := Y;
+  _Groups[GroupID].UseTextureMatrix := True;
+  _Groups[GroupID].TextureTransform.V[12] := X;
+  _Groups[GroupID].TextureTransform.V[13] := Y;
 End;
 
 Procedure MeshInstance.SetUVScale(GroupID:Integer; X,Y:Single);
@@ -1618,11 +1664,9 @@ Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Exit;
 
-  If Assigned(_Mesh) Then
-    _Mesh._Groups[GroupID].Flags := _Mesh._Groups[GroupID].Flags Or meshGroupTextureMatrix;
-
-  _UVTransforms[GroupID].V[0] := X;
-  _UVTransforms[GroupID].V[5] := Y;
+  _Groups[GroupID].UseTextureMatrix := True;
+  _Groups[GroupID].TextureTransform.V[0] := X;
+  _Groups[GroupID].TextureTransform.V[5] := Y;
 End;
 
 Procedure MeshInstance.SetTextureTransform(GroupID:Integer; Transform:Matrix4x4);
@@ -1630,7 +1674,8 @@ Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Exit;
 
-  _UVTransforms[GroupID] := Transform;
+  _Groups[GroupID].UseTextureMatrix := True;
+  _Groups[GroupID].TextureTransform := Transform;
 End;
 
 Function MeshInstance.GetTextureTransform(GroupID:Integer):Matrix4x4;
@@ -1638,7 +1683,7 @@ Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Result := Matrix4x4Identity
   Else
-    Result := _UVTransforms[GroupID];
+    Result := _Groups[GroupID].TextureTransform;
 End;
 
 Function MeshInstance.GetBlendMode(GroupID: Integer): Integer;
@@ -1646,7 +1691,7 @@ Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Result := blendBlend
   Else
-    Result := _Materials[GroupID].BlendMode;
+    Result := _Groups[GroupID].Material.BlendMode;
 End;
 
 Procedure MeshInstance.SetBlendMode(GroupID, Mode: Integer);
@@ -1654,7 +1699,7 @@ Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].BlendMode := Mode;
+  _Groups[GroupID].Material.BlendMode := Mode;
 End;
 
 Procedure MeshInstance.SetDiffuseColor(MyColor:Color); {$IFDEF FPC}Inline;{$ENDIF}
@@ -1670,7 +1715,7 @@ Begin
   If (GroupID<0) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].DiffuseColor := MyColor;
+  _Groups[GroupID].Material.DiffuseColor := MyColor;
 End;
 
 Function MeshInstance.GetDiffuseColor(GroupID:Integer):Color; {$IFDEF FPC}Inline;{$ENDIF}
@@ -1679,7 +1724,7 @@ Begin
     Result := ColorWhite
   Else
   Begin
-    Result := _Materials[GroupID].DiffuseColor;
+    Result := _Groups[GroupID].Material.DiffuseColor;
     Result.A := Trunc(Result.A * _AlphaLODValue);
   End;
 End;
@@ -1689,7 +1734,7 @@ Begin
   If (GroupID<0) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].AmbientColor := MyColor;
+  _Groups[GroupID].Material.AmbientColor := MyColor;
 End;
 
 Function MeshInstance.GetAmbientColor(GroupID:Integer):Color; {$IFDEF FPC}Inline;{$ENDIF}
@@ -1697,7 +1742,7 @@ Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Result := ColorWhite
   Else
-    Result := _Materials[GroupID].AmbientColor;
+    Result := _Groups[GroupID].Material.AmbientColor;
 End;
 
 Procedure MeshInstance.SetOutlineColor(MyColor:Color); {$IFDEF FPC}Inline;{$ENDIF}
@@ -1705,7 +1750,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_Mesh.GroupCount) Do
-    _Materials[I].OutlineColor := MyColor;
+    _Groups[I].Material.OutlineColor := MyColor;
 End;
 
 Procedure MeshInstance.SetOutlineColor(GroupID:Integer; MyColor:Color); {$IFDEF FPC}Inline;{$ENDIF}
@@ -1713,7 +1758,7 @@ Begin
   If (GroupID<0) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].OutlineColor := MyColor;
+  _Groups[GroupID].Material.OutlineColor := MyColor;
 End;
 
 Procedure MeshInstance.SetWaterFlowBounds(GroupID:Integer; Bounds:Vector4D);
@@ -1721,7 +1766,7 @@ Begin
   If (GroupID<0) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].FlowBounds := Bounds;
+  _Groups[GroupID].Material.FlowBounds := Bounds;
 End;
 
 Function MeshInstance.GetWaterFlowBounds(GroupID:Integer):Vector4D;
@@ -1729,7 +1774,7 @@ Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Result := Vector4DZero
   Else
-    Result := _Materials[GroupID].FlowBounds;
+    Result := _Groups[GroupID].Material.FlowBounds;
 End;
 
 Procedure MeshInstance.SetWaterFlowSpeed(GroupID:Integer; Speed:Single);
@@ -1737,7 +1782,7 @@ Begin
   If (GroupID<0) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].FlowSpeed := Speed;
+  _Groups[GroupID].Material.FlowSpeed := Speed;
 End;
 
 Function MeshInstance.GetWaterFlowSpeed(GroupID:Integer):Single;
@@ -1745,7 +1790,7 @@ Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Result := 0.0
   Else
-    Result := _Materials[GroupID].FlowSpeed;
+    Result := _Groups[GroupID].Material.FlowSpeed;
 End;
 
 Function MeshInstance.GetOutlineColor(GroupID:Integer):Color; {$IFDEF FPC}Inline;{$ENDIF}
@@ -1753,7 +1798,7 @@ Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Result := ColorNull
   Else
-    Result := _Materials[GroupID].OutlineColor;
+    Result := _Groups[GroupID].Material.OutlineColor;
 End;
 
 
@@ -1762,7 +1807,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
     Result := 0
   Else
-    Result := _Materials[GroupID].VegetationBend;
+    Result := _Groups[GroupID].Material.VegetationBend;
 End;
 
 Procedure MeshInstance.SetVegetationBend(GroupID: Integer; Bend:Single);
@@ -1770,7 +1815,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].VegetationBend := Bend;
+  _Groups[GroupID].Material.VegetationBend := Bend;
 End;
 
 Procedure MeshInstance.SetGhostMode(Ghost:Boolean);
@@ -1781,7 +1826,7 @@ Begin
     Exit;
 
   For I:=0 To Pred(_Mesh._GroupCount) Do
-    _Materials[I].Ghost := Ghost;
+    _Groups[I].Material.Ghost := Ghost;
 End;
 
 Procedure MeshInstance.SetPosition(P: Vector3D);
@@ -1801,11 +1846,13 @@ Begin
 
   If Assigned(_ShadowVolume) Then
     _ShadowVolume.Translate(Ofs);
+
   _BoundingBox.StartVertex.Add(Ofs);
   _BoundingBox.EndVertex.Add(Ofs);
 
   _Position := P;
-  _NeedsUpdate := True;
+  _NeedsPositionUpdate := False;
+  _NeedsTransformUpdate := True;
 End;
 
 Procedure MeshInstance.SetRotation(P: Vector3D); {$IFDEF FPC}Inline;{$ENDIF}
@@ -1820,8 +1867,11 @@ Begin
     Exit;
 
   _Rotation := P;
-  _NeedsUpdate := True;
-  _NeedsRebuild := True;
+
+  _NeedsRotationUpdate := False;
+  _NeedsTransformUpdate := True;
+
+  _NeedsShadowUpdate := True;
 End;
 
 Procedure MeshInstance.SetScale(P: Vector3D); {$IFDEF FPC}Inline;{$ENDIF}
@@ -1830,43 +1880,16 @@ Begin
     Exit;
 
   _Scale := P;
-  _NeedsUpdate := True;
+  _NeedsTransformUpdate := True;
 End;
-
-Procedure MeshInstance.SetTransform(M: Matrix4x4);
-Begin
-  _NeedsUpdate := False;
-  _NeedsRebuild := True;
-  _Transform := M;
-  _Position.X := M.V[12];
-  _Position.Y := M.V[13];
-  _Position.Z := M.V[14];
-  UpdateBoundingBox;
-End;
-
-{Procedure MeshInstance.SetGroupTransform(GroupID:Integer; Transform: Matrix4x4);
-Var
-  Center:Vector3D;
-  A,B:Matrix4x4;
-Begin
-  If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
-    Exit;
-
-  Center := _Mesh.GetGroup(GroupID).GetBoundingBox.Center;
-  A := MatrixTranslation(Center);
-  Center.Scale(-1);
-  B := MatrixTranslation(Center);
-  _Transforms[GroupID] := MatrixMultiply4x4(A, MatrixMultiply4x4(Transform, B));
-  _CustomTransform[GroupID] := True;
-End;}
 
 Procedure MeshInstance.SetGroupLocalTransform(GroupID:Integer; Const Transform: Matrix4x4);
 Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Exit;
 
-  _Transforms[GroupID] := Transform;
-  _CustomTransform[GroupID] := customTransformLocal;
+  _Groups[GroupID].GeometryTransform := Transform;
+  _Groups[GroupID].GeometryTransformType := customTransformLocal;
 End;
 
 Procedure MeshInstance.SetGroupGlobalTransform(GroupID:Integer; Const Transform: Matrix4x4);
@@ -1874,8 +1897,8 @@ Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Exit;
 
-  _Transforms[GroupID] := Transform;
-  _CustomTransform[GroupID] := customTransformGlobal;
+  _Groups[GroupID].GeometryTransform := Transform;
+  _Groups[GroupID].GeometryTransformType := customTransformGlobal;
 End;
 
 Procedure MeshInstance.UpdateBoundingBox;
@@ -1892,9 +1915,10 @@ Begin
   If (_Mesh=Nil) Or (Not _Mesh.IsReady) Then
     Exit;
 
-  _NeedsUpdate := False;
+  _NeedsTransformUpdate := False;
+//  _NeedsShadowUpdate := True;
   _Transform := Matrix4x4Transform(_Position, _Rotation, _Scale);
-  UpdateBoundingBox;
+  UpdateBoundingBox();
 End;
 
 Constructor MeshInstance.Create(MyMesh: Mesh);
@@ -1918,8 +1942,8 @@ Begin
   _Position := VectorZero;
   _Rotation := VectorZero;
   _Scale := VectorOne;
-  _NeedsUpdate := True;
-  _NeedsRebuild := True;
+  _NeedsTransformUpdate := True;
+  _NeedsShadowUpdate := True;
 
   CullGroups := False;
 
@@ -1928,13 +1952,7 @@ Begin
   _LastFrameID := 0;
   _LastTrailUpdate := Application.Instance.GetElapsedTime();
 
-  SetLength(_Visibility, _Mesh.GroupCount);
-  SetLength(_Wireframe, _Mesh.GroupCount);
-  SetLength(_Materials, _Mesh.GroupCount);
-  SetLength(_Transforms, _Mesh.GroupCount);
-  SetLength(_UVTransforms, _Mesh.GroupCount);
-  SetLength(_CustomTransform, _Mesh.GroupCount);
-  SetLength(_TempAlpha, _Mesh.GroupCount);
+  SetLength(_Groups, _Mesh.GroupCount);
 
   _ParticleSystemCount := _Mesh.EmitterCount;
   For I:=0 To Pred(_Mesh.GroupCount) Do
@@ -1955,10 +1973,10 @@ Begin
   N := 0;
   For I:=0 To Pred(_Mesh.GroupCount) Do
   Begin
-    _Visibility[I] := (_Mesh._Groups[I].Flags And meshGroupHidden=0);
-    _Materials[I].Reset();
-    _CustomTransform[I] := customTransformNone;
-    _UVTransforms[I] := Matrix4x4Identity;
+    _Groups[I].Visibility := (_Mesh._Groups[I].Flags And meshGroupHidden=0);
+    _Groups[I].Material.Reset();
+    _Groups[I].GeometryTransformType := customTransformNone;
+    _Groups[I].TextureTransform := Matrix4x4Identity;
 
     If (_Mesh._Groups[I].Flags And meshGroupCastShadow<>0) Then
       Inc(N);
@@ -1969,40 +1987,43 @@ Begin
   _Animation := Nil;
 End;
 
-Destructor MeshInstance.Destroy;
+Procedure MeshInstance.Release;
 Var
   I:Integer;
 Begin
   Inherited;
 
   For I:=0 To Pred(Self._ParticleSystemCount) Do
-    FreeAndNil(_ParticleSystems[I]);
+    ReleaseObject(_ParticleSystems[I]);
   _ParticleSystemCount := 0;
 
+  For I:=0 To Pred(Self._FXCount) Do
+    ReleaseObject(_FX[I]);
+
   For I:=0 To Pred(Self._EmitterCount) Do
-    FreeAndNil(_Emitters[I]);
+    ReleaseObject(_Emitters[I]);
   _EmitterCount := 0;
 
   For I:=0 To Pred(Self._LightCount) Do
-    FreeAndNil(_Lights[I]);
+    ReleaseObject(_Lights[I]);
   _LightCount := 0;
 
-  FreeAndNil(_ShadowVolume);
-  FreeAndNil(_Animation);
+  ReleaseObject(_ShadowVolume);
+  ReleaseObject(_Animation);
 
   If Assigned(_Mesh) Then
   Begin
     _Mesh.UnregisterInstance(Self);
 
     If (_ClonedMesh) Then
-      _Mesh.Destroy;
+      _Mesh.Release;
   End;
 End;
 
 Function MeshInstance.GetBoundingBox:BoundingBox; {$IFDEF FPC}Inline;{$ENDIF}
 Begin
-  If (_NeedsUpdate) Then
-    UpdateTransform;
+  If (_NeedsTransformUpdate) Then
+    UpdateTransform();
 
   Result := _BoundingBox;
   If GraphicsManager.Instance.ReflectionActive Then
@@ -2019,8 +2040,19 @@ Begin
   If (_Mesh = Nil) Or (Not _Mesh.IsReady) Then
     Exit;
 
-  For I:=0 To Pred(_FXCount) Do
-    _FX[I].Update();
+  I:=0;
+  While I<_FXCount Do
+  Begin
+    If _FX[I].Update() Then
+    Begin
+      Inc(I);
+    End Else
+    Begin
+      _FX[I].Release();
+      _FX[I] := _FX[Pred(_FXCount)];
+      Dec(_FXCount);
+    End;
+  End;
 
   If (Assigned(_Animation)) And (Assigned(_Animation.Root)) Then
     _Animation.Update;
@@ -2216,12 +2248,9 @@ Begin
     If (_Mesh._Groups[I].Flags And meshGroupStencilMask<>0) Then
       Continue;
 
-    If (_CustomTransform = Nil) Then
-      _CustomTransform[I] := customTransformNone;
-
-    Case _CustomTransform[I] Of
-      customTransformLocal: Transform := Matrix4x4Multiply4x4(MyTransform, _Transforms[I]);
-      customTransformGlobal: Transform := _Transforms[I];
+    Case _Groups[I].GeometryTransformType Of
+      customTransformLocal: Transform := Matrix4x4Multiply4x4(MyTransform, _Groups[I].GeometryTransform);
+      customTransformGlobal: Transform := _Groups[I].GeometryTransform;
       Else
         Transform := MyTransform;
     End;
@@ -2254,8 +2283,19 @@ Begin
   If (GraphicsManager.Instance.RenderStage=renderStageShadow) And (Not _CastShadows) Then
     Exit;
 
-  If (_NeedsUpdate) Then
-    UpdateTransform;
+
+  If Assigned(_Body) Then
+  Begin
+    Self._Transform := Matrix4x4Multiply4x4(_Body.Transform, Matrix4x4Scale(_Scale));
+    Self.UpdateBoundingBox();
+
+    _NeedsTransformUpdate := False;
+    _NeedsRotationUpdate := True;
+    _NeedsPositionUpdate := True;
+  End;
+
+  If (_NeedsTransformUpdate) Then
+    UpdateTransform();
 
   If (GraphicsManager.Instance.RenderStage=renderStageShadow) And (_CastShadows)
   And (GraphicsManager.Instance.Settings.DynamicShadows.Enabled) Then
@@ -2263,16 +2303,16 @@ Begin
     If (Not Assigned(_ShadowVolume)) Then
     Begin
       _ShadowVolume := ShadowVolume.Create;
-      _NeedsRebuild := True;
+      _NeedsShadowUpdate := True;
     End;
 
     If (Assigned(_Animation)) And (Assigned(_Animation.Root)) Then
-      _NeedsRebuild := True;
+      _NeedsShadowUpdate := True;
 
-    If (_NeedsRebuild)  Then
+    If (_NeedsShadowUpdate)  Then
     Begin
       _ShadowVolume.Rebuild(_Mesh, Self);
-      _NeedsRebuild := False;
+      _NeedsShadowUpdate := False;
     End;
 
     _ShadowVolume.Render;
@@ -2366,7 +2406,7 @@ Begin
   If (_RenderTrails) And (TranslucentPass) And (GraphicsManager.Instance.RenderStage=renderStageDiffuse) Then
   Begin
     For I:=0 To Pred(_Mesh.GroupCount) Do
-      _TempAlpha[I] := _Materials[I].DiffuseColor.A;
+      _Groups[I].TempAlpha := _Groups[I].Material.DiffuseColor.A;
     Temp := _Transform;
 
     Time := Application.Instance.GetElapsedTime();
@@ -2378,13 +2418,13 @@ Begin
       Begin
         S := (Time - _LastMotionBlur)/ TrailDecay;
         If (S>1.0) Then
-          _Materials[I].DiffuseColor.A := 0
+          _Groups[I].Material.DiffuseColor.A := 0
         Else
         Begin
           S := 1.0 - S;
           S := S * (1.0 - (Succ(J)/MaxTrailSize));
-          _Materials[I].DiffuseColor.A := Trunc(_TempAlpha[I] * 0.75 * S);
-          _RenderTrails := _Materials[I].DiffuseColor.A>0;
+          _Groups[I].Material.DiffuseColor.A := Trunc(_Groups[I].TempAlpha * 0.75 * S);
+          _RenderTrails := _Groups[I].Material.DiffuseColor.A>0;
         End;
       End;
 
@@ -2398,7 +2438,7 @@ Begin
 
     _Transform := Temp;
     For I:=0 To Pred(_Mesh.GroupCount) Do
-      _Materials[I].DiffuseColor.A := _TempAlpha[I];
+      _Groups[I].Material.DiffuseColor.A := _Groups[I].TempAlpha;
   End;
 
   For I:=0 To Pred(_AttachCount) Do
@@ -2454,7 +2494,7 @@ Begin
   End;
 
   For I:=0 To Pred(_Mesh.GroupCount) Do
-  If (_Visibility[I]) And (_Mesh._Groups[I].TriangleCount>0) And (Not IsGroupTranslucent(I)) Then
+  If (_Groups[I].Visibility) And (_Mesh._Groups[I].TriangleCount>0) And (Not IsGroupTranslucent(I)) Then
   Begin
     Result := True;
     Exit;
@@ -2480,7 +2520,7 @@ Begin
   End;
 
   For I:=0 To Pred(_Mesh.GroupCount) Do
-  If (_Visibility[I]) And (_Mesh._Groups[I].TriangleCount>0) And (IsGroupTranslucent(I)) Then
+  If (_Groups[I].Visibility) And (_Mesh._Groups[I].TriangleCount>0) And (IsGroupTranslucent(I)) Then
   Begin
     Result := True;
     Exit;
@@ -2508,7 +2548,7 @@ Begin
     Exit;
   End;
 
-  Result := (_Materials[Index].DiffuseColor.A<255) Or (Group.DiffuseColor.A<255) Or (Group.Flags And meshGroupTransparency<>0) Or (_Materials[Index].Ghost);
+  Result := (_Groups[Index].Material.DiffuseColor.A<255) Or (Group.DiffuseColor.A<255) Or (Group.Flags And meshGroupTransparency<>0) Or (_Groups[Index].Material.Ghost);
 End;
 
 Function MeshInstance.IsReady: Boolean;
@@ -2560,20 +2600,29 @@ Function MeshInstance.AddEffect(FX: MeshFX):Mesh;
 Var
   I:Integer;
 Begin
-  If _FXCount = 0 Then
+  If FX = Nil Then
+  Begin
+    Result := Nil;
+    Exit;
+  End;
+
+  If (Not _ClonedMesh) Then
   Begin
     _Mesh := MeshManager.Instance.CloneMesh(_Mesh.Name);
     _Mesh.Prefetch();
 
     For I:=0 To Pred(_Mesh.GroupCount) Do
       _Mesh._Groups[I].Flags := _Mesh._Groups[I].Flags Or meshGroupDynamic;
-      
+
     _ClonedMesh := True;
   End;
 
   Inc(_FXCount);
   SetLength(_FX, _FXCount);
   _FX[Pred(_FXCount)] := FX;
+
+  For I:=0 To Pred(_FXCount) Do
+    _FX[I]._Target := _Mesh;
 
   Result := _Mesh;
 End;
@@ -2583,7 +2632,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
     Result := Nil
   Else
-    Result := _Materials[GroupID].AlphaMap;
+    Result := _Groups[GroupID].Material.AlphaMap;
 End;
 
 Function MeshInstance.GetColorRamp(GroupID: Integer): Texture;
@@ -2591,7 +2640,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
     Result := Nil
   Else
-    Result := _Materials[GroupID].ColorRamp;
+    Result := _Groups[GroupID].Material.ColorRamp;
 End;
 
 Function MeshInstance.GetDecalMap(GroupID: Integer): Texture;
@@ -2599,7 +2648,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
     Result := Nil
   Else
-    Result := _Materials[GroupID].DecalMap;
+    Result := _Groups[GroupID].Material.DecalMap;
 End;
 
 Function MeshInstance.GetDiffuseMap(GroupID: Integer): Texture;
@@ -2607,7 +2656,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
     Result := Nil
   Else
-    Result := _Materials[GroupID].DiffuseMap;
+    Result := _Groups[GroupID].Material.DiffuseMap;
 End;
 
 Function MeshInstance.GetGlowMap(GroupID: Integer): Texture;
@@ -2615,7 +2664,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
     Result := Nil
   Else
-    Result := _Materials[GroupID].GlowMap;
+    Result := _Groups[GroupID].Material.GlowMap;
 End;
 
 Function MeshInstance.GetLightMap(GroupID: Integer): Texture;
@@ -2623,7 +2672,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
     Result := Nil
   Else
-    Result := _Materials[GroupID].LightMap;
+    Result := _Groups[GroupID].Material.LightMap;
 End;
 
 Function MeshInstance.GetNormalMap(GroupID: Integer): Texture;
@@ -2631,7 +2680,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
     Result := Nil
   Else
-    Result := _Materials[GroupID].NormalMap;
+    Result := _Groups[GroupID].Material.NormalMap;
 End;
 
 Function MeshInstance.GetRefractionMap(GroupID: Integer): Texture;
@@ -2639,7 +2688,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
     Result := Nil
   Else
-    Result := _Materials[GroupID].RefractionMap;
+    Result := _Groups[GroupID].Material.RefractionMap;
 End;
 
 Function MeshInstance.GetReflectiveMap(GroupID: Integer): Texture;
@@ -2647,7 +2696,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
     Result := Nil
   Else
-    Result := _Materials[GroupID].ReflectiveMap;
+    Result := _Groups[GroupID].Material.ReflectiveMap;
 End;
 
 Function MeshInstance.GetEnviromentMap(GroupID: Integer): Texture;
@@ -2655,7 +2704,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
     Result := Nil
   Else
-    Result := _Materials[GroupID].EnviromentMap;
+    Result := _Groups[GroupID].Material.EnviromentMap;
 End;
 
 Function MeshInstance.GetFlowMap(GroupID: Integer): Texture;
@@ -2663,7 +2712,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID>=_Mesh._GroupCount) Then
     Result := Nil
   Else
-    Result := _Materials[GroupID].FlowMap;
+    Result := _Groups[GroupID].Material.FlowMap;
 End;
 
 Function MeshInstance.GetNoiseMap(GroupID: Integer): Texture;
@@ -2671,7 +2720,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID>=_Mesh._GroupCount) Then
     Result := Nil
   Else
-    Result := _Materials[GroupID].NoiseMap;
+    Result := _Groups[GroupID].Material.NoiseMap;
 End;
 
 Function MeshInstance.GetSpecularMap(GroupID: Integer): Texture;
@@ -2679,7 +2728,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
     Result := Nil
   Else
-    Result := _Materials[GroupID].SpecularMap;
+    Result := _Groups[GroupID].Material.SpecularMap;
 End;
 
 Function MeshInstance.GetColorTable(GroupID: Integer): Texture;
@@ -2687,7 +2736,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
     Result := Nil
   Else
-    Result := _Materials[GroupID].ColorTable;
+    Result := _Groups[GroupID].Material.ColorTable;
 End;
 
 Function MeshInstance.GetTriplanarMap(GroupID: Integer): Texture;
@@ -2695,7 +2744,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
     Result := Nil
   Else
-    Result := _Materials[GroupID].TriplanarMap;
+    Result := _Groups[GroupID].Material.TriplanarMap;
 End;
 
 Procedure MeshInstance.SetAlphaMap(GroupID: Integer; Map: Texture);
@@ -2703,7 +2752,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].AlphaMap := Map;
+  _Groups[GroupID].Material.AlphaMap := Map;
 End;
 
 Procedure MeshInstance.SetColorRamp(GroupID: Integer; Map: Texture);
@@ -2711,7 +2760,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].ColorRamp := Map;
+  _Groups[GroupID].Material.ColorRamp := Map;
 End;
 
 Procedure MeshInstance.SetDecalMap(GroupID: Integer; Map:Texture);
@@ -2719,7 +2768,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].DecalMap := Map;
+  _Groups[GroupID].Material.DecalMap := Map;
 End;
 
 Procedure MeshInstance.SetDiffuseMap(GroupID: Integer; Map: Texture);
@@ -2727,7 +2776,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].DiffuseMap := Map;
+  _Groups[GroupID].Material.DiffuseMap := Map;
 End;
 
 Procedure MeshInstance.SetGlowMap(GroupID: Integer; Map: Texture);
@@ -2735,7 +2784,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].GlowMap := Map;
+  _Groups[GroupID].Material.GlowMap := Map;
 End;
 
 Procedure MeshInstance.SetLightMap(GroupID: Integer; Map: Texture);
@@ -2743,7 +2792,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].LightMap := Map;
+  _Groups[GroupID].Material.LightMap := Map;
 End;
 
 Procedure MeshInstance.SetNormalMap(GroupID: Integer; Map: Texture);
@@ -2751,7 +2800,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].NormalMap := Map;
+  _Groups[GroupID].Material.NormalMap := Map;
 End;
 
 Procedure MeshInstance.SetRefractionMap(GroupID: Integer; Map: Texture);
@@ -2759,7 +2808,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].RefractionMap := Map;
+  _Groups[GroupID].Material.RefractionMap := Map;
 End;
 
 Procedure MeshInstance.SetReflectiveMap(GroupID: Integer; Map: Texture);
@@ -2767,7 +2816,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].ReflectiveMap := Map;
+  _Groups[GroupID].Material.ReflectiveMap := Map;
 End;
 
 Procedure MeshInstance.SetEnviromentMap(GroupID: Integer; Map: Texture);
@@ -2775,7 +2824,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].EnviromentMap := Map;
+  _Groups[GroupID].Material.EnviromentMap := Map;
 End;
 
 Procedure MeshInstance.SetFlowMap(GroupID: Integer; Map: Texture);
@@ -2783,7 +2832,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].FlowMap := Map;
+  _Groups[GroupID].Material.FlowMap := Map;
 End;
 
 Procedure MeshInstance.SetNoiseMap(GroupID: Integer; Map: Texture);
@@ -2791,7 +2840,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].NoiseMap := Map;
+  _Groups[GroupID].Material.NoiseMap := Map;
 End;
 
 Procedure MeshInstance.SetSpecularMap(GroupID: Integer; Map: Texture);
@@ -2799,7 +2848,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].SpecularMap := Map;
+  _Groups[GroupID].Material.SpecularMap := Map;
 End;
 
 Procedure MeshInstance.SetTriplanarMap(GroupID: Integer; Map: Texture);
@@ -2807,7 +2856,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].TriplanarMap := Map;
+  _Groups[GroupID].Material.TriplanarMap := Map;
 End;
 
 Procedure MeshInstance.SetColorTable(Map: Texture);
@@ -2826,7 +2875,7 @@ Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Materials[GroupID].ColorTable := Map;
+  _Groups[GroupID].Material.ColorTable := Map;
 End;
 
 Function MeshInstance.GetAnimation: AnimationState;
@@ -2837,8 +2886,49 @@ Begin
   Result := _Animation;
 End;
 
+Function MeshInstance.GetTransform: Matrix4x4;
+Begin
+  If (_NeedsTransformUpdate) Then
+    UpdateTransform();
+
+  Result := _Transform;
+End;
+
+Function MeshInstance.ActivatePhysics(Mass: Single): Boolean;
+Begin
+  If Assigned(_Body) Then
+  Begin
+    Result := False;
+    Exit;
+  End;
+
+  _Body := PhysicsManager.Instance.CreateSphereRigidBody(Self._Scale.X, _Position, _Rotation, Mass);
+End;
+
+Function MeshInstance.GetPosition: Vector3D;
+Begin
+  If (_NeedsPositionUpdate) Then
+  Begin
+    _Position := _Transform.GetTranslation();
+    _NeedsPositionUpdate := False;
+  End;
+
+  Result := _Position;
+End;
+
+Function MeshInstance.GetRotation: Vector3D;
+Begin
+  If (_NeedsRotationUpdate) Then
+  Begin
+    _Rotation := _Transform.GetEulerAngles();
+    _NeedsRotationUpdate := False;
+  End;
+
+  Result := _Rotation;
+End;
+
 { MeshGroup }
-Destructor MeshGroup.Destroy;
+Procedure MeshGroup.Release;
 Begin
   Clean;
 End;
@@ -3103,20 +3193,20 @@ Begin
 
   If Assigned(_Buffer) Then
   Begin
-    _Buffer.Destroy;
+    _Buffer.Release;
     _Buffer := Nil;
   End;
 
 {$IFDEF PCs}
   If Assigned(_Fur) Then
   Begin
-    _Fur.Destroy;
+    _Fur.Release;
     _Fur := Nil;
   End;
 
   If Assigned(_Cloth) Then
   Begin
-    _Cloth.Destroy;
+    _Cloth.Release;
     _Cloth := Nil;
   End;
 {$ENDIF}
@@ -3192,7 +3282,7 @@ Var
   SX,SY,SZ:Shortint;
   PU,PV:Byte;
   PositionRange:Vector3D;
-  UVRange:Vector2D;
+//  UVRange:Vector2D;
 
   Procedure WriteTexture(Tag:FileHeader; Tex:Texture);
   Begin
@@ -3258,16 +3348,16 @@ Begin
   Tag := tagVertexUVs0;
   Size := _VertexCount * 2;
 
-  UVRange := VectorCreate2D(0, 0);
+(*  UVRange := VectorCreate2D(0, 0);
   For I:=0 To Pred(_VertexCount) Do
   Begin
     UVRange.X := FloatMax(UVRange.X, Abs(_Vertices[I].TextureCoords.X));
     UVRange.Y := FloatMax(UVRange.Y, Abs(_Vertices[I].TextureCoords.Y));
-  End;
+  End;*)
 
   Dest.Write(@Tag, 4);
   Dest.Write(@Size, 4);
-  Dest.Write(@UVRange, SizeOf(Vector2D));
+  //Dest.Write(@UVRange, SizeOf(Vector2D));
 
   For I:=0 To Pred(_VertexCount) Do
   Begin
@@ -3276,16 +3366,19 @@ Begin
       IntTOString(2);
     End;
 
-    If (_Vertices[I].TextureCoords.X<0) Then 
+    If (_Vertices[I].TextureCoords.X<0) Then
       _Vertices[I].TextureCoords.X := 0;
 
     If (_Vertices[I].TextureCoords.Y<0) Then
       _Vertices[I].TextureCoords.Y := 0;
 
-    PU := Trunc(SafeDiv(_Vertices[I].TextureCoords.X,UVRange.X)*255);
+    {PU := Trunc(SafeDiv(_Vertices[I].TextureCoords.X,UVRange.X)*255);
     PV := Trunc(SafeDiv(_Vertices[I].TextureCoords.Y,UVRange.Y)*255);
     Dest.Write(@PU, 1);
-    Dest.Write(@PV, 1);
+    Dest.Write(@PV, 1);}
+
+    Dest.WriteSingle(_Vertices[I].TextureCoords.X);
+    Dest.WriteSingle(_Vertices[I].TextureCoords.Y);
   End;
 
   If (Flags And meshGroupLightmap<>0) Or (Flags And meshGroupAlphaMap<>0) Then
@@ -3293,23 +3386,26 @@ Begin
     Tag := tagVertexUVs1;
     Size := _VertexCount * 2;
 
-    UVRange := VectorCreate2D(0, 0);
+    {UVRange := VectorCreate2D(0, 0);
     For I:=0 To Pred(_VertexCount) Do
     Begin
       UVRange.X := FloatMax(UVRange.X, Abs(_Vertices[I].TextureCoords2.X));
       UVRange.Y := FloatMax(UVRange.Y, Abs(_Vertices[I].TextureCoords2.Y));
-    End;
+    End;}
 
     Dest.Write(@Tag, 4);
     Dest.Write(@Size, 4);
-    Dest.Write(@UVRange, SizeOf(Vector2D));
+    //Dest.Write(@UVRange, SizeOf(Vector2D));
 
     For I:=0 To Pred(_VertexCount) Do
     Begin
-      PU := Trunc(SafeDiv(_Vertices[I].TextureCoords2.X,UVRange.X)*255);
+      Dest.WriteSingle(_Vertices[I].TextureCoords2.X);
+      Dest.WriteSingle(_Vertices[I].TextureCoords2.Y);
+
+{      PU := Trunc(SafeDiv(_Vertices[I].TextureCoords2.X,UVRange.X)*255);
       PV := Trunc(SafeDiv(_Vertices[I].TextureCoords2.Y,UVRange.Y)*255);
       Dest.Write(@PU, 1);
-      Dest.Write(@PV, 1);
+      Dest.Write(@PV, 1);}
     End;
   End;
 
@@ -3833,7 +3929,7 @@ Begin
     Transform := Matrix4x4Multiply4x4(GraphicsManager.Instance.ReflectionMatrix, Transform);
 
   If Assigned(State) Then
-    TextureMatrix := State._UVTransforms[Self._ID]
+    TextureMatrix := State._Groups[Self._ID].TextureTransform
   Else
     TextureMatrix := Matrix4x4Identity;
 
@@ -3963,7 +4059,7 @@ End;
 
 Function MeshGroup.Render(Const Transform:Matrix4x4; State:MeshInstance):Boolean;
 Var
-  UseOutline, ShowWireframe:Boolean;
+  UseOutline, ShowWireframe, UseTextureMatrix:Boolean;
   I,J,K, PassCount:Integer;
   Tex:Texture;
   Transparency:Boolean;
@@ -4023,14 +4119,14 @@ Begin
 
   ShowWireframe := (Flags And meshGroupWireframe<>0);
   If (Not ShowWireframe) And (Assigned(State)) Then
-    ShowWireframe := State._Wireframe[Self.ID];
+    ShowWireframe := State._Groups[Self.ID].Wireframe;
 
   If (_VertexCount<=0) Or (Hidden) Then
     Exit;
 
   If Assigned(State) Then
   Begin
-    Self.InheritMaterial(State._Materials[Self.ID], DestMaterial);
+    Self.InheritMaterial(State._Groups[Self.ID].Material, DestMaterial);
     DestMaterial.DiffuseColor := ColorScale(DestMaterial.DiffuseColor, State.Diffuse);
 
     If (Self.Flags And meshGroupReflective<>0) Then
@@ -4108,7 +4204,8 @@ Begin
       _Shader := State.CustomShader
     Else
     Begin
-      Self._Shader := SelectMeshShader(Self, Transform.GetTranslation(), UseOutline, DestMaterial);
+      UseTextureMatrix := (Assigned(State)) And (State._Groups[_ID].UseTextureMatrix);
+      Self._Shader := SelectMeshShader(Self, Transform.GetTranslation(), UseOutline, DestMaterial, UseTextureMatrix);
     End;
     
     If (Assigned(_Shader)) And (Not _Shader.IsReady) Or (_Shader = Nil) Then
@@ -4320,7 +4417,7 @@ Begin
     Begin
       If Assigned(_Buffer) Then
       Begin
-        _Buffer.Destroy();
+        _Buffer.Release();
         _Buffer := Nil;
       End;
     End;
@@ -4341,7 +4438,7 @@ Begin
     Begin
       If Assigned(_Buffer) Then
       Begin
-        _Buffer.Destroy();
+        _Buffer.Release();
         _Buffer := Nil;
       End;
     End;
@@ -4678,7 +4775,7 @@ Begin
 
   If Assigned(_Buffer) Then
   Begin
-    _Buffer.Destroy();
+    _Buffer.Release();
     _Buffer := Nil;
   End;
 End;
@@ -5459,36 +5556,27 @@ Procedure Mesh.Clean;
 Var
 	I:Integer;
 Begin
-	For I:=0 To Pred(_GroupCount) Do
-  Begin
-		_Groups[I].Clean();
-    _Groups[I].Destroy();
-    _Groups[I] := Nil;
-  End;
+    For I:=0 To Pred(_GroupCount) Do
+    Begin
+        _Groups[I].Clean();
+        _Groups[I].Release();
+        _Groups[I] := Nil;
+    End;
 	_GroupCount := 0;
 	_Groups := Nil;
 
 	For I:=0 To Pred(_MetadataCount) Do
-  Begin
-		_Metadata[I].Destroy();
-    _Metadata[I] := Nil;
-  End;
-  _Metadata := Nil;
-  _MetadataCount := 0;
+        ReleaseObject(_Metadata[I]);
+
+    _Metadata := Nil;
+    _MetadataCount := 0;
 
 	For I:=0 To Pred(_EmitterCount) Do
-  Begin
-		_Emitters[I].Destroy();
-    _Emitters[I] := Nil;
-  End;
+        ReleaseObject(_Emitters[I]);
   _Emitters := Nil;
   _EmitterCount := 0;
 
-  If Assigned(_Skeleton) Then
-  Begin
-    _Skeleton.Destroy;
-    _Skeleton := Nil;
-  End;
+  ReleaseObject(_Skeleton);
 End;
 
 Function Mesh.GetSkeleton:MeshSkeleton;
@@ -5884,7 +5972,7 @@ Procedure MeshGroup.OnContextLost;
 Begin
   If Assigned(_Buffer) Then
   Begin
-    _Buffer.Destroy;
+    _Buffer.Release;
     _Buffer := Nil;
   End;
 End;
@@ -5911,9 +5999,9 @@ Var
   Merger:MeshMerger;
 Begin
   Result := Mesh.Create('@'+Self.Name);
-  Merger := MeshMerger.Create;
+  Merger := MeshMerger.Create();
   Merger.Merge(Self, Result, True);
-  Merger.Destroy;
+  Merger.Release();
 End;
 
 Procedure Mesh.ResolveLinks;
@@ -6014,15 +6102,28 @@ Begin
     Inc(I);
 End;
 
-Destructor Mesh.Destroy;
+Procedure Mesh.Release;
 Var
   I:Integer;
 Begin
   I:=0;
   For I:=0 To Pred(_InstanceCount) Do
     _Instances[I]._Mesh := Nil;
-    
+
+  ReleaseObject(_Filter);
+
   Inherited;
+End;
+
+Function Mesh.GetMeshFilter: MeshFilter;
+Begin
+  If (_Filter = Nil) Then
+  Begin
+    _Filter := CustomMeshFilter.Create;
+    CustomMeshFilter(_Filter)._Mesh := Self;
+  End;
+
+  Result := _Filter;
 End;
 
 { CustomMeshFilter }
@@ -6232,14 +6333,8 @@ Begin
   Result := _Mesh._Groups[GroupID].GetVertex(Index).TextureCoords2;
 End;
 
-Function CreateFilterFromMesh(MyMesh:Mesh):MeshFilter;
-Begin
-  Result := CustomMeshFilter.Create;
-  CustomMeshFilter(Result)._Mesh := MyMesh;
-End;
-
 { MeshMerger }
-Destructor MeshMerger.Destroy;
+Procedure MeshMerger.Release;
 Begin
   // do nothing
 End;
@@ -6503,7 +6598,7 @@ Begin
 End;
 
 { SelectMeshShader }
-Function SelectMeshShader(Group:MeshGroup; Position:Vector3D; Outline:Boolean; Const DestMaterial:MeshMaterial):Shader;
+Function SelectMeshShader(Group:MeshGroup; Position:Vector3D; Outline:Boolean; Const DestMaterial:MeshMaterial; UseTextureMatrix:Boolean):Shader;
 Var
   DisableLights:Boolean;
   LightPivot:Vector3D;
@@ -6671,7 +6766,7 @@ Begin
   If (GraphicsManager.Instance.ReflectionActive) Then
     FxFlags := FxFlags Or shaderScreenMask;
 
-  If (Group.Flags And meshGroupTextureMatrix<>0) And (FxFlags And shaderFlowMap = 0) Then
+  If (UseTextureMatrix) And (FxFlags And shaderFlowMap = 0) Then
     FxFlags := FxFlags Or shaderTextureMatrix;
 
 //  Flags := shaderOutputNormal;
@@ -6683,7 +6778,6 @@ End;
 
 Initialization
   Log(logDebug, 'Mesh', 'Initializing');
-  RegisterResourceClass(Mesh);
 
   RegisterMeshDataHandler(tagMeshGroup, MeshReadGroup);
   RegisterMeshDataHandler(tagMeshSkeleton, MeshReadSkeleton);
@@ -6720,7 +6814,7 @@ Initialization
   RegisterMeshGroupHandler(tagMaterialParticles, GroupReadMaterialParticles);
 Finalization
   If (Assigned(_MeshManager)) Then
-    _MeshManager.Destroy;
+    _MeshManager.Release;
 End.
 
 

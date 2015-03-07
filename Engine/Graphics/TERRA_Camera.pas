@@ -93,7 +93,7 @@ Type
 
     Public
       Constructor Create(Name:TERRAString);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Update(Width, Height:Integer);
 
@@ -575,7 +575,7 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Destructor Camera.Destroy;
+Procedure Camera.Release;
 Begin
   // do nothing
 End;

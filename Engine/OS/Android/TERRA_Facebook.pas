@@ -15,7 +15,7 @@ Type
 
     Public
       Constructor Create();
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Post(msg, link, desc, imageURL:TERRAString);
       Procedure LikePage(page, url:TERRAString);
@@ -34,18 +34,18 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(Application.Instance.Client.GetFacebookID());
   _Facebook := JavaObject.Create(FacebookClassPath, Params, Frame);
-  Params.Destroy();
+  Params.Release();
   Java_End(Frame);
 End;
 
-Destructor Facebook.Destroy;
+Procedure Facebook.Release;
 Var
   Frame:JavaFrame;
 Begin
   Log(logDebug, 'App', 'Deleting facebook object');
 
   Java_Begin(Frame);
-  _Facebook.Destroy();
+  _Facebook.Release();
   Java_End(Frame);
 End;
 
@@ -61,7 +61,7 @@ Begin
   Params.AddString(Page);
   Params.AddString(URL);
   _Facebook.CallVoidMethod('likePage', Params);
-  Params.Destroy();
+  Params.Release();
   Java_End(Frame);
 End;
 
@@ -79,7 +79,7 @@ Begin
   Params.AddString(Desc);
   Params.AddString(ImageURL);
   _Facebook.CallVoidMethod('post', Params);
-  Params.Destroy();
+  Params.Release();
   Java_End(Frame);
 End;
 

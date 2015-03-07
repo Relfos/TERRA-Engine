@@ -101,21 +101,21 @@ Begin
   Begin
     S := CubeMesh.Create(1);
     _CubeMesh := CreateMeshFromSolid(S);
-    S.Destroy;
+    S.Release;
   End;
 
   If (_ConeMesh=Nil) Then
   Begin
     S := ConeMesh.Create(1, 8, True);
     _ConeMesh := CreateMeshFromSolid(S);
-    S.Destroy;
+    S.Release;
   End;
 
   If (_PlaneMesh=Nil) Then
   Begin
     S := PlaneMesh.Create(VectorUp, 2);
     _PlaneMesh := CreateMeshFromSolid(S);
-    S.Destroy;
+    S.Release;
   End;
 
   For I:=0 To 2 Do

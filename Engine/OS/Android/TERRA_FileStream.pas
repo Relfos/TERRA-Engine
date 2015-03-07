@@ -19,7 +19,7 @@ Type
 
         Constructor Create(FileName:TERRAString; StreamMode:Integer=smDefault);Overload;
         Constructor Open(FileName:TERRAString; StreamMode:Integer=smDefault);
-        Destructor Destroy;Override;
+        Procedure Release;Override;
 
         Procedure Truncate();Override;
 
@@ -129,7 +129,7 @@ Begin
   Log(logDebug, 'App', 'Obtaining asset manager class');
   Utils := JavaClass.Create(ActivityClassPath, Frame);
   javaAssetManager := Utils.CallStaticObjectMethod('getAssetManager', AssetManagerPath, Nil);
-  Utils.Destroy();
+  Utils.Release();
 
   Log(logDebug, 'App', 'Obtaining asset manager object');
   amClass := JClass(Frame^^.FindClass(Frame, AssetManagerPath));
@@ -163,7 +163,7 @@ Begin
   Utils := JavaClass.Create(ActivityClassPath, Frame);
   Obj := Utils.CallStaticObjectMethod('getAssetManager', AssetManagerPath, Nil);
   _GlobalAssetManager := AAssetManager_fromJava(Frame, Obj);
-  Utils.Destroy();
+  Utils.Release();
   Java_End(Frame);
 
   Log(logDebug, 'FileIO', 'Asset manager was obtained: '+HexStr(Cardinal(Result)));
@@ -218,8 +218,8 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(FileName);
   Result := Assets.CallStaticBoolMethod('fileExists', Params);
-  Params.Destroy();
-  Assets.Destroy();
+  Params.Release();
+  Assets.Release();
   Java_End(Frame);
 
   If Result Then
@@ -319,7 +319,7 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(FileName);
   Assets := JavaObject.Create(FileIOClassPath, Params, Frame);
-  Params.Destroy();
+  Params.Release();
 
   FSize := Assets.CallIntMethod('getSize', Nil);
   If FSize >=0 Then
@@ -335,7 +335,7 @@ Begin
     Log(logDebug, 'IO', 'all ok!');
   End;
 
-  Assets.Destroy();
+  Assets.Release();
   Java_End(Frame);
 
   If (FSize>=0) Then
@@ -368,7 +368,7 @@ Begin
   _Open:=True;
 End;
 
-Destructor FileStream.Destroy;
+Procedure FileStream.Release;
 Begin
   Inherited;
 
@@ -492,8 +492,8 @@ Begin
   Source := MemoryStream.Create(SourceName);
   Dest := FileStream.Create(DestName);
   Source.Copy(Dest);
-  Source.Destroy;
-  Dest.Destroy;
+  Source.Release;
+  Dest.Release;
 End;
 
 Procedure FileStream.Flush;

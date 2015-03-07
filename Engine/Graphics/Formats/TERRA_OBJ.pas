@@ -384,7 +384,7 @@ Begin
       End;
     End;
   End;
-  F.Destroy;
+  F.Release;
 End;
 
 Function OBJModel.GetMaterial(Index:Integer): POBJMaterial;
@@ -671,7 +671,7 @@ Begin
         Dest.WriteLine('map_Ks '+ GetFileName(S, False));}
     End;
 
-    Dest.Destroy;
+    Dest.Release;
   End;
 End;
 

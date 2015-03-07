@@ -53,7 +53,7 @@ Const
 Type
   InterpolatorValues = Array[0..2] Of Single;
 
-  Rasterizer = Class
+  Rasterizer = Class(TERRAObject)
     Protected
       _MinY, _MaxY:Integer;
       _IL, _IR:Array Of Array Of Single;
@@ -332,7 +332,7 @@ Begin
       Mask.SetPixel(_GutterTexels[I].X, _GutterTexels[I].Y, ColorWhite);
   End;
 
-  Mask.Destroy;
+  Mask.Release;
   Mask := Nil;
 
   For I:=0 To Pred(_GutterCount) Do

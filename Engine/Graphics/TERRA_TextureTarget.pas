@@ -35,7 +35,7 @@ Type
 
     Public
       Constructor Create(Const Name:TERRAString; Width, Height:Integer);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
 	    // Use it as a texture
 	    Procedure Bind(Slot:Integer); Override;
@@ -77,7 +77,7 @@ Begin
   glBindTexture(GL_TEXTURE_2D, 0);  
 End;
 
-Destructor TextureRenderTarget.Destroy;
+Procedure TextureRenderTarget.Release;
 Begin
   GraphicsManager.Instance.DeleteTexture(_Handles[0]);
 End;

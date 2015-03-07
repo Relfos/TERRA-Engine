@@ -27,7 +27,7 @@ Type
 		NAT_ERROR
   );
 
-  UPNP = Class
+  UPNP = Class(TERRAObject)
     Protected
 	    udp_socket_fd:Integer;
 	    tcp_socket_fd:Integer;

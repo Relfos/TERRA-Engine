@@ -61,7 +61,7 @@ Type
 
       Procedure SetCallback(Callback:FadeCallback; UserData:Pointer = Nil; OnStart:Boolean=False);
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Property FinishValue:Single Read _FinishValue Write _FinishValue;
       Property Duration:Integer Read _Duration;
@@ -93,7 +93,7 @@ Type
 
     Public
       Constructor Create(Direction:Vector2D; Duration, Delay:Cardinal);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
   End;
 
 Implementation
@@ -164,7 +164,7 @@ Begin
   _CallOnStart := OnStart;
 End;
 
-Destructor UITransition.Destroy;
+Procedure UITransition.Release;
 Begin
   // do nothing
 End;
@@ -387,7 +387,7 @@ Begin
   Src := GraphicsManager.Instance.MainViewport.GetRenderTarget(captureTargetColor).GetImage();
   _Texture := Texture.New('ui_slide', Src.Width, Src.Height);
   _Texture.UpdateRect(Src);
-  Src.Destroy();
+  Src.Release();
   {$ELSE}
   _Texture := Nil;
   {$ENDIF}
@@ -399,9 +399,9 @@ Begin
   End;
 End;
 
-Destructor UISlide.Destroy;
+Procedure UISlide.Release;
 Begin
-  _Texture.Destroy;
+  _Texture.Release;
   Inherited;
 End;
 

@@ -32,7 +32,7 @@ Const
   MinTextureSize  = 2;
 
 Type
-  VolumeTexture = Class
+  VolumeTexture = Class(TERRAObject)
 	  Protected
 		  _Width:Cardinal;
 		  _Height:Cardinal;
@@ -47,7 +47,7 @@ Type
       Wrap:Boolean;
 
 		  Constructor Create(Width,Height,Depth:Cardinal);
-      Destructor Destroy;
+      Procedure Release;
 
       Class Procedure Bind(Texture:VolumeTexture; Slot:Integer);
 
@@ -106,7 +106,7 @@ Begin
 	Result := True;
 End;
 
-Destructor VolumeTexture.Destroy;
+Procedure VolumeTexture.Release;
 Begin
   Unload;
 End;

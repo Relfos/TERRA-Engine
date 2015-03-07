@@ -35,20 +35,22 @@ Const
 Type
   EdgeListSortCompare = function (Item1, Item2: Pointer): Integer;
 
-  EdgeList = class
-  private
+  EdgeList = Class(TERRAObject)
+  Private
     FList: PPointerArray;
     FCount: Integer;
     FCapacity: Integer;
-  protected
+
+  Protected
     function Get(Index: Integer): Pointer;
     procedure Grow; virtual;
     procedure Put(Index: Integer; Item: Pointer);
 
     procedure SetCapacity(NewCapacity: Integer);
     procedure SetCount(NewCount: Integer);
-  public
-    destructor Destroy; override;
+
+  Public
+    Procedure Release; override;
     function Add(Item: Pointer): Integer;
     procedure Clear; virtual;
     procedure Delete(Index: Integer);
@@ -156,7 +158,7 @@ Type
       Constructor Create(Source:Stream); Overload;
       Constructor Create(Const FileName:TERRAString); Overload;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function stbtt_FindGlyphIndex(unicode_codepoint: Integer):Word;
 
@@ -198,7 +200,7 @@ const STBTT_vcurve = 3;
 
 
 { EdgeList }
-destructor EdgeList.Destroy;
+Procedure EdgeList.Release;
 begin
   Clear;
 end;
@@ -390,7 +392,7 @@ Begin
   If Assigned(Source) Then
   Begin
     Create(Source);
-    Source.Destroy();
+    Source.Release();
   End;
 End;
 
@@ -474,7 +476,7 @@ begin
    //IntToString(T);
 End;
 
-Destructor TTFFont.Destroy;
+Procedure TTFFont.Release;
 Begin
   If Assigned(TtfBuffer) Then
   Begin
@@ -1483,7 +1485,7 @@ Begin
    Begin
       FreeMem(e[i]);
    End;
-   e.Destroy();
+   e.Release();
 end;
 
 function TTFFont.new_active(e: PStBttEdge; off_x: Integer; start_point: Single): PStBttActiveEdge;
@@ -1740,11 +1742,11 @@ Begin
   Begin
     OpID := Ord('E');
     Img := GetCodepointBitmap(_Scale * LocalScale, _Scale * LocalScale, OpID, xofs, yofs);
-    Img.Destroy();
+    Img.Release();
     Img := Image.Create(4,4);
     stbtt_GetCodepointHMetrics(OpID, XAdv, lsb);
     Result := Font.AddGlyph(ID, Img, XOfs, YOfs, Trunc(XAdv*_Scale));
-    Img.Destroy();
+    Img.Release();
     Exit;
   End;
 
@@ -1763,7 +1765,7 @@ Begin
 
   {$IFDEF DISTANCEFIELDFONTS}
   Temp := CreateDistanceField(Img, componentAlpha, LocalScale, 3.0 * FontQuality);
-  Img.Destroy();
+  Img.Release();
   Img := Temp;
   {$ENDIF}
 
@@ -1773,7 +1775,7 @@ Begin
 
     //Img.Save('out\g'+IntToString(ID)+'.png');
 
-  Img.Destroy;
+  Img.Release;
 End;
 
 

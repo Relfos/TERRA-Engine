@@ -69,7 +69,7 @@ Type
 
      Public
       Constructor Create(StreamMode:Integer=smDefault);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function Read(Data:Pointer; Length:Cardinal):Cardinal; Virtual;
       Function Write(Data:Pointer; Length:Cardinal):Cardinal; Virtual;
@@ -144,7 +144,7 @@ Begin
   _EOL := EOL_Unix;
 End;
 
-Destructor Stream.Destroy;
+Procedure Stream.Release;
 Begin
   // do nothing
 End;

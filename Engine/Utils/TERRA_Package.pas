@@ -4,7 +4,7 @@ Unit TERRA_Package;
 {-$DEFINE ALLOWEXTERNAL}
 
 Interface
-Uses TERRA_String, TERRA_FileUtils, TERRA_Stream, TERRA_Collections, TERRA_Resource;
+Uses TERRA_String, TERRA_Utils, TERRA_FileUtils, TERRA_Stream, TERRA_Collections, TERRA_Resource;
 
 Const
   terraHeader:FileHeader = 'TePK';
@@ -33,24 +33,19 @@ Type
 
       Property FileName:TERRAString Read _FileName;
       Property Size:Cardinal Read _Size;
+      Property Offset:Cardinal Read _Offset Write _Offset;
+      Property CRC:Cardinal Read _CRC;
   End;
 
-  Package = Class
-    Private
+  Package = Class(TERRAObject)
+    Protected
       _Name:TERRAString;
       _Location:TERRAString;
       _TableOffset:Cardinal; // Table position in the file
       _CRC:Cardinal;
 
-      _ResourceList:Array Of ResourceInfo; // List of all resources within the file
+      _Resources:Array Of ResourceInfo; // List of all resources within the file
       _ResourceCount:Integer;    // Number of resources in the table
-
-      // Read package contents
-      Function Load():Boolean;
-
-      // unloads resources
-      Function Unload():Boolean;
-
 
       Function GetCRC():Cardinal;
 
@@ -60,10 +55,14 @@ Type
       // Load a package from disk
       Constructor Create(FileName:TERRAString);
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
-      // Register all resources into manager
-     // Function Update():Boolean;
+
+      // Read package contents
+      Function Load():Boolean;
+
+      // unloads resources
+      Function Unload():Boolean;
 
       // Searches for a resource inside a package
       Function FindResourceByName(Const ResourceName:TERRAString):ResourceInfo;
@@ -83,7 +82,7 @@ Type
     End;
 
 Implementation
-Uses TERRA_Error, TERRA_Utils, TERRA_CRC32, TERRA_Application, TERRA_OS, TERRA_Log, TERRA_ResourceManager,
+Uses TERRA_Error, TERRA_CRC32, TERRA_Application, TERRA_OS, TERRA_Log, TERRA_ResourceManager,
   TERRA_FileStream, TERRA_FileManager, TERRA_MemoryStream;
 
 Type
@@ -116,10 +115,11 @@ End;
 { Package }
 Constructor Package.Create(FileName:TERRAString);
 Begin
-   _Location := FileName;
+  _Location := FileName;
+  _Name := GetFileName(FileName, True);
 End;
 
-Destructor Package.Destroy;
+Procedure Package.Release;
 Begin
   Unload();
 End;
@@ -129,7 +129,7 @@ Begin
    If (Index<0) Or (Index>=_ResourceCount) Then
       Result := Nil
    Else
-       Result := _ResourceList[Index];
+       Result := _Resources[Index];
 End;
 
 Function Package.Unload:Boolean;
@@ -138,7 +138,7 @@ Var
 Begin
   For I:=0 To Pred(_ResourceCount) Do
   Begin
-       _ResourceList[I].Destroy();
+       _Resources[I].Release();
   End;
   _ResourceCount := 0;
 
@@ -161,20 +161,19 @@ Begin
   If Header<>TERRAHeader Then
   Begin
     RaiseError('Invalid header. ['+Source.Name+']');
-    Source.Destroy();
+    Source.Release();
     Exit;
   End;
 
-  Source.ReadString(_Name);
   Source.ReadInteger(_ResourceCount); //Read filetable info
   Source.ReadCardinal(_TableOffset);
 
   Source.Seek(_TableOffset);
-  SetLength(_ResourceList, _ResourceCount);
+  SetLength(_Resources, _ResourceCount);
   For I:=0 To Pred(_ResourceCount) Do
   Begin
     Resource := ResourceInfo.Create(Self, Source);
-    _ResourceList[I] := Resource;
+    _Resources[I] := Resource;
 
 
 
@@ -185,7 +184,7 @@ Begin
     {$ENDIF}
   End;
 
-  Source.Destroy();
+  Source.Release();
   Result := True;
 End;
 
@@ -197,9 +196,9 @@ Var
 Begin
   Result := Nil;
   For I:=0 To Pred(_ResourceCount) Do
-   If (StringEquals(_ResourceList[I]._FileName, ResourceName)) Then
+   If (StringEquals(_Resources[I]._FileName, ResourceName)) Then
     Begin
-      Result := _ResourceList[I];
+      Result := _Resources[I];
       Break;
     End;
 
@@ -235,7 +234,7 @@ Begin
   Source := FileStream.Open(_Location, smRead);
   Source.Copy(Result, Resource._Offset, Resource._Size);
   Result.Seek(0);
-  Source.Destroy();
+  Source.Release();
 End;
 
 Function Package.GetCRC:Cardinal;
@@ -246,7 +245,7 @@ Begin
   Begin
     Source := FileManager.Instance.OpenStream(_Location);
     _CRC := GetCRC32(Source);
-    Source.Destroy;
+    Source.Release;
   End;
   Result:=_CRC;
 End;
@@ -254,7 +253,7 @@ End;
 { PackageIterator }
 Function PackageIterator.GetNext: ListObject;
 Begin
-  Result := _Package._ResourceList[_Index];
+  Result := _Package._Resources[_Index];
   Inc(_Index);
 End;
 

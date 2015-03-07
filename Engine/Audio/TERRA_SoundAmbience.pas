@@ -65,7 +65,7 @@ Type
 
     Public
       Constructor Create;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function Load(Source:Stream):Boolean; Overload;
       Function Load(Name:TERRAString):Boolean; Overload;
@@ -127,7 +127,7 @@ Begin
   If Assigned(Source) Then
   Begin
     Result := Load(Source);
-    Source.Destroy;
+    ReleaseObject(Source);
   End Else
     Result := False;
 
@@ -282,7 +282,7 @@ Begin
   Self.Update;
 End;
 
-Destructor SoundAmbience.Destroy;
+Procedure SoundAmbience.Release;
 Var
   I:Integer;
 Begin

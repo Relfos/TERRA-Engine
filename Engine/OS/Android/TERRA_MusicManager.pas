@@ -36,7 +36,7 @@ Type
       Procedure Update; Override;
 
       Procedure Play(SourceName:TERRAString);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure SetVolume(Volume:Single);
       Procedure SetMute(Value:Boolean);
@@ -67,7 +67,7 @@ Begin
   Result := MusicManager(_MusicManager_Instance.Instance);
 End;
 
-Destructor MusicManager.Destroy;
+Procedure MusicManager.Release;
 Begin
   Stop();
 
@@ -131,7 +131,7 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(S);
   _Player.CallVoidMethod('setTrack', Params);
-  Params.Destroy();
+  Params.Release();
   Java_End(Frame);
 
   Self.SetVolume(_Volume);
@@ -158,7 +158,7 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddInteger(Trunc(Volume));
   _Player.CallVoidMethod('setVolume', Params);
-  Params.Destroy();
+  Params.Release();
   Java_End(Frame);
 End;
 
@@ -186,7 +186,7 @@ Begin
   Java_Begin(Frame);
   _Player.CallVoidMethod('stop', Nil);
   _Player.CallVoidMethod('release', Nil);
-  _Player.Destroy();
+  _Player.Release();
   _Player := Nil;
   Java_End(Frame);
 End;

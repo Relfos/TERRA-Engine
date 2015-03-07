@@ -62,7 +62,7 @@ Type
 
     Public
       Constructor Create(Source:Stream);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Update;
 
@@ -147,7 +147,7 @@ Begin
   Self.InitStream;
 End;
 
-Destructor SoundStream.Destroy;
+Procedure SoundStream.Release;
 Var
   Buffer:Cardinal;
   Queued:Integer;
@@ -172,7 +172,7 @@ Begin
     _Handle := 0;
   End;
 
- _Source.Destroy;
+ _Source.Release;
 End;
 
 Procedure SoundStream.AllocBuffer(Channels, BitsPerSample, Frequency:Cardinal);

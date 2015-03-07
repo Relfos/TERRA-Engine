@@ -34,7 +34,7 @@ Type
     UV:Vector2D;
   End;
 
-  DXMesh = Class
+  DXMesh = Class(TERRAObject)
     Protected
       _pMesh: ID3DXMesh;                  // Encapsulated D3DX Mesh
       _pLODMesh:ID3DXPMesh;
@@ -52,7 +52,7 @@ Type
 
     Public
       Constructor Create(Handle:HWND);
-      Destructor Destroy;
+      Procedure Release;
 
       Procedure SetVertexCount(Count:Integer);
       Procedure SetTriangleCount(Count:Integer);
@@ -137,7 +137,7 @@ Begin
   _pMesh := nil;
 End;
 
-Destructor DXMesh.Destroy;
+Procedure DXMesh.Release;
 Begin
   ClearMesh;
   _pMesh := nil;

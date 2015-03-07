@@ -64,7 +64,7 @@ Type
     Public
       Procedure Init; Override;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Class Function Instance:DecalManager;
 
@@ -112,10 +112,10 @@ Begin
 
       Src := FileStream.Open(S);
       Img := Image.Create(Src);
-      Src.Destroy;
+      Src.Release;
       Item := _TextureAtlas.Add(Img, S);
       _NeedTextureAtlasRebuild := True;
-      Img.Destroy();
+      Img.Release();
     End Else
     Begin
       Result := False;
@@ -212,10 +212,10 @@ Begin
   _TextureAtlas := TextureAtlas.Create('decal', 256, 256);
 End;
 
-Destructor DecalManager.Destroy;
+Procedure DecalManager.Release;
 Begin
   If Assigned(_TextureAtlas) Then
-    _TextureAtlas.Destroy;
+    _TextureAtlas.Release;
 
   _DecalInstance := Nil;
 End;

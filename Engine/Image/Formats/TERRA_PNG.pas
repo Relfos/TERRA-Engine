@@ -59,7 +59,7 @@ Type
     InterlaceMethod:Byte;
   End;
 
-  PNGLoader=Class
+  PNGLoader = Class(TERRAObject)
     Protected
       Buffer:Image;
       Header:PNGHeader;
@@ -931,7 +931,7 @@ Begin
       Buffer.HasAlpha:=True;
   End;}
 
-  Loader.Destroy;
+  Loader.Release();
 End;
 
 Procedure EncodeNonInterlacedRGB(Src:PColor; Dest:PByte; Width:Integer);
@@ -1123,7 +1123,7 @@ Begin
     Parser.ParseCommas := True;
     Parser.AddToken('Depth',tkInteger,@Depth);
     Parser.LoadFromString(Options);
-    Parser.Destroy;
+    Parser.Release;
   End;
 
   If Depth=32 Then
@@ -1170,6 +1170,6 @@ Initialization
   
   RegisterImageFormat('PNG', ValidatePNG, PNGLoad, PNGSave);
 Finalization
-  _PNGCRCTable.Destroy();
+  ReleaseObject(_PNGCRCTable);
 End.
 

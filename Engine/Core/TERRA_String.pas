@@ -130,6 +130,8 @@ Function StringFromChar(Const C:TERRAChar):TERRAString;
 
 Function StringReverse(Const S:TERRAString):TERRAString;
 
+Function StringIsUnicode(Const S:TERRAString):Boolean;
+
 Procedure StringAppendChar(Var Str:TERRAString; Const C:TERRAChar);
 Procedure StringPrependChar(Var Str:TERRAString; Const C:TERRAChar);
 
@@ -1207,6 +1209,23 @@ Begin
   End;
 End;}
 
+Function StringIsUnicode(Const S:TERRAString):Boolean;
+Var
+  It:StringIterator;
+Begin
+  StringCreateIterator(S, It);
+  While It.HasNext() Do
+  Begin
+    If It.GetNext() > 127 Then
+    Begin
+      Result := True;
+      Exit;
+    End;
+  End;
+
+  Result := False;
+End;
+
 Procedure StringCreateIterator(Const S:TERRAString; Out It:StringIterator; AutoCase:Boolean);
 Begin
   It._Target := S;
@@ -1245,7 +1264,6 @@ Begin
   State := _State;
 End;
 
-{ StringIterator }
 Procedure StringIterator.Reset;
 Begin
   _Size := Length(_Target);

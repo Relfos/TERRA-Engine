@@ -19,7 +19,7 @@ Type
 
     Public
       Class Function Instance:ResourceLoader;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Clear;
       Procedure AddResource(Res:Resource);
@@ -69,7 +69,7 @@ Begin
   Self.Clear;
 End;
 
-Destructor ResourceLoader.Destroy;
+Procedure ResourceLoader.Release;
 Begin
   _LoaderManagerInstance := Nil;
 End;

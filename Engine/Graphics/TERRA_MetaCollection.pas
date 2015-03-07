@@ -526,7 +526,7 @@ Begin
 
   Dest := FileStream.Create(ExportFileName);
   Ms3d.Save(Dest);
-  Dest.Destroy;
+  Dest.Release;
 End;
 
 Procedure MetaCollection.AddMetaObject(Obj:MetaObject);
@@ -749,7 +749,7 @@ begin
   If _MetaCount<=0 Then
     Exit;
 
-  _MetaList[Pred(_MetaCount)].Destroy;
+  _MetaList[Pred(_MetaCount)].Release;
   Dec(_MetaCount);
   _Update := True;
 end;

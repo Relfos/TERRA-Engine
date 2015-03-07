@@ -608,7 +608,7 @@ Begin
   _SplatTexture := Texture.New(N, N);
   _SplatTexture.Update();
   _SplatTexture.UpdateRect(Img, 0, 0);
-  Img.Destroy;
+  Img.Release;
 End;
 
 Procedure Cloud.SetPosition(P: Vector3D);

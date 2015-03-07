@@ -34,7 +34,7 @@ Const
   networkPacket             = 2;
 
 Type
-  NetworkLogger = Class
+  NetworkLogger = Class(TERRAObject)
     Protected
       _Stream:FileStream;
 

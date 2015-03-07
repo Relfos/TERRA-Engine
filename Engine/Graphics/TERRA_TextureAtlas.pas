@@ -40,7 +40,7 @@ Type
       Y:Single;
       Buffer:Image;
       
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Property Name:TERRAString Read _Name;
   End;
@@ -64,7 +64,7 @@ Type
 
     Public
       Constructor Create(Name:TERRAString; Width, Height:Integer);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function Add(Source:Image; Name:TERRAString):TextureAtlasItem;
       Procedure Delete(ID:Integer);
@@ -101,13 +101,13 @@ Begin
   SetLength(_Textures, 1);
 End;
 
-Destructor TextureAtlas.Destroy;
+Procedure TextureAtlas.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(Length(_Textures)) Do
   If Assigned(_Textures[I]) Then
-    _Textures[I].Destroy;
+    _Textures[I].Release;
 
   Clear;
 End;
@@ -118,8 +118,8 @@ Var
 Begin
   For I:=0 To Pred(_ItemCount) Do
   Begin
-    _ItemList[I].Buffer.Destroy;
-    _ItemList[I].Destroy;
+    _ItemList[I].Buffer.Release;
+    _ItemList[I].Release;
   End;
   _ItemCount := 0;
 End;
@@ -155,7 +155,7 @@ Begin
   If (N<0) Then
     Exit;
 
-  _ItemList[N].Buffer.Destroy;
+  _ItemList[N].Buffer.Release;
   _ItemList[N] := _ItemList[Pred(_ItemCount)];
   Dec(_ItemCount);
 End;
@@ -230,7 +230,7 @@ Begin
     Begin
       RaiseError('Not enough space to pack TextureAtlas.');
       Result := False;
-      Packer.Destroy;
+      Packer.Release;
       Exit;
     End;
 
@@ -264,13 +264,13 @@ Begin
       End Else
         Log(logError, 'TextureAtlas', 'Could not pack '+_ItemList[I]._Name);
     End;
-    Packer.Destroy;
+    Packer.Release;
 
     {$IFDEF CPUBUFFER}
     _Textures[Pred(_PageCount)].UpdateRect(Buffer);
 
     //Buffer.Save(_Name+'_TextureAtlas'+IntToString(_PageCount)+'.png', 'png','depth=32');
-    Buffer.Destroy;
+    Buffer.Release;
     {$ENDIF}
   Until (Count = 0);
 
@@ -312,7 +312,7 @@ Begin
     Buffer := Image.Create(_Width, _Height);
     {$ENDIF}
 
-    _Textures[J].Destroy();
+    _Textures[J].Release();
     Self.CreateTexture(J);
 
     For I:=0 To Pred(_ItemCount) Do
@@ -335,7 +335,7 @@ Begin
     _Textures[Pred(_PageCount)].UpdateRect(Buffer);
 
     //Buffer.Save(_Name+'_TextureAtlas'+IntToString(_PageCount)+'.png', 'png','depth=32');
-    Buffer.Destroy;
+    Buffer.Release;
     {$ENDIF}
   End
 End;
@@ -357,7 +357,7 @@ Begin
   _Textures[ID].Update();
 End;
 
-Destructor TextureAtlasItem.Destroy;
+Procedure TextureAtlasItem.Release;
 Begin
 End;
 

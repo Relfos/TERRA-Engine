@@ -58,10 +58,10 @@ Type
       _Complete:Boolean;
 
   	  // Create a render texture
-	    Procedure Init;
+	    Procedure Init();
 
   	  // Free OpenGL memory
-	    Procedure Release;
+	    Procedure Clear();
 
       Function GetErrorString(Code:Integer):TERRAString;
 
@@ -70,7 +70,7 @@ Type
     Public
 	    Constructor Create(Name:TERRAString; Width, Height, ColorType:Integer; DepthBuffer, StencilBuffer, Multisample:Boolean; Targets:Integer);
       Constructor CreateShared(Name:TERRAString; OtherFBO:FrameBufferObject; ColorType, Targets:Integer);
-	    Destructor Destroy; Override;
+	    Procedure Release; Override;
 
 	    // Use it as a texture
 	    Procedure Bind(Slot:Integer); Override;
@@ -250,9 +250,9 @@ Begin
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 End;
 
-Destructor FrameBufferObject.Destroy;
+Procedure FrameBufferObject.Release();
 Begin
-  Self.Release;
+  Self.Clear();
 End;
 
 Procedure FrameBufferObject.Bind(Slot:Integer);
@@ -516,16 +516,16 @@ Begin
   {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 
-Procedure FrameBufferObject.Release;
+Procedure FrameBufferObject.Clear();
 Var
   I:Integer;
 Begin
   If (_ContextID <> Application.Instance.ContextID) Then
   Begin
-        _Handle := 0;
+    _Handle := 0;
 		_color_rb := 0;
 		_depth_rb := 0;
-        _stencil_rb := 0;
+    _stencil_rb := 0;
 
     For I:=0 To Pred(_TargetCount) Do
   		_Targets[I] := 0;
@@ -536,10 +536,10 @@ Begin
   GraphicsManager.Instance.DeleteRenderBuffer(_color_rb);
 
 	If (Not _Shared) Then
-    Begin
+  Begin
 		GraphicsManager.Instance.DeleteRenderBuffer(_depth_rb);
-        GraphicsManager.Instance.DeleteRenderBuffer(_stencil_rb);
-    End;
+    GraphicsManager.Instance.DeleteRenderBuffer(_stencil_rb);
+  End;
 
   For I:=0 To Pred(_TargetCount) Do
 		GraphicsManager.Instance.DeleteTexture(_Targets[I]);

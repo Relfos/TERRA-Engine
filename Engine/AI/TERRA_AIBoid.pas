@@ -12,7 +12,7 @@ Type
   BoidAgent = Class;
   BoidGene = Class;
 
-  BoidFlock = Class
+  BoidFlock = Class(TERRAObject)
     Private
       _MemberCount:integer;	                              // Number of critters on each team.
       _members:Array Of BoidAgent;                                 // The critters.
@@ -38,7 +38,7 @@ Type
 
       Constructor Create(size: integer; h, w : Single);
 
-      Destructor Destroy; override;
+      Procedure Release; Override;
 
 
       Procedure AddTeam(MyMesh:Mesh);
@@ -86,7 +86,7 @@ Type
       Property Height:Single Read _Height;
   End;
 
-  BoidGene = Class
+  BoidGene = Class(TERRAObject)
     Private
       _numberOfTrials : Single;
       _trialsWon :Single;
@@ -155,7 +155,7 @@ Type
       Property TeamIndex:Integer Read _TeamIndex;
   end;
 
-  BoidAgent = class
+  BoidAgent = Class(TERRAObject)
     Protected
       _x:Single;
       _y:Single;
@@ -206,8 +206,8 @@ Type
 
     constructor Create (b : BoidGene); overload;
 
-    { DESTRUCTOR }
-    destructor Destroy; override;
+    { Procedure }
+    Procedure Release; override;
 
     { PROCEDURES }
     procedure move;
@@ -334,10 +334,10 @@ begin
   _teamIndex := b.teamIndex;
 end;
 
-destructor BoidAgent.Destroy;
+Procedure BoidAgent.Release;
 begin
   If Assigned(_Instance) Then
-    _Instance.Destroy();
+    _Instance.Release();
 
   inherited;
 end;
@@ -1240,25 +1240,21 @@ begin
   Begin
     _members[I] := _members[Pred(_MemberCount)];
     Dec(_MemberCount);
-    B.Destroy();
+    ReleaseObject(B);
   End Else
     Inc(I);
 end;
 
 {---------------------------------------------------------------------}
-{  Destructor                                                         }
+{  Procedure                                                         }
 {---------------------------------------------------------------------}
-destructor BoidFlock.Destroy;
+Procedure BoidFlock.Release;
 Var
   I:Integer;
-begin
-  for i :=0 To Pred(_MemberCount) do
-  begin
-    _Members[I].Destroy();
-  end;
-
-  inherited Destroy;
-end;
+Begin
+  For I:=0 To Pred(_MemberCount) Do
+    ReleaseObject(_Members[I]);
+End;
 
 procedure BoidFlock.addBoid(direction, magnitude, xPos, yPos, heightOfs, maxSpeed,
   minSpeed, angle, accel, sensor, death, deathC, collision, attackC,
@@ -1287,7 +1283,7 @@ Begin
 
     add(BoidAgent.Create(gene));
 
-    gene.Destroy();
+    ReleaseObject(Gene);
 end;
 
 

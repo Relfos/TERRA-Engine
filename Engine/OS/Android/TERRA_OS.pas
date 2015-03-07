@@ -177,7 +177,7 @@ Begin
   Params := JavaArguments.Create(Nil);
   Params.AddString(S);
   _ApplicationInstance._Utils.CallStaticVoidMethod('showKeyboard', Params);
-  Params.Destroy();
+  Params.Release();
 End;
 
 Procedure DisplayMessage(S:TERRAString);
@@ -252,7 +252,7 @@ Begin
 
   FB := Facebook.Create();
   FB.Post(Msg, Link, Desc, ImageURL);
-  FB.Destroy();
+  FB.Release();
 End;
 
 
@@ -269,7 +269,7 @@ Begin
 
   FB := Facebook.Create();
   FB.LikePage(Page, url);
-  FB.Destroy();
+  FB.Release();
 End;
 
 Function AndroidApplication.InitGraphics:Boolean;
@@ -322,7 +322,7 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(Application.Instance.Client.GetAdMobBannerID());
   _Utils.CallStaticVoidMethod('enableAds', Params);
-  Params.Destroy();
+  Params.Release();
   Java_End(Frame);
   {$ENDIF}
 End;
@@ -361,7 +361,7 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(AppID);
   _Utils.CallStaticVoidMethod('openURL', Params);
-  Params.Destroy();
+  Params.Release();
   Java_End(Frame);
   {$ENDIF}
 End;
@@ -379,7 +379,7 @@ Begin
   Params.AddString(EventName);
   Params.AddString(Values);
   _Utils.CallStaticVoidMethod('sendAnalytics', Params);
-  Params.Destroy();
+  Params.Release();
   Java_End(Frame);
 End;
 
@@ -413,7 +413,7 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(Name);
   Result := _Utils.CallStaticBoolMethod('isAppRunning', Params);
-  Params.Destroy();
+  Params.Release();
   Java_End(Frame);
 End;
 
@@ -433,7 +433,7 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(Name);
   Result := _Utils.CallStaticBoolMethod('isAppInstalled', Params);
-  Params.Destroy();
+  Params.Release();
   Java_End(Frame);
 End;
 
@@ -607,7 +607,7 @@ Begin
   Params.AddString(Subject);
   Params.AddString(Body);
   _Utils.CallStaticVoidMethod('sendEmail', Params);
-  Params.Destroy();
+  Params.Release();
   Java_End(Frame);
 End;
 
@@ -628,7 +628,7 @@ Begin
   Java_Begin(Frame);
   Params := JavaArguments.Create(Frame);
   _Utils.CallStaticVoidMethod('saveToCloud', Params);
-  Params.Destroy();
+  Params.Release();
   Java_End(Frame);
 
   Result := True;
@@ -651,7 +651,7 @@ Begin
   Java_Begin(Frame);
   AppClass := JavaClass.Create(ActivityClassPath, Frame);
   AppClass.CallStaticVoidMethod('showTapJoyOfferWall', Nil);
-  AppClass.Destroy();
+  AppClass.Release();
   Java_End(Frame);
 End;
 
@@ -672,7 +672,7 @@ Begin
   Java_Begin(Frame);
   AppClass := JavaClass.Create(ActivityClassPath, Frame);
   AppClass.CallStaticVoidMethod('showTapJoyVideo', Nil);
-  AppClass.Destroy();
+  AppClass.Release();
   Java_End(Frame);
 End;
 
@@ -697,9 +697,9 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddInteger(Ammount);
   AppClass.CallStaticVoidMethod('spendTapJoyPoints', Params);
-  Params.Destroy();
+  Params.Release();
 
-  AppClass.Destroy();
+  AppClass.Release();
   Java_End(Frame);
 End;
 

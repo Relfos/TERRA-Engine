@@ -40,11 +40,11 @@ Type
     	Procedure Init(Width, Height, Format:Integer);
 
     	// Free memory
-	    Procedure Release();
+	    Procedure Clear();
 
     Public
 	    Constructor Create(Const Name:TERRAString; Width, Height:Integer);
-	    Destructor Destroy; Override;
+	    Procedure Release; Override;
 
 
 	    // Downsample a framebuffer using the shader
@@ -68,9 +68,9 @@ Begin
   Self.Init(Width, Height, {$IFDEF FRAMEBUFFEROBJECTS}FBO_COLOR8{$ELSE}0{$ENDIF});
 End;
 
-Destructor RenderTargetDownSampler.Destroy;
+Procedure RenderTargetDownSampler.Release();
 Begin
-  Self.Release;
+  Self.Clear();
 End;
 
 Procedure RenderTargetDownSampler.Init(Width, Height, Format:Integer);
@@ -112,12 +112,12 @@ Begin
 	End;
 End;
 
-Procedure RenderTargetDownSampler.Release;
+Procedure RenderTargetDownSampler.Clear();
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_TextureCount) Do
-    _Textures[I].Destroy;
+    _Textures[I].Release;
 
   _TextureCount := 0;
   SetLength(_Textures, 0);
@@ -149,7 +149,7 @@ Begin
 
 		// Render on current fbo
 		curRt.BeginCapture();
-		glClear(GL_COLOR_BUFFER_BIT Or GL_DEPTH_BUFFER_BIT);  
+		glClear(GL_COLOR_BUFFER_BIT Or GL_DEPTH_BUFFER_BIT);
 
 		// Use previous render texture as input texture
 		prevRt.Bind(0);

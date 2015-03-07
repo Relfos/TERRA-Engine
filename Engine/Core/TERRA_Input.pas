@@ -26,6 +26,7 @@ Unit TERRA_Input;
 {$I terra.inc}
 
 Interface
+Uses TERRA_Utils;
 
 Const
   keyGamepadIndex   = 255;
@@ -108,7 +109,7 @@ Type
     Released:Boolean;
   End;
 
-	InputState = Class
+	InputState = Class(TERRAObject)
     Protected
       _Keys:Array[0..Pred(MaxKeys)] Of KeyState;
 

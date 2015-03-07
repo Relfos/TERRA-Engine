@@ -34,7 +34,7 @@ Unit TERRA_ShaderFactory;
 {-$DEFINE DEBUG_LIGHTMAP}
 
 Interface
-Uses TERRA_String, TERRA_Shader, TERRA_Application, TERRA_Lights, TERRA_BoundingBox, TERRA_Vector4D;
+Uses TERRA_String, TERRA_Utils, TERRA_Shader, TERRA_Application, TERRA_Lights, TERRA_BoundingBox, TERRA_Vector4D;
 
 Const
   NormalMapUniformName = 'normalMap';
@@ -85,7 +85,7 @@ Const
   shader_OutputReflection= 1 Shl 7;
 
 Type
-  ShaderEntry = Record
+  ShaderEntry = Class(TERRAObject)
     FXFlags:Cardinal;
     OutFlags:Cardinal;
     DirLightCount:Integer;
@@ -94,9 +94,11 @@ Type
     LightModel:Integer;
     FogFlags:Integer;
     Shader:TERRA_Shader.Shader;
+
+    Procedure Release; Override;
   End;
 
-  ShaderEmitter = Class
+  ShaderEmitter = Class(TERRAObject)
     Protected
       _Buffer:TERRAString;
 
@@ -129,7 +131,7 @@ Type
 
     Public
       Class Function Instance:ShaderFactory;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Init; Override;
       Procedure OnContextLost; Override;
@@ -142,7 +144,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Utils, TERRA_Mesh, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_OS,
+Uses TERRA_Mesh, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_OS,
   {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
 Var
   _ShaderFactory_Instance:ApplicationObject;
@@ -1093,7 +1095,7 @@ Begin
     //Line('  color.rgb = vec3(1.0, 0.0, 0.0);');
 
   {$IFDEF DEBUG_LIGHTMAP}
-    If (Flags and shaderLightmap<>0) Then
+    If (FxFlags and shaderLightmap<>0) Then
     Begin
       Line('  color.rgb = texture2D(lightMap, lightCoord.st).rgb;');
     End;
@@ -1145,7 +1147,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_ShaderCount) Do
-    _Shaders[I].Shader.Destroy;
+    ReleaseObject(_Shaders[I]);
 
   _ShaderCount := 0;
 End;
@@ -1156,11 +1158,11 @@ Begin
   _Emitter.Init();
 End;
 
-Destructor ShaderFactory.Destroy;
+Procedure ShaderFactory.Release;
 Begin
   If Assigned(_Emitter) Then
   Begin
-    _Emitter.Destroy();
+    _Emitter.Release();
     _Emitter := Nil;
   End;
 
@@ -1171,7 +1173,7 @@ End;
 Function ShaderFactory.GetShader(FxFlags, OutFlags, FogFlags, LightModel:Cardinal; Const Lights:LightBatch):Shader;
 Var
   I:Integer;
-  S:^ShaderEntry;
+  S:ShaderEntry;
   Location:TERRAString;
   SS, Name:TERRAString;
 Begin
@@ -1181,7 +1183,7 @@ Begin
 
   For I:=0 To Pred(_ShaderCount) Do
   Begin
-    S := @(_Shaders[I]);
+    S := _Shaders[I];
     If  (S.FxFlags = FxFlags) And (S.OutFlags = OutFlags)
     And (S.FogFlags = FogFlags) And (S.LightModel = LightModel)
     And (S.DirLightCount = Lights.DirectionalLightCount)
@@ -1204,9 +1206,12 @@ Begin
   Log(logDebug, 'ShaderFactory', 'Not found, creating new shader...');
   {$ENDIF}
 
+  S := ShaderEntry.Create();
+
   Inc(_ShaderCount);
   SetLength(_Shaders, _ShaderCount);
-  S := @_Shaders[Pred(_ShaderCount)];
+  _Shaders[Pred(_ShaderCount)] := S;
+  
   S.FxFlags := FxFlags;
   S.OutFlags := OutFlags;
   S.FogFlags := FogFlags;
@@ -1351,9 +1356,15 @@ End;
 Procedure ShaderFactory.SetShaderEmitter(Emitter: ShaderEmitter);
 Begin
   If Assigned(_Emitter) Then
-    _Emitter.Destroy;
+    _Emitter.Release;
   Self._Emitter := Emitter;
   Emitter.Init();
+End;
+
+{ ShaderEntry }
+Procedure ShaderEntry.Release;
+Begin
+  ReleaseObject(Shader);
 End;
 
 End.

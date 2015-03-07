@@ -51,7 +51,7 @@ Type
       Constructor Create();
 
       //Destroys the client instance
-      Destructor Destroy; Override; 
+      Procedure Release; Override; 
 
       //Connects to a server
       Procedure Connect(Port,Version:Word; Server,UserName,Password:TERRAString);
@@ -122,7 +122,7 @@ Begin
 End;
 
 // Disconnects from server and destroys the client instance
-Destructor NetClient.Destroy;
+Procedure NetClient.Release;
 Begin
   NetworkManager.Instance.RemoveObject(Self);
 
@@ -132,11 +132,11 @@ Begin
 
   If Assigned(_TCPSocket) Then
   Begin
-    _TCPSocket.Destroy;
+    _TCPSocket.Release;
     _TCPSocket := Nil;
   End;
 
-  Inherited Destroy();
+  Inherited Release();
 End;
 
 
@@ -218,7 +218,7 @@ Begin
     Log(logDebug, 'Network', 'Sending join message');
     JoinMsg := CreateJoinMessage(_UserName, _Password, Application.Instance.GetDeviceID(), _GUID);
     SendMessage(JoinMsg);  //Send the packet
-    JoinMsg.Destroy();
+    JoinMsg.Release();
   End;
 End;
 
@@ -261,7 +261,7 @@ Begin
 
   If Assigned(_TCPSocket) Then
   Begin
-    _TCPSocket.Destroy;
+    _TCPSocket.Release;
     _TCPSocket := Nil;
   End;
 End;
@@ -314,7 +314,7 @@ Var
 Begin
   Msg := NetMessage.Create(Opcode);
   Self.SendMessage(Msg);
-  Msg.Destroy();
+  Msg.Release();
 End;
 
 End.

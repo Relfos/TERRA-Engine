@@ -89,7 +89,7 @@ Type
       KerningList:Array Of FontKerning;
       KerningCount:Integer;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function GetAdvance(Next:Cardinal):Integer;
       Procedure AddKerning(Next:Cardinal; Ammount:SmallInt);
@@ -111,7 +111,7 @@ Type
 
     Public
       Constructor Create(ID:Integer);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure SetImage(Source:Image);
 
@@ -198,7 +198,7 @@ Type
 
   FontImageResolver = Function (Fnt:Font; Const ImageName:TERRAString):TERRAString; CDecl;
 
-  FontGlyphFactory = Class
+  FontGlyphFactory = Class(TERRAObject)
     Protected
       _Next:FontGlyphFactory;
       _Scale:Single;
@@ -290,7 +290,7 @@ Type
       Function GetDefaultFont: Font;
 
     Public
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Class Function Instance:FontManager;
 
@@ -492,11 +492,11 @@ Begin
     RaiseError('Could not find font. ['+Name +']');
 End;
 
-Destructor FontManager.Destroy;
+Procedure FontManager.Release;
 Begin
   Inherited;
 
-  FreeAndNil(_DefaultFont);
+  ReleaseObject(_DefaultFont);
   _FontManager_Instance := Nil;
 End;
 
@@ -667,8 +667,8 @@ Begin
   Src := MemoryStream.Create(bm_size, @bm_data[0]);
   Img := Image.Create(Src);
   Page.SetImage(Img);
-  Src.Destroy();
-  Img.Destroy();
+  Src.Release();
+  Img.Release();
 
   Result.RecalculateMetrics();
 End;
@@ -685,13 +685,13 @@ Begin
   Self.KerningList[N].Ammount := Ammount;
 End;
 
-Destructor FontGlyph.Destroy;
+Procedure FontGlyph.Release;
 Begin
   If (Assigned(_Temp)) And (_Temp<>_Source) Then
-    _Temp.Destroy();
+    _Temp.Release();
 
   If (Assigned(_Source)) Then
-    _Source.Destroy();
+    _Source.Release();
 End;
 
 Function FontGlyph.GetAdvance(Next:Cardinal):Integer;
@@ -728,13 +728,13 @@ Begin
   Self._ID := ID;
 End;
 
-Destructor FontPage.Destroy;
+Procedure FontPage.Release;
 Begin
   If Assigned(_Texture) Then
-    _Texture.Destroy();
+    _Texture.Release();
 
   If Assigned(_Image) Then
-    _Image.Destroy();
+    _Image.Release();
 End;
 
 Procedure FontPage.DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Scale:Single; Glyph:FontGlyph; Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean);
@@ -761,7 +761,7 @@ Begin
   End Else
   If (_Texture.Width<>Source.Width) Or (_Texture.Height<>Source.Height) Then
   Begin
-    _Texture.Destroy();
+    _Texture.Release();
     _Texture := Nil;
   End;
 
@@ -770,7 +770,7 @@ Begin
   _OptimizedHeight := 0;
 
   If Assigned(_Image) Then
-    _Image.Destroy();
+    _Image.Release();
 
   _Image := Image.Create(Source);
 End;
@@ -1249,18 +1249,18 @@ Begin
   Begin
     _Factory := F;
     F := F._Next;
-    _Factory.Destroy();
+    _Factory.Release();
   End;
   _Factory := Nil;
 
   For I:=0 To Pred(_PageCount) Do
-    _Pages[I].Destroy();
+    _Pages[I].Release();
     
   _PageCount := 0;
   SetLength(_Pages, 0);
 
   For I:=0 To Pred(_GlyphCount) Do
-    _Glyphs[I].Destroy();
+    _Glyphs[I].Release();
     
   _GlyphCount := 0;
   SetLength(_Glyphs, 0);
@@ -1454,7 +1454,7 @@ Begin
     Result := Self.AddGlyph(ID, Source, XOfs, YOfs, XAdvance)
   Else
     Result := Nil;
-  Source.Destroy();
+  Source.Release();
 End;
 
 Function Font.AddGlyph(ID: Cardinal; Source: Image; XOfs, YOfs, XAdvance: SmallInt):FontGlyph;
@@ -1543,7 +1543,7 @@ Begin
 
     If (Assigned(_Glyphs[I]._Source)) And (_Glyphs[I]._Source <> Pics[I]) Then
     Begin
-      _Glyphs[I]._Source.Destroy();
+      _Glyphs[I]._Source.Release();
     End;
     
     _Glyphs[I]._Source := Pics[I];
@@ -1558,7 +1558,7 @@ Begin
       _Pages[K]._Image := Image.Create(DefaultFontPageWidth, DefaultFontPageHeight);
     End Else
     Begin
-      _Pages[K]._Image.Destroy;
+      _Pages[K]._Image.Release;
       _Pages[K]._Image := Image.Create(DefaultFontPageWidth, DefaultFontPageHeight);
     End;
 
@@ -1596,7 +1596,7 @@ Begin
         //Log(logDebug,'Font', 'Bliting glyph '+IntToString(I));
 
         Temp.Blit(X,Y, 0, 0, Pics[I].Width, Pics[I].Height, Pics[I]);
-        //Pics[I].Destroy();
+        //Pics[I].Release();
         Pics[I] := Nil;
       End;
     End;
@@ -1608,7 +1608,7 @@ Begin
       _Pages[K]._Texture.UpdateRect(Temp, 0, 0);
     End;
 
-    Packer.Destroy;
+    Packer.Release;
 
     Inc(K);
   End;
@@ -1759,13 +1759,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_PageCount) Do
-  Begin
-    If Assigned(_Pages[I]._Texture) Then
-    Begin
-      _Pages[I]._Texture.Destroy();
-      _Pages[I]._Texture := Nil;
-    End;
-  End;
+    ReleaseObject(_Pages[I]._Texture);
 
   Self._ContextID := Application.Instance.ContextID;
   _NeedsRebuild := True;
@@ -1871,5 +1865,4 @@ End;
 
 Initialization
   _FontImageResolver := DefaultFontImageResolver;
-  RegisterResourceClass(Font);
 End.

@@ -212,7 +212,7 @@ Begin
     Parser.ParseCommas := True;
     Parser.AddToken('SkipHeader',tkBoolean,@SkipHeader);
     Parser.LoadFromString(Options);
-    Parser.Destroy;
+    Parser.Release;
   End;
 
   Image.Process(IMP_SwapChannels);

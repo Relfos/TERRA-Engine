@@ -88,7 +88,7 @@ Type
     Public
       Constructor Create(Name:TERRAString; Width,Height:Integer; Scale:Single = 1.0);
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Bind();
       Procedure Clear();
@@ -269,19 +269,19 @@ Begin
     Self.Clear();
 End;
 
-Destructor Viewport.Destroy;
+Procedure Viewport.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(MaxCaptureTargets) Do
-  FreeAndNil(_Buffers[I]);
+    ReleaseObject(_Buffers[I]);
 
   ClearDownSampler();
 
-  FreeAndNil(_Camera);
+  ReleaseObject(_Camera);
 
   {$IFDEF POSTPROCESSING}
-  FreeAndNil(_FXChain);
+  ReleaseObject(_FXChain);
   {$ENDIF}
 End;
 
@@ -447,7 +447,7 @@ Begin
   End Else
   Begin
     Log(logDebug, 'GraphicsManager', 'Destroying '+TargetNames[TargetType]+' target for '+Self.Name);
-    _Buffers[TargetType].Destroy();
+    _Buffers[TargetType].Release();
     _Buffers[TargetType] := Nil;
 
     {$IFDEF POSTPROCESSING}
@@ -519,7 +519,7 @@ Begin
       For I:=0 To Pred(MaxCaptureTargets) Do
         Self.SetRenderTargetState(I, False);
 
-      _FXChain.Destroy;
+      _FXChain.Release;
       _FXChain := Nil;
     End;
 
@@ -596,7 +596,7 @@ Begin
     _FXChain := ScreenFXChain.Create()
   Else
   Begin
-    _FXChain.Destroy();
+    _FXChain.Release();
     _FXChain := Nil;
   End;
   {$ELSE}
@@ -734,7 +734,7 @@ Begin
   {$IFDEF POSTPROCESSING}
   If Assigned(_DownSampler) Then
   Begin
-    _DownSampler.Destroy;
+    _DownSampler.Release;
     _DownSampler := Nil;
   End;
   {$ENDIF}

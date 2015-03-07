@@ -30,7 +30,7 @@ Type
     Procedure Write(Document:XMLDocument; Node:XMLNode);
   End;
 
-  XMLElement = Class
+  XMLElement = Class(TERRAObject)
     Protected
       _Descriptors:Array Of XMLDescriptor;
       _DescriptorCount:Integer;
@@ -69,7 +69,7 @@ Type
       Property XMLStatus:XMLStatus Read _Status;
   End;
 
-  XMLNode = Class
+  XMLNode = Class(TERRAObject)
     Protected
       _Name:TERRAString;
       _Value:TERRAString;
@@ -90,7 +90,7 @@ Type
       Constructor Create(Const Name:TERRAString; Const Value:TERRAString = ''); Overload;
       Constructor Create(Document:XMLDocument; Source:Stream; InitTag:TERRAString = '');Overload;
 
-      Destructor Destroy;Reintroduce;
+      Procedure Release;Reintroduce;
 
       Function AddTag(Const Name,Value:TERRAString):XMLNode;
       Procedure AddNode(Node:XMLNode);
@@ -106,7 +106,7 @@ Type
       Property NodeCount:Integer Read _NodeCount;
   End;
 
-  XMLDocument = Class
+  XMLDocument = Class(TERRAObject)
     Protected
       _Root:XMLNode;
       _TempBuffer:TERRAString;
@@ -114,7 +114,7 @@ Type
       Procedure SetRoot(const Value: XMLNode);
 
     Public
-      Destructor Destroy;Reintroduce;
+      Procedure Release;Reintroduce;
 
       Procedure Load(Source:Stream);
       Procedure Save(Dest:Stream; SaveFlags:Cardinal = 0);
@@ -267,12 +267,12 @@ Begin
   Until (Source.EOF) And (Self._Document._TempBuffer='');
 End;
 
-Destructor XMLNode.Destroy;
+Procedure XMLNode.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_NodeCount) Do
-    _Childs[I].Destroy;
+    _Childs[I].Release;
   SetLength(_Childs,0);
   _NodeCount:=0;
 End;
@@ -510,10 +510,10 @@ Begin
 End;
 
 // LXMLDocument
-Destructor XMLDocument.Destroy;
+Procedure XMLDocument.Release;
 Begin
   If Assigned(_Root) Then
-    _Root.Destroy;
+    _Root.Release;
 End;
 
 Function XMLDocument.GetNodeByName(Const Name:TERRAString):XMLNode;
@@ -594,7 +594,7 @@ Begin
   {$IFDEF PC}
  (* Dest := FileStream.Create('debug\'+GetFileName(Source.Name,False));
   DumpXML(_Root, Dest, 0);
-  Dest.Destroy;*)
+  Dest.Release;*)
   {$ENDIF}
 End;
 
@@ -616,7 +616,7 @@ Begin
     Source.Encoding := Encoding;
 
   Load(Source);
-  Source.Destroy;
+  Source.Release;
 End;
 
 Procedure XMLDocument.SaveToFile(FileName:TERRAString; SaveFlags:Cardinal);
@@ -625,7 +625,7 @@ Var
 Begin
   Dest := FileStream.Create(FileName);
   Save(Dest, SaveFlags);
-  Dest.Destroy;
+  Dest.Release;
 End;
 
 Procedure XMLDocument.LoadFromString(Data:TERRAString);
@@ -634,7 +634,7 @@ Var
 Begin
   Source := MemoryStream.Create(Length(Data), @Data[1]);
   Load(Source);
-  Source.Destroy;
+  Source.Release;
 End;
 
 Function XMLDocument.AddVector(Const Name:TERRAString; Value:Vector3D; Parent:XMLNode=Nil):XMLNode;
@@ -1032,7 +1032,7 @@ Begin
   Begin
     Node := XMLNode.Create(_Descriptors[J].Name, _Descriptors[J].Default);
     _Descriptors[J].Read(Node);
-    Node.Destroy;
+    Node.Release;
   End;
 
   XMLSynchronize;
@@ -1091,7 +1091,7 @@ Begin
   Document := XMLDocument.Create;
   Document.Load(Source);
   XMLLoad(Document);
-  Document.Destroy;
+  Document.Release;
 End;
 
 Procedure XMLElement.XMLSave(Dest:Stream);
@@ -1101,7 +1101,7 @@ Begin
   Document := XMLDocument.Create;
   XMLSave(Document);
   Document.Save(Dest);
-  Document.Destroy;
+  Document.Release;
 End;
 
 Procedure XMLElement.XMLLoad(Const FileName:TERRAString);
@@ -1110,7 +1110,7 @@ Var
 Begin
   Source := FileStream.Open(FileName);
   XMLLoad(Source);
-  Source.Destroy;
+  Source.Release;
 End;
 
 Procedure XMLElement.XMLSave(Const FileName:TERRAString);
@@ -1119,7 +1119,7 @@ Var
 Begin
   Dest := FileStream.Create(FileName);
   XMLSave(Dest);
-  Dest.Destroy;
+  Dest.Release;
 End;
 
 Procedure XMLDocument.SetRoot(const Value: XMLNode);
@@ -1128,7 +1128,7 @@ Begin
     Exit;
 
   If Assigned(_Root) Then
-    _Root.Destroy();
+    _Root.Release();
 
   _Root := Value;
 End;

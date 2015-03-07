@@ -107,7 +107,7 @@ Type
     NoteCount:Integer;
   End;
 
-  Synthetizer = Class
+  Synthetizer = Class(TERRAObject)
     Protected
       _Channels:Array Of SynthChannel;
       _ChannelCount:Integer;
@@ -121,7 +121,7 @@ Type
 
     Public
       Constructor Create(ChannelCount, Frequency:Cardinal);
-      Destructor Destroy;
+      Procedure Release;
 
 //      Procedure AddInstrument(Inst:Instrument);
 
@@ -170,11 +170,10 @@ Begin
 End;
 
 
-Destructor Synthetizer.Destroy;
+Procedure Synthetizer.Release;
 Begin
   {$IFDEF EQUALIZER}
-  If Assigned(_Equalizer) Then
-    _Equalizer.Destroy;
+  ReleaseObject(_Equalizer);
   {$ENDIF};
   {$IFDEF REVERB}
   If Assigned(_ReverbBuffer) Then

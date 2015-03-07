@@ -34,7 +34,7 @@ Type
   Matrix4x4 = Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     V:Array [0..15] Of Single;
 
-    //Function GetAngles:Vector3D;
+    Function GetEulerAngles:Vector3D;
 
     Function Transform(Const P:Vector3D):Vector3D;
     Function TransformNormal(Const P:Vector3D):Vector3D;
@@ -334,6 +334,34 @@ Begin
 	Result[0] := VectorCreate(V[0], V[4], V[8]);
 	Result[1] := VectorCreate(V[1], V[5], V[9]);
 	Result[2] := VectorCreate(V[2], V[6], V[10]);
+End;
+
+Function Matrix4x4.GetEulerAngles:Vector3D;
+Var
+  sinPitch, cosPitch, sinRoll, cosRoll, sinYaw, cosYaw:Double;
+  Inv:Double;
+Begin
+	sinPitch := -V[2]; // [2][0];
+	cosPitch := Sqrt(1 - Sqr(sinPitch));
+
+	If (Abs(cosPitch) > EPSILON ) Then
+	Begin
+    Inv := 1.0 / cosPitch;
+    sinRoll := V[9] * Inv;
+	  cosRoll := V[10] * Inv;
+	  sinYaw := V[1] * Inv;
+	  cosYaw := V[0] * Inv;
+  End Else
+  Begin
+    sinRoll := -V[6];
+	  cosRoll := V[5];
+	  sinYaw := 0.0;
+	  cosYaw := 1.0;
+  End;
+
+	Result.X  := atan2(sinYaw, cosYaw);
+	Result.Y := atan2(sinPitch, cosPitch);
+	Result.Z  := atan2(sinRoll, cosRoll);
 End;
 
 Function Matrix4x4.GetTranslation:Vector3D;

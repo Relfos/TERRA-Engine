@@ -6120,7 +6120,7 @@ Type
       Class Function Validate(Source:Stream):Boolean; Override;
 
     Public
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
   End;
 
@@ -6330,7 +6330,7 @@ Begin
   Inherited;
 End;
 
-Destructor OggStreamer.Destroy;
+Procedure OggStreamer.Release;
 Begin
   ov_clear(_OggStream);
   Inherited;
@@ -6482,7 +6482,7 @@ Begin
   Inherited;
 End;
 
-Destructor OggStreamer.Destroy;
+Procedure OggStreamer.Release;
 Begin
   stb_vorbis_close(_Vorbis);
   Inherited;

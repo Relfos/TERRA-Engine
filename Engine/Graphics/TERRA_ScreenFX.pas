@@ -73,7 +73,7 @@ Type
 
     Public
       Constructor Create;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Clear;
 
@@ -177,7 +177,7 @@ Begin
 End;
 
 
-Destructor ScreenFXChain.Destroy;
+Procedure ScreenFXChain.Release;
 Begin
   Clear();
 End;
@@ -215,7 +215,7 @@ Begin
   While (I<_FXCount) Do
   If (_FXs[I] = FX) Then
   Begin
-    _FXs[I].Destroy;
+    _FXs[I].Release;
     _FXs[I] := _FXs[Pred(_FXCount)];
     Dec(_FXCount);
     Break;
@@ -231,12 +231,12 @@ Var
 Begin
   _NeedsUpdate := True;
   For I:=0 To Pred(_FXCount) Do
-    _FXs[I].Destroy();
+    _FXs[I].Release();
   _FXCount := 0;
 
   If Assigned(_Shader) Then
   Begin
-    _Shader.Destroy;
+    _Shader.Release;
     _Shader := Nil;
   End;
 End;
@@ -259,7 +259,7 @@ Begin
   If (_NeedsUpdate) Then
   Begin
     If Assigned(_Shader) Then
-      _Shader.Destroy();
+      _Shader.Release();
 
     For I:=0 To Pred(MaxCaptureTargets) Do
       Self._NeedTarget[I] := False;

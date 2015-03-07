@@ -40,7 +40,7 @@ Type
 
     Public
       Constructor Create(FileName:TERRAString; Volume:Single);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Init(); Virtual; Abstract;
       Procedure Play(); Virtual; Abstract;
@@ -62,7 +62,7 @@ Type
       Procedure ChangeVolume(Volume:Single); Override;
 
     Public
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Init(); Override;
       Procedure Play(); Override;
@@ -82,7 +82,7 @@ Begin
   _Volume := Volume;
 End;
 
-Destructor MusicTrack.Destroy;
+Procedure MusicTrack.Release;
 Begin
   // do nothing
 End;
@@ -124,9 +124,9 @@ Begin
   _Stream := CreateSoundStream(Source);
 End;
 
-Destructor StreamingMusicTrack.Destroy;
+Procedure StreamingMusicTrack.Release;
 Begin
-  FreeAndNil(_Stream);
+  ReleaseObject(_Stream);
 End;
 
 

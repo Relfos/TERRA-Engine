@@ -1,3 +1,27 @@
+{***********************************************************************************************************************
+ *
+ * TERRA Game Engine
+ * ==========================================
+ *
+ * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ *
+ ***********************************************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ **********************************************************************************************************************
+ * TERRA_Tween
+ * Implements a huge number of tweening formulas 
+ ***********************************************************************************************************************
+}
+
 Unit TERRA_Tween;
 {$I terra.inc}
 
@@ -73,7 +97,7 @@ Type
       UserData:Pointer;
 
       Constructor Create(Obj:Pointer; MyType:Integer; Data:Pointer; TargetValue:Single; UserData:Pointer = Nil);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Property Finished:Boolean Read _Finished;
       Property EaseType:Cardinal Read _EaseType Write _EaseType;
@@ -98,7 +122,7 @@ Type
 
       Procedure Clear;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
   End;
 
 Function GetEaseInQuad(t, b,c,d:Single):Single;
@@ -655,7 +679,7 @@ Begin
   TweenManager.Instance.Add(Self);
 End;
 
-Destructor Tween.Destroy;
+Procedure Tween.Release;
 Begin
   If (Not _Finished) Then
   Begin
@@ -767,7 +791,7 @@ Begin
   While (I<_TweenCount) Do
   If (_Tweens[I]._Finished) Then
   Begin
-    _Tweens[I].Destroy;
+    _Tweens[I].Release;
     _Tweens[I] := _Tweens[Pred(_TweenCount)];
     Dec(_TweenCount);
   End Else
@@ -777,12 +801,12 @@ Begin
   End;
 End;
 
-Destructor TweenManager.Destroy;
+Procedure TweenManager.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_TweenCount) Do
-    _Tweens[I].Destroy;
+    _Tweens[I].Release;
 
   _TweenCount := 0;
   SetLength(_Tweens, 0);
@@ -807,7 +831,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_TweenCount) Do
-    _Tweens[I].Destroy;
+    _Tweens[I].Release;
 
   _TweenCount := 0;
 End;
@@ -820,7 +844,7 @@ Begin
   While (I<_TweenCount) Do
   If (_Tweens[I]._Object = Obj) Then
   Begin
-    _Tweens[I].Destroy;
+    _Tweens[I].Release;
     _Tweens[I] := _Tweens[Pred(_TweenCount)];
     Dec(_TweenCount);
   End Else

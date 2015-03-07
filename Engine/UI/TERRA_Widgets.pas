@@ -145,7 +145,7 @@ Type
 
       Constructor Create(Name:TERRAString; UI:UI; X,Y,Z:Single; Width, Height:Integer; ComponentBG:TERRAString=''); Overload;
       Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Width, Height:Integer; ComponentBG:TERRAString=''); Overload;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Property Layout:UISkinLayout Read _WndLayout;
 
@@ -471,7 +471,7 @@ Type
       Centered:Boolean;
 
       Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Width:Integer; Skin:TERRAString=''; TabIndex:Integer=-1);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Render; Override;
       Procedure UpdateRects; Override;
@@ -544,7 +544,7 @@ Begin
   If (Value<>'') And (Value[1]='#') Then
   Begin
     Value := Copy(Value, 2, MaxInt);
-    Result := StringManager.Instance.GetString(Value);
+    Result := LocalizationManager.Instance.GetString(Value);
   End Else
     Result := Value;
 End;
@@ -621,11 +621,11 @@ Begin
   Create(Name, UI, Nil, X,Y,Z, Width, Height, ComponentBG);
 End;
 
-Destructor UIWindow.Destroy();
+Procedure UIWindow.Release();
 Begin
   If Assigned(_WndLayout) Then
   Begin
-    _WndLayout.Destroy();
+    _WndLayout.Release();
     _WndLayout := Nil;
   End;
 
@@ -1341,7 +1341,7 @@ Begin
     End;
   End;
 
-  It.Destroy;
+  It.Release;
 End;
 
 
@@ -1935,7 +1935,7 @@ Begin
   Begin
     S := _Selected.ToString();
     If (S<>'') And (S[1]='#') Then
-      S := StringManager.Instance.GetString(Copy(S, 2, MaxInt));
+      S := LocalizationManager.Instance.GetString(Copy(S, 2, MaxInt));
     Self.DrawText(S, VectorCreate(5, 5, 2.0), Self.Color, Scale);
   End;
 
@@ -1981,7 +1981,7 @@ Begin
       Begin
         S := P.ToString();
         If (S<>'') And (S[1]='#') Then
-          S := StringManager.Instance.GetString(Copy(S, 2, MaxInt));
+          S := LocalizationManager.Instance.GetString(Copy(S, 2, MaxInt));
 
         Self.DrawText(S, VectorCreate(_ListWidth*0.25, _HandleHeight + _ListHeight * 0.25 + 8+_ListSlicesY*J, ZOfs + 0.5), MyColor, Scale);
       End;
@@ -2410,7 +2410,7 @@ Begin
         Break;
       End;
     End;
-    It.Destroy();
+    It.Release();
 
     If Not Found Then
     Begin
@@ -2425,7 +2425,7 @@ Begin
           Break;
         End;
       End;
-      It.Destroy();
+      It.Release();
     End;
   End Else
   Begin
@@ -2535,9 +2535,9 @@ Begin
   _SelectedColor := ColorWhite;
 End;
 
-Destructor UIEditText.Destroy;
+Procedure UIEditText.Release;
 Begin
-  FreeAndNil(Self._Clip);
+  ReleaseObject(Self._Clip);
 
   Inherited;
 End;

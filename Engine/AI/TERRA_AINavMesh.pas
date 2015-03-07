@@ -112,7 +112,7 @@ Type
     Public
 
       Constructor Create(SourceMesh:Mesh; WallOffset:Single = DefaultWallOffset);
-      Destructor Destroy;
+      Procedure Release;
 
       Function Search(StartPos, EndPos:Vector3D;
                       Var Path:Path3D;
@@ -1042,13 +1042,12 @@ Begin
   End;
 End;
 
-Destructor NavMesh.Destroy;
+Procedure NavMesh.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To 1 Do
-  If Assigned(_Octrees[I]) Then
-    _Octrees[I].Destroy;
+    ReleaseObject(_Octrees[I]);
 End;
 
 { NavMeshOctreeElement }

@@ -110,7 +110,7 @@ Type
 
   MessageHandler = Procedure(Msg:NetMessage; Sock:Socket) Of Object;
 
-  NetObject = Class
+  NetObject = Class(TERRAObject)
     Protected
       _Input:Cardinal;        //Current input in bytes
       _Output:Cardinal;       //Current output in bytes
@@ -136,7 +136,7 @@ Type
       _OpcodeList:Array[0..255]Of MessageHandler;
 
       Constructor Create();  //Creates a new object instance
-      Destructor Destroy;Reintroduce;Virtual; //Shutdown the object
+      Procedure Release;Reintroduce;Virtual; //Shutdown the object
 
       //Function MakeSocketAddress(Var SockAddr:SocketAddress; Port:Word; Hostname:TERRAString):Boolean;
 
@@ -174,7 +174,7 @@ Type
       Procedure AddObject(Obj:NetObject);
       Procedure RemoveObject(Obj:NetObject);
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
       Class Function Instance:NetworkManager;
   End;
 
@@ -447,7 +447,7 @@ Begin
   If (Header.Opcode<>nmServerAck) Then
     Log(logWarning,'Network',Self.ClassName+'.Update: Invalid opcode ['+IntToString(Header.Opcode)+']');
 
-  FreeAndNil(Msg);
+  ReleaseObject(Msg);
 
   Result := True;
 
@@ -479,7 +479,7 @@ Begin
   _OpcodeList[nmIgnore] := IgnoreMessage;
 End;
 
-Destructor NetObject.Destroy;
+Procedure NetObject.Release;
 Begin
   NetworkManager.Instance.RemoveObject(Self);
 End;
@@ -506,11 +506,11 @@ Begin
   SendPacket(_Sender, Sock, Msg);
 
   If AutoRelease  Then
-    FreeAndNil(Msg);
+    ReleaseObject(Msg);
 End;
 
 
-Destructor NetworkManager.Destroy;
+Procedure NetworkManager.Release;
 Begin
   _NetworkManager := Nil;
 End;

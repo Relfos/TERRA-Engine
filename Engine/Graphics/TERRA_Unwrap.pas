@@ -106,7 +106,7 @@ Type
     _EdgeCount:Integer;
   End;
 
-  Unwrapper = Class
+  Unwrapper = Class(TERRAObject)
     Protected
       _Groups:Array Of UnwrapGroup;
       _GroupCount:Integer;
@@ -471,7 +471,7 @@ Begin
         MW := Trunc(MW * 1.5)
       Else
         MH := Trunc(MH * 1.5);
-      Packer.Destroy;
+      Packer.Release;
     End Else
       Found := True;
   Until Found;
@@ -516,7 +516,7 @@ Begin
       End;
     End;
   End;
-  Packer.Destroy;
+  Packer.Release;
 
   // final step, copy geometry back to the mesh, because vertices might have been duplicated
   For K:=0 To Pred(Self._GroupCount) Do
@@ -607,7 +607,7 @@ Begin
       End;
   End;
 
-  Rasterizer.Destroy();
+  Rasterizer.Release();
 End;
 
 End.

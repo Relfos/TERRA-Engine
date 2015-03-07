@@ -339,7 +339,4 @@ Begin
   Result := SoundManager.Instance;
 End;
 
-Initialization
-  RegisterResourceClass(Sound);
-Finalization
 End. 

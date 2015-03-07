@@ -204,11 +204,8 @@ Begin
     {$IFDEF USE_SYSLOG}
     closelog();
     {$ELSE}
-  If Assigned(_LogFile) Then
-  Begin
-    _LogFile.Destroy();
-    _LogFile := Nil;
-  End;
+    
+  ReleaseObject(_LogFile);
 	{$ENDIF}
   {$ENDIF}
   {$ENDIF}

@@ -52,7 +52,7 @@ Type
       _Data:Array Of Color;
     Public
       Constructor Create(Width, Height:Integer);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
   End;
 
@@ -82,7 +82,7 @@ Type
       Constructor Create(Source:Stream);Overload;
       Constructor Create(FileName:TERRAString);Overload;
       Constructor Create(Source:Image);Overload;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Load(Source:Stream);Overload;
       Procedure Load(FileName:TERRAString);Overload;
@@ -301,7 +301,7 @@ Begin
   Copy(Source);
 End;
 
-Destructor Image.Destroy;
+Procedure Image.Release;
 Begin
   Discard;
 End;
@@ -480,7 +480,7 @@ Begin
       srcY := srcY + srcYStep;
     End;
 
-    FreeAndNil(_Frames[K]);
+    ReleaseObject(_Frames[K]);
     _Frames[K]:= Dest;
   End;
 
@@ -538,7 +538,7 @@ Begin
       NX:=0;
     End;
 
-    FreeAndNil(_Frames[K]);
+    ReleaseObject(_Frames[K]);
     _Frames[K] := Buffer;
   End;
 
@@ -576,7 +576,7 @@ Begin
   For I:=0 To Pred(_FrameCount) Do
   If Assigned(_Frames[I]) Then
   Begin
-    FreeAndNil(_Frames[I]);
+    ReleaseObject(_Frames[I]);
     _Frames[I] := Nil;
   End;
 
@@ -1369,7 +1369,7 @@ Begin
   If Assigned(Source) Then
   Begin
     Load(Source);
-    Source.Destroy;
+    Source.Release;
   End;
 End;
 
@@ -1424,7 +1424,7 @@ Begin
 
   Dest := FileStream.Create(FileName);
   Save(Dest, Format, Options);
-  Dest.Destroy;
+  Dest.Release;
 End;
 
 
@@ -2131,7 +2131,7 @@ Begin
 	  FillChar(_Data[0], Width * Height * PixelSize, 0);
 End;
 
-Destructor ImageFrame.Destroy;
+Procedure ImageFrame.Release;
 Begin
   SetLength(_Data, 0);
 End;

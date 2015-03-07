@@ -38,7 +38,7 @@ Type
     Alpha:Single;
   End;
 
-  LensFlare = Class
+  LensFlare = Class(TERRAObject)
     Protected
       _FlareTexture:Texture;
       _SparkTexture:Texture;
@@ -52,7 +52,7 @@ Type
 
       Constructor Create;
     Public
-      Destructor Destroy;
+      Procedure Release;
 
       Class Function Instance:LensFlare;
 
@@ -163,8 +163,8 @@ Begin
   //_FlareTexture.Image.Save('flare.png');
   _FlareTexture.Refresh(Target);
   _FlareTexture.Update;
-  Temp.Destroy;
-  Target.Destroy;
+  Temp.Release;
+  Target.Release;
 
   _SparkTexture := Texture.New(LensFlareTextureSize, LensFlareTextureSize);
   Target := Image.Create(LensFlareTextureSize, LensFlareTextureSize);
@@ -200,20 +200,20 @@ Begin
 //  _SparkTexture.Image.Save('sparks.png');
   _SparkTexture.Refresh(Target);
   _SparkTexture.Update;
-  Target.Destroy;
+  Target.Release;
 
   glGenQueries(1, @_Query); 
 End;
 
-Destructor LensFlare.Destroy;
+Procedure LensFlare.Release;
 Begin
   glDeleteQueries(1, @_Query);  
 
   If Assigned(_FlareTexture) Then
-    _FlareTexture.Destroy;
+    _FlareTexture.Release;
 
   If Assigned(_SparkTexture) Then
-    _SparkTexture.Destroy;
+    _SparkTexture.Release;
 
   LensFlare_Instance := Nil;
 End;
@@ -392,5 +392,5 @@ End;
 Initialization
 Finalization
   If Assigned(LensFlare_Instance) Then
-    LensFlare_Instance.Destroy;
+    LensFlare_Instance.Release;
 End.

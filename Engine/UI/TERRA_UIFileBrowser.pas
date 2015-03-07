@@ -250,13 +250,13 @@ Var
 Begin
   If Assigned(_FileList) Then
   Begin
-    _FileList.Destroy;
+    _FileList.Release;
     _FileList := Nil;
   End;
 
   If Assigned(_FolderList) Then
   Begin
-    _FolderList.Destroy;
+    _FolderList.Release;
     _FolderList := Nil;
   End;
 

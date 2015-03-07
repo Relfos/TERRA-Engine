@@ -36,14 +36,14 @@ Type
     Function Intersect(Const R:Ray; Var T:Single):Boolean; Override;
   End;
 
-  CollisionMesh = Class
+  CollisionMesh = Class(TERRAObject)
     Protected
       _HorizontalOctree:Octree;
       _VerticalOctree:Octree;
 
     Public
       Constructor Create(Source:Mesh);
-      Destructor Destroy;
+      Procedure Release;
 
       Function GetHeightAt(X:Single; Var Y:Single; Z:Single):Boolean;
       Function CheckMovement(Var Position:Vector3D; NewPos:Vector3D; Radius:Single):Boolean;
@@ -96,15 +96,15 @@ Begin
       If (Abs(N.Y)<0.25) Then
         _VerticalOctree.AddElement(CT)
       Else
-        CT.Destroy;
+        CT.Release;
     End;
   End;
 End;
 
-Destructor CollisionMesh.Destroy;
+Procedure CollisionMesh.Release;
 Begin
-  _HorizontalOctree.Destroy();
-  _VerticalOctree.Destroy();
+  _HorizontalOctree.Release();
+  _VerticalOctree.Release();
 End;
 
 Function CollisionMesh.GetHeightAt(X:Single; Var Y:Single; Z:Single): Boolean;

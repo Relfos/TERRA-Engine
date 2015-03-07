@@ -103,11 +103,11 @@ Type
   End;
 
   ShaderManager = Class(ResourceManager)
-    Protected
-      _ActiveShader:Shader;
-
+    Private
+      Function GetActiveShader: Shader;
+      
     Public
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Class Function Instance:ShaderManager;
 
@@ -120,7 +120,7 @@ Type
 
       Procedure InvalidateShaders;
 
-      Property ActiveShader:Shader Read _ActiveShader;
+      Property ActiveShader:Shader Read GetActiveShader;
   End;
 
 Implementation
@@ -129,6 +129,7 @@ Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_GraphicsManager, TERRA_CollectionOb
 
 Var
   _ShaderManager_Instance:ApplicationObject = Nil;
+  _ActiveShader:Shader = Nil;
 
   {
 Class Function Shader.ActiveShader:Shader;
@@ -174,7 +175,7 @@ Begin
     _Status := rsInvalid;
 
   Log(logDebug, 'Shader', 'Destroying temp stream');
-  MyStream.Destroy;
+  MyStream.Release;
 
   Log(logDebug, 'Shader', 'Shader loaded ok!');
 End;
@@ -231,11 +232,11 @@ Begin
           Temp := FileManager.Instance().OpenStream(LibPath);
           SetLength(Content, Temp.Size);
           Temp.Read(@Content[1], Temp.Size);
-          Temp.Destroy;
+          Temp.Release;
 
           ProcessIncludes(Content, IncludedList);
         End Else
-          Lib.Destroy();
+          ReleaseObject(Lib);
       End Else
       Begin
         RaiseError('Shader '+Self.Name+', library not found: '+ S3);
@@ -432,7 +433,7 @@ Begin
 
   IncludedList := List.Create(coAppend);
   ProcessIncludes(S, IncludedList);
-  IncludedList.Destroy;
+  ReleaseObject(IncludedList);
 
   HasGLSL120 := (GraphicsManager.Instance().Version.Major>=1.0) And (GraphicsManager.Instance().Version.Minor>=20);
 
@@ -516,8 +517,8 @@ End;
 
 Procedure Shader.OnContextLost;
 Begin
-  If (ShaderManager.Instance._ActiveShader = Self) Then
-    ShaderManager.Instance._ActiveShader := Nil;
+  If (_ActiveShader = Self) Then
+    _ActiveShader := Nil;
 
   _VertexShaderHandle := 0;
   _FragmentShaderHandle := 0;
@@ -530,8 +531,8 @@ End;
 
 Function Shader.Unload:Boolean;
 Begin
-  If (_ShaderManager_Instance<>Nil) And (ShaderManager(_ShaderManager_Instance.Instance)._ActiveShader = Self) Then
-    ShaderManager(_ShaderManager_Instance.Instance)._ActiveShader := Nil;
+  If (_ActiveShader = Self) Then
+    _ActiveShader := Nil;
 
   If (_Program>0) Then
   Begin
@@ -624,7 +625,7 @@ Begin
   {$ENDIF}
   Dest := FileStream.Create(FileName);
   Dest.WriteLine(Source);
-  Dest.Destroy;
+  ReleaseObject(Dest);
   {$ENDIF}
 
   glGetShaderiv(Shader, GL_INFO_LOG_LENGTH, @LogLength);  
@@ -676,8 +677,8 @@ Begin
   glAttachShader(_Program, _FragmentShaderHandle);  
 
   glLinkProgram(_Program);                                    
-  glGetProgramiv(_Program, GL_LINK_STATUS, @LinkStatus);      
-  glGetProgramiv(_Program, GL_INFO_LOG_LENGTH, @LogLength);   
+  glGetProgramiv(_Program, GL_LINK_STATUS, @LinkStatus);
+  glGetProgramiv(_Program, GL_INFO_LOG_LENGTH, @LogLength);
   If LogLength > 1 Then
   Begin
     SetLength(LogInfo, LogLength);
@@ -855,10 +856,15 @@ Begin
 End;
 
 { ShaderManager }
-Destructor ShaderManager.Destroy;
+Procedure ShaderManager.Release();
 Begin
   Inherited;
   _ShaderManager_Instance := Nil;
+End;
+
+Function ShaderManager.GetActiveShader: Shader;
+Begin
+  Result := _ActiveShader;
 End;
 
 Class Function ShaderManager.Instance:ShaderManager;
@@ -868,7 +874,6 @@ Begin
 
   Result := ShaderManager(_ShaderManager_Instance.Instance);
 End;
-
 
 Procedure Shader.Bind();
 Var
@@ -971,7 +976,7 @@ Var
   S:Shader;
   I:Iterator;
 Begin
-  I := Self.Resources.CreateIterator;
+  I := Self.Resources.CreateIterator();
   While I.HasNext Do
   Begin
     S := Shader(I.GetNext());
@@ -981,7 +986,7 @@ Begin
       Break;
     End;
   End;
-  I.Destroy;
+  I.Release;
 End;
 
 Procedure ShaderManager.AddShader(MyShader: Shader);
@@ -1028,7 +1033,7 @@ Begin
     If (MyResource Is Shader) And (MyResource.Status = rsReady) Then
       MyResource.Unload();
   End;
-  I.Destroy;
+  I.Release;
   _ActiveShader := Nil;
 End;
 
@@ -1037,8 +1042,4 @@ Begin
   Result := ShaderManager.Instance;
 End;
 
-
-Begin
-  Log(logDebug, 'Shaders', 'Initializing');
-  RegisterResourceClass(Shader);
-End.
+End.

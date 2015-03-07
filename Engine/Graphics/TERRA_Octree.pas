@@ -41,7 +41,7 @@ Type
     Public
       Box:BoundingBox;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Render; Virtual;
       Function Intersect(Const R:Ray; Var T:Single):Boolean; Virtual;
@@ -60,7 +60,7 @@ Type
 
     Public
       Constructor Create(Box:BoundingBox; Level:Integer = 0);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure AddElement(Element:OctreeElement);
       Procedure RemoveElement(Element:OctreeElement);
@@ -160,7 +160,7 @@ Begin
   While I<_ElementCount Do
   If (_Elements[I] = Element) Then
   Begin
-    _Elements[I].Destroy;
+    _Elements[I].Release;
     _Elements[I] := _Elements[Pred(_ElementCount)];
     Dec(_ElementCount);
     Exit;
@@ -172,16 +172,16 @@ Begin
     _Children[I].RemoveElement(Element);
 End;
 
-Destructor Octree.Destroy;
+Procedure Octree.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_ElementCount) Do
-    _Elements[I].Destroy;
+    _Elements[I].Release;
 
   For I:=0 To 7 Do
   If Assigned(_Children[I]) Then
-    _Children[I].Destroy;
+    _Children[I].Release;
 End;
 
 Function Octree.Intersect(Const R: Ray; Var T:Single):OctreeElement;
@@ -237,7 +237,7 @@ Begin
 End;
 
 { OctreeElement }
-Destructor OctreeElement.Destroy;
+Procedure OctreeElement.Release;
 Begin
   // do nothing
 End;

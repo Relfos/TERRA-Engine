@@ -88,7 +88,7 @@ Type
       Constructor Create(Name:TERRAString; W,H:Integer; Source, Compression:TERRAString; Map:TileMap); Overload;
       Constructor Create(P:XMLNode; Map:TileMap); Overload;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Render(Depth:Single);
 
@@ -139,7 +139,7 @@ Type
       Scale:Single;
 
       Constructor Create(TileWidth, TileHeight:Integer); Overload;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function Load(Const SourceName:TERRAString):Boolean;
 
@@ -213,7 +213,7 @@ Begin
     Src := MemoryStream.Create(S);
     Doc := XMLDocument.Create;
     Doc.Load(Src);
-    Src.Destroy();
+    Src.Release();
   End Else
   Begin
     Doc := XMLLoadBinary(S);
@@ -369,7 +369,7 @@ Begin
     End;
   End;
 
-  Doc.Destroy();
+  Doc.Release();
 
   Result := True;  
 End;
@@ -442,13 +442,13 @@ Begin
   CamY := Y;
 End;
 
-Destructor TileMap.Destroy;
+Procedure TileMap.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(Self._LayerCount) Do
   If Assigned(_Layers[I]) Then
-    _Layers[I].Destroy;
+    _Layers[I].Release;
     
   Self._LayerCount := 0;
 End;
@@ -621,8 +621,8 @@ Begin
     SetLength(Result, Dst.Position);
     Dst.Seek(0);
     Dst.Read(@Result[1], Length(Result));
-    Dst.Destroy;
-    Mem.Destroy;
+    Dst.Release;
+    Mem.Release;
   End Else
     Result := Source;
 End;
@@ -731,7 +731,7 @@ Begin
   Result := -1;
 End;
 
-Destructor TileLayer.Destroy;
+Procedure TileLayer.Release;
 Begin
   // do nothing
 End;

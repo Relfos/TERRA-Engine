@@ -3,7 +3,7 @@ Unit TERRA_Session;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_MemoryStream, TERRA_OS;
+Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_MemoryStream, TERRA_OS, TERRA_ProgressNotifier;
 
 {-$DEFINE ALLOWBACKUPS}
 
@@ -43,7 +43,7 @@ Type
 
       Constructor Create(FileName:TERRAString; Backup:Boolean = False);
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure SetValue(Const Key, Value:TERRAString);
       Function GetValue(Const Key:TERRAString):TERRAString;
@@ -247,7 +247,7 @@ Begin
   End;
 
   If Not OldSession Then
-    Pref.Destroy;
+    Pref.Release;
 
   _Read := True;
 
@@ -268,7 +268,7 @@ Begin
 
   Temp := MemoryStream.Create(SourceFile);
   Result := LoadFromStream(Temp);
-  Temp.Destroy();
+  Temp.Release();
 End;
 
 Function Session.GetSaveFileName:TERRAString;
@@ -383,14 +383,14 @@ Begin
       Temp.Seek(0);
     End;
 
-    Pref.Destroy;
+    Pref.Release;
 
     _Read := True;
   End Else
     Result := False;
 
-  Temp.Destroy;
-  Dest.Destroy;
+  Temp.Release;
+  Dest.Release;
 End;
 
 
@@ -437,7 +437,7 @@ Begin
   Result := _Data[N].Value;
 End;
 
-Destructor Session.Destroy;
+Procedure Session.Release;
 Begin
   Self.Clear();
 End;

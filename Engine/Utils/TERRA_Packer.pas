@@ -2,7 +2,7 @@ Unit TERRA_Packer;
 {$I Terra.inc}
 
 Interface
-Uses TERRA_Utils;
+Uses TERRA_Utils, TERRA_ProgressNotifier;
 
 Type
   PackerNode = Class;
@@ -25,7 +25,7 @@ Type
       Rect:PPackerRect;
 
 	    Constructor Create(X, Y, Width, Height:Integer);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
 	    Function Insert(Rect:PPackerRect):PackerNode;
   End;
@@ -38,7 +38,7 @@ Type
 
 	  Public
 		  Constructor Create;
-		  Destructor Destroy; Override;
+		  Procedure Release; Override;
 
 		  Procedure AddRect(Width, Height, ID:Integer);
 
@@ -65,13 +65,13 @@ Begin
 	Self.Child[1] := Nil;
 End;
 
-Destructor PackerNode.Destroy;
+Procedure PackerNode.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To 1 Do
   If (Assigned(Child[I])) Then
-    Child[I].Destroy;
+    Child[I].Release;
 End;
 
 Function PackerNode.Insert(Rect:PPackerRect):PackerNode;
@@ -202,10 +202,10 @@ Begin
   _RectCount := 0;
 End;
 
-Destructor RectanglePacker.Destroy;
+Procedure RectanglePacker.Release;
 Begin
 	If (_Root <> Nil) Then
-		_Root.Destroy;
+		_Root.Release;
 End;
 
 Function RectanglePacker.Pack(Width, Height:Integer; Callback:ProgressNotifier=Nil):Integer;

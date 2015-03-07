@@ -79,7 +79,7 @@ Type
     Color:TERRA_Color.Color;
   End;
 
-  ParticleType = Class
+  ParticleType = Class(TERRAObject)
     Name:TERRAString;
     Item:TextureAtlasItem;
     U1,V1,U2,V2:Single;
@@ -236,7 +236,7 @@ Type
       Respawn:Boolean;
 
       Constructor Create(Emitter:ParticleEmitter{; Pos:Vector3D});
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Update; Override;
 
@@ -284,7 +284,7 @@ Type
     Public
       Class Function Instance:ParticleManager;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Init; Override;
       //Procedure Update; Override;
@@ -388,11 +388,11 @@ Begin
   Respawn := True;
 End;
 
-Destructor ParticleCollection.Destroy;
+Procedure ParticleCollection.Release;
 Begin
   Inherited;
 
-  FreeAndNil(_Emitter);
+  ReleaseObject(_Emitter);
 End;
 
 Procedure ParticleCollection.Init;
@@ -753,7 +753,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_ParticleCollectionCount) Do
-    _ParticleCollections[I].Destroy;
+    _ParticleCollections[I].Release;
 
   _ParticleCollectionCount := 0;
 End;
@@ -767,36 +767,36 @@ Begin
   _RefractionImage := Image.Create(_TextureAtlas.Width, _TextureAtlas.Height);
 End;
 
-Destructor ParticleManager.Destroy;
+Procedure ParticleManager.Release;
 Var
   I:Integer;
 Begin
   Clear();
 
   For I:=0 To Pred(_TypeCount) Do
-    _Types[I].Destroy;
+    _Types[I].Release;
   _TypeCount := 0;
 
   If Assigned(_TextureAtlas) Then
-    _TextureAtlas.Destroy;
+    _TextureAtlas.Release;
 
   If Assigned(_NormalTexture) Then
-    _NormalTexture.Destroy;
+    _NormalTexture.Release;
 
   If Assigned(_NormalImage) Then
-    _NormalImage.Destroy;
+    _NormalImage.Release;
 
   If Assigned(_GlowTexture) Then
-    _GlowTexture.Destroy;
+    _GlowTexture.Release;
 
   If Assigned(_GlowImage) Then
-    _GlowImage.Destroy;
+    _GlowImage.Release;
 
   If Assigned(_RefractionTexture) Then
-    _RefractionTexture.Destroy;
+    _RefractionTexture.Release;
 
   If Assigned(_RefractionImage) Then
-    _RefractionImage.Destroy;
+    _RefractionImage.Release;
 
   _ParticleManager_Instance := Nil;
 End;
@@ -840,7 +840,7 @@ Begin
       Source := Image.Create(S);
       Result.Item := _TextureAtlas.Add(Source, Name);
       _NeedsRebuild := True;
-      Source.Destroy;
+      Source.Release;
     End Else
     Begin
       Result := Nil;
@@ -879,7 +879,7 @@ Begin
     If Assigned(Source) Then
     Begin
       Result.Load(Source);
-      Source.Destroy;
+      Source.Release;
     End;
   End Else
   Begin
@@ -931,7 +931,7 @@ Begin
         Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
       End;
       _NormalImage.Blit(Trunc(Item.X*_TextureAtlas.Width), Trunc(Item.Y*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
-      Source.Destroy();
+      Source.Release();
 
       S := StringLower(GetFileName(Item.Name, True))+'_glow.png';
       S := FileManager.Instance.SearchResourceFile(S);
@@ -943,7 +943,7 @@ Begin
         Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
       End;
       _GlowImage.Blit(Trunc(Item.X*_TextureAtlas.Width), Trunc(Item.Y*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
-      Source.Destroy;
+      Source.Release;
 
       S := StringLower(GetFileName(Item.Name, True))+'_refraction.png';
       S := FileManager.Instance.SearchResourceFile(S);
@@ -955,7 +955,7 @@ Begin
         Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
       End;
       _RefractionImage.Blit(Trunc(Item.X*_TextureAtlas.Width), Trunc(Item.Y*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
-      Source.Destroy();
+      Source.Release();
     End;
 
     If (_NormalTexture = Nil) Then
@@ -1034,7 +1034,7 @@ Begin
   Begin
     If (_ParticleCollections[I].Finished) Then
     Begin
-      _ParticleCollections[I].Destroy;
+      _ParticleCollections[I].Release;
       _ParticleCollections[I] := _ParticleCollections[Pred(_ParticleCollectionCount)];
       Dec(_ParticleCollectionCount);
     End Else

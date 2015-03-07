@@ -31,9 +31,15 @@ Unit TERRA_GraphicsManager;
 
 {-$DEFINE TESTFULLSCREENSHADER}
 
+{$IFDEF POSTPROCESSING}
+{$IFDEF FRAMEBUFFEROBJECTS}
+  {$DEFINE HAS_REFLECTIONS}
+{$ENDIF}
+{$ENDIF}
+
+
 Interface
 Uses {$IFNDEF DEBUG_LEAKS}TERRA_MemoryManager,{$ENDIF} {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  {$IFDEF FRAMEBUFFEROBJECTS} TERRA_FrameBufferObject, {$ENDIF}
   TERRA_String, TERRA_Downsampler, TERRA_Shader, //TERRA_Renderer,
   {$IFDEF POSTPROCESSING}TERRA_ScreenFX,{$ENDIF}
   {$IFDEF SHADOWMAPS}TERRA_ShadowMaps,{$ENDIF}
@@ -133,7 +139,7 @@ Type
       FogStart:Single;
       FogHeight:Single;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Property ShadowSplitCount:Integer Read _ShadowSplitCount Write _ShadowSplitCount;
       Property ShadowSplitWeight:Single Read _ShadowSplitWeight Write _ShadowSplitWeight;
@@ -198,7 +204,7 @@ Type
 {      ReflectionPoint:Vector3D;
       ReflectionNormal:Vector3D;}
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Update; Virtual;
 
@@ -394,7 +400,7 @@ Type
 
       Class Function Instance:GraphicsManager;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure RenderShadowmap(View:Viewport);
       Procedure RenderReflections(View:Viewport);
@@ -457,9 +463,9 @@ Type
 
       Function GetScreenshot():Image;
 
-      Function EnableColorShader(MyColor:Color; Transform:Matrix4x4):Shader;
-      Function EnableTextureShader(MyColor:Color; Tex:Texture; Transform:Matrix4x4):Shader;
-      Function EnableColoredTextureShader(Tex:Texture; Transform:Matrix4x4):Shader;
+      Function EnableColorShader(Const MyColor:Color; Const Transform:Matrix4x4):Shader;
+      Function EnableTextureShader(Const MyColor:Color; Tex:Texture; Const Transform:Matrix4x4):Shader;
+      Function EnableColoredTextureShader(Tex:Texture; Const Transform:Matrix4x4):Shader;
 
       Procedure EnableReflection(Const ReflectionPoint, ReflectionNormal:Vector3D);
 
@@ -794,7 +800,7 @@ Begin
     Image.FillRectangle(Integer(Round(_StartVertex.X)), Integer(Round(_StartVertex.Y)), Integer(Round(_EndVertex.X)), Integer(Round(_EndVertex.Y)), ColorRed);
     Image.FillRectangle(Integer(Round(A.X)), Integer(Round(A.Y)), Integer(Round(B.X)), Integer(Round(B.Y)), ColorBlue);
     Image.Save('occlusion.png');
-    Image.Destroy;
+    Image.Release;
     Halt;
   End;}
 
@@ -840,7 +846,7 @@ Begin
 End;
 
 { GraphicsManagerSettings }
-Destructor GraphicsManagerSettings.Destroy;
+Procedure GraphicsManagerSettings.Release;
 Begin
   // do nothing
 End;
@@ -1193,7 +1199,11 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
   _Settings.Fur._Avaliable := True;
   _Settings.Fur._Enabled := True;
 
+  {$IFDEF HAS_REFLECTIONS}
   _Settings.Reflections._Avaliable := True;
+  {$ELSE}
+  _Settings.Reflections._Avaliable := False;
+  {$ENDIF}
   _Settings.Reflections._Enabled := False;
 
   _Settings.Sky._Avaliable := True;
@@ -1243,7 +1253,7 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
   {$ENDIF}
 
   // make UI view
-  _UIViewport := Viewport.Create('UI', Application.Instance.UI_Width, Application.Instance.UI_Height, Application.Instance.UI_Scale);
+  _UIViewport := Viewport.Create('UI', Application.Instance.UI_Width, Application.Instance.UI_Height, {$IFDEF FRAMEBUFFEROBJECTS}Application.Instance.UI_Scale{$ELSE}1.0{$ENDIF});
   _UIViewport.SetRenderTargetState(captureTargetColor, True);
   _UIViewport.SetTarget(_DeviceViewport, 0, 0, 1.0, 1.0);
 
@@ -1310,7 +1320,7 @@ Begin
   If (N<0) Then
     Exit;
 
-  _Viewports[N].Destroy;
+  _Viewports[N].Release;
   _Viewports[N] := _Viewports[Pred(_ViewportCount)];
   Dec(_ViewportCount);
 End;
@@ -1345,7 +1355,7 @@ Begin
   If (N<0) Then
     Exit;
 
-  _Cameras[N].Destroy;
+  _Cameras[N].Release;
   _Cameras[N] := _Cameras[Pred(_CameraCount)];
   Dec(_CameraCount);
 End;
@@ -2438,7 +2448,7 @@ Begin
   _CurrentBlendMode := BlendMode;
 End;
 
-Function GraphicsManager.EnableColorShader(MyColor:Color; Transform:Matrix4x4):Shader;
+Function GraphicsManager.EnableColorShader(Const MyColor:Color; Const Transform:Matrix4x4):Shader;
 Begin
   If (Not Assigned(_SimpleColor)) Then
   Begin
@@ -2457,7 +2467,7 @@ Begin
   Result.SetUniform('out_color', MyColor);
 End;
 
-Function GraphicsManager.EnableTextureShader(MyColor:Color; Tex:Texture; Transform:Matrix4x4):Shader;
+Function GraphicsManager.EnableTextureShader(Const MyColor:Color; Tex:Texture; Const Transform:Matrix4x4):Shader;
 Begin
   If (Not Assigned(_SimpleTexture)) Then
   Begin
@@ -2479,7 +2489,7 @@ Begin
   Result.SetUniform('out_texture', 0);
 End;
 
-Function GraphicsManager.EnableColoredTextureShader(Tex:Texture; Transform:Matrix4x4):Shader;
+Function GraphicsManager.EnableColoredTextureShader(Tex:Texture; Const Transform:Matrix4x4):Shader;
 Begin
   If (Not Assigned(_SimpleTextureColored)) Then
   Begin
@@ -2500,7 +2510,7 @@ Begin
   Result.SetUniform('out_texture', 0);
 End;
 
-Destructor GraphicsManager.Destroy;
+Procedure GraphicsManager.Release;
 Var
   I:Integer;
 Begin
@@ -2508,27 +2518,27 @@ Begin
   Log(logDebug, 'GraphicsManager', 'Shutting down');
 
   For I:=0 To Pred(_CameraCount) Do
-    FreeAndNil(_Cameras[I]);
+    ReleaseObject(_Cameras[I]);
   _CameraCount := 0;
 
   For I:=0 To Pred(_ViewportCount) Do
-    FreeAndNil(_Viewports[I]);
+    ReleaseObject(_Viewports[I]);
   _ViewportCount := 0;
 
 
-  FreeAndNil(_BucketOpaque);
-  FreeAndNil(_BucketAlpha);
+  ReleaseObject(_BucketOpaque);
+  ReleaseObject(_BucketAlpha);
   {$IFDEF REFLECTIONS_WITH_STENCIL}
-  FreeAndNil(_BucketReflection);
+  ReleaseObject(_BucketReflection);
   {$ENDIF}
 
-  FreeAndNil(_UIViewport);
-  FreeAndNil(_DeviceViewport);
+  ReleaseObject(_UIViewport);
+  ReleaseObject(_DeviceViewport);
 
-  FreeAndNil(_Settings);
+  ReleaseObject(_Settings);
 
   {$IFDEF PRECISIONTIMER}
-  FreeAndNil(_Timer);
+  ReleaseObject(_Timer);
   {$ENDIF}
 
   SetScene(Nil);
@@ -2663,7 +2673,7 @@ Begin
     Exit;
 
   {If Assigned(_Scene) Then
-    _Scene.Destroy;}
+    _Scene.Release;}
 
   _Scene := MyScene;
 End;
@@ -2750,7 +2760,7 @@ Begin
 End;
 
 { Renderable }
-Destructor Renderable.Destroy;
+Procedure Renderable.Release;
 Begin
   GraphicsManager.Instance.DeleteRenderable(Self);
 End;
@@ -3043,7 +3053,7 @@ End;
 
 Procedure GraphicsManager.EnableReflection(Const ReflectionPoint, ReflectionNormal: Vector3D);
 Begin
-  {$IFDEF POSTPROCESSING}
+  {$IFDEF HAS_REFLECTIONS}
   Self._ReflectionsEnabled := True;
   Self._ReflectionPoint := ReflectionPoint;
   Self._ReflectionNormal := ReflectionNormal;

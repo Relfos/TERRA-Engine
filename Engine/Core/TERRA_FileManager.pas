@@ -27,10 +27,11 @@ Unit TERRA_FileManager;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-    TERRA_String, TERRA_Resource, TERRA_Collections, TERRA_Stream, TERRA_FileStream, TERRA_Application, TERRA_Package;
+    TERRA_String, TERRA_Utils, TERRA_Resource, TERRA_Collections, TERRA_Stream, TERRA_FileStream,
+    TERRA_Application, TERRA_Package;
 
 Type
-  ResourceProvider = Class
+  ResourceProvider = Class(TERRAObject)
     Function GetStream(Const Name:TERRAString):Stream; Virtual; Abstract;
     Function HasStream(Const Name:TERRAString):Boolean; Virtual; Abstract;
   End;
@@ -67,7 +68,7 @@ Type
       Procedure Init; Override;
 
       Class Function Instance:FileManager;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function SearchResourceFile(FileName:TERRAString):TERRAString;
 
@@ -98,8 +99,8 @@ Type
 Function IsPackageFileName(Const FileName:TERRAString):Boolean;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_OS, TERRA_Image, TERRA_GraphicsManager, TERRA_Utils, TERRA_Color,
-  TERRA_FileUtils, TERRA_MemoryStream;
+Uses TERRA_Error, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_OS, TERRA_Image,
+  TERRA_GraphicsManager, TERRA_Color, TERRA_FileUtils, TERRA_MemoryStream;
 
 Var
   _FileManager:ApplicationObject = Nil;
@@ -181,7 +182,7 @@ Begin
   Source.Read(@Header,4);
   If (Header <> TERRAHeader) Then
   Begin
-    Source.Destroy;
+    Source.Release;
     Exit;
   End;
 
@@ -206,7 +207,7 @@ Begin
     Self.AddPackage(P);
   End;
 
-  Source.Destroy;
+  Source.Release;
 
   Result := True;
 End;
@@ -292,10 +293,17 @@ End;
 
 Function FileManager.AddPackage(MyPackage:Package):Package;
 Begin
+  Result := MyPackage;
+                   
+  If MyPackage = Nil Then
+    Exit;
+
   Inc(_PackageCount);
   SetLength(_PackageList, _PackageCount);
   _PackageList[Pred(_PackageCount)] := MyPackage;
   Result := _PackageList[Pred(_PackageCount)];
+
+  MyPackage.Load();
 End;
 
 Function FileManager.AddPackage(FileName:TERRAString):Package;
@@ -303,10 +311,7 @@ Begin
   If (Pos('.',FileName)<=0) Then
     FileName := FileName + '.terra';
 
-  Inc(_PackageCount);
-  SetLength(_PackageList, _PackageCount);
-  _PackageList[Pred(_PackageCount)] := Package.Create(FileName);
-  Result := _PackageList[Pred(_PackageCount)];
+  Result := Self.AddPackage(Package.Create(FileName));
 End;
 
 Function FileManager.SearchResourceFile(FileName:TERRAString):TERRAString;
@@ -504,20 +509,19 @@ Begin
   End;
 End;
 
-Destructor FileManager.Destroy;
+Procedure FileManager.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(Self._ProviderCount) Do
-    _Providers[I].Destroy;
+    ReleaseObject(_Providers[I]);
 
   For I:=0 To Pred(_PackageCount) Do
-    _PackageList[I].Destroy;
+    ReleaseObject(_PackageList[I]);
   _PackageCount := 0;
 
-  _Locations.Destroy();
-  _Locations := Nil;
-
+  ReleaseObject(_Locations);
+  
   _FileManager := Nil;
 End;
 

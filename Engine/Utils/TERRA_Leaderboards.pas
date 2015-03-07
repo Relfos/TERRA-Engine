@@ -3,7 +3,7 @@ Unit TERRA_Leaderboards;
 {$I terra.inc}
 Interface
 
-Uses TERRA_String, TERRA_Network, TERRA_NetClient, TERRA_UI, TERRA_Widgets, TERRA_Vector2D;
+Uses TERRA_String, TERRA_Utils, TERRA_Network, TERRA_NetClient, TERRA_UI, TERRA_Widgets, TERRA_Vector2D;
 
 {$IFDEF IPHONE}
 {-$DEFINE USEGAMECENTER}
@@ -1027,7 +1027,7 @@ Type
     Score:Integer;
   End;
 
-  Leaderboard = Class
+  Leaderboard = Class(TERRAObject)
     Protected
       _UI:UI;
       _Wnd:UIWindow;
@@ -1063,7 +1063,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_HTTP, TERRA_Stream, TERRA_Utils, TERRA_Application,
+Uses TERRA_HTTP, TERRA_Stream, TERRA_Application,
   TERRA_Scene, TERRA_GraphicsManager, TERRA_Texture, TERRA_Viewport,
   TERRA_SpriteManager, TERRA_Localization, TERRA_Tween, TERRA_FileManager, TERRA_MemoryStream, TERRA_OS;
 
@@ -1317,7 +1317,7 @@ Begin
     Str := NetMessage.Create(nmLeaderboardInfo);
     Str.WriteString(Name);
     _Client.SendMessage(Str);
-    Str.Destroy();
+    Str.Release();
   End;
 End;
 

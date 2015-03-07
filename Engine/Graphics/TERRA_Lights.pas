@@ -62,7 +62,7 @@ Type
       Intensity:Single;
       Enabled:Boolean;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function GetPosition():Vector3D; Virtual; Abstract;
       Function IsOccluded():Boolean; Virtual; Abstract;
@@ -187,7 +187,7 @@ Type
     Public
       Procedure Init; Override;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Clear;
 
@@ -213,7 +213,7 @@ Var
   _LightManager_Instance:ApplicationObject = Nil;
 
 { Light }
-Destructor Light.Destroy;
+Procedure Light.Release;
 Begin
   // do nothing
 End;
@@ -241,7 +241,7 @@ Begin
   //VectorCreate(0.25, 0.75, 0.0);
 End;
 
-Destructor LightManager.Destroy;
+Procedure LightManager.Release;
 Begin
   Clear;
   _LightManager_Instance := Nil;
@@ -525,7 +525,7 @@ Begin
   Begin
     S := ConeMesh.Create(1, 8);
     _ConeMesh := CreateMeshFromSolid(S);
-    S.Destroy;
+    S.Release;
   End;
 
   Inst := MeshInstance.Create(_ConeMesh);

@@ -15,7 +15,7 @@ Type
       _Image:Image;
       _DeviceCount:Integer;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Init; Override;
       Procedure Update; Override;
@@ -63,7 +63,7 @@ Begin
   _DeviceCount := 1;
 End;
 
-Destructor Webcam.Destroy;
+Procedure Webcam.Release;
 Begin
   Self.Stop;
   Self.Clear;
@@ -83,13 +83,13 @@ Procedure Webcam.Clear;
 Begin
   If Assigned(_Texture) Then
   Begin
-    _Texture.Destroy;
+    _Texture.Release;
     _Texture := Nil;
   End;
 
   If Assigned(_Image) Then
   Begin
-    _Image.Destroy;
+    _Image.Release;
     _Image := Nil;
   End;
 End;

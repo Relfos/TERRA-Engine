@@ -80,7 +80,7 @@ Type
 
     Public
       Constructor Create;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Bind(MySound:Sound);
 
@@ -129,7 +129,7 @@ Begin
   {$ENDIF}
 End;
 
-Destructor SoundSource.Destroy;
+Procedure SoundSource.Release;
 Begin
   Clear;
 End;
@@ -154,7 +154,7 @@ Begin
   Begin
     Java_Begin(Frame);
     _Track.CallVoidMethod('release', Nil);
-    _Track.Destroy();
+    _Track.Release();
     _Track := Nil;
     Java_End(Frame);
   End;
@@ -185,13 +185,13 @@ Begin
     Params := JavaArguments.Create(Frame);
     Params.AddFloat(_Volume);
     _Track.CallVoidMethod('setVolume', Params);
-    Params.Destroy();
+    Params.Release();
 
     Log(logDebug, 'SoundSource', 'Setting loop');
     Params := JavaArguments.Create(Frame);
     Params.AddBoolean(_Loop);
     _Track.CallVoidMethod('setLoop', Params);
-    Params.Destroy();
+    Params.Release();
 
     Java_End(Frame);
   End;
@@ -288,7 +288,7 @@ Begin
   Params.AddInteger(Sound.Size);
   Params.AddWordArray(Sound.Data, Samples);
   _Track := JavaObject.Create(AudioTrackJavaClass, Params, Frame);
-  Params.Destroy();
+  Params.Release();
   Java_End(Frame);
 
   Log(logDebug, 'SoundSource', 'Ready!');
@@ -365,7 +365,7 @@ Begin
       Java_Begin(Frame);
       _Track.CallVoidMethod('stop', Nil);
 
-      _Track.Destroy();
+      _Track.Release();
       _Track := Nil;
       Java_End(Frame);
     End;

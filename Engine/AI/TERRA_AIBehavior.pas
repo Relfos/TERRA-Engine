@@ -29,7 +29,7 @@ Const
 Type
   AIVehicle = Class;
 
-  AIObstacle = Class
+  AIObstacle = Class(TERRAObject)
     Public
       Function Collision(VehicleHitArea:Circle; Hit:PVector2D):Boolean; Virtual; Abstract;
       Procedure Render; Virtual; Abstract;
@@ -46,7 +46,7 @@ Type
       Procedure Render; Override;
   End;
 
-  AIVehicle = Class
+  AIVehicle = Class(TERRAObject)
     Protected
       _Behavior:Integer;
       _Target:Vector2D;
@@ -94,7 +94,7 @@ Type
       AreaMin:Vector2D;
       AreaMax:Vector2D;
 
-      Destructor Destroy;
+      Procedure Release;
 
       Procedure Clear;
 
@@ -124,17 +124,17 @@ Constructor AIManager.Create;
 Begin
   {Gen := PerlinNoiseGenerator.Create;
   _Noise := Gen.CreateImage(64, 64);
-  Gen.Destroy;}
+  Gen.Release;}
 
   _LastUpdate := GetTime;
   AreaMin := VectorCreate2D(-9999, -9999);
   AreaMax := VectorCreate2D(9999, 9999);
 End;
 
-Destructor AIManager.Destroy;
+Procedure AIManager.Release;
 Begin
   {If Assigned(_Noise) Then
-    _Noise.Destroy;}
+    _Noise.Release;}
     
   _AIManager_Instance := Nil;
 End;

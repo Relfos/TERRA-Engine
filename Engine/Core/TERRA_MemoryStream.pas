@@ -48,9 +48,9 @@ Type
       Constructor Create(BufferSize:Integer; Buffer:PByte = Nil; StreamMode:Integer=smDefault); Overload;
       Constructor Create(Const FileName:TERRAString; StreamMode:Integer=smDefault);Overload;
       {$IFDEF OXYGENE}
-      Procedure Destroy;Override;
+      Procedure Release;Override;
       {$ELSE}
-      Destructor Destroy;Override;
+      Procedure Release;Override;
       {$ENDIF}
 
       Procedure SetBuffer(BufferSize:Integer; Buffer:PByte);
@@ -109,20 +109,20 @@ Begin
   Log(logDebug, 'IO', 'Loaded memory stream from '+FileName+', size = '+IntToString(_Size));
 
   F.Read(_Buffer, _Size);
-  F.Destroy;
+  F.Release();
 
   _Name := FileName;
 End;
 
 {$IFDEF OXYGENE}
-Procedure MemoryStream.Destroy;
+Procedure MemoryStream.Release;
 {$ELSE}
-Destructor MemoryStream.Destroy;
+Procedure MemoryStream.Release;
 {$ENDIF}
 Begin
   If (_Mode And smShared=0) And (Assigned(_Buffer)) Then
   Begin
-    //Log.Write(logDebug,'IO','MemoryStream.Destroy','Releasing '+MemStr(Size));
+    //Log.Write(logDebug,'IO','MemoryStream.Release','Releasing '+MemStr(Size));
     FreeMem(_Buffer);
   End;
 

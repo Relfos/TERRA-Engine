@@ -187,8 +187,8 @@ Begin
   Params.AddString(Filter);
   Params.AddBoolean(IsFolderMode);
   AssetsClass.CallStaticVoidMethod('listFiles', Params);
-  Params.Destroy();
-  AssetsClass.Destroy();
+  Params.Release();
+  AssetsClass.Release();
   Java_End(Frame);
 End;
 
@@ -216,10 +216,10 @@ Begin
       If (Temp<>Nil) Then
       Begin
         Result.Merge(Temp);
-        Temp.Destroy;
+        Temp.Release;
       End;
     End;
-    Folders.Destroy();
+    Folders.Release();
   End;
 End;
 
@@ -283,7 +283,7 @@ Begin
                If (Temp<>Nil) Then
                Begin
                   Result.Merge(Temp);
-                  //Temp.Destroy;
+                  //Temp.Release;
                 End;
             End;
 

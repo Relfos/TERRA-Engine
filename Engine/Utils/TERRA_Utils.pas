@@ -95,22 +95,6 @@ Type
   PBooleanArray=^BooleanArray;
   BooleanArray=Array[0..1024*64] Of Boolean;
 
-  ProgressNotifier = Class
-    Protected
-      _CurrentPhase:Integer;
-      _PhaseCount:Integer;
-
-    Public
-      Procedure Reset(Count:Integer);
-      Procedure Notify(Value:Single);
-      Procedure OnProgress(Progress:Integer); Virtual; Abstract;
-
-      Procedure NextPhase();
-
-      Property PhaseCount:Integer Read _PhaseCount Write _PhaseCount;
-      Property CurrentPhase:Integer Read _CurrentPhase Write _CurrentPhase;
-  End;
-
 Const
 {$IFDEF OXYGENE}
   EngineVersion:TERRAVersion= new Version(3, 5, 0);
@@ -226,14 +210,16 @@ Procedure DebugBreak(Condition:Boolean = True);
 
 Procedure RemoveHint(X:Integer);
 
-Procedure FreeAndNil(var Obj);
+Procedure ReleaseObject(var Obj);
 
 Type
   TERRAObject = Class
+    Protected
+      Procedure Release; Virtual;
+
     Public
       Destructor Destroy; Override;
   End;
-
 
 Implementation
 Uses TERRA_Log, TERRA_Error;
@@ -1184,26 +1170,39 @@ End;
 {$ENDIF}
 
 
-Destructor TERRAObject.Destroy;
-{Var
-  S:TERRAString;}
+Procedure TERRAObject.Release;
 Begin
 {  S := Self.ClassName;
-  Log(logWarning, 'App', S + ' destructor needs override.');}
+  Log(logWarning, 'App', 'Destroying instance of '+S);}
+End;
+
+Destructor TERRAObject.Destroy();
+Begin
+  {$IFDEF WINDOWS}
+  DebugBreak();
+  RaiseError('Destructors are not allowed in class: '+Self.ClassName);
+  {$ENDIF}
 
   Inherited;
 End;
 
-Procedure FreeAndNil(var Obj);
-var
-  Temp: TObject;
-begin
-  Temp := TObject(Obj);
-  Pointer(Obj) := nil;
-  Temp.Free;
-end;
+Procedure ReleaseObject(Var Obj);
+Var
+  Temp:TObject;
+Begin
+  Temp := TERRAObject(Obj);
+  If Temp = Nil Then
+    Exit;
 
-(*Procedure DestroyObject(Obj:Pointer);
+  If (Temp Is TERRAObject) Then
+    TERRAObject(Temp).Release()
+  Else
+    Log(logWarning, 'App', Temp.ClassName +' is not a TERRA-Object!');
+
+  Pointer(Obj) := Nil;
+End;
+
+(*Procedure ReleaseObject(Obj:Pointer);
 Var
   Temp:TERRAObject;
   S:TERRAString;
@@ -1222,7 +1221,7 @@ Begin
     Log(logDebug, 'App', 'Destroying '+ Temp.ClassName);
     {$ENDIF}
     {$ENDIF}
-    Temp.Destroy();
+    Temp.Release();
   End Else
   Begin
     S := Temp.ClassName;
@@ -1284,38 +1283,6 @@ Procedure RemoveHint(X:Integer);
 Begin
 End;
 
-{ ProgressNotifier }
-Procedure ProgressNotifier.Reset(Count:Integer);
-Begin
-  _CurrentPhase := 0;
-  _PhaseCount := Count;
-End;
-
-Procedure ProgressNotifier.NextPhase();
-Begin
-  If (_CurrentPhase<Pred(_PhaseCount)) Then
-    Inc(_CurrentPhase);
-End;
-
-Procedure ProgressNotifier.Notify(Value:Single);
-Begin
-  If (_CurrentPhase<0) Then
-    _CurrentPhase := 0;
-
-  If (_PhaseCount<=0) Then
-    _PhaseCount := 1;
-
-  If (Value<0) Then
-    Value := 0
-  Else
-  If (Value>1) Then
-    Value := 1;
-
-  If (_PhaseCount>1) Then
-    Value := (_CurrentPhase/_PhaseCount) + Value * (1/_PhaseCount);
-
-  Self.OnProgress(Trunc(Value*100));
-End;
 
 End.
 

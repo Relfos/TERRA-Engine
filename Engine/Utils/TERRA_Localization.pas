@@ -30,7 +30,7 @@ Type
     Group:Integer;
   End;
 
-  StringManager = Class(TERRAObject)
+  LocalizationManager = Class(TERRAObject)
     Protected
       _Lang:TERRAString;
       _Strings:Array Of StringEntry;
@@ -41,10 +41,10 @@ Type
     Public
       Constructor Create;
 
-      Class Function Instance:StringManager;
+      Class Function Instance:LocalizationManager;
       Procedure SetLanguage(Lang:TERRAString);
 
-      Function GetString(Const Key:TERRAString; Group:Integer = -1):TERRAString;
+      Function GetString(Const Key:TERRAString):TERRAString;
       Function HasString(Const Key:TERRAString):Boolean;
       Procedure SetString(Const Key, Value:TERRAString; Group:Integer = -1);
       Function EmptyString():TERRAString;
@@ -56,6 +56,8 @@ Type
 
 
       Property Language:TERRAString Read GetLang Write SetLanguage;
+
+      Property Strings[Const Key:TERRAString]:TERRAString Read GetString; Default;
   End;
 
   PinyinSuggestion = Record
@@ -63,7 +65,7 @@ Type
     Text:TERRAString;
   End;
 
-  PinyinConverter = Class
+  PinyinConverter = Class(TERRAObject)
     Protected
       _Suggestions:Array Of PinyinSuggestion;
       _SuggestionCount:Integer;
@@ -98,7 +100,7 @@ Implementation
 Uses TERRA_Application, TERRA_FileManager, TERRA_Log;
 
 Var
-  _Manager:StringManager = Nil;
+  _Manager:LocalizationManager = Nil;
 
 Function IsSupportedLanguage(Const Lang:TERRAString):Boolean;
 Begin
@@ -326,8 +328,8 @@ Begin
     Result := Result + 'b';
 End;
 
-{ StringManager }
-Constructor StringManager.Create;
+{ LocalizationManager }
+Constructor LocalizationManager.Create;
 Begin
   _Lang := '';
   If Assigned(Application.Instance()) Then
@@ -336,12 +338,12 @@ Begin
     SetLanguage('EN');
 End;
 
-Function StringManager.EmptyString:TERRAString;
+Function LocalizationManager.EmptyString:TERRAString;
 Begin
   Result := InvalidString;
 End;
 
-Function StringManager.GetLang:TERRAString;
+Function LocalizationManager.GetLang:TERRAString;
 Begin
   If (_Lang ='') And (Assigned(Application.Instance())) Then
     SetLanguage(Application.Instance.Language);
@@ -349,7 +351,7 @@ Begin
   Result := _Lang;
 End;
 
-Procedure StringManager.SetString(Const Key, Value:TERRAString; Group:Integer = -1);
+Procedure LocalizationManager.SetString(Const Key, Value:TERRAString; Group:Integer = -1);
 Var
   I:Integer;
 Begin
@@ -368,7 +370,7 @@ Begin
   _Strings[Pred(_StringCount)].Group := Group;
 End;
 
-Function StringManager.GetString(Const Key:TERRAString; Group:Integer):TERRAString;
+Function LocalizationManager.GetString(Const Key:TERRAString):TERRAString;
 Var
   I:Integer;
 Begin
@@ -376,7 +378,7 @@ Begin
     SetLanguage(Application.Instance.Language);
 
   For I:=0 To Pred(_StringCount) Do
-  If (StringEquals(_Strings[I].Key, Key)) And ((Group<0) Or (_Strings[I].Group = Group)) Then
+  If (StringEquals(_Strings[I].Key, Key)) Then
   Begin
     Result := _Strings[I].Value;
     Exit;
@@ -386,15 +388,15 @@ Begin
   Result := Self.EmptyString;
 End;
 
-Class Function StringManager.Instance:StringManager;
+Class Function LocalizationManager.Instance:LocalizationManager;
 Begin
   If Not Assigned(_Manager) Then
-    _Manager := StringManager.Create;
+    _Manager := LocalizationManager.Create;
 
   Result := _Manager;
 End;
 
-Procedure StringManager.MergeGroup(Source: Stream; GroupID:Integer; Const Prefix:TERRAString);
+Procedure LocalizationManager.MergeGroup(Source: Stream; GroupID:Integer; Const Prefix:TERRAString);
 Var
   Ofs, Count, I:Integer;
   Header:FileHeader;
@@ -429,7 +431,7 @@ Begin
   End;
 End;
 
-Procedure StringManager.SetLanguage(Lang:TERRAString);
+Procedure LocalizationManager.SetLanguage(Lang:TERRAString);
 Var
   S, S2:TERRAString;
   Source:Stream;
@@ -460,13 +462,13 @@ Begin
   Source := FileManager.Instance.OpenStream(S);
   _Lang := Lang;
   Self.MergeGroup(Source, -1, '');
-  Source.Destroy;
+  Source.Release;
 
   If Application.Instance<>Nil Then
     Application.Instance.Language := Lang;
 End;
 
-Procedure StringManager.Reload();
+Procedure LocalizationManager.Reload();
 Var
   S:TERRAString;
 Begin
@@ -476,7 +478,7 @@ Begin
   SetLanguage(S);
 End;
 
-Procedure StringManager.RemoveGroup(GroupID: Integer);
+Procedure LocalizationManager.RemoveGroup(GroupID: Integer);
 Var
   I:Integer;
 Begin
@@ -490,7 +492,7 @@ Begin
     Inc(I);
 End;
 
-Function StringManager.HasString(Const Key:TERRAString): Boolean;
+Function LocalizationManager.HasString(Const Key:TERRAString): Boolean;
 Begin
   Result := GetString(Key)<>Self.EmptyString;
 End;
@@ -666,5 +668,5 @@ End;
 Initialization
 Finalization
   If Assigned(_Manager) Then
-    _Manager.Destroy;
+    _Manager.Release;
 End.

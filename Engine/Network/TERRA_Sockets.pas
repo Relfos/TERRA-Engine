@@ -154,7 +154,7 @@ Type
     Public
       Constructor Create(CustomHandle:Integer); Overload;
       Constructor Create(Const Host:TERRAString; Port:Word); Overload;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function Read(Data:Pointer; Size:Cardinal):Cardinal; Override;
       Function Write(Data:Pointer; Size:Cardinal):Cardinal; Override;
@@ -251,12 +251,12 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(HostName);
   Result := Utils.CallStaticStringMethod('getNetAddress', Params);
-  Params.Destroy();
+  Params.Release();
 
   If Result = '' Then
     Result := '127.0.0.1';
 
-  Utils.Destroy();
+  Utils.Release();
   Java_End(Frame);
 
   Log(logDebug, 'Sockets', 'Result: '+ Result);
@@ -430,7 +430,7 @@ Begin
   _Closed := False;
 End;
 
-Destructor Socket.Destroy;
+Procedure Socket.Release;
 Begin
   If (_Handle>=0) Then
   Begin

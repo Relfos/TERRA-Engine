@@ -21,7 +21,7 @@ Type
 
     Public
       Constructor Create(Frame:JavaFrame);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure AddBoolean(Value:Boolean);
       Procedure AddInteger(Value:Integer);
@@ -41,7 +41,7 @@ Type
 
     Public
       Constructor Create(ClassName:AnsiString; Frame:JavaFrame);
-      Destructor Destroy(); Override;
+      Procedure Release(); Override;
 
       Procedure CallStaticVoidMethod(Name:AnsiString; Args:JavaArguments);
       Function CallStaticIntMethod(Name:AnsiString; Args:JavaArguments):Integer;
@@ -59,7 +59,7 @@ Type
 
     Public
       Constructor Create(ClassName:AnsiString; Args:JavaArguments; Frame:JavaFrame);
-      Destructor Destroy(); Override;
+      Procedure Release(); Override;
 
       Procedure CallVoidMethod(Name:AnsiString; Args:JavaArguments);
       Function CallBoolMethod(Name:AnsiString; Args:JavaArguments):Boolean;
@@ -369,7 +369,7 @@ Begin
   _ArgList := '';
 End;
 
-Destructor JavaArguments.Destroy;
+Procedure JavaArguments.Release;
 Var
   I:Integer;
 Begin
@@ -436,7 +436,7 @@ Begin
   _Class := Java_FindClass(_Frame, ClassName);
 End;
 
-Destructor JavaClass.Destroy;
+Procedure JavaClass.Release;
 Begin
   If (Assigned(_Class)) Then
   Begin
@@ -577,7 +577,7 @@ Begin
   _Frame^^.DeleteLocalRef(_Frame, Temp);
 End;
 
-Destructor JavaObject.Destroy;
+Procedure JavaObject.Release;
 Begin
   If (Assigned(_Object)) Then
   Begin

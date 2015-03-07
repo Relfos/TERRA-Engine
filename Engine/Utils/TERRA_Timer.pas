@@ -74,7 +74,7 @@ Type
 
     Public
 	    Constructor Create;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
 	    Function GetElapsedTime:Single;
   End;
@@ -97,7 +97,7 @@ Begin
 	Self.GetElapsedTime;
 End;
 
-Destructor Timer.Destroy;
+Procedure Timer.Release;
 Begin
   // do nothing
 End;

@@ -18,7 +18,7 @@ Type
   PathNodeState = (nsInactive,nsActive,nsDiscarded);
 
 
-  GraphPathVertex = Class
+  GraphPathVertex = Class(TERRAObject)
     Protected
       _ID:Integer;
       _Position:Vector3D;
@@ -29,7 +29,7 @@ Type
       Property Position:Vector3D Read _Position;
   End;
 
-  GraphPath = Class
+  GraphPath = Class(TERRAObject)
     Protected
       _List:Array Of Vector3D;
       _Size:Integer;
@@ -45,7 +45,7 @@ Type
     State:PathNodeState;
   End;
 
-  GraphPathfinder = Class
+  GraphPathfinder = Class(TERRAObject)
     Protected
       _VertexList:Array Of GraphPathVertex;
       _VertexCount:Integer;
@@ -614,7 +614,7 @@ Var
 Begin
   Source := FileStream.Open(FileName);
   Load(Source);
-  Source.Destroy;
+  ReleaseObject(Source);
 End;
 
 Procedure Pathfinder3D.Save(FileName:TERRAString);
@@ -623,7 +623,7 @@ Var
 Begin
   Dest := FileStream.Create(FileName);
   Save(Dest);
-  Dest.Destroy;
+  ReleaseObject(Dest);
 End;
 
 End.

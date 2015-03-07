@@ -63,7 +63,7 @@ Type
 
     Public
       Constructor Create;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function GetPosition(T:Single):Vector3D;
       Function GetOrientation(T:Single):Vector4D;
@@ -280,7 +280,7 @@ Var
 Begin
   Dest := FileStream.Create(FileName);
   Save(Dest);
-  Dest.Destroy;
+  Dest.Release;
 End;
 
 Procedure Spline.Load(Const FileName:TERRAString);
@@ -289,7 +289,7 @@ Var
 Begin
   Source := FileStream.Open(FileName);
   Load(Source);
-  Source.Destroy;
+  Source.Release;
 End;
 
 Function Spline.GetLength: Single;
@@ -392,7 +392,7 @@ Begin
   End;
 End;
 
-Destructor Spline.Destroy;
+Procedure Spline.Release;
 Begin
   SetLength(_Points, 0);
 End;

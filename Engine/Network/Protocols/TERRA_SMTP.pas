@@ -21,7 +21,7 @@ Interface
 Uses TERRA_Utils, TERRA_Stream, TERRA_FileStream, TERRA_Sockets;
 
 Type
-  Mail = Class
+  Mail = Class(TERRAObject)
     Protected
       _Stream:Socket;
       _Attachments:Array Of TERRAString;
@@ -272,7 +272,7 @@ Begin
         Bin.Read(K,1);
         S2:=S2+Char(K);
       End;
-      Bin.Destroy;
+      Bin.Release;
 
       FileName:=GetFileName(_Attachments[Pred(I)],False);
 
@@ -312,7 +312,7 @@ Begin
     Exit;
   End;
 
-  _Stream.Destroy;
+  _Stream.Release;
   Result:=True;
 End;
 

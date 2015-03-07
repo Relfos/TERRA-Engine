@@ -71,7 +71,7 @@ Type
 
     Public
       Constructor Create(VertexData, IndexData, EdgeData:Pointer; VertexCount, TriangleCount:Integer; VertexSize:Integer; DynamicUsage:Boolean);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure AddAttribute(Name:TERRAString; Count:Integer; Format:Integer; Normalized:Boolean; Skip:Boolean = False);
 
@@ -159,7 +159,7 @@ Begin
   {$ENDIF}
 End;
 
-Destructor VBO.Destroy;
+Procedure VBO.Release;
 Begin
   {$IFDEF VBO}
   If (_Handle<>0) Then

@@ -31,7 +31,7 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   {$IFDEF SHADERS},TERRA_Shader{$ENDIF};
              
 Type
-  ShadowMapObject = Class
+  ShadowMapObject = Class(TERRAObject)
     Protected
       _Light:Pointer;
       _ShadowStaticShader:Shader;
@@ -67,7 +67,7 @@ Type
 
     Public
       Constructor Create(Light:Pointer; Splits:Integer);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Render; Override;
 
@@ -83,7 +83,7 @@ Type
 
     Public
       Constructor Create(Light:Pointer);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Render; Override;
 
@@ -140,12 +140,12 @@ Begin
   End;
 End;
 
-Destructor CascadedShadowMap.Destroy;
+Procedure CascadedShadowMap.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_SplitCount) Do
-    _fbo[I].Destroy;
+    _fbo[I].Release;
 End;
 
 Procedure CascadedShadowMap.Bind(Slot:Integer);
@@ -427,9 +427,9 @@ Begin
   Texture.Bind(Nil);
 End;
 
-Destructor SimpleShadowMap.Destroy;
+Procedure SimpleShadowMap.Release;
 Begin
-  _FBO.Destroy;
+  _FBO.Release;
 End;
 
 Procedure SimpleShadowMap.Render;

@@ -54,7 +54,7 @@ Type
 
     Public
       Constructor Create(SkyTexture:TERRAString);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Render(BlendMode:Integer = 0);  // Renders the skybox
 
@@ -164,10 +164,10 @@ Begin
 End;
 
 // Renders the skybox
-Destructor Skybox.Destroy;
+Procedure Skybox.Release;
 Begin
   If Assigned(_Cubemap) Then
-    _Cubemap.Destroy;
+    _Cubemap.Release;
 End;
 
 Procedure SkyBox.Render(BlendMode:Integer);

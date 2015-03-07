@@ -37,7 +37,7 @@ Type
   BWordRay=Array[0.._N + 256] Of SmallInt;
   BWordRayPtr=^BWordRay;
 
-  StreamCompressor=Class
+  StreamCompressor = Class(TERRAObject)
      Private
       Code,Len:Word;
       GetBuf:Word;
@@ -76,7 +76,7 @@ Type
       Function DecodePosition:Word;
      Public
       Constructor Create;
-      Destructor Destroy;Override;
+      Procedure Release;Override;
 
       Function Compress(Source:Stream):Stream;
       Function Decompress(Source:Stream):Stream;
@@ -201,7 +201,7 @@ Begin
   New(Son);
 End;
 
-Destructor StreamCompressor.Destroy;
+Procedure StreamCompressor.Release;
 Begin
   Dispose(Son);
   Dispose(Prnt);

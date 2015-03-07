@@ -47,7 +47,7 @@ Type
     TriangleCount:Integer;
   End;
 
-  RectangleClipper = Class
+  RectangleClipper = Class(TERRAObject)
     Protected
       _Min:Vector2D;
       _Max:Vector2D;

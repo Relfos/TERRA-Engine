@@ -13,7 +13,7 @@ Const
 Type
   NoiseGenerator = Class(TERRAObject)
     Public
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function Noise(X,Y,Z:Single; RX,RY,RZ:Integer):Single; Virtual; Abstract;
       Function CreateImage(Width, Height:Integer):Image; Virtual; Abstract;
@@ -54,7 +54,7 @@ Implementation
 Uses TERRA_Color, TERRA_OS, TERRA_Math;
 
 { NoiseGenerator }
-Destructor NoiseGenerator.Destroy;
+Procedure NoiseGenerator.Release;
 Begin
   // do nothing
 End;

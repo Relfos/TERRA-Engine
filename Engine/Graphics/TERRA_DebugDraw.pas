@@ -160,7 +160,7 @@ Begin
   While (I<DebugObjectCount) Do
   If (Not DebugObjects[I]._KeepAlive) Then
   Begin
-    DebugObjects[I].Destroy;
+    DebugObjects[I].Release();
     DebugObjects[I] := DebugObjects[Pred(DebugObjectCount)];
     Dec(DebugObjectCount);
   End Else
@@ -172,7 +172,8 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(DebugObjectCount) Do
-    DebugObjects[I].Destroy;
+    ReleaseObject(DebugObjects[I]);
+    
   DebugObjectCount := 0;
 End;
 

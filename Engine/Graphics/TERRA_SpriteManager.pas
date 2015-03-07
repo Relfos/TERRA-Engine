@@ -55,7 +55,7 @@ Type
 
       Procedure Transform(Const M:Matrix3x3);
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Property X:Single Read _X Write SetX;
       Property Y:Single Read _Y Write SetY;
@@ -119,7 +119,7 @@ Type
 
       Skew:Single;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure SetTransform(Const Mat:Matrix3x3); Overload;
       Procedure SetTransform(Const Center:Vector2D; Const Mat:Matrix3x3); Overload;
@@ -204,7 +204,7 @@ Type
 
       Class Function Instance:SpriteManager;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Render;
 
@@ -556,13 +556,13 @@ Begin
   SetLength(_Batches, _BatchCount);
 End;
 
-Destructor SpriteManager.Destroy;
+Procedure SpriteManager.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(Self._SpriteCount) Do
   If Assigned(_Sprites[I]) Then
-    _Sprites[I].Destroy;
+    _Sprites[I].Release;
 
   _SpriteManager_Instance := Nil;
 End;
@@ -882,7 +882,7 @@ Begin
   SetScaleAndRotation(Center, Scale, Scale, Rotation);
 End;
 
-Destructor Sprite.Destroy;
+Procedure Sprite.Release;
 Begin
   // do nothing
 End;
@@ -1248,7 +1248,7 @@ Begin
 End;
 
 { ClipRect }
-Destructor ClipRect.Destroy;
+Procedure ClipRect.Release;
 Begin
   // do nothing
 End;
@@ -1346,5 +1346,5 @@ End;
 Initialization
 Finalization
   If Assigned(_NullSprite) Then
-    _NullSprite.Destroy;
+    _NullSprite.Release;
 End.

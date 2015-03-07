@@ -39,7 +39,7 @@ Const
   InvalidNote = 255;
 
 Type
-  Sample = Class
+  Sample = Class(TERRAObject)
     Protected
       _Channels:Array[0..1] Of PSmallIntArray;
       _Size:Cardinal;
@@ -60,7 +60,7 @@ Type
       Function GetSampleAt(X:Single; Channel:Integer):SmallInt;
       Procedure Play(Note:Byte; Frequency, Start, Samples, MaxSamples, Offset:Cardinal; Dest:PSmallInt; Pan,Volume:Integer; IgnorePitchChange:Boolean; FadeOutMode:Byte);
 
-      Destructor Destroy;
+      Procedure Release;
 
  {$IFDEF EDITOR}
       Constructor Import(FileName:TERRAString); // loads from WAV
@@ -360,14 +360,14 @@ Begin
   If (Chunk.ID<>RIFF_ID) Or (Id<> WAVE_ID) Then
   Begin
     RaiseError('Invalid wave file.');
-    Source.Destroy;
+    ReleaseObject(Source);
     Exit;
   End;
 
   If Not FindChunk(Source, FMT_ID, Chunk ) Then
   Begin
     RaiseError('Cannot find header chunk.');
-    Source.Destroy;
+    ReleaseObject(Source);
     Exit;
   End;
 
@@ -377,7 +377,7 @@ Begin
   If Header.Format<>PCM_FORMAT Then
   Begin
     RaiseError('Wave format not supported.');
-    Source.Destroy;
+    ReleaseObject(Source);
     Exit;
   End;
 
@@ -386,13 +386,13 @@ Begin
   If Not FindChunk(Source, DATA_ID, Chunk ) Then
   Begin
     RaiseError('Cannot find wave data chunk.');
-    Source.Destroy;
+    ReleaseObject(Source);
     Exit;
   End;
 
   If (Header.Bits<>16) Then
   Begin
-    Source.Destroy;
+    ReleaseObject(Source);
     RaiseError('Only 16bit samples supported');
     Exit;
   End;
@@ -423,7 +423,7 @@ Begin
   End;
 
   FreeMem(Samples);
-  Source.Destroy;
+  ReleaseObject(Source);
 End;
 
 Function Sample.FindNote:Byte;
@@ -606,7 +606,7 @@ Begin
   Result := True;
 End;
 
-Destructor Sample.Destroy;
+Procedure Sample.Release;
 Var
   I:Integer;
 Begin
@@ -804,7 +804,7 @@ End;
 
 Procedure Instrument.DeleteSample(Index:Integer);
 Begin
-  _Samples[Index].Destroy;
+  ReleaseObject(_Samples[Index]);
   _Samples[Index] := _Samples[Pred(_SampleCount)];
   Dec(_SampleCount);
 End;
@@ -838,7 +838,7 @@ Begin
   Stream.Write(_SampleCount, 4);
   For I:=0 To Pred(_SampleCount) Do
     _Samples[I].Save(Stream);
-  Stream.Destroy;
+  Stream.Release;
 End;
 
 {$ENDIF}
@@ -848,7 +848,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_SampleCount) Do
-    _Samples[I].Destroy;
+    ReleaseObject(_Samples[I]);
   _SampleCount := 0;
   Result := True;
 End;

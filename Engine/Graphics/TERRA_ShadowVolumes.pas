@@ -53,7 +53,7 @@ Type
       _LastTime:Cardinal;
 
     Public
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function Rebuild(MeshPtr:Pointer; InstancePtr:Pointer):Boolean;
       Procedure Render;
@@ -420,7 +420,7 @@ End;
     {$ENDIF}
   *)
 
-Destructor ShadowVolume.Destroy;
+Procedure ShadowVolume.Release;
 Begin
   SetLength(_ExtrudedVertices, 0);
 {$IFDEF CARMACKREVERSE}

@@ -402,7 +402,7 @@ Begin
     Dest.WriteLine(StrClean(Joints[I].Name)+' ('+PName+') '+FloatToString(Joints[I].TargetPosition.X)+' '+FloatToString(Joints[I].TargetPosition.Y)+' '+FloatToString(Joints[I].TargetPosition.Z));
     }
   End;
-  //Dest.Destroy;
+  //Dest.Release;
 
   Result := True;
 End;
@@ -555,14 +555,14 @@ Begin
       TextureName := 'textures\'+GetFileName(FileName,True)+'.png';
       Img := MyTextureAtlas.GetTexture(0).GetImage;
       Img.Save(TextureName);
-      Img.Destroy;
+      Img.Release;
     End Else
     Begin
       If (CW<=CH) Then
         CW := CW * 2
       Else
         CH := CH * 2;
-      MyTextureAtlas.Destroy;
+      MyTextureAtlas.Release;
 
       If (CW>2048) Or (CH>2048) Then
         Exit;
@@ -570,7 +570,7 @@ Begin
 
   Until Result;
   For I:=0 To Pred(NumMaterials) Do
-    Textures[I].Destroy;
+    Textures[I].Release;
 
   For J:=0 To Pred(NumGroups) Do
   Begin
@@ -593,7 +593,7 @@ Begin
     End;
   End;
 
-  MyTextureAtlas.Destroy;
+  MyTextureAtlas.Release;
 
   NumMaterials := 1;
   S:=TextureName;

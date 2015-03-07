@@ -83,7 +83,7 @@ Type
       MaxSize:Single;
 
       Constructor Create(MyMesh:Mesh; Density, Spread:Single; DensityMap:Image; GrassTexture:Texture; GrassDivisions:Integer);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function GetBoundingBox:BoundingBox; Override;
       Procedure Render; Override;
@@ -241,7 +241,7 @@ Begin
       End;}
 End;
 
-Destructor Vegetation.Destroy;
+Procedure Vegetation.Release;
 Begin
   Inherited;
 End;

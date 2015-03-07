@@ -43,7 +43,7 @@ Type
     Alt:TERRAChar;
   End;
 
-  KeyboardLayout = Class
+  KeyboardLayout = Class(TERRAObject)
     Protected
       _Desc:TERRAString;
       _Lines:Array[0..Pred(MaxKeyboardRows), 0..MaxKeyboardLines-2] Of KeyboardLayoutKey;
@@ -123,7 +123,7 @@ Type
 
     Public
       Constructor Create(Name:TERRAString; UI:UI; Z:Single);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Render; Override;
       Procedure UpdateRects; Override;
@@ -681,10 +681,10 @@ Begin
     UI.WrapControlsHorizontal(_Keys[I,4], _Keys[Succ(I), 4]);
 End;
 
-Destructor VirtualKeyboard.Destroy;
+Procedure VirtualKeyboard.Release;
 Begin
   {If Assigned(Pinyin) Then
-    Pinyin.Destroy();}
+    Pinyin.Release();}
 
   Inherited;
 End;
@@ -879,7 +879,7 @@ Var
 Begin
   For I:=0 To Pred(_KeyboardLayoutCount) Do
   Begin
-    _KeyboardLayouts[I].Destroy();;
+    _KeyboardLayouts[I].Release();
   End;
 
   _KeyboardLayoutCount := 0;
@@ -921,7 +921,7 @@ Begin
     Src.ReadLine(S);
     Data := Data + S + '|';
   End;
-  Src.Destroy();
+  Src.Release();
 
   AddKeyboardLayoutFromString(Data);
 End;

@@ -68,7 +68,7 @@ Type
 
     Public
       Constructor Create(Const Name:TERRAString);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Lock;
       Procedure Unlock;
@@ -86,10 +86,10 @@ Type
 
     Public
       Constructor Create(Name:TERRAString; Count:Integer);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
-      Procedure Release;
-      Procedure Wait;
+      Procedure Lock;
+      Procedure Unlock;
   End;
 
 Implementation
@@ -117,7 +117,7 @@ Begin
 {$ENDIF}
 End;
 
-Destructor CriticalSection.Destroy;
+Procedure CriticalSection.Release;
 {$IFDEF DEBUG_LOCKS}
 Var
   I:Integer;
@@ -182,7 +182,7 @@ Begin
   {$ENDIF}
 End;
 
-Destructor Semaphore.Destroy;
+Procedure Semaphore.Release;
 Begin
   {$IFDEF WINDOWS}
   CloseHandle(_Handle);
@@ -195,7 +195,7 @@ Begin
   {$ENDIF}
 End;
 
-Procedure Semaphore.Release;
+Procedure Semaphore.Unlock();
 Begin
   {$IFDEF WINDOWS}
   ReleaseSemaphore(_Handle,1, Nil); // unblock all the threads
@@ -204,11 +204,11 @@ Begin
   {$IFNDEF HAS_SEMAPHORES}
   sem_post(@_Handle);
   {$ENDIF}
-  
+
   {$ENDIF}
 End;
 
-Procedure Semaphore.Wait;
+Procedure Semaphore.Lock();
 Begin
   {$IFDEF WINDOWS}
   WaitForSingleObject(_Handle, INFINITE);

@@ -66,7 +66,7 @@ Type
       AutoUnload:Boolean;
 
       Procedure Init; Override;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Update; Override;
       Procedure OnContextLost; Override;
@@ -156,7 +156,7 @@ Begin
 
   Result := MyResource.Load(Source);
   If (Not MyResource.KeepStream) Then
-    Source.Destroy;
+    Source.Release;
 
   If (Not Result) Then
   Begin
@@ -200,27 +200,20 @@ Begin
   Log(logDebug, 'Resource', 'This resource manager is ready to go!');
 End;
 
-Destructor ResourceManager.Destroy;
+Procedure ResourceManager.Release;
 Var
   I:Integer;
 Begin
 {$IFNDEF DISABLETHREADS}
-  If Assigned(_LockSection) Then
-    _LockSection.Destroy;
+  ReleaseObject(_LockSection);
 {$ENDIF}
 
-  If Assigned(_Queue) Then
-    _Queue.Destroy;
-
-  If Assigned(_Resources) Then
-    _Resources.Destroy;
+  ReleaseObject(_Queue);
+  ReleaseObject(_Resources);
 End;
 
 Procedure ResourceManager.AddResource(MyResource:Resource);
 Begin
-  If Pos('PAKEMON_0',MyResource.Name)>0 Then
-    IntToString(2);
-
   If (_Resources <> Nil) Then
     _Resources.Add(MyResource)
   Else
@@ -269,7 +262,7 @@ End;
 {Procedure ResourceManager.OnAppDestroy;
 Begin
   If (Assigned(_ResourceManager_Instance)) Then
-    _ResourceManager_Instance.Destroy;
+    _ResourceManager_Instance.Release;
 End;
 }
 
@@ -306,7 +299,7 @@ Begin
         MyResource.Status := rsReady;
     End;
   End;
-  I.Destroy;
+  I.Release;
 
   _Purging := False;
 
@@ -331,7 +324,7 @@ Begin
     Entry.Value.Status := rsReady;
     Self.Unlock;
 
-    Entry.Destroy;
+    Entry.Release;
 
     Break; // only one item per frame
   End;
@@ -382,7 +375,7 @@ Begin
     If (MyResource.Status <> rsBusy) Then
       Inc(Result);
   End;
-  I.Destroy;
+  I.Release;
 End;
 
 Function ResourceManager.Busy: Boolean;
@@ -411,7 +404,7 @@ Begin
       MyResource.Status := rsReady;
     Inc(N);
   End;
-  I.Destroy;
+  I.Release;
 
   Log(logDebug, 'Resources', 'Unloaded '+IntToString(N) + ' resources.');
 
@@ -453,7 +446,7 @@ Begin
       MyResource.OnContextLost();
     End;
   End;
-  I.Destroy;
+  I.Release;
 End;
 
 Function ResourceManager.ResolveResourceLink(Const ResourceName: TERRAString):TERRAString;
@@ -472,7 +465,7 @@ Begin
   If Assigned(Src) Then
   Begin
     Src.ReadLine(Name);
-    Src.Destroy;
+    Src.Release;
 
     If (StringLower(Name) = StringLower(ResourceName)) Then
       Exit;

@@ -64,7 +64,7 @@ Type
 
   MidiTrack = Class;
 
-  MidiEventTrack = Class
+  MidiEventTrack = Class(TERRAObject)
   Protected
     _Owner:MidiTrack;
     _ID:Integer;
@@ -151,7 +151,7 @@ Type
     Procedure Update(); Override;
     Procedure Stop; Override;
 
-    Destructor Destroy; override;
+    Procedure Release; override;
 
     Function GetTrack(index: integer): MidiEventTrack;
     Function AddTrack:MidiEventTrack;
@@ -497,7 +497,7 @@ Function MIDIEvent_SetVolume(Channel, Volume:Byte):Cardinal;
 Function MIDIEvent_SetPanning(Channel, Pan:Byte):Cardinal;
 
 Type
-  MidiNoteEvent = Class
+  MidiNoteEvent = Class(TERRAObject)
     Protected
       _Channel:Byte;
       _Note:Byte;
@@ -540,7 +540,7 @@ Type
 
       Procedure Clear;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
   End;
 
 Implementation
@@ -717,13 +717,13 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_EventTrackCount) do
-    _EventTracks[I].Destroy;
+    ReleaseObject(_EventTracks[I]);
+    
+  SetLength(_chunkData, 0);    
 End;
 
-Destructor MidiTrack.Destroy;
+Procedure MidiTrack.Release;
 Begin
-  SetLength(_chunkData, 0);
-
   Clear;
 End;
 
@@ -758,7 +758,7 @@ Begin
   While (Assigned(Src)) And (Not Src.EOF) Do
         ReadChunk(Src);
 
-  Src.Destroy();
+  Src.Release();
 End;
 
 
@@ -1209,7 +1209,7 @@ End;
 *)
 
 { MidiManager }
-Destructor MidiManager.Destroy;
+Procedure MidiManager.Release;
 Begin
   Self.Clear();
   Inherited;
@@ -1230,7 +1230,7 @@ Begin
   For I:=0 To Pred(_NoteCount) Do
   Begin
     _Notes[I].Stop();
-    _Notes[I].Destroy();
+    ReleaseObject(_Notes[I]);
   End;
 End;
 

@@ -25,7 +25,7 @@ Type
 
     Public
       Constructor Create();
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure SetSeed(Seed:LongWord);
       Function Random(Max:Cardinal):LongWord;
@@ -58,7 +58,7 @@ Begin
   SetSeed(GetTime());
 End;
 
-Destructor MersenneTwister.Destroy; 
+Procedure MersenneTwister.Release; 
 Begin
 End;
 

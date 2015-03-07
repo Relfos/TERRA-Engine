@@ -115,7 +115,7 @@ Type
 
     Public
       Constructor Create(Const Path:TERRAString);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Clear();
 
@@ -129,7 +129,7 @@ Type
 
     Public
       Procedure Update; Override;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function WatchFolder(Const Path:TERRAString):Boolean; Override;
   End;
@@ -1227,12 +1227,12 @@ End;
 
 {$IFDEF FOLDERWATCH}
 { WindowsFolderManager }
-Destructor WindowsFolderManager.Destroy;
+Procedure WindowsFolderManager.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_WatchCount) Do
-    _Watchers[I].Destroy();
+    _Watchers[I].Release();
 End;
 
 Procedure WindowsFolderManager.Update;
@@ -1314,7 +1314,7 @@ Begin
   End;
 End;
 
-Destructor FolderWatcher.Destroy;
+Procedure FolderWatcher.Release;
 Begin
   _State.StopNow := True;
 

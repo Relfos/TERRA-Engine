@@ -51,7 +51,7 @@ Type
     R,G,B:Single;
   End;
 
-  Lightmapper = Class
+  Lightmapper = Class(TERRAObject)
     Protected
       _Target:Mesh;
       _Pixels:Array Of Array Of LightPixel;
@@ -114,7 +114,7 @@ Begin
 End;
 
 Type
-  LightRect = Class
+  LightRect = Class(TERRAObject)
     X1,Y1, X2,Y2:Integer;
     Mapper:LightMapper;
 
@@ -253,7 +253,7 @@ Begin
       Rect.Mapper._Dest.SetPixel(I,J, Result);
       Rect.Mapper._Pixels[I,J].Working := False;
     End;
-  Rect.Destroy;
+  Rect.Release;
 End;
 
 Procedure Lightmapper.GenerateMap(Callback: ProgressCallback);
@@ -360,14 +360,14 @@ Begin
 
     Gutter := GutterFiller.Create(_Dest, 5);
     Gutter.Apply(_Dest);
-    Gutter.Destroy;
+    Gutter.Release;
 
     _Dest.Save('lightmap'+IntToString(I)+'.png');
   End;
 
-  Rasterizer.MyOctree.Destroy;
-  Rasterizer.Destroy;
-  _Dest.Destroy;
+  Rasterizer.MyOctree.Release;
+  Rasterizer.Release;
+  _Dest.Release;
 End;
 
 Function Lightmapper.GetPixelsLeft: Integer;
@@ -412,7 +412,7 @@ Begin
 
     Img := Unwrapper.GetTemplate;
     //Img.Save('unwrap'+IntToString(I)+'.png');
-    Img.Destroy;
+    Img.Release;
 
     Group.TriangleCount := 0;
     For J:=0 To Pred(Unwrapper.TriangleCount) Do
@@ -433,7 +433,7 @@ Begin
       Group.AddTriangle(V0, V1, V2);
     End;
 
-    Unwrapper.Destroy;
+    Unwrapper.Release;
   End;
 End;
 

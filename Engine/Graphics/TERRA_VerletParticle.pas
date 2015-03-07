@@ -77,7 +77,7 @@ Type
 	    Procedure SatisfyConstraint;
     End;
 
-  VerletSystem = Class
+  VerletSystem = Class(TERRAObject)
     Protected
       _Particles:Array Of VerletParticle;
       _ParticleCount:Integer;

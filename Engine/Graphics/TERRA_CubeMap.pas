@@ -42,7 +42,7 @@ Type
     Public
       Constructor Create(Size:Cardinal); Overload;
       Constructor Create(Const Name:TERRAString);  Overload;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Class Procedure Bind(MyTexture:CubeMapTexture; Slot:Integer = 0);
 
@@ -99,11 +99,11 @@ Begin
 
     glBindTexture(GL_TEXTURE_CUBE_MAP, _Handle);      
     glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + I, 0, GL_RGBA8,	_Size, _Size, 0,	GL_RGBA, GL_UNSIGNED_BYTE, Src.Pixels);  
-    Src.Destroy;
+    Src.Release;
   End;
 End;
 
-Destructor CubeMapTexture.Destroy;
+Procedure CubeMapTexture.Release;
 Begin
   GraphicsManager.Instance.DeleteTexture(_Handle);
 End;
@@ -176,7 +176,7 @@ Begin
 
 	  Src.Process(IMP_FlipVertical);
     Src.Save('cubemap_'+CubeFaceNames[I]+'.png');
-    Src.Destroy;
+    Src.Release;
  End;
 
   GraphicsManager.Instance.DeleteViewport(V);
@@ -208,7 +208,7 @@ Begin
 	  Src.Process(IMP_FlipVertical);
     Src.Save(Name+'_'+IntToString(I)+'.png');
   End;
-  Src.Destroy;
+  Src.Release;
 End;
 
 Procedure CubeMapTexture.Init;

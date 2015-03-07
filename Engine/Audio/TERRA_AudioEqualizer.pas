@@ -36,7 +36,7 @@ Type
 
   PEqualizerCircularBuffer = ^EqualizerCircularBuffer;
   EqualizerCircularBuffer = Array[0..1] Of Single;
-  Equalizer = Class
+  Equalizer = Class(TERRAObject)
     Protected
       _a:Array[0..Pred(EqualizerBandCount)] Of EqualizerCircularBuffer;        // A weights
       _b:Array[0..Pred(EqualizerBandCount)] Of EqualizerCircularBuffer;	     	 // B weights

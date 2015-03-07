@@ -31,7 +31,7 @@ Uses TERRA_String, TERRA_Utils, TERRA_UI, TERRA_Tween, TERRA_Vector2D;
 Type
   UIGrid = Class;
 
-  UIGridElement = Class
+  UIGridElement = Class(TERRAObject)
     Protected
       _Grid:UIGrid;
       _OnScreen:Boolean;
@@ -98,7 +98,7 @@ Type
 
     Public
       Constructor Create(Name:TERRAString; UI:UI; X,Y,Z:Single; GridX, GridY:Integer; Width, Height:Single; SpaceX:Single = 30; SpaceY:Single = 30);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure MoveRight(Columns:Integer);
       Procedure MoveLeft(Columns:Integer);
@@ -728,12 +728,12 @@ Var
 Begin
   For I:=0 To Pred(_ElementCount) Do
   If (_Elements[I]<>Nil) Then
-    _Elements[I].Destroy();
+    _Elements[I].Release();
 
   _ElementCount := 0;
 End;
 
-Destructor UIGrid.Destroy;
+Procedure UIGrid.Release;
 Begin
   Self.ClearElements();
 

@@ -17,8 +17,8 @@ Type
 
         Constructor Create(FileName:TERRAString; StreamMode:Integer=smDefault);Overload;
         Constructor Open(FileName:TERRAString; StreamMode:Integer=smDefault; Offset:Integer=0; MaxSize:Integer=-1);
-        Destructor Destroy;Override;
-        Destructor Delete;
+        Procedure Release;Override;
+        Procedure Delete;
         Procedure Rename(NewName:TERRAString);
         Procedure Truncate;Override;
         Function Read(Data:Pointer; Length:Cardinal):Cardinal;Override;
@@ -155,7 +155,7 @@ Begin
   End;
 End;
 
-Destructor FileStream.Destroy;
+Procedure FileStream.Release;
 Begin
   If Not _Open Then
     Exit;
@@ -164,7 +164,7 @@ Begin
   fclose(_File);
 End;
 
-Destructor FileStream.Delete;
+Procedure FileStream.Delete;
 Begin
   If Not _Open Then
     Exit;
@@ -267,8 +267,8 @@ Begin
   Source := MemoryStream.Create(SourceName);
   Dest := FileStream.Create(DestName);
   Source.Copy(Dest);
-  Source.Destroy;
-  Dest.Destroy;
+  Source.Release;
+  Dest.Release;
 End;
 
 Procedure FileStream.Flush;

@@ -68,7 +68,7 @@ Type
 
     Procedure Init;
 
-    Destructor Destroy; Override;
+    Procedure Release; Override;
 
     Function Read(Source:Stream):TERRAString;
     Procedure Write(Dest:Stream);
@@ -85,7 +85,7 @@ Type
       Name:String;
       BindPose:Array Of Matrix4x4;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Init();
 
@@ -112,7 +112,7 @@ Type
     Value:Vector3D;
   End;
 
-  VectorKeyframeArray = Class
+  VectorKeyframeArray = Class(TERRAObject)
     Protected
       _Owner:BoneAnimation;
 
@@ -162,7 +162,7 @@ Type
       Scales:VectorKeyframeArray;
 
       Constructor Create(ID:Integer; Owner:Animation);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Load(Source:Stream);
       Procedure Save(Dest:Stream);
@@ -235,14 +235,14 @@ Type
 
       Function Collapse:AnimationObject; Virtual;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
   End;
 
   AnimationMixer = Class(AnimationObject)
       _A, _B:AnimationObject;
       Alpha:Single;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function Finished:Boolean; Override;
 
@@ -325,7 +325,7 @@ Type
 
     Procedure UpdateTransform;
 
-    Destructor Destroy; Override;
+    Procedure Release; Override;
   End;
 
   AnimationProcessor = Procedure (State:AnimationState);
@@ -367,7 +367,7 @@ Type
       Transforms:Array Of Matrix4x4;
 
       Constructor Create(Name:TERRAString; MySkeleton:MeshSkeleton);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Update;
 
@@ -393,7 +393,7 @@ Type
 
   AnimationManager = Class(ResourceManager)
     Public
-      Destructor Destroy; Override;
+      Procedure Release; Override;
       Class Function Instance:AnimationManager;
 
       Function GetAnimation(Name:TERRAString; ValidateError:Boolean = True):Animation;
@@ -434,7 +434,7 @@ Begin
 End;
 
 
-Destructor AnimationManager.Destroy;
+Procedure AnimationManager.Release;
 Begin
   Inherited;
   _AnimationManager := Nil;
@@ -469,7 +469,7 @@ Begin
 End;
 
 { MeshBone }
-Destructor MeshBone.Destroy;
+Procedure MeshBone.Release;
 Begin
   // do nothing
 End;
@@ -709,14 +709,14 @@ Begin
     _BoneList[I].Write(Dest);
 End;
 
-Destructor MeshSkeleton.Destroy;
+Procedure MeshSkeleton.Release;
 Var
   I:Integer;
 Begin
   _BoneCount := Length(_BoneList);
 
   For I:=0 To Pred(_BoneCount) Do
-    _BoneList[I].Destroy;
+    ReleaseObject(_BoneList[I]);
 
   SetLength(_BoneList, 0);
 End;
@@ -761,7 +761,7 @@ Begin
   Self.Name := Other.Name;
 
   For I:=0 To Pred(_BoneCount) Do
-    _BoneList[I].Destroy;
+    _BoneList[I].Release;
 
   Self._BoneCount := Other._BoneCount;
   SetLength(Self._BoneList, _BoneCount);
@@ -975,11 +975,11 @@ Begin
   Self.Scales := VectorKeyframeArray.Create(Self);
 End;
 
-Destructor BoneAnimation.Destroy;
+Procedure BoneAnimation.Release;
 Begin
-  Positions.Destroy();
-  Rotations.Destroy();
-  Scales.Destroy();
+  Positions.Release();
+  Rotations.Release();
+  Scales.Release();
 End;
 
 Procedure BoneAnimation.Crop(Time: Single);
@@ -1176,7 +1176,7 @@ Var
 Begin
   Stream := FileStream.Create(FileName);
   Save(Stream);
-  Stream.Destroy;
+  Stream.Release;
 End;
 
 Procedure Animation.Save(Dest:Stream);
@@ -1227,7 +1227,7 @@ Var
   I,J:Integer;
 Begin
   For I:=0 To Pred(_BoneCount) Do
-    _Bones[I].Destroy();
+    _Bones[I].Release();
 
   SetLength(_Bones,0);
   _BoneCount := 0;
@@ -1464,21 +1464,19 @@ End;
 
 Procedure AnimationState.SetRoot(Node: AnimationObject);
 Begin
-  If Assigned(_Root) Then
-    _Root.Destroy;
-
+  ReleaseObject(_Root);
   _Root := Node;
 End;
 
-Destructor AnimationState.Destroy;
+Procedure AnimationState.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_BoneCount) Do
-    _BoneStates[I].Destroy;
+    _BoneStates[I].Release;
     
   If Assigned(_Root) Then
-    _Root.Destroy;
+    _Root.Release;
 End;
 
 Function AnimationState.Play(Name:TERRAString; Rescale:Single):Boolean;
@@ -1587,7 +1585,7 @@ Begin
     Node := AnimationCrossfader(_Root);
     _Root := Node._B;
     Node._B := Nil;
-    Node.Destroy;
+    Node.Release;
   End;
 
   UpdateAnimationName(MyAnimation);
@@ -1628,7 +1626,7 @@ Begin
   Temp := Node;
   Node := Node.Collapse();
   If Temp<>Node Then
-    Temp.Destroy();
+    Temp.Release();
 End;
 
 Procedure AnimationState.UpdateAnimationName(MyAnimation: Animation);
@@ -1639,7 +1637,7 @@ Begin
 End;
 
 { AnimationBoneState }
-Destructor AnimationBoneState.Destroy;
+Procedure AnimationBoneState.Release;
 Begin
   // do nothing
 End;
@@ -1715,12 +1713,12 @@ Begin
   End;
 End;
 
-Destructor AnimationMixer.Destroy;
+Procedure AnimationMixer.Release;
 Begin
   If Assigned(_A) Then
-    _A.Destroy;
+    _A.Release;
   If Assigned(_B) Then
-    _B.Destroy;
+    _B.Release;
 End;
 
 Function AnimationMixer.HasAnimation(MyAnimation: Animation): Boolean;
@@ -1782,7 +1780,7 @@ Begin
   End;
 
   If (_A<>_B) Then
-    _A.Destroy();
+    _A.Release();
 
   Result := _B;
 
@@ -1985,7 +1983,7 @@ Begin
   Result := Self;
 End;
 
-Destructor AnimationObject.Destroy;
+Procedure AnimationObject.Release;
 Begin
 // do nothing
 End;
@@ -1995,6 +1993,4 @@ Begin
 // do nothing
 End;
 
-Initialization
-  RegisterResourceClass(Animation);
-End.
+End.

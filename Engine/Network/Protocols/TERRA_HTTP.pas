@@ -64,7 +64,7 @@ Type
 
   DownloadCallback = Procedure (Download:HTTPDownloader); Cdecl;
 
-  HTTPConnection = Class
+  HTTPConnection = Class(TERRAObject)
     _Host:TERRAString;
     _Port:Integer;
     _Socket:Socket;
@@ -74,7 +74,7 @@ Type
     _RequestCount:Integer;
 
     Constructor Create(Const HostName:TERRAString; Port:Integer);
-    Destructor Destroy(); Override;
+    Procedure Release(); Override;
   End;
 
   HTTPDownloader = Class(TERRAObject)
@@ -121,7 +121,7 @@ Type
     Public
 
       Constructor Create(URL:TERRAString; Const Cookie:TERRAString; Dest:Stream; Callback:DownloadCallback = Nil; Port:Integer=HTTPPort; Const ClientName:TERRAString = DefaultClientName); // Returns file size in bytes
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function GetHeaderProperty(Name:TERRAString):TERRAString;
 
@@ -158,7 +158,7 @@ Type
 
     Public
       Constructor Create;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Class Function Instance:DownloadManager;
 
@@ -538,7 +538,7 @@ Begin
   ContinueTransfer(Count);
 End;
 
-Destructor HTTPDownloader.Destroy;
+Procedure HTTPDownloader.Release;
 Begin
   Log(logDebug, 'HTTP', 'Releasing transfer: '+URL);
 
@@ -556,7 +556,7 @@ Begin
         _Connection._Alive := False;
       End;
     End Else
-      _Stream.Destroy();
+      _Stream.Release();
   End;
 End;
 
@@ -678,12 +678,12 @@ Begin
   _DownloadCount := 0;
 End;
 
-Destructor DownloadManager.Destroy;
+Procedure DownloadManager.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_DownloadCount) Do
-    _Downloads[I].Destroy;
+    _Downloads[I].Release;
 
   _DownloadManager_Instance := Nil;
 End;
@@ -718,7 +718,7 @@ Begin
     If (Remove) Then
     Begin
       Self.InterruptConnections(_Connections[I]);
-      _Connections[I].Destroy();
+      _Connections[I].Release();
       _Connections[I] := _Connections[Pred(_ConnectionCount)];
       Dec(_ConnectionCount);
     End Else
@@ -778,7 +778,7 @@ Begin
     Begin
       Self.ClearConnectionsToDownload(_Downloads[I]);
 
-      _Downloads[I].Destroy();
+      _Downloads[I].Release();
       For J:=I To (_DownloadCount-2) Do
         _Downloads[J] := _Downloads[Succ(J)];
 
@@ -943,7 +943,7 @@ Begin
 
   Log(logDebug, 'HTTP', 'Sending post request to '+URL);
   Dest.Write(@Request[1], Length(Request));
-  Dest.Destroy;
+  Dest.Release;
 
   Result := httpOk;
 End;
@@ -1025,7 +1025,7 @@ Begin
     If (Pos(' ',Response)>0) Then
       IntToString(2);
   End;
-  Dest.Destroy;
+  Dest.Release;
 
 
   Result := httpOk;
@@ -1103,11 +1103,11 @@ Begin
   _LastUpdate := GetTime();
 End;
 
-Destructor HTTPConnection.Destroy;
+Procedure HTTPConnection.Release;
 Begin
   Log(logDebug, 'HTTP', 'Closing connection to '+ _Host);
 
-  _Socket.Destroy();
+  _Socket.Release();
   Log(logDebug, 'HTTP', 'Closed connection to '+ _Host);
 End;
 

@@ -91,7 +91,7 @@ Type
 
   PlaneMesh = Class(SolidMesh)
     Public
-      Constructor Create(Normal:Vector3D; SubDivisions:Cardinal);
+      Constructor Create(Const Normal:Vector3D; SubDivisions:Cardinal; OfsX, OfsY:Single);
   End;
 
   CubeMesh = Class(SolidMesh)
@@ -598,7 +598,7 @@ Begin
   End;
 End;
 
-Constructor PlaneMesh.Create(Normal:Vector3D; SubDivisions:Cardinal);
+Constructor PlaneMesh.Create(Const Normal:Vector3D; SubDivisions:Cardinal; OfsX, OfsY:Single);
 Const
   Size = 1.0;
 Var
@@ -626,7 +626,7 @@ Begin
       Sx := S * I;
       Sy := S * J;
 
-      _VertexList[Index].Position := VectorAdd(VectorScale(U, Sx), VectorScale(V, Sy));
+      _VertexList[Index].Position := VectorAdd(VectorScale(U, Sx + OfsX), VectorScale(V, Sy + OfsY));
       _VertexList[Index].TextureCoords.X := (1.0/Succ(SubDivisions)) * I;
       _VertexList[Index].TextureCoords.Y := (1.0/Succ(SubDivisions)) * J;
       _VertexList[Index].Normal := Normal;
@@ -652,7 +652,7 @@ Var
   MyMatrix:Matrix4x4;
   I:Integer;
 Begin
-  Mesh := PlaneMesh.Create(VectorCreate(0,0,1.0), SubDivisions);
+  Mesh := PlaneMesh.Create(VectorCreate(0,0,1.0), SubDivisions, 0.0, 0.0);
   MyMatrix := Matrix4x4Translation(-Size, -Size, Size);
   Mesh.Transform(MyMatrix);
   For I:=0 To Pred(Mesh._VertexCount) Do
@@ -661,9 +661,9 @@ Begin
     Mesh._VertexList[I].TextureCoords.Y := 1.0 - Mesh._VertexList[I].TextureCoords.Y;
   End;
   Self.AddMesh(Mesh);
-  Mesh.Destroy;
+  Mesh.Release;
 
-  Mesh := PlaneMesh.Create(VectorCreate(0,0,-1.0), SubDivisions);
+  Mesh := PlaneMesh.Create(VectorCreate(0,0,-1.0), SubDivisions, 0.0, 0.0);
   MyMatrix := Matrix4x4Translation(0, -Size, 0);
   Mesh.Transform(MyMatrix);
   For I:=0 To Pred(Mesh._VertexCount) Do
@@ -672,17 +672,17 @@ Begin
     Mesh._VertexList[I].TextureCoords.Y := 1.0 - Mesh._VertexList[I].TextureCoords.Y;
   End;
   Self.AddMesh(Mesh);
-  Mesh.Destroy;
+  Mesh.Release;
 
-  Mesh := PlaneMesh.Create(VectorCreate(1.0,0,0.0), SubDivisions);
+  Mesh := PlaneMesh.Create(VectorCreate(1.0,0,0.0), SubDivisions, 0.0, 0.0);
   For I:=0 To Pred(Mesh._VertexCount) Do
   Begin
     Mesh._VertexList[I].TextureCoords.X := 1.0 - Mesh._VertexList[I].TextureCoords.X;
   End;
   Self.AddMesh(Mesh);
-  Mesh.Destroy;
+  Mesh.Release;
 
-  Mesh := PlaneMesh.Create(VectorCreate(-1.0,0,0.0), SubDivisions);
+  Mesh := PlaneMesh.Create(VectorCreate(-1.0,0,0.0), SubDivisions, 0.0, 0.0);
   MyMatrix := Matrix4x4Translation(-Size, 0, Size);
   For I:=0 To Pred(Mesh._VertexCount) Do
   Begin
@@ -690,15 +690,15 @@ Begin
   End;
   Mesh.Transform(MyMatrix);
   Self.AddMesh(Mesh);
-  Mesh.Destroy;
+  Mesh.Release;
 
-  Mesh := PlaneMesh.Create(VectorCreate(0.0,1.0,0.0), SubDivisions);
+  Mesh := PlaneMesh.Create(VectorCreate(0.0,1.0,0.0), SubDivisions, 0.0, 0.0);
   MyMatrix := Matrix4x4Translation(-Size, 0, 0);
   Mesh.Transform(MyMatrix);
   Self.AddMesh(Mesh);
-  Mesh.Destroy;
+  Mesh.Release;
 
-  Mesh := PlaneMesh.Create(VectorCreate(0.0,-1.0,0.0), SubDivisions);
+  Mesh := PlaneMesh.Create(VectorCreate(0.0,-1.0,0.0), SubDivisions, 0.0, 0.0);
   MyMatrix := Matrix4x4Translation(-Size, -Size, Size);
   Mesh.Transform(MyMatrix);
   For I:=0 To Pred(Mesh._VertexCount) Do
@@ -707,7 +707,7 @@ Begin
     Mesh._VertexList[I].TextureCoords.Y := 1.0 - Mesh._VertexList[I].TextureCoords.Y;
   End;
   Self.AddMesh(Mesh);
-  Mesh.Destroy;
+  Mesh.Release;
 
   Self.MoveToOrigin;
 End;
@@ -755,12 +755,12 @@ Begin
   Mesh := CubeMesh.Create(SubDivisions);
   Mesh.Weld(0.01);
   Self.AddMesh(Mesh);
-  Mesh.Destroy;
+  Mesh.Release;
 
   For I:=0 To Pred(_VertexCount) Do
   Begin
     Normal := _VertexList[I].Position;
-    Normal.Normalize;
+    Normal.Normalize();
     _VertexList[I].Position := VectorScale(Normal, Size);
     _VertexList[I].Normal := Normal;
     _VertexList[I].TextureCoords.X := ((Atan2(Normal.X, Normal.Z) / PI) * 0.5) + 0.5; //(Normal.X * 0.5) + 0.5;

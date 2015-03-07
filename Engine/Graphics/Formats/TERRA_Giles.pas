@@ -67,7 +67,7 @@ Const
   gilesTexBlendDot3 = 4;
 
 Type
-  GilesObject = Class
+  GilesObject = Class(TERRAObject)
     Name:TERRAString;
     Position:Vector3D;
     Rotation:Vector3D;
@@ -85,7 +85,7 @@ Type
 
   GilesMesh = Class;
 
-  GilesSurface = Class
+  GilesSurface = Class(TERRAObject)
     Owner:GilesMesh;
     VertexCount:Word;
     TriangleCount:Word;
@@ -129,7 +129,7 @@ Type
     ToonLevels:Byte; //???
   End;
 
-  GilesMaterial = Class
+  GilesMaterial = Class(TERRAObject)
     Name:TERRAString;
     ColorRed:Single;
     ColorGreen:Single;
@@ -152,7 +152,7 @@ Type
     DiffuseColor:Color;
   End;
 
-  GilesTexture = Class
+  GilesTexture = Class(TERRAObject)
     FileName:TERRAString;
     ScaleU:Single;
     ScaleV:Single;
@@ -164,7 +164,7 @@ Type
     CoordSet:Byte;
   End;
 
-  GilesLightmap = Class
+  GilesLightmap = Class(TERRAObject)
     Name:TERRAString;
     FileName:TERRAString; // to export
     Width:Word;

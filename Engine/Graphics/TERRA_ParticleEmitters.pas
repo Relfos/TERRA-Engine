@@ -145,7 +145,7 @@ Begin
   If Assigned(Source) Then
   Begin
     Self.Load(Source);
-    Source.Destroy();
+    Source.Release();
   End;
 End;
 
@@ -447,7 +447,7 @@ Begin
   Parser.AddToken('frames', tkInteger, @AnimationFrames);
   Parser.AddToken('texture', tkString, @Tex);
   Parser.LoadFromString(S);
-  Parser.Destroy;
+  Parser.Release;
 
   Texture := ParticleManager.Instance.GetParticleType(Tex);
 

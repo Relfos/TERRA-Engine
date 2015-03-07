@@ -62,7 +62,7 @@ Type
       _PlayerID:Integer;
     Public
       Constructor Create(ID:Integer);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
       Procedure Execute; Override;
   End;
 
@@ -73,7 +73,7 @@ Begin
   Inherited Create;
 End;
 
-Destructor ServerThread.Destroy;
+Procedure ServerThread.Release;
 Begin
   {$IFDEF DEBUGMODE}Log(logDebug, 'MT', '-------------->Thread '+IntToString(_PlayerID)+' terminated!');{$ENDIF}
   _ServerInstance._Threads[_PlayerID] := Nil;

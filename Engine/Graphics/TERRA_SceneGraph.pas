@@ -39,7 +39,7 @@ Type
     Value:TERRAString;
   End;
 
-  SceneNode = Class
+  SceneNode = Class(TERRAObject)
     Protected
       _Name:TERRAString;
 
@@ -69,7 +69,7 @@ Type
       AutoSnap:Single;
 
       Constructor Create(Parent:SceneNode; Pos:Vector3D);
-      Destructor Destroy;
+      Procedure Release;
 
       Procedure AddChild(N:SceneNode);
       Procedure RemoveChild(N:SceneNode);
@@ -150,7 +150,7 @@ Var
 Begin
   S := FileStream.Create(FileName);
   SaveNodes(Node, S);
-  S.Destroy;
+  S.Release;
 End;
 
 
@@ -187,12 +187,12 @@ Begin
   AddProperty('scaleZ', '1', True);
 End;
 
-Destructor SceneNode.Destroy;
+Procedure SceneNode.Release;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_ChildCount) Do
-    _Childs[I].Destroy;
+    _Childs[I].Release;
 End;
 
 Procedure SceneNode.AddChild(N: SceneNode);
@@ -218,7 +218,7 @@ Begin
   Begin
     _Childs[I] := _Childs[Pred(_ChildCount)];
     Dec(_ChildCount);
-    N.Destroy;
+    N.Release;
     Exit;
   End Else
     Inc(I);
@@ -540,7 +540,7 @@ Begin
     If Assigned(MyMesh) Then
     Begin
       If Assigned(_Instance) Then
-        _Instance.Destroy;
+        _Instance.Release;
 
       _Instance := MeshInstance.Create(MyMesh);
     End;

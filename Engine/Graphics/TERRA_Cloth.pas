@@ -44,7 +44,7 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Color, TERRA_Shader;
 
 Type
-  VerletCloth = Class
+  VerletCloth = Class(TERRAObject)
     Protected
 		  _Shader:Shader;
 
@@ -72,7 +72,7 @@ Type
 
 	  //This is a important constructor for the entire system of particles and constraints*/
 	  Constructor Create(SourceMeshGroup:Pointer);
-    Destructor Destroy;
+    Procedure Release;
 
 	{ drawing the cloth as a smooth shaded (and colored according to column) OpenGL triangular mesh
 	Called from the display() method
@@ -190,9 +190,9 @@ Begin
         _ParticleSystem.AddConstraint(I, J);
 End;
 
-Destructor VerletCloth.Destroy;
+Procedure VerletCloth.Release;
 Begin
-  _ParticleSystem.Destroy;
+  _ParticleSystem.Release;
 End;
 
 Procedure VerletCloth.PinPoint(Index:Integer);

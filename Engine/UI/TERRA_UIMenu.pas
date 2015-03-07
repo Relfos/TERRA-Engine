@@ -54,7 +54,7 @@ Type
       OnMouseClick:WidgetEventHandler;
 
       Constructor Create(Caption:TERRAString; Z:Single = 0.3);
-      Destructor Destroy;
+      Procedure Release;
 
       Procedure Render; Override;
       Procedure UpdateRects; Override;
@@ -150,7 +150,7 @@ Begin
   End;
 End;
 
-Destructor UIMenuItem.Destroy;
+Procedure UIMenuItem.Release;
 Begin
   _EntryCount := 0;
 

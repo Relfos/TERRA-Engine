@@ -146,9 +146,9 @@ Type
       Procedure OnContextLost; Override;
 
       Class Function Instance:TextureManager;
-      Function GetTexture(Name:TERRAString; ValidateError:Boolean = False):Texture;
+      Function GetTexture(Name:TERRAString):Texture;
 
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Property NullTexture:Texture Read GetNullTexture;
       Property WhiteTexture:Texture Read GetWhiteTexture;
@@ -156,6 +156,8 @@ Type
 
       Property DefaultColorTable:Texture Read GetDefaultColorTable;
       Property DefaultNormalMap:Texture Read GetDefaultNormalMap;
+
+      Property Textures[Name:TERRAString]:Texture Read GetTexture; Default;
   End;
 
   DefaultColorTableTexture = Class(Texture)
@@ -194,7 +196,7 @@ Begin
   Result := TextureManager(_TextureManager.Instance);
 End;
 
-Function TextureManager.GetTexture(Name:TERRAString; ValidateError:Boolean):Texture;
+Function TextureManager.GetTexture(Name:TERRAString):Texture;
 Var
   I:Integer;
 Var
@@ -273,8 +275,8 @@ Begin
           Exit;
       End;
 
-      If ValidateError Then
-        RaiseError('Could not find texture. ['+Name+']');
+      {If ValidateError Then
+        RaiseError('Could not find texture. ['+Name+']');}
     End;
   End;
 End;
@@ -299,7 +301,7 @@ Begin
   Buffer := Image.Create(Tex.Width, Tex.Height);
   Buffer.FillRectangleByUV(0,0,1,1, TexColor);
   Tex.UpdateRect(Buffer, 0, 0);
-  Buffer.Destroy();
+  Buffer.Release();
 End;
 
 Function TextureManager.GetBlackTexture: Texture;
@@ -381,22 +383,22 @@ Begin
   Result := _DefaultColorTable;
 End;
 
-Destructor TextureManager.Destroy;
+Procedure TextureManager.Release;
 begin
   If Assigned(_WhiteTexture) Then
-    _WhiteTexture.Destroy;
+    _WhiteTexture.Release;
 
   If Assigned(_BlackTexture) Then
-    _BlackTexture.Destroy();
+    _BlackTexture.Release();
 
   If Assigned(_NullTexture) Then
-    _NullTexture.Destroy();
+    _NullTexture.Release();
 
   If Assigned(_DefaultColorTable) Then
-    _DefaultColorTable.Destroy();
+    _DefaultColorTable.Release();
 
   If (Assigned(_DefaultNormalMap)) Then
-    _DefaultNormalMap.Destroy;
+    _DefaultNormalMap.Release;
 
   Inherited;
 
@@ -502,7 +504,7 @@ Begin
 
   If (Assigned(_Source)) Then
   Begin
-    _Source.Destroy();
+    _Source.Release();
 	  _Source := Nil;
 	End;
 
@@ -606,7 +608,7 @@ Begin
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Freeing pixels');{$ENDIF}
 
   {$IFNDEF KEEPCOPYONRAM}
-  _Source.Destroy();
+  _Source.Release();
   _Source := Nil;
   {$ENDIF}
 
@@ -668,7 +670,7 @@ Begin
     If (_Width=Source.Width) And (_Height = Source.Height) Then
     Begin
       If (_Source <> Nil) Then
-        _Source.Destroy();
+        _Source.Release();
 
       _Source := Image.Create(Source);
     End Else
@@ -857,7 +859,7 @@ Var
 Begin
   Temp := CreateColorTable(16);
   Self.UpdateRect(Temp);
-  Temp.Destroy;
+  Temp.Release;
 
   Self.MipMapped := False;
   Self.Wrap := False;
@@ -1066,7 +1068,4 @@ Begin
 End;
 
 
-Initialization
-  Log(logDebug, 'Texture', 'Initializing');
-  RegisterResourceClass(Texture);
 End.

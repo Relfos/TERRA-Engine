@@ -87,7 +87,7 @@ Type
       _Textures:Array[0..1] Of Texture;
 
       Constructor Create(Width, Height:Integer);
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Function GetHeightAt(P:Vector3D; Var Normal:Vector3D):Single;
 
@@ -143,7 +143,7 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Destructor Terrain.Destroy;
+Procedure Terrain.Release;
 Begin
   Inherited; 
   Self.ClearGeometry;
@@ -477,7 +477,7 @@ Begin
 
   Dest := FileStream.Create(FileName);
   Ms3d.Save(Dest);
-  Dest.Destroy;
+  Dest.Release;
 End;
 
 Function Terrain.GetNormalAt(P: Vector3D): Vector3D;

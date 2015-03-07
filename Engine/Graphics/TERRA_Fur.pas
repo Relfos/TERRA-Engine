@@ -41,7 +41,7 @@ Type
 		Density:Single;
   End;
 
-  Fur = Class
+  Fur = Class(TERRAObject)
     Protected
       _Size:Integer;
       _Shader:Shader;
@@ -58,7 +58,7 @@ Type
       Procedure Render(DisplayList:Integer; LOD:Single);
       Procedure Unbind;
 
-      Destructor Destroy;
+      Procedure Release;
   End;
 
 Implementation
@@ -96,7 +96,7 @@ Begin
 
   _FurTexture := Texture.New(_Size, _Size);
   _FurTexture.Refresh(Buffer);
-  Buffer.Destroy;
+  Buffer.Release;
 
   _Pattern := ResourceManager.Instance.GetTexture(Settings.Pattern);
 
@@ -106,10 +106,10 @@ Begin
     _Shader := ResourceManager.Instance.GetShader('static_fur');
 End;
 
-Destructor Fur.Destroy;
+Procedure Fur.Release;
 Begin
   If Assigned(_FurTexture) Then
-    _FurTexture.Destroy;
+    _FurTexture.Release;
 End;
 
 Procedure Fur.Bind;

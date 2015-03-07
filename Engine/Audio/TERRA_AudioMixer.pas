@@ -130,8 +130,8 @@ Type
 
   PALeffectslot = ^ALeffectslot;
 
-  ALeffectState = Class
-    Destructor Destroy; Virtual; Abstract;
+  ALeffectState = Class(TERRAObject)
+    Procedure Release; Virtual; Abstract;
     Function DeviceUpdate(Device:PALCDevice):Boolean; Virtual; Abstract;
     Procedure Update(Device:PALCdevice; Slot:PALeffectslot); Virtual; Abstract;
     Procedure Process(SamplesToDo:Integer; SamplesIn, SamplesOut:PSingleArray); Virtual; Abstract;
@@ -157,12 +157,12 @@ Type
     next:PALeffectslot;
   End;
 
-  AudioBackEnd = Class
+  AudioBackEnd = Class(TERRAObject)
     Protected
       _Name:TERRAString;
 
     Public
-      Destructor Destroy; Virtual; Abstract;
+      Procedure Release; Virtual; Abstract;
 
       Function Init():Boolean; Virtual; Abstract;
       Function GetCapabilities():Integer; Virtual; Abstract;
@@ -223,7 +223,7 @@ Type
     prev:PALbufferlistitem;
   End;
 
-  ALFilter = Class
+  ALFilter = Class(TERRAObject)
     // Filter type (AL_FILTER_NULL, ...)
     filtertype:Integer;
 
@@ -280,7 +280,7 @@ Type
     Send:Array[0..Pred(MAX_SENDS)] Of ALMixerSend;
   End;
 
-  ALsource = Class
+  ALsource = Class(TERRAObject)
     flPitch:Single;
     flGain:Single;
     flOuterGain:Single;
