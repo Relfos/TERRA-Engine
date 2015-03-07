@@ -3,7 +3,7 @@ Unit TERRA_TestSuite;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils;
+Uses TERRA_String, TERRA_Utils;
 
 Type
   TestCaseClass = Class Of TestCase;
@@ -12,19 +12,19 @@ Type
 
   TestSuite = Class;
 
-  TestCase = Class
+  TestCase = Class(TERRAObject)
     Protected
       _Suite:TestSuite;
       _FailureCount:Integer;
-      _Failures:Array Of AnsiString;
+      _Failures:Array Of String;
 
-      Procedure WriteLn(S:AnsiString);
-      Procedure Check(Condition:Boolean; S:AnsiString);
-      Procedure Error(S:AnsiString);
+      Procedure WriteLn(S:String);
+      Procedure Check(Condition:Boolean; S:String);
+      Procedure Error(S:String);
 
     Public
       Procedure Run; Virtual; Abstract;
-      Function GetName:AnsiString; Virtual;
+      Function GetName:String; Virtual;
   End;
 
   TestSuite = Class(TERRAObject)
@@ -32,11 +32,11 @@ Type
       _TestCases:Array Of TestCase;
       _TestCount:Integer;
 
-      Procedure WriteLn(S:AnsiString);
+      Procedure WriteLn(S:String);
 
     Public
       Constructor Create;
-      Destructor Destroy; Override;
+      Procedure Release; Override;
 
       Procedure Clear;
 
@@ -52,7 +52,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_TestCount) Do
-    _TestCases[I].Destroy();
+    _TestCases[I].Release();
   _TestCount := 0;
 End;
 
@@ -79,6 +79,7 @@ Begin
   For I:=0 To Pred(_TestCount) Do
   Begin
     WriteLn('Running test: ' + _TestCases[I].GetName());
+
     _TestCases[I]._FailureCount := 0;
     _TestCases[I].Run;
 
@@ -92,10 +93,10 @@ Begin
 
   WriteLn('');
   WriteLn('Test Results:');
-  WriteLn(StrLPad('Run:', Pad,' ')+IntToString(_TestCount));
-  WriteLn(StrLPad('Success:', Pad,' ') +IntToString(Sucess));
-  WriteLn(StrLPad('Failures:', Pad,' ')+IntToString(Failures));
-  WriteLn(StrLPad('Errors:', Pad,' ')+IntToString(Result));
+  WriteLn(StringPadLeft('Run:', Pad, Ord(' '))+IntToString(_TestCount));
+  WriteLn(StringPadLeft('Success:', Pad, Ord(' ')) +IntToString(Sucess));
+  WriteLn(StringPadLeft('Failures:', Pad, Ord(' '))+IntToString(Failures));
+  WriteLn(StringPadLeft('Errors:', Pad, Ord(' '))+IntToString(Result));
   If (Result>0) Then
   Begin
     WriteLn('There were '+IntToString(Result)+' failures:');
@@ -111,7 +112,7 @@ Begin
 End;
 
 { TestCase }
-Procedure TestCase.Check(Condition: Boolean; S:AnsiString);
+Procedure TestCase.Check(Condition: Boolean; S:String);
 Begin
   If (Not Condition) Then
   Begin
@@ -121,23 +122,23 @@ Begin
   End;
 End;
 
-Procedure TestCase.Error(S:AnsiString);
+Procedure TestCase.Error(S:String);
 Begin
   Check(False, S);
 End;
 
-Function TestCase.GetName:AnsiString;
+Function TestCase.GetName:String;
 Begin
   Result := Self.ClassName;
 End;
 
-Procedure TestCase.WriteLn(S:AnsiString);
+Procedure TestCase.WriteLn(S:String);
 Begin
   If Assigned(_Suite) Then
     _Suite.WriteLn(S);
 End;
 
-Procedure TestSuite.WriteLn(S:AnsiString);
+Procedure TestSuite.WriteLn(S:String);
 Begin
   Log(logConsole, 'Tests', S);
 End;
@@ -147,7 +148,7 @@ Begin
   _TestCount := 0;
 End;
 
-Destructor TestSuite.Destroy;
+Procedure TestSuite.Release;
 Begin
   Self.Clear();
 End;

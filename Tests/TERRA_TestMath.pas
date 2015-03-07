@@ -28,7 +28,7 @@ Var
   X:Single;
   Delta, Expected, Got:Double;
 
-  Function Failed(FuncName:AnsiString; Value:Single):AnsiString;
+  Function Failed(FuncName:String; Value:Single):String;
   Begin
     Result := 'Failed '+FuncName + ' with arg '+ FloatToString(Value)+' with delta '+FloatToString(Delta);
   End;
@@ -96,7 +96,7 @@ Var
   X,Y:Single;
   Delta, Expected, Got:Double;
 
-  Function Failed(FuncName:AnsiString; Value1, Value2:Single):AnsiString;
+  Function Failed(FuncName:String; Value1, Value2:Single):String;
   Begin
     Result := 'Failed '+FuncName + ' with args '+ FloatToString(Value1)+' and '+ FloatToString(Value2)+' with delta '+FloatToString(Delta) + ' -> Got '+FloatToString(Got)+' and expected '+FloatToString(Expected);
   End;

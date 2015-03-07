@@ -24,7 +24,7 @@ Var
   Alpha, Expected, Delta:Byte;
   A,B,C:Color;
   X,Y:Single;
-  Function FailedBlend(Channel:AnsiString; Alpha, Got, Expected:Byte):AnsiString;
+  Function FailedBlend(Channel:String; Alpha, Got, Expected:Byte):String;
   Begin
     Result := 'Failed blend in '+Channel+' channel with alpha = '+IntToString(Alpha)+', got '+IntToString(Got)+' and expected '+IntToString(Expected);
   End;
@@ -60,7 +60,7 @@ Var
   Alpha, Expected, Delta:Byte;
   A,B,C:Color;
   X,Y:Single;
-  Function FailedBlend(Channel:AnsiString; Alpha, Got, Expected:Byte):AnsiString;
+  Function FailedBlend(Channel:String; Alpha, Got, Expected:Byte):String;
   Begin
     Result := 'Failed blend in '+Channel+' channel with alpha = '+IntToString(Alpha)+', got '+IntToString(Got)+' and expected '+IntToString(Expected);
   End;

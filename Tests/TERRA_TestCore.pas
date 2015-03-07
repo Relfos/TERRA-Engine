@@ -19,7 +19,7 @@ Type
    End;
 
 Implementation
-Uses TERRA_Utils, TERRA_Sort, TERRA_Classes;
+Uses TERRA_Utils, TERRA_Sort, TERRA_Collections;
 
 Type
   IntegerArraySort = Class(Sort)
@@ -165,9 +165,9 @@ begin
     Begin
       Check(It.GetNext()<>Nil, 'List iterator error!');
     End;
-    It.Destroy;
+    It.Release;
 
-    L.Destroy;
+    L.Release;
   End;
 
   //WriteLn('List sort test...');
@@ -187,8 +187,8 @@ begin
     Check(Prev<=Int.Value, 'List ascending sort error!');
     Prev := Int.Value;
   End;
-  It.Destroy;
-  L.Destroy;
+  It.Release;
+  L.Release;
 
   //WriteLn('List descending sort test...');
   L := List.Create(coSortedInverted);
@@ -207,8 +207,8 @@ begin
     Check(Prev>=Int.Value, 'List descending sort error!');
     Prev := Int.Value;
   End;
-  It.Destroy;
-  L.Destroy;
+  It.Release;
+  L.Release;
 End;
 
 Procedure TERRACore_TestHashTable.Run();
@@ -234,9 +234,9 @@ Begin
       Check(It.GetNext()<>Nil, 'Hash table iterator error!');
       Inc(I);
     End;
-    It.Destroy;
+    It.Release;
     Check(Table.Count=I, 'Invalid hashtable count, got '+IntToString(I)+', expected '+IntToString(Table.Count));
-    Table.Destroy;
+    Table.Release;
   End;
 
 end;
