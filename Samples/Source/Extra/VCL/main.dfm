@@ -15,4 +15,13 @@ object Form1: TForm1
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
+  object Button1: TButton
+    Left = 384
+    Top = 336
+    Width = 161
+    Height = 57
+    Caption = 'Exit'
+    TabOrder = 0
+    OnClick = Button1Click
+  end
 end

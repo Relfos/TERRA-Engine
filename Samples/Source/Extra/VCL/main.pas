@@ -4,12 +4,14 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ExtCtrls;
+  Dialogs, ExtCtrls, StdCtrls, Menus;
 
 type
   TForm1 = class(TForm)
+    Button1: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -70,6 +72,11 @@ procedure TForm1.FormDestroy(Sender: TObject);
 begin
   ReleaseObject(_Scene);
   Application.Instance.Terminate();
+end;
+
+procedure TForm1.Button1Click(Sender: TObject);
+begin
+  Forms.Application.Terminate();
 end;
 
 end.
