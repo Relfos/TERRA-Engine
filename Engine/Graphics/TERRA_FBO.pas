@@ -22,7 +22,7 @@
  ***********************************************************************************************************************
 }
 
-Unit TERRA_FrameBufferObject;
+Unit TERRA_FBO;
 {$I terra.inc}
 
 Interface
@@ -125,7 +125,7 @@ Var
   I:Integer;
 Begin
   Self._Location := '';
-  Self._Name := Name;
+  Self._Key := Name;
   Self._Size := Width * Height * 4 * 2;
   Self._Status := rsReady;
 
@@ -177,7 +177,7 @@ Var
   I, Status:Integer;
 Begin
   Self._Location := '';
-  Self._Name := Name;
+  Self._Key := Name;
   Self._Size := Width * Height * 4 * 2;
   Self._Status := rsReady;
 
@@ -276,7 +276,7 @@ Var
 Begin
   {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType,'Init');{$ENDIF}
 
-  Log(logDebug, 'Framebuffer','Initializing framebuffer: '+_Name);
+  Log(logDebug, 'Framebuffer','Initializing framebuffer: '+ Self.Name);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
