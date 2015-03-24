@@ -22,13 +22,6 @@
  ***********************************************************************************************************************
 }
 
-{
-OSX -> disable sigpipe
-Arg := 1;
-setsockopt(FHandle, SOL_SOCKET, SO_NOSIGPIPE, @Arg, Sizeof(Arg)
-SO_NOSIGPIPE = $1022;
-}
-
 Unit TERRA_Sockets;
 {$I terra.inc}
 
@@ -170,6 +163,12 @@ Const
   F_SETFL             = 4;
   O_NONBLOCK          = 04000;
   SOCK_NONBLOCK  = $40000000;
+
+
+{$IFNDEF LINUX_SOCKETS}
+MSG_NOSIGNAL = 0;
+SO_NOSIGPIPE = $1022;
+{$ENDIF}
 
   Function gethostbyname(name:PAnsiChar):PHostEntity; cdecl; external 'libc' name 'gethostbyname';
   Function gethostname(namee:PAnsiChar; length:Integer):Integer;cdecl;external 'libc' name 'gethostname';
@@ -489,10 +488,17 @@ End;
 
 { Socket }
 Constructor NetSocket.Create(CustomHandle:Integer);
+Var
+  Arg:Integer;
 Begin
   _Closed := False;
   _Handle := CustomHandle;
   _Blocking := True;
+
+{$IFDEF OSX}
+  Arg := 1;
+  setsockopt(_Handle, SOL_SOCKET, SO_NOSIGPIPE, @Arg, Sizeof(Arg));
+{$ENDIF}
 End;
 
 Constructor NetSocket.Create(Const Host:TERRAString; Port:Word);
@@ -849,4 +855,4 @@ Finalization
   WSACleanup;
 {$ENDIF}
 End.
-
+

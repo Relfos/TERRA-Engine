@@ -160,7 +160,7 @@ Procedure CriticalSection.Lock;
 Var
   ThreadID:Cardinal;
 Begin
-  ThreadID := GetCurrentThreadId();
+  ThreadID := Cardinal(GetCurrentThreadId());
 
   If (_Locked) Then
   Begin
@@ -190,7 +190,7 @@ Procedure CriticalSection.Unlock;
 Var
   ThreadID:Cardinal;
 Begin
-  ThreadID := GetCurrentThreadId();
+  ThreadID := Cardinal(GetCurrentThreadId());
 
   Dec(_LockCounter);
   If (_Locked) And (_LockID = ThreadID) Then
@@ -276,4 +276,4 @@ Finalization
   For I:=0 To Pred(SectionCount) Do
     Log(logWarning, 'App', 'The following mutex was not released: '+Sections[I]._Name);
 {$ENDIF}
-End.
+End.

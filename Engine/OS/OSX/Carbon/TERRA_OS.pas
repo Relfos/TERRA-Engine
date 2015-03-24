@@ -121,7 +121,7 @@ Type
 
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_Input, TERRA_FileUtils,  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
+Uses TERRA_Error, TERRA_Log, TERRA_InputManager, TERRA_FileUtils,  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
      machapi, machexc, dateutils, sysutils, ctypes, sysctl, TERRA_MIDI_IO, TERRA_MIDI;
 
 Var
@@ -561,7 +561,8 @@ Var
         Begin
           GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TemPAnsiChar), nil, @TemPAnsiChar);
           VKKeyCode := Ord(TemPAnsiChar);
-        End;
+        End Else
+            VKKeyCode := CharPress;
 
         {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Final key result: '+IntToString(VKKeyCode));{$ENDIF}
         Exit;
@@ -605,7 +606,8 @@ Var
         Begin
           GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TemPAnsiChar), nil, @TemPAnsiChar);
           VKKeyCode := Ord(TemPAnsiChar);
-        End;
+        End Else
+            VKKeyCode := CharPress;
 
         // the VKKeyCode is independent of the modifier
         // => use the VKKeyChar instead of the KeyChar
@@ -640,7 +642,7 @@ Begin
       {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Keyevent: '+IntToString(VKKeycode));{$ENDIF}
 
       // clipboard paste
-      If (CharPress = 118) And (App.Input.Keys.IsDown(keyCommand)) Then
+      If (CharPress = 118) And (InputManager.Instance.Keys.IsDown(keyCommand)) Then
       Begin
            S := App.GetClipboardContent();
            StringCreateIterator(S, It);
@@ -650,7 +652,7 @@ Begin
            End;
       End Else
       // full screen
-      If (VKKeyCode = keyEnter) And (App.Input.Keys.IsDown(keyAlt)) Then
+      If (VKKeyCode = keyEnter) And (InputManager.Instance.Keys.IsDown(keyAlt)) Then
       Begin
          App._ChangeToFullScreen := True;
       End Else
@@ -727,7 +729,6 @@ Var
 
   Temp:Array[0..255] Of AnsiChar;
 
-  Source:Stream;
 Begin
   Inherited InitSettings;
 

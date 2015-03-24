@@ -283,8 +283,10 @@ Begin
     Result := Nil;
 End;
 
+{$IFNDEF DISABLEMEMORYMANAGER}
 Var
   TERRAMemoryManager: TMemoryManager;
+{$ENDIF}
 
 Initialization
   GetMemoryManager(PrevManager);
@@ -301,4 +303,4 @@ Initialization
   //MemoryManager.Instance();
   {$ENDIF}
   {$ENDIF}
-End.
+End.
