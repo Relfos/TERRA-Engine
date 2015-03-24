@@ -30,7 +30,7 @@ Library TERRA_Engine;
 Uses TERRA_Utils, TERRA_Color, TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix4x4, TERRA_Matrix3x3,
   TERRA_BoundingBox, TERRA_Texture, TERRA_Camera, TERRA_Ray, TERRA_Tilemap,
   TERRA_Application, TERRA_ResourceManager, TERRA_Lights, TERRA_Shader, TERRA_FileManager,
-  TERRA_Resource, TERRA_Client, TERRA_UI, TERRA_Skybox, TERRA_MusicManager,
+  TERRA_Resource, TERRA_Client, TERRA_UI, TERRA_Skybox, TERRA_MusicManager, TERRA_InputManager,
   TERRA_Font, TERRA_Scene, TERRA_XML, TERRA_GraphicsManager, TERRA_SpriteManager,
   TERRA_Mesh, TERRA_MeshAnimation, TERRA_Stream, TERRA_MemoryStream, TERRA_FileStream, TERRA_Viewport,
 
@@ -38,7 +38,7 @@ Uses TERRA_Utils, TERRA_Color, TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix4x4, 
   TERRA_SoundManager, TERRA_Sound, TERRA_TextureAtlas, TERRA_Leaderboards,
   TERRA_PNG, TERRA_Milkshape, TERRA_OBJ, TERRA_Collada, TERRA_TTF, TERRA_AngelCodeFont,
   TERRA_ParticleRenderer, TERRA_ParticleEmitters, TERRA_OS,
-  TERRA_FileUtils, TERRA_HTTP, TERRA_AIPath, TERRA_Session,
+  TERRA_FileUtils, TERRA_HTTP, TERRA_AIGridPath, TERRA_Session,
   TERRA_Decals, TERRA_Billboards, TERRA_Network, TERRA_NetClient, TERRA_Sockets, TERRA_WAVE,
   {$IFNDEF MOBILE}TERRA_OGG,{$ENDIF}
   {$IFNDEF IPHONE}TERRA_JPG,{$ENDIF}
@@ -351,7 +351,7 @@ Procedure AI_DestroyPath(Var Path:TERRAPath); external {$IFNDEF STATIC_LINKING}T
 
 Type
   CustomNetClient = Class(NetClient)
-    Procedure HandleMessageCustom(Msg:NetMessage; Sock:Socket);
+    Procedure HandleMessageCustom(Msg:NetMessage);
     Procedure ConnectionStart; Override;
     Procedure ConnectionEnd(ErrorCode:Integer; ErrorLog:String); Override;
   End;
@@ -374,7 +374,7 @@ Begin
     _OnConnectionEnd(ErrorCode);
 End;
 
-Procedure CustomNetClient.HandleMessageCustom(Msg:NetMessage; Sock:Socket);
+Procedure CustomNetClient.HandleMessageCustom(Msg:NetMessage);
 Var
   S:Stream;
 Begin
@@ -629,12 +629,12 @@ End;
 Procedure Localization_SetLanguage(Lang:PAnsiChar); Cdecl;
 Begin
   If Lang<>Nil Then
-    StringManager.Instance.SetLanguage(Lang);
+    LocalizationManager.Instance.SetLanguage(Lang);
 End;
 
 Function Localization_GetString(ID:PAnsiChar):PAnsiChar; Cdecl;
 Begin
-  _Str[_StrIndex] := StringManager.Instance.GetString(ID);
+  _Str[_StrIndex] := LocalizationManager.Instance.GetString(ID);
   _Str[_StrIndex, Length(_Str[_StrIndex]) + 1] := #0;
   Result := @(_Str[_StrIndex, 1]);
   Inc(_StrIndex);
@@ -644,22 +644,22 @@ End;
 
 Procedure Input_SetKeyState(Key:Integer; State:Boolean); Cdecl;
 Begin
-  Application.Instance.Input.Keys.SetState(Key, State);
+  InputManager.Instance.Keys.SetState(Key, State);
 End;
 
 Function Input_KeyDown(Key:Integer):Boolean; Cdecl;
 Begin
-  Result := Application.Instance.Input.Keys.IsDown(Key);
+  Result := InputManager.Instance.Keys.IsDown(Key);
 End;
 
 Function Input_KeyPressed(Key:Integer):Boolean; Cdecl;
 Begin
-  Result := Application.Instance.Input.Keys.WasPressed(Key);
+  Result := InputManager.Instance.Keys.WasPressed(Key);
 End;
 
 Function Input_GetMousePosition():Vector2D; Cdecl;
 Begin
-  Result := VectorCreate2D(Application.Instance.Input.Mouse.X , Application.Instance.Input.Mouse.X);
+  Result := VectorCreate2D(InputManager.Instance.Mouse.X , InputManager.Instance.Mouse.X);
 End;
 
 Function Stream_CreateBuffer(Size:Integer; Ptr:Pointer = Nil):TERRAStream;  Cdecl;
@@ -867,7 +867,7 @@ Begin
   If Not ValidateType(MyFont, Font) Then
     Exit;
 
-  Result := Font(MyFont).GetTextWidth(Text)
+  Result := UIManager.Instance.FontRenderer.SetFont(MyFont).GetTextWidth(Text);
 End;
 
 Function Font_GetTextHeight(MyFont:TERRAFont; Text:PAnsiChar):Single; Cdecl;
@@ -877,7 +877,7 @@ Begin
   If Not ValidateType(MyFont, Font) Then
     Exit;
 
-  Result := Font(MyFont).GetTextHeight(Text)
+  Result := UIManager.Instance.FontRenderer.SetFont(MyFont).GetTextHeight(Text);
 End;
 
 Function Font_GetTextRect(MyFont:TERRAFont; Text:PAnsiChar):Vector2D; Cdecl;
@@ -887,7 +887,7 @@ Begin
   If Not ValidateType(MyFont, Font) Then
     Exit;
 
-  Result := Font(MyFont).GetTextRect(Text)
+  Result := UIManager.Instance.FontRenderer.SetFont(MyFont).GetTextRect(Text);
 End;
 
 Procedure Font_DrawText(MyFont:TERRAFont; X:Single; Y:Single; Layer:Single; Text:PAnsiChar; Const MyColor:Color); Cdecl;
@@ -895,7 +895,7 @@ Begin
   If Not ValidateType(MyFont, Font) Then
     Exit;
 
-  Font(MyFont).DrawText(X, Y, Layer, Text, MyColor);
+  UIManager.Instance.FontRenderer.SetFont(MyFont).SetColor(MyColor).DrawText(X, Y, Layer, Text);
 End;
 
 // Tile sheet generator
@@ -1188,14 +1188,6 @@ Begin
     Exit;
 
   MeshInstance(Instance).Scale := Scale;
-End;
-
-Procedure MeshInstance_SetTransform(Instance:TERRAMeshInstance; Const Transform:Matrix4x4); Cdecl;
-Begin
-  If Instance = Nil Then
-    Exit;
-
-  MeshInstance(Instance).Transform := Transform;
 End;
 
 Procedure MeshInstance_Destroy(Var Instance:TERRAMeshInstance); Cdecl;
@@ -3085,7 +3077,6 @@ Exports
   MeshInstance_SetPosition,
   MeshInstance_SetRotation,
   MeshInstance_SetScale,
-  MeshInstance_SetTransform,
   MeshInstance_PlayAnimation,
   MeshInstance_CrossfadeAnimation,
   MeshInstance_Destroy,
