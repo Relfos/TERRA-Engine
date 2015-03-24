@@ -73,7 +73,7 @@ Type
 
       Procedure Init; Override;
 
-      Procedure Update(Delta:Single); Override;
+      Procedure Run(Delta:Single); Override;
 
       Procedure SetWorldBox(Const Box:BoundingBox); Override;
 
@@ -289,7 +289,7 @@ Begin
   End;
 End;
 
-Procedure NewtonPhysicsSystem.Update(Delta:Single);
+Procedure NewtonPhysicsSystem.Run(Delta:Single);
 Begin
   NewtonUpdate(_World, Delta);
 End;

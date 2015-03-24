@@ -27,170 +27,228 @@ Unit TERRA_NetServer;
 
 {-$DEFINE SAVEPACKETS}
 
+{-$DEFINE ALLOW_RESEND_ONFAIL}
 
 Interface
 Uses TERRA_String, TERRA_Application, TERRA_OS, TERRA_Stream, TERRA_Sockets, TERRA_Network,
-  TERRA_Threads, TERRA_Mutex, TERRA_Utils, TERRA_Collections
+  TERRA_Threads, TERRA_Mutex, TERRA_Utils, TERRA_ObjectArray, TERRA_Collections
   {$IFDEF SAVEPACKETS},TERRA_NetLogger{$ENDIF};
 
 Type
   NetPacket = Record
     Msg:NetMessage;
     Dest:SocketAddress;
-    Sock:Socket;
+    Sock:NetSocket;
     Time:Cardinal;
   End;
 
+  NetServer = Class;
+
   // Client Info
-  ClientInfo = Class(ListObject)
+  ClientConnection = Class(CollectionObject)
+    Protected
+      _Socket:NetSocket;
+      _Server:NetServer;
+      _ID:Cardinal;
+      _Version:Word;
+      _Time:Cardinal;    //Last contact time
+      _Frames:Integer;
+
+      _Deleted:Boolean;
+      _DeleteTime:Cardinal;
+
     Public
-      ID:Word;
       UserName:TERRAString;
       Password:TERRAString;
       DeviceID:TERRAString;
-      Version:Word;
       GUID:Word;
-      Time:Cardinal;    //Last contact time
       Ping:Integer;     //If ping<0 then Client connection is dead
-      Socket:TERRA_Sockets.Socket;
+
       Address:SocketAddress;
-      Frames:Integer;
-      UserData:Pointer;  //Not needed, Application specific use
+
+      Procedure Release(); Override; //      ReleaseObject(_Socket);
+
+      Procedure Kick(); Virtual; // kick player from server
+
+      Procedure Update();
+
+      Property ID:Cardinal Read _ID;
+      Property Socket:NetSocket Read _Socket;
+      Property Server:NetServer Read _Server;
+      Property Version:Word Read _Version;
+      Property Time:Cardinal Read _Time;
+      Property Deleted:Boolean Read _Deleted;
   End;
+
+  NetServerMessageHandler = Procedure(Msg:NetMessage; Client:ClientConnection) Of Object;
 
   NetServer = Class(NetObject)
     Protected
-      _Mutex:CriticalSection;
-      _ClientList:Array Of ClientInfo; // Clients list
-      _ClientCount:Integer;             // Max number of Clients allowed
+      {_Clients:Array Of ClientConnection; // Clients list
+      _ClientCount:Integer;}
+      _Clients:ObjectArray;
+
+      _MinVersion:Word;
+
       _RefreshTime:Cardinal;            // Search for dead connections time
-      _WaitingConnections:Array Of Socket;
+      _WaitingConnections:Array Of NetSocket;
       _WaitingCount:Integer;
 
+      {$IFDEF ALLOW_RESEND_ONFAIL}
       _Packets:Array Of NetPacket;
       _PacketCount:Integer;
       _PacketMutex:CriticalSection;
       _PacketKeep:Boolean;
       _LastPacketUpdate:Cardinal;
+      {$ENDIF}
 
-      Procedure RemoveClient(Client:ClientInfo); //Event: When a Client leaves the server
-      Function OnSendFail(Dest:SocketAddress; Sock:Socket; Msg:NetMessage):Boolean; Override;
-      Procedure OnPacketReceived(Sock:Socket; Msg: NetMessage); Override;
+      _TotalConnections:Cardinal;
+
+      _OpcodeList:Array[0..255]Of NetServerMessageHandler;
+
+      Procedure RemoveClient(Client:ClientConnection); //Event: When a Client leaves the server
+      Function OnSendFail(Dest:SocketAddress; Sock:NetSocket; Msg:NetMessage):Boolean; Override;
+      Procedure OnPacketReceived(Sock:NetSocket; Msg: NetMessage); Override;
       //Function IsPacketImportant(Msg:NetMessage):Boolean; Virtual;
 
+{$IFDEF ALLOW_RESEND_ONFAIL}
       Procedure SendDroppedPackets;
+{$ENDIF}
+
+      Function CreateClientConnection():ClientConnection; Virtual;
+      //Function CreateClientList():List; Virtual;
+
+      Function AllocClientID(Client:ClientConnection):Cardinal; Virtual;
+
+      Procedure ProcessJoinRequest(Msg:NetMessage; Sock:NetSocket); Virtual;
+
+      Function ValidateMessage(Msg:NetMessage; Sock:NetSocket):ClientConnection; Virtual;
+
+      Procedure InitClientConnection(Client:ClientConnection); Virtual;
+
+      Procedure CheckForIncomingConnections();
 
     Public
       // Creates a new server instance
-      Constructor Create(Version,Port:Word; MaxClients:Word);
+      Constructor Create(MinVersion, MaxVersion,Port:Word);
+
+      Procedure AddHandler(Opcode:Byte; Handler:NetServerMessageHandler); Virtual;
 
       // Handles messages
       Procedure Update; Override;
 
       // Send a message
-      Function SendMessage(Msg:NetMessage; ClientID:Word; AutoRelease:Boolean = False):Boolean; Virtual;
+      Function SendMessage(Msg:NetMessage; Client:ClientConnection; Owner:Cardinal; AutoRelease:Boolean = False):Boolean; Virtual;
 
       // Broadcast a message
-      Procedure BroadcastMessage(Msg:NetMessage; AutoRelease:Boolean = False);
-
-      // Removes a Client from the server
-      Procedure Kick(ClientID:Word);
+      Procedure BroadcastMessage(Msg:NetMessage;  Owner:Cardinal; AutoRelease:Boolean = False);
 
       // Validates client username/password
       Function ValidateClient(UserName, Password, DeviceID:TERRAString; Var ErrorLog:TERRAString):Integer; Virtual;
 
-      Function ValidateMessage(Msg:NetMessage):Boolean; Override;
-
       // Shutdown a server and destroy it
-      Procedure Release(ErrorCode:Word=errServerShutdown); Reintroduce;
+      Procedure Release(); Override;
 
       // Message handlers
-      Procedure OnPingMessage(Msg:NetMessage; Sock:Socket);
-      Procedure OnJoinMessage(Msg:NetMessage; Sock:Socket);
-      Procedure OnDropMessage(Msg:NetMessage; Sock:Socket);
+      Procedure OnPingMessage(Msg:NetMessage; Client:ClientConnection);
+      Procedure OnDropMessage(Msg:NetMessage; Client:ClientConnection);
 
       // Creates a error message with an optional string
       Function CreateErrorMessage(ErrorCode:Word; Const Msg:TERRAString = ''):NetMessage; Virtual;
 
       // Create server login ack message
-      Function CreateLoginMessage(Client:ClientInfo):NetMessage; Virtual;
-
-      // Create server shutdown/logout message
-      Function CreateShutdownMessage(ErrorCode:Word):NetMessage; Virtual;
+      Function CreateLoginMessage(Client:ClientConnection):NetMessage; Virtual;
 
       // Gets local Client
-      Function GetClient(ID:Word):ClientInfo;
-      Function GetClientByUsername(Const Name:TERRAString):ClientInfo;
-      Function GetClientAddress(ID:Word):Cardinal;
-      Function CreateIterator:Iterator;
-
-      Function GetConnectedClients():Integer;
+      Function GetClientByID(ID:Cardinal):ClientConnection;
+      Function GetClientByUsername(Const Name:TERRAString):ClientConnection;
 
       // Network Events
-      Procedure OnClientAdd(Client:ClientInfo);Virtual;    //Event: When a new Client enter the server
-      Procedure OnClientRemove(Client:ClientInfo);Virtual; //Event: When a Client leaves the server
+      Procedure OnClientAdd(Client:ClientConnection);Virtual;    //Event: When a new Client enter the server
+      Procedure OnClientRemove(Client:ClientConnection);Virtual; //Event: When a Client leaves the server
 
-      Property ClientCount:Integer Read _ClientCount;
+      Property Clients:ObjectArray Read _Clients;
+      //Property ClientCount:Integer Read _ClientCount;
     End;
 
-  NetServerIterator = Class(Iterator)
-    Protected
-      _Server:NetServer;
-      _Position:Integer;
-      _Count:Integer;
-
-    Public
-      Constructor Create(Server:NetServer);
-      Function HasNext:Boolean; Override;
-      Function GetNext:ListObject; Override;
-      Function Discard():Boolean; Override;
-  End;
-
-
 Implementation
-Uses TERRA_Log, TERRA_MultiThreadedServer, TERRA_NetReplayServer;
+Uses TERRA_Log;
 
 
-{********************
-  LNetServer Class
- ********************}
-Procedure NetServer.OnPingMessage(Msg:NetMessage; Sock:Socket);
+{ NetServer }
+//Creates a new server instance
+Constructor NetServer.Create(MinVersion, MaxVersion, Port:Word);
 Var
-  Client:ClientInfo;
+  I:Integer;
 Begin
-  Client := GetClient(Msg.Owner);
-  If Not Assigned(Client) Then
-    Exit;
+  Inherited Create();
 
+  _LocalId := 0;  //Servers always have a localID of zero
+  NetworkManager.Instance.AddObject(Self);
+
+  _Port := Port;
+  _WaitingCount := 0;
+  _RefreshTime := 0;
+  _MinVersion := MinVersion;
+  _Version := MaxVersion;
+
+  For I:=0 To 255 Do
+    _OpcodeList[I] := Nil;
+
+  _OpcodeList[nmClientDrop] := OnDropMessage;
+
+{$IFDEF ALLOW_RESEND_ONFAIL}
+  _PacketMutex := CriticalSection.Create();
+{$ENDIF}
+
+  //_ClientCount := 0;
+  _Clients := ObjectArray.Create(coThreadSafe, Nil);
+  //_Clients := Self.CreateClientList();
+End;
+
+Procedure NetServer.AddHandler(Opcode:Byte; Handler:NetServerMessageHandler);
+Begin
+  Self._OpcodeList[Opcode] := Handler;
+End;
+
+Function NetServer.AllocClientID(Client: ClientConnection): Cardinal;
+Begin
+  Inc(_TotalConnections);
+  Result := _TotalConnections;
+End;
+
+Function NetServer.CreateClientConnection: ClientConnection;
+Begin
+  Result := ClientConnection.Create();
+End;
+
+{Function NetServer.CreateClientList():List;
+Begin
+  Result := List.Create(collection_Unsorted, coThreadSafe);
+End;}
+
+Procedure NetServer.OnPingMessage(Msg:NetMessage; Client:ClientConnection);
+Begin
   Client.Ping := Client.Time;
-  Client.Time := GetTime;
+  Client._Time := GetTime;
   Client.Ping := Integer(Client.Time) - Client.Ping;
 End;
 
-Procedure NetServer.OnJoinMessage(Msg:NetMessage; Sock:Socket);
+Procedure NetServer.ProcessJoinRequest(Msg:NetMessage; Sock:NetSocket);
 Var
-  N,I,K:Integer;
+  It:Iterator;
+  K:Integer;
   Guid, Version:Word;
   UserName,Password, DeviceID:TERRAString;
-  Client:ClientInfo;
   Rm:NetMessage;
   ErrorLog:TERRAString;
+  Client:ClientConnection;
 Begin
-  Msg.Read(@GUID, 2);
-  Msg.Read(@Version, 2);
+  Msg.ReadWord(GUID);
+  Msg.ReadWord(Version);
   Msg.ReadString(Username);
   Msg.ReadString(Password);
   Msg.ReadString(DeviceID);
-
-  If (Sock<>Nil) Then
-  Begin
-    For I:=1 To _ClientCount Do  //Search for duplicated GUIDs
-    Begin
-      Client := GetClient(I);
-      If (Assigned(Client)) And(Client.Socket = Sock) Then
-        Exit;
-    End;
-  End;
 
 {  N:=-1;
   For I:=1 To _ClientCount Do  //Search for duplicated GUIDs
@@ -210,7 +268,7 @@ Begin
     Exit;
   End;}
 
-  If Version<>_Version Then
+  If (Version<_MinVersion) Or (Version>_Version) Then
   Begin //Return a invalid version error to the client
     ReturnMessage(Sock, CreateErrorMessage(errInvalidVersion), True);
     Exit;
@@ -224,167 +282,117 @@ Begin
     Exit;
   End;
 
-  _Mutex.Lock();
-  N:=-1;
-  For I:=1 To _ClientCount Do  //Search for a dead Client slot
-  If _ClientList[I] = Nil Then
-  Begin
-    N := I; //If this Client is dead, then we can reuse the slot
-    Break;
-  End;
-  _Mutex.Unlock();
+  {ReturnMessage(Sock, CreateErrorMessage(errServerFull), True);
+  Exit;}
 
-  If N=-1 Then
-  Begin
-    ReturnMessage(Sock, CreateErrorMessage(errServerFull), True);
-    Exit;
-  End;
-
-  _Mutex.Lock();
-  Client := ClientInfo.Create;
+  Client := Self.CreateClientConnection();
+  Client._Server := Self;
+  Client._Time := GetTime();
   Client.Address := _Sender; // Store the new Client IP
   Client.Ping := 0;          // Reset Client ping
   Client.GUID := GUID;
-  Client.Time := GetTime;
   Client.UserName := UserName;
-  Client.ID := N;
-  Client.UserData := Nil;
   Client.Password := Password;
   Client.DeviceID := DeviceID;
-  Client.Socket := Sock;
-  Client.Frames := 0;
-  Client.Version := Version;
-  _ClientList[N] := Client;
-  _Mutex.Unlock();
-  {$IFDEF SAVEPACKETS}
+  Client._Socket := Sock;
+  Client._Frames := 0;
+  Client._Version := Version;
+  Client._ID := AllocClientID(Client);
+
+  {$IFDEF SAVEPACKETS} //FIXME
   If (Not (Self Is NetworkReplayServer)) Then
     NetworkLogger.Instance.LogConnectionStart(N, UserName, Password, DeviceID);
   {$ENDIF};
 
-  ReturnMessage(Sock, CreateLoginMessage(Client), True);
+  {Inc(_ClientCount);
+  SetLength(_Clients, _ClientCount);
+  _Clients[Pred(_ClientCount)] := Client;}
 
-  If (Not (Self Is NetMultithreadedServer)) Then
-    OnClientAdd(Client); //Calls the AddClient event
-End;
-
-Procedure NetServer.OnDropMessage(Msg:NetMessage; Sock:Socket);
-Var
-  Client:ClientInfo;
-Begin
-  Client := GetClient(Msg.Owner);
-  If Assigned(Client) Then
-    RemoveClient(Client) //Calls the remove Client event
-  Else
-    Log(logError, 'NetServer', 'DropMessage: Invalid Client. ['+IntToString(Msg.Owner)+']');
-End;
-
-//Creates a new server instance
-Constructor NetServer.Create(Version, Port:Word; MaxClients:Word);
-Var
-  I:Integer;
-Begin
-  Inherited Create();
-
-  _LocalId := 0;  //Servers always have a localID of zero
-  NetworkManager.Instance.AddObject(Self);
+  Clients.Add(Client);
   
-  _Port := Port;
-  _WaitingCount := 0;
-  _ClientCount := MaxClients;
-  _RefreshTime := 0;
-  _Version := Version;
-  _OpcodeList[nmClientJoin] := OnJoinMessage;
-  _OpcodeList[nmClientDrop] := OnDropMessage;
+  InitClientConnection(Client);
 
-  _Mutex := CriticalSection.Create('');
-  _PacketMutex := CriticalSection.Create('');
+  ReturnMessage(Sock, CreateLoginMessage(Client), True);
+End;
 
-  SetLength(_ClientList, Succ(_ClientCount));
-  _ClientList[0] := ClientInfo.Create;
-  With _ClientList[0] Do
-  Begin
-    Ping := 0;
-    GUID := 0;
-  End;
-
-  For I:=1 To _ClientCount Do
-    _ClientList[I] := Nil;
+Procedure NetServer.OnDropMessage(Msg:NetMessage; Client:ClientConnection);
+Begin
+  If Assigned(Client) Then
+    RemoveClient(Client); //Calls the remove Client event
 End;
 
 // Validates a message
-Function NetServer.ValidateMessage(Msg:NetMessage):Boolean;
-Var
-  Client:ClientInfo;
+Function NetServer.ValidateMessage(Msg:NetMessage; Sock:NetSocket):ClientConnection;
 Begin
-  {$IFDEF DEBUG_NET}WriteLn('Begin validation');{$ENDIF}
-  Result := (Msg.Owner=ID_UNKNOWN) And (Msg.Opcode=nmClientJoin);
+  Result := Nil;
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'Begin validation');{$ENDIF}
+  If (Msg.Owner=ID_UNKNOWN) Then
+    Exit;
 
-  If Not Result Then
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'Calling getClient()');{$ENDIF}
+  Result := GetClientByID(Msg.Owner);
+
+{  If (Assigned(Result)) And (Result.Address.Sin_Addr <> Sock.Address) Then
   Begin
-  {$IFDEF DEBUG_NET}WriteLn('Calling getClient()');{$ENDIF}
-    Client := GetClient(Msg.Owner);
-    Result := (Assigned(Client)){ And (Client.Address.Address=_Sender.Address)};
-
-    {$IFDEF DEBUG_NET}WriteLn('Testing client');{$ENDIF}
-    If Assigned(Client) Then
-      Client.Time := GetTime
-    Else
-      Log(logWarning,'Network',Self.ClassName+'.Update: Invalid server message. ['+IntToString(Msg.Owner)+']');
-  End;
-  {$IFDEF DEBUG_NET}WriteLn('End validation');{$ENDIF}
+    Result := Nil;
+    Log(logWarning,'Network',Self.ClassName+'.Update: Invalid server message. ['+IntToString(Msg.Owner)+']');
+  End;}
+  
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'End validation');{$ENDIF}
 End;
 
 // Handles messages
 Procedure NetServer.Update;
 Var
-  I,J:Integer;
+  It:Iterator;
+  I, J:Integer;
   Msg:NetMessage;
   Rm:NetMessage;
   ValidMsg:Boolean;
-  Client:ClientInfo;
-  Sock:Socket;
+  Client:ClientConnection;
 Begin
+{$IFDEF ALLOW_RESEND_ONFAIL}
   _PacketKeep := True;
+{$ENDIF}
 
   UpdateIO;
 
-  Sock := OpenIncomingStream(_Port);
-  If Assigned(Sock) Then
-  Begin
-    Sock.SetBlocking(False);
-    Sock.SetDelay(False);
-    Sock.SetBufferSize(1024*128);
-    Inc(_WaitingCount);
-    SetLength(_WaitingConnections, _WaitingCount);
-    _WaitingConnections[Pred(_WaitingCount)] := Sock;
-  End;
+  CheckForIncomingConnections();
 
   {If (Self.GetConnectedClients()>0) Then
-    WriteLn('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Starting update cycle ');}
-  For I:=1 To _ClientCount Do // Search dead connections, by pinging Clients
-  Begin
-    Client := GetClient(I);
-    If (Not Assigned(Client)) Or (Client.Socket = Nil) Then
-      Continue;
+    Log(logDebug, 'Server', '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Starting update cycle ');}
 
-    {$IFDEF DEBUG_NET}WriteLn('Processing client: ',Client.Username);{$ENDIF}
-    J := 0;
-    Repeat
-      If ReceivePacket(Client.Socket) Then
-      Begin
-        Client.Time := GetTime();
-        Inc(Client.Frames);
-      End Else
-        Break;
-    Until (J>=5);
-    {$IFDEF DEBUG_NET}WriteLn('Packets received: ',J);{$ENDIF}
+  It := _Clients.GetIterator();
+  While It.HasNext() Do
+  Begin
+    Client := ClientConnection(It.GetNext());
+
+    If (Client.Deleted) Then
+      Client.Discard()
+    Else
+      Client.Update();
   End;
+  ReleaseObject(It);
+
+{  I := 0;
+  While I<_ClientCount Do
+  If (_Clients[I].Deleted) Then
+  Begin
+    ReleaseObject(_Clients[I]);
+    _Clients[I] := _Clients[Pred(_ClientCount)];
+    Dec(_ClientCount);
+  End Else
+  Begin
+    _Clients[I].Update();
+    Inc(I);
+  End;}
+
 
   I := 0;
   While (I<_WaitingCount) Do
   Begin
-    {$IFDEF DEBUG_NET}WriteLn('Processing waiting connection #',I);{$ENDIF}
-    If (ReceivePacket(_WaitingConnections[I])) Then
+    {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'Processing waiting connection #'+IntToString(I));{$ENDIF}
+    If (ReceivePacket(_WaitingConnections[I])) Or (_WaitingConnections[I].Closed) Then
     Begin
       _WaitingConnections[I] := _WaitingConnections[Pred(_WaitingCount)];
       Dec(_WaitingCount);
@@ -392,103 +400,93 @@ Begin
       Inc(I);
   End;
 
-  For I:=1 To _ClientCount Do // Search dead connections, by pinging Clients
-  Begin
-    Client := GetClient(I);
-    If (Not Assigned(Client)) Or (Not Assigned(Client.Socket)) Then
-        Continue;
-
-    If (Client.Socket.Closed) Then
-    Begin
-      Log(logWarning,'Network', Self.ClassName+'.Update: ClientID='+IntToString(I)+' is dead.');
-      RemoveClient(Client);       // Call RemoveClient event
-    End;
-  End;
-
+{$IFDEF ALLOW_RESEND_ONFAIL}
   Self.SendDroppedPackets();
+{$ENDIF}  
 End;
 
-Function NetServer.GetClientAddress(ID:Word):Cardinal;
-Var
-  Info:ClientInfo;
-Begin
-  Info := Self.GetClient(ID);
-  If Info = Nil Then
-  Begin
-    Result := 0;
-    Exit;
-  End;
-
-  Result := Info.Socket.Address;
-End;
-
-Function NetServer.GetClientByUsername(Const Name:TERRAString):ClientInfo;
+Function NetServer.GetClientByUsername(Const Name:TERRAString):ClientConnection;
 Var
   I:Integer;
+  It:Iterator;
+  Client:ClientConnection;
 Begin
   Result := Nil;
-  _Mutex.Lock();
-  For I:=1 To _ClientCount Do
-  If (_ClientList[I]<>Nil) And (StringEquals(_ClientList[I].UserName, Name)) Then
+
+  {For I:=0 To Pred(_ClientCount) Do
+  If (StringEquals(_Clients[I].UserName, Name)) Then
   Begin
-    Result := _ClientList[I];
+    Result := _Clients[I];
     Break;
-  End;
-  _Mutex.Unlock();
-End;
+  End;}
 
-Function NetServer.GetClient(ID:Word):ClientInfo;
-Begin
-  _Mutex.Lock();
-  If (ID>0) And (ID<=_ClientCount) Then
+  It := _Clients.GetIterator();
+  While It.HasNext() Do
   Begin
-    If (_ClientList[ID]=Nil) Then
-      Result := Nil
-    Else
+    Client := ClientConnection(It.GetNext());
+    If (StringEquals(Client.UserName, Name)) Then
     Begin
-      Result := _ClientList[ID];
+      Result := Client;
+      Break;
     End;
-  End Else
-    Result := Nil;
-  _Mutex.Unlock();
+  End;
+  ReleaseObject(It);
 End;
 
-Procedure NetServer.OnClientAdd(Client:ClientInfo);
-Begin
-End;
-
-Procedure NetServer.OnClientRemove(Client:ClientInfo);
-Begin
-End;
-
-Procedure NetServer.RemoveClient(Client:ClientInfo);
+Function NetServer.GetClientByID(ID:Cardinal):ClientConnection;
 Var
   I:Integer;
-  Done:boolean;
+  It:Iterator;
+  Client:ClientConnection;
 Begin
-  If (Client = Nil) Then
-    Exit;
+  Result := Nil;
 
-  If (Not (Self Is NetMultithreadedServer)) Then
+  {$IFDEF USE_SIMPLE_ARRAYS}
+  For I:=0 To Pred(_ClientCount) Do
+  If (_Clients[I].ID = ID) Then
   Begin
-    Self.OnClientRemove(Client);
+    Result := _Clients[I];
+    Break;
   End;
+  {$ELSE}
 
-  _Mutex.Lock();
-  Done := (_ClientList[Client.ID] = Nil);
-  _ClientList[Client.ID] := Nil;
-  _Mutex.Unlock();
+  It := _Clients.GetIterator();
+  While It.HasNext() Do
+  Begin
+    Client := ClientConnection(It.GetNext());
+    If (Client.ID = ID) Then
+    Begin
+      Result := Client;
+      Break;
+    End;
+  End;
+  ReleaseObject(It);
+  {$ENDIF}
+End;
 
-  If (Done) Then
+Procedure NetServer.OnClientAdd(Client:ClientConnection);
+Begin
+End;
+
+Procedure NetServer.OnClientRemove(Client:ClientConnection);
+Begin
+End;
+
+Procedure NetServer.RemoveClient(Client:ClientConnection);
+Var
+  I:Integer;
+Begin
+  If (Client = Nil) Or (Client._Deleted) Then
     Exit;
+
+  Self.OnClientRemove(Client);
 
   {$IFDEF SAVEPACKETS}
   If (Not (Self Is NetworkReplayServer)) Then
     NetworkLogger.Instance.LogConnectionEnd(Client.ID);
   {$ENDIF};
 
-  Client.GUID := 0;
-  Client.Address.Address := 0;
+  {$IFDEF ALLOW_RESEND_ONFAIL}
   If (Assigned(Client.Socket)) Then
   Begin
     _PacketMutex.Lock();
@@ -496,13 +494,11 @@ Begin
     If (_Packets[I].Sock = Client.Socket) Then
       _Packets[I].Sock := Nil;
     _PacketMutex.Unlock();
-
-    If (Not (Self Is NetworkReplayServer)) Then
-      Client.Socket.Release;
-    Client.Socket := Nil;
   End;
+  {$ENDIF}
 
-  Client.Release;
+  Client._Deleted := True;
+  Client._DeleteTime := GetTime();
 End;
 
 Function NetServer.ValidateClient(UserName,Password, DeviceID:TERRAString; Var ErrorLog:TERRAString):Integer;
@@ -512,9 +508,7 @@ Begin
 End;
 
 // Send a message
-Function NetServer.SendMessage(Msg:NetMessage; ClientID:Word; AutoRelease:Boolean):Boolean;
-Var
-  Client:ClientInfo;
+Function NetServer.SendMessage(Msg:NetMessage; Client:ClientConnection;  Owner:Cardinal; AutoRelease:Boolean):Boolean;
 Begin
   If Msg = Nil Then
   Begin
@@ -522,19 +516,18 @@ Begin
     Exit;
   End;
 
-  {$IFDEF DEBUG_NET}WriteLn('Fetching client'); {$ENDIF}
-  Client := GetClient(ClientID);
+  Msg.Owner := Owner;
 
-  {$IFDEF DEBUG_NET}If Assigned(Client) Then WriteLn('Client: ',Client.ID) Else WriteLn('Client not found'); {$ENDIF}
+  {$IFDEF DEBUG_NET}If Assigned(Client) Then Log(logDebug, 'Server', 'Client: '+CardinalToString(Client.ID)) Else Log(logDebug, 'Server', 'Client not found'); {$ENDIF}
 
-  If Assigned(Client) Then
+  If (Assigned(Client)) And (Assigned(Client.Socket)) Then
   Begin
-    {$IFDEF DEBUG_NET}WriteLn('Sending packet'); {$ENDIF}
+    {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'Sending packet'); {$ENDIF}
     Result := SendPacket(Client.Address, Client.Socket, Msg);
-    {$IFDEF DEBUG_NET}WriteLn('Packet sent'); {$ENDIF}
+    {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'Packet sent'); {$ENDIF}
   End Else
   Begin
-    Log(logWarning,'Network', Self.ClassName+'.SendMessage: Invalid client.['+IntToString(ClientID)+']');
+    Log(logWarning,'Network', Self.ClassName+'.SendMessage: Invalid client.['+CardinalToString(Client.ID)+']');
     Result := False;
   End;
 
@@ -543,79 +536,69 @@ Begin
 End;
 
 // Broadcast a message
-Procedure NetServer.BroadcastMessage(Msg:NetMessage; AutoRelease:Boolean);
+Procedure NetServer.BroadcastMessage(Msg:NetMessage; Owner:Cardinal; AutoRelease:Boolean);
 Var
   I:Integer;
+  It:Iterator;
+  Client:ClientConnection;
 Begin
   If Msg = Nil Then
     Exit;
-    
-  For I:=1 To _ClientCount Do
-  If (I<>Msg.Owner) And (Assigned(GetClient(I))) Then
-    SendMessage(Msg, I);
+
+  {$IFDEF USE_SIMPLE_ARRAYS}
+  For I:=0 To Pred(_ClientCount) Do
+  If (_Clients[I].ID <> Owner) Then
+  Begin
+    SendMessage(Msg, _Clients[I], Owner);
+  End;
+  {$ELSE}
+
+  It := _Clients.GetIterator();
+  While It.HasNext() Do
+  Begin
+    Client := ClientConnection(It.GetNext());
+
+    If (Client.ID <> Owner) Then
+      SendMessage(Msg, Client, Owner);
+  End;
+  {$ENDIF}
 
   If AutoRelease Then
     ReleaseObject(Msg);
 End;
 
-// Removes a Client from the server
-Procedure NetServer.Kick(ClientID:Word);
-Var
-  Msg:NetMessage;
-  Client:ClientInfo;
-Begin
-  Client := GetClient(ClientID);
-  If Assigned(Client) Then
-  Begin
-    SendMessage(CreateShutdownMessage(errKicked), ClientID, True);
-    RemoveClient(Client);
- End;
-End;
-
 // Shutdown a server and destroy it
-Procedure NetServer.Release(ErrorCode:Word=errServerShutdown);
+Procedure NetServer.Release();
 Var
-  Client:ClientInfo;
   I:Integer;
+  Client:ClientConnection;
+  It:Iterator;
   Msg:NetMessage;
 Begin
-  Msg := CreateShutdownMessage(ErrorCode); //Zero means normal shutdown
-  BroadcastMessage(Msg); //Notify Clients of the server shutdown
+  Msg := NetMessage.Create(nmServerShutdown);
+  Msg.WriteWord(errServerShutdown);
+  BroadcastMessage(Msg, 0); //Notify Clients of the server shutdown
   ReleaseObject(Msg);
 
-  For I:=1 To _ClientCount Do  //Search for duplicated GUIDs
+  {$IFDEF USE_SIMPLE_ARRAYS}
+  For I:=0 To Pred(_ClientCount) Do
   Begin
-    Client := GetClient(I);
-    If (Assigned(Client)) And (Client.Socket <>Nil) Then
-    Begin
-      Client.Socket.Release;
-      Client.Socket := Nil;
-    End;
+    ReleaseObject(_Clients[I]);
   End;
+  {$ELSE}
 
-  Inherited Release();
+  ReleaseObject(_Clients);
+  {$ENDIF}
 
-  _Mutex.Release;
+
+  Inherited;
 End;
 
-Function NetServer.CreateIterator:Iterator;
-Begin
-  Result := NetServerIterator.Create(Self);
-End;
-
-Function NetServer.GetConnectedClients: Integer;
-Var
-  I:Integer;
-Begin
-  Result := 0;
-  For I:=1 To _ClientCount Do
-  If Assigned(GetClient(I)) Then
-    Inc(Result);
-End;
-
-Function NetServer.OnSendFail(Dest:SocketAddress; Sock:Socket; Msg:NetMessage):Boolean;
+Function NetServer.OnSendFail(Dest:SocketAddress; Sock:NetSocket; Msg:NetMessage):Boolean;
 Begin
   Result := False;
+
+{$IFDEF ALLOW_RESEND_ONFAIL}
   If (Not _PacketKeep) Then
     Exit;
 
@@ -627,8 +610,12 @@ Begin
   _Packets[Pred(_PacketCount)].Sock := Sock;
   _Packets[Pred(_PacketCount)].Time := GetTime();
   _PacketMutex.Unlock();
+
+{$ELSE}
+{$ENDIF}  
 End;
 
+{$IFDEF ALLOW_RESEND_ONFAIL}
 Procedure NetServer.SendDroppedPackets;
 Var
   I, J:Integer;
@@ -642,7 +629,7 @@ Begin
   _PacketKeep := False;
   While (I<_PacketCount) Do
   Begin
-    {$IFDEF DEBUG_NET}WriteLn('Sending delayed packet: opcode ',_Packets[I].Msg.Opcode);{$ENDIF}
+    {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'Sending delayed packet: opcode ' + IntToString(_Packets[I].Msg.Opcode));{$ENDIF}
     If (_Packets[I].Sock=Nil) Or (GetTime() - _Packets[I].Time>1000*60) Or (Self.SendPacket(_Packets[I].Dest, _Packets[I].Sock, @_Packets[I].Msg)) Then
     Begin
       For J:=0 To _PacketCount-2 Do
@@ -655,11 +642,29 @@ Begin
   _PacketKeep := True;
   _PacketMutex.Unlock();
 End;
+{$ENDIF}
 
-Procedure NetServer.OnPacketReceived(Sock:Socket; Msg:NetMessage);
+Procedure NetServer.OnPacketReceived(Sock:NetSocket; Msg:NetMessage);
 Var
   I, N:Integer;
+  Client:ClientConnection;
 Begin
+  If Msg.Opcode = nmClientJoin Then
+  Begin
+    ProcessJoinRequest(Msg, Sock);
+    Exit;
+  End;
+
+  If Assigned(_OpcodeList[Msg.Opcode]) Then
+  Begin
+    Client := Self.GetClientByID(Msg.Owner);
+
+    {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Found handler, executing message '+IntToString(Msg.Opcode));{$ENDIF}
+    _OpcodeList[Msg.Opcode](Msg, Client);
+
+    {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Executed message '+IntToString(Msg.Opcode));{$ENDIF}
+  End;
+
   {$IFDEF SAVEPACKETS}
   If (Not (Self Is NetworkReplayServer)) Then
   Begin
@@ -679,6 +684,12 @@ Begin
   {$ENDIF};
 End;
 
+Procedure NetServer.InitClientConnection(Client: ClientConnection);
+Begin
+  Client.Socket.SetBlocking(False);
+  OnClientAdd(Client); //Calls the AddClient event
+End;
+
 Function NetServer.CreateErrorMessage(ErrorCode:Word; Const Msg:TERRAString):NetMessage;
 Begin
   Result := NetMessage.Create(nmServerError);
@@ -686,46 +697,68 @@ Begin
   Result.WriteString(Msg);
 End;
 
-Function NetServer.CreateLoginMessage(Client:ClientInfo): NetMessage;
+Function NetServer.CreateLoginMessage(Client:ClientConnection): NetMessage;
 Begin
   Result := NetMessage.Create(nmServerAck);
-  Result.WriteWord(Client.ID)
+  Result.WriteCardinal(Client.ID);
 End;
 
-Function NetServer.CreateShutdownMessage(ErrorCode:Word):NetMessage;
+
+Procedure NetServer.CheckForIncomingConnections();
+Var
+  Sock:NetSocket;
 Begin
-  Result := NetMessage.Create(nmServerShutdown);
-  Result.WriteWord(ErrorCode);
+  Sock := OpenIncomingStream(_Port);
+  If Assigned(Sock) Then
+  Begin
+    Sock.SetDelay(False);
+    //Sock.SetBufferSize(1024*128);
+    Inc(_WaitingCount);
+    SetLength(_WaitingConnections, _WaitingCount);
+    _WaitingConnections[Pred(_WaitingCount)] := Sock;
+  End;
 End;
 
-{ NetServerIterator }
-
-Constructor NetServerIterator.Create(Server: NetServer);
+{ ClientConnection }
+Procedure ClientConnection.Kick;
+Var
+  Msg:NetMessage;
 Begin
-  Self._Server := Server;
-  Self._Position := 0;
-  Self._Count := 0;
+  Msg := NetMessage.Create(nmServerShutdown);
+  Msg.WriteWord(errKicked);
+  Server.SendMessage(Msg, Self, 0);
+  ReleaseObject(Msg);
+  Self.Discard();
 End;
 
-Function NetServerIterator.GetNext:ListObject;
+Procedure ClientConnection.Release;
 Begin
-  Inc(_Position);
-  Result := _Server.GetClient(_Position);
-  If Result = Nil Then
-    Result := GetNext()
-  Else
-    Inc(_Count);
+  ReleaseObject(_Socket);
 End;
 
-Function NetServerIterator.HasNext:Boolean;
+Procedure ClientConnection.Update;
 Begin
-  Result := (_Count< _Server._ClientCount);
-End;
+  If (Socket = Nil) Then
+    Exit;
 
-Function NetServerIterator.Discard():Boolean;
-Begin
-  _Server.Kick(_Position);
-  Result := True;
+  If (_Deleted) Then
+    Exit;
+
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'Processing client: '+Self.Username);{$ENDIF}
+
+  If (Socket.Closed) Then
+  Begin
+    Log(logWarning,'Network', 'ClientID='+IntToString(Self._ID)+' is dead.');
+    _Server.RemoveClient(Self);
+    Exit;
+  End;
+
+  If _Server.ReceivePacket(Socket) Then
+  Begin
+    Self._Time := GetTime();
+    Inc(_Frames);
+    {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'Packets received from '+CardinalToString(_ID));{$ENDIF}
+  End;
 End;
 
 End.

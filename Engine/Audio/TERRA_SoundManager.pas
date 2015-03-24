@@ -199,7 +199,7 @@ Begin
   S := '';
   If Not Assigned(DeviceList) Then
   Begin
-    DeviceList := TERRA_Collections.List.Create();
+    DeviceList := TERRA_Collections.List.Create(collection_Unsorted);
     List := alcGetString(Nil,QueryID);
     If Assigned(List) Then
     While (List^<>#0) Do

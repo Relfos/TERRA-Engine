@@ -28,7 +28,7 @@ Interface
 
 Uses TERRA_String, TERRA_GraphicsManager, TERRA_Color, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_BoundingBox, TERRA_Frustum,
   TERRA_Ray, TERRA_Matrix4x4, TERRA_Vector3D, TERRA_Vector2D, TERRA_Utils, TERRA_SpriteManager,
-  TERRA_MeshAnimation, TERRA_Collision2D, TERRA_Splines, TERRA_Shader;
+  TERRA_MeshAnimation, TERRA_Collision2D, TERRA_Splines, TERRA_Shader, TERRA_ClipRect;
 
 // 3d drawing
 Procedure DrawBoundingBox(Const MyBox:BoundingBox; Color:TERRA_Color.Color; KeepAlive:Boolean = False; AlwaysOnTop:Boolean=False);
@@ -49,11 +49,11 @@ Procedure DrawLine2D(P1,P2:Vector2D; MyColor:Color; Layer:Single; Width:Single =
 Procedure DrawPolygon2D(Poly:Polygon2D; MyColor:Color; Layer:Single);
 Procedure DrawPointCloud(Cloud:PointCloud2D; MyColor:Color; Layer:Single);
 
-Procedure DrawRect(Line:Line2D; MyColor:Color; Layer:Single; Width:Integer=1; Clip:ClipRect = Nil; KeepAlive:Boolean = False); Overload;
-Procedure DrawRect(X1,Y1,X2,Y2:Single; MyColor:Color; Layer:Single; Width:Integer=1; Clip:ClipRect = Nil; KeepAlive:Boolean = False); Overload;
+Procedure DrawRect(Line:Line2D; MyColor:Color; Layer:Single; Width:Integer; Const Clip:ClipRect; KeepAlive:Boolean = False); Overload;
+Procedure DrawRect(X1,Y1,X2,Y2:Single; MyColor:Color; Layer:Single; Width:Integer; Const Clip:ClipRect; KeepAlive:Boolean = False); Overload;
 
-Procedure DrawFilledRect(Line:Line2D; MyColor:Color; Layer:Single; Width:Integer=1); Overload;
-Procedure DrawFilledRect(X1,Y1,X2,Y2:Single; MyColor:Color; Layer:Single; Width:Integer=1); Overload;
+Procedure DrawFilledRect(Line:Line2D; MyColor:Color; Layer:Single; Width:Integer; Const Clip:ClipRect); Overload;
+Procedure DrawFilledRect(X1,Y1,X2,Y2:Single; MyColor:Color; Layer:Single; Width:Integer; Const Clip:ClipRect); Overload;
 
 Procedure DrawPoint(Const P:Vector3D; Color:TERRA_Color.Color);
 
@@ -508,7 +508,7 @@ Begin
   {$ENDIF}
 End;
 
-Procedure DrawRect(X1,Y1,X2,Y2:Single; MyColor:Color; Layer:Single; Width:Integer; Clip:ClipRect; KeepAlive:Boolean);
+Procedure DrawRect(X1,Y1,X2,Y2:Single; MyColor:Color; Layer:Single; Width:Integer; Const Clip:ClipRect; KeepAlive:Boolean);
 Var
   L:Line2D;
 Begin
@@ -519,12 +519,12 @@ Begin
   DrawRect(L, MyColor, Layer, Width, Clip, KeepAlive);
 End;
 
-Procedure DrawRect(Line:Line2D; MyColor:Color; Layer:Single; Width:Integer; Clip:ClipRect; KeepAlive:Boolean);
+Procedure DrawRect(Line:Line2D; MyColor:Color; Layer:Single; Width:Integer; Const Clip:ClipRect; KeepAlive:Boolean);
 Begin
   AddDebugObject(DebugRect.Create(Line.P1, Line.P2, Layer, MyColor, Width, Clip), KeepAlive, False);
 End;
 
-Procedure DrawFilledRect(X1,Y1,X2,Y2:Single; MyColor:Color; Layer:Single; Width:Integer);
+Procedure DrawFilledRect(X1,Y1,X2,Y2:Single; MyColor:Color; Layer:Single; Width:Integer; Const Clip:ClipRect);
 Var
   L:Line2D;
 Begin
@@ -532,10 +532,10 @@ Begin
   L.P1.Y := Y1;
   L.P2.X := X2;
   L.P2.Y := Y2;
-  DrawRect(L, MyColor, Layer, Width);
+  DrawRect(L, MyColor, Layer, Width, Clip);
 End;
 
-Procedure DrawFilledRect(Line:Line2D; MyColor:Color; Layer:Single; Width:Integer);
+Procedure DrawFilledRect(Line:Line2D; MyColor:Color; Layer:Single; Width:Integer; Const Clip:ClipRect);
 Var
   I:Integer;
   MyShader:Shader;

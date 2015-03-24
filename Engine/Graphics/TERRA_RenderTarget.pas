@@ -29,13 +29,6 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Utils, TERRA_Color, TERRA_Image, TERRA_Vector2D, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Texture;
 
 Const
-  captureTargetColor    = 0;
-  captureTargetNormal   = 1;
-  captureTargetEmission = 2;
-  captureTargetRefraction = 3;
-  captureTargetOutline = 4;
-  captureTargetReflection = 5;
-  captureTargetPosition = 6;
   MaxCaptureTargets = 7;
 
   TargetNames:Array[0..Pred(MaxCaptureTargets)] Of TERRAString =
@@ -46,6 +39,17 @@ Var
 
 
 Type
+  RenderTargetType = (
+    captureTargetInvalid  = -1,
+    captureTargetColor    = 0,
+    captureTargetNormal   = 1,
+    captureTargetEmission = 2,
+    captureTargetRefraction = 3,
+    captureTargetOutline = 4,
+    captureTargetReflection = 5,
+    captureTargetPosition = 6
+  );
+
   RenderTarget = Class(Texture)
     Protected
       _ClearColor:Color;
@@ -70,7 +74,7 @@ Type
 
 Implementation
 Uses TERRA_Application, TERRA_GraphicsManager, TERRA_Log, TERRA_TextureTarget
-  {$IFDEF FRAMEBUFFEROBJECTS}, TERRA_FrameBufferObject{$ENDIF};
+  {$IFDEF FRAMEBUFFEROBJECTS}, TERRA_FBO{$ENDIF};
 
 Type
   NullTarget = Class(RenderTarget)

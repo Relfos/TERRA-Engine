@@ -27,7 +27,12 @@ Unit TERRA_Threads;
 {$I terra.inc}
 
 {$IFNDEF DISABLETHREADS}
-{-$DEFINE USEPASCALTHREADS}
+
+{$IFDEF ANDROID}
+{$DEFINE USEJAVATHREADS}
+{$ELSE}
+{$DEFINE USEPASCALTHREADS}
+{$ENDIF}
 {$ENDIF}
 
 Interface
@@ -39,52 +44,42 @@ Uses TERRA_Utils, TERRA_Log, TERRA_Application, TERRA_Mutex
 {$ENDIF}
 ;
 
+
 {-$DEFINE USEPTHREADS}
 
-{$IFDEF USEPTHREADS}
-type
- ppthread_t = ^pthread_t;
- ppthread_attr_t = ^pthread_attr_t;
- ppthread_cond_t = ^pthread_cond_t;
- ppthread_condattr_t = ^pthread_condattr_t;
+Type
+   ThreadHandle = Cardinal;
 
- __start_routine_t = pointer;
+{$IFDEF USEPTHREADS}
+  PThreadHandle = ^ThreadHandle;
+  
+  __start_routine_t = pointer;
 
 Const
- PTHREAD_CREATE_DETACHED = 1;
+  PTHREAD_CREATE_DETACHED = 1;
 
 Type
-  TStartRoutine = Function(P:Pointer):Integer; Cdecl;
+  ThreadStartRoutine = Function(P:Pointer):Integer; Cdecl;
 
-function pthread_create(__thread:ppthread_t; __attr:ppthread_attr_t;__start_routine:TStartRoutine;__arg:pointer):longint;cdecl;external 'libc.so';
-procedure pthread_exit(value_ptr:Pointer); cdecl;external 'libc.so';
+Function pthread_create(Var Handle:ThreadHandle; Attr:Pointer; start_routine:ThreadStartRoutine; Arg:Pointer):Integer; cdecl; external 'libc.so';
+Procedure pthread_exit(value_ptr:Pointer); cdecl;external 'libc.so';
 {$IFNDEF ANDROID}
-function pthread_cancel(__thread:pthread_t):Integer; cdecl;external 'libc.so';
+Function pthread_cancel(Handle:ThreadHandle):Integer; cdecl;external 'libc.so';
 {$ENDIF}
-function pthread_attr_init(__attr:ppthread_attr_t):longint;cdecl;external 'libc.so';
-function pthread_attr_setdetachstate(__attr:ppthread_attr_t; __detachstate:longint):longint;cdecl;external 'libc.so';
+//function pthread_attr_init(__attr:ppthread_attr_t):longint;cdecl;external 'libc.so';
+//Function pthread_attr_setdetachstate(Var attr:Pointer; __detachstate:longint):longint;cdecl;external 'libc.so';
+
+(*
+Type
+  ppthread_cond_t = ^pthread_cond_t;
+  ppthread_condattr_t = ^pthread_condattr_t;
 
 function pthread_cond_init(__cond:ppthread_cond_t; __cond_attr:ppthread_condattr_t):longint;cdecl;external 'libc.so';
 function pthread_cond_destroy(__cond:ppthread_cond_t):longint;cdecl;external 'libc.so';
 function pthread_cond_signal(__cond:ppthread_cond_t):longint;cdecl;external 'libc.so';
 function pthread_cond_broadcast(__cond:ppthread_cond_t):longint;cdecl;external 'libc.so';
-function pthread_cond_wait(__cond:ppthread_cond_t; __mutex:ppthread_mutex_t):longint;cdecl;external 'libc.so';
-
+function pthread_cond_wait(__cond:ppthread_cond_t; __mutex:ppthread_mutex_t):longint;cdecl;external 'libc.so';*)
 {$ENDIF}
-
-(* function sem_init(__sem:Psem_t; __pshared:cint;
-__value:dword):cint;cdecl;external libthreads;
-  function sem_destroy(__sem:Psem_t):cint;cdecl;external libthreads;
-  function sem_close(__sem:Psem_t):cint;cdecl;external libthreads;
-  function sem_unlink(__name:PTERRAChar):cint;cdecl;external libthreads;
-  function sem_wait(__sem:Psem_t):cint;cdecl;external libthreads;
-  function sem_trywait(__sem:Psem_t):cint;cdecl;external libthreads;
-  function sem_post(__sem:Psem_t):cint;cdecl;external libthreads;
-  function sem_getvalue(__sem:Psem_t; __sval:pcint):cint;cdecl;external
-libthreads;
-  function sem_timedwait(__sem: Psem_t; __abstime:
-Ptimespec):cint;cdecl; external libthreads;
-*)
 
 Const
   DefaultThreadDiscardTime = 3000;
@@ -125,16 +120,18 @@ Type
       Property Progress:Integer Read GetProgress;
   End;
 
-  Thread = Class(TERRAObject){$IFDEF USEPASCALTHREADS}(TThread){$ENDIF}
+  Thread = Class{$IFDEF USEPASCALTHREADS}(TThread){$ELSE}(TERRAObject){$ENDIF}
     Protected
 		  _ID:Cardinal;
 
       {$IFNDEF DISABLETHREADS}
+      {$IFNDEF USEJAVATHREADS}
       {$IFNDEF USEPASCALTHREADS}
       {$IFDEF WINDOWS}
 		  _Handle:Cardinal;
       {$ELSE}
       _Handle:pthread_t;
+      {$ENDIF}
       {$ENDIF}
       {$ENDIF}
       {$ENDIF}
@@ -144,7 +141,9 @@ Type
     Public
       Constructor Create();
 
-      {$IFNDEF USEPASCALTHREADS}
+      {$IFDEF USEPASCALTHREADS}
+      Procedure Release; Virtual;
+      {$ELSE}
       Procedure Execute; Virtual; Abstract;
       {$ENDIF}
 
@@ -198,6 +197,10 @@ Type
 		  Class Function Instance:ThreadPool;
     End;
 
+{$IFDEF ANDROID}
+Function InternalThreadDispatcher(P:Pointer):Integer; Cdecl;
+{$ENDIF}
+
 Implementation
 Uses TERRA_Error, TERRA_OS;
 
@@ -219,14 +222,24 @@ Var
 
 
 Function InternalThreadDispatcher(P:Pointer):Integer; {$IFNDEF WINDOWS}Cdecl; {$ENDIF}
+Var
+  T:Thread;
 Begin
+  T := Thread(P);
+
   Log(logDebug, 'Threads', 'Running new thread...');
-  Thread(P).Execute();
+  T.Execute();
 
   Log(logDebug, 'Threads', 'Thread finished...');
 
-  Thread(P).Release();
-  Thread(P).Terminate();
+  T.Terminate();
+
+  T.Release();
+
+{$IFDEF USEPASCALTHREADS}
+  T.Destroy();
+{$ENDIF}
+
   Result := 0;
 End;
 
@@ -238,6 +251,9 @@ Begin
   Self.Execute();
 {$ELSE}
 
+{$IFDEF USEJAVATHREADS}
+  AndroidApplication(Application.Instance).SpawnThread(Self);
+{$ELSE}
 {$IFDEF USEPASCALTHREADS}
   Inherited Create(False);
 {$ELSE}
@@ -248,14 +264,22 @@ Begin
 {$ENDIF}
 {$ENDIF}
 {$ENDIF}
+{$ENDIF}
 End;
+
+{$IFDEF USEPASCALTHREADS}
+Procedure Thread.Release;
+Begin
+  // dummy pseudo-destructor
+End;
+{$ENDIF}
 
 Procedure Thread.Terminate;
 Begin
 {$IFNDEF DISABLETHREADS}
   {$IFDEF ANDROID}
   Java_DetachThread();
-  {$ENDIF}
+  {$ELSE}
 
   {$IFNDEF USEPASCALTHREADS}
   {$IFDEF WINDOWS}
@@ -264,6 +288,7 @@ Begin
   pthread_exit(Nil);
   {$ENDIF}
   {$ENDIF}
+  {$ENDIF}  
 {$ENDIF}
 End;
 
@@ -317,7 +342,7 @@ Begin
       _Pool.KillTask(MyTask);
     End Else
     Begin
-      _Pool._Semaphore.Lock();
+      _Pool._Semaphore.Wait();
     End;
   Until (Not _Pool.Active) {$IFDEF USEPASCALTHREADS}Or (Self.Terminated){$ENDIF};
 
@@ -443,13 +468,17 @@ Procedure ThreadPool.Init;
 Var
   I:Integer;
 Begin
+  {$IFDEF ANDROID}
+  _MaxThreads := 1;
+  {$ELSE}
   If (Application.Instance<>Nil) Then
     _MaxThreads := Application.Instance.CPUCores
   Else
     _MaxThreads := 2;
+  {$ENDIF}
     
-  _CriticalSection := CriticalSection.Create(Self.ClassName);
-  _Semaphore := Semaphore.Create(Self.ClassName, _MaxThreads);
+  _CriticalSection := CriticalSection.Create({Self.ClassName});
+  _Semaphore := Semaphore.Create(_MaxThreads);
 
 	_Active := True;
 	_ThreadCount := 0;
@@ -486,18 +515,23 @@ Begin
 	  End;
 
     Application.Instance.Yeld();
-    _Semaphore.Unlock();
+    _Semaphore.Signal();
   Until (Count<=0);
 
   For I:=0 To Pred(_MaxThreads) Do
   If (Assigned(_Threads[i])) Then
   Begin
     _Threads[I].Shutdown();
-    _Threads[I].Release;
+
+    _Threads[I].Release();
+    
+  {$IFDEF USEPASCALTHREADS}
+    _Threads[I].Destroy();
+  {$ENDIF}
   End;
 
   _CriticalSection.Release;
-  _Semaphore.Unlock();
+  _Semaphore.Signal();
 
   _ThreadPool_Instance := Nil;
 End;

@@ -2,7 +2,8 @@ Unit TERRA_Localization;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_FileUtils;
+Uses TERRA_String, TERRA_Application, TERRA_Utils, TERRA_Stream, TERRA_FileUtils,
+  TERRA_Collections, TERRA_Hashmap;
 
 Const
   language_English   = 'EN';
@@ -24,22 +25,25 @@ Const
   MaxPinyinSuggestions = 64;
 
 Type
-  StringEntry = Record
-    Key:TERRAString;
-    Value:TERRAString;
-    Group:Integer;
+  StringEntry = Class(HashMapObject)
+    Protected
+      _Value:TERRAString;
+      _Group:Integer;
+
+    Public
+      Constructor Create(Const Key, Value:TERRAString; Group:Integer);
   End;
 
-  LocalizationManager = Class(TERRAObject)
+  LocalizationManager = Class(ApplicationComponent)
     Protected
       _Lang:TERRAString;
-      _Strings:Array Of StringEntry;
-      _StringCount:Integer;
+      _Strings:Hashmap;
 
       Function GetLang:TERRAString;
 
     Public
-      Constructor Create;
+      Procedure Init; Override;
+      Procedure Release; Override;
 
       Class Function Instance:LocalizationManager;
       Procedure SetLanguage(Lang:TERRAString);
@@ -97,10 +101,10 @@ Function GetCurrencyForCountry(Const Country:TERRAString):TERRAString;
 Function GetLanguageDescription(Lang:TERRAString):TERRAString;
 
 Implementation
-Uses TERRA_Application, TERRA_FileManager, TERRA_Log;
+Uses TERRA_FileManager, TERRA_Log;
 
 Var
-  _Manager:LocalizationManager = Nil;
+  _LocalizationManager_Instance:ApplicationObject = Nil;
 
 Function IsSupportedLanguage(Const Lang:TERRAString):Boolean;
 Begin
@@ -329,13 +333,20 @@ Begin
 End;
 
 { LocalizationManager }
-Constructor LocalizationManager.Create;
+Procedure LocalizationManager.Init();
 Begin
   _Lang := '';
+  _Strings := HashMap.Create(1024);
+
   If Assigned(Application.Instance()) Then
     SetLanguage(Application.Instance.Language)
   Else
     SetLanguage('EN');
+End;
+
+Procedure LocalizationManager.Release();
+Begin
+  ReleaseObject(_Strings);
 End;
 
 Function LocalizationManager.EmptyString:TERRAString;
@@ -354,33 +365,31 @@ End;
 Procedure LocalizationManager.SetString(Const Key, Value:TERRAString; Group:Integer = -1);
 Var
   I:Integer;
+  Entry:StringEntry;
 Begin
-  For I:=0 To Pred(_StringCount) Do
-  If (StringEquals(_Strings[I].Key, Key)) Then
+  Entry := StringEntry(_Strings.GetItemByKey(Key));
+  If Assigned(Entry) Then
   Begin
-    _Strings[I].Value := Value;
-    _Strings[I].Group := Group;
+    Entry._Value := Value;
+    Entry._Group := Group;
     Exit;
   End;
 
-  Inc(_StringCount);
-  SetLength(_Strings, _StringCount);
-  _Strings[Pred(_StringCount)].Key := Key;
-  _Strings[Pred(_StringCount)].Value := Value;
-  _Strings[Pred(_StringCount)].Group := Group;
+  Entry := StringEntry.Create(Key, Value, Group);
+  _Strings.Add(Entry);
 End;
 
 Function LocalizationManager.GetString(Const Key:TERRAString):TERRAString;
 Var
-  I:Integer;
+  Entry:StringEntry;
 Begin
   If (_Lang ='') And (Assigned(Application.Instance())) Then
     SetLanguage(Application.Instance.Language);
 
-  For I:=0 To Pred(_StringCount) Do
-  If (StringEquals(_Strings[I].Key, Key)) Then
+  Entry := StringEntry(_Strings.GetItemByKey(Key));
+  If Assigned(Entry) Then
   Begin
-    Result := _Strings[I].Value;
+    Result := Entry._Value;
     Exit;
   End;
 
@@ -390,22 +399,23 @@ End;
 
 Class Function LocalizationManager.Instance:LocalizationManager;
 Begin
-  If Not Assigned(_Manager) Then
-    _Manager := LocalizationManager.Create;
+  If _LocalizationManager_Instance = Nil Then
+    _LocalizationManager_Instance := InitializeApplicationComponent(LocalizationManager, Nil);
 
-  Result := _Manager;
+  Result := LocalizationManager(_LocalizationManager_Instance.Instance);
 End;
 
 Procedure LocalizationManager.MergeGroup(Source: Stream; GroupID:Integer; Const Prefix:TERRAString);
 Var
   Ofs, Count, I:Integer;
   Header:FileHeader;
+  Value, Key:TERRAString;
 Begin
   If (Source = Nil ) Then
     Exit;
 
   Log(logDebug, 'Strings', 'Merging strings from '+Source.Name);
-  Ofs := _StringCount;
+  Ofs := _Strings.Count;
 
   Source.ReadHeader(Header);
   If Not CompareFileHeader(Header, Translation_Header) Then
@@ -415,18 +425,16 @@ Begin
   End;
 
   Source.ReadInteger(Count);
-  Inc(_StringCount, Count);
-  SetLength(_Strings, _StringCount);
 
   For I:=0 To Pred(Count) Do
   Begin
-    Source.ReadString(_Strings[I+Ofs].Key);
-    Source.ReadString(_Strings[I+Ofs].Value);
+    Source.ReadString(Key);
+    Source.ReadString(Value);
 
     If Prefix<>'' Then
-      _Strings[I+Ofs].Key := Prefix + _Strings[I+Ofs].Key;
+      Key := Prefix + Key;
 
-    _Strings[I+Ofs].Group := GroupID;
+    _Strings.Add(StringEntry.Create(Key, Value, GroupID));
     //Log(logDebug, 'Strings', 'Found '+_Strings[I+Ofs].Key +' = '+_Strings[I+Ofs].Value);
   End;
 End;
@@ -458,7 +466,7 @@ Begin
     Exit;
   End;
 
-  _StringCount := 0;
+  _Strings.Clear();
   Source := FileManager.Instance.OpenStream(S);
   _Lang := Lang;
   Self.MergeGroup(Source, -1, '');
@@ -480,24 +488,23 @@ End;
 
 Procedure LocalizationManager.RemoveGroup(GroupID: Integer);
 Var
-  I:Integer;
+  It:Iterator;
+  Entry:StringEntry;
 Begin
-  I := 0;
-  While (I<_StringCount) Do
-  If (_Strings[I].Group = GroupID) Then
+  It := _Strings.GetIterator();
+  While (It.HasNext) Do
   Begin
-    _Strings[I] := _Strings[Pred(_StringCount)];
-    Dec(_StringCount);
-  End Else
-    Inc(I);
+    Entry := StringEntry(It.GetNext());
+    If (Entry._Group = GroupID) Then
+      Entry.Discard();
+  End;
 End;
 
 Function LocalizationManager.HasString(Const Key:TERRAString): Boolean;
 Begin
-  Result := GetString(Key)<>Self.EmptyString;
+  Result := Assigned(_Strings.GetItemByKey(Key));
 End;
-
-
+     
 Type
   PinyinEntry = Record
     ID:Word;
@@ -665,8 +672,12 @@ Begin
     Result := invalidString;
 End;
 
-Initialization
-Finalization
-  If Assigned(_Manager) Then
-    _Manager.Release;
+{ StringEntry }
+Constructor StringEntry.Create(const Key, Value: TERRAString; Group: Integer);
+Begin
+  Self._Key := Key;
+  Self._Value := Value;
+  Self._Group := Group;
+End;
+
 End.

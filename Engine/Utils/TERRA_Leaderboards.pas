@@ -1213,8 +1213,8 @@ Begin
   Begin
     _Wnd := UIWindow.Create('leadbdwnd', UI, 0, 0, 97, 7, 11, 'ldb_window');
 
-    SS := StringManager.Instance.GetString('leaderboard');
-    If (SS = StringManager.Instance.EmptyString) Then
+    SS := LocalizationManager.Instance.GetString('leaderboard');
+    If (SS = LocalizationManager.Instance.EmptyString) Then
       SS := 'Leaderboard';
 
     Lb := UILabel.Create('leadtitlelb', UI, _Wnd, 0, 10, 1, SS);
@@ -1222,8 +1222,8 @@ Begin
 
     UIIcon.Create('leadlineic', UI, _Wnd, 0, 40, 1, 'ldb_line').Align := waTopCenter;
 
-    SS := StringManager.Instance.GetString('close');
-    If (SS = StringManager.Instance.EmptyString) Then
+    SS := LocalizationManager.Instance.GetString('close');
+    If (SS = LocalizationManager.Instance.EmptyString) Then
       SS := 'Close';
     Btn := UIButton.Create('leadclose', UI, _Wnd, 10, 15, 1, SS, 'ldb_button');
     Btn.Align := waBottomCenter;

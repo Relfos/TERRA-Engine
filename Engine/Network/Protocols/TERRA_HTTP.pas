@@ -46,12 +46,12 @@ Const
 Type
   HTTPError = (
     httpOk                = 0,
-    httpOffline ,
-    httpInvalidURL,
-    httpInvalidProtocol,
-    httpNotFound,
-    httpConnectionFailed,
-    httpConnectionInterrupted,
+    httpOffline           = 1,
+    httpInvalidURL        = 2,
+    httpInvalidProtocol   = 3,
+    httpNotFound          = 4,
+    httpConnectionFailed  = 5,
+    httpConnectionInterrupted = 6,
     httpInvalidStream
   );
 
@@ -67,7 +67,7 @@ Type
   HTTPConnection = Class(TERRAObject)
     _Host:TERRAString;
     _Port:Integer;
-    _Socket:Socket;
+    _Socket:NetSocket;
     _Alive:Boolean;
     _Target:HTTPDownloader;
     _LastUpdate:Cardinal;
@@ -78,6 +78,8 @@ Type
   End;
 
   HTTPDownloader = Class(TERRAObject)
+  private
+    function GetStream: Stream;
     Protected
       _URL:TERRAString;
       _FileName:TERRAString;
@@ -101,8 +103,12 @@ Type
       _Progress:Integer;
       _UpdateTime:Cardinal;
       _UserData:Pointer;
+
+      _FileSource:Stream;
+
+      {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
       _KeepAlive:Boolean;
-      _Stream:Stream;
+      {$ENDIF}
 
       _ChunkedTransfer:Boolean;
       _ClientName:TERRAString;
@@ -117,6 +123,8 @@ Type
 
       Procedure InitTransfer();
       Procedure RetryTransfer();
+
+      Property Source:Stream Read GetStream;
 
     Public
 
@@ -144,17 +152,21 @@ Type
       _DownloadCount:Integer;
 
 
+  {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
       _Connections:Array Of HTTPConnection;
       _ConnectionCount:Integer;
+  {$ENDIF}
 
       Function GetOverallProgress:Integer;
 
       Function GetConnection(Const HostName:TERRAString; Port:Integer):HTTPConnection;
 
+  {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
       Function HasDownloadsWithConnection(Connection:HTTPConnection):Boolean;
       Procedure InterruptConnections(Connection:HTTPConnection);
 
       Procedure ClearConnectionsToDownload(Download:HTTPDownloader);
+  {$ENDIF}
 
     Public
       Constructor Create;
@@ -291,8 +303,8 @@ Begin
       Exit;
     End;
 
-    _Stream := FileStream.Open(URL);
-    _TotalSize := _Stream.Size;
+    _FileSource := FileStream.Open(URL);
+    _TotalSize := Source.Size;
 
     _Downloading := (_Progress<100);
   End Else
@@ -321,92 +333,99 @@ Var
 Begin
   Result := False;
   _ChunkedTransfer := False;
-  _KeepAlive := False;
   _TotalSize := -1;
 
-  Len := _Stream.Read(_Buffer, BufferSize);
-  If Len>0 Then
-  Begin
-    SetLength(Response, Len);
-    Move(_Buffer^, Response[1], Len);
+  {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
+  _KeepAlive := False;
+  {$ENDIF}
 
-    Result := True;
-    _TotalSize := 0;
-
-    X:=0;
-    While Response<>'' Do
+  Repeat
+    Len := Source.Read(_Buffer, BufferSize);
+    If Len>0 Then
     Begin
-      I:=Pos(#10,Response);
-      If I=0 Then
-        I:=Length(Response);
+      SetLength(Response, Len);
+      Move(_Buffer^, Response[1], Len);
 
-      Value := StringTrim(StringCopy(Response,1,I));
-      If (Value='') Then
+      Result := True;
+      _TotalSize := 0;
+
+      X:=0;
+      While Response<>'' Do
       Begin
-        Response := Copy(Response, 3, MaxInt);
-        {If (Not Result) And (Not _ChunkedTransfer) Then
-        Begin
-          Result := True;
-        End;}
+        I:=Pos(#10,Response);
+        If I=0 Then
+          I:=Length(Response);
 
-        Break;
+        Value := StringTrim(StringCopy(Response,1,I));
+        If (Value='') Then
+        Begin
+          Response := Copy(Response, 3, MaxInt);
+          {If (Not Result) And (Not _ChunkedTransfer) Then
+          Begin
+            Result := True;
+          End;}
+
+          Break;
+        End;
+
+        Response := Copy(Response, Succ(I), Length(Response));
+
+        If Pos('404 Not Found', Value)>0 Then
+          Break;
+
+        I:=Pos(':',Value);
+        If (I=0)And(X>0) Then Break;
+
+        Tag := Copy(Value,1,Pred(I));
+        Value := StringCopy(Value, Succ(I), Length(Value));
+        Value := StringTrim(Value);
+
+        If (Tag<>'') Then
+        Begin
+          Inc(_TagCount);
+          SetLength(_Tags, _TagCount);
+          _Tags[Pred(_TagCount)].Name := Tag;
+          _Tags[Pred(_TagCount)].Value := Value;
+
+          If (StringEquals(Tag, 'set-cookie')) Then
+          Begin
+            Self._Cookie := StringGetNextSplit(Value, Ord(';'));
+          End;
+
+          If (StringEquals(Tag, 'connection')) Then
+          Begin
+            {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
+            If (StringEquals(Value, 'keep-alive')) Then
+              _KeepAlive := True
+            Else
+            If (StringEquals(Value, 'close')) Then
+              _Connection._Alive := False;
+            {$ELSE}
+              _Connection._Alive := False;
+            {$ENDIF}
+          End;
+
+          If (StringEquals(Tag, 'content-length')) Then
+          Begin
+            _TotalSize := StringToInt(Value);
+          End;
+
+          If (StringEquals(Tag, 'transfer-encoding')) Then
+          Begin
+            If (StringEquals(Value, 'chunked')) Then
+              _ChunkedTransfer := True;
+          End;
+        End;
+
+        Inc(X);
       End;
 
-      Response := Copy(Response, Succ(I), Length(Response));
-
-      If Pos('404 Not Found', Value)>0 Then
-        Break;
-
-      I:=Pos(':',Value);
-      If (I=0)And(X>0) Then Break;
-
-      Tag := Copy(Value,1,Pred(I));
-      Value := StringCopy(Value, Succ(I), Length(Value));
-      Value := StringTrim(Value);
-
-      If (Tag<>'') Then
-      Begin
-        Inc(_TagCount);
-        SetLength(_Tags, _TagCount);
-        _Tags[Pred(_TagCount)].Name := Tag;
-        _Tags[Pred(_TagCount)].Value := Value;
-
-        If (StringEquals(Tag, 'set-cookie')) Then
-        Begin
-          Self._Cookie := StringGetNextSplit(Value, Ord(';'));
-        End;
-
-        If (StringEquals(Tag, 'connection')) Then
-        Begin
-          {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
-          If (StringEquals(Value, 'keep-alive')) Then
-            _KeepAlive := True
-          Else
-          If (StringEquals(Value, 'close')) Then
-            _Connection._Alive := False;
-          {$ELSE}
-            _Connection._Alive := False;
-          {$ENDIF}
-        End;
-
-        If (StringEquals(Tag, 'content-length')) Then
-        Begin
-          _TotalSize := StringToInt(Value);
-        End;
-
-        If (StringEquals(Tag, 'transfer-encoding')) Then
-        Begin
-          If (StringEquals(Value, 'chunked')) Then
-            _ChunkedTransfer := True;
-        End;
-      End;
-
-      Inc(X);
+      _Response := Response;
+      SetLength(Response,0);
     End;
+  Until (Result) Or  (Source.EOF);
 
-    _Response := Response;
-    SetLength(Response,0);
-  End Else
+  If (Not Result) Then
   Begin
     _ErrorCode := httpConnectionInterrupted;
     Exit;
@@ -439,8 +458,9 @@ End;
 
 Procedure HTTPDownloader.ContinueTransfer(Count:Integer);
 Var
-  Len, Count2, Temp:Integer;
+  Len, Count2:Integer;
 Begin
+  {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
   If (Self._KeepAlive) Then
   Begin
     If (Assigned(_Connection)) Then
@@ -452,15 +472,16 @@ Begin
       Exit;
     End;
   End;
+  {$ENDIF}
 
-  While (Count>0) And (Not _Stream.EOF) Do
+  While (Count>0) And (Not Source.EOF) Do
   Begin
     Count2 := Count;
     If Count2>BufferSize Then
       Count2 := BufferSize;
 
     Log(logDebug, 'HTTP', 'Reading '+IntToString(Count2));
-    Len := _Stream.Read(_Buffer, Count2);
+    Len := Source.Read(_Buffer, Count2);
     Log(logDebug, 'HTTP', 'Got '+IntToString(Len));
     If Len>0 Then
     Begin
@@ -469,18 +490,18 @@ Begin
       Inc(_Read, Len);
       Dec(Count, Len);
 
-      If (_ChunkedTransfer) And (Count=0) Then
+      {If (_ChunkedTransfer) And (Count=0) Then
       Begin
-        Len := _Stream.Read(@Temp, 2);
+        Len := _Stream.ReadWord(Temp);
         IntToString(Len);
-      End;
+      End;}
     End;
   End;
 
   If (_ChunkedTransfer) Then
   Begin
     _TotalSize := _Read;
-    If (_Stream.EOF) Or (Count=0) Then
+    If (Source.EOF) Or (Count=0) Then
       _Progress := 100
     Else
       _Progress := 0;
@@ -510,7 +531,7 @@ Begin
 
   If (_ChunkedTransfer) Then
   Begin
-    Len := _Stream.Read(_Buffer, 20);
+    Len := Source.Read(_Buffer, 20);
     If (Len>0) Then
     Begin
       SetLength(_Response, Len);
@@ -545,18 +566,20 @@ Begin
   If Assigned(_Buffer) Then
     FreeMem(_Buffer);
 
-  If Assigned(_Stream) Then
+  If (Assigned(_Connection)) Then
   Begin
-    If (Assigned(_Connection)) Then
-    Begin
-      _Connection._LastUpdate := GetTime();
+  {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
+    _Connection._LastUpdate := GetTime();
+    _Connection._Alive := False;
+  {$ELSE}
+    ReleaseObject(_Connection);
+  {$ENDIF}
+  End;
 
-      If (Not Self._KeepAlive) Then
-      Begin
-        _Connection._Alive := False;
-      End;
-    End Else
-      _Stream.Release();
+  If Assigned(_FileSource) Then
+  Begin
+    Log(logDebug, 'HTTP', 'Releasing stream for '+URL);
+    ReleaseObject(_FileSource);
   End;
 End;
 
@@ -594,9 +617,8 @@ Begin
     Exit;
 
   _Connection._Target := Self;
-  Self._Stream := _Connection._Socket;
       
-  If (_Stream.EOF) Then
+  If (Source.EOF) Then
   Begin
     Log(logError, 'HTTP', 'Connection failed: '+URL);
     _ErrorCode := httpConnectionFailed;
@@ -625,7 +647,7 @@ Begin
   _Connection._LastUpdate := GetTime();
 
   N := Length(Request);
-  If (_Stream.Write(@Request[1], N)<N) Then
+  If (Source.Write(@Request[1], N)<N) Then
   Begin
     Self.RetryTransfer();
     Exit;
@@ -637,14 +659,12 @@ Begin
     _Downloading := (_TotalSize>=0) And (_Progress<100);
   End Else
   Begin
-    Log(logDebug, 'HTTP', 'Download failed: '+URL);
-    //Self.ReceiveHeader();
-
     If (_Connection._RequestCount>1) Then
     Begin
       Self.RetryTransfer();
       Exit;
-    End;
+    End Else
+      Log(logDebug, 'HTTP', 'Download failed: '+URL);
   End;
 End;
 
@@ -652,14 +672,26 @@ Procedure HTTPDownloader.RetryTransfer;
 Begin
   Self._ErrorCode := httpOK;
 
+  {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
   If Assigned(_Connection) Then
     _Connection._Alive := False;
+  {$ELSE}
+  ReleaseObject(_Connection);
+  {$ENDIF}
 
   Log(logDebug, 'HTTP', 'Retrying download: '+URL);
 
   _Connection := DownloadManager.Instance.GetConnection(_Hostname, _Port);
   Self.InitTransfer();
 End;
+
+Function HTTPDownloader.GetStream: Stream;
+Begin
+  If Assigned(_Connection) Then
+    Result := _Connection._Socket
+  Else
+    Result := Self._FileSource;
+end;
 
 { DownloadManager }
 Var
@@ -683,7 +715,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_DownloadCount) Do
-    _Downloads[I].Release;
+    ReleaseObject(_Downloads[I]);
 
   _DownloadManager_Instance := Nil;
 End;
@@ -698,7 +730,8 @@ Begin
 
   //Application.Instance.Yeld();
 
-  I:=0;
+  {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
+  I := 0;
   While (I<_ConnectionCount) Do
   Begin
     Remove := False;
@@ -718,12 +751,13 @@ Begin
     If (Remove) Then
     Begin
       Self.InterruptConnections(_Connections[I]);
-      _Connections[I].Release();
+      ReleaseObject(_Connections[I]);
       _Connections[I] := _Connections[Pred(_ConnectionCount)];
       Dec(_ConnectionCount);
     End Else
       Inc(I);
   End;
+  {$ENDIF}
 
   I:=0;
   While (I<_DownloadCount) Do
@@ -776,9 +810,11 @@ Begin
 
     If (Remove) Then
     Begin
+    {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
       Self.ClearConnectionsToDownload(_Downloads[I]);
+    {$ENDIF}
 
-      _Downloads[I].Release();
+      ReleaseObject(_Downloads[I]);
       For J:=I To (_DownloadCount-2) Do
         _Downloads[J] := _Downloads[Succ(J)];
 
@@ -888,7 +924,7 @@ End;
 Function DownloadManager.Post(URL:TERRAString; Port: Integer; Const ClientName:TERRAString):HTTPError;
 Var
   It:StringIterator;
-  Dest:Socket;
+  Dest:NetSocket;
   Protocol, Request, Data, HostName:TERRAString;
 Begin
   If StringPosIterator('://', URL, It) Then
@@ -933,7 +969,7 @@ Begin
 
   Request := Request + Data;
 
-  Dest := Socket.Create(HostName, Port);
+  Dest := NetSocket.Create(HostName, Port);
   If (Dest.EOF) Then
   Begin
     Log(logError, 'HTTP', 'Connection failed: '+URL);
@@ -943,7 +979,7 @@ Begin
 
   Log(logDebug, 'HTTP', 'Sending post request to '+URL);
   Dest.Write(@Request[1], Length(Request));
-  Dest.Release;
+  ReleaseObject(Dest);
 
   Result := httpOk;
 End;
@@ -951,7 +987,7 @@ End;
 Function DownloadManager.Put(URL:TERRAString; Source: Stream; Port: Integer; Const ClientName:TERRAString):HTTPError;
 Var
   I:Integer;
-  Dest:Socket;
+  Dest:NetSocket;
   Len:Integer;
   Protocol, Request, HostName:TERRAString;
   Response:TERRAString;
@@ -1003,7 +1039,7 @@ Begin
               'Content-Length: '+IntToString(Source.Size)+#13#10+
               #13#10;
 
-  Dest := Socket.Create(HostName, Port);
+  Dest := NetSocket.Create(HostName, Port);
   If (Dest.EOF) Then
   Begin
     Log(logError, 'HTTP', 'Connection failed: '+URL);
@@ -1025,7 +1061,7 @@ Begin
     If (Pos(' ',Response)>0) Then
       IntToString(2);
   End;
-  Dest.Release;
+  ReleaseObject(Dest);
 
 
   Result := httpOk;
@@ -1045,11 +1081,15 @@ Begin
   {$ENDIF}
 
   Result := HTTPConnection.Create(HostName, Port);
+
+  {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
   Inc(_ConnectionCount);
   SetLength(_Connections, _ConnectionCount);
   _Connections[Pred(_ConnectionCount)] := Result;
+  {$ENDIF}
 End;
 
+{$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
 Function DownloadManager.HasDownloadsWithConnection(Connection: HTTPConnection): Boolean;
 Var
   I:Integer;
@@ -1086,6 +1126,7 @@ Begin
     _Connections[I]._Target := Nil;
   End;
 End;
+{$ENDIF}
 
 { HTTPConnection }
 Constructor HTTPConnection.Create(const HostName: TERRAString; Port: Integer);
@@ -1097,7 +1138,7 @@ Begin
 
   Log(logDebug, 'HTTP', 'Opening connection to '+ _Host);
 
-  _Socket := Socket.Create(_Host, Port);
+  _Socket := NetSocket.Create(_Host, Port);
   _Socket.Blocking := True;
   
   _LastUpdate := GetTime();
@@ -1107,7 +1148,7 @@ Procedure HTTPConnection.Release;
 Begin
   Log(logDebug, 'HTTP', 'Closing connection to '+ _Host);
 
-  _Socket.Release();
+  ReleaseObject(_Socket);
   Log(logDebug, 'HTTP', 'Closed connection to '+ _Host);
 End;
 

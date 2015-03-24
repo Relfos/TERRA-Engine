@@ -32,7 +32,7 @@ Unit TERRA_Widgets;
 
 Interface
 Uses TERRA_String, TERRA_Utils, TERRA_UI, TERRA_Tween, TERRA_Vector2D, TERRA_Math, TERRA_Color,
-  TERRA_FileManager, TERRA_SpriteManager, TERRA_Texture, TERRA_Font, TERRA_Collections;
+  TERRA_FileManager, TERRA_SpriteManager, TERRA_Texture, TERRA_Font, TERRA_ClipRect, TERRA_Collections;
 
 Const
   layoutHorizontal = 0;
@@ -55,8 +55,6 @@ Type
       _OriginalValue:TERRAString;
 
     Public
-      DropShadow:Boolean;
-
       Procedure SetCaption(Value:TERRAString);
 
       Procedure UpdateRects; Override;
@@ -228,10 +226,6 @@ Type
   End;
 
   UISprite = Class(Widget)
-    Protected
-
-      //Function OnRegion(X,Y:Integer): Boolean; Override;
-
     Public
       Rect:TextureRect;
       Anchor:Vector2D;
@@ -406,9 +400,9 @@ Type
       _ListSlicesX:Integer;
       _ListSlicesY:Integer;
       _Content:List;
-      _Selected:ListObject;
+      _Selected:CollectionObject;
 
-      Function GetItem(Index:Integer):ListObject;
+      Function GetItem(Index:Integer):CollectionObject;
       Function GetItemAtIndex(X,Y:Integer):Integer;
 
       Procedure SetItemIndex(Const Value:Integer);
@@ -422,7 +416,6 @@ Type
       Procedure UpdateRects; Override;
 
 
-      //Function OnRegion(X,Y:Integer): Boolean; Override;
       Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
       Function OnMouseMove(X,Y:Integer):Boolean; Override;
 
@@ -431,8 +424,8 @@ Type
       Procedure Select(Const Value:TERRAString);
 
       Property ItemIndex:Integer Read _ItemIndex Write SetItemIndex;
-      Property Items[Index:Integer]:ListObject Read GetItem;
-      Property Selected:ListObject Read _Selected;
+      Property Items[Index:Integer]:CollectionObject Read GetItem;
+      Property Selected:CollectionObject Read _Selected;
   End;
 
   UIEditText = Class(UICaption)
@@ -457,6 +450,8 @@ Type
       _KoreanMedialJamo:Integer;
       _KoreanFinalJamo:Integer;
 
+      _InsideEvent:Boolean;
+      
       Procedure UpdateJamos();
 
       Function UpdateTransform():Boolean; Override;
@@ -466,13 +461,13 @@ Type
 
     Public
       OnEnter:WidgetEventHandler;
+      OnChange:WidgetEventHandler;
       PasswordField:Boolean;
       TextColor:Color;
       Centered:Boolean;
 
       Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Width:Integer; Skin:TERRAString=''; TabIndex:Integer=-1);
-      Procedure Release; Override;
-
+      
       Procedure Render; Override;
       Procedure UpdateRects; Override;
 
@@ -580,7 +575,7 @@ Begin
 
   If (_NeedsUpdate) Or (Fnt<>_PreviousFont) Then
   Begin
-    _TextRect := Fnt.GetTextRect(_Caption, 1.0);
+    _TextRect := _FontRenderer.GetTextRect(_Caption, 1.0);
     _PreviousFont := Fnt;
     _NeedsUpdate := False;
   End;
@@ -589,9 +584,8 @@ End;
 { UIWindow }
 Constructor UIWindow.Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Width, Height:Integer; ComponentBG:TERRAString);
 Begin
-  Self._Visible := True;
-  Self._Name := Name;
-  Self._Parent := Parent;
+  Inherited Create(Name, UI, Parent);
+
   Self.SetPosition(VectorCreate2D(X,Y));
   Self._Layer := Z;
   Self._Width := Width;
@@ -602,7 +596,6 @@ Begin
 
   Self.LoadComponent(ComponentBG);
   Self.Selectable := True;
-  UI.AddWidget(Self);
 
   If (Length(_ComponentList)>0) Then
   Begin
@@ -761,15 +754,13 @@ End;
 
 Constructor UIButton.Create(Name:TERRAString;  UI:UI;Parent:Widget; X,Y,Z:Single; Caption:TERRAString; Skin:TERRAString; TabIndex:Integer);
 Begin
-  Self._Visible := True;
+  Inherited Create(Name, UI, Parent);
   Self._TabIndex := TabIndex;
-  Self._Name := Name;
-  Self._Parent := Parent;
+
   Self.SetCaption(Caption);
   Self.SetPosition(VectorCreate2D(X,Y));
   Self._Layer := Z;
   Self.TextColor := ColorWhite;
-  Self.DropShadow := True;
 
   If Skin = '' Then
     Skin := 'ui_button';
@@ -784,8 +775,6 @@ Begin
     Self.LoadComponent(Skin+'_over');
   End Else
     Self.LoadComponent(Skin);
-
-  UI.AddWidget(Self);
 
   If (Length(_ComponentList)>0) Then
   Begin
@@ -842,7 +831,7 @@ Begin
     TX := (Self._Width - _TextRect.X) * 0.5;
     TY := (Self._Height - _TextRect.Y) * 0.5;
 
-    Self.DrawText(_Caption, VectorCreate(TX, TY, 0.25), Self.TextColor, 1.0, Self.DropShadow);
+    Self.DrawText(_Caption, VectorCreate(TX, TY, 0.25), Self.TextColor, 1.0);
   End;
 
   Inherited;
@@ -923,7 +912,7 @@ Begin
   W := _Texture.Width;
   H := (_Size.Y - _Texture.Height) * 0.5;
   Pos := Self.GetAbsolutePosition();
-  SpriteManager.Instance.DrawSprite(Pos.X + (_Width-W) * 0.5, H + Offset + Pos.Y, 100-(Layer+0.5), _Texture, Nil, BlendBlend, Saturation, BilinearFilter);
+  SpriteManager.Instance.DrawSprite(Pos.X + (_Width-W) * 0.5, H + Offset + Pos.Y, Layer+0.5, _Texture, Nil, BlendBlend, Saturation, BilinearFilter);
 End;
 
 Procedure UISpriteButton.SetTexture(Tex: Texture);
@@ -935,10 +924,10 @@ Constructor UIIcon.Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; 
 Var
   Base:TERRAString;
 Begin
-  Self._Visible := True;
+  Inherited Create(Name, UI, Parent);
+
   Self._TabIndex := TabIndex;
-  Self._Name := Name;
-  Self._Parent := Parent;
+
   Self.SetPosition(VectorCreate2D(X,Y));
   Self._Layer := Z;
 
@@ -957,9 +946,6 @@ Begin
     Self.LoadComponent(Icon+'_over');
   End Else
     Self.LoadComponent(Icon);
-
-  Log(logDebug, 'Game', 'Adding widget');
-  UI.AddWidget(Self);
 
   Log(logDebug, 'Game', 'Getting length');
   If Length(Self._ComponentList)>0 Then
@@ -1036,20 +1022,17 @@ End;
 
 Constructor UILabel.Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:TERRAString; TabIndex:Integer);
 Begin
-  Self._Visible := True;
+  Inherited Create(Name, UI, Parent);
+
   Self._TabIndex := TabIndex;
-  Self._Name := Name;
-  Self._Parent := Parent;
+
   Self.SetPosition(VectorCreate2D(X,Y));
   Self._Layer := Z;
   Self._Width := 0;
   Self._Height := 0;
-  Self.DropShadow := True;
 
   Self.SetCaption(Caption);
   _NeedsUpdate := True;
-
-  UI.AddWidget(Self);
 End;
 
 
@@ -1130,9 +1113,9 @@ Begin
     Self.UpdateHighlight();
 
   Color := Self.GetColor;
-  Color.R := Self._Color.R;
+  {Color.R := Self._Color.R;
   Color.G := Self._Color.G;
-  Color.B := Self._Color.B ;
+  Color.B := Self._Color.B ;}
 
 {  If (_RevealTime = 0) Or (Self.Font = Nil) Then
     RevealCount := 9999
@@ -1160,7 +1143,8 @@ Begin
   End;}
 
   //RevealCount, {TODO}!!!
-  Self.DrawText(_Caption, VectorZero, Color, Scale,  Self.DropShadow);
+
+  Self.DrawText(_Caption, VectorZero, Color, Scale);
 
   Inherited;
 End;
@@ -1169,22 +1153,20 @@ End;
 { UICheckBox }
 Constructor UICheckBox.Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:TERRAString; Skin:TERRAString; TabIndex:Integer);
 Begin
-  Self._Visible := True;
+  Inherited Create(Name, UI, Parent);
+
   Self._TabIndex := TabIndex;
-  Self._Name := Name;
-  Self._Parent := Parent;
+
   Self.SetCaption(Caption);
   Self.SetPosition(VectorCreate2D(X,Y));
   Self._Layer := Z;
   Self._Checked := False;
-  Self.DropShadow := True;
 
   If Skin = '' Then
     Skin := 'ui_checkbox';
 
   Self.LoadComponent(Skin+'_on');
   Self.LoadComponent(Skin+'_off');
-  UI.AddWidget(Self);
 
   If (Length(_ComponentList)>0) Then
   Begin
@@ -1267,25 +1249,17 @@ Begin
 
   {If (Self.IsHighlighted()) Then
     S := '\w'+S;}
-  Self.DrawText(_Caption, VectorCreate(_Width + CheckBoxPixelOfs, (_Size.Y - _TextRect.Y) * 0.5, 5.0), GetColor, Scale, Self.DropShadow);
+  Self.DrawText(_Caption, VectorCreate(_Width + CheckBoxPixelOfs, (_Size.Y - _TextRect.Y) * 0.5, 5.0), GetColor, Scale);
 
   Inherited;
 End;
 
 Constructor UIRadioButton.Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:TERRAString; TabIndex:Integer);
 Begin
-  Self._Visible := True;
-  Self._TabIndex := TabIndex;
-  Self._Name := Name;
-  Self._Parent := Parent;
-  Self.SetCaption(Caption);
-  Self.SetPosition(VectorCreate2D(X,Y));
-  Self._Layer := Z;
-  Self._Checked := False;
+  Inherited Create(Name, UI, Parent, X, Y, Z, Caption);
 
   Self.LoadComponent('ui_radiobox_on');
   Self.LoadComponent('ui_radiobox_off');
-  UI.AddWidget(Self);
 
   If (Length(_ComponentList)>0) Then
   Begin
@@ -1311,9 +1285,8 @@ Var
   I:Integer;
   W:Widget;
   RB:UIRadioButton;
-  It:Iterator;
 Begin
-  If (_Checked = Value) Then
+  If (_Checked = Value) Or (Not Value) Then
     Exit;
 
   _Checked := Value;
@@ -1326,31 +1299,31 @@ Begin
   If Assigned(OnMouseClick) Then
     OnMouseClick(Self);
 
-  It := UI.Widgets.CreateIterator;
-  While It.HasNext Do
+  If Parent = Nil Then
+    Exit;
+
+  For I:=0 To Pred(Parent.ChildrenCount) Do
   Begin
-    W := Widget(It.GetNext());
+    W := Widget(Parent.GetChild(I));
+    If W = Self Then
+      Continue;
+
     If (W Is UIRadioButton) Then
     Begin
-      If (W.Name = Self.Name) Then
-        Continue;
-
       RB := UIRadioButton(W);
       If (RB.Group = Self.Group) Then
-        RB.SetChecked(Not Value);
+        RB._Checked := False;
     End;
   End;
-
-  It.Release;
 End;
 
 
 Constructor UISlider.Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; TabIndex:Integer);
 Begin
-  Self._Visible := True;
+  Inherited Create(Name, UI, Parent);
+
   Self._TabIndex := TabIndex;
-  Self._Name := Name;
-  Self._Parent := Parent;
+
   Self._Value := 0.0;
   Self._Max := 100;
   Self.SetPosition(VectorCreate2D(X,Y));
@@ -1358,7 +1331,6 @@ Begin
 
   Self.LoadComponent('ui_slider1');
   Self.LoadComponent('ui_slider2');
-  UI.AddWidget(Self);
 
   If (Length(_ComponentList)>0) And (Assigned(_ComponentList[0])) And (Assigned(Self._ComponentList[0].Buffer)) Then
   Begin
@@ -1408,7 +1380,7 @@ Var
   Pos:Vector2D;
 Begin
   Pos := Self.GetAbsolutePosition();
-  Result := (X>=Pos.X) And (X<=Pos.X+_Width) And (Y>=Pos.Y-16) And (Y<=Pos.Y+16);
+  Result := (_Enabled) And (X>=Pos.X) And (X<=Pos.X+_Width) And (Y>=Pos.Y-16) And (Y<=Pos.Y+16);
 End;
 
 Function UISlider.OnMouseDown(X,Y:Integer;Button:Word):Boolean;
@@ -1453,10 +1425,10 @@ Constructor UIScrollBar.Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Sin
 Var
   S, HandleTex:TERRAString;
 Begin
-  Self._Visible := True;
+  Inherited Create(Name, UI, Parent);
+
   Self._TabIndex := TabIndex;
-  Self._Name := Name;
-  Self._Parent := Parent;
+
   Self._Value := 0.0;
   Self._Max := 100;
   Self.SetPosition(VectorCreate2D(X,Y));
@@ -1473,8 +1445,6 @@ Begin
 
   Self.LoadComponent(HandleTex);
   Self.LoadComponent('ui_slider_bg_'+S);
-
-  UI.AddWidget(Self);
 
   _Handle := UIScrollBarHandle.Create(Name+'_handle', UI, Self, 0, 0, 1, HandleTex);
   Self.AddChild(_Handle);
@@ -1692,10 +1662,9 @@ End;
 { UIProgressBar }
 Constructor UIProgressBar.Create(Name:TERRAString; UI:UI; Parent:Widget; X, Y, Z: Single; Skin:TERRAString; TabIndex:Integer);
 Begin
-  Self._Visible := True;
+  Inherited Create(Name, UI, Parent);
+
   Self._TabIndex := TabIndex;
-  Self._Name := Name;
-  Self._Parent := Parent;
   Self._Percent := 0;
 
   Self.SetPosition(VectorCreate2D(X,Y));
@@ -1705,7 +1674,6 @@ Begin
     Skin := 'ui_progressbar';
 
   Self.LoadComponent(Skin);
-  UI.AddWidget(Self);
 
   If (Length(_ComponentList)>0) And (Assigned(_ComponentList[0])) And (Assigned(Self._ComponentList[0].Buffer)) Then
   Begin
@@ -1762,9 +1730,8 @@ End;
 
 Constructor UIComboBox.Create(Name:TERRAString; UI:UI; Parent:Widget; X, Y, Z: Single; Width:Integer; TabIndex:Integer);
 Begin
-  Self._Visible := True;
-  Self._Name := Name;
-  Self._Parent := Parent;
+  Inherited Create(Name, UI, Parent);
+
   Self.SetPosition(VectorCreate2D(X,Y));
   Self._Layer := Z;
 
@@ -1796,8 +1763,6 @@ Begin
     _ListSlicesX := Trunc(_ListWidth*0.5);
     _ListSlicesY := Trunc(_ListHeight*0.5);
   End;
-
-  UI.AddWidget(Self);
 End;
 
 Procedure UIComboBox.SetContent(Content:List);
@@ -1808,7 +1773,7 @@ Begin
   _ItemHighlight := -1;
 End;
 
-Function UIComboBox.GetItem(Index: Integer):ListObject;
+Function UIComboBox.GetItem(Index: Integer):CollectionObject;
 Begin
   If (_Content<>Nil) And (Index>=0) And (Index<_Content.Count) Then
     Result := _Content.GetItemByIndex(Index)
@@ -1909,7 +1874,7 @@ Var
   LW,YY:Integer;
   I,J:Integer;
   MyColor:TERRA_Color.Color;
-  P:ListObject;
+  P:CollectionObject;
   ZOfs:Single;
   S:TERRAString;
 Begin
@@ -2006,7 +1971,7 @@ End;
 
 Procedure UIComboBox.Select(const Value: TERRAString);
 Var
-  P:ListObject;
+  P:CollectionObject;
   I:Integer;
 Begin
   I := 0;
@@ -2026,16 +1991,13 @@ End;
 { UIEditText }
 Constructor UIEditText.Create(Name:TERRAString; UI:UI; Parent:Widget; X, Y, Z: Single; Width:Integer; Skin:TERRAString; TabIndex:Integer);
 Begin
-  Self._Visible := True;
-  Self._Name := Name;
-  Self._Parent := Parent;
+  Inherited Create(Name, UI, Parent);
+
   Self.SetPosition(VectorCreate2D(X,Y));
   Self._Layer := Z;
 
   If Skin = '' Then
     Skin := 'ui_edit';
-
-  UI.AddWidget(Self);
 
   Self._TabIndex := TabIndex;
   Self.LoadComponent(Skin);
@@ -2055,8 +2017,6 @@ Begin
   Self._KoreanInitialJamo := -1;
   Self._KoreanMedialJamo := -1;
   Self._KoreanFinalJamo := -1;
-
-  Self._Clip := TERRA_SpriteManager.ClipRect.Create();
 
   If (Length(_ComponentList)>0) Then
   Begin
@@ -2253,8 +2213,8 @@ Begin
     End Else
       S := _Lines[J];
 
-    Tx := Self.Font.GetTextRect(S, 1.0);
-    Tx.Y := Self.Font.GetTextHeight('W', 1.0);
+    Tx := _FontRenderer.GetTextRect(S, 1.0);
+    Tx.Y := _FontRenderer.GetTextHeight('W', 1.0);
 
     If (UI.Focus = Self) And (J=_LineIndex) And (Blink(200)) Then
       S := S +'_';
@@ -2264,18 +2224,18 @@ Begin
     Else
       X := 10;
 
-    Self.DrawText(S, VectorCreate(X-_ScrollIndex, _Height * J + (_Height-Tx.Y)*0.5, 1.0), ColorScale(Self.TextColor, 0.75), Scale, False);
+    Self.DrawText(S, VectorCreate(X-_ScrollIndex, _Height * J + (_Height-Tx.Y)*0.5, 1.0), ColorScale(Self.TextColor, 0.75), Scale);
   End;
 
   If (Caption<>'') And (Count = 0) Then
   Begin
-    Tx := Self.Font.GetTextRect(Caption, 1.0);
+    Tx := _FontRenderer.GetTextRect(Caption, 1.0);
     If (Centered) Then
       X := (Self.Size.X-Tx.X)*0.5
     Else
       X := 10;
 
-    Self.DrawText(Caption, VectorCreate(X, (Self.Size.Y-Tx.Y)*0.5, 1.0), ColorScale(Self.TextColor, 0.75), Scale, False);
+    Self.DrawText(Caption, VectorCreate(X, (Self.Size.Y-Tx.Y)*0.5, 1.0), ColorScale(Self.TextColor, 0.75), Scale);
   End;
 
   Inherited;
@@ -2310,7 +2270,7 @@ Var
   It:Iterator;
   Wd:Widget;
 Begin
-  If (Not Self.Visible) Then
+  If (Not Self.Visible) Or (Self.HasTweens()) Then
   Begin
     Result := False;
     Exit;
@@ -2329,7 +2289,7 @@ Begin
 
   If (Key = keyBackspace) Then
   Begin
-    W := Self.Font.GetTextWidth(_Lines[_LineIndex]);
+    W := _FontRenderer.GetTextWidth(_Lines[_LineIndex]);
 
     If (_KoreanFinalJamo>=0) Then
     Begin
@@ -2372,7 +2332,7 @@ Begin
       Begin
         Dec(_LineIndex);
         ChangedLine := True;
-        W := Self.Font.GetTextWidth(_Lines[_LineIndex]);
+        W := _FontRenderer.GetTextWidth(_Lines[_LineIndex]);
         If (W>_Width*32) Then
           _ScrollIndex := W - (_Width*32)
         Else
@@ -2380,7 +2340,7 @@ Begin
       End;
     End;
 
-    W2 := Self.Font.GetTextWidth(_Lines[_LineIndex]);
+    W2 := _FontRenderer.GetTextWidth(_Lines[_LineIndex]);
     If (Not ChangedLine) And (_ScrollIndex>0) And (W2<W) Then
       _ScrollIndex := _ScrollIndex - (W-W2);
   End Else
@@ -2399,7 +2359,7 @@ Begin
   If (Key = keyTab) Then
   Begin
     Found := False;
-    It := UI.Widgets.CreateIterator();
+    It := UI.Widgets.GetIterator();
     While It.HasNext Do
     Begin
       Wd := Widget(It.GetNext());
@@ -2410,11 +2370,11 @@ Begin
         Break;
       End;
     End;
-    It.Release();
+    ReleaseObject(It);
 
     If Not Found Then
     Begin
-      It := UI.Widgets.CreateIterator();
+      It := UI.Widgets.GetIterator();
       While It.HasNext Do
       Begin
         Wd := Widget(It.GetNext());
@@ -2425,7 +2385,7 @@ Begin
           Break;
         End;
       End;
-      It.Release();
+      ReleaseObject(It);
     End;
   End Else
   Begin
@@ -2433,7 +2393,7 @@ Begin
 
     If (Assigned(Self.Font)) Then
     Begin
-      W := Self.Font.GetTextWidth(_Lines[_LineIndex]);
+      W := _FontRenderer.GetTextWidth(_Lines[_LineIndex]);
 
       If (_KoreanInitialJamo<0) Or (_KoreanFinalJamo>=0) Then
       Begin
@@ -2469,11 +2429,19 @@ Begin
         StringAppendChar(_Lines[_LineIndex], Key);
       End;
 
-      W2 := Self.Font.GetTextWidth(_Lines[_LineIndex]);
+      W2 := _FontRenderer.GetTextWidth(_Lines[_LineIndex]);
       If (W2>_Width*32) And (W2>W) Then
         _ScrollIndex := _ScrollIndex + (W2-W);
     End;
   End;
+
+  If (Assigned(OnChange)) And (Not _InsideEvent) Then
+  Begin
+    _InsideEvent := True;
+    OnChange(Self);
+    _InsideEvent := False;
+  End;
+
   Result := True;
 End;
 
@@ -2523,6 +2491,12 @@ End;
 Procedure UIEditText.SetCurrentLine(const Value:TERRAString);
 Begin
   _Lines[_LineIndex] := ConvertFontCodes(Value);
+  If (Assigned(OnChange)) And (Not _InsideEvent) Then
+  Begin
+    _InsideEvent := True;
+    OnChange(Self);
+    _InsideEvent := False;
+  End;
 End;
 
 Procedure UIEditText.StartHighlight;
@@ -2535,21 +2509,13 @@ Begin
   _SelectedColor := ColorWhite;
 End;
 
-Procedure UIEditText.Release;
-Begin
-  ReleaseObject(Self._Clip);
-
-  Inherited;
-End;
-
 { UILayout }
 Constructor UILayout.Create(Name:TERRAString; UI:UI; X,Y,Z:Single; Width,Height, LayoutMode:Integer; TabIndex:Integer=-1);
 Begin
+  Inherited Create(Name, UI, Parent);
+
   RemoveHint(LayoutMode);
-  
-  Self._Visible := True;
-  Self._Name := Name;
-  Self._Parent := Parent;
+
   Self.SetPosition(VectorCreate2D(X,Y));
   Self._Layer := Z;
 
@@ -2558,10 +2524,7 @@ Begin
   Self._Height := Height;
   Self.VerticalSpacing := 10;
   Self.HorizontalSpacing := 10;
-  UI.AddWidget(Self);
 End;
-
-
 
 {Procedure UILayout.Render;
 Var
@@ -2717,15 +2680,13 @@ End;
 { UISprite }
 Constructor UISprite.Create(Name:TERRAString; UI:UI; Parent:Widget; X, Y, Z: Single;  Picture:TERRAString; TabIndex: Integer);
 Begin
-  Self._Visible := True;
+  Inherited Create(Name, UI, Parent);
+
   Self._TabIndex := TabIndex;
-  Self._Name := Name;
-  Self._Parent := Parent;
+
   Self.SetPosition(VectorCreate2D(X,Y));
   Self._Layer := Z;
   Self.BilinearFilter := False;
-
-  UI.AddWidget(Self);
 
   Self.Rect.U1 := 0;
   Self.Rect.U2 := 1.0;
@@ -2804,13 +2765,11 @@ Var
   ID:Integer;
   MyColor:TERRA_Color.Color;
   S:Sprite;
-  Temp, Pos, Center:Vector2D;
-  OfsX, OfsY, Layer:Single;
+  Temp, Pos, Center, TC1, TC2:Vector2D;
+  OfsX, OfsY:Single;
 Begin
   Self.UpdateRects();
   Self.UpdateTransform();
-
-  Layer := Self.GetLayer;
 
   If (Not DisableHighlights) And (Assigned(Self.OnMouseClick)) Then
     Self.UpdateHighlight();
@@ -2849,13 +2808,13 @@ Begin
   Center.Y := Center.Y * _Pivot.Y * Scale;
   Center.Add(Pos);
 
-  S := SpriteManager.Instance.DrawSprite(Pos.X, Pos.Y, 100-Layer, Rect.Texture, Nil, BlendBlend, Self.GetSaturation(), BilinearFilter);
+  S := SpriteManager.Instance.DrawSprite(Pos.X, Pos.Y, Self.GetLayer(), Rect.Texture, Nil, BlendBlend, Self.GetSaturation(), BilinearFilter);
   S.Anchor := Anchor;
   S.SetColor(MyColor);
   S.Rect := Rect;
   S.SetTransform(_Transform);
   S.Flip := Self.Flip;
-  S.ClipRect := Self.ClipRect;
+  S.ClipRect := Self.GetClipRect();
   S.Mirror := Self.Mirror;
 
   Inherited;
@@ -2897,15 +2856,14 @@ End;
 { UITooltip }
 Constructor UITooltip.Create(Name: TERRAString; UI: UI; Parent: Widget; X, Y, Z: Single; Caption, Skin:TERRAString);
 Begin
-  Self._Visible := True;
+  Inherited Create(Name, UI, Parent);
+
   Self._TabIndex := -1;
-  Self._Name := Name;
-  Self._Parent := Parent;
+
   Self.SetPosition(VectorCreate2D(X,Y));
   Self._Layer := Z;
   Self._Width := 0;
   Self._Height := 0;
-  Self.DropShadow := True;
 
   Self.SetCaption(Caption);
   _NeedsUpdate := True;
@@ -2914,8 +2872,6 @@ Begin
     Skin := 'ui_tooltip';
 
   Self.LoadComponent(Skin);
-  UI.AddWidget(Self);
-
   If (Length(_ComponentList)>0) Then
   Begin
     _Width := Self._ComponentList[0].Buffer.Width;
@@ -2939,7 +2895,7 @@ Begin
   TX := (Self._Size.X - _TextRect.X) * 0.5;
   TY := (Self._Size.Y - _TextRect.Y) * 0.5;
 
-  Self.DrawText(_Caption, VectorCreate(TX, TY, 0.25), MyColor, 1.0, Self.DropShadow);
+  Self.DrawText(_Caption, VectorCreate(TX, TY, 0.25), MyColor, 1.0);
 End;
 
 Procedure UITooltip.UpdateRects;
@@ -2951,10 +2907,10 @@ End;
 { UITabList }
 Constructor UITabList.Create(Name: TERRAString; UI: UI; Parent: Widget; X, Y, Z: Single; ComponentBG: TERRAString);
 Begin
-  Self._Visible := True;
-  Self._Name := Name;
-  Self._Parent := Parent;
+  Inherited Create(Name, UI, Parent);
+
   Self.SetPosition(VectorCreate2D(X,Y));
+
   Self._Layer := Z;
   Self._TabIndex := -1;
   {Self._Width := Width;
@@ -2965,7 +2921,6 @@ Begin
 
   Self.LoadComponent(ComponentBG+'_on');
   Self.LoadComponent(ComponentBG+'_off');
-  UI.AddWidget(Self);
 
   If Assigned(Parent) Then
     Parent.TabControl := Self;
@@ -3118,8 +3073,8 @@ Begin
       Add := _TabHeightOn - _TabHeightOff;
     End;
 
-    Rect := Fnt.GetTextRect(_Tabs[I].Caption);
-    Self.DrawText(_Tabs[I].Caption, VectorCreate(X + ((WW-Rect.X) * 0.5), Add + (HH - Rect.Y) * 0.5, 1.0), MyColor, Scale, True, Fnt);
+    Rect := _FontRenderer.GetTextRect(_Tabs[I].Caption);
+    Self.DrawText(_Tabs[I].Caption, VectorCreate(X + ((WW-Rect.X) * 0.5), Add + (HH - Rect.Y) * 0.5, 1.0), MyColor, Scale, Fnt);
 
     X := X + WW;
   End;

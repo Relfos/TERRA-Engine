@@ -39,7 +39,7 @@ Uses TERRA_String, TERRA_Utils, TERRA_Collections
 {$ELSE}, SysUtils{$ENDIF};
 
 Type
-  FileInfo = Class(ListObject)
+  FileInfo = Class(CollectionObject)
     Public
       Name:TERRAString;
       Path:TERRAString;
@@ -49,9 +49,8 @@ Type
       Function ToString():TERRAString; Override;
 
     Protected
-      Procedure CopyValue(Other:ListObject); Override;
-      Function Sort(Other:ListObject):Integer; Override;
-      Function GetHashKey():HashKey; Override;
+      Procedure CopyValue(Other:CollectionObject); Override;
+      Function Sort(Other:CollectionObject):Integer; Override;
 
     Public
       Function FullPath():TERRAString;
@@ -82,7 +81,7 @@ Begin
 End;
 
 
-Procedure FileInfo.CopyValue(Other:ListObject);
+Procedure FileInfo.CopyValue(Other:CollectionObject);
 Begin
   Self.Name := FileInfo(Other).Name;
   Self.Path := FileInfo(Other).Path;
@@ -90,14 +89,9 @@ Begin
   Self.Size := FileInfo(Other).Size;
 End;
 
-Function FileInfo.Sort(Other:ListObject):Integer;
+Function FileInfo.Sort(Other:CollectionObject):Integer;
 Begin
   Result := GetStringSort(Self.ToString(), FileInfo(Other).ToString());
-End;
-
-Function FileInfo.GetHashKey():HashKey;
-Begin
-  Result := GetStringHashKey(Self.ToString());
 End;
 
 {$UNDEF HAS_IMPLEMENTATION}
@@ -195,7 +189,7 @@ End;
 Function Search(Path:TERRAString; Filter:TERRAString; SearchSubDirectories:Boolean; Level:Integer):List;
 Var
   Folders, Temp:List;
-  It:ListObject;
+  It:CollectionObject;
 Begin
   Result := List.Create();
 

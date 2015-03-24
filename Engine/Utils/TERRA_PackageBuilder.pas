@@ -28,12 +28,8 @@ Type
 
       // Sorts package file table
       Procedure SortFileTable();
-      Procedure QuickSort(iLo,iHi:Integer);
-
+      
     Public
-      // Create a new empty package
-      Constructor Create();
-
       // Save package contents
       Function Save(Const FileName:TERRAString):Boolean;
 
@@ -69,31 +65,27 @@ Begin
   Header := TERRAHeader;
   Dest.Seek(0);
   Dest.WriteHeader(Header); //Write the tagheader to the file
-  Dest.WriteInteger(_ResourceCount); //Write tablesize
+  Dest.WriteInteger(Resources.Count); //Write tablesize
   Dest.WriteCardinal(_TableOffset); //Write table offset
 End;
 
 Procedure PackageBuilder.WriteTable(Dest:Stream);
 Var
-  I:Integer;
+  It:Iterator;
   Resource:ResourceInfo;
 Begin
   SortFileTable();
 
   _TableOffset := Dest.Position;
-  For I:=0 To Pred(_ResourceCount) Do
+  It := Self.Resources.GetIterator();
   Begin
-    Resource := _Resources[I];
+    Resource := ResourceInfo(It.GetNext());
     Dest.WriteString(Resource.FileName);  // Write resource name
     Dest.WriteCardinal(Resource.Offset); // Write offset of the resource
     Dest.WriteCardinal(Resource.Size);   // Write size of the resource
     Dest.WriteCardinal(Resource.CRC); // Write CRC
   End;
-End;
-
-Constructor PackageBuilder.Create();
-Begin
-     _ResourceCount := 0;
+  ReleaseObject(It);
 End;
 
 Function PackageBuilder.Save(Const FileName:TERRAString):Boolean;
@@ -115,7 +107,7 @@ Begin
   Result := True;
 End;
 
-Procedure PackageBuilder.QuickSort(iLo,iHi:Integer);
+(*Procedure PackageBuilder.QuickSort(iLo,iHi:Integer);
 Var
   Lo, Hi: Integer;
   Temp, Mid:ResourceInfo;
@@ -141,14 +133,14 @@ Begin
       QuickSort(iLo, Hi);
     If Lo < iHi Then
       QuickSort(Lo, iHi);
-End;
+End;*)
 
 // Sort files in package
 // First textures, then models and materials
 Procedure PackageBuilder.SortFileTable;
 Begin
   // Sort by offsets
-  QuickSort(0, Pred(_ResourceCount));
+//  QuickSort(0, Pred(_ResourceCount));
 End;
 
 // Adds a resource to the package
@@ -169,39 +161,40 @@ Begin
 
   Result := ResourceBuilderInfo.Create(ResourceFileName, Self);
 
-  Inc(_ResourceCount);
-  SetLength(_Resources, _ResourceCount);
-  _Resources[Pred(_ResourceCount)] := Result;
+  Resources.Add(Result)
 End;
 
 //Removes a resource from the package
 Procedure PackageBuilder.DeleteResource(Resource:ResourceInfo);
 Var
-  I:Integer;
+  It:Iterator;
+  Res:ResourceInfo;
 Begin
-  Assert(Assigned(Resource),'Package.DeleteResource(): Null resource.');
-
   Log(logDebug,'Package', 'Deleting resource '+Resource.FileName);
 
-  I:=0;
-  While I<_ResourceCount Do
-  If StringEquals(_Resources[I].FileName, Resource.FileName) Then
+  It := Self.Resources.GetIterator();
+  While It.HasNext() Do
   Begin
-    _Resources[I].Release();
-    _Resources[I] := _Resources[Pred(_ResourceCount)];
-    Dec(_ResourceCount);
-    Break;
-  End Else
-    Inc(I);
-End;
-
-Procedure PackageBuilder.WriteResources(Dest: Stream);Var  I:Integer;Begin
-  For I:=0 To Pred(_ResourceCount) Do
-  If (_Resources[I] Is ResourceBuilderInfo) Then
-  Begin
-    _Resources[I].Offset := Dest.Position;
-    ResourceBuilderInfo(_Resources[I])._Data.Copy(Dest);
+    Res := ResourceInfo(It.GetNext());
+    If StringEquals(Res.FileName, Resource.FileName) Then
+      Res.Discard();
   End;
+  ReleaseObject(It);
 End;
 
-End.
+Procedure PackageBuilder.WriteResources(Dest: Stream);
+Var
+  It:Iterator;
+  Resource:ResourceBuilderInfo;
+Begin
+  It := Self.Resources.GetIterator();
+  While It.HasNext() Do
+  Begin
+    Resource := ResourceBuilderInfo(It.GetNext());
+    Resource.Offset := Dest.Position;
+    Resource._Data.Copy(Dest);
+  End;
+  ReleaseObject(It);
+End;
+
+End.

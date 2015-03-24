@@ -49,7 +49,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_FileStream, TERRA_MemoryStream, TERRA_Log, TERRA_Application,
-    TERRA_Color, TERRA_Vector3D;
+    TERRA_Color, TERRA_Vector3D, TERRA_InputManager;
 
 // LINIParser
 

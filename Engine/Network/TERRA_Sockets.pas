@@ -22,42 +22,28 @@
  ***********************************************************************************************************************
 }
 
+{
+OSX -> disable sigpipe
+Arg := 1;
+setsockopt(FHandle, SOL_SOCKET, SO_NOSIGPIPE, @Arg, Sizeof(Arg)
+SO_NOSIGPIPE = $1022;
+}
+
 Unit TERRA_Sockets;
 {$I terra.inc}
 
 {-$DEFINE NETDEBUG}
 
-{$IFDEF WINDOWS}{$UNDEF ANDROID}{$ENDIF}
+{$IFDEF WINDOWS}{$UNDEF ANDROID}
+{$ELSE}
+{$DEFINE USE_FPC_SOCKETS}
+{$ENDIF}
+
 
 Interface
 Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_OS
+{$IFDEF USE_FPC_SOCKETS}, Sockets, BaseUnix{$ENDIF}
 {$IFDEF ANDROID},TERRA_Java{$ENDIF};
-
-Const
-  PACKET_SIZE = 1024;
-
-Const
-  // Socketlib constants
-  PF_INET           = 2;      // Internet address format
-  SOCK_STREAM       = 1;      // TCP format
-  SOCK_DGRAM        = 2;      // UDP format
-  SOCKET_ERROR      = -1;     // Error return value
-  SOCK_VER:Word     = 514;    // Version of winsock to use
-  SOL_SOCKET        = $FFFF;  // options for socket level
-  SO_REUSEADDR      = $0004;  // allow local address reuse
-  SO_BROADCAST      = $0020;
-  SO_RCVTIMEO       = $1006;
-  SO_SNDBUF         = $1001;
-  IPPROTO_TCP       = 6;
-  FIONBIO           = $8004667E; // Set socket to non-blocking
-  INVALID_SOCKET    = Not(0);    // unsigned representation of -1
-  INET_ANY          = 0;
-
-  F_GETFL            = 3;
-  F_SETFL             = 4;
-  O_NONBLOCK          = 04000;
-
-  WSAEWOULDBLOCK  = 10035;
 
 Type
   PSocketAddress = ^SocketAddress;
@@ -78,10 +64,46 @@ Type
     AddressList:^PAnsiChar;
    End;
 
+Const
+  PACKET_SIZE = 1024;
+
+{$IFNDEF USE_FPC_SOCKETS}
+  PF_INET           = 2;      // Internet address format
+  SOCK_STREAM       = 1;      // TCP format
+  SOCK_DGRAM        = 2;      // UDP format
+
+  INVALID_SOCKET    = Not(0);    // unsigned representation of -1
+  INET_ANY          = 0;
+
+  SOL_SOCKET        = $FFFF;  // options for socket level
+
+  IPPROTO_TCP       = 6;
+
+  {$IFDEF LINUX_SOCKETS}
+  SO_REUSEADDR =  2;
+  SO_BROADCAST =  6;
+  SO_LINGER    =  13;
+  SO_RCVTIMEO  =  20;
+  SO_SNDBUF    =  7;
+  {$ELSE}
+  SO_REUSEADDR =  $0004;
+  SO_BROADCAST =  $0020;
+  SO_LINGER    =  $0080;
+  SO_RCVTIMEO  =  $1006;
+  SO_SNDBUF    =  $1001;
+  {$ENDIF}
+
 {$IFDEF WINDOWS}
 // Interface to WinSock
 Const
   WinSockDLL='wsock32.dll';
+
+  FIONBIO           = $8004667E; // Set socket to non-blocking
+
+  SOCK_VER        = 514;    // Version of winsock to use
+  WSAEWOULDBLOCK  = 10035;
+
+  MSG_NOSIGNAL = 0;
 
 Type
   // Winsock info structure
@@ -98,7 +120,7 @@ Type
   Function WSAStartup(wVersionRequested:Word;Var lpWSAData:WSADATA):Integer;StdCall;External WinSockDLL;
   Function WSACleanup:Integer;StdCall; external WinSockDLL;
   function WSAGetLastError: Integer; stdcall;external WinSockDLL;
-  Function _socket(af,prototype,protocol:Integer):Integer;StdCall; external WinSockDLL name 'socket';
+  Function socket(af,prototype,protocol:Integer):Integer;StdCall; external WinSockDLL name 'socket';
   Function bind(socket:Integer;Var bindto:SocketAddress;tolen:Integer):Integer;StdCall; external WinSockDLL;
   Function closesocket(socket:Integer):Integer;StdCall; external WinSockDLL;
   Function connect(socket:Integer;Var Addr:SocketAddress;AddrLen:Integer):Integer; Stdcall; external WinSockDLL;
@@ -116,6 +138,7 @@ Type
   Function setsockopt(socket:Integer;level,optname:Integer;optval:Pointer;optlen:Integer): Integer;Stdcall;external WinSockDLL;
   Function shutdown(Socket:Integer;how:Integer):Integer; Stdcall;external WinSockDLL;
 {$ELSE}
+
   function accept(s:Integer; Var addr:SocketAddress; Var len:Integer):Integer;cdecl;external 'libc' name 'accept';
   function bind(s:Integer; Var addr:SocketAddress; tolen:Integer):Integer;cdecl;external 'libc' name 'bind';
   function connect(s:Integer; Var addr:SocketAddress; len:Integer):Integer;cdecl;external 'libc' name 'connect';
@@ -128,20 +151,38 @@ Type
            tolen:Integer):Integer;cdecl;external 'libc' name 'sendto';
   function setsockopt(s:Integer; level:Integer; optname:Integer; optval:pointer; optlen:Integer):Integer;cdecl;external 'libc' name 'setsockopt';
   function shutdown(s:Integer; how:Integer):Integer;cdecl;external 'libc' name 'shutdown';
-  function _socket(domain:Integer; _type:Integer; protocol:Integer):Integer;cdecl;external 'libc' name 'socket';
+  function socket(domain:Integer; _type:Integer; protocol:Integer):Integer;cdecl;external 'libc' name 'socket';
   function closesocket(sock:Integer):Integer; external 'libc' name
   {$IFDEF OSX}'_close'{$ELSE}
-  {$IFDEF IPHONE}'_close'{$ELSE}'close'{$ENDIF}{$ENDIF};
+  {$IFDEF IPHONE}'_close'{$ELSE}
+  'close'{$ENDIF}
+  {$ENDIF};
 
 
-  Function gethostbyname(name:PAnsiChar):PHostEntity; cdecl; external 'libc' name 'gethostbyname';
-    Function gethostname(namee:PAnsiChar; length:Integer):Integer;cdecl;external 'libc' name 'gethostname';
-    function ioctl(_para1:Integer; _para2:Integer; arg3:Pointer):Integer;cdecl; external 'libc' name 'ioctl';
-  Function fcntl(s, cmd:Integer; arg:Int64):Integer; cdecl; external 'libc' name 'fcntl';
 {$ENDIF}
 
+{$ELSE}
+{$IFNDEF WINDOWS}
+Const
+  FIONBIO = $5421;
+
+  F_GETFL            = 3;
+  F_SETFL             = 4;
+  O_NONBLOCK          = 04000;
+  SOCK_NONBLOCK  = $40000000;
+
+  Function gethostbyname(name:PAnsiChar):PHostEntity; cdecl; external 'libc' name 'gethostbyname';
+  Function gethostname(namee:PAnsiChar; length:Integer):Integer;cdecl;external 'libc' name 'gethostname';
+  Function ioctl(_para1:Integer; _para2:Integer; arg3:Pointer):Integer;cdecl; external 'libc' name 'ioctl';
+
+  Function fcntl(fildes, cmd:Integer):Integer; cdecl; varargs; external 'libc' name 'fcntl';
+{$ENDIF}
+{$ENDIF}
+
+
+   
 Type
-  Socket = Class(Stream)
+  NetSocket = Class(Stream)
     Protected
       _Handle:Integer;
       _Blocking:Boolean;
@@ -178,9 +219,7 @@ Type
   // Retrieves name of localhost
   Function GetLocalHost:TERRAString;
 
-  Procedure MakeNonBlocking(Handle:Integer; Block:Boolean);
-
-  Function OpenIncomingStream(Port:Integer):Socket;
+  Function OpenIncomingStream(Port:Integer):NetSocket;
 
   Function GetIP(IP:Cardinal):TERRAString;
 
@@ -189,8 +228,84 @@ Function inet_addr(IP:PAnsiChar):Cardinal;
 Function htons(Value:Word):Word;
 {$ENDIF}
 
+Const
+  SOCKET_ERROR      = -1;     // Error return value
+
+{$IFDEF LINUX}{$DEFINE LINUX_SOCKETS}{$ENDIF}
+{$IFDEF ANDROID}{$DEFINE LINUX_SOCKETS}{$ENDIF}
+
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_Application;
+
+
+{$IFDEF USE_FPC_SOCKETS}
+  function accept(s:Integer; Var addr:SocketAddress; Var len:Integer):Integer;
+  Begin
+    Result := fpaccept(S, @Addr, @Len);
+  End;
+
+  function bind(s:Integer; Var addr:SocketAddress; tolen:Integer):Integer;
+  Begin
+    Result := fpBind(S, @addr, tolen);
+  End;
+
+  function connect(s:Integer; Var addr:SocketAddress; len:Integer):Integer;
+  Begin
+    Result := fpConnect(S, @Addr, Len);
+  End;
+
+  function listen(s:Integer; backlog:Integer):Integer;
+  Begin
+    Result := fpListen(S, backlog);
+  End;
+
+  function recv(s:Integer; Var buffer; len, flags:Integer):integer;
+  Begin
+    Result := fprecv(S, @Buffer, Len, Flags);
+  End;
+
+  function recvfrom(s:Integer; Var buf; len, flags:Integer; Var from:Socketaddress; Var fromlen:Integer):Integer;
+  Begin
+    Result := fprecvfrom(S, @Buf, Len, Flags, @From, @fromlen);
+  End;
+
+  function send(s:Integer; Var buffer; len, flags:Integer):Integer;
+  Begin
+    Result := fpSend(S, @buffer, len, flags);
+  End;
+
+  function sendto(s:Integer; Var buffer; len, flags:Integer; Var _to:Socketaddress; tolen:Integer):Integer;
+  Begin
+    Result := fpSendTo(S, @Buffer, Len, Flags, @_To, tolen);
+  End;
+
+  function setsockopt(s:Integer; level:Integer; optname:Integer; optval:pointer; optlen:Integer):Integer;
+  Begin
+    Result := fpsetsockopt(S, Level, Optname, optval, optlen);
+  End;
+
+  function shutdown(s:Integer; how:Integer):Integer;
+  Begin
+    Result := fpshutdown(S, How);
+  End;
+
+  function socket(domain:Integer; _type:Integer; protocol:Integer):Integer;
+  Begin
+    Result := fpSocket(Domain, _Type, protocol);
+  End;
+
+  function closesocket(sock:Integer):Integer;
+  Begin
+    Result := fpclose(Sock);
+  End;
+{$ENDIF}
+
+(*{$IFNDEF WINDOWS}
+function setsockopt(s:Integer; level:Integer; optname:Integer; optval:pointer; optlen:Integer):Integer;
+Begin
+  Result := fpsetsockopt(s, level, optname, optval, optlen);
+End;
+{$ENDIF}*)
 
 {$IFNDEF WINDOWS}
 Function inet_addr(IP:PAnsiChar):Cardinal;
@@ -306,6 +421,16 @@ Begin
   FreeMem(Buffer, Len);
 End;
 
+(*Function SocketError():Integer;
+Begin
+  {$IFDEF WINDOWS}
+  Result := WSAGetLastError();
+  {$ELSE}
+  Result := ErrNo;
+  {$ENDIF}
+End;*)
+
+
 Type
   AddressCache = Record
     Name:TERRAString;
@@ -332,44 +457,45 @@ Begin
   Result := ResolveHostAddress(HostName);
   Inc(_AddressCount);
   SetLength(_Addresses, _AddressCount);
-  _Addresses[PreD(_AddressCount)].Name := HostName;
-  _Addresses[PreD(_AddressCount)].IP := Result;
+  _Addresses[Pred(_AddressCount)].Name := HostName;
+  _Addresses[Pred(_AddressCount)].IP := Result;
 End;
 
-
-(*Function LookUpHostAddress(HostName:TERRAString):TERRAString;
+Procedure MakeNonBlocking(Handle:Integer; Block:Boolean);
 Var
-  Host:THostEntry;
+  N, ErrorCode:Integer;
 Begin
-  Result:='127.0.0.1';
-  If HostName<>'' Then
-  Begin
-    If HostName[1] In ['0'..'9'] Then
-      Result:=HostName
-    Else
-    Begin
-      If ResolveHostByName(HostName,Host) Then
-        Result:=GetIP(Integer(Host.Addr));
-    End;
-  End;
-End;
+  If Block Then
+    N := 0
+  Else
+    N := 1;
 
+  //Set the socket to non-blocking
+  {$IFDEF WINDOWS}
+  ErrorCode := ioctlsocket(Handle,FIONBIO, N);
+  {$ELSE}
+  {$IFDEF MOBILE}
+  ErrorCode := ioctl(Handle, FIONBIO, @N);
+  {$ELSE}
+  ErrorCode := fcntl(Handle, F_SETFL, {fcntl(Handle, F_GETFL, 0) Or }O_NONBLOCK);
+  {$ENDIF}
+  {$ENDIF}
 
-Function GetLocalHost:TERRAString;
-Begin
-  Result := GetHostName;
+  If ErrorCode = 0 Then
+    Log(logDebug, 'Sockets', 'Changed socket blocking mode for handle '+IntToString(Handle)+' -> ' +IntToString(N))
+  Else
+    Log(logError, 'Sockets', 'Error changing blocking mode in socket '+IntToString(Handle));
 End;
-*)
 
 { Socket }
-Constructor Socket.Create(CustomHandle:Integer);
+Constructor NetSocket.Create(CustomHandle:Integer);
 Begin
   _Closed := False;
   _Handle := CustomHandle;
-  _Blocking := False;
+  _Blocking := True;
 End;
 
-Constructor Socket.Create(Const Host:TERRAString; Port:Word);
+Constructor NetSocket.Create(Const Host:TERRAString; Port:Word);
 Var
   IP:TERRAString;
   N:Integer;
@@ -391,7 +517,7 @@ Begin
   Log(logDebug, 'Sockets', 'Address found: '+IP);
 
   Log(logDebug, 'Sockets', 'Creating a socket, port '+IntToString(Port));
-  _Handle := _socket(PF_INET, SOCK_STREAM, IPPROTO_TCP); //Create a network socket
+  _Handle := socket(PF_INET, SOCK_STREAM, IPPROTO_TCP); //Create a network socket
 
   If _Handle = SOCKET_ERROR Then  //Check for errors
   Begin
@@ -430,21 +556,21 @@ Begin
   _Closed := False;
 End;
 
-Procedure Socket.Release;
+Procedure NetSocket.Release;
 Begin
   If (_Handle>=0) Then
   Begin
-      Log(logDebug, 'Sockets', 'Shutting down socket '+IntToString(_Handle));
+    Log(logDebug, 'Sockets', 'Shutting down socket '+IntToString(_Handle));
     Shutdown(_Handle, 2);
 
-      Log(logDebug, 'Sockets', 'Closing down socket '+IntToString(_Handle));
-      CloseSocket(_Handle);
+    Log(logDebug, 'Sockets', 'Closing down socket '+IntToString(_Handle));
+    CloseSocket(_Handle);
 
-      Log(logDebug, 'Sockets', 'Destroying socket... ');
+    Log(logDebug, 'Sockets', 'Destroyed NetSocket... ');
   End;
 End;
 
-Procedure Socket.SetTimeOut(Duration: Integer);
+Procedure NetSocket.SetTimeOut(Duration: Integer);
 Type
   TimeVal = Packed Record
     tv_sec:Cardinal;
@@ -456,33 +582,43 @@ Begin
   Duration := Duration Div 1000;
   TV.tv_sec := Duration;
   TV.tv_usec := 0;
-  setsockopt(_Handle, SOL_SOCKET, SO_RCVTIMEO, @tv, sizeof(TV));
+
+  If setsockopt(_Handle, SOL_SOCKET, SO_RCVTIMEO, @tv, sizeof(TV)) = 0 Then
+  Begin
+    Log(logDebug, 'Sockets', 'Changed socket time out for handle '+IntToString(_Handle)+' -> '+IntToString(Duration));
+  End Else
+    Log(logWarning, 'Sockets', 'Unable to change socket time out for handle '+IntToString(_Handle));
 End;
 
-Procedure Socket.SetDelay(Delay: Boolean);
+Procedure NetSocket.SetDelay(Delay: Boolean);
 Const
   TCP_NODELAY = 1;
 Var
   N:Integer;
 Begin
   If Delay Then
-    N:=0
+    N := 0
   Else
-    N:=1;
+    N := 1;
 
-  setsockopt(_Handle, IPPROTO_TCP, TCP_NODELAY, @N, 4);
+  If setsockopt(_Handle, IPPROTO_TCP, TCP_NODELAY, @N, 4) = 0 Then
+  Begin
+    Log(logDebug, 'Sockets', 'Change socket delay for handle '+IntToString(_Handle)+' -> ' +IntToString(N));
+  End Else
+    Log(logWarning, 'Sockets', 'Unable to change socket delay for handle '+IntToString(_Handle));
 End;
 
-Procedure Socket.SetBufferSize(Size:Integer);
+Procedure NetSocket.SetBufferSize(Size:Integer);
 Begin
-  setsockopt(_Handle, SOL_Socket, SO_SNDBUF, @Size, 4);
+  If setsockopt(_Handle, SOL_Socket, SO_SNDBUF, @Size, 4) = 0 Then
+  Begin
+    Log(logDebug, 'Sockets', 'Changed socket buffer size for handle '+IntToString(_Handle)+' -> '+IntToString(Size));
+  End Else
+    Log(logWarning, 'Sockets', 'Unable to change socket buffer size for handle '+IntToString(_Handle));
 End;
 
-Procedure Socket.SetBlocking(Block:Boolean);
+Procedure NetSocket.SetBlocking(Block:Boolean);
 Begin
-  If (_Blocking=Block) Then
-    Exit;
-
   _Blocking := Block;
 
   //Set the socket to non-blocking
@@ -490,14 +626,15 @@ Begin
 End;
 
 
-Function Socket.GetEOF:Boolean;
+Function NetSocket.GetEOF:Boolean;
 Begin
   Result := _Closed;
 End;
 
-Function Socket.Write(Data:Pointer; Size:Cardinal):Cardinal;
+Function NetSocket.Write(Data:Pointer; Size:Cardinal):Cardinal;
 Var
   N:Integer;
+  K:Integer;
   BlockSize:Integer;
 Begin
   Result := 0;
@@ -511,10 +648,14 @@ Begin
     Else
       BlockSize := PACKET_SIZE;
 
-    N := Send(_Handle, Data^, BlockSize,0);
+    N := Send(_Handle, Data^, BlockSize, MSG_NOSIGNAL);
 
     If (N = SOCKET_ERROR) Or (N<0) Then
     Begin
+      //K := SocketError();
+
+      Self._Closed := True;
+      
       _Error := True;
       Result := 0;
       Exit;
@@ -526,25 +667,25 @@ Begin
   End;
 End;
 
-Function Socket.Read(Data:Pointer; Size:Cardinal):Cardinal;
+Function NetSocket.Read(Data:Pointer; Size:Cardinal):Cardinal;
 Var
   N:Integer;
 Begin
-  {$IFDEF DEBUG_NET} WriteLn('Begin sock.read');{$ENDIF}
+  {$IFDEF DEBUG_NET} Log(logDebug, 'Server', 'Begin sock.read from handle '+IntToString(_Handle));{$ENDIF}
   Result := 0;
   If (EOF) Or (Size<=0) Then
   Begin
-    {$IFDEF DEBUG_NET}WriteLn('Bailout');{$ENDIF}
+    {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'Bailout');{$ENDIF}
     Exit;
   End;
 
-  {$IFDEF DEBUG_NET}WriteLn('recv() call');{$ENDIF}
-  N := Recv(_Handle, Data^, Size, 0);
-  {$IFDEF DEBUG_NET}WriteLn('result was ',N);{$ENDIF}
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'recv() call from handle '+IntToString(_Handle));{$ENDIF}
+  N := Recv(_Handle, Data^, Size, MSG_NOSIGNAL);
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'result was '+IntToString(N));{$ENDIF}
 
   If (N = SOCKET_ERROR) Or (N<0) Then
   Begin
-    {$IFDEF DEBUG_NET}WriteLn('socket returned error');{$ENDIF}
+    {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'socket returned error');{$ENDIF}
     _Error := True;
     Result := 0;
     Exit;
@@ -552,7 +693,7 @@ Begin
 
   If (N=0) Then
   Begin
-    {$IFDEF DEBUG_NET}WriteLn('socket was closed');{$ENDIF}
+    {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'socket was closed');{$ENDIF}
     _Closed := True;
   End;
 
@@ -562,7 +703,7 @@ Begin
     Result := N;
 End;
 
-Procedure Socket.ReadLine(Var S:TERRAString);
+Procedure NetSocket.ReadLine(Var S:TERRAString);
 Var
   C:TERRAChar;
 Begin
@@ -590,13 +731,14 @@ Var
   WaitingList:Array Of WaitingSocket;
   WaitingCount:Integer = 0 ;
 
-Function OpenIncomingStream(Port:Integer):Socket;
+Function OpenIncomingStream(Port:Integer):NetSocket;
 Var
   I,ID:Integer;
   Opv:Integer;
   ClientSock:Integer;
   ClientAddr:SocketAddress;
   Addr:SocketAddress;
+  Handle:Integer;
 Begin
   Result:=Nil;
 
@@ -613,16 +755,22 @@ Begin
     Inc(WaitingCount);
     SetLength(WaitingList,WaitingCount);
     ID:=Pred(WaitingCount);
+
+    Handle := socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+
     WaitingList[ID].Port := Port;
-    WaitingList[ID].Handle := _socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    WaitingList[ID].Handle := Handle;
+
+    Log(logDebug, 'Sockets', 'Created listened socket with handle '+IntToString((Handle)));
 
     MakeNonBlocking(WaitingList[ID].Handle, False);
 
     Opv := 1;
-    If (setsockOpt(WaitingList[ID].Handle, SOL_Socket, SO_REUSEADDR, @Opv, SizeOf(Opv)) = SOCKET_ERROR) Then
+    If (setsockOpt(WaitingList[ID].Handle, SOL_SOCKET, SO_REUSEADDR, @Opv, SizeOf(Opv)) = 0)Then
     Begin
-      Log(logWarning, 'Sockets', 'Unable to change socket mode for socket with handle '+IntToString((WaitingList[ID].Handle)));      
-    End;
+      Log(logDebug, 'Sockets', 'Reused socket address for handle '+IntToString((Handle)));
+    End Else
+      Log(logWarning, 'Sockets', 'Unable to reuse socket address for handle '+IntToString((Handle)));
 
     Addr.Family := PF_INET;
     Addr.Port := htons(Port);
@@ -631,20 +779,22 @@ Begin
 
     If Bind(WaitingList[ID].Handle, Addr, SizeOf(Addr))<0 Then
     Begin
-      RaiseError('Cannot bind socket.');
+      RaiseError('Cannot bind NetSocket.');
       Exit;
     End;
 
-    Log(logDebug, 'Sockets', 'Listening for connections.');      
+    Log(logDebug, 'Sockets', 'Listening for connections.');
     Listen(WaitingList[ID].Handle, 5);
   End;
 
   Opv := SizeOf(ClientAddr);
+
   ClientSock := Accept(WaitingList[ID].Handle, ClientAddr, Opv);
 
   If ClientSock<>-1 Then
   Begin
-    Result := Socket.Create(ClientSock);
+    Log(logDebug, 'Sockets', 'Accepted socket connection with handle '+IntToString(ClientSock));
+    Result := NetSocket.Create(ClientSock);
     Result._Address := ClientAddr.Address;
   End;
 End;
@@ -661,48 +811,42 @@ Begin
   End;
 End;
 
-Procedure MakeNonBlocking(Handle:Integer; Block:Boolean);
-Var
-  N:Integer;
-Begin
-  If Block Then
-    N:=0
-  Else
-    N:=1;
-
-  //Set the socket to non-blocking
-  {$IFDEF WINDOWS}
-  ioctlsocket(Handle,FIONBIO,N);
-  {$ELSE}
-  {$IFDEF OSX}
-    ioctl(Handle,Integer(FIONBIO),@N);
-  {$ELSE}
-  {$IFDEF IPHONE}
-    ioctl(Handle,FIONBIO,@N);
-  {$ELSE}
-    N := fcntl(Handle, F_GETFL, 0);
-    N := N Or O_NONBLOCK;
-    fcntl(Handle, F_SETFL, N);
-  {$ENDIF}
-  {$ENDIF}
-  {$ENDIF}
-End;
-
 {$IFDEF WINDOWS}
 Var
  Data:WSADATA;
  N:Integer;
 {$ENDIF}
+
+{$IFDEF LINUX}
+Var
+  sSet:Cardinal;
+  sa:SigActionRec;
+{$ENDIF}
+
 Initialization
 {$IFDEF WINDOWS}
-  N := WSAStartup(SOCK_VER,Data);
+  N := WSAStartup(SOCK_VER, Data);
   //Check for errors
   If N<>0 Then
     Log(logError, 'Sockets', 'Unable to initialize Winsock session.');
+
+{$ENDIF}
+{$IFDEF LINUX}
+//http://lists.freepascal.org/fpc-pascal/2013-May/038302.html
+//http://www.freepascal.org/docs-html/rtl/baseunix/fpsigprocmask.html
+{  sset := (1 Shl SIGPIPE);
+  FpSigProcMask(SIG_BLOCK, @sset, Nil);}
+
+{  FillChar(sa, SizeOf(Sa), 0);
+  sa.sa_handler := __sighandler_t(Pointer(SIG_IGN));
+  sa.sa_flags := 0;
+  fpsigaction(SIGPIPE, @sa, Nil);}
+
 {$ENDIF}
 Finalization
   ReleaseSockets;
 {$IFDEF WINDOWS}
   WSACleanup;
 {$ENDIF}
-End.
+End.
+

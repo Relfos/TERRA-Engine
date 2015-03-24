@@ -175,20 +175,18 @@ Var
   WndTotX, WndTotY:Integer;
   W:Widget;
 Begin
+  Inherited Create(Name, UI, Parent);
+
   Self._Position := VectorCreate2D(X,Y);
 
   Self._GridX := GridX;
   Self._GridY := GridY;
 
-  Self._Visible := True;
-  Self._Name := Name;
-  Self._Parent := Nil;
   Self._Layer := Z;
   Self._Width := Width;
   Self._Height := Height;
 
   Self.UpdateRects();
-  UI.AddWidget(Self);
 
   _Temp := Self.CreateGridCell(UI, Self, 'temp');
 

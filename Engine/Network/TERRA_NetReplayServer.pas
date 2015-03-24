@@ -1,4 +1,4 @@
-{***********************************************************************************************************************
+sds{***********************************************************************************************************************
  *
  * TERRA Game Engine
  * ==========================================
@@ -42,7 +42,7 @@ Type
       // Creates a new server instance
       Constructor Create(Version,Port:Word; MaxClients:Word);
 
-      Function SendMessage(Msg:NetMessage; ClientID:Word = 0; AutoRelease:Boolean = False):Boolean; Override;
+      Function SendMessage(Msg:NetMessage; Client:ClientConnection;  Owner:Cardinal; AutoRelease:Boolean = False):Boolean; Override;
 
       // Handles messages
       Procedure Update; Override;
@@ -62,47 +62,36 @@ Begin
 
   _Port := Port;
   _WaitingCount := 0;
-  _ClientCount := MaxClients;
   _RefreshTime := 0;
   _Version := Version;
 
   For I:=0 To 255 Do
-    _OpcodeList[I] := OnInvalidMessage;
-  _OpcodeList[nmIgnore] := IgnoreMessage;
-  _OpcodeList[nmClientJoin] := OnJoinMessage;
-  _OpcodeList[nmClientDrop] := OnDropMessage;
+    _OpcodeList[I] := Nil;
+    
+{  _OpcodeList[nmClientJoin] := OnJoinMessage; FIXME
+  _OpcodeList[nmClientDrop] := OnDropMessage;}
 
-  _Mutex := CriticalSection.Create('');
   _PacketMutex := CriticalSection.Create('');
 
-  SetLength(_ClientList, Succ(_ClientCount));
-  _ClientList[0] := ClientInfo.Create;
-  With _ClientList[0] Do
-  Begin
-    Ping := 0;
-    GUID := 0;
-  End;
-
-  For I:=1 To _ClientCount Do
-    _ClientList[I] := Nil;
+  _Clients := Nil; //FIXME
 
   _Stream := FileStream.Open('packets.dat');
 End;
 
 Procedure NetworkReplayServer.OnConnectionClose;
 Var
-  N:Integer;
-  Client:ClientInfo;
+  N:Cardinal;
+  Client:ClientConnection;
 Begin
-  _Stream.Read(@N, 4);
-  Client := Self.GetClient(N);
+  _Stream.ReadCardinal(N);
+  Client := Self.GetClientByID(N);
   Self.RemoveClient(Client);
 End;
 
 Procedure NetworkReplayServer.OnNewClient;
 Var
   N:Integer;
-  Client:ClientInfo;
+  Client:ClientConnection;
   Username, Password, DeviceID, ErrorLog:TERRAString;
 Begin
   _Stream.Read(@N, 4);
@@ -112,33 +101,32 @@ Begin
 
   ValidateClient(UserName,Password, DeviceID, ErrorLog);
 
-  Client := ClientInfo.Create;
+  Client := ClientConnection.Create;
   Client.Address := _Sender; // Store the new Client IP
   Client.Ping := 0;          // Reset Client ping
   Client.GUID := N;
   Client.Time := GetTime;
   Client.UserName := UserName;
-  Client.ID := N;
-  Client.UserData := Nil;
+//  Client._ID := N; FIXME
   Client.Password := Password;
   Client.DeviceID := DeviceID;
-  Client.Socket := Socket(N);
+//  Client.Socket := Socket(N); FIXME
   Client.Frames := 0;
-  _ClientList[N] := Client;
+  Clients.Add(Client);
 
   OnClientAdd(Client); //Calls the AddClient event
 End;
 
 Procedure NetworkReplayServer.OnPacket;
 Var
-  N:Integer;
-  Client:ClientInfo;
+  N:Cardinal;
+  Client:ClientConnection;
   Msg:NetMessage;
   ValidMsg:Boolean;
   Size:Integer;
 Begin
-  _Stream.Read(@N, 4);
-  _Stream.Read(@Size, 4);
+  _Stream.ReadCardinal(N);
+  _Stream.ReadInteger(Size);
   Msg := NetMessage.Create(0);
   _Stream.Copy(Msg, _Stream.Position, Size);
   Msg.Seek(0);
@@ -149,17 +137,15 @@ Begin
   {If (Msg.Opcode=108) Then
     IntToString(2);}
 
-  Client := Self.GetClient(N);
+  Client := Self.GetClientByID(N);
 
-  {$IFDEF DEBUG_NET}WriteLn('Validating message');{$ENDIF}
-  ValidMsg := ValidateMessage(@Msg);
   //WriteLn('Rec: ',Msg.Opcode);
 
   If ValidMsg Then
   Begin
     {$IFDEF DEBUG_NET}WriteLn('Invoking opcode ',Msg.Opcode);{$ENDIF}
     If Assigned(_OpcodeList[Msg.Opcode]) Then
-      _OpcodeList[Msg.Opcode](@Msg, Client.Socket) // Call message handler
+      _OpcodeList[Msg.Opcode](Msg, Client) // Call message handler
   End Else
     Log(logWarning,'Network', Self.ClassName+'.Update: Invalid opcode ['+IntToString(Msg.Opcode)+']');
 
@@ -167,7 +153,7 @@ Begin
 
 End;
 
-Function NetworkReplayServer.SendMessage(Msg:NetMessage; ClientID:Word; AutoRelease:Boolean):Boolean;
+Function NetworkReplayServer.SendMessage(Msg:NetMessage; Client:ClientConnection;  Owner:Cardinal; AutoRelease:Boolean):Boolean;
 Begin
   Result := True;
   // do nothing

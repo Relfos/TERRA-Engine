@@ -60,7 +60,7 @@ Type
 
 Implementation
 Uses {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_GraphicsManager, TERRA_Texture
-{$IFDEF FRAMEBUFFEROBJECTS},TERRA_FrameBufferObject{$ENDIF};
+{$IFDEF FRAMEBUFFEROBJECTS},TERRA_FBO{$ENDIF};
 
 Constructor RenderTargetDownSampler.Create(Const Name:TERRAString; Width, Height:Integer);
 Begin

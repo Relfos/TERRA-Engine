@@ -6,7 +6,7 @@ Uses TERRA_String, TERRA_Utils, TERRA_Collections;
 
 Type
   // sample list objects
-  StringObject=Class(ListObject)
+  StringObject=Class(CollectionObject)
     Public
       Value:TERRAString;
 
@@ -14,12 +14,11 @@ Type
       Function ToString():TERRAString; Override;
 
     Protected
-      Procedure CopyValue(Other:ListObject); Override;
-      Function Sort(Other:ListObject):Integer; Override;
-      Function GetHashKey():HashKey; Override;
+      Procedure CopyValue(Other:CollectionObject); Override;
+      Function Sort(Other:CollectionObject):Integer; Override;
   End;
 
-  IntegerObject = Class(ListObject)
+  IntegerObject = Class(CollectionObject)
     Public
       Value:Integer;
 
@@ -27,12 +26,11 @@ Type
       Function ToString():TERRAString; Override;
 
     Protected
-      Procedure CopyValue(Other:ListObject); Override;
-      Function Sort(Other:ListObject):Integer; Override;
-      Function GetHashKey():HashKey; Override;
+      Procedure CopyValue(Other:CollectionObject); Override;
+      Function Sort(Other:CollectionObject):Integer; Override;
   End;
 
-  CardinalObject = Class(ListObject)
+  CardinalObject = Class(CollectionObject)
     Public
       Value:Cardinal;
 
@@ -40,15 +38,14 @@ Type
       Function ToString():TERRAString; Override;
 
     Protected
-      Procedure CopyValue(Other:ListObject); Override;
-      Function Sort(Other:ListObject):Integer; Override;
-      Function GetHashKey():HashKey; Override;
+      Procedure CopyValue(Other:CollectionObject); Override;
+      Function Sort(Other:CollectionObject):Integer; Override;
   End;
 
 Implementation
 
 { StringObject }
-Procedure StringObject.CopyValue(Other: ListObject);
+Procedure StringObject.CopyValue(Other: CollectionObject);
 Begin
   Self.Value := StringObject(Other).Value;
 End;
@@ -58,12 +55,7 @@ Begin
   Self.Value := S;
 End;
 
-Function StringObject.GetHashKey: HashKey;
-Begin
-  Result := GetStringHashKey(Value);
-End;
-
-Function StringObject.Sort(Other: ListObject): Integer;
+Function StringObject.Sort(Other: CollectionObject): Integer;
 Var
   S:TERRAString;
 Begin
@@ -78,12 +70,12 @@ End;
 
 
 { IntegerObject }
-Procedure IntegerObject.CopyValue(Other: ListObject);
+Procedure IntegerObject.CopyValue(Other: CollectionObject);
 Begin
   Self.Value := IntegerObject(Other).Value;
 End;
 
-Function IntegerObject.Sort(Other: ListObject): Integer;
+Function IntegerObject.Sort(Other: CollectionObject): Integer;
 Var
   S:Integer;
 Begin
@@ -97,16 +89,10 @@ Begin
     Result := 0;
 End;
 
-Function IntegerObject.GetHashKey: HashKey;
-Begin
-  Result := Value;
-End;
-
 Constructor IntegerObject.Create(S:Integer);
 Begin
   Self.Value := S;
 End;
-
 
 Function IntegerObject.ToString:TERRAString;
 Begin
@@ -114,12 +100,12 @@ Begin
 End;
 
 { CardinalObject }
-Procedure CardinalObject.CopyValue(Other: ListObject);
+Procedure CardinalObject.CopyValue(Other: CollectionObject);
 Begin
   Self.Value := CardinalObject(Other).Value;
 End;
 
-Function CardinalObject.Sort(Other: ListObject): Integer;
+Function CardinalObject.Sort(Other: CollectionObject): Integer;
 Var
   S:Integer;
 Begin
@@ -131,11 +117,6 @@ Begin
     Result := -1
   Else
     Result := 0;
-End;
-
-Function CardinalObject.GetHashKey: HashKey;
-Begin
-  Result := Value;
 End;
 
 Constructor CardinalObject.Create(S:Cardinal);

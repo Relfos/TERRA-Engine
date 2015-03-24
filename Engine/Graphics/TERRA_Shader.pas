@@ -165,7 +165,7 @@ Begin
   MyStream := MemoryStream.Create(Length(Source), @(Source[1]));
   If Name = '' Then
     Name := 'custom'+HexStr(GetTime);
-  _Name := Name;
+  _Key := Name;
 
   If Load(MyStream) Then
   Begin
@@ -261,7 +261,7 @@ Begin
   StringReplaceText('gl_Position', 'IGNORE',S);
   If (Pos('gl_', S)>0) Then
   Begin
-     Log(logWarning, 'Shader', 'The following shader has deprecated attributes: '+_Name);
+     Log(logWarning, 'Shader', 'The following shader has deprecated attributes: '+ Self.Name);
   End;
 
   Repeat
@@ -284,7 +284,7 @@ Begin
 
   If (_AttributeCount<=0) Then
   Begin
-    Log(logWarning, 'Shader', 'The following shader has no attributes: '+_Name);
+    Log(logWarning, 'Shader', 'The following shader has no attributes: '+ Self.Name);
   End;
 End;
 
@@ -431,7 +431,7 @@ Begin
   SetLength(S, Source.Size);
   Source.Read(@S[1], Source.Size);
 
-  IncludedList := List.Create(coAppend);
+  IncludedList := List.Create(collection_Unsorted);
   ProcessIncludes(S, IncludedList);
   ReleaseObject(IncludedList);
 
@@ -495,24 +495,22 @@ Begin
     Exit;
   End;
 
-  Log(logDebug, 'Shader', 'Compiling vertex code for ' +_Name);
+  Log(logDebug, 'Shader', 'Compiling vertex code for ' + Self.Name);
 
   _Linked := False;
   Result := CompileShader(_VertexCode, GL_VERTEX_SHADER, _VertexShaderHandle);
   If Not Result Then
     Exit;
 
-  Log(logDebug, 'Shader', 'Compiling fragment code for ' +_Name);
+  Log(logDebug, 'Shader', 'Compiling fragment code for ' + Self.Name);
 
   Result := CompileShader(_FragmentCode, GL_FRAGMENT_SHADER, _FragmentShaderHandle);
   If Not Result Then
     Exit;
 
-  Log(logDebug, 'Shader', 'Linking ' +_Name);
-  If _Name = 'Font' Then
-    IntToString(2);
+  Log(logDebug, 'Shader', 'Linking ' + Self.Name);
   Result := LinkProgram;
-  Log(logDebug, 'Shader', 'Finished linking ' +_Name+', result='+BoolToString(Result));
+  Log(logDebug, 'Shader', 'Finished linking ' +Self.Name+', result='+BoolToString(Result));
 End;
 
 Procedure Shader.OnContextLost;
@@ -974,19 +972,19 @@ End;
 Procedure ShaderManager.DeleteShader(MyShader: Shader);
 Var
   S:Shader;
-  I:Iterator;
+  It:Iterator;
 Begin
-  I := Self.Resources.CreateIterator();
-  While I.HasNext Do
+  It := Self.Resources.GetIterator();
+  While It.HasNext Do
   Begin
-    S := Shader(I.GetNext());
+    S := Shader(It.GetNext());
     If (S=MyShader) Then
     Begin
-      I.Discard();
+      S.Discard();
       Break;
     End;
   End;
-  I.Release;
+  ReleaseObject(It);
 End;
 
 Procedure ShaderManager.AddShader(MyShader: Shader);
@@ -1023,17 +1021,16 @@ End;
 
 Procedure ShaderManager.InvalidateShaders;
 Var
-  I:Iterator;
+  It:Iterator;
   MyResource:Resource;
 Begin
-  I := _Resources.CreateIterator;
-  While (I.HasNext) Do
+  It := _Resources.GetIterator();
+  While (It.HasNext) Do
   Begin
-    MyResource := Resource(I.GetNext());
+    MyResource := Resource(It.GetNext());
     If (MyResource Is Shader) And (MyResource.Status = rsReady) Then
       MyResource.Unload();
   End;
-  I.Release;
   _ActiveShader := Nil;
 End;
 

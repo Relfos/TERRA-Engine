@@ -621,6 +621,21 @@ public class TERRAUtils{
 		}
     }
     
+    public static ClassLoader getClassLoader() {
+        Context context = TERRAActivity.instance;
+        return context.getClassLoader();
+    }
+
+     public static void spawnThread(int pointer) {
+            final int arg = pointer;
+            Thread myThread = new Thread(){
+                public void run(){
+                    TERRALibrary.ApplicationThreadExecute(arg);                        
+                    }
+            };
+            myThread.start();
+    }
+
 	/*public static void msgBox(String msg)
 	{
 		AlertDialog alertDialog = new AlertDialog.Builder(

@@ -97,9 +97,9 @@ Type
 
       Procedure OnContextLost;
 
-      Procedure SetRenderTargetState(TargetType:Integer; Enabled:Boolean);
-      Function GetRenderTarget(TargetType:Integer):RenderTarget;
-      Function IsRenderTargetEnabled(TargetType:Integer):Boolean;
+      Procedure SetRenderTargetState(TargetType:RenderTargetType; Enabled:Boolean);
+      Function GetRenderTarget(TargetType:RenderTargetType):RenderTarget;
+      Function IsRenderTargetEnabled(TargetType:RenderTargetType):Boolean;
       Function IsDirectDrawing():Boolean;
 
       Procedure SetViewArea(X,Y,Width,Height:Integer);
@@ -120,7 +120,7 @@ Type
       Procedure SetBackgroundColor(BG:Color);
 
       Procedure BindBloomTexture(Slot:Integer);
-      Procedure BindStageTexture(Stage, Slot:Integer);
+      Procedure BindStageTexture(Stage:RenderTargetType; Slot:Integer);
 
       Procedure DrawToTarget(AllowDebug:Boolean);
 
@@ -156,7 +156,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_GraphicsManager, TERRA_Application, TERRA_Log, TERRA_OS, TERRA_Texture, TERRA_Vector4D
-{$IFDEF POSTPROCESSING},TERRA_FrameBufferObject{$ENDIF};
+{$IFDEF POSTPROCESSING},TERRA_FBO{$ENDIF};
 
 {$IFDEF POSTPROCESSING}
 Var
@@ -409,9 +409,13 @@ Begin
 End;
 
 
-Procedure Viewport.SetRenderTargetState(TargetType: Integer; Enabled: Boolean);
+Procedure Viewport.SetRenderTargetState(TargetType:RenderTargetType; Enabled: Boolean);
+Var
+  TargetValue:Integer;
 Begin
-  If (TargetType<0) Or (TargetType>=MaxCaptureTargets) Then
+  TargetValue := Integer(TargetType);
+
+  If (TargetValue < 0) Or (TargetValue >= MaxCaptureTargets) Then
     Exit;
 
   If (Application.Instance.IsConsole) Then
@@ -420,15 +424,15 @@ Begin
   If (TargetType = captureTargetEmission) And (Enabled) And (Not GraphicsManager.Instance.Settings.FrameBufferObject.Avaliable) Then
     Enabled := False;
 
-  If (Assigned(Self._Buffers[TargetType]) = Enabled) Then
+  If (Assigned(Self._Buffers[TargetValue]) = Enabled) Then
     Exit;
 
   {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'SetTargetType');{$ENDIF}
 
   If Enabled Then
   Begin
-    Log(logDebug, 'GraphicsManager', 'Initializing '+TargetNames[TargetType]+' target for '+Self.Name);
-    _Buffers[TargetType] := CreateRenderTarget(_Name+'_target'+IntToString(TargetType), Trunc(_Width * _Scale), Trunc(_Height * _Scale), True, True);
+    Log(logDebug, 'GraphicsManager', 'Initializing '+TargetNames[TargetValue]+' target for '+Self.Name);
+    _Buffers[TargetValue] := CreateRenderTarget(_Name+'_target'+IntToString(TargetValue), Trunc(_Width * _Scale), Trunc(_Height * _Scale), True, True);
 
     {$IFDEF POSTPROCESSING}
     If (TargetType = captureTargetEmission) And (GraphicsManager.Instance.Settings.FrameBufferObject.Avaliable) Then
@@ -446,9 +450,8 @@ Begin
     {$ENDIF}
   End Else
   Begin
-    Log(logDebug, 'GraphicsManager', 'Destroying '+TargetNames[TargetType]+' target for '+Self.Name);
-    _Buffers[TargetType].Release();
-    _Buffers[TargetType] := Nil;
+    Log(logDebug, 'GraphicsManager', 'Destroying '+TargetNames[TargetValue]+' target for '+Self.Name);
+    ReleaseObject(_Buffers[TargetValue]);
 
     {$IFDEF POSTPROCESSING}
     If (TargetType = captureTargetEmission) Then
@@ -461,32 +464,40 @@ Begin
   {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 
-Function Viewport.IsRenderTargetEnabled(TargetType:Integer):Boolean;
+Function Viewport.IsRenderTargetEnabled(TargetType:RenderTargetType):Boolean;
+Var
+  TargetValue:Integer;
 Begin
-  If (TargetType<0) Or (TargetType>=MaxCaptureTargets) Then
+  TargetValue := Integer(TargetType);
+
+  If (TargetValue<0) Or (TargetValue >= MaxCaptureTargets) Then
     Result := False
   Else
-    Result := Assigned(_Buffers[TargetType]);
+    Result := Assigned(_Buffers[TargetValue]);
 End;
 
-
-Function Viewport.GetRenderTarget(TargetType: Integer): RenderTarget;
+Function Viewport.GetRenderTarget(TargetType:RenderTargetType): RenderTarget;
+Var
+  TargetValue:Integer;
 Begin
+  TargetValue := Integer(TargetType);
+
   If (_ContextID <> Application.Instance.ContextID) Then
   Begin
     Self.OnContextLost();
   End;
 
-  If (TargetType<0) Or (TargetType>=MaxCaptureTargets) Then
+  If (TargetValue < 0) Or (TargetValue >= MaxCaptureTargets) Then
     Result := Nil
   Else
-    Result := _Buffers[TargetType];
+    Result := _Buffers[TargetValue];
 End;
 
 Procedure Viewport.DrawToTarget(AllowDebug:Boolean);
 Var
   MyShader:Shader;
-  I,ShowID:Integer;
+  I:Integer;
+  ShowID:RenderTargetType;
 Begin
   If (Target = Nil) Then
     Exit;
@@ -496,10 +507,10 @@ Begin
   If (Self._DoPostProcessing) Then
   Begin
     //apply bloom
-    If (_Buffers[captureTargetEmission] <> Nil) And (_Buffers[captureTargetEmission] Is FrameBufferObject)
+    If (_Buffers[Integer(captureTargetEmission)] <> Nil) And (_Buffers[Integer(captureTargetEmission)] Is FrameBufferObject)
     And (Assigned(_Downsampler)) And (Assigned(_BlurShader)) Then
     Begin
-      _BloomID := _Downsampler.Update(FrameBufferObject(_Buffers[captureTargetEmission]), _BlurShader, 0, 3);
+      _BloomID := _Downsampler.Update(FrameBufferObject(_Buffers[Integer(captureTargetEmission)]), _BlurShader, 0, 3);
     End;
   End;
   {$ENDIF}
@@ -509,21 +520,21 @@ Begin
 
   {$IFDEF POSTPROCESSING}
   ShowID := GraphicsManager.Instance.ShowDebugTarget;
-  If (ShowID>=MaxCaptureTargets) Then
-    ShowID := 0;
+  If (Integer(ShowID) >= MaxCaptureTargets) Then
+    ShowID := captureTargetColor;
 
   If (Assigned(_FXChain)) Then
   Begin
     If (Not GraphicsManager.Instance.Settings.PostProcessing.Enabled) Then
     Begin
       For I:=0 To Pred(MaxCaptureTargets) Do
-        Self.SetRenderTargetState(I, False);
+        Self.SetRenderTargetState(RenderTargetType(I), False);
 
       _FXChain.Release;
       _FXChain := Nil;
     End;
 
-    If (Assigned(_FXChain)) And (ShowID<0) Then
+    If (Assigned(_FXChain)) And (ShowID = captureTargetInvalid) Then
     Begin
       _FXChain.DrawScreen(_TargetX1, _TargetY1, _TargetX2, _TargetY2);
       Exit;
@@ -531,7 +542,7 @@ Begin
   End;
 
 
-  If (ShowID<0) Or (Not AllowDebug) Then
+  If (ShowID = captureTargetInvalid) Or (Not AllowDebug) Then
     ShowID := captureTargetColor;
 
   {$ELSE}
@@ -547,15 +558,15 @@ Begin
   End Else
     MyShader := Nil;
 
-  If (_Buffers[ShowID] = Nil) Then
+  If (_Buffers[Integer(ShowID)] = Nil) Then
     Self.SetRenderTargetState(ShowID, True);
 
-  _Buffers[ShowID].Bind(0);
+  _Buffers[Integer(ShowID)].Bind(0);
   //_Buffers[ShowID].BilinearFilter := False;
 
   GraphicsManager.Instance.SetBlendMode(blendNone);
 
-  If (GraphicsManager.Instance.ShowDebugTarget<=0) Then
+  If (Integer(GraphicsManager.Instance.ShowDebugTarget) <=0) Then
     GraphicsManager.Instance.SetBlendMode(blendBlend);
     
   GraphicsManager.Instance.DrawFullscreenQuad(MyShader, _TargetX1, _TargetY1, _TargetX2, _TargetY2);
@@ -572,11 +583,11 @@ Begin
   TextureManager.Instance.BlackTexture.Bind(Slot);
 End;
 
-Procedure Viewport.BindStageTexture(Stage, Slot:Integer);
+Procedure Viewport.BindStageTexture(Stage:RenderTargetType; Slot:Integer);
 Begin
 {$IFDEF POSTPROCESSING}
-  If Assigned(_Buffers[Stage]) Then
-    _Buffers[Stage].Bind(Slot)
+  If Assigned(_Buffers[Integer(Stage)]) Then
+    _Buffers[Integer(Stage)].Bind(Slot)
   Else
 {$ENDIF}
   TextureManager.Instance.BlackTexture.Bind(Slot);
@@ -717,8 +728,8 @@ Begin
     If Temp Then
     Begin
       Log(logDebug, 'Viewport', 'Reseting '+TargetNames[I]+' target for '+Self.Name);
-      Self.SetRenderTargetState(I, False);
-      Self.SetRenderTargetState(I, True);
+      Self.SetRenderTargetState(RenderTargetType(I), False);
+      Self.SetRenderTargetState(RenderTargetType(I), True);
     End;
   End;
 

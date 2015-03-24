@@ -177,30 +177,30 @@ android.content.DialogInterface.OnClickListener
 		public boolean onKeyDown(int keyCode, KeyEvent event) 
 		{
 			Log.w("App", "keydown: "+keyCode);
-			if(event.getAction() == KeyEvent.ACTION_DOWN && !glView.terminated && keyCode!=KeyEvent.KEYCODE_VOLUME_UP  && keyCode!=KeyEvent.KEYCODE_VOLUME_DOWN) 
-			{
-				synchronized (TERRAActivity.instance)
-				{							
-					TERRALibrary.ApplicationKeyDown(keyCode);
-				}
-				return true;		
-			}	 
-			return super.onKeyDown(keyCode, event);
+            
+            if (keyCode==KeyEvent.KEYCODE_VOLUME_UP  || keyCode==KeyEvent.KEYCODE_VOLUME_DOWN) {
+                return super.onKeyDown(keyCode, event);
+            }
+            
+			//if(event.getAction() == KeyEvent.ACTION_DOWN) {
+                glView.QueueInputEvent(new TERRAInputEvent((int)keyCode, 0, TERRAInputEvent.InputType.KEY_DOWN));                 
+                return true;		                    
+            //}
+            
+			//return super.onKeyDown(keyCode, event);
 		}
 		
 		@Override
 		public boolean onKeyUp(int keyCode, KeyEvent event) 
 		{
-			Log.w("App", "keyup: "+keyCode);
-			if (event.getAction() == KeyEvent.ACTION_UP && !glView.terminated  && keyCode!=KeyEvent.KEYCODE_VOLUME_UP  && keyCode!=KeyEvent.KEYCODE_VOLUME_DOWN) 
-			{
-				synchronized (TERRAActivity.instance)
-				{				
-					TERRALibrary.ApplicationKeyUp(keyCode);
-				}
-				return true;		
-			}	 
-			return super.onKeyDown(keyCode, event);
+			Log.w("App", "keydown: "+keyCode);
+            
+            if (keyCode==KeyEvent.KEYCODE_VOLUME_UP  || keyCode==KeyEvent.KEYCODE_VOLUME_DOWN) {
+                return super.onKeyUp(keyCode, event);
+            }
+            
+			glView.QueueInputEvent(new TERRAInputEvent((int)keyCode, 0, TERRAInputEvent.InputType.KEY_UP));                 
+            return true;		                    
 		}
 	}
 

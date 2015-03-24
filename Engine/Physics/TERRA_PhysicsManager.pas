@@ -66,7 +66,7 @@ Type
 
       Procedure SetWorldBox(Const Box:BoundingBox); Virtual; Abstract;
 
-      Procedure Update(Delta:Single); Virtual; Abstract;
+      Procedure Run(Delta:Single); Virtual; Abstract;
 
       //Function CreateConvexMeshRigidBody(Mesh:MeshFilter; Const Transform:Matrix4x4; Mass:Single):PhysicsBody; Virtual; Abstract;
       Function CreateBoxRigidBody(Const Size:Vector3D; Const Position, Rotation:Vector3D; Mass:Single):PhysicsBody; Virtual; Abstract;
@@ -161,7 +161,7 @@ Begin
     If (_Objects[I] Is StagePlatform) Then
       StagePlatform(_Objects[I]).UpdateElevator(Delta);}
 
-    _System.Update(Delta);
+    _System.Run(Delta);
     _AccTimeSlice := _AccTimeSlice - 12;
   End;
 

@@ -8,7 +8,7 @@ Unit TERRA_UPNP;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Network, TERRA_Sockets;
+Uses TERRA_String, TERRA_Utils, TERRA_Network, TERRA_Sockets;
 
 Const
   natDefaultTimeOut  = 10;
@@ -34,18 +34,18 @@ Type
 	    status:NAT_STAT;
       time_out:Integer;
       interval:Integer;
-	    service_type:TERRAString;
-	    describe_ur:TERRAString;
-	    control_url:TERRAString;
-	    base_url:TERRAString;
-      describe_url:TERRAString;
-	    description_info:TERRAString;
-	    last_error:TERRAString;
-	    mapping_info:TERRAString;
+	    service_type:AnsiString;
+	    describe_ur:AnsiString;
+	    control_url:AnsiString;
+	    base_url:AnsiString;
+      describe_url:AnsiString;
+	    description_info:AnsiString;
+	    last_error:AnsiString;
+	    mapping_info:AnsiString;
 
 	    Function get_description():Boolean;
 	    Function parser_description():Boolean;
-	    Function tcp_connect(Const _host:TERRAString; _port:Word):Boolean;
+	    Function tcp_connect(Const _host:AnsiString; _port:Word):Boolean;
 	    //Function parse_mapping_info():Boolean;
 
     Public
@@ -59,18 +59,18 @@ Type
 	 **** _destination_port: internal port
 	 **** _protocal: TCP or UDP
 	 ***)
-	    Function add_port_mapping(_description, _destination_ip:TERRAString; _port_ex, _port_in:Word; _protocol:TERRAString):Boolean;//add port mapping
+	    Function add_port_mapping(_description, _destination_ip:AnsiString; _port_ex, _port_in:Word; _protocol:AnsiString):Boolean;//add port mapping
 
-      Function get_last_error():TERRAString;
+      Function get_last_error():AnsiString;
   End;
 
-Function AddUPnPEntry(Port: Integer; const Name: ShortString; LAN_IP:TERRAString):Boolean;
+Function AddUPnPEntry(Port: Integer; const Name: ShortString; LAN_IP:AnsiString):Boolean;
 
 Implementation
 Uses TERRA_Log, TERRA_XML, TERRA_Application, TERRA_OS
 {$IFDEF WINDOWS},ActiveX, Comobj{$ENDIF};
 
-Function AddUPnPEntry(Port: Integer; const Name: ShortString; LAN_IP:TERRAString):Boolean;
+Function AddUPnPEntry(Port: Integer; const Name: ShortString; LAN_IP:AnsiString):Boolean;
 {$IFDEF WINDOWS}
 Var
   Nat: Variant;
@@ -108,7 +108,7 @@ Begin
 End;
 {$ENDIF}
 
-Function UPNP.get_last_error():TERRAString;
+Function UPNP.get_last_error():AnsiString;
 Begin
   Result := last_error;
 End;
@@ -116,9 +116,9 @@ End;
 Const
   MAX_BUFF_SIZE = 102400;
 
-Function parseUrl(url:TERRAString; Var host:TERRAString; Var port:Word; Var path:TERRAString):Boolean;
+Function parseUrl(url:AnsiString; Var host:AnsiString; Var port:Word; Var path:AnsiString):Boolean;
 Var
-  str_url, str_port:TERRAString;
+  str_url, str_port:AnsiString;
   I, pos1,pos2,pos3:Integer;
 Begin
 	str_url := url;
@@ -258,17 +258,17 @@ Begin
 	status := NAT_INIT;
 End;
 
-Function UPNP.tcp_connect(Const _host:TERRAString; _port:Word):Boolean;
+Function UPNP.tcp_connect(Const _host:AnsiString; _port:Word):Boolean;
 Var
   ret,i:Integer;
   T, StartTime:Cardinal;
   r_address:SocketAddress;
 Begin
-	tcp_socket_fd := _socket(PF_INET{AF_INET}, SOCK_STREAM, 0);
+	tcp_socket_fd := socket(PF_INET{AF_INET}, SOCK_STREAM, 0);
 
   r_address.Family := PF_INET;
 	r_address.Port := htons(_port);
-  r_address.Address := inet_addr(PTERRAChar(_host));
+  r_address.Address := inet_addr(PAnsiChar(_host));
 
   StartTime := GetTime();
 	For i:=1 To time_out Do
@@ -298,13 +298,13 @@ Var
   val:Integer;
   udp_socket_fd:Integer;
   i,j,ret:Integer;
-  send_buff, recv_buff:TERRAString;
-  buff:Array[0..MAX_BUFF_SIZE+1] Of TERRAChar; //buff should be enough big
+  send_buff, recv_buff:AnsiString;
+  buff:Array[0..MAX_BUFF_SIZE+1] Of AnsiChar; //buff should be enough big
   r_address, temp2:SocketAddress;
   bOptVal,bOptLen:Integer;
   Temp, _begin, _end:Integer;
 Begin
-  udp_socket_fd := _socket(PF_INET, SOCK_DGRAM, 0);
+  udp_socket_fd := socket(PF_INET, SOCK_DGRAM, 0);
   send_buff := SEARCH_REQUEST_STRING;
 
   FillChar(r_address, SizeOf(r_address), 0);
@@ -385,12 +385,12 @@ End;
 
 Function UPNP.get_description():Boolean;
 Var
-	host,path:TERRAString;
+	host,path:AnsiString;
   port:Word;
   ret:Boolean;
-  http_request, response:TERRAString;
-  request:TERRAString[200];
-  buff:Array[0..MAX_BUFF_SIZE+1] Of TERRAChar;
+  http_request, response:AnsiString;
+  request:String[200];
+  buff:Array[0..MAX_BUFF_SIZE+1] Of AnsiChar;
 Begin
 	ret := parseUrl(describe_url, host, port, path);
 	if (Not ret) Then
@@ -431,7 +431,7 @@ End;
 Function UPNP.parser_description():Boolean;
 Var
   doc:XMLDocument;
-  serviceType:TERRAString;
+  serviceType:AnsiString;
   node, baseURL_node, controlURL_node:XMLNode;
   device_node,deviceList_node,deviceType_node:XMLNode;
   serviceList_node,service_node,serviceType_node:XMLNode;
@@ -448,7 +448,7 @@ Begin
 		Result := False;
 	End;
 
-	baseURL_node := node.GetNode('URLBase');
+	baseURL_node := node.GetNodeByName('URLBase');
 	If (baseURL_node=Nil) Or (baseURL_node.Value='') Then
 	Begin
     index := 0;
@@ -472,25 +472,25 @@ Begin
     base_url := baseURL_node.Value;
 
   device_node := Nil;
-	For i:=0 To Pred(node.ChildCount) Do
+	For i:=0 To Pred(node.NodeCount) Do
 	Begin
-		device_node := node.GetChild(I);
+		device_node := node.GetNodeByIndex(I);
 		If (device_node = Nil) Then
 			break;
 
-    If (device_node.Name <> 'device') Then
+    If (Not StringEquals(device_node.Name, 'device')) Then
     Begin
       device_node := Nil;
       Continue;
     End;
 
-		If (device_node.ChildCount<=0) Then
+		If (device_node.NodeCount<=0) Then
     Begin
       device_node := Nil;
 			break;
     End;
 
-		deviceType_node := device_node.GetNode('deviceType');
+		deviceType_node := device_node.GetNodeByName('deviceType');
 		if (deviceType_node.Value = DEVICE_TYPE_1) Then
 			break;
 	End;
@@ -503,8 +503,8 @@ Begin
     Exit;
 	End;
 
-	deviceList_node := device_node.GetNode('deviceList');
-	If (deviceList_node = Nil) Or (deviceList_node.ChildCount<=0) Then
+	deviceList_node := device_node.GetNodeByName('deviceList');
+	If (deviceList_node = Nil) Or (deviceList_node.NodeCount<=0) Then
 	Begin
 		status := NAT_ERROR;
 		last_error := ' Fail to find deviceList of device "urn:schemas-upnp-org:device:InternetGatewayDevice:1 "';
@@ -513,9 +513,9 @@ Begin
 	End;
 
 	// get urn:schemas-upnp-org:device:WANDevice:1 and it's devicelist
-	For I:=0 To Pred(deviceList_node.ChildCount) Do
+	For I:=0 To Pred(deviceList_node.NodeCount) Do
 	Begin
-		device_node := deviceList_node.GetChild(I);
+		device_node := deviceList_node.GetNodeByIndex(I);
 		If (device_node = Nil) Then
 			break;
     If (device_node.Name<>'device') Then
@@ -524,7 +524,7 @@ Begin
       Continue;
     End;
 
-		deviceType_node := device_node.GetNode('deviceType');
+		deviceType_node := device_node.GetNodeByName('deviceType');
 		If (deviceType_node.Value = DEVICE_TYPE_2) Then
 			Break;
 	End;
@@ -537,7 +537,7 @@ Begin
     Exit;
 	End;
 
-	deviceList_node := device_node.GetNode('deviceList');
+	deviceList_node := device_node.GetNodeByName('deviceList');
 	If (deviceList_node = Nil) Then
 	Begin
 		status := NAT_ERROR;
@@ -546,9 +546,9 @@ Begin
 	End;
 
 	// get urn:schemas-upnp-org:device:WANConnectionDevice:1 and it's servicelist
-	For i:=0 To Pred(deviceList_node.ChildCount) Do
+	For i:=0 To Pred(deviceList_node.NodeCount) Do
 	Begin
-		device_node := deviceList_node.getChild(i);
+		device_node := deviceList_node.GetNodeByIndex(i);
 		If (device_node = Nil) Then
 			break;
     if (device_node.Name<>'device') Then
@@ -557,7 +557,7 @@ Begin
       Continue;
     End;
 
-		deviceType_node := device_node.GetNode('deviceType');
+		deviceType_node := device_node.GetNodeByName('deviceType');
 		If (deviceType_node.Value = DEVICE_TYPE_3) Then
 			Break;
 	End;
@@ -570,7 +570,7 @@ Begin
     Exit;
   End;
 
-	serviceList_node := device_node.GetNode('serviceList');
+	serviceList_node := device_node.GetNodeByName('serviceList');
 	if (serviceList_node = Nil) Then
 	Begin
 		status := NAT_ERROR;
@@ -580,9 +580,9 @@ Begin
 	End;
 
 	is_found := False;
-	for I:=0 To Pred(serviceList_node.ChildCount) Do
+	for I:=0 To Pred(serviceList_node.NodeCount) Do
 	Begin
-		service_node := serviceList_node.GetChild(I);
+		service_node := serviceList_node.GetNodeByIndex(I);
 		if (service_node = Nil) Then
 			break;
     If (service_node.Name<>'service') Then
@@ -591,7 +591,7 @@ Begin
       Continue;
     End;
 
-		serviceType_node := service_node.GetNode('serviceType');
+		serviceType_node := service_node.GetNodeByName('serviceType');
 		if(serviceType_node = Nil) Then
 			Continue;
 
@@ -613,7 +613,7 @@ Begin
 
 	Self.service_type := serviceType;
 
-	controlURL_node := service_node.GetNode('controlURL');
+	controlURL_node := service_node.GetNodeByName('controlURL');
 	control_url := controlURL_node.Value;
 
 	//make the complete control_url;
@@ -627,14 +627,14 @@ Begin
 	Result := True;
 End;
 
-Function UPNP.add_port_mapping(_description, _destination_ip:TERRAString; _port_ex, _port_in:Word; _protocol:TERRAString):Boolean;
+Function UPNP.add_port_mapping(_description, _destination_ip:AnsiString; _port_ex, _port_in:Word; _protocol:AnsiString):Boolean;
 Var
 	ret:Boolean;
-	host,path:TERRAString;
+	host,path:AnsiString;
 	port:Word;
-	action_params, soap_message, action_message:TERRAString;
-  response, http_request:TERRAString;
-  buff:Array[0..MAX_BUFF_SIZE+1] Of TERRAChar;
+	action_params, soap_message, action_message:AnsiString;
+  response, http_request:AnsiString;
+  buff:Array[0..MAX_BUFF_SIZE+1] Of AnsiChar;
 Begin
 	ret := parseUrl(control_url, host, port, path);
 	if (Not ret) Then
@@ -654,25 +654,25 @@ Begin
   End;
 
   action_params := ADD_PORT_MAPPING_PARAMS;
-  ReplaceText('$A', IntToString(_port_ex), action_params);
-  ReplaceText('$B', _protocol, action_params);
-  ReplaceText('$C', IntToString(_port_in), action_params);
-  ReplaceText('$D', _destination_ip, action_params);
-  ReplaceText('$E', _description, action_params);
+  StringReplaceText('$A', IntToString(_port_ex), action_params);
+  StringReplaceText('$B', _protocol, action_params);
+  StringReplaceText('$C', IntToString(_port_in), action_params);
+  StringReplaceText('$D', _destination_ip, action_params);
+  StringReplaceText('$E', _description, action_params);
 
 	soap_message := SOAP_ACTION;
-  ReplaceText('$A', ACTION_ADD, soap_message);
-  ReplaceText('$B', service_type, soap_message);
-  ReplaceText('$C', action_params, soap_message);
-  ReplaceText('$D', ACTION_ADD, soap_message);
+  StringReplaceText('$A', ACTION_ADD, soap_message);
+  StringReplaceText('$B', service_type, soap_message);
+  StringReplaceText('$C', action_params, soap_message);
+  StringReplaceText('$D', ACTION_ADD, soap_message);
 
 	action_message := HTTP_HEADER_ACTION;
-  ReplaceText('$A', path, action_message);
-  ReplaceText('$B', host, action_message);
-  ReplaceText('$C', IntToString(port), action_message);
-  ReplaceText('$D', service_type, action_message);
-  ReplaceText('$E', ACTION_ADD, action_message);
-  ReplaceText('$F', IntToString(Length(soap_message)), action_message);
+  StringReplaceText('$A', path, action_message);
+  StringReplaceText('$B', host, action_message);
+  StringReplaceText('$C', IntToString(port), action_message);
+  StringReplaceText('$D', service_type, action_message);
+  StringReplaceText('$E', ACTION_ADD, action_message);
+  StringReplaceText('$F', IntToString(Length(soap_message)), action_message);
 
 	http_request := action_message + soap_message;
 

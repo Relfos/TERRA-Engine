@@ -403,6 +403,7 @@ End;
 Procedure Stream.ReadLine(Var S:TERRAString);
 Var
   C:TERRAChar;
+  Temp:Cardinal;
 Begin
   S :='';
   C := NullChar;
@@ -411,8 +412,9 @@ Begin
     ReadChar(C);
 
     If (C = NewLineChar) Then
-      Break
-    Else
+    Begin
+      Break;
+    End Else
       StringAppendChar(S, C);
   End;
 End;
@@ -624,22 +626,22 @@ Begin
   Begin
     GetNextTwoChars();
 
-    If (B=10) And (A=0) Then
+    If (A=10) And (B=0) Then
     Begin
       A := 13;
     End Else
-    If (B=13) And (A=0) Then
+    If (A=13) And (B=0) Then
     Begin
       GetNextTwoChars();
 
-      If (B=10) And (A=0) Then
+      If (A=10) And (B=0) Then
       Begin
         A := 13;
       End Else
         Self.Skip(-2);
     End;
 
-    If (A = 13) Or (A=10) Then
+    If (A = 13) Then
     Begin
       Value := NewLineChar;
     End Else

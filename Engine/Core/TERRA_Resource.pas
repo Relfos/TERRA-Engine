@@ -25,7 +25,7 @@ Unit TERRA_Resource;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Collections, TERRA_Stream;
+Uses TERRA_String, TERRA_Collections, TERRA_Hashmap, TERRA_Stream;
 
 Const
   rsUnloaded  = 0;
@@ -36,9 +36,8 @@ Const
 Type
   ResourceClass = Class Of Resource;
 
-  Resource = Class(ListObject)
+  Resource = Class(HashMapObject)
     Protected
-      _Name:TERRAString;
       _Time:Cardinal;
       _Location:TERRAString;
       _Status:Integer;
@@ -46,9 +45,8 @@ Type
       _KeepStream:Boolean;
       _ContextID:Integer;
 
-      Procedure CopyValue(Other:ListObject); Override;
-      Function Sort(Other:ListObject):Integer; Override;
-      Function GetHashKey():HashKey; Override;
+      Procedure CopyValue(Other:CollectionObject); Override;
+      Function Sort(Other:CollectionObject):Integer; Override;
 
     Public
       InBackground:Boolean;
@@ -67,12 +65,12 @@ Type
       Procedure OnContextLost(); Virtual;
 
       Function ToString():TERRAString; Override;
-      
+
       Procedure Prefetch;
 
       Function ShouldUnload():Boolean;
 
-      Property Name:TERRAString Read _Name Write _Name;
+      Property Name:TERRAString Read _Key;
       Property Location:TERRAString Read _Location;
       Property Time:Cardinal Read _Time Write _Time;
       Property Status:Integer Read _Status Write _Status;
@@ -84,7 +82,7 @@ Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Utils, TERRA_ResourceManager, TERRA_FileStream, TERRA_GraphicsManager,
   TERRA_FileUtils, TERRA_Application;
 
-Procedure Resource.CopyValue(Other: ListObject);
+Procedure Resource.CopyValue(Other: CollectionObject);
 Begin
   RaiseError('Not implemented!');
 End;
@@ -95,11 +93,11 @@ Var
 Begin
   If Pos('@', Location) = 1 Then
   Begin
-    Self._Name := Location;
+    Self._Key := Location;
     Self._Location := '';
   End Else
   Begin
-    Self._Name := GetFileName(Location,True);
+    Self._Key := GetFileName(Location,True);
     Self._Location := Location;
   End;
 
@@ -139,7 +137,7 @@ Begin
     If (Application.Instance<>Nil) And (_ContextID <> Application.Instance.ContextID) Then
     Begin
       Result := False;
-      Log(logWarning, 'Resource', 'Invalid context in '+Self._Name);
+      Log(logWarning, 'Resource', 'Invalid context in '+Self._Key);
       Self.OnContextLost();
     End Else
     Begin
@@ -232,7 +230,7 @@ Begin
     Log(logDebug, 'Resource', 'Prefetching for '+Self.Name+' is done!');
 End;
 
-Function Resource.Sort(Other: ListObject): Integer;
+Function Resource.Sort(Other: CollectionObject): Integer;
 Begin
   Result := GetStringSort(Self.Name, Resource(Other).Name);
 End;
@@ -252,11 +250,6 @@ Begin
   Result := True;
   If (Application.Instance<>Nil) Then
     _ContextID := Application.Instance.ContextID;
-End;
-
-Function Resource.GetHashKey: HashKey;
-Begin
-  Result := GetStringHashKey(Name);
 End;
 
 Procedure Resource.OnContextLost;

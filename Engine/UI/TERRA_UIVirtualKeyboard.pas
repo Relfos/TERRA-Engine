@@ -214,7 +214,7 @@ Begin
   Key._KeyType := KeyType;
   Key.Callback := Callback;
   Key._Suggestion := -1;
-  Key._Name := StringUpper('key_'+IntToString(Row)+'_'+IntToString(Line));
+  Key._Key := StringUpper('key_'+IntToString(Row)+'_'+IntToString(Line));
   Key._Label := Name;
   Key._Row := Row;
   Key._Line := Line;
@@ -341,20 +341,17 @@ Constructor VirtualKeyboard.Create(Name:TERRAString; UI:UI; Z: Single);
 Var
   I:Integer;
 Begin
+  Inherited Create(Name, UI, Parent);
+
   Self.UpdateRects();
 
   Self._LayoutContext := -1;
-  Self._Visible := True;
   Self._TabIndex := -1;
-  Self._Name := Name;
-  Self._Parent := Parent;
+
   Self.RestorePosition();
   Self._Layer := Z;
 
   Self.LoadComponent('ui_kb_bg');
-
-  UI.AddWidget(Self);
-
 
   _CurrentLayout := 0;
 
@@ -746,10 +743,11 @@ End;
 { UIVirtualKeyboardKey }
 Constructor UIVirtualKeyboardKey.Create(Parent:Widget; UI:UI; X, Y, Z: Single);
 Begin
+  Inherited Create(Name, UI, Parent);
+
   Self._Visible := True;
   Self._TabIndex := -1;
-  Self._Name := 'key';
-  Self._Parent := Parent;
+
   Self._Position := VectorCreate2D(X,Y);
   Self._Layer := Z;
 
@@ -758,8 +756,6 @@ Begin
   Self.LoadComponent('ui_kb_c');
 
   Self.OnMouseClick := KeyEventDispatcher;
-
-  UI.AddWidget(Self);
 
   Self._ColorTable := TextureManager.Instance.DefaultColorTable;
 End;
@@ -860,7 +856,7 @@ Begin
   End;
 
   If (SS<>'') Then
-    Self.DrawText(SS, VectorCreate((W-Self.Font.GetTextWidth(SS, TextScale))*0.5, (H-Self.Font.GetTextHeight(SS, TextScale))*0.5,1), ColorWhite, TextScale);
+    Self.DrawText(SS, VectorCreate((W - _FontRenderer.GetTextWidth(SS, TextScale))*0.5, (H - _FontRenderer.GetTextHeight(SS, TextScale))*0.5,1), ColorWhite, TextScale);
 End;
 
 Procedure UIVirtualKeyboardKey.StartHighlight; Begin End;

@@ -15,7 +15,7 @@ Const
 Type
   Package = Class;
 
-  ResourceInfo = Class(ListObject)
+  ResourceInfo = Class(CollectionObject)
     Protected
       _Owner:Package;
       _FileName:TERRAString;                // Resource name
@@ -44,8 +44,7 @@ Type
       _TableOffset:Cardinal; // Table position in the file
       _CRC:Cardinal;
 
-      _Resources:Array Of ResourceInfo; // List of all resources within the file
-      _ResourceCount:Integer;    // Number of resources in the table
+      _Resources:List; // List of all resources within the file
 
       Function GetCRC():Cardinal;
 
@@ -74,27 +73,14 @@ Type
       // This can be used for patches/mods
       Function LoadResource(Resource:ResourceInfo):Stream;
 
-      Function CreateIterator:Iterator;
-
       // Package name
       Property Name:TERRAString Read _Name;
-      Property ResourceCount:Integer Read _ResourceCount;
+      Property Resources:List Read _Resources;
     End;
 
 Implementation
 Uses TERRA_Error, TERRA_CRC32, TERRA_Application, TERRA_OS, TERRA_Log, TERRA_ResourceManager,
   TERRA_FileStream, TERRA_FileManager, TERRA_MemoryStream;
-
-Type
-  PackageIterator=Class(Iterator)
-    Protected
-      _Package:Package;
-      _Index:Integer;
-
-    Public
-      Function HasNext:Boolean; Override;
-      Function GetNext:ListObject; Override;
-  End;
 
 Constructor ResourceInfo.Create(Owner:Package; Source:Stream);
 Begin
@@ -117,6 +103,7 @@ Constructor Package.Create(FileName:TERRAString);
 Begin
   _Location := FileName;
   _Name := GetFileName(FileName, True);
+  _Resources := Nil;
 End;
 
 Procedure Package.Release;
@@ -126,33 +113,26 @@ End;
 
 Function Package.FindResourceByIndex(Index:Integer):ResourceInfo;
 Begin
-   If (Index<0) Or (Index>=_ResourceCount) Then
-      Result := Nil
-   Else
-       Result := _Resources[Index];
+  Result := ResourceInfo(_Resources.GetItemByIndex(Index));
 End;
 
 Function Package.Unload:Boolean;
-Var
-   I:Integer;
 Begin
-  For I:=0 To Pred(_ResourceCount) Do
-  Begin
-       _Resources[I].Release();
-  End;
-  _ResourceCount := 0;
-
+  ReleaseObject(_Resources);
   Result := True;
 End;
 
 Function Package.Load():Boolean;
 Var
   I,J:Integer;
+  ResCount:Integer;
   S:TERRAString;
   Header:FileHeader;
   Resource:ResourceInfo;
   Source:Stream;
 Begin
+  Self.Unload();
+
   Result := False;
 
   Source := FileStream.Open(_Location, smRead);
@@ -165,17 +145,15 @@ Begin
     Exit;
   End;
 
-  Source.ReadInteger(_ResourceCount); //Read filetable info
+  Source.ReadInteger(ResCount); //Read filetable info
   Source.ReadCardinal(_TableOffset);
-
   Source.Seek(_TableOffset);
-  SetLength(_Resources, _ResourceCount);
-  For I:=0 To Pred(_ResourceCount) Do
+
+  _Resources := List.Create(collection_Unsorted);
+  For I:=1 To ResCount Do
   Begin
     Resource := ResourceInfo.Create(Self, Source);
-    _Resources[I] := Resource;
-
-
+    _Resources.Add(Resource);
 
     {$IFDEF ALLOWEXTERNAL}
     Resource._ExternalPath := FileManager.Instance.SearchResourceFile(GetFileName(Resource._FileName, False));
@@ -192,18 +170,27 @@ End;
 //If not found returns nil
 Function Package.FindResourceByName(Const ResourceName:TERRAString):ResourceInfo;
 Var
-  I:Integer;
+  It:Iterator;
+  Res:ResourceInfo;
 Begin
   Result := Nil;
-  For I:=0 To Pred(_ResourceCount) Do
-   If (StringEquals(_Resources[I]._FileName, ResourceName)) Then
+  If _Resources = Nil Then
+    Exit;
+
+  It := _Resources.GetIterator();
+  While It.HasNext() Do
+  Begin
+    Res := ResourceInfo(It.GetNext());
+    If (StringEquals(Res._FileName, ResourceName)) Then
     Begin
-      Result := _Resources[I];
+      Result := Res;
       Break;
     End;
+  End;
+  ReleaseObject(It);
 
   If Not Assigned(Result)Then
-    Log(logDebug,'Package', 'Resource not found.['+ResourceName+']');
+    Log(logWarning, 'Package', 'Resource not found.['+ResourceName+']');
 End;
 
 //Loads a resource from the package into a stream
@@ -250,23 +237,4 @@ Begin
   Result:=_CRC;
 End;
 
-{ PackageIterator }
-Function PackageIterator.GetNext: ListObject;
-Begin
-  Result := _Package._Resources[_Index];
-  Inc(_Index);
-End;
-
-Function PackageIterator.HasNext: Boolean;
-Begin
-  Result := (_Index<_Package._ResourceCount);
-End;
-
-Function Package.CreateIterator: Iterator;
-Begin
-  Result := PackageIterator.Create;
-  PackageIterator(Result)._Package := Self;
-  PackageIterator(Result)._Index := 0;
-End;
-
-End.
+End.

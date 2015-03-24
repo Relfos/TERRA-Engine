@@ -30,7 +30,7 @@ Unit TERRA_Client;
 {$ENDIF}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Input;
+Uses TERRA_String, TERRA_Utils;
 
 Const
   apiFacebook = 1;
@@ -54,8 +54,6 @@ Type
 
   AppClient = Class(TERRAObject)
     Public
-      Keys:InputState;
-
       Procedure SelectResolution3D(Var Width, Height:Integer); Virtual;
       Procedure SelectResolution2D(Var Width, Height:Integer; Var Scale:Single); Virtual;
 
@@ -78,6 +76,9 @@ Type
       Procedure OnIAP_Purchase(Const ID:TERRAString); Overload; Virtual;
       Procedure OnIAP_Purchase(Credits:Integer); Overload; Virtual;
       Procedure OnIAP_External(Const PurchaseID:TERRAString; UserData:Pointer); Virtual;
+
+      Procedure OnGamepadConnect(Index:Integer); Virtual;
+      Procedure OnGamepadDisconnect(Index:Integer); Virtual;
 
       Procedure OnAPIResult(API, Code:Integer); Virtual;
 
@@ -138,27 +139,8 @@ Type
   End;
 
 
-Function IsMouseInput(Key:Integer):Boolean;
-Function IsKeyboardInput(Key:Integer):Boolean;
-Function IsGamepadInput(Key:Integer):Boolean;
-
 Implementation
 Uses TERRA_Application, TERRA_OS, TERRA_Log;
-
-Function IsMouseInput(Key:Integer):Boolean;
-Begin
-  Result := (Key >= keyMouseLeft) And (Key<=keyMouseMiddle);
-End;
-
-Function IsKeyboardInput(Key:Integer):Boolean;
-Begin
-  Result := (Key <=255);
-End;
-
-Function IsGamepadInput(Key:Integer):Boolean;
-Begin
-  Result := (Key>=keyGamepadIndex) And (Key<keyMouseLeft);
-End;
 
 { Client }
 Procedure AppClient.OnAccelerometer(X, Y, Z: Single);
@@ -436,5 +418,15 @@ Begin
   Result := 0;
 End;
 
+
+Procedure AppClient.OnGamepadConnect(Index: Integer);
+Begin
+  Log(logDebug, 'Client', 'Gamepad '+IntToString(Index)+' was connected!');
+End;
+
+Procedure AppClient.OnGamepadDisconnect(Index: Integer);
+Begin
+  Log(logDebug, 'Client', 'Gamepad '+IntToString(Index)+' was disconnected!');
+End;
 
 End.

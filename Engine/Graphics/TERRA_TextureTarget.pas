@@ -50,7 +50,7 @@ Uses TERRA_GraphicsManager, TERRA_Resource, TERRA_Math;
 Constructor TextureRenderTarget.Create(Const Name:TERRAString; Width, Height: Integer);
 Begin
   Self._Location := '';
-  Self._Name := Name;
+  Self._Key := Name;
   Self._Size := Width * Height * 4;
   Self._Status := rsReady;
 

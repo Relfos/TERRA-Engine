@@ -138,7 +138,7 @@ Type
     dwVpos: Cardinal;		 { 6th axis position }
     wButtons: Cardinal;      { button states }
     dwButtonNumber: Cardinal;  { current button number pressed }
-    dwPOV: Cardinal;           { point of view state }
+    dwPOV: Integer;           { point of view state }
     dwReserved1: Cardinal;		 { reserved for communication between winmm & driver }
     dwReserved2: Cardinal;		 { reserved for future expansion }
   end;

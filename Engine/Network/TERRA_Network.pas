@@ -83,15 +83,16 @@ Type
   PMessageHeader = ^MessageHeader;
   MessageHeader = Packed Record
     Opcode:Byte;
-    Owner:Word;
     Length:Word;
+    Owner:Cardinal;
+    Padding:Byte;
   End;
 
   // NetMessage
   NetMessage = Class(MemoryStream)
     Protected
-      Function GetOwner:Word;
-      Procedure SetOwner(Value: Word);
+      Function GetOwner:Cardinal;
+      Procedure SetOwner(Value:Cardinal);
 
       Function GetLength:Word;
       Procedure SetLength(Value: Word);
@@ -104,11 +105,9 @@ Type
       Constructor Create(Opcode:Byte);
 
       Property Opcode:Byte Read GetOpcode;
-      Property Owner:Word Read GetOwner Write SetOwner;
       Property Length:Word Read GetLength Write SetLength;
+      Property Owner:Cardinal Read GetOwner Write SetOwner;
   End;
-
-  MessageHandler = Procedure(Msg:NetMessage; Sock:Socket) Of Object;
 
   NetObject = Class(TERRAObject)
     Protected
@@ -116,16 +115,18 @@ Type
       _Output:Cardinal;       //Current output in bytes
 
       //Function CreateSocket:Cardinal;
-      Function SendPacket(Dest:SocketAddress; Sock:Socket; Msg:NetMessage):Boolean;
+      Function SendPacket(Dest:SocketAddress; Sock:NetSocket; Msg:NetMessage):Boolean;
 
-      Function OnSendFail(Dest:SocketAddress; Sock:Socket; Msg:NetMessage):Boolean; Virtual;
-      Procedure OnPacketReceived(Sock:Socket; Msg:NetMessage); Virtual;
+      Function OnSendFail(Dest:SocketAddress; Sock:NetSocket; Msg:NetMessage):Boolean; Virtual;
+      Procedure OnPacketReceived(Sock:NetSocket; Msg:NetMessage); Virtual;
+
+      Procedure ReturnMessage(Sock:NetSocket; Msg:NetMessage; AutoRelease:Boolean = False); // Sends a message to the last sender
 
     Public
       _Address:SocketAddress;  // Local Address
       _Sender:SocketAddress;   // Address of message sender
       _HostName:TERRAString;         // Local host name
-      _LocalID:Word;            // Local ID
+      _LocalID:Cardinal;            // Local ID
       _Port:Word;               // Local port
       _Version:Word;            // Object Version
       _TotalDownload:Cardinal;  // Session download total
@@ -133,33 +134,21 @@ Type
       _NextUpdate:Cardinal;     // Next IO check time
       _Upload:Cardinal;         // Current upload kb/s
       _Download:Cardinal;       // Current download kb/s
-      _OpcodeList:Array[0..255]Of MessageHandler;
 
       Constructor Create();  //Creates a new object instance
       Procedure Release;Reintroduce;Virtual; //Shutdown the object
 
       //Function MakeSocketAddress(Var SockAddr:SocketAddress; Port:Word; Hostname:TERRAString):Boolean;
 
-      Function ReceivePacket(Sock:Socket):Boolean;
+      Function ReceivePacket(Sock:NetSocket):Boolean;
       Procedure UpdateIO; //Updates upload/download status
       Procedure Update;Virtual;Abstract; //Handles standart messages
-
-      Procedure AddHandler(Opcode:Byte; Handler:MessageHandler); Virtual;
-
-      // Validates a message
-      Function ValidateMessage(Msg:NetMessage):Boolean; Virtual; Abstract;
-
-      Procedure ReturnMessage(Sock:Socket; Msg:NetMessage; AutoRelease:Boolean = False); // Sends a message to the last sender
 
       // Encodes a message
       Function EncodeMessage(Msg:NetMessage):NetMessage; Virtual;
 
       // Decodes a message
       Function DecodeMessage(Msg:NetMessage):NetMessage; Virtual;
-
-      // Message Handlers -> Need one of this for each message type
-      Procedure OnInvalidMessage(Msg:NetMessage; Sock:Socket);
-      Procedure IgnoreMessage(Msg:NetMessage; Sock:Socket);
   End;
 
 
@@ -240,13 +229,7 @@ Begin
   Log(logDebug,'Network', S);
 End;
 
-{********************
-   LNetObject Class
- ********************}
-Procedure NetObject.AddHandler(Opcode: Byte; Handler: MessageHandler);
-Begin
-  Self._OpcodeList[Opcode] := Handler;
-End;
+{ NetObject }
         (*
 Function NetObject.CreateSocket:Cardinal;
 Begin
@@ -289,7 +272,7 @@ Begin
   Log(logDebug, 'Network', 'Socket is ready');
 End;   *)
 
-Function NetObject.SendPacket(Dest:SocketAddress;  Sock:Socket; Msg:NetMessage):Boolean;
+Function NetObject.SendPacket(Dest:SocketAddress;  Sock:NetSocket; Msg:NetMessage):Boolean;
 Var
   Len, Count:Integer;
   N:Integer;
@@ -297,7 +280,7 @@ Var
   P:PByte;
 Begin
   Result := False;
-  If (Sock.Closed) Then
+  If (Sock = Nil) Or (Sock.Closed) Then
     Exit;
 
   Msg.AdjustSize();
@@ -312,7 +295,7 @@ Begin
   Msg.AdjustSize();
 
 
-  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Packet size: ',Msg.Length);{$ENDIF}
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Packet size: '+IntToString(Msg.Length));{$ENDIF}
   //LogMsg(_Name+'.Send():',@Rm,' to '+GetIP(Dest.Address));
 
     //EncodeMessage(Msg);
@@ -323,31 +306,23 @@ Begin
   Count := Len;
   P := Msg.Buffer;
   Timer := GetTime();
-  Repeat
-    N := Sock.Write(P, Count);
 
-    If (N = SOCKET_ERROR) Then
-    Begin
-      If Not Self.OnSendFail(Dest, Sock, Msg) Then
-      Begin
-        Result := False;
-        Exit;
-      End;
-    End;
+  N := Sock.Write(P, Count);
 
-    If (N>0) Then
+  If (N<=0) Then
+  Begin
+    If Not Self.OnSendFail(Dest, Sock, Msg) Then
     Begin
-      Inc(P, N);
-      Dec(Count, N);
-    End;
-
-    If (Count<=0) Then
-    Begin
-      Result := True;
+      Result := False;
       Exit;
     End;
-  Until (GetTime() - Timer > 500);
+  End Else
+  If (N<Count) Then
+  Begin
+    DebugBreak;
+  End;
 
+  Result := True;
   //Log(logWarning,'Network',_Name+'.SendPacket: Socket error');
 End;
 
@@ -359,7 +334,7 @@ Begin
   _NetObject._OpcodeList[NetMessage(Msg).Opcode](NetMessage(Msg), Nil);
 End;}
 
-Function NetObject.ReceivePacket(Sock:Socket):Boolean;
+Function NetObject.ReceivePacket(Sock:NetSocket):Boolean;
 Var
   P:PByte;
   N,Cnt, Rem:Longint;
@@ -381,7 +356,7 @@ Begin
   Repeat
     Rem := SizeOf(MessageHeader) - Cnt;
     N := Sock.Read(P, Rem);
-    {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Read result: ',N);{$ENDIF}
+    {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Read result: '+IntToString(N));{$ENDIF}
 
    //Check for errors
     If (N=SOCKET_ERROR) Or (N<=0) Then //There was no message waiting
@@ -428,16 +403,13 @@ Begin
     Exit;
   End;
 
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Preparing message '+IntToString(Msg.Opcode));{$ENDIF}
+  Msg.Seek(SizeOf(MessageHeader));
+
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Processing message '+IntToString(Msg.Opcode));{$ENDIF}
   OnPacketReceived(Sock, Msg);
 
-  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Validating message');{$ENDIF}
-  Msg.Seek(SizeOf(MessageHeader));
-  ValidMsg := ValidateMessage(Msg);
-  //Log(logDebug, 'Network', 'Rec: ',Msg.Opcode);
-
-  If ValidMsg Then
-  Begin
-    {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Invoking opcode ',Msg.Opcode);{$ENDIF}
+{    Self.ProcessMessage(Msg, Sock);
     If Assigned(_OpcodeList[Header.Opcode]) Then
     Begin
       Msg.Seek(SizeOf(MessageHeader));
@@ -445,24 +417,25 @@ Begin
     End;
   End Else
   If (Header.Opcode<>nmServerAck) Then
-    Log(logWarning,'Network',Self.ClassName+'.Update: Invalid opcode ['+IntToString(Header.Opcode)+']');
+    Log(logWarning,'Network',Self.ClassName+'.Update: Invalid opcode ['+IntToString(Header.Opcode)+']');}
 
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Releasing message '+IntToString(Msg.Opcode));{$ENDIF}
   ReleaseObject(Msg);
 
   Result := True;
 
-  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Opcode ',Header.Opcode,' processed');{$ENDIF}
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Opcode '+IntToString(Header.Opcode)+' processed');{$ENDIF}
 End;
 
-Procedure NetObject.OnInvalidMessage(Msg:NetMessage; Sock:Socket);
+{Procedure NetObject.OnInvalidMessage(Msg:NetMessage; Sock:NetSocket);
 Begin
   Log(logError, 'Network', 'InvalidMessage: Unknown opcode.['+IntToString(Msg.Opcode)+']');
 End;
 
-Procedure NetObject.IgnoreMessage(Msg:NetMessage; Sock:Socket);
+Procedure NetObject.IgnoreMessage(Msg:NetMessage; Sock:NetSocket);
 Begin
   // do nothing
-End;
+End;}
 
 Constructor NetObject.Create();
 Var
@@ -474,9 +447,6 @@ Begin
   _Output := 0;
   _TotalUpload := 0;
   _TotalDownload := 0;
-  For I:=0 To 255 Do
-    _OpcodeList[I] := OnInvalidMessage;
-  _OpcodeList[nmIgnore] := IgnoreMessage;
 End;
 
 Procedure NetObject.Release;
@@ -498,7 +468,7 @@ Begin
   End;
 End;
 
-Procedure NetObject.ReturnMessage(Sock:Socket; Msg:NetMessage; AutoRelease:Boolean); //Sends a message to the last sender
+Procedure NetObject.ReturnMessage(Sock:NetSocket; Msg:NetMessage; AutoRelease:Boolean); //Sends a message to the last sender
 Begin
   If Msg = Nil Then
     Exit;
@@ -559,13 +529,13 @@ Begin
     _Objects[I].Update();
 End;
 
-Function NetObject.OnSendFail(Dest: SocketAddress; Sock: Socket; Msg: NetMessage): Boolean;
+Function NetObject.OnSendFail(Dest: SocketAddress; Sock:NetSocket; Msg: NetMessage): Boolean;
 Begin
   Sleep(200);
   Result := True;
 End;
 
-Procedure NetObject.OnPacketReceived(Sock:Socket; Msg: NetMessage);
+Procedure NetObject.OnPacketReceived(Sock:NetSocket; Msg: NetMessage);
 Begin
   // do nothing
 End;
@@ -617,7 +587,7 @@ Begin
   Result := Header.Opcode;
 End;
 
-Function NetMessage.GetOwner: Word;
+Function NetMessage.GetOwner:Cardinal;
 Var
   Header:PMessageHeader;
 Begin
@@ -633,7 +603,7 @@ Begin
   Header.Length := Value;
 End;
 
-Procedure NetMessage.SetOwner(Value: Word);
+Procedure NetMessage.SetOwner(Value:Cardinal);
 Var
   Header:PMessageHeader;
 Begin

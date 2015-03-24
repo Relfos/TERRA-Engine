@@ -47,7 +47,7 @@ Const
 Type
   FTPSession = Class(TERRAObject)
     Protected
-      _Stream:Socket;
+      _Stream:NetSocket;
       _ServerAddress:TERRAString;
       _LastResponse:TERRAString;
       _LastCode:Integer;
@@ -61,7 +61,7 @@ Type
 
       Procedure SendCommand(S:TERRAString);
 
-      Function GetSocket(S:TERRAString):Socket;
+      Function GetSocket(S:TERRAString):NetSocket;
 
     Public
       Constructor Create(URL:TERRAString; Const Username, Password:TERRAString; Port:Integer = FTPPort);
@@ -191,7 +191,7 @@ Begin
     Path:='';
 
   _ServerAddress:=URL;
-  _Stream := Socket.Create(_ServerAddress, Port);
+  _Stream := NetSocket.Create(_ServerAddress, Port);
   _Stream.Encoding := encodingASCII;
   If (_Stream.EOF) Or (GetStatus<>220) Then
   Begin
@@ -234,7 +234,7 @@ Var
   Path:TERRAString;
   BlockSize, Count, FileSize:Integer;
   Buffer:Pointer;
-  Source:Socket;
+  Source:NetSocket;
 Begin
   If Not Assigned(_Stream) Then
   Begin
@@ -335,7 +335,7 @@ Var
   Path:TERRAString;
   BlockSize, FileSize, Count:Integer;
   Buffer:Pointer;
-  Dest:Socket;
+  Dest:NetSocket;
   S:TERRAString;
   I:Integer;
 Begin
@@ -474,7 +474,7 @@ Begin
   _Stream.Write(@S[1], Length(S));
 End;
 
-Function FTPSession.GetSocket(S:TERRAString): Socket;
+Function FTPSession.GetSocket(S:TERRAString): NetSocket;
 Var
   OutAddress:TERRAString;
   I:Integer;
@@ -503,7 +503,7 @@ begin
   Log(logDebug, 'FTP', 'B: '+IntToString(B));
 
   Port := A*256 + B;
-  Result := Socket.Create(OutAddress{_ServerAddress}, Port);
+  Result := NetSocket.Create(OutAddress{_ServerAddress}, Port);
 End;
 
 { FTPMirrorSession }

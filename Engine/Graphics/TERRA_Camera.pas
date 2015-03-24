@@ -156,7 +156,8 @@ Type
   End;
 
 Implementation
-Uses TERRA_Shader, TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsManager, TERRA_Log, Math;
+Uses TERRA_Shader, TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsManager,
+  TERRA_InputManager, TERRA_Log, Math;
 
 // Camera
 
@@ -397,28 +398,31 @@ Procedure Camera.FreeCam;
 Var
   Walk_speed:Single;
   Rot:Single;
+  Input:InputManager;
 Begin
   Walk_Speed := GraphicsManager.Instance.ElapsedTime * Speed * 3.0;
 
-	If (Application.Instance.Input.Keys.IsDown(keyShift)) Then
+  Input := InputManager.Instance;
+
+	If (Input.Keys.IsDown(keyShift)) Then
     Walk_speed := Walk_speed * 8;
 
-	If (Application.Instance.Input.Keys.IsDown(keyW)) Then
+	If (Input.Keys.IsDown(keyW)) Then
     Move(camDirForward, Walk_Speed);
 
-	If (Application.Instance.Input.Keys.IsDown(keyS)) Then
+	If (Input.Keys.IsDown(keyS)) Then
     Move(camDirBackward, Walk_Speed);
 
-	If (Application.Instance.Input.Keys.IsDown(keyA)) Then
+	If (Input.Keys.IsDown(keyA)) Then
     Move(camDirLeft, Walk_Speed);
 
-	If (Application.Instance.Input.Keys.IsDown(keyD)) Then
+	If (Input.Keys.IsDown(keyD)) Then
     Move(camDirRight, Walk_Speed);
 
-	If (Application.Instance.Input.Keys.IsDown(keyQ)) Then
+	If (Input.Keys.IsDown(keyQ)) Then
 		_position.y := _position.y -walk_speed;
 
-	If (Application.Instance.Input.Keys.IsDown(keyE)) Then
+	If (Input.Keys.IsDown(keyE)) Then
 		_position.y := _position.y + walk_speed;
 
   {$IFDEF MOBILE}
@@ -427,16 +431,16 @@ Begin
   Rot := 0.5;
   {$ENDIF}
 
-  If (Application.Instance.Input.Keys.IsDown(keyLEFT)) Then
+  If (Input.Keys.IsDown(keyLEFT)) Then
     GraphicsManager.Instance.ActiveViewport.Camera.Rotate(Rot, 0.0);
 
-  If (Application.Instance.Input.Keys.IsDown(keyRight)) Then
+  If (Input.Keys.IsDown(keyRight)) Then
     GraphicsManager.Instance.ActiveViewport.Camera.Rotate(-Rot, 0.0);
 
-  If (Application.Instance.Input.Keys.IsDown(keyUp)) Then
+  If (Input.Keys.IsDown(keyUp)) Then
     GraphicsManager.Instance.ActiveViewport.Camera.Rotate(0.0, Rot);
 
-  If (Application.Instance.Input.Keys.IsDown(keyDown)) Then
+  If (Input.Keys.IsDown(keyDown)) Then
     GraphicsManager.Instance.ActiveViewport.Camera.Rotate(0.0, -Rot);
 
   _NeedsUpdate := True;

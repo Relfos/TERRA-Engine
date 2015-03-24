@@ -28,7 +28,7 @@ Unit TERRA_FileManager;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
     TERRA_String, TERRA_Utils, TERRA_Resource, TERRA_Collections, TERRA_Stream, TERRA_FileStream,
-    TERRA_Application, TERRA_Package;
+    TERRA_Application, TERRA_Hashmap, TERRA_Package;
 
 Type
   ResourceProvider = Class(TERRAObject)
@@ -36,16 +36,12 @@ Type
     Function HasStream(Const Name:TERRAString):Boolean; Virtual; Abstract;
   End;
 
-  FileLocation = Class(ListObject)
+  FileLocation = Class(HashMapObject)
     Public
-      Name:TERRAString;
       Path:TERRAString;
 
-      Function ToString():TERRAString; Override;
-
       Constructor Create(Const Name, Path:TERRAString);
-      Procedure CopyValue(Other:ListObject); Override;
-      Function GetHashKey():HashKey; Override;
+      Procedure CopyValue(Other:CollectionObject); Override;
   End;
 
   FileManager = Class(ApplicationComponent)
@@ -62,7 +58,7 @@ Type
       _ProviderCount:Integer;
       _Providers:Array Of ResourceProvider;
 
-      _Locations:HashTable;
+      _Locations:HashMap;
 
     Public
       Procedure Init; Override;
@@ -116,9 +112,9 @@ Begin
   Result := StringContains('.terra'+PathSeparator, FileName);
 End;
 
-Function SearchFileLocation(P:ListObject; UserData:Pointer):Boolean; CDecl;
+Function SearchFileLocation(P:CollectionObject; UserData:Pointer):Boolean; CDecl;
 Begin
-  Result := (FileLocation(P).Name = PString(Userdata)^);
+  Result := (FileLocation(P).Key = PString(Userdata)^);
 End;
 
 { FileManager }
@@ -131,7 +127,7 @@ End;
 
 Procedure FileManager.Init;
 Begin
-  _Locations := HashTable.Create(256);
+  _Locations := HashMap.Create(256);
   Self.AddSource('');
 End;
 
@@ -554,25 +550,14 @@ End;
 { FileLocation }
 Constructor FileLocation.Create(Const Name, Path:TERRAString);
 Begin
-  Self.Name := StringLower(GetFileName(Name, False));
+  Self._Key := StringLower(GetFileName(Name, False));
   Self.Path := Path;
 End;
 
-Procedure FileLocation.CopyValue(Other: ListObject);
+Procedure FileLocation.CopyValue(Other: CollectionObject);
 Begin
-  Self.Name := FileLocation(Other).Name;
+  Self._Key := FileLocation(Other).Key;
   Self.Path := FileLocation(Other).Path;
 End;
-
-Function FileLocation.ToString:TERRAString;
-Begin
-  Result := Self.Name;
-End;
-
-Function FileLocation.GetHashKey: HashKey;
-Begin
-  Result := GetStringHashKey(Name+Path);
-End;
-
 
 End.

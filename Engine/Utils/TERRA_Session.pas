@@ -3,17 +3,23 @@ Unit TERRA_Session;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_MemoryStream, TERRA_OS, TERRA_ProgressNotifier;
+Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_MemoryStream, TERRA_OS, TERRA_ProgressNotifier,
+  TERRA_Collections, TERRA_Hashmap;
 
 {-$DEFINE ALLOWBACKUPS}
 
 Const
   DefaultSessionFileName = 'session';
-  
+
 Type
-  KeyValue = Record
-    Key:TERRAString;
-    Value:TERRAString;
+  SessionKeyValue = Class(HashMapObject)
+    Protected
+      _Value:TERRAString;
+
+    Public
+      Constructor Create(Const Key, Value:TERRAString);
+
+      Property Value:TERRAString Read _Value Write _Value;
   End;
 
   Session = Class(TERRAObject)
@@ -21,21 +27,17 @@ Type
       _Path:TERRAString;
       _FileName:TERRAString;
 
-      _Data:Array Of KeyValue;
-      _DataCount:Integer;
+      _Data:Hashmap;
 
       _Read:Boolean;
 
       _Backup:Boolean;
 
-
-      Function getKeyID(Const Key:TERRAString):Integer;
+      Function GetData: Hashmap;
 
       Function GetDefaultFilePath():TERRAString;
 
       Function FixPath(S:TERRAString):TERRAString;
-
-      Function GetDataCount: Integer;
 
       Function GetBackUpFileName():TERRAString;
 
@@ -53,9 +55,6 @@ Type
       Function LoadFromFile(SourceFile:TERRAString):Boolean;
       Function LoadFromStream(Source:MemoryStream):Boolean;
 
-      Function GetKeyByIndex(Index:Integer):TERRAString;
-      Function GetValueByIndex(Index:Integer):TERRAString;
-
       Function GetSaveFileName():TERRAString;
 
       Procedure Clear;
@@ -69,7 +68,8 @@ Type
 
       Function Restore():Boolean;
 
-      Property KeyCount:Integer Read GetDataCount;
+      Property Data:Hashmap Read GetData;
+
       Property Path:TERRAString Read _Path;
       Property FileName:TERRAString Read _FileName;
   End;
@@ -159,7 +159,8 @@ Var
     End;
 
 Begin
-  _DataCount := 0;
+  _Data.Clear();
+
   IsOldFile := False;
 
   If (Source.Size<4) Then
@@ -237,12 +238,7 @@ Begin
     If (Key = '') Or (InvalidString(Key)) Or (InvalidString(S2)) Then
       Continue;
 
-    I := _DataCount;
-    Inc(_DataCount);
-    SetLength(_Data, _DataCount);
-
-    _Data[I].Key := Key;
-    _Data[I].Value := S2;
+    _Data.Add(SessionKeyValue.Create(Key, S2));
     //Log(logDebug,'Session','Session: '+_Data[I].Key+'='+_Data[I].Value);
   End;
 
@@ -251,7 +247,7 @@ Begin
 
   _Read := True;
 
-  Log(logDebug,'Session','Loaded session file, '+IntToString(_DataCount)+' items found.');
+  Log(logDebug,'Session','Loaded session file, '+IntToString(_Data.Count)+' items found.');
   Result := True;
 End;
 
@@ -287,12 +283,14 @@ Var
   OutBuff:Pointer;
   Ret, Rem:Integer;
   B:Byte;
-  I, J, N, Len:Integer;
+  It:Iterator;
+  J, N, Len:Integer;
   Dest, Temp:MemoryStream;
   Pref:Stream;
   Key, S, S2, S3:TERRAString;
   FileName:TERRAString;
   Header:FileHeader;
+  Entry:SessionKeyValue;
 Begin
   FileName := Self.GetSaveFileName();
 
@@ -308,13 +306,16 @@ Begin
   If Assigned(Callback) Then
     Callback.Reset(2);
 
-  For I:=0 To Pred(_DataCount) Do
+  It := Data.GetIterator();
+  While It.HasNext() Do
   Begin
-    If Assigned(Callback) Then
-      Callback.Notify(I/Pred(_DataCount));
+    Entry := SessionKeyValue(It.GetNext());
 
-    Dest.WriteString(_Data[I].Key);
-    Dest.WriteString(_Data[I].Value);
+    If Assigned(Callback) Then
+      Callback.Notify(It.Index/Pred(Data.Count));
+
+    Dest.WriteString(Entry._Key);
+    Dest.WriteString(Entry._Value);
   End;
 
   If Assigned(Callback) Then
@@ -394,37 +395,24 @@ Begin
 End;
 
 
-Function Session.getKeyID(Const Key:TERRAString):Integer;
-Var
-  I:Integer;
-Begin
-  Result := -1;
-
-  For I:=0 To Pred(_DataCount) Do
-  If StringEquals(_Data[I].Key, Key) Then
-  Begin
-    Result := I;
-    Exit;
-  End;
-
-  Result := _DataCount;
-  Inc(_DataCount);
-  SetLength(_Data, _DataCount);
-
-  _Data[Result].Key := Key;
-End;
-
 Procedure Session.SetValue(Const Key,Value:TERRAString);
 Var
-  N:Integer;
+  Entry:SessionKeyValue;
 Begin
-  N := Self.getKeyID(Key);
-  _Data[N].Value := Value;
+  Entry := SessionKeyValue(Data.GetItemByKey(Key));
+  If Assigned(Entry) Then
+  Begin
+    Entry._Value := Value;
+  End Else
+  Begin
+    Entry := SessionKeyValue.Create(Key, Value);
+    Data.Add(Entry);
+  End;
 End;
 
 Function Session.GetValue(Const Key:TERRAString):TERRAString;
 Var
-  N:Integer;
+  Entry:SessionKeyValue;
   S:TERRAString;
 Begin
   If (Not _Read) Then
@@ -433,34 +421,20 @@ Begin
     LoadFromFile(S);
   End;
 
-  N := Self.getKeyID(Key);
-  Result := _Data[N].Value;
+  Entry := SessionKeyValue(Data.GetItemByKey(Key));
+  If Assigned(Entry) Then
+    Result := Entry._Value
+  Else
+    Result := '';
 End;
 
-Procedure Session.Release;
+Procedure Session.Release();
 Begin
   Self.Clear();
+  ReleaseObject(_Data);
 End;
 
-Function Session.GetKeyByIndex(Index: Integer):TERRAString;
-Begin
-  If (Index>=0) And (Index<_DataCount) Then
-  Begin
-    Result := _Data[Index].Key;
-  End Else
-    Result := '';
-End;
-
-Function Session.GetValueByIndex(Index: Integer):TERRAString;
-Begin
-  If (Index>=0) And (Index<_DataCount) Then
-  Begin
-    Result := _Data[Index].Value;
-  End Else
-    Result := '';
-End;
-
-Function Session.Restore:Boolean;
+Function Session.Restore():Boolean;
 Var
   FileName:TERRAString;
 Begin
@@ -497,6 +471,7 @@ Begin
   If (FileName = '') Then
     FileName := DefaultSessionFileName;
 
+  _Data := HashMap.Create(1024);
 
   _Backup := Backup;
 
@@ -518,18 +493,19 @@ End;
 
 Procedure Session.CopyKeys(Other: Session);
 Var
-  I:Integer;
+  It:Iterator;
+  Entry:SessionKeyValue;
 Begin
   If Other = Nil Then
     Exit;
 
-  Self._DataCount := Other._DataCount;
-  SetLength(Self._Data, Self._DataCount);
+  Self.Data.Clear();
 
-  For I:=0 To Pred(Self._DataCount) Do
+  It := Other.Data.GetIterator();
+  While It.HasNext() Do
   Begin
-    _Data[I].Key := Other._Data[I].Key;
-    _Data[I].Value := Other._Data[I].Value;
+    Entry := SessionKeyValue(It.GetNext());
+    Self.Data.Add(SessionKeyValue.Create(Entry._Key, Entry._Value));
   End;
 End;
 
@@ -541,38 +517,30 @@ End;
 
 Procedure Session.Clear;
 Begin
-  Self._DataCount := 0;
-  SetLength(_Data, 0);
+  Self.Data.Clear();
   _Read := False;
 End;
 
-Function Session.GetDataCount: Integer;
+Function Session.GetData: Hashmap;
 Begin
   If (Not _Read) Then
   Begin
     LoadFromFile(Self.GetSaveFileName());
   End;
 
-  Result := _DataCount;
+  Result := _Data;
 End;
 
 Function Session.HasKey(Const Key:TERRAString): Boolean;
-Var
-  I:Integer;
 Begin
-  If (Not _Read) Then
-  Begin
-    LoadFromFile(Self.GetSaveFileName());
-  End;
+  Result := Assigned(Data.GetItemByKey(Key));
+End;
 
-  For I:=0 To Pred(_DataCount) Do
-  If StringEquals(_Data[I].Key, Key) Then
-  Begin
-    Result := True;
-    Exit;
-  End;
-
-  Result := False;
+{ SessionKeyValue }
+Constructor SessionKeyValue.Create(const Key, Value: TERRAString);
+Begin
+  Self._Key := Key;
+  Self._Value := Value;
 End;
 
 Initialization

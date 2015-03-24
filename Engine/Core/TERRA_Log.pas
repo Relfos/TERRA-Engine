@@ -46,7 +46,7 @@ Interface
 {$ENDIF}
 
 {$IFDEF LINUX}
-{$DEFINE CONSOLEWINDOW}
+{.$DEFINE CONSOLEWINDOW}
 {$ENDIF}
 
 {$IFDEF OSX}
@@ -56,7 +56,6 @@ Interface
 
 
 Uses TERRA_FileStream, TERRA_String
-{$IFDEF ANDROID},Android_Log{$ENDIF}
 {$IFDEF USE_SYSLOG},systemlog{$ENDIF}
 {$IFDEF WINDOWS},Windows{$ENDIF}
 ;
@@ -95,6 +94,23 @@ Var
 
 Implementation
 Uses TERRA_Utils, TERRA_OS, TERRA_Application, TERRA_FileUtils;
+
+{$IFDEF ANDROID}
+
+Const
+  ANDROID_LOG_UNKNOWN=0;
+  ANDROID_LOG_DEFAULT=1;
+  ANDROID_LOG_VERBOSE=2;
+  ANDROID_LOG_DEBUG=3;
+  ANDROID_LOG_INFO=4;
+  ANDROID_LOG_WARN=5;
+  ANDROID_LOG_ERROR=6;
+  ANDROID_LOG_FATAL=7;
+  ANDROID_LOG_SILENT=8;
+
+Function __android_log_write(prio:Integer; tag,text:PAnsiChar):Integer; cdecl; external 'liblog.so' name '__android_log_write';
+//function LOGI(prio:longint;tag,text:PAnsiChar):longint; cdecl; varargs; external 'liblog.so' name '__android_log_print';
+{$ENDIF}
 
 Var
   _LogShutdown:Boolean;

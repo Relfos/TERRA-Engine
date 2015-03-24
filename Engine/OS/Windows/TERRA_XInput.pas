@@ -3,6 +3,7 @@ Unit TERRA_XInput;
 {$I terra.inc}
 
 Interface
+Uses TERRA_InputManager;
 
 Const
   XINPUT_DLL  = 'xinput1_3.dll';
@@ -68,11 +69,19 @@ Type
     Vibration:TXInputVibration;
   End;
 
-Function XGetControllerState(ControllerID:Integer=0):TXInputGamepad;
-Function XIsControllerConnected(ControllerID:Integer=0):Boolean;
+  XInputGamepad = Class(Gamepad)
+    Protected
+      _DeviceID:Integer;
+
+    Public
+      Procedure Update(Keys:InputState); Override;
+  End;
+
+Function XGetControllerState(ControllerID:Integer):TXInputGamepad;
+Function XIsControllerConnected(ControllerID:Integer):Boolean;
 
 Implementation
-Uses TERRA_Log, Windows;
+Uses TERRA_Log, TERRA_Application, Windows;
 
 Var
   XLibHandle:THandle=0;
@@ -162,5 +171,40 @@ void CXBOXController::Vibrate(int leftVal, int rightVal)
     // Vibrate the controller
     XInputSetState(_controllerNum, &Vibration);
 *)
+
+{ XInputGamepad }
+Procedure XInputGamepad.Update(Keys: InputState);
+Var
+  XState:TXInputGamepad;
+  IsConnected:Boolean;
+Begin
+  IsConnected := XIsControllerConnected(_DeviceID);
+
+  If (Not IsConnected) Then
+  Begin
+    Self.Disconnnect();
+    Exit;
+  End Else
+  Begin
+    Self.Connnect();
+  End;
+
+  XState := XGetControllerState(_DeviceID);
+
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadUp_Offset), (XState.Buttons And XINPUT_GAMEPAD_DPAD_UP)<>0);
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadDown_Offset), (XState.Buttons And XINPUT_GAMEPAD_DPAD_DOWN)<>0);
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadLeft_Offset), (XState.Buttons And XINPUT_GAMEPAD_DPAD_LEFT)<>0);
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadRight_Offset), (XState.Buttons And XINPUT_GAMEPAD_DPAD_RIGHT)<>0);
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadMenu_Offset), (XState.Buttons And XINPUT_GAMEPAD_START)<>0);
+
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadA_Offset), (XState.Buttons And XINPUT_GAMEPAD_A)<>0);
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadB_Offset), (XState.Buttons And XINPUT_GAMEPAD_B)<>0);
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadX_Offset), (XState.Buttons And XINPUT_GAMEPAD_X)<>0);
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadY_Offset), (XState.Buttons And XINPUT_GAMEPAD_Y)<>0);
+
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadL_Offset), (XState.Buttons And XINPUT_GAMEPAD_LEFT_SHOULDER)<>0);
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadR_Offset), (XState.Buttons And XINPUT_GAMEPAD_RIGHT_SHOULDER)<>0);
+End;
+
 End.
 

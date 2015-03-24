@@ -27,7 +27,7 @@ Unit TERRA_SpriteManager;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_GraphicsManager, TERRA_Texture,
-  TERRA_Application, TERRA_Shader, TERRA_Matrix3x3, TERRA_Matrix4x4;
+  TERRA_Application, TERRA_Shader, TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ClipRect;
 
 Type
   SpriteManager = Class;
@@ -39,31 +39,6 @@ Type
     TexCoord:Vector2D;
     Saturation:Single;
   End;
-
-  ClipRect = Class(TERRAObject)
-    Protected
-      _X, _Y:Single;
-      _Width, _Height:Single;
-
-      Procedure SetHeight(const Value: Single);
-      Procedure SetWidth(const Value: Single);
-      Procedure SetX(const Value: Single);
-      Procedure SetY(const Value: Single);
-
-    Public
-      Procedure GetRealRect(Out X1, Y1, X2, Y2:Single{; Landscape:Boolean});
-
-      Procedure Transform(Const M:Matrix3x3);
-
-      Procedure Release; Override;
-
-      Property X:Single Read _X Write SetX;
-      Property Y:Single Read _Y Write SetY;
-
-      Property Width:Single Read _Width Write SetWidth;
-      Property Height:Single Read _Height Write SetHeight;
-  End;
-
 
   TextureRect = Object
     Public
@@ -217,6 +192,7 @@ Type
       Function DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:Texture; Outline:Color; ColorTable:Texture = Nil; BlendMode:Integer = blendBlend;  Saturation:Single = 1.0; BilinearFilter:Boolean=False; IsFont:Boolean = False):Sprite;
   End;
 
+
 Implementation
 Uses {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
   TERRA_RenderTarget, TERRA_OS, TERRA_Math
@@ -361,30 +337,39 @@ Begin
 
   Clip.GetRealRect(X1, Y1, X2, Y2{, Landscape});
 
-  If (V.Position.X<X1) Then
+  If (Clip.Style = clipEverything) Then
   Begin
-    Dist := (X1 - V.Position.X)/Width;
-    V.TexCoord.X := V.TexCoord.X + USize * Dist;
     V.Position.X := X1;
-  End Else
+    V.Position.Y := Y1;
+    Exit;
+  End;
+
+//  Y2 := 100;
+
   If (V.Position.X>X2) Then
   Begin
     Dist := (V.Position.X-X2)/Width;
     V.TexCoord.X := V.TexCoord.X - USize * Dist;
     V.Position.X := X2;
+  End Else
+  If (V.Position.X<X1) Then
+  Begin
+    Dist := (X1 - V.Position.X)/Width;
+    V.TexCoord.X := V.TexCoord.X + USize * Dist;
+    V.Position.X := X1;
   End;
 
-  If (V.Position.Y<Y1) Then
-  Begin
-    Dist := (Y1 - V.Position.Y)/Height;
-    V.TexCoord.Y := V.TexCoord.Y + VSize * Dist;
-    V.Position.Y := Y1;
-  End Else
   If (V.Position.Y>Y2) Then
   Begin
     Dist := (V.Position.Y-Y2)/Height;
     V.TexCoord.Y := V.TexCoord.Y - VSize * Dist;
     V.Position.Y := Y2;
+  End Else
+  If (V.Position.Y<Y1) Then
+  Begin
+    Dist := (Y1 - V.Position.Y)/Height;
+    V.TexCoord.Y := V.TexCoord.Y + VSize * Dist;
+    V.Position.Y := Y1;
   End;
 End;
 
@@ -407,7 +392,7 @@ End;
 Function SpriteManager.DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:Texture; Outline:Color; ColorTable:Texture; BlendMode:Integer;  Saturation:Single; BilinearFilter:Boolean; IsFont:Boolean):Sprite;
 Var
   N, I:Integer;
-  HasShaders:Boolean;
+  HasShaders, ResetBatch:Boolean;
 Begin
   If (Not Assigned(SpriteTexture)) Or (Not SpriteTexture.IsReady()) Then
   Begin
@@ -418,8 +403,13 @@ Begin
     Exit;
   End;
 
-  If (Layer>0) Then
-    Layer := -Layer;
+  {$IFDEF WINDOWS}
+  If (Layer<0) Then
+    DebugBreak;
+  {$ENDIF}
+
+  Layer := Layer/100;
+
   X := Trunc(X);
   Y := Trunc(Y);
 
@@ -448,7 +438,7 @@ Begin
   Result.Anchor := VectorCreate2D(0, 0);
   Result.Flip := False;
   Result.Mirror := False;
-  Result.ClipRect := Nil;
+  Result.ClipRect.Style := clipNothing;
   Result._Saturation := Saturation;
   Result._IsFont := IsFont;
   Result._Outline := Outline;
@@ -476,6 +466,8 @@ Begin
 
   HasShaders := GraphicsManager.Instance.Settings.Shaders.Avaliable;
 
+  ResetBatch := True;
+
   N := -1;
   For I:=0 To Pred(_BatchCount) Do
   If ((_Batches[I]._Texture = SpriteTexture) And (_Batches[I]._BlendMode = BlendMode)
@@ -487,6 +479,7 @@ Begin
   And (Not _Batches[I]._Closed) Then
   Begin
     N := I;
+    ResetBatch := False;
     Break;
   End;
 
@@ -496,18 +489,6 @@ Begin
     If (_Batches[I]._Count <=0) Then
     Begin
       N := I;
-      _Batches[N]._BlendMode := BlendMode;
-      _Batches[N]._Texture := SpriteTexture;
-      _Batches[N]._Closed := False;
-      _Batches[N]._Layer := Result.Layer;
-      {$IFNDEF DISABLECOLORGRADING}
-      _Batches[N]._ColorTable := ColorTable;
-      {$ENDIF}
-      _Batches[N]._IsFont := IsFont;
-      _Batches[N]._Saturation := Saturation;
-      _Batches[N]._Outline := Outline;
-      _Batches[N]._First := Nil;
-      _Batches[N]._Manager := Self;
       Break;
     End;
   End;
@@ -517,6 +498,10 @@ Begin
     N := _BatchCount;
     Inc(_BatchCount);
     SetLength(_Batches, _BatchCount);
+  End;
+
+  If ResetBatch Then
+  Begin
     _Batches[N]._Count := 0;
     _Batches[N]._BlendMode := BlendMode;
     _Batches[N]._Texture := SpriteTexture;
@@ -531,9 +516,6 @@ Begin
     _Batches[N]._First := Nil;
     _Batches[N]._Manager := Self;
   End;
-
-  If (N<0) Or (N>=_BatchCount) Then
-    Exit;
 
   _Batches[N].AddSprite(Result);
 End;
@@ -591,6 +573,7 @@ Begin
   If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
   Begin
     Projection := GraphicsManager.Instance.ProjectionMatrix;
+
     glMatrixMode(GL_PROJECTION);
     glLoadMatrixf(@Projection);
 
@@ -984,7 +967,10 @@ Var
 Begin
   _Closed := False;
   If (_Count<=0) Then
+  Begin
+    _First := Nil;
     Exit;
+  End;
 
   Landscape := IsLandscapeOrientation(Application.Instance.Orientation);
 
@@ -1025,6 +1011,9 @@ Begin
   S := _First;
   While Assigned(S) Do
   Begin
+    If (S.ClipRect.Style = clipEverything) Then
+      Continue;
+
     W := S.Rect.Width;
     H := S.Rect.Height;
 
@@ -1076,14 +1065,31 @@ Begin
 
     For J:=0 To 5 Do
     Begin
-      _Vertices[Ofs + J].Position.X := _Vertices[Ofs + J].Position.X + S.Position.X - S.Anchor.X *W;
-      _Vertices[Ofs + J].Position.Y := _Vertices[Ofs + J].Position.Y + S.Position.Y - S.Anchor.Y *H;
+      V := @_Vertices[Ofs + J];
+
+      V.Position.X := V.Position.X + S.Position.X - S.Anchor.X *W;
+      V.Position.Y := V.Position.Y + S.Position.Y - S.Anchor.Y *H;
     End;
 
-    For J:=0 To 5 Do
-      _Vertices[Ofs + J].Position := S._Transform.Transform(_Vertices[Ofs + J].Position);
+    MinX := 9999;
+    MaxX := -9999;
+    MinY := 9999;
+    MaxY := -9999;
 
-    If Assigned(S.ClipRect) Then
+    For J:=0 To 5 Do
+    Begin
+      V := @_Vertices[Ofs + J];
+      V.Position := S._Transform.Transform(V.Position);
+      MinX := FloatMin(MinX, V.Position.X);
+      MinY := FloatMin(MinY, V.Position.Y);
+      MaxX := FloatMax(MaxX, V.Position.X);
+      MaxY := FloatMax(MaxY, V.Position.Y);
+    End;
+
+    W := MaxX - MinX;
+    H := MaxY - MinY;
+
+    If (S.ClipRect.Style = clipSomething) Then
     Begin
       MinX := 9999;
       MaxX := -9999;
@@ -1109,7 +1115,7 @@ Begin
       For J:=0 To 5 Do
       Begin
         _Vertices[Ofs + J].Position.Z := S.Layer;
-        _Vertices[Ofs + J].Saturation :=  S._Saturation;
+        _Vertices[Ofs + J].Saturation := S._Saturation;
       End;
 
       Inc(Ofs, 6);
@@ -1247,101 +1253,6 @@ Begin
   Width := Trunc(Height / N);
 End;
 
-{ ClipRect }
-Procedure ClipRect.Release;
-Begin
-  // do nothing
-End;
-
-Procedure ClipRect.GetRealRect(Out X1, Y1, X2, Y2: Single{; Landscape:Boolean});
-Var
-  UIWidth, UIHeight:Integer;
-Begin
-{  If (Landscape) Then
-  Begin
-    UIWidth := GraphicsManager.Instance.UIViewport.Width;
-    UIHeight := GraphicsManager.Instance.UIViewport.Height;
-    X2 := UIWidth - (Self.Y);
-    X1 := UIWidth - (X2 + Self.Height);
-    Y2 := UIHeight - (Self.X);
-    Y1 := UIHeight - (Y2 + Self.Width);
-  End Else}
-  Begin
-    X1 := Self.X;
-    X2 := X1 + Self.Width;
-    Y1 := Self.Y;
-    Y2 := Y1 + Self.Height;
-  End;
-End;
-
-Procedure ClipRect.SetHeight(const Value: Single);
-Begin
-  _Height := Value;
-End;
-
-Procedure ClipRect.SetWidth(const Value: Single);
-Begin
-  _Width := Value;
-End;
-
-Procedure ClipRect.SetX(const Value: Single);
-Begin
-  _X := Value;
-End;
-
-Procedure ClipRect.SetY(const Value: Single);
-Begin
-  _Y := Value;
-End;
-
-Procedure ClipRect.Transform(const M: Matrix3x3);
-Var
-  I:Integer;
-  P:Array[0..3] Of Vector2D;
-  T:Vector2D;
-  MinX, MinY, MaxX, MaxY:Single;
-Begin
-  P[0].X := _X;
-  P[0].Y := _Y;
-
-  P[1].X := _X + _Width;
-  P[1].Y := _Y;
-
-  P[2].X := _X + _Width;
-  P[2].Y := _Y + _Height;
-
-  P[3].X := _X;
-  P[3].Y := _Y + _Height;
-
-  MaxX := -9999;
-  MaxY := -9999;
-
-  MinX := 9999;
-  MinY := 9999;
-
-  For I:=0 To 3 Do
-  Begin
-    T := M.Transform(P[I]);
-
-    If (T.X>MaxX) Then
-      MaxX := T.X;
-
-    If (T.Y>MaxY) Then
-      MaxY := T.Y;
-
-    If (T.X<MinX) Then
-      MinX := T.X;
-
-    If (T.Y<MinY) Then
-      MinY := T.Y;
-  End;
-
-  Self.X := MinX;
-  Self.Y := MinY;
-
-  Self.Width := MaxX - MinX;
-  Self.Height := MaxY - MinY;
-End;
 
 Initialization
 Finalization

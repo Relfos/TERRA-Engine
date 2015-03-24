@@ -456,37 +456,37 @@ Var
   glVertexAttrib4uiv: procedure(index: Cardinal; const v: PCardinal); cdecl;
   glVertexAttrib4usv: procedure(index: Cardinal; const v: PWord); cdecl;
   glVertexAttribPointer: procedure(index: Cardinal; size: Integer; _type: Cardinal; normalized: Boolean; stride: Integer; const pointer: Pointer); cdecl;
-  glGenerateMipmap: procedure (target:Cardinal); stdcall;
+  glGenerateMipmap: procedure (target:Cardinal); cdecl;
 
 // ******************************************************************************
 //  GL_EXT_framebuffer_object
 // ******************************************************************************
 Var
-  glIsRenderbuffer: function(renderbuffer: Cardinal): Boolean; stdcall;
-  glBindRenderbuffer: procedure(target: Cardinal; renderbuffer: Cardinal); stdcall;
-  glDeleteRenderbuffers: procedure(n: Integer; const renderbuffers: PCardinal); stdcall;
-  glGenRenderbuffers: procedure(n: Integer; renderbuffers: PCardinal); stdcall;
-  glRenderbufferStorage: procedure(target: Cardinal; internalformat: Cardinal; width: Integer; height: Integer); stdcall;
-  glGetRenderbufferParameteriv: procedure(target: Cardinal; pname: Cardinal; params: PInteger); stdcall;
-  glIsFramebuffer: function(framebuffer: Cardinal): Boolean; stdcall;
-  glBindFramebuffer: procedure(target: Cardinal; framebuffer: Cardinal); stdcall;
-  glDeleteFramebuffers: procedure(n: Integer; const framebuffers: PCardinal); stdcall;
-  glGenFramebuffers: procedure(n: Integer; framebuffers: PCardinal); stdcall;
-  glCheckFramebufferStatus: function(target: Cardinal): Cardinal; stdcall;
-  glFramebufferTexture1D: procedure(target: Cardinal; attachment: Cardinal; textarget: Cardinal; texture: Cardinal; level: Integer); stdcall;
-  glFramebufferTexture2D: procedure(target: Cardinal; attachment: Cardinal; textarget: Cardinal; texture: Cardinal; level: Integer); stdcall;
-  glFramebufferTexture3D: procedure(target: Cardinal; attachment: Cardinal; textarget: Cardinal; texture: Cardinal; level: Integer; zoffset: Integer); stdcall;
-  glFramebufferRenderbuffer: procedure(target: Cardinal; attachment: Cardinal; renderbuffertarget: Cardinal; renderbuffer: Cardinal); stdcall;
-  glGetFramebufferAttachmentParameteriv: procedure(target: Cardinal; attachment: Cardinal; pname: Cardinal; params: PInteger); stdcall;
+  glIsRenderbuffer: function(renderbuffer: Cardinal): Boolean; cdecl;
+  glBindRenderbuffer: procedure(target: Cardinal; renderbuffer: Cardinal); cdecl;
+  glDeleteRenderbuffers: procedure(n: Integer; const renderbuffers: PCardinal); cdecl;
+  glGenRenderbuffers: procedure(n: Integer; renderbuffers: PCardinal); cdecl;
+  glRenderbufferStorage: procedure(target: Cardinal; internalformat: Cardinal; width: Integer; height: Integer); cdecl;
+  glGetRenderbufferParameteriv: procedure(target: Cardinal; pname: Cardinal; params: PInteger); cdecl;
+  glIsFramebuffer: function(framebuffer: Cardinal): Boolean; cdecl;
+  glBindFramebuffer: procedure(target: Cardinal; framebuffer: Cardinal); cdecl;
+  glDeleteFramebuffers: procedure(n: Integer; const framebuffers: PCardinal); cdecl;
+  glGenFramebuffers: procedure(n: Integer; framebuffers: PCardinal); cdecl;
+  glCheckFramebufferStatus: function(target: Cardinal): Cardinal; cdecl;
+  glFramebufferTexture1D: procedure(target: Cardinal; attachment: Cardinal; textarget: Cardinal; texture: Cardinal; level: Integer); cdecl;
+  glFramebufferTexture2D: procedure(target: Cardinal; attachment: Cardinal; textarget: Cardinal; texture: Cardinal; level: Integer); cdecl;
+  glFramebufferTexture3D: procedure(target: Cardinal; attachment: Cardinal; textarget: Cardinal; texture: Cardinal; level: Integer; zoffset: Integer); cdecl;
+  glFramebufferRenderbuffer: procedure(target: Cardinal; attachment: Cardinal; renderbuffertarget: Cardinal; renderbuffer: Cardinal); cdecl;
+  glGetFramebufferAttachmentParameteriv: procedure(target: Cardinal; attachment: Cardinal; pname: Cardinal; params: PInteger); cdecl;
 
-  glRenderbufferStorageMultisample: procedure (target:Cardinal; samples:Integer; internalformat:Cardinal;  width, height:Integer); stdcall;
-  glBlitFramebuffer: procedure (srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1:Integer; mask:Cardinal; filter:Cardinal); stdcall;
+  glRenderbufferStorageMultisample: procedure (target:Cardinal; samples:Integer; internalformat:Cardinal;  width, height:Integer); cdecl;
+  glBlitFramebuffer: procedure (srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1:Integer; mask:Cardinal; filter:Cardinal); cdecl;
 
 
   glEnableIndexedEXT: procedure(target, index:Integer); cdecl;
   glDisableIndexedEXT: procedure(target, index:Integer); cdecl;
 
-  glActiveStencilFaceEXT: Procedure(face: Integer); stdcall = nil;
+  glActiveStencilFaceEXT: Procedure(face: Integer); cdecl = nil;
 
 Procedure glLoadExtensions;
 
@@ -806,4 +806,4 @@ Initialization
 Finalization
   FreeOpenGL;
 End.
-
+

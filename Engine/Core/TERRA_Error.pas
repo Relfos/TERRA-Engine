@@ -113,5 +113,7 @@ Begin
   Raise TERRAException.Create(Desc);
 End;
 
+//    DiscardWhiteSpace = WhiteSpace -> { };
+  //  Comment = '{' A '}' -> { A.Discard(); };
 
 End.

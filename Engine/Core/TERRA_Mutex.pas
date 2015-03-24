@@ -17,10 +17,9 @@
  * specific language governing permissions and limitations under the License.
  *
  **********************************************************************************************************************
- * TERRA_Mutex
- * Implements a portable mutex class
- ***********************************************************************************************************************
 }
+
+{ Implements a portable mutex class }
 Unit TERRA_Mutex;
 
 {$I terra.inc}
@@ -57,9 +56,15 @@ Function sem_destroy(sem:ppthread_sem_t):Integer; Cdecl; External LibC;
 {$ENDIF}
 
 Type
+  { Used to support thread-safe code}
   CriticalSection = Class(TERRAObject)
     Protected
-      _Name:String;
+//      _Name:String;
+
+      _Locked:Boolean;
+      _LockID:Cardinal;
+      _LockCounter:Integer;
+
       {$IFDEF WINDOWS}
       _Handle:TRTLCriticalSection;
       {$ELSE}
@@ -67,17 +72,24 @@ Type
       {$ENDIF}
 
     Public
-      Constructor Create(Const Name:TERRAString);
+      { Creates a new critical section}
+      Constructor Create();
+      { Release the object}
       Procedure Release; Override;
 
+      { Enter a critical code section. Other threads that try to lock this object while already locked will block until Unlock is called. }
       Procedure Lock;
+
+      { Unlock this critical section }
       Procedure Unlock;
+
+      { True if this object is currently locked }
+      Property Locked:Boolean Read _Locked;
   End;
 
+  { A semaphore primitive, used for multithreaded code }
   Semaphore = Class(TERRAObject)
     Protected
-      _Name:TERRAString;
-
       {$IFDEF WINDOWS}
       _Handle:THandle;
       {$ELSE}
@@ -85,11 +97,14 @@ Type
       {$ENDIF}
 
     Public
-      Constructor Create(Name:TERRAString; Count:Integer);
+      { Create a new semaphore }
+      Constructor Create(Count:Integer);
+
+      { Release the object}
       Procedure Release; Override;
 
-      Procedure Lock;
-      Procedure Unlock;
+      Procedure Wait();
+      Procedure Signal();
   End;
 
 Implementation
@@ -100,9 +115,9 @@ Var
   SectionCount:Integer;
 {$ENDIF}
 
-Constructor CriticalSection.Create(Const Name:TERRAString);
+Constructor CriticalSection.Create({Const Name:TERRAString});
 Begin
-  _Name := Name;
+//  _Name := Name;
 
   {$IFDEF DEBUG_LOCKS}
   Inc(SectionCount);
@@ -142,7 +157,21 @@ Begin
 End;
 
 Procedure CriticalSection.Lock;
+Var
+  ThreadID:Cardinal;
 Begin
+  ThreadID := GetCurrentThreadId();
+
+  If (_Locked) Then
+  Begin
+    Inc(_LockCounter);
+
+    If (_LockID = ThreadID) Then
+      Exit;
+  End Else
+    _LockCounter := 1;
+
+
 {$IFDEF WINDOWS}
   {$IFDEF DEBUGMUTEX}
   If (_Name<>'') Then
@@ -152,10 +181,24 @@ Begin
 {$ELSE}
   pthread_mutex_lock(@_Handle);
 {$ENDIF}
+
+  _Locked := True;
+  _LockID := ThreadID;
 End;
 
 Procedure CriticalSection.Unlock;
+Var
+  ThreadID:Cardinal;
 Begin
+  ThreadID := GetCurrentThreadId();
+
+  Dec(_LockCounter);
+  If (_Locked) And (_LockID = ThreadID) Then
+  Begin
+    If _LockCounter>0 Then
+      Exit;
+  End;
+
 {$IFDEF WINDOWS}
   {$IFDEF DEBUGMUTEX}
   If (_Name<>'') Then
@@ -165,12 +208,13 @@ Begin
 {$ELSE}
   pthread_mutex_unlock(@_Handle);
 {$ENDIF}
+
+  _Locked := False;
 End;
 
 { Semaphore }
-Constructor Semaphore.Create(Name: TERRAString; Count:Integer);
+Constructor Semaphore.Create(Count:Integer);
 Begin
-  Self._Name := Name;
   {$IFDEF WINDOWS}
   _Handle := CreateSemaphore(Nil, 0, Count, Nil);
   {$ELSE}
@@ -195,7 +239,7 @@ Begin
   {$ENDIF}
 End;
 
-Procedure Semaphore.Unlock();
+Procedure Semaphore.Signal();
 Begin
   {$IFDEF WINDOWS}
   ReleaseSemaphore(_Handle,1, Nil); // unblock all the threads
@@ -208,7 +252,7 @@ Begin
   {$ENDIF}
 End;
 
-Procedure Semaphore.Lock();
+Procedure Semaphore.Wait();
 Begin
   {$IFDEF WINDOWS}
   WaitForSingleObject(_Handle, INFINITE);

@@ -18,7 +18,7 @@ Const
 	keyShift      = 1;
 	keyControl    = 2;
 	keyAlt        = 3;
-	keyPause      = 5;
+	keyPause      = 82;
 	keyEscape     = 4; // $35;
 	keySpace      = $31;
 	keyPageUp     = $74;
@@ -90,8 +90,6 @@ Type
     Protected
       _Focus :Boolean;
 
-      _ControllerCount:Integer;
-
       _Utils:JavaClass;
 
       _TestedDebug:Boolean;
@@ -143,19 +141,21 @@ Type
 
       Function GetDeviceID():TERRAString; Override;
 
-      Function GetControllerCount: Integer; Override;
-
       Function IsDebuggerPresent:Boolean; Override;
 
       Procedure SendAnalytics(EventName:TERRAString; Values:TERRAString=''); Override;
+
+      Procedure SpawnThread(Args:Pointer);      
   End;
 
 Procedure focusKeyboard(s:PAnsiChar);
 Function StartupWithVM(VM:Pointer):Integer;
 
+Procedure ApplicationThreadExecute(P:Integer);
+
 Implementation
 Uses TERRA_Log, TERRA_ResourceManager, TERRA_Shader, TERRA_Texture, TERRA_Mesh, TERRA_GraphicsManager,
-  TERRA_UI, TERRA_IAP, TERRA_FileSearch, TERRA_Facebook;
+  TERRA_UI, TERRA_IAP, TERRA_FileSearch, TERRA_Facebook, TERRA_Threads, TERRA_FileStream;
 
 Var
 	_ApplicationInstance:AndroidApplication = Nil;
@@ -167,13 +167,18 @@ Begin
   Result := JNI_VERSION_1_6;
 End;
 
+Procedure ApplicationThreadExecute(P:Integer);
+Begin
+  InternalThreadDispatcher(Pointer(P));
+End;
+
 Procedure focusKeyboard(s:PAnsiChar);
 Var
   Params:JavaArguments;
 Begin
   If (_ApplicationInstance=Nil) Or (_ApplicationInstance._Utils=Nil) Then
     Exit;
-    
+
   Params := JavaArguments.Create(Nil);
   Params.AddString(S);
   _ApplicationInstance._Utils.CallStaticVoidMethod('showKeyboard', Params);
@@ -439,7 +444,6 @@ End;
 
 Function AndroidApplication.GetDeviceID:TERRAString;
 Var
-  Params:JavaArguments;
   Frame:JavaFrame;
 Begin
   Result := '';
@@ -452,32 +456,6 @@ Begin
   Java_Begin(Frame);
   Result := _Utils.CallStaticStringMethod('getDeviceID', Nil);
   Java_End(Frame);
-End;
-
-Function AndroidApplication.GetControllerCount: Integer;
-Begin
-  {$IFDEF OUYA}
-  Result := 1;
-  {$ELSE}
-  Result := 0;
-  {If (_ControllerCount<0) Then
-  Begin
-    Log(logDebug, 'App', 'Getting terra utils class');
-    Java_Begin(Frame);
-    Java_AttachThread();
-    _Utils := Java_FindClass('com.pascal.terra.TERRAUtils');
-
-    Log(logDebug, 'App', 'Getting connected devices');
-    Met := Java_FindStaticMethod('getConnectedInputDevices', '()I', _Utils);
-    If Assigned(Met) Then
-      _ControllerCount := Java_CallStaticIntMethod(Met, _Utils)
-    Else
-      _ControllerCount := 0;
-    Java_End(Frame);
-  End;}
-
-  Result := _ControllerCount;
-  {$ENDIF}
 End;
 
 Function AndroidApplication.IsDebuggerPresent: Boolean;
@@ -713,11 +691,20 @@ Begin
 
   _ApplicationInstance := Self;
 
+
   Log(logDebug, 'App', 'Starting Android App!');
   Java_Begin(Frame);
 
+ // Java_ClearClassLoader();
+
   Log(logDebug, 'App', 'Getting terra utils class');
   _Utils := JavaClass.Create(UtilsClassPath, Frame);
+
+{  Log(logDebug, 'App', 'Getting class loader');
+  ClassLoader := _Utils.CallStaticObjectMethod('getClassLoader', 'java/lang/ClassLoader', Nil);
+
+  Log(logDebug, 'App', 'Preparing class loader');
+  Java_LoadClassLoader(Frame, ClassLoader);}
 
   Log(logDebug, 'App', 'Getting internal write path');
   _Path := _Utils.CallStaticStringMethod('getInternalDir', Nil);
@@ -754,9 +741,25 @@ Begin
   _BundleVersion := _Utils.CallStaticStringMethod('getBundleVersion', Nil);
   Log(logDebug, 'App', 'Found version '+_BundleVersion);
 
+  Java_CacheClass(Frame, FileIOClassPath);
+
   Java_End(Frame);
 
 	Result := True;
+End;
+
+Procedure AndroidApplication.SpawnThread(Args: Pointer);
+Var
+  Params:JavaArguments;
+  Frame:JavaFrame;
+Begin
+  Log(logDebug, 'App', 'Spawning new thread '+IntToString(Integer(Args)));
+  Java_Begin(Frame);
+  Params := JavaArguments.Create(Frame);
+  Params.AddInteger(Integer(Args));
+  _Utils.CallStaticVoidMethod('spawnThread', Params);
+  Params.Release();
+  Java_End(Frame);
 End;
 
 End.

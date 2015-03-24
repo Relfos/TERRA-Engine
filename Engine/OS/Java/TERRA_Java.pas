@@ -26,7 +26,7 @@ Type
       Procedure AddBoolean(Value:Boolean);
       Procedure AddInteger(Value:Integer);
       Procedure AddFloat(Value:Single);
-      Procedure AddString(Value:AnsiString);
+      Procedure AddString(Const Value:AnsiString);
 
       Procedure AddWordArray(Values:Pointer; Size:Integer);
   End;
@@ -37,46 +37,51 @@ Type
       _Class:JClass;
       _Frame:JavaFrame;
 
-      Function GetStaticMethod(Env:PJNIEnv; Name:AnsiString; Args:JavaArguments; ResultType:AnsiString):JMethodID;
+      Function GetStaticMethod(Env:PJNIEnv; Const Name:AnsiString; Args:JavaArguments; ResultType:AnsiString):JMethodID;
 
     Public
       Constructor Create(ClassName:AnsiString; Frame:JavaFrame);
       Procedure Release(); Override;
 
-      Procedure CallStaticVoidMethod(Name:AnsiString; Args:JavaArguments);
-      Function CallStaticIntMethod(Name:AnsiString; Args:JavaArguments):Integer;
-      Function CallStaticFloatMethod(Name:AnsiString; Args: JavaArguments):Single;
-      Function CallStaticBoolMethod(Name:AnsiString; Args:JavaArguments):Boolean;
-      Function CallStaticStringMethod(Name:AnsiString; Args:JavaArguments):AnsiString;
-      Function CallStaticObjectMethod(Name, ObjClass:AnsiString; Args:JavaArguments):JObject;
+      Procedure CallStaticVoidMethod(Const Name:AnsiString; Args:JavaArguments);
+      Function CallStaticIntMethod(Const Name:AnsiString; Args:JavaArguments):Integer;
+      Function CallStaticFloatMethod(Const Name:AnsiString; Args: JavaArguments):Single;
+      Function CallStaticBoolMethod(Const Name:AnsiString; Args:JavaArguments):Boolean;
+      Function CallStaticStringMethod(Const Name:AnsiString; Args:JavaArguments):AnsiString;
+      Function CallStaticObjectMethod(Name:AnsiString; Const ObjClass:AnsiString; Args:JavaArguments):JObject;
   End;
 
   JavaObject = Class(JavaClass)
     Protected
       _Object:JObject;
 
-      Function GetMethod(Env:PJNIEnv; Name:AnsiString; Args:JavaArguments; ResultType:AnsiString):JMethodID;
+      Function GetMethod(Env:PJNIEnv; Const Name:AnsiString; Args:JavaArguments; Const ResultType:AnsiString):JMethodID;
 
     Public
-      Constructor Create(ClassName:AnsiString; Args:JavaArguments; Frame:JavaFrame);
+      Constructor Create(Const ClassName:AnsiString; Args:JavaArguments; Frame:JavaFrame);
       Procedure Release(); Override;
 
-      Procedure CallVoidMethod(Name:AnsiString; Args:JavaArguments);
-      Function CallBoolMethod(Name:AnsiString; Args:JavaArguments):Boolean;
-      Function CallIntMethod(Name:AnsiString; Args:JavaArguments):Integer;
-      Function CallFloatMethod(Name:AnsiString; Args:JavaArguments):Single;
-      Function CallStringMethod(Name:AnsiString; Args:JavaArguments):AnsiString;
-      Function CallByteArrayMethod(Name:AnsiString; Args:JavaArguments; Size:Integer):Pointer;
+      Procedure CallVoidMethod(Const Name:AnsiString; Args:JavaArguments);
+      Function CallBoolMethod(Const Name:AnsiString; Args:JavaArguments):Boolean;
+      Function CallIntMethod(Const Name:AnsiString; Args:JavaArguments):Integer;
+      Function CallFloatMethod(Const Name:AnsiString; Args:JavaArguments):Single;
+      Function CallStringMethod(Const Name:AnsiString; Args:JavaArguments):AnsiString;
+      Function CallByteArrayMethod(Const Name:AnsiString; Args:JavaArguments; Size:Integer):Pointer;
   End;
 
 Function JavaToString(S:JObject):AnsiString;
-Function StringToJava(Value:AnsiString):JString;
+Function StringToJava(Const Value:AnsiString):JString;
 
 //Procedure Java_AttachThread(Var Env:PJNIEnv);
 Procedure Java_DetachThread();
 
 Procedure Java_Begin(Out Frame:JavaFrame);
 Procedure Java_End(Var Frame:JavaFrame);
+
+Procedure Java_CacheClass(Frame:JavaFrame; Const Name:AnsiString);
+
+Procedure Java_ClearClassLoader();
+Procedure Java_LoadClassLoader(Env:PJNIEnv; Loader:JavaObject);
 
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Log, Math;
@@ -103,7 +108,7 @@ Begin
 
   {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Checking JNI env');{$ENDIF}
   Status := curVM^.GetEnv(curVM, @Env, JNI_VERSION_1_6);
-  If (Status<0) Then
+//  If (Status<0) Then
   Begin
     {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Attaching thread');{$ENDIF}
     curVM^.AttachCurrentThread(curVM, @Env, Nil);
@@ -129,75 +134,66 @@ Begin
   End;
 End;
 
-{Procedure Java_Validate(Var Env:PJNIEnv);
-Begin
-  If (Env = Nil) Then
-  Begin
-    Java_AttachThread(env);
-
-    If (Env = Nil) Then
-    Begin
-      Log(logError, 'Java', 'Enviroment is null!');
-    End;
-  End;
-End;}
-
-Type
-  ClassEntry = Record
-    Name:AnsiString;
-    Obj:JClass;
-    ThreadID:Cardinal;
-  End;
-
 Var
-  ClassList:Array Of ClassEntry;
-  ClassCount:Integer = 0;
+  ClassLoader:JClass;
+  ClassLoaderClass:JClass;
+
+Procedure Java_ClearClassLoader();
+Begin
+  ClassLoader := Nil;
+  ClassLoaderClass := Nil;
+End;
+
+Procedure Java_LoadClassLoader(Env:PJNIEnv; Loader:JavaObject);
+Var
+  Temp:JClass;
+Begin
+  ClassLoader := Loader;
+
+{  Log(logDebug, 'Java', 'Getting native activity class');
+  Temp := Env^^.FindClass(Env, 'android/app/NativeActivity');
+  activityClass := Env^^.NewGlobalRef(Env, Temp);
+  Env^^.DeleteLocalRef(Env, Temp);
+  Log(logDebug, 'Java', 'Got activity class '+HexStr(Cardinal(activityClass)));
+
+  Log(logDebug, 'Java', 'Getting getClassLoader');
+  getClassLoader := Env^^.GetMethodID(Env, activityClass, 'getClassLoader', '()Ljava/lang/ClassLoader;');
+  Log(logDebug, 'Java', 'Got getclassloader method '+HexStr(Cardinal(getClassLoader)));
+
+  Log(logDebug, 'Java', 'Callign getClassLoader');
+  classLoaderClass := Env^^.CallObjectMethod(Env, activityClass, getClassLoader);
+  Log(logDebug, 'Java', 'Got classloader class '+HexStr(Cardinal(classLoaderClass)));
+
+  CallObjectMethod(_Frame, _Object, method);}
+
+  Log(logDebug, 'Java', 'Getting Class Loader class');
+  Temp := Env^^.FindClass(Env, 'java/lang/ClassLoader');
+  classLoaderClass :=  Env^^.NewGlobalRef(Env, Temp);
+  Env^^.DeleteLocalRef(Env, Temp);
+  Log(logDebug, 'Java', 'Got classloader class '+HexStr(Cardinal(ClassLoader)));
+End;
+
 
 Function Java_FindClass(Env:PJNIEnv; Name:AnsiString):JClass;
 Var
-  ActivityClass:JClass;
-  getClassLoader:JMethodID;
-  cls:JObject;
-  classLoader:jclass;
-  findClass:jmethodID;
   params:JValue;
-  strClassName:jstring;
   Temp:JClass;
-  I:Integer;
-  CurrentThread:Cardinal;
+  FindClass:JMethodID;
 Begin
-  CurrentThread := GetCurrentThreadId();
-  For I:=0 To Pred(ClassCount) Do
-  If (ClassList[I].ThreadID = CurrentThread) And (ClassList[I].Name = Name) Then
-  Begin
-    Result := ClassList[I].Obj;
-    Exit;
-  End;
-
-  {Log(logDebug, 'Java', 'Getting native activity class');
-  activityClass := Env^^.FindClass(Env, 'android/app/NativeActivity');
-  Log(logDebug, 'Java', 'Getting getClassLoader');
-  getClassLoader := Env^^.GetMethodID(Env, activityClass, 'getClassLoader', '()Ljava/lang/ClassLoader;');
-
-  Log(logDebug, 'Java', 'Callign getClassLoader');
-  cls := Env^^.CallObjectMethod(Env, _AndroidState.activity.clazz, getClassLoader);
-
-  Log(logDebug, 'Java', 'Getting Class Loader');
-  classLoader := Env^^.FindClass(Env, 'java/lang/ClassLoader');
-
-  Log(logDebug, 'Java', 'Getting method loadClass');
-  findClass := Env^^.GetMethodID(Env, classLoader, 'loadClass', '(Ljava/lang/String;)Ljava/lang/Class;');
-  strClassName := Env^^.NewStringUTF(Env, PAnsiChar(Name));
-
-  Log(logDebug, 'Java', 'Finding class: '+Name);
-  params.l := strClassName;
-  result := JClass(Env^^.CallObjectMethodA(Env, cls, findClass, @params));
-  }
-
   {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Finding class: '+Name);{$ENDIF}
 
   StringReplaceChar(Ord('.'), Ord('/'), Name);
-  Result := JClass(Env^^.FindClass(Env, PAnsiChar(Name)));
+
+(*  If Assigned(ClassLoader) Then
+  Begin
+    Log(logDebug, 'Java', 'Getting method loadClass');
+    findClass :=  Env^^.GetMethodID(Env, classLoaderClass, 'loadClass', '(Ljava/lang/String;)Ljava/lang/Class;');
+
+    {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Using cached class loader with method '+HexStr(Cardinal(FindClass)));{$ENDIF}
+    params.l := PAnsiChar(Name);
+    Result := JClass(Env^^.CallObjectMethodA(Env, ClassLoader, findClass, @params));
+  End Else*)
+    Result := JClass(Env^^.FindClass(Env, PAnsiChar(Name)));
 
   If Result = Nil Then
   Begin
@@ -210,13 +206,14 @@ Begin
   Result := Env^^.NewGlobalRef(Env, Result);
   Env^^.DeleteLocalRef(Env, Temp);
 
-  Inc(ClassCount);
-  SetLength(ClassList, ClassCount);
-  ClassList[Pred(ClassCount)].Name := Name;
-  ClassList[Pred(ClassCount)].Obj := Result;
-  ClassList[Pred(ClassCount)].ThreadID := CurrentThread;
-
   {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Result: '+HexStr(Cardinal(Result)));{$ENDIF}
+End;
+
+
+Procedure Java_CacheClass(Frame:JavaFrame; Const Name:AnsiString);
+Begin
+  Log(logDebug, 'Java', 'Trying to cache class: '+Name);
+  Java_FindClass(Frame, Name);
 End;
 
 Function Java_FindMethod(Env:PJNIEnv; Name, Signature:AnsiString; SourceClass:JClass):JMethodID;
@@ -414,7 +411,7 @@ Begin
   _Params[Pred(_ParamCount)].i := Value;
 End;
 
-Procedure JavaArguments.AddString(Value:AnsiString);
+Procedure JavaArguments.AddString(Const Value:AnsiString);
 Begin
   Self.NewArgument(StringClassName);
   _Params[Pred(_ParamCount)].l := Java_NewString(_Frame, Value, False);
@@ -445,7 +442,7 @@ Begin
   End;
 End;
 
-Function JavaClass.GetStaticMethod(Env:PJNIEnv; Name:AnsiString; Args:JavaArguments; ResultType:AnsiString):JMethodID;
+Function JavaClass.GetStaticMethod(Env:PJNIEnv; Const Name:AnsiString; Args:JavaArguments; ResultType:AnsiString):JMethodID;
 Var
   Signature:AnsiString;
 Begin
@@ -453,11 +450,11 @@ Begin
   {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Searching for static method '+Name+' with signature '+Signature+' of class '+_ClassPath);{$ENDIF}
 
   Result := Java_FindStaticMethod(Env, Name, Signature, _Class);
-  {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Calling java method '+Name);{$ENDIF}
+  {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Calling java method '+Name+' with address '+CardinalToString(Cardinal(Result)));{$ENDIF}
 End;
 
 
-Procedure JavaClass.CallStaticVoidMethod(Name:AnsiString; Args: JavaArguments);
+Procedure JavaClass.CallStaticVoidMethod(Const Name:AnsiString; Args: JavaArguments);
 Var
   Method:JMethodID;
 Begin
@@ -472,7 +469,7 @@ Begin
   End;
 End;
 
-Function JavaClass.CallStaticBoolMethod(Name:AnsiString; Args: JavaArguments): Boolean;
+Function JavaClass.CallStaticBoolMethod(Const Name:AnsiString; Args: JavaArguments): Boolean;
 Var
   Method:JMethodID;
 Begin
@@ -488,7 +485,7 @@ Begin
     Result := False;
 End;
 
-Function JavaClass.CallStaticIntMethod(Name:AnsiString; Args: JavaArguments): Integer;
+Function JavaClass.CallStaticIntMethod(Const Name:AnsiString; Args: JavaArguments): Integer;
 Var
   Method:JMethodID;
 Begin
@@ -504,7 +501,7 @@ Begin
     Result := 0;
 End;
 
-Function JavaClass.CallStaticFloatMethod(Name:AnsiString; Args: JavaArguments):Single;
+Function JavaClass.CallStaticFloatMethod(Const Name:AnsiString; Args: JavaArguments):Single;
 Var
   Method:JMethodID;
 Begin
@@ -520,7 +517,7 @@ Begin
     Result := 0.0;
 End;
 
-Function JavaClass.CallStaticStringMethod(Name:AnsiString; Args: JavaArguments):AnsiString;
+Function JavaClass.CallStaticStringMethod(Const Name:AnsiString; Args: JavaArguments):AnsiString;
 Var
   Method:JMethodID;
   Obj:JObject;
@@ -540,7 +537,7 @@ Begin
     Result := '';
 End;
 
-Function JavaClass.CallStaticObjectMethod(Name, ObjClass: AnsiString; Args: JavaArguments): JObject;
+Function JavaClass.CallStaticObjectMethod(Name:AnsiString; Const ObjClass: AnsiString; Args: JavaArguments): JObject;
 Var
   Method:JMethodID;
   Obj:JObject;
@@ -562,7 +559,7 @@ Begin
 End;
 
 { JavaObject }
-Constructor JavaObject.Create(ClassName:AnsiString; Args: JavaArguments; Frame:JavaFrame);
+Constructor JavaObject.Create(Const ClassName:AnsiString; Args: JavaArguments; Frame:JavaFrame);
 Var
   Temp:JObject;
 Begin
@@ -588,7 +585,7 @@ Begin
   Inherited;
 End;
 
-Function JavaObject.GetMethod(Env:PJNIEnv; Name:AnsiString; Args:JavaArguments; ResultType:AnsiString):JMethodID;
+Function JavaObject.GetMethod(Env:PJNIEnv; Const Name:AnsiString; Args:JavaArguments; Const ResultType:AnsiString):JMethodID;
 Var
   Signature:AnsiString;
 Begin
@@ -603,10 +600,10 @@ Begin
 
   Result := Java_FindMethod(Env, Name, Signature, _Class);
 
-  {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Calling java method '+Name);{$ENDIF}
+  {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Calling java method '+Name+' with address '+CardinalToString(Cardinal(Result)));{$ENDIF}
 End;
 
-Procedure JavaObject.CallVoidMethod(Name:AnsiString; Args: JavaArguments);
+Procedure JavaObject.CallVoidMethod(Const Name:AnsiString; Args: JavaArguments);
 Var
   Method:JMethodID;
 Begin
@@ -622,7 +619,7 @@ Begin
 End;
 
 
-Function JavaObject.CallBoolMethod(Name:AnsiString; Args:JavaArguments): Boolean;
+Function JavaObject.CallBoolMethod(Const Name:AnsiString; Args:JavaArguments): Boolean;
 Var
   Method:JMethodID;
 Begin
@@ -638,7 +635,7 @@ Begin
     Result := False;
 End;
 
-Function JavaObject.CallFloatMethod(Name:AnsiString; Args:JavaArguments):Single;
+Function JavaObject.CallFloatMethod(Const Name:AnsiString; Args:JavaArguments):Single;
 Var
   Method:JMethodID;
 Begin
@@ -654,7 +651,7 @@ Begin
     Result := 0.0;
 End;
 
-Function JavaObject.CallIntMethod(Name:AnsiString; Args: JavaArguments): Integer;
+Function JavaObject.CallIntMethod(Const Name:AnsiString; Args: JavaArguments): Integer;
 Var
   Method:JMethodID;
 Begin
@@ -670,7 +667,7 @@ Begin
     Result := 0;
 End;
 
-Function JavaObject.CallStringMethod(Name:AnsiString; Args:JavaArguments):AnsiString;
+Function JavaObject.CallStringMethod(Const Name:AnsiString; Args:JavaArguments):AnsiString;
 Var
   Method:JMethodID;
   Obj:JObject;
@@ -691,7 +688,7 @@ Begin
 End;
 
 
-Function JavaObject.CallByteArrayMethod(Name:AnsiString; Args: JavaArguments; Size: Integer): Pointer;
+Function JavaObject.CallByteArrayMethod(Const Name:AnsiString; Args: JavaArguments; Size:Integer): Pointer;
 Var
   Method:JMethodID;
   Obj:JObject;
@@ -775,7 +772,7 @@ Begin
   Java_End(Frame);
 End;
 
-Function StringToJava(Value:AnsiString):JString;
+Function StringToJava(Const Value:AnsiString):JString;
 Var
   Frame:JavaFrame;
 Begin

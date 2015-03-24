@@ -113,6 +113,9 @@ Function StringSimilarityRatio(const Str1, Str2:TERRAString; IgnoreCase: Boolean
 Function StringContains(Const SubStr, Str:TERRAString):Boolean;
 Function StringContainsChar(Const C:TERRAChar; Const Str:TERRAString):Boolean;
 
+Function StringBeginsWith(Const SubStr, Str:TERRAString; IgnoreCase: Boolean):Boolean;
+Function StringBeginsWithChar(Const C:TERRAChar; Const Str:TERRAString; IgnoreCase: Boolean):Boolean;
+
 Function StringFirstChar(Const Str:TERRAString):TERRAChar;
 Function StringLastChar(Const Str:TERRAString):TERRAChar;
 
@@ -170,6 +173,7 @@ Function StringCharListPosIterator(Const CharList, S:TERRAString; Out It:StringI
 // index can be negative, meaning copying Count chars from end of string
 Function StringCopy(Const S:TERRAString; Index, Count:Integer):TERRAString;
 
+Function StringSplit(Const S:TERRAString; Out A, B:TERRAString; Const C:TERRAString; IgnoreCase:Boolean = False):Boolean;
 Function StringSplitByChar(Const S:TERRAString; Out A, B:TERRAString; C:TERRAChar; IgnoreCase:Boolean = False):Boolean;
 
 Function StringGetNextSplit(Var S:TERRAString; Separator:TERRAChar):TERRAString;
@@ -397,6 +401,22 @@ End;
 Function StringContainsChar(Const C:TERRAChar; Const Str:TERRAString):Boolean;
 Begin
   Result := StringCharPos(C, Str, True)>0;
+End;
+
+Function StringBeginsWith(Const SubStr, Str:TERRAString; IgnoreCase:Boolean):Boolean;
+Begin
+  Result := StringPos(SubStr, Str, IgnoreCase) = 1;
+End;
+
+Function StringBeginsWithChar(Const C:TERRAChar; Const Str:TERRAString; IgnoreCase: Boolean):Boolean;
+Var
+  B:TERRAChar;
+Begin
+  B := StringFirstChar(Str);
+  If (IgnoreCase) Then
+    Result := CharUpper(C) = CharUpper(B)
+  Else
+    Result := (C = B);
 End;
 
 Function BytesToChar(A, B:Byte):TERRAChar;
@@ -727,6 +747,27 @@ Begin
     Dec(Count);
   End;
 End;
+
+Function StringSplit(Const S:TERRAString; Out A, B:TERRAString; Const C:TERRAString; IgnoreCase:Boolean):Boolean;
+Var
+  It:StringIterator;
+Begin
+  A := '';
+  B := '';
+
+  If S = '' Then
+  Begin
+    Result := False;
+    Exit;
+  End;
+
+  Result := StringPosIterator(C, S, It, IgnoreCase);
+  If (Result) Then
+  Begin
+    It.Split(A, B);
+  End;
+End;
+
 
 Function StringSplitByChar(Const S:TERRAString; Out A, B:TERRAString; C:TERRAChar; IgnoreCase:Boolean):Boolean;
 Var

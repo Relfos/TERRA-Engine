@@ -765,8 +765,8 @@ Type
 
     Public
       Procedure Release; Override;
-      
-      Function Merge(Source, Dest:Mesh; IndividualGroup:Boolean = False; MaxVertsPerGroup:Integer = -1; UpdateBox:Boolean = True):IntegerArray;
+
+      Function Merge(Source, Dest:Mesh; IndividualGroup:Boolean = False; MaxVertsPerGroup:Integer = -1; UpdateBox:Boolean = True):IntegerArrayObject;
       Procedure MergeGroup(Source, Dest:MeshGroup; UpdateBox:Boolean = True);
   End;
 
@@ -5599,7 +5599,7 @@ Begin
   _GroupCount := 0;
 
   Result := False;
-  Log(logDebug, 'Mesh', 'Loading mesh: '+Self._Name);
+  Log(logDebug, 'Mesh', 'Loading mesh: '+Self.Name);
 
   Source.Read(@Tag, 4);
   If (Tag<>tagMeshHeader) Then
@@ -6339,7 +6339,7 @@ Begin
   // do nothing
 End;
 
-Function MeshMerger.Merge(Source, Dest:Mesh; IndividualGroup: Boolean; MaxVertsPerGroup: Integer; UpdateBox:Boolean): IntegerArray;
+Function MeshMerger.Merge(Source, Dest:Mesh; IndividualGroup: Boolean; MaxVertsPerGroup: Integer; UpdateBox:Boolean): IntegerArrayObject;
 Var
   I, J, Init:Integer;
   Target, SourceGroup:MeshGroup;

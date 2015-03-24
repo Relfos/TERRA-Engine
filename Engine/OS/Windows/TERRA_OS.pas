@@ -10,7 +10,7 @@ Unit TERRA_OS;
 {-$DEFINE TRUE_FULLSCREEN}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Client, TERRA_Input, TERRA_Multimedia,
+Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Client, TERRA_InputManager, TERRA_Multimedia,
   Windows, Messages;
 
 Const
@@ -88,10 +88,9 @@ Function GetTime:Cardinal;
 Function CreateApplicationClass(Client:AppClient):Application;
 
 Type
-  WindowsGamepad = Record
-    LocalID:Integer;
-    DeviceID:Integer;
-    XInput:Boolean;
+  WindowsGamepad = Class(Gamepad)
+    Public
+      Procedure Update(Keys:InputState); Override;
   End;
 
   {$IFDEF FOLDERWATCH}
@@ -157,14 +156,10 @@ Type
 
       _FullscreenActive:Boolean;
 
-			_JoystickCount:Integer;
+
+      _NextGamePadDetect:Cardinal;
+
 			_JoyCaps:GamepadCaps;
-			_NextJoystickUpdate:Cardinal;
-
-      _Gamepads:Array Of WindowsGamepad;
-      _GamepadCount:Integer;
-
-      Function AddGamePad(DeviceID:Integer; XInput:Boolean):Boolean;
 
       Procedure InitIcon();
       Procedure InitBuildInfo();
@@ -191,8 +186,6 @@ Type
       Procedure Yeld; Override;
 
       Function SetOrientation(Value:Integer):Boolean; Override;
-
-      Function GetControllerCount:Integer; Override;
 
       Function GetRecommendedSettings: Integer; Override;
 
@@ -416,6 +409,7 @@ Begin
     WM_CLOSE: Begin
                 PostQuitMessage(0);
                 App._Running := False;
+                App._CanReceiveEvents := False;
               End;
 
     WM_KEYDOWN: If (App._CanReceiveEvents) Then
@@ -500,7 +494,7 @@ Begin
 
     WM_KILLFOCUS: If (App._CanReceiveEvents) Then
                   Begin
-                    App.Input.Keys.Reset();
+                    InputManager.Instance.Keys.Reset();
                     //App.OnDeactivate;
                   End;
 
@@ -625,7 +619,7 @@ Begin
   _PosX := X;
   _PosY := Y;
 
-  _CanReceiveEvents:=True;
+  _CanReceiveEvents := True;
 
   TitleStr := Self.Title;
 
@@ -646,7 +640,8 @@ Begin
 
   //_Width := 600;
   //_Height := 1136;
-  //SetWindowPos(_Handle, Cardinal(00), Cardinal(00), 0, _Width, _Height, $400);
+  If (_Width>Screen.Width) Or (_Height>Screen.Height) Then
+    SetWindowPos(_Handle, Cardinal(00), Cardinal(00), 0, _Width, _Height, $400);
 
   If Not _Ready Then
   Begin
@@ -663,7 +658,7 @@ Begin
     If (Self.IsDebuggerPresent()) Then
       ForceLogFlush := True;
   End;
-  
+
   Result := True;
 End;
 
@@ -947,8 +942,6 @@ Procedure WindowsApplication.ProcessMessages;
 Var
   I, PlayerID:Integer;
   Msg:TMsg;
-  JoyInfo:GamepadInfoEx;
-  XState:TXInputGamepad;
 Begin
   If (PeekMessageW(Msg, 0 {_Handle}, 0, 0, PM_REMOVE)) Then // Check if there is a message for this window
   Begin
@@ -963,56 +956,6 @@ Begin
     End;
   End;
 
-  If (_GamePadCount>0) And (GetTime>_NextJoystickUpdate) Then
-  Begin
-    _NextJoystickUpdate := GetTime+50;
-    For I:=0 To Pred(_GamepadCount) Do
-    If (_Gamepads[I].XInput) Then
-    Begin
-      PlayerID := _Gamepads[I].LocalID;
-      XState := XGetControllerState();
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadUp, (XState.Buttons And XINPUT_GAMEPAD_DPAD_UP)<>0);
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadDown, (XState.Buttons And XINPUT_GAMEPAD_DPAD_DOWN)<>0);
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadLeft, (XState.Buttons And XINPUT_GAMEPAD_DPAD_LEFT)<>0);
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadRight, (XState.Buttons And XINPUT_GAMEPAD_DPAD_RIGHT)<>0);
-
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadMenu, (XState.Buttons And XINPUT_GAMEPAD_START)<>0);
-
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadA, (XState.Buttons And XINPUT_GAMEPAD_A)<>0);
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadB, (XState.Buttons And XINPUT_GAMEPAD_B)<>0);
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadX, (XState.Buttons And XINPUT_GAMEPAD_X)<>0);
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadY, (XState.Buttons And XINPUT_GAMEPAD_Y)<>0);
-
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadL, (XState.Buttons And XINPUT_GAMEPAD_LEFT_SHOULDER)<>0);
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadR, (XState.Buttons And XINPUT_GAMEPAD_RIGHT_SHOULDER)<>0);
-    End Else
-    Begin
-      PlayerID := _Gamepads[I].LocalID;
-
-      FillChar(JoyInfo, SizeOf(JoyInfo), 0);
-      JoyInfo.dwSize := SizeOf(JoyInfo);
-      JoyInfo.dwFlags := JOY_RETURNALL;
-      joyGetPosEx(0, JoyInfo);
-
-      //Windows.SetWindowText(Handle, PAnsiChar(IntToString(JoyInfo.wXpos)));
-      //Windows.SetWindowText(Handle, PAnsiChar(IntToString(JoyInfo.wButtons)));
-
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadUp, (JoyInfo.wYpos=0));
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadDown, (JoyInfo.wYpos=65535));
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadLeft, (JoyInfo.wXpos=0));
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadRight, (JoyInfo.wXpos=65535));
-
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadA, (JoyInfo.wButtons And $2<>0));
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadB, (JoyInfo.wButtons And $4<>0));
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadX, (JoyInfo.wButtons And $8<>0));
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadY, (JoyInfo.wButtons And $1<>0));
-
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadL, (JoyInfo.wButtons And $10<>0));
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadR, (JoyInfo.wButtons And $20<>0));
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadD, (JoyInfo.wButtons And $40<>0));
-      SetKeyState(keyGamepadCount * PlayerID + keyGamePadZ, (JoyInfo.wButtons And $80<>0));
-    End;
-  End;
 End;
 
 Procedure WindowsApplication.Yeld;
@@ -1131,28 +1074,6 @@ End;
 Function WindowsApplication.GetDeviceID:TERRAString;
 Begin
   Result := GetMACAdress();
-End;
-
-Function WindowsApplication.GetControllerCount: Integer;
-Begin
-  Result := Self._GamepadCount;
-//  Result := 1;
-End;
-
-Function WindowsApplication.AddGamePad(DeviceID:Integer; XInput:Boolean):Boolean;
-Begin
-  If (_GamePadCount>=4) Then
-  Begin
-    Result := False;
-    Exit;
-  End;
-
-  Inc(_GamepadCount);
-  SetLength(_Gamepads, _GamepadCount);
-  _Gamepads[Pred(_GamepadCount)].DeviceID := DeviceID;
-  _Gamepads[Pred(_GamepadCount)].LocalID := Pred(_GamepadCount);
-  _Gamepads[Pred(_GamepadCount)].XInput := XInput;
-  Result := True;
 End;
 
 Procedure WindowsApplication.SendEmail(DestEmail, Subject, Body:TERRAString);
@@ -1377,9 +1298,6 @@ Var
   Buf:Array[0..1023] Of AnsiChar;
   SystemInfo:TSystemInfo;
   Mask, ProcessAffinityMask, SystemAffinityMask:PtrUInt;
-
-  joyInfo:GamepadInfoEx;      // extended information
-  dwResult:Cardinal;
 Begin
   Inherited InitSettings;
 
@@ -1439,20 +1357,13 @@ Begin
 
   Self.SetProcessorAffinity();
 
-  // Initialize joysticks
+  // Initialize xinput gamepads
+{  For I:=0 To 3 Do
+    InputManager.Instance.AddGamePad(XInputGamePad.Create(I));}
+
+  // Initialize other joysticks/gamepads
   For I:=0 To 3 Do
-  Begin
-    If XIsControllerConnected(I) Then
-      AddGamePad(I, True);
-
-    FillChar(JoyInfo, SizeOf(JoyInfo), 0);
-    JoyInfo.dwSize := SizeOf(JoyInfo);
-    dwResult := joyGetPosEx(I, joyInfo);
-    If (dwResult = JOYERR_NOERROR) Then
-      AddGamePad(I, False);
-      //joyGetDevCaps(0, @_JoyCaps, SizeOf(_JoyCaps));
-  End;
-
+    InputManager.Instance.AddGamePad(WindowsGamePad.Create(I));
 
   Self.InitBuildInfo();
 
@@ -1492,6 +1403,50 @@ Begin
 {    SendMessage(GetWindow(_Handle, GW_OWNER), WM_SETICON, ICON_SMALL, _Icon);
     SendMessage(GetWindow(_Handle, GW_OWNER), WM_SETICON, ICON_BIG, _Icon);}
   End;
+End;
+
+
+//https://github.com/adamdruppe/arsd/blob/master/joystick.d
+{ WindowsGamepad }
+Procedure WindowsGamepad.Update(Keys:InputState);
+Var
+  JoyInfo:GamepadInfoEx;
+  dwResult:Cardinal;
+Begin
+  FillChar(JoyInfo, SizeOf(JoyInfo), 0);
+  JoyInfo.dwSize := SizeOf(JoyInfo);
+  JoyInfo.dwFlags := JOY_RETURNALL;
+  dwResult := joyGetPosEx(_DeviceID, joyInfo);
+
+  If (dwResult <> JOYERR_NOERROR) Then
+  Begin
+    Self.Disconnnect();
+    Exit;
+  End Else
+    Self.Connnect();
+
+  //Windows.SetWindowText(Handle, PAnsiChar(IntToString(JoyInfo.wXpos)));
+  //Windows.SetWindowText(Handle, PAnsiChar(IntToString(JoyInfo.wButtons)));
+
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadUp_Offset), (JoyInfo.wYpos=0));
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadDown_Offset), (JoyInfo.wYpos=65535));
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadLeft_Offset), (JoyInfo.wXpos=0));
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadRight_Offset), (JoyInfo.wXpos=65535));
+
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadDPadUp_Offset), (JoyInfo.dwPOV=0));
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadDPadDown_Offset), (JoyInfo.dwPOV=18000));
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadDPadLeft_Offset), (JoyInfo.dwPOV=27000));
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadDPadRight_Offset), (JoyInfo.dwPOV=9000));
+
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadA_Offset), (JoyInfo.wButtons And $2<>0));
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadB_Offset), (JoyInfo.wButtons And $4<>0));
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadX_Offset), (JoyInfo.wButtons And $8<>0));
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadY_Offset), (JoyInfo.wButtons And $1<>0));
+
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadL_Offset), (JoyInfo.wButtons And $10<>0));
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadR_Offset), (JoyInfo.wButtons And $20<>0));
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadD_Offset), (JoyInfo.wButtons And $40<>0));
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadZ_Offset), (JoyInfo.wButtons And $80<>0));
 End;
 
 Initialization

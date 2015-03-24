@@ -47,7 +47,7 @@ Uses {$IFNDEF DEBUG_LEAKS}TERRA_MemoryManager,{$ENDIF} {$IFDEF USEDEBUGUNIT}TERR
   {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_BoundingBox, TERRA_Camera, TERRA_Color, TERRA_Matrix4x4,
   TERRA_Utils, TERRA_Texture, TERRA_Scene, TERRA_Vector3D,
   TERRA_RenderTarget, TERRA_Viewport, TERRA_Application,
-  TERRA_Image, TERRA_Math, TERRA_Vector2D, TERRA_Ray, TERRA_Collections;
+  TERRA_Image, TERRA_Math, TERRA_Vector2D, TERRA_Ray, TERRA_Collections, TERRA_Pool;
 
 Type
   GraphicsManagerCallback = Procedure;
@@ -107,7 +107,7 @@ Type
       SeparateBlends:GraphicsManagerFeature;
       SeamlessCubeMap:GraphicsManagerFeature;
       PackedStencil:GraphicsManagerFeature;
-      NPOT:GraphicsManagerFeature;
+       NPOT:GraphicsManagerFeature;
       Shaders:GraphicsManagerFeature;
 
       AlphaFade:GraphicsManagerVariableSetting;
@@ -222,15 +222,15 @@ Type
       Property WasVisible:Boolean Read _WasVisible;
   End;
 
-  RenderableProxy =  Class(ListObject)
+  RenderableProxy =  Class(CollectionObject)
     Protected
       _Object:Renderable;
     Public
 
       Constructor Create(Obj:Renderable);
 
-      Function Sort(Other:ListObject):Integer; Override;
-      Procedure CopyValue(Other:ListObject); Override;
+      Function Sort(Other:CollectionObject):Integer; Override;
+      Procedure CopyValue(Other:CollectionObject); Override;
   End;
 
 Const
@@ -358,7 +358,7 @@ Type
 
       Procedure RenderUI;
       Procedure RenderStencilShadows(View:Viewport);
-      Procedure RenderSceneInternal(View:Viewport; Pass:Integer);
+      Procedure RenderSceneInternal(View:Viewport; Pass:RenderTargetType);
       Procedure RenderViewport(View:Viewport);
       Procedure RenderList(RenderList:List; TranslucentPass:Boolean);
 
@@ -376,7 +376,7 @@ Type
     Public
       ShowShadowVolumes:Boolean;
       ShowWireframe:Boolean;
-      ShowDebugTarget:Integer;
+      ShowDebugTarget:RenderTargetType;
 
       ReflectionMatrix:Matrix4x4;
       ReflectionMatrixSky:Matrix4x4;
@@ -503,10 +503,9 @@ Type
 Function GetDefaultFullScreenShader():Shader;
 
 Implementation
-Uses TERRA_OS, TERRA_Log, TERRA_UI, TERRA_ResourceManager,
+Uses TERRA_OS, TERRA_Log, TERRA_UI, TERRA_ResourceManager, TERRA_InputManager,
   TERRA_Frustum, TERRA_Lights, TERRA_SpriteManager, TERRA_Mesh,
-  TERRA_Decals, TERRA_Billboards, TERRA_ParticleRenderer, TERRA_DebugDraw
-;
+  TERRA_Decals, TERRA_Billboards, TERRA_ParticleRenderer, TERRA_DebugDraw;
 
 Var
   _GraphicsManager_Instance:ApplicationObject = Nil;
@@ -907,8 +906,8 @@ Begin
   _DepthSize := 2048;
   _Settings := GraphicsManagerSettings.Create;
 
-  _BucketOpaque := Pool.Create(coAppend Or coSorted);
-  _BucketAlpha :=  Pool.Create(coAppend Or coSortedInverted);
+  _BucketOpaque := Pool.Create(collection_Sorted_Ascending);
+  _BucketAlpha :=  Pool.Create(collection_Sorted_Descending);
   {$IFDEF REFLECTIONS_WITH_STENCIL}
   _BucketReflection := Pool.Create(coAppend);
   {$ENDIF}
@@ -1106,7 +1105,7 @@ Begin
   Render3D := True;
   Render2D := True;
 
-  ShowDebugTarget := -1;
+  ShowDebugTarget := captureTargetInvalid;
 
 {
   _Settings.TextureCompression._Avaliable := True;
@@ -1417,7 +1416,7 @@ Begin
     Self.SetFog(False);
     //glEnable(GL_SCISSOR_TEST);
 
-    _Projection := Matrix4x4Ortho(0.0, _UIViewport.Width, _UIViewport.Height, 0.0, 0, 100);
+    _Projection := Matrix4x4Ortho(0.0, _UIViewport.Width, _UIViewport.Height, 0.0, -100, 100);
     _Projection := Matrix4x4Multiply4x4(_Projection, Matrix4x4Translation(0.375, 0.375, 0.0));
 
     _UIViewport.SetViewArea(0, 0, _UIViewport.Width, _UIViewport.Height);
@@ -1511,7 +1510,7 @@ End;
 Procedure GraphicsManager.RenderReflections(View:Viewport);
 Var
   StencilID:Byte;
-  P:ListObject;
+  P:CollectionObject;
   Obj:Renderable;
   Normal:Vector3D;
 //  _Plane:Plane;
@@ -1761,7 +1760,7 @@ Begin
   _WindVector.Scale(WindIntensity);
 End;
 
-Procedure GraphicsManager.RenderSceneInternal(View:Viewport; Pass: Integer);
+Procedure GraphicsManager.RenderSceneInternal(View:Viewport; Pass:RenderTargetType);
 Var
   N:Integer;
 Begin
@@ -1882,15 +1881,15 @@ Begin
   ParticleManager.Instance.Render();
 
   Count := 0;
-  For I:=Pred(MaxCaptureTargets) DownTo 0 Do
+  For I := Pred(MaxCaptureTargets) DownTo 0 Do
   Begin
-    Target := View.GetRenderTarget(I);
+    Target := View.GetRenderTarget(RenderTargetType(I));
     If (Target = Nil) Then
       Continue;
 
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Rendering viewport: '+View.Name+', target '+TargetNames[I]+', width:'+IntToString(Target.Width)+', height:'+IntToString(Target.Height));{$ENDIF}
 
-    Case I Of
+    Case RenderTargetType(I) Of
       captureTargetRefraction:
         Target.ClearColor := ColorNull;
 
@@ -1908,7 +1907,7 @@ Begin
     End;
 
     Target.BeginCapture();
-    Self.RenderSceneInternal(View, I);
+    Self.RenderSceneInternal(View, RenderTargetType(I));
     Target.EndCapture();
 
     Inc(Count);
@@ -2241,7 +2240,7 @@ End;}
 
 Procedure InsertIntoPool(Target:Pool; MyRenderable:Renderable; Unsorted:Boolean);
 Var
-  Proxy:ListObject;
+  Proxy:CollectionObject;
 Begin
   Proxy := Target.Recycle();
   If Assigned(Proxy) Then
@@ -2250,7 +2249,7 @@ Begin
   End Else
     Proxy := RenderableProxy.Create(MyRenderable);
 
-  Target.Add(Proxy, True);
+  Target.Add(Proxy);
 End;
 
 Procedure RemoveFromPool(Target:List; MyRenderable:Renderable);
@@ -2632,7 +2631,7 @@ Begin
   If (_Viewports[I].Active) And (_Viewports[I].Target = _DeviceViewport) Then
     _Viewports[I].DrawToTarget(True);
 
-  If (Render2D) And (Self.ShowDebugTarget<=0) Then
+  If (Render2D) And (Integer(Self.ShowDebugTarget) <=0) Then
     _UIViewport.DrawToTarget(False);
 
   {$IFDEF IPHONE}
@@ -2796,12 +2795,12 @@ Begin
   Self._Object := Obj;
 End;
 
-Procedure RenderableProxy.CopyValue(Other: ListObject);
+Procedure RenderableProxy.CopyValue(Other: CollectionObject);
 Begin
   Self._Object := RenderableProxy(Other)._Object;
 End;
 
-Function RenderableProxy.Sort(Other: ListObject): Integer;
+Function RenderableProxy.Sort(Other: CollectionObject): Integer;
 Var
   A,B:Renderable;
 Begin
@@ -3028,26 +3027,30 @@ Begin
 End;
 
 Procedure GraphicsManager.TestDebugKeys;
+Var
+  Input:InputManager;
 Begin
-  If (Application.Instance.Input.Keys.WasPressed(Ord('1'))) Then
-    Self.ShowDebugTarget := -1;
+  Input := InputManager.Instance;
 
-  If (Application.Instance.Input.Keys.WasPressed(Ord('2'))) Then
+  If (Input.Keys.WasPressed(Ord('1'))) Then
+    Self.ShowDebugTarget := captureTargetInvalid;
+
+  If (Input.Keys.WasPressed(Ord('2'))) Then
     Self.ShowDebugTarget := captureTargetColor;
 
-  If (Application.Instance.Input.Keys.WasPressed(Ord('3'))) Then
+  If (Input.Keys.WasPressed(Ord('3'))) Then
     Self.ShowDebugTarget := captureTargetNormal;
 
-  If (Application.Instance.Input.Keys.WasPressed(Ord('4'))) Then
+  If (Input.Keys.WasPressed(Ord('4'))) Then
     Self.ShowDebugTarget := captureTargetEmission;
 
-  If (Application.Instance.Input.Keys.WasPressed(Ord('5'))) Then
+  If (Input.Keys.WasPressed(Ord('5'))) Then
     Self.ShowDebugTarget := captureTargetRefraction;
 
-  If (Application.Instance.Input.Keys.WasPressed(Ord('6'))) Then
+  If (Input.Keys.WasPressed(Ord('6'))) Then
     Self.ShowDebugTarget := captureTargetReflection;
 
-  If (Application.Instance.Input.Keys.WasPressed(Ord('7'))) Then
+  If (Input.Keys.WasPressed(Ord('7'))) Then
     Self.ShowDebugTarget := captureTargetOutline;
 End;
 

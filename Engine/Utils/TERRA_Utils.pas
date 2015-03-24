@@ -99,7 +99,7 @@ Const
 {$IFDEF OXYGENE}
   EngineVersion:TERRAVersion= new Version(3, 5, 0);
 {$ELSE}
-  EngineVersion:TERRAVersion=(Major:3;Minor:3;Build:0);
+  EngineVersion:TERRAVersion=(Major:4;Minor:1;Build:8);
 {$ENDIF}
 
 Const
@@ -163,7 +163,7 @@ Function IntToString(Const N:Integer):TERRAString;
 Function CardinalToString(Const N:Cardinal):TERRAString;Overload;
 Function Int64ToString(Const N:Int64):TERRAString;
 Function UInt64ToString(Const N:UInt64):TERRAString;
-Function FloatToString(Const N:Single; DecimalPlaces:Integer = 4):TERRAString;
+Function FloatToString(N:Single; DecimalPlaces:Integer = 4):TERRAString;
 Function BoolToString(Const N:Boolean):TERRAString;Overload;
 Function VersionToString(Const N:TERRAVersion):TERRAString;Overload;
 //Function TicksToString(Const N:Cardinal):TERRAString;Overload;
@@ -215,6 +215,7 @@ Procedure ReleaseObject(var Obj);
 Type
   TERRAObject = Class
     Protected
+
       Procedure Release; Virtual;
 
     Public
@@ -528,7 +529,7 @@ Begin
 
     If (C<Ord('0')) Or (C>Ord('9')) Then
     Begin
-      {$IFDEF PC}
+      {$IFDEF WINDOW}
       If CheckError Then
         RaiseError('String to int failure: '+S);
       {$ENDIF}
@@ -569,7 +570,7 @@ Begin
     C := It.GetNext();
     If (C<Ord('0')) Or (C>Ord('9')) Then
     Begin
-      {$IFDEF PC}
+      {$IFDEF WINDOW}
       If CheckError Then
         RaiseError('String to cardinal failure: '+S);
       {$ENDIF}
@@ -600,7 +601,7 @@ End;
 {$ELSE}
 Function StringToBool(Const S:TERRAString):Boolean;
 Begin
-  Result:=(StringUpper(S)=StringUpper(iTrue));
+  Result:= (S='1') Or (StringUpper(S)=StringUpper(iTrue));
 End;
 
 //Converts a string to an Single
@@ -701,33 +702,33 @@ Begin
   Result.Second := (Ticks Div 1000) Mod 60;
 End;
 
-{$IFDEF OXYGENE}
-Function FloatToString(Const N:Single):TERRAString;
-Begin
-  Result := System.Convert.ToString(N);
-End;
-{$ELSE}
-Function FloatToString(Const N:Single; DecimalPlaces:Integer):TERRAString;
+Function FloatToString(N:Single; DecimalPlaces:Integer):TERRAString;
 Var
-  P,X:Single;
+  X:Single;
   A,B, I:Integer;
 Begin
-  P := N;
-  A := Trunc(P);
-  X := Abs(Frac(P));
+  If (N<0) Then
+    Result := '-'
+  Else
+    Result := '';
+
+  N := Abs(N);
+  A := Trunc(N);
+  X := Frac(N);
+
+  Result := Result + IntToString(A) +'.';
+
+  B := 0;
   For I:=1 To DecimalPlaces Do
+  Begin
     X := X*10;
-  B := Trunc(X);
+    B := Trunc(X);
+    If B = 0 Then
+      Result := Result + '0';
+  End;
 
-  Result := IntToString(A)+'.'+IntToString(B);
-
-  If (A=0) And (P<0) Then
-    Result := '-' + Result;
-
-  {If (StringToFloat(Result)<>N) Then
-    Str(P,Result);}
+  Result := Result + IntToString(B);
 End;
-{$ENDIF}
 
 {Function TicksToString(Const N:Cardinal):TERRAString;
 Var
@@ -1179,8 +1180,8 @@ End;
 Destructor TERRAObject.Destroy();
 Begin
   {$IFDEF WINDOWS}
-  DebugBreak();
-  RaiseError('Destructors are not allowed in class: '+Self.ClassName);
+ // DebugBreak();
+//  RaiseError('Destructors are not allowed in class: '+Self.ClassName);
   {$ENDIF}
 
   Inherited;
@@ -1195,9 +1196,12 @@ Begin
     Exit;
 
   If (Temp Is TERRAObject) Then
-    TERRAObject(Temp).Release()
-  Else
+  Begin
+    TERRAObject(Temp).Release();
+  End Else
     Log(logWarning, 'App', Temp.ClassName +' is not a TERRA-Object!');
+
+  TERRAObject(Temp).Destroy();
 
   Pointer(Obj) := Nil;
 End;

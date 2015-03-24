@@ -37,7 +37,7 @@ Function XMLLoadBinary(SourceFile:TERRAString):XMLDocument;
 Function XMLConvertToBinary(SourceFile, DestFile, ConstantFile:TERRAString):Boolean;
 
 Implementation
-Uses TERRA_FileUtils, TERRA_FileManager, TERRA_Collections, TERRA_KeyPairObjects, TERRA_Error;
+Uses TERRA_FileUtils, TERRA_FileManager, TERRA_Collections, TERRA_KeyPairObjects, TERRA_HashMap, TERRA_Error;
 
 Procedure XMLBinaryReader.XMLReadNode(Src:Stream; Node:XMLNode);
 Var
@@ -116,11 +116,11 @@ Begin
 End;
 
 { XMLBinaryWriter }
-Function XMLConvertNode(Node:XMLNode; Constants:List):TERRAString;
+Function XMLConvertNode(Node:XMLNode; Constants:HashMap):TERRAString;
 Var
   It:StringIterator;
   I, J, N, Len:Integer;
-  P:KeyPairObject;
+  P:StringKeyPair;
   S, ConstName, Target:TERRAString;
   C:TERRAChar;
 
@@ -148,7 +148,7 @@ Begin
     S := StringCopy(Node.Value, J, N);
 
     ConstName := StringCopy(S, 2, MaxInt);
-    P := KeyPairObject(Constants.FindByKey(ConstName));
+    P := StringKeyPair(Constants.GetItemByKey(ConstName));
     If P = Nil Then
     Begin
       Result := ConstName;
@@ -209,7 +209,7 @@ Var
   Ofs:Cardinal;
   Doc:XMLDocument;
   Dest:Stream;
-  Constants:List;
+  Constants:HashMap;
   ErrorStr:TERRAString;
 Begin
   SetLength(_Keys, 0);

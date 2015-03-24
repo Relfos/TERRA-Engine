@@ -29,6 +29,8 @@ Interface
 Uses TERRA_String, TERRA_Application, TERRA_OS, TERRA_Sockets, TERRA_Network;
 
 Type
+  NetClientMessageHandler = Procedure(Msg:NetMessage) Of Object;
+
   NetClient = Class(NetObject)
     Protected
       _Status:NetStatus;             // Connection to server status
@@ -40,11 +42,15 @@ Type
       _IsConnecting:Boolean;
       _UserName:TERRAString;
       _Password:TERRAString;
-      _TCPSocket:Socket;
+      _TCPSocket:NetSocket;
+
+      _OpcodeList:Array[0..255]Of NetClientMessageHandler;
 
       Procedure ClearConnection(ErrorCode:Integer);
 
       Procedure UpdateGUID();
+
+      Procedure OnPacketReceived(Sock:NetSocket; Msg:NetMessage); Override;
 
     Public
       //Creates a new client instance
@@ -52,6 +58,8 @@ Type
 
       //Destroys the client instance
       Procedure Release; Override; 
+
+      Procedure AddHandler(Opcode:Byte; Handler:NetClientMessageHandler); Virtual;
 
       //Connects to a server
       Procedure Connect(Port,Version:Word; Server,UserName,Password:TERRAString);
@@ -74,10 +82,8 @@ Type
 
       Function IsConnected():Boolean;
 
-      Function ValidateMessage(Msg:NetMessage):Boolean; Override;
-
       //Message handlers
-      Procedure OnShutdownMessage(Msg:NetMessage; Sock:Socket);
+      Procedure OnShutdownMessage(Msg:NetMessage);
 
       Property IsConnecting:Boolean Read _IsConnecting;
 
@@ -88,6 +94,25 @@ Implementation
 Uses TERRA_Log;
 
 { NetClient }
+ // Creates a new client instance
+Constructor NetClient.Create();
+Var
+  I:Integer;
+Begin
+  Inherited Create();
+
+  NetworkManager.Instance.AddObject(Self);
+
+  _Status := nsDisconnected;
+
+  For I:=0 To 255 Do
+    _OpcodeList[I] := Nil;
+
+  _OpcodeList[nmServerShutdown] := OnShutdownMessage;
+
+  UpdateGUID();
+End;
+
 Function NetClient.CreateJoinMessage(Username, Password, DeviceID:TERRAString; GUID:Word):NetMessage; //Creates a server message
 Begin
   Result := NetMessage.Create(nmClientJoin);
@@ -99,26 +124,17 @@ Begin
   Result.WriteString(DeviceID);
 End;
 
-Procedure NetClient.OnShutdownMessage(Msg:NetMessage; Sock:Socket);
+Procedure NetClient.OnShutdownMessage(Msg:NetMessage);
 Var
   Code:Word;
 Begin
-  Msg.Read(@Code, 2);
+  Msg.ReadWord(Code);
   Disconnect(Code);
 End;
 
- // Creates a new client instance
-Constructor NetClient.Create();
+Procedure NetClient.AddHandler(Opcode: Byte; Handler: NetClientMessageHandler);
 Begin
-  Inherited Create();
-
-  NetworkManager.Instance.AddObject(Self);
-
-  _Status := nsDisconnected;
-
-  _OpcodeList[nmServerShutdown] := OnShutdownMessage;
-
-  UpdateGUID();
+  Self._OpcodeList[Opcode] := Handler;
 End;
 
 // Disconnects from server and destroys the client instance
@@ -145,7 +161,7 @@ Begin
   _GUID := (GetTime() Mod 65214);
 End;
 
-Function NetClient.ValidateMessage(Msg:NetMessage):Boolean;
+Procedure NetClient.OnPacketReceived(Sock:NetSocket; Msg:NetMessage);
 Var
   Code:Word;
   ErrorLog:TERRAString;
@@ -155,12 +171,10 @@ Begin
     nmServerAck:
       Begin
         //Set our ID
-        Msg.Read(@Code, 2);
-        _LocalID := Code;
+        Msg.ReadCardinal(_LocalID);
         _Status := nsConnected;
         _IsConnecting := False;
         ConnectionStart();
-        Result := False;
         Exit;
       End;
 
@@ -170,7 +184,6 @@ Begin
         Msg.ReadString(ErrorLog);
         Log(logError,'Network','ErrorMessage: '+GetNetErrorDesc(Code));
 
-        Result := False;
         If (Code = errAlreadyConnected) And (Self.IsConnected) Then
         Begin
           Exit;
@@ -184,7 +197,13 @@ Begin
         End;
       End;
     Else
-      Result := True;
+    Begin
+      If Assigned(_OpcodeList[Msg.Opcode]) Then
+      Begin
+        _OpcodeList[Msg.Opcode](Msg);
+      End;
+    End;
+
   End;
 End;
 
@@ -205,7 +224,7 @@ Begin
   Log(logDebug,'Network', Self.ClassName+'.Connect: '+Server);
 
   //Create a socket for sending/receiving messages
-  _TCPSocket := Socket.Create(Server, _Port);
+  _TCPSocket := NetSocket.Create(Server, _Port);
   If (_TCPSocket.Closed) Then
   Begin
     Self.ClearConnection(errConnectionFailed);

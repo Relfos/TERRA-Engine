@@ -711,6 +711,7 @@ Function sysconf(i:Integer):Clong; CDecl; External Name 'sysconf';
 
 Const
   BundleResourceFolder = '/Contents/Resources/';
+  PListFileName = '../Info.plist';
 
 function CarbonApplication.InitSettings: Boolean;
 Var
@@ -725,9 +726,11 @@ Var
   pathMedia:TERRAString;
 
   Temp:Array[0..255] Of AnsiChar;
+
+  Source:Stream;
 Begin
   Inherited InitSettings;
-  
+
   pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
   pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
   CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
@@ -740,6 +743,13 @@ Begin
   _DocumentPath := GetDocumentsFolder();
   _StoragePath := _DocumentPath;
   Log(logDebug,'App', 'Documents folder is '+_DocumentPath);
+
+  {If FileStream.Exists(PListFileName) Then
+  Begin
+    Log(logDebug,'App', 'Getting plist info...');
+    Source := FileStream.Open(PListFileName);
+    ReleaseObject(Source);
+  End;}
 
   loc := CFLocaleCopyCurrent();
   Log(logDebug,'App', 'Getting user country...');

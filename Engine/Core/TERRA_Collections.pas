@@ -17,11 +17,9 @@
  * specific language governing permissions and limitations under the License.
  *
  **********************************************************************************************************************
- * TERRA_Collections
- * Implements generic collection classes (lists, queues, stacks, etc)
- ***********************************************************************************************************************
 }
 
+{ Implements generic collection classes (lists and iterators) }
 Unit TERRA_Collections;
 
 {$I terra.inc}
@@ -29,237 +27,187 @@ Unit TERRA_Collections;
 {-$DEFINE DEBUG}
 
 Interface
-Uses TERRA_String, TERRA_Utils;
+Uses TERRA_String, TERRA_Utils
+{$IFNDEF DISABLETHREADS}, TERRA_Mutex{$ENDIF};
 
-Type
-  HashKey = Word;
-
-Function GetStringHashKey(Const S:TERRAString):HashKey;
 Function GetStringSort(Const A,B:TERRAString):Integer;
 
 Const
-  coAppend          = 1;
+  { Checks that the collection contains no duplicate values }
   coNoDuplicates    = 2;
-  coSorted          = 4;
-  coSortedInverted  = 8;
-  coCheckReferencesOnAdd    = 16;
-  coCheckReferencesOnDelete = 32;
-  coUnmanaged       = 64;
-  DefaultCollectionOptions = coAppend;
+  { Insert fails if object already added }
+  coCheckReferencesOnAdd    = 4;
+  coCheckReferencesOnDelete = 8;
+  { The collection will be thread-safe, meaning adds, deletes and iterators will be protected by a critical section. }
+  coThreadSafe      = 32;
 
 Type
   Collection = Class;
 
+  CollectionSortOrder = (
+    { The collection is unsorted. Add() does a very fast insertion without sorting.}
+    collection_Unsorted,
+
+    { The collection is sorted}
+    collection_Sorted_Ascending,
+
+    { The collection is reversed sorted}
+    collection_Sorted_Descending
+  );
+
   // must implement at least copy value and sort
-  ListObject = Class(TERRAObject)
+  CollectionObject = Class(TERRAObject)
     Protected
       _Collection:Collection;
-      _Next:ListObject;
+      _Next:CollectionObject;
+      _Discarded:Boolean;
 
-      Procedure CopyValue(Other:ListObject); Virtual; 
-      Function Sort(Other:ListObject):Integer; Virtual; // if not implemented, no sort will happen
-      Function GetHashKey():HashKey; Virtual; // does not need to be unique
-
-      Function IsCompatible(Other:ListObject):Boolean;
-      Procedure Internal_Copy(Other:ListObject);
-      Function Internal_Sort(Other:ListObject):Integer;
+      Function IsCompatible(Other:CollectionObject):Boolean;
+      Procedure Internal_Copy(Other:CollectionObject);
+      Function Internal_Sort(Other:CollectionObject):Integer;
 
     Public
+      { Release this object }
       Procedure Release(); Override;
 
-      Function ToString():TERRAString; {$IFDEF FPC} Override; {$ELSE} Virtual; {$ENDIF}
+      { Mark this object for release. It will be auto-released as soon as possible.}
+      Procedure Discard();
+
+      { Links this object to a specific collection. Internal use. }
+      Procedure Link(Col:Collection);
+
+      { Clones this object. }
+      Procedure CopyValue(Other:CollectionObject); Virtual;
+
+      Function ToString():TERRAString; {$IFDEF FPC}Reintroduce;{$ENDIF}  Virtual;
+
+      { Compares this object with a similar object. If not implemented, no sorting will happen. }
+      Function Sort(Other:CollectionObject):Integer; Virtual;
 
       Property Collection:Collection Read _Collection;
-      Property  Next:ListObject Read _Next;
+      Property Next:CollectionObject Read _Next Write _Next; // FIXME should not have write acess
+      Property Discarded:Boolean Read _Discarded;
   End;
 
   Iterator = Class(TERRAObject)
+    Protected
+      _Current:CollectionObject;
+      _Next:CollectionObject;
+      _Index:Integer;
+      _Collection:Collection;
+      _Finished:Boolean;
+
+      Function ObtainNext():CollectionObject; Virtual; Abstract;
+
+      Procedure Release(); Override;
+
+      Class Function NewInstance:TObject; Override;
+      Procedure FreeInstance; Override;
+
     Public
-      Function HasNext():Boolean;Virtual; Abstract;
-      Function GetNext():ListObject;Virtual; Abstract;
-      Function Discard():Boolean; Virtual;
-      Procedure Release(); Override; 
+      Constructor Create(Col:Collection);
+
+      Function HasNext():Boolean;
+      Function GetNext():CollectionObject;
+
+      Procedure Reset(); Virtual;
+
+      Property Current:CollectionObject Read _Current;
+      Property Index:Integer Read _Index;
   End;
 
-  CollectionVisitor = Function(Item:ListObject; UserData:Pointer):Boolean; CDecl;
+  CollectionVisitor = Function(Item:CollectionObject; UserData:Pointer):Boolean; CDecl;
 
   Collection = Class(TERRAObject)
     Protected
       _ItemCount:Integer;
       _Options:Integer;
 
-      Procedure SetOptions(Value:Integer);
+      _SortOrder:CollectionSortOrder;
+
+      {$IFNDEF DISABLETHREADS}
+      _SharedMutex:Boolean;
+      _Mutex:CriticalSection;
+      {$ENDIF}
+
+      _HasDiscards:Boolean;
+
+      Procedure Init(Options:Integer; Share:Collection);
+
+      Procedure Update();
+      Procedure RemoveDiscardedItems(); Virtual;
 
     Public
       Procedure Release(); Override;
 
-      Function CreateIterator:Iterator; Virtual;Abstract;
+      Function GetIterator:Iterator; Virtual;Abstract;
 
       // removes all items
       Procedure Clear(); Virtual;Abstract;
 
-      Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):ListObject; Virtual; Abstract;
-      Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Virtual; Abstract;
+      Procedure Lock;
+      Procedure Unlock;
+
+
+      Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):CollectionObject; Virtual;
+      Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Virtual; 
 
       // Should return True if Item contains Key
-      Function ContainsReference(Item:ListObject):Boolean; Virtual; Abstract;
-      Function ContainsDuplicate(Item:ListObject):Boolean; Virtual; Abstract;
+      Function ContainsReference(Item:CollectionObject):Boolean; Virtual;
+      Function ContainsDuplicate(Item:CollectionObject):Boolean; Virtual;
 
-      Function GetItemByIndex(Index:Integer):ListObject; Virtual; Abstract;
+      Function GetItemByIndex(Index:Integer):CollectionObject; Virtual; Abstract;
 
-      Function FindByKey(Const Key:TERRAString):ListObject; Virtual;
+//      Function FindByValue(Const Value:TERRAString):CollectionObject; Virtual;
 
-      Property Objects[Index: Integer]:ListObject Read GetItemByIndex; Default;
+      Property Objects[Index: Integer]:CollectionObject Read GetItemByIndex; Default;
 
       Property Count:Integer Read _ItemCount;
       Property Options:Integer Read _Options;
-  End;
 
-  Queue = Class(Collection)
-    Protected
-      _First:ListObject;
-
-    Public
-      Constructor Create();
-
-      Function CreateIterator:Iterator; Override;
-
-      Procedure Clear(); Override;
-
-      Function Push(Item:ListObject):Boolean; Virtual;
-      Function Pop():ListObject; Virtual;
-
-      Function GetItemByIndex(Index:Integer):ListObject; Override;
-
-      Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):ListObject; Override;
-      Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Override;
-
-      Function ContainsReference(Item:ListObject):Boolean; Override;
-      Function ContainsDuplicate(Item:ListObject):Boolean; Override;
-
-      Property First:ListObject Read _First;
-  End;
-
-  Stack = Class(Queue)
-    Public
-      Function Push(Item:ListObject):Boolean; Override;
-      Function Pop():ListObject; Override;
+      Property SortOrder:CollectionSortOrder Read _SortOrder;
   End;
 
   List = Class(Collection)
     Protected
-      _First:ListObject;
-      _Last:ListObject;
+      _First:CollectionObject;
+      _Last:CollectionObject;
+
+      Procedure RemoveDiscardedItems(); Override;
 
     Public
-      Constructor Create(Options:Integer = DefaultCollectionOptions);
+      Constructor Create(SortOrder:CollectionSortOrder = collection_Unsorted; Options:Integer = 0);
 
       Procedure Clear(); Override;
-      Function CreateIterator:Iterator; Override;
+      Function GetIterator:Iterator; Override;
 
-      Function GetItemByIndex(Index:Integer):ListObject; Override;
+      Function GetItemByIndex(Index:Integer):CollectionObject; Override;
 
       // adds copies of items, not references!
       Function Merge(C:Collection):List;
 
       // Returns true if insertion was sucessful
-      Function Add(Item:ListObject; SkipSorting:Boolean = False):Boolean;Virtual;
+      Function Add(Item:CollectionObject):Boolean;Virtual;
       // Returns true if deletion was sucessful
-      Function Delete(Item:ListObject):Boolean; Virtual;
+      Function Delete(Item:CollectionObject):Boolean; Virtual;
 
-      Function ContainsReference(Item:ListObject):Boolean; Override;
-      Function ContainsDuplicate(Item:ListObject):Boolean; Override;
+      Function ContainsReference(Item:CollectionObject):Boolean; Override;
 
-      Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):ListObject; Override;
+      Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):CollectionObject; Override;
       Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Override;
 
-      Property First:ListObject Read _First;
+      Property First:CollectionObject Read _First;
   End;
 
-  PoolItem = Record
-    Used:Boolean;
-    Obj:ListObject;
-  End;
-
-  Pool = Class(List)
+  ListIterator = Class(Iterator)
     Protected
-      _Objects:Array Of PoolItem;
-      _ObjectCount:Integer;
-
-      Procedure InsertPoolObject(Obj:ListObject);
+      Function ObtainNext:CollectionObject; Override;
 
     Public
-      Procedure Release(); Override;
-
-      Procedure Clear(); Override;
-
-      Function Recycle():ListObject;
-
-      // Returns true if insertion was sucessful
-      Function Add(Item:ListObject; SkipSorting:Boolean = False):Boolean; Override;
+      Procedure Reset(); Override;
   End;
 
-  ListIterator=Class(Iterator)
-    Protected
-      _List:List;
-      _Item,_Prev,_AntPrev:ListObject;
-
-    Public
-      Constructor Create(Source:List);
-
-      Function HasNext:Boolean;Override;
-      Function GetNext:ListObject;Override;
-      Function Discard():Boolean;Override;
-    End;
-
-  HashTable = Class(Collection)
-    Protected
-      _Table:Array Of List;
-      _TableSize:Word;
-
-    Public
-      Constructor Create(TableSize:Word);
-
-      // Returns true if insertion was sucessful
-      Function Add(Item:ListObject):Boolean;Virtual;
-      // Returns true if deletion was sucessful
-      Function Delete(Item:ListObject):Boolean; Virtual;
-
-      Function ContainsReference(Item:ListObject):Boolean; Override;
-      Function ContainsDuplicate(Item:ListObject):Boolean; Override;
-
-      Function GetItemByIndex(Index:Integer):ListObject; Override;
-
-      Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):ListObject; Override;
-      Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Override;
-      Function Filter(Visitor:CollectionVisitor; UserData:Pointer = Nil):HashTable;
-
-      Function SearchWithHash(HashKey:Word; Visitor:CollectionVisitor; UserData:Pointer = Nil):ListObject;
-
-      Procedure Clear(); Override;
-
-      Function CreateIteratorWithHash(HashKey:Word):Iterator;
-      Function CreateIterator:Iterator; Override;
-  End;
-
-  HashTableIterator = Class(Iterator)
-    Protected
-      _CurrentTable:Integer;
-      _ItemIndex:Integer;
-      _Item:ListObject;
-      _HashTable:HashTable;
-
-      Function FindNextItem():ListObject;
-
-
-    Public
-      Constructor Create(Table:HashTable);
-
-      Function HasNext:Boolean; Override;
-      Function GetNext:ListObject; Override;
-  End;
-
-  IntegerArray = Object
+  IntegerArrayObject = Object
     Items:Array Of Integer;
     Count:Integer;
 
@@ -269,29 +217,18 @@ Type
     Procedure Add(N:Integer; AllowDuplicates:Boolean = False);
     Procedure Remove(N:Integer);
 
-    Procedure Merge(A:IntegerArray);
+    Procedure Merge(A:IntegerArrayObject);
 
     Function Pop:Integer;
   End;
 
-
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_FileStream, TERRA_Stream;
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_FileStream, TERRA_Stream;
 
-Function GetStringHashKey(Const S:TERRAString):HashKey;
+{$IFDEF DEBUG_ITERATORS}
 Var
-  N, I:Integer;
-Begin
-  Result := 0;
-  N := 1;
-  For I:=1 To Length(S) Do
-  Begin
-    Inc(Result, (Byte(S[I]) Mod 8) Shl N);
-    Inc(N);
-    If (N>4) Then
-      N:=1;
-  End;
-End;
+  _Iterator_Count:Integer;
+{$ENDIF}
 
 Function GetStringSort(Const A,B:TERRAString):Integer;
 Begin
@@ -304,77 +241,432 @@ Begin
     Result := 0;
 End;
 
-//####################
-//#    Collection   #
-//####################
-
+{ Collection }
 Procedure Collection.Release();
 Begin
   Self.Clear();
+
+  {$IFNDEF DISABLETHREADS}
+  If Not _SharedMutex Then
+    ReleaseObject(_Mutex);
+  {$ENDIF}
 End;
 
-
-Procedure Collection.SetOptions(Value: Integer);
-Var
-  Append:Boolean;
-  SortedAsc, SortedDesc:Boolean;
-  Ref1,Ref2:Boolean;
+Procedure Collection.Lock();
 Begin
-  Append := (Value And coAppend)<>0;
-  SortedAsc := (Value And coSorted)<>0;
-  SortedDesc := (Value And coSortedInverted)<>0;
-  Ref1 := (Value And coCheckReferencesOnAdd)<>0;
-  Ref2 := (Value And coCheckReferencesOnDelete)<>0;
-
-  If (Append) And (SortedAsc) Then
+  {$IFNDEF DISABLETHREADS}
+  If Assigned(_Mutex) Then
   Begin
-    Log(logDebug, Self.ClassName, 'Cannot use append and sort mode simultaneously!');
-    Value := Value Xor coAppend;
+    _Mutex.Lock();
   End;
-
-  If (SortedDesc) And (SortedAsc) Then
-  Begin
-    Log(logDebug, Self.ClassName, 'Cannot use sort and sort_inverted mode simultaneously!');
-    Value := Value Xor coSortedInverted;
-  End;
-
-  If (Ref1) And (Ref2) Then
-  Begin
-    Log(logDebug, Self.ClassName, 'Cannot use check references on add and on delete simultaneously!');
-    Value := Value Xor coCheckReferencesOnDelete;
-  End;
-
-  _Options := Value;
+  {$ENDIF}
 End;
 
-Function Collection.FindByKey(Const Key:TERRAString): ListObject;
+Procedure Collection.Unlock();
+Begin
+  {$IFNDEF DISABLETHREADS}
+  If Assigned(_Mutex) Then
+    _Mutex.Unlock();
+  {$ENDIF}
+End;
+
+Procedure Collection.Init(Options:Integer; Share:Collection);
+Begin
+  {$IFNDEF DISABLETHREADS}
+  If (Assigned(Share)) Then
+  Begin
+    _Mutex := Share._Mutex;
+    _SharedMutex := True;
+  End Else
+  Begin
+    _SharedMutex := False;
+    If (Options And coThreadSafe<>0) Then
+      _Mutex := CriticalSection.Create({Self.ClassName +CardinalToString(GetTime())})
+    Else
+      _Mutex := Nil;
+  End;
+  {$ENDIF}
+
+  _Options := Options;
+End;
+
+Function Collection.Search(Visitor: CollectionVisitor; UserData:Pointer = Nil): CollectionObject;
 Var
   It:Iterator;
-  P:ListObject;
+  P:CollectionObject;
 Begin
   Result := Nil;
-  It := Self.CreateIterator;
-  While It.HasNext() Do
+
+  It := Self.GetIterator();
+  While (It.HasNext()) Do
   Begin
     P := It.GetNext();
-    If StringEquals(P.ToString(), Key) Then
+    If (Visitor(P, UserData)) Then
     Begin
       Result := P;
       Break;
     End;
   End;
-  It.Release();
+  ReleaseObject(It);
+End;
+
+Procedure Collection.Visit(Visitor: CollectionVisitor; UserData:Pointer = Nil);
+Var
+  It:Iterator;
+Begin
+  It := Self.GetIterator();
+  While (It.HasNext()) Do
+  Begin
+    Visitor(It.GetNext(), UserData);
+  End;
+End;
+
+Function Collection.ContainsReference(Item:CollectionObject):Boolean;
+Var
+  P:CollectionObject;
+  It:Iterator;
+Begin
+  It := Self.GetIterator();
+  While (It.HasNext()) Do
+  Begin
+    If (It.GetNext() = Item) Then
+    Begin
+      Result := True;
+      Break;
+    End;
+  End;
+  ReleaseObject(It);
+End;
+
+Function Collection.ContainsDuplicate(Item:CollectionObject):Boolean;
+Var
+  P:CollectionObject;
+  It:Iterator;
+Begin
+  It := Self.GetIterator();
+  While (It.HasNext()) Do
+  Begin
+    If (StringEquals(It.GetNext().ToString(), Item.ToString())) Then
+    Begin
+      Result := True;
+      Break;
+    End;
+  End;
+  ReleaseObject(It);
+End;
+
+{Function Collection.FindByValue(Const Value:TERRAString): CollectionObject;
+Var
+  It:Iterator;
+  P:CollectionObject;
+Begin
+  Result := Nil;
+  It := Self.GetIterator();
+  While It.HasNext() Do
+  Begin
+    P := It.GetNext();
+    If StringEquals(P.ToString(), Value) Then
+    Begin
+      Result := P;
+      Break;
+    End;
+  End;
+  ReleaseObject(It);
+End;}
+
+Procedure Collection.RemoveDiscardedItems;
+Begin
+  // dummy
+End;
+
+Procedure Collection.Update;
+Begin
+  If Not _HasDiscards Then
+    Exit;
+
+  _HasDiscards := False;
+  Self.RemoveDiscardedItems();
+End;
+
+Procedure IntegerArrayObject.Clear;
+Begin
+  Count := 0;
+  SetLength(Items, 0);
+End;
+
+Function IntegerArrayObject.Contains(N:Integer):Boolean;
+Var
+  I:Integer;
+Begin
+  Result := True;
+  For I:=0 To Pred(Count) Do
+  If (Items[I]=N) Then
+    Exit;
+
+  Result := False;
+End;
+
+Procedure IntegerArrayObject.Replace(A,B:Integer);
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(Count) Do
+  If (Items[I]=A) Then
+    Items[I] := B;
+End;
+
+Procedure IntegerArrayObject.Add(N:Integer; AllowDuplicates:Boolean = False);
+Begin
+  If (Not AllowDuplicates) And (Contains(N)) Then
+    Exit;
+
+  Inc(Count);
+  SetLength(Items, Count);
+  Items[Pred(Count)] := N;
+End;
+
+Procedure IntegerArrayObject.Remove(N:Integer);
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(Count) Do
+  If (Items[I]=N) Then
+  Begin
+    Items[I] := Items[Pred(Count)];
+    Dec(Count);
+    SetLength(Items, Count);
+    Exit;
+  End;
+End;
+
+Procedure IntegerArrayObject.Merge(A:IntegerArrayObject);
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(A.Count) Do
+    Self.Add(A.Items[I]);
+End;
+
+Function IntegerArrayObject.Pop:Integer;
+Begin
+  Result := Items[0];
+  Items[0] := Items[Pred(Count)];
+  Dec(Count);
+  SetLength(Items, Count);
+End;
+
+{ Iterator }
+Constructor Iterator.Create(Col: Collection);
+Begin
+  _Collection := Col;
+
+  If Assigned(_Collection) Then
+  Begin
+    _Collection.Lock();
+    _Collection.Update();
+  End;
+
+{$IFDEF DEBUG_ITERATORS}
+  Inc(_Iterator_Count);
+
+  If (_Iterator_Count>100) Then
+  Begin
+    DebugBreak;
+  End;
+{$ENDIF}
+
+  Self.Reset();
+End;
+
+Procedure Iterator.Reset();
+Begin
+  _Finished := False;
+  _Index := -1;
+  _Current := Nil;
+End;
+
+Procedure Iterator.Release();
+Begin
+  If _Finished Then
+    Exit;
+
+  _Finished := True;
+
+{$IFDEF DEBUG_ITERATORS}
+  Dec(_Iterator_Count);
+{$ENDIF}
+
+  If Assigned(_Collection) Then
+  Begin
+    _Collection.Update();
+    _Collection.Unlock();
+  End;
+End;
+
+Function Iterator.GetNext: CollectionObject;
+Begin
+  Result := _Current;
+End;
+
+Function Iterator.HasNext: Boolean;
+Begin
+  Result := (Assigned(_Next));
+  If Result Then
+  Begin
+    _Current := _Next;
+
+    Inc(_Index, 2);
+    If (_Index<_Collection.Count) Then
+      _Next := Self.ObtainNext()
+    Else
+      _Next := Nil;
+    Dec(_Index);
+  End Else
+  If Not _Finished Then
+    ReleaseObject(Self);
+End;
+
+Const
+  _IteratorAllocSize = 1024 * 32;
+
+Var
+  _IteratorStack:Array[0..Pred(_IteratorAllocSize)] Of Byte;
+  _IteratorPointer:Cardinal = 0;
+{$IFNDEF DISABLETHREADS}
+  _IteratorMutex:CriticalSection;
+{$ENDIF}
+
+Class Function Iterator.NewInstance: TObject;
+Var
+  ObjSize, GlobalSize:Integer;
+Begin
+  ObjSize := InstanceSize();
+
+{$IFNDEF DISABLETHREADS}
+  _IteratorMutex.Lock();
+{$ENDIf}
+
+  If (_IteratorPointer + ObjSize >= _IteratorAllocSize) Then
+    _IteratorPointer := 0;
+
+  Result := @_IteratorStack[_IteratorPointer];
+
+  Inc(_IteratorPointer, ObjSize);
+
+{$IFNDEF DISABLETHREADS}
+  _IteratorMutex.Unlock();
+{$ENDIf}
+
+  InitInstance(Result);
+End;
+
+Procedure Iterator.FreeInstance;
+Begin
+  // do nothing -> extremely fast deallocs
+End;
+
+
+{ CollectionObject }
+Procedure CollectionObject.CopyValue(Other: CollectionObject);
+Begin
+  // do nothing
+End;
+
+Procedure CollectionObject.Release();
+Begin
+  // do nothing
+End;
+
+Procedure CollectionObject.Internal_Copy(Other: CollectionObject);
+Begin
+  If (IsCompatible(Other)) Then
+    Self.CopyValue(Other);
+End;
+
+Function CollectionObject.Internal_Sort(Other: CollectionObject): Integer;
+Begin
+  If (IsCompatible(Other)) Then
+    Result := Self.Sort(Other)
+  Else
+    Result := 0;
+End;
+
+Function CollectionObject.IsCompatible(Other: CollectionObject): Boolean;
+Begin
+  Result := (Self Is Other.ClassType);
+  If Not Result Then
+    RaiseError('Cannot copy list objects, '+Self.ClassName +' and '+ Other.ClassName+' are not compatible!');
+End;
+
+Function CollectionObject.Sort(Other: CollectionObject): Integer;
+Begin
+  If (Other<>Nil) Then
+    Result := 0
+  Else
+    Result := 1;
+End;
+
+Function CollectionObject.ToString:TERRAString;
+Begin
+  Result := Self.ClassName+'@'+HexStr(Cardinal(Self));
+End;
+
+Procedure CollectionObject.Discard();
+Begin
+  Self._Discarded := True;
+  If Assigned(Self._Collection) Then
+    Self._Collection._HasDiscards := True
+  Else
+    DebugBreak;
+End;
+
+
+Procedure CollectionObject.Link(Col: Collection);
+Begin
+  _Collection := Col;
 End;
 
 { List }
-Constructor List.Create(Options:Integer);
+Constructor List.Create(SortOrder:CollectionSortOrder; Options:Integer);
 Begin
-  SetOptions(Options);
+  _SortOrder := SortOrder;
   _First := Nil;
   _ItemCount := 0;
+  Self.Init(Options, Nil);
 End;
 
-Function List.GetItemByIndex(Index:Integer):ListObject;
+Procedure List.RemoveDiscardedItems();
+Var
+  P, Prev:CollectionObject;
+Begin
+  Prev := Nil;
+
+  P := _First;
+  While (Assigned(P)) Do
+  Begin
+    If P._Discarded Then
+    Begin
+      If Assigned(Prev) Then
+      Begin
+        Prev._Next := P.Next;
+        P.Release();
+        Dec(_ItemCount);
+        P := Prev.Next;
+      End Else
+      Begin
+        _First := P.Next;
+        P.Release();
+        P := _First;
+      End;
+    End Else
+    Begin
+      Prev := P;
+      P := P.Next;
+    End;
+  End;
+End;
+
+Function List.GetItemByIndex(Index:Integer):CollectionObject;
 Var
   I:Integer;
 Begin
@@ -384,10 +676,14 @@ Begin
     Exit;
   End;
 
-  Result := _First;
   If (Index=0) Then
+  Begin
+    Result := _First;
     Exit;
+  End;
 
+  Self.Lock();
+  Result := Self._First;
   I := 0;
   While (Result<>Nil) Do
   Begin
@@ -395,106 +691,94 @@ Begin
     Inc(I);
 
     If (I = Index) Then
-      Exit;
+      Break;
   End;
-
-  Result := Nil;
+  Self.Unlock();
 End;
-
-(*Function List.GetItemByIndex(Index:Integer):ListObject;
-Var
-  I:Iterator;
-Begin
-  Result:=Nil;
-  If (Index<0) Or (Index>=Self.Count) Then
-    Exit;
-
-  I := Self.CreateIterator;
-  While I.HasNext Do
-  Begin
-    Result := I.GetNext;
-    If (Index=0) Then
-      Break
-    Else
-      Dec(Index);
-  End;
-  I.Release();
-End;*)
 
 Function List.Merge(C:Collection):List;
 Var
   I:Iterator;
-  Temp, N:ListObject;
+  Temp, N:CollectionObject;
 Begin
+  Result := Self;
 
-  I := C.CreateIterator();
+  If (C = Self) Then
+    Exit;
+
+  Self.Update();
+
+  I := C.GetIterator();
   While I.HasNext Do
   Begin
     Temp := I.GetNext();
-    N := ListObject(Temp.ClassType.Create());
+    N := CollectionObject(Temp.ClassType.Create());
     N.CopyValue(Temp);
     Self.Add(N);
   End;
-  I.Release();
-
-  C.Release();
-
-  Result := Self;
+  ReleaseObject(C);
 End;
 
-Function List.Search(Visitor: CollectionVisitor; UserData:Pointer = Nil): ListObject;
+Function List.Search(Visitor: CollectionVisitor; UserData:Pointer = Nil): CollectionObject;
 Var
-  P:ListObject;
+  P:CollectionObject;
 Begin
   Result := Nil;
+
+  Self.Lock();
   P := _First;
   While (Assigned(P)) Do
   Begin
     If (Visitor(P, UserData)) Then
     Begin
       Result := P;
-      Exit;
+      Break;
     End;
 
     P := P.Next;
   End;
+
+  Self.Unlock();
 End;
 
 Procedure List.Visit(Visitor: CollectionVisitor; UserData:Pointer = Nil);
 Var
-  P:ListObject;
+  P:CollectionObject;
 Begin
+  Self.Lock();
   P := _First;
   While (Assigned(P)) Do
   Begin
     Visitor(P, UserData);
     P := P.Next;
   End;
+  Self.Unlock();
 End;
 
 Procedure List.Clear();
 Var
-  List,Next:ListObject;
+  List,Next:CollectionObject;
 Begin
-  If (Options And coUnmanaged=0) Then
+  Self.Lock();
+
+  List := _First;
+  While Assigned(List)Do
   Begin
-    List := _First;
-    While Assigned(List)Do
-    Begin
-      Next := List.Next;
-      List.Release();
-      List := Next;
-    End;
+    Next := List.Next;
+    List.Release();
+    List := Next;
   End;
 
   _First := Nil;
   _ItemCount := 0;
+
+  Self.Unlock();
 End;
 
-Function List.Add(Item:ListObject; SkipSorting:Boolean = False):Boolean;
+Function List.Add(Item:CollectionObject):Boolean;
 Var
   N:Integer;
-  P, Prev:ListObject;
+  P, Prev:CollectionObject;
   Inserted:Boolean;
 Begin
   Result := False;
@@ -511,7 +795,7 @@ Begin
     Exit;
   End;
 
-  If (Options And coUnmanaged=0) And (Item.Collection<>Nil) Then
+  If (Item.Collection<>Nil) Then
   Begin
     Log(logWarning, Self.ClassName, 'Item already belongs to a collection: '+Item.ToString());
     Exit;
@@ -520,20 +804,23 @@ Begin
   Result := True;
   Item._Collection := Self;
 
+  Self.Update();
+
+  Self.Lock();
   If Assigned(_First) Then
   Begin
-    If ((Options And coAppend)<>0) Or (SkipSorting) Then
+    If (_SortOrder = collection_Unsorted) Then
     Begin
       _Last._Next := Item;
       Item._Next := Nil;
       _Last := Item;
     End Else
-    If ((Options and coSorted)=0) And ((Options and coSortedInverted)=0) Then
+    {If (_SortOrder = collection_Unsorted) Then
     Begin
       P := _First;
       _First := Item;
       Item._Next := P;
-    End Else
+    End Else}
     Begin
       Inserted := False;
       P := _First;
@@ -541,7 +828,7 @@ Begin
       While Assigned(P) Do
       Begin
         N := P.Sort(Item);
-        If (((Options and coSorted)<>0) And (N>=0)) Or (((Options and coSortedInverted)<>0) And (N<=0)) Then
+        If ((_SortOrder = collection_Sorted_Ascending) And (N>=0)) Or ((_SortOrder = collection_Sorted_Descending) And (N<=0)) Then
         Begin
           If Assigned(Prev) Then
           Begin
@@ -577,6 +864,8 @@ Begin
 
   Inc(_ItemCount);
 
+  Self.Unlock();
+
   {P := _First;
   PRev := Nil;
   While P<>Nil Do
@@ -592,11 +881,13 @@ Begin
   End;}
 End;
 
-Function List.Delete(Item:ListObject):Boolean;
+Function List.Delete(Item:CollectionObject):Boolean;
 Var
-  List,Prev, Next:ListObject;
+  List,Prev, Next:CollectionObject;
 Begin
   Result := False;
+
+  Self.Lock();
   List := _First;
   Prev := Nil;
   {$IFDEF DEBUG}Log(logDebug, 'List', 'Testing deletion...');{$ENDIF}
@@ -612,7 +903,7 @@ Begin
 
       Item.Release();
       {$IFDEF DEBUG}Log(logDebug, 'List', 'Discarded item!');{$ENDIF}
-
+      
       If Assigned(Prev) Then
         Prev._Next := Next
       Else
@@ -620,798 +911,68 @@ Begin
 
       Dec(_ItemCount);
       Result := True;
-      Exit;
+      Break;
     End;
 
     Prev := List;
     List := List.Next;
   End;
 
-  {$IFDEF DEBUG}Log(logDebug, 'List', 'No matches found...');{$ENDIF}
+  Self.Unlock();
 End;
 
-Function List.ContainsReference(Item:ListObject):Boolean;
+Function List.ContainsReference(Item:CollectionObject):Boolean;
 Var
-  P:ListObject;
+  P:CollectionObject;
 Begin
-  Result := True;
+  Result := False;
+
+  Self.Lock();
   P := _First;
   While (P<>Nil) Do
   Begin
     If (P = Item) Then
-      Exit;
+    Begin
+      Result := True;
+      Break;
+    End;
 
     P := P.Next;
   End;
-  Result := False;
-End;
-
-Function List.ContainsDuplicate(Item:ListObject):Boolean;
-Var
-  P:ListObject;
-Begin
-  Result := True;
-  P := _First;
-  While (P<>Nil) Do
-  Begin
-    If (P.Sort(Item) = 0) Then
-      Exit;
-
-    P := P.Next;
-  End;
-  Result := False;
+  Self.Unlock();
 End;
 
 
-Function List.CreateIterator:Iterator;
+
+Function List.GetIterator:Iterator;
 Begin
   Result := ListIterator.Create(Self);
 End;
 
-
-Constructor ListIterator.Create(Source:List);
-Begin
-  _List := Source;
-  _Item := Source._First;
-  _Prev := Nil;
-  _AntPrev := Nil;
-End;
-
-Function ListIterator.GetNext:ListObject;
-Begin
-  Result := _Item;
-  _AntPrev := _Prev;
-  _Prev := _Item;
-  _Item := _Item.Next;
-End;
-
-Function ListIterator.HasNext:Boolean;
-Begin
-  Result := Assigned(_Item);
-End;
-
-Function ListIterator.Discard():Boolean;
-Var
-  Next:ListObject;
-Begin
-  Result := False;
-
-  If Not Assigned(_Prev) Then
-    Exit;
-
-  _Item:=_Prev;
-  _Prev:=_AntPrev;
-  Next:=_Item.Next;
-  If Assigned(_Prev)Then
-    _Prev._Next:=_Item.Next
-  Else
-    _List._First := _Item.Next;
-
-  _Item.Release();
-
-  Dec(_List._ItemCount);
-  _Item := Next;
-
-  Result := True;
-End;
-
-//###############################
-//#         HashTable           #
-//###############################
-
-Constructor HashTable.Create(TableSize:Word);
-Begin
-  _Options := coAppend;
-  _ItemCount := 0;
-  _TableSize := TableSize;
-  SetLength(_Table, _TableSize);
-End;
-
-Function HashTable.SearchWithHash(HashKey:Word; Visitor:CollectionVisitor; UserData:Pointer = Nil):ListObject;
-Var
-  Key:Word;
-Begin
-  Result := Nil;
-
-  Key := HashKey Mod _TableSize;
-
-  If Assigned(_Table[Key]) Then
-    Result := _Table[Key].Search(Visitor, UserData);
-End;
-
-Function HashTable.GetItemByIndex(Index: Integer): ListObject;
-Var
-  I, K, Count:Integer;
-Begin
-  If (Index<0) Or (Index>=Self.Count) Then
-  Begin
-    Result := Nil;
-    Exit;
-  End;
-
-  K := 0;
-  For I:=0 To Pred(_TableSize) Do
-    If (Assigned(_Table[I])) Then
-    Begin
-      Count := _Table[I].Count;
-      If (Index>=K) And (Index< K + Count) Then
-      Begin
-        Result := _Table[I].GetItemByIndex(Index - K);
-        Exit;
-      End;
-
-      Inc(K, Count);
-    End;
-
-  Result := Nil;
-End;
-
-Function HashTable.Search(Visitor: CollectionVisitor; UserData:Pointer = Nil): ListObject;
-Var
-  I:Integer;
-Begin
-  Result := Nil;
-
-  For I:=0 To Pred(_TableSize) Do
-    If Assigned(_Table[I]) Then
-    Begin
-      Result := _Table[I].Search(Visitor, UserData);
-      If Assigned(Result) Then
-        Exit;
-    End;
-End;
-
-Procedure HashTable.Visit(Visitor: CollectionVisitor; UserData:Pointer = Nil);
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(_TableSize) Do
-  If Assigned(_Table[I]) Then
-    _Table[I].Visit(Visitor, UserData);
-End;
-
-Function HashTable.Filter(Visitor: CollectionVisitor; UserData: Pointer): HashTable;
-Var
-  It:Iterator;
-  A,B:ListObject;
-Begin
-  Result := HashTable.Create(Self._TableSize);
-  It := Self.CreateIterator();
-  While It.HasNext Do
-  Begin
-    A := It.GetNext();
-    If (Visitor(A, UserData)) Then
-    Begin
-      B := ListObject(A.ClassType.Create());
-      B.CopyValue(A);
-      Result.Add(B);
-    End;
-  End;
-  It.Release();
-End;
-
-Function HashTable.Add(Item:ListObject):Boolean;
-Var
-  Key:HashKey;
-Begin
-  If Item = Nil Then
-  Begin
-    Result := False;
-    Exit;
-  End;
-
-  {$IFDEF DEBUG}Log(logDebug, 'HashTable', 'Obtaining an hash for this item...');{$ENDIF}
-  Key := Item.GetHashKey();
-  {$IFDEF DEBUG}Log(logDebug, 'HashTable', 'Got hash index: '+HexStr(Key));{$ENDIF}
-
-  Key := Key Mod _TableSize;
-
-  If Not Assigned(_Table[Key]) Then
-  Begin
-    {$IFDEF DEBUG}Log(logDebug, 'HashTable', 'Allocating a new table...');{$ENDIF}
-    _Table[Key] := List.Create(coAppend{ Or coNoDuplicates  Or coCheckReferencesOnAdd});
-  End;
-
-  {$IFDEF DEBUG}Log(logDebug, 'HashTable', 'Adding item to table...');{$ENDIF}
-  Result := _Table[Key].Add(Item);
-  Inc(_ItemCount);
-
-  {$IFDEF DEBUG}Log(logDebug, 'HashTable', 'Insertion was ok!');{$ENDIF}
-End;
-
-Function HashTable.Delete(Item:ListObject):Boolean;
-Var
-  Key:HashKey;
-Begin
-  Result := False;
-
-  If (Item = Nil) Then
-    Exit;
-
-  {$IFDEF DEBUG}Log(logDebug, 'HashTable', 'Obtaining an hash for this item...');{$ENDIF}
-  Key := Item.GetHashKey();
-  {$IFDEF DEBUG}Log(logDebug, 'HashTable', 'Got hash index: '+HexStr(Key));{$ENDIF}
-
-  Key := Key Mod _TableSize;
-
-  If Not Assigned(_Table[Key]) Then
-    Exit;
-
-  {$IFDEF DEBUG}Log(logDebug, 'HashTable', 'Removing item from table...');{$ENDIF}
-  Result := (_Table[Key].Delete(Item));
-  If Result Then
-    Dec(_ItemCount);
-End;
-
-Function HashTable.ContainsReference(Item:ListObject):Boolean;
-Var
-  Key:HashKey;
-Begin
-  Result := False;
-
-  If (Item = Nil) Then
-    Exit;
-
-  {$IFDEF DEBUG}Log(logDebug, 'HashTable', 'Obtaining an hash for this item...');{$ENDIF}
-  Key := Item.GetHashKey();
-  {$IFDEF DEBUG}Log(logDebug, 'HashTable', 'Got hash index: '+HexStr(Key));{$ENDIF}
-
-  Key := Key Mod _TableSize;
-
-  If Not Assigned(_Table[Key]) Then
-    Exit;
-
-  {$IFDEF DEBUG}Log(logDebug, 'HashTable', 'Searching item in table...');{$ENDIF}
-  Result := (_Table[Key].ContainsReference(Item));
-End;
-
-Function HashTable.ContainsDuplicate(Item:ListObject):Boolean;
-Var
-  Key:HashKey;
-Begin
-  Result := False;
-
-  If (Item = Nil) Then
-    Exit;
-
-  {$IFDEF DEBUG}Log(logDebug, 'HashTable', 'Obtaining an hash for this item...');{$ENDIF}
-  Key := Item.GetHashKey();
-  {$IFDEF DEBUG}Log(logDebug, 'HashTable', 'Got hash index: '+HexStr(Key));{$ENDIF}
-
-  Key := Key Mod _TableSize;
-
-  If Not Assigned(_Table[Key]) Then
-    Exit;
-
-  {$IFDEF DEBUG}Log(logDebug, 'HashTable', 'Searching item in table...');{$ENDIF}
-  Result := (_Table[Key].ContainsDuplicate(Item));
-End;
-
-Procedure HashTable.Clear();
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(_TableSize) Do
-    If Assigned(_Table[I]) Then
-    Begin
-      Dec(_ItemCount, _Table[I].Count);
-      _Table[I].Release();
-      _Table[I] := Nil;
-    End;
-
-  If (_ItemCount <> 0) Then
-    RaiseError('Implementation error!');
-End;
-
-Function HashTable.CreateIterator:Iterator;
-Var
-  MyIterator:HashTableIterator;
-Begin
-  MyIterator := HashTableIterator.Create(Self);
-  Result := MyIterator;
-End;
-
-Function HashTable.CreateIteratorWithHash(HashKey: Word): Iterator;
-Var
-  Key:Word;
-Begin
-  Result := Nil;
-
-  Key := HashKey Mod _TableSize;
-
-  If Not Assigned(_Table[Key]) Then
-    Exit;
-
-  Result := _Table[Key].CreateIterator();
-End;
-
-Constructor HashTableIterator.Create(Table: HashTable);
-Begin
-  _HashTable := Table;
-  _CurrentTable := -1;
-  _ItemIndex := 0;
-  _Item := Nil;
-End;
-
-Function HashTableIterator.HasNext:Boolean;
-Begin
-  Result := (_ItemIndex<_HashTable._ItemCount);
-End;
-
-Function HashTableIterator.FindNextItem():ListObject;
-Var
-  I:Integer;
-Begin
-  For I:=Succ(_CurrentTable) To Pred(_HashTable._TableSize) Do
-  If Assigned(_HashTable._Table[I]) Then
-  Begin
-    Result := _HashTable._Table[I]._First;
-    _CurrentTable := I;
-    Exit;
-  End;
-
-  Result := Nil;
-End;
-
-Function HashTableIterator.GetNext:ListObject;
-Begin
-  If (_Item=Nil) Then
-  Begin
-    _Item := FindNextItem();
-  End Else
-  Begin
-    _Item := _Item.Next;
-    If (_Item = Nil) Then
-      _Item := FindNextItem();
-  End;
-
-  Result := _Item;
-  If (Result <> Nil) Then
-    Inc(_ItemIndex)
-  Else
-  Begin
-    IntToSTring(_ItemIndex + _HashTable._ItemCount);
-  End;
-End;
-
-//###############
-//#   Queue     #
-//###############
-
-Function Queue.Search(Visitor: CollectionVisitor; UserData:Pointer = Nil): ListObject;
-Var
-  P:ListObject;
-Begin
-  Result := Nil;
-  P := _First;
-  While (Assigned(P)) Do
-  Begin
-    If (Visitor(P, UserData)) Then
-    Begin
-      Result := P;
-      Exit;
-    End;
-
-    P := P.Next;
-  End;
-End;
-
-Procedure Queue.Visit(Visitor: CollectionVisitor; UserData:Pointer = Nil);
-Var
-  P:ListObject;
-Begin
-  P := _First;
-  While (Assigned(P)) Do
-  Begin
-    Visitor(P, UserData);
-    P := P.Next;
-  End;
-End;
-
-Function Queue.Push(Item: ListObject): Boolean;
-Var
-  P:ListObject;
-Begin
-  Result := False;
-
-  If (Item = Nil) Or ((Options And coCheckReferencesOnAdd<>0) And (Self.ContainsReference(Item))) Then
-  Begin
-    Log(logWarning, Self.ClassName, 'Reference already inside collection: '+Item.ToString());
-    Exit;
-  End;
-
-  If ((Options And coNoDuplicates<>0) And (Self.ContainsDuplicate(Item))) Then
-  Begin
-    Log(logWarning, Self.ClassName, 'Item duplicated in collection: '+Item.ToString());
-    Exit;
-  End;
-
-  If (Item.Collection<>Nil) Then
-  Begin
-    Log(logWarning, Self.ClassName, 'Item already belongs to a collection: '+Item.ToString());
-    Exit;
-  End;
-
-  Item._Collection := Self;
-  Inc(_ItemCount);
-  Result := True;
-
-  If (Not Assigned(_First)) Then
-  Begin
-    _First := Item;
-    _First._Next := Nil;
-    Exit;
-  End;
-
-  P := _First;
-  Repeat
-    If (Not Assigned(P.Next)) Then
-    Begin
-
-      P._Next := Item;
-      P := P.Next;
-      P._Next := Nil;
-      Exit;
-    End;
-
-    P := P.Next;
-  Until (Not Assigned(P));
-End;
-
-Procedure Queue.Clear();
-Var
-  Temp:ListObject;
-Begin
-  While (Assigned(_First)) Do
-  Begin
-    Temp := Self.Pop();
-
-    If (Options And coUnmanaged=0) And (Assigned(Temp)) Then
-      Temp.Release();
-  End;
-End;
-
-Function Queue.ContainsReference(Item: ListObject): Boolean;
-Var
-  P:ListObject;
-Begin
-  Result := True;
-  P := _First;
-  While (Assigned(P)) Do
-  Begin
-    If (Item = P) Then
-      Exit;
-
-    P := P.Next;
-  End;
-  Result := False;
-End;
-
-Function Queue.ContainsDuplicate(Item: ListObject): Boolean;
-Var
-  P:ListObject;
-Begin
-  Result := True;
-  P := _First;
-  While (Assigned(P)) Do
-  Begin
-    If (Item.Sort(P) = 0) Then
-      Exit;
-
-    P := P.Next;
-  End;
-  Result := False;
-End;
-
-Constructor Queue.Create;
-Begin
-  _Options := coAppend;
-  _First := Nil;
-End;
-
-Function Queue.CreateIterator: Iterator;
-Begin
-  Result := Nil;
-End;
-
-Function Queue.GetItemByIndex(Index:Integer):ListObject;
-Var
-  I:Integer;
-Begin
-  If (Index<0) Or (Index>=Self.Count) Then
-  Begin
-    Result := Nil;
-    Exit;
-  End;
-
-  Result := _First;
-  If (Index = 0) Then
-    Exit;
-
-  I := 0;
-  While (Result<>Nil) Do
-  Begin
-    Result := Result.Next;
-    Inc(I);
-
-    If (I = Index) Then
-      Exit;
-  End;
-
-  Result := Nil;
-End;
-
-Function Queue.Pop:ListObject;
-Var
-  P:ListObject;
-Begin
-  If (_First = Nil) Then
-  Begin
-    Result := Nil;
-    Exit;
-  End;
-
-  P := _First;
-  _First := _First.Next;
-  Dec(_ItemCount);
-
-  Result := P;
-End;
-
-{ Stack }
-Function Stack.Pop:ListObject;
-Begin
-  Result := _First;
-  If (_First <> Nil) Then
-    _First := _First.Next;
-End;
-
-Function Stack.Push(Item: ListObject): Boolean;
-Begin
-  Item._Next := _First;
-  _First := Item;
-
-  Result := True;
-End;
-
-Procedure IntegerArray.Clear;
-Begin
-  Count := 0;
-  SetLength(Items, 0);
-End;
-
-Function IntegerArray.Contains(N:Integer):Boolean;
-Var
-  I:Integer;
-Begin
-  Result := True;
-  For I:=0 To Pred(Count) Do
-  If (Items[I]=N) Then
-    Exit;
-
-  Result := False;
-End;
-
-Procedure IntegerArray.Replace(A,B:Integer);
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(Count) Do
-  If (Items[I]=A) Then
-    Items[I] := B;
-End;
-
-Procedure IntegerArray.Add(N:Integer; AllowDuplicates:Boolean = False);
-Begin
-  If (Not AllowDuplicates) And (Contains(N)) Then
-    Exit;
-
-  Inc(Count);
-  SetLength(Items, Count);
-  Items[Pred(Count)] := N;
-End;
-
-Procedure IntegerArray.Remove(N:Integer);
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(Count) Do
-  If (Items[I]=N) Then
-  Begin
-    Items[I] := Items[Pred(Count)];
-    Dec(Count);
-    SetLength(Items, Count);
-    Exit;
-  End;
-End;
-
-Procedure IntegerArray.Merge(A:IntegerArray);
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(A.Count) Do
-    Self.Add(A.Items[I]);
-End;
-
-Function IntegerArray.Pop:Integer;
-Begin
-  Result := Items[0];
-  Items[0] := Items[Pred(Count)];
-  Dec(Count);
-  SetLength(Items, Count);
-End;
-
-{ Iterator }
-Procedure Iterator.Release();
-Begin
-
-End;
-
-Function Iterator.Discard: Boolean;
-Begin
-  Result := False;
-End;
-
-{ ListObject }
-Procedure ListObject.CopyValue(Other: ListObject);
-Begin
-  // do nothing
-End;
-
-Procedure ListObject.Release();
-Begin
-  // do nothing
-End;
-
-Function ListObject.GetHashKey: HashKey;
-Begin
-  Result := 0;
-End;
-
-Procedure ListObject.Internal_Copy(Other: ListObject);
-Begin
-  If (IsCompatible(Other)) Then
-    Self.CopyValue(Other);
-End;
-
-Function ListObject.Internal_Sort(Other: ListObject): Integer;
-Begin
-  If (IsCompatible(Other)) Then
-    Result := Self.Sort(Other)
-  Else
-    Result := 0;
-End;
-
-Function ListObject.IsCompatible(Other: ListObject): Boolean;
-Begin
-  Result := (Self Is Other.ClassType);
-  If Not Result Then
-    RaiseError('Cannot copy list objects, '+Self.ClassName +' and '+ Other.ClassName+' are not compatible!');
-End;
-
-Function ListObject.Sort(Other: ListObject): Integer;
-Begin
-  If (Other<>Nil) Then
-    Result := 0
-  Else
-    Result := 1;
-End;
-
-Function ListObject.ToString:TERRAString;
-Begin
-  Result := Self.ClassName+'@'+HexStr(Cardinal(Self));
-End;
-
-{ Pool }
-Procedure Pool.Clear;
-Var
-  I:Integer;
-  List,Next:ListObject;
-Begin
-  List := _First;
-  While Assigned(List)Do
-  Begin
-    Next := List.Next;
-
-    If (Not (List Is ListObject)) Then
-      List.Release();
-
-    List := Next;
-  End;
-
-  _First := Nil;
-  _ItemCount := 0;
-
-  For I:=0 To Pred(_ObjectCount) Do
-    _Objects[I].Used := False;
-End;
-
-Procedure Pool.Release();
-Var
-  I:Integer;
+Procedure ListIterator.Reset;
 Begin
   Inherited;
-
-  For I:=0 To Pred(_ObjectCount) Do
-    ReleaseObject(_Objects[I].Obj);
+  _Next := List(_Collection)._First;
 End;
 
-Procedure Pool.InsertPoolObject(Obj: ListObject);
-Var
-  I:Integer;
+Function ListIterator.ObtainNext:CollectionObject;
 Begin
-  For I:=0 To Pred(_ObjectCount) Do
-  If (_Objects[I].Obj = Obj) Then
+  If Assigned(_Current) Then
   Begin
-    _Objects[I].Used := True;
-    Exit;
-  End;
-
-
-  For I:=0 To Pred(_ObjectCount) Do
-  If (Not _Objects[I].Used) And (_Objects[I].Obj = Nil) Then
-  Begin
-    _Objects[I].Obj := Obj;
-    Exit;
-  End;
-
-  If (_ObjectCount<=0) Then
-    _ObjectCount := 1024
-  Else
-    _ObjectCount := _ObjectCount * 2;
-
-  SetLength(_Objects, _ObjectCount);
-  InsertPoolObject(Obj);
-End;
-
-Function Pool.Add(Item: ListObject; SkipSorting:Boolean = False): Boolean;
-Begin
-  Self._Options := Self._Options Or coCheckReferencesOnAdd;
-
-  Result := Inherited Add(Item, SkipSorting);
-
-  If Result Then
-    InsertPoolObject(Item);
+    Result := _Current.Next;
+  End Else
+    Result := Nil;
 End;
 
 
-Function Pool.Recycle:ListObject;
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(_ObjectCount) Do
-  If (Not _Objects[I].Used) And (Assigned(_Objects[I].Obj)) Then
-  Begin
-    _Objects[I].Used := True;
-    Result := _Objects[I].Obj;
-    Result._Collection := Nil;
-    Exit;
-  End;
-
-  Result := Nil;
-End;
-
+{$IFNDEF DISABLETHREADS}
+Initialization
+  _IteratorMutex := CriticalSection.Create();
+Finalization
+  ReleaseObject(_IteratorMutex);
+{$ENDIF}
 End.
+
 
 
 

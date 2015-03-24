@@ -119,6 +119,7 @@ public class TERRALibrary {
 	public static native void ApplicationIAPError(int errorcode);
 	public static native void ApplicationIAPCredits(int credits);
        
+    public static native void ApplicationThreadExecute(int pointer);
 	
 	public static native String ApplicationFlurryGetID();
     public static native String ApplicationAdBuddizGetID();
@@ -128,7 +129,7 @@ public class TERRALibrary {
 	public static native String ApplicationIAPGetID();
 	public static native String ApplicationIAPGetServiceID();
 	public static native String ApplicationIAPGetServiceSecret();
-    
+        
     public static native String ApplicationTapjoyGetKey();
     public static native String ApplicationTapjoyGetSecret();
     public static native void ApplicationTapjoyCredits(int credits);

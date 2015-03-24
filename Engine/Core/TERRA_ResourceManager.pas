@@ -27,7 +27,8 @@ Unit TERRA_ResourceManager;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-    TERRA_String, TERRA_Resource, TERRA_Collections, TERRA_Stream, TERRA_Application,TERRA_Threads, TERRA_Mutex;
+    TERRA_String, TERRA_Resource, TERRA_Collections, TERRA_Stream, TERRA_Application,
+    TERRA_Threads, TERRA_Mutex, TERRA_Hashmap, TERRA_Queue;
 
 
 Const
@@ -35,14 +36,14 @@ Const
   ResourceDiscardTime = 40000;
 
 Type
-  ResourceEntry = Class(ListObject)
+  ResourceEntry = Class(CollectionObject)
     Public
       Value:Resource;
 
       Function ToString():TERRAString; Override;
 
       Constructor Create(MyResource:Resource);
-      Procedure CopyValue(Other:ListObject); Override;
+      Procedure CopyValue(Other:CollectionObject); Override;
   End;
 
   ResourceManager = Class(ApplicationComponent)
@@ -54,7 +55,7 @@ Type
       _LockSection:CriticalSection;
       {$ENDIF}
 
-      _Resources:HashTable;
+      _Resources:HashMap;
 
       _Purging:Boolean;
 
@@ -71,7 +72,7 @@ Type
       Procedure Update; Override;
       Procedure OnContextLost; Override;
 
-      Function GetResource(Name:TERRAString):Resource;
+      Function GetResource(Const Name:TERRAString):Resource;
       Procedure AddResource(MyResource:Resource);
       Procedure ReloadResource(Resource:Resource; InBackground:Boolean=True);
 
@@ -90,7 +91,7 @@ Type
       Procedure PurgeResources;
       Procedure PreFetch(MyResource:Resource);
 
-      Property Resources:HashTable Read _Resources;
+      Property Resources:HashMap Read _Resources;
   End;
 
 Implementation
@@ -186,12 +187,12 @@ Procedure ResourceManager.Init;
 Begin
   Log(logDebug, 'Resource', 'Creating resource manager for class: '+Self.ClassName);
 
-  _Resources := HashTable.Create(1024);
+  _Resources := HashMap.Create(1024);
   _LastUpdate := 0;
   _Queue := Queue.Create();
 
 {$IFNDEF DISABLETHREADS}
-  _LockSection := CriticalSection.Create(Self.ClassName);
+  _LockSection := CriticalSection.Create({Self.ClassName});
 {$ENDIF}
 
   UseThreads := True;
@@ -220,12 +221,9 @@ Begin
     RaiseError('Resource table is null!');
 End;
 
-Function SearchResourceByName(P:ListObject; UserData:Pointer):Boolean; CDecl;
-Begin
-  Result := StringEquals(Resource(P).Name , PString(Userdata)^);
-End;
-
-Function ResourceManager.GetResource(Name:TERRAString): Resource;
+Function ResourceManager.GetResource(Const Name:TERRAString): Resource;
+Var
+  Temp:TERRAString;
 Begin
   If _Resources = Nil Then
   Begin
@@ -234,14 +232,17 @@ Begin
     Exit;
   End;
 
-  Name := GetFileName(Name, True);
-  Result := Resource(_Resources.Search(SearchResourceByName, @Name));
+  If (StringContainsChar(Ord('.'), Name)) Then
+    Temp := GetFileName(Name, True)
+  Else
+    Temp := Name;
 
+  Result := Resource(_Resources.Items[Temp]);
 
-  If Assigned(Result) Then
+  {If Assigned(Result) Then
     Log(logDebug, 'Resource', 'Searched for '+Name+': got '+Result.Name)
   Else
-    Log(logDebug, 'Resource', 'Searched for '+Name+': got (NIL)');
+    Log(logDebug, 'Resource', 'Searched for '+Name+': got (NIL)');}
 End;
 
 Procedure ResourceManager.ReloadResource(Resource: Resource; InBackground:Boolean=True);
@@ -252,8 +253,12 @@ Begin
     Exit;
   End;
 
-  Log(logDebug, 'ResourceManager', 'Reloading '+Resource.Name);
   Resource.InBackground := InBackground;
+
+  If InBackground Then
+    Log(logDebug, 'ResourceManager', 'Reloading '+Resource.Name+' in background')
+  Else
+    Log(logDebug, 'ResourceManager', 'Reloading '+Resource.Name+' in foreground');
 
   ThreadPool.Instance.RunTask(ResourceLoader.Create(Resource), (InBackground And UseThreads), Nil, Resource.Priority);
 End;
@@ -268,7 +273,7 @@ End;
 
 Procedure ResourceManager.PurgeResources;
 Var
-  I:Iterator;
+  It:Iterator;
   MyResource:Resource;
 Begin
   If (Not AutoUnload) Then
@@ -279,10 +284,10 @@ Begin
 
   _Purging := True;
 
-  I := _Resources.CreateIterator;
-  While (I.HasNext) Do
+  It := _Resources.GetIterator();
+  While (It.HasNext) Do
   Begin
-    MyResource := Resource(I.GetNext());
+    MyResource := Resource(It.GetNext());
     If (MyResource = Nil) Then
       Break;
 
@@ -299,7 +304,7 @@ Begin
         MyResource.Status := rsReady;
     End;
   End;
-  I.Release;
+  ReleaseObject(It);
 
   _Purging := False;
 
@@ -364,18 +369,17 @@ End;
 
 Function ResourceManager.GetLoadedResourceCount:Integer;
 Var
-  I:Iterator;
+  It:Iterator;
   MyResource:Resource;
 Begin
   Result := 0;
-  I := _Resources.CreateIterator;
-  While (I.HasNext) Do
+  It := _Resources.GetIterator();
+  While (It.HasNext) Do
   Begin
-    MyResource := Resource(I.GetNext());
+    MyResource := Resource(It.GetNext());
     If (MyResource.Status <> rsBusy) Then
       Inc(Result);
   End;
-  I.Release;
 End;
 
 Function ResourceManager.Busy: Boolean;
@@ -385,16 +389,16 @@ End;
 
 Procedure ResourceManager.Clear;
 Var
-  I:Iterator;
+  It:Iterator;
   N:Integer;
   MyResource:Resource;
 Begin
   Log(logDebug, Self.ClassName, 'Unloading all resources.');
   N := 0;
-  I := _Resources.CreateIterator;
-  While (I.HasNext) Do
+  It := _Resources.GetIterator();
+  While (It.HasNext) Do
   Begin
-    MyResource := Resource(I.GetNext());
+    MyResource := Resource(It.GetNext());
 
     MyResource.Status := rsBusy;
    // Log(logDebug,'Resource','Unloaded '+MyResource.Name);
@@ -404,7 +408,6 @@ Begin
       MyResource.Status := rsReady;
     Inc(N);
   End;
-  I.Release;
 
   Log(logDebug, 'Resources', 'Unloaded '+IntToString(N) + ' resources.');
 
@@ -418,7 +421,7 @@ Begin
   Self.Value := MyResource;
 End;
 
-Procedure ResourceEntry.CopyValue(Other: ListObject);
+Procedure ResourceEntry.CopyValue(Other: CollectionObject);
 Begin
   Self.Value := ResourceEntry(Other).Value;
 End;
@@ -430,23 +433,22 @@ End;
 
 Procedure ResourceManager.OnContextLost;
 Var
-  I:Iterator;
+  It:Iterator;
   MyResource:Resource;
 Begin
   If (_Resources = Nil) Then
     Exit;
 
-  I := _Resources.CreateIterator;
-  While (I.HasNext) Do
+  It := _Resources.GetIterator();
+  While (It.HasNext) Do
   Begin
-    MyResource := Resource(I.GetNext());
+    MyResource := Resource(It.GetNext());
     If (MyResource.Status = rsReady) Then
     Begin
       Log(logDebug, 'ResourceManager', 'Context lost: '+MyResource.Name);
       MyResource.OnContextLost();
     End;
   End;
-  I.Release;
 End;
 
 Function ResourceManager.ResolveResourceLink(Const ResourceName: TERRAString):TERRAString;

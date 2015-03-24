@@ -45,7 +45,7 @@ Type
       _Owner:ScreenFXChain;
 
       Procedure Line(S2:TERRAString);
-      Procedure RequireTarget(ID:Integer);
+      Procedure RequireTarget(TargetType:RenderTargetType);
       Procedure SetEnabled(const Value: Boolean);
 
     Public
@@ -263,7 +263,7 @@ Begin
 
     For I:=0 To Pred(MaxCaptureTargets) Do
       Self._NeedTarget[I] := False;
-    Self._NeedTarget[captureTargetColor] := True;
+    Self._NeedTarget[Integer(captureTargetColor)] := True;
 
     S := '';
     Line('version { 110 }');
@@ -291,7 +291,7 @@ Begin
         Self._NeedTarget[J] := Self._NeedTarget[J] Or _FXs[I]._RequireTarget[J];
     End;
 
-    If (Self._NeedTarget[captureTargetNormal]) Then
+    If (Self._NeedTarget[Integer(captureTargetNormal)]) Then
       Line('  uniform sampler2D normal_texture;');
 
     For I:=0 To Pred(_FXCount) Do
@@ -356,9 +356,9 @@ Begin
   For I:=0 To Pred(MaxCaptureTargets) Do
   If (Self._NeedTarget[I]) Then
   Begin
-    Target := GraphicsManager.Instance.ActiveViewport.GetRenderTarget(I);
+    Target := GraphicsManager.Instance.ActiveViewport.GetRenderTarget(RenderTargetType(I));
     If (Target = Nil) Then
-      GraphicsManager.Instance.ActiveViewport.SetRenderTargetState(I, True)
+      GraphicsManager.Instance.ActiveViewport.SetRenderTargetState(RenderTargetType(I), True)
     Else
     Begin
       Target.Bind(Slot);
@@ -403,8 +403,11 @@ Begin
   _Buffer := _Buffer + S2 + crLf;
 End;
 
-Procedure ScreenFX.RequireTarget(ID: Integer);
+Procedure ScreenFX.RequireTarget(TargetType:RenderTargetType);
+Var
+  ID:Integer;
 Begin
+  ID := Integer(TargetType);
   If (ID>=0) And (ID<MaxCaptureTargets) Then
     _RequireTarget[ID] := True;
 End;

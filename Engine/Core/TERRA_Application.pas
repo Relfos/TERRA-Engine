@@ -34,8 +34,12 @@ Unit TERRA_Application;
 {$DEFINE CATCHEXCEPTIONS}
 {$ENDIF}
 
+{$IFDEF WINDOWS}
+{-$DEFINE DEBUG_TAPJOY}
+{$ENDIF}
+
 Interface
-Uses TERRA_String, SysUtils, TERRA_Client, TERRA_Utils, TERRA_Input, TERRA_Vector2D, TERRA_Vector3D
+Uses TERRA_String, SysUtils, TERRA_Client, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D
   {$IFNDEF DISABLEINPUTMUTEX},TERRA_Mutex{$ENDIF}
   ;
 
@@ -104,12 +108,6 @@ Const
   settingsHintVeryHigh   = 3;
 
 Type
-	PCursor=^MouseCursor;
-	MouseCursor=Record
-		X:SmallInt;
-		Y:SmallInt;
-	End;
-
   ApplicationEvent = Record
     X,Y,Z,W:Single;
     S:TERRAString;
@@ -168,14 +166,6 @@ Type
       Property Component:ApplicationComponentClass Read _Component;
       Property Dependency:ApplicationComponentClass Read _Dependency;
       Property Instance:ApplicationComponent Read _Instance;
-  End;
-
-  ApplicationInput = Record
-		Mouse:MouseCursor;
-		Keys:InputState; //Keyboard/mouse/gamepad state
-    Accelerometer:Vector3D;
-    Gyroscope:Vector3D;
-    Compass:Vector3D; // (heading, pitch, roll)
   End;
 
   AssetWatchNotifier = Procedure(Const FileName:TERRAString); Cdecl;
@@ -328,7 +318,6 @@ Type
       Procedure AddEventToQueue(Action:Integer; X,Y,Z,W:Single; Value:Integer; S:TERRAString; HasCoords:Boolean);
 
     Public
-      Input:ApplicationInput;
 
 			Constructor Create(Client:AppClient);
 
@@ -350,8 +339,6 @@ Type
 			Procedure SetState(State:Cardinal); Virtual;
 			Procedure SwapBuffers; Virtual;
       Procedure Yeld; Virtual;
-
-      Procedure SetKeyState(ID: Integer; Value: Boolean);
 
       Function SetFullscreenMode(UseFullScreen:Boolean):Boolean; Virtual;
       Procedure ToggleFullscreen;
@@ -412,8 +399,6 @@ Type
       Function CanHandleEvents:Boolean;
 
       Function FrameTime:Cardinal;
-
-      Function GetControllerCount:Integer; Virtual;
 
       Function GetRecommendedSettings():Integer; Virtual;
 
@@ -489,9 +474,6 @@ Function InitializeApplicationComponent(TargetClass, DestroyBefore:ApplicationCo
 Function Blink(Period:Cardinal):Boolean;
 Procedure Sleep(Time:Cardinal);
 
-Function GetKeyByName(Const KeyName:TERRAString):Integer;
-Function GetKeyName(Key:Integer):TERRAString;
-
 Function GetOSName(OS:Integer=0):TERRAString;
 Function GetProgramName():TERRAString;
 
@@ -499,11 +481,9 @@ Function IsLandscapeOrientation(Orientation:Integer):Boolean;
 Function IsPortraitOrientation(Orientation:Integer):Boolean;
 Function IsInvalidOrientation(Orientation:Integer):Boolean;
 
-Function TranslateGamepadKey(Key, GamePadID:Integer):Integer;
-
 Implementation
 Uses TERRA_Error, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  {TERRA_Callstack, }TERRA_Log, TERRA_OS, TERRA_IAP, TERRA_Localization, TERRA_FileUtils, TERRA_FileManager
+  {TERRA_Callstack, }TERRA_Log, TERRA_OS, TERRA_IAP, TERRA_Localization, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager 
   {$IFDEF PC}, TERRA_Steam{$ENDIF};
 
 Var
@@ -712,14 +692,16 @@ Begin
   System.Randomize;
   {$ENDIF}
 
-  {$IFDEF PC}
-  //_TapjoyCredits := 250;
+  {$IFDEF DEBUG_TAPJOY}
+  _TapjoyCredits := 250;
+  {$ELSE}
+  _TapjoyCredits := 0;
   {$ENDIF}
 
   Log(logDebug, 'App', 'Creating critical section for input');
 
   {$IFNDEF DISABLEINPUTMUTEX}
-  _InputMutex := CriticalSection.Create('app_input');
+  _InputMutex := CriticalSection.Create({'app_input'});
   {$ENDIF}
 
 
@@ -735,6 +717,8 @@ Begin
     _IsConsole := False;
 
   _Ready := False;
+
+  _BundleVersion := '0.0';
 
   Log(logDebug, 'App', 'Initializing settings');
   If (Not InitSettings()) Then
@@ -799,11 +783,6 @@ Begin
   _Handle := Self.Client.GetHandle();
   _State := wsNormal;
 
-  Input.Keys := InputState.Create();
-
-  If Assigned(_Client) Then
-    _Client.Keys := Input.Keys;
-
   _IgnoreCursor := Self.Client.GetIgnoreCursor;
 
 {  _UsesAccelerometer := ApplicationSettings.UsesAccelerometer;
@@ -849,6 +828,7 @@ Begin
     Halt;
 
   _Terminated := True;
+  _CanReceiveEvents := False;
 
   {$IFNDEF MOBILE}
   If ForceClose Then
@@ -904,20 +884,6 @@ Begin
   End;
 
   Self.SwapBuffers();
-End;
-
-Procedure Application.SetKeyState(ID: Integer; Value: Boolean);
-Begin
-  If (Not Input.Keys.SetState(ID, Value)) Then
-    Exit;
-
-  If (Assigned(_Client)) Then
-  Begin
-    If (Value) Then
-      Client.OnKeyDown(ID)
-    Else
-      Client.OnKeyUp(ID);
-  End;
 End;
 
 Function Application.Run: Boolean;
@@ -987,7 +953,7 @@ Begin
         If _FatalError Then
         Begin
           {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logWarning, 'App', 'Fatal error!!!!');{$ENDIF}{$ENDIF}
-          If (Self.Input.Keys.IsDown(keyEscape)) Then
+          If (InputManager.Instance.Keys.IsDown(keyEscape)) Then
             Self.Terminate(False);
         End Else
         Begin
@@ -1207,131 +1173,6 @@ Begin
   Result := ((GetTime() Shr 4) Mod Period<(Period Shr 1));
 End;
 
-Function GetKeyName(Key:Integer):TERRAString;
-Begin
-  Case Key Of
-    keyBackspace: Result:='Back';
-    keyEnter:     Result:='Enter';
-    keyLeft:      Result:='Left';
-    keyUp:        Result:='Up';
-    keyRight:     Result:='Right';
-    keyDown:      Result:='Down';
-
-    keyTab:       Result:='Tab';
-    keyShift:     Result:='Shift';
-    keyControl:   Result:='Ctrl';
-    keyAlt:       Result:='Alt';
-    keyPause:     Result:='Pause';
-    keyEscape:    Result:='ESC';
-    keySpace:     Result:='Space';
-    keyPageUp:    Result:='PgUp';
-    keyPageDown:  Result:='PgDn';
-    keyEnd:       Result:='End';
-    keyHome:      Result:='Home';
-    keyInsert:    Result:='Ins';
-    keyDelete:    Result:='Del';
-    keyF1:        Result:='F1';
-    keyF2:        Result:='F2';
-    keyF3:        Result:='F3';
-    keyF4:        Result:='F4';
-    keyF5:        Result:='F5';
-    keyF6:        Result:='F6';
-    keyF7:        Result:='F7';
-    keyF8:        Result:='F8';
-    keyF9:        Result:='F9';
-    keyF10:       Result:='F10';
-    keyF11:       Result:='F11';
-    keyF12:       Result:='F12';
-
-    keyMouseLeft:       Result:='MouseLeft';
-    keyMouseRight:      Result:='MouseRight';
-    keyMouseMiddle:     Result:='MouseMiddle';
-
-    keyGamepadLeft:     Result:='GamepadLeft';
-    keyGamepadUp:       Result:='GamepadUp';
-    keyGamepadRight:    Result:='GamepadRight';
-    keyGamepadDown:     Result:='GamepadDown';
-    keyGamepadA:        Result:='GamepadA';
-    keyGamepadB:        Result:='GamepadB';
-    keyGamepadC:        Result:='GamepadC';
-    keyGamepadD:        Result:='GamepadD';
-    keyGamepadX:        Result:='GamepadX';
-    keyGamepadY:        Result:='GamepadY';
-    keyGamepadZ:        Result:='GamepadZ';
-    keyGamepadL:        Result:='GamepadL';
-    keyGamepadR:        Result:='GamepadR';
-    keyGamepadMenu:     Result:='GamepadMenu';
-
-    keyGamepadLeft2:     Result:='GamepadLeft #2';
-    keyGamepadUp2:       Result:='GamepadUp #2';
-    keyGamepadRight2:    Result:='GamepadRight #2';
-    keyGamepadDown2:     Result:='GamepadDown #2';
-    keyGamepadA2:        Result:='GamepadA #2';
-    keyGamepadB2:        Result:='GamepadB #2';
-    keyGamepadC2:        Result:='GamepadC #2';
-    keyGamepadD2:        Result:='GamepadD #2';
-    keyGamepadX2:        Result:='GamepadX #2';
-    keyGamepadY2:        Result:='GamepadY #2';
-    keyGamepadZ2:        Result:='GamepadZ #2';
-    keyGamepadL2:        Result:='GamepadL #2';
-    keyGamepadR2:        Result:='GamepadR #2';
-    keyGamepadMenu2:     Result:='GamepadMenu #2';
-
-    keyGamepadLeft3:     Result:='GamepadLeft #3';
-    keyGamepadUp3:       Result:='GamepadUp #3';
-    keyGamepadRight3:    Result:='GamepadRight #3';
-    keyGamepadDown3:     Result:='GamepadDown #3';
-    keyGamepadA3:        Result:='GamepadA #3';
-    keyGamepadB3:        Result:='GamepadB #3';
-    keyGamepadC3:        Result:='GamepadC #3';
-    keyGamepadD3:        Result:='GamepadD #3';
-    keyGamepadX3:        Result:='GamepadX #3';
-    keyGamepadY3:        Result:='GamepadY #3';
-    keyGamepadZ3:        Result:='GamepadZ #3';
-    keyGamepadL3:        Result:='GamepadL #3';
-    keyGamepadR3:        Result:='GamepadR #3';
-    keyGamepadMenu3:     Result:='GamepadMenu #3';
-
-    keyGamepadLeft4:     Result:='GamepadLeft #4';
-    keyGamepadUp4:       Result:='GamepadUp #4';
-    keyGamepadRight4:    Result:='GamepadRight #4';
-    keyGamepadDown4:     Result:='GamepadDown #4';
-    keyGamepadA4:        Result:='GamepadA #4';
-    keyGamepadB4:        Result:='GamepadB #4';
-    keyGamepadC4:        Result:='GamepadC #4';
-    keyGamepadD4:        Result:='GamepadD #4';
-    keyGamepadX4:        Result:='GamepadX #4';
-    keyGamepadY4:        Result:='GamepadY #4';
-    keyGamepadZ4:        Result:='GamepadZ #4';
-    keyGamepadL4:        Result:='GamepadL #4';
-    keyGamepadR4:        Result:='GamepadR #4';
-    keyGamepadMenu4:     Result:='GamepadMenu #4';
-    Else
-      If (Key>=33) And (Key<=126) Then
-        Result := Char(Key)
-      Else
-        Result:= 'Key #'+IntToString(Key);
-  End;
-End;
-
-Function GetKeyByName(Const KeyName:TERRAString):Integer;
-Var
-  I:Integer;
-Begin
-  Result:=0;
-  If KeyName='' Then
-    Exit;
-
-  For I:=1 To keyGamepadL4 Do
-  If StringEquals(GetKeyName(I), KeyName) Then
-  Begin
-    Result := I;
-    Exit;
-  End;
-
-  Result := StringToInt(KeyName, False);
-End;
-
 Function GetProgramName:TERRAString;
 Begin
     {$IFDEF OXYGENE}
@@ -1491,11 +1332,6 @@ Begin
   Result := '';
 End;
 
-function Application.GetControllerCount: Integer;
-Begin
-  Result := 0;
-End;
-
 procedure Application.SendEmail(DestEmail, Subject, Body: TERRAString);
 Begin
 End;
@@ -1588,7 +1424,6 @@ End;
 
 Procedure Application.Release;
 Begin
-  ReleaseObject(Input.Keys);
   ReleaseObject(_Client);
 End;
 
@@ -1832,10 +1667,13 @@ procedure Application.ProcessEvents;
 Var
   I:Integer;
   PX,PY:Integer;
+  Input:InputManager;
 Begin
   {$IFNDEF DISABLEINPUTMUTEX}
   _InputMutex.Lock();
   {$ENDIF}
+
+  Input := InputManager.Instance;
 
   {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Processing '+IntToString(_EventCount)+ ' events.');{$ENDIF}{$ENDIF}
   For I:=0 To Pred(_EventCount) Do
@@ -1858,7 +1696,7 @@ Begin
     eventMouseDown:
       Begin
         {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Mouse down, X:'+IntToString(Input.Mouse.X)+ ' Y:'+IntToString(Input.Mouse.Y));{$ENDIF}
-        Self.SetKeyState(_Events[I].Value, True);
+        Input.Keys.SetState(_Events[I].Value, True);
 
         {Log(logDebug, 'App', 'Mouse down, X:'+IntToString(Input.Mouse.X)+ ' Y:'+IntToString(Input.Mouse.Y));
         Log(logDebug, 'App', 'DeviceX1:'+IntToString(_DeviceX1)+ ' DeviceY1:'+IntToString(_DeviceY1));
@@ -1876,7 +1714,7 @@ Begin
       Begin
         {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Mouse up, X:'+IntToString(Input.Mouse.X)+ ' Y:'+IntToString(Input.Mouse.Y));{$ENDIF}
 
-        Self.SetKeyState(_Events[I].Value, False);
+        Input.Keys.SetState(_Events[I].Value, False);
         If (Not _MouseOnAdArea) Then
           Client.OnMouseUp(Input.Mouse.X, Input.Mouse.Y, _Events[I].Value);
       End;
@@ -1898,12 +1736,12 @@ Begin
 
     eventKeyDown:
       Begin
-        Self.SetKeyState(_Events[I].Value, True);
+        Input.Keys.SetState(_Events[I].Value, True);
       End;
 
     eventKeyUp:
       Begin
-        Self.SetKeyState(_Events[I].Value, False);
+        Input.Keys.SetState(_Events[I].Value, False);
       End;
 
     eventWindowResize:
@@ -2021,19 +1859,29 @@ End;
 procedure Application.Tapjoy_ShowOfferWall;
 Begin
   If Assigned(Client) Then
+  Begin
     Client.OnAPIResult(apiTapJoy, tapjoyConnectionError);
+  End;
 End;
 
 procedure Application.Tapjoy_ShowVideo;
 Begin
   If Assigned(Client) Then
+  Begin
     Client.OnAPIResult(apiTapJoy, tapjoyConnectionError);
+  End;
 End;
 
 procedure Application.Tapjoy_SpendCredits(Ammount: Integer);
 Begin
   If Assigned(Client) Then
+  Begin
+    {$IFDEF DEBUG_TAPJOY}
+    Client.OnAPIResult(apiTapJoy, tapjoySpendSuccess);
+    {$ELSE}
     Client.OnAPIResult(apiTapJoy, tapjoyConnectionError);
+    {$ENDIF}
+  End;
 End;
 
 procedure Application.Tapjoy_Update(Credits: Integer);
@@ -2174,31 +2022,6 @@ Begin
   Result := True;
 End;
 
-Function TranslateGamepadKey(Key, GamePadID:Integer):Integer;
-Var
-  I, BaseKey, MaxKey:Integer;
-Begin
-  Result := Key;
-
-  If (Key < keyGamepadIndex) Then
-    Exit;
-
-  For I:=0 To Pred(MaxGamePads) Do
-  Begin
-    BaseKey := keyGamepadIndex + keyGamepadCount * I;
-    MaxKey := Pred(BaseKey + keyGamepadCount);
-    If (Key>=BaseKey) And (Key<=MaxKey) Then
-    Begin
-      Dec(Key, BaseKey);
-
-      BaseKey := keyGamepadIndex + keyGamepadCount * GamePadID;
-      Inc(Key, BaseKey);
-
-      Result := Key;
-      Exit;
-    End;
-  End;
-End;
 
 Initialization
   {$IFDEF FPC}

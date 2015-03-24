@@ -28,7 +28,7 @@ Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Utils, TERRA_Resource, TERRA_Stream, TERRA_Image, TERRA_Color, TERRA_Vector2D,
   TERRA_Math, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Texture, TERRA_SpriteManager,
-  TERRA_ResourceManager, TERRA_Matrix4x4, TERRA_Matrix3x3, TERRA_Collections;
+  TERRA_ResourceManager, TERRA_Matrix4x4, TERRA_Matrix3x3, TERRA_ClipRect, TERRA_Collections;
 
 
 Const
@@ -38,10 +38,6 @@ Const
 
   DefaultFontPageWidth = 256;
   DefaultFontPageHeight = 512;
-
-  gradientNone      = 0;
-  gradientHorizontal= 1;
-  gradientVertical  = 2;
 
   fontmode_Sprite   = 0;
   fontmode_Measure  = 1;
@@ -61,6 +57,13 @@ Const
   fontControlEnd = 31;
 
 Type
+  FontGradient = (
+    gradientNone      = 0,
+    gradientHorizontal= 1,
+    gradientVertical  = 2
+  );
+
+
   PFontKerning = ^FontKerning;
   FontKerning = Record
     Next:Cardinal;
@@ -95,6 +98,8 @@ Type
       Procedure AddKerning(Next:Cardinal; Ammount:SmallInt);
 
       Function GetImage():Image;
+
+      Function IsLoading():Boolean;
   End;
 
   FontPage = Class(TERRAObject)
@@ -107,13 +112,13 @@ Type
       _OptimizedWidth:Cardinal;
       _OptimizedHeight:Cardinal;
 
-      Procedure DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Scale:Single; Glyph:FontGlyph; Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean);
-
     Public
       Constructor Create(ID:Integer);
       Procedure Release; Override;
 
       Procedure SetImage(Source:Image);
+
+      Procedure DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Scale:Single; Glyph:FontGlyph; Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean);
 
       Property Texture:Texture Read _Texture;
   End;
@@ -123,78 +128,6 @@ Type
     Arg:TERRAString;
   End;
 
-  FontRenderer = Object
-    Protected
-      _Text:TERRAString;
-      _Iterator:StringIterator;
-      _Mode:Integer;
-      _Next:TERRAChar;
-      _Started:Boolean;
-
-      _Font:Font;
-
-      _StartPosition:Vector2D;
-      _TargetPosition:Vector2D;
-
-      _CurrentPosition:Vector2D;
-      _CurrentGlyph:FontGlyph;
-
-      _Layer:Single;
-
-      _Color1:Color;
-      _Color2:Color;
-
-      _Effects:Array[0..15] Of FontEffect;
-      _EffectCount:Integer;
-
-      _Blink:Boolean;
-      _WavyText:Boolean;
-      _GradientMode:Integer;
-      _Count:Cardinal;
-
-      _DropShadow:Boolean;
-      _Italics:Boolean;
-
-      _RevealActive:Boolean;
-      _RevealCount:Integer;
-      _RevealDec:Integer;
-
-      _Width:Single;
-      _Height:Single;
-
-      _MaxX:Single;
-      _MaxY:Single;
-      _AdvanceX:Single;
-      _Scale:Single;
-
-      _ClipRect:ClipRect;
-
-      Function GetNextChar:TERRAChar;
-      Function GetNextArg:TERRAString;
-
-      Procedure DoEffects();
-
-    Public
-      Procedure Start(S:TERRAString; Mode:Integer; X,Y, Layer, Scale:Single; MyFont:Font; MyClipRect:ClipRect; DropShadow:Boolean = False);
-      Function RenderNext():Boolean;
-
-      Procedure SetGradient(A,B:Color; Width, Height:Single; GradientMode:Integer);
-      Procedure SetColor(FontColor:Color);
-
-      Procedure GetColors(Out A,B,C,D:Color);
-
-      Property Position:Vector2D Read _TargetPosition;
-      Property Blink:Boolean Read _Blink;
-      Property Glyph:FontGlyph Read _CurrentGlyph;
-      Property Next:Cardinal Read _Next;
-
-      Property MaxX:Single Read _MaxX;
-      Property MaxY:Single Read _MaxY;
-
-      Property Italics:Boolean Read _Italics;
-
-      Property RevealCount:Integer Read _RevealCount Write _RevealCount;
-  End;
 
   FontImageResolver = Function (Fnt:Font; Const ImageName:TERRAString):TERRAString; CDecl;
 
@@ -245,25 +178,12 @@ Type
       Function AddEmptyGlyph():FontGlyph;
       Function GetGlyph(ID:Cardinal; CreatedIfNeeded:Boolean = True):FontGlyph;
       Procedure SortGlyphs();
-      Procedure CacheGlyphs(Const S:TERRAString);
 
       Procedure RecalculateMetrics();
 
+      Function SelectPage(Index, Slot:Integer):FontPage;
+
       Class Function GetManager:Pointer; Override;
-
-      Procedure DrawText(Const X,Y,Layer:Single; Const Text:TERRAString; Const Color:Color; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
-      Procedure DrawTextWithTransform(Const X,Y,Layer:Single; Const Text:TERRAString; Const Color:Color; Const Transform:Matrix3x3; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
-      Procedure DrawTextWithOutline(Const X,Y,Layer:Single; Const Text:TERRAString; Const Color, Outline:Color; Const Transform:Matrix3x3; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
-      Procedure DrawTextWithGradient(X,Y,Layer:Single; Const Text:TERRAString; Const Color1, Color2, Outline:Color; Const Transform:Matrix3x3; Const GradientMode:Integer; Scale:Single = 1.0; DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
-
-      Procedure DrawTextToImage(Target:Image; X,Y:Integer; Const Text:TERRAString; ForceBlend:Boolean = True);
-
-      Function AutoWrapText(Const Text:TERRAString; Width:Single; Scale:Single = 1.0):TERRAString;
-
-      Function GetTextWidth(Const Text:TERRAString; Scale:Single = 1.0):Single;
-      Function GetTextHeight(Const Text:TERRAString; Scale:Single = 1.0):Single;
-      Function GetTextRect(Const Text:TERRAString; Scale:Single = 1.0):Vector2D;
-      Function GetLength(Const Text:TERRAString):Integer;
 
       Procedure AddGlyphFactory(Factory:FontGlyphFactory; Scale:Single = 1.0);
 
@@ -429,7 +349,7 @@ Type
     TextSize:Integer;
   End;
 
-Function SearchFontByNameAndSize(P:ListObject; UserData:Pointer):Boolean; CDecl;
+Function SearchFontByNameAndSize(P:CollectionObject; UserData:Pointer):Boolean; CDecl;
 Begin
   Result := (Resource(P).Name = PFontSearch(Userdata).Name) And (Font(P).TextSize = PFontSearch(Userdata).TextSize);
 End;
@@ -485,7 +405,7 @@ Begin
     Result := Font.Create(S);
     Result._TextSize := Size;
     Result.Priority := 90;
-    Result._Name := Name;
+    Result._Key := Name;
     Self.AddResource(Result);
   End Else
   If ValidateError Then
@@ -722,6 +642,11 @@ Begin
     Result := Nil;
 End;
 
+Function FontGlyph.IsLoading: Boolean;
+Begin
+  Result := Assigned(_Temp);
+End;
+
 { FontPage }
 Constructor FontPage.Create(ID: Integer);
 Begin
@@ -775,332 +700,6 @@ Begin
   _Image := Image.Create(Source);
 End;
 
-{ FontRenderer }
-Procedure FontRenderer.Start(S:TERRAString; Mode:Integer; X, Y, Layer, Scale: Single; MyFont:Font; MyClipRect:ClipRect; DropShadow:Boolean);
-Begin
-  _Font := MyFont;
-
-  If (Assigned(_Font)) And (_Font._AvgHeight<=0) Then
-    _Font.RecalculateMetrics();
-
-  _Mode := Mode;
-  _DropShadow := DropShadow;
-  _Text := S;
-  StringCreateIterator(_Text, _Iterator);
-  _Layer := Layer;
-  _StartPosition.X := X;
-  _StartPosition.Y := Y;
-  _Scale := Scale;
-  _ClipRect := MyClipRect;
-
-  _RevealCount := 99999;
-  _Count := 0;
-  _Italics := False;
-
-  _EffectCount := 0;
-  _WavyText := False;
-  _Blink := False;
-
-  _Width := 1.0;
-  _Height := 1.0;
-
-  _CurrentGlyph := Nil;
-  _CurrentPosition := _StartPosition;
-
-  _Color1 := ColorWhite;
-  _Color2 := _Color1;
-
-  _RevealDec := -1;
-  _Started := True;
-
-  _MaxX := X;
-  _MaxY := Y;
-  _Next := GetNextChar;
-End;
-
-Function FontRenderer.GetNextArg:TERRAString;
-Var
-  C:TERRAChar;
-Begin
-  Result := '';
-
-  While _Iterator.HasNext() Do
-  Begin
-    C := _Iterator.GetNext();
-    If C = fontControlEnd Then
-      Break;
-
-    StringAppendChar(Result, C);
-  End;
-End;
-
-Function FontRenderer.GetNextChar:Cardinal;
-Var
-  Len:Integer;
-  Current, Before, After:TERRAChar;
-Begin
-  If (Not _Iterator.HasNext()) Then
-  Begin
-    Result := NullChar;
-    Exit;
-  End;
-
-  Result := _Iterator.GetNext();
-
-  If (Result>0) And (Result<32) Then
-  Begin
-    _Effects[_EffectCount].Effect := Result;
-
-    If (Result>fontControlNewLine) And (Result<fontControlEnd) Then
-      _Effects[_EffectCount].Arg := GetNextArg()
-    Else
-      _Effects[_EffectCount].Arg := '';
-    Inc(_EffectCount);
-
-    Result := GetNextChar();
-  End;
-End;
-
-Function FontRenderer.RenderNext(): Boolean;
-Var
-  ID, K:Cardinal;
-  H:Single;
-Begin
-  ID := _Next;
-  _Next := GetNextChar;
-
-  {If (ID=61443) Then
-    IntToString(2);}
-
-  //Log(logDebug,'AdWall', 'Nextchar: ' + IntToString(_Next));
-
-  If (ID=0) Or (_Font = Nil) Then
-  Begin
-    Result := False;
-    DoEffects();
-    Exit;
-  End;
-
-  _CurrentGlyph := _Font.GetGlyph(ID);
-  If Not Assigned(_CurrentGlyph) Then
-  Begin
-    Result := RenderNext;
-    Exit;
-  End;
-
-  Inc(_Count);
-  Dec(_RevealCount);
-
-  If (_RevealCount<=0) Then
-  Begin
-    If (_RevealDec<0) Then
-      _RevealDec := Succ(_Color1.A) Shr 2;
-
-    If (_Color1.A > _RevealDec) Then
-      Dec(_Color1.A, _RevealDec)
-    Else
-    Begin
-      Result := False;
-      Exit;
-    End;
-  End;
-
-  If (_Started) Then
-    DoEffects();
-
-  //Log(logDebug,'AdWall', 'Calculating advance');
-  _TargetPosition := _CurrentPosition;
-  _AdvanceX := _CurrentGlyph.GetAdvance(_Next) * _Scale;
-  _CurrentPosition.X := _CurrentPosition.X + _AdvanceX;
-
-  //Log(logDebug,'AdWall', 'Testing effects');
-  If (_Started) Then
-    _Started := False;
-
-  If (Not _Started) Then
-    DoEffects();
-
-  //Log(logDebug,'AdWall', 'Testing wavy test');
-  If (_WavyText) Then
-  Begin
-    K := (GetTime Div 3);
-    K := K + _Count * 8;
-    _TargetPosition.Y := _TargetPosition.Y + Sin((K Mod 360) * RAD) * 4.5;
-  End;
-
-  If (_CurrentPosition.X >_MaxX) Then
-    _MaxX := _CurrentPosition.X;
-
-  H := _CurrentPosition.Y + _CurrentGlyph.Height * _Scale;
-  If (H > _MaxY) Then
-    _MaxY := H;
-
-  //Log(logDebug,'AdWall', 'Finisedh ok');
-  Result := True;
-End;
-
-Procedure FontRenderer.SetColor(FontColor: Color);
-Begin
-  _Color1 := FontColor;
-  _Color2 := FontColor;
-  _GradientMode := gradientNone;
-End;
-
-Procedure FontRenderer.SetGradient(A,B:Color; Width, Height:Single; GradientMode:Integer);
-Begin
-  If (Width<=0.0) Then
-    Width := 1.0;
-
-  If (Height<=0.0) Then
-    Height := 1.0;
-
-  _Width := Width;
-  _Height := Height;
-
-  _Color1 := A;
-  _Color2 := B;
-  _GradientMode := GradientMode;
-End;
-
-Procedure FontRenderer.GetColors(Out A, B, C, D:Color);
-Var
-  N, Delta1, Delta2:Single;
-Begin
-  Case _GradientMode Of
-    gradientNone:
-      Begin
-        A := _Color1;
-        B := _Color1;
-        C := _Color1;
-        D := _Color1;
-      End;
-
-    gradientHorizontal:
-      Begin
-        N := Self._CurrentPosition.X - Self._StartPosition.X;
-        Delta1 := N / _Width;
-        Delta2 := (N + _AdvanceX) / _Width;
-
-        If (Delta2>1.0) Then
-        Begin
-          Delta2 := 1.0;
-          //FloatToString(N);
-        End;
-
-        A := ColorMix(_Color2, _Color1, Delta1);
-        B := ColorMix(_Color2, _Color1, Delta2);
-        C := ColorMix(_Color2, _Color1, Delta1);
-        D := ColorMix(_Color2, _Color1, Delta2);
-      End;
-
-    gradientVertical:
-      Begin
-        N := Self._CurrentPosition.Y  - Self._StartPosition.Y;
-        Delta1 := N / _Height;
-        Delta2 := (N + Glyph.Height * _Scale) / _Height;
-
-        If (Delta2>1.0) Then
-          Delta2 := 1.0;
-
-        A := ColorMix(_Color2, _Color1, Delta1);
-        B := ColorMix(_Color2, _Color1, Delta1);
-        C := ColorMix(_Color2, _Color1, Delta2);
-        D := ColorMix(_Color2, _Color1, Delta2);
-      End;
-  End;
-End;
-
-Procedure FontRenderer.DoEffects;
-Var
-  I:Integer;
-  Tex:Texture;
-  S:Sprite;
-  SS:TERRAString;
-  C:Color;
-Begin
-  For I:=0 To Pred(_EffectCount) Do
-  Case _Effects[I].Effect Of
-  fontControlColor:
-      If (_Effects[I].Arg<>'') Then
-      Begin
-        C := ColorCreate(_Effects[I].Arg);
-        Self._Color1 := C;
-        Self._Color2 := C;
-      End;
-
-  fontControlSprite:
-      If (_Effects[I].Arg<>'') Then
-      Begin
-        SS := _Effects[I].Arg;
-        If (SS[1]='#') Then
-        Begin
-          SS := _FontImageResolver(Self._Font, Copy(SS, 2, MaxInt));
-        End;
-
-        Tex := TextureManager.Instance.GetTexture(SS);
-        If Assigned(Tex) Then
-        Begin
-          Tex.Prefetch();
-
-          _CurrentPosition.X := _CurrentPosition.X + 4;
-
-          If (_Mode = fontmode_Sprite) Then
-          Begin
-            If _DropShadow Then
-            Begin
-              S := SpriteManager.Instance.DrawSprite(_CurrentPosition.X - 1, _CurrentPosition.Y - Tex.Height + 1, Self._Layer-1, Tex);
-              S.SetColor(ColorGrey(0, _Color1.A));
-              S.ClipRect := Self._ClipRect;
-            End;
-
-            S := SpriteManager.Instance.DrawSprite(_CurrentPosition.X, _CurrentPosition.Y - Tex.Height, Self._Layer, Tex);
-            S.SetColor(ColorGrey(255, _Color1.A));
-            S.ClipRect := Self._ClipRect;
-          End;
-
-          _CurrentPosition.X := _CurrentPosition.X + Tex.Width + 4;
-
-          If (_CurrentPosition.X >_MaxX) Then
-            _MaxX := _CurrentPosition.X;
-
-          If (_MaxY<=0) Then
-            _MaxY := Tex.Height;
-        End;
-      End;
-
-  fontControlWave:
-            Begin
-              _WavyText := Not _WavyText;
-            End;
-
-  fontControlItalics:
-            Begin
-              _Italics := Not _Italics;
-            End;
-
-  fontControlBlink:
-            Begin
-              If (_RevealActive) Then
-                _Blink := False
-              Else
-                _Blink := Not _Blink;
-            End;
-
-  fontControlTab:
-            Begin
-              _CurrentPosition.X := (Trunc(_CurrentPosition.X/TabSize)+1)*TabSize*_Scale;
-            End;
-
-  fontControlNewLine:
-            Begin
-              _CurrentPosition.X := _StartPosition.X;
-              If Assigned(_Font) Then
-                _CurrentPosition.Y := _CurrentPosition.Y + 4.0 + _Font._AvgHeight * _Scale;
-            End;
-  End;
-
-  _EffectCount := 0;
-End;
 
 { Font }
 Function Font.Load(Source: Stream): Boolean;
@@ -1271,6 +870,13 @@ End;
 Function Font.Update:Boolean;
 Begin
   Inherited Update();
+
+  If (_NeedsRebuild) Then
+    Self.Rebuild();
+
+  If (_AvgHeight<=0) Then
+    Self.RecalculateMetrics();
+
 	Result := True;
 End;
 
@@ -1280,92 +886,6 @@ Begin
     Result := Nil
   Else
     Result := _Pages[Index];
-End;
-
-Function Font.GetTextWidth(Const Text:TERRAString; Scale:Single):Single;
-Begin
-  Result := GetTextRect(Text, Scale).X ;
-End;
-
-Function Font.GetTextHeight(Const Text:TERRAString; Scale:Single):Single;
-Begin
-  Result := GetTextRect(Text, Scale).Y ;
-End;
-
-Function Font.GetTextRect(Const Text:TERRAString; Scale:Single):Vector2D;
-Var
-  FR:FontRenderer;
-Begin
-  If (Not Self.IsReady) Then
-  Begin
-    Result.X := 0;
-    Result.Y := 0;
-  End;
-
-  //Log(logDebug,'AdWall', 'Starting gettextrect');
-  FR.Start(Text, fontmode_Measure, 0, 0, -1, Scale, Self, Nil);
-  While (FR.RenderNext()) Do;
-
-  //Log(logDebug,'AdWall', 'Finished textrect');
-  Result.X := FR.MaxX / FontQuality;
-  Result.Y := FR.MaxY / FontQuality;
-End;
-
-Function Font.GetLength(Const Text:TERRAString):Integer;
-Var
-  FR:FontRenderer;
-Begin
-  Result := 0;
-  FR.Start(Text, fontmode_Measure, 0, 0, -1,  1.0, Self, Nil);
-  While (FR.RenderNext) Do
-    Inc(Result);
-End;
-
-
-Function Font.AutoWrapText(Const Text:TERRAString; Width, Scale: Single):TERRAString;
-Var
-  Temp, Temp2, S, S2:TERRAString;
-  I:Integer;
-  X:Single;
-  Separator:TERRAChar;
-Begin        
-  S := ConvertFontCodes(Text);
-
-  //Log(logDebug,'AdWall', 'Starting autowrap');
-  If (Self.Status<>rsReady) Then
-    Self.Prefetch();
-
-  //Log(logDebug,'AdWall', 'Isready ok');
-
-  Result := '';
-  Temp := '';
-  While (S<>'') Do
-  Begin
-    S2 := StringExtractNextWord(S, Separator);
-    //Log(logDebug,'AdWall', 'Next word: '+S2);
-    Temp2 := Temp;
-    Temp := Temp + S2;
-
-    If (Separator<>NullChar) Then
-    Begin
-      StringAppendChar(Temp, Separator);
-    End;
-
-    X := Self.GetTextWidth(Temp, Scale);
-    //Log(logDebug,'AdWall', 'TexWidth ok');
-    If (X>Width) Then
-    Begin
-      Temp := Temp2;
-      Result := Result + Temp;
-
-      Temp := S2;
-
-      If Separator <> NewLineChar Then
-        StringAppendChar(Result, NewLineChar);
-    End;
-  End;
-
-  Result := Result + Temp;
 End;
 
 
@@ -1425,11 +945,6 @@ Begin
 
   F._Next := Factory;
   Factory._Next := Nil;
-End;
-
-Procedure Font.CacheGlyphs(Const S:TERRAString);
-Begin
-  Self.GetTextRect(S, 1.0);
 End;
 
 Function Font.AddEmptyGlyph:FontGlyph;
@@ -1523,7 +1038,7 @@ Var
 
 Begin
   _NeedsRebuild := False;
-  Log(logDebug,'Font', 'Updating font: '+_Name);
+  Log(logDebug,'Font', 'Updating font: '+ Self.Name);
 
   Self.SortGlyphs();
 
@@ -1565,7 +1080,7 @@ Begin
     If (Application.Instance<>Nil) Then
     Begin
       If (_Pages[K]._Texture = Nil) Then
-        _Pages[K]._Texture := Texture.New(_Name+'_page'+IntToString(K), _Pages[K]._Image.Width, _Pages[K]._Image.Height);
+        _Pages[K]._Texture := Texture.New(Self.Name+'_page'+IntToString(K), _Pages[K]._Image.Width, _Pages[K]._Image.Height);
 
       _Pages[K]._Texture.IsReady();
     End;
@@ -1616,143 +1131,6 @@ Begin
   RecalculateMetrics();
 End;
 
-Procedure Font.DrawText(Const X,Y, Layer:Single; Const Text:TERRAString; Const Color:Color; Const Scale:Single; Const DropShadow:Boolean; Const Clip:ClipRect);
-Begin
-  Self.DrawTextWithGradient(X, Y, Layer, Text, Color, Color, ColorNull, MatrixIdentity3x3, gradientNone, Scale, DropShadow, Clip);
-End;
-
-Procedure Font.DrawTextWithTransform(Const X,Y,Layer:Single; Const Text:TERRAString; Const Color:Color; Const Transform:Matrix3x3; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
-Begin
-  Self.DrawTextWithGradient(X, Y, Layer, Text, Color, Color, ColorNull, Transform, gradientNone, Scale, DropShadow, Clip);
-End;
-
-Procedure Font.DrawTextWithOutline(Const X,Y,Layer:Single; Const Text:TERRAString; Const Color, Outline:Color; Const Transform:Matrix3x3; Const Scale:Single = 1.0; Const DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
-Begin
-  Self.DrawTextWithGradient(X, Y, Layer, Text, Color, Color, Outline, Transform, gradientNone, Scale, DropShadow, Clip);
-End;
-
-Procedure Font.DrawTextWithGradient(X,Y,Layer:Single; Const Text:TERRAString;
-                                    Const Color1, Color2, Outline:Color;
-                                    Const Transform:Matrix3x3; Const GradientMode:Integer;
-                                    Scale:Single = 1.0; DropShadow:Boolean=False; Const Clip:ClipRect = Nil);
-Var
-  Glyph:FontGlyph;
-  FR:FontRenderer;
-  Alpha:Integer;
-  DropShadowColor:TERRA_Color.Color;
-  Projection:Matrix4x4;
-  A,B,C,D:Color;
-  Size:Vector2D;
-  I:Integer;
-Begin
-  If (Not Self.IsReady) Then
-    Exit;
-
-  If (_NeedsRebuild) Then
-    Self.Rebuild();
-
-  Scale := Scale / FontQuality;
-
-  Alpha := IntMin(Color1.A, Color2.A);
-  Alpha := Alpha - 55;
-  If (Alpha<0) Then
-    Alpha := 0;
-
-  If (Alpha<=0) Then
-  Begin
-    DropShadow := False;
-    DropShadowColor := ColorNull;
-  End Else
-    DropShadowColor := ColorGrey(0, Alpha);
-
-  Layer := -(99-Layer);
-
-  Glyph := Self.GetGlyph(Ord('E'));
-  If Assigned(Glyph) Then
-    Y := Y - Glyph.YOfs * Scale;
-
-  Size := Self.GetTextRect(Text, Scale);
-
-  For I:=0 To Pred(_PageCount) Do
-  Begin
-    _Pages[I]._Texture.Bind(0);
-
-    FR.Start(Text, fontmode_Sprite, X, Y, Layer, Scale, Self, Clip, DropShadow);
-    If (GradientMode = gradientNone) Then
-      FR.SetColor(Color1)
-    Else
-      FR.SetGradient(Color1, Color2, Size.X, Size.Y, GradientMode);
-
-    While (FR.RenderNext()) Do
-    Begin
-      If (FR.Glyph = Nil) Then
-      Begin
-        Continue;
-      End;
-
-      If (FR.Glyph.Page<>I) Or (FR.Glyph._Temp<>Nil) Then
-        Continue;
-
-      FR.GetColors(A,B,C,D);
-
-      If (DropShadow) Then
-        _Pages[I].DrawGlyph(FR.Position.X-Scale, FR.Position.Y+Scale, Layer-1, Transform, Scale, FR.Glyph, DropShadowColor, DropShadowColor, DropShadowColor, DropShadowColor, DropShadowColor, Clip, FR.Italics);
-
-      _Pages[I].DrawGlyph(FR.Position.X, FR.Position.Y, Layer, Transform, Scale, FR.Glyph, Outline, A,B,C,D, Clip, FR.Italics);
-    End;
-  End;
-End;
-
-Procedure Font.DrawTextToImage(Target:Image; X, Y: Integer; const Text:TERRAString; ForceBlend:Boolean);
-Var
-  Next:Cardinal;
-  Glyph:FontGlyph;
-  FR:FontRenderer;
-  Alpha:Integer;
-  DropShadowColor:TERRA_Color.Color;
-  Projection:Matrix4x4;
-  A,B,C,D:Color;
-  I:Integer;
-  GG:Image;
-Begin
-  If Target = Nil Then
-    Exit;
-
-  Self.Prefetch();
-
-  If (Not Self.IsReady) Then
-    Exit;
-
-  If (_NeedsRebuild) Then
-    Self.Rebuild();
-
-  {If (Length(_Pages)<=0) Then
-    Exit;}
-
-  Glyph := Self.GetGlyph(Ord('E'));
-  If Assigned(Glyph) Then
-    Y := Y - Glyph.YOfs;
-
-  Self.GetTextRect(Text, 1.0); // TODO CHECK REALLY NECESSARY HERE?
-
-  FR.Start(Text, fontmode_Offscreen, X, Y, 0, 1.0, Self, Nil);
-  FR.SetColor(ColorWhite);
-
-  While (FR.RenderNext()) Do
-  Begin
-    If (FR.Glyph = Nil) Then
-      Continue;
-
-    GG := FR.Glyph.GetImage();
-    If (GG = Nil) Then
-    Begin
-    //  IntToString(2);
-      Continue;
-    End;
-
-    Target.BlitWithAlpha(Trunc(FR.Position.X + FR.Glyph.XOfs), Trunc(FR.Position.Y + FR.Glyph.YOfs), 0, 0, GG.Width, GG.Height, GG, ForceBlend);
-  End;
-End;
 
 Procedure Font.OnContextLost;
 Var
@@ -1860,6 +1238,17 @@ Begin
     Else
       StringAppendChar(Result, C);
     End;
+  End;
+End;
+
+Function Font.SelectPage(Index, Slot: Integer):FontPage;
+Begin
+  If (Index<0) Or (Index>=_PageCount) Then
+    Result := Nil
+  Else
+  Begin
+    Result := _Pages[Index];
+    Result._Texture.Bind(Slot);
   End;
 End;
 

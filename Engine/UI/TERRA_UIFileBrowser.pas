@@ -27,7 +27,7 @@ Unit TERRA_UIFileBrowser;
 
 Interface
 Uses TERRA_String, TERRA_Utils, TERRA_UI, TERRA_Widgets, TERRA_FileSearch, TERRA_Collections, 
-  TERRA_Vector2D, TERRA_Vector3D, TERRA_Color, TERRA_SpriteManager;
+  TERRA_Vector2D, TERRA_Vector3D, TERRA_Color, TERRA_SpriteManager, TERRA_ClipRect;
 
 Type
   UIFileBrowser = Class(UIWindow)
@@ -98,8 +98,6 @@ Begin
 
   _ListSubFolders := True;
 
-  _ClipRect := TERRA_SpriteManager.ClipRect.Create();
-
   _InnerWnd := UIWindow.Create(Name+'_inner', UI, Self, 0, 0 , 0.5, 1, 1, 'ui_list');
 
   _Scroll := UIScrollbar.Create(Name+'_scroll', UI, Self, 0, 0, 1.0, 5, False);
@@ -144,7 +142,7 @@ End;
 Procedure UIFileBrowser.Render;
 Var
   I,PY:Integer;
-  It:ListObject;
+  It:CollectionObject;
   Info:FileInfo;
 Begin
   If (_SourceChanged) Then
@@ -177,7 +175,7 @@ Begin
 
       _InnerWnd.ClipRect := _ClipRect;
       _InnerWnd.DrawText(Info.Name, VectorCreate(5, _OfsY + _InnerWnd.Layout.GCSY(1) * PY, 1.0), ColorWhite, 1.0);
-      _InnerWnd.ClipRect := Nil;
+      _InnerWnd.ClipRect.Style := clipNothing;
 
       Inc(PY);
       It := It.Next;

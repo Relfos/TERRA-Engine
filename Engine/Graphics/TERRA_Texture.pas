@@ -174,8 +174,7 @@ Procedure RegisterTextureFormat(ClassType:TextureClass; Extension:TERRAString);
 
 Implementation
 Uses TERRA_Error, TERRA_Utils, TERRA_Application, TERRA_Log, TERRA_GraphicsManager, TERRA_OS,
-  TERRA_FileUtils, TERRA_FileStream, TERRA_FileManager, TERRA_ColorGrading
-  {$IFDEF FRAMEBUFFEROBJECTS},TERRA_FramebufferObject{$ENDIF};
+  TERRA_FileUtils, TERRA_FileStream, TERRA_FileManager, TERRA_ColorGrading;
 
 Var
   _TextureManager:ApplicationObject = Nil;
@@ -414,7 +413,7 @@ End;
 Constructor Texture.New(Const Name:TERRAString; TextureWidth, TextureHeight:Cardinal);
 Begin
   _Location := '';
-  _Name := Name;
+  _Key := Name;
   _Width := TextureWidth;
   _Height := TextureHeight;
   _Ratio := VectorCreate2D(1, 1);

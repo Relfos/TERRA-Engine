@@ -65,28 +65,19 @@ class TERRAView extends GLSurfaceView {
 	public static long rotationTime = 0;
 	private static int orientationChange = 0;
 	
-    public enum TouchType {
-        BEGIN, END, MOVE
-    }    
+    private static Queue<TERRAInputEvent> inputQueue = new LinkedList<TERRAInputEvent>();
+    private static Object inputLock = new Object();
     
-	private class TouchEvent 
-	{        
-		public int x;
-		public int y;
-		public TouchType type;
-        private long time;
-		
-		public TouchEvent(int x, int y, TouchType type)
-		{
-            this.x = x;
-            this.y = y;
-            this.type = type;
-            this.time = SystemClock.uptimeMillis();
-		}
-	}
-
-    private static Queue<TouchEvent> touchQueue = new LinkedList<TouchEvent>();
-    private static Object touchLock = new Object();
+    public static void QueueInputEvent(TERRAInputEvent event) {        
+    
+        if (terminated) {
+            return;
+        }
+    
+        synchronized (inputLock) {
+            inputQueue.add(event);
+        }
+    }
 	
 	public static boolean isInitialized()
 	{
@@ -205,26 +196,20 @@ class TERRAView extends GLSurfaceView {
 				
 				//Log.d("App", "Event Thread ID: "+android.os.Process.myTid());
 
-				if (!terminated)
-				{
-					synchronized (touchLock)
-					{
-						switch (event.getAction())
-						{
-						case MotionEvent.ACTION_MOVE:
-                            touchQueue.add(new TouchEvent((int)x, (int)y, TouchType.MOVE));
-							break;
-							
-						case MotionEvent.ACTION_DOWN:
-                            touchQueue.add(new TouchEvent((int)x, (int)y, TouchType.BEGIN));							
-							break;
-							
-						case MotionEvent.ACTION_UP:
-                            touchQueue.add(new TouchEvent((int)x, (int)y, TouchType.END));
-							break;
-						}
-					}
-				}
+                switch (event.getAction())
+                {
+                case MotionEvent.ACTION_MOVE:
+                    QueueInputEvent(new TERRAInputEvent((int)x, (int)y, TERRAInputEvent.InputType.TOUCH_MOVE));
+                    break;
+                    
+                case MotionEvent.ACTION_DOWN:
+                    QueueInputEvent(new TERRAInputEvent((int)x, (int)y, TERRAInputEvent.InputType.TOUCH_BEGIN));							
+                    break;
+                    
+                case MotionEvent.ACTION_UP:
+                    QueueInputEvent(new TERRAInputEvent((int)x, (int)y, TERRAInputEvent.InputType.TOUCH_END));
+                    break;
+                }
 				return true;
 			}
 		}
@@ -455,31 +440,40 @@ class TERRAView extends GLSurfaceView {
 			{			
 				//Log.d("App", "Engine Thread ID: "+android.os.Process.myTid());
 
-                synchronized (touchLock)
+                synchronized (inputLock)
                 {
-                    TouchEvent touch;
+                    TERRAInputEvent touch;
 
                     long currentTime = SystemClock.uptimeMillis();
                     int eventsProcessed = 0;
                     
                     do {
-                        touch = touchQueue.poll();
+                        touch = inputQueue.poll();
                     
                         if (touch!=null && ((currentTime - touch.time)<2000) ) {
                             eventsProcessed ++;
                             switch (touch.type)
                             {
-                                case MOVE:
+                                case TOUCH_MOVE:
                                     TERRALibrary.ApplicationTouchMove(touch.x, touch.y);
                                     break;
                                 
-                                case BEGIN:
+                                case TOUCH_BEGIN:
                                     TERRALibrary.ApplicationTouchBegin(touch.x, touch.y);
                                     break;
                                 
-                                case END:
+                                case TOUCH_END:
                                     TERRALibrary.ApplicationTouchEnd(touch.x, touch.y);
                                     break;
+                                    
+                                case KEY_DOWN:
+                                    TERRALibrary.ApplicationKeyDown(touch.x);
+                                    break;
+
+                                case KEY_UP:
+                                    TERRALibrary.ApplicationKeyUp(touch.x);
+                                    break;
+                                    
                             }
                         }
                         

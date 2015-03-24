@@ -21,6 +21,14 @@ Begin
 	_Destroyed := True;
 End;
 
+Procedure Java_com_pascal_terra_TERRALibrary_ApplicationThreadExecute(env, obj:Pointer; thread:Integer); stdcall; export;  [public];
+Begin
+	//SetGlobalEnv(Env);
+	{$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'TERRA BEGIN NATIVE THREAD');{$ENDIF}
+	ApplicationThreadExecute(thread);
+	{$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'TERRA END NATIVE THREAD');{$ENDIF}
+End;
+
 Procedure Java_com_pascal_terra_TERRALibrary_ApplicationResize(env, obj:Pointer; w,h:Integer); stdcall; export;  [public];
 Begin
 	If (_Destroyed) Then
@@ -266,6 +274,7 @@ end;
 exports 
 		Java_com_pascal_terra_TERRALibrary_ApplicationInit,
         Java_com_pascal_terra_TERRALibrary_ApplicationShutdown,
+        Java_com_pascal_terra_TERRALibrary_ApplicationThreadExecute,
         Java_com_pascal_terra_TERRALibrary_ApplicationResize,
 		Java_com_pascal_terra_TERRALibrary_ApplicationViewport,
         Java_com_pascal_terra_TERRALibrary_ApplicationUpdate,

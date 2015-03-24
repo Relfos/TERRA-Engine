@@ -806,8 +806,9 @@ Begin
   Current := _LastTime - _StartTime;
   Length := Self.GetTrackDuration();
 
-  (*For I := 0 to Pred(_EventTrackCount) Do
-    _EventTracks[i].Update(Current, Length);    *)
+  For I := 0 to Pred(_EventTrackCount) Do
+    _EventTracks[i].Update(Current, Length);
+    
   _Playing := false;
 End;
 
