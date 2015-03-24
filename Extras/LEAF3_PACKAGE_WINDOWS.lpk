@@ -2,13 +2,16 @@
 <CONFIG>
   <Package Version="4">
     <PathDelim Value="\"/>
-    <Name Value="LEAF3_PACKAGE"/>
+    <Name Value="LEAF3_PACKAGE_WINDOWS"/>
     <CompilerOptions>
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
         <UnitOutputDirectory Value="Units\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
+      <Other>
+        <CompilerPath Value="$(CompPath)"/>
+      </Other>
     </CompilerOptions>
     <Type Value="RunAndDesignTime"/>
     <RequiredPkgs Count="1">
@@ -18,7 +21,7 @@
     </RequiredPkgs>
     <UsageOptions>
       <IncludePath Value="$(PkgDir)\Utils;$(PkgDir)\Core"/>
-      <UnitPath Value="$(PkgDir)\Utils;$(PkgDir)\Utils\FileIO;$(PkgDir)\Graphics;$(PkgDir)\Image;$(PkgDir)\Image\Formats;$(PkgDir)\OS\Windows;$(PkgDir)\Core;$(PkgDir)\UI;$(PkgDir)\AI;$(PkgDir)\Audio;$(PkgDir)\Audio\Formats;$(PkgDir)\Network;$(PkgDir)\Libs\pasJPEG;$(PkgDir)\Libs\Steamworks\headers;$(PkgDir)\Math;$(PkgDir)\Network\Protocols"/>
+      <UnitPath Value="$(PkgDir)\Utils;$(PkgDir)\Core\FileIO;$(PkgDir)\Graphics;$(PkgDir)\Templates;$(PkgDir)\Image;$(PkgDir)\Physics;$(PkgDir)\Image\Formats;$(PkgDir)\OS\Windows;$(PkgDir)\Core;$(PkgDir)\UI;$(PkgDir)\AI;$(PkgDir)\Audio;$(PkgDir)\Audio\Formats;$(PkgDir)\Network;$(PkgDir)\Libs\pasJPEG;$(PkgDir)\Libs\Steamworks\headers;$(PkgDir)\Math;$(PkgDir)\Network\Protocols"/>
     </UsageOptions>
     <PublishOptions>
       <Version Value="2"/>
