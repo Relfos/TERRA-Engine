@@ -51,7 +51,7 @@ End;
 
 Procedure TForm1.FormCreate(Sender: TObject);
 Begin
-  ApplicationStart(VCLWindowClient.Create(Self));
+  ApplicationStart(VCLClient.Create(Self));
 
   // Added Asset folder to search path
   FileManager.Instance.AddPath('assets');
@@ -78,5 +78,6 @@ procedure TForm1.Button1Click(Sender: TObject);
 begin
   Forms.Application.Terminate();
 end;
+
 
 end.

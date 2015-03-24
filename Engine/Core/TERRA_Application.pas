@@ -1667,6 +1667,7 @@ procedure Application.ProcessEvents;
 Var
   I:Integer;
   PX,PY:Integer;
+  NewW, NewH:Integer;
   Input:InputManager;
 Begin
   {$IFNDEF DISABLEINPUTMUTEX}
@@ -1746,9 +1747,24 @@ Begin
 
     eventWindowResize:
       Begin
-        Log(logDebug, 'App', 'Resizing, W:'+IntToString(Trunc(_Events[I].X))+ ' H:'+IntToString(Trunc(_Events[I].Y)));
-        If (_Events[I].X <> _Width) Or (_Events[I].Y <> _Height) Then
+        NewW := Trunc(_Events[I].X);
+        NewH :=  Trunc(_Events[I].Y);
+
+        Log(logDebug, 'App', 'Resizing, W:'+IntToString(NewW)+ ' H:'+IntToString(NewH));
+
+
+        If (NewW <> _Width) Or (NewH <> _Height) Then
+        Begin
+          Client.SelectResolution2D(NewW, NewH, _UIScale);
+          If (NewW<>_UIWidth) Or (NewH<>_UIHeight) Then
+          Begin
+            _UIWidth := NewW;
+            _UIHeight := NewH;
+          End;
+
           Self.Resize(Trunc(_Events[I].X), Trunc(_Events[I].Y));
+
+        End;
       End;
 
     eventViewport:

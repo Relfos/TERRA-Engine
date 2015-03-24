@@ -2649,6 +2649,7 @@ End;
 Procedure GraphicsManager.OnAppResize;
 Var
   I:Integer;
+  UIW, UIH:Integer;
 Begin
   {$IFDEF MOBILE}
   Exit;
@@ -2661,6 +2662,11 @@ Begin
   {If Assigned(_DeviceViewport) Then
     _DeviceViewport.Resize(_Width, _Height);}
   OnViewportChange(0, 0, _Width, _Height);
+
+  UIW := Application.Instance.UI_Width;
+  UIH := Application.Instance.UI_Height;
+  If (UIViewport.Width<>UIW) Or (UIViewport.Height<>UIH) Then
+    UIViewport.Resize(UIW, UIH);
 End;
 
 Procedure GraphicsManager.SetScene(MyScene: Scene);

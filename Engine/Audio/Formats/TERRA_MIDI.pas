@@ -497,20 +497,23 @@ Function MIDIEvent_SetVolume(Channel, Volume:Byte):Cardinal;
 Function MIDIEvent_SetPanning(Channel, Pan:Byte):Cardinal;
 
 Type
+  MidiNoteState = (noteWaiting, notePlaying, noteFinished);
+  
   MidiNoteEvent = Class(TERRAObject)
     Protected
       _Channel:Byte;
       _Note:Byte;
       _Volume:Byte;
-      
+
       _StartTime:Cardinal;
       _EndTime:Cardinal;
 
-      _Active:Boolean;
+      _State:MidiNoteState;
       _Managed:Boolean;
 
     Public
-      Function Start(Channel, Note,Volume: Byte; Duration: Cardinal):Boolean;
+      Procedure Init(Channel, Note,Volume: Byte; Duration, Delay: Cardinal);
+      Function Start():Boolean;
       Procedure Stop();
   End;
 
@@ -524,7 +527,7 @@ Type
       Function StartNote(Channel, Note, Volume:Byte):Boolean;
       Function StopNote(Channel, Note, Volume:Byte):Boolean;
 
-      Function AddNote(Channel, Note, Volume: Byte; Duration: Cardinal):Boolean;
+      Function AddNote(Channel, Note, Volume: Byte; Duration, Delay: Cardinal):Boolean;
 
     Public
       Procedure Update; Override;
@@ -532,7 +535,7 @@ Type
       Class Function Instance:MidiManager;
 
       // play a midi note with a certain duration and volume
-      Function PlayNote(Channel, Note:Byte; Duration:Cardinal; Volume:Single = 0.8):Boolean;
+      Function PlayNote(Channel, Note:Byte; Duration:Cardinal; Volume:Single = 0.8; Delay:Cardinal = 0):Boolean;
 
       Function SetInstrument(Channel, Instrument:Byte):Boolean;
       Function SetVolume(Channel, Volume:Byte):Boolean;
@@ -1235,13 +1238,13 @@ Begin
   End;
 End;
 
-Function MidiManager.AddNote(Channel, Note, Volume: Byte; Duration: Cardinal):Boolean;
+Function MidiManager.AddNote(Channel, Note, Volume: Byte; Duration, Delay: Cardinal):Boolean;
 Var
   N,I, Len:Integer;
 Begin
   N := -1;
   For I:=0 To Pred(_NoteCount) Do
-  If ((_Notes[I]._Channel = Channel) And (_Notes[I]._Note = Note)) Or (Not _Notes[I]._Active) Then
+  If ((_Notes[I]._Channel = Channel) And (_Notes[I]._Note = Note)) Or (_Notes[I]._State = noteFinished) Then
   Begin
     N := I;
     Break;
@@ -1260,12 +1263,17 @@ Begin
     End;
   End;
 
-  Result := _Notes[N].Start(Channel, Note, Volume, Duration);
+  _Notes[N].Init(Channel, Note, Volume, Duration, Delay);
+
+  If (Delay<=0) Then
+    Result := _Notes[N].Start()
+  Else
+    Result := False;
 End;
 
 Function MidiManager.StartNote(Channel, Note, Volume: Byte): Boolean;
 Begin
-  Result := Self.AddNote(Channel, Note, Volume, 0);
+  Result := Self.AddNote(Channel, Note, Volume, 0, 0);
 End;
 
 Function MidiManager.StopNote(Channel, Note, Volume: Byte): Boolean;
@@ -1275,7 +1283,7 @@ Var
 Begin
   I := 0;
   While I<_NoteCount Do
-  If (_Notes[I]._Active) And (_Notes[I]._Channel = Channel) And (_Notes[I]._Note = Note) Then
+  If (_Notes[I]._State <> noteFinished) And (_Notes[I]._Channel = Channel) And (_Notes[I]._Note = Note) Then
   Begin
     _Notes[I]._Volume := Volume;
     _Notes[I].Stop();
@@ -1286,12 +1294,12 @@ Begin
   Result := False;
 End;
 
-Function MidiManager.PlayNote(Channel, Note: Byte; Duration: Cardinal; Volume:Single):Boolean;
+Function MidiManager.PlayNote(Channel, Note: Byte; Duration: Cardinal; Volume:Single; Delay:Cardinal):Boolean;
 Var
   VolData:Byte;
 Begin
   VolData := Trunc(Volume*MaxMIDIVolume);
-  Result := Self.AddNote(Channel, Note, VolData, Duration);
+  Result := Self.AddNote(Channel, Note, VolData, Duration, Delay);
 End;
 
 Procedure MidiManager.Update;
@@ -1302,11 +1310,18 @@ Begin
   I := 0;
   T := GetTime();
   While I<_NoteCount Do
-  If (_Notes[I]._Active) And (_Notes[I]._Managed) And (_Notes[I]._EndTime<T) Then
+  If (_Notes[I]._State = notePlaying) And (_Notes[I]._Managed) And (_Notes[I]._EndTime<T) Then
   Begin
     _Notes[I].Stop();
   End Else
+  Begin
+    If (_Notes[I]._State = noteWaiting) And (T >= _Notes[I]._StartTime) Then
+    Begin
+      _Notes[I].Start();
+    End;
+
     Inc(I);
+  End;
 End;
 
 Function MidiManager.SetPanning(Channel:Byte; Pan:Single): Boolean;
@@ -1335,7 +1350,7 @@ End;
 
 
 { MidiNoteEvent }
-Function MidiNoteEvent.Start(Channel, Note, Volume: Byte; Duration: Cardinal): Boolean;
+Procedure MidiNoteEvent.Init(Channel, Note, Volume: Byte; Duration, Delay: Cardinal);
 Var
   T:Cardinal;
 Begin
@@ -1343,31 +1358,36 @@ Begin
   _Note := Note;
   _Volume := Volume;
 
-  Result := (MIDI_Out(MIDIEvent_NoteOn(Channel, Note, _Volume)));
-
-  _Active := True;
+  _State := noteWaiting;
 
   _Managed := (Duration>0);
 
   If _Managed Then
   Begin
     T := GetTime();
-    _StartTime := T;
-    _EndTime := T + Duration;
+    _StartTime := T + Delay;
+    _EndTime := _StartTime + Duration;
   End;
+End;
+
+Function MidiNoteEvent.Start(): Boolean;
+Begin
+  Result := (MIDI_Out(MIDIEvent_NoteOn(_Channel, _Note, _Volume)));
+
+  _State := notePlaying;
 End;
 
 Procedure MidiNoteEvent.Stop;
 Var
   MuteEvent:Cardinal;
 Begin
-  If Not _Active Then
+  If _State <> notePlaying Then
     Exit;
 
   MuteEvent := MIDIEvent_NoteOff(_Channel, _Note, _Volume);
   MIDI_Out(MuteEvent);
 
-  _Active := False;
+  _State := noteFinished;
 End;
 
 End.

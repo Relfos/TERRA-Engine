@@ -3,7 +3,7 @@ Unit TERRA_VCLClient;
 {$I terra.inc}
 Interface
 Uses Classes, Forms, ExtCtrls, Graphics, TERRA_String, TERRA_Utils, TERRA_Application,
-  TERRA_Client, TERRA_Viewport, TERRA_RenderTarget, TERRA_Image, TERRA_Color;
+  TERRA_Client, TERRA_GraphicsManager, TERRA_Viewport, TERRA_RenderTarget, TERRA_Image, TERRA_Color;
 
 Type
   VCLCanvasViewport = Class(TERRAObject)
@@ -24,6 +24,8 @@ Type
         _CurrentWidth:Integer;
         _CurrentHeight:Integer;
 
+        _Target:TComponent;
+
         _Viewports:Array Of VCLCanvasViewport;
         _ViewportCount:Integer;
 
@@ -35,34 +37,13 @@ Type
         Constructor Create(Target:TComponent);
         Procedure Release; Override;
 
-        Procedure AddViewport(V:VCLCanvasViewport);
-  End;
-
-  VCLWindowClient = Class(VCLClient)
-      Protected
-        _Target:TForm;
-
-      Public
-        Constructor Create(Target:TForm);
-
         Function GetWidth:Word; Override;
         Function GetHeight:Word; Override;
 
         Function GetTitle:TERRAString; Override;
         Function GetHandle:Cardinal; Override;
-  End;
 
-  VCLPanelClient = Class(VCLClient)
-      Protected
-        _Target:TPanel;
-
-      Public
-        Constructor Create(Target:TPanel);
-
-        Function GetWidth:Word; Override;
-        Function GetHeight:Word; Override;
-
-        Function GetHandle:Cardinal; Override;
+        Procedure AddViewport(V:VCLCanvasViewport);
   End;
 
 Implementation
@@ -70,6 +51,7 @@ Implementation
 { VCLClient }
 Constructor VCLClient.Create(Target:TComponent);
 Begin
+  _Target := Target;
   _Timer := TTimer.Create(Target);
   _Timer.Interval := 15;
   _Timer.Enabled := True;
@@ -116,56 +98,49 @@ Begin
     _Viewports[I].Update();
 End;
 
-{ VCLWindowClient }
-Constructor VCLWindowClient.Create(Target: TForm);
+Function VCLClient.GetHandle: Cardinal;
 Begin
-  _Target := Target;
-  Inherited Create(Target);
+  If (_Target Is TForm) Then
+    Result := TForm(_Target).Handle
+  Else
+  If (_Target Is TPanel) Then
+    Result := TPanel(_Target).Handle
+  Else
+    Result := 0;
 End;
 
-Function VCLWindowClient.GetHandle: Cardinal;
+Function VCLClient.GetTitle: TERRAString;
 Begin
-  Result := _Target.Handle;
+  If (_Target Is TForm) Then
+    Result := TForm(_Target).Caption
+  Else
+  If (_Target Is TPanel) Then
+    Result := TPanel(_Target).Caption
+  Else
+    Result := '';
 End;
 
-Function VCLWindowClient.GetTitle: TERRAString;
+Function VCLClient.GetWidth: Word;
 Begin
-  Result := _Target.Caption;
+  If (_Target Is TForm) Then
+    Result := TForm(_Target).ClientWidth
+  Else
+  If (_Target Is TPanel) Then
+    Result := TPanel(_Target).Width
+  Else
+    Result := 0;
 End;
 
-Function VCLWindowClient.GetHeight: Word;
+Function VCLClient.GetHeight: Word;
 Begin
-  Result := _Target.ClientHeight;
+  If (_Target Is TForm) Then
+    Result := TForm(_Target).ClientHeight
+  Else
+  If (_Target Is TPanel) Then
+    Result := TPanel(_Target).Height
+  Else
+    Result := 0;
 End;
-
-Function VCLWindowClient.GetWidth: Word;
-Begin
-  Result := _Target.ClientWidth;
-End;
-
-
-{ VCLPanelClient }
-Constructor VCLPanelClient.Create(Target: TPanel);
-Begin
-  _Target := Target;
-  Inherited Create(Target);
-End;
-
-Function VCLPanelClient.GetHandle: Cardinal;
-Begin
-  Result := _Target.Handle;
-End;
-
-Function VCLPanelClient.GetWidth: Word;
-Begin
-  Result := _Target.Width;
-End;
-
-Function VCLPanelClient.GetHeight: Word;
-Begin
-  Result := _Target.Height;
-End;
-
 
 { VCLCanvasViewport }
 Constructor VCLCanvasViewport.Create(Source:Viewport; Target: TCanvas);
