@@ -70,6 +70,11 @@ Type
     Procedure Run; Override;
    End;
 
+   TERRAString_TestConversions = class(TestCase)
+    Procedure Run; Override;
+   End;
+
+
 Implementation
 Uses TERRA_String, TERRA_Utils;
 
@@ -516,6 +521,30 @@ Begin
 
   S := '   <XYZ>   ';
   Expect(StringTrim(S), '<XYZ>');
+End;
+
+Procedure TERRAString_TestConversions.Run;
+  Procedure Expect(Const X, Y: TERRAString);
+  Begin
+    Check(X = Y, 'Expected "'+ Y + '" but got "'+X+'"');
+  End;
+
+Begin
+  Expect(FloatToString(3.14159, 4), '3.1415');
+  Expect(FloatToString(3.14159, 5), '3.14159');
+  Expect(FloatToString(3.14159, 6), '3.141590');
+
+  Expect(FloatToString(-7.85679, 4), '-7.8567');
+  Expect(FloatToString(-7.85679, 5), '-7.85679');
+  Expect(FloatToString(-7.85679, 6), '-7.856790');
+
+  Expect(FloatToString(-0.6632), '-0.6632');
+
+  Expect(FloatToString(0.0156), '0.0156');
+
+  Expect(FloatToString(0.00123, 4), '0.0012');
+  Expect(FloatToString(0.00123, 5), '0.00123');
+  Expect(FloatToString(0.00123, 6), '0.001230');
 End;
 
 End.

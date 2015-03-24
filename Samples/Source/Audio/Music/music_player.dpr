@@ -5,7 +5,7 @@ Uses TERRA_Application, TERRA_Client, TERRA_Utils, TERRA_ResourceManager, TERRA_
   TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_UI, TERRA_Viewport, TERRA_Texture,
   TERRA_PNG, TERRA_Lights, TERRA_ShaderFactory, TERRA_SpriteManager, TERRA_Vector2D, TERRA_TTF,
   TERRA_FileManager, TERRA_Scene, TERRA_Mesh, TERRA_Skybox, TERRA_Color, TERRA_FileUtils, TERRA_OGG,
-  TERRA_MusicManager;
+  TERRA_MusicManager, TERRA_FontRenderer, TERRA_InputManager;
 
 Type
   MyScene = Class(Scene)
@@ -21,7 +21,7 @@ Type
   End;
 
 Var
-  Fnt:Font;
+  Fnt:FontRenderer;
 
 { Game }
 Procedure Game.OnCreate;
@@ -29,7 +29,8 @@ Begin
   _Scene := MyScene.Create;
 
   FileManager.Instance.AddPath('Assets');
-  Fnt := FontManager.Instance.GetFont('droid@50');
+  Fnt := FontRenderer.Create();
+  Fnt.SetFont(FontManager.Instance.GetFont('droid'));
 
   GraphicsManager.Instance.Scene := _Scene;
   GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorBlue;
@@ -46,13 +47,13 @@ End;
 
 Procedure Game.OnIdle;
 Begin
-  If Keys.WasPressed(keyEscape) Then
+  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
 
-  If (Keys.WasPressed(keyLeft)) Then
+  If (InputManager.Instance.Keys.WasPressed(keyLeft)) Then
     MusicManager.Instance.SetVolume(MusicManager.Instance.Volume - 0.1)
   Else
-  If (Keys.WasPressed(keyRight)) Then
+  If (InputManager.Instance.Keys.WasPressed(keyRight)) Then
     MusicManager.Instance.SetVolume(MusicManager.Instance.Volume + 0.1);
 End;
 
@@ -62,15 +63,15 @@ Procedure MyScene.RenderSprites;
 Var
   S:Sprite;
 Begin
-  If Not Assigned(Fnt) Then
+  If Not Assigned(Fnt.Font) Then
     Exit;
 
-  Fnt.DrawText(5, 5, 5, 'Volume: '+IntToString(Trunc(MusicManager.Instance.Volume * 100))+'%', ColorWhite);
+  Fnt.DrawText(5, 60, 5, 'Volume: '+IntToString(Trunc(MusicManager.Instance.Volume * 100))+'%');
 
   If Assigned(MusicManager.Instance.CurrentTrack) Then
   Begin
-    Fnt.DrawText(5, 40, 5, 'Title: '+ GetFileName(MusicManager.Instance.CurrentTrack.FileName, False), ColorWhite);
-    Fnt.DrawText(5, 75, 5, 'Type: '+ MusicManager.Instance.CurrentTrack.ClassName, ColorWhite);
+    Fnt.DrawText(5, 80, 5, 'Title: '+ GetFileName(MusicManager.Instance.CurrentTrack.FileName, False));
+    Fnt.DrawText(5, 100, 5, 'Type: '+ MusicManager.Instance.CurrentTrack.ClassName);
   End;
 End;
 

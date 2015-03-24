@@ -3,7 +3,8 @@
 
 Uses TERRA_Application, TERRA_Scene, TERRA_Client, TERRA_GraphicsManager, TERRA_Viewport,
   TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_PNG,
-  TERRA_SpriteManager, TERRA_FileManager, TERRA_Math, TERRA_Vector3D, TERRA_Vector2D;
+  TERRA_SpriteManager, TERRA_FileManager, TERRA_Math, TERRA_Vector3D, TERRA_Vector2D,
+  TERRA_InputManager;
                             
 Type
   // A client is used to process application events
@@ -42,7 +43,7 @@ End;
 // OnIdle is called once per frame, put your game logic here
 Procedure MyGame.OnIdle;
 Begin
-  If Keys.WasPressed(keyEscape) Then
+  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
 End;
 

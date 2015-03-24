@@ -6,7 +6,7 @@ Uses
   TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Scene, TERRA_Client, TERRA_UI, TERRA_GraphicsManager,
   TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_OS, TERRA_FileManager,
   TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_SpriteManager, TERRA_Texture,
-  TERRA_AIGridPath;
+  TERRA_InputManager, TERRA_AIGridPath;
 
 Const
   // Size of map tiles and objects
@@ -170,8 +170,8 @@ Var
   Node:GridPathNode;
 Begin
   //  Draw mouse cursor
-  Mouse  := Application.Instance.Input.Mouse;
-  S := SpriteManager.Instance.DrawSprite(Mouse.X, Mouse.Y, 20, ArrowTex);
+  Mouse  := InputManager.Instance.Mouse;
+  S := SpriteManager.Instance.DrawSprite(Mouse.X, Mouse.Y, 80, ArrowTex);
   S.Rect.Width := 16;
   S.Rect.Height := 16;
 
@@ -182,7 +182,7 @@ Begin
       // If this tile is solid, draw it
       If MapData[J,I] = 1 Then
       Begin
-        S := SpriteManager.Instance.DrawSprite(MapOffsetX+I*TileSize, MapOffsetY+J*TileSize, 55, BlockTex);
+        S := SpriteManager.Instance.DrawSprite(MapOffsetX+I*TileSize, MapOffsetY+J*TileSize, 45, BlockTex);
         S.Rect.Width := TileSize;
         S.Rect.Height := TileSize;
       End;
@@ -197,13 +197,13 @@ Begin
     End;
 
   // Draw target
-  S := SpriteManager.Instance.DrawSprite(MapOffsetX+TargetX*TileSize, MapOffsetY+TargetY*TileSize, 20, ArrowTex);
+  S := SpriteManager.Instance.DrawSprite(MapOffsetX+TargetX*TileSize, MapOffsetY+TargetY*TileSize, 80, ArrowTex);
   S.Rect.Width := TileSize;
   S.Rect.Height := TileSize;
   S.Mirror := True;
 
   // Draw ghost
-  S := SpriteManager.Instance.DrawSprite(MapOffsetX+GhostX*TileSize, MapOffsetY+GhostY*TileSize, 15, GhostTex);
+  S := SpriteManager.Instance.DrawSprite(MapOffsetX+GhostX*TileSize, MapOffsetY+GhostY*TileSize, 85, GhostTex);
   S.Rect.Width := TileSize;
   S.Rect.Height := TileSize;
 
@@ -213,7 +213,7 @@ Begin
     For I:=0 To Pred(GhostPath.Size) Do
     Begin
       GhostPath.GetNode(I, Node);
-      S := SpriteManager.Instance.DrawSprite(MapOffsetX + Node.X * TileSize + TileSize Div 4, MapOffsetY + Node.Y * TileSize + TileSize Div 4, 18, DotTex);
+      S := SpriteManager.Instance.DrawSprite(MapOffsetX + Node.X * TileSize + TileSize Div 4, MapOffsetY + Node.Y * TileSize + TileSize Div 4, 82, DotTex);
       S.Rect.Width := TileSize Div 2;
       S.Rect.Height := TileSize Div 2;
     End;
@@ -241,7 +241,7 @@ Begin
     End;
   End;
 
-  If Keys.WasReleased(keyEscape) Then
+  If InputManager.Instance.Keys.WasReleased(keyEscape) Then
     Application.Instance.Terminate;
 End;
 

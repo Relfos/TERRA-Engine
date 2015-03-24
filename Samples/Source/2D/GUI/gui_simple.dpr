@@ -5,7 +5,7 @@ Uses
   {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
   TERRA_Application, TERRA_Client, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
   TERRA_OS, TERRA_Vector2D, TERRA_Font, TERRA_Texture,
-  TERRA_UI, TERRA_FileManager, TERRA_TTF,
+  TERRA_UI, TERRA_FileManager, TERRA_InputManager, TERRA_TTF,
   TERRA_Widgets, TERRA_PNG, TERRA_Scene, TERRA_Color, TERRA_Matrix4x4;
 
 Type
@@ -37,8 +37,6 @@ Var
 
 { Game }
 Procedure Game.OnCreate;
-Var
-  MyTex:Texture;
 Begin
   FileManager.Instance.AddPath('Assets');
 
@@ -54,24 +52,6 @@ Begin
   // Load a custom mouse cursor
   MyUI.LoadCursor('cursor.png');
 
-  // Get background texture
-  MyTex := TextureManager.Instance.GetTexture('background');
-
-  // Create a UI background
-  If Assigned(MyTex) Then
-  Begin
-    Background := UISprite.Create('mybg', MyUI, Nil, 0, 0, 0);
-
-    Background.SetTexture(MyTex);
-    Background.Rect.Width := UIManager.Instance.Width;
-    Background.Rect.Height := UIManager.Instance.Height;
-
-
-    Background.Rect.U2 := 2;
-    Background.Rect.V2 := 2;
-     //VectorCreate2D(1,0.5), 0.1, VectorCreate2D(2.0, 2.0)
-  End;
-
   // Create a empty scene
   _Scene := MyScene.Create;
   GraphicsManager.Instance.Scene := _Scene;
@@ -84,7 +64,7 @@ End;
 
 Procedure Game.OnIdle;
 Begin
-  If Keys.WasPressed(keyEscape) Then
+  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
 End;
 
@@ -168,7 +148,28 @@ Var
   Btn:UIButton;
   RB:UIRadioButton;
   CB:UICheckbox;
+
+  MyTex:Texture;
 Begin
+  // Get background texture
+  MyTex := TextureManager.Instance.GetTexture('background');
+
+  // Create a UI background
+  If Assigned(MyTex) Then
+  Begin
+    Background := UISprite.Create('mybg', MyUI, Nil, 0, 0, 1);
+
+    Background.SetTexture(MyTex);
+    Background.Rect.Width := UIManager.Instance.Width;
+    Background.Rect.Height := UIManager.Instance.Height;
+
+    Background.Rect.U2 := 2;
+    Background.Rect.V2 := 2;
+
+    //Background.Visible := False;
+  End;
+
+
   MyWnd := UIWindow.Create('mywnd', MyUI, 10, 10, 10, 6, 4);
   MyWnd.AllowDragging := True;
   MyWnd.Align := waCenter;

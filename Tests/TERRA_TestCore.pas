@@ -10,7 +10,7 @@ Type
     Procedure Run; Override;
    End;
 
-  TERRACore_TestHashTable = class(TestCase)
+  TERRACore_TestHashMap = class(TestCase)
     Procedure Run; Override;
    End;
 
@@ -18,8 +18,13 @@ Type
     Procedure Run; Override;
    End;
 
+   TERRACore_TestObjectArray = class(TestCase)
+    Procedure Run; Override;
+   End;
+
 Implementation
-Uses TERRA_Utils, TERRA_Sort, TERRA_Collections;
+Uses TERRA_Utils, TERRA_Sort, TERRA_Collections, TERRA_CollectionObjects,
+  TERRA_HashMap, TERRA_ObjectArray, TERRA_KeyPairObjects;
 
 Type
   IntegerArraySort = Class(Sort)
@@ -143,15 +148,16 @@ End;
 Procedure TERRACore_TestList.Run;
 Var
   L:List;
-  I,J,N, Prev:Integer;
+  I,J,N, Prev, Count:Integer;
   It:Iterator;
   Int:IntegerObject;
-  Table:HashTable;
+  Table:HashMap;
 begin
   For J:=1 To 100 Do
   Begin
     L := List.Create();
     N := 500+Random(1500);
+
     For I:=1 To N Do
     Begin
       IntToString(I);
@@ -160,25 +166,28 @@ begin
 
     Check(L.Count=N, 'Invalid list count, got '+IntToString(L.Count)+', expected '+IntToString(N));
 
-    It := L.CreateIterator();
+    It := L.GetIterator();
+    Count := 0;
     While It.HasNext Do
     Begin
       Check(It.GetNext()<>Nil, 'List iterator error!');
+      Inc(Count);
     End;
-    It.Release;
+    Check(Count = L.Count, 'Iterator did not iterate full list!');
 
-    L.Release;
+    ReleaseObject(L);
   End;
 
   //WriteLn('List sort test...');
-  L := List.Create(coSorted);
+  L := List.Create(collection_Sorted_Ascending);
   N := 2000;
   For I:=1 To N Do
   Begin
     IntToString(I);
     L.Add(IntegerObject.Create(Random(20000)));
   End;
-  It := L.CreateIterator;
+
+  It := L.GetIterator();
   Prev := -1;
   While It.HasNext Do
   Begin
@@ -187,18 +196,18 @@ begin
     Check(Prev<=Int.Value, 'List ascending sort error!');
     Prev := Int.Value;
   End;
-  It.Release;
-  L.Release;
+  ReleaseObject(L);
 
   //WriteLn('List descending sort test...');
-  L := List.Create(coSortedInverted);
+  L := List.Create(collection_Sorted_Descending);
   N := 2000;
   For I:=1 To N Do
   Begin
     IntToString(I);
     L.Add(IntegerObject.Create(Random(20000)));
   End;
-  It := L.CreateIterator;
+
+  It := L.GetIterator();
   Prev := 99999999;
   While It.HasNext Do
   Begin
@@ -207,38 +216,110 @@ begin
     Check(Prev>=Int.Value, 'List descending sort error!');
     Prev := Int.Value;
   End;
-  It.Release;
-  L.Release;
+  ReleaseObject(L);
+
+  L := List.Create();
+  For I:=0 To 10 Do
+    L.Add(IntegerObject.Create(I));
+
+  It := L.GetIterator();
+  While It.HasNext Do
+  Begin
+    Int := IntegerObject(It.GetNext());
+
+    If (Odd(Int.Value)) Then
+      Int.Discard();
+  End;
+
+  Check(L.Count = 6, 'List discard error!');
+
+{  It := L.CreateIterator();
+  While It.HasNext Do
+  Begin
+    Int := IntegerObject(It.GetNext());
+
+    WriteLn(Int.ToString());
+  End;
+  ReleaseObject(It);}
 End;
 
-Procedure TERRACore_TestHashTable.Run();
+Procedure TERRACore_TestHashMap.Run();
 Var
-  I,J,N:Integer;
-  IT:Iterator;
-  Table:HashTable;
+  I,J,N, Count:Integer;
+  Item:StringKeyPair;
+  It:Iterator;
+  Table:HashMap;
 Begin
   For J:=1 To 5 Do
   Begin
-    Table := HashTable.Create(256);
-    N := 500+Random(1500);
+    Table := HashMap.Create(256);
+    N := 1500+Random(1500);
+
     For I:=1 To N Do
     Begin
-      IntToString(I);
-      Table.Add(IntegerObject.Create(Random(200)));
+      Table.Add(StringKeyPair.Create(IntToString(I), IntToString(Random(200))));
     End;
 
-    I := 0;
-    It := Table.CreateIterator();
+    Count := 0;
+    It := Table.GetIterator();
     While It.HasNext Do
     Begin
-      Check(It.GetNext()<>Nil, 'Hash table iterator error!');
-      Inc(I);
+      Item := StringKeyPair(It.GetNext());
+
+      Check(Assigned(Item), 'Hash table iterator error!');
+
+      Inc(Count);
+      {If Assigned(Item) Then
+        WriteLn(Item.ToString);}
     End;
-    It.Release;
-    Check(Table.Count=I, 'Invalid hashtable count, got '+IntToString(I)+', expected '+IntToString(Table.Count));
-    Table.Release;
+    Check(Count = Table.Count, 'Iterator did not iterate full hash table!');
+
+    ReleaseObject(Table);
   End;
 
-end;
+  Table := HashMap.Create(256);
+  For I:=1 To 100 Do
+  Begin
+    Table.Add(StringKeyPair.Create('BOO_'+IntToString(I), IntToString(Sqr(I))));
+  End;
+
+  Item := StringKeyPair(Table['BOO_2']);
+  Check((Assigned(Item)) And (Item.Value = '4'), 'Hash table direct acess error!');
+
+  Item := StringKeyPair(Table['BOO_4']);
+  Check((Assigned(Item)) And (Item.Value = '16'), 'Hash table direct acess error!');
+
+  ReleaseObject(Table);
+
+End;
+
+Procedure TERRACore_TestObjectArray.Run();
+Var
+  I,J,N, Count:Integer;
+  Item:IntegerObject;
+  It:Iterator;
+  V:ObjectArray;
+Begin
+  V := ObjectArray.Create();
+
+  N := 30+ Random(100);
+  For J:=0 To Pred(N) Do
+  Begin
+    V.Add(IntegerObject.Create(Random(200)));
+  End;
+
+  It := V.GetIterator();
+  Count := 0;
+  While It.HasNext() Do
+  Begin
+    Item := IntegerObject(It.GetNext());
+    Inc(Count);
+  End;
+  Check(Count = V.Count, 'Iterator did not iterate full list!');
+  ReleaseObject(It);
+
+  ReleaseObject(V);
+End;
+
 
 End.

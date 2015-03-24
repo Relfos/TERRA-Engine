@@ -4,7 +4,7 @@
 Uses TERRA_Application, TERRA_Scene, TERRA_Client, TERRA_UI, TERRA_GraphicsManager,
   TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_OS, TERRA_PNG, TERRA_FileManager,
   TERRA_Texture, TERRA_Network, TERRA_SpriteManager, TERRA_Sockets, TERRA_Viewport,
-  TERRA_Math, TERRA_Vector3D, TERRA_Vector2D, TERRA_TTF, TERRA_Utils,
+  TERRA_Math, TERRA_Vector3D, TERRA_Vector2D, TERRA_TTF, TERRA_Utils, TERRA_InputManager,
   TERRA_NetClient, Ships_Opcodes;
 
 Const
@@ -36,8 +36,8 @@ Method ConnectionEnd() is called when connection ends or fails}
     Procedure ConnectionEnd(ErrorCode:Integer; ErrorLog:String); Override;
 
     // our two custom message handlers
-    Procedure OnPlayerDrop(Msg:NetMessage; Sock:Socket);
-    Procedure OnPlayerData(Msg:NetMessage; Sock:Socket);
+    Procedure OnPlayerDrop(Msg:NetMessage);
+    Procedure OnPlayerData(Msg:NetMessage);
 
     Constructor Create;
     Procedure Release; Override;
@@ -66,7 +66,6 @@ Method ConnectionEnd() is called when connection ends or fails}
 
 Var
   // game resources
-  _Font:Font = Nil;
   _ShipTex:Texture;
   _ExplosionTex:Texture;
 
@@ -141,10 +140,7 @@ Begin
   End;
 
   // render some text
-  If Assigned(_Font) Then
-  Begin
-    _Font.DrawText(50, 70, 10, PAnsiChar(StatusMsg), ColorWhite);
-  End;
+  UIManager.Instance.FontRenderer.DrawText(50, 70, 10, PAnsiChar(StatusMsg));
 
   // update and render all explosions
   I:=0;
@@ -245,8 +241,6 @@ Begin
   FileManager.Instance.AddPath('Assets');
 
   // Load a font
-  _Font := FontManager.Instance.GetFont('droid');
-
   _ShipTex := TextureManager.Instance.GetTexture('ships');
   _ExplosionTex := TextureManager.Instance.GetTexture('explosion');
 
@@ -271,21 +265,21 @@ End;
 
 Procedure MyGame.OnIdle;
 Begin
-  If Keys.WasPressed(keyEscape) Then
+  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate();
 
   If (_MyID>=0) Then
   Begin
-    If Keys.IsDown(keyLeft) Then
+    If InputManager.Instance.Keys.IsDown(keyLeft) Then
       _Ships[GetID(_MyID)].Rotate(-1);
 
-    If Keys.IsDown(keyRight) Then
+    If InputManager.Instance.Keys.IsDown(keyRight) Then
       _Ships[GetID(_MyID)].Rotate(1);
 
-    If Keys.IsDown(keyUp) Then
+    If InputManager.Instance.Keys.IsDown(keyUp) Then
       _Ships[GetID(_MyID)].Accelerate(1);
 
-    If Keys.IsDown(keyDown) Then
+    If InputManager.Instance.Keys.IsDown(keyDown) Then
       _Ships[GetID(_MyID)].Accelerate(-1);
   End;
 End;
@@ -344,7 +338,7 @@ Begin
   ConnectionFail := True;
 End;
 
-Procedure MyNetClient.OnPlayerData(Msg:NetMessage; Sock:Socket);
+Procedure MyNetClient.OnPlayerData(Msg:NetMessage);
 Var
   ID, I:Integer;
   X,Y, Rotation, Thrust:Single;
@@ -373,7 +367,7 @@ Begin
   End;
 End;
 
-Procedure MyNetClient.OnPlayerDrop(Msg:NetMessage; Sock:Socket);
+Procedure MyNetClient.OnPlayerDrop(Msg:NetMessage);
 Var
   ID, I:Integer;
 Begin

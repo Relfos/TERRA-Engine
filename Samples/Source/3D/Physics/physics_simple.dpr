@@ -7,7 +7,7 @@ Uses
   TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_UI, TERRA_Lights, TERRA_Viewport,
   TERRA_JPG, TERRA_PNG, TERRA_RenderTarget, TERRA_Solids, TERRA_Texture, TERRA_BoundingBox,
   TERRA_FileManager, TERRA_Scene, TERRA_MeshFilter, TERRA_Mesh, TERRA_Skybox, TERRA_Color, TERRA_Matrix4x4,
-  TERRA_Math, TERRA_PhysicsManager, TERRA_NewtonPhysics;
+  TERRA_Math, TERRA_InputManager, TERRA_PhysicsManager, TERRA_NewtonPhysics;
 
 Type
   MyScene = Class(Scene)
@@ -104,16 +104,16 @@ End;
 
 Procedure Game.OnIdle;
 Begin
-  If Keys.WasPressed(keyEscape) Then
+  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate();
 
-  If Keys.WasPressed(Ord('M')) Then
+  If InputManager.Instance.Keys.WasPressed(Ord('M')) Then
     PhysicsDebugMode := Not PhysicsDebugMode;
 
-  If Keys.WasPressed(Ord('P')) Then
-    Application.Instance.Paused := Not Application.Instance.Paused; 
+  If InputManager.Instance.Keys.WasPressed(Ord('P')) Then
+    Application.Instance.Paused := Not Application.Instance.Paused;
 
-  If Keys.WasPressed(Ord('B')) Then
+  If InputManager.Instance.Keys.WasPressed(Ord('B')) Then
     Self.SpawnBall();
 
   GraphicsManager.Instance.ActiveViewport.Camera.FreeCam;

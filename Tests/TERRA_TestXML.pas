@@ -27,7 +27,7 @@ Var
   Function Expect(Root:XMLNode; Const Name, Value:TERRAString):XMLNode;
   Begin
     If Assigned(Root) Then
-      Result := Root.GetNode(Name)
+      Result := Root.GetNodeByName(Name)
     Else
       Result := Nil;
 
@@ -60,7 +60,7 @@ Var
   Function Expect(Root:XMLNode; Const Name, Value:TERRAString):XMLNode;
   Begin
     If Assigned(Root) Then
-      Result := Root.GetNode(Name)
+      Result := Root.GetNodeByName(Name)
     Else
       Result := Nil;
 

@@ -5,8 +5,8 @@ Uses
   {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
   TERRA_Application, TERRA_Client, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
   TERRA_OS, TERRA_Vector2D, TERRA_Font, TERRA_Texture,
-  TERRA_UI, TERRA_FileManager, TERRA_TTF,
-  TERRA_Widgets, TERRA_PNG, TERRA_Scene, TERRA_SpriteManager, TERRA_Color, TERRA_Matrix4x4;
+  TERRA_UI, TERRA_FileManager, TERRA_InputManager, TERRA_TTF,
+  TERRA_Widgets, TERRA_PNG, TERRA_Scene, TERRA_SpriteManager, TERRA_ClipRect, TERRA_Color, TERRA_Matrix4x4;
 
 Type
   Game = Class(AppClient)
@@ -84,10 +84,10 @@ End;
 
 Procedure Game.OnIdle;
 Begin
-  If Keys.WasPressed(keyEscape) Then
+  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
 
-  Clip := ClipRectCreate(Application.Instance.Input.Mouse.X - 150, Application.Instance.Input.Mouse.Y - 150, 300, 300);
+  Clip := ClipRectCreate(InputManager.Instance.Mouse.X - 150, InputManager.Instance.Mouse.Y - 150, 300, 300);
 
   //MyWnd.ClipRect := Clip;
   MyUI.ClipRect := Clip;

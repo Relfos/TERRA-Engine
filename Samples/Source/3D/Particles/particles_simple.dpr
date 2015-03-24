@@ -5,7 +5,7 @@ Uses TERRA_Application, TERRA_Client, TERRA_Utils, TERRA_ResourceManager, TERRA_
   TERRA_Stream, TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_Viewport, TERRA_RenderTarget,
   TERRA_JPG, TERRA_PNG, TERRA_Lights, TERRA_ShaderFactory, TERRA_TTF, TERRA_Math,
   TERRA_UI, TERRA_Widgets, TERRA_Texture, TERRA_SpriteManager, TERRA_Shader,
-  TERRA_MeshAnimation, TERRA_Image, TERRA_ScreenFX, TERRA_BoundingBox,
+  TERRA_MeshAnimation, TERRA_Image, TERRA_ScreenFX, TERRA_BoundingBox, TERRA_InputManager,
   TERRA_ParticleRenderer, TERRA_ParticleEmitters,
   TERRA_FileManager, TERRA_Scene, TERRA_Mesh, TERRA_Skybox, TERRA_Color, TERRA_Matrix4x4;
 
@@ -60,11 +60,11 @@ Var
   Pos:Vector3D;
   Emitter:ParticleEmitter;
 Begin
-  If Keys.IsDown(keyEscape) Then
+  If InputManager.Instance.Keys.IsDown(keyEscape) Then
     Application.Instance.Terminate;
 
   // if space key is pressed, spawn a particle emitter
-  If (Application.Instance.Input.Keys.WasPressed(keySpace)) And (GetTime - LastSpawn>1000) And (Particles = Nil) Then
+  If (InputManager.Instance.Keys.WasPressed(keySpace)) And (GetTime - LastSpawn>1000) And (Particles = Nil) Then
   Begin
     Pos := VectorCreate(0, 0, -30);
 
@@ -72,7 +72,7 @@ Begin
 
     Emitter := ParticleSettingsEmitter.Create(FXName, Pos);
 
-    If Application.Instance.Input.Keys.IsDown(keyShift) Then
+    If InputManager.Instance.Keys.IsDown(keyShift) Then
       Particles := ParticleCollection.Create(Emitter)
     Else
       ParticleManager.Instance.Spawn(Emitter);

@@ -4,8 +4,9 @@
 Uses
   {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
   TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Scene, TERRA_Client, TERRA_UI, TERRA_GraphicsManager,
-  TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_OS, TERRA_FileManager,
-  TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_SpriteManager, TERRA_Localization;
+  TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_FontRenderer, TERRA_OS, TERRA_FileManager,
+  TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_SpriteManager, TERRA_Localization,
+  TERRA_InputManager;
 
 Type
   // A client is used to process application events
@@ -24,7 +25,7 @@ Type
   End;
 
 Var
-  _Font:Font = Nil;
+  _FontRenderer:FontRenderer = Nil;
 
 { Game }
 Procedure MyGame.OnCreate;
@@ -35,7 +36,8 @@ Begin
   GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorRed;
 
   // Load a font
-  _Font := FontManager.Instance.GetFont('droid');
+  _FontRenderer := FontRenderer.Create();
+  _FontRenderer.SetFont(FontManager.Instance.GetFont('droid'));
 
   // Create a scene and set it as the current scene
   _Scene := MyScene.Create;
@@ -45,12 +47,13 @@ End;
 // OnIdle is called once per frame, put your game logic here
 Procedure MyGame.OnDestroy;
 Begin
+  ReleaseObject(_FontRenderer);
   ReleaseObject(_Scene);
 End;
 
 Procedure MyGame.OnIdle;
 Begin
-  If Keys.WasReleased(keyEscape) Then
+  If InputManager.Instance.Keys.WasReleased(keyEscape) Then
     Application.Instance.Terminate;
 End;
 
@@ -72,20 +75,25 @@ End;
 Procedure MyScene.RenderSprites(V:Viewport);
 Begin
   // render some text
-  If Assigned(_Font) Then
+  If Assigned(_FontRenderer.Font) Then
   Begin
-    _Font.DrawText(50, 70, 10, ' Hello World!', ColorWhite, 1.0, True);
-    _Font.DrawText(200, 160, 10, 'This is a'+StringFromChar(fontControlNewLine)+'line break!', ColorYellow, 1.0, True);
+    _FontRenderer.DrawText(50, 70, 10, ' Hello World!');
 
-    _Font.DrawText(200, 100, 10, StringFromChar(fontControlWave)+'Wavy text!', ColorBlue, 1.0, True);
+    _FontRenderer.SetColor(ColorYellow);
+    _FontRenderer.DrawText(200, 160, 10, 'This is a'+StringFromChar(fontControlNewLine)+'line break!');
 
-    _Font.DrawText(400, 100, 10, StringFromChar(fontControlItalics)+' Italic text!', ColorGreen, 1.0, True);
+    _FontRenderer.SetColor(ColorBlue);
+    _FontRenderer.DrawText(200, 100, 10, StringFromChar(fontControlWave)+'Wavy text!');
+
+    _FontRenderer.SetColor(ColorGreen);
+    _FontRenderer.DrawText(400, 100, 10, StringFromChar(fontControlItalics)+' Italic text!');
 
     // unicode rendering
-    _Font.DrawText(50, 200, 10, GetLanguageDescription(language_Russian), ColorWhite, 1.0, True);
-    _Font.DrawText(50, 230, 10, GetLanguageDescription(language_Chinese), ColorWhite, 1.0, True);
-    _Font.DrawText(50, 260, 10, GetLanguageDescription(language_Korean), ColorWhite, 1.0, True);
-    _Font.DrawText(50, 290, 10, GetLanguageDescription(language_Japanese), ColorWhite, 1.0, True);
+    _FontRenderer.SetColor(ColorWhite);
+    _FontRenderer.DrawText(50, 200, 10, GetLanguageDescription(language_Russian));
+    _FontRenderer.DrawText(50, 230, 10, GetLanguageDescription(language_Chinese));
+    _FontRenderer.DrawText(50, 260, 10, GetLanguageDescription(language_Korean));
+    _FontRenderer.DrawText(50, 290, 10, GetLanguageDescription(language_Japanese));
   End;
 End;
 

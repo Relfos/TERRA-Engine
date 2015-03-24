@@ -6,7 +6,7 @@
 Program Tutorial10;
 
 Uses TERRA_MemoryManager, TERRA_Application, TERRA_Client, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
-  TERRA_OS, TERRA_Vector2D, TERRA_Font, TERRA_Texture,
+  TERRA_OS, TERRA_Vector2D, TERRA_Font, TERRA_Texture, TERRA_InputManager,
   TERRA_UI, TERRA_FileManager, TERRA_SpriteManager, TERRA_Viewport,
   TERRA_Widgets, TERRA_PNG, TERRA_Scene, TERRA_Color, TERRA_Matrix4x4;
 
@@ -127,7 +127,7 @@ Procedure Game.OnIdle;
 Var
   Delta:Single;
 Begin
-  If Application.Instance.Input.Keys.WasPressed(keyEscape) Then
+  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate();
 
   Delta := Application.Instance.GetElapsedTime() - LastUpdate;
@@ -137,14 +137,14 @@ Begin
     LastUpdate := Application.Instance.GetElapsedTime();
     //Delta := 1.5;
 
-    If Application.Instance.Input.Keys.IsDown(keyUp) Then
+    If InputManager.Instance.Keys.IsDown(keyUp) Then
       MapY := MapY - Delta;
-    If Application.Instance.Input.Keys.IsDown(keyDown) Then
+    If InputManager.Instance.Keys.IsDown(keyDown) Then
       MapY := MapY + Delta;
 
-    If Application.Instance.Input.Keys.IsDown(keyLeft) Then
+    If InputManager.Instance.Keys.IsDown(keyLeft) Then
       MapX := MapX - Delta;
-    If Application.Instance.Input.Keys.IsDown(keyRight) Then
+    If InputManager.Instance.Keys.IsDown(keyRight) Then
       MapX := MapX + Delta;
   End;
 End;

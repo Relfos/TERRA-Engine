@@ -3,7 +3,7 @@
 
 Uses TERRA_Application, TERRA_Client, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
   TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_UI, TERRA_Viewport, TERRA_Texture,
-  TERRA_JPG, TERRA_PNG, TERRA_Lights, TERRA_ShaderFactory,
+  TERRA_JPG, TERRA_PNG, TERRA_Lights, TERRA_ShaderFactory, TERRA_InputManager, TERRA_FontRenderer,
   TERRA_FileManager, TERRA_Scene, TERRA_Mesh, TERRA_Skybox, TERRA_Color, TERRA_Matrix4x4;
 
 Type
@@ -18,7 +18,7 @@ Type
       Sky:Skybox;
 
       Constructor Create;
-      Destructor Destroy; Reintroduce;
+      Procedure Release; Override;
 
       Procedure RenderSprites(V:Viewport); Override;
       Procedure RenderViewport(V:Viewport); Override;
@@ -28,7 +28,7 @@ Type
 Var
   Sphere:MeshInstance;
   P:Occluder;
-  Fnt:Font;
+  Fnt:FontRenderer;
   Sun:DirectionalLight;
 
 { Game }
@@ -38,7 +38,7 @@ Var
 Begin
   FileManager.Instance.AddPath('Assets');
 
-  Fnt := FontManager.Instance.DefaultFont;
+  Fnt := FontRenderer.Create();
 
   GraphicsManager.Instance.Settings.DynamicShadows.SetValue(False);
   GraphicsManager.Instance.Settings.NormalMapping.SetValue(True);
@@ -54,7 +54,7 @@ Begin
   Sphere.SetPosition(VectorCreate(0, -30, -80));
 
   P := Occluder.Create;
-  P.SetTransform(Matrix4x4Translation(0, 0, 0), 50, 50);
+  P.SetTransform(Matrix4x4Translation(0, 0, 0), 80, 80);
 
   Sun := DirectionalLight.Create(VectorCreate(-0.25, 0.75, 0.0));
 
@@ -63,14 +63,15 @@ End;
 
 Procedure Game.OnDestroy;
 Begin
-  Sphere.Release;
-  P.Release;
-  Sun.Release;
+  ReleaseObject(Sphere);
+  ReleaseObject(P);
+  ReleaseObject(Sun);
+  ReleaseObject(Fnt);
 End;
 
 Procedure Game.OnIdle;
 Begin
-  If Keys.WasPressed(keyEscape) Then
+  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
 
   GraphicsManager.Instance.ActiveViewport.Camera.FreeCam;
@@ -83,9 +84,9 @@ Begin
   Sky := Skybox.Create('sky');
 End;
 
-Destructor MyScene.Release;
+Procedure MyScene.Release();
 begin
-  Sky.Release;
+  ReleaseObject(Sky);
 end;
 
 Procedure MyScene.RenderSprites;
@@ -93,9 +94,9 @@ Begin
   If Not Assigned(Fnt) Then
     Exit;
 
-  Fnt.DrawText(5, 5, 5, 'Objects visible: '+IntToString(GraphicsManager.Instance.Stats.RenderableCount), ColorWhite);
-  Fnt.DrawText(5, 15, 5, 'Occluders visible: '+IntToString(GraphicsManager.Instance.Stats.OccluderCount), ColorWhite);
-  Fnt.DrawText(5, 25, 5, 'Draw calls: '+IntToString(GraphicsManager.Instance.Stats.DrawCalls), ColorWhite);
+  Fnt.DrawText(5, 10, 5, 'Objects visible: '+IntToString(GraphicsManager.Instance.Stats.RenderableCount));
+  Fnt.DrawText(5, 25, 5, 'Occluders visible: '+IntToString(GraphicsManager.Instance.Stats.OccluderCount));
+  Fnt.DrawText(5, 40, 5, 'Draw calls: '+IntToString(GraphicsManager.Instance.Stats.DrawCalls));
 End;
 
 Procedure MyScene.RenderViewport(V:Viewport);

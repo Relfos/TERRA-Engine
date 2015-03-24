@@ -5,7 +5,8 @@ Uses
   {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
   TERRA_Utils, TERRA_Application, TERRA_Scene, TERRA_Client, TERRA_UI, TERRA_GraphicsManager,
   TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_OS, TERRA_FileManager, TERRA_Texture,
-  TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_SpriteManager, TERRA_Localization;
+  TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_SpriteManager, TERRA_InputManager,
+  TERRA_FontRenderer, TERRA_Localization;
 
 Type
   // A client is used to process application events
@@ -29,6 +30,7 @@ Const
 
 Var
   _Font:Font = Nil;
+  _FontRenderer:FontRenderer;
   _SelectedLanguage:Integer;
 
 { Game }
@@ -42,6 +44,9 @@ Begin
   // Load a font
   _Font := FontManager.Instance.GetFont('droid');
 
+  _FontRenderer := FontRenderer.Create();
+  _FontRenderer.SetFont(_Font);
+
   // Create a scene and set it as the current scene
   _Scene := MyScene.Create;
   GraphicsManager.Instance.SetScene(_Scene);
@@ -52,21 +57,22 @@ End;
 // OnIdle is called once per frame, put your game logic here
 Procedure MyGame.OnDestroy;
 Begin
+  ReleaseObject(_FontRenderer);
   ReleaseObject(_Scene);
 End;
 
 Procedure MyGame.OnIdle;
 Begin
-  If (Application.Instance.Input.Keys.WasPressed(keyEscape)) Then
+  If (InputManager.Instance.Keys.WasPressed(keyEscape)) Then
     Application.Instance.Terminate;
 
-  If (Application.Instance.Input.Keys.WasPressed(keyLeft)) And (_SelectedLanguage>1) Then
+  If (InputManager.Instance.Keys.WasPressed(keyLeft)) And (_SelectedLanguage>1) Then
   Begin
     Dec(_SelectedLanguage);
     LocalizationManager.Instance.SetLanguage(LanguageList[_SelectedLanguage]);
   End;
 
-  If (Application.Instance.Input.Keys.WasPressed(keyright)) And (_SelectedLanguage<LanguageCount) Then
+  If (InputManager.Instance.Keys.WasPressed(keyright)) And (_SelectedLanguage<LanguageCount) Then
   Begin
     Inc(_SelectedLanguage);
     LocalizationManager.Instance.SetLanguage(LanguageList[_SelectedLanguage]);
@@ -85,17 +91,17 @@ Begin
       Saturation := 1.0
     Else
       Saturation := 0.0;
-      
+
     SpriteManager.Instance.DrawSprite(10 + I * 70, 10, 10, TextureManager.Instance.GetTexture('flag_'+LanguageList[I]), Nil, blendBlend, Saturation);
   End;
 
   // render some text
   If Assigned(_Font) Then
   Begin
-    _Font.DrawText(50, 90, 10, ' Language: ' + GetLanguageDescription(LanguageList[_SelectedLanguage]), ColorWhite, 1.0, True);
-    _Font.DrawText(100, 160, 10, LocalizationManager.Instance['score'] + ': 1000', ColorYellow, 1.0, True);
-    _Font.DrawText(100, 190, 10, LocalizationManager.Instance['totaltime'] + ': 1:23', ColorYellow, 1.0, True);
-    _Font.DrawText(100, 230, 10, LocalizationManager.Instance['coinscollected'] + ': 56', ColorYellow, 1.0, True);
+    _FontRenderer.DrawText(50, 90, 10, ' Language: ' + GetLanguageDescription(LanguageList[_SelectedLanguage]));
+    _FontRenderer.DrawText(100, 160, 10, LocalizationManager.Instance['score'] + ': 1000');
+    _FontRenderer.DrawText(100, 190, 10, LocalizationManager.Instance['totaltime'] + ': 1:23');
+    _FontRenderer.DrawText(100, 230, 10, LocalizationManager.Instance['coinscollected'] + ': 56');
 
   End;
 End;

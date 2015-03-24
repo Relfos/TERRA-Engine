@@ -7,7 +7,7 @@ Uses
   TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_UI, TERRA_Lights, TERRA_Viewport,
   TERRA_JPG, TERRA_PNG, TERRA_RenderTarget, TERRA_Solids, TERRA_Texture,
   TERRA_FileManager, TERRA_Scene, TERRA_Mesh, TERRA_Skybox, TERRA_Color, TERRA_Matrix4x4,
-  TERRA_ScreenFX;
+  TERRA_ScreenFX, TERRA_InputManager;
 
 Type
   MyScene = Class(Scene)
@@ -84,7 +84,7 @@ End;
 
 Procedure Game.OnIdle;
 Begin
-  If Keys.WasPressed(keyEscape) Then
+  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate();
 
   GraphicsManager.Instance.ActiveViewport.Camera.FreeCam;
