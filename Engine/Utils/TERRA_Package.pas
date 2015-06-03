@@ -180,7 +180,7 @@ Begin
   It := _Resources.GetIterator();
   While It.HasNext() Do
   Begin
-    Res := ResourceInfo(It.GetNext());
+    Res := ResourceInfo(It.Value);
     If (StringEquals(Res._FileName, ResourceName)) Then
     Begin
       Result := Res;

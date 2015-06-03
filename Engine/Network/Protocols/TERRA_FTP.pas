@@ -63,6 +63,8 @@ Type
 
       Function GetSocket(S:TERRAString):NetSocket;
 
+      Function ChangeDir(Path:TERRAString):Boolean;
+
     Public
       Constructor Create(URL:TERRAString; Const Username, Password:TERRAString; Port:Integer = FTPPort);
       Procedure Release; Override;
@@ -146,6 +148,37 @@ Begin
   Log(logDebug, 'FTP', _LastCommand+' -> '+IntToString(Result));
 End;
 
+Function FTPSession.ChangeDir(Path:TERRAString):Boolean;
+Var
+  StatusCode:Integer;
+Begin
+  Result := True;
+  FormatFTPPath(Path);
+
+  If Path ='' Then
+    Exit;
+
+  SendCommand('CWD '+Path);
+  StatusCode := GetStatus;
+  If StatusCode = 250 Then
+    Exit;
+
+  If StatusCode = 550 Then
+  Begin
+    SendCommand('MKD '+Path);
+
+    StatusCode := GetStatus();
+    If StatusCode = 257 Then
+    Begin
+      SendCommand('CWD '+Path);
+      If StatusCode = 250 Then
+        Exit;
+    End;
+  End;
+
+  Result := False;
+End;
+
 Constructor FTPSession.Create(URL:TERRAString; Const Username, Password:TERRAString; Port:Integer);
 Var
   I:Integer;
@@ -200,7 +233,7 @@ Begin
   End;
 
   _Active := True;
-  
+
   SendCommand('USER '+Username);
   If GetStatus=331 Then
   Begin
@@ -212,15 +245,10 @@ Begin
     End;
   End;
 
-  If Path<>'' Then
+  If Not Self.ChangeDir(Path) Then
   Begin
-    FormatFTPPath(Path);
-    SendCommand('CWD '+Path);
-    If GetStatus<>250 Then
-    Begin
-      EndSession(ftp_InvalidPath);
-      Exit;
-    End;
+    EndSession(ftp_InvalidPath);
+    Exit;
   End;
 End;
 
@@ -245,16 +273,10 @@ Begin
   Path := GetFilePath(FileName);
   FileName := GetFileName(FileName, False);
 
-  If (Path<>'') Then
+  If Not Self.ChangeDir(Path) Then
   Begin
-    FormatFTPPath(Path);
-
-    SendCommand('CWD '+Path);
-    If GetStatus<>200 Then
-    Begin
-      Result := EndSession(ftp_InvalidPath);
-      Exit;
-    End;
+    EndSession(ftp_InvalidPath);
+    Exit;
   End;
 
   SendCommand('TYPE I');
@@ -263,7 +285,7 @@ Begin
     Result := EndSession(ftp_TransferError);
     Exit;
   End;
-
+  
   SendCommand('SIZE '+FileName);
   If GetStatus<>213 Then
   Begin
@@ -272,6 +294,11 @@ Begin
   End;
 
   FileSize := StringToInt(_LastResponse);
+  If FileSize<=0 Then
+  Begin                                   
+    Result := EndSession(ftp_InvalidFile);
+    Exit;
+  End;
 
   SendCommand('PASV');
   If GetStatus<>227 Then
@@ -350,16 +377,10 @@ Begin
   Path := GetFilePath(FileName);
   FileName := GetFileName(FileName, False);
 
-  If (Path<>'') Then
+  If Not Self.ChangeDir(Path) Then
   Begin
-    FormatFTPPath(Path);
-
-    SendCommand('CWD '+Path);
-    If GetStatus<>200 Then
-    Begin
-      Result := EndSession(ftp_InvalidPath);
-      Exit;
-    End;
+    EndSession(ftp_InvalidPath);
+    Exit;
   End;
 
   SendCommand('TYPE I');

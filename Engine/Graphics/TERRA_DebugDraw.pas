@@ -26,9 +26,9 @@ Unit TERRA_DebugDraw;
 {$I terra.inc}
 Interface
 
-Uses TERRA_String, TERRA_GraphicsManager, TERRA_Color, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_BoundingBox, TERRA_Frustum,
+Uses TERRA_String, TERRA_GraphicsManager, TERRA_Renderer, TERRA_Color, TERRA_BoundingBox, TERRA_Frustum,
   TERRA_Ray, TERRA_Matrix4x4, TERRA_Vector3D, TERRA_Vector2D, TERRA_Utils, TERRA_SpriteManager,
-  TERRA_MeshAnimation, TERRA_Collision2D, TERRA_Splines, TERRA_Shader, TERRA_ClipRect;
+  TERRA_MeshAnimation, TERRA_Collision2D, TERRA_Splines, TERRA_ClipRect;
 
 // 3d drawing
 Procedure DrawBoundingBox(Const MyBox:BoundingBox; Color:TERRA_Color.Color; KeepAlive:Boolean = False; AlwaysOnTop:Boolean=False);
@@ -55,9 +55,10 @@ Procedure DrawRect(X1,Y1,X2,Y2:Single; MyColor:Color; Layer:Single; Width:Intege
 Procedure DrawFilledRect(Line:Line2D; MyColor:Color; Layer:Single; Width:Integer; Const Clip:ClipRect); Overload;
 Procedure DrawFilledRect(X1,Y1,X2,Y2:Single; MyColor:Color; Layer:Single; Width:Integer; Const Clip:ClipRect); Overload;
 
-Procedure DrawPoint(Const P:Vector3D; Color:TERRA_Color.Color);
+Procedure DrawPoint2D(Const P:Vector2D; MyColor:Color; Layer:Single; Size:Integer; Const Clip:ClipRect; KeepAlive:Boolean = False);
+Procedure DrawPoint3D(Const P:Vector3D; MyColor:Color);
 
-Function GetDebugDrawShader():Shader;
+Function GetDebugDrawShader():ShaderInterface;
 
 Procedure DrawDebug3DObjects();
 Procedure DrawDebug2DObjects();
@@ -189,7 +190,7 @@ Begin
 End;
 
 Var
-  _Shader:Shader;
+  _Shader:ShaderInterface;
 
 Function MyColorShader():TERRAString;
 Var
@@ -217,12 +218,12 @@ Begin
 End;
 
 
-Function GetDebugDrawShader():Shader;
+Function GetDebugDrawShader():ShaderInterface;
 Begin
   If (_Shader = Nil) Then
   Begin
-    _Shader := Shader.CreateFromString(MyColorShader(), 'debugdraw');
-    ShaderManager.Instance.AddShader(_Shader);
+    _Shader := GraphicsManager.Instance.Renderer.CreateShader();
+    _Shader.Generate('debugdraw', MyColorShader()); 
   End;
 
   Result := _Shader;
@@ -250,7 +251,7 @@ Begin
 
   _Vertices := MyFrustum.Vertices;
 
-	glLineWidth(2.0);
+(*	glLineWidth(2.0);
 	glColor4f(1.0, 1.0, 1.0, 1.0);
 
 	glBegin(GL_LINE_LOOP);
@@ -281,6 +282,8 @@ Begin
   glVertex3f(_Vertices[6].X, _Vertices[6].Y, _Vertices[6].z);
 	glEnd();
 
+  BIBI
+*)
 {$ENDIF}
 End;
 
@@ -294,20 +297,21 @@ Begin
   AddDebugObject(DebugLine.Create(A, B, MyColor, Thickness), KeepAlive, AlwaysOnTop);
 End;
 
-Procedure DrawPoint(Const P:Vector3D; Color:TERRA_Color.Color);
+Procedure DrawPoint3D(Const P:Vector3D; MyColor:Color);
 Begin
 {$IFDEF PC}
-  glDepthMask(True);                      
+(*  glDepthMask(True);
   glDepthRange(0,0.0001);                 
   GraphicsManager.Instance.EnableColorShader(Color, Matrix4x4Identity);
-  GraphicsManager.Instance.SetBlendMode(blendBlend);
+  GraphicsManager.Instance.Renderer.SetBlendMode(blendBlend);
 	glLineWidth(2.0); 
   glPointSize(10);
   glBegin(GL_POINTS);
   glVertex3f(P.X, P.Y, P.Z);
   glEnd();
   glDepthMask(True);                      
-  glDepthRange(0,1);                      
+  glDepthRange(0,1);
+  BIBI*)
 {$ENDIF}
 End;
 
@@ -319,13 +323,13 @@ Var
   I,J:Integer;
 Begin
 {$IFDEF PC}
-  GraphicsManager.Instance.EnableColorShader(MyColor, Transform);
+(*  GraphicsManager.Instance.EnableColorShader(MyColor, Transform);
 	glLineWidth(2.0);
 
-  glDepthMask(True);                      
-  glDepthRange(0,0.0001);                 
+  glDepthMask(True);
+  glDepthRange(0,0.0001);
 
-  GraphicsManager.Instance.SetBlendMode(blendBlend);
+  GraphicsManager.Instance.Renderer.SetBlendMode(blendBlend);
 
   For I:=0 To Pred(MySkeleton.BoneCount) Do
   Begin
@@ -373,9 +377,11 @@ Begin
   End;
   glEnd;
 
-  GraphicsManager.Instance.SetBlendMode(blendNone);
+  GraphicsManager.Instance.Renderer.SetBlendMode(blendNone);
   glDepthMask(True);                      
-  glDepthRange(0,1);                      
+  glDepthRange(0,1);
+  BIBI
+  *)
 {$ENDIF}
 End;
 
@@ -390,6 +396,7 @@ Begin
     Exit;
 
 {$IFDEF PC}
+(*
   GraphicsManager.Instance.EnableColorShader(Color, Transform);
 	glLineWidth(Width);
 
@@ -410,7 +417,8 @@ Begin
   glEnd;
 
   glDepthMask(True);                      
-  glDepthRange(0,1);                      
+  glDepthRange(0,1);
+  BIBI*)                      
 {$ENDIF}
 End;
 
@@ -436,12 +444,13 @@ Begin
 {$IFDEF PC}
   GraphicsManager.Instance.EnableColorShader(Color, Matrix4x4Translation(Position));
 
-  	glBegin(GL_QUADS);
+(*  	glBegin(GL_QUADS);
   	glVertex3f(A.x, A.y, A.z);
   	glVertex3f(B.x, B.y, B.z);
   	glVertex3f(C.x, C.y, C.z);
   	glVertex3f(D.x, D.y, D.z);
   	glEnd();
+    BIBI*)
 {$ENDIF}
 End;
 
@@ -460,7 +469,7 @@ Begin
     Exit;
   {$IFDEF PC}
 
-  glBegin(GL_LINE_STRIP);
+(*  glBegin(GL_LINE_STRIP);
     For I:=0 To (Poly.VertexCount) Do
     Begin
       If (I<Poly.VertexCount) Then
@@ -471,16 +480,17 @@ Begin
       glVertex3f(Poly.Vertices[K].X , Poly.Vertices[K].Y , -Layer);
     End;
   glEnd;
+  BIBI *)
   {$ENDIF}
 End;
 
 Procedure DrawLine2D(P1,P2:Vector2D; MyColor:Color; Layer, Width:Single; Pattern:Integer);
 Var
-  MyShader:Shader;
+  MyShader:ShaderInterface;
   PositionHandle, ColorHandle:Integer;
 Begin
   {$IFDEF PC}
-	glLineWidth(Width); 
+(*	glLineWidth(Width);
 
   If (Pattern<>0) Then
   Begin
@@ -495,7 +505,7 @@ Begin
   ColorHandle := MyShader.GetAttribute('terra_color');
 
   MyShader.SetUniform('projectionMatrix', GraphicsManager.Instance.ProjectionMatrix);
-  GraphicsManager.Instance.SetBlendMode(blendBlend);
+  GraphicsManager.Instance.Renderer.SetBlendMode(blendBlend);
 
   glBegin(GL_LINE_STRIP);
     glVertexAttrib4ubv(ColorHandle, @MyColor);
@@ -505,7 +515,19 @@ Begin
 
   If (Pattern<>0) Then
     glDisable(GL_LINE_STIPPLE);
+   BIBI *)
   {$ENDIF}
+End;
+
+Procedure DrawPoint2D(Const P:Vector2D; MyColor:Color; Layer:Single; Size:Integer; Const Clip:ClipRect; KeepAlive:Boolean);
+Var
+  L:Line2D;
+Begin
+  L.P1.X := P.X-Size*0.5;
+  L.P1.Y := P.Y-Size*0.5;
+  L.P2.X := P.X+Size*0.5;
+  L.P2.Y := P.Y+Size*0.5;
+  DrawRect(L, MyColor, Layer, 1, Clip, KeepAlive);
 End;
 
 Procedure DrawRect(X1,Y1,X2,Y2:Single; MyColor:Color; Layer:Single; Width:Integer; Const Clip:ClipRect; KeepAlive:Boolean);
@@ -538,7 +560,7 @@ End;
 Procedure DrawFilledRect(Line:Line2D; MyColor:Color; Layer:Single; Width:Integer; Const Clip:ClipRect);
 Var
   I:Integer;
-  MyShader:Shader;
+  MyShader:ShaderInterface;
   PositionHandle, ColorHandle:Integer;
   Min,Max:Vector2D;
   Vertices:Array[0..5] Of Vertex2D;
@@ -549,17 +571,17 @@ Var
   End;
 Begin
   {$IFDEF PC}
-  MyShader := GetDebugDrawShader();
+(*  MyShader := GetDebugDrawShader();
   ShaderManager.Instance.Bind(MyShader);
 
   PositionHandle := MyShader.GetAttribute('terra_position');
   ColorHandle := MyShader.GetAttribute('terra_color');
 
   MyShader.SetUniform('projectionMatrix', GraphicsManager.Instance.ProjectionMatrix);
-  GraphicsManager.Instance.SetBlendMode(blendBlend);
+  GraphicsManager.Instance.Renderer.SetBlendMode(blendBlend);
 
-  glVertexAttribPointer(PositionHandle, 3, GL_FLOAT, False, SizeOf(Vertex2D), @(Vertices[0].Position));    
-  glVertexAttribPointer(ColorHandle, 4, GL_UNSIGNED_BYTE, True, SizeOf(Vertex2D), @(Vertices[0].Color));    
+  glVertexAttribPointer(PositionHandle, 3, GL_FLOAT, False, SizeOf(Vertex2D), @(Vertices[0].Position));
+  glVertexAttribPointer(ColorHandle, 4, GL_UNSIGNED_BYTE, True, SizeOf(Vertex2D), @(Vertices[0].Color));
 
   For I:=0 To Pred(Width) Do
   Begin
@@ -575,9 +597,9 @@ Begin
     EmitVertex(4, Min.X, Min.Y, -Layer);
     EmitVertex(5, Min.X, Max.Y, -Layer);
 
-    glDrawArrays(GL_TRIANGLES, 0, 6);                         
-    GraphicsManager.Instance.Internal(0 , 2);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
   End;
+  BIBI *)
   {$ENDIF}
 End;
 
@@ -586,7 +608,7 @@ Var
   I:Integer;
 Begin
   {$IFDEF PC}
-  glPointSize(3.0);
+(*  glPointSize(3.0);
 
   glBegin(GL_POINTS);
   glColor4ub(MyColor.R, MyColor.G, MyColor.B, MyColor.A);
@@ -595,6 +617,7 @@ Begin
     glVertex3f(Cloud.Points[I].X, Cloud.Points[I].Y, -Layer);
   End;
   glEnd();
+  BIBI *)
   {$ENDIF}
 End;
 
@@ -613,19 +636,19 @@ End;
 
 Procedure DebugBoundingBox.Render;
 Var
-  MyShader:Shader;
+  MyShader:ShaderInterface;
   Position:Integer;
   Min,Max:Vector2D;
 
   {$IFDEF PC}
   Procedure EmitVertex(X,Y,Z:Single);
   Begin
-    glVertexAttrib4f(Position, X, Y, Z, 1.0);
+    // glVertexAttrib4f(Position, X, Y, Z, 1.0); BIBI
   End;
   {$ENDIF}
 Begin
   {$IFDEF PC}
-  If (_AlwaysOnTop) Then
+(*  If (_AlwaysOnTop) Then
     glDisable(GL_DEPTH_TEST);
   MyShader := GraphicsManager.Instance.EnableColorShader(MyColor, Matrix4x4Identity);
   Position := MyShader.GetAttribute('terra_position');
@@ -697,6 +720,9 @@ Begin
 
   If (_AlwaysOnTop) Then
     glEnable(GL_DEPTH_TEST);
+
+    BIBI
+    *)
 {$ENDIF}
 End;
 
@@ -724,7 +750,7 @@ Var
   I:Integer;
   P:Vector3D;
   T, Step:Single;
-  MyShader:Shader;
+  MyShader:ShaderInterface;
   Position:Integer;
 Begin
   If (S.PointCount<=1) Then
@@ -733,7 +759,7 @@ Begin
   S.Update();
 
 {$IFDEF PC}
-	Step := 0.01;
+(*	Step := 0.01;
 
   If (_AlwaysOnTop) Then
     glDisable(GL_DEPTH_TEST);
@@ -752,6 +778,9 @@ Begin
 
   If (_AlwaysOnTop) Then
     glEnable(GL_DEPTH_TEST);
+
+    BIBI
+    *)
 
 (* TODO - replace quadrics
 
@@ -794,9 +823,10 @@ Procedure DebugRay.Render;
 Var
   P:Vector3D;
   Position:Integer;
-  MyShader:Shader;
+  MyShader:ShaderInterface;
 Begin
   {$IFDEF PC}
+  (*
   If (_AlwaysOnTop) Then
     glDisable(GL_DEPTH_TEST);
 
@@ -815,6 +845,8 @@ Begin
   If (_AlwaysOnTop) Then
     glEnable(GL_DEPTH_TEST);
 
+    BIBI
+    *)
   {$ENDIF}
 End;
 
@@ -839,10 +871,10 @@ End;
 Procedure DebugLine.Render;
 Var
   Position:Integer;
-  MyShader:Shader;
+  MyShader:ShaderInterface;
 Begin
   {$IFDEF PC}
-  If (_AlwaysOnTop) Then
+(*  If (_AlwaysOnTop) Then
     glDisable(GL_DEPTH_TEST);
 
   MyShader := GraphicsManager.Instance.EnableColorShader(MyColor, Matrix4x4Identity);
@@ -858,6 +890,8 @@ Begin
 
   If (_AlwaysOnTop) Then
     glEnable(GL_DEPTH_TEST);
+
+    BIBI*)
   {$ENDIF}
 End;
 
@@ -884,7 +918,7 @@ Var
   I:Integer;
   Tex:Texture;
   MinX, MinY, MaxX, MaxY:Single;
-  S:Sprite;
+  S:QuadSprite;
 Begin
   Tex := TextureManager.Instance.WhiteTexture;
   If Tex = Nil Then

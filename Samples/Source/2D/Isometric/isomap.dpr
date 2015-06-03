@@ -5,9 +5,9 @@
 
 Program Tutorial10;
 
-Uses TERRA_MemoryManager, TERRA_Application, TERRA_Client, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
+Uses TERRA_MemoryManager, TERRA_Application, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
   TERRA_OS, TERRA_Vector2D, TERRA_Font, TERRA_Texture, TERRA_InputManager,
-  TERRA_UI, TERRA_FileManager, TERRA_SpriteManager, TERRA_Viewport,
+  TERRA_UI, TERRA_FileManager, TERRA_SpriteManager, TERRA_Viewport, TERRA_Renderer,
   TERRA_Widgets, TERRA_PNG, TERRA_Scene, TERRA_Color, TERRA_Matrix4x4;
 
 Const
@@ -31,7 +31,7 @@ Type
     Procedure Add(ID:Byte);
   End;
 
-  Game = Class(AppClient)
+  Demo = Class(Application)
     Protected
       _Scene:Scene;
 
@@ -70,7 +70,7 @@ End;
 
 
 { Game }
-Procedure Game.OnCreate;
+Procedure Demo.OnCreate;
 Var
   I,J:Integer;
 Begin
@@ -82,7 +82,7 @@ Begin
   // Change filtering to make the tileset rendering pixel perfect
   If Assigned(Tileset) Then
   Begin
-    Tileset.BilinearFilter := False;
+    Tileset.Filter := filterLinear;
     Tileset.MipMapped := False;
   End;
 
@@ -118,12 +118,12 @@ Begin
   GraphicsManager.Instance.Scene := _Scene;
 End;
 
-Procedure Game.OnDestroy;
+Procedure Demo.OnDestroy;
 Begin
   ReleaseObject(_Scene);
 End;
 
-Procedure Game.OnIdle;
+Procedure Demo.OnIdle;
 Var
   Delta:Single;
 Begin
@@ -153,7 +153,7 @@ End;
 // This is called every frame, so we put here our main loop code
 Procedure MyScene.RenderSprites(V:Viewport);
 Var
-  S:Sprite;
+  S:QuadSprite;
   X,Y, XOfs:Single;
   TileID:Byte;
   I,J,K:Integer;
@@ -176,8 +176,8 @@ Begin
 
           // We add a new sprite for each tile
           // The scroll effect is created by adding MapX/MapY variables the sprite position
-          Y := -MapY+ J * 16 - 32 * K;
-          S := SpriteManager.Instance.DrawSprite(X, Y, 10-K*0.1, Tileset);
+          Y := -MapY + J * 16 - 32 * K;
+          S := SpriteManager.Instance.DrawSprite(X, Y, 10+K*0.1, Tileset);
           S.Rect.TileRemap(TileID Mod 10, TileID Div 10, 10, 16);
 
           S.Rect.Width := 67;
@@ -189,7 +189,7 @@ Begin
         If TileID=0 Then
           Continue;
 
-          S := SpriteManager.Instance.DrawSprite(X,Y, 9, Tileset);
+          S := SpriteManager.Instance.DrawSprite(X,Y, 90, Tileset);
           S.Rect.TileRemap(TileID Mod 10, TileID Div 10, 10, 16);
       End;
     End;
@@ -199,7 +199,7 @@ End;
 Procedure StartGame; cdecl; export;
 {$ENDIF}
 Begin
-  ApplicationStart(Game.Create);
+  Demo.Create();
 {$IFDEF IPHONE}
 End;
 {$ENDIF}

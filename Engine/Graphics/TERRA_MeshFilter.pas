@@ -27,16 +27,10 @@ Unit TERRA_MeshFilter;
 
 Interface
 
-Uses TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_Stream;
+Uses TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Vector4D,
+  TERRA_Quaternion, TERRA_Color, TERRA_Stream, TERRA_VertexFormat;
 
 Const
-  meshFormatNormal  = 1;
-  meshFormatTangent = 2;
-  meshFormatBone    = 4;
-  meshFormatColor   = 8;
-  meshFormatUV1     = 16;
-  meshFormatUV2     = 32;
-
   meshGroupHidden       = 1 Shl 0;  // Group is hidden
   meshGroupDoubleSided  = 1 Shl 1;
   meshGroupCastShadow   = 1 Shl 2;
@@ -66,6 +60,7 @@ Const
   meshGroupReflective   = 1 Shl 26;
   meshGroupStencilMask  = 1 Shl 27;
   meshGroupReflectiveMap = 1 Shl 28;
+  meshGroupShadowOnly  = 1 Shl 29;
 
 {  mgMirror    = 2;  // Group is a reflective surface
   mgCullFace  = 4;  // Group is one sided/two sided
@@ -80,18 +75,6 @@ Const
 }
 
 Type
-  PMeshVertex=^MeshVertex;
-	MeshVertex = Packed Record
-		Position:Vector3D;
-    TextureCoords:Vector2D;
-    TextureCoords2:Vector2D;
-    Color:TERRA_Color.Color;
-    Normal:Vector3D;
-    BoneIndex:Single;
-    Tangent:Vector3D;
-    Handness:Single;
-	End;
-
   MeshVectorKey = Record
     Value:Vector3D;
     Time:Single;
@@ -113,11 +96,10 @@ Type
       Function GetTriangle(GroupID, Index:Integer):Triangle; Virtual;
 
       Function GetVertexCount(GroupID:Integer):Integer; Virtual;
-      Function GetVertexFormat(GroupID:Integer):Cardinal; Virtual;
+      Function GetVertexFormat(GroupID:Integer):VertexFormat; Virtual;
       Function GetVertexPosition(GroupID, Index:Integer):Vector3D; Virtual;
       Function GetVertexNormal(GroupID, Index:Integer):Vector3D; Virtual;
-      Function GetVertexTangent(GroupID, Index:Integer):Vector3D; Virtual;
-      Function GetVertexHandness(GroupID, Index:Integer):Single; Virtual;
+      Function GetVertexTangent(GroupID, Index:Integer):Vector4D; Virtual;
       Function GetVertexBone(GroupID, Index:Integer):Integer; Virtual;
       Function GetVertexColor(GroupID, Index:Integer):Color; Virtual;
       Function GetVertexUV(GroupID, Index:Integer):Vector2D; Virtual;
@@ -177,7 +159,7 @@ Var
   MeshFilterCount:Integer = 0;
 
 Implementation
-Uses TERRA_FileStream, TERRA_FileUtils, TERRA_MemoryStream, TERRA_GraphicsManager;
+Uses TERRA_FileStream, TERRA_FileUtils, TERRA_MemoryStream, TERRA_GraphicsManager, TERRA_Renderer;
 
 Procedure RegisterMeshFilter(Filter:MeshFilterClass; Extension:TERRAString);
 Begin
@@ -272,14 +254,9 @@ Begin
   Result := 0;
 End;
 
-Function MeshFilter.GetVertexFormat(GroupID: Integer): Cardinal;
+Function MeshFilter.GetVertexFormat(GroupID: Integer):VertexFormat;
 Begin
-  Result := 0;
-End;
-
-Function MeshFilter.GetVertexHandness(GroupID, Index: Integer): Single;
-Begin
-  Result := 1.0;
+  Result := [vertexFormatPosition];
 End;
 
 Function MeshFilter.GetVertexNormal(GroupID, Index: Integer): Vector3D;
@@ -292,9 +269,9 @@ Begin
   Result := VectorZero;
 End;
 
-Function MeshFilter.GetVertexTangent(GroupID, Index: Integer): Vector3D;
+Function MeshFilter.GetVertexTangent(GroupID, Index: Integer): Vector4D;
 Begin
-  Result := VectorZero;
+  Result := VectorCreate4D(0,1,0,1);
 End;
 
 Function MeshFilter.GetVertexUV(GroupID, Index: Integer): Vector2D;

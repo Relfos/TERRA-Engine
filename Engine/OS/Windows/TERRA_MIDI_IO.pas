@@ -71,18 +71,18 @@ Var
   Status:Integer;
   Opcode, Arg1, Arg2:Byte;
 Begin
-     If (Not _midiInitialized) Then
-     Begin
-          If (MIDI_Init()) Then
-          Begin
-               Result := False;
-               Exit;
-          End;
-     End;
+  If (Not _midiInitialized) Then
+  Begin
+    If (Not MIDI_Init()) Then
+    Begin
+      Result := False;
+      Exit;
+    End;
+  End;
 
-     midiOutShortMsg(_midiOut, Event);
+  midiOutShortMsg(_midiOut, Event);
 
-     Result := True
+  Result := True
 End;
 
 End.

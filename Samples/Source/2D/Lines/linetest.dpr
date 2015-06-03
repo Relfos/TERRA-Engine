@@ -1,13 +1,13 @@
 {$I terra.inc}
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} BasicSample;
 
-Uses TERRA_Utils, TERRA_Application, TERRA_Scene, TERRA_Client, TERRA_GraphicsManager, TERRA_Viewport,
+Uses TERRA_Utils, TERRA_Application, TERRA_Scene, TERRA_GraphicsManager, TERRA_Viewport,
   TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_PNG, TERRA_Vector2D, TERRA_InputManager,
   TERRA_DebugDraw, TERRA_FileManager, TERRA_Math, TERRA_Vector3D, TERRA_Font, TERRA_Tween, TERRA_UI;
 
 Type
   // A client is used to process application events
-  MyGame = Class(AppClient)
+  Demo = Class(Application)
     Protected
       _Scene:Scene;
 
@@ -66,7 +66,7 @@ Var
   EaseType :Integer;
 
 { Game }
-Procedure MyGame.OnCreate;
+Procedure Demo.OnCreate;
 Begin
   // Create a scene and set it as the current scene
   _Scene := MyScene.Create;
@@ -76,7 +76,7 @@ Begin
 End;
 
 // OnIdle is called once per frame, put your game logic here
-Procedure MyGame.OnIdle;
+Procedure Demo.OnIdle;
 Begin
   If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
@@ -127,5 +127,5 @@ End;
 
 Begin
   // Start the application
-  ApplicationStart(MyGame.Create);
+  Demo.Create();
 End.

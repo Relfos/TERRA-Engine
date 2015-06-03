@@ -616,7 +616,7 @@ Begin
   If (T>=D) Then
     Result := B
   Else
-    Result := B + Cos(RealMod(GetTime{*D}, 360)*RAD)*C;
+    Result := B + Cos(RealMod(Application.GetTime{*D}, 360)*RAD)*C;
 End;
 
 Function GetEase(Delta:Single; EaseType:Integer):Single;
@@ -670,7 +670,7 @@ Begin
   _Object := Obj;
   _DataType := MyType;
   _Data := Data;
-  _StartTime :=  GetTime;
+  _StartTime :=  Application.GetTime;
   _Finished := False;
   _StartValue := Self.Read();
   _TargetValue := TargetValue;
@@ -690,7 +690,7 @@ End;
 
 Procedure Tween.Update;
 Var
-  T,P:Integer;
+  T,P:Single;
   Delta, Value:Single;
   IsFinished:Boolean;
 Begin
@@ -700,7 +700,7 @@ Begin
   If (_Finished) Then
     Exit;
 
-  T := GetTime;
+  T := Application.GetTime();
   P := (Self._StartTime + Self.Delay);
   Delta := (T - P);
   If (Delta<0.0) Then

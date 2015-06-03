@@ -1,14 +1,15 @@
 {$I terra.inc}
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} BasicSample;
 
-Uses TERRA_Application, TERRA_Scene, TERRA_Client, TERRA_GraphicsManager, TERRA_Viewport,
-  TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_PNG,
+Uses TERRA_Application, TERRA_Scene, TERRA_GraphicsManager, TERRA_Viewport,
+  TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_PNG, 
   TERRA_SpriteManager, TERRA_FileManager, TERRA_Math, TERRA_Vector3D, TERRA_Vector2D,
-  TERRA_InputManager;
-                            
+  TERRA_Renderer, TERRA_InputManager;
+
+
 Type
   // A client is used to process application events
-  MyGame = Class(AppClient)
+  Demo = Class(Application)
     Protected
       _Scene:Scene;
 
@@ -25,7 +26,7 @@ Var
   Tex:Texture = Nil;
 
 { Game }
-Procedure MyGame.OnCreate;
+Procedure Demo.OnCreate;
 Begin
   // Added Asset folder to search path
   FileManager.Instance.AddPath('assets');
@@ -41,7 +42,7 @@ Begin
 End;
 
 // OnIdle is called once per frame, put your game logic here
-Procedure MyGame.OnIdle;
+Procedure Demo.OnIdle;
 Begin
   If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
@@ -52,9 +53,9 @@ Procedure MyScene.RenderSprites;
 Var
   I:Integer;
   Angle:Single;
-  S:Sprite;
+  S:QuadSprite;
 Begin
-  If Tex = Nil Then
+  If (Tex = Nil) Then
     Exit;
 
   // This is how sprite rendering works with TERRA.
@@ -112,12 +113,12 @@ Begin
   End;
 
   // A rotating sprite in the bottom, with Scale = 2x
-  Angle := RAD * ((GetTime() Div 15) Mod 360);
+  Angle := RAD * ((Application.GetTime() Div 15) Mod 360);
   S := SpriteManager.Instance.DrawSprite(300, 400, 50, Tex);
   S.SetScaleAndRotationRelative(VectorCreate2D(0.5, 0.5), 2.0, Angle);  // Calculate rotation, in degrees, from current time
 End;
 
 Begin
   // Start the application
-  ApplicationStart(MyGame.Create);
+  Demo.Create();
 End.

@@ -26,54 +26,113 @@ Unit TERRA_Downsampler;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Shader, TERRA_RenderTarget, TERRA_Math, TERRA_Application, TERRA_Utils;
+  TERRA_String, TERRA_Renderer, TERRA_Texture, TERRA_Math, TERRA_Application, TERRA_Utils;
 
 Type
-  RenderTargetDownSampler = Class(TERRAObject)
+  RenderTargetSampler = Class(TERRAObject)
     Protected
-      _Name:TERRAString;
+	    _Targets:Array Of RenderTargetInterface;
+      _Textures:Array Of Texture;
+      _TargetCount:Integer;
 
-	    _Textures: Array Of RenderTarget;
-      _TextureCount:Integer;
+      _ResultIndex:Integer;
 
-	    // Create the downsampler
-    	Procedure Init(Width, Height, Format:Integer);
+    	Procedure Init(Width, Height:Integer; PixelSize:PixelSizeType); Virtual; Abstract;
 
     	// Free memory
 	    Procedure Clear();
 
     Public
-	    Constructor Create(Const Name:TERRAString; Width, Height:Integer);
+	    Constructor Create(Width, Height:Integer; PixelSize:PixelSizeType);
+
 	    Procedure Release; Override;
 
-
-	    // Downsample a framebuffer using the shader
-      // Return value is index of smallest texture downsampled
-	    Function Update(Source:RenderTarget; Downsampler:Shader; Target:Integer = 0; Limit:Integer=0):Integer;
+	    Procedure Update(Source:Texture; DownsamplerShader:ShaderInterface; First, Count:Integer); Virtual; Abstract;
 
 	    // Number of render texture used
-      Property TextureCount:Integer Read _TextureCount;
+      Property TextureCount:Integer Read _TargetCount;
 
       // Get a downsampled render texture
-      Function GetRenderTexture(Index:Integer):RenderTarget;
+      Function GetRenderTexture(Index:Integer):Texture;
+
+      Function GetResult():Texture;
+  End;
+
+  RenderTargetDownSampler = Class(RenderTargetSampler)
+    Protected
+	    // Create the downsampler
+    	Procedure Init(Width, Height:Integer; PixelSize:PixelSizeType); Override;
+
+    Public
+	    // Downsample a framebuffer using the shader
+      // Return value is index of smallest texture downsampled
+	    Procedure Update(Source:Texture; DownsamplerShader:ShaderInterface; First, Count:Integer); Override;
+  End;
+
+  RenderTargetBouncer = Class(RenderTargetSampler)
+    Protected
+	    // Create the downsampler
+    	Procedure Init(Width, Height:Integer; PixelSize:PixelSizeType); Override;
+
+    Public
+	    // Downsample a framebuffer using the shader
+      // Return value is index of smallest texture downsampled
+	    Procedure Update(Source:Texture; DownsamplerShader:ShaderInterface; First, Count:Integer); Override;
   End;
 
 Implementation
-Uses {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_GraphicsManager, TERRA_Texture
-{$IFDEF FRAMEBUFFEROBJECTS},TERRA_FBO{$ENDIF};
+Uses TERRA_GraphicsManager, TERRA_InputManager, TERRA_Color;
 
-Constructor RenderTargetDownSampler.Create(Const Name:TERRAString; Width, Height:Integer);
+{ RenderTargetSampler }
+Constructor RenderTargetSampler.Create(Width, Height:Integer; PixelSize:PixelSizeType);
 Begin
-  Self._Name := Name;
-  Self.Init(Width, Height, {$IFDEF FRAMEBUFFEROBJECTS}FBO_COLOR8{$ELSE}0{$ENDIF});
+  Self.Init(Width, Height, PixelSize); // {$IFDEF FRAMEBUFFEROBJECTS}FBO_COLOR8{$ELSE}0{$ENDIF}); BIBI
 End;
 
-Procedure RenderTargetDownSampler.Release();
+Function RenderTargetSampler.GetRenderTexture(Index:Integer):Texture;
+Begin
+  If (Index<0) Or (Index>=_TargetCount) Then
+    Result := Nil
+  Else
+  Begin
+    If (_Textures[Index] = Nil) Then
+    Begin
+      _Textures[Index] := Texture.Create();
+      _Textures[Index].CreateFromSurface(_Targets[Index]);
+    End;
+
+    Result := _Textures[Index];
+  End;
+End;
+
+Procedure RenderTargetSampler.Release();
 Begin
   Self.Clear();
 End;
 
-Procedure RenderTargetDownSampler.Init(Width, Height, Format:Integer);
+
+Procedure RenderTargetSampler.Clear();
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_TargetCount) Do
+  Begin
+    ReleaseObject(_Textures[I]);
+    ReleaseObject(_Targets[I]);
+  End;
+
+  _TargetCount := 0;
+  SetLength(_Targets, 0);
+  SetLength(_Textures, 0);
+End;
+
+Function RenderTargetSampler.GetResult: Texture;
+Begin
+  Result := Self.GetRenderTexture(_ResultIndex);
+End;
+
+{ RenderTargetDownSampler }
+Procedure RenderTargetDownSampler.Init(Width, Height:Integer; PixelSize:PixelSizeType);
 Var
   I, X,Y:Integer;
   Nx, Ny:Integer;
@@ -96,93 +155,151 @@ Begin
 		Y := Trunc(Y/2.0);
 	End;
 
-	_TextureCount := IntMax(Nx, Ny);
-  SetLength(_Textures, _TextureCount);
+	_TargetCount := IntMax(Nx, Ny);
+  SetLength(_Targets, _TargetCount);
+  SetLength(_Textures, _TargetCount);
 
 	// Create FrameBuffer Objects
-	for I :=0 To Pred(_TextureCount) Do
+	For I :=0 To Pred(_TargetCount) Do
 	Begin
 		Width := Width Div 2;
 		Height := Height Div 2;
-    {$IFDEF FRAMEBUFFEROBJECTS}
-		_Textures[I] := FrameBufferObject.Create(_Name+'_target'+IntToString(I), Width, Height, Format, False, False, False, 1);
-    {$ELSE}
-    _Textures[I] := Nil;
-    {$ENDIF}
+		_Targets[I] := GraphicsManager.Instance.Renderer.CreateRenderTarget();
+    _Targets[I].Generate({_Name+'_target'+IntToString(I), }Width, Height, False, PixelSize, 1, False, False);
+
+    _Targets[I].BackgroundColor := ColorRed;
 	End;
 End;
 
-Procedure RenderTargetDownSampler.Clear();
+Procedure RenderTargetDownSampler.Update(Source:Texture; DownsamplerShader:ShaderInterface; First, Count:Integer);
+Var
+  N, I:Integer;
+  curRT:RenderTargetInterface;
+  Graphics:GraphicsManager;
+Begin
+  _ResultIndex := 0;
+
+  Graphics := GraphicsManager.Instance;
+
+	// Set max number of textures
+  If (Count<0) Then
+    N := _TargetCount
+  Else
+	  N := IntMin(Count, _TargetCount);
+
+	// Generate all down-sampled render texture
+	For I:=First To Pred(N) Do
+	Begin
+		curRt := _Targets[i];
+
+    If (I>0) Then
+      Source := Self.GetRenderTexture(Pred(i));
+
+		// Render on current fbo
+		curRt.BeginCapture(clearAll);
+
+		// Use previous render texture as input texture
+    Source.Bind(0);
+
+		// User shader to render
+    Graphics.Renderer.BindShader(DownsamplerShader);
+    DownsamplerShader.SetFloatUniform('dx', 1 / curRt.Width);
+    DownsamplerShader.SetFloatUniform('dy', 1 / curRt.Height);
+    DownsamplerShader.SetIntegerUniform('texture', 0);
+
+		// Draw quad on the screen
+    Graphics.Renderer.SetBlendMode(blendNone);
+		Graphics.DrawFullscreenQuad(DownsamplerShader, 0, 0, 1.0, 1.0);
+
+    curRt.EndCapture();
+
+    _ResultIndex := I;
+
+    {IF InputManager.Instance.Keys.IsDown(Ord('T')) Then
+      curRt.GetImage().Save('ds'+IntToString(I)+'.png');}
+	End;
+
+//  Graphics.ActiveViewport.Restore();
+End;
+
+
+
+{ RenderTargetBouncer }
+Procedure RenderTargetBouncer.Init(Width, Height: Integer; PixelSize: PixelSizeType);
 Var
   I:Integer;
 Begin
-  For I:=0 To Pred(_TextureCount) Do
-    _Textures[I].Release;
+	_TargetCount := 2;
+  SetLength(_Targets, _TargetCount);
+  SetLength(_Textures, _TargetCount);
 
-  _TextureCount := 0;
-  SetLength(_Textures, 0);
+	// Create FrameBuffer Objects
+	For I :=0 To Pred(_TargetCount) Do
+	Begin
+		_Targets[I] := GraphicsManager.Instance.Renderer.CreateRenderTarget();
+    _Targets[I].Generate(Width, Height, False, PixelSize, 1, False, False);
+    _Targets[I].BackgroundColor := ColorRed;
+	End;
 End;
 
-Function RenderTargetDownSampler.Update(Source:RenderTarget; Downsampler:Shader; Target:Integer = 0; Limit:Integer=0):Integer;
+Procedure RenderTargetBouncer.Update(Source:Texture; DownsamplerShader: ShaderInterface; First, Count: Integer);
 Var
-  N, I:Integer;
-  prevRT:RenderTarget;
-  curRT:RenderTarget;
-  W,H:Single;
+  N, CurIndex:Integer;
+  curRT:RenderTargetInterface;
+  Graphics:GraphicsManager;
+  Tex:Texture;
 Begin
-  Result := 0;
+  _ResultIndex := 0;
 
-	// Set max number of textures
-  If (Limit <=0) Then
-    N := _TextureCount
-  Else
-	  N := IntMin(Limit, _TextureCount);
+  Graphics := GraphicsManager.Instance;
+
+  Tex := Self.GetRenderTexture(0);
+  If (Source = Tex) Then
+      CurIndex := 1
+    Else
+      CurIndex := 0;
 
 	// Generate all down-sampled render texture
-	For I:=0 To Pred(N) Do
+	For N:=1 To Count Do
 	Begin
-		curRt := _Textures[i];
-    If (I=0) Then
-		  prevRt := Source
-    Else
-      prevRT := _Textures[Pred(i)];
+    curRt := _Targets[curIndex];
 
 		// Render on current fbo
-		curRt.BeginCapture();
-		glClear(GL_COLOR_BUFFER_BIT Or GL_DEPTH_BUFFER_BIT);
+		curRt.BeginCapture(clearAll);
 
 		// Use previous render texture as input texture
-		prevRt.Bind(0);
+    Source.Bind(0);
 
 		// User shader to render
-    ShaderManager.Instance.Bind(Downsampler);
-    W := curRt.Width;
-    H := curRt.Height;
-    Downsampler.SetUniform('width', W);
-    Downsampler.SetUniform('height', H);
-    Downsampler.SetUniform('texture', 0);
+    Graphics.Renderer.BindShader(DownsamplerShader);
+    DownsamplerShader.SetFloatUniform('dx', 1 / curRt.Width);
+    DownsamplerShader.SetFloatUniform('dy', 1 / curRt.Height);
+    DownsamplerShader.SetIntegerUniform('texture', 0);
 
 		// Draw quad on the screen
-    GraphicsManager.Instance.SetBlendMode(blendNone);
-		GraphicsManager.Instance.DrawFullscreenQuad(DownSampler, 0, 0, 1.0, 1.0);
+    Graphics.Renderer.SetBlendMode(blendNone);
+		Graphics.DrawFullscreenQuad(DownsamplerShader, 0, 0, 1.0, 1.0);
+
     curRt.EndCapture();
 
-    Result := I;
+    _ResultIndex := CurIndex;
 
-    {IF application.Instance.Keys[Ord('T')] Then
-      curRt.GetImage(0).Save('ds'+IntToString(I)+'.png');}
+    IF InputManager.Instance.Keys.IsDown(Ord('T')) Then
+      curRt.GetImage().Save('ds'+IntToString(curIndex)+'.png');
+
+    Tex := Self.GetRenderTexture(0);
+    If (Source = Tex) Then
+    Begin
+      Source := Self.GetRenderTexture(1);
+      curIndex := 0;
+    End Else
+    Begin
+      Source := Tex;
+      curIndex := 1;
+    End;
 	End;
 
-//  GraphicsManager.Instance.ActiveViewport.Restore();
-End;
-
-
-Function RenderTargetDownSampler.GetRenderTexture(Index:Integer):RenderTarget;
-Begin
-  If (Index<0) Or (Index>=_textureCount) Then
-    Result := Nil
-  Else
-    Result := _Textures[Index];
+//  Graphics.ActiveViewport.Restore();
 End;
 
 End.

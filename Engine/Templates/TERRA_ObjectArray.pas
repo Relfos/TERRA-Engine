@@ -57,9 +57,6 @@ Type
   ObjectArrayIterator = Class(Iterator)
     Protected
       Function ObtainNext:CollectionObject; Override;
-
-    Public
-      Procedure Reset(); Override;
   End;
 
 { ObjectArray }
@@ -157,17 +154,10 @@ End;
 { ObjectArrayIterator }
 Function ObjectArrayIterator.ObtainNext: CollectionObject;
 Begin
-  Result := ObjectArray(_Collection)._Objects[_Index];
-End;
-
-Procedure ObjectArrayIterator.Reset;
-Begin
-  Inherited Reset();
-  
-  If (ObjectArray(_Collection)._ItemCount>0) Then
-    _Next := ObjectArray(_Collection)._Objects[0]
+  If (Self.Index< Self.Collection.Count) Then
+    Result := ObjectArray(Self.Collection)._Objects[Self.Index]
   Else
-    _Next := Nil;
+    Result := Nil;
 End;
 
 End.

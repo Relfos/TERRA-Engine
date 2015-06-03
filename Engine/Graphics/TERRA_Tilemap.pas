@@ -27,7 +27,7 @@ Unit TERRA_Tilemap;
 
 Interface
 Uses TERRA_String, TERRA_Stream, TERRA_XML, TERRA_Utils, TERRA_Texture, TERRA_SpriteManager,
-  TERRA_FileUtils, TERRA_ZLib,  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
+  TERRA_FileUtils, TERRA_Renderer, TERRA_ZLib;
 
 Const
   TileMapExtension = 'tmx';
@@ -124,6 +124,7 @@ Type
       _TileWidth:Integer;
       _TileHeight:Integer;
       _Tileset:Texture;
+      _TilesetName:TERRASTring;
       _TileInfo:Array[0..Pred(MaxTileIDs)] Of TileInfo;
       _Palette:Array[0..Pred(MaxTileIDs)] Of Cardinal;
 
@@ -132,6 +133,8 @@ Type
 
       _Properties:Array Of ObjectProperty;
       _PropertyCount:Integer;
+
+      Function GetTileset: Texture;
 
     Public
       Name:TERRAString;
@@ -166,7 +169,7 @@ Type
       Function GetLayer(Index:Integer):TileLayer; Overload;
       Function GetLayer(Const Name:TERRAString):TileLayer; Overload;
 
-      Property Tileset:Texture Read _Tileset;
+      Property Tileset:Texture Read GetTileset;
 
       Property ObjectCount:Integer Read _ObjectCount;
       Property LayerCount:Integer Read _LayerCount;
@@ -294,13 +297,7 @@ Begin
   PP := P.GetNodeByName('image');
   PPP := PP.GetNodeByName('source');
   S := GetFileName(PPP.Value, True);
-  _Tileset := TextureManager.Instance.GetTexture(S);
-  If Assigned(_Tileset) Then
-  Begin
-    _Tileset.BilinearFilter := False;
-    _Tileset.Wrap := False;
-    _Tileset.MipMapped := False;
-  End;
+  _TileSetName := S;
 
   {PPP := PP.GetNodeByName('height');
   _TilesPerCol := StringToInt(PPP.Value) Div _TileHeight;}
@@ -412,7 +409,7 @@ Begin
   For I:=0 To Pred(MaxTileIDs) Do
   If (_TileInfo[I].AnimationCycle>0) Then
   Begin
-    N := (GetTime() Div _TileInfo[I].AnimationDuration) Mod _TileInfo[I].AnimationCycle;
+    N := (Application.GetTime() Div _TileInfo[I].AnimationDuration) Mod _TileInfo[I].AnimationCycle;
     _Palette[I] := Cardinal(I) + N * _TileInfo[I].AnimationGap;
   End;
 
@@ -487,6 +484,22 @@ Begin
   End;
 
   Result := Nil
+End;
+
+Function TileMap.GetTileset: Texture;
+Begin
+  If (_Tileset = Nil) Then
+  Begin
+    _Tileset := TextureManager.Instance.GetTexture(_TilesetName);
+    If Assigned(_Tileset) Then
+    Begin
+      _Tileset.Filter := filterLinear;
+      _Tileset.WrapMode := wrapNothing;
+      _Tileset.MipMapped := False;
+    End;
+  End;
+
+  Result := _TileSet;
 End;
 
 { TileLayer }
@@ -664,7 +677,7 @@ Var
   X1,Y1,X2,Y2:Integer;
   I,J, N:Integer;
   Z:Single;
-  S:Sprite;
+  S:QuadSprite;
   Tx, Ty:Integer;
 Begin
   X1 := Trunc(_Map.CamX/_Map._TileWidth/_Map.Scale);
@@ -696,7 +709,7 @@ Begin
         Z := Depth - 10
       Else
         Z := Depth;
-      S := SpriteManager.Instance.DrawSprite(I*_Map._TileWidth*_Map.Scale - _Map.CamX, J*_Map._TileHeight*_Map.Scale - _Map.CamY, Z, _Map._Tileset);
+      S := SpriteManager.Instance.DrawSprite(I*_Map._TileWidth*_Map.Scale - _Map.CamX, J*_Map._TileHeight*_Map.Scale - _Map.CamY, Z, _Map.Tileset);
       Tx := (N Mod _TilesPerRow);
       Ty := (N Div _TilesPerRow);
       S.Rect.PixelRemap(Tx*_Map._TileWidth, Ty*_Map._TileWidth, Succ(Tx)*_Map._TileWidth-1, Succ(Ty)*_Map._TileWidth-1);

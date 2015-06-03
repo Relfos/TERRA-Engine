@@ -191,7 +191,7 @@ Begin
   MaxNode:=-1;
 
   AddNode(StartX,StartY, GetCost(StartX,StartY), Nil);
-  StartTime := GetTime;
+  StartTime := Application.GetTime;
 
   Result := Nil;
   _ErrorCode := pathSearchInProgress;
@@ -237,7 +237,7 @@ Begin
 
     CurrentNode.State := nsDiscarded;
 
-  Until (Flags And sfSearchTimeout<>0)And(GetTime-StartTime>= PathSearchDefaultTimeOut);
+  Until (Flags And sfSearchTimeout<>0)And(Application.GetTime-StartTime>= PathSearchDefaultTimeOut);
 
   If (_ErrorCode = pathSearchInProgress) Then
     _ErrorCode := pathSearchTimeOut;

@@ -25,10 +25,6 @@
 Unit TERRA_GraphicsManager;
 {$I terra.inc}
 
-{$IFDEF WINDOWS}
-{$DEFINE PRECISIONTIMER}
-{$ENDIF}
-
 {-$DEFINE TESTFULLSCREENSHADER}
 
 {$IFDEF POSTPROCESSING}
@@ -40,132 +36,15 @@ Unit TERRA_GraphicsManager;
 
 Interface
 Uses {$IFNDEF DEBUG_LEAKS}TERRA_MemoryManager,{$ENDIF} {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Downsampler, TERRA_Shader, //TERRA_Renderer,
+  TERRA_String, TERRA_Downsampler, TERRA_Renderer,
   {$IFDEF POSTPROCESSING}TERRA_ScreenFX,{$ENDIF}
   {$IFDEF SHADOWMAPS}TERRA_ShadowMaps,{$ENDIF}
-  {$IFDEF PRECISIONTIMER}TERRA_Timer,{$ENDIF}
-  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_BoundingBox, TERRA_Camera, TERRA_Color, TERRA_Matrix4x4,
+  TERRA_BoundingBox, TERRA_Camera, TERRA_Color, TERRA_Matrix4x4,
   TERRA_Utils, TERRA_Texture, TERRA_Scene, TERRA_Vector3D,
-  TERRA_RenderTarget, TERRA_Viewport, TERRA_Application,
+  TERRA_Viewport, TERRA_Application, TERRA_VertexFormat,
   TERRA_Image, TERRA_Math, TERRA_Vector2D, TERRA_Ray, TERRA_Collections, TERRA_Pool;
 
-Type
-  GraphicsManagerCallback = Procedure;
-
-	GraphicsManagerFeature = Object
-		Protected
-			_Avaliable:Boolean;
-
-		Public
-			Property Avaliable:Boolean Read _Avaliable;
-	End;
-
-	GraphicsManagerSetting = Object
-		Protected
-			_Enabled:Boolean;
-			_Avaliable:Boolean;
-
-		Public
-      Function Enabled:Boolean;
-      Function Avaliable:Boolean;
-
-      Procedure SetValue(Value:Boolean);
-	End;
-
-	GraphicsManagerVariableSetting = Object(GraphicsManagerSetting)
-		Protected
-			_Quality:Integer;
-
-      Procedure SetQuality(Value:Integer);
-
-		Public
-      Property Quality:Integer Read _Quality Write SetQuality;
-	End;
-
-	GraphicsManagerSettings = Class(TERRAObject)
-    Protected
-      _MaxAnisotrophy:Integer;
-      _MaxTextureSize:Integer;
-      _MaxTextureUnits:Integer;
-      _multiSampleCount:Integer;
-      _maxRenderTargets:Integer;
-      _MaxUniformVectors:Integer;
-      _Changed:Boolean;
-
-      _ShadowSplitCount:Integer;
-      _ShadowSplitWeight:Single;
-      _ShadowMapSize:Integer;
-      _ShadowBias:Single;
-
-      _VertexCacheSize:Integer;
-
-    Public
-		  FrameBufferObject:GraphicsManagerFeature;
-  		CubemapTexture:GraphicsManagerFeature;
-      FloatTexture:GraphicsManagerFeature;
-  		TextureArray:GraphicsManagerFeature;
-      SeparateBlends:GraphicsManagerFeature;
-      SeamlessCubeMap:GraphicsManagerFeature;
-      PackedStencil:GraphicsManagerFeature;
-       NPOT:GraphicsManagerFeature;
-      Shaders:GraphicsManagerFeature;
-
-      AlphaFade:GraphicsManagerVariableSetting;
-      DynamicShadows:GraphicsManagerVariableSetting;
-      Textures:GraphicsManagerVariableSetting;
-  		TextureCompression:GraphicsManagerVariableSetting;
-      DeferredLighting:GraphicsManagerSetting;
-      DeferredFog:GraphicsManagerSetting;
-      DeferredShadows:GraphicsManagerSetting;
-      SelfShadows:GraphicsManagerSetting;
-      DepthOfField:GraphicsManagerSetting;
-      PostProcessing:GraphicsManagerSetting;
-      NormalMapping:GraphicsManagerSetting;
-      LightMapping:GraphicsManagerSetting;
-      ToonShading:GraphicsManagerSetting;
-      AlphaTesting:GraphicsManagerSetting;
-      Specular:GraphicsManagerSetting;
-      Fur:GraphicsManagerSetting;
-      Sky:GraphicsManagerSetting;
-      Reflections:GraphicsManagerSetting;
-      DynamicLights:GraphicsManagerSetting;
-      SSAO:GraphicsManagerSetting;
-	  	VertexBufferObject:GraphicsManagerSetting;
-      Outlines:GraphicsManagerSetting;
-
-      FogMode:Integer;
-      FogColor:Color;
-      FogDensity:Single;
-      FogStart:Single;
-      FogHeight:Single;
-
-      Procedure Release; Override;
-
-      Property ShadowSplitCount:Integer Read _ShadowSplitCount Write _ShadowSplitCount;
-      Property ShadowSplitWeight:Single Read _ShadowSplitWeight Write _ShadowSplitWeight;
-      Property ShadowMapSize:Integer Read _ShadowMapSize Write _ShadowMapSize;
-      Property ShadowBias:Single Read _ShadowBias Write _ShadowBias;
-
-      Property MaxAnisotrophy:Integer Read _MaxAnisotrophy;
-      Property MaxTextureSize:Integer Read _MaxTextureSize;
-      Property MaxTextureUnits:Integer Read _MaxTextureUnits;
-      Property MultiSampleCount:Integer Read _multiSampleCount;
-      Property VertexCacheSize:Integer Read _VertexCacheSize;
-    End;
-
 Const
-  blendNone     = 0;
-  blendBlend    = 1;
-  blendAdd      = 2;         //GL_ONE  GL_ONE
-  blendFilter   = 3;      //GL_DST_COLOR GL_ZERO
-  blendModulate = 4;
-  blendJoin     = 5;
-  blendZero     = 6;
-  blendOne      = 7;
-  blendColor    = 8;
-  blendColorAdd    = 9;
-  blendReflection  = 10;
-
   lightModelDefault   = 0;
   lightModelSimple    = 1;
 
@@ -173,6 +52,7 @@ Const
   fogOff      = 0;
   fogDistance = 1;
   fogHeight   = 2;
+  fogBox      = 4;
 
   renderStageDiffuse      = 1;
   renderStageNormal       = 2;
@@ -181,14 +61,11 @@ Const
   renderStageOutline      = 16;
   renderStageReflection   = 32;
   renderStageShadow       = 64;
-  renderStagePostProcess  = 128;
+//  renderStageAlpha        = 128;
 
   renderFlagsSkipFrustum  = 1;
   renderFlagsSkipSorting  = 2;
   renderFlagsSkipReflections  = 4;
-
-  MaxTextureHandles = 2048;
-  MaxFrameBufferHandles = 128;
 
 Type
   Renderable = Class(TERRAObject)
@@ -237,13 +114,6 @@ Const
   MaxRenderables  = 4096;
   MaxLODLevel = 3;
 
-  FogDensityScale = 0.06;
-
-  QualityDisabled = 0;
-  QualityLow = 1;
-  QualityMedium = 2;
-  QualityHigh = 3;
-
 Type
 //  SortMethod = (Unsorted, SortBackToFront, SortFrontToBack);
 
@@ -270,17 +140,6 @@ Type
       Function GetBoundingBox:BoundingBox; Override;
   End;
 
-  GraphicsManagerStats = Object
-    Public
-      TriangleCount:Integer;
-      ShaderSwitches:Integer;
-      DrawCalls:Integer;
-      LightCount:Integer;
-      OccluderCount:Integer;
-      RenderableCount:Integer;
-      FramesPerSecond:Integer;
-  End;
-
 	GraphicsManager = Class(ApplicationComponent)
 		Protected
       _Viewports:Array Of Viewport;
@@ -295,44 +154,27 @@ Type
 
       _ReflectionCamera:Camera;
 
-			_Settings:GraphicsManagerSettings;
-
       _Width:Integer;
       _Height:Integer;
-
       _DepthSize:Integer;
 
+      _UIWidth:Integer;
+      _UIHeight:Integer;
+      _UIScale:Single;
+      
       _LightModel:Integer;
 
       _Scene:Scene;
 
-      _Stats:GraphicsManagerStats;
-      _PrevStats:GraphicsManagerStats;
-
-      _Frames:Integer;
-      _ElapsedTime:Single;
-
-      {$IFNDEF PRECISIONTIMER}
-      _LastTime:Cardinal;
-      _LastSecondTime:Cardinal;
-      {$ELSE}
-      _accumTimeSec:Single;
-      _Timer:Timer;
-      {$ENDIF}
-
-      _BackgroundColor:Color;
-
       _Occluders:Occluder;
+
+      _FullScreenQuadVertices:VertexData;
 
       _BucketOpaque:Pool;
       _BucketAlpha:Pool;
       {$IFDEF REFLECTIONS_WITH_STENCIL}
       _BucketReflection:Pool;
       {$ENDIF}
-
-      _Device:TERRAString;
-      _Vendor:TERRAString;
-      _Version:TERRAVersion;
 
       _FogEnable:Boolean;
       _CurrentBlendMode:Integer;
@@ -348,23 +190,22 @@ Type
 
       _StencilID:Byte;
 
-      _UsedTextures:Array[0..Pred(MaxTextureHandles)] Of Boolean;
-      _UsedFrameBuffers:Array[0..Pred(MaxFrameBufferHandles)] Of Boolean;
-      _UsedRenderBuffers:Array[0..Pred(MaxFrameBufferHandles)] Of Boolean;
+      _Renderer:TERRA_Renderer.Renderer;
 
       _ReflectionsEnabled:Boolean;
       _ReflectionPoint:Vector3D;
       _ReflectionNormal:Vector3D;
+
+      _LastTime:Cardinal;
+      _LastSecondTime:Cardinal;
+
+      _ElapsedTime:Single;
 
       Procedure RenderUI;
       Procedure RenderStencilShadows(View:Viewport);
       Procedure RenderSceneInternal(View:Viewport; Pass:RenderTargetType);
       Procedure RenderViewport(View:Viewport);
       Procedure RenderList(RenderList:List; TranslucentPass:Boolean);
-
-      Procedure ResetGLState();
-
-      Procedure OnSettingsChange();
 
       Procedure OnAppResize; Override;
       Procedure OnContextLost; Override;
@@ -393,7 +234,7 @@ Type
       Render2D:Boolean;
 
       EnviromentMap:Texture;
-      ColorRamp:Texture;
+      ToonRamp:Texture;
 
       Procedure Init; Override;
       Procedure Update; Override;
@@ -407,15 +248,12 @@ Type
 
 			Procedure RenderScene();
 
+
       Procedure TestDebugKeys();
-
-      Procedure Internal(Offset, Count:Integer);
-
-      //Procedure RenderCubeMapToFile(Position:LVector; FileName:TERRAString);
 
       Function IsBoxVisible(Box: BoundingBox): Boolean;
 
-	    Procedure DrawFullscreenQuad(CustomShader:Shader; X1,Y1,X2,Y2:Single);
+	    Procedure DrawFullscreenQuad(CustomShader:ShaderInterface; X1,Y1,X2,Y2:Single);
 
       Function SwapScene(MyScene:Scene):Scene;
       Procedure SetScene(MyScene:Scene);
@@ -426,15 +264,8 @@ Type
       Function ProjectPoint(Pos:Vector3D; V:Viewport):Vector3D;
       Function ProjectBoundingBox(Box:BoundingBox; V:Viewport):BoundingBox;
 
-			Property Settings:GraphicsManagerSettings Read _Settings;
-
-      Property ElapsedTime:Single Read _elapsedTime;
-      Property Stats:GraphicsManagerStats Read _PrevStats;
-
       Property Width:Integer Read _Width;
       Property Height:Integer Read _Height;
-
-      Procedure SetBackgroundColor(BG:Color);
 
 
       Function AddRenderable(MyRenderable:Renderable; Flags:Cardinal = 0):Boolean;
@@ -443,7 +274,6 @@ Type
 
       Procedure AddOccluder(MyOccluder:Occluder);
 
-      Procedure SetBlendMode(BlendMode:Integer);
       Procedure SetFog(Value:Boolean);
 
       Procedure AddViewport(V:Viewport);
@@ -451,23 +281,15 @@ Type
       Function GetViewport(Index:Integer):Viewport;
       Procedure SetCurrentViewport(V:Viewport);
 
-      Function GenerateTexture():Cardinal;
-      Function GenerateFrameBuffer():Cardinal;
-      Function GenerateRenderBuffer():Cardinal;
-
       Function GenerateStencilID():Byte; 
 
-      Procedure DeleteTexture(Var Handle:Cardinal);
-      Procedure DeleteFrameBuffer(Var Handle:Cardinal);
-      Procedure DeleteRenderBuffer(Var Handle:Cardinal);
-
-      Function GetScreenshot():Image;
-
-      Function EnableColorShader(Const MyColor:Color; Const Transform:Matrix4x4):Shader;
-      Function EnableTextureShader(Const MyColor:Color; Tex:Texture; Const Transform:Matrix4x4):Shader;
-      Function EnableColoredTextureShader(Tex:Texture; Const Transform:Matrix4x4):Shader;
+      Function EnableColorShader(Const MyColor:Color; Const Transform:Matrix4x4):ShaderInterface;
+      Function EnableTextureShader(Const MyColor:Color; Tex:Texture; Const Transform:Matrix4x4):ShaderInterface;
+      Function EnableColoredTextureShader(Tex:Texture; Const Transform:Matrix4x4):ShaderInterface;
 
       Procedure EnableReflection(Const ReflectionPoint, ReflectionNormal:Vector3D);
+
+      Property ElapsedTime:Single Read _elapsedTime;
 
       Property ViewportCount:Integer Read _ViewportCount;
 
@@ -478,6 +300,8 @@ Type
       Class Function IsShuttingDown:Boolean;
 
       Property CameraCount:Integer Read _CameraCount;
+
+      Property Renderer:TERRA_Renderer.Renderer Read _Renderer;
 
       Property ActiveViewport:Viewport Read _CurrentViewport Write SetCurrentViewport;
       Property MainViewport:Viewport Read _MainViewport;
@@ -491,19 +315,21 @@ Type
       Property FrameID:Cardinal Read _FrameID;
       Property RenderStage:Integer Read _RenderStage;
 
-      Property Device:TERRAString Read _Device;
-      Property Vendor:TERRAString Read _Vendor;
-      Property Version:TERRAVersion Read _Version;
-
       Property ProjectionMatrix:Matrix4x4 Read _Projection;
 
+      Property UI_Width:Integer Read _UIWidth;
+      Property UI_Height:Integer Read _UIHeight;
+      Property UI_Scale:Single Read _UIScale;
+
+      
       Property LightModel:Integer Read _LightModel Write _LightModel;
 	End;
 
-Function GetDefaultFullScreenShader():Shader;
+Function GetDefaultFullScreenShader():ShaderInterface;
 
 Implementation
-Uses TERRA_OS, TERRA_Log, TERRA_UI, TERRA_ResourceManager, TERRA_InputManager,
+
+Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_UI, TERRA_ResourceManager, TERRA_InputManager,
   TERRA_Frustum, TERRA_Lights, TERRA_SpriteManager, TERRA_Mesh,
   TERRA_Decals, TERRA_Billboards, TERRA_ParticleRenderer, TERRA_DebugDraw;
 
@@ -511,11 +337,11 @@ Var
   _GraphicsManager_Instance:ApplicationObject = Nil;
   _ShuttingDown:Boolean = False;
 
-  _SimpleColor:Shader;
-  _SimpleTexture:Shader;
-  _SimpleTextureColored:Shader;
-  _FullscreenQuadShader:Shader;
-  _FullscreenColorShader:Shader;
+  _SimpleColor:ShaderInterface;
+  _SimpleTexture:ShaderInterface;
+  _SimpleTextureColored:ShaderInterface;
+  _FullscreenQuadShader:ShaderInterface;
+  _FullscreenColorShader:ShaderInterface;
 
 Class Function GraphicsManager.IsShuttingDown:Boolean;
 Begin
@@ -682,12 +508,12 @@ Begin
   Result := S;
 End;
 
-Function GetDefaultFullScreenShader():Shader;
+Function GetDefaultFullScreenShader():ShaderInterface;
 Begin
   If (_FullscreenQuadShader = Nil) Then
   Begin
-    _FullscreenQuadShader := Shader.CreateFromString(GetShader_FullscreenQuad(), 'fullscreen_quad');
-    ShaderManager.Instance.AddShader(_FullscreenQuadShader);
+    _FullscreenQuadShader := GraphicsManager.Instance.Renderer.CreateShader();
+    _FullscreenQuadShader.Generate('fullscreen_quad', GetShader_FullscreenQuad());
   End;
 
   Result := _FullscreenQuadShader;
@@ -813,7 +639,7 @@ End;
 
 Procedure Occluder.Render(TranslucentPass:Boolean);
 Begin
-{$IFDEF PC}
+{$IFDEF PC_X}
   If (TranslucentPass) Then
     Exit;
 
@@ -844,43 +670,7 @@ Begin
 {$ENDIF}
 End;
 
-{ GraphicsManagerSettings }
-Procedure GraphicsManagerSettings.Release;
-Begin
-  // do nothing
-End;
-
-{ GraphicsManagerSetting }
-Function GraphicsManagerSetting.Enabled:Boolean;
-Begin
-  Result := _Enabled;
-End;
-
-Function GraphicsManagerSetting.Avaliable:Boolean;
-Begin
-  Result := _Avaliable;
-End;
-
-Procedure GraphicsManagerSetting.SetValue(Value: Boolean);
-Begin
-  If (Value) And (Not Self._Avaliable) Then
-    Value := False;
-
-  If (_Enabled=Value) Then
-    Exit;
-
-	Self._Enabled := Value;
-  GraphicsManager(_GraphicsManager_Instance.Instance)._Settings._Changed := True;
-End;
-
-Procedure GraphicsManagerVariableSetting.SetQuality(Value: Integer);
-Begin
-  If (_Quality=Value) Then
-    Exit;
-	Self._Quality := Value;
-  GraphicsManager(_GraphicsManager_Instance.Instance)._Settings._Changed := True;
-End;
-
+{ GraphicsManager }
 Class Function GraphicsManager.Instance:GraphicsManager;  {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   If (Not Assigned(_GraphicsManager_Instance)) Then
@@ -891,29 +681,26 @@ End;
 
 Procedure GraphicsManager.Init;
 Var
-  I:Integer;
   V:Viewport;
   OW, OH:Integer;
   S:TERRAString;
-  HasShaders:Boolean;
+  RendererID:Integer;
 Begin
   Log(logDebug, 'GraphicsManager', 'Initializing');
+
 
   _CurrentViewport := Nil;
   _MainViewport := Nil;
   _DeviceViewport := Nil;
   _UIViewport := Nil;
   _DepthSize := 2048;
-  _Settings := GraphicsManagerSettings.Create;
 
   _BucketOpaque := Pool.Create(collection_Sorted_Ascending);
   _BucketAlpha :=  Pool.Create(collection_Sorted_Descending);
+
   {$IFDEF REFLECTIONS_WITH_STENCIL}
   _BucketReflection := Pool.Create(coAppend);
   {$ENDIF}
-
-  FillChar(_Stats, SizeOf(_Stats), 0);
-  FillChar(_PrevStats, SizeOf(_PrevStats), 0);
 
   If Application.Instance = Nil Then
     Exit;
@@ -921,186 +708,32 @@ Begin
   _Width := Application.Instance.Width;
   _Height := Application.Instance.Height;
 
-  _BackgroundColor := ColorCreate(0, 0, 0, 255);
-
-  {$IFDEF PRECISIONTIMER}
-  _Timer := Timer.Create;
-  _accumTimeSec := 0.0;
-  {$ENDIF}
-
-  {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'OnAppCreate');{$ENDIF}
-
-
   _FogEnable := False;
 
-  ResetGLState();
+  RendererID := Application.Instance.SelectRenderer();
+  If (RendererID<0) Or (RendererID>=Renderers.Count) Then
+    RendererID := 0;
 
-  {$IFDEF MOBILE}
-  glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, @_Settings._MaxTextureUnits);
-  {$ELSE}
-  glGetIntegerv(GL_MAX_TEXTURE_UNITS, @_Settings._MaxTextureUnits);
-  {$ENDIF}
-  Log(logDebug, 'GraphicsManager', 'Max texture slots:' + IntToString(_Settings._MaxTextureUnits));
+  _Renderer := TERRA_Renderer.Renderer(Renderers.GetItemByIndex(RendererID));
+  If _Renderer = Nil Then
+  Begin
+    RaiseError('Failed to initialized renderer with ID '+IntToString(RendererID));
+    Exit;
+  End;
 
-	glGetIntegerv(GL_MAX_TEXTURE_SIZE, @_Settings._MaxTextureSize);
-  Log(logDebug, 'GraphicsManager', 'Max texture size:' + IntToString(_Settings._MaxTextureSize));
-
-{$IFDEF MOBILE}
-	_Settings._maxRenderTargets := 0;
-{$ELSE}
-  glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, @_Settings._maxRenderTargets);
-  Log(logDebug, 'GraphicsManager', 'Max render targets:' + IntToString(_Settings._maxRenderTargets));
-{$ENDIF}
+  Log(logDebug, 'GraphicsManager', 'Initializing Renderer: '+_Renderer.Name);
+  _Renderer.Reset();
 
   Log(logDebug, 'GraphicsManager', 'Width='+IntToString(_Width)+' Height='+IntToString(_Height));
 
-{$IFDEF PC}
-  If (glExtensionSupported('GL_EXT_texture_filter_anisotropic')) Then
-  Begin
-    glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, @_Settings._maxAnisotrophy); 
-  End Else
-{$ENDIF}
-    _Settings._maxAnisotrophy := 0;
+  Application.Instance.SetViewport(0,0,_Width,_Height);
 
-  If (glExtensionSupported('GL_ARB_multisample')) Then
-    _Settings._multiSampleCount := 4
-  Else
-    _Settings._multiSampleCount := 0;
-
-  _Settings._VertexCacheSize := 32; 
-
-  _Device := glGetString(GL_RENDERER);   
-  _Vendor := glGetString(GL_VENDOR);     
-
-  Log(logDebug, 'GraphicsManager', 'Device: '+_Device);
-  Log(logDebug, 'GraphicsManager', 'Vendor: '+_Vendor);
-
-  _Vendor := StringUpper(_Vendor);
-  If Pos('INTEL', _Vendor)>0 Then
-    _Vendor := 'INTEL'
-  Else
-  If Pos('NVIDIA', _Vendor)>0 Then
-    _Vendor := 'NVIDIA'
-  Else
-  If (Pos('ATI', _Vendor)>0) Or (Pos('AMD', _Vendor)>0) Then
-    _Vendor := 'ATI';
-
-  {$IFDEF PC}
-	_Settings.TextureCompression._Avaliable :=  glExtensionSupported('GL_EXT_texture_compression_s3tc');
-  {$ELSE}
-  {$IFDEF MOBILE}
-  _Settings.TextureCompression._Avaliable :=  True;
-  {$ELSE}
-  _Settings.TextureCompression._Avaliable :=  False;
-  {$ENDIF}
-  {$ENDIF}
-
-  _Settings.TextureCompression._Enabled := _Settings.TextureCompression._Avaliable;
-
-  {$IFDEF PC}
-	HasShaders := (glExtensionSupported('GL_ARB_vertex_shader')) And (glExtensionSupported('GL_ARB_fragment_shader'));
-//  HasShaders := HasShaders And (Pos('MESA', _Vendor)<=0);
-  {$ELSE}
-
-{$IFDEF IPHONE}
-  HasShaders := shadersAvailable();
-{$ELSE}
-  HasShaders := True;
-{$ENDIF}
-  {$ENDIF}
-
-  {$IFDEF DISABLESHADERS}
-  HasShaders := False;
-  {$ENDIF}
-
-  _Settings.Shaders._Avaliable := HasShaders;
-	_Settings.VertexBufferObject._Avaliable := glExtensionSupported('GL_ARB_vertex_buffer_object');
-  _Settings.VertexBufferObject._Enabled := _Settings.Shaders._Avaliable;
-
-  {$IFDEF FRAMEBUFFEROBJECTS}
-    {$IFDEF PC}
-  	_Settings.FrameBufferObject._Avaliable := glExtensionSupported('GL_ARB_framebuffer_object') Or glExtensionSupported('GL_EXT_framebuffer_object');
-    {$ENDIF}
-
-    {$IFDEF MOBILE}
-	  _Settings.FrameBufferObject._Avaliable := True;
-    {$ENDIF}
-  {$ELSE}
-  _Settings.FrameBufferObject._Avaliable := False;
-  {$ENDIF}
-
-  {$IFDEF POSTPROCESSING}
-  _Settings.PostProcessing._Avaliable := (Settings.FrameBufferObject._Avaliable) {And (_Settings._maxRenderTargets>=4)};
-  {$ELSE}
-  _Settings.PostProcessing._Avaliable := False;
-  {$ENDIF}
-  _Settings.PostProcessing._Enabled := _Settings.PostProcessing._Avaliable;
-
-  _Settings.CubeMapTexture._Avaliable := glExtensionSupported('GL_ARB_texture_cube_map');
-  _Settings.SeparateBlends._Avaliable := glExtensionSupported('GL_EXT_draw_buffers2');
-  _Settings.SeamlessCubeMap._Avaliable := glExtensionSupported('GL_ARB_seamless_cube_map') Or glExtensionSupported('GL_AMD_seamless_cubemap_per_texture');
-  {$IFDEF MOBILE}
-  _Settings.NPOT._Avaliable := HasShaders;
-  {$ELSE}
-  _Settings.NPOT._Avaliable := glExtensionSupported('GL_ARB_texture_non_power_of_two');//OES_texture_npot
-  {$ENDIF}
-
-  {$IFDEF MOBILE}
-  _Settings.PackedStencil._Avaliable := glExtensionSupported('GL_OES_packed_depth_stencil');
-  {$ELSE}
-  _Settings.PackedStencil._Avaliable := True;
-  {$ENDIF}
-
-  {$IFDEF DISABLEOUTLINES}
-  _Settings.Outlines._Avaliable := False;
-  {$ELSE}
-  _Settings.Outlines._Avaliable := True;
-  {$ENDIF}
-  _Settings.Outlines._Enabled := _Settings.Outlines._Avaliable;
-
-  Log(logDebug, 'GraphicsManager', 'Texture compression: '+  BoolToString(_Settings.TextureCompression.Avaliable));
-
-  Log(logDebug, 'GraphicsManager', 'Shaders: '+  BoolToString(HasShaders));
-
-  Log(logDebug, 'GraphicsManager', 'VertexBufferObject: '+  BoolToString(_Settings.VertexBufferObject.Avaliable));
-  Log(logDebug, 'GraphicsManager', 'FrameBufferObject: '+  BoolToString(_Settings.FrameBufferObject.Avaliable));
-  Log(logDebug, 'GraphicsManager', 'CubemapTexture: '+  BoolToString(_Settings.CubemapTexture.Avaliable));
-  Log(logDebug, 'GraphicsManager', 'FloatTexture: '+  BoolToString(_Settings.FloatTexture.Avaliable));
-  Log(logDebug, 'GraphicsManager', 'TextureArray: '+  BoolToString(_Settings.TextureArray.Avaliable));
-  Log(logDebug, 'GraphicsManager', 'SeparateBlends: '+  BoolToString(_Settings.SeparateBlends.Avaliable));
-  Log(logDebug, 'GraphicsManager', 'SeamlessCubeMap: '+  BoolToString(_Settings.SeamlessCubeMap.Avaliable));
-  Log(logDebug, 'GraphicsManager', 'NPOT: '+  BoolToString(_Settings.NPOT.Avaliable));
-
-  glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS, @_Settings._MaxUniformVectors);
-  If (_Settings._MaxUniformVectors<128) Then
-    _Settings.VertexBufferObject._Enabled := False;
-
-  S := ' ' + glGetExtensionString();
-  StringReplaceText(' ', crLf+#9, S);
-  Log(logDebug, 'GraphicsManager', 'Extensions: '+ S);
-
-  _Version := StringToVersion('0.0.0');
-
-  {$IFNDEF MOBILE}
-  If (HasShaders) Then
-  Begin
-    S := glGetString(GL_SHADING_LANGUAGE_VERSION);   
-    If (S<>'') Then
-    Begin
-      Log(logDebug, 'GraphicsManager', 'Version: '+ S);
-
-      I := Pos(' ', S);
-      If (I>0) Then
-        S := Copy(S, 1, Pred(I));
-      _Version := StringToVersion(S);
-    End;
-
-    Log(logDebug,'GraphicsManager','GLSL version:'+VersionToString(_Version));
-  End Else
-  Begin
-    Log(logError, 'GraphicsManager', 'Unsupported videocard!');
-  End;
-  {$ENDIF}
+  _UIWidth := _Width;
+  _UIHeight := _Height;
+  _UIScale := 1.0;
+  Application.Instance.SelectResolution2D(_UIWidth, _UIHeight, _UIScale);
+  Log(logDebug, 'App', 'Selected UI resolution: '+IntToString(_UIWidth)+' x ' +IntToString(_UIHeight));
+   Log(logDebug, 'App', 'Selected UI scale: '+FloatToString(_UIScale));
 
   Render3D := True;
   Render2D := True;
@@ -1143,81 +776,7 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
 
    }
 
-  _Settings.TextureArray._Avaliable := glExtensionSupported('GL_EXT_texture_array');
 
-  _Settings.FloatTexture._Avaliable := glExtensionSupported('GL_ARB_color_buffer_float') Or
-                            glExtensionSupported('GL_ATI_pixel_format_float') Or
-                            glExtensionSupported('GL_NV_float_buffer');
-
-  _Settings.DeferredLighting._Avaliable := (_Settings._maxRenderTargets>=4) And _Settings.FrameBufferObject._Avaliable;
-  _Settings.DeferredFog._Avaliable :=  _Settings.DeferredLighting._Avaliable;
-  _Settings.DeferredShadows._Avaliable := _Settings.DeferredLighting._Avaliable;
-  _Settings.AlphaFade._Avaliable := True;
-
-  {$IFDEF IPHONE}
-  _Settings.DynamicShadows._Avaliable := glExtensionSupported('GL_OES_packed_depth_stencil') Or glExtensionSupported('GL_OES_stencil8');
-  {$ELSE}
-  _Settings.DynamicShadows._Avaliable := True;
-  {$ENDIF}
-
-  _Settings.DeferredLighting._Enabled := _Settings.DeferredLighting._Avaliable;
-  _Settings.DeferredFog._Enabled := True;
-  _Settings.DeferredShadows._Enabled := True;
-  _Settings.FogMode := 0;
-
-  _Settings.DynamicShadows._Enabled := False;
-
-  _Settings.DynamicShadows._Quality := qualityMedium;
-  _Settings.Textures._Quality := qualityMedium;
-
-  _Settings.DepthOfField._Avaliable := True;
-  _Settings.DepthOfField._Enabled := True;
-
-  _Settings.NormalMapping._Avaliable := True;
-  _Settings.NormalMapping._Enabled := False;
-
-  _Settings.LightMapping._Avaliable := True;
-  _Settings.LightMapping._Enabled := True;
-
-  _Settings.DynamicLights._Avaliable := True;
-  _Settings.DynamicLights._Enabled := True;
-
-  _Settings.ToonShading._Avaliable := True;
-  _Settings.ToonShading._Enabled := True;
-
-  _Settings.AlphaTesting._Avaliable := True;
-  {$IFDEF MOBILE}
-  _Settings.AlphaTesting._Enabled := False;
-  {$ELSE}
-  _Settings.AlphaTesting._Enabled := True;
-  {$ENDIF}
-
-  _Settings.Specular._Avaliable := True;
-  _Settings.Specular._Enabled := False;
-
-  _Settings.Fur._Avaliable := True;
-  _Settings.Fur._Enabled := True;
-
-  {$IFDEF HAS_REFLECTIONS}
-  _Settings.Reflections._Avaliable := True;
-  {$ELSE}
-  _Settings.Reflections._Avaliable := False;
-  {$ENDIF}
-  _Settings.Reflections._Enabled := False;
-
-  _Settings.Sky._Avaliable := True;
-  _Settings.Sky._Enabled := True;
-
-  _Settings.SelfShadows._Avaliable := True;
-  _Settings.SelfShadows._Enabled := False;
-
-  _Settings.SSAO._Avaliable := _Settings.PostProcessing._Avaliable;
-  _Settings.SSAO._Enabled := False;
-
-  _Settings.ShadowSplitCount := 3;
-  _Settings.ShadowSplitWeight := 0.75;
-  _Settings.ShadowMapSize := 1024;
-  _Settings.ShadowBias := 2.0;
 
   Log(logDebug, 'GraphicsManager', 'Device resolution: '+IntToString(_Width)+' x ' +IntToString(_Height));
 
@@ -1226,9 +785,9 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
   OW := _Width;
   OH := _Height;
 
-  If Assigned(Application.Instance.Client) Then
+  If Assigned(Application.Instance()) Then
   Begin
-    Application.Instance.Client.SelectResolution3D(OW,OH);
+    Application.Instance.SelectResolution3D(OW,OH);
   End;
 
   {If (Self.LandscapeOrientation) Then
@@ -1244,32 +803,24 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
   AddViewport(V);
 
   V.DrawSky := True;
-  V.SetRenderTargetState(captureTargetColor, True);
+  V.EnableDefaultTargets();
   {$IFDEF POSTPROCESSING}
-  V.SetPostProcessingState(_Settings.PostProcessing._Avaliable);
+  V.SetPostProcessingState(_Renderer.Features.PostProcessing.Avaliable);
   {$ELSE}
   V.SetPostProcessingState(False);
   {$ENDIF}
 
   // make UI view
-  _UIViewport := Viewport.Create('UI', Application.Instance.UI_Width, Application.Instance.UI_Height, {$IFDEF FRAMEBUFFEROBJECTS}Application.Instance.UI_Scale{$ELSE}1.0{$ENDIF});
+  _UIViewport := Viewport.Create('UI', Self.UI_Width, Self.UI_Height, {$IFDEF FRAMEBUFFEROBJECTS}Self.UI_Scale{$ELSE}1.0{$ENDIF});
   _UIViewport.SetRenderTargetState(captureTargetColor, True);
-  _UIViewport.SetTarget(_DeviceViewport, 0, 0, 1.0, 1.0);
+  _UIViewport.SetTarget(_DeviceViewport
+  , 0, 0, 1.0, 1.0);
 
   ShowWireframe := False;
-  _Settings._Changed := True;
-
-  //_Settings.FloatTexture._Avaliable := False;
-//  _Settings.PostProcessing._Enabled := False;
-
-  _Settings.FogColor := ColorCreate(255, 0,0, 255);
-  _Settings.FogDensity := 30.0;
-  _Settings.FogStart := 0.2;
 
   Self.ReflectionMatrixSky := Matrix4x4Identity;
   Self.ReflectionMatrix := Matrix4x4Identity;
-  
-  {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
+ 
 End;
 
 Procedure GraphicsManager.AddViewport(V:Viewport);
@@ -1372,8 +923,7 @@ Begin
   //Log(logDebug, 'GraphicsManager', 'Adsize: '+IntToString(_AdTex.Width)+' '+IntToString(_AdTex.Height));
   MyShader.SetUniform('texture', 0);
   MyShader.SetUniform('color', ColorWhite);
-  GraphicsManager.Instance.SetBlendMode(blendBlend);
-  GraphicsManager.Instance.SetBlendMode(blendNone);
+  GraphicsManager.Instance.Renderer.SetBlendMode(blendNone);
 
 {$IFDEF EMULATED_LANDSCAPE}
     If (_AdOnBottom) Then
@@ -1392,27 +942,24 @@ End;
 Procedure GraphicsManager.RenderUI;
 Var
   Flags:Cardinal;
-  Target:RenderTarget;
+  Target:RenderTargetInterface;
 Begin
-  {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'RenderUI');{$ENDIF}
-
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'BeginUIRendering');{$ENDIF}
 
   _UIViewport.BackgroundColor := ColorNull;
   Target := _UIViewport.GetRenderTarget(captureTargetColor);
   If Assigned(Target) Then
   Begin
-    Target.ClearColor := _UIViewport.BackgroundColor;
+    Target.BackgroundColor := _UIViewport.BackgroundColor;
     Target.BeginCapture();
 
-    {$IFDEF PC}
+    {$IFDEF PC_X}
     glActiveTexture(GL_TEXTURE0);
     glEnable(GL_TEXTURE_2D);
     {$ENDIF}
 
 
-    Self.SetBlendMode(blendAdd);
-    Self.SetBlendMode(blendBlend);
+    Self.Renderer.SetBlendMode(blendBlend);
     Self.SetFog(False);
     //glEnable(GL_SCISSOR_TEST);
 
@@ -1421,10 +968,7 @@ Begin
 
     _UIViewport.SetViewArea(0, 0, _UIViewport.Width, _UIViewport.Height);
 
-    Flags := GL_DEPTH_BUFFER_BIT  Or GL_STENCIL_BUFFER_BIT;
-    If (Not Assigned(_Scene)) Or (_ViewportCount<=0) Then
-      Flags := Flags Or GL_COLOR_BUFFER_BIT;
-    glClear(Flags);
+    Renderer.ClearBuffer((Not Assigned(_Scene)) Or (_ViewportCount<=0), True, True);
 
     If (Not _Prefetching) Then
     Begin
@@ -1450,9 +994,6 @@ Begin
   End;
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'FinishedUIRendering');{$ENDIF}
-
-
-  {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 
 Procedure GraphicsManager.RenderShadowmap(View:Viewport);
@@ -1472,9 +1013,7 @@ Begin
   If (Not Assigned(_Scene)) Then
     Exit;
 
-  {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'RenderReflections');{$ENDIF}
-
-  Self.ReflectionMask := View.GetRenderTarget(captureTargetReflection);
+  Self.ReflectionMask := View.GetRenderTexture(captureTargetReflection);
 
   If Self.ReflectionMask = Nil Then
     Exit;
@@ -1489,21 +1028,19 @@ Begin
 
   ActiveViewport.Camera.SetClipPlane(_ReflectionPoint, _ReflectionNormal);
 
-  glEnable(GL_CULL_FACE);
-  glCullFace(GL_FRONT);
+  Renderer.SetCullMode(cullFront);
 
   Self.ReflectionActive := True;
   Self.RenderList(_BucketOpaque, False);
   Self.RenderList(_BucketAlpha, True);
   Self.ReflectionActive := False;
 
-  glCullFace(GL_BACK);
+  Renderer.SetCullMode(cullBack);
 
   ActiveViewport.Camera.RemoveClipPlane();
 
   Self.ReflectionMatrixSky := Matrix4x4Identity;
   Self.ReflectionMatrix := Matrix4x4Identity;
-  {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 
 {$ELSE}
@@ -1517,8 +1054,6 @@ Var
 Begin
   If (Not Assigned(_Scene)) Then
     Exit;
-
-  {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'RenderReflections');{$ENDIF}
 
   _BucketReflection.Clear();
 
@@ -1562,13 +1097,13 @@ Begin
     {$IFNDEF REFLECTIONS_WITH_ALPHA}
     // render plane to stencil
     //glClear(GL_STENCIL_BUFFER_BIT);
-    glEnable(GL_STENCIL_TEST);
-    glStencilFunc(GL_ALWAYS, StencilID, $FFFFFFFF);
-    glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
-    glColorMask(False, False, False, False);
+    Renderer.SetStencilTest(True);
+    Renderer.SetStencilFunction(compareAlways, StencilID);
+    Renderer.SetStencilOp(stencilReplace, stencilReplace, stencilReplace);
+    Renderer.SetColorMask(False, False, False, False);
     {$ENDIF}
 
-    glDepthMask(False);
+    Renderer.SetDepthMask(False);
 
     Self.ReflectionTemp := True;
     Self.ReflectionStencil := True;
@@ -1584,32 +1119,30 @@ Begin
 
     _renderStage := renderStageDiffuse;
 
-    glDepthMask(True);
-    glColorMask(True, True, True, True);
+    Renderer.SetDepthMask(True);
+    Renderer.SetColorMask(True, True, True, True);
 
     {$IFNDEF REFLECTIONS_WITH_ALPHA}
-    glStencilFunc(GL_EQUAL, StencilID, $FFFFFFFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+    Renderer.SetStencilFunction(compareEqual, StencilID);
+    Renderer.SetStencilOp(stencilKeep, stencilKeep, stencilKeep);
     {$ENDIF}
-
 
     ActiveViewport.Camera.SetClipPlane(Obj.ReflectionPoint, Obj.ReflectionNormal);
 
     If (View.DrawSky) And (Not View.Camera.Ortho) Then
        _Scene.RenderSky(View);
 
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
+    Renderer.SetCullMode(cullFront);
     Self.ReflectionActive := True;
     Self.RenderList(_BucketOpaque, False);
     Self.RenderList(_BucketAlpha, True);
     Self.ReflectionActive := False;
-    glCullFace(GL_BACK);
+    Renderer.SetCullMode(cullBack);
 
     ActiveViewport.Camera.RemoveClipPlane();
 
     {$IFNDEF REFLECTIONS_WITH_ALPHA}
-    glDisable(GL_STENCIL_TEST);
+    Renderer.SetStencilTest(False);
     {$ENDIF}
 
     _renderStage := renderStageDiffuse;
@@ -1631,14 +1164,12 @@ Begin
   _renderStage := renderStageDiffuse;
   Self.ReflectionMatrix4x4Sky := Matrix4x4Identity;
   Self.ReflectionMatrix4x4 := Matrix4x4Identity;
-
-  {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 {$ENDIF}
 
 Var
-  _StencilVolumeShader:Shader;
-  _StencilShadowShader:Shader;
+  _StencilVolumeShader:ShaderInterface;
+  _StencilShadowShader:ShaderInterface;
 
 Const
   StencilQuad:Array[0..11] Of Single = (1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0);
@@ -1647,110 +1178,101 @@ Procedure GraphicsManager.RenderStencilShadows(View:Viewport);
 Var
   StencilID:Byte;
 Begin
-  {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'RenderStencilShadows');{$ENDIF}
-
   If (_FullscreenColorShader = Nil) Then
   Begin
-    _FullscreenColorShader := Shader.CreateFromString(GetShader_FullscreenColor(), 'fullscreen_color');
-    ShaderManager.Instance.AddShader(_FullscreenColorShader);
+    _FullscreenColorShader := Self.Renderer.CreateShader();
+    _FullscreenColorShader.Generate('fullscreen_color', GetShader_FullscreenColor());
   End;
 
   StencilID := 64;
 
-  Self.SetBlendMode(blendNone);
+  Self.Renderer.SetBlendMode(blendNone);
 
-  ShaderManager.Instance.Bind(_FullscreenColorShader);
-  _FullscreenColorShader.SetUniform('color', ColorWhite);
+  Self.Renderer.BindShader(_FullscreenColorShader);
+  _FullscreenColorShader.SetColorUniform('color', ColorWhite); //BIBI
 
-  glEnable(GL_STENCIL_TEST);
-  glStencilFunc(GL_ALWAYS, StencilID, $FFFFFFFF);
-  glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
-  glColorMask(False, False, False, False);
+  Renderer.SetStencilTest(True);
+  Renderer.SetStencilFunction(compareAlways, StencilID);
+  Renderer.SetStencilOp(stencilReplace, stencilReplace, stencilReplace);
+  Renderer.SetColorMask(False, False, False, False);
 
   Self.DrawFullscreenQuad(_FullscreenColorShader, 0, 0, 1, 1);
 
-  {$IFDEF PC}
-  glActiveTexture(GL_TEXTURE0);
-  glDisable(GL_TEXTURE_2D);
-  {$ENDIF}
+  TextureManager.Instance.WhiteTexture.Bind(0);
 
   // Disable z-buffer writes (note: z-testing still occurs), and enable the stencil-buffer
-  glDepthMask(False);
-  glEnable(GL_DEPTH_TEST);
+  Renderer.SetDepthMask(False);
+  Renderer.SetDepthTest(True);
 
   If ShowShadowVolumes Then
   Begin
-    GraphicsManager.Instance.SetBlendMode(blendJoin);
-    glColorMask(True, True, True, True);
+    GraphicsManager.Instance.Renderer.SetBlendMode(blendJoin);
+    Renderer.SetColorMask(True, True, True, True);
   End Else
-    glColorMask(False, False, False, False);
+    Renderer.SetColorMask(False, False, False, False);
 
   If (_StencilVolumeShader = Nil) Then
   Begin
-    _StencilVolumeShader := Shader.CreateFromString(GetShader_StencilVolumeShader(), 'stencilvolumes');
-    ShaderManager.Instance.AddShader(_StencilVolumeShader);
+    _StencilVolumeShader := Self.Renderer.CreateShader();
+    _StencilVolumeShader.Generate('stencilvolumes', GetShader_StencilVolumeShader()); 
   End;
 
   Log(logDebug, 'Shadow', 'Drawing stencil shadows');
 
-  ShaderManager.Instance.Bind(_StencilVolumeShader);
-  _StencilVolumeShader.SetUniform('cameraMatrix', Self.ActiveViewport.Camera.Transform);
-  _StencilVolumeShader.SetUniform('projectionMatrix', Self.ActiveViewport.Camera.Projection);
+  Self.Renderer.BindShader(_StencilVolumeShader);
+  _StencilVolumeShader.SetMat4Uniform('cameraMatrix', Self.ActiveViewport.Camera.Transform); // BIBI
+  _StencilVolumeShader.SetMat4Uniform('projectionMatrix', Self.ActiveViewport.Camera.Projection); // BIBI
 
   _RenderStage := renderStageShadow;
 
-  glEnable(GL_CULL_FACE);
-  glCullFace(GL_BACK);
+  Renderer.SetCullMode(cullBack);
 
   // Set up stencil compare fuction, reference value, and masks.
   // Stencil test passes if ((ref  and mask) cmpfn (stencil  and mask)) is true.
-  glStencilFunc(GL_ALWAYS, 0, $FFFFFFFF);
-  glStencilOp(GL_KEEP,GL_KEEP, GL_INCR_WRAP);
+  Renderer.SetStencilFunction(compareAlways, 0);
+  Renderer.SetStencilOp(stencilKeep, stencilKeep, stencilIncrementWithWrap);
 
   _Scene.RenderShadowCasters(View);
 
   If Not ShowShadowVolumes Then
   Begin
-    glCullFace(GL_FRONT);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_DECR_WRAP);
+    Renderer.SetCullMode(cullFront);
+    Renderer.SetStencilOp(stencilKeep, stencilKeep, stencilDecrementWithWrap);
     _Scene.RenderShadowCasters(View);
 
-    glCullFace(GL_BACK);
+    Renderer.SetCullMode(cullBack);
 
-    SetBlendMode(blendBlend);
+    Renderer.SetBlendMode(blendBlend);
 
     If (_FullscreenColorShader = Nil) Then
     Begin
-      _FullscreenColorShader := Shader.CreateFromString(GetShader_FullscreenColor(), 'fullscreen_color');
-      ShaderManager.Instance.AddShader(_FullscreenColorShader);
+      _FullscreenColorShader := Self.Renderer.CreateShader();
+      _FullscreenColorShader.Generate('fullscreen_color', GetShader_FullscreenColor());
     End;
 
-    ShaderManager.Instance.Bind(_FullscreenColorShader);
-    _FullscreenColorShader.SetUniform('color', ColorCreate(Byte(0), Byte(0), Byte(0), Byte(55)));
+    Self.Renderer.BindShader(_FullscreenColorShader);
+    _FullscreenColorShader.SetColorUniform('color', ColorCreate(Byte(0), Byte(0), Byte(0), Byte(55))); // BIBI
 
     // Only write where stencil val >= 1 (count indicates # of shadows that overlap that pixel)
-    glStencilFunc(GL_EQUAL, Succ(StencilID), $FFFFFFFF);
+    Renderer.SetStencilFunction(compareEqual, Succ(StencilID));
 
-    glColorMask(True, True, True, True);
+    Renderer.SetColorMask(True, True, True, True);
 
     // Draws a big gray polygon over scene according to the mask in the stencil buffer. (Any pixel with stencil==1 is in the shadow.)
     Self.DrawFullscreenQuad(_FullscreenColorShader, 0, 0, 1, 1);
 
-    SetBlendMode(blendBlend);
+    Renderer.SetBlendMode(blendBlend);
   End;
 
   _RenderStage := renderStageDiffuse;
 
-  SetBlendMode(blendNone);
+  Renderer.SetBlendMode(blendNone);
 
   //Restore render states
-  glStencilFunc(GL_ALWAYS, $0, $FFFFFFFF);
-  glStencilOp(GL_KEEP,GL_KEEP,GL_KEEP);
-  glDisable(GL_STENCIL_TEST);
-
-  glDepthMask(True);
-
-  {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
+  Renderer.SetStencilFunction(compareAlways, 0);
+  Renderer.SetStencilOp(stencilKeep, stencilKeep, stencilKeep);
+  Renderer.SetStencilTest(False);
+  Renderer.SetDepthMask(True);
 End;
 
 Procedure GraphicsManager.SetWind(WindDirection:Vector3D; WindIntensity:Single);
@@ -1765,7 +1287,7 @@ Var
   N:Integer;
 Begin
   {$IFDEF POSTPROCESSING}
-  If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Or (Not View.IsPostProcessingEnabled()) Then
+  If (Not GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Or (Not View.IsPostProcessingEnabled()) Then
     N := renderStageDiffuse
   Else
   Case Pass Of
@@ -1774,7 +1296,9 @@ Begin
     captureTargetEmission: N := renderStageGlow;
     captureTargetRefraction: N := renderStageRefraction;
     captureTargetReflection: N := renderStageReflection;
+    captureTargetShadow: N := renderStageShadow;
     captureTargetOutline: N := renderStageOutline;
+    captureTargetAlpha: N := renderStageDiffuse;
     Else
       Exit;
   End;
@@ -1785,7 +1309,10 @@ Begin
   If (N = renderStageReflection) And (Not Self._ReflectionsEnabled) Then
     Exit;
 
-  {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'RenderSceneInternal');{$ENDIF}
+  If (N = renderStageShadow) Then
+  Begin
+    View.SetRenderTargetState(Pass, True);
+  End;
 
   _RenderStage := N;
 
@@ -1796,7 +1323,7 @@ Begin
     {$IFDEF POSTPROCESSING}
     If Pass = captureTargetRefraction Then
     Begin
-      IntToString(2);
+      //IntToString(2);
     End Else
     If Pass = captureTargetEmission Then
       _Scene.RenderSkyEmission(View)
@@ -1808,54 +1335,64 @@ Begin
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderOpaqueBucket');{$ENDIF}
 
   {$IFNDEF DEBUG_REFLECTIONS}
-  RenderList(_BucketOpaque, False);
 
-  If (_RenderStage <> renderStageNormal) Then
+{$IFDEF ADVANCED_ALPHA_BLEND}
+  If Pass = captureTargetAlpha Then
   Begin
-    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderDecals');{$ENDIF}
-    DecalManager.Instance.Render();
-
-    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderBillboards');{$ENDIF}
-    BillboardManager.Instance.Render();
-  End;
-
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderAlphaBucket');{$ENDIF}
-  RenderList(_BucketAlpha, True);
-  {$ENDIF}
-
-  If (_RenderStage = renderStageDiffuse) Then
+    RenderList(_BucketOpaque, False);
+    RenderList(_BucketAlpha, True)
+  End Else
   Begin
+    RenderList(_BucketOpaque, False);
 
-    If (_ReflectionsEnabled) Then
+    If (_RenderStage <> renderStageNormal) Then
     Begin
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderReflections');{$ENDIF}
-      Self.RenderReflections(View);
+      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderDecals');{$ENDIF}
+      DecalManager.Instance.Render();
+
+      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderBillboards');{$ENDIF}
+      BillboardManager.Instance.Render();
+    End;
+  End;
+{$ELSE}
+    RenderList(_BucketOpaque, False);
+
+    If (_RenderStage <> renderStageNormal) Then
+    Begin
+      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderDecals');{$ENDIF}
+      DecalManager.Instance.Render();
+
+      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderBillboards');{$ENDIF}
+      BillboardManager.Instance.Render();
     End;
 
-    If (GraphicsManager.Instance.Settings.Shaders.Avaliable) And (_Settings.DynamicShadows.Enabled) Then
+    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderAlphaBucket');{$ENDIF}
+    RenderList(_BucketAlpha, True);
+    {$ENDIF}
+{$ENDIF}
+
+  If (_ReflectionsEnabled) Then
+  Begin
+    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderReflections');{$ENDIF}
+    Self.RenderReflections(View);
+  End;
+
+(*    If (Renderer.Features.Shaders.Avaliable) And (Renderer.Settings.DynamicShadows.Enabled) Then
     Begin
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderStencilShadows');{$ENDIF}
       RenderStencilShadows(View);
-    End;
-    
-  End;
-
-  {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
+    End;*)
 End;
 
 Procedure GraphicsManager.RenderViewport(View:Viewport);
 Var
-  I, Count:Integer;
-  Target:RenderTarget;
+  I, J, Count, SubViews:Integer;
+  Target:RenderTargetInterface;
 Begin
   If Not View.Active Then
     Exit;
 
-  {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'RenderViewport');{$ENDIF}
   SetCurrentViewport(View);
-
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'View.Bind');{$ENDIF}
-  View.Bind();
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'LightManager.Clear');{$ENDIF}
   LightManager.Instance.Clear;
@@ -1880,53 +1417,71 @@ Begin
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Particles.Render');{$ENDIF}
   ParticleManager.Instance.Render();
 
+
+  If (View.VR) Then
+    SubViews := 1
+  Else
+    SubViews := 0;
+
+  View.SetRenderTargetState(captureTargetShadow, Self.Renderer.Settings.DynamicShadows.Enabled);
+
   Count := 0;
-  For I := Pred(MaxCaptureTargets) DownTo 0 Do
+  For J:=0 To SubViews Do
   Begin
-    Target := View.GetRenderTarget(RenderTargetType(I));
-    If (Target = Nil) Then
-      Continue;
+    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'View.Bind');{$ENDIF}
+    View.Bind(J);
 
-    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Rendering viewport: '+View.Name+', target '+TargetNames[I]+', width:'+IntToString(Target.Width)+', height:'+IntToString(Target.Height));{$ENDIF}
+    For I := Pred(RenderCaptureTargets) DownTo 0 Do
+    Begin
+      Target := View.GetRenderTarget(RenderTargetType(I));
+      If (Target = Nil) Then
+        Continue;
 
-    Case RenderTargetType(I) Of
-      captureTargetRefraction:
-        Target.ClearColor := ColorNull;
+      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Rendering viewport: '+View.Name+', target '+TargetNames[I]+', width:'+IntToString(Target.Width)+', height:'+IntToString(Target.Height));{$ENDIF}
 
-      captureTargetReflection:
-        Target.ClearColor := ColorBlack;
+      Case RenderTargetType(I) Of
+        captureTargetRefraction:
+          Target.BackgroundColor := ColorNull;
 
-      captureTargetColor:
-        Target.ClearColor := View.BackgroundColor;
+        captureTargetAlpha:
+          Target.BackgroundColor := ColorNull;
 
-      captureTargetOutline:
-        Target.ClearColor := ColorBlack;
-        //Target.ClearColor := ColorRed;
-    Else
-      Target.ClearColor := ColorBlack;
-    End;
+        captureTargetReflection:
+          Target.BackgroundColor := ColorBlack;
 
-    Target.BeginCapture();
-    Self.RenderSceneInternal(View, RenderTargetType(I));
-    Target.EndCapture();
+        captureTargetColor:
+          Target.BackgroundColor := View.BackgroundColor;
 
-    Inc(Count);
+        captureTargetShadow:
+          Target.BackgroundColor := ColorRed;
 
-    {If (_RenderStage = renderStageDiffuse) And (Application.Instance.Input.Keys.WasPressed(keyMouseLeft)) Then
+        captureTargetOutline:
+          Target.BackgroundColor := ColorBlack;
+          //Target.ClearColor := ColorRed;
+      Else
+        Target.BackgroundColor := ColorBlack;
+      End;
+
+      Target.BeginCapture();
+      Self.RenderSceneInternal(View, RenderTargetType(I));
+      Target.EndCapture();
+
+      Inc(Count);
+
+      {If (_RenderStage = renderStageDiffuse) And (Application.Instance.Input.Keys.WasPressed(keyMouseLeft)) Then
       Target.Save(Application.Instance.DocumentPath+PathSeparator+ 'frame.png');}
-    
-    {$IFDEF PC}
-    {If (_RenderStage = renderStageGlow) And (Application.Instance.Input.Keys.WasPressed(Ord('M'))) Then
-      Target.Save('bloom.png');
-     If (_RenderStage = renderStageRefraction) And (Application.Instance.Input.Keys.WasPressed(Ord('N'))) Then
-      Target.Save('refraction.png');}
-    {$ENDIF}
+
+      {$IFDEF PC}
+      {If (_RenderStage = renderStageGlow) And (Application.Instance.Input.Keys.WasPressed(Ord('M'))) Then
+        Target.Save('bloom.png');
+       If (_RenderStage = renderStageRefraction) And (Application.Instance.Input.Keys.WasPressed(Ord('N'))) Then
+        Target.Save('refraction.png');}
+      {$ENDIF}
+    End;
   End;
 
   If (Count<=0) Then
     Log(logWarning, 'GraphicsManager', 'Invalid viewport: '+View.Name);
-
-  {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 
 Procedure GraphicsManager.RenderScene;
@@ -1937,14 +1492,11 @@ Begin
     Exit;
 
 
-  If _Settings._Changed Then
-    OnSettingsChange;
+  If Renderer.Settings.Changed Then
+    Renderer.OnSettingsChange();
 
 
   Inc(_FrameID);
-
-  {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'RenderScene');{$ENDIF}
-
 
   //glAlphaFunc(GL_GREATER, 0.1);
 
@@ -1955,145 +1507,84 @@ Begin
     RenderViewport(_Viewports[I]);
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'EndSceneRendering');{$ENDIF}
-
-  {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 
-Type
-  FullscreenQuadArray = Array[0..23] Of Single;
-
-Procedure InitFullScreenQuad(Var FullscreenQuad:FullscreenQuadArray; X1,Y1,X2,Y2:Single; Orientation:Integer);
+Procedure InitFullScreenQuad(FullscreenQuad:VertexData; X1,Y1,X2,Y2:Single; Orientation:Integer);
 Begin
-  FullscreenQuad[8] := X2;
-  FullscreenQuad[9] := Y1;
-
-  FullscreenQuad[4] := X2;
-  FullscreenQuad[5] := Y2;
-
-  FullscreenQuad[0] := X1;
-  FullscreenQuad[1] := Y2;
-
-  FullscreenQuad[20] := X1;
-  FullscreenQuad[21] := Y2;
-
-  FullscreenQuad[16] := X1;
-  FullscreenQuad[17] := Y1;
-
-  FullscreenQuad[12] := X2;
-  FullscreenQuad[13] := Y1;
+  FullscreenQuad.SetVector3D(0, vertexPosition, VectorCreate(X1, Y2, 0.0));
+  FullscreenQuad.SetVector3D(1, vertexPosition, VectorCreate(X2, Y2, 0.0));
+  FullscreenQuad.SetVector3D(2, vertexPosition, VectorCreate(X2, Y1, 0.0));
+  FullscreenQuad.SetVector3D(3, vertexPosition, VectorCreate(X2, Y1, 0.0));
+  FullscreenQuad.SetVector3D(4, vertexPosition, VectorCreate(X1, Y1, 0.0));
+  FullscreenQuad.SetVector3D(5, vertexPosition, VectorCreate(X1, Y2, 0.0));
 
   Case Orientation Of
     orientationLandscapeLeft:
     Begin
-      FullscreenQuad[2] := 1.0;
-      FullscreenQuad[3] := 0.0;
-
-      FullscreenQuad[6] :=  1.0;
-      FullscreenQuad[7] :=  1.0;
-
-      FullscreenQuad[10] := 0.0;
-      FullscreenQuad[11] := 1.0;
-
-      FullscreenQuad[14] := 0.0;
-      FullscreenQuad[15] := 1.0;
-
-      FullscreenQuad[18] := 0.0;
-      FullscreenQuad[19] := 0.0;
-
-      FullscreenQuad[22] := 1.0;
-      FullscreenQuad[23] := 0.0;
+      FullscreenQuad.SetVector2D(0, vertexUV0, VectorCreate2D(1.0, 0.0));
+      FullscreenQuad.SetVector2D(1, vertexUV0, VectorCreate2D(1.0, 1.0));
+      FullscreenQuad.SetVector2D(2, vertexUV0, VectorCreate2D(0.0, 1.0));
+      FullscreenQuad.SetVector2D(3, vertexUV0, VectorCreate2D(0.0, 1.0));
+      FullscreenQuad.SetVector2D(4, vertexUV0, VectorCreate2D(0.0, 0.0));
+      FullscreenQuad.SetVector2D(5, vertexUV0, VectorCreate2D(1.0, 0.0));
     End;
 
     orientationLandscapeRight:
     Begin
-      FullscreenQuad[2] := 0.0;
-      FullscreenQuad[3] := 1.0;
-
-      FullscreenQuad[6] :=  0.0;
-      FullscreenQuad[7] :=  0.0;
-
-      FullscreenQuad[10] := 1.0;
-      FullscreenQuad[11] := 0.0;
-
-      FullscreenQuad[14] := 1.0;
-      FullscreenQuad[15] := 0.0;
-
-      FullscreenQuad[18] := 1.0;
-      FullscreenQuad[19] := 1.0;
-
-      FullscreenQuad[22] := 0.0;
-      FullscreenQuad[23] := 1.0;
+      FullscreenQuad.SetVector2D(0, vertexUV0, VectorCreate2D(0.0, 1.0));
+      FullscreenQuad.SetVector2D(1, vertexUV0, VectorCreate2D(0.0, 0.0));
+      FullscreenQuad.SetVector2D(2, vertexUV0, VectorCreate2D(1.0, 0.0));
+      FullscreenQuad.SetVector2D(3, vertexUV0, VectorCreate2D(1.0, 0.0));
+      FullscreenQuad.SetVector2D(4, vertexUV0, VectorCreate2D(1.0, 1.0));
+      FullscreenQuad.SetVector2D(5, vertexUV0, VectorCreate2D(0.0, 1.0));
     End;
 
     orientationPortrait:
     Begin
-      FullscreenQuad[2] := 0.0;
-      FullscreenQuad[3] := 0.0;
-
-      FullscreenQuad[6] :=  1.0;
-      FullscreenQuad[7] :=  0.0;
-
-      FullscreenQuad[10] := 1.0;
-      FullscreenQuad[11] := 1.0;
-
-      FullscreenQuad[14] := 1.0;
-      FullscreenQuad[15] := 1.0;
-
-      FullscreenQuad[18] := 0.0;
-      FullscreenQuad[19] := 1.0;
-
-      FullscreenQuad[22] := 0.0;
-      FullscreenQuad[23] := 0.0;
+      FullscreenQuad.SetVector2D(0, vertexUV0, VectorCreate2D(0.0, 0.0));
+      FullscreenQuad.SetVector2D(1, vertexUV0, VectorCreate2D(1.0, 0.0));
+      FullscreenQuad.SetVector2D(2, vertexUV0, VectorCreate2D(1.0, 1.0));
+      FullscreenQuad.SetVector2D(3, vertexUV0, VectorCreate2D(1.0, 1.0));
+      FullscreenQuad.SetVector2D(4, vertexUV0, VectorCreate2D(0.0, 1.0));
+      FullscreenQuad.SetVector2D(5, vertexUV0, VectorCreate2D(0.0, 0.0));
     End;
 
     orientationPortraitInverted:
     Begin
-      FullscreenQuad[2] := 1.0;
-      FullscreenQuad[3] := 1.0;
-
-      FullscreenQuad[6] :=  0.0;
-      FullscreenQuad[7] :=  1.0;
-
-      FullscreenQuad[10] := 0.0;
-      FullscreenQuad[11] := 0.0;
-
-      FullscreenQuad[14] := 0.0;
-      FullscreenQuad[15] := 0.0;
-
-      FullscreenQuad[18] := 1.0;
-      FullscreenQuad[19] := 0.0;
-
-      FullscreenQuad[22] := 1.0;
-      FullscreenQuad[23] := 1.0;
+      FullscreenQuad.SetVector2D(0, vertexUV0, VectorCreate2D(1.0, 1.0));
+      FullscreenQuad.SetVector2D(1, vertexUV0, VectorCreate2D(0.0, 1.0));
+      FullscreenQuad.SetVector2D(2, vertexUV0, VectorCreate2D(0.0, 0.0));
+      FullscreenQuad.SetVector2D(3, vertexUV0, VectorCreate2D(0.0, 0.0));
+      FullscreenQuad.SetVector2D(4, vertexUV0, VectorCreate2D(1.0, 0.0));
+      FullscreenQuad.SetVector2D(5, vertexUV0, VectorCreate2D(1.0, 1.0));
     End;
   End;
 End;
 
-Procedure GraphicsManager.DrawFullscreenQuad(CustomShader:Shader; X1,Y1,X2,Y2:Single);
+Procedure GraphicsManager.DrawFullscreenQuad(CustomShader:ShaderInterface; X1,Y1,X2,Y2:Single);
 Var
   M,Projection:Matrix4x4;
   I:Integer;
   PositionHandle, UVHandle:Integer;
   //Delta:Single;
-  {Temp, }FullscreenQuad:FullscreenQuadArray;
 Begin
-  {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'DrawFullScreenQuad');{$ENDIF}
-
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'CurrentView: ('+FloatToString(_ViewX)+','+FloatToString(_ViewY)+','+FloatToString(_ViewWidth)+','+FloatToString(_ViewHeight)+')');{$ENDIF}
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'DrawFullScreenQuad: ('+FloatToString(X1)+','+FloatToString(Y1)+','+FloatToString(X2)+','+FloatToString(Y2)+')');{$ENDIF}
 
   {$IFDEF TESTFULLSCREENSHADER}
   CustomShader := Nil;
   {$ENDIF}
 
-  If (CustomShader = Nil) And (Settings.Shaders.Avaliable) Then
+  If (CustomShader = Nil) And (Renderer.Features.Shaders.Avaliable) Then
   Begin
     CustomShader := GetDefaultFullScreenShader();
-    ShaderManager.Instance.Bind(CustomShader);
+    Self.Renderer.BindShader(CustomShader);
   End;
 
   Y1 := 1.0 - Y1;
   Y2 := 1.0 - Y2;
+
+  If _FullScreenQuadVertices = Nil Then
+    _FullScreenQuadVertices := VertexData.Create([vertexFormatPosition, vertexFormatUV0], 6);
 
   {$IFNDEF DISABLEORIENTATIONANIMATIONS}
   Delta := Application.Instance.GetOrientationDelta();
@@ -2112,16 +1603,28 @@ Begin
     End;
   End Else
   {$ENDIF}
-    InitFullScreenQuad(FullscreenQuad, X1,Y1,X2,Y2, Application.Instance.Orientation);
+    InitFullScreenQuad(_FullScreenQuadVertices, X1,Y1,X2,Y2, Application.Instance.Orientation);
 
   Projection := Matrix4x4Ortho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
 
-  glDisable(GL_CULL_FACE);
-  glDisable(GL_DEPTH_TEST);
-  glDepthMask(False);
+  Renderer.SetCullMode(cullNone);
+  Renderer.SetDepthTest(False);
+  Renderer.SetDepthMask(False);
 
-  {$IFDEF PC}
-  If (Not Settings.Shaders.Avaliable) Then
+  Renderer.SetProjectionMatrix(Projection);
+  Renderer.SetModelMatrix(Matrix4x4Identity);
+  Renderer.SetTextureMatrix(Matrix4x4Identity);
+  Renderer.SetDiffuseColor(ColorWhite);
+
+
+{  Renderer.SetSourceVertexSize(16);
+  Renderer.SetAttributeSource('terra_position', typeVector3D, @(FullscreenQuad[0]));
+  Renderer.SetAttributeSource('terra_UV0', typeVector2D, @(FullscreenQuad[2]));}
+
+  Renderer.SetVertexSource(_FullScreenQuadVertices);
+  Renderer.DrawSource(renderTriangles, 6);
+
+  (*If (Not Renderer.Features.Shaders.Avaliable) Then
   Begin
     glMatrixMode(GL_PROJECTION);
     glLoadMatrixf(@Projection);
@@ -2139,47 +1642,25 @@ Begin
       glActiveTexture(GL_TEXTURE0 + I);
       glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
       glDisable(GL_TEXTURE_2D);
-    End;
+    End;*)
 
-    glColor4f(1.0, 1.0, 1.0, 1.0);
-
-    glEnableClientState(GL_VERTEX_ARRAY);
+    (*glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
 
     glVertexPointer(3, GL_FLOAT, 16, @(FullscreenQuad[0]));
     glTexCoordPointer(2, GL_FLOAT, 16, @(FullscreenQuad[2]));
-  End Else
-  {$ENDIF}
-  Begin
-    CustomShader.SetUniform('projectionMatrix', Projection);
-    PositionHandle := CustomShader.GetAttribute('terra_position');
-    UVHandle := CustomShader.GetAttribute('terra_UV0');
 
-    If (PositionHandle>=0) Then
-      glVertexAttribPointer(PositionHandle, 3, GL_FLOAT, False, 16, @(FullscreenQuad[0]));
-      
-    If (UVHandle>=0) Then
-      glVertexAttribPointer(UVHandle, 2, GL_FLOAT, False, 16, @(FullscreenQuad[2]));
 
-  End;
-
-  glDrawArrays(GL_TRIANGLES, 0, 6);
-  Inc(_Stats.TriangleCount, 2);
-
-  {$IFDEF PC}
   If (Not Settings.Shaders.Avaliable) Then
   Begin
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-  End;
-  {$ENDIF}
+  End;*)
 
-  glEnable(GL_DEPTH_TEST);
-  glDepthMask(True);
-
-  {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
+  Renderer.SetDepthTest(True);
+  Renderer.SetDepthMask(True);
 End;
 
 
@@ -2346,7 +1827,7 @@ Begin
 //Log(logDebug, 'GraphicsManager', 'Rendering lights...');
 //Log(logDebug, 'GraphicsManager', 'Class: '+MyRenderable.ClassName);
 
-  If (_Settings.DynamicLights.Enabled) Then
+  If (Renderer.Settings.DynamicLights.Enabled) Then
     MyRenderable.RenderLights();
 
   If (MyRenderable._LastUpdate <> Self._FrameID) Then
@@ -2364,7 +1845,7 @@ Begin
     Exit;
   End;
 
-  Inc(_Stats.RenderableCount);
+  Renderer.InternalStat(statRenderables);
   MyRenderable._WasVisible := True;
 
   Pos := VectorAdd(Box.Center , VectorScale(ActiveViewport.Camera.View, -Box.Radius));
@@ -2405,73 +1886,31 @@ Begin
     *)
 End;
 
-Procedure GraphicsManager.SetBlendMode(BlendMode:Integer);
-Var
-  NeedsAlpha:Boolean;
-Begin
-  If (BlendMode = _CurrentBlendMode) Then
-    Exit;
-
-  NeedsAlpha := BlendMode>0;
-
-  (*If (Settings.SeparateBlends.Avaliable) And (Settings.PostProcessing.Avaliable)
-  And (Shader.ActiveShader<>Nil) And (Shader.ActiveShader.MRT) Then
-  Begin
-    If NeedsAlpha Then
-      glEnableIndexedEXT(GL_BLEND, 0)
-    Else
-      glDisableIndexedEXT(GL_BLEND, 0);
-
-  End Else*)
-  Begin
-    If NeedsAlpha Then
-      glEnable(GL_BLEND)
-    Else
-      glDisable(GL_BLEND);
-
-  End;
-
-  Case BlendMode Of
-  blendBlend:   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  blendAdd:     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-  blendFilter:  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-  blendModulate:glBlendFunc(GL_SRC_COLOR, GL_ONE);
-  blendJoin:    glBlendFunc(GL_ONE, GL_ONE);
-  blendZero:    glBlendFunc(GL_ZERO, GL_ZERO);
-  blendOne:     glBlendFunc(GL_ONE, GL_ZERO);
-  blendColor:   glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
-  blendColorAdd:   glBlendFunc(GL_SRC_COLOR, GL_ONE);
-  blendReflection:   glBlendFunc(GL_DST_ALPHA, GL_ONE_MINUS_DST_ALPHA);
-  End;
-
-  _CurrentBlendMode := BlendMode;
-End;
-
-Function GraphicsManager.EnableColorShader(Const MyColor:Color; Const Transform:Matrix4x4):Shader;
+Function GraphicsManager.EnableColorShader(Const MyColor:Color; Const Transform:Matrix4x4):ShaderInterface;
 Begin
   If (Not Assigned(_SimpleColor)) Then
   Begin
-    _SimpleColor := Shader.CreateFromString(GetShader_SimpleColor(), 'simple_color');
-    ShaderManager.Instance.AddShader(_SimpleColor);
+    _SimpleColor := Self.Renderer.CreateShader();
+    _SimpleColor.Generate('simple_color', GetShader_SimpleColor()); 
   End;
 
   Result := _SimpleColor;
   If (Not Assigned(Result)) Then
     Exit;
 
-  ShaderManager.Instance.Bind(Result);
-  Result.SetUniform('cameraMatrix', ActiveViewport.Camera.Transform);
-  Result.SetUniform('projectionMatrix', ActiveViewport.Camera.Projection);
-  Result.SetUniform('modelMatrix', Transform);
-  Result.SetUniform('out_color', MyColor);
+  Self.Renderer.BindShader(Result);
+  Result.SetMat4Uniform('cameraMatrix', ActiveViewport.Camera.Transform); //BIBI
+  Result.SetMat4Uniform('projectionMatrix', ActiveViewport.Camera.Projection);
+  Result.SetMat4Uniform('modelMatrix', Transform);
+  Result.SetColorUniform('out_color', MyColor); //BIBI
 End;
 
-Function GraphicsManager.EnableTextureShader(Const MyColor:Color; Tex:Texture; Const Transform:Matrix4x4):Shader;
+Function GraphicsManager.EnableTextureShader(Const MyColor:Color; Tex:Texture; Const Transform:Matrix4x4):ShaderInterface;
 Begin
   If (Not Assigned(_SimpleTexture)) Then
   Begin
-    _SimpleTexture := Shader.CreateFromString(GetShader_SimpleTexture(), 'simple_texture');
-    ShaderManager.Instance.AddShader(_SimpleTexture);
+    _SimpleTexture := Self.Renderer.CreateShader();
+    _SimpleTexture.Generate('simple_texture', GetShader_SimpleTexture()); 
   End;
 
   Tex.Bind(0);
@@ -2480,20 +1919,20 @@ Begin
   If (Not Assigned(Result)) Then
     Exit;
 
-  ShaderManager.Instance.Bind(Result);
-  Result.SetUniform('cameraMatrix', ActiveViewport.Camera.Transform);
-  Result.SetUniform('projectionMatrix', ActiveViewport.Camera.Projection);
-  Result.SetUniform('modelMatrix', Transform);
-  Result.SetUniform('out_color', MyColor);
-  Result.SetUniform('out_texture', 0);
+  Self.Renderer.BindShader(Result);
+  Result.SetMat4Uniform('cameraMatrix', ActiveViewport.Camera.Transform); //BIBI
+  Result.SetMat4Uniform('projectionMatrix', ActiveViewport.Camera.Projection);
+  Result.SetMat4Uniform('modelMatrix', Transform);
+  Result.SetColorUniform('out_color', MyColor);
+  Result.SetIntegerUniform('out_texture', 0);
 End;
 
-Function GraphicsManager.EnableColoredTextureShader(Tex:Texture; Const Transform:Matrix4x4):Shader;
+Function GraphicsManager.EnableColoredTextureShader(Tex:Texture; Const Transform:Matrix4x4):ShaderInterface;
 Begin
   If (Not Assigned(_SimpleTextureColored)) Then
   Begin
-    _SimpleTextureColored := Shader.CreateFromString(GetShader_ColoredTexture(), 'colored_texture');
-    ShaderManager.Instance.AddShader(_SimpleTextureColored);
+    _SimpleTextureColored := Self.Renderer.CreateShader();
+    _SimpleTextureColored.Generate('colored_texture', GetShader_ColoredTexture());
   End;
 
   Tex.Bind(0);
@@ -2502,11 +1941,11 @@ Begin
   If (Not Assigned(Result)) Then
     Exit;
 
-  ShaderManager.Instance.Bind(Result);
-  Result.SetUniform('cameraMatrix', ActiveViewport.Camera.Transform);
-  Result.SetUniform('projectionMatrix', ActiveViewport.Camera.Projection);
-  Result.SetUniform('modelMatrix', Transform);
-  Result.SetUniform('out_texture', 0);
+  Self.Renderer.BindShader(Result);
+  Result.SetMat4Uniform('cameraMatrix', ActiveViewport.Camera.Transform); //BIBI
+  Result.SetMat4Uniform('projectionMatrix', ActiveViewport.Camera.Projection);
+  Result.SetMat4Uniform('modelMatrix', Transform);
+  Result.SetIntegerUniform('out_texture', 0);
 End;
 
 Procedure GraphicsManager.Release;
@@ -2534,25 +1973,19 @@ Begin
   ReleaseObject(_UIViewport);
   ReleaseObject(_DeviceViewport);
 
-  ReleaseObject(_Settings);
-
-  {$IFDEF PRECISIONTIMER}
-  ReleaseObject(_Timer);
-  {$ENDIF}
-
   SetScene(Nil);
+
+  ReleaseObject(_Renderer);
 
   _GraphicsManager_Instance := Nil;
 End;
 
-
 Procedure GraphicsManager.Update;
 Var
   I:Cardinal;
-  Target:RenderTarget;
-{$IFNDEF PRECISIONTIMER}
+  Target:RenderTargetInterface;
   Time:Cardinal;
-{$ENDIF}
+  UpdateFPS:Boolean;
 Begin
   If (_Width<=0) Or (_Height<=0) Then
     Exit;
@@ -2563,46 +1996,19 @@ Begin
     Self.RestoreContext();
   End;
 
-  {$IFNDEF DEBUG_LEAKS}
-  MemoryManager.BeginFrame();
-  {$ENDIF}
-  
-  _Stats.LightCount := LightManager.Instance.LightCount;
-  _PrevStats := _Stats;
-  FillChar(_Stats, SizeOf(_Stats), 0);
-  _Stats.FramesPerSecond := _PrevStats.FramesPerSecond;
-
-  //Application.Instance.SetTitle(IntToString(N));
-
-{$IFNDEF PRECISIONTIMER}
-  Time := GetTime;
+  Time := Application.GetTime();
   _ElapsedTime := (Time - _LastTime) / 1000.0;
   _LastTime := Time;
 
-  If (Time - _LastSecondTime >= 1000) Then
-  Begin
-    _Stats.framesPerSecond := _Frames;
-    _Frames := 1;
+  UpdateFPS := (Time - _LastSecondTime >= 1000);
+  If (UpdateFPS) Then
     _LastSecondTime := Time;
-  End Else
-    Inc(_Frames);
-{$ELSE}
-  If (_Timer<>Nil) Then
-  Begin
-    _elapsedTime := _timer.GetElapsedTime();
-    _accumTimeSec := _accumTimeSec + _elapsedTime;
 
-    if (_accumTimeSec >= 1.0) Then
-    Begin
-      _Stats.framesPerSecond := _Frames;
-      _Frames := 1;
-      _accumTimeSec := 0.0;
-    End Else
-      Inc(_Frames);
-  End;
-{$ENDIF}
+  {$IFNDEF DEBUG_LEAKS}
+  MemoryManager.BeginFrame();
+  {$ENDIF}
 
-  glClearColor(_BackgroundColor.R/255, _BackgroundColor.G/255, _BackgroundColor.B/255, 0{_BackgroundColor.A/255});
+  Renderer.BeginFrame();
 
   If (Not _Prefetching) And (Render3D) Then
     Self.RenderScene;
@@ -2613,7 +2019,7 @@ Begin
   If Render2D Then
     Self.RenderUI();
 
-  _DeviceViewport.Bind();
+  _DeviceViewport.Bind(0);
 
   _DeviceViewport.Restore(True);
 
@@ -2628,8 +2034,14 @@ Begin
     Target.BeginCapture();
 
   For I:=0 To Pred(_ViewportCount) Do
-  If (_Viewports[I].Active) And (_Viewports[I].Target = _DeviceViewport) Then
-    _Viewports[I].DrawToTarget(True);
+  If (_Viewports[I].Active) Then
+  Begin
+    If (_Viewports[I].Target = _DeviceViewport) Then
+      _Viewports[I].DrawToTarget(True)
+    Else
+    If (_Viewports[I].Target = Nil) Then
+      _Viewports[I].DrawToTarget(True);
+  End;
 
   If (Render2D) And (Integer(Self.ShowDebugTarget) <=0) Then
     _UIViewport.DrawToTarget(False);
@@ -2644,11 +2056,16 @@ Begin
   {$ENDIF}
 
   ClearTemporaryDebug3DObjects();
+
+  Renderer.EndFrame();
+  If UpdateFPS Then
+    Renderer.UpdateFrameCounter();
 End;
 
 Procedure GraphicsManager.OnAppResize;
 Var
   I:Integer;
+  NewW, NewH:Integer;
   UIW, UIH:Integer;
 Begin
   {$IFDEF MOBILE}
@@ -2658,13 +2075,25 @@ Begin
   _Width := Application.Instance.Width;
   _Height := Application.Instance.Height;
 
+  _Renderer.Resize(_Width, _Height);
+
+  NewW := Trunc(_Width);
+  NewH :=  Trunc(_Height);
+
+  Application.Instance.SelectResolution2D(NewW, NewH, _UIScale);
+  If (NewW<>_UIWidth) Or (NewH<>_UIHeight) Then
+  Begin
+    _UIWidth := NewW;
+    _UIHeight := NewH;
+  End;
+
   Log(logDebug, 'GraphicsManager', 'Resizing viewports');
   {If Assigned(_DeviceViewport) Then
     _DeviceViewport.Resize(_Width, _Height);}
   OnViewportChange(0, 0, _Width, _Height);
 
-  UIW := Application.Instance.UI_Width;
-  UIH := Application.Instance.UI_Height;
+  UIW := Self.UI_Width;
+  UIH := Self.UI_Height;
   If (UIViewport.Width<>UIW) Or (UIViewport.Height<>UIH) Then
     UIViewport.Resize(UIW, UIH);
 End;
@@ -2730,38 +2159,13 @@ Begin
   MyOccluder._Next := _Occluders;
   _Occluders := MyOccluder;
 
-  Inc(_Stats.OccluderCount);
-End;
-
-Procedure GraphicsManager.Internal(Offset, Count:Integer);
-Begin
-  If (Offset=0) Then
-  Begin
-    Inc(_Stats.TriangleCount, Count);
-    Inc(_Stats.DrawCalls);
-  End;
-  {If (Offset>0) And (Offset<16) Then
-    Inc(PInteger(Cardinal(@(_Stats.TriangleCount)) + Offset * 4)^, Count);}
-End;
-
-Procedure GraphicsManager.SetBackgroundColor(BG: Color);
-Begin
-  _BackgroundColor := BG;
-  If Assigned(_MainViewport) Then
-    _MainViewport.BackgroundColor := BG;
+  Renderer.InternalStat(statOccluders);
 End;
 
 Function GraphicsManager.SwapScene(MyScene:Scene):Scene;
 Begin
   Result := _Scene;
   _Scene := MyScene;
-End;
-
-Function GraphicsManager.GetScreenshot(): Image;
-Begin
-  Result := Image.Create(Width, Height);
-  glReadPixels(0, 0, _Width, _Height, GL_RGBA, GL_UNSIGNED_BYTE, Result.Pixels);
-  Result.Process(IMP_FlipVertical);
 End;
 
 { Renderable }
@@ -2829,6 +2233,16 @@ Begin
   _CurrentViewport := V;
 End;
 
+{Procedure GraphicsManager.SetViewArea(X, Y, Width, Height: Integer);
+Begin
+  _ViewX := X;
+  _ViewY := Y;
+  _ViewWidth := Width;
+  _ViewHeight := Height;
+
+  Renderer.SetViewport(X,Y, Width, Height);
+End;}
+
 Function GraphicsManager.ProjectBoundingBox(Box: BoundingBox; V:Viewport): BoundingBox;
 Var
   I:Integer;
@@ -2889,7 +2303,7 @@ Var
   Img:Image;
 Begin
   Log(logDebug, 'GraphicsManager', 'Restoring rendering context');
-  Self.ResetGLState();
+  Renderer.ResetState();
 
   _DeviceViewport.OnContextLost();
   _UIViewport.OnContextLost();
@@ -2903,97 +2317,6 @@ Begin
   _NeedsContextRestore := True;
 End;
 
-Procedure GraphicsManager.ResetGLState;
-Begin
-	glEnable(GL_CULL_FACE);
-
-  {$IFDEF PC}
-	glEnable(GL_TEXTURE_2D);
-  {$ENDIF}
-
-  glEnable(GL_DEPTH_TEST);
-	//glDisable(GL_FOG);
-	//glEnable(GL_LIGHTING);
-
-  //glDisable(GL_ALPHA_TEST);
-  //glDisable(GL_LINE_SMOOTH);
-  //glClearDepth(1.0);
-  glClearStencil(0);
-  glStencilMask($FFFFFFF);
-  glDepthFunc(GL_LEQUAL);
-End;
-
-Function GraphicsManager.GenerateFrameBuffer: Cardinal;
-Begin
-  Log(logDebug, 'GraphicsManager', 'Generating a new frame buffer...');
-  Repeat
-    glGenFramebuffers(1, @Result);
-    Log(logDebug, 'GraphicsManager', 'Got handle: '+IntToString(Result));
-  Until (Result>=MaxFrameBufferHandles) Or (Not _UsedFrameBuffers[Result]);
-
-  If (Result<MaxFrameBufferHandles) Then
-    _UsedFrameBuffers[Result] := True;
-End;
-
-Function GraphicsManager.GenerateRenderBuffer: Cardinal;
-Begin
-  Log(logDebug, 'GraphicsManager', 'Generating a new render buffer...');
-  Repeat
-    glGenRenderbuffers(1, @Result);
-    Log(logDebug, 'GraphicsManager', 'Got handle: '+IntToString(Result));
-  Until (Result>=MaxFrameBufferHandles) Or (Not _UsedRenderBuffers[Result]);
-
-  If (Result<MaxFrameBufferHandles) Then
-    _UsedRenderBuffers[Result] := True;
-End;
-
-Function GraphicsManager.GenerateTexture: Cardinal;
-Begin
-  Log(logDebug, 'GraphicsManager', 'Generating a new texture...');
-  Repeat
-    glGenTextures(1, @Result);
-    Log(logDebug, 'GraphicsManager', 'Got handle: '+IntToString(Result));
-  Until (Result>=MaxTextureHandles) Or (Not _UsedTextures[Result]);
-
-  If (Result<MaxTextureHandles) Then
-    _UsedTextures[Result] := True;
-End;
-
-Procedure GraphicsManager.DeleteFrameBuffer(Var Handle: Cardinal);
-Begin
-  If (Handle<=0) Then
-    Exit;
-
-  glDeleteFramebuffers(1, @Handle);
-  If (Handle < MaxFrameBufferHandles) Then
-    _UsedFrameBuffers[Handle] := False;
-
-  Handle := 0;
-End;
-
-Procedure GraphicsManager.DeleteRenderBuffer(Var Handle: Cardinal);
-Begin
-  If (Handle<=0) Then
-    Exit;
-
-  glDeleteRenderbuffers(1, @Handle);
-  If (Handle < MaxFrameBufferHandles) Then
-    _UsedRenderBuffers[Handle] := False;
-
-  Handle := 0;
-End;
-
-Procedure GraphicsManager.DeleteTexture(Var Handle: Cardinal);
-Begin
-  If (Handle<=0) Then
-    Exit;
-
-  glDeleteTextures(1, @Handle);
-  If (Handle < MaxTextureHandles) Then
-    _UsedTextures[Handle] := False;
-
-  Handle := 0;
-End;
 
 Procedure GraphicsManager.OnOrientationChange;
 Var
@@ -3026,38 +2349,54 @@ Begin
   Result := _StencilID;
 End;
 
-Procedure GraphicsManager.OnSettingsChange;
-Begin
-  If (Settings.VertexBufferObject.Enabled) And (Not Settings.Shaders.Avaliable) Then
-    Settings.VertexBufferObject.SetValue(False);
-End;
-
 Procedure GraphicsManager.TestDebugKeys;
 Var
   Input:InputManager;
 Begin
   Input := InputManager.Instance;
 
-  If (Input.Keys.WasPressed(Ord('1'))) Then
-    Self.ShowDebugTarget := captureTargetInvalid;
+  If (Input.Keys.IsDown(KeyShift)) Then
+  Begin
+    If (Input.Keys.WasPressed(keyF1)) Then
+      Self.ShowDebugTarget := effectTargetGlow;
 
-  If (Input.Keys.WasPressed(Ord('2'))) Then
-    Self.ShowDebugTarget := captureTargetColor;
+    If (Input.Keys.WasPressed(keyF2)) Then
+      Self.ShowDebugTarget := effectTargetBloom;
 
-  If (Input.Keys.WasPressed(Ord('3'))) Then
-    Self.ShowDebugTarget := captureTargetNormal;
+    If (Input.Keys.WasPressed(keyF3)) Then
+      Self.ShowDebugTarget := effectTargetEdge;
 
-  If (Input.Keys.WasPressed(Ord('4'))) Then
-    Self.ShowDebugTarget := captureTargetEmission;
+    If (Input.Keys.WasPressed(keyF4)) Then
+      Self.ShowDebugTarget := captureTargetAlpha;
+  End Else
+  Begin
+    If (Input.Keys.WasPressed(keyF1)) Then
+      Self.ShowDebugTarget := captureTargetInvalid;
 
-  If (Input.Keys.WasPressed(Ord('5'))) Then
-    Self.ShowDebugTarget := captureTargetRefraction;
+    If (Input.Keys.WasPressed(keyF2)) Then
+      Self.ShowDebugTarget := captureTargetColor;
 
-  If (Input.Keys.WasPressed(Ord('6'))) Then
-    Self.ShowDebugTarget := captureTargetReflection;
+    If (Input.Keys.WasPressed(keyF3)) Then
+      Self.ShowDebugTarget := captureTargetNormal;
 
-  If (Input.Keys.WasPressed(Ord('7'))) Then
-    Self.ShowDebugTarget := captureTargetOutline;
+    If (Input.Keys.WasPressed(keyF4)) Then
+      Self.ShowDebugTarget := captureTargetEmission;
+
+    If (Input.Keys.WasPressed(keyF5)) Then
+      Self.ShowDebugTarget := captureTargetRefraction;
+
+    If (Input.Keys.WasPressed(keyF6)) Then
+      Self.ShowDebugTarget := captureTargetReflection;
+
+    If (Input.Keys.WasPressed(keyF7)) Then
+      Self.ShowDebugTarget := captureTargetOutline;
+
+    If (Input.Keys.WasPressed(keyF8)) Then
+      Self.ShowDebugTarget := captureTargetShadow;
+
+    If (Input.Keys.WasPressed(keyF9)) Then
+      Self.ShowDebugTarget := captureTargetPosition;
+  End;
 End;
 
 Procedure GraphicsManager.EnableReflection(Const ReflectionPoint, ReflectionNormal: Vector3D);

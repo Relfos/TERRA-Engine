@@ -4,7 +4,7 @@ Unit TERRA_UIBG;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Utils, TERRA_Math, TERRA_Texture, TERRA_Vector2D, TERRA_Vector3D, TERRA_Color, TERRA_Quaternion,
-  TERRA_SpriteManager;
+  TERRA_Renderer, TERRA_SpriteManager;
     
 Type
   UIBackground = Class(TERRAObject)
@@ -52,8 +52,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_UI, TERRA_Application, TERRA_GraphicsManager, TERRA_OS,
-  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Shader, TERRA_Matrix, Math;
+Uses TERRA_UI, TERRA_Application, TERRA_GraphicsManager, TERRA_OS, TERRA_Matrix, Math;
 
 Function GetShader_TileBG:AnsiString;
 Var
@@ -66,11 +65,11 @@ Begin
   Line('  attribute mediump vec4 terra_UV0;');
   Line('  attribute lowp vec4 terra_color;');
   Line('  uniform mat4 projectionMatrix;');
-  Line('  uniform mat4 UVtransform;');
+  Line('  uniform mat4 textureMatrix;');
   Line('  varying mediump vec4 texCoord;');
 	Line('  varying lowp vec4 color;');
 	Line('void main()	{');
-  Line('  texCoord = UVtransform * terra_UV0;');
+  Line('  texCoord = textureMatrix * terra_UV0;');
   Line('  gl_Position = projectionMatrix * terra_position;');
   Line('  color = terra_color;}');
   Line('}');
@@ -129,7 +128,7 @@ Begin
 End;
 
 Var
-  _TileBGShader:Shader = Nil;
+  _TileBGShader:ShaderInterface = Nil;
 
 Procedure TilingBackground.Render;
 Const
@@ -138,14 +137,16 @@ Const
 Var
   Ratio, AnimationOffset:Single;
   I:Integer;
-  PositionHandle, UVHandle, ColorHandle:Integer;
-  _Shader:Shader;
+  _Shader:ShaderInterface;
   Scroll, Rot:Vector3D;
   Transform:Matrix;
   M:Matrix;
+  Graphics:GraphicsManager;
 Begin
   If Not Assigned(_Texture) Then
     Exit;
+
+  Graphics := GraphicsManager.Instance;
 
   _Texture.BilinearFilter := False;
   _Texture.MipMapped := False;
@@ -170,19 +171,20 @@ Begin
   _Texture.Bind(0);
 
   If (IsLandscapeOrientation(Application.Instance.Orientation)) Then
-    Ratio := GraphicsManager.Instance.Height / GraphicsManager.Instance.Width
+    Ratio := Graphics.Height / Graphics.Width
   Else
-    Ratio := GraphicsManager.Instance.Width / GraphicsManager.Instance.Height;
+    Ratio := Graphics.Width / Graphics.Height;
 
   If (Not Assigned(_TileBGShader)) Then
   Begin
-    _TileBGShader := Shader.CreateFromString(GetShader_TileBG(), 'UIBG');
-    ShaderManager.Instance.AddShader(_TileBGShader);
+    _TileBGShader := Graphics.Renderer.CreateShader();
+    _TileBGShader.Generate(GetShader_TileBG()); //, 'UIBG'); BIBI
+    //ShaderManager.Instance.AddShader(_TileBGShader);
   End;
 
   Scroll := VectorCreate(_ScrollDir.X * AnimationOffset, _ScrollDir.Y * AnimationOffset, 1.0);
 
-{  If (GraphicsManager.Instance.LandscapeOrientation) Then
+{  If (Graphics.LandscapeOrientation) Then
     Rot := VectorCreate(0, 0.0, -90*RAD)
   Else}
     Rot := VectorZero;
@@ -190,18 +192,16 @@ Begin
   Transform := MatrixTransform(Scroll, Rot, VectorCreate(Ratio, 1.0, 1.0));
 
   _Shader := _TileBGShader;
-  M := GraphicsManager.Instance.ProjectionMatrix;
-  ShaderManager.Instance.Bind(_Shader);
-  _Shader.SetUniform('texture', 0);
-  _Shader.SetUniform('projectionMatrix', M);
-  _Shader.SetUniform('UVtransform', Transform);
+  M := Graphics.ProjectionMatrix;
+  _Shader.Bind();
+  _Shader.SetIntegerUniform('texture', 0);
 
-  PositionHandle := _Shader.GetAttribute('terra_position');
-  UVHandle := _Shader.GetAttribute('terra_UV0');
-  ColorHandle := _Shader.GetAttribute('terra_color');
+  Graphics.Renderer.SetModelMatrix(MatrixIdentity);
+  Graphics.Renderer.SetProjectionMatrix(M);
+  Graphics.Renderer.SetTextureMatrix(Transform);
 
-  {$IFDEF PC}
-  If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
+(*  {$IFDEF PC}
+  If (Not Graphics.Renderer.Features.Shaders.Avaliable) Then
   Begin
     glMatrixMode(GL_PROJECTION);
     glLoadMatrixf(@M);
@@ -220,22 +220,24 @@ Begin
   End Else
   {$ENDIF}
   Begin
-    glVertexAttribPointer(PositionHandle, 3, GL_FLOAT, False, SizeOf(SpriteVertex), @(_VertexList[0].Position));    
-    glVertexAttribPointer(UVHandle, 2, GL_FLOAT, False, SizeOf(SpriteVertex), @(_VertexList[0].TexCoord));  
-    glVertexAttribPointer(ColorHandle, 4, GL_UNSIGNED_BYTE, True, SizeOf(SpriteVertex), @(_VertexList[0].Color));         
-  End;
+    glVertexAttribPointer(PositionHandle, 3, GL_FLOAT, False,
+    glVertexAttribPointer(UVHandle, 2, GL_FLOAT, False, SizeOf(
+    glVertexAttribPointer(ColorHandle, 4, GL_UNSIGNED_BYTE, True, SizeOf(
+  End;*)
 
-  glDrawArrays(GL_TRIANGLES, 0, 6);                                                 
-  GraphicsManager.Instance.Internal(0, 2);
+  Graphics.Renderer.SetAttributeSource('terra_position', typeVector3D, SizeOf(SpriteVertex), @(_VertexList[0].Position));
+  Graphics.Renderer.SetAttributeSource('terra_UV0', typeVector2D, SizeOf(SpriteVertex), @(_VertexList[0].TexCoord));
+  Graphics.Renderer.SetAttributeSource('terra_color', typeColor, SizeOf(SpriteVertex), @(_VertexList[0].Color));
+  Graphics.Renderer.DrawSource(renderTriangles, 6);
 
-  {$IFDEF PC}
-  If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
+(*  {$IFDEF PC}
+  If (Not Graphics.Renderer.Features.Shaders.Avaliable) Then
   Begin
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
   End;
-  {$ENDIF}
+  {$ENDIF}*)
 End;
 
 { FrameBackground }
@@ -281,8 +283,8 @@ Begin
   If (Not Assigned(_Texture)) Or (Color.A<=0) Then
     Exit;
 
-  GraphicsManager.Instance.SetBlendMode(blendNone);
-  GraphicsManager.Instance.SetBlendMode(BlendMode);
+  GraphicsManager.Instance.Renderer.SetBlendMode(blendNone);
+  GraphicsManager.Instance.Renderer.SetBlendMode(BlendMode);
 
 (*  glColor4ub(Color.R, Color.G, Color.B, Color.A);
   _Texture.Bind(_Texture, 0);

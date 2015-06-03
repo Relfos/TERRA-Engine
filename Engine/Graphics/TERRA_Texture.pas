@@ -26,8 +26,8 @@ Unit TERRA_Texture;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Image, TERRA_Stream, TERRA_Color, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
-  TERRA_Vector2D, TERRA_Math, TERRA_Resource, TERRA_ResourceManager;
+  TERRA_String, TERRA_Image, TERRA_Stream, TERRA_Color, TERRA_Vector2D, TERRA_Math,
+  TERRA_Resource, TERRA_ResourceManager, TERRA_Renderer;
 
 {$IFDEF MOBILE}
 {´-$DEFINE TEXTURES16BIT}
@@ -38,50 +38,60 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
 Const
   MinTextureSize  = 2;
 
-  textureFilterPoint = 0;
-  textureFilterBilinear = 1;
-
 Type
   Texture = Class(Resource)
     Protected
-      _Handles:Array Of Cardinal;
+      _Handles:Array Of SurfaceInterface;
       _FrameCount:Integer;
-      _AnimationStart:Cardinal;
-
-      _TargetFormat:Cardinal;
-      _SourceFormat:Cardinal;
-      _ByteFormat:Cardinal;
 
       _Width:Cardinal;
       _Height:Cardinal;
+
+      _AnimationStart:Cardinal;
+
+      _TargetFormat:TextureColorFormat;
+      _ByteFormat:PixelSizeType;
+
       _Source:Image;
       _Ratio:Vector2D;
 
-      _SettingsChanged:Boolean;
-      _Wrap:Boolean;
-      _MipMapped:Boolean;
-      _BilinearFilter:Boolean;
-      _NPOT:Boolean;
-
       _Dynamic:Boolean;
+
+      _Managed:Boolean;
+
+      _SizeInBytes:Cardinal;
 
       _CurrentFrame:Integer;
 
-      Procedure ApplySettings;
+      _SettingsChanged:Boolean;
+      _WrapMode:TextureWrapMode;
+      _MipMapped:Boolean;
+      _Filter:TextureFilterMode;
 
       Function GetCurrentFrame():Integer;
-
-      Procedure ConvertToBestFormat(Source:Image; Var Pixels:PWord);
+      Function GetCurrent:SurfaceInterface;
 
       Procedure AdjustRatio(Source:Image);
-      Procedure CheckNPOT();
+
+      Function IsNPOT():Boolean;
+
+      Function DetectBestFormat(Source:Pointer; SourceFormat:TextureColorFormat):TextureColorFormat;
+      Function ConvertToFormat(Source:Pointer; SourceFormat, TargetFormat:TextureColorFormat):Pointer;
+
+      Procedure ApplySettings(Slot:Integer);
+
+      Function GetOrigin: SurfaceOrigin;
 
     Public
       Uncompressed:Boolean;
       PreserveQuality:Boolean;
 
-      Constructor New(Const Name:TERRAString; TextureWidth, TextureHeight:Cardinal); Overload;
-      Constructor New(Const Name:TERRAString; Source:Image); Overload;
+      Constructor Create();
+
+      Procedure CreateFromSize(Const Name:TERRAString; TextureWidth, TextureHeight:Cardinal);
+      Procedure CreateFromImage(Const Name:TERRAString; Source:Image);
+      Procedure CreateFromSurface(Surface:SurfaceInterface);
+      Procedure CreateFromLocation(Const Location:TERRAString);
 
       Procedure Build(); Virtual;
 
@@ -92,18 +102,20 @@ Type
 
       Class Function RAM:Cardinal;
 
-      Procedure Bind(Slot:Integer); Virtual;
-
-      Function GetImage():Image; Virtual;
-      Function GetPixel(X,Y:Integer):Color;  Virtual;
-      Function GetHandle(Frame:Integer): Cardinal;
+      Procedure Bind(Slot:Integer); 
 
       Procedure UpdateRect(Source:Image; X,Y:Integer); Overload;
       Procedure UpdateRect(Source:Image); Overload;
 
-      Procedure SetWrap(Value:Boolean);
+      Procedure SetWrapMode(Value:TextureWrapMode);
       Procedure SetMipMapping(Value:Boolean);
-      Procedure SetFilter(Value:Boolean);
+      Procedure SetFilter(Value:TextureFilterMode);
+
+	    Procedure Save(Const FileName:TERRAString);
+
+      Function GetImage():Image;
+      Function GetPixel(X,Y:Integer):Color; Virtual;
+
 
       //Property Format:Cardinal Read _Format;
 
@@ -111,9 +123,15 @@ Type
       Property Height:Cardinal Read _Height;
       Property Ratio:Vector2D Read _Ratio;
 
-      Property Wrap:Boolean Read _Wrap Write SetWrap;
+      Property WrapMode:TextureWrapMode Read _WrapMode Write SetWrapMode;
       Property MipMapped:Boolean Read _MipMapped Write SetMipMapping;
-      Property BilinearFilter:Boolean Read _BilinearFilter Write SetFilter;
+      Property Filter:TextureFilterMode Read _Filter Write SetFilter;
+
+      Property Origin: SurfaceOrigin Read GetOrigin;
+
+      Property SizeInBytes:Cardinal Read _SizeInBytes;
+
+      Property Current:SurfaceInterface Read GetCurrent;
   End;
 
   TextureClass = Class Of Texture;
@@ -242,9 +260,11 @@ Begin
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Found '+S+'...');{$ENDIF}
 
       If Assigned(TextureFormat) Then
-        Result := TextureFormat.Create(S)
+        Result := TextureFormat.Create()
       Else
-        Result := Texture.Create(S);
+        Result := Texture.Create();
+
+      Result.CreateFromLocation(S);
 
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture class instantiated sucessfully!');{$ENDIF}
 
@@ -254,10 +274,6 @@ Begin
         Result.Priority := 50;
 
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture loading priority set!');{$ENDIF}
-
-      Result.MipMapped := (GraphicsManager.Instance.Settings.Shaders.Avaliable);
-      Result.Wrap := True;
-      Result.BilinearFilter := True;
 
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture settings set!');{$ENDIF}
 
@@ -282,10 +298,11 @@ End;
 
 Function TextureManager.CreateTextureWithColor(Name:TERRAString; TexColor:Color):Texture;
 Begin
-  Result := Texture.New(Name, 64, 64);
+  Result := Texture.Create();
+  Result.CreateFromSize(Name, 64, 64);
   Result.Uncompressed := True;
   Result.MipMapped := False;
-  Result.BilinearFilter := False;
+  Result.Filter := filterLinear;
   Result.Update();
   Self.FillTextureWithColor(Result, TexColor);
 End;
@@ -364,20 +381,25 @@ Begin
   Result := _DefaultNormalMap;
 End;
 
-Function MyTest(P:Color):Color; CDecl;
+{Function MyTest(P:Color):Color; CDecl;
+Var
+  V:ColorHSL;
 Begin
   Result :=P; Exit;
 
-   P:= ColorRGBToHSL(P);
-   P.R := 140;
-   Result := ColorHSLToRGB(P);
+   V := ColorRGBToHSL(P);
+   V.H := 140;
+   Result := ColorHSLToRGB(V);
    Result := ColorGreen;
-End;
+End;}
 
 Function TextureManager.GetDefaultColorTable:Texture;
 Begin
   If (Not Assigned(_DefaultColorTable)) Then
-    _DefaultColorTable := DefaultColorTableTexture.New('default_colortable', 256, 16);
+  Begin
+    _DefaultColorTable := DefaultColorTableTexture.Create();
+    _DefaultColorTable.CreateFromSize('default_colortable', 1024, 32);
+  End;
 
   Result := _DefaultColorTable;
 End;
@@ -410,22 +432,75 @@ Begin
   Result := _TextureMemory;
 End;
 
-Constructor Texture.New(Const Name:TERRAString; TextureWidth, TextureHeight:Cardinal);
+Constructor Texture.Create();
 Begin
-  _Location := '';
+  _TargetFormat := colorRGBA;
+  _ByteFormat := pixelSizeByte;
+  _Ratio := VectorCreate2D(1, 1);
   _Key := Name;
+
+  _SettingsChanged := True;
+  _WrapMode := wrapAll;
+  _MipMapped := GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable;
+  _Filter := filterBilinear;
+
+  _Managed := False;
+End;
+
+Procedure Texture.CreateFromLocation(const Location: TERRAString);
+Begin
+  Inherited Create(Location);
+End;
+
+Procedure Texture.CreateFromSurface(Surface: SurfaceInterface);
+Begin
+  _Key := '';
+
+  If (Surface = Nil) Then
+  Begin
+    Self.CreateFromSize(CardinalToString(Application.GetTime()), 128, 128);
+    Exit;
+  End;
+
+  _Width := Surface.Width;
+  _Height := Surface.Height;
+
+  _FrameCount := 1;
+
+  SetLength(_Handles, _FrameCount);
+  _Handles[0] := Surface;
+
+  _Dynamic := True;
+  Uncompressed := False;
+
+  If (Self._Location='') Then
+    Self._Status := rsReady;
+
+  _SettingsChanged := True;
+
+  Self._ContextID := Application.Instance.ContextID; // FIXME
+  _Managed := True;
+End;
+
+Procedure Texture.CreateFromSize(Const Name:TERRAString; TextureWidth, TextureHeight:Cardinal);
+Begin
+  _Key := Name;
+  _Location := '';
+
   _Width := TextureWidth;
   _Height := TextureHeight;
-  _Ratio := VectorCreate2D(1, 1);
 
-  _SourceFormat := 0;
-  _TargetFormat := 0;
-  _ByteFormat := 0;
 
-  If (Not GraphicsManager.Instance.Settings.NPOT.Avaliable) Then
+  If (Not GraphicsManager.Instance.Renderer.Features.NPOT.Avaliable) Then
   Begin
-    _Width := IntMin(IntMax(NearestPowerOfTwo(_Width), MinTextureSize), GraphicsManager.Instance.Settings.MaxTextureSize);
-    _Height := IntMin(IntMax(NearestPowerOfTwo(_Height), MinTextureSize), GraphicsManager.Instance.Settings.MaxTextureSize);
+    _Width := IntMax(NearestPowerOfTwo(_Width), MinTextureSize);
+    _Height := IntMax(NearestPowerOfTwo(_Height), MinTextureSize);
+
+    If GraphicsManager.Instance.Renderer.Features.MaxTextureSize>0 Then
+    Begin
+      _Width := IntMin(_Width, GraphicsManager.Instance.Renderer.Features.MaxTextureSize);
+      _Height := IntMin(_Height, GraphicsManager.Instance.Renderer.Features.MaxTextureSize);
+    End;
 
     _Ratio := VectorCreate2D(_Width/TextureWidth, _Height/TextureHeight);
   End;
@@ -434,23 +509,17 @@ Begin
   _Source.Process(IMP_FillColor, ColorWhite);
 
   _Dynamic := True;
-
-  CheckNPOT();
-
   Uncompressed := False;
-  _Wrap := True;
-  _MipMapped := True;
-  _BilinearFilter := True;
 End;
 
-Constructor Texture.New(Const Name:TERRAString; Source:Image);
+Procedure Texture.CreateFromImage(Const Name:TERRAString; Source:Image);
 Begin
   If (Source = Nil) Then
-    Self.New(Name, 128, 128)
+    Self.CreateFromSize(Name, 128, 128)
   Else
   Begin
     AdjustRatio(Source);
-    Self.New(Name, Source.Width, Source.Height);
+    Self.CreateFromSize(Name, Source.Width, Source.Height);
     Self.Update();
     Self.UpdateRect(Source);
   End;
@@ -469,15 +538,12 @@ Begin
 
   _Width := _Source.Width;
   _Height := _Source.Height;
-  
-  CheckNPOT();
 
   If (StringContains('_normal', Source.Name)) Then
     Uncompressed := True;
 
-  _SourceFormat := 0;
-  _TargetFormat := 0;
-  _ByteFormat := 0;
+  _TargetFormat := colorRGBA;
+  _ByteFormat := pixelSizeByte;
 
   Result := True;
 End;
@@ -487,15 +553,16 @@ Var
 	MemCount:Integer;
   I,S:Integer;
 Begin
-  If (Length(_Handles)>0) Then
+  If (Length(_Handles)>0) And (Not _Managed) Then
   Begin
   	MemCount := _Size * _FrameCount;
   	If (_TextureMemory>=MemCount) Then
 	    Dec(_TextureMemory, MemCount);
 
     For I:=0 To Pred(_FrameCount) Do
-    If (Application.Instance<>Nil) And (Self._ContextID = Application.Instance.ContextID) Then
-      GraphicsManager.Instance.DeleteTexture(_Handles[I]);
+    If (Application.Instance<>Nil) And (Self._ContextID = Application.Instance.ContextID)
+    And (Assigned(_Handles[I])) Then
+      ReleaseObject(_Handles[I]);
 
     _Handles := Nil;
     _FrameCount := 0;
@@ -522,87 +589,52 @@ End;
 Function Texture.Update:Boolean;
 Var
   W,H,I, J, S:Cardinal;
-  Mult:Single;
   Pixels:PWord;
+  SourceFormat:TextureColorFormat;
+  Tex:TextureInterface;
 Begin
   Inherited Update();
 
   Result := False;
 
-  {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'Update');{$ENDIF}
-
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Allocating pixels');{$ENDIF}
   If (Not Assigned(_Source)) Then
   Begin
-    _Source := Image.Create(_Width, _Height);
-    _Source.Process(IMP_FillColor, ColorWhite);
+    {_Source := Image.Create(_Width, _Height);
+    _Source.Process(IMP_FillColor, ColorWhite);}
+    Exit;
   End;
 
   _FrameCount := _Source.FrameCount;
 
-  If Application.Instance.IsConsole Then
-  Begin
-    Result := True;
-    Exit;
-  End;
-
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Generating texture');{$ENDIF}
   If (Length(_Handles)<=0) Then
-  Begin
     SetLength(_Handles, _FrameCount);
-    For I:=0 To Pred(_FrameCount) Do
-  	  _Handles[I] := GraphicsManager.Instance.GenerateTexture();
-  End;
 
-  ConvertToBestFormat(_Source, Pixels);
+  _CurrentFrame := 0;
 
+  SourceFormat := colorRGBA;
+  _TargetFormat := DetectBestFormat(_Source, SourceFormat);
+  Pixels := ConvertToFormat(_Source.Pixels, SourceFormat, _TargetFormat);
+
+  _Size := 0;
   For I:=0 To Pred(_FrameCount) Do
   Begin
+    ReleaseObject(_Handles[I]);
+
     If (_FrameCount>0) Then
     Begin
       _Source.SetCurrentFrame(I);
       Pixels := PWord(_Source.Pixels);
     End;
 
-    glActiveTexture(GL_TEXTURE0);
-    {$IFDEF PC}
-    glEnable(GL_TEXTURE_2D);
-    {$ENDIF}
-    glBindTexture(GL_TEXTURE_2D, _Handles[I]);
+    Tex := GraphicsManager.Instance.Renderer.CreateTexture();
+    Tex.Generate(Pixels, _Source.Width, _Source.Height, SourceFormat, _TargetFormat, _ByteFormat);
 
-    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Uploading texture frame '+IntToString(I));{$ENDIF}
-    glTexImage2D(GL_TEXTURE_2D, 0, _TargetFormat, _Width, _Height, 0, _SourceFormat, _ByteFormat, Pixels);
-
-    //_Source.Save('debug\temp\pp'+IntTOString(I)+'.png');
-
-(*  If (_Format = GL_COMPRESSED_RGBA) Then
-  Begin
-    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_INTERNAL_FORMAT, @_Format);
-    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, @_Size);
-  End;
-*)
-    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Applying texture settings');{$ENDIF}
-    ApplySettings();
+    _Handles[I] := Tex;
+    Inc(_Size, _Handles[I].Size);
   End;
 
-  Case _ByteFormat Of
-  GL_UNSIGNED_SHORT_4_4_4_4,
-  GL_UNSIGNED_SHORT_5_5_5_1,
-  GL_UNSIGNED_SHORT_5_6_5:
-    Begin
-      Mult := 2;
-    End;
-
-  Else
-    Mult := 4.0;
-  End;
-
-  _Size := Trunc(Mult * _Width * _Height);
-
-  {$IFDEF PC}
-  glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, @_Width);
-  glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, @_Height);
-  {$ENDIF}
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Freeing pixels');{$ENDIF}
 
@@ -620,10 +652,10 @@ Begin
 
   Self.Build();
 
-  _AnimationStart := GetTime();
+  _AnimationStart := Application.GetTime();
   _CurrentFrame := 0;
 
-  {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
+  _SettingsChanged := True;
 End;
 
 Procedure Texture.Build;
@@ -636,15 +668,9 @@ Var
 
 Procedure Texture.Bind(Slot:Integer);
 Begin
-  glActiveTexture(GL_TEXTURE0 + Slot);
-
-  {$IFDEF PC}
-  glEnable(GL_TEXTURE_2D);
-  {$ENDIF}
-
   If (Self = Nil) Or (Not Self.IsReady()) Then
   Begin
-    glBindTexture(GL_TEXTURE_2D, 0);
+    //glBindTexture(GL_TEXTURE_2D, 0);
     Exit;
   End;
 
@@ -654,19 +680,24 @@ Begin
   _TextureSlots[Slot] := MyTexture;}
 
   _CurrentFrame := GetCurrentFrame();
+  GraphicsManager.Instance.Renderer.BindSurface(Self.Current, Slot);
 
-  glBindTexture(GL_TEXTURE_2D, _Handles[_CurrentFrame]);
   If (_SettingsChanged) Then
-    Self.ApplySettings();
+  Begin
+  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Applying texture settings');{$ENDIF}
+    _SettingsChanged := False;
+    Self.ApplySettings(Slot);
+  End;
 End;
 
 Procedure Texture.UpdateRect(Source:Image; X,Y:Integer);
 Var
   Pixels:PWord;
+  SourceFormat:TextureColorFormat;
 Begin
   If Length(_Handles)<=0 Then
   Begin
-    If (_Width=Source.Width) And (_Height = Source.Height) Then
+    If (Self.Width = Source.Width) And (Self.Height = Source.Height) Then
     Begin
       If (_Source <> Nil) Then
         _Source.Release();
@@ -679,156 +710,31 @@ Begin
     Exit;
   End;
 
-  Self.ConvertToBestFormat(Source, Pixels);
+  SourceFormat := colorRGBA;
+  Pixels := Self.ConvertToFormat(Source.Pixels, SourceFormat, _TargetFormat);
 
-	glBindTexture(GL_TEXTURE_2D, _Handles[0]);
-	//glTexSubImage2D(GL_TEXTURE_2D, 0, X, Y, Source.Width, Source.Height, _TargetFormat, _ByteFormat, Pixels);
-  glTexSubImage2D(GL_TEXTURE_2D, 0, X, Y, Source.Width, Source.Height, GL_RGBA, GL_UNSIGNED_BYTE, Pixels);
-
-  If (MipMapped) Then
-    Self.ApplySettings();
+  If Self.Current Is TextureInterface Then
+    TextureInterface(Self.Current).Update(Pixels, X, Y, Source.Width, Source.Height)
+  Else
+    RaiseError('Trying to update something that is not a TextureInterface!');
 End;
 
 Procedure Texture.UpdateRect(Source:Image);
-Var
-  Pixels:PByte;
 Begin
-  If (_Width<>Source.Width) Or (_Height <> Source.Height) Then
+  If (Self.Width<>Source.Width) Or (Self.Height <> Source.Height) Then
   Begin
-    RaiseError('Invalid texture dimensions: '+IntToString(_Width)+' x' + IntToString(_Height));
+    RaiseError('Invalid texture dimensions: '+IntToString(Self.Width)+' x' + IntToString(Self.Height));
     Exit;
   End;
 
   Self.UpdateRect(Source, 0, 0);
 End;
 
-Procedure Texture.ApplySettings;
-Begin
-  _SettingsChanged := False;
-
-  {$IFDEF PC}
-    {$IFNDEF WINDOWS}
-    MipMapped := False; {FIXME}
-    {$ENDIF}
-  {$ENDIF}
-
-  If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
-    MipMapped := False;
-
-  {$IFDEF MOBILE}
-  If (_NPOT) Then
-  Begin
-    BilinearFilter := False;
-    MipMapped := False;
-    Wrap := False;
-  End;
-  {$ENDIF}
-
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Setting texture filtering for '+Name);{$ENDIF}
-
-  If (BilinearFilter) Then
-  Begin
-    If (MipMapped) Then
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR)
-    Else
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-  End Else
-  Begin
-    If (MipMapped) Then
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST)
-    Else
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  End;
-
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Setting wrap mode for '+Name);{$ENDIF}
-
-  If (Wrap) Then
-  Begin
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  End Else
-  Begin
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  End;
-
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Generating mipmap for '+Name);{$ENDIF}
-  If (MipMapped) Then
-  Begin
-    glGenerateMipmap(GL_TEXTURE_2D);
-  End;
-
-  {$IFNDEF MOBILE}
-	If (GraphicsManager.Instance.Settings.Textures.Quality>=QualityHigh) And (GraphicsManager.Instance.Settings.MaxAnisotrophy > 1) Then
-  Begin
-	  glTexParameteri(GL_TEXTURE_2D, GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, GraphicsManager.Instance.Settings.MaxAnisotrophy);
-  End;
-  {$ENDIF}
-End;
-
-Procedure Texture.SetWrap(Value:Boolean);
-Begin
-  If (_Wrap= Value) Then
-    Exit;
-
-  _SettingsChanged := True;
-  _Wrap := Value;
-End;
-
-Procedure Texture.SetMipMapping(Value:Boolean);
-Begin
-  If (_MipMapped = Value) Then
-    Exit;
-
-  _SettingsChanged := True;
-  _MipMapped := Value;
-End;
-
-Procedure Texture.SetFilter(Value:Boolean);
-Begin
-  If (_BilinearFilter = Value) Then
-    Exit;
-
-  _SettingsChanged := True;
-  _BilinearFilter := Value;
-End;
-
-Function Texture.GetImage:Image;
-Begin
-  Log(logDebug, 'Texture', 'Getting image from texture '+Self.Name);
-
-  If Assigned(_Source) Then
-    Result := Image.Create(_Source)
-  Else
-  Begin
-    Result := Image.Create(_Width, _Height);
-
-  {$IFDEF PC}
-    glActiveTexture(GL_TEXTURE0);
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, _Handles[_CurrentFrame]);
-
-    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, @_Width);
-    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, @_Height);
-
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, Result.Pixels);
-
-    Result.Process(IMP_FlipVertical);
-  {$ENDIF}
-  End;
-End;
 
 
 Class Function Texture.GetManager: Pointer;
 Begin
   Result := TextureManager.Instance;
-End;
-
-Function Texture.GetPixel(X, Y: Integer): Color;
-Begin
-  Result := ColorBlack;
 End;
 
 Procedure TextureManager.OnContextLost;
@@ -856,20 +762,12 @@ Procedure DefaultColorTableTexture.Build;
 Var
   Temp:Image;
 Begin
-  Temp := CreateColorTable(16);
+  Temp := CreateColorTable(32);
   Self.UpdateRect(Temp);
   Temp.Release;
 
   Self.MipMapped := False;
-  Self.Wrap := False;
-End;
-
-Function Texture.GetHandle(Frame:Integer): Cardinal;
-Begin
-  If (Frame<0) Or (Frame>=_FrameCount) Then
-    Frame := _CurrentFrame;
-
-  Result := _Handles[Frame];
+  Self.WrapMode := wrapNothing;
 End;
 
 Function Texture.GetCurrentFrame: Integer;
@@ -880,7 +778,7 @@ Begin
     Result := 0
   Else
   Begin
-    Delta := (GetTime - _AnimationStart);
+    Delta := (Application.GetTime - _AnimationStart);
     Delta := Delta / 1000;
     If (Delta>1) Then
       Delta := Frac(Delta);
@@ -889,10 +787,52 @@ Begin
   End;
 End;
 
+
+Procedure Texture.AdjustRatio(Source:Image);
+Var
+  W,H:Cardinal;
+Begin
+  If Source = Nil Then
+    Exit;
+
+  If (Not GraphicsManager.Instance.Renderer.Features.NPOT.Avaliable) Then
+  Begin
+    W := IntMax(NearestPowerOfTwo(Source.Width), MinTextureSize);
+    H := IntMax(NearestPowerOfTwo(Source.Height), MinTextureSize);
+
+    If GraphicsManager.Instance.Renderer.Features.MaxTextureSize>0 Then
+    Begin
+      W := IntMin(W, GraphicsManager.Instance.Renderer.Features.MaxTextureSize);
+      H := IntMin(H, GraphicsManager.Instance.Renderer.Features.MaxTextureSize);
+    End;
+
+    _Ratio := VectorCreate2D(W/Source.Width, H/Source.Height);
+
+    If (W<>Source.Width) Or (H<>Source.Height) Then
+      Log(logDebug, 'Texture', self.Name+ ' needs resizing: '+IntToString(W) +' ' +IntToString(H));
+
+    Source.Resize(W,H);
+  End Else
+  Begin
+    _Ratio := VectorCreate2D(1, 1);
+  End;
+End;
+
 Var
   Scratch16:Array Of Word;
 
-Procedure Texture.ConvertToBestFormat(Source:Image; Var Pixels:PWord);
+Function Texture.ConvertToFormat(Source:Pointer; SourceFormat, TargetFormat:TextureColorFormat):Pointer;
+Begin
+  Result := Source;
+End;
+
+Function Texture.DetectBestFormat(Source:Pointer; SourceFormat:TextureColorFormat):TextureColorFormat;
+Begin
+  Result := SourceFormat;
+End;
+
+(*
+Procedure Texture.ConvertToFormat(Source:Image; Var Pixels:PWord);
 Var
   HasMask:Boolean;
   HasAlpha:Boolean;
@@ -1030,41 +970,94 @@ Begin
 
   _SourceFormat := _TargetFormat;
   {$ENDIF}
+End;*)
+
+
+{Function Texture.GetHandle(Frame:Integer): Cardinal;
+Begin
+  If (Frame<0) Or (Frame>=_FrameCount) Then
+    Frame := _CurrentFrame;
+
+  Result := _Handles[Frame];
+End;}
+
+Procedure Texture.SetFilter(Value: TextureFilterMode);
+Begin
+  Self._Filter := Value;
+  Self._SettingsChanged := True;
 End;
 
-Procedure Texture.CheckNPOT;
-Var
-  W,H:Cardinal;
+Procedure Texture.SetMipMapping(Value: Boolean);
 Begin
-  W := NearestPowerOfTwo(_Width);
-  H := NearestPowerOfTwo(_Height);
-
-  _NPOT := (W<>_Width) Or (H<>_Height);
+  Self._MipMapped := Value;
+  Self._SettingsChanged := True;
 End;
 
-Procedure Texture.AdjustRatio(Source:Image);
-Var
-  W,H:Cardinal;
+Procedure Texture.SetWrapMode(Value: TextureWrapMode);
 Begin
-  If Source = Nil Then
-    Exit;
+  Self._WrapMode := Value;
+  Self._SettingsChanged := True;
+End;
 
-  If (Not GraphicsManager.Instance.Settings.NPOT.Avaliable) Then
+Function Texture.GetCurrent:SurfaceInterface;
+Begin
+  If (_CurrentFrame>=_FrameCount) Then
+    Result := Nil
+  Else
+    Result := _Handles[_CurrentFrame];
+End;
+
+Procedure Texture.ApplySettings(Slot: Integer);
+Begin
+  {$IFDEF MOBILE}
+  If (IsNPOT()) Then
   Begin
-    W := IntMin(IntMax(NearestPowerOfTwo(Source.Width), MinTextureSize), GraphicsManager.Instance.Settings.MaxTextureSize);
-    H := IntMin(IntMax(NearestPowerOfTwo(Source.Height), MinTextureSize), GraphicsManager.Instance.Settings.MaxTextureSize);
+    Filter := filterLinear;
+    MipMapped := False;
+    WrapMode := wrapNothing;
+  End;
+  {$ENDIF}
 
-    _Ratio := VectorCreate2D(W/Source.Width, H/Source.Height);
+  Self.Current.WrapMode := Self.WrapMode;
+  Self.Current.MipMapped := Self.MipMapped;
+  Self.Current.Filter := Self.Filter;
+End;
 
-    If (W<>Source.Width) Or (H<>Source.Height) Then
-      Log(logDebug, 'Texture', self.Name+ ' needs resizing: '+IntToString(W) +' ' +IntToString(H));
-
-    Source.Resize(W,H);
-  End Else
+Procedure Texture.Save(const FileName: TERRAString);
+Var
+  Img:Image;
+Begin
+  Img := Self.GetImage();
+  If Assigned(Img) Then
   Begin
-    _Ratio := VectorCreate2D(1, 1);
+    Img.Save(FileName);
+    ReleaseObject(Img);
   End;
 End;
 
+Function Texture.IsNPOT: Boolean;
+Var
+  W, H:Cardinal;
+Begin
+  W := NearestPowerOfTwo(Self.Width);
+  H := NearestPowerOfTwo(Self.Height);
+
+  Result := (W<>Self.Width) Or (H<>Self.Height);
+End;
+
+Function Texture.GetImage: Image;
+Begin
+  Result := Self.Current.GetImage();
+End;
+
+Function Texture.GetPixel(X, Y: Integer): Color;
+Begin
+  Result := Self.Current.GetPixel(X, Y);
+End;
+
+Function Texture.GetOrigin: SurfaceOrigin;
+Begin
+  Result := Self.Current.Origin;
+End;
 
 End.

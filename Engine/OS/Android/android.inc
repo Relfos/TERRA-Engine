@@ -50,7 +50,7 @@ End;
 Procedure Java_com_pascal_terra_TERRALibrary_ApplicationSetState(env, obj:Pointer; state:Integer); stdcall; export;  [public];
 Begin
   //SetGlobalEnv(Env);
-  Application.Instance.Client.OnStateChange(State);
+  Application.Instance.OnStateChange(State);
 End;
 
 Procedure Java_com_pascal_terra_TERRALibrary_ApplicationSetOrientation(env, obj:Pointer; Orientation:Integer); stdcall; export;  [public];
@@ -189,12 +189,12 @@ End;
 
 Function Java_com_pascal_terra_TERRALibrary_ApplicationChartboostGetKey(env, obj:Pointer):JavaString; stdcall; export;  [public];
 Begin
-  Result := StringToJava(Application.Instance.Client.GetChartboostID());
+  Result := StringToJava(Application.Instance.GetChartboostID());
 End;
 
 Function Java_com_pascal_terra_TERRALibrary_ApplicationChartboostGetSecret(env, obj:Pointer):JavaString; stdcall; export;  [public];
 Begin
-  Result := StringToJava(Application.Instance.Client.GetChartboostSecret());
+  Result := StringToJava(Application.Instance.GetChartboostSecret());
 End;
 
 Procedure Java_com_pascal_terra_TERRALibrary_ApplicationTapjoyCredits(env, obj:Pointer; credits:Integer); stdcall; export;  [public];
@@ -204,61 +204,60 @@ End;
 
 Function Java_com_pascal_terra_TERRALibrary_ApplicationTapjoyGetKey(env, obj:Pointer):JavaString; stdcall; export;  [public];
 Begin
-  Result := StringToJava(Application.Instance.Client.GetTapjoyID());
+  Result := StringToJava(Application.Instance.GetTapjoyID());
 End;
 
 Function Java_com_pascal_terra_TERRALibrary_ApplicationTapjoyGetSecret(env, obj:Pointer):JavaString; stdcall; export;  [public];
 Begin
-  Result := StringToJava(Application.Instance.Client.GetTapjoySecret());
+  Result := StringToJava(Application.Instance.GetTapjoySecret());
 End;
         
 Function Java_com_pascal_terra_TERRALibrary_ApplicationFlurryGetID(env, obj:Pointer):JavaString; stdcall; export;  [public];
 Begin
   //Log(logDebug, 'App', 'TERRA APP IAP CANCEL');
-  Result := StringToJava(Application.Instance.Client.GetFlurryID());
+  Result := StringToJava(Application.Instance.GetFlurryID());
 End;
 
 Function Java_com_pascal_terra_TERRALibrary_ApplicationAdMobInterstitialGetID(env, obj:Pointer):JavaString; stdcall; export;  [public];
 Begin
   //Log(logDebug, 'App', 'TERRA APP IAP CANCEL');
-  Result := StringToJava(Application.Instance.Client.GetAdMobInterstitialID());
+  Result := StringToJava(Application.Instance.GetAdMobInterstitialID());
 End;
 
 Function Java_com_pascal_terra_TERRALibrary_ApplicationAdBuddizGetID(env, obj:Pointer):JavaString; stdcall; export;  [public];
 Begin
   //Log(logDebug, 'App', 'TERRA APP IAP CANCEL');
-  Result := StringToJava(Application.Instance.Client.GetAdBuddizID());
+  Result := StringToJava(Application.Instance.GetAdBuddizID());
 End;
 
 Function Java_com_pascal_terra_TERRALibrary_ApplicationVungleGetID(env, obj:Pointer):JavaString; stdcall; export;  [public];
 Begin
   //Log(logDebug, 'App', 'TERRA APP IAP CANCEL');
-  Result := StringToJava(Application.Instance.Client.GetVungleID());
+  Result := StringToJava(Application.Instance.GetVungleID());
 End;
 
 Function Java_com_pascal_terra_TERRALibrary_ApplicationIAPGetID(env, obj:Pointer):JavaString; stdcall; export;  [public];
 Begin
   //Log(logDebug, 'App', 'TERRA APP IAP CANCEL');
-  Result := StringToJava(Application.Instance.Client.GetBillingID());
+  Result := StringToJava(Application.Instance.GetBillingID());
 End;
 
 Function Java_com_pascal_terra_TERRALibrary_ApplicationIAPGetServiceID(env, obj:Pointer):JavaString; stdcall; export;  [public];
 Begin
   //Log(logDebug, 'App', 'TERRA APP IAP CANCEL');
-  Result := StringToJava(Application.Instance.Client.GetFortumoID());
+  Result := StringToJava(Application.Instance.GetFortumoID());
 End;
 
 Function Java_com_pascal_terra_TERRALibrary_ApplicationIAPGetServiceSecret(env, obj:Pointer):JavaString; stdcall; export;  [public];
 Begin
   //Log(logDebug, 'App', 'TERRA APP IAP CANCEL');
-  Result := StringToJava(Application.Instance.Client.GetFortumoSecret());
+  Result := StringToJava(Application.Instance.GetFortumoSecret());
 End;
 
 Procedure Java_com_pascal_terra_TERRALibrary_ApplicationAPIResult(env, obj:Pointer; API,Code:Integer); stdcall; export;  [public];
 Begin
   //Log(logDebug, 'App', 'TERRA APP IAP CANCEL');
-  If (Application.Instance.Client<>Nil) Then
-	Application.Instance.Client.OnAPIResult(API, Code);
+  Application.Instance.OnAPIResult(API, Code);
 End;
 
 function JNI_OnLoad(vm, reserved:pointer):Integer; cdecl; export; {$IFDEF OLD_FPC}[public];{$ENDIF}

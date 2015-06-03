@@ -79,7 +79,7 @@ Begin
   _TableOffset := Dest.Position;
   It := Self.Resources.GetIterator();
   Begin
-    Resource := ResourceInfo(It.GetNext());
+    Resource := ResourceInfo(It.Value);
     Dest.WriteString(Resource.FileName);  // Write resource name
     Dest.WriteCardinal(Resource.Offset); // Write offset of the resource
     Dest.WriteCardinal(Resource.Size);   // Write size of the resource
@@ -175,7 +175,7 @@ Begin
   It := Self.Resources.GetIterator();
   While It.HasNext() Do
   Begin
-    Res := ResourceInfo(It.GetNext());
+    Res := ResourceInfo(It.Value);
     If StringEquals(Res.FileName, Resource.FileName) Then
       Res.Discard();
   End;
@@ -190,7 +190,7 @@ Begin
   It := Self.Resources.GetIterator();
   While It.HasNext() Do
   Begin
-    Resource := ResourceBuilderInfo(It.GetNext());
+    Resource := ResourceBuilderInfo(It.Value);
     Resource.Offset := Dest.Position;
     Resource._Data.Copy(Dest);
   End;

@@ -29,7 +29,7 @@ Unit TERRA_ShadowVolumes;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Vector3D, TERRA_BoundingBox, TERRA_Math, TERRA_Stream;
+  TERRA_Utils, TERRA_Vector3D, TERRA_BoundingBox, TERRA_Math, TERRA_Stream, TERRA_VertexFormat;
 
 Const
   MinShadowAngle = 0.5;
@@ -68,8 +68,7 @@ Type
     End;
 
 Implementation
-Uses TERRA_OS, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_GraphicsManager, TERRA_Lights, TERRA_Shader, TERRA_Mesh,
-  TERRA_MeshFilter, TERRA_Log, TERRA_Matrix4x4;
+Uses TERRA_OS, TERRA_GraphicsManager, TERRA_Lights, TERRA_Mesh, TERRA_Renderer, TERRA_MeshFilter, TERRA_Log, TERRA_Matrix4x4;
 
 Type
   GroupVertex = Record
@@ -128,11 +127,13 @@ Var
   VS,VX:Vector3D;
   Normal:Vector3D;
 
+  V:Vector3D;
+  BoneIndex:Single;
+
   L:Vector3D;
   Instance:MeshInstance;
   VertexBuffer:Array Of Array Of Vector3D;
   ShowGroup:Array Of Boolean;
-  V:MeshVertex;
 
   TM:PMatrix4x4;
 
@@ -143,9 +144,9 @@ Begin
   MyMesh := MeshPtr;
   Result := True;
   Instance := MeshInstance(InstancePtr);
-  If (GetTime-_LastTime < ShadowRebuildTime) Or (Not Assigned(Instance)) Then
+  If (Application.GetTime-_LastTime < ShadowRebuildTime) Or (Not Assigned(Instance)) Then
     Exit;
-  _LastTime := GetTime;
+  _LastTime := Application.GetTime;
 
   EdgeCount:=0;
 
@@ -177,19 +178,20 @@ Begin
 
     For I:=0 To Pred(Length(VertexBuffer[J])) Do
     Begin
-      V := Group.GetVertex(I);
-      If (V.BoneIndex>0) Then
+      Group.Vertices.GetVector3D(I, vertexPosition, V);
+      Group.Vertices.GetFloat(I, vertexBone, BoneIndex);
+      If (BoneIndex>0) Then
       Begin
-        K := Trunc(V.BoneIndex);
+        K := Trunc(BoneIndex);
         If (Instance.Animation = Nil) Or (Instance.Animation.Root = Nil) Then
           TM :=@(MyMesh.Skeleton.BindPose[K])
         Else
           TM := @(Instance.Animation.Transforms[K]);
 
-        V.Position := TM.Transform(V.Position);
+        V := TM.Transform(V);
       End;
 
-      VertexBuffer[J,I] := Instance.Transform.Transform(V.Position);
+      VertexBuffer[J,I] := Instance.Transform.Transform(V);
     End;
   End;
 
@@ -308,8 +310,8 @@ Begin
     Exit;
   End;
 
-  _BoundingBox.StartVertex := VectorUniform(ExtrusionValue*2);
-  _BoundingBox.EndVertex := VectorUniform(-ExtrusionValue*2);
+  _BoundingBox.StartVertex := VectorConstant(ExtrusionValue*2);
+  _BoundingBox.EndVertex := VectorConstant(-ExtrusionValue*2);
 
   For I:=0 To Pred(_ExtrudedVertexCount) Do
   With _ExtrudedVertices[I] Do
@@ -338,24 +340,26 @@ End;
 
 Procedure ShadowVolume.Render;
 Var
-  PositionHandle:Integer;
+  Graphics:GraphicsManager;
 Begin
   If (_ExtrudedVertexCount<=0) Or (Length(_ExtrudedVertices)<=0) Then
 	  Exit;
 
   Log(logDebug, 'Shadow', 'Drawing shadow volume: '+IntToSTring(_ExtrudedVertexCount));
 
-  PositionHandle := ShaderManager.Instance.ActiveShader.GetAttribute('terra_position');
-  glVertexAttribPointer(PositionHandle, 3, GL_FLOAT, False, 0, @(_ExtrudedVertices[0]));
-  glDrawArrays(GL_TRIANGLES, 0, _ExtrudedVertexCount);
-  GraphicsManager.Instance.Internal(0, _ExtrudedVertexCount Div 3);
+  Graphics := GraphicsManager.Instance;
+
+  {Graphics.Renderer.SetSourceVertexSize(SizeOf(Vector3D));
+  Graphics.Renderer.SetAttributeSource('terra_position', vertexPosition, typeVector3D, @(_ExtrudedVertices[0]));}
+  Graphics.Renderer.SetVertexSource(Nil);
+  Graphics.Renderer.DrawSource(renderTriangles, _ExtrudedVertexCount);
 
   {$IFDEF CARMACKREVERSE}
   If GraphicsManager.Instance.ShowShadowVolumes Then
     glColor4ub(255,0,0,128);
 
-  glVertexAttribPointer(PositionHandle, 3, GL_FLOAT, False, 0, @(_CappingVertices[0]));    
-  glDrawArrays(GL_QUADS, 0, _CappingVertexCount);                         
+  Graphics.Renderer.DrawSource(renderTriangles,  SizeOf(Vector3D), @(_CappingVertices[0]));
+  Graphics.Renderer.DrawSource(renderQuads, _CappingVertexCount);
 
   (*
   glBegin(GL_TRIANGLES);
@@ -364,9 +368,6 @@ Begin
     glVertex3fv(@(_CappingVertices[I]));
   End;
   glEnd;*)
-
-  Inc(GraphicsManager.Instance.Triangles, _CappingVertexCount Div 3);
-
   {$ENDIF}
 End;
 

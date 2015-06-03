@@ -31,7 +31,16 @@ Unit TERRA_Threads;
 {$IFDEF ANDROID}
 {$DEFINE USEJAVATHREADS}
 {$ELSE}
+
 {$DEFINE USEPASCALTHREADS}
+
+{$IFNDEF USEPASCALTHREADS}
+{$IFNDEF WINDOWS}
+{$DEFINE USEPTHREADS}
+{$ENDIF}
+{$ENDIF}
+
+
 {$ENDIF}
 {$ENDIF}
 
@@ -43,9 +52,6 @@ Uses TERRA_Utils, TERRA_Log, TERRA_Application, TERRA_Mutex
 {$IFDEF USEPASCALTHREADS},Classes{$ENDIF}
 {$ENDIF}
 ;
-
-
-{-$DEFINE USEPTHREADS}
 
 Type
    ThreadHandle = Cardinal;
@@ -127,11 +133,7 @@ Type
       {$IFNDEF DISABLETHREADS}
       {$IFNDEF USEJAVATHREADS}
       {$IFNDEF USEPASCALTHREADS}
-      {$IFDEF WINDOWS}
-		  _Handle:Cardinal;
-      {$ELSE}
-      _Handle:pthread_t;
-      {$ENDIF}
+		  _Handle:ThreadHandle;
       {$ENDIF}
       {$ENDIF}
       {$ENDIF}
@@ -372,7 +374,7 @@ Begin
   If MyTask = Nil Then
     Exit;
 
-	MyTask._Time := GetTime();
+	MyTask._Time := Application.GetTime();
 	MyTask._Priority := Priority;
 
   {$IFDEF DISABLETHREADS}
@@ -415,7 +417,7 @@ Begin
 
 	_CriticalSection.Unlock();
 
-  _Semaphore.Unlock();  
+  _Semaphore.Release();  
   {$ENDIF}
 End;
 

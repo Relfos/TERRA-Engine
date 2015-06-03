@@ -1729,12 +1729,12 @@ Begin
     Exit;
 
   {$IFDEF DISTANCEFIELDFONTS}
-  LocalScale := 8;
+  LocalScale := FontQuality;
   {$ELSE}
   LocalScale := 1;
   {$ENDIF}
 
-  _Scale := Self.ScaleForPixelHeight(Size) * FontQuality;
+  _Scale := Self.ScaleForPixelHeight(Size);
 
   {$IFDEF DEBUG_FONTS}Log(logDebug,'Font','Rendering ttf '+IntToString(ID));{$ENDIF}
 
@@ -1764,7 +1764,7 @@ Begin
   YOfs := YOfs Div LocalScale;
 
   {$IFDEF DISTANCEFIELDFONTS}
-  Temp := CreateDistanceField(Img, componentAlpha, LocalScale, 3.0 * FontQuality);
+  Temp := CreateDistanceField(Img, componentAlpha, LocalScale, LocalScale*2);
   Img.Release();
   Img := Temp;
   {$ENDIF}
@@ -1773,7 +1773,7 @@ Begin
 
   Result := Font.AddGlyph(ID, Img, XOfs, YOfs, Trunc(XAdv*_Scale));
 
-    //Img.Save('out\g'+IntToString(ID)+'.png');
+  //Img.Save('glyphs\g'+IntToString(ID)+'.png');
 
   Img.Release;
 End;

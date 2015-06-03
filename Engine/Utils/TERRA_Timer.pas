@@ -60,82 +60,41 @@ _asm{
 Interface
 Uses TERRA_Utils;
 
-Const
-  MAX_SAMPLE_COUNT = 50;
 
 Type
-  Timer = Class(TERRAObject)
-    Protected
-      frameTimes:Array[0..Pred(MAX_SAMPLE_COUNT)] Of Single;
-      timeScale:Single;
-      actualElapsedTimeSec:Single;
-      lastTime:Int64;
-      sampleCount:Integer;
-
-    Public
-	    Constructor Create;
-      Procedure Release; Override;
-
-	    Function GetElapsedTime:Single;
+  Timer = Class
+    Class Function GetElapsedTime:Single;
   End;
 
 Implementation
 Uses Windows;
 
+Const
+  MAX_SAMPLE_COUNT = 50;
+
 Var
   QFreq:Int64;
+  timeScale:Single;
+  startTime:Int64;
 
-Constructor Timer.Create;
-Begin
-  timeScale := 0.0;
-  actualElapsedTimeSec := 0.0;
-  lastTime := 0;
-  sampleCount := 0;
-
-	QueryPerformanceCounter(lastTime);
-  timeScale := 1.0 / QFreq;
-	Self.GetElapsedTime;
-End;
-
-Procedure Timer.Release;
-Begin
-  // do nothing
-End;
-
-Function Timer.GetElapsedTime:Single;
+Class Function Timer.GetElapsedTime:Single;
 Var
-  I:Integer;
   time:Int64;
-  elapsedTimeSec:Single;
 Begin
   Time := 0;
   QueryPerformanceCounter(time);
-  elapsedTimeSec := (time - lastTime) * timeScale;
-  lastTime := time;
-
-  If (Abs(elapsedTimeSec - actualElapsedTimeSec) < 1.0) Then
-  Begin
-    Move(frameTimes[0], frameTimes[1], SizeOf(frameTimes) - Sizeof(frameTimes[0]));
-    frameTimes[0] := elapsedTimeSec;
-
-    If (sampleCount < MAX_SAMPLE_COUNT) Then
-      Inc(sampleCount);
-  End;
-
-  actualElapsedTimeSec := 0.0;
-
-  For i := 0 To Pred(sampleCount) Do
-    actualElapsedTimeSec := actualElapsedTimeSec + frameTimes[i];
-
-  If (sampleCount > 0) Then
-    actualElapsedTimeSec := actualElapsedTimeSec / sampleCount;
-
-  Result := actualElapsedTimeSec;
+  Result := (time - startTime);
+  Result := Result * timeScale;
 End;
 
 
 Initialization
   QFreq := 0;
 	QueryPerformanceFrequency(QFreq);
+
+  startTime := 0;
+
+	QueryPerformanceCounter(startTime);
+  timeScale := 1.0 / QFreq;
 End.
 

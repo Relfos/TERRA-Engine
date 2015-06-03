@@ -3,13 +3,14 @@
 
 Uses
   {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
-  TERRA_Application, TERRA_Client, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
+  TERRA_Application, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
   TERRA_OS, TERRA_Vector2D, TERRA_Font, TERRA_Texture,
   TERRA_UI, TERRA_FileManager, TERRA_InputManager, TERRA_TTF,
-  TERRA_Widgets, TERRA_PNG, TERRA_Scene, TERRA_SpriteManager, TERRA_ClipRect, TERRA_Color, TERRA_Matrix4x4;
+  TERRA_PNG, TERRA_Scene, TERRA_SpriteManager, TERRA_ClipRect, TERRA_Color, TERRA_Matrix4x4,
+  TERRA_UIWindow, TERRA_UISprite;
 
 Type
-  Game = Class(AppClient)
+  Game = Class(Application)
     Protected
       _Scene:Scene;
 
@@ -51,8 +52,8 @@ Begin
   // Register the font with the UI
   MyUI.DefaultFont := Fnt;
 
-  // Load a custom mouse cursor
-  MyUI.LoadCursor('cursor.png');
+  // Load a GUI skin
+  MyUI.LoadSkin('ui_sample_skin');
 
   // Get background texture
   MyTex := TextureManager.Instance.GetTexture('background');
@@ -60,15 +61,14 @@ Begin
   // Create a UI background
   If Assigned(MyTex) Then
   Begin
-    Background := UISprite.Create('mybg', MyUI, Nil, 0, 0, 0);
+    Background := UISprite.Create('mybg', MyUI,  0, 0, 0);
 
     Background.SetTexture(MyTex);
-    Background.Rect.Width := UIManager.Instance.Width;
-    Background.Rect.Height := UIManager.Instance.Height;
+    Background.Width := UIPixels(UIManager.Instance.Width);
+    Background.Height := UIPixels(UIManager.Instance.Height);
 
-
-    Background.Rect.U2 := 2;
-    Background.Rect.V2 := 2;
+    Background.U2 := 2;
+    Background.V2 := 2;
      //VectorCreate2D(1,0.5), 0.1, VectorCreate2D(2.0, 2.0)
   End;
 
@@ -112,8 +112,8 @@ End;
 { MyScene }
 Constructor MyScene.Create;
 Begin
-  MyWnd := UIWindow.Create('mywnd', MyUI, 10, 10, 10, 6, 4);
-  MyWnd.AllowDragging := True;
+  MyWnd := UIWindow.Create('mywnd', MyUI, 10, 10, 10, UIPixels(500), UIPixels(400), 'window');
+  MyWnd.Draggable := True;
   MyWnd.Align := waCenter;
 End;
 
@@ -125,7 +125,7 @@ End;
 Procedure StartGame; cdecl; export;
 {$ENDIF}
 Begin
-  ApplicationStart(Game.Create);
+  Game.Create();
 {$IFDEF IPHONE}
 End;
 {$ENDIF}

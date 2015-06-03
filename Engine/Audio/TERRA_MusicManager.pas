@@ -128,7 +128,7 @@ Begin
     _CrossFadeDuration := CrossFadeDuration;
     _CrossFadeTrack := SourceName;
     _CrossVolume := _Volume;
-    _CrossFadeTime := GetTime;
+    _CrossFadeTime := Application.GetTime;
     _CrossFadeState := 1;
   End Else
   Begin
@@ -244,7 +244,7 @@ Var
 Begin
   If (_CrossFadeState>0) Then
   Begin
-    Delta := GetTime() - _CrossFadeTime;
+    Delta := Application.GetTime() - _CrossFadeTime;
     Delta := Delta / _CrossFadeDuration;
 
     If (Delta>=1) Then

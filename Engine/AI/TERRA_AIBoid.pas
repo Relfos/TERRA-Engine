@@ -302,9 +302,7 @@ Begin
   _TeamIndex := 0;
 End;
 
-{------------------------------------------------------------------}
-{  Create a Boid as a sibling of another Boid                      }
-{------------------------------------------------------------------}
+//  Create a Boid as a sibling of another Boid
 constructor BoidAgent.Create( b : BoidGene );
 begin
   _X := b.X;
@@ -342,56 +340,44 @@ begin
   inherited;
 end;
 
-{------------------------------------------------------------------}
-{  Move the Boid                                                   }
-{------------------------------------------------------------------}
+//  Move the Boid                                                   
 procedure BoidAgent.move;
 begin
   _X := _X + Self.Speed * Cos(Self.Heading) * GraphicsManager.Instance.ElapsedTime * BoidSpeed;
   _Y := _Y + Self.Speed * Sin(Self.Heading) * GraphicsManager.Instance.ElapsedTime * BoidSpeed;
 end;
 
-// Slow Down (Never less than min speed)                            }
+// Slow Down (Never less than min speed)
 Procedure BoidAgent.slowDown;
 Begin
   SetSpeed(Self.Speed - Self.Acceleration);
 End;
 
-{------------------------------------------------------------------}
-{  Speed Up (Never more than Max Speed)                            }
-{------------------------------------------------------------------}
+//  Speed Up (Never more than Max Speed)
 procedure BoidAgent.speedUp;
 begin
     setSpeed(Self.Speed + Self.Acceleration);
 end;
 
-{------------------------------------------------------------------}
-{  Turn Left                                                       }
-{------------------------------------------------------------------}
+//  Turn Left
 procedure BoidAgent.turnLeft;
 begin
   _Heading := Self.Heading + Self.TurnAngle;
 end;
 
-{------------------------------------------------------------------}
-{  Turn Right                                                      }
-{------------------------------------------------------------------}
+//  Turn Right                                                      
 procedure BoidAgent.turnRight;
 begin
   _Heading := Self.Heading - Self.TurnAngle;
 end;
 
-{------------------------------------------------------------------}
-{  Is this Boid in range of a target Boid?                         }
-{------------------------------------------------------------------}
+//  Is this Boid in range of a target Boid?                         
 function BoidAgent.isInRange(b : BoidAgent; range : Single) : boolean;
 begin
     Result := (sqrt((b.X-Self.X)*(b.X-Self.X) + (b.Y-Self.Y)*(b.Y-Self.Y)) < range);
 end;
 
-{------------------------------------------------------------------}
-{  Check the whole flock for friends and enemies close by          }
-{------------------------------------------------------------------}
+//  Check the whole flock for friends and enemies close by          
 procedure BoidAgent.senseFlock(f : BoidFlock);
 var b : BoidAgent;
     friends,
@@ -513,10 +499,7 @@ begin
     end;
 end;
 
-{-------------------------------------------------------------------}
-{This is where the boid decides what to do based on what it senses. }
-{-------------------------------------------------------------------}
-
+// This is where the boid decides what to do based on what it senses. 
 procedure BoidAgent.decide;
 begin
     if (Self.EnemiesNumber <> 0.0) then
@@ -542,9 +525,7 @@ begin
     end;
 end;
 
-{-------------------------------------------------------------------}
-{  Try not to collide with others                                   }
-{-------------------------------------------------------------------}
+//  Try not to collide with others                                   
 procedure BoidAgent.avoidCollision;
 var n : BoidAgent;
   angle : Single;
@@ -615,9 +596,7 @@ begin
 
 end;
 
-{-------------------------------------------------------------------}
-{  Stay with Friendly Boids                                         }
-{-------------------------------------------------------------------}
+//  Stay with Friendly Boids                                         
 procedure BoidAgent.hangOutWithFriends;
 begin
     if (Self.FriendsNumber > 0.0) then
@@ -661,18 +640,14 @@ Begin
     end;
 End;
 
-{-------------------------------------------------------------------}
-{  Retreat from a fight                                             }
-{-------------------------------------------------------------------}
+//  Retreat from a fight                                             
 procedure BoidAgent.retreat;
 begin
     turnAway(Self.EnemiesX, Self.EnemiesY);
     speedUp();
 end;
 
-{-------------------------------------------------------------------}
-{  Get the relative angle from a Line                               }
-{-------------------------------------------------------------------}
+//  Get the relative angle from a Line                               
 function BoidAgent.relativeAngle(xPos, yPos : Single) : Single;
 var dx, dy, r, angle : Single;
 begin
@@ -687,9 +662,7 @@ begin
     Result := angle;
 end;
 
-{-------------------------------------------------------------------}
-{  Tunt away from a Specified Position                              }
-{-------------------------------------------------------------------}
+//  Turn away from a Specified Position
 procedure BoidAgent.turnAway(xPos, yPos : Single);
 var angle : Single;
 begin
@@ -722,9 +695,7 @@ begin
     end;
 end;
 
-{-------------------------------------------------------------------}
-{  Turn Towards a Specified Position                                }
-{-------------------------------------------------------------------}
+//  Turn Towards a Specified Position                                
 procedure BoidAgent.turnToward(xPos, yPos : Single);
 var angle : Single;
 begin
@@ -759,17 +730,13 @@ begin
     end;
 end;
 
-{-------------------------------------------------------------------}
-{  Examine boid colour to see if it is a friend                     }
-{-------------------------------------------------------------------}
+//  Examine boid colour to see if it is a friend                     
 Function BoidAgent.isFriend(b : BoidAgent ) : boolean;
 Begin
   Result := b.teamIndex = Self.teamIndex;
 End;
 
-{-------------------------------------------------------------------}
-{  Is the current boid dead (Not yet fully Functional)              }
-{-------------------------------------------------------------------}
+//  Is the current boid dead (Not yet fully Functional)              
 function BoidAgent.isDead : boolean;
 begin
     Result := (RandomFloat(0.0, 1.0) < (1.0 - exp(-Self.DeathConstant*Self.DeathRangeNumber)));
@@ -821,10 +788,8 @@ begin
 end;
 
 { BoidGene }
-{-------------------------------------------------------------------}
-{  Basic data class (Gene Memory) of a boid,                        }
-{  Will pass this on to any Children of the parent boid             }
-{-------------------------------------------------------------------}
+//  Basic data class (Gene Memory) of a boid,
+//  Will pass this on to any Children of the parent boid
 constructor BoidGene.Create(direction, magnitude, xPos, yPos,heightOfs, maxSpeed,
   minSpeed, angle, accel, sensor, death, deathC, collision, attackC,
   retreatC: Single; gaggle: BoidFlock; TeamIndex : integer);
@@ -860,14 +825,12 @@ begin
   Result := TrialsWon/NumberOfTrials;
 end;
 
-{-------------------------------------------------------------------}
-{  Reproduction takes place                                         }
-{-------------------------------------------------------------------}
+//  Reproduction takes place
 function BoidGene.reproduceWith(o : BoidGene): BoidGene;
-var direction, magnitude, xPos, yPos, maxSpeed, minSpeed, turnRate,
-    accel, sRange, cRange, attackC, retreatC : Single;
-begin
-
+Var
+  direction, magnitude, xPos, yPos, maxSpeed, minSpeed, turnRate,
+  accel, sRange, cRange, attackC, retreatC : Single;
+Begin
      if (RandomFloat(0.0, 1.0) > 0.5) then
      begin
          direction := o.Heading;
@@ -1000,9 +963,7 @@ begin
 end;
 
 { BoidFlock }
-{-------------------------------------------------------------------}
-{  Holding Flock for all boids in our aquarium                      }
-{-------------------------------------------------------------------}
+//  Holding Flock for all boids in our aquarium
 procedure BoidFlock.add(b: BoidAgent);
 begin
   Inc(_MemberCount);
@@ -1054,9 +1015,7 @@ Begin
   Result := sum/_MemberCount;
 End;
 
-{-------------------------------------------------------------------}
-{  Wrap around when Boid goes out of bounds                         }
-{-------------------------------------------------------------------}
+//  Wrap around when Boid goes out of bounds                         
 procedure BoidFlock.checkBounds(boid: BoidAgent);
 begin
   if (boid.X > _width) then
@@ -1077,9 +1036,7 @@ begin
   end;
 end;
 
-{-------------------------------------------------------------------}
-{  Create the flock                                                 }
-{-------------------------------------------------------------------}
+//  Create the flock                                                 
 Constructor BoidFlock.Create(size: integer; h, w: Single);
 Var
   i :integer;
@@ -1106,9 +1063,7 @@ begin
   setMeanY(calculateMeanY()); }
 end;
 
-{-------------------------------------------------------------------}
-{  Calculate next movement for all boids                            }
-{-------------------------------------------------------------------}
+//  Calculate next movement for all boids                            
 Procedure BoidFlock.Update;
 Var
   boid:BoidAgent;
@@ -1165,9 +1120,7 @@ begin
   Result := fpAngle + 90*RAD;
 end;
 
-{-------------------------------------------------------------------}
-{  Render the flock                                                 }
-{-------------------------------------------------------------------}
+//  Render the flock                                                 
 procedure BoidFlock.Render();
 var i : integer;
     tempBoid : BoidAgent;
@@ -1245,9 +1198,7 @@ begin
     Inc(I);
 end;
 
-{---------------------------------------------------------------------}
-{  Procedure                                                         }
-{---------------------------------------------------------------------}
+//  Procedure                                                         
 Procedure BoidFlock.Release;
 Var
   I:Integer;

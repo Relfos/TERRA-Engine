@@ -230,7 +230,7 @@ End;}
 Procedure NetServer.OnPingMessage(Msg:NetMessage; Client:ClientConnection);
 Begin
   Client.Ping := Client.Time;
-  Client._Time := GetTime;
+  Client._Time := Application.GetTime;
   Client.Ping := Integer(Client.Time) - Client.Ping;
 End;
 
@@ -287,7 +287,7 @@ Begin
 
   Client := Self.CreateClientConnection();
   Client._Server := Self;
-  Client._Time := GetTime();
+  Client._Time := Application.GetTime();
   Client.Address := _Sender; // Store the new Client IP
   Client.Ping := 0;          // Reset Client ping
   Client.GUID := GUID;
@@ -365,7 +365,7 @@ Begin
   It := _Clients.GetIterator();
   While It.HasNext() Do
   Begin
-    Client := ClientConnection(It.GetNext());
+    Client := ClientConnection(It.Value);
 
     If (Client.Deleted) Then
       Client.Discard()
@@ -423,7 +423,7 @@ Begin
   It := _Clients.GetIterator();
   While It.HasNext() Do
   Begin
-    Client := ClientConnection(It.GetNext());
+    Client := ClientConnection(It.Value);
     If (StringEquals(Client.UserName, Name)) Then
     Begin
       Result := Client;
@@ -453,7 +453,7 @@ Begin
   It := _Clients.GetIterator();
   While It.HasNext() Do
   Begin
-    Client := ClientConnection(It.GetNext());
+    Client := ClientConnection(It.Value);
     If (Client.ID = ID) Then
     Begin
       Result := Client;
@@ -498,7 +498,7 @@ Begin
   {$ENDIF}
 
   Client._Deleted := True;
-  Client._DeleteTime := GetTime();
+  Client._DeleteTime := Application.GetTime();
 End;
 
 Function NetServer.ValidateClient(UserName,Password, DeviceID:TERRAString; Var ErrorLog:TERRAString):Integer;
@@ -556,7 +556,7 @@ Begin
   It := _Clients.GetIterator();
   While It.HasNext() Do
   Begin
-    Client := ClientConnection(It.GetNext());
+    Client := ClientConnection(It.Value);
 
     If (Client.ID <> Owner) Then
       SendMessage(Msg, Client, Owner);
@@ -755,7 +755,7 @@ Begin
 
   If _Server.ReceivePacket(Socket) Then
   Begin
-    Self._Time := GetTime();
+    Self._Time := Application.GetTime();
     Inc(_Frames);
     {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'Packets received from '+CardinalToString(_ID));{$ENDIF}
   End;

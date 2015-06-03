@@ -1,15 +1,16 @@
 {$I terra.inc}
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
-Uses TERRA_Application, TERRA_Client, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
+Uses TERRA_Application, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
   TERRA_OS, TERRA_Vector2D, TERRA_Font, TERRA_Texture,
-  TERRA_UI, TERRA_FileManager,
-  TERRA_Widgets,
+  TERRA_UI, TERRA_FileManager, TERRA_InputManager,
   TERRA_PNG, TERRA_TTF,
-  TERRA_Scene, TERRA_Color;
+  TERRA_Scene, TERRA_Color, TERRA_ClipRect,
+  TERRA_UIWindow, TERRA_UIButton, TERRA_UITabs, TERRA_UISprite, TERRA_UILabel,
+  TERRA_UIIcon, TERRA_UIScrollbar;
 
 Type
-  Game = Class(AppClient)
+  Demo = Class(Application)
     Public
 			Procedure OnCreate; Override;
 			Procedure OnDestroy; Override;
@@ -29,10 +30,11 @@ Var
   MyUI:UI;
   MyWnd:UIWindow;
   Tabs:UITabList;
-
+  Background:UISprite;
+  MyScroll:UIScrollBar;
 
 { Game }
-Procedure Game.OnCreate;
+Procedure Demo.OnCreate;
 Var
   MyTex:Texture;
 Begin
@@ -50,8 +52,8 @@ Begin
   // Register the font with the UI
   MyUI.DefaultFont := Fnt;
 
-  // Load a custom mouse cursor
-  MyUI.LoadCursor('cursor.png');
+  // Load a GUI skin
+  MyUI.LoadSkin('ui_sample_skin');
 
   // Get background texture
   MyTex := TextureManager.Instance.GetTexture('background');
@@ -60,27 +62,29 @@ Begin
   GraphicsManager.Instance.Scene := MyScene.Create;
 End;
 
-Procedure Game.OnDestroy;
+Procedure Demo.OnDestroy;
 Begin
 End;
 
-Procedure Game.OnIdle;
+Procedure Demo.OnIdle;
 Begin
-  If Keys.WasPressed(keyEscape) Then
+  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
+
+  MyWnd.ClipChildren(ClipRectCreate(MyWnd.Position.X, MyWnd.Position.Y+26,  MyWnd.Size.X -30, MyWnd.Size.Y-(26*2)));
 End;
 
-Procedure Game.OnMouseDown(X, Y: Integer; Button: Word);
+Procedure Demo.OnMouseDown(X, Y: Integer; Button: Word);
 Begin
   MyUI.OnMouseDown(X, Y, Button);
 End;
 
-Procedure Game.OnMouseMove(X, Y: Integer);
+Procedure Demo.OnMouseMove(X, Y: Integer);
 Begin
   MyUI.OnMouseMove(X, Y);
 End;
 
-Procedure Game.OnMouseUp(X, Y: Integer; Button: Word);
+Procedure Demo.OnMouseUp(X, Y: Integer; Button: Word);
 Begin
   MyUI.OnMouseUp(X, Y, Button);
 End;
@@ -89,54 +93,69 @@ End;
 Constructor MyScene.Create;
 Var
   Btn:UIButton;
-  RB:UIRadioButton;
-  CB:UICheckbox;
   W:Widget;
   I:Integer;
+  MyTex:Texture;
 Begin
-  MyWnd := UIWindow.Create('mywnd', MyUI, 10, 10, 10, 6, 4);
-  MyWnd.Align := waCenter;
+  // Get background texture
+  MyTex := TextureManager.Instance.GetTexture('background');
 
-  Tabs := UITabList.Create('tabs1', MyUI, MyWnd, 0, 0, 1);
+  // Create a UI background
+  If Assigned(MyTex) Then
+  Begin
+    Background := UISprite.Create('mybg', MyUI, 0, 0, 1);
+
+    Background.SetTexture(MyTex);
+    Background.Rect.Width := UIManager.Instance.Width;
+    Background.Rect.Height := UIManager.Instance.Height;
+
+    Background.Rect.U2 := 2;
+    Background.Rect.V2 := 2;
+  End;
+
+  MyWnd := UIWindow.Create('mywnd', MyUI, 0, 0, 10, UIPixels(500), UIPixels(300), 'window');
+  MyWnd.Align := waCenter;
+  MyWnd.Draggable := True;
+
+  Tabs := UITabList.Create('tabs1', MyWnd, 10, 0, 1, UIPixels(100), UIPixels(30), 'tabs');
   Tabs.Font := SmallFnt;
+  //Tabs.Align := waTopRight;
   MyWnd.TabControl := Tabs;
 
   For I:=0 To 2 Do
     Tabs.AddTab('Tab'+IntToString(I), I);
 
-  Tabs.Align := waTopRight;
-
   For I:=0 To 2 Do
-  Begin
-    Btn := UIButton.Create('btn1', MyUI, MyWnd, 20 + I * 80, 40, 10, 'Btn'+IntToString(I));
-    Btn.TabIndex := 0;
-  End;
+    Btn := UIButton.Create('btn1', MyWnd, 20 + I * 120, 40, 10, UIPixels(100), UIPixels(50), 'Btn'+IntToString(I), 'button', I);
 
-  CB := UICheckbox.Create('mycheckbox', MyUI, MyWnd, 20, 100, 10, 'Testbox');
-  CB.TabIndex := 2;
-
-  Btn := UIButton.Create('closebtn', MyUI, MyWnd, 15, 30, 10, 'Close');
-  Btn.Align := waBottomRight; // By default widgets are aligned to top/left
-  Btn.TabIndex := 0;
-
-  For I:=0 To 2 Do
-  Begin
-    RB := UIRadioButton.Create('myradio1', MyUI, MyWnd, 20, 150 + I*20, 10, 'RB'+IntToString(I));
-    RB.TabIndex := 1;
-  End;
+  MyScroll := UIScrollBar.Create('myscroll', MyWnd, 10, 20, 5, UIPixels(20), UIPixels(260), UIPixels(10), UIPixels(26), 'vscroll');
+  MyScroll.Align := waTopRight;
+  MyScroll.TabIndex := 0;
+  MyScroll.Max := 600;
 
   // Not all widgets need a parent
   // If you pass Nil as parent, the screen will be considered their parent
-  W := UILabel.Create('mylabel', MyUI, MyWnd, 10, 5, 10, 'This is an aligned text label.');
+  W := UILabel.Create('mylabel', MyWnd, 20, 20, 10, 'This is an aligned text label.');
   W.Align := waBottomRight;
-  W.TabIndex := 2;
+  W.TabIndex := 1;
+
+  W := UISprite.Create('test', MyWnd, 150, 50, 1, 'cobble', 0);
+  W.Scroll := MyScroll;
+
+  W := UISprite.Create('test', MyWnd, 150, 300, 1, 'fur_diffuse', 0);
+  W.Scroll := MyScroll;
+
+  W := UISprite.Create('test', MyWnd, 150, 550, 1, 'marble_diffuse', 0);
+  W.Scroll := MyScroll;
+
+  W := UIIcon.Create('test', MyWnd, 50, 50, 1, UIPixels(100), UIPixels(100), 'ghosticon', 2);
 End;
 
 {$IFDEF IPHONE}
 Procedure StartGame; cdecl; export;
 {$ENDIF}
 Begin
-  ApplicationStart(Game.Create);
+  Demo.Create();
 {$IFDEF IPHONE}
 End;
 {$ENDIF}

@@ -42,6 +42,7 @@ will be spread*scale_down.
 Function CreateDistanceField(Source:Image; Component, Scale:Cardinal; Spread:Single):Image;
 
 Implementation
+Uses TERRA_Log;
 
 Function SignedDistance(Source:Image; Component, cx, cy:Integer; clamp:Single):Single;
 Var
@@ -55,7 +56,11 @@ Begin
   w := Source.Width;
   h := Source.Height;
 
-  c := Source.GetComponent(cx, cy, component)/255.0;
+  If (CX<0) Or (CY<0) Or (CX>=Source.Width) Or (CY>=Source.Height) Then
+    C := 0
+  Else
+    c := Source.GetComponent(cx, cy, component)/255.0;
+    
   cd := c - 0.5;
 
   min_x := cx - Trunc(clamp) - 1;
@@ -109,29 +114,59 @@ Begin
   End;
 
   If (cd > 0) Then
-    Result := Distance
+    Result := -Distance
   Else
-    Result := -distance;
+    Result := distance;
 End;
 
 Function CreateDistanceField(Source:Image; Component, Scale:Cardinal; Spread:Single):Image;
 Var
   x,y:Integer;
-  sd, source_spread:Single;
+  Padding:Integer;
+  PX, PY:Integer;
+  sd:Single;
   n:Single;
   c:Byte;
+
+  Temp:Image;
 Begin
-  Result := Image.Create(Source.Width Div Scale, Source.Height Div Scale);
-  source_spread := spread * Scale;
+  Padding := Source.Width Div 10;
+
+  Log(logWarning, 'Application', 'Making distance field glyph...');
+
+  Temp := Image.Create(Source);
+  Temp.Resize(Source.Width - Padding * 2, Source.Height - Padding * 2);
+
+  Source := Image.Create(Source.Width, Source.Height);
+  Source.Blit(Padding, Padding, 0, 0, Temp.Width, Temp.Height, Temp);
+
+  Result := Image.Create(Source.Width, Source.Height);
 
   For Y:=0 To Pred(Result.Height) Do
     For X:=0 To Pred(Result.Width) Do
     Begin
-      sd := SignedDistance(Source, Component, x*Scale + Scale Div 2, y*Scale + Scale Div 2, source_spread);
-      n := (sd + source_spread) / (source_spread*2);
+      PX := X;
+      PY := Y;
+
+      sd := SignedDistance(Source, Component, PX, PY, Spread);
+      n := (sd + Spread) / (Spread*2);
+
       C := Trunc(N*255);
-      Result.SetPixel(X,Y, ColorGrey(C, C));
+      Result.SetPixel(X, Y, ColorGrey(C, C));
     End;
+
+  ReleaseObject(Temp);
+  ReleaseObject(Source);
+
+(*  While (Scale>1) Do
+  Begin
+    Temp := Result;
+    Result := Temp.MipMap();
+
+    ReleaseObject(Temp);
+
+    Scale := Scale Shr 1;
+  End;*)
 End;
 
 

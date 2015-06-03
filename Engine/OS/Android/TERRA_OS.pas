@@ -4,8 +4,8 @@ Unit TERRA_OS;
 
 
 Interface
-Uses cmem, TERRA_String, TERRA_Error, TERRA_Utils, TERRA_Application, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
-    TERRA_Vector3D, TERRA_Java, TERRA_Collections, TERRA_Client, TERRA_CollectionObjects,
+Uses cmem, TERRA_String, TERRA_Error, TERRA_Utils, TERRA_Application, 
+    TERRA_Vector3D, TERRA_Java, TERRA_Collections, TERRA_CollectionObjects,
     sysutils,dateutils,unix, jni;
 
 Const
@@ -79,14 +79,8 @@ Const
 Type
   JavaString = JString;
 
-Procedure DisplayMessage(S:TERRAString);
-Function GetCurrentTime:TERRATime;
-Function GetCurrentDate:TERRADate;
-Function GetTime:Cardinal; {$IFDEF FPC} Inline;{$ENDIF}
-Function CreateApplicationClass(Client:AppClient):Application;
-
 Type
-  AndroidApplication = Class(Application)
+  AndroidApplication = Class(BaseApplication)
     Protected
       _Focus :Boolean;
 
@@ -97,8 +91,6 @@ Type
 
       Function InitSettings:Boolean; Override;
       Function InitWindow:Boolean; Override;
-      Function InitGraphics:Boolean; Override;
-      Procedure CloseGraphics; Override;
       Procedure CloseWindow; Override;
 
       Procedure GainFocus;
@@ -107,7 +99,8 @@ Type
       Procedure OnShutdown; Override;
 
 	Public
-      Procedure SwapBuffers; Override;
+      Constructor Create();
+
       Procedure SetState(State:Cardinal); Override;
 
       Procedure EnableAds; Override;
@@ -145,8 +138,17 @@ Type
 
       Procedure SendAnalytics(EventName:TERRAString; Values:TERRAString=''); Override;
 
-      Procedure SpawnThread(Args:Pointer);      
+      Procedure SpawnThread(Args:Pointer);
+
+      Class Procedure DisplayMessage(S:TERRAString);
+      Class Function GetCurrentTime:TERRATime;
+      Class Function GetCurrentDate:TERRADate;
+      Class Function GetTime:Cardinal;
+
+      Class Function Instance:AndroidApplication;
   End;
+
+  Application = AndroidApplication;
 
 Procedure focusKeyboard(s:PAnsiChar);
 Function StartupWithVM(VM:Pointer):Integer;
@@ -154,8 +156,8 @@ Function StartupWithVM(VM:Pointer):Integer;
 Procedure ApplicationThreadExecute(P:Integer);
 
 Implementation
-Uses TERRA_Log, TERRA_ResourceManager, TERRA_Shader, TERRA_Texture, TERRA_Mesh, TERRA_GraphicsManager,
-  TERRA_UI, TERRA_IAP, TERRA_FileSearch, TERRA_Facebook, TERRA_Threads, TERRA_FileStream;
+Uses TERRA_Log, TERRA_IAP, TERRA_FileSearch, TERRA_Facebook, TERRA_Threads, TERRA_FileStream,
+  TERRA_Renderer, TERRA_GLES2Renderer;
 
 Var
 	_ApplicationInstance:AndroidApplication = Nil;
@@ -175,23 +177,41 @@ End;
 Procedure focusKeyboard(s:PAnsiChar);
 Var
   Params:JavaArguments;
+  Frame:JavaFrame;
 Begin
   If (_ApplicationInstance=Nil) Or (_ApplicationInstance._Utils=Nil) Then
     Exit;
 
+
+  Java_Begin(Frame);
   Params := JavaArguments.Create(Nil);
   Params.AddString(S);
-  _ApplicationInstance._Utils.CallStaticVoidMethod('showKeyboard', Params);
+  _ApplicationInstance._Utils.CallStaticVoidMethod(Frame, 'showKeyboard', Params);
   Params.Release();
+  Java_End(Frame);
 End;
 
-Procedure DisplayMessage(S:TERRAString);
+Var
+  _Application_Instance:AndroidApplication;
+
+Constructor AndroidApplication.Create();
+Begin
+  _Application_Instance := Self;
+  Inherited Create();
+End;
+
+Class Function AndroidApplication.Instance:AndroidApplication;
+Begin
+  Result := _Application_Instance;
+End;
+
+Class Procedure AndroidApplication.DisplayMessage(S:TERRAString);
 Begin
 	S := S +#0;
 //  Log(logWarning, 'App', S);
 End;
 
-Function GetCurrentTime:TERRATime;
+Class Function AndroidApplication.GetCurrentTime:TERRATime;
 Var
  Datetime:Tdatetime;
 Begin
@@ -202,7 +222,7 @@ Begin
  Result.MiliSecond  := millisecondof( datetime );
 End;
 
-Function GetCurrentDate:TERRADate;
+Class Function AndroidApplication.GetCurrentDate:TERRADate;
 Var
  Datetime:Tdatetime;
 Begin
@@ -218,7 +238,7 @@ Type
 Function clock_gettime(clkid:Integer; t:PtTimeSpec):Integer; cdecl; external;
 Const CLOCK_MONOTONIC = 1;
 
-Function GetTime:Cardinal;{$IFDEF FPC} Inline;{$ENDIF}
+Class Function AndroidApplication.GetTime:Cardinal;
 Var
   ts: TTimeSpec;
   i: Int64;
@@ -233,12 +253,6 @@ Begin
   {$ENDIF}
 End;
 
-
-Function CreateApplicationClass(Client:AppClient):Application;
-Begin
-	Result := AndroidApplication.Create(Client);
-End;
-
 Function AndroidApplication.InitWindow:Boolean;
 Begin
   Result := True;
@@ -248,10 +262,9 @@ Procedure AndroidApplication.PostToFacebook(msg, link, desc, imageURL:TERRAStrin
 Var
   FB:Facebook;
 Begin
-  If (Application.Instance.Client.GetFacebookID()='') Then
+  If (Application.Instance.GetFacebookID()='') Then
   Begin
-    If Assigned(Client) Then
-      Client.OnAPIResult(apiFacebook, facebookConnectionError);
+    Self.OnAPIResult(apiFacebook, facebookConnectionError);
     Exit;
   End;
 
@@ -265,10 +278,9 @@ Procedure AndroidApplication.LikeFacebookPage(page, url:TERRAString);
 Var
   FB:Facebook;
 Begin
-  If (Application.Instance.Client.GetFacebookID()='') Then
+  If (Application.Instance.GetFacebookID()='') Then
   Begin
-    If Assigned(Client) Then
-      Client.OnAPIResult(apiFacebook, facebookConnectionError);
+    Self.OnAPIResult(apiFacebook, facebookConnectionError);
     Exit;
   End;
 
@@ -277,22 +289,8 @@ Begin
   FB.Release();
 End;
 
-Function AndroidApplication.InitGraphics:Boolean;
-Begin
-	Result := True;
-End;
-
-Procedure AndroidApplication.CloseGraphics;
-Begin
-End;
-
 Procedure AndroidApplication.CloseWindow;
 Begin
-End;
-
-Procedure AndroidApplication.SwapBuffers;
-Begin
-  // do nothing
 End;
 
 Procedure AndroidApplication.SetState(State:Cardinal);
@@ -301,6 +299,8 @@ Begin
 End;
 
 Procedure AndroidApplication.ShowFullscreenAd;
+Var
+  Frame:JavaFrame;
 Begin
   {$IFDEF OUYA}
   Log(logDebug, 'App','Ads not supported in OUYA!');
@@ -308,7 +308,9 @@ Begin
   {$ELSE}
 
   Log(logDebug, 'App', 'Showing fullscreen ad..');
-  _Utils.CallStaticVoidMethod('showFullscreenAds', Nil);
+  Java_Begin(Frame);
+  _Utils.CallStaticVoidMethod(Frame, 'showFullscreenAds', Nil);
+  Java_End(Frame);
   {$ENDIF}
 End;
 
@@ -325,8 +327,8 @@ Begin
   Log(logDebug, 'App', 'Caching fullscreen ads..');
   Java_Begin(Frame);
   Params := JavaArguments.Create(Frame);
-  Params.AddString(Application.Instance.Client.GetAdMobBannerID());
-  _Utils.CallStaticVoidMethod('enableAds', Params);
+  Params.AddString(Application.Instance.GetAdMobBannerID());
+  _Utils.CallStaticVoidMethod(Frame, 'enableAds', Params);
   Params.Release();
   Java_End(Frame);
   {$ENDIF}
@@ -343,7 +345,7 @@ Begin
 
   Log(logDebug, 'App', 'Caching fullscreen ads..');
   Java_Begin(Frame);
-  _Utils.CallStaticVoidMethod('disableAds', Nil);
+  _Utils.CallStaticVoidMethod(Frame, 'disableAds', Nil);
   Java_End(Frame);
   {$ENDIF}
 End;
@@ -365,7 +367,7 @@ Begin
   Java_Begin(Frame);
   Params := JavaArguments.Create(Frame);
   Params.AddString(AppID);
-  _Utils.CallStaticVoidMethod('openURL', Params);
+  _Utils.CallStaticVoidMethod(Frame, 'openURL', Params);
   Params.Release();
   Java_End(Frame);
   {$ENDIF}
@@ -383,7 +385,7 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(EventName);
   Params.AddString(Values);
-  _Utils.CallStaticVoidMethod('sendAnalytics', Params);
+  _Utils.CallStaticVoidMethod(Frame, 'sendAnalytics', Params);
   Params.Release();
   Java_End(Frame);
 End;
@@ -417,7 +419,7 @@ Begin
   Java_Begin(Frame);
   Params := JavaArguments.Create(Frame);
   Params.AddString(Name);
-  Result := _Utils.CallStaticBoolMethod('isAppRunning', Params);
+  Result := _Utils.CallStaticBoolMethod(Frame, 'isAppRunning', Params);
   Params.Release();
   Java_End(Frame);
 End;
@@ -437,7 +439,7 @@ Begin
   Java_Begin(Frame);
   Params := JavaArguments.Create(Frame);
   Params.AddString(Name);
-  Result := _Utils.CallStaticBoolMethod('isAppInstalled', Params);
+  Result := _Utils.CallStaticBoolMethod(Frame, 'isAppInstalled', Params);
   Params.Release();
   Java_End(Frame);
 End;
@@ -454,7 +456,7 @@ Begin
   Log(logDebug, 'App', 'Getting device ID');
 
   Java_Begin(Frame);
-  Result := _Utils.CallStaticStringMethod('getDeviceID', Nil);
+  Result := _Utils.CallStaticStringMethod(Frame, 'getDeviceID', Nil);
   Java_End(Frame);
 End;
 
@@ -478,7 +480,7 @@ Begin
 
   _TestedDebug := True;
   Java_Begin(Frame);
-  _DebuggerAttached := _Utils.CallStaticBoolMethod('isDebuggerAttached', Nil);
+  _DebuggerAttached := _Utils.CallStaticBoolMethod(Frame, 'isDebuggerAttached', Nil);
   Java_End(Frame);
   Result := _DebuggerAttached;
 End;
@@ -490,7 +492,7 @@ Begin
   Log(logDebug, 'App', 'Initializing accelerometer');
 
   Java_Begin(Frame);
-  Result := _Utils.CallStaticBoolMethod('initAccelerometer', Nil);
+  Result := _Utils.CallStaticBoolMethod(Frame, 'initAccelerometer', Nil);
   Java_End(Frame);
 End;
 
@@ -501,7 +503,7 @@ Begin
   Log(logDebug, 'App', 'Initializing gyroscope');
 
   Java_Begin(Frame);
-  Result := _Utils.CallStaticBoolMethod('initGyroscope', Nil);
+  Result := _Utils.CallStaticBoolMethod(Frame, 'initGyroscope', Nil);
   Java_End(Frame);
 End;
 
@@ -512,7 +514,7 @@ Begin
   Log(logDebug, 'App', 'Initializing compass');
 
   Java_Begin(Frame);
-  Result := _Utils.CallStaticBoolMethod('initCompass', Nil);
+  Result := _Utils.CallStaticBoolMethod(Frame, 'initCompass', Nil);
   Java_End(Frame);
 End;
 
@@ -523,7 +525,7 @@ Begin
   Log(logDebug, 'App', 'Stopping accelerometer');
 
   Java_Begin(Frame);
-  _Utils.CallStaticVoidMethod('stopAccelerometer', Nil);
+  _Utils.CallStaticVoidMethod(Frame, 'stopAccelerometer', Nil);
   Java_End(Frame);
 End;
 
@@ -534,7 +536,7 @@ Begin
   Log(logDebug, 'App', 'Stopping gyroscope');
 
   Java_Begin(Frame);
-  _Utils.CallStaticVoidMethod('stopGyroscope', Nil);
+  _Utils.CallStaticVoidMethod(Frame, 'stopGyroscope', Nil);
   Java_End(Frame);
 End;
 
@@ -545,7 +547,7 @@ Begin
   Log(logDebug, 'App', 'Stopping compass');
 
   Java_Begin(Frame);
-  _Utils.CallStaticVoidMethod('stopCompass', Nil);
+  _Utils.CallStaticVoidMethod(Frame, 'stopCompass', Nil);
   Java_End(Frame);
 End;
 
@@ -584,7 +586,7 @@ Begin
   Params.AddString(DestEmail);
   Params.AddString(Subject);
   Params.AddString(Body);
-  _Utils.CallStaticVoidMethod('sendEmail', Params);
+  _Utils.CallStaticVoidMethod(Frame, 'sendEmail', Params);
   Params.Release();
   Java_End(Frame);
 End;
@@ -605,7 +607,7 @@ Begin
 
   Java_Begin(Frame);
   Params := JavaArguments.Create(Frame);
-  _Utils.CallStaticVoidMethod('saveToCloud', Params);
+  _Utils.CallStaticVoidMethod(Frame, 'saveToCloud', Params);
   Params.Release();
   Java_End(Frame);
 
@@ -628,7 +630,7 @@ Begin
 
   Java_Begin(Frame);
   AppClass := JavaClass.Create(ActivityClassPath, Frame);
-  AppClass.CallStaticVoidMethod('showTapJoyOfferWall', Nil);
+  AppClass.CallStaticVoidMethod(Frame, 'showTapJoyOfferWall', Nil);
   AppClass.Release();
   Java_End(Frame);
 End;
@@ -649,7 +651,7 @@ Begin
 
   Java_Begin(Frame);
   AppClass := JavaClass.Create(ActivityClassPath, Frame);
-  AppClass.CallStaticVoidMethod('showTapJoyVideo', Nil);
+  AppClass.CallStaticVoidMethod(Frame, 'showTapJoyVideo', Nil);
   AppClass.Release();
   Java_End(Frame);
 End;
@@ -674,7 +676,7 @@ Begin
 
   Params := JavaArguments.Create(Frame);
   Params.AddInteger(Ammount);
-  AppClass.CallStaticVoidMethod('spendTapJoyPoints', Params);
+  AppClass.CallStaticVoidMethod(Frame, 'spendTapJoyPoints', Params);
   Params.Release();
 
   AppClass.Release();
@@ -701,49 +703,50 @@ Begin
   _Utils := JavaClass.Create(UtilsClassPath, Frame);
 
 {  Log(logDebug, 'App', 'Getting class loader');
-  ClassLoader := _Utils.CallStaticObjectMethod('getClassLoader', 'java/lang/ClassLoader', Nil);
+  ClassLoader := _Utils.CallStaticObjectMethod(Frame, 'getClassLoader', 'java/lang/ClassLoader', Nil);
 
   Log(logDebug, 'App', 'Preparing class loader');
   Java_LoadClassLoader(Frame, ClassLoader);}
 
   Log(logDebug, 'App', 'Getting internal write path');
-  _Path := _Utils.CallStaticStringMethod('getInternalDir', Nil);
+  _Path := _Utils.CallStaticStringMethod(Frame, 'getInternalDir', Nil);
   _StoragePath := _Path;
   Log(logDebug, 'App', 'Found internal app path: '+_Path);
 
   Log(logDebug, 'App', 'Getting external write path');
-  _Path := _Utils.CallStaticStringMethod('getExternalDir', Nil);
+  _Path := _Utils.CallStaticStringMethod(Frame, 'getExternalDir', Nil);
   _TempPath := _Path;
   _DocumentPath := _Path;
   Log(logDebug, 'App', 'Found external app path: '+_Path);
 
 
   Log(logDebug, 'App', 'Getting user country');
-  _Country := StringUpper(_Utils.CallStaticStringMethod('getCountry', Nil));
+  _Country := StringUpper(_Utils.CallStaticStringMethod(Frame, 'getCountry', Nil));
   Log(logDebug, 'App', 'Found country '+_Country);
 
   Log(logDebug, 'App', 'Getting local language');
-  _Language := StringUpper(_Utils.CallStaticStringMethod('getLanguage', Nil));
+  _Language := StringUpper(_Utils.CallStaticStringMethod(Frame, 'getLanguage', Nil));
   Log(logDebug, 'App', 'Found language: '+_Language);
 
   Log(logDebug, 'App', 'Getting screen dimensions');
-  _Width := _Utils.CallStaticIntMethod('getScreenWidth', Nil);
-  _Height := _Utils.CallStaticIntMethod('getScreenHeight', Nil);
+  _Width := _Utils.CallStaticIntMethod(Frame, 'getScreenWidth', Nil);
+  _Height := _Utils.CallStaticIntMethod(Frame, 'getScreenHeight', Nil);
   _Screen.Width := _Width;
   _Screen.Height := _Height;
   Log(logDebug, 'App', 'Dimensions: '+IntToString(_Width)+'x'+IntToString(_Height));
 
   Log(logDebug, 'App', 'Getting cpu cores');
-  _CPUCores := _Utils.CallStaticIntMethod('getCPUCores', Nil);
+  _CPUCores := _Utils.CallStaticIntMethod(Frame, 'getCPUCores', Nil);
   Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
 
   Log(logDebug, 'App', 'Getting package version');
-  _BundleVersion := _Utils.CallStaticStringMethod('getBundleVersion', Nil);
+  _BundleVersion := _Utils.CallStaticStringMethod(Frame, 'getBundleVersion', Nil);
   Log(logDebug, 'App', 'Found version '+_BundleVersion);
 
   Java_CacheClass(Frame, FileIOClassPath);
-
   Java_End(Frame);
+
+  Renderers.Add(OpenGLES2Renderer.Create());
 
 	Result := True;
 End;
@@ -757,7 +760,7 @@ Begin
   Java_Begin(Frame);
   Params := JavaArguments.Create(Frame);
   Params.AddInteger(Integer(Args));
-  _Utils.CallStaticVoidMethod('spawnThread', Params);
+  _Utils.CallStaticVoidMethod(Frame, 'spawnThread', Params);
   Params.Release();
   Java_End(Frame);
 End;

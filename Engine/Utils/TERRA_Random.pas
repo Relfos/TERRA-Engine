@@ -55,7 +55,7 @@ Const
 Constructor MersenneTwister.Create();
 Begin
   mti := _N+1;
-  SetSeed(GetTime());
+  SetSeed(Application.GetTime());
 End;
 
 Procedure MersenneTwister.Release; 

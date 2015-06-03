@@ -1,7 +1,7 @@
 {$I terra.inc}
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} Ships_NetClient;
 
-Uses TERRA_Application, TERRA_Scene, TERRA_Client, TERRA_UI, TERRA_GraphicsManager,
+Uses TERRA_Application, TERRA_Scene, TERRA_UI, TERRA_GraphicsManager,
   TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_OS, TERRA_PNG, TERRA_FileManager,
   TERRA_Texture, TERRA_Network, TERRA_SpriteManager, TERRA_Sockets, TERRA_Viewport,
   TERRA_Math, TERRA_Vector3D, TERRA_Vector2D, TERRA_TTF, TERRA_Utils, TERRA_InputManager,
@@ -13,7 +13,7 @@ Const
 
 Type
   // A client is used to process application events
-  MyGame = Class(AppClient)
+  Demo = Class(Application)
     Protected
       _Scene:Scene;
 
@@ -125,7 +125,7 @@ End;
 { MyScene }
 Procedure MyScene.RenderSprites(View:Viewport);
 Var
-  S:Sprite;
+  S:QuadSprite;
   P,V:Vector3D;
   T:Cardinal;
   I:Integer;
@@ -234,7 +234,7 @@ Begin
 End;
 
 { Game }
-Procedure MyGame.OnCreate;
+Procedure Demo.OnCreate;
 Begin
   StatusMsg := 'Not connected.';
 
@@ -257,13 +257,13 @@ Begin
 End;
 
 // OnIdle is called once per frame, put your game logic here
-Procedure MyGame.OnDestroy;
+Procedure Demo.OnDestroy;
 Begin
   If Assigned(_Client) Then
     _Client.Release;
 End;
 
-Procedure MyGame.OnIdle;
+Procedure Demo.OnIdle;
 Begin
   If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate();
@@ -386,5 +386,5 @@ End;
 
 Begin
   // Start the application
-  ApplicationStart(MyGame.Create);
+  Demo.Create();
 End.

@@ -99,10 +99,10 @@ Const
 Var
   _AllocStatsEnabled:Boolean;
   _AllocStats:Array[0..Pred(MaxAllocStats)] Of MemoryAllocStats;
-  _AllocStatsCount:Cardinal;
+  _AllocStatsCount:Integer;
 
   _PrevAllocStats:Array[0..Pred(MaxAllocStats)] Of MemoryAllocStats;
-  _PrevAllocStatsCount:Cardinal;
+  _PrevAllocStatsCount:Integer;
 
 Function TERRA_GetMem(Size: SizeType): Pointer;{$IFDEF FPC} {$IFDEF CPUARM }Stdcall;  {$ELSE}Register;{$ENDIF}{$ENDIF}
 Var

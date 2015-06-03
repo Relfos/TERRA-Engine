@@ -113,10 +113,10 @@ Uses TERRA_Vector4D, Math{$IFDEF NEON_FPU},TERRA_NEON{$ENDIF};
 // clipPlane is in camera space
 Procedure CalculateObliqueMatrix4x4ClipPlane(Var projection:Matrix4x4; clipPlane:Plane);
 Var
-  Q,C:Quaternion;
+  Q,C:Vector4D;
   D:Single;
 Begin
-  C := Vector4DCreate(clipPlane.A, clipPlane.B, clipPlane.C, clipPlane.D);
+  C := VectorCreate4D(clipPlane.A, clipPlane.B, clipPlane.C, clipPlane.D);
 
     // Calculate the clip-space corner point opposite the clipping plane
     // as (sgn(clipPlane.x), sgn(clipPlane.y), 1, 1) and

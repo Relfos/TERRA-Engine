@@ -91,7 +91,7 @@ Const
 // Vector functions
 Function VectorCreate(Const X,Y,Z:Single):Vector3D; {$IFDEF FPC}Inline;{$ENDIF}
 
-Function VectorUniform(Const N:Single):Vector3D; {$IFDEF FPC}Inline;{$ENDIF}
+Function VectorConstant(Const N:Single):Vector3D; {$IFDEF FPC}Inline;{$ENDIF}
 
 Function VectorMax(Const A,B:Vector3D):Vector3D; {$IFDEF FPC}Inline;{$ENDIF}
 Function VectorMin(Const A,B:Vector3D):Vector3D; {$IFDEF FPC}Inline;{$ENDIF}
@@ -156,7 +156,7 @@ Begin
   Result.Z := Z;
 End;
 
-Function VectorUniform(Const N:Single):Vector3D; {$IFDEF FPC} Inline;{$ENDIF}
+Function VectorConstant(Const N:Single):Vector3D; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result.X := N;
   Result.Y := N;

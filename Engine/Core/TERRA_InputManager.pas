@@ -26,7 +26,7 @@ Unit TERRA_InputManager;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Application, TERRA_Collections, TERRA_Client;
+Uses TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Application, TERRA_Collections;
 
 Const
   keyGamepadIndex   = 255;
@@ -41,13 +41,17 @@ Const
 	keyGamepadX_Offset       = 8;
 	keyGamepadY_Offset       = 9;
 	keyGamepadZ_Offset       = 10;
-	keyGamepadR_Offset       = 11;
-	keyGamepadL_Offset       = 12;
-  keyGamepadMenu_Offset    = 13;
-	keyGamepadDPadLeft_Offset    = 14;
-	keyGamepadDPadUp_Offset      = 15;
-	keyGamepadDPadRight_Offset   = 16;
-	keyGamepadDPadDown_Offset    = 17;
+	keyGamepadR1_Offset       = 11;
+	keyGamepadR2_Offset       = 12;
+	keyGamepadR3_Offset       = 13;
+	keyGamepadL1_Offset       = 14;
+	keyGamepadL2_Offset       = 15;
+	keyGamepadL3_Offset       = 16;
+  keyGamepadMenu_Offset    = 17;
+	keyGamepadDPadLeft_Offset    = 18;
+	keyGamepadDPadUp_Offset      = 19;
+	keyGamepadDPadRight_Offset   = 20;
+	keyGamepadDPadDown_Offset    = 21;
   keyGamepadCount   = 32;
 
   MaxGamePads = 8;
@@ -56,11 +60,22 @@ Const
   keyMouseRight  = 251;
   keyMouseMiddle = 252;
 
-Const
   MaxKeys = 512;
   MaximumFrameDelay = 10;
 
 Type
+  GamePadKind = (
+    gamepadGeneric = 0,
+    gamepadXBox360 = 1,
+    gamepadXBoxOne = 2,
+    gamepadOUYA = 3,
+    gamepadPS3 = 4,
+    gamepadPS4 = 5,
+    gamepadPSVita = 6,
+    gamepadWii = 7,
+    gamepadWiiU = 8
+  );
+
   KeyState = Record
     Frame:Cardinal;
     State:Boolean;
@@ -76,11 +91,10 @@ Type
 
 	InputState = Class(TERRAObject)
     Protected
-      _Client:AppClient;
       _Keys:Array[0..Pred(MaxKeys)] Of KeyState;
 
     Public
-      Constructor Create(Client:AppClient);
+      Constructor Create();
 
       Function IsDown(Key:Word):Boolean;
       Function IsUp(Key:Word):Boolean;
@@ -98,8 +112,13 @@ Type
       _Active:Boolean;
 
     Protected
+      _Disabled:Boolean;
+
       _LocalID:Integer;
       _DeviceID:Integer;
+
+      _Kind:GamePadKind;
+      _Name:TERRAString;
 
       Procedure Connnect();
       Procedure Disconnnect();
@@ -110,6 +129,9 @@ Type
 
       Property LocalID:Integer Read _LocalID;
       Property Active:Boolean Read _Active;
+
+      Property Kind:GamePadKind Read _Kind;
+      Property Name:TERRAString Read _Name;
   End;
 
   InputManager = Class(ApplicationComponent)
@@ -132,6 +154,7 @@ Type
       Procedure Release; Override;
 
       Procedure AddGamePad(Pad:GamePad);
+      Function GetGamePad(PadID:Integer):GamePad;
 
       Class Function Instance:InputManager;
 
@@ -218,8 +241,12 @@ Begin
       keyGamepadX_Offset:        Result:='X';
       keyGamepadY_Offset:        Result:='Y';
       keyGamepadZ_Offset:        Result:='Z';
-      keyGamepadL_Offset:        Result:='L';
-      keyGamepadR_Offset:        Result:='R';
+      keyGamepadL1_Offset:        Result:='L1';
+      keyGamepadL2_Offset:        Result:='L2';
+      keyGamepadL3_Offset:        Result:='L3';
+      keyGamepadR1_Offset:        Result:='R1';
+      keyGamepadR2_Offset:        Result:='R2';
+      keyGamepadR3_Offset:        Result:='R3';
       keyGamepadMenu_Offset:     Result:='Menu';
       keyGamepadDPadLeft_Offset:     Result:='DPadLeft';
       keyGamepadDPadUp_Offset:       Result:='DPadUp';
@@ -301,10 +328,8 @@ End;
 
 
 { InputState }
-
-Constructor InputState.Create(Client: AppClient);
+Constructor InputState.Create();
 Begin
-  _Client := Client;
 End;
 
 Function InputState.SetState(Key: Word; Value: Boolean):Boolean;
@@ -326,13 +351,10 @@ Begin
 
   _Keys[Key].Frame := GraphicsManager.Instance.FrameID;
 
-  If (Assigned(_Client)) Then
-  Begin
-    If (Value) Then
-      _Client.OnKeyDown(Key)
-    Else
-      _Client.OnKeyUp(Key);
-  End;
+  If (Value) Then
+    Application.Instance.OnKeyDown(Key)
+  Else
+    Application.Instance.OnKeyUp(Key);
 
   Result := True;
 End;
@@ -407,7 +429,7 @@ End;
 
 Procedure InputManager.Init;
 Begin
-  _Keys := InputState.Create(Application.Instance.Client);
+  _Keys := InputState.Create();
 End;
 
 Procedure InputManager.Release;
@@ -483,7 +505,7 @@ Begin
   End;
 
   _LocalID := Succ(N);
-  Application.Instance.Client.OnGamepadConnect(_LocalID);
+  Application.Instance.OnGamepadConnect(_LocalID);
 End;
 
 Procedure GamePad.Disconnnect;
@@ -491,7 +513,7 @@ Begin
   If (_Active) Then
   Begin
     _Active := False;
-    Application.Instance.Client.OnGamepadDisconnect(_LocalID);
+    Application.Instance.OnGamepadDisconnect(_LocalID);
     _Active := False;
     _LocalID := -1;
   End;
@@ -500,8 +522,23 @@ End;
 
 Constructor GamePad.Create(DeviceID: Integer);
 Begin
+  _Name := '';
   _DeviceID := DeviceID;
 End;
 
+
+Function InputManager.GetGamePad(PadID: Integer): GamePad;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(MaxGamePads) Do
+  If (Assigned(_Gamepads[I])) And (_Gamepads[I]._LocalID = PadID) Then
+  Begin
+    Result := _Gamepads[I];
+    Exit;
+  End;
+
+  Result := Nil;
+End;
 
 End.

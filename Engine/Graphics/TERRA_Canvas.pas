@@ -64,7 +64,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_FileUtils, TERRA_Log,  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
+Uses TERRA_Error, TERRA_FileUtils, TERRA_Log;
 
 // LCanvas
 Constructor Canvas.Create(Name:AnsiString; Width, Height:Integer);

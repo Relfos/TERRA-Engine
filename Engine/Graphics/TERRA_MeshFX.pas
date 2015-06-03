@@ -27,7 +27,7 @@ Unit TERRA_MeshFX;
 
 Interface
 Uses TERRA_Utils, TERRA_Mesh, TERRA_MeshFilter, TERRA_Vector3D, TERRA_Vector2D,
-  TERRA_Vector4D, TERRA_Matrix4x4, TERRA_Color;
+  TERRA_Quaternion, TERRA_Matrix4x4, TERRA_Color, TERRA_VertexFormat;
 
 Type
   MeshDebris = Record
@@ -37,7 +37,7 @@ Type
     Strength:Single;
     Count:Integer;
     StartVertex:Integer;
-    Rotation:Vector4D;
+    Rotation:Quaternion;
   End;
 
   MeshExplosion = Class(MeshFX)
@@ -76,16 +76,18 @@ End;
 
 Procedure MeshExplosion.InitTarget();
 Var
-  I,J,K:Integer;
+  I,J,K, N:Integer;
   Group:MeshGroup;
-  Vertices:Array Of MeshVertex;
+  P, OP:Vector3D;
+  V:VertexIterator;
+  TempVertices:VertexData;
   T:PTriangle;
-  P:PMeshVertex;
   CurrentDebris:Integer;
 Begin
   If Target = Nil Then
     Exit;
 
+  TempVertices := Nil;
   For I:=0 To Pred(Target.GroupCount) Do
   Begin
     Group := Target.GetGroup(I);
@@ -95,9 +97,8 @@ Begin
 
     _Radius := Group.GetBoundingBox.Radius * 2;
 
-    SetLength(Vertices, Group.VertexCount);
-    For J:=0 To Pred(Group.VertexCount) Do
-      Vertices[J] := Group.GetVertex(J);
+    TempVertices := Group.Vertices.Clone();
+    TempVertices.CopyBuffer(Group.Vertices);
 
     _DebrisCount := Trunc(Group.TriangleCount * RandomFloat(0.2, 0.5));
     SetLength(_Debris, _DebrisCount);
@@ -129,20 +130,34 @@ Begin
 
       _Indices[J] := CurrentDebris;
 
+
       For K:=0 To 2 Do
+      Begin
+        N := J*3 + K;
+        TempVertices.GetVector3D(T.Indices[K], vertexPosition, P);
+        Group.Vertices.SetVector3D(N, vertexPosition, P);
+        _Positions[J*3 + K] := P;
+        _Debris[CurrentDebris].Center.Add(P);
+         T.Indices[K] := J*3 + K;
+      End;
+
+{      For K:=0 To 2 Do
       Begin
         P := Group.GetVertexPointer(J*3 + K);
         P^ := Vertices[T.Indices[K]];
         _Positions[J*3 + K] := P^.Position;
         _Debris[CurrentDebris].Center.Add(P^.Position);
           T.Indices[K] := J*3 + K;
-      End;
+      End;}
+
     End;
+
+    ReleaseObject(TempVertices);
   End;
 
   Target.OnContextLost();
-  
-  _StartTime := GetTime();
+
+  _StartTime := Application.GetTime();
 End;
 
 Procedure MeshExplosion.InitDebris(StartVertex, Index: Integer; Normal:Vector3D);
@@ -159,7 +174,7 @@ Begin
   _Debris[Index].Duration := RandomFloat(0.7, 1);
   _Debris[Index].Strength := RandomFloat(0.3, 1.2);
 
-  _Debris[Index].Rotation := Vector4DFromAxisAngle(Normal, 360*RAD);
+  _Debris[Index].Rotation := QuaternionFromAxisAngle(Normal, 360*RAD);
 End;
 
 Function MeshExplosion.Update():Boolean;
@@ -170,12 +185,15 @@ Var
   Group:MeshGroup;
   PP, Delta:Single;
   T:Triangle;
-  P:PMeshVertex;
   FinalPos, CurrentPosition:Vector3D;
   Alpha:Single;
   DebrisIndex:Integer;
-  Q:Vector4D;
+  Q:Quaternion;
   M:Matrix4x4;
+  It:VertexIterator;
+  Temp:VertexData;
+  V:MeshVertex;
+  P:PVector3D;
 Begin
   If Target = Nil Then
   Begin
@@ -189,7 +207,7 @@ Begin
     Self.InitTarget();
   End;
 
-  Delta := GetTime - _StartTime;
+  Delta := Application.GetTime - _StartTime;
   Delta := Delta / _Duration;
 
   If (Delta<0) Then
@@ -201,7 +219,8 @@ Begin
   For I:=0 To Pred(Target.GroupCount) Do
   Begin
     Group := Target.GetGroup(I);
-    P := Group.LockVertices(True);
+    Temp := Group.LockVertices();
+    It := Temp.GetIterator(MeshVertex);
 
     For J:=0 To Pred(Group.TriangleCount) Do
     Begin
@@ -213,13 +232,13 @@ Begin
         PP := 1.0
       Else
         PP := Delta/_Debris[DebrisIndex].Duration;
-        
+
       FinalPos := VectorAdd(_Debris[DebrisIndex].Center, VectorScale(_Debris[DebrisIndex].Direction, _Radius * _Debris[DebrisIndex].Strength));
       FinalPos.Y := Abs(Sin(PP*180*RAD)) * _Radius * _Debris[DebrisIndex].Strength;
       CurrentPosition := VectorInterpolate(_Debris[DebrisIndex].Center, FinalPos, PP);
 
-      Q := Vector4DSlerp(Vector4DZero, _Debris[DebrisIndex].Rotation, Delta);
-      M := Vector4DMatrix4x4(Q);
+      Q := QuaternionSlerp(QuaternionZero, _Debris[DebrisIndex].Rotation, Delta);
+      M := QuaternionMatrix4x4(Q);
 
 
       If (PP>FadeDelta) Then
@@ -229,17 +248,25 @@ Begin
 
       For K:=0 To 2 Do
       Begin
-        P.Position := M.Transform(_Positions[J*3+K]);
-        P.Position := VectorAdd(P.Position, CurrentPosition);
-        P.Color.A := Trunc(255*Alpha);
-        Inc(P);
+        If Not It.HasNext() Then
+          Break;
+
+        V := MeshVertex(It.Value);
+        V.Position := M.Transform(_Positions[It.Position]);
+        V.Position.Add(CurrentPosition);
+
+        V.BoneIndex := 0;
+
+        V.Color.A := Trunc(255*Alpha);
       End;
     End;
+
+    ReleaseObject(It);
 
     Group.UnlockVertices();
   End;
 
-  Result := True;
+  Result := Delta<1.0;
 End;
 
 End.

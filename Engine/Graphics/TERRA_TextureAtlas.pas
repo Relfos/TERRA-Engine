@@ -87,7 +87,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_FileUtils, TERRA_Log,  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
+Uses TERRA_Error, TERRA_FileUtils, TERRA_Log;
 
 // LTextureAtlas
 Constructor TextureAtlas.Create(Name:TERRAString; Width, Height:Integer);
@@ -352,7 +352,8 @@ Begin
   S := _Name+'_page'+IntToString(ID);
   Log(logDebug, 'TextureAtlas', 'Creating TextureAtlas texture: '+S);
 
-  _Textures[ID] := TERRA_Texture.Texture.New(S, Width, Height);
+  _Textures[ID] := TERRA_Texture.Texture.Create();
+  _Textures[ID].CreateFromSize(S, Width, Height);
   _Textures[ID].MipMapped := False;
   _Textures[ID].Update();
 End;

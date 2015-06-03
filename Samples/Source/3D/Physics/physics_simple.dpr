@@ -3,9 +3,9 @@
 
 Uses
 {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
-  TERRA_Application, TERRA_Client, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
+  TERRA_Application, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
   TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_UI, TERRA_Lights, TERRA_Viewport,
-  TERRA_JPG, TERRA_PNG, TERRA_RenderTarget, TERRA_Solids, TERRA_Texture, TERRA_BoundingBox,
+  TERRA_JPG, TERRA_PNG, TERRA_Solids, TERRA_Texture, TERRA_BoundingBox,
   TERRA_FileManager, TERRA_Scene, TERRA_MeshFilter, TERRA_Mesh, TERRA_Skybox, TERRA_Color, TERRA_Matrix4x4,
   TERRA_Math, TERRA_InputManager, TERRA_PhysicsManager, TERRA_NewtonPhysics;
 
@@ -21,7 +21,7 @@ Type
       Procedure RenderSky(V:Viewport); Override;
   End;
 
-  Game = Class(AppClient)
+  Demo = Class(Application)
     Protected
       _Scene:MyScene;
 
@@ -52,7 +52,7 @@ Var
   PhysicsDebugMode:Boolean;
 
 { Game }
-Procedure Game.OnCreate;
+Procedure Demo.OnCreate;
 Var
   WorldBox:BoundingBox;
   I:Integer;
@@ -87,7 +87,7 @@ Begin
   PhysicsManager.Instance.FinishTree();
 End;
 
-Procedure Game.OnDestroy;
+Procedure Demo.OnDestroy;
 Var
   I:Integer;
 Begin
@@ -102,7 +102,7 @@ Begin
     ReleaseObject(Walls[I]);
 End;
 
-Procedure Game.OnIdle;
+Procedure Demo.OnIdle;
 Begin
   If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate();
@@ -119,7 +119,7 @@ Begin
   GraphicsManager.Instance.ActiveViewport.Camera.FreeCam;
 End;
 
-Procedure Game.SpawnBall();
+Procedure Demo.SpawnBall();
 Var
   Ball:MeshInstance;
   Size:Single;
@@ -139,7 +139,7 @@ Begin
   Balls[Pred(BallCount)] := Ball;
 End;
 
-Procedure Game.SpawnWall(Const Pos, Normal:Vector3D; Size:Single; Tex:Texture);
+Procedure Demo.SpawnWall(Const Pos, Normal:Vector3D; Size:Single; Tex:Texture);
 Var
   Wall:MeshInstance;
 Begin
@@ -198,7 +198,7 @@ End;
 Procedure StartGame; cdecl; export;
 {$ENDIF}
 Begin
-  ApplicationStart(Game.Create);
+  Demo.Create();
 {$IFDEF IPHONE}
 End;
 {$ENDIF}

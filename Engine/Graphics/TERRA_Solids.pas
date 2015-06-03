@@ -29,10 +29,24 @@ Unit TERRA_Solids;
 
 Interface
 Uses TERRA_Utils, TERRA_Math, TERRA_GraphicsManager, TERRA_BoundingBox, TERRA_Vector3D,
-  TERRA_Vector2D, TERRA_Matrix4x4, TERRA_Color, TERRA_Mesh, TERRA_MeshFilter, TERRA_Texture;
+  TERRA_Vector2D, TERRA_Vector4D, TERRA_Matrix4x4, TERRA_Color, TERRA_Mesh, TERRA_MeshFilter, TERRA_Texture,
+  TERRA_VertexFormat;
 
 Type
-	SolidVertex = Packed Record
+  SolidVertex = Class(Vertex)
+    Protected
+      Procedure Load(); Override;
+      Procedure Save(); Override;
+
+    Public
+  		Position:Vector3D;
+	  	Normal:Vector3D;
+      Tangent:Vector4D;
+      TextureCoords:Vector2D;
+      Color:TERRA_Color.Color;
+  End;
+
+	InternalSolidVertex = Packed Record
 		Position:Vector3D;
 		Normal:Vector3D;
     TextureCoords:Vector2D;
@@ -40,7 +54,7 @@ Type
 
   SolidMesh = Class(Renderable)
     Protected
-      _VertexList:Array Of SolidVertex;
+      _VertexList:Array Of InternalSolidVertex;
       _VertexCount:Integer;
       _IndexList:Array Of Word;
       _IndexCount:Integer;
@@ -56,10 +70,6 @@ Type
       Procedure UpdateBoundingBox;
 
     Public
-      // Fills geometry data into openGL VBOs
-      Procedure FillVertexBuffer(VertexBuffer:Cardinal);
-      Procedure FillIndexBuffer(IndexBuffer:Cardinal);
-
       Procedure Transform(MyMatrix:Matrix4x4);
       Procedure Weld(Radius:Single);
 
@@ -68,7 +78,7 @@ Type
 
       Procedure Invert;
 
-      Function GetVertex(Index:Integer):SolidVertex;
+      Function GetVertex(Index:Integer):InternalSolidVertex;
       Function GetIndex(Index:Integer):Integer;
       Property VertexCount:Integer Read _VertexCount;
       Property IndexCount:Integer Read _IndexCount;
@@ -117,7 +127,7 @@ Type
   Function CreateMeshFromSolid(S:SolidMesh; Tex:Texture = Nil):Mesh;
 
 Implementation
-Uses {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Error;
+Uses TERRA_Error;
 
 {Procedure SolidMesh.AddPolygon(IndexList:Array Of Word; Count:Integer);
 Var
@@ -173,7 +183,7 @@ Begin
 
   GraphicsManager.Instance.EnableColorShader(ColorWhite, Matrix4x4Identity);
 
-  {$IFDEF PC}
+  (*
   glDisable(GL_CULL_FACE);
   glBegin(GL_TRIANGLES);
   I := 0;
@@ -187,7 +197,7 @@ Begin
   End;
   glEnd;
   glEnable(GL_CULL_FACE);
-  {$ENDIF}
+  BIBI *)
 End;
 
 Function SolidMesh.DuplicateVertex(Index:Integer):Integer;
@@ -297,21 +307,7 @@ Begin
   UpdateBoundingBox;
 End;
 
-Procedure SolidMesh.FillVertexBuffer(VertexBuffer:Cardinal);
-Begin
-	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer);
-	glBufferData(GL_ARRAY_BUFFER, SizeOf(SolidVertex) * _VertexCount, @(_VertexList[0]), GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-End;
-
-Procedure SolidMesh.FillIndexBuffer(IndexBuffer:Cardinal);
-Begin
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBuffer);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, SizeOf(Word) * _IndexCount, @(_IndexList[0]), GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-End;
-
-Function SolidMesh.GetVertex(Index:Integer):SolidVertex;
+Function SolidMesh.GetVertex(Index:Integer):InternalSolidVertex;
 Begin
   If (Index>=0) And (Index<_VertexCount) Then
     Result := _VertexList[Index]
@@ -792,32 +788,57 @@ Function CreateMeshFromSolid(S:SolidMesh; Tex:Texture):Mesh;
 Var
   Group:MeshGroup;
   I:Integer;
+  It:VertexIterator;
+  Dest:SolidVertex;
 Begin
   Result := Mesh.Create('');
-  Group := Result.AddGroup('');
+  Group := Result.AddGroup([vertexFormatPosition, vertexFormatColor, vertexFormatNormal, vertexFormatTangent, vertexFormatUV0], '');
   Group.Flags := 0;
   Group.AmbientColor := ColorWhite;
   Group.DiffuseColor := ColorWhite;
   Group.TriangleCount := S._IndexCount Div 3;
   Group.VertexCount := S._VertexCount;
-  For I:=0 To Pred(Group.VertexCount) Do
+
+  It := Group.Vertices.GetIterator(SolidVertex);
+  While It.HasNext() Do
   Begin
-    Group.Vertices[I].Position := S._VertexList[I].Position;
-    Group.Vertices[I].Normal := S._VertexList[I].Normal;
-    Group.Vertices[I].TextureCoords := S._VertexList[I].TextureCoords;
-    Group.Vertices[I].Color := ColorWhite;
-    Group.Vertices[I].BoneIndex := -1;
+    Dest := SolidVertex(It.Value);
+    I := It.Position;
+
+    Dest.Position := S._VertexList[I].Position;
+    Dest.Normal := S._VertexList[I].Normal;
+    Dest.TextureCoords := S._VertexList[I].TextureCoords;
+    Dest.Color := ColorWhite;
   End;
+  ReleaseObject(It);
+
   For I:=0 To Pred(Group.TriangleCount) Do
   Begin
     Group.Triangles[I].Indices[0] := S._IndexList[I*3+0];
     Group.Triangles[I].Indices[1] := S._IndexList[I*3+1];
     Group.Triangles[I].Indices[2] := S._IndexList[I*3+2];
   End;
+
   Group.DiffuseMap := Tex;
   Group.CalculateTangents();
   Group.CalculateTriangleNormals();
 End;
 
+{ SolidVertex }
+Procedure SolidVertex.Load;
+Begin
+  Self.GetVector3D(vertexPosition, Self.Position);
+  Self.GetVector3D(vertexNormal, Self.Normal);
+  Self.GetVector2D(vertexUV0, Self.TextureCoords);
+  Self.GetColor(vertexColor, Self.Color);
+End;
+
+Procedure SolidVertex.Save;
+Begin
+  Self.SetVector3D(vertexPosition, Self.Position);
+  Self.SetVector3D(vertexNormal, Self.Normal);
+  Self.SetVector2D(vertexUV0, Self.TextureCoords);
+  Self.SetColor(vertexColor, Self.Color);
+End;
 
 End.

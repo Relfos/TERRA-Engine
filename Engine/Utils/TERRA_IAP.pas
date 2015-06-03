@@ -57,16 +57,14 @@ Var
 Procedure IAP_Callback_Canceled(ID:PAnsiChar); cdecl; export;
 Begin
    Log(logDebug, 'IAP', 'Cancelled: '+ID);
-  If Assigned(Application.Instance.Client) Then
-    Application.Instance.Client.OnIAP_Error(IAP_PurchaseCanceled);
+   Application.Instance.OnIAP_Error(IAP_PurchaseCanceled);
 End;
 
 Procedure IAP_Callback_Purchase(ID:PAnsiChar); cdecl; export;
 Begin
   Log(logDebug, 'IAP', 'Purchased: '+ID);
 
-  If Assigned(Application.Instance.Client) Then
-    Application.Instance.Client.OnIAP_Purchase(ID);
+  Application.Instance.OnIAP_Purchase(ID);
 End;
 
 {Procedure IAP_Callback_Info(ID, Title, Description, Price:PAnsiChar); cdecl; export;
@@ -114,8 +112,8 @@ Begin
   Java_Begin(Frame);
   Utils := JavaClass.Create(ActivityClassPath, Frame);
   Log(logDebug, 'App', 'Purchasing credits');
-  Utils.CallStaticVoidMethod('purchaseCredits', Nil);
-  Utils.Release();
+  Utils.CallStaticVoidMethod(Frame, 'purchaseCredits', Nil);
+  ReleaseObject(Utils);
   Java_End(Frame);
   Exit;
 {$ELSE}
@@ -133,26 +131,22 @@ Var
   Frame:JavaFrame;
 {$ENDIF}
 Begin
-{$IFDEF STEAM}
-  IAP_Callback_Canceled(PAnsiChar(ID));
-  //Application.Instance.Client.OnIAP_External(ID, UserData);
-  Exit;
-{$ENDIF}
-
 {$IFDEF ANDROID}
   {$IFDEF OUYA}
   ReplaceText('.', '_', ID);
   {$ENDIF}
 
+  Log(logWarning, 'IAP', 'Trying purchase...');
+
   Java_Begin(Frame);
   Utils := JavaClass.Create(ActivityClassPath, Frame);
 
-  If (Utils.CallStaticBoolMethod('canPurchase', Nil)) Then
+  If (Utils.CallStaticBoolMethod(Frame, 'canPurchase', Nil)) Then
   Begin
     Log(logDebug, 'App', 'Purchasing '+ID);
     Params := JavaArguments.Create(Frame);
     Params.AddString(ID);
-    Utils.CallStaticVoidMethod('purchase', Params);
+    Utils.CallStaticVoidMethod(Frame, 'purchase', Params);
     Params.Release();
   End Else
   Begin
@@ -172,6 +166,13 @@ Begin
   If Assigned(Application.Instance.Client) Then
     IAP_Callback_Canceled(PAnsiChar(ID));
 
+  Exit;
+{$ENDIF}
+
+{$IFDEF STEAM}
+  Log(logWarning, 'IAP', 'Purchases not allowed in Steam!');
+  IAP_Callback_Canceled(PAnsiChar(ID));
+  //Application.Instance.Client.OnIAP_External(ID, UserData);
   Exit;
 {$ENDIF}
 

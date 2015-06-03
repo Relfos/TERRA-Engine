@@ -25,6 +25,7 @@ Unit TERRA_Debug;
                      
 {$I terra.inc}
 Interface
+Uses TERRA_String, TERRA_Callstack;
 
 //Procedure DebugStack(S:TERRAString);
 Procedure DebugOpenAL;
@@ -38,11 +39,11 @@ Implementation
 
 Uses {$IFDEF WINDOWS}Windows,{$ENDIF}
   {$IFDEF FPC}lineinfo, {$ENDIF}
-  SysUtils, TERRA_Utils, TERRA_Classes, TERRA_Application, TERRA_OS, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_AL,
+  SysUtils, TERRA_Utils, TERRA_Application, TERRA_OS, TERRA_Stack, TERRA_CollectionObjects,
+  TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_OpenGL{$ENDIF}, TERRA_AL
 {$IFDEF ANDROID}
-  android_log,
-{$ENDIF}
-  TERRA_Shader;
+  android_log
+{$ENDIF};
 
 Var
   _Callstack:Stack;

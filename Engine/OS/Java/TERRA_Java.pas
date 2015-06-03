@@ -35,7 +35,7 @@ Type
     Protected
       _ClassPath:AnsiString;
       _Class:JClass;
-      _Frame:JavaFrame;
+      _CurrentFrame:JavaFrame;
 
       Function GetStaticMethod(Env:PJNIEnv; Const Name:AnsiString; Args:JavaArguments; ResultType:AnsiString):JMethodID;
 
@@ -43,30 +43,30 @@ Type
       Constructor Create(ClassName:AnsiString; Frame:JavaFrame);
       Procedure Release(); Override;
 
-      Procedure CallStaticVoidMethod(Const Name:AnsiString; Args:JavaArguments);
-      Function CallStaticIntMethod(Const Name:AnsiString; Args:JavaArguments):Integer;
-      Function CallStaticFloatMethod(Const Name:AnsiString; Args: JavaArguments):Single;
-      Function CallStaticBoolMethod(Const Name:AnsiString; Args:JavaArguments):Boolean;
-      Function CallStaticStringMethod(Const Name:AnsiString; Args:JavaArguments):AnsiString;
-      Function CallStaticObjectMethod(Name:AnsiString; Const ObjClass:AnsiString; Args:JavaArguments):JObject;
+      Procedure CallStaticVoidMethod(Frame:JavaFrame; Const Name:AnsiString; Args:JavaArguments);
+      Function CallStaticIntMethod(Frame:JavaFrame; Const Name:AnsiString; Args:JavaArguments):Integer;
+      Function CallStaticFloatMethod(Frame:JavaFrame; Const Name:AnsiString; Args: JavaArguments):Single;
+      Function CallStaticBoolMethod(Frame:JavaFrame; Const Name:AnsiString; Args:JavaArguments):Boolean;
+      Function CallStaticStringMethod(Frame:JavaFrame; Const Name:AnsiString; Args:JavaArguments):AnsiString;
+      Function CallStaticObjectMethod(Frame:JavaFrame; Name:AnsiString; Const ObjClass:AnsiString; Args:JavaArguments):JObject;
   End;
 
   JavaObject = Class(JavaClass)
     Protected
       _Object:JObject;
 
-      Function GetMethod(Env:PJNIEnv; Const Name:AnsiString; Args:JavaArguments; Const ResultType:AnsiString):JMethodID;
+      Function GetMethod(Frame:JavaFrame; Const Name:AnsiString; Args:JavaArguments; Const ResultType:AnsiString):JMethodID;
 
     Public
       Constructor Create(Const ClassName:AnsiString; Args:JavaArguments; Frame:JavaFrame);
       Procedure Release(); Override;
 
-      Procedure CallVoidMethod(Const Name:AnsiString; Args:JavaArguments);
-      Function CallBoolMethod(Const Name:AnsiString; Args:JavaArguments):Boolean;
-      Function CallIntMethod(Const Name:AnsiString; Args:JavaArguments):Integer;
-      Function CallFloatMethod(Const Name:AnsiString; Args:JavaArguments):Single;
-      Function CallStringMethod(Const Name:AnsiString; Args:JavaArguments):AnsiString;
-      Function CallByteArrayMethod(Const Name:AnsiString; Args:JavaArguments; Size:Integer):Pointer;
+      Procedure CallVoidMethod(Frame:JavaFrame; Const Name:AnsiString; Args:JavaArguments);
+      Function CallBoolMethod(Frame:JavaFrame; Const Name:AnsiString; Args:JavaArguments):Boolean;
+      Function CallIntMethod(Frame:JavaFrame; Const Name:AnsiString; Args:JavaArguments):Integer;
+      Function CallFloatMethod(Frame:JavaFrame; Const Name:AnsiString; Args:JavaArguments):Single;
+      Function CallStringMethod(Frame:JavaFrame; Const Name:AnsiString; Args:JavaArguments):AnsiString;
+      Function CallByteArrayMethod(Frame:JavaFrame; Const Name:AnsiString; Args:JavaArguments; Size:Integer):Pointer;
   End;
 
 Function JavaToString(S:JObject):AnsiString;
@@ -428,9 +428,9 @@ End;
 { JavaClass }
 Constructor JavaClass.Create(ClassName:AnsiString; Frame:JavaFrame);
 Begin
-  _Frame := Frame;
+  _CurrentFrame := Frame;
   _ClassPath := ClassName;
-  _Class := Java_FindClass(_Frame, ClassName);
+  _Class := Java_FindClass(Frame, ClassName);
 End;
 
 Procedure JavaClass.Release;
@@ -438,7 +438,7 @@ Begin
   If (Assigned(_Class)) Then
   Begin
     {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Destroying class '+_ClassPath);{$ENDIF}
-    Java_DeleteGlobalObject(_Frame, _Class);
+    Java_DeleteGlobalObject(_CurrentFrame, _Class);
   End;
 End;
 
@@ -454,106 +454,113 @@ Begin
 End;
 
 
-Procedure JavaClass.CallStaticVoidMethod(Const Name:AnsiString; Args: JavaArguments);
+Procedure JavaClass.CallStaticVoidMethod(Frame:JavaFrame; Const Name:AnsiString; Args: JavaArguments);
 Var
   Method:JMethodID;
 Begin
-  Method := Self.GetStaticMethod(_Frame, Name, Args, 'V');
+  _CurrentFrame := Frame;
+  Method := Self.GetStaticMethod(Frame, Name, Args, 'V');
 
   If (Assigned(Method)) Then
   Begin
     If (Args<>Nil) And (Args._ParamCount>0) Then
-      _Frame^^.CallStaticVoidMethodA(_Frame, _Class, method, GetParams(Args))
+      Frame^^.CallStaticVoidMethodA(Frame, _Class, method, GetParams(Args))
     Else
-      _Frame^^.CallStaticVoidMethod(_Frame, _Class, method);
+      Frame^^.CallStaticVoidMethod(Frame, _Class, method);
   End;
 End;
 
-Function JavaClass.CallStaticBoolMethod(Const Name:AnsiString; Args: JavaArguments): Boolean;
+Function JavaClass.CallStaticBoolMethod(Frame:JavaFrame; Const Name:AnsiString; Args: JavaArguments): Boolean;
 Var
   Method:JMethodID;
 Begin
-  Method := Self.GetStaticMethod(_Frame, Name, Args, 'Z');
+  _CurrentFrame := Frame;
+  Method := Self.GetStaticMethod(Frame, Name, Args, 'Z');
 
   If (Assigned(Method)) Then
   Begin
     If (Args<>Nil) And (Args._ParamCount>0) Then
-      Result := _Frame^^.CallStaticBooleanMethodA(_Frame, _Class, method, GetParams(Args))<>0
+      Result := Frame^^.CallStaticBooleanMethodA(Frame, _Class, method, GetParams(Args))<>0
     Else
-      Result := _Frame^^.CallStaticBooleanMethod(_Frame, _Class, method)<>0;
+      Result := Frame^^.CallStaticBooleanMethod(Frame, _Class, method)<>0;
   End Else
     Result := False;
 End;
 
-Function JavaClass.CallStaticIntMethod(Const Name:AnsiString; Args: JavaArguments): Integer;
+Function JavaClass.CallStaticIntMethod(Frame:JavaFrame; Const Name:AnsiString; Args: JavaArguments): Integer;
 Var
   Method:JMethodID;
 Begin
-  Method := Self.GetStaticMethod(_Frame, Name, Args, 'I');
+  _CurrentFrame := Frame;
+  Method := Self.GetStaticMethod(Frame, Name, Args, 'I');
 
   If (Assigned(Method)) Then
   Begin
     If (Args<>Nil) And (Args._ParamCount>0) Then
-      Result := _Frame^^.CallStaticIntMethodA(_Frame, _Class, method, GetParams(Args))
+      Result := Frame^^.CallStaticIntMethodA(Frame, _Class, method, GetParams(Args))
     Else
-      Result := _Frame^^.CallStaticIntMethod(_Frame, _Class, method)
+      Result := Frame^^.CallStaticIntMethod(Frame, _Class, method)
   End Else
     Result := 0;
 End;
 
-Function JavaClass.CallStaticFloatMethod(Const Name:AnsiString; Args: JavaArguments):Single;
+Function JavaClass.CallStaticFloatMethod(Frame:JavaFrame; Const Name:AnsiString; Args: JavaArguments):Single;
 Var
   Method:JMethodID;
 Begin
-  Method := Self.GetStaticMethod(_Frame, Name, Args, 'F');
+  _CurrentFrame := Frame;
+  Method := Self.GetStaticMethod(Frame, Name, Args, 'F');
 
   If (Assigned(Method)) Then
   Begin
     If (Args<>Nil) And (Args._ParamCount>0) Then
-      Result := _Frame^^.CallStaticFloatMethodA(_Frame, _Class, method, GetParams(Args))
+      Result := Frame^^.CallStaticFloatMethodA(Frame, _Class, method, GetParams(Args))
     Else
-     Result := _Frame^^.CallStaticFloatMethod(_Frame, _Class, method)
+     Result := Frame^^.CallStaticFloatMethod(Frame, _Class, method)
   End Else
     Result := 0.0;
 End;
 
-Function JavaClass.CallStaticStringMethod(Const Name:AnsiString; Args: JavaArguments):AnsiString;
+Function JavaClass.CallStaticStringMethod(Frame:JavaFrame; Const Name:AnsiString; Args: JavaArguments):AnsiString;
 Var
   Method:JMethodID;
   Obj:JObject;
 Begin
-  Method := Self.GetStaticMethod(_Frame, Name, Args, StringClassName);
+  _CurrentFrame := Frame;
+  Method := Self.GetStaticMethod(Frame, Name, Args, StringClassName);
 
   If (Assigned(Method)) Then
   Begin
     If (Args<>Nil) And (Args._ParamCount>0) Then
-      Obj := _Frame^^.CallStaticObjectMethodA(_Frame, _Class, method, GetParams(Args))
+      Obj := Frame^^.CallStaticObjectMethodA(Frame, _Class, method, GetParams(Args))
     Else
-      Obj := _Frame^^.CallStaticObjectMethod(_Frame, _Class, method);
+      Obj := Frame^^.CallStaticObjectMethod(Frame, _Class, method);
 
-    Result := Java_ReadString(_Frame, Obj);
-    Java_DeleteObject(_Frame, Obj);
+    Result := Java_ReadString(Frame, Obj);
+    Java_DeleteObject(Frame, Obj);
   End Else
     Result := '';
 End;
 
-Function JavaClass.CallStaticObjectMethod(Name:AnsiString; Const ObjClass: AnsiString; Args: JavaArguments): JObject;
+Function JavaClass.CallStaticObjectMethod(Frame:JavaFrame; Name:AnsiString; Const ObjClass: AnsiString; Args: JavaArguments): JObject;
 Var
   Method:JMethodID;
   Obj:JObject;
 Begin
+  _CurrentFrame := Frame;
+
   StringReplaceChar(Ord('.'), Ord('/'), Name);
-  Method := Self.GetStaticMethod(_Frame, Name, Args, 'L'+ObjClass+';');
+  Method := Self.GetStaticMethod(Frame, Name, Args, 'L'+ObjClass+';');
 
   If (Assigned(Method)) Then
   Begin
     If (Args<>Nil) And (Args._ParamCount>0) Then
-      Obj := _Frame^^.CallStaticObjectMethodA(_Frame, _Class, method, GetParams(Args))
+      Obj := Frame^^.CallStaticObjectMethodA(Frame, _Class, method, GetParams(Args))
     Else
-      Obj := _Frame^^.CallStaticObjectMethod(_Frame, _Class, method);
+      Obj := Frame^^.CallStaticObjectMethod(Frame, _Class, method);
 
-    Result := _Frame^^.NewGlobalRef(_Frame, Obj);
-    _Frame^^.DeleteLocalRef(_Frame, Obj);
+    Result := Frame^^.NewGlobalRef(Frame, Obj);
+    Frame^^.DeleteLocalRef(Frame, Obj);
   End Else
     Result := Nil;
 End;
@@ -566,12 +573,12 @@ Begin
   Inherited Create(ClassName, Frame);
 
   {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Calling constructor of class '+_ClassPath);{$ENDIF}
-  _Object := Java_NewObject(_Frame, GetSignature(Args, 'V'), _Class, GetParams(Args));
+  _Object := Java_NewObject(Frame, GetSignature(Args, 'V'), _Class, GetParams(Args));
 
   Temp := _Object;
 
-  _Object := _Frame^^.NewGlobalRef(_Frame, _Object);
-  _Frame^^.DeleteLocalRef(_Frame, Temp);
+  _Object := Frame^^.NewGlobalRef(Frame, _Object);
+  Frame^^.DeleteLocalRef(Frame, Temp);
 End;
 
 Procedure JavaObject.Release;
@@ -579,16 +586,18 @@ Begin
   If (Assigned(_Object)) Then
   Begin
     {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Destroying object of class '+_ClassPath);{$ENDIF}
-    Java_DeleteGlobalObject(_Frame, _Object);
+    Java_DeleteGlobalObject(_CurrentFrame, _Object);
   End;
 
   Inherited;
 End;
 
-Function JavaObject.GetMethod(Env:PJNIEnv; Const Name:AnsiString; Args:JavaArguments; Const ResultType:AnsiString):JMethodID;
+Function JavaObject.GetMethod(Frame:JavaFrame; Const Name:AnsiString; Args:JavaArguments; Const ResultType:AnsiString):JMethodID;
 Var
   Signature:AnsiString;
 Begin
+  _CurrentFrame := Frame;
+
   Signature := GetSignature(Args, ResultType);
   {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Searching for method '+Name+' with signature '+Signature+' of class '+_ClassPath);{$ENDIF}
 
@@ -598,111 +607,119 @@ Begin
     Result := Nil;
   End;
 
-  Result := Java_FindMethod(Env, Name, Signature, _Class);
+  Result := Java_FindMethod(Frame, Name, Signature, _Class);
 
   {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Calling java method '+Name+' with address '+CardinalToString(Cardinal(Result)));{$ENDIF}
 End;
 
-Procedure JavaObject.CallVoidMethod(Const Name:AnsiString; Args: JavaArguments);
+Procedure JavaObject.CallVoidMethod(Frame:JavaFrame; Const Name:AnsiString; Args: JavaArguments);
 Var
   Method:JMethodID;
 Begin
-  Method := Self.GetMethod(_Frame, Name, Args, 'V');
+  _CurrentFrame := Frame;
+
+  Method := Self.GetMethod(Frame, Name, Args, 'V');
 
   If (Assigned(Method)) Then
   Begin
     If (Args<>Nil) And (Args._ParamCount>0) Then
-      _Frame^^.CallVoidMethodA(_Frame, _Object, method, GetParams(Args))
+      Frame^^.CallVoidMethodA(Frame, _Object, method, GetParams(Args))
     Else
-      _Frame^^.CallVoidMethod(_Frame, _Object, method);
+      Frame^^.CallVoidMethod(Frame, _Object, method);
   End;
 End;
 
 
-Function JavaObject.CallBoolMethod(Const Name:AnsiString; Args:JavaArguments): Boolean;
+Function JavaObject.CallBoolMethod(Frame:JavaFrame; Const Name:AnsiString; Args:JavaArguments): Boolean;
 Var
   Method:JMethodID;
 Begin
-  Method := Self.GetMethod(_Frame, Name, Args, 'Z');
+  _CurrentFrame := Frame;
+
+  Method := Self.GetMethod(Frame, Name, Args, 'Z');
 
   If (Assigned(Method)) Then
   Begin
     If (Args<>Nil) And (Args._ParamCount>0) Then
-      Result := _Frame^^.CallBooleanMethodA(_Frame, _Object, method, GetParams(Args))<>0
+      Result := Frame^^.CallBooleanMethodA(Frame, _Object, method, GetParams(Args))<>0
     Else
-      Result := _Frame^^.CallBooleanMethod(_Frame, _Object, method)<>0;
+      Result := Frame^^.CallBooleanMethod(Frame, _Object, method)<>0;
   End Else
     Result := False;
 End;
 
-Function JavaObject.CallFloatMethod(Const Name:AnsiString; Args:JavaArguments):Single;
+Function JavaObject.CallFloatMethod(Frame:JavaFrame; Const Name:AnsiString; Args:JavaArguments):Single;
 Var
   Method:JMethodID;
 Begin
-  Method := Self.GetMethod(_Frame, Name, Args, 'F');
+  _CurrentFrame := Frame;
+  Method := Self.GetMethod(Frame, Name, Args, 'F');
 
   If (Assigned(Method)) Then
   Begin
     If (Args<>Nil) And (Args._ParamCount>0) Then
-      Result := _Frame^^.CallFloatMethodA(_Frame, _Object, method, GetParams(Args))
+      Result := Frame^^.CallFloatMethodA(Frame, _Object, method, GetParams(Args))
     Else
-      Result := _Frame^^.CallFloatMethod(_Frame, _Object, method);
+      Result := Frame^^.CallFloatMethod(Frame, _Object, method);
   End Else
     Result := 0.0;
 End;
 
-Function JavaObject.CallIntMethod(Const Name:AnsiString; Args: JavaArguments): Integer;
+Function JavaObject.CallIntMethod(Frame:JavaFrame; Const Name:AnsiString; Args: JavaArguments): Integer;
 Var
   Method:JMethodID;
 Begin
-  Method := Self.GetMethod(_Frame, Name, Args, 'I');
+  _CurrentFrame := Frame;
+  Method := Self.GetMethod(Frame, Name, Args, 'I');
 
   If (Assigned(Method)) Then
   Begin
     If (Args<>Nil) And (Args._ParamCount>0) Then
-      Result := _Frame^^.CallIntMethodA(_Frame, _Object, method, GetParams(Args))
+      Result := Frame^^.CallIntMethodA(Frame, _Object, method, GetParams(Args))
     Else
-      Result := _Frame^^.CallIntMethod(_Frame, _Object, method)
+      Result := Frame^^.CallIntMethod(Frame, _Object, method)
   End Else
     Result := 0;
 End;
 
-Function JavaObject.CallStringMethod(Const Name:AnsiString; Args:JavaArguments):AnsiString;
+Function JavaObject.CallStringMethod(Frame:JavaFrame; Const Name:AnsiString; Args:JavaArguments):AnsiString;
 Var
   Method:JMethodID;
   Obj:JObject;
 Begin
-  Method := Self.GetMethod(_Frame, Name, Args, StringClassName);
+  _CurrentFrame := Frame;
+  Method := Self.GetMethod(Frame, Name, Args, StringClassName);
 
   If (Assigned(Method)) Then
   Begin
     If (Args<>Nil) And (Args._ParamCount>0) Then
-      Obj := _Frame^^.CallObjectMethodA(_Frame, _Object, method, GetParams(Args))
+      Obj := Frame^^.CallObjectMethodA(Frame, _Object, method, GetParams(Args))
     Else
-      Obj := _Frame^^.CallObjectMethod(_Frame, _Object, method);
+      Obj := Frame^^.CallObjectMethod(Frame, _Object, method);
 
-    Result := Java_ReadString(_Frame, Obj);
-    Java_DeleteObject(_Frame, Obj);
+    Result := Java_ReadString(Frame, Obj);
+    Java_DeleteObject(Frame, Obj);
   End Else
     Result := '';
 End;
 
 
-Function JavaObject.CallByteArrayMethod(Const Name:AnsiString; Args: JavaArguments; Size:Integer): Pointer;
+Function JavaObject.CallByteArrayMethod(Frame:JavaFrame; Const Name:AnsiString; Args: JavaArguments; Size:Integer): Pointer;
 Var
   Method:JMethodID;
   Obj:JObject;
   IsCopy:Byte;
   Buf:PJByte;
 Begin
-  Method := Self.GetMethod(_Frame, Name, Args, '[B');
+  _CurrentFrame := Frame;
+  Method := Self.GetMethod(Frame, Name, Args, '[B');
 
   If (Assigned(Method)) Then
   Begin
     If (Args<>Nil) And (Args._ParamCount>0) Then
-      Obj := _Frame^^.CallObjectMethodA(_Frame, _Object, method, GetParams(Args))
+      Obj := Frame^^.CallObjectMethodA(Frame, _Object, method, GetParams(Args))
     Else
-      Obj := _Frame^^.CallObjectMethod(_Frame, _Object, method);
+      Obj := Frame^^.CallObjectMethod(Frame, _Object, method);
 
     {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Allocating '+IntToString(Size)+' bytes');{$ENDIF}
     GetMem(Result, Size);
@@ -710,12 +727,12 @@ Var
     IsCopy := 0;
 
     {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Copying bytes from java array');{$ENDIF}
-    Buf := _Frame^^.GetByteArrayElements(_Frame, Obj, IsCopy);
+    Buf := Frame^^.GetByteArrayElements(Frame, Obj, IsCopy);
     Move(Buf^, Result^, Size);
 
-    _Frame^^.ReleaseByteArrayElements(_Frame, Obj, Buf, JNI_ABORT);
+    Frame^^.ReleaseByteArrayElements(Frame, Obj, Buf, JNI_ABORT);
 
-    Java_DeleteObject(_Frame, Obj);
+    Java_DeleteObject(Frame, Obj);
   End Else
     Result := Nil;
 End;
@@ -723,12 +740,7 @@ End;
 { JavaFrame }
 Procedure Java_Begin(Out Frame:JavaFrame);
 Begin
-{  If Assigned(Frame) Then
-  Begin
-    Exit;
-  End;
-}
-  Frame := Nil;
+  Frame := Nil;
   Java_AttachThread(Frame);
 
   If (Not Assigned(Frame)) Then

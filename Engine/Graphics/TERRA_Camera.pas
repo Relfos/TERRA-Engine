@@ -26,7 +26,6 @@ Unit TERRA_Camera;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
   TERRA_String, TERRA_Utils, TERRA_Frustum, TERRA_BoundingBox, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Math, TERRA_Plane;
 
 Const
@@ -78,6 +77,8 @@ Type
 
       _Ratio:Single;
 
+      _CurrentEye:Integer;
+
       _ClipPlane:Plane;
       _UseClipPlane:Boolean;
 
@@ -87,7 +88,7 @@ Type
       _Up:Vector3D;
       _Right:Vector3D;
 
-      Procedure UpdateMatrix4x4;
+      Procedure UpdateMatrix4x4(Eye:Integer);
 
       Function ConvertPlaneWorldToCameraSpace(Point, Normal:Vector3D):Plane;
 
@@ -95,7 +96,7 @@ Type
       Constructor Create(Name:TERRAString);
       Procedure Release; Override;
 
-      Procedure Update(Width, Height:Integer);
+      Procedure Update(Width, Height, Eye:Integer);
 
       Procedure Refresh();
 
@@ -156,8 +157,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Shader, TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsManager,
-  TERRA_InputManager, TERRA_Log, Math;
+Uses TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsManager, TERRA_Renderer,  TERRA_InputManager, TERRA_Log, Math;
 
 // Camera
 
@@ -198,7 +198,7 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Procedure Camera.UpdateMatrix4x4;
+Procedure Camera.UpdateMatrix4x4(Eye:Integer);
 Const
   ZoomFactor = 1;
 Var
@@ -220,7 +220,11 @@ Begin
     _ProjectionMatrix4x4 := Matrix4x4Ortho(Ratio*_OrthoX1*_OrthoScale, Ratio*_OrthoX2*_OrthoScale,
                                        _OrthoY1*_OrthoScale, _OrthoY2*_OrthoScale, _Near, _Far)
   Else
-    _ProjectionMatrix4x4 := Matrix4x4Perspective(_FOV, Ratio, _Near, _Far);
+  {$IFDEF DISABLEVR}
+    _ProjectionMatrix4x4 := Matrix4x4Perspective(FOV, Ratio, _Near, _Far);
+  {$ELSE}
+    _ProjectionMatrix4x4 := Application.Instance.Client.GetVRProjectionMatrix(Eye, FOV, Ratio, _Near, _Far);
+  {$ENDIF}
 
 //Log(logDebug, 'Viewport', 'X:'+IntToString(Trunc(_X)) +' Y:'+IntToString(Trunc(_Y)));
 //  Log(logDebug, 'Viewport', 'W:'+IntToString(Trunc(_Width)) +' W:'+IntToString(Trunc(_Height)));
@@ -278,13 +282,19 @@ Begin
   _OrthoY2 := Y2;
 End;
 
-Procedure Camera.Update(Width, Height:Integer);
+Procedure Camera.Update(Width, Height, Eye:Integer);
 Begin
   _Width := Width;
   _Height := Height;
 
+  If (Eye <> _CurrentEye) Then
+  Begin
+    _CurrentEye := Eye;
+    _NeedsUpdate := True;
+  End;
+
   If (_NeedsUpdate) Then
-    UpdateMatrix4x4;
+    UpdateMatrix4x4(Eye);
 End;
 
 Procedure Camera.Rotate(rotX, rotY:Single);
@@ -305,34 +315,50 @@ End;
 
 Procedure Camera.SetupUniforms;
 Var
-  _Shader:Shader;
+  _Shader:ShaderInterface;
   P:Vector3D;
-  Delta:Single;
+  A,B,C, Delta:Single;
 Begin
-  _Shader := ShaderManager.Instance.ActiveShader;
+  _Shader := GraphicsManager.Instance.Renderer.ActiveShader;
   If (_Shader=Nil) Then
     Exit;
 
-  _Shader.SetUniform('cameraPosition', _Position);
-  _Shader.SetUniform('cameraView', _View);
-  _Shader.SetUniform('cameraMatrix', _Transform);
-  _Shader.SetUniform('projectionMatrix', _ProjectionMatrix4x4);
-  _Shader.SetUniform('zNear', _Near);
-  _Shader.SetUniform('zFar', _Far);
+  _Shader.SetVec3Uniform('cameraPosition', _Position);
+  _Shader.SetVec3Uniform('cameraView', _View);
+  _Shader.SetMat4Uniform('cameraMatrix', _Transform);
+  _Shader.SetMat4Uniform('projectionMatrix', _ProjectionMatrix4x4);
+  _Shader.SetFloatUniform('zNear', _Near);
+  _Shader.SetFloatUniform('zFar', _Far);
 
   If (_UseClipPlane) Then
-    _Shader.SetUniform('clipPlane', _ClipPlane);
+    _Shader.SetPlaneUniform('clipPlane', _ClipPlane);
 
-  If (GraphicsManager.Instance.Settings.FogMode<>0) Then
+  If (GraphicsManager.Instance.Renderer.Settings.FogMode<>0) Then
   Begin
-    _Shader.SetUniform('fogColor', GraphicsManager.Instance.Settings.FogColor);
-    _Shader.SetUniform('fogDensity', GraphicsManager.Instance.Settings.FogDensity * FogDensityScale);
+    _Shader.SetColorUniform('fogColor', GraphicsManager.Instance.Renderer.Settings.FogColor);
 
-    If (GraphicsManager.Instance.Settings.FogMode And fogDistance<>0) Then
-      _Shader.SetUniform('fogStart', GraphicsManager.Instance.Settings.FogStart);
+    If (GraphicsManager.Instance.Renderer.Settings.FogMode And fogDistance<>0) Then
+    Begin
+      A := GraphicsManager.Instance.Renderer.Settings.FogDistanceStart;
+      B := GraphicsManager.Instance.Renderer.Settings.FogDistanceEnd;
+      C := (B-A) * 0.5;
+      _Shader.SetFloatUniform('fogDistanceCenter', C + A);
+      _Shader.SetFloatUniform('fogDistanceSize', C);
+    End;
 
-    If (GraphicsManager.Instance.Settings.FogMode And fogHeight<>0) Then
-      _Shader.SetUniform('fogHeight', GraphicsManager.Instance.Settings.FogHeight);
+    If (GraphicsManager.Instance.Renderer.Settings.FogMode And fogHeight<>0) Then
+    Begin
+      _Shader.SetFloatUniform('fogHeightStart', GraphicsManager.Instance.Renderer.Settings.FogHeightStart);
+      _Shader.SetFloatUniform('fogHeightEnd', GraphicsManager.Instance.Renderer.Settings.FogHeightEnd);
+    End;
+
+    If (GraphicsManager.Instance.Renderer.Settings.FogMode And fogBox<>0) Then
+    Begin
+      _Shader.SetVec3Uniform('fogBoxAreaStart', GraphicsManager.Instance.Renderer.Settings.FogBoxArea.StartVertex);
+      _Shader.SetVec3Uniform('fogBoxAreaEnd', GraphicsManager.Instance.Renderer.Settings.FogBoxArea.EndVertex);
+      _Shader.SetFloatUniform('fogBoxSize', GraphicsManager.Instance.Renderer.Settings.FogBoxSize);
+    End;
+
   End;
 End;
 
@@ -377,7 +403,7 @@ Begin
   oneOverSine := 1.0 / Tan(_FOV *RAD / 4.0); // 1 / sin = adjacent / opposite
   distanceToCenter := Offset.Length * oneOverSine; // (adjacent / opposite) * opposite = adjacent
 
-  N := VectorUniform(1);
+  N := VectorConstant(1);
   N.Normalize;
   P.Add( VectorScale(N, distanceToCenter));
   SetPosition(P);
@@ -432,16 +458,16 @@ Begin
   {$ENDIF}
 
   If (Input.Keys.IsDown(keyLEFT)) Then
-    GraphicsManager.Instance.ActiveViewport.Camera.Rotate(Rot, 0.0);
+    Self.Rotate(Rot, 0.0);
 
   If (Input.Keys.IsDown(keyRight)) Then
-    GraphicsManager.Instance.ActiveViewport.Camera.Rotate(-Rot, 0.0);
+    Self.Rotate(-Rot, 0.0);
 
   If (Input.Keys.IsDown(keyUp)) Then
-    GraphicsManager.Instance.ActiveViewport.Camera.Rotate(0.0, Rot);
+    Self.Rotate(0.0, Rot);
 
   If (Input.Keys.IsDown(keyDown)) Then
-    GraphicsManager.Instance.ActiveViewport.Camera.Rotate(0.0, -Rot);
+    Self.Rotate(0.0, -Rot);
 
   _NeedsUpdate := True;
 End;
@@ -531,7 +557,7 @@ Begin
   //_ClipPlane := ConvertPlaneWorldToCameraSpace(Point, Normal);
   _ClipPlane := PlaneCreate(Point, Normal);
 
-  If Not GraphicsManager.Instance.Settings.Shaders.Avaliable Then
+(*  If Not GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable Then
   Begin
     {$IFDEF PC}
     Clip[0] := _ClipPlane.A;
@@ -542,9 +568,10 @@ Begin
     glEnable(GL_CLIP_PLANE0);
     {$ENDIF}
     Exit;
-  End;
+  End; BIBI
+  *)
 
-  UpdateMatrix4x4();
+  UpdateMatrix4x4(0);
 End;
 
 Procedure Camera.RemoveClipPlane;
@@ -554,15 +581,16 @@ Begin
 
   _UseClipPlane := False;
 
-  If Not GraphicsManager.Instance.Settings.Shaders.Avaliable Then
+(*  If Not GraphicsManager.Instance.Settings.Shaders.Avaliable Then
   Begin
     {$IFDEF PC}
     glDisable(GL_CLIP_PLANE0);
     {$ENDIF}
     Exit;
-  End;
+  End; BIBI
+  *)
 
-  UpdateMatrix4x4();
+  UpdateMatrix4x4(0);
 End;
 
 Procedure Camera.SetRatio(Value: Single);

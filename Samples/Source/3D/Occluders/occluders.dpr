@@ -1,13 +1,13 @@
 {$I terra.inc}
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
-Uses TERRA_Application, TERRA_Client, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
-  TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_UI, TERRA_Viewport, TERRA_Texture,
+Uses TERRA_Application, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
+  TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_UI, TERRA_Viewport, TERRA_Texture, TERRA_Renderer,
   TERRA_JPG, TERRA_PNG, TERRA_Lights, TERRA_ShaderFactory, TERRA_InputManager, TERRA_FontRenderer,
   TERRA_FileManager, TERRA_Scene, TERRA_Mesh, TERRA_Skybox, TERRA_Color, TERRA_Matrix4x4;
 
 Type
-  Game = Class(AppClient)
+  Demo = Class(Application)
     Public
 			Procedure OnCreate; Override;
 			Procedure OnDestroy; Override;
@@ -32,7 +32,7 @@ Var
   Sun:DirectionalLight;
 
 { Game }
-Procedure Game.OnCreate;
+Procedure Demo.OnCreate;
 Var
   DiffuseTex:Texture;
 Begin
@@ -40,11 +40,8 @@ Begin
 
   Fnt := FontRenderer.Create();
 
-  GraphicsManager.Instance.Settings.DynamicShadows.SetValue(False);
-  GraphicsManager.Instance.Settings.NormalMapping.SetValue(True);
-  GraphicsManager.Instance.Settings.DepthOfField.SetValue(False);
-//  GraphicsManager.Instance.Settings.ColorCorrection.SetValue(False);
-//  GraphicsManager.Instance.Settings.Bloom.SetValue(False);
+  GraphicsManager.Instance.Renderer.Settings.NormalMapping.SetValue(True);
+  GraphicsManager.Instance.Renderer.Settings.Specular.SetValue(True);
 
   DiffuseTex := TextureManager.Instance.GetTexture('cobble');
 
@@ -53,15 +50,22 @@ Begin
   Sphere.SetScale(VectorUniform(20.0));
   Sphere.SetPosition(VectorCreate(0, -30, -80));
 
+  Sphere.SetUVScale(0, 2.0, 2.0);
+
+  Sphere.SetNormalMap(0, TextureManager.Instance.GetTexture('cobble_normal'));
+  Sphere.SetSpecularMap(0, TextureManager.Instance.GetTexture('cobble_specular'));
+  Sphere.SetDisplacementMap(0, TextureManager.Instance.GetTexture('cobble_disp'));
+
+
   P := Occluder.Create;
   P.SetTransform(Matrix4x4Translation(0, 0, 0), 80, 80);
 
-  Sun := DirectionalLight.Create(VectorCreate(-0.25, 0.75, 0.0));
+  Sun := DirectionalLight.Create(VectorCreate(-0.25, -0.75, 0.0));
 
   GraphicsManager.Instance.Scene := MyScene.Create;
 End;
 
-Procedure Game.OnDestroy;
+Procedure Demo.OnDestroy;
 Begin
   ReleaseObject(Sphere);
   ReleaseObject(P);
@@ -69,7 +73,7 @@ Begin
   ReleaseObject(Fnt);
 End;
 
-Procedure Game.OnIdle;
+Procedure Demo.OnIdle;
 Begin
   If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
@@ -94,15 +98,23 @@ Begin
   If Not Assigned(Fnt) Then
     Exit;
 
-  Fnt.DrawText(5, 10, 5, 'Objects visible: '+IntToString(GraphicsManager.Instance.Stats.RenderableCount));
-  Fnt.DrawText(5, 25, 5, 'Occluders visible: '+IntToString(GraphicsManager.Instance.Stats.OccluderCount));
-  Fnt.DrawText(5, 40, 5, 'Draw calls: '+IntToString(GraphicsManager.Instance.Stats.DrawCalls));
+  Fnt.DrawText(5, 10, 5, 'Objects visible: '+IntToString(GraphicsManager.Instance.Renderer.Stats.RenderableCount));
+  Fnt.DrawText(5, 25, 5, 'Occluders visible: '+IntToString(GraphicsManager.Instance.Renderer.Stats.OccluderCount));
+  Fnt.DrawText(5, 40, 5, 'Draw calls: '+IntToString(GraphicsManager.Instance.Renderer.Stats.DrawCalls));
 End;
 
 Procedure MyScene.RenderViewport(V:Viewport);
+Var
+  T:Single;
+  Dir:Vector3D;
 Begin
+  T := Application.GetTime()/ 1000;
+  Dir := VectorCreate(Cos(T), 2, -Sin(T));
+  Dir.Normalize();
+  Sun.SetDirection(Dir);
+
   LightManager.Instance.AddLight(Sun);
-  
+
   GraphicsManager.Instance.AddRenderable(P);
   GraphicsManager.Instance.AddOccluder(P);
 
@@ -118,7 +130,7 @@ End;
 Procedure StartGame; cdecl; export;
 {$ENDIF}
 Begin
-  ApplicationStart(Game.Create);
+  Demo.Create();
 {$IFDEF IPHONE}
 End;
 {$ENDIF}

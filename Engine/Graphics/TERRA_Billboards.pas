@@ -27,8 +27,8 @@ Unit TERRA_Billboards;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Color, TERRA_Vector3D, TERRA_Shader, TERRA_Texture,
-  TERRA_Mesh, TERRA_Vector2D, TERRA_ParticleRenderer, TERRA_UI;
+  TERRA_Utils, TERRA_Color, TERRA_Vector3D, TERRA_Texture, TERRA_Renderer,
+  TERRA_Mesh, TERRA_Vector2D, TERRA_ParticleRenderer, TERRA_VertexFormat, TERRA_UI;
 
 Type
   PBillboard = ^Billboard;
@@ -59,11 +59,9 @@ Type
       _Groups:Array Of BillboardGroup;
       _GroupCount:Integer;
 
-      _Shader:Shader;
+      _Shader:ShaderInterface;
 
-      _Temp:Array Of ParticleVertex;
-
-
+      _Temp:VertexData;
 
     Public
       Constructor Create;
@@ -79,7 +77,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_GraphicsManager, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
+Uses TERRA_GraphicsManager;
 
 Var
   _BillboardInstance:BillboardManager;
@@ -212,56 +210,56 @@ Const
 Var
   I,J, K, Ofs:Integer;
   P:Vector3D;
+  Offset:Vector2D;
   CC:Color;
   Ratio, W, H:Single;
   Right, Up:Vector3D;
-  PositionHandle, UVHandle, OfsHandle, SizeHandle, ColorHandle:Integer;
   U1,V1,U2,V2:Single;
+  Graphics:GraphicsManager;
 Begin
   If (_GroupCount<=0) Then
     Exit;
 
+  Graphics := GraphicsManager.Instance;
+
   {If (IsLandscapeOrientation(Application.Instance.Orientation)) Then
   Begin
-    Up := GraphicsManager.Instance.ActiveViewport.Camera.Right;
-    Right := GraphicsManager.Instance.ActiveViewport.Camera.Up;
+    Up := Graphics.ActiveViewport.Camera.Right;
+    Right := Graphics.ActiveViewport.Camera.Up;
     Up.Scale(-1.0);
   End Else}
   Begin
-    Right := GraphicsManager.Instance.ActiveViewport.Camera.Right;
-    Up := GraphicsManager.Instance.ActiveViewport.Camera.Up;
+    Right := Graphics.ActiveViewport.Camera.Right;
+    Up := Graphics.ActiveViewport.Camera.Up;
   End;
 
   Ratio := UIManager.Instance.Height / UIManager.Instance.Width;
 
   _Shader := ParticleManager.Instance.Shader;
-  ShaderManager.Instance.Bind(_Shader);
 
-  PositionHandle := _Shader.GetAttribute('terra_position');
-  UVHandle := _Shader.GetAttribute('terra_UV0');
-  OfsHandle := _Shader.GetAttribute('terra_ofs');
-  SizeHandle := _Shader.GetAttribute('terra_size');
-  ColorHandle := _Shader.GetAttribute('terra_color');
+  Graphics.Renderer.BindShader(_Shader);
 
-  If (PositionHandle<0) Then
-    Exit;
+  Graphics.ActiveViewport.Camera.SetupUniforms();
 
-  GraphicsManager.Instance.ActiveViewport.Camera.SetupUniforms;
+  _Shader.SetVec3Uniform('cameraUp', Up);
+  _Shader.SetVec3Uniform('cameraRight', Right);
+  _Shader.SetIntegerUniform('texture0', 0);
+  _Shader.SetFloatUniform('ratio', Ratio);
 
-  _Shader.SetUniform('cameraUp', Up);
-  _Shader.SetUniform('cameraRight', Right);
-  _Shader.SetUniform('texture0', 0);
-  _Shader.SetUniform('ratio', Ratio);
-
-  GraphicsManager.Instance.SetBlendMode(blendBlend);
+  Graphics.Renderer.SetBlendMode(blendBlend);
 
   //glDepthMask(False);
+
+  If (_GroupCount>0) And (_Temp = Nil) Then
+    _Temp := CreateParticleVertexData(16*6);
 
   For I:=0 To Pred(_GroupCount) Do
   Begin
     _Groups[I]._Texture.Bind(0);
-    If (Length(_Temp)< _Groups[I]._BillboardCount * 6) Then
-      SetLength(_Temp, _Groups[I]._BillboardCount * 6);
+
+
+    If (_Temp.Count < _Groups[I]._BillboardCount * 6) Then
+      _Temp.Resize(_Groups[I]._BillboardCount * 6);
 
     Ofs := 0;
     For J:=0 To Pred(_Groups[I]._BillboardCount) Do
@@ -292,68 +290,59 @@ Begin
         _Temp[Ofs + 0].UV.Y := V1;
       End Else}
       Begin
-        _Temp[Ofs + 0].UV.X := U2;
-        _Temp[Ofs + 0].UV.Y := V1;
-
-        _Temp[Ofs + 1].UV.X := U1;
-        _Temp[Ofs + 1].UV.Y := V1;
-
-        _Temp[Ofs + 2].UV.X := U1;
-        _Temp[Ofs + 2].UV.Y := V2;
-
-        _Temp[Ofs + 4].UV.X := U2;
-        _Temp[Ofs + 4].UV.Y := V2;
+        _Temp.SetVector2D(Ofs + 0, vertexUV0, VectorCreate2D(U2, V1));
+        _Temp.SetVector2D(Ofs + 1, vertexUV0, VectorCreate2D(U1, V1));
+        _Temp.SetVector2D(Ofs + 2, vertexUV0, VectorCreate2D(U1, V2));
+        _Temp.SetVector2D(Ofs + 4, vertexUV0, VectorCreate2D(U2, V2));
       End;
 
-      _Temp[Ofs + 0].Position := P;
-      _Temp[Ofs + 0].Color := CC;
-      _Temp[Ofs + 0].Ofs := QuadOffsets[0];
-      _Temp[Ofs + 0].Size.X := W;
-      _Temp[Ofs + 0].Size.Y := H;
-      _Temp[Ofs + 5] := _Temp[Ofs + 0];
+      _Temp.SetVector3D(Ofs + 0, vertexPosition, P);
+      _Temp.SetColor(Ofs + 0, vertexColor, CC);
+      _Temp.SetVector2D(Ofs + 0, vertexOfs, QuadOffsets[0]);
+      _Temp.CopyVertex(Ofs + 0, Ofs + 5);
 
-      _Temp[Ofs + 1].Position := P;
-      _Temp[Ofs + 1].Color := CC;
-      _Temp[Ofs + 1].Ofs := QuadOffsets[1];
-      _Temp[Ofs + 1].Size.X := W;
-      _Temp[Ofs + 1].Size.Y := H;
+      _Temp.SetVector3D(Ofs + 1, vertexPosition, P);
+      _Temp.SetColor(Ofs + 1, vertexColor, CC);
+      _Temp.SetVector2D(Ofs + 1, vertexOfs, QuadOffsets[1]);
 
-      _Temp[Ofs + 2].Position := P;
-      _Temp[Ofs + 2].Color := CC;
-      _Temp[Ofs + 2].Ofs := QuadOffsets[2];
-      _Temp[Ofs + 2].Size.X := W;
-      _Temp[Ofs + 2].Size.Y := H;
-      _Temp[Ofs + 3] := _Temp[Ofs + 2];
+      _Temp.SetVector3D(Ofs + 2, vertexPosition,  P);
+      _Temp.SetColor(Ofs + 2, vertexColor, CC);
+      _Temp.SetVector2D(Ofs + 2, vertexOfs, QuadOffsets[2]);
+      _Temp.CopyVertex(Ofs + 2, Ofs + 3);
 
-      _Temp[Ofs + 4].Position := P;
-      _Temp[Ofs + 4].Color := CC;
-      _Temp[Ofs + 4].Ofs := QuadOffsets[3];
-      _Temp[Ofs + 4].Size.X := W;
-      _Temp[Ofs + 4].Size.Y := H;
+      _Temp.SetVector3D(Ofs + 4, vertexPosition, P);
+      _Temp.SetColor(Ofs + 4, vertexColor, CC);
+      _Temp.SetVector2D(Ofs + 4, vertexOfs, QuadOffsets[3]);
 
       For K :=0 To 5 Do
       Begin
-        _Temp[Ofs + K].Ofs.X := _Temp[Ofs + K].Ofs.X + _Groups[I]._Billboards[J].AnchorX;
-        _Temp[Ofs + K].Ofs.Y := _Temp[Ofs + K].Ofs.Y + _Groups[I]._Billboards[J].AnchorY;
+        _Temp.SetVector2D(Ofs + K, vertexSize, VectorCreate2D(W, H));
+        _Temp.GetVector2D(Ofs + K, vertexOfs, Offset);
+        Offset.X := Offset.X + _Groups[I]._Billboards[J].AnchorX;
+        Offset.Y := Offset.Y + _Groups[I]._Billboards[J].AnchorY;
+        _Temp.SetVector2D(Ofs + K, vertexOfs, Offset);
       End;
 
       Inc(Ofs, 6);
     End;
 
-    glVertexAttribPointer(PositionHandle, 3, GL_FLOAT, False, 40, @(_Temp[0].Position));
-    glVertexAttribPointer(UVHandle, 2, GL_FLOAT, False, 40, @(_Temp[0].UV));
-    glVertexAttribPointer(OfsHandle, 2, GL_FLOAT, False, 40, @(_Temp[0].Ofs));
-    glVertexAttribPointer(SizeHandle, 2, GL_FLOAT, False, 40, @(_Temp[0].Size));
-    glVertexAttribPointer(ColorHandle, 4, GL_UNSIGNED_BYTE, True, 40, @(_Temp[0].Color));
 
-    glDrawArrays(GL_TRIANGLES, 0, _Groups[I]._BillboardCount * 6);
-    GraphicsManager.Instance.Internal(0, _Groups[I]._BillboardCount * 2);
+{    Graphics.Renderer.SetSourceVertexSize(40);
+    Graphics.Renderer.SetAttributeSource('terra_position', typeVector3D, @(_Temp[0].Position));
+    Graphics.Renderer.SetAttributeSource('terra_UV0', typeVector2D, @(_Temp[0].UV));
+    Graphics.Renderer.SetAttributeSource('terra_ofs', typeVector2D, @(_Temp[0].Ofs));
+    Graphics.Renderer.SetAttributeSource('terra_size', typeVector2D, @(_Temp[0].Size));
+    Graphics.Renderer.SetAttributeSource('terra_color', typeColor, @(_Temp[0].Color));}
+
+    Graphics.Renderer.SetCullMode(cullNone);
+
+    Graphics.Renderer.SetVertexSource(_Temp);
+    Graphics.Renderer.DrawSource(renderTriangles, _Groups[I]._BillboardCount * 6);
   End;
 
   _GroupCount := 0;
-  glDepthMask(True);
 
-  GraphicsManager.Instance.SetBlendMode(blendNone);
+  Graphics.Renderer.SetBlendMode(blendNone);
 End;
 
 Initialization

@@ -75,6 +75,7 @@ Type
       FadeMode:Integer;
       EmitterMode:Integer;
       AnimationFrames:Integer;
+      AnimationRepeat:Integer;
 
       Owner:ParticleSettingsEmitter;
 
@@ -102,14 +103,14 @@ Type
 
       Procedure Load(Source:Stream);
 
-      Procedure Emit(Target:PParticle); Override;
+      Procedure Emit(Target:Particle); Override;
       Function GetParticleCount: Integer; Override;
 
       Property Name:TERRAString Read _Name;
   End;
 
 Implementation
-Uses TERRA_OS, TERRA_Math, TERRA_GraphicsManager, TERRA_FileManager, TERRA_INI;
+Uses TERRA_OS, TERRA_Math, TERRA_GraphicsManager, TERRA_Renderer, TERRA_FileManager, TERRA_INI;
 
 { ParticleSettingsEmitter }
 Procedure ParticleSettingsEmitter.Copy(Source: ParticleSettingsEmitter);
@@ -246,7 +247,7 @@ Begin
 End;
 }
 
-Procedure ParticleSettingsEmitter.Emit(Target: PParticle);
+Procedure ParticleSettingsEmitter.Emit(Target:Particle);
 Var
   I:Integer;
   N:Single;
@@ -318,7 +319,7 @@ Begin
   Case Group.ColorMode Of
     particleColorModeUniform:
       Begin
-        C.R := Trunc(255 * RandomFloat(Group.MinAlpha, Group.MaxAlpha));
+        C.R := Trunc(255 * RandomFloat(Group.MinRed, Group.MaxRed));
         C.G := C.R;
         C.B := C.R;
         C.A := Trunc(255 * RandomFloat(Group.MinAlpha, Group.MaxAlpha));
@@ -352,6 +353,7 @@ Begin
   Target.Texture := Group.Texture;
   Target.BlendMode := Group.BlendMode;
   Target.AnimationFrames := Group.AnimationFrames;
+  Target.AnimationRepeat := Group.AnimationRepeat;
 End;
 
 { ParticleSettingsEmitterGroup }
@@ -372,6 +374,7 @@ Begin
   FadeMode := particleFadeModeDefault;
   EmitterMode := particleEmitterSphere;
   AnimationFrames := 0;
+  AnimationRepeat := 1;
 
   Texture := Nil;
 
@@ -384,8 +387,8 @@ Begin
   MinAlpha := 0.5;
   MaxAlpha := 1.0;
 
-  MinDirection := VectorUniform(-1.0);
-  MaxDirection := VectorUniform(1.0);
+  MinDirection := VectorConstant(-1.0);
+  MaxDirection := VectorConstant(1.0);
 
   MinSpeed := 0.8;
   MaxSpeed := 1.2;
@@ -445,6 +448,7 @@ Begin
 
   Parser.AddToken('percent', tkInteger, @SpawnPercent);
   Parser.AddToken('frames', tkInteger, @AnimationFrames);
+  Parser.AddToken('repeat', tkInteger, @AnimationRepeat);
   Parser.AddToken('texture', tkString, @Tex);
   Parser.LoadFromString(S);
   Parser.Release;

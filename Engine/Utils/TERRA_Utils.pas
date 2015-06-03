@@ -99,7 +99,7 @@ Const
 {$IFDEF OXYGENE}
   EngineVersion:TERRAVersion= new Version(3, 5, 0);
 {$ELSE}
-  EngineVersion:TERRAVersion=(Major:4;Minor:1;Build:8);
+  EngineVersion:TERRAVersion=(Major:4;Minor:1;Build:10);
 {$ENDIF}
 
 Const

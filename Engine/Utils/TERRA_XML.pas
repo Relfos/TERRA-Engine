@@ -140,11 +140,89 @@ Type
       Property Root:XMLNode Read _Root Write SetRoot;
   End;
 
+Function XMLGetInteger(P:XMLNode; Const Name:TERRAString; Var Dest:Integer; Default:Integer = 0):Boolean;
+Function XMLGetCardinal(P:XMLNode; Const Name:TERRAString; Var Dest:Cardinal; Default:Cardinal = 0):Boolean;
+Function XMLGetByte(P:XMLNode; Const Name:TERRAString; Var Dest:Byte; Default:Byte):Boolean;
+Function XMLGetBoolean(P:XMLNode; Const Name:TERRAString; Var Dest:Boolean; Default:Boolean = False):Boolean;
+Function XMLGetString(P:XMLNode; Const Name:TERRAString; Var Dest:TERRAString; Const Default:TERRAString = ''):Boolean;
+Function XMLGetSingle(P:XMLNode; Const Name:TERRAString; Var Dest:Single; Default:Single = 0):Boolean;
+
 Implementation
 Uses TERRA_Error, TERRA_Collections, TERRA_FileManager, TERRA_FileStream, TERRA_MemoryStream, TERRA_Log;
 
-// LXMLNode
+Function XMLGetInteger(P:XMLNode; Const Name:TERRAString; Var Dest:Integer; Default:Integer):Boolean;
+Var
+  PP:XMLNode;
+Begin
+  PP := P.GetNodeByName(Name);
+  Result := PP<>Nil;
+  If Result Then
+    Dest := StringToInt(PP.Value)
+  Else
+    Dest := Default;
+End;
 
+Function XMLGetCardinal(P:XMLNode; Const Name:TERRAString; Var Dest:Cardinal; Default:Cardinal):Boolean;
+Var
+  PP:XMLNode;
+Begin
+  PP := P.GetNodeByName(Name);
+  Result := PP<>Nil;
+  If Result Then
+    Dest := StringToInt(PP.Value)
+  Else
+    Dest := Default;
+End;
+
+Function XMLGetSingle(P:XMLNode; Const Name:TERRAString; Var Dest:Single; Default:Single):Boolean;
+Var
+  PP:XMLNode;
+Begin
+  PP := P.GetNodeByName(Name);
+  Result := PP<>Nil;
+  If Result Then
+    Dest := StringToInt(PP.Value)
+  Else
+    Dest := Default;
+End;
+
+Function XMLGetBoolean(P:XMLNode; Const Name:TERRAString; Var Dest:Boolean; Default:Boolean):Boolean;
+Var
+  PP:XMLNode;
+Begin
+  PP := P.GetNodeByName(Name);
+  Result := PP<>Nil;
+  If Result Then
+    Dest := (PP.Value = '1') Or (StringLower(PP.Value) = 'true')
+  Else
+    Dest := Default;
+End;
+
+Function XMLGetByte(P:XMLNode; Const Name:TERRAString; Var Dest:Byte; Default:Byte):Boolean;
+Var
+  PP:XMLNode;
+Begin
+  PP := P.GetNodeByName(Name);
+  Result := PP<>Nil;
+  If Result Then
+    Dest := StringToInt(PP.Value)
+  Else
+    Dest := Default;
+End;
+
+Function XMLGetString(P:XMLNode; Const Name:TERRAString; Var Dest:TERRAString; Const Default:TERRAString):Boolean;
+Var
+  PP:XMLNode;
+Begin
+  PP := P.GetNodeByName(Name);
+  Result := PP<>Nil;
+  If Result Then
+    Dest := PP.Value
+  Else
+    Dest := Default;
+End;
+
+{ XMLNode }
 Constructor XMLNode.Create(Const Name:TERRAString; Const Value:TERRAString='');
 Begin
   Self._Name:=Name;

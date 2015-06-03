@@ -164,12 +164,14 @@ Var
   _KeyboardLayoutCount:Integer;
   _KeyboardLayoutContext:Integer;
 
-Procedure KeyEventDispatcher(W:Widget); Cdecl;
+Function KeyEventDispatcher(W:Widget):Boolean; Cdecl;
 Var
   Key:UIVirtualKeyboardKey;
   VKB:VirtualKeyboard;
   I:Integer;
 Begin
+  Result := True;
+
   Key := UIVirtualKeyboardKey(W);
   If (Key = Nil) Then
     Exit;
@@ -180,12 +182,12 @@ Begin
   If Assigned(Key.Callback) Then
     Key.Callback(Key)
   Else
-  If Assigned(Application.Instance.Client) Then
+  If Assigned(Application.Instance()) Then
   Begin
     If (Key._Label<>'') Then
     Begin
       For I:=1 To Length(Key._Label) Do
-        Application.Instance.Client.OnKeyPress(Ord(Key._Label[I]));
+        Application.Instance.OnKeyPress(Ord(Key._Label[I]));
     End Else
       VKB.DoKeyEvent(Key._Row, Key._Line);
   End;
@@ -223,11 +225,13 @@ Begin
   Result := Key;
 End;
 
-Procedure BackCallback(W:Widget); Cdecl;
+Function BackCallback(W:Widget):Boolean; Cdecl;
 Var
   Key:UIVirtualKeyboardKey;
   VKB:VirtualKeyboard;
 Begin
+  Result := True;
+
   Key := UIVirtualKeyboardKey(W);
   If (Key = Nil) Then
     Exit;
@@ -236,19 +240,21 @@ Begin
   If (VKB = Nil) Then
     Exit;
 
-  If Assigned(Application.Instance.Client) Then
+  If Assigned(Application.Instance()) Then
   Begin
-    Application.Instance.Client.OnKeyPress(keyBackspace);
+    Application.Instance.OnKeyPress(keyBackspace);
 
     VKB.UpdatePinyin();
   End;
 End;
 
-Procedure EnterCallback(W:Widget); Cdecl;
+Function EnterCallback(W:Widget):Boolean; Cdecl;
 Var
   Key:UIVirtualKeyboardKey;
   VKB:VirtualKeyboard;
 Begin
+  Result := True;
+
   Key := UIVirtualKeyboardKey(W);
   If (Key = Nil) Then
     Exit;
@@ -257,17 +263,19 @@ Begin
   If (VKB = Nil) Then
     Exit;
 
-  Application.Instance.Client.OnKeyPress(keyEnter);
+  Application.Instance.OnKeyPress(keyEnter);
 
   If (VKB.UI.Focus<>Nil) And (VKB.UI.Focus Is UIEditText) And (UIEditText(VKB.UI.Focus).LineCount=1) Then
     VKB.Close();
 End;
 
-Procedure CloseCallback(W:Widget); Cdecl;
+Function CloseCallback(W:Widget):Boolean; Cdecl;
 Var
   Key:UIVirtualKeyboardKey;
   VKB:VirtualKeyboard;
 Begin
+  Result := True;
+
   Key := UIVirtualKeyboardKey(W);
   If (Key = Nil) Then
     Exit;
@@ -279,11 +287,13 @@ Begin
   VKB.Close();
 End;
 
-Procedure ShiftCallback(W:Widget); Cdecl;
+Function ShiftCallback(W:Widget):Boolean; Cdecl;
 Var
   Key:UIVirtualKeyboardKey;
   VKB:VirtualKeyboard;
 Begin
+  Result := True;
+
   Key := UIVirtualKeyboardKey(W);
   If (Key = Nil) Then
     Exit;
@@ -295,11 +305,13 @@ Begin
   VKB._ShiftMode := Not VKB._ShiftMode;
 End;
 
-Procedure LanguageCallback(W:Widget); Cdecl;
+Function LanguageCallback(W:Widget):Boolean; Cdecl;
 Var
   Key:UIVirtualKeyboardKey;
   VKB:VirtualKeyboard;
 Begin
+  Result := True;
+
   Key := UIVirtualKeyboardKey(W);
   If (Key = Nil) Then
     Exit;
@@ -315,11 +327,13 @@ Begin
   VKB.SelectKeyboardLayout(VKB._CurrentLayout);
 End;
 
-Procedure SymbolsCallback(W:Widget); Cdecl;
+Function SymbolsCallback(W:Widget):Boolean; Cdecl;
 Var
   Key:UIVirtualKeyboardKey;
   VKB:VirtualKeyboard;
 Begin
+  Result := True;
+
   Key := UIVirtualKeyboardKey(W);
   If (Key = Nil) Then
     Exit;
@@ -621,10 +635,6 @@ Begin
       Begin
         _Keys[I,J].Visible := True;
         X := X + GetKeyAdvance(_Keys[I,J]);
-
-      If (PrevRow>=0) Then
-        UI.WrapControlsVertical(_Keys[I,PrevRow], _Keys[I,J]);
-
       End Else
         _Keys[I,J].Visible := False;
     End;
@@ -649,33 +659,10 @@ Begin
     For I:=0 To Pred(MaxKeyboardRows) Do
     Begin
       If (I>=Pred(MaxKeyboardRows)) Or (Not _Keys[Succ(I),J].Visible) Then
-      Begin
-        Case J Of
-        0:
-          Begin
-            UI.WrapControlsHorizontal(_Keys[I,J], _BackKey);
-            UI.WrapControlsHorizontal(_BackKey, _Keys[0,J]);
-          End;
-
-        1:
-          Begin
-            UI.WrapControlsHorizontal(_Keys[I,J], _EnterKey);
-            UI.WrapControlsHorizontal(_EnterKey, _Keys[0,J]);
-          End;
-
-        Else
-          UI.WrapControlsHorizontal(_Keys[I,J], _Keys[0, J]);
-        End;
-
         Break;
-      End;
 
       N := (I+1) Mod MaxKeyboardRows;
-      UI.WrapControlsHorizontal(_Keys[I,J], _Keys[N, J]);
     End;
-
-  For I:=0 To 5 Do
-    UI.WrapControlsHorizontal(_Keys[I,4], _Keys[Succ(I), 4]);
 End;
 
 Procedure VirtualKeyboard.Release;
@@ -705,7 +692,7 @@ Begin
 
   Value := Self.GetKeyValue(Row, Line);
   If Value>0 Then
-    Application.Instance.Client.OnKeyPress(Value);
+    Application.Instance.OnKeyPress(Value);
 
   Self.UpdatePinyin();
 End;

@@ -72,20 +72,6 @@ Const
 
   IPPROTO_TCP       = 6;
 
-  {$IFDEF LINUX_SOCKETS}
-  SO_REUSEADDR =  2;
-  SO_BROADCAST =  6;
-  SO_LINGER    =  13;
-  SO_RCVTIMEO  =  20;
-  SO_SNDBUF    =  7;
-  {$ELSE}
-  SO_REUSEADDR =  $0004;
-  SO_BROADCAST =  $0020;
-  SO_LINGER    =  $0080;
-  SO_RCVTIMEO  =  $1006;
-  SO_SNDBUF    =  $1001;
-  {$ENDIF}
-
 {$IFDEF WINDOWS}
 // Interface to WinSock
 Const
@@ -154,19 +140,45 @@ Type
 
 {$ENDIF}
 
+{$IFDEF LINUX}{$DEFINE LINUX_SOCKETS}{$ENDIF}
+//{$IFDEF ANDROID}{$DEFINE LINUX_SOCKETS}{$ENDIF}
+
+Const
+  {$IFDEF LINUX_SOCKETS}
+  SO_REUSEADDR =  2;
+  SO_BROADCAST =  6;
+  SO_LINGER    =  13;
+  SO_RCVTIMEO  =  20;
+  SO_SNDBUF    =  7;
+  {$ELSE}
+  SO_REUSEADDR =  $0004;
+  SO_BROADCAST =  $0020;
+  SO_LINGER    =  $0080;
+  SO_RCVTIMEO  =  $1006;
+  SO_SNDBUF    =  $1001;
+  {$ENDIF}
+
 {$ELSE}
 {$IFNDEF WINDOWS}
 Const
   FIONBIO = $5421;
 
+{$IFDEF LINUX}
   F_GETFL            = 3;
   F_SETFL             = 4;
   O_NONBLOCK          = 04000;
+{$ELSE}
+  F_SETFL             = 4;
+  O_NONBLOCK          = $0004;
+{$ENDIF}
   SOCK_NONBLOCK  = $40000000;
 
 
 {$IFNDEF LINUX_SOCKETS}
+
+{$IFNDEF LINUX}
 MSG_NOSIGNAL = 0;
+{$ENDIF}
 SO_NOSIGPIPE = $1022;
 {$ENDIF}
 
@@ -229,9 +241,6 @@ Function htons(Value:Word):Word;
 
 Const
   SOCKET_ERROR      = -1;     // Error return value
-
-{$IFDEF LINUX}{$DEFINE LINUX_SOCKETS}{$ENDIF}
-{$IFDEF ANDROID}{$DEFINE LINUX_SOCKETS}{$ENDIF}
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_Application;
@@ -364,7 +373,7 @@ Begin
 
   Params := JavaArguments.Create(Frame);
   Params.AddString(HostName);
-  Result := Utils.CallStaticStringMethod('getNetAddress', Params);
+  Result := Utils.CallStaticStringMethod(Frame, 'getNetAddress', Params);
   Params.Release();
 
   If Result = '' Then
@@ -471,7 +480,7 @@ Begin
 
   //Set the socket to non-blocking
   {$IFDEF WINDOWS}
-  ErrorCode := ioctlsocket(Handle,FIONBIO, N);
+  ErrorCode := ioctlsocket(Handle, FIONBIO, N);
   {$ELSE}
   {$IFDEF MOBILE}
   ErrorCode := ioctl(Handle, FIONBIO, @N);
@@ -564,15 +573,19 @@ End;
 
 Procedure NetSocket.Release;
 Begin
-  If (_Handle>=0) Then
+  If (_Handle>0) Then
   Begin
     Log(logDebug, 'Sockets', 'Shutting down socket '+IntToString(_Handle));
     Shutdown(_Handle, 2);
 
+    {$IFNDEF LINUX}
     Log(logDebug, 'Sockets', 'Closing down socket '+IntToString(_Handle));
     CloseSocket(_Handle);
+    {$ENDIF}
 
     Log(logDebug, 'Sockets', 'Destroyed NetSocket... ');
+
+    _Handle := 0;
   End;
 End;
 
@@ -855,4 +868,4 @@ Finalization
   WSACleanup;
 {$ENDIF}
 End.
-
+

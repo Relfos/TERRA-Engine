@@ -26,7 +26,7 @@ Unit TERRA_Splines;
 {$I terra.inc}
 Interface
 Uses TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Vector3D, TERRA_Color,
-  TERRA_Vector4D, TERRA_Stream, TERRA_BoundingBox;
+  TERRA_Quaternion, TERRA_Stream, TERRA_BoundingBox;
 
 Type
   SplineControlPoint = Record
@@ -66,7 +66,7 @@ Type
       Procedure Release; Override;
 
       Function GetPosition(T:Single):Vector3D;
-      Function GetOrientation(T:Single):Vector4D;
+      Function GetOrientation(T:Single):Quaternion;
 
 	    Procedure SetPoint(Index:Integer; P:Vector3D);
 	    Procedure AddPoint(P:Vector3D);
@@ -94,7 +94,7 @@ Type
     End;
 
 Implementation
-Uses TERRA_Error, TERRA_Application, TERRA_FileStream, TERRA_DebugDraw, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
+Uses TERRA_Error, TERRA_Application, TERRA_FileStream, TERRA_DebugDraw, TERRA_OS;
 
 { Spline }
 Constructor Spline.Create;
@@ -358,7 +358,7 @@ Begin
   Result := V;
 End;
 
-Function Spline.GetOrientation(T: Single): Vector4D;
+Function Spline.GetOrientation(T: Single):Quaternion;
 Var
   N:Integer;
   Delta:Single;
@@ -377,7 +377,7 @@ Begin
   V.Y := CatmullRomInterpolate(T0.Y, T1.Y, T2.Y, T3.Y, Delta);
   V.Z := CatmullRomInterpolate(T0.Z, T1.Z, T2.Z, T3.Z, Delta);
 
-  Result := Vector4DLookRotation(V, VectorUp);
+  Result := QuaternionLookRotation(V, VectorUp);
 End;
 
 Procedure Spline.Render(MyColor:Color);

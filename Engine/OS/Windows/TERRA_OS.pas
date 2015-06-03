@@ -10,7 +10,7 @@ Unit TERRA_OS;
 {-$DEFINE TRUE_FULLSCREEN}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Client, TERRA_InputManager, TERRA_Multimedia,
+Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_InputManager, TERRA_Multimedia,
   Windows, Messages;
 
 Const
@@ -81,18 +81,7 @@ Const
   keyY = Ord('Y');
   keyZ = Ord('Z');
 
-Procedure DisplayMessage(Const S:TERRAString);
-Function GetCurrentTime:TERRATime;
-Function GetCurrentDate:TERRADate;
-Function GetTime:Cardinal;
-Function CreateApplicationClass(Client:AppClient):Application;
-
 Type
-  WindowsGamepad = Class(Gamepad)
-    Public
-      Procedure Update(Keys:InputState); Override;
-  End;
-
   {$IFDEF FOLDERWATCH}
   FolderWatcher = Class;
 
@@ -134,12 +123,10 @@ Type
   End;
   {$ENDIF}
 
-  WindowsApplication = Class(Application)
+  WindowsApplication = Class(BaseApplication)
     Protected
-			_HDC:HDC;           // HDC of window
-			_hRC:HGLRC;         // OpenGL rendering context
+      _Handle:Cardinal;
       _Icon:HICON;
-      _PixelFormat:Cardinal;
       _MultisampleFormat:Cardinal;
       _MultiSampleInitialized:Boolean;
       _savedExStyle:Cardinal;
@@ -156,18 +143,12 @@ Type
 
       _FullscreenActive:Boolean;
 
-
-      _NextGamePadDetect:Cardinal;
-
-			_JoyCaps:GamepadCaps;
-
       Procedure InitIcon();
       Procedure InitBuildInfo();
 
       Function InitSettings:Boolean; Override;
       Function InitWindow:Boolean; Override;
-      Function InitGraphics:Boolean; Override;
-      Procedure CloseGraphics; Override;
+
       Procedure CloseWindow; Override;
 
       Function GetClipboard():TERRAString;
@@ -180,8 +161,9 @@ Type
       Procedure ProcessMessages; Override;
 
     Public
+      Constructor Create();
+
       Function SetFullscreenMode(UseFullScreen:Boolean):Boolean; Override;
-      Procedure SwapBuffers; Override;
       Procedure SetState(State:Cardinal); Override;
       Procedure Yeld; Override;
 
@@ -201,12 +183,23 @@ Type
       Function IsDebuggerPresent:Boolean; Override;
 
       Function GetDeviceID():TERRAString; Override;
+
+      Class Procedure DisplayMessage(Const S:TERRAString);
+      Class Function GetCurrentTime:TERRATime;
+      Class Function GetCurrentDate:TERRADate;
+      Class Function GetTime:Cardinal;
+
+      Class Function Instance:WindowsApplication;
+
+      Property Handle:Cardinal Read _Handle;
   End;
 
+  Application = WindowsApplication;
+
 Implementation
-Uses TERRA_Error, SysUtils, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
+Uses TERRA_Error, SysUtils, TERRA_Renderer, TERRA_GLRenderer,
   TERRA_GraphicsManager, TERRA_Log, TERRA_Stream, TERRA_FileUtils, TERRA_FileManager, TERRA_MemoryStream, TERRA_MusicManager,
-  TERRA_XInput, TERRA_NetBios;
+  TERRA_Gamepad, TERRA_XInput, TERRA_NetBios, TERRA_Timer;
 
 Const
   FILE_READ_DATA         = $0001; // file & pipe
@@ -233,19 +226,29 @@ Function ChangeDisplaySettings(lpDevMode: PDeviceMode; dwFlags:Cardinal): Longin
 Function SetWindowLong(hWnd: HWND; nIndex: Integer; dwNewLong:Cardinal): Longint; stdcall; external 'user32.dll' name 'SetWindowLongA';
 Function GetProcessAffinityMask(hProcess: THandle; Var lpProcessAffinityMask, lpSystemAffinityMask: PtrUInt):Boolean; stdcall; external 'kernel32.dll';
 
+Var
+  _Application_Instance:WindowsApplication;
 
-Procedure DisplayMessage(Const S:TERRAString);
+Constructor WindowsApplication.Create();
+Begin
+  _Application_Instance := Self;
+  Inherited Create();
+End;
+
+Class Function WindowsApplication.Instance:WindowsApplication;
+Begin
+  Result := _Application_Instance;
+End;
+
+Class Procedure WindowsApplication.DisplayMessage(Const S:TERRAString);
 Begin
   Windows.MessageBoxA(0, PAnsiChar(S), PAnsiChar(GetProgramName), MB_OK Or MB_ICONERROR);
 End;
 
-Function GetTime:Cardinal;  {$IFDEF FPC}Inline;{$ENDIF}
+Class Function WindowsApplication.GetTime:Cardinal;  {$IFDEF FPC}Inline;{$ENDIF}
 Begin
-  {$IFDEF FPC}
-  Result := Cardinal(GetTickCount64());
-  {$ELSE}
-  Result := GetTickCount();
-  {$ENDIF}
+  //Result := timeGetTime();
+  Result := Trunc(Timer.GetElapsedTime() * 1000.0);
 
   {If (Application.Instance<>Nil) And (Application.Instance.Input.Keys[keyShift]) Then
     Result := Result *4;}
@@ -257,7 +260,7 @@ Begin
   //Result := {$IFDEF FPC}GetTickCount(){$ELSE}timeGetTime(){$ENDIF};
 End;
 
-Function GetCurrentTime:TERRATime;
+Class Function WindowsApplication.GetCurrentTime:TERRATime;
 var
   SystemTime: TSystemTime;
 Begin
@@ -268,7 +271,7 @@ Begin
   Result.MiliSecond:=SystemTime.wMilliseconds;
 End;
 
-Function GetCurrentDate:TERRADate;
+Class Function WindowsApplication.GetCurrentDate:TERRADate;
 var
   SystemTime: TSystemTime;
 Begin
@@ -277,11 +280,6 @@ Begin
   Result.Month:=SystemTime.wMonth;
   Result.Day:=SystemTime.wDay;
   Result.WeekDay:=SystemTime.wDayOfWeek;
-End;
-
-Function CreateApplicationClass(Client:AppClient):Application;
-Begin
-  Result := WindowsApplication.Create(Client);
 End;
 
 //WM_WINDOWPOSCHANGING
@@ -300,12 +298,12 @@ Begin
   App := WindowsApplication(Application.Instance);
   If (Not Assigned(App)) Then
   Begin
-    Result := DefWindowProc(hWnd,Msg,wParam,lParam);
+    Result := DefWindowProcW(hWnd,Msg,wParam,lParam);
     Exit;
   End;
 
-  If {((Msg=WM_SYSCOMMAND) And (wParam = SC_MAXIMIZE))
-  Or }((Msg=WM_SYSKEYDOWN) And (wParam = keyEnter)) Then
+  If ((Msg=WM_SYSCOMMAND) And (wParam = SC_MAXIMIZE))
+  Or ((Msg=WM_SYSKEYDOWN) And (wParam = keyEnter)) Then
   Begin
     App._ChangeToFullScreen := True;
     Exit;
@@ -330,17 +328,15 @@ Begin
         If (wParam = SC_MINIMIZE) Then
         Begin
           App._State := wsMinimized;
-          If (Assigned(App._Client)) Then
-            App.Client.OnStateChange(App._State);
+          App.OnStateChange(App._State);
         End Else
         If (wParam = SC_RESTORE) Then
         Begin
           App._State := wsNormal;
-          If (Assigned(App._Client)) Then
-            App.Client.OnStateChange(App._State);
+          App.OnStateChange(App._State);
         End;
 
-        Result := DefWindowProc(hWnd,Msg,wParam,lParam);
+        Result := DefWindowProcW(hWnd,Msg,wParam,lParam);
       End;
 
     WM_ACTIVATE,WM_ACTIVATEAPP:
@@ -361,7 +357,7 @@ Begin
         {$ENDIF}
       End;
 
-    WM_SIZING:Begin
+    (*WM_SIZING:Begin
                 Move(Pointer(lparam)^, SZ, SizeOf(TRect));
                 w := sz.right - sz.left;
                 h := sz.bottom - sz.top;
@@ -399,7 +395,7 @@ Begin
                 End;
 
                 Move(SZ, Pointer(lparam)^, SizeOf(Trect));
-              End;
+              End;*)
 
     WM_SIZE:  Begin
                 P := PCursor(@lParam)^;
@@ -422,7 +418,7 @@ Begin
                 App.AddValueEvent(eventKeyUp, wParam);
               End;
 
-    WM_CHAR:  If (App._CanReceiveEvents) And (Assigned(App._Client)) Then
+    WM_CHAR:  If (App._CanReceiveEvents) Then
               Begin
                 If (wParam=22) And  ($8000 And GetKeyState(VK_CONTROL)<>0) Then
                 Begin
@@ -433,39 +429,39 @@ Begin
                   App.AddValueEvent(eventKeyPress, wParam);
               End;
 
-    WM_LBUTTONDOWN: If (App._CanReceiveEvents) And (Assigned(App._Client)) Then
+    WM_LBUTTONDOWN: If (App._CanReceiveEvents) Then
                     Begin
                       SetCapture(App._Handle);
                       App.AddValueEvent(eventMouseDown, keyMouseLeft);
                     End;
 
-    WM_RBUTTONDOWN: If (App._CanReceiveEvents) And (Assigned(App._Client)) Then
+    WM_RBUTTONDOWN: If (App._CanReceiveEvents)  Then
                     Begin
                       App.AddValueEvent(eventMouseDown, keyMouseRight);
                     End;
 
-    WM_MBUTTONDOWN: If (App._CanReceiveEvents) And (Assigned(App._Client)) Then
+    WM_MBUTTONDOWN: If (App._CanReceiveEvents) Then
                     Begin
                       App.AddValueEvent(eventMouseDown, keyMouseMiddle);
                     End;
 
-    WM_RBUTTONUP: If (App._CanReceiveEvents) And (Assigned(App._Client)) Then
+    WM_RBUTTONUP: If (App._CanReceiveEvents) Then
                   Begin
                     App.AddValueEvent(eventMouseUp, keyMouseRight);
                   End;
 
-    WM_LBUTTONUP: If (App._CanReceiveEvents) And (Assigned(App._Client)) Then
+    WM_LBUTTONUP: If (App._CanReceiveEvents) Then
                   Begin
                     ReleaseCapture;
                     App.AddValueEvent(eventMouseUp, keyMouseLeft);
                   End;
 
-    WM_MBUTTONUP: If (App._CanReceiveEvents) And (Assigned(App._Client)) Then
+    WM_MBUTTONUP: If (App._CanReceiveEvents) Then
                   Begin
                     App.AddValueEvent(eventMouseUp, keyMouseMiddle);
                   End;
 
-    WM_MOUSEMOVE: If (App._CanReceiveEvents) And (Assigned(App._Client)) Then
+    WM_MOUSEMOVE: If (App._CanReceiveEvents) Then
                   Begin
                     P := PCursor(@lParam)^;
                     App.AddCoordEvent(eventMouseMove, P.X, P.Y, 0);
@@ -486,7 +482,7 @@ Begin
                       End;
                     End;
 
-    WM_MOUSEWHEEL:If (App._CanReceiveEvents) And (Assigned(App._Client)) Then
+    WM_MOUSEWHEEL:If (App._CanReceiveEvents) Then
                   Begin
                     Delta := Integer(wParam Div High(Word));
                     App.AddValueEvent(eventMouseWheel, Delta);
@@ -500,7 +496,7 @@ Begin
 
     Else
       Begin
-        Result := DefWindowProc(hWnd,Msg,wParam,lParam);  // Default result if nothing happens
+        Result := DefWindowProcW(hWnd,Msg,wParam,lParam);  // Default result if nothing happens
       End;
   End;
 End;
@@ -547,7 +543,7 @@ Var
   dwExStyle:Cardinal;          // Extended window styles
   Inst:HINST;             // Current instance
   X,Y,BW,BH:Integer;
-  TitleStr:TERRAString;
+  TitleStr:WideString;
 Begin
   Result := False;
 
@@ -621,7 +617,7 @@ Begin
 
   _CanReceiveEvents := True;
 
-  TitleStr := Self.Title;
+  TitleStr := WideString(Self.Title);
 
   // Attempt to create the actual window
   _Handle := CreateWindowExW(dwExStyle,    // Extended window styles
@@ -659,86 +655,6 @@ Begin
       ForceLogFlush := True;
   End;
 
-  Result := True;
-End;
-
-Function WindowsApplication.InitGraphics:Boolean;
-Var
-  Pfd:PixelFormatDescriptor; // Settings for the OpenGL window
-Begin
-  Result:=False;
-
-  _HDC := GetDC(_Handle);
-  If _HDC=0 Then
-  Begin
-    RaiseError('Unable to retrieve a device context.');
-    Halt;
-  End;
-   
- // Settings for the OpenGL window
-  FillChar(Pfd,SizeOf(Pfd),0);
-  With Pfd Do
-  Begin
-    nSize := SizeOf(PixelFormatDescriptor); // Size Of This Pixel Format Descriptor
-    nVersion := 1;                          // The version of this data structure
-    dwFlags := PFD_DRAW_TO_WINDOW Or PFD_SUPPORT_OPENGL Or PFD_DOUBLEBUFFER;
-    iPixelType := PFD_TYPE_RGBA;            // RGBA color format
-    cColorBits := 24;                       // OpenGL color depth
-    cAlphaBits := 8;                        //
-    cDepthBits := 24;                       // Specifies the depth of the depth buffer
-    cStencilBits := 8;                      // Specificies the depth of the stencil buffer
-    iLayerType := PFD_MAIN_PLANE;
-  End;
-
-  // Attempts to find the pixel format supported by a device context that is the best match to a given pixel format specification.
-  If (_MultiSampleInitialized) And (_MultisampleFormat<>0) Then
-    _PixelFormat := _MultisampleFormat
-  Else
-    _PixelFormat := ChoosePixelFormat(_hDC,@Pfd);
-
-  If (_PixelFormat=0) Then
-  Begin
-    RaiseError('Unable to find a suitable pixel format.');
-    Exit;
-  End;
-
-  // Sets the specified device context's pixel format to the format specified by the PixelFormat.
-  If (Not SetPixelFormat(_HDC, _PixelFormat,@Pfd)) then
-  Begin
-    RaiseError('Unable to set the pixel format.');
-    Exit;
-  End;
-
-  // Create a OpenGL rendering context
-  _hRC := wglCreateContext(_hDC);
-  If (_hRC = 0) Then
-  Begin
-    RaiseError('Unable to create an OpenGL rendering context.');
-    Exit;
-  End;
-
-  // Makes the specified OpenGL rendering context the calling thread's current rendering context
-  If (Not wglMakeCurrent(_hDC,_hRC))Then
-  Begin
-    RaiseError('Unable to activate OpenGL rendering context.');
-    Exit;
-  End;
-
-  If (Not _MultiSampleInitialized) And (Not _Managed) Then
-  Begin
-    _MultiSampleInitialized := True;
-    _MultisampleFormat := InitMultisample(Self._Handle, pfd, _HDC);
-    If _MultisampleFormat<>0 Then
-    Begin
-      //glCoverage := GL_SAMPLE_ALPHA_TO_COVERAGE;
-      DestroyWindow(_Handle);
-      Self.InitWindow;
-      Result := Self.InitGraphics;
-      Exit;
-    End;
-  End;
-
-  // Settings to ensure that the window is the topmost window
   If Not _Hidden Then
   Begin
     UpdateWindow(_Handle);
@@ -759,15 +675,7 @@ Begin
     _FullScreen := False;
     ToggleFullScreen;
   End;
-
-  glLoadExtensions();
-
-  If (Not Self.Client.GetVSync()) Then
-    wglSwapIntervalEXT(0);  // Disable VSync
-
-  If _MultisampleFormat<>0 Then
-    glEnable(GL_MULTISAMPLE);
-
+  
   Result := True;
 End;
 
@@ -812,6 +720,13 @@ End;
 
 Procedure WindowsApplication.CloseWindow;
 Begin
+	If (_Fullscreen)	Then
+    ToggleFullScreen();
+
+  If (Not _IgnoreCursor) Then
+    ShowCursor(True);
+  //ReleaseCapture;
+    
   If ((_Handle <> 0)And(Not DestroyWindow(_Handle)))Then
   Begin
     RaiseError('Unable to destroy window.');
@@ -823,37 +738,6 @@ Begin
   Begin
     RaiseError('Unable to unregister window class.');
   End;
-End;
-
-Procedure WindowsApplication.CloseGraphics;
-Begin
-	If (_Fullscreen)	Then
-    ToggleFullScreen;
-
-  If (Not _IgnoreCursor) Then
-    ShowCursor(True);
-  //ReleaseCapture;
-
-  // Makes current rendering context not current, and releases the device
-  // context that is used by the rendering context.
-  If (Not wglMakeCurrent(_hDC,0)) Then
-  Begin
-    RaiseError('Release of DC and RC failed.');
-  End;
-
-  // Attempts to delete the rendering context
-  If (Not wglDeleteContext(_hRC)) Then
-  Begin
-    RaiseError('Release of rendering context failed.');
-    _hRC:=0;
-  End;
-
-  ReleaseDC(_Handle,_HDC);
-End;
-
-Procedure WindowsApplication.SwapBuffers;
-Begin
- 	Windows.SwapBuffers(_hDC);									// Swap Buffers (Double Buffering)
 End;
 
 Procedure WindowsApplication.SetState(State:Cardinal);
@@ -1134,16 +1018,20 @@ End;
 
 Function WindowsApplication.GetRecommendedSettings: Integer;
 Begin
-  If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
+  If (Not GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Then
     Result := settingsHintLow
   Else
     Result := settingsHintHigh;
 End;
 
 Procedure WindowsApplication.SetTitle(Const Name: TERRAString);
+Var
+  Temp:WideString;
 Begin
 	Inherited SetTitle(Name);
-  SetWindowText(Handle, PAnsiChar(Name));
+
+  Temp := WideString(Name);
+  SetWindowTextW(_Handle, PWideChar(Temp));
 End;
 
 {$IFDEF FOLDERWATCH}
@@ -1358,14 +1246,16 @@ Begin
   Self.SetProcessorAffinity();
 
   // Initialize xinput gamepads
-{  For I:=0 To 3 Do
-    InputManager.Instance.AddGamePad(XInputGamePad.Create(I));}
+  For I:=0 To 3 Do
+    InputManager.Instance.AddGamePad(XInputGamePad.Create(I));
 
   // Initialize other joysticks/gamepads
   For I:=0 To 3 Do
     InputManager.Instance.AddGamePad(WindowsGamePad.Create(I));
 
   Self.InitBuildInfo();
+
+  Renderers.Add(OpenGLRenderer.Create());
 
   Result := True;
 End;
@@ -1404,51 +1294,6 @@ Begin
     SendMessage(GetWindow(_Handle, GW_OWNER), WM_SETICON, ICON_BIG, _Icon);}
   End;
 End;
-
-
-//https://github.com/adamdruppe/arsd/blob/master/joystick.d
-{ WindowsGamepad }
-Procedure WindowsGamepad.Update(Keys:InputState);
-Var
-  JoyInfo:GamepadInfoEx;
-  dwResult:Cardinal;
-Begin
-  FillChar(JoyInfo, SizeOf(JoyInfo), 0);
-  JoyInfo.dwSize := SizeOf(JoyInfo);
-  JoyInfo.dwFlags := JOY_RETURNALL;
-  dwResult := joyGetPosEx(_DeviceID, joyInfo);
-
-  If (dwResult <> JOYERR_NOERROR) Then
-  Begin
-    Self.Disconnnect();
-    Exit;
-  End Else
-    Self.Connnect();
-
-  //Windows.SetWindowText(Handle, PAnsiChar(IntToString(JoyInfo.wXpos)));
-  //Windows.SetWindowText(Handle, PAnsiChar(IntToString(JoyInfo.wButtons)));
-
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadUp_Offset), (JoyInfo.wYpos=0));
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadDown_Offset), (JoyInfo.wYpos=65535));
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadLeft_Offset), (JoyInfo.wXpos=0));
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadRight_Offset), (JoyInfo.wXpos=65535));
-
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadDPadUp_Offset), (JoyInfo.dwPOV=0));
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadDPadDown_Offset), (JoyInfo.dwPOV=18000));
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadDPadLeft_Offset), (JoyInfo.dwPOV=27000));
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadDPadRight_Offset), (JoyInfo.dwPOV=9000));
-
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadA_Offset), (JoyInfo.wButtons And $2<>0));
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadB_Offset), (JoyInfo.wButtons And $4<>0));
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadX_Offset), (JoyInfo.wButtons And $8<>0));
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadY_Offset), (JoyInfo.wButtons And $1<>0));
-
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadL_Offset), (JoyInfo.wButtons And $10<>0));
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadR_Offset), (JoyInfo.wButtons And $20<>0));
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadD_Offset), (JoyInfo.wButtons And $40<>0));
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadZ_Offset), (JoyInfo.wButtons And $80<>0));
-End;
-
 Initialization
   LoadMultimedia();
 End.

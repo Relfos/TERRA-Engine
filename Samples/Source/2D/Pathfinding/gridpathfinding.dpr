@@ -3,7 +3,7 @@
 
 Uses
   {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Scene, TERRA_Client, TERRA_UI, TERRA_GraphicsManager,
+  TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Scene, TERRA_UI, TERRA_GraphicsManager,
   TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_OS, TERRA_FileManager,
   TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_SpriteManager, TERRA_Texture,
   TERRA_InputManager, TERRA_AIGridPath;
@@ -54,7 +54,7 @@ Type
 
 
   // A client is used to process application events
-  MyGame = Class(AppClient)
+  Demo = Class(Application)
     Protected
       _Scene:Scene;
 
@@ -124,7 +124,7 @@ Begin
 End;
 
 { Game }
-Procedure MyGame.OnCreate;
+Procedure Demo.OnCreate;
 Begin
   // Add asset folders
   FileManager.Instance.AddPath('assets');
@@ -153,7 +153,7 @@ Begin
 End;
 
 // OnIdle is called once per frame, put your game logic here
-Procedure MyGame.OnDestroy;
+Procedure Demo.OnDestroy;
 Begin
   // Destroy pathfinder object
   ReleaseObject(_Pathfinder);
@@ -164,7 +164,7 @@ End;
 { MyScene }
 Procedure MyScene.RenderSprites(V:Viewport);
 Var
-  S:Sprite;
+  S:QuadSprite;
   I,J:Integer;
   Mouse:MouseCursor;
   Node:GridPathNode;
@@ -221,7 +221,7 @@ Begin
 End;
 
 // This is called every frame, so we put here our main loop code
-Procedure MyGame.OnIdle();
+Procedure Demo.OnIdle();
 Var
   Node:GridPathNode;
 Begin
@@ -245,14 +245,14 @@ Begin
     Application.Instance.Terminate;
 End;
 
-Procedure MyGame.SelectResolution2D(Var Width, Height:Integer; Var Scale:Single);
+Procedure Demo.SelectResolution2D(Var Width, Height:Integer; Var Scale:Single);
 Begin
   Width := MapSize * TileSize;
   Height := MapSize * TileSize;
   Scale := 4.0;
 End;
 
-Procedure MyGame.OnMouseDown(X,Y:Integer;Button:Word);
+Procedure Demo.OnMouseDown(X,Y:Integer;Button:Word);
 Begin
   If Assigned(GhostPath) Then
     Exit; // Ghost is moving, dont do anything for now
@@ -311,7 +311,7 @@ End;
 
 Begin
   // Start the application
-  ApplicationStart(MyGame.Create);
+  Demo.Create();
 End.
 
 

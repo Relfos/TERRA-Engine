@@ -29,8 +29,34 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Utils, TERRA_GraphicsManager, TERRA_Texture, TERRA_Application,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_Stream, TERRA_Plane,
   TERRA_Matrix4x4, TERRA_Math, TERRA_TextureAtlas, TERRA_BoundingBox,
-  TERRA_Shader, TERRA_UI, TERRA_Image,
-  TERRA_FileManager;
+  TERRA_UI, TERRA_Image, TERRA_Renderer, TERRA_FileManager, TERRA_VertexFormat;
+
+Const
+  vertexOfs  = vertexUV1;
+  vertexSize = vertexUV2;
+  vertexAngles = vertexUV3;
+
+  vertexFormatOfs  = vertexFormatUV1;
+  vertexFormatSize = vertexFormatUV2;
+  vertexFormatAngles = vertexFormatUV3;
+
+  ParticleVertexFormat = [vertexFormatPosition, vertexFormatColor, vertexFormatUV0, vertexFormatOfs, vertexFormatSize, vertexFormatAngles];
+
+Type
+  ParticleVertex = Class(Vertex)
+    Protected
+      Procedure Load(); Override;
+      Procedure Save(); Override;
+
+    Public
+  		Position:Vector3D;
+      Color:TERRA_Color.Color;
+      UV0:Vector2D;
+	  	Ofs:Vector2D;
+      Size:Vector2D;
+      Angle:Vector2D;
+  End;
+
 
 Const
   particlePhysicsModeDefault  = 0;
@@ -69,7 +95,7 @@ Const
 Type
   ParticleCollection = Class;
 
-  PParticleVertex = ^ParticleVertex;
+{  PParticleVertex = ^ParticleVertex;
   ParticleVertex = Packed Record
     Position:Vector3D;
     Ofs:Vector2D;
@@ -77,7 +103,7 @@ Type
     Angles:Vector2D; // cos / sin of rotation
     UV:Vector2D;
     Color:TERRA_Color.Color;
-  End;
+  End;}
 
   ParticleType = Class(TERRAObject)
     Name:TERRAString;
@@ -114,15 +140,17 @@ Type
 
   ParticleEmitter = Class;
 
-  PParticle = ^Particle;
-  Particle = Object
+  Particle = Class(TERRAObject)
     Private
-      Vertices:Array[0..3] Of PParticleVertex;
+      _Parent:ParticleCollection;
+      _Index:Integer;
 
       //Group:PParticleSettingsGroup;
 
       CurrentTime:Single;
       CurrentFrame:Integer;
+
+      Procedure FillVertex(P:ParticleVertex; SubIndex:Integer; Const Landscape:Boolean);
 
     Public
       Life:Single;    // duration, in miliseconds
@@ -130,6 +158,7 @@ Type
       BlendMode:Integer;
       Texture:ParticleType;
       AnimationFrames:Integer;
+      AnimationRepeat:Integer;
 
       PosX:ParticleProperty;
       PosY:ParticleProperty;
@@ -163,6 +192,8 @@ Type
       TrailBlue:ParticleProperty;
       TrailAlpha:ParticleProperty;
 
+      Constructor Create(Parent:ParticleCollection; Index:Integer);
+
       Procedure ClearGraphs();
 
       Procedure Reset(Emitter:ParticleEmitter);
@@ -178,7 +209,7 @@ Type
       Procedure SetEmission(Value:Single);
 
     Public
-      Procedure Emit(Target:PParticle); Virtual; Abstract;
+      Procedure Emit(Target:Particle); Virtual; Abstract;
       Function GetParticleCount: Integer; Virtual;
 
       Property EmissionPerMinute:Single Read _EmissionPerMinute Write SetEmission;
@@ -192,7 +223,6 @@ Type
       Property Position:Vector3D Read _Position Write _Position;
   End;
 
-
   ParticleCollection = Class(Renderable)
     Protected
       _Box:BoundingBox;
@@ -201,15 +231,13 @@ Type
       _Particles:Array Of Particle;
       _ParticleCount:Integer;
 
-      _Vertices:Array Of ParticleVertex;
-      _Temp:Array Of ParticleVertex;
-      _VertexCount:Integer;
+      _Vertices:VertexData;
 
       _BlendModes:Array Of Integer;
       _BlendModeCount:Integer;
       _BlendModeHashes:Array[0..255] Of Byte;
 
-      _Shader:Shader;
+      _Shader:ShaderInterface;
 
       //_Position:Vector3D;
       _LastTime:Integer;
@@ -227,7 +255,7 @@ Type
       Procedure UpdateBlendModes();
 
       // returns how many vertices processed
-      Function UpdateBatch(BlendMode:Integer):Integer;
+      Function UpdateBatch(BlendMode:Integer; Const Landscape:Boolean):Integer;
 
       Procedure Init;
 
@@ -274,12 +302,12 @@ Type
 
       _NeedsRebuild:Boolean;
 
-      _Shader:Shader;
+      _Shader:ShaderInterface;
 
       _ParticleCollections:Array Of ParticleCollection;
       _ParticleCollectionCount:Integer;
 
-      Function GetShader:Shader;
+      Function GetShader:ShaderInterface;
 
     Public
       Class Function Instance:ParticleManager;
@@ -300,11 +328,13 @@ Type
 
       Function GetTexture(Target:ParticleCollection):Texture;
 
-      Property Shader:TERRA_Shader.Shader Read GetShader;
+      Property Shader:ShaderInterface Read GetShader;
   End;
 
+Function CreateParticleVertexData(Count:Integer):VertexData;
+  
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Camera, TERRA_Mesh,
+Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_Camera, TERRA_Mesh,
   TERRA_INI, TERRA_FileStream, TERRA_FileUtils;
 
 Var
@@ -358,12 +388,16 @@ Begin
   Result := S;
 End;
 
-{ ParticleCollection }
-{Procedure ParticleCollection.ResetSettings;
-Begin
-  Settings.Copy(_SettingsTemplate);
-End;}
 
+Function CreateParticleVertexData(Count:Integer):VertexData;
+Begin
+  Result := VertexData.Create(ParticleVertexFormat, Count);
+  Result.SetAttributeName(vertexOfs, 'terra_ofs');
+  Result.SetAttributeName(vertexSize, 'terra_size');
+  Result.SetAttributeName(vertexAngles, 'terra_angle');
+End;
+
+{ ParticleCollection }
 Constructor ParticleCollection.Create(Emitter:ParticleEmitter);
 Var
   Count:Integer;
@@ -376,7 +410,6 @@ Begin
 
   _Emitter := Emitter;
   Count := _Emitter.GetParticleCount;
-  _VertexCount := Count * 6;
   _ParticleCount := Count;
   _LastTime := Application.Instance.GetElapsedTime();
 
@@ -389,8 +422,13 @@ Begin
 End;
 
 Procedure ParticleCollection.Release;
+Var
+  I:Integer;
 Begin
   Inherited;
+
+  For I:=0 To Pred(_ParticleCount) Do
+    ReleaseObject(_Particles[I]);
 
   ReleaseObject(_Emitter);
 End;
@@ -399,14 +437,12 @@ Procedure ParticleCollection.Init;
 Var
   I,J:Integer;
 Begin
-  SetLength(_Vertices, _VertexCount);
-  SetLength(_Temp, _VertexCount);
+  _Vertices := CreateParticleVertexData(_ParticleCount * 6);
+
   SetLength(_Particles, _ParticleCount);
   For I:=0 To Pred(_ParticleCount) Do
   Begin
-    For J:=0 To 3 Do
-      _Particles[I].Vertices[J] := @(_Vertices[I*4 + J]);
-
+    _Particles[I] := Particle.Create(Self, I);
     If (Self.Emitter.EmissionPerMinute<0) Then
       _Particles[I].Reset(Self.Emitter);
   End;
@@ -438,6 +474,7 @@ Begin
   If (Self.Emitter.EmissionPerMinute>0) And (Self.Respawn) Then
   Begin
     Count := Trunc(((CurrentTime - Emitter._LastEmission)/1000) * Emitter.EmissionPerMinute);
+
     I := 0;
     If (Count>0) Then
     Begin
@@ -513,19 +550,21 @@ Begin
   End;
 End;
 
-Function ParticleCollection.UpdateBatch(BlendMode: Integer): Integer;
+Function ParticleCollection.UpdateBatch(BlendMode: Integer; Const Landscape:Boolean): Integer;
 Var
-  I, N:Integer;
+  It:VertexIterator;
+  I, J, N:Integer;
   CC:Color;
   RenderStage:Integer;
   Angles:Vector2D;
+  P:ParticleVertex;
 Begin
   Result := 0;
-  I := 0;
   N := 0;
 
   RenderStage := GraphicsManager.Instance.RenderStage;
 
+  It := Self._Vertices.GetIterator(ParticleVertex);
   While N<_ParticleCount Do
   Begin
     If (_Particles[N].Life > 0.0) And ((RenderStage<>renderStageDiffuse) Or (_Particles[N].BlendMode = BlendMode)) Then
@@ -540,34 +579,32 @@ Begin
       {Angles.X := 0;
       Angles.Y := 1;}
 
-      _Temp[Result + 0] := _Vertices[I];
-      _Temp[Result + 0].Color := CC;
-      _Temp[Result + 0].Angles := Angles;
-      _Temp[Result + 5] := _Temp[Result + 0];
-      Inc(I);
 
-      _Temp[Result + 1] := _Vertices[I];
-      _Temp[Result + 1].Color := CC;
-      _Temp[Result + 1].Angles := Angles;
-      Inc(I);
+      For J:=0 To 5 Do
+      Begin
+        Case J Of
+        3:  I := 2;
+        4:  I := 3;
+        5:  I := 0;
+        Else
+          I := J;
+        End;
 
-      _Temp[Result + 2] := _Vertices[I];
-      _Temp[Result + 2].Color := CC;
-      _Temp[Result + 2].Angles := Angles;
-      _Temp[Result + 3] := _Temp[Result + 2];
-      Inc(I);
+        If Not It.HasNext() Then
+          Break;
 
-      _Temp[Result + 4] := _Vertices[I];
-      _Temp[Result + 4].Color := CC;
-      _Temp[Result + 4].Angles := Angles;
-      Inc(I);
-
-      Inc(Result, 6);
-    End Else
-      Inc(I, 4);
+        P := ParticleVertex(It.Value);
+        P.Angle := Angles;
+        P.Color := CC;
+        _Particles[N].FillVertex(P, I, Landscape);
+      End;
+    End;
 
     Inc(N);
   End;
+
+  Result := Succ(It.Position);
+  ReleaseObject(It);
 End;
 
 Procedure ParticleCollection.Render(TranslucentPass:Boolean);
@@ -575,83 +612,76 @@ Var
   I, RenderCount:Integer;
 //  Ratio:Single;
   Right, Up:Vector3D;
-  PositionHandle, UVHandle, OfsHandle, SizeHandle, AnglesHandle, ColorHandle:Integer;
+  Landscape:Boolean;
+  Graphics:GraphicsManager;
 Begin
   If (Not TranslucentPass) Then
     Exit;
 
+  Graphics := GraphicsManager.Instance;
+
   {If (_Init) Then
     Self.Update;}
 
+  Landscape := IsLandscapeOrientation(Application.Instance.Orientation);
+
   {If (IsLandscapeOrientation(Application.Instance.Orientation)) Then
   Begin
-    Up := GraphicsManager.Instance.ActiveViewport.Camera.Right;
-    Right := GraphicsManager.Instance.ActiveViewport.Camera.Up;
+    Up := Graphics.ActiveViewport.Camera.Right;
+    Right := Graphics.ActiveViewport.Camera.Up;
     Up.Scale(-1.0);
   End Else}
   Begin
-    Right := GraphicsManager.Instance.ActiveViewport.Camera.Right;
-    Up := GraphicsManager.Instance.ActiveViewport.Camera.Up;
+    Right := Graphics.ActiveViewport.Camera.Right;
+    Up := Graphics.ActiveViewport.Camera.Up;
   End;
 
-  //Ratio := GraphicsManager.Instance.ActiveViewport.Height / GraphicsManager.Instance.ActiveViewport.Width;
-//  Ratio := 1.0; //GraphicsManager.Instance.ActiveViewport.Height / GraphicsManager.Instance.ActiveViewport.Width;
+  //Ratio := Graphics.ActiveViewport.Height / Graphics.ActiveViewport.Width;
+//  Ratio := 1.0; //Graphics.ActiveViewport.Height / Graphics.ActiveViewport.Width;
 
-  ShaderManager.Instance.Bind(_Shader);
+  Graphics.Renderer.BindShader(_Shader);
 
-  PositionHandle := _Shader.GetAttribute('terra_position');
-  UVHandle := _Shader.GetAttribute('terra_UV0');
-  OfsHandle := _Shader.GetAttribute('terra_ofs');
-  SizeHandle := _Shader.GetAttribute('terra_size');
-  AnglesHandle := _Shader.GetAttribute('terra_angle');
-  ColorHandle := _Shader.GetAttribute('terra_color');
+  Graphics.ActiveViewport.Camera.SetupUniforms;
 
-  If (PositionHandle<0) Then
-    Exit;
-
-  GraphicsManager.Instance.ActiveViewport.Camera.SetupUniforms;
-
-  _Shader.SetUniform('sunColor', ColorWhite);
-  _Shader.SetUniform('cameraUp', Up);
-  _Shader.SetUniform('cameraRight', Right);
-  _Shader.SetUniform('texture0', 0);
-//  _Shader.SetUniform('ratio', Ratio);
-  _Shader.SetUniform('reflectionMatrix', GraphicsManager.Instance.ReflectionMatrix);
+  _Shader.SetColorUniform('sunColor', ColorWhite);
+  _Shader.SetVec3Uniform('cameraUp', Up);
+  _Shader.SetVec3Uniform('cameraRight', Right);
+  _Shader.SetIntegerUniform('texture0', 0);
+//  _Shader.SetFloatUniform('ratio', Ratio);
+  _Shader.SetMat4Uniform('reflectionMatrix', Graphics.ReflectionMatrix);
 
   Self.UpdateBlendModes();
 
 
   For I:=0 To Pred(_BlendModeCount) Do
   Begin
-    RenderCount := Self.UpdateBatch(_BlendModes[I]);
+    RenderCount := Self.UpdateBatch(_BlendModes[I], Landscape);
 
     If (I=0) Then
     Begin
-      glDepthMask(False);
+      Graphics.Renderer.SetDepthMask(False);
       ParticleManager.Instance.GetTexture(Self).Bind(0);
     End;
 
     If (RenderCount>0) Then
     Begin
-      GraphicsManager.Instance.SetBlendMode(_BlendModes[I]);
+      Graphics.Renderer.SetBlendMode(_BlendModes[I]);
 
-      glVertexAttribPointer(PositionHandle, 3, GL_FLOAT, False, SizeOf(ParticleVertex), @(_Temp[0].Position));
-      glVertexAttribPointer(UVHandle, 2, GL_FLOAT, False, SizeOf(ParticleVertex), @(_Temp[0].UV));
-      glVertexAttribPointer(OfsHandle, 2, GL_FLOAT, False, SizeOf(ParticleVertex), @(_Temp[0].Ofs));
-      If SizeHandle>=0 Then
-        glVertexAttribPointer(SizeHandle, 2, GL_FLOAT, False, SizeOf(ParticleVertex), @(_Temp[0].Size));
-      If AnglesHandle>=0 Then
-        glVertexAttribPointer(AnglesHandle, 2, GL_FLOAT, False, SizeOf(ParticleVertex), @(_Temp[0].Angles));
-      glVertexAttribPointer(ColorHandle, 4, GL_UNSIGNED_BYTE, True, SizeOf(ParticleVertex), @(_Temp[0].Color));
+      {Graphics.Renderer.SetSourceVertexSize(SizeOf(ParticleVertex));
+      Graphics.Renderer.SetAttributeSource('terra_position', typeVector3D, @(_Temp[0].Position));
+      Graphics.Renderer.SetAttributeSource('terra_UV0', typeVector2D, @(_Temp[0].UV));
+      Graphics.Renderer.SetAttributeSource('terra_ofs', typeVector2D, @(_Temp[0].Ofs));
+      Graphics.Renderer.SetAttributeSource('terra_size', typeVector2D, @(_Temp[0].Size));
+      Graphics.Renderer.SetAttributeSource('terra_angle', typeVector2D, @(_Temp[0].Angles));
+      Graphics.Renderer.SetAttributeSource('terra_color', typeColor, @(_Temp[0].Color));}
 
-      glDrawArrays(GL_TRIANGLES, 0, RenderCount);
-      GraphicsManager.Instance.Internal(0, RenderCount Div 3);
+      Graphics.Renderer.SetVertexSource(_Vertices);
+      Graphics.Renderer.DrawSource(renderTriangles, RenderCount);
     End;
   End;
 
-  glDepthMask(True);
-
-  GraphicsManager.Instance.SetBlendMode(blendNone);
+  Graphics.Renderer.SetDepthMask(True);
+  Graphics.Renderer.SetBlendMode(blendNone);
 End;
 
 Procedure ParticleCollection.Reset;
@@ -836,16 +866,13 @@ Begin
   Begin
     S := FileManager.Instance.SearchResourceFile(Name);
     If S<>'' Then
-    Begin
-      Source := Image.Create(S);
-      Result.Item := _TextureAtlas.Add(Source, Name);
-      _NeedsRebuild := True;
-      Source.Release;
-    End Else
-    Begin
-      Result := Nil;
-      RaiseError('ParticleManager: Cannot find '+Name);
-    End;
+      Source := Image.Create(S)
+    Else
+      Source := Image.Create(32, 32);
+
+    Result.Item := _TextureAtlas.Add(Source, Name);
+    _NeedsRebuild := True;
+    ReleaseObject(Source);
   End;
 End;
 
@@ -888,12 +915,12 @@ Begin
   End;
 End;}
 
-Function ParticleManager.GetShader: Shader;
+Function ParticleManager.GetShader: ShaderInterface;
 Begin
   If (_Shader = Nil) Then
   Begin
-    _Shader := TERRA_Shader.Shader.CreateFromString(GetShader_Particles(), 'particles');
-    ShaderManager.Instance.AddShader(_Shader);
+    _Shader := GraphicsManager.Instance.Renderer.CreateShader();
+    _Shader.Generate('particles', GetShader_Particles());
   End;
 
   Result := _Shader;
@@ -960,21 +987,24 @@ Begin
 
     If (_NormalTexture = Nil) Then
     Begin
-      _NormalTexture := Texture.New('particles_normal', _TextureAtlas.Width, _TextureAtlas.Height);
+      _NormalTexture := Texture.Create();
+      _NormalTexture.CreateFromSize('particles_normal', _TextureAtlas.Width, _TextureAtlas.Height);
       _NormalTexture.Update;
     End;
     _NormalTexture.UpdateRect(_NormalImage, 0, 0);
 
     If (_GlowTexture = Nil) Then
     Begin
-      _GlowTexture := Texture.New('particles_glow', _TextureAtlas.Width, _TextureAtlas.Height);
+      _GlowTexture := Texture.Create();
+      _GlowTexture.CreateFromSize('particles_glow', _TextureAtlas.Width, _TextureAtlas.Height);
       _GlowTexture.Update;
     End;
     _GlowTexture.UpdateRect(_GlowImage, 0, 0);
 
     If (_RefractionTexture = Nil) Then
     Begin
-      _RefractionTexture := Texture.New('particles_refraction', _TextureAtlas.Width, _TextureAtlas.Height);
+      _RefractionTexture := Texture.Create();
+      _RefractionTexture.CreateFromSize('particles_refraction', _TextureAtlas.Width, _TextureAtlas.Height);
       _RefractionTexture.Update();
     End;
     _RefractionTexture.UpdateRect(_RefractionImage, 0, 0);
@@ -1004,8 +1034,12 @@ Begin
   Else
     Result := _TextureAtlas.GetTexture(0);
 
-  Result.BilinearFilter := False;
-  Result.MipMapped := False;
+  If Assigned(Result) Then
+  Begin
+    Result.Filter := filterLinear;
+    Result.MipMapped := False;
+  End Else
+    Result := TextureManager.Instance.WhiteTexture; 
 End;
 
 Class function ParticleManager.Instance: ParticleManager;
@@ -1095,8 +1129,6 @@ Var
   I:Integer;
   T:Single;
   V:Vector3D;
-  U1,U2,V1,V2:Single;
-  UD,UW:Single;
 Begin
   {If Not Assigned(Particle.Group) Then
   Begin
@@ -1116,7 +1148,7 @@ Begin
   T := (Self.CurrentTime / Self.Life);
 
   If (Self.AnimationFrames>1) Then
-    Self.CurrentFrame := Trunc(Pred(Self.AnimationFrames) * T)
+    Self.CurrentFrame := Trunc(Pred(Self.AnimationFrames) * T * Self.AnimationRepeat) Mod Self.AnimationFrames
   Else
     Self.CurrentFrame := 0;
 
@@ -1206,18 +1238,20 @@ Begin
   Self.PosZ.Evaluate(T);
   {$ENDIF}
 
-  For I:=0 To 3 Do
-  Begin
-    Vertices[I].Position.X := Self.PosX.CurrentValue;
-    Vertices[I].Position.Y := Self.PosY.CurrentValue;
-    Vertices[I].Position.Z := Self.PosZ.CurrentValue;
-
-    Vertices[I].Size.X := Self.Size.CurrentValue;
-    Vertices[I].Size.Y := Self.Size.CurrentValue;
-  End;
-
   Self.Rotation.CurrentValue := Self.Rotation.CurrentValue + Self.RotationSpeed.CurrentValue * Delta;
   //Self.Angle := Self.InitRot  + 360 * RAD * T * Self.RotationSpeed;
+
+  Result := True;
+End;
+
+Procedure Particle.FillVertex(P:ParticleVertex; SubIndex:Integer; Const Landscape:Boolean);
+Var
+  UD,UW:Single;
+  U1,U2,V1,V2:Single;
+Begin
+  P.Position := VectorCreate(Self.PosX.CurrentValue,  Self.PosY.CurrentValue, Self.PosZ.CurrentValue);
+  P.Size := VectorCreate2D(Self.Size.CurrentValue, Self.Size.CurrentValue);
+  P.Ofs := VectorCreate2D(ParticleQuadOffsets[SubIndex].X, ParticleQuadOffsets[SubIndex].Y);
 
   If Assigned(Self.Texture) Then
   Begin
@@ -1239,53 +1273,37 @@ Begin
 
     If (Landscape) Then
     Begin
-      Vertices[1].UV.X := U1;
-      Vertices[1].UV.Y := V2;
-
-      Vertices[2].UV.X := U2;
-      Vertices[2].UV.Y := V2;
-
-      Vertices[3].UV.X := U2;
-      Vertices[3].UV.Y := V1;
-
-      Vertices[0].UV.X := U1;
-      Vertices[0].UV.Y := V1;
+      Case SubIndex Of
+      0: P.UV0 := VectorCreate2D(U1, V2);
+      1: P.UV0 := VectorCreate2D(U2, V2);
+      2: P.UV0 := VectorCreate2D(U2, V1);
+      3: P.UV0 := VectorCreate2D(U1, V1);
+      End;
     End Else
     Begin
-      Vertices[0].UV.X := U1;
-      Vertices[0].UV.Y := V1;
-
-      Vertices[1].UV.X := U2;
-      Vertices[1].UV.Y := V1;
-
-      Vertices[2].UV.X := U2;
-      Vertices[2].UV.Y := V2;
-
-      Vertices[3].UV.X := U1;
-      Vertices[3].UV.Y := V2;
+      Case SubIndex Of
+      0: P.UV0 := VectorCreate2D(U1, V1);
+      1: P.UV0 := VectorCreate2D(U2, V1);
+      2: P.UV0 := VectorCreate2D(U2, V2);
+      3: P.UV0 := VectorCreate2D(U1, V2);
+      End;
     End;
   End;
-
-  Result := True;
 End;
 
 Procedure Particle.Reset(Emitter:ParticleEmitter);
-Var
-  I:Integer;
 Begin
   Self.ClearGraphs();
-
-  Emitter.Emit(@Self);
-
+  Emitter.Emit(Self);
   Self.CurrentTime := 0.0;
-
-  For I:=0 To 3 Do
-  Begin
-    Self.Vertices[I].Ofs.X := ParticleQuadOffsets[I].X;
-    Self.Vertices[I].Ofs.Y := ParticleQuadOffsets[I].Y;
-  End;
 End;
 
+
+Constructor Particle.Create(Parent:ParticleCollection; Index:Integer);
+Begin
+  Self._Parent := Parent;
+  Self._Index := Index;
+End;
 
 { ParticleProperty }
 Procedure ParticleProperty.AddGraph(StartValue, EndValue, Duration: Single);
@@ -1362,6 +1380,27 @@ Begin
 
   _EmissionPerMinute := Value;
   _LastEmission := Application.Instance.GetElapsedTime();
+End;
+
+{ ParticleVertex }
+procedure ParticleVertex.Load;
+Begin
+  Self.GetVector3D(vertexPosition, Self.Position);
+  Self.GetColor(vertexColor, Self.Color);
+  Self.GetVector2D(vertexUV0, Self.UV0);
+  Self.GetVector2D(vertexOfs, Self.Ofs);
+  Self.GetVector2D(vertexSize, Self.Size);
+  Self.GetVector2D(vertexAngles, Self.Angle);
+End;
+
+Procedure ParticleVertex.Save;
+Begin
+  Self.SetVector3D(vertexPosition, Self.Position);
+  Self.SetColor(vertexColor, Self.Color);
+  Self.SetVector2D(vertexUV0, Self.UV0);
+  Self.SetVector2D(vertexOfs, Self.Ofs);
+  Self.SetVector2D(vertexSize, Self.Size);
+  Self.SetVector2D(vertexAngles, Self.Angle);
 End;
 
 End.

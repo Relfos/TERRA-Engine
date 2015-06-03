@@ -29,7 +29,7 @@ Unit TERRA_Lights;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Shader, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Utils, TERRA_Math, TERRA_Texture, TERRA_Matrix4x4,
+  TERRA_Utils, TERRA_Math, TERRA_Texture, TERRA_Matrix4x4, TERRA_Renderer,
   TERRA_Vector3D, TERRA_Color, TERRA_Application, TERRA_BoundingBox;
 
 Const
@@ -259,7 +259,7 @@ Begin
   If (Source=Nil) Or (Source._Frame = Self._CurrentFrame) Or (Source.Intensity<=0.0) Then
     Exit;
 
-  If (Not GraphicsManager.Instance.Settings.DynamicLights.Enabled) Then
+  If (Not GraphicsManager.Instance.Renderer.Settings.DynamicLights.Enabled) Then
     Exit;
 
   Source._Frame := Self._CurrentFrame;
@@ -288,7 +288,7 @@ Begin
   Result.PointLightCount := 0;
   Result.SpotLightCount := 0;
 
-  If (Not GraphicsManager.Instance.Settings.DynamicLights.Enabled) Then
+  If (Not GraphicsManager.Instance.Renderer.Settings.DynamicLights.Enabled) Then
     Exit;
 
   For I:=0 To Pred(MaxLightsPerMesh) Do
@@ -401,15 +401,15 @@ End;
 
 Procedure PointLight.SetupUniforms(Index:Integer; Var TextureSlot:Integer);
 Var
-  _Shader:Shader;
+  _Shader:ShaderInterface;
 Begin
-  _Shader := ShaderManager.Instance.ActiveShader;
+  _Shader := GraphicsManager.Instance.Renderer.ActiveShader;
   If _Shader = Nil Then
     Exit;
 
-  _Shader.SetUniform('plightPosition'+IntToString(Index), _Position);
-  _Shader.SetUniform('plightRadius'+IntToString(Index), 1/_Radius);
-  _Shader.SetUniform('plightColor'+IntToString(Index), ColorScale(_Color, Intensity));
+  _Shader.SetVec3Uniform('plightPosition'+IntToString(Index), _Position);
+  _Shader.SetFloatUniform('plightRadius'+IntToString(Index), 1/_Radius);
+  _Shader.SetColorUniform('plightColor'+IntToString(Index), ColorScale(_Color, Intensity));
 End;
 
 Function PointLight.IsOccluded: Boolean;
@@ -466,22 +466,22 @@ End;
 
 Procedure DirectionalLight.SetupUniforms(Index: Integer; Var TextureSlot:Integer);
 Var
-  _Shader:Shader;
+  _Shader:ShaderInterface;
 Begin
-  _Shader := ShaderManager.Instance.ActiveShader;
+  _Shader := GraphicsManager.Instance.Renderer.ActiveShader;
   If _Shader = Nil Then
     Exit;
 
-  _Shader.SetUniform('dlightDirection'+IntToString(Index), _Direction);
-  _Shader.SetUniform('dlightColor'+IntToString(Index), ColorScale(_Color, Intensity));
+  _Shader.SetVec3Uniform('dlightDirection'+IntToString(Index), _Direction);
+  _Shader.SetColorUniform('dlightColor'+IntToString(Index), ColorScale(_Color, Intensity));
 End;
 
 Procedure LightManager.SetupUniforms(Batch: PLightBatch; Var TextureSlot:Integer);
 Var
   I:Integer;
-  _Shader:Shader;
+  _Shader:ShaderInterface;
 Begin
-  _Shader := ShaderManager.Instance.ActiveShader;
+  _Shader := GraphicsManager.Instance.Renderer.ActiveShader;
 
   For I:=0 To Pred(Batch.DirectionalLightCount) Do
     Batch.DirectionalLights[I].SetupUniforms(Succ(I), TextureSlot);
@@ -592,25 +592,27 @@ End;
 
 Procedure SpotLight.SetupUniforms(Index: Integer; Var TextureSlot:Integer);
 Var
-  _Shader:Shader;
+  _Shader:ShaderInterface;
 Begin
-  _Shader := ShaderManager.Instance.ActiveShader;
+  _Shader := GraphicsManager.Instance.Renderer.ActiveShader;
   If _Shader = Nil Then
     Exit;
 
-  _Shader.SetUniform('slightPosition'+IntToString(Index), _Position);
-  _Shader.SetUniform('slightDirection'+IntToString(Index), _Direction);
-  _Shader.SetUniform('slightCosInnerAngle'+IntToString(Index), Cos(_InnerAngle));
-  _Shader.SetUniform('slightCosOuterAngle'+IntToString(Index), Cos(_OuterAngle));
-  _Shader.SetUniform('slightColor'+IntToString(Index), _Color);
-  _Shader.SetUniform('slightMatrix'+IntToString(Index), _ProjectionMatrix4x4);
-  _Shader.SetUniform('slightCookie'+IntToString(Index), TextureSlot);
+  _Shader.SetVec3Uniform('slightPosition'+IntToString(Index), _Position);
+  _Shader.SetVec3Uniform('slightDirection'+IntToString(Index), _Direction);
+  _Shader.SetFloatUniform('slightCosInnerAngle'+IntToString(Index), Cos(_InnerAngle));
+  _Shader.SetFloatUniform('slightCosOuterAngle'+IntToString(Index), Cos(_OuterAngle));
+  _Shader.SetColorUniform('slightColor'+IntToString(Index), _Color);
+  _Shader.SetMat4Uniform('slightMatrix'+IntToString(Index), _ProjectionMatrix4x4);
+  _Shader.SetIntegerUniform('slightCookie'+IntToString(Index), TextureSlot);
 
   If Assigned(Cookie) Then
   Begin
     Cookie.Bind(TextureSlot);
-    Inc(TextureSlot);
-  End;
+  End Else
+    TextureManager.Instance.WhiteTexture.Bind(TextureSlot);
+
+  Inc(TextureSlot);
 End;
 
 Procedure SpotLight.UpdateDistance(Target: Vector3D);

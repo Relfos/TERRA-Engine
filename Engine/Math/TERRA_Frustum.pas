@@ -71,7 +71,7 @@ Begin
   Mat := Matrix4x4Inverse(Mat);
   For I:=1 To 8 Do
   Begin
-    P := Vector4DCreate(Result[I]);
+    P := VectorCreate4D(Result[I]);
     P.Transform(Mat);
     If (P.W = 0) Then
       P.W := 1.0;

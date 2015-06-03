@@ -3,14 +3,14 @@
 
 Uses
   {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Scene, TERRA_Client, TERRA_UI, TERRA_GraphicsManager,
+  TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Scene, TERRA_UI, TERRA_GraphicsManager,
   TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_FontRenderer, TERRA_OS, TERRA_FileManager,
   TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_SpriteManager, TERRA_Localization,
   TERRA_InputManager;
 
 Type
   // A client is used to process application events
-  MyGame = Class(AppClient)
+  Demo = Class(Application)
     Protected
       _Scene:Scene;
 
@@ -28,7 +28,7 @@ Var
   _FontRenderer:FontRenderer = Nil;
 
 { Game }
-Procedure MyGame.OnCreate;
+Procedure Demo.OnCreate;
 Begin
   // Add asset folders
   FileManager.Instance.AddPath('assets');
@@ -45,13 +45,13 @@ Begin
 End;
 
 // OnIdle is called once per frame, put your game logic here
-Procedure MyGame.OnDestroy;
+Procedure Demo.OnDestroy;
 Begin
   ReleaseObject(_FontRenderer);
   ReleaseObject(_Scene);
 End;
 
-Procedure MyGame.OnIdle;
+Procedure Demo.OnIdle;
 Begin
   If InputManager.Instance.Keys.WasReleased(keyEscape) Then
     Application.Instance.Terminate;
@@ -99,5 +99,5 @@ End;
 
 Begin
   // Start the application
-  ApplicationStart(MyGame.Create);
+  Demo.Create();
 End.

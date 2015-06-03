@@ -28,7 +28,7 @@ Unit TERRA_Collada;
 Interface
 Uses TERRA_String, TERRA_Utils, TERRA_OS, TERRA_Stream, TERRA_XML, TERRA_Math, TERRA_Vector3D,
   TERRA_Vector2D, TERRA_Log, TERRA_Color, TERRA_MeshFilter, TERRA_FileUtils,
-  TERRA_FileStream;
+  TERRA_FileStream, TERRA_VertexFormat;
 
 Type
   PColladaSource = ^ColladaSource;
@@ -125,7 +125,7 @@ Type
       Function GetTriangle(GroupID, Index:Integer):Triangle; Override;
 
       Function GetVertexCount(GroupID:Integer):Integer; Override;
-      Function GetVertexFormat(GroupID:Integer):Cardinal; Override;
+      Function GetVertexFormat(GroupID:Integer):VertexFormat; Override;
       Function GetVertexPosition(GroupID, Index:Integer):Vector3D; Override;
       Function GetVertexNormal(GroupID, Index:Integer):Vector3D; Override;
 //    Function GetVertexTangent(GroupID, Index:Integer):Vector3D; Override;
@@ -696,9 +696,9 @@ Begin
   Result := _Groups[GroupID].VertexCount;
 End;
 
-Function ModelCollada.GetVertexFormat(GroupID: Integer): Cardinal;
+Function ModelCollada.GetVertexFormat(GroupID: Integer):VertexFormat;
 Begin
-  Result := 0;
+  Result := [vertexFormatPosition, vertexFormatNormal, vertexFormatUV0];
 End;
 
 Function ModelCollada.GetVertexNormal(GroupID, Index: Integer): Vector3D;

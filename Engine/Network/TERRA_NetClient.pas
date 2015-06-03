@@ -158,7 +158,7 @@ End;
 
 Procedure NetClient.UpdateGUID();
 Begin
-  _GUID := (GetTime() Mod 65214);
+  _GUID := (Application.GetTime() Mod 65214);
 End;
 
 Procedure NetClient.OnPacketReceived(Sock:NetSocket; Msg:NetMessage);
@@ -232,7 +232,7 @@ Begin
   Begin
     _TCPSocket.SetBlocking(False);
     _TCPSocket.SetDelay(False);
-    _JoinTime := GetTime();
+    _JoinTime := Application.GetTime();
 
     Log(logDebug, 'Network', 'Sending join message');
     JoinMsg := CreateJoinMessage(_UserName, _Password, Application.Instance.GetDeviceID(), _GUID);
@@ -256,7 +256,7 @@ Begin
 
   If (_IsConnecting) Then
   Begin
-    Delta := GetTime() - _JoinTime;
+    Delta := Application.GetTime() - _JoinTime;
     If (Delta>20*1000) Then
     Begin
       _IsConnecting := False;

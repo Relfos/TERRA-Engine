@@ -45,7 +45,6 @@ Type
       _Count:Cardinal;
 
       _DropShadow:Boolean;
-      _DropScale:Single;
       _InitDropColor:Color;
 
       _Italics:Boolean;
@@ -56,13 +55,15 @@ Type
       _MaxX:Single;
       _MaxY:Single;
       _AdvanceX:Single;
-      _Scale:Single;
-
 
       Function GetNextChar:TERRAChar;
       Function GetNextArg:TERRAString;
 
       Procedure DoEffects();
+
+      Procedure DrawSprite(Const TextureName:TERRAString);
+      Function ResolveTexture(Const TextureName:TERRAString):Texture; Virtual;
+      Procedure TransformSprite(S:Sprite); Virtual;
 
       Procedure UpdateGradient(Width, Height:Single);
 
@@ -79,8 +80,6 @@ Type
 
       Function SetTransform(Const Transform:Matrix3x3):FontRenderer;
       Function  SetDropShadow(Const DropShadowColor:Color):FontRenderer;
-
-      Function  SetScale(Const Scale:Single):FontRenderer;
 
       Function  SetClipRect(Const Clip:ClipRect):FontRenderer;
 
@@ -123,16 +122,19 @@ End;
 
 Function FontRenderer.Reset():FontRenderer;
 Begin
-  SetFont(FontManager.Instance.DefaultFont);
   SetColor(ColorWhite);
-  SetScale(1.0);
   SetTransform(MatrixIdentity3x3);
   Result := Self;
 End;
 
 Procedure FontRenderer.BeginRender(Const S:TERRAString; Mode:Integer; X,Y, Layer:Single);
 Begin
-  If (_Font = Nil) Or (Not _Font.IsReady()) Then
+  If (_Font = Nil) Then
+  Begin
+    SetFont(FontManager.Instance.DefaultFont);
+  End;
+
+  If (Not _Font.IsReady()) Then
     Exit;
 
   _Mode := Mode;
@@ -255,7 +257,7 @@ Begin
 
   //Log(logDebug,'AdWall', 'Calculating advance');
   _TargetPosition := _CurrentPosition;
-  _AdvanceX := _CurrentGlyph.GetAdvance(_Next) * _Scale;
+  _AdvanceX := _CurrentGlyph.GetAdvance(_Next);
   _CurrentPosition.X := _CurrentPosition.X + _AdvanceX;
 
   //Log(logDebug,'AdWall', 'Testing effects');
@@ -268,7 +270,7 @@ Begin
   //Log(logDebug,'AdWall', 'Testing wavy test');
   If (_WavyText) Then
   Begin
-    K := (GetTime() Div 3);
+    K := (Application.GetTime() Div 3);
     K := K + _Count * 8;
     _TargetPosition.Y := _TargetPosition.Y + Sin((K Mod 360) * RAD) * 4.5;
   End;
@@ -276,7 +278,7 @@ Begin
   If (_CurrentPosition.X >_MaxX) Then
     _MaxX := _CurrentPosition.X;
 
-  H := _CurrentPosition.Y + _CurrentGlyph.Height * _Scale;
+  H := _CurrentPosition.Y + _CurrentGlyph.Height;
   If (H > _MaxY) Then
     _MaxY := H;
 
@@ -347,7 +349,7 @@ Begin
       Begin
         N := Self._CurrentPosition.Y  - Self._StartPosition.Y;
         Delta1 := N / _Height;
-        Delta2 := (N + _CurrentGlyph.Height * _Scale) / _Height;
+        Delta2 := (N + _CurrentGlyph.Height) / _Height;
 
         If (Delta2>1.0) Then
           Delta2 := 1.0;
@@ -363,8 +365,6 @@ End;
 Procedure FontRenderer.DoEffects;
 Var
   I:Integer;
-  Tex:Texture;
-  S:Sprite;
   SS:TERRAString;
   C:Color;
 Begin
@@ -379,44 +379,7 @@ Begin
       End;
 
   fontControlSprite:
-      If (_Effects[I].Arg<>'') Then
-      Begin
-        SS := _Effects[I].Arg;
-        If (SS[1]='#') Then
-        Begin
-          SS := _FontImageResolver(Self._Font, Copy(SS, 2, MaxInt));
-        End;
-
-        Tex := TextureManager.Instance.GetTexture(SS);
-        If Assigned(Tex) Then
-        Begin
-          Tex.Prefetch();
-
-          _CurrentPosition.X := _CurrentPosition.X + 4;
-
-          If (_Mode = fontmode_Sprite) Then
-          Begin
-            If _DropShadow Then
-            Begin
-              S := SpriteManager.Instance.DrawSprite(_CurrentPosition.X - 1, _CurrentPosition.Y - Tex.Height + 1, Self._Layer-1, Tex);
-              S.SetColor(ColorGrey(0, _Color1.A));
-              S.ClipRect := Self._ClipRect;
-            End;
-
-            S := SpriteManager.Instance.DrawSprite(_CurrentPosition.X, _CurrentPosition.Y - Tex.Height, Self._Layer, Tex);
-            S.SetColor(ColorGrey(255, _Color1.A));
-            S.ClipRect := Self._ClipRect;
-          End;
-
-          _CurrentPosition.X := _CurrentPosition.X + Tex.Width + 4;
-
-          If (_CurrentPosition.X >_MaxX) Then
-            _MaxX := _CurrentPosition.X;
-
-          If (_MaxY<=0) Then
-            _MaxY := Tex.Height;
-        End;
-      End;
+    Self.DrawSprite(_Effects[I].Arg);
 
   fontControlWave:
             Begin
@@ -435,14 +398,14 @@ Begin
 
   fontControlTab:
             Begin
-              _CurrentPosition.X := (Trunc(_CurrentPosition.X/TabSize)+1)*TabSize*_Scale;
+              _CurrentPosition.X := (Trunc(_CurrentPosition.X/TabSize)+1)*TabSize;
             End;
 
   fontControlNewLine:
             Begin
               _CurrentPosition.X := _StartPosition.X;
               If Assigned(_Font) Then
-                _CurrentPosition.Y := _CurrentPosition.Y + 4.0 + _Font.NewLineOffset * _Scale;
+                _CurrentPosition.Y := _CurrentPosition.Y + 4.0 + _Font.NewLineOffset;
             End;
   End;
 
@@ -474,8 +437,8 @@ Begin
   EndRender();
 
   //Log(logDebug,'AdWall', 'Finished textrect');
-  Result.X := Self.MaxX / FontQuality;
-  Result.Y := Self.MaxY / FontQuality;
+  Result.X := Self.MaxX;
+  Result.Y := Self.MaxY;
 End;
 
 Function FontRenderer.GetLength(Const Text:TERRAString):Integer;
@@ -561,9 +524,9 @@ Begin
   If (Alpha<0) Then
     Alpha := 0;
 
-  Y := Y - _FontOffset * _Scale;
+  Y := Y - _FontOffset;
 
-  Size := Self.GetTextRect(Text, _Scale);
+  Size := Self.GetTextRect(Text);
 
   If (_DropShadow) Then
   Begin
@@ -594,10 +557,12 @@ Begin
 
       GetColors(A,B,C,D);
 
+      {$IFNDEF DISTANCEFIELDFONTS}
       If (_DropShadow) Then
-        Page.DrawGlyph(Position.X - _DropScale, Position.Y + _DropScale, Layer - 0.1, _Transform, _DropScale, _CurrentGlyph, DropColor, DropColor, DropColor, DropColor, DropColor, _ClipRect, _Italics);
+        Page.DrawGlyph(Position.X - 1.0, Position.Y + 1.0, Layer - 0.1, _Transform, _CurrentGlyph, DropColor, DropColor, DropColor, DropColor, DropColor, _ClipRect, _Italics);
+      {$ENDIF}
 
-      Page.DrawGlyph(Position.X, Position.Y, Layer, _Transform, _Scale, _CurrentGlyph, _Outline, A,B,C,D, _ClipRect, _Italics);
+      Page.DrawGlyph(Position.X, Position.Y, Layer, _Transform, _CurrentGlyph, _Outline, A,B,C,D, _ClipRect, _Italics);
     End;
 
     EndRender();
@@ -627,11 +592,10 @@ Begin
 
   _Font.Update();
 
-  {If (Length(_Pages)<=0) Then
-    Exit;}
-
   GetTextRect(Text, 1.0); // TODO CHECK REALLY NECESSARY HERE?
 
+  Y := Trunc(Y - _FontOffset);
+  
   BeginRender(Text, fontmode_Offscreen, X, Y, 0);
   While (RenderNext()) Do
   Begin
@@ -668,12 +632,14 @@ Begin
   If _DropShadow Then
   Begin
     _InitDropColor := DropShadowColor;
-    _DropScale := _Scale / FontQuality;
   End Else
   Begin
     _InitDropColor := ColorNull;
-    _DropScale := _Scale;
   End;
+
+  {$IFDEF DISTANCEFIELDFONTS}
+  Self.SetOutline(DropShadowColor);
+  {$ENDIF}
 
   Result := Self;
 End;
@@ -700,16 +666,59 @@ Begin
   Result := Self;
 End;
 
-Function FontRenderer.SetScale(const Scale: Single):FontRenderer;
+Function FontRenderer.SetTransform(const Transform: Matrix3x3):FontRenderer;
 Begin
-  _Scale := Scale;
+  _Transform := Transform;
   Result := Self;
 End;
 
-Function FontRenderer.SetTransform(const Transform: Matrix3x3):FontRenderer;
+Procedure FontRenderer.DrawSprite(const TextureName:TERRAString);
+Var
+  Tex:Texture;
+  S:Sprite;
 Begin
-  _Transform := Transform; 
-  Result := Self;
+  If (TextureName = '') Then
+    Exit;
+
+  Tex := Self.ResolveTexture(TextureName);
+  If Tex = Nil Then
+    Exit;
+
+  Tex.Prefetch();
+
+  _CurrentPosition.X := _CurrentPosition.X + 4;
+
+  If (_Mode = fontmode_Sprite) Then
+  Begin
+    If _DropShadow Then
+    Begin
+      S := SpriteManager.Instance.DrawSprite(_CurrentPosition.X - 1, _CurrentPosition.Y - Tex.Height + 1, Self._Layer, Tex);
+      S.SetColor(ColorGrey(0, _Color1.A));
+      Self.TransformSprite(S);
+    End;
+
+    S := SpriteManager.Instance.DrawSprite(_CurrentPosition.X, _CurrentPosition.Y - Tex.Height, Self._Layer + 0.1, Tex);
+    S.SetColor(ColorGrey(255, _Color1.A));
+    Self.TransformSprite(S);
+  End;
+
+  _CurrentPosition.X := _CurrentPosition.X + Tex.Width + 4;
+
+  If (_CurrentPosition.X >_MaxX) Then
+    _MaxX := _CurrentPosition.X;
+
+  If (_MaxY<=0) Then
+    _MaxY := Tex.Height;
+End;
+
+Function FontRenderer.ResolveTexture(Const TextureName: TERRAString): Texture;
+Begin
+  Result := TextureManager.Instance.GetTexture(TextureName);
+End;
+
+Procedure FontRenderer.TransformSprite(S: Sprite);
+Begin
+  S.ClipRect := Self._ClipRect;
 End;
 
 End.

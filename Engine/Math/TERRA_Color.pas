@@ -31,7 +31,7 @@ Uses TERRA_String, TERRA_Utils;
 
 Type
   PColor = ^Color;
-  Color=Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  Color = Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
   {$IFDEF BGR}
     B:Byte;
     G:Byte;
@@ -43,6 +43,13 @@ Type
     B:Byte;
     A:Byte;
   {$ENDIF}
+  End;
+
+  ColorHSL = Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+    H:Byte;
+    S:Byte;
+    L:Byte;
+    A:Byte;
   End;
 
   PColorArray = ^ColorArray;
@@ -93,12 +100,8 @@ Function ColorMix(Const A,B,C:Color; Const U,V:Single):Color;Overload;
 Function ColorBlend(Const Src,Dest:Color):Color; Overload;
 Function ColorBlend(Const Src,Dest:Color; A:Cardinal):Color; Overload;
 
-Function ColorAdd(Const A,B:Color; Const Scale:Single=1.0):Color;
-Function ColorSubtract(Const A,B:Color; Const Scale:Single=1.0):Color;
-
 // Scale color
-Function ColorScale(Const A,B:Color):Color;Overload;
-Function ColorScale(Const A:Color; B:Single):Color;Overload;
+Function ColorScale(Const A:Color; B:Single):Color;
 
 // Color lerp
 Function ColorLerp(Const A,B,C:Color):Color;
@@ -121,8 +124,8 @@ Function ColorSaturation(Source:Color):Byte;
 
 Function ColorGrey(GreyLevel:Byte; Alpha:Byte=255):Color;
 
-Function ColorHSLToRGB(Input:Color):Color;
-Function ColorRGBToHSL(Input:Color):Color;
+Function ColorRGBToHSL(Const Input:Color):ColorHSL;
+Function ColorHSLToRGB(Const Input:ColorHSL):Color;
 
   // Color conversion
   Function ColorRGB16To32(Source:Word):Color;
@@ -134,6 +137,48 @@ Function ColorRGBToHSL(Input:Color):Color;
   Function ColorBGR32To16(Source:Color):Word;
   Function ColorBGR32To8(Source:Color):Byte;
   Function ColorBGR8To32(Source:Byte):Color;
+
+
+Type
+  ColorCombineMode = (
+    combineNone,
+    combineBlend,
+    combineMultiply,
+    combineAdd,
+    combineSubtract,
+    combineDifference,
+    combineScreen,
+    combineOverlay,
+    combineHardLight,
+    combineSoftLight,
+    combineDarken,
+    combineLighten,
+    combineDodge,
+    combineBurn,
+    combineColor,
+    combineHue,
+    combineSaturation,
+    combineLuminosity
+    );
+
+Function ColorCombine(Const A, B:Color; Mode:ColorCombineMode):Color;
+
+Function ColorAdd(Const A,B:Color):Color;
+Function ColorMultiply(Const A,B:Color):Color;
+Function ColorSubtract(Const A,B:Color):Color;
+Function ColorDifference(Const A,B:Color):Color;
+Function ColorScreen(Const A,B:Color):Color;
+Function ColorOverlay(Const A,B:Color):Color;
+Function ColorHardLight(Const A,B:Color):Color;
+Function ColorSoftLight(Const A,B:Color):Color;
+Function ColorDarken(Const A,B:Color):Color;
+Function ColorLighten(Const A,B:Color):Color;
+Function ColorDodge(Const A,B:Color):Color;
+Function ColorBurn(Const A,B:Color):Color;
+Function ColorCombineColor(Const A,B:Color):Color;
+Function ColorCombineHue(Const A,B:Color):Color;
+Function ColorCombineSaturation(Const A,B:Color):Color;
+Function ColorCombineLuminosity(Const A,B:Color):Color;
 
 Implementation
 
@@ -185,22 +230,6 @@ Begin
   Result.G := Byte(Trunc(G*255));
   Result.B := Byte(Trunc(B*255));
   Result.A := Byte(Trunc(A*255));
-End;
-
-Function ColorAdd(Const A,B:Color; Const Scale:Single=1.0):Color;  {$IFDEF FPC} Inline;{$ENDIF}
-Begin
-  Result.R := IntMin(Integer(Trunc(A.R+B.R*Scale)),255);
-  Result.G := IntMin(Integer(Trunc(A.G+B.G*Scale)),255);
-  Result.B := IntMin(Integer(Trunc(A.B+B.B*Scale)),255);
-  Result.A := IntMin(Integer(Trunc(A.A+B.A*Scale)),255);
-End;
-
-Function ColorSubtract(Const A,B:Color; Const Scale:Single=1.0):Color;  {$IFDEF FPC} Inline;{$ENDIF}
-Begin
-  Result.R:=IntMax(Integer(Trunc(A.R-B.R*Scale)),0);
-  Result.G:=IntMax(Integer(Trunc(A.G-B.G*Scale)),0);
-  Result.B:=IntMax(Integer(Trunc(A.B-B.B*Scale)),0);
-  Result.A:=IntMax(Integer(Trunc(A.A-B.A*Scale)),0);
 End;
 
 {$OverFlowChecks Off}
@@ -296,15 +325,7 @@ Begin
   Result.A:=255;
 End;
 
-Function ColorScale(Const A,B:Color):Color;  {$IFDEF FPC} Inline;{$ENDIF}
-Begin
-  Result.R:=Trunc((A.R/255)*(B.R/255)*255);
-  Result.G:=Trunc((A.G/255)*(B.G/255)*255);
-  Result.B:=Trunc((A.B/255)*(B.B/255)*255);
-  Result.A:=Trunc((A.A/255)*(B.A/255)*255);
-End;
-
-Function ColorScale(Const A:Color; B:Single):Color;Overload;  {$IFDEF FPC} Inline;{$ENDIF}
+Function ColorScale(Const A:Color; B:Single):Color;
 Var
   X,Y,Z:Single;
 Begin
@@ -407,12 +428,12 @@ End;
 
 Function ColorHue(Source:Color):Byte;  {$IFDEF FPC} Inline;{$ENDIF}
 Begin
-  Result := ColorRGBToHSL(Source).R;
+  Result := ColorRGBToHSL(Source).H;
 End;
 
 Function ColorSaturation(Source:Color):Byte;  {$IFDEF FPC} Inline;{$ENDIF}
 Begin
-  Result := ColorRGBToHSL(Source).G;
+  Result := ColorRGBToHSL(Source).S;
 End;
 
 Function ColorLuminance(Source:Color):Byte;  {$IFDEF FPC} Inline;{$ENDIF}
@@ -428,7 +449,7 @@ Begin
   Result.A := Alpha;
 End;
 
-Function ColorHSLToRGB(Input:Color):Color;
+Function ColorHSLToRGB(Const Input:ColorHSL):Color;
 Var
 	v,r,g,b:Single;
   h,sl,l:Single;
@@ -436,9 +457,9 @@ Var
   sextant:Integer;
   fract, vsf, mid1, mid2:Single;
 Begin
-  h := Input.R/255.0;
-	sl := Input.G/255.0;
-	l := Input.B/255.0;
+  h := Input.H/255.0;
+	sl := Input.S/255.0;
+	l := Input.L/255.0;
 
 	r := l;   // default to gray
 	g := r;
@@ -508,7 +529,7 @@ End;
 
 // Given a Color (RGB Struct) in range of 0-255
 // Return H,S,L in range of 0-1
-Function ColorRGBToHSL(Input:Color):Color;
+Function ColorRGBToHSL(Const Input:Color):ColorHSL;
 Var
   h,s,l, r,g,b:Single;
   v, m, vm, r2, g2, b2:Single;
@@ -518,9 +539,9 @@ Begin
 	b := Input.B/255.0;
 
   // default to black
-  Result.R := 0;
-  Result.G := 0;
-  Result.B := 0;
+  Result.H := 0;
+  Result.S := 0;
+  Result.L := 0;
   Result.A := Input.A;
 
 	v := r;
@@ -549,7 +570,12 @@ Begin
     Else
       s := s / (2.0 - v - m) ;
   End Else
+  Begin
+    Result.H := 0;
+    Result.S := 0;
+    Result.L := Input.R;
     Exit;
+  End;
 
   r2 := (v - r) / vm;
   g2 := (v - g) / vm;
@@ -577,9 +603,10 @@ Begin
 	End;
 
 	h := h / 6.0;
-	Result.R := Trunc(H * 255.0);
-	Result.G := Trunc(S * 255.0);
-	Result.B := Trunc(L * 255.0);
+	Result.H := Trunc(H * 255.0);
+	Result.S := Trunc(S * 255.0);
+	Result.L := Trunc(L * 255.0);
+  Result.A := Input.A;
 End;
 
 // color format conversions
@@ -696,5 +723,340 @@ Begin
     Result:=1;
 End;
 
+Function ColorAdd(Const A,B:Color):Color;  
+Begin
+  Result.R := IntMin(Integer(Trunc(A.R + B.R)), 255);
+  Result.G := IntMin(Integer(Trunc(A.G + B.G)), 255);
+  Result.B := IntMin(Integer(Trunc(A.B + B.B)), 255);
+  Result.A := IntMin(Integer(Trunc(A.A + B.A)), 255);
+End;
+
+Function ColorMultiply(Const A,B:Color):Color; 
+Begin
+  Result.R:= Trunc((A.R/255)*(B.R/255)*255);
+  Result.G:= Trunc((A.G/255)*(B.G/255)*255);
+  Result.B:= Trunc((A.B/255)*(B.B/255)*255);
+  Result.A:= Trunc((A.A/255)*(B.A/255)*255);
+End;
+
+
+Function ColorSubtract(Const A,B:Color):Color; 
+Begin
+  Result.R := IntMax(Integer(Trunc(A.R - B.R)), 0);
+  Result.G := IntMax(Integer(Trunc(A.G - B.G)), 0);
+  Result.B := IntMax(Integer(Trunc(A.B - B.B)), 0);
+  Result.A := IntMax(Integer(Trunc(A.A - B.A)), 0);
+End;
+
+Function ColorDifference(Const A,B:Color):Color;
+Begin
+  Result.R := Abs(Integer(A.R - B.R));
+  Result.G := Abs(Integer(A.G - B.G));
+  Result.B := Abs(Integer(A.B - B.B));
+  Result.A := Abs(Integer(A.A - B.A));
+End;
+
+Function ColorScreen(Const A,B:Color):Color;
+  Function Screen(X,Y:Byte):Byte;
+  Var
+    A, B, F:Single;
+  Begin
+    A := X/255.0;
+    B := Y/255.0;
+
+    F := 1.0 - ((1.0 - A) * (1.0 - B));
+
+    Result := IntMin(Integer(Trunc(F*255.0)), 255);
+  End;
+Begin
+  Result.R := Screen(A.R, B.R);
+  Result.G := Screen(A.G, B.G);
+  Result.B := Screen(A.B, B.B);
+  Result.A := Screen(A.A, B.A);
+End;
+
+Function ColorOverlay(Const A,B:Color):Color;
+  Function Overlay(X,Y:Byte):Byte;
+  Var
+    A, B, F:Single;
+  Begin
+    A := X/255.0;
+    B := Y/255.0;
+    If (A<0.5) Then
+      F := 2.0 * A * B
+    Else
+      F := 1.0 - 2.0 * (1.0 - A) * (1.0 - B);
+
+    Result := IntMin(Integer(Trunc(F*255.0)), 255);
+  End;
+
+Begin
+  Result.R := Overlay(A.R, B.R);
+  Result.G := Overlay(A.G, B.G);
+  Result.B := Overlay(A.B, B.B);
+  Result.A := Overlay(A.A, B.A);
+End;
+
+{ Hard Light combines Multiply and Screen blend modes.
+  Equivalent to Overlay, but with the bottom and top images swapped. }
+Function ColorHardLight(Const A,B:Color):Color;
+  Function HardLight(Y,X:Byte):Byte;
+  Var
+    A, B, F:Single;
+  Begin
+    A := X/255.0;
+    B := Y/255.0;
+    If (A<0.5) Then
+      F := 2.0 * A * B
+    Else
+      F := 1.0 - 2.0 * (1.0 - A) * (1.0 - B);
+
+    Result := IntMin(Integer(Trunc(F*255.0)), 255);
+  End;
+
+Begin
+  Result.R := HardLight(A.R, B.R);
+  Result.G := HardLight(A.G, B.G);
+  Result.B := HardLight(A.B, B.B);
+  Result.A := HardLight(A.A, B.A);
+End;
+
+Function ColorSoftLight(Const A,B:Color):Color;
+  Function SoftLight(Y,X:Byte):Byte;
+  Var
+    A, B, F:Single;
+  Begin
+    A := X/255.0;
+    B := Y/255.0;
+
+    F := (1.0 - 2.0 * B) * Sqr(A) + (2.0 * B * A);
+
+    Result := IntMin(Integer(Trunc(F*255.0)), 255);
+  End;
+
+Begin
+  Result.R := SoftLight(A.R, B.R);
+  Result.G := SoftLight(A.G, B.G);
+  Result.B := SoftLight(A.B, B.B);
+  Result.A := SoftLight(A.A, B.A);
+End;
+
+Function ColorDarken(Const A,B:Color):Color;
+  Function Darken(X,Y:Byte):Byte;
+  Begin
+    If X<Y Then
+      Result := X
+    Else
+      Result := Y;
+  End;
+Begin
+  Result.R := Darken(A.R, B.R);
+  Result.G := Darken(A.G, B.G);
+  Result.B := Darken(A.B, B.B);
+  Result.A := Darken(A.A, B.A);
+End;
+
+Function ColorLighten(Const A,B:Color):Color;
+  Function Lighten(X,Y:Byte):Byte;
+  Begin
+    If X>Y Then
+      Result := X
+    Else
+      Result := Y;
+  End;
+Begin
+  Result.R := Lighten(A.R, B.R);
+  Result.G := Lighten(A.G, B.G);
+  Result.B := Lighten(A.B, B.B);
+  Result.A := Lighten(A.A, B.A);
+End;
+
+Function ColorDodge(Const A,B:Color):Color;
+  Function Dodge(X,Y:Byte):Byte;
+  Var
+    A, B, F:Single;
+  Begin
+    A := X/255.0;
+    B := Y/255.0;
+
+    If (A>=1.0) Then
+      F := 0
+    Else
+      F := B / (1.0 - A);
+
+    Result := IntMin(Integer(Trunc(F*255.0)), 255);
+  End;
+
+Begin
+  Result.R := Dodge(A.R, B.R);
+  Result.G := Dodge(A.G, B.G);
+  Result.B := Dodge(A.B, B.B);
+  Result.A := Dodge(A.A, B.A);
+End;
+
+Function ColorBurn(Const A,B:Color):Color;
+  Function Burn(X,Y:Byte):Byte;
+  Var
+    A, B, F:Single;
+  Begin
+    A := X/255.0;
+    B := Y/255.0;
+
+    If (A<=0.0) Then
+      F := 0
+    Else
+      F := (1.0 - B) / A;
+
+    Result := IntMin(Integer(Trunc(F*255.0)), 255);
+  End;
+
+Begin
+  Result.R := Burn(A.R, B.R);
+  Result.G := Burn(A.G, B.G);
+  Result.B := Burn(A.B, B.B);
+  Result.A := Burn(A.A, B.A);
+End;
+
+Function ColorCombineColor(Const A,B:Color):Color;
+Var
+  X,Y:ColorHSL;
+Begin
+  X := ColorRGBToHSL(A);
+  Y := ColorRGBToHSL(B);
+
+  X.H := Y.H;
+  X.S := Y.S;
+
+  Result := ColorHSLToRGB(X);
+End;
+
+Function ColorCombineHue(Const A,B:Color):Color;
+Var
+  X,Y:ColorHSL;
+Begin
+  X := ColorRGBToHSL(A);
+  Y := ColorRGBToHSL(B);
+
+  X.H := Y.H;
+
+  Result := ColorHSLToRGB(X);
+End;
+
+Function ColorCombineSaturation(Const A,B:Color):Color;
+Var
+  X,Y:ColorHSL;
+Begin
+  X := ColorRGBToHSL(A);
+  Y := ColorRGBToHSL(B);
+
+  X.S := Y.S;
+
+  Result := ColorHSLToRGB(X);
+End;
+
+Function ColorCombineLuminosity(Const A,B:Color):Color;
+Var
+  X,Y:ColorHSL;
+Begin
+  X := ColorRGBToHSL(A);
+  Y := ColorRGBToHSL(B);
+
+  X.L := Y.L;
+
+  Result := ColorHSLToRGB(X);
+End;
+
+Function ColorCombine(Const A, B:Color; Mode:ColorCombineMode):Color;
+Begin
+  Case Mode Of
+    combineBlend:
+      Begin
+        Result := B;
+      End;
+
+    combineMultiply:
+      Begin
+        Result := ColorMultiply(A, B);
+      End;
+
+    combineAdd:
+      Begin
+        Result := ColorAdd(A, B);
+      End;
+
+    combineSubtract:
+      Begin
+        Result := ColorSubtract(A, B);
+      End;
+
+    combineDifference:
+      Begin
+        Result := ColorDifference(A, B);
+      End;
+
+    combineScreen:
+      Begin
+        Result := ColorScreen(A, B);
+      End;
+
+    combineOverlay:
+      Begin
+        Result := ColorOverlay(A, B);
+      End;
+
+    combineHardLight:
+      Begin
+        Result := ColorHardLight(A, B);
+      End;
+
+    combineSoftLight:
+      Begin
+        Result := ColorSoftLight(A, B);
+      End;
+
+    combineDarken:
+      Begin
+        Result := ColorDarken(A, B);
+      End;
+
+    combineLighten:
+      Begin
+        Result := ColorLighten(A, B);
+      End;
+
+    combineDodge:
+      Begin
+        Result := ColorDodge(A, B);
+      End;
+
+    combineBurn:
+      Begin
+        Result := ColorBurn(A, B);
+      End;
+
+    combineColor:
+      Begin
+        Result := ColorCombineColor(A, B);
+      End;
+
+    combineHue:
+      Begin
+        Result := ColorCombineHue(A, B);
+      End;
+
+    combineSaturation:
+      Begin
+        Result := ColorCombineSaturation(A, B);
+      End;
+
+    combineLuminosity:
+      Begin
+        Result := ColorCombineLuminosity(A, B);
+      End;
+
+    Else
+      Result := A;
+  End;
+End;
 
 End.

@@ -28,7 +28,7 @@ Unit TERRA_LightingParticles;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
     TERRA_Utils, TERRA_Math, TERRA_Vector3D, TERRA_BoundingBox, TERRA_GraphicsManager, TERRA_Texture,
-    TERRA_Color, TERRA_Matrix4x4, TERRA_Shader;
+    TERRA_Color, TERRA_Matrix4x4, TERRA_VertexFormat;
 
 Type
   LightingCollection = Class(Renderable)
@@ -37,7 +37,7 @@ Type
       _Mid:Vector3D;
       _SparkCount:Integer;
       _Segments:Integer;
-      _SV:Array Of Vector3D;
+      _Vertices:VertexData;
       _Scale:Single;
       _Width:Integer;
       _Y:Array Of Single;
@@ -63,10 +63,10 @@ Type
   End;
 
 Implementation
-Uses {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_ResourceManager, TERRA_Application;
+Uses TERRA_ResourceManager, TERRA_Application, TERRA_Renderer, TERRA_OS;
 
 Var
-  _LightingShader:Shader = Nil;
+  _LightingShader:ShaderInterface = Nil;
 
 Constructor LightingCollection.Create(A, B: Vector3D; Scale:Single; Width:Integer);
 Begin
@@ -90,7 +90,7 @@ Var
   Dx,Dy,Dz:Single;
   PosHandle:Integer;
   M:Matrix4x4;
-  MyShader:Shader;
+  MyShader:ShaderInterface;
 Begin
   I := GraphicsManager.Instance.RenderStage;
   If (I <> renderStageDiffuse) And (I <> renderStageGlow) Then
@@ -102,10 +102,10 @@ Begin
   TextureManager.Instance.WhiteTexture.Bind(0);
 
   If (_Color.A<255) Then
-    GraphicsManager.Instance.SetBlendMode(blendAdd);
+    GraphicsManager.Instance.Renderer.SetBlendMode(blendAdd);
 
-  {$IFDEF PC}
-  If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
+(*  {$IFDEF PC}
+  If (Not GraphicsManager.Instance.Features.Shaders.Avaliable) Then
   Begin
     M := GraphicsManager.Instance.ActiveViewport.Camera.Projection;
     M := Matrix4x4Multiply4x4(M, GraphicsManager.Instance.ActiveViewport.Camera.Transform);
@@ -118,18 +118,16 @@ Begin
     glLoadMatrixf(@M);
     glColor4ub(_Color.R, _Color.G, _Color.B, _Color.A);
   End;
-  {$ENDIF}
-
-  ShaderManager.Instance.Bind(Nil);
+  {$ENDIF}*)
 
   dx := _A.X - _B.X;
   dy := _A.Y - _B.Y;
   dz := _A.Z - _B.Z;
 
-  glLineWidth(_Width);
+  //glLineWidth(_Width);
 
   MyShader := GraphicsManager.Instance.EnableColorShader(_Color, Matrix4x4Identity);
-  PosHandle := MyShader.GetAttribute('terra_position');
+  //PosHandle := MyShader.GetAttribute('terra_position');
 
   For I :=1 to _SparkCount Do
   Begin
@@ -146,28 +144,32 @@ Begin
       U.Y := U.Y + 0.02 * _Scale + _y[J] + rnd;
       V.Y := V.Y - 0.02 * _Scale + _y[J] + rnd;
 
-      _SV[K] := VectorCreate(U.X, U.Y, U.Z); Inc(K);
-      _SV[K] := VectorCreate(V.X, V.Y, V.Z); Inc(K);
+      _Vertices.SetVector3D(K, vertexPosition, VectorCreate(U.X, U.Y, U.Z)); Inc(K);
+      _Vertices.SetVector3D(K, vertexPosition, VectorCreate(V.X, V.Y, V.Z)); Inc(K);
     End;
 
-  {$IFDEF PC}
+(*  {$IFDEF PC}
     If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
     Begin
       glEnableClientState(GL_VERTEX_ARRAY);
-      glVertexPointer(3, GL_FLOAT, SizeOf(Vector3D), @_SV[0]);
+      glVertexPointer(3, GL_FLOAT, SizeOf(Vector3D), @_Vertices[0]);
       glDrawArrays(GL_TRIANGLES, 0, K);
     End Else
   {$ENDIF}
-      glVertexAttribPointer(PosHandle, 3, GL_FLOAT, False, SizeOf(Vector3D), @(_SV[0]));    
+      glVertexAttribPointer(PosHandle, 3, GL_FLOAT, False, SizeOf(Vector3D), @(_Vertices[0]));*)
 
-    glDrawArrays(GL_LINE_STRIP, 0, K);                         
 
-  {$IFDEF PC}
-    If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
+    GraphicsManager.Instance.Renderer.SetVertexSource(_Vertices);
+    GraphicsManager.Instance.Renderer.DrawSource( renderLineStrip, K);
+
+    //glDrawArrays(GL_LINE_STRIP, 0, K);
+
+(*  {$IFDEF PC}
+    If (Not GraphicsManager.Instance.Features.Shaders.Avaliable) Then
     Begin
       glDisableClientState(GL_VERTEX_ARRAY);
     End;
-  {$ENDIF}
+  {$ENDIF}*)
   End;
 End;
 
@@ -198,7 +200,12 @@ Begin
   _BoundingBox.Add(_A);
   _BoundingBox.Add(_B);
 
-  SetLength(_SV, _Segments * 2);
+  If (_Vertices = Nil) Then
+    _Vertices := VertexData.Create([vertexFormatPosition], _Segments * 2)
+  Else
+  If (_Vertices.Count<_Segments * 2) Then
+    _Vertices.Resize(_Segments * 2);
+
   Result := True;
 End;
 

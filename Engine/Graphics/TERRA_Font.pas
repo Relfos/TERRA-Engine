@@ -27,17 +27,21 @@ Unit TERRA_Font;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Utils, TERRA_Resource, TERRA_Stream, TERRA_Image, TERRA_Color, TERRA_Vector2D,
-  TERRA_Math, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Texture, TERRA_SpriteManager,
+  TERRA_Math, TERRA_Texture, TERRA_SpriteManager, TERRA_Renderer,
   TERRA_ResourceManager, TERRA_Matrix4x4, TERRA_Matrix3x3, TERRA_ClipRect, TERRA_Collections;
 
 
 Const
   TabSize = 100;
 
-  FontQuality = 1; // currently bugged
+  {$IFDEF DISTANCEFIELDFONTS}
+  FontQuality = 4;
+  {$ELSE}
+  FontQuality = 1;
+  {$ENDIF}
 
-  DefaultFontPageWidth = 256;
-  DefaultFontPageHeight = 512;
+  DefaultFontPageWidth = 256 * FontQuality;
+  DefaultFontPageHeight = 512 * FontQuality;
 
   fontmode_Sprite   = 0;
   fontmode_Measure  = 1;
@@ -118,7 +122,7 @@ Type
 
       Procedure SetImage(Source:Image);
 
-      Procedure DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Scale:Single; Glyph:FontGlyph; Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean);
+      Procedure DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean);
 
       Property Texture:Texture Read _Texture;
   End;
@@ -128,8 +132,6 @@ Type
     Arg:TERRAString;
   End;
 
-
-  FontImageResolver = Function (Fnt:Font; Const ImageName:TERRAString):TERRAString; CDecl;
 
   FontGlyphFactory = Class(TERRAObject)
     Protected
@@ -161,8 +163,6 @@ Type
       Procedure Rebuild();
 
     Public
-      BilinearFilter:Boolean;
-
       Function Load(Source:Stream):Boolean; Override;
       //Function Save(FileName:TERRAString):Boolean;
 
@@ -174,7 +174,7 @@ Type
       Function GetPage(Index:Integer):FontPage;
 
       Function AddGlyph(ID:Cardinal; Source:Image; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; Overload;
-      Function AddGlyph(ID:Cardinal; Const FileName:TERRAString; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; Overload;
+      Function AddGlyph(ID:Cardinal; FileName:TERRAString; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; Overload;
       Function AddEmptyGlyph():FontGlyph;
       Function GetGlyph(ID:Cardinal; CreatedIfNeeded:Boolean = True):FontGlyph;
       Procedure SortGlyphs();
@@ -225,9 +225,6 @@ Type
   Function ConvertFontCodes(S:TERRAString):TERRAString;
   Function UnconvertFontCodes(S:TERRAString):TERRAString;
 
-Var
-  _FontImageResolver:FontImageResolver;
-
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Sort,
   TERRA_Log, TERRA_FileUtils, TERRA_MemoryStream,
@@ -237,12 +234,6 @@ Var
   _FontExtensions:Array Of FontClassInfo;
   _FontExtensionCount:Integer;
   _FontManager_Instance:ApplicationObject;
-
-Function DefaultFontImageResolver(Fnt:Font; Const ImageName:TERRAString):TERRAString; CDecl;
-Begin
-  Fnt.IsReady();
-  Result := ImageName;
-End;
 
 Type
   GlyphSort = Class(Sort)
@@ -662,11 +653,18 @@ Begin
     _Image.Release();
 End;
 
-Procedure FontPage.DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Scale:Single; Glyph:FontGlyph; Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean);
+Procedure FontPage.DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean);
 Var
-  S:Sprite;
+  S:QuadSprite;
+  Filter:TextureFilterMode;
 Begin
-  S := SpriteManager.Instance.DrawSpriteWithOutline(X + Glyph.XOfs * Scale, Y + Glyph.YOfs* Scale, Z, _Texture, Outline, Nil, blendBlend, 1.0, Self._Font.BilinearFilter, True);
+  {$IFDEF DISTANCEFIELDFONTS}
+  Filter := filterBilinear;
+  {$ELSE}
+  Filter := filterLinear;
+  {$ENDIF}
+
+  S := SpriteManager.Instance.DrawSpriteWithOutline(X + Glyph.XOfs, Y + Glyph.YOfs, Z, _Texture, Outline, Nil, blendBlend, 1.0, Filter, True);
   S.SetColors(A,B,C,D);
 
   S.SetTransform(Transform);
@@ -682,7 +680,8 @@ Procedure FontPage.SetImage(Source: Image);
 Begin
   If (_Texture = Nil) Then
   Begin
-    _Texture := TERRA_Texture.Texture.New(Self._Font.Name+'_page'+IntTostring(Self._ID), Source);
+    _Texture := TERRA_Texture.Texture.Create();
+    _Texture.CreateFromImage(Self._Font.Name+'_page'+IntTostring(Self._ID), Source);
   End Else
   If (_Texture.Width<>Source.Width) Or (_Texture.Height<>Source.Height) Then
   Begin
@@ -956,7 +955,7 @@ Begin
   _Glyphs[Pred(_GlyphCount)] := Result;
 End;
 
-Function Font.AddGlyph(ID: Cardinal; Const FileName:TERRAString; XOfs, YOfs, XAdvance: SmallInt):FontGlyph;
+Function Font.AddGlyph(ID:Cardinal; FileName:TERRAString; XOfs, YOfs, XAdvance: SmallInt):FontGlyph;
 Var
   Source: Image;
 Begin
@@ -1080,13 +1079,16 @@ Begin
     If (Application.Instance<>Nil) Then
     Begin
       If (_Pages[K]._Texture = Nil) Then
-        _Pages[K]._Texture := Texture.New(Self.Name+'_page'+IntToString(K), _Pages[K]._Image.Width, _Pages[K]._Image.Height);
-
+      Begin
+        _Pages[K]._Texture := Texture.Create();
+        _Pages[K]._Texture.CreateFromSize(Self.Name+'_page'+IntToString(K), _Pages[K]._Image.Width, _Pages[K]._Image.Height);
+      End;
+      
       _Pages[K]._Texture.IsReady();
     End;
 
     Temp := _Pages[K]._Image;
-    Temp.Process(IMP_FillColor, ColorGrey(255, 0));
+    //Temp.Process(IMP_FillColor, ColorNull);
     Packer := RectanglePacker.Create();
 
     For I:=0 To Pred(_GlyphCount) Do
@@ -1118,12 +1120,10 @@ Begin
 
     //Temp.Save('koo_'+IntToString(K)+'.png');
 
-    If (Application.Instance<>Nil) Then
-    Begin
+    If Assigned(_Pages[K]._Texture) Then
       _Pages[K]._Texture.UpdateRect(Temp, 0, 0);
-    End;
 
-    Packer.Release;
+    ReleaseObject(Packer);
 
     Inc(K);
   End;
@@ -1252,6 +1252,4 @@ Begin
   End;
 End;
 
-Initialization
-  _FontImageResolver := DefaultFontImageResolver;
 End.

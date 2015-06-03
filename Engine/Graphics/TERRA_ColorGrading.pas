@@ -26,7 +26,7 @@ Unit TERRA_ColorGrading;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Texture, TERRA_Shader, TERRA_Color, TERRA_Image, TERRA_Vector3D;
+Uses TERRA_String, TERRA_Utils, TERRA_Texture, TERRA_Color, TERRA_Image, TERRA_Vector3D, TERRA_Renderer;
 
 Const
   ColorTableUniformName = 'color_table_texture';
@@ -42,7 +42,7 @@ Type
   Function ColorTableBind(ColorTableTex:Texture; Slot:Integer):Boolean;
 
 Implementation
-Uses TERRA_OS, TERRA_Log;
+Uses TERRA_OS, TERRA_GraphicsManager, TERRA_Log;
 
 Function CreateColorTable(Size:Integer; Transform:ColorTransform; Userdata:Pointer):Image;
 Var
@@ -110,14 +110,14 @@ End;
 
 Function ColorTableBind(ColorTableTex:Texture; Slot:Integer):Boolean;
 Var
-  MyShader:Shader;
+  MyShader:ShaderInterface;
   Scale:Single;
   TableWidth:Single;
   Elements:Single;
 Begin
   Result := False;
 
-  MyShader := ShaderManager.Instance.ActiveShader;
+  MyShader := GraphicsManager.Instance.Renderer.ActiveShader;
   If (MyShader = Nil) Then
     Exit;
 
@@ -134,14 +134,16 @@ Begin
   Elements := ColorTableTex.Height;
   TableWidth := ColorTableTex.Width;
 
-  MyShader.SetUniform(ColorTableUniformName, Slot);
-  MyShader.SetUniform('color_table_elements', Elements);
-  MyShader.SetUniform('color_table_width', 1 / TableWidth);
-  MyShader.SetUniform('color_table_scale', VectorCreate(Elements, 1.0 / Elements, 1.0 / (Elements - 1)));
-//  MyShader.SetUniform('color_table_clamp', VectorUniform(Elements-1));
+  MyShader.SetIntegerUniform(ColorTableUniformName, Slot);
+  MyShader.SetFloatUniform('color_table_elements', Elements);
+  MyShader.SetFloatUniform('color_table_width', 1 / TableWidth);
+  MyShader.SetFloatUniform('color_table_scale', 1.0 / Elements);
+  MyShader.SetFloatUniform('color_table_clamp', (Elements - 1.0) / Elements);
 
-  ColorTableTex.BilinearFilter := True;
-  ColorTableTex.Wrap := False;
+
+
+  ColorTableTex.Filter := filterBilinear;
+  ColorTableTex.WrapMode := wrapNothing;
   ColorTableTex.MipMapped := False;
   ColorTableTex.Bind(Slot);
   Result := True;
@@ -156,42 +158,44 @@ Begin
 	Line('  uniform sampler2D color_table_texture;');
   Line('  uniform highp float color_table_elements;');
   Line('  uniform highp float color_table_width;');
-  Line('  uniform mediump vec3 color_table_scale;');
+  Line('  uniform highp float color_table_scale;');
+  Line('  uniform highp float color_table_clamp;');
 
 	Line('lowp vec3 ColorTableLookup(highp vec3 color)	{');
 
-  Line('  color *= color_table_scale.x;');
+  Line('  color *= color_table_elements;');
 
   Line('  mediump float delta = fract(color.b);');
 
-  Line('  highp float red = floor(color.r);');
-  Line('  highp float green = floor(color.g);');
-  Line('  highp float blue1 = floor(color.b);');
+  Line('  highp float red = color.r;');
+  Line('  highp float green = color.g;');
+  Line('  highp float blue = floor(color.b);');
+
+  Line('  blue = min(blue, color_table_elements - 1.0);');
+
+  Line('  red = 0.5 + red * color_table_clamp;');
 
 //  calculate first offset
-  Line('  highp float px = (color_table_elements * blue1 + red + 0.5) * color_table_width;');
-  Line('  highp float py = green * color_table_scale.z;');
-
-  Line('  highp float minpx = (color_table_elements * blue1 + 0.5) * color_table_width;');
-  Line('  highp float maxpx = (color_table_elements * (blue1 + 1.0) - 0.5) * color_table_width;');
-
-  Line('  px = min(px, maxpx);');
-  Line('  px = max(px, minpx);');
+  Line('  highp float px = (color_table_elements * blue + red);');
+  Line('  highp float py = green * color_table_scale;');
 
   // loop up first color
-  Line('  mediump vec2 ofs = vec2(px, py);');
+  Line('  mediump vec2 ofs = vec2(px* color_table_width, py);');
   Line('  mediump vec3 temp1 = texture2D(color_table_texture, ofs).rgb;');
 
 //  calculate second offset
-  Line('  px += color_table_scale.y;');
-  Line('  px = min(px, 1.0);');
+  Line('  ofs.x += color_table_elements * color_table_width;');
 
   // loop up second color
-  Line('  ofs = vec2(px, py);');
   Line('  mediump vec3 temp2 = texture2D(color_table_texture, ofs).rgb;');
 
   // interpolate
   Line('return mix(temp1, temp2, delta);	}');
+
+//  Line('temp1.r=0.5;	');
+//  Line('return temp1;	}');
+
+//  Line('return vec4(delta);	}');
 
   Result := S;
 End;

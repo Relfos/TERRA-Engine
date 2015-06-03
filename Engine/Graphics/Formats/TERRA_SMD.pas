@@ -27,8 +27,8 @@ Unit TERRA_SMD;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Math, TERRA_Color,
-  TERRA_Vector4D, TERRA_Vector2D, TERRA_MeshFilter, TERRA_FileStream, TERRA_FileUtils,
-  TERRA_OS, TERRA_MemoryStream;
+  TERRA_Quaternion, TERRA_Vector2D, TERRA_MeshFilter, TERRA_FileStream, TERRA_FileUtils,
+  TERRA_OS, TERRA_MemoryStream, TERRA_Renderer, TERRA_VertexFormat;
 
 Type
   SMDValue = Record
@@ -85,7 +85,7 @@ Type
 
       Function GetBone(Index:Integer):PSMDBone;
       Function GetFramePosition(BoneIndex:Integer):Vector3D;
-      Function GetFrameRotation(BoneIndex:Integer):Vector4D;
+      Function GetFrameRotation(BoneIndex:Integer):Quaternion;
 
       Function GetFrame(Index:Integer):SMDFrame;
 
@@ -130,10 +130,9 @@ Type
       Function GetTriangle(GroupID, Index:Integer):Triangle; Override;
 
       Function GetVertexCount(GroupID:Integer):Integer; Override;
-      Function GetVertexFormat(GroupID:Integer):Cardinal; Override;
+      Function GetVertexFormat(GroupID:Integer):VertexFormat; Override;
       Function GetVertexPosition(GroupID, Index:Integer):Vector3D; Override;
       Function GetVertexNormal(GroupID, Index:Integer):Vector3D; Override;
-      Function GetVertexHandness(GroupID, Index:Integer):Single; Override;
       Function GetVertexBone(GroupID, Index:Integer):Integer; Override;
       Function GetVertexColor(GroupID, Index:Integer):Color; Override;
       Function GetVertexUV(GroupID, Index:Integer):Vector2D; Override;
@@ -165,7 +164,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_GraphicsManager, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
+Uses TERRA_GraphicsManager;
 
 { SMDAnimation }
 
@@ -286,26 +285,26 @@ Begin
   Result := VectorInterpolate(_Frames[A].Values[BoneIndex].Position, _Frames[B].Values[BoneIndex].Position, _CurrentDelta);
 End;
 
-Function SMDAnimation.GetFrameRotation(BoneIndex:Integer):Vector4D;
+Function SMDAnimation.GetFrameRotation(BoneIndex:Integer):Quaternion;
 Var
   A, B:Integer;
-  Q1, Q2:Vector4D;
+  Q1, Q2:Quaternion;
 Begin
   A := _CurrentFrame;
   B := (A + 1) Mod _FrameCount;
 
-  Q1 := Vector4DRotation(_Frames[A].Values[BoneIndex].Rotation);
-  Q2 := Vector4DRotation(_Frames[B].Values[BoneIndex].Rotation);
+  Q1 := QuaternionRotation(_Frames[A].Values[BoneIndex].Rotation);
+  Q2 := QuaternionRotation(_Frames[B].Values[BoneIndex].Rotation);
 
-  Result := Vector4DSlerp(Q1, Q2, _CurrentDelta);
-//  Result := Vector4DConjugate(Result);
+  Result := QuaternionSlerp(Q1, Q2, _CurrentDelta);
+//  Result := QuaternionConjugate(Result);
 End;
 
 Procedure SMDAnimation.Update(Time: Single);
 Var
   J, I, N:Integer;
   Delta, K:Single;
-  Q1, Q2:Vector4D;
+  Q1, Q2:Quaternion;
   PA,PB:Array Of Vector3D;
 Begin
   _Time := Time;
@@ -375,11 +374,11 @@ Begin
 {$IFDEF PC}
   GraphicsManager.Instance.EnableColorShader(ColorBlue, Transform);
 
-  glLineWidth(2);                         
-  GraphicsManager.Instance.SetBlendMode(blendNone);
+{  GraphicsManager.Instance.Renderer.SetBlendMode(blendNone);
 
-  glDepthMask(True);                      
-  glDepthRange(0,0.0001);                 
+  glLineWidth(2);
+  glDepthMask(True);
+  glDepthRange(0,0.0001);
 
   glBegin(GL_LINES);
   For I:=0 To Pred(_BoneCount) Do
@@ -406,8 +405,8 @@ Begin
   End;
   glEnd;
 
-  glDepthMask(True);                      
-  glDepthRange(0,1);                      
+  glDepthMask(True);
+  glDepthRange(0,1);}
 {$ENDIF}
 End;
 
@@ -667,14 +666,9 @@ Begin
   Result := _Reference.VertexCount;
 End;
 
-Function SMDModel.GetVertexFormat(GroupID: Integer): Cardinal;
+Function SMDModel.GetVertexFormat(GroupID: Integer):VertexFormat;
 Begin
-  Result := meshFormatNormal Or meshFormatBone;
-End;
-
-Function SMDModel.GetVertexHandness(GroupID, Index: Integer): Single;
-Begin
-  Result := 1;
+  Result := [vertexFormatPosition, vertexFormatNormal, vertexFormatBone];
 End;
 
 Function SMDModel.GetVertexNormal(GroupID, Index: Integer): Vector3D;

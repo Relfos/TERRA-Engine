@@ -71,7 +71,7 @@ Type
       Procedure Release(); Override;
 
       { Mark this object for release. It will be auto-released as soon as possible.}
-      Procedure Discard();
+      Procedure Discard(); 
 
       { Links this object to a specific collection. Internal use. }
       Procedure Link(Col:Collection);
@@ -90,30 +90,40 @@ Type
   End;
 
   Iterator = Class(TERRAObject)
-    Protected
-      _Current:CollectionObject;
-      _Next:CollectionObject;
+    Private
+      _Value:CollectionObject;
       _Index:Integer;
       _Collection:Collection;
       _Finished:Boolean;
 
+      {$IFNDEF DISABLEALLOCOPTIMIZATIONS}
+      Class Function NewInstance:TObject; Override;
+      Procedure FreeInstance; Override;
+      {$ENDIF}
+
+    Protected
+
       Function ObtainNext():CollectionObject; Virtual; Abstract;
+
+      Procedure Reset(); Virtual;
+      Procedure JumpToIndex(Position: Integer); Virtual;
 
       Procedure Release(); Override;
 
-      Class Function NewInstance:TObject; Override;
-      Procedure FreeInstance; Override;
+      Function GetPosition():Integer;
+
+      Property Index:Integer Read _Index;
 
     Public
       Constructor Create(Col:Collection);
 
       Function HasNext():Boolean;
-      Function GetNext():CollectionObject;
 
-      Procedure Reset(); Virtual;
+      Procedure Seek(Position:Integer);
 
-      Property Current:CollectionObject Read _Current;
-      Property Index:Integer Read _Index;
+      Property Value:CollectionObject Read _Value;
+      Property Position:Integer Read GetPosition;
+      Property Collection:TERRA_Collections.Collection Read _Collection;
   End;
 
   CollectionVisitor = Function(Item:CollectionObject; UserData:Pointer):Boolean; CDecl;
@@ -140,10 +150,10 @@ Type
     Public
       Procedure Release(); Override;
 
-      Function GetIterator:Iterator; Virtual;Abstract;
+      Function GetIterator:Iterator; Virtual;
 
       // removes all items
-      Procedure Clear(); Virtual;Abstract;
+      Procedure Clear(); Virtual; 
 
       Procedure Lock;
       Procedure Unlock;
@@ -156,7 +166,7 @@ Type
       Function ContainsReference(Item:CollectionObject):Boolean; Virtual;
       Function ContainsDuplicate(Item:CollectionObject):Boolean; Virtual;
 
-      Function GetItemByIndex(Index:Integer):CollectionObject; Virtual; Abstract;
+      Function GetItemByIndex(Index:Integer):CollectionObject; Virtual;
 
 //      Function FindByValue(Const Value:TERRAString):CollectionObject; Virtual;
 
@@ -201,10 +211,12 @@ Type
 
   ListIterator = Class(Iterator)
     Protected
+      _Current:CollectionObject;
+
       Function ObtainNext:CollectionObject; Override;
+      Procedure Reset(); Override;
 
     Public
-      Procedure Reset(); Override;
   End;
 
   IntegerArrayObject = Object
@@ -300,7 +312,7 @@ Begin
   It := Self.GetIterator();
   While (It.HasNext()) Do
   Begin
-    P := It.GetNext();
+    P := It.Value;
     If (Visitor(P, UserData)) Then
     Begin
       Result := P;
@@ -317,7 +329,7 @@ Begin
   It := Self.GetIterator();
   While (It.HasNext()) Do
   Begin
-    Visitor(It.GetNext(), UserData);
+    Visitor(It.Value, UserData);
   End;
 End;
 
@@ -329,7 +341,7 @@ Begin
   It := Self.GetIterator();
   While (It.HasNext()) Do
   Begin
-    If (It.GetNext() = Item) Then
+    If (It.Value = Item) Then
     Begin
       Result := True;
       Break;
@@ -346,7 +358,7 @@ Begin
   It := Self.GetIterator();
   While (It.HasNext()) Do
   Begin
-    If (StringEquals(It.GetNext().ToString(), Item.ToString())) Then
+    If (StringEquals(It.Value.ToString(), Item.ToString())) Then
     Begin
       Result := True;
       Break;
@@ -455,6 +467,33 @@ Begin
   SetLength(Items, Count);
 End;
 
+Function Collection.GetItemByIndex(Index: Integer): CollectionObject;
+Var
+  It:Iterator;
+Begin
+  It := Self.GetIterator();
+  It.Seek(Index);
+  Result := It.Value;
+  ReleaseObject(It);
+End;
+
+Function Collection.GetIterator: Iterator;
+Begin
+  Result := Nil;
+End;
+
+Procedure Collection.Clear;
+Var
+  It:Iterator;
+Begin
+  It := Self.GetIterator();
+  While It.HasNext() Do
+  Begin
+    It.Value.Discard();
+  End;
+  ReleaseObject(It);
+End;
+
 { Iterator }
 Constructor Iterator.Create(Col: Collection);
 Begin
@@ -475,14 +514,27 @@ Begin
   End;
 {$ENDIF}
 
-  Self.Reset();
+  Self.Seek(0);
 End;
+
+{$IFNDEF DISABLEALLOCOPTIMIZATIONS}
+Class Function Iterator.NewInstance: TObject;
+Var
+  ObjSize, GlobalSize:Integer;
+Begin
+  ObjSize := InstanceSize();
+  Result := StackAlloc(ObjSize);
+  InitInstance(Result);
+End;
+
+Procedure Iterator.FreeInstance;
+Begin
+End;
+{$ENDIF}
 
 Procedure Iterator.Reset();
 Begin
-  _Finished := False;
-  _Index := -1;
-  _Current := Nil;
+  // do nothing
 End;
 
 Procedure Iterator.Release();
@@ -503,68 +555,45 @@ Begin
   End;
 End;
 
-Function Iterator.GetNext: CollectionObject;
-Begin
-  Result := _Current;
-End;
-
 Function Iterator.HasNext: Boolean;
 Begin
-  Result := (Assigned(_Next));
-  If Result Then
+  _Value := Self.ObtainNext();
+  Result := Assigned(_Value);
+  If (Result) Then
+    Inc(_Index)
+  Else
+  If (Not _Finished) Then
+    Self.Release();
+End;
+
+Function Iterator.GetPosition():Integer;
+Begin
+  Result := Pred(_Index);
+End;
+
+Procedure Iterator.Seek(Position: Integer);
+Begin
+  _Finished := False;
+  _Value := Nil;
+
+  _Index := 0;
+  Self.Reset();
+
+  If Position>0 Then
   Begin
-    _Current := _Next;
-
-    Inc(_Index, 2);
-    If (_Index<_Collection.Count) Then
-      _Next := Self.ObtainNext()
-    Else
-      _Next := Nil;
-    Dec(_Index);
-  End Else
-  If Not _Finished Then
-    ReleaseObject(Self);
+    JumpToIndex(Position);
+    _Index := Position;
+  End;
 End;
 
-Const
-  _IteratorAllocSize = 1024 * 32;
-
-Var
-  _IteratorStack:Array[0..Pred(_IteratorAllocSize)] Of Byte;
-  _IteratorPointer:Cardinal = 0;
-{$IFNDEF DISABLETHREADS}
-  _IteratorMutex:CriticalSection;
-{$ENDIF}
-
-Class Function Iterator.NewInstance: TObject;
-Var
-  ObjSize, GlobalSize:Integer;
+Procedure Iterator.JumpToIndex(Position: Integer);
 Begin
-  ObjSize := InstanceSize();
-
-{$IFNDEF DISABLETHREADS}
-  _IteratorMutex.Lock();
-{$ENDIf}
-
-  If (_IteratorPointer + ObjSize >= _IteratorAllocSize) Then
-    _IteratorPointer := 0;
-
-  Result := @_IteratorStack[_IteratorPointer];
-
-  Inc(_IteratorPointer, ObjSize);
-
-{$IFNDEF DISABLETHREADS}
-  _IteratorMutex.Unlock();
-{$ENDIf}
-
-  InitInstance(Result);
+  While (Self.Index<Position) Do
+  Begin
+    If Not Self.HasNext() Then
+      Exit;
+  End;
 End;
-
-Procedure Iterator.FreeInstance;
-Begin
-  // do nothing -> extremely fast deallocs
-End;
-
 
 { CollectionObject }
 Procedure CollectionObject.CopyValue(Other: CollectionObject);
@@ -711,7 +740,7 @@ Begin
   I := C.GetIterator();
   While I.HasNext Do
   Begin
-    Temp := I.GetNext();
+    Temp := I.Value;
     N := CollectionObject(Temp.ClassType.Create());
     N.CopyValue(Temp);
     Self.Add(N);
@@ -942,8 +971,6 @@ Begin
   Self.Unlock();
 End;
 
-
-
 Function List.GetIterator:Iterator;
 Begin
   Result := ListIterator.Create(Self);
@@ -952,25 +979,22 @@ End;
 Procedure ListIterator.Reset;
 Begin
   Inherited;
-  _Next := List(_Collection)._First;
+
+  _Current := List(_Collection)._First;
 End;
 
 Function ListIterator.ObtainNext:CollectionObject;
 Begin
   If Assigned(_Current) Then
   Begin
-    Result := _Current.Next;
+    Result := _Current;
+
+    _Current := _Current.Next;
   End Else
     Result := Nil;
 End;
 
 
-{$IFNDEF DISABLETHREADS}
-Initialization
-  _IteratorMutex := CriticalSection.Create();
-Finalization
-  ReleaseObject(_IteratorMutex);
-{$ENDIF}
 End.
 
 

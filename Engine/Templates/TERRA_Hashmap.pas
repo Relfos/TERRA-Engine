@@ -74,6 +74,7 @@ Type
   HashMapIterator = Class(Iterator)
     Protected
       _CurrentTable:Integer;
+      _Current:CollectionObject;
 
       Function FindNextItem():CollectionObject;
       Function ObtainNext:CollectionObject; Override;
@@ -156,7 +157,7 @@ Begin
   It := Self.GetIterator();
   While It.HasNext Do
   Begin
-    A := It.GetNext();
+    A := It.Value;
     If (Visitor(A, UserData)) Then
     Begin
       B := CollectionObject(A.ClassType.Create());
@@ -321,16 +322,15 @@ Procedure HashMapIterator.Reset();
 Begin
   Inherited;
   _CurrentTable := -1;
-  _Next := Self.FindNextItem();
+  _Current := Nil;
 End;
-
 
 Function HashMapIterator.FindNextItem():CollectionObject;
 Var
   I:Integer;
   Table:HashMap;
 Begin
-  Table := HashMap(_Collection);
+  Table := HashMap(Self.Collection);
   For I := Succ(_CurrentTable) To Pred(Table._TableSize) Do
   If Assigned(Table._Table[I]) Then
   Begin
@@ -344,11 +344,17 @@ End;
 
 Function HashMapIterator.ObtainNext:CollectionObject;
 Begin
-    If (_Current.Next=Nil) Then
-    Begin
-      Result := FindNextItem();
-    End Else
-      Result := _Current.Next;
+  If (_Current = Nil) And (Self.Index<Self.Collection.Count) Then
+  Begin
+    _Current := FindNextItem();
+  End;
+
+  If Assigned(_Current) Then
+  Begin
+    Result := _Current;
+    _Current := _Current.Next;
+  End Else
+    Result := Nil;
 End;
 
 End.

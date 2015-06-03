@@ -95,7 +95,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_OS, TERRA_Image, TERRA_GraphicsManager, TERRA_Utils, TERRA_Color,
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Image, TERRA_GraphicsManager, TERRA_Utils, TERRA_Color,
   TERRA_FileUtils, TERRA_FileStream, TERRA_FileManager;
 
 Type
@@ -165,7 +165,7 @@ Begin
     Exit;
   End;
 
-  MyResource.Time := GetTime;
+  MyResource.Time := Application.GetTime;
   Log(logDebug, 'Resource', 'Loaded '+MyResource.Name);
 
   If (MyResource.InBackground) Then
@@ -196,7 +196,11 @@ Begin
 {$ENDIF}
 
   UseThreads := True;
+  {$IFDEF MOBILE}
   AutoUnload := True;
+  {$ELSE}
+  AutoUnload := False;
+  {$ENDIF}
 
   Log(logDebug, 'Resource', 'This resource manager is ready to go!');
 End;
@@ -287,7 +291,7 @@ Begin
   It := _Resources.GetIterator();
   While (It.HasNext) Do
   Begin
-    MyResource := Resource(It.GetNext());
+    MyResource := Resource(It.Value);
     If (MyResource = Nil) Then
       Break;
 
@@ -308,7 +312,7 @@ Begin
 
   _Purging := False;
 
-  _LastUpdate := GetTime;
+  _LastUpdate := Application.GetTime;
 End;
 
 Procedure ResourceManager.Update;
@@ -335,7 +339,7 @@ Begin
   End;
 
 {$IFDEF PC}
-  If (GetTime-_LastUpdate<ResourceUpdateTime) Then
+  If (Application.GetTime-_LastUpdate<ResourceUpdateTime) Then
     Exit;
 
   PurgeResources();
@@ -376,7 +380,7 @@ Begin
   It := _Resources.GetIterator();
   While (It.HasNext) Do
   Begin
-    MyResource := Resource(It.GetNext());
+    MyResource := Resource(It.Value);
     If (MyResource.Status <> rsBusy) Then
       Inc(Result);
   End;
@@ -398,7 +402,7 @@ Begin
   It := _Resources.GetIterator();
   While (It.HasNext) Do
   Begin
-    MyResource := Resource(It.GetNext());
+    MyResource := Resource(It.Value);
 
     MyResource.Status := rsBusy;
    // Log(logDebug,'Resource','Unloaded '+MyResource.Name);
@@ -411,7 +415,7 @@ Begin
 
   Log(logDebug, 'Resources', 'Unloaded '+IntToString(N) + ' resources.');
 
-  _LastUpdate := GetTime;
+  _LastUpdate := Application.GetTime;
 End;
 
 
@@ -442,7 +446,7 @@ Begin
   It := _Resources.GetIterator();
   While (It.HasNext) Do
   Begin
-    MyResource := Resource(It.GetNext());
+    MyResource := Resource(It.Value);
     If (MyResource.Status = rsReady) Then
     Begin
       Log(logDebug, 'ResourceManager', 'Context lost: '+MyResource.Name);

@@ -18,7 +18,7 @@
  *
  **********************************************************************************************************************
  * TERRA_Callback
- * Implements callstack debug info (tested with Delphi 7 only, will provide empty info in other compilers) 
+ * Implements callstack debug info (tested with Delphi 7 only, will provide empty info in other compilers)
  ***********************************************************************************************************************
 }
 Unit TERRA_Callstack;
@@ -43,6 +43,8 @@ Var
   SettingCallStack:Boolean = False;
 
 Implementation
+
+
 {$IFNDEF FPC}
 Uses Windows;
 
@@ -630,6 +632,5 @@ Begin
   Info.Line := 0;
 End;
 {$ENDIF}
-
 
 End.

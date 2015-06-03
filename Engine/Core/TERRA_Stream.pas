@@ -38,7 +38,7 @@ Unit TERRA_Stream;
 Interface
 
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  SysUtils, TERRA_Utils, TERRA_FileUtils, TERRA_String;
+  TERRA_Utils, TERRA_FileUtils, TERRA_String;
 
 Const
  // Stream access/permission flags
@@ -48,7 +48,7 @@ Const
   smShared  = 8;
   smAppend  = 16;
   smLargeAlloc = 32;
-  smDefault = 7; //lfRead Or lfWrite or lfDynamic
+  smDefault = smRead Or smWrite or smDynamic;
 
   EOL_Unix = 0;
   EOL_Windows = 1;
@@ -106,6 +106,8 @@ Type
       Procedure WriteChars(Const S:TERRAString); Virtual;
 
       Procedure ReadLines(Var S:TERRAString);
+
+      Procedure ReadContent(Out S:TERRAString);
 
       Procedure WriteBOM(Encoding:StringEncoding);
 
@@ -197,7 +199,7 @@ End;
 Procedure Stream.Copy(Dest:Stream;Offset,Count:Integer);
 Var
   BytesRead:Integer;
-  Buffer:PByte;
+  Buffer:PByteArray;
   BufferSize:Integer;
   BlockSize:Integer;
   A,B:Integer;
@@ -433,7 +435,7 @@ Begin
   While Not Self.EOF Do
   Begin
     Self.ReadLine(S2);
-    S := S + S2 + CrLf;
+    S := S + S2 + StringFromChar(NewLineChar);
   End;
 End;
 
@@ -821,5 +823,13 @@ Begin
   End;
 End;
 
+
+Procedure Stream.ReadContent(Out S:TERRAString);
+Begin
+  S := '';
+  SetLength(S, Self.Size);
+  Self.Seek(0);
+  Self.Read(@S[1], Self.Size);
+End;
 
 End.

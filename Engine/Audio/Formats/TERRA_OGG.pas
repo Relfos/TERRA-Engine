@@ -4821,13 +4821,18 @@ var
    i,n,j,len,m: integer;
    crc: Cardinal;
 begin
-   for i:=0 to f.page_crc_tests-1 do
+   For i:=0 to Pred(f.page_crc_tests) Do
       f.scan[i].bytes_done := 0;
 
    // if we have room for more scans, search for them first, because
    // they may cause us to stop early if their header is incomplete
-   if f.page_crc_tests<STB_VORBIS_PUSHDATA_CRC_COUNT then begin
-      if data_len<4 then begin result:=0; exit; end;
+   if f.page_crc_tests<STB_VORBIS_PUSHDATA_CRC_COUNT Then
+   begin
+      if data_len<4 then
+      begin
+        result:=0;
+        exit;
+      end;
       data_len := data_len - 3; // need to look for 4-byte sequence, so don't miss
                      // one that straddles a boundary
       for i:=0 to data_len-1 do begin
@@ -6091,7 +6096,7 @@ end;*)
 {$ENDIF}
 
 Const
-  BufferSize = 1024;
+  BufferSize = 1024 * 8;
 
 Type
   OggStreamer=Class(SoundStream)
@@ -6108,8 +6113,8 @@ Type
       _Info:stb_vorbis_info;
       _Error:STBVorbisError;
       _BaseOffset:Integer;
-      _Temp:Array[0..Pred(BufferSize)] Of Byte;
       _TargetSampleRate:Integer;
+      _Temp:Array[0..Pred(BufferSize)] Of Byte;
 
       Function ResampleSound(left, right:PSingle; Offset, Length:Integer):Integer;
       Function FillBuffer(Offset:Integer):Integer;
@@ -6398,6 +6403,7 @@ Var
   S:PSample;
 Begin
   fs := _TargetSampleRate / _Info.sample_rate;
+
   newsamples := Trunc(Length * fs);
   Result := newsamples;
 

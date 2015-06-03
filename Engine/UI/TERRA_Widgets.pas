@@ -31,7 +31,7 @@ Unit TERRA_Widgets;
 {$IFDEF WINDOWS}{$UNDEF MOBILE}{$ENDIF}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_UI, TERRA_Tween, TERRA_Vector2D, TERRA_Math, TERRA_Color,
+Uses TERRA_String, TERRA_Utils, TERRA_UI, TERRA_Tween, TERRA_Vector2D, TERRA_Math, TERRA_Color, TERRA_Renderer,
   TERRA_FileManager, TERRA_SpriteManager, TERRA_Texture, TERRA_Font, TERRA_ClipRect, TERRA_Collections;
 
 Const
@@ -54,6 +54,8 @@ Type
       _PreviousFont:Font;
       _OriginalValue:TERRAString;
 
+      Function GetLocalizationKey: TERRAString;
+
     Public
       Procedure SetCaption(Value:TERRAString);
 
@@ -64,6 +66,7 @@ Type
 			Procedure OnLanguageChange(); Override;
 
       Property Caption:TERRAString Read _Caption Write SetCaption;
+      Property LocalizationKey:TERRAString Read GetLocalizationKey;
   End;
 
   UITabEntry = Record
@@ -88,8 +91,13 @@ Type
 
       Function GetTabAt(X,Y:Integer):Integer;
       Function GetSelectedCaption: TERRAString;
+      Procedure SetSelectedCaption(const Value: TERRAString);
 
       Procedure GetTabProperties(Const Selected:Boolean; Out TabColor:Color; Out TabFont:TERRA_Font.Font); Virtual;
+
+      Procedure SetSelectedIndex(const Value: Integer);
+
+      Function IsSelectable():Boolean; Override;
 
     Public
       Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; ComponentBG:TERRAString=''); Overload;
@@ -104,10 +112,13 @@ Type
       Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
       Function OnMouseMove(X,Y:Integer):Boolean; Override;
 
+      Function OnSelectRight():Boolean; Override;
+      Function OnSelectLeft():Boolean; Override;
+
 			Procedure OnLanguageChange(); Override;
 
-      Property SelectedIndex:Integer Read _SelectedIndex Write _SelectedIndex;
-      Property SelectedCaption:TERRAString Read GetSelectedCaption;
+      Property SelectedIndex:Integer Read _SelectedIndex Write SetSelectedIndex;
+      Property Caption:TERRAString Read GetSelectedCaption Write SetSelectedCaption;
   End;
 
   UIWindow = Class(Widget)
@@ -122,6 +133,7 @@ Type
       _IX:Integer;
       _IY:Integer;
 
+      Function IsSelectable():Boolean; Override;
 
     Public
       Selectable:Boolean;
@@ -131,7 +143,7 @@ Type
       Procedure Render; Override;
       Procedure UpdateRects; Override;
 
-      Procedure EnableHighlights();
+//      Procedure EnableHighlights();
 
       Procedure SetCaption(Const Value:TERRAString);
       Procedure SetHeight(Const Value: Integer);
@@ -168,6 +180,7 @@ Type
 
 
       Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
+      Function OnMouseUp(X,Y:Integer;Button:Word):Boolean; Override;
   End;
 
   UIButton = Class(UICaption)
@@ -195,7 +208,7 @@ Type
 
 
     Public
-      BilinearFilter:Boolean;
+      Filter:TextureFilterMode;
       Offset:Single;
 
       Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Skin:TERRAString=''; TabIndex:Integer=-1);
@@ -217,7 +230,6 @@ Type
 
       Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
 
-
       Procedure Render; Override;
       Procedure UpdateRects; Override;
 
@@ -230,7 +242,7 @@ Type
       Rect:TextureRect;
       Anchor:Vector2D;
       Flip, Mirror:Boolean;
-      BilinearFilter:Boolean;
+      Filter:TextureFilterMode;
 
       Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Picture:TERRAString = ''; TabIndex:Integer=-1);
 
@@ -253,6 +265,8 @@ Type
       Procedure SetChecked(Value:Boolean); Virtual;
 
       Function HasMouseOver():Boolean; Override;
+
+      Function IsSelectable():Boolean; Override;
 
     Public
       Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Caption:TERRAString; Skin:TERRAString = ''; TabIndex:Integer=-1);
@@ -451,13 +465,15 @@ Type
       _KoreanFinalJamo:Integer;
 
       _InsideEvent:Boolean;
-      
+
       Procedure UpdateJamos();
 
       Function UpdateTransform():Boolean; Override;
 
       Procedure StartHighlight(); Override;
       Procedure StopHighlight(); Override;
+
+      Function IsSelectable():Boolean; Override;
 
     Public
       OnEnter:WidgetEventHandler;
@@ -467,7 +483,7 @@ Type
       Centered:Boolean;
 
       Constructor Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Width:Integer; Skin:TERRAString=''; TabIndex:Integer=-1);
-      
+
       Procedure Render; Override;
       Procedure UpdateRects; Override;
 
@@ -530,7 +546,7 @@ Var
   UseNativeKeyboard:Boolean = False;
 
 Implementation
-Uses TERRA_OS, TERRA_Application, TERRA_GraphicsManager, TERRA_Vector3D, TERRA_Log, 
+Uses TERRA_OS, TERRA_Application, TERRA_GraphicsManager, TERRA_Vector3D, TERRA_Log,
   TERRA_FileUtils, TERRA_Localization
   {$IFDEF VIRTUALKEYBOARD},TERRA_UIVirtualKeyboard{$ENDIF};
 
@@ -542,6 +558,15 @@ Begin
     Result := LocalizationManager.Instance.GetString(Value);
   End Else
     Result := Value;
+End;
+
+Function UICaption.GetLocalizationKey: TERRAString;
+Begin
+  If StringFirstChar(_OriginalValue) = Ord('#') Then
+  Begin
+    Result := StringCopy(_OriginalValue, 2, MaxInt);
+  End Else
+    Result := '';
 End;
 
 Function UICaption.GetSize: Vector2D;
@@ -573,9 +598,9 @@ Var
 Begin
   Fnt := Self.GetFont();
 
-  If (_NeedsUpdate) Or (Fnt<>_PreviousFont) Then
+  If ((_NeedsUpdate) Or (Fnt<>_PreviousFont)) And (Assigned(FontRenderer)) Then
   Begin
-    _TextRect := _FontRenderer.GetTextRect(_Caption, 1.0);
+    _TextRect := FontRenderer.GetTextRect(_Caption, 1.0);
     _PreviousFont := Fnt;
     _NeedsUpdate := False;
   End;
@@ -649,7 +674,7 @@ Begin
 
     If (Assigned(OnMouseClick)) And (Not Self.HasTweens()) Then
     Begin
-      Self._HitTime := GetTime();
+      Self._HitTime := Application.GetTime();
       Self._Hitting := True;
     End;
   End Else
@@ -664,7 +689,7 @@ Begin
   Begin
     Result := True;
     _Hitting := False;
-    If (GetTime - _HitTime > ExtendedPressDuration) And (Assigned(OnExtendedClick)) Then
+    If (Application.GetTime - _HitTime > ExtendedPressDuration) And (Assigned(OnExtendedClick)) Then
       OnExtendedClick(Self)
     Else
       OnMouseClick(Self);
@@ -673,7 +698,7 @@ Begin
   End;
 End;
 
-Procedure UIWindow.EnableHighlights;
+{Procedure UIWindow.EnableHighlights;
 Var
   I:Integer;
   W:Widget;
@@ -689,7 +714,7 @@ Begin
       Exit;
     End;
   End;
-End;
+End;}
 
 Procedure UIWindow.UpdateRects();
 Begin
@@ -844,9 +869,12 @@ Begin
   If (OnRegion(X,Y)) And (Self.Visible) And (Not Self.HasTweens) And (Not Disabled) Then
   Begin
     If (Assigned(OnMouseClick)) Then
-      OnMouseClick(Self);
+      Result := OnMouseClick(Self)
+    Else
+      Result := True;
+      
     Self.OnHit();
-    Result := True;
+
   End Else
     Result := Inherited OnMouseDown(X,Y, Button);
 End;
@@ -892,11 +920,16 @@ Begin
   End;
 End;
 
+Function UIWindow.IsSelectable: Boolean;
+Begin
+  Result := False;
+End;
+
 { UISpriteButton }
 Constructor UISpriteButton.Create(Name:TERRAString; UI:UI; Parent:Widget; X,Y,Z:Single; Skin:TERRAString; TabIndex:Integer);
 Begin
   Inherited Create(Name, UI, Parent, X,Y,Z, '', Skin, TabIndex);
-  Self.BilinearFilter := False;
+  Self.Filter := filterLinear;
 End;
 
 Procedure UISpriteButton.Render;
@@ -912,7 +945,7 @@ Begin
   W := _Texture.Width;
   H := (_Size.Y - _Texture.Height) * 0.5;
   Pos := Self.GetAbsolutePosition();
-  SpriteManager.Instance.DrawSprite(Pos.X + (_Width-W) * 0.5, H + Offset + Pos.Y, Layer+0.5, _Texture, Nil, BlendBlend, Saturation, BilinearFilter);
+  SpriteManager.Instance.DrawSprite(Pos.X + (_Width-W) * 0.5, H + Offset + Pos.Y, Layer+0.5, _Texture, Nil, BlendBlend, Saturation, Filter);
 End;
 
 Procedure UISpriteButton.SetTexture(Tex: Texture);
@@ -1011,8 +1044,7 @@ Begin
   If (Touched) And (Self.Visible) And (Assigned(OnMouseClick))  And (Not Self.HasTweens) Then
   Begin
     Self.OnHit();
-    OnMouseClick(Self);
-    Result := True;
+    Result := OnMouseClick(Self);
   End Else
     Result := Inherited OnMouseDown(X,Y, Button);
 
@@ -1040,11 +1072,27 @@ Function UILabel.OnMouseDown(X,Y:Integer;Button:Word):Boolean;
 Begin
   If  (Assigned(OnMouseClick)) And (OnRegion(X,Y)) And (Not Self.HasTweens) Then
   Begin
-    Self.OnHit();
-    OnMouseClick(Self);
+    Self._HitTime := Application.GetTime();
+    Self._Hitting := True;
     Result := True;
   End Else
     Result := Inherited OnMouseDown(X,Y, Button);
+End;
+
+Function UILabel.OnMouseUp(X,Y:Integer;Button:Word):Boolean;
+Begin
+  Result := False;
+  If (_Hitting) Then
+  Begin
+    Result := True;
+    _Hitting := False;
+    If (Application.GetTime - _HitTime > ExtendedPressDuration) And (Assigned(OnExtendedClick)) Then
+      OnExtendedClick(Self)
+    Else
+      OnMouseClick(Self);
+
+    Self.OnHit();
+  End;
 End;
 
 (*Function UILabel.OnMouseMove(X,Y:Integer):Boolean;
@@ -1418,6 +1466,11 @@ Begin
   End Else
     _Dragging := False;
     Result := False;
+End;
+
+Function UICheckBox.IsSelectable: Boolean;
+Begin
+  Result := True;
 End;
 
 {UIScrollBar}
@@ -1841,10 +1894,11 @@ Begin
     _ItemHighlight := -1;
     _ShowList := False;
     UI.Focus := Nil;
-    Result := True;
 
     If (Assigned(OnMouseClick)) Then
-      OnMouseClick(Self);
+      Result := OnMouseClick(Self)
+    Else
+      Result := True;
   End Else
   If (X>=Pos.X+_HandlePos) And (X<=Pos.X+_HandlePos+_HandleWidth) And (Y>=Pos.Y) And (Y<=Pos.Y+_HandleHeight) And (Not ShowLabelOnly) Then
   Begin
@@ -2168,16 +2222,16 @@ Begin
 
   P := Self.GetAbsolutePosition();
 
-  If (UI.Highlight<>Nil) And (Not Self.IsHighlighted())
+  {If (UI.Highlight<>Nil) And (Not Self.IsHighlighted())
   And (UI.Focus=Self) And (Pos('KEY_', UI.Highlight.Name)<>1) Then
-    UI.Focus := Nil;
+    UI.Focus := Nil;}
 
   Self.UpdateHighlight((UI.Focus = Self));
 
   If (UI.Focus <> Self) And (Self.IsHighlighted()) Then
     Self.SetFocus(False);
 
-  MyColor := ColorScale(Self.GetColor(), _SelectedColor);
+  MyColor := ColorMultiply(Self.GetColor(), _SelectedColor);
 
   TextColor.A := MyColor.A;
 
@@ -2362,7 +2416,7 @@ Begin
     It := UI.Widgets.GetIterator();
     While It.HasNext Do
     Begin
-      Wd := Widget(It.GetNext());
+      Wd := Widget(It.Value);
       If (Wd.Visible) And (Wd<>Self) And (Wd Is UIEditText) And (WD.Position.Y>Self.Position.Y) Then
       Begin
         UIEditText(Wd).SetFocus(True);
@@ -2377,7 +2431,7 @@ Begin
       It := UI.Widgets.GetIterator();
       While It.HasNext Do
       Begin
-        Wd := Widget(It.GetNext());
+        Wd := Widget(It.Value);
         If (Wd.Visible) And (Wd<>Self) And (Wd Is UIEditText) And (WD.Position.Y<=Self.Position.Y) Then
         Begin
           UIEditText(Wd).SetFocus(True);
@@ -2507,6 +2561,11 @@ End;
 Procedure UIEditText.StopHighlight;
 Begin
   _SelectedColor := ColorWhite;
+End;
+
+Function UIEditText.IsSelectable: Boolean;
+Begin
+  Result := True;
 End;
 
 { UILayout }
@@ -2686,7 +2745,7 @@ Begin
 
   Self.SetPosition(VectorCreate2D(X,Y));
   Self._Layer := Z;
-  Self.BilinearFilter := False;
+  Self.Filter := filterLinear;
 
   Self.Rect.U1 := 0;
   Self.Rect.U2 := 1.0;
@@ -2715,14 +2774,10 @@ Var
 Begin
   Result := Inherited OnMouseDown(X,Y, Button);
 
-  If (OnRegion(X,Y)) And (Assigned(OnMouseClick)) And (Self.Visible) Then
+  If (OnRegion(X,Y)) And (Assigned(OnMouseClick)) And (Self.Visible) And (Not Self.HasTweens) Then
   Begin
-    If (Not Self.HasTweens) Then
-    Begin
-      Self.OnHit();
-      OnMouseClick(Self);
-    End;
-    Result := True;
+    Self.OnHit();
+    Result := OnMouseClick(Self);
   End;
 End;
 
@@ -2764,7 +2819,7 @@ Procedure UISprite.Render;
 Var
   ID:Integer;
   MyColor:TERRA_Color.Color;
-  S:Sprite;
+  S:QuadSprite;
   Temp, Pos, Center, TC1, TC2:Vector2D;
   OfsX, OfsY:Single;
 Begin
@@ -2808,7 +2863,7 @@ Begin
   Center.Y := Center.Y * _Pivot.Y * Scale;
   Center.Add(Pos);
 
-  S := SpriteManager.Instance.DrawSprite(Pos.X, Pos.Y, Self.GetLayer(), Rect.Texture, Nil, BlendBlend, Self.GetSaturation(), BilinearFilter);
+  S := SpriteManager.Instance.DrawSprite(Pos.X, Pos.Y, Self.GetLayer(), Rect.Texture, Nil, BlendBlend, Self.GetSaturation(), Filter);
   S.Anchor := Anchor;
   S.SetColor(MyColor);
   S.Rect := Rect;
@@ -2937,6 +2992,7 @@ Begin
     _TabHeightOff := Self._ComponentList[1].Buffer.Height;
   End;
 
+  Self.ClearTabs();
   Self.UpdateRects();
 End;
 
@@ -2944,6 +3000,8 @@ End;
 Procedure UITabList.ClearTabs;
 Begin
   _TabCount := 0;
+  _SelectedIndex := -1;
+  _TabHighlight := -1;
 End;
 
 Procedure UITabList.AddTab(Name: TERRAString; Index: Integer);
@@ -2963,6 +3021,9 @@ Begin
   _Tabs[Pred(_TabCount)].Index := Index;
   _Tabs[Pred(_TabCount)].Visible := True;
   _Tabs[Pred(_TabCount)].Caption := GetLocalizedString(Name);
+
+  If _SelectedIndex<0 Then
+    SetSelectedIndex(Pred(_TabCount));
 End;
 
 Procedure UITabList.SetTabVisibility(Index: Integer; Visibility: Boolean);
@@ -3017,6 +3078,18 @@ Begin
   End;
 
   Result := -1;
+End;
+
+Procedure UITabList.SetSelectedCaption(const Value: TERRAString);
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_TabCount) Do
+  If (_Tabs[I].Index = Self._SelectedIndex) Then
+  Begin
+    _Tabs[I].Caption := Value;
+    Exit;
+  End;
 End;
 
 Function UITabList.GetSelectedCaption: TERRAString;
@@ -3130,6 +3203,75 @@ Var
 Begin
   For I:=0 To Pred(_TabCount) Do
     _Tabs[I].Caption := GetLocalizedString(_Tabs[I].Name);
+End;
+
+Function UITabList.OnSelectLeft():Boolean;
+Var
+  I:Integer;
+Begin
+  Result := False;
+
+  If (Not Self.Selected) Then
+    Exit;
+
+  I := _SelectedIndex;
+  While (I=_SelectedIndex) Or (Not _Tabs[I].Visible) Do
+  Begin
+    If I<=0 Then
+      I := Pred(_TabCount)
+    Else
+      Dec(I);
+
+    If (I = _SelectedIndex) Then
+      Exit;
+  End;
+
+  SetSelectedIndex(I);
+  Result := True;
+End;
+
+Function UITabList.OnSelectRight():Boolean;
+Var
+  I:Integer;
+Begin
+  Result := False;
+
+  If (Not Self.Selected) Then
+    Exit;
+
+  I := _SelectedIndex;
+  While (I=_SelectedIndex) Or (Not _Tabs[I].Visible) Do
+  Begin
+    If I>=Pred(_TabCount) Then
+      I := 0
+    Else
+      Inc(I);
+
+    If (I = _SelectedIndex) Then
+      Exit;
+  End;
+
+  SetSelectedIndex(I);
+  Result := True;
+End;
+
+Procedure UITabList.SetSelectedIndex(const Value: Integer);
+Begin
+  If (Self.IsSelected()) Then
+    Self.UpdateHighlight(False);
+
+  _SelectedIndex := Value;
+  _TabHighlight := -1;
+
+  If (Self.IsSelected()) Then
+    Self.UpdateHighlight(True);
+
+  Self.OnHit();
+End;
+
+Function UITabList.IsSelectable: Boolean;
+Begin
+  Result := True;
 End;
 
 End.

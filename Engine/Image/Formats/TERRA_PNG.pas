@@ -369,7 +369,7 @@ Begin
         If Source.Position+ZLIBAllocate>EndPos Then
           Avail_in := Source.Read(Data, EndPos-Source.Position)
         Else
-          Avail_in := Source.Read(Data,ZLIBAllocate);
+          Avail_in := Source.Read(Data, ZLIBAllocate);
 
        // In case there is no more compressed data to read from
         If Avail_in=0 Then
@@ -391,7 +391,7 @@ Begin
         RaiseError('ZLib error.'+zliberrors[Result]);
         Exit;
       End Else
-        Result:=Avail_In;
+        Result := Avail_In;
     End;
   End;
 End;

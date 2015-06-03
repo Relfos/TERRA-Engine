@@ -27,9 +27,7 @@ Unit TERRA_DebugGL;
 {$I terra.inc}
 
 Interface
-{$IFDEF WINDOWS}
-Uses Windows;
-{$ENDIF}
+Uses TERRA_String, TERRA_Utils {$IFDEF WINDOWS},Windows{$ENDIF};
 
 {$I glconsts.inc}
 
@@ -61,7 +59,7 @@ Procedure glScissor(x, y: Integer; width, height: Integer);
 Procedure glViewport(x, y: Integer; width, height: Integer);
 
 Procedure glGetIntegerv(pname: Cardinal; params: PInteger);
-Function glGetString(name: Cardinal): PTERRAChar; 
+Function glGetString(name: Cardinal): PAnsiChar; 
 
 procedure glVertexAttribPointer(index: Cardinal; size: Integer; _type: Cardinal; normalized: Boolean; stride: Integer; const pointer: Pointer);
 Procedure glDrawArrays(mode: Cardinal; first: Integer; count: Integer);
@@ -100,7 +98,7 @@ procedure glDeleteFramebuffers(n: Integer; const framebuffers: PCardinal);
 procedure glGetRenderbufferParameteriv(target: Cardinal; pname: Cardinal; params: PInteger);
 
 Function glIsProgram(_program:Cardinal):Boolean;
-function glGetUniformLocation(_program: Cardinal; const name: PTERRAChar): Integer;
+function glGetUniformLocation(_program: Cardinal; const name: PAnsiChar): Integer;
 procedure glDetachShader(_program: Cardinal; shader: Cardinal);
 procedure glCompileShader(shader: Cardinal);
 procedure glLinkProgram(_program: Cardinal);
@@ -108,14 +106,14 @@ function glCreateProgram(): Cardinal;
 function glCreateShader(_type: Cardinal): Cardinal;
 procedure glDeleteProgram(_program: Cardinal);
 procedure glDeleteShader(shader: Cardinal);
-procedure glShaderSource(shader: Cardinal; count: Integer; const _string: PTERRAChar; const length: PInteger);
+procedure glShaderSource(shader: Cardinal; count: Integer; const _string: PAnsiChar; const length: PInteger);
 procedure glGetShaderiv(shader: Cardinal; pname: Cardinal; params: PInteger);
-procedure glGetShaderInfoLog(shader: Cardinal; bufSize: Integer; length: PInteger; infoLog: PTERRAChar);
+procedure glGetShaderInfoLog(shader: Cardinal; bufSize: Integer; length: PInteger; infoLog: PAnsiChar);
 procedure glAttachShader(_program: Cardinal; shader: Cardinal);
 procedure glGetProgramiv(_program: Cardinal; pname: Cardinal; params: PInteger);
-procedure glGetProgramInfoLog(_program: Cardinal; bufSize: Integer; length: PInteger; infoLog: PTERRAChar);
+procedure glGetProgramInfoLog(_program: Cardinal; bufSize: Integer; length: PInteger; infoLog: PAnsiChar);
 procedure glUseProgram(_program: Cardinal);
-function glGetAttribLocation(_program: Cardinal; const name: PTERRAChar): Integer;
+function glGetAttribLocation(_program: Cardinal; const name: PAnsiChar): Integer;
 
 procedure glDisableVertexAttribArray(index: Cardinal);
 procedure glEnableVertexAttribArray(index: Cardinal);
@@ -139,8 +137,11 @@ Procedure glDrawBuffer(mode: Cardinal);
 Procedure glVertexPointer(size: Integer; atype: Cardinal; stride: Integer; const pointer: Pointer);
 Procedure glColorPointer(size: Integer; atype: Cardinal; stride: Integer; const pointer: Pointer);
 Procedure glTexCoordPointer(size: Integer; atype: Cardinal; stride: Integer; const pointer: Pointer);
+Procedure glNormalPointer(atype: Cardinal; stride: Integer; const pointer: Pointer);
 Procedure glEnableClientState(aarray: Cardinal);
 Procedure glDisableClientState(aarray: Cardinal);
+
+procedure glClientActiveTexture(texture: Cardinal);
 
 Procedure glMatrixMode(mode: Cardinal);
 Procedure glLoadMatrixf(const m: PSingle);
@@ -168,6 +169,7 @@ Procedure glClipPlane(plane: Cardinal; const equation: PDouble);
 Procedure glGetTexImage(target: Cardinal; level: Integer; format: Cardinal; atype: Cardinal; pixels: Pointer);
 
 Procedure glAlphaFunc(func: Cardinal; ref: Single);
+
 {$ENDIF}
 
 {$IFDEF WINDOWS}
@@ -184,7 +186,7 @@ Var
   _LastGLParams:TERRAString;
 
 Implementation
-Uses TERRA_Utils, TERRA_Log, TERRA_OS, TERRA_GL, TERRA_Shader, TERRA_Debug;
+Uses TERRA_Log, TERRA_OS, TERRA_OpenGL, TERRA_Debug;
 
 Procedure DebugOpenGL();
 Var
@@ -204,7 +206,7 @@ Begin
     Exit;
   {$ENDIF}
 
-  ErrorCode := TERRA_GL.glGetError();
+  ErrorCode := TERRA_OpenGL.glGetError();
   If ErrorCode = GL_NO_ERROR Then
   Begin
     _LastGLParams := '';
@@ -241,189 +243,189 @@ End;
 
 Procedure glLoadExtensions();
 Begin
-  TERRA_GL.glLoadExtensions();
+  TERRA_OpenGL.glLoadExtensions();
 End;
 
 Procedure glLineWidth(width: Single);
 Begin
   _LastGLCall := 'glLineWidth';
-  TERRA_GL.glLineWidth(width);
+  TERRA_OpenGL.glLineWidth(width);
 DebugOpenGL(); End;
 
 procedure glDisableVertexAttribArray(index: Cardinal);
 Begin
   _LastGLCall := 'glDisableVertexAttribArray';
-  TERRA_GL.glDisableVertexAttribArray(index);
+  TERRA_OpenGL.glDisableVertexAttribArray(index);
 DebugOpenGL(); End;
 
 procedure glEnableVertexAttribArray(index: Cardinal);
 Begin
   _LastGLCall := 'glEnableVertexAttribArray';
-  TERRA_GL.glEnableVertexAttribArray(index);
+  TERRA_OpenGL.glEnableVertexAttribArray(index);
 DebugOpenGL(); End;
 
-function glGetAttribLocation(_program: Cardinal; const name: PTERRAChar): Integer;
+function glGetAttribLocation(_program: Cardinal; const name: PAnsiChar): Integer;
 Begin
   _LastGLCall := 'glGetAttribLocation';
-  Result := TERRA_GL.glGetAttribLocation(_program, name);
+  Result := TERRA_OpenGL.glGetAttribLocation(_program, name);
 DebugOpenGL(); End;
 
 procedure glUseProgram(_program: Cardinal);
 Begin
   _LastGLCall := 'glUseProgram';
-  TERRA_GL.glUseProgram(_program);
+  TERRA_OpenGL.glUseProgram(_program);
 DebugOpenGL(); End;
 
 procedure glUniformMatrix3fv(location: Integer; count: Integer; transpose: Boolean; const value: PSingle);
 Begin
   _LastGLCall := 'glUniformMatrix3fv';
-  TERRA_GL.glUniformMatrix3fv(location, count, transpose, value);
+  TERRA_OpenGL.glUniformMatrix3fv(location, count, transpose, value);
 DebugOpenGL(); End;
 
 procedure glUniformMatrix4fv(location: Integer; count: Integer; transpose: Boolean; const value: PSingle);
 Begin
   _LastGLCall := 'glUniformMatrix4fv';
-  TERRA_GL.glUniformMatrix4fv(location, count, transpose, value);
+  TERRA_OpenGL.glUniformMatrix4fv(location, count, transpose, value);
 DebugOpenGL(); End;
 
 procedure glUniform1f(location: Integer; v0: Single);
 Begin
   _LastGLCall := 'glUniform1f';
-  TERRA_GL.glUniform1f(location, v0);
+  TERRA_OpenGL.glUniform1f(location, v0);
 DebugOpenGL(); End;
 
 procedure glUniform1i(location: Integer; v0: Integer);
 Begin
   _LastGLCall := 'glUniform1i';
-  TERRA_GL.glUniform1i(location, v0);
+  TERRA_OpenGL.glUniform1i(location, v0);
 DebugOpenGL(); End;
 
 procedure glUniform2fv(location: Integer; count: Integer; const value: PSingle);
 Begin
   _LastGLCall := 'glUniform2fv';
-  TERRA_GL.glUniform2fv(location, count, value);
+  TERRA_OpenGL.glUniform2fv(location, count, value);
 DebugOpenGL(); End;
 
 procedure glUniform3fv(location: Integer; count: Integer; const value: PSingle);
 Begin
   _LastGLCall := 'glUniform3fv';
-  TERRA_GL.glUniform3fv(location, count, value);
+  TERRA_OpenGL.glUniform3fv(location, count, value);
 DebugOpenGL(); End;
 
 procedure glUniform4fv(location: Integer; count: Integer; const value: PSingle);
 Begin
   _LastGLCall := 'glUniform4fv';
-  TERRA_GL.glUniform4fv(location, count, value);
+  TERRA_OpenGL.glUniform4fv(location, count, value);
 DebugOpenGL(); End;
 
-procedure glGetProgramInfoLog(_program: Cardinal; bufSize: Integer; length: PInteger; infoLog: PTERRAChar);
+procedure glGetProgramInfoLog(_program: Cardinal; bufSize: Integer; length: PInteger; infoLog: PAnsiChar);
 Begin
   _LastGLCall := 'glGetProgramInfoLog';
-  TERRA_GL.glGetProgramInfoLog(_program, bufsize, length, infolog);
+  TERRA_OpenGL.glGetProgramInfoLog(_program, bufsize, length, infolog);
 DebugOpenGL(); End;
 
 procedure glGetProgramiv(_program: Cardinal; pname: Cardinal; params: PInteger);
 Begin
   _LastGLCall := 'glGetProgramiv';
-  TERRA_GL.glGetProgramiv(_program, pname, params);
+  TERRA_OpenGL.glGetProgramiv(_program, pname, params);
 DebugOpenGL(); End;
 
 procedure glAttachShader(_program: Cardinal; shader: Cardinal);
 Begin
   _LastGLCall := 'glAttachShader';
-  TERRA_GL.glAttachShader(_program, shader);
+  TERRA_OpenGL.glAttachShader(_program, shader);
 DebugOpenGL(); End;
 
-procedure glGetShaderInfoLog(shader: Cardinal; bufSize: Integer; length: PInteger; infoLog: PTERRAChar);
+procedure glGetShaderInfoLog(shader: Cardinal; bufSize: Integer; length: PInteger; infoLog: PAnsiChar);
 Begin
   _LastGLCall := 'glGetShaderInfoLog';
-  TERRA_GL.glGetShaderInfoLog(shader, bufsize, length, infolog);
+  TERRA_OpenGL.glGetShaderInfoLog(shader, bufsize, length, infolog);
 DebugOpenGL(); End;
 
 procedure glGetShaderiv(shader: Cardinal; pname: Cardinal; params: PInteger);
 Begin
   _LastGLCall := 'glGetShaderiv';
-  TERRA_GL.glGetShaderiv(shader, pname, params);
+  TERRA_OpenGL.glGetShaderiv(shader, pname, params);
 DebugOpenGL(); End;
 
-procedure glShaderSource(shader: Cardinal; count: Integer; const _string: PTERRAChar; const length: PInteger);
+procedure glShaderSource(shader: Cardinal; count: Integer; const _string: PAnsiChar; const length: PInteger);
 Begin
   _LastGLCall := 'glShaderSource';
-  TERRA_GL.glShaderSource(shader, count, _string, length);
+  TERRA_OpenGL.glShaderSource(shader, count, _string, length);
 DebugOpenGL(); End;
 
 procedure glDetachShader(_program: Cardinal; shader: Cardinal);
 Begin
   _LastGLCall := 'glDetachShader';
-  TERRA_GL.glDetachShader(_program, shader);
+  TERRA_OpenGL.glDetachShader(_program, shader);
 DebugOpenGL(); End;
 
 procedure glLinkProgram(_program: Cardinal);
 Begin
   _LastGLCall := 'glLinkProgram';
-  TERRA_GL.glLinkProgram(_program);
+  TERRA_OpenGL.glLinkProgram(_program);
 DebugOpenGL(); End;
 
 procedure glCompileShader(shader: Cardinal);
 Begin
   _LastGLCall := 'glCompileShader';
-  TERRA_GL.glCompileShader(shader);
+  TERRA_OpenGL.glCompileShader(shader);
 DebugOpenGL(); End;
 
 function glCreateProgram(): Cardinal;
 Begin
   _LastGLCall := 'glCreateProgram';
-  Result := TERRA_GL.glCreateProgram();
+  Result := TERRA_OpenGL.glCreateProgram();
 DebugOpenGL(); End;
 
 function glCreateShader(_type: Cardinal): Cardinal;
 Begin
   _LastGLCall := 'glCreateShader';
-  Result := TERRA_GL.glCreateShader(_type);
+  Result := TERRA_OpenGL.glCreateShader(_type);
 DebugOpenGL(); End;
 
 
 procedure glDeleteProgram(_program: Cardinal);
 Begin
   _LastGLCall := 'glDeleteProgram';
-  TERRA_GL.glDeleteProgram(_program);
+  TERRA_OpenGL.glDeleteProgram(_program);
 DebugOpenGL(); End;
 
 procedure glDeleteShader(shader: Cardinal);
 Begin
   _LastGLCall := 'glDeleteShader';
-  TERRA_GL.glDeleteShader(shader);
+  TERRA_OpenGL.glDeleteShader(shader);
 DebugOpenGL(); End;
 
 
 Function glIsProgram(_program:Cardinal):Boolean;
 Begin
   _LastGLCall := 'glIsProgram';
-  Result := TERRA_GL.glIsProgram(_program);
+  Result := TERRA_OpenGL.glIsProgram(_program);
 DebugOpenGL(); End;
 
-function glGetUniformLocation(_program: Cardinal; const name: PTERRAChar): Integer;
+function glGetUniformLocation(_program: Cardinal; const name: PAnsiChar): Integer;
 Begin
   _LastGLCall := 'glGetUniformLocation';
-  Result := TERRA_GL.glGetUniformLocation(_program, name);
+  Result := TERRA_OpenGL.glGetUniformLocation(_program, name);
 DebugOpenGL(); End;
 
 procedure glRenderbufferStorage(target: Cardinal; internalformat: Cardinal; width: Integer; height: Integer);
 Begin
   _LastGLCall := 'glRenderbufferStorage';
-  TERRA_GL.glRenderbufferStorage(target, internalformat, width, height);
+  TERRA_OpenGL.glRenderbufferStorage(target, internalformat, width, height);
 DebugOpenGL(); End;
 
 procedure glDeleteFramebuffers(n: Integer; const framebuffers: PCardinal);
 Begin
   _LastGLCall := 'glDeleteFramebuffers';
-  TERRA_GL.glDeleteFramebuffers(n, framebuffers);
+  TERRA_OpenGL.glDeleteFramebuffers(n, framebuffers);
 DebugOpenGL(); End;
 
 procedure glGetRenderbufferParameteriv(target: Cardinal; pname: Cardinal; params: PInteger);
 Begin
   _LastGLCall := 'glGetRenderbufferParameteriv';
-  TERRA_GL.glGetRenderbufferParameteriv(target, pname, params);
+  TERRA_OpenGL.glGetRenderbufferParameteriv(target, pname, params);
   DebugOpenGL();
 End;
 
@@ -431,254 +433,254 @@ End;
 procedure glDeleteRenderbuffers(n: Integer; const renderbuffers: PCardinal);
 Begin
   _LastGLCall := 'glDeleteRenderbuffers';
-  TERRA_GL.glDeleteRenderbuffers(n, renderbuffers);
+  TERRA_OpenGL.glDeleteRenderbuffers(n, renderbuffers);
 DebugOpenGL(); End;
 
 procedure glBindRenderbuffer(target: Cardinal; renderbuffer: Cardinal);
 Begin
   _LastGLCall := 'glBindRenderbuffer';
-  TERRA_GL.glBindRenderbuffer(target, renderbuffer);
+  TERRA_OpenGL.glBindRenderbuffer(target, renderbuffer);
 DebugOpenGL(); End;
 
 procedure glGenRenderbuffers(n: Integer; renderbuffers: PCardinal);
 Begin
   _LastGLCall := 'glGenRenderbuffers';
-  TERRA_GL.glGenRenderbuffers(n, renderbuffers);
+  TERRA_OpenGL.glGenRenderbuffers(n, renderbuffers);
 DebugOpenGL(); End;
 
 function glCheckFramebufferStatus(target: Cardinal): Cardinal;
 Begin
   _LastGLCall := 'glCheckFramebufferStatus';
-  Result := TERRA_GL.glCheckFramebufferStatus(target);
+  Result := TERRA_OpenGL.glCheckFramebufferStatus(target);
 DebugOpenGL(); End;
 
 procedure glFramebufferRenderbuffer(target: Cardinal; attachment: Cardinal; renderbuffertarget: Cardinal; renderbuffer: Cardinal);
 Begin
   _LastGLCall := 'glFramebufferRenderbuffer';
-  TERRA_GL.glFramebufferRenderbuffer(target, attachment, renderbuffertarget, renderbuffer);
+  TERRA_OpenGL.glFramebufferRenderbuffer(target, attachment, renderbuffertarget, renderbuffer);
 DebugOpenGL(); End;
 
 procedure glFramebufferTexture2D(target: Cardinal; attachment: Cardinal; textarget: Cardinal; texture: Cardinal; level: Integer);
 Begin
   _LastGLCall := 'glFramebufferTexture2D';
-  TERRA_GL.glFramebufferTexture2D(target, attachment, textarget, texture, level);
+  TERRA_OpenGL.glFramebufferTexture2D(target, attachment, textarget, texture, level);
 DebugOpenGL(); End;
 
 procedure glBindFramebuffer(target: Cardinal; framebuffer: Cardinal);
 Begin
   _LastGLCall := 'glBindFramebuffer';
-  TERRA_GL.glBindFramebuffer(target, framebuffer);
+  TERRA_OpenGL.glBindFramebuffer(target, framebuffer);
 DebugOpenGL(); End;
 
 procedure glGenFramebuffers(n: Integer; framebuffers: PCardinal);
 Begin
   _LastGLCall := 'glGenFramebuffers';
-  TERRA_GL.glGenFramebuffers(n, framebuffers);
+  TERRA_OpenGL.glGenFramebuffers(n, framebuffers);
 DebugOpenGL(); End;
 
-Function glGetString(name: Cardinal): PTERRAChar;
+Function glGetString(name: Cardinal): PAnsiChar;
 Begin
   _LastGLCall := 'glGetString';
-  Result := TERRA_GL.glGetString(name);
+  Result := TERRA_OpenGL.glGetString(name);
 DebugOpenGL(); End;
 
 Function glGetExtensionString():TERRAString;
 Begin
   _LastGLCall := 'glGetExtensionString';
-  Result := TERRA_GL.glGetExtensionString();
+  Result := TERRA_OpenGL.glGetExtensionString();
 DebugOpenGL(); End;
 
 Function glExtensionSupported(Extension:TERRAString):Boolean;
 Begin
   _LastGLCall := 'glExtensionSupported';
-  Result := TERRA_GL.glExtensionSupported(extension);
+  Result := TERRA_OpenGL.glExtensionSupported(extension);
 DebugOpenGL(); End;
 
 Procedure glGetIntegerv(pname: Cardinal; params: PInteger);
 Begin
   _LastGLCall := 'glGetIntegerv';
-  TERRA_GL.glGetIntegerv(pname, params);
+  TERRA_OpenGL.glGetIntegerv(pname, params);
 DebugOpenGL(); End;
 
 Procedure glViewport(x, y: Integer; width, height: Integer);
 Begin
   _LastGLCall := 'glViewport';
-  TERRA_GL.glViewport(x, y, width, height);
+  TERRA_OpenGL.glViewport(x, y, width, height);
 DebugOpenGL(); End;
 
 Procedure glScissor(x, y: Integer; width, height: Integer);
 Begin
   _LastGLCall := 'glScissor';
-  TERRA_GL.glScissor(x, y, width, height);
+  TERRA_OpenGL.glScissor(x, y, width, height);
 DebugOpenGL(); End;
 
 Procedure glColorMask(red, green, blue, alpha: Boolean);
 Begin
   _LastGLCall := 'glColorMask';
-  TERRA_GL.glColorMask(red, green, blue, alpha);
+  TERRA_OpenGL.glColorMask(red, green, blue, alpha);
 DebugOpenGL(); End;
 
 Procedure glBlendFunc(sfactor, dfactor: Cardinal);
 Begin
   _LastGLCall := 'glBlendFunc';
-  TERRA_GL.glBlendFunc(sfactor, dfactor);
+  TERRA_OpenGL.glBlendFunc(sfactor, dfactor);
 DebugOpenGL(); End;
 
 Procedure glDepthMask(flag: Boolean);
 Begin
   _LastGLCall := 'glDepthMask';
-  TERRA_GL.glDepthMask(flag);
+  TERRA_OpenGL.glDepthMask(flag);
 DebugOpenGL(); End;
 
 Procedure glCullFace(mode: Cardinal);
 Begin
   _LastGLCall := 'glCullFace';
-  TERRA_GL.glCullFace(mode);
+  TERRA_OpenGL.glCullFace(mode);
 DebugOpenGL(); End;
 
 Procedure glClearColor(red, green, blue, alpha: Single);
 Begin
   _LastGLCall := 'glClearColor';
-  TERRA_GL.glClearColor(red, green, blue, alpha);
+  TERRA_OpenGL.glClearColor(red, green, blue, alpha);
 DebugOpenGL(); End;
 
 Procedure glClearDepth(depth: Double);
 Begin
   _LastGLCall := 'glClearDepth';
-  TERRA_GL.glClearDepth(depth);
+  TERRA_OpenGL.glClearDepth(depth);
 DebugOpenGL(); End;
 
 Procedure glClearStencil(s: Integer);
 Begin
   _LastGLCall := 'glClearStencil';
-  TERRA_GL.glClearStencil(s);
+  TERRA_OpenGL.glClearStencil(s);
 DebugOpenGL(); End;
 
 procedure glGenerateMipmap(target:Cardinal);
 Begin
   _LastGLCall := 'glGenerateMipmap';
-  TERRA_GL.glGenerateMipmap(Target);
+  TERRA_OpenGL.glGenerateMipmap(Target);
 DebugOpenGL(); End;
 
 Procedure glReadPixels(x, y: Integer; width, height: Integer; format, atype: Cardinal; pixels: Pointer);
 Begin
   _LastGLCall := 'glReadPixels';
-  TERRA_GL.glReadPixels(x, y, width, height, format, atype, pixels);
+  TERRA_OpenGL.glReadPixels(x, y, width, height, format, atype, pixels);
 DebugOpenGL(); End;
 
 Procedure glClear(mask: Cardinal);
 Begin
   _LastGLCall := 'glClear';
-  TERRA_GL.glClear(mask);
+  TERRA_OpenGL.glClear(mask);
 DebugOpenGL(); End;
 
 Procedure glTexParameterf(target: Cardinal; pname: Cardinal; param: Single);
 Begin
   _LastGLCall := 'glTexParameterf';
-  TERRA_GL.glTexParameterf(target, pname, param);
+  TERRA_OpenGL.glTexParameterf(target, pname, param);
 DebugOpenGL(); End;
 
 Procedure glTexParameteri(target: Cardinal; pname: Cardinal; param: Integer);
 Begin
   _LastGLCall := 'glTexParameteri';
-  TERRA_GL.glTexParameteri(target, pname, param);
+  TERRA_OpenGL.glTexParameteri(target, pname, param);
 DebugOpenGL(); End;
 
 Procedure glCopyTexImage2D(target: Cardinal; level: Integer; internalFormat: Cardinal; x, y: Integer; width, height: Integer; border: Integer);
 Begin
   _LastGLCall := 'glCopyTexImage2D';
-  TERRA_GL.glCopyTexImage2D(target, level, internalformat, x, y, width, height, border);
+  TERRA_OpenGL.glCopyTexImage2D(target, level, internalformat, x, y, width, height, border);
 DebugOpenGL(); End;
 
 Procedure glTexSubImage2D(target: Cardinal; level, xoffset, yoffset: Integer; width, height: Integer; format, atype: Cardinal; const pixels: Pointer);
 Begin
   _LastGLCall := 'glTexSubImage2D';
-  TERRA_GL.glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, atype, pixels);
+  TERRA_OpenGL.glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, atype, pixels);
 DebugOpenGL(); End;
 
 procedure glActiveTexture(texture: Cardinal);
 Begin
   _LastGLCall := 'glActiveTexture';
-  TERRA_GL.glActiveTexture(texture);
+  TERRA_OpenGL.glActiveTexture(texture);
 DebugOpenGL(); End;
 
 Procedure glTexImage2D(target: Cardinal; level, internalformat: Integer; width, height: Integer; border: Integer; format, atype: Cardinal; const pixels: Pointer);
 Begin
   _LastGLCall := 'glTexImage2D';
-  TERRA_GL.glTexImage2D(target, level, internalformat, width, height, border, format, atype, pixels);
+  TERRA_OpenGL.glTexImage2D(target, level, internalformat, width, height, border, format, atype, pixels);
 DebugOpenGL(); End;
 
 Procedure glGenTextures(n: Integer; textures: PCardinal);
 Begin
   _LastGLCall := 'glGenTextures';
-  TERRA_GL.glGenTextures(n, textures);
+  TERRA_OpenGL.glGenTextures(n, textures);
 DebugOpenGL(); End;
 
 Procedure glDeleteTextures(n: Integer; const textures: PCardinal);
 Begin
   _LastGLCall := 'glDeleteTextures';
-  TERRA_GL.glDeleteTextures(n, textures);
+  TERRA_OpenGL.glDeleteTextures(n, textures);
 DebugOpenGL(); End;
 
 Procedure glBindTexture(target: Cardinal; texture: Cardinal);
 Begin
   _LastGLCall := 'glBindTexture';
-  TERRA_GL.glBindTexture(target, texture);
+  TERRA_OpenGL.glBindTexture(target, texture);
 DebugOpenGL(); End;
 
 procedure glDeleteBuffers(n: Integer; const buffers: PCardinal);
 Begin
   _LastGLCall := 'glDeleteBuffers';
-  TERRA_GL.glDeleteBuffers(n, buffers);
+  TERRA_OpenGL.glDeleteBuffers(n, buffers);
 DebugOpenGL(); End;
 
 procedure glBufferSubData(target: Cardinal; offset: Integer; size: Integer; const data: Pointer);
 Begin
   _LastGLCall := 'glBufferSubData';
-  TERRA_GL.glBufferSubData(target, offset, size, data);
+  TERRA_OpenGL.glBufferSubData(target, offset, size, data);
 DebugOpenGL(); End;
 
 procedure glBufferData(target: Cardinal; size: Integer; const data: Pointer; usage: Cardinal);
 Begin
   _LastGLCall := 'glBufferData';
-  TERRA_GL.glBufferData(target, size, data, usage);
+  TERRA_OpenGL.glBufferData(target, size, data, usage);
 DebugOpenGL(); End;
 
 procedure glBindBuffer(target: Cardinal; buffer: Cardinal);
 Begin
   _LastGLCall := 'glBindBuffer';
-  TERRA_GL.glBindBuffer(target, buffer);
+  TERRA_OpenGL.glBindBuffer(target, buffer);
 DebugOpenGL(); End;
 
 procedure glGenBuffers(n: Integer; buffers: PCardinal);
 Begin
   _LastGLCall := 'glGenBuffers';
-  TERRA_GL.glGenBuffers(n, buffers);
+  TERRA_OpenGL.glGenBuffers(n, buffers);
 DebugOpenGL(); End;
 
 Procedure glStencilOp(fail, zfail, zpass: Cardinal);
 Begin
   _LastGLCall := 'glStencilOp';
-  TERRA_GL.glStencilOp(fail, zfail, zpass);
+  TERRA_OpenGL.glStencilOp(fail, zfail, zpass);
 DebugOpenGL(); End;
 
 Procedure glStencilMask(mask: Cardinal);
 Begin
   _LastGLCall := 'glStencilMask';
-  TERRA_GL.glStencilMask(mask);
+  TERRA_OpenGL.glStencilMask(mask);
 DebugOpenGL(); End;
 
 Procedure glStencilFunc(func: Cardinal; ref: Integer; mask: Cardinal);
 Begin
   _LastGLCall := 'glStencilFunc';
-  TERRA_GL.glStencilFunc(func, ref, mask);
+  TERRA_OpenGL.glStencilFunc(func, ref, mask);
 DebugOpenGL(); End;
 
 Procedure glEnable(cap: Cardinal);
 Begin
   _LastGLCall := 'glEnable';
   _LastGLParams := HexStr(cap);
-  TERRA_GL.glEnable(cap);
+  TERRA_OpenGL.glEnable(cap);
 DebugOpenGL(); End;
 
 Procedure glDisable(cap:Cardinal);
@@ -688,32 +690,32 @@ Begin
 
   _LastGLCall := 'glDisable';
   _LastGLParams := HexStr(cap);
-  TERRA_GL.glDisable(cap);
+  TERRA_OpenGL.glDisable(cap);
 DebugOpenGL(); End;
 
 
 procedure glVertexAttribPointer(index: Cardinal; size: Integer; _type: Cardinal; normalized: Boolean; stride: Integer; const pointer: Pointer);
 Begin
   _LastGLCall := 'glVertexAttribPointer';
-  TERRA_GL.glVertexAttribPointer(index, size, _type, normalized, stride, pointer);
+  TERRA_OpenGL.glVertexAttribPointer(index, size, _type, normalized, stride, pointer);
 DebugOpenGL(); End;
 
 Procedure glDrawElements(mode: Cardinal; count: Integer; atype: Cardinal; const indices: Pointer);
 Begin
   _LastGLCall := 'glDrawElements';
-  TERRA_GL.glDrawElements(mode, count, atype, indices);
+  TERRA_OpenGL.glDrawElements(mode, count, atype, indices);
 DebugOpenGL(); End;
 
 Procedure glDrawArrays(mode: Cardinal; first: Integer; count: Integer);
 Begin
   _LastGLCall := 'glDrawArrays';
-  TERRA_GL.glDrawArrays(mode, first, count);
+  TERRA_OpenGL.glDrawArrays(mode, first, count);
 DebugOpenGL(); End;
 
 Procedure glDepthFunc(func: Cardinal); 
 Begin
   _LastGLCall := 'glDepthFunc';
-  TERRA_GL.glDepthFunc(func);
+  TERRA_OpenGL.glDepthFunc(func);
   DebugOpenGL();
 End;
 
@@ -722,177 +724,189 @@ End;
 Procedure glMatrixMode(mode: Cardinal);
 Begin
   _LastGLCall := 'glMatrixMode';
-  TERRA_GL.glMatrixMode(mode);
+  TERRA_OpenGL.glMatrixMode(mode);
 DebugOpenGL(); End;
 
 Procedure glLoadMatrixf(const m: PSingle);
 Begin
   _LastGLCall := 'glLoadMatrixf';
-  TERRA_GL.glLoadMatrixf(m);
+  TERRA_OpenGL.glLoadMatrixf(m);
 DebugOpenGL(); End;
 
 Procedure glDrawBuffer(mode: Cardinal);
 Begin
   _LastGLCall := 'glDrawBuffer';
-  TERRA_GL.glDrawBuffer(mode);
+  TERRA_OpenGL.glDrawBuffer(mode);
 DebugOpenGL(); End;
 
 Procedure glReadBuffer(mode: Cardinal);
 Begin
   _LastGLCall := 'glReadBuffer';
-  TERRA_GL.glReadBuffer(mode);
+  TERRA_OpenGL.glReadBuffer(mode);
 DebugOpenGL(); End;
 
 procedure glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1:Integer; mask:Cardinal; filter:Cardinal);
 Begin
   _LastGLCall := 'glBlitFramebuffer';
-  TERRA_GL.glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
+  TERRA_OpenGL.glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 DebugOpenGL(); End;
 
 procedure glDrawBuffers(n: Integer; const bufs: PCardinal);
 Begin
   _LastGLCall := 'glDrawBuffers';
-  TERRA_GL.glDrawBuffers(n, bufs);
+  TERRA_OpenGL.glDrawBuffers(n, bufs);
 DebugOpenGL(); End;
 
 
 Procedure glBegin(mode: Cardinal);
 Begin
   _LastGLCall := 'glBegin';
-  TERRA_GL.glBegin(mode);
+  TERRA_OpenGL.glBegin(mode);
 DebugOpenGL(); End;
 
 Procedure glVertex3f(x, y, z: Single);
 Begin
   _LastGLCall := 'glVertex3f';
-  TERRA_GL.glVertex3f(x, y, z);
+  TERRA_OpenGL.glVertex3f(x, y, z);
 DebugOpenGL(); End;
 
 procedure glVertexAttrib3f(index: Cardinal; x: Single; y: Single; z: Single);
 Begin
   _LastGLCall := 'glVertexAttrib3f';
-  TERRA_GL.glVertexAttrib3f(index, x, y, z);
+  TERRA_OpenGL.glVertexAttrib3f(index, x, y, z);
 DebugOpenGL(); End;
 
 procedure glVertexAttrib4f(index: Cardinal; x: Single; y: Single; z: Single; w: Single);
 Begin
   _LastGLCall := 'glVertexAttrib4f';
-  TERRA_GL.glVertexAttrib4f(index, x, y, z, w);
+  TERRA_OpenGL.glVertexAttrib4f(index, x, y, z, w);
 DebugOpenGL(); End;
 
 procedure glVertexAttrib4ubv(index: Cardinal; const v: PByte);
 Begin
   _LastGLCall := 'glVertexAttrib4ubv';
-  TERRA_GL.glVertexAttrib4ubv(index, v);
+  TERRA_OpenGL.glVertexAttrib4ubv(index, v);
 DebugOpenGL(); End;
 
 Procedure glEnd(); 
 Begin
   _LastGLCall := 'glEnd';
-  TERRA_GL.glEnd();
+  TERRA_OpenGL.glEnd();
 DebugOpenGL(); End;
 
 Procedure glLineStipple(factor: Integer; pattern: Word);
 Begin
   _LastGLCall := 'glLineStipple';
-  TERRA_GL.glLineStipple(factor, pattern);
+  TERRA_OpenGL.glLineStipple(factor, pattern);
 DebugOpenGL(); End;
 
 Procedure glDepthRange(zNear, zFar: Double);
 Begin
   _LastGLCall := 'glDepthRange';
-  TERRA_GL.glDepthRange(zNear, zFar);
+  TERRA_OpenGL.glDepthRange(zNear, zFar);
 DebugOpenGL(); End;
 
 Procedure glPointSize(size: Single);
 Begin
   _LastGLCall := 'glPointSize';
-  TERRA_GL.glPointSize(size);
+  TERRA_OpenGL.glPointSize(size);
 DebugOpenGL(); End;
 
 Procedure glColor4ub(red, green, blue, alpha: Byte);
 Begin
   _LastGLCall := 'glColor4ub';
-  TERRA_GL.glColor4ub(red, green, blue, alpha);
+  TERRA_OpenGL.glColor4ub(red, green, blue, alpha);
 DebugOpenGL(); End;
 
 Procedure glColor4f(red, green, blue, alpha: Single);
 Begin
   _LastGLCall := 'glColor4f';
-  TERRA_GL.glColor4f(red, green, blue, alpha);
+  TERRA_OpenGL.glColor4f(red, green, blue, alpha);
 DebugOpenGL(); End;
 
 Procedure glAlphaFunc(func: Cardinal; ref: Single);
 Begin
   _LastGLCall := 'glAlphaFunc';
-  TERRA_GL.glAlphaFunc(func, ref);
+  TERRA_OpenGL.glAlphaFunc(func, ref);
 DebugOpenGL(); End;
 
 
 Procedure glGetTexImage(target: Cardinal; level: Integer; format: Cardinal; atype: Cardinal; pixels: Pointer);
 Begin
   _LastGLCall := 'glGetTexImage';
-  TERRA_GL.glGetTexImage(Target, level, format, atype, pixels);
+  TERRA_OpenGL.glGetTexImage(Target, level, format, atype, pixels);
 DebugOpenGL(); End;
 
 Procedure glTexCoordPointer(size: Integer; atype: Cardinal; stride: Integer; const pointer: Pointer);
 Begin
   _LastGLCall := 'glTexCoordPointer';
-  TERRA_GL.glTexCoordPointer(size, atype, stride, pointer);
+  TERRA_OpenGL.glTexCoordPointer(size, atype, stride, pointer);
 DebugOpenGL(); End;
 
 Procedure glColorPointer(size: Integer; atype: Cardinal; stride: Integer; const pointer: Pointer);
 Begin
   _LastGLCall := 'glColorPointer';
-  TERRA_GL.glColorPointer(size, atype, stride, pointer);
+  TERRA_OpenGL.glColorPointer(size, atype, stride, pointer);
 DebugOpenGL(); End;
 
 Procedure glVertexPointer(size: Integer; atype: Cardinal; stride: Integer; const pointer: Pointer);
 Begin
   _LastGLCall := 'glVertexPointer';
-  TERRA_GL.glVertexPointer(size, atype, stride, pointer);
+  TERRA_OpenGL.glVertexPointer(size, atype, stride, pointer);
 DebugOpenGL(); End;
 
 procedure glRenderbufferStorageMultisample(target:Cardinal; samples:Integer; internalformat:Cardinal;  width, height:Integer);
 Begin
   _LastGLCall := 'glRenderbufferStorageMultisample';
-  TERRA_GL.glRenderbufferStorageMultisample(target, samples, internalformat, width, height);
+  TERRA_OpenGL.glRenderbufferStorageMultisample(target, samples, internalformat, width, height);
 DebugOpenGL(); End;
 
 Procedure glDisableClientState(aarray: Cardinal);
 Begin
   _LastGLCall := 'glDisableClientState';
-  TERRA_GL.glDisableClientState(aarray);
+  TERRA_OpenGL.glDisableClientState(aarray);
 DebugOpenGL(); End;
 
 Procedure glEnableClientState(aarray: Cardinal);
 Begin
   _LastGLCall := 'glEnableClientState';
-  TERRA_GL.glEnableClientState(aarray);
+  TERRA_OpenGL.glEnableClientState(aarray);
 DebugOpenGL(); End;
 
 Procedure glClipPlane(plane: Cardinal; const equation: PDouble);
 Begin
   _LastGLCall := 'glClipPlane';
-  TERRA_GL.glClipPlane(plane, equation);
+  TERRA_OpenGL.glClipPlane(plane, equation);
 DebugOpenGL(); End;
 
 Procedure glTexEnvi(target: Cardinal; pname: Cardinal; param: Integer);
 Begin
   _LastGLCall := 'glTexEnvi';
-  TERRA_GL.glTexEnvi(target,pname, param);
+  TERRA_OpenGL.glTexEnvi(target,pname, param);
 DebugOpenGL(); End;
 
 Procedure glTexEnvfv(target: Cardinal; pname: Cardinal; const params: PSingle);
 Begin
   _LastGLCall := 'glTexEnvfv';
-  TERRA_GL.glTexEnvfv(target,pname, params);
+  TERRA_OpenGL.glTexEnvfv(target,pname, params);
 DebugOpenGL(); End;
 
 Procedure glGetTexLevelParameteriv(target: Cardinal; level: Integer; pname: Cardinal; params: PInteger);
 Begin
   _LastGLCall := 'glGetTexLevelParameteriv';
-  TERRA_GL.glGetTexLevelParameteriv(target, level, pname, params);
+  TERRA_OpenGL.glGetTexLevelParameteriv(target, level, pname, params);
+DebugOpenGL(); End;
+
+Procedure glNormalPointer(atype: Cardinal; stride: Integer; const pointer: Pointer);
+Begin
+  _LastGLCall := 'glGetTexLevelParameteriv';
+  TERRA_OpenGL.glNormalPointer(atype, stride, pointer);
+DebugOpenGL(); End;
+
+procedure glClientActiveTexture(texture: Cardinal);
+Begin
+  _LastGLCall := 'glGetTexLevelParameteriv';
+  TERRA_OpenGL.glClientActiveTexture(texture);
 DebugOpenGL(); End;
 
 {$ENDIF}
@@ -901,12 +915,12 @@ DebugOpenGL(); End;
 function wglSwapIntervalEXT(interval: Integer): BOOL;
 Begin
   _LastGLCall := 'wglSwapIntervalEXT';
-  Result := TERRA_GL.wglSwapIntervalEXT(interval);
+  Result := TERRA_OpenGL.wglSwapIntervalEXT(interval);
 DebugOpenGL(); End;
 
 Function InitMultisample(hWnd: HWND; pfd: PIXELFORMATDESCRIPTOR;  h_dc: HDC):Cardinal;
 Begin
-  Result := TERRA_GL.InitMultisample(hWnd, pfd, h_dc);
+  Result := TERRA_OpenGL.InitMultisample(hWnd, pfd, h_dc);
 End;
 
 {$ENDIF}

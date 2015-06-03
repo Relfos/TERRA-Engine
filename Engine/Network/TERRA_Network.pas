@@ -305,7 +305,7 @@ Begin
   Len := Msg.Length + SizeOf(MessageHeader);
   Count := Len;
   P := Msg.Buffer;
-  Timer := GetTime();
+  Timer := Application.GetTime();
 
   N := Sock.Write(P, Count);
 
@@ -456,7 +456,7 @@ End;
 
 Procedure NetObject.UpdateIO;
 Begin
-  If GetTime>=_NextUpdate Then
+  If Application.GetTime>=_NextUpdate Then
   Begin
     _Download := _Input;
     _Upload := _Output;
@@ -464,7 +464,7 @@ Begin
     Inc(_TotalUpload, _Upload);
     _Input := 0;
     _Output := 0;
-    _NextUpdate := GetTime+1000;
+    _NextUpdate := Application.GetTime+1000;
   End;
 End;
 
@@ -531,7 +531,7 @@ End;
 
 Function NetObject.OnSendFail(Dest: SocketAddress; Sock:NetSocket; Msg: NetMessage): Boolean;
 Begin
-  Sleep(200);
+  Application.Sleep(200);
   Result := True;
 End;
 

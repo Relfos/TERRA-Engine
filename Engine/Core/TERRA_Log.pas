@@ -50,8 +50,8 @@ Interface
 {$ENDIF}
 
 {$IFDEF OSX}
-{$DEFINE USE_SYSLOG}
-{.$DEFINE CONSOLEWINDOW}
+{.$DEFINE USE_SYSLOG}
+{$DEFINE CONSOLEWINDOW}
 {$ENDIF}
 
 
@@ -85,11 +85,12 @@ Type
     Handler:LogFilterHandler;
   End;
 
-Procedure Log(LogType:Integer; ModuleName, Description:TERRAString);
-Procedure AddLogFilter(LogType:Integer; Modules:TERRAString; Handler:LogFilterHandler);
+Procedure Log(LogType:Integer; Const ModuleName, Description:TERRAString);
+Procedure AddLogFilter(LogType:Integer; Const Modules:TERRAString; Handler:LogFilterHandler);
 
 Var
-  LoggingDisabled:Boolean;
+  LoggingEnabled:Boolean = False;
+  LogFileName:TERRAString;
   ForceLogFlush:Boolean;
 
 Implementation
@@ -124,8 +125,6 @@ Var
     _LogActive:Boolean;
     _LogStarted:Boolean;
 
-  _LogFileName:TERRAString;
-
   _Filters:Array Of LogFilter;
   _FilterCount:Integer;
 
@@ -151,7 +150,7 @@ Begin
   Result := Description;
 End;
 
-Procedure AddLogFilter(LogType:Integer; Modules:TERRAString; Handler:LogFilterHandler);
+Procedure AddLogFilter(LogType:Integer; Const Modules:TERRAString; Handler:LogFilterHandler);
 Begin
   If (LogType<0) Or (LogType>=logFilterCount) Or (@Handler = Nil) Then
     Exit;
@@ -163,7 +162,7 @@ Begin
   _Filters[Pred(_FilterCount)].Handler := Handler;
 End;
 
-Procedure WriteToLog(S:TERRAString);
+Procedure WriteToLog(Const S:TERRAString);
 Var
   T:Cardinal;
 Begin
@@ -172,7 +171,7 @@ Begin
   WriteLn(S);
   {$ENDIF}
 
-  T := GetTime();
+  T := Application.GetTime();
 
   {$IFDEF USE_LOGFILE}
 
@@ -233,7 +232,7 @@ Function Log_Ready():Boolean;
 Var
   CurrentTime:TERRATime;
 Begin
-  If _LogShutdown Then
+  If (_LogShutdown) Or (Not LoggingEnabled) Then
   Begin
     Result := False;
     Exit;
@@ -253,12 +252,12 @@ Begin
     Exit;
   End;
 
-  _LogFileName := Application.Instance.DocumentPath + PathSeparator+ 'terra.log';
+  LogFileName := Application.Instance.DocumentPath + PathSeparator+ 'terra.log';
   {$ELSE}
-  _LogFileName := GetFileName(ParamStr(0), True)+'.log';
+  LogFileName := GetFileName(ParamStr(0), True)+'.log';
 
   {$IFDEF WINDOWS}
-  _LogFileName := GetFilePath(ParamStr(0)) + _LogFileName;
+  LogFileName := GetFilePath(ParamStr(0)) + LogFileName;
   {$ENDIF}
   {$ENDIF}
 
@@ -267,10 +266,10 @@ Begin
   {$IFDEF USE_SYSLOG}
   openlog('TERRA',LOG_NOWAIT,LOG_DEBUG);
   {$ELSE}
-  _LogFile := FileStream.Create(_LogFileName);
+  _LogFile := FileStream.Create(LogFileName);
   {$ENDIF}
 
-  CurrentTime := GetCurrentTime();
+  CurrentTime := Application.GetCurrentTime();
 
   WriteToLog('Log session started at '+TimeToString(CurrentTime, ':', ':', ''));
   WriteToLog('Engine: TERRA '+VersionToString(EngineVersion){$IFDEF FULLDEBUG}+' [Debug mode]'{$ENDIF});
@@ -285,7 +284,7 @@ End;
 {$IFNDEF OXYGENE}
 {$I-}
 {$ENDIF}
-Procedure Log(LogType:Integer; ModuleName, Description:TERRAString);
+Procedure Log(LogType:Integer; Const ModuleName, Description:TERRAString);
 Var
   I:Integer;
   S:TERRAString;
@@ -297,7 +296,7 @@ Begin
   //WriteLn(Module,':',Desc);
 
   {$IFNDEF MOBILE}
-  If LoggingDisabled Then
+  If Not LoggingEnabled Then
     Exit;
   {$ENDIF}
 
@@ -314,22 +313,22 @@ Begin
   If (LogType<0) Or (LogType>logFilterCount) Then
     LogType := 0;
 
+  S := LogFormatStr(LogType, ModuleName, Description);
+
   {$IFNDEF DISABLETHREADS}
-  Description := CardinalToString(Cardinal(GetCurrentThreadId())) + ': '+Description;
+  S := CardinalToString(Cardinal(GetCurrentThreadId())) + ': '+ S;
   {$ENDIF}
 
-  Description := LogFormatStr(LogType, ModuleName, Description);
-
 {$IFDEF IPHONE}
-  iPhoneLog(PAnsiChar(Description));
+  iPhoneLog(PAnsiChar(S));
 {$ENDIF}
 
 {$IFDEF ANDROID}
-  __android_log_write(ANDROID_LOG_DEBUG, PAnsiChar(ModuleName), PAnsiChar(Description));
+  __android_log_write(ANDROID_LOG_DEBUG, PAnsiChar(ModuleName), PAnsiChar(S));
 {$ENDIF}
 
   {$IFDEF MOBILE}
-  If LoggingDisabled Then
+  If Not LoggingEnabled Then
     Exit;
   {$ENDIF}
 
@@ -350,13 +349,20 @@ Begin
   _LogActive := True;
 
   If (Log_Ready()) Then
-    WriteToLog(Description);
-    
+    WriteToLog(S);
+
   _LogActive := False;
 {$ENDIF}
 End;
 
 Initialization
+{$IFDEF DEBUG_LOG}
+LoggingEnabled := True;
+{$ELSE}
+{$IFDEF PC}
+  LoggingEnabled := Application.GetOption('log') = '1';
+{$ENDIF}
+{$ENDIF}
 Finalization
   Log_Shutdown();
 End.

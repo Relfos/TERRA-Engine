@@ -27,7 +27,7 @@ Unit TERRA_Milkshape;
 {$I terra.inc}
 Interface
 Uses TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Stream, TERRA_INI, TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix4x4,
-  TERRA_Color, TERRA_FileStream, TERRA_FileUtils, TERRA_Vector4D, TERRA_MeshFilter;
+  TERRA_Color, TERRA_FileStream, TERRA_FileUtils, TERRA_Vector4D, TERRA_MeshFilter, TERRA_VertexFormat;
 
 Const
   MS3D_HEADER='MS3D000000';
@@ -136,13 +136,13 @@ Type
 
   Milkshape3DObject = Object
     Header:Milkshape3DHeader;
-    NumVertices:SmallInt;
+    NumVertices:Word;
     Vertices:Array Of Milkshape3DVertex;
-    NumTriangles:SmallInt;
+    NumTriangles:Word;
     Triangles:Array Of Milkshape3DTriangle;
-    NumGroups:SmallInt;
+    NumGroups:Word;
     Groups:Array Of Milkshape3DGroup;
-    NumMaterials:SmallInt;
+    NumMaterials:Word;
     Materials:Array Of Milkshape3DMaterial;
     AnimationFPS:Single;
     CurrentTime:Single;
@@ -210,7 +210,7 @@ Type
       Function GetTriangle(GroupID, Index:Integer):Triangle; Override;
 
       Function GetVertexCount(GroupID:Integer):Integer; Override;
-      Function GetVertexFormat(GroupID:Integer):Cardinal; Override;
+      Function GetVertexFormat(GroupID:Integer):VertexFormat; Override;
       Function GetVertexPosition(GroupID, Index:Integer):Vector3D; Override;
       Function GetVertexNormal(GroupID, Index:Integer):Vector3D; Override;
       Function GetVertexBone(GroupID, Index:Integer):Integer; Override;
@@ -1108,9 +1108,9 @@ Begin
   Result := _Groups[GroupID].VertexCount;
 end;
 
-Function Milkshape3DModel.GetVertexFormat(GroupID: Integer): Cardinal;
+Function Milkshape3DModel.GetVertexFormat(GroupID: Integer): VertexFormat;
 Begin
-  Result := meshFormatNormal Or meshFormatUV1 Or meshFormatBone;
+  Result := [vertexFormatPosition, vertexFormatNormal, vertexFormatUV0, vertexFormatBone];
 End;
 
 Function Milkshape3DModel.GetVertexBone(GroupID, Index: Integer): Integer;

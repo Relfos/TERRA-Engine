@@ -252,7 +252,7 @@ End;
 Procedure SoundStream.Play;
 Begin
   If (_Status = sndStopped) Then
-    _StartTime := GetTime;
+    _StartTime := Application.GetTime;
 
   _Status := sndPlaying;
 

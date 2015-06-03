@@ -28,7 +28,7 @@ Unit TERRA_OBJ;
 Interface
 Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Color, TERRA_Vector3D, TERRA_Vector2D, TERRA_Texture,
   TERRA_Math, TERRA_Mesh, TERRA_Resource, TERRA_MeshFilter, TERRA_OS, TERRA_FileUtils,
-  TERRA_FileManager, TERRA_FileStream, TERRA_MemoryStream;
+  TERRA_FileManager, TERRA_FileStream, TERRA_MemoryStream, TERRA_Renderer, TERRA_VertexFormat;
 
 Type
   POBJMaterial=^OBJMaterial;
@@ -114,7 +114,7 @@ Type
       Function GetTriangle(GroupID, Index:Integer):Triangle; Override;
 
       Function GetVertexCount(GroupID:Integer):Integer; Override;
-      Function GetVertexFormat(GroupID:Integer):Cardinal; Override;
+      Function GetVertexFormat(GroupID:Integer):VertexFormat; Override;
       Function GetVertexPosition(GroupID, Index:Integer):Vector3D; Override;
       Function GetVertexNormal(GroupID, Index:Integer):Vector3D; Override;
       Function GetVertexUV(GroupID, Index:Integer):Vector2D; Override;
@@ -765,9 +765,9 @@ Begin
   Result := _GroupList[GroupID].VertexCount;
 End;
 
-Function OBJModel.GetVertexFormat(GroupID: Integer): Cardinal;
+Function OBJModel.GetVertexFormat(GroupID: Integer):VertexFormat;
 Begin
-  Result := meshFormatNormal Or meshFormatUV1;
+  Result := [vertexFormatPosition, vertexFormatNormal, vertexFormatUV0];
 End;
 
 Function OBJModel.GetVertexNormal(GroupID, Index: Integer): Vector3D;

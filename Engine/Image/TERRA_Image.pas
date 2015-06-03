@@ -44,6 +44,13 @@ Const
   componentBlue   = 2;
   componentAlpha  = 3;
 
+  maskRed = 1;
+  maskGreen = 2;
+  maskBlue = 4;
+  maskAlpha = 8;
+  maskRGB = maskRed Or maskGreen Or maskBlue;
+  maskRGBA = maskRGB Or maskAlpha;
+
   PixelSize:Cardinal = 4;
 
 Type
@@ -119,6 +126,8 @@ Type
 
       Function SubImage(X1,Y1,X2,Y2:Integer):Image;
 
+      Function Combine(Layer:Image; Alpha:Single; Mode:ColorCombineMode; Mask:Cardinal):Boolean;
+
       Procedure LineByUV(Const U1,V1,U2,V2:Single; Const Color:Color);
       Procedure Line(X1,Y1,X2,Y2:Integer; Const Color:Color);
       Procedure LineAlpha(X1,Y1,X2,Y2:Integer; Const Color:Color);
@@ -143,8 +152,10 @@ Type
       Procedure SetPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
       Procedure SetPixelByUV(Const U,V:Single; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
 
-      Procedure AddPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
+      //Procedure AddPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
       Procedure MixPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
+
+      Function MipMap():Image;
 
       Procedure LineDecodeRGBPalette4(Buffer, Palette:Pointer; Line:Cardinal);
       Procedure LineDecodeRGBPalette8(Buffer, Palette:Pointer; Line:Cardinal);
@@ -278,7 +289,7 @@ Begin
   _ImageExtensions[N].Saver := Saver;
 End;
 
-// Image
+{ Image }
 Constructor Image.Create(Width, Height:Integer);
 Begin
   _CurrentFrame := 0;
@@ -1346,7 +1357,7 @@ Begin
   Dest^ := ColorBlend(Color, Dest^);
 End;
 
-Procedure Image.AddPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
+(*Procedure Image.AddPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
 Var
   Dest:PColor;
 Begin
@@ -1359,7 +1370,7 @@ Begin
   Dest := @_Pixels._Data[Y*Width+X];
   Dest^ := ColorAdd(Dest^, Color);
   {$ENDIF}
-End;
+End;*)
 
 Procedure Image.Load(FileName:TERRAString);
 Var
@@ -2124,6 +2135,91 @@ Begin
     End;
 End;
 
+Function Image.Combine(Layer:Image; Alpha:Single; Mode:ColorCombineMode; Mask:Cardinal):Boolean;
+Var
+  A,B:PColor;
+  C:Color;
+  InvAlpha:Single;
+  Count:Integer;
+Begin
+  Result := False;
+
+  If (Layer = Nil) Then
+    Exit;
+
+  If (Layer.Width<>Self.Width) Or (Layer.Height<>Self.Height) Then
+    Exit;
+
+  A := Self.Pixels;
+  B := Layer.Pixels;
+
+  Count := Self.Width * Self.Height;
+
+  InvAlpha := 1.0 - Alpha;
+
+  While Count>0 Do
+  Begin
+    C := ColorCombine(A^, B^, Mode);
+
+    If (Mask And maskRed<>0) Then
+      A.R := Trunc(A.R * InvAlpha + C.R * Alpha);
+
+    If (Mask And maskGreen<>0) Then
+      A.g := Trunc(A.G * InvAlpha + C.G * Alpha);
+
+    If (Mask And maskBlue<>0) Then
+      A.B := Trunc(A.B * InvAlpha + C.B * Alpha);
+
+    If (Mask And maskAlpha<>0) Then
+      A.A := Trunc(A.A * InvAlpha + C.A * Alpha);
+
+    If (Mask = maskAlpha) And (A.A<250) Then
+    Begin
+      A.R := 0;
+      A.G := 0;
+      A.B := 0;
+    End;
+
+    //A^:= ColorMix(C, A^, Alpha);
+
+    Inc(A);
+    Inc(B);
+    Dec(Count);
+  End;
+
+
+  Result := True;
+End;
+
+Function Image.MipMap(): Image;
+Var
+  I,J:Integer;
+  PX, PY:Single;
+  A, B, C, D, F:Color;
+Begin
+  Result := Image.Create(Self.Width Shr 1, Self.Height Shr 1);
+
+  For I:=0 To Pred(Result.Width) Do
+    For J:=0 To Pred(Result.Height) Do
+    Begin
+      PX := (I * 2.0) + 0.5;
+      PY := (J * 2.0) + 0.5;
+
+      A := Self.GetPixel(Trunc(PX), Trunc(PY));
+      B := Self.GetPixel(Round(PX), Trunc(PY));
+      C := Self.GetPixel(Round(PX), Round(PY));
+      D := Self.GetPixel(Trunc(PX), Round(PY));
+
+      F.R := Trunc((A.R + B.R + C.R + D.R) * 0.25);
+      F.G := Trunc((A.G + B.G + C.G + D.G) * 0.25);
+      F.B := Trunc((A.B + B.B + C.B + D.B) * 0.25);
+      F.A := Trunc((A.A + B.A + C.A + D.A) * 0.25);
+
+      Result.SetPixel(I, J, F);
+    End;
+End;
+
+{ ImageFrame }
 Constructor ImageFrame.Create(Width, Height:Integer);
 Begin
   SetLength(_Data, Width * Height);

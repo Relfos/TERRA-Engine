@@ -29,15 +29,18 @@ Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Vector2D, TERRA_Vector3D, TERRA_Texture,
   {$IFDEF POSTPROCESSING}TERRA_ScreenFX, {$ENDIF}
-  TERRA_RenderTarget, TERRA_Image, TERRA_Color, TERRA_Shader, TERRA_Matrix4x4, TERRA_Matrix3x3;
+  TERRA_Image, TERRA_Color, TERRA_Matrix4x4, TERRA_Matrix3x3, TERRA_VertexFormat;
+
+Const
+  FadeVertexFormat = [vertexFormatPosition, vertexFormatUV0];
 
 Type
   FadeCallback = Procedure(Arg:Pointer);  CDecl;
 
-  FadeVertex = Packed Record
+{  FadeVertex = Packed Record
     Position:Vector2D;
     UV:Vector2D;
-  End;
+  End;}
 
   UITransition = Class(TERRAObject)
     Protected
@@ -54,7 +57,12 @@ Type
       _FinishValue:Single;
       _Transform:Matrix3x3;
 
+      _FadeVertices:VertexData;
+
+
       Procedure Render(Alpha:Single); Virtual; Abstract;
+
+      Procedure InitVertices(OfsX, OfsY:Single);
 
     Public
       Function Update:Boolean;
@@ -97,12 +105,11 @@ Type
   End;
 
 Implementation
-Uses TERRA_OS, TERRA_ResourceManager, TERRA_GraphicsManager,
-  TERRA_Tween, TERRA_UI, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
+Uses TERRA_OS, TERRA_ResourceManager, TERRA_GraphicsManager, TERRA_Renderer, TERRA_Tween, TERRA_UI;
 
 Var
-  _FadeShader:Shader;
-  _SlideShader:Shader;
+  _FadeShader:ShaderInterface;
+  _SlideShader:ShaderInterface;
 
 Function GetShader_UIFade:TERRAString;
 Var
@@ -157,6 +164,41 @@ Begin
   Result := S;
 End;
 
+{ UITransition }
+Procedure UITransition.InitVertices(OfsX, OfsY:Single);
+Var
+  W,H:Single;
+  P:Vector2D;
+  I:Integer;
+Begin
+  W := UIManager.Instance.Width;
+  H := UIManager.Instance.Height;
+
+  If (_FadeVertices = Nil) Then
+    _FadeVertices := VertexData.Create(FadeVertexFormat, 6);
+
+  _FadeVertices.SetVector2D(0, vertexUV0, VectorCreate2D(0.0, 0.0));
+  _FadeVertices.SetVector2D(1, vertexUV0, VectorCreate2D(0.0, 1.0));
+  _FadeVertices.SetVector2D(2, vertexUV0, VectorCreate2D(1.0, 1.0));
+  _FadeVertices.SetVector2D(4, vertexUV0, VectorCreate2D(1.0, 0.0));
+
+  _FadeVertices.SetVector3D(0, vertexPosition, VectorCreate(OfsX, OfsY, 0.0));
+  _FadeVertices.SetVector3D(1, vertexPosition, VectorCreate(OfsX, OfsY + H, 0.0));
+  _FadeVertices.SetVector3D(2, vertexPosition, VectorCreate(OfsX + W, OfsY + H, 0.0));
+  _FadeVertices.SetVector3D(4, vertexPosition, VectorCreate(OfsX + W, OfsY, 0.0));
+
+  _FadeVertices.CopyVertex(2, 3);
+  _FadeVertices.CopyVertex(0, 5);
+
+  For I:=0 To 5 Do
+  Begin
+    _FadeVertices.GetVector2D(I, vertexPosition, P);
+    P := _Transform.Transform(P);
+
+    _FadeVertices.SetVector3D(I, vertexPosition, VectorCreate(P.X, P.Y, 0.0));
+  End;
+End;
+
 Procedure UITransition.SetCallback(Callback:FadeCallback; UserData:Pointer = Nil; OnStart:Boolean=False);
 Begin
   _Callback := Callback;
@@ -166,7 +208,7 @@ End;
 
 Procedure UITransition.Release;
 Begin
-  // do nothing
+  ReleaseObject(_FadeVertices);
 End;
 
 Function UITransition.Update:Boolean;
@@ -182,12 +224,12 @@ Begin
   If Not _Running Then
   Begin
     _Running := True;
-    _Time := GetTime + _Delay;
+    _Time := Application.GetTime + _Delay;
     If (_CallOnStart) And (Assigned(_Callback)) Then
       _Callback(_Arg);
   End;
 
-  Alpha := GetTime;
+  Alpha := Application.GetTime;
   If (Alpha>=_Time) Then
   Begin
     Alpha := Alpha - _Time;
@@ -239,8 +281,8 @@ Begin
 
   If (Not Assigned(_FadeShader)) Then
   Begin
-    _FadeShader := Shader.CreateFromString(GetShader_UIFade(), 'ui_fade');
-    ShaderManager.Instance.AddShader(_FadeShader);
+    _FadeShader := GraphicsManager.Instance.Renderer.CreateShader();
+    _FadeShader.Generate('ui_fade', GetShader_UIFade());
   End;
 End;
 
@@ -248,72 +290,46 @@ Procedure UIFade.Render(Alpha:Single);
 Var
   I:Integer;
   X,Y:Single;
-  FadeVertices:Array[0..6] Of FadeVertex;
-  PositionHandle, UVHandle:Integer;
-  _Shader:Shader;
   M:Matrix4x4;
   StencilID:Byte;
   Delta:Single;
-  P:Vector2D;
+  _Shader:ShaderInterface;
+  Graphics:GraphicsManager;
 Begin
   If (_FadeOut) Then
     Alpha := 1.0 - Alpha;
 
   Delta := GetEase(Alpha, _EaseType);
 
+  Graphics := GraphicsManager.Instance;
+
+  If Not _FadeTexture.IsReady() Then
+    Exit;
+
   _FadeTexture.Bind(0);
-  If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
-    GraphicsManager.Instance.SetBlendMode(blendZero)
+  If (Not Graphics.Renderer.Features.Shaders.Avaliable) Then
+    Graphics.Renderer.SetBlendMode(blendZero)
   Else
-    GraphicsManager.Instance.SetBlendMode(blendBlend);
+    Graphics.Renderer.SetBlendMode(blendBlend);
 
   _Shader := _FadeShader;
-  M := GraphicsManager.Instance.ProjectionMatrix;
-  ShaderManager.Instance.Bind(_Shader);
-  _Shader.SetUniform('projectionMatrix', M);
-  _Shader.SetUniform('texture', 0);
-  _Shader.SetUniform('alpha', Delta);
-  _Shader.SetUniform('fadeColor', Color);
 
-  PositionHandle := _FadeShader.GetAttribute('terra_position');
-  UVHandle := _FadeShader.GetAttribute('terra_UV0');
+  Graphics.Renderer.BindShader(_Shader);
+  //ShaderManager.Instance.Bind(_Shader);
 
-  X := UIManager.Instance.Width;
-  Y := UIManager.Instance.Height;
+  M := Graphics.ProjectionMatrix;
+  Graphics.Renderer.SetModelMatrix(Matrix4x4Identity);
+  Graphics.Renderer.SetProjectionMatrix(M);
+  _Shader.SetIntegerUniform('texture', 0);
+  _Shader.SetFloatUniform('alpha', Delta);
+  _Shader.SetColorUniform('fadeColor', Color);
 
-  FadeVertices[0].UV.X := 0.0;
-  FadeVertices[0].UV.Y := 0.0;
-  FadeVertices[1].UV.X := 0.0;
-  FadeVertices[1].UV.Y := 1.0;
-  FadeVertices[2].UV.X := 1.0;
-  FadeVertices[2].UV.Y := 1.0;
-  FadeVertices[4].UV.X := 1.0;
-  FadeVertices[4].UV.Y := 0.0;
+  Self.InitVertices(0, 0);
 
-  FadeVertices[0].Position.X := 0.0;
-  FadeVertices[0].Position.Y := 0.0;
-  FadeVertices[1].Position.X := 0.0;
-  FadeVertices[1].Position.Y := Y;
-  FadeVertices[2].Position.X := X;
-  FadeVertices[2].Position.Y := Y;
-  FadeVertices[3] := FadeVertices[2];
-  FadeVertices[4].Position.X := X;
-  FadeVertices[4].Position.Y := 0.0;
-  FadeVertices[5] := FadeVertices[0];
+  Graphics.Renderer.SetDepthTest(False);
 
-  For I:=0 To 5 Do
-  Begin
-    P.X := FadeVertices[I].Position.X;
-    P.Y := FadeVertices[I].Position.Y;
-    P := _Transform.Transform(P);
-    FadeVertices[I].Position.X := P.X;
-    FadeVertices[I].Position.Y := P.Y;
-  End;
 
-  glDisable(GL_DEPTH_TEST);
-
-  {$IFDEF PC}
-  If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
+  (*If (Not GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Then
   Begin
     glMatrixMode(GL_PROJECTION);
     glLoadMatrixf(@M);
@@ -343,11 +359,19 @@ Begin
     glVertexAttribPointer(UVHandle, 2, GL_FLOAT, False, 16, @(FadeVertices[0].UV));
   End;
 
-  glDrawArrays(GL_TRIANGLES, 0, 6);
-  GraphicsManager.Instance.Internal(0, 2);
+  glVertexAttribPointer(PositionHandle, 2, GL_FLOAT, False, 16, @(FadeVertices[0].Position));
+  glVertexAttribPointer(UVHandle, 2, GL_FLOAT, False, 16, @(FadeVertices[0].UV));
+  *);
 
-  {$IFDEF PC}
-  If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
+{  Graphics.Renderer.SetSourceVertexSize(16);
+  Graphics.Renderer.SetAttributeSource('terra_position', vertexPosition, typeVector2D, @(FadeVertices[0].Position));
+  Graphics.Renderer.SetAttributeSource('terra_UV0', vertexUV0, typeVector2D, @(FadeVertices[0].UV));}
+
+  Graphics.Renderer.SetVertexSource(_FadeVertices);
+  Graphics.Renderer.DrawSource(renderTriangles, 6);
+
+  (*
+  If (Not GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Then
   Begin
     TextureManager.Instance.WhiteTexture.Bind(0);
 
@@ -357,18 +381,16 @@ Begin
 
     glColor4f(Color.R/255, Color.G/255, Color.B/255, 1.0);
     glDisable(GL_ALPHA_TEST);
-    GraphicsManager.Instance.SetBlendMode(blendOne);
+    GraphicsManager.Instance.Renderer.SetBlendMode(blendOne);
     glDrawArrays(GL_TRIANGLES, 0, 6);
-    GraphicsManager.Instance.Internal(0, 2);
 
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisable(GL_STENCIL_TEST);
   End;
-  {$ENDIF}
+  *)
 
-
-  glEnable(GL_DEPTH_TEST);
+  Graphics.Renderer.SetDepthTest(True);
 End;
 
 { UISlide }
@@ -385,7 +407,8 @@ Begin
 
   {$IFDEF POSTPROCESSING}
   Src := GraphicsManager.Instance.MainViewport.GetRenderTarget(captureTargetColor).GetImage();
-  _Texture := Texture.New('ui_slide', Src.Width, Src.Height);
+  _Texture := Texture.Create();
+  _Texture.CreateFromSize('ui_slide', Src.Width, Src.Height);
   _Texture.UpdateRect(Src);
   Src.Release();
   {$ELSE}
@@ -394,8 +417,8 @@ Begin
 
   If Not Assigned(_SlideShader) Then
   Begin
-    _SlideShader := Shader.CreateFromString(GetShader_UISlide(), 'ui_slide');
-    ShaderManager.Instance.AddShader(_SlideShader);
+    _SlideShader := GraphicsManager.Instance.Renderer.CreateShader();
+    _SlideShader.Generate('ui_slide', GetShader_UISlide()); 
   End;
 End;
 
@@ -408,73 +431,47 @@ End;
 Procedure UISlide.Render(Alpha: Single);
 Var
   X,Y, W, H:Single;
-  FadeVertices:Array[0..6] Of FadeVertex;
-  _Shader:Shader;
-  PositionHandle, UVHandle:Integer;
+  _Shader:ShaderInterface;
   StencilID:Integer;
   Delta:Single;
+  Graphics:GraphicsManager;
   I:Integer;
   P:Vector2D;
 Begin
   Delta := GetEase(Alpha, _EaseType);
 
+  Graphics := GraphicsManager.Instance;
+
   _Texture.Bind(0);
-  glDisable(GL_DEPTH_TEST);
 
   _Shader := _SlideShader;
-  ShaderManager.Instance.Bind(_Shader);
-  _Shader.SetUniform('projectionMatrix', GraphicsManager.Instance.ProjectionMatrix);
-  _Shader.SetUniform('texture', 0);
 
-  PositionHandle := _SlideShader.GetAttribute('terra_position');
-  UVHandle := _SlideShader.GetAttribute('terra_UV0');
+  Graphics.Renderer.BindShader(_Shader);
+  //ShaderManager.Instance.Bind(_Shader);
+  Graphics.Renderer.SetModelMatrix(Matrix4x4Identity);
+  Graphics.Renderer.SetProjectionMatrix(Graphics.ProjectionMatrix);
+  _Shader.SetIntegerUniform('texture', 0);
 
+  Graphics.Renderer.SetBlendMode(blendNone);
 
-  GraphicsManager.Instance.SetBlendMode(blendNone);
-
-  W := GraphicsManager.Instance.Width;
-  H := GraphicsManager.Instance.Height;
+  W := UIManager.Instance.Width;
+  H := UIManager.Instance.Height;
 
   X := _Direction.X * Delta * W;
   Y := _Direction.Y * Delta * H;
 
-  FadeVertices[0].Position.X := X;
-  FadeVertices[0].Position.Y := Y;
-  FadeVertices[0].UV.X := 0.0;
-  FadeVertices[0].UV.Y := 1.0;
-  FadeVertices[1].Position.X := X;
-  FadeVertices[1].Position.Y := Y + H;
-  FadeVertices[1].UV.X := 0.0;
-  FadeVertices[1].UV.Y := 0.0;
-  FadeVertices[2].Position.X := X + W;
-  FadeVertices[2].Position.Y := Y + H;
-  FadeVertices[2].UV.X := 1.0;
-  FadeVertices[2].UV.Y := 0.0;
-  FadeVertices[3] := FadeVertices[2];
-  FadeVertices[4].Position.X := X + W;
-  FadeVertices[4].Position.Y := Y;
-  FadeVertices[4].UV.X := 1.0;
-  FadeVertices[4].UV.Y := 1.0;
-  FadeVertices[5] := FadeVertices[0];
+  Self.InitVertices(X, Y);
 
-  For I:=0 To 5 Do
-  Begin
-    P.X := FadeVertices[I].Position.X;
-    P.Y := FadeVertices[I].Position.Y;
-    P := _Transform.Transform(P);
-    FadeVertices[I].Position.X := P.X;
-    FadeVertices[I].Position.Y := P.Y;
-  End;
+  Graphics.Renderer.SetDepthTest(False);
 
-  glVertexAttribPointer(PositionHandle, 2, GL_FLOAT, False, 16, @(FadeVertices[0].Position));    
-  glVertexAttribPointer(UVHandle, 2, GL_FLOAT, False, 16, @(FadeVertices[0].UV));  
+{  Graphics.Renderer.SetSourceVertexSize(16);
+  Graphics.Renderer.SetAttributeSource('terra_position', vertexPosition, typeVector2D, @(FadeVertices[0].Position));
+  Graphics.Renderer.SetAttributeSource('terra_UV0', vertexUV0, typeVector2D, @(FadeVertices[0].UV));}
 
-  glDrawArrays(GL_TRIANGLES, 0, 6);
-  GraphicsManager.Instance.Internal(0, 2);
+  Graphics.Renderer.SetVertexSource(_FadeVertices);
+  Graphics.Renderer.DrawSource(renderTriangles, 6);
 
-  glEnable(GL_DEPTH_TEST);    
-
-  glEnable(GL_DEPTH_TEST);    
+  Graphics.Renderer.SetDepthTest(True);
 End;
 
 End.

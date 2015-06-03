@@ -141,7 +141,7 @@ Begin
       Self.OnContextLost();
     End Else
     Begin
-      _Time := GetTime;
+      _Time := Application.GetTime;
       Result := True;
     End;
 
@@ -259,7 +259,7 @@ End;
 
 Function Resource.ShouldUnload: Boolean;
 Begin
-  Result := (GetTime() - Self.Time > ResourceDiscardTime);
+  Result := (Application.GetTime() - Self.Time > ResourceDiscardTime);
 End;
 
 End.

@@ -34,27 +34,34 @@ Unit TERRA_ShaderFactory;
 {-$DEFINE DEBUG_LIGHTMAP}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Shader, TERRA_Application, TERRA_Lights, TERRA_BoundingBox, TERRA_Vector4D;
+Uses TERRA_String, TERRA_Utils, TERRA_Renderer, TERRA_Application,
+  TERRA_Lights, TERRA_BoundingBox, TERRA_Vector4D, TERRA_Color;
 
 Const
   NormalMapUniformName = 'normalMap';
+  DisplacementMapUniformName = 'displacementMap';
   DecalMapUniformName = 'decalMap';
   SpecularMapUniformName = 'specularMap';
   AlphaMapUniformName = 'alphaMap';
   ReflectiveMapUniformName = 'reflectiveMap';
   ReflectionMapUniformName = 'reflectionMap';
   SphereMapUniformName = 'sphereMap';
-  ColorRampUniformName = 'colorRamp';
+  ToonRampUniformName = 'colorRamp';
   FlowMapUniformName = 'flowMap';
   NoiseMapUniformName = 'noiseMap';
+  ShadowMapUniformName = 'shadowMap';
+  ColorMapUniformName = 'colorMap';
+
+  DitherPatternMapUniformName = 'ditherMap';
+  DitherScaleUniformName = 'dither_scale';
 
   shaderSkinning    = 1 Shl 0;
   shaderSpecular    = 1 Shl 1;
   shaderLightMap    = 1 Shl 2;
-  //shaderSpecularMap = 1 Shl 3;
+  shaderShadowMap = 1 Shl 3;
   shaderNormalMap   = 1 Shl 4;
   shaderCubeMap  = 1 Shl 5;
-  shaderColorRamp   = 1 Shl 6;
+  shaderToonRamp   = 1 Shl 6;
   shaderSkipAmbient = 1 Shl 7;
   shaderScreenMask   = 1 Shl 8;
   shaderVegetation  = 1 Shl 9;
@@ -74,15 +81,22 @@ Const
   shaderFlowMap         = 1 Shl 23;
   shaderNoiseMap        = 1 Shl 24;
   shaderTextureMatrix   = 1 Shl 25;
+  shaderParallaxBump    = 1 Shl 26;
+  shaderDitherColor     = 1 Shl 27;
+  shaderCartoonHue      = 1 Shl 28;
+  shaderSelfIllumn      = 1 Shl 29;
 
+  //ParallaxScale
 
-  shader_OutputNormal    = 1 Shl 1;
-  shader_OutputSpecular  = 1 Shl 2;
-  shader_OutputGlow      = 1 Shl 3;
-  shader_OutputRefraction= 1 Shl 4;
-  shader_OutputOutline   = 1 Shl 5;
-  shader_OutputColor     = 1 Shl 6;
-  shader_OutputReflection= 1 Shl 7;
+  shader_OutputDiffuse    = 1 Shl 1;
+  shader_OutputNormal    = 1 Shl 2;
+  shader_OutputSpecular  = 1 Shl 3;
+  shader_OutputGlow      = 1 Shl 4;
+  shader_OutputRefraction= 1 Shl 5;
+  shader_OutputOutline   = 1 Shl 6;
+  shader_OutputFixedColor = 1 Shl 7;
+  shader_OutputReflection= 1 Shl 8;
+  shader_OutputShadow= 1 Shl 9;
 
 Type
   ShaderEntry = Class(TERRAObject)
@@ -93,7 +107,7 @@ Type
     SpotLightCount:Integer;
     LightModel:Integer;
     FogFlags:Integer;
-    Shader:TERRA_Shader.Shader;
+    Shader:ShaderInterface;
 
     Procedure Release; Override;
   End;
@@ -135,20 +149,20 @@ Type
 
       Procedure Init; Override;
       Procedure OnContextLost; Override;
-      
+
       Procedure Clear;
 
       Procedure SetShaderEmitter(Emitter:ShaderEmitter);
 
-      Function GetShader(FxFlags, OutFlags, FogFlags, LightModel:Cardinal; Const Lights:LightBatch):Shader;
+      Function GetShader(FxFlags, OutFlags, FogFlags, LightModel:Cardinal; Const Lights:LightBatch):ShaderInterface;
   End;
 
 Implementation
-Uses TERRA_Mesh, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_OS,
-  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
+
+Uses TERRA_Log, TERRA_Mesh, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_OS;
+
 Var
   _ShaderFactory_Instance:ApplicationObject;
-
 
 { ShaderEmitter }
 Procedure ShaderEmitter.Line(S2:TERRAString);
@@ -160,7 +174,7 @@ Procedure ShaderEmitter.Varyings;
 Begin
 	Line('varying highp vec4 world_position;');
 	Line('varying highp vec4 local_position;');
-	Line('varying highp vec4 screen_position;');
+	Line('varying highp vec4 clip_position;');
   Line('varying lowp vec4 vertex_color;');
 
 	Line('varying highp vec4 texCoord0;');
@@ -181,8 +195,12 @@ Begin
   End;
 
 
-  If (FxFlags and shaderLightmap=0) Or (OutFlags and shader_OutputOutline<>0) Then
-  	Line('varying mediump vec3 vertex_normal;');
+  If (FogFlags<>0) Then
+  Begin
+      Line('  varying lowp float fogFactor; ');
+  End;
+
+  Line('varying mediump vec3 vertex_normal;');
 
   If (FxFlags and shaderNormalMap<>0) Then
   Begin
@@ -206,24 +224,45 @@ Procedure ShaderEmitter.CustomShading;
 Begin
   If (FxFlags and shaderSpecular<>0) Then
   Begin
-	  Line('	mediump vec3 r = normalize(reflect(-sunDirection, normal));');
-    Line('	mediump vec3 sp = dot(r, normalize(cameraView));');
+	  Line('	mediump vec3 r = normalize(reflect(direction, normal));');
+    Line('	mediump float sp = dot(r, normalize(cameraView));');
     Line('  mediump float nDoth = max(sp, 0.0);');
   End;
 
-  If (FxFlags and shaderColorRamp<>0) Then
+  If (FxFlags and shaderToonRamp<>0) Then
   Begin
-    If (FxFlags and shaderSpecular<>0) Then
-      Line('  result *= texture2D('+ColorRampUniformName+', vec2(shading, nDoth));')
-    Else
-      Line('  result *= texture2D('+ColorRampUniformName+', vec2(shading, 0.0));');
-    //Line('  result += 0.5 * texture2D(colorRamp, vec2(shading, 0.0));');
+    (*If (FxFlags and shaderSpecular<>0) Then
+      Line('  result *= texture2D('+ToonRampUniformName+', vec2(shading, nDoth));')
+    Else*)
+      //Line('  result *= texture2D('+ToonRampUniformName+', vec2(shading, 0.0));');
+
+      //Line('  result = vec4(shading);');
+
+      Line('  shading = texture2D('+ToonRampUniformName+', vec2(shading, 0.0)).r;');
+
+(*        If (FxFlags and shaderAddSigned<>0) Then
+          Line('  result = texture2D('+ToonRampUniformName+', vec2(shading, 0.0)) + (result - 0.5);')
+        Else
+          Line('  result *= texture2D('+ToonRampUniformName+', vec2(shading, 0.0)).r;');
+*)
+      //Line('result = vec4(0.5,0.5,0.5,1.0) + (result - 0.5);')
+
+    //Line('  result += 0.5 * texture2D(ToonRamp, vec2(shading, 0.0));');
+  End;
+
+  If (FxFlags And shaderCartoonHue<>0) Then
+  Begin
+    Line('  result.rgb = cartoonHueAdjust(result.rgb, shading);');
+{        Line('  shading = floor(shading*8.0)/8.0;');
+        Line('  lowp vec3 rampValue = vec3(shading);');
+        Line('  result = rampValue + (result - 0.5);');}
   End Else
   Begin
-    Line('  result *= shading;');
+      Line('  result *= shading;');
 
     If (FxFlags and shaderSpecular<>0) Then
     Begin
+      Line('  float specular_power = 2.2;');
       Line('  lowp vec4 spec = specular * pow(nDoth, specular_power);');
       Line('  result.rgb += spec.rgb;');
     End;
@@ -234,6 +273,7 @@ Procedure ShaderEmitter.VertexUniforms;
 Begin
 	Line('uniform mat4 cameraMatrix;');
 	Line('uniform mat4 modelMatrix;');
+	Line('uniform mat4 modelMatrixInverse;');
   Line('uniform mat4 projectionMatrix;');
 
   If (FxFlags And shaderTextureMatrix<>0) Then
@@ -245,7 +285,7 @@ Begin
   If (FxFlags and shaderSkinning<>0) Then
     Line('uniform vec4 boneVectors['+IntToString(Succ(MaxBones)*3)+'];');
 
-  If (FxFlags and shaderNormalMap<>0) Or (FxFlags and shaderGhost<>0) Or (FxFlags and shaderSphereMap<>0) Or (FxFlags and shaderFresnelTerm<>0) Then
+  //If (FxFlags and shaderNormalMap<>0) Or (FxFlags and shaderGhost<>0) Or (FxFlags and shaderSphereMap<>0) Or (FxFlags and shaderFresnelTerm<>0) Then
   Begin
   	Line('  uniform highp vec3 cameraPosition;');
   End;
@@ -253,6 +293,30 @@ Begin
   If (FxFlags and shaderClipPlane<>0) Then
   Begin
   	Line('  uniform highp vec4 clipPlane;');
+  End;
+
+  If (FogFlags<>0) Then
+  Begin
+  	Line('  const highp float LOG2 = 1.442695;');
+
+    If (FogFlags And fogDistance<>0) Then
+    Begin
+    	Line('  uniform highp float fogDistanceCenter;');
+    	Line('  uniform highp float fogDistanceSize;');
+    End;
+
+    If (FogFlags And fogHeight<>0) Then
+    Begin
+    	Line('  uniform highp float fogHeightStart;');
+    	Line('  uniform highp float fogHeightEnd;');
+    End;
+
+    If (FogFlags And fogBox<>0) Then
+    Begin
+    	Line('  uniform highp vec3 fogBoxAreaStart;');
+    	Line('  uniform highp vec3 fogBoxAreaEnd;');
+    	Line('  uniform highp float fogBoxSize;');
+    End;
   End;
 End;
 
@@ -265,6 +329,11 @@ Begin
   If (FxFlags and shaderTriplanar<>0) Then
   	Line('  uniform lowp sampler2D diffuseMap2;');
 
+  If (FxFlags and shaderShadowMap<>0) Then
+  Begin
+  	Line('  uniform lowp sampler2D '+ShadowMapUniformName+';');
+  End;
+
   If (FxFlags and shaderSpecular<>0) Then
   	Line('  uniform lowp sampler2D '+SpecularMapUniformName+';');
 
@@ -275,15 +344,17 @@ Begin
     Line('  uniform lowp sampler2D '+AlphaMapUniformName+';')
   Else
   If (FxFlags and shaderLightmap<>0) Then
-    Line('  uniform lowp sampler2D lightMap;')
-  Else
-  	Line('  uniform mediump vec3 sunDirection;');
+    Line('  uniform lowp sampler2D lightMap;');
 
   Line('  uniform lowp vec4 sunColor;');
 
   If (FxFlags and shaderNormalmap<>0) Then
   Begin
   	Line('  uniform lowp sampler2D '+NormalMapUniformName+';');
+    If (FxFlags and shaderParallaxBump<>0) Then
+    Begin
+  	  Line('  uniform lowp sampler2D '+DisplacementMapUniformName+';');
+    End;
   End;
 
   If (FxFlags and shaderFlowMap<>0) Then
@@ -303,7 +374,7 @@ Begin
   If (OutFlags And shader_OutputOutline<>0) Then
     Line('  uniform mediump vec4 outlineColor;');
 
-  If (OutFlags And shader_OutputColor<>0) Then
+  If (OutFlags And shader_OutputFixedColor<>0) Then
     Line('  uniform mediump vec4 targetColor;');
 
   {If (Flags And shaderOutputRefraction<>0) Then
@@ -312,8 +383,8 @@ Begin
   If (OutFlags And shader_OutputReflection<>0) Then
     Line('  uniform lowp float reflectionFactor;');
 
-  If (FxFlags and shaderColorRamp<>0) Then
-  	Line('  uniform lowp sampler2D '+ColorRampUniformName+';');
+  If (FxFlags and shaderToonRamp<>0) Then
+  	Line('  uniform lowp sampler2D '+ToonRampUniformName+';');
 
   If (FxFlags And shaderScreenMask<>0) Then
   	Line('  uniform lowp sampler2D screenMask;');
@@ -333,15 +404,7 @@ Begin
 
   If (FogFlags<>0) Then
   Begin
-  	Line('  const highp float LOG2 = 1.442695;');
   	Line('  uniform lowp vec4 fogColor;');
-	  Line('  uniform highp float fogDensity;');
-
-    If (FogFlags And fogDistance<>0) Then
-    	Line('  uniform highp float fogStart;');
-
-    If (FogFlags And fogHeight<>0) Then
-    	Line('  uniform highp float fogHeight;');
   End;
 
   If (OutFlags And shader_OutputReflection<>0) Then
@@ -424,7 +487,7 @@ Begin
 
 	Line('varying highp vec4 world_position;');
 	Line('varying highp vec4 local_position;');
-	Line('varying highp vec4 screen_position;');
+	Line('varying highp vec3 screen_position;');
 
 	Line('void main() {');
   Line('vec4 local_position = terra_position;');
@@ -454,7 +517,7 @@ Begin
 
   Line('attribute highp vec4 terra_UV0;');
 
-  If (FxFlags and shaderLightmap<>0) Or (FxFlags and shaderalphaMap<>0) Or (FxFlags And shaderFresnelTerm<>0) Then
+  If (FxFlags and shaderLightmap<>0) Or (FxFlags and shaderAlphaMap<>0) Or (FxFlags And shaderFresnelTerm<>0) Then
   	Line('attribute highp vec4 terra_UV1;');
 
   Line('attribute mediump vec3 terra_normal;');
@@ -463,7 +526,7 @@ Begin
 	  Line('attribute mediump vec4 terra_tangent;');
 
   If (FxFlags and shaderSkinning<>0) Then
-  	Line('attribute highp float terra_boneIndex;');
+  	Line('attribute highp float terra_bone;');
 
   Self.VertexUniforms(FxFlags, OutFlags, FogFlags);
 
@@ -503,32 +566,30 @@ Begin
 
 	Line('void main() {');
 
-  Line('vec4 local_position = terra_position;');
+  Line('local_position = terra_position;');
 
   If (FxFlags and shaderSkinning<>0) Then
   Begin
-    Line('    int boneIndex = int(terra_boneIndex);');
+    Line('    int boneIndex = int(terra_bone);');
     Line('    mat4 boneMatrix = decodeBoneMat(boneIndex);');
     Line('		local_position = boneMatrix * local_position;');
   End;
   
-  If (FxFlags and shaderLightmap=0) Or (OutFlags and shader_OutputOutline<>0) Then
+  If (FxFlags and shaderSkinning<>0) Then
   Begin
-    If (FxFlags and shaderSkinning<>0) Then
-    Begin
-      Line('  vertex_normal = terra_normal;');
-      {$IFDEF PC}
-      Line('  vertex_normal = mat3(boneMatrix) * vertex_normal;');
-      Line('  vertex_normal = mat3(modelMatrix) * vertex_normal;');
-      Line('  vertex_normal = normalize(vertex_normal);');
-      {$ENDIF}
-    End Else
-      Line('  vertex_normal = mat3(modelMatrix) * terra_normal;');
-    If (FxFlags and shaderNormalMap<>0) Then
-    Begin
-      Line('  tangent = normalize(mat3(modelMatrix) * terra_tangent.xyz);');
-      Line('  binormal = normalize(cross(vertex_normal, tangent)) * terra_tangent.w;');
-    End;
+    Line('  vertex_normal = terra_normal;');
+    {$IFDEF PC}
+    Line('  vertex_normal = mat3(boneMatrix) * vertex_normal;');
+    Line('  vertex_normal = mat3(modelMatrix) * vertex_normal;');
+    Line('  vertex_normal = normalize(vertex_normal);');
+    {$ENDIF}
+  End Else
+    Line('  vertex_normal = mat3(modelMatrix) * terra_normal;');
+
+  If (FxFlags and shaderNormalMap<>0) Then
+  Begin
+    Line('  tangent = normalize(mat3(modelMatrix) * terra_tangent.xyz);');
+    Line('  binormal = normalize(cross(vertex_normal, tangent)) * terra_tangent.w;');
   End;
 
   If (OutFlags And shader_OutputOutline<>0) Then
@@ -558,6 +619,60 @@ Begin
 
   Line(' world_position = modelMatrix * local_position;');
 
+  If (FogFlags<>0) Then
+  Begin
+    If (FogFlags And fogDistance<>0) Then
+    Begin
+      Line('  highp float zdist = length(world_position.xyz - cameraPosition.xyz);');
+      Line('  highp float distanceFactor = (fogDistanceCenter - zdist) / fogDistanceSize;');
+      Line('  distanceFactor *= 0.5;');
+      Line('  distanceFactor += 0.5;');
+      //exp2( -fogDensity * fogDensity * z * z * LOG2 );');
+    End Else
+      Line('  highp float distanceFactor = 0.0;');
+
+    If (FogFlags And fogHeight<>0) Then
+    Begin
+      Line('  highp float y = world_position.y;');
+      Line('  y = max(y-fogHeight, 0.0) / zFar;');
+      Line('  highp float heightFactor = exp2( -fogDensity * fogDensity * y * y * LOG2 );');
+    End Else
+      Line('  highp float heightFactor = 0.0;');
+
+    If (FogFlags And fogBox<>0) Then
+    Begin
+      //Line('  highp vec3 fogBoxAreaCenter = (fogBoxAreaStart + fogBoxAreaEnd) * 0.5;');
+
+      Line('      highp float boxDistX1 = abs(world_position.x - fogBoxAreaStart.x); ');
+      Line('      highp float boxDistX2 = abs(world_position.x - fogBoxAreaEnd.x); ');
+      Line('      highp float boxDistZ1 = abs(world_position.z - fogBoxAreaStart.z); ');
+      Line('      highp float boxDistZ2 = abs(world_position.z - fogBoxAreaEnd.z); ');
+
+      Line('  highp float boxDist = min(min(boxDistX1, boxDistX2), min(boxDistZ1, boxDistZ2));');
+
+      Line('  highp float boxFactor = boxDist / fogBoxSize;');
+      Line('  boxFactor = min(boxFactor, 1.0);');
+    End Else
+      Line('  highp float boxFactor = 0.0;');
+
+    Line('  fogFactor = min(distanceFactor + heightFactor + boxFactor, 1.0);');
+  End;
+
+  If GraphicsManager.Instance.Renderer.Settings.SurfaceProjection<>surfacePlanar Then
+  Begin
+    Line(' highp vec4 cyofs = world_position;');
+    Line('  cyofs.xyz -= cameraPosition.xyz;');
+    Line('  highp float curvatureAmmount = -0.001;');
+
+    If GraphicsManager.Instance.Renderer.Settings.SurfaceProjection = surfaceSpherical Then
+      Line('  cyofs = vec4( 0.0, ((cyofs.x * cyofs.x) + (cyofs.z * cyofs.z)) * curvatureAmmount, 0.0, 0.0);')
+    Else
+      Line('  cyofs = vec4( 0.0, (cyofs.z * cyofs.z) * curvatureAmmount, 0.0, 0.0);');
+    Line('  local_position += modelMatrixInverse * cyofs;');
+    Line(' world_position = modelMatrix * local_position;');
+  End;
+
+
   If (FxFlags and shaderNormalMap<>0) Or (FxFlags and shaderGhost<>0)
   Or (FxFlags and shaderFresnelTerm<>0) Or (FxFlags And shaderSphereMap<>0) Then
   Begin
@@ -574,15 +689,17 @@ Begin
     Line('  clipDistance = dot(world_position.xyz, clipPlane.xyz) + clipPlane.w;');
   End;
 
-  Line(' screen_position = projectionMatrix * cameraMatrix * world_position;');
+  Line(' clip_position = projectionMatrix * cameraMatrix * world_position;');
+  
   {$IFDEF ANDROID}
   // STUPID HACK FOR GALAXY TAB2, possibly a driver bug, fuck this
   Line('gl_Position = projectionMatrix * cameraMatrix * modelMatrix * local_position;');
   //Line('world_position.w = local_position.w;');
   //Line('gl_Position = projectionMatrix * cameraMatrix * world_position;');
   {$ELSE}
-  Line('  gl_Position = screen_position;');
+  Line('  gl_Position = clip_position;');
   {$ENDIF}
+
 
   Line('  vertex_color = terra_color;');
 
@@ -624,44 +741,7 @@ Begin
 	Line('  lowp vec4 color;');
 	Line('  lowp vec4 specular;');
 
-  If (FxFlags and shaderLightmap=0) Then
-  	Line('  mediump vec3 normal;');
-
-
-  If (FogFlags<>0) Then
-  Begin
-    Line('lowp float calculateFog()	{');
-    If (FogFlags And fogDistance<>0) Then
-    Begin
-      Line('  highp float z = length(world_position.xyz - cameraPosition);');
-      Line('  z = max(z - fogStart, 0.0) / zFar;');
-      Line('  highp float distanceFactor = exp2( -fogDensity * fogDensity * z * z * LOG2 );');
-    End;
-
-    If (FogFlags And fogHeight<>0) Then
-    Begin
-      Line('  highp float y = world_position.y;');
-      Line('  y = max(y-fogHeight, 0.0) / zFar;');
-      Line('  highp float heightFactor = exp2( -fogDensity * fogDensity * y * y * LOG2 );');
-    End;
-
-    If (FogFlags And fogDistance<>0) And (FogFlags And fogHeight<>0) Then
-    Begin
-      Line('  lowp float fogFactor = max(heightFactor, distanceFactor);');
-    End Else
-    If (FogFlags And fogDistance<>0) Then
-    Begin
-      Line('  lowp float fogFactor = distanceFactor;');
-    End Else
-    If (FogFlags And fogHeight<>0) Then
-    Begin
-      Line('  lowp float fogFactor = heightFactor;');
-    End;
-
-    Line('  fogFactor = clamp(fogFactor, 0.0, 1.0);');
-    Line('  return fogFactor;');
-	  Line('}');
-  End;
+  Line('  mediump vec3 normal;');
 
   If (FxFlags And shaderWireframe<>0) Then
   Begin
@@ -670,7 +750,6 @@ Begin
 
     If (FogFlags<>0) Then
     Begin
-      Line('  lowp float fogFactor = calculateFog(); ');
       Line('  color = mix(fogColor, color, fogFactor);');
     End;
 
@@ -689,9 +768,47 @@ Begin
     Exit;
   End;
 
-  If (FxFlags And shaderLightmap=0) Then
+  If (FxFlags And shaderCartoonHue<>0) Then
   Begin
-    If (LightModel <> lightModelSimple) Then
+  (*
+      Line('const lowp mat3 rgb2yiq = mat3(0.299, 0.587, 0.114, 0.595716, -0.274453, -0.321263, 0.211456, -0.522591, 0.311135);');
+      Line('const lowp mat3 yiq2rgb = mat3(1.0, 0.9563, 0.6210, 1.0, -0.2721, -0.6474, 1.0, -1.1070, 1.7046);');
+    	Line('mediump vec3 ShiftHue(mediump vec3 color, mediump float hueShift)	{');
+      Line('vec3 yColor = rgb2yiq * color.rgb;');
+      Line('float originalHue = atan(yColor.b, yColor.g);');
+      Line('float finalHue = originalHue + hueShift;');
+      Line('float chroma = sqrt(yColor.b*yColor.b+yColor.g*yColor.g);');
+      Line('vec3 yFinalColor = vec3(yColor.r, chroma * cos(finalHue), chroma * sin(finalHue));');
+      Line('return yiq2rgb*yFinalColor;}');*)
+
+    	Line('mediump vec3 cartoonHueAdjust(mediump vec3 color, mediump float shade)	{');
+
+(*      Line('  color = ShiftHue(color, -90.0);');
+      Line('return color; }');*)
+
+(*      Line('  mediump vec3 yellow = vec3(1.0, 1.0, 0.25);');
+      Line('  mediump vec3 green = vec3(0.25, 1.0, 0.25);');
+      Line('  mediump vec3 purple = vec3(1.0, 0.25, 1.0);');*)
+
+      Line('  mediump vec3 yellow = vec3(1.0, 1.0, 0.5);');
+      Line('  mediump vec3 green = vec3(0.25, 1.0, 0.25);');
+      Line('  mediump vec3 purple = vec3(1.0, 0.4, 1.0);');
+
+      Line('  mediump vec3 SA = mix(green, yellow, shade);');
+      Line('  mediump vec3 SB = mix(purple, yellow, shade);');
+
+      Line('  shade -= 0.5;');
+      Line('  shade *= 0.5;');
+      Line('  mediump vec3 temp = clamp(color + shade * SA, 0.0, 1.0);	');
+      Line('return mix(SB, temp, 0.75); }');
+      //Line('return temp; }');
+                                     
+
+  End;
+
+  If (OutFlags And shader_OutputDiffuse<>0) Then
+  Begin
+//    If (LightModel <> lightModelSimple) Then
     Begin
     	Line('mediump float halfDot(mediump vec3 A, mediump vec3 B)	{');
       Line('  mediump float result = dot(A, B);');
@@ -729,9 +846,9 @@ Begin
     If (Lights.SpotLightCount>0) Then
     Begin
       If (FogFlags<>0) Then
-        Line('lowp vec4 spotLight(lowp float fogFactor, highp vec3 lightPosition, lowp vec4 lightColor, mediump vec3 lightDir, mediump float cos_inner_cone_angle, mediump float cos_outer_cone_angle, mat4 lightMatrix, lowp sampler2D cookieTex){')
+        Line('lowp vec4 spotLight(lowp float fogFactor, highp vec3 lightPosition, lowp vec4 lightColor, mediump vec3 lightDir, mediump float cos_inner_cone_angle, mediump float cos_outer_cone_angle, mat4 lightMatrix, lowp sampler2D cookieTex, lowp float shadow){')
       Else
-        Line('lowp vec4 spotLight(highp vec3 lightPosition, lowp vec4 lightColor, mediump vec3 lightDir, mediump float cos_inner_cone_angle, mediump float cos_outer_cone_angle, mat4 lightMatrix, lowp sampler2D cookieTex){');
+        Line('lowp vec4 spotLight(highp vec3 lightPosition, lowp vec4 lightColor, mediump vec3 lightDir, mediump float cos_inner_cone_angle, mediump float cos_outer_cone_angle, mat4 lightMatrix, lowp sampler2D cookieTex, lowp float shadow){');
       Line('  mediump vec3 direction = lightPosition - world_position.xyz;');
       Line('  highp float dist = length(direction);');
       Line('  direction /= dist;');
@@ -748,12 +865,9 @@ Begin
 
       If (LightModel <> lightModelSimple) Then
       Begin
-        Line('  highp float shading = clamp((cos_cur_angle - cos_outer_cone_angle) / cos_inner_minus_outer_angle, 0.0, 1.0);');
+        Line('  highp float shading = clamp((cos_cur_angle - cos_outer_cone_angle) / cos_inner_minus_outer_angle, 0.0, 1.0) * shadow;');
         CustomShading(FxFlags, OutFlags, FogFlags);
       End;
-
-      If (FogFlags<>0) Then
-          Line('result = mix(fogColor, result, fogFactor);');
 
       Line('  return result * cookieColor ;	}');
     End;
@@ -765,7 +879,7 @@ Begin
       Else
         S2 := '';
 
-      Line('lowp vec4 pointLight('+S2+'highp vec3 lightPosition, lowp vec4 lightColor, highp float radius){');
+      Line('lowp vec4 pointLight('+S2+'highp vec3 lightPosition, lowp vec4 lightColor, highp float radius, lowp float shadow){');
       Line('  highp vec3 direction = lightPosition - world_position.xyz;');
       Line('  highp float dist = length(direction);');
       Line('  highp float att = 1.0 - min(dist*radius, 1.0);');
@@ -775,28 +889,114 @@ Begin
 
       If (LightModel <> lightModelSimple) Then
       Begin
-        Line('  mediump float shading = halfDot(normal, direction);');
+        Line('  mediump float shading = halfDot(normal, direction) * shadow;');
         CustomShading(FxFlags, OutFlags, FogFlags);
       End Else
       Begin
       End;
 
-      If (FogFlags<>0) Then
-          Line('result = mix(fogColor, result, fogFactor);');
-
       Line('  return result *att;	}');
     End;
 
+  // 8x8 Bayer ordered dithering pattern.
+  // Each input pixel is scaled to the 0..63 range
+    (*Line('int dither[64] = {0, 32, 8, 40, 2, 34, 10, 42,');
+    Line('48, 16, 56, 24, 50, 18, 58, 26,');
+    Line('12, 44, 4, 36, 14, 46, 6, 38,');
+    Line('60, 28, 52, 20, 62, 30, 54, 22,');
+    Line(' 3, 35, 11, 43, 1, 33, 9, 41,');
+    Line('51, 19, 59, 27, 49, 17, 57, 25,');
+    Line('15, 47, 7, 39, 13, 45, 5, 37,');
+    Line('63, 31, 55, 23, 61, 29, 53, 21};');
+    {Line('int x = int(mod(uv.x * dither_scale, 8));');
+    Line('int y = int(mod(uv.y * dither_scale, 8));');
+    Line('float limit = (dither[x + y * 8]+1)/64.0;');}
+    *)
+
+    If (FxFlags And shaderDitherColor<>0) Then
+    Begin
+      Line('  uniform lowp sampler2D '+DitherPatternMapUniformName+';');
+
+      Line('  uniform mediump float '+DitherScaleUniformName+';');
+      Line('float dither_shade(float shade, vec2 uv){');
+      Line('float limit = texture2D('+DitherPatternMapUniformName+', uv * '+DitherScaleUniformName+').r;');
+      Line('if (shade < limit) return 0.0;');
+      Line('return 1.0;}');
+
+      (*Line('vec4 dither_color(vec4 shade, vec2 uv){');
+      Line('vec4 limit = texture2D(ditherTexture, uv * dither_scale);');
+      Line('float dr = 1.0; if (shade.r < limit.r) dr =0.0;');
+      Line('float dg = 1.0; if (shade.g < limit.g) dg =0.0;');
+      Line('float db = 1.0; if (shade.b < limit.b) db =0.0;');
+      Line('return vec4(dr, dg, db, 1.0);}');*)
+    End;
+
+
     If (Lights.DirectionalLightCount>0) Then
     Begin
-      If (FogFlags<>0) Then
-    	  Line('lowp vec4 directionalLight(lowp float fogFactor, highp vec3 direction, lowp vec4 lightColor){')
+      If (FxFlags And shaderDitherColor<>0) Then
+        S2 := ', highp vec2 localUV, lowp vec2 colorIndex'
       Else
-    	  Line('lowp vec4 directionalLight(highp vec3 direction, lowp vec4 lightColor){');
+        S2 := '';
 
-      Line('  mediump float shading = halfDot(normal, direction);');
-      Line('  lowp vec4 result = diffuse * lightColor;');
-      CustomShading(FxFlags, OutFlags, FogFlags);
+      If (FogFlags<>0) Then
+    	  Line('lowp vec4 directionalLight(lowp float fogFactor, highp vec3 direction, lowp vec4 lightColor'+S2+', lowp float shadow){')
+      Else
+    	  Line('lowp vec4 directionalLight(highp vec3 direction, lowp vec4 lightColor'+S2+', lowp float shadow){');
+
+      Line('  mediump float shading = halfDot(normal, direction) * shadow;');
+
+      If (FxFlags And shaderDitherColor<>0) Then
+      Begin
+        (*Line('	vec4 greyA = texture2D('+DitherPaletteMapUniformName+', colorIndex);');
+        Line('	result = greyA;');*)
+
+        //Line(' shading += colorIndex.x;');
+        Line('shading += (colorIndex.x - 0.5);');
+
+        //Line(' shading *= 0.5;');
+
+        Line('	lowp float shade_count = 8.0;');
+        Line('	lowp float shade_value = shading * shade_count;');
+        Line('	shade_value = min(shade_count, shade_value + 1.0); ');
+        Line('  float dither_factor = fract(shade_value);');
+
+(*        Line('	float shadeA = floor(shading);');
+        Line('	float shadeB = max(shadeA - 1.0, 0.0);');
+
+        Line('	vec4 greyA = texture2D('+DitherPaletteMapUniformName+', vec2(shadeA/ shade_count, colorIndex.y));');
+        Line('	vec4 greyB = texture2D('+DitherPaletteMapUniformName+', vec2(shadeB/ shade_count, colorIndex.y));');
+        *)
+
+        (*Line('  lowp vec3 blend_weights = abs(normal);');
+        Line('  blend_weights = blend_weights - 0.2679f;');
+        Line('  lowp float blend_factor = 2.0;');
+        Line('  highp vec2 ditherPos1 = local_position.xz;');
+        Line('  highp vec2 ditherPos2 = local_position.yz;');
+        Line('  highp vec2 ditherPos3 = local_position.xy;');
+        Line('  highp vec2 ditherUV = ditherPos2 * blend_weights.x + ditherPos1 * blend_weights.y + ditherPos3 * blend_weights.z;');
+        Line(' ditherUV *= blend_factor;');*)
+
+        Line('	float sub_shading = dither_shade(dither_factor, localUV);');
+        //Line('	lowp vec4 result = mix(greyB, greyA, sub_shading);');
+
+        Line('	lowp vec4 result = vec4(shading, colorIndex.y, sub_shading, 1.0);');
+
+        //Line('	result = (greyA + result) * 0.5;');
+        //Line('	result = greyA;');
+
+        //Line('	sub_shading = dither_shade(0.5, localUV);');
+
+        // debug
+        //Line('	result = vec4(sub_shading, sub_shading, sub_shading, 1.0);');
+        //Line('	result = vec4(shading, shading, shading, 1.0);');
+      End Else
+      Begin
+        Line('  lowp vec4 result = diffuse * lightColor;');
+        CustomShading(FxFlags, OutFlags, FogFlags);
+      End;
+
+
   	  Line('	return result;}');
     End;
   End;
@@ -805,6 +1005,14 @@ Begin
     Line(GetColorTableShaderCode());
 
 	Line('void main()	{');
+
+  If (FxFlags and shaderShadowMap<>0) Or (OutFlags <>shader_OutputDiffuse) Then
+  Begin
+    Line('  mediump vec3 screen_position = clip_position.xyz / clip_position.w;');
+    Line('  screen_position *= vec3(0.5);');
+    Line('  screen_position += vec3(0.5);');
+  End;
+  
   {$IFDEF SIMPLESHADER}
   Line('  gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);}');
   {$ELSE}
@@ -814,7 +1022,7 @@ Begin
     Line('  if (clipDistance>0.0) discard;');
   End;
 
-  If (OutFlags And shader_OutputColor<>0) Then
+  If (OutFlags And shader_OutputFixedColor<>0) Then
   Begin
     Line('  gl_FragColor = targetColor;}');
   End Else
@@ -840,8 +1048,17 @@ Begin
       End;
     End;
 
-  If (FxFlags and shaderLightmap=0) Then
-  Begin
+    Line('highp vec2 localUV = texCoord0.st;');
+    If (FxFlags and shaderParallaxBump<>0) Then
+    Begin
+      Line('float parallaxScale = 0.025;');
+      Line('float parallaxBias = -0.5;');
+      Line('float height = texture2D('+DisplacementMapUniformName+', localUV).r;');
+		  Line('float altitude = height + parallaxBias;');
+		  Line('localUV  += altitude * parallaxScale *normalize(cameraView).xy;');
+    End;
+
+
     Line('  normal = normalize(vertex_normal);');
 
     If (FxFlags and shaderNormalMap<>0) Then
@@ -849,7 +1066,7 @@ Begin
       If (FxFlags and shaderFresnelTerm <> 0) Then
         Line('  highp vec2 normalUV = lightCoord.st;')
       Else
-        Line('  highp vec2 normalUV = texCoord0.st;');
+        Line('  highp vec2 normalUV = localUV;');
 
       If (FxFlags and shaderFlowMap<>0) Then
       Begin
@@ -877,24 +1094,17 @@ Begin
     	Line('  mediump float fresnelTerm = fresnelScale * pow(1.0 + dot(eye_vector, normal), fresnelPower);');
       Line('  fresnelTerm = min(fresnelTerm, 1.0);');
     End;
-  End;
 
-  //Flags := Flags Or shaderOutputNormal;
+//  OutFlags := shader_OutputNormal;
   If (OutFlags And shader_OutputOutline<>0) Then
   Begin
-        Line('  diffuse = texture2D(diffuseMap, texCoord0.st);');
+        Line('  diffuse = texture2D(diffuseMap, localUV);');
         Line('  diffuse *= vertex_color; ');
         Line('diffuse *= diffuse_color;');
         If (FxFlags and shaderAlphaTest<>0) Then
           Line('  if (diffuse.a<0.1) discard;');
 //    Line('  color.rgb = diffuse.rgb * 0.333;');
         Line('  color = outlineColor;');
-
-      If (FogFlags<>0) Then
-      Begin
-        Line('  lowp float fogFactor = calculateFog();');
-        Line('color = mix(fogColor, color, fogFactor);');
-      End;
 
       If (FxFlags And shaderSkipAmbient=0) Then
         Line('  color *= ambient_color;');
@@ -906,7 +1116,7 @@ Begin
   Begin
     Line('  color.rgb = normal * 0.5 + 0.5;');
 
-    Line('  diffuse = texture2D(diffuseMap, texCoord0.st);');
+    Line('  diffuse = texture2D(diffuseMap, localUV);');
     Line('  diffuse *= vertex_color; ');
 
     If (FxFlags and shaderAlphaTest<>0) Then
@@ -918,22 +1128,33 @@ Begin
   Begin
     Line('  color.rgb = normal * 0.5 + 0.5;');
 
-    Line('  diffuse = texture2D(diffuseMap, texCoord0.st);');
+    Line('  diffuse = texture2D(diffuseMap, localUV);');
     Line('  diffuse *= vertex_color; ');
 
     //If (Flags and shaderAlphaTest<>0) Then
     Line('  if (diffuse.a<0.3) discard;');
 
-    Line('  highp float zz = ((screen_position.z / screen_position.w) + 1.0) * 0.5;');
+    Line('  highp float zz = screen_position.z;');
     Line('  zz = (2.0 * zNear) / (zFar + zNear - zz * (zFar - zNear));');
     Line('  color.a = zz;');
     Line('  color.a = 1.0;');
   End Else
   If (OutFlags And shader_OutputGlow<>0) Then
   Begin
-    Line('  color = texture2D(glowMap, texCoord0.st);');
+    Line('  color = texture2D(glowMap, localUV);');
     Line('  color.a = 1.0;');
   End Else                                
+  If (OutFlags And shader_OutputShadow<>0) Then
+  Begin
+    Line('  diffuse = texture2D(diffuseMap, localUV);');
+    
+    If (FxFlags and shaderLightmap<>0) Then
+    Begin
+      Line('  color = texture2D(lightMap, lightCoord.st);');
+      Line('  color.a = diffuse.a;');
+    End Else
+      Line('  color = vec4(diffuse_color.r, diffuse_color.g, diffuse_color.b, diffuse.a);');
+  End Else
   If (OutFlags And shader_OutputReflection<>0) Then
   Begin
     If (OutFlags And shaderFresnelTerm<>0) Then
@@ -943,7 +1164,7 @@ Begin
       Line('  color = vec4(waterRef);');
     End Else
     Begin
-      Line('  color = texture2D('+ReflectionMapUniformName+', texCoord0.st) *  reflectionFactor;');
+      Line('  color = texture2D('+ReflectionMapUniformName+', localUV) *  reflectionFactor;');
       //Line('  color.rgb = vec3(0.0, 0.0, 1.0);');
       Line('  color.a = 1.0;');
     End;
@@ -963,25 +1184,31 @@ Begin
     End Else
     If (FxFlags and shaderFlowMap<>0) Then
     Begin
-      Line('  highp vec4 diff1 = texture2D(diffuseMap, texCoord0.st + flowOffset1);');
-      Line('  highp vec4 diff2 = texture2D(diffuseMap, texCoord0.st + flowOffset2);');
+      Line('  highp vec4 diff1 = texture2D(diffuseMap, localUV + flowOffset1);');
+      Line('  highp vec4 diff2 = texture2D(diffuseMap, localUV + flowOffset2);');
       Line('  diffuse = mix(diff1, diff2, flowCycle.y);');
     End Else
-      Line('  diffuse = texture2D(diffuseMap, texCoord0.st);');
+      Line('  diffuse = texture2D(diffuseMap, localUV);');
 
     If (FxFlags And shaderDecalMap<>0) Then
     Begin
-      Line('lowp vec4 decalColor = texture2D('+DecalMapUniformName+', texCoord0.st);');
+      Line('lowp vec4 decalColor = texture2D('+DecalMapUniformName+', localUV);');
       Line('  diffuse.rgb = mix(diffuse.rgb, decalColor.rgb, decalColor.a);');
     End;
 
-    Line('  diffuse *= vertex_color; ');
+    If (FxFlags and shaderShadowMap = 0) Then
+    Begin
+      If (FxFlags and shaderAddSigned<>0) Then
+        Line('diffuse.rgb += (vertex_color.rgb - 0.5);')
+      Else
+        Line('  diffuse *= vertex_color; ');
+    End;
 
     If (FxFlags and shaderAlphaTest<>0) Then
       Line('  if (diffuse.a<0.1) discard;');
 
     If (FxFlags and shaderSpecular<>0) Then
-      Line('  specular = texture2D('+SpecularMapUniformName+', texCoord0.st);');
+      Line('  specular = texture2D('+SpecularMapUniformName+', localUV);');
 
     If (FxFlags and shaderCubeMap<>0) Then
     Begin
@@ -996,54 +1223,83 @@ Begin
     Begin
       If (FxFlags and shaderReflectiveMap<>0) Then
       Begin
-        Line('  lowp vec4 refpow = texture2D('+ReflectiveMapUniformName+', texCoord0.st);');
-        Line('  diffuse = mix(diffuse, reflection, refpow);');
+        Line('  lowp vec4 refpow = texture2D('+ReflectiveMapUniformName+', localUV);');
+        Line('  diffuse.rgb = mix(diffuse, reflection, refpow).rgb;');
         //Line('  diffuse = refpow;');
       End Else
       If (FxFlags and shaderFresnelTerm = 0) Then
         Line('  diffuse *= reflection;');
     End;
 
-    Line('diffuse *= diffuse_color;');
-
-    If (FxFlags and shaderLightmap<>0) Then
+    If (FxFlags And shaderDitherColor<>0) Then
     Begin
-      Line('  color = texture2D(lightMap, lightCoord.st);');
-      If (FxFlags and shaderAddSigned<>0) Then
-        Line('  color.rgb += (diffuse.rgb - 0.5);')
-      Else
-        Line('  color.rgb *= diffuse.rgb * sunColor.rgb;');
     End Else
     Begin
-      If (FogFlags<>0) Then
-        Line('  lowp float fogFactor = calculateFog();');
+      Line('diffuse *= diffuse_color;');
+    End;
 
+    If (FogFlags<>0) Then
+      S2 := 'fogFactor, '
+    Else
+      S2 := '';
+
+    If (FxFlags and shaderShadowMap<>0) Then
+    Begin
+      Line('lowp float shadow = texture2D('+ShadowMapUniformName +', screen_position.xy).r;');
+    End Else
+    Begin
+      Line('lowp float shadow = 1.0;');
+    End;
+
+    If (FxFlags And shaderDitherColor<>0) Then
+    Begin
+      Line('  highp vec2 colorIndex = vec2(diffuse.g, diffuse.r);');
+      I := 1;
+
+      If (FxFlags and shaderLightmap<>0) Then
+      Begin
+        Line('  lowp float intensity = texture2D(lightMap, lightCoord.st).r;');
+        Line('  colorIndex.x += (intensity - 0.5);');
+      End;
+
+      If Lights.DirectionalLightCount>0 Then
+        Line('  color = directionalLight('+S2+'dlightDirection'+IntToString(I)+', dlightColor'+IntToString(I)+', localUV, colorIndex, shadow);');
+    End Else
+    Begin
       If (FxFlags And shaderSkipAmbient<>0) Then
       Begin
         Line('  color = vec4(0.0, 0.0, 0.0, 1.0);');
       End Else
       Begin
-        Line('  color = diffuse;');
+        If (Lights.DirectionalLightCount<=0) Then
+        Begin
+            Line('  color = diffuse;');
 
-        If (FogFlags<>0) Then
-          Line('  color = mix(fogColor, color, fogFactor);');
+          If (FxFlags And shaderCartoonHue<>0) Then
+              Line('  color.rgb = cartoonHueAdjust(color.rgb, shadow);')
+          Else
+          If (FxFlags and shaderAddSigned<>0) Then
+            Line('  color += vec4(shadow) - vec4(0.5);')
+          Else
+            Line('  color *= shadow;');
 
-        Line('  color *= ambient_color;');
+          If ((FxFlags And shaderSelfIllumn)=0) Then
+          Begin
+            Line('  color *= ambient_color;');
+          End;
+
+        End Else
+          Line('  color = vec4(0.0, 0.0, 0.0, 1.0);');
       End;
 
-      If (FogFlags<>0) Then
-        S2 := 'fogFactor, '
-      Else
-        S2 := '';
-
       For I:=1 To Lights.DirectionalLightCount Do
-        Line('  color += directionalLight('+S2+'dlightDirection'+IntToString(I)+', dlightColor'+IntToString(I)+');');
+        Line('  color += directionalLight('+S2+'dlightDirection'+IntToString(I)+', dlightColor'+IntToString(I)+', shadow);');
 
       For I:=1 To Lights.PointLightCount Do
-        Line('  color += pointLight('+S2+'plightPosition'+IntToString(I)+', plightColor'+IntToString(I)+', plightRadius'+IntToString(I)+');');
+        Line('  color += pointLight('+S2+'plightPosition'+IntToString(I)+', plightColor'+IntToString(I)+', plightRadius'+IntToString(I)+', shadow);');
 
       For I:=1 To Lights.SpotLightCount Do
-        Line('  color += spotLight('+S2+'slightPosition'+IntToString(I)+', slightColor'+IntToString(I)+', slightDirection'+IntToString(I)+', slightCosInnerAngle'+IntToString(I)+', slightCosOuterAngle'+IntToString(I)+', slightMatrix'+IntToString(I)+', slightCookie'+IntToString(I)+');');
+        Line('  color += spotLight('+S2+'slightPosition'+IntToString(I)+', slightColor'+IntToString(I)+', slightDirection'+IntToString(I)+', slightCosInnerAngle'+IntToString(I)+', slightCosOuterAngle'+IntToString(I)+', slightMatrix'+IntToString(I)+', slightCookie'+IntToString(I)+', shadow);');
     End;
 
     If (FxFlags and shaderFresnelTerm <> 0) Then
@@ -1070,7 +1326,16 @@ Begin
     //        Line('  color *= alpha_color;');
       Line('  color.a = texture2D('+AlphaMapUniformName+', lightCoord.st).a;');
     End Else
+    If ((FxFlags And shaderDitherColor)<>0) Then
+    Begin
+      Line('  if (diffuse.a<1.0) ');
+      Line('  color.a = 0.5 * dither_shade(diffuse.a, localUV);');
+    End Else
       Line('  color.a = diffuse.a;');
+
+//  If (OutFlags And shader_OutputDiffuse<>0) And (FxFlags and shaderShadowMap<>0) Then
+  //  Line('  color.rgb = vec3(shadow);');
+
   		//color.rgb = normal * 0.5 + 0.5;
   //  Line('  color.rgb = t.xyz * 0.5 + 0.5;');
   End;
@@ -1090,6 +1355,11 @@ Begin
   Self.FinalPass(FxFlags, OutFlags, FogFlags);
 
 
+  If (FogFlags<>0) Then
+  Begin
+    Line('  color = mix(fogColor, color, fogFactor);');
+  End;
+
   //Line('  color.rgb = pow(color, vec3(1.0 / 2.2));');
     //Line('  color.rgb = normal * 0.5 + 0.5;');
     //Line('  color.rgb = vec3(1.0, 0.0, 0.0);');
@@ -1097,6 +1367,7 @@ Begin
   {$IFDEF DEBUG_LIGHTMAP}
     If (FxFlags and shaderLightmap<>0) Then
     Begin
+      //Line('  color.rgb = vertex_color.rgb; ');
       Line('  color.rgb = texture2D(lightMap, lightCoord.st).rgb;');
     End;
   {$ENDIF}
@@ -1106,12 +1377,17 @@ Begin
 
   If (FxFlags And shaderScreenMask<>0) Then
   Begin
-    Line('  lowp vec3 spos = screen_position.xyz / screen_position.w;');
-    Line('  spos = spos * 0.5 + 0.5; ');
     //Line('  color.rgb = texture2D(screenMask, spos.st).rgb;');
     //Line('  color.rgb = vec3(spos.x, 0.0, spos.y);');
-    Line('  color.a = texture2D(screenMask, spos.st).r;');
+    Line('  color.a = texture2D(screenMask, screen_position.xy).r;');
   End;
+
+{  If (OutFlags And shader_OutputDiffuse<>0) And (BlendMode<>combineNone) Then
+  Begin
+    Line('lowp vec3 baseColor = texture2D('+ColorMapUniformName +', screen_position.xy).rgb;');
+  	//Line('  color.rgb = mix(baseColor, color.rgb, color.a);');
+    Line('  color.rgb = 1.0 - baseColor;');
+  End;}
 
   Line('  gl_FragColor = color;}');
   End;
@@ -1170,15 +1446,21 @@ Begin
   _ShaderFactory_Instance := Nil;
 End;
 
-Function ShaderFactory.GetShader(FxFlags, OutFlags, FogFlags, LightModel:Cardinal; Const Lights:LightBatch):Shader;
+Function ShaderFactory.GetShader(FxFlags, OutFlags, FogFlags, LightModel:Cardinal; Const Lights:LightBatch):ShaderInterface;
 Var
   I:Integer;
   S:ShaderEntry;
   Location:TERRAString;
   SS, Name:TERRAString;
+//  BlendMode:ColorCombineMode;
 Begin
+{  If GraphicsManager.Instance.Renderer.ActiveBlendMode Then
+    BlendMode := combineBlend
+  Else
+    BlendMode := combineNone;}
+
   {$IFDEF DEBUG_GRAPHICS}
-  Log(logDebug, 'ShaderFactory', 'Searching for shader with flags '+CardinalToString(Flags));
+  Log(logDebug, 'ShaderFactory', 'Searching for shader with flags '+CardinalToString(FXFlags));
   {$ENDIF}
 
   For I:=0 To Pred(_ShaderCount) Do
@@ -1211,7 +1493,8 @@ Begin
   Inc(_ShaderCount);
   SetLength(_Shaders, _ShaderCount);
   _Shaders[Pred(_ShaderCount)] := S;
-  
+
+
   S.FxFlags := FxFlags;
   S.OutFlags := OutFlags;
   S.FogFlags := FogFlags;
@@ -1237,8 +1520,8 @@ Begin
   If (FxFlags And shaderCubeMap<>0) Then
     name := name + '_CUBEMAP;';
 
-  If (FxFlags And shaderColorRamp<>0) Then
-    name := name + '_COLORRAMP;';
+  If (FxFlags And shaderToonRamp<>0) Then
+    name := name + '_TOONRAMP;';
 
   If (FxFlags And shaderSkipAmbient<>0) Then
     name := name + '_AMBIENTOFF;';
@@ -1273,6 +1556,9 @@ Begin
   If (FxFlags And shaderColorTable<>0) Then
     name := name + '_COLORTABLE;';
 
+  If (OutFlags And shader_OutputDiffuse<>0) Then
+    name := name + '_OUTDIFFUSE;';
+
   If (OutFlags And shader_OutputNormal<>0) Then
     name := name + '_OUTNORMAL;';
 
@@ -1282,20 +1568,23 @@ Begin
   If (OutFlags And shader_OutputGlow<>0) Then
     name := name + '_OUTGLOW;';
 
-  If (OutFlags And shader_OutputColor<>0) Then
+  If (OutFlags And shader_OutputFixedColor<>0) Then
     name := name + '_OUTCOLOR;';
 
-  If (FxFlags And shaderFresnelTerm<>0) Then
-    name := name + '_FRESNEL;';
-
   If (OutFlags And shader_OutputRefraction<>0) Then
-    name := name + '_REFRACTION;';
+    name := name + '_OUTREFRACTION;';
+
+  If (OutFlags And shader_OutputShadow<>0) Then
+    name := name + '_OUTSHADOW;';
 
   If (OutFlags And shader_OutputOutline<>0) Then
     name := name + '_OUTLINE;';
 
   If (OutFlags And shader_OutputReflection<>0) Then
-    name := name + '_REFLECTION;';
+    name := name + '_OUTREFLECTION;';
+
+  If (FxFlags And shaderFresnelTerm<>0) Then
+    name := name + '_FRESNEL;';
 
   If (FxFlags And shaderWireframe<>0) Then
     name := name + '_WIREFRAME;';
@@ -1331,7 +1620,8 @@ Begin
   Log(logDebug, 'ShaderFactory', 'Got shader code, compiling');
   {$ENDIF}
 
-  S.Shader := Shader.CreateFromString(SS, Name);
+  S.Shader := GraphicsManager.Instance.Renderer.CreateShader();
+  S.Shader.Generate(Name, SS);
   Result := S.Shader;
   _Emitter.Bind(FxFlags, OutFlags, FogFlags, Lights);
 End;
@@ -1350,7 +1640,7 @@ Var
 Begin
   For I:=0 To Pred(_ShaderCount) Do
   If (Assigned(_Shaders[I].Shader)) Then
-    _Shaders[I].Shader.OnContextLost();
+    _Shaders[I].Shader.Invalidate();
 End;
 
 Procedure ShaderFactory.SetShaderEmitter(Emitter: ShaderEmitter);

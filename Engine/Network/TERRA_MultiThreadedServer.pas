@@ -119,7 +119,7 @@ Begin
   Inherited Create(MinVersion, MaxVersion, Port);
 
   _ServerInstance := Self;
-  _StartTime := GetTime();
+  _StartTime := Application.GetTime();
   _WaitingCount := 0;
 
   _ThreadMutex := CriticalSection.Create();
@@ -165,7 +165,7 @@ Begin
   It := Self.Clients.GetIterator();
   While It.HasNext() Do
   Begin
-    Client := ClientConnection(It.GetNext());
+    Client := ClientConnection(It.Value);
 
     If (Client.Socket = Sock) Then
     Begin
@@ -180,7 +180,7 @@ Begin
 
   Client.Socket.SetBlocking(True);
 
-  Hours := (GetTime()-_StartTime) Div 1000;
+  Hours := (Application.GetTime()-_StartTime) Div 1000;
   Minutes := (Hours Mod 3600) Div 60;
   Hours := Hours Div 3600;
   Log(logDebug, 'Server', 'New player ID'+IntToString(Target.ID)+' at '+IntToString(Hours)+'h'+IntToString(Minutes));

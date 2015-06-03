@@ -11,12 +11,19 @@ Const
   CellGridSize = 32;
 
 Type
+  NoiseOptions = Record
+    F:Array[0..3] Of Single; // frequency
+    W:Array[0..3] Of Single; // weights
+    S:Array[0..3] Of Single; // strength
+    Combine:Boolean;
+  End;
+
   NoiseGenerator = Class(TERRAObject)
     Public
       Procedure Release; Override;
 
       Function Noise(X,Y,Z:Single; RX,RY,RZ:Integer):Single; Virtual; Abstract;
-      Function CreateImage(Width, Height:Integer):Image; Virtual; Abstract;
+      Function CreateImage(Width, Height:Integer; Const Options:NoiseOptions):Image; Virtual; Abstract;
     End;
 
   PerlinNoiseGenerator = Class(NoiseGenerator)
@@ -33,10 +40,10 @@ Type
 
     Public
       Constructor Create;
-      
+
       Function Noise(X,Y,Z:Single; RX,RY,RZ:Integer):Single; Override;
 
-      Function CreateImage(Width, Height:Integer):Image; Override;
+      Function CreateImage(Width, Height:Integer; Const Options:NoiseOptions):Image; Override;
     End;
 
   CellNoiseGenerator = Class(NoiseGenerator)
@@ -47,7 +54,7 @@ Type
       Constructor Create;
       Function Noise(X,Y,Z:Single; RX,RY,RZ:Integer):Single; Override;
 
-      Function CreateImage(Width, Height:Integer):Image; Override;
+      Function CreateImage(Width, Height:Integer; Const Options:NoiseOptions):Image; Override;
     End;
 
 Implementation
@@ -192,37 +199,45 @@ Begin
 End;
 
 
-Function PerlinNoiseGenerator.CreateImage(Width, Height:Integer):Image;
+Function PerlinNoiseGenerator.CreateImage(Width, Height:Integer; Const Options:NoiseOptions):Image;
 Var
   I,J,K:Integer;
+  W,H:Integer;
   X,Y,Z:Single;
-  Freq,M:Single;
-  NF:Array[1..4] Of Single;
+  Freq:Single;
+  NF:Array[0..3] Of Single;
   P:Color;
 Begin
   Result := Image.Create(Width, Height);
-  Z:=0;
+  Z := 0;
 
   For J:=0 To Pred(Height) Do
     For I:= 0 To Pred(Width) do
     Begin
-      X := I;
-      Y := J;
-
       // Take various octaves of noise and add them.
-      Freq := 2;
-      M := 8.0;
-      For K:=1 To 4 Do
+      For K:=0 To 3 Do
       Begin
-        nf[K] :=(Self.Noise(x/Freq, y/Freq, z, Width Div Trunc(Freq), Height Div Trunc(Freq), 1)/M);
-        Freq := Freq * 2.0;
-        M := M * 0.5;
+        Freq := Options.F[K];
+        X := I/Freq;
+        Y := J/Freq;
+        W := Width Div Trunc(Freq);
+        H := Height Div Trunc(Freq);
+
+        nf[K] := Self.Noise(X, Y, Z, W, H, 1) * Options.S[K];
       End;
 
-      P.R := Round(255 * (nf[1]+1) * 0.5);
-      P.G := Round(255 * (nf[2]+1) * 0.5);
-      P.B := Round(255 * (nf[3]+1) * 0.5);
-      P.A := Round(255 * (nf[4]+1) * 0.5);
+      P.R := Round(255 * (nf[0]+1) * 0.5);
+      P.G := Round(255 * (nf[1]+1) * 0.5);
+      P.B := Round(255 * (nf[2]+1) * 0.5);
+      P.A := Round(255 * (nf[3]+1) * 0.5);
+
+      If Options.Combine Then
+      Begin
+        P.R := Trunc(P.R * Options.W[0] + P.G * Options.W[1] + P.B * Options.W[2] + P.A * Options.W[3]);
+        P.G := P.R;
+        P.B := P.R;
+        P.A := P.R;
+      End;
 
       // Write the result to the texture image.
       Result.SetPixel(I,J, P);
@@ -235,7 +250,7 @@ Constructor CellNoiseGenerator.Create;
 Var
   I,J,K:Integer;
 Begin
-  RandSeed := GetTime;
+  RandSeed := Application.GetTime;
   SetLength(_Points, CellGridSize, CellGridSize, CellGridSize);
   For K:=0 To Pred(CellGridSize) Do
     For J:=0 To Pred(CellGridSize) Do
@@ -293,7 +308,7 @@ Begin
     Result := Dist;
 End;
 
-Function CellNoiseGenerator.CreateImage(Width, Height:Integer):Image;
+Function CellNoiseGenerator.CreateImage(Width, Height:Integer; Const Options:NoiseOptions):Image;
 Var
   I,J,K:Integer;
   X,Y,Z:Single;
@@ -322,6 +337,14 @@ Begin
       P.G := Round(255 * (nf[2]+1) * 0.25);
       P.B := Round(255 * (nf[3]+1) * 0.25);
       P.A := Round(255 * (nf[4]+1) * 0.25);
+
+      If Options.Combine Then
+      Begin
+        P.R := Trunc(P.R * Options.W[0] + P.G * Options.W[1] + P.B * Options.W[2] + P.A * Options.W[3]);
+        P.G := P.R;
+        P.B := P.R;
+        P.A := P.R;
+      End;
 
       // Write the result to the texture image.
       Result.SetPixel(I,J, P);

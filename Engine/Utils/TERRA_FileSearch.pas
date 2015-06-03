@@ -180,7 +180,7 @@ Begin
   Params.AddString(CurrentPath);
   Params.AddString(Filter);
   Params.AddBoolean(IsFolderMode);
-  AssetsClass.CallStaticVoidMethod('listFiles', Params);
+  AssetsClass.CallStaticVoidMethod(Frame, 'listFiles', Params);
   Params.Release();
   AssetsClass.Release();
   Java_End(Frame);

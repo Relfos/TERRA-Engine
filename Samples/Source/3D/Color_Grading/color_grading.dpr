@@ -1,14 +1,14 @@
 {$I terra.inc}
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} BasicSample;
 
-Uses TERRA_Application, TERRA_Scene, TERRA_Client, TERRA_Utils, TERRA_GraphicsManager, TERRA_Viewport,
+Uses TERRA_Application, TERRA_Scene, TERRA_Utils, TERRA_GraphicsManager, TERRA_Viewport,
   TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_JPG, TERRA_PNG, TERRA_UI,
   TERRA_SpriteManager, TERRA_FileManager, TERRA_Math, TERRA_Vector3D,
-  TERRA_InputManager;
+  TERRA_Renderer, TERRA_InputManager;
                                       
 Type
   // A client is used to process application events
-  MyGame = Class(AppClient)
+  Demo = Class(Application)
     Protected
       _Scene:Scene;
 
@@ -31,18 +31,20 @@ Var
   Percent:Single;
 
 { Game }
-Procedure MyGame.OnCreate;
+Procedure Demo.OnCreate;
 Begin
   FileManager.Instance.AddPath('Assets');
 
   // Load a Tex
-  Tex := TextureManager.Instance.GetTexture('forest');
+  //Tex := TextureManager.Instance.GetTexture('forest');
+  Tex := TextureManager.Instance.GetTexture('gradient');
+  Tex := TextureManager.Instance.GetTexture('test');
   If Assigned(Tex) Then
   Begin
     Tex.PreserveQuality := True;
     Tex.Uncompressed := True;
-    Tex.BilinearFilter := True;
-    Tex.Wrap := False;
+    Tex.Filter := filterBilinear;
+    Tex.WrapMode := wrapNothing;
   End;
 
   //GradRamp := TextureManager.Instance.GetTexture('negative');
@@ -51,7 +53,7 @@ Begin
 
   CurrentGrad := GradRamp;
 
-  //CurrentGrad := TextureManager.Instance.DefaultColorTable;
+  CurrentGrad := TextureManager.Instance.DefaultColorTable;
 
   // Create a scene and set it as the current scene
   _Scene := MyScene.Create;
@@ -63,7 +65,7 @@ Begin
 End;
 
 // OnIdle is called once per frame, put your game logic here
-Procedure MyGame.OnIdle;
+Procedure Demo.OnIdle;
 Begin
   If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
@@ -73,7 +75,7 @@ End;
 Procedure MyScene.RenderSprites;
 Var
   I:Integer;
-  S:Sprite;
+  S:QuadSprite;
 Begin
   If Not Assigned(Tex) Then
     Exit;
@@ -94,12 +96,12 @@ Begin
 End;
 
 // Called every time the mouse moves
-Procedure MyGame.OnMouseMove(X, Y: Integer);
+Procedure Demo.OnMouseMove(X, Y: Integer);
 Begin
   Percent := X / Application.Instance.Width;
 End;
 
 Begin
   // Start the application
-  ApplicationStart(MyGame.Create);
+  Demo.Create();
 End.

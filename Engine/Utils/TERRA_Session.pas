@@ -309,10 +309,10 @@ Begin
   It := Data.GetIterator();
   While It.HasNext() Do
   Begin
-    Entry := SessionKeyValue(It.GetNext());
+    Entry := SessionKeyValue(It.Value);
 
     If Assigned(Callback) Then
-      Callback.Notify(It.Index/Pred(Data.Count));
+      Callback.Notify(It.Position / Pred(Data.Count));
 
     Dest.WriteString(Entry._Key);
     Dest.WriteString(Entry._Value);
@@ -463,7 +463,7 @@ Begin
   {$ELSE}
   Result := Self.GetDefaultFilePath();
   {$ENDIF}*)
-  Result := Path + PathSeparator + Application.Instance.Client.GetAppID() +'_'+ GetFileName(_FileName, True) + '.bak';
+  Result := Path + PathSeparator + Application.Instance.GetAppID() +'_'+ GetFileName(_FileName, True) + '.bak';
 End;
 
 Constructor Session.Create(FileName:TERRAString; Backup:Boolean);
@@ -504,7 +504,7 @@ Begin
   It := Other.Data.GetIterator();
   While It.HasNext() Do
   Begin
-    Entry := SessionKeyValue(It.GetNext());
+    Entry := SessionKeyValue(It.Value);
     Self.Data.Add(SessionKeyValue.Create(Entry._Key, Entry._Value));
   End;
 End;

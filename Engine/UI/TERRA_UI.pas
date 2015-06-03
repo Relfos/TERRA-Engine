@@ -108,7 +108,7 @@ Type
 
   Widget = Class;
   WidgetClass = Class Of Widget;
-  WidgetEventHandler = Procedure (Source:Widget); CDecl;
+  WidgetEventHandler = Function (Source:Widget):Boolean; CDecl;
 
 	Widget = Class(HashMapObject)
     Private
@@ -130,6 +130,7 @@ Type
       _Tooltip:TERRAString;
       _Align:Integer;
       _NeedsUpdate:Boolean;
+      _NeedsHide:Boolean;
 
       _Enabled:Boolean;
 
@@ -171,11 +172,6 @@ Type
       _ColorTable:Texture;
       _Font:Font;
 
-      _UpControl:Widget;
-      _DownControl:Widget;
-      _LeftControl:Widget;
-      _RightControl:Widget;
-
       _ClipRect:ClipRect;
 
       _Scroll:Widget;
@@ -185,13 +181,15 @@ Type
 
       _DropShadowColor:Color;
 
+      _HighlightGroup:Integer;
+
       Procedure CopyValue(Other:CollectionObject); Override;
       Function Sort(Other:CollectionObject):Integer; Override;
 
-      Procedure SetUpControl(W:Widget);
-      Procedure SetDownControl(W:Widget);
-      Procedure SetLeftControl(W:Widget);
-      Procedure SetRightControl(W:Widget);
+      Function GetUpControl():Widget;
+      Function GetDownControl():Widget;
+      Function GetLeftControl():Widget;
+      Function GetRightControl():Widget;
 
       Procedure SetVisible(Value:Boolean);
       Procedure SetPosition(Pos:Vector2D);
@@ -212,6 +210,8 @@ Type
       Procedure UpdateHighlight(); Overload;
       Procedure UpdateHighlight(Condition:Boolean); Overload;
 
+      Function IsSelected: Boolean;
+
 			Function OnKeyDown(Key:Word):Boolean;Virtual;
 			Function OnKeyUp(Key:Word):Boolean;Virtual;
 			Function OnKeyPress(Key:Word):Boolean;Virtual;
@@ -223,13 +223,15 @@ Type
       Procedure StartHighlight(); Virtual;
       Procedure StopHighlight(); Virtual;
 
-      Function GetFontRenderer: FontRenderer;
+      Function IsSelectable():Boolean; Virtual;
+      Function CanHighlight(GroupID:Integer):Boolean;
 
-			Procedure OnLanguageChange();Virtual;
+      Function GetFontRenderer: FontRenderer;
 
       Function OutsideClipRect(X,Y:Integer):Boolean;
 
       Function CanRender():Boolean;
+
 
       Procedure ResetClipRect();
 
@@ -240,7 +242,7 @@ Type
       DisableHighlights:Boolean;
       DisableUIColor:Boolean;
       UserData:TERRAString;
-      AllowDragging:Boolean;
+      Draggable:Boolean;
 
       OnMouseClick:WidgetEventHandler;
       OnExtendedClick:WidgetEventHandler;
@@ -265,6 +267,7 @@ Type
       Function GetColor:Color;
 			Function GetSaturation:Single;
       Function GetColorTable:Texture;
+      Function GetHighlightGroup:Integer;
 
       Procedure SetPositionRelative(Other:Widget; OfsX, OfsY:Single);
 
@@ -272,6 +275,8 @@ Type
 
       Function AddTween(TweenType:Integer; TargetValue:Single; Time:Integer; Delay:Integer=0):Tween;
       Function HasTweens:Boolean;
+
+			Procedure OnLanguageChange();Virtual;
 
       Function OnRegion(X,Y:Integer): Boolean; Virtual;
       Function OnCustomRegion(X,Y:Integer; X1,Y1,X2,Y2:Single):Boolean;
@@ -281,10 +286,14 @@ Type
       Function GetChild(Const Name:TERRAString):Widget; Overload;
       Function GetChild(ChildClass:WidgetClass; Index:Integer = 0):Widget; Overload;
 
-      Procedure OnSelectRight(); Virtual;
-      Procedure OnSelectLeft(); Virtual;
-      Procedure OnSelectUp(); Virtual;
-      Procedure OnSelectDown(); Virtual;
+      Function OnSelectRight():Boolean; Virtual;
+      Function OnSelectLeft():Boolean; Virtual;
+      Function OnSelectUp():Boolean; Virtual;
+      Function OnSelectDown():Boolean; Virtual;
+      Function OnSelectAction():Boolean; Virtual;
+      Function OnSelectAlternateAction():Boolean; Virtual;
+
+      Function IsOutsideScreen():Boolean;
 
       Procedure SetChildrenVisibilityByTag(Tag:Integer; Visibility:Boolean);
 
@@ -298,7 +307,7 @@ Type
       Procedure DrawText(Const Text:TERRAString; Const Offset:Vector3D; C:Color; Scale:Single; UseFont:Font = Nil);
 
       Function IsHighlighted():Boolean;
-      Function CanHighlight():Boolean;
+      Function HasHighlightedChildren():Boolean;
 
 			Function OnMouseDown(X,Y:Integer; Button:Word):Boolean;Virtual;
 			Function OnMouseUp(X,Y:Integer; Button:Word):Boolean;Virtual;
@@ -351,28 +360,21 @@ Type
 
       Property ChildrenCount:Integer Read _ChildrenCount;
 
-      Property UpControl:Widget Read _UpControl Write SetUpControl;
-      Property DownControl:Widget Read _DownControl Write SetDownControl;
-      Property LeftControl:Widget Read _LeftControl Write SetLeftControl;
-      Property RightControl:Widget Read _RightControl Write SetRightControl;
-
       Property ClipRect:ClipRect Read GetClipRect Write SetClipRect;
 
       Property Center:Vector2D Read _Center Write _Center;
 
       Property Enabled:Boolean  Read _Enabled Write SetEnabled;
 
+      Property Selected:Boolean Read IsSelected;
+
       Property DropShadowColor:Color Read _DropShadowColor Write _DropShadowColor;
+
+      Property HighlightGroup:Integer Read GetHighlightGroup Write _HighlightGroup;
 
       Property UI:UI Read _UI;
       Property FontRenderer:FontRenderer Read GetFontRenderer Write _FontRenderer;
 	End;
-
-
-  UIGeometryBuffer = Record
-      _VertexList:Array Of SpriteVertex;
-      _VertexCount:Integer;
-  End;
 
   UI = Class(TERRAObject)
     Protected
@@ -392,7 +394,6 @@ Type
       _Modal:Widget;
       _Highlight:Widget;
       _First:Widget;
-      _Geometry:Array Of UIGeometryBuffer;
       _Draw:Boolean;
 
       _ColorTable:Texture;
@@ -460,23 +461,20 @@ Type
 
       Function AllowsEvents(W:Widget):Boolean;
 
-      Procedure GetFirstHighLight();
-      Procedure WrapControlsVertical(Up, Down:Widget); Overload;
-      Procedure WrapControlsHorizontal(Left, Right:Widget); Overload;
-      Procedure WrapControlsVertical(Up, Down:TERRAString); Overload;
-      Procedure WrapControlsHorizontal(Left, Right:TERRAString); Overload;
-
       Function AddQuad(Const StartPos, EndPos:Vector2D; Const TexCoord1, TexCoord2:Vector2D; MyColor:Color; Z:Single; PageID:Integer;
-        Const Transform:Matrix3x3; Saturation:Single; ColorTable:Texture; Const Clip:ClipRect):Sprite;
+        Const Transform:Matrix3x3; Saturation:Single; ColorTable:Texture; Const Clip:ClipRect):QuadSprite;
 
       Procedure Clear;
+
+      Function SelectNearestWidget(Target:Widget):Widget;
+      Procedure GetFirstHighLight(GroupID:Integer);
 
       Procedure ConvertGlobalToLocal(Var X, Y:Integer);
       Procedure ConvertLocalToGlobal(Var X, Y:Integer);
 
-		  Procedure OnKeyDown(Key:Word);
-		  Procedure OnKeyUp(Key:Word);
-		  Procedure OnKeyPress(Key:Word);
+		  Function OnKeyDown(Key:Word):Widget;
+		  Function OnKeyUp(Key:Word):Widget;
+		  Function OnKeyPress(Key:Word):Widget;
 
 		  Function OnMouseDown(X,Y:Integer;Button:Word):Widget;
 		  Function OnMouseUp(X,Y:Integer;Button:Word):Widget;
@@ -493,6 +491,8 @@ Type
       Procedure SetTransition(MyTransition:UITransition);
 
       Function GetVirtualKeyboard():Widget;
+
+      Procedure SetFontRenderer(const Value: FontRenderer);
 
       Function LoadCursor(Const Name:TERRAString; OfsX:Integer = 0; OfsY:Integer = 0):UICursor;
 
@@ -527,7 +527,7 @@ Type
 
       Property Transform:Matrix3x3 Read _Transform Write SetTransform;
 
-      Property FontRenderer:FontRenderer Read GetFontRenderer Write _FontRenderer;
+      Property FontRenderer:FontRenderer Read GetFontRenderer Write SetFontRenderer;
 
       Property ClipRect:ClipRect Read _ClipRect Write _ClipRect;
     End;
@@ -543,7 +543,6 @@ Type
       _Ratio:Single;
 
       _FontRenderer:FontRenderer;
-      _DefaultFontRenderer:FontRenderer;
 
       Procedure OnLanguageChange; Override;
       Procedure OnContextLost; Override;
@@ -556,6 +555,7 @@ Type
 
       Function GetTextureAtlas:TextureAtlas;
 
+      Function GetFontRenderer: FontRenderer;
 
     Public
       Procedure Init; Override;
@@ -586,13 +586,13 @@ Type
 
       Property Count:Integer Read _UICount;
 
-      Property FontRenderer:FontRenderer Read _FontRenderer Write SetFontRenderer;
+      Property FontRenderer:FontRenderer Read GetFontRenderer Write SetFontRenderer;
   End;
 
 Function GetSpriteZOnTop(W:Widget; Ofs:Single = 1.0):Single;
 
 Implementation
-Uses TERRA_Error, TERRA_OS, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Widgets, TERRA_Stream,
+Uses TERRA_Error, TERRA_OS, TERRA_Widgets, TERRA_Stream, TERRA_Renderer,
   TERRA_Matrix4x4, TERRA_Log, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager, TERRA_UIVirtualKeyboard;
 
 Var
@@ -610,10 +610,35 @@ Begin
 End;
 
 Procedure HideWidget(Source:Pointer); CDecl;
+Var
+  W:Widget;
 Begin
-  Widget(Source)._Color := Widget(Source)._OriginalColor;
-  Widget(Source)._Position := Widget(Source)._OriginalPosition;
-  Widget(Source).Visible := False;
+  W := Widget(Source);
+  W._Color := W._OriginalColor;
+  W._Position := W._OriginalPosition;
+  W.SetVisible(False);
+
+  If (W.UI.Highlight = W) Or (W.HasHighlightedChildren()) Then
+    W.UI.Highlight := Nil;
+End;
+
+Function Widget.HasHighlightedChildren():Boolean;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_ChildrenCount) Do
+  If (_ChildrenList[I] = UI.Highlight) Then
+  Begin
+    Result := True;
+    Exit;
+  End Else
+  Begin
+    Result := _ChildrenList[I].HasHighlightedChildren();
+    If Result Then
+      Exit;
+  End;
+
+  Result := False;
 End;
 
 Function Widget.IsHighlighted: Boolean;
@@ -744,19 +769,12 @@ Begin
   _DropShadowColor := ColorGrey(0, 255);
 
   _Font := Owner._DefaultFont;
+  _FontRenderer := UI.FontRenderer;
 
   _InheritColor := True;
   _TransformChanged := True;
 
   UI.AddWidget(Self);
-End;
-
-Function Widget.CanHighlight: Boolean;
-Begin
-  If (Not Visible) Then
-    Result := False
-  Else
-    Result := (UpControl<>Nil) Or (DownControl<>Nil) Or (LeftControl<>Nil) Or (RightControl<>Nil);
 End;
 
 Procedure Widget.CopyValue(Other: CollectionObject);
@@ -772,32 +790,148 @@ Begin
     Result := IsSameFamily(Other._Parent);
 End;
 
-Procedure Widget.SetDownControl(W: Widget);
+Function Widget.IsSelectable():Boolean;
 Begin
-  Self._DownControl := W;
-  If W<>Nil Then
-    W._UpControl := Self;
+  Result := Assigned(Self.OnMouseClick);
 End;
 
-Procedure Widget.SetLeftControl(W: Widget);
+Function Widget.CanHighlight(GroupID:Integer): Boolean;
 Begin
-  Self._LeftControl := W;
-  If W<>Nil Then
-    W._RightControl := Self;
+  Result := (Self.Visible) And (Self.Enabled) And (Self.IsSelectable()) And (Self.HighlightGroup = GroupID) And (Not Self.HasTweens());
 End;
 
-Procedure Widget.SetRightControl(W: Widget);
+Function Widget.GetDownControl(): Widget;
+Var
+  W:Widget;
+  It:Iterator;
+  Base:Vector2D;
+  GroupID:Integer;
+  Min, Dist, Y:Single;
 Begin
-  Self._RightControl := W;
-  If W<>Nil Then
-    W._LeftControl := Self;
+  Result := Nil;
+
+  Min := 99999;
+  Base := Self.Position;
+  Base.Y := Base.Y + Self.Size.Y;
+  GroupID := Self.HighlightGroup;
+
+  It := Self.UI.Widgets.GetIterator();
+  While It.HasNext() Do
+  Begin
+    W := Widget(It.Value);
+    If (W = Self) Or (Not W.CanHighlight(GroupID)) Then
+      Continue;
+
+    Y := W.Position.Y;
+    If (Y<Base.Y) Then
+      Continue;
+
+    Dist := W.Position.Distance(Base);
+    If (Dist< Min) Then
+    Begin
+      Min := Dist;
+      Result := W;
+    End;
+  End;
+  ReleaseObject(It);
 End;
 
-Procedure Widget.SetUpControl(W: Widget);
+Function Widget.GetUpControl(): Widget;
+Var
+  W:Widget;
+  It:Iterator;
+  P,Base:Vector2D;
+  GroupID:Integer;
+  Min, Dist, Y:Single;
 Begin
-  Self._UpControl := W;
-  If W<>Nil Then
-    W._DownControl := Self;
+  Result := Nil;
+
+  Min := 99999;
+  Base := Self.Position;
+  GroupID := Self.HighlightGroup;
+
+  It := Self.UI.Widgets.GetIterator();
+  While It.HasNext() Do
+  Begin
+    W := Widget(It.Value);
+    If (W = Self) Or (Not W.CanHighlight(GroupID)) Then
+      Continue;
+
+    P := W.Position;
+    P.Y := P.Y + W.Size.Y;
+    Dist := P.Distance(Base);
+    If (Dist< Min) And (P.Y<Base.Y) Then
+    Begin
+      Min := Dist;
+      Result := W;
+    End;
+  End;
+  ReleaseObject(It);
+End;
+
+Function Widget.GetRightControl(): Widget;
+Var
+  W:Widget;
+  It:Iterator;
+  Base:Vector2D;
+  Min, Dist, X:Single;
+  GroupID:Integer;
+Begin
+  Result := Nil;
+
+  Min := 99999;
+  Base := Self.Position;
+  GroupID := Self.HighlightGroup;
+
+  It := Self.UI.Widgets.GetIterator();
+  While It.HasNext() Do
+  Begin
+    W := Widget(It.Value);
+    If (W = Self) Or (Not W.CanHighlight(GroupID)) Then
+      Continue;
+
+    X := W.Position.X;
+    Dist := W.Position.Distance(Base);
+    If (Dist< Min) And (X>Base.X + Self.Size.X) Then
+    Begin
+      Min := Dist;
+      Result := W;
+    End;
+  End;
+  ReleaseObject(It);
+End;
+
+Function Widget.GetLeftControl(): Widget;
+Var
+  W:Widget;
+  It:Iterator;
+  P, Base:Vector2D;
+  Min, Dist:Single;
+  GroupID:Integer;
+Begin
+  Result := Nil;
+
+  Min := 99999;
+  Base := Self.Position;
+  GroupID := Self.HighlightGroup;
+
+  It := Self.UI.Widgets.GetIterator();
+  While It.HasNext() Do
+  Begin
+    W := Widget(It.Value);
+    If (W = Self) Or (Not W.CanHighlight(GroupID)) Then
+      Continue;
+
+    P := W.Position;
+    P.X := P.X + W.Size.X;
+    Dist := P.Distance(Base);
+    If (Dist< Min) And (P.X<Base.X) Then
+    Begin
+      Min := Dist;
+      Result := W;
+    End;
+  End;
+  ReleaseObject(It);
 End;
 
 Function Widget.Show(AnimationFlags:Integer; Delay, EaseType, Duration:Integer):Tween;
@@ -809,11 +943,10 @@ Begin
   _Visible := True;
   Result := Nil;
 
+  Self._NeedsHide := False;
+
   If EaseType<0 Then
     EaseType := UI.DefaultEaseType;
-
-  If (Self Is UIWindow) And (UI.Highlight<>Nil) Then
-    UIWindow(Self).EnableHighlights();
 
   If (AnimationFlags And widgetAnimatePosX<>0) Then
   Begin
@@ -921,7 +1054,7 @@ Begin
 
   If Assigned(Result) Then
   Begin
-    Result.OnFinished := HideWidget;
+    Self._NeedsHide := True;
     Result.EaseType := EaseType;
   End;
 End;
@@ -1006,7 +1139,7 @@ Begin
     Exit;
                           
 	If (Assigned(_Parent)) Then
-		Result := ColorScale(Result, _Parent.GetColor());
+		Result := ColorMultiply(Result, _Parent.GetColor());
 End;
 
 Function Widget.GetRelativePosition:Vector2D;
@@ -1105,6 +1238,14 @@ Begin
 	If (Assigned(_Parent)) Then
 		Result := Result * _Parent.GetSaturation();
 End;
+
+Function Widget.GetHighlightGroup:Integer;
+Begin
+	Result := _HighlightGroup;
+	If (Assigned(_Parent)) And (_HighlightGroup<=0) Then
+		Result := _Parent.GetHighlightGroup();
+End;
+
 
 Function Widget.GetColorTable:Texture;
 Begin
@@ -1271,7 +1412,7 @@ Begin
 
   If (ScaleColor) And (Not DisableUIColor) Then
   Begin
-    Color := ColorScale(Color, UI._Color);
+    Color := ColorMultiply(Color, UI._Color);
     Saturation := Saturation * Self._Saturation;
 
     If (ColorTable = Nil) Then
@@ -1352,7 +1493,6 @@ Begin
   _FontRenderer.SetFont(Fnt);
   _FontRenderer.SetClipRect(GetClipRect());
   _FontRenderer.SetTransform(_Transform);
-  _FontRenderer.SetScale(Self.Scale * Scale);
   _FontRenderer.SetDropShadow(_DropShadowColor);
   _FontRenderer.SetColor(C);
 
@@ -1366,9 +1506,50 @@ Begin
 End;
 
 Function Widget.OnKeyUp(Key:Word):Boolean;
+Var
+  I:Integer;
 Begin
-  RemoveHint(Key);
-	Result := False;
+  If Not Self.Visible Then
+  Begin
+    Result := False;
+    Exit;
+  End;
+
+  If (Key = UI.Key_Action) Then
+  Begin
+    Result := Self.OnSelectAction();
+  End Else
+  If (Key = UI.Key_Action2) Then
+  Begin
+    Result := Self.OnSelectAlternateAction();
+  End Else
+  If (Key = UI.key_Up) Then
+  Begin
+    Result := Self.OnSelectUp();
+  End Else
+  If (Key = UI.Key_Down) Then
+  Begin
+    Result := Self.OnSelectDown();
+  End Else
+  If (Key = UI.key_Left) Then
+  Begin
+    Result := Self.OnSelectLeft();
+  End Else
+  If (Key = UI.key_Right) Then
+  Begin
+    Result := Self.OnSelectRight();
+  End Else
+  	Result := False;
+
+  If Result Then
+    Exit;
+
+  For I:=0 To Pred(_ChildrenCount) Do
+  Begin
+    Result := _ChildrenList[I].OnKeyUp(Key);
+    If Result Then
+      Exit;
+  End;
 End;
 
 Function Widget.OnKeyPress(Key:Word):Boolean;
@@ -1443,7 +1624,7 @@ Begin
 
   If (OnRegion(X,Y)) Then
   Begin
-    If (AllowDragging) Then
+    If (Draggable) Then
     Begin
       If (Not _Dragging) Then
       Begin
@@ -1521,8 +1702,6 @@ Var
   I:Integer;
 Begin
   Result := False;
-  If (Not Self.Visible) Or (Self.HasTweens) Or (OnRegion(X,Y)) Then
-    Exit;
 
   If (_Dragging) Then
   Begin
@@ -1531,6 +1710,9 @@ Begin
     _TransformChanged := True;
     Exit;
   End;
+  
+  If (Not Self.Visible) Or (Self.HasTweens) Or (OnRegion(X,Y)) Then
+    Exit;
 
   For I:=0 To Pred(_ChildrenCount) Do
   If (_ChildrenList[I]._Visible) Then
@@ -1555,14 +1737,13 @@ Begin
     If (B=False) And (UI.Highlight = Self) And (Not UI.Highlight._SelectedWithKeyboard) Then
     Begin
     	Result := True;
-      UI.Highlight := Nil;
 
-      {$IFDEF MOBILE}
+      (*{$IFDEF MOBILE}
       If (Assigned(OnMouseClick)) And (Pos('KEY_', Self.Name)<>1) Then
       Begin
         OnMouseClick(Self);
       End;
-      {$ENDIF}
+      {$ENDIF}*)
 
       If (Assigned(OnMouseOut)) Then
         OnMouseOut(Self);
@@ -1656,6 +1837,13 @@ Var
   OfsX,OfsY:Single;
 Begin
   Result := False;
+
+  If (_NeedsHide) And (Not Self.HasTweens()) Then
+  Begin
+    _NeedsHide := False;
+    HideWidget(Self);
+  End;
+
   If (Not _TransformChanged) Then
     Exit;
 
@@ -1777,28 +1965,95 @@ Begin
   // do nothing
 End;
 
-Procedure Widget.OnSelectDown();
+Function Widget.IsSelected: Boolean;
 Begin
-  If Assigned(Self._DownControl) And (_DownControl.Visible) Then
-    UI.Highlight := Self._DownControl;
+  Result := (Self = UI.Highlight) Or (Self = UI.Focus);
 End;
 
-Procedure Widget.OnSelectLeft();
+Function Widget.OnSelectAction: Boolean;
 Begin
-  If Assigned(Self._LeftControl) And (_LeftControl.Visible) Then
-    UI.Highlight := Self._LeftControl;
+  If (Self.Selected) And (Assigned(OnMouseClick)) And (Not Self.HasTweens()) Then
+  Begin
+    Result := OnMouseClick(Self);
+  End Else
+    Result := False;
 End;
 
-Procedure Widget.OnSelectRight();
+Function Widget.OnSelectAlternateAction: Boolean;
 Begin
-  If Assigned(Self._RightControl) And (_RightControl.Visible) Then
-    UI.Highlight := Self._RightControl;
+  If (Self.Selected) And (Assigned(OnExtendedClick)) And (Not Self.HasTweens()) Then
+  Begin
+    Result := OnExtendedClick(Self);
+  End Else
+    Result := False;
 End;
 
-Procedure Widget.OnSelectUp();
+Function Widget.OnSelectDown():Boolean;
+Var
+  W:Widget;
 Begin
-  If Assigned(Self._UpControl) And (_UpControl.Visible)  Then
-    UI.Highlight := Self._UpControl;
+  Result := False;
+
+  If (Self.Selected) Then
+  Begin
+    W := Self.GetDownControl();
+    If (Assigned(W)) And (Not Self.HasTweens()) Then
+    Begin
+      Result := True;
+      UI.Highlight := W;
+    End;
+  End;
+End;
+
+Function Widget.OnSelectLeft():Boolean;
+Var
+  W:Widget;
+Begin
+  Result := False;
+
+  If (Self.Selected) Then
+  Begin
+    W := Self.GetLeftControl();
+    If (Assigned(W)) And (Not Self.HasTweens()) Then
+    Begin
+      Result := True;
+      UI.Highlight := W;
+    End;
+  End;
+End;
+
+Function Widget.OnSelectRight():Boolean;
+Var
+  W:Widget;
+Begin
+  Result := False;
+
+  If (Self.Selected) Then
+  Begin
+    W := Self.GetRightControl();
+    If (Assigned(W)) And (Not Self.HasTweens()) Then
+    Begin
+      Result := True;
+      UI.Highlight := W;
+    End;
+  End;
+End;
+
+Function Widget.OnSelectUp():Boolean;
+Var
+  W:Widget;
+Begin
+  Result := False;
+
+  If (Self.Selected) Then
+  Begin
+    W := Self.GetUpControl();
+    If (Assigned(W)) And (Not Self.HasTweens()) Then
+    Begin
+      Result := True;
+      UI.Highlight := W;
+    End;
+  End;
 End;
 
 Function Widget.GetClipRect:ClipRect;
@@ -1820,9 +2075,6 @@ Begin
 
   If Result = Nil Then
     Result := FontManager.Instance.DefaultFont;
-
-  If Assigned(Result) Then
-    _FontRenderer.SetFont(Result);  
 End;
 
 Procedure Widget.SetClipRect(Value:ClipRect);
@@ -2019,8 +2271,16 @@ End;
 Function Widget.GetFontRenderer: FontRenderer;
 Begin
   Result := _FontRenderer;
+
   If Assigned(Result) Then
     Result.SetFont(Self.Font);
+End;
+
+
+Function Widget.IsOutsideScreen: Boolean;
+Begin
+  Result := (Self.Position.X + Self.Size.X<0) Or (Self.Position.Y + Self.Size.Y<0)
+    Or (Self.Position.X> UIManager.Instance.Width) Or (Self.Position.Y > UIManager.Instance.Height);
 End;
 
 { UICursor }
@@ -2094,13 +2354,11 @@ Begin
   _Saturation := 1.0;
   _ColorTable := Nil;
 
-  _FontRenderer := UIManager.Instance.FontRenderer;
+  _FontRenderer := Nil;
 
   SetTransform(MatrixIdentity3x3);
 
   DefaultEaseType := easeInSine;
-
-  SetLength(_Geometry, 4);
 
   Key_Up := TERRA_OS.keyUp;
   Key_Down := TERRA_OS.keyDown;
@@ -2178,11 +2436,9 @@ Begin
 
   PositionHandle := MyShader.GetAttribute('terra_position');
 
-  GraphicsManager.Instance.SetBlendMode(blendNone);
+  GraphicsManager.Instance.Renderer.SetBlendMode(blendNone);
 
-  glVertexAttribPointer(PositionHandle, 2, GL_FLOAT, False, SizeOf(Vector2D), @(V[0].X));
-  glDrawArrays(GL_TRIANGLES, 0, 12);
-  GraphicsManager.Instance.Internal(0, 4);
+End;
 End;*)
 
 Procedure UI.SetFocus(W: Widget);
@@ -2230,60 +2486,6 @@ Begin
   Result := Self.AllowsEvents(W.Parent);
 End;
 
-Procedure UI.GetFirstHighLight;
-Var
-  W:Widget;
-  It:Iterator;
-Begin
-  Self._Highlight := Nil;
-  It := _Widgets.GetIterator();
-  While (It.HasNext) Do
-  Begin
-    W := Widget(It.GetNext());
-    If (W.CanHighlight) Then
-    Begin
-      While (W._UpControl<>Nil) And (W._UpControl.Position.Y<W.Position.Y) Do
-        W := W._UpControl;
-
-      If (Self._Highlight = Nil) Or (W.Position.Y < Self._Highlight.Position.Y)
-      Or ((W.Position.Y = Self._Highlight.Position.Y) And (W.Position.X < Self._Highlight.Position.X)) Then
-        Self.SetHighlight(W);
-    End;
-  End;
-End;
-
-Procedure UI.WrapControlsHorizontal(Left, Right: Widget);
-Begin
-  If (Left = Nil) Or (Right = Nil) Then
-    Exit;
-
-  Left._RightControl := Right;
-  Right._LeftControl := Left;
-End;
-
-Procedure UI.WrapControlsVertical(Up, Down: Widget);
-Begin
-  If (Up = Nil) Or (Down = Nil) Then
-    Exit;
-
-  Up._DownControl := Down;
-  Down._UpControl := Up;
-End;
-
-Procedure UI.WrapControlsHorizontal(Left, Right:TERRAString);
-Var
-  A,B:Widget;
-Begin
-  A := Self.GetWidget(Left);
-  B := Self.GetWidget(Right);
-  WrapControlsHorizontal(A, B);
-End;
-
-Procedure UI.WrapControlsVertical(Up, Down:TERRAString);
-Begin
-  WrapControlsVertical(Self.GetWidget(Up), Self.GetWidget(Down));
-End;
-
 Procedure UI.SetColorTable(Const Value:Texture);
 Begin
   Self._ColorTable := Value;
@@ -2316,7 +2518,7 @@ Begin
     Found := False;
     While (It.HasNext) Do
     Begin
-      Temp := Widget(It.GetNext);
+      Temp := Widget(It.Value);
       If (Temp = MyWidget._Parent) Then
       Begin
         Widget(Temp).AddChild(MyWidget);
@@ -2393,7 +2595,7 @@ Begin
     It := _Widgets.GetIterator();
     While (It.HasNext) Do
     Begin
-      Temp := Widget(It.GetNext());
+      Temp := Widget(It.Value);
       If (Temp._Next = MyWidget) Then
       Begin
         Temp._Next := MyWidget._Next;
@@ -2420,7 +2622,7 @@ End;
 
 
 Function UI.AddQuad(Const StartPos, EndPos:Vector2D; Const TexCoord1, TexCoord2:Vector2D; MyColor:Color; Z:Single; PageID:Integer;
-                    Const Transform:Matrix3x3; Saturation:Single; ColorTable:Texture; Const Clip:ClipRect):Sprite;
+                    Const Transform:Matrix3x3; Saturation:Single; ColorTable:Texture; Const Clip:ClipRect):QuadSprite;
 Var
   Tex:Texture;
 Begin
@@ -2450,7 +2652,7 @@ Begin
   It := _Widgets.GetIterator();
   While (It.HasNext) Do
   Begin
-    MyWidget := Widget(It.GetNext());
+    MyWidget := Widget(It.Value);
     MyWidget.OnLanguageChange();
   End;
 End;
@@ -2470,8 +2672,11 @@ Begin
   _Draw := False;
   _CursorPos.X := InputManager.Instance.Mouse.X;
   _CursorPos.Y := InputManager.Instance.Mouse.Y;
-  If (Assigned(_Highlight)) And (Not _Highlight.Visible) Then
-    _Highlight := Nil;
+
+  If (Assigned(_Highlight)) And ((Not _Highlight.Visible) Or (Not _Highlight.Enabled)) Then
+  Begin
+    _Highlight := SelectNearestWidget(_Highlight);
+  End;
 
   If (Assigned(_Focus)) And (Not _Focus.Visible) Then
     _Focus := Nil;
@@ -2501,7 +2706,7 @@ Begin
   If (UIManager.Instance._UpdateTextureAtlas) Then
     Exit;
 
-  GraphicsManager.Instance.SetBlendMode(blendBlend);
+  GraphicsManager.Instance.Renderer.SetBlendMode(blendBlend);
 
   If (Assigned(_CurrentCursor)) Then
     _CurrentCursor.Render;
@@ -2551,100 +2756,67 @@ Begin
   End;
 End;
 
-Procedure UI.OnKeyDown(Key:Word);
+Function UI.OnKeyDown(Key:Word):Widget;
 Begin
+  Result := Nil;
+
 	If Assigned(_Highlight) Then
-		_Highlight.OnKeyDown(Key);
+  Begin
+		If _Highlight.OnKeyDown(Key) Then
+      Result := _Highlight;
+  End;
 End;
 
-Procedure UI.OnKeyUp(Key:Word);
+Function UI.OnKeyUp(Key:Word):Widget;
 Var
-  Temp, W:Widget;
+  MyWidget:Widget;
 Begin
-	If Assigned(_Focus) Then
-		_Focus.OnKeyUp(Key);
+  Result := Nil;
 
-  Temp := Self._Highlight;
-
-  If (Key=Self.Key_Cancel) Then
+	If Assigned(_Highlight) Then
   Begin
-    If (Assigned(_Highlight)) Then
+		If _Highlight.OnKeyUp(Key) Then
     Begin
-      W := _Highlight;
-      While (Not (W Is UIWindow)) And (W<>Nil) Do
-        W := W.Parent;
+      Result := _Highlight;
+      Exit;
+    End;
+  End;
+  
+	If Assigned(_Focus) Then
+  Begin
+		If _Focus.OnKeyUp(Key) Then
+    Begin
+      Result := _Focus;
+      Exit;
+    End;
+  End;
 
-      If (Assigned(W)) And (Assigned(UIWindow(W).CloseButton)) And (Assigned(UIWindow(W).CloseButton.OnMouseClick)) Then
+  MyWidget := _First;
+  While (Assigned(MyWidget)) Do
+  Begin
+    If (Not Assigned(MyWidget._Parent)) And (MyWidget.IsVisible) Then
+    Begin
+      If MyWidget.OnKeyUp(Key) Then
       Begin
-        UIWindow(W).CloseButton.OnMouseClick(UIWindow(W).CloseButton);
+        Result := MyWidget;
         Exit;
       End;
     End;
 
-    If (Assigned(CloseButton)) And (CloseButton.Visible) And (Assigned(CloseButton.OnMouseClick)) Then
-    Begin
-      CloseButton.OnMouseClick(CloseButton);
-      CloseButton := Nil;
-      Exit;
-    End;
-  End Else
-  If (Key=Self.Key_Action) Then
-  Begin
-    If (Assigned(_Highlight)) And (_Highlight Is UIEditText) Then
-      UIEditText(_Highlight).SetFocus(True)
-    Else
-    If (Assigned(_Highlight)) And (_Highlight Is UICheckbox) Then
-      UICheckbox(_Highlight).Checked := Not UICheckbox(_Highlight).Checked
-    Else
-    If (Assigned(_Highlight)) And (Assigned(_Highlight.OnMouseClick)) Then
-      _Highlight.OnMouseClick(_Highlight);
-  End Else
-  If (Key=Self.Key_Action2) Then
-  Begin
-    If (Assigned(_Highlight)) And (Assigned(_Highlight.OnExtendedClick)) Then
-      _Highlight.OnExtendedClick(_Highlight);
-  End Else
-  If (Key=Self.key_Up) Then
-  Begin
-    If (_Highlight=Nil) Then
-      GetFirstHighLight()
-    Else
-      _Highlight.OnSelectUp();
-  End Else
-  If (Key=Self.Key_Down) Then
-  Begin
-    If (_Highlight=Nil) Then
-      GetFirstHighLight()
-    Else
-      _Highlight.OnSelectDown();
-  End Else
-  If (Key=Self.key_Left) Then
-  Begin
-    If (_Highlight=Nil) Then
-      GetFirstHighLight()
-    Else
-      _Highlight.OnSelectLeft();
-  End Else
-  If (Key=Self.key_Right) Then
-  Begin
-    If (_Highlight=Nil) Then
-      GetFirstHighLight()
-    Else
-      _Highlight.OnSelectRight();
+    MyWidget := MyWidget._Next;
   End;
-
-  If (Temp<>_Highlight) And (Assigned(_Highlight)) Then
-    _Highlight._SelectedWithKeyboard := True;
 End;
 
-Procedure UI.OnKeyPress(Key:Word);
+Function UI.OnKeyPress(Key:Word):Widget;
 Begin
+  Result := Nil;
   Log(logDebug, 'UI', 'keypress: '+IntToString(Integer(Key)));
 
 	If Assigned(_Focus) Then
   Begin
     Log(logDebug, 'UI', 'focus is '+_Focus.Name);
 		_Focus.OnKeyPress(Key);
+    Result := _Focus;
   End;
 
   Log(logDebug, 'UI', 'keypress done!');
@@ -3048,10 +3220,12 @@ Begin
   Highlight := _PrevHighlight;
 End;
 
-Procedure CloseMsgBox(Src:Widget); CDecl;
+Function CloseMsgBox(Src:Widget):Boolean; Cdecl;
 Var
   UI:TERRA_UI.UI;
 Begin
+  Result := True;
+
   If (Src = Nil) Then
     Exit;
 
@@ -3071,10 +3245,12 @@ Begin
   UI._WndCallback2 := Nil;
 End;
 
-Procedure CloseMsgBox2(Src:Widget); CDecl;
+Function CloseMsgBox2(Src:Widget):Boolean; Cdecl;
 Var
   UI:TERRA_UI.UI;
 Begin
+  Result := True;
+
   If (Src = Nil) Then
     Exit;
 
@@ -3186,10 +3362,7 @@ Begin
   UIButton(System_Btn[1]).Caption := Option1;
   UIButton(System_Btn[2]).Caption := Option2;
 
-  System_Btn[1].RightControl := System_Btn[2];
-
   _PrevHighlight := Highlight;
-  If (Highlight<>Nil) Then
     Highlight := System_Btn[1];
 End;
 
@@ -3238,7 +3411,7 @@ Begin
   It := _Widgets.GetIterator();
   While (It.HasNext) Do
   Begin
-    MyWidget := Widget(It.GetNext());
+    MyWidget := Widget(It.Value);
     If (MyWidget.Parent =  Nil) Then
       MyWidget._TransformChanged := True;
   End;
@@ -3247,7 +3420,7 @@ End;
 
 Procedure UI.SetVisible(Const Value:Boolean);
 Begin
-  _Visible := True;
+  _Visible := Value;
 End;
 
 Function UI.GetHighlight: Widget;
@@ -3302,7 +3475,7 @@ Begin
   It := Self.Widgets.GetIterator();
   While It.HasNext() Do
   Begin
-    W := Widget(It.GetNext());
+    W := Widget(It.Value);
 
     W._TransformChanged := True;
   End;
@@ -3310,11 +3483,13 @@ End;
 
 Function UI.GetFontRenderer():FontRenderer;
 Begin
+  If Self._FontRenderer = Nil Then
+    Self._FontRenderer := UIManager.Instance.FontRenderer;
+
   Result := Self._FontRenderer;
   Result.SetFont(Self._DefaultFont);
   Result.SetTransform(Self.Transform);
   Result.SetColor(ColorWhite);
-  Result.SetScale(1.0);
   Result.SetClipRect(_ClipRect);
   Result.SetDropShadow(ColorGrey(0, 64));
 End;
@@ -3322,6 +3497,62 @@ End;
 Function UI.OnRegion(X, Y: Integer): Boolean;
 Begin
   Result := (X>=0) And (Y>=0) And (X<=UIManager.Instance.Width) And (Y<=UIManager.Instance.Height);
+End;
+
+Procedure UI.SetFontRenderer(const Value: FontRenderer);
+Begin
+  _FontRenderer := Value;
+End;
+
+Function UI.SelectNearestWidget(Target:Widget):Widget;
+Var
+  It:Iterator;
+  Base:Vector2D;
+  GroupID:Integer;
+  Min, Dist:Single;
+  W:Widget;
+Begin
+  Result := Nil;
+  If Target = Nil Then
+    Exit;
+
+  Min := 99999;
+  Base := Target.Position;
+  GroupID := Target.HighlightGroup;
+
+  It := Self.Widgets.GetIterator();
+  While It.HasNext() Do
+  Begin
+    W := Widget(It.Value);
+    If (W = Target) Or (Not W.CanHighlight(GroupID)) Then
+      Continue;
+
+    Dist := W.Position.Distance(Base);
+    If (Dist< Min) Then
+    Begin
+      Min := Dist;
+      Result := W;
+    End;
+  End;
+  ReleaseObject(It);
+End;
+
+Procedure UI.GetFirstHighLight(GroupID:Integer);
+Var
+  W:Widget;
+  It:Iterator;
+Begin
+  It := Self.Widgets.GetIterator();
+  While It.HasNext() Do
+  Begin
+    W := Widget(It.Value);
+    If (Not W.CanHighlight(GroupID)) Then
+      Continue;
+
+    Self.Highlight := W;
+    Break;
+  End;
+  ReleaseObject(It);
 End;
 
 { UISkinLayout }
@@ -3381,9 +3612,6 @@ Begin
   _TextureAtlas := Nil;
   _Ratio := 1.0;
   _UpdateTextureAtlas := False;
-
-  _DefaultFontRenderer := TERRA_FontRenderer.FontRenderer.Create();
-  _FontRenderer := _DefaultFontRenderer;
 End;
 
 Procedure UIManager.Release;
@@ -3395,7 +3623,7 @@ Begin
 
   _UICount := 0;
 
-  ReleaseObject(_DefaultFontRenderer);
+  ReleaseObject(_FontRenderer);
 
   ReleaseObject(_TextureAtlas);
 
@@ -3522,10 +3750,7 @@ Begin
     _UpdateTextureAtlas := False;
 
     For I:=0 To Pred(_TextureAtlas.PageCount) Do
-      _TextureAtlas.GetTexture(I).BilinearFilter := True;
-
-    For I:=0 To Pred(_UICount) Do
-      SetLength(_UIList[I]._Geometry, _TextureAtlas.PageCount);
+      _TextureAtlas.GetTexture(I).Filter := filterBilinear;
   End;
 
   For I:=0 To Pred(_UICount) Do
@@ -3576,6 +3801,14 @@ Begin
     Exit;
 
   _FontRenderer := FontRenderer;
+End;
+
+Function UIManager.GetFontRenderer: FontRenderer;
+Begin
+  If _FontRenderer = Nil Then
+    _FontRenderer := TERRA_FontRenderer.FontRenderer.Create();
+
+  Result := _FontRenderer;
 End;
 
 End.

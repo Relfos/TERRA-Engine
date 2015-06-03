@@ -26,7 +26,7 @@ Unit TERRA_MeshAnimation;
 
 Interface
 Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Resource, TERRA_Vector3D, TERRA_Math,
-  TERRA_Matrix4x4, TERRA_Vector2D, TERRA_Color, TERRA_Vector4D, TERRA_ResourceManager;
+  TERRA_Matrix4x4, TERRA_Vector2D, TERRA_Color, TERRA_Quaternion, TERRA_ResourceManager;
 
 Const
   animationTargetDiffuse  = 1;
@@ -42,7 +42,7 @@ Const
 Type
   MeshSkeleton = Class;
 
-  AnimationCallback = Procedure (P:Pointer); Cdecl;
+  AnimationCallback = Function (P:Pointer):Boolean;
 
   MeshBone = Class(TERRAObject)
     Name:TERRAString;
@@ -57,8 +57,8 @@ Type
     {$IFNDEF NO_ROTS}
     StartRotation:Vector3D;
 
-    AbsoluteRotation:Vector4D;
-    RelativeRotation:Vector4D;
+    AbsoluteRotation:Quaternion;
+    RelativeRotation:Quaternion;
     {$ENDIF}
 
     AbsoluteMatrix:Matrix4x4;
@@ -80,6 +80,8 @@ Type
     Protected
       _BoneList:Array Of MeshBone;
       _BoneCount:Integer;
+
+      _Hash:Cardinal;
 
     Public
       Name:String;
@@ -103,6 +105,8 @@ Type
       Procedure Render(Const Transform:Matrix4x4; Instance:Pointer);
 
       Property BoneCount:Integer Read _BoneCount;
+
+      Property Hash:Cardinal Read _Hash;
   End;
 
   BoneAnimation = Class;
@@ -149,7 +153,7 @@ Type
   AnimationTransformBlock = Object
     Translation:Vector3D;
     Scale:Vector3D;
-    Rotation:Vector4D;
+    Rotation:Quaternion;
   End;
 
   BoneAnimation = Class(TERRAObject)
@@ -193,6 +197,8 @@ Type
       Next:TERRAString;
 
       Procedure Clone(Other:Animation);
+
+      Procedure Release(); Override;
 
       Function Load(Source:Stream):Boolean; Override;
       Procedure Save(Dest:Stream); Overload;
@@ -283,6 +289,11 @@ Type
       _Time:Single;
       _UpdateID:Cardinal;
 
+      _Hash:Cardinal;
+      _Skeleton:MeshSkeleton;
+
+      Function RunCallback():Boolean;
+
     Public
       Constructor Create(Owner:AnimationState; MyAnimation:Animation);
       Procedure Init(MyAnimation:Animation);
@@ -315,13 +326,14 @@ Type
 
   AnimationBoneState = Class(TERRAObject)
     _Owner:AnimationState;
+    _BoneName:TERRAString;
     _ID:Integer;
     _Block:AnimationTransformBlock;
     _Ready:Boolean;
     _Parent:AnimationBoneState;
     _AbsoluteMatrix:Matrix4x4;
+    _RelativeMatrix:Matrix4x4;
     _FrameMatrix:Matrix4x4;
-    _Bone:MeshBone;
 
     Procedure UpdateTransform;
 
@@ -398,6 +410,9 @@ Type
 
       Function GetAnimation(Name:TERRAString; ValidateError:Boolean = True):Animation;
    End;
+
+Function FrameToTime(Frame, FPS:Single):Single;
+Function TimeToFrame(Time, FPS:Single):Integer;
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_Application, TERRA_OS, TERRA_FileManager,  TERRA_Mesh,
@@ -497,7 +512,7 @@ Begin
 
 {$IFNDEF NO_ROTS}
   RelativeMatrix := Matrix4x4Multiply4x3(Matrix4x4Translation(startPosition), Matrix4x4Rotation(startRotation));
-  RelativeRotation := Vector4DRotation(StartRotation);
+  RelativeRotation := QuaternionRotation(StartRotation);
 {$ELSE}
   RelativeMatrix := Matrix4x4Translation(startPosition);
 {$ENDIF}
@@ -509,14 +524,14 @@ Begin
   Begin
     AbsoluteMatrix := RelativeMatrix;
     {$IFNDEF NO_ROTS}
-    AbsoluteRotation := Vector4DZero;
+    AbsoluteRotation := QuaternionZero;
     {$ENDIF}
   End Else									// not the root node
 	Begin
 		// m_final := parent's m_final * m_rel (matrix concatenation)
     AbsoluteMatrix := Matrix4x4Multiply4x3(Parent.AbsoluteMatrix, RelativeMatrix);
     {$IFNDEF NO_ROTS}
-    AbsoluteRotation := Vector4DMultiply(Parent.AbsoluteRotation, RelativeRotation);
+    AbsoluteRotation := QuaternionMultiply(Parent.AbsoluteRotation, RelativeRotation);
     {$ENDIF}
 	End;
 
@@ -759,6 +774,8 @@ Begin
     Exit;
 
   Self.Name := Other.Name;
+
+  Self._Hash := Application.GetTime();
 
   For I:=0 To Pred(_BoneCount) Do
     _BoneList[I].Release;
@@ -1026,7 +1043,7 @@ Var
   DeltaTime : Single;
 	Fraction : Single;
 
-  Q1,Q2:Vector4D;
+  Q1,Q2:Quaternion;
 Begin
   // Find appropriate position key frame
   Key := Positions.GetKey(Time);
@@ -1073,15 +1090,15 @@ Begin
     If (Fraction>1.0) Then
       Fraction := 1.0;
 
-   	Q1 := Vector4DRotation(Rotations.Keyframes[LastKey].Value);
-	  Q2 := Vector4DRotation(Rotations.Keyframes[Key].Value);
-  	Block.Rotation := Vector4DSlerp(Q1,Q2, Fraction);
+   	Q1 := QuaternionRotation(Rotations.Keyframes[LastKey].Value);
+	  Q2 := QuaternionRotation(Rotations.Keyframes[Key].Value);
+  	Block.Rotation := QuaternionSlerp(Q1,Q2, Fraction);
   End Else
   If (Key=0) And (Rotations.Count>0) Then
   Begin
-    Block.Rotation := Vector4DRotation(Rotations.Keyframes[Key].Value);
+    Block.Rotation := QuaternionRotation(Rotations.Keyframes[Key].Value);
   End Else
-    Block.Rotation := Vector4DRotation(VectorZero);
+    Block.Rotation := QuaternionRotation(VectorZero);
 
     //TODO
   Block.Scale := VectorOne;
@@ -1223,17 +1240,8 @@ Begin
 End;
 
 Function Animation.Unload: Boolean;
-Var
-  I,J:Integer;
 Begin
-  For I:=0 To Pred(_BoneCount) Do
-    _Bones[I].Release();
-
-  SetLength(_Bones,0);
-  _BoneCount := 0;
-
-  _Status := rsUnloaded;
-  Result := True;
+  Result := False;
 End;
 
 Function Animation.Update: Boolean;
@@ -1341,12 +1349,25 @@ Begin
     _Bones[I].CloseLoop();
 End;
 
+Procedure Animation.Release;
+Var
+  I,J:Integer;
+Begin
+  For I:=0 To Pred(_BoneCount) Do
+    _Bones[I].Release();
+
+  SetLength(_Bones,0);
+  _BoneCount := 0;
+
+  _Status := rsUnloaded;
+
+  Inherited;
+End;
+
 { AnimationState }
 Constructor AnimationState.Create(Name:TERRAString; MySkeleton:MeshSkeleton);
 Var
   I:Integer;
-  Parent:TERRAString;
-  B:MeshBone;
 Begin
   _Speed := 1;
   Processor := Nil;
@@ -1374,7 +1395,8 @@ Begin
   SetLength(Transforms, Succ(_BoneCount));
 
   _BoneStates[Pred(_BoneCount)] := AnimationBoneState.Create;
-  _BoneStates[Pred(_BoneCount)]._Bone := Bone;
+  _BoneStates[Pred(_BoneCount)]._BoneName := Bone.Name;
+  _BoneStates[Pred(_BoneCount)]._RelativeMatrix := Bone.RelativeMatrix;
   _BoneStates[Pred(_BoneCount)]._Owner := Self;
   _BoneStates[Pred(_BoneCount)]._ID := Pred(_BoneCount);
   _BoneStates[Pred(_BoneCount)]._Parent := Nil;
@@ -1382,7 +1404,7 @@ Begin
   If Assigned(Bone.Parent) Then
   Begin
     For I:=0 To Pred(_BoneCount) Do
-    If (_BoneStates[I]._Bone = Bone.Parent) Then
+    If (StringEquals(_BoneStates[I]._BoneName, Bone.Parent.Name)) Then
     Begin
       _BoneStates[Pred(_BoneCount)]._Parent := _BoneStates[I];
       Break;
@@ -1655,10 +1677,10 @@ Begin
 
 	// Create a transformation matrix from the position and rotation
 	// m_frame: additional transformation for this frame of the animation
-  _FrameMatrix := Matrix4x4Multiply4x3(Matrix4x4Translation(_Block.Translation), Vector4DMatrix4x4(_Block.Rotation));
+  _FrameMatrix := Matrix4x4Multiply4x3(Matrix4x4Translation(_Block.Translation), QuaternionMatrix4x4(_Block.Rotation));
 
 	// Add the animation state to the rest position
-  _FrameMatrix := Matrix4x4Multiply4x3(_Bone.RelativeMatrix, _FrameMatrix);
+  _FrameMatrix := Matrix4x4Multiply4x3(_RelativeMatrix, _FrameMatrix);
 
 	If (_Parent = nil ) Then					// this is the root node
   Begin
@@ -1705,7 +1727,7 @@ Begin
     Result.Translation.Y := SB.Translation.Y * Alpha + SA.Translation.Y * Beta;
     Result.Translation.Z := SB.Translation.Z * Alpha + SA.Translation.Z * Beta;
 
-    Result.Rotation := Vector4DSlerp(SA.Rotation, SB.Rotation, Alpha);
+    Result.Rotation := QuaternionSlerp(SA.Rotation, SB.Rotation, Alpha);
 
     Result.Scale.X := SB.Scale.X * Alpha + SA.Scale.X * Beta;
     Result.Scale.Y := SB.Scale.Y * Alpha + SA.Scale.Y * Beta;
@@ -1833,12 +1855,14 @@ Begin
 
   SetLength(_IndexList, _Owner._BoneCount);
   For I:=0 To Pred(_Owner._BoneCount) Do
-    _IndexList[I] := _Animation.GetBoneIndex(_Owner._BoneStates[I]._Bone.Name);
+    _IndexList[I] := _Animation.GetBoneIndex(_Owner._BoneStates[I]._BoneName);
+
+
 End;
 
 Function AnimationNode.GetTransform(Bone:Integer): AnimationTransformBlock;
 Begin
-  _Animation._Time := GetTime;
+  _Animation._Time := Application.GetTime;
 
   Self.UpdateAnimation();
 
@@ -1848,7 +1872,7 @@ Begin
   Else
   Begin
     Result.Translation := VectorZero;
-    Result.Rotation := Vector4DZero;
+    Result.Rotation := QuaternionZero;
     Result.Scale := VectorOne;
   End;
 End;
@@ -1873,7 +1897,7 @@ End;
 
 Procedure AnimationNode.Skip(Ms: Cardinal);
 Begin
-  _FrameStart := GetTime - Ms;
+  _FrameStart := Application.GetTime - Ms;
 End;
 
 Function AnimationNode.GetActiveAnimation: Animation;
@@ -1905,12 +1929,24 @@ Begin
   _FrameStart := (Application.Instance.GetElapsedTime()) - Trunc(T*1000);
 End;
 
+Function AnimationNode.RunCallback():Boolean;
+Var
+  Temp:AnimationCallback;
+Begin
+  Temp := Self._Owner._Callback;
+  Result := Self._Owner._Callback(Self._Owner._UserData);
+
+  If (Pointer(@Self._Owner._Callback) = Pointer(@Temp)) Then
+    Self._Owner._Callback := Nil;
+End;
+
 Procedure AnimationNode.UpdateAnimation();
 Var
   I:Integer;
   S:TERRAString;
   MyAnimation:TERRA_MeshAnimation.Animation;
   Len:Single;
+  CallbackResult:Boolean;
 Begin
   If _Owner._UpdateID = Self._UpdateID Then
     Exit;
@@ -1929,18 +1965,18 @@ Begin
   Else
     _CurrentFrame := TimeToFrame(_Time, _Animation.FPS);
 
-  If (Assigned(Self._Owner._Callback)) And (_CurrentFrame>=Self._Owner._CallbackFrame) And (Self._Owner._CallbackFrame>0) Then
+  If (Assigned(Self._Owner._Callback)) And ((_CurrentFrame>=Self._Owner._CallbackFrame) And (Self._Owner._CallbackFrame>0)) Then
   Begin
-    Self._Owner._Callback(Self._Owner._UserData);
-    Self._Owner._Callback := Nil;
+    If Not RunCallback() Then
+      Exit;
   End;
 
   If (_Time> Len) And (_SetFrame<0) Then
   Begin
     If (Assigned(Self._Owner._Callback)) And (Self._Owner._CallbackFrame<0) Then
     Begin
-      Self._Owner._Callback(Self._Owner._UserData);
-      Self._Owner._Callback := Nil;
+      If Not RunCallback() Then
+        Exit;
     End;
 
     //_Animation.Loop := false;

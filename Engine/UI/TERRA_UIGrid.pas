@@ -123,7 +123,7 @@ Type
 
       Function GetColumnOf(W:Widget):Integer;
       Function GetRowOf(W:Widget):Integer;
-      Procedure GetIndicesOf(W:Widget; Var X,Y:Integer);
+      Procedure GetIndicesOf(W:Widget; Out X,Y:Integer);
 
       Function HasScroll():Boolean;
 
@@ -144,24 +144,26 @@ Type
 
 Implementation
 
-Procedure GridClickHandler(W:Widget); Cdecl;
+Function GridClickHandler(W:Widget):Boolean; Cdecl;
 Var
   X,Y:Integer;
   Grid:UIGrid;
   Element:UIGridElement;
 Begin
+  Result := True;
   Grid := UIGrid(W.Parent);
   Grid.GetIndicesOf(W, X, Y);
   Element := Grid.GetElement(X, Y);
   Grid.OnElementSelect(Element);
 End;
 
-Procedure GridHoldHandler(W:Widget); Cdecl;
+Function GridHoldHandler(W:Widget):Boolean; Cdecl;
 Var
   X,Y:Integer;
   Grid:UIGrid;
   Element:UIGridElement;
 Begin
+  Result := True;
   Grid := UIGrid(W.Parent);
   Grid.GetIndicesOf(W, X, Y);
   Element := Grid.GetElement(X, Y);
@@ -587,7 +589,7 @@ Begin
           W.Visible := False
         Else
         Begin
-          If (I>_GridX) And (I<_GridX*2) Then
+{          If (I>_GridX) And (I<_GridX*2) Then
             W.LeftControl := _ChildrenList[GetWidgetOfs(Pred(I),J)]
           Else
             W.LeftControl := Self.LeftControl;
@@ -605,7 +607,7 @@ Begin
           If (J<Pred(_GridY)) Then
             W.DownControl := _ChildrenList[GetWidgetOfs(I,Succ(J))]
           Else
-            W.DownControl := Self.DownControl;
+            W.DownControl := Self.DownControl;}
 
           W.Visible := True;
           P.Update(W, I, J);
@@ -625,7 +627,7 @@ Begin
       End;
     End;
 
-  For J:=0 To Pred(_GridY) Do
+{  For J:=0 To Pred(_GridY) Do
   Begin
     W := _ChildrenList[GetWidgetOfs(I,J)];
 
@@ -648,7 +650,7 @@ Begin
     Begin
       W.RightControl := Self.RightControl;
     End;
-  End;
+  End;}
 
   _WantHighlight := 0;
 
@@ -692,7 +694,7 @@ Begin
   Result := Self._VisibleColumns>Self._GridX;
 End;
 
-Procedure UIGrid.GetIndicesOf(W: Widget; Var X, Y: Integer);
+Procedure UIGrid.GetIndicesOf(W: Widget; Out X, Y: Integer);
 Var
   S, S2:TERRAString;
 Begin
@@ -748,4 +750,4 @@ Begin
   _Grid._NeedsUpdate := True;
 End;
 
-End.
+End.

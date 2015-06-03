@@ -1,10 +1,10 @@
 {$I terra.inc}
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
-Uses TERRA_Application, TERRA_Client, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
-  TERRA_Stream, TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_Viewport, TERRA_RenderTarget,
-  TERRA_JPG, TERRA_PNG, TERRA_Lights, TERRA_ShaderFactory, TERRA_TTF, TERRA_Math,
-  TERRA_UI, TERRA_Widgets, TERRA_Texture, TERRA_SpriteManager, TERRA_Shader,
+Uses TERRA_Application, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
+  TERRA_Stream, TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_Viewport, TERRA_Renderer,
+  TERRA_JPG, TERRA_PNG, TERRA_Lights, TERRA_TTF, TERRA_Math,
+  TERRA_UI, TERRA_Widgets, TERRA_Texture, TERRA_SpriteManager,
   TERRA_MeshAnimation, TERRA_Image, TERRA_ScreenFX, TERRA_BoundingBox, TERRA_InputManager,
   TERRA_ParticleRenderer, TERRA_ParticleEmitters,
   TERRA_FileManager, TERRA_Scene, TERRA_Mesh, TERRA_Skybox, TERRA_Color, TERRA_Matrix4x4;
@@ -17,7 +17,7 @@ Const
   FXName = 'smoke';
 
 Type
-  Game = Class(AppClient)
+  Demo = Class(Application)
     Public
       Procedure SelectResolution3D(Var Width, Height:Integer); Override;
 			Procedure OnCreate; Override;
@@ -45,17 +45,17 @@ Var
 
 
 { Game }
-Function Game.GetHeight: Word;
+Function Demo.GetHeight: Word;
 Begin
   Result := SpriteRes;
 End;
 
-Function Game.GetWidth: Word;
+Function Demo.GetWidth: Word;
 Begin
   Result := SpriteRes;
 End;
 
-Procedure Game.OnIdle;
+Procedure Demo.OnIdle;
 Var
   Pos:Vector3D;
   Emitter:ParticleEmitter;
@@ -82,7 +82,7 @@ Begin
 End;
 
 
-Procedure Game.SelectResolution3D(var Width, Height: Integer);
+Procedure Demo.SelectResolution3D(var Width, Height: Integer);
 Begin
   Width := SpriteRes;
   Height := SpriteRes;
@@ -93,7 +93,7 @@ Constructor MyScene.Create;
 Begin
 End;
 
-Procedure Game.OnCreate;
+Procedure Demo.OnCreate;
 Var
   A,B,C:Vector3D;
 Begin
@@ -116,7 +116,7 @@ End;
 Procedure StartGame; cdecl; export;
 {$ENDIF}
 Begin
-  ApplicationStart(Game.Create);
+  Demo.Create();
 {$IFDEF IPHONE}
 End;
 {$ENDIF}

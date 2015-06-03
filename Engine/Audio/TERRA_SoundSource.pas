@@ -153,7 +153,7 @@ Begin
   If (_Track<>Nil) Then
   Begin
     Java_Begin(Frame);
-    _Track.CallVoidMethod('release', Nil);
+    _Track.CallVoidMethod(Frame, 'release', Nil);
     _Track.Release();
     _Track := Nil;
     Java_End(Frame);
@@ -184,13 +184,13 @@ Begin
 
     Params := JavaArguments.Create(Frame);
     Params.AddFloat(_Volume);
-    _Track.CallVoidMethod('setVolume', Params);
+    _Track.CallVoidMethod(Frame, 'setVolume', Params);
     Params.Release();
 
     Log(logDebug, 'SoundSource', 'Setting loop');
     Params := JavaArguments.Create(Frame);
     Params.AddBoolean(_Loop);
-    _Track.CallVoidMethod('setLoop', Params);
+    _Track.CallVoidMethod(Frame, 'setLoop', Params);
     Params.Release();
 
     Java_End(Frame);
@@ -315,7 +315,7 @@ Var
 Begin
   //If (Status<>sndPlaying) Then
   Begin
-    _StartTime := GetTime;
+    _StartTime := Application.GetTime;
 
     {$IFDEF USEJAVA}
     If (_Track<>Nil) Then
@@ -323,7 +323,7 @@ Begin
       Log(logDebug, 'SoundSource', 'Playing track');
 
       Java_Begin(Frame);
-      _Track.CallVoidMethod('play', Nil);
+      _Track.CallVoidMethod(Frame, 'play', Nil);
       Java_End(Frame);
     End;
     {$ELSE}
@@ -363,7 +363,7 @@ Begin
       Log(logDebug, 'SoundSource', 'Stopping track');
 
       Java_Begin(Frame);
-      _Track.CallVoidMethod('stop', Nil);
+      _Track.CallVoidMethod(Frame, 'stop', Nil);
 
       _Track.Release();
       _Track := Nil;
@@ -392,7 +392,7 @@ Begin
   If _Track<>Nil Then
   Begin
     Java_Begin(Frame);
-    Result := _Track.CallIntMethod('getState', Nil);
+    Result := _Track.CallIntMethod(Frame, 'getState', Nil);
     Java_End(Frame);
     //Log(logDebug, 'Sound', 'Result='+IntToString(Result));
   End Else

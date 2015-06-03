@@ -124,6 +124,8 @@ Begin
   _Ambience := SoundAmbience.Create;
 
   _Enabled := True;
+
+  AutoUnload := False;
 End;
 
 Procedure SoundManager.Release;

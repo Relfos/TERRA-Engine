@@ -70,9 +70,6 @@ Type
   End;
 
   XInputGamepad = Class(Gamepad)
-    Protected
-      _DeviceID:Integer;
-
     Public
       Procedure Update(Keys:InputState); Override;
   End;
@@ -178,6 +175,8 @@ Var
   XState:TXInputGamepad;
   IsConnected:Boolean;
 Begin
+  Self._Kind := gamepadXBox360;
+
   IsConnected := XIsControllerConnected(_DeviceID);
 
   If (Not IsConnected) Then
@@ -195,15 +194,20 @@ Begin
   Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadDown_Offset), (XState.Buttons And XINPUT_GAMEPAD_DPAD_DOWN)<>0);
   Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadLeft_Offset), (XState.Buttons And XINPUT_GAMEPAD_DPAD_LEFT)<>0);
   Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadRight_Offset), (XState.Buttons And XINPUT_GAMEPAD_DPAD_RIGHT)<>0);
+
   Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadMenu_Offset), (XState.Buttons And XINPUT_GAMEPAD_START)<>0);
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadZ_Offset), (XState.Buttons And XINPUT_GAMEPAD_BACK)<>0);
 
   Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadA_Offset), (XState.Buttons And XINPUT_GAMEPAD_A)<>0);
   Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadB_Offset), (XState.Buttons And XINPUT_GAMEPAD_B)<>0);
   Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadX_Offset), (XState.Buttons And XINPUT_GAMEPAD_X)<>0);
   Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadY_Offset), (XState.Buttons And XINPUT_GAMEPAD_Y)<>0);
 
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadL_Offset), (XState.Buttons And XINPUT_GAMEPAD_LEFT_SHOULDER)<>0);
-  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadR_Offset), (XState.Buttons And XINPUT_GAMEPAD_RIGHT_SHOULDER)<>0);
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadL1_Offset), (XState.Buttons And XINPUT_GAMEPAD_LEFT_SHOULDER)<>0);
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadR1_Offset), (XState.Buttons And XINPUT_GAMEPAD_RIGHT_SHOULDER)<>0);
+
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadL2_Offset), (XState.LeftTrigger>150));
+  Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadR2_Offset), (XState.RightTrigger>150));
 End;
 
 End.

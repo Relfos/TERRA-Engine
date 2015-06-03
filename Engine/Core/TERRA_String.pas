@@ -131,6 +131,8 @@ Function StringCapitals(Const S:TERRAString):TERRAString;
 
 Function StringFromChar(Const C:TERRAChar):TERRAString;
 
+Function StringCharCount(Const S:TERRAString; Const C:TERRAChar):Integer;
+
 Function StringReverse(Const S:TERRAString):TERRAString;
 
 Function StringIsUnicode(Const S:TERRAString):Boolean;
@@ -1234,6 +1236,19 @@ Begin
   While It.HasNext() Do
   Begin
     StringAppendChar(Result, It.GetNext());
+  End;
+End;
+
+Function StringCharCount(Const S:TERRAString; Const C:TERRAChar):Integer;
+Var
+  It:StringIterator;
+Begin
+  Result := 0;
+  StringCreateIterator(S, It);
+  While It.HasNext() Do
+  Begin
+    If It.GetNext() = C Then
+      Inc(Result);
   End;
 End;
 

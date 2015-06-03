@@ -5,7 +5,8 @@ Unit TERRA_OS;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Client, unix, baseunix, dateutils, GLX,X,Xlib,Xutil,Keysym;
+Uses TERRA_String, TERRA_Utils, TERRA_Application, unix, baseunix, dateutils,
+  GLX,X,Xlib,Xutil,Keysym;
 
 Const
 	PathSeparator = '/';
@@ -77,46 +78,64 @@ Const
   keyY = Ord('Y');
   keyZ = Ord('Z');
 
-Procedure DisplayMessage(S:TERRAString);
-Function GetCurrentTime:TERRATime;
-Function GetCurrentDate:TERRADate;
-Function GetTime:Cardinal;
-Function CreateApplicationClass(Client:AppClient):Application;
-
 Type
-  LinuxApplication = Class(Application)
+  LinuxApplication = Class(BaseApplication)
     Protected
         _Display:PDisplay;
-	_ScreenHandle:Integer;
-	_Window:TWindow;
-	_Attr:TXSetWindowAttributes;
-	_Ctx:GLXContext;
+      	_ScreenHandle:Integer;
+      	_Window:TWindow;
+      	_Attr:TXSetWindowAttributes;
         _ComposeStatus:TXComposeStatus;
 
       Function InitSettings:Boolean; Override;
 
       Function InitWindow:Boolean; Override;
-      Function InitGraphics:Boolean; Override;
-      Procedure CloseGraphics; Override;
       Procedure CloseWindow; Override;
       Procedure ProcessMessages; Override;
 
-      Function TrySettings(zDepth:Integer; msaaSamples:Integer):PXVisualInfo;
-
     Public
-    	Procedure SwapBuffers; Override;
+      Constructor Create();
+
     	Procedure SetState(State:Cardinal); Override;
+
+      Class Procedure DisplayMessage(S:TERRAString);
+      Class Function GetCurrentTime:TERRATime;
+      Class Function GetCurrentDate:TERRADate;
+      Class Function GetTime:Cardinal;
+
+      Class Function Instance:LinuxApplication;
+
+      Property Handle:TWindow Read _Window;
+      Property ScreenHandle:Integer Read _ScreenHandle;
+      Property Display:PDisplay Read _Display;
   End;
 
-Implementation
-Uses sysutils, ctypes, xrandr, TERRA_InputManager, TERRA_Error, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF};
+  Application = LinuxApplication;
 
-Procedure DisplayMessage(S:TERRAString);
+Implementation
+Uses sysutils, ctypes, xrandr, xkblib,
+  TERRA_InputManager, TERRA_Gamepad, TERRA_Error, TERRA_Log, TERRA_Renderer, TERRA_GLRenderer;
+
+Var
+  _Application_Instance:LinuxApplication;
+
+Constructor LinuxApplication.Create();
+Begin
+  _Application_Instance := Self;
+  Inherited Create();
+End;
+
+Class Function LinuxApplication.Instance:LinuxApplication;
+Begin
+  Result := _Application_Instance;
+End;
+
+Class Procedure LinuxApplication.DisplayMessage(S:TERRAString);
 Begin
 //  TERRA_Log.Log(logNone,'System',S);
 End;
 
-Function GetCurrentTime:TERRATime;
+Class Function LinuxApplication.GetCurrentTime:TERRATime;
 Var
  Datetime:Tdatetime;
 Begin
@@ -127,7 +146,7 @@ Begin
  Result.MiliSecond  := millisecondof( datetime );
 End;
 
-Function GetCurrentDate:TERRADate;
+Class Function LinuxApplication.GetCurrentDate:TERRADate;
 Var
  Datetime:Tdatetime;
 Begin
@@ -144,7 +163,7 @@ Type
 Function clock_gettime(clkid:Integer; t:PtTimeSpec):Integer; cdecl; external;
 Const CLOCK_MONOTONIC = 1;
 
-Function GetTime:Cardinal;
+Class Function LinuxApplication.GetTime:Cardinal;
 var
   ts: TTimeSpec;
   i: Int64;
@@ -161,20 +180,20 @@ begin
 //   Result := Trunc(Now * 24 * 60 * 60 * 1000);
 End;
 
-Function CreateApplicationClass(Client:AppClient):Application;
-Begin
-  Result := LinuxApplication.Create(Client);
-End;
-
-{
-Function XKeycodeToKeysym(Display:PDisplay; Keycode, Shift:Integer):Integer;
+{Function XKeycodeToKeysym(Display:PDisplay; Keycode, Shift:Integer):Integer;
 Var
   keysyms_per_keycode_return:Integer;
   keysym:PKeySym;
+  I:Integer;
 Begin
   keysym := XGetKeyboardMapping(Display, Keycode, 1, @keysyms_per_keycode_return);
 
-  Result := keysym[0];
+  For I:=Pred(keysyms_per_keycode_return) DownTo 0 Do
+  Begin
+      Result := keysym[I];
+      If Result>0 Then
+         Break;
+  End;
 
   XFree(keysym);
 End;}
@@ -185,9 +204,16 @@ Begin
        XK_BackSpace: Result := keyBackspace;
 	XK_Tab: Result := keyTab;
 	XK_Return: Result := keyEnter;
-	XK_Shift_L: Result := keyShift;
-	XK_Control_L: Result := keyControl;
-	XK_Alt_L: Result := keyAlt;
+
+	XK_Shift_L,
+        XK_Shift_R: Result := keyShift;
+
+	XK_Control_L,
+        XK_Control_R: Result := keyControl;
+
+	XK_Alt_L,
+        XK_Alt_R: Result := keyAlt;
+
 	XK_Break: Result := keyPause;
 	XK_Escape: Result := keyEscape;
         XK_space: Result := keySpace;
@@ -1002,7 +1028,7 @@ Const
   ( $0ef7, $318e ), //               Hangul_AraeAE ? HANGUL LETTER ARAEAE 
   ( $0ef8, $11eb ), //            Hangul_J_PanSios ? HANGUL JONGSEONG PANSIOS 
   ( $0ef9, $11f0 ), //  Hangul_J_KkogjiDalrinIeung ? HANGUL JONGSEONG YESIEUNG 
-  ( $0efa, $11f9 ), //        Hangul_J_YeorinHieuh ? HANGUL JONGSEONG YEORINHIEUH 
+  ( $0efa, $11f9 ), //        Hangul_J_YeorinHieuh ? HANGUL JONGSEONG YEORINHIEUH
   ( $0eff, $20a9 ), //                  Korean_Won ? WON SIGN 
   ( $13a4, $20ac ), //                        Euro € EURO SIGN 
   ( $13bc, $0152 ), //                          OE Œ LATIN CAPITAL LIGATURE OE 
@@ -1049,35 +1075,9 @@ Begin
     End;
 
     // no matching Unicode value found
-    Result := KeyLookUp(KeySym);
+    Result := 0;
 End;
 
-Const
-  GLX_SAMPLE_BUFFERS  = 100000;
-  GLX_SAMPLES         = 100001;
-
-Function LinuxApplication.TrySettings(zDepth:Integer; msaaSamples:Integer):PXVisualInfo;
-Var
-  Attr:Array[0..10] Of Integer;
-Begin
-  Attr[0] := GLX_RGBA;
-  Attr[1] := GLX_DOUBLEBUFFER;
-  Attr[2] := GLX_DEPTH_SIZE;
-  Attr[3] := zDepth;
-  Attr[4] := GLX_STENCIL_SIZE;
-  Attr[5] := 8;
-  If (msaaSamples>0) Then
-  Begin
-    Attr[6] := GLX_SAMPLE_BUFFERS;
-    Attr[7] := 1;
-    Attr[8] := GLX_SAMPLES;
-    Attr[9] := msaaSamples;
-    Attr[10] := None;
-  End Else
-    Attr[6] := None;
-
-  Result := glXChooseVisual(_Display, _ScreenHandle, @Attr);
-End;
 
 Const
   _SC_NPROCESSORS_ONLN = 83;
@@ -1086,8 +1086,7 @@ Function sysconf(i:Integer):CLong; CDecl; External Name 'sysconf';
 
 Function LinuxApplication.InitWindow:Boolean;
 Var
-  Vi:PXVisualInfo;
-  CMap:TColorMap;
+//  CMap:TColorMap;
   wmDelete:TAtom;
 
   Root:TWindow;
@@ -1106,27 +1105,14 @@ Begin
 
   _ScreenHandle := DefaultScreen(_Display);
   
-  VI := TrySettings(24, 4);
-  If Not Assigned(VI) Then
-    VI := TrySettings(24, 2);
-  If Not Assigned(VI) Then
-    VI := TrySettings(24, 0);
 
-  If (Not Assigned(VI)) Then
-  Begin
-    RaiseError('CreateWindow: glXChooseVisual failed.');
-    Exit;
-  End;
+  //Root := RootWindow(_Display, Vi.Screen);
+  Root := RootWindow(_Display, _ScreenHandle);
 
-  // create a GLX context
-  _Ctx := glXCreateContext(_Display, Vi, Nil, True);
-
-  Root := RootWindow(_Display, Vi.Screen);
-
-  // create a color map
+{  // create a color map
   CMap := XCreateColormap(_Display, Root, Vi.visual, AllocNone);
-  _Attr.Colormap:=CMap;
-  _Attr.border_pixel:=0;
+  _Attr.Colormap:=CMap;}
+  _Attr.border_pixel := 0;
 
   // create a window in window mode
   _Attr.Event_mask := ExposureMask Or StructureNotifyMask Or PointerMotionMask;
@@ -1135,8 +1121,8 @@ Begin
   _Attr.Event_mask := _Attr.Event_mask Or ExposureMask;
 
   _Window := XCreateWindow(_Display, Root, 0, 0, _Width, _Height,
-                         0, CopyFromParent, InputOutput, Vi.visual,
-                         CWBorderPixel Or CWColormap Or CWEventMask,
+                         0, CopyFromParent, InputOutput, {Vi.visual}Nil,
+                         CWBorderPixel {Or CWColormap} Or CWEventMask,
                          @_Attr);
   // only set window title and handle wm_delete_events if in windowed mode
   wmDelete := XInternAtom(_Display, 'WM_DELETE_WINDOW', True);
@@ -1148,10 +1134,10 @@ Begin
   // Hide cursor
   If (Not _IgnoreCursor) Then
   Begin
-    CursorMask:=XCreatePixmap(_Display, Root, 1, 1, 1);
+    CursorMask := XCreatePixmap(_Display, Root, 1, 1, 1);
     DummyColor.Pixel:=0;
     DummyColor.Red:=0;
-    DummyColor.Flags:=4;
+    DummyColor.Flags := 4;
 
     Cursor:=XCreatePixmapCursor(_Display, CursorMask, CursorMask, @DummyColor, @DummyColor, 0, 0);
 
@@ -1163,44 +1149,9 @@ Begin
   Result:=True;
 End;
 
-Function LinuxApplication.InitGraphics:Boolean;
-Var
-  winDummy:TWindow;
-  X,Y:Integer;
-  borderDummy:Cardinal;
-	_Depth:Cardinal;
-Begin
-	_Depth := 32;
-
-  // connect the glx-context to the window
-  glXMakeCurrent(_Display, _Window, _Ctx);
-  XGetGeometry(_Display, _Window, @winDummy, @X, @Y,
-               @_Width, @_Height, @borderDummy, @_Depth);
-
-  glLoadExtensions;
-
-  Result:=True;
-End;
-
-Procedure LinuxApplication.CloseGraphics;
-Begin
-  If (Not glXMakeCurrent(_Display, None, Nil)) Then
-  Begin
-    RaiseError('Could not release drawing context.');
-  End;
-
-  glXDestroyContext(_Display, _Ctx);
-  _Ctx:=Nil;
-End;
-
 Procedure LinuxApplication.CloseWindow;
 Begin
   XDestroyWindow(_Display, _Window);
-End;
-
-Procedure LinuxApplication.SwapBuffers;
-Begin
-  glXSwapBuffers(_Display, _Window);
 End;
 
 Procedure LinuxApplication.SetState(State:Cardinal);
@@ -1218,6 +1169,9 @@ Var
   N:Integer;
   WA:TXWindowAttributes;
 Begin
+  If _Display = Nil Then
+     Exit;
+
     While (XPending(_Display)> 0) Do
     Begin
       XNextEvent(_Display, @Event);
@@ -1238,28 +1192,39 @@ Begin
       KeyPress:
         Begin
           Key := XKeycodeToKeysym(_Display, Event.xkey.keycode, 0);
-          Key := keysym2ucs(Key);
+          //Key := XkbKeycodeToKeysym (_Display, Event.xkey.keycode, 0, 0);
+          Key := KeyLookUp(Key);
 
-          N := XLookupString(@Event.xkey, @Buf[0], 4, Nil, @_ComposeStatus);
-          C := 0;
-          Move(Buf[0], C, N);
+          N := XLookupString(@Event.xkey, @Buf[0], 4, @C, Nil);
 
-	  AddValueEvent(eventKeyDown, Key);
-          If Key>=8 Then
+          If (N<=0) Then
+          Begin
+            C := keysym2ucs(C);
+          End Else
+          Begin
+            C := 0;
+            Move(Buf[0], C, N);
+          End;
+
+          If Key>0 Then
+	     AddValueEvent(eventKeyDown, Key);
+
+          If (C>0) Then
              AddValueEvent(eventKeyPress, C);
         End;
 
       KeyRelease:
                  Begin
                       Key := XKeycodeToKeysym(_Display, Event.xkey.keycode, 0);
-                      Key := keysym2ucs(Key);
-		      AddValueEvent(eventKeyUp, Key);
+                      //Key := XkbKeycodeToKeysym (_Display, Event.xkey.keycode, 0, 0);
+                      Key := KeyLookUp(Key);
+
+                      If Key>0 Then
+		         AddValueEvent(eventKeyUp, Key);
                  End;
 
-      MotionNotify: If (Assigned(_Client)) Then
-                    Begin
-			AddCoordEvent(eventMouseMove, event.xmotion.X, event.xmotion.Y, 0);
-                   End;
+      MotionNotify: AddCoordEvent(eventMouseMove, event.xmotion.X, event.xmotion.Y, 0);
+
       Expose:	Begin
 			XGetWindowAttributes(_Display, _Window, @WA);
 			AddCoordEvent(eventWindowResize, WA.width, WA.height, 0);
@@ -1281,6 +1246,7 @@ Type
 //http://www.blitzbasic.com/Community/posts.php?topic=86911
 Function LinuxApplication.InitSettings: Boolean;
 Var
+  I:Integer;
   Lang:TERRAString;
   Root:TWindow;
   xrrs:PXRRScreenSizeArray;
@@ -1338,8 +1304,16 @@ Begin
   End;
 
   XCloseDisplay(_Display);
+  _Display := Nil;
+
+  Renderers.Add(OpenGLRenderer.Create());
+
+  // Initialize joysticks/gamepads
+  //For I:=0 To 3 Do
+  For I:=0 To 3 Do
+    InputManager.Instance.AddGamePad(LinuxGamePad.Create(I));
 
   Result := True;
 End;
 
-End.
+End.

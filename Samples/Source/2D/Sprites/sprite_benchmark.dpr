@@ -1,14 +1,14 @@
 {$I terra.inc}
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} BasicSample;
 
-Uses TERRA_Application, TERRA_Scene, TERRA_Client, TERRA_GraphicsManager, TERRA_Viewport,
+Uses TERRA_Application, TERRA_Scene, TERRA_GraphicsManager, TERRA_Viewport,
   TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_PNG, TERRA_Vector2D,
   TERRA_SpriteManager, TERRA_FileManager, TERRA_Math, TERRA_Vector3D, TERRA_Utils,
   TERRA_InputManager, TERRA_UI;
 
 Type
   // A client is used to process application events
-  MyGame = Class(AppClient)
+  Demo = Class(Application)
     Protected
       _Scene:Scene;
 
@@ -31,7 +31,7 @@ Var
   Dir:Array[0..Pred(Limit)]Of Vector2D;
 
 { Game }
-Procedure MyGame.OnCreate;
+Procedure Demo.OnCreate;
 Var
   I:Integer;
   W,H:Single;
@@ -59,7 +59,7 @@ Begin
 End;
 
 // OnIdle is called once per frame, put your game logic here
-Procedure MyGame.OnIdle;
+Procedure Demo.OnIdle;
 Begin
   If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
@@ -70,7 +70,7 @@ Procedure MyScene.RenderSprites;
 Var
   I:Integer;
   W,H,Z:Single;
-  S:Sprite;
+  S:QuadSprite;
 Begin
   W := UIManager.Instance.Width;
   H := UIManager.Instance.Height;
@@ -110,10 +110,10 @@ Begin
 
   End;
 
-  Application.Instance.SetTitle(IntToString(GraphicsManager.Instance.Stats.FramesPerSecond));
+  Application.Instance.SetTitle(IntToString(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
 End;
 
 Begin
   // Start the application
-  ApplicationStart(MyGame.Create);
+  Demo.Create();
 End.

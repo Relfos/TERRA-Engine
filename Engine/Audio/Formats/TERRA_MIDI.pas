@@ -507,6 +507,7 @@ Type
 
       _StartTime:Cardinal;
       _EndTime:Cardinal;
+      _Duration:Cardinal;
 
       _State:MidiNoteState;
       _Managed:Boolean;
@@ -528,6 +529,8 @@ Type
       Function StopNote(Channel, Note, Volume:Byte):Boolean;
 
       Function AddNote(Channel, Note, Volume: Byte; Duration, Delay: Cardinal):Boolean;
+
+      Procedure FlushNotes(Channel, Note:Byte);
 
     Public
       Procedure Update; Override;
@@ -792,7 +795,7 @@ Begin
   For I:=0 To Pred(_EventTrackCount) do
     _EventTracks[i].Rewind(0);
 
-  _StartTime := GetTime();
+  _StartTime := Application.GetTime();
   _LastTime := 0;
   _CurrentPos := 0.0;
   _CurrentTime := 0;
@@ -809,9 +812,6 @@ Begin
   Current := _LastTime - _StartTime;
   Length := Self.GetTrackDuration();
 
-  For I := 0 to Pred(_EventTrackCount) Do
-    _EventTracks[i].Update(Current, Length);
-    
   _Playing := false;
 End;
 
@@ -828,7 +828,7 @@ Begin
   If Not _Playing Then
      Exit;
 
-  _CurrentTime := GetTime();
+  _CurrentTime := Application.GetTime();
 
   Current := _CurrentTime - _StartTime;
 
@@ -1244,7 +1244,8 @@ Var
 Begin
   N := -1;
   For I:=0 To Pred(_NoteCount) Do
-  If ((_Notes[I]._Channel = Channel) And (_Notes[I]._Note = Note)) Or (_Notes[I]._State = noteFinished) Then
+  If (_Notes[I]._State = noteFinished) Or
+  ((_Notes[I]._Channel = Channel) And (_Notes[I]._Note = Note) And (_Notes[I]._State <> noteWaiting)) Then
   Begin
     N := I;
     Break;
@@ -1265,10 +1266,13 @@ Begin
 
   _Notes[N].Init(Channel, Note, Volume, Duration, Delay);
 
-  If (Delay<=0) Then
-    Result := _Notes[N].Start()
-  Else
-    Result := False;
+  If Delay<=0 Then
+  Begin
+    Self.FlushNotes(Channel, Note);
+    _Notes[N].Start();
+  End;
+
+  Result := True;
 End;
 
 Function MidiManager.StartNote(Channel, Note, Volume: Byte): Boolean;
@@ -1308,7 +1312,7 @@ Var
   T:Cardinal;
 Begin
   I := 0;
-  T := GetTime();
+  T := Application.GetTime();
   While I<_NoteCount Do
   If (_Notes[I]._State = notePlaying) And (_Notes[I]._Managed) And (_Notes[I]._EndTime<T) Then
   Begin
@@ -1317,6 +1321,7 @@ Begin
   Begin
     If (_Notes[I]._State = noteWaiting) And (T >= _Notes[I]._StartTime) Then
     Begin
+      Self.FlushNotes(_Notes[I]._Channel, _Notes[I]._Note);
       _Notes[I].Start();
     End;
 
@@ -1348,6 +1353,16 @@ Begin
     _Channels[Channel].Instrument := Instrument;
 End;
 
+Procedure MidiManager.FlushNotes(Channel, Note: Byte);
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_NoteCount) Do
+  If (_Notes[I]._State = notePlaying) And (_Notes[I]._Channel = Channel) And (_Notes[I]._Note = Note) Then
+  Begin
+    _Notes[I]._State := noteFinished;
+  End;
+End;
 
 { MidiNoteEvent }
 Procedure MidiNoteEvent.Init(Channel, Note, Volume: Byte; Duration, Delay: Cardinal);
@@ -1361,18 +1376,21 @@ Begin
   _State := noteWaiting;
 
   _Managed := (Duration>0);
+  _Duration := Duration;
 
   If _Managed Then
   Begin
-    T := GetTime();
+    T := Application.GetTime();
     _StartTime := T + Delay;
-    _EndTime := _StartTime + Duration;
+    _EndTime := _StartTime + _Duration;
   End;
 End;
 
 Function MidiNoteEvent.Start(): Boolean;
 Begin
   Result := (MIDI_Out(MIDIEvent_NoteOn(_Channel, _Note, _Volume)));
+
+//  WriteLn('Starting Note '+IntToString(_Note));
 
   _State := notePlaying;
 End;
@@ -1386,6 +1404,8 @@ Begin
 
   MuteEvent := MIDIEvent_NoteOff(_Channel, _Note, _Volume);
   MIDI_Out(MuteEvent);
+
+  //WriteLn('Stopping Note '+IntToString(_Note));
 
   _State := noteFinished;
 End;

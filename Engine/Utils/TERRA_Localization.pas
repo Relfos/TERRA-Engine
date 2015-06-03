@@ -101,7 +101,7 @@ Function GetCurrencyForCountry(Const Country:TERRAString):TERRAString;
 Function GetLanguageDescription(Lang:TERRAString):TERRAString;
 
 Implementation
-Uses TERRA_FileManager, TERRA_Log;
+Uses TERRA_FileManager, TERRA_Log, TERRA_OS;
 
 Var
   _LocalizationManager_Instance:ApplicationObject = Nil;
@@ -326,7 +326,7 @@ Begin
   If Ext<>#0 Then
     Result:=Result+Ext;
 
-  If (Application.Instance<>Nil) And (Application.Instance.Language = language_Russian) Then
+  If (Application.Instance.Language = language_Russian) Then
     StringAppendChar(Result, 1073)
   Else
     Result := Result + 'b';
@@ -471,9 +471,6 @@ Begin
   _Lang := Lang;
   Self.MergeGroup(Source, -1, '');
   Source.Release;
-
-  If Application.Instance<>Nil Then
-    Application.Instance.Language := Lang;
 End;
 
 Procedure LocalizationManager.Reload();
@@ -494,15 +491,18 @@ Begin
   It := _Strings.GetIterator();
   While (It.HasNext) Do
   Begin
-    Entry := StringEntry(It.GetNext());
+    Entry := StringEntry(It.Value);
     If (Entry._Group = GroupID) Then
       Entry.Discard();
   End;
 End;
 
 Function LocalizationManager.HasString(Const Key:TERRAString): Boolean;
+Var
+  Temp:StringEntry;
 Begin
-  Result := Assigned(_Strings.GetItemByKey(Key));
+  Temp := StringEntry(_Strings.GetItemByKey(Key));
+  Result := (Assigned(Temp)) And (Temp._Value<>'');
 End;
      
 Type

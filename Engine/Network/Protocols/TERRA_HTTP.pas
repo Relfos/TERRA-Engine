@@ -37,7 +37,7 @@ Const
   HTTPSeparator:TERRAChar = Ord('/');
 
   HTTPPort = 80;
-  BufferSize = 1024;
+  BufferSize = 2048;
   DefaultClientName = 'TERRA Downloader v1.1';
 
   KeepAliveDuration = 10000;
@@ -52,8 +52,17 @@ Type
     httpNotFound          = 4,
     httpConnectionFailed  = 5,
     httpConnectionInterrupted = 6,
+    httpBug= 7,
+    httpConnectionReadError = 8,
+    httpServerError = 9,
     httpInvalidStream
   );
+
+  HTTPMethod = (
+    HTTP_GET,
+    HTTP_POST,
+    HTTP_PUT
+    );
 
   HeaderTag = Record
     Name:TERRAString;
@@ -77,32 +86,146 @@ Type
     Procedure Release(); Override;
   End;
 
-  HTTPDownloader = Class(TERRAObject)
-  private
-    function GetStream: Stream;
+  HTTPArgument = Class(TERRAObject)
+    Protected
+      _Name:TERRAString;
+
+    Public
+      Function GetValue(SafeEncode:Boolean):TERRAString; Virtual; Abstract;
+  End;
+
+  HTTPIntegerArgument = Class(HTTPArgument)
+    Public
+      Value:Integer;
+
+      Constructor Create(Value:Integer);
+      Function GetValue(SafeEncode:Boolean):TERRAString; Override;
+  End;
+
+  HTTPCardinalArgument = Class(HTTPArgument)
+    Public
+      Value:Cardinal;
+
+      Constructor Create(Value:Cardinal);
+      Function GetValue(SafeEncode:Boolean):TERRAString; Override;
+  End;
+
+  HTTPBooleanArgument = Class(HTTPArgument)
+    Public
+      Value:Boolean;
+
+      Constructor Create(Value:Boolean);
+      Function GetValue(SafeEncode:Boolean):TERRAString; Override;
+  End;
+
+  HTTPStringArgument = Class(HTTPArgument)
+    Public
+      Value:TERRAString;
+
+      Constructor Create(Const Value:TERRAString);
+      Function GetValue(SafeEncode:Boolean):TERRAString; Override;
+  End;
+
+  HTTPStreamArgument = Class(HTTPArgument)
+    Public
+      Value:Stream;
+
+      Constructor Create(Value:Stream);
+      Procedure Release; Override;
+      Function GetValue(SafeEncode:Boolean):TERRAString; Override;
+  End;
+
+  HTTPArgumentList = Class(TERRAObject)
+    Protected
+      _Items:Array Of HTTPArgument;
+      _Count:Integer;
+
+      Procedure AddArg(Const ArgName:TERRAString; Arg:HTTPArgument);
+
+    Public
+      Procedure Release(); Override;
+
+      Procedure AddString(Const ArgName, Value:TERRAString);
+      Procedure AddInteger(Const ArgName:TERRAString; Value:Integer);
+      Procedure AddCardinal(Const ArgName:TERRAString; Value:Cardinal);
+      Procedure AddBoolean(Const ArgName:TERRAString; Value:Boolean);
+      Procedure AddStream(Const ArgName:TERRAString; Value:Stream);
+
+      Function Get(Const ArgName:TERRAString):HTTPArgument;
+      Function GetQueryString(SafeEncode:Boolean):TERRAString;
+      Procedure Clear();
+  End;
+
+  HTTPRequest = Class(TERRAObject)
     Protected
       _URL:TERRAString;
+      _HostName:TERRAString;
+      _FilePath:TERRAString;
       _FileName:TERRAString;
+      _Cookie:TERRAString;
+
+      _Dest:Stream;
+      _Callback:DownloadCallback;
+      _UserData:Pointer;
+      _Port:Integer;
+      _AllowCache:Boolean;
+      _ClientName:TERRAString;
+      _MethodType:HTTPMethod;
+      _Protocol:TERRAString;
+
+
+      _Data:TERRAString; // for POST requests
+
+      _Arguments:HTTPArgumentList;
+
+      Procedure Prepare(Out URL, CacheFile:TERRAString);
+
+      Function GetMethodString():TERRAString;
+
+    Public
+      Constructor Create(Const URL:TERRAString);
+      Procedure Release(); Override;
+
+      Function GetFullURL():TERRAString;
+
+      Procedure SetCookie(Const Cookie:TERRAString);
+      Procedure SetTarget(Target:Stream);
+      Procedure SetMethod(Const MethodType:HTTPMethod);
+      Procedure SetCallback(Callback:DownloadCallback; UserData:Pointer);
+
+      Property ClientName:TERRAString Read _ClientName;
+      Property FileName:TERRAString Read _FileName;
+      Property FilePath:TERRAString Read _FilePath;
+      Property HostName:TERRAString Read _HostName;
+      Property Cookie:TERRAString Read _Cookie;
+      Property Protocol:TERRAString Read _Protocol;
+      Property Port:Integer Read _Port;
+      Property UserData:Pointer Read _UserData;
+      Property Arguments:HTTPArgumentList Read _Arguments;
+  End;
+
+  HTTPDownloader = Class(TERRAObject)
+    Protected
+      _Request:HTTPRequest;
+      _Connection:HTTPConnection;
+
+      _URL:TERRAString;
       _ErrorCode:HTTPError;
+      _ErrorMessage:TERRAString;
       _Offset:Integer;
       _Target:Stream;
       _TargetName:TERRAString;
-      _Callback:DownloadCallback;
       _Downloading:Boolean;
       _TotalSize:Integer;
       _Read:Integer;
       _Response:TERRAString;
       _Buffer:Pointer;
-      _Protocol:TERRAString;
       _Path:TERRAString;
-      _HostName:TERRAString;
-      _Port:Integer;
       _Tags:Array Of HeaderTag;
       _TagCount:Integer;
 
       _Progress:Integer;
       _UpdateTime:Cardinal;
-      _UserData:Pointer;
 
       _FileSource:Stream;
 
@@ -111,12 +234,9 @@ Type
       {$ENDIF}
 
       _ChunkedTransfer:Boolean;
-      _ClientName:TERRAString;
-      _Cookie:TERRAString;
-
-      _Connection:HTTPConnection;
 
       Function ReceiveHeader():Boolean;
+      Function ReadChunkHeader():Integer;
       Procedure Update();
       Procedure ContinueTransfer(Count: Integer);
       Procedure WriteLeftovers();
@@ -124,11 +244,15 @@ Type
       Procedure InitTransfer();
       Procedure RetryTransfer();
 
+      Function GetStream: Stream;
+      Function GetDest: Stream;
+
       Property Source:Stream Read GetStream;
+      Property Dest:Stream Read GetDest;
 
     Public
 
-      Constructor Create(URL:TERRAString; Const Cookie:TERRAString; Dest:Stream; Callback:DownloadCallback = Nil; Port:Integer=HTTPPort; Const ClientName:TERRAString = DefaultClientName); // Returns file size in bytes
+      Constructor Create(Request:HTTPRequest);
       Procedure Release; Override;
 
       Function GetHeaderProperty(Name:TERRAString):TERRAString;
@@ -137,13 +261,11 @@ Type
 
       Property TagCount:Integer Read _TagCount;
       Property Progress:Integer Read _Progress;
-      Property HostName:TERRAString Read _HostName;
       Property URL:TERRAString Read _URL;
-      Property FileName:TERRAString Read _FileName;
+      Property Request:HTTPRequest Read _Request;
       Property Target:Stream Read _Target;
       Property ErrorCode:HTTPError Read _ErrorCode;
-      Property UserData:Pointer  Read _UserData;
-      Property Cookie:TERRAString Read _Cookie;
+      Property ErrorMessage:TERRAString Read _ErrorMessage;
   End;
 
   DownloadManager = Class(ApplicationComponent)
@@ -180,12 +302,7 @@ Type
 
       Function GetDownload(Index:Integer):HTTPDownloader;
 
-      Function StartWithCookie(URL:TERRAString; Cookie:TERRAString;  Dest:Stream = Nil; Callback:DownloadCallback = Nil; UserData:Pointer = Nil; Port:Integer=HTTPPort; AllowCache:Boolean=True; Const ClientName:TERRAString = DefaultClientName):HTTPDownloader;
-      Function Start(URL:TERRAString; Dest:Stream = Nil; Callback:DownloadCallback = Nil; UserData:Pointer = Nil; Port:Integer=HTTPPort; AllowCache:Boolean=True; Const ClientName:TERRAString = DefaultClientName):HTTPDownloader;
-
-      Function Post(URL:TERRAString; Port:Integer=HTTPPort; Const ClientName:TERRAString = DefaultClientName):HTTPError;
-
-      Function Put(URL:TERRAString; Source:Stream; Port:Integer=HTTPPort; Const ClientName:TERRAString = DefaultClientName):HTTPError;
+      Function StartRequest(Request:HTTPRequest):HTTPDownloader;
 
       Property Count:Integer Read _DownloadCount;
       Property Progress:Integer Read GetOverallProgress;
@@ -222,27 +339,33 @@ Begin
 End;
 
 { HTTPDownloader }
-Constructor HTTPDownloader.Create(URL:TERRAString; Const Cookie:TERRAString; Dest:Stream; Callback:DownloadCallback; Port:Integer; Const ClientName:TERRAString);
+Constructor HTTPDownloader.Create(Request:HTTPRequest);
 Var
   I:Integer;
+  CachedFile:TERRAString;
 Begin
   _Connection := Nil;
+  _Request := Request;
+
+  Request.Prepare(_URL, CachedFile);
+
+  If (CachedFile<>'') Then
+  Begin
+    Log(logDebug, 'HTTP', 'Cached: '+URL);
+    _URL := 'file://' + CachedFile;
+  End;
+
+  Log(logDebug, 'HTTP', 'Starting download to '+URL);
+  If Request.Cookie<>'' Then
+    Log(logDebug, 'HTTP', 'Cookie: '+ Request.Cookie);
+
   _ErrorCode := httpOK;
-  _URL := URL;
-  _Cookie := Cookie;
   _Offset := Dest.Position;
   _Target := Dest;
-  _Callback := Callback;
   _Downloading := False;
-  _Port := Port;
   _TotalSize := -1;
 
   GetMem(_Buffer, BufferSize);
-
-  If (ClientName <> '') Then
-    Self._ClientName := ClientName
-  Else
-    Self._ClientName := DefaultClientName;
 
   _Read := 0;
   _TagCount := 0;
@@ -255,37 +378,10 @@ Begin
     Exit;
   End;
 
-  StringReplaceChar(Ord('\'), HTTPSeparator, URL);
-
-  // extract http:// from url
-  ExtractProtocol(URL, _Protocol);
-
-  I := StringCharPosReverse(Ord('/'), URL);
-  _FileName := StringCopy(URL, Succ(I), MaxInt);
-
-  _Connection := Nil;
-
-  _UpdateTime := GetTime();
-  If (_Protocol = HTTPProtocol) Then
+  _UpdateTime := Application.GetTime();
+  If (Request.Protocol = HTTPProtocol) Then
   Begin
-    // Extract hostname from url
-    If Pos('/', URL)<=0 Then
-      URL:=URL+'/';
-
-    I:=Pos('/',URL);
-
-    If I>0 Then
-    Begin
-      _HostName := Copy(URL,1,Pred(I));
-      _Path := Copy(URL, I, Length(URL));
-    End Else
-    Begin
-      Log(logError, 'HTTP', 'Invalid URL: '+URL);
-      _ErrorCode := httpInvalidURL;
-      Exit;
-    End;
-
-    _Connection := DownloadManager.Instance.GetConnection(_HostName, Port);
+    _Connection := DownloadManager.Instance.GetConnection(Request.HostName, Request.Port);
 
     If _Connection._Target = Nil Then
     Begin
@@ -294,7 +390,7 @@ Begin
 
     Exit;
   End Else
-  If (_Protocol=FILEProtocol) Then
+  If (Request.Protocol=FILEProtocol) Then
   Begin
     If Not FileStream.Exists(URL) Then
     Begin
@@ -309,10 +405,42 @@ Begin
     _Downloading := (_Progress<100);
   End Else
   Begin
-    Log(logError, 'HTTP', 'Unknown protocol: '+_Protocol);
+    Log(logError, 'HTTP', 'Unknown protocol: '+ Request.Protocol);
     _ErrorCode := httpInvalidProtocol;
     Exit;
   End;
+End;
+
+Function HTTPDownloader.ReadChunkHeader():Integer;
+Var
+  I:Integer;
+  S:TERRAString;
+Begin
+  I := Pos(#13#10, _Response);
+  S := Copy(_Response, 1, Pred(I));
+  _Response := Copy(_Response, (I+2), MaxInt);
+
+  //Log(logDebug, 'HTTP', 'Hex is '+S);
+
+  Result := HexStrToInt(S);
+
+  //Log(logDebug, 'HTTP', 'HexLenght is '+IntToString(Result));
+  //Log(logDebug, 'HTTP', 'ResLenght is '+IntToString(Length(_Response)));
+
+  If (Result<=0) Then
+    Exit;
+
+  If Length(_Response)>=Result Then
+  Begin
+    S := Copy(_Response, Result + 3, MaxInt);
+    _Response := Copy(_Response, 1, Result + 2);
+    Inc(_Read, Length(_Response));
+    WriteLeftovers();
+
+    _Response := S;
+    Result := Self.ReadChunkHeader();
+  End Else
+    Dec(Result, Length(_Response));
 End;
 
 {
@@ -328,8 +456,8 @@ Content-Length: 3910
 Function HTTPDownloader.ReceiveHeader():Boolean;
 Var
   I,X,Len:Integer;
-  Tag,Value,S:TERRAString;
-  Response:TERRAString;
+  Tag,Value,S, Header:TERRAString;
+  HTTPCode:Integer;
 Begin
   Result := False;
   _ChunkedTransfer := False;
@@ -343,41 +471,70 @@ Begin
     Len := Source.Read(_Buffer, BufferSize);
     If Len>0 Then
     Begin
-      SetLength(Response, Len);
-      Move(_Buffer^, Response[1], Len);
+      SetLength(_Response, Len);
+      Move(_Buffer^, _Response[1], Len);
+
+
+      Tag := #13#10#13#10;
+      I := StringPos(Tag, _Response);
+      Header := StringCopy(_Response, 1, Pred(I));
+      _Response := StringCopy(_Response, (I+Length(Tag)), MaxInt);
+
+      Log(logDebug, 'HTTP', 'Full response: '+_Response);
+
+      Tag := StringGetNextSplit(Header, Ord(' ')); // HTTP/1.1
+      Value := StringGetNextSplit(Header, Ord(' '));
+
+      HTTPCode := StringToInt(Value);
+      If (HTTPCode<>200) Then
+      Begin
+        Result := False;
+
+        Case HTTPCode Of
+        400:  Value := 'Bad Request';
+        401:  Value := 'Unauthorized';
+        403:  Value := 'Forbidden';
+        404:  Value := 'Not Found';
+        405:  Value := 'Method Not Allowed';
+        407:  Value := 'Proxy Authentication Required';
+        408:  Value := 'Request Timeout';
+        500: Value := 'Internal Server Error';
+        501: Value := 'Not Implemented';
+        502: Value := 'Bad Gateway';
+        503: Value := 'Service Unavailable';
+        504: Value := 'Gateway Timeout';
+        505: Value := 'HTTP Version Not Supported';
+        509: Value := 'Bandwidth Limit Exceeded';
+        End;
+        _ErrorCode := httpServerError;
+        _ErrorMessage := Value;
+        Exit;
+      End;
 
       Result := True;
       _TotalSize := 0;
 
       X:=0;
-      While Response<>'' Do
+      While Header<>'' Do
       Begin
-        I:=Pos(#10,Response);
+        I := Pos(#10, Header);
         If I=0 Then
-          I:=Length(Response);
+          I := Length(Header);
 
-        Value := StringTrim(StringCopy(Response,1,I));
+        Value := StringTrim(Copy(Header, 1, I));
         If (Value='') Then
         Begin
-          Response := Copy(Response, 3, MaxInt);
-          {If (Not Result) And (Not _ChunkedTransfer) Then
-          Begin
-            Result := True;
-          End;}
-
+          Header := Copy(Header, 3, MaxInt);
           Break;
         End;
 
-        Response := Copy(Response, Succ(I), Length(Response));
-
-        If Pos('404 Not Found', Value)>0 Then
-          Break;
+        Header := Copy(Header, Succ(I), Length(Header));
 
         I:=Pos(':',Value);
         If (I=0)And(X>0) Then Break;
 
         Tag := Copy(Value,1,Pred(I));
-        Value := StringCopy(Value, Succ(I), Length(Value));
+        Value := Copy(Value, Succ(I), Length(Value));
         Value := StringTrim(Value);
 
         If (Tag<>'') Then
@@ -389,7 +546,7 @@ Begin
 
           If (StringEquals(Tag, 'set-cookie')) Then
           Begin
-            Self._Cookie := StringGetNextSplit(Value, Ord(';'));
+            Request._Cookie := StringGetNextSplit(Value, Ord(';'));
           End;
 
           If (StringEquals(Tag, 'connection')) Then
@@ -408,22 +565,31 @@ Begin
           If (StringEquals(Tag, 'content-length')) Then
           Begin
             _TotalSize := StringToInt(Value);
+            Log(logDebug, 'HTTP', 'Content-length '+IntToString(_TotalSize));
           End;
 
           If (StringEquals(Tag, 'transfer-encoding')) Then
           Begin
             If (StringEquals(Value, 'chunked')) Then
+            Begin
               _ChunkedTransfer := True;
+              Log(logDebug, 'HTTP', 'This is a chunked transfer!');
+            End;
           End;
         End;
 
         Inc(X);
       End;
-
-      _Response := Response;
-      SetLength(Response,0);
     End;
   Until (Result) Or  (Source.EOF);
+
+  If (_TotalSize<0) And (Not _ChunkedTransfer) Then
+  Begin
+    _TotalSize := Length(_Response);
+    Log(logDebug, 'HTTP', 'Adjusting content length to '+IntToString(_TotalSize));
+  End;
+
+  Log(logDebug, 'HTTP', 'Response Remainder: '+_Response);
 
   If (Not Result) Then
   Begin
@@ -431,13 +597,37 @@ Begin
     Exit;
   End;
 
-  If (_ChunkedTransfer) And (_Response<>'') Then
+  If (_ChunkedTransfer) Then
   Begin
-    I := StringCharPos(Ord(#13), _Response);
-    S := StringCopy(_Response, 1, Pred(I));
-    _Response := StringCopy(_Response, (I+2), MaxInt);
-    Len := HexStrToInt(S) - StringLength(_Response);
+    Log(logDebug, 'HTTP', 'Entering chunk mode...');
+    If (_Response = '') Then
+    Begin
+      //Log(logDebug, 'HTTP', 'Fetching more...');
+
+      Len := Source.Read(_Buffer, BufferSize);
+      If Len>0 Then
+      Begin
+        SetLength(_Response, Len);
+        Move(_Buffer^, _Response[1], Len);
+      End;
+
+      //Log(logDebug, 'HTTP', 'Fetched '+IntToString(Len));
+    End;
+
+    //Log(logDebug, 'HTTP', 'Leftover: '+_Response);
+
+    If (_Response<>'') Then
+    Begin
+      Len := ReadChunkHeader();
+    End Else
+    Begin
+      _ErrorCode := httpConnectionReadError;
+      Result := False;
+      Exit;
+    End;
+
     WriteLeftovers();
+
     If Len<=0 Then
       _Progress := 100
     Else
@@ -448,12 +638,15 @@ End;
 
 Procedure HTTPDownloader.WriteLeftovers();
 Begin
+  Log(logDebug, 'HTTP', 'Writing leftovers: '+_Response);
   If _Response<>'' Then
   Begin
     _Target.Write(@_Response[1], Length(_Response));
     Inc(_Read, Length(_Response));
     _Response := '';
   End;
+
+  Log(logDebug, 'HTTP', 'Target position: '+IntToString(_Target.Position));
 End;
 
 Procedure HTTPDownloader.ContinueTransfer(Count:Integer);
@@ -473,9 +666,17 @@ Begin
     End;
   End;
   {$ENDIF}
-
-  While (Count>0) And (Not Source.EOF) Do
+ 
+  While (Count>0) Do
   Begin
+    If (Source.EOF) Then
+    Begin
+      Log(logWarning, 'HTTP', 'Connection closed!');
+      _ErrorCode := httpConnectionReadError;
+      _Downloading := False;
+      Exit;
+    End;
+
     Count2 := Count;
     If Count2>BufferSize Then
       Count2 := BufferSize;
@@ -485,7 +686,7 @@ Begin
     Log(logDebug, 'HTTP', 'Got '+IntToString(Len));
     If Len>0 Then
     Begin
-      _UpdateTime := GetTime;
+      _UpdateTime := Application.GetTime;
       _Target.Write(_Buffer, Len);
       Inc(_Read, Len);
       Dec(Count, Len);
@@ -523,12 +724,12 @@ Begin
   If (Not _Downloading) Then
     Exit;
           
-  If (_TotalSize=0) Then
+  If (_TotalSize = 0) Then
   Begin
     _Progress := 100;
     Exit;
   End;
-
+  
   If (_ChunkedTransfer) Then
   Begin
     Len := Source.Read(_Buffer, 20);
@@ -541,8 +742,6 @@ Begin
       _Response := Copy(_Response, I + 2, MaxInt);
 
       Count := HexStrToInt(S);
-      If (Count<>646) And (Count<>6212) And (Count<>0) Then
-        IntTostring(2);
 
       If (Count>0) Then
       Begin
@@ -598,10 +797,10 @@ End;
 
 Procedure HTTPDownloader.InitTransfer();
 Var
-  Request:TERRAString;
+  S:TERRAString;
   N:Integer;
 Begin
-  _UpdateTime := GetTime();
+  _UpdateTime := Application.GetTime();
   _TotalSize := -1;
 
   If (Self._ErrorCode<>httpOK) Then
@@ -617,7 +816,7 @@ Begin
     Exit;
 
   _Connection._Target := Self;
-      
+
   If (Source.EOF) Then
   Begin
     Log(logError, 'HTTP', 'Connection failed: '+URL);
@@ -629,34 +828,44 @@ Begin
 
   Inc(_Connection._RequestCount);
   Log(logDebug, 'HTTP', 'Request count: '+IntToString(_Connection._RequestCount));
-                 
-  Request := 'GET '+ _Path+' HTTP/1.1'+#13#10;
-  Request := Request + 'User-Agent: ' + _ClientName + #13#10;
-  Request := Request + 'Host: '+ _HostName + #13#10;
-  Request := Request + 'Accept: text/html, text/xml, image/gif, image/x-xbitmap, image/jpeg, */*'#13#10;
 
-  If (Cookie<>'') And (Pos('=', Cookie)>0) Then
-    Request := Request + 'Cookie: ' + Cookie + #13#10;
+  S := Request.GetMethodString() +' '+ Request.FilePath+' HTTP/1.1'+#13#10;
+  S := S + 'User-Agent: ' + Request.ClientName + #13#10;
+  S := S + 'Host: '+ Request.HostName + #13#10;
+  S := S + 'Accept: text/html, text/xml, image/gif, image/x-xbitmap, image/jpeg, */*'#13#10;
+
+  If (Request.Cookie<>'') And (Pos('=', Request.Cookie)>0) Then
+    S := S + 'Cookie: ' + Request.Cookie + #13#10;
 
   {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
-  Request := Request + 'Connection: keep-alive'+#13#10;
+  S := S + 'Connection: keep-alive'+#13#10;
   {$ENDIF}
-  
-  Request := Request + #13#10;
 
-  _Connection._LastUpdate := GetTime();
+  If (Request._Data<>'') Then
+  Begin
+    S := S + 'Content-Type: application/x-www-form-urlencoded'#13#10;
+    S := S + 'Content-Length: '+IntToString(Length(Request._Data))+#13#10;
+  End;
 
-  N := Length(Request);
-  If (Source.Write(@Request[1], N)<N) Then
+  S := S + #13#10;
+
+  If (Request._Data<>'') Then
+  Begin
+    S := S + Request._Data;
+  End;
+
+  _Connection._LastUpdate := Application.GetTime();
+
+  N := Length(S);
+  If (Source.Write(@S[1], N)<N) Then
   Begin
     Self.RetryTransfer();
     Exit;
   End;
 
-
   If ReceiveHeader() Then
   Begin
-    _Downloading := (_TotalSize>=0) And (_Progress<100);
+    _Downloading := (_TotalSize>0) And (_Progress<100);
   End Else
   Begin
     If (_Connection._RequestCount>1) Then
@@ -681,8 +890,13 @@ Begin
 
   Log(logDebug, 'HTTP', 'Retrying download: '+URL);
 
-  _Connection := DownloadManager.Instance.GetConnection(_Hostname, _Port);
+  _Connection := DownloadManager.Instance.GetConnection(Request.Hostname, Request.Port);
   Self.InitTransfer();
+End;
+
+Function HTTPDownloader.GetDest: Stream;
+Begin
+  Result := Self._Request._Dest;
 End;
 
 Function HTTPDownloader.GetStream: Stream;
@@ -691,7 +905,7 @@ Begin
     Result := _Connection._Socket
   Else
     Result := Self._FileSource;
-end;
+End;
 
 { DownloadManager }
 Var
@@ -768,8 +982,8 @@ Begin
     Begin
       Log(logDebug, 'HTTP', 'Download error :'+_Downloads[i]._URL+' -> error ' +IntToString(Integer(_Downloads[I]._ErrorCode)));
 
-      If Assigned(_Downloads[I]._Callback) Then
-        _Downloads[I]._Callback(_Downloads[I]);
+      If Assigned(_Downloads[I].Request._Callback) Then
+        _Downloads[I].Request._Callback(_Downloads[I]);
 
       Remove := True;
     End Else
@@ -796,15 +1010,15 @@ Begin
         If (_Downloads[I]._Target Is MemoryStream) Then
         Begin
           Log(logDebug, 'HTTP', 'Truncating memory stream');
-          _Downloads[I]._Target.Truncate;
+          _Downloads[I]._Target.Truncate();
         End;
 
         Log(logDebug, 'HTTP', 'Seeking to zero');
         _Downloads[I]._Target.Seek(_Downloads[I]._Offset);
 
         Log(logDebug, 'HTTP', 'Invokating callback');
-        If Assigned(_Downloads[I]._Callback) Then
-          _Downloads[I]._Callback(_Downloads[I]);
+        If Assigned(_Downloads[I].Request._Callback) Then
+          _Downloads[I].Request._Callback(_Downloads[I]);
       End;
     End;
 
@@ -824,55 +1038,20 @@ Begin
   End;
 End;
 
-Function DownloadManager.StartWithCookie(URL:TERRAString; Cookie:TERRAString; Dest:Stream; Callback:DownloadCallback; UserData:Pointer; Port:Integer; AllowCache:Boolean; Const ClientName:TERRAString):HTTPDownloader;
-Var
-  S, FileName, CachedFile:TERRAString;
-  NoCache:Boolean;
+Function DownloadManager.StartRequest(Request:HTTPRequest):HTTPDownloader;
 Begin
-  NoCache := StringContains('.php', URL);
-  If (NoCache) Then
+  If Request = Nil Then
   Begin
-    AllowCache := False;
-    FileName := '';
-    CachedFile := '';
-  End Else
-  Begin
-    FileName := URL;
-    StringReplaceText(StringFromChar(HTTPSeparator), PathSeparator, FileName);
-    FileName := GetFileName(FileName, False);
-    CachedFile := FileManager.Instance.SearchResourceFile(FileName);
+    Result := Nil;
+    Exit;
   End;
 
-  If (Dest = Nil) Then
-  Begin
-    If (FileName<>'') Then
-      Dest := FileStream.Create(GetTempPath + PathSeparator + FileName)
-    Else
-    Begin
-      Dest := MemoryStream.Create(1024);
-    End;
-  End;
+  Result := HTTPDownloader.Create(Request);
 
-  If (CachedFile<>'') Then
-  Begin
-    Log(logDebug, 'HTTP', 'Cached: '+URL);
-    URL := 'file://' + CachedFile;
-  End;
-
-  Log(logDebug, 'HTTP', 'Starting download to '+URL);
-  If Cookie<>'' Then
-    Log(logDebug, 'HTTP', 'Cookie: '+Cookie);
-  Result := HTTPDownloader.Create(URL, Cookie, Dest, Callback, Port, ClientName);
-  Result._UserData := UserData;
   Inc(_DownloadCount);
   SetLength(_Downloads, _DownloadCount);
   _Downloads[Pred(_DownloadCount)] := Result;
-  Log(logDebug, 'HTTP', 'Download dispatched.');
-End;
-
-Function DownloadManager.Start(URL:TERRAString; Dest:Stream; Callback:DownloadCallback; UserData:Pointer; Port:Integer; AllowCache:Boolean; Const ClientName:TERRAString):HTTPDownloader;
-Begin
-  Result := StartWithCookie(URL, '', Dest, Callback, UserData, Port, AllowCache, ClientName);
+  Log(logDebug, 'HTTP', 'Download prepared.');
 End;
 
 Function HTTPDownloader.GetTag(Const Name:TERRAString):TERRAString;
@@ -919,152 +1098,6 @@ Begin
     Result := Nil
   Else
     Result := _Downloads[Index];
-End;
-
-Function DownloadManager.Post(URL:TERRAString; Port: Integer; Const ClientName:TERRAString):HTTPError;
-Var
-  It:StringIterator;
-  Dest:NetSocket;
-  Protocol, Request, Data, HostName:TERRAString;
-Begin
-  If StringPosIterator('://', URL, It) Then
-  Begin
-    It.Split(Protocol, URL);
-  End Else
-    Protocol := HTTPProtocol;
-
-  If (Protocol<>HTTPProtocol) Then
-  Begin
-    Result := httpInvalidProtocol;
-    Exit;
-  End;
-
-  If StringCharPosIterator(Ord('/'),URL, It) Then
-  Begin
-    It.Split(HostName, URL);
-  End Else
-  Begin
-    Log(logError, 'HTTP', 'Invalid URL: '+URL);
-    Result := httpInvalidURL;
-    Exit;
-  End;
-
-  If StringCharPosIterator(Ord('?'),URL, It) Then
-  Begin
-    It.Split(URL, Data);
-  End Else
-  Begin
-    Log(logError, 'HTTP', 'Invalid URL: '+URL);
-    Result := httpInvalidURL;
-    Exit;
-  End;
-
-  Request:= 'POST '+URL+' HTTP/1.1'+#13#10+
-              'Host: '+HostName+#13#10+
-              'User-Agent: '+ClientName+#13#10+
-              'Accept: text/html, text/xml, image/gif, */*'#13#10+
-              'Content-Type: application/x-www-form-urlencoded'#13#10+
-              'Content-Length: '+IntToString(Length(Data))+#13#10+
-              #13#10;
-
-  Request := Request + Data;
-
-  Dest := NetSocket.Create(HostName, Port);
-  If (Dest.EOF) Then
-  Begin
-    Log(logError, 'HTTP', 'Connection failed: '+URL);
-    Result := httpConnectionFailed;
-    Exit;
-  End;
-
-  Log(logDebug, 'HTTP', 'Sending post request to '+URL);
-  Dest.Write(@Request[1], Length(Request));
-  ReleaseObject(Dest);
-
-  Result := httpOk;
-End;
-
-Function DownloadManager.Put(URL:TERRAString; Source: Stream; Port: Integer; Const ClientName:TERRAString):HTTPError;
-Var
-  I:Integer;
-  Dest:NetSocket;
-  Len:Integer;
-  Protocol, Request, HostName:TERRAString;
-  Response:TERRAString;
-Begin
-  If (Source = Nil) Or (Source.Size<=0) Then
-  Begin
-    Result := httpInvalidStream;
-    Exit;
-  End;
-
-
-  I:=Pos('://',URL);
-  If I>0 Then
-  Begin
-    Protocol := StringUpper(StringCopy(URL,1,Pred(I)));
-    URL := StringCopy(URL, I+3, Length(URL));
-  End Else
-    Protocol := HTTPProtocol;
-
-  If (Protocol<>HTTPProtocol) Then
-  Begin
-    Result := httpInvalidProtocol;
-    Exit;
-  End;
-
-  I := Pos('/',URL);
-  If I>0 Then
-  Begin
-    HostName := Copy(URL,1,Pred(I));
-    URL := Copy(URL,I,Length(URL));
-  End Else
-  Begin
-    Log(logError, 'HTTP', 'Invalid URL: '+URL);
-    Result := httpInvalidURL;
-    Exit;
-  End;
-
-  I := Pos('?', URL);
-  If (I>0) Then
-  Begin
-    Result := httpInvalidURL;
-    Exit;
-  End;
-
-  Source.Seek(0);
-
-  Request:= 'PUT '+URL+' HTTP/1.1'+#13#10+
-              'Host: '+HostName+#13#10+
-              'Content-Length: '+IntToString(Source.Size)+#13#10+
-              #13#10;
-
-  Dest := NetSocket.Create(HostName, Port);
-  If (Dest.EOF) Then
-  Begin
-    Log(logError, 'HTTP', 'Connection failed: '+URL);
-    Result := httpConnectionFailed;
-    Exit;
-  End;
-
-  Log(logDebug, 'HTTP', 'Sending post request to '+URL);
-  Dest.Write(@Request[1], Length(Request));
-  Source.Copy(Dest);
-  Response := #13#10;
-  Dest.Write(@Response[1], Length(Response));
-
-  SetLength(Response, 1024);
-  Len := Dest.Read(@Response[1], Length(Response));
-  If Len>0 Then
-  Begin
-    SetLength(Response,Len);
-    If (Pos(' ',Response)>0) Then
-      IntToString(2);
-  End;
-  ReleaseObject(Dest);
-
-
-  Result := httpOk;
 End;
 
 Function DownloadManager.GetConnection(const HostName: TERRAString; Port: Integer): HTTPConnection;
@@ -1139,9 +1172,9 @@ Begin
   Log(logDebug, 'HTTP', 'Opening connection to '+ _Host);
 
   _Socket := NetSocket.Create(_Host, Port);
-  _Socket.Blocking := True;
-  
-  _LastUpdate := GetTime();
+  _Socket.SetBlocking(True);
+
+  _LastUpdate := Application.GetTime();
 End;
 
 Procedure HTTPConnection.Release;
@@ -1150,6 +1183,273 @@ Begin
 
   ReleaseObject(_Socket);
   Log(logDebug, 'HTTP', 'Closed connection to '+ _Host);
+End;
+
+{ HTTPRequest }
+Constructor HTTPRequest.Create(const URL: TERRAString);
+Begin
+  _URL := URL;
+  _Cookie := '';
+  _Dest := Nil;
+  _Callback := Nil;
+  _UserData := Nil;
+  _Port := HTTPPort;
+  _AllowCache := True;
+  _ClientName := DefaultClientName;
+  _MethodType := HTTP_GET;
+  _Arguments := HTTPArgumentList.Create();
+End;
+
+Function HTTPRequest.GetFullURL: TERRAString;
+Var
+  Args:TERRAString;
+Begin
+  Result := Self._URL;
+  Args := Arguments.GetQueryString(True);
+
+  If (Self._MethodType = HTTP_GET) Then
+  Begin
+    _Data := '';
+    If Args<>'' Then
+      Result := Result + '?' + Args;
+  End Else
+    _Data := Args;
+End;
+
+Function HTTPRequest.GetMethodString: TERRAString;
+Begin
+  If Self._MethodType = HTTP_GET Then
+    Result := 'GET'
+  Else
+  If Self._MethodType = HTTP_POST Then
+    Result := 'POST'
+  Else
+  If Self._MethodType = HTTP_PUT Then
+    Result := 'PUT'
+  Else
+    Result := 'DELETE';
+End;
+
+Procedure HTTPRequest.Prepare(Out URL, CacheFile:TERRAString);
+Var
+  I:Integer;
+Begin
+  URL := Self.GetFullURL();
+  CacheFile := '';
+
+  {NoCache := StringContains('.php', RequestURL);
+  If (NoCache) Then
+  Begin
+    Request._AllowCache := False;
+    FileName := '';
+    CachedFile := '';
+  End Else
+  Begin
+    FileName := RequestURL;
+    StringReplaceText(StringFromChar(HTTPSeparator), PathSeparator, FileName);
+    FileName := GetFileName(FileName, False);
+    CachedFile := FileManager.Instance.SearchResourceFile(FileName);
+  End;}
+
+  StringReplaceChar(Ord('\'), HTTPSeparator, URL);
+
+  _HostName := URL;
+  // extract http:// from url
+  ExtractProtocol(_HostName, _Protocol);
+
+  I := StringCharPos(HTTPSeparator, _HostName);
+  _FilePath := StringCopy(_HostName, I, MaxInt);
+
+  // Extract hostname from url
+  _HostName := StringCopy(_HostName, 1, Pred(I));
+
+  _FileName := _FilePath;
+  I := StringCharPos(Ord('?'), _FileName);
+  If I>0 Then
+    _FileName := StringCopy(_FilePath, 1, Pred(I));
+
+  I := StringCharPosReverse(HTTPSeparator, _FileName);
+  If I>0 Then
+    _FileName := StringCopy(_FileName, Succ(I), MaxInt);
+
+  If (_Dest = Nil) Then
+  Begin
+    If _Arguments._Count = 0 Then
+      _Dest := FileStream.Create(GetTempPath + PathSeparator + FileName)
+    Else
+    Begin
+      _Dest := MemoryStream.Create(1024);
+    End;
+  End;
+End;
+
+Procedure HTTPRequest.Release;
+Begin
+  ReleaseObject(_Arguments);
+End;
+
+Procedure HTTPRequest.SetCallback(Callback: DownloadCallback; UserData: Pointer);
+Begin
+  Self._Callback := Callback;
+  Self._UserData := UserData;
+End;
+
+Procedure HTTPRequest.SetCookie(const Cookie: TERRAString);
+Begin
+  Self._Cookie := Cookie;
+End;
+
+Procedure HTTPRequest.SetMethod(const MethodType: HTTPMethod);
+Begin
+  Self._MethodType := MethodType; 
+End;
+
+Procedure HTTPRequest.SetTarget(Target: Stream);
+Begin
+  Self._Dest := Target;
+End;
+
+{ HTTPArgumentList }
+Procedure HTTPArgumentList.Release();
+Begin
+  Self.Clear();
+End;
+
+Procedure HTTPArgumentList.Clear();
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_Count) Do
+    ReleaseObject(_Items[I]);
+
+  _Count := 0;
+End;
+
+Function HTTPArgumentList.GetQueryString(SafeEncode:Boolean):TERRAString;
+Var
+  I:Integer;
+Begin
+  Result := '';
+  For I:=0 To Pred(_Count) Do
+  Begin
+    If I>0 Then
+      Result := Result + '&';
+
+    Result := Result + _Items[I]._Name+'='+_Items[I].GetValue(SafeEncode);
+  End;
+End;
+
+Function HTTPArgumentList.Get(const ArgName: TERRAString): HTTPArgument;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_Count) Do
+  If (StringEquals(_Items[I]._Name, ArgName)) Then
+  Begin
+    Result := _Items[I];
+    Exit;
+  End;
+
+  Result := Nil;
+End;
+
+Procedure HTTPArgumentList.AddArg(const ArgName: TERRAString; Arg: HTTPArgument);
+Begin
+  Arg._Name := ArgName;
+  Inc(_Count);
+  SetLength(_Items, _Count);
+  _Items[Pred(_Count)]:= Arg;
+End;
+
+Procedure HTTPArgumentList.AddBoolean(const ArgName: TERRAString; Value: Boolean);
+Begin
+  Self.AddArg(ArgName, HTTPBooleanArgument.Create(Value));
+End;
+
+Procedure HTTPArgumentList.AddCardinal(const ArgName: TERRAString; Value: Cardinal);
+Begin
+  Self.AddArg(ArgName, HTTPCardinalArgument.Create(Value));
+End;
+
+Procedure HTTPArgumentList.AddInteger(const ArgName: TERRAString; Value: Integer);
+Begin
+  Self.AddArg(ArgName, HTTPIntegerArgument.Create(Value));
+End;
+
+Procedure HTTPArgumentList.AddStream(const ArgName: TERRAString; Value: Stream);
+Begin
+  Self.AddArg(ArgName, HTTPStreamArgument.Create(Value));
+End;
+
+Procedure HTTPArgumentList.AddString(const ArgName, Value: TERRAString);
+Begin
+  Self.AddArg(ArgName, HTTPStringArgument.Create(Value));
+End;
+
+{ HTTPIntegerArgument }
+Constructor HTTPIntegerArgument.Create(Value: Integer);
+Begin
+  Self.Value := Value;
+End;
+
+Function HTTPIntegerArgument.GetValue(SafeEncode:Boolean): TERRAString;
+Begin
+  Result := IntToString(Self.Value);
+End;
+
+{ HTTPCardinalArgument }
+Constructor HTTPCardinalArgument.Create(Value: Cardinal);
+Begin
+  Self.Value := Value;
+End;
+
+Function HTTPCardinalArgument.GetValue(SafeEncode:Boolean): TERRAString;
+Begin
+  Result := CardinalToString(Self.Value);
+End;
+
+{ HTTPBooleanArgument }
+Constructor HTTPBooleanArgument.Create(Value: Boolean);
+Begin
+  Self.Value := Value;
+End;
+
+Function HTTPBooleanArgument.GetValue(SafeEncode:Boolean): TERRAString;
+Begin
+  If Self.Value Then
+    Result := '1'
+  Else
+    Result := '0';
+End;
+
+{ HTTPStringArgument }
+Constructor HTTPStringArgument.Create(const Value: TERRAString);
+Begin
+  Self.Value := Value;
+End;
+
+Function HTTPStringArgument.GetValue(SafeEncode:Boolean): TERRAString;
+Begin
+  If SafeEncode Then
+    Result := StringEncodeHTML(Self.Value)
+  Else
+    Result := Self.Value;
+End;
+
+{ HTTPStreamArgument }
+Constructor HTTPStreamArgument.Create(Value: Stream);
+Begin
+  Self.Value := Value;
+End;
+
+Function HTTPStreamArgument.GetValue(SafeEncode:Boolean): TERRAString;
+Begin
+  Self.Value.ReadContent(Result);
+End;
+
+Procedure HTTPStreamArgument.Release;
+Begin
+  ReleaseObject(Self.Value);
 End;
 
 End.

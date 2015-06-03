@@ -24,7 +24,7 @@ var
   Form1: TForm1;
 
 implementation
-Uses TERRA_Utils, TERRA_Application, TERRA_VCLClient, TERRA_OS, TERRA_Scene, TERRA_Texture,
+Uses TERRA_Utils, TERRA_Application, TERRA_VCLApplication, TERRA_OS, TERRA_Scene, TERRA_Texture,
   TERRA_Viewport, TERRA_FileManager, TERRA_SpriteManager, TERRA_PNG,
   TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color;
 
@@ -43,7 +43,7 @@ Var
 { MyScene }
 Procedure MyScene.RenderSprites(V: Viewport);
 Var
-  S:Sprite;
+  S:QuadSprite;
   Angle:Single;
 Begin
   // A rotating sprite in the bottom, with Scale = 4x
@@ -53,11 +53,8 @@ Begin
 End;
 
 Procedure TForm1.FormCreate(Sender: TObject);
-Var
-  MyClient:VCLClient;
 Begin
-  MyClient := VCLPanelClient.Create(Panel1);
-  ApplicationStart(MyClient);
+  VCLApplication.Create(Panel1);
 
   // Added Asset folder to search path
   FileManager.Instance.AddPath('assets');

@@ -27,10 +27,10 @@ Unit TERRA_Mesh;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Utils, TERRA_Texture, TERRA_Stream, TERRA_Resource, TERRA_MeshAnimation,
-  TERRA_VertexBufferObject, TERRA_ResourceManager, TERRA_FileUtils, TERRA_Vector4D,
+  TERRA_Renderer, TERRA_ResourceManager, TERRA_FileUtils, TERRA_Vector4D, TERRA_Quaternion,
   TERRA_Math, TERRA_Ray, TERRA_Collections, TERRA_ShadowVolumes, TERRA_GraphicsManager, TERRA_MeshFilter,
-  TERRA_BoundingBox, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_RenderTarget, TERRA_PhysicsManager,
-  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ParticleRenderer, TERRA_ParticleEmitters, TERRA_Lights, TERRA_Shader
+  TERRA_BoundingBox, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_PhysicsManager, TERRA_VertexFormat,
+  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ParticleRenderer, TERRA_ParticleEmitters, TERRA_Lights 
 //  {$IFDEF PC}, TERRA_Fur, TERRA_Cloth{$ENDIF}
 ;
 
@@ -59,14 +59,7 @@ Const
   tagMeshBoneMorph      = 'XBMR';
 
   tagGroupEnd           = 'GEND';
-  tagVertexPositions    = 'VPOS';
-  tagVertexNormals      = 'VNRM';
-  tagVertexUVs0         = 'VUV0';
-  tagVertexUVs1         = 'VUV1';
-  tagVertexTangents     = 'VTAN';
-  tagVertexColors       = 'VCLR';
-  tagVertexBoneIndices  = 'VBIX';
-  tagVertexBoneWeights  = 'VBWE';
+  tagVertexData         = 'VDAT';
   tagVertexMorph        = 'VMRP';
   tagVertexLinks        = 'VLNK';
   tagTriangleIndices    = 'TIDX';
@@ -76,6 +69,7 @@ Const
   tagMaterialTriplanar  = 'MTRP';
   tagMaterialSpecular   = 'MSPC';
   tagMaterialBump       = 'MNRM';
+  tagMaterialDisplacement = 'MDIS';
   tagMaterialLightMap   = 'MLMP';
   tagMaterialRefraction = 'MRFR';
   tagMaterialReflective = 'MRFL';
@@ -130,14 +124,36 @@ Type
     Procedure UpdateBone();
   End;
 
+  MeshVertex = Class(Vertex)
+    Protected
+      Procedure Load(); Override;
+      Procedure Save(); Override;
+
+    Public
+  		Position:Vector3D;
+	  	Normal:Vector3D;
+      Tangent:Vector4D;
+      UV0:Vector2D;
+      UV1:Vector2D;
+      Color:TERRA_Color.Color;
+      BoneIndex:Integer;
+  End;
+
   MeshInstance = Class;
+
+  MeshFX = Class;
+  MeshFXCallback = Procedure(FX:MeshFX; UserData:Pointer);  CDecl;
 
   MeshFX = Class(TERRAObject)
     Private
       _Target:Mesh;
+      _Callback:MeshFXCallback;
+      _UserData:Pointer;
 
     Public
       Function Update():Boolean; Virtual; Abstract;
+
+      Procedure SetCallback(Callback:MeshFXCallback; UserData:Pointer);
 
       Property Target:Mesh Read _Target;
   End;
@@ -147,12 +163,14 @@ Type
 
     AmbientColor:Color;
     DiffuseColor:Color;
+    ShadowColor:Color;
     OutlineColor:Color;
 
     DiffuseMap:Texture;
     TriplanarMap:Texture;
     DecalMap:Texture;
     NormalMap:Texture;
+    DisplacementMap:Texture;
     SpecularMap:Texture;
     GlowMap:Texture;
     RefractionMap:Texture;
@@ -167,9 +185,11 @@ Type
     FlowSpeed:Single;
     FlowBounds:Vector4D;
 
-    ColorRamp:Texture;
+    ToonRamp:Texture;
     ColorTable:Texture;
     //ColorTableFactor:Single;
+
+    DitherPatternMap:Texture;
 
     VegetationBend:Single;
     Ghost:Boolean;
@@ -261,7 +281,7 @@ Type
 
     Public
       CullGroups:Boolean;
-      CustomShader:Shader;
+      CustomShader:ShaderInterface;
       Diffuse:Color;
       AlwaysOnTop:Boolean;
 
@@ -290,6 +310,9 @@ Type
       Procedure SetNormalMap(GroupID:Integer; Map:Texture);
       Function GetNormalMap(GroupID:Integer):Texture;
 
+      Procedure SetDisplacementMap(GroupID:Integer; Map:Texture);
+      Function GetDisplacementMap(GroupID:Integer):Texture;
+
       Procedure SetSpecularMap(GroupID:Integer; Map:Texture);
       Function GetSpecularMap(GroupID:Integer):Texture;
 
@@ -311,8 +334,8 @@ Type
       Procedure SetNoiseMap(GroupID:Integer; Map:Texture);
       Function GetNoiseMap(GroupID:Integer):Texture;
 
-      Procedure SetColorRamp(GroupID:Integer; Map:Texture);
-      Function GetColorRamp(GroupID:Integer):Texture;
+      Procedure SetToonRamp(GroupID:Integer; Map:Texture);
+      Function GetToonRamp(GroupID:Integer):Texture;
 
       Procedure SetColorTable(Map:Texture); Overload;
       Procedure SetColorTable(GroupID:Integer; Map:Texture); Overload;
@@ -323,6 +346,9 @@ Type
 
       Procedure SetLightMap(GroupID:Integer; Map:Texture);
       Function GetLightMap(GroupID:Integer):Texture;
+
+      Procedure SetDitherPatternMap(GroupID:Integer; Map:Texture);
+      Function GetDitherPatternMap(GroupID:Integer):Texture;
 
       Procedure SetVisibility(GroupID:Integer; Visible:Boolean);
       Function GetVisibility(GroupID:Integer):Boolean;
@@ -337,6 +363,9 @@ Type
       Procedure SetDiffuseColor(MyColor:Color); Overload;
       Procedure SetDiffuseColor(GroupID:Integer; MyColor:Color); Overload;
       Function GetDiffuseColor(GroupID:Integer):Color;
+
+      Procedure SetShadowColor(GroupID:Integer; MyColor:Color);
+      Function GetShadowColor(GroupID:Integer):Color;
 
       Procedure SetAmbientColor(GroupID:Integer; MyColor:Color);
       Function GetAmbientColor(GroupID:Integer):Color;
@@ -382,7 +411,7 @@ Type
       Procedure ClearAttachs;
 
       Constructor Create(MyMesh:Mesh);
-      Procedure Release; Override;
+      Procedure Release(); Override;
 
       Function GetBoundingBox:BoundingBox; Override;
       Procedure Render(TranslucentPass:Boolean); Override;
@@ -415,13 +444,24 @@ Type
     VertexIndex:Word;
   End;
 
-  PMeshVertexArray = ^MeshVertexArray;
-  MeshVertexArray=Array[0..65536]Of MeshVertex;
-
   MeshGroupMorph = Record
     ID:Integer;
     MorphType:Byte;
     Values:Array Of Vector3D;
+  End;
+
+  MeshHalfEdge = Record
+    StartVertex:Integer; // vertex at the start of the half-edge
+    EndVertex:Integer; // vertex at the end of the half-edge
+    FaceIndex:Integer;  // face the half-edge borders
+
+    PairEdge:Integer;   // oppositely oriented adjacent half-edge
+    NextEdge:Integer;  // next half-edge around the face
+  End;
+
+  MeshEdgeAdjancency = Record
+    VertexA, VertexB:Integer;
+    FaceA, FaceB:Integer;
   End;
 
 	MeshGroup = Class(TERRAObject)
@@ -430,13 +470,16 @@ Type
       _Owner:Mesh;
 	  	_Name:TERRAString;
 
-      _Buffer:VBO;
+      _Buffer:VertexBufferInterface;
 
-      _NeedsSkeletonSetup:Boolean;
+      _GPUSkinning:Boolean;
+
+      //_NeedsSkeletonSetup:Boolean;
+      _NeedsTangentSetup:Boolean;
 
       _Material:MeshMaterial;
 
-      _Shader:Shader;
+      _Shader:ShaderInterface;
       _LightBatch:LightBatch;
 
       _BoundingBox:BoundingBox;
@@ -452,9 +495,12 @@ Type
 
       _EmitterFX:TERRAString;
 
-      _Vertices:Array Of MeshVertex;
-    	_VertexCount:Integer;
-      _ScratchVertices:Array Of MeshVertex;
+      _Vertices:VertexData;
+      _ScratchVertices:VertexData;
+
+      _DitherScale:Single;
+
+      _AlphaInspected:Texture;
 
       _Triangles:Array Of Triangle;
       _Edges:Array Of TriangleEdgesState;
@@ -468,11 +514,20 @@ Type
       _Morphs:Array Of MeshGroupMorph;
       _MorphCount:Integer;
 
+      {
+      _HalfEdgeCount:Integer;
+      _HalfEdges:Array Of MeshHalfEdge;}
+
+      _EdgeAdjacencyList:Array Of MeshEdgeAdjancency;
+      _EdgeAdjacencyCount:Integer;
+
+      _VertexSpatialHashes:Array Of Cardinal;
+
       _Links:Array Of MeshVertexLink;
 
-      Procedure SetupUniforms(Transform:Matrix4x4; State:MeshInstance; Outline:Boolean; Const Material:MeshMaterial);
+      Procedure SetupUniforms(Transform:Matrix4x4; State:MeshInstance; Outline, TranslucentPass:Boolean; Const Material:MeshMaterial);
 
-      Procedure SetCombineWithColor(C:Color);
+      //Procedure SetCombineWithColor(C:Color);
       Procedure BindMaterial(Var Slot:Integer; Const Material:MeshMaterial);
 
       Procedure Load(Source:Stream);
@@ -483,11 +538,21 @@ Type
       Procedure SetTriangleCount(Count:Integer);
       Procedure SetVertexCount(Count:Integer);
       Function GetTriangles:PTriangleArray;
-      Function GetVertices:PMeshVertexArray;
 
-      Procedure SetupSkeleton;
+      Function GetVertices():VertexData;
+      Function GetVertexCount():Integer;
+
+      //Procedure SetupSkeleton;
+
+      Function CalculateDitherScale():Single;
 
       Procedure InheritMaterial(Const OtherMat:MeshMaterial; Var DestMaterial:MeshMaterial);
+
+      Function SubDivideVertexFromTriangle(TriangleIndex, TargetVertex:Integer; UseA, UseB, UseC:Boolean):Integer;
+      Procedure SubDivide3();
+      Procedure SubDivide6();
+
+      Procedure InspectAlpha(Tex:Texture);
 
     Public
       Userdata:Pointer;
@@ -496,7 +561,7 @@ Type
       FurSettings:TERRA_Fur.FurSettings;
       {$ENDIF}
 
-      Constructor Create(ID:Integer; Parent:Mesh; Name:TERRAString='');
+      Constructor Create(ID:Integer; Parent:Mesh; Format:VertexFormat; Name:TERRAString='');
       Procedure Release; Reintroduce;
 
 		  Procedure Clean; Virtual;
@@ -513,14 +578,20 @@ Type
       Procedure SetLightmap(Map:Texture);
       Function GetLightMap: Texture;
 
-      Function GetColorRamp: Texture;
-      Procedure SetColorRamp(Const Map:Texture);
+      Procedure SetDitherPatternMap(Map:Texture);
+      Function GetDitherPatternMap: Texture;
+
+      Function GetToonRamp: Texture;
+      Procedure SetToonRamp(Const Map:Texture);
 
       Function GetDecalMap: Texture;
       Procedure SetDecalMap(const Value: Texture);
 
       Function GetDiffuseColor: Color;
       Procedure SetDiffuseColor(const Value: Color);
+
+      Function GetShadowColor: Color;
+      Procedure SetShadowColor(const Value: Color);
 
       Function GetDiffuseMap: Texture;
       Procedure SetDiffuseMap(const Value: Texture);
@@ -530,6 +601,9 @@ Type
 
       Function GetNormalMap: Texture;
       Procedure SetNormalMap(const Value: Texture);
+
+      Function GetDisplacementMap: Texture;
+      Procedure SetDisplacementMap(const Value: Texture);
 
       Function GetRefractionMap: Texture;
       Procedure SetRefractionMap(const Value: Texture);
@@ -560,8 +634,13 @@ Type
       Procedure SetEdge(TriangleIndex, EdgeIndex:Integer; Visible:Boolean);
 
       Procedure Optimize(VertexCacheSize:Integer);
+      Procedure SubDivide();
+      Procedure Smooth();
 
-      Function LockVertices(Static:Boolean):PMeshVertex;
+      Function GetEdge(Const VertexA, VertexB:Integer):Integer;
+      Procedure GetVertexAdjancency(Const VertexIndex:Integer; Out Result:IntegerArrayObject);
+
+      Function LockVertices():VertexData;
       Procedure UnlockVertices();
 
       Procedure ResolveLinks();
@@ -578,6 +657,7 @@ Type
 		  Property DecalMap:Texture Read GetDecalMap Write SetDecalMap;
 		  Property TriplanarMap:Texture Read GetTriplanarMap Write SetTriplanarMap;
       Property NormalMap:Texture Read GetNormalMap Write SetNormalMap;
+      Property DisplacementMap:Texture Read GetDisplacementMap Write SetDisplacementMap;
       Property AlphaMap:Texture Read GetAlphaMap Write SetAlphaMap;
       Property SpecularMap:Texture Read GetSpecularMap Write SetSpecularMap;
       Property RefractionMap:Texture Read GetRefractionMap Write SetRefractionMap;
@@ -587,45 +667,45 @@ Type
       Property NoiseMap:Texture Read GetNoiseMap Write SetNoiseMap;
       Property GlowMap:Texture Read GetGlowMap Write SetGlowMap;
       Property LightMap:Texture Read GetLightMap Write SetLightmap;
-      Property ColorRamp:Texture Read GetColorRamp Write SetColorRamp;
+      Property DitherPatternMap:Texture Read GetDitherPatternMap Write SetDitherPatternMap;
+      Property ToonRamp:Texture Read GetToonRamp Write SetToonRamp;
 
       Property EmitterFX:TERRAString Read _EmitterFX Write _EmitterFX;
 
       Property AmbientColor:Color Read GetAmbientColor Write SetAmbientColor;
       Property DiffuseColor:Color  Read GetDiffuseColor Write SetDiffuseColor;
+      Property ShadowColor:Color Read GetShadowColor Write SetShadowColor;
 
-      Procedure CalculateTangents;
-      Procedure CalculateTriangleNormals;
+      Procedure CalculateTangents();
+      Procedure CalculateTriangleNormals();
+      Procedure CalculateAdjacency();
       //Procedure BuildBillboards;
 
-	  	Function AddVertex(A:MeshVertex; FastInsert:Boolean = False):Integer;
-  		Procedure AddTriangle(A,B,C:MeshVertex; FastInsert:Boolean = False);
-	  	Procedure AddQuad(A,B,C,D:MeshVertex; FastInsert:Boolean = False);
+	  	Function AddVertex():Integer;
+  		Procedure AddTriangle(Const A,B,C:Integer);
+	  	Procedure AddQuad(Const A,B,C,D:Integer);
       Procedure AddVertexPin(ID:Word);
 
       Procedure CullTriangles(Box:BoundingBox; Transform:Matrix4x4);
       Procedure UncullTriangles();
 
-      Function Render(Const Transform:Matrix4x4; State:MeshInstance):Boolean;
+      Function Render(Const Transform:Matrix4x4; TranslucentPass:Boolean; State:MeshInstance):Boolean;
 
-      Function DuplicateVertex(Index:Integer):Integer;
+      //Function DuplicateVertex(Index:Integer):Integer;
 
       Procedure OnContextLost();
 
       Function Intersect(Const R:Ray; Var T:Single; Const Transform:Matrix4x4):Boolean;
 
-      Function GetVertex(Index:Integer):MeshVertex;
       Function GetTriangle(Index:Integer):Triangle;
       Function GetTriangleNormal(Index:Integer):Vector3D;
-
-      Function GetVertexPointer(Index:Integer):PMeshVertex;
       Function GetTrianglePointer(Index:Integer):PTriangle;
 
-      Property VertexCount:Integer Read _VertexCount Write SetVertexCount;
+      Property VertexCount:Integer Read GetVertexCount Write SetVertexCount;
       Property TriangleCount:Integer Read _TriangleCount Write SetTriangleCount;
 
       Property Triangles:PTriangleArray Read GetTriangles;
-      Property Vertices:PMeshVertexArray Read GetVertices;
+      Property Vertices:VertexData Read GetVertices;
 
       Property GetBoundingBox:TERRA_BoundingBox.BoundingBox Read _BoundingBox;
 
@@ -706,10 +786,10 @@ Type
       Procedure UncullTriangles();
 
 //			Procedure AddMesh(MyMesh:Mesh; Const Transform:Matrix4x4);
-			Procedure AddTriangle(A,B,C:MeshVertex; Group:MeshGroup);
-			Procedure AddQuad(A,B,C,D:MeshVertex; Group:MeshGroup);
+			Procedure AddTriangle(Const A,B,C:Integer; Group:MeshGroup);
+			Procedure AddQuad(Const A,B,C,D:Integer; Group:MeshGroup);
 
-			Function AddGroup(Name:TERRAString=''):MeshGroup;
+			Function AddGroup(Format:VertexFormat; Name:TERRAString=''):MeshGroup;
       Function DuplicateGroup(Group:MeshGroup; Name:TERRAString=''):MeshGroup;
 			Function GetGroup(Name:TERRAString):MeshGroup; Overload;
       Function GetGroup(Index:Integer):MeshGroup; Overload;
@@ -732,6 +812,8 @@ Type
 			Procedure Clean();
 
       Procedure Optimize(VertexCacheSize:Integer);
+      Procedure SubDivide();
+      Procedure Smooth();
 
       Function HasBoneMorph(MorphID:Integer):Boolean;
       Function GetBoneMorph(MorphID, BoneID:Integer):Vector3D;
@@ -759,14 +841,14 @@ Type
 
   MeshMerger = Class(TERRAObject)
     Protected
-      Procedure ProcessVertex(Vertex:PMeshVertex; Source, Dest:MeshGroup); Virtual;
+      Procedure ProcessVertex(SourceVertex, DestVertex:MeshVertex; SourceGroup, DestGroup:MeshGroup); Virtual;
       Procedure ProcessTriangle(T:PTriangle; Source, Dest:MeshGroup); Virtual;
       Procedure ProcessGroup(Group:MeshGroup); Virtual;
 
     Public
       Procedure Release; Override;
 
-      Function Merge(Source, Dest:Mesh; IndividualGroup:Boolean = False; MaxVertsPerGroup:Integer = -1; UpdateBox:Boolean = True):IntegerArrayObject;
+      Function Merge(Source, Dest:Mesh; DestFormat:VertexFormat; IndividualGroup:Boolean = False; MaxVertsPerGroup:Integer = -1; UpdateBox:Boolean = True):IntegerArrayObject;
       Procedure MergeGroup(Source, Dest:MeshGroup; UpdateBox:Boolean = True);
   End;
 
@@ -776,7 +858,7 @@ Type
 
     Public
       Constructor Create(Const FXName:TERRAString; Target:MeshGroup);
-      Procedure Emit(Target:PParticle); Override;
+      Procedure Emit(Target:Particle); Override;
   End;
 
   CustomMeshFilter = Class(MeshFilter)
@@ -796,10 +878,10 @@ Type
       Function GetTriangle(GroupID, Index:Integer):Triangle; Override;
 
       Function GetVertexCount(GroupID:Integer):Integer; Override;
-      Function GetVertexFormat(GroupID:Integer):Cardinal; Override;
+      Function GetVertexFormat(GroupID:Integer):VertexFormat; Override;
       Function GetVertexPosition(GroupID, Index:Integer):Vector3D; Override;
       Function GetVertexNormal(GroupID, Index:Integer):Vector3D; Override;
-      Function GetVertexTangent(GroupID, Index:Integer):Vector3D; Override;
+      Function GetVertexTangent(GroupID, Index:Integer):Vector4D; Override;
       Function GetVertexBone(GroupID, Index:Integer):Integer; Override;
       Function GetVertexColor(GroupID, Index:Integer):Color; Override;
       Function GetVertexUV(GroupID, Index:Integer):Vector2D; Override;
@@ -850,14 +932,13 @@ Type
 
   Function CreatePlaneMesh(Const Normal:Vector3D; SubDivisions:Cardinal):Mesh;
 
-  Function SelectMeshShader(Group:MeshGroup; Position:Vector3D; Outline:Boolean; Const DestMaterial:MeshMaterial; UseTextureMatrix:Boolean):Shader;
+  Function SelectMeshShader(Group:MeshGroup; Position:Vector3D; Outline, TranslucentPass:Boolean; Const DestMaterial:MeshMaterial; UseTextureMatrix:Boolean):ShaderInterface;
 
   Function MakeWaterFlowBounds(Const Box:BoundingBox):Vector4D;
 
 Implementation
-Uses TERRA_Error, TERRA_Application, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
-  TERRA_CubeMap, TERRA_ShaderFactory, TERRA_OS,
-  TERRA_FileManager, TERRA_ColorGrading, TERRA_Solids;
+Uses TERRA_Error, TERRA_Application, TERRA_Log, TERRA_ShaderFactory, TERRA_OS,
+  TERRA_FileManager, TERRA_CRC32, TERRA_ColorGrading, TERRA_Solids;
 
 Type
   MeshDataBlockHandler = Function(Target:Mesh; Size:Integer; Source:Stream):Boolean;
@@ -942,11 +1023,17 @@ Function MeshReadGroup(Target:Mesh; Size:Integer; Source:Stream):Boolean;
 Var
   Group:MeshGroup;
   ID:Integer;
+  Format:Cardinal;
+  Name:TERRAString;
 Begin
   ID := Target._GroupCount;
   Inc(Target._GroupCount);
   SetLength(Target._Groups, Target._GroupCount);
-  Group := MeshGroup.Create(ID, Target);
+
+  Source.ReadCardinal(Format);
+  Source.ReadString(Name);
+
+  Group := MeshGroup.Create(ID, Target, VertexFormatFromFlags(Format), Name);
   Group.Load(Source);
   Target._Groups[ID] := Group;
 
@@ -1036,136 +1123,23 @@ Begin
 End;
 
 { Group handlers }
-Function GroupReadVertexPositions(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadVertexData(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
 Var
-  I:Integer;
+  I, Count:Integer;
+  Format:Cardinal;
   PX,PY,PZ:SmallInt;
-  CompressionRange:Vector3D;
+  P:Vector3D;
+  Temp:VertexData;
+  NewFormat:VertexFormat;
 Begin
-  Source.Read(@Target._VertexCount, 4);
-  Source.Read(@CompressionRange, SizeOf(Vector3D));
+  Target.Vertices.Read(Source);
 
-  SetLength(Target._Vertices, Target._VertexCount);
-
-  For I:=0 To Pred(Target._VertexCount) Do
+  If (GraphicsManager.Instance.Renderer.Settings.NormalMapping.Enabled)
+  And (Not Target.Vertices.HasAttribute(vertexTangent)) Then
   Begin
-    Source.Read(@PX, 2);
-    Source.Read(@PY, 2);
-    Source.Read(@PZ, 2);
-
-    Target._Vertices[I].Position.X := (PX/VertexCompressionLimit)* CompressionRange.X;
-    Target._Vertices[I].Position.Y := (PY/VertexCompressionLimit)* CompressionRange.Y;
-    Target._Vertices[I].Position.Z := (PZ/VertexCompressionLimit)* CompressionRange.Z;
-    Target._Vertices[I].Color := ColorWhite;
-    Target._Vertices[I].BoneIndex := 0;
-  End;
-
-  Result := True;
-End;
-
-Function GroupReadVertexNormals(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
-Var
-  I:Integer;
-  PX,PY,PZ:Shortint;
-Begin
-  For I:=0 To Pred(Target._VertexCount) Do
-  Begin
-    Source.Read(@PX, 1);
-    Source.Read(@PY, 1);
-    Source.Read(@PZ, 1);
-
-    Target._Vertices[I].Normal := VectorCreate(PX/127, PY/127, PZ/127);
-  End;
-  Result := True;
-End;
-
-Function GroupReadVertexUV0(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
-Var
-  I:Integer;
-  U,V:Byte;
-  //CompressionRange:Vector2D;
-Begin
-  //Source.Read(@CompressionRange, SizeOf(Vector2D));
-
-  For I:=0 To Pred(Target._VertexCount) Do
-  Begin
-    {Source.Read(@U, 1);
-    Source.Read(@V, 1);
-
-    Target._Vertices[I].TextureCoords := VectorCreate2D((U/255)* CompressionRange.X, (V/255)* CompressionRange.Y);}
-
-    Source.ReadSingle(Target._Vertices[I].TextureCoords.X);
-    Source.ReadSingle(Target._Vertices[I].TextureCoords.Y);
-  End;
-
-  Result := True;
-End;
-
-Function GroupReadVertexUV1(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
-Var
-  I:Integer;
-  U,V:Byte;
-//  CompressionRange:Vector2D;
-Begin
-  //Source.Read(@CompressionRange, SizeOf(Vector2D));
-
-  For I:=0 To Pred(Target._VertexCount) Do
-  Begin
-{    Source.Read(@U, 1);
-    Source.Read(@V, 1);
-
-    Target._Vertices[I].TextureCoords2 := VectorCreate2D((U/255)* CompressionRange.X, (V/255)* CompressionRange.Y);}
-
-    Source.ReadSingle(Target._Vertices[I].TextureCoords2.X);
-    Source.ReadSingle(Target._Vertices[I].TextureCoords2.Y);
-  End;
-
-  Result := True;
-End;
-
-Function GroupReadVertexTangents(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
-Var
-  I:Integer;
-  Handness:Shortint;
-  PX,PY,PZ:Shortint;
-Begin
-  For I:=0 To Pred(Target._VertexCount) Do
-  Begin
-    Source.Read(@PX, 1);
-    Source.Read(@PY, 1);
-    Source.Read(@PZ, 1);
-
-    Target._Vertices[I].Tangent := VectorCreate(PX/127, PY/127, PZ/127);
-
-    Source.Read(@Handness, 1);
-    Target._Vertices[I].Handness := Handness;
-  End;
-
-  Result := True;
-End;
-
-Function GroupReadVertexColors(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(Target._VertexCount) Do
-    Source.Read(@Target._Vertices[I].Color, SizeOf(Color));
-
-  Result := True;
-End;
-
-Function GroupReadVertexBoneIndices(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
-Var
-  I:Integer;
-  N:Shortint;
-Begin
-  For I:=0 To Pred(Target._VertexCount) Do
-  Begin
-    Source.Read(@N, 1);
-    If (N>MaxBones) Then
-      N := 0;
-
-    Target._Vertices[I].BoneIndex := N;
+    NewFormat := Target.Vertices.Format + [vertexFormatTangent];
+    Target.Vertices.ConvertToFormat(NewFormat);
+    Target._NeedsTangentSetup := True;
   End;
 
   Result := True;
@@ -1182,8 +1156,8 @@ Begin
   Source.Read(@Target._Morphs[N].ID, 4);
   Source.Read(@Target._Morphs[N].MorphType, 1);
 
-  SetLength(Target._Morphs[N].Values, Target._VertexCount);
-  For I:=0 To Pred(Target._VertexCount) Do
+  SetLength(Target._Morphs[N].Values, Target.VertexCount);
+  For I:=0 To Pred(Target.VertexCount) Do
   Begin
     Source.Read(@Target._Morphs[N].Values[I], SizeOf(Vector3D));
   End;
@@ -1195,9 +1169,9 @@ Function GroupReadVertexLinks(Target:MeshGroup; Size:Integer; Source:Stream):Boo
 Var
   I:Integer;
 Begin
-  SetLength(Target._Links, Target._VertexCount);
+  SetLength(Target._Links, Target.VertexCount);
 
-  For I:=0 To Pred(Target._VertexCount) Do
+  For I:=0 To Pred(Target.VertexCount) Do
   Begin
     Source.Read(@Target._Links[I], 4);
   End;
@@ -1299,6 +1273,18 @@ Begin
   Result := True;
 End;
 
+Function GroupReadMaterialDisplacement(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Var
+  S:TERRAString;
+Begin
+  S := '';
+
+  Source.ReadString(S);
+  Target._Material.DisplacementMap := TextureManager.Instance.GetTexture(S);
+
+  Result := True;
+End;
+
 Function GroupReadMaterialLightmap(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
 Var
   S:TERRAString;
@@ -1312,7 +1298,7 @@ Begin
   Begin
     Target._Material.LightMap.Uncompressed := True;
     Target._Material.LightMap.PreserveQuality := True;
-    Target._Material.LightMap.Wrap := False;
+    Target._Material.LightMap.WrapMode := wrapNothing;
     //Target._Material.LightMap.MipMapped := False;
   End;
 
@@ -1388,10 +1374,10 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.ColorRamp := TextureManager.Instance.GetTexture(S);
+  Target._Material.ToonRamp := TextureManager.Instance.GetTexture(S);
 
-  If Assigned(Target._Material.ColorRamp) Then
-    Target._Material.ColorRamp.Uncompressed := True;
+  If Assigned(Target._Material.ToonRamp) Then
+    Target._Material.ToonRamp.Uncompressed := True;
 
   Result := True;
 End;
@@ -1689,7 +1675,7 @@ End;
 Function MeshInstance.GetBlendMode(GroupID: Integer): Integer;
 Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
-    Result := blendBlend
+    Result := blendNone
   Else
     Result := _Groups[GroupID].Material.BlendMode;
 End;
@@ -1700,6 +1686,22 @@ Begin
     Exit;
 
   _Groups[GroupID].Material.BlendMode := Mode;
+End;
+
+Function MeshInstance.GetShadowColor(GroupID: Integer): Color;
+Begin
+  If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
+    Result := ColorBlack
+  Else
+    Result := _Groups[GroupID].Material.ShadowColor;
+End;
+
+Procedure MeshInstance.SetShadowColor(GroupID: Integer; MyColor: Color);
+Begin
+  If (GroupID<0) Or (GroupID >= _Mesh._GroupCount) Then
+    Exit;
+
+  _Groups[GroupID].Material.ShadowColor := MyColor;
 End;
 
 Procedure MeshInstance.SetDiffuseColor(MyColor:Color); {$IFDEF FPC}Inline;{$ENDIF}
@@ -2034,8 +2036,8 @@ Procedure MeshInstance.Update();
 Var
   I,J, N:Integer;
   S:Single;
-  B:MeshBone;
   M:Matrix4x4;
+  B:MeshBone;
 Begin
   If (_Mesh = Nil) Or (Not _Mesh.IsReady) Then
     Exit;
@@ -2048,6 +2050,8 @@ Begin
       Inc(I);
     End Else
     Begin
+      If Assigned(_FX[I]._Callback) Then
+        _FX[I]._Callback(_FX[I], _FX[I]._UserData);
       _FX[I].Release();
       _FX[I] := _FX[Pred(_FXCount)];
       Dec(_FXCount);
@@ -2132,7 +2136,7 @@ Begin
           
 
           If (MyLight.Param3.X>0) Then
-            N := N + N * 0.05 * Abs(Cos(RAD*(Trunc(GetTime()/MyLight.Param3.X) Mod 180)));
+            N := N + N * 0.05 * Abs(Cos(RAD*(Trunc(Application.GetTime()/MyLight.Param3.X) Mod 180)));
 
             //Flicker Param3.y ??? {FIXME}
 
@@ -2264,7 +2268,7 @@ Begin
     End;
 
     If (IsGroupTranslucent(I) = TranslucentPass) Then
-	    _Mesh._Groups[I].Render(Transform, Self);
+	    _Mesh._Groups[I].Render(Transform, TranslucentPass, Self);
   End;
 End;
 
@@ -2276,13 +2280,12 @@ Var
   M:Matrix4x4;
   Temp:Matrix4x4;
   S:Single;
+  Graphics:GraphicsManager;
 Begin
   If (_Mesh=Nil) Then
     Exit;
 
-  If (GraphicsManager.Instance.RenderStage=renderStageShadow) And (Not _CastShadows) Then
-    Exit;
-
+  Graphics := GraphicsManager.Instance;
 
   If Assigned(_Body) Then
   Begin
@@ -2297,8 +2300,8 @@ Begin
   If (_NeedsTransformUpdate) Then
     UpdateTransform();
 
-  If (GraphicsManager.Instance.RenderStage=renderStageShadow) And (_CastShadows)
-  And (GraphicsManager.Instance.Settings.DynamicShadows.Enabled) Then
+  (*If (Graphics.RenderStage=renderStageShadow) And (_CastShadows)
+  And (Graphics.Renderer.Settings.DynamicShadows.Enabled) Then
   Begin
     If (Not Assigned(_ShadowVolume)) Then
     Begin
@@ -2317,9 +2320,9 @@ Begin
 
     _ShadowVolume.Render;
     Exit;
-  End;
+  End; stencilshadows*)
 
-  If (GraphicsManager.Instance.Settings.AlphaFade.Enabled) Then
+  If (Graphics.Renderer.Settings.AlphaFade.Enabled) Then
   Begin
     If (_LOD>=2.0) Then
       _AlphaLODValue := 0.0
@@ -2335,12 +2338,12 @@ Begin
     _AlphaLODValue := 1.0;
 
   _StencilID := 0;
-  If (Not GraphicsManager.Instance.ReflectionActive) And (GraphicsManager.Instance.RenderStage<>renderStageShadow) Then
+  If (Not Graphics.ReflectionActive) And (Graphics.RenderStage<>renderStageShadow) Then
   Begin
     For I:=0 To Pred(_AttachCount) Do
     If (_AttachList[I].IsStencil) Then
     Begin
-      _StencilID := GraphicsManager.Instance.GenerateStencilID();
+      _StencilID := Graphics.GenerateStencilID();
       Break;
     End;
 
@@ -2348,7 +2351,7 @@ Begin
     For I:=0 To Pred(_Mesh._GroupCount) Do
     If (_Mesh._Groups[I].Flags And meshGroupStencilMask<>0) Then
     Begin
-      _StencilID := GraphicsManager.Instance.GenerateStencilID();
+      _StencilID := Graphics.GenerateStencilID();
       Break;
     End;
   End;
@@ -2356,13 +2359,12 @@ Begin
   If _StencilID>0 Then
   Begin
     //glClear(GL_STENCIL_BUFFER_BIT);
-    glEnable(GL_STENCIL_TEST);
-    glStencilFunc(GL_ALWAYS, _StencilID, $FFFFFFFF);
-    glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
-    glColorMask(False, False, False, False);
-    glDepthMask(False);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
+    Graphics.Renderer.SetStencilTest(True);
+    Graphics.Renderer.SetStencilFunction(compareAlways, _StencilID, $FFFFFFFF);
+    Graphics.Renderer.SetStencilOp(stencilReplace, stencilReplace, stencilReplace);
+    Graphics.Renderer.SetColorMask(False, False, False, False);
+    Graphics.Renderer.SetDepthMask(False);
+    Graphics.Renderer.SetCullMode(cullBack);
 
     For I:=0 To Pred(_AttachCount) Do
     If (_AttachList[I].IsStencil) Then
@@ -2375,20 +2377,20 @@ Begin
       Begin
         C := _AttachList[I].AttachMesh._Groups[J].DiffuseColor;
         _AttachList[I].AttachMesh._Groups[J].Flags := meshGroupColorOff;
-  	    _AttachList[I].AttachMesh._Groups[J].Render(M, Nil);
+  	    _AttachList[I].AttachMesh._Groups[J].Render(M, TranslucentPass, Nil);
       End;
     End;
 
     For I:=0 To Pred(_Mesh._GroupCount) Do
     If (_Mesh._Groups[I].Flags And meshGroupStencilMask<>0) Then
     Begin
-      Self._Mesh._Groups[I].Render(_Transform, Self);
-    End;                       
+      Self._Mesh._Groups[I].Render(_Transform, TranslucentPass, Self);
+    End;
 
-    glDepthMask(True);
-    glColorMask(True, True, True, True);
-    glStencilFunc(GL_NOTEQUAL, _StencilID, $FFFFFFFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+    Graphics.Renderer.SetDepthMask(True);
+    Graphics.Renderer.SetColorMask(True, True, True, True);
+    Graphics.Renderer.SetStencilFunction(compareDifferent, _StencilID, $FFFFFFFF);
+    Graphics.Renderer.SetStencilOp(stencilKeep, stencilKeep, stencilKeep);
   End;
 
 {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Rendering main mesh');{$ENDIF}
@@ -2396,14 +2398,14 @@ Begin
   If (_StencilID>0) Then
   Begin
     DrawMesh(_Transform, TranslucentPass, True);
-    glDisable(GL_STENCIL_TEST);
+    Graphics.Renderer.SetStencilTest(False);
   End;
 
   DrawMesh(_Transform, TranslucentPass, False);
 
 {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Main mesh done');{$ENDIF}
 
-  If (_RenderTrails) And (TranslucentPass) And (GraphicsManager.Instance.RenderStage=renderStageDiffuse) Then
+  If (_RenderTrails) And (TranslucentPass) And (Graphics.RenderStage=renderStageDiffuse) Then
   Begin
     For I:=0 To Pred(_Mesh.GroupCount) Do
       _Groups[I].TempAlpha := _Groups[I].Material.DiffuseColor.A;
@@ -2455,8 +2457,8 @@ Begin
     For J:=0 To Pred(_AttachList[I].AttachMesh._GroupCount) Do
     Begin
       C := _AttachList[I].AttachMesh._Groups[J].DiffuseColor;
-      _AttachList[I].AttachMesh._Groups[J].DiffuseColor := ColorScale(_AttachList[I].AttachMesh._Groups[J].DiffuseColor, _AttachList[I].Color);
-	    _AttachList[I].AttachMesh._Groups[J].Render(M, Nil);
+      _AttachList[I].AttachMesh._Groups[J].DiffuseColor := ColorMultiply(_AttachList[I].AttachMesh._Groups[J].DiffuseColor, _AttachList[I].Color);
+	    _AttachList[I].AttachMesh._Groups[J].Render(M, TranslucentPass, Nil);
       _AttachList[I].AttachMesh._Groups[J].DiffuseColor := C;
     End;
   End;
@@ -2635,12 +2637,12 @@ Begin
     Result := _Groups[GroupID].Material.AlphaMap;
 End;
 
-Function MeshInstance.GetColorRamp(GroupID: Integer): Texture;
+Function MeshInstance.GetToonRamp(GroupID: Integer): Texture;
 Begin
   If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
     Result := Nil
   Else
-    Result := _Groups[GroupID].Material.ColorRamp;
+    Result := _Groups[GroupID].Material.ToonRamp;
 End;
 
 Function MeshInstance.GetDecalMap(GroupID: Integer): Texture;
@@ -2675,6 +2677,15 @@ Begin
     Result := _Groups[GroupID].Material.LightMap;
 End;
 
+
+Function MeshInstance.GetDitherPatternMap(GroupID: Integer): Texture;
+Begin
+  If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
+    Result := Nil
+  Else
+    Result := _Groups[GroupID].Material.DitherPatternMap;
+End;
+
 Function MeshInstance.GetNormalMap(GroupID: Integer): Texture;
 Begin
   If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
@@ -2682,6 +2693,15 @@ Begin
   Else
     Result := _Groups[GroupID].Material.NormalMap;
 End;
+
+Function MeshInstance.GetDisplacementMap(GroupID: Integer): Texture;
+Begin
+  If (GroupID<0) Or (_Mesh = Nil)Or (GroupID>=_Mesh._GroupCount) Then
+    Result := Nil
+  Else
+    Result := _Groups[GroupID].Material.DisplacementMap;
+End;
+
 
 Function MeshInstance.GetRefractionMap(GroupID: Integer): Texture;
 Begin
@@ -2755,12 +2775,12 @@ Begin
   _Groups[GroupID].Material.AlphaMap := Map;
 End;
 
-Procedure MeshInstance.SetColorRamp(GroupID: Integer; Map: Texture);
+Procedure MeshInstance.SetToonRamp(GroupID: Integer; Map: Texture);
 Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
-  _Groups[GroupID].Material.ColorRamp := Map;
+  _Groups[GroupID].Material.ToonRamp := Map;
 End;
 
 Procedure MeshInstance.SetDecalMap(GroupID: Integer; Map:Texture);
@@ -2795,12 +2815,29 @@ Begin
   _Groups[GroupID].Material.LightMap := Map;
 End;
 
+Procedure MeshInstance.SetDitherPatternMap(GroupID: Integer; Map: Texture);
+Begin
+  If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
+    Exit;
+
+  _Groups[GroupID].Material.DitherPatternMap := Map;
+End;
+
 Procedure MeshInstance.SetNormalMap(GroupID: Integer; Map: Texture);
 Begin
   If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
 
   _Groups[GroupID].Material.NormalMap := Map;
+End;
+
+
+Procedure MeshInstance.SetDisplacementMap(GroupID: Integer; Map: Texture);
+Begin
+  If (GroupID<0) Or (_Mesh = Nil) Or (GroupID >= _Mesh._GroupCount) Then
+    Exit;
+
+  _Groups[GroupID].Material.DisplacementMap := Map;
 End;
 
 Procedure MeshInstance.SetRefractionMap(GroupID: Integer; Map: Texture);
@@ -2933,207 +2970,173 @@ Begin
   Clean;
 End;
 
-Procedure MeshGroup.SetupSkeleton;
+(*Procedure MeshGroup.SetupSkeleton;
 Var
-  Index, J:Integer;
   M:Matrix4x4;
   Skel:MeshSkeleton;
+  It:VertexIterator;
+  V:MeshVertex;
 Begin
   _NeedsSkeletonSetup := False;
 
   Skel := _Owner.Skeleton;
 
-  If (Skel.BoneCount=0) Then
+  If (Skel.BoneCount=0) Or (Not Self.Vertices.HasAttribute(vertexBone)) Then
     Exit;
 
-
-  For J:=0 To Pred(_VertexCount) Do
+  It := Self.Vertices.GetIterator(MeshVertex);
+  While It.HasNext() Do
   Begin
-    Index := Trunc(_Vertices[J].BoneIndex);
-	  If (Index>0) Then
-    Begin
-      M := Skel.GetBone(Pred(Index)).AbsoluteMatrix;
-      _Vertices[J].Position := M.Transform(_Vertices[J].Position);
-      _Vertices[J].Normal := M.TransformNormal(_Vertices[J].Normal);
-    End;
-  End;
-End;
+    V := MeshVertex(It.Value);
 
-Var
-  TV:Array[0..1024*64] Of MeshVertex;
+    If (V.BoneIndex>0) And (V.BoneIndex<=Skel.BoneCount) Then
+    Begin
+      M := Skel.GetBone(Pred(V.BoneIndex)).AbsoluteMatrix;
+
+      V.Position := M.Transform(V.Position);
+      V.Normal := M.TransformNormal(V.Normal);
+    End Else
+      Log(logWarning, 'Mesh', 'Invalid bone index '+IntToString(It.Position)+ ' in mesh '+Self.Name);
+  End;
+  ReleaseObject(It);
+End;*)
 
 Procedure MeshGroup.DrawGeometry(State:MeshInstance; ShowWireframe:Boolean);
 Var
-  I, N:Integer;
   M:Matrix4x4;
   PositionHandle, UVHandle, UVHandle2, ColorHandle, NormalHandle:Integer;
+  Graphics:GraphicsManager;
+  It:VertexIterator;
+  V:MeshVertex;
+  Target:VertexData;
 Begin
   If (_CullGeometry) And (_VisibleTriangleCount>=_TriangleCount) Then
   Begin
     _CullGeometry := False;
   End;
 
-  If (Not GraphicsManager.Instance.Settings.VertexBufferObject.Enabled) Then
-  Begin
-    If (_Owner.Skeleton.BoneCount > 0 ) And (Assigned(State)) Then
-    Begin
-      For I:=0 To Pred(_VertexCount) Do
-      Begin
-        TV[I] := _Vertices[I];
-        N := Trunc(TV[I].BoneIndex);
-        If (State.Animation = Nil) Or (State.Animation.Root = Nil) Then
-          M := _Owner.Skeleton.BindPose[N]
-        Else
-          M := State.Animation.Transforms[N];
+  Graphics := GraphicsManager.Instance;
 
-        TV[I].Position := M.Transform(TV[I].Position);
-        TV[I].Normal := M.TransformNormal(TV[I].Normal);
-      End;
-    End Else
-    Begin
-      For I:=0 To Pred(_VertexCount) Do
-        TV[I] := _Vertices[I];
-    End;
-
-    If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
-    Begin
-{$IFDEF PC}
-      {If (LightManager.Instance.Sun.Enabled) Then
-      Begin
-        glEnable(GL_LIGHT0);
-        glEnable(GL_LIGHTING);
-      End Else}
-      Begin
-        glDisable(GL_LIGHTING);
-      End;
-{$ENDIF}
-    End;
-
-  {$IFDEF PC}
-    If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
-    Begin
-      glEnableClientState(GL_VERTEX_ARRAY);
-      glEnableClientState(GL_COLOR_ARRAY);
-      glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-
-      glVertexPointer(3, GL_FLOAT, SizeOf(MeshVertex), @TV[0].Position);
-      glTexCoordPointer(2, GL_FLOAT, SizeOf(MeshVertex), @TV[0].TextureCoords);
-      glColorPointer(4, GL_UNSIGNED_BYTE, SizeOf(MeshVertex), @TV[0].Color);
-    End Else
-  {$ENDIF}
-    Begin
-      PositionHandle := _Shader.GetAttribute('terra_position');
-      UVHandle := _Shader.GetAttribute('terra_UV0');
-      UVHandle2 := _Shader.GetAttribute('terra_UV1');
-      ColorHandle := _Shader.GetAttribute('terra_color');
-      NormalHandle := _Shader.GetAttribute('terra_normal');
-
-      glVertexAttribPointer(PositionHandle, 3, GL_FLOAT, False, SizeOf(MeshVertex), @(TV[0].Position));
-
-      If (UVHandle>=0) Then
-        glVertexAttribPointer(UVHandle, 2, GL_FLOAT, False, SizeOf(MeshVertex), @(TV[0].TextureCoords));
-
-      If (UVHandle2>=0) Then
-        glVertexAttribPointer(UVHandle2, 2, GL_FLOAT, False, SizeOf(MeshVertex), @(TV[0].TextureCoords2));
-
-      If (NormalHandle>=0) Then
-        glVertexAttribPointer(NormalHandle, 3, GL_FLOAT, False, SizeOf(MeshVertex), @(TV[0].Normal));
-
-      If (ColorHandle>=0) Then
-        glVertexAttribPointer(ColorHandle, 4, GL_UNSIGNED_BYTE, True, SizeOf(MeshVertex), @(TV[0].Color));
-    End;
-
-    If (_CullGeometry) And (_VisibleTriangles<>Nil)  Then
-    Begin
-      If _VisibleTriangleCount>0 Then
-      Begin
-        glDrawElements(GL_TRIANGLES, _VisibleTriangleCount*3, GL_UNSIGNED_SHORT, @_VisibleTriangles[0]);
-        GraphicsManager.Instance.Internal(0 , _VisibleTriangleCount);
-      End;
-    End Else
-    Begin
-      glDrawElements(GL_TRIANGLES, _TriangleCount*3, GL_UNSIGNED_SHORT, @_Triangles[0]);
-      GraphicsManager.Instance.Internal(0 , _TriangleCount);
-    End;
-
-    {$IFDEF DEBUG_GRAPHICS}
-    Log(logDebug, 'Mesh', 'glDrawElements: '+IntToString(_TriangleCount*3));
-    {$ENDIF}
-
-  {$IFDEF PC}
-    If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
-    Begin
-      glDisableClientState(GL_VERTEX_ARRAY);
-      glDisableClientState(GL_COLOR_ARRAY);
-      glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    End;
-  {$ENDIF}
-  End Else
+  If (Self._GPUSkinning) Then
   Begin
     If Not Assigned(_Buffer) Then
     Begin
-      _Buffer := VBO.Create(_Vertices, _Triangles,  _Edges, _VertexCount, _TriangleCount, SizeOf(MeshVertex), (Self.Flags And meshGroupDynamic<>0));
-      _Buffer.AddAttribute('terra_position', 3, GL_FLOAT, False);
-      _Buffer.AddAttribute('terra_UV0', 2, GL_FLOAT, False);
-      _Buffer.AddAttribute('terra_UV1', 2, GL_FLOAT, False);
-      _Buffer.AddAttribute('terra_color', 4, GL_UNSIGNED_BYTE, True);
-      _Buffer.AddAttribute('terra_normal', 3, GL_FLOAT, False);
-      _Buffer.AddAttribute('terra_boneIndex', 1, GL_FLOAT, False, Not _Owner._Skinning);
-      _Buffer.AddAttribute('terra_tangent', 4, GL_FLOAT, False, Not _Owner._NormalMapping);
+      _Buffer := Graphics.Renderer.CreateVertexBuffer();
+
+      If Assigned(_Buffer) Then
+        _Buffer.Generate(_Vertices, _Triangles,  _Edges, _TriangleCount, (Self.Flags And meshGroupDynamic<>0));
     End;
 
     If (_CullGeometry) And (Assigned(_VisibleTriangles)) Then
       _Buffer.SetIndexList(_VisibleTriangles, _VisibleTriangleCount)
     Else
       _Buffer.SetIndexList(_Triangles, _TriangleCount);
-      
+
     _Buffer.Draw(ShowWireframe);
+
+    Exit;
   End;
+
+  Target := Self.LockVertices();
+  If (_Owner.Skeleton.BoneCount > 0 ) And (Assigned(State)) And (Target.HasAttribute(vertexBone)) Then
+  Begin
+    It := Target.GetIterator(MeshVertex);
+    While It.HasNext() Do
+    Begin
+      V := MeshVertex(It.Value);
+
+      If V.BoneIndex>0 Then
+      Begin
+        If (State.Animation = Nil) Or (State.Animation.Root = Nil) Then
+          M := _Owner.Skeleton.BindPose[V.BoneIndex]
+        Else
+          M := State.Animation.Transforms[V.BoneIndex];
+
+
+        V.Position := M.Transform(V.Position );
+        V.Normal := M.TransformNormal(V.Normal);
+      End;
+    End;
+    ReleaseObject(It);
+  End;
+  Self.UnlockVertices();
+
+    Graphics.Renderer.SetVertexSource(Target);
+    If (_CullGeometry) And (_VisibleTriangles<>Nil)  Then
+    Begin
+      Graphics.Renderer.DrawIndexedSource(renderTriangles, _VisibleTriangleCount*3, @_VisibleTriangles[0]);
+    End Else
+    Begin
+      Graphics.Renderer.DrawIndexedSource(renderTriangles, _TriangleCount*3, @_Triangles[0]);
+    End;
+
+{$IFDEF PC}
+    {If (Not Graphics.Renderer.Features.Shaders.Avaliable) Then
+    Begin
+      If (LightManager.Instance.Sun.Enabled) Then
+      Begin
+        glEnable(GL_LIGHT0);
+        glEnable(GL_LIGHTING);
+      End Else
+      Begin
+        glDisable(GL_LIGHTING);
+      End;
+    End;}
+{$ENDIF}
+
+{    Graphics.Renderer.SetSourceVertexSize(SizeOf(MeshVertex));
+    Graphics.Renderer.SetAttributeSource(TERRA_POSITION_ATTRIBUTE, typeVector3D, @(TV[0].Position));
+    Graphics.Renderer.SetAttributeSource(TERRA_NORMAL_ATTRIBUTE, typeVector3D, @(TV[0].Normal));
+    Graphics.Renderer.SetAttributeSource(TERRA_UV0_ATTRIBUTE, typeVector2D, @(TV[0].TextureCoords));
+    Graphics.Renderer.SetAttributeSource(TERRA_UV1_ATTRIBUTE, typeVector2D, @(TV[0].TextureCoords2));
+    Graphics.Renderer.SetAttributeSource(TERRA_COLOR_ATTRIBUTE, typeColor, @(TV[0].Color));
+    Graphics.Renderer.SetAttributeSource(TERRA_NORMAL_ATTRIBUTE, typeVector3D, @(TV[0].Normal));
+    Graphics.Renderer.SetAttributeSource(TERRA_TANGENT_ATTRIBUTE, typeVector4D, @(TV[0].Tangent));}
 End;
 
-Function MeshGroup.DuplicateVertex(Index:Integer):Integer;
+{Function MeshGroup.DuplicateVertex(Index:Integer):Integer;
 Begin
   Result := VertexCount;
-  Inc(_VertexCount);
-  SetLength(_Vertices, _VertexCount);
-  _Vertices[Result] := _Vertices[Index];
-End;
 
-Function MeshGroup.AddVertex(A:MeshVertex; FastInsert:Boolean):Integer;
-Const
+  Self.SetVertexCount(Result + 1);
+  Self.Vertices[
+  _Vertices[Result] := _Vertices[Index];
+End;}
+
+Function MeshGroup.AddVertex():Integer;
+{Const
 	Epsilon = 0.001;
 Var
-	I:Integer;
+	I:Integer;}
 Begin
-  If Not FastInsert Then
+{  If Not FastInsert Then
 	For I:=0 To Pred(_VertexCount) Do
 	If (_Vertices[I].Position.Distance(A.Position)<Epsilon) And (_Vertices[I].TextureCoords.Distance(A.TextureCoords)<Epsilon)
 	And (_Vertices[I].Normal.Distance(A.Normal)<Epsilon)	Then
 	Begin
 		Result := I;
 		Exit;
-	End;
+	End;}
 
-	Inc(_VertexCount);
-	SetLength(_Vertices, _VertexCount);
-	Result := Pred(_VertexCount);
-	_Vertices[Result] := A;
+	Result := _Vertices.Count;
+  _Vertices.Resize(_Vertices.Count + 1);
+  //_Vertices.GetVector3D(Result, vertexPosition)^ := A;
 End;
 
-Procedure MeshGroup.AddTriangle(A,B,C:MeshVertex; FastInsert:Boolean);
+Procedure MeshGroup.AddTriangle(Const A,B,C:Integer);
 Begin
 	Inc(_TriangleCount);
   _VisibleTriangleCount := _TriangleCount;
 	SetLength(_Triangles, _TriangleCount);
-	_Triangles[Pred(_TriangleCount)].Indices[0] := AddVertex(A, FastInsert);
-	_Triangles[Pred(_TriangleCount)].Indices[1] := AddVertex(B, FastInsert);
-	_Triangles[Pred(_TriangleCount)].Indices[2] := AddVertex(C, FastInsert);
+	_Triangles[Pred(_TriangleCount)].Indices[0] := A; //AddVertex(A, FastInsert);
+	_Triangles[Pred(_TriangleCount)].Indices[1] := B; //AddVertex(B, FastInsert);
+	_Triangles[Pred(_TriangleCount)].Indices[2] := C; //AddVertex(C, FastInsert);
 End;
 
-Procedure MeshGroup.AddQuad(A,B,C,D:MeshVertex; FastInsert:Boolean);
+Procedure MeshGroup.AddQuad(Const A,B,C,D:Integer);
 Begin
-	AddTriangle(A, B, C, FastInsert);
-	AddTriangle(B, C, D, FastInsert);
+	AddTriangle(A, B, C);
+	AddTriangle(B, C, D);
 End;
 
 Procedure MeshGroup.AddVertexPin(ID:Word);
@@ -3143,28 +3146,12 @@ Begin
   _Pins[Pred(_PinCount)] := ID;
 End;
 
-Function MeshGroup.GetVertex(Index:Integer):MeshVertex;  {$IFDEF FPC} Inline;{$ENDIF}
-Begin
-  If (Index>=0) And (Index<_VertexCount) Then
-    Result := _Vertices[Index]
-   Else
-   	FillChar(Result, SizeOf(Result), 0);
-End;
-
 Function MeshGroup.GetTriangle(Index:Integer):Triangle;  {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   If (Index>=0) And (Index<_TriangleCount) Then
     Result := _Triangles[Index]
    Else
    	FillChar(Result, SizeOf(Result), 0);
-End;
-
-Function MeshGroup.GetVertexPointer(Index: Integer): PMeshVertex;
-Begin
-  If (Index>=0) And (Index<_VertexCount) And (Index<Length(_Vertices)) Then
-    Result :=  @_Vertices[Index]
-  Else
-    Result := Nil;
 End;
 
 Function MeshGroup.GetTrianglePointer(Index: Integer): PTriangle;
@@ -3182,42 +3169,20 @@ End;
 
 Procedure MeshGroup.Clean;
 Begin
-	SetLength(_Vertices, 0);
 	SetLength(_Triangles, 0);
   SetLength(_Morphs, 0);
   SetLength(_Links, 0);
-	_VertexCount := 0;
 	_TriangleCount := 0;
   _VisibleTriangleCount := 0;
   _MorphCount := 0;
 
-  If Assigned(_Buffer) Then
-  Begin
-    _Buffer.Release;
-    _Buffer := Nil;
-  End;
+  ReleaseObject(_Buffer);
+	ReleaseObject(_Vertices);
 
 {$IFDEF PCs}
-  If Assigned(_Fur) Then
-  Begin
-    _Fur.Release;
-    _Fur := Nil;
-  End;
-
-  If Assigned(_Cloth) Then
-  Begin
-    _Cloth.Release;
-    _Cloth := Nil;
-  End;
+  ReleaseObject(_Fur);
+  ReleaseObject(_Cloth);
 {$ENDIF}
-End;
-
-Function MeshGroup.GetVertices:PMeshVertexArray;
-Begin
-  If (_VertexCount>0) Then
-    Result := @(_Vertices[0])
-  Else
-    Result := Nil;
 End;
 
 Function MeshGroup.GetTriangles:PTriangleArray;
@@ -3230,8 +3195,7 @@ End;
 
 Procedure MeshGroup.SetVertexCount(Count:Integer);
 Begin
-  _VertexCount := Count;
-  SetLength(_Vertices, _VertexCount);
+  Self.Vertices.Resize(Count);
 End;
 
 Procedure MeshGroup.SetTriangleCount(Count:Integer);
@@ -3250,8 +3214,7 @@ Var
   Tag:FileHeader;
   Handler:GroupDataBlockHandler;
 Begin
-  Source.ReadString(_Name);
-  Source.Read(@Flags, 4);
+  Source.ReadCardinal(Flags);
 
   _Material.AmbientColor := ColorWhite;
   _Material.DiffuseColor := ColorWhite;
@@ -3265,7 +3228,7 @@ Begin
     If (Tag=tagGroupEnd) Then
       Break;
 
-    Source.Read(@Size, 4);
+    Source.ReadInteger(Size);
     Handler := GetMeshGroupHandler(Tag);
     Handler(Self, Size, Source);
   Until (Source.EOF);
@@ -3282,7 +3245,10 @@ Var
   SX,SY,SZ:Shortint;
   PU,PV:Byte;
   PositionRange:Vector3D;
+  P:PVector3D;
 //  UVRange:Vector2D;
+
+  It:VertexIterator;
 
   Procedure WriteTexture(Tag:FileHeader; Tex:Texture);
   Begin
@@ -3291,186 +3257,32 @@ Var
 
     Size := Succ(Length(Tex.Name));
     Dest.Write(@Tag, 4);
-    Dest.Write(@Size, 4);
+    Dest.WriteInteger(Size);
     Dest.WriteString(Tex.Name);
   End;
 Begin
   Self.UpdateBoundingBox();
 
+  Dest.WriteCardinal(VertexFormatToFlags(Vertices.Format));
   Dest.WriteString(_Name);
-  Dest.Write(@Flags, 4);
+  Dest.WriteCardinal(Flags);
 
   {$IFDEF CONSOLEOUTPUT}
-  WriteLn('Vertices: ', _VertexCount);
-  WriteLn('Triangles: ', _TriangleCount, ' [Ofs: ',Dest.Position,']');
+{  WriteLn('Vertices: ', _VertexCount);
+  WriteLn('Triangles: ', _TriangleCount, ' [Ofs: ',Dest.Position,']');}
   {$ENDIF}
 
-  Tag := tagVertexPositions;
-  Size := 4 + _VertexCount * 2 * 3;
-
-  PositionRange := VectorZero;
-  For I:=0 To Pred(_VertexCount) Do
-  Begin
-    PositionRange.X := FloatMax(PositionRange.X, Abs(_Vertices[I].Position.X));
-    PositionRange.Y := FloatMax(PositionRange.Y, Abs(_Vertices[I].Position.Y));
-    PositionRange.Z := FloatMax(PositionRange.Z, Abs(_Vertices[I].Position.Z));
-  End;
+  Tag := tagVertexData;
+  Size := 4 * 2 + Self.Vertices.Size * Self.Vertices.Count;
 
   Dest.Write(@Tag, 4);
-  Dest.Write(@Size, 4);
-  Dest.Write(@_VertexCount, 4);
-  Dest.Write(@PositionRange, SizeOf(Vector3D));
-
-  For I:=0 To Pred(_VertexCount) Do
-  Begin
-    PX := Trunc(SafeDiv(_Vertices[I].Position.X, PositionRange.X)*VertexCompressionLimit);
-    PY := Trunc(SafeDiv(_Vertices[I].Position.Y, PositionRange.Y)*VertexCompressionLimit);
-    PZ := Trunc(SafeDiv(_Vertices[I].Position.Z, PositionRange.Z)*VertexCompressionLimit);
-    Dest.Write(@PX, 2);
-    Dest.Write(@PY, 2);
-    Dest.Write(@PZ, 2);
-  End;
-
-  Tag := tagVertexNormals;
-  Size := _VertexCount * 3;
-  Dest.Write(@Tag, 4);
-  Dest.Write(@Size, 4);
-  For I:=0 To Pred(_VertexCount) Do
-  Begin
-    SX := Trunc(_Vertices[I].Normal.X*127);
-    SY := Trunc(_Vertices[I].Normal.Y*127);
-    SZ := Trunc(_Vertices[I].Normal.Z*127);
-    Dest.Write(@SX, 1);
-    Dest.Write(@SY, 1);
-    Dest.Write(@SZ, 1);
-  End;
-
-  Tag := tagVertexUVs0;
-  Size := _VertexCount * 2;
-
-(*  UVRange := VectorCreate2D(0, 0);
-  For I:=0 To Pred(_VertexCount) Do
-  Begin
-    UVRange.X := FloatMax(UVRange.X, Abs(_Vertices[I].TextureCoords.X));
-    UVRange.Y := FloatMax(UVRange.Y, Abs(_Vertices[I].TextureCoords.Y));
-  End;*)
-
-  Dest.Write(@Tag, 4);
-  Dest.Write(@Size, 4);
-  //Dest.Write(@UVRange, SizeOf(Vector2D));
-
-  For I:=0 To Pred(_VertexCount) Do
-  Begin
-    If (_Vertices[I].TextureCoords.X<0) Or (_Vertices[I].TextureCoords.Y<0) Then
-    Begin
-      IntTOString(2);
-    End;
-
-    If (_Vertices[I].TextureCoords.X<0) Then
-      _Vertices[I].TextureCoords.X := 0;
-
-    If (_Vertices[I].TextureCoords.Y<0) Then
-      _Vertices[I].TextureCoords.Y := 0;
-
-    {PU := Trunc(SafeDiv(_Vertices[I].TextureCoords.X,UVRange.X)*255);
-    PV := Trunc(SafeDiv(_Vertices[I].TextureCoords.Y,UVRange.Y)*255);
-    Dest.Write(@PU, 1);
-    Dest.Write(@PV, 1);}
-
-    Dest.WriteSingle(_Vertices[I].TextureCoords.X);
-    Dest.WriteSingle(_Vertices[I].TextureCoords.Y);
-  End;
-
-  If (Flags And meshGroupLightmap<>0) Or (Flags And meshGroupAlphaMap<>0) Then
-  Begin
-    Tag := tagVertexUVs1;
-    Size := _VertexCount * 2;
-
-    {UVRange := VectorCreate2D(0, 0);
-    For I:=0 To Pred(_VertexCount) Do
-    Begin
-      UVRange.X := FloatMax(UVRange.X, Abs(_Vertices[I].TextureCoords2.X));
-      UVRange.Y := FloatMax(UVRange.Y, Abs(_Vertices[I].TextureCoords2.Y));
-    End;}
-
-    Dest.Write(@Tag, 4);
-    Dest.Write(@Size, 4);
-    //Dest.Write(@UVRange, SizeOf(Vector2D));
-
-    For I:=0 To Pred(_VertexCount) Do
-    Begin
-      Dest.WriteSingle(_Vertices[I].TextureCoords2.X);
-      Dest.WriteSingle(_Vertices[I].TextureCoords2.Y);
-
-{      PU := Trunc(SafeDiv(_Vertices[I].TextureCoords2.X,UVRange.X)*255);
-      PV := Trunc(SafeDiv(_Vertices[I].TextureCoords2.Y,UVRange.Y)*255);
-      Dest.Write(@PU, 1);
-      Dest.Write(@PV, 1);}
-    End;
-  End;
-
-  Tag := tagVertexTangents;
-  Size := _VertexCount * ( 3 * 2 + 1);
-  Dest.Write(@Tag, 4);
-  Dest.Write(@Size, 4);
-  For I:=0 To Pred(_VertexCount) Do
-  Begin
-    SX := Trunc(_Vertices[I].Tangent.X*127);
-    SY := Trunc(_Vertices[I].Tangent.Y*127);
-    SZ := Trunc(_Vertices[I].Tangent.Z*127);
-    Dest.Write(@SX, 1);
-    Dest.Write(@SY, 1);
-    Dest.Write(@SZ, 1);
-
-    Handness := Trunc(_Vertices[I].Handness);
-    Dest.Write(@Handness, 1);
-  End;
-
-  ShouldStore := False;
-  For I:=0 To Pred(_VertexCount) Do
-  If (Cardinal(_Vertices[I].Color) <> Cardinal(ColorWhite)) Then
-  Begin
-    ShouldStore := True;
-    Break;
-  End;
-
-  If ShouldStore Then
-  Begin
-    Tag := tagVertexColors;
-    Size := _VertexCount * SizeOf(Color);
-    Dest.Write(@Tag, 4);
-    Dest.Write(@Size, 4);
-    For I:=0 To Pred(_VertexCount) Do
-      Dest.Write(@_Vertices[I].Color, SizeOf(Color));
-  End;
-
-  ShouldStore := False;
-  For I:=0 To Pred(_VertexCount) Do
-  If (_Vertices[I].BoneIndex>0) Then
-  Begin
-    ShouldStore := True;
-    Break;
-  End;
-
-  If ShouldStore Then
-  Begin
-    Tag := tagVertexBoneIndices;
-    Size := _VertexCount;
-    Dest.Write(@Tag, 4);
-    Dest.Write(@Size, 4);
-    For I:=0 To Pred(_VertexCount) Do
-    Begin
-      Index := Trunc(_Vertices[I].BoneIndex);
-      Dest.Write(@Index, 1);
-    End;
-  End;
-
-  //tagVertexBoneWeights  = 'VBWE';
+  Dest.WriteInteger(Size);
+  Self.Vertices.Write(Dest);
 
   Tag := tagTriangleIndices;
   Size := 4 + _TriangleCount * SizeOf(Triangle);
   Dest.Write(@Tag, 4);
-  Dest.Write(@Size, 4);
+  Dest.WriteInteger(Size);
   Dest.Write(@_TriangleCount, 4);
   For I:=0 To Pred(_TriangleCount) Do
     Dest.Write(@_Triangles[I], SizeOf(Triangle));
@@ -3481,7 +3293,7 @@ Begin
     Tag := tagTriangleNormals;
     Size := _TriangleCount * SizeOf(Vector3D);
     Dest.Write(@Tag, 4);
-    Dest.Write(@Size, 4);
+    Dest.WriteInteger(Size);
     For I:=0 To Pred(_TriangleCount) Do
       Dest.Write(@_TriangleNormals[I], SizeOf(Vector3D));
   End;
@@ -3492,7 +3304,7 @@ Begin
     Tag := tagTriangleEdges;
     Size := _TriangleCount * SizeOf(TriangleEdgesState);
     Dest.Write(@Tag, 4);
-    Dest.Write(@Size, 4);
+    Dest.WriteInteger(Size);
     For I:=0 To Pred(_TriangleCount) Do
       Dest.Write(@_Edges[I], SizeOf(TriangleEdgesState));
   End;
@@ -3504,7 +3316,7 @@ Begin
   Tag := tagMaterialDiffuse;
   Size := SizeOf(Color) + Succ(Length(Name));
   Dest.Write(@Tag, 4);
-  Dest.Write(@Size, 4);
+  Dest.WriteInteger(Size);
   Dest.Write(@_Material.DiffuseColor, SizeOf(Color));
   Dest.WriteString(Name);
 
@@ -3514,7 +3326,7 @@ Begin
     Size := 1;
     PU := Byte(_Material.BlendMode);
     Dest.Write(@Tag, 4);
-    Dest.Write(@Size, 4);
+    Dest.WriteInteger(Size);
     Dest.Write(@PU, 1);
   End;
 
@@ -3523,33 +3335,34 @@ Begin
     Tag := tagMaterialParticles;
     Size := Succ(Length(_EmitterFX));
     Dest.Write(@Tag, 4);
-    Dest.Write(@Size, 4);
+    Dest.WriteInteger(Size);
     Dest.WriteString(EmitterFX);
   End;
 
   WriteTexture(tagMaterialTriplanar, _Material.TriplanarMap);
   WriteTexture(tagMaterialSpecular, _Material.SpecularMap);
   WriteTexture(tagMaterialBump, _Material.NormalMap);
+  WriteTexture(tagMaterialDisplacement, _Material.DisplacementMap);
   WriteTexture(tagMaterialLightmap, _Material.LightMap);
   WriteTexture(tagMaterialRefraction, _Material.RefractionMap);
   WriteTexture(tagMaterialReflective, _Material.ReflectiveMap);
   WriteTexture(tagMaterialGlow, _Material.GlowMap);
   WriteTexture(tagMaterialAlphaMap, _Material.AlphaMap);
   WriteTexture(tagMaterialEnvMap, _Material.EnviromentMap);
-  WriteTexture(tagMaterialRamp, _Material.ColorRamp);
+  WriteTexture(tagMaterialRamp, _Material.ToonRamp);
 
   // morphs
   For J:=0 To Pred(_MorphCount) Do
   Begin
     Tag := tagVertexMorph;
-    Size := _VertexCount * 4 + 5;
+    Size := Self.VertexCount * 4 + 5;
     Dest.Write(@Tag, 4);
-    Dest.Write(@Size, 4);
+    Dest.WriteInteger(Size);
 
     Dest.Write(@_Morphs[J].ID, 4);
     Dest.Write(@_Morphs[J].MorphType, 1);
 
-    For I:=0 To Pred(_VertexCount) Do
+    For I:=0 To Pred(Self.VertexCount) Do
       Dest.Write(@_Morphs[J].Values[I], SizeOf(Vector3D));
   End;
 
@@ -3557,10 +3370,10 @@ Begin
   If ShouldStore Then
   Begin
     Tag := tagVertexLinks;
-    Size := _VertexCount * 4;
+    Size := Self.VertexCount * 4;
     Dest.Write(@Tag, 4);
-    Dest.Write(@Size, 4);
-    For I:=0 To Pred(_VertexCount) Do
+    Dest.WriteInteger(Size);
+    For I:=0 To Pred(Self.VertexCount) Do
       Dest.Write(@_Links[I], 4);
   End;
 
@@ -3594,13 +3407,181 @@ End;
 Procedure MeshGroup.CalculateTriangleNormals;
 Var
   I:Integer;
+  A, B, C:Vector3D;
 Begin
   SetLength(_TriangleNormals, _TriangleCount);
 	For I:=0 To Pred(_TriangleCount) Do
   Begin
-    _TriangleNormals[I] := TriangleNormal(_Vertices[_Triangles[I].Indices[0]].Position, _Vertices[_Triangles[I].Indices[1]].Position, _Vertices[_Triangles[I].Indices[2]].Position);
+    _Vertices.GetVector3D(_Triangles[I].Indices[0], vertexPosition, A);
+    _Vertices.GetVector3D(_Triangles[I].Indices[1], vertexPosition, B);
+    _Vertices.GetVector3D(_Triangles[I].Indices[2], vertexPosition, C);
+
+    _TriangleNormals[I] := TriangleNormal(A, B, C);
   End;
 End;
+
+Function MeshGroup.CalculateDitherScale():Single;
+Var
+  I:Integer;
+  MinU, MinV, MaxU, MaxV:Single;
+  UV:Vector2D;
+Begin
+  MinU := 9999;
+  MinV := 9999;
+  MaxU := -9999;
+  MaxV := -9999;
+
+  Result := 10;
+
+	For I := 0 To Pred(Self.VertexCount) Do
+	Begin
+		Self.Vertices.GetVector2D(I, vertexUV0, UV);
+
+    MinU := FloatMin(MinU, UV.X);
+    MaxU := FloatMax(MaxU, UV.X);
+
+    MinV := FloatMin(MinV, UV.Y);
+    MaxV := FloatMax(MaxV, UV.Y);
+	End;
+
+  Result := FloatMax((MaxU - MinU), (MaxV - MinV));
+
+  Result := 10.0 + (1.0 - Result) * 30;
+
+//  Result := Result * 0.1;
+End;
+
+Procedure MeshGroup.CalculateAdjacency();
+Const
+  SnapFactor = 5;
+  
+Var
+  I, J:Integer;
+  P:Vector3D;
+  V:Array[0..2] Of Integer;
+
+  Procedure MakeEdge(TriID, VA, VB:Integer);
+  Var
+    I:Integer;
+  Begin
+    For I:=0 To Pred(_EdgeAdjacencyCount) Do
+    If ((_EdgeAdjacencyList[I].VertexA = VA) And (_EdgeAdjacencyList[I].VertexB = VB)
+    Or (_EdgeAdjacencyList[I].VertexA = VB) And (_EdgeAdjacencyList[I].VertexB = VA)) Then
+    Begin
+      _EdgeAdjacencyList[I].FaceB := TriID;
+      Exit;
+    End;
+
+    I := _EdgeAdjacencyCount;
+    Inc(_EdgeAdjacencyCount);
+    If Length(_EdgeAdjacencyList)<=_EdgeAdjacencyCount Then
+      SetLength(_EdgeAdjacencyList, Length(_EdgeAdjacencyList) * 2);
+
+    _EdgeAdjacencyList[I].VertexA := VA;
+    _EdgeAdjacencyList[I].VertexB := VB;
+    _EdgeAdjacencyList[I].FaceA := TriID;
+  End;
+Begin
+  _EdgeAdjacencyCount := 0;
+  SetLength(_EdgeAdjacencyList, 64);
+
+  For I:=0 To Pred(_TriangleCount) Do
+    For J:=0 To 2 Do
+      MakeEdge(I, _Triangles[I].Indices[J], _Triangles[I].Indices[(J+1) Mod 3]);
+
+  SetLength(_VertexSpatialHashes, _Vertices.Count);
+  For I:=0 To Pred(_Vertices.Count) Do
+  Begin
+    _Vertices.GetVector3D(I, vertexPosition, P);
+    V[0] := Trunc(P.X*SnapFactor);
+    V[1] := Trunc(P.Y*SnapFactor);
+    V[2] := Trunc(P.Z*SnapFactor);
+
+    _VertexSpatialHashes[I] := GetCRC32(@V[0], SizeOf(Integer)*3);
+  End;
+End;
+
+(*
+Procedure MeshGroup.CalculateAdjacency();
+Var
+  I,J,K, N, A, B, AdjIndex:Integer;
+  UnpairedCount:Integer;
+  Tri:Triangle;
+  UnpairedEdges:Array Of Integer;
+
+  Function FindAdjancentEdge(TargetEdgeIndex:Integer):Integer;
+  Var
+    I, N, TargetVertexIndex:Integer;
+  Begin
+    TargetVertexIndex := _HalfEdges[TargetEdgeIndex].StartVertex;
+    // search only in unpaired half edges
+    For I:=0 To Pred(UnpairedCount) Do
+    Begin
+      N := UnpairedEdges[I];
+      If (_HalfEdges[N].EndVertex = TargetVertexIndex) Then
+      Begin
+        Result := I;
+        Exit;
+      End;
+    End;
+
+    Result := -1;
+  End;
+
+Begin
+  _HalfEdgeCount := _TriangleCount * 3;
+  SetLength(_HalfEdges, _HalfEdgeCount);
+  SetLength(UnpairedEdges, _HalfEdgeCount);
+
+  I:=0;
+  While I<_TriangleCount Do
+  Begin
+    Tri := Self.GetTriangle(I);
+
+    For J:=0 To 2 Do
+    Begin
+      N := I*3 + J;
+      _HalfEdges[N].FaceIndex := I;
+
+      _HalfEdges[N].EndVertex := Tri.Indices[J];
+      _HalfEdges[N].StartVertex := Tri.Indices[(J+2) Mod 3];
+
+      _HalfEdges[N].NextEdge := I*3 + ((J+1) Mod 3);
+      _HalfEdges[N].PairEdge := -1;
+      UnpairedEdges[N] := N;
+    End;
+
+    Inc(I);
+  End;
+
+  // now we pair the edges
+  UnpairedCount := _HalfEdgeCount;
+  While UnpairedCount>0 Do
+  Begin
+    A := UnpairedEdges[0];
+    AdjIndex := FindAdjancentEdge(A);
+
+    If AdjIndex>=0 Then
+    Begin
+      B := UnpairedEdges[AdjIndex];
+
+      _HalfEdges[A].PairEdge := B;
+      _HalfEdges[B].PairEdge := A;
+
+      // now remove B from paired edge list
+      UnpairedEdges[AdjIndex] := UnpairedEdges[Pred(UnpairedCount)];
+      Dec(UnpairedCount);
+    End;
+    //RaiseError(Self._Owner.Name+ ' has invalid topology in group '+IntToString(Self._ID));
+
+
+    // now remove A from paired edge list
+    UnpairedEdges[0] := UnpairedEdges[Pred(UnpairedCount)];
+    Dec(UnpairedCount);
+  End;
+
+  SetLength(UnpairedEdges, 0);
+End;*)
 
 Procedure MeshGroup.CalculateTangents;
 Var
@@ -3612,15 +3593,24 @@ Var
   X1, X2, Y1, Y2, Z1, Z2: Single;
   S1, S2, T1, T2, R: Single;
   SDir, TDir, N ,T:Vector3D;
+  Handness:Single;
+  UVSet:Integer;
 Begin
-  SetLength(Tan1, _VertexCount);
-  SetLength(Tan2, _VertexCount);
+  _NeedsTangentSetup := False;
 
-	For I := 0 To Pred(_VertexCount) Do
+  SetLength(Tan1, Self.VertexCount);
+  SetLength(Tan2, Self.VertexCount);
+
+	For I := 0 To Pred(Self.VertexCount) Do
 	Begin
 		tan1[i] := VectorZero;
 		tan2[i] := VectorZero;
 	End;
+
+  If Self._Vertices.HasAttribute(vertexUV1) Then
+    UVSet := vertexUV1
+  Else
+    UVSet := vertexUV0;
 
   For I := 0 To Pred(_TriangleCount) Do
   Begin
@@ -3628,13 +3618,13 @@ Begin
 		i2 := _Triangles[i].Indices[1];
 		i3 := _Triangles[i].Indices[2];
 
-    v1 := _Vertices[i1].Position;
-		v2 := _Vertices[i2].Position;
-		v3 := _Vertices[i3].Position;
+    _Vertices.GetVector3D(i1, vertexPosition, V1);
+		_Vertices.GetVector3D(i2, vertexPosition, V2);
+		_Vertices.GetVector3D(i3, vertexPosition, V3);
 
-    w1 := _Vertices[i1].TextureCoords;
-		w2 := _Vertices[i2].TextureCoords;
-		w3 := _Vertices[i3].TextureCoords;
+    _Vertices.GetVector2D(i1, UVSet, W1);
+		_Vertices.GetVector2D(i2, UVSet, W2);
+		_Vertices.GetVector2D(i3, UVSet, W3);
 
     x1 := v2.x - v1.x;
 		x2 := v3.x - v1.x;
@@ -3666,21 +3656,27 @@ Begin
 		tan2[i3] := VectorAdd(tan2[i3], tdir);
   End;
 
-  For I := 0 To Pred(_VertexCount) Do
+  For I := 0 To Pred(Self.VertexCount) Do
   Begin
-    n := _Vertices[i].Normal;
+    _Vertices.GetVector3D(I, vertexNormal, N);
     t := tan1[i];
-    T.Normalize;
+    T.Normalize();
 
     // Gram-Schmidt orthogonalize
-		_Vertices[i].tangent := VectorSubtract(t, VectorScale(n, VectorDot(n, t)));
-    _Vertices[i].tangent.Normalize;
+		T := VectorSubtract(t, VectorScale(n, VectorDot(n, t)));
+    T.Normalize();
+
+
+{    If (IsNan(T.X)) Or (IsNan(T.Y)) Or (IsNan(T.Z)) Then
+      FloatToString(T.X);}
 
     // Calculate handedness
     If (VectorDot( VectorCross(n, t), tan2[i]) < 0.0) Then
-      _Vertices[i].Handness := 1.0
+      Handness := 1.0
     Else
-      _Vertices[i].Handness := -1.0;
+      Handness := -1.0;
+
+    _Vertices.SetVector4D(I, vertexTangent, VectorCreate4D(T.X, T.Y, T.Z, Handness));
   End;
 End;
 
@@ -3823,18 +3819,13 @@ Procedure MeshGroup.UpdateBoundingBox;
 Var
   I,N:Integer;
   P:Vector3D;
+  It:VertexIterator;
   M:Matrix4x4;
+  V:MeshVertex;
 Begin
-  If (_VertexCount>0) And (_Vertices<>Nil) Then
+  If (_Vertices<>Nil) And (_Vertices.Count>0) Then
   Begin
-    If (Length(_Vertices)< _VertexCount) Then
-    Begin
-      IntToString(2);
-      Exit;
-    End;
-    
-    _BoundingBox.StartVertex := _Vertices[0].Position;
-    _BoundingBox.EndVertex := _Vertices[0].Position;
+    _BoundingBox.Reset();
 
     {For I:=0 To Pred(_VertexCount) Do
     Begin
@@ -3847,16 +3838,18 @@ Begin
         P := _Vertices[I].Position;}
 
 
-    For I:=1 To Pred(_VertexCount) Do
+    It := _Vertices.GetIterator(MeshVertex);
+    While It.HasNext() Do
     Begin
-      P := _Vertices[I].Position;
-      _BoundingBox.StartVertex.x := FloatMin(_BoundingBox.StartVertex.x, P.X);
-      _BoundingBox.StartVertex.y := FloatMin(_BoundingBox.StartVertex.y, P.Y);
-      _BoundingBox.StartVertex.z := FloatMin(_BoundingBox.StartVertex.z, P.Z);
-      _BoundingBox.EndVertex.x := FloatMax(_BoundingBox.EndVertex.x, P.X);
-      _BoundingBox.EndVertex.y := FloatMax(_BoundingBox.EndVertex.y, P.Y);
-      _BoundingBox.EndVertex.z := FloatMax(_BoundingBox.EndVertex.z, P.Z);
+      V := MeshVertex(It.Value);
+      _BoundingBox.StartVertex.x := FloatMin(_BoundingBox.StartVertex.x, V.Position.X);
+      _BoundingBox.StartVertex.y := FloatMin(_BoundingBox.StartVertex.y, V.Position.Y);
+      _BoundingBox.StartVertex.z := FloatMin(_BoundingBox.StartVertex.z, V.Position.Z);
+      _BoundingBox.EndVertex.x := FloatMax(_BoundingBox.EndVertex.x, V.Position.X);
+      _BoundingBox.EndVertex.y := FloatMax(_BoundingBox.EndVertex.y, V.Position.Y);
+      _BoundingBox.EndVertex.z := FloatMax(_BoundingBox.EndVertex.z, V.Position.Z);
     End;
+    ReleaseObject(It);
   End;
 End;
 
@@ -3868,9 +3861,9 @@ Var
 Begin
   For I:=0 To Pred(_TriangleCount) Do
   Begin
-    V0 := _Vertices[_Triangles[I].Indices[0]].Position;
-    V1 := _Vertices[_Triangles[I].Indices[1]].Position;
-    V2 := _Vertices[_Triangles[I].Indices[2]].Position;
+    _Vertices.GetVector3D(_Triangles[I].Indices[0], vertexPosition, V0);
+    _Vertices.GetVector3D(_Triangles[I].Indices[1], vertexPosition, V1);
+    _Vertices.GetVector3D(_Triangles[I].Indices[2], vertexPosition, V2);
 
     V0 := Transform.Transform(V0);
     V1 := Transform.Transform(V1);
@@ -3890,7 +3883,7 @@ Begin
 End;
 
 
-Procedure MeshGroup.SetupUniforms(Transform:Matrix4x4; State:MeshInstance; Outline:Boolean; Const Material:MeshMaterial);
+Procedure MeshGroup.SetupUniforms(Transform:Matrix4x4; State:MeshInstance; Outline, TranslucentPass:Boolean; Const Material:MeshMaterial);
 Var
   I:Integer;
   TextureMatrix, M, M2:Matrix4x4;
@@ -3899,8 +3892,9 @@ Var
   BoneVectors:Array[0..(Succ(MaxBones)*3)] Of Vector4D;
   M2D:Matrix3x3;
   Bend,Delta:Single;
+  Graphics:GraphicsManager;
 
-  Procedure UploadBoneMatrix(ID:Integer; Mat:Matrix4x4);
+  Procedure EncodeBoneMatrix(ID:Integer; Mat:Matrix4x4);
   Var
     B1,B2,B3:Vector4D;
   Begin
@@ -3924,9 +3918,14 @@ Var
     BoneVectors[ID*3 + 1] := B2;
     BoneVectors[ID*3 + 2] := B3;
   End;
-Begin                            
-  If (GraphicsManager.Instance.ReflectionActive) Then
+Begin
+  Graphics := GraphicsManager.Instance;
+                     
+  If (Graphics.ReflectionActive) Then
     Transform := Matrix4x4Multiply4x4(GraphicsManager.Instance.ReflectionMatrix, Transform);
+
+  If (Graphics.ReflectionActive) Then
+    Transform := Matrix4x4Multiply4x4(Graphics.ReflectionMatrix, Transform);
 
   If Assigned(State) Then
     TextureMatrix := State._Groups[Self._ID].TextureTransform
@@ -3934,7 +3933,7 @@ Begin
     TextureMatrix := Matrix4x4Identity;
 
   {$IFDEF PC}
-  If (Not GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
+  (*If (Not GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Then
   Begin
     glMatrixMode(GL_TEXTURE);
     glLoadMatrixf(@TextureMatrix);
@@ -3946,53 +3945,55 @@ Begin
     glMatrixMode(GL_MODELVIEW);
     glLoadMatrixf(@Transform);
     Exit;
-  End;
+  End; BIBI*)
   {$ENDIF}
 
-  _Shader.SetUniform('modelMatrix', Transform);
-  _Shader.SetUniform('textureMatrix', TextureMatrix);
+  Graphics.Renderer.SetModelMatrix(Transform);
+  Graphics.Renderer.SetTextureMatrix(TextureMatrix);
 
-  GraphicsManager.Instance.ActiveViewport.Camera.SetupUniforms;
+  Graphics.ActiveViewport.Camera.SetupUniforms;
 
-  {$IFDEF REFLECTIONS_WITH_STENCIL}
-  If (GraphicsManager.Instance.ReflectionStencil) Then
+{$IFDEF ADVANCED_ALPHA_BLEND}
+  If Not TranslucentPass Then
   Begin
-    _Shader.SetUniform('targetColor', ColorWhite);
+    _Shader.SetColorUniform('targetColor', ColorNull);
+  End Else
+{$ENDIF}
+  {$IFDEF REFLECTIONS_WITH_STENCIL}
+  If (Graphics.ReflectionStencil) Then
+  Begin
+    _Shader.SetColorUniform('targetColor', ColorWhite);
   End Else
   {$ENDIF}
-  If (GraphicsManager.Instance.RenderStage = renderStageOutline) Then
+  If (Graphics.RenderStage = renderStageOutline) Then
   Begin
-    _Shader.SetUniform('targetColor', Material.OutlineColor);
+    _Shader.SetColorUniform('targetColor', Material.OutlineColor);
   End Else
   If (Outline) Then
   Begin
-    _Shader.SetUniform('outlineScale', 0.4);
-    _Shader.SetUniform('outlineColor', Material.OutlineColor);
+    _Shader.SetFloatUniform('outlineScale', 0.4);
+    _Shader.SetColorUniform('outlineColor', Material.OutlineColor);
   End;
 
   If (Self.Flags And meshGroupVegetation<>0) And (Material.VegetationBend>0)  Then
   Begin
-    Delta := GetTime() + (Cardinal(Self) Mod 35) * 500;
+    Delta := Application.GetTime() + (Cardinal(Self) Mod 35) * 500;
     Delta := Delta/1000;
 
-    _Shader.SetUniform('vegetationBase', _BoundingBox.StartVertex.Y);
-    _Shader.SetUniform('vegetationSize', _BoundingBox.EndVertex.Y - _BoundingBox.StartVertex.Y);
-    _Shader.SetUniform('vegetationTime', Delta);
-    _Shader.SetUniform('vegetationBend', Material.VegetationBend);
+    _Shader.SetFloatUniform('vegetationBase', _BoundingBox.StartVertex.Y);
+    _Shader.SetFloatUniform('vegetationSize', _BoundingBox.EndVertex.Y - _BoundingBox.StartVertex.Y);
+    _Shader.SetFloatUniform('vegetationTime', Delta);
+    _Shader.SetFloatUniform('vegetationBend', Material.VegetationBend);
   End;
 
   If (AmbientColor.R > 0) Or (AmbientColor.G > 0) Or (AmbientColor.B>0) Then
   Begin
-    _Shader.SetUniform('ambient_color', AmbientColor);
+    _Shader.SetColorUniform('ambient_color', AmbientColor);
   End;
 
-  If (_Owner.Skeleton.BoneCount > 0 ) And (Assigned(State)) Then
+  If (_Owner.Skeleton.BoneCount > 0 ) And (Assigned(State)) And (Self.Vertices.HasAttribute(vertexBone)) Then
   Begin
-    BoneVectorLocation := _Shader.GetUniform('boneVectors');
-    If (BoneVectorLocation<0) Then
-      Exit;
-
-    UploadBoneMatrix(0, Matrix4x4Identity);
+    EncodeBoneMatrix(0, Matrix4x4Identity);
 
     If (_Owner.Skeleton.BoneCount>MaxBones) Then
     Begin
@@ -4002,62 +4003,21 @@ Begin
     End;
 
     For I:=1 To _Owner.Skeleton.BoneCount Do
-    If (State.Animation = Nil) Or (State.Animation.Root = Nil) Then
-      UploadBoneMatrix(I, _Owner.Skeleton.BindPose[I])
-    Else
-      UploadBoneMatrix(I, State.Animation.Transforms[I]);
+    Begin
+      If (State.Animation = Nil) Or (State.Animation.Root = Nil) Then
+        M := _Owner.Skeleton.BindPose[I]
+      Else
+        M := State.Animation.Transforms[I];
 
-    glUniform4fv(BoneVectorLocation, Succ(_Owner.Skeleton.BoneCount)*3, @(BoneVectors[0]));
+        M := Matrix4x4Multiply4x3(M, Self._Owner.Skeleton.GetBone(Pred(I)).AbsoluteMatrix);
+        EncodeBoneMatrix(I, M);
+    End;
+
+    Graphics.Renderer.ActiveShader.SetVec4ArrayUniform('boneVectors', Succ(_Owner.Skeleton.BoneCount)*3, @(BoneVectors[0]));
   End;
 End;
 
-
-Procedure MeshGroup.SetCombineWithColor(C:Color);
-Var
-  CC:Array[0..3] Of Single;
-Begin
-  {$IFDEF PC}
-  glActiveTexture(GL_TEXTURE0);
-  glEnable(GL_TEXTURE_2D);
-  glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE );
-
-  glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
-  glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_PRIMARY_COLOR);
-  glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_TEXTURE0);
-  glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR );
-  glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
-
-  glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_MODULATE);
-  glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA, GL_PRIMARY_COLOR);
-  glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE1_ALPHA, GL_TEXTURE0);
-  glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND0_ALPHA, GL_SRC_ALPHA);
-  glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND1_ALPHA, GL_SRC_ALPHA);
-
-  TextureManager.Instance.WhiteTexture.Bind(1);
-  glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE );
-
-  CC[0] := C.R/255;
-  CC[1] := C.G/255;
-  CC[2] := C.B/255;
-  CC[3] := C.A/255;
-  glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, @CC);
-
-  glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
-  glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_PREVIOUS);
-  glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_CONSTANT );
-  glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-  glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_CONSTANT);
-
-  glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_MODULATE);
-  glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA, GL_PREVIOUS);
-  glTexEnvi( GL_TEXTURE_ENV, GL_SOURCE1_ALPHA, GL_CONSTANT );
-  glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND0_ALPHA, GL_SRC_ALPHA);
-  glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND1_ALPHA, GL_CONSTANT);
-
-   {$ENDIF}
-End;
-
-Function MeshGroup.Render(Const Transform:Matrix4x4; State:MeshInstance):Boolean;
+Function MeshGroup.Render(Const Transform:Matrix4x4; TranslucentPass:Boolean; State:MeshInstance):Boolean;
 Var
   UseOutline, ShowWireframe, UseTextureMatrix:Boolean;
   I,J,K, PassCount:Integer;
@@ -4078,7 +4038,7 @@ Begin
 
   Graphics := GraphicsManager.Instance;
 
-  If (Graphics.RenderStage = renderStageOutline) {$IFNDEF DISABLEOUTLINES} And (Not Graphics.Settings.Outlines.Enabled) {$ENDIF} Then
+  If (Graphics.RenderStage = renderStageOutline) {$IFNDEF DISABLEOUTLINES} And (Not Graphics.Renderer.Settings.Outlines.Enabled) {$ENDIF} Then
   Begin
     IntToString(2);
     Exit;
@@ -4092,12 +4052,15 @@ Begin
   If (Graphics.ReflectionStencil) And (Self.Flags And meshGroupReflective=0) Then
     Exit;
   {$ENDIF}
-                                                  
+
   If (Graphics.RenderStage = renderStageRefraction) And (_Material.RefractionMap=Nil) Then
     Exit;
 
   {If (Self.Flags And meshGroupColorOff<>0) And (Graphics.RenderStage <> renderStageDiffuse) Then
     Exit;}
+
+  If (Self.Flags And meshGroupShadowOnly<>0) And (Graphics.RenderStage <> renderStageShadow) Then
+    Exit;
 
   If (Self.Flags And meshGroupNormalsOff<>0) And (Graphics.RenderStage = renderStageNormal)  Then
     Exit;
@@ -4121,13 +4084,13 @@ Begin
   If (Not ShowWireframe) And (Assigned(State)) Then
     ShowWireframe := State._Groups[Self.ID].Wireframe;
 
-  If (_VertexCount<=0) Or (Hidden) Then
+  If (_Vertices = Nil) Or (_Vertices.Count<=0) Or (Hidden) Then
     Exit;
 
   If Assigned(State) Then
   Begin
     Self.InheritMaterial(State._Groups[Self.ID].Material, DestMaterial);
-    DestMaterial.DiffuseColor := ColorScale(DestMaterial.DiffuseColor, State.Diffuse);
+    DestMaterial.DiffuseColor := ColorMultiply(DestMaterial.DiffuseColor, State.Diffuse);
 
     If (Self.Flags And meshGroupReflective<>0) Then
       DestMaterial.ReflectionMap := TextureManager.Instance.WhiteTexture;
@@ -4137,8 +4100,11 @@ Begin
   If (DestMaterial.DiffuseColor.A<=0) Then
     Exit;
 
-  If (_NeedsSkeletonSetup) Then
-    Self.SetupSkeleton();
+  {If (_NeedsSkeletonSetup) Then
+    Self.SetupSkeleton();}
+
+  If (_NeedsTangentSetup) Then
+    Self.CalculateTangents();
 
   Self.ResolveLinks();
 
@@ -4176,7 +4142,7 @@ Begin
 {$IFNDEF DISABLEOUTLINES}
   If (Graphics.RenderStage = renderStageDiffuse)
   And (DestMaterial.OutlineColor.A>0) And (Self.Flags And meshGroupOutlineOff=0)
-  And (GraphicsManager.Instance.Settings.Outlines.Enabled)
+  And (Graphics.Renderer.Settings.Outlines.Enabled)
   And (Not Graphics.ReflectionActive)
   {$IFDEF POSTPROCESSING}
   And (Not Graphics.ActiveViewport.IsRenderTargetEnabled(captureTargetNormal))
@@ -4198,28 +4164,29 @@ Begin
   Log(logDebug, 'MeshGroup', 'Selecting shader');
   {$ENDIF}
 
-  If (Graphics.Settings.Shaders.Avaliable) Then
+  If (Graphics.Renderer.Features.Shaders.Avaliable) Then
   Begin
     If Assigned(State) And (State.CustomShader<>Nil) Then
       _Shader := State.CustomShader
     Else
     Begin
       UseTextureMatrix := (Assigned(State)) And (State._Groups[_ID].UseTextureMatrix);
-      Self._Shader := SelectMeshShader(Self, Transform.GetTranslation(), UseOutline, DestMaterial, UseTextureMatrix);
+      Self._Shader := SelectMeshShader(Self, Transform.GetTranslation(), UseOutline, TranslucentPass, DestMaterial, UseTextureMatrix);
     End;
     
-    If (Assigned(_Shader)) And (Not _Shader.IsReady) Or (_Shader = Nil) Then
-      Exit;
+    {If (Assigned(_Shader)) And (Not _Shader.IsReady) Or (_Shader = Nil) Then
+      Exit; BIBI}
 
     {$IFDEF DEBUG_GRAPHICS}
     Log(logDebug, 'MeshGroup', 'Binding shader');
     {$ENDIF}
-    ShaderManager.Instance.Bind(_Shader);
+
+    Graphics.Renderer.BindShader(_Shader);
   End Else
     _Shader := Nil;
 
-    If (Graphics.RenderStage = renderStageGlow) Then
-    Begin
+  If (Graphics.RenderStage = renderStageGlow) Then
+  Begin
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Testing glow');{$ENDIF}
 
       If Assigned(DestMaterial.GlowMap) Then
@@ -4228,7 +4195,7 @@ Begin
         TextureManager.Instance.BlackTexture.Bind(0);
 
       If Assigned(_Shader) Then
-        _Shader.SetUniform('glowMap', 0);
+        _Shader.SetIntegerUniform('glowMap', 0);
     End Else
     If (Graphics.RenderStage = renderStageReflection) Then
     Begin
@@ -4241,7 +4208,7 @@ Begin
 
       If Assigned(_Shader) Then
       Begin
-        _Shader.SetUniform('reflectionFactor', 0.25);
+        _Shader.SetFloatUniform('reflectionFactor', 0.25);
       End;
     End Else
     Begin
@@ -4258,8 +4225,13 @@ Begin
         Exit;
       End;
 
+      If _AlphaInspected = Nil Then
+      Begin
+        Self.InspectAlpha(Tex);
+      End;
+
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Setting texture wrap mode');  {$ENDIF}
-      Tex.Wrap := True;
+      Tex.WrapMode := wrapAll;
 
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Binding texture');  {$ENDIF}
       //glDisable(GL_TEXTURE_2D);
@@ -4267,13 +4239,13 @@ Begin
 
       If Assigned(_Shader) Then
       Begin
-        _Shader.SetUniform('diffuseMap', 0);
+        _Shader.SetIntegerUniform('diffuseMap', 0);
         If Not UseOutline Then
           BindMaterial(Slot, DestMaterial);
-      End Else
+      End{ Else
       Begin
         SetCombineWithColor(DestMaterial.DiffuseColor);
-      End;
+      End BIBI};
 
     End;
 
@@ -4283,14 +4255,17 @@ Begin
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Setting uniform properties');  {$ENDIF}
     If Assigned(_Shader) Then
     Begin
-      _Shader.SetUniform('diffuse_color', DestMaterial.DiffuseColor);
-     // _Shader.SetUniform('specular_power', DestMaterial.SpecularPower);
-      _Shader.SetUniform('specular_color', ColorWhite);
+      If (Graphics.RenderStage = renderStageShadow)  Then
+        _Shader.SetColorUniform('diffuse_color', DestMaterial.ShadowColor)
+      Else
+        _Shader.SetColorUniform('diffuse_color', DestMaterial.DiffuseColor); // BIBI
+     // _Shader.SetFloatUniform('specular_power', DestMaterial.SpecularPower);
+      _Shader.SetColorUniform('specular_color', ColorWhite); // BIBI
     End;
 
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Setup mesh uniforms');  {$ENDIF}
-    SetupUniforms(Transform, State, UseOutline, DestMaterial);
-   
+    SetupUniforms(Transform, State, UseOutline, TranslucentPass, DestMaterial);
+
     {$IFDEF EDITOR}
     If (Flags And mgCullFace<>0) Then
       Flags := Flags Xor mgCullFace; // disable culling in edit mode
@@ -4298,24 +4273,29 @@ Begin
 
     If (UseOutline) Then
     Begin
-      glCullFace(GL_FRONT);
-      glEnable(GL_CULL_FACE);
-
-      Graphics.SetBlendMode(blendNone);
+      Graphics.Renderer.SetCullMode(cullFront);
+      Graphics.Renderer.SetBlendMode(blendNone);
     End Else
     Begin
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Setting blending mode');  {$ENDIF}
 
+      {$IFDEF ssADVANCED_ALPHA_BLEND}
+      Graphics.Renderer.SetBlendMode(blendNone);      
+      {$ELSE}
 
       {$IFNDEF REFLECTIONS_WITH_STENCIL}
       If (Graphics.ReflectionActive) Then
-        Graphics.SetBlendMode(blendBlend)
+        Graphics.Renderer.SetBlendMode(blendBlend)
       Else
       {$ENDIF}
       If (Graphics.RenderStage = renderStageDiffuse) {Or (Graphics.RenderStage = renderStageOutline)} Then
-        Graphics.SetBlendMode(DestMaterial.BlendMode)
+        Graphics.Renderer.SetBlendMode(DestMaterial.BlendMode)
       Else
-        Graphics.SetBlendMode(blendNone);
+      If (Graphics.RenderStage = renderStageShadow)  Then
+        Graphics.Renderer.SetBlendMode(blendBlend)
+      Else
+        Graphics.Renderer.SetBlendMode(blendNone);
+      {$ENDIF}
 
       {$IFDEF REFLECTIONS_WITH_STENCIL}
       If (Graphics.ReflectionStencil) Then
@@ -4330,40 +4310,36 @@ Begin
 
 
       If (Graphics.RenderStage<>renderStageShadow) And (Flags And meshGroupDoubleSided<>0) And (Not Graphics.ReflectionActive) Then
-        glDisable(GL_CULL_FACE);
+        Graphics.Renderer.SetCullMode(cullNone);
     End;
 
     If (Flags And meshGroupDepthOff<>0) Or (UseOutline) Then
-      glDepthMask(False);
+      Graphics.Renderer.SetDepthMask(False);
 
-    If (Flags And meshGroupSkybox<>0) Then
-      glDepthRange(0.9999,1);
+    {If (Flags And meshGroupSkybox<>0) Then
+      glDepthRange(0.9999,1); BIBI}
 
     If AlwaysOnTop Then
-      glDisable(GL_DEPTH_TEST);
+      Graphics.Renderer.SetDepthTest(False);
 
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Drawing geometry');  {$ENDIF}
     Self.DrawGeometry(State, ShowWireframe);
   End;
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Undoing properties');  {$ENDIF}
-    If (UseOutline) Then
-      glCullFace(GL_BACK);
-
-    If (Graphics.RenderStage<>renderStageShadow) And (Flags And meshGroupDoubleSided<>0) And (Not Graphics.ReflectionActive) Then
-      glEnable(GL_CULL_FACE);
+    If (UseOutline) Or ((Graphics.RenderStage<>renderStageShadow) And (Flags And meshGroupDoubleSided<>0) And (Not Graphics.ReflectionActive)) Then
+      Graphics.Renderer.SetCullMode(cullBack);
 
     If (Flags And meshGroupDepthOff<>0) Or (UseOutline) Then
-      glDepthMask(True);
+      Graphics.Renderer.SetDepthMask(True);
 
     If AlwaysOnTop Then
-      glEnable(GL_DEPTH_TEST);
+      Graphics.Renderer.SetDepthTest(True);
 
-    If (Flags And meshGroupSkybox<>0) Then
-      glDepthRange(0.0,1);
+    {If (Flags And meshGroupSkybox<>0) Then
+      glDepthRange(0.0,1); BIBI}
 
-    {$IFDEF PC}
-    If (Not Graphics.Settings.Shaders.Avaliable) Then
+    (*If (Not Graphics.Renderer.Features.Shaders.Avaliable) Then
     Begin
       glActiveTexture(GL_TEXTURE1);
       glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
@@ -4372,19 +4348,8 @@ Begin
       glActiveTexture(GL_TEXTURE0);
       glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     End;
-    {$ENDIF}
-
-{  If (MeshInstance(Instance).OutlineWidth>0.0) Then
-  Begin
-    glCullFace(GL_FRONT);
-    glColor4ub(0, 0, 0, 255);
-    SM := MeshInstance(Instance).OutlineWidth;
-    glScalef(SM, SM, SM);
-    Self.DrawGeometry(Transform, Instance);
-    SM := 1/SM;
-    glScalef(SM, SM, SM);
-    glCullFace(GL_BACK);
-  End;}
+    BIBI
+    *)
 
   Result := True;
 End;
@@ -4414,13 +4379,7 @@ Begin
       Self.Flags := Self.Flags Or meshGroupTransparency;
 
     If (Self.Flags<>N) Then
-    Begin
-      If Assigned(_Buffer) Then
-      Begin
-        _Buffer.Release();
-        _Buffer := Nil;
-      End;
-    End;
+      ReleaseObject(_Buffer);
   End;
 End;
 
@@ -4435,14 +4394,380 @@ Begin
     Self.Flags := Self.Flags Xor meshGroupLightMap;
 
     If (Self.Flags <>N) Then
+      ReleaseObject(_Buffer);
+  End;
+End;
+
+Procedure MeshGroup.SetDitherPatternMap(Map:Texture);
+Begin
+  _Material.DitherPatternMap := Map;
+End;
+
+Function MeshGroup.GetEdge(Const VertexA, VertexB:Integer):Integer;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_EdgeAdjacencyCount) Do
+  If ((_EdgeAdjacencyList[I].VertexA = VertexA) And (_EdgeAdjacencyList[I].VertexB = VertexB))
+  Or ((_EdgeAdjacencyList[I].VertexA = VertexB) And (_EdgeAdjacencyList[I].VertexB = VertexA)) Then
+  Begin
+    Result := I;
+    Exit;
+  End;
+
+  Result := -1;
+End;
+
+Procedure MeshGroup.GetVertexAdjancency(Const VertexIndex:Integer; Out Result:IntegerArrayObject);
+Var
+  J, I, Edge:Integer;
+Begin
+  FillChar(Result, SizeOf(Result), 0);
+
+  For J:=0 To Pred(_Vertices.Count) Do
+  If (J = VertexIndex) Or (_VertexSpatialHashes[J] = _VertexSpatialHashes[VertexIndex]) Then
+  Begin
+    For I:=0 To Pred(_EdgeAdjacencyCount) Do
+    If (_EdgeAdjacencyList[I].VertexA = J) Then
     Begin
-      If Assigned(_Buffer) Then
-      Begin
-        _Buffer.Release();
-        _Buffer := Nil;
-      End;
+      Result.Add(_EdgeAdjacencyList[I].VertexB);
+    End Else
+    If (_EdgeAdjacencyList[I].VertexB = J) Then
+    Begin
+      Result.Add(_EdgeAdjacencyList[I].VertexA);
     End;
   End;
+End;
+
+{-$DEFINE LAPLACIAN_SMOOTH}
+Procedure MeshGroup.Smooth();
+Var
+  O_V, O_N:Array Of Vector3D;
+
+Procedure SmoothPass();
+Var
+  I, J, Count:Integer;
+  P, V, N, DV, DN:Vector3D;
+  Beta, SourceWeight, AdjWeight:Single;
+  VertexAdjancency:IntegerArrayObject;
+Begin
+  For I:=0 To Pred(_Vertices.Count) Do
+  Begin
+    //Disps[I] := VectorZero;
+
+    Self.GetVertexAdjancency(I, VertexAdjancency);
+    DV := VectorZero;
+    DN := VectorZero;
+
+    _Vertices.GetVector3D(I, vertexPosition, V);
+    _Vertices.GetVector3D(I, vertexNormal, N);
+
+    {$IFDEF LAPLACIAN_SMOOTH}
+    For J:=0 To Pred(VertexAdjancency.Count) Do
+    Begin
+      DV.Add(VectorSubtract(O_V[VertexAdjancency.Items[J]], V));
+      DN.Add(VectorSubtract(O_N[VertexAdjancency.Items[J]], N));
+    End;
+
+    DV.Scale((1/VertexAdjancency.Count) * Delta);
+    DN.Scale((1/VertexAdjancency.Count) * Delta);
+
+    {$ELSE}
+    If (VertexAdjancency.Count = 3) Then
+      Beta := 3.0/16.0
+    Else
+      Beta := 3.0/(8.0*VertexAdjancency.Count);
+
+    SourceWeight := 1.0 - VertexAdjancency.Count * Beta;
+    AdjWeight := Beta;
+
+    For J:=0 To Pred(VertexAdjancency.Count) Do
+    Begin
+      DV.Add(O_V[VertexAdjancency.Items[J]]);
+      DN.Add(O_N[VertexAdjancency.Items[J]]);
+    End;
+
+    DV.Scale(AdjWeight);
+    DN.Scale(AdjWeight);
+
+    V.Scale(SourceWeight);
+    N.Scale(SourceWeight);
+    {$ENDIF}
+
+    V.Add(DV);
+    N.Add(DN);
+    N.Normalize();
+    _Vertices.SetVector3D(I, vertexPosition, V);
+    _Vertices.SetVector3D(I, vertexNormal, N);
+  End;
+End;
+
+Var
+  I:Integer;
+Begin
+  If (Self._EdgeAdjacencyList = Nil) Then
+    Self.CalculateAdjacency();
+
+  SetLength(O_V, _Vertices.Count);
+  SetLength(O_N, _Vertices.Count);
+  For I:=0 To Pred(_Vertices.Count) Do
+  Begin
+    _Vertices.GetVector3D(I, vertexPosition, O_V[I]);
+    _Vertices.GetVector3D(I, vertexNormal, O_N[I]);
+  End;
+
+  SmoothPass();
+
+  SetLength(O_V, 0);
+  SetLength(O_N, 0);
+End;
+
+Function MeshGroup.SubDivideVertexFromTriangle(TriangleIndex, TargetVertex:Integer; UseA, UseB, UseC:Boolean):Integer;
+Var
+  J, K, Count:Integer;
+  Tri:Triangle;
+  Op:Array[0..2] Of Boolean;
+  TP, P, N:Vector3D;
+  TUV, UV0, UV1:Vector2D;
+  TC:Color;
+  C:Vector4D;
+  Bones:Array[0..2] Of Single;
+  BestBoneIndex:Integer;
+  Factor:Single;
+Begin
+  Result := TargetVertex;
+  Tri := Self.GetTriangle(TriangleIndex);
+
+  Op[0] := UseA;
+  Op[1] := UseB;
+  Op[2] := UseC;
+
+  P := VectorZero;
+  N := VectorZero;
+  UV0 := VectorCreate2D(0, 0);
+  UV1 := UV0;
+  C := VectorCreate4D(0,0,0,0);
+  Count := 0;
+
+  For J:=0 To 2 Do
+  If (OP[J]) Then
+  Begin
+    Inc(Count);
+    K := Tri.Indices[J];
+
+    _Vertices.GetFloat(K, vertexBone, Bones[J]);
+    _Vertices.GetVector3D(K, vertexPosition, TP);
+    P.Add(TP);
+
+    _Vertices.GetVector3D(K, vertexNormal, TP);
+    N.Add(TP);
+
+    _Vertices.GetVector2D(K, vertexUV0, TUV);
+    UV0.Add(TUV);
+
+    _Vertices.GetVector2D(K, vertexUV1, TUV);
+    UV1.Add(TUV);
+
+    _Vertices.GetColor(K, vertexColor, TC);
+    C.Add(VectorCreate4D(TC.R/255, TC.G/255, TC.B/255, TC.A/255));
+
+    UV1.Add(TUV);
+  End;
+
+  Factor := 1/Count;
+  P.Scale(Factor);
+  N.Scale(Factor);
+  UV0.Scale(Factor);
+  UV1.Scale(Factor);
+  C.Scale(Factor);
+
+  If (Not UseA) Then
+    BestBoneIndex := 1
+  Else
+  If (Not UseB) Or (Not UseC) Then
+    BestBoneIndex := 0
+  Else
+  Begin
+    If (Bones[1] = Bones[2]) Then
+      BestBoneIndex := 1
+    Else
+      BestBoneIndex := 0;
+  End;
+
+  TC := ColorCreate(C.X, C.Y, C.Z, C.W);
+
+  _Vertices.SetVector3D(TargetVertex, vertexPosition, P);
+  _Vertices.SetVector3D(TargetVertex, vertexNormal, N);
+  _Vertices.SetVector2D(TargetVertex, vertexUV0, UV0);
+  _Vertices.SetVector2D(TargetVertex, vertexUV1, UV1);
+  _Vertices.SetFloat(TargetVertex, vertexBone, Bones[BestBoneIndex]);
+  _Vertices.SetColor(TargetVertex, vertexColor, TC);
+End;
+
+Procedure MeshGroup.SubDivide6();
+Var
+  I, J, K, OldVertexCount:Integer;
+  OldTriangles:Array Of Triangle;
+  OldTriangleCount:Integer;
+
+  EdgePoints:Array Of Integer;
+  EdgeInsert:Integer;
+  EdgeIndicesA, EdgeIndicesB, EdgeIndicesC:Array Of Integer;
+
+  Indices:Array[0..6] Of Integer;
+
+  Function DivideEdge(TriIndex, EdgeIndex:Integer):Integer;
+  Var
+    Tri:Triangle;
+    Edge:Integer;
+    UseA, UseB, UseC:Boolean;
+  Begin
+    Tri := Self.GetTriangle(TriIndex);
+    Edge := Self.GetEdge(Tri.Indices[EdgeIndex], Tri.Indices[(EdgeIndex+1) Mod 3]);
+
+    Result := EdgePoints[Edge];
+    If Result>=0 Then
+    Begin
+      IntToString(2);
+      Exit;
+    End;
+
+    Case EdgeIndex Of
+    0:Begin
+        UseA := True;
+        UseB := True;
+        UseC := False;
+      End;
+
+    1:Begin
+        UseA := False;
+        UseB := True;
+        UseC := True;
+      End;
+
+    2:Begin
+        UseA := True;
+        UseB := False;
+        UseC := True;
+      End;
+    End;
+
+    Result := SubDivideVertexFromTriangle(I, OldVertexCount + _TriangleCount + EdgeInsert, UseA, UseB, UseC);
+    Inc(EdgeInsert);
+    EdgePoints[Edge] := Result;
+   End;
+Begin
+  If (Self._EdgeAdjacencyList = Nil) Then
+    Self.CalculateAdjacency();
+
+  OldVertexCount := Self._Vertices.Count;
+  Self._Vertices.Resize(OldVertexCount + Self._TriangleCount + _EdgeAdjacencyCount); // we need to add a new vertex for each triangle
+
+  EdgeInsert := 0;
+  SetLength(EdgePoints, _EdgeAdjacencyCount);
+  For I:=0 To Pred(_EdgeAdjacencyCount) Do
+    EdgePoints[I] := -1;
+
+  SetLength(EdgeIndicesA, _TriangleCount);
+  SetLength(EdgeIndicesB, _TriangleCount);
+  SetLength(EdgeIndicesC, _TriangleCount);
+  For I:=0 To Pred(_TriangleCount) Do
+  Begin
+    SubDivideVertexFromTriangle(I, OldVertexCount + I, True, True, True);
+    EdgeIndicesA[I] := DivideEdge(I, 0);
+    EdgeIndicesB[I] := DivideEdge(I, 1);
+    EdgeIndicesC[I] := DivideEdge(I, 2);
+  End;
+
+  If (vertexFormatTangent In _Vertices.Format) Then
+    Self.CalculateTangents();
+
+  SetLength(OldTriangles, _TriangleCount);
+  For I:=0 To Pred(_TriangleCount) Do
+    OldTriangles[I] := _Triangles[I];
+
+  OldTriangleCount := _TriangleCount;
+
+  _TriangleCount := _TriangleCount * 6;
+  SetLength(_Triangles, _TriangleCount);
+
+  I:=0;
+
+  While (I<OldTriangleCount) Do
+  Begin
+    Indices[0] := OldTriangles[I].Indices[0];
+    Indices[1] := EdgeIndicesA[I];
+    Indices[2] := OldTriangles[I].Indices[1];
+    Indices[3] := EdgeIndicesB[I];
+    Indices[4] := OldTriangles[I].Indices[2];
+    Indices[5] := EdgeIndicesC[I];
+    Indices[6] := OldVertexCount + I ;
+
+    For J:=0 To 5 Do
+    Begin
+      _Triangles[I*6 + J].Indices[0] := Indices[J];
+      _Triangles[I*6 + J].Indices[1] := Indices[(J+1) Mod 6];
+      _Triangles[I*6 + J].Indices[2] := Indices[6];
+    End;
+
+    Inc(I);
+  End;
+
+  Self.CalculateTriangleNormals();
+  ReleaseObject(_Buffer);
+
+  _EdgeAdjacencyList := Nil;
+End;
+
+Procedure MeshGroup.SubDivide3();
+Var
+  I, J, K, OldVertexCount:Integer;
+  OldTriangles:Array Of Triangle;
+  OldTriangleCount:Integer;
+Begin
+  OldVertexCount := Self._Vertices.Count;
+  Self._Vertices.Resize(OldVertexCount + Self._TriangleCount); // we need to add a new vertex for each triangle
+
+  For I:=0 To Pred(_TriangleCount) Do
+  Begin
+    SubDivideVertexFromTriangle(I, OldVertexCount + I, True, True, True);
+  End;
+
+  If (vertexFormatTangent In _Vertices.Format) Then
+    Self.CalculateTangents();
+
+  SetLength(OldTriangles, _TriangleCount);
+  For I:=0 To Pred(_TriangleCount) Do
+    OldTriangles[I] := _Triangles[I];
+
+  OldTriangleCount := _TriangleCount;
+
+  _TriangleCount := _TriangleCount * 3;
+  SetLength(_Triangles, _TriangleCount);
+
+  I:=0;
+
+  While (I<OldTriangleCount) Do
+  Begin
+    For J:=0 To 2 Do
+    Begin
+      _Triangles[I*3 + J].Indices[0] := OldTriangles[I].Indices[J];
+      _Triangles[I*3 + J].Indices[1] := OldTriangles[I].Indices[(J+1)Mod 3];
+      _Triangles[I*3 + J].Indices[2] := OldVertexCount + I;
+    End;
+
+    Inc(I);
+  End;
+
+  Self.CalculateTriangleNormals();
+  ReleaseObject(_Buffer);
+End;
+
+Procedure MeshGroup.SubDivide();
+Begin
+  Self.SubDivide6();
+
+//  IntToString(Self._Vertices.Count);
 End;
 
 {
@@ -4772,12 +5097,7 @@ Begin
     Exit;
 
   Self.Flags := Self.Flags Xor meshGroupWireframe;
-
-  If Assigned(_Buffer) Then
-  Begin
-    _Buffer.Release();
-    _Buffer := Nil;
-  End;
+  ReleaseObject(_Buffer);
 End;
 
 Procedure MeshGroup.SetEdge(TriangleIndex, EdgeIndex: Integer; Visible: Boolean);
@@ -4800,8 +5120,28 @@ Procedure MeshGroup.BindMaterial(Var Slot: Integer; Const Material:MeshMaterial)
 Var
   Tex:Texture;
   FlowCycle:Vector3D;
+  Graphics:GraphicsManager;
 Begin
   Slot := 1;
+
+  Graphics := GraphicsManager.Instance;
+
+  If (Graphics.Renderer.Settings.DynamicShadows.Enabled) And (Graphics.RenderStage=renderStageDiffuse) Then
+  Begin
+    Tex := Graphics.ActiveViewport.GetRenderTexture(captureTargetShadow);
+
+    If Assigned(Tex) Then
+    Begin
+      Tex.Filter := filterBilinear;
+//      Tex.WrapMode := wrapNothing;
+      Tex.MipMapped := False;
+    End Else
+      Tex := TextureManager.Instance.WhiteTexture;
+
+    Tex.Bind(Slot);
+    _Shader.SetIntegerUniform(ShadowMapUniformName, Slot);
+    Inc(Slot);
+  End;
 
   If (Material.ColorTable<>Nil) Then
   Begin
@@ -4812,7 +5152,7 @@ Begin
   If (Assigned(_Shader)) And (Assigned(Material.DecalMap)) And (_Shader.HasUniform(DecalMapUniformName)) Then
   Begin
     Material.DecalMap.Bind(Slot);
-    _Shader.SetUniform(DecalMapUniformName, Slot);
+    _Shader.SetIntegerUniform(DecalMapUniformName, Slot);
 
     Inc(Slot);
   End;
@@ -4825,10 +5165,10 @@ Begin
     If Not Assigned(Tex) Then
       Tex := Material.DiffuseMap;
 
-    Tex.Wrap := True;
+    Tex.WrapMode := wrapAll;
     Tex.Bind(Slot);
     If Assigned(_Shader) Then
-      _Shader.SetUniform('diffuseMap2', Slot);
+      _Shader.SetIntegerUniform('diffuseMap2', Slot);
 
     Inc(Slot);
   End;
@@ -4842,10 +5182,26 @@ Begin
       Tex := TextureManager.Instance.DefaultNormalMap;
 
     Tex.Bind(Slot);
-    _Shader.SetUniform(NormalMapUniformName, Slot);
+    _Shader.SetIntegerUniform(NormalMapUniformName, Slot);
 
     Inc(Slot);
   End;
+
+  {$IFDEF PC}
+  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Testing DisplacementMapping');  {$ENDIF}
+  If (_Owner._NormalMapping) And (Assigned(_Shader)) And (_Shader.HasUniform(DisplacementMapUniformName)) Then
+  Begin
+    If Assigned(Material.DisplacementMap) Then
+      Tex := Material.DisplacementMap
+    Else
+      Tex := TextureManager.Instance.BlackTexture;
+
+    Tex.Bind(Slot);
+    _Shader.SetIntegerUniform(DisplacementMapUniformName, Slot);
+
+    Inc(Slot);
+  End;
+  {$ENDIF}
 
 	{$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Testing specular map');  {$ENDIF}
 	If (Assigned(Material.SpecularMap)) And (Assigned(_Shader)) And (_Shader.HasUniform(SpecularMapUniformName)) Then
@@ -4855,17 +5211,19 @@ Begin
     Else
       TextureManager.Instance.BlackTexture.Bind(Slot);
 
-    _Shader.SetUniform(SpecularMapUniformName, Slot);
+    _Shader.SetIntegerUniform(SpecularMapUniformName, Slot);
 
 	  Inc(Slot);
 	End;
 
 	{$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Testing color ramp');  {$ENDIF}
-	If (Assigned(Material.ColorRamp)) And (Assigned(_Shader)) And (_Shader.HasUniform(ColorRampUniformName)) Then
+	If (Assigned(Material.ToonRamp)) And (Assigned(_Shader)) And (_Shader.HasUniform(ToonRampUniformName)) Then
 	Begin
-    Material.ColorRamp.Wrap := False;
-	  Material.ColorRamp.Bind(Slot);
-    _Shader.SetUniform(ColorRampUniformName, Slot);
+    Material.ToonRamp.WrapMode := wrapNothing;
+    Material.ToonRamp.Filter := filterBilinear;
+    Material.ToonRamp.MipMapped := True;
+	  Material.ToonRamp.Bind(Slot);
+    _Shader.SetIntegerUniform(ToonRampUniformName, Slot);
 	  Inc(Slot);
 	End;
 
@@ -4878,7 +5236,7 @@ Begin
       TextureManager.Instance.WhiteTexture.Bind(Slot);
 
 	  If Assigned(_Shader) Then
-		_Shader.SetUniform('lightMap', Slot);
+		_Shader.SetIntegerUniform('lightMap', Slot);
 	  Inc(Slot);
 	End;
 
@@ -4886,7 +5244,7 @@ Begin
 	If (Assigned(Material.Alphamap)) And (Assigned(_Shader)) And (_Shader.HasUniform(AlphaMapUniformName)) Then
 	Begin
 	  Material.Alphamap.Bind(Slot);
-    _Shader.SetUniform(AlphaMapUniformName, Slot);
+    _Shader.SetIntegerUniform(AlphaMapUniformName, Slot);
 
 	  Inc(Slot);
 	End;
@@ -4894,41 +5252,65 @@ Begin
   If (Assigned(Material.ReflectiveMap)) And (Assigned(_Shader)) And (_Shader.HasUniform(ReflectiveMapUniformName)) Then
   Begin
 	  Material.ReflectiveMap.Bind(Slot);
-    _Shader.SetUniform(ReflectiveMapUniformName, Slot);
+    _Shader.SetIntegerUniform(ReflectiveMapUniformName, Slot);
 	  Inc(Slot);
   End;
 
-  If (Assigned(Material.ReflectionMap)) And (Assigned(_Shader))  And (_Shader.HasUniform(ReflectionMapUniformName)) Then
+  If (Assigned(Material.ReflectionMap)) And (Assigned(_Shader)) And (_Shader.HasUniform(ReflectionMapUniformName)) Then
   Begin
     Material.ReflectionMap.Bind(Slot);
-    _Shader.SetUniform(ReflectionMapUniformName, Slot);
+    _Shader.SetIntegerUniform(ReflectionMapUniformName, Slot);
 
     Inc(Slot);
   End;
 
+  If (Assigned(Material.DitherPatternMap)) And (Assigned(_Shader))  And (_Shader.HasUniform(DitherPatternMapUniformName)) Then
+  Begin
+    If (_DitherScale<=0) Then
+    Begin
+      _DitherScale := Self.CalculateDitherScale();
+    End;
+
+    _Shader.SetFloatUniform(DitherScaleUniformName, _DitherScale);
+
+    Material.DitherPatternMap.Bind(Slot);
+    _Shader.SetIntegerUniform(DitherPatternMapUniformName, Slot);
+
+    Inc(Slot);
+  End;
+
+(*  If (Assigned(Material.DitherPaletteMap)) And (Assigned(_Shader))  And (_Shader.HasUniform(DitherPaletteMapUniformName)) Then
+  Begin
+    Material.DitherPaletteMap.Bind(Slot);
+    _Shader.SetIntegerUniform(DitherPaletteMapUniformName, Slot);
+
+    Inc(Slot);
+  End;*)
+
   If (Assigned(Material.EnviromentMap)) And (Assigned(_Shader)) And (_Shader.HasUniform(SphereMapUniformName)) Then
   Begin
 	  Material.EnviromentMap.Bind(Slot);
-    _Shader.SetUniform(SphereMapUniformName, Slot);
+    _Shader.SetIntegerUniform(SphereMapUniformName, Slot);
 
 	  Inc(Slot);
   End;
 
   If (Assigned(Material.FlowMap)) And (Assigned(_Shader)) And (_Shader.HasUniform(FlowMapUniformName)) Then
   Begin
-    Material.FlowMap.Wrap := False;
-    Material.FlowMap.BilinearFilter := True;
+    Material.FlowMap.WrapMode := wrapNothing;
+    Material.FlowMap.Filter := filterBilinear;
     Material.FlowMap.MipMapped := False;
 	  Material.FlowMap.Bind(Slot);
 
     FlowCycle.Z := 0; //FloatMod(GetTime, 1000);
-    FlowCycle.X := FloatMod(GetTime, 1000) / 2000;
+    FlowCycle.X := FloatMod(Application.GetTime, 1000) / 2000;
     FlowCycle.Y := 2 * Abs(FlowCycle.X - 0.5);
 
-		_Shader.SetUniform(FlowMapUniformName, Slot);
-    _Shader.SetUniform('flowSpeed', Material.FlowSpeed);
-    _Shader.SetUniform('flowCycle', FlowCycle);
-    _Shader.SetUniform('flowBounds', Material.FlowBounds);
+		_Shader.SetIntegerUniform(FlowMapUniformName, Slot);
+    _Shader.SetFloatUniform('flowSpeed', Material.FlowSpeed);
+    _Shader.SetVec3Uniform('flowCycle', FlowCycle);
+    //Log(logDebug, 'Lol', 'Settings bounds');
+    _Shader.SetVec4Uniform('flowBounds', Material.FlowBounds);
 
 	  Inc(Slot);
   End;
@@ -4936,19 +5318,19 @@ Begin
   If (Assigned(Material.NoiseMap)) And (Assigned(_Shader)) And (_Shader.HasUniform(NoiseMapUniformName)) Then
   Begin
 	  Material.NoiseMap.Bind(Slot);
-    _Shader.SetUniform(NoiseMapUniformName, Slot);
+    _Shader.SetIntegerUniform(NoiseMapUniformName, Slot);
 	  Inc(Slot);
   End;
 
-  If (GraphicsManager.Instance.ReflectionActive) Then
+  If (Graphics.ReflectionActive) Then
   Begin
-    If Assigned(GraphicsManager.Instance.ReflectionMask) Then
-      GraphicsManager.Instance.ReflectionMask.Bind(Slot)
+    If Assigned(Graphics.ReflectionMask) Then
+      Graphics.ReflectionMask.Bind(Slot)
     Else
       TextureManager.Instance.BlackTexture.Bind(Slot);
 
     If Assigned(_Shader) Then
-      _Shader.SetUniform('screenMask', Slot);
+      _Shader.SetIntegerUniform('screenMask', Slot);
 	  Inc(Slot);
   End;
 
@@ -4971,7 +5353,7 @@ Begin
   SetFlag(Self.Flags, meshGroupTransparency, NeedTransparency);
 End;
 
-Constructor MeshGroup.Create(ID: Integer; Parent: Mesh; Name:TERRAString);
+Constructor MeshGroup.Create(ID:Integer; Parent:Mesh; Format:VertexFormat; Name:TERRAString);
 Begin
   If Name='' Then
     Name := 'group'+IntToString(ID);
@@ -4983,15 +5365,19 @@ Begin
   Self._Material.Reset();
   Self._Unique := False;
 
-  Self._NeedsSkeletonSetup := True;
+  Self._Vertices := VertexData.Create(Format, 0);
+
+  Self._GPUSkinning := GraphicsManager.Instance.Renderer.Settings.VertexBufferObject.Enabled;
+
+  //Self._NeedsSkeletonSetup := True;
 End;
 
-Function MeshGroup.LockVertices(Static:Boolean): PMeshVertex;
+Function MeshGroup.LockVertices():VertexData;
 Var
   I:Integer;
-  P:PMeshVertex;
+  P:VertexData;
 Begin
-  If (_VertexCount<=0) Or (_Vertices = Nil) Then
+  If (_Vertices = Nil) Or (_Vertices.Count<=0) Then
   Begin
     Result := Nil;
     Exit;
@@ -5001,44 +5387,34 @@ Begin
   Begin
     Result := Self._Buffer.Lock();
   End Else}
+
+  If Assigned(_ScratchVertices) Then
   Begin
-    Result := @(_Vertices[0]);
+    If _Vertices.Count = _ScratchVertices.Count Then
+      _Vertices.CopyBuffer(_ScratchVertices)
+    Else
+      ReleaseObject(_ScratchVertices);
   End;
 
   If (_ScratchVertices = Nil) Then
-  Begin
-    SetLength(_ScratchVertices, _VertexCount);
-    For I:=0 To Pred(_VertexCount) Do
-      _ScratchVertices[I] := _Vertices[I];
-  End Else
-  Begin
-    P := Result;
-    If (Static) Then
-    Begin
-      I:=0;
-      While I<_VertexCount Do
-      Begin
-        P^ := _ScratchVertices[I];
-        Inc(I);
-        Inc(P);
-      End;
-    End;
-  End;
+    _ScratchVertices := _Vertices.Clone();
+
+  Result := _Vertices;
 End;
 
 Procedure MeshGroup.UnlockVertices;
 Begin
-  If (Assigned(Self._Buffer)) Then
+  If (Assigned(Self._Buffer)) And (Assigned(_Vertices)) Then
   Begin
     //Self._Buffer.Unlock();
-    Self._Buffer.Update(@_Vertices[0]);
+    Self._Buffer.Update(_Vertices.Buffer);
   End;
 End;
 
 Procedure MeshGroup.SetVertexLink(VertexIndex, TargetGroup, TargetVertex: Integer);
 Begin
-  If (Length(_Links)<_VertexCount) Then
-    SetLength(_Links, _VertexCount);
+  If (Length(_Links)< Self.VertexCount) Then
+    SetLength(_Links, Self.VertexCount);
 
   If (TargetVertex<0) Then
     TargetVertex := 0;
@@ -5050,28 +5426,30 @@ End;
 Procedure MeshGroup.ResolveLinks;
 Var
   I,ID, N:Integer;
-  P:Vector3D;
+  A, B:Vector3D;
 Begin
   If (Self.Flags And meshGroupLinked = 0) Then
     Exit;
 
   Self.Flags := Self.Flags Xor meshGroupLinked;
 
-  If (Length(_Links)<_VertexCount) Then
+  If (Length(_Links)< Self.VertexCount) Then
     Exit;
 
-  For I:=0 To Pred(_VertexCount) Do
+  For I:=0 To Pred(Self.VertexCount) Do
   Begin
     N := _Links[I].GroupIndex;
     If N<0 Then
       Continue;
 
     ID := _Links[I].VertexIndex;
-    If (ID>=_Owner._Groups[N]._VertexCount) Then
+    If (ID>=_Owner._Groups[N].VertexCount) Then
       Continue;
 
-    P := _Owner._Groups[N]._Vertices[ID].Position;
-    _Vertices[I].Position.Add(P);
+    _Owner._Groups[N]._Vertices.GetVector3D(ID, vertexPosition, A);
+    _Vertices.GetVector3D(I, vertexPosition, B);
+    B.Add(A);
+    _Vertices.SetVector3D(I, vertexPosition, B);
   End;
 End;
 
@@ -5079,7 +5457,7 @@ Procedure MeshGroup.SetVertexMorph(ID, VertexIndex:Integer; Value:Vector3D);
 Var
   N, I, Len:Integer;
 Begin
-  If (VertexIndex<0) Or (VertexIndex>=_VertexCount) Then
+  If (VertexIndex<0) Or (VertexIndex>= Self.VertexCount) Then
     Exit;
 
   N := -1;
@@ -5111,7 +5489,7 @@ Function MeshGroup.GetVertexMorph(ID, VertexIndex: Integer): Vector3D;
 Var
   I:Integer;
 Begin
-  If (VertexIndex<0) Or (VertexIndex>=_VertexCount) Then
+  If (VertexIndex<0) Or (VertexIndex >= Self.VertexCount) Then
   Begin
     Result := VectorZero;
     Exit;
@@ -5124,7 +5502,7 @@ Begin
     Exit;
   End;
 
-  Result := _Vertices[I].Position;
+  Self._Vertices.GetVector3D(I, vertexPosition, Result);
 End;
 
 Function MeshGroup.AddVertexMorph(ID:Integer):Integer;
@@ -5135,7 +5513,7 @@ Begin
 
   _Morphs[Result].ID := ID;
   _Morphs[Result].MorphType := 0;
-  SetLength(_Morphs[Result].Values, _VertexCount);
+  SetLength(_Morphs[Result].Values, Self.VertexCount);
 End;
 
 Function MeshGroup.HasVertexMorph(ID: Integer): Boolean;
@@ -5162,12 +5540,13 @@ Begin
   If (_VisibleTriangles = Nil) Then
     SetLength(_VisibleTriangles, _TriangleCount);
 
-  SetLength(Visibility, _VertexCount);
+  SetLength(Visibility, Self.VertexCount);
 
   _VisibleTriangleCount := 0;
-  For I:=0 To Pred(Self._VertexCount) Do
+  For I:=0 To Pred(Self.VertexCount) Do
   Begin
-    P := Transform.Transform(_Vertices[I].Position);
+    _Vertices.GetVector3D(I, vertexPosition, P);
+    P := Transform.Transform(P);
     Visibility[I] := Box.Contains(P);
   End;
 
@@ -5204,9 +5583,9 @@ Begin
   Result := _Material.AmbientColor;
 End;
 
-Function MeshGroup.GetColorRamp: Texture;
+Function MeshGroup.GetToonRamp: Texture;
 Begin
-  Result := _Material.ColorRamp;
+  Result := _Material.ToonRamp;
 End;
 
 Function MeshGroup.GetDecalMap: Texture;
@@ -5234,9 +5613,19 @@ Begin
   Result := _Material.LightMap;
 End;
 
+Function MeshGroup.GetDitherPatternMap: Texture;
+Begin
+  Result := _Material.DitherPatternMap;
+End;
+
 Function MeshGroup.GetNormalMap: Texture;
 Begin
   Result := _Material.NormalMap;
+End;
+
+Function MeshGroup.GetDisplacementMap: Texture;
+Begin
+  Result := _Material.DisplacementMap;
 End;
 
 Function MeshGroup.GetRefractionMap: Texture;
@@ -5304,6 +5693,11 @@ Begin
   _Material.NormalMap := Value;
 End;
 
+Procedure MeshGroup.SetDisplacementMap(const Value: Texture);
+Begin
+  _Material.DisplacementMap := Value;
+End;
+
 procedure MeshGroup.SetRefractionMap(const Value: Texture);
 Begin
   _Material.RefractionMap := Value;
@@ -5334,9 +5728,9 @@ Begin
   _Material.SpecularMap := Value;
 End;
 
-Procedure MeshGroup.SetColorRamp(const Map: Texture);
+Procedure MeshGroup.SetToonRamp(const Map: Texture);
 Begin
-  _Material.ColorRamp := Map;
+  _Material.ToonRamp := Map;
 End;
 
 function MeshGroup.GetBlendMode: Integer;
@@ -5360,8 +5754,16 @@ Var
 Begin
   Transparency := (Flags And meshGroupTransparency<>0) Or (DestMaterial.DiffuseColor.A<255);
 
-  DestMaterial.DiffuseColor := ColorScale(_Material.DiffuseColor, OtherMat.DiffuseColor);
-  DestMaterial.AmbientColor := ColorScale(_Material.AmbientColor, OtherMat.AmbientColor);
+  DestMaterial.DiffuseColor := ColorMultiply(_Material.DiffuseColor, OtherMat.DiffuseColor);
+  DestMaterial.AmbientColor := ColorMultiply(_Material.AmbientColor, OtherMat.AmbientColor);
+
+  If (OtherMat.ShadowColor.A>0) Then
+    DestMaterial.ShadowColor := OtherMat.ShadowColor
+  Else
+  If (_Material.ShadowColor.A>0) Then
+    DestMaterial.ShadowColor := _Material.ShadowColor
+  Else
+    DestMaterial.ShadowColor := ColorGrey(240);
 
   If (OtherMat.OutlineColor.A>0) Then
     DestMaterial.OutlineColor := OtherMat.OutlineColor
@@ -5389,22 +5791,24 @@ Begin
   DestMaterial.DecalMap := SelectTexture(OtherMat.DecalMap, _Material.DecalMap, Nil);
   DestMaterial.TriplanarMap := SelectTexture(OtherMat.TriplanarMap, _Material.TriplanarMap, DestMaterial.DiffuseMap);
   DestMaterial.NormalMap := SelectTexture(OtherMat.NormalMap, _Material.NormalMap, Nil);
+  DestMaterial.DisplacementMap := SelectTexture(OtherMat.DisplacementMap, _Material.DisplacementMap, Nil);
   DestMaterial.SpecularMap := SelectTexture(OtherMat.SpecularMap, _Material.SpecularMap, TextureManager.Instance.BlackTexture);
   DestMaterial.GlowMap := SelectTexture(OtherMat.GlowMap, _Material.GlowMap, TextureManager.Instance.BlackTexture);
   DestMaterial.RefractionMap := SelectTexture(OtherMat.RefractionMap, _Material.RefractionMap, TextureManager.Instance.BlackTexture);
   DestMaterial.ReflectiveMap := SelectTexture(OtherMat.ReflectiveMap, _Material.ReflectiveMap, Nil);
   DestMaterial.AlphaMap := SelectTexture(OtherMat.AlphaMap, _Material.AlphaMap, TextureManager.Instance.WhiteTexture);
   DestMaterial.LightMap := SelectTexture(OtherMat.LightMap, _Material.LightMap, TextureManager.Instance.WhiteTexture);
-  DestMaterial.ColorRamp := SelectTexture(OtherMat.ColorRamp, _Material.ColorRamp, GraphicsManager.Instance.ColorRamp);
+  DestMaterial.ToonRamp := SelectTexture(OtherMat.ToonRamp, _Material.ToonRamp, GraphicsManager.Instance.ToonRamp);
   DestMaterial.FlowMap := SelectTexture(OtherMat.FlowMap, _Material.FlowMap, Nil);
   DestMaterial.NoiseMap := SelectTexture(OtherMat.NoiseMap, _Material.NoiseMap, Nil);
   DestMaterial.ReflectionMap := TextureManager.Instance.BlackTexture;
+  DestMaterial.DitherPatternMap := SelectTexture(OtherMat.DitherPatternMap, _Material.DitherPatternMap, Nil);
 
   If Assigned(DestMaterial.NormalMap) Then
-    DestMaterial.NormalMap.Wrap := True;
+    DestMaterial.NormalMap.WrapMode := wrapAll;
 
   If Assigned(DestMaterial.NoiseMap) Then
-    DestMaterial.NoiseMap.Wrap := True;
+    DestMaterial.NoiseMap.WrapMode := wrapAll;
 
   DestMaterial.VegetationBend := OtherMat.VegetationBend;
   DestMaterial.Ghost := OtherMat.Ghost;
@@ -5421,6 +5825,36 @@ Begin
     DestMaterial.BlendMode := blendBlend
   Else
     DestMaterial.BlendMode := blendNone;
+End;
+
+Function MeshGroup.GetVertexCount: Integer;
+Begin
+  Result := Vertices.Count;
+End;
+
+Function MeshGroup.GetVertices:VertexData;
+Begin
+  If _Vertices = Nil Then
+  Begin
+    RaiseError('Vertex format not set!');
+  End;
+
+  Result := _Vertices;
+End;
+
+Function MeshGroup.GetShadowColor: Color;
+Begin
+  Result := _Material.ShadowColor;
+End;
+
+Procedure MeshGroup.SetShadowColor(const Value: Color);
+Begin
+  _Material.ShadowColor := Value;
+End;
+
+Procedure MeshGroup.InspectAlpha(Tex:Texture);
+Begin
+  _AlphaInspected := Tex;
 End;
 
 { Mesh }
@@ -5478,12 +5912,12 @@ Begin
 End;
 
 
-Function Mesh.AddGroup(Name:TERRAString=''):MeshGroup;
+Function Mesh.AddGroup(Format:VertexFormat; Name:TERRAString=''):MeshGroup;
 Begin
 	Inc(_GroupCount);
 	SetLength(_Groups, _GroupCount);
 
-	Result := MeshGroup.Create(Pred(_GroupCount), Self, Name);
+	Result := MeshGroup.Create(Pred(_GroupCount), Self, Format, Name);
   _Groups[Pred(_GroupCount)] := Result;
 End;
 
@@ -5491,17 +5925,14 @@ Function Mesh.DuplicateGroup(Group:MeshGroup; Name:TERRAString=''):MeshGroup;
 Var
   I:Integer;
 Begin
-  Result := Self.AddGroup(Name);
+  Result := Self.AddGroup(Group.Vertices.Format, Name);
   If Group = Nil Then
     Exit;
 
   Result.Flags := Group.Flags;
   Result._Material := Group._Material;
 
-  Result._VertexCount := Group._VertexCount;
-  SetLength(Result._Vertices, Group._VertexCount);
-  For I:=0 To Pred(Group._VertexCount) Do
-    Result._Vertices[I] := Group._Vertices[I];
+  Result._Vertices := Group._Vertices.Clone();
 
   Result._TriangleCount := Group._TriangleCount;
   Result._VisibleTriangleCount := Group._TriangleCount;
@@ -5512,12 +5943,12 @@ Begin
   Result._BoundingBox := Group._BoundingBox;
 End;
 
-Procedure Mesh.AddTriangle(A,B,C:MeshVertex; Group:MeshGroup);
+Procedure Mesh.AddTriangle(Const A,B,C:Integer; Group:MeshGroup);
 Begin
 	Group.AddTriangle(A,B,C);
 End;
 
-Procedure Mesh.AddQuad(A,B,C,D:MeshVertex; Group:MeshGroup);
+Procedure Mesh.AddQuad(Const A,B,C,D:Integer; Group:MeshGroup);
 Begin
 	Group.AddQuad(A,B,C,D);
 End;
@@ -5638,26 +6069,26 @@ Begin
     Tag := tagMeshGroup;
     Size := 0;
     Dest.Write(@Tag, 4);
-    Dest.Write(@Size, 4);
+    Dest.WriteInteger(Size);
     Temp := Dest.Position;
     _Groups[I].Save(Dest);
     Temp2 := Dest.Position;
     Size := Temp2-Temp;
     Dest.Seek(Temp - 4);
-    Dest.Write(@Size, 4);
+    Dest.WriteInteger(Size);
     Dest.Seek(Temp2);
   End;
 
   Tag := tagMeshSkeleton;
   Size := 0;
   Dest.Write(@Tag, 4);
-  Dest.Write(@Size, 4);
+  Dest.WriteInteger(Size);
   Temp := Dest.Position;
   Skeleton.Write(Dest);
   Temp2 := Dest.Position;
   Size := Temp2-Temp;
   Dest.Seek(Temp - 4);
-  Dest.Write(@Size, 4);
+  Dest.WriteInteger(Size);
   Dest.Seek(Temp2);
 
   For I:=0 To Pred(_MetadataCount) Do
@@ -5665,7 +6096,7 @@ Begin
     Tag := tagMeshMetadata;
     Size := Succ(Length(_Metadata[I].Name)) + Succ(Length(_Metadata[I].Content)) + SizeOf(Vector3D);
     Dest.Write(@Tag, 4);
-    Dest.Write(@Size, 4);
+    Dest.WriteInteger(Size);
     Dest.WriteString(_Metadata[I].Name);
     Dest.WriteString(_Metadata[I].Content);
     Dest.Write(@_Metadata[I].Position, SizeOf(Vector3D));
@@ -5677,7 +6108,7 @@ Begin
     Size := Succ(Length(_Emitters[I].Name)) + Succ(Length(_Emitters[I].Content))+
            Succ(Length(_Emitters[I].ParentBone)) + SizeOf(Vector3D);
     Dest.Write(@Tag, 4);
-    Dest.Write(@Size, 4);
+    Dest.WriteInteger(Size);
     Dest.WriteString(_Emitters[I].Name);
     Dest.WriteString(_Emitters[I].Content);
     Dest.WriteString(_Emitters[I].ParentBone);
@@ -5690,7 +6121,7 @@ Begin
     Size := Succ(Length(_Lights[I].Name)) + 4 + SizeOf(Color)+
            Succ(Length(_Lights[I].ParentBone)) + SizeOf(Vector3D)*4;
     Dest.Write(@Tag, 4);
-    Dest.Write(@Size, 4);
+    Dest.WriteInteger(Size);
     Dest.WriteString(_Lights[I].Name);
     Dest.WriteString(_Lights[I].ParentBone);
     Dest.Write(@_Lights[I].LightType, 1);
@@ -5707,7 +6138,7 @@ Begin
     Tag := tagMeshBoneMorph;
     Size := 5 + SizeOf(Vector3D) * Count;
     Dest.Write(@Tag, 4);
-    Dest.Write(@Size, 4);
+    Dest.WriteInteger(Size);
 
     Dest.Write(@_BoneMorphs[I].MorphID, 4);
     Dest.Write(@_BoneMorphs[I].MorphType, 1);
@@ -5791,7 +6222,7 @@ End;
 Constructor Mesh.CreateFromFilter(Source:MeshFilter);
 Var
   I, J, N:Integer;
-  Format:Integer;
+  Format:VertexFormat;
   S:TERRAString;
   B:MeshBone;
   P:Vector2D;
@@ -5804,43 +6235,44 @@ Begin
   SetLength(_Groups, _GroupCount);
   For N:=0 To Pred(_GroupCount) Do
   Begin
-    _Groups[N] := MeshGroup.Create(N, Self, Source.GetGroupName(N));
-    _Groups[N].Flags := Source.GetGroupFlags(N);
-    _Groups[N]._VertexCount := Source.GetVertexCount(N);
-    _Groups[N]._TriangleCount := Source.GetTriangleCount(N);
-    _Groups[N]._VisibleTriangleCount := _Groups[N]._TriangleCount;
-    SetLength(_Groups[N]._Vertices, _Groups[N]._VertexCount);
-
     Format := Source.GetVertexFormat(N);
 
-    For I:=0 To Pred(_Groups[N]._VertexCount) Do
+    _Groups[N] := MeshGroup.Create(N, Self, Format, Source.GetGroupName(N));
+    _Groups[N].Flags := Source.GetGroupFlags(N);
+    _Groups[N]._Vertices.Resize(Source.GetVertexCount(N));
+    _Groups[N]._TriangleCount := Source.GetTriangleCount(N);
+    _Groups[N]._VisibleTriangleCount := _Groups[N]._TriangleCount;
+
+    For I:=0 To Pred(_Groups[N].VertexCount) Do
     Begin
-      _Groups[N]._Vertices[I].Position := Source.GetVertexPosition(N, I);
+{      _Groups[N]._Vertices.SetVector3D(I, vertexPosition, Source.GetVertexPosition(N, I);
 
-      If (Format And meshFormatBone<>0) Then
-        _Groups[N]._Vertices[I].BoneIndex := Source.GetVertexBone(N, I)
+      If (Format And vertexBone<>0) Then
+        _Groups[N].GetSingle(I, vertexBone)^ := Source.GetVertexBone(N, I)
       Else
-        _Groups[N]._Vertices[I].BoneIndex := -1;
+        _Groups[N].GetSingle(I, vertexBone)^ := -1;
 
-      If (Format And meshFormatNormal<>0) Then
+      If (Format And vertexNormal<>0) Then
         _Groups[N]._Vertices[I].Normal := Source.GetVertexNormal(N, I);
 
-      If (Format And meshFormatUV1<>0) Then
+      If (Format And vertexUV0<>0) Then
         _Groups[N]._Vertices[I].TextureCoords := Source.GetVertexUV(N, I);
 
-      If (Format And meshFormatUV2<>0) Then
+      If (Format And vertexUV1<>0) Then
         _Groups[N]._Vertices[I].TextureCoords2 := Source.GetVertexUV2(N, I);
 
-      If (Format And meshFormatColor<>0) Then
+      If (Format And vertexColor<>0) Then
         _Groups[N]._Vertices[I].Color := Source.GetVertexColor(N, I)
       Else
         _Groups[N]._Vertices[I].Color := ColorWhite;
 
-      If (Format And meshFormatTangent<>0) Then
+      If (Format And vertexTangent<>0) Then
       Begin
         _Groups[N]._Vertices[I].Tangent := Source.GetVertexTangent(N, I);
         _Groups[N]._Vertices[I].Handness := Source.GetVertexHandness(N, I);
-      End;
+      End;}
+
+      RaiseError('unfinished mesh');
     End;
     SetLength(_Groups[N]._Triangles, _Groups[N]._TriangleCount);
     For I:=0 To Pred(_Groups[N]._TriangleCount) Do
@@ -5857,7 +6289,7 @@ Begin
 
     _Groups[N]._Material.DiffuseColor := Source.GetDiffuseColor(N);
 
-    If ((Format And meshFormatTangent)=0) Then
+    If (vertexFormatTangent In Format) Then
       _Groups[N].CalculateTangents;
   End;
 
@@ -5970,11 +6402,25 @@ End;
 
 Procedure MeshGroup.OnContextLost;
 Begin
-  If Assigned(_Buffer) Then
-  Begin
-    _Buffer.Release;
-    _Buffer := Nil;
-  End;
+  ReleaseObject(_Buffer);
+End;
+
+Procedure Mesh.SubDivide();
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_GroupCount) Do
+  If (_Groups[I]._TriangleCount>0) Then
+    _Groups[I].SubDivide();
+End;
+
+Procedure Mesh.Smooth();
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_GroupCount) Do
+  If (_Groups[I]._TriangleCount>0) Then
+    _Groups[I].Smooth();
 End;
 
 Procedure Mesh.Optimize(VertexCacheSize:Integer);
@@ -6000,7 +6446,7 @@ Var
 Begin
   Result := Mesh.Create('@'+Self.Name);
   Merger := MeshMerger.Create();
-  Merger.Merge(Self, Result, True);
+  Merger.Merge(Self, Result, Self._Groups[0]._Vertices.Format, True);
   Merger.Release();
 End;
 
@@ -6288,49 +6734,52 @@ Begin
 End;
 
 Function CustomMeshFilter.GetVertexBone(GroupID, Index: Integer): Integer;
+Var
+  BoneIndex:Single;
 Begin
-  Result := Trunc(_Mesh._Groups[GroupID].GetVertex(Index).BoneIndex);
+  _Mesh._Groups[GroupID].Vertices.GetFloat(Index, vertexBone, BoneIndex);
+  Result := Trunc(BoneIndex);
 End;
 
 Function CustomMeshFilter.GetVertexColor(GroupID, Index: Integer): Color;
 Begin
-  Result := _Mesh._Groups[GroupID].GetVertex(Index).Color;
+  _Mesh._Groups[GroupID].Vertices.GetColor(Index, vertexColor, Result);
 End;
 
 Function CustomMeshFilter.GetVertexCount(GroupID: Integer): Integer;
 Begin
-  Result := _Mesh._Groups[GroupID]._VertexCount;
+  Result := _Mesh._Groups[GroupID].VertexCount;
 End;
 
-Function CustomMeshFilter.GetVertexFormat(GroupID: Integer): Cardinal;
+Function CustomMeshFilter.GetVertexFormat(GroupID: Integer):VertexFormat;
 Begin
-  Result := meshFormatNormal Or meshFormatUV1 or meshFormatBone;
+  Result := _Mesh._Groups[GroupID].Vertices.Format;
 End;
 
 Function CustomMeshFilter.GetVertexNormal(GroupID, Index: Integer): Vector3D;
 Begin
-  Result := _Mesh._Groups[GroupID].GetVertex(Index).Normal;
+  _Mesh._Groups[GroupID].Vertices.GetVector3D(Index, vertexNormal, Result);
 End;
 
 Function CustomMeshFilter.GetVertexPosition(GroupID,Index: Integer): Vector3D;
 Begin
-  Result := _Mesh._Groups[GroupID].GetVertex(Index).Position;
+  _Mesh._Groups[GroupID].Vertices.GetVector3D(Index, vertexPosition, Result);
 End;
 
-Function CustomMeshFilter.GetVertexTangent(GroupID, Index: Integer): Vector3D;
+Function CustomMeshFilter.GetVertexTangent(GroupID, Index: Integer): Vector4D;
 Begin
-  Result := _Mesh._Groups[GroupID].GetVertex(Index).Tangent;
+  _Mesh._Groups[GroupID].Vertices.GetVector4D(Index, vertexTangent, Result);
 End;
 
 Function CustomMeshFilter.GetVertexUV(GroupID, Index: Integer): Vector2D;
 Begin
-  Result := _Mesh._Groups[GroupID].GetVertex(Index).TextureCoords;
+  _Mesh._Groups[GroupID].Vertices.GetVector2D(Index, vertexUV0, Result);
   Result.Y := 1 - Result.Y;
 End;
 
 Function CustomMeshFilter.GetVertexUV2(GroupID, Index: Integer): Vector2D;
 Begin
-  Result := _Mesh._Groups[GroupID].GetVertex(Index).TextureCoords2;
+  _Mesh._Groups[GroupID].Vertices.GetVector2D(Index, vertexUV1, Result);
 End;
 
 { MeshMerger }
@@ -6339,7 +6788,7 @@ Begin
   // do nothing
 End;
 
-Function MeshMerger.Merge(Source, Dest:Mesh; IndividualGroup: Boolean; MaxVertsPerGroup: Integer; UpdateBox:Boolean): IntegerArrayObject;
+Function MeshMerger.Merge(Source, Dest:Mesh; DestFormat:VertexFormat; IndividualGroup: Boolean; MaxVertsPerGroup: Integer; UpdateBox:Boolean): IntegerArrayObject;
 Var
   I, J, Init:Integer;
   Target, SourceGroup:MeshGroup;
@@ -6378,7 +6827,7 @@ Begin
     And (Dest._Groups[I].Flags = SourceGroup.Flags)
     And (Dest._Groups[I].Userdata = SourceGroup.Userdata)
     And (Dest._Groups[I]._Material.Equals(SourceGroup._Material))
-    And (Dest._Groups[I]._VertexCount + SourceGroup._VertexCount<MaxVertsPerGroup) Then
+    And (Dest._Groups[I].VertexCount + SourceGroup.VertexCount<MaxVertsPerGroup) Then
     Begin
       Target := Dest._Groups[I];
       Break;
@@ -6386,8 +6835,7 @@ Begin
 
     If Not Assigned(Target) Then
     Begin
-      Target := Dest.AddGroup();
-      Target._Name := SourceGroup._Name;
+      Target := Dest.AddGroup(DestFormat, SourceGroup._Name);
       Target.Flags := SourceGroup.Flags;
       Target.UserData := SourceGroup.UserData;
       Target._Unique := IndividualGroup;
@@ -6407,9 +6855,10 @@ End;
 Procedure MeshMerger.MergeGroup(Source, Dest:MeshGroup; UpdateBox:Boolean = True);
 Var
   VOfs, TOfs:Cardinal;
-  SourceVertex, DestVertex:PMeshVertex;
+  DestVertex:VertexData;
   SourceTriangle, DestTriangle:PTriangle;
   I, N:Integer;
+  SrcIt, DestIt:VertexIterator;
 Begin
   If (Source = Nil) Or (Dest =  Nil) Then
   Begin
@@ -6419,25 +6868,11 @@ Begin
 
   Log(logDebug, 'Mesh', 'Beginning group '+Source._Owner.Name+'.'+ Source.Name+' into '+Dest._Owner.Name+'.'+ Dest.Name);
 
-  VOfs := Dest._VertexCount;
+  VOfs := Dest.VertexCount;
   TOfs := Dest._TriangleCount;
-  Inc(Dest._VertexCount, Source._VertexCount);
-  Inc(Dest._TriangleCount, Source._TriangleCount);  
+  Dest.Vertices.Resize(Dest.VertexCount + Source.VertexCount);
+  Inc(Dest._TriangleCount, Source._TriangleCount);
   Dest._VisibleTriangleCount := Dest._TriangleCount;
-
-  If (Length(Dest._Vertices) < Dest._VertexCount) Then
-  Begin
-    If (Length(Dest._Vertices)<=0) Then
-    Begin
-      If (Dest._VertexCount>=256) Then
-        N := Dest._VertexCount
-      Else
-        N := 256;
-    End Else
-      N := Length(Dest._Vertices) * 2;
-
-    SetLength(Dest._Vertices, N);
-  End;
 
   If (Length(Dest._Triangles)<Dest._TriangleCount) Then
   Begin
@@ -6454,16 +6889,16 @@ Begin
     SetLength(Dest._TriangleNormals, N);
   End;
 
-  For I:=0 To Pred(Source._VertexCount) Do
+  DestIt := Dest.Vertices.GetIterator(MeshVertex);
+  DestIt.Seek(VOfs);
+
+  SrcIt := Source.Vertices.GetIterator(MeshVertex);
+  While (SrcIt.HasNext()) And (DestIt.HasNext()) Do
   Begin
-    SourceVertex := Source.GetVertexPointer(I);
-    DestVertex := Dest.GetVertexPointer(VOfs + I);
-    If (Assigned(SourceVertex)) And (Assigned(DestVertex)) Then
-    Begin
-      DestVertex^ := SourceVertex^;
-      Self.ProcessVertex(DestVertex, Source, Dest);
-    End;
+    Self.ProcessVertex(MeshVertex(SrcIt.Value), MeshVertex(DestIt.Value), Source, Dest);
   End;
+  ReleaseObject(DestIt);
+  ReleaseObject(SrcIt);
 
   For I:=0 To Pred(Source._TriangleCount) Do
   Begin
@@ -6486,7 +6921,17 @@ End;
 
 Procedure MeshMerger.ProcessGroup(Group: MeshGroup); Begin End;
 Procedure MeshMerger.ProcessTriangle(T: PTriangle; Source, Dest:MeshGroup); Begin End;
-Procedure MeshMerger.ProcessVertex(Vertex: PMeshVertex; Source, Dest:MeshGroup); Begin End;
+
+Procedure MeshMerger.ProcessVertex(SourceVertex, DestVertex:MeshVertex; SourceGroup, DestGroup:MeshGroup);
+Begin
+  DestVertex.Position := SourceVertex.Position;
+  DestVertex.Normal := SourceVertex.Normal;
+  DestVertex.Tangent := SourceVertex.Tangent;
+  DestVertex.UV0 := SourceVertex.UV0;
+  DestVertex.UV1 := SourceVertex.UV1;
+  DestVertex.Color := SourceVertex.Color;
+  DestVertex.BoneIndex := SourceVertex.BoneIndex;
+End;
 
 { MeshEmitter }
 Constructor MeshEmitter.Create(Owner: Mesh);
@@ -6531,12 +6976,14 @@ Begin
     And (Self.TriplanarMap = Other.TriplanarMap)
     And (Self.DecalMap = Other.DecalMap)
     And (Self.NormalMap = Other.NormalMap)
+    And (Self.DisplacementMap = Other.DisplacementMap)
     And (Self.SpecularMap = Other.SpecularMap)
     And (Self.GlowMap = Other.GlowMap)
     And (Self.RefractionMap = Other.RefractionMap)
     And (Self.AlphaMap = Other.AlphaMap)
     And (Self.LightMap = Other.LightMap)
-    And (Self.ColorRamp = Other.ColorRamp)
+    And (Self.DitherPatternMap = Other.DitherPatternMap)
+    And (Self.ToonRamp = Other.ToonRamp)
     And (Self.ColorTable = Other.ColorTable)
     And (Self.BlendMode = Other.BlendMode)
     And (Cardinal(Self.DiffuseColor) = Cardinal(Other.DiffuseColor))
@@ -6552,18 +6999,21 @@ Begin
   AmbientColor := ColorWhite;
   DiffuseColor := ColorWhite;
   OutlineColor := ColorNull;
+  ShadowColor := ColorNull;
 
   DiffuseMap := Nil;
   TriplanarMap := Nil;
   DecalMap := Nil;
   NormalMap := Nil;
+  DisplacementMap := Nil;
   SpecularMap := Nil;
   GlowMap := Nil;
   RefractionMap := Nil;
   AlphaMap := Nil;
   LightMap := Nil;
+  DitherPatternMap := Nil;
 
-  ColorRamp := Nil;
+  ToonRamp := Nil;
   ColorTable := Nil;
 
   VegetationBend := 0.5;
@@ -6576,13 +7026,15 @@ Begin
   Inherited Create(FXName, VectorZero);
 End;
 
-Procedure MeshParticleEmitter.Emit(Target: PParticle);
+Procedure MeshParticleEmitter.Emit(Target:Particle);
 Var
   N:Integer;
+  P:Vector3D;
 Begin
-  N := Random(_TargetGroup._VertexCount);
+  N := Random(_TargetGroup.VertexCount);
   //N := GetTime Mod Group._VertexCount;
-  Self.Position := _TargetGroup._Vertices[N].Position;
+  _TargetGroup.Vertices.GetVector3D(N, vertexPosition, P);
+  Self.Position := P;
   //Target.SpawnWithDirection(Group._Vertices[N].Normal);
 
   Inherited Emit(Target);
@@ -6598,12 +7050,13 @@ Begin
 End;
 
 { SelectMeshShader }
-Function SelectMeshShader(Group:MeshGroup; Position:Vector3D; Outline:Boolean; Const DestMaterial:MeshMaterial; UseTextureMatrix:Boolean):Shader;
+Function SelectMeshShader(Group:MeshGroup; Position:Vector3D; Outline, TranslucentPass:Boolean; Const DestMaterial:MeshMaterial; UseTextureMatrix:Boolean):ShaderInterface;
 Var
   DisableLights:Boolean;
   LightPivot:Vector3D;
   RenderStage:Integer;
   FxFlags, OutFlags:Cardinal;
+  Graphics:GraphicsManager;
 Begin
   FxFlags := 0;
   OutFlags := 0;
@@ -6612,29 +7065,31 @@ Begin
   Group._LightBatch.SpotLightCount := 0;
   DisableLights := False;
 
+  Graphics := GraphicsManager.Instance;
+
   If (Group.Flags And meshGroupVegetation<>0) And (DestMaterial.VegetationBend>0) Then
     FxFlags := FxFlags Or shaderVegetation;
 
-  Group._Owner._Skinning := (Assigned(Group._Owner.Skeleton)) And (Group._Owner.Skeleton.BoneCount>0);
-  Group._Owner._NormalMapping := (Assigned(DestMaterial.NormalMap)) And (GraphicsManager.Instance.Settings.NormalMapping.Enabled);
+  Group._Owner._Skinning := (Assigned(Group._Owner.Skeleton)) And (Group._Owner.Skeleton.BoneCount>0) And (Group.Vertices.HasAttribute(vertexBone));
+  Group._Owner._NormalMapping := (Assigned(DestMaterial.NormalMap)) And (Graphics.Renderer.Settings.NormalMapping.Enabled);
 
   If (Group.AmbientColor.R = 0) And (Group.AmbientColor.G = 0) And (Group.AmbientColor.B=0) Then
     FxFlags := FxFlags Or shaderSkipAmbient;
 
-  RenderStage := GraphicsManager.Instance.RenderStage;
+  RenderStage := Graphics.RenderStage;
 
-  If (GraphicsManager.Instance.ActiveViewport.Camera.UseClipPlane) Then
+  If (Graphics.ActiveViewport.Camera.UseClipPlane) Then
     FxFlags := FxFlags Or shaderClipPlane;
 
-  If (Group.Flags And meshGroupStencilMask<>0) {$IFDEF REFLECTIONS_WITH_STENCIL} Or (GraphicsManager.Instance.ReflectionStencil) {$ENDIF}  Then
+  If (Group.Flags And meshGroupStencilMask<>0) {$IFDEF REFLECTIONS_WITH_STENCIL} Or (Graphics.ReflectionStencil) {$ENDIF}  Then
   Begin
     DisableLights := True;
-    OutFlags := shader_OutputColor;
+    OutFlags := shader_OutputFixedColor;
   End Else
   If RenderStage = renderStageOutline Then
   Begin
     DisableLights := True;
-    OutFlags := OutFlags Or shader_OutputColor;
+    OutFlags := OutFlags Or shader_OutputFixedColor;
   End Else
   If RenderStage = renderStageNormal Then
   Begin
@@ -6651,6 +7106,20 @@ Begin
     DisableLights := True;
     OutFlags := OutFlags Or shader_OutputGlow;
   End Else
+  If RenderStage = renderStageShadow Then
+  Begin
+    DisableLights := True;
+
+    OutFlags := OutFlags Or shader_OutputShadow;
+
+    If (Group.Flags And meshGroupLightmap<>0) Then
+    Begin
+      FxFlags := FxFlags Or shaderAddSigned;
+
+      If Assigned(DestMaterial.LightMap) Then
+        FxFlags := FxFlags Or shaderLightmap;
+    End;
+  End Else
   If RenderStage = renderStageReflection Then
   Begin
     DisableLights := True;
@@ -6663,34 +7132,50 @@ Begin
       {$ENDIF}
 
       If (DestMaterial.NormalMap <> Nil) Then
+      Begin
         FxFlags := FxFlags Or shaderNormalMap;
+      End;
     End;
   End Else
   If RenderStage = renderStageDiffuse Then
   Begin
-    If (GraphicsManager.Instance.Settings.Specular.Enabled) Then
+    OutFlags := OutFlags Or shader_OutputDiffuse;
+
+    If Graphics.Renderer.Settings.CartoonHues.Enabled Then
+      FxFlags := FxFlags Or shaderCartoonHue;
+
+    If (Graphics.Renderer.Settings.Specular.Enabled) Then
       FxFlags := FxFlags Or shaderSpecular;
 
-    If (Assigned(DestMaterial.ColorRamp)) Then
-      FxFlags := FxFlags Or shaderColorRamp;
+    If (Assigned(DestMaterial.ToonRamp)) Then
+      FxFlags := FxFlags Or shaderToonRamp;
 
     If Assigned(DestMaterial.DecalMap) Then
       FxFlags := FxFlags Or shaderDecalMap;
 
+    If (Assigned(DestMaterial.DitherPatternMap)) Then
+    Begin
+      FxFlags := FxFlags Or shaderDitherColor Or shaderSkipAmbient;
+    End;
+
+    If (Graphics.Renderer.Settings.DynamicShadows.Enabled) Then
+      FxFlags := FxFlags Or shaderShadowMap;
+
+    If (Group.Flags And meshGroupAlphaMap<>0) Then
+    Begin
+      FxFlags := FxFlags Or shaderAlphamap;
+    End;
+
     If (Group.Flags And meshGroupLightmap<>0) Then
     Begin
-      FxFlags := FxFlags Or shaderLightmap Or shaderAddSigned;
+      FxFlags := FxFlags Or shaderAddSigned Or shaderSelfIllumn;
+      DisableLights := True;
     End Else
     Begin
-      If (Group.Flags And meshGroupAlphaMap<>0) Then
-      Begin
-        FxFlags := FxFlags Or shaderAlphamap;
-      End;
-
       If (Not DisableLights) And (Group.Flags And meshGroupLightOff=0) Then
       Begin
         If (Group._BoundingBox.Radius>50) Then
-          LightPivot := GraphicsManager.Instance.ActiveViewport.Camera.Position
+          LightPivot := Graphics.ActiveViewport.Camera.Position
         Else
           LightPivot := Position;
 
@@ -6702,6 +7187,11 @@ Begin
     If Assigned(DestMaterial.ColorTable) Then
       FxFlags := FxFlags Or shaderColorTable;
     {$ENDIF}
+
+{$IFDEF ADVANCED_ALPHA_BLEND}
+    If Not TranslucentPass Then
+      OutFlags := OutFlags Or shader_OutputFixedColor;
+{$ENDIF}
 
     If (Group.Flags And meshGroupSphereMap<>0) Then
       FxFlags := FxFlags Or shaderSphereMap;
@@ -6733,9 +7223,13 @@ Begin
   If (Group._Owner._NormalMapping) And ((RenderStage = renderStageNormal) Or (RenderStage = renderStageDiffuse)) Then
   Begin
     FxFlags := FxFlags Or shaderNormalMap;
+    {$IFDEF PC}
+    If Assigned(DestMaterial.DisplacementMap) Then
+      FxFlags := FxFlags Or shaderParallaxBump;
+    {$ENDIF};
   End;
 
-  If (Group._Owner._Skinning) And (GraphicsManager.Instance.Settings.VertexBufferObject.Enabled) Then
+  If (Group._Owner._Skinning) And (Group._GPUSkinning) Then
     FxFlags := FxFlags Or shaderSkinning;
 
   If (Group.Flags And meshGroupColorOff<>0) Then
@@ -6760,10 +7254,10 @@ Begin
     OutFlags := OutFlags Or shader_OutputOutline;
   End;
 
-  If (Group.Flags And meshGroupAlphaTest<>0) And (GraphicsManager.Instance.Settings.AlphaTesting.Enabled) Then
+  If (Group.Flags And meshGroupAlphaTest<>0) And (Graphics.Renderer.Settings.AlphaTesting.Enabled) Then
     FxFlags := FxFlags Or shaderAlphaTest;
 
-  If (GraphicsManager.Instance.ReflectionActive) Then
+  If (Graphics.ReflectionActive) Then
     FxFlags := FxFlags Or shaderScreenMask;
 
   If (UseTextureMatrix) And (FxFlags And shaderFlowMap = 0) Then
@@ -6771,9 +7265,46 @@ Begin
 
 //  Flags := shaderOutputNormal;
 
-{$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Getting shader with flags '+CardinalToString(Flags));{$ENDIF}
+{$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Getting shader with flags '+CardinalToString(FXFlags));{$ENDIF}
 
-  Result := ShaderFactory.Instance.GetShader(FxFlags, OutFlags, GraphicsManager.Instance.Settings.FogMode, GraphicsManager.Instance.LightModel, Group._LightBatch);
+  Result := ShaderFactory.Instance.GetShader(FxFlags, OutFlags, Graphics.Renderer.Settings.FogMode, Graphics.LightModel,  Group._LightBatch);
+End;
+
+{ MeshFX }
+Procedure MeshFX.SetCallback(Callback: MeshFXCallback; UserData: Pointer);
+Begin
+  Self._Callback := Callback;
+  Self._UserData := UserData;
+End;
+
+{ MeshVertex }
+Procedure MeshVertex.Load;
+Var
+  N:Single;
+Begin
+  Self.GetVector3D(vertexPosition, Self.Position);
+  Self.GetVector3D(vertexNormal, Self.Normal);
+  Self.GetVector4D(vertexTangent, Self.Tangent);
+  Self.GetVector2D(vertexUV0, Self.UV0);
+  Self.GetVector2D(vertexUV1, Self.UV1);
+  Self.GetColor(vertexColor, Self.Color);
+
+  Self.GetFloat(vertexBone, N);
+  If (N<0) Or (N>MaxBones) Then
+    N := 0;
+
+  Self.BoneIndex := Trunc(N);
+End;
+
+Procedure MeshVertex.Save;
+Begin
+  Self.SetVector3D(vertexPosition, Self.Position);
+  Self.SetVector3D(vertexNormal, Self.Normal);
+  Self.SetVector4D(vertexTangent, Self.Tangent);
+  Self.SetVector2D(vertexUV0, Self.UV0);
+  Self.SetVector2D(vertexUV1, Self.UV1);
+  Self.SetColor(vertexColor, Self.Color);
+  Self.SetFloat(vertexBone, Self.BoneIndex);
 End;
 
 Initialization
@@ -6786,13 +7317,7 @@ Initialization
   RegisterMeshDataHandler(tagMeshMetadata, MeshReadMeta);
   RegisterMeshDataHandler(tagMeshBoneMorph, MeshReadBoneMorph);
 
-  RegisterMeshGroupHandler(tagVertexPositions, GroupReadVertexPositions);
-  RegisterMeshGroupHandler(tagVertexNormals, GroupReadVertexNormals);
-  RegisterMeshGroupHandler(tagVertexUVs0, GroupReadVertexUV0);
-  RegisterMeshGroupHandler(tagVertexUVs1, GroupReadVertexUV1);
-  RegisterMeshGroupHandler(tagVertexTangents, GroupReadVertexTangents);
-  RegisterMeshGroupHandler(tagVertexColors, GroupReadVertexColors);
-  RegisterMeshGroupHandler(tagVertexBoneIndices, GroupReadVertexBoneIndices);
+  RegisterMeshGroupHandler(tagVertexData, GroupReadVertexData);
   RegisterMeshGroupHandler(tagVertexMorph, GroupReadVertexMorphs);
   RegisterMeshGroupHandler(tagVertexLinks, GroupReadVertexLinks);
 //  RegisterMeshGroupHandler(tagVertexBoneWeights, GroupReadVertexBoneWeights);
@@ -6803,6 +7328,7 @@ Initialization
   RegisterMeshGroupHandler(tagMaterialTriplanar, GroupReadMaterialTriplanar);
   RegisterMeshGroupHandler(tagMaterialSpecular, GroupReadMaterialSpecular);
   RegisterMeshGroupHandler(tagMaterialBump, GroupReadMaterialBump);
+  RegisterMeshGroupHandler(tagMaterialDisplacement, GroupReadMaterialDisplacement);
   RegisterMeshGroupHandler(tagMaterialLightMap, GroupReadMaterialLightmap);
   RegisterMeshGroupHandler(tagMaterialRefraction, GroupReadMaterialRefraction);
   RegisterMeshGroupHandler(tagMaterialReflective, GroupReadMaterialReflective);

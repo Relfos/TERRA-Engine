@@ -32,7 +32,7 @@ Var
 Begin
   Java_Begin(Frame);
   Params := JavaArguments.Create(Frame);
-  Params.AddString(Application.Instance.Client.GetFacebookID());
+  Params.AddString(Application.Instance.GetFacebookID());
   _Facebook := JavaObject.Create(FacebookClassPath, Params, Frame);
   Params.Release();
   Java_End(Frame);
@@ -60,7 +60,7 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(Page);
   Params.AddString(URL);
-  _Facebook.CallVoidMethod('likePage', Params);
+  _Facebook.CallVoidMethod(Frame, 'likePage', Params);
   Params.Release();
   Java_End(Frame);
 End;
@@ -78,7 +78,7 @@ Begin
   Params.AddString(Link);
   Params.AddString(Desc);
   Params.AddString(ImageURL);
-  _Facebook.CallVoidMethod('post', Params);
+  _Facebook.CallVoidMethod(Frame, 'post', Params);
   Params.Release();
   Java_End(Frame);
 End;

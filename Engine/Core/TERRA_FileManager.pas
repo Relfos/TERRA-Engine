@@ -95,7 +95,7 @@ Type
 Function IsPackageFileName(Const FileName:TERRAString):Boolean;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_OS, TERRA_Image,
+Uses SysUtils, TERRA_Error, TERRA_Log, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF} TERRA_OS, TERRA_Image,
   TERRA_GraphicsManager, TERRA_Color, TERRA_FileUtils, TERRA_MemoryStream;
 
 Var
@@ -246,10 +246,18 @@ End;
 Procedure FileManager.AddPath(Path:TERRAString);
 Var
   I:Integer;
-  FM:FolderManager;
+//  FM:FolderManager;
 Begin
   Path := GetOSIndependentFilePath(Path);
   Path := Path + PathSeparator;
+
+  {$IFDEF PC}
+  If Not DirectoryExists(Path) Then
+  Begin
+    Log(logWarning, 'FileManager', 'The following path is missing: '+Path);
+    Exit;
+  End;
+  {$ENDIF}
 
   For I:=0 To Pred(_PathCount) Do
   If (_PathList[I] = Path) Then
@@ -260,9 +268,9 @@ Begin
   SetLength(_PathList, _PathCount);
   _PathList[Pred(_PathCount)] := Path;
 
-  FM := FolderManager.Instance;
+(*  FM := FolderManager.Instance;
   If Assigned(FM) Then
-    FM.WatchFolder(Path);
+    FM.WatchFolder(Path);*)
 End;
 
 Procedure FileManager.RemovePath(Path:TERRAString);
@@ -307,7 +315,10 @@ Begin
   If (Pos('.',FileName)<=0) Then
     FileName := FileName + '.terra';
 
-  Result := Self.AddPackage(Package.Create(FileName));
+  If FileStream.Exists(FileName) Then
+    Result := Self.AddPackage(Package.Create(FileName))
+  Else
+    Result := Nil;
 End;
 
 Function FileManager.SearchResourceFile(FileName:TERRAString):TERRAString;

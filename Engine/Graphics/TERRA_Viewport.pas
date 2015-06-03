@@ -26,10 +26,9 @@ Unit TERRA_Viewport;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Camera, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
-  TERRA_String, TERRA_Ray, TERRA_Vector3D, TERRA_Matrix4x4, 
-  TERRA_Color, TERRA_RenderTarget, TERRA_Downsampler, TERRA_Shader
-{$IFDEF POSTPROCESSING},TERRA_ScreenFX{$ENDIF};
+  TERRA_String, TERRA_Utils, TERRA_Camera, TERRA_Renderer, TERRA_Downsampler,
+  TERRA_Ray, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Color, TERRA_Texture
+  {$IFDEF POSTPROCESSING},TERRA_ScreenFX{$ENDIF};
 
 Const
   vpPositionX   = 1;
@@ -63,34 +62,45 @@ Type
       _ViewY:Integer;
       _ViewWidth:Integer;
       _ViewHeight:Integer;
-      
+
       _ContextID:Integer;
 
-      _Buffers:Array[0..Pred(MaxCaptureTargets)]  Of RenderTarget;
+      _ResolveBuffer:RenderTargetInterface;
+      _ResolveTexture:Texture;
+
+      _RenderBuffers:Array[0..Pred(TotalCaptureTargets)] Of RenderTargetInterface;
+      _RenderTextures:Array[0..Pred(TotalCaptureTargets)] Of Texture;
+      _RenderSamplers:Array[0..Pred(TotalCaptureTargets)] Of RenderTargetSampler;
+
       _DoPostProcessing:Boolean;
       _Offscreen:Boolean;
       _DrawSky:Boolean;
 
+      _VR:Boolean;
+      _CurrentSubView:Integer;
+
       {$IFDEF POSTPROCESSING}
       _FXChain:ScreenFXChain;
-      _Downsampler:RenderTargetDownsampler;
-      _BloomID:Integer;
       {$ENDIF}
 
       Function UnprojectVector(WX,WY,WZ:Single):Vector3D;
 
-      Procedure ClearDownSampler();
-
       {$IFDEF POSTPROCESSING}
       Function GetFXChain: ScreenFXChain;
+
+      Procedure UpdateEffectTargets();
       {$ENDIF}
 
+      Function GetResolveTexture: Texture;
+
     Public
+      AutoResolve:Boolean;
+
       Constructor Create(Name:TERRAString; Width,Height:Integer; Scale:Single = 1.0);
 
       Procedure Release; Override;
 
-      Procedure Bind();
+      Procedure Bind(SubView:Integer);
       Procedure Clear();
       Procedure Restore(Clear:Boolean);
       Procedure Resize(Width, Height:Integer);
@@ -98,9 +108,13 @@ Type
       Procedure OnContextLost;
 
       Procedure SetRenderTargetState(TargetType:RenderTargetType; Enabled:Boolean);
-      Function GetRenderTarget(TargetType:RenderTargetType):RenderTarget;
       Function IsRenderTargetEnabled(TargetType:RenderTargetType):Boolean;
       Function IsDirectDrawing():Boolean;
+
+      Function GetRenderTarget(TargetType:RenderTargetType):RenderTargetInterface;
+      Function GetRenderTexture(TargetType:RenderTargetType):Texture;
+
+      Function ResolveToTexture():Texture;
 
       Procedure SetViewArea(X,Y,Width,Height:Integer);
 
@@ -112,15 +126,13 @@ Type
       Procedure SetTarget(Target:Viewport; X1,Y1,X2,Y2:Single);
       Procedure SetTargetInPixels(Target:Viewport; X1,Y1,X2,Y2:Integer);
 
-
       Function ProjectPoint(Pos:Vector3D):Vector3D;
 
       Function GetPickRay(TX,TY:Integer):Ray;
 
       Procedure SetBackgroundColor(BG:Color);
 
-      Procedure BindBloomTexture(Slot:Integer);
-      Procedure BindStageTexture(Stage:RenderTargetType; Slot:Integer);
+      Procedure EnableDefaultTargets();
 
       Procedure DrawToTarget(AllowDebug:Boolean);
 
@@ -152,15 +164,20 @@ Type
       Property TargetX2:Single Read _TargetX2;
       Property TargetY1:Single Read _TargetY1;
       Property TargetY2:Single Read _TargetY2;
+
+      Property VR:Boolean Read _VR Write _VR;
+
+      Property ResolveTexture:Texture Read GetResolveTexture;
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_GraphicsManager, TERRA_Application, TERRA_Log, TERRA_OS, TERRA_Texture, TERRA_Vector4D
-{$IFDEF POSTPROCESSING},TERRA_FBO{$ENDIF};
+Uses TERRA_Error, TERRA_GraphicsManager, TERRA_Application, TERRA_Log, TERRA_OS, TERRA_Vector4D;
 
 {$IFDEF POSTPROCESSING}
 Var
-  _BlurShader:Shader;
+  _BlurShader:ShaderInterface;
+  _EdgeShader:ShaderInterface;
+  _DistanceFieldShader:ShaderInterface;
 {$ENDIF}
 
 Function GetShader_Blur():TERRAString;
@@ -181,11 +198,9 @@ Begin
   Line('}');
   Line('fragment {');
   Line('varying highp vec2 texCoord;');
-  Line('uniform highp float width, height;');
+  Line('uniform highp float dx, dy;');
   Line('uniform sampler2D texture;');
 	Line('void main()	{');
-	Line('lowp float dx = 1.0 / width;');
-  Line('lowp float dy = 1.0 / height;');
   Line('lowp vec2 st = texCoord.st;');
 
   // Apply 3x3 gaussian filter
@@ -224,6 +239,150 @@ Begin
   Result := S;
 End;
 
+
+(*	Line('float sobelFilter(vec2 texCoord){');
+	Line('	vec3 s00 = texture2D(normal_texture, texCoord + vec2(-offX, -offY)).rgb;');
+	Line('	vec3 s01 = texture2D(normal_texture, texCoord + vec2( 0,   -offY)).rgb;');
+	Line('	vec3 s02 = texture2D(normal_texture, texCoord + vec2( offX, -offY)).rgb;');
+
+	Line('	vec3 s10 = texture2D(normal_texture, texCoord + vec2(-offX,  0)).rgb;');
+	Line('	vec3 s12 = texture2D(normal_texture, texCoord + vec2( offX,  0)).rgb;');
+
+	Line('	vec3 s20 = texture2D(normal_texture, texCoord + vec2(-offX,  offY)).rgb;');
+	Line('	vec3 s21 = texture2D(normal_texture, texCoord + vec2( 0,    offY)).rgb;');
+	Line('	vec3 s22 = texture2D(normal_texture, texCoord + vec2( offX,  offY)).rgb;');
+
+	Line('	vec3 sobelX = s00 + 2.0 * s10 + s20 - s02 - 2.0 * s12 - s22;');
+	Line('	vec3 sobelY = s00 + 2.0 * s01 + s02 - s20 - 2.0 * s21 - s22;');
+
+	Line('	vec3 edgeSqr = sobelX * sobelX + sobelY * sobelY;');
+  Line('  vec4 px = texture2D(normal_texture, texCoord).rgba;');
+	Line('	float p = dot(edgeSqr, edgeSqr);');
+
+
+//  Line('	return px.a;	}');
+
+	//Line('	return p * 0.3 + 0.7;	}');*)
+
+Function GetShader_Edge():TERRAString;
+Var
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
+Begin
+  S := '';
+  Line('version { 110 }');
+  Line('vertex {');
+  Line('  uniform mat4 projectionMatrix;');
+  Line('  varying highp vec2 texCoord;');
+  Line('  attribute highp vec4 terra_position;');
+  Line('  attribute mediump vec2 terra_UV0;');
+	Line('  void main()	{');
+  Line('    texCoord = terra_UV0;');
+  Line('    gl_Position = projectionMatrix * terra_position;}');
+  Line('}');
+  Line('fragment {');
+
+  Line('varying highp vec2 texCoord;');
+  Line('uniform highp float dx, dy;');
+  Line('uniform sampler2D texture;');
+
+	Line('void main()	{');
+	Line('lowp float offX = dx;');
+  Line('lowp float offY = dy;');
+
+  // Apply sobel filter
+
+  Line('mediump vec3 sample;');
+  //Line('lowp float depth = texture2D(normal_texture, texCoord).a;');
+
+  //Line(' depth = (1.0 - depth) * 0.5;');
+  Line(' mediump float kox = offX; ');
+  Line(' mediump float koy = offY; ');
+
+// fetch the 3x3 neighbourhood and use the RGB vector's length as intensity value
+  Line('  lowp float spv0;');
+  Line('  lowp float spv1;');
+  Line('  lowp float spv2;');
+  Line(' spv0 = length(texture2D(texture, texCoord + vec2(-kox,-koy)).rgb);');
+  Line(' spv1 = length(texture2D(texture, texCoord + vec2(-kox, 0.0)).rgb);');
+  Line(' spv2 = length(texture2D(texture, texCoord + vec2(-kox, koy)).rgb);');
+  Line(' lowp vec3 sample0 = vec3(spv0, spv1, spv2);');
+  Line(' spv0 = length(texture2D(texture, texCoord + vec2(0.0, -koy)).rgb);');
+  Line(' spv1 = length(texture2D(texture, texCoord).rgb);');
+  Line(' spv2 = length(texture2D(texture, texCoord + vec2(0.0, koy)).rgb);');
+  Line(' lowp vec3 sample1 = vec3(spv0, spv1, spv2);');
+  Line(' spv0 = length(texture2D(texture, texCoord + vec2(kox,-koy)).rgb);');
+  Line(' spv1 = length(texture2D(texture, texCoord + vec2(kox, 0.0)).rgb);');
+  Line(' spv2 = length(texture2D(texture, texCoord + vec2(kox, koy)).rgb);');
+  Line(' lowp vec3 sample2 = vec3(spv0, spv1, spv2);');
+
+// calculate the convolution values for all the masks
+	// calculate the convolution values for all the masks
+  Line('lowp float conv0;');
+  Line('lowp float conv1;');
+  Line('mediump float dp3;');
+  Line(' mediump vec3 gk0_0 = vec3(1.0, 2.0, 1.0); ');
+  Line(' mediump vec3 gk0_2 = vec3(-1.0, -2.0, -1.0); ');
+  Line(' mediump vec3 gk1_0 = vec3(1.0, 0.0, -1.0); ');
+  Line(' mediump vec3 gk1_1 = vec3(2.0, 0.0, -2.0); ');
+  Line(' mediump vec3 gk1_2 = vec3(1.0, 0.0, -1.0); ');
+  Line(' dp3 =  dot(gk0_0, sample0) +  dot(gk0_2, sample2) ;');
+  Line(' conv0 = dp3 * dp3;	');
+  Line(' dp3 =  dot(gk1_0, sample0)  +  dot(gk1_1, sample1)  +  dot(gk1_2, sample2) ;');
+  Line(' conv1 = dp3 * dp3;	');
+  Line(' mediump float pp = sqrt(conv0*conv0+conv1*conv1);');
+
+  Line('	pp = 1.0 - min(1.0, pp);');
+
+//  Line('  pp = pp * 0.3 + 0.7;');
+  //Line('	if (pp<0.99) return 0.0;  else return 1.0; 	}');
+
+  Line('gl_FragColor = vec4(pp, pp, pp, 1.0);');
+
+  //Line('gl_FragColor = texture2D(texture, texCoord);');
+  Line('}}');
+  Result := S;
+End;
+
+Function GetShader_DistanceField():TERRAString;
+Var
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
+Begin
+  S := '';
+  Line('version { 110 }');
+  Line('vertex {');
+  Line('  uniform mat4 projectionMatrix;');
+  Line('  varying highp vec2 texCoord;');
+  Line('  attribute highp vec4 terra_position;');
+  Line('  attribute highp vec2 terra_UV0;');
+	Line('  void main()	{');
+  Line('    texCoord = terra_UV0;');
+  Line('    gl_Position = projectionMatrix * terra_position;}');
+  Line('}');
+  Line('fragment {');
+  Line('varying highp vec2 texCoord;');
+  Line('uniform highp float dx, dy;');
+  Line('uniform sampler2D texture;');
+
+  Line('highp float minDist;');
+
+  Line('void measurePixel(lowp ofst)	{');
+  Line('lowp vec4 pB = texture2D(texture, st + vec2(dx, 0.0));');
+  Line('}');
+
+	Line('void main()	{');
+  Line('lowp vec2 st = texCoord.st;');
+  Line('  minDist = 9999.0;');
+
+	Line('lowp vec4 pA	= texture2D(texture, st);');
+  Line('lowp vec4 pB = texture2D(texture, st + vec2(dx, 0.0));');
+  Line('lowp vec4 color = (pA + pB) * 0.5;');
+  Line('gl_FragColor = color;');
+  Line('}}');
+  Result := S;
+End;
+                                    
 Constructor Viewport.Create(Name:TERRAString; Width,Height:Integer; Scale:Single);
 Begin
   _Name := Name;
@@ -238,6 +397,8 @@ Begin
   _OfsX := 0;
   _OfsY := 0;
 
+  _CurrentSubView := 0;
+
   _ContextID := Application.Instance.ContextID;
 
   _BackgroundColor := ColorCreate(0, 0, 0, 255);
@@ -247,6 +408,7 @@ Begin
   SetOffScreenState(False);
 
   Log(logDebug, 'Viewport', 'Created viewport '+Name+' with size '+IntToString(_Width) +' x '+IntToString(_Height)+' and scale = '+FloatToString(_Scale));
+
 End;
 
 
@@ -273,10 +435,18 @@ Procedure Viewport.Release;
 Var
   I:Integer;
 Begin
-  For I:=0 To Pred(MaxCaptureTargets) Do
-    ReleaseObject(_Buffers[I]);
+  For I:=0 To Pred(TotalCaptureTargets) Do
+  Begin
+    If I<RenderCaptureTargets Then
+      ReleaseObject(_RenderTextures[I]);
 
-  ClearDownSampler();
+    ReleaseObject(_RenderBuffers[I]);
+    ReleaseObject(_RenderSamplers[I]);
+  End;
+
+
+  ReleaseObject(_ResolveBuffer);
+  ReleaseObject(_ResolveTexture);
 
   ReleaseObject(_Camera);
 
@@ -399,66 +569,70 @@ Begin
 End;
 
 
-Procedure Viewport.Bind();
+Procedure Viewport.Bind(Subview:Integer);
 Begin
 	//glMatrixMode(GL_PROJECTION);
 	//glLoadMatrixf(@_ProjectionMatrix);
 
-  If Assigned(Camera) Then
-    Camera.Update(_Width, _Height);
+  _CurrentSubView := SubView;
+
+  If (Assigned(Camera)) Then
+    Camera.Update(_Width, _Height, SubView);
 End;
 
 
 Procedure Viewport.SetRenderTargetState(TargetType:RenderTargetType; Enabled: Boolean);
 Var
   TargetValue:Integer;
+  Graphics:GraphicsManager;
+  DownSize:Integer;
 Begin
   TargetValue := Integer(TargetType);
 
-  If (TargetValue < 0) Or (TargetValue >= MaxCaptureTargets) Then
+  If (TargetValue < 0) Or (TargetValue >= TotalCaptureTargets) Then
     Exit;
 
-  If (Application.Instance.IsConsole) Then
-    Exit;
+  Graphics := GraphicsManager.Instance;
 
-  If (TargetType = captureTargetEmission) And (Enabled) And (Not GraphicsManager.Instance.Settings.FrameBufferObject.Avaliable) Then
-    Enabled := False;
+  {If (TargetType = captureTargetEmission) And (Enabled) And (Not Graphics.Renderer.Features.FrameBufferObject.Avaliable) Then
+    Enabled := False;}
 
-  If (Assigned(Self._Buffers[TargetValue]) = Enabled) Then
+  If (Self.IsRenderTargetEnabled(TargetType) =  Enabled) Then
     Exit;
 
   {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'SetTargetType');{$ENDIF}
 
   If Enabled Then
   Begin
-    Log(logDebug, 'GraphicsManager', 'Initializing '+TargetNames[TargetValue]+' target for '+Self.Name);
-    _Buffers[TargetValue] := CreateRenderTarget(_Name+'_target'+IntToString(TargetValue), Trunc(_Width * _Scale), Trunc(_Height * _Scale), True, True);
+    Log(logDebug, 'GraphicsManager', 'Initializing '+IntToString(TargetValue)+' target for '+Self.Name);
 
-    {$IFDEF POSTPROCESSING}
-    If (TargetType = captureTargetEmission) And (GraphicsManager.Instance.Settings.FrameBufferObject.Avaliable) Then
+    If (TargetValue<RenderCaptureTargets) Then
     Begin
-      Log(logDebug, 'GraphicsManager', 'Initializing bloom downsampler');
-      If (_Downsampler = Nil) Then
-        _Downsampler := RenderTargetDownsampler.Create('bloom_downsampler', 512, 512);
+      _RenderBuffers[TargetValue] := Graphics.Renderer.CreateRenderTarget();
+      _RenderBuffers[TargetValue].Generate(Trunc(_Width * _Scale), Trunc(_Height * _Scale), False, pixelSizeByte, 1, True, True);
+    End Else
+    Begin
+
+      If TargetType = effectTargetEdge Then
+      Begin
+        DownSize := 1024;
+        _RenderSamplers[TargetValue] := RenderTargetBouncer.Create(DownSize, DownSize, pixelSizeByte);
+      End Else
+      Begin
+        DownSize := 512;
+        _RenderSamplers[TargetValue] := RenderTargetDownSampler.Create(DownSize, DownSize, pixelSizeByte);
+      End;
+
     End;
 
-    If (GraphicsManager.Instance.Settings.Shaders.Avaliable) And (_DoPostProcessing) And (Not Assigned(_BlurShader)) Then
-    Begin
-      _BlurShader := Shader.CreateFromString(GetShader_Blur(), 'blur');
-      ShaderManager.Instance.AddShader(_BlurShader);
-    End;
-    {$ENDIF}
   End Else
   Begin
-    Log(logDebug, 'GraphicsManager', 'Destroying '+TargetNames[TargetValue]+' target for '+Self.Name);
-    ReleaseObject(_Buffers[TargetValue]);
+    Log(logDebug, 'GraphicsManager', 'Destroying '+IntToString(TargetValue)+' target for '+Self.Name);
+    If TargetValue<RenderCaptureTargets Then
+      ReleaseObject(_RenderTextures[TargetValue]);
 
-    {$IFDEF POSTPROCESSING}
-    If (TargetType = captureTargetEmission) Then
-    Begin
-      ClearDownSampler();
-    End;
-    {$ENDIF}
+    ReleaseObject(_RenderBuffers[TargetValue]);
+    ReleaseObject(_RenderSamplers[TargetValue]);
   End;
 
   {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
@@ -470,13 +644,16 @@ Var
 Begin
   TargetValue := Integer(TargetType);
 
-  If (TargetValue<0) Or (TargetValue >= MaxCaptureTargets) Then
+  If (TargetValue<0) Or (TargetValue >= TotalCaptureTargets) Then
     Result := False
   Else
-    Result := Assigned(_Buffers[TargetValue]);
+  If (TargetValue<RenderCaptureTargets) Then
+    Result := Assigned(_RenderBuffers[TargetValue])
+  Else
+    Result := Assigned(_RenderSamplers[TargetValue]);
 End;
 
-Function Viewport.GetRenderTarget(TargetType:RenderTargetType): RenderTarget;
+Function Viewport.GetRenderTarget(TargetType:RenderTargetType):RenderTargetInterface;
 Var
   TargetValue:Integer;
 Begin
@@ -487,32 +664,97 @@ Begin
     Self.OnContextLost();
   End;
 
-  If (TargetValue < 0) Or (TargetValue >= MaxCaptureTargets) Then
+  If (TargetValue < 0) Or (TargetValue >= TotalCaptureTargets) Then
     Result := Nil
   Else
-    Result := _Buffers[TargetValue];
+    Result := _RenderBuffers[TargetValue];
+End;
+
+Function Viewport.GetRenderTexture(TargetType:RenderTargetType):Texture;
+Var
+  TargetValue:Integer;
+Begin
+  TargetValue := Integer(TargetType);
+
+  If (_ContextID <> Application.Instance.ContextID) Then
+  Begin
+    Self.OnContextLost();
+  End;
+
+  If (TargetValue < 0) Or (TargetValue >= TotalCaptureTargets) Then
+    Result := Nil
+  Else
+  Begin
+    If (Self.IsRenderTargetEnabled(TargetType)) Then
+    Begin
+      If _RenderTextures[TargetValue] = Nil Then
+      Begin
+        _RenderTextures[TargetValue] := Texture.Create();
+        _RenderTextures[TargetValue].CreateFromSurface(Self.GetRenderTarget(TargetType));
+      End;
+
+      Result := _RenderTextures[TargetValue];
+    End Else
+      Result := Nil;
+  End;
+End;
+
+Function Viewport.ResolveToTexture():Texture;
+Var
+  TempTarget:Viewport;
+Begin
+  If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
+  Begin
+    Result := Self.GetResolveTexture();
+    Exit;
+  End;
+
+  If (_ResolveBuffer = Nil) Then
+  Begin
+    _ResolveBuffer := GraphicsManager.Instance.Renderer.CreateRenderTarget();
+    _ResolveBuffer.Generate(_Width, _Height, False, pixelSizeByte, 1, False, False);
+  End;
+
+  If _ResolveTexture = Nil Then
+  Begin
+    _ResolveTexture := Texture.Create();
+    _ResolveTexture.CreateFromSurface(_ResolveBuffer);
+  End;
+
+  TempTarget := Self.Target;
+  Self._Target := Self;
+  Self._TargetX1 := 0;
+  Self._TargetY1 := 0;
+  Self._TargetX2 := 1.0;
+  Self._TargetY2 := 1.0;
+
+  Self.DrawToTarget(False);
+
+  Self._Target := TempTarget;
+
+  Result := _ResolveTexture;
 End;
 
 Procedure Viewport.DrawToTarget(AllowDebug:Boolean);
 Var
-  MyShader:Shader;
+  MyShader:ShaderInterface;
   I:Integer;
   ShowID:RenderTargetType;
 Begin
   If (Target = Nil) Then
+  Begin
+    If AutoResolve Then
+    Begin
+      Self.ResolveToTexture();
+    End;
+
     Exit;
+  End;
 
   {$IFDEF POSTPROCESSING}
   {$IFDEF FRAMEBUFFEROBJECTS}
-  If (Self._DoPostProcessing) Then
-  Begin
-    //apply bloom
-    If (_Buffers[Integer(captureTargetEmission)] <> Nil) And (_Buffers[Integer(captureTargetEmission)] Is FrameBufferObject)
-    And (Assigned(_Downsampler)) And (Assigned(_BlurShader)) Then
-    Begin
-      _BloomID := _Downsampler.Update(FrameBufferObject(_Buffers[Integer(captureTargetEmission)]), _BlurShader, 0, 3);
-    End;
-  End;
+  If (Self._DoPostProcessing) And (GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
+    UpdateEffectTargets();
   {$ENDIF}
   {$ENDIF}
 
@@ -520,21 +762,22 @@ Begin
 
   {$IFDEF POSTPROCESSING}
   ShowID := GraphicsManager.Instance.ShowDebugTarget;
-  If (Integer(ShowID) >= MaxCaptureTargets) Then
+  If (Integer(ShowID) >= TotalCaptureTargets) Then
     ShowID := captureTargetColor;
 
   If (Assigned(_FXChain)) Then
   Begin
-    If (Not GraphicsManager.Instance.Settings.PostProcessing.Enabled) Then
+    If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
     Begin
-      For I:=0 To Pred(MaxCaptureTargets) Do
+      For I:=0 To Pred(TotalCaptureTargets) Do
         Self.SetRenderTargetState(RenderTargetType(I), False);
 
-      _FXChain.Release;
-      _FXChain := Nil;
+      Self.EnableDefaultTargets();
+
+      ReleaseObject(_FXChain);
     End;
 
-    If (Assigned(_FXChain)) And (ShowID = captureTargetInvalid) Then
+    If (Assigned(_FXChain)) And ((ShowID = captureTargetInvalid) Or (Not AllowDebug)) Then
     Begin
       _FXChain.DrawScreen(_TargetX1, _TargetY1, _TargetX2, _TargetY2);
       Exit;
@@ -549,53 +792,43 @@ Begin
   ShowID := captureTargetColor;
   {$ENDIF}
 
-  If (GraphicsManager.Instance.Settings.Shaders.Avaliable) Then
+  If (GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Then
   Begin
     MyShader := GetDefaultFullScreenShader();
-    ShaderManager.Instance.Bind(MyShader);
-    MyShader.SetUniform('texture', 0);
-    MyShader.SetUniform('color', ColorWhite);
+    GraphicsManager.Instance.Renderer.BindShader(MyShader);
+    MyShader.SetIntegerUniform('texture', 0);
+    MyShader.SetColorUniform('color', ColorWhite); //BIBI
   End Else
     MyShader := Nil;
 
-  If (_Buffers[Integer(ShowID)] = Nil) Then
+  If (_RenderBuffers[Integer(ShowID)] = Nil) Then
     Self.SetRenderTargetState(ShowID, True);
 
-  _Buffers[Integer(ShowID)].Bind(0);
+  Self.GetRenderTexture(ShowID).Bind(0);
+  //GraphicsManager.Instance.Renderer.BindSurface(_RenderBuffers[Integer(ShowID)], 0);
   //_Buffers[ShowID].BilinearFilter := False;
 
-  GraphicsManager.Instance.SetBlendMode(blendNone);
+  GraphicsManager.Instance.Renderer.SetBlendMode(blendNone);
 
   If (Integer(GraphicsManager.Instance.ShowDebugTarget) <=0) Then
-    GraphicsManager.Instance.SetBlendMode(blendBlend);
-    
+    GraphicsManager.Instance.Renderer.SetBlendMode(blendBlend);
+
   GraphicsManager.Instance.DrawFullscreenQuad(MyShader, _TargetX1, _TargetY1, _TargetX2, _TargetY2);
 End;
 
-
-Procedure Viewport.BindBloomTexture(Slot:Integer);
-Begin
-{$IFDEF POSTPROCESSING}
-  If Assigned(_Downsampler) Then
-    _Downsampler.GetRenderTexture(_BloomID).Bind(Slot)
-  Else
-{$ENDIF}
-  TextureManager.Instance.BlackTexture.Bind(Slot);
-End;
-
-Procedure Viewport.BindStageTexture(Stage:RenderTargetType; Slot:Integer);
+(*Procedure Viewport.BindStageTexture(Stage:RenderTargetType; Slot:Integer);
 Begin
 {$IFDEF POSTPROCESSING}
   If Assigned(_Buffers[Integer(Stage)]) Then
-    _Buffers[Integer(Stage)].Bind(Slot)
+    GraphicsManager.Instance.Renderer.BindSurface(_Buffers[Integer(Stage)], Slot)
   Else
 {$ENDIF}
   TextureManager.Instance.BlackTexture.Bind(Slot);
-End;
+End;*)
 
 Procedure Viewport.SetPostProcessingState(Enabled: Boolean);
 Begin
-  If (Not GraphicsManager.Instance.Settings.PostProcessing.Enabled) Then
+  If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
     Enabled := False;
 
   {$IFDEF POSTPROCESSING}
@@ -619,8 +852,8 @@ Function Viewport.IsDirectDrawing: Boolean;
 Var
   I:Integer;
 Begin
-  For I:=0 To Pred(MaxCaptureTargets) Do
-  If Assigned(_Buffers[I]) Then
+  For I:=0 To Pred(TotalCaptureTargets) Do
+  If Assigned(_RenderBuffers[I]) Then
   Begin
     Result := False;
     Exit;
@@ -643,26 +876,30 @@ Begin
 
   If (UseScissors) Then
   Begin
-    glScissor(0, 0, Trunc(_Width*_Scale), Trunc(_Height*_Scale));
-    glEnable(GL_SCISSOR_TEST);
+    GraphicsManager.Instance.Renderer.SetScissorArea(0, 0, Trunc(_Width*_Scale), Trunc(_Height*_Scale));
+    GraphicsManager.Instance.Renderer.SetScissorState(True);
   End;
 
-  glClearColor(_BackgroundColor.R/255, _BackgroundColor.G/255, _BackgroundColor.B/255, _BackgroundColor.A/255);
-
-  Flags := GL_DEPTH_BUFFER_BIT Or GL_STENCIL_BUFFER_BIT;
-
-  If (Not Self.IsDirectDrawing()) Or (_BackgroundColor.A>=255) Then
-    Flags := Flags Or GL_COLOR_BUFFER_BIT;
-
-  glClear(Flags);
+  If Self.IsDirectDrawing()  Then
+    GraphicsManager.Instance.Renderer.SetClearColor(_BackgroundColor);
+    
+  GraphicsManager.Instance.Renderer.ClearBuffer((Not Self.IsDirectDrawing()) Or (_BackgroundColor.A>=255), True, True);
 
   If UseScissors Then
-    glDisable(GL_SCISSOR_TEST);
+    GraphicsManager.Instance.Renderer.SetScissorState(False);
 End;
 
 Procedure Viewport.SetBackgroundColor(BG: Color);
 Begin
   _BackgroundColor := BG;
+End;
+
+Procedure Viewport.EnableDefaultTargets();
+Begin
+  Self.SetRenderTargetState(captureTargetColor, True);
+  {$IFDEF ADVANCED_ALPHA_BLEND}
+  Self.SetRenderTargetState(captureTargetAlpha, True);
+  {$ENDIF}
 End;
 
 Procedure Viewport.SetOffScreenState(Enabled: Boolean);
@@ -674,7 +911,7 @@ Begin
   _Offscreen := Enabled;
 
   If (Enabled) Then
-    Self.SetRenderTargetState(captureTargetColor, True);
+    Self.EnableDefaultTargets();
 End;
 
 Procedure Viewport.SetTarget(Target: Viewport; X1, Y1, X2, Y2: Single);
@@ -707,7 +944,26 @@ Begin
   _ViewWidth := Width;
   _ViewHeight := Height;
 
-  glViewport(Trunc(X * _Scale), Trunc(Y * _Scale), Trunc(Width * _Scale), Trunc(Height * _Scale));
+  Y := Trunc(Y * _Scale);
+  Height := Trunc(Height * _Scale);
+
+  If _VR Then
+  Begin
+    X := Trunc(X * _Scale + Width * _Scale * 0.5 * _CurrentSubView);
+    Width := Trunc(Width * _Scale * 0.5);
+  End Else
+  Begin
+    X := Trunc(X * _Scale);
+    Width := Trunc(Width * _Scale);
+  End;
+
+  GraphicsManager.Instance.Renderer.SetViewport(X, Y, Width, Height);
+  If (_VR) Then
+  Begin
+    GraphicsManager.Instance.Renderer.SetScissorState(True);
+    GraphicsManager.Instance.Renderer.SetScissorArea(X, Y, Width, Height);
+  End Else
+    GraphicsManager.Instance.Renderer.SetScissorState(False);
 End;
 
 
@@ -720,14 +976,12 @@ Begin
 
   _ContextID := Application.Instance.ContextID;
 
-  ClearDownSampler();
-
-  For I:=0 To Pred(MaxCaptureTargets) Do
+  For I:=0 To Pred(TotalCaptureTargets) Do
   Begin
-    Temp := Assigned(_Buffers[I]);
+    Temp := Assigned(_RenderBuffers[I]);
     If Temp Then
     Begin
-      Log(logDebug, 'Viewport', 'Reseting '+TargetNames[I]+' target for '+Self.Name);
+      Log(logDebug, 'Viewport', 'Reseting '+IntToString(I)+' target for '+Self.Name);
       Self.SetRenderTargetState(RenderTargetType(I), False);
       Self.SetRenderTargetState(RenderTargetType(I), True);
     End;
@@ -740,21 +994,32 @@ Begin
   {$ENDIF}
 End;
 
-Procedure Viewport.ClearDownSampler();
+Function Viewport.GetResolveTexture: Texture;
+Var
+  ShowID:RenderTargetType;
 Begin
-  {$IFDEF POSTPROCESSING}
-  If Assigned(_DownSampler) Then
+  If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
   Begin
-    _DownSampler.Release;
-    _DownSampler := Nil;
+    Result := Self.GetRenderTexture(captureTargetColor);
+    Exit;
   End;
-  {$ENDIF}
+
+  ShowID := GraphicsManager.Instance.ShowDebugTarget;
+  If (ShowID = captureTargetInvalid) Or (Integer(ShowID) >= TotalCaptureTargets) Then
+    Result := Self._ResolveTexture
+  Else
+  Begin
+    If (_RenderBuffers[Integer(ShowID)] = Nil) Then
+      Self.SetRenderTargetState(ShowID, True);
+
+    Result := Self.GetRenderTexture(ShowID);
+  End;
 End;
 
 {$IFDEF POSTPROCESSING}
 Function Viewport.GetFXChain: ScreenFXChain;
 Begin
-  If Not GraphicsManager.Instance.Settings.PostProcessing.Avaliable Then
+  If Not GraphicsManager.Instance.Renderer.Features.PostProcessing.Avaliable Then
   Begin
     Log(logError, 'Viewport', 'Postprocessing not supported in this device!');
     Result := Nil;
@@ -763,10 +1028,78 @@ Begin
 
   If _FXChain = Nil Then
     _FXChain := ScreenFXChain.Create();
-    
+
   Result := _FXChain;
+End;
+
+Procedure Viewport.UpdateEffectTargets;
+Var
+  Sampler:RenderTargetSampler;
+  I, Count:Integer;
+  SrcType:RenderTargetType;
+  Graphics:GraphicsManager;
+Begin
+  Graphics := GraphicsManager.Instance;
+
+  For I:=RenderCaptureTargets To Pred(TotalCaptureTargets) Do
+  Begin
+    If (Self._RenderSamplers[I] = Nil) Then
+      Continue;
+
+    Sampler := _RenderSamplers[I];
+
+    Case RenderTargetType(I) Of
+    effectTargetBloom,
+    effectTargetGlow:
+      Begin
+        Self.SetRenderTargetState(captureTargetEmission, True);
+
+        If (Graphics.Renderer.Features.Shaders.Avaliable) And (_DoPostProcessing) And (Not Assigned(_BlurShader)) Then
+        Begin
+          _BlurShader := Graphics.Renderer.CreateShader();
+          _BlurShader.Generate('blur', GetShader_Blur());
+        End;
+
+        If RenderTargetType(I) =  effectTargetBloom Then
+        Begin
+          SrcType := captureTargetColor;
+          Count := 2;
+        End Else
+        Begin
+          SrcType := captureTargetEmission;
+          Count := 4;
+        End;
+
+        Sampler.Update(Self.GetRenderTexture(SrcType), _BlurShader, 0, Count);
+      End;
+
+    effectTargetEdge:
+      Begin
+        Self.SetRenderTargetState(captureTargetNormal, True);
+
+        If (Graphics.Renderer.Features.Shaders.Avaliable) And (_DoPostProcessing) And (Not Assigned(_EdgeShader)) Then
+        Begin
+          _EdgeShader := Graphics.Renderer.CreateShader();
+          _EdgeShader.Generate('edge', GetShader_Edge());
+        End;
+
+        (*If (Graphics.Renderer.Features.Shaders.Avaliable) And (_DoPostProcessing) And (Not Assigned(_DistanceFieldShader)) Then
+        Begin
+          _DistanceFieldShader := Graphics.Renderer.CreateShader();
+          _DistanceFieldShader.Generate('DistanceField', GetShader_DistanceField());
+        End;*)
+
+        Sampler.Update(Self.GetRenderTexture(captureTargetNormal), _EdgeShader, 0, 1);
+        //Sampler.Update(Sampler.GetResult(), _DistanceFieldShader, 0, 256);
+      End;
+
+    End;
+
+    _RenderTextures[I] := Sampler.GetResult();
+  End;
 End;
 
 {$ENDIF}
 
-End.
+
+End.

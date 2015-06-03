@@ -6,7 +6,22 @@ Uses TERRA_String;
 Function ConvertLatinToCyrillic(Const S:TERRAString):TERRAString;
 Function ConvertLatinToKorean(Const S:TERRAString):TERRAString;
 
+Function StringLocalize(Const S:TERRAString):TERRAString;
+
 Implementation
+Uses TERRA_Localization;
+
+Function StringLocalize(Const S:TERRAString):TERRAString;
+Begin
+    {Else
+      Result := ConvertLatinToKorean(Result);}
+
+  If LocalizationManager.Instance.Language = language_Russian Then
+    Result := ConvertLatinToCyrillic(S)
+  Else
+    Result := S;
+End;
+
 
 Type
   CharTransliteratorFunction = Function(C:TERRAChar):TERRAChar;

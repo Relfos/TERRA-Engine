@@ -142,7 +142,7 @@ Begin
           Self.AddResource(Group.SpecularMap);
           Self.AddResource(Group.GlowMap);
           Self.AddResource(Group.LightMap);
-          Self.AddResource(Group.ColorRamp);
+          Self.AddResource(Group.ToonRamp);
         End;
       End;
 

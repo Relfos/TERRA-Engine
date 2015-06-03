@@ -54,16 +54,18 @@ public class TERRALibrary {
 		boolean isARMV5 = (cpuType.equals("arm") || cpuType.equals("armv5l") || cpuType.equals("armv6l") );
 		boolean isX86 = (cpuType.equals("x86") || cpuType.equals("i386") || cpuType.equals("i486") || cpuType.equals("i586") || cpuType.equals("i686"));
 		
-		if (isARMV7 && hasVFPV3)
+		/*if (isARMV7 && hasVFPV3)
 			terraLib = "terraARMV7";			
 		else
 		if (isARMV5 || (isARMV7 && !hasVFPV3)) 
 			terraLib = "terraARMV5";
 		else
 		if (isX86) 
-			terraLib = "terraX86";
+			terraLib = "terraX86";*/
+        
+        terraLib = "terra";
 
-		if (terraLib != null)
+		//if (terraLib != null)
 		{           	  
 			Log.d("terra", "loading native library: "+terraLib);
 			try 
@@ -79,11 +81,11 @@ public class TERRALibrary {
 			
 			return true;
 	    }
-		else
+		/*else
 		{
 			errorMessage = "Unsupported CPU type: " + cpuType;
 			return false;
-		}
+		}*/
     }
 
 	public static native void ApplicationInit(int isOUYA);

@@ -2,17 +2,16 @@
 Unit TERRA_OS;
 {$I terra.inc}
 
-
 {$LINKFRAMEWORK Carbon}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Client, MacOSAll, AGL;
+Uses TERRA_String, TERRA_Utils, TERRA_Application, MacOSAll, AGL;
 
 Const
 	PathSeparator = '/';
 	CrLf = #10;
 
-        keyCommand = 1;
+  keyCommand = 1;
 	keyBackspace  = 8;
 	keyTab        = 9;
 	keyEnter      = 13;
@@ -50,46 +49,38 @@ Const
 	keyF11        = 122;
 	keyF12        = 123;
 
-  keyA = Ord('A');
-  keyB = Ord('B');
-  keyC = Ord('C');
-  keyD = Ord('D');
-  keyE = Ord('E');
-  keyF = Ord('F');
-  keyG = Ord('G');
-  keyH = Ord('H');
-  keyI = Ord('I');
-  keyJ = Ord('J');
-  keyK = Ord('K');
-  keyL = Ord('L');
-  keyM = Ord('M');
-  keyN = Ord('N');
-  keyO = Ord('O');
-  keyP = Ord('P');
-  keyQ = Ord('Q');
-  keyR = Ord('R');
-  keyS = Ord('S');
-  keyT = Ord('T');
-  keyU = Ord('U');
-  keyV = Ord('V');
-  keyW = Ord('W');
-  keyX = Ord('X');
-  keyY = Ord('Y');
-  keyZ = Ord('Z');
-
-Procedure DisplayMessage(S:TERRAString);
-Function GetCurrentTime:TERRATime;
-Function GetCurrentDate:TERRADate;
-Function GetTime:Cardinal;
-Function CreateApplicationClass(Client:AppClient):Application;
+  keyA = Ord('a');
+  keyB = Ord('b');
+  keyC = Ord('c');
+  keyD = Ord('d');
+  keyE = Ord('e');
+  keyF = Ord('f');
+  keyG = Ord('g');
+  keyH = Ord('h');
+  keyI = Ord('i');
+  keyJ = Ord('j');
+  keyK = Ord('k');
+  keyL = Ord('l');
+  keyM = Ord('m');
+  keyN = Ord('n');
+  keyO = Ord('o');
+  keyP = Ord('p');
+  keyQ = Ord('q');
+  keyR = Ord('r');
+  keyS = Ord('s');
+  keyT = Ord('t');
+  keyU = Ord('u');
+  keyV = Ord('v');
+  keyW = Ord('w');
+  keyX = Ord('x');
+  keyY = Ord('y');
+  keyZ = Ord('z');
 
 Type
 
   { CarbonApplication }
-
-  CarbonApplication = Class(Application)
+  CarbonApplication = Class(BaseApplication)
     Protected
-      _Context: TAGLContext;
       _Window:WindowRef;
       _Rect: MacOSAll.Rect;
       _InitRect: MacOSAll.Rect;
@@ -102,8 +93,6 @@ Type
 
       Function InitSettings:Boolean; Override;
       Function InitWindow:Boolean; Override;
-      Function InitGraphics:Boolean; Override;
-      Procedure CloseGraphics; Override;
       Procedure CloseWindow; Override;
       Procedure ProcessMessages; Override;
 
@@ -113,15 +102,29 @@ Type
 
       Function IsDebuggerPresent():Boolean; Override;
    Public
-      Procedure SwapBuffers; Override;
+      Constructor Create();
+      
       Procedure SetState(State:Cardinal); Override;
 
       Function SetFullscreenMode(UseFullScreen:Boolean):Boolean; Override;
+
+      Class Procedure DisplayMessage(S:TERRAString);
+      Class Function GetCurrentTime:TERRATime;
+      Class Function GetCurrentDate:TERRADate;
+      Class Function GetTime:Cardinal;
+
+      Class Function Instance:CarbonApplication;
+
+      Property Handle:WindowRef Read _Window;
+
+      Property InitRect: MacOSAll.Rect Read _InitRect;
   End;
+
+  Application = CarbonApplication;
 
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_InputManager, TERRA_FileUtils,  {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF},
+Uses TERRA_Error, TERRA_Log, TERRA_InputManager, TERRA_FileUtils, TERRA_Renderer, TERRA_GLRenderer,
      machapi, machexc, dateutils, sysutils, ctypes, sysctl, TERRA_MIDI_IO, TERRA_MIDI;
 
 Var
@@ -174,7 +177,21 @@ begin
     CFRelease(Pointer(AString));
 end;
 
-Procedure DisplayMessage(S:TERRAString);
+Var
+  _Application_Instance:CarbonApplication;
+
+Constructor CarbonApplication.Create();
+Begin
+  _Application_Instance := Self;
+  Inherited Create();
+End;
+
+Class Function CarbonApplication.Instance:CarbonApplication;
+Begin
+  Result := _Application_Instance;
+End;
+
+Class Procedure CarbonApplication.DisplayMessage(S:TERRAString);
 Var
   alert:DialogRef;
   outHit:DialogItemIndex;
@@ -189,7 +206,7 @@ Begin
   title := Nil;
 End;
 
-Function GetCurrentTime:TERRATime;
+Class Function CarbonApplication.GetCurrentTime:TERRATime;
 Var
  Datetime:Tdatetime;
 Begin
@@ -200,7 +217,7 @@ Begin
   Result.MiliSecond  := millisecondof( datetime );
 End;
 
-Function GetCurrentDate:TERRADate;
+Class Function CarbonApplication.GetCurrentDate:TERRADate;
 Var
  Datetime:Tdatetime;
 Begin
@@ -210,31 +227,21 @@ Begin
   Result.Day := dayof(datetime);
   Result.WeekDay := dayoftheweek(datetime);
 End;
-	
-{
-Var
-	BaseTime:Single;
-
-Function GetTime:Cardinal;
-Begin
-   Result := Cardinal(Trunc((Now-BaseTime) * 24 * 60 * 60 * 1000));
-End;
-}
 
 Type
 	machtimebaseinfo = Record
 		numer:Cardinal;
 		denom:Cardinal;
 	End;
-	
+
 Var
 	timeinfo:machtimebaseinfo;
 	basetime:Int64;
-	
+
 Function mach_timebase_info(Var info:machtimebaseinfo):Integer; Cdecl; External;
 Function mach_absolute_time:Int64; Cdecl; External;
 
-Function GetTime:Cardinal;
+Class Function CarbonApplication.GetTime:Cardinal;
 Var
 	t:UInt64;
 	f:Single;
@@ -243,11 +250,6 @@ Begin
 	f := t / timeinfo.denom;
 	f := f * timeinfo.numer;
 	Result := Cardinal(Trunc(f / 1000000));
-End;
-
-Function CreateApplicationClass(Client:AppClient):Application;
-Begin
-  Result := CarbonApplication.Create(Client);
 End;
 
 Function Carbon_CloseWindow(ANextHandler:EventHandlerCallRef; AEvent:EventRef; UserData:Pointer):OSStatus;  MWPascal;
@@ -312,7 +314,6 @@ Var
   Height:Cardinal;
   App:CarbonApplication;
   ClientRect:MacOSAll.Rect;
-  bufferRect:Array[0..3] Of Integer;
 Begin
   GetEventParameter(AEvent, kEventParamDirectObject, typeWindowRef, Nil, sizeof(WindowRef), Nil, @theWindow);
   GetEventParameter(AEvent, kEventParamCurrentBounds, typeQDRectangle, Nil, sizeof(Rect), Nil, @theBounds);
@@ -328,21 +329,7 @@ Begin
   SizeWindow(App._Window, Width, Height, True);
   GetWindowBounds(App._Window, kWindowContentRgn, ClientRect);
 
-  If (App._Context <> Nil) Then
-  Begin
-    // Set the AGL buffer rectangle (i.e. the bounds that we will use)
-    bufferRect[0] := 0; // 0 = left edge
-    bufferRect[1] := 0; // 0 = bottom edge
-    bufferRect[2] := clientRect.Right - clientRect.Left; // width of buffer rect
-    bufferRect[3] := clientRect.Bottom - clientRect.Top; // height of buffer rect
-
-    aglSetInteger(App._Context, AGL_BUFFER_RECT, @bufferRect);
-
-    aglEnable(App._Context, AGL_BUFFER_RECT);
-    aglUpdateContext(App._Context);
-
-    App.AddCoordEvent(eventWindowResize, Width, Height, 0);
-  End;
+  App.AddCoordEvent(eventWindowResize, clientRect.Right - clientRect.Left, clientRect.Bottom - clientRect.Top, 0);
 End;
 
 
@@ -743,6 +730,11 @@ Begin
 
   _DocumentPath := GetDocumentsFolder();
   _StoragePath := _DocumentPath;
+
+
+    LoggingEnabled := True;
+  //  LogFileName := _DocumentPath + LogFileName;
+
   Log(logDebug,'App', 'Documents folder is '+_DocumentPath);
 
   {If FileStream.Exists(PListFileName) Then
@@ -779,6 +771,8 @@ Begin
 
   _Screen.Width := _ScreenRect.right - _ScreenRect.left;
   _Screen.Height := _ScreenRect.bottom - _ScreenRect.top;
+
+  Renderers.Add(OpenGLRenderer.Create());
 
   Result := True;
 End;
@@ -823,7 +817,6 @@ Begin
     RaiseError('Unable to create a window!');
     Exit;
   End;
-
 
  Log(logDebug,'App', 'Changing title');
 
@@ -928,118 +921,6 @@ eventType.eventKind = kEventWindowDeactivated;
   Result := True;
 End;
 
-function CarbonApplication.InitGraphics: Boolean;
-Var
-  displayID:CGDirectDisplayID;
-  openGLDisplayMask:CGOpenGLDisplayMask;
-  attrib:Array[0..64] Of Integer;
-  fmt:TAGLPixelFormat;
-  index, Samples:Integer;
-  Swap:Integer;
-
-	Procedure AddAttrib(ID:Integer); Overload;
-	Begin
-		Attrib[Index] := ID; Inc(Index);
-	End;
-	Procedure AddAttrib(ID,Value:Integer); Overload;
-	Begin
-		Attrib[Index] := ID; Inc(Index);
-		Attrib[Index] := Value; Inc(Index);
-	End;
-Begin
-//	Log(logDebug, 'App', 'Init graphics');
-// get display ID to use for a mask
-	// the main display as configured via System Preferences
-  displayID := CGMainDisplayID();
-	openGLDisplayMask := CGDisplayIDToOpenGLDisplayMask(displayID);
-
-// Solely as an example of possible use, this pixel format limits
-// the possible GraphicsManagers to those supported by the screen mask.
-// In this case the main display.
-  Samples := Client.GetAntialiasSamples();
-    Repeat
-		Index := 0;
-		AddAttrib(AGL_RGBA);
-		AddAttrib(AGL_DOUBLEBUFFER);
-		//AddAttrib(AGL_WINDOW);
-		AddAttrib(AGL_RED_SIZE, 8);
-		AddAttrib(AGL_GREEN_SIZE, 8);
-		AddAttrib(AGL_BLUE_SIZE, 8);
-		AddAttrib(AGL_ALPHA_SIZE, 8);
-		AddAttrib(AGL_DEPTH_SIZE, 32);
-		AddAttrib(AGL_ACCELERATED, 1);
-		AddAttrib(AGL_NO_RECOVERY, 1);
-		//AddAttrib(AGL_CLOSEST_POLICY);
-		AddAttrib(AGL_DISPLAY_MASK, openGLDisplayMask);
-      If (Samples>0) Then
-      Begin
-        AddAttrib(AGL_MULTISAMPLE);
-        AddAttrib(AGL_SAMPLE_BUFFERS_ARB, 1);
-        AddAttrib(AGL_SAMPLES_ARB, Samples);
-      End;
-      AddAttrib(AGL_NONE);
-		
-		fmt := aglCreatePixelFormat(attrib); // New to Mac OS X v10.5
-
-      Samples := Samples Div 2;
-    Until (Assigned(Fmt)) Or (Samples<=0);
-
-	If (fmt = Nil) Then
-  Begin
-    RaiseError('aglCreatePixelFormat failed!');
-    Exit;
-  End;
-
-	// create an AGL context
-	_context := aglCreateContext(fmt, Nil);
-	If (_context = Nil) Then
-	Begin
-    RaiseError('Could not create OpenGL context');
-    Exit;
-  End;
-
-	// pixel format is no longer needed
-	aglDestroyPixelFormat(fmt);
-
-	//aglSetDrawable(_context, GetWindowPort(_window));
-	aglSetWindowRef(_context, _Window);
-
-	// make the context the current context
-	aglSetCurrentContext(_context);
-
-        If (Client.GetVSync()) Then
-        Begin
-	     swap := 1;
-	     aglSetInteger(_context, AGL_SWAP_INTERVAL, @swap);
-        End;
-
-	glLoadExtensions();
-	Result := True;
-
-  Log(logDebug, 'App', 'Clearing graphic buffers');
-    glClearColor(0.0, 0.0, 0.0, 1.0);
-  glClear(GL_COLOR_BUFFER_BIT Or GL_DEPTH_BUFFER_BIT Or GL_STENCIL_BUFFER_BIT);
-  Self.SwapBuffers(); 
-
-
-  If (Not _FullScreen) Then
-     SetWindowBounds(_Window, kWindowContentRgn, _InitRect);
-
-  Log(logDebug, 'App', 'Graphics ok');
-End;
-
-procedure CarbonApplication.CloseGraphics;
-Begin
-	If (Assigned(_context)) Then
-	Begin
-		aglSetWindowRef(_context, Nil);
-
-		aglSetCurrentContext(Nil);
-		aglDestroyContext(_context);
-
-		_context := Nil;
-	End;
-End;
 
 procedure CarbonApplication.CloseWindow;
 Begin
@@ -1058,11 +939,6 @@ Begin
   End;
 
 	Log(logDebug,'App', 'Ok');
-End;
-
-procedure CarbonApplication.SwapBuffers;
-Begin
-	aglSwapBuffers(_Context);
 End;
 
 procedure CarbonApplication.SetState(State: Cardinal);
@@ -1129,7 +1005,7 @@ Begin
   Begin
         For portIndex := 0 To Pred(count) Do
         Begin
-            if (ports[portIndex]<>0) And ((Not ports[portIndex])<>0) Then
+            if (ports[portIndex]<>0)  Then //And ((Not ports[portIndex])<>0) Then
             Begin
                 Result := True;
                 Exit;
@@ -1244,4 +1120,4 @@ Initialization
 //	BaseTime := Now;
   mach_timebase_info(timeinfo);
   basetime := mach_absolute_time();
-End.
+End.

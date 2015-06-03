@@ -4,7 +4,7 @@ Unit TERRA_FileStream;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Error, TERRA_String, TERRA_Stream, TERRA_MemoryStream, TERRA_FileUtils, SysUtils, TERRA_Java;
+Uses TERRA_Error, TERRA_String, TERRA_Stream, TERRA_MemoryStream, TERRA_FileUtils, TERRA_Java;
 
 Const
   FileIOClassPath = 'com.pascal.terra.TERRAFileIO';
@@ -128,7 +128,7 @@ Begin
 
   Log(logDebug, 'App', 'Obtaining asset manager class');
   Utils := JavaClass.Create(ActivityClassPath, Frame);
-  javaAssetManager := Utils.CallStaticObjectMethod('getAssetManager', AssetManagerPath, Nil);
+  javaAssetManager := Utils.CallStaticObjectMethod(Frame, 'getAssetManager', AssetManagerPath, Nil);
   Utils.Release();
 
   Log(logDebug, 'App', 'Obtaining asset manager object');
@@ -161,7 +161,7 @@ Begin
   Java_Begin(Frame);
   Log(logDebug, 'App', 'Obtaining asset manager class');
   Utils := JavaClass.Create(ActivityClassPath, Frame);
-  Obj := Utils.CallStaticObjectMethod('getAssetManager', AssetManagerPath, Nil);
+  Obj := Utils.CallStaticObjectMethod(Frame, 'getAssetManager', AssetManagerPath, Nil);
   _GlobalAssetManager := AAssetManager_fromJava(Frame, Obj);
   Utils.Release();
   Java_End(Frame);
@@ -217,7 +217,7 @@ Begin
   Assets := JavaClass.Create(FileIOClassPath, Frame);
   Params := JavaArguments.Create(Frame);
   Params.AddString(FileName);
-  Result := Assets.CallStaticBoolMethod('fileExists', Params);
+  Result := Assets.CallStaticBoolMethod(Frame, 'fileExists', Params);
   Params.Release();
   Assets.Release();
   Java_End(Frame);
@@ -321,7 +321,7 @@ Begin
   Assets := JavaObject.Create(FileIOClassPath, Params, Frame);
   Params.Release();
 
-  FSize := Assets.CallIntMethod('getSize', Nil);
+  FSize := Assets.CallIntMethod(Frame, 'getSize', Nil);
   If FSize >=0 Then
   Begin
     _Size := FSize;
@@ -329,7 +329,7 @@ Begin
     Create(_Size, Nil, StreamMode);
 
   	Log(logDebug, 'IO', 'Loading byte data into stream');
-    _Buffer := Assets.CallByteArrayMethod('getContents', Nil, _Size);
+    _Buffer := Assets.CallByteArrayMethod(Frame, 'getContents', Nil, _Size);
 
     _File := Nil;
     Log(logDebug, 'IO', 'all ok!');

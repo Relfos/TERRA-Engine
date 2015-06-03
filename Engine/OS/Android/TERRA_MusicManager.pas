@@ -130,7 +130,7 @@ Begin
 
   Params := JavaArguments.Create(Frame);
   Params.AddString(S);
-  _Player.CallVoidMethod('setTrack', Params);
+  _Player.CallVoidMethod(Frame, 'setTrack', Params);
   Params.Release();
   Java_End(Frame);
 
@@ -157,7 +157,7 @@ Begin
   Java_Begin(Frame);
   Params := JavaArguments.Create(Frame);
   Params.AddInteger(Trunc(Volume));
-  _Player.CallVoidMethod('setVolume', Params);
+  _Player.CallVoidMethod(Frame, 'setVolume', Params);
   Params.Release();
   Java_End(Frame);
 End;
@@ -171,7 +171,7 @@ Begin
     Exit;
 
   Java_Begin(Frame);
-  _Player.CallVoidMethod('play', Nil);
+  _Player.CallVoidMethod(Frame, 'play', Nil);
   Java_End(Frame);
 End;
 
@@ -184,8 +184,8 @@ Begin
 
   Log(logDebug, 'MusicPlayer', 'Stopping music...');
   Java_Begin(Frame);
-  _Player.CallVoidMethod('stop', Nil);
-  _Player.CallVoidMethod('release', Nil);
+  _Player.CallVoidMethod(Frame, 'stop', Nil);
+  _Player.CallVoidMethod(Frame, 'release', Nil);
   _Player.Release();
   _Player := Nil;
   Java_End(Frame);
@@ -200,7 +200,7 @@ Begin
 
   If (_CrossFade>0) Then
   Begin
-    Delta := GetTime - _CrossFadeTime;
+    Delta := Application.GetTime - _CrossFadeTime;
     Delta := Delta / _CrossFade;
     If (Delta>1) Then
     Begin
@@ -237,7 +237,7 @@ Begin
   If Value >0 Then
   Begin
     _CrossVolume := _Volume;
-    _CrossFadeTime := GetTime;
+    _CrossFadeTime := Application.GetTime;
   End;
   _CrossFade := Value;
 End;
