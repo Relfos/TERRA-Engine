@@ -44,7 +44,7 @@ Var
   Angle:Single;
 Begin
   // A rotating sprite in the bottom, with Scale = 4x
-  Angle := RAD * ((GetTime() Div 15) Mod 360);
+  Angle := RAD * ((Application.GetTime() Div 15) Mod 360);
   S := SpriteManager.Instance.DrawSprite(100, 100, 50, _Tex);
   S.SetScaleAndRotationRelative(VectorCreate2D(0.5, 0.5), 4.0, Angle);  // Calculate rotation, in degrees, from current time
 End;
