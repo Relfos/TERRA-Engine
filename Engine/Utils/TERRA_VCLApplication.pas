@@ -1,9 +1,9 @@
-Unit TERRA_VCLClient;
+Unit TERRA_VCLApplication;
 
 {$I terra.inc}
 Interface
 Uses Classes, Forms, ExtCtrls, Graphics, TERRA_String, TERRA_Utils, TERRA_Application,
-  TERRA_Client, TERRA_GraphicsManager, TERRA_Viewport, TERRA_RenderTarget, TERRA_Image, TERRA_Color;
+  TERRA_GraphicsManager, TERRA_Viewport, TERRA_Image, TERRA_Color, TERRA_OS, TERRA_Renderer;
 
 Type
   VCLCanvasViewport = Class(TERRAObject)
@@ -18,7 +18,7 @@ Type
       Procedure Release; Override;
   End;
 
-  VCLClient = Class(AppClient)
+  VCLApplication = Class(Application)
       Protected
         _Timer:TTimer;
         _CurrentWidth:Integer;
@@ -33,6 +33,10 @@ Type
         Procedure UpdateSize();
         Procedure UpdateViewports();
 
+	  		Function InitWindow:Boolean; Override;
+  			Procedure CloseWindow; Override;
+
+
       Public
         Constructor Create(Target:TComponent);
         Procedure Release; Override;
@@ -41,24 +45,34 @@ Type
         Function GetHeight:Word; Override;
 
         Function GetTitle:TERRAString; Override;
-        Function GetHandle:Cardinal; Override;
 
         Procedure AddViewport(V:VCLCanvasViewport);
   End;
 
 Implementation
 
-{ VCLClient }
-Constructor VCLClient.Create(Target:TComponent);
+{ VCLApplication }
+Constructor VCLApplication.Create(Target:TComponent);
 Begin
   _Target := Target;
   _Timer := TTimer.Create(Target);
   _Timer.Interval := 15;
   _Timer.Enabled := True;
   _Timer.OnTimer := TimerTick;
+
+  If (_Target Is TForm) Then
+    _Handle := TForm(_Target).Handle
+  Else
+  If (_Target Is TPanel) Then
+    _Handle := TPanel(_Target).Handle
+  Else
+    _Handle := 0;
+
+  _Managed := True;
+  Inherited Create();
 End;
 
-Procedure VCLClient.Release;
+Procedure VCLApplication.Release;
 Begin
   _Timer.Enabled := False;
   _Timer.Free();
@@ -66,14 +80,14 @@ Begin
   Inherited;
 End;
 
-Procedure VCLClient.TimerTick(Sender: TObject);
+Procedure VCLApplication.TimerTick(Sender: TObject);
 Begin
   Self.UpdateSize();
   Application.Instance.Run();
   Self.UpdateViewports();
 End;
 
-Procedure VCLClient.UpdateSize;
+Procedure VCLApplication.UpdateSize;
 Begin
   If (_CurrentWidth<>Self.GetWidth()) Or (_CurrentHeight<>Self.GetHeight()) Then
   Begin
@@ -83,14 +97,14 @@ Begin
   End;
 End;
 
-Procedure VCLClient.AddViewport(V: VCLCanvasViewport);
+Procedure VCLApplication.AddViewport(V: VCLCanvasViewport);
 Begin
   Inc(_ViewportCount);
   SetLength(_Viewports, _ViewportCount);
   _Viewports[Pred(_ViewportCount)] := V;
 End;
 
-Procedure VCLClient.UpdateViewports;
+Procedure VCLApplication.UpdateViewports;
 Var
   I:Integer;
 Begin
@@ -98,18 +112,7 @@ Begin
     _Viewports[I].Update();
 End;
 
-Function VCLClient.GetHandle: Cardinal;
-Begin
-  If (_Target Is TForm) Then
-    Result := TForm(_Target).Handle
-  Else
-  If (_Target Is TPanel) Then
-    Result := TPanel(_Target).Handle
-  Else
-    Result := 0;
-End;
-
-Function VCLClient.GetTitle: TERRAString;
+Function VCLApplication.GetTitle: TERRAString;
 Begin
   If (_Target Is TForm) Then
     Result := TForm(_Target).Caption
@@ -120,7 +123,7 @@ Begin
     Result := '';
 End;
 
-Function VCLClient.GetWidth: Word;
+Function VCLApplication.GetWidth: Word;
 Begin
   If (_Target Is TForm) Then
     Result := TForm(_Target).ClientWidth
@@ -131,7 +134,7 @@ Begin
     Result := 0;
 End;
 
-Function VCLClient.GetHeight: Word;
+Function VCLApplication.GetHeight: Word;
 Begin
   If (_Target Is TForm) Then
     Result := TForm(_Target).ClientHeight
@@ -140,6 +143,16 @@ Begin
     Result := TPanel(_Target).Height
   Else
     Result := 0;
+End;
+
+Function VCLApplication.InitWindow: Boolean;
+Begin
+  Result := True;
+End;
+
+Procedure VCLApplication.CloseWindow;
+Begin
+  // do nothing
 End;
 
 { VCLCanvasViewport }

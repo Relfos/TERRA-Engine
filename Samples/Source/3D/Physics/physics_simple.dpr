@@ -69,8 +69,8 @@ Begin
   GraphicsManager.Instance.ActiveViewport.Camera.Near := 0.1;
   GraphicsManager.Instance.ActiveViewport.Camera.Far := 2000;
 
-  WorldBox.StartVertex := VectorUniform(-9999);
-  WorldBox.EndVertex := VectorUniform(9999);
+  WorldBox.StartVertex := VectorConstant(-9999);
+  WorldBox.EndVertex := VectorConstant(9999);
   PhysicsManager.Instance.System := NewtonPhysicsSystem.Create(WorldBox);
 
   Self.SpawnBall();
@@ -128,7 +128,7 @@ Begin
   Ball := MeshInstance.Create(MeshManager.Instance.SphereMesh);
   Ball.SetDiffuseMap(0, TextureManager.Instance['marble_diffuse']);
   Ball.Position := VectorCreate(RandomFloat(-RoomSize*0.4, RoomSize*0.4), RoomSize * 1.5, RandomFloat(-RoomSize*0.4, RoomSize*0.4));
-  Ball.Scale := VectorUniform(Size);
+  Ball.Scale := VectorConstant(Size);
 
   Ball.SetDiffuseColor(ColorGrey(Random(255)));
 
@@ -146,7 +146,7 @@ Begin
   Wall := MeshInstance.Create(CreatePlaneMesh(Normal, 4));
   Wall.SetDiffuseMap(0, Tex);
   Wall.Position := Pos;
-  Wall.Scale := VectorUniform(Size);
+  Wall.Scale := VectorConstant(Size);
 
   Wall.SetUVScale(0, (Size/RoomSize)*4,(Size/RoomSize)*4);
 

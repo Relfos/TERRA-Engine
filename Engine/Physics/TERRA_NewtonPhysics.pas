@@ -95,7 +95,7 @@ Type
 
 
 Implementation
-Uses TERRA_Math, TERRA_GL;
+Uses TERRA_Math;
 
 Procedure Debug_ShowGeometryCollision(Const Body:PNewtonBody; VertexCount:Integer; Const FaceArray:PSingle; FaceId:Integer); CDecl;
 Var
@@ -106,7 +106,7 @@ Begin
   If VertexCount = 0 then
      exit;
 
-  SetLength(vA, VertexCount*3);
+{  SetLength(vA, VertexCount*3);
   Move(FaceArray^, vA[0], VertexCount*3*SizeOf(Single));
   v0[0] := vA[(VertexCount-1)*3];
   v0[1] := vA[(VertexCount-1)*3+1];
@@ -119,7 +119,7 @@ Begin
    glVertex3f(v0[0], v0[1], v0[2]);
    glVertex3f(v1[0], v1[1], v1[2]);
    v0 := v1;
-   end;
+  end;}
 end;
 
 Procedure Debug_ShowBodyCollision(Const Body:PNewtonBody); CDecl;
@@ -265,7 +265,7 @@ Begin
   _Mass := Mass;
 
   Inertia := (2 * _Mass * Sqr(Radius)) /5.0;
-  P := VectorUniform(Inertia);
+  P := VectorConstant(Inertia);
 
   Collision := NewtonCreateSphere(World, Radius, Radius, Radius, 0, @Matrix4x4Identity);
 
@@ -381,11 +381,11 @@ Begin
     Exit;
 
   GraphicsManager.Instance.EnableColorShader(ColorWhite, Matrix4x4Identity);
-  glLineWidth(3.0);
+{  glLineWidth(3.0);
 
   glBegin(GL_LINES);
    NewtonWorldForEachBodyInAABBDo(_World, @_WorldBox.StartVertex, @_WorldBox.EndVertex, @Debug_ShowBodyCollision, nil);
-  glEnd();
+  glEnd();}
 End;
 
 
