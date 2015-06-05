@@ -532,7 +532,7 @@ End;
 Function Stream.ReadChar(Out Value: TERRAChar): Boolean;
 Var
   W:Word;
-  A,B,C:Byte;
+  A,B,C,D:Byte;
 
 Procedure GetNextTwoChars();
 Begin
@@ -594,32 +594,49 @@ Begin
       Exit;
     End;
 
-    If ((A And $E0) = $E0) Then
+    If ((A And $F0)=$F0) Then
+    Begin
+      ReadByte(B);
+      ReadByte(C);
+      ReadByte(D);
+      If (B = 0) Or (C = 0) Or (D = 0) Then
+      Begin
+        Value := NullChar;
+        Log(logError, 'UTF8', 'Decoding error #1');
+        Exit;
+      End;
+
+      Value := ((A And $0F) Shl 24) Or ((B And $0F) Shl 12) Or ((C And $3F) Shl 6) Or (D And $3F);
+    End Else
+    If ((A And $E0)=$E0) Then
     Begin
       ReadByte(B);
       ReadByte(C);
       If (B = 0) Or (C = 0) Then
       Begin
         Value := NullChar;
-        RaiseError('UTF8 decoding error #3');
+        Log(logError, 'UTF8', 'Decoding error #2');
         Exit;
       End;
 
       Value := ((A And $0F) Shl 12) Or ((B And $3F) Shl 6) Or (C And $3F);
     End Else
-    If ((A And $C0) = $C0) Then
+    If ((A And $C0)=$C0) Then
     Begin
       ReadByte(B);
       If (B = 0) Then
       Begin
         Value := NullChar;
-        RaiseError('UTF8 decoding error #3');
+        Log(logError, 'UTF8', 'Decoding error #3');
         Exit;
       End;
 
       Value := ((A And $1F) Shl 6) Or (B And $3F);
     End Else
-      RaiseError('UTF8 decoding error #3');
+    Begin
+      Value := A;
+      Log(logError, 'UTF8', 'Decoding error #4');
+    End;
 
     Exit;
   End;

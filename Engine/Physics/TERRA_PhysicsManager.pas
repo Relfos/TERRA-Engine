@@ -113,6 +113,7 @@ Type
   End;
 
 Implementation
+Uses TERRA_OS;
 
 Var
   _PhysicsManager_Instance:ApplicationObject = Nil;
@@ -129,6 +130,7 @@ End;
 Procedure PhysicsManager.Init;
 Begin
   _System := Nil;
+  _TimeLastFrame := Application.GetTime();
 End;
 
 Procedure PhysicsManager.Release;
