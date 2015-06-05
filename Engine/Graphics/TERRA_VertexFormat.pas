@@ -622,7 +622,7 @@ End;
 Function VertexData.Bind(AbsoluteOffsets:Boolean):Boolean;
 Var
   I:Integer;
-  BaseOfs:Cardinal;
+  BaseOfs:PtrUInt;
   AttrOfs:Pointer;
   Name:TERRAString;
   Shader:ShaderInterface;

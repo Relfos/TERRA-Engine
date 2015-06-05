@@ -725,10 +725,10 @@ End;
 
 Function ColorAdd(Const A,B:Color):Color;  
 Begin
-  Result.R := IntMin(Integer(Trunc(A.R + B.R)), 255);
-  Result.G := IntMin(Integer(Trunc(A.G + B.G)), 255);
-  Result.B := IntMin(Integer(Trunc(A.B + B.B)), 255);
-  Result.A := IntMin(Integer(Trunc(A.A + B.A)), 255);
+  Result.R := IntMin(Integer(Trunc(Integer(A.R + B.R))), 255);
+  Result.G := IntMin(Integer(Trunc(Integer(A.G + B.G))), 255);
+  Result.B := IntMin(Integer(Trunc(Integer(A.B + B.B))), 255);
+  Result.A := IntMin(Integer(Trunc(Integer(A.A + B.A))), 255);
 End;
 
 Function ColorMultiply(Const A,B:Color):Color; 
