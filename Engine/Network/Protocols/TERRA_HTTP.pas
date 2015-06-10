@@ -235,14 +235,15 @@ Type
 
       _ChunkedTransfer:Boolean;
 
+      Procedure PrepareTransfer();
+      Procedure ContinueTransfer(Count: Integer);
+      Procedure InitTransfer();
+      Procedure RetryTransfer();
+
       Function ReceiveHeader():Boolean;
       Function ReadChunkHeader():Integer;
       Procedure Update();
-      Procedure ContinueTransfer(Count: Integer);
       Procedure WriteLeftovers();
-
-      Procedure InitTransfer();
-      Procedure RetryTransfer();
 
       Function GetStream: Stream;
       Function GetDest: Stream;
@@ -312,7 +313,7 @@ Var
   DownloadTempPath:TERRAString;
 
 Implementation
-Uses TERRA_Log, TERRA_MemoryStream, TERRA_ResourceManager;
+Uses TERRA_Log, TERRA_MemoryStream, TERRA_ResourceManager, TERRA_Threads;
 
 Function GetTempPath:TERRAString;
 Begin
@@ -338,15 +339,53 @@ Begin
     Protocol := HTTPProtocol;
 End;
 
+Type
+  HTTPThread = Class(Task)
+    Protected
+      _Target:HTTPDownloader;
+
+    Public
+      Constructor Create(Target:HTTPDownloader);
+      Procedure Execute; Override;
+  End;
+
+Constructor HTTPThread.Create(Target:HTTPDownloader);
+Begin
+  _Target := Target;
+End;
+
+Procedure HTTPThread.Execute();
+Begin
+  _Target.PrepareTransfer();
+
+  Repeat
+    If (_Target._TotalSize<0) Then
+    Begin
+      _Target.InitTransfer();
+    End Else
+      _Target.Update();
+
+  Until (_Target.Progress>=100);
+End;
+
 { HTTPDownloader }
 Constructor HTTPDownloader.Create(Request:HTTPRequest);
+Begin
+  _Connection := Nil;
+  _Request := Request;
+                          
+  {$IFNDEF DISABLETHREADS}
+  ThreadPool.Instance.RunTask(HTTPThread.Create(Self), True);
+  {$ELSE}
+  PrepareTransfer();
+  {$ENDIF}
+End;
+
+Procedure HTTPDownloader.PrepareTransfer();
 Var
   I:Integer;
   CachedFile:TERRAString;
 Begin
-  _Connection := Nil;
-  _Request := Request;
-
   Request.Prepare(_URL, CachedFile);
 
   If (CachedFile<>'') Then
@@ -723,13 +762,13 @@ Var
 Begin
   If (Not _Downloading) Then
     Exit;
-          
+
   If (_TotalSize = 0) Then
   Begin
     _Progress := 100;
     Exit;
   End;
-  
+
   If (_ChunkedTransfer) Then
   Begin
     Len := Source.Read(_Buffer, 20);
@@ -924,10 +963,20 @@ Begin
   _DownloadCount := 0;
 End;
 
+Procedure DummyCallback(Download:HTTPDownloader); Cdecl;
+Begin
+  // do nothing
+End;
+
 Procedure DownloadManager.Release;
 Var
   I:Integer;
 Begin
+  For I:=0 To Pred(_DownloadCount) Do
+    _Downloads[I]._Request._Callback := DummyCallback;
+
+  Self.Flush();
+
   For I:=0 To Pred(_DownloadCount) Do
     ReleaseObject(_Downloads[I]);
 
@@ -987,10 +1036,12 @@ Begin
 
       Remove := True;
     End Else
+    {$IFDEF DISABLETHREADS}
     If (_Downloads[I]._TotalSize<0) Then
     Begin
       _Downloads[I].InitTransfer();
     End Else
+    {$ENDIF}
     Begin
       {If (_Downloads[I]._Progress<100) And (GetTime - _Downloads[I]._UpdateTime>ConnectionTimeOut) Then
       Begin
@@ -998,7 +1049,9 @@ Begin
         _Downloads[I]._ErrorCode := httpConnectionTimeOut;
       End;}
 
+      {$IFDEF DISABLETHREADS}
       _Downloads[I].Update();
+      {$ENDIF}
 
       If (_Downloads[I].Progress>=100) Then
       Begin
