@@ -170,7 +170,7 @@ begin
     Count := 0;
     While It.HasNext Do
     Begin
-      Check(It.GetNext()<>Nil, 'List iterator error!');
+      Check(It.Value<>Nil, 'List iterator error!');
       Inc(Count);
     End;
     Check(Count = L.Count, 'Iterator did not iterate full list!');
@@ -191,7 +191,7 @@ begin
   Prev := -1;
   While It.HasNext Do
   Begin
-    Int := IntegerObject(It.GetNext());
+    Int := IntegerObject(It.Value);
     //Write(Int.Value, ' ');
     Check(Prev<=Int.Value, 'List ascending sort error!');
     Prev := Int.Value;
@@ -211,7 +211,7 @@ begin
   Prev := 99999999;
   While It.HasNext Do
   Begin
-    Int := IntegerObject(It.GetNext());
+    Int := IntegerObject(It.Value);
     //Write(Int.Value, ' ');
     Check(Prev>=Int.Value, 'List descending sort error!');
     Prev := Int.Value;
@@ -225,7 +225,7 @@ begin
   It := L.GetIterator();
   While It.HasNext Do
   Begin
-    Int := IntegerObject(It.GetNext());
+    Int := IntegerObject(It.Value);
 
     If (Odd(Int.Value)) Then
       Int.Discard();
@@ -236,7 +236,7 @@ begin
 {  It := L.CreateIterator();
   While It.HasNext Do
   Begin
-    Int := IntegerObject(It.GetNext());
+    Int := IntegerObject(It.Value);
 
     WriteLn(Int.ToString());
   End;
@@ -264,7 +264,7 @@ Begin
     It := Table.GetIterator();
     While It.HasNext Do
     Begin
-      Item := StringKeyPair(It.GetNext());
+      Item := StringKeyPair(It.Value);
 
       Check(Assigned(Item), 'Hash table iterator error!');
 
@@ -300,7 +300,7 @@ Var
   It:Iterator;
   V:ObjectArray;
 Begin
-  V := ObjectArray.Create();
+  V := ObjectArray.Create(0, Nil);
 
   N := 30+ Random(100);
   For J:=0 To Pred(N) Do
@@ -312,7 +312,7 @@ Begin
   Count := 0;
   While It.HasNext() Do
   Begin
-    Item := IntegerObject(It.GetNext());
+    Item := IntegerObject(It.Value);
     Inc(Count);
   End;
   Check(Count = V.Count, 'Iterator did not iterate full list!');

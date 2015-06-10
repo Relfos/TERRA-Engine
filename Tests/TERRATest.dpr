@@ -2,45 +2,22 @@ Program TERRATest;
 
 {$I terra.inc}
 
-Uses TERRA_MemoryManager, TERRA_String, TERRA_Application, TERRA_Client, TERRA_Log, TERRA_Utils,
-  TERRA_TestSuite, TERRA_TestCore, TERRA_TestImage, TERRA_TestMath, TERRA_TestString, TERRA_TestXML
-  {$IFDEF WINDOWS},Windows{$ENDIF};
-
 {$IFDEF WINDOWS}
 {$APPTYPE CONSOLE}
 {$ENDIF}
 
-{$IFDEF WINDOWS}
-Procedure MyLogFilter(Module, Desc:AnsiString);
-Var
-  S:WideString;
-  Written:Cardinal;
-Begin
-  StringAppendChar(Desc, 13);
-  StringAppendChar(Desc, 10);
-  S := StringToWideString(Desc);
-  WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE), PWideChar(S), Length(S), Written, nil)
-End;
-{$ENDIF}
+Uses TERRA_MemoryManager, TERRA_OS, TERRA_String, TERRA_Application, TERRA_ConsoleApplication, TERRA_Log, TERRA_Utils,
+  TERRA_TestSuite, TERRA_TestCore, TERRA_TestImage, TERRA_TestMath, TERRA_TestString, TERRA_TestXML;
 
 Var
 	Tests:TestSuite;
   Errors:Integer;
 Begin
-  {$IFDEF WINDOWS}
-  SetConsoleOutputCP(CP_UTF8);
-  {$ENDIF}
-
 	WriteLn('Testing TERRA engine: v'+VersionToString(EngineVersion));
 
-  ApplicationStart(ConsoleClient.Create());
+  LoggingEnabled := True;
 
-	//AddLogFilter(logDebug, '', MyLogIgnore);
-	{$IFDEF WINDOWS}
-  	AddLogFilter(logConsole, '', MyLogFilter);
-	{$ENDIF}
-
-  //ApplicationStart(ConsoleClient.Create());
+  ConsoleApplication.Create();
 
 	Tests := TestSuite.Create();
   	Tests.RegisterTest(TERRACore_TestList);
@@ -77,7 +54,6 @@ Begin
     Tests.RegisterTest(TERRAXML_TestShortcuts);
 
   	Errors := Tests.Run();
-
 
   	Tests.Release();
 
