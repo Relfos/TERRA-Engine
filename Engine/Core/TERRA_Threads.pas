@@ -224,7 +224,6 @@ Var
 {$ENDIF}
 
 
-{$IFDEF ANDROID}
 Function InternalThreadDispatcher(P:Pointer):Integer; {$IFNDEF WINDOWS}Cdecl; {$ENDIF}
 Var
   T:Thread;
@@ -246,7 +245,6 @@ Begin
 
   Result := 0;
 End;
-{$ENDIF}
 
 { Thread }
 Constructor Thread.Create();
@@ -473,15 +471,11 @@ Procedure ThreadPool.Init;
 Var
   I:Integer;
 Begin
-  {$IFDEF ANDROID}
-  _MaxThreads := 1;
-  {$ELSE}
   If (Application.Instance<>Nil) Then
     _MaxThreads := Application.Instance.CPUCores
   Else
     _MaxThreads := 2;
-  {$ENDIF}
-    
+
   _CriticalSection := CriticalSection.Create({Self.ClassName});
   _Semaphore := Semaphore.Create(_MaxThreads);
 

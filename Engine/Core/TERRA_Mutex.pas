@@ -30,7 +30,9 @@ Uses TERRA_String, TERRA_Utils,
 {$ELSE}cmem, {ctypes,baseunix,}unixtype{$ENDIF};
 
 {$IFDEF WINDOWS}
-{-$DEFINE WINAPISYNC}
+{$IFNDEF FPC}
+{$DEFINE WINAPISYNC}
+{$ENDIF}
 {$ENDIF}
 
 {$IFNDEF WINAPISYNC}
