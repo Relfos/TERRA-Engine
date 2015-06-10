@@ -243,7 +243,7 @@ Begin
   End;
 
   If Not OldSession Then
-    Pref.Release;
+    ReleaseObject(Pref);
 
   _Read := True;
 

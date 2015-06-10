@@ -131,7 +131,7 @@ Type
   Collection = Class(TERRAObject)
     Protected
       _ItemCount:Integer;
-      _Options:Integer;
+      _Options:Cardinal;
 
       _SortOrder:CollectionSortOrder;
 
@@ -173,7 +173,7 @@ Type
       Property Objects[Index: Integer]:CollectionObject Read GetItemByIndex; Default;
 
       Property Count:Integer Read _ItemCount;
-      Property Options:Integer Read _Options;
+      Property Options:Cardinal Read _Options;
 
       Property SortOrder:CollectionSortOrder Read _SortOrder;
   End;

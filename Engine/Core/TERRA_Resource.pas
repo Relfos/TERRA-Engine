@@ -49,7 +49,6 @@ Type
       Function Sort(Other:CollectionObject):Integer; Override;
 
     Public
-      InBackground:Boolean;
       Priority:Integer;
 
       Constructor Create(Location:TERRAString);
@@ -104,7 +103,6 @@ Begin
   Self._Size := 0;
   Self._Status := rsUnloaded;
   Self.Priority := 50;
-  Self.InBackground := True;
 End;
 
 Procedure Resource.Release;
@@ -173,7 +171,7 @@ Begin
   If (Self.Location<>'') Then
   Begin
     Log(logDebug, 'Resource', 'Loading the resource...');
-    Manager.ReloadResource(Self, InBackground);
+    Manager.ReloadResource(Self, Manager.UseThreads);
     Result := (Status = rsReady);
   End Else
   Begin
@@ -192,8 +190,6 @@ Procedure Resource.Prefetch;
 Begin
   If (Self._Status<>rsUnloaded) Then
     Exit;
-
-  Self.InBackground := False;
 
   Log(logDebug, 'Resource', 'Prefetching '+ Self.Name);
 

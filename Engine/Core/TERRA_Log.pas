@@ -339,6 +339,12 @@ Begin
     Exit;
   End;
 
+  If (LogType = logConsole) Then
+  Begin
+    Application.Instance.LogToConsole(Description);
+    Exit;
+  End;
+
 {$IFDEF IPHONE}
   Exit;
 {$ENDIF}
@@ -357,10 +363,12 @@ End;
 
 Initialization
 {$IFDEF DEBUG_LOG}
-LoggingEnabled := True;
+  LoggingEnabled := True;
 {$ELSE}
 {$IFDEF PC}
   LoggingEnabled := Application.GetOption('log') = '1';
+{$ELSE}
+  LoggingEnabled := True;
 {$ENDIF}
 {$ENDIF}
 Finalization

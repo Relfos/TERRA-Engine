@@ -475,7 +475,6 @@ Begin
     Begin
       Result := Animation.Create(S);
       Result.Priority := 70;
-      Result.InBackground := False;
       Self.AddResource(Result);
     End Else
     If ValidateError Then

@@ -124,7 +124,6 @@ Function TriangleNormal(Const V0,V1,V2:Vector3D):Vector3D; {$IFDEF FPC}Inline;{$
 Function GetTriangleHeight(H0,H1,H2:Single; X,Y:Single):Single; {$IFNDEF OXYGENE} Overload; {$ENDIF}
 Function GetTriangleHeight(H0,H1,H2:Single; X,Y:Single; Var Normal:Vector3D):Single; {$IFNDEF OXYGENE} Overload; {$ENDIF}
 
-
 Implementation
 {$IFDEF NEON_FPU}Uses TERRA_NEON;{$ENDIF}
 

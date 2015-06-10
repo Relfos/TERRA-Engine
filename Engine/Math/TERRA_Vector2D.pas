@@ -29,6 +29,7 @@ Unit TERRA_Vector2D;
 {$ENDIF}
 
 Interface
+Uses TERRA_Vector3D, TERRA_Math;
 
 Type
   {$IFDEF OXYGENE}
@@ -74,6 +75,10 @@ Function VectorCross2D(Const A,B:Vector2D):Single;
 
 Function VectorAdd2D(Const A,B:Vector2D):Vector2D;
 Function VectorSubtract2D(Const A,B:Vector2D):Vector2D;
+
+
+Function VectorAngle3D(Const A,B:Vector3D):Single;
+Function VectorAngle2D(Const A,B:Vector2D):Single;
 
 Implementation
 {$IFDEF NEON_FPU}Uses TERRA_NEON;{$ENDIF}
@@ -257,5 +262,28 @@ Begin
     Self.Y := Y;
 End;
 {$ENDIF}
+
+Function VectorAngle2D(Const A,B:Vector2D):Single;
+Var
+  XDiff, YDiff: Single;
+  fpAngle: Single;
+  N:Vector2D;
+begin
+  N := B;
+  N.Subtract(A);
+  N.Normalize();
+
+  fpAngle := Atan2(-N.Y, N.X);
+  Result := fpAngle + 90*RAD;
+End;
+
+Function VectorAngle3D(Const A,B:Vector3D):Single;
+Var
+  PA, PB:Vector2D;
+Begin
+  PA := VectorCreate2D(A.X, A.Z);
+  PB   := VectorCreate2D(B.X, B.Z);
+  Result := VectorAngle2D(PA, PB);
+End;
 
 End.

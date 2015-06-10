@@ -460,7 +460,7 @@ public class PurchaseProcessor extends PurchaseBase {
                 sig.initVerify(key);
                 sig.update(signedData.getBytes());
                 if (!sig.verify(Base64.decode(signature, Base64.DEFAULT))) { 
-                    Log.e(LOG_TAG, "Signature verification failed.");
+                    Log.e(LOG_TAG, "TERRA Signature verification failed.");
                     return true;
                 }
                 return false;
@@ -473,7 +473,7 @@ public class PurchaseProcessor extends PurchaseBase {
             } catch (IllegalArgumentException e) {
                 Log.e(LOG_TAG, "Base64 decoding failed.");
             }
-            return false;
+            return true;
         }
        
     
@@ -509,8 +509,8 @@ public class PurchaseProcessor extends PurchaseBase {
                         return false;
                     }
                     
-                    return true;
-                    //return confirmPurchaseSignature(signedData, signature);
+                    //return true;
+                    return confirmPurchaseSignature(signedData, signature);
                 } catch (NoSuchAlgorithmException e) {
                     Log.e(LOG_TAG, "NoSuchAlgorithmException.");
                 } catch (InvalidKeyException e) {

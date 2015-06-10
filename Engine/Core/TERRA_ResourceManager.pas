@@ -168,7 +168,7 @@ Begin
   MyResource.Time := Application.GetTime;
   Log(logDebug, 'Resource', 'Loaded '+MyResource.Name);
 
-  If (MyResource.InBackground) Then
+  If (Manager.UseThreads) Then
   Begin
     Manager.Lock;
     Manager._Queue.Push(ResourceEntry.Create(MyResource));
@@ -195,7 +195,7 @@ Begin
   _LockSection := CriticalSection.Create({Self.ClassName});
 {$ENDIF}
 
-  UseThreads := True;
+  UseThreads := False;
   {$IFDEF MOBILE}
   AutoUnload := True;
   {$ELSE}
@@ -256,8 +256,6 @@ Begin
     RaiseError('Cannot load null resource!');
     Exit;
   End;
-
-  Resource.InBackground := InBackground;
 
   If InBackground Then
     Log(logDebug, 'ResourceManager', 'Reloading '+Resource.Name+' in background')

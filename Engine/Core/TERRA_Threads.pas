@@ -29,7 +29,8 @@ Unit TERRA_Threads;
 {$IFNDEF DISABLETHREADS}
 
 {$IFDEF ANDROID}
-{$DEFINE USEJAVATHREADS}
+{.$DEFINE USEJAVATHREADS}
+{$DEFINE USEPASCALTHREADS}
 {$ELSE}
 
 {$DEFINE USEPASCALTHREADS}
@@ -417,7 +418,7 @@ Begin
 
 	_CriticalSection.Unlock();
 
-  _Semaphore.Release();  
+  _Semaphore.Signal();
   {$ENDIF}
 End;
 
@@ -532,8 +533,8 @@ Begin
   {$ENDIF}
   End;
 
-  _CriticalSection.Release;
-  _Semaphore.Signal();
+  ReleaseObject(_CriticalSection);
+  ReleaseObject(_Semaphore);
 
   _ThreadPool_Instance := Nil;
 End;

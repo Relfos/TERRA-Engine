@@ -384,6 +384,8 @@ Type
       Procedure Tapjoy_SpendCredits(Ammount:Integer); Virtual;
       Procedure Tapjoy_Update(Credits: Integer);
 
+      Procedure LogToConsole(Const Text:TERRAString); Virtual;
+
       Procedure Resize(Width, Height:Integer);
 
       Procedure SetSuspend(Value:Boolean);
@@ -1095,6 +1097,11 @@ procedure BaseApplication.EnableAds; Begin End;
 procedure BaseApplication.DisableAds; Begin End;
 
 procedure BaseApplication.OpenAppStore(AppID: TERRAString); Begin End;
+
+Procedure BaseApplication.LogToConsole(const Text: TERRAString);
+Begin
+  // do nothing
+End;
 
 { ApplicationObject }
 Procedure ApplicationObject.Release;

@@ -3,7 +3,7 @@ Unit TERRA_ConsoleApplication;
 {$I terra.inc}
 
 Interface
-Uses {$IFDEF WINDOWS}Windows, {$ENDIF} TERRA_OS;
+Uses {$IFDEF WINDOWS}Windows, {$ENDIF} TERRA_OS, TERRA_String;
 
 Type
   ConsoleApplication = Class(Application)
@@ -23,6 +23,8 @@ Type
       Procedure OnIdle; Override;
 
       Function SelectRenderer():Integer; Override;
+
+      Procedure LogToConsole(Const Text:TERRAString); Override;
 
       Function GetWidth:Word; Override;
       Function GetHeight:Word; Override;
@@ -115,6 +117,19 @@ End;
 Function ConsoleApplication.SelectRenderer: Integer;
 Begin
   Result := 0; // select null renderer
+End;
+
+Procedure ConsoleApplication.LogToConsole(const Text: TERRAString);
+Var
+  S:WideString;
+  Written:Cardinal;
+Begin
+  {$IFDEF WINDOWS}
+  S := StringToWideString(Text) + #13#10;
+  WriteConsoleW(_Handle, PWideChar(S), Length(S), Written, Nil);
+  {$ELSE}
+  WriteLn(Text);
+  {$ENDIF}
 End;
 
 End.

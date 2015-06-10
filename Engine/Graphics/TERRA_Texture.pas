@@ -161,6 +161,7 @@ Type
 
 
     Public
+      Procedure Init; Override;
       Procedure OnContextLost; Override;
 
       Class Function Instance:TextureManager;
@@ -197,6 +198,7 @@ Uses TERRA_Error, TERRA_Utils, TERRA_Application, TERRA_Log, TERRA_GraphicsManag
 Var
   _TextureManager:ApplicationObject = Nil;
 
+{ TextureManager }  
 Procedure RegisterTextureFormat(ClassType:TextureClass; Extension:TERRAString);
 Begin
   Inc(_TextureFormatCount);
@@ -204,13 +206,20 @@ Begin
   _TextureFormatList[Pred(_TextureFormatCount)].Extension := Extension;
   _TextureFormatList[Pred(_TextureFormatCount)].ClassType := ClassType;
 End;
-  
+
 Class Function TextureManager.Instance:TextureManager;
 Begin
   If _TextureManager = Nil Then
     _TextureManager := InitializeApplicationComponent(TextureManager, GraphicsManager);
-    
+
   Result := TextureManager(_TextureManager.Instance);
+End;
+
+Procedure TextureManager.Init;
+Begin
+  Inherited;
+
+//  Self.UseThreads := True;
 End;
 
 Function TextureManager.GetTexture(Name:TERRAString):Texture;
@@ -1059,5 +1068,6 @@ Function Texture.GetOrigin: SurfaceOrigin;
 Begin
   Result := Self.Current.Origin;
 End;
+
 
 End.

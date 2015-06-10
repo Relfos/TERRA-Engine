@@ -235,7 +235,7 @@ Begin
   {$IFNDEF HAS_SEMAPHORES}
   sem_destroy(@_Handle);
   {$ENDIF}
-  
+
   {$ENDIF}
 End;
 
