@@ -137,7 +137,11 @@ Begin
 {$IFDEF USEPTHREADS}
   pthread_mutex_init(@_Handle, Nil);
 {$ELSE}
+       {$IFDEF FPC}
+	InitCriticalSection(_Handle);
+       {$ELSE}
 	InitializeCriticalSection(_Handle);
+        {$ENDIF}
 {$ENDIF}
 End;
 
@@ -161,7 +165,11 @@ Begin
 {$IFDEF USEPTHREADS}
   pthread_mutex_destroy(@_Handle);
 {$ELSE}
+       {$IFDEF FPC}
+	DoneCriticalSection(_Handle);
+       {$ELSE}
 	DeleteCriticalSection(_Handle);
+        {$ENDIF}
 {$ENDIF}
 End;
 
@@ -283,4 +291,4 @@ Finalization
   For I:=0 To Pred(SectionCount) Do
     Log(logWarning, 'App', 'The following mutex was not released: '+Sections[I]._Name);
 {$ENDIF}
-End.
+End.
