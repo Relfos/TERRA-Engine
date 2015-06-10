@@ -21,7 +21,7 @@ Type
     ncb_retcode: AnsiChar;         // return code
     ncb_lsn: AnsiChar;             // local session number
     ncb_num: AnsiChar;             // number of our network name
-    ncb_buffer: PAnsiChar;         // address of message buffer
+    ncb_buffer: Pointer;         // address of message buffer
     ncb_length: Word;          // size of message buffer
     ncb_callname: array[0..NCBNAMSZ - 1] Of AnsiChar;  // blank-padded name of remote
     ncb_name: array[0..NCBNAMSZ - 1] Of AnsiChar;      // our blank-padded netname
@@ -239,7 +239,7 @@ const
 
   NRC_PENDING     = $ff;    // asynchronous command is not yet finished
 
-Function Netbios(P: PNCB): AnsiChar; stdcall; external 'netapi32.dll' name 'Netbios';
+Function Netbios(P:Pointer): AnsiChar; stdcall; external 'netapi32.dll' name 'Netbios';
 
 Implementation
 

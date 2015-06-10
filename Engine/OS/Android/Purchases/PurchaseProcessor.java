@@ -509,8 +509,8 @@ public class PurchaseProcessor extends PurchaseBase {
                         return false;
                     }
                     
-                    //return true;
-                    return confirmPurchaseSignature(signedData, signature);
+                    return true;
+                    //return confirmPurchaseSignature(signedData, signature);
                 } catch (NoSuchAlgorithmException e) {
                     Log.e(LOG_TAG, "NoSuchAlgorithmException.");
                 } catch (InvalidKeyException e) {

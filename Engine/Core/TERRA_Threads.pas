@@ -224,6 +224,7 @@ Var
 {$ENDIF}
 
 
+{$IFDEF ANDROID}
 Function InternalThreadDispatcher(P:Pointer):Integer; {$IFNDEF WINDOWS}Cdecl; {$ENDIF}
 Var
   T:Thread;
@@ -245,6 +246,7 @@ Begin
 
   Result := 0;
 End;
+{$ENDIF}
 
 { Thread }
 Constructor Thread.Create();

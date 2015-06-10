@@ -199,7 +199,7 @@ Type
 Implementation
 Uses TERRA_Error, SysUtils, TERRA_Renderer, TERRA_GLRenderer,
   TERRA_GraphicsManager, TERRA_Log, TERRA_Stream, TERRA_FileUtils, TERRA_FileManager, TERRA_MemoryStream, TERRA_MusicManager,
-  TERRA_Gamepad, TERRA_XInput, TERRA_NetBios, TERRA_Timer;
+  TERRA_Gamepad, TERRA_XInput, TERRA_Ethernet, TERRA_Timer;
 
 Const
   FILE_READ_DATA         = $0001; // file & pipe
@@ -891,52 +891,48 @@ Begin
     Result := False;
 End;
 
-Function GetMACAdress():TERRAString;
+(*Function GetMACAdress():TERRAString;
 var
-  NCB: PNCB;
-  Adapter: PAdapterStatus;
+  NCB:TNCB;
+  Adapter:TAdapterStatus;
 
   URetCode: PAnsiChar;
   RetCode: AnsiChar;
   I: integer;
-  Lenum: PlanaEnum;
+  Lenum:TLanAEnum;
   _SystemID:TERRAString;
   TMPSTR:TERRAString;
 begin
   Result    := '';
   _SystemID := '';
-  Getmem(NCB, SizeOf(TNCB));
-  Fillchar(NCB^, SizeOf(TNCB), 0);
 
-  Getmem(Lenum, SizeOf(TLanaEnum));
-  Fillchar(Lenum^, SizeOf(TLanaEnum), 0);
-
-  Getmem(Adapter, SizeOf(TAdapterStatus));
-  Fillchar(Adapter^, SizeOf(TAdapterStatus), 0);
+  Fillchar(NCB, SizeOf(TNCB), 0);
+  Fillchar(Lenum, SizeOf(TLanaEnum), 0);
+  Fillchar(Adapter, SizeOf(TAdapterStatus), 0);
 
   Lenum.Length    := chr(0);
   NCB.ncb_command := chr(NCBENUM);
-  NCB.ncb_buffer  := Pointer(Lenum);
+  NCB.ncb_buffer  := @Lenum;
   NCB.ncb_length  := SizeOf(Lenum);
-  RetCode         := Netbios(NCB);
+  RetCode         := Netbios(@NCB);
 
   i := 0;
-  repeat
-    Fillchar(NCB^, SizeOf(TNCB), 0);
+  Repeat
+    Fillchar(NCB, SizeOf(TNCB), 0);
     Ncb.ncb_command  := chr(NCBRESET);
     Ncb.ncb_lana_num := lenum.lana[I];
-    RetCode          := Netbios(Ncb);
+    RetCode          := Netbios(@Ncb);
 
-    Fillchar(NCB^, SizeOf(TNCB), 0);
+    Fillchar(NCB, SizeOf(TNCB), 0);
     Ncb.ncb_command  := chr(NCBASTAT);
     Ncb.ncb_lana_num := lenum.lana[I];
     // Must be 16
     Ncb.ncb_callname := '*               ';
 
-    Ncb.ncb_buffer := Pointer(Adapter);
+    Ncb.ncb_buffer := @Adapter;
 
     Ncb.ncb_length := SizeOf(TAdapterStatus);
-    RetCode        := Netbios(Ncb);
+    RetCode        := Netbios(@Ncb);
     //---- calc _systemId from mac-address[2-5] XOR mac-address[1]...
     if (RetCode = chr(0)) or (RetCode = chr(6)) then
     begin
@@ -949,11 +945,9 @@ begin
     end;
     Inc(i);
   until (I >= Ord(Lenum.Length)) or (_SystemID <> '00-00-00-00-00-00');
-  FreeMem(NCB);
-  FreeMem(Adapter);
-  FreeMem(Lenum);
-  GetMacAdress := _SystemID;
-End;
+
+  Result := _SystemID;
+End;*)
 
 Function WindowsApplication.GetDeviceID:TERRAString;
 Begin
