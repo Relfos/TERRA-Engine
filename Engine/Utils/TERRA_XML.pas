@@ -122,7 +122,7 @@ Type
       Procedure LoadFromFile(FileName:TERRAString; Encoding:StringEncoding = encodingUnknown);
       Procedure SaveToFile(FileName:TERRAString; SaveFlags:Cardinal = 0);
 
-      Procedure LoadFromString(Data:TERRAString);
+      Procedure LoadFromString(Data:TERRAString; Encoding:StringEncoding);
       //Procedure SaveToFile(Var Data:TERRAString);Overload;
 
       Procedure AddNode(Node:XMLNode; Parent:XMLNode=Nil);
@@ -706,11 +706,12 @@ Begin
   Dest.Release;
 End;
 
-Procedure XMLDocument.LoadFromString(Data:TERRAString);
+Procedure XMLDocument.LoadFromString(Data:TERRAString; Encoding:StringEncoding);
 Var
   Source:MemoryStream;
 Begin
   Source := MemoryStream.Create(Length(Data), @Data[1]);
+  Source.Encoding := Encoding;
   Load(Source);
   Source.Release;
 End;
