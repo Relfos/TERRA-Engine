@@ -29,9 +29,15 @@ Uses TERRA_String, TERRA_Utils,
 {$IFDEF WINDOWS}Windows
 {$ELSE}cmem, {ctypes,baseunix,}unixtype{$ENDIF};
 
-{$DEFINE HAS_SEMAPHORES}
-  
-{$IFNDEF WINDOWS}
+{$IFDEF WINDOWS}
+{-$DEFINE WINAPISYNC}
+{$ENDIF}
+
+{$IFNDEF WINAPISYNC}
+{-$DEFINE USEPTHREADS}
+
+{$IFDEF USEPTHREADS}
+
 Type
  ppthread_mutex_t = ^pthread_mutex_t;
  ppthread_mutexattr_t = ^pthread_mutexattr_t;
@@ -47,7 +53,6 @@ Function pthread_mutex_destroy(__mutex:ppthread_mutex_t):longint; Cdecl; Externa
 Function pthread_mutex_lock(__mutex: ppthread_mutex_t):longint; Cdecl; External LibC;
 Function pthread_mutex_unlock(__mutex: ppthread_mutex_t):longint; Cdecl; External LibC;
 
-{$IFNDEF HAS_SEMAPHORES}
 Function sem_init(sem:ppthread_sem_t; pshared:Integer; value:Cardinal):Integer; Cdecl; External LibC;
 Function sem_wait(sem:ppthread_sem_t):Integer; Cdecl; External LibC;
 Function sem_post(sem:ppthread_sem_t):Integer; Cdecl; External LibC;
@@ -65,7 +70,7 @@ Type
       _LockID:Cardinal;
       _LockCounter:Integer;
 
-      {$IFDEF WINDOWS}
+      {$IFNDEF USEPTHREADS}
       _Handle:TRTLCriticalSection;
       {$ELSE}
       _Handle:pthread_mutex_t;
@@ -90,10 +95,14 @@ Type
   { A semaphore primitive, used for multithreaded code }
   Semaphore = Class(TERRAObject)
     Protected
-      {$IFDEF WINDOWS}
+      {$IFDEF WINAPISYNC}
       _Handle:THandle;
       {$ELSE}
+      {$IFNDEF USEPTHREADS}
+      _Handle:PRTLEvent;
+      {$ELSE}
       _Handle:Integer;
+      {$ENDIF}
       {$ENDIF}
 
     Public
@@ -125,10 +134,10 @@ Begin
   Sections[Pred(SectionCount) ] := Self;
   {$ENDIF}
 
-{$IFDEF WINDOWS}
-	InitializeCriticalSection(_Handle);
-{$ELSE}
+{$IFDEF USEPTHREADS}
   pthread_mutex_init(@_Handle, Nil);
+{$ELSE}
+	InitializeCriticalSection(_Handle);
 {$ENDIF}
 End;
 
@@ -136,7 +145,7 @@ Procedure CriticalSection.Release;
 {$IFDEF DEBUG_LOCKS}
 Var
   I:Integer;
-{$ENDIF}  
+{$ENDIF}
 Begin
   {$IFDEF DEBUG_LOCKS}
   I := 0;
@@ -149,10 +158,10 @@ Begin
     Inc(I);
   {$ENDIF}
 
-{$IFDEF WINDOWS}
-	DeleteCriticalSection(_Handle);
-{$ELSE}
+{$IFDEF USEPTHREADS}
   pthread_mutex_destroy(@_Handle);
+{$ELSE}
+	DeleteCriticalSection(_Handle);
 {$ENDIF}
 End;
 
@@ -172,14 +181,10 @@ Begin
     _LockCounter := 1;
 
 
-{$IFDEF WINDOWS}
-  {$IFDEF DEBUGMUTEX}
-  If (_Name<>'') Then
-    WriteLn(_Name,'.Lock() - '+IntToString(GetCurrentThread()));
-  {$ENDIF}
-	EnterCriticalSection(_Handle);
-{$ELSE}
+{$IFDEF USEPTHREADS}
   pthread_mutex_lock(@_Handle);
+{$ELSE}
+	EnterCriticalSection(_Handle);
 {$ENDIF}
 
   _Locked := True;
@@ -199,14 +204,10 @@ Begin
       Exit;
   End;
 
-{$IFDEF WINDOWS}
-  {$IFDEF DEBUGMUTEX}
-  If (_Name<>'') Then
-    WriteLn(_Name,'.Unlock() - '+IntToString(GetCurrentThread()));
-  {$ENDIF}
-	LeaveCriticalSection(_Handle);
-{$ELSE}
+{$IFDEF USEPTHREADS}
   pthread_mutex_unlock(@_Handle);
+{$ELSE}
+	LeaveCriticalSection(_Handle);
 {$ENDIF}
 
   _Locked := False;
@@ -215,38 +216,42 @@ End;
 { Semaphore }
 Constructor Semaphore.Create(Count:Integer);
 Begin
-  {$IFDEF WINDOWS}
+  {$IFDEF WINAPISYNC}
   _Handle := CreateSemaphore(Nil, 0, Count, Nil);
   {$ELSE}
 
-  {$IFNDEF HAS_SEMAPHORES}
+  {$IFDEF USEPTHREADS}
   sem_init(@_Handle, 0, Count);
+  {$ELSE}
+  _Handle := RTLEventCreate();
   {$ENDIF}
-  
   {$ENDIF}
 End;
 
 Procedure Semaphore.Release;
 Begin
-  {$IFDEF WINDOWS}
+  {$IFDEF WINAPISYNC}
   CloseHandle(_Handle);
   {$ELSE}
 
-  {$IFNDEF HAS_SEMAPHORES}
+  {$IFDEF USEPTHREADS}
   sem_destroy(@_Handle);
+  {$ELSE}
+  RTLeventdestroy(_Handle);
   {$ENDIF}
-
   {$ENDIF}
 End;
 
 Procedure Semaphore.Signal();
 Begin
-  {$IFDEF WINDOWS}
+  {$IFDEF WINAPISYNC}
   ReleaseSemaphore(_Handle,1, Nil); // unblock all the threads
   {$ELSE}
 
-  {$IFNDEF HAS_SEMAPHORES}
+  {$IFDEF USEPTHREADS}
   sem_post(@_Handle);
+  {$ELSE}
+  RTLeventSetEvent(_Handle);
   {$ENDIF}
 
   {$ENDIF}
@@ -254,21 +259,23 @@ End;
 
 Procedure Semaphore.Wait();
 Begin
-  {$IFDEF WINDOWS}
+  {$IFDEF WINAPISYNC}
   WaitForSingleObject(_Handle, INFINITE);
   {$ELSE}
 
-  {$IFNDEF HAS_SEMAPHORES}
+  {$IFDEF USEPTHREADS}
   sem_wait(@_Handle);
+  {$ELSE}
+  RTLeventWaitFor(_Handle);
   {$ENDIF}
-  
+
   {$ENDIF}
 End;
 
 {$IFDEF DEBUG_LOCKS}
 Var
   I:Integer;
-{$ENDIF}  
+{$ENDIF}
 
 Initialization
 Finalization
