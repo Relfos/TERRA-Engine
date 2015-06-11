@@ -298,10 +298,39 @@ Begin
     keyMouseLeft:       Result:='MouseLeft';
     keyMouseRight:      Result:='MouseRight';
     keyMouseMiddle:     Result:='MouseMiddle';
+
+  keyPlus: Result := 'Plus';
+  keyMinus: Result := 'Minus';
+  keyPeriod: Result := 'Dot';
+
+  keyA: Result := 'A';
+  keyB: Result := 'B';
+  keyC: Result := 'C';
+  keyD: Result := 'D';
+  keyE: Result := 'E';
+  keyF: Result := 'F';
+  keyG: Result := 'G';
+  keyH: Result := 'H';
+  keyI: Result := 'I';
+  keyJ: Result := 'J';
+  keyK: Result := 'K';
+  keyL: Result := 'L';
+  keyM: Result := 'M';
+  keyN: Result := 'N';
+  keyO: Result := 'O';
+  keyP: Result := 'P';
+  keyQ: Result := 'Q';
+  keyR: Result := 'R';
+  keyS: Result := 'S';
+  keyT: Result := 'T';
+  keyU: Result := 'U';
+  keyV: Result := 'V';
+  keyW: Result := 'W';
+  keyX: Result := 'X';
+  keyY: Result := 'Y';
+  keyZ: Result := 'Z';
+
     Else
-      If (Key>=33) And (Key<=126) Then
-        Result := UpCase(Char(Key))
-      Else
         Result:= 'Key #'+IntToString(Key);
   End;
 End;
