@@ -49,32 +49,32 @@ Const
 	keyF11        = 122;
 	keyF12        = 123;
 
-  keyA = Ord('a');
-  keyB = Ord('b');
-  keyC = Ord('c');
-  keyD = Ord('d');
-  keyE = Ord('e');
-  keyF = Ord('f');
-  keyG = Ord('g');
-  keyH = Ord('h');
-  keyI = Ord('i');
-  keyJ = Ord('j');
-  keyK = Ord('k');
-  keyL = Ord('l');
-  keyM = Ord('m');
-  keyN = Ord('n');
-  keyO = Ord('o');
-  keyP = Ord('p');
-  keyQ = Ord('q');
-  keyR = Ord('r');
-  keyS = Ord('s');
-  keyT = Ord('t');
-  keyU = Ord('u');
-  keyV = Ord('v');
-  keyW = Ord('w');
-  keyX = Ord('x');
-  keyY = Ord('y');
-  keyZ = Ord('z');
+  keyA = Ord('A');
+  keyB = Ord('B');
+  keyC = Ord('C');
+  keyD = Ord('D');
+  keyE = Ord('E');
+  keyF = Ord('F');
+  keyG = Ord('G');
+  keyH = Ord('H');
+  keyI = Ord('I');
+  keyJ = Ord('J');
+  keyK = Ord('K');
+  keyL = Ord('L');
+  keyM = Ord('M');
+  keyN = Ord('N');
+  keyO = Ord('O');
+  keyP = Ord('P');
+  keyQ = Ord('Q');
+  keyR = Ord('R');
+  keyS = Ord('S');
+  keyT = Ord('T');
+  keyU = Ord('U');
+  keyV = Ord('V');
+  keyW = Ord('W');
+  keyX = Ord('X');
+  keyY = Ord('Y');
+  keyZ = Ord('Z');
 
 Type
 
@@ -549,6 +549,9 @@ Var
           GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TemPAnsiChar), nil, @TemPAnsiChar);
           VKKeyCode := Ord(TemPAnsiChar);
         End Else
+        If (CharPress>=Ord('a')) And (CharPress<=Ord('z')) Then
+           VKKeyCode := CharPress - 32
+        Else
             VKKeyCode := CharPress;
 
         {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Final key result: '+IntToString(VKKeyCode));{$ENDIF}
