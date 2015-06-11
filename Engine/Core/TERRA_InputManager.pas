@@ -300,7 +300,7 @@ Begin
     keyMouseMiddle:     Result:='MouseMiddle';
     Else
       If (Key>=33) And (Key<=126) Then
-        Result := Char(Key)
+        Result := UpCase(Char(Key))
       Else
         Result:= 'Key #'+IntToString(Key);
   End;
