@@ -18,7 +18,7 @@ Const
 	keyShift      = 1;
 	keyControl    = 2;
 	keyAlt        = 3;
-	keyPause      = 82;
+	keyPause      = 17;
 	keyEscape     = 4; // $35;
 	keySpace      = $31;
 	keyPageUp     = $74;
@@ -31,21 +31,24 @@ Const
 	keyRight      = $7C;
 	keyDown       = $7D;
 
-	keyInsert     = $72;
-	keyDelete     = $75;
+	keyInsert     = 18;
+	keyDelete     = 19;
+	keyPlus       = 20;
+	keyMinus      = 21;
+	keyPeriod     = 22;
 
-  keyF1        = $7A;
-  keyF2        = $78;
-  keyF3        = $63;
-  keyF4        = $76;
-  keyF5        = $60;
-  keyF6        = $61;
-  keyF7        = $62;
-  keyF8        = $64;
-  keyF9        = $65;
-  keyF10       = $6D;
-  keyF11       = $67;
-  keyF12       = $6F;
+  keyF1        = 200;
+  keyF2        = 201;
+  keyF3        = 202;
+  keyF4        = 203;
+  keyF5        = 204;
+  keyF6        = 205;
+  keyF7        = 206;
+  keyF8        = 207;
+  keyF9        = 208;
+  keyF10       = 209;
+  keyF11       = 210;
+  keyF12       = 211;
 
   keyA = Ord('A');
   keyB = Ord('B');
@@ -58,6 +61,7 @@ Const
   keyI = Ord('I');
   keyJ = Ord('J');
   keyK = Ord('K');
+  keyL = Ord('L');
   keyM = Ord('M');
   keyN = Ord('N');
   keyO = Ord('O');

@@ -219,7 +219,7 @@ Procedure TextureManager.Init;
 Begin
   Inherited;
 
-//  Self.UseThreads := True;
+  Self.UseThreads := True;
 End;
 
 Function TextureManager.GetTexture(Name:TERRAString):Texture;

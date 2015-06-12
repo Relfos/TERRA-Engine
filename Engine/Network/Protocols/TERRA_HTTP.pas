@@ -71,7 +71,7 @@ Type
 
   HTTPDownloader = Class;
 
-  DownloadCallback = Procedure (Download:HTTPDownloader); Cdecl;
+  DownloadCallback = Procedure (Download:HTTPDownloader) Of Object;
 
   HTTPConnection = Class(TERRAObject)
     _Host:TERRAString;
@@ -166,7 +166,6 @@ Type
 
       _Dest:Stream;
       _Callback:DownloadCallback;
-      _UserData:Pointer;
       _Port:Integer;
       _AllowCache:Boolean;
       _ClientName:TERRAString;
@@ -182,16 +181,17 @@ Type
 
       Function GetMethodString():TERRAString;
 
+      Procedure Release(); Override;
+
     Public
       Constructor Create(Const URL:TERRAString);
-      Procedure Release(); Override;
 
       Function GetFullURL():TERRAString;
 
       Procedure SetCookie(Const Cookie:TERRAString);
       Procedure SetTarget(Target:Stream);
       Procedure SetMethod(Const MethodType:HTTPMethod);
-      Procedure SetCallback(Callback:DownloadCallback; UserData:Pointer);
+      Procedure SetCallback(Callback:DownloadCallback);
 
       Property ClientName:TERRAString Read _ClientName;
       Property FileName:TERRAString Read _FileName;
@@ -200,7 +200,6 @@ Type
       Property Cookie:TERRAString Read _Cookie;
       Property Protocol:TERRAString Read _Protocol;
       Property Port:Integer Read _Port;
-      Property UserData:Pointer Read _UserData;
       Property Arguments:HTTPArgumentList Read _Arguments;
   End;
 
@@ -251,10 +250,11 @@ Type
       Property Source:Stream Read GetStream;
       Property Dest:Stream Read GetDest;
 
+      Procedure Release; Override;
+      
     Public
 
       Constructor Create(Request:HTTPRequest);
-      Procedure Release; Override;
 
       Function GetHeaderProperty(Name:TERRAString):TERRAString;
 
@@ -280,6 +280,8 @@ Type
       _ConnectionCount:Integer;
   {$ENDIF}
 
+      Function InvokeCallbackOnMainThread(Obj:TERRAObject):Boolean;
+
       Function GetOverallProgress:Integer;
 
       Function GetConnection(Const HostName:TERRAString; Port:Integer):HTTPConnection;
@@ -290,6 +292,8 @@ Type
 
       Procedure ClearConnectionsToDownload(Download:HTTPDownloader);
   {$ENDIF}
+
+      Procedure DummyCallback(Download:HTTPDownloader);
 
     Public
       Constructor Create;
@@ -797,8 +801,12 @@ Begin
   ContinueTransfer(Count);
 End;
 
-Procedure HTTPDownloader.Release;
+Procedure HTTPDownloader.Release();
 Begin
+  Log(logDebug, 'HTTP', 'Invokating callback');
+  Request._Callback(Self);
+  Request._Callback := Nil;
+
   Log(logDebug, 'HTTP', 'Releasing transfer: '+URL);
 
   If Assigned(_Buffer) Then
@@ -963,7 +971,7 @@ Begin
   _DownloadCount := 0;
 End;
 
-Procedure DummyCallback(Download:HTTPDownloader); Cdecl;
+Procedure DownloadManager.DummyCallback(Download:HTTPDownloader);
 Begin
   // do nothing
 End;
@@ -981,6 +989,12 @@ Begin
     ReleaseObject(_Downloads[I]);
 
   _DownloadManager_Instance := Nil;
+End;
+
+Function DownloadManager.InvokeCallbackOnMainThread(Obj:TERRAObject):Boolean;
+Begin
+  ReleaseObject(Obj);
+  Result := False;
 End;
 
 Procedure DownloadManager.Update();
@@ -1030,10 +1044,6 @@ Begin
     If (_Downloads[I]._ErrorCode<>httpOk) Then
     Begin
       Log(logDebug, 'HTTP', 'Download error :'+_Downloads[i]._URL+' -> error ' +IntToString(Integer(_Downloads[I]._ErrorCode)));
-
-      If Assigned(_Downloads[I].Request._Callback) Then
-        _Downloads[I].Request._Callback(_Downloads[I]);
-
       Remove := True;
     End Else
     {$IFDEF DISABLETHREADS}
@@ -1068,10 +1078,6 @@ Begin
 
         Log(logDebug, 'HTTP', 'Seeking to zero');
         _Downloads[I]._Target.Seek(_Downloads[I]._Offset);
-
-        Log(logDebug, 'HTTP', 'Invokating callback');
-        If Assigned(_Downloads[I].Request._Callback) Then
-          _Downloads[I].Request._Callback(_Downloads[I]);
       End;
     End;
 
@@ -1081,7 +1087,11 @@ Begin
       Self.ClearConnectionsToDownload(_Downloads[I]);
     {$ENDIF}
 
-      ReleaseObject(_Downloads[I]);
+      If Assigned(_Downloads[I].Request._Callback) Then
+        Application.Instance.PostCallback(DownloadManager.Instance.InvokeCallbackOnMainThread, _Downloads[I])
+      Else
+        ReleaseObject(_Downloads[I]);
+
       For J:=I To (_DownloadCount-2) Do
         _Downloads[J] := _Downloads[Succ(J)];
 
@@ -1245,7 +1255,6 @@ Begin
   _Cookie := '';
   _Dest := Nil;
   _Callback := Nil;
-  _UserData := Nil;
   _Port := HTTPPort;
   _AllowCache := True;
   _ClientName := DefaultClientName;
@@ -1341,10 +1350,9 @@ Begin
   ReleaseObject(_Arguments);
 End;
 
-Procedure HTTPRequest.SetCallback(Callback: DownloadCallback; UserData: Pointer);
+Procedure HTTPRequest.SetCallback(Callback: DownloadCallback);
 Begin
   Self._Callback := Callback;
-  Self._UserData := UserData;
 End;
 
 Procedure HTTPRequest.SetCookie(const Cookie: TERRAString);

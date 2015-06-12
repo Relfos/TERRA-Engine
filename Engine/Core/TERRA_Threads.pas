@@ -179,10 +179,16 @@ Type
 		  _Active:Boolean;
 		  _ThreadCount:Integer;
 
+      _MainThread:Cardinal;
+
       _CriticalSection:CriticalSection;
       _Semaphore:Semaphore;
 
       Procedure KillTask(MyTask:Task);
+
+      {$IFNDEF DISABLETHREADS}
+      Function AddThreadToPool(MyTask:TERRAObject):Boolean;
+      {$ENDIF}
 
 	  Public
 		  Procedure Init; Override;
@@ -402,6 +408,16 @@ Begin
   End;
 
   {$IFNDEF DISABLETHREADS}
+  If Cardinal(GetCurrentThreadId()) <> _MainThread Then
+    Application.Instance.PostCallback(AddThreadToPool, MyTask)
+  Else
+    AddThreadToPool(MyTask);
+  {$ENDIF}
+End;
+
+{$IFNDEF DISABLETHREADS}
+Function ThreadPool.AddThreadToPool(MyTask:TERRAObject):Boolean;
+Begin
   _CriticalSection.Lock();
 	If (_ThreadCount<_MaxThreads) Then
 	Begin
@@ -414,13 +430,15 @@ Begin
   If (_PendingTaskCount>Length(_PendingTaskList)) Then
 	  SetLength(_PendingTaskList, _PendingTaskCount);
 
-  _PendingTaskList[Pred(_PendingTaskCount)] := MyTask;
+  _PendingTaskList[Pred(_PendingTaskCount)] := Task(MyTask);
 
 	_CriticalSection.Unlock();
 
   _Semaphore.Signal();
-  {$ENDIF}
+
+  Result := False;
 End;
+{$ENDIF}
 
 Function ThreadPool.GetNextTask:Task;
 Var
@@ -483,6 +501,8 @@ Begin
 	_ThreadCount := 0;
   _PendingTaskCount := 0;
   _RunningTaskCount := 0;
+
+  _MainThread := Cardinal(GetCurrentThreadId());
 
   SetLength(_Threads, _MaxThreads);
 	For I:=0 To Pred(_MaxThreads) Do

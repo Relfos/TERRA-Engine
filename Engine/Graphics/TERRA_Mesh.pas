@@ -917,7 +917,9 @@ Type
       Function GetSphereMesh:Mesh;
 
     Public
+      Procedure Init; Override;
       Procedure Release; Override;
+      
       Class Function Instance:MeshManager;
 
       Function GetMesh(Name:TERRAString):Mesh;
@@ -1546,6 +1548,13 @@ Begin
   Plane := TERRA_Solids.PlaneMesh.Create(Normal, SubDivisions, -0.5, -0.5);
   Result := CreateMeshFromSolid(Plane);
   ReleaseObject(Plane);
+End;
+
+Procedure MeshManager.Init;
+Begin
+  Inherited;
+
+//  Self.UseThreads := True;
 End;
 
 { MeshInstance }

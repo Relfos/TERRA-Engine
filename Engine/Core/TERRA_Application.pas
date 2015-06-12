@@ -35,9 +35,7 @@ Unit TERRA_Application;
 {$ENDIF}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D
-  {$IFNDEF DISABLEINPUTMUTEX},TERRA_Mutex{$ENDIF}
-  ;
+Uses TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Mutex;
 
 Const
 	// Operating System Class
@@ -136,14 +134,14 @@ Type
     Height:Integer;
   End;
 
-  ApplicationCallback = Function(P:Pointer):Boolean; Cdecl;
+  ApplicationCallback = Function (Arg:TERRAObject):Boolean Of Object;
 
   ApplicationCallbackEntry = Record
-    Callback:ApplicationCallback;
+    Run:ApplicationCallback;
     Time:Cardinal;
     Delay:Cardinal;
     Canceled:Boolean;
-    Arg:Pointer;
+    Arg:TERRAObject;
   End;
 
   ApplicationComponentClass = Class Of ApplicationComponent;
@@ -226,6 +224,7 @@ Type
 
       _Callbacks:Array[0..Pred(CallbackBufferSize)] Of ApplicationCallbackEntry;
       _CallbackCount:Integer;
+      _CallbackMutex:CriticalSection;
 
       _InitApp:Boolean;
 
@@ -361,7 +360,7 @@ Type
 
       Function HasFatalError:Boolean;
 
-      Function ExecuteLater(Callback:ApplicationCallback; Const Delay:Cardinal; Arg:Pointer = Nil):Boolean;
+      Function PostCallback(Callback:ApplicationCallback; Arg:TERRAObject = Nil; Const Delay:Cardinal = 0):Boolean;
       Procedure CancelCallback(Arg:Pointer);
 
       Class Function GetOption(Const OptName:TERRAString):TERRAString;
@@ -725,6 +724,9 @@ Begin
   ReleaseObject(_InputMutex);
   {$ENDIF}
 
+  ReleaseObject(_CallbackMutex);
+
+
   If (Not _Managed) Then
   Begin
     CloseWindow;
@@ -757,6 +759,7 @@ Begin
   _InputMutex := CriticalSection.Create({'app_input'});
   {$ENDIF}
 
+  _CallbackMutex := CriticalSection.Create();
 
   Log(logDebug, 'App', 'Initializing window');
 
@@ -1874,7 +1877,7 @@ Begin
   Result := SafeDiv(_Height, _Width, 1.0);
 End;
 
-Function BaseApplication.ExecuteLater(Callback:ApplicationCallback; Const Delay:Cardinal; Arg:Pointer):Boolean;
+Function BaseApplication.PostCallback(Callback:ApplicationCallback; Arg:TERRAObject; Const Delay:Cardinal):Boolean;
 Begin 
   If (_CallbackCount>=CallbackBufferSize) Then
   Begin
@@ -1882,13 +1885,14 @@ Begin
     Exit;
   End;
 
-  _Callbacks[_CallbackCount].Callback := Callback;
+  _CallbackMutex.Lock();
+  _Callbacks[_CallbackCount].Run := Callback;
   _Callbacks[_CallbackCount].Time := Application.GetTime() + Delay;
   _Callbacks[_CallbackCount].Delay := Delay;
   _Callbacks[_CallbackCount].Arg := Arg;
   _Callbacks[_CallbackCount].Canceled := False;
-
   Inc(_CallbackCount);
+  _CallbackMutex.Unlock();
 
   Result := True;
 End;
@@ -1897,6 +1901,7 @@ Procedure BaseApplication.ProcessCallbacks();
 Var
   I:Integer;
 Begin
+  _CallbackMutex.Lock();
   For I:=0 To Pred(_CallbackCount) Do
   Begin
     If (_Callbacks[I].Canceled) Then
@@ -1905,8 +1910,8 @@ Begin
     If (_Callbacks[I].Time <= Application.GetTime()) Then
     Begin
       Log(logDebug, 'Game','Executing callback...');
-      
-      If _Callbacks[I].Callback(_Callbacks[I].Arg) Then
+
+      If _Callbacks[I].Run(_Callbacks[I].Arg) Then
       Begin
         _Callbacks[I].Time := Application.GetTime() + _Callbacks[I].Delay;
       End Else
@@ -1921,17 +1926,21 @@ Begin
     Dec(_CallbackCount);
   End Else
     Inc(I);
+
+  _CallbackMutex.Unlock();
 End;
 
 Procedure BaseApplication.CancelCallback(Arg:Pointer);
 Var
   I:Integer;
 Begin
+  _CallbackMutex.Lock();
   For I:=0 To Pred(_CallbackCount) Do
   If (_Callbacks[I].Arg = Arg) Then
   Begin
     _Callbacks[I].Canceled := True;
   End;
+  _CallbackMutex.Unlock();
 End;
 
 Function BaseApplication.InitSettings: Boolean;
