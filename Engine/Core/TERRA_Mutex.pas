@@ -181,14 +181,14 @@ Var
 Begin
   ThreadID := Cardinal(GetCurrentThreadId());
 
-  If (_Locked) Then
+(*  If (_Locked) Then
   Begin
     Inc(_LockCounter);
 
     If (_LockID = ThreadID) Then
       Exit;
   End Else
-    _LockCounter := 1;
+    _LockCounter := 1;*)
 
 
 {$IFDEF USEPTHREADS}
@@ -207,12 +207,12 @@ Var
 Begin
   ThreadID := Cardinal(GetCurrentThreadId());
 
-  Dec(_LockCounter);
+(*  Dec(_LockCounter);
   If (_Locked) And (_LockID = ThreadID) Then
   Begin
     If _LockCounter>0 Then
       Exit;
-  End;
+  End;*)
 
 {$IFDEF USEPTHREADS}
   pthread_mutex_unlock(@_Handle);
