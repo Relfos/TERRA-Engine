@@ -88,9 +88,9 @@ Const
 
 Function ColorToString(Const N:Color):TERRAString;
 
-Function ColorCreate(Const R,G,B:Byte;A:Byte=255):Color;Overload;
-Function ColorCreate(Const R,G,B:Single;A:Single=1.0):Color;Overload;
-Function ColorCreate(HexValue:TERRAString):Color;Overload;
+Function ColorCreate(Const R,G,B:Byte;A:Byte=255):Color;
+Function ColorCreateFromString(HexValue:TERRAString):Color;
+Function ColorCreateFromFloat(Const R,G,B:Single; A:Single=1.0):Color;
 
 // Mixes colors
 Function ColorMix(Const A,B:Color; Const Cur:Single):Color;Overload;
@@ -191,7 +191,7 @@ Begin
             IntToString(N.A);
 End;
 
-Function ColorCreate(HexValue:TERRAString):Color;
+Function ColorCreateFromString(HexValue:TERRAString):Color;
   Function H(C:AnsiChar):Byte;
   Begin
     C := UpCase(C);
@@ -224,7 +224,7 @@ Begin
   Result.A := A;
 End;
 
-Function ColorCreate(Const R,G,B:Single;A:Single=1.0):Color; {$IFDEF FPC} Inline;{$ENDIF}
+Function ColorCreateFromFloat(Const R,G,B:Single;A:Single=1.0):Color; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result.R := Byte(Trunc(R*255));
   Result.G := Byte(Trunc(G*255));

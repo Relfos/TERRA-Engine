@@ -2350,7 +2350,7 @@ Begin
   _CursorCount := 0;
   _Transition := Nil;
 
-  _Color := ColorCreate(1.0, 1.0, 1.0, 1.0);
+  _Color := ColorCreateFromFloat(1.0, 1.0, 1.0, 1.0);
   _Saturation := 1.0;
   _ColorTable := Nil;
 

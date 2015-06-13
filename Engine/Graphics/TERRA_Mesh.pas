@@ -120,6 +120,8 @@ Type
     Param2:Vector3D;
     Param3:Vector3D;
 
+    GroupIndex:Integer;
+
     Constructor Create(Owner:Mesh);
     Procedure UpdateBone();
   End;
@@ -127,6 +129,7 @@ Type
   MeshLightState = Record
     Light:PositionalLight;
     Enabled:Boolean;
+    GroupID:Integer;
   End;
 
   MeshVertex = Class(Vertex)
@@ -1078,7 +1081,7 @@ Begin
   Result := True;
 End;
 
-Procedure AddLightGeometry(Source:MeshLight; Target:Mesh);
+Procedure AddLightGeometry(Index:Integer; Source:MeshLight; Target:Mesh);
 Var
   S:SolidMesh;
   Height, Width:Single;
@@ -1127,16 +1130,20 @@ Begin
     ReleaseObject(Temp);
 
     Group := Target.GetGroup(Pred(Target.GroupCount));
-    Group.Flags := meshGroupTransparency Or meshGroupDepthOff Or meshGroupVertexColor Or meshGroupLightOff Or meshGroupNormalsOff;
+    Group.Flags := meshGroupTransparency Or meshGroupDepthOff Or meshGroupLightOff Or meshGroupNormalsOff;
     Group.BlendMode := blendAdd;
+
+    Source.GroupIndex := Group.ID;
 
     It := Group.Vertices.GetIterator(MeshVertex);
     While It.HasNext() Do
     Begin
       V := MeshVertex(It.Value);
 
-      Alpha := Trunc(V.Position.Y * 64);
-      V.Color := ColorCreate(Source.LightColor.R, Source.LightColor.G, Source.LightColor.B, Alpha);
+      //Alpha := Trunc(V.Position.Y * 32);
+      Alpha := 32;
+      //V.Color := ColorCreate(Source.LightColor.R, Source.LightColor.G, Source.LightColor.B, Alpha);
+      V.Color := ColorCreate(255, 0, 0, 32);
       V.Position := TargetTransform.Transform(V.Position);
     End;
     ReleaseObject(It);
@@ -1165,7 +1172,7 @@ Begin
   Source.Read(@TargetLight.Param3, SizeOf(Vector3D));
   TargetLight.UpdateBone();
 
-  AddLightGeometry(TargetLight, Target);
+  AddLightGeometry(I, TargetLight, Target);
   Result := True;
 End;
 
@@ -2196,20 +2203,21 @@ Begin
       lightTypePoint:
         Begin
           _Lights[I].Light := PointLight.Create(VectorZero);
-          _Lights[I].Enabled := True;
           {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Mesh', 'Creating point light...');{$ENDIF}
         End;
 
       lightTypeSpot:
         Begin
           _Lights[I].Light := SpotLight.Create(VectorZero, VectorUp {MyLight.Param2}, MyLight.Param1.X * RAD, MyLight.Param1.Y * RAD);
-          _Lights[I].Enabled := True;
           {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Mesh', 'Creating point light...');{$ENDIF}
         End;
 
       Else
         Continue;
       End;
+
+      _Lights[I].Enabled := True;
+      _Lights[I].GroupID := MyLight.GroupIndex;
     End;
 
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Mesh', 'Transforming light '+IntToString(I));{$ENDIF}
@@ -2250,6 +2258,9 @@ Begin
           PointLight(TargetLight).Radius := N;
         End;
     End;
+
+    If _Lights[I].GroupID>=0 Then
+      Self.SetVisibility(_Lights[I].GroupID, _Lights[I].Enabled);
 
     If _Lights[I].Enabled Then
     Begin
@@ -4733,7 +4744,7 @@ Begin
       BestBoneIndex := 0;
   End;
 
-  TC := ColorCreate(C.X, C.Y, C.Z, C.W);
+  TC := ColorCreateFromFloat(C.X, C.Y, C.Z, C.W);
 
   _Vertices.SetVector3D(TargetVertex, vertexPosition, P);
   _Vertices.SetVector3D(TargetVertex, vertexNormal, N);
@@ -7103,6 +7114,7 @@ End;
 { MeshLight }
 Constructor MeshLight.Create(Owner: Mesh);
 Begin
+  Self.GroupIndex := -1;
   Self.Owner := Owner;
 End;
 

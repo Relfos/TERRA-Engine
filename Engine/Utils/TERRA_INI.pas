@@ -104,7 +104,7 @@ Begin
     tkString:   PString(Dest)^ := Source;
     tkColor:    If (Source<>'') And (Source[1]='#') Then
                 Begin
-                  PColor(Dest)^ := ColorCreate(Source);
+                  PColor(Dest)^ := ColorCreateFromString(Source);
                 End Else
                 Begin
                   PColor(Dest).R := StringToInt(StringGetNextSplit(Source, Ord('\')));

@@ -725,7 +725,7 @@ Begin
   If (Index<0) Or (Index>=_UniformCount) Then
     Value := ColorNull
   Else
-    Value := ColorCreate(_Uniforms[Index].Value.X, _Uniforms[Index].Value.Y, _Uniforms[Index].Value.Z, _Uniforms[Index].Value.W);
+    Value := ColorCreateFromFloat(_Uniforms[Index].Value.X, _Uniforms[Index].Value.Y, _Uniforms[Index].Value.Z, _Uniforms[Index].Value.W);
 End;
 
 Procedure ScreenFX.GetFloat(Index: Integer; out Value: Single);

@@ -373,7 +373,7 @@ Begin
   fontControlColor:
       If (_Effects[I].Arg<>'') Then
       Begin
-        C := ColorCreate(_Effects[I].Arg);
+        C := ColorCreateFromString(_Effects[I].Arg);
         Self._Color1 := C;
         Self._Color2 := C;
       End;

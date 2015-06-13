@@ -328,7 +328,7 @@ Begin
     particleColorModeScaled:
       Begin
         N := RandomFloat;
-        C := ColorCreate(
+        C := ColorCreateFromFloat(
               Group.MinRed + (Group.MaxRed - Group.MinRed) * N,
               Group.MinGreen + (Group.MaxGreen - Group.MinGreen) * N,
               Group.MinBlue + (Group.MaxBlue - Group.MinBlue) * N,
@@ -337,7 +337,7 @@ Begin
       End;
     Else
       Begin
-        C := ColorCreate(
+        C := ColorCreateFromFloat(
           RandomFloat(Group.MinRed, Group.MaxRed),
           RandomFloat(Group.MinGreen, Group.MaxGreen),
           RandomFloat(Group.MinBlue, Group.MaxBlue),
