@@ -4,30 +4,30 @@ program import_tool;
 
 {$IFDEF WINDOWS}
 {$APPTYPE CONSOLE}
-{$ENDIF}
-
-{$IFDEF WINDOWS}
 {$DEFINE HIDESKIPS}
 {$ENDIF}
 
 // TODO - Import sounds and other stuff!
 uses
+  TERRA_String,
   TERRA_Utils,
   TERRA_Application,
-  TERRA_IO,
+  TERRA_ConsoleApplication,
+  TERRA_Stream,
+  TERRA_MemoryStream,
   TERRA_OS,
   TERRA_Log,
   SysUtils,
   TERRA_FileManager,
-  TERRA_FileIO,
+  TERRA_FileStream,
   TERRA_FileUtils,
   TERRA_FileImport,
   TERRA_FileSearch,
   TERRA_Localization,
-  TERRA_Strings,
-  TERRA_Classes,
+  TERRA_Collections,
+  TERRA_CollectionObjects,
   TERRA_ResourceManager,
-  TERRA_Package,
+  TERRA_PackageBuilder,
   TERRA_Resource,
   TERRA_Texture,
   TERRA_Mesh,
@@ -36,11 +36,9 @@ uses
   TERRA_MS3DImport,
   TERRA_SMDImport,
   TERRA_OBJImport,
-  //TERRA_GilesImport,
   TERRA_Collada,
-  TERRA_PNG,
+  TERRA_PNG,  
   TERRA_TGA,
-  TERRA_JPG,
   TERRA_PSD,
   TERRA_BMP,
   TERRA_GIF;
@@ -65,7 +63,7 @@ Begin
   If (B = osAny) Then
     Result := True
   Else
-  If (B = osPC) And ((A=osWindows) Or (A=osLinux) Or (A=osMacOS)) Then
+  If (B = osPC) And ((A=osWindows) Or (A=osLinux) Or (A=osOSX)) Then
     Result := True
   Else
   If (B = osMobile) And ((A=osiOS) Or (A=osAndroid)) Then
@@ -110,7 +108,7 @@ Var
   FI:FileInfo;
   Search:List;
   PF, Ext, PackageName, UnitName:String;
-  P:Package;
+  P:PackageBuilder;
   Ok:Boolean;
   TS, SS:String;
   ConstFile:String ='';
@@ -119,13 +117,15 @@ Var
   SrcCount:Integer;
  
   FileList:String;
-  Res:PResourceInfo;
+  Res:ResourceBuilderInfo;
   GeneratePackage:Boolean;
   GenerateUnit:Boolean;
 
   Source, Dest:Stream;
   CopyFile:Boolean;
 Begin
+  Try
+    ConsoleApplication.Create();
   Plat := 0;
   GeneratePackage := False;
   GenerateUnit := False;
@@ -133,9 +133,9 @@ Begin
   TargetDir := '';
 	
 	AddLogFilter(logDebug, '', MyLogIgnore);
-	{$IFDEF WINDOWS}
+	//{$IFDEF WINDOWS}
   	AddLogFilter(logConsole, '', MyLogFilter);
-	{$ENDIF}
+	//{$ENDIF}
   WriteLn('[TERRA Asset importer v'+AppVersion+']');
 
   SrcCount := 0;
@@ -163,34 +163,34 @@ Begin
     End Else
       S2 := '';
 
-    If (LowStr(S)='-package') Then
+    If (StringEquals(S, '-package')) Then
     Begin
       GeneratePackage := True;
       PackageName := S2;
     End;
 
-    If (LowStr(S)='-unit') Then
+    If (StringEquals(S, '-unit')) Then
     Begin
       GenerateUnit := True;
       UnitName := S2;
     End;
 
-    If (LowStr(S)='-dir') Then
+    If (StringEquals(S, '-dir')) Then
     Begin
       TargetDir := S2;
     End;
 
-    If (LowStr(S)='-root') Then
+    If (StringEquals(S, '-root')) Then
     Begin
       TargetDir := S2;
     End;
 
-    If (LowStr(S)='-const') Then
+    If (StringEquals(S, '-const')) Then
     Begin
       ConstFile := S2;
     End;
 
-    If (LowStr(S)='-path') Then
+    If (StringEquals(S, '-path')) Then
     Begin
       If DirectoryExists(S2) Then
       Begin
@@ -199,24 +199,24 @@ Begin
         WriteLn('Path not found: ', S2);
     End;
 
-    If (LowStr(S)='-target') Then
+    If (StringEquals(S, '-target')) Then
     Begin
-      If (LowStr(S2)='iphone') Or (LowStr(S2)='ios') Then
+      If (StringEquals(S2, 'iphone')) Or (StringEquals(S2, 'ios')) Then
         Plat := osiOS
       Else
-      If (LowStr(S2)='pc') Or (LowStr(S2)='windows') Then
+      If (StringEquals(S2, 'pc')) Or (StringEquals(S2, 'windows')) Then
         Plat := osWindows
       Else
-      If (LowStr(S2)='android') Then
+      If (StringEquals(S2, 'android')) Then
         Plat := osAndroid
       Else
-      If (LowStr(S2)='ouya') Then
+      If (StringEquals(S2, 'ouya')) Then
         Plat := osOUYA
       Else
         Log(logConsole, 'Import', 'Unknown target specified.');
     End;
 
-    If (LowStr(S)='-help') Then
+    If (StringEquals(S, '-help')) Then
     Begin
       WriteLn(#9,'Usage: import_tool [options] <path>');
       WriteLn(#9,'Options:');
@@ -258,7 +258,7 @@ Begin
       Source.ReadLine(SS);
       S2 := S2 + SS + CrLf;
     End;
-    Source.Destroy;
+    Source.Release;
 
     While S2<>'' Do
     Begin
@@ -290,7 +290,7 @@ Begin
           Rules[Pred(RuleCount)].Target := osLinux
         Else
         If (SS='mac') Then
-          Rules[Pred(RuleCount)].Target := osMacOS
+          Rules[Pred(RuleCount)].Target := osOSX
         Else
         If (SS='ouya') Then
           Rules[Pred(RuleCount)].Target := osOUYA
@@ -364,14 +364,10 @@ Begin
     If Pos('.',PackageName)<=0 Then
       PackageName := PackageName + '.leaf';
     Write('Creating package ',PackageName,'...');
-    P := Package.New(TargetDir+PathSeparator+PackageName);
+    P := PackageBuilder.Create('');
     WriteLn('ok');
   End;
 
-{  ApplicationSettings.FullScreen := False;
-  ApplicationSettings.Handle := 0;
-  ApplicationSettings.Hidden := True;
-  ApplicationStart(Nil);}
 
 //  FatalErrorHandler := MyFatalErrorHandler;
 
@@ -381,24 +377,36 @@ Begin
 	Begin
 		S := SrcList[Pred(SrcCount)];
 		Dec(SrcCount);
-		S2 := GetFilePath(S);
-  		If S2<>'' Then
-    		FileManager.Instance.AddPath(S2);
+
+    S2 := GetFilePath(S);
+    If S2<>'' Then
+    Begin
+      Search := SearchFolders(S2);
+      It := Search.GetIterator();
+      //WriteLn('Files: ',Search.Count);
+      While It.HasNext Do
+      Begin
+        FileManager.Instance.AddPath(S2 + StringObject(It.Value).Value);
+      End;
+      ReleaseObject(It);
+      ReleaseObject(Search);
+    End;
+
 
   Search := SearchFiles(GetFilePath(S), GetFileName(S, False), True);
   If Search.Count<=0 Then
   Begin
-    Search.Destroy;
+    Search.Release;
     Continue;
   End;
 
-  It := Search.CreateIterator;
+  It := Search.GetIterator();
   //WriteLn('Files: ',Search.Count);
   While It.HasNext Do
   Begin
-    FI := FileInfo(It.GetNext);
-    Extension := LowStr(GetFileExtension(FI.Name));
-    If (LowStr(FI.Name)='assets.ini') Or (Extension='settings') Then
+    FI := FileInfo(It.Value);
+    Extension := StringLower(GetFileExtension(FI.Name));
+    If (StringEquals(FI.Name, 'assets.ini')) Or (Extension='settings') Then
       Continue;
 
 
@@ -420,13 +428,13 @@ Begin
    	
     RuleIndex := -1;
     For I:=0 To Pred(RuleCount) Do
-    If (MatchRegEx(UpStr(S), UpStr(Rules[I].Filter))) And (MatchPlatform(Plat, Rules[I].Target)) Then
+    If (StringMatchRegEx(S, Rules[I].Filter)) And (MatchPlatform(Plat, Rules[I].Target)) Then
     Begin
       RuleIndex := I;
       Break;
     End;
 
-    If (RuleIndex>=0) And (Pos('IGNORE=TRUE', UpStr(Rules[RuleIndex].Content))>0) Then
+    If (RuleIndex>=0) And (StringContains('IGNORE=TRUE', Rules[RuleIndex].Content)) Then
     Begin
       Log(logConsole, 'Import', 'Skipping '+ GetFileName(S,False));
       Continue;
@@ -437,24 +445,28 @@ Begin
     Else
       SS := '';
 
+//      Log(logConsole, 'Import', 'Processing '+ S + '...');
     S2 := ImportFile(S, TargetDir, Plat, SS, ConstFile);
 
     If (Assigned(P)) Then
     While (S2<>'') Do
     Begin
-      SS := GetNextWord(S2, ',');
+      SS := StringGetNextSplit(S2, Ord(','));
       Log(logConsole, 'Import', 'Adding file to package: '+ SS);
-      Res := P.AddResource(SS);
+      Res := ResourceBuilderInfo(P.AddResource(SS));
       FileList := FileList + #9 + '// '+GetFileName(SS, False) + ' ' + MemoryToString(Res.Size) + crLf;
     End;
   End;
 
-  It.Destroy;
-  Search.Destroy;
+  ReleaseObject(It);
+  ReleaseObject(Search);
   End;
 
   If Assigned(P) Then
-    P.Destroy;
+  Begin
+    P.Save(TargetDir+PathSeparator+PackageName);
+    ReleaseObject(P);
+  End;
 
   If (GenerateUnit) And (GeneratePackage) Then
   Begin
@@ -472,5 +484,14 @@ Begin
     WriteLn('Warning: Option -unit requires -package option!');
   End;
 
+  Except
+    On E:Exception Do
+    Begin
+      WriteLn('Fatal Error: '+E.Message);
+      Halt(1);
+    End;
+  End;
+
+	WriteLn('Finished!');
   //Application.Instance.Terminate;
 End.
