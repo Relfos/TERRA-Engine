@@ -547,7 +547,7 @@ Begin
     For I:=0 To (Slices) Do
     Begin
       Angle := (I/Slices)*360*RAD;
-      _VertexList[J*Succ(Slices) + I].Position := VectorCreate(Cos(Angle)*Scale, Dy * J, -Sin(Angle)*Scale);
+      _VertexList[J*Succ(Slices) + I].Position := VectorCreate(Cos(Angle)*Scale, Dy * Scale, -Sin(Angle)*Scale);
       _VertexList[J*Succ(Slices) + I].TextureCoords.X := (I/(Slices));
       _VertexList[J*Succ(Slices) + I].TextureCoords.Y := (J/Stacks);
       _VertexList[J*Succ(Slices) + I].Normal := VectorCreate(Cos(Angle), 0, -Sin(Angle));
@@ -794,7 +794,7 @@ Begin
   Result := Mesh.Create('');
   Group := Result.AddGroup([vertexFormatPosition, vertexFormatColor, vertexFormatNormal, vertexFormatTangent, vertexFormatUV0], '');
   Group.Flags := 0;
-  Group.AmbientColor := ColorWhite;
+//  Group.AmbientColor := ColorWhite;
   Group.DiffuseColor := ColorWhite;
   Group.TriangleCount := S._IndexCount Div 3;
   Group.VertexCount := S._VertexCount;

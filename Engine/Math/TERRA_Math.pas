@@ -62,6 +62,7 @@ Function RandomInt(Const min,max:Integer):Integer;
 Function RealMod(Const n,d: Float): Float;
 
 Function Atan2(Y,X :Float):Float;
+Function Tan(X:Float):Float;
 
 Function SmoothStep(A,B,X:Float):Float;
 
@@ -209,6 +210,11 @@ Begin
     Result := arctan (y/x) + pi
   Else
     Result := pi/2 * sgn (y);
+End;
+
+Function Tan(X:Float):Float;
+Begin
+  Result := Math.Tan(X);
 End;
 
 Function RealMod(Const n,d: Float): Float;

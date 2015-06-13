@@ -281,7 +281,7 @@ Var
   LightDir:Vector3D;
   LightFlicker:Cardinal;
   LightColor:Color;
-  LightRadius, LightAngle:Single;
+  LightRadius, LightInnerAngle, LightOuterAngle:Single;
   Param1, Param2, Param3:Vector3D;
 
   Name:TERRAString;
@@ -443,7 +443,8 @@ Begin
 	  	Parser.AddToken('type',tkString,@S);
 	  	Parser.AddToken('color',tkColor,@LightColor);
 	  	Parser.AddToken('radius',tkFloat,@LightRadius);
-	  	Parser.AddToken('angle',tkFloat,@LightAngle);
+	  	Parser.AddToken('inner_angle',tkFloat,@LightInnerAngle);
+	  	Parser.AddToken('outer_angle',tkFloat,@LightOuterAngle);
 	  	Parser.AddToken('direction',tkVector, @LightDir);
 	  	Parser.AddToken('pulse',tkInteger,@LightPulse);
 	  	Parser.AddToken('flicker',tkInteger,@LightFlicker);
@@ -464,7 +465,7 @@ Begin
       If S='spot' Then
       Begin
         LightType := lightTypeSpot;
-        Param1 := VectorCreate(LightAngle, 0, 0);
+        Param1 := VectorCreate(LightInnerAngle, LightOuterAngle, 0);
         Param2 := LightDir;
       End Else
         LightType := -1;

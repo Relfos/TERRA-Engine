@@ -24,8 +24,6 @@
 
 Unit TERRA_Lights;
 
-{-$DEFINE DRAWVOLUMES}
-
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
@@ -36,7 +34,7 @@ Const
   {$IFDEF MOBILE}
   MaxLightsPerMesh = 3;
   {$ELSE}
-  MaxLightsPerMesh = 5;
+  MaxLightsPerMesh = 1;
   {$ENDIF}
 
   lightTypeDirectional  = 0;
@@ -66,10 +64,6 @@ Type
 
       Function GetPosition():Vector3D; Virtual; Abstract;
       Function IsOccluded():Boolean; Virtual; Abstract;
-
-      {$IFDEF DRAWVOLUMES}
-      Procedure Render; Virtual;
-      {$ENDIF}
 
       Property Color:TERRA_Color.Color Read _Color Write _Color;
       Property Static:Boolean Read _Static Write _Static;
@@ -129,10 +123,6 @@ Type
       _OuterAngle:Single;
       _InnerAngle:Single;
       _ProjectionMatrix4x4:Matrix4x4;
-      {$IFDEF DRAWVOLUMES}
-      _Instance:Pointer;
-      _Alpha:Single;
-      {$ENDIF}
 
       Procedure UpdateMatrix4x4();
       Procedure SetupUniforms(Index:Integer; Var TextureSlot:Integer); Override;
@@ -149,12 +139,6 @@ Type
 
       Function GetPosition():Vector3D; Override;
       Function IsOccluded():Boolean; Override;
-
-      {$IFDEF DRAWVOLUMES}
-      Procedure SetAlpha(A:Single);
-      Procedure Render; Override;
-      {$ENDIF}
-
 
       Property InnerAngle:Single Read _InnerAngle Write _InnerAngle;
       Property OuterAngle:Single Read _OuterAngle Write _OuterAngle;
@@ -200,14 +184,13 @@ Type
 
       Property LightCount:Integer Read _LightCount;
 
-      Property AmbientColor:Color Read _AmbientColor Write SetAmbientColor;
+      //Property AmbientColor:Color Read _AmbientColor Write SetAmbientColor;
 
       Class Function Instance:LightManager;
   End;
 
 Implementation
-Uses TERRA_GraphicsManager, TERRA_Mesh
-  {$IFDEF DRAWVOLUMES},TERRA_Solids{$ENDIF};
+Uses TERRA_GraphicsManager;
 
 Var
   _LightManager_Instance:ApplicationObject = Nil;
@@ -217,13 +200,6 @@ Procedure Light.Release;
 Begin
   // do nothing
 End;
-
-{$IFDEF DRAWVOLUMES}
-Procedure Light.Render;
-Begin
-  // do nothing
-End;
-{$ENDIF}
 
 { LightManager }
 Class Function LightManager.Instance:LightManager;
@@ -236,7 +212,7 @@ End;
 
 Procedure LightManager.Init;
 Begin
-  AmbientColor := ColorGrey(32);
+//  AmbientColor := ColorGrey(32);
   _LightCount := 0;
   //VectorCreate(0.25, 0.75, 0.0);
 End;
@@ -266,10 +242,6 @@ Begin
 
   If (Source.IsOccluded()) Then
     Exit;
-
-  {$IFDEF DRAWVOLUMES}
-  Source.Render();
-  {$ENDIF}
 
   Source._Next := _FirstLight;
   _FirstLight := Source;
@@ -509,30 +481,9 @@ Begin
     MyLight := MyLight._Next;
 End;
 
-Var
-  _ConeMesh:Mesh;
-
 { SpotLight }
 Constructor SpotLight.Create(P, Dir:Vector3D; InnerAngle, OuterAngle:Single);
-{$IFDEF DRAWVOLUMES}
-Var
-  S:SolidMesh;
-  Inst:MeshInstance;
-{$ENDIF}
 Begin
-{$IFDEF DRAWVOLUMES}
-  If (_ConeMesh=Nil) Then
-  Begin
-    S := ConeMesh.Create(1, 8);
-    _ConeMesh := CreateMeshFromSolid(S);
-    S.Release;
-  End;
-
-  Inst := MeshInstance.Create(_ConeMesh);
-  Self._Instance := Inst;
-  Self._Alpha := 0.0;
-{$ENDIF}
-
   Self.Enabled := True;
   Self._Color := ColorWhite;
   Self._InnerAngle := InnerAngle;
@@ -552,31 +503,6 @@ Function SpotLight.IsOccluded: Boolean;
 Begin
   Result := False;
 End;
-
-{$IFDEF DRAWVOLUMES}
-Procedure SpotLight.Render;
-Var
-  A:Byte;
-  Inst:MeshInstance;
-Begin
-  If (_Alpha<=0.0) Then
-    Exit;
-
-  Inst := MeshInstance(_Instance);
-  If (Inst = Nil) Then
-    Exit;
-
-  A := Trunc(255*_Alpha);
-  Inst.SetColor(0, ColorCreate(_Color.R, _Color.G, _Color.B, A));
-  GraphicsManager.Instance.AddRenderable(Inst);
-End;
-
-Procedure SpotLight.SetAlpha(A: Single);
-Begin
-  _Alpha := A;
-  UpdateMatrix4x4();
-End;
-{$ENDIF}
 
 Procedure SpotLight.SetDirection(Dir: Vector3D);
 Begin
@@ -602,7 +528,7 @@ Begin
   _Shader.SetVec3Uniform('slightDirection'+IntToString(Index), _Direction);
   _Shader.SetFloatUniform('slightCosInnerAngle'+IntToString(Index), Cos(_InnerAngle));
   _Shader.SetFloatUniform('slightCosOuterAngle'+IntToString(Index), Cos(_OuterAngle));
-  _Shader.SetColorUniform('slightColor'+IntToString(Index), _Color);
+  _Shader.SetColorUniform('slightColor'+IntToString(Index), ColorScale(_Color, Intensity));
   _Shader.SetMat4Uniform('slightMatrix'+IntToString(Index), _ProjectionMatrix4x4);
   _Shader.SetIntegerUniform('slightCookie'+IntToString(Index), TextureSlot);
 

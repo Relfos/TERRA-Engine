@@ -124,6 +124,11 @@ Type
     Procedure UpdateBone();
   End;
 
+  MeshLightState = Record
+    Light:PositionalLight;
+    Enabled:Boolean;
+  End;
+
   MeshVertex = Class(Vertex)
     Protected
       Procedure Load(); Override;
@@ -161,7 +166,7 @@ Type
   MeshMaterial = Object
     BlendMode:Integer;
 
-    AmbientColor:Color;
+    //AmbientColor:Color;
     DiffuseColor:Color;
     ShadowColor:Color;
     OutlineColor:Color;
@@ -228,6 +233,9 @@ Type
 
       _Groups:Array Of MeshGroupInstance;
 
+      _Lights:Array Of MeshLightState;
+      _LightCount:Integer;
+
       _AttachList:Array Of MeshAttach;
       _AttachCount:Integer;
 
@@ -261,9 +269,6 @@ Type
 
       _Emitters:Array Of MeshEmitter;
       _EmitterCount:Integer;
-
-      _Lights:Array Of PositionalLight;
-      _LightCount:Integer;
 
       Procedure DrawMesh(Const MyTransform:Matrix4x4; TranslucentPass, StencilTest:Boolean);
 
@@ -367,8 +372,8 @@ Type
       Procedure SetShadowColor(GroupID:Integer; MyColor:Color);
       Function GetShadowColor(GroupID:Integer):Color;
 
-      Procedure SetAmbientColor(GroupID:Integer; MyColor:Color);
-      Function GetAmbientColor(GroupID:Integer):Color;
+ (*     Procedure SetAmbientColor(GroupID:Integer; MyColor:Color);
+      Function GetAmbientColor(GroupID:Integer):Color;*)
 
       Procedure SetOutlineColor(MyColor:Color); Overload;
       Procedure SetOutlineColor(GroupID:Integer; MyColor:Color); Overload;
@@ -418,6 +423,8 @@ Type
 
       Function GetAttach(Index:Integer):PMeshAttach;
 
+      Procedure SetLightState(Index:Integer; Enabled:Boolean);
+
       Property Position:Vector3D Read GetPosition Write SetPosition;
       Property Rotation:Vector3D Read GetRotation Write SetRotation;
       Property Scale:Vector3D Read _Scale Write SetScale;
@@ -435,6 +442,7 @@ Type
       Property EmitterCount:Integer Read _EmitterCount;
 
       Property FXCount:Integer Read _FXCount;
+      Property LightCount:Integer Read _LightCount;
   End;
 
   MeshGroup = Class;
@@ -569,8 +577,10 @@ Type
 
       Procedure UpdateBoundingBox;
 
-      Function GetAmbientColor: Color;
-      Procedure SetAmbientColor(const Value: Color);
+      Procedure Transform(Const TargetTransform:Matrix4x4);
+
+(*      Function GetAmbientColor: Color;
+      Procedure SetAmbientColor(const Value: Color);*)
 
       Procedure SetAlphaMap(Map:Texture);
       Function GetAlphaMap: Texture;
@@ -672,7 +682,7 @@ Type
 
       Property EmitterFX:TERRAString Read _EmitterFX Write _EmitterFX;
 
-      Property AmbientColor:Color Read GetAmbientColor Write SetAmbientColor;
+//      Property AmbientColor:Color Read GetAmbientColor Write SetAmbientColor;
       Property DiffuseColor:Color  Read GetDiffuseColor Write SetDiffuseColor;
       Property ShadowColor:Color Read GetShadowColor Write SetShadowColor;
 
@@ -806,6 +816,8 @@ Type
       Function AddLight(Name:TERRAString; Position:Vector3D; LightType:Integer; LightColor:Color; Param1, Param2, Param3:Vector3D; ParentBone:TERRAString):MeshLight; Overload;
       Function AddLight(OtherLight:MeshLight):MeshLight; Overload;
       Function GetLight(Index:Integer):MeshLight;
+
+      Procedure Transform(Const TargetTransform:Matrix4x4);
 
       Function PolyCount:Integer;
 
@@ -1066,25 +1078,94 @@ Begin
   Result := True;
 End;
 
+Procedure AddLightGeometry(Source:MeshLight; Target:Mesh);
+Var
+  S:SolidMesh;
+  Height, Width:Single;
+  Merger:MeshMerger;
+  Temp:Mesh;
+  Format:VertexFormat;
+  Dir:Vector3D;
+  TargetTransform:Matrix4x4;
+  Group:MeshGroup;
+  It:VertexIterator;
+  V:MeshVertex;
+  Alpha:Byte;
+Begin
+  If Source = Nil Then
+    Exit;
+
+  Temp := Nil;
+  TargetTransform := Matrix4x4Identity;
+
+  Case Source.LightType Of
+  lightTypeSpot:
+    Begin
+      Height := 50;
+      Width := Tan(Source.Param1.Y * RAD) * Height;
+      Dir := Source.Param2;
+
+      If (Abs(Dir.Y)>=0.999) Then
+        TargetTransform := Matrix4x4Transform(Source.Position, VectorCreate(0.0, 0.0, -Dir.Y*180*RAD), VectorCreate(Width, Height, Width))
+      Else
+        TargetTransform := Matrix4x4Orientation(Source.Position, Dir, VectorCreate(0, 1.0, 0.0), VectorCreate(Width, Height, Width));
+
+      S := ConeMesh.Create(1, 8, False, False);
+      Temp := CreateMeshFromSolid(S);
+
+      ReleaseObject(S);
+    End;
+  End;
+
+  If Assigned(Temp) Then
+  Begin
+    Format := [vertexFormatPosition, vertexFormatColor];
+
+    Merger := MeshMerger.Create();
+    Merger.Merge(Temp, Target, Format);
+    ReleaseObject(Merger);
+    ReleaseObject(Temp);
+
+    Group := Target.GetGroup(Pred(Target.GroupCount));
+    Group.Flags := meshGroupTransparency Or meshGroupDepthOff Or meshGroupVertexColor Or meshGroupLightOff Or meshGroupNormalsOff;
+    Group.BlendMode := blendAdd;
+
+    It := Group.Vertices.GetIterator(MeshVertex);
+    While It.HasNext() Do
+    Begin
+      V := MeshVertex(It.Value);
+
+      Alpha := Trunc(V.Position.Y * 64);
+      V.Color := ColorCreate(Source.LightColor.R, Source.LightColor.G, Source.LightColor.B, Alpha);
+      V.Position := TargetTransform.Transform(V.Position);
+    End;
+    ReleaseObject(It);
+
+  End;
+End;
+
 Function MeshReadLights(Target:Mesh; Size:Integer; Source:Stream):Boolean;
 Var
   I:Integer;
+  TargetLight:MeshLight;
 Begin
   I := Target._LightCount;
   Inc(Target._LightCount);
   SetLength(Target._Lights, Target._LightCount);
 
-  Target._Lights[I] := MeshLight.Create(Target);
-  Source.ReadString(Target._Lights[I].Name);
-  Source.ReadString(Target._Lights[I].ParentBone);
-  Source.Read(@Target._Lights[I].LightType, 1);
-  Source.Read(@Target._Lights[I].LightColor, 4);
-  Source.Read(@Target._Lights[I].Position, SizeOf(Vector3D));
-  Source.Read(@Target._Lights[I].Param1, SizeOf(Vector3D));
-  Source.Read(@Target._Lights[I].Param2, SizeOf(Vector3D));
-  Source.Read(@Target._Lights[I].Param3, SizeOf(Vector3D));
-  Target._Lights[I].UpdateBone();
+  TargetLight := MeshLight.Create(Target);
+  Target._Lights[I] := TargetLight;
+  Source.ReadString(TargetLight.Name);
+  Source.ReadString(TargetLight.ParentBone);
+  Source.Read(@TargetLight.LightType, 1);
+  Source.Read(@TargetLight.LightColor, 4);
+  Source.Read(@TargetLight.Position, SizeOf(Vector3D));
+  Source.Read(@TargetLight.Param1, SizeOf(Vector3D));
+  Source.Read(@TargetLight.Param2, SizeOf(Vector3D));
+  Source.Read(@TargetLight.Param3, SizeOf(Vector3D));
+  TargetLight.UpdateBone();
 
+  AddLightGeometry(TargetLight, Target);
   Result := True;
 End;
 
@@ -1740,7 +1821,7 @@ Begin
   End;
 End;
 
-Procedure MeshInstance.SetAmbientColor(GroupID:Integer; MyColor:Color); {$IFDEF FPC}Inline;{$ENDIF}
+(*Procedure MeshInstance.SetAmbientColor(GroupID:Integer; MyColor:Color); {$IFDEF FPC}Inline;{$ENDIF}
 Begin
   If (GroupID<0) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
@@ -1754,7 +1835,7 @@ Begin
     Result := ColorWhite
   Else
     Result := _Groups[GroupID].Material.AmbientColor;
-End;
+End;*)
 
 Procedure MeshInstance.SetOutlineColor(MyColor:Color); {$IFDEF FPC}Inline;{$ENDIF}
 Var
@@ -1979,7 +2060,7 @@ Begin
   _LightCount := _Mesh.LightCount;
   SetLength(_Lights, _LightCount);
   For I:=0 To Pred(_LightCount) Do
-    _Lights[I] := Nil;
+    _Lights[I].Light := Nil;
 
   N := 0;
   For I:=0 To Pred(_Mesh.GroupCount) Do
@@ -2091,6 +2172,7 @@ Var
   Box:BoundingBox;
   GroupTransform:Boolean;
   MyLight:MeshLight;
+  TargetLight:PositionalLight;
   N:Single;
   P:Vector3D;
 Begin
@@ -2108,14 +2190,23 @@ Begin
     If (MyLight = Nil) Then
       Continue;
 
-    If (_Lights[I]=Nil) Then
+    If (_Lights[I].Light = Nil) Then
     Begin
       Case MyLight.LightType Of
       lightTypePoint:
         Begin
-          _Lights[I] := PointLight.Create(VectorZero);
+          _Lights[I].Light := PointLight.Create(VectorZero);
+          _Lights[I].Enabled := True;
           {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Mesh', 'Creating point light...');{$ENDIF}
         End;
+
+      lightTypeSpot:
+        Begin
+          _Lights[I].Light := SpotLight.Create(VectorZero, VectorUp {MyLight.Param2}, MyLight.Param1.X * RAD, MyLight.Param1.Y * RAD);
+          _Lights[I].Enabled := True;
+          {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Mesh', 'Creating point light...');{$ENDIF}
+        End;
+
       Else
         Continue;
       End;
@@ -2135,26 +2226,36 @@ Begin
 
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Mesh', 'Setting light '+IntToString(I)+' properties');{$ENDIF}
 
-    _Lights[I].Position := P;
-    _Lights[I].Color := MyLight.LightColor;
+    TargetLight := _Lights[I].Light;
+    TargetLight.Position := P;
+    TargetLight.Color := MyLight.LightColor;
 
     Case MyLight.LightType Of
+      lightTypeSpot:
+        Begin
+          (*N := MyLight.Param1.X;
+          SpotLight(_Lights[I]).Radius := N;*)
+        End;
+
       lightTypePoint:
         Begin
           N := MyLight.Param1.X;
-          
+
 
           If (MyLight.Param3.X>0) Then
             N := N + N * 0.05 * Abs(Cos(RAD*(Trunc(Application.GetTime()/MyLight.Param3.X) Mod 180)));
 
             //Flicker Param3.y ??? {FIXME}
 
-          PointLight(_Lights[I]).Radius := N;
+          PointLight(TargetLight).Radius := N;
         End;
     End;
 
-    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Mesh', 'Adding light to manager...');{$ENDIF}
-    LightManager.Instance.AddLight(_Lights[I]);
+    If _Lights[I].Enabled Then
+    Begin
+      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Mesh', 'Adding light to manager...');{$ENDIF}
+      LightManager.Instance.AddLight(TargetLight);
+    End;
   End;
 End;
 
@@ -2973,6 +3074,14 @@ Begin
   Result := _Rotation;
 End;
 
+Procedure MeshInstance.SetLightState(Index:Integer; Enabled:Boolean);
+Begin
+  If (Index<0) Or (Index>=_LightCount) Then
+    Exit;
+
+  _Lights[Index].Enabled := Enabled;
+End;
+
 { MeshGroup }
 Procedure MeshGroup.Release;
 Begin
@@ -3225,7 +3334,7 @@ Var
 Begin
   Source.ReadCardinal(Flags);
 
-  _Material.AmbientColor := ColorWhite;
+  //_Material.AmbientColor := ColorWhite;
   _Material.DiffuseColor := ColorWhite;
   _Material.BlendMode := -1;
 
@@ -3862,6 +3971,20 @@ Begin
   End;
 End;
 
+Procedure MeshGroup.Transform(const TargetTransform: Matrix4x4);
+Var
+  It:VertexIterator;
+  V:MeshVertex;
+Begin
+  It := _Vertices.GetIterator(MeshVertex);
+  While It.HasNext() Do
+  Begin
+    V := MeshVertex(It.Value);
+    V.Position := TargetTransform.Transform(V.Position)
+  End;
+  ReleaseObject(It);
+End;
+
 Function MeshGroup.Intersect(const R: Ray; var T: Single; Const Transform:Matrix4x4): Boolean;
 Var
   I:Integer;
@@ -3995,10 +4118,10 @@ Begin
     _Shader.SetFloatUniform('vegetationBend', Material.VegetationBend);
   End;
 
-  If (AmbientColor.R > 0) Or (AmbientColor.G > 0) Or (AmbientColor.B>0) Then
+  (*If (AmbientColor.R > 0) Or (AmbientColor.G > 0) Or (AmbientColor.B>0) Then
   Begin
     _Shader.SetColorUniform('ambient_color', AmbientColor);
-  End;
+  End;*)
 
   If (Graphics.RenderStage = renderStageDiffuse) And (Graphics.Renderer.Settings.CartoonHues.Enabled) Then
   Begin
@@ -4132,10 +4255,10 @@ Begin
   If Graphics.ReflectionActive Then
     AlwaysOnTop := True;
 
-  If (Self.Flags And meshGroupOverrideAmbient<>0) Then
+  (*If (Self.Flags And meshGroupOverrideAmbient<>0) Then
     AmbientColor := Self.AmbientColor
   Else
-    AmbientColor := LightManager.Instance.AmbientColor;
+    AmbientColor := LightManager.Instance.AmbientColor;*)
 
 {$IFDEF PC}
 {  If (Assigned(_Cloth)) Then
@@ -5594,10 +5717,10 @@ Begin
   Result := _Material.AlphaMap;
 End;
 
-Function MeshGroup.GetAmbientColor: Color;
+(*Function MeshGroup.GetAmbientColor: Color;
 Begin
   Result := _Material.AmbientColor;
-End;
+End;*)
 
 Function MeshGroup.GetToonRamp: Texture;
 Begin
@@ -5679,10 +5802,10 @@ Begin
   Result := _Material.TriplanarMap;
 End;
 
-procedure MeshGroup.SetAmbientColor(const Value: Color);
+(*procedure MeshGroup.SetAmbientColor(const Value: Color);
 Begin
   _Material.AmbientColor := Value;
-End;
+End;*)
 
 procedure MeshGroup.SetDecalMap(const Value: Texture);
 Begin
@@ -5771,7 +5894,7 @@ Begin
   Transparency := (Flags And meshGroupTransparency<>0) Or (DestMaterial.DiffuseColor.A<255);
 
   DestMaterial.DiffuseColor := ColorMultiply(_Material.DiffuseColor, OtherMat.DiffuseColor);
-  DestMaterial.AmbientColor := ColorMultiply(_Material.AmbientColor, OtherMat.AmbientColor);
+  //DestMaterial.AmbientColor := ColorMultiply(_Material.AmbientColor, OtherMat.AmbientColor);
 
   If (OtherMat.ShadowColor.A>0) Then
     DestMaterial.ShadowColor := OtherMat.ShadowColor
@@ -5872,6 +5995,7 @@ Procedure MeshGroup.InspectAlpha(Tex:Texture);
 Begin
   _AlphaInspected := Tex;
 End;
+
 
 { Mesh }
 Class Function Mesh.GetManager: Pointer;
@@ -6448,6 +6572,14 @@ Begin
     _Groups[I].Optimize(VertexCacheSize);
 End;
 
+Procedure Mesh.Transform(const TargetTransform: Matrix4x4);
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_GroupCount) Do
+    _Groups[I].Transform(TargetTransform);
+End;
+
 Function Mesh.GetGroupCount: Integer;
 Begin
   If (Self._GroupCount<=0) Then
@@ -6456,7 +6588,7 @@ Begin
   Result := Self._GroupCount;
 End;
 
-Function Mesh.Clone: Mesh;
+Function Mesh.Clone:Mesh;
 Var
   Merger:MeshMerger;
 Begin
@@ -6587,6 +6719,7 @@ Begin
 
   Result := _Filter;
 End;
+
 
 { CustomMeshFilter }
 Procedure CustomMeshFilter.AddAnimation(Anim: Animation);
@@ -7003,7 +7136,7 @@ Begin
     And (Self.ColorTable = Other.ColorTable)
     And (Self.BlendMode = Other.BlendMode)
     And (Cardinal(Self.DiffuseColor) = Cardinal(Other.DiffuseColor))
-    And (Cardinal(Self.AmbientColor) = Cardinal(Other.AmbientColor))
+    //And (Cardinal(Self.AmbientColor) = Cardinal(Other.AmbientColor))
     And (Cardinal(Self.OutlineColor) = Cardinal(Other.OutlineColor))
     ;
 End;
@@ -7012,7 +7145,7 @@ Procedure MeshMaterial.Reset;
 Begin
   BlendMode := -1;
 
-  AmbientColor := ColorWhite;
+//  AmbientColor := ColorWhite;
   DiffuseColor := ColorWhite;
   OutlineColor := ColorNull;
   ShadowColor := ColorNull;
@@ -7089,8 +7222,8 @@ Begin
   Group._Owner._Skinning := (Assigned(Group._Owner.Skeleton)) And (Group._Owner.Skeleton.BoneCount>0) And (Group.Vertices.HasAttribute(vertexBone));
   Group._Owner._NormalMapping := (Assigned(DestMaterial.NormalMap)) And (Graphics.Renderer.Settings.NormalMapping.Enabled);
 
-  If (Group.AmbientColor.R = 0) And (Group.AmbientColor.G = 0) And (Group.AmbientColor.B=0) Then
-    FxFlags := FxFlags Or shaderSkipAmbient;
+(*  If (Group.AmbientColor.R = 0) And (Group.AmbientColor.G = 0) And (Group.AmbientColor.B=0) Then
+    FxFlags := FxFlags Or shaderSkipAmbient;*)
 
   RenderStage := Graphics.RenderStage;
 
@@ -7171,7 +7304,7 @@ Begin
 
     If (Assigned(DestMaterial.DitherPatternMap)) Then
     Begin
-      FxFlags := FxFlags Or shaderDitherColor Or shaderSkipAmbient;
+      FxFlags := FxFlags Or shaderDitherColor;
     End;
 
     If (Graphics.Renderer.Settings.DynamicShadows.Enabled) Then
