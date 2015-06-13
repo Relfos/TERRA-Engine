@@ -5,7 +5,7 @@ Interface
 Uses TERRA_String, TERRA_Error, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_Java, TERRA_OS, TERRA_FileManager;
 
 Const
-  JavaPlayerClassName = 'com.pascal.terra.TERRAMusicPlayer';
+  JavaMusicPlayerClassName = 'com.pascal.terra.TERRAMusicPlayer';
 
 Type
   MusicManager = Class(ApplicationComponent)
@@ -125,7 +125,7 @@ Begin
   Java_Begin(Frame);
   If (_Player = Nil) Then
   Begin
-    _Player := JavaObject.Create(JavaPlayerClassName, Nil, Frame);
+    _Player := JavaObject.Create(JavaMusicPlayerClassName, Nil, Frame);
   End;
 
   Params := JavaArguments.Create(Frame);

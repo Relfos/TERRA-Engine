@@ -139,7 +139,7 @@ Type
       {$ENDIF}
       {$ENDIF}
 
-      Procedure Terminate;
+      Procedure Finish;
 
     Public
       Constructor Create();
@@ -241,7 +241,7 @@ Begin
 
   Log(logDebug, 'Threads', 'Thread finished...');
 
-  T.Terminate();
+  T.Finish();
 
   T.Release();
 
@@ -283,8 +283,9 @@ Begin
 End;
 {$ENDIF}
 
-Procedure Thread.Terminate;
+Procedure Thread.Finish;
 Begin
+  Log(logDebug, 'Thread','Terminating...');
 {$IFNDEF DISABLETHREADS}
   {$IFDEF ANDROID}
   Java_DetachThread();
@@ -297,7 +298,7 @@ Begin
   pthread_exit(Nil);
   {$ENDIF}
   {$ENDIF}
-  {$ENDIF}  
+  {$ENDIF}
 {$ENDIF}
 End;
 
@@ -356,6 +357,7 @@ Begin
   Until (Not _Pool.Active) {$IFDEF USEPASCALTHREADS}Or (Self.Terminated){$ENDIF};
 
   _Active := False;
+  Self.Finish();
 End;
 
 Function ThreadPool.TasksPending:Integer;
@@ -521,6 +523,8 @@ Var
   I, Count:Integer;
 Begin
 	_Active := False;
+
+  Self.CancelTasks();
 
   Repeat
     Count := 0;

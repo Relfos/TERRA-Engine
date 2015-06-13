@@ -2,21 +2,19 @@ Unit TERRA_AudioTrack;
 {$I terra.inc}
 Interface
 
-Uses TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_MusicTrack, TERRA_Java;
-
-Const
-  JavaPlayerClassName = 'com.pascal.terra.TERRAMusicPlayer';
+Uses TERRA_Utils, TERRA_String, TERRA_FileUtils, TERRA_Application, TERRA_MusicTrack, TERRA_MusicManager, TERRA_Java;
 
 Type
   AudioMusicTrack = Class(MusicTrack)
     Protected
       _Player:JavaObject;
 
+      Procedure ChangeVolume(Volume:Single); Override;
+
     Public
       Procedure Init(); Override;
       Procedure Play(); Override;
       Procedure Stop; Override;
-      Procedure SetVolume(Volume:Single); Override;
 
       Class Function Supports(Const Extension:TERRAString):Boolean; Override;
   End;
@@ -25,10 +23,10 @@ Implementation
 Uses TERRA_Error, TERRA_FileManager, TERRA_Log, TERRA_OS, TERRA_Stream, TERRA_Math;
 
 { AudioMusicTrack }
-Procedure AudioMusicTrack.SetVolume(Volume:Single);
+Procedure AudioMusicTrack.ChangeVolume(Volume:Single);
 Var
-  intError :integer;
-
+  Frame:JavaFrame;
+  Params:JavaArguments;
 Begin
   Inherited SetVolume(Volume);
 
@@ -38,7 +36,7 @@ Begin
   Java_Begin(Frame);
   Params := JavaArguments.Create(Frame);
   Params.AddInteger(Trunc(Volume));
-  _Player.CallVoidMethod('setVolume', Params);
+  _Player.CallVoidMethod(Frame, 'setVolume', Params);
   Params.Release();
   Java_End(Frame);
 End;
@@ -49,13 +47,13 @@ Var
   Frame:JavaFrame;
 Begin
   Java_Begin(Frame);
-  _Player := JavaObject.Create(JavaPlayerClassName, Nil, Frame);
+  _Player := JavaObject.Create(JavaMusicPlayerClassName, Nil, Frame);
 
   Params := JavaArguments.Create(Frame);
-  Params.AddString(S);
-  _Player.CallVoidMethod('setTrack', Params);
+  Params.AddString(_FileName);
+  _Player.CallVoidMethod(Frame, 'setTrack', Params);
   Params.Release();
-  
+
   Java_End(Frame);
 End;
 
@@ -67,7 +65,7 @@ Begin
     Exit;
 
   Java_Begin(Frame);
-  _Player.CallVoidMethod('play', Nil);
+  _Player.CallVoidMethod(Frame, 'play', Nil);
   Java_End(Frame);
 
   Self.SetVolume(_Volume);
@@ -82,8 +80,8 @@ Begin
 
   Log(logDebug, 'MusicPlayer', 'Stopping music...');
   Java_Begin(Frame);
-  _Player.CallVoidMethod('stop', Nil);
-  _Player.CallVoidMethod('release', Nil);
+  _Player.CallVoidMethod(Frame, 'stop', Nil);
+  _Player.CallVoidMethod(Frame, 'release', Nil);
   _Player.Release();
   _Player := Nil;
   Java_End(Frame);

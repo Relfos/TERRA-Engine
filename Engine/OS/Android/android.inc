@@ -6,6 +6,9 @@ Begin
 	//SetGlobalEnv(Env);
 
 	internal_initializeunits();
+    
+    cache_java_classes(env);
+    
 	ApplicationInit();
 End;
 

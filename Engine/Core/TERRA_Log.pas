@@ -368,7 +368,7 @@ Initialization
 {$IFDEF PC}
   LoggingEnabled := Application.GetOption('log') = '1';
 {$ELSE}
-  LoggingEnabled := False;
+  LoggingEnabled := True;
 {$ENDIF}
 {$ENDIF}
 Finalization

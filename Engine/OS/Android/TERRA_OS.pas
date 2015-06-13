@@ -157,15 +157,26 @@ Type
 Procedure focusKeyboard(s:PAnsiChar);
 Function StartupWithVM(VM:Pointer):Integer;
 
+Procedure Cache_Java_Classes(Env:PJNIEnv);
+
 Procedure ApplicationThreadExecute(P:Integer);
 
 Implementation
-Uses TERRA_Log, TERRA_IAP, TERRA_FileSearch, TERRA_Facebook, TERRA_Threads, TERRA_FileStream,
-  TERRA_Renderer, TERRA_GLES2Renderer;
+Uses TERRA_Log, TERRA_IAP, TERRA_FileSearch, TERRA_Facebook, TERRA_SoundSource, TERRA_MusicManager,
+  TERRA_Threads, TERRA_FileStream, TERRA_Renderer, TERRA_GLES2Renderer;
 
 Var
 	_ApplicationInstance:AndroidApplication = Nil;
 
+Procedure Cache_Java_Classes(Env:PJNIEnv);
+Begin
+  Java_CacheClass(Env, ActivityClassPath);
+  Java_CacheClass(Env, UtilsClassPath);
+  Java_CacheClass(Env, JavaMusicPlayerClassName);
+  Java_CacheClass(Env, AudioTrackJavaClass);
+  Java_CacheClass(Env, FacebookClassPath);
+  Java_CacheClass(Env, FileIOClassPath);
+End;
 
 Function StartupWithVM(VM:Pointer):Integer;
 Begin

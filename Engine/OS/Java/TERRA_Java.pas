@@ -72,16 +72,17 @@ Type
 Function JavaToString(S:JObject):AnsiString;
 Function StringToJava(Const Value:AnsiString):JString;
 
-//Procedure Java_AttachThread(Var Env:PJNIEnv);
+Procedure Java_AttachThread(Var Env:PJNIEnv);
 Procedure Java_DetachThread();
 
 Procedure Java_Begin(Out Frame:JavaFrame);
 Procedure Java_End(Var Frame:JavaFrame);
 
-Procedure Java_CacheClass(Frame:JavaFrame; Const Name:AnsiString);
+//Procedure Java_CacheClass(Frame:JavaFrame; Name:AnsiString);
+Procedure Java_CacheClass(Env:PJNIEnv; Const Name:AnsiString);
 
 Procedure Java_ClearClassLoader();
-Procedure Java_LoadClassLoader(Env:PJNIEnv; Loader:JavaObject);
+//Procedure Java_LoadClassLoader(Env:PJNIEnv; Loader:JavaObject);
 
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Log, Math;
@@ -108,7 +109,7 @@ Begin
 
   {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Checking JNI env');{$ENDIF}
   Status := curVM^.GetEnv(curVM, @Env, JNI_VERSION_1_6);
-//  If (Status<0) Then
+  If (Status<0) Then
   Begin
     {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Attaching thread');{$ENDIF}
     curVM^.AttachCurrentThread(curVM, @Env, Nil);
@@ -144,7 +145,7 @@ Begin
   ClassLoaderClass := Nil;
 End;
 
-Procedure Java_LoadClassLoader(Env:PJNIEnv; Loader:JavaObject);
+(*Procedure Java_LoadClassLoader(Env:PJNIEnv; Loader:JavaObject);
 Var
   Temp:JClass;
 Begin
@@ -171,18 +172,50 @@ Begin
   classLoaderClass :=  Env^^.NewGlobalRef(Env, Temp);
   Env^^.DeleteLocalRef(Env, Temp);
   Log(logDebug, 'Java', 'Got classloader class '+HexStr(Cardinal(ClassLoader)));
+End;*)
+
+Type
+  JavaClassEntry = Record
+    Name:TERRAString;
+    Value:JClass;
+  End;
+
+Const
+  MaxJavaClasses = 64;
+
+Var
+  _JavaClasses:Array[0..Pred(MaxJavaClasses)] Of JavaClassEntry;
+  _JavaClassCount:Integer;
+
+Function Java_FindClass(Name:AnsiString):JClass;
+Var
+  I:Integer;
+Begin
+  {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Finding class: '+Name);{$ENDIF}
+
+  For I:=0 To Pred(_JavaClassCount) Do
+  If (StringEquals(Name, _JavaClasses[I].Name)) Then
+  Begin
+    Result := _JavaClasses[I].Value;
+    Exit;
+  End;
+
+  Result := Nil;
+  RaiseError('Could not find class: '+ Name);
 End;
 
-
-Function Java_FindClass(Env:PJNIEnv; Name:AnsiString):JClass;
+Procedure Java_CacheClass(Env:PJNIEnv; Const Name:AnsiString);
 Var
   params:JValue;
   Temp:JClass;
   FindClass:JMethodID;
+  TempName:TERRAString;
+  Result:JClass;
 Begin
   {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Finding class: '+Name);{$ENDIF}
 
-  StringReplaceChar(Ord('.'), Ord('/'), Name);
+  TempName := Name;
+  StringReplaceChar(Ord('.'), Ord('/'), TempName);
 
 (*  If Assigned(ClassLoader) Then
   Begin
@@ -193,11 +226,11 @@ Begin
     params.l := PAnsiChar(Name);
     Result := JClass(Env^^.CallObjectMethodA(Env, ClassLoader, findClass, @params));
   End Else*)
-    Result := JClass(Env^^.FindClass(Env, PAnsiChar(Name)));
+    Result := JClass(Env^^.FindClass(Env, PAnsiChar(TempName)));
 
   If Result = Nil Then
   Begin
-    RaiseError('Could not find class: '+ Name);
+    RaiseError('Could not cache class: '+ Name);
     Exit;
   End;
 
@@ -206,15 +239,13 @@ Begin
   Result := Env^^.NewGlobalRef(Env, Result);
   Env^^.DeleteLocalRef(Env, Temp);
 
+  _JavaClasses[_JavaClassCount].Name := Name;
+  _JavaClasses[_JavaClassCount].Value := Result;
+  Inc(_JavaClassCount);
+
   {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Result: '+HexStr(Cardinal(Result)));{$ENDIF}
 End;
 
-
-Procedure Java_CacheClass(Frame:JavaFrame; Const Name:AnsiString);
-Begin
-  Log(logDebug, 'Java', 'Trying to cache class: '+Name);
-  Java_FindClass(Frame, Name);
-End;
 
 Function Java_FindMethod(Env:PJNIEnv; Name, Signature:AnsiString; SourceClass:JClass):JMethodID;
 Begin
@@ -430,16 +461,16 @@ Constructor JavaClass.Create(ClassName:AnsiString; Frame:JavaFrame);
 Begin
   _CurrentFrame := Frame;
   _ClassPath := ClassName;
-  _Class := Java_FindClass(Frame, ClassName);
+  _Class := Java_FindClass(ClassName);
 End;
 
 Procedure JavaClass.Release;
 Begin
-  If (Assigned(_Class)) Then
+  (*If (Assigned(_Class)) Then
   Begin
     {$IFDEF DEBUG_JAVA}Log(logDebug, 'Java', 'Destroying class '+_ClassPath);{$ENDIF}
     Java_DeleteGlobalObject(_CurrentFrame, _Class);
-  End;
+  End;*)
 End;
 
 Function JavaClass.GetStaticMethod(Env:PJNIEnv; Const Name:AnsiString; Args:JavaArguments; ResultType:AnsiString):JMethodID;
