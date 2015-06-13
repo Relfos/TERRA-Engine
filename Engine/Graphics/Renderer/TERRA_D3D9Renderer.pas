@@ -11,7 +11,7 @@ Uses Windows, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Renderer, TERRA_Ver
 Type
   D3D9Features = Class(RendererFeatures)
     Public
-      Constructor Create(Owner:Renderer);
+      Constructor Create(Owner:GraphicsRenderer);
   End;
 
   D3D9VBO = Class(VertexBufferInterface)
@@ -157,7 +157,7 @@ Type
       Procedure Invalidate(); Override;
   End;
 
-  D3D9Renderer = Class(Renderer)
+  D3D9Renderer = Class(GraphicsRenderer)
     Protected
       _Device:IDirect3DDevice9;
       _D3D:IDirect3D9;
@@ -309,7 +309,7 @@ Begin
 End;
 
 { D3D9Renderer }
-Function D3D9Renderer.CreateContext: Boolean;
+Function D3D9GraphicsRenderer.CreateContext: Boolean;
 Var
   Adapter:Cardinal;
   DeviceID:TD3DAdapterIdentifier9;
@@ -356,7 +356,7 @@ Begin
   Result := True;
 End;
 
-Procedure D3D9Renderer.DestroyContext();
+Procedure D3D9GraphicsRenderer.DestroyContext();
 Begin
   If Assigned(_Device) Then
   Begin
@@ -371,7 +371,7 @@ Begin
   End;
 End;
 
-Function D3D9Renderer.Initialize():Boolean;
+Function D3D9GraphicsRenderer.Initialize():Boolean;
 Var
   I:Integer;
   S:AnsiString;
@@ -405,7 +405,7 @@ Begin
   Result := True;
 End;
 
-Procedure D3D9Renderer.SetColorMask(Red, Green, Blue, Alpha: Boolean);
+Procedure D3D9GraphicsRenderer.SetColorMask(Red, Green, Blue, Alpha: Boolean);
 Var
   colorMask:Cardinal;
 Begin
@@ -426,31 +426,31 @@ Begin
   _Device.SetRenderState(D3DRS_COLORWRITEENABLE, colorMask);
 End;
 
-Procedure D3D9Renderer.SetDepthMask(WriteZ: Boolean);
+Procedure D3D9GraphicsRenderer.SetDepthMask(WriteZ: Boolean);
 Begin
   _Device.SetRenderState(D3DRS_ZWRITEENABLE, Cardinal(WriteZ));
 End;
 
-Procedure D3D9Renderer.SetStencilTest(Enable: Boolean);
+Procedure D3D9GraphicsRenderer.SetStencilTest(Enable: Boolean);
 Begin
   _Device.SetRenderState(D3DRS_STENCILENABLE, Cardinal(Enable));
 End;
 
-Procedure D3D9Renderer.SetStencilFunction(Mode: CompareMode; StencilID, Mask: Cardinal);
+Procedure D3D9GraphicsRenderer.SetStencilFunction(Mode: CompareMode; StencilID, Mask: Cardinal);
 Begin
   _Device.SetRenderState(D3DRS_STENCILFUNC, CompareToD3D(Mode));
   _Device.SetRenderState(D3DRS_STENCILMASK, Mask);
   _Device.SetRenderState(D3DRS_STENCILREF, StencilID);
 End;
 
-Procedure D3D9Renderer.SetStencilOp(fail, zfail, zpass: StencilOperation);
+Procedure D3D9GraphicsRenderer.SetStencilOp(fail, zfail, zpass: StencilOperation);
 Begin
   _Device.SetRenderState(D3DRS_STENCILFAIL, StencilOpToD3D(Fail));
   _Device.SetRenderState(D3DRS_STENCILZFAIL, StencilOpToD3D(ZFail));
   _Device.SetRenderState(D3DRS_STENCILPASS, StencilOpToD3D(ZPass));
 End;
 
-Procedure D3D9Renderer.ClearBuffer(Color, Depth, Stencil:Boolean);
+Procedure D3D9GraphicsRenderer.ClearBuffer(Color, Depth, Stencil:Boolean);
 Var
   Flags:Cardinal;
 Begin
@@ -469,12 +469,12 @@ Begin
   	_Device.Clear(0, Nil, Flags, D3DCOLOR(ClearColor), _ClearDepth, _ClearStencil);
 End;
 
-Procedure D3D9Renderer.SetClearColor(const ClearColor: Color);
+Procedure D3D9GraphicsRenderer.SetClearColor(const ClearColor: Color);
 Begin
   _ClearColor := ClearColor;
 End;
 
-Procedure D3D9Renderer.SetCullMode(Mode: CullMode);
+Procedure D3D9GraphicsRenderer.SetCullMode(Mode: CullMode);
 Var
   Value:Cardinal;
 Begin
@@ -488,7 +488,7 @@ Begin
   _Device.SetRenderState(D3DRS_CULLMODE, Value);
 End;
 
-Procedure D3D9Renderer.SetDepthTest(Enable: Boolean);
+Procedure D3D9GraphicsRenderer.SetDepthTest(Enable: Boolean);
 Begin
   If Enable Then
     _Device.SetRenderState(D3DRS_ZENABLE, D3DZB_TRUE)
@@ -496,12 +496,12 @@ Begin
     _Device.SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
 End;
 
-Procedure D3D9Renderer.SetDepthFunction(Mode: CompareMode);
+Procedure D3D9GraphicsRenderer.SetDepthFunction(Mode: CompareMode);
 Begin
   _Device.SetRenderState(D3DRS_ZFUNC, CompareToD3D(Mode));
 End;
 
-Procedure D3D9Renderer.SetBlendMode(BlendMode: Integer);
+Procedure D3D9GraphicsRenderer.SetBlendMode(BlendMode: Integer);
 Var
   NeedsAlpha:Boolean;
   SrcBlend, DestBlend:Cardinal;
@@ -590,7 +590,7 @@ exit;}
  //_CurrentBlendMode := BlendMode;
 End;
 
-Procedure D3D9Renderer.SetModelMatrix(Const Mat: Matrix4x4);
+Procedure D3D9GraphicsRenderer.SetModelMatrix(Const Mat: Matrix4x4);
 Begin
   _ModelMatrix := Mat;
 
@@ -608,7 +608,7 @@ Begin
   TODO      }
 End;
 
-Procedure D3D9Renderer.SetProjectionMatrix(Const Mat:Matrix4x4);
+Procedure D3D9GraphicsRenderer.SetProjectionMatrix(Const Mat:Matrix4x4);
 Begin
   _ProjectionMatrix := Mat;
 
@@ -627,7 +627,7 @@ Begin
   TODO}
 End;
 
-Procedure D3D9Renderer.SetTextureMatrix(Const Mat: Matrix4x4);
+Procedure D3D9GraphicsRenderer.SetTextureMatrix(Const Mat: Matrix4x4);
 Begin
   _TextureMatrix := Mat;
 {
@@ -647,7 +647,7 @@ Begin
   TODO}
 End;
 
-Procedure D3D9Renderer.SetDiffuseColor(Const C: Color);
+Procedure D3D9GraphicsRenderer.SetDiffuseColor(Const C: Color);
 Begin
   _DiffuseColor := C;
 
@@ -666,7 +666,7 @@ Begin
   }
 End;
 
-Procedure D3D9Renderer.SetAttributeSource(Const Name:AnsiString; AttributeKind:Cardinal; ElementType:DataFormat; AttributeSource:Pointer);
+Procedure D3D9GraphicsRenderer.SetAttributeSource(Const Name:AnsiString; AttributeKind:Cardinal; ElementType:DataFormat; AttributeSource:Pointer);
 Var
   Count:Integer;
   Format:D3DDECLTYPE;
@@ -717,7 +717,7 @@ Begin
 
   If _CurrentVertexSize<=0 Then
   Begin
-    RaiseError('Please call Renderer.SetVertexSize() before drawing anything!');
+    RaiseError('Please call GraphicsRenderer.SetVertexSize() before drawing anything!');
     Exit;
   End;
 
@@ -733,7 +733,7 @@ Begin
   glVertexAttribPointer(Handle, Count, Format, Norm, _CurrentVertexSize, AttributeSource);}
 End;
 
-Procedure D3D9Renderer.DrawSource(Data:VertexData; Primitive: RenderPrimitive; Count: Integer);
+Procedure D3D9GraphicsRenderer.DrawSource(Data:VertexData; Primitive: RenderPrimitive; Count: Integer);
 Begin
   If (Count<0) Then
     Exit;
@@ -753,7 +753,7 @@ Begin
   _CurrentVertexSize := 0;
 End;
 
-Procedure D3D9Renderer.DrawIndexedSource(Data:VertexData; Primitive:RenderPrimitive; Count:Integer; Indices:System.PWord);
+Procedure D3D9GraphicsRenderer.DrawIndexedSource(Data:VertexData; Primitive:RenderPrimitive; Count:Integer; Indices:System.PWord);
 Var
   PrimitiveCount:Integer;
 Begin
@@ -779,7 +779,7 @@ Begin
   Inc(_Stats.TriangleCount, PrimitiveCount);
 End;
 
-Procedure D3D9Renderer.BeginFrame;
+Procedure D3D9GraphicsRenderer.BeginFrame;
 Begin
   Inherited;
 
@@ -790,13 +790,13 @@ Begin
 	_Device.Clear(0, Nil, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0,0,255), 1.0, 0);
 End;
 
-Procedure D3D9Renderer.EndFrame();
+Procedure D3D9GraphicsRenderer.EndFrame();
 Begin
   _Device.EndScene();
   _Device.Present(Nil,  Nil, 0, Nil);
 End;
 
-Procedure D3D9Renderer.SetViewport(X, Y, Width, Height:Integer);
+Procedure D3D9GraphicsRenderer.SetViewport(X, Y, Width, Height:Integer);
 Var
   dxViewport:D3DVIEWPORT9;
 Begin
@@ -810,11 +810,11 @@ Begin
   _Device.SetViewport(dxViewport);
 End;
 
-Procedure D3D9Renderer.Reset();
+Procedure D3D9GraphicsRenderer.Reset();
 Begin
 End;
 
-Procedure D3D9Renderer.SetScissorArea(X,Y, Width, Height:Integer);
+Procedure D3D9GraphicsRenderer.SetScissorArea(X,Y, Width, Height:Integer);
 Var
   Scissor:TRect;
 Begin
@@ -825,12 +825,12 @@ Begin
   _Device.SetScissorRect(@Scissor);
 End;
 
-Procedure D3D9Renderer.SetScissorState(Enabled: Boolean);
+Procedure D3D9GraphicsRenderer.SetScissorState(Enabled: Boolean);
 Begin
   _Device.SetRenderState(D3DRS_SCISSORTESTENABLE, Cardinal(Enabled));
 End;
 
-Procedure D3D9Renderer.ApplyTextureSettings(Slot:Integer; NPOT, MipMapped:Boolean; Filter:TextureFilterMode; WrapMode:TextureWrapMode);
+Procedure D3D9GraphicsRenderer.ApplyTextureSettings(Slot:Integer; NPOT, MipMapped:Boolean; Filter:TextureFilterMode; WrapMode:TextureWrapMode);
 Begin
   {$IFDEF PC}
     {$IFNDEF WINDOWS}
@@ -893,34 +893,34 @@ Begin
   {$ENDIF}
 End;
 
-Function D3D9Renderer.CreateCubeMap: CubeMapInterface;
+Function D3D9GraphicsRenderer.CreateCubeMap: CubeMapInterface;
 Begin
   Result := D3D9CubeMap.Create(Self);
 End;
 
-Function D3D9Renderer.CreateRenderTarget: RenderTargetInterface;
+Function D3D9GraphicsRenderer.CreateRenderTarget: RenderTargetInterface;
 Begin
   Result := D3D9FBO.Create(Self);
 End;
 
-Function D3D9Renderer.CreateTexture: TextureInterface;
+Function D3D9GraphicsRenderer.CreateTexture: TextureInterface;
 Begin
   Result := D3D9Texture.Create(Self);
 End;
 
-Function D3D9Renderer.CreateVertexBuffer: VertexBufferInterface;
+Function D3D9GraphicsRenderer.CreateVertexBuffer: VertexBufferInterface;
 Begin
   Result := D3D9VBO.Create(Self);
 End;
 
-Function D3D9Renderer.CreateShader: ShaderInterface;
+Function D3D9GraphicsRenderer.CreateShader: ShaderInterface;
 Begin
   Result := D3D9Shader.Create(Self);
 End;
 
 
 { D3D9Features }
-Constructor D3D9Features.Create(Owner:Renderer);
+Constructor D3D9Features.Create(Owner:GraphicsRenderer);
 Var
   Caps:PD3DCaps9;
   S:AnsiString;

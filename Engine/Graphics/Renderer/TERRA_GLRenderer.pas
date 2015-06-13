@@ -143,7 +143,7 @@ Uses
 Type
   OpenGLFeatures = Class(RendererFeatures)
     Public
-      Constructor Create(Owner:Renderer);
+      Constructor Create(Owner:GraphicsRenderer);
   End;
 
   OpenGLVBO = Class(VertexBufferInterface)
@@ -304,7 +304,7 @@ Type
       Procedure Invalidate(); Override;
   End;
 
-  OpenGLRenderer = Class(Renderer)
+  OpenGLRenderer = Class(GraphicsRenderer)
     Protected
       {$IFDEF WINDOWS}
       _HDC:HDC;           // HDC of window
@@ -400,7 +400,7 @@ Uses SysUtils, TERRA_Log, TERRA_Application, TERRA_GraphicsManager, TERRA_FileMa
   TERRA_Error, TERRA_OS;
 
 { OpenGLFeatures }
-Constructor OpenGLFeatures.Create(Owner:Renderer);
+Constructor OpenGLFeatures.Create(Owner:GraphicsRenderer);
 Var
   HasShaders:Boolean;
   S:AnsiString;

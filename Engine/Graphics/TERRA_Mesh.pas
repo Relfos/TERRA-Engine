@@ -4000,6 +4000,13 @@ Begin
     _Shader.SetColorUniform('ambient_color', AmbientColor);
   End;
 
+  If (Graphics.RenderStage = renderStageDiffuse) And (Graphics.Renderer.Settings.CartoonHues.Enabled) Then
+  Begin
+    _Shader.SetColorUniform('hue_green', Graphics.Renderer.Settings.CartoonHueGreen);
+    _Shader.SetColorUniform('hue_yellow', Graphics.Renderer.Settings.CartoonHueYellow);
+    _Shader.SetColorUniform('hue_purple', Graphics.Renderer.Settings.CartoonHuePurple);
+  End;
+
   If (_Owner.Skeleton.BoneCount > 0 ) And (Assigned(State)) And (Self.Vertices.HasAttribute(vertexBone)) Then
   Begin
     EncodeBoneMatrix(0, Matrix4x4Identity);
@@ -7177,7 +7184,7 @@ Begin
 
     If (Group.Flags And meshGroupLightmap<>0) Then
     Begin
-      FxFlags := FxFlags Or shaderAddSigned Or shaderSelfIllumn;
+      FxFlags := FxFlags Or shaderAddSigned {Or shaderSelfIllumn};
       DisableLights := True;
     End Else
     Begin

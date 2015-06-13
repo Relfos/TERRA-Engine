@@ -87,7 +87,7 @@ Type
   );
 
 Type
-  Renderer = Class;
+  GraphicsRenderer = Class;
 
   RendererQuality = (qualityDisabled, qualityLow, qualityMedium, qualityHigh);
 
@@ -140,7 +140,7 @@ Type
 
   GraphicInterface = Class(TERRAObject)
     Protected
-      _Owner:Renderer;
+      _Owner:GraphicsRenderer;
       _Context:Integer;
       _Size:Cardinal;
 
@@ -149,7 +149,7 @@ Type
       Function IsComplete():Boolean; Virtual;
 
     Public
-      Constructor Create(Owner:Renderer);
+      Constructor Create(Owner:GraphicsRenderer);
       Procedure Release(); Override;
 
       Function IsValid():Boolean;
@@ -157,7 +157,7 @@ Type
       Procedure Invalidate(); Virtual; Abstract;
 
       Property Size:Cardinal Read _Size;
-      Property Owner:Renderer Read _Owner;
+      Property Owner:GraphicsRenderer Read _Owner;
       Property Valid:Boolean Read IsValid;
   End;
 
@@ -239,7 +239,7 @@ Type
     Public
       Function Generate(Width, Height:Integer; SourceFormat, TargetFormat:TextureColorFormat; ByteFormat:PixelSizeType):Boolean; Virtual; Abstract;
 
-      Function UpdateFace(FaceID:Integer; Pixels:Pointer; X,Y, Width, Height:Integer):Boolean; Virtual; 
+      Function UpdateFace(FaceID:Integer; Pixels:Pointer; X,Y, Width, Height:Integer):Boolean; Virtual;
 
       Function LoadFromFile(Const FileName:TERRAString):Boolean;
   End;
@@ -342,12 +342,12 @@ Type
 
 	RendererSetting = Class(TERRAObject)
 		Protected
-      _Owner:Renderer;
+      _Owner:GraphicsRenderer;
 			_Enabled:Boolean;
       _Available:Boolean;
 
 		Public
-      Constructor Create(Owner:Renderer; Available:Boolean);
+      Constructor Create(Owner:GraphicsRenderer; Available:Boolean);
       Procedure SetValue(NewValue:Boolean);
 
       Property Enabled:Boolean Read _Enabled Write SetValue;
@@ -355,7 +355,7 @@ Type
 
 	RendererVariableSetting = Object
 		Protected
-      _Owner:Renderer;
+      _Owner:GraphicsRenderer;
 			_Quality:RendererQuality;
 
 		Public
@@ -366,7 +366,7 @@ Type
 
 	RendererFeatures = Class(TERRAObject)
     Protected
-      _Owner:Renderer;
+      _Owner:GraphicsRenderer;
       _MaxAnisotrophy:Integer;
 			_MaxTextureSize:Integer;
       _MaxTextureUnits:Integer;
@@ -393,7 +393,7 @@ Type
       DeferredLighting:RendererFeature;
       Outlines:RendererFeature;
 
-      Constructor Create(Owner:Renderer);
+      Constructor Create(Owner:GraphicsRenderer);
       Procedure Release(); Override;
 
       Procedure WriteToLog();
@@ -408,7 +408,7 @@ Type
 
 	RendererSettings = Class(TERRAObject)
     Protected
-      _Owner:Renderer;
+      _Owner:GraphicsRenderer;
       _Changed:Boolean;
 
       _ShadowSplitCount:Integer;
@@ -439,7 +439,11 @@ Type
       SSAO:RendererSetting;
 	  	VertexBufferObject:RendererSetting;
       Outlines:RendererSetting;
+
       CartoonHues:RendererSetting;
+      CartoonHueGreen:Color;
+      CartoonHueYellow:Color;
+      CartoonHuePurple:Color;
 
       FogMode:Integer;
       FogColor:Color;
@@ -453,7 +457,7 @@ Type
       SurfaceProjection:SurfaceProjectionMode;
 
 
-      Constructor Create(Owner:Renderer);
+      Constructor Create(Owner:GraphicsRenderer);
       Procedure Release; Override;
 
       Property ShadowSplitCount:Integer Read _ShadowSplitCount Write _ShadowSplitCount;
@@ -478,7 +482,7 @@ Type
       FramesPerSecond:Integer;
   End;
 
-  Renderer = Class(CollectionObject)
+  GraphicsRenderer = Class(CollectionObject)
     Protected
       _Name:TERRAString;
 
@@ -626,7 +630,7 @@ Begin
 End;
 
 { RendererSettings }
-Constructor RendererSettings.Create(Owner: Renderer);
+Constructor RendererSettings.Create(Owner: GraphicsRenderer);
 Begin
   Self._Owner := Owner;
 
@@ -672,7 +676,7 @@ Begin
 End;
 
 { RendererSetting }
-Constructor RendererSetting.Create(Owner: Renderer; Available:Boolean);
+Constructor RendererSetting.Create(Owner:GraphicsRenderer; Available:Boolean);
 Begin
   _Owner := Owner;
   _Available := Available;
@@ -700,7 +704,7 @@ Begin
 End;
 
 { RendererFeatures }
-Constructor RendererFeatures.Create(Owner: Renderer);
+Constructor RendererFeatures.Create(Owner:GraphicsRenderer);
 Begin
   _Owner := Owner;
 End;
@@ -730,7 +734,7 @@ Begin
 End;
 
 { GraphicInterface }
-Constructor GraphicInterface.Create(Owner: Renderer);
+Constructor GraphicInterface.Create(Owner:GraphicsRenderer);
 Begin
   If Assigned(Owner) Then
   Begin
@@ -763,7 +767,7 @@ Begin
 End;
 
 { Renderer }
-Constructor Renderer.Create;
+Constructor GraphicsRenderer.Create;
 Begin
   _Settings := Nil;
   _Features := Nil;
@@ -771,7 +775,7 @@ Begin
   _PrevStats := Nil;
 End;
 
-Procedure Renderer.Release();
+Procedure GraphicsRenderer.Release();
 Begin
   Inherited;
 
@@ -781,7 +785,7 @@ Begin
   ReleaseObject(_Stats);
 End;
 
-Procedure Renderer.AddObject(Obj: GraphicInterface);
+Procedure GraphicsRenderer.AddObject(Obj: GraphicInterface);
 Begin
   If Obj = Nil Then
     Exit;
@@ -794,7 +798,7 @@ Begin
     SetLength(_Objects, _ObjectCount);
 End;
 
-Procedure Renderer.RemoveObject(Obj: GraphicInterface);
+Procedure GraphicsRenderer.RemoveObject(Obj: GraphicInterface);
 Var
   I:Integer;
 Begin
@@ -809,13 +813,13 @@ Begin
     Inc(I);
 End;
 
-Procedure Renderer.OnSettingsChange;
+Procedure GraphicsRenderer.OnSettingsChange;
 Begin
   If (Settings.VertexBufferObject.Enabled) And (Not Features.Shaders.Avaliable) Then
     Settings.VertexBufferObject.SetValue(False);
 End;
 
-Procedure Renderer.InternalStat(Stat: StatType; Count: Integer);
+Procedure GraphicsRenderer.InternalStat(Stat: StatType; Count: Integer);
 Begin
   Case Stat Of
   statTriangles:
@@ -847,7 +851,7 @@ Begin
   End;
 End;
 
-Procedure Renderer.BeginFrame;
+Procedure GraphicsRenderer.BeginFrame;
 Var
   Temp:RendererStats;
 Begin
@@ -986,18 +990,18 @@ Begin
   _TriangleCount := TriangleCount;
 End;
 
-Procedure Renderer.EndFrame();
+Procedure GraphicsRenderer.EndFrame();
 Begin
   Inc(_Frames);
 End;
 
-Procedure Renderer.UpdateFrameCounter();
+Procedure GraphicsRenderer.UpdateFrameCounter();
 Begin
   _Stats.FramesPerSecond := _Frames;
   _Frames := 1;
 End;
 
-Procedure Renderer.InitSettings();
+Procedure GraphicsRenderer.InitSettings();
 Begin
   _Stats := RendererStats.Create();
   _PrevStats := RendererStats.Create();
@@ -1056,10 +1060,14 @@ Begin
   Settings.FogDistanceStart := 0.2;
   Settings.FogDistanceEnd := 1.0;
 
+  Settings.CartoonHueGreen := ColorCreate(64, 255, 64);
+  Settings.CartoonHueYellow := ColorCreate(255, 255, 64);
+  Settings.CartoonHuePurple := ColorCreate(255, 64, 255);
+
   Settings._Changed := True;
 End;
 
-Procedure Renderer.Reset;
+Procedure GraphicsRenderer.Reset;
 Begin
   If Settings = Nil Then
   Begin
@@ -1077,12 +1085,12 @@ Begin
   Self.ResetState();
 End;
 
-Procedure Renderer.ResetState;
+Procedure GraphicsRenderer.ResetState;
 Begin
   // do nothing
 End;
 
-Function Renderer.BindShader(Shader:ShaderInterface):Boolean;
+Function GraphicsRenderer.BindShader(Shader:ShaderInterface):Boolean;
 Begin
   If Shader = Nil Then
   Begin
@@ -1100,7 +1108,7 @@ Begin
   Result := _ActiveShader.Bind();
 End;
 
-Function Renderer.BindSurface(Surface:SurfaceInterface; Slot:Integer):Boolean;
+Function GraphicsRenderer.BindSurface(Surface:SurfaceInterface; Slot:Integer):Boolean;
 Begin
   If Surface = Nil Then
   Begin
@@ -1112,7 +1120,7 @@ Begin
   Result := Surface.Bind(Slot);
 End;
 
-Procedure Renderer.SetVertexSource(Data: VertexData);
+Procedure GraphicsRenderer.SetVertexSource(Data: VertexData);
 Var
   I:Integer;
 Begin
@@ -1133,17 +1141,17 @@ Begin
   {$ENDIF}
 End;
 
-Procedure Renderer.Resize(Width, Height: Integer);
+Procedure GraphicsRenderer.Resize(Width, Height: Integer);
 Begin
   // do nothing
 End;
 
-Function Renderer.GetScreenshot: Image;
+Function GraphicsRenderer.GetScreenshot: Image;
 Begin
   Result := Nil;
 End;
 
-Procedure Renderer.SetVSync(const Value: Boolean);
+Procedure GraphicsRenderer.SetVSync(const Value: Boolean);
 Begin
   If _VSync = Value Then
     Exit;
@@ -1152,7 +1160,7 @@ Begin
   Self.ChangeVSync(Value);
 End;
 
-Procedure Renderer.ChangeVSync(const Value: Boolean);
+Procedure GraphicsRenderer.ChangeVSync(const Value: Boolean);
 Begin
   // do nothing
 End;

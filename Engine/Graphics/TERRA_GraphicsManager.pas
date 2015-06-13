@@ -190,7 +190,7 @@ Type
 
       _StencilID:Byte;
 
-      _Renderer:TERRA_Renderer.Renderer;
+      _Renderer:GraphicsRenderer;
 
       _ReflectionsEnabled:Boolean;
       _ReflectionPoint:Vector3D;
@@ -301,7 +301,7 @@ Type
 
       Property CameraCount:Integer Read _CameraCount;
 
-      Property Renderer:TERRA_Renderer.Renderer Read _Renderer;
+      Property Renderer:GraphicsRenderer Read _Renderer;
 
       Property ActiveViewport:Viewport Read _CurrentViewport Write SetCurrentViewport;
       Property MainViewport:Viewport Read _MainViewport;
@@ -714,7 +714,7 @@ Begin
   If (RendererID<0) Or (RendererID>=Renderers.Count) Then
     RendererID := 0;
 
-  _Renderer := TERRA_Renderer.Renderer(Renderers.GetItemByIndex(RendererID));
+  _Renderer := GraphicsRenderer(Renderers.GetItemByIndex(RendererID));
   If _Renderer = Nil Then
   Begin
     RaiseError('Failed to initialized renderer with ID '+IntToString(RendererID));

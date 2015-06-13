@@ -781,28 +781,31 @@ Begin
       Line('vec3 yFinalColor = vec3(yColor.r, chroma * cos(finalHue), chroma * sin(finalHue));');
       Line('return yiq2rgb*yFinalColor;}');*)
 
+      Line('  uniform mediump vec4 hue_yellow;');
+      Line('  uniform mediump vec4 hue_green ;');
+      Line('  uniform mediump vec4 hue_purple;');
+
     	Line('mediump vec3 cartoonHueAdjust(mediump vec3 color, mediump float shade)	{');
 
 (*      Line('  color = ShiftHue(color, -90.0);');
       Line('return color; }');*)
 
-(*      Line('  mediump vec3 yellow = vec3(1.0, 1.0, 0.25);');
-      Line('  mediump vec3 green = vec3(0.25, 1.0, 0.25);');
-      Line('  mediump vec3 purple = vec3(1.0, 0.25, 1.0);');*)
 
-      Line('  mediump vec3 yellow = vec3(1.0, 1.0, 0.5);');
-      Line('  mediump vec3 green = vec3(0.25, 1.0, 0.25);');
+(*      Line('  mediump vec3 yellow = vec3(1.0, 1.0, 0.5);');
       Line('  mediump vec3 purple = vec3(1.0, 0.4, 1.0);');
+      Line('  mediump vec3 green = vec3(0.25, 1.0, 0.25);');
+      *)
 
-      Line('  mediump vec3 SA = mix(green, yellow, shade);');
-      Line('  mediump vec3 SB = mix(purple, yellow, shade);');
+      Line('  mediump vec4 SA = mix(hue_green, hue_yellow, shade);');
+      Line('  mediump vec4 SB = mix(hue_purple, hue_yellow, shade);');
 
       Line('  shade -= 0.5;');
       Line('  shade *= 0.5;');
-      Line('  mediump vec3 temp = clamp(color + shade * SA, 0.0, 1.0);	');
-      Line('return mix(SB, temp, 0.75); }');
+      Line('  mediump vec3 temp = clamp(color + shade * SA.rgb, 0.0, 1.0);	');
+      Line('return mix(SB.rgb, temp, 0.75); }');
+      //Line('return SB; }');
       //Line('return temp; }');
-                                     
+
 
   End;
 
@@ -1275,6 +1278,11 @@ Begin
         Begin
             Line('  color = diffuse;');
 
+          If ((FxFlags And shaderSelfIllumn)=0) Then
+          Begin
+            Line('  color *= ambient_color;');
+          End;
+            
           If (FxFlags And shaderCartoonHue<>0) Then
               Line('  color.rgb = cartoonHueAdjust(color.rgb, shadow);')
           Else
@@ -1282,11 +1290,6 @@ Begin
             Line('  color += vec4(shadow) - vec4(0.5);')
           Else
             Line('  color *= shadow;');
-
-          If ((FxFlags And shaderSelfIllumn)=0) Then
-          Begin
-            Line('  color *= ambient_color;');
-          End;
 
         End Else
           Line('  color = vec4(0.0, 0.0, 0.0, 1.0);');

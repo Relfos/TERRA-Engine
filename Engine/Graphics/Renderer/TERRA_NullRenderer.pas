@@ -9,7 +9,7 @@ Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Renderer, TERRA_VertexFormat
 Type
   NullFeatures = Class(RendererFeatures)
     Public
-      Constructor Create(Owner:Renderer);
+      Constructor Create(Owner:GraphicsRenderer);
   End;
 
   NullVBO = Class(VertexBufferInterface)
@@ -112,7 +112,7 @@ Type
       Procedure Invalidate(); Override;
   End;
 
-  NullRenderer = Class(Renderer)
+  NullRenderer = Class(GraphicsRenderer)
     Protected
       Function Initialize():Boolean; Override;
 
@@ -165,7 +165,7 @@ Implementation
 Uses TERRA_Log, TERRA_Application, TERRA_GraphicsManager, TERRA_FileManager, TERRA_FileUtils, TERRA_FileStream, TERRA_Error;
 
 { NullFeatures }
-Constructor NullFeatures.Create(Owner:Renderer);
+Constructor NullFeatures.Create(Owner:GraphicsRenderer);
 Begin
   Inherited Create(Owner);
 
