@@ -400,7 +400,7 @@ End;
 
 
 { OpenGLES2Renderer }
-Procedure OpenGLES2GraphicsRenderer.ClearBuffer(Color, Depth, Stencil:Boolean);
+Procedure OpenGLES2Renderer.ClearBuffer(Color, Depth, Stencil:Boolean);
 Var
   Flags:Cardinal;
 Begin
@@ -419,12 +419,12 @@ Begin
     glClear(Flags);
 End;
 
-Procedure OpenGLES2GraphicsRenderer.SetClearColor(const ClearColor: Color);
+Procedure OpenGLES2Renderer.SetClearColor(const ClearColor: Color);
 Begin
   glClearColor(ClearColor.R/255, ClearColor.G/255, ClearColor.B/255, ClearColor.A/255);
 End;
 
-Function OpenGLES2GraphicsRenderer.CreateContext: Boolean;
+Function OpenGLES2Renderer.CreateContext: Boolean;
 Begin
   Result:=False;
 
@@ -433,11 +433,11 @@ Begin
   Result := True;
 End;
 
-Procedure OpenGLES2GraphicsRenderer.DestroyContext();
+Procedure OpenGLES2Renderer.DestroyContext();
 Begin
 End;
 
-Function OpenGLES2GraphicsRenderer.Initialize():Boolean;
+Function OpenGLES2Renderer.Initialize():Boolean;
 Var
   I:Integer;
   S:AnsiString;
@@ -457,22 +457,22 @@ Begin
   Result := True;
 End;
 
-Procedure OpenGLES2GraphicsRenderer.SetColorMask(Red, Green, Blue, Alpha: Boolean);
+Procedure OpenGLES2Renderer.SetColorMask(Red, Green, Blue, Alpha: Boolean);
 Begin
   glColorMask(Red, Green, Blue, Alpha);
 End;
 
-Procedure OpenGLES2GraphicsRenderer.SetDepthMask(WriteZ: Boolean);
+Procedure OpenGLES2Renderer.SetDepthMask(WriteZ: Boolean);
 Begin
   glDepthMask(WriteZ);
 End;
 
-Procedure OpenGLES2GraphicsRenderer.SetDepthFunction(Mode: CompareMode);
+Procedure OpenGLES2Renderer.SetDepthFunction(Mode: CompareMode);
 Begin
   glDepthFunc(CompareToGL(Mode));
 End;
 
-Procedure OpenGLES2GraphicsRenderer.SetStencilTest(Enable: Boolean);
+Procedure OpenGLES2Renderer.SetStencilTest(Enable: Boolean);
 Begin
   If Enable Then
     glEnable(GL_STENCIL_TEST)
@@ -480,18 +480,18 @@ Begin
     glDisable(GL_STENCIL_TEST);
 End;
 
-Procedure OpenGLES2GraphicsRenderer.SetStencilFunction(Mode: CompareMode; StencilID, Mask: Cardinal);
+Procedure OpenGLES2Renderer.SetStencilFunction(Mode: CompareMode; StencilID, Mask: Cardinal);
 Begin
   glStencilFunc(CompareToGL(Mode), StencilID, $FFFFFFFF);
 End;
 
-Procedure OpenGLES2GraphicsRenderer.SetStencilOp(fail, zfail, zpass: StencilOperation);
+Procedure OpenGLES2Renderer.SetStencilOp(fail, zfail, zpass: StencilOperation);
 Begin
   glStencilOp(StencilOpToGL(Fail), StencilOpToGL(ZFail), StencilOpToGL(ZPass));
 End;
 
 
-Procedure OpenGLES2GraphicsRenderer.SetCullMode(Mode: CullMode);
+Procedure OpenGLES2Renderer.SetCullMode(Mode: CullMode);
 Begin
   If (Mode = cullNone) Then
   Begin
@@ -506,7 +506,7 @@ Begin
   End;
 End;
 
-Procedure OpenGLES2GraphicsRenderer.SetDepthTest(Enable: Boolean);
+Procedure OpenGLES2Renderer.SetDepthTest(Enable: Boolean);
 Begin
   If Enable Then
     glEnable(GL_DEPTH_TEST)
@@ -514,7 +514,7 @@ Begin
     glDisable(GL_DEPTH_TEST);
 End;
 
-Procedure OpenGLES2GraphicsRenderer.SetBlendMode(BlendMode: Integer);
+Procedure OpenGLES2Renderer.SetBlendMode(BlendMode: Integer);
 Var
   NeedsAlpha:Boolean;
 Begin
@@ -565,7 +565,7 @@ exit;}
  //_CurrentBlendMode := BlendMode;
 End;
 
-Procedure OpenGLES2GraphicsRenderer.SetModelMatrix(Const Mat: Matrix4x4);
+Procedure OpenGLES2Renderer.SetModelMatrix(Const Mat: Matrix4x4);
 Begin
   _ModelMatrix := Mat;
 
@@ -573,7 +573,7 @@ Begin
     Self.ActiveShader.SetMat4Uniform('modelMatrix', Mat);
 End;
 
-Procedure OpenGLES2GraphicsRenderer.SetProjectionMatrix(Const Mat:Matrix4x4);
+Procedure OpenGLES2Renderer.SetProjectionMatrix(Const Mat:Matrix4x4);
 Begin
   _ProjectionMatrix := Mat;
 
@@ -581,7 +581,7 @@ Begin
     Self.ActiveShader.SetMat4Uniform('projectionMatrix', Mat);
 End;
 
-Procedure OpenGLES2GraphicsRenderer.SetTextureMatrix(Const Mat: Matrix4x4);
+Procedure OpenGLES2Renderer.SetTextureMatrix(Const Mat: Matrix4x4);
 Begin
   _TextureMatrix := Mat;
 
@@ -589,7 +589,7 @@ Begin
     Self.ActiveShader.SetMat4Uniform('textureMatrix', Mat);
 End;
 
-Procedure OpenGLES2GraphicsRenderer.SetDiffuseColor(Const C: Color);
+Procedure OpenGLES2Renderer.SetDiffuseColor(Const C: Color);
 Begin
   _DiffuseColor := C;
 
@@ -597,7 +597,7 @@ Begin
     Self.ActiveShader.SetColorUniform('diffuse', C);
 End;
 
-Procedure OpenGLES2GraphicsRenderer.SetAttributeSource(Const Name:AnsiString; AttributeKind:Cardinal; ElementType:DataFormat; AttributeSource:Pointer);
+Procedure OpenGLES2Renderer.SetAttributeSource(Const Name:AnsiString; AttributeKind:Cardinal; ElementType:DataFormat; AttributeSource:Pointer);
 Var
   Count, Format:Integer;
   Norm:Boolean;
@@ -662,7 +662,7 @@ Begin
   glVertexAttribPointer(Handle, Count, Format, Norm, _CurrentSource.Size, AttributeSource);
 End;
 
-Procedure OpenGLES2GraphicsRenderer.DrawSource(Primitive: RenderPrimitive; Count: Integer);
+Procedure OpenGLES2Renderer.DrawSource(Primitive: RenderPrimitive; Count: Integer);
 Begin
   If (Count<0) Then
     Exit;
@@ -687,7 +687,7 @@ Begin
   _CurrentSource := Nil;
 End;
 
-Procedure OpenGLES2GraphicsRenderer.DrawIndexedSource(Primitive:RenderPrimitive; Count:Integer; Indices:System.PWord);
+Procedure OpenGLES2Renderer.DrawIndexedSource(Primitive:RenderPrimitive; Count:Integer; Indices:System.PWord);
 Begin
   If (Count<0) Then
     Exit;
@@ -706,12 +706,12 @@ Begin
   Inc(_Stats.TriangleCount, Count Div 3);
 End;
 
-Procedure OpenGLES2GraphicsRenderer.SetViewport(X, Y, Width, Height:Integer);
+Procedure OpenGLES2Renderer.SetViewport(X, Y, Width, Height:Integer);
 Begin
   glViewport(X,Y, Width, Height);
 End;
 
-Procedure OpenGLES2GraphicsRenderer.ResetState();
+Procedure OpenGLES2Renderer.ResetState();
 Begin
 	glEnable(GL_CULL_FACE);
 
@@ -728,7 +728,7 @@ Begin
 End;
 
 
-Function OpenGLES2GraphicsRenderer.GenerateFrameBuffer: Cardinal;
+Function OpenGLES2Renderer.GenerateFrameBuffer: Cardinal;
 Begin
   Log(logDebug, 'GraphicsManager', 'Generating a new frame buffer...');
   Repeat
@@ -740,7 +740,7 @@ Begin
     _UsedFrameBuffers[Result] := True;
 End;
 
-Function OpenGLES2GraphicsRenderer.GenerateRenderBuffer: Cardinal;
+Function OpenGLES2Renderer.GenerateRenderBuffer: Cardinal;
 Begin
   Log(logDebug, 'GraphicsManager', 'Generating a new render buffer...');
   Repeat
@@ -752,7 +752,7 @@ Begin
     _UsedRenderBuffers[Result] := True;
 End;
 
-Function OpenGLES2GraphicsRenderer.GenerateTexture: Cardinal;
+Function OpenGLES2Renderer.GenerateTexture: Cardinal;
 Begin
   Log(logDebug, 'GraphicsManager', 'Generating a new texture...');
   Repeat
@@ -764,7 +764,7 @@ Begin
     _UsedTextures[Result] := True;
 End;
 
-Procedure OpenGLES2GraphicsRenderer.DeleteFrameBuffer(Var Handle: Cardinal);
+Procedure OpenGLES2Renderer.DeleteFrameBuffer(Var Handle: Cardinal);
 Begin
   If (Handle<=0) Then
     Exit;
@@ -776,7 +776,7 @@ Begin
   Handle := 0;
 End;
 
-Procedure OpenGLES2GraphicsRenderer.DeleteRenderBuffer(Var Handle: Cardinal);
+Procedure OpenGLES2Renderer.DeleteRenderBuffer(Var Handle: Cardinal);
 Begin
   If (Handle<=0) Then
     Exit;
@@ -788,7 +788,7 @@ Begin
   Handle := 0;
 End;
 
-Procedure OpenGLES2GraphicsRenderer.DeleteTexture(Var Handle: Cardinal);
+Procedure OpenGLES2Renderer.DeleteTexture(Var Handle: Cardinal);
 Begin
   If (Handle<=0) Then
     Exit;
@@ -800,12 +800,12 @@ Begin
   Handle := 0;
 End;
 
-Procedure OpenGLES2GraphicsRenderer.SetScissorArea(X,Y, Width, Height:Integer);
+Procedure OpenGLES2Renderer.SetScissorArea(X,Y, Width, Height:Integer);
 Begin
   glScissor(X, Y, Width, Height);
 End;
 
-Procedure OpenGLES2GraphicsRenderer.SetScissorState(Enabled: Boolean);
+Procedure OpenGLES2Renderer.SetScissorState(Enabled: Boolean);
 Begin
   If Enabled Then
     glEnable(GL_SCISSOR_TEST)
@@ -813,7 +813,7 @@ Begin
     glDisable(GL_SCISSOR_TEST);
 End;
 
-Procedure OpenGLES2GraphicsRenderer.ApplyTextureFilter(Handle, TextureKind:Integer; MipMapped, ShouldGenMips:Boolean; Filter:TextureFilterMode);
+Procedure OpenGLES2Renderer.ApplyTextureFilter(Handle, TextureKind:Integer; MipMapped, ShouldGenMips:Boolean; Filter:TextureFilterMode);
 Begin
   If Handle = 0 Then
     Exit;
@@ -843,7 +843,7 @@ Begin
   End;
 End;
 
-Procedure OpenGLES2GraphicsRenderer.ApplyTextureWrap(Handle, TextureKind:Integer; WrapMode:TextureWrapMode);
+Procedure OpenGLES2Renderer.ApplyTextureWrap(Handle, TextureKind:Integer; WrapMode:TextureWrapMode);
 Begin
   If Handle = 0 Then
     Exit;
@@ -861,39 +861,39 @@ Begin
     glTexParameteri(TextureKind, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 End;
 
-Function OpenGLES2GraphicsRenderer.CreateCubeMap: CubeMapInterface;
+Function OpenGLES2Renderer.CreateCubeMap: CubeMapInterface;
 Begin
   Result := OpenGLES2CubeMap.Create(Self);
 End;
 
-Function OpenGLES2GraphicsRenderer.CreateRenderTarget: RenderTargetInterface;
+Function OpenGLES2Renderer.CreateRenderTarget: RenderTargetInterface;
 Begin
   Result := OpenGLES2FBO.Create(Self);
 End;
 
-Function OpenGLES2GraphicsRenderer.CreateTexture: TextureInterface;
+Function OpenGLES2Renderer.CreateTexture: TextureInterface;
 Begin
   Result := OpenGLES2Texture.Create(Self);
 End;
 
-Function OpenGLES2GraphicsRenderer.CreateVertexBuffer: VertexBufferInterface;
+Function OpenGLES2Renderer.CreateVertexBuffer: VertexBufferInterface;
 Begin
   Result := OpenGLES2VBO.Create(Self);
 End;
 
-Function OpenGLES2GraphicsRenderer.CreateShader: ShaderInterface;
+Function OpenGLES2Renderer.CreateShader: ShaderInterface;
 Begin
   Result := OpenGLES2Shader.Create(Self);
 End;
 
-Procedure OpenGLES2GraphicsRenderer.BeginFrame;
+Procedure OpenGLES2Renderer.BeginFrame;
 Begin
   Inherited;
 
   //glClearColor(_BackgroundColor.R/255, _BackgroundColor.G/255, _BackgroundColor.B/255, 0{_BackgroundColor.A/255});
 End;
 
-Procedure OpenGLES2GraphicsRenderer.EndFrame();
+Procedure OpenGLES2Renderer.EndFrame();
 Begin
   Inherited;
 End;

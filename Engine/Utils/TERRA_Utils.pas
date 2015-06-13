@@ -670,8 +670,10 @@ End;
 Function TimeToString(Const N:TERRATime; Const HourSep, MinSep, SecondSep:TERRAString):TERRAString;
 Begin
   Result := CardinalToString(N.Hour) + HourSep +
-            CardinalToString(N.Minute) + MinSep +
-            CardinalToString(N.Second) + SecondSep;
+            CardinalToString(N.Minute) + MinSep;
+
+  If SecondSep<>'' Then
+    Result := Result +  CardinalToString(N.Second) + SecondSep;
 End;
 
 {$IFDEF OXYGENE}
