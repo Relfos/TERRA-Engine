@@ -5956,7 +5956,7 @@ Begin
   DestMaterial.RefractionMap := SelectTexture(OtherMat.RefractionMap, _Material.RefractionMap, TextureManager.Instance.BlackTexture);
   DestMaterial.ReflectiveMap := SelectTexture(OtherMat.ReflectiveMap, _Material.ReflectiveMap, Nil);
   DestMaterial.AlphaMap := SelectTexture(OtherMat.AlphaMap, _Material.AlphaMap, TextureManager.Instance.WhiteTexture);
-  DestMaterial.LightMap := SelectTexture(OtherMat.LightMap, _Material.LightMap, TextureManager.Instance.WhiteTexture);
+  DestMaterial.LightMap := SelectTexture(OtherMat.LightMap, _Material.LightMap, Nil);
   DestMaterial.ToonRamp := SelectTexture(OtherMat.ToonRamp, _Material.ToonRamp, GraphicsManager.Instance.ToonRamp);
   DestMaterial.FlowMap := SelectTexture(OtherMat.FlowMap, _Material.FlowMap, Nil);
   DestMaterial.NoiseMap := SelectTexture(OtherMat.NoiseMap, _Material.NoiseMap, Nil);
@@ -7286,9 +7286,6 @@ Begin
     Begin
       FxFlags := FxFlags Or shaderAddSigned;
 
-      If (FxFlags And shaderVertexColor<>0) Then
-         FxFlags := FxFlags Xor shaderVertexColor;
-
       If Assigned(DestMaterial.LightMap) Then
         FxFlags := FxFlags Or shaderLightmap;
     End;
@@ -7392,6 +7389,11 @@ Begin
 
     If (DestMaterial.Ghost) Then
       FxFlags := FxFlags Or shaderGhost;
+  End;
+
+  If (Group.Flags And meshGroupLightmap<>0) And (FxFlags And shaderVertexColor<>0) And (Assigned(DestMaterial.LightMap)) Then
+  Begin
+    FxFlags := FxFlags Xor shaderVertexColor;
   End;
 
   If (Group._Owner._NormalMapping) And ((RenderStage = renderStageNormal) Or (RenderStage = renderStageDiffuse)) Then

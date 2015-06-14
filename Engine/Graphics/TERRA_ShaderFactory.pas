@@ -176,8 +176,8 @@ Begin
 	Line('varying highp vec4 local_position;');
 	Line('varying highp vec4 clip_position;');
 
-        If (FxFlags And shaderVertexColor<>0) Then
-           Line('varying lowp vec4 vertex_color;');
+  If (FxFlags And shaderVertexColor<>0) Then
+    Line('varying lowp vec4 vertex_color;');
 
 	Line('varying highp vec4 texCoord0;');
 
