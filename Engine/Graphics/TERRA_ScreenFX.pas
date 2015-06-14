@@ -869,6 +869,9 @@ Begin
     uniformPalette: Continue;
     
     uniformTexture: TypeName := 'sampler2D';
+
+    Else
+        Continue;
     End;
 
     Line('uniform highp '+ TypeName + ' ' + _Uniforms[I].Name + ';');

@@ -369,7 +369,10 @@ Begin
   If (Attribute<MaxVertexAttributes)Then
     Result := GetFormatSizeInFloats(_Formats[Attribute])
   Else
-    RaiseError('Invalid attribute: '+CardinalToString(Attribute));
+    Begin
+      Result := 0;
+      RaiseError('Invalid attribute: '+CardinalToString(Attribute));
+    End;
 End;
 
 Function VertexData.GetAttributeSizeInBytes(Attribute: Cardinal): Integer;
@@ -377,7 +380,10 @@ Begin
   If (Attribute<MaxVertexAttributes)Then
     Result := GetFormatSizeInBytes(_Formats[Attribute])
   Else
+  Begin
+    Result := 0;
     RaiseError('Invalid attribute: '+CardinalToString(Attribute));
+  End;
 End;
 
 Function VertexData.GetAttributePosition(Index, Attribute: Cardinal):Integer;
@@ -627,11 +633,10 @@ Var
   Name:TERRAString;
   Shader:ShaderInterface;
 Begin
+  Result := False;
+
   If Self._Values = Nil Then
-  Begin
-    Result := False;
     Exit;
-  End;
 
   GraphicsManager.Instance.Renderer.SetVertexSource(Self);
 

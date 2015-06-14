@@ -275,7 +275,7 @@ Begin
 
   If Not Self.ChangeDir(Path) Then
   Begin
-    EndSession(ftp_InvalidPath);
+    Result := EndSession(ftp_InvalidPath);
     Exit;
   End;
 
@@ -379,7 +379,7 @@ Begin
 
   If Not Self.ChangeDir(Path) Then
   Begin
-    EndSession(ftp_InvalidPath);
+    Result := EndSession(ftp_InvalidPath);
     Exit;
   End;
 

@@ -338,6 +338,7 @@ Var
   P:CollectionObject;
   It:Iterator;
 Begin
+  Result := False;
   It := Self.GetIterator();
   While (It.HasNext()) Do
   Begin
@@ -355,6 +356,7 @@ Var
   P:CollectionObject;
   It:Iterator;
 Begin
+  Result := False;
   It := Self.GetIterator();
   While (It.HasNext()) Do
   Begin

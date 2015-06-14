@@ -610,20 +610,24 @@ Begin
   compareGreater:     Result := GL_GREATER;
   compareDifferent:   Result := GL_NOTEQUAL;
   compareGreaterOrEqual: Result := GL_GEQUAL;
-  compareAlways:      Result := GL_ALWAYS;
+  Else
+    //compareAlways
+    Result := GL_ALWAYS;
   End;
 End;
 
 Function StencilOpToGL(Op:StencilOperation):Integer;
 Begin
   Case Op Of
-  stencilKeep:      Result := GL_KEEP;
   stencilReplace:   Result := GL_REPLACE;
   stencilIncrement: Result := GL_INCR;
   stencilDecrement: Result := GL_DECR;
   stencilInvert:    Result := GL_INVERT;
   stencilIncrementWithWrap: Result := GL_INCR_WRAP;
   stencilDecrementWithWrap: Result := GL_DECR_WRAP;
+  Else
+    //stencilKeep
+    Result := GL_KEEP;
   End;
 End;
 
@@ -632,9 +636,11 @@ Begin
   Case Primitive Of
   renderPoints:     Result := GL_POINTS;
   renderLines:      Result := GL_LINES;
-  renderTriangles:  Result := GL_TRIANGLES;
   renderLineStrip:  Result := GL_LINE_STRIP;
   renderTriangleStrip: Result := GL_TRIANGLE_STRIP;
+  Else
+      //renderTriangles
+      Result := GL_TRIANGLES;
   End;
 End;
 
@@ -642,10 +648,12 @@ Function TextureColorFormatToGL(Format:TextureColorFormat):Integer;
 Begin
   Case Format Of
   colorRGB:   Result := GL_RGB;
-  colorRGBA:  Result := GL_RGBA;
   colorBGR:   Result := GL_BGR;
   colorBGRA:   Result := GL_BGRA;
   colorAlpha: Result := GL_ALPHA; //GL_LUMINANCE;
+  Else
+      //colorRGBA
+      Result := GL_RGBA;
   End;
 End;
 
@@ -1847,7 +1855,9 @@ Begin
   cubemap_NegativeY: N := GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
 
   cubemap_PositiveZ: N := GL_TEXTURE_CUBE_MAP_POSITIVE_Z;
-  cubemap_NegativeZ: N := GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
+  Else
+  //  cubemap_NegativeZ
+    N := GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
   End;
 
   glBindTexture(GL_TEXTURE_CUBE_MAP, _Handle);

@@ -42,6 +42,9 @@ Const
   lightTypeSpot         = 2;
 
 Type
+
+  { Light }
+
   Light = Class(TERRAObject)
     Protected
       _Color:Color;
@@ -52,12 +55,15 @@ Type
       _Next:Light;
       _Frame:Integer;
 
+      _Intensity:Single;
+
       Procedure SetupUniforms(Index:Integer; Var TextureSlot:Integer); Virtual; Abstract;
 
       Procedure UpdateDistance(Target:Vector3D); Virtual;
 
+      Procedure SetIntensity(Value:Single);
+
     Public
-      Intensity:Single;
       Enabled:Boolean;
 
       Procedure Release; Override;
@@ -68,6 +74,7 @@ Type
       Property Color:TERRA_Color.Color Read _Color Write _Color;
       Property Static:Boolean Read _Static Write _Static;
       Property Priority:Integer Read _Priority Write _Priority;
+      Property Intensity:Single Read _Intensity Write SetIntensity;
   End;
 
   DirectionalLight = Class(Light)
@@ -196,7 +203,7 @@ Var
   _LightManager_Instance:ApplicationObject = Nil;
 
 { Light }
-Procedure Light.Release;
+procedure Light.Release;
 Begin
   // do nothing
 End;
@@ -582,7 +589,15 @@ Begin
   {$ENDIF}
 End;
 
-Procedure Light.UpdateDistance;
+Procedure Light.SetIntensity(Value: Single);
+Begin
+  if _Intensity =Value Then
+     Exit;
+
+  _Intensity := Value;
+End;
+
+procedure Light.UpdateDistance(Target: Vector3D);
 Begin
   _Distance := 0;
 End;

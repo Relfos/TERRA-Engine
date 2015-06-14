@@ -3059,6 +3059,7 @@ Begin
   End;
 
   _Body := PhysicsManager.Instance.CreateSphereRigidBody(Self._Scale.X, _Position, _Rotation, Mass);
+  Result := True;
 End;
 
 Function MeshInstance.GetPosition: Vector3D;
@@ -4704,6 +4705,9 @@ Begin
   Count := 0;
 
   For J:=0 To 2 Do
+      Bones[J] := 0.0;
+
+  For J:=0 To 2 Do
   If (OP[J]) Then
   Begin
     Inc(Count);
@@ -4799,7 +4803,8 @@ Var
         UseC := True;
       End;
 
-    2:Begin
+    Else
+      Begin
         UseA := True;
         UseB := False;
         UseC := True;
