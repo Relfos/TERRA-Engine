@@ -34,7 +34,7 @@ Const
   {$IFDEF MOBILE}
   MaxLightsPerMesh = 3;
   {$ELSE}
-  MaxLightsPerMesh = 1;
+  MaxLightsPerMesh = 5;
   {$ENDIF}
 
   lightTypeDirectional  = 0;

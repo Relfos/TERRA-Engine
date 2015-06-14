@@ -45,6 +45,9 @@ Const
   camDirRight     = 3;
 
 Type
+
+  { Camera }
+
   Camera = Class(TERRAObject)
     Protected
       _Name:TERRAString;
@@ -88,6 +91,8 @@ Type
       _Up:Vector3D;
       _Right:Vector3D;
 
+      _Focus:Vector3D;
+
       Procedure UpdateMatrix4x4(Eye:Integer);
 
       Function ConvertPlaneWorldToCameraSpace(Point, Normal:Vector3D):Plane;
@@ -103,9 +108,11 @@ Type
       Procedure SetupUniforms;
 
       Procedure FreeCam;
-	    Procedure Rotate(rotX, rotY:Single);
+      Procedure Rotate(rotX, rotY:Single);
 
-	    Procedure SetView(NewView:Vector3D);
+      Procedure SetFocusPoint(Const P:Vector3D);
+
+      Procedure SetView(NewView:Vector3D);
       Procedure SetPosition(NewPos:Vector3D);
       Procedure SetRoll(NewRoll:Vector3D);
 
@@ -154,6 +161,8 @@ Type
       Property Ratio:Single Read _Ratio Write SetRatio;
 
       Property UseClipPlane:Boolean Read _UseClipPlane;
+
+      Property FocusPoint:Vector3D Read _Focus Write SetFocusPoint;
   End;
 
 Implementation
@@ -161,7 +170,7 @@ Uses TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsManager, TERRA_Ren
 
 // Camera
 
-Constructor Camera.Create(Name:TERRAString);
+constructor Camera.Create(Name: TERRAString);
 Begin
   _Name := Name;
   _Roll := VectorUp;
@@ -179,26 +188,26 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Procedure Camera.SetPosition(NewPos: Vector3D);
+procedure Camera.SetPosition(NewPos: Vector3D);
 Begin
   _Position:= NewPos;
   _NeedsUpdate := True;
 End;
 
-Procedure Camera.SetView(NewView: Vector3D);
+procedure Camera.SetView(NewView: Vector3D);
 Begin
 //  NewView := VectorCreate(0,-1,0);
   _View := NewView;
   _NeedsUpdate := True;
 End;
 
-Procedure Camera.SetRoll(NewRoll: Vector3D);
+procedure Camera.SetRoll(NewRoll: Vector3D);
 Begin
   _Roll:= NewRoll;
   _NeedsUpdate := True;
 End;
 
-Procedure Camera.UpdateMatrix4x4(Eye:Integer);
+procedure Camera.UpdateMatrix4x4(Eye: Integer);
 Const
   ZoomFactor = 1;
 Var
@@ -259,7 +268,7 @@ Begin
 	_Frustum.Update(_ProjectionMatrix4x4, Self._Transform);
 End;
 
-Procedure Camera.SetOrthoScale(Value:Single);
+procedure Camera.SetOrthoScale(Value: Single);
 Begin
   If (_OrthoScale = Value) Then
     Exit;
@@ -268,7 +277,7 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Procedure Camera.SetOrthoMode(Enabled:Boolean; X1,Y1,X2,Y2:Single);
+procedure Camera.SetOrthoMode(Enabled: Boolean; X1, Y1, X2, Y2: Single);
 Begin
   If (Ortho = Enabled) Then
     Exit;
@@ -282,7 +291,7 @@ Begin
   _OrthoY2 := Y2;
 End;
 
-Procedure Camera.Update(Width, Height, Eye:Integer);
+procedure Camera.Update(Width, Height, Eye: Integer);
 Begin
   _Width := Width;
   _Height := Height;
@@ -297,7 +306,7 @@ Begin
     UpdateMatrix4x4(Eye);
 End;
 
-Procedure Camera.Rotate(rotX, rotY:Single);
+procedure Camera.Rotate(rotX, rotY: Single);
 Var
   rot_axis:Vector3D;
 Begin
@@ -313,7 +322,12 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Procedure Camera.SetupUniforms;
+Procedure Camera.SetFocusPoint(const P: Vector3D);
+Begin
+     _Focus := P;
+End;
+
+procedure Camera.SetupUniforms;
 Var
   _Shader:ShaderInterface;
   P:Vector3D;
@@ -362,7 +376,7 @@ Begin
   End;
 End;
 
-Procedure Camera.SetFOV(Value: Single);
+procedure Camera.SetFOV(Value: Single);
 Begin
   If (Value = _FOV) Then
     Exit;
@@ -371,7 +385,7 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Procedure Camera.SetFar(Value: Single);
+procedure Camera.SetFar(Value: Single);
 Begin
   If (Value = _Far) Then
     Exit;
@@ -380,7 +394,7 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Procedure Camera.SetNear(Value: Single);
+procedure Camera.SetNear(Value: Single);
 Begin
   If (Value = _Near) Then
     Exit;
@@ -389,7 +403,7 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Procedure Camera.AdjustToFit(Box: BoundingBox);
+procedure Camera.AdjustToFit(Box: BoundingBox);
 Var
   oneOverSine:Single;
   distanceToCenter:Single;
@@ -413,14 +427,14 @@ Begin
   SetView(P);
 End;
 
-Procedure Camera.LookAt(P: Vector3D);
+procedure Camera.LookAt(P: Vector3D);
 Begin
   P := VectorSubtract(P, _Position);
   P.Normalize;
   SetView(P);
 End;
 
-Procedure Camera.FreeCam;
+procedure Camera.FreeCam;
 Var
   Walk_speed:Single;
   Rot:Single;
@@ -472,7 +486,7 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Procedure Camera.Move(Dir: Integer; Speed:Single);
+procedure Camera.Move(Dir: Integer; Speed: Single);
 Begin
   Case Dir Of
     camdirForward:   _position := VectorAdd(_position, VectorScale(_view, Speed));
@@ -494,7 +508,7 @@ Begin
 End;
 
 
-Function Camera.ConvertPlaneWorldToCameraSpace(Point, Normal:Vector3D):Plane;
+function Camera.ConvertPlaneWorldToCameraSpace(Point, Normal: Vector3D): Plane;
 Var
   A,B,C,N:Single;
   pX, pY, pZ, pW:Single; //transformed point
@@ -544,7 +558,7 @@ Begin
   End;
 End;
 
-Procedure Camera.SetClipPlane(Point, Normal:Vector3D);
+procedure Camera.SetClipPlane(Point, Normal: Vector3D);
 {$IFDEF PC}
 Var
   Clip:Array[0..4] Of Double;
@@ -574,7 +588,7 @@ Begin
   UpdateMatrix4x4(0);
 End;
 
-Procedure Camera.RemoveClipPlane;
+procedure Camera.RemoveClipPlane;
 Begin
   If Not _UseClipPlane Then
     Exit;
@@ -593,7 +607,7 @@ Begin
   UpdateMatrix4x4(0);
 End;
 
-Procedure Camera.SetRatio(Value: Single);
+procedure Camera.SetRatio(Value: Single);
 Begin
   If (_Ratio = Value) Then
     Exit;
@@ -602,12 +616,12 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Procedure Camera.Refresh;
+procedure Camera.Refresh;
 Begin
   _NeedsUpdate := True;
 End;
 
-Procedure Camera.Release;
+procedure Camera.Release;
 Begin
   // do nothing
 End;

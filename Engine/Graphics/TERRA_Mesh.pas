@@ -1140,10 +1140,8 @@ Begin
     Begin
       V := MeshVertex(It.Value);
 
-      //Alpha := Trunc(V.Position.Y * 32);
-      Alpha := 32;
-      //V.Color := ColorCreate(Source.LightColor.R, Source.LightColor.G, Source.LightColor.B, Alpha);
-      V.Color := ColorCreate(255, 0, 0, 32);
+      Alpha := Trunc((1.0 - V.Position.Y) * 64);
+      V.Color := ColorCreate(Source.LightColor.R, Source.LightColor.G, Source.LightColor.B, Alpha);
       V.Position := TargetTransform.Transform(V.Position);
     End;
     ReleaseObject(It);
@@ -4139,6 +4137,12 @@ Begin
     _Shader.SetColorUniform('hue_green', Graphics.Renderer.Settings.CartoonHueGreen);
     _Shader.SetColorUniform('hue_yellow', Graphics.Renderer.Settings.CartoonHueYellow);
     _Shader.SetColorUniform('hue_purple', Graphics.Renderer.Settings.CartoonHuePurple);
+    _Shader.SetColorUniform('hue_black', Graphics.Renderer.Settings.CartoonHueBlack);
+
+    (*
+    _Shader.SetColorUniform('hue_low', ColorCreateFromFloat(304/360, 128, 128));
+    _Shader.SetColorUniform('hue_high', ColorCreateFromFloat(48/360, 128, 128));
+      *)
   End;
 
   If (_Owner.Skeleton.BoneCount > 0 ) And (Assigned(State)) And (Self.Vertices.HasAttribute(vertexBone)) Then
@@ -7219,7 +7223,7 @@ Var
   FxFlags, OutFlags:Cardinal;
   Graphics:GraphicsManager;
 Begin
-  FxFlags := 0;
+  FxFlags := shaderVertexColor;
   OutFlags := 0;
   Group._LightBatch.DirectionalLightCount := 0;
   Group._LightBatch.PointLightCount := 0;
@@ -7276,6 +7280,9 @@ Begin
     If (Group.Flags And meshGroupLightmap<>0) Then
     Begin
       FxFlags := FxFlags Or shaderAddSigned;
+
+      If (FxFlags And shaderVertexColor<>0) Then
+         FxFlags := FxFlags Xor shaderVertexColor;
 
       If Assigned(DestMaterial.LightMap) Then
         FxFlags := FxFlags Or shaderLightmap;
@@ -7335,10 +7342,11 @@ Begin
     Begin
       If (Not DisableLights) And (Group.Flags And meshGroupLightOff=0) Then
       Begin
-        If (Group._BoundingBox.Radius>50) Then
+        (*If (Group._BoundingBox.Radius>50) Then
           LightPivot := Graphics.ActiveViewport.Camera.Position
         Else
-          LightPivot := Position;
+          LightPivot := Position;    *)
+        LightPivot := Graphics.ActiveViewport.Camera.FocusPoint;
 
         Group._LightBatch := LightManager.Instance.SortLights(LightPivot, Group._BoundingBox);
       End;
@@ -7504,4 +7512,4 @@ Finalization
     _MeshManager.Release;
 End.
 
-
+

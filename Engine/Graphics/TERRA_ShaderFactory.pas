@@ -62,7 +62,7 @@ Const
   shaderNormalMap   = 1 Shl 4;
   shaderCubeMap  = 1 Shl 5;
   shaderToonRamp   = 1 Shl 6;
-  //shaderSkipAmbient = 1 Shl 7;
+  shaderVertexColor = 1 Shl 7;
   shaderScreenMask   = 1 Shl 8;
   shaderVegetation  = 1 Shl 9;
   shaderAlphaTest   = 1 Shl 10;
@@ -175,7 +175,9 @@ Begin
 	Line('varying highp vec4 world_position;');
 	Line('varying highp vec4 local_position;');
 	Line('varying highp vec4 clip_position;');
-  Line('varying lowp vec4 vertex_color;');
+
+        If (FxFlags And shaderVertexColor<>0) Then
+           Line('varying lowp vec4 vertex_color;');
 
 	Line('varying highp vec4 texCoord0;');
 
@@ -701,7 +703,8 @@ Begin
   {$ENDIF}
 
 
-  Line('  vertex_color = terra_color;');
+  If (FxFlags And shaderVertexColor<>0) Then
+     Line('  vertex_color = terra_color;');
 
   If (FxFlags And shaderFresnelTerm<>0) And (FxFlags And shaderTextureMatrix<>0)Then
     Line('  lightCoord = textureMatrix * terra_UV1;')
@@ -781,12 +784,55 @@ Begin
       Line('vec3 yFinalColor = vec3(yColor.r, chroma * cos(finalHue), chroma * sin(finalHue));');
       Line('return yiq2rgb*yFinalColor;}');*)
 
+    (*
+    Line('lowp vec3 rgb2hsv(vec3 c){');
+    Line('lowp vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);');
+    Line('lowp vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));');
+    Line('lowp vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));');
+    Line('lowp float d = q.x - min(q.w, q.y);');
+    Line('lowp float e = 1.0e-10;');
+    Line('return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);}');
+
+    Line('lowp vec3 hsv2rgb(vec3 c){');
+    Line('lowp vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);');
+    Line('lowp vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);');
+    Line('return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);}');
+      *)
+
+      (*Line('  uniform mediump vec4 hue_low;');
+      Line('  uniform mediump vec4 hue_high;');            *)
+
       Line('  uniform mediump vec4 hue_yellow;');
       Line('  uniform mediump vec4 hue_green ;');
       Line('  uniform mediump vec4 hue_purple;');
-
+      Line('  uniform mediump vec4 hue_black;');
     	Line('mediump vec4 cartoonHueAdjust(mediump vec4 color, mediump vec4 shade)	{');
 
+        (*
+        Line('lowp vec4 target_mid = shade * color;');
+        Line('lowp float gray = dot(target_mid.rgb, vec3(0.299, 0.587, 0.114)); ');
+
+
+        Line('lowp vec3 hue_color = rgb2hsv(target_mid.rgb);');
+        Line('lowp vec4 target_low = vec4(hue_low.x, (hue_low.y + hue_color.y) * 0.5, hue_color.z, color.a);');
+        Line('lowp vec4 target_high = vec4(hue_high.x, (hue_high.y + hue_color.y) * 0.5, hue_color.z, color.a);');
+
+        Line('target_low.rgb = hsv2rgb(target_low.rgb);');
+        Line('target_high.rgb = hsv2rgb(target_high.rgb);');
+
+        Line('lowp vec4 weight_low;');
+        Line('lowp vec4 weight_high;');
+        //lowp float g = hue_color.z;');
+
+        Line('if (gray<=0.5) { weight_low = 1.0 - (shade * 2.0);  weight_high = vec4(0.0); } ');
+        Line('else { weight_high = ((shade - 0.5) * 2.0);  weight_low = vec4(0.0); }');
+
+        Line(' lowp vec4 weight_mid = vec4(1.0) - (weight_low + weight_high);');
+        Line('return target_low * weight_low + target_mid * weight_mid + target_high * weight_high; }');
+
+
+        //Line('return target_low;}');
+          *)
 (*      Line('  color = ShiftHue(color, -90.0);');
       Line('return color; }');*)
 
@@ -796,16 +842,30 @@ Begin
       Line('  mediump vec3 green = vec3(0.25, 1.0, 0.25);');
       *)
 
+
       Line('  mediump vec4 SA = mix(hue_green, hue_yellow, shade);');
       Line('  mediump vec4 SB = mix(hue_purple, hue_yellow, shade);');
+
+      Line(' lowp float gray = 1.0 - dot(shade.rgb, vec3(0.299, 0.587, 0.114));');
+      Line('   if (gray<0.75) { gray = 0.0;} else { gray -= 0.75; gray *= 4.0;} ');
 
       Line('  shade -= 0.5;');
       Line('  shade *= 0.5;');
       Line('  mediump vec4 temp = clamp(color + shade * SA, 0.0, 1.0);	');
-      Line('return mix(SB, temp, 0.75); }');
+      Line('  lowp vec4 result = mix(SB, temp, 0.75);');
+      Line('return max(vec4(0.0), result - hue_black * gray);}');
+
+      (*Line('lowp vec4 target_mid = shade * color;');
+      Line('lowp float target_gray = dot(target_mid.rgb, vec3(0.299, 0.587, 0.114)); ');
+      Line('  lowp flo distance = abs(0.5 - target_gray) * 2.0;');
+      Line('  return mix(SB, temp, distance); }');
+       *)
+
+(*      Line('     gray = max(gray, 0.75);');
+     *)
+      //Line('return mix(result, target_mid, gray); }');
       //Line('return SB; }');
       //Line('return temp; }');
-
 
   End;
 
@@ -848,10 +908,7 @@ Begin
 
     If (Lights.SpotLightCount>0) Then
     Begin
-      If (FogFlags<>0) Then
-        Line('lowp vec4 spotLight(lowp float fogFactor, highp vec3 lightPosition, lowp vec4 lightColor, mediump vec3 lightDir, mediump float cos_inner_cone_angle, mediump float cos_outer_cone_angle, mat4 lightMatrix, lowp sampler2D cookieTex){')
-      Else
-        Line('lowp vec4 spotLight(highp vec3 lightPosition, lowp vec4 lightColor, mediump vec3 lightDir, mediump float cos_inner_cone_angle, mediump float cos_outer_cone_angle, mat4 lightMatrix, lowp sampler2D cookieTex){');
+         Line('lowp vec4 spotLight(highp vec3 lightPosition, lowp vec4 lightColor, mediump vec3 lightDir, mediump float cos_inner_cone_angle, mediump float cos_outer_cone_angle, mat4 lightMatrix, lowp sampler2D cookieTex){');
       Line('  mediump vec3 direction = lightPosition - world_position.xyz;');
       Line('  highp float dist = length(direction);');
       Line('  direction /= dist;');
@@ -876,28 +933,13 @@ Begin
 
     If (Lights.PointLightCount>0) Then
     Begin
-      If (FogFlags<>0) Then
-        S2 := 'lowp float fogFactor, '
-      Else
-        S2 := '';
-
-      Line('lowp vec4 pointLight('+S2+'highp vec3 lightPosition, lowp vec4 lightColor, highp float radius, lowp float shadow){');
+      Line('lowp vec4 pointLight(highp vec3 lightPosition, lowp vec4 lightColor, highp float radius){');
       Line('  highp vec3 direction = lightPosition - world_position.xyz;');
       Line('  highp float dist = length(direction);');
       Line('  highp float att = 1.0 - min(dist*radius, 1.0);');
       Line('  direction /= dist;');
 
-      Line('  lowp vec4 result = diffuse * lightColor;');
-
-      If (LightModel <> lightModelSimple) Then
-      Begin
-        Line('  mediump float shading = halfDot(normal, direction) * shadow;');
-        CustomShading(FxFlags, OutFlags, FogFlags);
-      End Else
-      Begin
-      End;
-
-      Line('  return result *att;	}');
+      Line('  return halfDot(normal, direction) * att * lightColor;}');
     End;
 
   // 8x8 Bayer ordered dithering pattern.
@@ -941,9 +983,6 @@ Begin
       Else
         S2 := '';
 
-      If (FogFlags<>0) Then
-    	  Line('lowp vec4 directionalLight(lowp float fogFactor, highp vec3 direction, lowp vec4 lightColor'+S2+'){')
-      Else
     	  Line('lowp vec4 directionalLight(highp vec3 direction, lowp vec4 lightColor'+S2+'){');
 
       Line('  mediump float shading = halfDot(normal, direction);');
@@ -1100,7 +1139,10 @@ Begin
   If (OutFlags And shader_OutputOutline<>0) Then
   Begin
         Line('  diffuse = texture2D(diffuseMap, localUV);');
-        Line('  diffuse *= vertex_color; ');
+
+        If (FxFlags And shaderVertexColor<>0) Then
+           Line('  diffuse *= vertex_color; ');
+
         Line('diffuse *= diffuse_color;');
         If (FxFlags and shaderAlphaTest<>0) Then
           Line('  if (diffuse.a<0.1) discard;');
@@ -1115,7 +1157,9 @@ Begin
     Line('  color.rgb = normal * 0.5 + 0.5;');
 
     Line('  diffuse = texture2D(diffuseMap, localUV);');
-    Line('  diffuse *= vertex_color; ');
+
+    If (FxFlags And shaderVertexColor<>0) Then
+       Line('  diffuse *= vertex_color; ');
 
     If (FxFlags and shaderAlphaTest<>0) Then
       Line('  if (diffuse.a<0.1) discard;');
@@ -1127,7 +1171,9 @@ Begin
     Line('  color.rgb = normal * 0.5 + 0.5;');
 
     Line('  diffuse = texture2D(diffuseMap, localUV);');
-    Line('  diffuse *= vertex_color; ');
+
+    If (FxFlags And shaderVertexColor<>0) Then
+       Line('  diffuse *= vertex_color; ');
 
     //If (Flags and shaderAlphaTest<>0) Then
     Line('  if (diffuse.a<0.3) discard;');
@@ -1194,12 +1240,12 @@ Begin
       Line('  diffuse.rgb = mix(diffuse.rgb, decalColor.rgb, decalColor.a);');
     End;
 
-    If (FxFlags and shaderShadowMap = 0) Then
+    If (FxFlags And shaderVertexColor<>0) Then
     Begin
-      If (FxFlags and shaderAddSigned<>0) Then
-        Line('diffuse.rgb += (vertex_color.rgb - 0.5);')
-      Else
-        Line('  diffuse *= vertex_color; ');
+         If (FxFlags and shaderAddSigned<>0) Then
+            Line('diffuse.rgb += (vertex_color.rgb - 0.5);')
+         Else
+            Line('  diffuse *= vertex_color; ');
     End;
 
     If (FxFlags and shaderAlphaTest<>0) Then
@@ -1236,11 +1282,6 @@ Begin
       Line('diffuse *= diffuse_color;');
     End;
 
-    If (FogFlags<>0) Then
-      S2 := 'fogFactor, '
-    Else
-      S2 := '';
-
     If (FxFlags and shaderShadowMap<>0) Then
     Begin
       Line('lowp float shadow = texture2D('+ShadowMapUniformName +', screen_position.xy).r;');
@@ -1262,7 +1303,7 @@ Begin
       End;
 
       If Lights.DirectionalLightCount>0 Then
-        Line('  color = directionalLight('+S2+'dlightDirection'+IntToString(I)+', dlightColor'+IntToString(I)+', localUV, colorIndex);');
+        Line('  color = directionalLight(dlightDirection'+IntToString(I)+', dlightColor'+IntToString(I)+', localUV, colorIndex);');
     End Else
     If (FxFlags And shaderSelfIllumn<>0) Then
     Begin
@@ -1270,13 +1311,13 @@ Begin
     End Else
     Begin
       For I:=1 To Lights.DirectionalLightCount Do
-        Line('  lightAccum += directionalLight('+S2+'dlightDirection'+IntToString(I)+', dlightColor'+IntToString(I)+');');
+        Line('  lightAccum += directionalLight(dlightDirection'+IntToString(I)+', dlightColor'+IntToString(I)+');');
 
       For I:=1 To Lights.PointLightCount Do
-        Line('  lightAccum += pointLight('+S2+'plightPosition'+IntToString(I)+', plightColor'+IntToString(I)+', plightRadius'+IntToString(I)+');');
+        Line('  lightAccum += pointLight(plightPosition'+IntToString(I)+', plightColor'+IntToString(I)+', plightRadius'+IntToString(I)+');');
 
       For I:=1 To Lights.SpotLightCount Do
-        Line('  lightAccum += spotLight('+S2+'slightPosition'+IntToString(I)+', slightColor'+IntToString(I)+', slightDirection'+IntToString(I)+', slightCosInnerAngle'+IntToString(I)+', slightCosOuterAngle'+IntToString(I)+', slightMatrix'+IntToString(I)+', slightCookie'+IntToString(I)+');');
+        Line('  lightAccum += spotLight(slightPosition'+IntToString(I)+', slightColor'+IntToString(I)+', slightDirection'+IntToString(I)+', slightCosInnerAngle'+IntToString(I)+', slightCosOuterAngle'+IntToString(I)+', slightMatrix'+IntToString(I)+', slightCookie'+IntToString(I)+');');
 
       Line('  lightAccum *= shadow;');        
 

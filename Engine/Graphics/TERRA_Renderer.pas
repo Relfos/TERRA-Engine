@@ -444,6 +444,7 @@ Type
       CartoonHueGreen:Color;
       CartoonHueYellow:Color;
       CartoonHuePurple:Color;
+      CartoonHueBlack:Color;
 
       FogMode:Integer;
       FogColor:Color;
@@ -1063,6 +1064,7 @@ Begin
   Settings.CartoonHueGreen := ColorCreate(64, 255, 64);
   Settings.CartoonHueYellow := ColorCreate(255, 255, 64);
   Settings.CartoonHuePurple := ColorCreate(255, 64, 255);
+  Settings.CartoonHueBlack := ColorNull;
 
   Settings._Changed := True;
 End;
