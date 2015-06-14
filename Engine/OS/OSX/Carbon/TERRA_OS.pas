@@ -100,6 +100,9 @@ Type
 
       Procedure UpdateScreenSize();
 
+
+      Procedure MoveToBundleFolder(); Virtual;
+
       Function IsDebuggerPresent():Boolean; Override;
    Public
       Constructor Create();
@@ -705,24 +708,23 @@ Const
   BundleResourceFolder = '/Contents/Resources/';
   PListFileName = '../Info.plist';
 
-function CarbonApplication.InitSettings: Boolean;
-Var
-  loc:CFLocaleRef;
-  countryCode:CFStringRef;
-  langs:CFArrayRef;
-  langCode:CFStringRef;
+{
+CFStringRef ver = CFBundleGetValueForInfoDictionaryKey(
+                      CFBundleGetMainBundle(),
+                      kCFBundleVersionKey);
+NSString *appVersion = (NSString *)ver;
+}
 
+Procedure CarbonApplication.MoveToBundleFolder();
+Var
   pathRef: CFURLRef;
   pathCFStr: CFStringRef;
   pathStr: shortstring;
   pathMedia:TERRAString;
-
-  Temp:Array[0..255] Of AnsiChar;
-
+  BundleRef:CFBundleRef;
 Begin
-  Inherited InitSettings;
-
-  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  BundleRef := CFBundleGetMainBundle();
+  pathRef := CFBundleCopyBundleURL(BundleRef);
   pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
   CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
   CFRelease(pathRef);
@@ -730,6 +732,22 @@ Begin
 
   pathMedia := pathStr + BundleResourceFolder;
   ChDir(PathMedia);
+
+End;
+
+function CarbonApplication.InitSettings: Boolean;
+Var
+  loc:CFLocaleRef;
+  countryCode:CFStringRef;
+  langs:CFArrayRef;
+  langCode:CFStringRef;
+
+  Temp:Array[0..255] Of AnsiChar;
+
+Begin
+  Inherited InitSettings;
+
+  MoveToBundleFolder();
 
   _DocumentPath := GetDocumentsFolder();
   _StoragePath := _DocumentPath;

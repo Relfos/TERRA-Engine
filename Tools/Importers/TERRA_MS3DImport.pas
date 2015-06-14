@@ -590,7 +590,7 @@ Begin
 
       If (MS3D.Groups[N].MaterialIndex>=0) Then
       Begin
-		    Group.DiffuseColor := ColorCreate(
+		    Group.DiffuseColor := ColorCreateFromFloat(
                   MS3D.Materials[MS3D.Groups[N].MaterialIndex].Diffuse.R,
 		              MS3D.Materials[MS3D.Groups[N].MaterialIndex].Diffuse.G,
 		              MS3D.Materials[MS3D.Groups[N].MaterialIndex].Diffuse.B,

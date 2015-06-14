@@ -17,6 +17,11 @@ Type
 
       Function SetFullscreenMode(UseFullScreen:Boolean):Boolean; Override;
 
+
+      {$IFDEF OSX}
+      Procedure MoveToBundleFolder(); Override;
+      {$ENDIF}
+
     Public
       Constructor Create();
 
@@ -118,6 +123,13 @@ Function ConsoleApplication.SelectRenderer: Integer;
 Begin
   Result := 0; // select null renderer
 End;
+
+{$IFDEF OSX}
+Procedure ConsoleApplication.MoveToBundleFolder();
+Begin
+ // do nothing
+End;
+{$ENDIF}
 
 Procedure ConsoleApplication.LogToConsole(const Text: TERRAString);
 Var
