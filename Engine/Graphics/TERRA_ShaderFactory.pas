@@ -1336,7 +1336,7 @@ Begin
         If (FxFlags And shaderCartoonHue<>0) Then
           Line('  color = cartoonHueAdjust(diffuse * shadow, lightAccum * shadow);')
         Else
-          Line('  color = diffuse * shadow * lightAccum);');
+          Line('  color = diffuse * shadow * lightAccum;');
         //Line('  color = color * shadow + screen_blend(vec4(shadow), color);');
     End;
 
