@@ -7338,7 +7338,7 @@ Begin
 
     If (Group.Flags And meshGroupLightmap<>0) Then
     Begin
-      FxFlags := FxFlags Or shaderAddSigned {Or shaderSelfIllumn};
+      //FxFlags := FxFlags Or shaderAddSigned {Or shaderSelfIllumn};
       DisableLights := True;
     End Else
     Begin
@@ -7411,6 +7411,11 @@ Begin
   If (Group.Flags And meshGroupColorOff<>0) Then
   Begin
     FxFlags := shaderColorOff;
+  End;
+
+  If RenderStage = renderStageDiffuse Then
+  Begin
+    FxFlags := FxFlags Or shaderAddSigned;
   End;
 
   If (Group.Flags And meshGroupWaterMap<>0) And (DestMaterial.FlowMap <> Nil) Then

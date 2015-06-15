@@ -728,7 +728,7 @@ Begin
   Self._TargetX2 := 1.0;
   Self._TargetY2 := 1.0;
 
-  Self.DrawToTarget(False);
+  Self.DrawToTarget(True);
 
   Self._Target := TempTarget;
 
@@ -765,7 +765,7 @@ Begin
   If (Integer(ShowID) >= TotalCaptureTargets) Then
     ShowID := captureTargetColor;
 
-  If (Assigned(_FXChain)) Then
+  If (Assigned(_FXChain)) And (ShowID = captureTargetInvalid) Then
   Begin
     If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
     Begin
@@ -787,7 +787,6 @@ Begin
 
   If (ShowID = captureTargetInvalid) Or (Not AllowDebug) Then
     ShowID := captureTargetColor;
-
   {$ELSE}
   ShowID := captureTargetColor;
   {$ENDIF}
@@ -1004,16 +1003,7 @@ Begin
     Exit;
   End;
 
-  ShowID := GraphicsManager.Instance.ShowDebugTarget;
-  If (ShowID = captureTargetInvalid) Or (Integer(ShowID) >= TotalCaptureTargets) Then
-    Result := Self._ResolveTexture
-  Else
-  Begin
-    If (_RenderBuffers[Integer(ShowID)] = Nil) Then
-      Self.SetRenderTargetState(ShowID, True);
-
-    Result := Self.GetRenderTexture(ShowID);
-  End;
+  Result := Self._ResolveTexture;
 End;
 
 {$IFDEF POSTPROCESSING}

@@ -855,6 +855,8 @@ Begin
       Line('  lowp vec4 result = mix(SB, temp, 0.75);');
       Line('return max(vec4(0.0), result - hue_black * gray);}');
 
+
+
       (*Line('lowp vec4 target_mid = shade * color;');
       Line('lowp float target_gray = dot(target_mid.rgb, vec3(0.299, 0.587, 0.114)); ');
       Line('  lowp flo distance = abs(0.5 - target_gray) * 2.0;');
@@ -1044,6 +1046,12 @@ Begin
   If (FxFlags And shaderColorTable<>0) Then
     Line(GetColorTableShaderCode());
 
+  If (OutFlags And shader_OutputDiffuse<>0) Then
+  Begin
+    Line('vec4 screen_blend(vec4 target, vec4 blend){');
+    Line('return 1.0 - (1.0 - target) * (1.0 - blend);}');
+  End;
+
 	Line('void main()	{');
 
   If (FxFlags and shaderShadowMap<>0) Or (OutFlags <>shader_OutputDiffuse) Then
@@ -1191,10 +1199,16 @@ Begin
   If (OutFlags And shader_OutputShadow<>0) Then
   Begin
     Line('  diffuse = texture2D(diffuseMap, localUV);');
-    
+
     If (FxFlags and shaderLightmap<>0) Then
     Begin
       Line('  color = texture2D(lightMap, lightCoord.st);');
+
+      If (FxFlags and shaderAddSigned<>0) Then
+      Begin
+        Line('  color += (color - 0.5);');
+      End;
+
       Line('  color.a = diffuse.a;');
     End Else
       Line('  color = vec4(diffuse_color.r, diffuse_color.g, diffuse_color.b, diffuse.a);');
@@ -1242,9 +1256,9 @@ Begin
 
     If (FxFlags And shaderVertexColor<>0) Then
     Begin
-         If (FxFlags and shaderAddSigned<>0) Then
+(*         If (FxFlags and shaderAddSigned<>0) Then
             Line('diffuse.rgb += (vertex_color.rgb - 0.5);')
-         Else
+         Else*)
             Line('  diffuse *= vertex_color; ');
     End;
 
@@ -1319,15 +1333,11 @@ Begin
       For I:=1 To Lights.SpotLightCount Do
         Line('  lightAccum += spotLight(slightPosition'+IntToString(I)+', slightColor'+IntToString(I)+', slightDirection'+IntToString(I)+', slightCosInnerAngle'+IntToString(I)+', slightCosOuterAngle'+IntToString(I)+', slightMatrix'+IntToString(I)+', slightCookie'+IntToString(I)+');');
 
-      Line('  lightAccum *= shadow;');        
-
-      If (FxFlags And shaderCartoonHue<>0) Then
-        Line('  color = cartoonHueAdjust(diffuse, lightAccum);')
-      Else
-        Line('  color = diffuse * lightAccum;');
-
-      If (FxFlags and shaderAddSigned<>0) Then
-        Line('  color += vec4(shadow) - vec4(0.5);')
+        If (FxFlags And shaderCartoonHue<>0) Then
+          Line('  color = cartoonHueAdjust(diffuse * shadow, lightAccum * shadow);')
+        Else
+          Line('  color = diffuse * shadow * lightAccum);');
+        //Line('  color = color * shadow + screen_blend(vec4(shadow), color);');
     End;
 
     If (FxFlags and shaderFresnelTerm <> 0) Then
