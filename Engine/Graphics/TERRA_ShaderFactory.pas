@@ -1046,11 +1046,11 @@ Begin
   If (FxFlags And shaderColorTable<>0) Then
     Line(GetColorTableShaderCode());
 
-  If (OutFlags And shader_OutputDiffuse<>0) Then
+(*  If (OutFlags And shader_OutputDiffuse<>0) Then
   Begin
     Line('vec4 screen_blend(vec4 target, vec4 blend){');
     Line('return 1.0 - (1.0 - target) * (1.0 - blend);}');
-  End;
+  End;*)
 
 	Line('void main()	{');
 
