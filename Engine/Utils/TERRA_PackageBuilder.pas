@@ -161,7 +161,7 @@ Begin
 
   Result := ResourceBuilderInfo.Create(ResourceFileName, Self);
 
-  Resources.Add(Result)
+  Resources.Add(Result);
 End;
 
 //Removes a resource from the package
