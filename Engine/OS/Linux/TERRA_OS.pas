@@ -36,20 +36,18 @@ Const
 
 	keyInsert     = 45;
 	keyDelete     = 46;
-
-	keyF1         = 67;
-	keyF2         = 68;
-	keyF3         = 69;
-	keyF4         = 70;
-	keyF5         = 71;
-	keyF6         = 72;
-	keyF7         = 73;
-	keyF8         = 74;
-	keyF9         = 75;
-	keyF10        = 76;
-	keyF11        = 77;
-	keyF12        = 78;
-
+	keyF1         = 112;
+	keyF2         = 113;
+	keyF3         = 114;
+	keyF4         = 115;
+	keyF5         = 116;
+	keyF6         = 117;
+	keyF7         = 118;
+	keyF8         = 119;
+	keyF9         = 120;
+	keyF10        = 121;
+	keyF11        = 122;
+	keyF12        = 123;
 
   keyA = Ord('A');
   keyB = Ord('B');
