@@ -1204,10 +1204,10 @@ Begin
     Begin
       Line('  color = texture2D(lightMap, lightCoord.st);');
 
-      If (FxFlags and shaderAddSigned<>0) Then
+(*      If (FxFlags and shaderAddSigned<>0) Then
       Begin
         Line('  color += (color - 0.5);');
-      End;
+      End;*)
 
       Line('  color.a = diffuse.a;');
     End Else

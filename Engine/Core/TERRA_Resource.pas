@@ -59,9 +59,12 @@ Type
       Class Function GetManager:Pointer; Virtual;
 
       Function Load(MyStream:Stream):Boolean; Virtual;Abstract;
+      Function LoadFromFile(Const FileName:TERRAString):Boolean;
+
       Function Unload:Boolean; Virtual;
       Function Update:Boolean; Virtual;
       Procedure OnContextLost(); Virtual;
+
 
       Function ToString():TERRAString; Override;
 
@@ -79,7 +82,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Utils, TERRA_ResourceManager, TERRA_FileStream, TERRA_GraphicsManager,
-  TERRA_FileUtils, TERRA_Application;
+  TERRA_FileUtils, TERRA_Application, TERRA_FileManager;
 
 Procedure Resource.CopyValue(Other: CollectionObject);
 Begin
@@ -256,6 +259,15 @@ End;
 Function Resource.ShouldUnload: Boolean;
 Begin
   Result := (Application.GetTime() - Self.Time > ResourceDiscardTime);
+End;
+
+Function Resource.LoadFromFile(const FileName: TERRAString): Boolean;
+Var
+  Src:Stream;
+Begin
+  Src := FileManager.Instance.OpenStream(FileName);
+  Self.Load(Src);
+  ReleaseObject(Src);
 End;
 
 End.
