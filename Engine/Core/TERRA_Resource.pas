@@ -265,8 +265,9 @@ Function Resource.LoadFromFile(const FileName: TERRAString): Boolean;
 Var
   Src:Stream;
 Begin
+  Self.Unload();
   Src := FileManager.Instance.OpenStream(FileName);
-  Self.Load(Src);
+  Result := Self.Load(Src);
   ReleaseObject(Src);
 End;
 

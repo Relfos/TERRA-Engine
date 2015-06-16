@@ -219,6 +219,7 @@ Procedure TextureManager.Init;
 Begin
   Inherited;
 
+  Self.AutoUnload := True;
   //Self.UseThreads := True;
 End;
 

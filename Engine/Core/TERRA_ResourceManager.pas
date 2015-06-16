@@ -196,11 +196,8 @@ Begin
 {$ENDIF}
 
   UseThreads := False;
-  {$IFDEF MOBILE}
-  AutoUnload := True;
-  {$ELSE}
+
   AutoUnload := False;
-  {$ENDIF}
 
   Log(logDebug, 'Resource', 'This resource manager is ready to go!');
 End;

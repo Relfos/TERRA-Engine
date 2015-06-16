@@ -86,6 +86,8 @@ Var
 Begin
   Inherited;
 
+  Self.AutoUnload := True;
+
   LoadOpenAL();
 
   //Open default sound device
