@@ -179,7 +179,9 @@ Type
 		  _Active:Boolean;
 		  _ThreadCount:Integer;
 
+      {$IFNDEF DISABLETHREADS}
       _MainThread:Cardinal;
+      {$ENDIF}
 
       _CriticalSection:CriticalSection;
       _Semaphore:Semaphore;
@@ -504,7 +506,9 @@ Begin
   _PendingTaskCount := 0;
   _RunningTaskCount := 0;
 
+  {$IFNDEF DISABLETHREADS}
   _MainThread := Cardinal(GetCurrentThreadId());
+  {$ENDIF}
 
   SetLength(_Threads, _MaxThreads);
 	For I:=0 To Pred(_MaxThreads) Do
