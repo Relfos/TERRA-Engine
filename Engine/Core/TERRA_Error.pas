@@ -29,7 +29,7 @@ Interface
 Uses TERRA_String;
 
 Var
-  _FatalError:Boolean;
+  _FatalError:TERRAString = '';
 
 Procedure RaiseError(Const Desc:TERRAString);
 
@@ -97,10 +97,10 @@ Var
   CallStack:TERRAString;
   {$ENDIF}
 Begin
-  If _FatalError Then
+  If _FatalError<>'' Then
     Exit;
 
-  _FatalError := True;
+  _FatalError := Desc;
 
   ForceLogFlush := True;
 

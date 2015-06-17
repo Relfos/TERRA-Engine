@@ -825,7 +825,7 @@ Begin
 
   _PauseCounter := 0;
 
-  _FatalError := False;
+  _FatalError := '';
   _Application_Ready := True;
   Self.Run();
 End;
@@ -963,7 +963,7 @@ Begin
       Begin
         Self.ProcessEvents();
 
-        If _FatalError Then
+        If _FatalError<>'' Then
         Begin
           {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logWarning, 'App', 'Fatal error!!!!');{$ENDIF}{$ENDIF}
           If (InputManager.Instance.Keys.IsDown(keyEscape)) Then
@@ -1398,7 +1398,7 @@ End;
 
 Function BaseApplication.HasFatalError: Boolean;
 Begin
-  Result := _FatalError;
+  Result := _FatalError<>'';
 End;
 
 procedure BaseApplication.UpdateContextLost;
