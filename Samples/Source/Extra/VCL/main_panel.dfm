@@ -28,4 +28,19 @@ object Form1: TForm1
     Height = 305
     TabOrder = 0
   end
+  object Button1: TButton
+    Left = 24
+    Top = 336
+    Width = 89
+    Height = 41
+    Caption = 'Load'
+    TabOrder = 1
+    OnClick = Button1Click
+  end
+  object OpenDialog1: TOpenDialog
+    Filter = 'Image files|*.png'
+    Options = [ofHideReadOnly, ofNoChangeDir, ofEnableSizing]
+    Left = 24
+    Top = 392
+  end
 end

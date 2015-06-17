@@ -116,6 +116,7 @@ Type
       Function GetImage():Image;
       Function GetPixel(X,Y:Integer):Color; Virtual;
 
+      Class Function LoadFromFile(Const FileName:TERRAString):Texture;
 
       //Property Format:Cardinal Read _Format;
 
@@ -1070,5 +1071,18 @@ Begin
   Result := Self.Current.Origin;
 End;
 
+Class Function Texture.LoadFromFile(const FileName: TERRAString): Texture;
+Var
+  Src:Stream;
+Begin
+  Src := FileManager.Instance.OpenStream(FileName);
+  If Assigned(Src) Then
+  Begin
+    Result := Texture.Create();
+    Result.Load(Src);
+    ReleaseObject(Src);
+  End Else
+    Result := Nil;
+End;
 
 End.

@@ -483,7 +483,7 @@ Begin
     Result := MyPackage.LoadResource(Resource);
   End Else
   Begin
-    If (Application.Instance = Nil) And (FileStream.Exists(FileName)) Then
+    If (FileStream.Exists(FileName)) Then
     Begin
       Result := FileStream.Open(FileName, Mode);
       Exit;

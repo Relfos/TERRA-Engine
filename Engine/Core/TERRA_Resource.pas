@@ -59,12 +59,9 @@ Type
       Class Function GetManager:Pointer; Virtual;
 
       Function Load(MyStream:Stream):Boolean; Virtual;Abstract;
-      Function LoadFromFile(Const FileName:TERRAString):Boolean;
-
       Function Unload:Boolean; Virtual;
       Function Update:Boolean; Virtual;
       Procedure OnContextLost(); Virtual;
-
 
       Function ToString():TERRAString; Override;
 
@@ -259,16 +256,6 @@ End;
 Function Resource.ShouldUnload: Boolean;
 Begin
   Result := (Application.GetTime() - Self.Time > ResourceDiscardTime);
-End;
-
-Function Resource.LoadFromFile(const FileName: TERRAString): Boolean;
-Var
-  Src:Stream;
-Begin
-  Self.Unload();
-  Src := FileManager.Instance.OpenStream(FileName);
-  Result := Self.Load(Src);
-  ReleaseObject(Src);
 End;
 
 End.
