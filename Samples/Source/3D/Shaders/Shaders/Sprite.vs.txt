@@ -1,0 +1,13 @@
+varying mediump vec2 texCoord;
+  varying lowp vec4 color;
+  varying lowp float saturation;
+  attribute highp vec4 terra_position;
+  attribute mediump vec3 terra_UV0;
+  attribute lowp vec4 terra_color;
+  attribute lowp float terra_saturation;
+  uniform mat4 projectionMatrix;
+void main()	{
+  gl_Position =  projectionMatrix * terra_position;
+  texCoord = terra_UV0.xy;
+  saturation = terra_saturation;
+  color = terra_color;}

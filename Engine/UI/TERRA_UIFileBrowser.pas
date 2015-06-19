@@ -26,8 +26,9 @@ Unit TERRA_UIFileBrowser;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_UI, TERRA_Widgets, TERRA_FileSearch, TERRA_Collections, 
-  TERRA_Vector2D, TERRA_Vector3D, TERRA_Color, TERRA_SpriteManager, TERRA_ClipRect;
+Uses TERRA_String, TERRA_Utils, TERRA_UI, TERRA_FileSearch, TERRA_Collections,
+  TERRA_Vector2D, TERRA_Vector3D, TERRA_Color, TERRA_SpriteManager, TERRA_ClipRect,
+  TERRA_UISkin, TERRA_UIWindow, TERRA_UIScrollbar;
 
 Type
   UIFileBrowser = Class(UIWindow)
@@ -45,12 +46,6 @@ Type
       _TopBorder:Single;
       _BottomBorder:Single;
 
-      _ExtraWndBorder:Single;
-      _ExtraScrollBorder:Single;
-
-      _IconFolder:Integer;
-      _IconFile:Integer;
-
       _ListSubFolders:Boolean;
       _SourceChanged:Boolean;
       _Folder:TERRAString;
@@ -66,8 +61,7 @@ Type
       Procedure CreateButtons(); Virtual;
 
     Public
-
-      Constructor Create(Name:TERRAString; UI:UI; X,Y,Z:Single; Width, Height:Integer; ComponentBG:TERRAString=''); Overload;
+      Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Const Width, Height:UIDimension; Const ComponentName:TERRAString);
 
       Procedure Render; Override;
 
@@ -81,11 +75,12 @@ Type
   End;
 
 Implementation
+Uses TERRA_Error;
 
 { UIFileBrowser }
-Constructor UIFileBrowser.Create(Name:TERRAString; UI:UI; X, Y, Z: Single; Width, Height: Integer; ComponentBG:TERRAString);
+Constructor UIFileBrowser.Create(Name:TERRAString; Parent:Widget; X, Y, Z: Single; Const Width, Height:UIDimension; Const ComponentName:TERRAString);
 Begin
-  Inherited Create(Name, UI, X, Y, Z, Width, Height, ComponentBG);
+  Inherited Create(Name, Parent, X, Y, Z, Width, Height, ComponentName);
 
   _BorderX := 20;
   _BorderY := 20;
@@ -93,16 +88,14 @@ Begin
   _TopBorder := 0;
   _BottomBorder := 0;
 
-  _IconFolder := Self.LoadComponent('ui_folder');
-  _IconFile := Self.LoadComponent('ui_file');
+{  _IconFolder := Self.LoadComponent('ui_folder');
+  _IconFile := Self.LoadComponent('ui_file');}
 
   _ListSubFolders := True;
 
-  _InnerWnd := UIWindow.Create(Name+'_inner', UI, Self, 0, 0 , 0.5, 1, 1, 'ui_list');
+  _InnerWnd := UIWindow.Create(Name+'_inner', Self, 0, 0, 0.5, UIPixels(100), UIPixels(100), ComponentName);
 
-  _Scroll := UIScrollbar.Create(Name+'_scroll', UI, Self, 0, 0, 1.0, 5, False);
-
-  Self.AddChild(_InnerWnd);
+  _Scroll := UIScrollbar.Create(Name+'_scroll', Self, 0, 0, 1.0, UIPixels(40), Height, UIPixels(20), UIPixels(20), ComponentName);
 
   Self.CreateButtons();
 
@@ -127,7 +120,7 @@ Begin
   Begin
     Pos := _InnerWnd.GetAbsolutePosition();
     YY := Y - Pos.Y - _OfsY;
-    _SelectedItem := Trunc(YY / _InnerWnd.Layout.GCSY(1));
+    _SelectedItem := 5; //Trunc(YY / _InnerWnd.Layout.GCSY(1));
     Exit;
   End;
 
@@ -142,8 +135,10 @@ End;
 Procedure UIFileBrowser.Render;
 Var
   I,PY:Integer;
+  HH:Single;
   It:CollectionObject;
   Info:FileInfo;
+  TextRect:Vector2D;
 Begin
   If (_SourceChanged) Then
   Begin
@@ -158,7 +153,9 @@ Begin
   _ClipRect.Width := _InnerWnd.Size.X;
   _ClipRect.Height := _InnerWnd.Size.Y;
 
-  _OfsY := -_Scroll.Value * _InnerWnd.Layout.GCSY(1);
+  _OfsY := -_Scroll.Value;
+
+  HH := 20;
 
   PY := 0;
   If Assigned(_FileList) Then
@@ -169,12 +166,11 @@ Begin
       Info := FileInfo(It);
       If (PY = Self._SelectedItem) Then
       Begin
-        For I:=0 To _InnerWnd.Width Do
-          _InnerWnd.DrawComponent(0, VectorCreate(_InnerWnd.Layout.GCSX(1)*Pred(I), _OfsY + _InnerWnd.Layout.GCSY(1)*Pred(PY), 0.75), _InnerWnd.Layout.X[1], _InnerWnd.Layout.Y[1], _InnerWnd.Layout.X[2], _InnerWnd.Layout.Y[2], ColorBlack);
       End;
 
       _InnerWnd.ClipRect := _ClipRect;
-      _InnerWnd.DrawText(Info.Name, VectorCreate(5, _OfsY + _InnerWnd.Layout.GCSY(1) * PY, 1.0), ColorWhite, 1.0);
+      TextRect := Self.FontRenderer.GetTextRect(Info.Name);
+      _InnerWnd.DrawText(Info.Name, 5, _OfsY + HH * PY, 1.0, TextRect, ColorWhite, 1.0);
       _InnerWnd.ClipRect.Style := clipNothing;
 
       Inc(PY);
@@ -214,31 +210,17 @@ Var
   TargetWidth, TargetHeight:Single;
 Begin
   TargetWidth := (Self.Size.X-_BorderX*2);
-  _InnerWnd.Width := 0;
-  Repeat
-    _InnerWnd.Width := _InnerWnd.Width + 1;
-  Until (_InnerWnd.Size.X > TargetWidth);
-  _InnerWnd.Width := _InnerWnd.Width - 1;
+  _InnerWnd.Width := UIPixels(TargetWidth);
 
   TargetHeight := (Self.Size.Y - (_BorderY*2 + _TopBorder + _BottomBorder));
-  _InnerWnd.Height := 0;
-  Repeat
-    _InnerWnd.Height := _InnerWnd.Height + 1;
-  Until (_InnerWnd.Size.Y>TargetHeight);
-  _InnerWnd.Height := _InnerWnd.Height - 1;
-  _ExtraWndBorder := TargetHeight - _InnerWnd.Size.Y;
+  _InnerWnd.Height := UIPixels(TargetHeight);
 
-  _Scroll.ScrollSize := 0;
-  Repeat
-    _Scroll.ScrollSize := _Scroll.ScrollSize + 1;
-  Until (_Scroll.Size.Y>TargetHeight);
-  _Scroll.ScrollSize := _Scroll.ScrollSize - 1;
-  _ExtraScrollBorder := TargetHeight - _Scroll.Size.Y;
+  _Scroll.SetHeight(UIPixels(TargetHeight));
 
-  _InnerWnd.Position := VectorCreate2D(0, _TopBorder + _BorderY + _ExtraWndBorder * 0.5);
+  _InnerWnd.Position := VectorCreate2D(0, _TopBorder + _BorderY);
   _InnerWnd.Align := waTopCenter;
 
-  _Scroll.Position := VectorCreate2D(_BorderX, _TopBorder + _BorderY + _ExtraScrollBorder * 0.5);
+  _Scroll.Position := VectorCreate2D(_BorderX, _TopBorder + _BorderY);
   _Scroll.Align := waTopRight;
 End;
 
@@ -246,17 +228,8 @@ Procedure UIFileBrowser.UpdateContent;
 Var
   VisibleItems:Integer;
 Begin
-  If Assigned(_FileList) Then
-  Begin
-    _FileList.Release;
-    _FileList := Nil;
-  End;
-
-  If Assigned(_FolderList) Then
-  Begin
-    _FolderList.Release;
-    _FolderList := Nil;
-  End;
+  ReleaseObject(_FileList);
+  ReleaseObject(_FolderList);
 
   If (_Folder = '') Or (_Filter = '') Then
     Exit;
@@ -264,7 +237,7 @@ Begin
   _FileList := SearchFiles(_Folder, _Filter, False);
   _FolderList := SearchFolders(_Folder);
 
-  VisibleItems := 1 + Trunc(_InnerWnd.Size.Y / _InnerWnd.Layout.GCSY(1));
+  VisibleItems := 5; //1 + Trunc(_InnerWnd.Size.Y / _InnerWnd.Layout.GCSY(1));
 
   _Scroll.Max := _FileList.Count - VisibleItems;
   _Scroll.Value := 0;

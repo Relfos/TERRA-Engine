@@ -26,7 +26,7 @@ Unit TERRA_MusicTrack;
 {$I terra.inc}
 Interface
 
-Uses TERRA_String, TERRA_Utils, TERRA_AL, TERRA_OGG, TERRA_SoundStreamer;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_AL, TERRA_OGG, TERRA_SoundStreamer;
 
 Type
   MusicTrackClass = Class Of MusicTrack;

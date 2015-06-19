@@ -3,7 +3,7 @@ Unit TERRA_VCLApplication;
 {$I terra.inc}
 Interface
 Uses Classes, Forms, ExtCtrls, Graphics, TERRA_String, TERRA_Utils, TERRA_Application,
-  TERRA_GraphicsManager, TERRA_Viewport, TERRA_Image, TERRA_Color, TERRA_OS, TERRA_Renderer;
+  TERRA_Object, TERRA_GraphicsManager, TERRA_Viewport, TERRA_Image, TERRA_Color, TERRA_OS, TERRA_Renderer;
 
 Type
   VCLCanvasViewport = Class(TERRAObject)
@@ -89,6 +89,9 @@ End;
 
 Procedure VCLApplication.UpdateSize;
 Begin
+  If Not Self.CanReceiveEvents Then
+    Exit;
+
   If (_CurrentWidth<>Self.GetWidth()) Or (_CurrentHeight<>Self.GetHeight()) Then
   Begin
     _CurrentWidth := GetWidth();
@@ -129,7 +132,7 @@ Begin
     Result := TForm(_Target).ClientWidth
   Else
   If (_Target Is TPanel) Then
-    Result := TPanel(_Target).Width
+    Result := TPanel(_Target).ClientWidth
   Else
     Result := 0;
 End;
@@ -140,7 +143,7 @@ Begin
     Result := TForm(_Target).ClientHeight
   Else
   If (_Target Is TPanel) Then
-    Result := TPanel(_Target).Height
+    Result := TPanel(_Target).ClientHeight
   Else
     Result := 0;
 End;

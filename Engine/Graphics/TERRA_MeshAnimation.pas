@@ -25,7 +25,7 @@ Unit TERRA_MeshAnimation;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Resource, TERRA_Vector3D, TERRA_Math,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Resource, TERRA_Vector3D, TERRA_Math,
   TERRA_Matrix4x4, TERRA_Vector2D, TERRA_Color, TERRA_Quaternion, TERRA_ResourceManager;
 
 Const

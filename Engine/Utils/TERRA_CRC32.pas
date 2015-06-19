@@ -2,7 +2,7 @@ Unit TERRA_CRC32;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream;
 
 Const
   TERRAPolynomial = $04c11db7;

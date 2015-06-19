@@ -27,7 +27,7 @@ Unit TERRA_Lights;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Math, TERRA_Texture, TERRA_Matrix4x4, TERRA_Renderer,
+  TERRA_Object, TERRA_Utils, TERRA_Math, TERRA_Texture, TERRA_Matrix4x4, TERRA_Renderer,
   TERRA_Vector3D, TERRA_Color, TERRA_Application, TERRA_BoundingBox;
 
 Const

@@ -1,0 +1,49 @@
+varying highp vec4 world_position;
+varying highp vec4 local_position;
+varying highp vec4 clip_position;
+varying lowp vec4 vertex_color;
+varying highp vec4 texCoord0;
+varying mediump vec3 vertex_normal;
+  uniform lowp sampler2D diffuseMap;
+  uniform lowp sampler2D shadowMap;
+  uniform lowp vec4 sunColor;
+  uniform lowp vec4 diffuse_color;
+  uniform highp vec3 cameraPosition;
+  uniform highp vec3 cameraView;
+  uniform highp float zFar;
+  uniform highp float zNear;
+  lowp vec4 diffuse;
+  lowp vec4 color;
+  lowp vec4 specular;
+  mediump vec3 normal;
+  uniform mediump vec4 hue_yellow;
+  uniform mediump vec4 hue_green ;
+  uniform mediump vec4 hue_purple;
+mediump vec4 cartoonHueAdjust(mediump vec4 color, mediump vec4 shade)	{
+  mediump vec4 SA = mix(hue_green, hue_yellow, shade);
+  mediump vec4 SB = mix(hue_purple, hue_yellow, shade);
+  shade -= 0.5;
+  shade *= 0.5;
+  mediump vec4 temp = clamp(color + shade * SA, 0.0, 1.0);	
+return mix(SB, temp, 0.75); }
+mediump float halfDot(mediump vec3 A, mediump vec3 B)	{
+  mediump float result = dot(A, B);
+  result *= 0.5;
+  result += 0.5;
+  result = result * result;
+  return result;	}
+void main()	{
+  mediump vec3 screen_position = clip_position.xyz / clip_position.w;
+  screen_position *= vec3(0.5);
+  screen_position += vec3(0.5);
+highp vec2 localUV = texCoord0.st;
+  normal = normalize(vertex_normal);
+  diffuse = texture2D(diffuseMap, localUV);
+diffuse *= diffuse_color;
+lowp float shadow = texture2D(shadowMap, screen_position.xy).r;
+lowp vec4 lightAccum = vec4(0.0);
+  lightAccum *= shadow;
+  color = cartoonHueAdjust(diffuse, lightAccum);
+  color += vec4(shadow) - vec4(0.5);
+  color.a = diffuse.a;
+  gl_FragColor = color;}

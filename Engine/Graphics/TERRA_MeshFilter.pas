@@ -27,7 +27,7 @@ Unit TERRA_MeshFilter;
 
 Interface
 
-Uses TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Vector4D,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Vector4D,
   TERRA_Quaternion, TERRA_Color, TERRA_Stream, TERRA_VertexFormat;
 
 Const

@@ -27,7 +27,7 @@ Unit TERRA_FileManager;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-    TERRA_String, TERRA_Utils, TERRA_Resource, TERRA_Collections, TERRA_Stream, TERRA_FileStream,
+    TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Resource, TERRA_Collections, TERRA_Stream, TERRA_FileStream,
     TERRA_Application, TERRA_Hashmap, TERRA_Package;
 
 Type

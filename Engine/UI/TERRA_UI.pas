@@ -26,27 +26,12 @@ Unit TERRA_UI;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
+  TERRA_Object, TERRA_String, TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween,
   TERRA_SpriteManager, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_FontRenderer, TERRA_UITransition,
-  TERRA_ClipRect, TERRA_Hashmap;
+  TERRA_UISkin, TERRA_ClipRect, TERRA_Hashmap;
 
 Const
-  // widget tween
-  wtPositionX   = 1;
-  wtPositionY   = 2;
-  wtColorRed    = 3;
-  wtColorGreen  = 4;
-
-  wtColorBlue   = 5;
-  wtColorAlpha  = 6;
-  wtRotation    = 7;
-  wtScale       = 8;
-  wtSaturation  = 9;
-
-  // custom tweens
-  wtValue       = 100;
-
   waTopLeft     = 0;
   waTopCenter   = 1;
   waTopRight    = 2;
@@ -72,43 +57,20 @@ Const
 Type
   UI = Class;
 
-  UISkinLayout = Class(TERRAObject)
-    Protected
-      _Target:TextureAtlasItem;
-    Public
-      X:Array[0..2] Of Single;
-      Y:Array[0..2] Of Single;
+  UIDimensionType = (
+    dimPixels,
+    dimScreenWidthPercent,
+    dimScreenHeightPercent
+  );
 
-      Constructor Create(Source:TextureAtlasItem);
-      Procedure Release; Override;
-
-      Function GCSX(I:Integer): Single;
-      Function GCSY(J:Integer): Single;
-
-      Function GetWidth(Width:Integer):Single;
-      Function GetHeight(Height:Integer):Single;
-  End;
-
-  UICursor = Class(TERRAObject)
-    Protected
-      _UI:UI;
-      _Name:TERRAString;
-      _Item:TextureAtlasItem;
-      _OfsX:Integer;
-      _OfsY:Integer;
-
-      Procedure Render;
-
-    Public
-      Constructor Create(Name:TERRAString; UI:UI; OfsX:Integer = 0; OfsY:Integer=0);
-      Procedure Release; Override;
-
-      Property UI:UI Read _UI;
+  UIDimension = Record
+      Kind:UIDimensionType;
+      Value:Single;
   End;
 
   Widget = Class;
   WidgetClass = Class Of Widget;
-  WidgetEventHandler = Function (Source:Widget):Boolean; CDecl;
+  WidgetEventHandler = Procedure(Src:Widget) Of Object;
 
 	Widget = Class(HashMapObject)
     Private
@@ -117,20 +79,32 @@ Type
       _Tested:Boolean;
       _RenderFrameID:Cardinal;
 
+			_Position:Vector2DProperty;
+      _Color:ColorProperty;
+      _Rotation:AngleProperty;
+      _Scale:FloatProperty;
+      _Saturation:FloatProperty;
+
+      Procedure UpdateProperties();
+
+			Function GetAbsolutePosition:Vector2D;
+      Function GetRelativePosition:Vector2D;
+
 		Protected
 			_Parent:Widget;
 			_Visible:Boolean;
-			_Position:Vector2D;
       _Layer:Single;
       _Picked:Boolean;
-      _ComponentList:Array Of TextureAtlasItem;
-      _ComponentCount:Integer;
-      _TweenList:Array Of Tween;
-      _TweenCount:Integer;
+
       _Tooltip:TERRAString;
       _Align:Integer;
       _NeedsUpdate:Boolean;
       _NeedsHide:Boolean;
+
+      _MouseOver:Boolean;
+
+      _Width:UIDimension;
+      _Height:UIDimension;
 
       _Enabled:Boolean;
 
@@ -151,6 +125,10 @@ Type
       _TransformChanged:Boolean;
       _Corners:Array[0..3] Of Vector2D;
 
+      _Component:UISkinComponent;
+      _Properties:UISkinProperty;
+      _LastState:Integer;
+
       _UsingHighLightProperties:Boolean;
       _SelectedWithKeyboard:Boolean;
       _InheritColor:Boolean;
@@ -165,10 +143,6 @@ Type
       _OriginalColor:Color;
       _OriginalPosition:Vector2D;
 
-      _Color:Color;
-      _Rotation:Single;
-      _Scale:Single;
-      _Saturation:Single;
       _ColorTable:Texture;
       _Font:Font;
 
@@ -183,6 +157,8 @@ Type
 
       _HighlightGroup:Integer;
 
+      Procedure InitProperties();
+
       Procedure CopyValue(Other:CollectionObject); Override;
       Function Sort(Other:CollectionObject):Integer; Override;
 
@@ -191,8 +167,10 @@ Type
       Function GetLeftControl():Widget;
       Function GetRightControl():Widget;
 
+      Procedure SetAbsolutePosition(Pos:Vector2D);
+      Procedure SetRelativePosition(Const Pos:Vector2D);
+
       Procedure SetVisible(Value:Boolean);
-      Procedure SetPosition(Pos:Vector2D);
       Procedure SetLayer(Z:Single);
       Procedure SetColor(MyColor:Color);
       Procedure SetRotation(const Value: Single);
@@ -200,16 +178,17 @@ Type
       Procedure SetScale(const Value: Single);
       Procedure SetFont(const Value: TERRA_Font.Font);
 
-      Function LoadComponent(Name:TERRAString):Integer;
+      Function GetRotation():Single;
+      Function GetScale():Single;
 
       Function GetTabControl():Widget;
-
-      Procedure PruneTweens;
-      Function CreateCustomTween(TweenType:Integer; TargetValue:Single):Tween; Virtual;
 
       Procedure UpdateHighlight(); Overload;
       Procedure UpdateHighlight(Condition:Boolean); Overload;
 
+      Procedure ClearProperties();
+      Procedure CopyProperties(ID:Integer; Selected:Boolean; Out CurrentState, DefaultState:Integer);
+      
       Function IsSelected: Boolean;
 
 			Function OnKeyDown(Key:Word):Boolean;Virtual;
@@ -218,7 +197,7 @@ Type
 
       Function HasMouseOver():Boolean; Virtual;
 
-      Procedure OnHit(); Virtual;
+      Procedure OnHit(Handler:WidgetEventHandler); Virtual;
       Procedure OnHighlight(Prev:Widget); Virtual;
       Procedure StartHighlight(); Virtual;
       Procedure StopHighlight(); Virtual;
@@ -232,10 +211,13 @@ Type
 
       Function CanRender():Boolean;
 
-
       Procedure ResetClipRect();
 
       Procedure SetEnabled(Value:Boolean);
+
+      Procedure DrawText(Const Text:TERRAString; Const X,Y, Layer:Single; Const TextRect:Vector2D; Scale:Single; ID:Integer; Selected:Boolean);
+      Procedure DrawComponent(X, Y, Layer:Single; Const Width, Height:UIDimension; ID:Integer; Selected:Boolean; ScaleColor:Boolean = True);
+      Procedure DrawCroppedComponent(X, Y, Layer, U1, V1, U2, V2:Single; Const Width, Height:UIDimension; ID:Integer; Selected:Boolean; ScaleColor:Boolean = True);
 
 		Public
       Tag:Integer;
@@ -245,38 +227,40 @@ Type
       Draggable:Boolean;
 
       OnMouseClick:WidgetEventHandler;
-      OnExtendedClick:WidgetEventHandler;
       OnMouseRelease:WidgetEventHandler;
       OnMouseOver:WidgetEventHandler;
       OnMouseOut:WidgetEventHandler;
       OnBeginDrag:WidgetEventHandler;
       OnEndDrag:WidgetEventHandler;
 
-      Constructor Create(Const Name:TERRAString; Owner:UI; Parent:Widget);
+      Constructor Create(Const Name:TERRAString; Parent:Widget; Const ComponentName:TERRAString);
       Procedure Release; Override;
+
+      Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
 
       Procedure Render; Virtual;
 
-      Procedure UpdateRects; Virtual; Abstract;
+      Procedure UpdateRects; Virtual;
       Function UpdateTransform():Boolean; Virtual;
 
 			Function IsVisible:Boolean;
-			Function GetAbsolutePosition:Vector2D;
-			Function GetRelativePosition:Vector2D;
 			Function GetLayer:Single;
       Function GetColor:Color;
 			Function GetSaturation:Single;
       Function GetColorTable:Texture;
       Function GetHighlightGroup:Integer;
 
-      Procedure SetPositionRelative(Other:Widget; OfsX, OfsY:Single);
+      Procedure ClipChildren(Const Clip:ClipRect);
+
+      Function GetDimension(Const Dim:UIDimension):Single;
+
+      Procedure SetPositionRelativeToOther(Other:Widget; OfsX, OfsY:Single);
 
       Procedure GetScrollOffset(Out OfsX, OfsY:Single);
 
-      Function AddTween(TweenType:Integer; TargetValue:Single; Time:Integer; Delay:Integer=0):Tween;
-      Function HasTweens:Boolean;
-
 			Procedure OnLanguageChange();Virtual;
+
+      Procedure NullEventHandler(Src:Widget);
 
       Function OnRegion(X,Y:Integer): Boolean; Virtual;
       Function OnCustomRegion(X,Y:Integer; X1,Y1,X2,Y2:Single):Boolean;
@@ -291,9 +275,11 @@ Type
       Function OnSelectUp():Boolean; Virtual;
       Function OnSelectDown():Boolean; Virtual;
       Function OnSelectAction():Boolean; Virtual;
-      Function OnSelectAlternateAction():Boolean; Virtual;
 
       Function IsOutsideScreen():Boolean;
+
+      Procedure SetHeight(const Value: UIDimension);
+      Procedure SetWidth(const Value: UIDimension);
 
       Procedure SetChildrenVisibilityByTag(Tag:Integer; Visibility:Boolean);
 
@@ -301,10 +287,6 @@ Type
       Procedure UpdateClipRect(Clip:ClipRect; LeftBorder:Single = 0.0; TopBorder:Single = 0.0; RightBorder:Single = 0.0; BottomBorder:Single = 0.0);
 
       Procedure SetName(Const Value:TERRAString);
-
-      Procedure DrawComponent(Index:Integer; Const Offset:Vector3D; X1,Y1,X2,Y2:Single; Color:Color; ScaleColor:Boolean=True);
-      Procedure DrawWindow(Index:Integer; Const Offset:Vector3D; Width, Height:Integer; Layout:UISkinLayout; Color:Color);
-      Procedure DrawText(Const Text:TERRAString; Const Offset:Vector3D; C:Color; Scale:Single; UseFont:Font = Nil);
 
       Function IsHighlighted():Boolean;
       Function HasHighlightedChildren():Boolean;
@@ -326,16 +308,19 @@ Type
 
       Procedure CancelDrag();
 
-      Function Show(AnimationFlags:Integer; Delay:Integer=0; EaseType:Integer = -1; Duration:Integer=500):Tween;
-      Function Hide(AnimationFlags:Integer; Delay:Integer=0; EaseType:Integer = -1; Duration:Integer=500):Tween;
-      Function ToggleVisibility(AnimationFlags:Integer; Delay:Integer=0; EaseType:Integer = -1; Duration:Integer=500):Tween;
+      Function Show(AnimationFlags:Integer; EaseType:TweenEaseType = easeLinear; Delay:Cardinal = 0; Duration:Cardinal = 500; Callback:TweenCallback = Nil):Boolean;
+      Function Hide(AnimationFlags:Integer; EaseType:TweenEaseType = easeLinear; Delay:Cardinal = 0; Duration:Cardinal = 500; Callback:TweenCallback = Nil):Boolean;
+      Function ToggleVisibility(AnimationFlags:Integer; EaseType:TweenEaseType = easeLinear; Delay:Cardinal = 0; Duration:Cardinal = 500; Callback:TweenCallback = Nil):Boolean;
 
       //Procedure CenterOnScreen(CenterX:Boolean = True; CenterY:Boolean = True);
       //Procedure CenterOnParent(CenterX:Boolean = True; CenterY:Boolean = True);
       Procedure CenterOnPoint(X,Y:Single);
 
 			Property Visible:Boolean Read IsVisible Write SetVisible;
-			Property Position:Vector2D Read GetAbsolutePosition Write SetPosition;
+
+			Property AbsolutePosition:Vector2D Read GetAbsolutePosition Write SetAbsolutePosition;
+			Property RelativePosition:Vector2D Read GetRelativePosition Write SetRelativePosition;
+
       Property Pivot:Vector2D Read _Pivot Write _Pivot;
       Property Size:Vector2D Read GetSize;
 			Property Layer:Single Read GetLayer Write SetLayer;
@@ -349,8 +334,8 @@ Type
       Property Color:TERRA_Color.Color Read GetColor Write SetColor;
       Property ColorTable:Texture Read GetColorTable Write _ColorTable;
       Property Saturation:Single Read GetSaturation Write SetSaturation;
-      Property Rotation:Single Read _Rotation Write SetRotation;
-      Property Scale:Single Read _Scale Write SetScale;
+      Property Rotation:Single Read GetRotation Write SetRotation;
+      Property Scale:Single Read GetScale Write SetScale;
       Property Font:TERRA_Font.Font Read GetFont Write SetFont;
 
       Property Scroll:Widget Read _Scroll Write _Scroll;
@@ -374,20 +359,14 @@ Type
 
       Property UI:UI Read _UI;
       Property FontRenderer:FontRenderer Read GetFontRenderer Write _FontRenderer;
+
+      Property Width:UIDimension Read _Width Write SetWidth;
+      Property Height:UIDimension Read _Height Write SetHeight;
 	End;
 
-  UI = Class(TERRAObject)
+  UI = Class(Widget)
     Protected
-      _Visible:Boolean;
-
-      _CursorList:Array Of UICursor;
-      _CursorCount:Integer;
-      _CurrentCursor:UICursor;
-      _CursorPos:Vector2D;
-
       _VirtualKeyboard:Widget;
-
-      _FontRenderer:FontRenderer;
 
 		  _Focus:Widget;
       _Dragger:Widget;
@@ -395,10 +374,6 @@ Type
       _Highlight:Widget;
       _First:Widget;
       _Draw:Boolean;
-
-      _ColorTable:Texture;
-      _Color:Color;
-      _Saturation:Single;
 
       _Transition:UITransition;
       _Widgets:HashMap;
@@ -412,9 +387,10 @@ Type
 
       _LastWidget:Widget;
 
-      _Transform:Matrix3x3;
       _InverseTransform:Matrix3x3;
       _ClipRect:ClipRect;
+
+      _Skin:UISkinComponent;
 
       Procedure UpdateLanguage();
 
@@ -442,15 +418,12 @@ Type
       Key_Right:Integer;
       Key_Left:Integer;
       Key_Action:Integer;
-      Key_Action2:Integer;
       Key_Cancel:Integer;
 
       System_Wnd:Widget;
       System_Text:Widget;
       System_Btn:Array[0..2] Of Widget;
       System_BG:Widget;
-
-      DefaultEaseType:Integer;
 
       Constructor Create;
       Procedure Release; Override;
@@ -461,8 +434,7 @@ Type
 
       Function AllowsEvents(W:Widget):Boolean;
 
-      Function AddQuad(Const StartPos, EndPos:Vector2D; Const TexCoord1, TexCoord2:Vector2D; MyColor:Color; Z:Single; PageID:Integer;
-        Const Transform:Matrix3x3; Saturation:Single; ColorTable:Texture; Const Clip:ClipRect):QuadSprite;
+      Function AddQuad(Const Quad:UIQuad; Const Props:UISkinProperty; Z:Single; Const Transform:Matrix3x3):QuadSprite;
 
       Procedure Clear;
 
@@ -485,6 +457,11 @@ Type
 
       Procedure AfterEffects;
 
+      Function LoadSkin(Const FileName:TERRAString):Boolean;
+
+      Function LoadImage(Name:TERRAString):TextureAtlasItem;
+      Function GetComponent(Const Name:TERRAString):UISkinComponent;
+
       Procedure SetTransform(Const M:Matrix3x3);
 
       Procedure SetFocus(W:Widget);
@@ -494,8 +471,6 @@ Type
 
       Procedure SetFontRenderer(const Value: FontRenderer);
 
-      Function LoadCursor(Const Name:TERRAString; OfsX:Integer = 0; OfsY:Integer = 0):UICursor;
-
       Procedure MessageBox(Msg:TERRAString; Callback: WidgetEventHandler = Nil);
       Procedure ChoiceBox(Msg, Option1, Option2:TERRAString; Callback1:WidgetEventHandler = Nil; Callback2: WidgetEventHandler = Nil);
       Procedure ClearChoiceBox();
@@ -504,9 +479,8 @@ Type
 
       Function OnRegion(X, Y:Integer):Boolean;
 
-      Property Color:TERRA_Color.Color Read _Color Write _Color;
       Property ColorTable:Texture Read _ColorTable Write SetColorTable;
-      Property Saturation:Single Read _Saturation Write _Saturation;
+      Property Saturation:Single Read GetSaturation Write SetSaturation;
 
       Property Focus:Widget Read _Focus Write SetFocus;
       Property Dragger:Widget Read _Dragger Write SetDragger;
@@ -591,12 +565,36 @@ Type
 
 Function GetSpriteZOnTop(W:Widget; Ofs:Single = 1.0):Single;
 
+Function UIPixels(Const Pixels:Single):UIDimension;
+Function UIScreenWidthPercent(Const Percent:Single):UIDimension;
+Function UIScreenHeightPercent(Const Percent:Single):UIDimension;
+
+
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Widgets, TERRA_Stream, TERRA_Renderer,
+Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_Renderer, TERRA_XML, TERRA_UITabs, TERRA_UIScrollBar, TERRA_UIWindow, 
   TERRA_Matrix4x4, TERRA_Log, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager, TERRA_UIVirtualKeyboard;
+
 
 Var
   _UIManager_Instance:ApplicationObject = Nil;
+
+Function UIPixels(Const Pixels:Single):UIDimension;
+Begin
+  Result.Kind := dimPixels;
+  Result.Value := Trunc(Pixels);
+End;
+
+Function UIScreenWidthPercent(Const Percent:Single):UIDimension;
+Begin
+  Result.Kind := dimScreenWidthPercent;
+  Result.Value := Percent;
+End;
+
+Function UIScreenHeightPercent(Const Percent:Single):UIDimension;
+Begin
+  Result.Kind := dimScreenHeightPercent;
+  Result.Value := Percent;
+End;
 
 Function GetSpriteZOnTop(W:Widget; Ofs:Single):Single;
 Begin
@@ -614,8 +612,8 @@ Var
   W:Widget;
 Begin
   W := Widget(Source);
-  W._Color := W._OriginalColor;
-  W._Position := W._OriginalPosition;
+  W.SetColor(W._OriginalColor);
+  W.SetRelativePosition(W._OriginalPosition);
   W.SetVisible(False);
 
   If (W.UI.Highlight = W) Or (W.HasHighlightedChildren()) Then
@@ -663,8 +661,8 @@ Begin
   _Align := waTopLeft;
   Self.UpdateRects;
 
-  _Position.X := X - _Size.X * 0.5;
-  _Position.Y := Y - _Size.Y * 0.5;
+  _Position.X.Value := X - _Size.X * 0.5;
+  _Position.Y.Value := Y - _Size.Y * 0.5;
 End;
 
 {Procedure Widget.CenterOnParent(CenterX, CenterY: Boolean);
@@ -683,35 +681,27 @@ End;}
 
 Procedure Widget.StartHighlight;
 Begin
-  Self._Color := ColorBlack;
+  Self._Color.Value := ColorBlack;
 End;
 
 Procedure Widget.StopHighlight;
 Begin
-  Self._Color := ColorWhite;
+  Self._Color.Value := ColorWhite;
 End;
 
-Procedure Widget.OnHit();
+Procedure Widget.OnHit(Handler:WidgetEventHandler);
 Var
   N:Integer;
-  A,B:Single;
+  Target:TERRA_Color.Color;
+  Ease:TweenEaseType;
 Begin
-  A := Self.Color.R/255;
-  B := A * 0.5;
+  Target := ColorScale(Self.Color, 0.5);
   N := 150;
-  Self.AddTween(wtColorRed, B, N);
-  Self.AddTween(wtColorGreen, B, N);
-  Self.AddTween(wtColorBlue, B, N);
 
-  Self.AddTween(wtColorRed, A, N, N);
-  Self.AddTween(wtColorGreen, A, N, N);
-  Self.AddTween(wtColorBlue, A, N, N);
-End;
+  Ease := easeLinear;
 
-Function Widget.CreateCustomTween(TweenType: Integer; TargetValue: Single): Tween;
-Begin
-  RemoveHint(TweenType + Trunc(TargetValue));
-  Result := Nil;
+  Self._Color.AddTween(Ease, Target, N, 0);
+  Self._Color.AddTween(Ease, Self.Color, N, N, TweenCallback(Handler));
 End;
 
 Procedure Widget.OnLanguageChange;
@@ -721,8 +711,6 @@ End;
 
 Procedure Widget.Release();
 Begin
-  TweenManager.Instance.RemoveTween(Self);
-
   If (UI.Dragger = Self) Then
     UI.Dragger := Nil;
 
@@ -731,6 +719,12 @@ Begin
 
   If (UI.LastWidget = Self) Then
     UI._LastWidget := Nil;
+End;
+
+Procedure Widget.UpdateRects();
+Begin
+  _Size.X := Self.GetDimension(_Width);
+  _Size.Y := Self.GetDimension(_Height);
 End;
 
 Function Widget.GetSize: Vector2D;
@@ -744,37 +738,68 @@ End;
 
 
 { Widget }
-Constructor Widget.Create(Const Name:TERRAString; Owner: UI; Parent:Widget);
+Constructor Widget.Create(Const Name:TERRAString; Parent:Widget; Const ComponentName:TERRAString);
 Begin
   _Key := Name;
-   
+
   _Visible := True;
   _Enabled := True;
-  _UI := Owner;
 
-  _Parent := Parent;
+  If (Assigned(Parent)) And (Parent Is TERRA_UI.UI) Then
+  Begin
+    _UI := TERRA_UI.UI(Parent);
+    _Parent := Nil;
+  End Else
+  Begin
+    _UI := Parent.UI;
+    _Parent := Parent;
+  End;
+
+  Self.InitProperties();
+
+  Self._Component := _UI.GetComponent(ComponentName);
 
   _Pivot := VectorCreate2D(0.5, 0.5);
-  _Scale := 1.0;
-  _Rotation := 0.0;
-  _Saturation := 1.0;
-  _Color := ColorWhite;
+  SetScale(1.0);
+  SetRotation(0.0);
+  SetSaturation(1.0);
+  SetColor(ColorWhite);
   _ColorTable := Nil;
-  _FontRenderer := Owner._FontRenderer;
-  _UI := Owner;
 
   _ClipRect.Style := clipNothing;
 
   //_DropShadowColor := ColorNull;
   _DropShadowColor := ColorGrey(0, 255);
 
-  _Font := Owner._DefaultFont;
+  _Font := UI._DefaultFont;
   _FontRenderer := UI.FontRenderer;
 
   _InheritColor := True;
   _TransformChanged := True;
 
   UI.AddWidget(Self);
+End;
+
+Procedure Widget.InitProperties;
+Begin
+  _Position := Vector2DProperty.Create(VectorCreate2D(0, 0));
+  _Color := ColorProperty.Create(ColorWhite);
+  _Rotation := AngleProperty.Create(0.0);
+  _Scale := FloatProperty.Create(1.0);
+  _Saturation := FloatProperty.Create(1.0);
+End;
+
+Function Widget.GetPropertyByIndex(Index:Integer):TERRAObject;
+Begin
+  Case Index Of
+  0: Result := _Position;
+  1: Result := _Color;
+  2: Result := _Rotation;
+  3: Result := _Scale;
+  4: Result := _Saturation;
+  Else
+    Result := Nil;
+  End;
 End;
 
 Procedure Widget.CopyValue(Other: CollectionObject);
@@ -797,7 +822,7 @@ End;
 
 Function Widget.CanHighlight(GroupID:Integer): Boolean;
 Begin
-  Result := (Self.Visible) And (Self.Enabled) And (Self.IsSelectable()) And (Self.HighlightGroup = GroupID) And (Not Self.HasTweens());
+  Result := (Self.Visible) And (Self.Enabled) And (Self.IsSelectable()) And (Self.HighlightGroup = GroupID) And (Not Self.HasPropertyTweens());
 End;
 
 Function Widget.GetDownControl(): Widget;
@@ -811,7 +836,7 @@ Begin
   Result := Nil;
 
   Min := 99999;
-  Base := Self.Position;
+  Base := Self.AbsolutePosition;
   Base.Y := Base.Y + Self.Size.Y;
   GroupID := Self.HighlightGroup;
 
@@ -822,11 +847,11 @@ Begin
     If (W = Self) Or (Not W.CanHighlight(GroupID)) Then
       Continue;
 
-    Y := W.Position.Y;
+    Y := W.AbsolutePosition.Y;
     If (Y<Base.Y) Then
       Continue;
 
-    Dist := W.Position.Distance(Base);
+    Dist := W.AbsolutePosition.Distance(Base);
     If (Dist< Min) Then
     Begin
       Min := Dist;
@@ -847,7 +872,7 @@ Begin
   Result := Nil;
 
   Min := 99999;
-  Base := Self.Position;
+  Base := Self.AbsolutePosition;
   GroupID := Self.HighlightGroup;
 
   It := Self.UI.Widgets.GetIterator();
@@ -857,7 +882,7 @@ Begin
     If (W = Self) Or (Not W.CanHighlight(GroupID)) Then
       Continue;
 
-    P := W.Position;
+    P := W.AbsolutePosition;
     P.Y := P.Y + W.Size.Y;
     Dist := P.Distance(Base);
     If (Dist< Min) And (P.Y<Base.Y) Then
@@ -880,7 +905,7 @@ Begin
   Result := Nil;
 
   Min := 99999;
-  Base := Self.Position;
+  Base := Self.AbsolutePosition;
   GroupID := Self.HighlightGroup;
 
   It := Self.UI.Widgets.GetIterator();
@@ -890,8 +915,8 @@ Begin
     If (W = Self) Or (Not W.CanHighlight(GroupID)) Then
       Continue;
 
-    X := W.Position.X;
-    Dist := W.Position.Distance(Base);
+    X := W.AbsolutePosition.X;
+    Dist := W.AbsolutePosition.Distance(Base);
     If (Dist< Min) And (X>Base.X + Self.Size.X) Then
     Begin
       Min := Dist;
@@ -912,7 +937,7 @@ Begin
   Result := Nil;
 
   Min := 99999;
-  Base := Self.Position;
+  Base := Self.AbsolutePosition;
   GroupID := Self.HighlightGroup;
 
   It := Self.UI.Widgets.GetIterator();
@@ -922,7 +947,7 @@ Begin
     If (W = Self) Or (Not W.CanHighlight(GroupID)) Then
       Continue;
 
-    P := W.Position;
+    P := W.AbsolutePosition;
     P.X := P.X + W.Size.X;
     Dist := P.Distance(Base);
     If (Dist< Min) And (P.X<Base.X) Then
@@ -934,137 +959,162 @@ Begin
   ReleaseObject(It);
 End;
 
-Function Widget.Show(AnimationFlags:Integer; Delay, EaseType, Duration:Integer):Tween;
+Function Widget.Show(AnimationFlags:Integer; EaseType:TweenEaseType; Delay, Duration:Cardinal; Callback:TweenCallback):Boolean;
 Var
   X, Y, TY:Single;
+  A:Byte;
 Begin
+  If _Visible Then
+  Begin
+    Result := False;
+    Exit;
+  End;
+
   Log(logDebug, 'UI', 'Showing '+Self.Name+' with animation '+IntToString(AnimationFlags));
 
   _Visible := True;
-  Result := Nil;
 
   Self._NeedsHide := False;
 
-  If EaseType<0 Then
-    EaseType := UI.DefaultEaseType;
-
   If (AnimationFlags And widgetAnimatePosX<>0) Then
   Begin
-    X := _Position.X;
-    _Position.X := -(Self.Size.X);
-    Result := AddTween(wtPositionX, X, Duration, Delay);
+    X := _Position.X.Value;
+    _Position.X.Value := -(Self.Size.X);
+    _Position.X.AddTween(EaseType, X, Duration, Delay, Callback);
+    Callback := Nil;
   End Else
   If (AnimationFlags And widgetAnimatePosX_Bottom<>0) Then
   Begin
-    X := _Position.X;
-    _Position.X := UIManager.Instance.Width + (Self.Size.X);
-    Result := AddTween(wtPositionX, X, Duration, Delay);
+    X := _Position.X.Value;
+    _Position.X.Value := UIManager.Instance.Width + (Self.Size.X);
+    _Position.X.AddTween(EaseType, X, Duration, Delay, Callback);
+    Callback := Nil;
   End;
 
   If (AnimationFlags And widgetAnimatePosY<>0) Then
   Begin
-    Y := _Position.Y;
+    Y := _Position.Y.Value;
 
     TY := -Self.Size.Y;
     If (Self.Align = waCenter) Or (Self.Align = waLeftCenter) Or (Self.Align = waRightCenter) Then
       TY := TY - (UIManager.Instance.Height * 0.5);
 
-    _Position.Y := TY;
-
-    Result := AddTween(wtPositionY, Y, Duration, Delay);
+    _Position.Y.Value := TY;
+    _Position.Y.AddTween(EaseType, Y, Duration, Delay, Callback);
+    Callback := Nil;
   End Else
   If (AnimationFlags And widgetAnimatePosY_Bottom<>0) Then
   Begin
-    Y := _Position.Y;
+    Y := _Position.Y.Value;
 
     TY := UIManager.Instance.Height + Self.Size.Y;
     If (Self.Align = waCenter) Or (Self.Align = waLeftCenter) Or (Self.Align = waRightCenter) Then
       TY := TY + (UIManager.Instance.Height * 0.5);
 
-    _Position.Y := TY;
-    Result := AddTween(wtPositionY, Y, Duration, Delay);
+    _Position.Y.Value := TY;
+    _Position.Y.AddTween(EaseType, Y, Duration, Delay, Callback);
+    Callback := Nil;
   End;
 
   If (AnimationFlags And widgetAnimateAlpha<>0) Then
   Begin
-    _Color.A := 0;
-    Result := AddTween(wtColorAlpha, 1.0, Duration, Delay);
+    A := _Color.Alpha.Value;
+    _Color.Alpha.Value := 0;
+    _Color.Alpha.AddTween(EaseType, A, Duration, Delay, Callback);
+    Callback := Nil;
   End;
 
   If (AnimationFlags And widgetAnimateRotation<>0) Then
   Begin
-    _Rotation := 360.0 * RAD;
-    Result := AddTween(wtRotation, 0.0, Duration, Delay);
+    X := GetRotation();
+    SetRotation(X + (360.0 * RAD) * 4.0);
+    _Rotation.AddTween(EaseType, X, Duration, Delay, Callback);
+    Callback := Nil;
   End;
 
   If (AnimationFlags And widgetAnimateScale<>0) Then
   Begin
-    _Scale := 0.0;
-    Result := AddTween(wtScale, 1.0, Duration, Delay);
+    X := GetScale();
+    SetScale(0.0);
+    _Scale.AddTween(EaseType, X, Duration, Delay, Callback);
+    Callback := Nil;
   End;
 
   If (AnimationFlags And widgetAnimateSaturation<>0) Then
   Begin
-    _Saturation := 0.0;
-    Result := AddTween(wtSaturation, 1.0, Duration, Delay);
+    X := GetSaturation();
+    SetSaturation(0.0);
+    _Saturation.AddTween(EaseType, X, Duration, Delay, Callback);
+    Callback := Nil;
   End;
 
-  If Assigned(Result) Then
-    Result.EaseType := EaseType;
+  Result := True;
 End;
 
-Function Widget.Hide(AnimationFlags:Integer; Delay, EaseType, Duration:Integer):Tween;
+Function Widget.Hide(AnimationFlags:Integer; EaseType:TweenEaseType; Delay, Duration:Cardinal; Callback:TweenCallback):Boolean;
 Var
   Ofs:Single;
 Begin
-  _OriginalPosition := _Position;
-  _OriginalColor := _Color;
+  If (Not _Visible) Then
+  Begin
+    Result := False;
+    Exit;
+  End;
 
-  Result := Nil;
+  If (Not Self._NeedsHide) Then
+  Begin
+    _OriginalPosition := _Position.Value;
+    _OriginalColor := _Color.Value;
+  End;
 
-  If EaseType<0 Then
-    EaseType := UI.DefaultEaseType;
-  
   If (AnimationFlags And widgetAnimatePosX<>0) Then
   Begin
     Ofs := -Self.Size.X;
 
     If (Self.Align = waCenter) Or (Self.Align = waTopCenter) Or (Self.Align = waBottomCenter) Then
-      Ofs := Ofs - Self.Position.X;
+      Ofs := Ofs - Self.AbsolutePosition.X;
 
-    Result := AddTween(wtPositionX, Ofs, Duration, Delay);
+    _Position.X.AddTween(EaseType, Ofs, Duration, Delay, Callback);
+    Callback := Nil;
   End Else
   If (AnimationFlags And widgetAnimatePosX_Bottom<>0) Then
-    Result := AddTween(wtPositionX, UIManager.Instance.Width +(Self.Size.X+15), Duration, Delay);
+  Begin
+    _Position.X.AddTween(EaseType, UIManager.Instance.Width +(Self.Size.X+15), Duration, Delay, Callback);
+    Callback := Nil;
+  End;
 
   If (AnimationFlags And widgetAnimatePosY<>0) Then
   Begin
     Ofs := -Self.Size.Y;
 
     If (Self.Align = waCenter) Or (Self.Align = waLeftCenter) Or (Self.Align = waRightCenter) Then
-      Ofs := Ofs - Self.Position.Y;
+      Ofs := Ofs - Self.AbsolutePosition.Y;
 
-    Result := AddTween(wtPositionY, Ofs, Duration, Delay)
+    _Position.Y.AddTween(EaseType, Ofs, Duration, Delay, Callback);
+    Callback := Nil;
   End Else
   If (AnimationFlags And widgetAnimatePosY_Bottom<>0) Then
-    Result := AddTween(wtPositionY, UIManager.Instance.Height + Self.Size.Y, Duration, Delay);
+  Begin
+    _Position.Y.AddTween(EaseType, UIManager.Instance.Height + Self.Size.Y, Duration, Delay, Callback);
+    Callback := Nil;
+  End;
 
   If (AnimationFlags And widgetAnimateAlpha<>0) Then
-    Result := AddTween(wtColorAlpha, 0.0, Duration, Delay);
-
-  If Assigned(Result) Then
   Begin
-    Self._NeedsHide := True;
-    Result.EaseType := EaseType;
+    _Color.Alpha.AddTween(EaseType, 0.0, Duration, Delay, Callback);
+    Callback := Nil;
   End;
+
+  Self._NeedsHide := True;
+  Result := True;
 End;
 
-Function Widget.ToggleVisibility(AnimationFlags:Integer; Delay, EaseType, Duration:Integer):Tween;
+Function Widget.ToggleVisibility(AnimationFlags:Integer; EaseType:TweenEaseType; Delay, Duration:Cardinal; Callback:TweenCallback):Boolean;
 Begin
   If _Visible Then
-    Result := Hide(AnimationFlags, Delay, EaseType, Duration)
+    Result := Hide(AnimationFlags, EaseType, Delay, Duration, Callback)
   Else
-    Result := Show(AnimationFlags, Delay, EaseType, Duration);
+    Result := Show(AnimationFlags, EaseType, Delay, Duration, Callback);
 End;
 
 Function Widget.IsVisible:Boolean;
@@ -1107,13 +1157,21 @@ Begin
     Self.StopHighlight();
 End;
 
-Procedure Widget.SetPosition(Pos:Vector2D);
+Procedure Widget.SetRelativePosition(Const Pos:Vector2D);
 Begin
-  If (Pos.X = _Position.X) And (Pos.Y = _Position.Y) Then
+  If (Pos.X = _Position.X.Value) And (Pos.Y = _Position.Y.Value) Then
     Exit;
 
-  _Position := Pos;
+  _Position.Value := Pos;
   _TransformChanged := True;
+End;
+
+Procedure Widget.SetAbsolutePosition(Pos:Vector2D);
+Begin
+  If Assigned(_Parent) Then
+    Pos.Subtract(_Parent.AbsolutePosition);
+
+  Self.SetRelativePosition(Pos);
 End;
 
 Procedure Widget.SetLayer(Z:Single);
@@ -1126,25 +1184,37 @@ End;
 
 Procedure Widget.SetColor(MyColor:Color);
 Begin
-  If (Cardinal(MyColor) = Cardinal(_Color)) Then
-    Exit;
+(*  If (Cardinal(MyColor) = Cardinal(_Color)) Then
+    Exit;*)
 
-  _Color := MyColor;
+  _Color.Value := MyColor;
 End;
 
 Function Widget.GetColor:Color;  {$IFDEF FPC} Inline;{$ENDIF}
+Var
+  TempAlpha:Byte;
+  ParentColor:TERRA_Color.Color;
 Begin
-	Result := _Color;
+	Result := _Color.Value;
   If (Not _InheritColor) Then
     Exit;
-                          
+
 	If (Assigned(_Parent)) Then
-		Result := ColorMultiply(Result, _Parent.GetColor());
+  Begin
+    ParentColor := _Parent.GetColor();
+    TempAlpha := Result.A;
+		Result := ColorMultiply(Result, ParentColor);
+
+    If ParentColor.A < TempAlpha Then
+      Result.A := ParentColor.A
+    Else
+      Result.A := TempAlpha;
+  End;
 End;
 
 Function Widget.GetRelativePosition:Vector2D;
 Begin
-  Result := _Position;
+  Result := _Position.Value;
 End;
 
 Function Widget.GetAbsolutePosition:Vector2D;
@@ -1152,7 +1222,7 @@ Var
   Width, Height:Single;
   ParentSize, Center:Vector2D;
 Begin
-  Result := _Position;
+  Result := _Position.Value;
 
   If (Align<>waTopLeft) Then
   Begin
@@ -1234,7 +1304,7 @@ End;
 
 Function Widget.GetSaturation:Single;
 Begin
-	Result := _Saturation;
+	Result := _Saturation.Value;
 	If (Assigned(_Parent)) Then
 		Result := Result * _Parent.GetSaturation();
 End;
@@ -1254,249 +1324,119 @@ Begin
 		Result := _Parent.GetColorTable();
 End;
 
-Function Widget.HasTweens:Boolean;
+Procedure Widget.ClearProperties();
 Begin
-  PruneTweens;
-  Result := (_TweenCount>0);
+  _LastState := -1;
 End;
 
-Procedure Widget.PruneTweens;
-Var
-  I:Integer;
+Procedure Widget.CopyProperties(ID:Integer; Selected:Boolean; Out CurrentState, DefaultState:Integer);
 Begin
-  I:=0;
-  While I<_TweenCount Do
-  If (TweenManager.Instance.HasTween(_TweenList[I])) Then
-      Inc(I)
+  If (Selected) Then
+    CurrentState := 1
   Else
-  Begin
-    _TweenList[I] := _TweenList[Pred(_TweenCount)];
-    Dec(_TweenCount);
-  End;
-End;
+    CurrentState := 0;
 
-Function Widget.AddTween(TweenType:Integer; TargetValue:Single; Time:Integer; Delay:Integer=0):Tween;
-Begin
-  PruneTweens();
-
-  Case TweenType Of
-  wtPositionX:  Result := Tween.Create(Self, tweenFloat, @Self._Position.X, TargetValue, Self);
-  wtPositionY:  Result := Tween.Create(Self, tweenFloat, @Self._Position.Y, TargetValue, Self);
-  wtColorRed:   Result := Tween.Create(Self, tweenByte, @Self._Color.R, TargetValue, Self);
-  wtColorGreen: Result := Tween.Create(Self, tweenByte, @Self._Color.G, TargetValue, Self);
-  wtColorBlue:  Result := Tween.Create(Self, tweenByte, @Self._Color.B, TargetValue, Self);
-  wtColorAlpha: Result := Tween.Create(Self, tweenByte, @Self._Color.A, TargetValue, Self);
-  wtRotation:   Result := Tween.Create(Self, tweenFloat, @Self._Rotation, TargetValue, Self);
-  wtScale:      Result := Tween.Create(Self, tweenFloat, @Self._Scale, TargetValue, Self);
-  wtSaturation: Result := Tween.Create(Self, tweenFloat, @Self._Saturation, TargetValue, Self);
-  Else
-//    RaiseError('Invalid tween type: '+IntToString(TweenType));
-    Result := Self.CreateCustomTween(TweenType, TargetValue);
-  End;
-
-  If Not Assigned(Result) Then
+  If (CurrentState = _LastState) Then
     Exit;
 
-  Inc(_TweenCount);
-  SetLength(_TweenList, _TweenCount);
-  _TweenList[Pred(_TweenCount)] := Result;
+  Self.UpdateProperties();
+  _LastState := CurrentState;
 
-  Result.Time := Time;
-  Result.Delay := Delay;
+  DefaultState := CurrentState;
+
+  If (Self._MouseOver) Then
+    Inc(CurrentState, 2);
+
+  If Assigned(_Component) Then
+    _Component.GetProperties(_Properties, ID, CurrentState, DefaultState);
 End;
 
-Function Widget.LoadComponent(Name:TERRAString):Integer;
-Var
-  I:Integer;
-  Source, Temp:Image;
-  MyStream:Stream;
-  S:TERRAString;
-  Item:TextureAtlasItem;
-  Ext:ImageClassInfo;
-Begin
-  Name := GetFileName(Name, True);
-
-  Log(logDebug, 'UI', 'Getting '+Name);
-  Item := UIManager.Instance.GetTextureAtlas.Get(Name);
-  If Assigned(Item) Then
-  Begin
-    Result := _ComponentCount;
-    Inc(_ComponentCount);
-    SetLength(_ComponentList, _ComponentCount);
-    _ComponentList[Result] := Item;
-    Exit;
-  End;
-
-  Log(logDebug, 'UI', 'Searching icons');
-  S := '';
-  I := 0;
-  While (S='') And (I<GetImageExtensionCount()) Do
-  Begin
-    Ext := GetImageExtension(I);
-    S := FileManager.Instance.SearchResourceFile(Name+'.'+Ext.Name);
-    Inc(I);
-  End;
-
-  Log(logDebug, 'Game', 'Got '+S);
-  If S<>'' Then
-  Begin
-    Log(logDebug, 'Game', 'Opening stream');
-    MyStream := FileManager.Instance.OpenStream(S);
-    Log(logDebug, 'Game', 'Creating image: '+S);
-
-    Source := Image.Create(MyStream);
-    Log(logDebug, 'Game', 'Image created: '+IntToString(Source.Width)+'x'+IntToString(Source.Height));
-
-    Log(logDebug, 'Game', 'Adding compnent');
-
-    Result := _ComponentCount;
-    Inc(_ComponentCount);
-    SetLength(_ComponentList, _ComponentCount);
-
-    Log(logDebug, 'Game', 'Adding to TextureAtlas');
-
-    _ComponentList[Pred(_ComponentCount)] := UIManager.Instance.GetTextureAtlas.Add(Source, Name);
-    UIManager.Instance._UpdateTextureAtlas := True;
-
-    Log(logDebug, 'Game', 'TextureAtlas added');
-
-    Source.Release;
-    MyStream.Release;
-  End Else
-  Begin
-    Log(logWarning,'UI', 'UI component not found. ['+Name+']');
-    Result := -1;
-  End;
-End;
-
-Procedure Widget.DrawComponent(Index:Integer; Const Offset:Vector3D; X1,Y1,X2,Y2:Single; Color:Color; ScaleColor:Boolean);
-Var
-  P:Vector2D;
-  Z:Single;
-  StartPos, EndPos:Vector2D;
-  ShadowOffset:Vector2D;
-  TC1, TC2:Vector2D;
-  Source:Image;
-  MyTextureAtlas:TextureAtlas;
-  Saturation:Single;
-  ColorTable:Texture;
-  OfsX,OfsY:Single;
-Begin
-  If (Index<0) Or (Index>=_ComponentCount) Then
-    Exit;
-
-  If (Self.HasTweens) Then
-    _TransformChanged := True;
-
-  MyTextureAtlas := UIManager.Instance.GetTextureAtlas();
-  Source := _ComponentList[Index].Buffer;
-  P := Self.GetAbsolutePosition();
-  Z := Self.GetLayer + Offset.Z;
-  P.X := P.X + Offset.X;
-  P.Y := P.Y + Offset.Y;
-
-  Self.GetScrollOffset(OfsX, OfsY);
-
-  P.X := P.X + OfsX;
-  P.Y := P.Y + OfsY;
-
-  StartPos := VectorCreate2D(Trunc(P.X + Trunc(X1 * Source.Width)), Trunc(P.Y + Trunc(Y1 * Source.Height)));
-  EndPos := VectorCreate2D(Round(P.X + Trunc(X2 * Source.Width)), Round(P.Y + Trunc(Y2 * Source.Height)));
-  TC1.X := (_ComponentList[Index].X + ( (X1*Pred(Source.Width)) / MyTextureAtlas.Width));
-  TC1.Y := (_ComponentList[Index].Y + ( (Y1*Pred(Source.Height)) / MyTextureAtlas.Height));
-  TC2.X := (_ComponentList[Index].X + ( ((X2*Pred(Source.Width))) / MyTextureAtlas.Width));
-  TC2.Y := (_ComponentList[Index].Y + ( ((Y2*Pred(Source.Height))) / MyTextureAtlas.Height));
-
-  Saturation := Self.GetSaturation();
-  ColorTable := Self.GetColorTable();
-
-  If (ScaleColor) And (Not DisableUIColor) Then
-  Begin
-    Color := ColorMultiply(Color, UI._Color);
-    Saturation := Saturation * Self._Saturation;
-
-    If (ColorTable = Nil) Then
-      ColorTable := UI._ColorTable;
-  End;
-
-  If Not Enabled Then
-    Saturation := 0.0;
-
-  UI.AddQuad(StartPos, EndPos, TC1, TC2, Color, Z, _ComponentList[Index].PageID, _Transform, Saturation, ColorTable, GetClipRect());
-End;
-
-Procedure Widget.DrawWindow(Index:Integer; Const Offset:Vector3D; Width, Height:Integer; Layout:UISkinLayout; Color:Color);
-Var
-  IX,IY:Integer;
-  I,J:Integer;
-  LX,LY:Single;
-Begin
-  If (Index<0) Or (Index>=Self._ComponentCount) Then
-    Exit;
-
-  IX := _ComponentList[Index].Buffer.Width;
-  IY := _ComponentList[Index].Buffer.Height;
-
-  LX := Layout.GCSX(0) + Width * Layout.GCSX(1);
-  LX := LX - Layout.X[2] * IX;
-
-  LY := Layout.GCSY(0) + Height * Layout.GCSY(1);
-  LY := LY - Layout.Y[2] * IY;
-
-  Self.DrawComponent(0, Offset, 0.0, 0.0, Layout.X[1], Layout.Y[1], Color);
-  Self.DrawComponent(0, VectorCreate(Offset.X + LX, Offset.Y, Offset.Z), Layout.X[2], 0.0, 1.0, Layout.Y[1], Color);
-
-  Self.DrawComponent(0, VectorCreate(Offset.X, Offset.Y + LY, Offset.Z), 0.0, Layout.Y[2], Layout.X[1], 1.0, Color);
-  Self.DrawComponent(0, VectorCreate(Offset.X + LX, Offset.Y + LY, Offset.Z), Layout.X[2], Layout.Y[2], 1.0, 1.0, Color);
-
-  For I:=1 To Width Do
-  Begin
-    Self.DrawComponent(0, VectorCreate(Offset.X + Layout.GCSX(1) * Pred(I), Offset.Y, Offset.Z), Layout.X[1], Layout.Y[0], Layout.X[2], Layout.Y[1], Color);
-    Self.DrawComponent(0, VectorCreate(Offset.X + Layout.GCSX(1) * Pred(I), Offset.Y + LY, Offset.Z), Layout.X[1], Layout.Y[2], Layout.X[2], 1.0, Color);
-  End;
-
-  For I:=1 To Height Do
-  Begin
-    Self.DrawComponent(0, VectorCreate(Offset.X, Offset.Y + Layout.GCSY(1) * Pred(I), Offset.Z), 0.0, Layout.Y[1], Layout.X[1],  Layout.Y[2], Color);
-    Self.DrawComponent(0, VectorCreate(Offset.X + LX, Offset.Y + Layout.GCSY(1) * Pred(I), Offset.Z), Layout.X[2], Layout.Y[1], 1.0, Layout.Y[2], Color);
-  End;
-
-  For J:=1 To Height Do
-  For I:=1 To Width Do
-  Begin
-    Self.DrawComponent(0, VectorCreate(Offset.X + Layout.GCSX(1)*Pred(I), Offset.Y + Layout.GCSY(1)*Pred(J), Offset.Z), Layout.X[1], Layout.Y[1], Layout.X[2], Layout.Y[2], Color);
-  End;
-End;
-
-Procedure Widget.DrawText(Const Text:TERRAString; Const Offset:Vector3D; C:Color; Scale:Single; UseFont:Font);
+Procedure Widget.DrawText(Const Text:TERRAString; Const X,Y, Layer:Single; Const TextRect:Vector2D; Scale:Single; ID:Integer; Selected:Boolean);
 Var
   P:Vector2D;
   Z:Single;
   OfsX,OfsY:Single;
-  Fnt:TERRA_Font.Font;
+  M:Matrix3x3;
+  C:TERRA_Color.Color;
+  CurrentState, DefaultState:Integer;
 Begin
+  Self.CopyProperties(ID, Selected, CurrentState, DefaultState);
+
+  C := _Properties.TextColor;
+  C.A := _Properties.QuadColor.A;
   //Color.A := Trunc(Color.A * UI.Instance._Alpha);
 
   P := Self.GetAbsolutePosition();
-  Z := Self.GetLayer + Offset.Z;
+  Z := Self.GetLayer + Layer;
 
   Self.GetScrollOffset(OfsX, OfsY);
 
-  P.X := P.X + Offset.X + OfsX;
-  P.Y := P.Y + Offset.Y + OfsY;
+  P.X := P.X + X + OfsX;
+  P.Y := P.Y + Y + OfsY;
 
-  If Assigned(UseFont) Then
-    Fnt := UseFont
+  If (Scale = 1.0) Then
+    M := _Transform
   Else
-    Fnt := Self.GetFont();
+  Begin
+    M := MatrixTransformAroundPoint2D(VectorCreate2D(P.X + TextRect.X* 0.5, P.Y + TextRect.Y* 0.5), MatrixScale2D(Scale, Scale));
+    M := MatrixMultiply3x3(M, _Transform);
+  End;
 
-  _FontRenderer.SetFont(Fnt);
-  _FontRenderer.SetClipRect(GetClipRect());
-  _FontRenderer.SetTransform(_Transform);
+  _FontRenderer.SetFont(_Properties.TextFont);
+  _FontRenderer.SetClipRect(_Properties.Clip);
+  _FontRenderer.SetTransform(M);
   _FontRenderer.SetDropShadow(_DropShadowColor);
   _FontRenderer.SetColor(C);
 
   _FontRenderer.DrawText(P.X, P.Y, Z, Text);
+End;
+
+Procedure Widget.DrawComponent(X, Y, Layer: Single; Const Width, Height:UIDimension; ID:Integer; Selected:Boolean; ScaleColor:Boolean);
+Begin
+  Self.DrawCroppedComponent(X, Y, Layer, 0.0, 0.0, 1.0, 1.0, Width, Height, ID, Selected, ScaleColor);
+End;
+
+Procedure Widget.DrawCroppedComponent(X, Y, Layer, U1, V1, U2, V2:Single; Const Width, Height:UIDimension; ID:Integer; Selected:Boolean; ScaleColor:Boolean = True);
+Var
+  Target:UIQuadList;
+  P:Vector2D;
+  Z:Single;
+  OfsX,OfsY:Single;
+  I:Integer;
+
+  CurrentState, DefaultState:Integer;
+Begin
+  If _Component = Nil Then
+    Exit;
+
+  Self.CopyProperties(ID, Selected, CurrentState, DefaultState);
+
+  If (Self.HasPropertyTweens()) Then
+    _TransformChanged := True;
+
+  P := Self.GetAbsolutePosition();
+  Z := Self.GetLayer() + Layer;
+
+  Self.GetScrollOffset(OfsX, OfsY);
+
+  P.X := P.X + OfsX + X;
+  P.Y := P.Y + OfsY + Y;
+
+  FillChar(Target, SizeOf(Target), 0);
+  _Component.Draw(Target, P.X, P.Y, U1, V1, U2, V2, Trunc(Self.GetDimension(Width)), Trunc(Self.GetDimension(Height)), ID, CurrentState, DefaultState);
+
+  //_FontRenderer.SetFont(Self.GetFont());
+  _FontRenderer.SetClipRect(GetClipRect());
+  _FontRenderer.SetTransform(_Transform);
+  _FontRenderer.SetDropShadow(_DropShadowColor);
+  //_FontRenderer.SetColor(C);
+
+  //_FontRenderer.DrawText(P.X, P.Y, Z, Text);
+
+  For I:=0 To Pred(Target.QuadCount) Do
+  Begin
+    UI.AddQuad(Target.Quads[I], _Properties, Z, _Transform);
+  End;
 End;
 
 Function Widget.OnKeyDown(Key:Word):Boolean;
@@ -1518,10 +1458,6 @@ Begin
   If (Key = UI.Key_Action) Then
   Begin
     Result := Self.OnSelectAction();
-  End Else
-  If (Key = UI.Key_Action2) Then
-  Begin
-    Result := Self.OnSelectAlternateAction();
   End Else
   If (Key = UI.key_Up) Then
   Begin
@@ -1587,7 +1523,7 @@ Begin
   If (Not Self.Visible) Or (Not Self.Enabled) Then
     Exit;
 
-  If (Self.HasTweens) Then
+  If (Self.HasPropertyTweens()) Then
   Begin
     {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', _Name+ ' has tweens!');{$ENDIF}
     Exit;
@@ -1596,14 +1532,14 @@ Begin
   For I:=0 To Pred(_ChildrenCount) Do
     _ChildrenList[I]._Tested := False;
 
-  For I:=0 To Pred(_ChildrenCount) Do
+(*TODO  For I:=0 To Pred(_ChildrenCount) Do
   If (_ChildrenList[I].Visible) And (_ChildrenList[I] Is UIComboBox) Then
   Begin
     _ChildrenList[I]._Tested := True;
     Result := _ChildrenList[I].OnMouseDown(X,Y, Button);
     If Result Then
       Exit;
-  End;
+  End;*)
 
   For I:=0 To Pred(_ChildrenCount) Do
   If (_ChildrenList[I].Visible) And (_ChildrenList[I] Is UIWindow) Then
@@ -1632,10 +1568,10 @@ Begin
           Self.OnBeginDrag(Self);
 
         _UI._Dragger := Self;
-        _DragStart := _Position;
+        _DragStart := _Position.Value;
         _Dragging := True;
-        _DragX := (X-_Position.X);
-        _DragY := (Y-_Position.Y);
+        _DragX := (X-_Position.X.Value);
+        _DragY := (Y-_Position.Y.Value);
       End;
       
       Result := True;
@@ -1670,7 +1606,7 @@ Begin
 
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', _Name+ '.OnMouseUp called');{$ENDIF}
 
-  If (Not Self.Visible) Or (Self.HasTweens) Then
+  If (Not Self.Visible) Or (Self.HasPropertyTweens()) Then
     Exit;
 
   For I:=0 To Pred(_ChildrenCount) Do
@@ -1688,30 +1624,30 @@ Begin
   End;
 End;
 
-Function IsEditText(W:Widget):Boolean;
+(*Function IsEditText(W:Widget):Boolean;
 Begin
   If W = Nil Then
     Result := False
   Else
     Result := (W Is UIEditText);
-End;
+End;*)
 
 Function Widget.OnMouseMove(X,Y:Integer):Boolean;
 Var
-  B:Boolean;
   I:Integer;
+  B:Boolean;
 Begin
   Result := False;
 
   If (_Dragging) Then
   Begin
-    _Position.X := X - _DragX;
-    _Position.Y := Y - _DragY;
+    _Position.X.Value := X - _DragX;
+    _Position.Y.Value := Y - _DragY;
     _TransformChanged := True;
     Exit;
   End;
-  
-  If (Not Self.Visible) Or (Self.HasTweens) Or (OnRegion(X,Y)) Then
+
+  If (Not Self.Visible) Or (Self.HasPropertyTweens()) Or (OnRegion(X,Y)) Then
     Exit;
 
   For I:=0 To Pred(_ChildrenCount) Do
@@ -1726,7 +1662,7 @@ Begin
   If (Self.HasMouseOver) Then
   Begin
     B := OnRegion(X,Y);
-    If (B=True) And (UI.Highlight <> Self) And (Not IsEditText(UI.Highlight)) Then
+    If (B=True) And (UI.Highlight <> Self) (*And (Not IsEditText(UI.Highlight))*) Then
     Begin
     	Result := True;
       UI.Highlight := Self;
@@ -1760,7 +1696,7 @@ Var
 Begin
   Result := False;
 
-  If (Not Self.Visible) Or (Self.HasTweens) Or (OnRegion(X,Y)) Then
+  If (Not Self.Visible) Or (Self.HasPropertyTweens()) Or (OnRegion(X,Y)) Then
     Exit;
 
   For I:=0 To Pred(_ChildrenCount) Do
@@ -1809,13 +1745,13 @@ End;
 
 Procedure Widget.SetSaturation(const Value: Single);
 Begin
-  _Saturation := Value;
+  _Saturation.Value := Value;
   _NeedsUpdate := True;
 End;
 
 Procedure Widget.SetScale(const Value: Single);
 Begin
-  _Scale := Value;
+  _Scale.Value := Value;
   _NeedsUpdate := True;
   _TransformChanged := True;
 End;
@@ -1823,7 +1759,7 @@ End;
 
 Procedure Widget.SetRotation(const Value: Single);
 Begin
-  _Rotation := Value;
+  _Rotation.Value := Value;
   _NeedsUpdate := True;
   _TransformChanged := True;
 End;
@@ -1838,8 +1774,9 @@ Var
 Begin
   Result := False;
 
-  If (_NeedsHide) And (Not Self.HasTweens()) Then
+  If (_NeedsHide) And (Not Self.HasPropertyTweens()) Then
   Begin
+    Self.HasPropertyTweens();
     _NeedsHide := False;
     HideWidget(Self);
   End;
@@ -1863,10 +1800,10 @@ Begin
   Center.Y := Center.Y * _Pivot.Y;
   Center.Add(Self.GetAbsolutePosition());
 
-  If (_Rotation <> 0.0) Then
-    _Transform := MatrixRotationAndScale2D(_Rotation, _Scale, _Scale * Ratio)
+  If (_Rotation.Value <> 0.0) Then
+    _Transform := MatrixRotationAndScale2D(_Rotation.Value, _Scale.Value, _Scale.Value * Ratio)
   Else
-    _Transform := MatrixScale2D(_Scale, _Scale * Ratio);
+    _Transform := MatrixScale2D(_Scale.Value, _Scale.Value * Ratio);
 
   _Transform := MatrixTransformAroundPoint2D(Center, _Transform);
 
@@ -1972,18 +1909,10 @@ End;
 
 Function Widget.OnSelectAction: Boolean;
 Begin
-  If (Self.Selected) And (Assigned(OnMouseClick)) And (Not Self.HasTweens()) Then
+  If (Self.Selected) And (Assigned(OnMouseClick)) And (Not Self.HasPropertyTweens()) Then
   Begin
-    Result := OnMouseClick(Self);
-  End Else
-    Result := False;
-End;
-
-Function Widget.OnSelectAlternateAction: Boolean;
-Begin
-  If (Self.Selected) And (Assigned(OnExtendedClick)) And (Not Self.HasTweens()) Then
-  Begin
-    Result := OnExtendedClick(Self);
+    Self.OnHit(OnMouseClick);
+    Result := True;
   End Else
     Result := False;
 End;
@@ -1997,7 +1926,7 @@ Begin
   If (Self.Selected) Then
   Begin
     W := Self.GetDownControl();
-    If (Assigned(W)) And (Not Self.HasTweens()) Then
+    If (Assigned(W)) And (Not Self.HasPropertyTweens()) Then
     Begin
       Result := True;
       UI.Highlight := W;
@@ -2014,7 +1943,7 @@ Begin
   If (Self.Selected) Then
   Begin
     W := Self.GetLeftControl();
-    If (Assigned(W)) And (Not Self.HasTweens()) Then
+    If (Assigned(W)) And (Not Self.HasPropertyTweens()) Then
     Begin
       Result := True;
       UI.Highlight := W;
@@ -2031,7 +1960,7 @@ Begin
   If (Self.Selected) Then
   Begin
     W := Self.GetRightControl();
-    If (Assigned(W)) And (Not Self.HasTweens()) Then
+    If (Assigned(W)) And (Not Self.HasPropertyTweens()) Then
     Begin
       Result := True;
       UI.Highlight := W;
@@ -2048,7 +1977,7 @@ Begin
   If (Self.Selected) Then
   Begin
     W := Self.GetUpControl();
-    If (Assigned(W)) And (Not Self.HasTweens()) Then
+    If (Assigned(W)) And (Not Self.HasPropertyTweens()) Then
     Begin
       Result := True;
       UI.Highlight := W;
@@ -2100,7 +2029,7 @@ Begin
       _ScrollValue := Bar.Value;
     End;
 
-    If (Bar.Horizontal) Then
+    If (Bar.Kind = scrollHorizontal) Then
       OfsX := -Bar.Value
     Else
       OfsY := -Bar.Value;
@@ -2114,15 +2043,18 @@ Begin
   End;
 End;
 
-Procedure Widget.SetPositionRelative(Other: Widget; OfsX, OfsY: Single);
+Procedure Widget.SetPositionRelativeToOther(Other: Widget; OfsX, OfsY: Single);
+Var
+  P:Vector2D;
 Begin
-  If (Other.Parent<>Nil) Then
-    _Position := VectorCreate2D(Other.Position.X - Other.Parent.Position.X, Other.Position.Y - Other.Parent.Position.Y)
-  Else
-    _Position := Other.Position;
+  P := Other.AbsolutePosition;
 
-  _Position.Add(VectorCreate2D(OfsX, OfsY));
-  _TransformChanged := True;
+  If (Other.Parent<>Nil) Then
+    P.Subtract(Other.Parent.AbsolutePosition);
+
+  P.Add(VectorCreate2D(OfsX, OfsY));
+
+  Self.SetRelativePosition(P);
 End;
 
 Procedure Widget.SetName(const Value:TERRAString);
@@ -2161,7 +2093,7 @@ Procedure Widget.UpdateClipRect(Clip: ClipRect; LeftBorder,TopBorder, RightBorde
 Var
   Pos, Size:Vector2D;
 Begin
-  Pos := Self.Position;
+  Pos := Self.AbsolutePosition;
   Size := Self.Size;
   Clip.X := Pos.X + LeftBorder;
   Clip.Y := Pos.Y + TopBorder;
@@ -2184,7 +2116,7 @@ Procedure Widget.CancelDrag;
 Begin
   If _Dragging Then
   Begin
-    _Position := _DragStart;
+    _Position.Value := _DragStart;
     _Dragging := False;
     If _UI._Dragger = Self Then
       _UI._Dragger := Nil;
@@ -2240,8 +2172,8 @@ End;
 Procedure Widget.ResetClipRect;
 Begin
   _ClipRect.Style := clipSomething;
-  _ClipRect.X := Self.Position.X;
-  _ClipRect.Y := Self.Position.Y;
+  _ClipRect.X := Self.AbsolutePosition.X;
+  _ClipRect.Y := Self.AbsolutePosition.Y;
   _ClipRect.Width := Self.Size.X;
   _ClipRect.Height := Self.Size.Y;
   _ClipRect.Transform(_UI.Transform);
@@ -2276,97 +2208,113 @@ Begin
     Result.SetFont(Self.Font);
 End;
 
-
 Function Widget.IsOutsideScreen: Boolean;
+Var
+  P:Vector2D;
 Begin
-  Result := (Self.Position.X + Self.Size.X<0) Or (Self.Position.Y + Self.Size.Y<0)
-    Or (Self.Position.X> UIManager.Instance.Width) Or (Self.Position.Y > UIManager.Instance.Height);
+  P := Self.AbsolutePosition;
+  Result := (P.X + Self.Size.X<0) Or (P.Y + Self.Size.Y<0) Or (P.X> UIManager.Instance.Width) Or (P.Y > UIManager.Instance.Height);
 End;
 
-{ UICursor }
-Constructor UICursor.Create(Name:TERRAString; UI:UI; OfsX, OfsY:Integer);
-Var
-  Source:Image;
-  MyStream:Stream;
+Function Widget.GetDimension(const Dim: UIDimension): Single;
 Begin
-  _UI := UI;
-  _Item := UIManager.Instance.GetTextureAtlas.Get(Name);
+  Case Dim.Kind Of
+    dimScreenWidthPercent:  Result := (Dim.Value * 0.01) * UIManager.Instance.Width;
+    dimScreenHeightPercent:  Result := (Dim.Value * 0.01) * UIManager.Instance.Height;
+  Else
+    Result := Dim.Value;
+  End;
+End;
 
-  If Not Assigned(_Item) Then
+Procedure Widget.ClipChildren(const Clip: ClipRect);
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_ChildrenCount) Do
+  If Assigned(_ChildrenList[I].Scroll) Then
+    _ChildrenList[I].SetClipRect(Clip);
+End;
+
+Procedure Widget.SetWidth(const Value: UIDimension);
+Begin
+  Self._Width := Value;
+  Self.UpdateRects();
+End;
+
+Procedure Widget.SetHeight(const Value: UIDimension);
+Begin
+  Self._Height := Value;
+  Self.UpdateRects();
+End;
+
+Procedure Widget.UpdateProperties;
+Begin
+  _Properties.QuadColor := Self.GetColor();
+  _Properties.TextColor := ColorWhite;
+
+  _Properties.TextFont := Self.GetFont();
+
+  _Properties.Saturation := Self.GetSaturation();
+  _Properties.ColorTable := Self.GetColorTable();
+
+  _Properties.Clip := Self.GetClipRect();
+
+  //If (ScaleColor) And (Not DisableUIColor) Then
   Begin
-    Name := FileManager.Instance.SearchResourceFile(Name);
-    If Name<>'' Then
-    Begin
-      MyStream := FileManager.Instance.OpenStream(Name);
-      Source := Image.Create(MyStream);
-      _Item := UIManager.Instance.GetTextureAtlas.Add(Source, Name);
-      UIManager.Instance._UpdateTextureAtlas := True;
-      Source.Release;
-      MyStream.Release;
-    End;
+    _Properties.QuadColor := ColorMultiply(_Properties.QuadColor, UI._Color.Value);
+    _Properties.Saturation := _Properties.Saturation * UI._Saturation.Value;
+
+    If (_Properties.ColorTable = Nil) Then
+      _Properties.ColorTable := UI._ColorTable;
   End;
 
-  _Name := Name;
-  _OfsX := OfsY;
-  _OfsY := OfsY;
+  If Not Enabled Then
+    _Properties.Saturation := 0.0;
 End;
 
-Procedure UICursor.Release;
+Function Widget.GetRotation: Single;
+Begin
+  Result := _Rotation.Value;
+End;
+
+Function Widget.GetScale: Single;
+Begin
+  Result := _Scale.Value;
+End;
+
+Procedure Widget.NullEventHandler(Src:Widget);
 Begin
   // do nothing
-End;
-
-Procedure UICursor.Render;
-Var
-  StartPos, EndPos:Vector2D;
-  T1, T2:Vector2D;
-  MyTextureAtlas:TextureAtlas;
-  MyColor:Color;
-  CR:ClipRect;
-Begin
-  If (Not Assigned(_Item)) Then
-    Exit;
-
-  CR.Style := clipNothing;
-
-  StartPos := VectorCreate2D(UI._CursorPos.X - _OfsX, UI._CursorPos.Y - _OfsY);
-  EndPos.X := StartPos.X + _Item.Buffer.Width;
-  EndPos.Y := StartPos.Y + _Item.Buffer.Height;
-  T1 := VectorCreate2D(_Item.X, _Item.Y);
-  MyTextureAtlas := UIManager.Instance.GetTextureAtlas;
-  T2.X := T1.X + (_Item.Buffer.Width / MyTextureAtlas.Width);
-  T2.Y := T1.Y + (_Item.Buffer.Height / MyTextureAtlas.Height);
-  MyColor := ColorGrey(255, UI._Color.A);
-  UI.AddQuad(StartPos, EndPos, T1, T2, MyColor, 99, _Item.PageID, MatrixIdentity3x3, 1, Nil, CR);
 End;
 
 { UI }
 Constructor UI.Create;
 Begin
+  Self.InitProperties();
+
   _Widgets := HashMap.Create(1024);
   _Visible := True;
 
-  _CurrentCursor := Nil;
-  _CursorCount := 0;
   _Transition := Nil;
 
-  _Color := ColorCreateFromFloat(1.0, 1.0, 1.0, 1.0);
-  _Saturation := 1.0;
+  SetColor(ColorCreateFromFloat(1.0, 1.0, 1.0, 1.0));
+  SetSaturation(1.0);
   _ColorTable := Nil;
 
   _FontRenderer := Nil;
 
-  SetTransform(MatrixIdentity3x3);
+  _Skin := UISkinComponent.Create(Nil, Nil);
 
-  DefaultEaseType := easeInSine;
+  SetTransform(MatrixIdentity3x3);
 
   Key_Up := TERRA_OS.keyUp;
   Key_Down := TERRA_OS.keyDown;
   Key_Right := TERRA_OS.keyRight;
   Key_Left := TERRA_OS.keyLeft;
   Key_Action := TERRA_OS.keyEnter;
-  Key_Action2 := TERRA_OS.keyBackspace;
   Key_Cancel := TERRA_OS.keyEscape;
+
+  _ClipRect.SetStyle(clipNothing);
 
   UIManager.Instance.AddUI(Self);
 End;
@@ -2375,9 +2323,7 @@ Procedure UI.Release;
 Var
   I:Integer;
 Begin
-  For I:=0 To Pred(_CursorCount) Do
-    ReleaseObject(_CursorList[I]);
-
+  ReleaseObject(_Skin);
   ReleaseObject(_Transition);
 	ReleaseObject(_Widgets);
 End;
@@ -2491,16 +2437,6 @@ Begin
   Self._ColorTable := Value;
 End;
 
-Function UI.LoadCursor(Const Name:TERRAString; OfsX, OfsY:Integer):UICursor;
-Begin
-  Inc(_CursorCount);
-  SetLength(_CursorList, _CursorCount);
-  Result := UICursor.Create(Name, Self, OfsX, OfsY);
-  _CursorList[Pred(_CursorCount)] := Result;
-  If (Not Assigned(_CurrentCursor)) Then
-    _CurrentCursor := Result;
-End;
-
 Procedure UI.AddWidget(MyWidget:Widget);
 Var
   Temp, Last:Widget;
@@ -2585,8 +2521,6 @@ Begin
   If (MyWidget = _Highlight) Then
     _Highlight := Nil;
 
-  TweenManager.Instance.RemoveTween(MyWidget);
-
   If (_First = MyWidget) Then
   Begin
     _First := MyWidget._Next;
@@ -2621,26 +2555,24 @@ Begin
 End;
 
 
-Function UI.AddQuad(Const StartPos, EndPos:Vector2D; Const TexCoord1, TexCoord2:Vector2D; MyColor:Color; Z:Single; PageID:Integer;
-                    Const Transform:Matrix3x3; Saturation:Single; ColorTable:Texture; Const Clip:ClipRect):QuadSprite;
+Function UI.AddQuad(Const Quad:UIQuad; Const Props:UISkinProperty; Z:Single; Const Transform:Matrix3x3):QuadSprite;
 Var
   Tex:Texture;
 Begin
-  Tex := UIManager.Instance.TextureAtlas.GetTexture(PageID);
-  Result := SpriteManager.Instance.DrawSprite(StartPos.X, StartPos.Y, Z, Tex, ColorTable, blendBlend, Saturation);
+  Tex := UIManager.Instance.TextureAtlas.GetTexture(Quad.PageID);
+  Result := SpriteManager.Instance.DrawSprite(Quad.StartPos.X, Quad.StartPos.Y, Z, Tex, ColorTable, blendBlend, Saturation);
   If (Result = Nil) Then
     Exit;
 
-  Result.Rect.Width := Trunc(EndPos.X - StartPos.X);
-  Result.Rect.Height := Trunc(EndPos.Y - StartPos.Y);
+  Result.Rect.Width := Trunc(Quad.EndPos.X - Quad.StartPos.X);
+  Result.Rect.Height := Trunc(Quad.EndPos.Y - Quad.StartPos.Y);
 
-  //Clip.Merge(Self._ClipRect);
-  Result.ClipRect := Clip;
+  Result.ClipRect := Props.Clip;
 
   Result.SetTransform(Transform);
 
-  Result.SetColor(MyColor);
-  Result.Rect.UVRemap(TexCoord1.X, TexCoord1.Y, TexCoord2.X, TexCoord2.Y);
+  Result.SetColor(Props.QuadColor);
+  Result.Rect.UVRemap(Quad.StartUV.X, Quad.StartUV.Y, Quad.EndUV.X, Quad.EndUV.Y);
 End;
 
 Procedure UI.UpdateLanguage();
@@ -2670,8 +2602,6 @@ Var
   Q:Vector4D;
 Begin
   _Draw := False;
-  _CursorPos.X := InputManager.Instance.Mouse.X;
-  _CursorPos.Y := InputManager.Instance.Mouse.Y;
 
   If (Assigned(_Highlight)) And ((Not _Highlight.Visible) Or (Not _Highlight.Enabled)) Then
   Begin
@@ -2707,9 +2637,6 @@ Begin
     Exit;
 
   GraphicsManager.Instance.Renderer.SetBlendMode(blendBlend);
-
-  If (Assigned(_CurrentCursor)) Then
-    _CurrentCursor.Render;
 
   MyWidget := _First;
   While (Assigned(MyWidget)) Do
@@ -2750,10 +2677,7 @@ Begin
   _Transition := MyTransition;
 
   If Assigned(_Transition) Then
-  Begin
-    _Transition.EaseType := Self.DefaultEaseType;
     _Transition.Transform := Self.Transform;
-  End;
 End;
 
 Function UI.OnKeyDown(Key:Word):Widget;
@@ -3233,7 +3157,7 @@ Begin
   If (UI = Nil) Then
     Exit;
 
-  If (UI.System_Wnd = Nil) Or (UI.System_Wnd.HasTweens) Then
+  If (UI.System_Wnd = Nil) Or (UI.System_Wnd.HasPropertyTweens()) Then
     Exit;
 
   UI.CloseWnd();
@@ -3258,7 +3182,7 @@ Begin
   If (UI = Nil) Then
     Exit;
 
-  If (UI.System_Wnd = Nil) Or (UI.System_Wnd.HasTweens) Then
+  If (UI.System_Wnd = Nil) Or (UI.System_Wnd.HasPropertyTweens()) Then
     Exit;
 
   UI.CloseWnd();
@@ -3273,16 +3197,16 @@ End;
 Procedure UI.InitTempWidgets();
 Var
   N,I:Integer;
-  S:UISprite;
+//TODO  S:UISprite;
 Begin
-  System_Wnd := UIWindow(GetWidget(System_Name_Wnd));
+(*  System_Wnd := UIWindow(GetWidget(System_Name_Wnd));
   System_Text := UILabel(GetWidget(System_Name_Text));
   For I:=0 To 2 Do
     System_Btn[I] := UIButton(GetWidget(System_Name_Btn+IntToString(I)));
 
   If Not Assigned(System_Wnd) Then
   Begin
-    System_Wnd := UIWindow.Create(System_Name_Wnd, Self, Nil, 0, 0, 97, 8, 5);
+    System_Wnd := UIWindow.Create(System_Name_Wnd, Self, Nil, 0, 0, 97, UIPixels(500), UIPixels(200));
     System_Wnd.Visible := False;
     System_Text := UILabel.Create(System_Name_Text, Self, System_Wnd, 20, 20, 0.5, '??');
     For I:=0 To 2 Do
@@ -3310,7 +3234,7 @@ Begin
     S.Color := ColorGrey(0, 100);
     S.Visible := False;
     System_BG := S;
-  End;
+  End;*)
 End;
 
 Procedure UI.InitStuff();
@@ -3324,10 +3248,12 @@ Begin
   System_BG.Visible := True;
   System_Wnd.Visible := True;
 
-  For I:=0 To 2 Do
+(*  For I:=0 To 2 Do
     System_Btn[I].OnMouseClick := CloseMsgBox;
+    TODO
 
   System_Btn[2].OnMouseClick := CloseMsgBox2;
+    *)
 End;
 
 Procedure UI.MessageBox(Msg:TERRAString; Callback: WidgetEventHandler);
@@ -3337,13 +3263,14 @@ Begin
   _WndCallback1 := Callback;
   InitStuff();
 
+  (*TODO
   UILabel(System_Text).Caption := Msg;
   For I:=0 To 2 Do
     System_Btn[I].Visible := (I=0);
 
   _PrevHighlight := Highlight;
   If (Highlight<>Nil) Then
-    Highlight := System_Btn[0];
+    Highlight := System_Btn[0];*)
 End;
 
 
@@ -3355,6 +3282,7 @@ Begin
   _WndCallback2 := Callback2;
   InitStuff();
 
+  (*TODO
   UILabel(System_Text).Caption := System_Text._FontRenderer.AutoWrapText(Msg, System_Wnd.Size.X - 30);
   For I:=0 To 2 Do
     System_Btn[I].Visible := (I>0);
@@ -3363,7 +3291,7 @@ Begin
   UIButton(System_Btn[2]).Caption := Option2;
 
   _PrevHighlight := Highlight;
-    Highlight := System_Btn[1];
+    Highlight := System_Btn[1];*)
 End;
 
 Procedure UI.ShowModal(W:Widget);
@@ -3397,7 +3325,7 @@ End;
 Function UI.GetVirtualKeyboard: Widget;
 Begin
   If (_VirtualKeyboard = Nil) Then
-    _VirtualKeyboard := TERRA_UIVirtualKeyboard.VirtualKeyboard.Create('vkb', Self, 97);
+    _VirtualKeyboard := UIVirtualKeyboard.Create('vkb', Self, 97, 'keyboard');
 
   Result := _VirtualKeyboard;
 End;
@@ -3517,7 +3445,7 @@ Begin
     Exit;
 
   Min := 99999;
-  Base := Target.Position;
+  Base := Target.AbsolutePosition;
   GroupID := Target.HighlightGroup;
 
   It := Self.Widgets.GetIterator();
@@ -3527,7 +3455,7 @@ Begin
     If (W = Target) Or (Not W.CanHighlight(GroupID)) Then
       Continue;
 
-    Dist := W.Position.Distance(Base);
+    Dist := W.AbsolutePosition.Distance(Base);
     If (Dist< Min) Then
     Begin
       Min := Dist;
@@ -3555,55 +3483,84 @@ Begin
   ReleaseObject(It);
 End;
 
-{ UISkinLayout }
-Constructor UISkinLayout.Create(Source: TextureAtlasItem);
+Function UI.LoadImage(Name:TERRAString):TextureAtlasItem;
 Var
   I:Integer;
+  Source, Temp:Image;
+  MyStream:Stream;
+  S:TERRAString;
+  Ext:ImageClassInfo;
 Begin
-  _Target := Source;
+  Name := GetFileName(Name, True);
 
-  For I:=0 To 2 Do
+  Log(logDebug, 'UI', 'Getting '+Name);
+  Result := UIManager.Instance.GetTextureAtlas.Get(Name);
+  If Assigned(Result) Then
+    Exit;
+
+  Log(logDebug, 'UI', 'Searching icons');
+  S := '';
+  I := 0;
+  While (S='') And (I<GetImageExtensionCount()) Do
   Begin
-    X[I] := I * (1/3);
-    Y[I] := I * (1/3);
+    Ext := GetImageExtension(I);
+    S := FileManager.Instance.SearchResourceFile(Name+'.'+Ext.Name);
+    Inc(I);
+  End;
+
+  Log(logDebug, 'Game', 'Got '+S);
+  If S<>'' Then
+  Begin
+    Log(logDebug, 'Game', 'Opening stream');
+    MyStream := FileManager.Instance.OpenStream(S);
+    Log(logDebug, 'Game', 'Creating image: '+S);
+
+    Source := Image.Create(MyStream);
+    Log(logDebug, 'Game', 'Image created: '+IntToString(Source.Width)+'x'+IntToString(Source.Height));
+
+    Log(logDebug, 'Game', 'Adding to TextureAtlas');
+
+    Result := UIManager.Instance.GetTextureAtlas.Add(Source, Name);
+    UIManager.Instance._UpdateTextureAtlas := True;
+
+    Log(logDebug, 'Game', 'TextureAtlas added');
+
+    ReleaseObject(Source);
+    ReleaseObject(MyStream);
+  End Else
+  Begin
+    Log(logWarning,'UI', 'UI component not found. ['+Name+']');
+    Result := Nil;
   End;
 End;
 
-Function UISkinLayout.GCSX(I: Integer): Single;
+Function UI.GetComponent(Const Name:TERRAString): UISkinComponent;
 Begin
-  If (I<2) Then
-    Result := (X[Succ(I)] - X[I])
+  If (Name = '') Then
+    Result := Nil
   Else
-    Result := (1.0 - X[I]);
-
-  If Assigned(_Target) Then
-    Result := Result * _Target.Buffer.Width;
+    Result := _Skin.GetChildByName(Name);
 End;
 
-Function UISkinLayout.GCSY(J: Integer): Single;
+Function UI.LoadSkin(const FileName: TERRAString):Boolean;
+Var
+  Doc:XMLDocument;
+  Location:TERRAString;
+  I:Integer;
 Begin
-  If (J<2) Then
-    Result := (Y[Succ(J)] - Y[J])
-  Else
-    Result := (1.0 - Y[J]);
+  Result := False;
+  Location := FileManager.Instance.SearchResourceFile(FileName+'.xml');
+  If Location = '' Then
+    Exit;
 
-  If Assigned(_Target) Then
-    Result := Result * _Target.Buffer.Height;
-End;
+  Doc := XMLDocument.Create();
+  Doc.LoadFromFile(Location);
 
-Function UISkinLayout.GetWidth(Width: Integer): Single;
-Begin
-  Result := Self.GCSX(0) + Self.GCSX(1) * Width + Self.GCSX(2);
-End;
+  ReleaseObject(_Skin);
+  _Skin := UISkinComponent.Create(Doc.Root, Nil);
+  ReleaseObject(Doc);
 
-Function UISkinLayout.GetHeight(Height: Integer): Single;
-Begin
-  Result := Self.GCSY(0) + Self.GCSY(1) * Height + Self.GCSY(2);
-End;
-
-Procedure UISkinLayout.Release;
-Begin
-  // do nothing
+  Result := True;
 End;
 
 { UIManager }
@@ -3720,7 +3677,7 @@ End;
 Class Function UIManager.Instance: UIManager;
 Begin
   If (_UIManager_Instance = Nil) Then
-    _UIManager_Instance := InitializeApplicationComponent(UIManager, TweenManager);
+    _UIManager_Instance := InitializeApplicationComponent(UIManager, Nil);
 
   Result := UIManager(_UIManager_Instance.Instance);
 End;

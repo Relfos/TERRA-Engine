@@ -1,0 +1,580 @@
+Unit TERRA_UISkin;
+
+{$I terra.inc}
+
+Interface
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Color, TERRA_ClipRect, TERRA_Matrix3x3,
+  TERRA_TextureAtlas, TERRA_Texture, TERRA_Font, TERRA_Stream, TERRA_XML;
+
+Const
+  layoutHorizontal = 0;
+  layoutVertical   = 1;
+
+  ExtendedPressDuration = 2000;
+
+  System_Name_Wnd = '@UI_Window';
+  System_Name_Text = '@UI_Text';
+  System_Name_Btn = '@UI_BTN';
+  System_Name_BG = '@UI_BG';
+  
+Type
+  UISkinTile = Record
+    X:Single;
+    Y:Single;
+    Width:Single;
+    Height:Single;
+
+    U1:Single;
+    V1:Single;
+
+    U2:Single;
+    V2:Single;
+  End;
+
+  UIQuad = Record
+    StartPos:Vector2D;
+    EndPos:Vector2D;
+
+    StartUV:Vector2D;
+    EndUV:Vector2D;
+
+    PageID:Integer;
+  End;
+
+  UIQuadList = Record
+    QuadCount:Integer;
+    Quads:Array Of UIQuad;
+  End;
+
+  UISkinProperty = Record
+    Saturation:Single;
+    ColorTable:Texture;
+    QuadColor:Color;
+    TextColor:Color;
+    Clip:ClipRect;
+    TextFont:Font;
+  End;
+
+  UISkinComponent = Class(TERRAObject)
+    Protected
+      _ID:Integer;
+      _State:Integer;
+      _Parent:UISkinComponent;
+      _Name:TERRAString;
+
+      _ChildrenList:Array Of UISkinComponent;
+      _ChildrenCount:Integer;
+
+      Procedure Release; Override;
+
+      Procedure AddComponent(Component:UISkinComponent);
+      Function LoadComponentFromNode(Source:XMLNode):UISkinComponent;
+
+      Procedure InitFromSource(Source:XMLNode);
+
+      Procedure AddQuad(Var Target:UIQuadList; Item:TextureAtlasItem; X, Y:Single; U1,V1, U2,V2:Single; Width, Height:Single);
+
+    Public
+      Constructor Create(Source:XMLNode; Parent:UISkinComponent);
+
+      Function GetChildByName(Const Name:TERRAString):UISkinComponent;
+
+      Function GetWidth(ID, State:Integer):Integer; Virtual;
+      Function GetHeight(ID, State:Integer):Integer; Virtual;
+
+      Procedure GetProperties(Var Props:UISkinProperty; ID, CurrentState, DefaultState:Integer); Virtual;
+
+      Procedure Draw(Var Target:UIQuadList; Const X, Y, U1, V1, U2, V2:Single; Const Width, Height, ID, CurrentState, DefaultState:Integer); Virtual;
+
+      Property Name:TERRAString Read _Name;
+  End;
+
+  UISkinRect = Class(UISkinComponent)
+    Protected
+      _Tiles:Array[0..2, 0..2] Of UISkinTile;
+      _Texture:TextureAtlasItem;
+
+      Function GetTile(I,J:Integer):UISkinTile;
+
+    Public
+      Constructor Create(Source:XMLNode; Parent:UISkinComponent);
+
+      Procedure Draw(Var Target:UIQuadList; Const X, Y, U1, V1, U2, V2:Single; Const Width, Height, ID, CurrentState, DefaultState:Integer); Override;
+  End;
+
+  UISkinImage = Class(UISkinComponent)
+    Protected
+      _Texture:TextureAtlasItem;
+
+    Public
+      Constructor Create(Source:XMLNode; Parent:UISkinComponent);
+
+      Function GetWidth(ID, State:Integer):Integer; Override;
+      Function GetHeight(ID, State:Integer):Integer; Override;
+
+      Procedure Draw(Var Target:UIQuadList; Const X, Y, U1, V1, U2, V2:Single; Const Width, Height, ID, CurrentState, DefaultState:Integer); Override;
+  End;
+
+  UISkinColor = Class(UISkinComponent)
+    Protected
+      _Color:Color;
+
+    Public
+      Constructor Create(Source:XMLNode; Parent:UISkinComponent);
+
+      Procedure GetProperties(Var Props:UISkinProperty; ID, CurrentState, DefaultState:Integer); Override;
+  End;
+
+  UISkinTextColor = Class(UISkinColor)
+    Public
+      Procedure GetProperties(Var Props:UISkinProperty; ID, CurrentState, DefaultState:Integer); Override;
+  End;
+
+Implementation
+Uses TERRA_Error, TERRA_Log, TERRA_Image, TERRA_FileUtils, TERRA_UI;
+
+{ UISkinComponent }
+Procedure UISkinComponent.AddQuad(Var Target:UIQuadList; Item:TextureAtlasItem; X, Y:Single; U1,V1, U2,V2:Single; Width, Height:Single);
+Var
+  P:Vector2D;
+  ShadowOffset:Vector2D;
+  Source:Image;
+  MyTextureAtlas:TextureAtlas;
+  Quad:UIQuad;
+Begin
+  If (Item = Nil) Then
+    Exit;
+
+  MyTextureAtlas := UIManager.Instance.TextureAtlas;
+  Source := Item.Buffer;
+
+  P.X := Trunc(X);
+  P.Y := Trunc(Y);
+
+  Quad.StartPos := P;
+  Quad.EndPos := VectorCreate2D(Trunc(P.X + Width), Trunc(P.Y + Height));
+  Quad.StartUV.X := (Item.X + ( (U1*Pred(Source.Width)) / MyTextureAtlas.Width));
+  Quad.StartUV.Y := (Item.Y + ( (V1*Pred(Source.Height)) / MyTextureAtlas.Height));
+  Quad.EndUV.X := (Item.X + ( ((U2*Pred(Source.Width))) / MyTextureAtlas.Width));
+  Quad.EndUV.Y := (Item.Y + ( ((V2*Pred(Source.Height))) / MyTextureAtlas.Height));
+  Quad.PageID := Item.PageID;
+
+  Inc(Target.QuadCount);
+  SetLength(Target.Quads, Target.QuadCount);
+  Target.Quads[Pred(Target.QuadCount)] := Quad;
+End;
+
+Constructor UISkinComponent.Create(Source: XMLNode; Parent: UISkinComponent);
+Var
+  I:Integer;
+  Component:UISkinComponent;
+Begin
+  _ChildrenCount := 0;
+  _Parent := Parent;
+
+  If Source = Nil Then
+    Exit;
+
+  Self.InitFromSource(Source);
+
+  For I:=0 To Pred(Source.NodeCount) Do
+  Begin
+    Component := LoadComponentFromNode(Source.GetNodeByIndex(I));
+    AddComponent(Component);
+  End;
+End;
+
+Procedure UISkinComponent.AddComponent(Component:UISkinComponent);
+Begin
+  If Component = Nil Then
+    Exit;
+
+  Inc(_ChildrenCount);
+  SetLength(_ChildrenList, _ChildrenCount);
+  _ChildrenList[Pred(_ChildrenCount)] := Component;
+End;
+
+Function UISkinComponent.LoadComponentFromNode(Source:XMLNode):UISkinComponent;
+Var
+  I:Integer;
+Begin
+  Result := Nil;
+  If Source = Nil Then
+    Exit;
+
+  If StringEquals(Source.Name, 'component') Then
+  Begin
+    Result := UISkinComponent.Create(Source, Self);
+  End Else
+  If StringEquals(Source.Name, 'rect') Then
+  Begin
+    Result := UISkinRect.Create(Source, Self);
+  End Else
+  If StringEquals(Source.Name, 'image') Then
+  Begin
+    Result := UISkinImage.Create(Source, Self);
+  End Else
+  If StringEquals(Source.Name, 'color') Then
+  Begin
+    Result := UISkinColor.Create(Source, Self);
+  End Else
+  If StringEquals(Source.Name, 'textcolor') Then
+  Begin
+    Result := UISkinTextColor.Create(Source, Self);
+  End Else
+    Result := Nil;
+
+End;
+
+Procedure UISkinComponent.Draw(Var Target:UIQuadList; Const X, Y, U1, V1, U2, V2:Single; Const Width, Height, ID, CurrentState, DefaultState:Integer);
+Var
+  I, Count:Integer;
+Begin
+  For I:=0 To Pred(_ChildrenCount) Do
+  If (_ChildrenList[I]._State<0) And ((_ChildrenList[I]._ID = ID) Or (_ChildrenList[I]._ID <0)) Then
+  Begin
+    _ChildrenList[I].Draw(Target, X, Y, U1, V1, U2, V2, Width, Height, ID, CurrentState, DefaultState);
+  End;
+
+  If CurrentState<0 Then
+    Exit;
+
+  Count := Target.QuadCount;
+  For I:=0 To Pred(_ChildrenCount) Do
+  If (_ChildrenList[I]._State = CurrentState) And ((_ChildrenList[I]._ID = ID) Or (_ChildrenList[I]._ID <0)) Then
+  Begin
+    _ChildrenList[I].Draw(Target, X, Y, U1, V1, U2, V2, Width, Height, ID, CurrentState, DefaultState);
+    Inc(Count);
+  End;
+
+  If (Count<Target.QuadCount) Then
+    Exit;
+
+  For I:=0 To Pred(_ChildrenCount) Do
+  If (_ChildrenList[I]._State = DefaultState) And ((_ChildrenList[I]._ID = ID) Or (_ChildrenList[I]._ID <0)) Then
+    _ChildrenList[I].Draw(Target, X, Y, U1, V1, U2, V2, Width, Height, ID, CurrentState, DefaultState);
+End;
+
+Procedure UISkinComponent.GetProperties(var Props: UISkinProperty; ID, CurrentState, DefaultState:Integer);
+Var
+  I, Count:Integer;
+Begin
+  For I:=0 To Pred(_ChildrenCount) Do
+  If (_ChildrenList[I]._State<0) And ((_ChildrenList[I]._ID = ID) Or (_ChildrenList[I]._ID <0)) Then
+    _ChildrenList[I].GetProperties(Props, ID, CurrentState, DefaultState);
+
+  If CurrentState<0 Then
+    Exit;
+
+  Count := 0;
+  For I:=0 To Pred(_ChildrenCount) Do
+  If (_ChildrenList[I]._State = CurrentState) And ((_ChildrenList[I]._ID = ID) Or (_ChildrenList[I]._ID <0)) Then
+  Begin
+    _ChildrenList[I].GetProperties(Props, ID, CurrentState, DefaultState);
+    Inc(Count);
+  End;
+
+  If (Count>0) Then
+    Exit;
+
+  For I:=0 To Pred(_ChildrenCount) Do
+  If (_ChildrenList[I]._State = DefaultState) And ((_ChildrenList[I]._ID = ID) Or (_ChildrenList[I]._ID <0)) Then
+    _ChildrenList[I].GetProperties(Props, ID, CurrentState, DefaultState);
+End;
+
+Procedure UISkinComponent.Release;
+Begin
+  // do nothing
+End;
+
+Function UISkinComponent.GetChildByName(Const Name: TERRAString): UISkinComponent;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_ChildrenCount) Do
+  If (StringEquals(_ChildrenList[I]._Name, Name)) Then
+  Begin
+    Result := _ChildrenList[I];
+    Exit;
+  End;
+
+  Result := Nil;
+End;
+
+Procedure UISkinComponent.InitFromSource(Source: XMLNode);
+Var
+  S:TERRAString;
+Begin
+  If Source = Nil Then
+    Exit;
+
+  XMLGetString(Source, 'name', _Name);
+  XMLGetInteger(Source, 'id', _ID, -1);
+  XMLGetInteger(Source, 'state', _State, -1);
+End;
+
+Function UISkinComponent.GetWidth(ID, State: Integer): Integer;
+Var
+  I:Integer;
+Begin
+  Result := 0;
+  For I:=0 To Pred(_ChildrenCount) Do
+  If (_ChildrenList[I]._ID = ID) And (_ChildrenList[I]._State = State) Then
+    Result := IntMax(Result, _ChildrenList[I].GetWidth(ID, State));
+End;
+
+Function UISkinComponent.GetHeight(ID, State: Integer): Integer;
+Var
+  I:Integer;
+Begin
+  Result := 0;
+  For I:=0 To Pred(_ChildrenCount) Do
+  If (_ChildrenList[I]._ID = ID) And (_ChildrenList[I]._State = State) Then
+    Result := IntMax(Result, _ChildrenList[I].GetHeight(ID, State));
+End;
+
+{ UISkinRect }
+Constructor UISkinRect.Create(Source:XMLNode; Parent:UISkinComponent);
+Var
+  I, J:Integer;
+  W, H:Integer;
+  SrcFile:TERRAString;
+
+  X1, Y1, X2, Y2:Integer;
+  U1, V1, U2, V2:Single;
+Begin
+  _ChildrenCount := 0;
+  _Parent := Parent;
+
+  Self.InitFromSource(Source);
+
+  XMLGetString(Source, 'src', SrcFile);
+  _Texture := UIManager.Instance.GetUI(0).LoadImage(SrcFile);
+
+  W := _Texture.Buffer.Width;
+  H := _Texture.Buffer.Height;
+
+  XMLGetInteger(Source, 'x1', X1, W Div 3);
+  XMLGetInteger(Source, 'y1', Y1, H Div 3);
+  XMLGetInteger(Source, 'x2', X2, (W Div 3) * 2 );
+  XMLGetInteger(Source, 'y2', Y2, (H Div 3) * 2);
+
+  U1 := Pred(X1) / Pred(W);
+  V1 := Pred(Y1) / Pred(H);
+  U2 := Pred(X2) / Pred(W);
+  V2 := Pred(Y2) / Pred(H);
+
+  For J:=0 To 2 Do
+    For I:=0 To 2 Do
+    Begin
+      Case I Of
+      0:Begin
+          _Tiles[I, J].U1 := 0.0;
+          _Tiles[I, J].U2 := U1;
+        End;
+      1:Begin
+          _Tiles[I, J].U1 := U1;
+          _Tiles[I, J].U2 := U2;
+        End;
+      2:Begin
+          _Tiles[I, J].U1 := U2;
+          _Tiles[I, J].U2 := 1.0;
+        End;
+      End;
+
+      Case J Of
+      0:Begin
+          _Tiles[I, J].V1 := 0.0;
+          _Tiles[I, J].V2 := V1;
+        End;
+      1:Begin
+          _Tiles[I, J].V1 := V1;
+          _Tiles[I, J].V2 := V2;
+        End;
+      2:Begin
+          _Tiles[I, J].V1 := V2;
+          _Tiles[I, J].V2 := 1.0;
+        End;
+      End;
+    End;
+
+  For J:=0 To 2 Do
+    For I:=0 To 2 Do
+    Begin
+      _Tiles[I, J].X := _Tiles[I, J].U1 * W;
+      _Tiles[I, J].Y := _Tiles[I, J].V1 * H;
+
+      _Tiles[I, J].Width := (_Tiles[I, J].U2 * W) - _Tiles[I, J].X;
+      _Tiles[I, J].Height := (_Tiles[I, J].V2 * H) - _Tiles[I, J].Y;
+    End;
+End;
+
+Function UISkinRect.GetTile(I, J: Integer): UISkinTile;
+Begin
+  Result := _Tiles[I,J];
+End;
+
+Procedure UISkinRect.Draw(Var Target:UIQuadList; Const X, Y, U1, V1, U2, V2:Single; Const Width, Height, ID, CurrentState, DefaultState:Integer);
+Var
+  CompScaleX, CompScaleY, CompSizeX, CompSizeY, CompX, CompY:Single;
+  I,J, CountX, CountY:Integer;
+  LX,LY:Single;
+  NW, NH:Single;
+  BottomX, BottomY:Single;
+  T:UISkinTile;
+Begin
+  LX := Width - (Self.GetTile(0, 0).Width + Self.GetTile(2, 0).Width);
+  LY := Height - (Self.GetTile(0, 0).Height + Self.GetTile(0, 2).Height);
+
+  CompSizeX := Self.GetTile(1, 1).Width;
+  CountX := Trunc(LX / CompSizeX);
+  If CountX<=0 Then
+  Begin
+    CountX := 1;
+    CompScaleX := LX/CompSizeX;
+  End Else
+  Begin
+    NW := CountX * CompSizeX;
+    CompScaleX := LX/NW;
+  End;
+  CompSizeX := Trunc(CompSizeX * CompScaleX);
+
+  CompSizeY := Self.GetTile(1, 1).Height;
+  CountY := Trunc(LY / CompSizeY);
+  If CountY<=0 Then
+  Begin
+    CountY := 1;
+    CompScaleY := LY/CompSizeY;
+  End Else
+  Begin
+    NH := CountY * CompSizeY;
+    CompScaleY := LY/NH;
+  End;
+  CompSizeY := Trunc(CompSizeY * CompScaleY);
+
+  CompX := Self.GetTile(0, 0).Width;
+  For I:=1 To CountX Do
+    CompX := CompX + CompSizeX;
+  BottomX := CompX;
+
+  CompY := Self.GetTile(0, 0).Height;
+  For I:=1 To CountY Do
+    CompY := CompY + CompSizeY;
+  BottomY := CompY;
+
+  CompX := Self.GetTile(0, 0).Width;
+  For I:=1 To CountX Do
+  Begin
+    T := Self.GetTile(1, 0);
+    Self.AddQuad(Target, _Texture, X + CompX, Y, T.U1, T.V1, T.U2, T.V2, CompSizeX, T.Height);
+
+    T := Self.GetTile(1, 2);
+    Self.AddQuad(Target, _Texture, X + CompX, Y + BottomY, T.U1, T.V1, T.U2, T.V2, CompSizeX, T.Height);
+
+    CompX := CompX + CompSizeX;
+  End;
+
+  CompY := Self.GetTile(0, 0).Height;
+  For I:=1 To CountY Do
+  Begin
+    T := Self.GetTile(0, 1);
+    Self.AddQuad(Target, _Texture, X, Y + CompY, T.U1, T.V1, T.U2, T.V2, T.Width, CompSizeY);
+
+    T := Self.GetTile(2, 1);
+    Self.AddQuad(Target, _Texture, X + BottomX, Y + CompY, T.U1, T.V1, T.U2, T.V2, T.Width, CompSizeY);
+
+    CompY := CompY + CompSizeY;
+  End;
+
+  T := Self.GetTile(0, 0);
+  Self.AddQuad(Target, _Texture, X, Y, T.U1, T.V1, T.U2, T.V2, T.Width, T.Height);
+
+  T := Self.GetTile(2, 0);
+  Self.AddQuad(Target, _Texture, X + BottomX, Y, T.U1, T.V1, T.U2, T.V2, T.Width, T.Height);
+
+  T := Self.GetTile(0, 2);
+  Self.AddQuad(Target, _Texture, X, Y + BottomY, T.U1, T.V1, T.U2, T.V2, T.Width, T.Height);
+
+  T := Self.GetTile(2, 2);
+  Self.AddQuad(Target, _Texture, X + BottomX, Y + BottomY, T.U1, T.V1, T.U2, T.V2, T.Width, T.Height);
+
+  CompY := Self.GetTile(0, 0).Height;
+  For J:=1 To CountY Do
+  Begin
+    CompX := Self.GetTile(0, 0).Width;
+
+    T := Self.GetTile(1, 1);
+    For I:=1 To CountX Do
+    Begin
+      Self.AddQuad(Target, _Texture, X + CompX, Y + CompY, T.U1, T.V1, T.U2, T.V2, CompSizeX, CompSizeY);
+      CompX := CompX + CompSizeX;
+    End;
+
+    CompY := CompY + CompSizeY;
+  End;
+End;
+
+{ UISkinImage }
+Constructor UISkinImage.Create(Source: XMLNode; Parent: UISkinComponent);
+Var
+  SrcFile:TERRAString;
+Begin
+  _Parent := Parent;
+
+  Self.InitFromSource(Source);
+
+  XMLGetString(Source, 'src', SrcFile);
+  _Texture := UIManager.Instance.GetUI(0).LoadImage(SrcFile);
+End;
+
+Procedure UISkinImage.Draw(Var Target:UIQuadList; Const X, Y, U1, V1, U2, V2:Single; Const Width, Height, ID, CurrentState, DefaultState:Integer);
+Begin
+  Self.AddQuad(Target, _Texture, X, Y, U1, V1, U2, V2, Width, Height);
+End;
+
+
+Function UISkinImage.GetWidth(ID, State: Integer): Integer;
+Begin
+  If (Assigned(_Texture)) And (Assigned(_Texture.Buffer)) Then
+    Result := _Texture.Buffer.Width
+  Else
+    Result := 0;
+End;
+
+Function UISkinImage.GetHeight(ID, State: Integer): Integer;
+Begin
+  If (Assigned(_Texture)) And (Assigned(_Texture.Buffer)) Then
+    Result := _Texture.Buffer.Height
+  Else
+    Result := 0;
+End;
+
+{ UISkinColor }
+Constructor UISkinColor.Create(Source: XMLNode; Parent: UISkinComponent);
+Var
+  S:TERRAString;
+Begin
+  _Parent := Parent;
+
+  Self.InitFromSource(Source);
+
+  XMLGetString(Source, 'color', S, '#FFFFFF');
+  _Color := ColorCreateFromString(S);
+
+  XMLGetString(Source, 'alpha', S, '');
+  If S<>'' Then
+    _Color.A := StringToInt(S);
+End;
+
+Procedure UISkinColor.GetProperties(var Props: UISkinProperty; ID, CurrentState, DefaultState:Integer);
+Begin
+  Props.QuadColor := Self._Color;
+End;
+
+{ UISkinTextColor }
+Procedure UISkinTextColor.GetProperties(var Props: UISkinProperty; ID,CurrentState, DefaultState: Integer);
+Begin
+  Props.TextColor := Self._Color;
+End;
+
+End.

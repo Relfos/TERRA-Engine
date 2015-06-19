@@ -1,0 +1,36 @@
+varying highp vec2 texCoord;
+uniform highp float dx, dy;
+uniform sampler2D texture;
+void main()	{
+lowp vec2 st = texCoord.st;
+lowp vec4 color	= texture2D(texture, st);
+lowp float alpha = color.a;
+color *= 4.0;
+lowp vec4 temp = texture2D(texture, st + vec2(+dx, 0.0));
+alpha = max(alpha, temp.a);
+color		+= 2.0 * temp;
+temp = texture2D(texture, st + vec2(-dx, 0.0));;
+alpha = max(alpha, temp.a);
+color		+= 2.0 * temp;
+temp = texture2D(texture, st + vec2(0.0, +dy));
+alpha = max(alpha, temp.a);
+color		+= 2.0 * temp;
+temp = texture2D(texture, st + vec2(0.0, -dy));
+alpha = max(alpha, temp.a);
+color		+= 2.0 * temp;
+temp = texture2D(texture, st + vec2(+dx, +dy));
+alpha = max(alpha, temp.a);
+color		+= temp;
+temp = texture2D(texture, st + vec2(-dx, +dy));;
+alpha = max(alpha, temp.a);
+color		+= temp;
+temp = texture2D(texture, st + vec2(-dx, -dy));;
+alpha = max(alpha, temp.a);
+color		+= temp;
+temp = texture2D(texture, st + vec2(+dx, -dy));
+alpha = max(alpha, temp.a);
+color		+= temp;
+color = color / 16.0;
+color.a = alpha;
+gl_FragColor = color;
+}

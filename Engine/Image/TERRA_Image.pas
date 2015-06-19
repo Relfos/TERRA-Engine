@@ -26,7 +26,7 @@ Unit TERRA_Image;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Color;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Color;
 
 Const
   // Image processing flags

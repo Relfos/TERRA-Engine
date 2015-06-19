@@ -3,7 +3,7 @@ Unit TERRA_Facebook;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Java, JNI;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Java, JNI;
 
 Const
   FacebookClassPath = 'com.pascal.terra.TERRAFacebook';

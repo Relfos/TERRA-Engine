@@ -3,7 +3,7 @@ Unit TERRA_VertexFormat;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Collections, TERRA_Stream,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Collections, TERRA_Stream,
   TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Color;
 
 Const

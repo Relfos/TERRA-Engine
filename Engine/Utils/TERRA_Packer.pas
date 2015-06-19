@@ -2,7 +2,7 @@ Unit TERRA_Packer;
 {$I Terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_ProgressNotifier;
+Uses TERRA_Object, TERRA_Utils, TERRA_ProgressNotifier;
 
 Type
   PackerNode = Class;

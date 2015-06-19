@@ -2,7 +2,7 @@ Unit TERRA_IAP;
 
 {$I terra.inc}
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_OS, TERRA_Application
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_OS, TERRA_Application
   {$IFDEF ANDROID},TERRA_JAVA{$ENDIF};
 
 {$IFDEF WINDOWS}{$UNDEF ANDROID}{$ENDIF}

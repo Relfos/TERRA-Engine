@@ -2,7 +2,7 @@ Unit TERRA_XML;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Stream, TERRA_Utils, TERRA_Vector3D, TERRA_Color;
+Uses TERRA_Object, TERRA_String, TERRA_Stream, TERRA_Utils, TERRA_Vector3D, TERRA_Color;
 
 Const
   xmlSaveHeader   = 1;

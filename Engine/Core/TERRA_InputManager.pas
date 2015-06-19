@@ -26,7 +26,7 @@ Unit TERRA_InputManager;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Application, TERRA_Collections;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Application, TERRA_Collections;
 
 Const
   keyGamepadIndex   = 255;

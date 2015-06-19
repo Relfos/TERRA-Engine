@@ -1,0 +1,7 @@
+varying mediump vec2 texCoord;
+  uniform sampler2D texture;
+  uniform mediump vec4 color;
+  void main()	{
+    lowp vec4 c = texture2D(texture, texCoord.st);
+    c = color * c;
+    gl_FragColor = c;}

@@ -26,7 +26,7 @@ Unit TERRA_PhysicsManager;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_GraphicsManager,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Application, TERRA_GraphicsManager,
   TERRA_Matrix4x4, TERRA_MeshFilter, TERRA_Vector3D, TERRA_BoundingBox;
 
 Const

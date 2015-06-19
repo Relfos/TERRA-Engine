@@ -38,7 +38,7 @@ Unit TERRA_Stream;
 Interface
 
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_FileUtils, TERRA_String;
+  TERRA_Object, TERRA_Utils, TERRA_FileUtils, TERRA_String;
 
 Const
  // Stream access/permission flags

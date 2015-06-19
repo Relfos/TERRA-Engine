@@ -28,7 +28,7 @@ Unit TERRA_SoundAmbience;
 Interface
 
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Stream, TERRA_SoundSource;
+  TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Stream, TERRA_SoundSource;
 
 Type
   SoundAmbience = Class(TERRAObject)

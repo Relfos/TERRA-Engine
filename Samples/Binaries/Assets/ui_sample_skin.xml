@@ -1,0 +1,87 @@
+<skin>
+
+<component name="window">
+    <rect src="ui_window" x1="44" y1="27" x2="149" y2="99" id="0"/>
+</component>
+
+<component name="editbox">
+    <rect src="ui_edit" x1="5" y1="3" x2="58" y2="26" id="0" state="0" />
+    <rect src="ui_edit" x1="5" y1="3" x2="58" y2="26" id="0" state="1" />
+    <color color="#AAAAAA" state="2" />
+</component>
+
+<component name="combobox">
+    <rect src="ui_combobox" x1="2" y1="2" x2="50" y2="37" id="0" />
+    <image src="ui_combobox_handle" id="1" />
+    <rect src="ui_combolist" x1="26" y1="12" x2="246" y2="52" id="2" />    
+    
+    <textcolor color="#AAAAAA" id="2" state="0" />
+    <textcolor color="#AAAAAA" id="2" state="0" />
+</component>
+
+<component name="progressbar">
+    <image src="ui_progress_empty" state="0" id="0"  />
+    <image src="ui_progress_full" state="1" id="0" />
+</component>
+
+<component name="button">
+    <rect src="ui_button" x1="5" y1="3" x2="58" y2="26" id="0" state="0"/>
+    <rect src="ui_button" x1="5" y1="3" x2="58" y2="26" id="0" state="2"/>
+    <color color="#AAAAAA" id="0" state="2" />
+</component>
+
+<component name="round_button">
+    <rect src="ui_button2" x1="25" y1="10" x2="220" y2="37" id="0" state="0"/>
+    <rect src="ui_button2" x1="25" y1="10" x2="220" y2="37" id="0" state="2"/>
+    <color color="#AAAAAA" id="0" state="2" />
+</component>
+
+<component name="checkbox">
+    <image src="ui_checkbox_off" id="0" state="0"/>
+    <image src="ui_checkbox_on" id="0" state="1"/>    
+    <image src="ui_checkbox_off" id="0" state="2" />
+    <image src="ui_checkbox_on" id="0" state="3" />    
+    <color color="#AAAAAA" id="0" state="2" />
+    <color color="#AAAAAA" id="0" state="3" />
+</component>
+
+<component name="radiobutton">
+    <image src="ui_radiobox_off" id="0" state="0"/>
+    <image src="ui_radiobox_on" id="0" state="1"/>    
+    <image src="ui_radiobox_off" id="0" state="2" />
+    <image src="ui_radiobox_on" id="0" state="3" />    
+    <color color="#AAAAAA" id="0" state="2" />
+    <color color="#AAAAAA" id="0" state="3" />    
+</component>
+
+<component name="tabs">
+    <image src="ui_tab_off" id="0" state="0"/>
+    <image src="ui_tab_on" id="0" state="1"/>    
+    <image src="ui_tab_off" id="0" state="2" />
+    <image src="ui_tab_on" id="0" state="3" />    
+    <color color="#AAAAAA" id="0" state="2" />
+    <color color="#AAAAAA" id="0" state="3" />
+</component>
+
+<component name="ghosticon">
+    <image src="ghost" id="0" state="0"/>
+    <image src="ghost" id="0" state="2" alpha="10"/>
+</component>
+
+<component name="vscroll">
+    <image src="ui_vscrollhandle" id="0"/>
+    <image src="ui_vscrollbar" id="1"/>
+    <image src="ui_vscrollhandle" id="0" state="2" />
+    <color color="#AAAAAA" id="0" state="2" />
+</component>
+
+<component name="keyboard">
+    <image src="ui_kb_a" id="0"/>
+    <image src="ui_kb_b" id="1"/>
+    <image src="ui_kb_c" id="2"/>
+    <image src="ui_kb_bg" id="3" />
+</component>
+
+
+
+</skin>

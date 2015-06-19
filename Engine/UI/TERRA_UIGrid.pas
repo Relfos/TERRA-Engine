@@ -50,9 +50,6 @@ Type
 
   UIGrid = Class(Widget)
     Protected
-      _Width:Single;
-      _Height:Single;
-
       _GridX:Integer;
       _GridY:Integer;
 
@@ -97,7 +94,7 @@ Type
       Procedure UpdateGrid();
 
     Public
-      Constructor Create(Name:TERRAString; UI:UI; X,Y,Z:Single; GridX, GridY:Integer; Width, Height:Single; SpaceX:Single = 30; SpaceY:Single = 30);
+      Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; GridX, GridY:Integer; Const Width, Height:UIDimension; Const ComponentName:TERRAString; SpaceX:Single = 30; SpaceY:Single = 30);
       Procedure Release; Override;
 
       Procedure MoveRight(Columns:Integer);
@@ -108,7 +105,6 @@ Type
 			Function OnMouseMove(X,Y:Integer):Boolean; Override;
 
       Procedure Render(); Override;
-      Procedure UpdateRects(); Override;
 
       Procedure ClearElements();
 
@@ -171,13 +167,13 @@ Begin
 End;
 
 { UIGrid }
-Constructor UIGrid.Create(Name:TERRAString; UI:UI; X,Y,Z:Single; GridX, GridY:Integer; Width, Height:Single; SpaceX, SpaceY:Single);
+Constructor UIGrid.Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; GridX, GridY:Integer; Const Width, Height:UIDimension; Const ComponentName:TERRAString; SpaceX:Single = 30; SpaceY:Single = 30);
 Var
   I,J:Integer;
   WndTotX, WndTotY:Integer;
   W:Widget;
 Begin
-  Inherited Create(Name, UI, Parent);
+  Inherited Create(Name, Parent, ComponentName);
 
   Self._Position := VectorCreate2D(X,Y);
 
@@ -208,8 +204,8 @@ Begin
 
   WndTotX := Trunc(_CellWidth * _GridX + _SpaceX * Pred(_GridX));
   WndTotY := Trunc(_CellHeight * _GridY + _SpaceY * Pred(_GridY));
-  _OfsX :=(_Width - WndTotX) / 2;
-  _OfsY := (_Height - WndTotY) / 2;
+  _OfsX :=(Self.GetDimension(_Width) - WndTotX) / 2;
+  _OfsY := (Self.GetDimension(_Height) - WndTotY) / 2;
   _ShiftCol := (_CellWidth+_SpaceX);
   _Temp.Visible := False;
 
@@ -237,12 +233,6 @@ End;
 Function UIGrid.GetWidgetOfs(I, J: Integer): Integer;
 Begin
   Result := I + J  * (_GridX*3)
-End;
-
-Procedure UIGrid.UpdateRects();
-Begin
-  _Size.X := _Width;
-  _Size.Y := _Height;
 End;
 
 Procedure UIGrid.OnElementSelect(Element: UIGridElement);

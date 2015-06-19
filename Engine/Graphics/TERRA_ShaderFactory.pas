@@ -34,7 +34,7 @@ Unit TERRA_ShaderFactory;
 {-$DEFINE DEBUG_LIGHTMAP}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Renderer, TERRA_Application,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Renderer, TERRA_Application,
   TERRA_Lights, TERRA_BoundingBox, TERRA_Vector4D, TERRA_Color;
 
 Const

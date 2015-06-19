@@ -25,7 +25,7 @@ Unit TERRA_Gamepad;
 {$I terra.inc}
 
 Interface
-Uses TERRA_InputManager;
+Uses TERRA_Object, TERRA_InputManager;
 
 Const
      JS_EVENT_BUTTON         = $01;    // button pressed/released

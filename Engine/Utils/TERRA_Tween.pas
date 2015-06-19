@@ -26,64 +26,59 @@ Unit TERRA_Tween;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Math, TERRA_Application;
-
-Const
-  tweenByte     = 0;
-  tweenFloat    = 1;
-
-	easeLinear = 0;
-	easeInQuad = 1;
-	easeOutQuad = 2;
-	easeInOutQuad = 3;
-	easeOutInQuad = 4;
-	easeInCubic = 5;
-	easeOutCubic = 6;
-	easeInOutCubic = 7;
-	easeOutInCubic = 8;
-	easeInQuart = 9;
-	easeOutQuart = 10;
-	easeInOutQuart = 11;
-	easeOutInQuart = 12;
-	easeInSine = 13;
-	easeOutSine = 14;
-	easeInOutSine = 15;
-	easeOutInSine = 16;
-	easeInExpo = 17;
-	easeOutExpo = 18;
-	easeInOutExpo = 19;
-	easeOutInExpo = 20;
-	easeInCirc = 21;
-	easeOutCirc = 22;
-	easeInOutCirc = 23;
-	easeOutInCirc = 24;
-	easeInElastic = 25;
-	easeOutElastic = 26;
-	easeInOutElastic = 27;
-	easeOutInElastic = 28;
-	easeInBack = 29;
-	easeOutBack = 30;
-	easeInOutBack = 31;
-	easeOutInBack = 32;
-	easeInBounce = 33;
-	easeOutBounce = 34;
-	easeInOutBounce = 35;
-	easeOutInBounce = 36;
-  easeWiggle = 37;
+Uses TERRA_Utils, TERRA_Math;
 
 Type
-  TweenCallback = Procedure(UserData:Pointer);  CDecl;
+  TweenEaseType = (
+  	easeLinear = 0,
+  	easeInQuad = 1,
+  	easeOutQuad = 2,
+  	easeInOutQuad = 3,
+  	easeOutInQuad = 4,
+  	easeInCubic = 5,
+  	easeOutCubic = 6,
+  	easeInOutCubic = 7,
+  	easeOutInCubic = 8,
+  	easeInQuart = 9,
+  	easeOutQuart = 10,
+  	easeInOutQuart = 11,
+  	easeOutInQuart = 12,
+  	easeInSine = 13,
+  	easeOutSine = 14,
+  	easeInOutSine = 15,
+  	easeOutInSine = 16,
+  	easeInExpo = 17,
+  	easeOutExpo = 18,
+  	easeInOutExpo = 19,
+  	easeOutInExpo = 20,
+  	easeInCirc = 21,
+  	easeOutCirc = 22,
+  	easeInOutCirc = 23,
+  	easeOutInCirc = 24,
+  	easeInElastic = 25,
+  	easeOutElastic = 26,
+  	easeInOutElastic = 27,
+  	easeOutInElastic = 28,
+  	easeInBack = 29,
+  	easeOutBack = 30,
+  	easeInOutBack = 31,
+  	easeOutInBack = 32,
+  	easeInBounce = 33,
+  	easeOutBounce = 34,
+  	easeInOutBounce = 35,
+  	easeOutInBounce = 36,
+    easeWiggle = 37
+  );
 
+
+(*Type
   Tween = Class(TERRAObject)
     Protected
       _Object:Pointer;
-      _Finished:Boolean;
       _Data:Pointer;
       _DataType:Integer;
-      _StartValue:Single;
-      _TargetValue:Single;
-      _StartTime:Cardinal;
-      _EaseType:Cardinal;
+
+      _CallbackTarget:TERRAObject;
 
       Function Read:Single;
       Procedure Write(Value:Single);
@@ -94,9 +89,8 @@ Type
       Time:Cardinal;
       Delay:Cardinal;
       OnFinished:TweenCallback;
-      UserData:Pointer;
 
-      Constructor Create(Obj:Pointer; MyType:Integer; Data:Pointer; TargetValue:Single; UserData:Pointer = Nil);
+      Constructor Create(Obj:Pointer; MyType:Integer; Data:Pointer; TargetValue:Single; CallbackTarget:TERRAObject);
       Procedure Release; Override;
 
       Property Finished:Boolean Read _Finished;
@@ -123,7 +117,7 @@ Type
       Procedure Clear;
 
       Procedure Release; Override;
-  End;
+  End;*)
 
 Function GetEaseInQuad(t, b,c,d:Single):Single;
 Function GetEaseOutQuad(t, b,c,d:Single):Single;
@@ -163,14 +157,14 @@ Function GetEaseInOutBounce(t, b,c,d:Single):Single;
 Function GetEaseOutInBounce(t, b,c,d:Single):Single;
 Function GetEaseWiggle(t, b,c,d:Single):Single;
 
-Function GetEase(Delta:Single; EaseType:Integer):Single;
+Function GetEase(Const Delta:Single; Const Ease:TweenEaseType):Single;
 
 Implementation
 Uses TERRA_OS, TERRA_GraphicsManager;
 
-Var
-  _TweenManager_Instance:ApplicationObject = Nil;
-
+(*Var
+  _TweenManager_Instance:ApplicationObject = Nil;*)
+  
 {     * @param t     Current time (in frames or seconds).
      * @param b     Starting value.
      * @param c     Change needed in value.
@@ -619,9 +613,9 @@ Begin
     Result := B + Cos(RealMod(Application.GetTime{*D}, 360)*RAD)*C;
 End;
 
-Function GetEase(Delta:Single; EaseType:Integer):Single;
+Function GetEase(Const Delta:Single; Const Ease:TweenEaseType):Single;
 Begin
-  Case EaseType Of
+  Case Ease Of
 	  easeInQuad: Result := GetEaseInQuad(Delta, 0.0, 1.0, 1.0);
     easeOutQuad: Result := GetEaseOutQuad(Delta, 0.0, 1.0, 1.0);
   	easeInOutQuad: Result := GetEaseInOutQuad(Delta, 0.0, 1.0, 1.0);
@@ -664,8 +658,8 @@ Begin
   End;
 End;
 
-{ Tween }
-Constructor Tween.Create(Obj:Pointer; MyType:Integer; Data:Pointer; TargetValue:Single; UserData:Pointer);
+(*{ Tween }
+Constructor Tween.Create(Obj:Pointer; MyType:Integer; Data:Pointer; TargetValue:Single; CallbackTarget:TERRAObject);
 Begin
   _Object := Obj;
   _DataType := MyType;
@@ -674,7 +668,7 @@ Begin
   _Finished := False;
   _StartValue := Self.Read();
   _TargetValue := TargetValue;
-  Self.UserData := UserData;
+  _CallbackTarget := CallbackTarget;
 
   TweenManager.Instance.Add(Self);
 End;
@@ -739,7 +733,7 @@ Begin
   Begin
     _Finished := True;
     If Assigned(OnFinished) Then
-      OnFinished(Self.UserData);
+      OnFinished(Self._CallbackTarget);
   End;
 End;
 
@@ -850,7 +844,7 @@ Begin
   End Else
     Inc(I);
 End;
-
+*)
 
 
 End.

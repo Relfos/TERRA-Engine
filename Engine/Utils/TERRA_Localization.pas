@@ -2,7 +2,7 @@ Unit TERRA_Localization;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Application, TERRA_Utils, TERRA_Stream, TERRA_FileUtils,
+Uses TERRA_Object, TERRA_String, TERRA_Application, TERRA_Utils, TERRA_Stream, TERRA_FileUtils,
   TERRA_Collections, TERRA_Hashmap;
 
 Const

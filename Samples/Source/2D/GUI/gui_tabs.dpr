@@ -2,7 +2,7 @@
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
 Uses TERRA_Application, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
-  TERRA_OS, TERRA_Vector2D, TERRA_Font, TERRA_Texture,
+  TERRA_OS, TERRA_Object, TERRA_Vector2D, TERRA_Font, TERRA_Texture,
   TERRA_UI, TERRA_FileManager, TERRA_InputManager,
   TERRA_PNG, TERRA_TTF,
   TERRA_Scene, TERRA_Color, TERRA_ClipRect,
@@ -71,7 +71,7 @@ Begin
   If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
 
-  MyWnd.ClipChildren(ClipRectCreate(MyWnd.Position.X, MyWnd.Position.Y+26,  MyWnd.Size.X -30, MyWnd.Size.Y-(26*2)));
+  MyWnd.ClipChildren(ClipRectCreate(MyWnd.AbsolutePosition.X, MyWnd.AbsolutePosition.Y+26,  MyWnd.Size.X -30, MyWnd.Size.Y-(26*2)));
 End;
 
 Procedure Demo.OnMouseDown(X, Y: Integer; Button: Word);
@@ -106,11 +106,11 @@ Begin
     Background := UISprite.Create('mybg', MyUI, 0, 0, 1);
 
     Background.SetTexture(MyTex);
-    Background.Rect.Width := UIManager.Instance.Width;
-    Background.Rect.Height := UIManager.Instance.Height;
+    Background.Width := UIScreenWidthPercent(100);
+    Background.Height := UIScreenHeightPercent(100);
 
-    Background.Rect.U2 := 2;
-    Background.Rect.V2 := 2;
+    Background.U2 := 2;
+    Background.V2 := 2;
   End;
 
   MyWnd := UIWindow.Create('mywnd', MyUI, 0, 0, 10, UIPixels(500), UIPixels(300), 'window');

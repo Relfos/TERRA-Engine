@@ -3,7 +3,7 @@ Unit TERRA_ProgressNotifier;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils;
+Uses TERRA_Object, TERRA_Utils;
 
 Type
   ProgressNotifier = Class(TERRAObject)

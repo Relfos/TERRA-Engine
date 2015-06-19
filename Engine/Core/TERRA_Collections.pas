@@ -27,7 +27,7 @@ Unit TERRA_Collections;
 {-$DEFINE DEBUG}
 
 Interface
-Uses TERRA_String, TERRA_Utils
+Uses TERRA_Object, TERRA_String, TERRA_Utils
 {$IFNDEF DISABLETHREADS}, TERRA_Mutex{$ENDIF};
 
 Function GetStringSort(Const A,B:TERRAString):Integer;

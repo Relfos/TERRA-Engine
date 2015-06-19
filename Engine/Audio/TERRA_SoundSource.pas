@@ -31,7 +31,7 @@ Unit TERRA_SoundSource;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Math, TERRA_Vector3D, TERRA_Sound,
+  TERRA_Object, TERRA_Utils, TERRA_Math, TERRA_Vector3D, TERRA_Sound,
   TERRA_OS,TERRA_AL
   {$IFDEF USEJAVA},TERRA_Java{$ENDIF};
 

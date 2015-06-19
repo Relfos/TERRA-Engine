@@ -35,7 +35,7 @@ Unit TERRA_Application;
 {$ENDIF}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Mutex;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Mutex;
 
 Const
 	// Operating System Class

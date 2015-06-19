@@ -27,7 +27,7 @@ Unit TERRA_ResourceManager;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-    TERRA_String, TERRA_Resource, TERRA_Collections, TERRA_Stream, TERRA_Application,
+    TERRA_Object, TERRA_String, TERRA_Resource, TERRA_Collections, TERRA_Stream, TERRA_Application,
     TERRA_Threads, TERRA_Mutex, TERRA_Hashmap, TERRA_Queue;
 
 

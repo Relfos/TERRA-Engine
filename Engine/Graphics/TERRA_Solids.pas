@@ -28,7 +28,7 @@ Unit TERRA_Solids;
 //http://www.geometrictools.com/Documentation/PlatonicSolids.pdf
 
 Interface
-Uses TERRA_Utils, TERRA_Math, TERRA_GraphicsManager, TERRA_BoundingBox, TERRA_Vector3D,
+Uses TERRA_Object, TERRA_Utils, TERRA_Math, TERRA_GraphicsManager, TERRA_BoundingBox, TERRA_Vector3D,
   TERRA_Vector2D, TERRA_Vector4D, TERRA_Matrix4x4, TERRA_Color, TERRA_Mesh, TERRA_MeshFilter, TERRA_Texture,
   TERRA_VertexFormat;
 

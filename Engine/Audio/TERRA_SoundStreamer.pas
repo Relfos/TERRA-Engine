@@ -27,7 +27,7 @@ Unit TERRA_SoundStreamer;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Math, TERRA_Collections, TERRA_Application, TERRA_Stream, TERRA_FileStream,
+  TERRA_Object, TERRA_Utils, TERRA_Math, TERRA_Collections, TERRA_Application, TERRA_Stream, TERRA_FileStream,
   TERRA_Sound, TERRA_AL;
 
 Const

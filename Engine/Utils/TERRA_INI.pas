@@ -2,7 +2,7 @@ Unit TERRA_INI;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Stream;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Stream;
 
 Type
   TokenFormat=(tkInteger, tkCardinal, tkFloat,

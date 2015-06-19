@@ -26,7 +26,7 @@ Unit TERRA_DebugDraw;
 {$I terra.inc}
 Interface
 
-Uses TERRA_String, TERRA_GraphicsManager, TERRA_Renderer, TERRA_Color, TERRA_BoundingBox, TERRA_Frustum,
+Uses TERRA_Object, TERRA_String, TERRA_GraphicsManager, TERRA_Renderer, TERRA_Color, TERRA_BoundingBox, TERRA_Frustum,
   TERRA_Ray, TERRA_Matrix4x4, TERRA_Vector3D, TERRA_Vector2D, TERRA_Utils, TERRA_SpriteManager,
   TERRA_MeshAnimation, TERRA_Collision2D, TERRA_Splines, TERRA_ClipRect;
 

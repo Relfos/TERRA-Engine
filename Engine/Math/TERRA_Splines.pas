@@ -25,7 +25,7 @@ Unit TERRA_Splines;
 
 {$I terra.inc}
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Vector3D, TERRA_Color,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Vector3D, TERRA_Color,
   TERRA_Quaternion, TERRA_Stream, TERRA_BoundingBox;
 
 Type

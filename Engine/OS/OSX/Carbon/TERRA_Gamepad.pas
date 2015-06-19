@@ -3,7 +3,7 @@ Unit TERRA_Gamepad;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_InputManager;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_InputManager;
 
 Type
   HIDGamepad = Class(Gamepad)

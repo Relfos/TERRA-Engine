@@ -46,7 +46,7 @@ Unit TERRA_Threads;
 {$ENDIF}
 
 Interface
-Uses TERRA_Utils, TERRA_Log, TERRA_Application, TERRA_Mutex
+Uses TERRA_Object, TERRA_Utils, TERRA_Log, TERRA_Application, TERRA_Mutex
 {$IFNDEF DISABLETHREADS}
 {$IFDEF WINDOWS},Windows{$ENDIF}
 {$IFDEF ANDROID},TERRA_Java{$ENDIF}

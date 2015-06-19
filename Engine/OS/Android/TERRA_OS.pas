@@ -4,7 +4,7 @@ Unit TERRA_OS;
 
 
 Interface
-Uses cmem, TERRA_String, TERRA_Error, TERRA_Utils, TERRA_Application, 
+Uses cmem, TERRA_Object, TERRA_String, TERRA_Error, TERRA_Utils, TERRA_Application, 
     TERRA_Vector3D, TERRA_Java, TERRA_Collections, TERRA_CollectionObjects,
     sysutils,dateutils,unix, jni;
 

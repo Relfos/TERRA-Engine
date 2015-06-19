@@ -1,0 +1,17 @@
+Protocol Ships;
+
+Uses SysUtils;
+
+Type
+    Movement = Message[All]
+        ID:Integer;
+        X:Single;
+        Y:Single;
+        Rotation:Single;
+    End;
+    
+    Defense = Movement[Client];
+    
+    Attack = Movement[Server];
+    
+End.

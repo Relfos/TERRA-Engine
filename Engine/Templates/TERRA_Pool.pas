@@ -27,7 +27,7 @@ Unit TERRA_Pool;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Collections;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Collections;
 
 Type
   PoolItem = Record

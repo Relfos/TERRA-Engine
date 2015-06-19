@@ -210,18 +210,6 @@ Procedure DebugBreak(Condition:Boolean = True);
 
 Procedure RemoveHint(X:Integer);
 
-Procedure ReleaseObject(var Obj);
-
-Type
-  TERRAObject = Class
-    Protected
-
-      Procedure Release; Virtual;
-
-    Public
-      Destructor Destroy; Override;
-  End;
-
 Implementation
 Uses TERRA_Log, TERRA_Error;
 
@@ -1172,70 +1160,6 @@ Begin
 End;
 {$ENDIF}
 
-
-Procedure TERRAObject.Release;
-Begin
-{  S := Self.ClassName;
-  Log(logWarning, 'App', 'Destroying instance of '+S);}
-End;
-
-Destructor TERRAObject.Destroy();
-Begin
-  {$IFDEF WINDOWS}
- // DebugBreak();
-//  RaiseError('Destructors are not allowed in class: '+Self.ClassName);
-  {$ENDIF}
-
-  Inherited;
-End;
-
-Procedure ReleaseObject(Var Obj);
-Var
-  Temp:TObject;
-Begin
-  Temp := TERRAObject(Obj);
-  If Temp = Nil Then
-    Exit;
-
-  If (Temp Is TERRAObject) Then
-  Begin
-    TERRAObject(Temp).Release();
-  End Else
-    Log(logWarning, 'App', Temp.ClassName +' is not a TERRA-Object!');
-
-  TERRAObject(Temp).Destroy();
-
-  Pointer(Obj) := Nil;
-End;
-
-(*Procedure ReleaseObject(Obj:Pointer);
-Var
-  Temp:TERRAObject;
-  S:TERRAString;
-Begin
-  If (Obj = Nil) Then
-    Exit;
-
-  Temp := TERRAObject(Obj^);
-  If (Temp = Nil) Then
-    Exit;
-
-  If (Temp Is TERRAObject) Then
-  Begin
-    {$IFDEF DEBUG_CORE}
-    {$IFNDEF OSX}
-    Log(logDebug, 'App', 'Destroying '+ Temp.ClassName);
-    {$ENDIF}
-    {$ENDIF}
-    Temp.Release();
-  End Else
-  Begin
-    S := Temp.ClassName;
-    Log(logWarning, 'App', S + ' is not a valid TERRA object.');
-  End;
-
-  Cardinal(Obj^) := 0;
-End;*)
 
 Function MinutesToTicks(Minutes:Single):Cardinal;
 Begin

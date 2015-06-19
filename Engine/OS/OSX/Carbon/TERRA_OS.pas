@@ -5,7 +5,7 @@ Unit TERRA_OS;
 {$LINKFRAMEWORK Carbon}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Application, MacOSAll, AGL;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Application, MacOSAll, AGL;
 
 Const
 	PathSeparator = '/';

@@ -26,7 +26,7 @@ Unit TERRA_Downsampler;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Renderer, TERRA_Texture, TERRA_Math, TERRA_Application, TERRA_Utils;
+  TERRA_Object, TERRA_String, TERRA_Renderer, TERRA_Texture, TERRA_Math, TERRA_Application, TERRA_Utils;
 
 Type
   RenderTargetSampler = Class(TERRAObject)

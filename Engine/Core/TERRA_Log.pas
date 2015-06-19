@@ -55,7 +55,7 @@ Interface
 {$ENDIF}
 
 
-Uses TERRA_FileStream, TERRA_String
+Uses TERRA_Object, TERRA_FileStream, TERRA_String
 {$IFDEF USE_SYSLOG},systemlog{$ENDIF}
 {$IFDEF WINDOWS},Windows{$ENDIF}
 ;

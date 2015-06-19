@@ -1,0 +1,7 @@
+uniform mat4 projectionMatrix;
+  varying highp vec2 texCoord;
+  attribute highp vec4 terra_position;
+  attribute highp vec2 terra_UV0;
+  void main()	{
+    texCoord = terra_UV0;
+    gl_Position = projectionMatrix * terra_position;}

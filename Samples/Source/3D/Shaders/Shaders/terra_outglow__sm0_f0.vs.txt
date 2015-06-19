@@ -1,0 +1,24 @@
+attribute highp vec4 terra_position;
+  attribute lowp vec4 terra_color;
+attribute highp vec4 terra_UV0;
+attribute mediump vec3 terra_normal;
+uniform mat4 cameraMatrix;
+uniform mat4 modelMatrix;
+uniform mat4 modelMatrixInverse;
+uniform mat4 projectionMatrix;
+  uniform highp vec3 cameraPosition;
+varying highp vec4 world_position;
+varying highp vec4 local_position;
+varying highp vec4 clip_position;
+varying lowp vec4 vertex_color;
+varying highp vec4 texCoord0;
+varying mediump vec3 vertex_normal;
+void main() {
+local_position = terra_position;
+  vertex_normal = mat3(modelMatrix) * terra_normal;
+ world_position = modelMatrix * local_position;
+ clip_position = projectionMatrix * cameraMatrix * world_position;
+  gl_Position = clip_position;
+  vertex_color = terra_color;
+  texCoord0 = terra_UV0;
+	}

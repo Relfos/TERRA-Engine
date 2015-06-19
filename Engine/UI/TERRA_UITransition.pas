@@ -27,9 +27,9 @@ Unit TERRA_UITransition;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Vector2D, TERRA_Vector3D, TERRA_Texture,
+  TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Vector2D, TERRA_Vector3D, TERRA_Texture,
   {$IFDEF POSTPROCESSING}TERRA_ScreenFX, {$ENDIF}
-  TERRA_Image, TERRA_Color, TERRA_Matrix4x4, TERRA_Matrix3x3, TERRA_VertexFormat;
+  TERRA_Image, TERRA_Color, TERRA_Matrix4x4, TERRA_Matrix3x3, TERRA_VertexFormat, TERRA_Tween;
 
 Const
   FadeVertexFormat = [vertexFormatPosition, vertexFormatUV0];
@@ -53,7 +53,7 @@ Type
       _CallOnStart:Boolean;
       _Callback:FadeCallback;
       _Arg:Pointer;
-      _EaseType:Integer;
+      _EaseType:TweenEaseType;
       _FinishValue:Single;
       _Transform:Matrix3x3;
 
@@ -74,7 +74,7 @@ Type
       Property FinishValue:Single Read _FinishValue Write _FinishValue;
       Property Duration:Integer Read _Duration;
       Property ID:Cardinal Read _ID;
-      Property EaseType:Integer Read _EaseType Write _EaseType;
+      Property EaseType:TweenEaseType Read _EaseType Write _EaseType;
 
       Property Transform:Matrix3x3 Read _Transform Write _Transform;
   End;
@@ -105,7 +105,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_OS, TERRA_ResourceManager, TERRA_GraphicsManager, TERRA_Renderer, TERRA_Tween, TERRA_UI;
+Uses TERRA_OS, TERRA_ResourceManager, TERRA_GraphicsManager, TERRA_Renderer, TERRA_UI;
 
 Var
   _FadeShader:ShaderInterface;

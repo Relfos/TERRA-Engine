@@ -25,7 +25,7 @@ Unit TERRA_Scene;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Matrix4x4, TERRA_Vector3D, TERRA_Viewport;
+Uses TERRA_Object, TERRA_Utils, TERRA_Matrix4x4, TERRA_Vector3D, TERRA_Viewport;
 
 {$HINTS OFF}
 

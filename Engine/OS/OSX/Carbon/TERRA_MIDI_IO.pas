@@ -32,7 +32,7 @@ Unit TERRA_MIDI_IO;
 
 Interface
 
-Uses TERRA_Utils
+Uses TERRA_Object, TERRA_Utils
   {$IFDEF USE_COREMIDI} ,MIDIServices;
   {$ELSE};
   {$LINKFRAMEWORK AudioToolbox}

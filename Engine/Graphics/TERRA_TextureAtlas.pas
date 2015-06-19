@@ -25,7 +25,7 @@ Unit TERRA_TextureAtlas;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Image, TERRA_Texture, TERRA_Packer;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Image, TERRA_Texture, TERRA_Packer;
 
 Type
   TextureAtlasItem = Class(TERRAObject)

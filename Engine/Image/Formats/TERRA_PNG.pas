@@ -28,7 +28,7 @@ Unit TERRA_PNG;
 {-$DEFINE LOGGING}
 
 Interface
-Uses TERRA_String, TERRA_Stream, TERRA_Image;
+Uses TERRA_Object, TERRA_String, TERRA_Stream, TERRA_Image;
 
 Function ValidatePNG(Source:Stream):Boolean;
 Procedure PNGLoad(Source:Stream; MyImage:Image);

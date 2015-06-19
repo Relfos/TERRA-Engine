@@ -27,7 +27,7 @@ Unit TERRA_Billboards;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Color, TERRA_Vector3D, TERRA_Texture, TERRA_Renderer,
+  TERRA_Object, TERRA_Utils, TERRA_Color, TERRA_Vector3D, TERRA_Texture, TERRA_Renderer,
   TERRA_Mesh, TERRA_Vector2D, TERRA_ParticleRenderer, TERRA_VertexFormat, TERRA_UI;
 
 Type
