@@ -7387,6 +7387,9 @@ Begin
        FxFlags := FxFlags Or shaderNormalMap;
     End;
 
+    If (Not DisableLights) And (Group._LightBatch.DirectionalLightCount<=0) Then
+      FxFlags := FxFlags Or shaderSelfIllumn;
+
     If (DestMaterial.Ghost) Then
       FxFlags := FxFlags Or shaderGhost;
   End;

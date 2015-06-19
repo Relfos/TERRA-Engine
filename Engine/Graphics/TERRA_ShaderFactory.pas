@@ -324,8 +324,8 @@ End;
 
 Procedure ShaderEmitter.FragmentUniforms;
 Begin
-  If (FxFlags And shaderSelfIllumn<>0) Then
-    Line('  uniform lowp vec4 illum_color;');
+{  If (FxFlags And shaderSelfIllumn<>0) Then
+    Line('  uniform lowp vec4 illum_color;');}
 
 	Line('  uniform lowp sampler2D diffuseMap;');
   If (FxFlags and shaderTriplanar<>0) Then
@@ -1321,7 +1321,8 @@ Begin
     End Else
     If (FxFlags And shaderSelfIllumn<>0) Then
     Begin
-      Line('  color = diffuse * illum_color;');
+      //Line('  color = diffuse * illum_color;');
+      Line('  color = diffuse;');
     End Else
     Begin
       For I:=1 To Lights.DirectionalLightCount Do
