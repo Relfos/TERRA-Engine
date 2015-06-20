@@ -324,9 +324,6 @@ End;
 
 Procedure ShaderEmitter.FragmentUniforms;
 Begin
-{  If (FxFlags And shaderSelfIllumn<>0) Then
-    Line('  uniform lowp vec4 illum_color;');}
-
 	Line('  uniform lowp sampler2D diffuseMap;');
   If (FxFlags and shaderTriplanar<>0) Then
   	Line('  uniform lowp sampler2D diffuseMap2;');
@@ -1303,7 +1300,8 @@ Begin
     Begin
       Line('lowp float shadow = 1.0;');
     End;
-    Line('lowp vec4 lightAccum = vec4(0.0);');
+
+    //Line(' shadow = max(shadow - 0.5, 0.0);');
 
     If (FxFlags And shaderDitherColor<>0) Then
     Begin
@@ -1321,10 +1319,14 @@ Begin
     End Else
     If (FxFlags And shaderSelfIllumn<>0) Then
     Begin
-      //Line('  color = diffuse * illum_color;');
-      Line('  color = diffuse;');
+      If (FxFlags And shaderCartoonHue<>0) Then
+        Line('  color = cartoonHueAdjust(diffuse * shadow, vec4(shadow));')
+      Else
+        Line('  color = diffuse * shadow;');
     End Else
     Begin
+      Line('lowp vec4 lightAccum = vec4(0.0);');
+
       For I:=1 To Lights.DirectionalLightCount Do
         Line('  lightAccum += directionalLight(dlightDirection'+IntToString(I)+', dlightColor'+IntToString(I)+');');
 
@@ -1337,9 +1339,13 @@ Begin
         If (FxFlags And shaderCartoonHue<>0) Then
           Line('  color = cartoonHueAdjust(diffuse * shadow, lightAccum * shadow);')
         Else
-          Line('  color = diffuse * shadow * lightAccum;');
-        //Line('  color = color * shadow + screen_blend(vec4(shadow), color);');
+          Line('  color = diffuse * lightAccum * shadow;');
     End;
+
+    //Line('  color += shadow - vec4(0.5);');
+    //Line('  color += (color * (shadow + 0.5)) - vec4(0.5);');
+
+    //Line('  color += vec4(shadow) - vec4(0.5);');
 
     If (FxFlags and shaderFresnelTerm <> 0) Then
     Begin
@@ -1392,7 +1398,6 @@ Begin
   }
 
   Self.FinalPass(FxFlags, OutFlags, FogFlags);
-
 
   If (FogFlags<>0) Then
   Begin

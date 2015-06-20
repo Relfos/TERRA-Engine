@@ -7338,7 +7338,7 @@ Begin
 
     If (Group.Flags And meshGroupLightmap<>0) Then
     Begin
-      //FxFlags := FxFlags Or shaderAddSigned {Or shaderSelfIllumn};
+      FxFlags := FxFlags Or shaderSelfIllumn;
       DisableLights := True;
     End Else
     Begin

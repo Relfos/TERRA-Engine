@@ -33,7 +33,7 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
 
 Const
   ResourceUpdateTime = 5000;
-  ResourceDiscardTime = 40000;
+  ResourceDiscardTime = 60000;
 
 Type
   ResourceEntry = Class(CollectionObject)

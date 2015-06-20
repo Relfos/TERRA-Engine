@@ -274,7 +274,7 @@ Type
 
       Procedure UniformError(Const Name:TERRAString);
 
-      Function CompileShader(Const Name:TERRAString; Source:TERRAString; ShaderType: Cardinal; var Shader: Cardinal): Boolean;
+      Function CompileShader(Const Name:TERRAString; Source:TERRAString; ShaderType: Cardinal; var Shader:Cardinal; AllowFallback:Boolean): Boolean;
       Function LinkProgram:Boolean;
 
       Procedure Unload();
@@ -2636,7 +2636,11 @@ Begin
   Result := True;
 End;
 
-Function OpenGLShader.CompileShader(Const Name:TERRAString; Source:TERRAString; ShaderType: Cardinal; var Shader: Cardinal): Boolean;
+Const
+  FallbackVertexSource = 'void main(){ gl_Position = gl_Vertex;};';
+  FallbackFragmentSource = 'void main(){gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);};';
+
+Function OpenGLShader.CompileShader(Const Name:TERRAString; Source:TERRAString; ShaderType: Cardinal; var Shader:Cardinal; AllowFallback:Boolean): Boolean;
 Var
   CompileStatus, ShaderLength:Integer;
   LogInfo,PS:TERRAString;
@@ -2692,10 +2696,19 @@ Begin
     StringReplaceText('@', StringFromChar(NewLineChar)+'ERROR:', LogInfo);
     //Delete(LogInfo, 1, Length(crLf));
     Log(logDebug,'Shader', Source);
-    RaiseError(Name+'.'+PS+': ' + LogInfo);
-    Result:=False;
+
+    //RaiseError(Name+'.'+PS+': ' + LogInfo);
+    If (AllowFallback) And (ShaderType = GL_FRAGMENT_SHADER) Then
+    Begin
+      Result := CompileShader(Name, FallbackFragmentSource, ShaderType, Shader, False);
+    End Else
+    If (AllowFallback) And (ShaderType = GL_VERTEX_SHADER) Then
+    Begin
+      Result := CompileShader(Name, FallbackVertexSource, ShaderType, Shader, False);
+    End Else
+      Result := False;
   End Else
-    Result:=True;
+    Result := True;
 End;
 
 Function OpenGLShader.LinkProgram: Boolean;
@@ -3070,13 +3083,13 @@ Begin
   Log(logDebug, 'Shader', 'Compiling vertex code for ' + Name);
 
   _Linked := False;
-  Result := CompileShader(Name, _VertexCode, GL_VERTEX_SHADER, _VertexShaderHandle);
+  Result := CompileShader(Name, _VertexCode, GL_VERTEX_SHADER, _VertexShaderHandle, True);
   If Not Result Then
     Exit;
 
   Log(logDebug, 'Shader', 'Compiling fragment code for ' + Name);
 
-  Result := CompileShader(Name, _FragmentCode, GL_FRAGMENT_SHADER, _FragmentShaderHandle);
+  Result := CompileShader(Name, _FragmentCode, GL_FRAGMENT_SHADER, _FragmentShaderHandle, True);
   If Not Result Then
     Exit;
 
