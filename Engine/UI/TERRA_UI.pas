@@ -84,6 +84,7 @@ Type
       _Rotation:AngleProperty;
       _Scale:FloatProperty;
       _Saturation:FloatProperty;
+			_Visible:BooleanProperty;
 
       Procedure UpdateProperties();
 
@@ -92,7 +93,6 @@ Type
 
 		Protected
 			_Parent:Widget;
-			_Visible:Boolean;
       _Layer:Single;
 
       _Tooltip:TERRAString;
@@ -246,7 +246,7 @@ Type
       Procedure UpdateRects; Virtual;
       Function UpdateTransform():Boolean; Virtual;
 
-			Function IsVisible:Boolean;
+			Function GetVisible:Boolean;
 			Function GetLayer:Single;
       Function GetColor:Color;
 			Function GetSaturation:Single;
@@ -321,7 +321,7 @@ Type
       //Procedure CenterOnParent(CenterX:Boolean = True; CenterY:Boolean = True);
       Procedure CenterOnPoint(X,Y:Single);
 
-			Property Visible:Boolean Read IsVisible Write SetVisible;
+			Property Visible:Boolean Read GetVisible Write SetVisible;
 
 			Property AbsolutePosition:Vector2D Read GetAbsolutePosition Write SetAbsolutePosition;
 			Property RelativePosition:Vector2D Read GetRelativePosition Write SetRelativePosition;
@@ -411,8 +411,6 @@ Type
       Procedure InitStuff();
 
       Procedure OnOrientationChange;
-
-      Procedure SetVisible(const Value: Boolean);
 
       Function GetFontRenderer():FontRenderer;
 
@@ -505,8 +503,6 @@ Type
       Property DefaultFont:Font Read _DefaultFont Write SetDefaultFont;
       Property Modal:Widget Read GetModal Write _Modal;
       Property Highlight:Widget Read GetHighlight Write SetHighlight;
-
-      Property Visible:Boolean Read _Visible Write SetVisible;
 
       Property Transform:Matrix3x3 Read _Transform Write SetTransform;
 
@@ -753,8 +749,9 @@ End;
 Constructor Widget.Create(Const Name:TERRAString; Parent:Widget; Const ComponentName:TERRAString);
 Begin
   _ObjectName := Name;
+  Self.InitProperties();
 
-  _Visible := True;
+  SetVisible(True);
   _Enabled := True;
 
   If (Assigned(Parent)) And (Parent Is TERRA_UI.UI) Then
@@ -766,8 +763,6 @@ Begin
     _UI := Parent.UI;
     _Parent := Parent;
   End;
-
-  Self.InitProperties();
 
   Self._Component := _UI.GetComponent(ComponentName);
 
@@ -794,6 +789,7 @@ End;
 
 Procedure Widget.InitProperties;
 Begin
+  _Visible := BooleanProperty.Create('visible', True);
   _Position := Vector2DProperty.Create('position', VectorCreate2D(0, 0));
   _Color := ColorProperty.Create('color', ColorWhite);
   _Rotation := AngleProperty.Create('rotation', 0.0);
@@ -804,11 +800,12 @@ End;
 Function Widget.GetPropertyByIndex(Index:Integer):TERRAObject;
 Begin
   Case Index Of
-  0: Result := _Position;
-  1: Result := _Color;
-  2: Result := _Rotation;
-  3: Result := _Scale;
-  4: Result := _Saturation;
+  0: Result := _Visible;
+  1: Result := _Position;
+  2: Result := _Color;
+  3: Result := _Rotation;
+  4: Result := _Scale;
+  5: Result := _Saturation;
   Else
     Result := Nil;
   End;
@@ -976,7 +973,7 @@ Var
   X, Y, TY:Single;
   A:Byte;
 Begin
-  If _Visible Then
+  If Visible Then
   Begin
     Result := False;
     Exit;
@@ -984,7 +981,7 @@ Begin
 
   Log(logDebug, 'UI', 'Showing '+Self.Name+' with animation '+IntToString(AnimationFlags));
 
-  _Visible := True;
+  SetVisible(True);
 
   Self._NeedsHide := False;
 
@@ -1067,7 +1064,7 @@ Function Widget.Hide(AnimationFlags:Integer; EaseType:TweenEaseType; Delay, Dura
 Var
   Ofs:Single;
 Begin
-  If (Not _Visible) Then
+  If (Not Self.Visible) Then
   Begin
     Result := False;
     Exit;
@@ -1123,13 +1120,13 @@ End;
 
 Function Widget.ToggleVisibility(AnimationFlags:Integer; EaseType:TweenEaseType; Delay, Duration:Cardinal; Callback:TweenCallback):Boolean;
 Begin
-  If _Visible Then
+  If Self.Visible Then
     Result := Hide(AnimationFlags, EaseType, Delay, Duration, Callback)
   Else
     Result := Show(AnimationFlags, EaseType, Delay, Duration, Callback);
 End;
 
-Function Widget.IsVisible:Boolean;
+Function Widget.GetVisible:Boolean;
 Begin
   If (Self = Nil) Then
   Begin
@@ -1137,10 +1134,10 @@ Begin
     Exit;
   End;
 
-	Result := _Visible;
+	Result := _Visible.Value;
   If (Result) And (Assigned(_Parent)) Then
   Begin
-    Result := Result And (_Parent.IsVisible);
+    Result := Result And (_Parent.Visible);
 
     If (Result) And (Self.TabIndex>=0) And (Parent.TabControl<>Nil) And (_Parent.TabControl Is UITabList) Then
     Begin
@@ -1155,12 +1152,12 @@ Begin
   {If (Self = Nil) Then
     Exit;}
 
-  If (Value = _Visible) Then
+  If (Value = Self.Visible) Then
     Exit;
 
   //Log(logDebug,'UI', Self._Name+' visibility is now '+BoolToString(Value));
     
-  _Visible := Value;
+  _Visible.Value := Value;
 
   If Value Then
     _VisibleFrame := GraphicsManager.Instance.FrameID;
@@ -1725,7 +1722,7 @@ Begin
   _TransformChanged := False;
 
   For I:=0 To Pred(_ChildrenCount) Do
-  If (_ChildrenList[I]._Visible) Then
+  If (_ChildrenList[I].Visible) Then
     _ChildrenList[I]._TransformChanged := True;
 
   If Assigned(_Parent) Then
@@ -2218,7 +2215,7 @@ Begin
   Self.InitProperties();
 
   _Widgets := HashMap.Create(1024);
-  _Visible := True;
+  SetVisible(True);
 
   _Transition := Nil;
 
@@ -2541,7 +2538,7 @@ Begin
   MyWidget := _First;
   While (Assigned(MyWidget)) Do
   Begin
-    If (Not Assigned(MyWidget._Parent)) And (MyWidget.IsVisible) And (MyWidget.CanRender()) Then
+    If (Not Assigned(MyWidget._Parent)) And (MyWidget.Visible) And (MyWidget.CanRender()) Then
       MyWidget.Render();
 
     MyWidget := MyWidget._Next;
@@ -2618,7 +2615,7 @@ Begin
   MyWidget := _First;
   While (Assigned(MyWidget)) Do
   Begin
-    If (Not Assigned(MyWidget._Parent)) And (MyWidget.IsVisible) Then
+    If (Not Assigned(MyWidget._Parent)) And (MyWidget.Visible) Then
     Begin
       If MyWidget.OnKeyUp(Key) Then
       Begin
@@ -2978,11 +2975,6 @@ Begin
       MyWidget._TransformChanged := True;
   End;
 //  It.Release;
-End;
-
-Procedure UI.SetVisible(Const Value:Boolean);
-Begin
-  _Visible := Value;
 End;
 
 Function UI.GetHighlight: Widget;

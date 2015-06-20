@@ -38,6 +38,23 @@ Type
       Property ObjectName:TERRAString Read _ObjectName; 
   End;
 
+  BooleanProperty = Class(TERRAObject)
+    Protected
+      _Value:Boolean;
+
+    Public
+      Constructor Create(Const Name:TERRAString; Const InitValue:Boolean);
+
+      Function IsValueObject():Boolean; Override;
+
+      Function GetObjectType:TERRAString; Override;
+
+      Function GetBlob():TERRAString; Override;
+      Procedure SetBlob(Const Blob:TERRAString); Override;
+
+      Property Value:Boolean Read _Value Write _Value;
+  End;
+
   TweenCallback = Procedure (Target:TERRAObject) Of Object;
   TweenState = (tweenWaiting, tweenRunning, tweenFinished);
 
@@ -508,7 +525,7 @@ End;
 
 Function IntegerProperty.GetObjectType: TERRAString;
 Begin
-  Result := 'integer';
+  Result := 'number';
 End;
 
 { ByteProperty }
@@ -774,6 +791,34 @@ End;
 Function AngleProperty.GetObjectType: TERRAString;
 Begin
   Result := 'angle';
+End;
+
+{ BooleanProperty }
+Constructor BooleanProperty.Create(const Name: TERRAString; const InitValue: Boolean);
+Begin
+  Self._ObjectName := Name;
+  Self._Value := InitValue;
+End;
+
+Function BooleanProperty.GetObjectType: TERRAString;
+Begin
+  Result := 'bool';
+End;
+
+Function BooleanProperty.GetBlob: TERRAString;
+Begin
+  Result := BoolToString(_Value);
+End;
+
+Procedure BooleanProperty.SetBlob(const Blob: TERRAString);
+Begin
+  _Value := StringToBool(Blob);
+End;
+
+
+Function BooleanProperty.IsValueObject: Boolean;
+Begin
+  Result := True;
 End;
 
 End.

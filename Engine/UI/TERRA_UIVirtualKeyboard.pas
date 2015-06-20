@@ -631,7 +631,7 @@ Constructor UIVirtualKeyboardKey.Create(Parent:Widget; X, Y, Z: Single; Const Co
 Begin
   Inherited Create(Name, Parent, ComponentName);
 
-  Self._Visible := True;
+  Self.SetVisible(True);
   Self._TabIndex := -1;
 
   Self.RelativePosition := VectorCreate2D(X,Y);
