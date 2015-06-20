@@ -11,6 +11,9 @@ uses
   TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color,
   TERRA_UI, TERRA_XML, TERRA_CustomPropertyEditor;
 
+Const
+  SnapValue = 10;
+    
 Type
   UIEditTool = (
     uitool_Empty,
@@ -97,13 +100,17 @@ Type
     procedure RenderPanelMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure WidgetListClick(Sender: TObject);
+    procedure RenderPanelMouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
+    procedure RenderPanelMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
 
   Protected
     Function FindWidgetNode(W:Widget):TTreeNode;
 
   Private
     _Scene:UIEditScene;
-
+    _DragTarget:Widget;
 
   Public
 
@@ -142,6 +149,8 @@ Begin
   _CurrentTool := uitool_Empty;
 
   UIEditForm.WidgetList.Items.AddChild(UIEditForm.FindWidgetNode(Nil), W.Name);
+
+  UIEditForm.FormResize(UIEditForm.WidgetList);
 
   Self.SelectWidget(W);
 End;
@@ -192,10 +201,7 @@ Begin
     Exit;
 
   _SelectedWidget := W;
-  If (_SelectedWidget = Nil) Then
-    Exit;
-
-  UIEditForm.PropertyList.SetTarget(_SelectedWidget);
+  UIEditForm.PropertyList.Target := _SelectedWidget;
 end;
 
 { TUIEditForm }
@@ -228,8 +234,18 @@ end;
 
 procedure TUIEditForm.FormResize(Sender: TObject);
 begin
-  PropertyList.Top := WidgetList.Height + WidgetList.Top;
-  PropertyList.Height := Self.Height - PropertyList.Top;
+  PropertyList.Visible := WidgetList.Items.Count>0;
+
+  If PropertyList.Visible Then
+  Begin
+    WidgetList.Height := Self.Height Div 3;
+    PropertyList.Top := WidgetList.Height + WidgetList.Top;
+    PropertyList.Height := Self.Height - PropertyList.Top;
+  End Else
+  Begin
+    WidgetList.Height := Self.Height -WidgetList.Top;
+  End;
+
   RenderPanel.Left := PropertyList.Width + PropertyList.Left;
   RenderPanel.Width := Self.Width - RenderPanel.Left;
   RenderPanel.Height := Self.Height - RenderPanel.Top;
@@ -251,6 +267,12 @@ begin
     Begin
       W := Scene._SelectedView.PickWidgetAt(X, Y);
       Scene.SelectWidget(W);
+
+      If Assigned(W) Then
+      Begin
+        _DragTarget := W;
+        _DragTarget.BeginDrag(X, Y);
+      End;
     End;
 
   uitool_Button:
@@ -261,6 +283,32 @@ begin
   End;
 
 end;
+
+procedure TUIEditForm.RenderPanelMouseUp(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  If Assigned(_DragTarget) Then
+  Begin
+    _DragTarget.FinishDrag();
+    PropertyList.RequestUpdate();
+  end;
+
+end;
+
+procedure TUIEditForm.RenderPanelMouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  If Assigned(_DragTarget) Then
+  Begin
+    If ssCtrl in Shift Then
+    Begin
+      X := (X Div SnapValue) * SnapValue;
+      Y := (Y Div SnapValue) * SnapValue;
+    End;
+
+    _DragTarget.OnMouseMove(X, Y);
+  end;
+End;
 
 Function TUIEditForm.FindWidgetNode(W: Widget): TTreeNode;
 Begin
@@ -275,10 +323,11 @@ Var
 begin
   Node := Self.WidgetList.Selected;
 
-  PropertyList.Strings.Clear();
-
   If Node = Nil Then
+  Begin
+    PropertyList.Target := Nil;
     Exit;
+  End;
 
   Scene.SelectWidget(Scene._SelectedView._Target.GetWidget(Node.Text));
 end;
@@ -312,5 +361,7 @@ Begin
   UIManager.Instance.RemoveUI(_Target);
   ReleaseObject(_Target);
 End;
+
+
 
 end.

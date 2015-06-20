@@ -35,9 +35,8 @@ Type
 
       Procedure Render; Override;
 
-
-      Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
-      Function OnMouseMove(X,Y:Integer):Boolean; Override;
+      Procedure OnMouseDown(X,Y:Integer;Button:Word); Override;
+      Procedure OnMouseMove(X,Y:Integer); Override;
 
       Procedure SetContent(Content:List);
 
@@ -122,16 +121,11 @@ Begin
   End;
 End;
 
-Function UIComboBox.OnMouseDown(X, Y: Integer; Button: Word): Boolean;
+Procedure UIComboBox.OnMouseDown(X, Y: Integer; Button: Word);
 Var
   Pos:Vector2D;
 Begin
-  Result := False;
-
   RemoveHint(Button); //TODO - check this stupid hint
-
-  If Not Visible Then
-    Exit;
 
   Pos := Self.AbsolutePosition;
 
@@ -146,24 +140,20 @@ Begin
     UI.Focus := Nil;
 
     Self.OnHit(OnMouseClick);
-    Result := True;
   End Else
   If (X >= Pos.X) And (X <= Pos.X + Self.GetDimension(_BarWidth) + Self.GetDimension(_HandleWidth)) And (Y>=Pos.Y) And (Y<=Pos.Y+ Self.GetDimension(_BarHeight)) And (Not ShowLabelOnly) Then
   Begin
     _ShowList := Not _ShowList;
-    Result := True;
+
     If (_ShowList) Then
       UI.Focus := Self;
-  End Else
-  If (Self.OnRegion(X,Y))  Then
-  Begin
-    Result := True;
   End;
 End;
 
-Function UIComboBox.OnMouseMove(X, Y: Integer): Boolean;
+Procedure UIComboBox.OnMouseMove(X, Y: Integer);
 Begin
-  Result := False;
+  Inherited;
+
   _ItemHighLight := -1;
   If Not _ShowList Then
     Exit;
@@ -179,6 +169,7 @@ Var
   ZOfs:Single;
   S:TERRAString;
   TextRect:Vector2D;
+  BW, HW:Single;
 Begin
   Self.ClearProperties();
   Self.UpdateRects();
@@ -187,12 +178,15 @@ Begin
   If (_ItemIndex<0) Or (_Content = Nil) Then
     Exit;
 
+  BW := Self.GetDimension(_BarWidth);
+  HW := Self.GetDimension(_HandleWidth);
+
   If (Not ShowLabelOnly) Then
   Begin
-    Self.DrawComponent(0, 0, 0, _BarWidth, _BarHeight, 0, Self.IsSelected);
+    Self.DrawComponent(0, 0, 0, UIPixels(BW - HW), _BarHeight, 0, Self.IsSelected);
   End;
 
-  Self.DrawComponent(Self.GetDimension(_BarWidth), 0, 0.0, _HandleWidth, _BarHeight, 1, Self.IsSelected);
+  Self.DrawComponent(BW - HW, 0, 0.0, _HandleWidth, _BarHeight, 1, Self.IsSelected);
 
   If (_Selected<>Nil) And (Assigned(Self.Font)) Then
   Begin

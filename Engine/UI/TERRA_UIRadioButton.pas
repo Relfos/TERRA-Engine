@@ -16,7 +16,7 @@ Type
     Public
       Group:Integer;
 
-      Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
+      Procedure OnMouseDown(X,Y:Integer;Button:Word); Override;
 
       Procedure Render; Override;
 
@@ -56,14 +56,10 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Function UIRadioButton.OnMouseDown(X, Y: Integer; Button: Word): Boolean;
+Procedure UIRadioButton.OnMouseDown(X, Y: Integer; Button: Word);
 Begin
-  If (OnRegion(X,Y)) And (Not Self.HasPropertyTweens()) And (Not _Checked) Then
-  Begin
+  If (Not _Checked) Then
     SetChecked(True);
-    Result := True;
-  End Else
-    Result := Inherited OnMouseDown(X,Y, Button);
 End;
 
 procedure UIRadioButton.Render;

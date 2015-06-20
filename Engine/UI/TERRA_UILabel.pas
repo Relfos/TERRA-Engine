@@ -18,10 +18,6 @@ Type
 
       Procedure Render; Override;
       Procedure UpdateRects; Override;
-
-
-      Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
-      Function OnMouseUp(X,Y:Integer;Button:Word):Boolean; Override;
   End;
 
 
@@ -41,30 +37,6 @@ Begin
 
   Self.SetCaption(Caption);
   _NeedsUpdate := True;
-End;
-
-
-Function UILabel.OnMouseDown(X,Y:Integer;Button:Word):Boolean;
-Begin
-  If  (Assigned(OnMouseClick)) And (OnRegion(X,Y)) And (Not Self.HasPropertyTweens()) Then
-  Begin
-    Self._HitTime := Application.GetTime();
-    Self._Hitting := True;
-    Result := True;
-  End Else
-    Result := Inherited OnMouseDown(X,Y, Button);
-End;
-
-Function UILabel.OnMouseUp(X,Y:Integer;Button:Word):Boolean;
-Begin
-  Result := False;
-  If (_Hitting) Then
-  Begin
-    Result := True;
-    _Hitting := False;
-
-    Self.OnHit(OnMouseClick);
-  End;
 End;
 
 (*Function UILabel.OnMouseMove(X,Y:Integer):Boolean;

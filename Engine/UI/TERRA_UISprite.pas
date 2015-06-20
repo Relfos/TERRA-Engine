@@ -25,9 +25,6 @@ Type
       Procedure Render; Override;
       Procedure UpdateRects; Override;
 
-      Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
-      Function OnMouseUp(X,Y:Integer;Button:Word):Boolean; Override;
-
       Property Texture:Texture Read _Texture Write SetTexture;
   End;
 
@@ -65,32 +62,6 @@ Begin
 
   Self.Pivot := VectorCreate2D(0, 0);
   Self.Anchor := VectorCreate2D(0, 0);
-End;
-
-Function UISprite.OnMouseDown(X, Y: Integer; Button: Word): Boolean;
-Var
-    Pos:Vector2D;
-Begin
-  Result := Inherited OnMouseDown(X,Y, Button);
-
-  If (OnRegion(X,Y)) And (Assigned(OnMouseClick)) And (Self.Visible) And (Not Self.HasPropertyTweens()) Then
-  Begin
-    Self.OnHit(OnMouseClick);
-    Result := True;
-  End;
-End;
-
-Function UISprite.OnMouseUp(X, Y: Integer; Button: Word): Boolean;
-Var
-    Pos:Vector2D;
-Begin
-  RemoveHint(Button);
-
-  If (OnRegion(X,Y)) And (Self.Visible) And (Assigned(OnMouseClick)) Then
-  Begin
-    Result := True;
-  End Else
-    Result := False;
 End;
 
 {Function UISprite.OnRegion(X, Y: Integer): Boolean;

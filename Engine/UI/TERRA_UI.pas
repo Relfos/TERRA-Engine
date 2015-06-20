@@ -309,6 +309,8 @@ Type
 
       Function GetClipRect():ClipRect;
 
+      Procedure BeginDrag(X,Y:Integer);
+      Procedure FinishDrag();
       Procedure CancelDrag();
 
       Function Show(AnimationFlags:Integer; EaseType:TweenEaseType = easeLinear; Delay:Cardinal = 0; Duration:Cardinal = 500; Callback:TweenCallback = Nil):Boolean;
@@ -1558,21 +1560,49 @@ Begin
   End;
 End;
 
+Procedure Widget.BeginDrag(X,Y:Integer);
+Begin
+  If (Assigned(OnBeginDrag)) Then
+    Self.OnBeginDrag(Self);
+
+  _UI._Dragger := Self;
+  _DragStart := _Position.Value;
+  _Dragging := True;
+  _DragX := (X-_Position.X.Value);
+  _DragY := (Y-_Position.Y.Value);
+End;
+
+Procedure Widget.CancelDrag;
+Begin
+  If _Dragging Then
+  Begin
+    _Position.Value := _DragStart;
+    _Dragging := False;
+    If _UI._Dragger = Self Then
+      _UI._Dragger := Nil;
+
+    Self._TransformChanged := True;
+  End;
+End;
+
+Procedure Widget.FinishDrag();
+Begin
+  If (_UI._Dragger <> Self) Then
+    Exit;
+
+  If (Assigned(OnEndDrag)) Then
+    Self.OnEndDrag(Self);
+
+  _Dragging := False;
+  _UI._Dragger := Nil;
+End;
+
 Procedure Widget.OnMouseDown(X,Y:Integer;Button:Word);
 Begin
   If (Draggable) Then
   Begin
     If (Not _Dragging) Then
-    Begin
-      If (Assigned(OnBeginDrag)) Then
-        Self.OnBeginDrag(Self);
-
-      _UI._Dragger := Self;
-      _DragStart := _Position.Value;
-      _Dragging := True;
-      _DragX := (X-_Position.X.Value);
-      _DragY := (Y-_Position.Y.Value);
-    End;
+      Self.BeginDrag(X,Y);
 
     Exit;
   End;
@@ -1587,11 +1617,7 @@ Var
 Begin
   If (_Dragging) Then
   Begin
-    If (_UI._Dragger = Self) And (Assigned(OnEndDrag)) Then
-      Self.OnEndDrag(Self);
-
-    _Dragging := False;
-    _UI._Dragger := Nil;
+    Self.FinishDrag();
     Exit;
   End;
 
@@ -2022,19 +2048,6 @@ Begin
     Value.Prefetch();
 
   Self._Font := Value;
-End;
-
-Procedure Widget.CancelDrag;
-Begin
-  If _Dragging Then
-  Begin
-    _Position.Value := _DragStart;
-    _Dragging := False;
-    If _UI._Dragger = Self Then
-      _UI._Dragger := Nil;
-
-    Self._TransformChanged := True;
-  End;
 End;
 
 Function Widget.GetIndex: Integer;

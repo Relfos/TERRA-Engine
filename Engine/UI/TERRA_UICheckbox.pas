@@ -22,7 +22,7 @@ Type
       Procedure Render; Override;
       Procedure UpdateRects; Override;
 
-      Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
+      Procedure OnMouseDown(X,Y:Integer;Button:Word); Override;
 
       Procedure SetCheckedWithoutPropagation(Value:Boolean);
 
@@ -52,14 +52,9 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Function UICheckBox.OnMouseDown(X, Y: Integer; Button: Word): Boolean;
+Procedure UICheckBox.OnMouseDown(X, Y: Integer; Button: Word);
 Begin
-  If (OnRegion(X,Y)) And (Not Self.HasPropertyTweens()) Then
-  Begin
-    SetChecked(Not _Checked);
-    Result := True;
-  End Else
-    Result := Inherited OnMouseDown(X,Y, Button);
+  SetChecked(Not _Checked);
 End;
 
 Function UICheckBox.HasMouseOver: Boolean;

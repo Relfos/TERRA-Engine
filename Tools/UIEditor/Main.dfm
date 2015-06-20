@@ -53,6 +53,8 @@ object UIEditForm: TUIEditForm
     Height = 401
     TabOrder = 1
     OnMouseDown = RenderPanelMouseDown
+    OnMouseMove = RenderPanelMouseMove
+    OnMouseUp = RenderPanelMouseUp
   end
   object WidgetList: TTreeView
     Left = 0
@@ -68,10 +70,9 @@ object UIEditForm: TUIEditForm
     Top = 288
     Width = 209
     Height = 169
+    BevelOuter = bvLowered
+    BevelWidth = 2
     TabOrder = 3
-    ColWidths = (
-      112
-      91)
   end
   object MainMenu1: TMainMenu
     Left = 120

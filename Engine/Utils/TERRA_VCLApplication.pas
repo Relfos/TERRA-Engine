@@ -49,7 +49,21 @@ Type
         Procedure AddViewport(V:VCLCanvasViewport);
   End;
 
+Function TERRAColorUnpack(Const C:TERRA_Color.Color):TColor;
+Function TERRAColorPack(Const C:TColor):TERRA_Color.Color;
+
 Implementation
+
+Function TERRAColorUnpack(Const C:TERRA_Color.Color):TColor;
+Begin
+  Result := C.R + C.G Shl 8 + C.B Shl 16;
+End;
+
+Function TERRAColorPack(Const C:TColor):TERRA_Color.Color;
+Begin
+  Result := TERRA_Color.Color(ColorToRGB(C));
+  Result.A := 255;
+End;
 
 { VCLApplication }
 Constructor VCLApplication.Create(Target:TComponent);
@@ -170,6 +184,7 @@ Begin
 
 End;
 
+
 // this is slow!!!! just experimental test
 Procedure VCLCanvasViewport.Update;
 Var
@@ -184,7 +199,7 @@ Begin
     For J:=0 To Pred(Temp.Height) Do
     Begin
       C := Temp.GetPixel(I, J);
-      _Target.Pixels[I,J] := C.R + C.G Shl 8 + C.B Shl 16;
+      _Target.Pixels[I,J] := TERRAColorUnpack(C);
     End;
   _Target.Unlock();
 
