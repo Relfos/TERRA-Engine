@@ -150,8 +150,12 @@ Type
       _BlackTexture:Texture;
       _NullTexture:Texture;
 
+      _CellNoise:Texture;
+
       Function GetDefaultNormalMap:Texture;
       Function GetDefaultColorTable:Texture;
+
+      Function GetCellNoise:Texture;
 
       Function CreateTextureWithColor(Name:TERRAString; TexColor:Color):Texture;
       Procedure FillTextureWithColor(Tex:Texture; TexColor:Color);
@@ -174,6 +178,8 @@ Type
       Property WhiteTexture:Texture Read GetWhiteTexture;
       Property BlackTexture:Texture Read GetBlackTexture;
 
+      Property CellNoise:Texture Read GetCellNoise;
+
       Property DefaultColorTable:Texture Read GetDefaultColorTable;
       Property DefaultNormalMap:Texture Read GetDefaultNormalMap;
 
@@ -194,7 +200,7 @@ Procedure RegisterTextureFormat(ClassType:TextureClass; Extension:TERRAString);
 
 Implementation
 Uses TERRA_Error, TERRA_Utils, TERRA_Application, TERRA_Log, TERRA_GraphicsManager, TERRA_OS,
-  TERRA_FileUtils, TERRA_FileStream, TERRA_FileManager, TERRA_ColorGrading;
+  TERRA_FileUtils, TERRA_FileStream, TERRA_FileManager, TERRA_ColorGrading, TERRA_Noise;
 
 Var
   _TextureManager:ApplicationObject = Nil;
@@ -432,9 +438,36 @@ begin
   If (Assigned(_DefaultNormalMap)) Then
     _DefaultNormalMap.Release;
 
+  If (Assigned(_CellNoise)) Then
+    _CellNoise.Release;
+
   Inherited;
 
   _TextureManager := Nil;
+End;
+
+Function TextureManager.GetCellNoise: Texture;
+Var
+  Noise:NoiseGenerator;
+  Img:Image;
+Begin
+  If _CellNoise = Nil Then
+  Begin
+    Noise := CellNoiseGenerator.Create();
+    //Noise := PerlinNoiseGenerator.Create();
+    Img := Image.Create(512, 512);
+
+    Noise.SaveToImage(Img, 0.0, maskRGB);
+    Img.Save('cellnoise.png');
+
+    _CellNoise := Texture.Create();
+    _CellNoise.CreateFromImage('cellnoise', Img);
+
+    ReleaseObject(Img);
+    ReleaseObject(Noise);
+  End;
+
+  Result := _CellNoise;
 End;
 
 { Texture }
