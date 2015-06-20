@@ -2,7 +2,7 @@ TERRA Game Engine
 ============
 
 _TERRA_ is a cross platform game engine written in Object Pascal.
-While compatible with Lazarus and Delphi, does not use visual components.
+While compatible with Lazarus and Delphi, it does not use visual components.
 The engine was developed with focus on performance and optimized to run on mobile devices.
 Does not require any external library or framework (except linking to OpenGL and OpenAL).
 
