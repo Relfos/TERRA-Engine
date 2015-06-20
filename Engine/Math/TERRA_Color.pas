@@ -185,10 +185,7 @@ Implementation
 // Color functions
 Function ColorToString(Const N:Color):TERRAString;
 Begin
-  Result := IntToString(N.R)+'\'+
-            IntToString(N.G)+'\'+
-            IntToString(N.B)+'\'+
-            IntToString(N.A);
+  Result := '#'+HexStr(N.R)+HexStr(N.G)+ HexStr(N.B)+ HexStr(N.A);
 End;
 
 Function ColorCreateFromString(HexValue:TERRAString):Color;

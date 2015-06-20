@@ -308,9 +308,9 @@ Begin
   If Source = Nil Then
     Exit;
 
-  XMLGetString(Source, 'name', _Name);
-  XMLGetInteger(Source, 'id', _ID, -1);
-  XMLGetInteger(Source, 'state', _State, -1);
+  Source.GetString('name', _Name);
+  Source.GetInteger('id', _ID, -1);
+  Source.GetInteger('state', _State, -1);
 End;
 
 Function UISkinComponent.GetWidth(ID, State: Integer): Integer;
@@ -348,16 +348,16 @@ Begin
 
   Self.InitFromSource(Source);
 
-  XMLGetString(Source, 'src', SrcFile);
+  Source.GetString('src', SrcFile);
   _Texture := UIManager.Instance.GetUI(0).LoadImage(SrcFile);
 
   W := _Texture.Buffer.Width;
   H := _Texture.Buffer.Height;
 
-  XMLGetInteger(Source, 'x1', X1, W Div 3);
-  XMLGetInteger(Source, 'y1', Y1, H Div 3);
-  XMLGetInteger(Source, 'x2', X2, (W Div 3) * 2 );
-  XMLGetInteger(Source, 'y2', Y2, (H Div 3) * 2);
+  Source.GetInteger('x1', X1, W Div 3);
+  Source.GetInteger('y1', Y1, H Div 3);
+  Source.GetInteger('x2', X2, (W Div 3) * 2 );
+  Source.GetInteger('y2', Y2, (H Div 3) * 2);
 
   U1 := Pred(X1) / Pred(W);
   V1 := Pred(Y1) / Pred(H);
@@ -523,7 +523,7 @@ Begin
 
   Self.InitFromSource(Source);
 
-  XMLGetString(Source, 'src', SrcFile);
+  Source.GetString('src', SrcFile);
   _Texture := UIManager.Instance.GetUI(0).LoadImage(SrcFile);
 End;
 
@@ -558,10 +558,10 @@ Begin
 
   Self.InitFromSource(Source);
 
-  XMLGetString(Source, 'color', S, '#FFFFFF');
+  Source.GetString('color', S, '#FFFFFF');
   _Color := ColorCreateFromString(S);
 
-  XMLGetString(Source, 'alpha', S, '');
+  Source.GetString('alpha', S, '');
   If S<>'' Then
     _Color.A := StringToInt(S);
 End;

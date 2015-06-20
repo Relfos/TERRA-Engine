@@ -9,65 +9,10 @@ Const
   xmlSaveCompact  = 2;
 
 Type
-  XMLTagType=(xmlBeginTag,xmlEndTag,xmlData);
-  XMLStatus=(xmlWriting,xmlReading);
-  XMLType=(xmlString, xmlBoolean, xmlInteger, xmlCardinal,
-            xmlByte, xmlWord, xmlSingle,
-            xmlVector, xmlColor);
+  XMLTagType = (xmlBeginTag,xmlEndTag,xmlData);
 
-  XMLDocument=Class;
-  XMLNode=Class;
-
-  XMLDescriptor=Object
-    Name:TERRAString;
-    Address:Pointer;
-    ElementCount:Integer;
-    XMLType:XMLType;
-    Default:TERRAString;
-    Found:Boolean;
-
-    Procedure Read(Node:XMLNode);
-    Procedure Write(Document:XMLDocument; Node:XMLNode);
-  End;
-
-  XMLElement = Class(TERRAObject)
-    Protected
-      _Descriptors:Array Of XMLDescriptor;
-      _DescriptorCount:Integer;
-      _Status:XMLStatus;
-
-      Procedure XMLRegisterElement(Const Name:TERRAString; Address:Pointer; XMLType:XMLType; Default:TERRAString='');
-      Procedure XMLRegisterArrayElement(Const Name:TERRAString; Address:Pointer; XMLType:XMLType; Size:Integer);
-
-      Procedure XMLLoadElements(Source:XMLNode);Overload;
-      Procedure XMLSaveElements(Document:XMLDocument; Parent:XMLNode=Nil);
-
-    Public
-      Procedure XMLRegisterStructure; Virtual;
-      Procedure XMLClearStructure;
-      Procedure XMLSynchronize; Virtual;
-
-      Procedure XMLLoad(Node:XMLNode);Overload;
-
-      Procedure XMLLoad(Document:XMLDocument);Overload;
-      Procedure XMLSave(Document:XMLDocument);Overload;
-
-      Procedure XMLLoad(Source:Stream);Overload;
-      Procedure XMLSave(Dest:Stream);Overload;
-
-      Procedure XMLLoad(Const FileName:TERRAString);Overload;
-      Procedure XMLSave(Const FileName:TERRAString);Overload;
-
-      Function XMLGetPropertyCount:Integer;
-      Function XMLGetProperty(Index:Integer):XMLDescriptor; Overload;
-      Function XMLGetProperty(Name:TERRAString):XMLDescriptor; Overload;
-
-      Function XMLNewElement(Const Name:TERRAString):XMLElement;Virtual;
-      Function XMLGetElement(Index:Integer):XMLElement;Virtual;
-      Function XMLGetElementCount():Integer;Virtual;
-
-      Property XMLStatus:XMLStatus Read _Status;
-  End;
+  XMLDocument = Class;
+  XMLNode = Class;
 
   XMLNode = Class(TERRAObject)
     Protected
@@ -86,9 +31,10 @@ Type
       Function GetParentCount:Integer;
 
     Public
+      Constructor Create(Const Name:TERRAString = ''; Const Value:TERRAString = '');
 
-      Constructor Create(Const Name:TERRAString; Const Value:TERRAString = ''); Overload;
-      Constructor Create(Document:XMLDocument; Source:Stream; InitTag:TERRAString = '');Overload;
+      Procedure LoadFromStream(Document:XMLDocument; Source:Stream; InitTag:TERRAString = '');
+      Procedure LoadFromObject(Document:XMLDocument; Source:TERRAObject);
 
       Procedure Release;Reintroduce;
 
@@ -99,6 +45,13 @@ Type
       Function GetNodeByIndex(Index:Integer):XMLNode;
 
       Function GetNodeByPath(Path:TERRAString; Const PathSeparator:TERRAChar):XMLNode;
+
+      Function GetInteger(Const Name:TERRAString; Var Dest:Integer; Default:Integer = 0):Boolean;
+      Function GetCardinal(Const Name:TERRAString; Var Dest:Cardinal; Default:Cardinal = 0):Boolean;
+      Function GetByte(Const Name:TERRAString; Var Dest:Byte; Default:Byte):Boolean;
+      Function GetBoolean(Const Name:TERRAString; Var Dest:Boolean; Default:Boolean = False):Boolean;
+      Function GetString(Const Name:TERRAString; Var Dest:TERRAString; Const Default:TERRAString = ''):Boolean;
+      Function GetSingle(Const Name:TERRAString; Var Dest:Single; Default:Single = 0):Boolean;
 
       Property Name:TERRAString Read _Name Write _Name;
       Property Value:TERRAString Read _Value Write _Value;
@@ -116,7 +69,9 @@ Type
     Public
       Procedure Release;Reintroduce;
 
-      Procedure Load(Source:Stream);
+      Procedure LoadFromObject(Source:TERRAObject);
+      Procedure LoadFromStream(Source:Stream);
+
       Procedure Save(Dest:Stream; SaveFlags:Cardinal = 0);
 
       Procedure LoadFromFile(FileName:TERRAString; Encoding:StringEncoding = encodingUnknown);
@@ -140,21 +95,21 @@ Type
       Property Root:XMLNode Read _Root Write SetRoot;
   End;
 
-Function XMLGetInteger(P:XMLNode; Const Name:TERRAString; Var Dest:Integer; Default:Integer = 0):Boolean;
-Function XMLGetCardinal(P:XMLNode; Const Name:TERRAString; Var Dest:Cardinal; Default:Cardinal = 0):Boolean;
-Function XMLGetByte(P:XMLNode; Const Name:TERRAString; Var Dest:Byte; Default:Byte):Boolean;
-Function XMLGetBoolean(P:XMLNode; Const Name:TERRAString; Var Dest:Boolean; Default:Boolean = False):Boolean;
-Function XMLGetString(P:XMLNode; Const Name:TERRAString; Var Dest:TERRAString; Const Default:TERRAString = ''):Boolean;
-Function XMLGetSingle(P:XMLNode; Const Name:TERRAString; Var Dest:Single; Default:Single = 0):Boolean;
-
 Implementation
 Uses TERRA_Error, TERRA_Collections, TERRA_FileManager, TERRA_FileStream, TERRA_MemoryStream, TERRA_Log;
 
-Function XMLGetInteger(P:XMLNode; Const Name:TERRAString; Var Dest:Integer; Default:Integer):Boolean;
+{ XMLNode }
+Constructor XMLNode.Create(Const Name, Value:TERRAString);
+Begin
+  Self._Name:=Name;
+  Self._Value:=Value;
+End;
+
+Function XMLNode.GetInteger(Const Name:TERRAString; Var Dest:Integer; Default:Integer):Boolean;
 Var
   PP:XMLNode;
 Begin
-  PP := P.GetNodeByName(Name);
+  PP := Self.GetNodeByName(Name);
   Result := PP<>Nil;
   If Result Then
     Dest := StringToInt(PP.Value)
@@ -162,11 +117,23 @@ Begin
     Dest := Default;
 End;
 
-Function XMLGetCardinal(P:XMLNode; Const Name:TERRAString; Var Dest:Cardinal; Default:Cardinal):Boolean;
+Function XMLNode.GetCardinal(Const Name:TERRAString; Var Dest:Cardinal; Default:Cardinal):Boolean;
 Var
   PP:XMLNode;
 Begin
-  PP := P.GetNodeByName(Name);
+  PP := Self.GetNodeByName(Name);
+  Result := PP<>Nil;
+  If Result Then
+    Dest := StringToCardinal(PP.Value)
+  Else
+    Dest := Default;
+End;
+
+Function XMLNode.GetSingle(Const Name:TERRAString; Var Dest:Single; Default:Single):Boolean;
+Var
+  PP:XMLNode;
+Begin
+  PP := Self.GetNodeByName(Name);
   Result := PP<>Nil;
   If Result Then
     Dest := StringToInt(PP.Value)
@@ -174,23 +141,11 @@ Begin
     Dest := Default;
 End;
 
-Function XMLGetSingle(P:XMLNode; Const Name:TERRAString; Var Dest:Single; Default:Single):Boolean;
+Function XMLNode.GetBoolean(Const Name:TERRAString; Var Dest:Boolean; Default:Boolean):Boolean;
 Var
   PP:XMLNode;
 Begin
-  PP := P.GetNodeByName(Name);
-  Result := PP<>Nil;
-  If Result Then
-    Dest := StringToInt(PP.Value)
-  Else
-    Dest := Default;
-End;
-
-Function XMLGetBoolean(P:XMLNode; Const Name:TERRAString; Var Dest:Boolean; Default:Boolean):Boolean;
-Var
-  PP:XMLNode;
-Begin
-  PP := P.GetNodeByName(Name);
+  PP := Self.GetNodeByName(Name);
   Result := PP<>Nil;
   If Result Then
     Dest := (PP.Value = '1') Or (StringLower(PP.Value) = 'true')
@@ -198,11 +153,11 @@ Begin
     Dest := Default;
 End;
 
-Function XMLGetByte(P:XMLNode; Const Name:TERRAString; Var Dest:Byte; Default:Byte):Boolean;
+Function XMLNode.GetByte(Const Name:TERRAString; Var Dest:Byte; Default:Byte):Boolean;
 Var
   PP:XMLNode;
 Begin
-  PP := P.GetNodeByName(Name);
+  PP := Self.GetNodeByName(Name);
   Result := PP<>Nil;
   If Result Then
     Dest := StringToInt(PP.Value)
@@ -210,11 +165,11 @@ Begin
     Dest := Default;
 End;
 
-Function XMLGetString(P:XMLNode; Const Name:TERRAString; Var Dest:TERRAString; Const Default:TERRAString):Boolean;
+Function XMLNode.GetString(Const Name:TERRAString; Var Dest:TERRAString; Const Default:TERRAString):Boolean;
 Var
   PP:XMLNode;
 Begin
-  PP := P.GetNodeByName(Name);
+  PP := Self.GetNodeByName(Name);
   Result := PP<>Nil;
   If Result Then
     Dest := PP.Value
@@ -222,14 +177,30 @@ Begin
     Dest := Default;
 End;
 
-{ XMLNode }
-Constructor XMLNode.Create(Const Name:TERRAString; Const Value:TERRAString='');
+Procedure XMLNode.LoadFromObject(Document:XMLDocument; Source:TERRAObject);
+Var
+  Index:Integer;
+  Node:XMLNode;
+  Prop:TERRAObject;
 Begin
-  Self._Name:=Name;
-  Self._Value:=Value;
+  Self._Name := Source.GetObjectName();
+  Self._Value := Source.GetBlob();
+
+  Index := 0;
+  Repeat
+    Prop := Source.GetPropertyByIndex(Index);
+    If Prop = Nil Then
+      Exit;
+
+    Node := XMLNode.Create();
+    Self.AddNode(Node);
+    Node.LoadFromObject(Document, Prop);
+
+    Inc(Index);
+  Until False;
 End;
 
-Constructor XMLNode.Create(Document:XMLDocument; Source:Stream; InitTag:TERRAString);
+Procedure XMLNode.LoadFromStream(Document:XMLDocument; Source:Stream; InitTag:TERRAString);
 Var
   S, S2:TERRAString;
   Tag, Value:TERRAString;
@@ -326,7 +297,8 @@ Begin
     S := Read(Source);
     Case GetTagType(S) Of
       xmlBeginTag:  Begin
-                      Node := XMLNode.Create(_Document, Source, S);
+                      Node := XMLNode.Create();
+                      Node.LoadFromStream(_Document, Source, S);
 
                       AddNode(Node);
                     End;
@@ -663,11 +635,18 @@ Begin
     DumpXML(Node.GetNodeByIndex(I), Dest, Succ(Level));
 End;
 
-Procedure XMLDocument.Load(Source:Stream);
-Var
-  Dest:Stream;
+Procedure XMLDocument.LoadFromObject(Source:TERRAObject);
 Begin
-  _Root := XMLNode.Create(Self, Source);
+  ReleaseObject(_Root);
+  _Root := XMLNode.Create();
+  _Root.LoadFromObject(Self, Source);
+End;
+
+Procedure XMLDocument.LoadFromStream(Source:Stream);
+Begin
+  ReleaseObject(_Root);
+  _Root := XMLNode.Create();
+  _Root.LoadFromStream(Self, Source);
 
   {$IFDEF PC}
  (* Dest := FileStream.Create('debug\'+GetFileName(Source.Name,False));
@@ -693,7 +672,7 @@ Begin
   If Encoding <> encodingUnknown Then
     Source.Encoding := Encoding;
 
-  Load(Source);
+  LoadFromStream(Source);
   Source.Release;
 End;
 
@@ -712,7 +691,7 @@ Var
 Begin
   Source := MemoryStream.Create(Length(Data), @Data[1]);
   Source.Encoding := Encoding;
-  Load(Source);
+  LoadFromStream(Source);
   Source.Release;
 End;
 
@@ -753,454 +732,6 @@ Begin
   Result:=Node;
 End;
 
-// XMLElement
-Procedure XMLElement.XMLRegisterStructure;
-Begin
-End;
-
-Procedure XMLElement.XMLSynchronize;
-Begin
-End;
-
-Function XMLElement.XMLGetPropertyCount:Integer;
-Begin
-  If (Self._DescriptorCount=0) Then
-    XMLRegisterStructure;
-  Result := _DescriptorCount;
-End;
-
-Function XMLElement.XMLGetProperty(Index:Integer):XMLDescriptor;
-Begin
-  Result := _Descriptors[Index];
-End;
-
-Function XMLElement.XMLGetProperty(Name:TERRAString):XMLDescriptor;
-Var
-  S:TERRAString;
-  I:Integer;
-Begin
-	FillChar(Result, SizeOf(Result), 0);
-
-  I := StringPos('.', Name, True);
-  If (I>0) Then
-  Begin
-    S := StringCopy(Name, Succ(I), MaxInt);
-    Name := StringCopy(Name, 1, Pred(I));
-    Result := XMLGetProperty(Name);
-    If (StringEquals(S, 'x')) Then
-    Begin
-      Inc(PByte(Result.Address), 0);
-      Result.XMLType := xmlSingle;
-    End Else
-    If (StringEquals(S, 'Y')) Then
-    Begin
-      Inc(PByte(Result.Address), 4);
-      Result.XMLType := xmlSingle;
-    End Else
-    If (StringEquals(S, 'Z')) Then
-    Begin
-      Inc(PByte(Result.Address), 8);
-      Result.XMLType := xmlSingle;
-    End Else
-    If (StringEquals(S, 'red')) Or (StringEquals(S, 'r')) Then
-    Begin
-      Inc(PByte(Result.Address), 0);
-      Result.XMLType := xmlByte;
-    End Else
-    If (StringEquals(S, 'green')) Or (StringEquals(S, 'g')) Then
-    Begin
-      Inc(PByte(Result.Address), 1);
-      Result.XMLType := xmlByte;
-    End Else
-    If (StringEquals(S, 'blue')) Or (StringEquals(S, 'b')) Then
-    Begin
-      Inc(PByte(Result.Address), 2);
-      Result.XMLType := xmlByte;
-    End Else
-    If (StringEquals(S, 'alpha')) Or (StringEquals(S, 'a')) Then
-    Begin
-      Inc(PByte(Result.Address), 3);
-      Result.XMLType := xmlByte;
-    End Else
-      RaiseError('XML: Unknow type component ['+S+']');
-    Exit;
-  End;
-
-  For I:=0 To Pred(_DescriptorCount) Do
-  If (StringUpper(_Descriptors[I].Name) = Name) Then
-    Result := _Descriptors[I];
-End;
-
-Function XMLElement.XMLGetElement(Index:Integer):XMLElement;
-Begin
-  Result := Nil;
-End;
-
-Function XMLElement.XMLGetElementCount():Integer;
-Begin
-  Result := 0;
-End;
-
-Function XMLElement.XMLNewElement(Const Name:TERRAString):XMLElement;
-Begin
-  Result := Nil;
-End;
-
-Procedure XMLElement.XMLRegisterElement(Const Name:TERRAString; Address:Pointer;
-                                        XMLType:XMLType; Default:TERRAString='');
-Begin
-  Inc(_DescriptorCount);
-  SetLength(_Descriptors,_DescriptorCount);
-  _Descriptors[Pred(_DescriptorCount)].Name:=Name;
-  _Descriptors[Pred(_DescriptorCount)].Address:=Address;
-  _Descriptors[Pred(_DescriptorCount)].XMLType:=XMLType;
-  _Descriptors[Pred(_DescriptorCount)].ElementCount:=1;
-  _Descriptors[Pred(_DescriptorCount)].Default:=Default;
-  _Descriptors[Pred(_DescriptorCount)].Found:=False;
-End;
-
-Procedure XMLElement.XMLRegisterArrayElement(Const Name:TERRAString; Address:Pointer;
-                                             XMLType:XMLType; Size:Integer);
-Begin
-  Inc(_DescriptorCount);
-  SetLength(_Descriptors,_DescriptorCount);
-  _Descriptors[Pred(_DescriptorCount)].Name:=Name;
-  _Descriptors[Pred(_DescriptorCount)].Address:=Address;
-  _Descriptors[Pred(_DescriptorCount)].XMLType:=XMLType;
-  _Descriptors[Pred(_DescriptorCount)].ElementCount:=Size;
-  _Descriptors[Pred(_DescriptorCount)].Default:='';
-  _Descriptors[Pred(_DescriptorCount)].Found:=False;
-End;
-
-Procedure XMLElement.XMLClearStructure;
-Begin
-  _DescriptorCount := 0;
-  SetLength(_Descriptors, 0);
-End;
-
-Procedure XMLDescriptor.Read(Node:XMLNode);
-Var
-  S,S2:TERRAString;
-  K:Integer;
-Begin
-  Found:=True;
-  S:=Node.Value;
-
-  If XMLType=xmlVector Then
-  Begin
-    If (ElementCount>1) Then
-    Begin
-      Log(logError, 'XML', 'Vector array not supported!');
-      Exit;
-    End;
-
-    PVector3D(Address).X := StringToFloat(Node._Childs[0]._Value);
-    PVector3D(Address).Y := StringToFloat(Node._Childs[1]._Value);
-    PVector3D(Address).Z := StringToFloat(Node._Childs[2]._Value);
-  End Else
-  If XMLType=xmlColor Then
-  Begin
-    If (ElementCount>1) Then
-    Begin
-      Log(logError, 'XML', 'Color array not supported!');
-      Exit;
-    End;
-
-    PColor(Address).R:=StringToInt(Node._Childs[0]._Value);
-    PColor(Address).G:=StringToInt(Node._Childs[1]._Value);
-    PColor(Address).B:=StringToInt(Node._Childs[2]._Value);
-    PColor(Address).A:=StringToInt(Node._Childs[3]._Value);
-  End Else
-{  If XMLType=xmlTime Then
-  Begin
-    If (ElementCount>1) Then
-    Begin
-      Log(logError, 'XML', 'Time array not supported!');
-      Exit;
-    End;
-
-    PTime(Address).Hour := StringToInt(Node._Childs[0]._Value);
-    PTime(Address).Minute := StringToInt(Node._Childs[1]._Value);
-    PTime(Address).Second := StringToInt(Node._Childs[2]._Value);
-  End Else}
-  Begin
-    For K:=1 To ElementCount Do
-    Begin
-      If ElementCount=1 Then
-      Begin
-        S2:=S;
-        S:='';
-      End Else
-        S2 := StringGetNextSplit(S, Ord(','));
-      If (S2='') Then
-      Begin
-        Log(logError, 'XML', 'Number of array elements differs from declaration! ['+Node.GetPath+']');
-        Exit;
-      End;
-
-      Case XMLType Of
-        xmlString:  Begin
-                    PString(Address)^:=S2;
-                      Inc(PString(Address));
-                    End;
-
-        xmlBoolean: Begin
-                      PBoolean(Address)^:=StringToBool(S2);
-                      Inc(PBoolean(Address));
-                    End;
-
-        xmlInteger: Begin
-                      PInteger(Address)^:=StringToInt(S2);
-                      Inc(PInteger(Address));
-                    End;
-
-        xmlCardinal:  Begin
-                        PCardinal(Address)^ := StringToCardinal(S2);
-                        Inc(PCardinal(Address));
-                      End;
-
-        xmlByte:  Begin
-                    PByte(Address)^:=StringToInt(S2);
-                    Inc(PByte(Address));
-                  End;
-
-        xmlWord:  Begin
-                    PWord(Address)^ := StringToCardinal(S2);
-                    Inc(PWord(Address));
-                  End;
-
-        xmlSingle:  Begin
-                      PSingle(Address)^ := StringToFloat(S2);
-                      Inc(PSingle(Address));
-                    End;
-        Else
-          Log(logError, 'XML', 'Invalid XML type '+ IntToString(Cardinal(XMLType)));
-      End;
-    End;
-
-    If (S<>'') Then
-      Log(logWarning,'XML', 'Extra array elements discarded! ['+Node.GetPath+']');
-  End;
-End;
-
-Procedure XMLDescriptor.Write(Document:XMLDocument; Node:XMLNode);
-Var
-  S:TERRAString;
-  J:Integer;
-Begin
-  S:='';
-
-  If XMLType=xmlVector Then
-  Begin
-    If (ElementCount>1) Then
-    Begin
-      Log(logError, 'XML', 'Vector array not supported!');
-      Exit;
-    End;
-    Document.AddVector(Name, PVector3D(Address)^, Node);
-  End Else
-  If XMLType=xmlColor Then
-  Begin
-    If (ElementCount>1) Then
-    Begin
-      Log(logError, 'XML', 'Color array not supported!');
-      Exit;
-    End;
-    Document.AddColor(Name, PColor(Address)^, Node);
-  End Else
-  {If XMLType=xmlTime Then
-  Begin
-    If (ElementCount>1) Then
-    Begin
-      Log(logError, 'XML', 'Time array not supported!');
-      Exit;
-    End;
-    Document.AddTime(Name, PTime(Address)^, Node);
-  End Else}
-  Begin
-    For J:=1 To ElementCount Do
-    Begin
-      If J>1 Then
-        S:=S+',';
-      Case XMLType Of
-        xmlString:  Begin
-                      S:=S+PString(Address)^;
-                      Inc(PString(Address));
-                    End;
-
-        xmlBoolean: Begin
-                      S:=S+BoolToString(PBoolean(Address)^);
-                      Inc(PBoolean(Address));
-                    End;
-
-        xmlInteger: Begin
-                      S:=S+IntToString(PInteger(Address)^);
-                      Inc(PInteger(Address));
-                    End;
-
-        xmlCardinal:  Begin
-                        S := S + CardinalToString(PCardinal(Address)^);
-                        Inc(PCardinal(Address));
-                      End;
-
-        xmlByte:    Begin
-                      S:=S+IntToString(PByte(Address)^);
-                      Inc(PByte(Address));
-                    End;
-
-        xmlWord:    Begin
-                      S := S + CardinalToString(PWord(Address)^);
-                      Inc(PWord(Address));
-                    End;
-
-        xmlSingle:  Begin
-                      S := S + FloatToString(PSingle(Address)^);
-                      Inc(PSingle(Address));
-                    End;
-        Else
-          Log(logError, 'XML', 'Invalid XML type '+ IntToString(Cardinal(XMLType)));
-      End;
-    End;
-
-    If (S<>Default) Then
-      Node.AddTag(Name, S);
-  End;
-End;
-
-Procedure XMLElement.XMLLoadElements(Source:XMLNode);
-Var
-  Found:Boolean;
-  I,J:Integer;
-  Node:XMLNode;
-  Element:XMLElement;
-Begin
-  Self._Status:=xmlReading;
-  XMLClearStructure;
-  XMLRegisterStructure;
-
-  For I:=0 To Pred(Source._NodeCount) Do
-  Begin
-    Node := Source._Childs[I];
-    Found := False;
-
-    For J:=0 To Pred(_DescriptorCount) Do
-    If (StringUpper(_Descriptors[J].Name)=StringUpper(Node.Name)) Then
-    Begin
-      _Descriptors[J].Read(Node);
-      Found := True;
-      Break;
-    End;
-
-    If Not Found Then
-    Begin
-      Element := XMLNewElement(Node.Name);
-      If Not Assigned(Element) Then
-      Begin
-        Log(logError, 'XML', 'Could not create XML element! ['+Node.Name+']');
-        Exit;
-      End;
-
-      Element.XMLLoadElements(Node);
-      Found := True;
-      Break;
-    End;
-  End;
-
-  For J:=0 To Pred(_DescriptorCount) Do
-  If (Not _Descriptors[J].Found) And (_Descriptors[J].Default<>'') Then
-  Begin
-    Node := XMLNode.Create(_Descriptors[J].Name, _Descriptors[J].Default);
-    _Descriptors[J].Read(Node);
-    Node.Release;
-  End;
-
-  XMLSynchronize;
-End;
-
-Procedure XMLElement.XMLSaveElements(Document:XMLDocument; Parent:XMLNode=Nil);
-Var
-  I,J, Count:Integer;
-  Node:XMLNode;
-  Element:XMLElement;
-Begin
-  Self._Status:=xmlWriting;
-  XMLClearStructure;
-  XMLRegisterStructure;
-
-  Node := XMLNode.Create(Self.ClassName);
-
-  For I:=0 To Pred(_DescriptorCount) Do
-    _Descriptors[I].Write(Document, Node);
-
-  Count := XMLGetElementCount();
-  For J:=0 To Pred(Count) Do
-  Begin
-    Element := XMLGetElement(J);
-    If Not Assigned(Element) Then
-    Begin
-      Log(logError, 'XML', 'XML element not avaliable! ['+IntToString(J)+']');
-      Exit;
-    End;
-
-    Element.XMLSaveElements(Document, Node);
-  End;
-
-  Document.AddNode(Node, Parent);
-End;
-
-Procedure XMLElement.XMLLoad(Node:XMLNode);
-Begin
-  XMLLoadElements(Node);
-End;
-
-Procedure XMLElement.XMLLoad(Document:XMLDocument);
-Begin
-  XMLLoadElements(Document.Root);
-End;
-
-Procedure XMLElement.XMLSave(Document: XMLDocument);
-Begin
-  XMLSaveElements(Document);
-End;
-
-Procedure XMLElement.XMLLoad(Source:Stream);
-Var
-  Document:XMLDocument;
-Begin
-  Document := XMLDocument.Create;
-  Document.Load(Source);
-  XMLLoad(Document);
-  Document.Release;
-End;
-
-Procedure XMLElement.XMLSave(Dest:Stream);
-Var
-  Document: XMLDocument;
-Begin
-  Document := XMLDocument.Create;
-  XMLSave(Document);
-  Document.Save(Dest);
-  Document.Release;
-End;
-
-Procedure XMLElement.XMLLoad(Const FileName:TERRAString);
-Var
-  Source:Stream;
-Begin
-  Source := FileStream.Open(FileName);
-  XMLLoad(Source);
-  Source.Release;
-End;
-
-Procedure XMLElement.XMLSave(Const FileName:TERRAString);
-Var
-  Dest:Stream;
-Begin
-  Dest := FileStream.Create(FileName);
-  XMLSave(Dest);
-  Dest.Release;
-End;
-
 Procedure XMLDocument.SetRoot(const Value: XMLNode);
 Begin
   If Value = _Root Then
@@ -1211,6 +742,7 @@ Begin
 
   _Root := Value;
 End;
+
 
 End.
 

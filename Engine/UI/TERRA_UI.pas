@@ -782,11 +782,11 @@ End;
 
 Procedure Widget.InitProperties;
 Begin
-  _Position := Vector2DProperty.Create(VectorCreate2D(0, 0));
-  _Color := ColorProperty.Create(ColorWhite);
-  _Rotation := AngleProperty.Create(0.0);
-  _Scale := FloatProperty.Create(1.0);
-  _Saturation := FloatProperty.Create(1.0);
+  _Position := Vector2DProperty.Create('position', VectorCreate2D(0, 0));
+  _Color := ColorProperty.Create('color', ColorWhite);
+  _Rotation := AngleProperty.Create('rotation', 0.0);
+  _Scale := FloatProperty.Create('scale', 1.0);
+  _Saturation := FloatProperty.Create('saturation', 1.0);
 End;
 
 Function Widget.GetPropertyByIndex(Index:Integer):TERRAObject;

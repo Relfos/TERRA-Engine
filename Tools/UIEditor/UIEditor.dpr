@@ -2,12 +2,12 @@ program UIEditor;
 
 uses
   Forms,
-  Main in 'Main.pas' {Form1};
+  Main in 'Main.pas' {UIEditForm};
 
 {$R *.res}
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TUIEditForm, UIEditForm);
   Application.Run;
 end.

@@ -8,6 +8,8 @@ Uses TERRA_String, TERRA_Utils, TERRA_Tween, TERRA_Color, TERRA_Vector2D, TERRA_
 Type
   TERRAObject = Class
     Protected
+      _ObjectName:TERRAString;
+
       Procedure Release; Virtual;
 
     Public
@@ -24,6 +26,7 @@ Type
       Function CreateMissingProperty(Const KeyName:TERRAString):TERRAObject; Virtual;
 
       Function FindProperty(Const KeyName:TERRAString):TERRAObject;
+      Function FindPropertyWithPath(Path:TERRAString):TERRAObject;
 
       Function HasPropertyTweens:Boolean; Virtual;
 
@@ -62,7 +65,7 @@ Type
       Procedure SetCurrentValue(Const NewValue:Single);
 
     Public
-      Constructor Create(Const InitValue:Single);
+      Constructor Create(Const Name:TERRAString; Const InitValue:Single);
 
       Procedure AddTween(Ease:TweenEaseType; TargetValue:Single; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil);
 
@@ -125,10 +128,13 @@ Type
       Procedure SetColorValue(const NewValue:Color);
 
     Public
-      Constructor Create(Const InitValue:Color);
+      Constructor Create(Const Name:TERRAString; Const InitValue:Color);
       Procedure Release(); Override;
 
       Procedure AddTween(Ease:TweenEaseType; Const TargetValue:Color; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil);
+
+      Function GetBlob():TERRAString; Override;
+      Procedure SetBlob(Const Blob:TERRAString); Override;
 
       Function GetObjectType:TERRAString; Override;
 
@@ -151,7 +157,7 @@ Type
       Procedure SetVectorValue(const NewValue:Vector2D);
 
     Public
-      Constructor Create(Const InitValue:Vector2D);
+      Constructor Create(Const Name:TERRAString; Const InitValue:Vector2D);
       Procedure Release(); Override;
 
       Procedure AddTween(Ease:TweenEaseType; Const TargetValue:Vector2D; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil);
@@ -177,7 +183,7 @@ Type
       Procedure SetVectorValue(const NewValue:Vector3D);
 
     Public
-      Constructor Create(Const InitValue:Vector3D);
+      Constructor Create(Const Name:TERRAString; Const InitValue:Vector3D);
       Procedure Release(); Override;
 
       Procedure AddTween(Ease:TweenEaseType; Const TargetValue:Vector3D; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil);
@@ -239,7 +245,8 @@ End;
 
 Function TERRAObject.GetObjectName: TERRAString;
 Begin
-  Result := Self.GetObjectType();
+  Result := _ObjectName;
+  //Result := Self.GetObjectType();
 End;
 
 Function TERRAObject.GetObjectType: TERRAString;
@@ -307,6 +314,19 @@ Begin
   Until Key = Nil;
 End;
 
+Function TERRAObject.FindPropertyWithPath(Path:TERRAString):TERRAObject;
+Var
+  S:TERRAString;
+Begin
+  S := StringGetNextSplit(Path, Ord('.'));
+  Result := Self.FindProperty(S);
+
+  If (Path = '') Or (Result = Nil) Then
+    Exit;
+
+  Result := Result.FindPropertyWithPath(Path);
+End;
+
 Function TERRAObject.FindProperty(Const KeyName: TERRAString): TERRAObject;
 Var
   I:Integer;
@@ -360,8 +380,9 @@ Begin
 End;
 
 { TweenableProperty }
-Constructor TweenableProperty.Create(const InitValue: Single);
+Constructor TweenableProperty.Create(Const Name:TERRAString; const InitValue: Single);
 Begin
+  _ObjectName := Name;
   _CurrentValue := InitValue;
   _TweenCount := 0;
 End;
@@ -533,12 +554,13 @@ Begin
 End;
 
 { ColorProperty }
-Constructor ColorProperty.Create(const InitValue: Color);
+Constructor ColorProperty.Create(Const Name:TERRAString; const InitValue: Color);
 Begin
-  _Red := ByteProperty.Create(InitValue.R);
-  _Green := ByteProperty.Create(InitValue.G);
-  _Blue := ByteProperty.Create(InitValue.B);
-  _Alpha := ByteProperty.Create(InitValue.A);
+  _ObjectName := Name;
+  _Red := ByteProperty.Create('r', InitValue.R);
+  _Green := ByteProperty.Create('g', InitValue.G);
+  _Blue := ByteProperty.Create('b', InitValue.B);
+  _Alpha := ByteProperty.Create('a', InitValue.A);
 End;
 
 Procedure ColorProperty.Release;
@@ -607,12 +629,23 @@ Begin
   End;
 End;
 
-{ Vector3DProperty }
-Constructor Vector3DProperty.Create(const InitValue: Vector3D);
+Function ColorProperty.GetBlob: TERRAString;
 Begin
-  _X := FloatProperty.Create(InitValue.X);
-  _Y := FloatProperty.Create(InitValue.Y);
-  _Z := FloatProperty.Create(InitValue.Z);
+  Result := ColorToString(Self.GetColorValue());
+End;
+
+Procedure ColorProperty.SetBlob(const Blob: TERRAString);
+Begin
+  Self.SetColorValue(ColorCreateFromString(Blob));
+End;
+
+{ Vector3DProperty }
+Constructor Vector3DProperty.Create(Const Name:TERRAString; const InitValue: Vector3D);
+Begin
+  _ObjectName := Name;
+  _X := FloatProperty.Create('x', InitValue.X);
+  _Y := FloatProperty.Create('y', InitValue.Y);
+  _Z := FloatProperty.Create('z', InitValue.Z);
 End;
 
 Procedure Vector3DProperty.Release;
@@ -675,10 +708,11 @@ Begin
 End;
 
 { Vector2DProperty }
-Constructor Vector2DProperty.Create(const InitValue: Vector2D);
+Constructor Vector2DProperty.Create(Const Name:TERRAString; const InitValue: Vector2D);
 Begin
-  _X := FloatProperty.Create(InitValue.X);
-  _Y := FloatProperty.Create(InitValue.Y);
+  _ObjectName := Name;
+  _X := FloatProperty.Create('x', InitValue.X);
+  _Y := FloatProperty.Create('y', InitValue.Y);
 End;
 
 Procedure Vector2DProperty.Release;

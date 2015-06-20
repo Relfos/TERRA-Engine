@@ -1,4 +1,4 @@
-object Form1: TForm1
+object UIEditForm: TUIEditForm
   Left = 229
   Top = 146
   Width = 926
@@ -20,7 +20,7 @@ object Form1: TForm1
   OnResize = FormResize
   PixelsPerInch = 96
   TextHeight = 13
-  object IceTabSet1: TIceTabSet
+  object TabList: TIceTabSet
     Left = 0
     Top = 0
     Width = 910
@@ -46,30 +46,33 @@ object Form1: TForm1
     ModifiedTabStartColor = 10588280
     ModifiedTabStopColor = 10588280
   end
-  object Panel1: TPanel
+  object RenderPanel: TPanel
     Left = 208
     Top = 40
     Width = 577
     Height = 401
     TabOrder = 1
+    OnMouseDown = RenderPanelMouseDown
   end
-  object ValueListEditor1: TValueListEditor
+  object PropertyList: TValueListEditor
     Left = 0
     Top = 288
     Width = 209
     Height = 193
     TabOrder = 2
+    OnValidate = PropertyListValidate
     ColWidths = (
       101
       102)
   end
-  object TreeView1: TTreeView
+  object WidgetList: TTreeView
     Left = 0
     Top = 40
     Width = 209
     Height = 249
     Indent = 19
     TabOrder = 3
+    OnClick = WidgetListClick
   end
   object MainMenu1: TMainMenu
     Left = 120
@@ -111,6 +114,31 @@ object Form1: TForm1
       Caption = '&View'
       object Add1: TMenuItem
         Caption = '&Add'
+        object Button1: TMenuItem
+          Caption = '&Button'
+          OnClick = Button1Click
+        end
+        object Label1: TMenuItem
+          Caption = '&Label'
+        end
+        object Window1: TMenuItem
+          Caption = '&Window'
+        end
+        object Checkbox1: TMenuItem
+          Caption = '&Checkbox'
+        end
+        object Radiobox1: TMenuItem
+          Caption = '&Radiobox'
+        end
+        object Combobox1: TMenuItem
+          Caption = '&Combobox'
+        end
+        object Icon1: TMenuItem
+          Caption = '&Icon'
+        end
+        object Sprite1: TMenuItem
+          Caption = '&Sprite'
+        end
       end
     end
   end
