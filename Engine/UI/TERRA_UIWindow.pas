@@ -25,9 +25,9 @@ Type
       Procedure SetHeight(Const Value:UIDimension);
       Procedure SetWidth(Const Value:UIDimension);
 
-      Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
-			Function OnMouseUp(X,Y:Integer;Button:Word):Boolean; Override;
-			Function OnMouseWheel(X,Y:Integer; Delta:Integer):Boolean; Override;
+      Procedure OnMouseDown(X,Y:Integer;Button:Word); Override;
+			Procedure OnMouseUp(X,Y:Integer;Button:Word); Override;
+			Procedure OnMouseWheel(X,Y:Integer; Delta:Integer); Override;
 
       Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Width, Height:UIDimension; Const ComponentName:TERRAString);
 
@@ -57,43 +57,22 @@ Begin
   Self.UpdateRects();
 End;
 
-Function UIWindow.OnMouseDown(X,Y:Integer;Button:Word):Boolean;
-Var
-  Temp:WidgetEventHandler;
+Procedure UIWindow.OnMouseDown(X,Y:Integer;Button:Word);
 Begin
-  If (Not Visible) Or (Not Selectable) Then
+  If (Not FrameLess) Then
   Begin
-    Result := False;
-    Exit;
-  End;
-
-  Temp := Self.OnMouseClick;
-  Self.OnMouseClick := Nil;
-  Result := Inherited OnMouseDown(X,Y,Button);
-  Self.OnMouseClick := Temp;
-  If Result Then
-    Exit;
-
-  If (Not FrameLess) And (OnRegion(X,Y)) Then
-  Begin
-    Result := True;
-
     If (Assigned(OnMouseClick)) And (Not Self.HasPropertyTweens()) Then
     Begin
       Self._HitTime := Application.GetTime();
       Self._Hitting := True;
     End;
-  End Else
-    Result := False;
+  End;
 End;
 
-Function UIWindow.OnMouseUp(X,Y:Integer;Button:Word):Boolean;
+Procedure UIWindow.OnMouseUp(X,Y:Integer;Button:Word);
 Begin
-  Result := Inherited OnMouseUp(X,Y, Button);
-
   If (_Hitting) Then
   Begin
-    Result := True;
     _Hitting := False;
     Self.OnHit(Self.OnMouseClick);
   End;
@@ -166,7 +145,7 @@ Begin
   Self.UpdateRects();
 End;
 
-Function UIWindow.OnMouseWheel(X,Y:Integer; Delta: Integer): Boolean;
+Procedure UIWindow.OnMouseWheel(X,Y:Integer; Delta: Integer);
 Var
   I:Integer;
   Add:Single;

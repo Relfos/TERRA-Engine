@@ -86,8 +86,7 @@ Type
 
       Procedure Render; Override;
 
-      Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
-      Function OnMouseUp(X,Y:Integer;Button:Word):Boolean; Override;
+      Procedure OnMouseUp(X,Y:Integer;Button:Word); Override;
   End;
 
   UIVirtualKeyboard = Class(Widget)
@@ -140,8 +139,7 @@ Type
 
       Procedure Render; Override;
 
-      Function OnMouseDown(X,Y:Integer; Button:Word):Boolean; Override;
-      Function OnMouseUp(X,Y:Integer;Button:Word):Boolean; Override;
+      Procedure OnMouseUp(X,Y:Integer;Button:Word); Override;
 
       Procedure RestorePosition();
 
@@ -213,7 +211,7 @@ Begin
   Key._KeyType := KeyType;
   Key.Callback := Callback;
   Key._Suggestion := -1;
-  Key._Key := StringUpper('key_'+IntToString(Row)+'_'+IntToString(Line));
+  Key._ObjectName := StringUpper('key_'+IntToString(Row)+'_'+IntToString(Line));
   Key._Label := Name;
   Key._Row := Row;
   Key._Line := Line;
@@ -318,19 +316,16 @@ Begin
   Visible := False;
 End;
 
-Function UIVirtualKeyboard.OnMouseUp(X, Y: Integer; Button: Word): Boolean;
+Procedure UIVirtualKeyboard.OnMouseUp(X, Y: Integer; Button: Word);
 Var
   I,J:Integer;
 Begin
-  For J:=0 To Pred(MaxKeyboardLines) Do
+(*  For J:=0 To Pred(MaxKeyboardLines) Do
     For I:=0 To Pred(MaxKeyboardRows) Do
     If (_Keys[I,J]<>Nil) And (_Keys[I,J].Visible) And (_Keys[I,J].OnMouseUp(X, Y, Button)) Then
     Begin
-      Result := True;
       Exit;
-    End;
-
-  Result := False;
+    End;*)
 End;
 
 Procedure UIVirtualKeyboard.Render;
@@ -393,12 +388,6 @@ Begin
 
   If (Self._CurrentLayout<0) Then
     SelectKeyboardLayout(1);
-End;
-
-Function UIVirtualKeyboard.OnMouseDown(X, Y: Integer; Button: Word): Boolean;
-Begin
-  RemoveHint(X+Y+Button); //TODO - check this stupid hint
-  Result := False;
 End;
 
 Procedure UIVirtualKeyboard.Enable;
@@ -676,24 +665,10 @@ Begin
   End;
 End;
 
-Function UIVirtualKeyboardKey.OnMouseDown(X, Y: Integer; Button: Word): Boolean;
-Begin
-  RemoveHint(X+Y+Button); //TODO - check this stupid hint
-  Result := False;
-End;
-
-Function UIVirtualKeyboardKey.OnMouseUp(X, Y: Integer; Button: Word): Boolean;
+Procedure UIVirtualKeyboardKey.OnMouseUp(X, Y: Integer; Button: Word);
 Begin
   RemoveHint(Button); //TODO - check this stupid hint
-
-  If (Not Self.OnRegion(X,Y)) Then
-  Begin
-    Result := False;
-    Exit;
-  End;
-
   Self.OnMouseClick(Self);
-  Result := True;
 End;
 
 Function UIVirtualKeyboardKey.HasMouseOver():Boolean;

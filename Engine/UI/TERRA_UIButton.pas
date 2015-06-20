@@ -8,12 +8,9 @@ Uses TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Vector3D, TERRA
 Type
   UIButton = Class(UICaption)
     Public
-
       Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Width, Height:UIDimension; Caption:TERRAString; Const ComponentName:TERRAString; TabIndex:Integer=-1);
 
       Procedure Render; Override;
-
-      Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
   End;
 
 
@@ -65,16 +62,6 @@ Begin
   End;
 
   Inherited;
-End;
-
-Function UIButton.OnMouseDown(X, Y: Integer; Button: Word): Boolean;
-Begin
-  If (OnRegion(X,Y)) And (Self.Visible) And (Not Self.HasPropertyTweens()) Then
-  Begin
-    Result := True;
-    Self.OnHit(OnMouseClick);
-  End Else
-    Result := Inherited OnMouseDown(X,Y, Button);
 End;
 
 

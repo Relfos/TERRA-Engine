@@ -25,7 +25,7 @@ Const
   MaxPinyinSuggestions = 64;
 
 Type
-  StringEntry = Class(HashMapObject)
+  StringEntry = Class(CollectionObject)
     Protected
       _Value:TERRAString;
       _Group:Integer;
@@ -675,7 +675,7 @@ End;
 { StringEntry }
 Constructor StringEntry.Create(const Key, Value: TERRAString; Group: Integer);
 Begin
-  Self._Key := Key;
+  Self._ObjectName := Key;
   Self._Value := Value;
   Self._Group := Group;
 End;

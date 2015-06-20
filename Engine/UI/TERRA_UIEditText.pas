@@ -53,8 +53,8 @@ Type
       Function GetCurrentLine:TERRAString;
       Procedure SetCurrentLine(const Value:TERRAString);
 
-      Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
-      Function OnMouseUp(X,Y:Integer;Button:Word):Boolean; Override;
+      Procedure OnMouseDown(X,Y:Integer;Button:Word); Override;
+      Procedure OnMouseUp(X,Y:Integer;Button:Word); Override;
       Function OnKeyPress(Key:Word):Boolean; Override;
 
       Property Text:TERRAString Read GetText Write SetText;
@@ -144,7 +144,7 @@ Begin
   {$ENDIF}
 End;
 
-Function UIEditText.OnMouseUp(X, Y: Integer; Button: Word): Boolean;
+Procedure UIEditText.OnMouseUp(X, Y: Integer; Button: Word);
 Begin
   RemoveHint(X+Y+Button); //TODO - check this stupid hint
   {If (Assigned(Self._HorScroll)) And (_HorScroll.OnRegion(X,Y)) Then
@@ -158,16 +158,12 @@ Begin
     Result := _VertScroll.OnMouseUp(X, Y, Button);
     Exit;
   End;}
-
-  Result := False;
 End;
 
-Function UIEditText.OnMouseDown(X, Y: Integer; Button: Word): Boolean;
+Procedure UIEditText.OnMouseDown(X, Y: Integer; Button: Word);
 Var
   I:Integer;
 Begin
-  Result := False;
-
   If Not Visible Then
     Exit;
 
@@ -186,11 +182,7 @@ Begin
   End;}
 
   //Pos := Self.GetAbsolutePosition();
-  If (OnRegion(X,Y)) Then
-  Begin
-    SetFocus(True);
-    Result := True;
-  End;
+  SetFocus(True);
 End;
 
 Function UIEditText.UpdateTransform:Boolean;

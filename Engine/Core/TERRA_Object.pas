@@ -13,7 +13,6 @@ Type
       Procedure Release; Virtual;
 
     Public
-      Function GetObjectName:TERRAString; Virtual;
       Function GetObjectType:TERRAString; Virtual;
 
       Function GetBlob():TERRAString; Virtual;
@@ -35,6 +34,8 @@ Type
       Procedure CopyProperties(Other:TERRAObject);
 
       Destructor Destroy; Override;
+
+      Property ObjectName:TERRAString Read _ObjectName; 
   End;
 
   TweenCallback = Procedure (Target:TERRAObject) Of Object;
@@ -242,13 +243,6 @@ Begin
   Inherited;
 End;
 
-
-Function TERRAObject.GetObjectName: TERRAString;
-Begin
-  Result := _ObjectName;
-  //Result := Self.GetObjectType();
-End;
-
 Function TERRAObject.GetObjectType: TERRAString;
 Begin
   Result := '';
@@ -332,7 +326,7 @@ Var
   I:Integer;
   Key:TERRAObject;
 Begin
-  If StringEquals(Self.GetObjectName(), KeyName)  Then
+  If StringEquals(Self.ObjectName, KeyName)  Then
   Begin
     Result := Self;
     Exit;

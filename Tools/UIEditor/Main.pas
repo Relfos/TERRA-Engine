@@ -9,7 +9,7 @@ uses
   TERRA_String, TERRA_Scene, TERRA_Texture, TERRA_Font, TERRA_TTF,
   TERRA_Viewport, TERRA_FileManager, TERRA_SpriteManager, TERRA_PNG,
   TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color,
-  TERRA_UI, TERRA_XML;
+  TERRA_UI, TERRA_XML, TERRA_CustomPropertyEditor;
 
 Type
   UIEditTool = (
@@ -27,9 +27,10 @@ Type
       _Target:UI;
 
     Public
-
       Constructor Create(Const Name:TERRAString; Owner:UIEditScene);
       Procedure Release(); Override;
+
+      Function PickWidgetAt(X, Y:Integer):Widget;
   End;
 
   UIEditScene = Class(Scene)
@@ -77,7 +78,6 @@ Type
     Component1: TMenuItem;
     View2: TMenuItem;
     Add1: TMenuItem;
-    PropertyList: TValueListEditor;
     WidgetList: TTreeView;
     Button1: TMenuItem;
     Label1: TMenuItem;
@@ -87,6 +87,7 @@ Type
     Combobox1: TMenuItem;
     Icon1: TMenuItem;
     Sprite1: TMenuItem;
+    PropertyList: TCustomPropertyEditor;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -96,12 +97,9 @@ Type
     procedure RenderPanelMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure WidgetListClick(Sender: TObject);
-    procedure PropertyListValidate(Sender: TObject; ACol, ARow: Integer;
-      const KeyName, KeyValue: String);
 
   Protected
     Function FindWidgetNode(W:Widget):TTreeNode;
-    procedure AddPropertiesFromObject(Const Prev:TERRAString; Source:TERRAObject);
 
   Private
     _Scene:UIEditScene;
@@ -197,7 +195,7 @@ Begin
   If (_SelectedWidget = Nil) Then
     Exit;
 
-  UIEditForm.AddPropertiesFromObject('', _SelectedWidget);
+  UIEditForm.PropertyList.SetTarget(_SelectedWidget);
 end;
 
 { TUIEditForm }
@@ -244,8 +242,17 @@ end;
 
 procedure TUIEditForm.RenderPanelMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+Var
+  W:Widget;
 begin
   Case Scene._CurrentTool Of
+  uitool_Empty:
+    If Assigned(Scene._SelectedView) Then
+    Begin
+      W := Scene._SelectedView.PickWidgetAt(X, Y);
+      Scene.SelectWidget(W);
+    End;
+
   uitool_Button:
     Begin
       Self.Scene.AddButton(X, Y);
@@ -277,30 +284,6 @@ begin
 end;
 
 
-procedure TUIEditForm.AddPropertiesFromObject(Const Prev:TERRAString; Source:TERRAObject);
-Var
-  Index:Integer;
-  Prop:TERRAObject;
-  S:TERRAString;
-Begin
-  Index := 0;
-  Repeat
-    Prop := Source.GetPropertyByIndex(Index);
-    If Prop = Nil Then
-      Break;
-
-    If Prop.IsValueObject() Then
-    Begin
-      PropertyList.InsertRow(Prev + Prop.GetObjectName(), Prop.GetBlob(), True)
-    End Else
-    Begin
-      S := Prev + Prop.GetObjectName() + '.';
-      AddPropertiesFromObject(S, Prop);
-    End;
-
-    Inc(Index);
-  Until False;
-End;
 
 { UIEditableView }
 Constructor UIEditableView.Create(const Name: TERRAString; Owner:UIEditScene);
@@ -319,25 +302,15 @@ Begin
   _Target.LoadSkin('ui_sample_skin');
 End;
 
+Function UIEditableView.PickWidgetAt(X, Y: Integer): Widget;
+Begin
+  Result := _Target.PickWidget(X, Y);
+End;
+
 Procedure UIEditableView.Release;
 Begin
   UIManager.Instance.RemoveUI(_Target);
   ReleaseObject(_Target);
 End;
-
-
-procedure TUIEditForm.PropertyListValidate(Sender: TObject; ACol,
-  ARow: Integer; const KeyName, KeyValue: String);
-Var
-  S:TERRAString;
-  Obj:TERRAObject;
-begin
-  Obj := Self.Scene._SelectedWidget.FindPropertyWithPath(KeyName);
-
-  If Obj = Nil Then
-    Exit;
-
-  Obj.SetBlob(KeyValue);
-end;
 
 end.

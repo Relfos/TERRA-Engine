@@ -72,7 +72,7 @@ Type
   WidgetClass = Class Of Widget;
   WidgetEventHandler = Procedure(Src:Widget) Of Object;
 
-	Widget = Class(HashMapObject)
+	Widget = Class(CollectionObject)
     Private
       _UI:UI;
       _Next:Widget;
@@ -94,7 +94,6 @@ Type
 			_Parent:Widget;
 			_Visible:Boolean;
       _Layer:Single;
-      _Picked:Boolean;
 
       _Tooltip:TERRAString;
       _Align:Integer;
@@ -195,6 +194,10 @@ Type
 			Function OnKeyUp(Key:Word):Boolean;Virtual;
 			Function OnKeyPress(Key:Word):Boolean;Virtual;
 
+      Function AllowsEvents(): Boolean;
+
+      Procedure PickAt(Const X, Y:Integer; Var CurrentPick:Widget; Var Max:Single);
+
       Function HasMouseOver():Boolean; Virtual;
 
       Procedure OnHit(Handler:WidgetEventHandler); Virtual;
@@ -291,10 +294,10 @@ Type
       Function IsHighlighted():Boolean;
       Function HasHighlightedChildren():Boolean;
 
-			Function OnMouseDown(X,Y:Integer; Button:Word):Boolean;Virtual;
-			Function OnMouseUp(X,Y:Integer; Button:Word):Boolean;Virtual;
-			Function OnMouseMove(X,Y:Integer):Boolean;Virtual;
-			Function OnMouseWheel(X,Y:Integer; Delta:Integer):Boolean;Virtual;
+			Procedure OnMouseDown(X,Y:Integer; Button:Word); Virtual;
+			Procedure OnMouseUp(X,Y:Integer; Button:Word); Virtual;
+			Procedure OnMouseMove(X,Y:Integer); Virtual;
+			Procedure OnMouseWheel(X,Y:Integer; Delta:Integer);Virtual;
 
       Function GetIndex():Integer;
 
@@ -324,7 +327,7 @@ Type
       Property Pivot:Vector2D Read _Pivot Write _Pivot;
       Property Size:Vector2D Read GetSize;
 			Property Layer:Single Read GetLayer Write SetLayer;
-			Property Name:TERRAString Read _Key Write SetName;
+			Property Name:TERRAString Read _ObjectName Write SetName;
 
       Property TabIndex:Integer Read _TabIndex Write _TabIndex;
       Property TabControl:Widget Read GetTabControl Write _TabControl;
@@ -385,6 +388,7 @@ Type
       _WndCallback2:WidgetEventHandler;
       _PrevHighlight:Widget;
 
+      _LastOver:Widget;
       _LastWidget:Widget;
 
       _InverseTransform:Matrix3x3;
@@ -410,6 +414,9 @@ Type
 
       Function GetFontRenderer():FontRenderer;
 
+      Function GetModal():Widget;
+
+
     Public
       CloseButton:Widget;
 
@@ -432,8 +439,6 @@ Type
       Procedure DeleteWidget(MyWidget:Widget);
       Function GetWidget(Const Name:TERRAString):Widget;
 
-      Function AllowsEvents(W:Widget):Boolean;
-
       Function AddQuad(Const Quad:UIQuad; Const Props:UISkinProperty; Z:Single; Const Transform:Matrix3x3):QuadSprite;
 
       Procedure Clear;
@@ -443,6 +448,8 @@ Type
 
       Procedure ConvertGlobalToLocal(Var X, Y:Integer);
       Procedure ConvertLocalToGlobal(Var X, Y:Integer);
+
+      Function PickWidget(X,Y:Integer):Widget;
 
 		  Function OnKeyDown(Key:Word):Widget;
 		  Function OnKeyUp(Key:Word):Widget;
@@ -494,7 +501,7 @@ Type
       Property LastWidget:Widget Read _LastWidget;
 
       Property DefaultFont:Font Read _DefaultFont Write SetDefaultFont;
-      Property Modal:Widget Read _Modal Write _Modal;
+      Property Modal:Widget Read GetModal Write _Modal;
       Property Highlight:Widget Read GetHighlight Write SetHighlight;
 
       Property Visible:Boolean Read _Visible Write SetVisible;
@@ -719,6 +726,9 @@ Begin
 
   If (UI.LastWidget = Self) Then
     UI._LastWidget := Nil;
+
+  If (UI._LastOver = Self) Then
+    UI._LastOver := Nil; 
 End;
 
 Procedure Widget.UpdateRects();
@@ -740,7 +750,7 @@ End;
 { Widget }
 Constructor Widget.Create(Const Name:TERRAString; Parent:Widget; Const ComponentName:TERRAString);
 Begin
-  _Key := Name;
+  _ObjectName := Name;
 
   _Visible := True;
   _Enabled := True;
@@ -1501,7 +1511,7 @@ Begin
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'X1:'+IntToString(Trunc(_Corners[0].X))+' Y1:'+IntToString(Trunc(_Corners[0].Y)));{$ENDIF}
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'X2:'+IntToString(Trunc(_Corners[2].X))+' Y2:'+IntToString(Trunc(_Corners[2].Y)));{$ENDIF}
 
-  If (GraphicsManager.Instance.FrameID = Self._VisibleFrame) Or (OutsideClipRect(X,Y)) Or (Not _Enabled) Then
+  If (GraphicsManager.Instance.FrameID = Self._VisibleFrame) Or (OutsideClipRect(X,Y)) Then
   Begin
     Result := False;
     {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Cliprect clipped!');{$ENDIF}
@@ -1512,87 +1522,69 @@ Begin
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Region result for '+_Name+' was '+BoolToString(Result));{$ENDIF}
 End;
 
-Function Widget.OnMouseDown(X,Y:Integer;Button:Word):Boolean;
+Function Widget.AllowsEvents(): Boolean;
+Begin
+  If (Not Visible) Then
+  Begin
+    Result := False;
+    Exit;
+  End;
+
+  Result := True;
+
+  If (_UI.Modal = Nil) Or  (Self = _UI.Modal) Then
+    Exit;
+
+  If Assigned(Self.Parent) Then
+    Result := Self.Parent.AllowsEvents();
+End;
+
+Procedure Widget.PickAt(Const X, Y:Integer; Var CurrentPick:Widget; Var Max:Single);
 Var
   I:Integer;
 Begin
-  Result := False;
+  {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', _Name+ '.PickAt called');{$ENDIF}
 
-  {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', _Name+ '.OnMouseDown called');{$ENDIF}
-
-  If (Not Self.Visible) Or (Not Self.Enabled) Then
+  If (Self.Layer < Max) Or (Not Self.OnRegion(X,Y)) Then
     Exit;
 
-  If (Self.HasPropertyTweens()) Then
-  Begin
-    {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', _Name+ ' has tweens!');{$ENDIF}
-    Exit;
-  End;
+  CurrentPick := Self;
+  Max := Self.Layer;
 
   For I:=0 To Pred(_ChildrenCount) Do
-    _ChildrenList[I]._Tested := False;
-
-(*TODO  For I:=0 To Pred(_ChildrenCount) Do
-  If (_ChildrenList[I].Visible) And (_ChildrenList[I] Is UIComboBox) Then
+  If (_ChildrenList[I].AllowsEvents()) Then
   Begin
-    _ChildrenList[I]._Tested := True;
-    Result := _ChildrenList[I].OnMouseDown(X,Y, Button);
-    If Result Then
-      Exit;
-  End;*)
-
-  For I:=0 To Pred(_ChildrenCount) Do
-  If (_ChildrenList[I].Visible) And (_ChildrenList[I] Is UIWindow) Then
-  Begin
-    _ChildrenList[I]._Tested := True;
-    Result := _ChildrenList[I].OnMouseDown(X,Y, Button);
-    If Result Then
-      Exit;
-  End;
-
-  For I:=0 To Pred(_ChildrenCount) Do
-  If (_ChildrenList[I].Visible) And (Not _ChildrenList[I]._Tested)  Then
-  Begin
-    Result := _ChildrenList[I].OnMouseDown(X,Y, Button);
-    If Result Then
-      Exit;
-  End;
-
-  If (OnRegion(X,Y)) Then
-  Begin
-    If (Draggable) Then
-    Begin
-      If (Not _Dragging) Then
-      Begin
-        If (Assigned(OnBeginDrag)) Then
-          Self.OnBeginDrag(Self);
-
-        _UI._Dragger := Self;
-        _DragStart := _Position.Value;
-        _Dragging := True;
-        _DragX := (X-_Position.X.Value);
-        _DragY := (Y-_Position.Y.Value);
-      End;
-      
-      Result := True;
-      Exit;
-    End;
-
-    {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Found, and has handler: '+BoolToString(Assigned(OnMouseClick)));{$ENDIF}
-    If (Assigned(OnMouseClick)) And (Pos('KEY_', Self.Name)<>1) Then
-    Begin
-      Result := True;
-      OnMouseClick(Self);
-    End;
+    _ChildrenList[I].PickAt(X, Y, CurrentPick, Max);
   End;
 End;
 
-Function Widget.OnMouseUp(X,Y:Integer;Button:Word):Boolean;
+Procedure Widget.OnMouseDown(X,Y:Integer;Button:Word);
+Begin
+  If (Draggable) Then
+  Begin
+    If (Not _Dragging) Then
+    Begin
+      If (Assigned(OnBeginDrag)) Then
+        Self.OnBeginDrag(Self);
+
+      _UI._Dragger := Self;
+      _DragStart := _Position.Value;
+      _Dragging := True;
+      _DragX := (X-_Position.X.Value);
+      _DragY := (Y-_Position.Y.Value);
+    End;
+
+    Exit;
+  End;
+
+  {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Found, and has handler: '+BoolToString(Assigned(OnMouseClick)));{$ENDIF}
+  Self.OnHit(OnMouseClick);
+End;
+
+Procedure Widget.OnMouseUp(X,Y:Integer;Button:Word);
 Var
   I:Integer;
 Begin
-  Result := False;
-
   If (_Dragging) Then
   Begin
     If (_UI._Dragger = Self) And (Assigned(OnEndDrag)) Then
@@ -1600,45 +1592,22 @@ Begin
 
     _Dragging := False;
     _UI._Dragger := Nil;
-    Result := True;
     Exit;
   End;
 
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', _Name+ '.OnMouseUp called');{$ENDIF}
 
-  If (Not Self.Visible) Or (Self.HasPropertyTweens()) Then
-    Exit;
-
-  For I:=0 To Pred(_ChildrenCount) Do
-  If (_ChildrenList[I]._Visible) Then
+  If (Assigned(OnMouseRelease)) Then
   Begin
-    Result := _ChildrenList[I].OnMouseUp(X,Y, Button);
-    If Result Then
-      Exit;
-  End;
-
-  If (OnRegion(X,Y)) And (Assigned(OnMouseRelease)) Then
-  Begin
-    Result := True;
     OnMouseRelease(Self);
   End;
 End;
 
-(*Function IsEditText(W:Widget):Boolean;
-Begin
-  If W = Nil Then
-    Result := False
-  Else
-    Result := (W Is UIEditText);
-End;*)
-
-Function Widget.OnMouseMove(X,Y:Integer):Boolean;
+Procedure Widget.OnMouseMove(X,Y:Integer);
 Var
   I:Integer;
   B:Boolean;
 Begin
-  Result := False;
-
   If (_Dragging) Then
   Begin
     _Position.X.Value := X - _DragX;
@@ -1646,68 +1615,11 @@ Begin
     _TransformChanged := True;
     Exit;
   End;
-
-  If (Not Self.Visible) Or (Self.HasPropertyTweens()) Or (OnRegion(X,Y)) Then
-    Exit;
-
-  For I:=0 To Pred(_ChildrenCount) Do
-  If (_ChildrenList[I]._Visible) Then
-  Begin
-    Result := _ChildrenList[I].OnMouseMove(X,Y);
-    If Result Then
-      Exit;
-  End;
-
-  {$IFDEF PC}
-  If (Self.HasMouseOver) Then
-  Begin
-    B := OnRegion(X,Y);
-    If (B=True) And (UI.Highlight <> Self) (*And (Not IsEditText(UI.Highlight))*) Then
-    Begin
-    	Result := True;
-      UI.Highlight := Self;
-
-      If (Assigned(OnMouseOver)) Then
-        OnMouseOver(Self);
-    End Else
-    If (B=False) And (UI.Highlight = Self) And (Not UI.Highlight._SelectedWithKeyboard) Then
-    Begin
-    	Result := True;
-
-      (*{$IFDEF MOBILE}
-      If (Assigned(OnMouseClick)) And (Pos('KEY_', Self.Name)<>1) Then
-      Begin
-        OnMouseClick(Self);
-      End;
-      {$ENDIF}*)
-
-      If (Assigned(OnMouseOut)) Then
-        OnMouseOut(Self);
-    End Else
-    	Result := False;
-  End Else
-	  Result := False;
-  {$ENDIF}
 End;
 
-Function Widget.OnMouseWheel(X,Y:Integer; Delta:Integer):Boolean;
-Var
-  I:Integer;
+Procedure Widget.OnMouseWheel(X,Y:Integer; Delta:Integer);
 Begin
-  Result := False;
-
-  If (Not Self.Visible) Or (Self.HasPropertyTweens()) Or (OnRegion(X,Y)) Then
-    Exit;
-
-  For I:=0 To Pred(_ChildrenCount) Do
-  If (_ChildrenList[I]._Visible) Then
-  Begin
-    Result := _ChildrenList[I].OnMouseWheel(X, Y, Delta);
-    If Result Then
-      Exit;
-  End;
-
-	Result := False;
+  // do nothing
 End;
 
 Function Widget.Sort(Other:CollectionObject):Integer;
@@ -2059,7 +1971,7 @@ End;
 
 Procedure Widget.SetName(const Value:TERRAString);
 Begin
-  _Key := Value;
+  _ObjectName := Value;
   Self._UI._Widgets.Reindex(Self);
 End;
 
@@ -2407,31 +2319,6 @@ Begin
   Self._DefaultFont := Value;
 End;
 
-Function UI.AllowsEvents(W: Widget): Boolean;
-Begin
-  If (W = Nil) Or (Not W.Visible) Then
-  Begin
-    Result := False;
-    Exit;
-  End;
-
-  If (_Modal = Nil) Or  (W = _Modal) Then
-  Begin
-    Result := True;
-    Exit;
-  End;
-
-  If (Not _Modal.Visible) Then
-  Begin
-    _Modal := Nil;
-    Result := True;
-    Exit;
-  End;
-
-
-  Result := Self.AllowsEvents(W.Parent);
-End;
-
 Procedure UI.SetColorTable(Const Value:Texture);
 Begin
   Self._ColorTable := Value;
@@ -2746,198 +2633,57 @@ Begin
   Log(logDebug, 'UI', 'keypress done!');
 End;
 
-Function UI.OnMouseDown(X,Y:Integer;Button:Word):Widget;
+Function UI.PickWidget(X,Y:Integer):Widget;
 Var
-  I, Count:Integer;
-	MyWidget, Pick:Widget;
-  Z:Single;
+	W, CurrentPick:Widget;
+  Max:Single;
 Begin
   _LastWidget := Nil;
 
 //  ConvertGlobalToLocal(X, Y);
 
-  If (Assigned(_VirtualKeyboard)) And (_VirtualKeyboard.Visible) And (_VirtualKeyboard.OnRegion(X,Y)) Then
-  Begin
-    If _VirtualKeyboard.OnMouseDown(X,Y, Button) Then
-      Result := _VirtualKeyboard
-    Else
-      Result := Nil;
+  CurrentPick := Nil;
+  Max := -9999;
 
-    _LastWidget := Result;
-    Exit;
-  End;
-
-  Count := 0;
-	MyWidget := _First;
-	While (Assigned(MyWidget)) Do
+	W := _First;
+	While (Assigned(W)) Do
 	Begin
-    MyWidget._Picked := False;
-    If (MyWidget.Visible) Then
-      Inc(Count);
-    MyWidget := MyWidget._Next;
+    If (W.Parent = Nil) And (W.AllowsEvents()) Then
+    Begin
+      W.PickAt(X, Y, CurrentPick, Max);
+    End;
+
+    W := W._Next;
 	End;
 
-  {$IFDEF DEBUG_GUI}Log(logDebug, 'Game', IntToString(Count)+' widgets visible');{$ENDIF}
-
-  While (Count>0) Do
+  If (Self.Modal<>Nil) And (Not CurrentPick.IsSameFamily(Modal)) Then
   Begin
-    Pick := Nil;
-    Z := -9999;
-  	MyWidget := _First;
-  	While (Assigned(MyWidget)) Do
-  	Begin
-      {If (MyWidget.Visible) And (MyWidget.Position.X>UIManager.Instance.Width) Or (MyWidget.Position.Y>UIManager.Instance.Height) Then
-      Begin
-        MyWidget.Visible := False;
-      End;}
-
-      If (Not MyWidget.Visible) Then
-      Begin
-        MyWidget := MyWidget._Next;
-        Continue;
-      End;
-
-      If (Assigned(MyWidget.Parent)) Then
-      Begin
-        MyWidget := MyWidget._Next;
-        Continue;
-      End;
-
-      If (MyWidget._Picked) Then
-      Begin
-        MyWidget := MyWidget._Next;
-        Continue;
-      End;
-
-      If (MyWidget.GetLayer>Z) And (AllowsEvents(MyWidget)) Then
-      Begin
-        Z := MyWidget.GetLayer;
-        Pick := MyWidget;
-      End;
-
-      MyWidget := MyWidget._Next;
-  	End;
-
-    If (Assigned(Pick)) Then
-    Begin
-      {$IFDEF DEBUG_GUI}Log(logDebug, 'Game', 'Found a Widget for MouseDown: '+Pick.Name);{$ENDIF}
-
-      Pick._Picked := True;
-      Dec(Count);
-
-      If (Self.Modal<>Nil) And (Not Pick.IsSameFamily(Modal)) Then
-      Begin
-        Pick := Nil;
-        {$IFDEF DEBUG_GUI}Log(logDebug, 'Game', 'Cancelled because of modal...');{$ENDIF}
-      End;
-
-      If (Pick=Nil) Then
-        Break
-      Else
-       If (Pick.OnMouseDown(X,Y, Button)) Then
-      Begin
-        //Log(logDebug, 'Game', 'Found a Widget for MouseDown: '+Pick.Name);
-        Result := Pick;
-        _LastWidget := Result;
-        {$IFDEF DEBUG_GUI}Log(logDebug, 'Game', 'MouseDown event accepted!');{$ENDIF}
-  		  Exit;
-      End;
-    End Else
-      Break;
+    CurrentPick := Nil;
+    {$IFDEF DEBUG_GUI}Log(logDebug, 'Game', 'Cancelled because of modal...');{$ENDIF}
   End;
 
-  Result := Nil;
+  //Log(logDebug, 'Game', 'Found a Widget for picking: '+CurrentPick.Name);
+  Result := CurrentPick;
+  _LastWidget := Result;
+End;
+
+Function UI.OnMouseDown(X,Y:Integer;Button:Word):Widget;
+Begin
+  Result := Self.PickWidget(X,Y);
+
+  If (Assigned(Result)) And (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
+    Result.OnMouseDown(X, Y, Button);
 End;
 
 Function UI.OnMouseUp(X,Y:Integer;Button:Word):Widget;
-Var
-  I, Count:Integer;
-	MyWidget, Pick:Widget;
-  Z:Single;
 Begin
-  _LastWidget := Nil;
+  Result := Self.PickWidget(X,Y);
 
-//  ConvertGlobalToLocal(X, Y);
-
-  If (Assigned(_VirtualKeyboard)) And (_VirtualKeyboard.Visible) And (_VirtualKeyboard.OnRegion(X,Y)) Then
-  Begin
-    If _VirtualKeyboard.OnMouseUp(X,Y, Button) Then
-      Result := _VirtualKeyboard
-    Else
-      Result := Nil;
-
-    _LastWidget := Result;
-    
-    Exit;
-  End;
-
-
-  Count := 0;
-	MyWidget := _First;
-	While (Assigned(MyWidget)) Do
-	Begin
-    MyWidget._Picked := False;
-    If (MyWidget.Visible) Then
-      Inc(Count);
-    MyWidget := MyWidget._Next;
-	End;
-
-  Repeat
-    Pick := Nil;
-    Z := -9999;
-  	MyWidget := _First;
-  	While (Assigned(MyWidget)) Do
-  	Begin
-      If (Not MyWidget.Visible) Then
-      Begin
-        MyWidget := MyWidget._Next;
-        Continue;
-      End;
-
-      If (MyWidget._Picked) Then
-      Begin
-        MyWidget := MyWidget._Next;
-        Continue;
-      End;
-
-      If (MyWidget.GetLayer>Z) And (AllowsEvents(MyWidget)) Then
-      Begin
-        Z := MyWidget.GetLayer;
-        Pick := MyWidget;
-      End;
-
-      MyWidget := MyWidget._Next;
-  	End;
-
-    If (Assigned(Pick)) Then
-    Begin
-      Pick._Picked := True;
-      Dec(Count);
-
-      If (Self.Modal<>Nil) And (Not Pick.IsSameFamily(Modal)) Then
-        Pick := Nil;
-
-      If (Assigned(Pick)) And (Pick.OnMouseUp(X,Y, Button)) Then
-      Begin
-        //Log(logDebug, 'Game', 'Found a Widget for MouseDown: '+Pick.Name);
-        Result := Pick;
-        _LastWidget := Result;
-        //Log(logDebug, 'Game', 'MouseDown event processed');
-  		  Exit;
-      End;
-    End Else
-      Break;
-
-  Until (Count<=0);
-
-  Result := Nil;
+  If (Assigned(Result)) And (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
+    Result.OnMouseUp(X, Y, Button);
 End;
 
 Function UI.OnMouseMove(X,Y:Integer):Widget;
-Var
-  I, Count:Integer;
-	MyWidget, Pick:Widget;
-  Z:Single;
 Begin
   _LastWidget := Nil;
 
@@ -2945,171 +2691,46 @@ Begin
 
   If Assigned(_Dragger) Then
   Begin
-    If _Dragger.OnMouseMove(X, Y) Then
-    Begin
-      Result := _Dragger;
-      _LastWidget := Result;
-      Exit;
-    End;
+    _Dragger.OnMouseMove(X, Y);
+    Result := _Dragger;
+    _LastWidget := Result;
+    Exit;
   End;
 
-  Count := 0;
-	MyWidget := _First;
-	While (Assigned(MyWidget)) Do
-	Begin
-    MyWidget._Picked := False;
-    If (MyWidget.Visible) Then
-      Inc(Count);
-    MyWidget := MyWidget._Next;
-	End;
+  Result := Self.PickWidget(X,Y);
 
-  Repeat
-    Pick := Nil;
-    Z := -9999;
-  	MyWidget := _First;
-  	While (Assigned(MyWidget)) Do
-  	Begin
-      If (Not MyWidget.Visible) Then
-      Begin
-        MyWidget := MyWidget._Next;
-        Continue;
-      End;
+  If (Assigned(Result)) Then
+  Begin
+    If (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
+      Result.OnMouseMove(X, Y);
+  End;
 
-      If (MyWidget._Picked) Then
-      Begin
-        MyWidget := MyWidget._Next;
-        Continue;
-      End;
+  If (_LastOver <> Result) Then
+  Begin
+    If (Assigned(_LastOver)) And (Assigned(_LastOver.OnMouseOut)) Then
+      _LastOver.OnMouseOut(Result);
 
-      If (MyWidget.GetLayer>Z) Then
-      Begin
-        Z := MyWidget.GetLayer;
-        Pick := MyWidget;
-      End;
+    If (Assigned(Result)) And (Assigned(Result.OnMouseOver)) Then
+      Result.OnMouseOver(_LastOver);
 
-      MyWidget := MyWidget._Next;
-  	End;
-
-    If (Assigned(Pick)) Then
-    Begin
-      If (Not AllowsEvents(Pick)) Then
-      Begin
-        Result := Nil;
-        Exit;
-      End;
-
-      Pick._Picked := True;
-      Dec(Count);
-
-      If (Self.Modal<>Nil) And (Not Pick.IsSameFamily(Modal)) Then
-        Pick := Nil;
-
-      If (Assigned(_Virtualkeyboard)) And (_VirtualKeyboard.Visible) And (Pick<>_VirtualKeyboard) And (Pick.Parent<>_VirtualKeyboard) Then
-        Pick := Nil;
-
-      If (Pick<>Nil) And (Pick.OnMouseMove(X,Y)) Then
-      Begin
-        //Log(logDebug, 'Game', 'Found a Widget for MouseDown: '+Pick.Name);
-        Result := Pick;
-        _LastWidget := Result;
-        //Log(logDebug, 'Game', 'MouseDown event processed');
-  		  Exit;
-      End;
-    End Else
-      Break;
-
-  Until (Count<=0);
-
-  Result := Nil;
+    _LastOver := Result;
+  End;
 End;
 
 Function UI.OnMouseWheel(X,Y:Integer; Delta:Integer):Widget;
-Var
-  I, Count:Integer;
-	MyWidget, Pick:Widget;
-  Z:Single;
 Begin
-  _LastWidget := Nil;
-  Result := Nil;
-  
-  ConvertGlobalToLocal(X, Y);
-
 	If Assigned(_Focus) Then
   Begin
-		If _Focus.OnMouseWheel(X, Y, Delta) Then
-    Begin
-      Result := _Focus;
-      _LastWidget := Result;
-      Exit;
-    End;
+		_Focus.OnMouseWheel(X, Y, Delta);
+    Result := _Focus;
+    _LastWidget := Result;
+    Exit;
   End;
 
-  Count := 0;
-	MyWidget := _First;
-	While (Assigned(MyWidget)) Do
-	Begin
-    MyWidget._Picked := False;
-    If (MyWidget.Visible) Then
-      Inc(Count);
-    MyWidget := MyWidget._Next;
-	End;
+  Result := Self.PickWidget(X,Y);
 
-  Repeat
-    Pick := Nil;
-    Z := -9999;
-  	MyWidget := _First;
-  	While (Assigned(MyWidget)) Do
-  	Begin
-      If (Not MyWidget.Visible) Then
-      Begin
-        MyWidget := MyWidget._Next;
-        Continue;
-      End;
-
-      If (MyWidget._Picked) Then
-      Begin
-        MyWidget := MyWidget._Next;
-        Continue;
-      End;
-
-      If (MyWidget.GetLayer>Z) Then
-      Begin
-        Z := MyWidget.GetLayer;
-        Pick := MyWidget;
-      End;
-
-      MyWidget := MyWidget._Next;
-  	End;
-
-    If (Assigned(Pick)) Then
-    Begin
-      If (Not AllowsEvents(Pick)) Then
-      Begin
-        Result := Nil;
-        Exit;
-      End;
-
-      Pick._Picked := True;
-      Dec(Count);
-
-      If (Self.Modal<>Nil) And (Not Pick.IsSameFamily(Modal)) Then
-        Pick := Nil;
-
-      If (Assigned(_Virtualkeyboard)) And (_VirtualKeyboard.Visible) And (Pick<>_VirtualKeyboard) And (Pick.Parent<>_VirtualKeyboard) Then
-        Pick := Nil;
-
-      If (Pick<>Nil) And (Pick.OnMouseWheel(X,Y, Delta)) Then
-      Begin
-        Result := Pick;
-        _LastWidget := Result;
-  		  Exit;
-      End;
-    End Else
-      Break;
-
-  Until (Count<=0);
-
-  Result := Nil;
+  If (Assigned(Result)) And (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
+    Result.OnMouseWheel(X, Y, Delta);
 End;
 
 Procedure UI.SetHighlight(const Value: Widget);
@@ -3561,6 +3182,16 @@ Begin
   ReleaseObject(Doc);
 
   Result := True;
+End;
+
+Function UI.GetModal: Widget;
+Begin
+  If (Assigned(_Modal)) And (Not _Modal.Visible) Then
+  Begin
+    Self.Modal := Nil;
+  End;
+
+  Result := Self._Modal;
 End;
 
 { UIManager }

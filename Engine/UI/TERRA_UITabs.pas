@@ -39,8 +39,8 @@ Type
       Procedure SetTabVisibility(Index:Integer; Visibility:Boolean);
       Procedure ClearTabs();
 
-      Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
-      Function OnMouseMove(X,Y:Integer):Boolean; Override;
+      Procedure OnMouseDown(X,Y:Integer;Button:Word); Override;
+      Procedure OnMouseMove(X,Y:Integer); Override;
 
       Function OnSelectRight():Boolean; Override;
       Function OnSelectLeft():Boolean; Override;
@@ -258,7 +258,7 @@ Begin
   End;
 End;
 
-Function UITabList.OnMouseDown(X, Y:Integer; Button:Word): Boolean;
+Procedure UITabList.OnMouseDown(X, Y:Integer; Button:Word);
 Var
   N:Integer;
 Begin
@@ -270,15 +270,13 @@ Begin
     _TabHighlight := -1;
 
     Self.OnHit(Self.OnMouseClick);
-
-    Result := True;
     Exit;
   End;
 
-  Result := Inherited OnMouseDown(X,Y, Button);
+  Inherited;
 End;
 
-Function UITabList.OnMouseMove(X,Y:Integer):Boolean;
+Procedure UITabList.OnMouseMove(X,Y:Integer);
 Var
   I:Integer;
 Begin
@@ -289,7 +287,7 @@ Begin
     _TabHighlight := GetTabAt(X,Y);
   End;}
 
-  Result := Inherited OnMouseMove(X,Y);
+  Inherited;
 End;
 
 Procedure UITabList.OnLanguageChange;

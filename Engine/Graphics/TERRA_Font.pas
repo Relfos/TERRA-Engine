@@ -396,7 +396,7 @@ Begin
     Result := Font.Create(S);
     Result._TextSize := Size;
     Result.Priority := 90;
-    Result._Key := Name;
+    Result._ObjectName := Name;
     Self.AddResource(Result);
   End Else
   If ValidateError Then

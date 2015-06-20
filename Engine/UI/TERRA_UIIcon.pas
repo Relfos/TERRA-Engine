@@ -12,7 +12,7 @@ Type
     Public
       Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Const Width, Height:UIDimension; Const ComponentName:TERRAString; TabIndex:Integer=-1);
 
-      Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
+      Procedure OnMouseDown(X,Y:Integer;Button:Word); Override;
 
       Procedure Render; Override;
   End;
@@ -51,7 +51,7 @@ Begin
   Inherited;
 End;
 
-Function UIIcon.OnMouseDown(X, Y: Integer; Button: Word): Boolean;
+Procedure UIIcon.OnMouseDown(X, Y: Integer; Button: Word);
 Var
   Touched:Boolean;
 Begin
@@ -59,9 +59,9 @@ Begin
   If (Touched) And (Self.Visible) And (Assigned(OnMouseClick))  And (Not Self.HasPropertyTweens()) Then
   Begin
     Self.OnHit(Self.OnMouseClick);
-    Result := True;
-  End Else
-    Result := Inherited OnMouseDown(X,Y, Button);
+  End;
+
+  Inherited;
 End;
 
 

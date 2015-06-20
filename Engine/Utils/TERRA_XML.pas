@@ -183,7 +183,7 @@ Var
   Node:XMLNode;
   Prop:TERRAObject;
 Begin
-  Self._Name := Source.GetObjectName();
+  Self._Name := Source.ObjectName;
   Self._Value := Source.GetBlob();
 
   Index := 0;

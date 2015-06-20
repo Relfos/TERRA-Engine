@@ -448,7 +448,7 @@ Begin
   _TargetFormat := colorRGBA;
   _ByteFormat := pixelSizeByte;
   _Ratio := VectorCreate2D(1, 1);
-  _Key := Name;
+  _ObjectName := Name;
 
   _SettingsChanged := True;
   _WrapMode := wrapAll;
@@ -465,7 +465,7 @@ End;
 
 Procedure Texture.CreateFromSurface(Surface: SurfaceInterface);
 Begin
-  _Key := '';
+  _ObjectName := '';
 
   If (Surface = Nil) Then
   Begin
@@ -495,7 +495,7 @@ End;
 
 Procedure Texture.CreateFromSize(Const Name:TERRAString; TextureWidth, TextureHeight:Cardinal);
 Begin
-  _Key := Name;
+  _ObjectName := Name;
   _Location := '';
 
   _Width := TextureWidth;

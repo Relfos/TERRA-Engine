@@ -54,25 +54,24 @@ object UIEditForm: TUIEditForm
     TabOrder = 1
     OnMouseDown = RenderPanelMouseDown
   end
-  object PropertyList: TValueListEditor
-    Left = 0
-    Top = 288
-    Width = 209
-    Height = 193
-    TabOrder = 2
-    OnValidate = PropertyListValidate
-    ColWidths = (
-      101
-      102)
-  end
   object WidgetList: TTreeView
     Left = 0
     Top = 40
     Width = 209
     Height = 249
     Indent = 19
-    TabOrder = 3
+    TabOrder = 2
     OnClick = WidgetListClick
+  end
+  object PropertyList: TCustomPropertyEditor
+    Left = 0
+    Top = 288
+    Width = 209
+    Height = 169
+    TabOrder = 3
+    ColWidths = (
+      112
+      91)
   end
   object MainMenu1: TMainMenu
     Left = 120

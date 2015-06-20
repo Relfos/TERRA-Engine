@@ -36,7 +36,7 @@ Const
 Type
   ResourceClass = Class Of Resource;
 
-  Resource = Class(HashMapObject)
+  Resource = Class(CollectionObject)
     Protected
       _Time:Cardinal;
       _Location:TERRAString;
@@ -69,7 +69,7 @@ Type
 
       Function ShouldUnload():Boolean;
 
-      Property Name:TERRAString Read _Key;
+      Property Name:TERRAString Read _ObjectName;
       Property Location:TERRAString Read _Location;
       Property Time:Cardinal Read _Time Write _Time;
       Property Status:Integer Read _Status Write _Status;
@@ -92,11 +92,11 @@ Var
 Begin
   If Pos('@', Location) = 1 Then
   Begin
-    Self._Key := Location;
+    Self._ObjectName := Location;
     Self._Location := '';
   End Else
   Begin
-    Self._Key := GetFileName(Location,True);
+    Self._ObjectName := GetFileName(Location,True);
     Self._Location := Location;
   End;
 
@@ -135,7 +135,7 @@ Begin
     If (Application.Instance<>Nil) And (_ContextID <> Application.Instance.ContextID) Then
     Begin
       Result := False;
-      Log(logWarning, 'Resource', 'Invalid context in '+Self._Key);
+      Log(logWarning, 'Resource', 'Invalid context in '+Self.ObjectName);
       Self.OnContextLost();
     End Else
     Begin
