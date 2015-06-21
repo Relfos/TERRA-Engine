@@ -53,6 +53,12 @@ Const
   osHTML5       = 1024;
   osFlash       = 2048;
 
+  cpuUnknown = 0;
+  cpuX86_32   = 1;
+  cpuX86_64   = 2;
+  cpuArm_32   = 4;
+  cpuArm_64   = 8;
+
   osDesktop = osWindows Or osLinux or osOSX;
   osMobile = osAndroid Or osiOS Or osWindowsPhone;
   osConsole = osOUYA Or osWii Or osPSVita Or osNintendoDS;
@@ -359,6 +365,7 @@ Type
       Function HasInternet:Boolean; Virtual;
 
       Function HasFatalError:Boolean;
+      Function GetCrashLog():TERRAString; Virtual;
 
       Function PostCallback(Callback:ApplicationCallback; Arg:TERRAObject = Nil; Const Delay:Cardinal = 0):Boolean;
       Procedure CancelCallback(Arg:Pointer);
@@ -541,6 +548,7 @@ Function InitializeApplicationComponent(TargetClass, DestroyBefore:ApplicationCo
 Function Blink(Period:Cardinal):Boolean;
 
 Function GetOSName(OS:Integer=0):TERRAString;
+Function GetCPUName(CPUType:Integer=0):TERRAString;
 Function GetProgramName():TERRAString;
 
 Function IsLandscapeOrientation(Orientation:Integer):Boolean;
@@ -1008,8 +1016,8 @@ Begin
       Log(logError, 'Application', 'Exception: '+E.ClassName +' '+E.Message);
 
       DumpExceptionCallStack(E);
-      Self.OnFatalError(E.Message);
-      Break;
+      Self.OnFatalError('Crash report'+ CrLf+E.Message + CrLf + Self.GetCrashLog()+ CrLf + _CurrentCallstack);
+      Exit;
     End;
   End;
 End;
@@ -1020,6 +1028,30 @@ End;
   Result := False;
 End;
 
+Function GetCPUName(CPUType:Integer=0):TERRAString;
+Begin
+  If (CPUType = 0) Then
+  Begin
+    {$IFDEF PC}
+    CPUType := cpuX86_32;
+    {$ENDIF}
+
+    {$IFDEF MOBILE}
+    CPUType := cpuArm_32;
+    {$ENDIF}
+  End;
+
+  Case CPUType Of
+  cpuX86_32: Result := 'x86_32';
+  cpuX86_64: Result := 'x86_64';
+
+  cpuArm_32: Result := 'ARM_32';
+  cpuArm_64: Result := 'ARM_64';
+
+  Else
+    Result := 'Unknown';
+  End;
+End;
 
 Function GetOSName(OS:Integer=0):TERRAString;
 Begin
@@ -1101,6 +1133,19 @@ procedure BaseApplication.OpenAppStore(AppID: TERRAString); Begin End;
 Procedure BaseApplication.LogToConsole(const Text: TERRAString);
 Begin
   // do nothing
+End;
+
+Function BaseApplication.GetCrashLog: TERRAString;
+Begin
+  Result :=
+    'OS: '+GetOSName() + CrLf +
+    'CPU: '+GetCPUName() + CrLf +
+    'Cores: '+IntToString(Self.CPUCores) + CrLf +
+    'Width: '+IntToString(Self.Width) + CrLf +
+    'Height: '+IntToString(Self.Height) + CrLf +
+    'Lang: '+ Self.Language + CrLf +
+    'Country: '+ Self.Country + CrLf +
+    'Bundle: '+ Self.BundleVersion + CrLf;
 End;
 
 { ApplicationObject }

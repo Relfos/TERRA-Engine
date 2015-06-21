@@ -30,6 +30,7 @@ Uses TERRA_String;
 
 Var
   _FatalError:TERRAString = '';
+  _CurrentCallstack:TERRAString = '';
 
 Procedure RaiseError(Const Desc:TERRAString);
 
@@ -105,10 +106,8 @@ Begin
   ForceLogFlush := True;
 
   Log(logError, 'Application', Desc);
-  Log(logDebug, 'Callstack', DumpCallstack());
-  {$IFDEF CALLSTACKINFO}
-  Log(logDebug,'System','Callstack'+crLf+CallStack);
-  {$ENDIF}
+
+  _CurrentCallstack := DumpCallstack();
 
   Raise TERRAException.Create(Desc);
 End;

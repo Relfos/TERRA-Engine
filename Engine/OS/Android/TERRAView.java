@@ -14,6 +14,8 @@ import android.view.WindowManager;
 import android.os.SystemClock;
 import android.os.Process;
 
+import java.lang.Runnable;
+
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -492,7 +494,8 @@ class TERRAView extends GLSurfaceView {
                 }  catch (Exception e){
                     Log.d("App", "Engine was halted with errors!");                    
                     terminated = true;
-                    TERRAActivity.instance.showException(e.getMessage());
+                    
+                    TERRAActivity.instance.showException(e.getMessage());                    
                     return;
                 } 
 				

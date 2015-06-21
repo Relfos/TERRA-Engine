@@ -135,6 +135,7 @@ android.content.DialogInterface.OnClickListener
 	public PurchaseProcessor billmaster;
 	
 	private int currentDialog = 0;
+    private String exceptionMessage = null;
 	
 	private boolean hasAccel = false;
 	private boolean hasGyro = false;
@@ -263,8 +264,22 @@ android.content.DialogInterface.OnClickListener
 		switch (currentDialog)
 		{
             case DIALOG_EXCEPTION:
-				finish();
-				break;
+				switch (which) 	{
+					case DialogInterface.BUTTON_POSITIVE:
+					{
+                        dismissDialog(DIALOG_EXCEPTION);
+                        if (!collector.sendLog(developerEmail, "Crash Log", this.exceptionMessage, 127)) {
+                            finish();
+                        }
+						break;
+					}
+					
+					case DialogInterface.BUTTON_NEGATIVE:
+					{
+						finish();
+						break;
+					}				
+				}
             
 			case DIALOG_UNSUPPORTED_DEVICE:
 				finish();
@@ -336,10 +351,9 @@ android.content.DialogInterface.OnClickListener
 	protected void sendLogs()
 	{
 		dismissDialog(DIALOG_REPORT_FORCE_CLOSE);
-		collector.sendLog(developerEmail, "Error Log", "Log info");		
+		collector.sendLog(developerEmail, "Error Log", "Log info", 126);		
 	}	
 	
-
 	protected void initApp()
 	{
         assetManager = this.getResources().getAssets();
@@ -978,7 +992,9 @@ android.content.DialogInterface.OnClickListener
 					break;
 		case 126:	initApp();			
 					break;
-
+		case 127:	finish();			
+					break;
+                    
 		default:
 			super.onActivityResult(requestCode, resultCode, data);
 		}
@@ -1471,7 +1487,14 @@ android.content.DialogInterface.OnClickListener
 
     
     public void showException(String msg) {
-    }
+        this.exceptionMessage = msg;
+        this.runOnUiThread(new Runnable() {
+            public void run() {
+                Log.d("UI thread", "I am the UI thread");
+                showDialog(DIALOG_EXCEPTION);                                
+            }
+        });                    
+    }    
     
     public static boolean unlockAchievement(String achieveID)
     {

@@ -188,6 +188,9 @@ Var
 Begin
   Result := 0;
 
+  If Length<=0 Then
+    Exit;
+
   If (_Pos+Length>_Size) Then
   Begin
     If (_Mode And smDynamic=0) Then

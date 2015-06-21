@@ -4,9 +4,9 @@ Unit TERRA_OS;
 
 
 Interface
-Uses cmem, TERRA_String, TERRA_Error, TERRA_Utils, TERRA_Application, 
+Uses cmem, TERRA_String, TERRA_Error, TERRA_Utils, TERRA_Application,
     TERRA_Vector3D, TERRA_Java, TERRA_Collections, TERRA_CollectionObjects,
-    sysutils,dateutils,unix, jni;
+    sysutils,dateutils,unix, jni, BaseUnix;
 
 Const
 	PathSeparator = '/';
@@ -699,16 +699,29 @@ Begin
   Java_End(Frame);
 End;
 
+Procedure DoSig(sig:Integer); cdecl;
+Begin
+   RaiseError('Segmentation fault');
+End;
+
 Function AndroidApplication.InitSettings: Boolean;
 Var
   Params:JavaArguments;
   S:JavaObject;
   Frame:JavaFrame;
+  oa,na : PSigActionRec;
 Begin
   Inherited InitSettings;
 
   _ApplicationInstance := Self;
 
+  new(na);
+  new(oa);
+  na^.sa_Handler := SigActionHandler(@DoSig);
+  FillChar(na^.Sa_Mask, SizeOf(na^.sa_mask), #0);
+  na^.Sa_Flags:=0;
+  na^.Sa_Restorer := Nil;
+  fpSigAction(SIGSEGV, na, oa);
 
   Log(logDebug, 'App', 'Starting Android App!');
   Java_Begin(Frame);
@@ -785,12 +798,10 @@ Procedure AndroidApplication.OnFatalError(Const ErrorMsg:TERRAString);
 Var
   Frame:JavaFrame;
 Begin
-
   Java_Begin(Frame);
   Java_Exception(Frame, ErrorMsg);
   Java_End(Frame);
-
-  _Running := False;
+//  _Running := False;
 End;
 
 End.

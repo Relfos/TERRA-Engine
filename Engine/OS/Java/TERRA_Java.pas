@@ -5,7 +5,7 @@ Interface
 Uses TERRA_String, TERRA_Utils, JNI;
 
 Const
-  ExceptionJavaClass = 'java/lang/Error';
+  ExceptionJavaClass = 'java/lang/Exception';
 
 Type
   JavaClass = Class;
