@@ -142,7 +142,7 @@ Type
 
       Procedure SendAnalytics(EventName:TERRAString; Values:TERRAString=''); Override;
 
-      Procedure OnFatalError(Const ErrorMsg:TERRAString); Override;
+      Procedure OnFatalError(Const ErrorMsg, CrashLog, Callstack:TERRAString); Override;
 
       Class Procedure DisplayMessage(S:TERRAString);
       Class Function GetCurrentTime:TERRATime;
@@ -163,7 +163,7 @@ Procedure ApplicationThreadExecute(P:Integer);
 
 Implementation
 Uses TERRA_Log, TERRA_IAP, TERRA_FileSearch, TERRA_Facebook, TERRA_SoundSource, TERRA_MusicManager,
-  TERRA_Threads, TERRA_FileStream, TERRA_Renderer, TERRA_GLES2Renderer;
+  TERRA_Threads, TERRA_Callstack, TERRA_FileStream, TERRA_Renderer, TERRA_GLES2Renderer;
 
 Var
 	_ApplicationInstance:AndroidApplication = Nil;
@@ -794,12 +794,12 @@ Begin
   Java_End(Frame);
 End;*)
 
-Procedure AndroidApplication.OnFatalError(Const ErrorMsg:TERRAString);
+Procedure AndroidApplication.OnFatalError(Const ErrorMsg, CrashLog, Callstack: TERRAString);
 Var
   Frame:JavaFrame;
 Begin
   Java_Begin(Frame);
-  Java_Exception(Frame, ErrorMsg);
+  Java_Exception(Frame, ErrorMsg + CrLf + CrashLog + CrLf + Callstack);
   Java_End(Frame);
 //  _Running := False;
 End;

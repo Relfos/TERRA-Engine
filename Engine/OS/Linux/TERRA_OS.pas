@@ -96,7 +96,6 @@ Type
 
     	Procedure SetState(State:Cardinal); Override;
 
-      Class Procedure DisplayMessage(S:TERRAString);
       Class Function GetCurrentTime:TERRATime;
       Class Function GetCurrentDate:TERRADate;
       Class Function GetTime:Cardinal;
@@ -126,11 +125,6 @@ End;
 Class Function LinuxApplication.Instance:LinuxApplication;
 Begin
   Result := _Application_Instance;
-End;
-
-Class Procedure LinuxApplication.DisplayMessage(S:TERRAString);
-Begin
-//  TERRA_Log.Log(logNone,'System',S);
 End;
 
 Class Function LinuxApplication.GetCurrentTime:TERRATime;

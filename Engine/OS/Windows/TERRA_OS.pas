@@ -11,7 +11,7 @@ Unit TERRA_OS;
 
 Interface
 Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_InputManager, TERRA_Multimedia,
-  Windows, Messages;
+  Windows, Messages, MAPI;
 
 Const
 	PathSeparator = '\';
@@ -184,7 +184,7 @@ Type
 
       Function GetDeviceID():TERRAString; Override;
 
-      Procedure OnFatalError(Const ErrorMsg:TERRAString); Override;
+      Procedure OnFatalError(Const ErrorMsg, CrashLog, Callstack:TERRAString); Override;
 
       Class Function GetCurrentTime:TERRATime;
       Class Function GetCurrentDate:TERRADate;
@@ -1285,10 +1285,14 @@ Begin
   End;
 End;
 
-Procedure WindowsApplication.OnFatalError(Const ErrorMsg: TERRAString);
+Procedure WindowsApplication.OnFatalError(Const ErrorMsg, CrashLog, Callstack: TERRAString);
+Var
+  S:TERRAString;
 Begin
   _Running := False;
-  Windows.MessageBoxA(0, PAnsiChar(ErrorMsg), PAnsiChar(GetProgramName()), MB_OK Or MB_ICONERROR);
+
+  S := 'A fatal error has occurred.' + CrLf + ErrorMsg + CrLf+CrashLog + CrLf+ Callstack;
+  Windows.MessageBoxA(0, PAnsiChar(S), PAnsiChar(GetProgramName()), MB_OK Or MB_ICONERROR);
 End;
 
 Initialization

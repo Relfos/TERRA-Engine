@@ -111,10 +111,11 @@ Type
 
       Function SetFullscreenMode(UseFullScreen:Boolean):Boolean; Override;
 
-      Class Procedure DisplayMessage(S:TERRAString);
       Class Function GetCurrentTime:TERRATime;
       Class Function GetCurrentDate:TERRADate;
       Class Function GetTime:Cardinal;
+
+      Procedure OnFatalError(Const ErrorMsg, CrashLog, Callstack:TERRAString); Override;
 
       Class Function Instance:CarbonApplication;
 
@@ -192,21 +193,6 @@ End;
 Class Function CarbonApplication.Instance:CarbonApplication;
 Begin
   Result := _Application_Instance;
-End;
-
-Class Procedure CarbonApplication.DisplayMessage(S:TERRAString);
-Var
-  alert:DialogRef;
-  outHit:DialogItemIndex;
-  ms, title:CFStringRef;
-Begin
-  title := CFSTR('TERRA');
-  S := S + #0;
-  ms := CFStringCreateWithCString(Nil, @(S[1]), 0);
-  CreateStandardAlert(kAlertDefaultOKText, title, ms, Nil, alert);
-  RunStandardAlert(alert, Nil, outHit);
-  ms := Nil;
-  title := Nil;
 End;
 
 Class Function CarbonApplication.GetCurrentTime:TERRATime;
@@ -1136,6 +1122,26 @@ begin
   MaxSize.height := _ScreenRect.Bottom - _ScreenRect.Top;
   SetWindowResizeLimits(_Window, @MinSize, @MaxSize);
 end;
+
+Procedure CarbonApplication.OnFatalError(const ErrorMsg, CrashLog, Callstack: TERRAString);
+Var
+  S:TERRAString;
+  alert:DialogRef;
+  outHit:DialogItemIndex;
+  ms, title:CFStringRef;
+Begin
+  title := CFSTR(GetProgramName());
+  S := 'A fatal error has occurred.' + CrLf + ErrorMsg + CrLf+CrashLog + CrLf+ Callstack + #0;
+
+  ms := CFStringCreateWithCString(Nil, @(S[1]), 0);
+
+  CreateStandardAlert(kAlertDefaultOKText, title, ms, Nil, alert);
+  RunStandardAlert(alert, Nil, outHit);
+  ms := Nil;
+  title := Nil;
+
+  _Running := False;
+End;
 
 Initialization
 //	BaseTime := Now;

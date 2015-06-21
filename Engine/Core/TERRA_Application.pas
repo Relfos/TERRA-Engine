@@ -458,7 +458,7 @@ Type
 
       Procedure OnAPIResult(API, Code:Integer); Virtual;
 
-      Procedure OnFatalError(Const ErrorMsg:TERRAString); Virtual;
+      Procedure OnFatalError(Const ErrorMsg, CrashLog, Callstack:TERRAString); Virtual;
 
       Procedure OnContextLost(); Virtual;
 
@@ -557,8 +557,8 @@ Function IsInvalidOrientation(Orientation:Integer):Boolean;
 
 Implementation
 Uses SysUtils, TERRA_Error, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-TERRA_GraphicsManager,
-  {TERRA_Callstack, }TERRA_Log, TERRA_OS, TERRA_IAP, TERRA_Localization, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager 
+  TERRA_GraphicsManager, TERRA_Callstack,
+  TERRA_Log, TERRA_OS, TERRA_IAP, TERRA_Localization, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager
   {$IFDEF PC}, TERRA_Steam{$ENDIF};
 
 Var
@@ -635,30 +635,6 @@ Begin
 
 {  For I:=0 To Pred(_ApplicationComponentCount) Do
   Log(logDebug,'App', IntToString(I)+ ' '+_ApplicationComponents[I].Component.ClassName);}
-End;
-
-Procedure DumpExceptionCallStack(E: Exception);
-var
-  I: Integer;
-  Frames: PPointer;
-  Report:TERRAString;
-begin
-  Report := 'Fatal Exception! ' + CrLf;
-  If E <> nil Then
-  Begin
-    Report := Report + 'Exception class: ' + E.ClassName + CrLf;
-    Report := Report + 'Message: ' + E.Message + CrLf;
-  end;
-
-  {$IFDEF FPC}
-  Report := Report + BackTraceStrFunc(ExceptAddr);
-  Frames := ExceptFrames;
-  For I := 0 to Pred(ExceptFrameCount) Do
-    Report := Report + LineEnding + BackTraceStrFunc(Frames[I]);
-  {$ENDIF}
-
-  Log(logError, 'App', Report);
-  //Halt; // End of program execution
 End;
 
 {$IFDEF HASTHREADS}
@@ -1014,9 +990,7 @@ Begin
     Begin
       //FillCallStack(St, 0);
       Log(logError, 'Application', 'Exception: '+E.ClassName +' '+E.Message);
-
-      DumpExceptionCallStack(E);
-      Self.OnFatalError('Crash report'+ CrLf+E.Message + CrLf + Self.GetCrashLog()+ CrLf + _CurrentCallstack);
+      Self.OnFatalError(CrLf+E.Message, Self.GetCrashLog(), DumpExceptionCallStack(E));
       Exit;
     End;
   End;
@@ -2212,7 +2186,7 @@ Begin
 End;
 
 
-Procedure BaseApplication.OnFatalError(const ErrorMsg: TERRAString);
+Procedure BaseApplication.OnFatalError(Const ErrorMsg, CrashLog, Callstack:TERRAString); 
 Begin
   _Running := False;
 End;

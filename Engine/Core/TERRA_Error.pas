@@ -26,65 +26,16 @@ Unit TERRA_Error;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String;
+Uses SysUtils, TERRA_String;
 
 Var
   _FatalError:TERRAString = '';
-  _CurrentCallstack:TERRAString = '';
 
 Procedure RaiseError(Const Desc:TERRAString);
 
 Implementation
-Uses SysUtils, TERRA_Log;
+Uses TERRA_Log;
 
-
-Function DumpCallstack:TERRAString;
-{$IFDEF FPC}
-Var
-  I: Longint;
-  prevbp: Pointer;
-  CallerFrame,
-  CallerAddress,
-  bp: Pointer;
-Const
-  MaxDepth = 20;
-Begin
-  Result := '';
-  bp := get_frame;
-  // This trick skip SendCallstack item
-  // bp:= get_caller_frame(get_frame);
-  try
-    prevbp := bp - 1;
-    I := 0;
-    while bp > prevbp do begin
-       CallerAddress := get_caller_addr(bp);
-       CallerFrame := get_caller_frame(bp);
-       if (CallerAddress = nil) then
-         Break;
-       Result := Result + BackTraceStrFunc(CallerAddress) + LineEnding;
-       Inc(I);
-       if (I >= MaxDepth) or (CallerFrame = nil) then
-         Break;
-       prevbp := bp;
-       bp := CallerFrame;
-     end;
-   except
-     { prevent endless dump if an exception occured }
-   end;
-
-End;
-{$ELSE}
-
-{$IFDEF CALLSTACKINFO}
-Begin
-  Result := GetCallStack(1);
-End;
-{$ELSE}
-Begin
-  Result := 'No call stack info present.';
-End;
-{$ENDIF}
-{$ENDIF}
 
 Type
   TERRAException = Class(Exception)
@@ -106,8 +57,6 @@ Begin
   ForceLogFlush := True;
 
   Log(logError, 'Application', Desc);
-
-  _CurrentCallstack := DumpCallstack();
 
   Raise TERRAException.Create(Desc);
 End;
