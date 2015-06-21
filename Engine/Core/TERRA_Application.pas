@@ -556,7 +556,9 @@ Function IsPortraitOrientation(Orientation:Integer):Boolean;
 Function IsInvalidOrientation(Orientation:Integer):Boolean;
 
 Implementation
+
 Uses SysUtils, TERRA_Error, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
+  {$IFNDEF WINDOWS}BaseUnix, {$ENDIF}
   TERRA_GraphicsManager, TERRA_Callstack,
   TERRA_Log, TERRA_OS, TERRA_IAP, TERRA_Localization, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager
   {$IFDEF PC}, TERRA_Steam{$ENDIF};
@@ -1959,7 +1961,18 @@ Begin
   _CallbackMutex.Unlock();
 End;
 
+{$IFNDEF WINDOWS}
+Procedure DoSig(sig:Integer); cdecl;
+Begin
+   RaiseError('Segmentation fault');
+End;
+{$ENDIF}
+
 Function BaseApplication.InitSettings: Boolean;
+{$IFNDEF WINDOWS}
+Var
+  oa,na : PSigActionRec;
+{$ENDIF}
 Begin
   Log(logDebug, 'App', 'Initializing app path');
   {$IFDEF OXYGENE}
@@ -1971,6 +1984,16 @@ Begin
   _ContextCounter := 1;
   _CPUCores := 1;
 
+{$IFNDEF WINDOWS}
+  Log(logDebug, 'App', 'Installing signals');
+  new(na);
+  new(oa);
+  FillChar(Na^, SizeOf(Na), 0);
+  na^.sa_Handler := SigActionHandler(@DoSig);
+  FillChar(na^.Sa_Mask, SizeOf(na^.sa_mask), #0);
+  na^.Sa_Flags:=0;
+  fpSigAction(SIGSEGV, na, oa);
+{$ENDIF}
 
   _DebuggerPresent := Self.IsDebuggerPresent();
 

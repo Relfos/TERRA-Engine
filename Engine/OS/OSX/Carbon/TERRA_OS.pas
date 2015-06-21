@@ -129,7 +129,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_InputManager, TERRA_FileUtils, TERRA_Renderer, TERRA_GLRenderer,
-     machapi, machexc, dateutils, sysutils, ctypes, sysctl, TERRA_MIDI_IO, TERRA_MIDI;
+     BaseUnix, machapi, machexc, dateutils, sysutils, ctypes, sysctl, TERRA_MIDI_IO, TERRA_MIDI;
 
 Var
    kUTTypeUTF16PlainText:CFStringRef;
@@ -1130,10 +1130,11 @@ Var
   outHit:DialogItemIndex;
   ms, title:CFStringRef;
 Begin
-  title := CFSTR(GetProgramName());
   S := 'A fatal error has occurred.' + CrLf + ErrorMsg + CrLf+CrashLog + CrLf+ Callstack + #0;
 
   ms := CFStringCreateWithCString(Nil, @(S[1]), 0);
+
+  title := CFSTR(PAnsiChar(GetProgramName()));
 
   CreateStandardAlert(kAlertDefaultOKText, title, ms, Nil, alert);
   RunStandardAlert(alert, Nil, outHit);
