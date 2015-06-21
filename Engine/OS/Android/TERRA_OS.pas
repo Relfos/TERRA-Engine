@@ -142,7 +142,7 @@ Type
 
       Procedure SendAnalytics(EventName:TERRAString; Values:TERRAString=''); Override;
 
-      Procedure SpawnThread(Args:Pointer);
+      Procedure OnFatalError(Const ErrorMsg:TERRAString); Override;
 
       Class Procedure DisplayMessage(S:TERRAString);
       Class Function GetCurrentTime:TERRATime;
@@ -170,6 +170,7 @@ Var
 
 Procedure Cache_Java_Classes(Env:PJNIEnv);
 Begin
+  Java_CacheClass(Env, ExceptionJavaClass);
   Java_CacheClass(Env, ActivityClassPath);
   Java_CacheClass(Env, UtilsClassPath);
   Java_CacheClass(Env, JavaMusicPlayerClassName);
@@ -766,7 +767,7 @@ Begin
 	Result := True;
 End;
 
-Procedure AndroidApplication.SpawnThread(Args: Pointer);
+(*Procedure AndroidApplication.SpawnThread(Args: Pointer);
 Var
   Params:JavaArguments;
   Frame:JavaFrame;
@@ -778,6 +779,18 @@ Begin
   _Utils.CallStaticVoidMethod(Frame, 'spawnThread', Params);
   Params.Release();
   Java_End(Frame);
+End;*)
+
+Procedure AndroidApplication.OnFatalError(Const ErrorMsg:TERRAString);
+Var
+  Frame:JavaFrame;
+Begin
+
+  Java_Begin(Frame);
+  Java_Exception(Frame, ErrorMsg);
+  Java_End(Frame);
+
+  _Running := False;
 End;
 
 End.

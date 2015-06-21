@@ -4,6 +4,9 @@ Unit TERRA_Java;
 Interface
 Uses TERRA_String, TERRA_Utils, JNI;
 
+Const
+  ExceptionJavaClass = 'java/lang/Error';
+
 Type
   JavaClass = Class;
 
@@ -83,6 +86,8 @@ Function JavaToString(S:JObject):AnsiString;
 
 Procedure Java_ClearClassLoader();
 //Procedure Java_LoadClassLoader(Env:PJNIEnv; Loader:JavaObject);
+
+Procedure Java_Exception(Env:PJNIEnv; Const Msg:TERRAString);
 
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Log, Math;
@@ -834,4 +839,13 @@ Begin
   Java_End(Frame);
 End;
 
+Procedure Java_Exception(Env:PJNIEnv; Const Msg:TERRAString);
+Var
+  ErrorClass:JClass;
+Begin
+  ErrorClass := Java_FindClass(ExceptionJavaClass);
+  If Assigned(ErrorClass) Then
+    Env^^.ThrowNew(Env, ErrorClass, PAnsiChar(Msg));
+End;
+
 End.

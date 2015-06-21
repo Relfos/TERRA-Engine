@@ -184,7 +184,8 @@ Type
 
       Function GetDeviceID():TERRAString; Override;
 
-      Class Procedure DisplayMessage(Const S:TERRAString);
+      Procedure OnFatalError(Const ErrorMsg:TERRAString); Override;
+
       Class Function GetCurrentTime:TERRATime;
       Class Function GetCurrentDate:TERRADate;
       Class Function GetTime:Cardinal;
@@ -238,11 +239,6 @@ End;
 Class Function WindowsApplication.Instance:WindowsApplication;
 Begin
   Result := _Application_Instance;
-End;
-
-Class Procedure WindowsApplication.DisplayMessage(Const S:TERRAString);
-Begin
-  Windows.MessageBoxA(0, PAnsiChar(S), PAnsiChar(GetProgramName), MB_OK Or MB_ICONERROR);
 End;
 
 Class Function WindowsApplication.GetTime:Cardinal;  {$IFDEF FPC}Inline;{$ENDIF}
@@ -1288,6 +1284,13 @@ Begin
     SendMessage(GetWindow(_Handle, GW_OWNER), WM_SETICON, ICON_BIG, _Icon);}
   End;
 End;
+
+Procedure WindowsApplication.OnFatalError(Const ErrorMsg: TERRAString);
+Begin
+  _Running := False;
+  Windows.MessageBoxA(0, PAnsiChar(ErrorMsg), PAnsiChar(GetProgramName()), MB_OK Or MB_ICONERROR);
+End;
+
 Initialization
   LoadMultimedia();
 End.

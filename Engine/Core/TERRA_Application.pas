@@ -451,7 +451,7 @@ Type
 
       Procedure OnAPIResult(API, Code:Integer); Virtual;
 
-      Function OnFatalError(Const ErrorMsg:TERRAString):Boolean; Virtual;
+      Procedure OnFatalError(Const ErrorMsg:TERRAString); Virtual;
 
       Procedure OnContextLost(); Virtual;
 
@@ -1007,12 +1007,9 @@ Begin
       //FillCallStack(St, 0);
       Log(logError, 'Application', 'Exception: '+E.ClassName +' '+E.Message);
 
-      If Not Self.OnFatalError(E.Message) Then
-      Begin
-        DumpExceptionCallStack(E);
-        //Log(logError, 'Application', CallStackTextualRepresentation(St,' '));
-        Break;
-      End;
+      DumpExceptionCallStack(E);
+      Self.OnFatalError(E.Message);
+      Break;
     End;
   End;
 End;
@@ -2170,9 +2167,9 @@ Begin
 End;
 
 
-Function BaseApplication.OnFatalError(const ErrorMsg: TERRAString):Boolean;
+Procedure BaseApplication.OnFatalError(const ErrorMsg: TERRAString);
 Begin
-  Result := False;
+  _Running := False;
 End;
 
 Procedure BaseApplication.OnIAP_External(Const PurchaseID:TERRAString; UserData:Pointer);

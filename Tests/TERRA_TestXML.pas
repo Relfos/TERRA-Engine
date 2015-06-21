@@ -40,7 +40,7 @@ Var
 Begin
   S := '<note><to>Tove</to><from>Jani</from><heading>Reminder</heading><body>Dont forget me this weekend!</body></note>';
   Doc := XMLDocument.Create();
-  Doc.LoadFromString(S);
+  Doc.LoadFromString(S, encodingUTF8);
 
   Node := Expect(Doc.Root, 'to', 'Tove');
   Node := Expect(Doc.Root, 'from', 'Jani');
@@ -73,7 +73,7 @@ Var
 Begin
   S := '<test x="100" y="200" />';
   Doc := XMLDocument.Create();
-  Doc.LoadFromString(S);
+  Doc.LoadFromString(S, encodingUTF8);
 
   Node := Expect(Doc.Root, 'x', '100');
   Node := Expect(Doc.Root, 'y', '200');

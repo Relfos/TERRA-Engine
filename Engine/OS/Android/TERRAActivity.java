@@ -106,6 +106,7 @@ android.content.DialogInterface.OnClickListener
 {
 	private static final int DIALOG_REPORT_FORCE_CLOSE = 3535788;
 	private static final int DIALOG_UNSUPPORTED_DEVICE = 3535742;
+    private static final int DIALOG_EXCEPTION = 3535744;
 	
     public static TERRAView glView;
 	public RelativeLayout topView = null;
@@ -261,10 +262,14 @@ android.content.DialogInterface.OnClickListener
 	
 		switch (currentDialog)
 		{
+            case DIALOG_EXCEPTION:
+				finish();
+				break;
+            
 			case DIALOG_UNSUPPORTED_DEVICE:
 				finish();
 				break;
-		
+
 			case DIALOG_REPORT_FORCE_CLOSE:					
 				switch (which) 	{
 					case DialogInterface.BUTTON_POSITIVE:
@@ -288,10 +293,25 @@ android.content.DialogInterface.OnClickListener
 	protected Dialog onCreateDialog(int id) {
 		Dialog dialog = null;
 		currentDialog = id;
+        
+        Builder builder;
+        String message;
+        
 		switch (id) {
+		case DIALOG_EXCEPTION:
+			builder = new AlertDialog.Builder(this);
+			message = "It appears that this app stopped working. Do you want to report it to the developers?";
+			builder.setTitle("Error")
+			.setIcon(android.R.drawable.ic_dialog_alert)
+			.setMessage(message)
+			.setPositiveButton("Yes", this)
+			.setNegativeButton("No", this);
+			dialog = builder.create();
+			break;
+            
 		case DIALOG_REPORT_FORCE_CLOSE:
-			Builder builder = new AlertDialog.Builder(this);
-			String message = "It appears that this app crashed last time you ran it, do you want to report it to the developers?";
+			builder = new AlertDialog.Builder(this);
+			message = "It appears that this app crashed last time you ran it, do you want to report it to the developers?";
 			builder.setTitle("Warning")
 			.setIcon(android.R.drawable.ic_dialog_alert)
 			.setMessage(message)
@@ -1448,7 +1468,10 @@ android.content.DialogInterface.OnClickListener
 	@Override
 	public void didRequestAction(TJEvent event, TJEventRequest request) {
 	}
+
     
+    public void showException(String msg) {
+    }
     
     public static boolean unlockAchievement(String achieveID)
     {
