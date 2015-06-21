@@ -707,6 +707,7 @@ End;
 Function StringCopy(Const S:TERRAString; Index, Count:Integer):TERRAString;
 Var
   It:StringIterator;
+  Temp:TERRAString;
   C:TERRAChar;
   I:Integer;
 Begin
@@ -728,25 +729,21 @@ Begin
 
   StringCreateIterator(S, It);
 
-  I := 1;
-  While (I<Index) And (It.HasNext) Do
-  Begin
-    It.GetNext();
-    Inc(I);
-  End;
+  If Index>0 Then
+    It.Seek(Index);
 
-  Result := '';
-  While (Count>0) Do
+  It.Split(Temp, Result);
+
+  If Count<MaxInt Then
   Begin
-    If (It.HasNext()) Then
+    StringCreateIterator(Result, It);
+    While Count>0 Do
     Begin
-      C := It.GetNext();
+      It.GetNext();
+      Dec(Count);
+    End;
 
-      StringAppendChar(Result, C);
-    End Else
-      Break;
-
-    Dec(Count);
+    Result := System.Copy(Result, 0, Pred(IT._State.Index));
   End;
 End;
 
