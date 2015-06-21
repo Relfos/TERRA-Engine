@@ -121,8 +121,8 @@ Type
       _FontRenderer:FontRenderer;
 
       _Transform:Matrix3x3;
+      _InverseTransform:Matrix3x3;
       _TransformChanged:Boolean;
-      _Corners:Array[0..3] Of Vector2D;
 
       _Component:UISkinComponent;
       _Properties:UISkinProperty;
@@ -210,7 +210,7 @@ Type
 
       Function GetFontRenderer: FontRenderer;
 
-      Function OutsideClipRect(X,Y:Integer):Boolean;
+      Function OutsideClipRect(X,Y:Single):Boolean;
 
       Function CanRender():Boolean;
 
@@ -265,7 +265,7 @@ Type
 
       Procedure NullEventHandler(Src:Widget);
 
-      Function OnRegion(X,Y:Integer): Boolean; Virtual;
+      Function OnRegion(X,Y:Single): Boolean; Virtual;
       Function OnCustomRegion(X,Y:Integer; X1,Y1,X2,Y2:Single):Boolean;
       
       Procedure AddChild(W:Widget);
@@ -1503,7 +1503,9 @@ Begin
 	Result := False;
 End;
 
-Function Widget.OnRegion(X,Y:Integer): Boolean;
+Function Widget.OnRegion(X,Y:Single): Boolean;
+Var
+  V:Vector2D;
 Begin
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'X:'+IntToString(X)+' Y:'+IntToString(Y));{$ENDIF}
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', _Name+ '.OnRegion called');{$ENDIF}
@@ -1517,7 +1519,16 @@ Begin
     Exit;
   End;
 
-  Result := (X>= _Corners[0].X) And (X <= _Corners[2].X) And (Y >= _Corners[0].Y) And (Y <= _Corners[2].Y);
+  V.X := X;
+  V.Y := Y;
+
+  If (Self.Rotation<>0.0) Then
+    V := Self._InverseTransform.Transform(V);
+    
+  V.Subtract(Self.AbsolutePosition);
+
+
+  Result := (V.X>=0.0) And (V.X <= Size.X) And (V.Y >= 0) And (V.Y <= Size.Y);
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Region result for '+_Name+' was '+BoolToString(Result));{$ENDIF}
 End;
 
@@ -1747,22 +1758,9 @@ Begin
   Else
     _Transform := MatrixMultiply3x3(_Transform, _UI._Transform);
 
-  Pos := Self.GetAbsolutePosition();
-  W := Pos.X + Size.X;
-  H := Pos.Y + Size.Y;
-
   Self.GetScrollOffset(OfsX, OfsY);
 
-  _Corners[0] := VectorCreate2D(Pos.X, Pos.Y);
-  _Corners[1] := VectorCreate2D(W, Pos.Y);
-  _Corners[2] := VectorCreate2D(W, H);
-  _Corners[3] := VectorCreate2D(Pos.X, H);
-
-  For I:=0 To 3 Do
-  Begin
-    _Corners[I].Add(VectorCreate2D(OfsX, OfsY));
-    _Corners[I] := _Transform.Transform(_Corners[I]);
-  End;
+  _InverseTransform := MatrixInverse2D(_Transform);
 
   Result := True;
 End;
@@ -1998,7 +1996,7 @@ Begin
   Self._UI._Widgets.Reindex(Self);
 End;
 
-Function Widget.OutsideClipRect(X, Y: Integer): Boolean;
+Function Widget.OutsideClipRect(X, Y: Single): Boolean;
 Var
   X1, Y1, X2, Y2:Single;
 Begin
