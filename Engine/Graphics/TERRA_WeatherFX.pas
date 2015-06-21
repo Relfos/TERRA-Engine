@@ -177,7 +177,7 @@ Begin
 
   Line('float snow_out=N5;');
 
-  Line('snow_out = 0.35+(sunsh*0.6)+N1+N2+N3+N4+N5;');
+  Line('snow_out = (sunsh*0.6)+N1+N2+N3+N4+N5;');
 
   Line(' return vec3(snow_out*0.9, snow_out, snow_out*1.1);');
   Line('  }');

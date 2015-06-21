@@ -127,6 +127,7 @@
   {$DEFINE USEASM}    //  If enabled, some routines will use faster asm versions
   {$DEFINE VOLUMETEXTURES} // Support for 3D textures
   {$DEFINE FRAMEBUFFEROBJECTS} // Support for framebuffer rendering
+  {$DEFINE GAMMA_CORRECTION}
 {$ENDIF}
 
 {$IFDEF IPHONE}

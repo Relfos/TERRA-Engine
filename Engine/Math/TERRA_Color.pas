@@ -25,7 +25,7 @@ Unit TERRA_Color;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils;
+Uses TERRA_String, TERRA_Utils, TERRA_Vector3D;
 
 {$R-}
 
@@ -91,6 +91,9 @@ Function ColorToString(Const N:Color):TERRAString;
 Function ColorCreate(Const R,G,B:Byte;A:Byte=255):Color;
 Function ColorCreateFromString(HexValue:TERRAString):Color;
 Function ColorCreateFromFloat(Const R,G,B:Single; A:Single=1.0):Color;
+Function ColorCreateFromVector3D(Const V:Vector3D; A:Single=1.0):Color;
+
+Function ColorHSLCreate(Const H,S,L:Byte; A:Byte=255):ColorHSL;
 
 // Mixes colors
 Function ColorMix(Const A,B:Color; Const Cur:Single):Color;Overload;
@@ -181,6 +184,7 @@ Function ColorCombineSaturation(Const A,B:Color):Color;
 Function ColorCombineLuminosity(Const A,B:Color):Color;
 
 Implementation
+Uses TERRA_Math;
 
 // Color functions
 Function ColorToString(Const N:Color):TERRAString;
@@ -230,6 +234,19 @@ Begin
   Result.G := Byte(Trunc(G*255));
   Result.B := Byte(Trunc(B*255));
   Result.A := Byte(Trunc(A*255));
+End;
+
+Function ColorCreateFromVector3D(Const V:Vector3D; A:Single=1.0):Color;
+Begin
+  Result := ColorCreateFromFloat(V.X, V.Y, V.Z, A);
+End;
+
+Function ColorHSLCreate(Const H,S,L:Byte; A:Byte=255):ColorHSL;
+Begin
+  Result.H := H;
+  Result.S := S;
+  Result.L := L;
+  Result.A := A;
 End;
 
 {$OverFlowChecks Off}
@@ -452,11 +469,35 @@ End;
 Function ColorHSLToRGB(Const Input:ColorHSL):Color;
 Var
 	v,r,g,b:Single;
-  h,sl,l:Single;
+  H,Sl,L:Single;
   m,sv:Single;
   sextant:Integer;
   fract, vsf, mid1, mid2:Single;
+
+  RGB, Temp:Vector3D;
+
 Begin
+(*  H := Input.H/255.0;
+	S := Input.S/255.0;
+	L := Input.L/255.0;
+
+  RGB.X := Clamp(Abs(FloatMod(H*6.0 + 0.0, 6.0) -3.0)-1.0, 0.0, 1.0 );
+  RGB.Y := Clamp(Abs(FloatMod(H*6.0+ 4.0, 6.0)-3.0)-1.0, 0.0, 1.0 );
+  RGB.Z := Clamp(Abs(FloatMod(H*6.0+ 2.0, 6.0)-3.0)-1.0, 0.0, 1.0 );
+
+  Temp := VectorMultiply(RGB, RGB);
+
+  RGB := VectorSubtract(VectorConstant(3.0), VectorScale(RGB, 2.0));
+
+	RGB := VectorMultiply(Temp, RGB); // cubic smoothing
+
+  Result := ColorMix(ColorWhite, ColorCreateFromVector3D(RGB), S);
+
+  Result.R := Trunc(255 * L * Result.R);
+  Result.G := Trunc(255 * L * Result.G);
+  Result.B := Trunc(255 * L * Result.B);
+  Result.A :=Input.A;*)
+
   h := Input.H/255.0;
 	sl := Input.S/255.0;
 	l := Input.L/255.0;

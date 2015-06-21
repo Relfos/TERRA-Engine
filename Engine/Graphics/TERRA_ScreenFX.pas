@@ -636,6 +636,9 @@ Begin
       S := S + _FXs[I]._Buffer;
     End;
 
+    {$IFDEF GAMMA_CORRECTION}
+    Line('  output_color.rgb = pow(output_color.rgb, vec3(2.2));');
+    {$ENDIF}
     //Line('    gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);}');
     Line('    gl_FragColor = output_color;}');
     Line('}');

@@ -1433,6 +1433,8 @@ Begin
     Line('  color.rgb = 1.0 - baseColor;');
   End;}
 
+  //Line('  color.rgb = pow(color.rgb, vec3(1.0/2.2));');
+
   Line('  gl_FragColor = color;}');
   End;
   {$ENDIF}

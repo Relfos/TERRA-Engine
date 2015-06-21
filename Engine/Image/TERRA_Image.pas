@@ -128,6 +128,8 @@ Type
 
       Function Combine(Layer:Image; Alpha:Single; Mode:ColorCombineMode; Mask:Cardinal):Boolean;
 
+      Procedure ShiftHue(ShiftAmmount:Integer);
+
       Procedure LineByUV(Const U1,V1,U2,V2:Single; Const Color:Color);
       Procedure Line(X1,Y1,X2,Y2:Integer; Const Color:Color);
       Procedure LineAlpha(X1,Y1,X2,Y2:Integer; Const Color:Color);
@@ -2217,6 +2219,31 @@ Begin
 
       Result.SetPixel(I, J, F);
     End;
+End;
+
+Procedure Image.ShiftHue(ShiftAmmount:Integer);
+Var
+  P:PColor;
+  Count:Integer;
+  Temp:ColorHSL;
+  Hue:Integer;
+  C:Color;
+Begin
+  Count := Self.Width * Self.Height;
+  P := Self.Pixels;
+  While Count>0 Do
+  Begin
+    Temp := ColorRGBToHSL(P^);
+
+    Hue := Temp.H + ShiftAmmount;
+
+    Temp.H := Byte(Hue);
+
+    P^ := ColorHSLToRGB(Temp); 
+
+    Inc(P);
+    Dec(Count);
+  End;
 End;
 
 { ImageFrame }

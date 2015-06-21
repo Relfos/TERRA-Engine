@@ -17,7 +17,7 @@ Type
       Procedure Release; Override;
 
       Function Noise(X,Y,Z:Single):Single; Virtual; Abstract;
-      Function TiledNoise(X,Y,Z:Single; W, H:Single):Single;
+      //Function TiledNoise(X,Y,Z:Single; W, H:Single):Single;
 
       Procedure SaveToImage(Target:Image; Layer:Single; ColorMask:Cardinal);
     End;
@@ -82,7 +82,7 @@ Begin
     Noise(x, y - h, Z) * W4;
 *)
 
-Function NoiseGenerator.TiledNoise(X, Y, Z, W, H: Single): Single;
+(*Function NoiseGenerator.TiledNoise(X, Y, Z, W, H: Single): Single;
 Begin
   Result :=
     Noise(X, Y, Z) * (W - X) * (H - Y) +
@@ -90,7 +90,7 @@ Begin
     Noise(x - w, y - h, Z) * (x) * (y) +
     Noise(x, y - h, Z) * (w - x) * (y);
   Result := Result / (w * h);
-End;
+End;*)
 
 Procedure NoiseGenerator.SaveToImage(Target:Image; Layer:Single; ColorMask:Cardinal);
 Const
@@ -258,19 +258,20 @@ End;
 
 Function PerlinNoiseGenerator.Noise(x, y, z: Single): Single;
 Const
-  RX = 32;
-  RY = 32;
-  RZ = 32;
-  Error = 0.05;
+  PerlinSize = 32;
+  RX = PerlinSize;
+  RY = PerlinSize;
+  RZ = PerlinSize;
+
 Var
   ix, iy, iz: Integer;
   fx0, fx1, fy0, fy1, fz0, fz1: Single;
   wx, wy, wz: Single;
   vx0, vx1, vy0, vy1, vz0, vz1: Single;
 Begin
-  X := X * (RX - Error);
-  Y := Y * (RY - Error);
-  Z := Z * (RZ - Error);
+  X := FloatMod(X * RX, RX);
+  Y := FloatMod(Y * RY, RY);
+  Z := FloatMod(Z * RZ, RZ);
 
   { The main noise function. Looks up the pseudorandom gradients at the nearest
     lattice points, dots them with the input vector, and interpolates the
