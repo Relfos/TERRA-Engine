@@ -770,6 +770,10 @@ Begin
   _Features := Nil;
   _Stats := Nil;
   _PrevStats := Nil;
+
+  {$IFDEF LINUX}
+  Self.Reset();
+  {$ENDIF}
 End;
 
 Procedure GraphicsRenderer.Release();

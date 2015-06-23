@@ -1247,6 +1247,7 @@ Var
   original_size_id:TSizeID;
   conf:PXRRScreenConfiguration;
   current_rate:Integer;
+  MyRenderer:Renderer;
 Begin
   Inherited InitSettings;
 

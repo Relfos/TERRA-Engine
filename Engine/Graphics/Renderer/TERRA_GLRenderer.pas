@@ -247,6 +247,8 @@ Type
 
   OpenGLRenderer = Class(GraphicsRenderer)
     Protected
+      _HasContext:Boolean;
+
       {$IFDEF WINDOWS}
       _HDC:HDC;           // HDC of window
 			_hRC:HGLRC;         // OpenGL rendering context
@@ -284,7 +286,7 @@ Type
       Procedure ApplyTextureWrap(Handle, TextureKind:Integer; WrapMode:TextureWrapMode);
 
       Procedure ChangeVSync(Const Value:Boolean); Override;
-      
+
     Public
       Procedure ResetState(); Override;
       Procedure BeginFrame(); Override;
@@ -698,7 +700,9 @@ Var
 	End;
 {$ENDIF}
 Begin
-  Result:=False;
+  Result := _HasContext;
+  If _HasContext Then
+    Exit;
 
   LoadOpenGL();
 
@@ -869,6 +873,7 @@ Begin
   {If _MultisampleFormat<>0 Then
     glEnable(GL_MULTISAMPLE);}
 
+  _HasContext := True;
   Result := True;
 End;
 
@@ -898,6 +903,11 @@ End;
 
 Procedure OpenGLRenderer.DestroyContext();
 Begin
+  If Not _HasContext Then
+    Exit;
+
+  _HasContext := False;
+  
   {$IFDEF WINDOWS}
   // Makes current rendering context not current, and releases the device
   // context that is used by the rendering context.
