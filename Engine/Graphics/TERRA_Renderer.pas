@@ -487,9 +487,6 @@ Type
     Protected
       _Name:TERRAString;
 
-      _Objects:Array Of GraphicInterface;
-      _ObjectCount:Integer;
-
       _CurrentContext:Integer;
 
 			_Features:RendererFeatures;
@@ -517,11 +514,11 @@ Type
 
       _VSync:Boolean;
 
-      Procedure AddObject(Obj:GraphicInterface);
-      Procedure RemoveObject(Obj:GraphicInterface);
-
       Function Initialize():Boolean; Virtual; Abstract;
       Procedure InitSettings();
+
+      Function CreateContext():Boolean; Virtual;
+      Procedure DestroyContext(); Virtual;
 
       Procedure SetVSync(Const Value:Boolean);
       Procedure ChangeVSync(Const Value:Boolean); Virtual;
@@ -539,6 +536,8 @@ Type
       //Procedure Invalidate(); Virtual; Abstract;
       Procedure Reset();
       Procedure ResetState(); Virtual;
+
+      Procedure OnContextLost();
 
       Procedure Resize(Width, Height: Integer); Virtual;
 
@@ -614,7 +613,8 @@ Type
   Function Renderers():List;
 
 Implementation
-Uses TERRA_Error, TERRA_FileManager, TERRA_Lights, TERRA_Math, TERRA_Log, TERRA_NullRenderer;
+Uses TERRA_Error, TERRA_FileManager, TERRA_Lights, TERRA_Math, TERRA_Log,
+  TERRA_Texture, TERRA_NullRenderer;
 
 Var
   _RendererList:List;
@@ -737,19 +737,15 @@ End;
 { GraphicInterface }
 Constructor GraphicInterface.Create(Owner:GraphicsRenderer);
 Begin
-  If Assigned(Owner) Then
-  Begin
-    Self._Owner := Owner;
-    _Owner.AddObject(Self);
-  End;
+  Self._Owner := Owner;
+  Self._Context := Owner.CurrentContext;
 
   Self.Initialize();
 End;
 
 Procedure GraphicInterface.Release();
 Begin
-  If Assigned(_Owner) Then
-    _Owner.RemoveObject(Self);
+  // do nothing
 End;
 
 Function GraphicInterface.IsValid: Boolean;
@@ -784,34 +780,6 @@ Begin
   ReleaseObject(_Features);
   ReleaseObject(_PrevStats);
   ReleaseObject(_Stats);
-End;
-
-Procedure GraphicsRenderer.AddObject(Obj: GraphicInterface);
-Begin
-  If Obj = Nil Then
-    Exit;
-
-  Obj._Owner := Self;
-  Obj._Context := Self.CurrentContext;
-
-  Inc(_ObjectCount);
-  If Length(_Objects)<_ObjectCount Then
-    SetLength(_Objects, _ObjectCount);
-End;
-
-Procedure GraphicsRenderer.RemoveObject(Obj: GraphicInterface);
-Var
-  I:Integer;
-Begin
-  I := 0;
-  While I<_ObjectCount Do
-  If (_Objects[I] = Obj) Then
-  Begin
-    _Objects[I] := _Objects[Pred(_ObjectCount)];
-    Dec(_ObjectCount);
-    Exit;
-  End Else
-    Inc(I);
 End;
 
 Procedure GraphicsRenderer.OnSettingsChange;
@@ -1073,6 +1041,12 @@ Procedure GraphicsRenderer.Reset;
 Begin
   If Settings = Nil Then
   Begin
+    If (Not CreateContext()) Then
+    Begin
+      RaiseError('Cannot create renderer context!');
+      Exit;
+    End;
+
     If (Self.Initialize()) And (Assigned(_Features)) Then
       _Features.WriteToLog()
     Else
@@ -1090,6 +1064,30 @@ End;
 Procedure GraphicsRenderer.ResetState;
 Begin
   // do nothing
+End;
+
+Function GraphicsRenderer.CreateContext: Boolean;
+Begin
+  Result := True;
+End;
+
+Procedure GraphicsRenderer.DestroyContext;
+Begin
+  // do nothing
+End;
+
+Procedure GraphicsRenderer.OnContextLost;
+Var
+  N:Integer;
+Begin
+  N := Self._CurrentContext;
+
+  Self.DestroyContext();
+  Self.CreateContext();
+
+  Self.Reset();
+
+  Self._CurrentContext := N + 1;
 End;
 
 Function GraphicsRenderer.BindShader(Shader:ShaderInterface):Boolean;
@@ -1112,9 +1110,10 @@ End;
 
 Function GraphicsRenderer.BindSurface(Surface:SurfaceInterface; Slot:Integer):Boolean;
 Begin
-  If Surface = Nil Then
+  If (Surface = Nil) Then
   Begin
-    RaiseError('Cannot bind null surface!');
+    TextureManager.Instance.NullTexture.Bind(Slot);
+    //RaiseError('Cannot bind null surface!');
     Result := False;
     Exit;
   End;
@@ -1353,5 +1352,6 @@ Function VertexBufferInterface.Update(Data: PByte): Boolean;
 Begin
   Result := False;
 End;
+
 
 End.

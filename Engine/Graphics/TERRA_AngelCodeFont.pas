@@ -49,16 +49,24 @@ Var
   Tag:Byte;
   Id:Cardinal;
   Header:FileHeader;
+
   PageCount:Word;
+  Pages:Array Of Image;
+
   Glyph:FontGlyph;
-  Page:FontPage;
 
   Next:Cardinal;
   Ammount:SmallInt;
 
   Img:Image;
 
-  FileNames:Array Of TERRAString;
+  FileName:TERRAString;
+
+  GlyphID:Cardinal;
+  GX, GY:Word;
+  GlyphWidth, GlyphHeight:Word;
+  XOfs, YOfs, XAdvance:SmallInt;
+  PageID:Byte;
 
   _LineHeight:Word;
   _Base:Word;
@@ -69,8 +77,7 @@ Begin
   Result := (Header = BMFFont);
   If Not Result Then
     Exit;
-    
-  FileNames := Nil;
+
   PageCount := 0;
 
   Repeat
@@ -84,33 +91,36 @@ Begin
           Source.Read(@_scaleW, 2);
           Source.Read(@_scaleH, 2);
           Source.Read(@PageCount, 2);
-          For I:=0 To Pred(PageCount) Do
-            Font.AddPage();
           Source.Skip(5);
-        End;
+
+          SetLength(Pages, PageCount);
+      End;
 
     3:  Begin
-          SetLength(FileNames, PageCount);
           For I:=0 To Pred(PageCount) Do
-            Source.ReadString(FileNames[I], True);
+          Begin
+            Source.ReadString(FileName, True);
+            Img := Image.Create(FileName);
+          End;
         End;
 
     4:  Begin
           CharCount := BlockSize Div 20;
           For I:=0 To Pred(CharCount) Do
           Begin
-            Glyph := Font.AddEmptyGlyph();
-            Source.Read(@Glyph.ID, 4);
-            Source.Read(@Glyph.X,2);
-            Source.Read(@Glyph.Y,2);
-            Source.Read(@Glyph.Width,2);
-            Source.Read(@Glyph.Height,2);
-            Source.Read(@Glyph.XOfs ,2);
-            Source.Read(@Glyph.YOfs,2);
-            Source.Read(@Glyph.XAdvance,2);
-            Source.Read(@Glyph.Page,1);
+            Source.ReadCardinal(GlyphID);
+            Source.ReadWord(GX);
+            Source.ReadWord(GY);
+            Source.ReadWord(GlyphWidth);
+            Source.ReadWord(GlyphHeight);
+            Source.ReadSmallInt(XOfs);
+            Source.ReadSmallInt(YOfs);
+            Source.ReadSmallInt(XAdvance);
+            Source.ReadByte(PageID);
             Source.Skip(1);
             Glyph.KerningCount := 0;
+
+            Glyph := Font.AddGlyph(ID, Pages[PageID].SubImage(GX, GY, GX + GlyphWidth, GY + GlyphHeight), XOfs, YOfs, XAdvance);
 
             (*{$IFDEF DISTANCEFIELD}
             Glyph.X := Glyph.X Div 8;
@@ -154,21 +164,6 @@ Begin
       End;
     End;
   Until Source.EOF;
-
-  For I:=0 To Pred(PageCount) Do
-  Begin
-    Page := Font.GetPage(I);
-
-    If Page = Nil Then
-      Continue;
-
-    Img := Image.Create(FileNames[I]);
-    If (Img.Width <=0) Then
-      Continue;
-
-    Page.SetImage(Img);
-    Img.Release;
-  End;
 
   Result := True;
 End;

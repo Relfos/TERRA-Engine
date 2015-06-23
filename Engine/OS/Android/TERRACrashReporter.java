@@ -258,6 +258,7 @@ public class TERRACrashReporter {
         try {
             TERRAActivity.instance.startActivityForResult(intent, returnCode);
         } catch (Exception e) {
+            Log.e("crash", preface);
             return false;
         }
         

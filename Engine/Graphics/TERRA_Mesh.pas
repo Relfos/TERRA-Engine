@@ -485,7 +485,6 @@ Type
 
       _GPUSkinning:Boolean;
 
-      //_NeedsSkeletonSetup:Boolean;
       _NeedsTangentSetup:Boolean;
 
       _Material:MeshMaterial;
@@ -706,8 +705,6 @@ Type
 
       //Function DuplicateVertex(Index:Integer):Integer;
 
-      Procedure OnContextLost();
-
       Function Intersect(Const R:Ray; Var T:Single; Const Transform:Matrix4x4):Boolean;
 
       Function GetTriangle(Index:Integer):Triangle;
@@ -786,8 +783,6 @@ Type
 
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
-
-      Procedure OnContextLost(); Override;
 
       Procedure ResolveLinks();
 
@@ -1135,7 +1130,7 @@ Begin
 
     Source.GroupIndex := Group.ID;
 
-    It := Group.Vertices.GetIterator(MeshVertex);
+    It := Group.Vertices.GetIteratorForClass(MeshVertex);
     While It.HasNext() Do
     Begin
       V := MeshVertex(It.Value);
@@ -3143,6 +3138,11 @@ Begin
     _CullGeometry := False;
   End;
 
+  If (Assigned(_Buffer)) And (Not _Buffer.IsValid()) Then
+  Begin
+    ReleaseObject(_Buffer);
+  End;
+
   Graphics := GraphicsManager.Instance;
 
   If (Self._GPUSkinning) Then
@@ -3168,7 +3168,7 @@ Begin
   Target := Self.LockVertices();
   If (_Owner.Skeleton.BoneCount > 0 ) And (Assigned(State)) And (Target.HasAttribute(vertexBone)) Then
   Begin
-    It := Target.GetIterator(MeshVertex);
+    It := Target.GetIteratorForClass(MeshVertex);
     While It.HasNext() Do
     Begin
       V := MeshVertex(It.Value);
@@ -3179,9 +3179,8 @@ Begin
           M := _Owner.Skeleton.BindPose[V.BoneIndex]
         Else
           M := State.Animation.Transforms[V.BoneIndex];
-
-
-        V.Position := M.Transform(V.Position );
+                    
+        V.Position := M.Transform(V.Position);
         V.Normal := M.TransformNormal(V.Normal);
       End;
     End;
@@ -3966,7 +3965,7 @@ Begin
         P := _Vertices[I].Position;}
 
 
-    It := _Vertices.GetIterator(MeshVertex);
+    It := _Vertices.GetIteratorForClass(MeshVertex);
     While It.HasNext() Do
     Begin
       V := MeshVertex(It.Value);
@@ -3986,7 +3985,7 @@ Var
   It:VertexIterator;
   V:MeshVertex;
 Begin
-  It := _Vertices.GetIterator(MeshVertex);
+  It := _Vertices.GetIteratorForClass(MeshVertex);
   While It.HasNext() Do
   Begin
     V := MeshVertex(It.Value);
@@ -4164,7 +4163,6 @@ Begin
       Else
         M := State.Animation.Transforms[I];
 
-        M := Matrix4x4Multiply4x3(M, Self._Owner.Skeleton.GetBone(Pred(I)).AbsoluteMatrix);
         EncodeBoneMatrix(I, M);
     End;
 
@@ -4254,9 +4252,6 @@ Begin
 
   If (DestMaterial.DiffuseColor.A<=0) Then
     Exit;
-
-  {If (_NeedsSkeletonSetup) Then
-    Self.SetupSkeleton();}
 
   If (_NeedsTangentSetup) Then
     Self.CalculateTangents();
@@ -5527,8 +5522,7 @@ Begin
   Self._Vertices := VertexData.Create(Format, 0);
 
   Self._GPUSkinning := GraphicsManager.Instance.Renderer.Settings.VertexBufferObject.Enabled;
-
-  //Self._NeedsSkeletonSetup := True;
+//  Self._GPUSkinning := False;
 End;
 
 Function MeshGroup.LockVertices():VertexData;
@@ -6023,15 +6017,13 @@ Begin
   Result := MeshManager.Instance;
 End;
 
-Procedure Mesh.OnContextLost;
+(*Procedure Mesh.OnContextLost;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_GroupCount) Do
     _Groups[I].OnContextLost();
-
-  Self._ContextID := Application.Instance.ContextID;
-End;
+End;*)
 
 Function Mesh.GetGroup(Index:Integer):MeshGroup;
 Begin
@@ -6560,10 +6552,10 @@ Begin
     Result := _Metadata[Index];
 End;
 
-Procedure MeshGroup.OnContextLost;
+(*Procedure MeshGroup.OnContextLost;
 Begin
   ReleaseObject(_Buffer);
-End;
+End;*)
 
 Procedure Mesh.SubDivide();
 Var
@@ -7058,10 +7050,10 @@ Begin
     SetLength(Dest._TriangleNormals, N);
   End;
 
-  DestIt := Dest.Vertices.GetIterator(MeshVertex);
+  DestIt := Dest.Vertices.GetIteratorForClass(MeshVertex);
   DestIt.Seek(VOfs);
 
-  SrcIt := Source.Vertices.GetIterator(MeshVertex);
+  SrcIt := Source.Vertices.GetIteratorForClass(MeshVertex);
   While (SrcIt.HasNext()) And (DestIt.HasNext()) Do
   Begin
     Self.ProcessVertex(MeshVertex(SrcIt.Value), MeshVertex(DestIt.Value), Source, Dest);

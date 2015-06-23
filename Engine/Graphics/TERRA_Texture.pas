@@ -33,7 +33,7 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
 {´-$DEFINE TEXTURES16BIT}
 {$ENDIF}
 
-{-$DEFINE KEEPCOPYONRAM}
+{$DEFINE KEEPCOPYONRAM}
 
 Const
   MinTextureSize  = 2;
@@ -93,7 +93,7 @@ Type
       Procedure CreateFromSurface(Surface:SurfaceInterface);
       Procedure CreateFromLocation(Const Location:TERRAString);
 
-      Procedure Build(); Virtual;
+      Function IsValid():Boolean;
 
       Function Load(Source:Stream):Boolean; Override;
       Function Unload:Boolean; Override;
@@ -102,7 +102,7 @@ Type
 
       Class Function RAM:Cardinal;
 
-      Procedure Bind(Slot:Integer); 
+      Function Bind(Slot:Integer):Boolean;
 
       Procedure UpdateRect(Source:Image; X,Y:Integer); Overload;
       Procedure UpdateRect(Source:Image); Overload;
@@ -167,7 +167,7 @@ Type
 
     Public
       Procedure Init; Override;
-      Procedure OnContextLost; Override;
+//      Procedure OnContextLost; Override;
 
       Class Function Instance:TextureManager;
       Function GetTexture(Name:TERRAString):Texture;
@@ -188,7 +188,7 @@ Type
 
   DefaultColorTableTexture = Class(Texture)
     Public
-      Procedure Build(); Override;
+      Function Build():Boolean; Override;
   End;
 
 Var
@@ -320,7 +320,6 @@ Begin
   Result.Uncompressed := True;
   Result.MipMapped := False;
   Result.Filter := filterLinear;
-  Result.Update();
   Self.FillTextureWithColor(Result, TexColor);
 End;
 
@@ -346,6 +345,10 @@ Begin
   Begin
     _BlackTexture.Update();
     FillTextureWithColor(_BlackTexture, ColorBlack);
+  End Else
+  If (Not _BlackTexture.IsValid()) Then
+  Begin
+    _BlackTexture.Unload();
   End;
 
   Result := _BlackTexture;
@@ -360,6 +363,10 @@ Begin
   Begin
     _WhiteTexture.Update();
     FillTextureWithColor(_WhiteTexture, ColorWhite);
+  End Else
+  If (Not _WhiteTexture.IsValid()) Then
+  Begin
+    _WhiteTexture.Unload();
   End;
 
   Result := _WhiteTexture;
@@ -374,6 +381,10 @@ Begin
   Begin
     _NullTexture.Update();
     FillTextureWithColor(_NullTexture, ColorNull);
+  End Else
+  If (Not _NullTexture.IsValid()) Then
+  Begin
+    _NullTexture.Unload();
   End;
 
   Result := _NullTexture;
@@ -389,10 +400,16 @@ Begin
   If (Not Assigned(_DefaultNormalMap)) Then
     _DefaultNormalMap := Self.CreateTextureWithColor('default_normal', GetDefaultNormalColor())
   Else
-  If (_DefaultNormalMap.Status <> rsReady) Then
   Begin
-    _DefaultNormalMap.Update();
-    FillTextureWithColor(_DefaultNormalMap, GetDefaultNormalColor());
+    If (_DefaultNormalMap.Status <> rsReady) Then
+    Begin
+      _DefaultNormalMap.Update();
+      FillTextureWithColor(_DefaultNormalMap, GetDefaultNormalColor());
+    End Else
+    If (Not _DefaultNormalMap.IsValid()) Then
+    Begin
+      _DefaultNormalMap.Unload();
+    End;
   End;
 
   Result := _DefaultNormalMap;
@@ -416,6 +433,11 @@ Begin
   Begin
     _DefaultColorTable := DefaultColorTableTexture.Create();
     _DefaultColorTable.CreateFromSize('default_colortable', 1024, 32);
+    _DefaultColorTable.Rebuild();
+  End Else
+  If (Not _DefaultColorTable.IsValid()) Then
+  Begin
+    _DefaultColorTable.Rebuild();
   End;
 
   Result := _DefaultColorTable;
@@ -517,12 +539,10 @@ Begin
   _Dynamic := True;
   Uncompressed := False;
 
-  If (Self._Location='') Then
-    Self._Status := rsReady;
+  Self.SetStatus(rsReady);
 
   _SettingsChanged := True;
 
-  Self._ContextID := Application.Instance.ContextID; // FIXME
   _Managed := True;
 End;
 
@@ -554,6 +574,8 @@ Begin
 
   _Dynamic := True;
   Uncompressed := False;
+
+  Self.Update();
 End;
 
 Procedure Texture.CreateFromImage(Const Name:TERRAString; Source:Image);
@@ -604,22 +626,16 @@ Begin
 	    Dec(_TextureMemory, MemCount);
 
     For I:=0 To Pred(_FrameCount) Do
-    If (Application.Instance<>Nil) And (Self._ContextID = Application.Instance.ContextID)
-    And (Assigned(_Handles[I])) Then
+    If (Assigned(_Handles[I])) And (_Handles[I].IsValid()) Then
       ReleaseObject(_Handles[I]);
 
     _Handles := Nil;
     _FrameCount := 0;
   End;
 
-  If (Assigned(_Source)) Then
-  Begin
-    _Source.Release();
-	  _Source := Nil;
-	End;
+  ReleaseObject(_Source);
 
-  _Status := rsUnloaded;
-  Result := True;
+  Result := Inherited Unload();
 End;
 
 {$DEFINE FORCERGBA}
@@ -636,6 +652,7 @@ Var
   Pixels:PWord;
   SourceFormat:TextureColorFormat;
   Tex:TextureInterface;
+  Temp:SurfaceInterface;
 Begin
   Inherited Update();
 
@@ -644,8 +661,8 @@ Begin
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Allocating pixels');{$ENDIF}
   If (Not Assigned(_Source)) Then
   Begin
-    {_Source := Image.Create(_Width, _Height);
-    _Source.Process(IMP_FillColor, ColorWhite);}
+    _Source := Image.Create(_Width, _Height);
+    _Source.Process(IMP_FillColor, ColorWhite);
     Exit;
   End;
 
@@ -663,8 +680,9 @@ Begin
 
   _Size := 0;
   For I:=0 To Pred(_FrameCount) Do
+  If _Handles[I] = Nil Then
   Begin
-    ReleaseObject(_Handles[I]);
+    Temp := _Handles[I];
 
     If (_FrameCount>0) Then
     Begin
@@ -677,24 +695,22 @@ Begin
 
     _Handles[I] := Tex;
     Inc(_Size, _Handles[I].Size);
+
+    ReleaseObject(Temp);
   End;
 
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Freeing pixels');{$ENDIF}
 
   {$IFNDEF KEEPCOPYONRAM}
-  _Source.Release();
-  _Source := Nil;
+  ReleaseObject(_Source);
   {$ENDIF}
 
-  If (Self._Location='') Then
-    Self._Status := rsReady;
+  Self.SetStatus(rsReady);
 
   Inc(_TextureMemory, _Size * _FrameCount);
 
   Result := True;
-
-  Self.Build();
 
   _AnimationStart := Application.GetTime();
   _CurrentFrame := 0;
@@ -702,16 +718,12 @@ Begin
   _SettingsChanged := True;
 End;
 
-Procedure Texture.Build;
-Begin
-// do nothing
-End;
-
 Var
   _TextureSlots:Array[0..7] Of Texture;
 
-Procedure Texture.Bind(Slot:Integer);
+Function Texture.Bind(Slot:Integer):Boolean;
 Begin
+  Result := False;
   If (Self = Nil) Or (Not Self.IsReady()) Then
   Begin
     //glBindTexture(GL_TEXTURE_2D, 0);
@@ -724,7 +736,18 @@ Begin
   _TextureSlots[Slot] := MyTexture;}
 
   _CurrentFrame := GetCurrentFrame();
-  GraphicsManager.Instance.Renderer.BindSurface(Self.Current, Slot);
+
+  If (Self.Current = Nil) Then
+    Exit;
+
+  If (Not Self.Current.IsValid()) Then
+  Begin
+    Self.Unload();
+    Self.Rebuild();
+    Exit;
+  End;
+
+  Result := GraphicsManager.Instance.Renderer.BindSurface(Self.Current, Slot);
 
   If (_SettingsChanged) Then
   Begin
@@ -774,14 +797,12 @@ Begin
   Self.UpdateRect(Source, 0, 0);
 End;
 
-
-
 Class Function Texture.GetManager: Pointer;
 Begin
   Result := TextureManager.Instance;
 End;
 
-Procedure TextureManager.OnContextLost;
+(*Procedure TextureManager.OnContextLost;
 Begin
   Inherited;
 
@@ -799,10 +820,10 @@ Begin
 
   If Assigned(_DefaultColorTable) Then
     _DefaultColorTable.Unload();
-End;
+End;*)
 
 { DefaultColorTable }
-Procedure DefaultColorTableTexture.Build;
+Function DefaultColorTableTexture.Build():Boolean;
 Var
   Temp:Image;
 Begin
@@ -812,6 +833,8 @@ Begin
 
   Self.MipMapped := False;
   Self.WrapMode := wrapNothing;
+
+  Result := True;
 End;
 
 Function Texture.GetCurrentFrame: Integer;
@@ -1101,7 +1124,10 @@ End;
 
 Function Texture.GetOrigin: SurfaceOrigin;
 Begin
-  Result := Self.Current.Origin;
+  If Assigned(Self.Current) Then
+    Result := Self.Current.Origin
+  Else
+    Result := surfaceBottomRight;
 End;
 
 Class Function Texture.LoadFromFile(const FileName: TERRAString): Texture;
@@ -1116,6 +1142,11 @@ Begin
     ReleaseObject(Src);
   End Else
     Result := Nil;
+End;
+
+Function Texture.IsValid: Boolean;
+Begin
+  Result := (Assigned(Self.Current)) And (Self.Current.IsValid());
 End;
 
 End.

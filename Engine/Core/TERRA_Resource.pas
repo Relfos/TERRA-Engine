@@ -27,26 +27,32 @@ Unit TERRA_Resource;
 Interface
 Uses TERRA_String, TERRA_Collections, TERRA_Hashmap, TERRA_Stream;
 
-Const
-  rsUnloaded  = 0;
-  rsBusy      = 1;
-  rsInvalid   = 2;
-  rsReady     = 3;
-
 Type
+  ResourceStatus = (
+    rsUnloaded  = 0,
+    rsBusy      = 1,
+    rsInvalid   = 2,
+    rsReady     = 3
+  );
+
   ResourceClass = Class Of Resource;
 
   Resource = Class(HashMapObject)
+    Private
+      _Status:ResourceStatus;
+
     Protected
       _Time:Cardinal;
       _Location:TERRAString;
-      _Status:Integer;
       _Size:Integer;
       _KeepStream:Boolean;
-      _ContextID:Integer;
 
       Procedure CopyValue(Other:CollectionObject); Override;
       Function Sort(Other:CollectionObject):Integer; Override;
+
+      Procedure SetStatus(const Value:ResourceStatus);
+
+      Function Build():Boolean; Virtual;
 
     Public
       Priority:Integer;
@@ -54,14 +60,15 @@ Type
       Constructor Create(Location:TERRAString);
       Procedure Release; Override;
 
-      Function IsReady:Boolean;
+      Function IsReady:Boolean; 
 
       Class Function GetManager:Pointer; Virtual;
 
       Function Load(MyStream:Stream):Boolean; Virtual;Abstract;
       Function Unload:Boolean; Virtual;
       Function Update:Boolean; Virtual;
-      Procedure OnContextLost(); Virtual;
+
+      Procedure Rebuild(); 
 
       Function ToString():TERRAString; Override;
 
@@ -72,7 +79,7 @@ Type
       Property Name:TERRAString Read _Key;
       Property Location:TERRAString Read _Location;
       Property Time:Cardinal Read _Time Write _Time;
-      Property Status:Integer Read _Status Write _Status;
+      Property Status:ResourceStatus Read _Status Write SetStatus;
       Property Size:Integer Read _Size;
       Property KeepStream:Boolean Read _KeepStream Write _KeepStream;
   End;
@@ -101,7 +108,7 @@ Begin
   End;
 
   Self._Size := 0;
-  Self._Status := rsUnloaded;
+  Self.SetStatus(rsUnloaded);
   Self.Priority := 50;
 End;
 
@@ -132,17 +139,8 @@ Begin
 
   If (Status = rsReady) Then
   Begin
-    If (Application.Instance<>Nil) And (_ContextID <> Application.Instance.ContextID) Then
-    Begin
-      Result := False;
-      Log(logWarning, 'Resource', 'Invalid context in '+Self._Key);
-      Self.OnContextLost();
-    End Else
-    Begin
-      _Time := Application.GetTime;
-      Result := True;
-    End;
-
+    _Time := Application.GetTime;
+    Result := True;
     Exit;
   End;
 
@@ -150,11 +148,11 @@ Begin
   If (Status <> rsUnloaded) Then
     Exit;
 
-  If (Not _Prefetching) And (Application.Instance<>Nil) And (Application.Instance.FrameTime>500) Then
+  (*If (Not _Prefetching) And (Application.Instance.FrameTime>500) Then
   Begin
     Result := False;
     Exit;
-  End;
+  End;*)
 
   Log(logDebug, 'Resource', 'Obtaining manager for '+Self.Name);
   Manager := Self.GetManager;
@@ -164,12 +162,9 @@ Begin
     Exit;
   End;
 
-  Manager.Lock;
-  _Status := rsBusy;
-  Manager.Unlock;
-
   If (Self.Location<>'') Then
   Begin
+    Self.SetStatus(rsBusy);
     Log(logDebug, 'Resource', 'Loading the resource...');
     Manager.ReloadResource(Self, Manager.UseThreads);
     Result := (Status = rsReady);
@@ -177,18 +172,15 @@ Begin
   Begin
     Log(logDebug, 'Resource', 'Updating the resource...');
 
-    Self.Update();
+    Self.Rebuild();
 
-    Manager.Lock;
-    _Status := rsReady;
-    Manager.Unlock;
     Result := True;
   End;
 End;
 
 Procedure Resource.Prefetch;
 Begin
-  If (Self._Status<>rsUnloaded) Then
+  If (Self.Status<>rsUnloaded) Then
     Exit;
 
   Log(logDebug, 'Resource', 'Prefetching '+ Self.Name);
@@ -202,25 +194,19 @@ Begin
     Exit;
   End;
 
-  If (Application.Instance = Nil) Then
-  Begin
-    Self._Status := rsReady;
-    Exit;
-  End;
-
   Log(logDebug, 'Resource', 'Prefetching '+Self.Name);
   _Prefetching := True;
   While (Not Self.IsReady) Do
   Begin
     Application.Instance.RefreshComponents();
 
-    If (Self._Status = rsInvalid) Then
+    If (Self.Status = rsInvalid) Then
       Break;
 
   End;
   _Prefetching := False;
 
-  If (Self._Status = rsInvalid) Then
+  If (Self.Status = rsInvalid) Then
     Log(logError, 'Resource', 'Error prefetching resource')
   Else
     Log(logDebug, 'Resource', 'Prefetching for '+Self.Name+' is done!');
@@ -238,24 +224,59 @@ End;
 
 Function Resource.Unload:Boolean;
 Begin
-  Result := False;
+  SetStatus(rsUnloaded);
+  Result := True;
 End;
 
 Function Resource.Update:Boolean;
 Begin
   Result := True;
-  If (Application.Instance<>Nil) Then
-    _ContextID := Application.Instance.ContextID;
-End;
-
-Procedure Resource.OnContextLost;
-Begin
-  Self.Unload();
 End;
 
 Function Resource.ShouldUnload: Boolean;
 Begin
   Result := (Application.GetTime() - Self.Time > ResourceDiscardTime);
+End;
+
+Procedure Resource.SetStatus(const Value:ResourceStatus);
+Var
+  Manager:ResourceManager;
+Begin
+  {If Value<>rsUnloaded Then
+    StringToInt(Self._Key);}
+
+  If (_Location = '') Then
+  Begin
+    _Status := Value;
+    Exit;
+  End;
+
+  Manager := Self.GetManager;
+  If (Manager = Nil) Then
+  Begin
+    Log(logDebug, 'Resource', 'Failed to obtain a manager...');
+    Exit;
+  End;
+
+  Manager.Lock();
+  _Status := Value;
+  Manager.Unlock();
+End;
+
+Function Resource.Build: Boolean;
+Begin
+  Result := False;
+End;
+
+Procedure Resource.Rebuild;
+Begin
+  Self.SetStatus(rsBusy);
+  If Self.Build() Then
+  Begin
+    Self.Update();
+    Self.SetStatus(rsReady);
+  End Else
+    Self.SetStatus(rsUnloaded);
 End;
 
 End.

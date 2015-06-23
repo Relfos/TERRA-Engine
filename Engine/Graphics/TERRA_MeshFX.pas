@@ -155,8 +155,6 @@ Begin
     ReleaseObject(TempVertices);
   End;
 
-  Target.OnContextLost();
-
   _StartTime := Application.GetTime();
 End;
 
@@ -220,7 +218,7 @@ Begin
   Begin
     Group := Target.GetGroup(I);
     Temp := Group.LockVertices();
-    It := Temp.GetIterator(MeshVertex);
+    It := Temp.GetIteratorForClass(MeshVertex);
 
     For J:=0 To Pred(Group.TriangleCount) Do
     Begin

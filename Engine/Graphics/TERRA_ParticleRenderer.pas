@@ -564,7 +564,7 @@ Begin
 
   RenderStage := GraphicsManager.Instance.RenderStage;
 
-  It := Self._Vertices.GetIterator(ParticleVertex);
+  It := Self._Vertices.GetIteratorForClass(ParticleVertex);
   While N<_ParticleCount Do
   Begin
     If (_Particles[N].Life > 0.0) And ((RenderStage<>renderStageDiffuse) Or (_Particles[N].BlendMode = BlendMode)) Then
@@ -957,7 +957,7 @@ Begin
         Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
         Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
       End;
-      _NormalImage.Blit(Trunc(Item.X*_TextureAtlas.Width), Trunc(Item.Y*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
+      _NormalImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
       Source.Release();
 
       S := StringLower(GetFileName(Item.Name, True))+'_glow.png';
@@ -969,7 +969,7 @@ Begin
         Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
         Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
       End;
-      _GlowImage.Blit(Trunc(Item.X*_TextureAtlas.Width), Trunc(Item.Y*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
+      _GlowImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
       Source.Release;
 
       S := StringLower(GetFileName(Item.Name, True))+'_refraction.png';
@@ -981,7 +981,7 @@ Begin
         Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
         Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
       End;
-      _RefractionImage.Blit(Trunc(Item.X*_TextureAtlas.Width), Trunc(Item.Y*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
+      _RefractionImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
       Source.Release();
     End;
 
@@ -1016,10 +1016,10 @@ Begin
 
     For I:=0 To Pred(_TypeCount) Do
     Begin
-      _Types[I].U1 := _Types[I].Item.X;
-      _Types[I].V1 := _Types[I].Item.Y;
-      _Types[I].U2 := _Types[I].Item.X + (Pred(_Types[I].Item.Buffer.Width) / _TextureAtlas.Width);
-      _Types[I].V2 := _Types[I].Item.Y + (Pred(_Types[I].Item.Buffer.Height) / _TextureAtlas.Height);
+      _Types[I].U1 := _Types[I].Item.U1;
+      _Types[I].V1 := _Types[I].Item.V1;
+      _Types[I].U2 := _Types[I].Item.U2;
+      _Types[I].V2 := _Types[I].Item.V2;
     End;
   End;
 

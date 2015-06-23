@@ -11,12 +11,16 @@ Only extensions used by LEAF are included.
 Unit TERRA_OpenGLES;
 {$I terra.inc}
 
+{$IFDEF FPC}
 {$PACKRECORDS C}
+{$ENDIF}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Log, DynLibs, Math;
+Uses TERRA_String, TERRA_Utils, TERRA_Log, Math,
+{$IFDEF FPC}DynLibs {$ELSE} Windows{$ENDIF};
 
 Const
+  {$IFDEF WINDOWS} OpenGLLibName = 'libGLESv2.dll'; {$ENDIF}
   {$IFDEF ANDROID} OpenGLLibName = 'libGLESv2.so'; {$ENDIF}
   {$IFDEF IOS} OpenGLLibName = '/System/Library/Frameworks/OpenGLES.framework/OpenGLES'; {$ENDIF}
 
@@ -628,7 +632,14 @@ Var
   glVertexAttribPointer: procedure(index: Cardinal; size: Integer; _type: Cardinal; normalized: Boolean; stride: Integer; const pointer: Pointer); cdecl;
   glViewport:Procedure (x, y, width, height:Cardinal); cdecl;
 
+  // Extensions
+  glRenderbufferStorageMultisample:Procedure (target, samples, internalformat, width, height:Cardinal); cdecl;
+  glResolveMultisampleFramebuffer:Procedure(); cdecl;
+
+  glDiscardFramebuffer: Procedure(target, count:Integer; attachments:PInteger);
+
   // GL ES1
+  {$IFDEF LEGACY_GLES}
   glAlphaFunc:Procedure (func: Cardinal; ref: Single); cdecl;
   glEnableClientState: Procedure(aarray: Cardinal); cdecl;
   glDisableClientState: Procedure(aarray: Cardinal); cdecl;
@@ -638,13 +649,7 @@ Var
   glColor4f:Procedure (red, green, blue, alpha: Single); cdecl;
   glMatrixMode:Procedure (mode: Cardinal); cdecl;
   glLoadMatrixf:Procedure (const m: PSingle); cdecl;
-
-
-  // Extensions
-  glRenderbufferStorageMultisample:Procedure (target, samples, internalformat, width, height:Cardinal); cdecl;
-  glResolveMultisampleFramebuffer:Procedure  (); cdecl;
-
-  glDiscardFramebuffer: Procedure(target, count:Integer; attachments:PInteger);
+  {$ENDIF}
 
 Procedure glClearDepth(depth:Single);
 
@@ -655,6 +660,9 @@ Procedure LoadOpenGL();
 
 Implementation
 Uses TERRA_Error, TERRA_Application;
+
+Type
+  TLibHandle = Cardinal;
 
 Var
   OpenGLHandle:TLibHandle;
@@ -846,6 +854,9 @@ Begin
   glRenderbufferStorageMultisample := glGetProcAddress('glRenderbufferStorageMultisample');
   glResolveMultisampleFramebuffer := glGetProcAddress('glResolveMultisampleFramebuffer');
 
+  glViewport := glGetProcAddress('glViewport');
+
+  {$IFDEF LEGACY_GLES}
   glAlphaFunc := glGetProcAddress('glAlphaFunc');
   glEnableClientState := glGetProcAddress('glEnableClientState');
   glDisableClientState := glGetProcAddress('glDisableClientState');
@@ -856,8 +867,7 @@ Begin
 
   glMatrixMode := glGetProcAddress('glMatrixMode');
   glLoadMatrixf := glGetProcAddress('glLoadMatrixf');
-  
-  glViewport := glGetProcAddress('glViewport');
+  {$ENDIF}
 End;
 
 Procedure FreeOpenGL;

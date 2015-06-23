@@ -171,8 +171,8 @@ Type
       _ClearDepth:Single;
       _ClearStencil:Cardinal;
 
-      Function CreateContext():Boolean;
-      Procedure DestroyContext();
+      Function CreateContext():Boolean; Override;
+      Procedure DestroyContext(); Override;
 
       Function Initialize():Boolean; Override;
 

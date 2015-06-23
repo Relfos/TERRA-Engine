@@ -545,7 +545,6 @@ Type
       _FontRenderer:FontRenderer;
 
       Procedure OnLanguageChange; Override;
-      Procedure OnContextLost; Override;
       Procedure OnOrientationChange; Override;
 
       Procedure UpdateRatio();
@@ -559,7 +558,6 @@ Type
 
     Public
       Procedure Init; Override;
-      Procedure Resume; Override;
 
       Procedure Release; Override;
 
@@ -1356,7 +1354,7 @@ Begin
     Log(logDebug, 'Game', 'Adding to TextureAtlas');
 
     _ComponentList[Pred(_ComponentCount)] := UIManager.Instance.GetTextureAtlas.Add(Source, Name);
-    UIManager.Instance._UpdateTextureAtlas := True;
+    UIManager.Instance.TextureAtlasClear();
 
     Log(logDebug, 'Game', 'TextureAtlas added');
 
@@ -1402,10 +1400,10 @@ Begin
 
   StartPos := VectorCreate2D(Trunc(P.X + Trunc(X1 * Source.Width)), Trunc(P.Y + Trunc(Y1 * Source.Height)));
   EndPos := VectorCreate2D(Round(P.X + Trunc(X2 * Source.Width)), Round(P.Y + Trunc(Y2 * Source.Height)));
-  TC1.X := (_ComponentList[Index].X + ( (X1*Pred(Source.Width)) / MyTextureAtlas.Width));
-  TC1.Y := (_ComponentList[Index].Y + ( (Y1*Pred(Source.Height)) / MyTextureAtlas.Height));
-  TC2.X := (_ComponentList[Index].X + ( ((X2*Pred(Source.Width))) / MyTextureAtlas.Width));
-  TC2.Y := (_ComponentList[Index].Y + ( ((Y2*Pred(Source.Height))) / MyTextureAtlas.Height));
+  TC1.X := (_ComponentList[Index].U1 + ( (X1*Pred(Source.Width)) / MyTextureAtlas.Width));
+  TC1.Y := (_ComponentList[Index].V1 + ( (Y1*Pred(Source.Height)) / MyTextureAtlas.Height));
+  TC2.X := (_ComponentList[Index].U1 + ( ((X2*Pred(Source.Width))) / MyTextureAtlas.Width));
+  TC2.Y := (_ComponentList[Index].V1 + ( ((Y2*Pred(Source.Height))) / MyTextureAtlas.Height));
 
   Saturation := Self.GetSaturation();
   ColorTable := Self.GetColorTable();
@@ -2300,7 +2298,7 @@ Begin
       MyStream := FileManager.Instance.OpenStream(Name);
       Source := Image.Create(MyStream);
       _Item := UIManager.Instance.GetTextureAtlas.Add(Source, Name);
-      UIManager.Instance._UpdateTextureAtlas := True;
+      UIManager.Instance.TextureAtlasClear();
       Source.Release;
       MyStream.Release;
     End;
@@ -2332,7 +2330,7 @@ Begin
   StartPos := VectorCreate2D(UI._CursorPos.X - _OfsX, UI._CursorPos.Y - _OfsY);
   EndPos.X := StartPos.X + _Item.Buffer.Width;
   EndPos.Y := StartPos.Y + _Item.Buffer.Height;
-  T1 := VectorCreate2D(_Item.X, _Item.Y);
+  T1 := VectorCreate2D(_Item.U1, _Item.V1);
   MyTextureAtlas := UIManager.Instance.GetTextureAtlas;
   T2.X := T1.X + (_Item.Buffer.Width / MyTextureAtlas.Width);
   T2.Y := T1.Y + (_Item.Buffer.Height / MyTextureAtlas.Height);
@@ -3304,7 +3302,7 @@ Begin
   If Not Assigned(System_BG) Then
   Begin
     S := UISprite.Create(System_Name_BG, Self, Nil, 0, 0, 96.5);
-    S.Rect.Texture := TextureManager.Instance.WhiteTexture;
+    S.Texture := TextureManager.Instance.WhiteTexture;
     S.Rect.Width := UIManager.Instance.Width;
     S.Rect.Height := UIManager.Instance.Height;
     S.Color := ColorGrey(0, 100);
@@ -3709,14 +3707,6 @@ Begin
   _UpdateTextureAtlas := True;
 End;
 
-Procedure UIManager.OnContextLost;
-Begin
-  If (Assigned(_TextureAtlas)) Then
-    _TextureAtlas.OnContextLost();
-
-  _UpdateTextureAtlas := True;
-End;
-
 Class Function UIManager.Instance: UIManager;
 Begin
   If (_UIManager_Instance = Nil) Then
@@ -3731,11 +3721,6 @@ Var
 Begin
   For I:=0 To Pred(_UICount) Do
     _UIList[I].UpdateLanguage();
-End;
-
-Procedure UIManager.Resume;
-Begin
-  _UpdateTextureAtlas := True;
 End;
 
 Procedure UIManager.Render;

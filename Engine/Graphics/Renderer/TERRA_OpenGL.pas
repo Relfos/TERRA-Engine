@@ -22,7 +22,7 @@ Uses
   TERRA_String, TERRA_Log, TERRA_Matrix4x4, TERRA_Math;
 
 Type
-TLibHandle= Cardinal;
+  TLibHandle = Cardinal;
 
 Const
 //  Glu32 = 'glu32.dll';
@@ -1488,6 +1488,8 @@ glMultMatrixd:Procedure (const m: PDouble); {$IFDEF WINDOWS}StdCall;{$ELSE}cdecl
 glMultMatrixf:Procedure (const m: PSingle); {$IFDEF WINDOWS}StdCall;{$ELSE}cdecl;{$ENDIF}
 glNewList:Procedure (list: Cardinal; mode: Cardinal); {$IFDEF WINDOWS}StdCall;{$ELSE}cdecl;{$ENDIF}
 
+glPixelStorei:Procedure (pname, param: Integer); {$IFDEF WINDOWS}StdCall;{$ELSE}cdecl;{$ENDIF}
+
 glNormal3f:Procedure (nx, ny, nz: Single); {$IFDEF WINDOWS}StdCall;{$ELSE}cdecl;{$ENDIF}
 glNormal3fv:Procedure (const v: PSingle); {$IFDEF WINDOWS}StdCall;{$ELSE}cdecl;{$ENDIF}
 glNormalPointer:Procedure (atype: Cardinal; stride: Integer; const pointer: Pointer); {$IFDEF WINDOWS}StdCall;{$ELSE}cdecl;{$ENDIF}
@@ -1842,7 +1844,9 @@ Procedure LoadOpenGL();
 Var
   ExtensionsList:AnsiString='';
 
+
 Implementation
+
 Uses TERRA_OS, TERRA_Error;
 
 Function glGetExtensionString():AnsiString;
@@ -2076,6 +2080,7 @@ Begin
 	glNormal3fv := glGetProcAddress('glNormal3fv');
 	glNormalPointer := glGetProcAddress('glNormalPointer');
 	glOrtho := glGetProcAddress('glOrtho');
+  glPixelStorei := glGetProcAddress('glPixelStorei');
 	glPointSize := glGetProcAddress('glPointSize');
 	glPolygonMode := glGetProcAddress('glPolygonMode');
 	glPolygonOffset := glGetProcAddress('glPolygonOffset');
@@ -2447,4 +2452,4 @@ End;
 Initialization
 Finalization
   FreeOpenGL;
-End.
+End.
