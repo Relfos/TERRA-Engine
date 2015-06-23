@@ -712,7 +712,7 @@ Begin
       S := SpriteManager.Instance.DrawSprite(I*_Map._TileWidth*_Map.Scale - _Map.CamX, J*_Map._TileHeight*_Map.Scale - _Map.CamY, Z, _Map.Tileset);
       Tx := (N Mod _TilesPerRow);
       Ty := (N Div _TilesPerRow);
-      S.Rect.PixelRemap(Tx*_Map._TileWidth, Ty*_Map._TileWidth, Succ(Tx)*_Map._TileWidth-1, Succ(Ty)*_Map._TileWidth-1);
+      S.Rect.PixelRemap(Tx*_Map._TileWidth, Ty*_Map._TileWidth, Succ(Tx)*_Map._TileWidth-1, Succ(Ty)*_Map._TileWidth-1, _Map.GetTileset());
       S.Rect.Width := _Map._TileWidth;
       S.Rect.Height := _Map._TileHeight;
       S.SetScale(_Map.Scale, _Map.Scale);

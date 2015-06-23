@@ -119,7 +119,7 @@ Type
 
       Function HasNext():Boolean;
 
-      Procedure Seek(Position:Integer);
+      Function Seek(Position:Integer):Boolean;
 
       Property Value:CollectionObject Read _Value;
       Property Position:Integer Read GetPosition;
@@ -573,7 +573,7 @@ Begin
   Result := Pred(_Index);
 End;
 
-Procedure Iterator.Seek(Position: Integer);
+Function Iterator.Seek(Position: Integer):Boolean;
 Begin
   _Finished := False;
   _Value := Nil;
@@ -586,6 +586,11 @@ Begin
     JumpToIndex(Position);
     _Index := Position;
   End;
+
+  If Assigned(_Collection) Then
+    Result := (Position<Self._Collection.Count)
+  Else
+    Result := True;
 End;
 
 Procedure Iterator.JumpToIndex(Position: Integer);

@@ -51,7 +51,6 @@ Type
 
   TextureRect = Object
     Public
-      Texture:Texture;
       Width:Integer;
       Height:Integer;
       U1,V1:Single;
@@ -60,9 +59,9 @@ Type
       Procedure ResizeWithWidth(W:Single);
       Procedure ResizeWithHeight(H:Single);
 
-      Procedure TileRemap(X,Y, TilesPerX, TilesPerY:Integer);
-      Procedure TileRemapByID(TileID, TilesPerRow, TileSize:Integer);
-      Procedure PixelRemap(X1,Y1, X2, Y2:Integer; W:Integer=0; H:Integer=0);
+      Procedure TileRemap(X,Y, TilesPerX, TilesPerY:Integer; Tex:Texture);
+      Procedure TileRemapByID(TileID, TilesPerRow, TileSize:Integer; Tex:Texture);
+      Procedure PixelRemap(X1,Y1, X2, Y2:Integer; Tex:Texture; W:Integer=0; H:Integer=0);
       Procedure UVRemap(_U1,_V1, _U2, _V2:Single);
 
       Procedure FullRemap();
@@ -97,31 +96,24 @@ Type
       Procedure Rebuild(); Virtual; Abstract;
 
     Public
-      Position:Vector2D;
-      Anchor:Vector2D;
-
       Layer:Single;
       ClipRect:ClipRect;
 
       Procedure Release; Override;
-      
-      Procedure SetColor(C:Color); Virtual; Abstract;
+
+      Procedure SetColor(Const C:Color); Virtual; Abstract;
 
       Procedure SetTransform(Const Mat:Matrix3x3); Overload;
       Procedure SetTransform(Const Center:Vector2D; Const Mat:Matrix3x3); Overload;
 
       Procedure SetScale(Const Center:Vector2D; ScaleX, ScaleY:Single); Overload;
-      Procedure SetScale(ScaleX, ScaleY:Single); Overload;
-      Procedure SetScale(Scale:Single); Overload;
 
       Procedure SetScaleAndRotation(Const Center:Vector2D; ScaleX, ScaleY:Single; Rotation:Single); Overload;
       Procedure SetScaleAndRotation(Const Center:Vector2D; Scale:Single; Rotation:Single); Overload;
-      Procedure SetScaleAndRotation(ScaleX, ScaleY:Single; Rotation:Single); Overload;
-      Procedure SetScaleAndRotation(Scale:Single; Rotation:Single); Overload;
 
       Procedure ConcatTransform(Const Mat:Matrix3x3);
 
-      Property Texture:TERRA_Texture.Texture Read _Texture;
+      Property Texture:TERRA_Texture.Texture Read _Texture Write _Texture;
   End;
 
   QuadSprite = Class(Sprite)
@@ -134,24 +126,31 @@ Type
       Procedure Rebuild(); Override;
 
     Public
+      Position:Vector2D;
+      Anchor:Vector2D;
+
       Mirror:Boolean;
       Flip:Boolean;
 
-      Skew:Single;
-
       Rect:TextureRect;
 
-      Procedure SetColor(C:Color); Override;
-      Procedure SetColors(A, B, C, D:Color);
+      Procedure SetColor(Const C:Color); Override;
+      Procedure SetColors(Const A, B, C, D:Color);
       Procedure SetAlpha(Alpha:Byte);
 
       Procedure SetScroll(U,V:Single);
+
+      Procedure SetScale(ScaleX, ScaleY:Single); Overload;
+      Procedure SetScale(Scale:Single); Overload;
 
       Procedure SetScaleRelative(Const Center:Vector2D; ScaleX, ScaleY:Single); Overload;
       Procedure SetScaleRelative(Const Center:Vector2D; Scale:Single); Overload;
       Procedure SetScaleAndRotationRelative(Const Center:Vector2D; ScaleX, ScaleY:Single; Rotation:Single ); Overload;
       Procedure SetScaleAndRotationRelative(Const Center:Vector2D; Scale:Single; Rotation:Single ); Overload;
       Procedure SetTransformRelative(Const Center:Vector2D; Const Mat:Matrix3x3);
+
+      Procedure SetScaleAndRotation(ScaleX, ScaleY:Single; Rotation:Single); Overload;
+      Procedure SetScaleAndRotation(Scale:Single; Rotation:Single); Overload;
 
       Property Transform:Matrix3x3 Read _Transform;
   End;
@@ -218,10 +217,13 @@ Type
 
       Procedure Flush;
 
+      Procedure QueueSprite(S:Sprite);
+
       Function DrawSprite(X,Y,Layer:Single; SpriteTexture:Texture; ColorTable:Texture = Nil; BlendMode:Integer = blendBlend; Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; IsFont:Boolean = False):QuadSprite;
       Function DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:Texture; Outline:Color; ColorTable:Texture = Nil; BlendMode:Integer = blendBlend;  Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; IsFont:Boolean = False):QuadSprite;
   End;
 
+Function CreateSpriteVertexData(Count:Integer):VertexData;
 
 Implementation
 Uses TERRA_ResourceManager, TERRA_UI, TERRA_Log, TERRA_Image, TERRA_OS, TERRA_Math
@@ -442,8 +444,7 @@ End;
 
 Function SpriteManager.DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:Texture; Outline:Color; ColorTable:Texture; BlendMode:Integer;  Saturation:Single; Filter:TextureFilterMode; IsFont:Boolean):QuadSprite;
 Var
-  N, I:Integer;
-  HasShaders, ResetBatch:Boolean;
+  I:Integer;
 Begin
   If (Not Assigned(SpriteTexture)) Or (Not SpriteTexture.IsReady()) Then
   Begin
@@ -480,7 +481,6 @@ Begin
   Result.Position.X := X;
   Result.Position.Y := Y;
   Result.Layer := Layer;
-  Result.Skew := 0;
   Result.Rect.Width := 0;
   Result.Rect.Height := 0;
   {$IFNDEF DISABLECOLORGRADING}
@@ -504,7 +504,8 @@ Begin
   Result._B := ColorWhite;
   Result._C := ColorWhite;
   Result._D := ColorWhite;
-  Result.Rect.Texture := SpriteTexture;
+
+  Result.Texture := SpriteTexture;
   Result._BlendMode := BlendMode;
 
   Result.Rect.U1 := 0.0;
@@ -515,18 +516,26 @@ Begin
   Result._ScrollU := 0.0;
   Result._ScrollV := 0.0;
 
+  Self.QueueSprite(Result);
+End;
+
+Procedure SpriteManager.QueueSprite(S:Sprite);
+Var
+  N, I:Integer;
+  HasShaders, ResetBatch:Boolean;
+Begin
   HasShaders := GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable;
 
   ResetBatch := True;
 
   N := -1;
   For I:=0 To Pred(_BatchCount) Do
-  If ((_Batches[I]._Texture = SpriteTexture) And (_Batches[I]._BlendMode = BlendMode)
-  {$IFNDEF DISABLECOLORGRADING}And (_Batches[I]._ColorTable = ColorTable){$ENDIF}
-  And (_Batches[I]._IsFont = IsFont)
-  And ( (HasShaders) Or (_Batches[I]._Saturation = Saturation))
-  And (Cardinal(_Batches[I]._Outline) = Cardinal(Outline))
-  And (_Batches[I]._Count<BatchSize)) And (_Batches[I]._Layer = Result.Layer)
+  If ((_Batches[I]._Texture = S._Texture) And (_Batches[I]._BlendMode = S._BlendMode)
+  {$IFNDEF DISABLECOLORGRADING}And (_Batches[I]._ColorTable = S._ColorTable){$ENDIF}
+  And (_Batches[I]._IsFont = S._IsFont)
+  And ( (HasShaders) Or (_Batches[I]._Saturation = S._Saturation))
+  And (Cardinal(_Batches[I]._Outline) = Cardinal(S._Outline))
+  And (_Batches[I]._Count<BatchSize)) And (_Batches[I]._Layer = S.Layer)
   And (Not _Batches[I]._Closed) Then
   Begin
     N := I;
@@ -554,21 +563,21 @@ Begin
   If ResetBatch Then
   Begin
     _Batches[N]._Count := 0;
-    _Batches[N]._BlendMode := BlendMode;
-    _Batches[N]._Texture := SpriteTexture;
+    _Batches[N]._BlendMode := S._BlendMode;
+    _Batches[N]._Texture := S._Texture;
     _Batches[N]._Closed := False;
-    _Batches[N]._Layer := Result.Layer;
+    _Batches[N]._Layer := S.Layer;
     {$IFNDEF DISABLECOLORGRADING}
-    _Batches[N]._ColorTable := ColorTable;
+    _Batches[N]._ColorTable := S._ColorTable;
     {$ENDIF}
-    _Batches[N]._Saturation := Saturation;
-    _Batches[N]._IsFont := IsFont;
-    _Batches[N]._Outline := Outline;
+    _Batches[N]._Saturation := S._Saturation;
+    _Batches[N]._IsFont := S._IsFont;
+    _Batches[N]._Outline := S._Outline;
     _Batches[N]._First := Nil;
     _Batches[N]._Manager := Self;
   End;
 
-  _Batches[N].AddSprite(Result);
+  _Batches[N].AddSprite(S);
 End;
 
 Procedure SpriteManager.Clear;
@@ -807,29 +816,9 @@ Begin
   SetScaleAndRotation(Center, ScaleX, ScaleY, 0.0);
 End;
 
-Procedure Sprite.SetScaleAndRotation(ScaleX, ScaleY, Rotation: Single);
-Begin
-  SetScaleAndRotation(Self.Position, ScaleX, ScaleY, Rotation);
-End;
-
-Procedure Sprite.SetScale(ScaleX, ScaleY:Single);
-Begin
-  SetScale(Self.Position, ScaleX, ScaleY);
-End;
-
 Procedure Sprite.ConcatTransform(const Mat: Matrix3x3);
 Begin
   Self._Transform := MatrixMultiply3x3(_Transform, Mat);
-End;
-
-Procedure Sprite.SetScale(Scale: Single);
-Begin
-  SetScale(Scale, Scale);
-End;
-
-Procedure Sprite.SetScaleAndRotation(Scale, Rotation: Single);
-Begin
-  SetScaleAndRotation(Scale, Scale, Rotation);
 End;
 
 Procedure Sprite.SetScaleAndRotation(const Center: Vector2D; Scale, Rotation: Single);
@@ -838,12 +827,12 @@ Begin
 End;
 
 { QuadSprite }
-ProcedurE QuadSprite.SetTransformRelative(Const Center:Vector2D; Const Mat:Matrix3x3);
+Procedure QuadSprite.SetTransformRelative(Const Center:Vector2D; Const Mat:Matrix3x3);
 Var
   Dest:Vector2D;
   W,H:Single;
 Begin
-  If (Rect.Texture = Nil) Then
+  If (Self.Texture = Nil) Then
   Begin
     SetTransform(Self.Position, Mat);
   End Else
@@ -851,17 +840,37 @@ Begin
     If Rect.Width>0 Then
       W := Rect.Width
     Else
-      W := Rect.Texture.Width;
+      W := Self.Texture.Width;
 
     If Rect.Height>0 Then
       H := Rect.Height
     Else
-      H := Rect.Texture.Height;
+      H := Self.Texture.Height;
 
     Dest.X := Self.Position.X + Center.X * W;
     Dest.Y := Self.Position.Y + Center.Y * H;
     SetTransform(Dest, Mat)
   End;
+End;
+
+Procedure QuadSprite.SetScaleAndRotation(ScaleX, ScaleY, Rotation:Single);
+Begin
+  SetScaleAndRotation(Self.Position, ScaleX, ScaleY, Rotation);
+End;
+
+Procedure QuadSprite.SetScale(ScaleX, ScaleY:Single);
+Begin
+  SetScale(Self.Position, ScaleX, ScaleY);
+End;
+
+Procedure QuadSprite.SetScale(Scale: Single);
+Begin
+  SetScale(Scale, Scale);
+End;
+
+Procedure QuadSprite.SetScaleAndRotation(Scale, Rotation: Single);
+Begin
+  SetScaleAndRotation(Scale, Scale, Rotation);
 End;
 
 ProcedurE QuadSprite.SetScaleAndRotationRelative(Const Center:Vector2D; ScaleX, ScaleY:Single; Rotation:Single);
@@ -889,7 +898,7 @@ Begin
   Self._ScrollV := V;
 End;
 
-Procedure QuadSprite.SetColor(C: Color);
+Procedure QuadSprite.SetColor(Const C:Color);
 Begin
   _A := C;
   _B := C;
@@ -897,7 +906,7 @@ Begin
   _D := C;
 End;
 
-Procedure QuadSprite.SetColors(A, B, C, D:Color);
+Procedure QuadSprite.SetColors(Const A, B, C, D:Color);
 Begin
   _A := A;
   _B := B;
@@ -927,9 +936,8 @@ End;
 Procedure QuadSprite.Rebuild;
 Var
   K:Single;
+  Pos:Vector2D;
 Begin
-  _Texture := Self.Rect.Texture;
-
   If _Vertices = Nil Then
     _Vertices := CreateSpriteVertexData(6);
 
@@ -941,6 +949,9 @@ Begin
   If (_Height<=0) Then
     _Height := (Self.Rect.V2-Self.Rect.V1) * (_Texture.Height / _Texture.Ratio.Y);
 
+  Pos.X := Position.X - Anchor.X * _Width;
+  Pos.Y := Position.Y - Anchor.Y * _Height;
+
   If (Self.Mirror) Then
   Begin
     K := Self.Rect.U1;
@@ -948,7 +959,7 @@ Begin
     Self.Rect.U2 := K;
   End;
 
-  If (Self.Rect.Texture.Origin = surfaceBottomRight) Then
+  If (Self.Texture.Origin = surfaceBottomRight) Then
     Self.Flip := Not Self.Flip;
 
   If (Self.Flip) Then
@@ -971,16 +982,16 @@ Begin
   _Vertices.SetColor(2, vertexColor, _B);
   _Vertices.SetColor(4, vertexColor, _A);
 
-  _Vertices.SetVector3D(0, vertexPosition, VectorCreate(0, _Height, 0));
+  _Vertices.SetVector3D(0, vertexPosition, VectorCreate(Pos.X, Pos.Y + _Height, 0));
   _Vertices.SetVector2D(0, vertexUV0, VectorCreate2D(Self.Rect.U1, Self.Rect.V2));
 
-  _Vertices.SetVector3D(1, vertexPosition, VectorCreate(_Width, _Height, 0));
+  _Vertices.SetVector3D(1, vertexPosition, VectorCreate(Pos.X + _Width, Pos.Y +_Height, 0));
   _Vertices.SetVector2D(1, vertexUV0, VectorCreate2D(Self.Rect.U2, Self.Rect.V2));
 
-  _Vertices.SetVector3D(2, vertexPosition, VectorCreate(_Width + Self.Skew, 0, 0));
+  _Vertices.SetVector3D(2, vertexPosition, VectorCreate(Pos.X + _Width, Pos.Y, 0));
   _Vertices.SetVector2D(2, vertexUV0, VectorCreate2D(Self.Rect.U2, Self.Rect.V1));
 
-  _Vertices.SetVector3D(4, vertexPosition, VectorCreate(0 + Self.Skew, 0, 0));
+  _Vertices.SetVector3D(4, vertexPosition, VectorCreate(Pos.X, Pos.Y, 0));
   _Vertices.SetVector2D(4, vertexUV0, VectorCreate2D(Self.Rect.U1, Self.Rect.V1));
 
   _Vertices.CopyVertex(2, 3);
@@ -1042,7 +1053,8 @@ Begin
   End Else
     _Manager.EnableSpriteShader({$IFDEF DISABLECOLORGRADING}False{$ELSE}Assigned(Self._ColorTable){$ENDIF});
 
-  _Texture.Bind(0);
+  If Not _Texture.Bind(0) Then
+    Exit;
 
   {$IFNDEF DISABLECOLORGRADING}
   If (Not Self._IsFont) Then
@@ -1053,7 +1065,7 @@ Begin
 
 //  Ratio := UIManager.Instance.Ratio;
 
-  OutIt := SpriteManager.Instance._Vertices.GetIterator(SpriteVertex);
+  OutIt := SpriteManager.Instance._Vertices.GetIteratorForClass(SpriteVertex);
 
   Ofs := 0;
   S := _First;
@@ -1072,17 +1084,16 @@ Begin
     W := S._Width;
     H := S._Height;
 
-    OutIt.Seek(Ofs);
-    InIt := S._Vertices.GetIterator(SpriteVertex);
+    If Not OutIt.Seek(Ofs) Then
+      Break;
+      
+    InIt := S._Vertices.GetIteratorForClass(SpriteVertex);
     While (InIt.HasNext()) And (OutIt.HasNext()) Do
     Begin
       Src := SpriteVertex(InIt.Value);
       Dest := SpriteVertex(OutIt.Value);
 
       Pos := Src.Position;
-
-      Pos.X := Pos.X + S.Position.X - S.Anchor.X * S._Width;
-      Pos.Y := Pos.Y + S.Position.Y - S.Anchor.Y * S._Height;
 
       Pos := S._Transform.Transform(Pos);
       Pos.Z := S.Layer;
@@ -1154,17 +1165,17 @@ Begin
   Self.V2 := 1.0;
 End;
 
-Procedure TextureRect.PixelRemap(X1, Y1, X2, Y2, W, H: Integer);
+Procedure TextureRect.PixelRemap(X1, Y1, X2, Y2:Integer; Tex:Texture;  W, H: Integer);
 Begin
-  If (Texture = Nil) Then
+  If (Tex = Nil) Then
     Exit;
 
-  Texture.Prefetch();
+  Tex.Prefetch();
 
-  U1 := (X1/Texture.Width * Texture.Ratio.X);
-  V1 := (Y1/Texture.Height * Texture.Ratio.Y);
-  U2 := (X2/Texture.Width * Texture.Ratio.X);
-  V2 := (Y2/Texture.Height * Texture.Ratio.Y);
+  U1 := (X1/Tex.Width * Tex.Ratio.X);
+  V1 := (Y1/Tex.Height * Tex.Ratio.Y);
+  U2 := (X2/Tex.Width * Tex.Ratio.X);
+  V2 := (Y2/Tex.Height * Tex.Ratio.Y);
 
   If (W>0) Then
     Self.Width := W
@@ -1177,48 +1188,48 @@ Begin
     Self.Height := IntMax(1, (Abs(Y2-Y1)));
 End;
 
-Procedure TextureRect.TileRemapByID(TileID, TilesPerRow, TileSize:Integer);
+Procedure TextureRect.TileRemapByID(TileID, TilesPerRow, TileSize:Integer; Tex:Texture);
 Var
   TX, TY:Integer;
   PX, PY:Single;
 Begin
-  If (Texture = Nil) Then
+  If (Tex = Nil) Then
     Exit;
 
-  Texture.Prefetch();
+  Tex.Prefetch();
 
-  PX := (1/(Texture.Width / Texture.Ratio.X));
-  PY := (1/(Texture.Height / Texture.Ratio.Y));
+  PX := (1/(Tex.Width / Tex.Ratio.X));
+  PY := (1/(Tex.Height / Tex.Ratio.Y));
 
   TX := (TileID Mod TilesPerRow);
   TY := (TileID Div TilesPerRow);
-  U1 := (TX/TilesPerRow + PX) * Texture.Ratio.X;
-  U2 := (Succ(TX)/TilesPerRow - PX) * Texture.Ratio.X;
-  V1 := (TY/TilesPerRow + PY) * Texture.Ratio.Y;
-  V2 := (Succ(TY)/TilesPerRow - PY) * Texture.Ratio.Y;
+  U1 := (TX/TilesPerRow + PX) * Tex.Ratio.X;
+  U2 := (Succ(TX)/TilesPerRow - PX) * Tex.Ratio.X;
+  V1 := (TY/TilesPerRow + PY) * Tex.Ratio.Y;
+  V2 := (Succ(TY)/TilesPerRow - PY) * Tex.Ratio.Y;
 
   Width := TileSize;
   Height := TileSize;
 End;
 
-Procedure TextureRect.TileRemap(X, Y, TilesPerX, TilesPerY: Integer);
+Procedure TextureRect.TileRemap(X, Y, TilesPerX, TilesPerY: Integer; Tex:Texture);
 Var
   SX, SY:Single;
   TX,TY:Single;
 Begin
-  If (Texture = Nil) Then
+  If (Tex = Nil) Then
     Exit;
 
-  Texture.Prefetch();
+  Tex.Prefetch();
 
-  SX := (Texture.Width / Texture.Ratio.X) / TilesPerX;
-  SY := (Texture.Height / Texture.Ratio.Y) / TilesPerY;
+  SX := (Tex.Width / Tex.Ratio.X) / TilesPerX;
+  SY := (Tex.Height / Tex.Ratio.Y) / TilesPerY;
   TX := SX*X;
   TY := SY*Y;
-  U1 := (TX/Texture.Width * Texture.Ratio.X);
-  V1 := (TY/Texture.Height * Texture.Ratio.Y);
-  U2 := (((TX+SX)-1)/Texture.Width * Texture.Ratio.X);
-  V2 := (((TY+SY)-1)/Texture.Height * Texture.Ratio.Y);
+  U1 := (TX/Tex.Width * Tex.Ratio.X);
+  V1 := (TY/Tex.Height * Tex.Ratio.Y);
+  U2 := (((TX+SX)-1)/Tex.Width * Tex.Ratio.X);
+  V2 := (((TY+SY)-1)/Tex.Height * Tex.Ratio.Y);
   Self.Width := Trunc(SX);
   Self.Height := Trunc(SY);
 End;

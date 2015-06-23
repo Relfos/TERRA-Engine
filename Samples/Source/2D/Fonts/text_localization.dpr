@@ -65,7 +65,7 @@ Procedure Demo.OnIdle;
 Begin
   If (InputManager.Instance.Keys.WasPressed(keyEscape)) Then
     Application.Instance.Terminate;
-
+    
   If (InputManager.Instance.Keys.WasPressed(keyLeft)) And (_SelectedLanguage>1) Then
   Begin
     Dec(_SelectedLanguage);

@@ -799,7 +799,7 @@ Begin
   Group.TriangleCount := S._IndexCount Div 3;
   Group.VertexCount := S._VertexCount;
 
-  It := Group.Vertices.GetIterator(SolidVertex);
+  It := Group.Vertices.GetIteratorForClass(SolidVertex);
   While It.HasNext() Do
   Begin
     Dest := SolidVertex(It.Value);

@@ -94,6 +94,9 @@ Begin
     _FontRenderer.DrawText(50, 230, 10, GetLanguageDescription(language_Chinese));
     _FontRenderer.DrawText(50, 260, 10, GetLanguageDescription(language_Korean));
     _FontRenderer.DrawText(50, 290, 10, GetLanguageDescription(language_Japanese));
+
+    // dynamic text
+    _FontRenderer.DrawText(200, 250, 10, CardinalToString(Application.GetTime() Div 1000));
   End;
 End;
 

@@ -707,8 +707,8 @@ End;
 
 Procedure ScreenFXChain.OnContextLost;
 Begin
-  If Assigned(_Shader) Then
-    _Shader.Invalidate();
+  ReleaseObject(_Shader);
+  _NeedsUpdate := True;
 End;
 
 Procedure ScreenFXChain.SetAntiAlias(const Value: Boolean);

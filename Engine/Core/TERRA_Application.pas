@@ -247,7 +247,6 @@ Type
       _Paused:Boolean;
 
       _ContextWasLost:Boolean;
-      _ContextCounter:Integer;
 
       _DeviceX1:Integer;
       _DeviceY1:Integer;
@@ -525,8 +524,6 @@ Type
 
       Property Paused:Boolean Read _Paused Write SetPause;
       Property CanReceiveEvents:Boolean Read _CanReceiveEvents;
-
-      Property ContextID:Integer Read _ContextCounter;
 
       Property TapjoyCredits:Integer Read _TapjoyCredits;
 
@@ -964,7 +961,6 @@ Begin
     If (_ContextWasLost) Then
     Begin
       _ContextWasLost := False;
-      Inc(_ContextCounter);
       Self.UpdateContextLost();
     End;
 
@@ -1968,9 +1964,9 @@ Begin
   GetDir(0, _Path);
   {$ENDIF}
   _Language := 'EN';
-  _ContextCounter := 1;
-  _CPUCores := 1;
 
+
+  _CPUCores := 1;
 
   _DebuggerPresent := Self.IsDebuggerPresent();
 

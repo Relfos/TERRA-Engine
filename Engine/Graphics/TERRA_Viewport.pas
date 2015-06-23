@@ -63,8 +63,6 @@ Type
       _ViewWidth:Integer;
       _ViewHeight:Integer;
 
-      _ContextID:Integer;
-
       _ResolveBuffer:RenderTargetInterface;
       _ResolveTexture:Texture;
 
@@ -399,8 +397,6 @@ Begin
 
   _CurrentSubView := 0;
 
-  _ContextID := Application.Instance.ContextID;
-
   _BackgroundColor := ColorCreate(0, 0, 0, 255);
 
   _Camera := TERRA_Camera.Camera.Create(Name);
@@ -659,15 +655,18 @@ Var
 Begin
   TargetValue := Integer(TargetType);
 
-  If (_ContextID <> Application.Instance.ContextID) Then
-  Begin
-    Self.OnContextLost();
-  End;
-
   If (TargetValue < 0) Or (TargetValue >= TotalCaptureTargets) Then
     Result := Nil
   Else
+  Begin
     Result := _RenderBuffers[TargetValue];
+
+    If (Assigned(Result)) And (Not Result.IsValid()) Then
+    Begin
+      Self.OnContextLost();
+      Result := Nil;
+    End;
+  End;
 End;
 
 Function Viewport.GetRenderTexture(TargetType:RenderTargetType):Texture;
@@ -675,11 +674,6 @@ Var
   TargetValue:Integer;
 Begin
   TargetValue := Integer(TargetType);
-
-  If (_ContextID <> Application.Instance.ContextID) Then
-  Begin
-    Self.OnContextLost();
-  End;
 
   If (TargetValue < 0) Or (TargetValue >= TotalCaptureTargets) Then
     Result := Nil
@@ -839,8 +833,7 @@ Begin
     _FXChain := ScreenFXChain.Create()
   Else
   Begin
-    _FXChain.Release();
-    _FXChain := Nil;
+    ReleaseObject(_FXChain);
   End;
   {$ELSE}
   Self._DoPostProcessing := False;
@@ -969,16 +962,12 @@ End;
 Procedure Viewport.OnContextLost;
 Var
   I:Integer;
-  Temp:Boolean;
 Begin
   Log(logDebug, 'Viewport', 'Context lost: '+Self.Name);
 
-  _ContextID := Application.Instance.ContextID;
-
   For I:=0 To Pred(TotalCaptureTargets) Do
   Begin
-    Temp := Assigned(_RenderBuffers[I]);
-    If Temp Then
+    If (Assigned(_RenderBuffers[I])) Or (Assigned(_RenderTextures[I])) Then
     Begin
       Log(logDebug, 'Viewport', 'Reseting '+IntToString(I)+' target for '+Self.Name);
       Self.SetRenderTargetState(RenderTargetType(I), False);
@@ -986,6 +975,8 @@ Begin
     End;
   End;
 
+  ReleaseObject(_ResolveBuffer);
+  ReleaseObject(_ResolveTexture);
 
   {$IFDEF POSTPROCESSING}
   If Assigned(_FXChain) Then

@@ -214,6 +214,8 @@ Type
 
       Procedure RestoreContext;
 
+      Procedure SetRenderer(Value: GraphicsRenderer);
+
     Public
       ShowShadowVolumes:Boolean;
       ShowWireframe:Boolean;
@@ -301,7 +303,7 @@ Type
 
       Property CameraCount:Integer Read _CameraCount;
 
-      Property Renderer:GraphicsRenderer Read _Renderer;
+      Property Renderer:GraphicsRenderer Read _Renderer Write SetRenderer;
 
       Property ActiveViewport:Viewport Read _CurrentViewport Write SetCurrentViewport;
       Property MainViewport:Viewport Read _MainViewport;
@@ -714,15 +716,13 @@ Begin
   If (RendererID<0) Or (RendererID>=Renderers.Count) Then
     RendererID := 0;
 
-  _Renderer := GraphicsRenderer(Renderers.GetItemByIndex(RendererID));
-  If _Renderer = Nil Then
+  SetRenderer(GraphicsRenderer(Renderers.GetItemByIndex(RendererID)));
+
+  If Self.Renderer = Nil Then
   Begin
     RaiseError('Failed to initialized renderer with ID '+IntToString(RendererID));
     Exit;
   End;
-
-  Log(logDebug, 'GraphicsManager', 'Initializing Renderer: '+_Renderer.Name);
-  _Renderer.Reset();
 
   Log(logDebug, 'GraphicsManager', 'Width='+IntToString(_Width)+' Height='+IntToString(_Height));
 
@@ -2168,6 +2168,18 @@ Begin
   _Scene := MyScene;
 End;
 
+Procedure GraphicsManager.SetRenderer(Value: GraphicsRenderer);
+Begin
+  ReleaseObject(_Renderer);
+
+  _Renderer := Value;
+  If _Renderer = Nil Then
+    Exit;
+
+  Log(logDebug, 'GraphicsManager', 'Initializing Renderer: '+_Renderer.Name);
+  _Renderer.Reset();
+End;
+
 { Renderable }
 Procedure Renderable.Release;
 Begin
@@ -2302,8 +2314,11 @@ Var
   I:Integer;
   Img:Image;
 Begin
+  If Renderer = Nil Then
+    Exit;
+    
   Log(logDebug, 'GraphicsManager', 'Restoring rendering context');
-  Renderer.ResetState();
+  Renderer.OnContextLost();
 
   _DeviceViewport.OnContextLost();
   _UIViewport.OnContextLost();

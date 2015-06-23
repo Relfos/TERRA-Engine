@@ -205,6 +205,8 @@ Type
 
 		  Procedure CancelTasks;
 
+      Property MainThread:Cardinal Read _MainThread;
+
 		  Class Function Instance:ThreadPool;
     End;
 

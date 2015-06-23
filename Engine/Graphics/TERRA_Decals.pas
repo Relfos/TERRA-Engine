@@ -153,10 +153,10 @@ Begin
   Ofs := 0;
   For I:=0 To Pred(_DecalCount) Do
   Begin
-    U1 := _Decals[I].Item.X / Self._TextureAtlas.Width;
-    V1 := _Decals[I].Item.Y / Self._TextureAtlas.Height;
-    U2 := (_Decals[I].Item.X + _Decals[I].Item.Buffer.Width) / Self._TextureAtlas.Width;
-    V2 := (_Decals[I].Item.Y + _Decals[I].Item.Buffer.Height) / Self._TextureAtlas.Height;
+    U1 := _Decals[I].Item.U1;
+    V1 := _Decals[I].Item.V1;
+    U2 := _Decals[I].Item.U2;
+    V2 := _Decals[I].Item.V2;
 
     Angle := _Decals[I].Rotation + (PI/4);
     Pos := _Decals[I].Position;

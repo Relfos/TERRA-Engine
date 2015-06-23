@@ -206,7 +206,6 @@ Type
     Protected
       _Texture:Texture;
 
-
     Public
       Filter:TextureFilterMode;
       Offset:Single;
@@ -238,6 +237,9 @@ Type
   End;
 
   UISprite = Class(Widget)
+    Protected
+      _Texture:Texture;
+
     Public
       Rect:TextureRect;
       Anchor:Vector2D;
@@ -253,6 +255,8 @@ Type
 
       Function OnMouseDown(X,Y:Integer;Button:Word):Boolean; Override;
       Function OnMouseUp(X,Y:Integer;Button:Word):Boolean; Override;
+
+      Property Texture:TERRA_Texture.Texture Read _Texture Write _Texture;
   End;
 
   UICheckBox = Class(UICaption)
@@ -2754,14 +2758,14 @@ Begin
 
   If (Picture<>'') Then
   Begin
-    Self.Rect.Texture := TextureManager.Instance.GetTexture(Picture);
+    Self.Texture := TextureManager.Instance.GetTexture(Picture);
 
-    If (Assigned(Self.Rect.Texture)) Then
-      Self.Rect.Texture.PreserveQuality := True
+    If (Assigned(Self.Texture)) Then
+      Self.Texture.PreserveQuality := True
     Else
       Log(logWarning, 'UI', 'Missing texture for SpriteWidget: '+Picture);
   End Else
-    Self.Rect.Texture := Nil;
+    Self.Texture := Nil;
 
 
   Self.Pivot := VectorCreate2D(0, 0);
@@ -2836,7 +2840,7 @@ Begin
     MyColor := ColorGrey(64);
   {$ENDIF}
 
-  If Rect.Texture=Nil Then
+  If Self.Texture=Nil Then
     Exit;
 
   Self.GetScrollOffset(OfsX, OfsY);
@@ -2863,7 +2867,7 @@ Begin
   Center.Y := Center.Y * _Pivot.Y * Scale;
   Center.Add(Pos);
 
-  S := SpriteManager.Instance.DrawSprite(Pos.X, Pos.Y, Self.GetLayer(), Rect.Texture, Nil, BlendBlend, Self.GetSaturation(), Filter);
+  S := SpriteManager.Instance.DrawSprite(Pos.X, Pos.Y, Self.GetLayer(), Self.Texture, Nil, BlendBlend, Self.GetSaturation(), Filter);
   S.Anchor := Anchor;
   S.SetColor(MyColor);
   S.Rect := Rect;
@@ -2877,10 +2881,11 @@ End;
 
 Procedure UISprite.SetTexture(Tex: Texture);
 Begin
+  Self._Texture := Tex;
+
   If Tex = Nil Then
     Exit;
-    
-  Self.Rect.Texture := Tex;
+
   Self.Rect.Width := Tex.Width;
   Self.Rect.Height := Tex.Height;
   Self.Rect.U1 := 0.0;
@@ -2891,15 +2896,15 @@ End;
 
 Procedure UISprite.UpdateRects();
 Begin
-  If Assigned(Rect.Texture) Then
+  If Assigned(_Texture) Then
   Begin
-    Rect.Texture.Prefetch();
+    _Texture.Prefetch();
 
     If (Rect.Width<=0) Then
-      Rect.Width := Trunc(SafeDiv(Rect.Texture.Width, Rect.Texture.Ratio.X));
+      Rect.Width := Trunc(SafeDiv(_Texture.Width, _Texture.Ratio.X));
 
     If (Rect.Height<=0) Then
-      Rect.Height := Trunc(SafeDiv(Rect.Texture.Height, Rect.Texture.Ratio.Y));
+      Rect.Height := Trunc(SafeDiv(_Texture.Height, _Texture.Ratio.Y));
   End;
 
   _Size.X := Rect.Width;
