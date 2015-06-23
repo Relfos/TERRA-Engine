@@ -119,6 +119,7 @@ Type
       _Y:Single;
 
     Public
+      Procedure SetColor(Const C:Color); Override;
       Procedure SetColors(A, B, C, D:Color);
 
       Procedure Rebuild(); Override;
@@ -1051,6 +1052,11 @@ Begin
 
   _Vertices.CopyVertex(2, 3);
   _Vertices.CopyVertex(0, 5);
+End;
+
+Procedure FontSprite.SetColor(const C: Color);
+Begin
+  Self.SetColors(C, C, C, C);
 End;
 
 Procedure FontSprite.SetColors(A, B, C, D: Color);
