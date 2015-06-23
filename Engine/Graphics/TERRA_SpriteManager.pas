@@ -460,8 +460,6 @@ Begin
     DebugBreak;
   {$ENDIF}
 
-  Layer := Layer/100;
-
   X := Trunc(X);
   Y := Trunc(Y);
 
@@ -522,11 +520,14 @@ End;
 Procedure SpriteManager.QueueSprite(S:Sprite);
 Var
   N, I:Integer;
+  TargetLayer:Single;
   HasShaders, ResetBatch:Boolean;
 Begin
   HasShaders := GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable;
 
   ResetBatch := True;
+
+  TargetLayer := S.Layer * 0.01;
 
   N := -1;
   For I:=0 To Pred(_BatchCount) Do
@@ -535,7 +536,7 @@ Begin
   And (_Batches[I]._IsFont = S._IsFont)
   And ( (HasShaders) Or (_Batches[I]._Saturation = S._Saturation))
   And (Cardinal(_Batches[I]._Outline) = Cardinal(S._Outline))
-  And (_Batches[I]._Count<BatchSize)) And (_Batches[I]._Layer = S.Layer)
+  And (_Batches[I]._Count<BatchSize)) And (_Batches[I]._Layer = TargetLayer)
   And (Not _Batches[I]._Closed) Then
   Begin
     N := I;
@@ -566,7 +567,7 @@ Begin
     _Batches[N]._BlendMode := S._BlendMode;
     _Batches[N]._Texture := S._Texture;
     _Batches[N]._Closed := False;
-    _Batches[N]._Layer := S.Layer;
+    _Batches[N]._Layer := TargetLayer;
     {$IFNDEF DISABLECOLORGRADING}
     _Batches[N]._ColorTable := S._ColorTable;
     {$ENDIF}
@@ -635,7 +636,7 @@ Begin
   Graphics := GraphicsManager.Instance;
   Graphics.Renderer.SetBlendMode(blendNone);
 
-//  glDisable(GL_DEPTH_TEST); {FIXME}
+  //glEnable(GL_DEPTH_TEST); {FIXME}
   Graphics.Renderer.SetDepthFunction(compareLessOrEqual);
 
   (*If (Not Graphics.Renderer.Features.Shaders.Avaliable) Then

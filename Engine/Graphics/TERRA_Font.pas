@@ -443,8 +443,6 @@ Begin
   Result.Layer := Z;
   Result.Texture := Tex;
 
-  SpriteManager.Instance.QueueSprite(Result);
-
   Result.SetTransform(Transform);
   Result.ClipRect := Clip;
 //  Result.SetScale(Scale);
@@ -456,6 +454,8 @@ Begin
     Result._Skew := 5.0
   Else
     Result._Skew := 0.0;
+
+  SpriteManager.Instance.QueueSprite(Result);
 End;
 
 {$I default_font.inc}
