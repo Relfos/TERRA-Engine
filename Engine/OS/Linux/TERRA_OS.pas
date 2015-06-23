@@ -1096,7 +1096,6 @@ Begin
   End; 
 
   _ScreenHandle := DefaultScreen(_Display);
-  
 
   //Root := RootWindow(_Display, Vi.Screen);
   Root := RootWindow(_Display, _ScreenHandle);
@@ -1116,11 +1115,13 @@ Begin
                          0, CopyFromParent, InputOutput, {Vi.visual}Nil,
                          CWBorderPixel {Or CWColormap} Or CWEventMask,
                          @_Attr);
+
   // only set window title and handle wm_delete_events if in windowed mode
   wmDelete := XInternAtom(_Display, 'WM_DELETE_WINDOW', True);
   XSetWMProtocols(_Display, _Window, @wmDelete, 1);
   XSetStandardProperties(_Display, _Window, PAnsiChar(Title), PAnsiChar(Title),
                          None, Nil, 0, Nil);
+
   XMapRaised(_Display, _Window);
 
   // Hide cursor
@@ -1247,7 +1248,6 @@ Var
   original_size_id:TSizeID;
   conf:PXRRScreenConfiguration;
   current_rate:Integer;
-  MyRenderer:Renderer;
 Begin
   Inherited InitSettings;
 
@@ -1296,10 +1296,10 @@ Begin
     _Screen.Height := xrrs[original_size_id].height;
   End;
 
+  Renderers.Add(OpenGLRenderer.Create());
+
   XCloseDisplay(_Display);
   _Display := Nil;
-
-  Renderers.Add(OpenGLRenderer.Create());
 
   // Initialize joysticks/gamepads
   //For I:=0 To 3 Do

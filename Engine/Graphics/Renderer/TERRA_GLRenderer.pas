@@ -656,6 +656,7 @@ Var
   borderDummy:Cardinal;
   Depth:Cardinal;
   Vi:PXVisualInfo;
+  App:Application;
 
 Function TrySettings(zDepth:Integer; msaaSamples:Integer):PXVisualInfo;
 Var
@@ -856,14 +857,16 @@ Begin
     Exit;
   End;
 
-  // create a GLX context
-  _Ctx := glXCreateContext(Application.Instance.Display, Vi, Nil, True);
+  App := Application.Instance;
 
-	Depth := 32;
+  // create a GLX context
+  _Ctx := glXCreateContext(App.Display, Vi, Nil, True);
+
+  Depth := 32;
 
   // connect the glx-context to the window
-  glXMakeCurrent(Application.Instance.Display, Application.Instance.Handle, _Ctx);
-  XGetGeometry(Application.Instance.Display, Application.Instance.Handle, @winDummy, @X, @Y, @Width, @Height, @borderDummy, @Depth);
+  glXMakeCurrent(App.Display, App.Handle, _Ctx);
+  XGetGeometry(App.Display, App.Handle, @winDummy, @X, @Y, @Width, @Height, @borderDummy, @Depth);
 
   Application.Instance.AddCoordEvent(eventWindowResize, Width, Height, 0);
   {$ENDIf}

@@ -772,7 +772,7 @@ Begin
   _PrevStats := Nil;
 
   {$IFDEF LINUX}
-  Self.Reset();
+ // Self.Reset();
   {$ENDIF}
 End;
 
