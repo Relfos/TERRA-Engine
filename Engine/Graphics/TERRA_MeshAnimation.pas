@@ -198,8 +198,6 @@ Type
 
       Procedure Clone(Other:Animation);
 
-      Procedure Release(); Override;
-
       Function Load(Source:Stream):Boolean; Override;
       Procedure Save(Dest:Stream); Overload;
       Procedure Save(FileName:TERRAString); Overload;
@@ -217,8 +215,6 @@ Type
 
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
-
-      Procedure OnContextLost; Override;
 
       Property BoneCount:Integer Read _BoneCount;
       Property Length:Single Read GetLength;
@@ -1182,7 +1178,7 @@ Begin
     Bone.Load(Source);
   End;
 
-  _Status := rsReady;
+  SetStatus(rsReady);
   Result := True;
 End;
 
@@ -1239,19 +1235,22 @@ Begin
 End;
 
 Function Animation.Unload: Boolean;
+Var
+  I,J:Integer;
 Begin
-  Result := False;
+  For I:=0 To Pred(_BoneCount) Do
+    ReleaseObject(_Bones[I]);
+
+  SetLength(_Bones,0);
+  _BoneCount := 0;
+
+  Result := Inherited Unload();
 End;
 
 Function Animation.Update: Boolean;
 Begin
   Inherited Update();
   Result := True;
-End;
-
-Procedure Animation.OnContextLost;
-Begin
-  _ContextID := Application.Instance.ContextID;
 End;
 
 (*
@@ -1346,21 +1345,6 @@ Var
 Begin
   For I:=0 To Pred(Self.BoneCount) Do
     _Bones[I].CloseLoop();
-End;
-
-Procedure Animation.Release;
-Var
-  I,J:Integer;
-Begin
-  For I:=0 To Pred(_BoneCount) Do
-    _Bones[I].Release();
-
-  SetLength(_Bones,0);
-  _BoneCount := 0;
-
-  _Status := rsUnloaded;
-
-  Inherited;
 End;
 
 { AnimationState }
@@ -1479,8 +1463,8 @@ Begin
   If Assigned(Processor) Then
     Processor(Self);
 
-  {For I:=1 To _BoneCount Do
-    Transforms[I] := MatrixMultiply4x3(Transforms[I], _Skeleton.BindPose[I]);}
+  For I:=1 To _BoneCount Do
+    Transforms[I] := Matrix4x4Multiply4x3(Transforms[I], _Skeleton.GetBone(Pred(I)).AbsoluteMatrix);
 End;
 
 Procedure AnimationState.SetRoot(Node: AnimationObject);
