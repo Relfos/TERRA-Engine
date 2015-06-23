@@ -699,29 +699,16 @@ Begin
   Java_End(Frame);
 End;
 
-Procedure DoSig(sig:Integer); cdecl;
-Begin
-   RaiseError('Segmentation fault');
-End;
 
 Function AndroidApplication.InitSettings: Boolean;
 Var
   Params:JavaArguments;
   S:JavaObject;
   Frame:JavaFrame;
-  oa,na : PSigActionRec;
 Begin
   Inherited InitSettings;
 
   _ApplicationInstance := Self;
-
-  new(na);
-  new(oa);
-  na^.sa_Handler := SigActionHandler(@DoSig);
-  FillChar(na^.Sa_Mask, SizeOf(na^.sa_mask), #0);
-  na^.Sa_Flags:=0;
-  na^.Sa_Restorer := Nil;
-  fpSigAction(SIGSEGV, na, oa);
 
   Log(logDebug, 'App', 'Starting Android App!');
   Java_Begin(Frame);
