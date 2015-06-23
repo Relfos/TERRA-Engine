@@ -46,7 +46,6 @@ Type
       _Location:TERRAString;
       _Size:Integer;
       _KeepStream:Boolean;
-      _ContextID:Integer;
 
       Procedure CopyValue(Other:CollectionObject); Override;
       Function Sort(Other:CollectionObject):Integer; Override;
@@ -68,7 +67,6 @@ Type
       Function Load(MyStream:Stream):Boolean; Virtual;Abstract;
       Function Unload:Boolean; Virtual;
       Function Update:Boolean; Virtual;
-      Procedure OnContextLost(); Virtual;
 
       Procedure Rebuild(); 
 
@@ -233,12 +231,6 @@ End;
 Function Resource.Update:Boolean;
 Begin
   Result := True;
-  _ContextID := GraphicsManager.Instance.Renderer.CurrentContext; // FIXME
-End;
-
-Procedure Resource.OnContextLost;
-Begin
-  // do nothing
 End;
 
 Function Resource.ShouldUnload: Boolean;
@@ -282,7 +274,6 @@ Begin
   If Self.Build() Then
   Begin
     Self.Update();
-    Self._ContextID := GraphicsManager.Instance.Renderer.CurrentContext; // FIXME
     Self.SetStatus(rsReady);
   End Else
     Self.SetStatus(rsUnloaded);

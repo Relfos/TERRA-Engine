@@ -155,8 +155,6 @@ Begin
     ReleaseObject(TempVertices);
   End;
 
-  Target.OnContextLost();
-
   _StartTime := Application.GetTime();
 End;
 

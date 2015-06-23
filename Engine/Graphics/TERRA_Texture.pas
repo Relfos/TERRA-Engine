@@ -95,8 +95,6 @@ Type
 
       Function IsValid():Boolean;
 
-      Procedure OnContextLost(); Override;
-
       Function Load(Source:Stream):Boolean; Override;
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
@@ -169,7 +167,7 @@ Type
 
     Public
       Procedure Init; Override;
-      Procedure OnContextLost; Override;
+//      Procedure OnContextLost; Override;
 
       Class Function Instance:TextureManager;
       Function GetTexture(Name:TERRAString):Texture;
@@ -640,13 +638,6 @@ Begin
   Result := Inherited Unload();
 End;
 
-
-Procedure Texture.OnContextLost;
-Begin
-  Self.Unload();
-  Self.Build();
-End;
-
 {$DEFINE FORCERGBA}
 {$IFDEF IPHONE}
 {$DEFINE FORCERGBA}
@@ -751,7 +742,8 @@ Begin
 
   If (Not Self.Current.IsValid()) Then
   Begin
-    Self.OnContextLost();
+    Self.Unload();
+    Self.Rebuild();
     Exit;
   End;
 
@@ -810,7 +802,7 @@ Begin
   Result := TextureManager.Instance;
 End;
 
-Procedure TextureManager.OnContextLost;
+(*Procedure TextureManager.OnContextLost;
 Begin
   Inherited;
 
@@ -828,7 +820,7 @@ Begin
 
   If Assigned(_DefaultColorTable) Then
     _DefaultColorTable.Unload();
-End;
+End;*)
 
 { DefaultColorTable }
 Function DefaultColorTableTexture.Build():Boolean;

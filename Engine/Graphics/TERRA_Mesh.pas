@@ -705,8 +705,6 @@ Type
 
       //Function DuplicateVertex(Index:Integer):Integer;
 
-      Procedure OnContextLost();
-
       Function Intersect(Const R:Ray; Var T:Single; Const Transform:Matrix4x4):Boolean;
 
       Function GetTriangle(Index:Integer):Triangle;
@@ -785,8 +783,6 @@ Type
 
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
-
-      Procedure OnContextLost(); Override;
 
       Procedure ResolveLinks();
 
@@ -6021,13 +6017,13 @@ Begin
   Result := MeshManager.Instance;
 End;
 
-Procedure Mesh.OnContextLost;
+(*Procedure Mesh.OnContextLost;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_GroupCount) Do
     _Groups[I].OnContextLost();
-End;
+End;*)
 
 Function Mesh.GetGroup(Index:Integer):MeshGroup;
 Begin
@@ -6556,10 +6552,10 @@ Begin
     Result := _Metadata[Index];
 End;
 
-Procedure MeshGroup.OnContextLost;
+(*Procedure MeshGroup.OnContextLost;
 Begin
   ReleaseObject(_Buffer);
-End;
+End;*)
 
 Procedure Mesh.SubDivide();
 Var

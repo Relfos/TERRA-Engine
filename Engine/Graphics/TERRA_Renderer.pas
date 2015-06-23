@@ -487,9 +487,6 @@ Type
     Protected
       _Name:TERRAString;
 
-      _Objects:Array Of GraphicInterface;
-      _ObjectCount:Integer;
-
       _CurrentContext:Integer;
 
 			_Features:RendererFeatures;
@@ -516,9 +513,6 @@ Type
       _CurrentSource:VertexData;
 
       _VSync:Boolean;
-
-      Procedure AddObject(Obj:GraphicInterface);
-      Procedure RemoveObject(Obj:GraphicInterface);
 
       Function Initialize():Boolean; Virtual; Abstract;
       Procedure InitSettings();
@@ -743,19 +737,15 @@ End;
 { GraphicInterface }
 Constructor GraphicInterface.Create(Owner:GraphicsRenderer);
 Begin
-  If Assigned(Owner) Then
-  Begin
-    Self._Owner := Owner;
-    _Owner.AddObject(Self);
-  End;
+  Self._Owner := Owner;
+  Self._Context := Owner.CurrentContext;
 
   Self.Initialize();
 End;
 
 Procedure GraphicInterface.Release();
 Begin
-  If Assigned(_Owner) Then
-    _Owner.RemoveObject(Self);
+  // do nothing
 End;
 
 Function GraphicInterface.IsValid: Boolean;
@@ -790,34 +780,6 @@ Begin
   ReleaseObject(_Features);
   ReleaseObject(_PrevStats);
   ReleaseObject(_Stats);
-End;
-
-Procedure GraphicsRenderer.AddObject(Obj: GraphicInterface);
-Begin
-  If Obj = Nil Then
-    Exit;
-
-  Obj._Owner := Self;
-  Obj._Context := Self.CurrentContext;
-
-  Inc(_ObjectCount);
-  If Length(_Objects)<_ObjectCount Then
-    SetLength(_Objects, _ObjectCount);
-End;
-
-Procedure GraphicsRenderer.RemoveObject(Obj: GraphicInterface);
-Var
-  I:Integer;
-Begin
-  I := 0;
-  While I<_ObjectCount Do
-  If (_Objects[I] = Obj) Then
-  Begin
-    _Objects[I] := _Objects[Pred(_ObjectCount)];
-    Dec(_ObjectCount);
-    Exit;
-  End Else
-    Inc(I);
 End;
 
 Procedure GraphicsRenderer.OnSettingsChange;

@@ -70,7 +70,6 @@ Type
       Procedure Release; Override;
 
       Procedure Update; Override;
-      Procedure OnContextLost; Override;
 
       Function GetResource(Const Name:TERRAString):Resource;
       Procedure AddResource(MyResource:Resource);
@@ -424,7 +423,7 @@ Begin
   Result := Value.Name;
 End;
 
-Procedure ResourceManager.OnContextLost;
+(*Procedure ResourceManager.OnContextLost;
 Var
   It:Iterator;
   MyResource:Resource;
@@ -442,7 +441,7 @@ Begin
       MyResource.OnContextLost();
     End;
   End;
-End;
+End;*)
 
 Function ResourceManager.ResolveResourceLink(Const ResourceName: TERRAString):TERRAString;
 Const

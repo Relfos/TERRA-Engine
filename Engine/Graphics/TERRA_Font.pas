@@ -774,8 +774,6 @@ Begin
     _Atlas := TextureAtlas.Create(Self.Name, DefaultFontPageWidth, DefaultFontPageHeight);
 
 
-  Self._ContextID := GraphicsManager.Instance.Renderer.CurrentContext; // FIXME
-
   RecalculateMetrics();
 
   Self.SetStatus(rsReady);

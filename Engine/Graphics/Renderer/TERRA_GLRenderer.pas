@@ -1656,7 +1656,8 @@ End;
 
 Procedure OpenGLCubeMap.Release();
 Begin
-  OpenGLRenderer(_Owner).DeleteTexture(_Handle);
+  If (Self.IsValid()) Then
+    OpenGLRenderer(_Owner).DeleteTexture(_Handle);
 End;
 
 Procedure OpenGLCubeMap.SetFilter(Value: TextureFilterMode);
@@ -2126,18 +2127,21 @@ Begin
 
   R := OpenGLRenderer(_Owner);
 
-  R.DeleteRenderBuffer(_color_rb);
-
-	If (Not _Shared) Then
+  If (Self.IsValid()) Then
   Begin
-		R.DeleteRenderBuffer(_depth_rb);
-    R.DeleteRenderBuffer(_stencil_rb);
+    R.DeleteRenderBuffer(_color_rb);
+
+  	If (Not _Shared) Then
+    Begin
+  		R.DeleteRenderBuffer(_depth_rb);
+      R.DeleteRenderBuffer(_stencil_rb);
+    End;
+
+    For I:=0 To Pred(_TargetCount) Do
+		  R.DeleteTexture(_Targets[I]);
+
+    R.DeleteFrameBuffer(_Handle);
   End;
-
-  For I:=0 To Pred(_TargetCount) Do
-		R.DeleteTexture(_Targets[I]);
-
-  R.DeleteFrameBuffer(_Handle);
 End;
 
 Function OpenGLFBO.GetImage():Image;
@@ -2322,7 +2326,8 @@ End;
 
 Procedure OpenGLTexture.Release;
 Begin
-  OpenGLRenderer(_Owner).DeleteTexture(_Handle);
+  If (Self.IsValid()) Then
+    OpenGLRenderer(_Owner).DeleteTexture(_Handle);
 End;
 
 Procedure OpenGLTexture.SetFilter(Value: TextureFilterMode);
