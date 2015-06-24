@@ -690,7 +690,6 @@ Var
 Begin
   Log(logDebug, 'GraphicsManager', 'Initializing');
 
-
   _CurrentViewport := Nil;
   _MainViewport := Nil;
   _DeviceViewport := Nil;

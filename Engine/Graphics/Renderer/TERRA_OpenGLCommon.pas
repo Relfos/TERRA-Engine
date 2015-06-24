@@ -432,7 +432,7 @@ Begin
   _Linked := (LinkStatus=1);
   If Not _Linked Then
   Begin
-    RaiseError('Shader Linking failed.['{+Name}+']'+StringFromChar(NewLineChar)+LogInfo);
+    RaiseError('Shader Linking failed.['+_Name+']'+StringFromChar(NewLineChar)+LogInfo);
     Exit;
   End;
 

@@ -765,8 +765,8 @@ Begin
   _AntialiasSamples := Self.GetAntialiasSamples();
 
   {$IFDEF PC}
-  If (Steam.Instance.Enabled) And (IsSupportedLanguage(Steam.Instance.Language)) Then
-    _Language := Steam.Instance.Language;
+  If (SteamManager.Instance.Enabled) And (IsSupportedLanguage(SteamManager.Instance.Language)) Then
+    _Language := SteamManager.Instance.Language;
   {$ENDIF}
 
   {$IFNDEF MOBILE}

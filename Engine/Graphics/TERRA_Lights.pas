@@ -33,8 +33,14 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
 Const
   {$IFDEF MOBILE}
   MaxLightsPerMesh = 3;
+  MaxDirectionalLightsPerMesh = MaxLightsPerMesh;
+  MaxSpotLightsPerMesh = 1;
+  MaxPointLightsPerMesh = MaxLightsPerMesh;
   {$ELSE}
   MaxLightsPerMesh = 5;
+  MaxDirectionalLightsPerMesh = MaxLightsPerMesh;
+  MaxSpotLightsPerMesh = MaxLightsPerMesh;
+  MaxPointLightsPerMesh = MaxLightsPerMesh;
   {$ENDIF}
 
   lightTypeDirectional  = 0;
@@ -154,13 +160,13 @@ Type
 
   PLightBatch = ^LightBatch;
   LightBatch = Record
-    DirectionalLights:Array[0..Pred(MaxLightsPerMesh)] Of DirectionalLight;
+    DirectionalLights:Array[0..Pred(MaxDirectionalLightsPerMesh)] Of DirectionalLight;
     DirectionalLightCount:Integer;
 
-    PointLights:Array[0..Pred(MaxLightsPerMesh)] Of PointLight;
+    PointLights:Array[0..Pred(MaxPointLightsPerMesh)] Of PointLight;
     PointLightCount:Integer;
 
-    SpotLights:Array[0..Pred(MaxLightsPerMesh)] Of SpotLight;
+    SpotLights:Array[0..Pred(MaxSpotLightsPerMesh)] Of SpotLight;
     SpotLightCount:Integer;
   End;
 
@@ -338,18 +344,27 @@ Begin
   Else
   If (Lights[I] Is PointLight) Then
   Begin
-    Result.PointLights[Result.PointLightCount] := PointLight(Lights[I]);
-    Inc(Result.PointLightCount);
+    If (Result.PointLightCount<MaxPointLightsPerMesh) Then
+    Begin
+      Result.PointLights[Result.PointLightCount] := PointLight(Lights[I]);
+      Inc(Result.PointLightCount);
+    End;
   End Else
   If (Lights[I] Is DirectionalLight) Then
   Begin
-    Result.DirectionalLights[Result.DirectionalLightCount] := DirectionalLight(Lights[I]);
-    Inc(Result.DirectionalLightCount);
+    If (Result.DirectionalLightCount<MaxDirectionalLightsPerMesh) Then
+    Begin
+      Result.DirectionalLights[Result.DirectionalLightCount] := DirectionalLight(Lights[I]);
+      Inc(Result.DirectionalLightCount);
+    End;
   End Else
   If (Lights[I] Is SpotLight) Then
   Begin
-    Result.SpotLights[Result.SpotLightCount] := SpotLight(Lights[I]);
-    Inc(Result.SpotLightCount);
+    If (Result.SpotLightCount<MaxSpotLightsPerMesh) Then
+    Begin
+      Result.SpotLights[Result.SpotLightCount] := SpotLight(Lights[I]);
+      Inc(Result.SpotLightCount);
+    End;
   End;
 End;
 
