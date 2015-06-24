@@ -1690,10 +1690,10 @@ Var
 // SteamUserStats
 Var
 	ISteamUserStats_RequestCurrentStats: Function():Boolean; CDecl;
-	ISteamUserStats_GetStat: Function(pchName:PAnsiChar; Var pData:Integer):Boolean; CDecl;
-	ISteamUserStats_GetStat_: Function(pchName:PAnsiChar; Var pData:Single):Boolean; CDecl;
-	ISteamUserStats_SetStat: Function(pchName:PAnsiChar; nData:Integer):Boolean; CDecl;
-	ISteamUserStats_SetStat_: Function(pchName:PAnsiChar; fData:Single):Boolean; CDecl;
+	ISteamUserStats_GetStatInt: Function(pchName:PAnsiChar; Var pData:Integer):Boolean; CDecl;
+	ISteamUserStats_GetStatFloat: Function(pchName:PAnsiChar; Var pData:Single):Boolean; CDecl;
+	ISteamUserStats_SetStatInt: Function(pchName:PAnsiChar; nData:Integer):Boolean; CDecl;
+	ISteamUserStats_SetStatFloat: Function(pchName:PAnsiChar; fData:Single):Boolean; CDecl;
 	ISteamUserStats_UpdateAvgRateStat: Function(pchName:PAnsiChar; flCountThisSession:Single; dSessionLength:double):Boolean; CDecl;
 	ISteamUserStats_GetAchievement: Function(pchName:PAnsiChar; Var pbAchieved:Boolean):Boolean; CDecl;
 	ISteamUserStats_SetAchievement: Function(pchName:PAnsiChar):Boolean; CDecl;
@@ -2378,10 +2378,10 @@ Begin
 	ISteamUser_GetGameBadgeLevel := GetProcAddress(SteamHandle, 'ISteamUser_GetGameBadgeLevel');
 	ISteamUser_GetPlayerSteamLevel := GetProcAddress(SteamHandle, 'ISteamUser_GetPlayerSteamLevel');
 	ISteamUserStats_RequestCurrentStats := GetProcAddress(SteamHandle, 'ISteamUserStats_RequestCurrentStats');
-	ISteamUserStats_GetStat := GetProcAddress(SteamHandle, 'ISteamUserStats_GetStat');
-	ISteamUserStats_GetStat_ := GetProcAddress(SteamHandle, 'ISteamUserStats_GetStat_');
-	ISteamUserStats_SetStat := GetProcAddress(SteamHandle, 'ISteamUserStats_SetStat');
-	ISteamUserStats_SetStat_ := GetProcAddress(SteamHandle, 'ISteamUserStats_SetStat_');
+	ISteamUserStats_GetStatInt := GetProcAddress(SteamHandle, 'ISteamUserStats_GetStat');
+	ISteamUserStats_GetStatFloat := GetProcAddress(SteamHandle, 'ISteamUserStats_GetStat_');
+	ISteamUserStats_SetStatInt := GetProcAddress(SteamHandle, 'ISteamUserStats_SetStat');
+	ISteamUserStats_SetStatFloat := GetProcAddress(SteamHandle, 'ISteamUserStats_SetStat_');
 	ISteamUserStats_UpdateAvgRateStat := GetProcAddress(SteamHandle, 'ISteamUserStats_UpdateAvgRateStat');
 	ISteamUserStats_GetAchievement := GetProcAddress(SteamHandle, 'ISteamUserStats_GetAchievement');
 	ISteamUserStats_SetAchievement := GetProcAddress(SteamHandle, 'ISteamUserStats_SetAchievement');

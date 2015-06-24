@@ -2,15 +2,35 @@ Unit TERRA_Steam;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Application, SteamAPI;
+Uses TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Application, SteamAPI, SteamCallback;
 
 Type
-  Steam = Class(ApplicationComponent)
+  SteamAchievement = Class
+    Protected
+      _ID:TERRAString;
+      _Name:TERRAString;
+      _Description:TERRAString;
+      _Achieved:Boolean;
+
+      Procedure Load();
+
+    Public
+      Procedure Unlock();
+
+      Property ID:TERRAString Read _ID;
+      Property Name:TERRAString Read _Name;
+      Property Description:TERRAString Read _Description;
+      Property Achieved:Boolean Read _Achieved;
+  End;
+
+  SteamManager = Class(ApplicationComponent)
     Protected
       _Loaded:Boolean;
       _Running:Boolean;
       _LoggedOn:Boolean;
+
       _StatsRequested:Boolean;
+      _StoreStats:Boolean;
 
       _HasController:Boolean;
 
@@ -22,8 +42,14 @@ Type
 
       _LicenseResult:SteamUserHasLicenseForAppResult;
 
+
+      _Achievements:Array Of SteamAchievement;
+      _AchievementCount:Integer;
+
+      Procedure OnUserStats(P:Pointer);
+
     Public
-      Class Function Instance:Steam;
+      Class Function Instance:SteamManager;
 
       Procedure Update; Override;
       Procedure Init; Override;
@@ -50,15 +76,15 @@ Var
 
 
 { Steam }
-Class Function Steam.Instance:Steam;
+Class Function SteamManager.Instance:SteamManager;
 Begin
   If _Steam_Instance = Nil Then
-    _Steam_Instance := InitializeApplicationComponent(Steam, Nil);
+    _Steam_Instance := InitializeApplicationComponent(SteamManager, Nil);
 
-  Result := Steam(_Steam_Instance.Instance);
+  Result := SteamManager(_Steam_Instance.Instance);
 End;
 
-Procedure Steam.Init;
+Procedure SteamManager.Init;
 Var
    ControllerPath:TERRAString;
 Begin
@@ -103,7 +129,7 @@ Begin
   //_LicenseResult := ISteamGameServer_UserHasLicenseForApp(steamID:SteamID; appID:SteamAppId):
 End;
 
-Procedure Steam.Release;
+Procedure SteamManager.Release;
 Var
   I:Integer;
 Begin
@@ -121,7 +147,7 @@ Begin
   _Steam_Instance := Nil;
 End;
 
-Procedure Steam.Update;
+Procedure SteamManager.Update;
 Var
    I:Integer;
    controllerState:SteamControllerState;
@@ -134,6 +160,8 @@ Begin
   Begin
     _LoggedOn := ISteamUser_BLoggedOn();
 
+    SteamCallbackDispatcher.Create(k_iSteamUserStatsCallbacks  + 1 , Self.OnUserStats, SizeOf(Steam_UserStatsReceived));
+
     If (_LoggedOn) Then
     Begin
       _StatsRequested := ISteamUserStats_RequestCurrentStats();
@@ -143,16 +171,16 @@ Begin
   SteamAPI_RunCallbacks();
 
 
-  For I:=0 To 3 Do
+(*  For I:=0 To 3 Do
   Begin
        If ISteamController_GetControllerState(I, controllerState) Then
        Begin
 
        End;
-  End;
+  End;*)
 End;
 
-Function Steam.UnlockAchievement(AchID: TERRAString): Boolean;
+Function SteamManager.UnlockAchievement(AchID: TERRAString): Boolean;
 Begin
   Result := False;
 
@@ -161,6 +189,64 @@ Begin
 
   ISteamUserStats_SetAchievement(PAnsiChar(AchID));
   Result := ISteamUserStats_StoreStats();
+End;
+
+Procedure SteamManager.OnUserStats(P: Pointer);
+Var
+  Info:PSteam_UserStatsReceived;
+  GameID:TERRAString;
+  I:Integer;
+Begin
+  Info := P;
+  GameID := UInt64ToString(Info.GameID);
+
+  If GameID<> Self.AppID Then
+    Exit;
+
+  Log(logDebug, 'Steam', 'Received stats, with return code '+CardinalToString(Info.Result));
+
+  // load achievements
+
+  For I:=0 To Pred(_AchievementCount) Do
+  Begin
+    _Achievements[I].Load();
+  End;
+
+	// load stats
+(*	SteamUserStats.GetStat("NumGames", out m_nTotalGamesPlayed);
+	SteamUserStats.GetStat("NumWins", out m_nTotalNumWins);
+				SteamUserStats.GetStat("NumLosses", out m_nTotalNumLosses);
+				SteamUserStats.GetStat("FeetTraveled", out m_flTotalFeetTraveled);
+				SteamUserStats.GetStat("MaxFeetTraveled", out m_flMaxFeetTraveled);
+				SteamUserStats.GetStat("AverageSpeed", out m_flAverageSpeed);*)
+End;
+
+{ SteamAchievement }
+Procedure SteamAchievement.Load;
+Var
+  Ret:Boolean;
+Begin
+  Ret := ISteamUserStats_GetAchievement(PAnsiChar(_Name), _Achieved);
+  If Ret Then
+  Begin
+    _Name := ISteamUserStats_GetAchievementDisplayAttribute(PAnsiChar(_ID), 'name');
+		_Description := ISteamUserStats_GetAchievementDisplayAttribute(PAnsiChar(_ID), 'desc');
+  End Else
+    Log(logWarning, 'Steam', 'GetAchievement failed for Achievement ' + _ID);
+End;
+
+Procedure SteamAchievement.Unlock;
+Begin
+  _Achieved := True;
+
+  // the icon may change once it's unlocked
+	//_IconImage := 0;
+
+  // mark it down
+  ISteamUserStats_SetAchievement(PAnsiChar(ID));
+
+ // Store stats end of frame
+  SteamManager.Instance._StoreStats := True;
 End;
 
 End.
