@@ -35,7 +35,7 @@ Unit TERRA_Application;
 {$ENDIF}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Mutex;
+Uses TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Mutex;
 
 Const
 	// Operating System Class
@@ -303,6 +303,9 @@ Type
       Procedure ProcessMessages; Virtual;
       Procedure ProcessCallbacks;
 
+      Procedure OnFrameBegin(); Virtual;
+      Procedure OnFrameEnd(); Virtual;
+
       Function InitSettings:Boolean; Virtual;
 
       Procedure Finish;
@@ -325,7 +328,6 @@ Type
       Procedure AddEventToQueue(Action:Integer; X,Y,Z,W:Single; Value:Integer; S:TERRAString; HasCoords:Boolean);
 
     Public
-
 			Constructor Create();
 
 			Function Run:Boolean; Virtual;
@@ -468,7 +470,9 @@ Type
 
       Procedure OnGesture(StartX, StartY, EndX, EndY, GestureType:Integer; Delta:Single); Virtual;
 
-      //Function GetVRProjectionMatrix(Eye:Integer; FOV, Ratio, zNear, zFar:Single):Matrix4x4; Virtual;
+      {$IFNDEF DISABLEVR}
+        Function GetVRProjectionMatrix(Eye:Integer; FOV, Ratio, zNear, zFar:Single):Matrix4x4; Virtual;
+      {$ENDIF}
 
       Function GetTitle:TERRAString; Virtual;
       Function GetWidth:Word; Virtual;
@@ -926,6 +930,7 @@ Begin
 
   _Running := True;
   _FrameStart := Application.GetTime();
+  Self.OnFrameBegin();
   While (_Running) And (Not _Terminated) Do
   Begin
   Try
@@ -979,6 +984,8 @@ Begin
 	    _ChangeToFullScreen := False;
 	    ToggleFullScreen();
     End;
+
+    Self.OnFrameEnd();
 
     If (_Managed) Then
       Exit;
@@ -1118,6 +1125,16 @@ Begin
     'Lang: '+ Self.Language + CrLf +
     'Country: '+ Self.Country + CrLf +
     'Bundle: '+ Self.BundleVersion + CrLf;
+End;
+
+Procedure BaseApplication.OnFrameBegin;
+Begin
+  // do nothing
+End;
+
+Procedure BaseApplication.OnFrameEnd;
+Begin
+  // do nothing
 End;
 
 { ApplicationObject }
@@ -2290,10 +2307,12 @@ Begin
   Log(logDebug, 'Client', 'Gamepad '+IntToString(Index)+' was disconnected!');
 End;
 
-{Function BaseApplication.GetVRProjectionMatrix(Eye: Integer; FOV, Ratio, zNear, zFar: Single): Matrix4x4;
+{$IFNDEF DISABLEVR}
+Function BaseApplication.GetVRProjectionMatrix(Eye: Integer; FOV, Ratio, zNear, zFar: Single): Matrix4x4;
 Begin
   Result := Matrix4x4Perspective(FOV, Ratio, zNear, zFar);
-End;}
+End;
+{$ENDIF}
 
 Function BaseApplication.SelectRenderer: Integer;
 Begin

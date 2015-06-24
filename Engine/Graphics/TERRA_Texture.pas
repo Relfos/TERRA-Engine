@@ -1139,6 +1139,7 @@ Begin
   Begin
     Result := Texture.Create();
     Result.Load(Src);
+    Result.Update();
     ReleaseObject(Src);
   End Else
     Result := Nil;

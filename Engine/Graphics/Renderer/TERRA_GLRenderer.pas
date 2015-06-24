@@ -242,6 +242,8 @@ Type
       {$IFDEF IPHONE}
       Procedure PresentToScreen(); Override;
       {$ENDIF}
+
+      Property Handle:Cardinal Read _Handle;
   End;
 
 
@@ -334,6 +336,10 @@ Type
 
       Procedure DrawSource(Primitive:RenderPrimitive; Count:Integer); Override;
       Procedure DrawIndexedSource(Primitive:RenderPrimitive; Count:Integer; Indices:System.PWord); Override;
+
+      {$IFDEF WINDOWS}
+      Property HDC:HDC Read _HDC;
+      {$ENDIF}
     Public
 
   End;

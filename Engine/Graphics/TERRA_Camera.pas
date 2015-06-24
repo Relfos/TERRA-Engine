@@ -232,7 +232,7 @@ Begin
   {$IFDEF DISABLEVR}
     _ProjectionMatrix4x4 := Matrix4x4Perspective(FOV, Ratio, _Near, _Far);
   {$ELSE}
-    _ProjectionMatrix4x4 := Application.Instance.Client.GetVRProjectionMatrix(Eye, FOV, Ratio, _Near, _Far);
+    _ProjectionMatrix4x4 := Application.Instance.GetVRProjectionMatrix(Eye, FOV, Ratio, _Near, _Far);
   {$ENDIF}
 
 //Log(logDebug, 'Viewport', 'X:'+IntToString(Trunc(_X)) +' Y:'+IntToString(Trunc(_Y)));
