@@ -4,6 +4,10 @@ Interface
 
 Uses SteamAPI;
 
+Const
+  SteamStatsCallbackID = k_iSteamUserStatsCallbacks + 1;
+  SteamLeaderboardCallbackID = k_iSteamUserStatsCallbacks + 5;
+
 Type
   PSteam_UserStatsReceived = ^Steam_UserStatsReceived;
   Steam_UserStatsReceived = Packed Record
@@ -11,6 +15,13 @@ Type
 		Result:SteamResult;	  // Success / error fetching the stats
 		steamID:SteamID;	// The user for whom the stats are retrieved for
 	End;
+
+  PSteam_LeaderboardScoresDownloaded = ^Steam_LeaderboardScoresDownloaded;
+	Steam_LeaderboardScoresDownloaded = Packed Record
+		LeaderboardID:SteamLeaderboard;
+		LeaderboardEntries:SteamLeaderboardEntries;	// the handle to pass into GetDownloadedLeaderboardEntries()
+		EntryCount:Integer; // the number of entries downloaded
+  End;
 
   PCCallbackBaseVTable = ^TCCallbackBaseVTable;
   TCCallbackBaseVTable = Record

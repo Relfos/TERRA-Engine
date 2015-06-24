@@ -5,7 +5,7 @@ Interface
 Uses TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Application, SteamAPI, SteamCallback;
 
 Type
-  SteamAchievement = Class
+  SteamAchievement = Class(TERRAObject)
     Protected
       _ID:TERRAString;
       _Name:TERRAString;
@@ -15,12 +15,29 @@ Type
       Procedure Load();
 
     Public
+      Constructor Create(Const ID:TERRAString);
+
       Procedure Unlock();
 
       Property ID:TERRAString Read _ID;
       Property Name:TERRAString Read _Name;
       Property Description:TERRAString Read _Description;
       Property Achieved:Boolean Read _Achieved;
+  End;
+
+  SteamStat = Class(TERRAObject)
+    Protected
+      _ID:TERRAString;
+      _Value:Integer;
+
+      Procedure Load();
+
+      Procedure SetValue(Const Val:Integer);
+
+    Public
+      Constructor Create(Const ID:TERRAString);
+
+      Property Value:Integer Read _Value Write SetValue;
   End;
 
   SteamManager = Class(ApplicationComponent)
@@ -42,9 +59,11 @@ Type
 
       _LicenseResult:SteamUserHasLicenseForAppResult;
 
-
       _Achievements:Array Of SteamAchievement;
       _AchievementCount:Integer;
+
+      _Stats:Array Of SteamStat;
+      _StatCount:Integer;
 
       Procedure OnUserStats(P:Pointer);
 
@@ -54,7 +73,12 @@ Type
       Procedure Update; Override;
       Procedure Init; Override;
 
-      Function UnlockAchievement(AchID:TERRAString):Boolean;
+      Function GetAchievement(Const AchID:TERRAString):SteamAchievement;
+      Function AddAchievement(Const AchID:TERRAString):SteamAchievement;
+      Function UnlockAchievement(Const AchID:TERRAString):Boolean;
+
+      Function GetStat(Const StatID:TERRAString):SteamStat;
+      Function AddStat(Const StatID:TERRAString):SteamStat;
 
       Procedure Release; Override;
 
@@ -156,15 +180,15 @@ Begin
     Exit;
 
   // Is the user logged on?  If not we can't get stats.
-  If Not _StatsRequested Then
+  If _StatsRequested Then
   Begin
     _LoggedOn := ISteamUser_BLoggedOn();
 
-    SteamCallbackDispatcher.Create(k_iSteamUserStatsCallbacks  + 1 , Self.OnUserStats, SizeOf(Steam_UserStatsReceived));
-
     If (_LoggedOn) Then
     Begin
-      _StatsRequested := ISteamUserStats_RequestCurrentStats();
+      SteamCallbackDispatcher.Create(SteamStatsCallbackID , Self.OnUserStats, SizeOf(Steam_UserStatsReceived));
+      If ISteamUserStats_RequestCurrentStats() Then
+        _StatsRequested := False; 
     End;
   End;
 
@@ -178,17 +202,6 @@ Begin
 
        End;
   End;*)
-End;
-
-Function SteamManager.UnlockAchievement(AchID: TERRAString): Boolean;
-Begin
-  Result := False;
-
-  If (Not _Running) Or (Not _LoggedOn) Then
-    Exit;
-
-  ISteamUserStats_SetAchievement(PAnsiChar(AchID));
-  Result := ISteamUserStats_StoreStats();
 End;
 
 Procedure SteamManager.OnUserStats(P: Pointer);
@@ -213,20 +226,23 @@ Begin
   End;
 
 	// load stats
-(*	SteamUserStats.GetStat("NumGames", out m_nTotalGamesPlayed);
-	SteamUserStats.GetStat("NumWins", out m_nTotalNumWins);
-				SteamUserStats.GetStat("NumLosses", out m_nTotalNumLosses);
-				SteamUserStats.GetStat("FeetTraveled", out m_flTotalFeetTraveled);
-				SteamUserStats.GetStat("MaxFeetTraveled", out m_flMaxFeetTraveled);
-				SteamUserStats.GetStat("AverageSpeed", out m_flAverageSpeed);*)
+  For I:=0 To Pred(_StatCount) Do
+  Begin
+    _Stats[I].Load();
+  End;
 End;
 
 { SteamAchievement }
+Constructor SteamAchievement.Create(const ID: TERRAString);
+Begin
+  Self._ID := ID;
+End;
+
 Procedure SteamAchievement.Load;
 Var
   Ret:Boolean;
 Begin
-  Ret := ISteamUserStats_GetAchievement(PAnsiChar(_Name), _Achieved);
+  Ret := ISteamUserStats_GetAchievement(PAnsiChar(_ID), _Achieved);
   If Ret Then
   Begin
     _Name := ISteamUserStats_GetAchievementDisplayAttribute(PAnsiChar(_ID), 'name');
@@ -237,6 +253,9 @@ End;
 
 Procedure SteamAchievement.Unlock;
 Begin
+  If _Achieved Then
+    Exit;
+
   _Achieved := True;
 
   // the icon may change once it's unlocked
@@ -247,6 +266,90 @@ Begin
 
  // Store stats end of frame
   SteamManager.Instance._StoreStats := True;
+End;
+
+Function SteamManager.AddAchievement(const AchID: TERRAString):SteamAchievement;
+Begin
+  Result := Self.GetAchievement(AchID);
+  If Assigned(Result) Then
+    Exit;
+
+  Result := SteamAchievement.Create(AchID);
+  Inc(_AchievementCount);
+  SetLength(_Achievements, _AchievementCount);
+  _Achievements[Pred(_AchievementCount)] := Result;
+
+  _StatsRequested := True;
+End;
+
+Function SteamManager.GetAchievement(const AchID: TERRAString): SteamAchievement;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_AchievementCount) Do
+  If _Achievements[I]._ID = AchID Then
+  Begin
+    Result := _Achievements[I];
+    Exit;
+  End;
+
+  Result := Nil;
+End;
+
+Function SteamManager.UnlockAchievement(const AchID: TERRAString): Boolean;
+Var
+  Ach:SteamAchievement;
+Begin
+  Ach := Self.GetAchievement(AchID);
+  If Ach = Nil Then
+    Exit;
+
+  Ach.Unlock();
+End;
+
+Function SteamManager.AddStat(const StatID: TERRAString): SteamStat;
+Begin
+  Result := Self.GetStat(StatID);
+  If Assigned(Result) Then
+    Exit;
+
+  Result := SteamStat.Create(StatID);
+  Inc(_StatCount);
+  SetLength(_Stats, _StatCount);
+  _Stats[Pred(_StatCount)] := Result;
+
+  _StatsRequested := True;
+End;
+
+Function SteamManager.GetStat(const StatID: TERRAString): SteamStat;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_StatCount) Do
+  If _Stats[I]._ID = StatID Then
+  Begin
+    Result := _Stats[I];
+    Exit;
+  End;
+
+  Result := Nil;
+End;
+
+{ SteamStat }
+Constructor SteamStat.Create(const ID: TERRAString);
+Begin
+  Self._ID := ID;
+End;
+
+Procedure SteamStat.Load;
+Begin
+  ISteamUserStats_GetStatInt(PAnsiChar(_ID), _Value);
+End;
+
+Procedure SteamStat.SetValue(const Val: Integer);
+Begin
+  _Value := Val;
+  ISteamUserStats_SetStatInt(PAnsiChar(_ID), _Value);
 End;
 
 End.
