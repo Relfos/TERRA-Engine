@@ -51,7 +51,7 @@ Type
 
     Public
       Constructor Create(iCallback:integer; CallbackProc:SteamCallbackDelegate; _propsize:integer); Reintroduce;
-      Destructor Destroy;
+      Destructor Destroy; Override;
   End;
 
 
@@ -63,7 +63,7 @@ Uses TERRA_Error;
 Var
   MyCallbackVTable: TCCallbackBaseVTable;
 
-Procedure MySteamCallback_Run(pSelf: PCCallbackInt; pvParam: Pointer); Pascal;
+Procedure MySteamCallback_Run(pvParam: Pointer; pSelf: PCCallbackInt); Pascal;
 Begin
   pSelf._Dispatcher._Callback(Pointer(pvParam));
 End;

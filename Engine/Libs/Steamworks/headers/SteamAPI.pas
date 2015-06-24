@@ -218,83 +218,105 @@ Const
 	MAX_STEAM_CONTROLLERS:Byte = 8;
 
 Type
-	SteamRegisterActivationCodeResult = (
-		SteamRegisterActivationCodeResultOK = 0,
-		SteamRegisterActivationCodeResultFail = 1,
-		SteamRegisterActivationCodeResultAlreadyRegistered = 2,
-		SteamRegisterActivationCodeResultTimeout = 3,
-		SteamRegisterActivationCodeAlreadyOwned = 4
-	);
-	SteamControllerPad = (
-		SteamSteamControllerPad_Left = 2,
-		SteamSteamControllerPad_Right = 2
-	);
-	SteamFriendRelationship = (
-		SteamFriendRelationshipNone = 0,
-		SteamFriendRelationshipBlocked = 1,
-		SteamFriendRelationshipRequestRecipient = 2,
-		SteamFriendRelationshipFriend = 3,
-		SteamFriendRelationshipRequestInitiator = 4,
-		SteamFriendRelationshipIgnored = 5,
-		SteamFriendRelationshipIgnoredFriend = 6,
-		SteamFriendRelationshipSuggested = 7,	// keep this updated
-		SteamFriendRelationshipMax = 8
-	);
-	SteamPersonaState = (
-		SteamPersonaStateOffline = 0,	// friend is not currently logged on
-		SteamPersonaStateOnline = 1,	// friend is logged on
-		SteamPersonaStateBusy = 2,	// user is on, but busy
-		SteamPersonaStateAway = 3,	// auto-away feature
-		SteamPersonaStateSnooze = 4,	// auto-away for a long time
-		SteamPersonaStateLookingToTrade = 5,	// Online, trading
-		SteamPersonaStateLookingToPlay = 6,	// Online, wanting to play
-		SteamPersonaStateMax = 4
-	);
-	SteamFriendFlags = (
-		SteamFriendFlagNone = $00,
-		SteamFriendFlagBlocked = $01,
-		SteamFriendFlagFriendshipRequested = $02,
-		SteamFriendFlagImmediate = $04,	// "regular" friend
-		SteamFriendFlagClanMember = $08,
-		SteamFriendFlagOnGameServer = $10,	// k_EFriendFlagFriendOfFriend	= 0x40, // not currently used
-		SteamFriendFlagRequestingFriendship = $80,
-		SteamFriendFlagRequestingInfo = $100,
-		SteamFriendFlagIgnored = $200,
-		SteamFriendFlagIgnoredFriend = $400,
-		SteamFriendFlagSuggested = $800,
-		SteamFriendFlagAll = $FFFF
-	);
-	SteamUserRestriction = (
-		k_nUserRestrictionNone = 0,	// no known chat/content restriction
-		k_nUserRestrictionUnknown = 1,	// we don't know yet (user offline)
-		k_nUserRestrictionAnyChat = 2,	// user is not allowed to (or can't) send/recv any chat
-		k_nUserRestrictionVoiceChat = 4,	// user is not allowed to (or can't) send/recv voice chat
-		k_nUserRestrictionGroupChat = 8,	// user is not allowed to (or can't) send/recv group chat
-		k_nUserRestrictionRating = 16,	// user is too young according to rating in current region
-		k_nUserRestrictionGameInvites = 32,	// user cannot send or recv game invites (e.g. mobile)
-		k_nUserRestrictionTrading = 64	// user cannot participate in trading (console, mobile)
-	);
-	SteamOverlayToStoreFlag = (
-		SteamOverlayToStoreFlag_None = 0,
-		SteamOverlayToStoreFlag_AddToCart = 1,
-		SteamOverlayToStoreFlag_AddToCartAndShow = 2
-	);
-	SteamPersonaChange = (
-		SteamPersonaChangeName = $0001,
-		SteamPersonaChangeStatus = $0002,
-		SteamPersonaChangeComeOnline = $0004,
-		SteamPersonaChangeGoneOffline = $0008,
-		SteamPersonaChangeGamePlayed = $0010,
-		SteamPersonaChangeGameServer = $0020,
-		SteamPersonaChangeAvatar = $0040,
-		SteamPersonaChangeJoinedSource = $0080,
-		SteamPersonaChangeLeftSource = $0100,
-		SteamPersonaChangeRelationshipChanged = $0200,
-		SteamPersonaChangeNameFirstSet = $0400,
-		SteamPersonaChangeFacebookInfo = $0800,
-		SteamPersonaChangeNickname = $1000,
-		SteamPersonaChangeSteamLevel = $2000
-	);
+	SteamRegisterActivationCodeResult = Cardinal;
+
+Const
+        SteamRegisterActivationCodeResultOK = 0;
+	SteamRegisterActivationCodeResultFail = 1;
+	SteamRegisterActivationCodeResultAlreadyRegistered = 2;
+	SteamRegisterActivationCodeResultTimeout = 3;
+	SteamRegisterActivationCodeAlreadyOwned = 4;
+
+Type
+	SteamControllerPad = Cardinal;
+
+Const
+		SteamSteamControllerPad_Left = 1;
+		SteamSteamControllerPad_Right = 2;
+
+Type
+	SteamFriendRelationship = Cardinal;
+
+Const
+		SteamFriendRelationshipNone = 0;
+		SteamFriendRelationshipBlocked = 1;
+		SteamFriendRelationshipRequestRecipient = 2;
+		SteamFriendRelationshipFriend = 3;
+		SteamFriendRelationshipRequestInitiator = 4;
+		SteamFriendRelationshipIgnored = 5;
+		SteamFriendRelationshipIgnoredFriend = 6;
+		SteamFriendRelationshipSuggested = 7;	// keep this updated
+
+Type
+	SteamPersonaState = Cardinal;
+
+Const
+		SteamPersonaStateOffline = 0;	// friend is not currently logged on
+		SteamPersonaStateOnline = 1;	// friend is logged on
+		SteamPersonaStateBusy = 2;	// user is on, but busy
+		SteamPersonaStateAway = 3;	// auto-away feature
+		SteamPersonaStateSnooze = 4;	// auto-away for a long time
+		SteamPersonaStateLookingToTrade = 5;	// Online, trading
+		SteamPersonaStateLookingToPlay = 6;	// Online, wanting to play
+
+Type
+	SteamFriendFlags = Cardinal;
+
+Const
+		SteamFriendFlagNone = $00;
+		SteamFriendFlagBlocked = $01;
+		SteamFriendFlagFriendshipRequested = $02;
+		SteamFriendFlagImmediate = $04;	// "regular" friend
+		SteamFriendFlagClanMember = $08;
+		SteamFriendFlagOnGameServer = $10;	// k_EFriendFlagFriendOfFriend	= 0x40, // not currently used
+		SteamFriendFlagRequestingFriendship = $80;
+		SteamFriendFlagRequestingInfo = $100;
+		SteamFriendFlagIgnored = $200;
+		SteamFriendFlagIgnoredFriend = $400;
+		SteamFriendFlagSuggested = $800;
+		SteamFriendFlagAll = $FFFF;
+
+Type
+	SteamUserRestriction = Cardinal;
+
+Const
+		k_nUserRestrictionNone = 0;	// no known chat/content restriction
+		k_nUserRestrictionUnknown = 1;	// we don't know yet (user offline)
+		k_nUserRestrictionAnyChat = 2;	// user is not allowed to (or can't) send/recv any chat
+		k_nUserRestrictionVoiceChat = 4;	// user is not allowed to (or can't) send/recv voice chat
+		k_nUserRestrictionGroupChat = 8;	// user is not allowed to (or can't) send/recv group chat
+		k_nUserRestrictionRating = 16;	// user is too young according to rating in current region
+		k_nUserRestrictionGameInvites = 32;	// user cannot send or recv game invites (e.g. mobile)
+		k_nUserRestrictionTrading = 64; // user cannot participate in trading (console, mobile)
+
+Type
+	SteamOverlayToStoreFlag = Cardinal;
+
+Const
+		SteamOverlayToStoreFlag_None = 0;
+		SteamOverlayToStoreFlag_AddToCart = 1;
+		SteamOverlayToStoreFlag_AddToCartAndShow = 2;
+
+Type
+	SteamPersonaChange = Cardinal;
+
+Const
+		SteamPersonaChangeName = $0001;
+		SteamPersonaChangeStatus = $0002;
+		SteamPersonaChangeComeOnline = $0004;
+		SteamPersonaChangeGoneOffline = $0008;
+		SteamPersonaChangeGamePlayed = $0010;
+		SteamPersonaChangeGameServer = $0020;
+		SteamPersonaChangeAvatar = $0040;
+		SteamPersonaChangeJoinedSource = $0080;
+		SteamPersonaChangeLeftSource = $0100;
+		SteamPersonaChangeRelationshipChanged = $0200;
+		SteamPersonaChangeNameFirstSet = $0400;
+		SteamPersonaChangeFacebookInfo = $0800;
+		SteamPersonaChangeNickname = $1000;
+		SteamPersonaChangeSteamLevel = $2000;
+
+Type
 	SteamGCResults = (
 		SteamGCResultOK = 0,
 		SteamGCResultNoMessage = 1,	// There is no message in the queue
@@ -307,7 +329,11 @@ Type
 		eHTMLMouseButton_Right = 1,
 		eHTMLMouseButton_Middle = 2
 	);
-	SteamMouseCursor = (
+
+	SteamMouseCursor = Cardinal;
+
+(*
+Const
 		dc_user = 0,
 		dc_none = 11,
 		dc_arrow = 11,
@@ -350,7 +376,9 @@ Type
 		dc_help = 11,
 		dc_custom = 11,
 		dc_last = 11	// custom cursors start from this value and up
-	);
+
+                *)
+
 	SteamHTMLKeyModifiers = (
 		eHTMLKeyModifier_None = 0,
 		eHTMLKeyModifier_AltDown = 1 Shl 0,
@@ -2449,4 +2477,4 @@ Begin
 End;
 
 
-End.
+End.

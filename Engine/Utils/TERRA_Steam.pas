@@ -17,7 +17,7 @@ Type
     Public
       Constructor Create(Const ID:TERRAString);
 
-      Procedure Unlock();
+      Function Unlock():Boolean;
 
       Property ID:TERRAString Read _ID;
       Property Name:TERRAString Read _Name;
@@ -276,10 +276,13 @@ Begin
     Log(logWarning, 'Steam', 'GetAchievement failed for Achievement ' + _ID);
 End;
 
-Procedure SteamAchievement.Unlock;
+Function SteamAchievement.Unlock():Boolean;
 Begin
   If _Achieved Then
+  Begin
+    Result := False;
     Exit;
+  End;
 
   _Achieved := True;
 
@@ -291,6 +294,8 @@ Begin
 
  // Store stats end of frame
   SteamManager.Instance._StoreStats := True;
+
+  Result := True;
 End;
 
 Function SteamManager.AddAchievement(const AchID: TERRAString):SteamAchievement;
@@ -327,9 +332,12 @@ Var
 Begin
   Ach := Self.GetAchievement(AchID);
   If Ach = Nil Then
+  Begin
+    Result := False;
     Exit;
+  End;
 
-  Ach.Unlock();
+  Result := Ach.Unlock();
 End;
 
 Function SteamManager.AddStat(const StatID: TERRAString): SteamStat;
@@ -394,4 +402,4 @@ Begin
 End;
 
 End.
-
+
