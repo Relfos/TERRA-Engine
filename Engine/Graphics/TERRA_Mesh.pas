@@ -1519,11 +1519,7 @@ Procedure MeshManager.Release;
 Begin
   Inherited;
 
-  If Assigned(_CubeMesh) Then
-  Begin
-    _CubeMesh.Release();
-    _CubeMesh := Nil;
-  End;
+  ReleaseObject(_CubeMesh);
 
   _MeshManager := Nil;
 End;
@@ -6354,10 +6350,12 @@ Var
 Begin
   Inherited Update();
 
+  Log(logDebug, 'Mesh', 'Initializng groups');
 	For I:=0 To Pred(_GroupCount) Do
 		_Groups[I].Init;
 
-  UpdateBoundingBox;
+  Log(logDebug, 'Mesh', 'Initializng bround box');
+  UpdateBoundingBox();
   Result := True;
 End;
 
@@ -6962,10 +6960,10 @@ Begin
     Exit;
   End;
 
+  Log(logDebug, 'Mesh', 'Beginning merging '+Source.Name+' into '+Dest.Name);
+
   Source.Prefetch();
   Dest.Prefetch();
-
-  Log(logDebug, 'Mesh', 'Beginning merging '+Source.Name+' into '+Dest.Name);
 
   Init := Dest.PolyCount;
 

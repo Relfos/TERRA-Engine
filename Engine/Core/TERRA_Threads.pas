@@ -205,7 +205,9 @@ Type
 
 		  Procedure CancelTasks;
 
+      {$IFNDEF DISABLETHREADS}
       Property MainThread:Cardinal Read _MainThread;
+      {$ENDIF}
 
 		  Class Function Instance:ThreadPool;
     End;

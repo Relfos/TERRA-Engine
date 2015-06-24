@@ -154,6 +154,9 @@ Begin
     Exit;
   End;*)
 
+  If Self.Name = '' Then
+    IntToString(2);
+
   Log(logDebug, 'Resource', 'Obtaining manager for '+Self.Name);
   Manager := Self.GetManager;
   If (Manager = Nil) Then
@@ -170,7 +173,7 @@ Begin
     Result := (Status = rsReady);
   End Else
   Begin
-    Log(logDebug, 'Resource', 'Updating the resource...');
+    Log(logDebug, 'Resource', 'Updating the resource...' + Self.ClassName);
 
     Self.Rebuild();
 

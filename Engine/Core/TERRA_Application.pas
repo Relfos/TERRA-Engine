@@ -933,7 +933,10 @@ Begin
   Self.OnFrameBegin();
   While (_Running) And (Not _Terminated) Do
   Begin
+  {$IFDEF CRASH_REPORT}
   Try
+  {$ENDIF}
+
     {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Processing messages');{$ENDIF}{$ENDIF}
     Self.ProcessMessages();
     {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'All messages processed');{$ENDIF}{$ENDIF}
@@ -990,6 +993,7 @@ Begin
     If (_Managed) Then
       Exit;
 
+  {$IFDEF CRASH_REPORT}
   Except
     On E : Exception do
     Begin
@@ -999,6 +1003,7 @@ Begin
       Exit;
     End;
   End;
+  {$ENDIF}
 End;
 
   Log(logDebug, 'App', 'Application is finishing...');

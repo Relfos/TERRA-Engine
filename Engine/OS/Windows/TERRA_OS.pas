@@ -11,7 +11,7 @@ Unit TERRA_OS;
 
 Interface
 Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_InputManager, TERRA_Multimedia,
-  Windows, Messages, MAPI;
+  Windows, Messages;
 
 Const
 	PathSeparator = '\';
