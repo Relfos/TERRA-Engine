@@ -40,6 +40,16 @@ Type
       Property Value:Integer Read _Value Write SetValue;
   End;
 
+  SteamLeaderboard = Class(TERRAObject)
+    Protected
+      _ID:TERRAString;
+
+    Public
+      Constructor Create(Const ID:TERRAString);
+
+      Procedure Post(Const Value:Integer);
+  End;
+
   SteamManager = Class(ApplicationComponent)
     Protected
       _Loaded:Boolean;
@@ -111,6 +121,7 @@ End;
 Procedure SteamManager.Init;
 Var
    ControllerPath:TERRAString;
+   CurrentAppID:Cardinal;
 Begin
   _LoggedOn := False;
 
@@ -128,7 +139,15 @@ Begin
   If Not _Running Then
     Exit;
 
-  _AppID := CardinalToString(ISteamUtils_GetAppID());
+  CurrentAppID := ISteamUtils_GetAppID();
+  If (SteamAPI_RestartAppIfNecessary(CurrentAppID)) Then
+  Begin
+    _Running := False;
+    Application.Instance.Terminate(False);
+    Exit;
+  End;
+
+  _AppID := CardinalToString(CurrentAppID);
   Log(logDebug, 'Steam', 'App ID: '+ _AppID);
 
   _SteamID := UInt64ToString(ISteamUser_GetSteamID());
@@ -192,8 +211,14 @@ Begin
     End;
   End;
 
-  SteamAPI_RunCallbacks();
+  If _StoreStats Then
+  Begin
+    // If this failed, we never sent anything to the server, try again later.
+    If ISteamUserStats_StoreStats() Then
+			_StoreStats := False;
+  End;
 
+  SteamAPI_RunCallbacks();
 
 (*  For I:=0 To 3 Do
   Begin
@@ -350,6 +375,22 @@ Procedure SteamStat.SetValue(const Val: Integer);
 Begin
   _Value := Val;
   ISteamUserStats_SetStatInt(PAnsiChar(_ID), _Value);
+  SteamManager.Instance._StoreStats := True;
+End;
+
+{ SteamLeaderboard }
+Constructor SteamLeaderboard.Create(const ID: TERRAString);
+Begin
+  Self._ID := ID;
+
+(* SteamAPICall_t hSteamAPICall = SteamUserStats()->FindLeaderboard(pchLeaderboardName);
+ m_callResultFindLeaderboard.Set(hSteamAPICall, this,
+   &CSteamLeaderboards::OnFindLeaderboard);*)
+End;
+
+Procedure SteamLeaderboard.Post(const Value: Integer);
+Begin
+
 End;
 
 End.
