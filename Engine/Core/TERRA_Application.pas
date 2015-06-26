@@ -2001,7 +2001,6 @@ Begin
   _Language := 'EN';
 
 {$IFNDEF WINDOWS}
-(*
   Log(logDebug, 'App', 'Installing signals');
   new(na);
   new(oa);
@@ -2009,7 +2008,7 @@ Begin
   na^.sa_Handler := SigActionHandler(@DoSig);
   FillChar(na^.Sa_Mask, SizeOf(na^.sa_mask), #0);
   na^.Sa_Flags:=0;
-  fpSigAction(SIGSEGV, na, oa);*)
+  fpSigAction(SIGSEGV, na, oa);
 {$ENDIF}
 
   _CPUCores := 1;
