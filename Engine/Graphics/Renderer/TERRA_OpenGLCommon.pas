@@ -328,8 +328,8 @@ Begin
 End;
 
 Const
-  FallbackVertexSource = 'void main(){ gl_Position = gl_Vertex;};';
-  FallbackFragmentSource = 'void main(){gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);};';
+  FallbackVertexSource = 'void main(){ gl_Position = gl_Vertex;}';
+  FallbackFragmentSource = 'void main(){gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);}';
 
 Function OpenGLShader.CompileShader(Const Name:TERRAString; Source:TERRAString; ShaderType: Cardinal; var Shader:Cardinal; AllowFallback:Boolean): Boolean;
 Var
@@ -350,6 +350,9 @@ Begin
   StringReplaceText('highp', '', Source);
   StringReplaceText('lowp', '', Source);
   StringReplaceText('mediump', '', Source);
+
+  {$ELSE}
+  Source := 'precision highp float;'+ Source;
   {$ENDIF}
 
   // Create shader

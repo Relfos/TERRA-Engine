@@ -85,6 +85,7 @@ Const
   shaderDitherColor     = 1 Shl 27;
   shaderCartoonHue      = 1 Shl 28;
   shaderSelfIllumn      = 1 Shl 29;
+  shaderAmbientColor    = 1 Shl 30;
 
   //ParallaxScale
 
@@ -105,7 +106,6 @@ Type
     DirLightCount:Integer;
     PointLightCount:Integer;
     SpotLightCount:Integer;
-    LightModel:Integer;
     FogFlags:Integer;
     Shader:ShaderInterface;
 
@@ -134,7 +134,7 @@ Type
       Procedure Bind(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch); Virtual;
 
     Public
-      Function Emit(FxFlags, OutFlags, FogFlags, LightModel:Cardinal; Const Lights:LightBatch):TERRAString;
+      Function Emit(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch):TERRAString;
   End;
 
   ShaderFactory = Class(ApplicationComponent)
@@ -154,7 +154,7 @@ Type
 
       Procedure SetShaderEmitter(Emitter:ShaderEmitter);
 
-      Function GetShader(FxFlags, OutFlags, FogFlags, LightModel:Cardinal; Const Lights:LightBatch):ShaderInterface;
+      Function GetShader(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch):ShaderInterface;
   End;
 
 Implementation
@@ -371,10 +371,13 @@ Begin
   	Line('  uniform lowp sampler2D '+DecalMapUniformName+';');
 
   If (OutFlags And shader_OutputOutline<>0) Then
-    Line('  uniform mediump vec4 outlineColor;');
+    Line('  uniform lowp vec4 outlineColor;');
 
   If (OutFlags And shader_OutputFixedColor<>0) Then
-    Line('  uniform mediump vec4 targetColor;');
+    Line('  uniform lowp vec4 targetColor;');
+
+  If (FxFlags And shaderAmbientColor<>0) Then
+    Line('  uniform lowp vec4 ambient_color;');
 
   {If (Flags And shaderOutputRefraction<>0) Then
   	Line('  uniform lowp sampler2D refractionMap;');}
@@ -415,11 +418,11 @@ End;
 
 Procedure ShaderEmitter.EmitDecodeBoneMat;
 Begin
-  Line('mat4 decodeBoneMat(int id){');
+  Line('highp mat4 decodeBoneMat(int id){');
   Line('vec4 b1 = boneVectors[id*3+0];');
   Line('vec4 b2 = boneVectors[id*3+1];');
   Line('vec4 b3 = boneVectors[id*3+2];');
-  Line('mat4 result;');
+  Line('highp mat4 result;');
 
   Line('result[0][0] = b1.x;');
   Line('result[1][0] = b1.y;');
@@ -461,7 +464,7 @@ Begin
   End;
 End;
 
-Function ShaderEmitter.Emit(FxFlags, OutFlags, FogFlags, LightModel:Cardinal; Const Lights:LightBatch):TERRAString;
+Function ShaderEmitter.Emit(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch):TERRAString;
 Var
   N, I:Integer;
   S2:TERRAString;
@@ -570,7 +573,7 @@ Begin
   If (FxFlags and shaderSkinning<>0) Then
   Begin
     Line('    int boneIndex = int(terra_bone);');
-    Line('    mat4 boneMatrix = decodeBoneMat(boneIndex);');
+    Line('    highp mat4 boneMatrix = decodeBoneMat(boneIndex);');
     Line('		local_position = boneMatrix * local_position;');
   End;
   
@@ -741,6 +744,7 @@ Begin
 	Line('  lowp vec4 color;');
 	Line('  lowp vec4 specular;');
 
+
   Line('  mediump vec3 normal;');
 
   If (FxFlags And shaderWireframe<>0) Then
@@ -870,15 +874,12 @@ Begin
 
   If (OutFlags And shader_OutputDiffuse<>0) Then
   Begin
-//    If (LightModel <> lightModelSimple) Then
-    Begin
     	Line('mediump float halfDot(mediump vec3 A, mediump vec3 B)	{');
       Line('  mediump float result = dot(A, B);');
       Line('  result *= 0.5;');
       Line('  result += 0.5;');
       Line('  result = result * result;');
       Line('  return result;	}');
-    End;
 
     For I:=1 To Lights.DirectionalLightCount Do
     Begin
@@ -902,7 +903,7 @@ Begin
   	  Line('  uniform highp float slightCosInnerAngle'+IntToString(I)+';');
   	  Line('  uniform mediump float slightCosOuterAngle'+IntToString(I)+';');
       Line('  uniform lowp sampler2D slightCookie'+IntToString(I)+';');
-      Line('  uniform mat4 slightMatrix'+IntToString(I)+';');
+      Line('  uniform highp mat4 slightMatrix'+IntToString(I)+';');
     End;
 
     If (Lights.SpotLightCount>0) Then
@@ -922,10 +923,7 @@ Begin
 
       Line('  lowp vec4 result = diffuse * lightColor;');
 
-      If (LightModel <> lightModelSimple) Then
-      Begin
-        Line('  highp float shading = clamp((cos_cur_angle - cos_outer_cone_angle) / cos_inner_minus_outer_angle, 0.0, 1.0);');
-      End;
+      Line('  highp float shading = clamp((cos_cur_angle - cos_outer_cone_angle) / cos_inner_minus_outer_angle, 0.0, 1.0);');
 
       Line('  return result * cookieColor * shading;	}');
     End;
@@ -1295,13 +1293,14 @@ Begin
 
     If (FxFlags and shaderShadowMap<>0) Then
     Begin
-      Line('lowp float shadow = texture2D('+ShadowMapUniformName +', screen_position.xy).r;');
+      Line('lowp vec4 shadow = vec4(texture2D('+ShadowMapUniformName +', screen_position.xy).r);');
     End Else
     Begin
-      Line('lowp float shadow = 1.0;');
+      Line('lowp vec4 shadow = vec4(1.0);');
     End;
 
-    //Line(' shadow = max(shadow - 0.5, 0.0);');
+    If (FxFlags And shaderAmbientColor<>0) Then
+      Line(' shadow *= ambient_color;');
 
     If (FxFlags And shaderDitherColor<>0) Then
     Begin
@@ -1320,7 +1319,7 @@ Begin
     If (FxFlags And shaderSelfIllumn<>0) Then
     Begin
       If (FxFlags And shaderCartoonHue<>0) Then
-        Line('  color = cartoonHueAdjust(diffuse * shadow, vec4(shadow));')
+        Line('  color = cartoonHueAdjust(diffuse * shadow, shadow);')
       Else
         Line('  color = diffuse * shadow;');
     End Else
@@ -1492,7 +1491,7 @@ Begin
   _ShaderFactory_Instance := Nil;
 End;
 
-Function ShaderFactory.GetShader(FxFlags, OutFlags, FogFlags, LightModel:Cardinal; Const Lights:LightBatch):ShaderInterface;
+Function ShaderFactory.GetShader(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch):ShaderInterface;
 Var
   I:Integer;
   S:ShaderEntry;
@@ -1513,7 +1512,7 @@ Begin
   Begin
     S := _Shaders[I];
     If  (S.FxFlags = FxFlags) And (S.OutFlags = OutFlags)
-    And (S.FogFlags = FogFlags) And (S.LightModel = LightModel)
+    And (S.FogFlags = FogFlags)
     And (S.DirLightCount = Lights.DirectionalLightCount)
     And (S.PointLightCount = Lights.PointLightCount)
     And (S.SpotLightCount = Lights.SpotLightCount) Then
@@ -1545,7 +1544,6 @@ Begin
   S.OutFlags := OutFlags;
   S.FogFlags := FogFlags;
 
-  S.LightModel := LightModel;
   S.DirLightCount := Lights.DirectionalLightCount;
   S.PointLightCount := Lights.PointLightCount;
   S.SpotLightCount := Lights.SpotLightCount;
@@ -1641,7 +1639,7 @@ Begin
   If (FxFlags and shaderReflectiveMap<>0) Then
     name := name + '_REFMAP;';
 
-  Name := Name + ';SM'+IntToString(LightModel)+';F'+IntToString(FogFlags)+';';
+  Name := Name + ';F'+IntToString(FogFlags)+';';
 
   If Lights.DirectionalLightCount>0 Then
     name := name + 'DL'+IntToString(Lights.DirectionalLightCount)+';';
@@ -1660,7 +1658,7 @@ Begin
   Log(logDebug, 'ShaderFactory', 'Preparing shader '+Name);
   {$ENDIF}
 
-  SS := _Emitter.Emit(FxFlags, OutFlags, FogFlags, LightModel, Lights);
+  SS := _Emitter.Emit(FxFlags, OutFlags, FogFlags, Lights);
 
   {$IFDEF DEBUG_GRAPHICS}
   Log(logDebug, 'ShaderFactory', 'Got shader code, compiling');

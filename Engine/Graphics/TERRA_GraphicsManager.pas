@@ -45,9 +45,6 @@ Uses {$IFNDEF DEBUG_LEAKS}TERRA_MemoryManager,{$ENDIF} {$IFDEF USEDEBUGUNIT}TERR
   TERRA_Image, TERRA_Math, TERRA_Vector2D, TERRA_Ray, TERRA_Collections, TERRA_Pool;
 
 Const
-  lightModelDefault   = 0;
-  lightModelSimple    = 1;
-
   //FogMode
   fogOff      = 0;
   fogDistance = 1;
@@ -162,8 +159,6 @@ Type
       _UIHeight:Integer;
       _UIScale:Single;
       
-      _LightModel:Integer;
-
       _Scene:Scene;
 
       _Occluders:Occluder;
@@ -322,9 +317,6 @@ Type
       Property UI_Width:Integer Read _UIWidth;
       Property UI_Height:Integer Read _UIHeight;
       Property UI_Scale:Single Read _UIScale;
-
-      
-      Property LightModel:Integer Read _LightModel Write _LightModel;
 	End;
 
 Function GetDefaultFullScreenShader():ShaderInterface;

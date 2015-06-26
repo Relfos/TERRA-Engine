@@ -286,8 +286,8 @@ Begin
   FxFlags := shaderAlphaTest;
   OutFlags := 0;
 
-  _LightBatch := LightManager.Instance.SortLights(Center, Box);
-  _Shader := ShaderFactory.Instance.GetShader(FxFlags, OutFlags, GraphicsManager.Instance.Renderer.Settings.FogMode, GraphicsManager.Instance.LightModel, _LightBatch);
+  LightManager.Instance.SortLights(Center, Box, _LightBatch);
+  _Shader := ShaderFactory.Instance.GetShader(FxFlags, OutFlags, GraphicsManager.Instance.Renderer.Settings.FogMode, _LightBatch);
   Slot := 1;
   LightManager.Instance.SetupUniforms(@_LightBatch, Slot);
 

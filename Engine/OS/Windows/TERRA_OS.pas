@@ -298,8 +298,8 @@ Begin
     Exit;
   End;
 
-  If ((Msg=WM_SYSCOMMAND) And (wParam = SC_MAXIMIZE))
-  Or ((Msg=WM_SYSKEYDOWN) And (wParam = keyEnter)) Then
+  If (*((Msg=WM_SYSCOMMAND) And (wParam = SC_MAXIMIZE))
+  Or *)((Msg=WM_SYSKEYDOWN) And (wParam = keyEnter)) Then
   Begin
     App._ChangeToFullScreen := True;
     Exit;

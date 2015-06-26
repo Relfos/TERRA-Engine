@@ -271,8 +271,7 @@ Begin
     If Assigned(_Table[I]) Then
     Begin
       Dec(_ItemCount, _Table[I].Count);
-      _Table[I].Release();
-      _Table[I] := Nil;
+      ReleaseObject(_Table[I]);
     End;
 End;
 

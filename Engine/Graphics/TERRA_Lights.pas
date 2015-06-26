@@ -34,13 +34,13 @@ Const
   {$IFDEF MOBILE}
   MaxLightsPerMesh = 3;
   MaxDirectionalLightsPerMesh = MaxLightsPerMesh;
-  MaxSpotLightsPerMesh = 1;
   MaxPointLightsPerMesh = MaxLightsPerMesh;
+  MaxSpotLightsPerMesh = 0;
   {$ELSE}
   MaxLightsPerMesh = 5;
   MaxDirectionalLightsPerMesh = MaxLightsPerMesh;
-  MaxSpotLightsPerMesh = MaxLightsPerMesh;
   MaxPointLightsPerMesh = MaxLightsPerMesh;
+  MaxSpotLightsPerMesh = MaxLightsPerMesh;
   {$ENDIF}
 
   lightTypeDirectional  = 0;
@@ -50,7 +50,6 @@ Const
 Type
 
   { Light }
-
   Light = Class(TERRAObject)
     Protected
       _Color:Color;
@@ -159,15 +158,19 @@ Type
   End;
 
   PLightBatch = ^LightBatch;
-  LightBatch = Record
-    DirectionalLights:Array[0..Pred(MaxDirectionalLightsPerMesh)] Of DirectionalLight;
+  LightBatch = Object
+    AmbientColor:Color;
+
+    DirectionalLights:Array[0..Pred(MaxLightsPerMesh)] Of DirectionalLight;
     DirectionalLightCount:Integer;
 
-    PointLights:Array[0..Pred(MaxPointLightsPerMesh)] Of PointLight;
+    PointLights:Array[0..Pred(MaxLightsPerMesh)] Of PointLight;
     PointLightCount:Integer;
 
-    SpotLights:Array[0..Pred(MaxSpotLightsPerMesh)] Of SpotLight;
+    SpotLights:Array[0..Pred(MaxLightsPerMesh)] Of SpotLight;
     SpotLightCount:Integer;
+
+    Procedure Reset();
   End;
 
   LightManager = Class(ApplicationComponent)
@@ -190,14 +193,14 @@ Type
 
       Procedure AddLight(Source:Light);
 
-      Function SortLights(Target:Vector3D; Box:BoundingBox):LightBatch;
+      Procedure SortLights(Target:Vector3D; Box:BoundingBox; Out Result:LightBatch);
       Procedure SetupUniforms(Batch:PLightBatch; Var TextureSlot:Integer);
 
       Function GetDefaultDirection():Vector3D;
 
       Property LightCount:Integer Read _LightCount;
 
-      //Property AmbientColor:Color Read _AmbientColor Write SetAmbientColor;
+      Property AmbientColor:Color Read _AmbientColor Write SetAmbientColor;
 
       Class Function Instance:LightManager;
   End;
@@ -225,7 +228,7 @@ End;
 
 Procedure LightManager.Init;
 Begin
-//  AmbientColor := ColorGrey(32);
+  AmbientColor := ColorNull;
   _LightCount := 0;
   //VectorCreate(0.25, 0.75, 0.0);
 End;
@@ -261,7 +264,7 @@ Begin
   Inc(_LightCount);
 End;
 
-Function LightManager.SortLights(Target:Vector3D; Box:BoundingBox):LightBatch;
+Procedure LightManager.SortLights(Target:Vector3D; Box:BoundingBox; Out Result:LightBatch);
 Var
   I, J, K:Integer;
   P:Vector3D;
@@ -269,9 +272,7 @@ Var
   Lights:Array[0..Pred(MaxLightsPerMesh)] Of Light;
   LightCount:Integer;
 Begin
-  Result.DirectionalLightCount := 0;
-  Result.PointLightCount := 0;
-  Result.SpotLightCount := 0;
+  Result.Reset();
 
   If (Not GraphicsManager.Instance.Renderer.Settings.DynamicLights.Enabled) Then
     Exit;
@@ -617,5 +618,14 @@ Begin
   _Distance := 0;
 End;
 
+
+{ LightBatch }
+Procedure LightBatch.Reset;
+Begin
+  AmbientColor := LightManager.Instance.AmbientColor;
+  DirectionalLightCount := 0;
+  PointLightCount := 0;
+  SpotLightCount := 0;
+End;
 
 End.

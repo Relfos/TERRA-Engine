@@ -480,7 +480,7 @@ Begin
     Img := Image.Create(512, 512);
 
     Noise.SaveToImage(Img, 0.0, maskRGB);
-    Img.Save('cellnoise.png');
+    //Img.Save('cellnoise.png');
 
     _CellNoise := Texture.Create();
     _CellNoise.CreateFromImage('cellnoise', Img);
