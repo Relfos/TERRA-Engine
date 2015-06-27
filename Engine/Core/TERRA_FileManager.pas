@@ -102,7 +102,7 @@ Var
   _FileManager:ApplicationObject = Nil;
 
 {$IFDEF IPHONE}
-Procedure ExcludeFileFromCloud(fileName:PTERRAChar);Cdecl; external;
+Procedure ExcludeFileFromCloud(fileName:PAnsiChar);Cdecl; external;
 {$ENDIF}
 
 Function IsPackageFileName(Const FileName:TERRAString):Boolean;
@@ -149,7 +149,7 @@ Procedure FileManager.ExcludeFileFromBackup(Source: FileStream);
 Begin
   {$IFDEF IPHONE}
   If (Source.Name<>'') Then
-    ExcludeFileFromCloud(PTERRAChar(Source.Name));
+    ExcludeFileFromCloud(PAnsiChar(Source.Name));
   {$ENDIF}
 End;
                                  (*
@@ -571,4 +571,4 @@ Begin
   Self.Path := FileLocation(Other).Path;
 End;
 
-End.
+End.

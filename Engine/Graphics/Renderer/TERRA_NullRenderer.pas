@@ -62,10 +62,6 @@ Type
       Function GetPixel(X,Y:Integer):Color; Override;
 
       Procedure Invalidate(); Override;
-
-      {$IFDEF IPHONE}
-      Procedure PresentToScreen(); Override;
-      {$ENDIF}
   End;
 
   NullShaderAttribute = Record

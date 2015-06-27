@@ -2038,7 +2038,7 @@ Begin
     _UIViewport.DrawToTarget(False);
 
   {$IFDEF IPHONE}
-  FrameBufferObject(Target).PresentToScreen();
+RaiseError('fbo iPHone failed');//FrameBufferObject(Target).PresentToScreen();
   Target.EndCapture();
   {$ELSE}
   If Assigned(Target) Then
@@ -2416,4 +2416,4 @@ Begin
   {$ENDIF}
 End;
 
-End.
+End.
