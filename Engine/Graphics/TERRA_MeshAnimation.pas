@@ -286,7 +286,6 @@ Type
       _UpdateID:Cardinal;
 
       _Hash:Cardinal;
-      _Skeleton:MeshSkeleton;
 
       Function RunCallback():Boolean;
 
@@ -318,6 +317,7 @@ Type
       Property Speed:Single Read _Speed Write SetSpeed;
 
       Property CurrentFrame:Integer Read _CurrentFrame;
+
   End;
 
   AnimationBoneState = Class(TERRAObject)
@@ -343,10 +343,10 @@ Type
       _Name:TERRAString;
       _Next:TERRAString;
 
-      _Skeleton:MeshSkeleton;
-
       _BoneCount:Integer;
       _BoneStates:Array Of AnimationBoneState;
+
+      _TargetInstance:TERRAObject;
 
       _LastTime:Cardinal;
       _Root:AnimationObject;
@@ -370,11 +370,13 @@ Type
 
       Procedure UpdateAnimationName(MyAnimation:Animation);
 
+      Function GetSkeleton:MeshSkeleton;
+
     Public
       Processor:AnimationProcessor;
       Transforms:Array Of Matrix4x4;
 
-      Constructor Create(Name:TERRAString; MySkeleton:MeshSkeleton);
+      Constructor Create(Name:TERRAString; TargetInstance:TERRAObject);
       Procedure Release; Override;
 
       Procedure Update;
@@ -397,6 +399,8 @@ Type
       Property Root:AnimationObject Read _Root;
 
       Property LastAnimation:TERRAString Read _LastAnimation;
+
+      Property Skeleton:MeshSkeleton Read GetSkeleton;
   End;
 
   AnimationManager = Class(ResourceManager)
@@ -1348,14 +1352,14 @@ Begin
 End;
 
 { AnimationState }
-Constructor AnimationState.Create(Name:TERRAString; MySkeleton:MeshSkeleton);
+Constructor AnimationState.Create(Name:TERRAString; TargetInstance:TERRAObject);
 Var
   I:Integer;
 Begin
   _Speed := 1;
   Processor := Nil;
 
-  _Skeleton := MySkeleton;
+  Self._TargetInstance := TargetInstance;
 
   I := Pos('.', Name);
   If (I>0) Then
@@ -1365,8 +1369,8 @@ Begin
   _BoneCount := 0;
   _LastTime := Application.Instance.GetElapsedTime();
 
-  For I:=0 To Pred(MySkeleton.BoneCount) Do
-    Self.AddBone(MySkeleton.GetBone(I));
+  For I:=0 To Pred(Self.Skeleton.BoneCount) Do
+    Self.AddBone(Self.Skeleton.GetBone(I));
 End;
 
 Procedure AnimationState.AddBone(Bone:MeshBone);
@@ -1399,6 +1403,7 @@ Procedure AnimationState.Update;
 Var
   I:Integer;
   Time, Delta:Cardinal;
+  Bone:MeshBone;
 Begin
   If (Length(Transforms)<=0) Then
   Begin
@@ -1464,7 +1469,11 @@ Begin
     Processor(Self);
 
   For I:=1 To _BoneCount Do
-    Transforms[I] := Matrix4x4Multiply4x3(Transforms[I], _Skeleton.GetBone(Pred(I)).AbsoluteMatrix);
+  Begin
+    Bone := Self.Skeleton.GetBone(Pred(I));
+    If Assigned(Bone) Then
+      Transforms[I] := Matrix4x4Multiply4x3(Transforms[I], Bone.AbsoluteMatrix);
+  End;
 End;
 
 Procedure AnimationState.SetRoot(Node: AnimationObject);
@@ -1639,6 +1648,11 @@ Begin
   _LastAnimation := MyAnimation.Name;
   StringReplaceText(_Name + '_', '', _LastAnimation);
   _LastAnimation := StringLower(_LastAnimation);
+End;
+
+Function AnimationState.GetSkeleton: MeshSkeleton;
+Begin
+  Result := MeshInstance(_TargetInstance).Geometry.Skeleton;
 End;
 
 { AnimationBoneState }

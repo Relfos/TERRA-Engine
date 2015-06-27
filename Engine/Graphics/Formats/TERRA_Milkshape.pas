@@ -579,10 +579,10 @@ Begin
       Continue;
     Groups[J].MaterialIndex := 0;
 
-    UOffset := CI[Index].X;
+    UOffset := CI[Index].X1;
     UScale := CI[Index].Buffer.Width / CW;
 
-    VOffset := CI[Index].Y;
+    VOffset := CI[Index].Y1;
     VScale := CI[Index].Buffer.Height / CH;
 
     For I:=0 To Pred(Groups[J].NumTriangles) Do

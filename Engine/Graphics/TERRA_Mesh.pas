@@ -2997,7 +2997,7 @@ End;
 Function MeshInstance.GetAnimation: AnimationState;
 Begin
   If (_Animation = Nil) And (Assigned(_Mesh)) Then
-    _Animation := AnimationState.Create(_Mesh.Skeleton.Name, _Mesh.Skeleton);
+    _Animation := AnimationState.Create(_Mesh.Skeleton.Name, Self);
 
   Result := _Animation;
 
