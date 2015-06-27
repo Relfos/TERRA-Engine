@@ -278,7 +278,7 @@ End;
 
 Function SteamAchievement.Unlock():Boolean;
 Begin
-  If _Achieved Then
+  If (_Achieved) Or (Not SteamManager.Instance._LoggedOn) Then
   Begin
     Result := False;
     Exit;
