@@ -124,6 +124,8 @@ Var
   Source, Dest:Stream;
   CopyFile:Boolean;
 Begin
+  LoggingEnabled := True;
+
   Try
     ConsoleApplication.Create();
   Plat := 0;
@@ -131,11 +133,9 @@ Begin
   GenerateUnit := False;
   PackageName := '';
   TargetDir := '';
-	
+
 	AddLogFilter(logDebug, '', MyLogIgnore);
-	//{$IFDEF WINDOWS}
-  	AddLogFilter(logConsole, '', MyLogFilter);
-	//{$ENDIF}
+  AddLogFilter(logConsole, '', MyLogFilter);
   WriteLn('[TERRA Asset importer v'+AppVersion+']');
 
   SrcCount := 0;

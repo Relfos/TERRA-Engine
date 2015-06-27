@@ -25,67 +25,15 @@ Unit TERRA_MS3DImport;
 
 {$I terra.inc}
 Interface
-Uses TERRA_Application, TERRA_MS3D, TERRA_MeshAnimation, TERRA_Utils, TERRA_OS;
+Uses TERRA_Application, TERRA_Milkshape, TERRA_MeshAnimation, TERRA_Utils, TERRA_OS;
 
 implementation
 
-Uses TERRA_Mesh, TERRA_INI, TERRA_IO, TERRA_Matrix, TERRA_ResourceManager,
+Uses TERRA_String, TERRA_Mesh, TERRA_INI, TERRA_Stream, TERRA_Matrix4x4, TERRA_ResourceManager,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Math, TERRA_Color, TERRA_Log, TERRA_Lights,
-  SysUtils, TERRA_MeshFilter, TERRA_FileImport, TERRA_FileIO,
-  TERRA_FileUtils, TERRA_Texture, TERRA_FileManager, TERRA_GraphicsManager;
-
-Const
-  MaxMorphs = 256;
-
-Var
-  MS3D:Milkshape3DObject;
-  MS3D2:Milkshape3DObject;
-  Morphs:Array[0..Pred(MaxMorphs)] Of Milkshape3DObject;
-
-  I,J,K,MM:Integer;
-  W,Z,ZZ,N:Integer;
-  S,S2,Params:AnsiString;
-  VP:MeshVertex;
-  Mirror,Cull,Shadows,Pick,Collision,Vegetation,SphereMap:Boolean;
-  Parser:INIParser;
-  AlphaTest:Boolean;
-  ETyp:AnsiString;
-  LightBone:AnsiString;
-
-  P:Vector3D;
-  V:PMeshVertex;
-
-  PScale:Single;
-  StartFrame,EndFrame,LoopFrame:Integer;
-  LoopAnimation:Boolean;
-  ActionName,NextAction:AnsiString;
-  ActionList:Array Of AnsiString;
-  BaseTime, MaxTime:Single;
-  K1,K2:Integer;
-
-  BonesParent:Array Of AnsiString;
-  Bone:MeshBone;
-
-//  BA:PMeshBoneAnimation;
-  Transparency:Boolean;
-  Link:Boolean;
-  OverrideMaterial:Boolean;
-
-  LightJoints:Array Of Milkshape3DJoint;
-  LightJointCount:Integer;
-
-  PinJoints:Array Of Milkshape3DJoint;
-  PinJointCount:Integer;
-
-  EmitterJoints:Array Of Milkshape3DJoint;
-  EmitterJointCount:Integer;
-
-  OfsX:Single;
-  OfsY:Single;
-  OfsZ:Single;
-  ASpeed, KSpeed:Single;
-
-  DiffuseInVertex:Boolean;
+  SysUtils, TERRA_MeshFilter, TERRA_FileImport, TERRA_FileStream, TERRA_MemoryStream,
+  TERRA_FileUtils, TERRA_Texture, TERRA_FileManager, TERRA_GraphicsManager, TERRA_Image,
+  TERRA_VertexFormat, TERRA_Resource;
 
 
 Procedure CopyFile(SourceFile,DestFile:AnsiString);
@@ -95,35 +43,15 @@ Begin
   Source := MemoryStream.Create(SourceFile);
   Dest := FileStream.Create(DestFile);
   Source.Copy(Dest);
-  Source.Destroy;
-  Dest.Destroy;
+  Source.Release;
+  Dest.Release;
 End;
 
-Function FindMorphGroup(MorphIndex:Integer; Name:String):Integer;
-Var
-  I:Integer;
-  S:String;
-Begin
-  Name := UpStr(Name);
-  If (MorphIndex>=0) And (MorphIndex<MaxMorphs) Then
-  For I:=0 To Pred(Morphs[MorphIndex].NumGroups) Do
-  Begin
-    S := Morphs[MorphIndex].Groups[I].Name;
-		S := StrClean(S);
-
-    If (UpStr(S)=Name) Then
-    Begin
-      Result := I;
-      Exit;
-    End;
-  End;
-
-  Result := -1;
-End;
-
-Procedure ImportAnimation(Const MS3D:Milkshape3DObject; Skeleton:MeshSkeleton; TargetDir, Prefix:AnsiString);
+Procedure ImportAnimation(Const MS3D:Milkshape3DObject; Skeleton:MeshSkeleton; TargetDir, Prefix:AnsiString; ASpeed:Single);
 Var
   I, J, K, PK:Integer;
+  KSpeed:Single;
+  
   Parser:INIParser;
   MyStream:Stream;
   Dest:Stream;
@@ -170,8 +98,8 @@ Begin
       If LoopFrame=0 Then
         LoopFrame:=StartFrame;
 
-      TargetName := lowStr(Prefix+'_'+ActionName);
-      Anim := Animation.Create(TargetName);
+      TargetName := StringLower(Prefix+'_'+ActionName);
+      Anim := Animation.Create(rtDynamic, TargetName);
       WriteLn('Importing animation: ', TargetName);
       Anim.FPS := MS3D.AnimationFPS;
 
@@ -234,19 +162,82 @@ Begin
             Bone.Rotations.AddKey(((MS3D.Joints[J].KeyFramesRot[PK].Time - BaseTime)/KSpeed), MS3D.Joints[J].KeyFramesRot[PK].Vector);
           End;
         End;  }
-        
+
         Bone.Scales.Count := 0;
       End;
 
       Anim.Save(TargetDir + PathSeparator + TargetName+'.anim');
-      Anim.Destroy;
+      Anim.Release;
     End;
-    MyStream.Destroy;
-    Parser.Destroy;
+    MyStream.Release;
+    Parser.Release;
 End;
 
 Function MS3DImporter(SourceFile, TargetDir:AnsiString; TargetPlatform:Integer; Settings:AnsiString):AnsiString;
+Const
+  MaxMorphs = 256;
+
 Var
+  MS3D:Milkshape3DObject;
+  MS3D2:Milkshape3DObject;
+  Morphs:Array[0..Pred(MaxMorphs)] Of Milkshape3DObject;
+
+  I,J,K,MM:Integer;
+  W,Z,ZZ,N:Integer;
+  S,S2,Params:AnsiString;
+  Mirror,Cull,Shadows,Pick,Collision,Vegetation,SphereMap:Boolean;
+  Parser:INIParser;
+  AlphaTest:Boolean;
+  ETyp:AnsiString;
+  LightBone:AnsiString;
+
+  P, P2:Vector3D;
+  It:VertexIterator;
+
+  V:MeshVertex;
+
+  VP_Position:Vector3D;
+  VP_Normal:Vector3D;
+  VP_TextureCoords:Vector2D;
+  VP_TextureCoords2:Vector2D;
+  VP_Color:Color;
+  VP_BoneIndex:Integer;
+
+  GroupVertexFormat:VertexFormat;
+
+  LMIMG:Image;
+
+  PScale:Single;
+  StartFrame,EndFrame,LoopFrame:Integer;
+  LoopAnimation:Boolean;
+  ActionName,NextAction:AnsiString;
+  ActionList:Array Of AnsiString;
+  BaseTime, MaxTime:Single;
+  K1,K2:Integer;
+
+  BonesParent:Array Of AnsiString;
+  Bone:MeshBone;
+
+//  BA:PMeshBoneAnimation;
+  Transparency:Boolean;
+  Link:Boolean;
+  OverrideMaterial:Boolean;
+
+  LightJoints:Array Of Milkshape3DJoint;
+  LightJointCount:Integer;
+
+  PinJoints:Array Of Milkshape3DJoint;
+  PinJointCount:Integer;
+
+  EmitterJoints:Array Of Milkshape3DJoint;
+  EmitterJointCount:Integer;
+
+  OfsX:Single;
+  OfsY:Single;
+  OfsZ:Single;
+
+  DiffuseInVertex:Boolean;
+
   Source, Dest, MyStream:Stream;
   Max:Integer;
 
@@ -254,9 +245,7 @@ Var
   Emission:Single;
   Mode:Byte;
 
-  S, Name:AnsiString;
-
-  IsCloth:Boolean;
+    IsCloth:Boolean;
   FurPattern:AnsiString;
   FurWaviness,FurThickness, FurLength, FurDensity:Single;
   SecondaryTexture, MeshEmitter:AnsiString;
@@ -266,6 +255,8 @@ Var
   PinID:Word;
 
   DepthOff:Boolean;
+
+  ASpeed:Single;
 
   MyMesh:Mesh;
   Group, Other:MeshGroup;
@@ -282,6 +273,7 @@ Var
   PS:AnsiString;
   DestFile:AnsiString;
   LMFile:AnsiString;
+  LMCC:Color;
   MorphFile:AnsiString;
 
   LightType:Integer;
@@ -290,6 +282,31 @@ Var
   LightColor:Color;
   LightRadius:Single;
   Param1, Param2, Param3:Vector3D;
+
+  Name:TERRAString;
+
+Function FindMorphGroup(MorphIndex:Integer; Name:String):Integer;
+Var
+  I:Integer;
+  S:String;
+Begin
+  Name := StringUpper(Name);
+  If (MorphIndex>=0) And (MorphIndex<MaxMorphs) Then
+  For I:=0 To Pred(Morphs[MorphIndex].NumGroups) Do
+  Begin
+    S := Morphs[MorphIndex].Groups[I].Name;
+		S := StringTrim(S);
+
+    If (StringEquals(S, Name)) Then
+    Begin
+      Result := I;
+      Exit;
+    End;
+  End;
+
+  Result := -1;
+End;
+ 
 Begin
   FileManager.Instance.AddPath(GetFilePath(SourceFile));
 
@@ -301,15 +318,15 @@ Begin
     Exit;
   End;
 
-  If (Pos('_L.', UpStr(SourceFile))>0)
-  Or (Pos('_LIGHTMAP.', UpStr(SourceFile))>0) Then
+  If (Pos('_L.', StringUpper(SourceFile))>0)
+  Or (Pos('_LIGHTMAP.', StringUpper(SourceFile))>0) Then
   Begin
     Log(logConsole, 'Import', 'Skipping '+SourceFile+'...[Lightmap mesh]');
     Result := DestFile;
     Exit;
   End;
 
-  If (Pos('_MORPH', UpStr(SourceFile))>0) Then
+  If (Pos('_MORPH', StringUpper(SourceFile))>0) Then
   Begin
     Log(logConsole, 'Import', 'Skipping '+SourceFile+'...[Morph mesh]');
     Result := DestFile;
@@ -322,7 +339,7 @@ Begin
   ASpeed := 1.0;
 
   PS := SourceFile;
-  ReplaceText('ms3d', 'settings', PS);
+  StringReplaceText('ms3d', 'settings', PS);
   If FileStream.Exists(PS) Then
   Begin
     Log(logConsole, 'Import', 'Found settings file: '+PS+'...');
@@ -333,7 +350,7 @@ Begin
     Parser.AddToken('ofsz', tkFloat, @OfsZ);
     Parser.AddToken('speed', tkFloat, @ASpeed);
     Parser.Load(PS);
-	  Parser.Destroy;
+	  Parser.Release;
   End;
 
   Log(logConsole, 'Import', 'Reading Milkshape file ('+GetFileName(SourceFile, False)+')...');
@@ -342,7 +359,7 @@ Begin
 
   Source := FileStream.Open(SourceFile);
   MS3D.Load(Source);
-  Source.Destroy;
+  ReleaseObject(Source);
 
   LMFile := GetFilePath(SourceFile) + GetFileName(SourceFile, True)+'_l.ms3d';
   If Not FileStream.Exists(LMFile) Then
@@ -352,7 +369,7 @@ Begin
   Begin
     Source := FileStream.Open(LMFile);
     MS3D2.Load(Source);
-    Source.Destroy;
+    Source.Release;
 
     If (MS3D.NumVertices<>MS3D2.NumVertices) Then
     Begin
@@ -360,18 +377,24 @@ Begin
       LMFile := '';
     End Else
       Log(logConsole, 'Import', 'Imported lightmap mesh...');
+
+    LMImg := Image.Create(MS3D2.GetMaterialFile(0, SourceFile));
   End Else
+  Begin
+    LMImg := Nil;
     LMFile := '';
+  End;
 
   For I:=0 To Pred(MaxMorphs) Do
   Begin
     MorphFile := GetFilePath(SourceFile) + GetFileName(SourceFile, True)+'_morph'+IntToString(I)+'.ms3d';
+    FillChar(Morphs[I], SizeOf(Morphs[I]), 0);
     If FileStream.Exists(MorphFile) Then
     Begin
       Log(logConsole, 'Import', 'Loading vertex morph '+IntToString(I)+'...');
       Source := FileStream.Open(MorphFile);
       Morphs[I].Load(Source);
-      Source.Destroy;
+      Source.Release;
     End Else
       Morphs[I].NumVertices := 0;
   End;
@@ -385,12 +408,12 @@ Begin
   PinJointCount:=0;
   EmitterJointCount:=0;
 
-  MyMesh := Mesh.Create('');
+  MyMesh := Mesh.Create(rtDynamic, SourceFile);
 
   I:=0;
   While I<MS3D.NumJoints Do
   Begin
-    S := UpStr(StrClean(MS3D.Joints[I].Name));
+    S := StringUpper(StringTrim(MS3D.Joints[I].Name));
     If (Pos('#PIN',S)>0) Then
     Begin
       Inc(PinJointCount);
@@ -423,13 +446,13 @@ Begin
 	  	Parser.AddToken('flicker',tkInteger,@LightFlicker);
 
 	  	Parser.LoadFromString(MS3D.Joints[I].Comment);
-	  	Parser.Destroy;
+	  	Parser.Release;
 
       Param1 := VectorZero;
       Param2 := VectorZero;
       Param3 := VectorCreate(LightPulse, LightFlicker, 0);
 
-      S := LowStr(S);
+      S := StringLower(S);
       If S='point' Then
       Begin
         LightType := lightTypePoint;
@@ -487,7 +510,7 @@ Begin
       Inc(I);
   End;
 
-  WriteLn('Joints imported: ', MS3D.NumJoints);
+  //WriteLn('Joints imported: ', MS3D.NumJoints);
 
   SetLength(BonesParent, MS3D.NumJoints);
 
@@ -501,7 +524,7 @@ Begin
   	For I:=0 To Pred(MS3D.NumJoints) Do
 		  Begin
 			  S := MS3D.Joints[I].Name;
-			  S := StrClean(S);
+			  S := StringTrim(S);
 
         If (MyMesh.Skeleton.GetBone(S)<>Nil) Then
           Log(logConsole, 'Import', 'Warning: Duplicated bones: '+S);
@@ -520,14 +543,14 @@ Begin
 
 
 			  S := MS3D.Joints[I].ParentName;
-			  S := StrClean(S);
+			  S := StringTrim(S);
 			  Bone.Parent := Nil;
 			  BonesParent[I] := S;
 		  End;
 
   	For I:=0 To Pred(MyMesh.Skeleton.BoneCount) Do
 	    For J:=0 To Pred(MyMesh.Skeleton.BoneCount) Do
-	  	If (UpStr(MyMesh.Skeleton.GetBone(J).Name) = UpStr(BonesParent[I])) Then
+	  	If (StringUpper(MyMesh.Skeleton.GetBone(J).Name) = StringUpper(BonesParent[I])) Then
 		  Begin
 			  MyMesh.Skeleton.GetBone(I).Parent := MyMesh.Skeleton.GetBone(J);
 			  Break;
@@ -536,24 +559,31 @@ Begin
 
   If (MS3D.NumJoints>0)And(MS3D.Comment<>'') Then
   Begin
-    ImportAnimation(MS3D, MyMesh.Skeleton, TargetDir, LowStr(GetFileName(SourceFile, True)));
+    ImportAnimation(MS3D, MyMesh.Skeleton, TargetDir, StringLower(GetFileName(SourceFile, True)), ASpeed);
   End;
 
 	  For N:=0 To Pred(MS3D.NumGroups) Do
     Begin
       Log(logConsole, 'Import', 'Processing group ' + IntToString(Succ(N))+'...');
 
-		  S := MS3D.Groups[N].Name;
-		  S := StrClean(S);
+		  S := StringTrim(MS3D.Groups[N].Name);
 
       Link := Pos('*', S)>0;
-      ReplaceText('*', '', S);
+      StringReplaceText('*', '', S);
 
-      Group := MyMesh.AddGroup(S);
+      GroupVertexFormat := [vertexFormatPosition,  vertexFormatColor, vertexFormatNormal, {vertexFormatTangent, }vertexFormatUV0];
+
+      If MyMesh.Skeleton.BoneCount>0 Then
+        GroupVertexFormat := GroupVertexFormat + [vertexFormatBone];
+
+      If LMFile<>'' Then
+        GroupVertexFormat := GroupVertexFormat + [vertexFormatUV1];
+
+      Group := MyMesh.AddGroup(GroupVertexFormat, S);
 
       If (MS3D.Groups[N].MaterialIndex>=0) Then
       Begin
-		    Group.DiffuseColor := ColorCreate(
+		    Group.DiffuseColor := ColorCreateFromFloat(
                   MS3D.Materials[MS3D.Groups[N].MaterialIndex].Diffuse.R,
 		              MS3D.Materials[MS3D.Groups[N].MaterialIndex].Diffuse.G,
 		              MS3D.Materials[MS3D.Groups[N].MaterialIndex].Diffuse.B,
@@ -637,7 +667,7 @@ Begin
       *)
 
 	  	Parser.LoadFromString(MS3D.Groups[N].Comment);
-	  	Parser.Destroy;
+	  	Parser.Release;
 
       Group.Flags := 0;
 	  	SetFlag(Group.Flags, meshGroupHidden, (MS3D.Groups[N].Flags And 2<>0));
@@ -661,8 +691,8 @@ Begin
 
       If (SecondaryTexture='') And (MS3D.Groups[N].MaterialIndex>=0) Then
       Begin
-        SecondaryTexture := StrClean(MS3D.Materials[MS3D.Groups[N].MaterialIndex].AlphaMap);
-        If (SecondaryTexture<>'') And (SecondaryTexture<>StrClean(MS3D.Materials[MS3D.Groups[N].MaterialIndex].Texture)) Then
+        SecondaryTexture := StringTrim(MS3D.Materials[MS3D.Groups[N].MaterialIndex].AlphaMap);
+        If (SecondaryTexture<>'') And (SecondaryTexture<>StringTrim(MS3D.Materials[MS3D.Groups[N].MaterialIndex].Texture)) Then
         Begin
           SecondaryTexture := GetFileName(SecondaryTexture, False);
 		      SetFlag(Group.Flags, meshGroupTriplanar, True);
@@ -720,35 +750,56 @@ Begin
 			    W:=-1;
 
 			    Z := MS3D.Groups[N].TriangleIndices[I];
-			    VP.Position := MS3D.Vertices[MS3D.Triangles[Z].VertexIndices[Succ(J)]].Vertex;
-          Vp.Position.Add(VectorCreate(OfsX, OfsY, OfsZ));
+			    VP_Position := MS3D.Vertices[MS3D.Triangles[Z].VertexIndices[Succ(J)]].Vertex;
+          Vp_Position.Add(VectorCreate(OfsX, OfsY, OfsZ));
           If DiffuseInVertex Then
-            Vp.Color := Group.DiffuseColor
+            Vp_Color := Group.DiffuseColor
           Else
-            Vp.Color := ColorWhite;
-			    VP.Normal:= MS3D.Triangles[Z].VertexNormals[Succ(J)];
-			    VP.TextureCoords.X:= MS3D.Triangles[Z].S[Succ(J)];
-			    VP.TextureCoords.Y := MS3D.Triangles[Z].T[Succ(J)];
-			    VP.BoneIndex := Succ(MS3D.Vertices[MS3D.Triangles[Z].VertexIndices[Succ(J)]].BoneIndex);
+            Vp_Color := ColorWhite;
+			    VP_Normal:= MS3D.Triangles[Z].VertexNormals[Succ(J)];
+			    VP_TextureCoords.X:= MS3D.Triangles[Z].S[Succ(J)];
+			    VP_TextureCoords.Y := MS3D.Triangles[Z].T[Succ(J)];
+			    VP_BoneIndex := Succ(MS3D.Vertices[MS3D.Triangles[Z].VertexIndices[Succ(J)]].BoneIndex);
+
           If LMFile<>'' Then
           Begin
-  			    VP.TextureCoords2.X:= MS3D2.Triangles[Z].S[Succ(J)];
-	  		    VP.TextureCoords2.Y := MS3D2.Triangles[Z].T[Succ(J)];
+  			    VP_TextureCoords2.X := MS3D2.Triangles[Z].S[Succ(J)];
+	  		    VP_TextureCoords2.Y := MS3D2.Triangles[Z].T[Succ(J)];
+
+            LMCC := LMImg.GetPixelByUV(VP_TextureCoords2.X, VP_TextureCoords2.Y);
+            Vp_Color := ColorMultiply(Vp_Color, LMCC);
           End;
 
-			    For K:=0 To Pred(Group.VertexCount) Do
-			    If (Group.Vertices[K].Position.Distance(VP.Position)<=0.001) And (Group.Vertices[K].Normal.Distance(VP.Normal)<=0.001)
-			    And(Group.Vertices[K].TextureCoords.Distance(VP.TextureCoords)<=0.001) And (Group.Vertices[K].BoneIndex=VP.BoneIndex) Then
-			    Begin
-				    W:=K;
-				    Break;
-			    End;
+          It := Group.Vertices.GetIteratorForClass(MeshVertex);
+          While It.HasNext() Do
+          Begin
+            V := MeshVertex(It.Value);
+
+  			    If (V.Position.Distance(VP_Position)<=0.001)
+            And (V.Normal.Distance(VP_Normal)<=0.001)
+	  		    And (V.UV0.Distance(VP_TextureCoords)<=0.001)
+            And (Cardinal(V.Color) = Cardinal(VP_Color))
+            And (V.BoneIndex = VP_BoneIndex) Then
+		  	    Begin
+              If (LMFile='') Or (V.UV1.Distance(VP_TextureCoords2)<=0.001) Then
+              Begin
+  			  	    W := It.Position;
+	  			      Break;
+              End;
+			      End;
+          End;
+          ReleaseObject(It);
 
 			    If W=-1 Then
           Begin
-				    Group.VertexCount := Group.VertexCount + 1;
-				    W := Pred(Group.VertexCount);
-				    Group.Vertices[W] := VP;
+            W := Group.AddVertex();
+            Group.Vertices.SetVector3D(W, vertexPosition, VP_Position);
+            Group.Vertices.SetVector3D(W, vertexNormal, VP_Normal);
+            Group.Vertices.SetVector2D(W, vertexUV0, VP_TextureCoords);
+            Group.Vertices.SetColor(W, vertexColor, VP_Color);
+            Group.Vertices.SetFloat(W, vertexBone, VP_BoneIndex);
+            If (LMFile<>'') Then
+              Group.Vertices.SetVector2D(W, vertexUV1, VP_TextureCoords2);
 			    End;
 
           ZZ := MS3D.Triangles[Z].VertexIndices[Succ(J)];
@@ -784,15 +835,18 @@ Begin
 		    For I:=0 To Pred(PinJointCount) Do
 		    Begin
 			      Min := 9999;
-			      For J:=0 To Pred(Group.VertexCount) Do
+            It := Group.Vertices.GetIteratorForClass(MeshVertex);
+            While It.HasNext() Do
 			      Begin
-			        Dist := Group.Vertices[J].Position.Distance(PinJoints[I].Position);
+              V := MeshVertex(It.Value);
+			        Dist := V.Position.Distance(PinJoints[I].Position);
 			        If (Dist<=Min) Then
 			        Begin
 				        Min := Dist;
-				        PinID := J;
+				        PinID := It.Position;
               End;
 			      End;
+            ReleaseObject(It);
 			  End;
 
 			  If (Min<2) Then
@@ -815,7 +869,7 @@ Begin
   End;
 
   // gen links
-  For J:=0 To Pred(MyMesh.GroupCount) Do
+(*  For J:=0 To Pred(MyMesh.GroupCount) Do
   Begin
     Group := MyMesh.GetGroup(J);
     If (Group.Flags And meshGroupLinked=0) Then
@@ -824,8 +878,6 @@ Begin
     Log(logConsole, 'Import', 'Generating vertex links for '+Group.Name+'...');
     For I:=0 To Pred(Group.VertexCount) Do
     Begin
-      V := Group.GetVertexPointer(I);
-
       TargetVertex := -1;
       TargetGroup := -1;
       TargetPos := VectorZero;
@@ -838,11 +890,12 @@ Begin
         If (Other.Flags And meshGroupLinked<>0) Then
           Continue;
 
+        Group.Vertices.GetVector3D(I, vertexPosition, P2);
         For W:=0 To Pred(Other.VertexCount) Do
         Begin
-          P := Other.GetVertex(W).Position;
+          Other.Vertices.GetVector3D(W, vertexPosition, P);
 
-          Dist := P.Distance(V.Position);
+          Dist := P.Distance(P2);
           If (Dist<Min) Then
           Begin
             TargetVertex := W;
@@ -859,18 +912,23 @@ Begin
       //Log(logConsole, 'Import', 'Found '+IntToString(TargetVertex)+' in '+IntToString(TargetGroup));
       Group.SetVertexLink(I, TargetGroup, TargetVertex);
       If (TargetGroup>=0) Then
-        V.Position.Subtract(TargetPos);
+      Begin
+        Group.Vertices.GetVector3D(I, vertexPosition, P);
+        P.Subtract(TargetPos);
+        Group.Vertices.SetVector3D(I, vertexPosition, P);
+      End;
     End;
-  End;
+  End;*)
 
   //ReadLn;
 
   Log(logConsole, 'Import', 'Saving mesh...');
   Dest := FileStream.Create(DestFile);
   MyMesh.Save(Dest);
-  Dest.Destroy;
+  Dest.Release;
 
-  MyMesh.Destroy;
+  ReleaseObject(LMImg);
+  ReleaseObject(MyMesh);
 End;
 
 

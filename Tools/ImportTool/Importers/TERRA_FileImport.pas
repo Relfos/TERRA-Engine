@@ -32,48 +32,48 @@ Unit TERRA_FileImport;
 {$ENDIF}
 
 Interface
-Uses TERRA_Utils, TERRA_INI, TERRA_Log, TERRA_FileIO, TERRA_FileUtils, TERRA_OS, TERRA_Image,
-  TERRA_Sound, TERRA_Strings, TERRA_Localization, TERRA_XML;
+Uses TERRA_String, TERRA_Utils, TERRA_INI, TERRA_Log, TERRA_FileStream, TERRA_FileUtils, TERRA_OS, TERRA_Image,
+  TERRA_Sound, TERRA_Localization, TERRA_XML, TERRA_XMLBinary, TERRA_MemoryStream;
 
 Type
-  FileImporter = Function(SourceFile, TargetDir:AnsiString; TargetPlatform:Integer; Settings:AnsiString):AnsiString;
+  FileImporter = Function(SourceFile, TargetDir:TERRAString; TargetPlatform:Integer; Settings:TERRAString):TERRAString;
 
-Function ImportFile(SourceFile, TargetDir:AnsiString; TargetPlatform:Integer; Settings, ConstantFile:AnsiString):AnsiString;
+Function ImportFile(SourceFile, TargetDir:TERRAString; TargetPlatform:Integer; Settings, ConstantFile:TERRAString):TERRAString;
 
-Procedure RegisterFileImporter(Extension, Path:AnsiString; Importer:FileImporter);
+Procedure RegisterFileImporter(Extension, Path:TERRAString; Importer:FileImporter);
 
-Function AssetModified(SourceAsset, TargetAsset:AnsiString):Boolean;
+Function AssetModified(SourceAsset, TargetAsset:TERRAString):Boolean;
 
-Procedure ExportArray(SourceFile, DestFile, Contents:AnsiString);
+Procedure ExportArray(SourceFile, DestFile, Contents:TERRAString);
 
-Procedure MakeDir(Dir:AnsiString);
+Procedure MakeDir(Dir:TERRAString);
 
 Implementation
-Uses TERRA_Error, TERRA_IO, TERRA_Mesh, TERRA_MeshFilter, SysUtils, DateUtils, Types,
-  TERRA_Application
+Uses TERRA_Error, TERRA_Stream, TERRA_Mesh, TERRA_MeshFilter, SysUtils, DateUtils, Types,
+  TERRA_LocalizationImport, TERRA_Application
   {$IFDEF USE_ASSIMP}, TERRA_Assimp{$ENDIF};
 
 Type
   Rec = Record
     Importer:FileImporter;
-    Path:AnsiString;
-    Ext:AnsiString;
+    Path:TERRAString;
+    Ext:TERRAString;
   End;
 
 Var
   _Importers:Array Of Rec;
   _ImporterCount:Integer;
 
-Procedure RegisterFileImporter(Extension, Path:AnsiString; Importer:FileImporter);
+Procedure RegisterFileImporter(Extension, Path:TERRAString; Importer:FileImporter);
 Begin
   Inc(_ImporterCount);
   SetLength(_Importers, _ImporterCount);
   _Importers[Pred(_ImporterCount)].Importer := Importer;
-  _Importers[Pred(_ImporterCount)].Ext := UpStr(Extension);
+  _Importers[Pred(_ImporterCount)].Ext := StringUpper(Extension);
   _Importers[Pred(_ImporterCount)].Path := Path;
 End;
 
-Function AssetModified(SourceAsset, TargetAsset:AnsiString):Boolean;
+Function AssetModified(SourceAsset, TargetAsset:TERRAString):Boolean;
 Var
   A,B:TDateTime;
 Begin
@@ -92,8 +92,8 @@ Begin
   {$ENDIF}
 End;
 
-Procedure MakeDir(Dir:AnsiString);
-  function Last(What:AnsiString; Where:AnsiString): Integer;
+Procedure MakeDir(Dir:TERRAString);
+  function Last(What:TERRAString; Where:TERRAString): Integer;
   var
     Ind : Integer;
 
@@ -108,7 +108,7 @@ Procedure MakeDir(Dir:AnsiString);
   end;
 
 var
-  PrevDir :AnsiString;
+  PrevDir :TERRAString;
   Ind     : Integer;
 
 begin
@@ -135,10 +135,10 @@ begin
   end;
 End;
 
-Procedure ExportArray(SourceFile, DestFile, Contents:AnsiString);
+Procedure ExportArray(SourceFile, DestFile, Contents:TERRAString);
 Var
   N:Byte;
-  S:AnsiString;
+  S:TERRAString;
   Source, Dest:Stream;
 Begin
   Source := MemoryStream.Create(SourceFile);
@@ -172,16 +172,40 @@ Begin
     Dest.WriteLine(Contents);
   End;
   Dest.WriteLine('End.');
-  Dest.Destroy;
+  Dest.Release;
 
-  Source.Destroy;
+  Source.Release;
+End;
+
+Function ImportXML(SourceFile, DestFile, TargetDir, TargetFolder, TargetExt, ConstantFile:TERRAString):TERRAString;
+Begin
+  TargetDir := TargetDir + PathSeparator + TargetFolder;
+  MakeDir(TargetDir);
+  Result := TargetDir + PathSeparator + GetFileName(SourceFile, True)+'.'+TargetExt;
+
+  If (Not AssetModified(SourceFile, Result)) Then
+  Begin
+    Log(logConsole, 'Import', 'Skipping '+SourceFile+'...[Not modified]');
+    Result := DestFile;
+    Exit;
+  End;
+
+  Log(logConsole, 'Import', 'Importing '+SourceFile+' into ' + Result);
+
+  If (ConstantFile<>'') And (Not FileStream.Exists(ConstantFile)) Then
+  Begin
+    RaiseError('File not found: '+ConstantFile);
+  End Else
+  Begin
+    XMLConvertToBinary(SourceFile, Result, ConstantFile);
+  End;
 End;
 
 
-Function ImportFile(SourceFile, TargetDir:AnsiString; TargetPlatform:Integer; Settings, ConstantFile:AnsiString):AnsiString;
+Function ImportFile(SourceFile, TargetDir:TERRAString; TargetPlatform:Integer; Settings, ConstantFile:TERRAString):TERRAString;
 Var
   I:Integer;
-  Ext, DestFile, OutDir:AnsiString;
+  Ext, DestFile, OutDir:TERRAString;
   PreProcess:Boolean;
   Source, Dest:Stream;
   INI:INIParser;
@@ -189,7 +213,7 @@ Var
   MyMesh:Mesh;
   ImgInfo:ImageClassInfo;
 Begin
-  SourceFile := LowStr(SourceFile);
+  SourceFile := StringLower(SourceFile);
 
 //WriteLn('Source: ', SourceFile);
 
@@ -200,7 +224,7 @@ Begin
     Exit;
   End;
 
-  Ext := UpStr(GetFileExtension(SourceFile));
+  Ext := StringUpper(GetFileExtension(SourceFile));
   PreProcess := True;
 
   OutDir := '';
@@ -211,50 +235,50 @@ Begin
     INI.AddToken('path', tkString, @OutDir);
     INI.AddToken('preprocess', tkBoolean, @PreProcess);
     INI.LoadFromString(Settings);
-    INI.Destroy;
+    INI.Release;
   End;
 
   If OutDir<>'' Then
     TargetDir := TargetDir + PathSeparator + OutDir;
 
-  If (UpStr(GetFileExtension(SourceFile))='FX') Then
+  If (StringUpper(GetFileExtension(SourceFile))='FX') Then
   Begin
     TargetDir := TargetDir + PathSeparator + 'mesh';
     PreProcess := False;
   End;
 
-  If (UpStr(GetFileExtension(SourceFile))='LINK') Then
+  If (StringUpper(GetFileExtension(SourceFile))='LINK') Then
   Begin
     TargetDir := TargetDir + PathSeparator + 'textures';
     PreProcess := False;
   End;
 
-  If (UpStr(GetFileExtension(SourceFile))='FNT') Or (UpStr(GetFileExtension(SourceFile))='TTF') Then
+  If (StringUpper(GetFileExtension(SourceFile))='FNT') Or (StringUpper(GetFileExtension(SourceFile))='TTF') Then
   Begin
     TargetDir := TargetDir + PathSeparator + 'system';
     PreProcess := False;
   End;
 
-  If (UpStr(GetFileExtension(SourceFile))='TMX') Or (UpStr(GetFileExtension(SourceFile))='MAP') Then
+  If {(StringUpper(GetFileExtension(SourceFile))='TMX') Or} (StringUpper(GetFileExtension(SourceFile))='MAP') Then
   Begin
     TargetDir := TargetDir + PathSeparator + 'maps';
     PreProcess := False;
   End;
 
-  If (UpStr(GetFileExtension(SourceFile))='OGG') Or (UpStr(GetFileExtension(SourceFile))='M4A')
-  Or (UpStr(GetFileExtension(SourceFile))='MID') Then
+  If (StringUpper(GetFileExtension(SourceFile))='OGG') Or (StringUpper(GetFileExtension(SourceFile))='M4A')
+  Or (StringUpper(GetFileExtension(SourceFile))='MID') Then
   Begin
     TargetDir := TargetDir + PathSeparator + 'sound';
     PreProcess := False;
   End;
 
-  If (UpStr(GetFileExtension(SourceFile))='TXT') Or (UpStr(GetFileExtension(SourceFile))='DAT') Then
+  If (StringUpper(GetFileExtension(SourceFile))='DAT') Then
   Begin
     TargetDir := TargetDir + PathSeparator + 'system';
     PreProcess := False;
   End;
 
-  If (UpStr(GetFileExtension(SourceFile))='MESH') Or (UpStr(GetFileExtension(SourceFile))='ANIM') Then
+  If (StringUpper(GetFileExtension(SourceFile))='MESH') Or (StringUpper(GetFileExtension(SourceFile))='ANIM') Then
   Begin
     TargetDir := TargetDir + PathSeparator + 'mesh';
     PreProcess := False;
@@ -275,42 +299,36 @@ Begin
     Source := MemoryStream.Create(SourceFile);
     Dest := FileStream.Create(DestFile);
     Source.Copy(Dest);
-    Source.Destroy;
-    Dest.Destroy;
+    Source.Release;
+    Dest.Release;
     Exit;
   End;
 
-  If (UpStr(GetFileExtension(SourceFile))='XML') Then
+  If (StringUpper(GetFileExtension(SourceFile))='XML') Then
   Begin
-    TargetDir := TargetDir + PathSeparator + 'system';
-    MakeDir(TargetDir);
-    Result := TargetDir + PathSeparator + GetFileName(SourceFile, True)+'.bin';
-
-    If (Not AssetModified(SourceFile, Result)) Then
-    Begin
-      Log(logConsole, 'Import', 'Skipping '+SourceFile+'...[Not modified]');
-      Result := DestFile;
-      Exit;
-    End;
-
-    Log(logConsole, 'Import', 'Importing '+SourceFile+' into ' + Result);
-
-    If (ConstantFile<>'') And (Not FileStream.Exists(ConstantFile)) Then
-    Begin
-      RaiseError('File not found: '+ConstantFile);
-    End Else
-    Begin
-      XMLConvertToBinary(SourceFile, Result, ConstantFile);
-     End;
+    Result := ImportXML(SourceFile, DestFile, TargetDir, 'system', 'bin', ConstantFile);
     Exit;
   End;
+
+  If (StringUpper(GetFileExtension(SourceFile))='TMX') Then
+  Begin
+    Result := ImportXML(SourceFile, DestFile, TargetDir, 'maps', 'bin', ConstantFile);
+    Exit;
+  End;
+
+  If (StringUpper(GetFileExtension(SourceFile))='TXT') Then
+  Begin
+    Result := ImportTranslation(SourceFile, TargetDir);
+    Exit;
+  End;
+
 
   I := 0;
   While (I<GetImageExtensionCount()) Do
   Begin
     ImgInfo := GetImageExtension(I);
 
-    If (UpStr(Ext) = UpStr(ImgInfo.Name)) Then
+    If (StringUpper(Ext) = StringUpper(ImgInfo.Name)) Then
     Begin
       If (OutDir='') Then
         TargetDir := TargetDir + PathSeparator + 'textures';
@@ -329,8 +347,8 @@ Begin
       Source := MemoryStream.Create(SourceFile);
       Dest := FileStream.Create(DestFile);
       Source.Copy(Dest);
-      Source.Destroy;
-      Dest.Destroy;
+      Source.Release;
+      Dest.Release;
       Exit;
     End;
 
@@ -340,7 +358,7 @@ Begin
   I := 0;
   While (I<_SoundExtensionCount) Do
   Begin
-    If (UpStr(Ext) = UpStr(_SoundExtensions[I].Name)) Then
+    If (StringUpper(Ext) = StringUpper(_SoundExtensions[I].Name)) Then
     Begin
       If (OutDir='') Then
         TargetDir := TargetDir + PathSeparator + 'Sound';
@@ -359,8 +377,8 @@ Begin
       Source := MemoryStream.Create(SourceFile);
       Dest := FileStream.Create(DestFile);
       Source.Copy(Dest);
-      Source.Destroy;
-      Dest.Destroy;
+      Source.Release;
+      Dest.Release;
       Exit;
     End;
 
@@ -378,7 +396,7 @@ Begin
   End;
 
 	{$IFDEF USE_ASSIMP}
-  If aiIsExtensionSupported(PAnsiChar('.'+GetFileExtension(SourceFile))) Then
+  If aiIsExtensionSupported(PTERRAChar('.'+GetFileExtension(SourceFile))) Then
   Begin
     TargetDir := TargetDir + PathSeparator + 'Mesh';
     Result := ASSIMP_Import(SourceFile, TargetDir);
@@ -394,7 +412,13 @@ Begin
     Result := TargetDir + PathSeparator + GetFileName(SourceFile, True)+'.mesh';
     Dest := FileStream.Create(Result);
     MyMesh.Save(Dest);
-    Dest.Destroy;
+    Dest.Release;
+    Exit;
+  End;
+
+  If (StringUpper(GetFileExtension(SourceFile))='X') Then
+  Begin
+    Result := '';
     Exit;
   End;
 
