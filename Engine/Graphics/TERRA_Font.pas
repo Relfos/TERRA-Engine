@@ -393,7 +393,7 @@ Begin
 
   If S<>'' Then
   Begin
-    Result := Font.Create(S);
+    Result := Font.Create(rtLoaded, S);
     Result._TextSize := Size;
     Result.Priority := 90;
     Result._Key := Name;
@@ -475,7 +475,7 @@ Begin
   If Assigned(Result) Then
     Exit;
 
-  _DefaultFont := Font.Create('');
+  _DefaultFont := Font.Create(rtDynamic, 'default_font');
   Result := _DefaultFont;
 
   Src := MemoryStream.Create(bm_size, @bm_data[0]);

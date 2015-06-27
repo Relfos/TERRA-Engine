@@ -26,9 +26,9 @@ Unit TERRA_ParticleRenderer;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_GraphicsManager, TERRA_Texture, TERRA_Application,
-  TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_Stream, TERRA_Plane,
-  TERRA_Matrix4x4, TERRA_Math, TERRA_TextureAtlas, TERRA_BoundingBox,
+  TERRA_String, TERRA_Utils, TERRA_GraphicsManager, TERRA_Texture, TERRA_Application, TERRA_Resource,
+  TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_Stream, TERRA_Plane, TERRA_Matrix4x4,
+  TERRA_Math, TERRA_TextureAtlas, TERRA_BoundingBox,
   TERRA_UI, TERRA_Image, TERRA_Renderer, TERRA_FileManager, TERRA_VertexFormat;
 
 Const
@@ -987,24 +987,24 @@ Begin
 
     If (_NormalTexture = Nil) Then
     Begin
-      _NormalTexture := Texture.Create();
-      _NormalTexture.CreateFromSize('particles_normal', _TextureAtlas.Width, _TextureAtlas.Height);
+      _NormalTexture := Texture.Create(rtDynamic, 'particles_normal');
+      _NormalTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height);
       _NormalTexture.Update;
     End;
     _NormalTexture.UpdateRect(_NormalImage, 0, 0);
 
     If (_GlowTexture = Nil) Then
     Begin
-      _GlowTexture := Texture.Create();
-      _GlowTexture.CreateFromSize('particles_glow', _TextureAtlas.Width, _TextureAtlas.Height);
+      _GlowTexture := Texture.Create(rtDynamic, 'particles_glow');
+      _GlowTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height);
       _GlowTexture.Update;
     End;
     _GlowTexture.UpdateRect(_GlowImage, 0, 0);
 
     If (_RefractionTexture = Nil) Then
     Begin
-      _RefractionTexture := Texture.Create();
-      _RefractionTexture.CreateFromSize('particles_refraction', _TextureAtlas.Width, _TextureAtlas.Height);
+      _RefractionTexture := Texture.Create(rtDynamic, 'particles_refraction');
+      _RefractionTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height);
       _RefractionTexture.Update();
     End;
     _RefractionTexture.UpdateRect(_RefractionImage, 0, 0);

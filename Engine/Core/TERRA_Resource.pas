@@ -35,17 +35,23 @@ Type
     rsReady     = 3
   );
 
+  ResourceType = (
+    rtLoaded    = 0,
+    rtStreamed  = 1,
+    rtDynamic   = 2
+  );
+
   ResourceClass = Class Of Resource;
 
   Resource = Class(HashMapObject)
     Private
       _Status:ResourceStatus;
+      _Kind:ResourceType;
 
     Protected
       _Time:Cardinal;
       _Location:TERRAString;
       _Size:Integer;
-      _KeepStream:Boolean;
 
       Procedure CopyValue(Other:CollectionObject); Override;
       Function Sort(Other:CollectionObject):Integer; Override;
@@ -57,10 +63,10 @@ Type
     Public
       Priority:Integer;
 
-      Constructor Create(Location:TERRAString);
+      Constructor Create(Kind:ResourceType; Location:TERRAString);
       Procedure Release; Override;
 
-      Function IsReady:Boolean; 
+      Function IsReady:Boolean;
 
       Class Function GetManager:Pointer; Virtual;
 
@@ -68,7 +74,7 @@ Type
       Function Unload:Boolean; Virtual;
       Function Update:Boolean; Virtual;
 
-      Procedure Rebuild(); 
+      Procedure Rebuild();
 
       Function ToString():TERRAString; Override;
 
@@ -80,8 +86,8 @@ Type
       Property Location:TERRAString Read _Location;
       Property Time:Cardinal Read _Time Write _Time;
       Property Status:ResourceStatus Read _Status Write SetStatus;
+      Property Kind:ResourceType Read _Kind;
       Property Size:Integer Read _Size;
-      Property KeepStream:Boolean Read _KeepStream Write _KeepStream;
   End;
 
 Implementation
@@ -93,11 +99,13 @@ Begin
   RaiseError('Not implemented!');
 End;
 
-Constructor Resource.Create(Location:TERRAString);
+Constructor Resource.Create(Kind:ResourceType; Location:TERRAString);
 Var
   I:Integer;
 Begin
-  If Pos('@', Location) = 1 Then
+  Self._Kind := Kind;
+
+  If Kind = rtDynamic Then
   Begin
     Self._Key := Location;
     Self._Location := '';

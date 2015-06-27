@@ -55,8 +55,6 @@ Type
       _Source:Image;
       _Ratio:Vector2D;
 
-      _Dynamic:Boolean;
-
       _Managed:Boolean;
 
       _SizeInBytes:Cardinal;
@@ -86,12 +84,11 @@ Type
       Uncompressed:Boolean;
       PreserveQuality:Boolean;
 
-      Constructor Create();
+      Constructor Create(Kind:ResourceType; Location:TERRAString);
 
-      Procedure CreateFromSize(Const Name:TERRAString; TextureWidth, TextureHeight:Cardinal);
-      Procedure CreateFromImage(Const Name:TERRAString; Source:Image);
-      Procedure CreateFromSurface(Surface:SurfaceInterface);
-      Procedure CreateFromLocation(Const Location:TERRAString);
+      Procedure InitFromSize(TextureWidth, TextureHeight:Cardinal);
+      Procedure InitFromImage(Source:Image);
+      Procedure InitFromSurface(Surface:SurfaceInterface);
 
       Function IsValid():Boolean;
 
@@ -277,11 +274,9 @@ Begin
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Found '+S+'...');{$ENDIF}
 
       If Assigned(TextureFormat) Then
-        Result := TextureFormat.Create()
+        Result := TextureFormat.Create(rtLoaded, S)
       Else
-        Result := Texture.Create();
-
-      Result.CreateFromLocation(S);
+        Result := Texture.Create(rtLoaded, S);
 
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture class instantiated sucessfully!');{$ENDIF}
 
@@ -315,8 +310,8 @@ End;
 
 Function TextureManager.CreateTextureWithColor(Name:TERRAString; TexColor:Color):Texture;
 Begin
-  Result := Texture.Create();
-  Result.CreateFromSize(Name, 64, 64);
+  Result := Texture.Create(rtDynamic, Name);
+  Result.InitFromSize(64, 64);
   Result.Uncompressed := True;
   Result.MipMapped := False;
   Result.Filter := filterLinear;
@@ -431,8 +426,8 @@ Function TextureManager.GetDefaultColorTable:Texture;
 Begin
   If (Not Assigned(_DefaultColorTable)) Then
   Begin
-    _DefaultColorTable := DefaultColorTableTexture.Create();
-    _DefaultColorTable.CreateFromSize('default_colortable', 1024, 32);
+    _DefaultColorTable := DefaultColorTableTexture.Create(rtDynamic, 'default_colortable');
+    _DefaultColorTable.InitFromSize(1024, 32);
     _DefaultColorTable.Rebuild();
   End Else
   If (Not _DefaultColorTable.IsValid()) Then
@@ -482,8 +477,8 @@ Begin
     Noise.SaveToImage(Img, 0.0, maskRGB);
     //Img.Save('cellnoise.png');
 
-    _CellNoise := Texture.Create();
-    _CellNoise.CreateFromImage('cellnoise', Img);
+    _CellNoise := Texture.Create(rtDynamic, 'cellnoise');
+    _CellNoise.InitFromImage(Img);
 
     ReleaseObject(Img);
     ReleaseObject(Noise);
@@ -498,8 +493,10 @@ Begin
   Result := _TextureMemory;
 End;
 
-Constructor Texture.Create();
+Constructor Texture.Create(Kind:ResourceType; Location:TERRAString);
 Begin
+  Inherited Create(Kind, Location);
+
   _TargetFormat := colorRGBA;
   _ByteFormat := pixelSizeByte;
   _Ratio := VectorCreate2D(1, 1);
@@ -513,18 +510,11 @@ Begin
   _Managed := False;
 End;
 
-Procedure Texture.CreateFromLocation(const Location: TERRAString);
+Procedure Texture.InitFromSurface(Surface: SurfaceInterface);
 Begin
-  Inherited Create(Location);
-End;
-
-Procedure Texture.CreateFromSurface(Surface: SurfaceInterface);
-Begin
-  _Key := '';
-
   If (Surface = Nil) Then
   Begin
-    Self.CreateFromSize(CardinalToString(Application.GetTime()), 128, 128);
+    Self.InitFromSize(128, 128);
     Exit;
   End;
 
@@ -536,7 +526,6 @@ Begin
   SetLength(_Handles, _FrameCount);
   _Handles[0] := Surface;
 
-  _Dynamic := True;
   Uncompressed := False;
 
   Self.SetStatus(rsReady);
@@ -546,14 +535,10 @@ Begin
   _Managed := True;
 End;
 
-Procedure Texture.CreateFromSize(Const Name:TERRAString; TextureWidth, TextureHeight:Cardinal);
+Procedure Texture.InitFromSize(TextureWidth, TextureHeight:Cardinal);
 Begin
-  _Key := Name;
-  _Location := '';
-
   _Width := TextureWidth;
   _Height := TextureHeight;
-
 
   If (Not GraphicsManager.Instance.Renderer.Features.NPOT.Avaliable) Then
   Begin
@@ -572,20 +557,19 @@ Begin
   _Source := Image.Create(_Width, _Height);
   _Source.Process(IMP_FillColor, ColorWhite);
 
-  _Dynamic := True;
   Uncompressed := False;
 
   Self.Update();
 End;
 
-Procedure Texture.CreateFromImage(Const Name:TERRAString; Source:Image);
+Procedure Texture.InitFromImage(Source:Image);
 Begin
   If (Source = Nil) Then
-    Self.CreateFromSize(Name, 128, 128)
+    Self.InitFromSize(128, 128)
   Else
   Begin
     AdjustRatio(Source);
-    Self.CreateFromSize(Name, Source.Width, Source.Height);
+    Self.InitFromSize(Source.Width, Source.Height);
     Self.Update();
     Self.UpdateRect(Source);
   End;
@@ -595,7 +579,6 @@ Function Texture.Load(Source: Stream):Boolean;
 Var
   Ofs:Cardinal;
 Begin
-  _Dynamic := False;
   Uncompressed := False;
   Ofs := Source.Position;
   _Source := Image.Create(Source);
@@ -1137,7 +1120,7 @@ Begin
   Src := FileManager.Instance.OpenStream(FileName);
   If Assigned(Src) Then
   Begin
-    Result := Texture.Create();
+    Result := Texture.Create(rtDynamic, FileName);
     Result.Load(Src);
     Result.Update();
     ReleaseObject(Src);

@@ -26,7 +26,7 @@ Unit TERRA_SoundManager;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Utils, TERRA_Sound, TERRA_Application, TERRA_Collections, TERRA_Vector3D,
-  TERRA_Log, TERRA_SoundSource, TERRA_SoundAmbience, TERRA_ResourceManager,TERRA_AL;
+  TERRA_Log, TERRA_SoundSource, TERRA_SoundAmbience, TERRA_Resource, TERRA_ResourceManager, TERRA_AL;
 
 Type
   SoundManager = Class(ResourceManager)
@@ -178,7 +178,7 @@ Begin
 
     If S<>'' Then
     Begin
-      Result := Sound.Create(S);
+      Result := Sound.Create(rtLoaded, S);
       Self.AddResource(Result);
     End Else
     If ValidateError Then

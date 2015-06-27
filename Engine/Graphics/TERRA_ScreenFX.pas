@@ -26,7 +26,7 @@ Unit TERRA_ScreenFX;
 
 Interface
 Uses TERRA_String, TERRA_Utils, TERRA_OS, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Matrix4x4, TERRA_Color,
-  TERRA_Texture, TERRA_Renderer, TERRA_Noise;
+  TERRA_Resource, TERRA_Texture, TERRA_Renderer, TERRA_Noise;
 
 Const
   MaxVignetteScale = 20.0;
@@ -1054,8 +1054,8 @@ Begin
   Exp.Resize(256, 2);
   //Exp.Save('satramp.png');
 
-  _Ramp := Texture.Create();
-  _Ramp.CreateFromImage('vibranceramp', Exp);
+  _Ramp := Texture.Create(rtDynamic, 'vibranceramp');
+  _Ramp.InitFromImage(Exp);
 
   ReleaseObject(Exp);
 

@@ -26,7 +26,7 @@ Unit TERRA_Viewport;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_Camera, TERRA_Renderer, TERRA_Downsampler,
+  TERRA_String, TERRA_Utils, TERRA_Camera, TERRA_Renderer, TERRA_Downsampler, TERRA_Resource,
   TERRA_Ray, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Color, TERRA_Texture
   {$IFDEF POSTPROCESSING},TERRA_ScreenFX{$ENDIF};
 
@@ -612,11 +612,11 @@ Begin
       If TargetType = effectTargetEdge Then
       Begin
         DownSize := 1024;
-        _RenderSamplers[TargetValue] := RenderTargetBouncer.Create(DownSize, DownSize, pixelSizeByte);
+        _RenderSamplers[TargetValue] := RenderTargetBouncer.Create(_Name+'_edge', DownSize, DownSize, pixelSizeByte);
       End Else
       Begin
         DownSize := 512;
-        _RenderSamplers[TargetValue] := RenderTargetDownSampler.Create(DownSize, DownSize, pixelSizeByte);
+        _RenderSamplers[TargetValue] := RenderTargetDownSampler.Create(_Name+'_bloom', DownSize, DownSize, pixelSizeByte);
       End;
 
     End;
@@ -683,8 +683,8 @@ Begin
     Begin
       If _RenderTextures[TargetValue] = Nil Then
       Begin
-        _RenderTextures[TargetValue] := Texture.Create();
-        _RenderTextures[TargetValue].CreateFromSurface(Self.GetRenderTarget(TargetType));
+        _RenderTextures[TargetValue] := Texture.Create(rtDynamic, _Name+'_rt'+IntToString(TargetValue));
+        _RenderTextures[TargetValue].InitFromSurface(Self.GetRenderTarget(TargetType));
       End;
 
       Result := _RenderTextures[TargetValue];
@@ -711,8 +711,8 @@ Begin
 
   If _ResolveTexture = Nil Then
   Begin
-    _ResolveTexture := Texture.Create();
-    _ResolveTexture.CreateFromSurface(_ResolveBuffer);
+    _ResolveTexture := Texture.Create(rtDynamic, _Name+'_resolve');
+    _ResolveTexture.InitFromSurface(_ResolveBuffer);
   End;
 
   TempTarget := Self.Target;

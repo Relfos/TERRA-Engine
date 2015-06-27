@@ -151,8 +151,8 @@ Begin
   end;
 
   Result := MyResource.Load(Source);
-  If (Not MyResource.KeepStream) Then
-    Source.Release;
+  If (MyResource.Kind <> rtStreamed) Then
+    ReleaseObject(Source);
 
   If (Not Result) Then
   Begin
@@ -285,7 +285,7 @@ Begin
     If (MyResource = Nil) Then
       Break;
 
-    If (MyResource.Status<>rsReady) Or (MyResource.Location='') Or (MyResource.KeepStream) Then
+    If (MyResource.Status<>rsReady) Or (MyResource.Kind <> rtLoaded) Then
       Continue;
 
     If (MyResource.ShouldUnload()) Then

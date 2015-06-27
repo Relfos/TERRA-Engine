@@ -27,7 +27,7 @@ Unit TERRA_UITransition;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Vector2D, TERRA_Vector3D, TERRA_Texture,
+  TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Vector2D, TERRA_Vector3D, TERRA_Texture, TERRA_Resource,
   {$IFDEF POSTPROCESSING}TERRA_ScreenFX, {$ENDIF}
   TERRA_Image, TERRA_Color, TERRA_Matrix4x4, TERRA_Matrix3x3, TERRA_VertexFormat;
 
@@ -407,8 +407,8 @@ Begin
 
   {$IFDEF POSTPROCESSING}
   Src := GraphicsManager.Instance.MainViewport.GetRenderTarget(captureTargetColor).GetImage();
-  _Texture := Texture.Create();
-  _Texture.CreateFromSize('ui_slide', Src.Width, Src.Height);
+  _Texture := Texture.Create(rtDynamic, 'ui_slide');
+  _Texture.InitFromSize(Src.Width, Src.Height);
   _Texture.UpdateRect(Src);
   Src.Release();
   {$ELSE}

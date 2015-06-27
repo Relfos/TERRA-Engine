@@ -26,11 +26,13 @@ Unit TERRA_Downsampler;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Renderer, TERRA_Texture, TERRA_Math, TERRA_Application, TERRA_Utils;
+  TERRA_String, TERRA_Renderer, TERRA_Texture, TERRA_Math, TERRA_Application, TERRA_Utils, TERRA_Resource;
 
 Type
   RenderTargetSampler = Class(TERRAObject)
     Protected
+      _Name:TERRAString;
+
 	    _Targets:Array Of RenderTargetInterface;
       _Textures:Array Of Texture;
       _TargetCount:Integer;
@@ -43,7 +45,7 @@ Type
 	    Procedure Clear();
 
     Public
-	    Constructor Create(Width, Height:Integer; PixelSize:PixelSizeType);
+	    Constructor Create(Const Name:TERRAString; Width, Height:Integer; PixelSize:PixelSizeType);
 
 	    Procedure Release; Override;
 
@@ -84,8 +86,9 @@ Implementation
 Uses TERRA_GraphicsManager, TERRA_InputManager, TERRA_Color;
 
 { RenderTargetSampler }
-Constructor RenderTargetSampler.Create(Width, Height:Integer; PixelSize:PixelSizeType);
+Constructor RenderTargetSampler.Create(Const Name:TERRAString; Width, Height:Integer; PixelSize:PixelSizeType);
 Begin
+  Self._Name := Name;
   Self.Init(Width, Height, PixelSize); // {$IFDEF FRAMEBUFFEROBJECTS}FBO_COLOR8{$ELSE}0{$ENDIF}); BIBI
 End;
 
@@ -97,8 +100,8 @@ Begin
   Begin
     If (_Textures[Index] = Nil) Then
     Begin
-      _Textures[Index] := Texture.Create();
-      _Textures[Index].CreateFromSurface(_Targets[Index]);
+      _Textures[Index] := Texture.Create(rtDynamic, Self._Name + '_rt'+IntToString(Index));
+      _Textures[Index].InitFromSurface(_Targets[Index]);
     End;
 
     Result := _Textures[Index];

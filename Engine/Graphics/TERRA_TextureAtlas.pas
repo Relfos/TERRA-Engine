@@ -25,7 +25,7 @@ Unit TERRA_TextureAtlas;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Image, TERRA_Texture, TERRA_Packer;
+Uses TERRA_String, TERRA_Utils, TERRA_Image, TERRA_Texture, TERRA_Packer, TERRA_Resource;
 
 Type
   TextureAtlas = Class;
@@ -82,7 +82,7 @@ Type
       _PageCount:Integer;
       _SaveCount:Integer;
 
-      Function AllocTexture:TextureAtlasPage; Virtual;
+      Function AllocTexture(Const Name:TERRAString):TextureAtlasPage; Virtual;
 
       Function CreateTexture(PageID:Integer):TextureAtlasPage;
 
@@ -326,9 +326,9 @@ Begin
 End;
 
 
-Function TextureAtlas.AllocTexture: TextureAtlasPage;
+Function TextureAtlas.AllocTexture(Const Name:TERRAString): TextureAtlasPage;
 Begin
-  Result := TextureAtlasPage.Create();
+  Result := TextureAtlasPage.Create(rtDynamic, Name);
 End;
 
 Function TextureAtlas.CreateTexture(PageID: Integer):TextureAtlasPage;
@@ -339,13 +339,13 @@ Begin
   Log(logDebug, 'TextureAtlas', 'Creating TextureAtlas texture: '+S);
 
   ReleaseObject(_Textures[PageID]);
-  Result := Self.AllocTexture();
+  Result := Self.AllocTexture(S);
   _Textures[PageID] := Result;
   Result.MipMapped := False;
   Result._PageID := PageID;
   Result._Atlas := Self;
 
-  Result.CreateFromSize(S, Width, Height);
+  Result.InitFromSize(Width, Height);
 
   Result.Rebuild();
 End;

@@ -469,7 +469,7 @@ Begin
     S := FileManager.Instance.SearchResourceFile(Name+'.anim');
     If S<>'' Then
     Begin
-      Result := Animation.Create(S);
+      Result := Animation.Create(rtLoaded, S);
       Result.Priority := 70;
       Self.AddResource(Result);
     End Else
@@ -773,7 +773,7 @@ Begin
   Self._Hash := Application.GetTime();
 
   For I:=0 To Pred(_BoneCount) Do
-    _BoneList[I].Release;
+    ReleaseObject(_BoneList[I]);
 
   Self._BoneCount := Other._BoneCount;
   SetLength(Self._BoneList, _BoneCount);

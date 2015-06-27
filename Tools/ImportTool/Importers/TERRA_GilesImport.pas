@@ -28,15 +28,15 @@ Uses TERRA_Application, TERRA_Giles, TERRA_MeshAnimation, TERRA_Utils, TERRA_OS;
 
 implementation
 
-Uses TERRA_Mesh, TERRA_INI, TERRA_IO, TERRA_Matrix, TERRA_ResourceManager,
+Uses TERRA_Mesh, TERRA_INI, TERRA_Stream, TERRA_Matrix4x4, TERRA_ResourceManager,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Math, TERRA_Color, TERRA_Log,
-  TERRA_DXTools, SysUtils, TERRA_MeshFilter, TERRA_FileImport, TERRA_FileIO,
+  TERRA_DXTools, SysUtils, TERRA_MeshFilter, TERRA_FileImport, TERRA_FileStream,
   TERRA_FileUtils;
 
-Function GilesImporter(SourceFile, TargetDir:AnsiString; TargetPlatform:Integer; Settings:AnsiString):AnsiString;
+Function GilesImporter(SourceFile, TargetDir:TERRAString; TargetPlatform:Integer; Settings:TERRAString):TERRAString;
 Var
   I,J,K:Integer;
-  S:AnsiString;
+  S:TERRAString;
   Src, Dest:Stream;
   Model:GilesModel;
   G:MeshGroup;
@@ -46,7 +46,7 @@ Begin
   Src := MemoryStream.Create(SourceFile);
   Model := GilesModel.Create;
   Model.Load(Src);
-  Src.Destroy;
+  Src.Release;
 
   Log(logConsole, 'Import', 'Converting mesh...');
   MyMesh := Mesh.CreateFromFilter(Model);
@@ -55,10 +55,10 @@ Begin
   S := TargetDir + PathSeparator + GetFileName(SourceFile, True)+ '.mesh';
   Dest := FileStream.Create(S);
   MyMesh.Save(Dest);
-  MyMesh.Destroy;
-  Dest.Destroy;
+  MyMesh.Release;
+  Dest.Release;
 
-  Model.Destroy();
+  Model.Release();
 End;
 
 
