@@ -228,11 +228,11 @@ Var
 Begin
   Inherited;
 
-  If (GraphicsManager.Instance().MainViewport = Nil) Then
+(*  If (GraphicsManager.Instance().ActiveViewport = Nil) Then
     Exit;
-  
-  Cam := GraphicsManager.Instance().MainViewport.Camera;
-  UpdatePosition(Cam.Position, Cam.View, Cam.Up);
+
+  Cam := GraphicsManager.Instance().ActiveViewport.Camera;
+  UpdatePosition(Cam.Position, Cam.View, Cam.Up);*)
 
   I := 0;
   While (I<_SourceCount) Do
@@ -312,9 +312,10 @@ Begin
   Result.Bind(MySound);
 
   Log(logDebug, 'Sound', 'Setting '+MySound.Name+' position');
+  (*
   If Assigned(GraphicsManager.Instance().MainViewport) Then
     Result.Position := GraphicsManager.Instance().MainViewport.Camera.Position
-  Else
+  Else*)
     Result.Position := VectorZero;
 
   Log(logDebug, 'Sound', 'Registering sound in manager');

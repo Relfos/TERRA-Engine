@@ -223,8 +223,6 @@ Type
 
       Procedure Resize(NewWidth, NewHeight:Integer); Virtual; Abstract;
 
-      Procedure PresentToScreen(); Virtual;
-
       Property BackgroundColor:Color Read _BackgroundColor Write SetBackgroundColor;
       Property Active:Boolean Read _Active;
 
@@ -1223,12 +1221,7 @@ Begin
   Result := GetUniform(Name)>=0;
 End;
 
-{ RenderTargetInterfaceX }
-Procedure RenderTargetInterface.PresentToScreen;
-Begin
-  // do nothing
-End;
-
+{ RenderTargetInterface }
 Procedure RenderTargetInterface.SetBackgroundColor(const Value: Color);
 Begin
   Self._BackgroundColor := Value;

@@ -120,7 +120,7 @@ Begin
   _Volume := 1.0;
   _Pitch := 1.0;
 
-  _Position := GraphicsManager.Instance().MainViewport.Camera.Position;
+  _Position := VectorZero; //GraphicsManager.Instance().MainViewport.Camera.Position;
   _Velocity := VectorZero;
   _Loop := False;
 

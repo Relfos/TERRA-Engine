@@ -406,7 +406,7 @@ Begin
   _ID := Random(36242);
 
   {$IFDEF POSTPROCESSING}
-  Src := GraphicsManager.Instance.MainViewport.GetRenderTarget(captureTargetColor).GetImage();
+  Src := GraphicsManager.Instance.ActiveViewport.GetRenderTarget(captureTargetColor).GetImage();
   _Texture := Texture.Create(rtDynamic, 'ui_slide');
   _Texture.InitFromSize(Src.Width, Src.Height);
   _Texture.UpdateRect(Src);

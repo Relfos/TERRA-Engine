@@ -143,7 +143,7 @@ Type
       _Viewports:Array Of Viewport;
       _ViewportCount:Integer;
       _CurrentViewport:Viewport;
-      _MainViewport:Viewport;
+
       _DeviceViewport:Viewport;
       _UIViewport:Viewport;
 
@@ -302,7 +302,6 @@ Type
       Property Renderer:GraphicsRenderer Read _Renderer Write SetRenderer;
 
       Property ActiveViewport:Viewport Read _CurrentViewport Write SetCurrentViewport;
-      Property MainViewport:Viewport Read _MainViewport;
       Property DeviceViewport:Viewport Read _DeviceViewport;
       Property UIViewport:Viewport Read _UIViewport;
 
@@ -684,7 +683,6 @@ Begin
   Log(logDebug, 'GraphicsManager', 'Initializing');
 
   _CurrentViewport := Nil;
-  _MainViewport := Nil;
   _DeviceViewport := Nil;
   _UIViewport := Nil;
   _DepthSize := 2048;
@@ -828,12 +826,6 @@ Begin
 
   If Not Assigned(ActiveViewport) Then
     ActiveViewport := V;
-
-  If Not Assigned(_MainViewport) Then
-  Begin
-    _MainViewport := V;
-    _MainViewport.SetTarget(_DeviceViewport, 0, 0, 1.0, 1.0);
-  End
 End;
 
 Function GraphicsManager.GetViewport(Index:Integer):Viewport;
@@ -1483,13 +1475,6 @@ Begin
   If Not Assigned(_Scene) Then
     Exit;
 
-
-  If Renderer.Settings.Changed Then
-    Renderer.OnSettingsChange();
-
-
-  Inc(_FrameID);
-
   //glAlphaFunc(GL_GREATER, 0.1);
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'BeginSceneRendering '+IntToString(_ViewportCount));{$ENDIF}
@@ -2003,11 +1988,15 @@ Begin
 
   Renderer.BeginFrame();
 
-(*
+  If Renderer.Settings.Changed Then
+    Renderer.OnSettingsChange();
+
+  Inc(_FrameID);
+
   If (Not _Prefetching) And (Render3D) Then
     Self.RenderScene;
 
-*)
+
 // {$IFDEF PC} Render2D  := Application.Instance.Input.Keys[keyF1];{$ENDIF}
 
   If Render2D Then
