@@ -324,7 +324,7 @@ End;
 
 Procedure Camera.SetFocusPoint(const P: Vector3D);
 Begin
-     _Focus := P;
+  _Focus := P;
 End;
 
 procedure Camera.SetupUniforms;

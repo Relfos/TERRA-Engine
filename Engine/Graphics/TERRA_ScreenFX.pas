@@ -590,7 +590,8 @@ Begin
       Line('    vec3 rgbNE = texture2D(diffuse_texture, v_rgbNE).xyz;');
       Line('    vec3 rgbSW = texture2D(diffuse_texture, v_rgbSW).xyz;');
       Line('    vec3 rgbSE = texture2D(diffuse_texture, v_rgbSE).xyz;');
-      Line('    vec3 rgbM  = texture2D(diffuse_texture, v_rgbM).xyz;');
+      Line('    output_color = texture2D(diffuse_texture, v_rgbM);');
+      Line('    vec3 rgbM  = output_color .xyz;');
       Line('    vec3 luma = vec3(0.299, 0.587, 0.114);');
       Line('    float lumaNW = dot(rgbNW, luma);');
       Line('    float lumaNE = dot(rgbNE, luma);');
@@ -619,9 +620,9 @@ Begin
 
       Line('    float lumaB = dot(rgbB, luma);');
       Line('    if ((lumaB < lumaMin) || (lumaB > lumaMax))');
-      Line('      output_color = vec4(rgbA, 1.0);');
+      Line('      output_color.rgb = rgbA;');
       Line('    else');
-      Line('        output_color = vec4(rgbB, 1.0);');
+      Line('        output_color.rgb = rgbB;');
     End Else
       Line('    output_color = texture2D(diffuse_texture, output_uv);');
 
