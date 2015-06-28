@@ -101,10 +101,6 @@ Uses SysUtils, TERRA_Error, TERRA_Log, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
 Var
   _FileManager:ApplicationObject = Nil;
 
-{$IFDEF IPHONE}
-Procedure ExcludeFileFromCloud(fileName:PAnsiChar);Cdecl; external;
-{$ENDIF}
-
 Function IsPackageFileName(Const FileName:TERRAString):Boolean;
 Var
   I,J:Integer;
@@ -148,9 +144,9 @@ End;
 Procedure FileManager.ExcludeFileFromBackup(Source: FileStream);
 Begin
   {$IFDEF IPHONE}
-  If (Source.Name<>'') Then
+(*  If (Source.Name<>'') Then
     ExcludeFileFromCloud(PAnsiChar(Source.Name));
-  {$ENDIF}
+ *) {$ENDIF}
 End;
                                  (*
 Function FileManager.OpenPackages(FileName:TERRAString):Boolean;

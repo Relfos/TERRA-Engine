@@ -191,6 +191,13 @@ Implementation
 Uses TERRA_Log, TERRA_Application, TERRA_GraphicsManager, TERRA_FileManager, TERRA_FileUtils, 
   TERRA_Error, TERRA_OS;
 
+(*
+{$IFDEF IPHONE}
+Procedure SetRenderbufferStorage(); cdecl; external;
+Procedure PresentRenderBuffer(); cdecl; external;
+{$ENDIF}
+*)
+
 { OpenGLES2Features }
 Constructor OpenGLES2Features.Create(Owner:GraphicsRenderer);
 Var
@@ -1065,6 +1072,7 @@ Begin
 		glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_STENCIL_ATTACHMENT_OES, GL_RENDERBUFFER_OES, msaaDepthBuffer);
     }
 
+{RaiseError('initializing empty iphone fbo');
   If (_Name='device_target0') Then
   Begin
     _Handle := R.GenerateFrameBuffer();
@@ -1085,7 +1093,7 @@ Begin
 
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, _Width, _Height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depth_rb);
-  End;
+    End;}
   {$ENDIF}
 
   If (_Handle = 0) Then
@@ -1280,10 +1288,12 @@ End;
 {$IFDEF IPHONE}
 Procedure OpenGLES2FBO.PresentToScreen();
 Begin
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Framebuffer','Presenting framebuffer: '+_Name);{$ENDIF}
+(*
+{$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Framebuffer','Presenting framebuffer: '+_Name);{$ENDIF}
   glBindRenderbuffer(GL_RENDERBUFFER, _color_rb);
   PresentRenderBuffer();
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
+*)
 End;
 {$ENDIF}
 
