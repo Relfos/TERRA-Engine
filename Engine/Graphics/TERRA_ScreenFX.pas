@@ -376,7 +376,7 @@ Begin
   While (I<_FXCount) Do
   If (_FXs[I] = FX) Then
   Begin
-    _FXs[I].Release;
+    ReleaseObject(_FXs[I]);
     _FXs[I] := _FXs[Pred(_FXCount)];
     Dec(_FXCount);
     Break;
@@ -392,7 +392,7 @@ Var
 Begin
   _NeedsUpdate := True;
   For I:=0 To Pred(_FXCount) Do
-    _FXs[I].Release();
+    ReleaseObject(_FXs[I]);
   _FXCount := 0;
 
   ReleaseObject(_Shader);

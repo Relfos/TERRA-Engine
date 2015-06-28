@@ -365,7 +365,7 @@ Begin
       Java_Begin(Frame);
       _Track.CallVoidMethod(Frame, 'stop', Nil);
 
-      ReleaseObject(Track);
+      ReleaseObject(_Track);
       _Track := Nil;
       Java_End(Frame);
     End;

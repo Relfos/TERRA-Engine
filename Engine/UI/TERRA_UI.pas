@@ -2653,6 +2653,7 @@ Begin
     MyWidget := Widget(It.Value);
     MyWidget.OnLanguageChange();
   End;
+  ReleaseObject(It);
 End;
 
 Procedure UI.Render;
@@ -3412,7 +3413,7 @@ Begin
     If (MyWidget.Parent =  Nil) Then
       MyWidget._TransformChanged := True;
   End;
-//  It.Release;
+  ReleaseObject(It);
 End;
 
 Procedure UI.SetVisible(Const Value:Boolean);
@@ -3476,6 +3477,7 @@ Begin
 
     W._TransformChanged := True;
   End;
+  ReleaseObject(It);
 End;
 
 Function UI.GetFontRenderer():FontRenderer;

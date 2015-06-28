@@ -613,6 +613,13 @@ Begin
   ReleaseObject(_Vertices);
   ReleaseObject(_NullSprite);
 
+  ReleaseObject(_FontShader);
+  ReleaseObject(_CurrentShader);
+  ReleaseObject(_SpriteShaderWithoutGrading);
+  {$IFNDEF DISABLECOLORGRADING}
+  ReleaseObject(_SpriteShaderWithGrading);
+  {$ENDIF}
+
   _SpriteManager_Instance := Nil;
 End;
 

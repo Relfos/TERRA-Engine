@@ -197,6 +197,12 @@ Type
 
       _ElapsedTime:Single;
 
+      _SimpleColor:ShaderInterface;
+      _SimpleTexture:ShaderInterface;
+      _SimpleTextureColored:ShaderInterface;
+      _FullscreenQuadShader:ShaderInterface;
+      _FullscreenColorShader:ShaderInterface;
+
       Procedure RenderUI;
       Procedure RenderStencilShadows(View:Viewport);
       Procedure RenderSceneInternal(View:Viewport; Pass:RenderTargetType);
@@ -246,6 +252,7 @@ Type
 
 			Procedure RenderScene();
 
+      Function GetDefaultFullScreenShader():ShaderInterface;
 
       Procedure TestDebugKeys();
 
@@ -319,8 +326,6 @@ Type
       Property UI_Scale:Single Read _UIScale;
 	End;
 
-Function GetDefaultFullScreenShader():ShaderInterface;
-
 Implementation
 
 Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_UI, TERRA_ResourceManager, TERRA_InputManager,
@@ -330,12 +335,6 @@ Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_UI, TERRA_ResourceManager, TERRA_In
 Var
   _GraphicsManager_Instance:ApplicationObject = Nil;
   _ShuttingDown:Boolean = False;
-
-  _SimpleColor:ShaderInterface;
-  _SimpleTexture:ShaderInterface;
-  _SimpleTextureColored:ShaderInterface;
-  _FullscreenQuadShader:ShaderInterface;
-  _FullscreenColorShader:ShaderInterface;
 
 Class Function GraphicsManager.IsShuttingDown:Boolean;
 Begin
@@ -502,16 +501,6 @@ Begin
   Result := S;
 End;
 
-Function GetDefaultFullScreenShader():ShaderInterface;
-Begin
-  If (_FullscreenQuadShader = Nil) Then
-  Begin
-    _FullscreenQuadShader := GraphicsManager.Instance.Renderer.CreateShader();
-    _FullscreenQuadShader.Generate('fullscreen_quad', GetShader_FullscreenQuad());
-  End;
-
-  Result := _FullscreenQuadShader;
-End;
 
 { Occluder }
 Procedure Occluder.SetTransform(Transform:Matrix4x4; Width,Height:Single);
@@ -798,6 +787,17 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
   Self.ReflectionMatrixSky := Matrix4x4Identity;
   Self.ReflectionMatrix := Matrix4x4Identity;
  
+End;
+
+Function GraphicsManager.GetDefaultFullScreenShader():ShaderInterface;
+Begin
+  If (_FullscreenQuadShader = Nil) Then
+  Begin
+    _FullscreenQuadShader := GraphicsManager.Instance.Renderer.CreateShader();
+    _FullscreenQuadShader.Generate('fullscreen_quad', GetShader_FullscreenQuad());
+  End;
+
+  Result := _FullscreenQuadShader;
 End;
 
 Procedure GraphicsManager.AddViewport(V:Viewport);
@@ -1929,6 +1929,13 @@ Begin
     ReleaseObject(_Viewports[I]);
   _ViewportCount := 0;
 
+  ReleaseObject(_FullScreenQuadVertices);
+
+  ReleaseObject(_SimpleColor);
+  ReleaseObject(_SimpleTexture);
+  ReleaseObject(_SimpleTextureColored);
+  ReleaseObject(_FullscreenQuadShader);
+  ReleaseObject(_FullscreenColorShader);
 
   ReleaseObject(_BucketOpaque);
   ReleaseObject(_BucketAlpha);

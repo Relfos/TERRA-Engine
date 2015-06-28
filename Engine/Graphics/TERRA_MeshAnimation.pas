@@ -993,9 +993,9 @@ End;
 
 Procedure BoneAnimation.Release;
 Begin
-  Positions.Release();
-  Rotations.Release();
-  Scales.Release();
+  ReleaseObject(Positions);
+  ReleaseObject(Rotations);
+  ReleaseObject(Scales);
 End;
 
 Procedure BoneAnimation.Crop(Time: Single);
@@ -1192,7 +1192,7 @@ Var
 Begin
   Stream := FileStream.Create(FileName);
   Save(Stream);
-  Stream.Release;
+  ReleaseObject(Stream);
 End;
 
 Procedure Animation.Save(Dest:Stream);
@@ -1487,10 +1487,9 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_BoneCount) Do
-    _BoneStates[I].Release;
-    
-  If Assigned(_Root) Then
-    _Root.Release;
+    ReleaseObject(_BoneStates[I]);
+
+  ReleaseObject(_Root);
 End;
 
 Function AnimationState.Play(Name:TERRAString; Rescale:Single):Boolean;
@@ -1599,7 +1598,8 @@ Begin
     Node := AnimationCrossfader(_Root);
     _Root := Node._B;
     Node._B := Nil;
-    Node.Release;
+
+    ReleaseObject(Node);
   End;
 
   UpdateAnimationName(MyAnimation);
@@ -1640,7 +1640,7 @@ Begin
   Temp := Node;
   Node := Node.Collapse();
   If Temp<>Node Then
-    Temp.Release();
+    ReleaseObject(Temp);
 End;
 
 Procedure AnimationState.UpdateAnimationName(MyAnimation: Animation);
@@ -1734,10 +1734,8 @@ End;
 
 Procedure AnimationMixer.Release;
 Begin
-  If Assigned(_A) Then
-    _A.Release;
-  If Assigned(_B) Then
-    _B.Release;
+  ReleaseObject(_A);
+  ReleaseObject(_B);
 End;
 
 Function AnimationMixer.HasAnimation(MyAnimation: Animation): Boolean;
@@ -1799,7 +1797,7 @@ Begin
   End;
 
   If (_A<>_B) Then
-    _A.Release();
+    ReleaseObject(_A);
 
   Result := _B;
 

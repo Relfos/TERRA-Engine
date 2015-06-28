@@ -477,7 +477,7 @@ Begin
 
   Dest := FileStream.Create(FileName);
   Ms3d.Save(Dest);
-  Dest.Release;
+  ReleaseObject(Dest);
 End;
 
 Function Terrain.GetNormalAt(P: Vector3D): Vector3D;

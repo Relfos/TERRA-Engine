@@ -384,7 +384,7 @@ Begin
       End;
     End;
   End;
-  F.Release;
+  ReleaseObject(F);
 End;
 
 Function OBJModel.GetMaterial(Index:Integer): POBJMaterial;
@@ -671,7 +671,7 @@ Begin
         Dest.WriteLine('map_Ks '+ GetFileName(S, False));}
     End;
 
-    Dest.Release;
+    ReleaseObject(Dest);
   End;
 End;
 

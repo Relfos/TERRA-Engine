@@ -456,11 +456,11 @@ Var
   Glyph:FontGlyph;
   I, ID:Integer;
   Src:Stream;
-  Img:Image;
+  SrcImg, SubImg:Image;
 
-  Function SubPic(X, Y, W, H:Integer):Image;
+  Procedure SubPic(X, Y, W, H:Integer);
   Begin
-    Result := Img.SubImage(X, Y, X + W , Y + H);
+    SubImg := SrcImg.SubImage(X, Y, X + W , Y + H);
   End;
 Begin
   Result := _DefaultFont;
@@ -471,30 +471,37 @@ Begin
   Result := _DefaultFont;
 
   Src := MemoryStream.Create(bm_size, @bm_data[0]);
-  Img := Image.Create(Src);
+  SrcImg := Image.Create(Src);
   ReleaseObject(Src);
 
   For I:=32 To 128 Do
   Begin
     ID := I;
     Glyph := Nil;
+    SubImg := Nil;
 
 	  Case ID Of
-	  32: Glyph := Result.AddGlyph(ID, SubPic(8*20, 12*2, 4, 12), 0, 0);
-	  Ord('#'):	Glyph := Result.AddGlyph(ID, SubPic(8*10, 12*2, 8, 12), 0, 0);
-	  Ord('!'):	Glyph := Result.AddGlyph(ID, SubPic(8*11, 12*2, 4, 12), 0, 0);
-	  Ord('?'): Glyph := Result.AddGlyph(ID, SubPic(8*12, 12*2, 8, 12), 0, 0);
-	  Ord(','): Glyph := Result.AddGlyph(ID, SubPic(8*13, 12*2, 4, 12), 0, 0);
-    Ord('.'): Glyph := Result.AddGlyph(ID, SubPic(8*14, 12*2, 4, 12), 0, 0);
-	  Ord('$'): Glyph := Result.AddGlyph(ID, SubPic(8*15, 12*2, 8, 12), 0, 0);
-	  Ord(':'): Glyph := Result.AddGlyph(ID, SubPic(8*16, 12*2, 8, 12), 0, 0);
-	  Ord('+'): Glyph := Result.AddGlyph(ID, SubPic(8*17, 12*2, 8, 12), 0, 0);
-	  Ord('-'): Glyph := Result.AddGlyph(ID, SubPic(8*18, 12*2, 8, 12), 0, 0);
-	  Ord(''''):Glyph := Result.AddGlyph(ID, SubPic(8*19, 12*2, 4, 12), 0, 0);
-	  48..57: Glyph := Result.AddGlyph(ID, SubPic(8*(ID-48), 12*2, 8, 12), 0, 0);
-	  65..90: Glyph := Result.AddGlyph(ID, SubPic(8*(ID-65), 12*0, 8, 12), 0, 0);
-	  97..122:  Glyph := Result.AddGlyph(ID, SubPic(8*(ID-97), 12*1, 8, 12), 0, 0);
+	  32: SubPic(8*20, 12*2, 4, 12);
+	  Ord('#'):	SubPic(8*10, 12*2, 8, 12);
+	  Ord('!'):	SubPic(8*11, 12*2, 4, 12);
+	  Ord('?'): SubPic(8*12, 12*2, 8, 12);
+	  Ord(','): SubPic(8*13, 12*2, 4, 12);
+    Ord('.'): SubPic(8*14, 12*2, 4, 12);
+	  Ord('$'): SubPic(8*15, 12*2, 8, 12);
+	  Ord(':'): SubPic(8*16, 12*2, 8, 12);
+	  Ord('+'): SubPic(8*17, 12*2, 8, 12);
+	  Ord('-'): SubPic(8*18, 12*2, 8, 12);
+	  Ord(''''):SubPic(8*19, 12*2, 4, 12);
+	  48..57: SubPic(8*(ID-48), 12*2, 8, 12);
+	  65..90: SubPic(8*(ID-65), 12*0, 8, 12);
+	  97..122:  SubPic(8*(ID-97), 12*1, 8, 12);
 	  End;
+
+    If Assigned(SubImg) Then
+    Begin
+      Glyph := Result.AddGlyph(ID, SubImg, 0, 0);
+      ReleaseObject(SubImg);
+    End;
 
 	  If (Assigned(Glyph)) Then
     Begin
@@ -508,7 +515,7 @@ Begin
     End;
   End;
 
-  ReleaseObject(Img);
+  ReleaseObject(SrcImg);
 
   Result.Update();
 

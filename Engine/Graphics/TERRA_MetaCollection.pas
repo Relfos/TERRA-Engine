@@ -526,7 +526,7 @@ Begin
 
   Dest := FileStream.Create(ExportFileName);
   Ms3d.Save(Dest);
-  Dest.Release;
+  ReleaseObject(Dest);
 End;
 
 Procedure MetaCollection.AddMetaObject(Obj:MetaObject);

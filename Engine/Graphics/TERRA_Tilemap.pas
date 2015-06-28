@@ -216,7 +216,7 @@ Begin
     Src := MemoryStream.Create(S);
     Doc := XMLDocument.Create;
     Doc.Load(Src);
-    Src.Release();
+    ReleaseObject(Src);
   End Else
   Begin
     Doc := XMLLoadBinary(S);
@@ -366,7 +366,7 @@ Begin
     End;
   End;
 
-  Doc.Release();
+  ReleaseObject(Doc);
 
   Result := True;  
 End;
@@ -444,8 +444,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(Self._LayerCount) Do
-  If Assigned(_Layers[I]) Then
-    _Layers[I].Release;
+    ReleaseObject(_Layers[I]);
     
   Self._LayerCount := 0;
 End;
@@ -634,8 +633,8 @@ Begin
     SetLength(Result, Dst.Position);
     Dst.Seek(0);
     Dst.Read(@Result[1], Length(Result));
-    Dst.Release;
-    Mem.Release;
+    ReleaseObject(Dst);
+    ReleaseObject(Mem);
   End Else
     Result := Source;
 End;

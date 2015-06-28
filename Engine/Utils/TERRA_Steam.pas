@@ -187,6 +187,13 @@ Begin
     SteamAPI_Shutdown();
   End;
 
+
+  For I:=0 To Pred(_AchievementCount) Do
+    ReleaseObject(_Achievements[I]);
+
+  For I:=0 To Pred(_StatCount) Do
+    ReleaseObject(_Stats[I]);
+
   _Steam_Instance := Nil;
 End;
 
