@@ -1440,10 +1440,11 @@ Begin
 
       Inc(Count);
 
-      If (_RenderStage = renderStageDiffuse) And (InputManager.Instance.Keys.WasPressed(KeyH)) Then
-        Target.GetImage.Save('frame.png');
-
       {$IFDEF PC}
+      (*
+      If (_RenderStage = renderStageDiffuse) And (InputManager.Instance.Keys.WasPressed(KeyH)) Then
+        Target.GetImage.Save('frame.png');*)
+      
       {If (_RenderStage = renderStageGlow) And (Application.Instance.Input.Keys.WasPressed(Ord('M'))) Then
         Target.Save('bloom.png');
        If (_RenderStage = renderStageRefraction) And (Application.Instance.Input.Keys.WasPressed(Ord('N'))) Then
