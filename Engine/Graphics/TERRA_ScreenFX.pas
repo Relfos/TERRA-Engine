@@ -127,6 +127,7 @@ Type
 
       _NeedsUpdate:Boolean;
       _Antialias:Boolean;
+      _GammaCorrection:Boolean;
 
       Function GetShaderName():TERRAString;
 
@@ -142,7 +143,7 @@ Type
 
       Procedure OnContextLost;
 
-      Procedure DrawScreen(X1,Y1,X2,Y2:Single);
+      Procedure DrawScreen(X1,Y1,X2,Y2:Single; Target:TERRAObject);
 
       Procedure AddEffect(FX:ScreenFX);
       Procedure RemoveEffect(FX:ScreenFX);
@@ -151,6 +152,7 @@ Type
       Property EffectCount:Integer Read _FXCount;
 
       Property AntiAlias:Boolean Read _Antialias Write SetAntiAlias;
+      Property GammaCorrection:Boolean Read _GammaCorrection Write _GammaCorrection;
   End;
 
   OutlineFX = Class(ScreenFX)
@@ -636,9 +638,11 @@ Begin
       S := S + _FXs[I]._Buffer;
     End;
 
-    {$IFDEF GAMMA_CORRECTION}
-    Line('  output_color.rgb = pow(output_color.rgb, vec3(2.2));');
-    {$ENDIF}
+    If _GammaCorrection Then
+    Begin
+      Line('  output_color.rgb = pow(output_color.rgb, vec3(2.2));');
+    End;
+    
     //Line('    gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);}');
     Line('    gl_FragColor = output_color;}');
     Line('}');
@@ -651,12 +655,12 @@ Begin
   Result := _Shader;
 End;
 
-Procedure ScreenFXChain.DrawScreen(X1,Y1,X2,Y2:Single);
+Procedure ScreenFXChain.DrawScreen(X1,Y1,X2,Y2:Single; Target:TERRAObject);
 Var
   _SH:ShaderInterface;
   I:Integer;
   M:Matrix4x4;
-  Target:Texture;
+  Tex:Texture;
   Slot:Integer;
   View:Viewport;
 Begin
@@ -670,16 +674,16 @@ Begin
   }
 
   Slot := 0;
-  View := GraphicsManager.Instance.ActiveViewport;
+  View := Viewport(Target);
 
   For I:=0 To Pred(TotalCaptureTargets) Do
   If (Self._NeedTarget[I]) Then
   Begin
     View.SetRenderTargetState(RenderTargetType(I), True);
 
-    Target := View.GetRenderTexture(RenderTargetType(I));
-    Target.Filter := filterBilinear;
-    Target.Bind(Slot);
+    Tex := View.GetRenderTexture(RenderTargetType(I));
+    Tex.Filter := filterBilinear;
+    Tex.Bind(Slot);
 
     _SH.SetIntegerUniform(TargetTextureNames[I], Slot);
     Inc(Slot);

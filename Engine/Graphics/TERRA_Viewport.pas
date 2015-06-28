@@ -132,7 +132,7 @@ Type
 
       Function HasPostProcessing():Boolean;
 
-      Procedure DrawToTarget(AllowDebug:Boolean);
+      Procedure DrawToTarget(AllowDebug, ProcessEffects:Boolean);
 
       Property BackgroundColor:Color Read _BackgroundColor Write SetBackgroundColor;
 
@@ -713,21 +713,31 @@ Begin
     _ResolveTexture.InitFromSurface(_ResolveBuffer);
   End;
 
-  TempTarget := Self.Target;
   Self._Target := Self;
   Self._TargetX1 := 0;
   Self._TargetY1 := 0;
   Self._TargetX2 := 1.0;
   Self._TargetY2 := 1.0;
 
-  Self.DrawToTarget(True);
 
-  Self._Target := TempTarget;
+//  GraphicsManager.Instance.ShowDebugTarget := captureTargetColor;
+
+  If (Self.HasPostProcessing) Then
+    UpdateEffectTargets();
+
+  _ResolveBuffer.BackgroundColor := ColorCreate(255, 255, 0);
+  _ResolveBuffer.BeginCapture();
+  Self.DrawToTarget(True, False);
+  _ResolveBuffer.EndCapture();
+
+  GraphicsManager.Instance.ShowDebugTarget := captureTargetInvalid;
+
+  Self._Target := Nil;
 
   Result := _ResolveTexture;
 End;
 
-Procedure Viewport.DrawToTarget(AllowDebug:Boolean);
+Procedure Viewport.DrawToTarget(AllowDebug, ProcessEffects:Boolean);
 Var
   MyShader:ShaderInterface;
   I:Integer;
@@ -745,7 +755,7 @@ Begin
 
   {$IFDEF POSTPROCESSING}
   {$IFDEF FRAMEBUFFEROBJECTS}
-  If (Self.HasPostProcessing) And (GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
+  If (ProcessEffects) And (Self.HasPostProcessing) Then
     UpdateEffectTargets();
   {$ENDIF}
   {$ENDIF}
@@ -771,7 +781,7 @@ Begin
 
     If (Assigned(_FXChain)) And ((ShowID = captureTargetInvalid) Or (Not AllowDebug)) Then
     Begin
-      _FXChain.DrawScreen(_TargetX1, _TargetY1, _TargetX2, _TargetY2);
+      _FXChain.DrawScreen(_TargetX1, _TargetY1, _TargetX2, _TargetY2, Self);
       Exit;
     End;
   End;

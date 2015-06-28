@@ -675,7 +675,6 @@ End;
 
 Procedure GraphicsManager.Init;
 Var
-  V:Viewport;
   OW, OH:Integer;
   S:TERRAString;
   RendererID:Integer;
@@ -789,22 +788,10 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
 
   Log(logDebug, 'GraphicsManager', 'Selected 3D resolution: '+IntToString(OW)+' x ' +IntToString(OH));
 
-  V := Viewport.Create('main', OW, OH);
-  AddViewport(V);
-
-  V.DrawSky := True;
-  V.EnableDefaultTargets();
-  {$IFDEF POSTPROCESSING}
-  V.SetPostProcessingState(_Renderer.Features.PostProcessing.Avaliable);
-  {$ELSE}
-  V.SetPostProcessingState(False);
-  {$ENDIF}
-
   // make UI view
   _UIViewport := Viewport.Create('UI', Self.UI_Width, Self.UI_Height, {$IFDEF FRAMEBUFFEROBJECTS}Self.UI_Scale{$ELSE}1.0{$ENDIF});
   _UIViewport.SetRenderTargetState(captureTargetColor, True);
-  _UIViewport.SetTarget(_DeviceViewport
-  , 0, 0, 1.0, 1.0);
+  _UIViewport.SetTarget(_DeviceViewport, 0, 0, 1.0, 1.0);
 
   ShowWireframe := False;
 
@@ -930,6 +917,7 @@ Var
 Begin
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'BeginUIRendering');{$ENDIF}
 
+  Self.ActiveViewport := _UIViewport;
   _UIViewport.BackgroundColor := ColorNull;
   Target := _UIViewport.GetRenderTarget(captureTargetColor);
   If Assigned(Target) Then
@@ -1452,8 +1440,8 @@ Begin
 
       Inc(Count);
 
-      {If (_RenderStage = renderStageDiffuse) And (Application.Instance.Input.Keys.WasPressed(keyMouseLeft)) Then
-      Target.Save(Application.Instance.DocumentPath+PathSeparator+ 'frame.png');}
+      If (_RenderStage = renderStageDiffuse) And (InputManager.Instance.Keys.WasPressed(KeyH)) Then
+        Target.GetImage.Save('frame.png');
 
       {$IFDEF PC}
       {If (_RenderStage = renderStageGlow) And (Application.Instance.Input.Keys.WasPressed(Ord('M'))) Then
@@ -1960,7 +1948,7 @@ End;
 
 Procedure GraphicsManager.Update;
 Var
-  I:Cardinal;
+  I:Integer;
   Target:RenderTargetInterface;
   Time:Cardinal;
   UpdateFPS:Boolean;
@@ -1997,6 +1985,13 @@ Begin
     Self.RenderScene;
 
 
+  // resolve offscreen buffers
+  For I:=Pred(_ViewportCount) DownTo 0 Do
+  If (_Viewports[I].Active) And (_Viewports[I].AutoResolve) Then
+  Begin
+    _Viewports[I].DrawToTarget(True, True);
+  End;
+
 // {$IFDEF PC} Render2D  := Application.Instance.Input.Keys[keyF1];{$ENDIF}
 
   If Render2D Then
@@ -2012,17 +2007,18 @@ Begin
     Target.BeginCapture();
 
   For I:=0 To Pred(_ViewportCount) Do
-  If (_Viewports[I].Active) Then
+  If (_Viewports[I].Active) And (Not _Viewports[I].AutoResolve) Then
   Begin
     If (_Viewports[I].Target = _DeviceViewport) Then
-      _Viewports[I].DrawToTarget(True)
+      _Viewports[I].DrawToTarget(True, True)
     Else
     If (_Viewports[I].Target = Nil) Then
-      _Viewports[I].DrawToTarget(True);
+      _Viewports[I].DrawToTarget(True, True);
   End;
 
   If (Render2D) And (Integer(Self.ShowDebugTarget) <=0) Then
-    _UIViewport.DrawToTarget(False);
+    _UIViewport.DrawToTarget(False, False);
+
   If Assigned(Target) Then
     Target.EndCapture();
  

@@ -205,8 +205,6 @@ Type
     Protected
       _BackgroundColor:Color;
 
-      _Active:Boolean;
-
       _HasDepthBuffer:Boolean;
       _HasStencilBuffer:Boolean;
 
@@ -224,7 +222,6 @@ Type
       Procedure Resize(NewWidth, NewHeight:Integer); Virtual; Abstract;
 
       Property BackgroundColor:Color Read _BackgroundColor Write SetBackgroundColor;
-      Property Active:Boolean Read _Active;
 
       Property PixelSize:PixelSizeType Read _PixelSize;
   End;
