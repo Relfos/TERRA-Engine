@@ -147,14 +147,14 @@ Begin
     Params := JavaArguments.Create(Frame);
     Params.AddString(ID);
     Utils.CallStaticVoidMethod(Frame, 'purchase', Params);
-    Params.Release();
+    ReleaseObject(Params);
   End Else
   Begin
     Log(logWarning, 'IAP', 'Purchases are disabled!');
     IAP_Callback_Canceled(PAnsiChar(ID));
   End;
 
-  Utils.Release();
+  ReleaseObject(Utils);
   Java_End(Frame);
   Exit;
 {$ENDIF}
@@ -235,8 +235,7 @@ Begin
 End;
 
 Initialization
-Log(logDebug, 'IAP', 'IAP Module started!');
+  Log(logDebug, 'IAP', 'IAP Module started!');
 Finalization
-  If Assigned(_IAPCatalog_Instance) Then
-    _IAPCatalog_Instance.Release;
+  ReleaseObject(_IAPCatalog_Instance);
 End.

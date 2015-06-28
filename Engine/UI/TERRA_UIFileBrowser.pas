@@ -246,17 +246,9 @@ Procedure UIFileBrowser.UpdateContent;
 Var
   VisibleItems:Integer;
 Begin
-  If Assigned(_FileList) Then
-  Begin
-    _FileList.Release;
-    _FileList := Nil;
-  End;
+  ReleaseObject(_FileList);
 
-  If Assigned(_FolderList) Then
-  Begin
-    _FolderList.Release;
-    _FolderList := Nil;
-  End;
+  ReleaseObject(_FolderList);
 
   If (_Folder = '') Or (_Filter = '') Then
     Exit;

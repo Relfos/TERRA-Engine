@@ -249,7 +249,7 @@ Begin
 
   T.Finish();
 
-  T.Release();
+  ReleaseObject(T);
 
 {$IFDEF USEPASCALTHREADS}
   T.Destroy();
@@ -395,7 +395,7 @@ Begin
   {$IFDEF DISABLETHREADS}
     MyTask.Execute();
     If Group = Nil Then
-      MyTask.Release();
+      ReleaseObject(MyTask);
     Exit;
   {$ENDIF}
 
@@ -411,7 +411,7 @@ Begin
   Begin
     MyTask.Execute();
     If Group = Nil Then
-      MyTask.Release();
+      ReleaseObject(MyTask);
     Exit;
   End;
 
@@ -554,7 +554,7 @@ Begin
   Begin
     _Threads[I].Shutdown();
 
-    _Threads[I].Release();
+    ReleaseObject(_Threads[I]);
     
   {$IFDEF USEPASCALTHREADS}
     _Threads[I].Destroy();
@@ -591,7 +591,7 @@ Begin
   End;
 
   If Not Assigned(MyTask._Group) Then
-    MyTask.Release();
+    ReleaseObject(MyTask);
 
   _CriticalSection.Unlock();
 End;
@@ -619,7 +619,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_TaskCount) Do
-    _Tasks[I].Release();
+    ReleaseObject(_Tasks[I]);
 
   SetLength(_Tasks, 0);
   _TaskCount := 0;

@@ -129,7 +129,7 @@ Begin
   Log(logDebug, 'App', 'Obtaining asset manager class');
   Utils := JavaClass.Create(ActivityClassPath, Frame);
   javaAssetManager := Utils.CallStaticObjectMethod(Frame, 'getAssetManager', AssetManagerPath, Nil);
-  Utils.Release();
+  ReleaseObject(Utils);
 
   Log(logDebug, 'App', 'Obtaining asset manager object');
   amClass := JClass(Frame^^.FindClass(Frame, AssetManagerPath));
@@ -163,7 +163,7 @@ Begin
   Utils := JavaClass.Create(ActivityClassPath, Frame);
   Obj := Utils.CallStaticObjectMethod(Frame, 'getAssetManager', AssetManagerPath, Nil);
   _GlobalAssetManager := AAssetManager_fromJava(Frame, Obj);
-  Utils.Release();
+  ReleaseObject(Utils);
   Java_End(Frame);
 
   Log(logDebug, 'FileIO', 'Asset manager was obtained: '+HexStr(Cardinal(Result)));
@@ -218,8 +218,8 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(FileName);
   Result := Assets.CallStaticBoolMethod(Frame, 'fileExists', Params);
-  Params.Release();
-  Assets.Release();
+  ReleaseObject(Params);
+  ReleaseObject(Assets);
   Java_End(Frame);
 
   If Result Then
@@ -319,7 +319,7 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(FileName);
   Assets := JavaObject.Create(FileIOClassPath, Params, Frame);
-  Params.Release();
+  ReleaseObject(Params);
 
   FSize := Assets.CallIntMethod(Frame, 'getSize', Nil);
   If FSize >=0 Then
@@ -335,7 +335,7 @@ Begin
     Log(logDebug, 'IO', 'all ok!');
   End;
 
-  Assets.Release();
+  ReleaseObject(Assets);
   Java_End(Frame);
 
   If (FSize>=0) Then
@@ -492,8 +492,8 @@ Begin
   Source := MemoryStream.Create(SourceName);
   Dest := FileStream.Create(DestName);
   Source.Copy(Dest);
-  Source.Release;
-  Dest.Release;
+  ReleaseObject(Source);
+  ReleaseObject(Dest);
 End;
 
 Procedure FileStream.Flush;

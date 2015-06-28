@@ -820,6 +820,8 @@ Begin
   Request._Callback(Self);
   Request._Callback := Nil;
 
+  ReleaseObject(_Target);
+
   Log(logDebug, 'HTTP', 'Releasing transfer: '+URL);
 
   If Assigned(_Buffer) Then

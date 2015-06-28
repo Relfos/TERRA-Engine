@@ -350,7 +350,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_NodeCount) Do
-    _Childs[I].Release;
+    ReleaseObject(_Childs[I]);
   SetLength(_Childs,0);
   _NodeCount:=0;
 End;
@@ -590,8 +590,7 @@ End;
 // LXMLDocument
 Procedure XMLDocument.Release;
 Begin
-  If Assigned(_Root) Then
-    _Root.Release;
+  ReleaseObject(_Root);
 End;
 
 Function XMLDocument.GetNodeByName(Const Name:TERRAString):XMLNode;
@@ -672,7 +671,7 @@ Begin
   {$IFDEF PC}
  (* Dest := FileStream.Create('debug\'+GetFileName(Source.Name,False));
   DumpXML(_Root, Dest, 0);
-  Dest.Release;*)
+  ReleaseObject(Dest);*)
   {$ENDIF}
 End;
 
@@ -694,7 +693,7 @@ Begin
     Source.Encoding := Encoding;
 
   Load(Source);
-  Source.Release;
+  ReleaseObject(Source);
 End;
 
 Procedure XMLDocument.SaveToFile(FileName:TERRAString; SaveFlags:Cardinal);
@@ -703,7 +702,7 @@ Var
 Begin
   Dest := FileStream.Create(FileName);
   Save(Dest, SaveFlags);
-  Dest.Release;
+  ReleaseObject(Dest);
 End;
 
 Procedure XMLDocument.LoadFromString(Data:TERRAString; Encoding:StringEncoding);
@@ -713,7 +712,7 @@ Begin
   Source := MemoryStream.Create(Length(Data), @Data[1]);
   Source.Encoding := Encoding;
   Load(Source);
-  Source.Release;
+  ReleaseObject(Source);
 End;
 
 Function XMLDocument.AddVector(Const Name:TERRAString; Value:Vector3D; Parent:XMLNode=Nil):XMLNode;
@@ -1111,7 +1110,7 @@ Begin
   Begin
     Node := XMLNode.Create(_Descriptors[J].Name, _Descriptors[J].Default);
     _Descriptors[J].Read(Node);
-    Node.Release;
+    ReleaseObject(Node);
   End;
 
   XMLSynchronize;
@@ -1170,7 +1169,7 @@ Begin
   Document := XMLDocument.Create;
   Document.Load(Source);
   XMLLoad(Document);
-  Document.Release;
+  ReleaseObject(Document);
 End;
 
 Procedure XMLElement.XMLSave(Dest:Stream);
@@ -1180,7 +1179,7 @@ Begin
   Document := XMLDocument.Create;
   XMLSave(Document);
   Document.Save(Dest);
-  Document.Release;
+  ReleaseObject(Document);
 End;
 
 Procedure XMLElement.XMLLoad(Const FileName:TERRAString);
@@ -1189,7 +1188,7 @@ Var
 Begin
   Source := FileStream.Open(FileName);
   XMLLoad(Source);
-  Source.Release;
+  ReleaseObject(Source);
 End;
 
 Procedure XMLElement.XMLSave(Const FileName:TERRAString);
@@ -1198,7 +1197,7 @@ Var
 Begin
   Dest := FileStream.Create(FileName);
   XMLSave(Dest);
-  Dest.Release;
+  ReleaseObject(Dest);
 End;
 
 Procedure XMLDocument.SetRoot(const Value: XMLNode);
@@ -1206,8 +1205,7 @@ Begin
   If Value = _Root Then
     Exit;
 
-  If Assigned(_Root) Then
-    _Root.Release();
+  ReleaseObject(_Root);
 
   _Root := Value;
 End;

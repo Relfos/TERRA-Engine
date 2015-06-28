@@ -321,7 +321,7 @@ Begin
 
     Entry.Value.Status := rsReady;
 
-    Entry.Release;
+    ReleaseObject(Entry);
 
     Break; // only one item per frame
   End;
@@ -459,7 +459,7 @@ Begin
   If Assigned(Src) Then
   Begin
     Src.ReadLine(Name);
-    Src.Release;
+    ReleaseObject(Src);
 
     If (StringLower(Name) = StringLower(ResourceName)) Then
       Exit;

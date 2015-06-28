@@ -470,7 +470,7 @@ Begin
   Source := FileManager.Instance.OpenStream(S);
   _Lang := Lang;
   Self.MergeGroup(Source, -1, '');
-  Source.Release;
+  ReleaseObject(Source);
 End;
 
 Procedure LocalizationManager.Reload();

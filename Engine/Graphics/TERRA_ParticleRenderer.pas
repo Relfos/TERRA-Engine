@@ -783,7 +783,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_ParticleCollectionCount) Do
-    _ParticleCollections[I].Release;
+    ReleaseObject(_ParticleCollections[I]);
 
   _ParticleCollectionCount := 0;
 End;
@@ -804,29 +804,16 @@ Begin
   Clear();
 
   For I:=0 To Pred(_TypeCount) Do
-    _Types[I].Release;
+    ReleaseObject(_Types[I]);
   _TypeCount := 0;
 
-  If Assigned(_TextureAtlas) Then
-    _TextureAtlas.Release;
-
-  If Assigned(_NormalTexture) Then
-    _NormalTexture.Release;
-
-  If Assigned(_NormalImage) Then
-    _NormalImage.Release;
-
-  If Assigned(_GlowTexture) Then
-    _GlowTexture.Release;
-
-  If Assigned(_GlowImage) Then
-    _GlowImage.Release;
-
-  If Assigned(_RefractionTexture) Then
-    _RefractionTexture.Release;
-
-  If Assigned(_RefractionImage) Then
-    _RefractionImage.Release;
+  ReleaseObject(_TextureAtlas);
+  ReleaseObject(_NormalTexture);
+  ReleaseObject(_NormalImage);
+  ReleaseObject(_GlowTexture);
+  ReleaseObject(_GlowImage);
+  ReleaseObject(_RefractionTexture);
+  ReleaseObject(_RefractionImage);
 
   _ParticleManager_Instance := Nil;
 End;
@@ -906,7 +893,7 @@ Begin
     If Assigned(Source) Then
     Begin
       Result.Load(Source);
-      Source.Release;
+      ReleaseObject(Source);
     End;
   End Else
   Begin
@@ -958,7 +945,7 @@ Begin
         Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
       End;
       _NormalImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
-      Source.Release();
+      ReleaseObject(Source);
 
       S := StringLower(GetFileName(Item.Name, True))+'_glow.png';
       S := FileManager.Instance.SearchResourceFile(S);
@@ -970,7 +957,7 @@ Begin
         Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
       End;
       _GlowImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
-      Source.Release;
+      ReleaseObject(Source);
 
       S := StringLower(GetFileName(Item.Name, True))+'_refraction.png';
       S := FileManager.Instance.SearchResourceFile(S);
@@ -982,7 +969,7 @@ Begin
         Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
       End;
       _RefractionImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
-      Source.Release();
+      ReleaseObject(Source);
     End;
 
     If (_NormalTexture = Nil) Then
@@ -1068,7 +1055,7 @@ Begin
   Begin
     If (_ParticleCollections[I].Finished) Then
     Begin
-      _ParticleCollections[I].Release;
+      ReleaseObject(_ParticleCollections[I]);
       _ParticleCollections[I] := _ParticleCollections[Pred(_ParticleCollectionCount)];
       Dec(_ParticleCollectionCount);
     End Else

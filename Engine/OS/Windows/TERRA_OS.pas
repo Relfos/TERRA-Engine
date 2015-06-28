@@ -1031,7 +1031,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_WatchCount) Do
-    _Watchers[I].Release();
+    ReleaseObject(_Watchers[I]);
 End;
 
 Procedure WindowsFolderManager.Update;

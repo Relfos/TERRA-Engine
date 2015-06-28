@@ -686,13 +686,13 @@ Begin
       If Assigned(Prev) Then
       Begin
         Prev._Next := P.Next;
-        P.Release();
+        ReleaseObject(P);
         Dec(_ItemCount);
         P := Prev.Next;
       End Else
       Begin
         _First := P.Next;
-        P.Release();
+        ReleaseObject(P);
         P := _First;
       End;
     End Else
@@ -802,7 +802,7 @@ Begin
   While Assigned(List)Do
   Begin
     Next := List.Next;
-    List.Release();
+    ReleaseObject(List);
     List := Next;
   End;
 
@@ -938,7 +938,7 @@ Begin
 
       Next := Item.Next;
 
-      Item.Release();
+      ReleaseObject(Item);
       {$IFDEF DEBUG}Log(logDebug, 'List', 'Discarded item!');{$ENDIF}
       
       If Assigned(Prev) Then

@@ -172,7 +172,7 @@ Begin
     _Handle := 0;
   End;
 
- _Source.Release;
+  ReleaseObject(_Source);
 End;
 
 Procedure SoundStream.AllocBuffer(Channels, BitsPerSample, Frequency:Cardinal);

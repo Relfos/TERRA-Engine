@@ -96,7 +96,7 @@ Begin
 
   _FurTexture := Texture.New(_Size, _Size);
   _FurTexture.Refresh(Buffer);
-  Buffer.Release;
+  ReleaseObject(Buffer);
 
   _Pattern := ResourceManager.Instance.GetTexture(Settings.Pattern);
 
@@ -108,8 +108,7 @@ End;
 
 Procedure Fur.Release;
 Begin
-  If Assigned(_FurTexture) Then
-    _FurTexture.Release;
+  ReleaseObject(_FurTexture);
 End;
 
 Procedure Fur.Bind;

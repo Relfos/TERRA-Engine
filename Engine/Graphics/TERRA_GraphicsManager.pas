@@ -619,7 +619,7 @@ Begin
     Image.FillRectangle(Integer(Round(_StartVertex.X)), Integer(Round(_StartVertex.Y)), Integer(Round(_EndVertex.X)), Integer(Round(_EndVertex.Y)), ColorRed);
     Image.FillRectangle(Integer(Round(A.X)), Integer(Round(A.Y)), Integer(Round(B.X)), Integer(Round(B.Y)), ColorBlue);
     Image.Save('occlusion.png');
-    Image.Release;
+    ReleaseObject(Image)
     Halt;
   End;}
 
@@ -841,7 +841,7 @@ Begin
   If (N<0) Then
     Exit;
 
-  _Viewports[N].Release;
+  ReleaseObject(_Viewports[N]);
   _Viewports[N] := _Viewports[Pred(_ViewportCount)];
   Dec(_ViewportCount);
 End;
@@ -876,7 +876,7 @@ Begin
   If (N<0) Then
     Exit;
 
-  _Cameras[N].Release;
+  ReleaseObject(_Cameras[N]);
   _Cameras[N] := _Cameras[Pred(_CameraCount)];
   Dec(_CameraCount);
 End;

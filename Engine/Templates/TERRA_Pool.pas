@@ -67,7 +67,7 @@ Begin
     Next := List.Next;
 
     If (Not (List Is CollectionObject)) Then
-      List.Release();
+      ReleaseObject(List);
 
     List := Next;
   End;

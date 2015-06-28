@@ -141,7 +141,7 @@ Begin
   If Header<>TERRAHeader Then
   Begin
     RaiseError('Invalid header. ['+Source.Name+']');
-    Source.Release();
+    ReleaseObject(Source);
     Exit;
   End;
 
@@ -162,7 +162,7 @@ Begin
     {$ENDIF}
   End;
 
-  Source.Release();
+  ReleaseObject(Source);
   Result := True;
 End;
 
@@ -221,7 +221,7 @@ Begin
   Source := FileStream.Open(_Location, smRead);
   Source.Copy(Result, Resource._Offset, Resource._Size);
   Result.Seek(0);
-  Source.Release();
+  ReleaseObject(Source);
 End;
 
 Function Package.GetCRC:Cardinal;
@@ -232,7 +232,7 @@ Begin
   Begin
     Source := FileManager.Instance.OpenStream(_Location);
     _CRC := GetCRC32(Source);
-    Source.Release;
+    ReleaseObject(Source);
   End;
   Result:=_CRC;
 End;

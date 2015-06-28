@@ -240,7 +240,7 @@ Begin
       Dest.Write(@Kerning.Ammount, 2);
     End;
 
-  Dest.Release();
+  ReleaseObject(Dest);
 	Result := True;
 End;
 }

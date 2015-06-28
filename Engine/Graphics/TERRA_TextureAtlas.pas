@@ -179,7 +179,7 @@ Begin
   If (N<0) Then
     Exit;
 
-  _ItemList[N].Buffer.Release;
+  ReleaseObject(_ItemList[N].Buffer);
   _ItemList[N] := _ItemList[Pred(_ItemCount)];
   Dec(_ItemCount);
 End;
@@ -246,7 +246,7 @@ Begin
     Begin
       RaiseError('Not enough space to pack TextureAtlas.');
       Result := False;
-      Packer.Release;
+      ReleaseObject(Packer);
       Exit;
     End;
 
@@ -281,6 +281,7 @@ Begin
       End Else
         Log(logError, 'TextureAtlas', 'Could not pack '+_ItemList[I]._Name);
     End;
+
     ReleaseObject(Packer);
   Until (Count = 0);
 

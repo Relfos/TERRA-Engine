@@ -192,7 +192,7 @@ End;
 
 Procedure VerletCloth.Release;
 Begin
-  _ParticleSystem.Release;
+  ReleaseObject(_ParticleSystem);
 End;
 
 Procedure VerletCloth.PinPoint(Index:Integer);

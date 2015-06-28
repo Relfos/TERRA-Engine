@@ -410,7 +410,7 @@ Begin
   _Texture := Texture.Create(rtDynamic, 'ui_slide');
   _Texture.InitFromSize(Src.Width, Src.Height);
   _Texture.UpdateRect(Src);
-  Src.Release();
+  ReleaseObject(Src);
   {$ELSE}
   _Texture := Nil;
   {$ENDIF}
@@ -424,7 +424,7 @@ End;
 
 Procedure UISlide.Release;
 Begin
-  _Texture.Release;
+  ReleaseObject(_Texture);
   Inherited;
 End;
 

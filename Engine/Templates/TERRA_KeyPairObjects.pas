@@ -2,7 +2,7 @@ Unit TERRA_KeyPairObjects;
 
 {$I terra.inc}
 Interface
-Uses TERRA_String, TERRA_Collections, TERRA_HashMap;
+Uses TERRA_String, TERRA_Utils, TERRA_Collections, TERRA_HashMap;
 
 Type
   StringKeyPair = Class(HashMapObject)
@@ -38,7 +38,7 @@ Begin
       S2 := StringGetNextSplit(S, Ord(','));
       Result.Add(StringKeyPair.Create(S2,S));
     End;
-    Source.Release;
+    ReleaseObject(Source);
   End;
 End;
 

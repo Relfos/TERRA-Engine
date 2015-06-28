@@ -26,7 +26,7 @@ Unit TERRA_NetClient;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Application, TERRA_OS, TERRA_Sockets, TERRA_Network;
+Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_OS, TERRA_Sockets, TERRA_Network;
 
 Type
   NetClientMessageHandler = Procedure(Msg:NetMessage) Of Object;
@@ -146,11 +146,7 @@ Begin
 
   Disconnect();
 
-  If Assigned(_TCPSocket) Then
-  Begin
-    _TCPSocket.Release;
-    _TCPSocket := Nil;
-  End;
+  ReleaseObject(_TCPSocket);
 
   Inherited Release();
 End;
@@ -237,7 +233,7 @@ Begin
     Log(logDebug, 'Network', 'Sending join message');
     JoinMsg := CreateJoinMessage(_UserName, _Password, Application.Instance.GetDeviceID(), _GUID);
     SendMessage(JoinMsg);  //Send the packet
-    JoinMsg.Release();
+    ReleaseObject(JoinMsg);
   End;
 End;
 
@@ -278,11 +274,7 @@ Begin
   _Status := nsDisconnected;
   ConnectionEnd(ErrorCode,'');
 
-  If Assigned(_TCPSocket) Then
-  Begin
-    _TCPSocket.Release;
-    _TCPSocket := Nil;
-  End;
+  ReleaseObject(_TCPSocket);
 End;
 
 // Send a message to the server
@@ -333,7 +325,7 @@ Var
 Begin
   Msg := NetMessage.Create(Opcode);
   Self.SendMessage(Msg);
-  Msg.Release();
+  ReleaseObject(Msg);
 End;
 
 End.

@@ -26,7 +26,7 @@ Unit TERRA_Decals;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Application, TERRA_Color, TERRA_Vector2D, TERRA_Vector3D, TERRA_TextureAtlas, TERRA_Texture, TERRA_Renderer,
+  TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Color, TERRA_Vector2D, TERRA_Vector3D, TERRA_TextureAtlas, TERRA_Texture, TERRA_Renderer,
   TERRA_Matrix4x4, TERRA_MeshFilter, TERRA_Lights, TERRA_VertexFormat;
 
 Const
@@ -112,10 +112,10 @@ Begin
 
       Src := FileStream.Open(S);
       Img := Image.Create(Src);
-      Src.Release;
+      ReleaseObject(Src);
       Item := _TextureAtlas.Add(Img, S);
       _NeedTextureAtlasRebuild := True;
-      Img.Release();
+      ReleaseObject(Img);
     End Else
     Begin
       Result := False;
@@ -212,9 +212,7 @@ End;
 
 Procedure DecalManager.Release;
 Begin
-  If Assigned(_TextureAtlas) Then
-    _TextureAtlas.Release;
-
+  ReleaseObject(_TextureAtlas);
   _DecalInstance := Nil;
 End;
 

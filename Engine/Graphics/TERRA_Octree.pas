@@ -177,11 +177,11 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_ElementCount) Do
-    _Elements[I].Release;
+    ReleaseObject(_Elements[I]);
 
   For I:=0 To 7 Do
   If Assigned(_Children[I]) Then
-    _Children[I].Release;
+    ReleaseObject(_Children[I]);
 End;
 
 Function Octree.Intersect(Const R: Ray; Var T:Single):OctreeElement;

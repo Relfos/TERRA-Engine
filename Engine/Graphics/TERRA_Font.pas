@@ -757,7 +757,7 @@ Begin
   Begin
     _Factory := F;
     F := F._Next;
-    _Factory.Release();
+    ReleaseObject(_Factory);
   End;
   _Factory := Nil;
 
@@ -853,7 +853,8 @@ Begin
     Result := Self.AddGlyph(ID, Source, XOfs, YOfs, XAdvance)
   Else
     Result := Nil;
-  Source.Release();
+
+  ReleaseObject(Source);
 End;
 
 Function Font.AddGlyph(ID: Cardinal; Source: Image; XOfs, YOfs, XAdvance: SmallInt):FontGlyph;

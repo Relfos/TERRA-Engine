@@ -267,8 +267,8 @@ Begin
   Source := MemoryStream.Create(SourceName);
   Dest := FileStream.Create(DestName);
   Source.Copy(Dest);
-  Source.Release;
-  Dest.Release;
+  ReleaseObject(Source);
+  ReleaseObject(Dest);
 End;
 
 Procedure FileStream.Flush;

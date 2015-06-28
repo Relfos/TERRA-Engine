@@ -1358,8 +1358,8 @@ Begin
 
     Log(logDebug, 'Game', 'TextureAtlas added');
 
-    Source.Release;
-    MyStream.Release;
+    ReleaseObject(Source);
+    ReleaseObject(MyStream);
   End Else
   Begin
     Log(logWarning,'UI', 'UI component not found. ['+Name+']');
@@ -2299,8 +2299,8 @@ Begin
       Source := Image.Create(MyStream);
       _Item := UIManager.Instance.GetTextureAtlas.Add(Source, Name);
       UIManager.Instance.TextureAtlasClear();
-      Source.Release;
-      MyStream.Release;
+      ReleaseObject(Source);
+      ReleaseObject(MyStream);
     End;
   End;
 
@@ -2742,8 +2742,7 @@ End;
 
 Procedure UI.SetTransition(MyTransition:UITransition);
 Begin
-  If Assigned(_Transition) Then
-    _Transition.Release;
+  ReleaseObject(_Transition);
 
   _Transition := MyTransition;
 

@@ -328,7 +328,7 @@ Begin
   Buffer := Image.Create(Tex.Width, Tex.Height);
   Buffer.FillRectangleByUV(0,0,1,1, TexColor);
   Tex.UpdateRect(Buffer, 0, 0);
-  Buffer.Release();
+  ReleaseObject(Buffer);
 End;
 
 Function TextureManager.GetBlackTexture: Texture;
@@ -440,23 +440,12 @@ End;
 
 Procedure TextureManager.Release;
 begin
-  If Assigned(_WhiteTexture) Then
-    _WhiteTexture.Release;
-
-  If Assigned(_BlackTexture) Then
-    _BlackTexture.Release();
-
-  If Assigned(_NullTexture) Then
-    _NullTexture.Release();
-
-  If Assigned(_DefaultColorTable) Then
-    _DefaultColorTable.Release();
-
-  If (Assigned(_DefaultNormalMap)) Then
-    _DefaultNormalMap.Release;
-
-  If (Assigned(_CellNoise)) Then
-    _CellNoise.Release;
+  ReleaseObject(_WhiteTexture);
+  ReleaseObject(_BlackTexture);
+  ReleaseObject(_NullTexture);
+  ReleaseObject(_DefaultColorTable);
+  ReleaseObject(_DefaultNormalMap);
+  ReleaseObject(_CellNoise);
 
   Inherited;
 
@@ -749,8 +738,7 @@ Begin
   Begin
     If (Self.Width = Source.Width) And (Self.Height = Source.Height) Then
     Begin
-      If (_Source <> Nil) Then
-        _Source.Release();
+      ReleaseObject(_Source);
 
       _Source := Image.Create(Source);
     End Else
@@ -812,7 +800,7 @@ Var
 Begin
   Temp := CreateColorTable(32);
   Self.UpdateRect(Temp);
-  Temp.Release;
+  ReleaseObject(Temp);
 
   Self.MipMapped := False;
   Self.WrapMode := wrapNothing;

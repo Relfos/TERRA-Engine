@@ -831,10 +831,13 @@ Begin
 
   {$IFNDEF OXYGENE}
   If (Not _Managed) Then
+  Begin
     Self.Release;
+    Self.Destroy();
+  End;
   {$ENDIF}
 
-  Log(logWarning, 'App', 'Application has shutdown.')
+  Log(logWarning, 'App', 'Application has shutdown.');
 End;
 
 procedure BaseApplication.Terminate(ForceClose: Boolean);

@@ -645,11 +645,7 @@ End;
 
 Procedure UIWindow.Release();
 Begin
-  If Assigned(_WndLayout) Then
-  Begin
-    _WndLayout.Release();
-    _WndLayout := Nil;
-  End;
+  ReleaseObject(_WndLayout);
 
   Inherited;
 End;
