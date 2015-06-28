@@ -326,20 +326,20 @@ Type
       Function Update(Data:PByte):Boolean; Virtual; 
   End;
 
-	RendererFeature = Object
-		Protected
-			_Avaliable:Boolean;
+      RendererFeature =  Class(TERRAObject)
+	      Protected
+		      _Avaliable:Boolean;
 
-		Public
-			Property Avaliable:Boolean Read _Avaliable Write _Avaliable;
-	End;
+	      Public
+		      Property Avaliable:Boolean Read _Avaliable Write _Avaliable;
+      End;
 
 
 	RendererSetting = Class(TERRAObject)
 		Protected
-      _Owner:GraphicsRenderer;
+                         _Owner:GraphicsRenderer;
 			_Enabled:Boolean;
-      _Available:Boolean;
+                        _Available:Boolean;
 
 		Public
       Constructor Create(Owner:GraphicsRenderer; Available:Boolean);
@@ -348,9 +348,9 @@ Type
       Property Enabled:Boolean Read _Enabled Write SetValue;
 	End;
 
-	RendererVariableSetting = Object
+	RendererVariableSetting = Class(TERRAObject)
 		Protected
-      _Owner:GraphicsRenderer;
+                         _Owner:GraphicsRenderer;
 			_Quality:RendererQuality;
 
 		Public
@@ -416,7 +416,7 @@ Type
       AlphaFade:RendererSetting;
       DynamicShadows:RendererSetting;
       Textures:RendererVariableSetting;
-  		TextureCompression:RendererSetting;
+      TextureCompression:RendererSetting;
       DeferredLighting:RendererSetting;
       DeferredFog:RendererSetting;
       DeferredShadows:RendererSetting;
@@ -432,7 +432,7 @@ Type
       Reflections:RendererSetting;
       DynamicLights:RendererSetting;
       SSAO:RendererSetting;
-	  	VertexBufferObject:RendererSetting;
+      VertexBufferObject:RendererSetting;
       Outlines:RendererSetting;
 
       CartoonHues:RendererSetting;
@@ -484,7 +484,7 @@ Type
 
       _CurrentContext:Integer;
 
-			_Features:RendererFeatures;
+      _Features:RendererFeatures;
       _Settings:RendererSettings;
 
       _DeviceName:TERRAString;
@@ -612,7 +612,7 @@ Uses TERRA_Error, TERRA_FileManager, TERRA_Lights, TERRA_Math, TERRA_Log,
   TERRA_Texture, TERRA_NullRenderer;
 
 Var
-  _RendererList:List;
+  _RendererList:List = Nil;
 
 Function Renderers():List;
 Begin
@@ -723,11 +723,42 @@ End;
 Constructor RendererFeatures.Create(Owner:GraphicsRenderer);
 Begin
   _Owner := Owner;
+
+
+  FrameBufferObject := RendererFeature.Create();
+  CubemapTexture := RendererFeature.Create();
+  FloatTexture := RendererFeature.Create();
+  TextureArray := RendererFeature.Create();
+  SeparateBlends := RendererFeature.Create();
+  SeamlessCubeMap := RendererFeature.Create();
+  StencilBuffer := RendererFeature.Create();
+  PackedStencil := RendererFeature.Create();
+  NPOT := RendererFeature.Create();
+  Shaders := RendererFeature.Create();
+  TextureCompression := RendererFeature.Create();
+  VertexBufferObject := RendererFeature.Create();
+  PostProcessing := RendererFeature.Create();
+  DeferredLighting := RendererFeature.Create();
+  Outlines := RendererFeature.Create();
 End;
 
 Procedure RendererFeatures.Release();
 Begin
-  // do nothing
+  ReleaseObject(FrameBufferObject);
+  ReleaseObject(CubemapTexture);
+  ReleaseObject(FloatTexture);
+  ReleaseObject(TextureArray);
+  ReleaseObject(SeparateBlends);
+  ReleaseObject(SeamlessCubeMap);
+  ReleaseObject(StencilBuffer);
+  ReleaseObject(PackedStencil);
+  ReleaseObject(NPOT);
+  ReleaseObject(Shaders);
+  ReleaseObject(TextureCompression);
+  ReleaseObject(VertexBufferObject);
+  ReleaseObject(PostProcessing);
+  ReleaseObject(DeferredLighting);
+  ReleaseObject(Outlines);
 End;
 
 Procedure RendererFeatures.WriteToLog();

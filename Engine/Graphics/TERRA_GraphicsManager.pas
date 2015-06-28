@@ -1947,8 +1947,6 @@ Begin
 
   SetScene(Nil);
 
-  ReleaseObject(_Renderer);
-
   _GraphicsManager_Instance := Nil;
 End;
 

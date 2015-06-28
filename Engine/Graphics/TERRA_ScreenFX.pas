@@ -391,7 +391,7 @@ Var
   I:Integer;
 Begin
   _NeedsUpdate := True;
-  For I:=0 To Pred(_FXCount) Do
+  For I:=0 To Pred(Length(_FXs)) Do
     ReleaseObject(_FXs[I]);
   _FXCount := 0;
 
