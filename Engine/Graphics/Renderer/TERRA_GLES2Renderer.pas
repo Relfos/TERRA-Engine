@@ -110,10 +110,6 @@ Type
       Function GetPixel(X,Y:Integer):Color; Override;
 
       Procedure Invalidate(); Override;
-
-      {$IFDEF IPHONE}
-      Procedure PresentToScreen(); Override;
-      {$ENDIF}
   End;
 
   OpenGLES2Shader = OpenGLShader;
@@ -142,8 +138,6 @@ Type
 
     Public
       Procedure ResetState(); Override;
-      Procedure BeginFrame(); Override;
-      Procedure EndFrame(); Override;
 
       Function CreateTexture():TextureInterface; Override;
       Function CreateCubeMap():CubeMapInterface; Override;
@@ -191,13 +185,6 @@ Implementation
 Uses TERRA_Log, TERRA_Application, TERRA_GraphicsManager, TERRA_FileManager, TERRA_FileUtils, 
   TERRA_Error, TERRA_OS;
 
-(*
-{$IFDEF IPHONE}
-Procedure SetRenderbufferStorage(); cdecl; external;
-Procedure PresentRenderBuffer(); cdecl; external;
-{$ENDIF}
-*)
-
 { OpenGLES2Features }
 Constructor OpenGLES2Features.Create(Owner:GraphicsRenderer);
 Var
@@ -241,7 +228,7 @@ Begin
 
 
   {$IFDEF POSTPROCESSING}
-  PostProcessing.Avaliable := (FrameBufferObject.Avaliable) And (MaxRenderTargets>=4);
+  PostProcessing.Avaliable := (FrameBufferObject.Avaliable); // And (MaxRenderTargets>=4);
   {$ELSE}
   PostProcessing.Avaliable := False;
   {$ENDIF}
@@ -824,18 +811,6 @@ Begin
   Result := OpenGLES2Shader.Create(Self);
 End;
 
-Procedure OpenGLES2Renderer.BeginFrame;
-Begin
-  Inherited;
-
-  //glClearColor(_BackgroundColor.R/255, _BackgroundColor.G/255, _BackgroundColor.B/255, 0{_BackgroundColor.A/255});
-End;
-
-Procedure OpenGLES2Renderer.EndFrame();
-Begin
-  Inherited;
-End;
-
 { OpenGLES2CubeMap }
 Function OpenGLES2CubeMap.Bind(Slot: Integer):Boolean;
 Begin
@@ -1147,8 +1122,8 @@ Begin
     Log(logError, 'Framebuffer', GetErrorString(Status));
 
   // set default framebuffer
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+	Self.EndCapture();
+	
   Result := _Complete;
 End;
 
@@ -1203,11 +1178,19 @@ Begin
   End;
 End;
 
+ {$IFDEF IPHONE}
+ Procedure startScreenDrawing(); Cdecl; External;
+ {$ENDIF}
+
 Procedure OpenGLES2FBO.EndCapture;
 Begin
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Framebuffer','End framebuffer capture');{$ENDIF}
 
+ {$IFDEF IPHONE}
+ startScreenDrawing(); 
+ {$ELSE}
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+ {$ENDIF}
 End;
 
 Procedure OpenGLES2FBO.Resize(NewWidth, NewHeight:Integer);
@@ -1271,8 +1254,9 @@ Begin
 	glBindFramebuffer(GL_FRAMEBUFFER, _Handle);
 
 	glReadPixels(0,0, _Width, _Height, GL_RGBA, GL_UNSIGNED_BYTE, Result.Pixels);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+	
+	Self.EndCapture();
+	
 	Result.Process(IMP_FlipVertical);
 End;
 
@@ -1284,18 +1268,6 @@ Begin
   P := ColorNull;
   Result := P;
 End;
-
-{$IFDEF IPHONE}
-Procedure OpenGLES2FBO.PresentToScreen();
-Begin
-(*
-{$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Framebuffer','Presenting framebuffer: '+_Name);{$ENDIF}
-  glBindRenderbuffer(GL_RENDERBUFFER, _color_rb);
-  PresentRenderBuffer();
-  glBindRenderbuffer(GL_RENDERBUFFER, 0);
-*)
-End;
-{$ENDIF}
 
 Procedure OpenGLES2FBO.SetFilter(Value: TextureFilterMode);
 Begin

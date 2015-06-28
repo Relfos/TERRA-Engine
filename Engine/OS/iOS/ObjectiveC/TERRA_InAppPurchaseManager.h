@@ -8,6 +8,7 @@
 
 void IAP_RequestProduct(char *s);
 void IAP_Purchase(char *s);
+bool IAP_CanPurchase();
 
 @interface InAppPurchaseManager : NSObject <SKProductsRequestDelegate, SKPaymentTransactionObserver>
 {

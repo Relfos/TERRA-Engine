@@ -42,7 +42,8 @@ Uses {$IFNDEF DEBUG_LEAKS}TERRA_MemoryManager,{$ENDIF} {$IFDEF USEDEBUGUNIT}TERR
   TERRA_BoundingBox, TERRA_Camera, TERRA_Color, TERRA_Matrix4x4,
   TERRA_Utils, TERRA_Texture, TERRA_Scene, TERRA_Vector3D,
   TERRA_Viewport, TERRA_Application, TERRA_VertexFormat,
-  TERRA_Image, TERRA_Math, TERRA_Vector2D, TERRA_Ray, TERRA_Collections, TERRA_Pool;
+  TERRA_Image, TERRA_Math, TERRA_Vector2D, TERRA_Ray, TERRA_Collections, TERRA_Pool,
+  TERRA_OpenGLES;
 
 Const
   //FogMode
@@ -1428,7 +1429,7 @@ Begin
       If (Target = Nil) Then
         Continue;
 
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Rendering viewport: '+View.Name+', target '+TargetNames[I]+', width:'+IntToString(Target.Width)+', height:'+IntToString(Target.Height));{$ENDIF}
+      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Rendering viewport: '+View.Name+', target '+IntToString(I)+', width:'+IntToString(Target.Width)+', height:'+IntToString(Target.Height));{$ENDIF}
 
       Case RenderTargetType(I) Of
         captureTargetRefraction:
@@ -1971,6 +1972,7 @@ Begin
   _GraphicsManager_Instance := Nil;
 End;
 
+
 Procedure GraphicsManager.Update;
 Var
   I:Cardinal;
@@ -2001,22 +2003,23 @@ Begin
 
   Renderer.BeginFrame();
 
+(*
   If (Not _Prefetching) And (Render3D) Then
     Self.RenderScene;
 
-
+*)
 // {$IFDEF PC} Render2D  := Application.Instance.Input.Keys[keyF1];{$ENDIF}
 
   If Render2D Then
     Self.RenderUI();
 
   _DeviceViewport.Bind(0);
-
   _DeviceViewport.Restore(True);
 
-  Target := _DeviceViewport.GetRenderTarget(captureTargetColor);
 
-  If Assigned(Target) Then
+   Target := _DeviceViewport.GetRenderTarget(captureTargetColor);
+
+ If Assigned(Target) Then
     Target.BeginCapture();
 
   For I:=0 To Pred(_ViewportCount) Do
@@ -2031,13 +2034,8 @@ Begin
 
   If (Render2D) And (Integer(Self.ShowDebugTarget) <=0) Then
     _UIViewport.DrawToTarget(False);
-
-  {$IFDEF IPHONE}
-	//FrameBufferObject(Target).PresentToScreen();
-  {$ENDIF}
   If Assigned(Target) Then
     Target.EndCapture();
-  //_DeviceViewport.DrawFullScreen();
  
   ClearTemporaryDebug3DObjects();
 

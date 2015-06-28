@@ -7,10 +7,13 @@
 #import <QuartzCore/QuartzCore.h>
 #import <AudioToolbox/AudioToolbox.h>
 #import <CommonCrypto/CommonDigest.h>
+
+#import "SSKeychain.h"
+#import <Security/Security.h>
+
 #import "PascalImports.h"
 
 #import "TERRA_Utils.h"
-#import "TERRA_EAGLView.h"
 
 
 void showAlert(char *message) {
@@ -20,7 +23,73 @@ void showAlert(char *message) {
                                           cancelButtonTitle:@"Ok"
                                           otherButtonTitles:nil];
     [alert show];
-    [alert release];
+   // [alert release];
+}
+
+/*void ExcludeFileFromCloud(char *fileName)
+{
+    NSURL * fileURL;
+    NSString* fileID = [NSString stringWithFormat:@"%s", fileName];
+    fileURL = [ NSURL fileURLWithPath: fileID];
+    [fileURL setResourceValue: [ NSNumber numberWithBool: YES ] forKey: NSURLIsExcludedFromBackupKey error: nil ];
+}
+
+void iCloudSynchronize()
+{
+    NSLog(@"SYNCING iCLOUD!!!!!!!!");
+    [iCloudSync start];
+}
+*/
+
+char deviceID[200];
+char *getUniqueDeviceID()
+{
+    UIDevice *myDevice=[UIDevice currentDevice];
+    NSString *UUID = NULL;
+    
+    if ([[UIDevice currentDevice] respondsToSelector:@selector(identifierForVendor)]) {
+        UUID = [[myDevice identifierForVendor] UUIDString];
+    } else {
+        // This will run before iOS6
+        
+        //Use the bundle name as the App identifier. No need to get the localized version.
+        NSString *Appname = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"];
+        
+        //Check if we have UUID already
+        NSString *retrieveuuid = [SSKeychain passwordForService:Appname account:@"user"];
+        
+        if (retrieveuuid == NULL)
+        {
+            
+            //Create new key for this app/device
+            
+            CFUUIDRef newUniqueId = CFUUIDCreate(kCFAllocatorDefault);
+            
+            retrieveuuid = (__bridge_transfer NSString*)CFUUIDCreateString(kCFAllocatorDefault, newUniqueId);
+            
+            CFRelease(newUniqueId);
+            
+            //Save key to Keychain
+            [SSKeychain setPassword:retrieveuuid forService:Appname account:@"user"];
+        }
+        
+        UUID = retrieveuuid;
+        
+    }
+    strcpy(deviceID, [UUID UTF8String]);
+    return deviceID;
+}
+
+
+int getCPUCores()
+{
+    return [[NSProcessInfo processInfo] processorCount];
+}
+
+bool isDeviceJailbroken()
+{
+    NSURL* url = [NSURL URLWithString:@"cydia://package/com.example.package"];
+    return [[UIApplication sharedApplication] canOpenURL:url];
 }
 
 bool isSocialFrameworkAvailable()
@@ -125,7 +194,7 @@ void audioClose(AVAudioPlayer *audioPlayer)
 {
     if (audioPlayer== NULL)
         return;
-	[audioPlayer release];
+	//[audioPlayer release];
     audioPlayer = NULL;
 }
 

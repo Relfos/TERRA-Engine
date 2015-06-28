@@ -8,6 +8,28 @@
 //@synthesize productsRequest;
 
 
+InAppPurchaseManager *IAPmanager;
+
+
+void IAP_RequestProduct(char *s)
+{
+    // get the product description (defined in early sections)
+    [IAPmanager requestProductData:s];
+}
+
+void IAP_Purchase(char *s)
+{
+    [IAPmanager purchaseProduct:s];
+}
+
+bool IAP_CanPurchase()
+{
+    if ([IAPmanager canMakePurchases]==YES)
+        return true;
+    else
+        return false;
+}
+
 
 // call this method once on startup
 - (void)loadStore

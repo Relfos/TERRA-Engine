@@ -104,7 +104,7 @@ Var
   _PrevAllocStats:Array[0..Pred(MaxAllocStats)] Of MemoryAllocStats;
   _PrevAllocStatsCount:Integer;
 
-Function TERRA_GetMem(Size: SizeType): Pointer;{$IFDEF FPC} {$IFDEF CPUARM }Stdcall;  {$ELSE}Register;{$ENDIF}{$ENDIF}
+Function TERRA_GetMem(Size: SizeType): Pointer;{$IFDEF FPC} {$IFNDEF PC}{$IFNDEF CPU64}Stdcall;{$ENDIF} {$ELSE}Register;{$ENDIF}{$ENDIF}
 Var
   I,N:Integer;
   Info:CallInfo;
@@ -171,7 +171,7 @@ Begin
 End;
 
 {$IFDEF FPC}
-Function TERRA_FreeMem(P: Pointer):SizeType; {$IFDEF CPUARM }Stdcall;  {$ELSE} Register;{$ENDIF}
+Function TERRA_FreeMem(P: Pointer):SizeType; {$IFDEF FPC} {$IFNDEF PC}{$IFNDEF CPU64}Stdcall;{$ENDIF} {$ELSE}Register;{$ENDIF}{$ENDIF}
 {$ELSE}
 Function TERRA_FreeMem(P: Pointer):Integer;
 {$ENDIF}
@@ -185,7 +185,7 @@ Begin
 End;
 
 {$IFDEF FPC}
-Function TERRA_ReallocMem(Var P: Pointer; Size: SizeType): Pointer;{$IFDEF FPC} {$IFDEF CPUARM }Stdcall;  {$ELSE}Register;{$ENDIF}{$ENDIF}
+Function TERRA_ReallocMem(Var P: Pointer; Size: SizeType): Pointer;{$IFDEF FPC} {$IFNDEF PC}{$IFNDEF CPU64}Stdcall;{$ENDIF} {$ELSE}Register;{$ENDIF}{$ENDIF}
 Begin
   Result := PrevManager.ReallocMem(P, Size);
 
