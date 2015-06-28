@@ -204,8 +204,7 @@ End;
 
 Procedure RectanglePacker.Release;
 Begin
-	If (_Root <> Nil) Then
-		_Root.Release;
+  ReleaseObject(_Root);
 End;
 
 Function RectanglePacker.Pack(Width, Height:Integer; Callback:ProgressNotifier=Nil):Integer;

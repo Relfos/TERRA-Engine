@@ -181,7 +181,8 @@ Type
   Function VertexFormatToFlags(Const Value:VertexFormat):Cardinal;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_GraphicsManager, TERRA_Renderer;
+Uses TERRA_Error, TERRA_Log, TERRA_GraphicsManager, TERRA_Renderer
+{$IFNDEF DISABLEALLOCOPTIMIZATIONS}, TERRA_StackObject{$ENDIF};
 
 Const
   DefaultAttributeNames:Array[0..Pred(MaxVertexAttributes)] Of TERRAString =

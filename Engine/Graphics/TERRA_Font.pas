@@ -403,14 +403,6 @@ Begin
     RaiseError('Could not find font. ['+Name +']');
 End;
 
-Procedure FontManager.Release;
-Begin
-  ReleaseObject(_DefaultFont);
-
-  Inherited;
-  _FontManager_Instance := Nil;
-End;
-
 Function FontManager.DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Const Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean):FontSprite;
 Var
   Filter:TextureFilterMode;
@@ -522,6 +514,20 @@ Begin
 
   Result._NeedsRebuild := True;
 End;
+
+Procedure FontManager.Release;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(Length(_Sprites)) Do
+    ReleaseObject(_Sprites[I]);
+
+  ReleaseObject(_DefaultFont);
+
+  Inherited;
+  _FontManager_Instance := Nil;
+End;
+
 
 Procedure FontManager.Update();
 Var

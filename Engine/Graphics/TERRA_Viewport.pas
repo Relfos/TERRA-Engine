@@ -725,7 +725,7 @@ Begin
   If (Self.HasPostProcessing) Then
     UpdateEffectTargets();
 
-  _ResolveBuffer.BackgroundColor := ColorCreate(255, 255, 0);
+  _ResolveBuffer.BackgroundColor := ColorNull;
   _ResolveBuffer.BeginCapture();
   Self.DrawToTarget(True, False);
   _ResolveBuffer.EndCapture();
@@ -760,7 +760,7 @@ Begin
   {$ENDIF}
   {$ENDIF}
 
-  Target.Restore(False);
+  Target.Restore(True);
 
   {$IFDEF POSTPROCESSING}
   ShowID := GraphicsManager.Instance.ShowDebugTarget;

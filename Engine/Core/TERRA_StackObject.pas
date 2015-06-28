@@ -9,6 +9,7 @@ Function StackAlloc(Size:Integer):Pointer;
 {$ENDIF}
 
 Implementation
+Uses TERRA_Mutex;
 
 {$IFNDEF DISABLEALLOCOPTIMIZATIONS}
 Const

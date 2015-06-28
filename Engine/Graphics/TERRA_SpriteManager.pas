@@ -183,6 +183,8 @@ Type
 
   SpriteManager = Class(ApplicationComponent)
     Protected
+      _NullSprite:Sprite;
+      
       _Index:Integer;
       _SpriteCount:Integer;
       _Sprites:Array Of Sprite;
@@ -234,7 +236,6 @@ Const
 
 Var
   _SpriteManager_Instance:ApplicationObject = Nil;
-  _NullSprite:Sprite;
 
 Function GetSaturationAndConstrast():TERRAString;
 Var
@@ -610,6 +611,7 @@ Begin
     ReleaseObject(_Sprites[I]);
 
   ReleaseObject(_Vertices);
+  ReleaseObject(_NullSprite);
 
   _SpriteManager_Instance := Nil;
 End;
@@ -789,9 +791,9 @@ Begin
 End;
 
 { Sprite }
-Procedure Sprite.Release;
+Procedure Sprite.Release();
 Begin
-  // do nothing
+  ReleaseObject(_Vertices);
 End;
 
 Procedure Sprite.SetTransform(Const Mat: Matrix3x3);
@@ -1279,8 +1281,4 @@ Begin
   Self.SetFloat(vertexSaturation, Saturation);
 End;
 
-Initialization
-Finalization
-  If Assigned(_NullSprite) Then
-    _NullSprite.Release;
-End.
+End.
