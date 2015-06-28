@@ -70,7 +70,6 @@ Type
       _RenderTextures:Array[0..Pred(TotalCaptureTargets)] Of Texture;
       _RenderSamplers:Array[0..Pred(TotalCaptureTargets)] Of RenderTargetSampler;
 
-      _DoPostProcessing:Boolean;
       _Offscreen:Boolean;
       _DrawSky:Boolean;
 
@@ -117,7 +116,6 @@ Type
       Procedure SetViewArea(X,Y,Width,Height:Integer);
 
       Procedure SetPostProcessingState(Enabled:Boolean);
-      Function IsPostProcessingEnabled():Boolean; {$IFDEF FPC}Inline; {$ENDIF}
 
       Procedure SetOffScreenState(Enabled:Boolean);
 
@@ -131,6 +129,8 @@ Type
       Procedure SetBackgroundColor(BG:Color);
 
       Procedure EnableDefaultTargets();
+
+      Function HasPostProcessing():Boolean;
 
       Procedure DrawToTarget(AllowDebug:Boolean);
 
@@ -386,7 +386,6 @@ Begin
   _Name := Name;
   _Active := True;
   _DrawSky := False;
-  _DoPostProcessing := False;
 
   _Width := Width;
   _Height := Height;
@@ -404,7 +403,6 @@ Begin
   SetOffScreenState(False);
 
   Log(logDebug, 'Viewport', 'Created viewport '+Name+' with size '+IntToString(_Width) +' x '+IntToString(_Height)+' and scale = '+FloatToString(_Scale));
-
 End;
 
 
@@ -747,7 +745,7 @@ Begin
 
   {$IFDEF POSTPROCESSING}
   {$IFDEF FRAMEBUFFEROBJECTS}
-  If (Self._DoPostProcessing) And (GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
+  If (Self.HasPostProcessing) And (GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
     UpdateEffectTargets();
   {$ENDIF}
   {$ENDIF}
@@ -825,18 +823,13 @@ Begin
     Enabled := False;
 
   {$IFDEF POSTPROCESSING}
-  If (Self._DoPostProcessing = Enabled) Then
+  If (Self.HasPostProcessing() = Enabled) Then
     Exit;
 
-  Self._DoPostProcessing := Enabled;
   If Enabled Then
     _FXChain := ScreenFXChain.Create()
   Else
-  Begin
     ReleaseObject(_FXChain);
-  End;
-  {$ELSE}
-  Self._DoPostProcessing := False;
   {$ENDIF}
 End;
 
@@ -852,11 +845,6 @@ Begin
   End;
 
   Result := True;
-End;
-
-Function Viewport.IsPostProcessingEnabled: Boolean;
-Begin
-  Result := _DoPostProcessing;
 End;
 
 Procedure Viewport.Clear;
@@ -994,7 +982,18 @@ Begin
     Exit;
   End;
 
+  Self.AutoResolve := True;
+
   Result := Self._ResolveTexture;
+End;
+
+Function Viewport.HasPostProcessing: Boolean;
+Begin
+{$IFDEF POSTPROCESSING}
+  Result := Assigned(_FXChain);
+{$ELSE}
+  Result := False;
+{$ENDIF}
 End;
 
 {$IFDEF POSTPROCESSING}
@@ -1035,7 +1034,7 @@ Begin
       Begin
         Self.SetRenderTargetState(captureTargetEmission, True);
 
-        If (Graphics.Renderer.Features.Shaders.Avaliable) And (_DoPostProcessing) And (Not Assigned(_BlurShader)) Then
+        If (Graphics.Renderer.Features.Shaders.Avaliable) And (Not Assigned(_BlurShader)) Then
         Begin
           _BlurShader := Graphics.Renderer.CreateShader();
           _BlurShader.Generate('blur', GetShader_Blur());
@@ -1058,7 +1057,7 @@ Begin
       Begin
         Self.SetRenderTargetState(captureTargetNormal, True);
 
-        If (Graphics.Renderer.Features.Shaders.Avaliable) And (_DoPostProcessing) And (Not Assigned(_EdgeShader)) Then
+        If (Graphics.Renderer.Features.Shaders.Avaliable) And (Not Assigned(_EdgeShader)) Then
         Begin
           _EdgeShader := Graphics.Renderer.CreateShader();
           _EdgeShader.Generate('edge', GetShader_Edge());

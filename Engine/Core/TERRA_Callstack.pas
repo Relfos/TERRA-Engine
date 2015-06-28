@@ -733,6 +733,13 @@ Begin
   FillCallStackFromAddress(StackStart, StackMax);
 End;
 
+Procedure FillExceptionCallStack(E:Exception);
+Begin
+  FillCurrentCallStack();
+  //FillCallStackFromAddress(ExceptAddr, Pointer(Cardinal(ExceptAddr) + 16));
+End;
+
+
 Procedure GetCurrentCall(Var Info:CallInfo);
 Var
 	I, Count:Integer;
@@ -782,10 +789,7 @@ Begin
   End;
 End;
 
-Procedure FillExceptionCallStack(E:Exception);
-Begin
-  FillCurrentCallStack();
-End;
+
 {$ELSE}
 
 Procedure GetCurrentCall(Var Info:CallInfo);

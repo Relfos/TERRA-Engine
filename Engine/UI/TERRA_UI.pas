@@ -3462,7 +3462,7 @@ Var
 Begin
   _Transform := M;
   _InverseTransform := MatrixInverse2D(M);
-
+                         
   _ClipRect.Style := clipSomething;
   _ClipRect.X := 0;
   _ClipRect.Y := 0;

@@ -1278,7 +1278,7 @@ Var
   N:Integer;
 Begin
   {$IFDEF POSTPROCESSING}
-  If (Not GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Or (Not View.IsPostProcessingEnabled()) Then
+  If (Not GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Or (Not View.HasPostProcessing()) Then
     N := renderStageDiffuse
   Else
   Case Pass Of
