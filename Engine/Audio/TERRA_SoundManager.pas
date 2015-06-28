@@ -245,7 +245,7 @@ Begin
   If (Not _Sources[I].Loop)  And (_Sources[I].Status = sndStopped) Then
   Begin
     _Sources[I].OnFinish();
-    _Sources[I].Release();
+    ReleaseObject(_Sources[I]);
     _Sources[I] := _Sources[Pred(_SourceCount)];
     Dec(_SourceCount);
   End Else
@@ -271,7 +271,7 @@ Begin
   If (N<0) Then
     Exit;
 
-  _Sources[N].Release;
+  ReleaseObject(_Sources[N]);
   _Sources[N] := _Sources[Pred(_SourceCount)];
   _Sources[Pred(_SourceCount)] := Nil;
   Dec(_SourceCount);

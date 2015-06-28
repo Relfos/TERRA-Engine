@@ -657,7 +657,7 @@ Begin
     Mesh._VertexList[I].TextureCoords.Y := 1.0 - Mesh._VertexList[I].TextureCoords.Y;
   End;
   Self.AddMesh(Mesh);
-  Mesh.Release;
+  ReleaseObject(Mesh);
 
   Mesh := PlaneMesh.Create(VectorCreate(0,0,-1.0), SubDivisions, 0.0, 0.0);
   MyMatrix := Matrix4x4Translation(0, -Size, 0);
@@ -668,7 +668,7 @@ Begin
     Mesh._VertexList[I].TextureCoords.Y := 1.0 - Mesh._VertexList[I].TextureCoords.Y;
   End;
   Self.AddMesh(Mesh);
-  Mesh.Release;
+  ReleaseObject(Mesh);
 
   Mesh := PlaneMesh.Create(VectorCreate(1.0,0,0.0), SubDivisions, 0.0, 0.0);
   For I:=0 To Pred(Mesh._VertexCount) Do
@@ -676,7 +676,7 @@ Begin
     Mesh._VertexList[I].TextureCoords.X := 1.0 - Mesh._VertexList[I].TextureCoords.X;
   End;
   Self.AddMesh(Mesh);
-  Mesh.Release;
+  ReleaseObject(Mesh);
 
   Mesh := PlaneMesh.Create(VectorCreate(-1.0,0,0.0), SubDivisions, 0.0, 0.0);
   MyMatrix := Matrix4x4Translation(-Size, 0, Size);
@@ -686,13 +686,13 @@ Begin
   End;
   Mesh.Transform(MyMatrix);
   Self.AddMesh(Mesh);
-  Mesh.Release;
+  ReleaseObject(Mesh);
 
   Mesh := PlaneMesh.Create(VectorCreate(0.0,1.0,0.0), SubDivisions, 0.0, 0.0);
   MyMatrix := Matrix4x4Translation(-Size, 0, 0);
   Mesh.Transform(MyMatrix);
   Self.AddMesh(Mesh);
-  Mesh.Release;
+  ReleaseObject(Mesh);
 
   Mesh := PlaneMesh.Create(VectorCreate(0.0,-1.0,0.0), SubDivisions, 0.0, 0.0);
   MyMatrix := Matrix4x4Translation(-Size, -Size, Size);
@@ -703,7 +703,7 @@ Begin
     Mesh._VertexList[I].TextureCoords.Y := 1.0 - Mesh._VertexList[I].TextureCoords.Y;
   End;
   Self.AddMesh(Mesh);
-  Mesh.Release;
+  ReleaseObject(Mesh);
 
   Self.MoveToOrigin;
 End;
@@ -751,7 +751,7 @@ Begin
   Mesh := CubeMesh.Create(SubDivisions);
   Mesh.Weld(0.01);
   Self.AddMesh(Mesh);
-  Mesh.Release;
+  ReleaseObject(Mesh);
 
   For I:=0 To Pred(_VertexCount) Do
   Begin

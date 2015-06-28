@@ -667,7 +667,7 @@ Begin
   Node := Collada.Root.GetNodeByName('library_geometries');
   LoadGeometry(Node);
 
-  Collada.Release;
+  ReleaseObject(Collada);
 End;
 
 // filter interface

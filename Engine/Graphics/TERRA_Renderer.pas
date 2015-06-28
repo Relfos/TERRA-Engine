@@ -668,7 +668,27 @@ End;
 
 Procedure RendererSettings.Release();
 Begin
-  // do nothing
+  ReleaseObject(AlphaFade);
+  ReleaseObject(DynamicShadows);
+  ReleaseObject(TextureCompression);
+  ReleaseObject(DeferredLighting);
+  ReleaseObject(DeferredFog);
+  ReleaseObject(DeferredShadows);
+  ReleaseObject(SelfShadows);
+  ReleaseObject(DepthOfField);
+  ReleaseObject(PostProcessing);
+  ReleaseObject(NormalMapping);
+  ReleaseObject(ToonShading);
+  ReleaseObject(AlphaTesting);
+  ReleaseObject(Specular);
+  ReleaseObject(Fur);
+  ReleaseObject(Sky);
+  ReleaseObject(Reflections);
+  ReleaseObject(DynamicLights);
+  ReleaseObject(SSAO);
+  ReleaseObject(VertexBufferObject);
+  ReleaseObject(Outlines);
+  ReleaseObject(CartoonHues);
 End;
 
 { RendererSetting }
@@ -1348,4 +1368,7 @@ Begin
 End;
 
 
+Initialization
+Finalization
+  ReleaseObject(_RendererList);
 End.

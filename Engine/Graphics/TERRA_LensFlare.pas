@@ -163,8 +163,8 @@ Begin
   //_FlareTexture.Image.Save('flare.png');
   _FlareTexture.Refresh(Target);
   _FlareTexture.Update;
-  Temp.Release;
-  Target.Release;
+  ReleaseObject(Temp);
+  ReleaseObject(Target);
 
   _SparkTexture := Texture.New(LensFlareTextureSize, LensFlareTextureSize);
   Target := Image.Create(LensFlareTextureSize, LensFlareTextureSize);
@@ -200,7 +200,7 @@ Begin
 //  _SparkTexture.Image.Save('sparks.png');
   _SparkTexture.Refresh(Target);
   _SparkTexture.Update;
-  Target.Release;
+  ReleaseObject(Target);
 
   glGenQueries(1, @_Query); 
 End;
@@ -209,11 +209,9 @@ Procedure LensFlare.Release;
 Begin
   glDeleteQueries(1, @_Query);  
 
-  If Assigned(_FlareTexture) Then
-    _FlareTexture.Release;
+  ReleaseObject(_FlareTexture);
 
-  If Assigned(_SparkTexture) Then
-    _SparkTexture.Release;
+  ReleaseObject(_SparkTexture);
 
   LensFlare_Instance := Nil;
 End;
@@ -391,6 +389,5 @@ End;
 
 Initialization
 Finalization
-  If Assigned(LensFlare_Instance) Then
-    LensFlare_Instance.Release;
+  ReleaseObject(LensFlare_Instance);
 End.

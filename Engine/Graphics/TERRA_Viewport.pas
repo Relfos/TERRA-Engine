@@ -797,7 +797,7 @@ Begin
 
   If (GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Then
   Begin
-    MyShader := GetDefaultFullScreenShader();
+    MyShader := GraphicsManager.Instance.GetDefaultFullScreenShader();
     GraphicsManager.Instance.Renderer.BindShader(MyShader);
     MyShader.SetIntegerUniform('texture', 0);
     MyShader.SetColorUniform('color', ColorWhite); //BIBI

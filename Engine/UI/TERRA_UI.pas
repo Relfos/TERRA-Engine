@@ -1358,8 +1358,8 @@ Begin
 
     Log(logDebug, 'Game', 'TextureAtlas added');
 
-    Source.Release;
-    MyStream.Release;
+    ReleaseObject(Source);
+    ReleaseObject(MyStream);
   End Else
   Begin
     Log(logWarning,'UI', 'UI component not found. ['+Name+']');
@@ -2299,8 +2299,8 @@ Begin
       Source := Image.Create(MyStream);
       _Item := UIManager.Instance.GetTextureAtlas.Add(Source, Name);
       UIManager.Instance.TextureAtlasClear();
-      Source.Release;
-      MyStream.Release;
+      ReleaseObject(Source);
+      ReleaseObject(MyStream);
     End;
   End;
 
@@ -2653,6 +2653,7 @@ Begin
     MyWidget := Widget(It.Value);
     MyWidget.OnLanguageChange();
   End;
+  ReleaseObject(It);
 End;
 
 Procedure UI.Render;
@@ -2742,8 +2743,7 @@ End;
 
 Procedure UI.SetTransition(MyTransition:UITransition);
 Begin
-  If Assigned(_Transition) Then
-    _Transition.Release;
+  ReleaseObject(_Transition);
 
   _Transition := MyTransition;
 
@@ -3413,7 +3413,7 @@ Begin
     If (MyWidget.Parent =  Nil) Then
       MyWidget._TransformChanged := True;
   End;
-//  It.Release;
+  ReleaseObject(It);
 End;
 
 Procedure UI.SetVisible(Const Value:Boolean);
@@ -3477,6 +3477,7 @@ Begin
 
     W._TransformChanged := True;
   End;
+  ReleaseObject(It);
 End;
 
 Function UI.GetFontRenderer():FontRenderer;

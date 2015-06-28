@@ -1382,7 +1382,7 @@ Begin
   If Assigned(Source) Then
   Begin
     Load(Source);
-    Source.Release;
+    ReleaseObject(Source);
   End;
 End;
 
@@ -1437,7 +1437,7 @@ Begin
 
   Dest := FileStream.Create(FileName);
   Save(Dest, Format, Options);
-  Dest.Release;
+  ReleaseObject(Dest);
 End;
 
 

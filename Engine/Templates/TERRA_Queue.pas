@@ -148,7 +148,7 @@ Begin
   Begin
     Temp := Self.Pop();
 
-    Temp.Release();
+    ReleaseObject(Temp);
   End;
 End;
 

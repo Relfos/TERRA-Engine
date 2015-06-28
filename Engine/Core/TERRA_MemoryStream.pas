@@ -109,7 +109,7 @@ Begin
   Log(logDebug, 'IO', 'Loaded memory stream from '+FileName+', size = '+IntToString(_Size));
 
   F.Read(_Buffer, _Size);
-  F.Release();
+  ReleaseObject(F);
 
   _Name := FileName;
 End;

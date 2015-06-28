@@ -332,7 +332,7 @@ Begin
       Mask.SetPixel(_GutterTexels[I].X, _GutterTexels[I].Y, ColorWhite);
   End;
 
-  Mask.Release;
+  ReleaseObject(Mask);
   Mask := Nil;
 
   For I:=0 To Pred(_GutterCount) Do

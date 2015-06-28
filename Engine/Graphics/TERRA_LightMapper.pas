@@ -253,7 +253,7 @@ Begin
       Rect.Mapper._Dest.SetPixel(I,J, Result);
       Rect.Mapper._Pixels[I,J].Working := False;
     End;
-  Rect.Release;
+  ReleaseObject(Rect);
 End;
 
 Procedure Lightmapper.GenerateMap(Callback: ProgressCallback);
@@ -360,14 +360,14 @@ Begin
 
     Gutter := GutterFiller.Create(_Dest, 5);
     Gutter.Apply(_Dest);
-    Gutter.Release;
+    ReleaseObject(Gutter);
 
     _Dest.Save('lightmap'+IntToString(I)+'.png');
   End;
 
-  Rasterizer.MyOctree.Release;
-  Rasterizer.Release;
-  _Dest.Release;
+  ReleaseObject(Rasterizer.MyOctree);
+  ReleaseObject(Rasterizer);
+  ReleaseObject(_Dest);
 End;
 
 Function Lightmapper.GetPixelsLeft: Integer;
@@ -412,7 +412,7 @@ Begin
 
     Img := Unwrapper.GetTemplate;
     //Img.Save('unwrap'+IntToString(I)+'.png');
-    Img.Release;
+    ReleaseObject(Img);
 
     Group.TriangleCount := 0;
     For J:=0 To Pred(Unwrapper.TriangleCount) Do
@@ -433,7 +433,7 @@ Begin
       Group.AddTriangle(V0, V1, V2);
     End;
 
-    Unwrapper.Release;
+    ReleaseObject(Unwrapper);
   End;
 End;
 

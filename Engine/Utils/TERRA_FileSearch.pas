@@ -181,8 +181,8 @@ Begin
   Params.AddString(Filter);
   Params.AddBoolean(IsFolderMode);
   AssetsClass.CallStaticVoidMethod(Frame, 'listFiles', Params);
-  Params.Release();
-  AssetsClass.Release();
+  ReleaseObject(Params);
+  ReleaseObject(AssetsClass);
   Java_End(Frame);
 End;
 
@@ -210,10 +210,10 @@ Begin
       If (Temp<>Nil) Then
       Begin
         Result.Merge(Temp);
-        Temp.Release;
+        ReleaseObject(Temp);
       End;
     End;
-    Folders.Release();
+    ReleaseObject(Folders);
   End;
 End;
 
@@ -277,7 +277,6 @@ Begin
                If (Temp<>Nil) Then
                Begin
                   Result.Merge(Temp);
-                  //Temp.Release;
                 End;
             End;
 

@@ -146,7 +146,7 @@ Begin
   If Assigned(Source) Then
   Begin
     Self.Load(Source);
-    Source.Release();
+    ReleaseObject(Source);
   End;
 End;
 
@@ -451,7 +451,7 @@ Begin
   Parser.AddToken('repeat', tkInteger, @AnimationRepeat);
   Parser.AddToken('texture', tkString, @Tex);
   Parser.LoadFromString(S);
-  Parser.Release;
+  ReleaseObject(Parser);
 
   Texture := ParticleManager.Instance.GetParticleType(Tex);
 

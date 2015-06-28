@@ -174,7 +174,7 @@ Begin
   Source.Read(@Header,4);
   If (Header <> TERRAHeader) Then
   Begin
-    Source.Release;
+    ReleaseObject(Source);
     Exit;
   End;
 
@@ -199,7 +199,7 @@ Begin
     Self.AddPackage(P);
   End;
 
-  Source.Release;
+  ReleaseObject(Source)
 
   Result := True;
 End;

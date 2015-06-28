@@ -70,8 +70,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To 1 Do
-  If (Assigned(Child[I])) Then
-    Child[I].Release;
+    ReleaseObject(Child[I]);
 End;
 
 Function PackerNode.Insert(Rect:PPackerRect):PackerNode;

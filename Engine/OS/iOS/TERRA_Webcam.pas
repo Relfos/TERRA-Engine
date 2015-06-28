@@ -87,17 +87,8 @@ End;
 
 Procedure Webcam.Clear;
 Begin
-  If Assigned(_Texture) Then
-  Begin
-    _Texture.Release;
-    _Texture := Nil;
-  End;
-
-  If Assigned(_Image) Then
-  Begin
-    _Image.Release;
-    _Image := Nil;
-  End;
+  ReleaseObject(_Texture);
+  ReleaseObject(_Image);
 End;
 
 Procedure ApplicationOnCamera(width, height:Integer; buffer:Pointer); cdecl; export;

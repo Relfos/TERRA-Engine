@@ -471,7 +471,7 @@ Begin
         MW := Trunc(MW * 1.5)
       Else
         MH := Trunc(MH * 1.5);
-      Packer.Release;
+      ReleaseObject(Packer);
     End Else
       Found := True;
   Until Found;
@@ -516,7 +516,7 @@ Begin
       End;
     End;
   End;
-  Packer.Release;
+  ReleaseObject(Packer);
 
   // final step, copy geometry back to the mesh, because vertices might have been duplicated
   For K:=0 To Pred(Self._GroupCount) Do
@@ -607,7 +607,7 @@ Begin
       End;
   End;
 
-  Rasterizer.Release();
+  ReleaseObject(Rasterizer);
 End;
 
 End.

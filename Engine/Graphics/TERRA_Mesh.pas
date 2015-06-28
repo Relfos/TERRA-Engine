@@ -1571,7 +1571,7 @@ Begin
   Begin
     Cube := TERRA_Solids.CubeMesh.Create(2);
     _CubeMesh := CreateMeshFromSolid(Cube);
-    Cube.Release();
+    ReleaseObject(Cube);
   End;
 
   Result := _CubeMesh;
@@ -1585,7 +1585,7 @@ Begin
   Begin
     Sphere := TERRA_Solids.SphereMesh.Create(8);
     _SphereMesh := CreateMeshFromSolid(Sphere);
-    Sphere.Release();
+    ReleaseObject(Sphere);
   End;
 
   Result := _SphereMesh;
@@ -2104,7 +2104,7 @@ Begin
     Begin
       If Assigned(_FX[I]._Callback) Then
         _FX[I]._Callback(_FX[I], _FX[I]._UserData);
-      _FX[I].Release();
+      ReleaseObject(_FX[I]);
       _FX[I] := _FX[Pred(_FXCount)];
       Dec(_FXCount);
     End;
@@ -6070,10 +6070,10 @@ Var
 	I:Integer;
 Begin
     For I:=0 To Pred(_GroupCount) Do
+    If Assigned(_Groups[I]) Then
     Begin
-        _Groups[I].Clean();
-        _Groups[I].Release();
-        _Groups[I] := Nil;
+      _Groups[I].Clean();
+      ReleaseObject(_Groups[I]);
     End;
 	_GroupCount := 0;
 	_Groups := Nil;
@@ -7477,8 +7477,7 @@ Initialization
   RegisterMeshGroupHandler(tagMaterialBlendMode, GroupReadMaterialBlendMode);
   RegisterMeshGroupHandler(tagMaterialParticles, GroupReadMaterialParticles);
 Finalization
-  If (Assigned(_MeshManager)) Then
-    _MeshManager.Release;
+  ReleaseObject(_MeshManager);
 End.
 
 

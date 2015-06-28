@@ -766,7 +766,7 @@ Begin
   While (Assigned(Src)) And (Not Src.EOF) Do
         ReadChunk(Src);
 
-  Src.Release();
+  ReleaseObject(Src);
 End;
 
 

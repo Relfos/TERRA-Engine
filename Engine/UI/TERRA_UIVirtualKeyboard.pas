@@ -667,8 +667,7 @@ End;
 
 Procedure VirtualKeyboard.Release;
 Begin
-  {If Assigned(Pinyin) Then
-    Pinyin.Release();}
+  {ReleaseObject(Pinyin);}
 
   Inherited;
 End;
@@ -861,9 +860,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_KeyboardLayoutCount) Do
-  Begin
-    _KeyboardLayouts[I].Release();
-  End;
+    ReleaseObject(_KeyboardLayouts[I]);
 
   _KeyboardLayoutCount := 0;
 End;
@@ -904,7 +901,7 @@ Begin
     Src.ReadLine(S);
     Data := Data + S + '|';
   End;
-  Src.Release();
+  ReleaseObject(Src);
 
   AddKeyboardLayoutFromString(Data);
 End;

@@ -392,7 +392,7 @@ Begin
   If Assigned(Source) Then
   Begin
     Create(Source);
-    Source.Release();
+    ReleaseObject(Source);
   End;
 End;
 
@@ -1485,7 +1485,7 @@ Begin
    Begin
       FreeMem(e[i]);
    End;
-   e.Release();
+   ReleaseObject(e);
 end;
 
 function TTFFont.new_active(e: PStBttEdge; off_x: Integer; start_point: Single): PStBttActiveEdge;
@@ -1742,11 +1742,11 @@ Begin
   Begin
     OpID := Ord('E');
     Img := GetCodepointBitmap(_Scale * LocalScale, _Scale * LocalScale, OpID, xofs, yofs);
-    Img.Release();
+    ReleaseObject(Img);
     Img := Image.Create(4,4);
     stbtt_GetCodepointHMetrics(OpID, XAdv, lsb);
     Result := Font.AddGlyph(ID, Img, XOfs, YOfs, Trunc(XAdv*_Scale));
-    Img.Release();
+    ReleaseObject(Img);
     Exit;
   End;
 
@@ -1765,7 +1765,7 @@ Begin
 
   {$IFDEF DISTANCEFIELDFONTS}
   Temp := CreateDistanceField(Img, componentAlpha, LocalScale, LocalScale*2);
-  Img.Release();
+  ReleaseObject(Img);
   Img := Temp;
   {$ENDIF}
 
@@ -1775,7 +1775,7 @@ Begin
 
   //Img.Save('glyphs\g'+IntToString(ID)+'.png');
 
-  Img.Release;
+  ReleaseObject(Img);
 End;
 
 

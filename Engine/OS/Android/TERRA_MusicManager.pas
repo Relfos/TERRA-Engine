@@ -131,7 +131,7 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(S);
   _Player.CallVoidMethod(Frame, 'setTrack', Params);
-  Params.Release();
+  ReleaseObject(Params);
   Java_End(Frame);
 
   Self.SetVolume(_Volume);
@@ -158,7 +158,7 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddInteger(Trunc(Volume));
   _Player.CallVoidMethod(Frame, 'setVolume', Params);
-  Params.Release();
+  ReleaseObject(Params);
   Java_End(Frame);
 End;
 
@@ -186,7 +186,7 @@ Begin
   Java_Begin(Frame);
   _Player.CallVoidMethod(Frame, 'stop', Nil);
   _Player.CallVoidMethod(Frame, 'release', Nil);
-  _Player.Release();
+  ReleaseObject(_Player);
   _Player := Nil;
   Java_End(Frame);
 End;

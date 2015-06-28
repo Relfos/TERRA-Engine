@@ -154,7 +154,7 @@ Begin
   Begin
     Java_Begin(Frame);
     _Track.CallVoidMethod(Frame, 'release', Nil);
-    _Track.Release();
+    ReleaseObject(_Track);
     _Track := Nil;
     Java_End(Frame);
   End;
@@ -185,13 +185,13 @@ Begin
     Params := JavaArguments.Create(Frame);
     Params.AddFloat(_Volume);
     _Track.CallVoidMethod(Frame, 'setVolume', Params);
-    Params.Release();
+    ReleaseObject(Params);
 
     Log(logDebug, 'SoundSource', 'Setting loop');
     Params := JavaArguments.Create(Frame);
     Params.AddBoolean(_Loop);
     _Track.CallVoidMethod(Frame, 'setLoop', Params);
-    Params.Release();
+    ReleaseObject(Params);
 
     Java_End(Frame);
   End;
@@ -288,7 +288,7 @@ Begin
   Params.AddInteger(Sound.Size);
   Params.AddWordArray(Sound.Data, Samples);
   _Track := JavaObject.Create(AudioTrackJavaClass, Params, Frame);
-  Params.Release();
+  ReleaseObject(Params);
   Java_End(Frame);
 
   Log(logDebug, 'SoundSource', 'Ready!');
@@ -365,7 +365,7 @@ Begin
       Java_Begin(Frame);
       _Track.CallVoidMethod(Frame, 'stop', Nil);
 
-      _Track.Release();
+      ReleaseObject(_Track);
       _Track := Nil;
       Java_End(Frame);
     End;

@@ -106,7 +106,7 @@ Begin
     End;
   End;
 
-  Src.Release();
+  ReleaseObject(Src);
 End;
 
 Procedure AdjustCallstack();

@@ -1481,11 +1481,7 @@ End;
 
 Procedure ShaderFactory.Release;
 Begin
-  If Assigned(_Emitter) Then
-  Begin
-    _Emitter.Release();
-    _Emitter := Nil;
-  End;
+  ReleaseObject(_Emitter);
 
   Self.Clear;
   _ShaderFactory_Instance := Nil;
@@ -1689,8 +1685,7 @@ End;
 
 Procedure ShaderFactory.SetShaderEmitter(Emitter: ShaderEmitter);
 Begin
-  If Assigned(_Emitter) Then
-    _Emitter.Release;
+  ReleaseObject(_Emitter);
   Self._Emitter := Emitter;
   Emitter.Init();
 End;

@@ -34,7 +34,7 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(Application.Instance.GetFacebookID());
   _Facebook := JavaObject.Create(FacebookClassPath, Params, Frame);
-  Params.Release();
+  ReleaseObject(Params);
   Java_End(Frame);
 End;
 
@@ -45,7 +45,7 @@ Begin
   Log(logDebug, 'App', 'Deleting facebook object');
 
   Java_Begin(Frame);
-  _Facebook.Release();
+  ReleaseObject(_Facebook);
   Java_End(Frame);
 End;
 
@@ -61,7 +61,7 @@ Begin
   Params.AddString(Page);
   Params.AddString(URL);
   _Facebook.CallVoidMethod(Frame, 'likePage', Params);
-  Params.Release();
+  ReleaseObject(Params);
   Java_End(Frame);
 End;
 
@@ -79,7 +79,7 @@ Begin
   Params.AddString(Desc);
   Params.AddString(ImageURL);
   _Facebook.CallVoidMethod(Frame, 'post', Params);
-  Params.Release();
+  ReleaseObject(Params);
   Java_End(Frame);
 End;
 

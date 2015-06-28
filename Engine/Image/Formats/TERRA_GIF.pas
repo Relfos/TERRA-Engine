@@ -540,7 +540,7 @@ Begin
     End;
   Until (GIFBlockID=';') Or (Source.EOF);
 
-  FrameBuffer.Release();
+  ReleaseObject(FrameBuffer);
   MyImage.SetCurrentFrame(0);
 End;
 
@@ -551,7 +551,7 @@ Begin
   Loader := GIFLoader.Create;
   Loader.MyImage := MyImage;
   Loader.Load(Source);
-  Loader.Release;
+  ReleaseObject(Loader);
 
   MyImage.Process(IMP_SetColorKey, ColorCreate(255,0, 255, 255));
 End;

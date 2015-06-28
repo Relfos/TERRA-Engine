@@ -197,6 +197,12 @@ Type
 
       _ElapsedTime:Single;
 
+      _SimpleColor:ShaderInterface;
+      _SimpleTexture:ShaderInterface;
+      _SimpleTextureColored:ShaderInterface;
+      _FullscreenQuadShader:ShaderInterface;
+      _FullscreenColorShader:ShaderInterface;
+
       Procedure RenderUI;
       Procedure RenderStencilShadows(View:Viewport);
       Procedure RenderSceneInternal(View:Viewport; Pass:RenderTargetType);
@@ -246,6 +252,7 @@ Type
 
 			Procedure RenderScene();
 
+      Function GetDefaultFullScreenShader():ShaderInterface;
 
       Procedure TestDebugKeys();
 
@@ -319,8 +326,6 @@ Type
       Property UI_Scale:Single Read _UIScale;
 	End;
 
-Function GetDefaultFullScreenShader():ShaderInterface;
-
 Implementation
 
 Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_UI, TERRA_ResourceManager, TERRA_InputManager,
@@ -330,12 +335,6 @@ Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_UI, TERRA_ResourceManager, TERRA_In
 Var
   _GraphicsManager_Instance:ApplicationObject = Nil;
   _ShuttingDown:Boolean = False;
-
-  _SimpleColor:ShaderInterface;
-  _SimpleTexture:ShaderInterface;
-  _SimpleTextureColored:ShaderInterface;
-  _FullscreenQuadShader:ShaderInterface;
-  _FullscreenColorShader:ShaderInterface;
 
 Class Function GraphicsManager.IsShuttingDown:Boolean;
 Begin
@@ -502,16 +501,6 @@ Begin
   Result := S;
 End;
 
-Function GetDefaultFullScreenShader():ShaderInterface;
-Begin
-  If (_FullscreenQuadShader = Nil) Then
-  Begin
-    _FullscreenQuadShader := GraphicsManager.Instance.Renderer.CreateShader();
-    _FullscreenQuadShader.Generate('fullscreen_quad', GetShader_FullscreenQuad());
-  End;
-
-  Result := _FullscreenQuadShader;
-End;
 
 { Occluder }
 Procedure Occluder.SetTransform(Transform:Matrix4x4; Width,Height:Single);
@@ -619,7 +608,7 @@ Begin
     Image.FillRectangle(Integer(Round(_StartVertex.X)), Integer(Round(_StartVertex.Y)), Integer(Round(_EndVertex.X)), Integer(Round(_EndVertex.Y)), ColorRed);
     Image.FillRectangle(Integer(Round(A.X)), Integer(Round(A.Y)), Integer(Round(B.X)), Integer(Round(B.Y)), ColorBlue);
     Image.Save('occlusion.png');
-    Image.Release;
+    ReleaseObject(Image)
     Halt;
   End;}
 
@@ -800,6 +789,17 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
  
 End;
 
+Function GraphicsManager.GetDefaultFullScreenShader():ShaderInterface;
+Begin
+  If (_FullscreenQuadShader = Nil) Then
+  Begin
+    _FullscreenQuadShader := GraphicsManager.Instance.Renderer.CreateShader();
+    _FullscreenQuadShader.Generate('fullscreen_quad', GetShader_FullscreenQuad());
+  End;
+
+  Result := _FullscreenQuadShader;
+End;
+
 Procedure GraphicsManager.AddViewport(V:Viewport);
 Begin
   If (V = Nil) Then
@@ -841,7 +841,7 @@ Begin
   If (N<0) Then
     Exit;
 
-  _Viewports[N].Release;
+  ReleaseObject(_Viewports[N]);
   _Viewports[N] := _Viewports[Pred(_ViewportCount)];
   Dec(_ViewportCount);
 End;
@@ -876,7 +876,7 @@ Begin
   If (N<0) Then
     Exit;
 
-  _Cameras[N].Release;
+  ReleaseObject(_Cameras[N]);
   _Cameras[N] := _Cameras[Pred(_CameraCount)];
   Dec(_CameraCount);
 End;
@@ -1929,6 +1929,13 @@ Begin
     ReleaseObject(_Viewports[I]);
   _ViewportCount := 0;
 
+  ReleaseObject(_FullScreenQuadVertices);
+
+  ReleaseObject(_SimpleColor);
+  ReleaseObject(_SimpleTexture);
+  ReleaseObject(_SimpleTextureColored);
+  ReleaseObject(_FullscreenQuadShader);
+  ReleaseObject(_FullscreenColorShader);
 
   ReleaseObject(_BucketOpaque);
   ReleaseObject(_BucketAlpha);
