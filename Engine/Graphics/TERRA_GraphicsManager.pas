@@ -2016,11 +2016,6 @@ Begin
 
   Target := _DeviceViewport.GetRenderTarget(captureTargetColor);
 
-  {$IFDEF IPHONE}
-  If Target = Nil Then
-    Exit;
-  {$ENDIF}
-
   If Assigned(Target) Then
     Target.BeginCapture();
 
@@ -2038,14 +2033,12 @@ Begin
     _UIViewport.DrawToTarget(False);
 
   {$IFDEF IPHONE}
-RaiseError('fbo iPHone failed');//FrameBufferObject(Target).PresentToScreen();
-  Target.EndCapture();
-  {$ELSE}
+	//FrameBufferObject(Target).PresentToScreen();
+  {$ENDIF}
   If Assigned(Target) Then
     Target.EndCapture();
   //_DeviceViewport.DrawFullScreen();
-  {$ENDIF}
-
+ 
   ClearTemporaryDebug3DObjects();
 
   Renderer.EndFrame();
