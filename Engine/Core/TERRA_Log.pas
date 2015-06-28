@@ -316,7 +316,7 @@ Begin
   S := LogFormatStr(LogType, ModuleName, Description);
 
   {$IFNDEF DISABLETHREADS}
-  S := CardinalToString(Cardinal(GetCurrentThreadId())) + ': '+ S;
+  S := CardinalToString(PtrUInt(GetCurrentThreadId())) + ': '+ S;
   {$ENDIF}
 
 {$IFDEF IPHONE}

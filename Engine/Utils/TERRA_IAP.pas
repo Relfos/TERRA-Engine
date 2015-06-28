@@ -163,7 +163,6 @@ Begin
   If (IAP_CanPurchase()) Then
     IAP_Purchase(PAnsiChar(ID))
   Else
-  If Assigned(Application.Instance.Client) Then
     IAP_Callback_Canceled(PAnsiChar(ID));
 
   Exit;

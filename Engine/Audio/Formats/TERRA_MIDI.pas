@@ -23,6 +23,8 @@ Unit TERRA_MIDI;
 
 {.$DEFINE USE_INTERNAL_SYNTH}
 
+{$I terra.inc}
+
 Interface
 Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_OS, TERRA_Application, TERRA_MusicTrack;
 
@@ -1411,4 +1413,4 @@ Begin
 End;
 
 End.
-
+

@@ -180,7 +180,7 @@ Type
 		  _ThreadCount:Integer;
 
       {$IFNDEF DISABLETHREADS}
-      _MainThread:Cardinal;
+      _MainThread:PtrUInt;
       {$ENDIF}
 
       _CriticalSection:CriticalSection;
@@ -206,7 +206,7 @@ Type
 		  Procedure CancelTasks;
 
       {$IFNDEF DISABLETHREADS}
-      Property MainThread:Cardinal Read _MainThread;
+      Property MainThread:PtrUInt Read _MainThread;
       {$ENDIF}
 
 		  Class Function Instance:ThreadPool;
@@ -416,7 +416,7 @@ Begin
   End;
 
   {$IFNDEF DISABLETHREADS}
-  If Cardinal(GetCurrentThreadId()) <> _MainThread Then
+  If PtrUInt(GetCurrentThreadId()) <> _MainThread Then
     Application.Instance.PostCallback(AddThreadToPool, MyTask)
   Else
     AddThreadToPool(MyTask);
@@ -511,7 +511,7 @@ Begin
   _RunningTaskCount := 0;
 
   {$IFNDEF DISABLETHREADS}
-  _MainThread := Cardinal(GetCurrentThreadId());
+  _MainThread := PtrUInt(GetCurrentThreadId());
   {$ENDIF}
 
   SetLength(_Threads, _MaxThreads);
