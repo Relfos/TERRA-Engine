@@ -264,7 +264,7 @@ Begin
 
   Temp := MemoryStream.Create(SourceFile);
   Result := LoadFromStream(Temp);
-  Temp.Release();
+  ReleaseObject(Temp);
 End;
 
 Function Session.GetSaveFileName:TERRAString;
@@ -384,14 +384,14 @@ Begin
       Temp.Seek(0);
     End;
 
-    Pref.Release;
+    ReleaseObject(Pref);
 
     _Read := True;
   End Else
     Result := False;
 
-  Temp.Release;
-  Dest.Release;
+  ReleaseObject(Temp);
+  ReleaseObject(Dest);
 End;
 
 

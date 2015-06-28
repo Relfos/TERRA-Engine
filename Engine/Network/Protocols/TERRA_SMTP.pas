@@ -272,7 +272,7 @@ Begin
         Bin.Read(K,1);
         S2:=S2+Char(K);
       End;
-      Bin.Release;
+      ReleaseObject(Bin);
 
       FileName:=GetFileName(_Attachments[Pred(I)],False);
 
@@ -312,7 +312,7 @@ Begin
     Exit;
   End;
 
-  _Stream.Release;
+  ReleaseObject(_Stream);
   Result:=True;
 End;
 

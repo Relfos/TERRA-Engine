@@ -10,7 +10,7 @@ Unit TERRA_OS;
 {-$DEFINE TRUE_FULLSCREEN}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_InputManager, TERRA_Multimedia,
+Uses TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_InputManager, TERRA_Multimedia,
   Windows, Messages;
 
 Const
@@ -184,7 +184,8 @@ Type
 
       Function GetDeviceID():TERRAString; Override;
 
-      Class Procedure DisplayMessage(Const S:TERRAString);
+      Procedure OnFatalError(Const ErrorMsg, CrashLog, Callstack:TERRAString); Override;
+
       Class Function GetCurrentTime:TERRATime;
       Class Function GetCurrentDate:TERRADate;
       Class Function GetTime:Cardinal;
@@ -238,11 +239,6 @@ End;
 Class Function WindowsApplication.Instance:WindowsApplication;
 Begin
   Result := _Application_Instance;
-End;
-
-Class Procedure WindowsApplication.DisplayMessage(Const S:TERRAString);
-Begin
-  Windows.MessageBoxA(0, PAnsiChar(S), PAnsiChar(GetProgramName), MB_OK Or MB_ICONERROR);
 End;
 
 Class Function WindowsApplication.GetTime:Cardinal;  {$IFDEF FPC}Inline;{$ENDIF}
@@ -302,8 +298,8 @@ Begin
     Exit;
   End;
 
-  If ((Msg=WM_SYSCOMMAND) And (wParam = SC_MAXIMIZE))
-  Or ((Msg=WM_SYSKEYDOWN) And (wParam = keyEnter)) Then
+  If (*((Msg=WM_SYSCOMMAND) And (wParam = SC_MAXIMIZE))
+  Or *)((Msg=WM_SYSKEYDOWN) And (wParam = keyEnter)) Then
   Begin
     App._ChangeToFullScreen := True;
     Exit;
@@ -1035,7 +1031,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_WatchCount) Do
-    _Watchers[I].Release();
+    ReleaseObject(_Watchers[I]);
 End;
 
 Procedure WindowsFolderManager.Update;
@@ -1288,6 +1284,19 @@ Begin
     SendMessage(GetWindow(_Handle, GW_OWNER), WM_SETICON, ICON_BIG, _Icon);}
   End;
 End;
+
+Procedure WindowsApplication.OnFatalError(Const ErrorMsg, CrashLog, Callstack: TERRAString);
+Var
+  S:TERRAString;
+Begin
+  _Running := False;
+
+  S := 'A fatal error has occurred.' + CrLf + ErrorMsg + CrLf+CrashLog + CrLf+ Callstack;
+  Windows.MessageBoxA(0, PAnsiChar(S), PAnsiChar(GetProgramName()), MB_OK Or MB_ICONERROR);
+End;
+
 Initialization
   LoadMultimedia();
+Finalization
+  ReleaseObject(_Application_Instance);
 End.

@@ -316,7 +316,7 @@ Begin
   S := LogFormatStr(LogType, ModuleName, Description);
 
   {$IFNDEF DISABLETHREADS}
-  S := CardinalToString(Cardinal(GetCurrentThreadId())) + ': '+ S;
+  S := CardinalToString(PtrUInt(GetCurrentThreadId())) + ': '+ S;
   {$ENDIF}
 
 {$IFDEF IPHONE}
@@ -368,7 +368,7 @@ Initialization
 {$IFDEF PC}
   LoggingEnabled := Application.GetOption('log') = '1';
 {$ELSE}
-  LoggingEnabled := False;
+  LoggingEnabled := True;
 {$ENDIF}
 {$ENDIF}
 Finalization

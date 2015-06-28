@@ -55,7 +55,7 @@ End;
 
 Procedure ResourceBuilderInfo.Release();
 Begin
-  _Data.Release();
+  ReleaseObject(_Data);
 End;
 
 Procedure PackageBuilder.WriteHeader(Dest:Stream);
@@ -102,7 +102,7 @@ Begin
   WriteResources(Dest);
   WriteTable(Dest);
   WriteHeader(Dest);  // now write true header
-  Dest.Release();
+  ReleaseObject(Dest);
 
   Result := True;
 End;

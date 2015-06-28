@@ -69,7 +69,7 @@ Unit TERRA_FileStream;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Stream, TERRA_FileUtils, TERRA_String;
+Uses TERRA_Stream, TERRA_Object, TERRA_FileUtils, TERRA_String;
 
 Type
   FilePointer=File;
@@ -333,8 +333,8 @@ Begin
   Source := MemoryStream.Create(SourceName);
   Dest := FileStream.Create(DestName);
   Source.Copy(Dest);
-  Source.Release;
-  Dest.Release;
+  ReleaseObject(Source);
+  ReleaseObject(Dest);
 End;
 
 Procedure FileStream.Flush;

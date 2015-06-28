@@ -216,7 +216,7 @@ Begin
     Src := MemoryStream.Create(S);
     Doc := XMLDocument.Create;
     Doc.Load(Src);
-    Src.Release();
+    ReleaseObject(Src);
   End Else
   Begin
     Doc := XMLLoadBinary(S);
@@ -366,7 +366,7 @@ Begin
     End;
   End;
 
-  Doc.Release();
+  ReleaseObject(Doc);
 
   Result := True;  
 End;
@@ -444,8 +444,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(Self._LayerCount) Do
-  If Assigned(_Layers[I]) Then
-    _Layers[I].Release;
+    ReleaseObject(_Layers[I]);
     
   Self._LayerCount := 0;
 End;
@@ -634,8 +633,8 @@ Begin
     SetLength(Result, Dst.Position);
     Dst.Seek(0);
     Dst.Read(@Result[1], Length(Result));
-    Dst.Release;
-    Mem.Release;
+    ReleaseObject(Dst);
+    ReleaseObject(Mem);
   End Else
     Result := Source;
 End;
@@ -712,7 +711,7 @@ Begin
       S := SpriteManager.Instance.DrawSprite(I*_Map._TileWidth*_Map.Scale - _Map.CamX, J*_Map._TileHeight*_Map.Scale - _Map.CamY, Z, _Map.Tileset);
       Tx := (N Mod _TilesPerRow);
       Ty := (N Div _TilesPerRow);
-      S.Rect.PixelRemap(Tx*_Map._TileWidth, Ty*_Map._TileWidth, Succ(Tx)*_Map._TileWidth-1, Succ(Ty)*_Map._TileWidth-1);
+      S.Rect.PixelRemap(Tx*_Map._TileWidth, Ty*_Map._TileWidth, Succ(Tx)*_Map._TileWidth-1, Succ(Ty)*_Map._TileWidth-1, _Map.GetTileset());
       S.Rect.Width := _Map._TileWidth;
       S.Rect.Height := _Map._TileHeight;
       S.SetScale(_Map.Scale, _Map.Scale);

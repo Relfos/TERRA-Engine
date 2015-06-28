@@ -785,7 +785,7 @@ Begin
   While (I<_TweenCount) Do
   If (_Tweens[I]._Finished) Then
   Begin
-    _Tweens[I].Release;
+    ReleaseObject(_Tweens[I]);
     _Tweens[I] := _Tweens[Pred(_TweenCount)];
     Dec(_TweenCount);
   End Else
@@ -800,7 +800,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_TweenCount) Do
-    _Tweens[I].Release;
+    ReleaseObject(_Tweens[I]);
 
   _TweenCount := 0;
   SetLength(_Tweens, 0);
@@ -825,7 +825,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_TweenCount) Do
-    _Tweens[I].Release;
+    ReleaseObject(_Tweens[I]);
 
   _TweenCount := 0;
 End;
@@ -838,7 +838,7 @@ Begin
   While (I<_TweenCount) Do
   If (_Tweens[I]._Object = Obj) Then
   Begin
-    _Tweens[I].Release;
+    ReleaseObject(_Tweens[I]);
     _Tweens[I] := _Tweens[Pred(_TweenCount)];
     Dec(_TweenCount);
   End Else

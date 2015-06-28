@@ -524,7 +524,6 @@ Type
       _FontRenderer:FontRenderer;
 
       Procedure OnLanguageChange; Override;
-      Procedure OnContextLost; Override;
       Procedure OnOrientationChange; Override;
 
       Procedure UpdateRatio();
@@ -3297,14 +3296,6 @@ End;}
 
 Procedure UIManager.TextureAtlasClear();
 Begin
-  _UpdateTextureAtlas := True;
-End;
-
-Procedure UIManager.OnContextLost;
-Begin
-  If (Assigned(_TextureAtlas)) Then
-    _TextureAtlas.OnContextLost();
-
   _UpdateTextureAtlas := True;
 End;
 

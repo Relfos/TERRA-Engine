@@ -367,11 +367,8 @@ begin
         fImagePtrSize[i] := 0;
       end;
 
-  If Assigned(_Texture) Then
-    _Texture.Release;
-
-  If Assigned(_Image) Then
-    _Image.Release;
+  ReleaseObject(_Texture);
+  ReleaseObject(_Image);
 End;
 
 

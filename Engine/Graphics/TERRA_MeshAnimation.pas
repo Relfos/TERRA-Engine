@@ -198,8 +198,6 @@ Type
 
       Procedure Clone(Other:Animation);
 
-      Procedure Release(); Override;
-
       Function Load(Source:Stream):Boolean; Override;
       Procedure Save(Dest:Stream); Overload;
       Procedure Save(FileName:TERRAString); Overload;
@@ -217,8 +215,6 @@ Type
 
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
-
-      Procedure OnContextLost; Override;
 
       Property BoneCount:Integer Read _BoneCount;
       Property Length:Single Read GetLength;
@@ -290,7 +286,6 @@ Type
       _UpdateID:Cardinal;
 
       _Hash:Cardinal;
-      _Skeleton:MeshSkeleton;
 
       Function RunCallback():Boolean;
 
@@ -322,6 +317,7 @@ Type
       Property Speed:Single Read _Speed Write SetSpeed;
 
       Property CurrentFrame:Integer Read _CurrentFrame;
+
   End;
 
   AnimationBoneState = Class(TERRAObject)
@@ -347,10 +343,10 @@ Type
       _Name:TERRAString;
       _Next:TERRAString;
 
-      _Skeleton:MeshSkeleton;
-
       _BoneCount:Integer;
       _BoneStates:Array Of AnimationBoneState;
+
+      _TargetInstance:TERRAObject;
 
       _LastTime:Cardinal;
       _Root:AnimationObject;
@@ -374,11 +370,13 @@ Type
 
       Procedure UpdateAnimationName(MyAnimation:Animation);
 
+      Function GetSkeleton:MeshSkeleton;
+
     Public
       Processor:AnimationProcessor;
       Transforms:Array Of Matrix4x4;
 
-      Constructor Create(Name:TERRAString; MySkeleton:MeshSkeleton);
+      Constructor Create(Name:TERRAString; TargetInstance:TERRAObject);
       Procedure Release; Override;
 
       Procedure Update;
@@ -401,6 +399,8 @@ Type
       Property Root:AnimationObject Read _Root;
 
       Property LastAnimation:TERRAString Read _LastAnimation;
+
+      Property Skeleton:MeshSkeleton Read GetSkeleton;
   End;
 
   AnimationManager = Class(ResourceManager)
@@ -473,7 +473,7 @@ Begin
     S := FileManager.Instance.SearchResourceFile(Name+'.anim');
     If S<>'' Then
     Begin
-      Result := Animation.Create(S);
+      Result := Animation.Create(rtLoaded, S);
       Result.Priority := 70;
       Self.AddResource(Result);
     End Else
@@ -777,7 +777,7 @@ Begin
   Self._Hash := Application.GetTime();
 
   For I:=0 To Pred(_BoneCount) Do
-    _BoneList[I].Release;
+    ReleaseObject(_BoneList[I]);
 
   Self._BoneCount := Other._BoneCount;
   SetLength(Self._BoneList, _BoneCount);
@@ -993,9 +993,9 @@ End;
 
 Procedure BoneAnimation.Release;
 Begin
-  Positions.Release();
-  Rotations.Release();
-  Scales.Release();
+  ReleaseObject(Positions);
+  ReleaseObject(Rotations);
+  ReleaseObject(Scales);
 End;
 
 Procedure BoneAnimation.Crop(Time: Single);
@@ -1182,7 +1182,7 @@ Begin
     Bone.Load(Source);
   End;
 
-  _Status := rsReady;
+  SetStatus(rsReady);
   Result := True;
 End;
 
@@ -1192,7 +1192,7 @@ Var
 Begin
   Stream := FileStream.Create(FileName);
   Save(Stream);
-  Stream.Release;
+  ReleaseObject(Stream);
 End;
 
 Procedure Animation.Save(Dest:Stream);
@@ -1239,19 +1239,22 @@ Begin
 End;
 
 Function Animation.Unload: Boolean;
+Var
+  I,J:Integer;
 Begin
-  Result := False;
+  For I:=0 To Pred(_BoneCount) Do
+    ReleaseObject(_Bones[I]);
+
+  SetLength(_Bones,0);
+  _BoneCount := 0;
+
+  Result := Inherited Unload();
 End;
 
 Function Animation.Update: Boolean;
 Begin
   Inherited Update();
   Result := True;
-End;
-
-Procedure Animation.OnContextLost;
-Begin
-  _ContextID := Application.Instance.ContextID;
 End;
 
 (*
@@ -1348,30 +1351,15 @@ Begin
     _Bones[I].CloseLoop();
 End;
 
-Procedure Animation.Release;
-Var
-  I,J:Integer;
-Begin
-  For I:=0 To Pred(_BoneCount) Do
-    _Bones[I].Release();
-
-  SetLength(_Bones,0);
-  _BoneCount := 0;
-
-  _Status := rsUnloaded;
-
-  Inherited;
-End;
-
 { AnimationState }
-Constructor AnimationState.Create(Name:TERRAString; MySkeleton:MeshSkeleton);
+Constructor AnimationState.Create(Name:TERRAString; TargetInstance:TERRAObject);
 Var
   I:Integer;
 Begin
   _Speed := 1;
   Processor := Nil;
 
-  _Skeleton := MySkeleton;
+  Self._TargetInstance := TargetInstance;
 
   I := Pos('.', Name);
   If (I>0) Then
@@ -1381,8 +1369,8 @@ Begin
   _BoneCount := 0;
   _LastTime := Application.Instance.GetElapsedTime();
 
-  For I:=0 To Pred(MySkeleton.BoneCount) Do
-    Self.AddBone(MySkeleton.GetBone(I));
+  For I:=0 To Pred(Self.Skeleton.BoneCount) Do
+    Self.AddBone(Self.Skeleton.GetBone(I));
 End;
 
 Procedure AnimationState.AddBone(Bone:MeshBone);
@@ -1415,6 +1403,7 @@ Procedure AnimationState.Update;
 Var
   I:Integer;
   Time, Delta:Cardinal;
+  Bone:MeshBone;
 Begin
   If (Length(Transforms)<=0) Then
   Begin
@@ -1479,8 +1468,12 @@ Begin
   If Assigned(Processor) Then
     Processor(Self);
 
-  {For I:=1 To _BoneCount Do
-    Transforms[I] := MatrixMultiply4x3(Transforms[I], _Skeleton.BindPose[I]);}
+  For I:=1 To _BoneCount Do
+  Begin
+    Bone := Self.Skeleton.GetBone(Pred(I));
+    If Assigned(Bone) Then
+      Transforms[I] := Matrix4x4Multiply4x3(Transforms[I], Bone.AbsoluteMatrix);
+  End;
 End;
 
 Procedure AnimationState.SetRoot(Node: AnimationObject);
@@ -1494,10 +1487,9 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_BoneCount) Do
-    _BoneStates[I].Release;
-    
-  If Assigned(_Root) Then
-    _Root.Release;
+    ReleaseObject(_BoneStates[I]);
+
+  ReleaseObject(_Root);
 End;
 
 Function AnimationState.Play(Name:TERRAString; Rescale:Single):Boolean;
@@ -1606,7 +1598,8 @@ Begin
     Node := AnimationCrossfader(_Root);
     _Root := Node._B;
     Node._B := Nil;
-    Node.Release;
+
+    ReleaseObject(Node);
   End;
 
   UpdateAnimationName(MyAnimation);
@@ -1647,7 +1640,7 @@ Begin
   Temp := Node;
   Node := Node.Collapse();
   If Temp<>Node Then
-    Temp.Release();
+    ReleaseObject(Temp);
 End;
 
 Procedure AnimationState.UpdateAnimationName(MyAnimation: Animation);
@@ -1655,6 +1648,11 @@ Begin
   _LastAnimation := MyAnimation.Name;
   StringReplaceText(_Name + '_', '', _LastAnimation);
   _LastAnimation := StringLower(_LastAnimation);
+End;
+
+Function AnimationState.GetSkeleton: MeshSkeleton;
+Begin
+  Result := MeshInstance(_TargetInstance).Geometry.Skeleton;
 End;
 
 { AnimationBoneState }
@@ -1736,10 +1734,8 @@ End;
 
 Procedure AnimationMixer.Release;
 Begin
-  If Assigned(_A) Then
-    _A.Release;
-  If Assigned(_B) Then
-    _B.Release;
+  ReleaseObject(_A);
+  ReleaseObject(_B);
 End;
 
 Function AnimationMixer.HasAnimation(MyAnimation: Animation): Boolean;
@@ -1801,7 +1797,7 @@ Begin
   End;
 
   If (_A<>_B) Then
-    _A.Release();
+    ReleaseObject(_A);
 
   Result := _B;
 

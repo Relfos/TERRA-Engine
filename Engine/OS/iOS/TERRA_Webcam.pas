@@ -2,7 +2,8 @@ Unit TERRA_Webcam;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Texture, TERRA_Color, TERRA_Image, TERRA_Application;
+Uses TERRA_Utils, TERRA_String, TERRA_Texture, TERRA_Color, TERRA_Image,
+    TERRA_Renderer, TERRA_Application;
 
 Type
   Webcam = Class(ApplicationComponent)
@@ -44,7 +45,12 @@ Type
 Procedure ApplicationOnCamera(width, height:Integer; buffer:Pointer); cdecl; export;
 
 Implementation
-Uses TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_GraphicsManager, TERRA_OS;
+Uses TERRA_Log, TERRA_GraphicsManager, TERRA_Resource, TERRA_OS;
+
+Procedure enableAVCapture(); cdecl; external;
+Procedure startAVCapture(); cdecl; external;
+Procedure stopAVCapture(); cdecl; external;
+
 
 Var
   _Webcam_Instance:ApplicationObject = Nil;
@@ -81,17 +87,8 @@ End;
 
 Procedure Webcam.Clear;
 Begin
-  If Assigned(_Texture) Then
-  Begin
-    _Texture.Release;
-    _Texture := Nil;
-  End;
-
-  If Assigned(_Image) Then
-  Begin
-    _Image.Release;
-    _Image := Nil;
-  End;
+  ReleaseObject(_Texture);
+  ReleaseObject(_Image);
 End;
 
 Procedure ApplicationOnCamera(width, height:Integer; buffer:Pointer); cdecl; export;
@@ -116,7 +113,8 @@ Begin
     _Height := Height;
     Log(logDebug, 'Webcam', 'New texture: '+IntToString(Width)+'x'+IntToString(Height));
 
-    _Texture := TERRA_Texture.Texture.New('webcam',Width, Height);
+    _Texture := TERRA_Texture.Texture.Create(rtDynamic, 'webcam');
+    _Texture.InitFromSize(Width, Height);
     _NeedsUpdate := True;
     Log(logDebug, 'Webcam', 'New image: '+IntToString(Width)+'x'+IntToString(Height));
     If (_Image = Nil) Then
@@ -135,9 +133,9 @@ Procedure Webcam.Update;
 Begin
   If (_NeedsUpdate) Then
   Begin
-    _Texture.BilinearFilter := False;
+    _Texture.Filter := filterBilinear;
     _Texture.MipMapped := False;
-    _Texture.Wrap := False;
+    _Texture.WrapMode := wrapNothing;
     Log(logDebug, 'Webcam', 'UUpdating');
     _Texture.Update;
     _NeedsUpdate := False;

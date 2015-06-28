@@ -26,6 +26,7 @@ Unit TERRA_Callstack;
 {$I terra.inc}
 
 Interface
+Uses SysUtils;
 
 Type
   CallInfo = Record
@@ -33,41 +34,93 @@ Type
     Line:Cardinal;
   End;
 
-//Procedure FillCallStack(Const NbLevelsToExclude: integer);
-
 Procedure GetCurrentCall(Var Info:CallInfo);
 
 //Function TextualDebugInfoForAddress(Const TheAddress: Cardinal):TERRAString;
+
+Function DumpCallstack:String;
+Function DumpExceptionCallStack(E: Exception):String;
+
+//Function GetLibraryAddress():Cardinal;
 
 Var
   SettingCallStack:Boolean = False;
 
 Implementation
 
-
+//Uses TERRA_Utils, TERRA_String, TERRA_Stream, TERRA_FileStream
 {$IFNDEF FPC}
-Uses Windows;
-
-Const
-  SkillCalls = 0;
+//Uses Windows;
 {$ENDIF}
 
+
 Const
+{$IFNDEF FPC}
+  SkillCalls = 0;
+  LineEnding = #13#10;
 	StoredCallStackDepth = 26; 	// Size of the call stack we store when GetMem is called, must be an EVEN number
+{$ELSE}
+	StoredCallStackDepth = 20;
+{$ENDIF}
 
 Type
 	CallStackArray = Array[0..StoredCallStackDepth] of Pointer;
 
 Var
-  _St: CallStackArray;
+  _CurrentCallstack:CallStackArray;
+  _CurrentCallstackSize:Integer;
 
-{$IFNDEF FPC}
-{$IFDEF VER150}
-{$DEFINE SUPPORT_CALLSTACK}
-{$ENDIF}
-{$ENDIF}
 
-{$IFDEF SUPPORT_CALLSTACK}
+(*Function GetLibraryAddress():Cardinal;
+Const
+  libname = 'libterra.so';
+Var
+  S, Range,Perms, Ofs, Dev, Inode, Path:TERRAString;
+  StartPos, EndPos, OfsValue:Cardinal;
+  Src:FileStream;
+Begin
+  Result := 0;
+
+  Src := FileStream.Open('/proc/self/maps');
+
+  While Not Src.EOF Do
+  Begin
+    Src.ReadLine(S);
+
+    Range := StringGetNextSplit(S, Ord(' '));
+    Perms := StringGetNextSplit(S, Ord(' '));
+    Ofs := StringGetNextSplit(S, Ord(' '));
+    Dev := StringGetNextSplit(S, Ord(' '));
+    INode := StringGetNextSplit(S, Ord(' '));
+    Path := StringGetNextSplit(S, Ord(' '));
+
+    If StringContains(LibName, Path) Then
+    Begin
+      StartPos := StringToCardinal(StringGetNextSplit(Range, Ord('-')));
+      OfsValue := StringToCardinal(Ofs);
+
+      If (StringContainsChar(Ord('r'), Perms)) And (StringContainsChar(Ord('x'), Perms)) Then
+      Begin
+        Result := StartPos - OfsValue;
+      End;
+    End;
+  End;
+
+  ReleaseObject(Src);
+End;
+
+Procedure AdjustCallstack();
+Var
+  BaseAddr:Cardinal;
+  I:Integer;
+Begin
+  BaseAddr := GetLibraryAddress();
+
+  For I:=0 To Pred(_CurrentCallstackSize) Do
+    Dec(Cardinal(_CurrentCallstack[I]), BaseAddr);
+End;*)
+  
+{$IFDEF DELPHI}
 Type
 	AddressToLine = Class
 	  Public
@@ -249,6 +302,90 @@ begin
 		end;
 end;
 
+Const
+  MAX_PATH = 260;
+
+  IMAGE_NUMBEROF_DIRECTORY_ENTRIES = 16;
+  IMAGE_SIZEOF_FILE_HEADER         = 20;
+
+Type
+  PImageFileHeader = ^TImageFileHeader;
+  TImageFileHeader = Packed Record
+    Machine: Word;
+    NumberOfSections: Word;
+    TimeDateStamp:Cardinal;
+    PointerToSymbolTable:Cardinal;
+    NumberOfSymbols:Cardinal;
+    SizeOfOptionalHeader: Word;
+    Characteristics: Word;
+  End;
+
+  PImageDataDirectory = ^TImageDataDirectory;
+  TImageDataDirectory = record
+    VirtualAddress:Cardinal;
+    Size:Cardinal;
+  End;
+
+  PImageOptionalHeader = ^TImageOptionalHeader;
+  TImageOptionalHeader = packed record
+    { Standard fields. }
+    Magic: Word;
+    MajorLinkerVersion: Byte;
+    MinorLinkerVersion: Byte;
+    SizeOfCode: Cardinal;
+    SizeOfInitializedData: Cardinal;
+    SizeOfUninitializedData: Cardinal;
+    AddressOfEntryPoint: Cardinal;
+    BaseOfCode: Cardinal;
+    BaseOfData: Cardinal;
+    { NT additional fields. }
+    ImageBase: Cardinal;
+    SectionAlignment: Cardinal;
+    FileAlignment: Cardinal;
+    MajorOperatingSystemVersion: Word;
+    MinorOperatingSystemVersion: Word;
+    MajorImageVersion: Word;
+    MinorImageVersion: Word;
+    MajorSubsystemVersion: Word;
+    MinorSubsystemVersion: Word;
+    Win32VersionValue: Cardinal;
+    SizeOfImage: Cardinal;
+    SizeOfHeaders: Cardinal;
+    CheckSum: Cardinal;
+    Subsystem: Word;
+    DllCharacteristics: Word;
+    SizeOfStackReserve: Cardinal;
+    SizeOfStackCommit: Cardinal;
+    SizeOfHeapReserve: Cardinal;
+    SizeOfHeapCommit: Cardinal;
+    LoaderFlags: Cardinal;
+    NumberOfRvaAndSizes: Cardinal;
+    DataDirectory: packed array[0..IMAGE_NUMBEROF_DIRECTORY_ENTRIES-1] of TImageDataDirectory;
+  End;
+
+  PImageDosHeader = ^TImageDosHeader;
+  TImageDosHeader = packed record        { DOS .EXE header                  }
+      e_magic: Word;                     { Magic number                     }
+      e_cblp: Word;                      { Bytes on last page of file       }
+      e_cp: Word;                        { Pages in file                    }
+      e_crlc: Word;                      { Relocations                      }
+      e_cparhdr: Word;                   { Size of header in paragraphs     }
+      e_minalloc: Word;                  { Minimum extra paragraphs needed  }
+      e_maxalloc: Word;                  { Maximum extra paragraphs needed  }
+      e_ss: Word;                        { Initial (relative) SS value      }
+      e_sp: Word;                        { Initial SP value                 }
+      e_csum: Word;                      { Checksum                         }
+      e_ip: Word;                        { Initial IP value                 }
+      e_cs: Word;                        { Initial (relative) CS value      }
+      e_lfarlc: Word;                    { File address of relocation table }
+      e_ovno: Word;                      { Overlay number                   }
+      e_res: array [0..3] of Word;       { Reserved words                   }
+      e_oemid: Word;                     { OEM identifier (for e_oeminfo)   }
+      e_oeminfo: Word;                   { OEM information; e_oemid specific}
+      e_res2: array [0..9] of Word;      { Reserved words                   }
+      _lfanew: LongInt;                  { File address of new exe header   }
+  End;
+
 Var
 	Displ: Cardinal;
 	{Displ is the displacement of the code in the executable file. The code in SetDispl was written by Juan Vidal Pich}
@@ -316,6 +453,8 @@ begin
 				end;
 		end;
 end;
+
+Function GetModuleFileName(hModule: HINST; lpFilename: PAnsiChar; nSize: Cardinal):Cardinal; stdcall; External 'Kernel32.dll' Name 'GetModuleFileNameA';
 
 Var
   InfoInitialized:Boolean = False;
@@ -464,7 +603,7 @@ begin
 	FileMode := OldFileMode;
 End;
 
-function UnitWhichContainsAddress(const Address: Cardinal):UnitDebugInfos;
+Function UnitWhichContainsAddress(const Address: Cardinal):UnitDebugInfos;
 var
 	Start, Finish, Pivot: integer;
 begin
@@ -520,60 +659,86 @@ Begin
 		end;
 End;
 
-Procedure FillCallStack(Const NbLevelsToExclude: integer);
-	{Works only with stack frames - Without, St contains correct info, but is not as deep as it should
-	I just don't know a general rule for walking the stack when they are not there}
-Var
-	StackStart: Pointer;
-	StackMax: Pointer;	//the stack can never go beyond - http://msdn.microsoft.com/library/periodic/period96/S2CE.htm
-	CurrentFrame: Pointer;
-	Count, SkipCount: integer;
-begin
-	FillChar(_St, SizeOf(_St), 0);
-	asm
-		mov EAX, FS:[4]
-		mov StackMax, EAX
-		mov StackStart, EBP
-	end;
-	CurrentFrame:= StackStart;
-	Count:= 0;
-	SkipCount:= 0;
-	while (longint(CurrentFrame) >= longint(StackStart)) and (longint(CurrentFrame) < longint(StackMax)) and (Count <= StoredCallStackDepth) do
-		begin
-			if SkipCount >= NbLevelsToExclude then
-				begin
-					_St[Count]:= Pointer(PInteger(longint(CurrentFrame) + 4)^ - 4);
-					Count:= Count + 1;
-				end;
-			CurrentFrame:= Pointer(PInteger(CurrentFrame)^);
-			SkipCount:= SkipCount + 1;
-		end;
-End;
-
-(*Function TextualDebugInfoForAddress(Const TheAddress: Cardinal):String;
+Function BackTraceStrFunc(Const TargetAddress:Pointer):String;
 var
 	U:UnitDebugInfos;
+  R:RoutineDebugInfos;
 	AddressInDebugInfos: Cardinal;
+  Num:String;
+  TheAddress:Cardinal;
 begin
 	If UnitsCount<=0 Then
     GetProjectInfos();
+
+  TheAddress := Cardinal(TargetAddress);
 
 	If (TheAddress > Displ) then
   Begin
     AddressInDebugInfos := TheAddress - Displ;
 
 		U := UnitWhichContainsAddress(AddressInDebugInfos);
+    R := RoutineWhichContainsAddress(AddressInDebugInfos);
 
-    If U <> nil then
-//				Result := 'Module ' + U.Name + RoutineWhichContainsAddress(AddressInDebugInfos) + U.LineWhichContainsAddress(AddressInDebugInfos)
-      Result := RoutineWhichContainsAddress(AddressInDebugInfos)
-    Else
-      Result := RoutineWhichContainsAddress(AddressInDebugInfos);
-  End Else
-		Result := NoDebugInfo;
+    If Assigned(R) Then
+    Begin
+      Result := R.Name;
+      If Assigned(U) Then
+      Begin
+        Str(U.LineWhichContainsAddress(AddressInDebugInfos), Num);
+        Result := Result + ' (line '+Num+' of '+U.Name+')';
+      End;
+      Exit;
+    End;
+  End;
 
-	//Result := Result + ' Find error: ' + HexStr(TheAddress);
-End;*)
+
+  Str(TheAddress, Num);
+	Result := Num + ' (No debug info)';
+End;
+
+Procedure FillCallStackFromAddress(StackStart, StackMax:Pointer);
+	{Works only with stack frames - Without, St contains correct info, but is not as deep as it should
+	I just don't know a general rule for walking the stack when they are not there}
+Var
+	//the stack can never go beyond - stackmax http://msdn.microsoft.com/library/periodic/period96/S2CE.htm
+	CurrentFrame:Pointer;
+	Count:Integer;
+begin
+	FillChar(_CurrentCallstack, SizeOf(_CurrentCallstack), 0);
+
+	CurrentFrame := StackStart;
+	Count := 0;
+
+	While (longint(CurrentFrame) >= longint(StackStart)) and (longint(CurrentFrame) < longint(StackMax)) and (Count <= StoredCallStackDepth) Do
+  Begin
+    _CurrentCallstack[Count] := Pointer(PInteger(longint(CurrentFrame) + 4)^ - 4);
+		Inc(Count);
+
+    CurrentFrame := Pointer(PInteger(CurrentFrame)^);
+  End;
+
+  _CurrentCallstackSize := Count;
+End;
+
+Procedure FillCurrentCallStack();
+Var
+  StackStart, StackMax:Pointer;
+Begin
+	Asm
+		mov EAX, FS:[4]
+		mov StackMax, EAX
+		mov StackStart, EBP
+	End;
+
+  FillCallStackFromAddress(StackStart, StackMax);
+End;
+
+Procedure FillExceptionCallStack(E:Exception);
+Begin
+  FillCurrentCallStack();
+  //FillCallStackFromAddress(ExceptAddr, Pointer(Cardinal(ExceptAddr) + 16));
+End;
+
 
 Procedure GetCurrentCall(Var Info:CallInfo);
 Var
@@ -587,7 +752,7 @@ Begin
 	If (UnitsCount<=0) Then
     GetProjectInfos();
 
-  FillCallstack(0);
+  FillCurrentCallstack();
   SettingCallStack := False;
 
 	I := 0;
@@ -596,9 +761,9 @@ Begin
 
   Count := SkillCalls;
 
-	While (i <= StoredCallStackDepth) and (_St[i] <> nil) Do
+	While (i <= StoredCallStackDepth) and (_CurrentCallstack[i] <> nil) Do
   Begin
-    TheAddress := Cardinal(_St[i]);
+    TheAddress := Cardinal(_CurrentCallstack[i]);
 
 	  If (TheAddress > Displ) Then
     Begin
@@ -624,6 +789,7 @@ Begin
   End;
 End;
 
+
 {$ELSE}
 
 Procedure GetCurrentCall(Var Info:CallInfo);
@@ -631,6 +797,97 @@ Begin
 	Info.Name := Nil;
   Info.Line := 0;
 End;
+
+Procedure FillCurrentCallStack();
+Var
+  I:Integer;
+  prevbp: Pointer;
+  CallerFrame, CallerAddress, bp:Pointer;
+Begin
+  _CurrentCallstackSize := 0;
+  bp := get_frame;
+  // This trick skip SendCallstack item
+  // bp:= get_caller_frame(get_frame);
+  Try
+    prevbp := bp - 1;
+    I := 0;
+    While bp > prevbp Do
+    Begin
+       CallerAddress := get_caller_addr(bp);
+       CallerFrame := get_caller_frame(bp);
+       if (CallerAddress = nil) then
+         Break;
+
+       _CurrentCallstack[_CurrentCallstackSize] := CallerAddress;
+       Inc(_CurrentCallstackSize);
+
+       Inc(I);
+
+       if (I >= StoredCallStackDepth) or (CallerFrame = nil) then
+         Break;
+
+       prevbp := bp;
+       bp := CallerFrame;
+     End;
+
+    {$IFDEF ANDROID}
+    //AdjustCallstack();
+    {$ENDIF}
+   Except
+     // prevent endless dump if an exception occured
+   End;
+End;
+
+Procedure FillExceptionCallStack(E:Exception);
+Var
+  I:Integer;
+  Frames: PPointer;
+Begin
+  _CurrentCallstack[0] := ExceptAddr;
+
+  Frames := ExceptFrames;
+  I := 0;
+  While (I<ExceptFrameCount) And (Succ(I)<StoredCallStackDepth) Do
+  Begin
+    _CurrentCallstack[Succ(I)] := Frames[I];
+    Inc(I);
+  End;
+
+  {$IFDEF ANDROID}
+  //AdjustCallstack();
+  {$ENDIF}
+
+  _CurrentCallstackSize := Succ(I);
+End;
 {$ENDIF}
+
+Function GetCallstackString():String;
+Var
+  I:Integer;
+Begin
+  If _CurrentCallstackSize<=0 Then
+  Begin
+    Result := 'No call stack info present.';
+    Exit;
+  End;
+
+  Result := '';
+  For I:=0 To Pred(_CurrentCallstackSize) Do
+    Result := Result + BackTraceStrFunc(_CurrentCallstack[I]) + LineEnding;
+End;
+
+Function DumpCallstack:String;
+Begin
+  FillCurrentCallStack();
+  Result := GetCallstackString();
+End;
+
+Function DumpExceptionCallStack(E: Exception):String;
+Begin
+  FillExceptionCallStack(E);
+  Result := GetCallstackString();
+End;
+
+
 
 End.

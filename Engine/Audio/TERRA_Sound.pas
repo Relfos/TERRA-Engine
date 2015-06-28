@@ -129,8 +129,7 @@ Begin
     _Data:=Nil;
   End;
 
-  _Status := rsUnloaded;
-  Result := True;
+  Result := Inherited Unload();
 End;
 
 Procedure Sound.New(Size, Channels, BitsPerSample, Frequency: Cardinal);
@@ -143,15 +142,15 @@ Begin
   _Buffer := 0;
   GetMem(_Data,_BufferSize);
 
-  _Status := rsReady;
+  SetStatus(rsReady);
 End;
 
 Function Sound.Update:Boolean;
 Begin
   Inherited Update();
-  
+
   Result := False;
-  
+
   If (_Buffer=0) Then
   Begin
     alGenBuffers(1, @_Buffer);  {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
@@ -167,7 +166,7 @@ Begin
 
   alBufferData(_Buffer, Format, Data, BufferSize, Frequency);    {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
 
-  _Status := rsReady;
+  SetStatus(rsReady);
 End;
 
 Function Sound.GetSampleSize:Cardinal;
@@ -308,7 +307,7 @@ Begin
 
   Log(logDebug, 'Sound', 'Calling sound loader...');
   Result := Loader(Source, Self);
-  _Status := rsReady;
+  SetStatus(rsReady);
 End;
 
 

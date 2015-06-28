@@ -218,83 +218,105 @@ Const
 	MAX_STEAM_CONTROLLERS:Byte = 8;
 
 Type
-	SteamRegisterActivationCodeResult = (
-		SteamRegisterActivationCodeResultOK = 0,
-		SteamRegisterActivationCodeResultFail = 1,
-		SteamRegisterActivationCodeResultAlreadyRegistered = 2,
-		SteamRegisterActivationCodeResultTimeout = 3,
-		SteamRegisterActivationCodeAlreadyOwned = 4
-	);
-	SteamControllerPad = (
-		SteamSteamControllerPad_Left = 2,
-		SteamSteamControllerPad_Right = 2
-	);
-	SteamFriendRelationship = (
-		SteamFriendRelationshipNone = 0,
-		SteamFriendRelationshipBlocked = 1,
-		SteamFriendRelationshipRequestRecipient = 2,
-		SteamFriendRelationshipFriend = 3,
-		SteamFriendRelationshipRequestInitiator = 4,
-		SteamFriendRelationshipIgnored = 5,
-		SteamFriendRelationshipIgnoredFriend = 6,
-		SteamFriendRelationshipSuggested = 7,	// keep this updated
-		SteamFriendRelationshipMax = 8
-	);
-	SteamPersonaState = (
-		SteamPersonaStateOffline = 0,	// friend is not currently logged on
-		SteamPersonaStateOnline = 1,	// friend is logged on
-		SteamPersonaStateBusy = 2,	// user is on, but busy
-		SteamPersonaStateAway = 3,	// auto-away feature
-		SteamPersonaStateSnooze = 4,	// auto-away for a long time
-		SteamPersonaStateLookingToTrade = 5,	// Online, trading
-		SteamPersonaStateLookingToPlay = 6,	// Online, wanting to play
-		SteamPersonaStateMax = 4
-	);
-	SteamFriendFlags = (
-		SteamFriendFlagNone = $00,
-		SteamFriendFlagBlocked = $01,
-		SteamFriendFlagFriendshipRequested = $02,
-		SteamFriendFlagImmediate = $04,	// "regular" friend
-		SteamFriendFlagClanMember = $08,
-		SteamFriendFlagOnGameServer = $10,	// k_EFriendFlagFriendOfFriend	= 0x40, // not currently used
-		SteamFriendFlagRequestingFriendship = $80,
-		SteamFriendFlagRequestingInfo = $100,
-		SteamFriendFlagIgnored = $200,
-		SteamFriendFlagIgnoredFriend = $400,
-		SteamFriendFlagSuggested = $800,
-		SteamFriendFlagAll = $FFFF
-	);
-	SteamUserRestriction = (
-		k_nUserRestrictionNone = 0,	// no known chat/content restriction
-		k_nUserRestrictionUnknown = 1,	// we don't know yet (user offline)
-		k_nUserRestrictionAnyChat = 2,	// user is not allowed to (or can't) send/recv any chat
-		k_nUserRestrictionVoiceChat = 4,	// user is not allowed to (or can't) send/recv voice chat
-		k_nUserRestrictionGroupChat = 8,	// user is not allowed to (or can't) send/recv group chat
-		k_nUserRestrictionRating = 16,	// user is too young according to rating in current region
-		k_nUserRestrictionGameInvites = 32,	// user cannot send or recv game invites (e.g. mobile)
-		k_nUserRestrictionTrading = 64	// user cannot participate in trading (console, mobile)
-	);
-	SteamOverlayToStoreFlag = (
-		SteamOverlayToStoreFlag_None = 0,
-		SteamOverlayToStoreFlag_AddToCart = 1,
-		SteamOverlayToStoreFlag_AddToCartAndShow = 2
-	);
-	SteamPersonaChange = (
-		SteamPersonaChangeName = $0001,
-		SteamPersonaChangeStatus = $0002,
-		SteamPersonaChangeComeOnline = $0004,
-		SteamPersonaChangeGoneOffline = $0008,
-		SteamPersonaChangeGamePlayed = $0010,
-		SteamPersonaChangeGameServer = $0020,
-		SteamPersonaChangeAvatar = $0040,
-		SteamPersonaChangeJoinedSource = $0080,
-		SteamPersonaChangeLeftSource = $0100,
-		SteamPersonaChangeRelationshipChanged = $0200,
-		SteamPersonaChangeNameFirstSet = $0400,
-		SteamPersonaChangeFacebookInfo = $0800,
-		SteamPersonaChangeNickname = $1000,
-		SteamPersonaChangeSteamLevel = $2000
-	);
+	SteamRegisterActivationCodeResult = Cardinal;
+
+Const
+        SteamRegisterActivationCodeResultOK = 0;
+	SteamRegisterActivationCodeResultFail = 1;
+	SteamRegisterActivationCodeResultAlreadyRegistered = 2;
+	SteamRegisterActivationCodeResultTimeout = 3;
+	SteamRegisterActivationCodeAlreadyOwned = 4;
+
+Type
+	SteamControllerPad = Cardinal;
+
+Const
+		SteamSteamControllerPad_Left = 1;
+		SteamSteamControllerPad_Right = 2;
+
+Type
+	SteamFriendRelationship = Cardinal;
+
+Const
+		SteamFriendRelationshipNone = 0;
+		SteamFriendRelationshipBlocked = 1;
+		SteamFriendRelationshipRequestRecipient = 2;
+		SteamFriendRelationshipFriend = 3;
+		SteamFriendRelationshipRequestInitiator = 4;
+		SteamFriendRelationshipIgnored = 5;
+		SteamFriendRelationshipIgnoredFriend = 6;
+		SteamFriendRelationshipSuggested = 7;	// keep this updated
+
+Type
+	SteamPersonaState = Cardinal;
+
+Const
+		SteamPersonaStateOffline = 0;	// friend is not currently logged on
+		SteamPersonaStateOnline = 1;	// friend is logged on
+		SteamPersonaStateBusy = 2;	// user is on, but busy
+		SteamPersonaStateAway = 3;	// auto-away feature
+		SteamPersonaStateSnooze = 4;	// auto-away for a long time
+		SteamPersonaStateLookingToTrade = 5;	// Online, trading
+		SteamPersonaStateLookingToPlay = 6;	// Online, wanting to play
+
+Type
+	SteamFriendFlags = Cardinal;
+
+Const
+		SteamFriendFlagNone = $00;
+		SteamFriendFlagBlocked = $01;
+		SteamFriendFlagFriendshipRequested = $02;
+		SteamFriendFlagImmediate = $04;	// "regular" friend
+		SteamFriendFlagClanMember = $08;
+		SteamFriendFlagOnGameServer = $10;	// k_EFriendFlagFriendOfFriend	= 0x40, // not currently used
+		SteamFriendFlagRequestingFriendship = $80;
+		SteamFriendFlagRequestingInfo = $100;
+		SteamFriendFlagIgnored = $200;
+		SteamFriendFlagIgnoredFriend = $400;
+		SteamFriendFlagSuggested = $800;
+		SteamFriendFlagAll = $FFFF;
+
+Type
+	SteamUserRestriction = Cardinal;
+
+Const
+		k_nUserRestrictionNone = 0;	// no known chat/content restriction
+		k_nUserRestrictionUnknown = 1;	// we don't know yet (user offline)
+		k_nUserRestrictionAnyChat = 2;	// user is not allowed to (or can't) send/recv any chat
+		k_nUserRestrictionVoiceChat = 4;	// user is not allowed to (or can't) send/recv voice chat
+		k_nUserRestrictionGroupChat = 8;	// user is not allowed to (or can't) send/recv group chat
+		k_nUserRestrictionRating = 16;	// user is too young according to rating in current region
+		k_nUserRestrictionGameInvites = 32;	// user cannot send or recv game invites (e.g. mobile)
+		k_nUserRestrictionTrading = 64; // user cannot participate in trading (console, mobile)
+
+Type
+	SteamOverlayToStoreFlag = Cardinal;
+
+Const
+		SteamOverlayToStoreFlag_None = 0;
+		SteamOverlayToStoreFlag_AddToCart = 1;
+		SteamOverlayToStoreFlag_AddToCartAndShow = 2;
+
+Type
+	SteamPersonaChange = Cardinal;
+
+Const
+		SteamPersonaChangeName = $0001;
+		SteamPersonaChangeStatus = $0002;
+		SteamPersonaChangeComeOnline = $0004;
+		SteamPersonaChangeGoneOffline = $0008;
+		SteamPersonaChangeGamePlayed = $0010;
+		SteamPersonaChangeGameServer = $0020;
+		SteamPersonaChangeAvatar = $0040;
+		SteamPersonaChangeJoinedSource = $0080;
+		SteamPersonaChangeLeftSource = $0100;
+		SteamPersonaChangeRelationshipChanged = $0200;
+		SteamPersonaChangeNameFirstSet = $0400;
+		SteamPersonaChangeFacebookInfo = $0800;
+		SteamPersonaChangeNickname = $1000;
+		SteamPersonaChangeSteamLevel = $2000;
+
+Type
 	SteamGCResults = (
 		SteamGCResultOK = 0,
 		SteamGCResultNoMessage = 1,	// There is no message in the queue
@@ -307,7 +329,11 @@ Type
 		eHTMLMouseButton_Right = 1,
 		eHTMLMouseButton_Middle = 2
 	);
-	SteamMouseCursor = (
+
+	SteamMouseCursor = Cardinal;
+
+(*
+Const
 		dc_user = 0,
 		dc_none = 11,
 		dc_arrow = 11,
@@ -350,7 +376,9 @@ Type
 		dc_help = 11,
 		dc_custom = 11,
 		dc_last = 11	// custom cursors start from this value and up
-	);
+
+                *)
+
 	SteamHTMLKeyModifiers = (
 		eHTMLKeyModifier_None = 0,
 		eHTMLKeyModifier_AltDown = 1 Shl 0,
@@ -591,96 +619,99 @@ Type
 		eServerFailedToRespond = 44,
 		eNoServersListedOnMasterServer = 44	// for the Internet query type, returned in response callback if no servers of this type match
 	);
-	SteamResult = (
-		SteamResultOK = 1,	// success
-		SteamResultFail = 2,	// generic failure
-		SteamResultNoConnection = 3,	// = 4,				// OBSOLETE - removed
-		SteamResultInvalidPassword = 5,	// password/ticket is invalid
-		SteamResultLoggedInElsewhere = 6,	// same user logged in elsewhere
-		SteamResultInvalidProtocolVer = 7,	// protocol version is incorrect
-		SteamResultInvalidParam = 8,	// a parameter is incorrect
-		SteamResultFileNotFound = 9,	// file was not found
-		SteamResultBusy = 10,	// called method busy - action not taken
-		SteamResultInvalidState = 11,	// called object was in an invalid state
-		SteamResultInvalidName = 12,	// name is invalid
-		SteamResultInvalidEmail = 13,	// email is invalid
-		SteamResultDuplicateName = 14,	// name is not unique
-		SteamResultAccessDenied = 15,	// access is denied
-		SteamResultTimeout = 16,	// operation timed out
-		SteamResultBanned = 17,	// VAC2 banned
-		SteamResultAccountNotFound = 18,	// account not found
-		SteamResultInvalidSteamID = 19,	// steamID is invalid
-		SteamResultServiceUnavailable = 20,	// The requested service is currently unavailable
-		SteamResultNotLoggedOn = 21,	// The user is not logged on
-		SteamResultPending = 22,	// Request is pending (may be in process, or waiting on third party)
-		SteamResultEncryptionFailure = 23,	// Encryption or Decryption failed
-		SteamResultInsufficientPrivilege = 24,	// Insufficient privilege
-		SteamResultLimitExceeded = 25,	// Too much of a good thing
-		SteamResultRevoked = 26,	// Access has been revoked (used for revoked guest passes)
-		SteamResultExpired = 27,	// License/Guest pass the user is trying to access is expired
-		SteamResultAlreadyRedeemed = 28,	// Guest pass has already been redeemed by account, cannot be acked again
-		SteamResultDuplicateRequest = 29,	// The request is a duplicate and the action has already occurred in the past, ignored this time
-		SteamResultAlreadyOwned = 30,	// All the games in this guest pass redemption request are already owned by the user
-		SteamResultIPNotFound = 31,	// IP address not found
-		SteamResultPersistFailed = 32,	// failed to write change to the data store
-		SteamResultLockingFailed = 33,	// failed to acquire access lock for this operation
-		SteamResultLogonSessionReplaced = 34,
-		SteamResultConnectFailed = 35,
-		SteamResultHandshakeFailed = 36,
-		SteamResultIOFailure = 37,
-		SteamResultRemoteDisconnect = 38,
-		SteamResultShoppingCartNotFound = 39,	// failed to find the shopping cart requested
-		SteamResultBlocked = 40,	// a user didn't allow it
-		SteamResultIgnored = 41,	// target is ignoring sender
-		SteamResultNoMatch = 42,	// nothing matching the request found
-		SteamResultAccountDisabled = 43,
-		SteamResultServiceReadOnly = 44,	// this service is not accepting content changes right now
-		SteamResultAccountNotFeatured = 45,	// account doesn't have value, so this feature isn't available
-		SteamResultAdministratorOK = 46,	// allowed to take this action, but only because requester is admin
-		SteamResultContentVersion = 47,	// A Version mismatch in content transmitted within the Steam protocol.
-		SteamResultTryAnotherCM = 48,	// The current CM can't service the user making a request, user should try another.
-		SteamResultPasswordRequiredToKickSession = 49,	// You are already logged in elsewhere, this cached credential login has failed.
-		SteamResultAlreadyLoggedInElsewhere = 50,	// You are already logged in elsewhere, you must wait
-		SteamResultSuspended = 51,	// Long running operation (content download) suspended/paused
-		SteamResultCancelled = 52,	// Operation canceled (typically by user: content download)
-		SteamResultDataCorruption = 53,	// Operation canceled because data is ill formed or unrecoverable
-		SteamResultDiskFull = 54,	// Operation canceled - not enough disk space.
-		SteamResultRemoteCallFailed = 55,	// an remote call or IPC call failed
-		SteamResultPasswordUnset = 56,	// Password could not be verified as it's unset server side
-		SteamResultExternalAccountUnlinked = 57,	// External account (PSN, Facebook...) is not linked to a Steam account
-		SteamResultPSNTicketInvalid = 58,	// PSN ticket was invalid
-		SteamResultExternalAccountAlreadyLinked = 59,	// External account (PSN, Facebook...) is already linked to some other account, must explicitly request to replace/delete the link first
-		SteamResultRemoteFileConflict = 60,	// The sync cannot resume due to a conflict between the local and remote files
-		SteamResultIllegalPassword = 61,	// The requested new password is not legal
-		SteamResultSameAsPreviousValue = 62,	// new value is the same as the old one ( secret question and answer )
-		SteamResultAccountLogonDenied = 63,	// account login denied due to 2nd factor authentication failure
-		SteamResultCannotUseOldPassword = 64,	// The requested new password is not legal
-		SteamResultInvalidLoginAuthCode = 65,	// account login denied due to auth code invalid
-		SteamResultAccountLogonDeniedNoMail = 66,	// account login denied due to 2nd factor auth failure - and no mail has been sent
-		SteamResultHardwareNotCapableOfIPT = 67,
-		SteamResultIPTInitError = 68,
-		SteamResultParentalControlRestricted = 69,	// operation failed due to parental control restrictions for current user
-		SteamResultFacebookQueryError = 70,	// Facebook query returned an error
-		SteamResultExpiredLoginAuthCode = 71,	// account login denied due to auth code expired
-		SteamResultIPLoginRestrictionFailed = 72,
-		SteamResultAccountLockedDown = 73,
-		SteamResultAccountLogonDeniedVerifiedEmailRequired = 74,
-		SteamResultNoMatchingURL = 75,
-		SteamResultBadResponse = 76,	// parse failure, missing field, etc.
-		SteamResultRequirePasswordReEntry = 77,	// The user cannot complete the action until they re-enter their password
-		SteamResultValueOutOfRange = 78,	// the value entered is outside the acceptable range
-		SteamResultUnexpectedError = 79,	// something happened that we didn't expect to ever happen
-		SteamResultDisabled = 80,	// The requested service has been configured to be unavailable
-		SteamResultInvalidCEGSubmission = 81,	// The set of files submitted to the CEG server are not valid !
-		SteamResultRestrictedDevice = 82,	// The device being used is not allowed to perform this action
-		SteamResultRegionLocked = 83,	// The action could not be complete because it is region restricted
-		SteamResultRateLimitExceeded = 84,	// Temporary rate limit exceeded, try again later, different from k_EResultLimitExceeded which may be permanent
-		SteamResultAccountLoginDeniedNeedTwoFactor = 85,	// Need two-factor code to login
-		SteamResultItemDeleted = 86,	// The thing we're trying to access has been deleted
-		SteamResultAccountLoginDeniedThrottle = 87,	// login attempt failed, try to throttle response to possible attacker
-		SteamResultTwoFactorCodeMismatch = 88,	// two factor code mismatch
-		SteamResultTwoFactorActivationCodeMismatch = 89	// activation code for two-factor didn't match
-	);
+	SteamResult = Cardinal;
+
+  Const
+		SteamResultOK = 1;	// success
+		SteamResultFail = 2;	// generic failure
+		SteamResultNoConnection = 3;	// = 4;				// OBSOLETE - removed
+		SteamResultInvalidPassword = 5;	// password/ticket is invalid
+		SteamResultLoggedInElsewhere = 6;	// same user logged in elsewhere
+		SteamResultInvalidProtocolVer = 7;	// protocol version is incorrect
+		SteamResultInvalidParam = 8;	// a parameter is incorrect
+		SteamResultFileNotFound = 9;	// file was not found
+		SteamResultBusy = 10;	// called method busy - action not taken
+		SteamResultInvalidState = 11;	// called object was in an invalid state
+		SteamResultInvalidName = 12;	// name is invalid
+		SteamResultInvalidEmail = 13;	// email is invalid
+		SteamResultDuplicateName = 14;	// name is not unique
+		SteamResultAccessDenied = 15;	// access is denied
+		SteamResultTimeout = 16;	// operation timed out
+		SteamResultBanned = 17;	// VAC2 banned
+		SteamResultAccountNotFound = 18;	// account not found
+		SteamResultInvalidSteamID = 19;	// steamID is invalid
+		SteamResultServiceUnavailable = 20;	// The requested service is currently unavailable
+		SteamResultNotLoggedOn = 21;	// The user is not logged on
+		SteamResultPending = 22;	// Request is pending (may be in process; or waiting on third party)
+		SteamResultEncryptionFailure = 23;	// Encryption or Decryption failed
+		SteamResultInsufficientPrivilege = 24;	// Insufficient privilege
+		SteamResultLimitExceeded = 25;	// Too much of a good thing
+		SteamResultRevoked = 26;	// Access has been revoked (used for revoked guest passes)
+		SteamResultExpired = 27;	// License/Guest pass the user is trying to access is expired
+		SteamResultAlreadyRedeemed = 28;	// Guest pass has already been redeemed by account; cannot be acked again
+		SteamResultDuplicateRequest = 29;	// The request is a duplicate and the action has already occurred in the past; ignored this time
+		SteamResultAlreadyOwned = 30;	// All the games in this guest pass redemption request are already owned by the user
+		SteamResultIPNotFound = 31;	// IP address not found
+		SteamResultPersistFailed = 32;	// failed to write change to the data store
+		SteamResultLockingFailed = 33;	// failed to acquire access lock for this operation
+		SteamResultLogonSessionReplaced = 34;
+		SteamResultConnectFailed = 35;
+		SteamResultHandshakeFailed = 36;
+		SteamResultIOFailure = 37;
+		SteamResultRemoteDisconnect = 38;
+		SteamResultShoppingCartNotFound = 39;	// failed to find the shopping cart requested
+		SteamResultBlocked = 40;	// a user didn't allow it
+		SteamResultIgnored = 41;	// target is ignoring sender
+		SteamResultNoMatch = 42;	// nothing matching the request found
+		SteamResultAccountDisabled = 43;
+		SteamResultServiceReadOnly = 44;	// this service is not accepting content changes right now
+		SteamResultAccountNotFeatured = 45;	// account doesn't have value; so this feature isn't available
+		SteamResultAdministratorOK = 46;	// allowed to take this action; but only because requester is admin
+		SteamResultContentVersion = 47;	// A Version mismatch in content transmitted within the Steam protocol.
+		SteamResultTryAnotherCM = 48;	// The current CM can't service the user making a request; user should try another.
+		SteamResultPasswordRequiredToKickSession = 49;	// You are already logged in elsewhere; this cached credential login has failed.
+		SteamResultAlreadyLoggedInElsewhere = 50;	// You are already logged in elsewhere; you must wait
+		SteamResultSuspended = 51;	// Long running operation (content download) suspended/paused
+		SteamResultCancelled = 52;	// Operation canceled (typically by user: content download)
+		SteamResultDataCorruption = 53;	// Operation canceled because data is ill formed or unrecoverable
+		SteamResultDiskFull = 54;	// Operation canceled - not enough disk space.
+		SteamResultRemoteCallFailed = 55;	// an remote call or IPC call failed
+		SteamResultPasswordUnset = 56;	// Password could not be verified as it's unset server side
+		SteamResultExternalAccountUnlinked = 57;	// External account (PSN; Facebook...) is not linked to a Steam account
+		SteamResultPSNTicketInvalid = 58;	// PSN ticket was invalid
+		SteamResultExternalAccountAlreadyLinked = 59;	// External account (PSN; Facebook...) is already linked to some other account; must explicitly request to replace/delete the link first
+		SteamResultRemoteFileConflict = 60;	// The sync cannot resume due to a conflict between the local and remote files
+		SteamResultIllegalPassword = 61;	// The requested new password is not legal
+		SteamResultSameAsPreviousValue = 62;	// new value is the same as the old one ( secret question and answer )
+		SteamResultAccountLogonDenied = 63;	// account login denied due to 2nd factor authentication failure
+		SteamResultCannotUseOldPassword = 64;	// The requested new password is not legal
+		SteamResultInvalidLoginAuthCode = 65;	// account login denied due to auth code invalid
+		SteamResultAccountLogonDeniedNoMail = 66;	// account login denied due to 2nd factor auth failure - and no mail has been sent
+		SteamResultHardwareNotCapableOfIPT = 67;
+		SteamResultIPTInitError = 68;
+		SteamResultParentalControlRestricted = 69;	// operation failed due to parental control restrictions for current user
+		SteamResultFacebookQueryError = 70;	// Facebook query returned an error
+		SteamResultExpiredLoginAuthCode = 71;	// account login denied due to auth code expired
+		SteamResultIPLoginRestrictionFailed = 72;
+		SteamResultAccountLockedDown = 73;
+		SteamResultAccountLogonDeniedVerifiedEmailRequired = 74;
+		SteamResultNoMatchingURL = 75;
+		SteamResultBadResponse = 76;	// parse failure; missing field; etc.
+		SteamResultRequirePasswordReEntry = 77;	// The user cannot complete the action until they re-enter their password
+		SteamResultValueOutOfRange = 78;	// the value entered is outside the acceptable range
+		SteamResultUnexpectedError = 79;	// something happened that we didn't expect to ever happen
+		SteamResultDisabled = 80;	// The requested service has been configured to be unavailable
+		SteamResultInvalidCEGSubmission = 81;	// The set of files submitted to the CEG server are not valid !
+		SteamResultRestrictedDevice = 82;	// The device being used is not allowed to perform this action
+		SteamResultRegionLocked = 83;	// The action could not be complete because it is region restricted
+		SteamResultRateLimitExceeded = 84;	// Temporary rate limit exceeded; try again later; different from k_EResultLimitExceeded which may be permanent
+		SteamResultAccountLoginDeniedNeedTwoFactor = 85;	// Need two-factor code to login
+		SteamResultItemDeleted = 86;	// The thing we're trying to access has been deleted
+		SteamResultAccountLoginDeniedThrottle = 87;	// login attempt failed; try to throttle response to possible attacker
+		SteamResultTwoFactorCodeMismatch = 88;	// two factor code mismatch
+		SteamResultTwoFactorActivationCodeMismatch = 89;	// activation code for two-factor didn't match
+
+Type
 	SteamVoiceResult = (
 		SteamVoiceResultOK = 0,
 		SteamVoiceResultNotInitialized = 1,
@@ -1687,10 +1718,10 @@ Var
 // SteamUserStats
 Var
 	ISteamUserStats_RequestCurrentStats: Function():Boolean; CDecl;
-	ISteamUserStats_GetStat: Function(pchName:PAnsiChar; Var pData:Integer):Boolean; CDecl;
-	ISteamUserStats_GetStat_: Function(pchName:PAnsiChar; Var pData:Single):Boolean; CDecl;
-	ISteamUserStats_SetStat: Function(pchName:PAnsiChar; nData:Integer):Boolean; CDecl;
-	ISteamUserStats_SetStat_: Function(pchName:PAnsiChar; fData:Single):Boolean; CDecl;
+	ISteamUserStats_GetStatInt: Function(pchName:PAnsiChar; Var pData:Integer):Boolean; CDecl;
+	ISteamUserStats_GetStatFloat: Function(pchName:PAnsiChar; Var pData:Single):Boolean; CDecl;
+	ISteamUserStats_SetStatInt: Function(pchName:PAnsiChar; nData:Integer):Boolean; CDecl;
+	ISteamUserStats_SetStatFloat: Function(pchName:PAnsiChar; fData:Single):Boolean; CDecl;
 	ISteamUserStats_UpdateAvgRateStat: Function(pchName:PAnsiChar; flCountThisSession:Single; dSessionLength:double):Boolean; CDecl;
 	ISteamUserStats_GetAchievement: Function(pchName:PAnsiChar; Var pbAchieved:Boolean):Boolean; CDecl;
 	ISteamUserStats_SetAchievement: Function(pchName:PAnsiChar):Boolean; CDecl;
@@ -2375,10 +2406,10 @@ Begin
 	ISteamUser_GetGameBadgeLevel := GetProcAddress(SteamHandle, 'ISteamUser_GetGameBadgeLevel');
 	ISteamUser_GetPlayerSteamLevel := GetProcAddress(SteamHandle, 'ISteamUser_GetPlayerSteamLevel');
 	ISteamUserStats_RequestCurrentStats := GetProcAddress(SteamHandle, 'ISteamUserStats_RequestCurrentStats');
-	ISteamUserStats_GetStat := GetProcAddress(SteamHandle, 'ISteamUserStats_GetStat');
-	ISteamUserStats_GetStat_ := GetProcAddress(SteamHandle, 'ISteamUserStats_GetStat_');
-	ISteamUserStats_SetStat := GetProcAddress(SteamHandle, 'ISteamUserStats_SetStat');
-	ISteamUserStats_SetStat_ := GetProcAddress(SteamHandle, 'ISteamUserStats_SetStat_');
+	ISteamUserStats_GetStatInt := GetProcAddress(SteamHandle, 'ISteamUserStats_GetStat');
+	ISteamUserStats_GetStatFloat := GetProcAddress(SteamHandle, 'ISteamUserStats_GetStat_');
+	ISteamUserStats_SetStatInt := GetProcAddress(SteamHandle, 'ISteamUserStats_SetStat');
+	ISteamUserStats_SetStatFloat := GetProcAddress(SteamHandle, 'ISteamUserStats_SetStat_');
 	ISteamUserStats_UpdateAvgRateStat := GetProcAddress(SteamHandle, 'ISteamUserStats_UpdateAvgRateStat');
 	ISteamUserStats_GetAchievement := GetProcAddress(SteamHandle, 'ISteamUserStats_GetAchievement');
 	ISteamUserStats_SetAchievement := GetProcAddress(SteamHandle, 'ISteamUserStats_SetAchievement');
@@ -2446,4 +2477,4 @@ Begin
 End;
 
 
-End.
+End.

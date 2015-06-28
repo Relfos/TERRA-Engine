@@ -97,12 +97,12 @@ Begin
   Src.Seek(Temp);
 
   Self.XMLReadNode(Src, Result.Root);
-  Src.Release;
+  ReleaseObject(Src);
 
   {$IFDEF PC}
   {Dest := FileStream.Create('debug\'+GetFileName(SourceFile,False));
   DumpXML(Result.Root, Dest, 0);
-  Dest.Release;}
+  ReleaseObject(Dest);}
   {$ENDIF}
 End;
 
@@ -112,7 +112,7 @@ Var
 Begin
   Reader := XMLBinaryReader.Create();
   Result := Reader.Load(SourceFile);
-  Reader.Release();
+  ReleaseObject(Reader);
 End;
 
 { XMLBinaryWriter }
@@ -220,7 +220,7 @@ Begin
 
   Constants := LoadKeypairList(ConstantFile);
   ErrorStr := XMLConvertNode(Doc.Root, Constants);
-  Constants.Release();
+  ReleaseObject(Constants);
 
   If ErrorStr<>'' Then
     RaiseError('Constant not found: '+ErrorStr+' in file '+SourceFile);
@@ -241,9 +241,8 @@ Begin
   Dest.Seek(4);
   Dest.WriteCardinal(Ofs);
 
-  Dest.Release;
-
-  Doc.Release();
+  ReleaseObject(Dest);
+  ReleaseObject(Doc);
 
   Result := True;
 End;
@@ -254,7 +253,7 @@ Var
 Begin
   Writer := XMLBinaryWriter.Create();
   Result := Writer.Convert(SourceFile, DestFile, ConstantFile);
-  Writer.Release();
+  ReleaseObject(Writer);
 End;
 
 End.

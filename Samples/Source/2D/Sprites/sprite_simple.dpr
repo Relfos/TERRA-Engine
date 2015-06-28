@@ -2,7 +2,7 @@
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} BasicSample;
 
 Uses TERRA_Application, TERRA_Scene, TERRA_GraphicsManager, TERRA_Viewport,
-  TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_PNG, 
+  TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_PNG,
   TERRA_SpriteManager, TERRA_FileManager, TERRA_Math, TERRA_Vector3D, TERRA_Vector2D,
   TERRA_Renderer, TERRA_InputManager;
 
@@ -28,6 +28,8 @@ Var
 { Game }
 Procedure Demo.OnCreate;
 Begin
+  Inherited;
+  
   // Added Asset folder to search path
   FileManager.Instance.AddPath('assets');
 
@@ -38,7 +40,7 @@ Begin
   _Scene := MyScene.Create;
   GraphicsManager.Instance.SetScene(_Scene);
 
-  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorBlue;
+  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlue;
 End;
 
 // OnIdle is called once per frame, put your game logic here

@@ -221,7 +221,7 @@ Begin
   Save(Dest, IgnoreDefaults);
   SetLength(Result, Pred(Dest.Position));
   Move(Dest.Buffer^, Result[1], Pred(Dest.Position));
-  Dest.Release;
+  ReleaseObject(Dest);
 End;
 
 Procedure INIParser.Save(Dest:Stream; IgnoreDefaults:Boolean=True);
@@ -252,7 +252,7 @@ Begin
 
   Source := FileStream.Open(FileName);
   Load(Source, IgnoreWarnings);
-  Source.Release;
+  ReleaseObject(Source);
 End;
 
 Procedure INIParser.LoadFromString(S:TERRAString; IgnoreWarnings:Boolean=False);
@@ -264,7 +264,7 @@ Begin
 
   Source := MemoryStream.Create(Length(S), @S[1]);
   Load(Source, IgnoreWarnings);
-  Source.Release;
+  ReleaseObject(Source);
 End;
 
 Procedure INIParser.Save(Filename:TERRAString; IgnoreDefaults:Boolean=True);
@@ -273,7 +273,7 @@ Var
 Begin
   Dest := FileStream.Create(FileName);
   Save(Dest, IgnoreDefaults);
-  Dest.Release;
+  ReleaseObject(Dest);
 End;
 
 End.

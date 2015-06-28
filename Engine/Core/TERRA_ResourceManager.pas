@@ -33,7 +33,7 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
 
 Const
   ResourceUpdateTime = 5000;
-  ResourceDiscardTime = 40000;
+  ResourceDiscardTime = 60000;
 
 Type
   ResourceEntry = Class(CollectionObject)
@@ -70,7 +70,6 @@ Type
       Procedure Release; Override;
 
       Procedure Update; Override;
-      Procedure OnContextLost; Override;
 
       Function GetResource(Const Name:TERRAString):Resource;
       Procedure AddResource(MyResource:Resource);
@@ -137,15 +136,11 @@ Begin
   If (Source=Nil) Then
   Begin
     Log(logDebug, 'ResourceManager', 'Could not open location...');
-    Manager.Lock;
     MyResource.Status := rsInvalid;
-    Manager.Unlock;
     Exit;
   End;
 
-  Manager.Lock;
   MyResource.Status := rsBusy;
-  Manager.Unlock;
 
   Log(logDebug, 'Resources', 'Loading '+MyResource.Name);
 
@@ -156,8 +151,8 @@ Begin
   end;
 
   Result := MyResource.Load(Source);
-  If (Not MyResource.KeepStream) Then
-    Source.Release;
+  If (MyResource.Kind <> rtStreamed) Then
+    ReleaseObject(Source);
 
   If (Not Result) Then
   Begin
@@ -176,7 +171,7 @@ Begin
   End Else
   Begin
     Log(logDebug, 'Resource', 'Updating '+MyResource.Name);
-    MyResource.Update;
+    MyResource.Update();
     MyResource.Status := rsReady;
   End;
 
@@ -206,12 +201,12 @@ Procedure ResourceManager.Release;
 Var
   I:Integer;
 Begin
+  ReleaseObject(_Resources);
+
+  ReleaseObject(_Queue);
 {$IFNDEF DISABLETHREADS}
   ReleaseObject(_LockSection);
 {$ENDIF}
-
-  ReleaseObject(_Queue);
-  ReleaseObject(_Resources);
 End;
 
 Procedure ResourceManager.AddResource(MyResource:Resource);
@@ -290,7 +285,7 @@ Begin
     If (MyResource = Nil) Then
       Break;
 
-    If (MyResource.Status<>rsReady) Or (MyResource.Location='') Or (MyResource.KeepStream) Then
+    If (MyResource.Status<>rsReady) Or (MyResource.Kind <> rtLoaded) Then
       Continue;
 
     If (MyResource.ShouldUnload()) Then
@@ -324,11 +319,9 @@ Begin
     Self.Unlock;
     Entry.Value.Update;
 
-    Self.Lock;
     Entry.Value.Status := rsReady;
-    Self.Unlock;
 
-    Entry.Release;
+    ReleaseObject(Entry);
 
     Break; // only one item per frame
   End;
@@ -430,7 +423,7 @@ Begin
   Result := Value.Name;
 End;
 
-Procedure ResourceManager.OnContextLost;
+(*Procedure ResourceManager.OnContextLost;
 Var
   It:Iterator;
   MyResource:Resource;
@@ -448,7 +441,7 @@ Begin
       MyResource.OnContextLost();
     End;
   End;
-End;
+End;*)
 
 Function ResourceManager.ResolveResourceLink(Const ResourceName: TERRAString):TERRAString;
 Const
@@ -466,7 +459,7 @@ Begin
   If Assigned(Src) Then
   Begin
     Src.ReadLine(Name);
-    Src.Release;
+    ReleaseObject(Src);
 
     If (StringLower(Name) = StringLower(ResourceName)) Then
       Exit;

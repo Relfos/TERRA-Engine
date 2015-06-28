@@ -4,26 +4,22 @@ Unit TERRA_Noise;
 
 Interface
 
-Uses TERRA_Utils, TERRA_Image, TERRA_Vector3D;
+Uses TERRA_Utils, TERRA_Object, TERRA_Image, TERRA_Vector3D;
 
 Const
   GradientTableSize = 256;
   CellGridSize = 32;
 
-Type
-  NoiseOptions = Record
-    F:Array[0..3] Of Single; // frequency
-    W:Array[0..3] Of Single; // weights
-    S:Array[0..3] Of Single; // strength
-    Combine:Boolean;
-  End;
 
+Type
   NoiseGenerator = Class(TERRAObject)
     Public
       Procedure Release; Override;
 
-      Function Noise(X,Y,Z:Single; RX,RY,RZ:Integer):Single; Virtual; Abstract;
-      Function CreateImage(Width, Height:Integer; Const Options:NoiseOptions):Image; Virtual; Abstract;
+      Function Noise(X,Y,Z:Single):Single; Virtual; Abstract;
+      //Function TiledNoise(X,Y,Z:Single; W, H:Single):Single;
+
+      Procedure SaveToImage(Target:Image; Layer:Single; ColorMask:Cardinal);
     End;
 
   PerlinNoiseGenerator = Class(NoiseGenerator)
@@ -41,9 +37,7 @@ Type
     Public
       Constructor Create;
 
-      Function Noise(X,Y,Z:Single; RX,RY,RZ:Integer):Single; Override;
-
-      Function CreateImage(Width, Height:Integer; Const Options:NoiseOptions):Image; Override;
+      Function Noise(X,Y,Z:Single):Single; Override;
     End;
 
   CellNoiseGenerator = Class(NoiseGenerator)
@@ -52,9 +46,7 @@ Type
 
     Public
       Constructor Create;
-      Function Noise(X,Y,Z:Single; RX,RY,RZ:Integer):Single; Override;
-
-      Function CreateImage(Width, Height:Integer; Const Options:NoiseOptions):Image; Override;
+      Function Noise(X,Y,Z:Single):Single; Override;
     End;
 
 Implementation
@@ -64,6 +56,120 @@ Uses TERRA_Color, TERRA_OS, TERRA_Math;
 Procedure NoiseGenerator.Release;
 Begin
   // do nothing
+End;
+
+(*
+Var
+  W1, W2, W3, W4:Single;
+  L:Single;
+Begin
+  W1 := (W - X) * (H - Y);
+  W2 := (x) * (h - y);
+  W3 := (x) * (y);
+  W4 := (w - x) * (y);
+
+  L := 1.0 / Sqrt(Sqr(W1)+ Sqr(W2)+ Sqr(W3)+ Sqr(W4));
+
+  W1 := W1 * L;
+  W2 := W2 * L;
+  W3 := W3 * L;
+  W4 := W4 * L;
+
+  Result :=
+    Noise(X, Y, Z) * W1 +
+    Noise(x - w, y, Z) * W2 +
+    Noise(x - w, y - h, Z) * W3 +
+    Noise(x, y - h, Z) * W4;
+*)
+
+(*Function NoiseGenerator.TiledNoise(X, Y, Z, W, H: Single): Single;
+Begin
+  Result :=
+    Noise(X, Y, Z) * (W - X) * (H - Y) +
+    Noise(x - w, y, Z) * (x) * (h - y) +
+    Noise(x - w, y - h, Z) * (x) * (y) +
+    Noise(x, y - h, Z) * (w - x) * (y);
+  Result := Result / (w * h);
+End;*)
+
+Procedure NoiseGenerator.SaveToImage(Target:Image; Layer:Single; ColorMask:Cardinal);
+Const
+  BorderSize = 0.25;
+  BorderLeft = BorderSize;
+  BorderRight = 1.0 - BorderSize;
+
+Var
+  I,J,K:Integer;
+  TX, TY:Integer;
+  W,H:Integer;
+  X,Y, R, F:Single;
+
+  N:Byte;
+  S1, S2, S3:Single;
+  W1, W2, W3:Single;
+
+  A, B :Single;
+
+  P:Color;
+Begin
+  W := Pred(Target.Width);
+  H := Pred(Target.Height);
+  //W := Target.Width Div Trunc(Frequency);
+  //H := Target.Height Div Trunc(Frequency);
+
+
+  For J:=0 To H Do
+    For I:= 0 To W do
+    Begin
+      R := 0;
+
+      TX := (I + (Target.Width Shr 1)) Mod Target.Width;
+      TY := (J + (Target.Height Shr 1)) Mod Target.Height;
+
+//      TX := I;
+//      TY := J;
+
+      X :=  Abs(0.5 - (I / W)) * 2.0;
+      Y :=  Abs(0.5 - (J / H)) * 2.0;
+
+      If Y<X Then
+        X := Y;
+
+      If X>0.25 Then
+        X := 1.0
+      Else
+        X := (X / 0.25) * 0.5 + 0.5;
+
+      R := Self.Noise((TX/W), (TY/H), Layer);
+
+      (*If R>1.0 Then
+        R := 1.0
+      Else
+      If (R<0) Then
+        R := 0;*)
+
+      N := Trunc(R * 255);
+
+      P := Target.GetPixel(I, J);
+
+      If (ColorMask And maskRed) <> 0 Then
+        P.R := N;
+
+      If (ColorMask And maskGreen) <> 0 Then
+        P.G := N;
+
+      If (ColorMask And maskBlue) <> 0 Then
+        P.B := N;
+
+      If (ColorMask And maskAlpha) <> 0 Then
+        P.A := N;
+
+      //P := ColorCreateFromFloat(X, X, X);
+
+      // Write the result to the texture image.
+      Target.SetPixel(I, J, P);
+    End;
+    //Result.Save('noise.png');
 End;
 
 { PerlinNoiseGenerator }
@@ -150,13 +256,23 @@ Begin
   Result := x*x*(3 - 2*x);
 End;
 
-Function PerlinNoiseGenerator.Noise(x, y, z: Single; RX,RY,RZ:Integer): Single;
+Function PerlinNoiseGenerator.Noise(x, y, z: Single): Single;
+Const
+  PerlinSize = 32;
+  RX = PerlinSize;
+  RY = PerlinSize;
+  RZ = PerlinSize;
+
 Var
   ix, iy, iz: Integer;
   fx0, fx1, fy0, fy1, fz0, fz1: Single;
   wx, wy, wz: Single;
   vx0, vx1, vy0, vy1, vz0, vz1: Single;
 Begin
+  X := FloatMod(X * RX, RX);
+  Y := FloatMod(Y * RY, RY);
+  Z := FloatMod(Z * RZ, RZ);
+
   { The main noise function. Looks up the pseudorandom gradients at the nearest
     lattice points, dots them with the input vector, and interpolates the
     results to produce a single output value in [0, 1] range. }
@@ -190,61 +306,19 @@ Begin
   vy0 := Lerp(wx, vx0, vx1);
 
   vx0 := Lattice(ix, (iy+1) Mod RY, (iz+1) Mod RZ, fx0, fy1, fz1);
-  vx1 := Lattice((ix+1) Mod RX, (iy+1) Mod RY, (iz+1) MOD RZ, fx1, fy1, fz1);
+  vx1 := Lattice((ix+1) Mod RX, (iy+1) Mod RY, (iz+1) Mod RZ, fx1, fy1, fz1);
   vy1 := Lerp(wx, vx0, vx1);
 
   vz1 := Lerp(wy, vy0, vy1);
 
-  Result := Lerp(wz, vz0, vz1);
+  Result := Lerp(wz, vz0, vz1) + 0.5;
+
+  If Result>1.0 Then
+    Result := 1.0
+  Else
+  If Result<0.0 Then
+    Result := 0.0;
 End;
-
-
-Function PerlinNoiseGenerator.CreateImage(Width, Height:Integer; Const Options:NoiseOptions):Image;
-Var
-  I,J,K:Integer;
-  W,H:Integer;
-  X,Y,Z:Single;
-  Freq:Single;
-  NF:Array[0..3] Of Single;
-  P:Color;
-Begin
-  Result := Image.Create(Width, Height);
-  Z := 0;
-
-  For J:=0 To Pred(Height) Do
-    For I:= 0 To Pred(Width) do
-    Begin
-      // Take various octaves of noise and add them.
-      For K:=0 To 3 Do
-      Begin
-        Freq := Options.F[K];
-        X := I/Freq;
-        Y := J/Freq;
-        W := Width Div Trunc(Freq);
-        H := Height Div Trunc(Freq);
-
-        nf[K] := Self.Noise(X, Y, Z, W, H, 1) * Options.S[K];
-      End;
-
-      P.R := Round(255 * (nf[0]+1) * 0.5);
-      P.G := Round(255 * (nf[1]+1) * 0.5);
-      P.B := Round(255 * (nf[2]+1) * 0.5);
-      P.A := Round(255 * (nf[3]+1) * 0.5);
-
-      If Options.Combine Then
-      Begin
-        P.R := Trunc(P.R * Options.W[0] + P.G * Options.W[1] + P.B * Options.W[2] + P.A * Options.W[3]);
-        P.G := P.R;
-        P.B := P.R;
-        P.A := P.R;
-      End;
-
-      // Write the result to the texture image.
-      Result.SetPixel(I,J, P);
-    End;
-    //Result.Save('noise.png');
-End;
-
 
 Constructor CellNoiseGenerator.Create;
 Var
@@ -260,26 +334,28 @@ Begin
       End;
 End;
 
-Function CellNoiseGenerator.Noise(X,Y,Z:Single; RX,RY,RZ:Integer):Single;
+Function CellNoiseGenerator.Noise(X,Y,Z:Single{; RX,RY,RZ:Integer}):Single;
+
 Var
   TX,TY,TZ:Integer;
   CX,CY,CZ:Integer;
-  SX,SY,SZ:Single;
   P:Vector3D;
   I,J,K:Integer;
   Dist,R:Single;
   N:Integer;
 Begin
-  N := CellGridSize Div Rz;
-  SX := (RX/N);
-  SY := (RY/N);
-  SZ := (RX/N);
+  N := CellGridSize;
 
-  TX := Trunc(X/SX);
-  TY := Trunc(Y/SY);
-  TZ := Trunc(Z/SZ);
+  X := X * N;
+  Y := Y * N;
+  Z := Z * N;
 
-  Dist:=999;
+  TX := Trunc(X);
+  TY := Trunc(Y);
+  TZ := Trunc(Z);
+
+  Dist := 9999;
+
   For K:=-1 To 1 Do
     For J:=-1 To 1 Do
       For I:=-1 To 1 Do
@@ -288,68 +364,24 @@ Begin
         CY := (Word(TY+J) Mod N);
         CZ := (Word(TZ+K) Mod N);
 
-        P := VectorMultiply(_Points[CX,CY,CZ], VectorCreate(SX,SY,SZ));
+        P := _Points[CX,CY,CZ];
 
         CX := (TX+I);
         CY := (TY+J);
         CZ := (TZ+K);
 
-        P := VectorAdd(P, VectorCreate(CX*SX, CY*SY, CZ*SZ));
+        P.Add(VectorCreate(CX, CY, CZ));
         R := P.Distance(VectorCreate(X,Y,Z));
         If (R<Dist) Then
           Dist := R;
       End;
 
-    R := SX;
-    If (SY>R) Then R := SY;
-    If (SZ>R) Then R := SZ;
-    R := R * 2;
-    Dist := Dist / R;
-    Result := Dist;
+  If Dist>1.0 Then
+    Dist := 1.0;
+      
+  Result := Dist;
 End;
 
-Function CellNoiseGenerator.CreateImage(Width, Height:Integer; Const Options:NoiseOptions):Image;
-Var
-  I,J,K:Integer;
-  X,Y,Z:Single;
-  M:Single;
-  NF:Array[1..4] Of Single;
-  P:Color;
-Begin
-  Result := Image.Create(Width, Height);
-  Z:=0;
-
-  For J:=0 To Pred(Height) Do
-    For I:= 0 To Pred(Width) do
-    Begin
-      X := I;
-      Y := J;
-
-      // Take various octaves of noise and add them.
-      M := 4.0;
-      For K:=1 To 4 Do
-      Begin
-        nf[K] := (Self.Noise(x, y, z, Trunc(Width), Trunc(Height), K)/M);
-        M := M * 0.5;
-      End;
-
-      P.R := Round(255 * (nf[1]+1) * 0.25);
-      P.G := Round(255 * (nf[2]+1) * 0.25);
-      P.B := Round(255 * (nf[3]+1) * 0.25);
-      P.A := Round(255 * (nf[4]+1) * 0.25);
-
-      If Options.Combine Then
-      Begin
-        P.R := Trunc(P.R * Options.W[0] + P.G * Options.W[1] + P.B * Options.W[2] + P.A * Options.W[3]);
-        P.G := P.R;
-        P.B := P.R;
-        P.A := P.R;
-      End;
-
-      // Write the result to the texture image.
-      Result.SetPixel(I,J, P);
-    End;
-End;
 
 End.
 

@@ -105,7 +105,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_OS, TERRA_ResourceManager, TERRA_GraphicsManager, TERRA_Renderer, TERRA_UI;
+Uses TERRA_OS, TERRA_ResourceManager, TERRA_GraphicsManager, TERRA_Renderer, TERRA_Resource, TERRA_UI;
 
 Var
   _FadeShader:ShaderInterface;
@@ -406,11 +406,11 @@ Begin
   _ID := Random(36242);
 
   {$IFDEF POSTPROCESSING}
-  Src := GraphicsManager.Instance.MainViewport.GetRenderTarget(captureTargetColor).GetImage();
-  _Texture := Texture.Create();
-  _Texture.CreateFromSize('ui_slide', Src.Width, Src.Height);
+  Src := GraphicsManager.Instance.ActiveViewport.GetRenderTarget(captureTargetColor).GetImage();
+  _Texture := Texture.Create(rtDynamic, 'ui_slide');
+  _Texture.InitFromSize(Src.Width, Src.Height);
   _Texture.UpdateRect(Src);
-  Src.Release();
+  ReleaseObject(Src);
   {$ELSE}
   _Texture := Nil;
   {$ENDIF}
@@ -424,7 +424,7 @@ End;
 
 Procedure UISlide.Release;
 Begin
-  _Texture.Release;
+  ReleaseObject(_Texture);
   Inherited;
 End;
 

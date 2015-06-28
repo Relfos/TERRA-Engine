@@ -26,9 +26,9 @@ Unit TERRA_ParticleRenderer;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Object, TERRA_String, TERRA_Utils, TERRA_GraphicsManager, TERRA_Texture, TERRA_Application,
-  TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_Stream, TERRA_Plane,
-  TERRA_Matrix4x4, TERRA_Math, TERRA_TextureAtlas, TERRA_BoundingBox,
+  TERRA_String, TERRA_Utils, TERRA_Object, TERRA_GraphicsManager, TERRA_Texture, TERRA_Application,
+  TERRA_Resource, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_Stream, TERRA_Plane, TERRA_Matrix4x4,
+  TERRA_Math, TERRA_TextureAtlas, TERRA_BoundingBox,
   TERRA_UI, TERRA_Image, TERRA_Renderer, TERRA_FileManager, TERRA_VertexFormat;
 
 Const
@@ -564,7 +564,7 @@ Begin
 
   RenderStage := GraphicsManager.Instance.RenderStage;
 
-  It := Self._Vertices.GetIterator(ParticleVertex);
+  It := Self._Vertices.GetIteratorForClass(ParticleVertex);
   While N<_ParticleCount Do
   Begin
     If (_Particles[N].Life > 0.0) And ((RenderStage<>renderStageDiffuse) Or (_Particles[N].BlendMode = BlendMode)) Then
@@ -783,7 +783,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_ParticleCollectionCount) Do
-    _ParticleCollections[I].Release;
+    ReleaseObject(_ParticleCollections[I]);
 
   _ParticleCollectionCount := 0;
 End;
@@ -804,29 +804,16 @@ Begin
   Clear();
 
   For I:=0 To Pred(_TypeCount) Do
-    _Types[I].Release;
+    ReleaseObject(_Types[I]);
   _TypeCount := 0;
 
-  If Assigned(_TextureAtlas) Then
-    _TextureAtlas.Release;
-
-  If Assigned(_NormalTexture) Then
-    _NormalTexture.Release;
-
-  If Assigned(_NormalImage) Then
-    _NormalImage.Release;
-
-  If Assigned(_GlowTexture) Then
-    _GlowTexture.Release;
-
-  If Assigned(_GlowImage) Then
-    _GlowImage.Release;
-
-  If Assigned(_RefractionTexture) Then
-    _RefractionTexture.Release;
-
-  If Assigned(_RefractionImage) Then
-    _RefractionImage.Release;
+  ReleaseObject(_TextureAtlas);
+  ReleaseObject(_NormalTexture);
+  ReleaseObject(_NormalImage);
+  ReleaseObject(_GlowTexture);
+  ReleaseObject(_GlowImage);
+  ReleaseObject(_RefractionTexture);
+  ReleaseObject(_RefractionImage);
 
   _ParticleManager_Instance := Nil;
 End;
@@ -906,7 +893,7 @@ Begin
     If Assigned(Source) Then
     Begin
       Result.Load(Source);
-      Source.Release;
+      ReleaseObject(Source);
     End;
   End Else
   Begin
@@ -957,8 +944,8 @@ Begin
         Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
         Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
       End;
-      _NormalImage.Blit(Trunc(Item.X*_TextureAtlas.Width), Trunc(Item.Y*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
-      Source.Release();
+      _NormalImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
+      ReleaseObject(Source);
 
       S := StringLower(GetFileName(Item.Name, True))+'_glow.png';
       S := FileManager.Instance.SearchResourceFile(S);
@@ -969,8 +956,8 @@ Begin
         Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
         Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
       End;
-      _GlowImage.Blit(Trunc(Item.X*_TextureAtlas.Width), Trunc(Item.Y*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
-      Source.Release;
+      _GlowImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
+      ReleaseObject(Source);
 
       S := StringLower(GetFileName(Item.Name, True))+'_refraction.png';
       S := FileManager.Instance.SearchResourceFile(S);
@@ -981,30 +968,30 @@ Begin
         Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
         Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
       End;
-      _RefractionImage.Blit(Trunc(Item.X*_TextureAtlas.Width), Trunc(Item.Y*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
-      Source.Release();
+      _RefractionImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
+      ReleaseObject(Source);
     End;
 
     If (_NormalTexture = Nil) Then
     Begin
-      _NormalTexture := Texture.Create();
-      _NormalTexture.CreateFromSize('particles_normal', _TextureAtlas.Width, _TextureAtlas.Height);
+      _NormalTexture := Texture.Create(rtDynamic, 'particles_normal');
+      _NormalTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height);
       _NormalTexture.Update;
     End;
     _NormalTexture.UpdateRect(_NormalImage, 0, 0);
 
     If (_GlowTexture = Nil) Then
     Begin
-      _GlowTexture := Texture.Create();
-      _GlowTexture.CreateFromSize('particles_glow', _TextureAtlas.Width, _TextureAtlas.Height);
+      _GlowTexture := Texture.Create(rtDynamic, 'particles_glow');
+      _GlowTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height);
       _GlowTexture.Update;
     End;
     _GlowTexture.UpdateRect(_GlowImage, 0, 0);
 
     If (_RefractionTexture = Nil) Then
     Begin
-      _RefractionTexture := Texture.Create();
-      _RefractionTexture.CreateFromSize('particles_refraction', _TextureAtlas.Width, _TextureAtlas.Height);
+      _RefractionTexture := Texture.Create(rtDynamic, 'particles_refraction');
+      _RefractionTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height);
       _RefractionTexture.Update();
     End;
     _RefractionTexture.UpdateRect(_RefractionImage, 0, 0);
@@ -1016,10 +1003,10 @@ Begin
 
     For I:=0 To Pred(_TypeCount) Do
     Begin
-      _Types[I].U1 := _Types[I].Item.X;
-      _Types[I].V1 := _Types[I].Item.Y;
-      _Types[I].U2 := _Types[I].Item.X + (Pred(_Types[I].Item.Buffer.Width) / _TextureAtlas.Width);
-      _Types[I].V2 := _Types[I].Item.Y + (Pred(_Types[I].Item.Buffer.Height) / _TextureAtlas.Height);
+      _Types[I].U1 := _Types[I].Item.U1;
+      _Types[I].V1 := _Types[I].Item.V1;
+      _Types[I].U2 := _Types[I].Item.U2;
+      _Types[I].V2 := _Types[I].Item.V2;
     End;
   End;
 
@@ -1068,7 +1055,7 @@ Begin
   Begin
     If (_ParticleCollections[I].Finished) Then
     Begin
-      _ParticleCollections[I].Release;
+      ReleaseObject(_ParticleCollections[I]);
       _ParticleCollections[I] := _ParticleCollections[Pred(_ParticleCollectionCount)];
       Dec(_ParticleCollectionCount);
     End Else

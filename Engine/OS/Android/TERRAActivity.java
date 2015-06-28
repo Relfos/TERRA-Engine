@@ -106,6 +106,7 @@ android.content.DialogInterface.OnClickListener
 {
 	private static final int DIALOG_REPORT_FORCE_CLOSE = 3535788;
 	private static final int DIALOG_UNSUPPORTED_DEVICE = 3535742;
+    private static final int DIALOG_EXCEPTION = 3535744;
 	
     public static TERRAView glView;
 	public RelativeLayout topView = null;
@@ -134,6 +135,7 @@ android.content.DialogInterface.OnClickListener
 	public PurchaseProcessor billmaster;
 	
 	private int currentDialog = 0;
+    private String exceptionMessage = null;
 	
 	private boolean hasAccel = false;
 	private boolean hasGyro = false;
@@ -261,10 +263,28 @@ android.content.DialogInterface.OnClickListener
 	
 		switch (currentDialog)
 		{
+            case DIALOG_EXCEPTION:
+				switch (which) 	{
+					case DialogInterface.BUTTON_POSITIVE:
+					{
+                        dismissDialog(DIALOG_EXCEPTION);
+                        if (!collector.sendLog(developerEmail, "Crash Log", this.exceptionMessage, 127)) {
+                            finish();
+                        }
+						break;
+					}
+					
+					case DialogInterface.BUTTON_NEGATIVE:
+					{
+						finish();
+						break;
+					}				
+				}
+            
 			case DIALOG_UNSUPPORTED_DEVICE:
 				finish();
 				break;
-		
+
 			case DIALOG_REPORT_FORCE_CLOSE:					
 				switch (which) 	{
 					case DialogInterface.BUTTON_POSITIVE:
@@ -288,10 +308,25 @@ android.content.DialogInterface.OnClickListener
 	protected Dialog onCreateDialog(int id) {
 		Dialog dialog = null;
 		currentDialog = id;
+        
+        Builder builder;
+        String message;
+        
 		switch (id) {
+		case DIALOG_EXCEPTION:
+			builder = new AlertDialog.Builder(this);
+			message = "It appears that this app stopped working. Do you want to report it to the developers?";
+			builder.setTitle("Error")
+			.setIcon(android.R.drawable.ic_dialog_alert)
+			.setMessage(message)
+			.setPositiveButton("Yes", this)
+			.setNegativeButton("No", this);
+			dialog = builder.create();
+			break;
+            
 		case DIALOG_REPORT_FORCE_CLOSE:
-			Builder builder = new AlertDialog.Builder(this);
-			String message = "It appears that this app crashed last time you ran it, do you want to report it to the developers?";
+			builder = new AlertDialog.Builder(this);
+			message = "It appears that this app crashed last time you ran it, do you want to report it to the developers?";
 			builder.setTitle("Warning")
 			.setIcon(android.R.drawable.ic_dialog_alert)
 			.setMessage(message)
@@ -316,10 +351,9 @@ android.content.DialogInterface.OnClickListener
 	protected void sendLogs()
 	{
 		dismissDialog(DIALOG_REPORT_FORCE_CLOSE);
-		collector.sendLog(developerEmail, "Error Log", "Log info");		
+		collector.sendLog(developerEmail, "Error Log", "Log info", 126);		
 	}	
 	
-
 	protected void initApp()
 	{
         assetManager = this.getResources().getAssets();
@@ -958,7 +992,9 @@ android.content.DialogInterface.OnClickListener
 					break;
 		case 126:	initApp();			
 					break;
-
+		case 127:	finish();			
+					break;
+                    
 		default:
 			super.onActivityResult(requestCode, resultCode, data);
 		}
@@ -1448,7 +1484,17 @@ android.content.DialogInterface.OnClickListener
 	@Override
 	public void didRequestAction(TJEvent event, TJEventRequest request) {
 	}
+
     
+    public void showException(String msg) {
+        this.exceptionMessage = msg;
+        this.runOnUiThread(new Runnable() {
+            public void run() {
+                Log.d("UI thread", "I am the UI thread");
+                showDialog(DIALOG_EXCEPTION);                                
+            }
+        });                    
+    }    
     
     public static boolean unlockAchievement(String achieveID)
     {

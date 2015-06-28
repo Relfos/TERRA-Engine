@@ -26,7 +26,7 @@ Unit TERRA_Viewport;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Camera, TERRA_Renderer, TERRA_Downsampler,
+  TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Camera, TERRA_Renderer, TERRA_Downsampler, TERRA_Resource,
   TERRA_Ray, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Color, TERRA_Texture
   {$IFDEF POSTPROCESSING},TERRA_ScreenFX{$ENDIF};
 
@@ -63,8 +63,6 @@ Type
       _ViewWidth:Integer;
       _ViewHeight:Integer;
 
-      _ContextID:Integer;
-
       _ResolveBuffer:RenderTargetInterface;
       _ResolveTexture:Texture;
 
@@ -72,7 +70,6 @@ Type
       _RenderTextures:Array[0..Pred(TotalCaptureTargets)] Of Texture;
       _RenderSamplers:Array[0..Pred(TotalCaptureTargets)] Of RenderTargetSampler;
 
-      _DoPostProcessing:Boolean;
       _Offscreen:Boolean;
       _DrawSky:Boolean;
 
@@ -119,7 +116,6 @@ Type
       Procedure SetViewArea(X,Y,Width,Height:Integer);
 
       Procedure SetPostProcessingState(Enabled:Boolean);
-      Function IsPostProcessingEnabled():Boolean; {$IFDEF FPC}Inline; {$ENDIF}
 
       Procedure SetOffScreenState(Enabled:Boolean);
 
@@ -134,7 +130,9 @@ Type
 
       Procedure EnableDefaultTargets();
 
-      Procedure DrawToTarget(AllowDebug:Boolean);
+      Function HasPostProcessing():Boolean;
+
+      Procedure DrawToTarget(AllowDebug, ProcessEffects:Boolean);
 
       Property BackgroundColor:Color Read _BackgroundColor Write SetBackgroundColor;
 
@@ -388,7 +386,6 @@ Begin
   _Name := Name;
   _Active := True;
   _DrawSky := False;
-  _DoPostProcessing := False;
 
   _Width := Width;
   _Height := Height;
@@ -399,8 +396,6 @@ Begin
 
   _CurrentSubView := 0;
 
-  _ContextID := Application.Instance.ContextID;
-
   _BackgroundColor := ColorCreate(0, 0, 0, 255);
 
   _Camera := TERRA_Camera.Camera.Create(Name);
@@ -408,7 +403,6 @@ Begin
   SetOffScreenState(False);
 
   Log(logDebug, 'Viewport', 'Created viewport '+Name+' with size '+IntToString(_Width) +' x '+IntToString(_Height)+' and scale = '+FloatToString(_Scale));
-
 End;
 
 
@@ -616,11 +610,11 @@ Begin
       If TargetType = effectTargetEdge Then
       Begin
         DownSize := 1024;
-        _RenderSamplers[TargetValue] := RenderTargetBouncer.Create(DownSize, DownSize, pixelSizeByte);
+        _RenderSamplers[TargetValue] := RenderTargetBouncer.Create(_Name+'_edge', DownSize, DownSize, pixelSizeByte);
       End Else
       Begin
         DownSize := 512;
-        _RenderSamplers[TargetValue] := RenderTargetDownSampler.Create(DownSize, DownSize, pixelSizeByte);
+        _RenderSamplers[TargetValue] := RenderTargetDownSampler.Create(_Name+'_bloom', DownSize, DownSize, pixelSizeByte);
       End;
 
     End;
@@ -659,15 +653,18 @@ Var
 Begin
   TargetValue := Integer(TargetType);
 
-  If (_ContextID <> Application.Instance.ContextID) Then
-  Begin
-    Self.OnContextLost();
-  End;
-
   If (TargetValue < 0) Or (TargetValue >= TotalCaptureTargets) Then
     Result := Nil
   Else
+  Begin
     Result := _RenderBuffers[TargetValue];
+
+    If (Assigned(Result)) And (Not Result.IsValid()) Then
+    Begin
+      Self.OnContextLost();
+      Result := Nil;
+    End;
+  End;
 End;
 
 Function Viewport.GetRenderTexture(TargetType:RenderTargetType):Texture;
@@ -675,11 +672,6 @@ Var
   TargetValue:Integer;
 Begin
   TargetValue := Integer(TargetType);
-
-  If (_ContextID <> Application.Instance.ContextID) Then
-  Begin
-    Self.OnContextLost();
-  End;
 
   If (TargetValue < 0) Or (TargetValue >= TotalCaptureTargets) Then
     Result := Nil
@@ -689,8 +681,8 @@ Begin
     Begin
       If _RenderTextures[TargetValue] = Nil Then
       Begin
-        _RenderTextures[TargetValue] := Texture.Create();
-        _RenderTextures[TargetValue].CreateFromSurface(Self.GetRenderTarget(TargetType));
+        _RenderTextures[TargetValue] := Texture.Create(rtDynamic, _Name+'_rt'+IntToString(TargetValue));
+        _RenderTextures[TargetValue].InitFromSurface(Self.GetRenderTarget(TargetType));
       End;
 
       Result := _RenderTextures[TargetValue];
@@ -717,25 +709,37 @@ Begin
 
   If _ResolveTexture = Nil Then
   Begin
-    _ResolveTexture := Texture.Create();
-    _ResolveTexture.CreateFromSurface(_ResolveBuffer);
+    _ResolveTexture := Texture.Create(rtDynamic, _Name+'_resolve');
+    _ResolveTexture.InitFromSurface(_ResolveBuffer);
   End;
 
-  TempTarget := Self.Target;
   Self._Target := Self;
   Self._TargetX1 := 0;
   Self._TargetY1 := 0;
   Self._TargetX2 := 1.0;
   Self._TargetY2 := 1.0;
 
-  Self.DrawToTarget(True);
 
-  Self._Target := TempTarget;
+//  GraphicsManager.Instance.ShowDebugTarget := captureTargetColor;
+
+  {$IFDEF POSTPROCESSING}
+  If (Self.HasPostProcessing) Then
+    UpdateEffectTargets();
+	{$ENDIF}
+
+  _ResolveBuffer.BackgroundColor := ColorNull;
+  _ResolveBuffer.BeginCapture();
+  Self.DrawToTarget(True, False);
+  _ResolveBuffer.EndCapture();
+
+  GraphicsManager.Instance.ShowDebugTarget := captureTargetInvalid;
+
+  Self._Target := Nil;
 
   Result := _ResolveTexture;
 End;
 
-Procedure Viewport.DrawToTarget(AllowDebug:Boolean);
+Procedure Viewport.DrawToTarget(AllowDebug, ProcessEffects:Boolean);
 Var
   MyShader:ShaderInterface;
   I:Integer;
@@ -753,12 +757,12 @@ Begin
 
   {$IFDEF POSTPROCESSING}
   {$IFDEF FRAMEBUFFEROBJECTS}
-  If (Self._DoPostProcessing) And (GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
+  If (ProcessEffects) And (Self.HasPostProcessing) Then
     UpdateEffectTargets();
   {$ENDIF}
   {$ENDIF}
 
-  Target.Restore(False);
+  Target.Restore(True);
 
   {$IFDEF POSTPROCESSING}
   ShowID := GraphicsManager.Instance.ShowDebugTarget;
@@ -779,7 +783,7 @@ Begin
 
     If (Assigned(_FXChain)) And ((ShowID = captureTargetInvalid) Or (Not AllowDebug)) Then
     Begin
-      _FXChain.DrawScreen(_TargetX1, _TargetY1, _TargetX2, _TargetY2);
+      _FXChain.DrawScreen(_TargetX1, _TargetY1, _TargetX2, _TargetY2, Self);
       Exit;
     End;
   End;
@@ -793,7 +797,7 @@ Begin
 
   If (GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Then
   Begin
-    MyShader := GetDefaultFullScreenShader();
+    MyShader := GraphicsManager.Instance.GetDefaultFullScreenShader();
     GraphicsManager.Instance.Renderer.BindShader(MyShader);
     MyShader.SetIntegerUniform('texture', 0);
     MyShader.SetColorUniform('color', ColorWhite); //BIBI
@@ -831,19 +835,13 @@ Begin
     Enabled := False;
 
   {$IFDEF POSTPROCESSING}
-  If (Self._DoPostProcessing = Enabled) Then
+  If (Self.HasPostProcessing() = Enabled) Then
     Exit;
 
-  Self._DoPostProcessing := Enabled;
   If Enabled Then
     _FXChain := ScreenFXChain.Create()
   Else
-  Begin
-    _FXChain.Release();
-    _FXChain := Nil;
-  End;
-  {$ELSE}
-  Self._DoPostProcessing := False;
+    ReleaseObject(_FXChain);
   {$ENDIF}
 End;
 
@@ -859,11 +857,6 @@ Begin
   End;
 
   Result := True;
-End;
-
-Function Viewport.IsPostProcessingEnabled: Boolean;
-Begin
-  Result := _DoPostProcessing;
 End;
 
 Procedure Viewport.Clear;
@@ -969,16 +962,12 @@ End;
 Procedure Viewport.OnContextLost;
 Var
   I:Integer;
-  Temp:Boolean;
 Begin
   Log(logDebug, 'Viewport', 'Context lost: '+Self.Name);
 
-  _ContextID := Application.Instance.ContextID;
-
   For I:=0 To Pred(TotalCaptureTargets) Do
   Begin
-    Temp := Assigned(_RenderBuffers[I]);
-    If Temp Then
+    If (Assigned(_RenderBuffers[I])) Or (Assigned(_RenderTextures[I])) Then
     Begin
       Log(logDebug, 'Viewport', 'Reseting '+IntToString(I)+' target for '+Self.Name);
       Self.SetRenderTargetState(RenderTargetType(I), False);
@@ -986,6 +975,8 @@ Begin
     End;
   End;
 
+  ReleaseObject(_ResolveBuffer);
+  ReleaseObject(_ResolveTexture);
 
   {$IFDEF POSTPROCESSING}
   If Assigned(_FXChain) Then
@@ -1003,7 +994,18 @@ Begin
     Exit;
   End;
 
+  Self.AutoResolve := True;
+
   Result := Self._ResolveTexture;
+End;
+
+Function Viewport.HasPostProcessing: Boolean;
+Begin
+{$IFDEF POSTPROCESSING}
+  Result := Assigned(_FXChain);
+{$ELSE}
+  Result := False;
+{$ENDIF}
 End;
 
 {$IFDEF POSTPROCESSING}
@@ -1044,7 +1046,7 @@ Begin
       Begin
         Self.SetRenderTargetState(captureTargetEmission, True);
 
-        If (Graphics.Renderer.Features.Shaders.Avaliable) And (_DoPostProcessing) And (Not Assigned(_BlurShader)) Then
+        If (Graphics.Renderer.Features.Shaders.Avaliable) And (Not Assigned(_BlurShader)) Then
         Begin
           _BlurShader := Graphics.Renderer.CreateShader();
           _BlurShader.Generate('blur', GetShader_Blur());
@@ -1067,7 +1069,7 @@ Begin
       Begin
         Self.SetRenderTargetState(captureTargetNormal, True);
 
-        If (Graphics.Renderer.Features.Shaders.Avaliable) And (_DoPostProcessing) And (Not Assigned(_EdgeShader)) Then
+        If (Graphics.Renderer.Features.Shaders.Avaliable) And (Not Assigned(_EdgeShader)) Then
         Begin
           _EdgeShader := Graphics.Renderer.CreateShader();
           _EdgeShader.Generate('edge', GetShader_Edge());

@@ -25,13 +25,13 @@ Unit TERRA_OBJImport;
 
 {$I terra.inc}
 Interface
-Uses TERRA_Application, TERRA_OBJ, TERRA_MeshAnimation, TERRA_Utils, TERRA_OS;
+Uses TERRA_Application, TERRA_OBJ, TERRA_MeshAnimation, TERRA_Utils, TERRA_OS, TERRA_VertexFormat;
 
 implementation
 
-Uses TERRA_Mesh, TERRA_INI, TERRA_IO, TERRA_Matrix, TERRA_ResourceManager,
+Uses TERRA_Mesh, TERRA_INI, TERRA_Stream, TERRA_Matrix4x4, TERRA_ResourceManager,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Math, TERRA_Color, TERRA_Log,
-  SysUtils, TERRA_MeshFilter, TERRA_FileImport, TERRA_FileIO,
+  SysUtils, TERRA_MeshFilter, TERRA_FileImport, TERRA_FileStream, TERRA_MemoryStream,
   TERRA_FileUtils;
 
 Function ObjImporter(SourceFile, TargetDir:AnsiString; TargetPlatform:Integer; Settings:AnsiString):AnsiString;
@@ -39,7 +39,7 @@ Var
   I,J,K:Integer;
   S:AnsiString;
   Src, Dest:Stream;
-  Obj1, Obj2:ModelOBJ;
+  Obj1, Obj2:OBJModel;
   G:MeshGroup;
   MyMesh:Mesh;
 Begin
@@ -52,18 +52,18 @@ Begin
 
   Log(logConsole, 'Import', 'Reading OBJ file ('+GetFileName(SourceFile, False)+')...');
   Src := MemoryStream.Create(SourceFile);
-  Obj1 := ModelOBJ.Create;
+  Obj1 := OBJModel.Create;
   Obj1.Load(Src);
-  Src.Destroy;
+  Src.Release;
 
   S := GetFilePath(SourceFile) + PathSeparator + GetFileName(SourceFile, True)+'_lmap.obj';
   If FileExists(S) Then
   Begin
     Log(logConsole, 'Import', 'Reading lightmap file ('+GetFileName(S, False)+')...');
     Src := MemoryStream.Create(SourceFile);
-    Obj2 := ModelOBJ.Create;
+    Obj2 := OBJModel.Create;
     Obj2.Load(Src);
-    Src.Destroy;
+    Src.Release;
   End Else
     Obj2 := Nil;
 
@@ -80,8 +80,7 @@ Begin
 
       For I:=0 To Pred(G.VertexCount) Do
       Begin
-        G.Vertices[I].Normal.X := Obj2.GetVertexUV(K, I).X;
-        G.Vertices[I].Normal.Y := Obj2.GetVertexUV(K, I).Y;
+        G.Vertices.SetVector2D(I, vertexUV1, VectorCreate2D(Obj2.GetVertexUV(K, I).X, Obj2.GetVertexUV(K, I).Y));
       End;
     End;
   End;
@@ -90,8 +89,8 @@ Begin
   S := TargetDir + PathSeparator + GetFileName(SourceFile, True)+ '.mesh';
   Dest := FileStream.Create(S);
   MyMesh.Save(Dest);
-  MyMesh.Destroy;
-  Dest.Destroy;
+  MyMesh.Release;
+  Dest.Release;
 End;
 
 

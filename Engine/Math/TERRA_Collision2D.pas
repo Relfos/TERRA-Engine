@@ -413,7 +413,7 @@ Begin
   Source.Read(PointCount, 4);
   SetLength(Points, PointCount);
   Source.Read(Points[0], SizeOf(Vector2D) * PointCount);
-  Source.Release;
+  ReleaseObject(Source);
 End;
 
 Procedure PointCloud2D.Save(FileName:TERRAString);
@@ -423,7 +423,7 @@ Begin
   Dest := FileStream.Create(FileName);
   Dest.Write(PointCount, 4);
   Dest.Write(Points[0], SizeOf(Vector2D) * PointCount);
-  Dest.Release;
+  ReleaseObject(Dest);
 End;}
 
 Function Circle.Intersect(C: Circle): Boolean;
@@ -446,7 +446,7 @@ Begin
   SetLength(Vertices, VertexCount);
   If (VertexCount>0) Then
     Source.Read(Vertices[0], SizeOf(Vector2D) * VertexCount);
-  Source.Release;
+  ReleaseObject(Source);
 End;
 
 Procedure Polygon2D.Save(FileName:TERRAString);
@@ -457,7 +457,7 @@ Begin
   Dest.Write(VertexCount, 4);
   If (VertexCount>0) Then
     Dest.Write(Vertices[0], SizeOf(Vector2D) * VertexCount);
-  Dest.Release;
+  ReleaseObject(Dest);
 End;}
 
 Function Circle.PointInside(P: Vector2D): Boolean;

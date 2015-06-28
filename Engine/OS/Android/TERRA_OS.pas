@@ -4,9 +4,9 @@ Unit TERRA_OS;
 
 
 Interface
-Uses cmem, TERRA_Object, TERRA_String, TERRA_Error, TERRA_Utils, TERRA_Application, 
+Uses cmem, TERRA_String, TERRA_Error, TERRA_Utils, TERRA_Application,
     TERRA_Vector3D, TERRA_Java, TERRA_Collections, TERRA_CollectionObjects,
-    sysutils,dateutils,unix, jni;
+    sysutils,dateutils,unix, jni, BaseUnix;
 
 Const
 	PathSeparator = '/';
@@ -142,7 +142,7 @@ Type
 
       Procedure SendAnalytics(EventName:TERRAString; Values:TERRAString=''); Override;
 
-      Procedure SpawnThread(Args:Pointer);
+      Procedure OnFatalError(Const ErrorMsg, CrashLog, Callstack:TERRAString); Override;
 
       Class Procedure DisplayMessage(S:TERRAString);
       Class Function GetCurrentTime:TERRATime;
@@ -163,13 +163,14 @@ Procedure ApplicationThreadExecute(P:Integer);
 
 Implementation
 Uses TERRA_Log, TERRA_IAP, TERRA_FileSearch, TERRA_Facebook, TERRA_SoundSource, TERRA_MusicManager,
-  TERRA_Threads, TERRA_FileStream, TERRA_Renderer, TERRA_GLES2Renderer;
+  TERRA_Threads, TERRA_Callstack, TERRA_FileStream, TERRA_Renderer, TERRA_GLES2Renderer;
 
 Var
 	_ApplicationInstance:AndroidApplication = Nil;
 
 Procedure Cache_Java_Classes(Env:PJNIEnv);
 Begin
+  Java_CacheClass(Env, ExceptionJavaClass);
   Java_CacheClass(Env, ActivityClassPath);
   Java_CacheClass(Env, UtilsClassPath);
   Java_CacheClass(Env, JavaMusicPlayerClassName);
@@ -202,7 +203,7 @@ Begin
   Params := JavaArguments.Create(Nil);
   Params.AddString(S);
   _ApplicationInstance._Utils.CallStaticVoidMethod(Frame, 'showKeyboard', Params);
-  Params.Release();
+  ReleaseObject(Params);
   Java_End(Frame);
 End;
 
@@ -285,7 +286,7 @@ Begin
 
   FB := Facebook.Create();
   FB.Post(Msg, Link, Desc, ImageURL);
-  FB.Release();
+  ReleaseObject(FB);
 End;
 
 
@@ -301,7 +302,7 @@ Begin
 
   FB := Facebook.Create();
   FB.LikePage(Page, url);
-  FB.Release();
+  ReleaseObject(FB);
 End;
 
 Procedure AndroidApplication.CloseWindow;
@@ -344,7 +345,7 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(Application.Instance.GetAdMobBannerID());
   _Utils.CallStaticVoidMethod(Frame, 'enableAds', Params);
-  Params.Release();
+  ReleaseObject(Params);
   Java_End(Frame);
   {$ENDIF}
 End;
@@ -383,7 +384,7 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(AppID);
   _Utils.CallStaticVoidMethod(Frame, 'openURL', Params);
-  Params.Release();
+  ReleaseObject(Params);
   Java_End(Frame);
   {$ENDIF}
 End;
@@ -401,7 +402,7 @@ Begin
   Params.AddString(EventName);
   Params.AddString(Values);
   _Utils.CallStaticVoidMethod(Frame, 'sendAnalytics', Params);
-  Params.Release();
+  ReleaseObject(Params);
   Java_End(Frame);
 End;
 
@@ -435,7 +436,7 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(Name);
   Result := _Utils.CallStaticBoolMethod(Frame, 'isAppRunning', Params);
-  Params.Release();
+  ReleaseObject(Params);
   Java_End(Frame);
 End;
 
@@ -455,7 +456,7 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(Name);
   Result := _Utils.CallStaticBoolMethod(Frame, 'isAppInstalled', Params);
-  Params.Release();
+  ReleaseObject(Params);
   Java_End(Frame);
 End;
 
@@ -602,7 +603,7 @@ Begin
   Params.AddString(Subject);
   Params.AddString(Body);
   _Utils.CallStaticVoidMethod(Frame, 'sendEmail', Params);
-  Params.Release();
+  ReleaseObject(Params);
   Java_End(Frame);
 End;
 
@@ -623,7 +624,7 @@ Begin
   Java_Begin(Frame);
   Params := JavaArguments.Create(Frame);
   _Utils.CallStaticVoidMethod(Frame, 'saveToCloud', Params);
-  Params.Release();
+  ReleaseObject(Params);
   Java_End(Frame);
 
   Result := True;
@@ -646,7 +647,7 @@ Begin
   Java_Begin(Frame);
   AppClass := JavaClass.Create(ActivityClassPath, Frame);
   AppClass.CallStaticVoidMethod(Frame, 'showTapJoyOfferWall', Nil);
-  AppClass.Release();
+  ReleaseObject(AppClass);
   Java_End(Frame);
 End;
 
@@ -667,7 +668,7 @@ Begin
   Java_Begin(Frame);
   AppClass := JavaClass.Create(ActivityClassPath, Frame);
   AppClass.CallStaticVoidMethod(Frame, 'showTapJoyVideo', Nil);
-  AppClass.Release();
+  ReleaseObject(AppClass);
   Java_End(Frame);
 End;
 
@@ -692,11 +693,12 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddInteger(Ammount);
   AppClass.CallStaticVoidMethod(Frame, 'spendTapJoyPoints', Params);
-  Params.Release();
+  ReleaseObject(Params);
 
-  AppClass.Release();
+  ReleaseObject(AppClass);
   Java_End(Frame);
 End;
+
 
 Function AndroidApplication.InitSettings: Boolean;
 Var
@@ -707,7 +709,6 @@ Begin
   Inherited InitSettings;
 
   _ApplicationInstance := Self;
-
 
   Log(logDebug, 'App', 'Starting Android App!');
   Java_Begin(Frame);
@@ -766,7 +767,7 @@ Begin
 	Result := True;
 End;
 
-Procedure AndroidApplication.SpawnThread(Args: Pointer);
+(*Procedure AndroidApplication.SpawnThread(Args: Pointer);
 Var
   Params:JavaArguments;
   Frame:JavaFrame;
@@ -776,8 +777,18 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddInteger(Integer(Args));
   _Utils.CallStaticVoidMethod(Frame, 'spawnThread', Params);
-  Params.Release();
+  ReleaseObject(Params);
   Java_End(Frame);
+End;*)
+
+Procedure AndroidApplication.OnFatalError(Const ErrorMsg, CrashLog, Callstack: TERRAString);
+Var
+  Frame:JavaFrame;
+Begin
+  Java_Begin(Frame);
+  Java_Exception(Frame, ErrorMsg + CrLf + CrashLog + CrLf + Callstack);
+  Java_End(Frame);
+//  _Running := False;
 End;
 
 End.

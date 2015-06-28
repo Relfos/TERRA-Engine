@@ -70,8 +70,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To 1 Do
-  If (Assigned(Child[I])) Then
-    Child[I].Release;
+    ReleaseObject(Child[I]);
 End;
 
 Function PackerNode.Insert(Rect:PPackerRect):PackerNode;
@@ -204,8 +203,7 @@ End;
 
 Procedure RectanglePacker.Release;
 Begin
-	If (_Root <> Nil) Then
-		_Root.Release;
+  ReleaseObject(_Root);
 End;
 
 Function RectanglePacker.Pack(Width, Height:Integer; Callback:ProgressNotifier=Nil):Integer;

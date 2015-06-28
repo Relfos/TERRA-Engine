@@ -25,8 +25,8 @@ Unit TERRA_ScreenFX;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_OS, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Matrix4x4, TERRA_Color,
-  TERRA_Texture, TERRA_Renderer;
+Uses TERRA_String, TERRA_Object, TERRA_Utils, TERRA_OS, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Matrix4x4, TERRA_Color,
+  TERRA_Resource, TERRA_Texture, TERRA_Renderer, TERRA_Noise;
 
 Const
   MaxVignetteScale = 20.0;
@@ -42,14 +42,15 @@ Var
   TargetTextureNames:Array[0..Pred(TotalCaptureTargets)] Of TERRAString;
 
 Const
-  MaxScreenFXFunctions = 4;
+  MaxScreenFXFunctions = 5;
 
 Type
   ScreenFXFunctionType = (
     fxRGBToHSL = 0,
     fxHSLToRGB = 1,
     fxColorGrading = 2,
-    fxGreyScale = 3
+    fxGreyScale = 3,
+    fxCellularNoise = 4
   );
 
   UniformType = (
@@ -126,6 +127,7 @@ Type
 
       _NeedsUpdate:Boolean;
       _Antialias:Boolean;
+      _GammaCorrection:Boolean;
 
       Function GetShaderName():TERRAString;
 
@@ -141,7 +143,7 @@ Type
 
       Procedure OnContextLost;
 
-      Procedure DrawScreen(X1,Y1,X2,Y2:Single);
+      Procedure DrawScreen(X1,Y1,X2,Y2:Single; Target:TERRAObject);
 
       Procedure AddEffect(FX:ScreenFX);
       Procedure RemoveEffect(FX:ScreenFX);
@@ -150,6 +152,7 @@ Type
       Property EffectCount:Integer Read _FXCount;
 
       Property AntiAlias:Boolean Read _Antialias Write SetAntiAlias;
+      Property GammaCorrection:Boolean Read _GammaCorrection Write _GammaCorrection;
   End;
 
   OutlineFX = Class(ScreenFX)
@@ -194,7 +197,7 @@ Type
   ColorGradingFX  = Class(ScreenFX)
     Protected
       _Palette:Integer;
-      
+
       Function RequiresFunction(FXFunction:ScreenFXFunctionType):Boolean; Override;
 
     Public
@@ -327,7 +330,6 @@ Type
 Implementation
 Uses TERRA_Log, TERRA_Error, TERRA_Math, TERRA_Image, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_Viewport;
 
-
 { ScreenFXChain }
 Constructor ScreenFXChain.Create;
 Begin
@@ -374,7 +376,7 @@ Begin
   While (I<_FXCount) Do
   If (_FXs[I] = FX) Then
   Begin
-    _FXs[I].Release;
+    ReleaseObject(_FXs[I]);
     _FXs[I] := _FXs[Pred(_FXCount)];
     Dec(_FXCount);
     Break;
@@ -389,8 +391,8 @@ Var
   I:Integer;
 Begin
   _NeedsUpdate := True;
-  For I:=0 To Pred(_FXCount) Do
-    _FXs[I].Release();
+  For I:=0 To Pred(Length(_FXs)) Do
+    ReleaseObject(_FXs[I]);
   _FXCount := 0;
 
   ReleaseObject(_Shader);
@@ -465,7 +467,7 @@ Begin
       Line('	varying mediump vec2 v_rgbSE;');
       Line('	varying mediump vec2 v_rgbM;');
 
-      Line('	uniform vec2 resolution;');
+      Line('	uniform vec2 screenResolution;');
     End;
 
 	  Line('  void main()	{');
@@ -473,8 +475,8 @@ Begin
 
     If (Self.AntiAlias) Then
     Begin
-      Line('  mediump vec2 inverseVP = vec2(1.0 / resolution.x, 1.0 / resolution.y);');
-    	Line('  mediump vec2 fragCoord = texCoord.xy * resolution;');
+      Line('  mediump vec2 inverseVP = vec2(1.0 / screenResolution.x, 1.0 / screenResolution.y);');
+    	Line('  mediump vec2 fragCoord = texCoord.xy * screenResolution;');
     	Line('  v_rgbNW = (fragCoord + vec2(-1.0, -1.0)) * inverseVP;');
     	Line('  v_rgbNE = (fragCoord + vec2(1.0, -1.0)) * inverseVP;');
     	Line('  v_rgbSW = (fragCoord + vec2(-1.0, 1.0)) * inverseVP;');
@@ -485,8 +487,12 @@ Begin
     Line('  gl_Position = projectionMatrix * terra_position;}');
     Line('}');
     Line('fragment {');
+
     //Line('  uniform mat4 inverseProjectionMatrix;');
     Line('	varying mediump vec4 texCoord;');
+
+    Line('	uniform lowp vec2 screenResolution;');
+    Line('	uniform lowp float globalTime;');
 
     For I:=0 To Pred(TotalCaptureTargets) Do
     If (Self._NeedTarget[I]) Then
@@ -536,6 +542,13 @@ Begin
       Line('  return vec3(dot(color, LumCoeff)); }');
     End;
 
+    If (Self._NeedFunction[Integer(fxCellularNoise)]) Then
+    Begin
+      Line('uniform sampler2D cellNoiseTex;');
+
+      Line('float cellNoise(vec2 P)	{ return texture2D(cellNoiseTex, P * 0.25);}');
+    End;
+
     For I:=0 To Pred(_FXCount) Do
     If (_FXs[I].Enabled) Then
     Begin
@@ -551,8 +564,6 @@ Begin
       Line('	varying mediump vec2 v_rgbSW;');
       Line('	varying mediump vec2 v_rgbSE;');
       Line('	varying mediump vec2 v_rgbM;');
-
-      Line('	uniform vec2 resolution;');
 
       Line('	const float FXAA_REDUCE_MIN  = (1.0/ 128.0);');
       Line('	const float FXAA_REDUCE_MUL  = (1.0 / 8.0);');
@@ -573,13 +584,14 @@ Begin
 
     If (Self._Antialias) Then
     Begin
-      Line('    mediump vec2 fragCoord = output_uv*resolution;');
-      Line('    mediump vec2 inverseVP = vec2(1.0 / resolution.x, 1.0 / resolution.y);');
+      Line('    mediump vec2 fragCoord = output_uv * screenResolution;');
+      Line('    mediump vec2 inverseVP = vec2(1.0 / screenResolution.x, 1.0 / screenResolution.y);');
       Line('    vec3 rgbNW = texture2D(diffuse_texture, v_rgbNW).xyz;');
       Line('    vec3 rgbNE = texture2D(diffuse_texture, v_rgbNE).xyz;');
       Line('    vec3 rgbSW = texture2D(diffuse_texture, v_rgbSW).xyz;');
       Line('    vec3 rgbSE = texture2D(diffuse_texture, v_rgbSE).xyz;');
-      Line('    vec3 rgbM  = texture2D(diffuse_texture, v_rgbM).xyz;');
+      Line('    output_color = texture2D(diffuse_texture, v_rgbM);');
+      Line('    vec3 rgbM  = output_color .xyz;');
       Line('    vec3 luma = vec3(0.299, 0.587, 0.114);');
       Line('    float lumaNW = dot(rgbNW, luma);');
       Line('    float lumaNE = dot(rgbNE, luma);');
@@ -608,9 +620,9 @@ Begin
 
       Line('    float lumaB = dot(rgbB, luma);');
       Line('    if ((lumaB < lumaMin) || (lumaB > lumaMax))');
-      Line('      output_color = vec4(rgbA, 1.0);');
+      Line('      output_color.rgb = rgbA;');
       Line('    else');
-      Line('        output_color = vec4(rgbB, 1.0);');
+      Line('        output_color.rgb = rgbB;');
     End Else
       Line('    output_color = texture2D(diffuse_texture, output_uv);');
 
@@ -627,6 +639,11 @@ Begin
       S := S + _FXs[I]._Buffer;
     End;
 
+    If _GammaCorrection Then
+    Begin
+      Line('  output_color.rgb = pow(output_color.rgb, vec3(2.2));');
+    End;
+    
     //Line('    gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);}');
     Line('    gl_FragColor = output_color;}');
     Line('}');
@@ -639,12 +656,12 @@ Begin
   Result := _Shader;
 End;
 
-Procedure ScreenFXChain.DrawScreen(X1,Y1,X2,Y2:Single);
+Procedure ScreenFXChain.DrawScreen(X1,Y1,X2,Y2:Single; Target:TERRAObject);
 Var
   _SH:ShaderInterface;
   I:Integer;
   M:Matrix4x4;
-  Target:Texture;
+  Tex:Texture;
   Slot:Integer;
   View:Viewport;
 Begin
@@ -658,37 +675,45 @@ Begin
   }
 
   Slot := 0;
-  View := GraphicsManager.Instance.ActiveViewport;
+  View := Viewport(Target);
 
   For I:=0 To Pred(TotalCaptureTargets) Do
   If (Self._NeedTarget[I]) Then
   Begin
     View.SetRenderTargetState(RenderTargetType(I), True);
 
-    Target := View.GetRenderTexture(RenderTargetType(I));
-    Target.Filter := filterBilinear;
-    Target.Bind(Slot);
+    Tex := View.GetRenderTexture(RenderTargetType(I));
+    Tex.Filter := filterBilinear;
+    Tex.Bind(Slot);
 
     _SH.SetIntegerUniform(TargetTextureNames[I], Slot);
     Inc(Slot);
   End;
 
-  If Self.AntiAlias Then
+  //If Self.AntiAlias Then
   Begin
-    _Sh.SetVec2Uniform('resolution', VectorCreate2D(View.Width, View.Height));
+    _Sh.SetVec2Uniform('screenResolution', VectorCreate2D(View.Width, View.Height));
+    _Sh.SetFloatUniform('globalTime', Application.Instance.GetTime() / 1000);
   End;
 
   For I:=0 To Pred(_FXCount) Do
     _FXs[I].SetupUniforms(_SH, Slot);
 
+  If (Self._NeedFunction[Integer(fxCellularNoise)]) Then
+  Begin
+    TextureManager.Instance.CellNoise.Bind(Slot);
+    _Sh.SetIntegerUniform('cellNoiseTex', Slot);
+    Inc(Slot);
+  End;
+    
   GraphicsManager.Instance.Renderer.SetBlendMode(blendNone);
   GraphicsManager.Instance.DrawFullscreenQuad(_SH, X1,Y1,X2,Y2);
 End;
 
 Procedure ScreenFXChain.OnContextLost;
 Begin
-  If Assigned(_Shader) Then
-    _Shader.Invalidate();
+  ReleaseObject(_Shader);
+  _NeedsUpdate := True;
 End;
 
 Procedure ScreenFXChain.SetAntiAlias(const Value: Boolean);
@@ -1034,8 +1059,8 @@ Begin
   Exp.Resize(256, 2);
   //Exp.Save('satramp.png');
 
-  _Ramp := Texture.Create();
-  _Ramp.CreateFromImage('vibranceramp', Exp);
+  _Ramp := Texture.Create(rtDynamic, 'vibranceramp');
+  _Ramp.InitFromImage(Exp);
 
   ReleaseObject(Exp);
 

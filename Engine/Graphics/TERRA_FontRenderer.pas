@@ -510,14 +510,12 @@ Var
   Size:Vector2D;
   I:Integer;
   DropColor:Color;
-  Page:FontPage;
+  FM:FontManager;
 Begin
   Result := Self;
 
   If (_Font = Nil) Or (Not _Font.IsReady()) Then
     Exit;
-
-  _Font.Update();
 
   Alpha := IntMin(_Color1.A, _Color2.A);
   Alpha := Alpha - 55;
@@ -531,42 +529,34 @@ Begin
   If (_DropShadow) Then
   Begin
     DropColor := _InitDropColor;
-    DropColor.A := Trunc(DropColor.A * (Alpha/255)); 
+    DropColor.A := Trunc(DropColor.A * (Alpha/255));
   End Else
     DropColor := ColorNull;
 
-  For I:=0 To Pred(_Font.PageCount) Do
+  BeginRender(Text, fontmode_Sprite, X, Y, Layer);
+  If (_GradientMode <> gradientNone) Then
+    UpdateGradient(Size.X, Size.Y);
+
+  FM := FontManager.Instance;
+
+  While (RenderNext()) Do
   Begin
-    Page := _Font.SelectPage(I, 0);
-    If Page = Nil Then
-      Continue;
-
-    BeginRender(Text, fontmode_Sprite, X, Y, Layer);
-    If (_GradientMode <> gradientNone) Then
-      UpdateGradient(Size.X, Size.Y);
-
-    While (RenderNext()) Do
+    If (_CurrentGlyph = Nil) Then
     Begin
-      If (_CurrentGlyph = Nil) Then
-      Begin
-        Continue;
-      End;
-
-      If (_CurrentGlyph.Page<>I) Or (_CurrentGlyph.IsLoading()) Then
-        Continue;
-
-      GetColors(A,B,C,D);
-
-      {$IFNDEF DISTANCEFIELDFONTS}
-      If (_DropShadow) Then
-        Page.DrawGlyph(Position.X - 1.0, Position.Y + 1.0, Layer - 0.1, _Transform, _CurrentGlyph, DropColor, DropColor, DropColor, DropColor, DropColor, _ClipRect, _Italics);
-      {$ENDIF}
-
-      Page.DrawGlyph(Position.X, Position.Y, Layer, _Transform, _CurrentGlyph, _Outline, A,B,C,D, _ClipRect, _Italics);
+      Continue;
     End;
 
-    EndRender();
+    GetColors(A,B,C,D);
+
+    {$IFNDEF DISTANCEFIELDFONTS}
+    If (_DropShadow) Then
+      FM.DrawGlyph(Position.X - 1.0, Position.Y + 1.0, Layer - 0.1, _Transform, _CurrentGlyph, DropColor, DropColor, DropColor, DropColor, DropColor, _ClipRect, _Italics);
+    {$ENDIF}
+
+    FM.DrawGlyph(Position.X, Position.Y, Layer, _Transform, _CurrentGlyph, _Outline, A,B,C,D, _ClipRect, _Italics);
   End;
+
+  EndRender();
 End;
 
 Function FontRenderer.DrawTextToImage(Target:Image; X, Y: Integer; const Text:TERRAString; ForceBlend:Boolean):FontRenderer;

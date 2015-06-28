@@ -150,7 +150,7 @@ Var
 Begin
   S := FileStream.Create(FileName);
   SaveNodes(Node, S);
-  S.Release;
+  ReleaseObject(S);
 End;
 
 
@@ -192,7 +192,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_ChildCount) Do
-    _Childs[I].Release;
+    ReleaseObject(_Childs[I]);
 End;
 
 Procedure SceneNode.AddChild(N: SceneNode);
@@ -218,7 +218,7 @@ Begin
   Begin
     _Childs[I] := _Childs[Pred(_ChildCount)];
     Dec(_ChildCount);
-    N.Release;
+    ReleaseObject(N);
     Exit;
   End Else
     Inc(I);

@@ -145,7 +145,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_SplitCount) Do
-    _fbo[I].Release;
+    ReleaseObject(_fbo[I]);
 End;
 
 Procedure CascadedShadowMap.Bind(Slot:Integer);
@@ -429,7 +429,7 @@ End;
 
 Procedure SimpleShadowMap.Release;
 Begin
-  _FBO.Release;
+  ReleaseObject(_FBO);
 End;
 
 Procedure SimpleShadowMap.Render;

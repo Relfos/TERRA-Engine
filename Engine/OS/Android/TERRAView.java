@@ -14,6 +14,8 @@ import android.view.WindowManager;
 import android.os.SystemClock;
 import android.os.Process;
 
+import java.lang.Runnable;
+
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -138,7 +140,7 @@ class TERRAView extends GLSurfaceView {
 
         /* Set the renderer responsible for frame rendering */
         setRenderer(new Renderer());
-		this.setPreserveEGLContextOnPause(true);		
+		this.setPreserveEGLContextOnPause(false);		
 		
 		WindowManager windowManager = (WindowManager) TERRAActivity.instance.getSystemService(Context.WINDOW_SERVICE);
 		Display display = windowManager.getDefaultDisplay();		 
@@ -481,14 +483,21 @@ class TERRAView extends GLSurfaceView {
                 }
 				
 				//Log.d("App", "Calling On App Update");
-				if (!TERRALibrary.ApplicationUpdate())
-				{
-					Log.d("App", "Engine was terminated!");
-					terminated = true;
-					TERRAActivity.instance.finish();
-					return;
-				}
-				//Log.d("App", "Called On App Update");
+                try {
+                    if (!TERRALibrary.ApplicationUpdate())
+                    {
+                        Log.d("App", "Engine was terminated!");
+                        terminated = true;
+                        TERRAActivity.instance.finish();
+                        return;
+                    }
+                }  catch (Exception e){
+                    Log.d("App", "Engine was halted with errors!");                    
+                    terminated = true;
+                    
+                    TERRAActivity.instance.showException(e.getMessage());                    
+                    return;
+                } 
 				
 				long timeDelta = SystemClock.uptimeMillis() - rotationTime;
 				if (targetOrientation!=currentOrientation &&  timeDelta>2000 && orientationChange==1)

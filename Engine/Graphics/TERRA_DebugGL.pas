@@ -172,9 +172,12 @@ Procedure glAlphaFunc(func: Cardinal; ref: Single);
 
 {$ENDIF}
 
+Procedure LoadOpenGL();
+
 {$IFDEF WINDOWS}
-function wglSwapIntervalEXT(interval: Integer): BOOL;
-Function InitMultisample(hWnd: HWND; pfd: PIXELFORMATDESCRIPTOR;  h_dc: HDC):Cardinal;
+Var
+  wglSwapIntervalEXT: function (interval: Integer):Boolean = Nil;
+//Function InitMultisample(hWnd: HWND; pfd: PIXELFORMATDESCRIPTOR;  h_dc: HDC):Cardinal;
 {$ENDIF}
 
 Procedure glLoadExtensions();
@@ -911,20 +914,10 @@ DebugOpenGL(); End;
 
 {$ENDIF}
 
-{$IFDEF WINDOWS}
-function wglSwapIntervalEXT(interval: Integer): BOOL;
+Procedure LoadOpenGL();
 Begin
-  _LastGLCall := 'wglSwapIntervalEXT';
-  Result := TERRA_OpenGL.wglSwapIntervalEXT(interval);
-DebugOpenGL(); End;
-
-Function InitMultisample(hWnd: HWND; pfd: PIXELFORMATDESCRIPTOR;  h_dc: HDC):Cardinal;
-Begin
-  Result := TERRA_OpenGL.InitMultisample(hWnd, pfd, h_dc);
+  TERRA_OpenGL.LoadOpenGL();
 End;
-
-{$ENDIF}
-
 
 End.
 

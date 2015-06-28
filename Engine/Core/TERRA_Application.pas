@@ -34,8 +34,10 @@ Unit TERRA_Application;
 {-$DEFINE DEBUG_TAPJOY}
 {$ENDIF}
 
+{$DEFINE CRASH_REPORT}
+
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Mutex;
+Uses TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Mutex;
 
 Const
 	// Operating System Class
@@ -52,6 +54,12 @@ Const
   osPSVita      = 512;
   osHTML5       = 1024;
   osFlash       = 2048;
+
+  cpuUnknown = 0;
+  cpuX86_32   = 1;
+  cpuX86_64   = 2;
+  cpuArm_32   = 4;
+  cpuArm_64   = 8;
 
   osDesktop = osWindows Or osLinux or osOSX;
   osMobile = osAndroid Or osiOS Or osWindowsPhone;
@@ -241,7 +249,6 @@ Type
       _Paused:Boolean;
 
       _ContextWasLost:Boolean;
-      _ContextCounter:Integer;
 
       _DeviceX1:Integer;
       _DeviceY1:Integer;
@@ -298,6 +305,9 @@ Type
       Procedure ProcessMessages; Virtual;
       Procedure ProcessCallbacks;
 
+      Procedure OnFrameBegin(); Virtual;
+      Procedure OnFrameEnd(); Virtual;
+
       Function InitSettings:Boolean; Virtual;
 
       Procedure Finish;
@@ -320,7 +330,6 @@ Type
       Procedure AddEventToQueue(Action:Integer; X,Y,Z,W:Single; Value:Integer; S:TERRAString; HasCoords:Boolean);
 
     Public
-
 			Constructor Create();
 
 			Function Run:Boolean; Virtual;
@@ -359,6 +368,7 @@ Type
       Function HasInternet:Boolean; Virtual;
 
       Function HasFatalError:Boolean;
+      Function GetCrashLog():TERRAString; Virtual;
 
       Function PostCallback(Callback:ApplicationCallback; Arg:TERRAObject = Nil; Const Delay:Cardinal = 0):Boolean;
       Procedure CancelCallback(Arg:Pointer);
@@ -451,7 +461,7 @@ Type
 
       Procedure OnAPIResult(API, Code:Integer); Virtual;
 
-      Function OnFatalError(Const ErrorMsg:TERRAString):Boolean; Virtual;
+      Procedure OnFatalError(Const ErrorMsg, CrashLog, Callstack:TERRAString); Virtual;
 
       Procedure OnContextLost(); Virtual;
 
@@ -462,7 +472,9 @@ Type
 
       Procedure OnGesture(StartX, StartY, EndX, EndY, GestureType:Integer; Delta:Single); Virtual;
 
-      //Function GetVRProjectionMatrix(Eye:Integer; FOV, Ratio, zNear, zFar:Single):Matrix4x4; Virtual;
+      {$IFNDEF DISABLEVR}
+        Function GetVRProjectionMatrix(Eye:Integer; FOV, Ratio, zNear, zFar:Single):Matrix4x4; Virtual;
+      {$ENDIF}
 
       Function GetTitle:TERRAString; Virtual;
       Function GetWidth:Word; Virtual;
@@ -519,8 +531,6 @@ Type
       Property Paused:Boolean Read _Paused Write SetPause;
       Property CanReceiveEvents:Boolean Read _CanReceiveEvents;
 
-      Property ContextID:Integer Read _ContextCounter;
-
       Property TapjoyCredits:Integer Read _TapjoyCredits;
 
       Property Orientation:Integer Read _Orientation;
@@ -541,6 +551,7 @@ Function InitializeApplicationComponent(TargetClass, DestroyBefore:ApplicationCo
 Function Blink(Period:Cardinal):Boolean;
 
 Function GetOSName(OS:Integer=0):TERRAString;
+Function GetCPUName(CPUType:Integer=0):TERRAString;
 Function GetProgramName():TERRAString;
 
 Function IsLandscapeOrientation(Orientation:Integer):Boolean;
@@ -548,9 +559,11 @@ Function IsPortraitOrientation(Orientation:Integer):Boolean;
 Function IsInvalidOrientation(Orientation:Integer):Boolean;
 
 Implementation
+
 Uses SysUtils, TERRA_Error, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-TERRA_GraphicsManager,
-  {TERRA_Callstack, }TERRA_Log, TERRA_OS, TERRA_IAP, TERRA_Localization, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager 
+  {$IFNDEF WINDOWS}BaseUnix, {$ENDIF}
+  TERRA_GraphicsManager, TERRA_Callstack,
+  TERRA_Log, TERRA_OS, TERRA_IAP, TERRA_Localization, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager
   {$IFDEF PC}, TERRA_Steam{$ENDIF};
 
 Var
@@ -627,30 +640,6 @@ Begin
 
 {  For I:=0 To Pred(_ApplicationComponentCount) Do
   Log(logDebug,'App', IntToString(I)+ ' '+_ApplicationComponents[I].Component.ClassName);}
-End;
-
-Procedure DumpExceptionCallStack(E: Exception);
-var
-  I: Integer;
-  Frames: PPointer;
-  Report:TERRAString;
-begin
-  Report := 'Fatal Exception! ' + CrLf;
-  If E <> nil Then
-  Begin
-    Report := Report + 'Exception class: ' + E.ClassName + CrLf;
-    Report := Report + 'Message: ' + E.Message + CrLf;
-  end;
-
-  {$IFDEF FPC}
-  Report := Report + BackTraceStrFunc(ExceptAddr);
-  Frames := ExceptFrames;
-  For I := 0 to Pred(ExceptFrameCount) Do
-    Report := Report + LineEnding + BackTraceStrFunc(Frames[I]);
-  {$ENDIF}
-
-  Log(logError, 'App', Report);
-  //Halt; // End of program execution
 End;
 
 {$IFDEF HASTHREADS}
@@ -782,8 +771,8 @@ Begin
   _AntialiasSamples := Self.GetAntialiasSamples();
 
   {$IFDEF PC}
-  If (Steam.Instance.Enabled) And (IsSupportedLanguage(Steam.Instance.Language)) Then
-    _Language := Steam.Instance.Language;
+  If (SteamManager.Instance.Enabled) And (IsSupportedLanguage(SteamManager.Instance.Language)) Then
+    _Language := SteamManager.Instance.Language;
   {$ENDIF}
 
   {$IFNDEF MOBILE}
@@ -842,10 +831,12 @@ Begin
 
   {$IFNDEF OXYGENE}
   If (Not _Managed) Then
+  Begin
     Self.Release;
+  End;
   {$ENDIF}
 
-  Log(logWarning, 'App', 'Application has shutdown.')
+  Log(logWarning, 'App', 'Application has shutdown.');
 End;
 
 procedure BaseApplication.Terminate(ForceClose: Boolean);
@@ -943,9 +934,13 @@ Begin
 
   _Running := True;
   _FrameStart := Application.GetTime();
+  Self.OnFrameBegin();
   While (_Running) And (Not _Terminated) Do
   Begin
+  {$IFDEF CRASH_REPORT}
   Try
+  {$ENDIF}
+
     {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Processing messages');{$ENDIF}{$ENDIF}
     Self.ProcessMessages();
     {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'All messages processed');{$ENDIF}{$ENDIF}
@@ -980,7 +975,6 @@ Begin
     If (_ContextWasLost) Then
     Begin
       _ContextWasLost := False;
-      Inc(_ContextCounter);
       Self.UpdateContextLost();
     End;
 
@@ -998,23 +992,22 @@ Begin
 	    ToggleFullScreen();
     End;
 
+    Self.OnFrameEnd();
+
     If (_Managed) Then
       Exit;
 
+  {$IFDEF CRASH_REPORT}
   Except
     On E : Exception do
     Begin
       //FillCallStack(St, 0);
       Log(logError, 'Application', 'Exception: '+E.ClassName +' '+E.Message);
-
-      If Not Self.OnFatalError(E.Message) Then
-      Begin
-        DumpExceptionCallStack(E);
-        //Log(logError, 'Application', CallStackTextualRepresentation(St,' '));
-        Break;
-      End;
+      Self.OnFatalError(CrLf+E.Message, Self.GetCrashLog(), DumpExceptionCallStack(E));
+      Exit;
     End;
   End;
+  {$ENDIF}
 End;
 
   Log(logDebug, 'App', 'Application is finishing...');
@@ -1023,6 +1016,30 @@ End;
   Result := False;
 End;
 
+Function GetCPUName(CPUType:Integer=0):TERRAString;
+Begin
+  If (CPUType = 0) Then
+  Begin
+    {$IFDEF PC}
+    CPUType := cpuX86_32;
+    {$ENDIF}
+
+    {$IFDEF MOBILE}
+    CPUType := cpuArm_32;
+    {$ENDIF}
+  End;
+
+  Case CPUType Of
+  cpuX86_32: Result := 'x86_32';
+  cpuX86_64: Result := 'x86_64';
+
+  cpuArm_32: Result := 'ARM_32';
+  cpuArm_64: Result := 'ARM_64';
+
+  Else
+    Result := 'Unknown';
+  End;
+End;
 
 Function GetOSName(OS:Integer=0):TERRAString;
 Begin
@@ -1102,6 +1119,29 @@ procedure BaseApplication.DisableAds; Begin End;
 procedure BaseApplication.OpenAppStore(AppID: TERRAString); Begin End;
 
 Procedure BaseApplication.LogToConsole(const Text: TERRAString);
+Begin
+  // do nothing
+End;
+
+Function BaseApplication.GetCrashLog: TERRAString;
+Begin
+  Result :=
+    'OS: '+GetOSName() + CrLf +
+    'CPU: '+GetCPUName() + CrLf +
+    'Cores: '+IntToString(Self.CPUCores) + CrLf +
+    'Width: '+IntToString(Self.Width) + CrLf +
+    'Height: '+IntToString(Self.Height) + CrLf +
+    'Lang: '+ Self.Language + CrLf +
+    'Country: '+ Self.Country + CrLf +
+    'Bundle: '+ Self.BundleVersion + CrLf;
+End;
+
+Procedure BaseApplication.OnFrameBegin;
+Begin
+  // do nothing
+End;
+
+Procedure BaseApplication.OnFrameEnd;
 Begin
   // do nothing
 End;
@@ -1943,7 +1983,18 @@ Begin
   _CallbackMutex.Unlock();
 End;
 
+{$IFNDEF WINDOWS}
+Procedure DoSig(sig:Integer); cdecl;
+Begin
+   RaiseError('Segmentation fault');
+End;
+{$ENDIF}
+
 Function BaseApplication.InitSettings: Boolean;
+{$IFNDEF WINDOWS}
+Var
+  oa,na : PSigActionRec;
+{$ENDIF}
 Begin
   Log(logDebug, 'App', 'Initializing app path');
   {$IFDEF OXYGENE}
@@ -1952,9 +2003,19 @@ Begin
   GetDir(0, _Path);
   {$ENDIF}
   _Language := 'EN';
-  _ContextCounter := 1;
-  _CPUCores := 1;
 
+{$IFDEF INSTALL_SIGNAL}
+  Log(logDebug, 'App', 'Installing signals');
+  new(na);
+  new(oa);
+  FillChar(Na^, SizeOf(Na), 0);
+  na^.sa_Handler := SigActionHandler(@DoSig);
+  FillChar(na^.Sa_Mask, SizeOf(na^.sa_mask), #0);
+  na^.Sa_Flags:=0;
+  fpSigAction(SIGSEGV, na, oa);
+{$ENDIF}
+
+  _CPUCores := 1;
 
   _DebuggerPresent := Self.IsDebuggerPresent();
 
@@ -2170,9 +2231,9 @@ Begin
 End;
 
 
-Function BaseApplication.OnFatalError(const ErrorMsg: TERRAString):Boolean;
+Procedure BaseApplication.OnFatalError(Const ErrorMsg, CrashLog, Callstack:TERRAString); 
 Begin
-  Result := False;
+  _Running := False;
 End;
 
 Procedure BaseApplication.OnIAP_External(Const PurchaseID:TERRAString; UserData:Pointer);
@@ -2255,10 +2316,12 @@ Begin
   Log(logDebug, 'Client', 'Gamepad '+IntToString(Index)+' was disconnected!');
 End;
 
-{Function BaseApplication.GetVRProjectionMatrix(Eye: Integer; FOV, Ratio, zNear, zFar: Single): Matrix4x4;
+{$IFNDEF DISABLEVR}
+Function BaseApplication.GetVRProjectionMatrix(Eye: Integer; FOV, Ratio, zNear, zFar: Single): Matrix4x4;
 Begin
   Result := Matrix4x4Perspective(FOV, Ratio, zNear, zFar);
-End;}
+End;
+{$ENDIF}
 
 Function BaseApplication.SelectRenderer: Integer;
 Begin

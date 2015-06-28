@@ -239,7 +239,7 @@ Var
 Begin
   Source := MemoryStream.Create(FileName);
   Load(Source);
-  Source.Release;
+  ReleaseObject(Source);
 End;
 
 Procedure SMDAnimation.UpdateBone(Var Bone:SMDBone; FrameIndex:Integer);
@@ -523,7 +523,7 @@ Var
 Begin
   S := FileStream.Open(FileName);
   Self.Load(S);
-  S.Release;
+  ReleaseObject(S);
 End;
 
 { SMDModel }

@@ -25,8 +25,8 @@ Unit TERRA_SoundManager;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Sound, TERRA_Application, TERRA_Collections, TERRA_Vector3D,
-  TERRA_Log, TERRA_SoundSource, TERRA_SoundAmbience, TERRA_ResourceManager,TERRA_AL;
+  TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Sound, TERRA_Application, TERRA_Collections, TERRA_Vector3D,
+  TERRA_Log, TERRA_SoundSource, TERRA_SoundAmbience, TERRA_Resource, TERRA_ResourceManager, TERRA_AL;
 
 Type
   SoundManager = Class(ResourceManager)
@@ -178,7 +178,7 @@ Begin
 
     If S<>'' Then
     Begin
-      Result := Sound.Create(S);
+      Result := Sound.Create(rtLoaded, S);
       Self.AddResource(Result);
     End Else
     If ValidateError Then
@@ -228,11 +228,11 @@ Var
 Begin
   Inherited;
 
-  If (GraphicsManager.Instance().MainViewport = Nil) Then
+(*  If (GraphicsManager.Instance().ActiveViewport = Nil) Then
     Exit;
-  
-  Cam := GraphicsManager.Instance().MainViewport.Camera;
-  UpdatePosition(Cam.Position, Cam.View, Cam.Up);
+
+  Cam := GraphicsManager.Instance().ActiveViewport.Camera;
+  UpdatePosition(Cam.Position, Cam.View, Cam.Up);*)
 
   I := 0;
   While (I<_SourceCount) Do
@@ -245,7 +245,7 @@ Begin
   If (Not _Sources[I].Loop)  And (_Sources[I].Status = sndStopped) Then
   Begin
     _Sources[I].OnFinish();
-    _Sources[I].Release();
+    ReleaseObject(_Sources[I]);
     _Sources[I] := _Sources[Pred(_SourceCount)];
     Dec(_SourceCount);
   End Else
@@ -271,7 +271,7 @@ Begin
   If (N<0) Then
     Exit;
 
-  _Sources[N].Release;
+  ReleaseObject(_Sources[N]);
   _Sources[N] := _Sources[Pred(_SourceCount)];
   _Sources[Pred(_SourceCount)] := Nil;
   Dec(_SourceCount);
@@ -312,9 +312,10 @@ Begin
   Result.Bind(MySound);
 
   Log(logDebug, 'Sound', 'Setting '+MySound.Name+' position');
+  (*
   If Assigned(GraphicsManager.Instance().MainViewport) Then
     Result.Position := GraphicsManager.Instance().MainViewport.Camera.Position
-  Else
+  Else*)
     Result.Position := VectorZero;
 
   Log(logDebug, 'Sound', 'Registering sound in manager');

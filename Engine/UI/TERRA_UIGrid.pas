@@ -717,8 +717,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_ElementCount) Do
-  If (_Elements[I]<>Nil) Then
-    _Elements[I].Release();
+    ReleaseObject(_Elements[I]);
 
   _ElementCount := 0;
 End;

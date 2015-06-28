@@ -231,7 +231,7 @@ public class TERRACrashReporter {
 		}
 	}	
 	
-	public void sendLog(String email, String subject, String preface) {
+	public boolean sendLog(String email, String subject, String preface, int returnCode) {
 		ArrayList<String> lines = mLastLogs;
 
 		email = "admin@minimon3d.com";
@@ -255,7 +255,14 @@ public class TERRACrashReporter {
 			intent.putExtra(Intent.EXTRA_STREAM, uri);			
 		}
 		
-		TERRAActivity.instance.startActivityForResult(intent, 126);
+        try {
+            TERRAActivity.instance.startActivityForResult(intent, returnCode);
+        } catch (Exception e) {
+            Log.e("crash", preface);
+            return false;
+        }
+        
+        return true;
 	}
 
 }

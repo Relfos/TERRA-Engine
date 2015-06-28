@@ -37,7 +37,7 @@ Unit TERRA_MemoryStream;
 
 Interface
 
-Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}TERRA_String, TERRA_Utils, TERRA_Stream;
+Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}TERRA_String, TERRA_Utils, TERRA_Object, TERRA_Stream;
 
 Type
   MemoryStream = Class(Stream)
@@ -109,7 +109,7 @@ Begin
   Log(logDebug, 'IO', 'Loaded memory stream from '+FileName+', size = '+IntToString(_Size));
 
   F.Read(_Buffer, _Size);
-  F.Release();
+  ReleaseObject(F);
 
   _Name := FileName;
 End;
@@ -187,6 +187,9 @@ Var
   NewSize:Integer;
 Begin
   Result := 0;
+
+  If Length<=0 Then
+    Exit;
 
   If (_Pos+Length>_Size) Then
   Begin

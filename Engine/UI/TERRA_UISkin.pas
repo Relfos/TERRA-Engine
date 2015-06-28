@@ -153,10 +153,10 @@ Begin
 
   Quad.StartPos := P;
   Quad.EndPos := VectorCreate2D(Trunc(P.X + Width), Trunc(P.Y + Height));
-  Quad.StartUV.X := (Item.X + ( (U1*Pred(Source.Width)) / MyTextureAtlas.Width));
-  Quad.StartUV.Y := (Item.Y + ( (V1*Pred(Source.Height)) / MyTextureAtlas.Height));
-  Quad.EndUV.X := (Item.X + ( ((U2*Pred(Source.Width))) / MyTextureAtlas.Width));
-  Quad.EndUV.Y := (Item.Y + ( ((V2*Pred(Source.Height))) / MyTextureAtlas.Height));
+  Quad.StartUV.X := Item.U1;
+  Quad.StartUV.Y := Item.V1;
+  Quad.EndUV.X := Item.U2;
+  Quad.EndUV.Y := Item.V2;
   Quad.PageID := Item.PageID;
 
   Inc(Target.QuadCount);

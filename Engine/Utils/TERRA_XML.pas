@@ -322,7 +322,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_NodeCount) Do
-    _Childs[I].Release;
+    ReleaseObject(_Childs[I]);
   SetLength(_Childs,0);
   _NodeCount:=0;
 End;
@@ -562,8 +562,7 @@ End;
 // LXMLDocument
 Procedure XMLDocument.Release;
 Begin
-  If Assigned(_Root) Then
-    _Root.Release;
+  ReleaseObject(_Root);
 End;
 
 Function XMLDocument.GetNodeByName(Const Name:TERRAString):XMLNode;
@@ -651,7 +650,7 @@ Begin
   {$IFDEF PC}
  (* Dest := FileStream.Create('debug\'+GetFileName(Source.Name,False));
   DumpXML(_Root, Dest, 0);
-  Dest.Release;*)
+  ReleaseObject(Dest);*)
   {$ENDIF}
 End;
 
@@ -673,7 +672,7 @@ Begin
     Source.Encoding := Encoding;
 
   LoadFromStream(Source);
-  Source.Release;
+  ReleaseObject(Source);
 End;
 
 Procedure XMLDocument.SaveToFile(FileName:TERRAString; SaveFlags:Cardinal);
@@ -682,7 +681,7 @@ Var
 Begin
   Dest := FileStream.Create(FileName);
   Save(Dest, SaveFlags);
-  Dest.Release;
+  ReleaseObject(Dest);
 End;
 
 Procedure XMLDocument.LoadFromString(Data:TERRAString; Encoding:StringEncoding);
@@ -692,7 +691,7 @@ Begin
   Source := MemoryStream.Create(Length(Data), @Data[1]);
   Source.Encoding := Encoding;
   LoadFromStream(Source);
-  Source.Release;
+  ReleaseObject(Source);
 End;
 
 Function XMLDocument.AddVector(Const Name:TERRAString; Value:Vector3D; Parent:XMLNode=Nil):XMLNode;
@@ -737,9 +736,7 @@ Begin
   If Value = _Root Then
     Exit;
 
-  If Assigned(_Root) Then
-    _Root.Release();
-
+  ReleaseObject(_Root);
   _Root := Value;
 End;
 

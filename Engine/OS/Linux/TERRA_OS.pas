@@ -96,7 +96,6 @@ Type
 
     	Procedure SetState(State:Cardinal); Override;
 
-      Class Procedure DisplayMessage(S:TERRAString);
       Class Function GetCurrentTime:TERRATime;
       Class Function GetCurrentDate:TERRADate;
       Class Function GetTime:Cardinal;
@@ -126,11 +125,6 @@ End;
 Class Function LinuxApplication.Instance:LinuxApplication;
 Begin
   Result := _Application_Instance;
-End;
-
-Class Procedure LinuxApplication.DisplayMessage(S:TERRAString);
-Begin
-//  TERRA_Log.Log(logNone,'System',S);
 End;
 
 Class Function LinuxApplication.GetCurrentTime:TERRATime;
@@ -1102,7 +1096,6 @@ Begin
   End; 
 
   _ScreenHandle := DefaultScreen(_Display);
-  
 
   //Root := RootWindow(_Display, Vi.Screen);
   Root := RootWindow(_Display, _ScreenHandle);
@@ -1122,11 +1115,13 @@ Begin
                          0, CopyFromParent, InputOutput, {Vi.visual}Nil,
                          CWBorderPixel {Or CWColormap} Or CWEventMask,
                          @_Attr);
+
   // only set window title and handle wm_delete_events if in windowed mode
   wmDelete := XInternAtom(_Display, 'WM_DELETE_WINDOW', True);
   XSetWMProtocols(_Display, _Window, @wmDelete, 1);
   XSetStandardProperties(_Display, _Window, PAnsiChar(Title), PAnsiChar(Title),
                          None, Nil, 0, Nil);
+
   XMapRaised(_Display, _Window);
 
   // Hide cursor
@@ -1301,10 +1296,10 @@ Begin
     _Screen.Height := xrrs[original_size_id].height;
   End;
 
+  Renderers.Add(OpenGLRenderer.Create());
+
   XCloseDisplay(_Display);
   _Display := Nil;
-
-  Renderers.Add(OpenGLRenderer.Create());
 
   // Initialize joysticks/gamepads
   //For I:=0 To 3 Do
@@ -1314,4 +1309,7 @@ Begin
   Result := True;
 End;
 
+Initialization
+Finalization
+  ReleaseObject(_Application_Instance);
 End.

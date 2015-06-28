@@ -434,7 +434,7 @@ Begin
     If Prefix<>'' Then
       Key := Prefix + Key;
 
-    _Strings.Add(StringEntry.Create(Key, Value, GroupID));
+    Self.SetString(Key, Value, GroupID);
     //Log(logDebug, 'Strings', 'Found '+_Strings[I+Ofs].Key +' = '+_Strings[I+Ofs].Value);
   End;
 End;
@@ -470,7 +470,7 @@ Begin
   Source := FileManager.Instance.OpenStream(S);
   _Lang := Lang;
   Self.MergeGroup(Source, -1, '');
-  Source.Release;
+  ReleaseObject(Source);
 End;
 
 Procedure LocalizationManager.Reload();

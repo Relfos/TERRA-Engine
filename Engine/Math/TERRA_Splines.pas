@@ -280,7 +280,7 @@ Var
 Begin
   Dest := FileStream.Create(FileName);
   Save(Dest);
-  Dest.Release;
+  ReleaseObject(Dest);
 End;
 
 Procedure Spline.Load(Const FileName:TERRAString);
@@ -289,7 +289,7 @@ Var
 Begin
   Source := FileStream.Open(FileName);
   Load(Source);
-  Source.Release;
+  ReleaseObject(Source);
 End;
 
 Function Spline.GetLength: Single;

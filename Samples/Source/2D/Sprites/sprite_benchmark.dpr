@@ -46,7 +46,7 @@ Begin
   // Load a Tex
   Tex := TextureManager.Instance.GetTexture('ghost');
 
-  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorBlue;
+  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlue;
 
   W := UIManager.Instance.Width;
   H := UIManager.Instance.Height;

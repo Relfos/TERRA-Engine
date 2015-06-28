@@ -177,11 +177,11 @@ End;
 
 Procedure CriticalSection.Lock;
 Var
-  ThreadID:Cardinal;
+  ThreadID:PtrUInt;
 Begin
-  ThreadID := Cardinal(GetCurrentThreadId());
+(*  ThreadID := PtrUInt(GetCurrentThreadId());
 
-(*  If (_Locked) Then
+  If (_Locked) Then
   Begin
     Inc(_LockCounter);
 
@@ -198,16 +198,16 @@ Begin
 {$ENDIF}
 
   _Locked := True;
-  _LockID := ThreadID;
+//  _LockID := ThreadID;
 End;
 
 Procedure CriticalSection.Unlock;
 Var
   ThreadID:Cardinal;
 Begin
-  ThreadID := Cardinal(GetCurrentThreadId());
+  (*ThreadID := Cardinal(GetCurrentThreadId());
 
-(*  Dec(_LockCounter);
+  Dec(_LockCounter);
   If (_Locked) And (_LockID = ThreadID) Then
   Begin
     If _LockCounter>0 Then

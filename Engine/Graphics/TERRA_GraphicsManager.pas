@@ -36,18 +36,15 @@ Unit TERRA_GraphicsManager;
 
 Interface
 Uses {$IFNDEF DEBUG_LEAKS}TERRA_MemoryManager,{$ENDIF} {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Downsampler, TERRA_Renderer,
+  TERRA_String, TERRA_Object, TERRA_Downsampler, TERRA_Renderer,
   {$IFDEF POSTPROCESSING}TERRA_ScreenFX,{$ENDIF}
   {$IFDEF SHADOWMAPS}TERRA_ShadowMaps,{$ENDIF}
-  TERRA_Object, TERRA_BoundingBox, TERRA_Camera, TERRA_Color, TERRA_Matrix4x4,
+  TERRA_BoundingBox, TERRA_Camera, TERRA_Color, TERRA_Matrix4x4,
   TERRA_Utils, TERRA_Texture, TERRA_Scene, TERRA_Vector3D,
   TERRA_Viewport, TERRA_Application, TERRA_VertexFormat,
   TERRA_Image, TERRA_Math, TERRA_Vector2D, TERRA_Ray, TERRA_Collections, TERRA_Pool;
 
 Const
-  lightModelDefault   = 0;
-  lightModelSimple    = 1;
-
   //FogMode
   fogOff      = 0;
   fogDistance = 1;
@@ -145,7 +142,7 @@ Type
       _Viewports:Array Of Viewport;
       _ViewportCount:Integer;
       _CurrentViewport:Viewport;
-      _MainViewport:Viewport;
+
       _DeviceViewport:Viewport;
       _UIViewport:Viewport;
 
@@ -162,8 +159,6 @@ Type
       _UIHeight:Integer;
       _UIScale:Single;
       
-      _LightModel:Integer;
-
       _Scene:Scene;
 
       _Occluders:Occluder;
@@ -201,6 +196,12 @@ Type
 
       _ElapsedTime:Single;
 
+      _SimpleColor:ShaderInterface;
+      _SimpleTexture:ShaderInterface;
+      _SimpleTextureColored:ShaderInterface;
+      _FullscreenQuadShader:ShaderInterface;
+      _FullscreenColorShader:ShaderInterface;
+
       Procedure RenderUI;
       Procedure RenderStencilShadows(View:Viewport);
       Procedure RenderSceneInternal(View:Viewport; Pass:RenderTargetType);
@@ -213,6 +214,8 @@ Type
       Procedure OnViewportChange(X1, Y1, X2, Y2:Integer); Override;
 
       Procedure RestoreContext;
+
+      Procedure SetRenderer(Value: GraphicsRenderer);
 
     Public
       ShowShadowVolumes:Boolean;
@@ -248,6 +251,7 @@ Type
 
 			Procedure RenderScene();
 
+      Function GetDefaultFullScreenShader():ShaderInterface;
 
       Procedure TestDebugKeys();
 
@@ -301,10 +305,9 @@ Type
 
       Property CameraCount:Integer Read _CameraCount;
 
-      Property Renderer:GraphicsRenderer Read _Renderer;
+      Property Renderer:GraphicsRenderer Read _Renderer Write SetRenderer;
 
       Property ActiveViewport:Viewport Read _CurrentViewport Write SetCurrentViewport;
-      Property MainViewport:Viewport Read _MainViewport;
       Property DeviceViewport:Viewport Read _DeviceViewport;
       Property UIViewport:Viewport Read _UIViewport;
 
@@ -320,12 +323,7 @@ Type
       Property UI_Width:Integer Read _UIWidth;
       Property UI_Height:Integer Read _UIHeight;
       Property UI_Scale:Single Read _UIScale;
-
-      
-      Property LightModel:Integer Read _LightModel Write _LightModel;
 	End;
-
-Function GetDefaultFullScreenShader():ShaderInterface;
 
 Implementation
 
@@ -336,12 +334,6 @@ Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_UI, TERRA_ResourceManager, TERRA_In
 Var
   _GraphicsManager_Instance:ApplicationObject = Nil;
   _ShuttingDown:Boolean = False;
-
-  _SimpleColor:ShaderInterface;
-  _SimpleTexture:ShaderInterface;
-  _SimpleTextureColored:ShaderInterface;
-  _FullscreenQuadShader:ShaderInterface;
-  _FullscreenColorShader:ShaderInterface;
 
 Class Function GraphicsManager.IsShuttingDown:Boolean;
 Begin
@@ -508,16 +500,6 @@ Begin
   Result := S;
 End;
 
-Function GetDefaultFullScreenShader():ShaderInterface;
-Begin
-  If (_FullscreenQuadShader = Nil) Then
-  Begin
-    _FullscreenQuadShader := GraphicsManager.Instance.Renderer.CreateShader();
-    _FullscreenQuadShader.Generate('fullscreen_quad', GetShader_FullscreenQuad());
-  End;
-
-  Result := _FullscreenQuadShader;
-End;
 
 { Occluder }
 Procedure Occluder.SetTransform(Transform:Matrix4x4; Width,Height:Single);
@@ -625,7 +607,7 @@ Begin
     Image.FillRectangle(Integer(Round(_StartVertex.X)), Integer(Round(_StartVertex.Y)), Integer(Round(_EndVertex.X)), Integer(Round(_EndVertex.Y)), ColorRed);
     Image.FillRectangle(Integer(Round(A.X)), Integer(Round(A.Y)), Integer(Round(B.X)), Integer(Round(B.Y)), ColorBlue);
     Image.Save('occlusion.png');
-    Image.Release;
+    ReleaseObject(Image)
     Halt;
   End;}
 
@@ -681,16 +663,13 @@ End;
 
 Procedure GraphicsManager.Init;
 Var
-  V:Viewport;
   OW, OH:Integer;
   S:TERRAString;
   RendererID:Integer;
 Begin
   Log(logDebug, 'GraphicsManager', 'Initializing');
 
-
   _CurrentViewport := Nil;
-  _MainViewport := Nil;
   _DeviceViewport := Nil;
   _UIViewport := Nil;
   _DepthSize := 2048;
@@ -714,15 +693,13 @@ Begin
   If (RendererID<0) Or (RendererID>=Renderers.Count) Then
     RendererID := 0;
 
-  _Renderer := GraphicsRenderer(Renderers.GetItemByIndex(RendererID));
-  If _Renderer = Nil Then
+  SetRenderer(GraphicsRenderer(Renderers.GetItemByIndex(RendererID)));
+
+  If Self.Renderer = Nil Then
   Begin
     RaiseError('Failed to initialized renderer with ID '+IntToString(RendererID));
     Exit;
   End;
-
-  Log(logDebug, 'GraphicsManager', 'Initializing Renderer: '+_Renderer.Name);
-  _Renderer.Reset();
 
   Log(logDebug, 'GraphicsManager', 'Width='+IntToString(_Width)+' Height='+IntToString(_Height));
 
@@ -799,28 +776,27 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
 
   Log(logDebug, 'GraphicsManager', 'Selected 3D resolution: '+IntToString(OW)+' x ' +IntToString(OH));
 
-  V := Viewport.Create('main', OW, OH);
-  AddViewport(V);
-
-  V.DrawSky := True;
-  V.EnableDefaultTargets();
-  {$IFDEF POSTPROCESSING}
-  V.SetPostProcessingState(_Renderer.Features.PostProcessing.Avaliable);
-  {$ELSE}
-  V.SetPostProcessingState(False);
-  {$ENDIF}
-
   // make UI view
   _UIViewport := Viewport.Create('UI', Self.UI_Width, Self.UI_Height, {$IFDEF FRAMEBUFFEROBJECTS}Self.UI_Scale{$ELSE}1.0{$ENDIF});
   _UIViewport.SetRenderTargetState(captureTargetColor, True);
-  _UIViewport.SetTarget(_DeviceViewport
-  , 0, 0, 1.0, 1.0);
+  _UIViewport.SetTarget(_DeviceViewport, 0, 0, 1.0, 1.0);
 
   ShowWireframe := False;
 
   Self.ReflectionMatrixSky := Matrix4x4Identity;
   Self.ReflectionMatrix := Matrix4x4Identity;
  
+End;
+
+Function GraphicsManager.GetDefaultFullScreenShader():ShaderInterface;
+Begin
+  If (_FullscreenQuadShader = Nil) Then
+  Begin
+    _FullscreenQuadShader := GraphicsManager.Instance.Renderer.CreateShader();
+    _FullscreenQuadShader.Generate('fullscreen_quad', GetShader_FullscreenQuad());
+  End;
+
+  Result := _FullscreenQuadShader;
 End;
 
 Procedure GraphicsManager.AddViewport(V:Viewport);
@@ -836,12 +812,6 @@ Begin
 
   If Not Assigned(ActiveViewport) Then
     ActiveViewport := V;
-
-  If Not Assigned(_MainViewport) Then
-  Begin
-    _MainViewport := V;
-    _MainViewport.SetTarget(_DeviceViewport, 0, 0, 1.0, 1.0);
-  End
 End;
 
 Function GraphicsManager.GetViewport(Index:Integer):Viewport;
@@ -870,7 +840,7 @@ Begin
   If (N<0) Then
     Exit;
 
-  _Viewports[N].Release;
+  ReleaseObject(_Viewports[N]);
   _Viewports[N] := _Viewports[Pred(_ViewportCount)];
   Dec(_ViewportCount);
 End;
@@ -905,7 +875,7 @@ Begin
   If (N<0) Then
     Exit;
 
-  _Cameras[N].Release;
+  ReleaseObject(_Cameras[N]);
   _Cameras[N] := _Cameras[Pred(_CameraCount)];
   Dec(_CameraCount);
 End;
@@ -946,6 +916,7 @@ Var
 Begin
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'BeginUIRendering');{$ENDIF}
 
+  Self.ActiveViewport := _UIViewport;
   _UIViewport.BackgroundColor := ColorNull;
   Target := _UIViewport.GetRenderTarget(captureTargetColor);
   If Assigned(Target) Then
@@ -1287,7 +1258,7 @@ Var
   N:Integer;
 Begin
   {$IFDEF POSTPROCESSING}
-  If (Not GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Or (Not View.IsPostProcessingEnabled()) Then
+  If (Not GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Or (Not View.HasPostProcessing()) Then
     N := renderStageDiffuse
   Else
   Case Pass Of
@@ -1437,7 +1408,7 @@ Begin
       If (Target = Nil) Then
         Continue;
 
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Rendering viewport: '+View.Name+', target '+TargetNames[I]+', width:'+IntToString(Target.Width)+', height:'+IntToString(Target.Height));{$ENDIF}
+      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Rendering viewport: '+View.Name+', target '+IntToString(I)+', width:'+IntToString(Target.Width)+', height:'+IntToString(Target.Height));{$ENDIF}
 
       Case RenderTargetType(I) Of
         captureTargetRefraction:
@@ -1468,10 +1439,11 @@ Begin
 
       Inc(Count);
 
-      {If (_RenderStage = renderStageDiffuse) And (Application.Instance.Input.Keys.WasPressed(keyMouseLeft)) Then
-      Target.Save(Application.Instance.DocumentPath+PathSeparator+ 'frame.png');}
-
       {$IFDEF PC}
+      (*
+      If (_RenderStage = renderStageDiffuse) And (InputManager.Instance.Keys.WasPressed(KeyH)) Then
+        Target.GetImage.Save('frame.png');*)
+      
       {If (_RenderStage = renderStageGlow) And (Application.Instance.Input.Keys.WasPressed(Ord('M'))) Then
         Target.Save('bloom.png');
        If (_RenderStage = renderStageRefraction) And (Application.Instance.Input.Keys.WasPressed(Ord('N'))) Then
@@ -1490,13 +1462,6 @@ Var
 Begin
   If Not Assigned(_Scene) Then
     Exit;
-
-
-  If Renderer.Settings.Changed Then
-    Renderer.OnSettingsChange();
-
-
-  Inc(_FrameID);
 
   //glAlphaFunc(GL_GREATER, 0.1);
 
@@ -1963,6 +1928,13 @@ Begin
     ReleaseObject(_Viewports[I]);
   _ViewportCount := 0;
 
+  ReleaseObject(_FullScreenQuadVertices);
+
+  ReleaseObject(_SimpleColor);
+  ReleaseObject(_SimpleTexture);
+  ReleaseObject(_SimpleTextureColored);
+  ReleaseObject(_FullscreenQuadShader);
+  ReleaseObject(_FullscreenColorShader);
 
   ReleaseObject(_BucketOpaque);
   ReleaseObject(_BucketAlpha);
@@ -1975,14 +1947,13 @@ Begin
 
   SetScene(Nil);
 
-  ReleaseObject(_Renderer);
-
   _GraphicsManager_Instance := Nil;
 End;
 
+
 Procedure GraphicsManager.Update;
 Var
-  I:Cardinal;
+  I:Integer;
   Target:RenderTargetInterface;
   Time:Cardinal;
   UpdateFPS:Boolean;
@@ -2010,9 +1981,21 @@ Begin
 
   Renderer.BeginFrame();
 
+  If Renderer.Settings.Changed Then
+    Renderer.OnSettingsChange();
+
+  Inc(_FrameID);
+
   If (Not _Prefetching) And (Render3D) Then
     Self.RenderScene;
 
+
+  // resolve offscreen buffers
+  For I:=Pred(_ViewportCount) DownTo 0 Do
+  If (_Viewports[I].Active) And (_Viewports[I].AutoResolve) Then
+  Begin
+    _Viewports[I].DrawToTarget(True, True);
+  End;
 
 // {$IFDEF PC} Render2D  := Application.Instance.Input.Keys[keyF1];{$ENDIF}
 
@@ -2020,41 +2003,30 @@ Begin
     Self.RenderUI();
 
   _DeviceViewport.Bind(0);
-
   _DeviceViewport.Restore(True);
 
-  Target := _DeviceViewport.GetRenderTarget(captureTargetColor);
 
-  {$IFDEF IPHONE}
-  If Target = Nil Then
-    Exit;
-  {$ENDIF}
+   Target := _DeviceViewport.GetRenderTarget(captureTargetColor);
 
-  If Assigned(Target) Then
+ If Assigned(Target) Then
     Target.BeginCapture();
 
   For I:=0 To Pred(_ViewportCount) Do
-  If (_Viewports[I].Active) Then
+  If (_Viewports[I].Active) And (Not _Viewports[I].AutoResolve) Then
   Begin
     If (_Viewports[I].Target = _DeviceViewport) Then
-      _Viewports[I].DrawToTarget(True)
+      _Viewports[I].DrawToTarget(True, True)
     Else
     If (_Viewports[I].Target = Nil) Then
-      _Viewports[I].DrawToTarget(True);
+      _Viewports[I].DrawToTarget(True, True);
   End;
 
   If (Render2D) And (Integer(Self.ShowDebugTarget) <=0) Then
-    _UIViewport.DrawToTarget(False);
+    _UIViewport.DrawToTarget(False, False);
 
-  {$IFDEF IPHONE}
-  FrameBufferObject(Target).PresentToScreen();
-  Target.EndCapture();
-  {$ELSE}
   If Assigned(Target) Then
     Target.EndCapture();
-  //_DeviceViewport.DrawFullScreen();
-  {$ENDIF}
-
+ 
   ClearTemporaryDebug3DObjects();
 
   Renderer.EndFrame();
@@ -2166,6 +2138,18 @@ Function GraphicsManager.SwapScene(MyScene:Scene):Scene;
 Begin
   Result := _Scene;
   _Scene := MyScene;
+End;
+
+Procedure GraphicsManager.SetRenderer(Value: GraphicsRenderer);
+Begin
+  ReleaseObject(_Renderer);
+
+  _Renderer := Value;
+  If _Renderer = Nil Then
+    Exit;
+
+  Log(logDebug, 'GraphicsManager', 'Initializing Renderer: '+_Renderer.Name);
+  _Renderer.Reset();
 End;
 
 { Renderable }
@@ -2302,8 +2286,11 @@ Var
   I:Integer;
   Img:Image;
 Begin
+  If Renderer = Nil Then
+    Exit;
+    
   Log(logDebug, 'GraphicsManager', 'Restoring rendering context');
-  Renderer.ResetState();
+  Renderer.OnContextLost();
 
   _DeviceViewport.OnContextLost();
   _UIViewport.OnContextLost();
@@ -2410,4 +2397,4 @@ Begin
   {$ENDIF}
 End;
 
-End.
+End.

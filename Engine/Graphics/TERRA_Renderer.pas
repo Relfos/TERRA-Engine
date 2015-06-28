@@ -205,8 +205,6 @@ Type
     Protected
       _BackgroundColor:Color;
 
-      _Active:Boolean;
-
       _HasDepthBuffer:Boolean;
       _HasStencilBuffer:Boolean;
 
@@ -223,10 +221,7 @@ Type
 
       Procedure Resize(NewWidth, NewHeight:Integer); Virtual; Abstract;
 
-      Procedure PresentToScreen(); Virtual;
-
       Property BackgroundColor:Color Read _BackgroundColor Write SetBackgroundColor;
-      Property Active:Boolean Read _Active;
 
       Property PixelSize:PixelSizeType Read _PixelSize;
   End;
@@ -331,20 +326,20 @@ Type
       Function Update(Data:PByte):Boolean; Virtual; 
   End;
 
-	RendererFeature = Object
-		Protected
-			_Avaliable:Boolean;
+      RendererFeature =  Class(TERRAObject)
+	      Protected
+		      _Avaliable:Boolean;
 
-		Public
-			Property Avaliable:Boolean Read _Avaliable Write _Avaliable;
-	End;
+	      Public
+		      Property Avaliable:Boolean Read _Avaliable Write _Avaliable;
+      End;
 
 
 	RendererSetting = Class(TERRAObject)
 		Protected
-      _Owner:GraphicsRenderer;
+                         _Owner:GraphicsRenderer;
 			_Enabled:Boolean;
-      _Available:Boolean;
+                        _Available:Boolean;
 
 		Public
       Constructor Create(Owner:GraphicsRenderer; Available:Boolean);
@@ -353,9 +348,9 @@ Type
       Property Enabled:Boolean Read _Enabled Write SetValue;
 	End;
 
-	RendererVariableSetting = Object
+	RendererVariableSetting = Class(TERRAObject)
 		Protected
-      _Owner:GraphicsRenderer;
+                         _Owner:GraphicsRenderer;
 			_Quality:RendererQuality;
 
 		Public
@@ -421,7 +416,7 @@ Type
       AlphaFade:RendererSetting;
       DynamicShadows:RendererSetting;
       Textures:RendererVariableSetting;
-  		TextureCompression:RendererSetting;
+      TextureCompression:RendererSetting;
       DeferredLighting:RendererSetting;
       DeferredFog:RendererSetting;
       DeferredShadows:RendererSetting;
@@ -437,7 +432,7 @@ Type
       Reflections:RendererSetting;
       DynamicLights:RendererSetting;
       SSAO:RendererSetting;
-	  	VertexBufferObject:RendererSetting;
+      VertexBufferObject:RendererSetting;
       Outlines:RendererSetting;
 
       CartoonHues:RendererSetting;
@@ -487,12 +482,9 @@ Type
     Protected
       _Name:TERRAString;
 
-      _Objects:Array Of GraphicInterface;
-      _ObjectCount:Integer;
-
       _CurrentContext:Integer;
 
-			_Features:RendererFeatures;
+      _Features:RendererFeatures;
       _Settings:RendererSettings;
 
       _DeviceName:TERRAString;
@@ -517,11 +509,11 @@ Type
 
       _VSync:Boolean;
 
-      Procedure AddObject(Obj:GraphicInterface);
-      Procedure RemoveObject(Obj:GraphicInterface);
-
       Function Initialize():Boolean; Virtual; Abstract;
       Procedure InitSettings();
+
+      Function CreateContext():Boolean; Virtual;
+      Procedure DestroyContext(); Virtual;
 
       Procedure SetVSync(Const Value:Boolean);
       Procedure ChangeVSync(Const Value:Boolean); Virtual;
@@ -539,6 +531,8 @@ Type
       //Procedure Invalidate(); Virtual; Abstract;
       Procedure Reset();
       Procedure ResetState(); Virtual;
+
+      Procedure OnContextLost();
 
       Procedure Resize(Width, Height: Integer); Virtual;
 
@@ -614,10 +608,11 @@ Type
   Function Renderers():List;
 
 Implementation
-Uses TERRA_Error, TERRA_FileManager, TERRA_Lights, TERRA_Math, TERRA_Log, TERRA_NullRenderer;
+Uses TERRA_Error, TERRA_FileManager, TERRA_Lights, TERRA_Math, TERRA_Log,
+  TERRA_Texture, TERRA_NullRenderer;
 
 Var
-  _RendererList:List;
+  _RendererList:List = Nil;
 
 Function Renderers():List;
 Begin
@@ -673,7 +668,27 @@ End;
 
 Procedure RendererSettings.Release();
 Begin
-  // do nothing
+  ReleaseObject(AlphaFade);
+  ReleaseObject(DynamicShadows);
+  ReleaseObject(TextureCompression);
+  ReleaseObject(DeferredLighting);
+  ReleaseObject(DeferredFog);
+  ReleaseObject(DeferredShadows);
+  ReleaseObject(SelfShadows);
+  ReleaseObject(DepthOfField);
+  ReleaseObject(PostProcessing);
+  ReleaseObject(NormalMapping);
+  ReleaseObject(ToonShading);
+  ReleaseObject(AlphaTesting);
+  ReleaseObject(Specular);
+  ReleaseObject(Fur);
+  ReleaseObject(Sky);
+  ReleaseObject(Reflections);
+  ReleaseObject(DynamicLights);
+  ReleaseObject(SSAO);
+  ReleaseObject(VertexBufferObject);
+  ReleaseObject(Outlines);
+  ReleaseObject(CartoonHues);
 End;
 
 { RendererSetting }
@@ -708,11 +723,42 @@ End;
 Constructor RendererFeatures.Create(Owner:GraphicsRenderer);
 Begin
   _Owner := Owner;
+
+
+  FrameBufferObject := RendererFeature.Create();
+  CubemapTexture := RendererFeature.Create();
+  FloatTexture := RendererFeature.Create();
+  TextureArray := RendererFeature.Create();
+  SeparateBlends := RendererFeature.Create();
+  SeamlessCubeMap := RendererFeature.Create();
+  StencilBuffer := RendererFeature.Create();
+  PackedStencil := RendererFeature.Create();
+  NPOT := RendererFeature.Create();
+  Shaders := RendererFeature.Create();
+  TextureCompression := RendererFeature.Create();
+  VertexBufferObject := RendererFeature.Create();
+  PostProcessing := RendererFeature.Create();
+  DeferredLighting := RendererFeature.Create();
+  Outlines := RendererFeature.Create();
 End;
 
 Procedure RendererFeatures.Release();
 Begin
-  // do nothing
+  ReleaseObject(FrameBufferObject);
+  ReleaseObject(CubemapTexture);
+  ReleaseObject(FloatTexture);
+  ReleaseObject(TextureArray);
+  ReleaseObject(SeparateBlends);
+  ReleaseObject(SeamlessCubeMap);
+  ReleaseObject(StencilBuffer);
+  ReleaseObject(PackedStencil);
+  ReleaseObject(NPOT);
+  ReleaseObject(Shaders);
+  ReleaseObject(TextureCompression);
+  ReleaseObject(VertexBufferObject);
+  ReleaseObject(PostProcessing);
+  ReleaseObject(DeferredLighting);
+  ReleaseObject(Outlines);
 End;
 
 Procedure RendererFeatures.WriteToLog();
@@ -737,19 +783,15 @@ End;
 { GraphicInterface }
 Constructor GraphicInterface.Create(Owner:GraphicsRenderer);
 Begin
-  If Assigned(Owner) Then
-  Begin
-    Self._Owner := Owner;
-    _Owner.AddObject(Self);
-  End;
+  Self._Owner := Owner;
+  Self._Context := Owner.CurrentContext;
 
   Self.Initialize();
 End;
 
 Procedure GraphicInterface.Release();
 Begin
-  If Assigned(_Owner) Then
-    _Owner.RemoveObject(Self);
+  // do nothing
 End;
 
 Function GraphicInterface.IsValid: Boolean;
@@ -774,6 +816,10 @@ Begin
   _Features := Nil;
   _Stats := Nil;
   _PrevStats := Nil;
+
+  {$IFDEF LINUX}
+ // Self.Reset();
+  {$ENDIF}
 End;
 
 Procedure GraphicsRenderer.Release();
@@ -784,34 +830,6 @@ Begin
   ReleaseObject(_Features);
   ReleaseObject(_PrevStats);
   ReleaseObject(_Stats);
-End;
-
-Procedure GraphicsRenderer.AddObject(Obj: GraphicInterface);
-Begin
-  If Obj = Nil Then
-    Exit;
-
-  Obj._Owner := Self;
-  Obj._Context := Self.CurrentContext;
-
-  Inc(_ObjectCount);
-  If Length(_Objects)<_ObjectCount Then
-    SetLength(_Objects, _ObjectCount);
-End;
-
-Procedure GraphicsRenderer.RemoveObject(Obj: GraphicInterface);
-Var
-  I:Integer;
-Begin
-  I := 0;
-  While I<_ObjectCount Do
-  If (_Objects[I] = Obj) Then
-  Begin
-    _Objects[I] := _Objects[Pred(_ObjectCount)];
-    Dec(_ObjectCount);
-    Exit;
-  End Else
-    Inc(I);
 End;
 
 Procedure GraphicsRenderer.OnSettingsChange;
@@ -1073,6 +1091,12 @@ Procedure GraphicsRenderer.Reset;
 Begin
   If Settings = Nil Then
   Begin
+    If (Not CreateContext()) Then
+    Begin
+      RaiseError('Cannot create renderer context!');
+      Exit;
+    End;
+
     If (Self.Initialize()) And (Assigned(_Features)) Then
       _Features.WriteToLog()
     Else
@@ -1090,6 +1114,30 @@ End;
 Procedure GraphicsRenderer.ResetState;
 Begin
   // do nothing
+End;
+
+Function GraphicsRenderer.CreateContext: Boolean;
+Begin
+  Result := True;
+End;
+
+Procedure GraphicsRenderer.DestroyContext;
+Begin
+  // do nothing
+End;
+
+Procedure GraphicsRenderer.OnContextLost;
+Var
+  N:Integer;
+Begin
+  N := Self._CurrentContext;
+
+  Self.DestroyContext();
+  Self.CreateContext();
+
+  Self.Reset();
+
+  Self._CurrentContext := N + 1;
 End;
 
 Function GraphicsRenderer.BindShader(Shader:ShaderInterface):Boolean;
@@ -1112,9 +1160,10 @@ End;
 
 Function GraphicsRenderer.BindSurface(Surface:SurfaceInterface; Slot:Integer):Boolean;
 Begin
-  If Surface = Nil Then
+  If (Surface = Nil) Then
   Begin
-    RaiseError('Cannot bind null surface!');
+    TextureManager.Instance.NullTexture.Bind(Slot);
+    //RaiseError('Cannot bind null surface!');
     Result := False;
     Exit;
   End;
@@ -1220,12 +1269,7 @@ Begin
   Result := GetUniform(Name)>=0;
 End;
 
-{ RenderTargetInterfaceX }
-Procedure RenderTargetInterface.PresentToScreen;
-Begin
-  // do nothing
-End;
-
+{ RenderTargetInterface }
 Procedure RenderTargetInterface.SetBackgroundColor(const Value: Color);
 Begin
   Self._BackgroundColor := Value;
@@ -1354,4 +1398,8 @@ Begin
   Result := False;
 End;
 
+
+Initialization
+Finalization
+  ReleaseObject(_RendererList);
 End.

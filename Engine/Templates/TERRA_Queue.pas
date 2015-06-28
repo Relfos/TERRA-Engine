@@ -27,7 +27,7 @@ Unit TERRA_Queue;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Collections;
+Uses TERRA_String, TERRA_Utils, TERRA_Object, TERRA_Collections;
 
 Type
   Queue = Class(Collection)
@@ -148,7 +148,7 @@ Begin
   Begin
     Temp := Self.Pop();
 
-    Temp.Release();
+    ReleaseObject(Temp);
   End;
 End;
 

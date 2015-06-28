@@ -23,6 +23,8 @@ Unit TERRA_MIDI;
 
 {.$DEFINE USE_INTERNAL_SYNTH}
 
+{$I terra.inc}
+
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_OS, TERRA_Application, TERRA_MusicTrack;
 
@@ -764,7 +766,7 @@ Begin
   While (Assigned(Src)) And (Not Src.EOF) Do
         ReadChunk(Src);
 
-  Src.Release();
+  ReleaseObject(Src);
 End;
 
 
@@ -1411,4 +1413,4 @@ Begin
 End;
 
 End.
-
+

@@ -105,6 +105,8 @@ Function Power(Const Base,Power:Float):Float; Overload;
 
 Function Exp(Const X:Float): Float;
 
+Function Clamp(Const X, Min, Max:Float):Float;
+
 Implementation
 Uses Math;
 
@@ -571,6 +573,17 @@ Begin
    exp := (x and $7fe00000) shr 21;
    if sign=0 then res:=Integer(mantissa) else res:=-Integer(mantissa);
    Result := ldexp(res, exp-788);
+End;
+
+Function Clamp(Const X, Min, Max:Float):Float;
+Begin
+  If X<Min Then
+    Result := Min
+  Else
+  If X>Max Then
+    Result := Max
+  Else
+    Result := X;
 End;
 
 End.

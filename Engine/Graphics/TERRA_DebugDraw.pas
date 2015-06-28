@@ -161,7 +161,7 @@ Begin
   While (I<DebugObjectCount) Do
   If (Not DebugObjects[I]._KeepAlive) Then
   Begin
-    DebugObjects[I].Release();
+    ReleaseObject(DebugObjects[I]);
     DebugObjects[I] := DebugObjects[Pred(DebugObjectCount)];
     Dec(DebugObjectCount);
   End Else

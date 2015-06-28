@@ -87,7 +87,7 @@ Var
   JoyInfo:GamepadInfoEx;
   dwResult:Cardinal;
 Begin
-  If (_Name = '') Then
+  If (_Kind = gamepadUnknown) Then
   Begin
     _Name := GetJoystickName(Self._DeviceID);
 
@@ -96,19 +96,20 @@ Begin
       _Kind := gamepadXBox360;
       _Disabled := True;
       Exit;
-    End;
-
+    End Else
     If (StringContains('PLAYSTATION', _Name)) Then
     Begin
       If (StringContains('4', _Name)) Then
         _Kind := gamepadPS4
       Else
         _Kind := gamepadPS3;
-    End;
-
+    End Else
     If (StringContains('OUYA', _Name)) Then
     Begin
       _Kind := gamepadOUYA;
+    End Else
+    Begin
+      _Kind := gamepadGeneric;
     End;
   End;
 

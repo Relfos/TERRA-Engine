@@ -119,7 +119,7 @@ Type
 
       Function HasNext():Boolean;
 
-      Procedure Seek(Position:Integer);
+      Function Seek(Position:Integer):Boolean;
 
       Property Value:CollectionObject Read _Value;
       Property Position:Integer Read GetPosition;
@@ -235,7 +235,8 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_FileStream, TERRA_Stream;
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_FileStream, TERRA_Stream
+{$IFNDEF DISABLEALLOCOPTIMIZATIONS}, TERRA_StackObject{$ENDIF};
 
 {$IFDEF DEBUG_ITERATORS}
 Var
@@ -573,7 +574,7 @@ Begin
   Result := Pred(_Index);
 End;
 
-Procedure Iterator.Seek(Position: Integer);
+Function Iterator.Seek(Position: Integer):Boolean;
 Begin
   _Finished := False;
   _Value := Nil;
@@ -586,6 +587,11 @@ Begin
     JumpToIndex(Position);
     _Index := Position;
   End;
+
+  If Assigned(_Collection) Then
+    Result := (Position<Self._Collection.Count)
+  Else
+    Result := True;
 End;
 
 Procedure Iterator.JumpToIndex(Position: Integer);
@@ -680,13 +686,13 @@ Begin
       If Assigned(Prev) Then
       Begin
         Prev._Next := P.Next;
-        P.Release();
+        ReleaseObject(P);
         Dec(_ItemCount);
         P := Prev.Next;
       End Else
       Begin
         _First := P.Next;
-        P.Release();
+        ReleaseObject(P);
         P := _First;
       End;
     End Else
@@ -796,7 +802,7 @@ Begin
   While Assigned(List)Do
   Begin
     Next := List.Next;
-    List.Release();
+    ReleaseObject(List);
     List := Next;
   End;
 
@@ -932,7 +938,7 @@ Begin
 
       Next := Item.Next;
 
-      Item.Release();
+      ReleaseObject(Item);
       {$IFDEF DEBUG}Log(logDebug, 'List', 'Discarded item!');{$ENDIF}
       
       If Assigned(Prev) Then

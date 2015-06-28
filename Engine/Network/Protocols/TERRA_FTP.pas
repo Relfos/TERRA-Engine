@@ -312,7 +312,7 @@ Begin
 
   If (GetStatus<>150) Then
   Begin
-    Source.Release();
+    ReleaseObject(Source);
     Result := EndSession(ftp_TransferError);
     Exit;
   End;
@@ -325,7 +325,7 @@ Begin
     BlockSize:=Source.Read(Buffer, BlockSize);
     If BlockSize<0 Then
     Begin
-      Source.Release;
+      ReleaseObject(Source);
       Result := EndSession(ftp_TransferError);
       Exit;
     End;
@@ -339,7 +339,7 @@ Begin
     End;
   End;
   FreeMem(Buffer);
-  Source.Release;
+  ReleaseObject(Source);
 
   If GetStatus<>226 Then
   Begin
@@ -404,7 +404,7 @@ Begin
 
   If (GetStatus<>150) Or (Dest.EOF) Then
   Begin
-    Dest.Release;
+    ReleaseObject(Dest);
     Result := EndSession(ftp_TransferError);
     Exit;
   End;
@@ -418,7 +418,7 @@ Begin
     BlockSize := Dest.Write(Buffer, BlockSize);
     If BlockSize<0 Then
     Begin
-      Dest.Release;
+      ReleaseObject(Dest);
       Result := EndSession(ftp_TransferError);
       Exit;
     End;
@@ -430,7 +430,7 @@ Begin
       Notifier.Notify(Count/FileSize);
   End;
   FreeMem(Buffer);
-  Dest.Release;
+  ReleaseObject(Dest);
 
   If GetStatus<>226 Then
   Begin
@@ -450,7 +450,7 @@ Begin
 
   Stream:= FileStream.Create(DestFile);
   Result := GetFile(FileName, Stream, Notifier);
-  Stream.Release;
+  ReleaseObject(Stream);
 End;
 
 Function FTPSession.PutFile(FileName, SourceFile:TERRAString; Notifier:ProgressNotifier):Integer;
@@ -468,7 +468,7 @@ Begin
 
   Stream := FileStream.Open(SourceFile);
   Result := PutFile(FileName, Stream, Notifier);
-  Stream.Release;
+  ReleaseObject(Stream);
 End;
 
 Function FTPSession.EndSession(ErrorCode:Integer):Integer;
@@ -482,8 +482,7 @@ Begin
   Log(logDebug, 'FTP', 'Ending FTP session, code: '+IntToString(ErrorCode));
 
   SendCommand('QUIT');
-  _Stream.Release();
-  _Stream := Nil;
+  ReleaseObject(_Stream);
 
   _Active := False;
 End;
@@ -552,7 +551,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_SessionCount) Do
-    _SessionList[I].Release;
+    ReleaseObject(_SessionList[I]);
 End;
 
 Procedure FTPMirrorSession.GetFile(FileName, DestFile:TERRAString; Notifier:ProgressNotifier);

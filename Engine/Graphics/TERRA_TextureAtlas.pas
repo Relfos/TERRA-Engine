@@ -25,24 +25,49 @@ Unit TERRA_TextureAtlas;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Image, TERRA_Texture, TERRA_Packer;
+Uses TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Image, TERRA_Texture, TERRA_Packer, TERRA_Resource;
 
 Type
+  TextureAtlas = Class;
+
   TextureAtlasItem = Class(TERRAObject)
     Protected
       _Packed:Boolean;
       _Name:TERRAString;
 
+      _U1,_V1:Single;
+      _U2,_V2:Single;
+
+      _X1,_Y1:Integer;
+      _X2,_Y2:Integer;
+
     Public
       ID:Integer;
       PageID:Integer;
-      X:Single;
-      Y:Single;
       Buffer:Image;
-      
+
       Procedure Release; Override;
 
       Property Name:TERRAString Read _Name;
+
+      Property U1:Single Read _U1;
+      Property V1:Single Read _V1;
+      Property U2:Single Read _U2;
+      Property V2:Single Read _V2;
+
+      Property X1:Integer Read _X1;
+      Property Y1:Integer Read _Y1;
+      Property X2:Integer Read _X2;
+      Property Y2:Integer Read _Y2;
+  End;
+
+  TextureAtlasPage = Class(Texture)
+    Protected
+      _PageID:Integer;
+      _Atlas:TextureAtlas;
+
+    Public
+      Function Build():Boolean; Override;
   End;
 
   TextureAtlas = Class(TERRAObject)
@@ -52,15 +77,17 @@ Type
       _Height:Integer;
       _ItemList:Array Of TextureAtlasItem;
       _ItemCount:Integer;
-      _Textures:Array Of Texture;
+      _Textures:Array Of TextureAtlasPage;
       _RefCount:Integer;
       _PageCount:Integer;
+      _SaveCount:Integer;
 
-      _ContextLost:Boolean;
+      Function AllocTexture(Const Name:TERRAString):TextureAtlasPage; Virtual;
 
-      Procedure CreateTexture(ID:Integer);
+      Function CreateTexture(PageID:Integer):TextureAtlasPage;
 
-      Procedure RedoAfterContextLost;
+      Function RedoPage(PageID:Integer):Texture;
+      Procedure RebuildPage(PageID:Integer; Target:Texture);
 
     Public
       Constructor Create(Name:TERRAString; Width, Height:Integer);
@@ -72,10 +99,8 @@ Type
       Function Get(Const Name:TERRAString):TextureAtlasItem; Overload;
 
       Procedure Clear;
-      Procedure Bind(PageID:Integer);
-      Function GetTexture(PageID:Integer):Texture;
 
-      Procedure OnContextLost;
+      Function GetTexture(PageID:Integer):Texture;
 
       Function Update:Boolean;
 
@@ -106,8 +131,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(Length(_Textures)) Do
-  If Assigned(_Textures[I]) Then
-    _Textures[I].Release;
+    ReleaseObject(_Textures[I]);
 
   Clear;
 End;
@@ -118,8 +142,8 @@ Var
 Begin
   For I:=0 To Pred(_ItemCount) Do
   Begin
-    _ItemList[I].Buffer.Release;
-    _ItemList[I].Release;
+    ReleaseObject(_ItemList[I].Buffer);
+    ReleaseObject(_ItemList[I]);
   End;
   _ItemCount := 0;
 End;
@@ -155,7 +179,7 @@ Begin
   If (N<0) Then
     Exit;
 
-  _ItemList[N].Buffer.Release;
+  ReleaseObject(_ItemList[N].Buffer);
   _ItemList[N] := _ItemList[Pred(_ItemCount)];
   Dec(_ItemCount);
 End;
@@ -189,15 +213,11 @@ Begin
   Result := Nil;
 End;
 
-{$DEFINE CPUBUFFER}
 Function TextureAtlas.Update:Boolean;
 Var
   I, X, Y, W, H:Integer;
   Packer:RectanglePacker;
   LastCount, Count:Integer;
-  {$IFDEF CPUBUFFER}
-  Buffer:Image;
-  {$ENDIF}
 Begin
   Log(logDebug, 'TextureAtlas', 'Updating');
 
@@ -210,10 +230,6 @@ Begin
 
   LastCount := Succ(_ItemCount);
   Repeat
-    {$IFDEF CPUBUFFER}
-    Buffer := Image.Create(_Width, _Height);
-    {$ENDIF}
-
     Packer := RectanglePacker.Create;
     For I:=0 To Pred(_ItemCount) Do
     If Not _ItemList[I]._Packed Then
@@ -230,7 +246,7 @@ Begin
     Begin
       RaiseError('Not enough space to pack TextureAtlas.');
       Result := False;
-      Packer.Release;
+      ReleaseObject(Packer);
       Exit;
     End;
 
@@ -238,8 +254,6 @@ Begin
     Inc(_PageCount);
     If Length(_Textures)<_PageCount Then
       SetLength(_Textures, _PageCount);
-    If Not Assigned(_Textures[Pred(_PageCount)]) Then
-      CreateTexture(Pred(_PageCount));
 
     For I:=0 To Pred(_ItemCount) Do
     Begin
@@ -250,116 +264,135 @@ Begin
       Y := 0;
       If (Packer.GetRect(_ItemList[I].ID, X, Y)) Then
       Begin
-        _ItemList[I].X := (Succ(X) / Self._Width);
-        _ItemList[I].Y := (Succ(Y) / Self._Height);
+        _ItemList[I]._X1 := X;
+        _ItemList[I]._Y1 := Y;
+
+        _ItemList[I]._X2 := X + _ItemList[I].Buffer.Width;
+        _ItemList[I]._Y2 := Y + _ItemList[I].Buffer.Height;
+
+        _ItemList[I]._U1 := _ItemList[I]._X1 / Self._Width;
+        _ItemList[I]._V1 := _ItemList[I]._Y1 / Self._Height;
+
+        _ItemList[I]._U2 := _ItemList[I]._X2 / Self._Width;
+        _ItemList[I]._V2 := _ItemList[I]._Y2 / Self._Height;
+
         _ItemList[I].PageID := Pred(_PageCount);
         _ItemList[I]._Packed := True;
-
-        If (Assigned(_ItemList[I].Buffer)) Then
-        {$IFNDEF CPUBUFFER}
-          _Textures[Pred(_PageCount)].UpdateRect(_ItemList[I].Buffer, X, Y);
-        {$ELSE}
-          Buffer.Blit(X, Y, 0, 0, _ItemList[I].Buffer.Width, _ItemList[I].Buffer.Height, _ItemList[I].Buffer);
-        {$ENDIF}
       End Else
         Log(logError, 'TextureAtlas', 'Could not pack '+_ItemList[I]._Name);
     End;
-    Packer.Release;
 
-    {$IFDEF CPUBUFFER}
-    _Textures[Pred(_PageCount)].UpdateRect(Buffer);
-
-    //Buffer.Save(_Name+'_TextureAtlas'+IntToString(_PageCount)+'.png', 'png','depth=32');
-    Buffer.Release;
-    {$ENDIF}
+    ReleaseObject(Packer);
   Until (Count = 0);
+
+  For I:=0 To Pred(_PageCount) Do
+    Self.RedoPage(I);
 
   Result := True;
   Log(logDebug, 'TextureAtlas', 'TextureAtlas is now updated');
 End;
 
-Procedure TextureAtlas.Bind(PageID:Integer);
-Begin
-  _Textures[PageID].Bind(0);
-End;
-
 Function TextureAtlas.GetTexture(PageID:Integer):Texture;
 Begin
-  If (_ContextLost) Then
-  Begin
-    Self.RedoAfterContextLost();
-    _ContextLost := False;
-  End;
-
   If (PageID<Length(_Textures)) Then
-    Result := _Textures[PageID]
-  Else
+  Begin
+    If Not Assigned(_Textures[PageID]) Then
+    Begin
+      Result := CreateTexture(PageID);
+    End  Else
+    Begin
+      Result := _Textures[PageID];
+
+      If (Assigned(Result)) And (Result.IsReady()) And (Not Result.IsValid()) Then
+      Begin
+        Result := Self.RedoPage(PageID);
+      End;
+    End;
+  End Else
     Result := Nil;
 End;
 
-Procedure TextureAtlas.RedoAfterContextLost;
-Var
-  I,J:Integer;
-  X,Y:Integer;
-  {$IFDEF CPUBUFFER}
-  Buffer:Image;
-  {$ENDIF}
+Function TextureAtlas.RedoPage(PageID:Integer):Texture;
 Begin
-  For J:=0 To Pred(_PageCount) Do
-  If Assigned(_Textures[J]) Then
-  Begin
-    {$IFDEF CPUBUFFER}
-    Buffer := Image.Create(_Width, _Height);
-    {$ENDIF}
+  Result := Nil;
 
-    _Textures[J].Release();
-    Self.CreateTexture(J);
+  If (PageID<0) Or (PageID>=Length(_Textures)) Then
+    Exit;
 
-    For I:=0 To Pred(_ItemCount) Do
-    Begin
-      If (_ItemList[I].PageID <> J) Then
-        Continue;
+  Result := _Textures[PageID];
+  If Result = Nil Then
+    Exit;
 
-      X := Pred(Trunc(_ItemList[I].X * Self._Width));
-      Y := Pred(Trunc(_ItemList[I].Y * Self._Height));
-
-      If (Assigned(_ItemList[I].Buffer)) Then
-      {$IFNDEF CPUBUFFER}
-      _Textures[J].UpdateRect(_ItemList[I].Buffer, X, Y);
-      {$ELSE}
-      Buffer.Blit(X, Y, 0, 0, _ItemList[I].Buffer.Width, _ItemList[I].Buffer.Height, _ItemList[I].Buffer);
-      {$ENDIF}
-    End;
-
-    {$IFDEF CPUBUFFER}
-    _Textures[Pred(_PageCount)].UpdateRect(Buffer);
-
-    //Buffer.Save(_Name+'_TextureAtlas'+IntToString(_PageCount)+'.png', 'png','depth=32');
-    Buffer.Release;
-    {$ENDIF}
-  End
+  Result.Rebuild();
 End;
 
-Procedure TextureAtlas.OnContextLost;
+
+Function TextureAtlas.AllocTexture(Const Name:TERRAString): TextureAtlasPage;
 Begin
-  Self._ContextLost := True;
+  Result := TextureAtlasPage.Create(rtDynamic, Name);
 End;
 
-Procedure TextureAtlas.CreateTexture(ID: Integer);
+Function TextureAtlas.CreateTexture(PageID: Integer):TextureAtlasPage;
 Var
   S:TERRAString;
 Begin
-  S := _Name+'_page'+IntToString(ID);
+  S := _Name+'_page'+IntToString(PageID);
   Log(logDebug, 'TextureAtlas', 'Creating TextureAtlas texture: '+S);
 
-  _Textures[ID] := TERRA_Texture.Texture.Create();
-  _Textures[ID].CreateFromSize(S, Width, Height);
-  _Textures[ID].MipMapped := False;
-  _Textures[ID].Update();
+  ReleaseObject(_Textures[PageID]);
+  Result := Self.AllocTexture(S);
+  _Textures[PageID] := Result;
+  Result.MipMapped := False;
+  Result._PageID := PageID;
+  Result._Atlas := Self;
+
+  Result.InitFromSize(Width, Height);
+
+  Result.Rebuild();
 End;
 
 Procedure TextureAtlasItem.Release;
 Begin
+End;
+
+{$DEFINE CPUBUFFER}
+Procedure TextureAtlas.RebuildPage(PageID: Integer; Target: Texture);
+Var
+  I:Integer;
+  {$IFDEF CPUBUFFER}
+  Buffer:Image;
+  {$ENDIF}
+Begin
+  {$IFDEF CPUBUFFER}
+  Buffer := Image.Create(_Width, _Height);
+  {$ENDIF}
+
+  For I:=0 To Pred(_ItemCount) Do
+  Begin
+    If (_ItemList[I].PageID <> PageID) Then
+      Continue;
+
+    If (Assigned(_ItemList[I].Buffer)) Then
+    {$IFNDEF CPUBUFFER}
+      Target.UpdateRect(_ItemList[I].Buffer, _ItemList[I].X1, _ItemList[I].Y1);
+    {$ELSE}
+      Buffer.Blit(_ItemList[I].X1, _ItemList[I].Y1, 0, 0, _ItemList[I].Buffer.Width, _ItemList[I].Buffer.Height, _ItemList[I].Buffer);
+    {$ENDIF}
+  End;
+
+  {$IFDEF CPUBUFFER}
+  Target.UpdateRect(Buffer);
+
+  //Buffer.Save(_Name+'_TextureAtlas'+IntToString(_SaveCount)+'.png', 'png','depth=32');
+  ReleaseObject(Buffer);
+  {$ENDIF}
+End;
+
+{ TextureAtlasPage }
+Function TextureAtlasPage.Build():Boolean;
+Begin
+  _Atlas.RebuildPage(Self._PageID, Self);
+  Result := True;
 End;
 
 End.

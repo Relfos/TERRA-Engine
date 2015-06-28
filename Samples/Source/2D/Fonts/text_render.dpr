@@ -3,7 +3,7 @@
 
 Uses
   {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Scene, TERRA_UI, TERRA_GraphicsManager,
+  TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_Scene, TERRA_UI, TERRA_GraphicsManager,
   TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_FontRenderer, TERRA_OS, TERRA_FileManager,
   TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_SpriteManager, TERRA_Localization,
   TERRA_InputManager;
@@ -33,7 +33,7 @@ Begin
   // Add asset folders
   FileManager.Instance.AddPath('assets');
 
-  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorRed;
+  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorRed;
 
   // Load a font
   _FontRenderer := FontRenderer.Create();
@@ -94,6 +94,9 @@ Begin
     _FontRenderer.DrawText(50, 230, 10, GetLanguageDescription(language_Chinese));
     _FontRenderer.DrawText(50, 260, 10, GetLanguageDescription(language_Korean));
     _FontRenderer.DrawText(50, 290, 10, GetLanguageDescription(language_Japanese));
+
+    // dynamic text
+    _FontRenderer.DrawText(200, 250, 10, CardinalToString(Application.GetTime() Div 1000));
   End;
 End;
 

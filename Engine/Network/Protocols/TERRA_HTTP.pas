@@ -208,6 +208,8 @@ Type
       _Request:HTTPRequest;
       _Connection:HTTPConnection;
 
+      _InBackground:Boolean;
+
       _URL:TERRAString;
       _ErrorCode:HTTPError;
       _ErrorMessage:TERRAString;
@@ -251,10 +253,10 @@ Type
       Property Dest:Stream Read GetDest;
 
       Procedure Release; Override;
-      
+
     Public
 
-      Constructor Create(Request:HTTPRequest);
+      Constructor Create(Request:HTTPRequest; InBackground:Boolean);
 
       Function GetHeaderProperty(Name:TERRAString):TERRAString;
 
@@ -307,7 +309,7 @@ Type
 
       Function GetDownload(Index:Integer):HTTPDownloader;
 
-      Function StartRequest(Request:HTTPRequest):HTTPDownloader;
+      Function StartRequest(Request:HTTPRequest; InBackground:Boolean):HTTPDownloader;
 
       Property Count:Integer Read _DownloadCount;
       Property Progress:Integer Read GetOverallProgress;
@@ -373,16 +375,19 @@ Begin
 End;
 
 { HTTPDownloader }
-Constructor HTTPDownloader.Create(Request:HTTPRequest);
+Constructor HTTPDownloader.Create(Request:HTTPRequest; InBackground:Boolean);
 Begin
+  InBackground := False;
+
+
   _Connection := Nil;
   _Request := Request;
-                          
-  {$IFNDEF DISABLETHREADS}
-  ThreadPool.Instance.RunTask(HTTPThread.Create(Self), True);
-  {$ELSE}
-  PrepareTransfer();
-  {$ENDIF}
+  Self._InBackground := InBackground;
+
+  If InBackground Then
+    ThreadPool.Instance.RunTask(HTTPThread.Create(Self), True)
+  Else
+    PrepareTransfer();
 End;
 
 Procedure HTTPDownloader.PrepareTransfer();
@@ -592,7 +597,7 @@ Begin
             Request._Cookie := StringGetNextSplit(Value, Ord(';'));
           End;
 
-          If (StringEquals(Tag, 'connection')) Then
+          If (StringEquals(Tag, 'connection')) And (Assigned(_Connection)) Then
           Begin
             {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
             If (StringEquals(Value, 'keep-alive')) Then
@@ -624,7 +629,15 @@ Begin
         Inc(X);
       End;
     End;
-  Until (Result) Or  (Source.EOF);
+  Until (Result) Or (Source = Nil) Or (Source.EOF);
+
+  If (Source = Nil) Then
+  Begin
+    Log(logWarning, 'HTTP', 'Connection source disappeared!');
+    _ErrorCode := httpBug;
+    _Downloading := False;
+    Exit;
+  End;
 
   If (_TotalSize<0) And (Not _ChunkedTransfer) Then
   Begin
@@ -807,6 +820,8 @@ Begin
   Request._Callback(Self);
   Request._Callback := Nil;
 
+  ReleaseObject(_Target);
+
   Log(logDebug, 'HTTP', 'Releasing transfer: '+URL);
 
   If Assigned(_Buffer) Then
@@ -910,12 +925,12 @@ Begin
     Exit;
   End;
 
-  If ReceiveHeader() Then
+  If (ReceiveHeader()) Then
   Begin
     _Downloading := (_TotalSize>0) And (_Progress<100);
   End Else
   Begin
-    If (_Connection._RequestCount>1) Then
+    If (_Connection._RequestCount<=1) Then
     Begin
       Self.RetryTransfer();
       Exit;
@@ -1046,12 +1061,10 @@ Begin
       Log(logDebug, 'HTTP', 'Download error :'+_Downloads[i]._URL+' -> error ' +IntToString(Integer(_Downloads[I]._ErrorCode)));
       Remove := True;
     End Else
-    {$IFDEF DISABLETHREADS}
-    If (_Downloads[I]._TotalSize<0) Then
+    If (Not _Downloads[I]._InBackground) And (_Downloads[I]._TotalSize<0) Then
     Begin
       _Downloads[I].InitTransfer();
     End Else
-    {$ENDIF}
     Begin
       {If (_Downloads[I]._Progress<100) And (GetTime - _Downloads[I]._UpdateTime>ConnectionTimeOut) Then
       Begin
@@ -1059,9 +1072,10 @@ Begin
         _Downloads[I]._ErrorCode := httpConnectionTimeOut;
       End;}
 
-      {$IFDEF DISABLETHREADS}
-      _Downloads[I].Update();
-      {$ENDIF}
+      If (Not _Downloads[I]._InBackground) Then
+      Begin
+        _Downloads[I].Update();
+      End;
 
       If (_Downloads[I].Progress>=100) Then
       Begin
@@ -1101,7 +1115,7 @@ Begin
   End;
 End;
 
-Function DownloadManager.StartRequest(Request:HTTPRequest):HTTPDownloader;
+Function DownloadManager.StartRequest(Request:HTTPRequest; InBackground:Boolean):HTTPDownloader;
 Begin
   If Request = Nil Then
   Begin
@@ -1109,7 +1123,7 @@ Begin
     Exit;
   End;
 
-  Result := HTTPDownloader.Create(Request);
+  Result := HTTPDownloader.Create(Request, InBackground);
 
   Inc(_DownloadCount);
   SetLength(_Downloads, _DownloadCount);

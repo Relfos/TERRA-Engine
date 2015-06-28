@@ -65,15 +65,16 @@ Const
 
 Type
   GamePadKind = (
-    gamepadGeneric = 0,
-    gamepadXBox360 = 1,
-    gamepadXBoxOne = 2,
-    gamepadOUYA = 3,
-    gamepadPS3 = 4,
-    gamepadPS4 = 5,
-    gamepadPSVita = 6,
-    gamepadWii = 7,
-    gamepadWiiU = 8
+    gamepadUnknown = 0,
+    gamepadGeneric = 1,
+    gamepadXBox360 = 2,
+    gamepadXBoxOne = 3,
+    gamepadOUYA = 4,
+    gamepadPS3 = 5,
+    gamepadPS4 = 6,
+    gamepadPSVita = 7,
+    gamepadWii = 8,
+    gamepadWiiU = 9
   );
 
   KeyState = Record
@@ -545,6 +546,7 @@ Begin
     Application.Instance.OnGamepadDisconnect(_LocalID);
     _Active := False;
     _LocalID := -1;
+    _Kind := gamepadUnknown;
   End;
 End;
 

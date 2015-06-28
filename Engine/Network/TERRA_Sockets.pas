@@ -374,12 +374,12 @@ Begin
   Params := JavaArguments.Create(Frame);
   Params.AddString(HostName);
   Result := Utils.CallStaticStringMethod(Frame, 'getNetAddress', Params);
-  Params.Release();
+  ReleaseObject(Params);
 
   If Result = '' Then
     Result := '127.0.0.1';
 
-  Utils.Release();
+  ReleaseObject(Utils);
   Java_End(Frame);
 
   Log(logDebug, 'Sockets', 'Result: '+ Result);

@@ -26,16 +26,16 @@ Unit TERRA_Assimp;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Mesh, TERRA_Math, TERRA_Utils, TERRA_IO,
-  TERRA_FileIO, TERRA_FileUtils, TERRA_MeshFilter, TERRA_OS, TERRA_Quaternion,
+Uses TERRA_Mesh, TERRA_Math, TERRA_Utils, TERRA_Stream,
+  TERRA_FileStream, TERRA_FileUtils, TERRA_MeshFilter, TERRA_OS, TERRA_Quaternion,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_Matrix, Assimp;
 
-Function ASSIMP_Import(SourceFile, TargetDir:AnsiString):AnsiString;
+Function ASSIMP_Import(SourceFile, TargetDir:TERRAString):TERRAString;
 
 Type
-  AssimpBone = Class
+  AssimpBone = Class(TERRAObject)
     ID:Integer;
-    Name:AnsiString;
+    Name:TERRAString;
     LocalTransform:Matrix;
     GlobalTransform:Matrix;
     Parent:AssimpBone;
@@ -49,17 +49,17 @@ Type
       Bones:Array Of AssimpBone;
       BoneCount:Integer;
 
-      Function FindNode(Name:AnsiString; Root:pAiNode):pAiNode;
+      Function FindNode(Name:TERRAString; Root:pAiNode):pAiNode;
 
       //Function GetBoneAt(Var BoneID:Integer):Integer;
-      Function GetBoneIDByName(Name:AnsiString):Integer;
+      Function GetBoneIDByName(Name:TERRAString):Integer;
 
     Public
-      Constructor Create(Source:AnsiString);
-      Destructor Destroy;
+      Constructor Create(Source:TERRAString);
+      Procedure Release;
 
       Function GetGroupCount:Integer; Override;
-      Function GetGroupName(GroupID:Integer):AnsiString; Override;
+      Function GetGroupName(GroupID:Integer):TERRAString; Override;
       Function GetGroupFlags(GroupID:Integer):Cardinal; Override;
       Function GetGroupBlendMode(GroupID:Integer):Cardinal; Override;
 
@@ -78,12 +78,12 @@ Type
       Function GetVertexUV2(GroupID, Index:Integer):Vector2D; Override;
 
       Function GetDiffuseColor(GroupID:Integer):Color; Override;
-      Function GetDiffuseMapName(GroupID:Integer):AnsiString; Override;
-      Function GetSpecularMapName(GroupID:Integer):AnsiString; Override;
-      Function GetEmissiveMapName(GroupID:Integer):AnsiString; Override;
+      Function GetDiffuseMapName(GroupID:Integer):TERRAString; Override;
+      Function GetSpecularMapName(GroupID:Integer):TERRAString; Override;
+      Function GetEmissiveMapName(GroupID:Integer):TERRAString; Override;
 
       Function GetAnimationCount():Integer; Override;
-      Function GetAnimationName(Index:Integer):AnsiString; Override;
+      Function GetAnimationName(Index:Integer):TERRAString; Override;
       Function GetAnimationDuration(Index:Integer):Single; Override;
 
       Function GetPositionKeyCount(AnimationID, BoneID:Integer):Integer; Override;
@@ -95,7 +95,7 @@ Type
       Function GetRotationKey(AnimationID, BoneID:Integer; Index:Integer):MeshVectorKey; Override;
 
       Function GetBoneCount():Integer; Override;
-      Function GetBoneName(BoneID:Integer):AnsiString; Override;
+      Function GetBoneName(BoneID:Integer):TERRAString; Override;
       Function GetBoneParent(BoneID:Integer):Integer; Override;
       Function GetBonePosition(BoneID:Integer):Vector3D; Override;
   End;
@@ -104,7 +104,7 @@ Type
 Implementation
 Uses TERRA_GraphicsManager;
 
-Function ASSIMP_Import(SourceFile, TargetDir:AnsiString):AnsiString;
+Function ASSIMP_Import(SourceFile, TargetDir:TERRAString):TERRAString;
 Var
   dest:FileStream;
   mymesh:Mesh;
@@ -126,10 +126,10 @@ Begin
     Result := TargetDir + PathSeparator + GetFileName(SourceFile, True)+'.mesh';
     Dest := FileStream.Create(Result);
     MyMesh.Save(Dest);
-    Dest.Destroy;
-    MyMesh.Destroy;
+    Dest.Release;
+    MyMesh.Release;
 
-    Filter.Destroy;
+    Filter.Release;
   End Else
   Begin
     Writeln('ASSIMP:Error!');
@@ -141,12 +141,12 @@ Var
   c:aiLogStream;
 { AssimpFilter }
 
-Constructor AssimpFilter.Create(Source:AnsiString);
+Constructor AssimpFilter.Create(Source:TERRAString);
 Var
   Flags:Cardinal;
   I, J, N:Integer;
   node, P:PAInode;
-  S:AnsiString;
+  S:TERRAString;
   M:Matrix;
 Begin
   flags := 	aiProcess_CalcTangentSpace Or
@@ -162,7 +162,7 @@ Begin
 	//aiProcess_FindDegenerates        Or
 	aiProcess_FindInvalidData;
 
-  scene := aiImportFile(PAnsiChar(Source), flags);
+  scene := aiImportFile(PTERRAChar(Source), flags);
   If (Scene = Nil) Then
     Exit;
 
@@ -231,7 +231,7 @@ Begin
   //ReadLn;
 End;
 
-Destructor AssimpFilter.Destroy;
+Procedure AssimpFilter.Release;
 Begin
     aiReleaseImport(scene);
 End;
@@ -241,7 +241,7 @@ Begin
   Result := ColorWhite;
 End;
 
-Function AssimpFilter.GetDiffuseMapName(GroupID: Integer):AnsiString;
+Function AssimpFilter.GetDiffuseMapName(GroupID: Integer):TERRAString;
 Var
   prop:PAImaterialProperty;
 Begin
@@ -257,7 +257,7 @@ Begin
     Result := '';
 End;
 
-Function AssimpFilter.GetEmissiveMapName(GroupID: Integer):AnsiString;
+Function AssimpFilter.GetEmissiveMapName(GroupID: Integer):TERRAString;
 Begin
   Result := '';
 End;
@@ -277,7 +277,7 @@ Begin
   Result := meshGroupCastShadow Or meshGroupPick;
 End;
 
-function AssimpFilter.GetGroupName(GroupID: Integer):AnsiString;
+function AssimpFilter.GetGroupName(GroupID: Integer):TERRAString;
 begin
   Result := aiStringGetValue(scene.mMeshes[GroupID].mName);
   Result := TrimLeft(TrimRight(Result));
@@ -285,7 +285,7 @@ begin
     Result := 'group'+IntToString(GroupID);
 end;
 
-Function AssimpFilter.GetSpecularMapName(GroupID: Integer):AnsiString;
+Function AssimpFilter.GetSpecularMapName(GroupID: Integer):TERRAString;
 Begin
   Result := '';
 End;
@@ -384,7 +384,7 @@ Begin
   Result := Scene.mNumAnimations;
 End;
 
-Function AssimpFilter.GetAnimationName(Index:Integer):AnsiString;
+Function AssimpFilter.GetAnimationName(Index:Integer):TERRAString;
 Begin
   Result := aiStringGetValue(Scene.mAnimations[Index].mName);
 End;
@@ -394,7 +394,7 @@ Begin
   Result := Self.BoneCount;
 end;
 
-Function AssimpFilter.GetBoneName(BoneID: Integer):AnsiString;
+Function AssimpFilter.GetBoneName(BoneID: Integer):TERRAString;
 Begin
   Result := Bones[boneID].Name;
 End;
@@ -506,7 +506,7 @@ Begin
 End;
 
 
-Function AssimpFilter.FindNode(Name:AnsiString; Root:pAiNode): pAiNode;
+Function AssimpFilter.FindNode(Name:TERRAString; Root:pAiNode): pAiNode;
 Var
   I:Integer;
 Begin
@@ -534,7 +534,7 @@ Begin
     Result := -1;
 End;
 
-Function AssimpFilter.GetBoneIDByName(Name:AnsiString): Integer;
+Function AssimpFilter.GetBoneIDByName(Name:TERRAString): Integer;
 Var
   I, J, N:Integer;
 Begin

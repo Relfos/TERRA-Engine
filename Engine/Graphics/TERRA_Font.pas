@@ -26,8 +26,8 @@ Unit TERRA_Font;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Resource, TERRA_Stream, TERRA_Image, TERRA_Color, TERRA_Vector2D,
-  TERRA_Math, TERRA_Texture, TERRA_SpriteManager, TERRA_Renderer,
+  TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Resource, TERRA_Stream, TERRA_Image, TERRA_Color, TERRA_Vector2D, TERRA_Vector3D,
+  TERRA_Math, TERRA_Texture, TERRA_SpriteManager, TERRA_Renderer, TERRA_TextureAtlas, TERRA_VertexFormat,
   TERRA_ResourceManager, TERRA_Matrix4x4, TERRA_Matrix3x3, TERRA_ClipRect, TERRA_Collections;
 
 
@@ -78,20 +78,23 @@ Type
   FontGlyphFactory = Class;
 
   FontGlyph = Class(TERRAObject)
-    Protected
+    Private
       _Temp:Image;
-      _Source:Image;
+
+    Protected
       _Font:Font;
       _Factory:FontGlyphFactory;
 
+      _Item:TextureAtlasItem;
+
     Public
       ID:Cardinal;
-      X, Y:Word;
+
       Width:Word;
       Height:Word;
+
       XOfs,YOfs:SmallInt;
       XAdvance:SmallInt;
-      Page:Byte;
 
       KerningList:Array Of FontKerning;
       KerningCount:Integer;
@@ -102,36 +105,31 @@ Type
       Procedure AddKerning(Next:Cardinal; Ammount:SmallInt);
 
       Function GetImage():Image;
-
-      Function IsLoading():Boolean;
   End;
 
-  FontPage = Class(TERRAObject)
+  FontSprite = Class(Sprite)
     Protected
-      _ID:Integer;
-      _Texture:Texture;
-      _Image:Image;
-      _Font:Font;
+      _Glyph:FontGlyph;
 
-      _OptimizedWidth:Cardinal;
-      _OptimizedHeight:Cardinal;
+      _A, _B, _C, _D:Color;
+
+      _Skew:Single;
+
+      _X:Single;
+      _Y:Single;
 
     Public
-      Constructor Create(ID:Integer);
-      Procedure Release; Override;
+      Procedure SetColor(Const C:Color); Override;
+      Procedure SetColors(A, B, C, D:Color);
 
-      Procedure SetImage(Source:Image);
-
-      Procedure DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean);
-
-      Property Texture:Texture Read _Texture;
+      Procedure Rebuild(); Override;
   End;
+
 
   FontEffect = Record
     Effect:TERRAChar;
     Arg:TERRAString;
   End;
-
 
   FontGlyphFactory = Class(TERRAObject)
     Protected
@@ -150,8 +148,7 @@ Type
       _Glyphs:Array Of FontGlyph;
       _GlyphCount:Integer;
 
-      _PageCount:Integer;
-      _Pages:Array Of FontPage;
+      _Atlas:TextureAtlas;
 
       _AvgHeight:Single;
 
@@ -160,7 +157,7 @@ Type
       _AddingGlyph:Boolean;
       _Loading:Boolean;
 
-      Procedure Rebuild();
+      Procedure RebuildPages();
 
     Public
       Function Load(Source:Stream):Boolean; Override;
@@ -168,10 +165,6 @@ Type
 
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
-      Procedure OnContextLost; Override;
-
-      Function AddPage():FontPage;
-      Function GetPage(Index:Integer):FontPage;
 
       Function AddGlyph(ID:Cardinal; Source:Image; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; Overload;
       Function AddGlyph(ID:Cardinal; FileName:TERRAString; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; Overload;
@@ -181,15 +174,13 @@ Type
 
       Procedure RecalculateMetrics();
 
-      Function SelectPage(Index, Slot:Integer):FontPage;
-
       Class Function GetManager:Pointer; Override;
 
       Procedure AddGlyphFactory(Factory:FontGlyphFactory; Scale:Single = 1.0);
 
       Property TextSize:Integer Read _TextSize;
 
-      Property PageCount:Integer Read _PageCount;
+      Property Atlas:TextureAtlas Read _Atlas;
 
       Property NewLineOffset:Single Read _AvgHeight Write _AvgHeight;
   End;
@@ -206,13 +197,22 @@ Type
   FontManager = Class(ResourceManager)
     Protected
       _DefaultFont:Font;
+      _LastAllocFrame:Cardinal;
+      _Sprites:Array Of FontSprite;
+      _SpriteCount:Integer;
 
       Function GetDefaultFont: Font;
+
+      Function AllocSprite():FontSprite;
 
     Public
       Procedure Release; Override;
 
+      Procedure Update; Override;
+
       Class Function Instance:FontManager;
+
+      Function DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Const Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean):FontSprite;
 
       Function GetFont(Name:TERRAString; ValidateError:Boolean = True):Font;
 
@@ -393,195 +393,191 @@ Begin
 
   If S<>'' Then
   Begin
-    Result := Font.Create(S);
+    Result := Font.Create(rtLoaded, S);
     Result._TextSize := Size;
     Result.Priority := 90;
-    Result._ObjectName := Name;
     Self.AddResource(Result);
   End Else
   If ValidateError Then
     RaiseError('Could not find font. ['+Name +']');
 End;
 
-Procedure FontManager.Release;
+Function FontManager.DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Const Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean):FontSprite;
+Var
+  Filter:TextureFilterMode;
+  Item:TextureAtlasItem;
+  Target:FontSprite;
+  Tex:Texture;
 Begin
-  Inherited;
+  {$IFDEF DISTANCEFIELDFONTS}
+  Filter := filterBilinear;
+  {$ELSE}
+  Filter := filterLinear;
+  {$ENDIF}
 
-  ReleaseObject(_DefaultFont);
-  _FontManager_Instance := Nil;
+  Item := Glyph._Item;
+  If Item = Nil Then
+    Exit;
+
+  Result := Self.AllocSprite();
+  If Result = Nil Then
+    Exit;
+
+  Tex := Glyph._Font._Atlas.GetTexture(Item.PageID);
+  If Tex = Nil Then
+    Exit;
+
+  Result._Glyph := Glyph;
+
+  Result._X := X + Glyph.XOfs;
+  Result._Y := Y + Glyph.YOfs;
+  Result.Layer := Z;
+  Result.Texture := Tex;
+
+  Result.SetTransform(Transform);
+  Result.ClipRect := Clip;
+//  Result.SetScale(Scale);
+
+  //S := SpriteManager.Instance.DrawSpriteWithOutline(Outline, Nil, blendBlend, 1.0, Filter, True);
+  Result.SetColors(A,B,C,D);
+
+  If (Italics) Then
+    Result._Skew := 5.0
+  Else
+    Result._Skew := 0.0;
+
+  SpriteManager.Instance.QueueSprite(Result);
 End;
 
 {$I default_font.inc}
 Function FontManager.GetDefaultFont: Font;
 Var
   Glyph:FontGlyph;
-  Page:FontPage;
   I, ID:Integer;
   Src:Stream;
-  Img:Image;
+  SrcImg, SubImg:Image;
+
+  Procedure SubPic(X, Y, W, H:Integer);
+  Begin
+    SubImg := SrcImg.SubImage(X, Y, X + W , Y + H);
+  End;
 Begin
   Result := _DefaultFont;
   If Assigned(Result) Then
     Exit;
 
-  _DefaultFont := Font.Create('');
+  _DefaultFont := Font.Create(rtDynamic, 'default_font');
   Result := _DefaultFont;
-  Page := _DefaultFont.AddPage();
+
+  Src := MemoryStream.Create(bm_size, @bm_data[0]);
+  SrcImg := Image.Create(Src);
+  ReleaseObject(Src);
 
   For I:=32 To 128 Do
   Begin
     ID := I;
     Glyph := Nil;
+    SubImg := Nil;
 
 	  Case ID Of
-	  32:
-		Begin
-		  Glyph := Result.AddEmptyGlyph();
-		  Glyph.X := 8*20;
-		  Glyph.Y := 12*2;
-		  Glyph.Width := 4;
-		  Glyph.Height := 12;
-		End;
-
-	  Ord('#'):
-		Begin
-		  Glyph := Result.AddEmptyGlyph();
-		  Glyph.X := 8*10;
-		  Glyph.Y := 12*2;
-		  Glyph.Width := 8;
-		  Glyph.Height := 12;
-		End;
-
-	  Ord('!'):
-		Begin
-		  Glyph := Result.AddEmptyGlyph();
-		  Glyph.X := 8*11;
-		  Glyph.Y := 12*2;
-		  Glyph.Width := 4;
-		  Glyph.Height := 12;
-		End;
-
-	  Ord('?'):
-		Begin
-		  Glyph := Result.AddEmptyGlyph();
-		  Glyph.X := 8*12;
-		  Glyph.Y := 12*2;
-		  Glyph.Width := 8;
-		  Glyph.Height := 12;
-		End;
-
-	  Ord(','):
-		Begin
-		  Glyph := Result.AddEmptyGlyph();
-		  Glyph.X := 8*13;
-		  Glyph.Y := 12*2;
-		  Glyph.Width := 4;
-		  Glyph.Height := 12;
-		End;
-
-	  Ord('.'):
-		Begin
-		  Glyph := Result.AddEmptyGlyph();
-		  Glyph.X := 8*14;
-		  Glyph.Y := 12*2;
-		  Glyph.Width := 4;
-		  Glyph.Height := 12;
-		End;
-
-	  Ord('$'):
-		Begin
-		  Glyph := Result.AddEmptyGlyph();
-		  Glyph.X := 8*15;
-		  Glyph.Y := 12*2;
-		  Glyph.Width := 8;
-		  Glyph.Height := 12;
-		End;
-
-	  Ord(':'):
-		Begin
-		  Glyph := Result.AddEmptyGlyph();
-		  Glyph.X := 8*16;
-		  Glyph.Y := 12*2;
-		  Glyph.Width := 8;
-		  Glyph.Height := 12;
-		End;
-
-	  Ord('+'):
-		Begin
-		  Glyph := Result.AddEmptyGlyph();
-		  Glyph.X := 8*17;
-		  Glyph.Y := 12*2;
-		  Glyph.Width := 8;
-		  Glyph.Height := 12;
-		End;
-
-	  Ord('-'):
-		Begin
-		  Glyph := Result.AddEmptyGlyph();
-		  Glyph.X := 8*18;
-		  Glyph.Y := 12*2;
-		  Glyph.Width := 8;
-		  Glyph.Height := 12;
-		End;
-
-	  Ord(''''):
-		Begin
-		  Glyph := Result.AddEmptyGlyph();
-		  Glyph.X := 8*19;
-		  Glyph.Y := 12*2;
-		  Glyph.Width := 4;
-		  Glyph.Height := 12;
-		End;
-
-	  48..57:
-		Begin
-		  Glyph := Result.AddEmptyGlyph();
-		  Dec(ID, 48);
-		  Glyph.X := 8*ID;
-		  Glyph.Y := 12*2;
-		  Glyph.Width := 8;
-		  Glyph.Height := 12;
-		End;
-	  65..90:
-		Begin
-		  Glyph := Result.AddEmptyGlyph();
-
-		  If (ID=73) Then
-			Glyph.XAdvance := 5;
-		  Dec(ID, 65);
-		  Glyph.X := 8*ID;
-		  Glyph.Y := 12*0;
-		  Glyph.Width := 8;
-		  Glyph.Height := 12;
-		End;
-	  97..122:
-		Begin
-		  Glyph := Result.AddEmptyGlyph();
-		  If (ID=105) Then
-			Glyph.XAdvance := 5;
-		  Dec(ID, 97);
-		  Glyph.X := 8*ID;
-		  Glyph.Y := 12*1;
-		  Glyph.Width := 8;
-		  Glyph.Height := 12;
-		End;
+	  32: SubPic(8*20, 12*2, 4, 12);
+	  Ord('#'):	SubPic(8*10, 12*2, 8, 12);
+	  Ord('!'):	SubPic(8*11, 12*2, 4, 12);
+	  Ord('?'): SubPic(8*12, 12*2, 8, 12);
+	  Ord(','): SubPic(8*13, 12*2, 4, 12);
+    Ord('.'): SubPic(8*14, 12*2, 4, 12);
+	  Ord('$'): SubPic(8*15, 12*2, 8, 12);
+	  Ord(':'): SubPic(8*16, 12*2, 8, 12);
+	  Ord('+'): SubPic(8*17, 12*2, 8, 12);
+	  Ord('-'): SubPic(8*18, 12*2, 8, 12);
+	  Ord(''''):SubPic(8*19, 12*2, 4, 12);
+	  48..57: SubPic(8*(ID-48), 12*2, 8, 12);
+	  65..90: SubPic(8*(ID-65), 12*0, 8, 12);
+	  97..122:  SubPic(8*(ID-97), 12*1, 8, 12);
 	  End;
+
+    If Assigned(SubImg) Then
+    Begin
+      Glyph := Result.AddGlyph(ID, SubImg, 0, 0);
+      ReleaseObject(SubImg);
+    End;
 
 	  If (Assigned(Glyph)) Then
     Begin
-      Glyph.ID := I;
-      If (Glyph.XAdvance<=0) Then
+		  If (ID=73) Then
+  			Glyph.XAdvance := 5
+      Else
+		  If (ID=105) Then
+			  Glyph.XAdvance := 5
+      Else
     		Glyph.XAdvance := Glyph.Width;
     End;
   End;
 
-  Src := MemoryStream.Create(bm_size, @bm_data[0]);
-  Img := Image.Create(Src);
-  Page.SetImage(Img);
-  Src.Release();
-  Img.Release();
+  ReleaseObject(SrcImg);
 
-  Result.RecalculateMetrics();
+  Result.Update();
+
+  Result._NeedsRebuild := True;
+End;
+
+Procedure FontManager.Release;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(Length(_Sprites)) Do
+    ReleaseObject(_Sprites[I]);
+
+  ReleaseObject(_DefaultFont);
+
+  Inherited;
+  _FontManager_Instance := Nil;
+End;
+
+
+Procedure FontManager.Update();
+Var
+  It:Iterator;
+  Fnt:Font;
+Begin
+  _SpriteCount := 0;
+
+  If (Assigned(Self._DefaultFont)) And (Self._DefaultFont._NeedsRebuild) Then
+    Self._DefaultFont.RebuildPages();
+
+  It := Self.Resources.GetIterator();
+  While It.HasNext() Do
+  Begin
+    Fnt := Font(It.Value);
+
+    If (Fnt._NeedsRebuild) Then
+      Fnt.RebuildPages();
+  End;
+  ReleaseObject(It);
+End;
+
+Function FontManager.AllocSprite(): FontSprite;
+Begin
+  If (Length(_Sprites)<=_SpriteCount) Then
+  Begin
+    If (Length(_Sprites)<=0) Then
+      SetLength(_Sprites, 64)
+    Else
+      SetLength(_Sprites, Length(_Sprites) * 2);
+  End;
+
+  If _Sprites[_SpriteCount] = Nil Then
+  Begin
+    _Sprites[_SpriteCount] := FontSprite.Create();
+  End;
+
+  Result := _Sprites[_SpriteCount];
+  Result._Saturation := 1;
+  Result._BlendMode := blendBlend;
+  Result._Outline := ColorBlack;
+  Result._IsFont := True;
+
+  Inc(_SpriteCount);
 End;
 
 { FontGlyph }
@@ -594,15 +590,6 @@ Begin
   SetLength(Self.KerningList, Self.KerningCount);
   Self.KerningList[N].Next := Next;
   Self.KerningList[N].Ammount := Ammount;
-End;
-
-Procedure FontGlyph.Release;
-Begin
-  If (Assigned(_Temp)) And (_Temp<>_Source) Then
-    _Temp.Release();
-
-  If (Assigned(_Source)) Then
-    _Source.Release();
 End;
 
 Function FontGlyph.GetAdvance(Next:Cardinal):Integer;
@@ -627,78 +614,16 @@ Begin
   If Assigned(_Temp) Then
     Result := _Temp
   Else
-  If Assigned(_Source) Then
-    Result := _Source
+  If Assigned(_Item) Then
+    Result := _Item.Buffer
   Else
     Result := Nil;
 End;
 
-Function FontGlyph.IsLoading: Boolean;
+Procedure FontGlyph.Release;
 Begin
-  Result := Assigned(_Temp);
+  ReleaseObject(_Temp);
 End;
-
-{ FontPage }
-Constructor FontPage.Create(ID: Integer);
-Begin
-  Self._ID := ID;
-End;
-
-Procedure FontPage.Release;
-Begin
-  If Assigned(_Texture) Then
-    _Texture.Release();
-
-  If Assigned(_Image) Then
-    _Image.Release();
-End;
-
-Procedure FontPage.DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean);
-Var
-  S:QuadSprite;
-  Filter:TextureFilterMode;
-Begin
-  {$IFDEF DISTANCEFIELDFONTS}
-  Filter := filterBilinear;
-  {$ELSE}
-  Filter := filterLinear;
-  {$ENDIF}
-
-  S := SpriteManager.Instance.DrawSpriteWithOutline(X + Glyph.XOfs, Y + Glyph.YOfs, Z, _Texture, Outline, Nil, blendBlend, 1.0, Filter, True);
-  S.SetColors(A,B,C,D);
-
-  S.SetTransform(Transform);
-  S.ClipRect := Clip;
-//  S.SetScale(Scale);
-  S.Rect.PixelRemap(Glyph.X, Glyph.Y, Glyph.X + Glyph.Width, Glyph.Y + Glyph.Height, Glyph.Width, Glyph.Height);
-
-  If (Italics) Then
-    S.Skew := 5.0;
-End;
-
-Procedure FontPage.SetImage(Source: Image);
-Begin
-  If (_Texture = Nil) Then
-  Begin
-    _Texture := TERRA_Texture.Texture.Create();
-    _Texture.CreateFromImage(Self._Font.Name+'_page'+IntTostring(Self._ID), Source);
-  End Else
-  If (_Texture.Width<>Source.Width) Or (_Texture.Height<>Source.Height) Then
-  Begin
-    _Texture.Release();
-    _Texture := Nil;
-  End;
-
-  _Texture.MipMapped := False;
-  _OptimizedWidth := 0;
-  _OptimizedHeight := 0;
-
-  If Assigned(_Image) Then
-    _Image.Release();
-
-  _Image := Image.Create(Source);
-End;
-
 
 { Font }
 Function Font.Load(Source: Stream): Boolean;
@@ -725,13 +650,13 @@ Begin
   If (Not Result) Then
     Exit;
 
-  RecalculateMetrics();
+
+  Result := Self.Update();
 End;
 
 Procedure Font.RecalculateMetrics();
 Var
   Glyph:FontGlyph;
-  Page:FontPage;
   I, Pos:Integer;
 Begin
   _AvgHeight := 0.0;
@@ -740,15 +665,7 @@ Begin
     Glyph := _Glyphs[I];
     _AvgHeight := _AvgHeight + Glyph.Height;
 
-    Page := Self.GetPage(Glyph.Page);
-    If Assigned(Page) Then
-    Begin
-      If (Glyph.X + Glyph.Width > Page._OptimizedWidth) Then
-        Page._OptimizedWidth := Glyph.X + Glyph.Width;
-
-      If (Glyph.Y + Glyph.Height > Page._OptimizedHeight) Then
-        Page._OptimizedHeight := Glyph.Y + Glyph.Height;
-    End;
+    //Page := Self.GetPage(Glyph.Page);
   End;
 
   If (_GlyphCount>0) Then
@@ -835,7 +752,6 @@ Begin
   Log(logWarning, 'Font', 'Glyph '+IntToString(ID)+' was not found!');
 End;
 
-
 Function Font.Unload: Boolean;
 Var
   I:Integer;
@@ -847,18 +763,14 @@ Begin
   Begin
     _Factory := F;
     F := F._Next;
-    _Factory.Release();
+    ReleaseObject(_Factory);
   End;
   _Factory := Nil;
 
-  For I:=0 To Pred(_PageCount) Do
-    _Pages[I].Release();
-    
-  _PageCount := 0;
-  SetLength(_Pages, 0);
+  ReleaseObject(_Atlas);
 
   For I:=0 To Pred(_GlyphCount) Do
-    _Glyphs[I].Release();
+    ReleaseObject(_Glyphs[I]);
     
   _GlyphCount := 0;
   SetLength(_Glyphs, 0);
@@ -870,36 +782,15 @@ Function Font.Update:Boolean;
 Begin
   Inherited Update();
 
-  If (_NeedsRebuild) Then
-    Self.Rebuild();
+  If (_Atlas = Nil) Then
+    _Atlas := TextureAtlas.Create(Self.Name, DefaultFontPageWidth, DefaultFontPageHeight);
 
-  If (_AvgHeight<=0) Then
-    Self.RecalculateMetrics();
+
+  RecalculateMetrics();
+
+  Self.SetStatus(rsReady);
 
 	Result := True;
-End;
-
-Function Font.GetPage(Index:Integer):FontPage;
-Begin
-  If (Index<0) Or (Index>=_PageCount) Then
-    Result := Nil
-  Else
-    Result := _Pages[Index];
-End;
-
-
-Function Font.AddPage():FontPage;
-Var
-  N:Integer;
-Begin
-  N := _PageCount;
-  Inc(_PageCount);
-  SetLength(_Pages, _PageCount);
-  _Pages[N] := FontPage.Create(N);
-  _Pages[N]._Texture := Nil;
-  _Pages[N]._Image := Nil;
-  _Pages[N]._Font := Self;
-  Result := _Pages[N];
 End;
 
 Procedure Font.SortGlyphs;
@@ -968,7 +859,8 @@ Begin
     Result := Self.AddGlyph(ID, Source, XOfs, YOfs, XAdvance)
   Else
     Result := Nil;
-  Source.Release();
+
+  ReleaseObject(Source);
 End;
 
 Function Font.AddGlyph(ID: Cardinal; Source: Image; XOfs, YOfs, XAdvance: SmallInt):FontGlyph;
@@ -1002,6 +894,7 @@ Begin
   Result.Height := Source.Height;
   Result.XOfs := XOfs;
   Result.YOfs := YOfs;
+
   Result._Temp := Image.Create(Source);
 
   If (XAdvance<=0) Then
@@ -1012,136 +905,29 @@ Begin
   _NeedsRebuild := True;
 End;
 
-Procedure Font.Rebuild();
+Procedure Font.RebuildPages();
 Var
-  X,Y:Integer;
-  I,K:Integer;
-  Packer:RectanglePacker;
-  Pics:Array Of Image;
-  Temp:Image;
-  S:TERRAString;
-
-  Function Finished():Boolean;
-  Var
-    I:Integer;
-  Begin
-    For I:=0 To Pred(_GlyphCount) Do
-    If (Pics[I]<>Nil) Then
-    Begin
-      Result := False;
-      Exit;
-    End;
-
-    Result := True;
-  End;
-
+  I:Integer;
 Begin
   _NeedsRebuild := False;
+
   Log(logDebug,'Font', 'Updating font: '+ Self.Name);
 
   Self.SortGlyphs();
 
   // rebuild the whole font atlas
-  SetLength(Pics, _GlyphCount);
   For I:=0 To Pred(_GlyphCount) Do
+  If (Assigned(_Glyphs[I]._Temp)) Then
   Begin
-    If (_Glyphs[I]._Temp<>Nil) Then
-    Begin
-      Pics[I] := _Glyphs[I]._Temp;
-      _Glyphs[I]._Temp := Nil;
-    End Else
-    Begin
-      Log(logDebug,'Font', 'Generating glyph '+IntToString(I));
-      Pics[I] := _Pages[_Glyphs[I].Page]._Image.SubImage(_Glyphs[I].X, _Glyphs[I].Y, _Glyphs[I].X + _Glyphs[I].Width, _Glyphs[I].Y + _Glyphs[I].Height);
-    End;
-
-    If (Assigned(_Glyphs[I]._Source)) And (_Glyphs[I]._Source <> Pics[I]) Then
-    Begin
-      _Glyphs[I]._Source.Release();
-    End;
-    
-    _Glyphs[I]._Source := Pics[I];
+    _Glyphs[I]._Item := _Atlas.Add(_Glyphs[I]._Temp, CardinalToString(_Glyphs[I].ID));
+    ReleaseObject(_Glyphs[I]._Temp);
   End;
 
-  K := 0;
-  While Not Finished() Do
-  Begin
-    If (K>=_PageCount) Then
-    Begin
-      Self.AddPage();
-      _Pages[K]._Image := Image.Create(DefaultFontPageWidth, DefaultFontPageHeight);
-    End Else
-    Begin
-      _Pages[K]._Image.Release;
-      _Pages[K]._Image := Image.Create(DefaultFontPageWidth, DefaultFontPageHeight);
-    End;
+  _Atlas.Update();
 
-    If (Application.Instance<>Nil) Then
-    Begin
-      If (_Pages[K]._Texture = Nil) Then
-      Begin
-        _Pages[K]._Texture := Texture.Create();
-        _Pages[K]._Texture.CreateFromSize(Self.Name+'_page'+IntToString(K), _Pages[K]._Image.Width, _Pages[K]._Image.Height);
-      End;
-      
-      _Pages[K]._Texture.IsReady();
-    End;
-
-    Temp := _Pages[K]._Image;
-    //Temp.Process(IMP_FillColor, ColorNull);
-    Packer := RectanglePacker.Create();
-
-    For I:=0 To Pred(_GlyphCount) Do
-    If (Pics[I]<>Nil) Then
-    Begin
-      Packer.AddRect(Pics[I].Width+3, Pics[I].Height+3, I);
-    End;
-
-    Packer.Pack(Temp.Width, Temp.Height);
-    For I:=0 To Pred(_GlyphCount) Do
-    Begin
-      If (Pics[I] = Nil) Then
-        Continue;
-
-      X := 0;
-      Y := 0;
-      If (Packer.GetRect(I, X, Y)) Then
-      Begin
-        _Glyphs[I].X := X;
-        _Glyphs[I].Y := Y;
-        _Glyphs[I].Page := K;
-        //Log(logDebug,'Font', 'Bliting glyph '+IntToString(I));
-
-        Temp.Blit(X,Y, 0, 0, Pics[I].Width, Pics[I].Height, Pics[I]);
-        //Pics[I].Release();
-        Pics[I] := Nil;
-      End;
-    End;
-
-    //Temp.Save('koo_'+IntToString(K)+'.png');
-
-    If Assigned(_Pages[K]._Texture) Then
-      _Pages[K]._Texture.UpdateRect(Temp, 0, 0);
-
-    ReleaseObject(Packer);
-
-    Inc(K);
-  End;
-
-  RecalculateMetrics();
+  Self.RecalculateMetrics();
 End;
 
-
-Procedure Font.OnContextLost;
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(_PageCount) Do
-    ReleaseObject(_Pages[I]._Texture);
-
-  Self._ContextID := Application.Instance.ContextID;
-  _NeedsRebuild := True;
-End;
 
 Function ConvertFontCodes(S:TERRAString):TERRAString;
 Var
@@ -1241,15 +1027,55 @@ Begin
   End;
 End;
 
-Function Font.SelectPage(Index, Slot: Integer):FontPage;
+{ FontSprite }
+Procedure FontSprite.Rebuild;
+Var
+  K:Single;
+  Item:TextureAtlasItem;
 Begin
-  If (Index<0) Or (Index>=_PageCount) Then
-    Result := Nil
-  Else
-  Begin
-    Result := _Pages[Index];
-    Result._Texture.Bind(Slot);
-  End;
+  Item := _Glyph._Item;
+
+  If _Vertices = Nil Then
+    _Vertices := CreateSpriteVertexData(6);
+
+  _Width := Item.Buffer.Width;
+  _Height := Item.Buffer.Height;
+
+  _USize := Item.U2 - Item.U1;
+  _VSize := Item.V2 - Item.V1;
+
+  _Vertices.SetColor(0, vertexColor, _C);
+  _Vertices.SetColor(1, vertexColor, _D);
+  _Vertices.SetColor(2, vertexColor, _B);
+  _Vertices.SetColor(4, vertexColor, _A);
+
+  _Vertices.SetVector3D(0, vertexPosition, VectorCreate(_X, _Y +_Height, 0));
+  _Vertices.SetVector2D(0, vertexUV0, VectorCreate2D(Item.U1, Item.V2));
+
+  _Vertices.SetVector3D(1, vertexPosition, VectorCreate(_X +_Width, _Y +_Height, 0));
+  _Vertices.SetVector2D(1, vertexUV0, VectorCreate2D(Item.U2, Item.V2));
+
+  _Vertices.SetVector3D(2, vertexPosition, VectorCreate(_X +_Width + _Skew, _Y, 0));
+  _Vertices.SetVector2D(2, vertexUV0, VectorCreate2D(Item.U2, Item.V1));
+
+  _Vertices.SetVector3D(4, vertexPosition, VectorCreate(_X + _Skew, _Y, 0));
+  _Vertices.SetVector2D(4, vertexUV0, VectorCreate2D(Item.U1, Item.V1));
+
+  _Vertices.CopyVertex(2, 3);
+  _Vertices.CopyVertex(0, 5);
+End;
+
+Procedure FontSprite.SetColor(const C: Color);
+Begin
+  Self.SetColors(C, C, C, C);
+End;
+
+Procedure FontSprite.SetColors(A, B, C, D: Color);
+Begin
+  _A := A;
+  _B := B;
+  _C := C;
+  _D := D;
 End;
 
 End.

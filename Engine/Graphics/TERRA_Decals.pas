@@ -26,8 +26,8 @@ Unit TERRA_Decals;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Application, TERRA_Color, TERRA_Vector2D, TERRA_Vector3D, TERRA_TextureAtlas, TERRA_Texture, TERRA_Renderer,
-  TERRA_Matrix4x4, TERRA_MeshFilter, TERRA_Lights, TERRA_VertexFormat;
+  TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_Color, TERRA_Vector2D, TERRA_Vector3D,
+  TERRA_TextureAtlas, TERRA_Texture, TERRA_Renderer, TERRA_Matrix4x4, TERRA_MeshFilter, TERRA_Lights, TERRA_VertexFormat;
 
 Const
   DecalDecayDuration = 2000;
@@ -112,10 +112,10 @@ Begin
 
       Src := FileStream.Open(S);
       Img := Image.Create(Src);
-      Src.Release;
+      ReleaseObject(Src);
       Item := _TextureAtlas.Add(Img, S);
       _NeedTextureAtlasRebuild := True;
-      Img.Release();
+      ReleaseObject(Img);
     End Else
     Begin
       Result := False;
@@ -153,10 +153,10 @@ Begin
   Ofs := 0;
   For I:=0 To Pred(_DecalCount) Do
   Begin
-    U1 := _Decals[I].Item.X / Self._TextureAtlas.Width;
-    V1 := _Decals[I].Item.Y / Self._TextureAtlas.Height;
-    U2 := (_Decals[I].Item.X + _Decals[I].Item.Buffer.Width) / Self._TextureAtlas.Width;
-    V2 := (_Decals[I].Item.Y + _Decals[I].Item.Buffer.Height) / Self._TextureAtlas.Height;
+    U1 := _Decals[I].Item.U1;
+    V1 := _Decals[I].Item.V1;
+    U2 := _Decals[I].Item.U2;
+    V2 := _Decals[I].Item.V2;
 
     Angle := _Decals[I].Rotation + (PI/4);
     Pos := _Decals[I].Position;
@@ -212,9 +212,7 @@ End;
 
 Procedure DecalManager.Release;
 Begin
-  If Assigned(_TextureAtlas) Then
-    _TextureAtlas.Release;
-
+  ReleaseObject(_TextureAtlas);
   _DecalInstance := Nil;
 End;
 
@@ -286,8 +284,8 @@ Begin
   FxFlags := shaderAlphaTest;
   OutFlags := 0;
 
-  _LightBatch := LightManager.Instance.SortLights(Center, Box);
-  _Shader := ShaderFactory.Instance.GetShader(FxFlags, OutFlags, GraphicsManager.Instance.Renderer.Settings.FogMode, GraphicsManager.Instance.LightModel, _LightBatch);
+  LightManager.Instance.SortLights(Center, Box, _LightBatch);
+  _Shader := ShaderFactory.Instance.GetShader(FxFlags, OutFlags, GraphicsManager.Instance.Renderer.Settings.FogMode, _LightBatch);
   Slot := 1;
   LightManager.Instance.SetupUniforms(@_LightBatch, Slot);
 

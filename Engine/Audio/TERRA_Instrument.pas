@@ -838,7 +838,7 @@ Begin
   Stream.Write(_SampleCount, 4);
   For I:=0 To Pred(_SampleCount) Do
     _Samples[I].Save(Stream);
-  Stream.Release;
+  ReleaseObject(Stream);
 End;
 
 {$ENDIF}

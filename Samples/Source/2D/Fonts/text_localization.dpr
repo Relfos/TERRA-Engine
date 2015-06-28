@@ -3,7 +3,7 @@
 
 Uses
   {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
-  TERRA_Utils, TERRA_Application, TERRA_Scene, TERRA_UI, TERRA_GraphicsManager,
+  TERRA_Utils, TERRA_Object, TERRA_Application, TERRA_Scene, TERRA_UI, TERRA_GraphicsManager,
   TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_OS, TERRA_FileManager, TERRA_Texture,
   TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_SpriteManager, TERRA_InputManager,
   TERRA_FontRenderer, TERRA_Localization, TERRA_Renderer;
@@ -39,7 +39,7 @@ Begin
   // Add asset folders
   FileManager.Instance.AddPath('assets');
 
-  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorRed;
+  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorRed;
 
   // Load a font
   _Font := FontManager.Instance.GetFont('droid');
@@ -65,7 +65,7 @@ Procedure Demo.OnIdle;
 Begin
   If (InputManager.Instance.Keys.WasPressed(keyEscape)) Then
     Application.Instance.Terminate;
-
+    
   If (InputManager.Instance.Keys.WasPressed(keyLeft)) And (_SelectedLanguage>1) Then
   Begin
     Dec(_SelectedLanguage);

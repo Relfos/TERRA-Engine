@@ -74,6 +74,15 @@ Type
       Function HasAttribute(Attribute:Cardinal):Boolean;
 	End;
 
+  SimpleVertex = Class(Vertex)
+    Protected
+      Procedure Load(); Override;
+      Procedure Save(); Override;
+
+    Public
+      Position:Vector3D;
+  End;
+
   VertexClass = Class Of Vertex;
 
   VertexIterator = Class(Iterator)
@@ -93,13 +102,13 @@ Type
       Procedure Reset(); Override;
   End;
 
-  VertexData = Class(TERRAObject)
+  VertexData = Class(Collection)
     Protected
       _Values:Array Of Single;
       _Format:VertexFormat;
       _VertexSize:Cardinal;
       _ElementsPerVertex:Cardinal;
-      _ItemCount:Cardinal;
+
       _Names:Array[0..Pred(MaxVertexAttributes)] Of TERRAString;
       _Formats:Array[0..Pred(MaxVertexAttributes)] Of DataFormat;
       _Offsets:Array[0..Pred(MaxVertexAttributes)] Of Integer;
@@ -148,7 +157,8 @@ Type
       Procedure SetVector3D(Index:Integer; Attribute:Cardinal; Const Value:Vector3D);
       Procedure SetVector4D(Index:Integer; Attribute:Cardinal; Const Value:Vector4D);
 
-      Function GetIterator(V:VertexClass):VertexIterator;
+      Function GetIterator():Iterator; Override;
+      Function GetIteratorForClass(V:VertexClass):VertexIterator;
       Function GetVertex(V:VertexClass; Index:Integer):Vertex;
 
       Procedure CopyBuffer(Other:VertexData);
@@ -163,7 +173,6 @@ Type
       Procedure SetVector4D(Index, Attribute:Cardinal; Const Value:Vector4D);}
 
       Property Format:VertexFormat Read _Format;
-      Property Count:Cardinal Read _ItemCount;
       Property Size:Cardinal Read _VertexSize;
       Property Buffer:Pointer Read GetBuffer;
   End;
@@ -172,7 +181,8 @@ Type
   Function VertexFormatToFlags(Const Value:VertexFormat):Cardinal;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_GraphicsManager, TERRA_Renderer;
+Uses TERRA_Error, TERRA_Log, TERRA_GraphicsManager, TERRA_Renderer
+{$IFNDEF DISABLEALLOCOPTIMIZATIONS}, TERRA_StackObject{$ENDIF};
 
 Const
   DefaultAttributeNames:Array[0..Pred(MaxVertexAttributes)] Of TERRAString =
@@ -693,10 +703,15 @@ Begin
   End;
 End;
 
-Function VertexData.GetIterator(V:VertexClass):VertexIterator;
+Function VertexData.GetIteratorForClass(V:VertexClass):VertexIterator;
 Begin
-  Result := VertexIterator.Create(Nil);
+  Result := VertexIterator.Create(Self);
   Result.Init(Self, V);
+End;
+
+Function VertexData.GetIterator():Iterator;
+Begin
+  Result := Self.GetIteratorForClass(SimpleVertex);
 End;
 
 Procedure VertexData.Resize(NewSize: Cardinal);
@@ -893,11 +908,17 @@ Procedure VertexIterator.JumpToIndex(Position:Integer);
 Var
   ShouldLoad:Boolean;
 Begin
+  If _CurrentVertex = Nil then
+  Begin
+    IntToString(2);
+    Exit;
+  End;
+    
   If _LastIndex <> Position Then
   Begin
     If (Self._CurrentVertex._VertexID>=0) Then
       Self._CurrentVertex.Save();
-      
+
     ShouldLoad := True;
   End Else
     ShouldLoad := (Position=0);
@@ -921,6 +942,7 @@ End;
 Procedure VertexIterator.Release;
 Begin
   ReleaseObject(Self._CurrentVertex);
+  Self._LastIndex := 0;
   Inherited Release();
 End;
 
@@ -1010,5 +1032,16 @@ Procedure Vertex.FreeInstance;
 Begin
 End;
 {$ENDIF}
+
+{ SimpleVertex }
+Procedure SimpleVertex.Load;
+Begin
+  Self.GetVector3D(vertexPosition, Position);
+End;
+
+Procedure SimpleVertex.Save;
+Begin
+  Self.SetVector3D(vertexPosition, Position);
+End;
 
 End.

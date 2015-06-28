@@ -186,7 +186,7 @@ Begin
     Src := MemoryStream.Create(FileName);
     Result := MeshFilterList[I].Filter.Create;
     Result.Load(Src);
-    Src.Release;
+    ReleaseObject(Src);
     Exit;
   End;
 End;
@@ -302,7 +302,7 @@ Var
 Begin
   Src := MemoryStream.Create(FileName);
   Result := Load(Src);
-  Src.Release;
+  ReleaseObject(Src);
 End;
 
 Class Function MeshFilter.Save(FileName:TERRAString; MyMesh: MeshFilter): Boolean;
@@ -311,7 +311,7 @@ Var
 Begin
   Dest := FileStream.Create(FileName);
   Result := Save(Dest, MyMesh);
-  Dest.Release;
+  ReleaseObject(Dest);
 End;
 
 Function MeshFilter.GetGroupBlendMode(GroupID: Integer): Cardinal;

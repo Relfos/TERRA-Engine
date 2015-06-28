@@ -233,10 +233,9 @@ Begin
   If (Temp Is TERRAObject) Then
   Begin
     TERRAObject(Temp).Release();
+    TERRAObject(Temp).Destroy();
   End Else
     Log(logWarning, 'App', Temp.ClassName +' is not a TERRA-Object!');
-
-  TERRAObject(Temp).Destroy();
 
   Pointer(Obj) := Nil;
 End;

@@ -30,10 +30,10 @@ Uses TERRA_Application, TERRA_SMD, TERRA_MeshAnimation, TERRA_Utils, TERRA_OS;
 
 implementation
 
-Uses TERRA_Mesh, TERRA_INI, TERRA_IO, TERRA_Matrix, TERRA_ResourceManager,
+Uses TERRA_Mesh, TERRA_INI, TERRA_Stream, TERRA_Matrix4x4, TERRA_ResourceManager,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Math, TERRA_Color, TERRA_Log,
-  SysUtils, TERRA_MeshFilter, TERRA_FileImport, TERRA_FileIO,
-  TERRA_FileUtils, TERRA_MS3D;
+  SysUtils, TERRA_MeshFilter, TERRA_FileImport, TERRA_FileStream,
+  TERRA_FileUtils, TERRA_MemoryStream, TERRA_Resource;
 
 {Procedure ImportAnimation(Const SMD:SMDAnimation; TargetDir, Prefix:AnsiString);
 Var
@@ -77,7 +77,7 @@ Begin
       If LoopFrame=0 Then
         LoopFrame:=StartFrame;
 
-      TargetName := lowStr(Prefix+'_'+ActionName);
+      TargetName := StringLower(Prefix+'_'+ActionName);
       Anim := Animation.Create(TargetName);
       WriteLn('Importing animation: ', TargetName);
       Anim.FPS := MS3D.AnimationFPS;
@@ -115,10 +115,10 @@ Begin
       End;
 
       Anim.Save(TargetDir + PathSeparator + TargetName+'.anim');
-      Anim.Destroy;
+      Anim.Release;
     End;
-    MyStream.Destroy;
-    Parser.Destroy;
+    MyStream.Release;
+    Parser.Release;
 End;}
 
 Function SMDImporter(SourceFile, TargetDir:AnsiString; TargetPlatform:Integer; Settings:AnsiString):AnsiString;
@@ -162,9 +162,9 @@ Begin
     MyMesh := Mesh.CreateFromFilter(Filter);
     Dest := FileStream.Create(Destfile);
     MyMesh.Save(Dest);
-    Dest.Destroy;
-    Filter.Destroy;
-    MyMesh.Destroy;
+    ReleaseObject(Dest);
+    ReleaseObject(Filter);
+    ReleaseObject(MyMesh);
   End Else
   Begin
     Log(logConsole, 'Import', 'Importing SMD animation ('+GetFileName(SourceFile, False)+')...');
@@ -179,7 +179,7 @@ Begin
     LoopFrame := StartFrame;
 
     Begin
-      Anim := Animation.Create(TargetName);
+      Anim := Animation.Create(rtDynamic, TargetName);
       Anim.FPS := 24;
       BaseTime := StartFrame/Anim.FPS;
       Anim.Loop := LoopAnimation;
@@ -207,7 +207,7 @@ Begin
       End;
 
       Anim.Save(TargetDir + PathSeparator + TargetName+'.anim');
-      Anim.Destroy;
+      Anim.Release;
     End;
   End;
 End;
