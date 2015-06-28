@@ -1,6 +1,6 @@
 #import <StoreKit/StoreKit.h>
 #import "TERRA_InAppPurchaseManager.h"
-#import "PascalImports.h"
+#import "TERRA_Imports.h"
 
 @implementation InAppPurchaseManager
 

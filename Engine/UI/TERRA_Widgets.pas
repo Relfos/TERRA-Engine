@@ -2135,7 +2135,7 @@ Begin
     VirtualKeyboard(UI.VirtualKeyboard).ShowFocus()
   Else
   {$ENDIF}
-  focusKeyboard(PAnsiChar(Self.Text));
+//  focusKeyboard(PAnsiChar(Self.Text));
   {$ELSE}
   {$IFDEF VIRTUALKEYBOARD}
   VirtualKeyboard(UI.VirtualKeyboard).ShowFocus();

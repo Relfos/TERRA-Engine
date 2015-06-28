@@ -189,8 +189,8 @@ Begin
   End;
   ReleaseObject(It);
 
-  If Not Assigned(Result)Then
-    Log(logWarning, 'Package', 'Resource not found.['+ResourceName+']');
+(*  If Not Assigned(Result)Then
+    Log(logWarning, 'Package', 'Resource not found.['+ResourceName+']');*)
 End;
 
 //Loads a resource from the package into a stream

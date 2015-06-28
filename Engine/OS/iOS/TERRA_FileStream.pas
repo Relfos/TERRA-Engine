@@ -4,7 +4,7 @@ Unit TERRA_FileStream;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Stream, TERRA_FileUtils, SysUtils;
+Uses TERRA_Stream, TERRA_String, TERRA_FileUtils, SysUtils;
 
 Type
   FilePointer = Pointer;
@@ -16,13 +16,13 @@ Type
      Public
 
         Constructor Create(FileName:TERRAString; StreamMode:Integer=smDefault);Overload;
-        Constructor Open(FileName:TERRAString; StreamMode:Integer=smDefault; Offset:Integer=0; MaxSize:Integer=-1);
+        Constructor Open(FileName:TERRAString; StreamMode:Integer=smDefault);
         Procedure Release;Override;
         Procedure Delete;
         Procedure Rename(NewName:TERRAString);
         Procedure Truncate;Override;
-        Function Read(Data:Pointer; Length:Cardinal):Cardinal;Override;
-        Function Write(Data:Pointer; Length:Cardinal):Cardinal;Override;
+        Function Read(Data:Pointer; Length:Cardinal):Cardinal; Override;
+        Function Write(Data:Pointer; Length:Cardinal):Cardinal; Override;
         Procedure Seek(NewPosition:Cardinal);Override;
 
         Procedure Flush;
@@ -32,9 +32,9 @@ Type
      End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Application, TERRA_FileManager, TERRA_Utils;
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Application, TERRA_MemoryStream, TERRA_FileManager, TERRA_Utils;
 
-Function fopen (filename, mode :PTERRAChar):Pointer; cdecl; external;
+Function fopen (filename, mode :PAnsiChar):Pointer; cdecl; external;
 Function fclose (stream:Pointer):Integer; cdecl; external;
 Function fread(ptr:Pointer; size, count:Integer; stream:Pointer):Integer; cdecl; external;
 Function fwrite(ptr:Pointer; size, count:Integer; stream:Pointer):Integer; cdecl; external;
@@ -46,7 +46,7 @@ Const
   SEEK_CUR = 1;
   SEEK_END = 2;
 
-Function fileExists(name:PTERRAChar):Boolean;
+Function fileExists(name:PAnsiChar):Boolean;
 Var
 f:Pointer;
 Begin
@@ -75,7 +75,7 @@ End;
 
 Class Function FileStream.Exists(Const FileName:TERRAString): Boolean;
 Begin
-  Result := FileExists(PTERRAChar(FileName));
+  Result := FileExists(PAnsiChar(FileName));
 End;
 
 Constructor FileStream.Create(FileName:TERRAString; StreamMode:Integer=smDefault);
@@ -94,13 +94,13 @@ Begin
     _Size:=0;
     FileMode := 2;
 
-	  _File := fopen(PTERRAChar(_Name), PTERRAChar('wb'));
+	  _File := fopen(PAnsiChar(_Name), PAnsiChar('wb'));
 
     _Open := Assigned(_File);
   End;
 End;
 
-Constructor FileStream.Open(FileName:TERRAString; StreamMode:Integer=smDefault; Offset:Integer=0; MaxSize:Integer=-1);
+Constructor FileStream.Open(FileName:TERRAString; StreamMode:Integer=smDefault);
 Var
   FSize:Integer;
 Begin
@@ -112,7 +112,7 @@ Begin
   _Open := False;
   _Name := FileName;
 
-  If Not FileExists(PTERRAChar(FileName)) Then
+  If Not FileExists(PAnsiChar(FileName)) Then
   Begin
     RaiseError('File not found. ['+FileName+']');
     Exit;
@@ -124,9 +124,7 @@ Begin
     Exit;
   End Else
   Begin
-    _Offset := Offset;
-
-	  _File := fopen(PTERRAChar(_Name), PTERRAChar('rb'));
+	  _File := fopen(PAnsiChar(_Name), PAnsiChar('rb'));
   	If Not Assigned(_File) Then
     Begin
       RaiseError('Cannot open file: '+FileName);
@@ -140,16 +138,9 @@ Begin
     Else
       _Size := 0;
 
+    _Pos := 0;
+
   	Log(logDebug, 'IO', 'filesize '+IntToString(_Size));
-
-    If (MaxSize>0) And (MaxSize<_Size) Then
-      _Size := MaxSize;
-
-    If _Offset>0 Then
-    Begin
-      Self.Seek(_Offset);
-      _Pos := 0;
-    End;
 
     _Open := True;
   End;
@@ -256,7 +247,7 @@ Begin
   End;
   _Pos := NewPosition;
 
-	fseek(_File, _Pos + _Offset, SEEK_SET);
+	fseek(_File, _Pos, SEEK_SET);
 End;
 
 
@@ -276,7 +267,7 @@ Begin
   If (Assigned(_File)) And (_Open) Then
   Begin
     fclose(_File);
-	  _File := fopen(PTERRAChar(_Name), PTERRAChar('ab'));
+	  _File := fopen(PAnsiChar(_Name), PAnsiChar('ab'));
     _Open := Assigned(_File);
   End;
 End;

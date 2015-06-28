@@ -4,81 +4,80 @@ Unit TERRA_OS;
 
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Application, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Vector3D, TERRA_Client;
+Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Vector3D;
 
 Const
 	PathSeparator = '/';
 	CrLf = #10;
 
-	keyBackspace  = 8;
-	keyTab        = 9;
-	keyEnter      = 13;
-	keyShift      = $38;
-	keyControl    = $3B;
-	keyAlt        = $3A;
-	keyPause      = $71;
-	keyEscape     = $35;
-	keySpace      = $31;
-	keyPageUp     = $74;
-	keyPageDown   = $79;
-	keyEnd        = $77;
-	keyHome       = $73;
+keyBackspace  = 8;
+keyTab        = 9;
+keyEnter      = 13;
+keyShift      = 16;
+keyControl    = 17;
+keyAlt        = 18;
+keyPause      = 19;
+keyEscape     = 27;
+keySpace      = 32;
+keyPageUp     = 33;
+keyPageDown   = 34;
+keyEnd        = 35;
+keyHome       = 36;
+keyPlus       = 107;
+keyMinus      = 109;
+keyPeriod     = 190;
 
-	keyLeft       = $7B;
-	keyUp         = $7E;
-	keyRight      = $7C;
-	keyDown       = $7D;
+keyLeft       = 28;
+keyUp         = 30;
+keyRight      = 29;
+keyDown       = 31;
 
-	keyInsert     = $72;
-	keyDelete     = $75;
+keyInsert     = 45;
+keyDelete     = 46;
+keyF1         = 112;
+keyF2         = 113;
+keyF3         = 114;
+keyF4         = 115;
+keyF5         = 116;
+keyF6         = 117;
+keyF7         = 118;
+keyF8         = 119;
+keyF9         = 120;
+keyF10        = 121;
+keyF11        = 122;
+keyF12        = 123;
 
-  keyF1        = $7A;
-  keyF2        = $78;
-  keyF3        = $63;
-  keyF4        = $76;
-  keyF5        = $60;
-  keyF6        = $61;
-  keyF7        = $62;
-  keyF8        = $64;
-  keyF9        = $65;
-  keyF10       = $6D;
-  keyF11       = $67;
-  keyF12       = $6F;
+keyA = Ord('A');
+keyB = Ord('B');
+keyC = Ord('C');
+keyD = Ord('D');
+keyE = Ord('E');
+keyF = Ord('F');
+keyG = Ord('G');
+keyH = Ord('H');
+keyI = Ord('I');
+keyJ = Ord('J');
+keyK = Ord('K');
+keyL = Ord('L');
+keyM = Ord('M');
+keyN = Ord('N');
+keyO = Ord('O');
+keyP = Ord('P');
+keyQ = Ord('Q');
+keyR = Ord('R');
+keyS = Ord('S');
+keyT = Ord('T');
+keyU = Ord('U');
+keyV = Ord('V');
+keyW = Ord('W');
+keyX = Ord('X');
+keyY = Ord('Y');
+keyZ = Ord('Z');
 
-  keyA = Ord('A');
-  keyB = Ord('B');
-  keyC = Ord('C');
-  keyD = Ord('D');
-  keyE = Ord('E');
-  keyF = Ord('F');
-  keyG = Ord('G');
-  keyH = Ord('H');
-  keyI = Ord('I');
-  keyJ = Ord('J');
-  keyK = Ord('K');
-  keyM = Ord('M');
-  keyN = Ord('N');
-  keyO = Ord('O');
-  keyP = Ord('P');
-  keyQ = Ord('Q');
-  keyR = Ord('R');
-  keyS = Ord('S');
-  keyT = Ord('T');
-  keyU = Ord('U');
-  keyV = Ord('V');
-  keyW = Ord('W');
-  keyX = Ord('X');
-  keyY = Ord('Y');
-  keyZ = Ord('Z');
 
-Procedure DisplayMessage(S:TERRAString);
-Function GetCurrentTime:TERRATime;
-Function GetCurrentDate:TERRADate;
-Function GetTime:Cardinal; {$IFDEF FPC} Inline;{$ENDIF}
-Function CreateApplicationClass(Client:AppClient):Application;
 
 Type
-  iPhoneApplication = Class(Application)
+  iOSApplication = Class(BaseApplication)
     Protected
 
       //Procedure ConvertCoords(Var X,Y:Integer);
@@ -86,13 +85,12 @@ Type
 
       Function InitSettings:Boolean; Override;
       Function InitWindow:Boolean; Override;
-      Function InitGraphics:Boolean; Override;
-      Procedure CloseGraphics; Override;
       Procedure CloseWindow; Override;
 
   	Public
+        Constructor Create();
+
       Procedure ProcessMessages; Override;
-      Procedure SwapBuffers; Override;
       Procedure SetState(State:Cardinal); Override;
 
       Procedure EnableAds; Override;
@@ -115,7 +113,17 @@ Type
       Function GetDeviceID():TERRAString; Override;
 
       Procedure SendAnalytics(EventName:TERRAString; Params:TERRAString=''); Override;
+
+
+    Class Function Instance:iOSApplication;
+
+    Class Function GetCurrentTime:TERRATime;
+    Class Function GetCurrentDate:TERRADate;
+    Class Function GetTime:Cardinal;
+
   End;
+
+    Application = iOSApplication;
 
 Function getUniqueDeviceID():PAnsiChar; Cdecl; external;
 Procedure showAlert(message:PAnsiChar); cdecl; external;
@@ -126,7 +134,8 @@ Procedure savePref(); cdecl; external;
 Procedure showAds(); cdecl; external;
 Procedure showFullscreenAds(); cdecl; external;
 Procedure openAppStore(S:PAnsiChar); cdecl; external;
-Procedure initAppViews(); cdecl; external;
+//Procedure initAppViews(); cdecl; external;
+
 Function getCPUCores():Integer; cdecl; external;
 
 Function InitAccelerometer():Boolean; Cdecl; external;
@@ -137,6 +146,7 @@ Function StopAccelerometer():Boolean; Cdecl; external;
 Function StopGyroscope():Boolean; Cdecl; external;
 Function StopCompass():Boolean; Cdecl; external;
 
+(*
 Procedure submitScore(score:Integer); cdecl; external;
 Procedure showLeaderboard(); cdecl; external;
 Procedure changeLeaderboard(board:PAnsiChar); cdecl; external;
@@ -144,16 +154,11 @@ Procedure changeLeaderboard(board:PAnsiChar); cdecl; external;
 Procedure AnalyticsLog(s:PAnsiChar); cdecl; external;
 Procedure AnalyticsLogWithParams(s, s2:PAnsiChar); cdecl; external;
 
-Procedure enableAVCapture(); cdecl; external;
-Procedure startAVCapture(); cdecl; external;
-Procedure stopAVCapture(); cdecl; external;
-
-Procedure SetRenderbufferStorage(); cdecl; external;
-Procedure PresentRenderBuffer(); cdecl; external;
+*)
 
 Procedure iPhoneLog(s:PAnsiChar); cdecl; external;
 
-Procedure focusKeyboard(s:PAnsiChar); cdecl; external;
+//Procedure focusKeyboard(s:PAnsiChar); cdecl; external;
 Function isDeviceJailbroken():Boolean; cdecl; external;
 
 Procedure IAP_RequestProduct(ID:PAnsiChar) cdecl; external;
@@ -170,21 +175,22 @@ Procedure audioStop (player:Pointer); cdecl; external;
 Procedure audioSetVolume(player:Pointer; volume:Single); cdecl; external;
 Procedure audioClose (player:Pointer); cdecl; external;
 
-Procedure initScale(); cdecl; external;
+//Procedure initScale(); cdecl; external;
 
-Procedure postToFacebook(msg, link, desc, image:PAnsiChar); cdecl; external;
+//Procedure postToFacebook(msg, link, desc, image:PAnsiChar); cdecl; external;
 
-Function shadersAvailable():Boolean; cdecl; external;
+//Function shadersAvailable():Boolean; cdecl; external;
 
 Procedure AppUnlockAchievement(ID:PAnsiChar);cdecl; external;
 
-Procedure iCloudSynchronize; Cdecl; external;
+//Procedure iCloudSynchronize; Cdecl; external;
+//Procedure excludeFileFromCloud(fileName:PAnsiChar);Cdecl; external;
 
 Function getCurrentOrientation():Integer; Cdecl; external;
 
 Procedure getBundleVersion(dest:PAnsiChar); Cdecl; external;
 
-{Procedure ApplicationSendInput(s:TERRAChar); cdecl; export;
+Procedure ApplicationSendInput(s:TERRAChar); cdecl; export;
 Procedure ApplicationSetScreenRegion(width, height:Integer); cdecl; export;
 Procedure ApplicationSetOrigin(X,Y:Integer); cdecl; export;
 Procedure ApplicationSetResourcesPath(Path:PAnsiChar); cdecl; export;
@@ -205,24 +211,31 @@ Procedure ApplicationOnAccelerometer(x, y, z:Single); cdecl; export;
 Procedure ApplicationOnGyroscope(x, y, z:Single); cdecl; export;
 Procedure ApplicationResize(Width,Height:Integer); cdecl; export;
 Procedure ApplicationMemoryWarning(); cdecl; export;
+
 Function ApplicationGetAppID():PAnsiChar; cdecl; export;
 Function ApplicationGetTestFlightID():PAnsiChar; cdecl; export;
 Function ApplicationGetFlurryID():PAnsiChar; cdecl; export;
-Function ApplicationGetAdMobID():PAnsiChar; cdecl; export;
+Function ApplicationGetAdMobBannerID():PAnsiChar; cdecl; export;
+Function ApplicationGetAdMobInterstitialID():PAnsiChar; cdecl; export;
+Function ApplicationGetChartboostID():PAnsiChar; cdecl; export;
+Function ApplicationGetChartboostSecret():PAnsiChar; cdecl; export;
 Function ApplicationGetFacebookID():PAnsiChar; cdecl; export;
+Function ApplicationGetAdBuddizID():PAnsiChar; cdecl; export;
+Function ApplicationGetVungleID():PAnsiChar; cdecl; export;
+
 Procedure ApplicationOnFacebookPost(); cdecl; export;
 Procedure ApplicationOnFacebookError(); cdecl; export;
-}
+
 
 Var
   iOSScale:Single = 1.0;
 
 Implementation
-Uses TERRA_Log, TERRA_GraphicsManager, TERRA_ResourceManager, TERRA_Webcam, TERRA_Texture,
-TERRA_SoundManager, dateutils, sysutils{$IFDEF NEON_FPU},TERRA_NEON{$ENDIF};
+Uses TERRA_Log, TERRA_GraphicsManager, TERRA_ResourceManager, TERRA_Texture,
+    TERRA_InputManager, TERRA_SoundManager, TERRA_Renderer, TERRA_GLES2Renderer,
+    dateutils, sysutils{$IFDEF NEON_FPU},TERRA_NEON{$ENDIF};
 
 Var
-	_Application_Instance:Application = Nil;
   _ScreenWidth:Integer;
   _ScreenHeight:Integer;
   _OriginX:Integer=0;
@@ -231,6 +244,9 @@ Var
   _iOSDocumentPath:TERRAString;
   _iOSLanguage:TERRAString;
   _iOSCountry:TERRAString;
+
+Var
+    _Application_Instance:iOSApplication;
 
 (*
 Procedure ApplicationSetViewport(x1, y1, x2, y2:Integer); cdecl; export;
@@ -261,8 +277,7 @@ Begin
   If (_Application_Instance=Nil) Then
     Exit;
 
-  If (Assigned(_Application_Instance.Client)) Then
-    _Application_Instance.Client.OnKeyPress(Ord(S));
+  _Application_Instance.OnKeyPress(Ord(S));
 End;
 
 Procedure ApplicationSetScreenRegion(width, height:Integer); cdecl; export;
@@ -314,16 +329,7 @@ Begin
     SetLength(_iOSCountry, 2);
 End;
 
-
-Procedure DisplayMessage(S:TERRAString);
-Begin
-	S := S +#0;
-	{If (Assigned(_Application_Instance)) Then
-		showAlert(PAnsiChar(S));}
-  Log(logWarning, 'App', S);
-End;
-
-Function GetCurrentTime:TERRATime;
+Class Function iOSApplication.GetCurrentTime:TERRATime;
 Var
  Datetime:Tdatetime;
 Begin
@@ -334,7 +340,7 @@ Begin
  Result.MiliSecond  := millisecondof( datetime );
 End;
 
-Function GetCurrentDate:TERRADate;
+Class Function iOSApplication.GetCurrentDate:TERRADate;
 Var
  Datetime:Tdatetime;
 Begin
@@ -358,7 +364,7 @@ Var
 Function mach_timebase_info(Var info:machtimebaseinfo):Integer; Cdecl; External;
 Function mach_absolute_time:Int64; Cdecl; External;
 
-Function GetTime:Cardinal; {$IFDEF FPC} Inline;{$ENDIF}
+Class Function Application.GetTime:Cardinal; {$IFDEF FPC} Inline;{$ENDIF}
 Var
 	t:Int64;
 	f:Single;
@@ -369,18 +375,25 @@ Begin
 	Result := Trunc(f / 1000000);
 End;
 
-Function CreateApplicationClass(Client:AppClient):Application;
+
+Constructor iOSApplication.Create();
 Begin
-	Result := iPhoneApplication.Create(Client);
+    _Application_Instance := Self;
+    Inherited Create();
 End;
 
-Function iPhoneApplication.InitWindow:Boolean;
+Class Function iOSApplication.Instance:iOSApplication;
+Begin
+    Result := _Application_Instance;
+End;
+
+Function iOSApplication.InitWindow:Boolean;
 Var
   buffer: Array[0..255] Of TERRAChar;
   I:Integer;
 
 Begin
-  initAppViews();
+//  initAppViews();
 
   Log(logDebug,'App', 'Creating window');
 
@@ -397,31 +410,18 @@ Begin
     _OrientationTime := 0;
     _Orientation := -1;
 
+//    initScale();
+
     Result := True;
 End;
 
-Function iPhoneApplication.InitGraphics:Boolean;
-Var
-  hasMsaa:Boolean;
-  hasStencil:Boolean;
-Begin
-	glLoadExtensions();
-  initScale();
-
-	Result := True;
-End;
-
-Procedure iPhoneApplication.CloseGraphics;
-Begin
-End;
-
-Procedure iPhoneApplication.CloseWindow;
+Procedure iOSApplication.CloseWindow;
 Begin
 	Log(logDebug,'App', 'Destroying window');
 	Log(logDebug,'App', 'Ok');
 End;
 
-Procedure iPhoneApplication.SwapBuffers;
+(*Procedure iOSApplication.SwapBuffers;
 Begin
     If (IsInvalidOrientation(_Orientation)) Then
     Begin
@@ -429,23 +429,23 @@ Begin
         //SetOrientation(getCurrentOrientation());
         SetOrientation(orientationLandscapeLeft);
     End;
-End;
+End;*)
 
-Procedure iPhoneApplication.SetState(State:Cardinal);
+Procedure iOSApplication.SetState(State:Cardinal);
 Begin
   // TODO
 End;
 
-Procedure iPhoneApplication.ProcessMessages;
+Procedure iOSApplication.ProcessMessages;
 Begin
 End;
 
-Procedure iPhoneApplication.PostToFacebook(msg, link, desc, imageURL:TERRAString);
+Procedure iOSApplication.PostToFacebook(msg, link, desc, imageURL:TERRAString);
 Begin
-  TERRA_OS.PostToFacebook(PAnsiChar(Msg), PAnsiChar(Link), PAnsiChar(Desc), PAnsiChar(ImageURL));
+  //TERRA_OS.PostToFacebook(PAnsiChar(Msg), PAnsiChar(Link), PAnsiChar(Desc), PAnsiChar(ImageURL));
 End;
 
-{Procedure iPhoneApplication.ConvertCoords(Var X,Y:Integer);
+{Procedure iOSApplication.ConvertCoords(Var X,Y:Integer);
 Begin
   If (_Width<_ScreenWidth) Then
     X := Trunc(X*(_Width/_ScreenWidth)) - _OriginX;
@@ -454,7 +454,7 @@ Begin
     Y := Trunc(Y*(_Height/_ScreenHeight)) - _OriginY;
 End;}
 
-Procedure iPhoneApplication.SetScale(Scale:Single);
+Procedure iOSApplication.SetScale(Scale:Single);
 Begin
   _Width := Trunc(_ScreenWidth * iOSScale);
   _Height := Trunc(_ScreenHeight * iOSScale);
@@ -473,7 +473,7 @@ End;
 Procedure ApplicationSetScale(Value:Single); cdecl; export;
 Begin
   iOSScale := Value;
-  iPhoneApplication(_Application_Instance).SetScale(Value);
+  iOSApplication(_Application_Instance).SetScale(Value);
 End;
 
 Function ApplicationIsHiRes():Boolean; cdecl; export;
@@ -483,7 +483,7 @@ End;
 
 Procedure ApplicationBeginTouch(x,y:Integer); cdecl; export;
 Begin
-    If (Not Assigned(_Application_Instance)) Or (Not Assigned(_Application_Instance.Client))  Then
+    If (Not Assigned(_Application_Instance)) Then
         Exit;
 
 //	Log(logDebug, 'App', 'ScreenWidth:' + IntToString(_ScreenWidth)+' ScreenHeight:' + IntToString(_ScreenHeight));
@@ -500,11 +500,11 @@ End;
 
 Procedure ApplicationMoveTouch(x,y:Integer); cdecl; export;
 Begin
-    If (Not Assigned(_Application_Instance)) Or (Not Assigned(_Application_Instance.Client))  Then
+    If (Not Assigned(_Application_Instance)) Then
         Exit;
 
 //	Log(logDebug, 'game','untouch move X:'+IntToString(X)+', Y:'+InTToString(Y));
-//    iPhoneApplication(_Application_Instance).ConvertCoords(X,Y);
+//    iOSApplication(_Application_Instance).ConvertCoords(X,Y);
 //	Log(logDebug, 'game','convert move X:'+IntToString(X)+', Y:'+InTToString(Y));
 
     X := Trunc(X * iOSScale);
@@ -516,13 +516,13 @@ End;
 
 Procedure ApplicationEndTouch(x,y:Integer); cdecl; export;
 Begin
-    If (Not Assigned(_Application_Instance)) Or (Not Assigned(_Application_Instance.Client))  Then
+    If (Not Assigned(_Application_Instance))  Then
         Exit;
 
     X := Trunc(X * iOSScale);
     Y := Trunc(Y * iOSScale);
 
-//    iPhoneApplication(_Application_Instance).ConvertCoords(X,Y);
+//    iOSApplication(_Application_Instance).ConvertCoords(X,Y);
     _Application_Instance.AddCoordEvent(eventMouseUp, X, Y, keyMouseLeft);
 //	Log(logDebug, 'game','touch up X:'+IntToString(X)+', Y:'+InTToString(Y));
 End;
@@ -544,10 +544,10 @@ End;
 
 Procedure ApplicationEnterState(state:Integer); cdecl; export;
 Begin
-    If (Not Assigned(_Application_Instance)) Or (Not Assigned(_Application_Instance.Client))  Then
+    If (Not Assigned(_Application_Instance))  Then
         Exit;
 
-    _Application_Instance.Client.OnStateChange(state);
+    _Application_Instance.OnStateChange(state);
 End;
 
 Procedure ApplicationOnAccelerometer(x, y, z:Single); cdecl; export;
@@ -579,7 +579,7 @@ End;
 
 Procedure ApplicationResize(Width,Height:Integer); cdecl; export;
 Var
-    App:iPhoneApplication;
+    App:iOSApplication;
 Begin
   If Not Assigned(_Application_Instance) Then
     Exit;
@@ -594,7 +594,7 @@ Begin
   If (Not Assigned(_Application_Instance)) Then
     Exit;
 
-  _Application_Instance.Client.OnAPIResult(apiFacebook, facebookPostSucess);
+  _Application_Instance.OnAPIResult(apiFacebook, facebookPostSucess);
 End;
 
 Procedure ApplicationOnFacebookError(); cdecl; export;
@@ -602,7 +602,7 @@ Begin
   If (Not Assigned(_Application_Instance)) Then
     Exit;
 
-  _Application_Instance.Client.OnAPIResult(apiFacebook, facebookConnectionError);
+  _Application_Instance.OnAPIResult(apiFacebook, facebookConnectionError);
 End;
 
 Procedure ApplicationMemoryWarning(); cdecl; export;
@@ -612,7 +612,7 @@ Begin
   SoundManager.Instance.PurgeResources();
 End;
 
-Procedure iPhoneApplication.EnableAds;
+Procedure iOSApplication.EnableAds;
 Begin
   //Self.SetViewport(0, 50, Application.Instance.Width, Application.Instance.Height);
 
@@ -620,31 +620,32 @@ Begin
   TERRA_OS.showAds();
 End;
 
-Procedure iPhoneApplication.ShowFullscreenAd;
+Procedure iOSApplication.ShowFullscreenAd;
 Begin
   Log(logDebug, 'game','Showing fullscreen ads...');
   TERRA_OS.showFullscreenAds();
 End;
 
-Function iPhoneApplication.GetDeviceID:TERRAString;
+Function iOSApplication.GetDeviceID:TERRAString;
 Begin
   Result := TERRA_OS.getUniqueDeviceID();
 End;
 
-Procedure iPhoneApplication.OpenAppStore(AppID:TERRAString);
+Procedure iOSApplication.OpenAppStore(AppID:TERRAString);
 Begin
   TERRA_OS.openAppStore(PAnsiChar(AppID));
 End;
 
-Procedure iPhoneApplication.SendAnalytics(EventName, Params:TERRAString);
+Procedure iOSApplication.SendAnalytics(EventName, Params:TERRAString);
 Begin
-  If (EventName='') Then
+(*  If (EventName='') Then
     Exit;
 
   If (Params<>'') Then
     AnalyticsLogWithParams(PAnsiChar(EventName), PAnsiChar(Params))
   Else
     AnalyticsLog(PAnsiChar(EventName));
+*)
 End;
 
 Var
@@ -662,59 +663,59 @@ End;
 
 Function ApplicationGetAppID():PAnsiChar; cdecl; export;
 Begin
-    Result := GetStringBuffer(Application.Instance.Client.GetAppID());
+    Result := GetStringBuffer(Application.Instance.GetAppID());
 End;
 
 Function ApplicationGetTestFlightID():PAnsiChar; cdecl; export;
 Begin
-    Result := GetStringBuffer(Application.Instance.Client.GetTestFlightID());
+    Result := GetStringBuffer(Application.Instance.GetTestFlightID());
 End;
 
 Function ApplicationGetFlurryID():PAnsiChar; cdecl; export;
 Begin
-  Result := GetStringBuffer(Application.Instance.Client.GetFlurryID());
+  Result := GetStringBuffer(Application.Instance.GetFlurryID());
 End;
 
 Function ApplicationGetAdMobBannerID():PAnsiChar; cdecl; export;
 Begin
-  Result := GetStringBuffer(Application.Instance.Client.GetadMobBannerID());
+  Result := GetStringBuffer(Application.Instance.GetadMobBannerID());
 End;
 
 Function ApplicationGetAdMobInterstitialID():PAnsiChar; cdecl; export;
 Begin
-  Result := GetStringBuffer(Application.Instance.Client.GetAdMobInterstitialID());
+  Result := GetStringBuffer(Application.Instance.GetAdMobInterstitialID());
 End;
 
 Function ApplicationGetChartboostID():PAnsiChar; cdecl; export;
 Begin
-    Result := GetStringBuffer(Application.Instance.Client.GetChartboostID());
+    Result := GetStringBuffer(Application.Instance.GetChartboostID());
 End;
 
 Function ApplicationGetChartboostSecret():PAnsiChar; cdecl; export;
 Begin
-    Result := GetStringBuffer(Application.Instance.Client.GetChartboostSecret());
+    Result := GetStringBuffer(Application.Instance.GetChartboostSecret());
 End;
 
 Function ApplicationGetAdBuddizID():PAnsiChar; cdecl; export;
 Begin
-  Result := GetStringBuffer(Application.Instance.Client.GetAdBuddizID());
+  Result := GetStringBuffer(Application.Instance.GetAdBuddizID());
 End;
 
 Function ApplicationGetVungleID():PAnsiChar; cdecl; export;
 Begin
-    Result := GetStringBuffer(Application.Instance.Client.GetVungleID());
+    Result := GetStringBuffer(Application.Instance.GetVungleID());
 End;
 
 Function ApplicationGetFacebookID():PAnsiChar; cdecl; export;
 Begin
-  Result := GetStringBuffer(Application.Instance.Client.GetFacebookID());
+  Result := GetStringBuffer(Application.Instance.GetFacebookID());
 End;
 
 Var
   TestedJailbroke:Boolean;
   JailbrokeResult:Boolean;
 
-Function iPhoneApplication.IsDeviceRooted: Boolean;
+Function iOSApplication.IsDeviceRooted: Boolean;
 Begin
   If Not TestedJailbroke Then
   Begin
@@ -725,43 +726,43 @@ Begin
   Result := JailbrokeResult;
 End;
 
-Function iPhoneApplication.InitAccelerometer: Boolean;
+Function iOSApplication.InitAccelerometer: Boolean;
 Begin
   Log(logDebug, 'App', 'Enabling accelerometer');
   Result := InitAccelerometer();
 End;
 
-Function iPhoneApplication.InitCompass: Boolean;
+Function iOSApplication.InitCompass: Boolean;
 Begin
   Log(logDebug, 'App', 'Enabling compass');
   Result := InitCompass();
 End;
 
-Function iPhoneApplication.InitGyroscope: Boolean;
+Function iOSApplication.InitGyroscope: Boolean;
 Begin
   Log(logDebug, 'App', 'Enabling gyroscope');
   Result := InitGyroscope();
 End;
 
-Procedure iPhoneApplication.StopAccelerometer;
+Procedure iOSApplication.StopAccelerometer;
 Begin
   Log(logDebug, 'App', 'Disabling accelerometer');
     StopAccelerometer();
 End;
 
-Procedure iPhoneApplication.StopCompass;
+Procedure iOSApplication.StopCompass;
 Begin
   Log(logDebug, 'App', 'Disabling compass');
   StopCompass();
 End;
 
-Procedure iPhoneApplication.StopGyroscope;
+Procedure iOSApplication.StopGyroscope;
 Begin
   Log(logDebug, 'App', 'Disabling gyroscope');
   StopGyroscope();
 End;
 
-Function iPhoneApplication.InitSettings: Boolean;
+Function iOSApplication.InitSettings: Boolean;
 Var
   Buffer:Array[0..1024] Of AnsiChar;
   Temp:PAnsiChar;
@@ -800,6 +801,7 @@ Begin
   _BundleVersion := Temp;
   Log(logDebug, 'App', 'Found version '+_BundleVersion);
 
+  Renderers.Add(OpenGLES2Renderer.Create());
 
   Result := True;
 End;
