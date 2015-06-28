@@ -722,8 +722,10 @@ Begin
 
 //  GraphicsManager.Instance.ShowDebugTarget := captureTargetColor;
 
+  {$IFDEF POSTPROCESSING}
   If (Self.HasPostProcessing) Then
     UpdateEffectTargets();
+	{$ENDIF}
 
   _ResolveBuffer.BackgroundColor := ColorNull;
   _ResolveBuffer.BeginCapture();
