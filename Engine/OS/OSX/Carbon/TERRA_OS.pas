@@ -1148,4 +1148,6 @@ Initialization
 //	BaseTime := Now;
   mach_timebase_info(timeinfo);
   basetime := mach_absolute_time();
+Finalization
+  ReleaseObject(_Application_Instance);
 End.

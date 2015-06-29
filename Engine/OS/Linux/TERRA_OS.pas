@@ -1309,4 +1309,7 @@ Begin
   Result := True;
 End;
 
+Initialization
+Finalization
+  ReleaseObject(_Application_Instance);
 End.

@@ -833,7 +833,6 @@ Begin
   If (Not _Managed) Then
   Begin
     Self.Release;
-    Self.Destroy();
   End;
   {$ENDIF}
 

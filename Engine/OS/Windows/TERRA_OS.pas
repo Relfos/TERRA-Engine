@@ -1297,4 +1297,6 @@ End;
 
 Initialization
   LoadMultimedia();
+Finalization
+  ReleaseObject(_Application_Instance);
 End.
