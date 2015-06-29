@@ -39,17 +39,29 @@ Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_OS
 {$IFDEF ANDROID},TERRA_Java{$ENDIF};
 
 Type
-  PSocketAddress = ^SocketAddress;
+  PSocketAddress = Pointer;
+
   // Socket info structure
   SocketAddress = Packed Record
     Family:Word;
     Port:Word;
-    Address:Cardinal;
-    Zero:Array[1..8]Of Byte;
+
+    Case Byte Of
+    // IPV4
+    0:
+    (Address4:Cardinal;
+      Zero:Array[1..8]Of Byte;);
+
+    // IPV6
+    1: (
+      Flowinfo:Cardinal;     // IPv6 flow information
+      Address6:Array[1..8] Of Word;  // IPv6 address
+      ScopeId:Cardinal;     // IPv6 scope-id
+    );
   End;
 
-  PHostEntity=^THostEntity;
-  THostEntity=Packed Record
+  PHostEntity = ^THostEntity;
+  THostEntity = Packed Record
     Name:PAnsiChar;
     Aliases:^PAnsiChar;
     AddressType:{$IFDEF WINDOWS}SmallInt{$ELSE}Integer{$ENDIF};
@@ -62,6 +74,7 @@ Const
 
 {$IFNDEF USE_FPC_SOCKETS}
   PF_INET           = 2;      // Internet address format
+  PF_INET6          = 10;
   SOCK_STREAM       = 1;      // TCP format
   SOCK_DGRAM        = 2;      // UDP format
 
@@ -100,18 +113,18 @@ Type
   Function WSACleanup:Integer;StdCall; external WinSockDLL;
   function WSAGetLastError: Integer; stdcall;external WinSockDLL;
   Function socket(af,prototype,protocol:Integer):Integer;StdCall; external WinSockDLL name 'socket';
-  Function bind(socket:Integer;Var bindto:SocketAddress;tolen:Integer):Integer;StdCall; external WinSockDLL;
+  Function bind(socket:Integer;bindto:PSocketAddress;tolen:Integer):Integer;StdCall; external WinSockDLL;
   Function closesocket(socket:Integer):Integer;StdCall; external WinSockDLL;
-  Function connect(socket:Integer;Var Addr:SocketAddress;AddrLen:Integer):Integer; Stdcall; external WinSockDLL;
+  Function connect(socket:Integer; Addr:PSocketAddress;AddrLen:Integer):Integer; Stdcall; external WinSockDLL;
   Function send(socket:Integer;Var Buffer;Length,Flags:Integer):Integer; Stdcall;external WinSockDLL;
-  Function sendto(socket:Integer;Var Buffer;Length:Integer;Flags:Integer;Var addrto:SocketAddress;tolen:Integer):Integer;StdCall; external WinSockDLL;
+  Function sendto(socket:Integer;Var Buffer;Length:Integer;Flags:Integer; addrto:PSocketAddress;tolen:Integer):Integer;StdCall; external WinSockDLL;
   Function recv(socket:Integer;Var Buffer;len,flags:Integer):Integer;StdCall; external WinSockDLL;
-  Function recvfrom(socket:Integer;Var Buffer;Len,Flags:Integer;Var AddrFrom:SocketAddress;Var FromLen:Integer):SmallInt;StdCall; external WinSockDLL;
+  Function recvfrom(socket:Integer;Var Buffer;Len,Flags:Integer; AddrFrom:PSocketAddress;Var FromLen:Integer):SmallInt;StdCall; external WinSockDLL;
   Function inet_addr(Addr:PAnsiChar):Cardinal;StdCall; external WinSockDLL;
   Function ioctlsocket(socket:Integer;cmd:Cardinal;var argp:Integer):Integer;StdCall; external WinSockDLL;
   Function htons(hostshort:Word):Word;StdCall; external WinSockDLL;
   Function listen(socket:Integer;Backlog:Integer):Integer;StdCall; external WinSockDLL;
-  Function accept(socket:Integer;Var Addr:SocketAddress;Var Len:Integer):Integer; StdCall; external WinSockDLL;
+  Function accept(socket:Integer; Addr:PSocketAddress;Var Len:Integer):Integer; StdCall; external WinSockDLL;
   Function gethostname(Name:PAnsiChar;Len:Integer):Integer;Stdcall;external WinSockDLL;
   Function gethostbyname(Name:PAnsiChar):PHostEntity; Stdcall;external WinSockDLL;
   Function setsockopt(socket:Integer;level,optname:Integer;optval:Pointer;optlen:Integer): Integer;Stdcall;external WinSockDLL;
@@ -198,8 +211,8 @@ Type
       _Handle:Integer;
       _Blocking:Boolean;
       _Closed:Boolean;
-      _Address:Cardinal;
       _Error:Boolean;
+      _NetType:Integer;
 
       Function GetEOF:Boolean;Override;
 
@@ -220,7 +233,6 @@ Type
 
       Property Closed:Boolean Read _Closed;
       Property Blocking:Boolean Read _Blocking Write SetBlocking;
-      Property Address:Cardinal Read _Address;
       Property Error:Boolean Read _Error;
   End;
 
@@ -245,6 +257,14 @@ Const
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_Application;
 
+
+Function GetSocketNetType(Const Addr:TERRAString):Integer;
+Begin
+  If StringContains(':', Addr) Then
+    Result := PF_INET6
+  Else
+    Result := PF_INET;
+End;
 
 {$IFDEF USE_FPC_SOCKETS}
   function accept(s:Integer; Var addr:SocketAddress; Var len:Integer):Integer;
@@ -340,6 +360,18 @@ Begin
      Result := Swap(Value);
 End;
 {$ENDIF}
+
+Procedure inet_addr6_from_string(IP:TERRAString; Var Addr:SocketAddress);
+Var
+  I:Integer;
+  S:TERRAString;
+Begin
+  For I:=1 To 8 Do
+  Begin
+    S := StringGetNextSplit(IP, Ord(':'));
+    Addr.Address6[I] := HexStrToInt(S);
+  End;
+End;
 
 // Decodes an IP stored in 32bit integer format to a string
 Function GetIP(IP:Cardinal):TERRAString;
@@ -529,10 +561,12 @@ Begin
     Exit;
   End;
 
+  _NetType := GetSocketNetType(IP);
+
   Log(logDebug, 'Sockets', 'Address found: '+IP);
 
   Log(logDebug, 'Sockets', 'Creating a socket, port '+IntToString(Port));
-  _Handle := socket(PF_INET, SOCK_STREAM, IPPROTO_TCP); //Create a network socket
+  _Handle := socket(_NetType, SOCK_STREAM, IPPROTO_TCP); //Create a network socket
 
   If _Handle = SOCKET_ERROR Then  //Check for errors
   Begin
@@ -545,15 +579,19 @@ Begin
   FillChar(Addr, SizeOf(Addr), 0);
 
   //Set the address format
-  Addr.Family := PF_INET;
+  Addr.Family := _NetType;
   //Convert to network byte order (using htons) and set port
   Addr.Port := htons(Port);
   //Specify the IP
-  Addr.Address := inet_addr(PAnsiChar(IP));
-  _Address := Addr.Address;
+  If _NetType = PF_INET6 Then
+  Begin
+    inet_addr6_from_string(IP, Addr);
+  End Else
+    Addr.Address4 := inet_addr(PAnsiChar(IP));
+  //_Address := Addr.Address;
 
   Log(logDebug, 'Sockets', 'Connecting');
-  N := TERRA_Sockets.connect(_Handle, Addr, SizeOf(Addr));
+  N := TERRA_Sockets.connect(_Handle, @Addr, SizeOf(Addr));
 
   //Check for errors
   If N = SOCKET_ERROR Then
@@ -773,7 +811,7 @@ Begin
   Begin
     Inc(WaitingCount);
     SetLength(WaitingList,WaitingCount);
-    ID:=Pred(WaitingCount);
+    ID := Pred(WaitingCount);
 
     Handle := socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -791,12 +829,11 @@ Begin
     End Else
       Log(logWarning, 'Sockets', 'Unable to reuse socket address for handle '+IntToString((Handle)));
 
+    FillChar(Addr, SizeOf(Addr), 0);
     Addr.Family := PF_INET;
     Addr.Port := htons(Port);
-    Addr.Address := 0;
-    FillChar(Addr.Zero[1], 8, 0);
 
-    If Bind(WaitingList[ID].Handle, Addr, SizeOf(Addr))<0 Then
+    If Bind(WaitingList[ID].Handle, @Addr, SizeOf(Addr))<0 Then
     Begin
       RaiseError('Cannot bind NetSocket.');
       Exit;
@@ -808,13 +845,13 @@ Begin
 
   Opv := SizeOf(ClientAddr);
 
-  ClientSock := Accept(WaitingList[ID].Handle, ClientAddr, Opv);
+  ClientSock := Accept(WaitingList[ID].Handle, @ClientAddr, Opv);
 
   If ClientSock<>-1 Then
   Begin
     Log(logDebug, 'Sockets', 'Accepted socket connection with handle '+IntToString(ClientSock));
     Result := NetSocket.Create(ClientSock);
-    Result._Address := ClientAddr.Address;
+    //Result._Address := ClientAddr.Address;
   End;
 End;
 

@@ -379,10 +379,10 @@ public class TERRAUtils{
 			return null;
 		try {
 			Log.d("TERRA", "Resolving net address: "+name);
-			Inet4Address inet4 = (Inet4Address)InetAddress.getByName(name);
-			String result = inet4.getHostAddress();
+			InetAddress addr = InetAddress.getByName(name);
+			String result = addr.getHostAddress();
 			return result;
-		} catch (UnknownHostException e)
+		} catch (Exception e)
 		{
 			Log.d("TERRA", "Address not found!");		
 			return null; // return invalid address 
