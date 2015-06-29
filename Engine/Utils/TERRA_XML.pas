@@ -90,7 +90,7 @@ Type
       Constructor Create(Const Name:TERRAString; Const Value:TERRAString = ''); Overload;
       Constructor Create(Document:XMLDocument; Source:Stream; InitTag:TERRAString = '');Overload;
 
-      Procedure Release;Reintroduce;
+      Procedure Release; Override;
 
       Function AddTag(Const Name,Value:TERRAString):XMLNode;
       Procedure AddNode(Node:XMLNode);
@@ -114,7 +114,7 @@ Type
       Procedure SetRoot(const Value: XMLNode);
 
     Public
-      Procedure Release;Reintroduce;
+      Procedure Release; Override;
 
       Procedure Load(Source:Stream);
       Procedure Save(Dest:Stream; SaveFlags:Cardinal = 0);

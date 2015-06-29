@@ -38,6 +38,7 @@ Const
   IMP_SetGreyscale          = 32;
   IMP_FlipVertical          = 64;
   IMP_FlipHorizontal        = 128;
+  IMP_ScaleColor            = 256;
 
   componentRed    = 0;
   componentGreen  = 1;
@@ -624,22 +625,23 @@ Var
   I,J,K:Cardinal;
   Source,Dest:PColor;
 
-  SwapChannels,SetColorKey:Boolean;
+  SwapChannels, SetColorKey, ScaleColor:Boolean;
   FilColor,FillAlpha:Boolean;
   SetGreyscale,SetAlphaFromLuminance:Boolean;
   FlipHorizontal,FlipVertical:Boolean;
 Begin
-  SetAlphaFromLuminance:=(Flags And IMP_SetAlphaFromLuminance<>0);
-  SetGreyscale:=(Flags And IMP_SetGreyscale<>0);
-  SwapChannels:=(Flags And IMP_SwapChannels<>0);
-  SetColorKey:=(Flags And IMP_SetColorKey<>0);
-  FillAlpha:=(Flags And IMP_FillAlpha<>0);
-  FilColor:=(Flags And IMP_FillColor<>0);
-  FlipHorizontal:=(Flags And IMP_FlipHorizontal<>0);
-  FlipVertical:=(Flags And IMP_FlipVertical<>0);
+  SetAlphaFromLuminance := (Flags And IMP_SetAlphaFromLuminance<>0);
+  SetGreyscale := (Flags And IMP_SetGreyscale<>0);
+  SwapChannels := (Flags And IMP_SwapChannels<>0);
+  SetColorKey := (Flags And IMP_SetColorKey<>0);
+  FillAlpha := (Flags And IMP_FillAlpha<>0);
+  FilColor := (Flags And IMP_FillColor<>0);
+  FlipHorizontal := (Flags And IMP_FlipHorizontal<>0);
+  FlipVertical := (Flags And IMP_FlipVertical<>0);
+  ScaleColor := (Flags And IMP_ScaleColor<>0);
 
   If (_Width = 0) Or (_Height = 0) Then
-    Exit; 
+    Exit;
 
   If (FillAlpha)And(Color.A=0) Then
     _HasAlpha:=True;
@@ -673,6 +675,11 @@ Begin
         If (SetGreyscale) Then
         Begin
           Source^ := ColorGrey(ColorLuminance(Source^), Source.A);
+        End;
+
+        If (ScaleColor) Then
+        Begin
+          Source^ := ColorMultiply(Source^, Color);
         End;
 
         If (SetColorKey) And (Cardinal(Source^)=Cardinal(Color)) Then

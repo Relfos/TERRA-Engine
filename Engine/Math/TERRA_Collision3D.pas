@@ -103,8 +103,8 @@ End;
 
 Procedure CollisionMesh.Release;
 Begin
-  _HorizontalOctree.Release();
-  _VerticalOctree.Release();
+  ReleaseObject(_HorizontalOctree);
+  ReleaseObject(_VerticalOctree);
 End;
 
 Function CollisionMesh.GetHeightAt(X:Single; Var Y:Single; Z:Single): Boolean;

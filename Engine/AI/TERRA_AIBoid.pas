@@ -334,8 +334,7 @@ end;
 
 Procedure BoidAgent.Release;
 begin
-  If Assigned(_Instance) Then
-    _Instance.Release();
+  ReleaseObject(_Instance);
 
   inherited;
 end;

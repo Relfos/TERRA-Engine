@@ -2078,9 +2078,6 @@ Begin
   If (MyScene = _Scene) Then
     Exit;
 
-  {If Assigned(_Scene) Then
-    _Scene.Release;}
-
   _Scene := MyScene;
 End;
 

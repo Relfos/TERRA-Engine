@@ -136,7 +136,7 @@ Type
       _Download:Cardinal;       // Current download kb/s
 
       Constructor Create();  //Creates a new object instance
-      Procedure Release;Reintroduce;Virtual; //Shutdown the object
+      Procedure Release; Override;  //Shutdown the object
 
       //Function MakeSocketAddress(Var SockAddr:SocketAddress; Port:Word; Hostname:TERRAString):Boolean;
 

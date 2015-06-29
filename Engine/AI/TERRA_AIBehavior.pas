@@ -124,7 +124,7 @@ Constructor AIManager.Create;
 Begin
   {Gen := PerlinNoiseGenerator.Create;
   _Noise := Gen.CreateImage(64, 64);
-  Gen.Release;}
+  ReleaseObject(Gen.Release);}
 
   _LastUpdate := GetTime;
   AreaMin := VectorCreate2D(-9999, -9999);
@@ -133,8 +133,7 @@ End;
 
 Procedure AIManager.Release;
 Begin
-  {If Assigned(_Noise) Then
-    _Noise.Release;}
+  //ReleaseObject(_Noise);
     
   _AIManager_Instance := Nil;
 End;

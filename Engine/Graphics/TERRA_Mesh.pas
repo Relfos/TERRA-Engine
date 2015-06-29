@@ -570,7 +570,7 @@ Type
       {$ENDIF}
 
       Constructor Create(ID:Integer; Parent:Mesh; Format:VertexFormat; Name:TERRAString='');
-      Procedure Release; Reintroduce;
+      Procedure Release; Override;
 
 		  Procedure Clean; Virtual;
       Procedure Init; Virtual;
