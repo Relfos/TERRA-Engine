@@ -32,8 +32,8 @@ Type
   End;
 
   UIQuad = Record
-    StartPos:Vector2D;
-    EndPos:Vector2D;
+    Pos:Vector2D;
+    Size:Vector2D;
 
     StartUV:Vector2D;
     EndUV:Vector2D;
@@ -141,6 +141,7 @@ Var
   Source:Image;
   MyTextureAtlas:TextureAtlas;
   Quad:UIQuad;
+  US, VS:Single;
 Begin
   If (Item = Nil) Then
     Exit;
@@ -148,15 +149,21 @@ Begin
   MyTextureAtlas := UIManager.Instance.TextureAtlas;
   Source := Item.Buffer;
 
-  P.X := Trunc(X);
-  P.Y := Trunc(Y);
+  P.X := X;
+  P.Y := Y;
 
-  Quad.StartPos := P;
-  Quad.EndPos := VectorCreate2D(Trunc(P.X + Width), Trunc(P.Y + Height));
-  Quad.StartUV.X := Item.U1;
-  Quad.StartUV.Y := Item.V1;
-  Quad.EndUV.X := Item.U2;
-  Quad.EndUV.Y := Item.V2;
+//  Width := Width + Frac(X);
+//  Height := Height + Frac(Y);
+
+  US := Item.U2 - Item.U1;
+  VS := Item.V2 - Item.V1;
+
+  Quad.Pos := P;
+  Quad.Size := VectorCreate2D(Width, Height);
+  Quad.StartUV.X := Item.U1 +  U1*US;
+  Quad.StartUV.Y := Item.V1 +  V1*VS;
+  Quad.EndUV.X := Item.U1 +  U2*US;
+  Quad.EndUV.Y := Item.V1 +  V2*VS;
   Quad.PageID := Item.PageID;
 
   Inc(Target.QuadCount);
@@ -359,10 +366,10 @@ Begin
   Source.GetInteger('x2', X2, (W Div 3) * 2 );
   Source.GetInteger('y2', Y2, (H Div 3) * 2);
 
-  U1 := Pred(X1) / Pred(W);
-  V1 := Pred(Y1) / Pred(H);
-  U2 := Pred(X2) / Pred(W);
-  V2 := Pred(Y2) / Pred(H);
+  U1 := X1 / W;
+  V1 := Y1 / H;
+  U2 := X2 / W;
+  V2 := Y2 / H;
 
   For J:=0 To 2 Do
     For I:=0 To 2 Do
@@ -404,8 +411,8 @@ Begin
       _Tiles[I, J].X := _Tiles[I, J].U1 * W;
       _Tiles[I, J].Y := _Tiles[I, J].V1 * H;
 
-      _Tiles[I, J].Width := (_Tiles[I, J].U2 * W) - _Tiles[I, J].X;
-      _Tiles[I, J].Height := (_Tiles[I, J].V2 * H) - _Tiles[I, J].Y;
+      _Tiles[I, J].Width := ((_Tiles[I, J].U2 * W) - _Tiles[I, J].X);
+      _Tiles[I, J].Height := ((_Tiles[I, J].V2 * H) - _Tiles[I, J].Y);
     End;
 End;
 

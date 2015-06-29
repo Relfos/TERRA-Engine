@@ -59,14 +59,18 @@ End;
 
 Procedure UIWindow.OnMouseDown(X,Y:Integer;Button:Word);
 Begin
-  If (Not FrameLess) Then
+  If (FrameLess) Then
+    Exit;
+
+
+  If (Assigned(OnMouseClick)) And (Not Self.HasPropertyTweens()) Then
   Begin
-    If (Assigned(OnMouseClick)) And (Not Self.HasPropertyTweens()) Then
-    Begin
-      Self._HitTime := Application.GetTime();
-      Self._Hitting := True;
-    End;
+    Self._HitTime := Application.GetTime();
+    Self._Hitting := True;
+    Exit;
   End;
+
+  Inherited OnMouseDown(X,Y, Button);
 End;
 
 Procedure UIWindow.OnMouseUp(X,Y:Integer;Button:Word);
@@ -75,7 +79,10 @@ Begin
   Begin
     _Hitting := False;
     Self.OnHit(Self.OnMouseClick);
+    Exit;
   End;
+
+  Inherited OnMouseUp(X,Y, Button);
 End;
 
 {Procedure UIWindow.EnableHighlights;

@@ -705,7 +705,7 @@ Begin
   Ease := easeLinear;
 
   Self._Color.AddTween(Ease, Target, N, 0);
-  Self._Color.AddTween(Ease, Self.Color, N, N, TweenCallback(Handler));
+  Self._Color.AddTween(Ease, Self.Color, N, N, TweenCallback(Handler), Self);
 End;
 
 Procedure Widget.OnLanguageChange;
@@ -988,14 +988,14 @@ Begin
   Begin
     X := _Position.X.Value;
     _Position.X.Value := -(Self.Size.X);
-    _Position.X.AddTween(EaseType, X, Duration, Delay, Callback);
+    _Position.X.AddTween(EaseType, X, Duration, Delay, Callback, Self);
     Callback := Nil;
   End Else
   If (AnimationFlags And widgetAnimatePosX_Bottom<>0) Then
   Begin
     X := _Position.X.Value;
     _Position.X.Value := UIManager.Instance.Width + (Self.Size.X);
-    _Position.X.AddTween(EaseType, X, Duration, Delay, Callback);
+    _Position.X.AddTween(EaseType, X, Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
@@ -1008,7 +1008,7 @@ Begin
       TY := TY - (UIManager.Instance.Height * 0.5);
 
     _Position.Y.Value := TY;
-    _Position.Y.AddTween(EaseType, Y, Duration, Delay, Callback);
+    _Position.Y.AddTween(EaseType, Y, Duration, Delay, Callback, Self);
     Callback := Nil;
   End Else
   If (AnimationFlags And widgetAnimatePosY_Bottom<>0) Then
@@ -1020,7 +1020,7 @@ Begin
       TY := TY + (UIManager.Instance.Height * 0.5);
 
     _Position.Y.Value := TY;
-    _Position.Y.AddTween(EaseType, Y, Duration, Delay, Callback);
+    _Position.Y.AddTween(EaseType, Y, Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
@@ -1028,7 +1028,7 @@ Begin
   Begin
     A := _Color.Alpha.Value;
     _Color.Alpha.Value := 0;
-    _Color.Alpha.AddTween(EaseType, A, Duration, Delay, Callback);
+    _Color.Alpha.AddTween(EaseType, A, Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
@@ -1036,7 +1036,7 @@ Begin
   Begin
     X := GetRotation();
     SetRotation(X + (360.0 * RAD) * 4.0);
-    _Rotation.AddTween(EaseType, X, Duration, Delay, Callback);
+    _Rotation.AddTween(EaseType, X, Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
@@ -1044,7 +1044,7 @@ Begin
   Begin
     X := GetScale();
     SetScale(0.0);
-    _Scale.AddTween(EaseType, X, Duration, Delay, Callback);
+    _Scale.AddTween(EaseType, X, Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
@@ -1052,7 +1052,7 @@ Begin
   Begin
     X := GetSaturation();
     SetSaturation(0.0);
-    _Saturation.AddTween(EaseType, X, Duration, Delay, Callback);
+    _Saturation.AddTween(EaseType, X, Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
@@ -1082,12 +1082,12 @@ Begin
     If (Self.Align = waCenter) Or (Self.Align = waTopCenter) Or (Self.Align = waBottomCenter) Then
       Ofs := Ofs - Self.AbsolutePosition.X;
 
-    _Position.X.AddTween(EaseType, Ofs, Duration, Delay, Callback);
+    _Position.X.AddTween(EaseType, Ofs, Duration, Delay, Callback, Self);
     Callback := Nil;
   End Else
   If (AnimationFlags And widgetAnimatePosX_Bottom<>0) Then
   Begin
-    _Position.X.AddTween(EaseType, UIManager.Instance.Width +(Self.Size.X+15), Duration, Delay, Callback);
+    _Position.X.AddTween(EaseType, UIManager.Instance.Width +(Self.Size.X+15), Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
@@ -1098,18 +1098,18 @@ Begin
     If (Self.Align = waCenter) Or (Self.Align = waLeftCenter) Or (Self.Align = waRightCenter) Then
       Ofs := Ofs - Self.AbsolutePosition.Y;
 
-    _Position.Y.AddTween(EaseType, Ofs, Duration, Delay, Callback);
+    _Position.Y.AddTween(EaseType, Ofs, Duration, Delay, Callback, Self);
     Callback := Nil;
   End Else
   If (AnimationFlags And widgetAnimatePosY_Bottom<>0) Then
   Begin
-    _Position.Y.AddTween(EaseType, UIManager.Instance.Height + Self.Size.Y, Duration, Delay, Callback);
+    _Position.Y.AddTween(EaseType, UIManager.Instance.Height + Self.Size.Y, Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
   If (AnimationFlags And widgetAnimateAlpha<>0) Then
   Begin
-    _Color.Alpha.AddTween(EaseType, 0.0, Duration, Delay, Callback);
+    _Color.Alpha.AddTween(EaseType, 0.0, Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
@@ -2454,18 +2454,19 @@ Var
   Tex:Texture;
 Begin
   Tex := UIManager.Instance.TextureAtlas.GetTexture(Quad.PageID);
-  Result := SpriteManager.Instance.DrawSprite(Quad.StartPos.X, Quad.StartPos.Y, Z, Tex, ColorTable, blendBlend, Saturation);
+  Result := SpriteManager.Instance.DrawSprite(Quad.Pos.X, Quad.Pos.Y, Z, Tex, ColorTable, blendBlend, Saturation);
   If (Result = Nil) Then
     Exit;
 
-  Result.Rect.Width := Trunc(Quad.EndPos.X - Quad.StartPos.X);
-  Result.Rect.Height := Trunc(Quad.EndPos.Y - Quad.StartPos.Y);
+  Result.Rect.Width := Trunc(Quad.Size.X);
+  Result.Rect.Height := Trunc(Quad.Size.Y);
 
   Result.ClipRect := Props.Clip;
 
   Result.SetTransform(Transform);
 
   Result.SetColor(Props.QuadColor);
+  //Result.Rect.UVRemap(Quad.StartUV.X, Quad.StartUV.Y, Quad.EndUV.X, Quad.EndUV.Y);
   Result.Rect.UVRemap(Quad.StartUV.X, Quad.StartUV.Y, Quad.EndUV.X, Quad.EndUV.Y);
 End;
 
@@ -2481,6 +2482,7 @@ Begin
     MyWidget := Widget(It.Value);
     MyWidget.OnLanguageChange();
   End;
+  ReleaseObject(It);
 End;
 
 Procedure UI.Render;
@@ -2565,8 +2567,7 @@ End;
 
 Procedure UI.SetTransition(MyTransition:UITransition);
 Begin
-  If Assigned(_Transition) Then
-    _Transition.Release;
+  ReleaseObject(_Transition);
 
   _Transition := MyTransition;
 
@@ -2971,7 +2972,7 @@ Begin
     If (MyWidget.Parent =  Nil) Then
       MyWidget._TransformChanged := True;
   End;
-//  It.Release;
+  ReleaseObject(It);
 End;
 
 Function UI.GetHighlight: Widget;
@@ -3030,6 +3031,7 @@ Begin
 
     W._TransformChanged := True;
   End;
+  ReleaseObject(It);
 End;
 
 Function UI.GetFontRenderer():FontRenderer;

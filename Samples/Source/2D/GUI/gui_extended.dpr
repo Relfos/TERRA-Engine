@@ -150,7 +150,7 @@ Begin
   MyTex := TextureManager.Instance.GetTexture('background');
 
   // Create a UI background
-(*  If Assigned(MyTex) Then
+  If Assigned(MyTex) Then
   Begin
     Background := UISprite.Create('mybg', MyUI, 0, 0, 1);
 
@@ -160,14 +160,13 @@ Begin
 
     Background.U2 := 2;
     Background.V2 := 2;
-  End;*)
+  End;
 
   MyWnd := UIWindow.Create('mywnd', MyUI, 0, 0, 10, UIPixels(500), UIPixels(500), 'window');
-  //MyWnd := UIWindow.Create('mywnd', MyUI, 0, 0, 10, UIPixels(400), UIPixels(150), 'ui_window_alt');
   MyWnd.Draggable := True;
   MyWnd.Align := waCenter;
 
-(*  Btn := UIButton.Create('btn1', MyWnd, 20, 40, 10, UIPixels(100), UIPixels(50), 'Red', 'round_button');
+  Btn := UIButton.Create('btn1', MyWnd, 20, 40, 10, UIPixels(100), UIPixels(50), 'Red', 'round_button');
   Btn.OnMouseClick := OnRedClick; // Assign a onClick event handler
 
   Btn := UIButton.Create('btn2', MyWnd, 140, 40, 10, UIPixels(40), UIPixels(50), 'Green', 'button');
@@ -205,7 +204,7 @@ Begin
 //  Edt.LineCount := 5;
 
   Edt := UIEditText.Create('myedt', MyWnd, 20, 340, 10, UIPixels(300), UIPixels(50), 'editbox');
-  Edt.Align := waTopRight;*)
+  Edt.Align := waTopRight;
 
   Combo := UIComboBox.Create('mycombo', MyWnd, 170, 120, 5, UIPixels(250), UIPixels(50), 'combobox');
   Content := List.Create();
@@ -218,7 +217,7 @@ Begin
   Combo.SetContent(Content);
   Combo.ItemIndex := 0;
 
-(*  PBar := UIProgressBar.Create('myprogress', MyWnd, 230, 280, 1, UIPixels(220), UIPixels(20), 'progressbar');
+  PBar := UIProgressBar.Create('myprogress', MyWnd, 230, 280, 1, UIPixels(220), UIPixels(20), 'progressbar');
 
   // Not all widgets need a parent
   // If you pass Nil as parent, the screen will be considered their parent
@@ -228,7 +227,7 @@ Begin
   ShowBtn := UIButton.Create('showbtn', MyUI,  20, 10, 10,  UIPixels(150), UIPixels(50), 'Show', 'button');
   ShowBtn.Align := waTopRight;
   ShowBtn.Visible := False;   // Some elements can start invisible, and only appear when you need them
-  ShowBtn.OnMouseClick := OnShowClick; // Assign a onClick event handler*)
+  ShowBtn.OnMouseClick := OnShowClick; // Assign a onClick event handler
 End;
 
 Procedure MyScene.Release;

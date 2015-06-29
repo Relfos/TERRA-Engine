@@ -28,6 +28,8 @@ Type
 
       Procedure SetItemIndex(Const Value:Integer);
 
+      Procedure UpdateRects(); Override;
+
     Public
       ShowLabelOnly:Boolean;
 
@@ -255,6 +257,14 @@ Begin
     Inc(I);
     P := P.Next;
   End;
+End;
+
+Procedure UIComboBox.UpdateRects;
+Begin
+  Inherited;
+
+  If _ShowList Then
+    _Size.Y := _Size.Y + Self.GetDimension(_ListHeight);
 End;
 
 End.

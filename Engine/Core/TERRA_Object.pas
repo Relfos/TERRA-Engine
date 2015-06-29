@@ -70,6 +70,7 @@ Type
     Ease:TweenEaseType;
 
     Callback:TweenCallback;
+    CallTarget:TERRAObject;
   End;
 
   TweenableProperty = Class(TERRAObject)
@@ -85,7 +86,7 @@ Type
     Public
       Constructor Create(Const Name:TERRAString; Const InitValue:Single);
 
-      Procedure AddTween(Ease:TweenEaseType; TargetValue:Single; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil);
+      Procedure AddTween(Ease:TweenEaseType; TargetValue:Single; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
 
       Function IsValueObject():Boolean; Override;
 
@@ -149,7 +150,7 @@ Type
       Constructor Create(Const Name:TERRAString; Const InitValue:Color);
       Procedure Release(); Override;
 
-      Procedure AddTween(Ease:TweenEaseType; Const TargetValue:Color; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil);
+      Procedure AddTween(Ease:TweenEaseType; Const TargetValue:Color; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
 
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
@@ -178,7 +179,7 @@ Type
       Constructor Create(Const Name:TERRAString; Const InitValue:Vector2D);
       Procedure Release(); Override;
 
-      Procedure AddTween(Ease:TweenEaseType; Const TargetValue:Vector2D; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil);
+      Procedure AddTween(Ease:TweenEaseType; Const TargetValue:Vector2D; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
 
       Function GetObjectType:TERRAString; Override;
 
@@ -204,7 +205,7 @@ Type
       Constructor Create(Const Name:TERRAString; Const InitValue:Vector3D);
       Procedure Release(); Override;
 
-      Procedure AddTween(Ease:TweenEaseType; Const TargetValue:Vector3D; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil);
+      Procedure AddTween(Ease:TweenEaseType; Const TargetValue:Vector3D; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
 
       Function GetObjectType:TERRAString; Override;
 
@@ -413,7 +414,7 @@ Begin
   Result := (_TweenCount>0);
 End;
 
-Procedure TweenableProperty.AddTween(Ease:TweenEaseType; TargetValue:Single; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback);
+Procedure TweenableProperty.AddTween(Ease:TweenEaseType; TargetValue:Single; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
 Var
   T:TweenObject;
 Begin
@@ -424,6 +425,7 @@ Begin
   T.Duration := Duration;
   T.Ease := Ease;
   T.Callback := Callback;
+  T.CallTarget := CallTarget;
 
   If Duration = 150 Then
     IntToString(2);
@@ -471,7 +473,7 @@ Begin
           _TweenList[I].State := tweenFinished;
 
           If Assigned(_TweenList[I].Callback) Then
-            _TweenList[I].Callback(Self);
+            _TweenList[I].Callback(_TweenList[I].CallTarget);
         End;
 
         Delta := GetEase(Delta, _TweenList[I].Ease);
@@ -619,9 +621,9 @@ Begin
   Result := 'color';
 End;
 
-Procedure ColorProperty.AddTween(Ease:TweenEaseType; Const TargetValue:Color; Duration, Delay:Cardinal; Callback: TweenCallback);
+Procedure ColorProperty.AddTween(Ease:TweenEaseType; Const TargetValue:Color; Duration, Delay:Cardinal; Callback: TweenCallback; CallTarget:TERRAObject);
 Begin
-  Self.Red.AddTween(Ease, TargetValue.R, Duration, Delay, Callback);
+  Self.Red.AddTween(Ease, TargetValue.R, Duration, Delay, Callback, CallTarget);
   Self.Green.AddTween(Ease, TargetValue.G, Duration, Delay, Nil);
   Self.Blue.AddTween(Ease, TargetValue.B, Duration, Delay, Nil);
   Self.Alpha.AddTween(Ease, TargetValue.A, Duration, Delay, Nil);
@@ -699,9 +701,9 @@ Begin
   Result := 'vec3';
 End;
 
-Procedure Vector3DProperty.AddTween(Ease:TweenEaseType; const TargetValue:Vector3D; Duration, Delay:Cardinal;  Callback:TweenCallback);
+Procedure Vector3DProperty.AddTween(Ease:TweenEaseType; const TargetValue:Vector3D; Duration, Delay:Cardinal;  Callback:TweenCallback; CallTarget:TERRAObject);
 Begin
-  Self.X.AddTween(Ease, TargetValue.X, Duration, Delay, Callback);
+  Self.X.AddTween(Ease, TargetValue.X, Duration, Delay, Callback, CallTarget);
   Self.Y.AddTween(Ease, TargetValue.Y, Duration, Delay, Nil);
   Self.Z.AddTween(Ease, TargetValue.Z, Duration, Delay, Nil);
 End;
@@ -762,9 +764,9 @@ Begin
   Result := 'vec2';
 End;
 
-Procedure Vector2DProperty.AddTween(Ease: TweenEaseType; const TargetValue: Vector2D; Duration, Delay: Cardinal; Callback: TweenCallback);
+Procedure Vector2DProperty.AddTween(Ease: TweenEaseType; const TargetValue: Vector2D; Duration, Delay: Cardinal; Callback: TweenCallback; CallTarget:TERRAObject);
 Begin
-  Self.X.AddTween(Ease, TargetValue.X, Duration, Delay, Callback);
+  Self.X.AddTween(Ease, TargetValue.X, Duration, Delay, Callback, CallTarget);
   Self.Y.AddTween(Ease, TargetValue.Y, Duration, Delay, Nil);
 End;
 
