@@ -821,6 +821,7 @@ Begin
   Request._Callback := Nil;
 
   ReleaseObject(_Target);
+  ReleaseObject(_Request);
 
   Log(logDebug, 'HTTP', 'Releasing transfer: '+URL);
 

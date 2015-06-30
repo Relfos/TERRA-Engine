@@ -267,19 +267,19 @@ Begin
 End;
 
 {$IFDEF USE_FPC_SOCKETS}
-  function accept(s:Integer; Var addr:SocketAddress; Var len:Integer):Integer;
+  function accept(s:Integer; addr:PSocketAddress; Var len:Integer):Integer;
   Begin
-    Result := fpaccept(S, @Addr, @Len);
+    Result := fpaccept(S, Addr, @Len);
   End;
 
-  function bind(s:Integer; Var addr:SocketAddress; tolen:Integer):Integer;
+  function bind(s:Integer; addr:PSocketAddress; tolen:Integer):Integer;
   Begin
-    Result := fpBind(S, @addr, tolen);
+    Result := fpBind(S, addr, tolen);
   End;
 
-  function connect(s:Integer; Var addr:SocketAddress; len:Integer):Integer;
+  function connect(s:Integer; addr:PSocketAddress; len:Integer):Integer;
   Begin
-    Result := fpConnect(S, @Addr, Len);
+    Result := fpConnect(S, Addr, Len);
   End;
 
   function listen(s:Integer; backlog:Integer):Integer;
