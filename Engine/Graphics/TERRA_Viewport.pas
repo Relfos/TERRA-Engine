@@ -70,7 +70,6 @@ Type
       _RenderTextures:Array[0..Pred(TotalCaptureTargets)] Of Texture;
       _RenderSamplers:Array[0..Pred(TotalCaptureTargets)] Of RenderTargetSampler;
 
-      _Offscreen:Boolean;
       _DrawSky:Boolean;
 
       _VR:Boolean;
@@ -117,8 +116,6 @@ Type
 
       Procedure SetPostProcessingState(Enabled:Boolean);
 
-      Procedure SetOffScreenState(Enabled:Boolean);
-
       Procedure SetTarget(Target:Viewport; X1,Y1,X2,Y2:Single);
       Procedure SetTargetInPixels(Target:Viewport; X1,Y1,X2,Y2:Integer);
 
@@ -140,7 +137,6 @@ Type
       Property Camera:TERRA_Camera.Camera Read _Camera;
 
       Property DrawSky:Boolean Read _DrawSky Write _DrawSky;
-      Property OffScreen:Boolean Read _OffScreen Write SetOffScreenState;
 
       Property Visible:Boolean Read _Visible Write _Visible;
 
@@ -399,8 +395,6 @@ Begin
   _BackgroundColor := ColorCreate(0, 0, 0, 255);
 
   _Camera := TERRA_Camera.Camera.Create(Name);
-
-  SetOffScreenState(False);
 
   Log(logDebug, 'Viewport', 'Created viewport '+Name+' with size '+IntToString(_Width) +' x '+IntToString(_Height)+' and scale = '+FloatToString(_Scale));
 End;
@@ -892,18 +886,6 @@ Begin
   {$IFDEF ADVANCED_ALPHA_BLEND}
   Self.SetRenderTargetState(captureTargetAlpha, True);
   {$ENDIF}
-End;
-
-Procedure Viewport.SetOffScreenState(Enabled: Boolean);
-Begin
-  {$IFDEF IPHONE}
-  Enabled := True;  // iOS does not support direct rendering
-  {$ENDIF}
-
-  _Offscreen := Enabled;
-
-  If (Enabled) Then
-    Self.EnableDefaultTargets();
 End;
 
 Procedure Viewport.SetTarget(Target: Viewport; X1, Y1, X2, Y2: Single);

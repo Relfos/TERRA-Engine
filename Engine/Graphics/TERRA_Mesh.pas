@@ -763,6 +763,8 @@ Type
 
       Function GetMeshFilter:MeshFilter;
 
+      Procedure RemoveGroups;
+
 		Public
       Constructor CreateFromFilter(Source:MeshFilter);
       Procedure Release; Override;
@@ -2997,7 +2999,7 @@ End;
 Function MeshInstance.GetAnimation: AnimationState;
 Begin
   If (_Animation = Nil) And (Assigned(_Mesh)) Then
-    _Animation := AnimationState.Create(_Mesh.Skeleton.Name, Self);
+    _Animation := AnimationState.Create(_Mesh.Skeleton);
 
   Result := _Animation;
 
@@ -6065,7 +6067,8 @@ Begin
 	End;
 End;
  }
-Procedure Mesh.Clean;
+
+Procedure Mesh.RemoveGroups;
 Var
 	I:Integer;
 Begin
@@ -6077,6 +6080,13 @@ Begin
     End;
 	_GroupCount := 0;
 	_Groups := Nil;
+End;
+
+Procedure Mesh.Clean;
+Var
+	I:Integer;
+Begin
+  Self.RemoveGroups;
 
 	For I:=0 To Pred(_MetadataCount) Do
         ReleaseObject(_Metadata[I]);

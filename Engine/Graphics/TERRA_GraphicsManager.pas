@@ -804,8 +804,6 @@ Begin
   If (V = Nil) Then
     Exit;
 
-  V.OffScreen := True;
-
   Inc(_ViewportCount);
   SetLength(_Viewports, _ViewportCount);
   _Viewports[Pred(_ViewportCount)] := V;
