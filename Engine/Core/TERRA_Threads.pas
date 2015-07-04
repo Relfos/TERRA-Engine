@@ -554,10 +554,12 @@ Begin
   Begin
     _Threads[I].Shutdown();
 
-    ReleaseObject(_Threads[I]);
-    
   {$IFDEF USEPASCALTHREADS}
+    _Threads[I].Release();
     _Threads[I].Destroy();
+    _Threads[I] := Nil;
+  {$ELSE}
+    ReleaseObject(_Threads[I]);
   {$ENDIF}
   End;
 

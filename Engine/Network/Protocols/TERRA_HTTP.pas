@@ -377,9 +377,6 @@ End;
 { HTTPDownloader }
 Constructor HTTPDownloader.Create(Request:HTTPRequest; InBackground:Boolean);
 Begin
-  InBackground := False;
-
-
   _Connection := Nil;
   _Request := Request;
   Self._InBackground := InBackground;
