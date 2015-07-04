@@ -55,6 +55,8 @@ Const
   DitherPatternMapUniformName = 'ditherMap';
   DitherScaleUniformName = 'dither_scale';
 
+  HueShiftUniformName = 'hue_shift';
+
   shaderSkinning    = 1 Shl 0;
   shaderSpecular    = 1 Shl 1;
   shaderLightMap    = 1 Shl 2;
@@ -82,10 +84,11 @@ Const
   shaderNoiseMap        = 1 Shl 24;
   shaderTextureMatrix   = 1 Shl 25;
   shaderParallaxBump    = 1 Shl 26;
-  shaderDitherColor     = 1 Shl 27;
+  shaderHueChange       = 1 Shl 27;
   shaderCartoonHue      = 1 Shl 28;
   shaderSelfIllumn      = 1 Shl 29;
   shaderAmbientColor    = 1 Shl 30;
+  //shaderDitherColor     = 1 Shl 31;
 
   //ParallaxScale
 
@@ -416,6 +419,9 @@ Begin
 
   If (OutFlags And shader_OutputGlow<>0) Then
 	  Line('  uniform lowp sampler2D glowMap;');
+
+  If (FxFlags And shaderHueChange<>0) Then
+    Line('  uniform highp vec2 '+HueShiftUniformName+';');
 End;
 
 Procedure ShaderEmitter.EmitDecodeBoneMat;
@@ -774,19 +780,29 @@ Begin
     Exit;
   End;
 
-  If (FxFlags And shaderCartoonHue<>0) Then
+  If (FxFlags And shaderHueChange<>0) Then
   Begin
-  (*
+    Line('mediump vec4 shiftHue(mediump vec4 color)	{');
+    Line('mat4 hueRotation = ');
+    Line('mat4(  0.299,  0.587,  0.114, 0.0, 0.299,  0.587,  0.114, 0.0, 0.299,  0.587,  0.114, 0.0, 0.000,  0.000,  0.000, 1.0) +');
+    Line('mat4(	 0.701, -0.587, -0.114, 0.0, 	-0.299,  0.413, -0.114, 0.0, -0.300, -0.588,  0.886, 0.0, 0.000,  0.000,  0.000, 0.0) * '+HueShiftUniformName+'.x +');
+    Line('mat4(	 0.168,  0.330, -0.497, 0.0, 	-0.328,  0.035,  0.292, 0.0, 1.250, -1.050, -0.203, 0.0, 0.000,  0.000,  0.000, 0.0) * '+HueShiftUniformName+'.y;');
+
+    Line('return color * hueRotation;}');
+    (*
       Line('const lowp mat3 rgb2yiq = mat3(0.299, 0.587, 0.114, 0.595716, -0.274453, -0.321263, 0.211456, -0.522591, 0.311135);');
       Line('const lowp mat3 yiq2rgb = mat3(1.0, 0.9563, 0.6210, 1.0, -0.2721, -0.6474, 1.0, -1.1070, 1.7046);');
-    	Line('mediump vec3 ShiftHue(mediump vec3 color, mediump float hueShift)	{');
+    	Line('mediump vec3 shiftHue(mediump vec3 color, mediump float hueShift)	{');
       Line('vec3 yColor = rgb2yiq * color.rgb;');
       Line('float originalHue = atan(yColor.b, yColor.g);');
       Line('float finalHue = originalHue + hueShift;');
       Line('float chroma = sqrt(yColor.b*yColor.b+yColor.g*yColor.g);');
       Line('vec3 yFinalColor = vec3(yColor.r, chroma * cos(finalHue), chroma * sin(finalHue));');
       Line('return yiq2rgb*yFinalColor;}');*)
+  End;
 
+  If (FxFlags And shaderCartoonHue<>0) Then
+  Begin
     (*
     Line('lowp vec3 rgb2hsv(vec3 c){');
     Line('lowp vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);');
@@ -956,7 +972,7 @@ Begin
     Line('float limit = (dither[x + y * 8]+1)/64.0;');}
     *)
 
-    If (FxFlags And shaderDitherColor<>0) Then
+    (*If (FxFlags And shaderDitherColor<>0) Then
     Begin
       Line('  uniform lowp sampler2D '+DitherPatternMapUniformName+';');
 
@@ -965,28 +981,21 @@ Begin
       Line('float limit = texture2D('+DitherPatternMapUniformName+', uv * '+DitherScaleUniformName+').r;');
       Line('if (shade < limit) return 0.0;');
       Line('return 1.0;}');
-
-      (*Line('vec4 dither_color(vec4 shade, vec2 uv){');
-      Line('vec4 limit = texture2D(ditherTexture, uv * dither_scale);');
-      Line('float dr = 1.0; if (shade.r < limit.r) dr =0.0;');
-      Line('float dg = 1.0; if (shade.g < limit.g) dg =0.0;');
-      Line('float db = 1.0; if (shade.b < limit.b) db =0.0;');
-      Line('return vec4(dr, dg, db, 1.0);}');*)
-    End;
+    End;*)
 
 
     If (Lights.DirectionalLightCount>0) Then
     Begin
-      If (FxFlags And shaderDitherColor<>0) Then
+      (*If (FxFlags And shaderDitherColor<>0) Then
         S2 := ', highp vec2 localUV, lowp vec2 colorIndex'
-      Else
+      Else*)
         S2 := '';
 
     	  Line('lowp vec4 directionalLight(highp vec3 direction, lowp vec4 lightColor'+S2+'){');
 
       Line('  mediump float shading = halfDot(normal, direction);');
 
-      If (FxFlags And shaderDitherColor<>0) Then
+      {If (FxFlags And shaderDitherColor<>0) Then
       Begin
         (*Line('	vec4 greyA = texture2D('+DitherPaletteMapUniformName+', colorIndex);');
         Line('	result = greyA;');*)
@@ -1030,7 +1039,7 @@ Begin
         // debug
         //Line('	result = vec4(sub_shading, sub_shading, sub_shading, 1.0);');
         //Line('	result = vec4(shading, shading, shading, 1.0);');
-      End Else
+      End Else}
       Begin
         Line('  lowp vec4 result = shading * lightColor;');
       End;
@@ -1254,6 +1263,11 @@ Begin
       Line('  diffuse.rgb = mix(diffuse.rgb, decalColor.rgb, decalColor.a);');
     End;
 
+    If (FxFlags And shaderHueChange<>0) Then
+    Begin
+      Line('  diffuse = shiftHue(diffuse);');
+    End;
+
     If (FxFlags And shaderVertexColor<>0) Then
     Begin
 (*         If (FxFlags and shaderAddSigned<>0) Then
@@ -1289,9 +1303,9 @@ Begin
         Line('  diffuse *= reflection;');
     End;
 
-    If (FxFlags And shaderDitherColor<>0) Then
+    (*If (FxFlags And shaderDitherColor<>0) Then
     Begin
-    End Else
+    End Else*)
     Begin
       Line('diffuse *= diffuse_color;');
     End;
@@ -1307,7 +1321,7 @@ Begin
     If (FxFlags And shaderAmbientColor<>0) Then
       Line(' shadow *= ambient_color;');
 
-    If (FxFlags And shaderDitherColor<>0) Then
+    (*If (FxFlags And shaderDitherColor<>0) Then
     Begin
       Line('  highp vec2 colorIndex = vec2(diffuse.g, diffuse.r);');
       I := 1;
@@ -1320,7 +1334,7 @@ Begin
 
       If Lights.DirectionalLightCount>0 Then
         Line('  color = directionalLight(dlightDirection'+IntToString(I)+', dlightColor'+IntToString(I)+', localUV, colorIndex);');
-    End Else
+    End Else*)
     If (FxFlags And shaderSelfIllumn<>0) Then
     Begin
       If (FxFlags And shaderCartoonHue<>0) Then
@@ -1375,11 +1389,11 @@ Begin
     //        Line('  color *= alpha_color;');
       Line('  color.a = texture2D('+AlphaMapUniformName+', lightCoord.st).a;');
     End Else
-    If ((FxFlags And shaderDitherColor)<>0) Then
+    (*If ((FxFlags And shaderDitherColor)<>0) Then
     Begin
       Line('  if (diffuse.a<1.0) ');
       Line('  color.a = 0.5 * dither_shade(diffuse.a, localUV);');
-    End Else
+    End Else*)
       Line('  color.a = diffuse.a;');
 
 //  If (OutFlags And shader_OutputDiffuse<>0) And (FxFlags and shaderShadowMap<>0) Then

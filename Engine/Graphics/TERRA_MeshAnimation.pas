@@ -294,7 +294,7 @@ Type
 
     Public
       Constructor Create(Owner:AnimationState; MyAnimation:Animation);
-      Procedure Init(MyAnimation:Animation);
+      Procedure Init(Owner:AnimationState; MyAnimation:Animation);
 
       Procedure UpdateAnimation(); Override;
 
@@ -1486,6 +1486,8 @@ Begin
   For I:=0 To Pred(_BoneCount) Do
     ReleaseObject(_BoneStates[I]);
 
+  _BoneCount := 0;
+
   ReleaseObject(_Root);
 End;
 
@@ -1799,7 +1801,7 @@ Begin
 End;
 
 { AnimationNode }
-Constructor AnimationNode.Create(Owner: AnimationState; MyAnimation:Animation);
+Constructor AnimationNode.Create(Owner:AnimationState; MyAnimation:Animation);
 Var
   I:Integer;
 Begin
@@ -1811,9 +1813,8 @@ Begin
     MyAnimation.Prefetch();
   End;
 
-  _Owner := Owner;
   {$IFDEF DEBUG_ANIMATIONS}Log(logDebug,'Animation', 'Initializng animation '+MyAnimation._Name);{$ENDIF}
-  Init(MyAnimation);
+  Init(Owner, MyAnimation);
 End;
 
 Function AnimationNode.HasBone(Bone: Integer): Boolean;
@@ -1821,10 +1822,12 @@ Begin
   Result := (_IndexList[Bone]>=0);
 End;
 
-Procedure AnimationNode.Init(MyAnimation:Animation);
+Procedure AnimationNode.Init(Owner:AnimationState; MyAnimation:Animation);
 Var
   I:Integer;
 Begin
+  _Owner := Owner;
+
   _Animation := MyAnimation;
   If (_Animation = Nil) Then
     Exit;

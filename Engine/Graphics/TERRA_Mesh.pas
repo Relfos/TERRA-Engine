@@ -201,6 +201,8 @@ Type
     VegetationBend:Single;
     Ghost:Boolean;
 
+    HueShift:Single;
+
     Procedure Reset;
 
     Function Equals(Const Other:MeshMaterial):Boolean;
@@ -274,6 +276,8 @@ Type
       _Emitters:Array Of MeshEmitter;
       _EmitterCount:Integer;
 
+      Procedure SetGeometry(MyMesh:Mesh);
+      
       Procedure DrawMesh(Const MyTransform:Matrix4x4; TranslucentPass, StencilTest:Boolean);
 
       Procedure DrawParticles();
@@ -438,7 +442,7 @@ Type
       Property MotionBlur:Boolean Read _MotionBlur Write SetMotionBlur;
 
       Property Animation:AnimationState Read GetAnimation;
-      Property Geometry:TERRA_Mesh.Mesh Read _Mesh;
+      Property Geometry:TERRA_Mesh.Mesh Read _Mesh Write SetGeometry;
 
       Property AttachCount:Integer Read _AttachCount;
 
@@ -549,6 +553,9 @@ Type
 
       Function GetVertices():VertexData;
       Function GetVertexCount():Integer;
+
+      Function GetHueShift: Single;
+      Procedure SetHueShift(const Value: Single);
 
       //Procedure SetupSkeleton;
 
@@ -676,6 +683,8 @@ Type
       Property LightMap:Texture Read GetLightMap Write SetLightmap;
       Property DitherPatternMap:Texture Read GetDitherPatternMap Write SetDitherPatternMap;
       Property ToonRamp:Texture Read GetToonRamp Write SetToonRamp;
+
+      Property HueShift:Single Read GetHueShift Write SetHueShift;
 
       Property EmitterFX:TERRAString Read _EmitterFX Write _EmitterFX;
 
@@ -1993,6 +2002,23 @@ Begin
 End;
 
 Constructor MeshInstance.Create(MyMesh: Mesh);
+Begin
+  _ClonedMesh := False;
+  _Position := VectorZero;
+  _Rotation := VectorZero;
+  _Scale := VectorOne;
+  _NeedsTransformUpdate := True;
+  _NeedsShadowUpdate := True;
+
+  Self.Diffuse := ColorWhite;
+
+  _LastFrameID := 0;
+  _LastTrailUpdate := Application.Instance.GetElapsedTime();
+
+  Self.SetGeometry(MyMesh);
+End;
+
+Procedure MeshInstance.SetGeometry(MyMesh:Mesh);
 Var
   N, I:Integer;
 Begin
@@ -2006,20 +2032,7 @@ Begin
 
   _Mesh.PreFetch();
 
-  _ClonedMesh := False;
-
-  _Position := VectorZero;
-  _Rotation := VectorZero;
-  _Scale := VectorOne;
-  _NeedsTransformUpdate := True;
-  _NeedsShadowUpdate := True;
-
   CullGroups := False;
-
-  Self.Diffuse := ColorWhite;
-
-  _LastFrameID := 0;
-  _LastTrailUpdate := Application.Instance.GetElapsedTime();
 
   SetLength(_Groups, _Mesh.GroupCount);
 
@@ -2052,8 +2065,8 @@ Begin
   End;
 
   CastShadows := (N>0);
-                
-  _Animation := Nil;
+
+  //ReleaseObject(_Animation);
 End;
 
 Procedure MeshInstance.Release;
@@ -2103,6 +2116,11 @@ Var
 Begin
   If (_Mesh = Nil) Or (Not _Mesh.IsReady) Then
     Exit;
+
+  If (Not _ClonedMesh) And (_Mesh.GroupCount <> Length(_Groups)) Then
+  Begin
+    SetGeometry(_Mesh);
+  End;
 
   I:=0;
   While I<_FXCount Do
@@ -2627,7 +2645,7 @@ Begin
     Exit;
 
   Group := _Mesh.GetGroup(Index);
-  If (Group.Flags And meshGroupForceOpaque<>0) Then
+  If (Group = Nil) Or (Group.Flags And meshGroupForceOpaque<>0) Or (Index>=Length(_Groups)) Then
     Exit;
 
   Result := (Self.Diffuse.A<255) Or (_Groups[Index].Material.DiffuseColor.A<255) Or (Group.DiffuseColor.A<255) Or (_Groups[Index].Material.Ghost)
@@ -5389,6 +5407,11 @@ Begin
     Inc(Slot);
   End;
 
+  If (Material.HueShift<>0.0) Then
+  Begin
+    _Shader.SetVec2Uniform(HueShiftUniformName, VectorCreate2D(Cos(Material.HueShift), Sin(Material.HueShift)));
+  End;
+
 (*  If (Assigned(Material.DitherPatternMap)) And (Assigned(_Shader))  And (_Shader.HasUniform(DitherPatternMapUniformName)) Then
   Begin
     If (_DitherScale<=0) Then
@@ -5860,6 +5883,8 @@ Begin
 
   DestMaterial.FlowSpeed := {_Material.FlowSpeed * }OtherMat.FlowSpeed;
 
+  DestMaterial.HueShift := _Material.HueShift + OtherMat.HueShift;
+
   If (Self.Flags And meshGroupIgnoreColorTable<>0) Then
     DestMaterial.ColorTable := Nil
   Else
@@ -5937,6 +5962,15 @@ Begin
   _AlphaInspected := Tex;
 End;
 
+Function MeshGroup.GetHueShift: Single;
+Begin
+  Result := _Material.HueShift;
+End;
+
+Procedure MeshGroup.SetHueShift(const Value: Single);
+Begin
+  _Material.HueShift := Value;
+End;
 
 { Mesh }
 Class Function Mesh.GetManager: Pointer;
@@ -7123,6 +7157,7 @@ End;
 Procedure MeshMaterial.Reset;
 Begin
   BlendMode := -1;
+  HueShift := 0;
 
 //  AmbientColor := ColorWhite;
   DiffuseColor := ColorWhite;
@@ -7279,10 +7314,10 @@ Begin
     If Assigned(DestMaterial.DecalMap) Then
       FxFlags := FxFlags Or shaderDecalMap;
 
-    If (Assigned(DestMaterial.DitherPatternMap)) Then
+    (*If (Assigned(DestMaterial.DitherPatternMap)) Then
     Begin
       FxFlags := FxFlags Or shaderDitherColor;
-    End;
+    End;*)
 
     If (Graphics.Renderer.Settings.DynamicShadows.Enabled) Then
       FxFlags := FxFlags Or shaderShadowMap;
@@ -7328,6 +7363,10 @@ Begin
 
     If (Group.Flags And meshGroupWireframe<>0) Then
       FxFlags := FxFlags Or shaderWireframe;
+
+    //DestMaterial.HueShift := 0.0;
+    If (DestMaterial.HueShift<>0.0) Then
+      FxFlags := FxFlags Or shaderHueChange;
 
     If (DestMaterial.ReflectiveMap <> Nil) Then
       FxFlags := FxFlags Or shaderSphereMap Or shaderReflectiveMap;
