@@ -581,6 +581,9 @@ Begin
   Ofs := Source.Position;
   _Source := Image.Create(Source);
 
+(*  If (StringContains('monster', Source.Name)) Then
+    IntToString(2);*)
+
   _TransparencyType := _Source.TransparencyType;
 
   AdjustRatio(_Source);

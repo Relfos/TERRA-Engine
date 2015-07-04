@@ -1197,6 +1197,9 @@ Begin
   Begin
     Line('  diffuse = texture2D(diffuseMap, localUV);');
 
+    If (FxFlags and shaderAlphaTest<>0) Then
+      Line('  if (diffuse.a<'+FloatToString(AlphaReference)+') discard;');
+    
     If (FxFlags and shaderLightmap<>0) Then
     Begin
       Line('  color = texture2D(lightMap, lightCoord.st);');
@@ -1251,9 +1254,6 @@ Begin
       Line('  diffuse.rgb = mix(diffuse.rgb, decalColor.rgb, decalColor.a);');
     End;
 
-//    If (FxFlags and shaderAlphaTest<>0) Then
-      Line('  if (diffuse.a<'+FloatToString(AlphaReference)+') discard;');
-    
     If (FxFlags And shaderVertexColor<>0) Then
     Begin
 (*         If (FxFlags and shaderAddSigned<>0) Then
@@ -1261,6 +1261,9 @@ Begin
          Else*)
             Line('  diffuse *= vertex_color; ');
     End;
+
+    If (FxFlags and shaderAlphaTest<>0) Then
+      Line('  if (diffuse.a<'+FloatToString(AlphaReference)+') discard;');
 
     If (FxFlags and shaderSpecular<>0) Then
       Line('  specular = texture2D('+SpecularMapUniformName+', localUV);');

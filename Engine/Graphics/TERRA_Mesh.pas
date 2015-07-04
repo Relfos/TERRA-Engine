@@ -962,6 +962,14 @@ Var
   _GroupDataHandlerCount:Integer = 0;
 
 
+Function IsImageTranslucent(Tex:Texture):Boolean;
+Begin
+  If Assigned(Tex) Then
+    Result := (Tex.TransparencyType = imageTranslucent)
+  Else
+    Result := False;
+End;
+
 Function DefaultMeshHandler(Target:Mesh; Size:Integer; Source:Stream):Boolean;
 Begin
   Source.Skip(Size);
@@ -2623,8 +2631,7 @@ Begin
     Exit;
 
   Result := (Self.Diffuse.A<255) Or (_Groups[Index].Material.DiffuseColor.A<255) Or (Group.DiffuseColor.A<255) Or (_Groups[Index].Material.Ghost)
-  Or ((Assigned(_Groups[Index].Material.DiffuseMap)) And (_Groups[Index].Material.DiffuseMap.TransparencyType = imageTranslucent))
-  Or ((Assigned(Group.DiffuseMap)) And (Group.DiffuseMap.TransparencyType = imageTranslucent));
+  Or (IsImageTranslucent(_Groups[Index].Material.DiffuseMap)) Or (IsImageTranslucent(Group.DiffuseMap));
 End;
 
 Function MeshInstance.IsReady: Boolean;
@@ -7390,7 +7397,11 @@ Begin
     OutFlags := OutFlags Or shader_OutputOutline;
   End;
 
-  If (Graphics.Renderer.Settings.AlphaTesting.Enabled) And (DestMaterial.DiffuseMap.TransparencyType = imageTranslucent)  Then
+(*  If (StringContains('monster', DestMaterial.DiffuseMap.Name)) Then
+    IntToString(2);*)
+
+  If (Graphics.Renderer.Settings.AlphaTesting.Enabled) And (IsImageTranslucent(DestMaterial.DiffuseMap))
+  And ((Group.Flags And meshGroupShadowOnly)=0)  Then
     FxFlags := FxFlags Or shaderAlphaTest;
 
   If (Graphics.ReflectionActive) Then

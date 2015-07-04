@@ -247,7 +247,7 @@ Type
       Procedure Release; Override;
 
       Procedure RenderShadowmap(View:Viewport);
-      Procedure RenderReflections(View:Viewport);
+      //Procedure RenderReflections(View:Viewport);
 
 			Procedure RenderScene();
 
@@ -971,7 +971,7 @@ Begin
   _Scene.RenderShadowCasters(View);
 End;
 
-{$IFNDEF REFLECTIONS_WITH_STENCIL}
+(*{$IFNDEF REFLECTIONS_WITH_STENCIL}
 Procedure GraphicsManager.RenderReflections(View:Viewport);
 Var
   Normal:Vector3D;
@@ -1132,7 +1132,7 @@ Begin
   Self.ReflectionMatrix4x4Sky := Matrix4x4Identity;
   Self.ReflectionMatrix4x4 := Matrix4x4Identity;
 End;
-{$ENDIF}
+{$ENDIF}*)
 
 Var
   _StencilVolumeShader:ShaderInterface;
@@ -1338,11 +1338,11 @@ Begin
     {$ENDIF}
 {$ENDIF}
 
-  If (_ReflectionsEnabled) Then
+(*  If (_ReflectionsEnabled) And (_RenderStage = renderStageDiffuse) Then
   Begin
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderReflections');{$ENDIF}
     Self.RenderReflections(View);
-  End;
+  End;*)
 
 (*    If (Renderer.Features.Shaders.Avaliable) And (Renderer.Settings.DynamicShadows.Enabled) Then
     Begin
