@@ -2,8 +2,8 @@ Unit TERRA_GLRenderer;
 
 {$I terra.inc}
 
-
 {$IFDEF WINDOWS}
+{-$DEFINE DEBUG_GL}
 {$DEFINE DEBUG_SHADERS}
 {$ENDIF}
 
@@ -239,10 +239,6 @@ Type
 
       Procedure Invalidate(); Override;
 
-      {$IFDEF IPHONE}
-      Procedure PresentToScreen(); Override;
-      {$ENDIF}
-
       Property Handle:Cardinal Read _Handle;
   End;
 
@@ -345,7 +341,7 @@ Type
   End;
 
 Implementation
-Uses SysUtils, TERRA_Log, TERRA_Application, TERRA_GraphicsManager, TERRA_Error, TERRA_OS;
+Uses SysUtils, TERRA_Log, TERRA_Application, TERRA_GraphicsManager, TERRA_Error, TERRA_OS, TERRA_TEXTURE;
 
 { OpenGLFeatures }
 Constructor OpenGLFeatures.Create(Owner:GraphicsRenderer);
@@ -2043,12 +2039,17 @@ Begin
     _Targets[I] := 0;
 End;
 
+Var
+  CurrentFBO:OpenGLFBO;
+
 Procedure OpenGLFBO.BeginCapture(Flags: Cardinal);
 Var
   ClearFlags:Cardinal;
 Begin
   If (_Handle = 0) Then
     Self.Init();
+
+ CurrentFBO := Self;
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Framebuffer','Begin framebuffer capture: W:'+IntToString(_Width)+' H:'+IntToString(_Height));{$ENDIF}
 
@@ -2087,6 +2088,11 @@ End;
 
 Procedure OpenGLFBO.EndCapture;
 Begin
+(*  If CurrentFBO <> Self Then
+    IntToString(2);*)
+
+  CurrentFBO  := Nil;
+
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Framebuffer','End framebuffer capture');{$ENDIF}
 
   {$IFDEF PC}
@@ -2097,12 +2103,10 @@ Begin
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _Handle);
 		glDrawBuffer(GL_COLOR_ATTACHMENT0);
 		glBlitFramebuffer(0, 0, _Width, _Height, 0, 0, _Width, _Height, GL_COLOR_BUFFER_BIT Or GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	End Else
+	End;
   {$ENDIF}
-  Begin
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  End;
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 End;
 
 Procedure OpenGLFBO.Resize(NewWidth, NewHeight:Integer);
@@ -2115,6 +2119,9 @@ End;
 
 Function OpenGLFBO.Bind(Slot: Integer):Boolean;
 Begin
+(*  If CurrentFBO = Self Then
+    IntToString(2);*)
+
   Result := (_Handle>0) And (Self.IsValid()) And (_Complete);
   If Not Result Then
   Begin
@@ -2194,16 +2201,6 @@ Begin
   Result := P;
 End;
 
-{$IFDEF IPHONE}
-Procedure OpenGLFBO.PresentToScreen();
-Begin
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Framebuffer','Presenting framebuffer: '+_Name);{$ENDIF}
-  glBindRenderbuffer(GL_RENDERBUFFER, _color_rb);
-  PresentRenderBuffer();
-  glBindRenderbuffer(GL_RENDERBUFFER, 0);
-End;
-{$ENDIF}
-
 Procedure OpenGLFBO.SetFilter(Value: TextureFilterMode);
 Begin
   _Filter := Value;
@@ -2213,6 +2210,7 @@ End;
 procedure OpenGLFBO.SetMipMapping(Value: Boolean);
 Begin
   _MipMapped := Value;
+  OpenGLRenderer(_Owner).ApplyTextureFilter(_Handle, GL_TEXTURE_2D, False, False, Filter);
 End;
 
 procedure OpenGLFBO.SetWrapMode(Value: TextureWrapMode);

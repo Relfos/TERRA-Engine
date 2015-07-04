@@ -36,7 +36,7 @@ Const
 
 Const
   TargetNames:Array[0..Pred(TotalCaptureTargets)] Of TERRAString =
-  ('alpha', 'diffuse', 'normal', 'emission', 'refraction', 'outline', 'reflection', 'shadow', 'position', 'glow', 'bloom', 'edge');
+  ('diffuse', 'normal', 'emission', 'refraction', 'outline', 'reflection', 'shadow', 'position', 'glow', 'bloom', 'edge');
 
 Var
   TargetTextureNames:Array[0..Pred(TotalCaptureTargets)] Of TERRAString;

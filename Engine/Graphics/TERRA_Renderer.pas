@@ -66,24 +66,23 @@ Const
 Const
   CubeFaceNames:Array[0..5] Of TERRAString = ( 'right', 'left', 'up','down', 'front', 'back');
 
-  RenderCaptureTargets = 9;
-  TotalCaptureTargets = 12;
+  RenderCaptureTargets = 8;
+  TotalCaptureTargets = 11;
 
 Type
   RenderTargetType = (
     captureTargetInvalid  = -1,
-    captureTargetAlpha = 0,
-    captureTargetColor    = 1,
-    captureTargetNormal   = 2,
-    captureTargetEmission = 3,
-    captureTargetRefraction = 4,
-    captureTargetOutline = 5,
-    captureTargetReflection = 6,
-    captureTargetShadow = 7,
-    captureTargetPosition = 8,
-    effectTargetGlow  = 9,
-    effectTargetBloom  = 10,
-    effectTargetEdge  = 11
+    captureTargetColor    = 0,
+    captureTargetNormal   = 1,
+    captureTargetEmission = 2,
+    captureTargetRefraction = 3,
+    captureTargetOutline = 4,
+    captureTargetReflection = 5,
+    captureTargetShadow = 6,
+    captureTargetPosition = 7,
+    effectTargetGlow  = 8,
+    effectTargetBloom  = 9,
+    effectTargetEdge  = 10
   );
 
 Type

@@ -26,7 +26,7 @@ Unit TERRA_Mesh;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_Texture, TERRA_Stream, TERRA_Resource, TERRA_MeshAnimation,
+  TERRA_String, TERRA_Utils, TERRA_Texture, TERRA_Image, TERRA_Stream, TERRA_Resource, TERRA_MeshAnimation,
   TERRA_Renderer, TERRA_ResourceManager, TERRA_FileUtils, TERRA_Vector4D, TERRA_Quaternion,
   TERRA_Math, TERRA_Ray, TERRA_Collections, TERRA_ShadowVolumes, TERRA_GraphicsManager, TERRA_MeshFilter,
   TERRA_BoundingBox, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_PhysicsManager, TERRA_VertexFormat,
@@ -1114,7 +1114,7 @@ Begin
     ReleaseObject(Temp);
 
     Group := Target.GetGroup(Pred(Target.GroupCount));
-    Group.Flags := meshGroupTransparency Or meshGroupDepthOff Or meshGroupLightOff Or meshGroupNormalsOff;
+    Group.Flags := meshGroupDepthOff Or meshGroupLightOff Or meshGroupNormalsOff;
     Group.BlendMode := blendAdd;
 
     Source.GroupIndex := Group.ID;
@@ -2622,13 +2622,9 @@ Begin
   If (Group.Flags And meshGroupForceOpaque<>0) Then
     Exit;
 
-  If (Self.Diffuse.A<255) Then
-  Begin
-    Result := True;
-    Exit;
-  End;
-
-  Result := (_Groups[Index].Material.DiffuseColor.A<255) Or (Group.DiffuseColor.A<255) Or (Group.Flags And meshGroupTransparency<>0) Or (_Groups[Index].Material.Ghost);
+  Result := (Self.Diffuse.A<255) Or (_Groups[Index].Material.DiffuseColor.A<255) Or (Group.DiffuseColor.A<255) Or (_Groups[Index].Material.Ghost)
+  Or ((Assigned(_Groups[Index].Material.DiffuseMap)) And (_Groups[Index].Material.DiffuseMap.TransparencyType = imageTranslucent))
+  Or ((Assigned(Group.DiffuseMap)) And (Group.DiffuseMap.TransparencyType = imageTranslucent));
 End;
 
 Function MeshInstance.IsReady: Boolean;
@@ -3332,9 +3328,6 @@ Begin
   //_Material.AmbientColor := ColorWhite;
   _Material.DiffuseColor := ColorWhite;
   _Material.BlendMode := -1;
-
-  If (Self.Flags And meshGroupAlphaTest<>0) Then
-    Self.Flags := Self.Flags Or meshGroupTransparency;
 
   Repeat
     Source.Read(@Tag, 4);
@@ -4403,7 +4396,7 @@ Begin
     Begin
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Setting blending mode');  {$ENDIF}
 
-      {$IFDEF ssADVANCED_ALPHA_BLEND}
+      {$IFDEF ADVANCED_ALPHA_BLEND}
       Graphics.Renderer.SetBlendMode(blendNone);      
       {$ELSE}
 
@@ -4413,7 +4406,7 @@ Begin
       Else
       {$ENDIF}
       If (Graphics.RenderStage = renderStageDiffuse) {Or (Graphics.RenderStage = renderStageOutline)} Then
-        Graphics.Renderer.SetBlendMode(DestMaterial.BlendMode)
+        Graphics.Renderer.SetBlendMode({DestMaterial.BlendMode}blendBlend)
       Else
       If (Graphics.RenderStage = renderStageShadow)  Then
         Graphics.Renderer.SetBlendMode(blendBlend)
@@ -4498,9 +4491,6 @@ Begin
   Begin
     N := Self.Flags;
     Self.Flags := Self.Flags Xor meshGroupAlphaMap;
-
-    If Assigned(Map) Then
-      Self.Flags := Self.Flags Or meshGroupTransparency;
 
     If (Self.Flags<>N) Then
       ReleaseObject(_Buffer);
@@ -5477,8 +5467,6 @@ Begin
   Self._Material.BlendMode := Value;
 
   NeedTransparency := (Value <> blendNone);
-
-  SetFlag(Self.Flags, meshGroupTransparency, NeedTransparency);
 End;
 
 Constructor MeshGroup.Create(ID:Integer; Parent:Mesh; Format:VertexFormat; Name:TERRAString);
@@ -5837,8 +5825,6 @@ Procedure MeshGroup.InheritMaterial(Const OtherMat: MeshMaterial; Var DestMateri
 Var
   Transparency:Boolean;
 Begin
-  Transparency := (Flags And meshGroupTransparency<>0) Or (DestMaterial.DiffuseColor.A<255);
-
   DestMaterial.DiffuseColor := ColorMultiply(_Material.DiffuseColor, OtherMat.DiffuseColor);
   //DestMaterial.AmbientColor := ColorMultiply(_Material.AmbientColor, OtherMat.AmbientColor);
 
@@ -5899,6 +5885,8 @@ Begin
   DestMaterial.Ghost := OtherMat.Ghost;
 
   DestMaterial.EnviromentMap := GraphicsManager.Instance.EnviromentMap;
+
+  Transparency := (DestMaterial.DiffuseColor.A<255) Or (DestMaterial.DiffuseMap.TransparencyType<>imageOpaque);
 
   If (OtherMat.BlendMode>=0) Then
     DestMaterial.BlendMode := OtherMat.BlendMode
@@ -7402,7 +7390,7 @@ Begin
     OutFlags := OutFlags Or shader_OutputOutline;
   End;
 
-  If (Group.Flags And meshGroupAlphaTest<>0) And (Graphics.Renderer.Settings.AlphaTesting.Enabled) Then
+  If (Graphics.Renderer.Settings.AlphaTesting.Enabled) And (DestMaterial.DiffuseMap.TransparencyType = imageTranslucent)  Then
     FxFlags := FxFlags Or shaderAlphaTest;
 
   If (Graphics.ReflectionActive) Then

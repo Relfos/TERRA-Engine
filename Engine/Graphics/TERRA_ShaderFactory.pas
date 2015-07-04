@@ -99,6 +99,8 @@ Const
   shader_OutputReflection= 1 Shl 8;
   shader_OutputShadow= 1 Shl 9;
 
+  AlphaReference = 0.9;
+
 Type
   ShaderEntry = Class(TERRAObject)
     FXFlags:Cardinal;
@@ -1148,7 +1150,7 @@ Begin
 
         Line('diffuse *= diffuse_color;');
         If (FxFlags and shaderAlphaTest<>0) Then
-          Line('  if (diffuse.a<0.1) discard;');
+          Line('  if (diffuse.a<'+FloatToString(AlphaReference)+') discard;');
 //    Line('  color.rgb = diffuse.rgb * 0.333;');
         Line('  color = outlineColor;');
 
@@ -1165,7 +1167,7 @@ Begin
        Line('  diffuse *= vertex_color; ');
 
     If (FxFlags and shaderAlphaTest<>0) Then
-      Line('  if (diffuse.a<0.1) discard;');
+      Line('  if (diffuse.a<'+FloatToString(AlphaReference)+') discard;');
 
     Line('  color.a = 1.0;'); // refraction ammount
   End Else
@@ -1178,8 +1180,8 @@ Begin
     If (FxFlags And shaderVertexColor<>0) Then
        Line('  diffuse *= vertex_color; ');
 
-    //If (Flags and shaderAlphaTest<>0) Then
-    Line('  if (diffuse.a<0.3) discard;');
+    If (FxFlags and shaderAlphaTest<>0) Then
+      Line('  if (diffuse.a<'+FloatToString(AlphaReference)+') discard;');
 
     Line('  highp float zz = screen_position.z;');
     Line('  zz = (2.0 * zNear) / (zFar + zNear - zz * (zFar - zNear));');
@@ -1249,6 +1251,9 @@ Begin
       Line('  diffuse.rgb = mix(diffuse.rgb, decalColor.rgb, decalColor.a);');
     End;
 
+//    If (FxFlags and shaderAlphaTest<>0) Then
+      Line('  if (diffuse.a<'+FloatToString(AlphaReference)+') discard;');
+    
     If (FxFlags And shaderVertexColor<>0) Then
     Begin
 (*         If (FxFlags and shaderAddSigned<>0) Then
@@ -1256,9 +1261,6 @@ Begin
          Else*)
             Line('  diffuse *= vertex_color; ');
     End;
-
-    If (FxFlags and shaderAlphaTest<>0) Then
-      Line('  if (diffuse.a<0.1) discard;');
 
     If (FxFlags and shaderSpecular<>0) Then
       Line('  specular = texture2D('+SpecularMapUniformName+', localUV);');

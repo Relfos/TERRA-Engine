@@ -129,7 +129,7 @@ Type
 
       Function HasPostProcessing():Boolean;
 
-      Procedure DrawToTarget(AllowDebug, ProcessEffects:Boolean);
+      Procedure DrawToTarget(ProcessEffects:Boolean);
 
       Property BackgroundColor:Color Read _BackgroundColor Write SetBackgroundColor;
 
@@ -671,17 +671,16 @@ Begin
     Result := Nil
   Else
   Begin
-    If (Self.IsRenderTargetEnabled(TargetType)) Then
-    Begin
-      If _RenderTextures[TargetValue] = Nil Then
-      Begin
-        _RenderTextures[TargetValue] := Texture.Create(rtDynamic, _Name+'_rt'+IntToString(TargetValue));
-        _RenderTextures[TargetValue].InitFromSurface(Self.GetRenderTarget(TargetType));
-      End;
+    If (Not Self.IsRenderTargetEnabled(TargetType)) Then
+      Self.SetRenderTargetState(TargetType, True);
 
-      Result := _RenderTextures[TargetValue];
-    End Else
-      Result := Nil;
+    If _RenderTextures[TargetValue] = Nil Then
+    Begin
+      _RenderTextures[TargetValue] := Texture.Create(rtDynamic, _Name+'_rt'+IntToString(TargetValue));
+      _RenderTextures[TargetValue].InitFromSurface(Self.GetRenderTarget(TargetType));
+    End;
+
+    Result := _RenderTextures[TargetValue];
   End;
 End;
 
@@ -723,7 +722,7 @@ Begin
 
   _ResolveBuffer.BackgroundColor := ColorNull;
   _ResolveBuffer.BeginCapture();
-  Self.DrawToTarget(True, False);
+  Self.DrawToTarget(False);
   _ResolveBuffer.EndCapture();
 
   GraphicsManager.Instance.ShowDebugTarget := captureTargetInvalid;
@@ -733,7 +732,7 @@ Begin
   Result := _ResolveTexture;
 End;
 
-Procedure Viewport.DrawToTarget(AllowDebug, ProcessEffects:Boolean);
+Procedure Viewport.DrawToTarget(ProcessEffects:Boolean);
 Var
   MyShader:ShaderInterface;
   I:Integer;
@@ -775,7 +774,7 @@ Begin
       ReleaseObject(_FXChain);
     End;
 
-    If (Assigned(_FXChain)) And ((ShowID = captureTargetInvalid) Or (Not AllowDebug)) Then
+    If (Assigned(_FXChain)) And (ShowID = captureTargetInvalid) Then
     Begin
       _FXChain.DrawScreen(_TargetX1, _TargetY1, _TargetX2, _TargetY2, Self);
       Exit;
@@ -783,7 +782,7 @@ Begin
   End;
 
 
-  If (ShowID = captureTargetInvalid) Or (Not AllowDebug) Then
+  If (ShowID = captureTargetInvalid) Then
     ShowID := captureTargetColor;
   {$ELSE}
   ShowID := captureTargetColor;
@@ -970,15 +969,20 @@ Function Viewport.GetResolveTexture: Texture;
 Var
   ShowID:RenderTargetType;
 Begin
-  If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
+  ShowID := GraphicsManager.Instance.ShowDebugTarget;
+  If (ShowID = captureTargetInvalid) Then
   Begin
-    Result := Self.GetRenderTexture(captureTargetColor);
-    Exit;
+    If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
+      Result := Self.GetRenderTexture(captureTargetColor)
+    Else
+      Result := Self._ResolveTexture;
+
+    Self.AutoResolve := True;
+  End Else
+  Begin
+    Self.AutoResolve := False;
+    Result := Self.GetRenderTexture(ShowID);
   End;
-
-  Self.AutoResolve := True;
-
-  Result := Self._ResolveTexture;
 End;
 
 Function Viewport.HasPostProcessing: Boolean;

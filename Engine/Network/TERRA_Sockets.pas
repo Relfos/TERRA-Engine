@@ -74,7 +74,14 @@ Const
 
 {$IFNDEF USE_FPC_SOCKETS}
   PF_INET           = 2;      // Internet address format
+
+
+{$IFDEF WINDOWS}
+  PF_INET6          = 23;
+{$ELSE}
   PF_INET6          = 10;
+{$ENDIF}
+
   SOCK_STREAM       = 1;      // TCP format
   SOCK_DGRAM        = 2;      // UDP format
 
@@ -84,6 +91,12 @@ Const
   SOL_SOCKET        = $FFFF;  // options for socket level
 
   IPPROTO_TCP       = 6;
+
+  {$IFDEF LINUX}
+  IPV6_V6ONLY       = 26;
+  {$ELSE}
+  IPV6_V6ONLY       = 27;
+  {$ENDIF}
 
 {$IFDEF WINDOWS}
 // Interface to WinSock

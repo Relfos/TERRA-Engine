@@ -487,10 +487,8 @@ Begin
   Line('fragment {');
 	Line('  varying mediump vec2 texCoord;');
 	Line('  uniform sampler2D texture;');
-  Line('  uniform mediump vec4 color;');
 	Line('  void main()	{');
   Line('    lowp vec4 c = texture2D(texture, texCoord.st);');
-  Line('    c = color * c;');
   {$IFDEF TESTFULLSCREENSHADER}
   Line('    gl_FragColor = vec4(0.0,1.0, 0.0, 1.0);}');
   {$ELSE}
@@ -1267,7 +1265,7 @@ Begin
     captureTargetReflection: N := renderStageReflection;
     captureTargetShadow: N := renderStageShadow;
     captureTargetOutline: N := renderStageOutline;
-    captureTargetAlpha: N := renderStageDiffuse;
+    //captureTargetAlpha: N := renderStageDiffuse;
     Else
       Exit;
   End;
@@ -1406,14 +1404,17 @@ Begin
       If (Target = Nil) Then
         Continue;
 
+      If (Self.ShowDebugTarget <> captureTargetInvalid) And (Self.ShowDebugTarget <> RenderTargetType(I)) Then
+        Continue;
+
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Rendering viewport: '+View.Name+', target '+IntToString(I)+', width:'+IntToString(Target.Width)+', height:'+IntToString(Target.Height));{$ENDIF}
 
       Case RenderTargetType(I) Of
         captureTargetRefraction:
           Target.BackgroundColor := ColorNull;
 
-        captureTargetAlpha:
-          Target.BackgroundColor := ColorNull;
+        (*captureTargetAlpha:
+          Target.BackgroundColor := ColorNull;*)
 
         captureTargetReflection:
           Target.BackgroundColor := ColorBlack;
@@ -1952,6 +1953,7 @@ End;
 Procedure GraphicsManager.Update;
 Var
   I:Integer;
+  TempDebugTarget:RenderTargetType;
   Target:RenderTargetInterface;
   Time:Cardinal;
   UpdateFPS:Boolean;
@@ -1987,14 +1989,16 @@ Begin
   If (Not _Prefetching) And (Render3D) Then
     Self.RenderScene;
 
-
   // resolve offscreen buffers
-  For I:=Pred(_ViewportCount) DownTo 0 Do
-  If (_Viewports[I].Active) And (_Viewports[I].AutoResolve) Then
+  If (Self.ShowDebugTarget = captureTargetInvalid) Then
   Begin
-    _Viewports[I].DrawToTarget(True, True);
+    For I:=Pred(_ViewportCount) DownTo 0 Do
+    If (_Viewports[I].Active) And (_Viewports[I].AutoResolve) Then
+    Begin
+      _Viewports[I].DrawToTarget(True);
+    End;
   End;
-
+  
 // {$IFDEF PC} Render2D  := Application.Instance.Input.Keys[keyF1];{$ENDIF}
 
   If Render2D Then
@@ -2013,14 +2017,19 @@ Begin
   If (_Viewports[I].Active) And (Not _Viewports[I].AutoResolve) Then
   Begin
     If (_Viewports[I].Target = _DeviceViewport) Then
-      _Viewports[I].DrawToTarget(True, True)
+      _Viewports[I].DrawToTarget(True)
     Else
     If (_Viewports[I].Target = Nil) Then
-      _Viewports[I].DrawToTarget(True, True);
+      _Viewports[I].DrawToTarget(True);
   End;
 
-  If (Render2D) And (Integer(Self.ShowDebugTarget) <=0) Then
-    _UIViewport.DrawToTarget(False, False);
+  If (Render2D) Then
+  Begin
+    TempDebugTarget := Self.ShowDebugTarget;
+    Self.ShowDebugTarget := captureTargetInvalid;
+    _UIViewport.DrawToTarget(False);
+    Self.ShowDebugTarget := TempDebugTarget;
+  End;
 
   If Assigned(Target) Then
     Target.EndCapture();
@@ -2348,8 +2357,8 @@ Begin
     If (Input.Keys.WasPressed(keyF3)) Then
       Self.ShowDebugTarget := effectTargetEdge;
 
-    If (Input.Keys.WasPressed(keyF4)) Then
-      Self.ShowDebugTarget := captureTargetAlpha;
+    (*If (Input.Keys.WasPressed(keyF4)) Then
+      Self.ShowDebugTarget := captureTargetAlpha;*)
   End Else
   Begin
     If (Input.Keys.WasPressed(keyF1)) Then

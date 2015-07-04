@@ -25,7 +25,7 @@ Unit TERRA_TextureAtlas;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Image, TERRA_Texture, TERRA_Packer, TERRA_Resource;
+Uses TERRA_String, TERRA_Utils, TERRA_Image, TERRA_Texture, TERRA_Packer, TERRA_Resource, TERRA_Color;
 
 Type
   TextureAtlas = Class;
@@ -346,7 +346,7 @@ Begin
   Result._PageID := PageID;
   Result._Atlas := Self;
 
-  Result.InitFromSize(Width, Height);
+  Result.InitFromSize(Width, Height, ColorWhite);
 
   Result.Rebuild();
 End;
