@@ -467,20 +467,6 @@ Type
     Values:Array Of Vector3D;
   End;
 
-  MeshHalfEdge = Record
-    StartVertex:Integer; // vertex at the start of the half-edge
-    EndVertex:Integer; // vertex at the end of the half-edge
-    FaceIndex:Integer;  // face the half-edge borders
-
-    PairEdge:Integer;   // oppositely oriented adjacent half-edge
-    NextEdge:Integer;  // next half-edge around the face
-  End;
-
-  MeshEdgeAdjancency = Record
-    VertexA, VertexB:Integer;
-    FaceA, FaceB:Integer;
-  End;
-
 	MeshGroup = Class(TERRAObject)
     Protected
       _ID:Integer;
@@ -528,15 +514,6 @@ Type
       _Morphs:Array Of MeshGroupMorph;
       _MorphCount:Integer;
 
-      {
-      _HalfEdgeCount:Integer;
-      _HalfEdges:Array Of MeshHalfEdge;}
-
-      _EdgeAdjacencyList:Array Of MeshEdgeAdjancency;
-      _EdgeAdjacencyCount:Integer;
-
-      _VertexSpatialHashes:Array Of Cardinal;
-
 
       Procedure SetupUniforms(Transform:Matrix4x4; State:MeshInstance; Outline, TranslucentPass:Boolean; Const Material:MeshMaterial);
 
@@ -564,10 +541,6 @@ Type
 
       Procedure InheritMaterial(Const OtherMat:MeshMaterial; Var DestMaterial:MeshMaterial);
 
-      Function SubDivideVertexFromTriangle(TriangleIndex, TargetVertex:Integer; UseA, UseB, UseC:Boolean):Integer;
-      Procedure SubDivide3();
-      Procedure SubDivide6();
-
       Procedure InspectAlpha(Tex:Texture);
 
     Public
@@ -582,6 +555,8 @@ Type
 
 		  Procedure Clean; Virtual;
       Procedure Init; Virtual;
+
+      Procedure ReleaseBuffer();
 
       Procedure UpdateBoundingBox;
 
@@ -652,11 +627,6 @@ Type
       Procedure SetEdge(TriangleIndex, EdgeIndex:Integer; Visible:Boolean);
 
       Procedure Optimize(VertexCacheSize:Integer);
-      Procedure SubDivide();
-      Procedure Smooth();
-
-      Function GetEdge(Const VertexA, VertexB:Integer):Integer;
-      Procedure GetVertexAdjancency(Const VertexIndex:Integer; Out Result:IntegerArrayObject);
 
       Function LockVertices():VertexData;
       Procedure UnlockVertices();
@@ -665,6 +635,8 @@ Type
       Function HasVertexMorph(ID:Integer):Boolean;
       Function GetVertexMorph(ID, VertexIndex:Integer):Vector3D;
       Procedure SetVertexMorph(ID, VertexIndex:Integer; Value:Vector3D);
+
+      Function SubDivideVertexFromTriangle(TriangleIndex, TargetVertex:Integer; UseA, UseB, UseC:Boolean):Integer;
 
       Property Name:TERRAString Read _Name Write _Name;
 
@@ -695,7 +667,6 @@ Type
 
       Procedure CalculateTangents();
       Procedure CalculateTriangleNormals();
-      Procedure CalculateAdjacency();
       //Procedure BuildBillboards;
 
 	  	Function AddVertex():Integer;
@@ -712,7 +683,9 @@ Type
 
       Function Intersect(Const R:Ray; Var T:Single; Const Transform:Matrix4x4):Boolean;
 
+      Procedure SetTriangle(Const T:Triangle; Index:Integer);
       Function GetTriangle(Index:Integer):Triangle;
+
       Function GetTriangleNormal(Index:Integer):Vector3D;
       Function GetTrianglePointer(Index:Integer):PTriangle;
 
@@ -821,8 +794,6 @@ Type
 			Procedure Clean();
 
       Procedure Optimize(VertexCacheSize:Integer);
-      Procedure SubDivide();
-      Procedure Smooth();
 
       Function HasBoneMorph(MorphID:Integer):Boolean;
       Function GetBoneMorph(MorphID, BoneID:Integer):Vector3D;
@@ -921,20 +892,23 @@ Type
     Protected
       _CubeMesh:Mesh;
       _SphereMesh:Mesh;
+      _CylinderMesh:Mesh;
 
       Function GetCubeMesh:Mesh;
       Function GetSphereMesh:Mesh;
+      Function GetCylinderMesh:Mesh;
 
     Public
       Procedure Init; Override;
       Procedure Release; Override;
-      
+
       Class Function Instance:MeshManager;
 
       Function GetMesh(Name:TERRAString):Mesh;
       //Function CloneMesh(Name:TERRAString):Mesh;
 
       Property CubeMesh:Mesh Read GetCubeMesh;
+      Property CylinderMesh:Mesh Read GetCylinderMesh;
       Property SphereMesh:Mesh Read GetSphereMesh;
 
       Property Meshes[Name:TERRAString]:Mesh Read GetMesh; Default;
@@ -1597,7 +1571,21 @@ Begin
   Result := _CubeMesh;
 End;
 
-function MeshManager.GetSphereMesh: Mesh;
+Function MeshManager.GetCylinderMesh:Mesh;
+Var
+  Cylinder:TERRA_Solids.CylinderMesh;
+Begin
+  If _CylinderMesh = Nil Then
+  Begin
+    Cylinder := TERRA_Solids.CylinderMesh.Create(8, 8);
+    _CylinderMesh := CreateMeshFromSolid(Cylinder);
+    ReleaseObject(Cylinder);
+  End;
+
+  Result := _CylinderMesh;
+End;
+
+Function MeshManager.GetSphereMesh: Mesh;
 Var
   Sphere:TERRA_Solids.SphereMesh;
 Begin
@@ -3089,6 +3077,11 @@ Begin
   Clean;
 End;
 
+Procedure MeshGroup.ReleaseBuffer;
+Begin
+  ReleaseObject(_Buffer);
+End;
+
 (*Procedure MeshGroup.SetupSkeleton;
 Var
   M:Matrix4x4;
@@ -3270,6 +3263,12 @@ Begin
   _Pins[Pred(_PinCount)] := ID;
 End;
 
+Procedure MeshGroup.SetTriangle(Const T:Triangle; Index:Integer);
+Begin
+  If (Index>=0) And (Index<_TriangleCount) Then
+    _Triangles[Index] := T;
+End;
+
 Function MeshGroup.GetTriangle(Index:Integer):Triangle;  {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   If (Index>=0) And (Index<_TriangleCount) Then
@@ -3299,12 +3298,9 @@ Begin
   SetLength(_Morphs, 0);
   SetLength(_Edges, 0);
   SetLength(_Pins, 0);
-  SetLength(_EdgeAdjacencyList, 0);
-  SetLength(_VertexSpatialHashes, 0);
 	_TriangleCount := 0;
   _VisibleTriangleCount := 0;
   _MorphCount := 0;
-  _EdgeAdjacencyCount := 0;
   _PinCount := 0;
 
   _NeedsTangentSetup := False;
@@ -3577,55 +3573,6 @@ Begin
 //  Result := Result * 0.1;
 End;
 
-Procedure MeshGroup.CalculateAdjacency();
-Const
-  SnapFactor = 5;
-  
-Var
-  I, J:Integer;
-  P:Vector3D;
-  V:Array[0..2] Of Integer;
-
-  Procedure MakeEdge(TriID, VA, VB:Integer);
-  Var
-    I:Integer;
-  Begin
-    For I:=0 To Pred(_EdgeAdjacencyCount) Do
-    If ((_EdgeAdjacencyList[I].VertexA = VA) And (_EdgeAdjacencyList[I].VertexB = VB)
-    Or (_EdgeAdjacencyList[I].VertexA = VB) And (_EdgeAdjacencyList[I].VertexB = VA)) Then
-    Begin
-      _EdgeAdjacencyList[I].FaceB := TriID;
-      Exit;
-    End;
-
-    I := _EdgeAdjacencyCount;
-    Inc(_EdgeAdjacencyCount);
-    If Length(_EdgeAdjacencyList)<=_EdgeAdjacencyCount Then
-      SetLength(_EdgeAdjacencyList, Length(_EdgeAdjacencyList) * 2);
-
-    _EdgeAdjacencyList[I].VertexA := VA;
-    _EdgeAdjacencyList[I].VertexB := VB;
-    _EdgeAdjacencyList[I].FaceA := TriID;
-  End;
-Begin
-  _EdgeAdjacencyCount := 0;
-  SetLength(_EdgeAdjacencyList, 64);
-
-  For I:=0 To Pred(_TriangleCount) Do
-    For J:=0 To 2 Do
-      MakeEdge(I, _Triangles[I].Indices[J], _Triangles[I].Indices[(J+1) Mod 3]);
-
-  SetLength(_VertexSpatialHashes, _Vertices.Count);
-  For I:=0 To Pred(_Vertices.Count) Do
-  Begin
-    _Vertices.GetVector3D(I, vertexPosition, P);
-    V[0] := Trunc(P.X*SnapFactor);
-    V[1] := Trunc(P.Y*SnapFactor);
-    V[2] := Trunc(P.Z*SnapFactor);
-
-    _VertexSpatialHashes[I] := GetCRC32(@V[0], SizeOf(Integer)*3);
-  End;
-End;
 
 (*
 Procedure MeshGroup.CalculateAdjacency();
@@ -4549,124 +4496,7 @@ Begin
   _Material.DitherPatternMap := Map;
 End;
 
-Function MeshGroup.GetEdge(Const VertexA, VertexB:Integer):Integer;
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(_EdgeAdjacencyCount) Do
-  If ((_EdgeAdjacencyList[I].VertexA = VertexA) And (_EdgeAdjacencyList[I].VertexB = VertexB))
-  Or ((_EdgeAdjacencyList[I].VertexA = VertexB) And (_EdgeAdjacencyList[I].VertexB = VertexA)) Then
-  Begin
-    Result := I;
-    Exit;
-  End;
 
-  Result := -1;
-End;
-
-Procedure MeshGroup.GetVertexAdjancency(Const VertexIndex:Integer; Out Result:IntegerArrayObject);
-Var
-  J, I, Edge:Integer;
-Begin
-  FillChar(Result, SizeOf(Result), 0);
-
-  For J:=0 To Pred(_Vertices.Count) Do
-  If (J = VertexIndex) Or (_VertexSpatialHashes[J] = _VertexSpatialHashes[VertexIndex]) Then
-  Begin
-    For I:=0 To Pred(_EdgeAdjacencyCount) Do
-    If (_EdgeAdjacencyList[I].VertexA = J) Then
-    Begin
-      Result.Add(_EdgeAdjacencyList[I].VertexB);
-    End Else
-    If (_EdgeAdjacencyList[I].VertexB = J) Then
-    Begin
-      Result.Add(_EdgeAdjacencyList[I].VertexA);
-    End;
-  End;
-End;
-
-{-$DEFINE LAPLACIAN_SMOOTH}
-Procedure MeshGroup.Smooth();
-Var
-  O_V, O_N:Array Of Vector3D;
-
-Procedure SmoothPass();
-Var
-  I, J, Count:Integer;
-  P, V, N, DV, DN:Vector3D;
-  Beta, SourceWeight, AdjWeight:Single;
-  VertexAdjancency:IntegerArrayObject;
-Begin
-  For I:=0 To Pred(_Vertices.Count) Do
-  Begin
-    //Disps[I] := VectorZero;
-
-    Self.GetVertexAdjancency(I, VertexAdjancency);
-    DV := VectorZero;
-    DN := VectorZero;
-
-    _Vertices.GetVector3D(I, vertexPosition, V);
-    _Vertices.GetVector3D(I, vertexNormal, N);
-
-    {$IFDEF LAPLACIAN_SMOOTH}
-    For J:=0 To Pred(VertexAdjancency.Count) Do
-    Begin
-      DV.Add(VectorSubtract(O_V[VertexAdjancency.Items[J]], V));
-      DN.Add(VectorSubtract(O_N[VertexAdjancency.Items[J]], N));
-    End;
-
-    DV.Scale((1/VertexAdjancency.Count) * Delta);
-    DN.Scale((1/VertexAdjancency.Count) * Delta);
-
-    {$ELSE}
-    If (VertexAdjancency.Count = 3) Then
-      Beta := 3.0/16.0
-    Else
-      Beta := 3.0/(8.0*VertexAdjancency.Count);
-
-    SourceWeight := 1.0 - VertexAdjancency.Count * Beta;
-    AdjWeight := Beta;
-
-    For J:=0 To Pred(VertexAdjancency.Count) Do
-    Begin
-      DV.Add(O_V[VertexAdjancency.Items[J]]);
-      DN.Add(O_N[VertexAdjancency.Items[J]]);
-    End;
-
-    DV.Scale(AdjWeight);
-    DN.Scale(AdjWeight);
-
-    V.Scale(SourceWeight);
-    N.Scale(SourceWeight);
-    {$ENDIF}
-
-    V.Add(DV);
-    N.Add(DN);
-    N.Normalize();
-    _Vertices.SetVector3D(I, vertexPosition, V);
-    _Vertices.SetVector3D(I, vertexNormal, N);
-  End;
-End;
-
-Var
-  I:Integer;
-Begin
-  If (Self._EdgeAdjacencyList = Nil) Then
-    Self.CalculateAdjacency();
-
-  SetLength(O_V, _Vertices.Count);
-  SetLength(O_N, _Vertices.Count);
-  For I:=0 To Pred(_Vertices.Count) Do
-  Begin
-    _Vertices.GetVector3D(I, vertexPosition, O_V[I]);
-    _Vertices.GetVector3D(I, vertexNormal, O_N[I]);
-  End;
-
-  SmoothPass();
-
-  SetLength(O_V, 0);
-  SetLength(O_N, 0);
-End;
 
 Function MeshGroup.SubDivideVertexFromTriangle(TriangleIndex, TargetVertex:Integer; UseA, UseB, UseC:Boolean):Integer;
 Var
@@ -4753,172 +4583,6 @@ Begin
   _Vertices.SetColor(TargetVertex, vertexColor, TC);
 End;
 
-Procedure MeshGroup.SubDivide6();
-Var
-  I, J, K, OldVertexCount:Integer;
-  OldTriangles:Array Of Triangle;
-  OldTriangleCount:Integer;
-
-  EdgePoints:Array Of Integer;
-  EdgeInsert:Integer;
-  EdgeIndicesA, EdgeIndicesB, EdgeIndicesC:Array Of Integer;
-
-  Indices:Array[0..6] Of Integer;
-
-  Function DivideEdge(TriIndex, EdgeIndex:Integer):Integer;
-  Var
-    Tri:Triangle;
-    Edge:Integer;
-    UseA, UseB, UseC:Boolean;
-  Begin
-    Tri := Self.GetTriangle(TriIndex);
-    Edge := Self.GetEdge(Tri.Indices[EdgeIndex], Tri.Indices[(EdgeIndex+1) Mod 3]);
-
-    Result := EdgePoints[Edge];
-    If Result>=0 Then
-    Begin
-      IntToString(2);
-      Exit;
-    End;
-
-    Case EdgeIndex Of
-    0:Begin
-        UseA := True;
-        UseB := True;
-        UseC := False;
-      End;
-
-    1:Begin
-        UseA := False;
-        UseB := True;
-        UseC := True;
-      End;
-
-    Else
-      Begin
-        UseA := True;
-        UseB := False;
-        UseC := True;
-      End;
-    End;
-
-    Result := SubDivideVertexFromTriangle(I, OldVertexCount + _TriangleCount + EdgeInsert, UseA, UseB, UseC);
-    Inc(EdgeInsert);
-    EdgePoints[Edge] := Result;
-   End;
-Begin
-  If (Self._EdgeAdjacencyList = Nil) Then
-    Self.CalculateAdjacency();
-
-  OldVertexCount := Self._Vertices.Count;
-  Self._Vertices.Resize(OldVertexCount + Self._TriangleCount + _EdgeAdjacencyCount); // we need to add a new vertex for each triangle
-
-  EdgeInsert := 0;
-  SetLength(EdgePoints, _EdgeAdjacencyCount);
-  For I:=0 To Pred(_EdgeAdjacencyCount) Do
-    EdgePoints[I] := -1;
-
-  SetLength(EdgeIndicesA, _TriangleCount);
-  SetLength(EdgeIndicesB, _TriangleCount);
-  SetLength(EdgeIndicesC, _TriangleCount);
-  For I:=0 To Pred(_TriangleCount) Do
-  Begin
-    SubDivideVertexFromTriangle(I, OldVertexCount + I, True, True, True);
-    EdgeIndicesA[I] := DivideEdge(I, 0);
-    EdgeIndicesB[I] := DivideEdge(I, 1);
-    EdgeIndicesC[I] := DivideEdge(I, 2);
-  End;
-
-  If (vertexFormatTangent In _Vertices.Format) Then
-    Self.CalculateTangents();
-
-  SetLength(OldTriangles, _TriangleCount);
-  For I:=0 To Pred(_TriangleCount) Do
-    OldTriangles[I] := _Triangles[I];
-
-  OldTriangleCount := _TriangleCount;
-
-  _TriangleCount := _TriangleCount * 6;
-  SetLength(_Triangles, _TriangleCount);
-
-  I:=0;
-
-  While (I<OldTriangleCount) Do
-  Begin
-    Indices[0] := OldTriangles[I].Indices[0];
-    Indices[1] := EdgeIndicesA[I];
-    Indices[2] := OldTriangles[I].Indices[1];
-    Indices[3] := EdgeIndicesB[I];
-    Indices[4] := OldTriangles[I].Indices[2];
-    Indices[5] := EdgeIndicesC[I];
-    Indices[6] := OldVertexCount + I ;
-
-    For J:=0 To 5 Do
-    Begin
-      _Triangles[I*6 + J].Indices[0] := Indices[J];
-      _Triangles[I*6 + J].Indices[1] := Indices[(J+1) Mod 6];
-      _Triangles[I*6 + J].Indices[2] := Indices[6];
-    End;
-
-    Inc(I);
-  End;
-
-  Self.CalculateTriangleNormals();
-  ReleaseObject(_Buffer);
-
-  _EdgeAdjacencyList := Nil;
-End;
-
-Procedure MeshGroup.SubDivide3();
-Var
-  I, J, K, OldVertexCount:Integer;
-  OldTriangles:Array Of Triangle;
-  OldTriangleCount:Integer;
-Begin
-  OldVertexCount := Self._Vertices.Count;
-  Self._Vertices.Resize(OldVertexCount + Self._TriangleCount); // we need to add a new vertex for each triangle
-
-  For I:=0 To Pred(_TriangleCount) Do
-  Begin
-    SubDivideVertexFromTriangle(I, OldVertexCount + I, True, True, True);
-  End;
-
-  If (vertexFormatTangent In _Vertices.Format) Then
-    Self.CalculateTangents();
-
-  SetLength(OldTriangles, _TriangleCount);
-  For I:=0 To Pred(_TriangleCount) Do
-    OldTriangles[I] := _Triangles[I];
-
-  OldTriangleCount := _TriangleCount;
-
-  _TriangleCount := _TriangleCount * 3;
-  SetLength(_Triangles, _TriangleCount);
-
-  I:=0;
-
-  While (I<OldTriangleCount) Do
-  Begin
-    For J:=0 To 2 Do
-    Begin
-      _Triangles[I*3 + J].Indices[0] := OldTriangles[I].Indices[J];
-      _Triangles[I*3 + J].Indices[1] := OldTriangles[I].Indices[(J+1)Mod 3];
-      _Triangles[I*3 + J].Indices[2] := OldVertexCount + I;
-    End;
-
-    Inc(I);
-  End;
-
-  Self.CalculateTriangleNormals();
-  ReleaseObject(_Buffer);
-End;
-
-Procedure MeshGroup.SubDivide();
-Begin
-  Self.SubDivide6();
-
-//  IntToString(Self._Vertices.Count);
-End;
 
 {
   This is an implementation of Tom Forsyth's "Linear-Speed Vertex Cache Optimization" algorithm as described here:
@@ -6528,29 +6192,6 @@ Begin
     Result := Nil
   Else
     Result := _Metadata[Index];
-End;
-
-(*Procedure MeshGroup.OnContextLost;
-Begin
-  ReleaseObject(_Buffer);
-End;*)
-
-Procedure Mesh.SubDivide();
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(_GroupCount) Do
-  If (_Groups[I]._TriangleCount>0) Then
-    _Groups[I].SubDivide();
-End;
-
-Procedure Mesh.Smooth();
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(_GroupCount) Do
-  If (_Groups[I]._TriangleCount>0) Then
-    _Groups[I].Smooth();
 End;
 
 Procedure Mesh.Optimize(VertexCacheSize:Integer);
