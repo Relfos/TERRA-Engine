@@ -36,9 +36,7 @@ Begin
   FileManager.Instance.AddPath('Assets');
 
   // Load a Tex
-  //Tex := TextureManager.Instance.GetTexture('forest');
-  Tex := TextureManager.Instance.GetTexture('gradient');
-  Tex := TextureManager.Instance.GetTexture('test');
+  Tex := TextureManager.Instance.GetTexture('forest');
   If Assigned(Tex) Then
   Begin
     Tex.PreserveQuality := True;
@@ -53,13 +51,13 @@ Begin
 
   CurrentGrad := GradRamp;
 
-  CurrentGrad := TextureManager.Instance.DefaultColorTable;
+  //CurrentGrad := TextureManager.Instance.DefaultColorTable;
 
   // Create a scene and set it as the current scene
   _Scene := MyScene.Create;
   GraphicsManager.Instance.SetScene(_Scene);
 
-  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorWhite;
+  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorWhite;
 
   Percent := 0.5;
 End;

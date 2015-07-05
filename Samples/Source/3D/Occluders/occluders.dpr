@@ -30,6 +30,7 @@ Var
   P:Occluder;
   Fnt:FontRenderer;
   Sun:DirectionalLight;
+  Main:Viewport;
 
 { Game }
 Procedure Demo.OnCreate;
@@ -47,7 +48,7 @@ Begin
 
   Sphere := MeshInstance.Create(MeshManager.Instance.SphereMesh);
   Sphere.SetDiffuseMap(0, DiffuseTex);
-  Sphere.SetScale(VectorUniform(20.0));
+  Sphere.SetScale(VectorConstant(20.0));
   Sphere.SetPosition(VectorCreate(0, -30, -80));
 
   Sphere.SetUVScale(0, 2.0, 2.0);
@@ -61,6 +62,8 @@ Begin
   P.SetTransform(Matrix4x4Translation(0, 0, 0), 80, 80);
 
   Sun := DirectionalLight.Create(VectorCreate(-0.25, -0.75, 0.0));
+
+  Main := GraphicsManager.Instance.CreateMainViewport('main', GraphicsManager.Instance.Width, GraphicsManager.Instance.Height);
 
   GraphicsManager.Instance.Scene := MyScene.Create;
 End;
@@ -78,7 +81,7 @@ Begin
   If InputManager.Instance.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate;
 
-  GraphicsManager.Instance.ActiveViewport.Camera.FreeCam;
+  Main.Camera.FreeCam;
 End;
 
 
