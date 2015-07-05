@@ -102,6 +102,7 @@ Begin
     Begin
       _Textures[Index] := Texture.Create(rtDynamic, Self._Name + '_rt'+IntToString(Index));
       _Textures[Index].InitFromSurface(_Targets[Index]);
+      _Textures[Index].WrapMode := wrapNothing;
     End;
 
     Result := _Textures[Index];
