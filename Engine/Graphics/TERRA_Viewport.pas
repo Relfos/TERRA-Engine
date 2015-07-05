@@ -38,7 +38,6 @@ Type
   Viewport = Class(TERRAObject)
     Protected
       _Name:TERRAString;
-      _Active:Boolean;
       _Visible:Boolean;
 
       _OfsX:Integer;
@@ -133,7 +132,6 @@ Type
 
       Property BackgroundColor:Color Read _BackgroundColor Write SetBackgroundColor;
 
-      Property Active:Boolean Read _Active Write _Active;
       Property Camera:TERRA_Camera.Camera Read _Camera;
 
       Property DrawSky:Boolean Read _DrawSky Write _DrawSky;
@@ -380,7 +378,7 @@ End;
 Constructor Viewport.Create(Name:TERRAString; Width,Height:Integer; Scale:Single);
 Begin
   _Name := Name;
-  _Active := True;
+  _Visible := True;
   _DrawSky := False;
 
   _Width := Width;
@@ -737,6 +735,7 @@ Var
   MyShader:ShaderInterface;
   I:Integer;
   ShowID:RenderTargetType;
+  TempColor:Color;
 Begin
   If (Target = Nil) Then
   Begin
@@ -755,7 +754,10 @@ Begin
   {$ENDIF}
   {$ENDIF}
 
+  TempColor := Target.BackgroundColor;
+  Target.BackgroundColor := Self.BackgroundColor;
   Target.Restore(True);
+  Target.BackgroundColor := TempColor;
 
   {$IFDEF POSTPROCESSING}
   ShowID := GraphicsManager.Instance.ShowDebugTarget;
@@ -867,7 +869,7 @@ Begin
 
   If Self.IsDirectDrawing()  Then
     GraphicsManager.Instance.Renderer.SetClearColor(_BackgroundColor);
-    
+
   GraphicsManager.Instance.Renderer.ClearBuffer((Not Self.IsDirectDrawing()) Or (_BackgroundColor.A>=255), True, True);
 
   If UseScissors Then

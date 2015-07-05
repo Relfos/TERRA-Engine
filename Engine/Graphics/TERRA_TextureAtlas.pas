@@ -150,7 +150,7 @@ End;
 
 Function TextureAtlas.Add(Source:Image; Name:TERRAString; ShareSource:Boolean): TextureAtlasItem;
 Begin
-  If Source = Nil Then
+  If (Source = Nil) Or (Source.Width<=0) Or (Source.Height<=0) Then
   Begin
     Result := Nil;
     Exit;
@@ -247,8 +247,8 @@ Begin
     For I:=0 To Pred(_ItemCount) Do
     If Not _ItemList[I]._Packed Then
     Begin
-      W := _ItemList[I].Buffer.Width + 1;
-      H := _ItemList[I].Buffer.Height + 1;
+      W := _ItemList[I].Buffer.Width;
+      H := _ItemList[I].Buffer.Height;
       If (H<Self._Height) Then
         Inc(H);
       Packer.AddRect(W, H, _ItemList[I].ID);
