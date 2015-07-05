@@ -26,7 +26,8 @@ Unit TERRA_Mesh;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_Texture, TERRA_Image, TERRA_Stream, TERRA_Resource, TERRA_MeshAnimation,
+  TERRA_String, TERRA_Utils, TERRA_Texture, TERRA_Image, TERRA_Stream, TERRA_Resource,
+  TERRA_MeshAnimation, TERRA_MeshAnimationNodes, TERRA_MeshSkeleton,
   TERRA_Renderer, TERRA_ResourceManager, TERRA_FileUtils, TERRA_Vector4D, TERRA_Quaternion,
   TERRA_Math, TERRA_Ray, TERRA_Collections, TERRA_ShadowVolumes, TERRA_GraphicsManager, TERRA_MeshFilter,
   TERRA_BoundingBox, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_PhysicsManager, TERRA_VertexFormat,
@@ -44,7 +45,6 @@ Const
   customTransformNone   = 0;
   customTransformLocal  = 1;
   customTransformGlobal = 2;
-
 
   MinDelta = 0.01;
 
@@ -142,7 +142,8 @@ Type
       Tangent:Vector4D;
       UV0:Vector2D;
       UV1:Vector2D;
-      Color:TERRA_Color.Color;
+      BaseColor:Color;
+      HueShift:Single;
       BoneIndex:Integer;
   End;
 
@@ -970,7 +971,6 @@ Var
   _GroupDataHandlers:Array Of GroupDataBlockHandlerEntry;
   _GroupDataHandlerCount:Integer = 0;
 
-
 Function IsImageTranslucent(Tex:Texture):Boolean;
 Begin
   If Assigned(Tex) Then
@@ -1142,7 +1142,8 @@ Begin
       V := MeshVertex(It.Value);
 
       Alpha := Trunc((1.0 - V.Position.Y) * 64);
-      V.Color := ColorCreate(Source.LightColor.R, Source.LightColor.G, Source.LightColor.B, Alpha);
+      V.BaseColor := ColorCreate(Source.LightColor.R, Source.LightColor.G, Source.LightColor.B, Alpha);
+      V.HueShift := 0.0;
       V.Position := TargetTransform.Transform(V.Position);
     End;
     ReleaseObject(It);
@@ -1634,8 +1635,12 @@ Begin
   If (BoneIndex<0) Or (AttachMesh = Nil) Then
     Exit;
 
-  P := Self._Mesh.Skeleton.BindPose[Succ(BoneIndex)].Transform(VectorZero);
+  (*P := Self._Mesh.Skeleton.BindPose[Succ(BoneIndex)].Transform(VectorZero);
   M := Matrix4x4Multiply4x4(Matrix4x4Inverse(Self._Mesh.Skeleton.BindPose[Succ(BoneIndex)]), Matrix4x4Multiply4x4(M, Matrix4x4Translation(P)));
+  *)
+
+  P := VectorZero;
+  M := Matrix4x4Multiply4x4(M, Matrix4x4Translation(P));
 
   Inc(_AttachCount);
   SetLength(_AttachList, _AttachCount);
@@ -2090,11 +2095,11 @@ Begin
     ReleaseObject(_Lights[I]);
   _LightCount := 0;
 
-  ReleaseObject(_ShadowVolume);
-  ReleaseObject(_Animation);
-
   If (_ClonedMesh) Then
     ReleaseObject(_Mesh);
+  
+  ReleaseObject(_ShadowVolume);
+  ReleaseObject(_Animation);
 End;
 
 Function MeshInstance.GetBoundingBox:BoundingBox; {$IFDEF FPC}Inline;{$ENDIF}
@@ -2138,7 +2143,7 @@ Begin
     End;
   End;
 
-  If (Assigned(_Animation)) And (Assigned(_Animation.Root)) Then
+  If (Assigned(_Animation)) Then
     _Animation.Update;
 
   If (_RenderTrails) And (Application.Instance.GetElapsedTime()-_LastTrailUpdate>TrailDelay Div MaxTrailSize) Then
@@ -3167,7 +3172,8 @@ Begin
       If V.BoneIndex>0 Then
       Begin
         If (State.Animation = Nil) Or (State.Animation.Root = Nil) Then
-          M := _Owner.Skeleton.BindPose[V.BoneIndex]
+          //M := _Owner.Skeleton.BindPose[V.BoneIndex]
+          M := Matrix4x4Identity
         Else
           M := State.Animation.Transforms[V.BoneIndex];
                     
@@ -4153,7 +4159,8 @@ Begin
     For I:=1 To _Owner.Skeleton.BoneCount Do
     Begin
       If (State.Animation = Nil) Or (State.Animation.Root = Nil) Then
-        M := _Owner.Skeleton.BindPose[I]
+        //M := _Owner.Skeleton.BindPose[I]
+        M := Matrix4x4Identity
       Else
         M := State.Animation.Transforms[I];
 
@@ -5407,9 +5414,9 @@ Begin
     Inc(Slot);
   End;
 
-  If (Material.HueShift<>0.0) Then
+  If (Material.HueShift<>0.0) Or (Self.Flags And meshGroupHueShift<>0) Then
   Begin
-    _Shader.SetVec2Uniform(HueShiftUniformName, VectorCreate2D(Cos(Material.HueShift), Sin(Material.HueShift)));
+    _Shader.SetFloatUniform(HueShiftUniformName, Material.HueShift);
   End;
 
 (*  If (Assigned(Material.DitherPatternMap)) And (Assigned(_Shader))  And (_Shader.HasUniform(DitherPatternMapUniformName)) Then
@@ -7085,8 +7092,9 @@ Begin
   DestVertex.Tangent := SourceVertex.Tangent;
   DestVertex.UV0 := SourceVertex.UV0;
   DestVertex.UV1 := SourceVertex.UV1;
-  DestVertex.Color := SourceVertex.Color;
+  DestVertex.BaseColor := SourceVertex.BaseColor;
   DestVertex.BoneIndex := SourceVertex.BoneIndex;
+  DestVertex.HueShift := SourceVertex.HueShift;
 End;
 
 { MeshEmitter }
@@ -7365,7 +7373,7 @@ Begin
       FxFlags := FxFlags Or shaderWireframe;
 
     //DestMaterial.HueShift := 0.0;
-    If (DestMaterial.HueShift<>0.0) Then
+    If (DestMaterial.HueShift<>0.0) Or (Group.Flags And meshGroupHueShift<>0) Then
       FxFlags := FxFlags Or shaderHueChange;
 
     If (DestMaterial.ReflectiveMap <> Nil) Then
@@ -7474,7 +7482,9 @@ Begin
   Self.GetVector4D(vertexTangent, Self.Tangent);
   Self.GetVector2D(vertexUV0, Self.UV0);
   Self.GetVector2D(vertexUV1, Self.UV1);
-  Self.GetColor(vertexColor, Self.Color);
+  Self.GetFloat(vertexHue, Self.HueShift);
+
+  Self.GetColor(vertexColor, Self.BaseColor);
 
   Self.GetFloat(vertexBone, N);
   If (N<0) Or (N>MaxBones) Then
@@ -7490,7 +7500,8 @@ Begin
   Self.SetVector4D(vertexTangent, Self.Tangent);
   Self.SetVector2D(vertexUV0, Self.UV0);
   Self.SetVector2D(vertexUV1, Self.UV1);
-  Self.SetColor(vertexColor, Self.Color);
+  Self.SetFloat(vertexHue, Self.HueShift);
+  Self.SetColor(vertexColor, Self.BaseColor);
   Self.SetFloat(vertexBone, Self.BoneIndex);
 End;
 

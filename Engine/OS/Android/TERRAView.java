@@ -140,7 +140,7 @@ class TERRAView extends GLSurfaceView {
 
         /* Set the renderer responsible for frame rendering */
         setRenderer(new Renderer());
-		this.setPreserveEGLContextOnPause(false);		
+		this.setPreserveEGLContextOnPause(true);		
 		
 		WindowManager windowManager = (WindowManager) TERRAActivity.instance.getSystemService(Context.WINDOW_SERVICE);
 		Display display = windowManager.getDefaultDisplay();		 

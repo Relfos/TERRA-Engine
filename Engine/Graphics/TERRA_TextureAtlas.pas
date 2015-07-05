@@ -93,7 +93,7 @@ Type
       Constructor Create(Name:TERRAString; Width, Height:Integer);
       Procedure Release; Override;
 
-      Function Add(Source:Image; Name:TERRAString):TextureAtlasItem;
+      Function Add(Source:Image; Name:TERRAString; ShareSource:Boolean = False):TextureAtlasItem;
       Procedure Delete(ID:Integer);
       Function Get(ID:Integer):TextureAtlasItem; Overload;
       Function Get(Const Name:TERRAString):TextureAtlasItem; Overload;
@@ -148,8 +148,14 @@ Begin
   _ItemCount := 0;
 End;
 
-Function TextureAtlas.Add(Source: Image; Name:TERRAString): TextureAtlasItem;
+Function TextureAtlas.Add(Source:Image; Name:TERRAString; ShareSource:Boolean): TextureAtlasItem;
 Begin
+  If Source = Nil Then
+  Begin
+    Result := Nil;
+    Exit;
+  End;
+
   Name := GetFileName(Name, True);
   Inc(_ItemCount);
   SetLength(_ItemList, _ItemCount);
@@ -157,8 +163,15 @@ Begin
   Result := TextureAtlasItem.Create;
   _ItemList[Pred(_ItemCount)] := Result;
   Result._Name := Name;
-  Log(logDebug, 'Game', 'Creating image from source');
-  Result.Buffer := Image.Create(Source);
+
+  If ShareSource Then
+    Result.Buffer := Source
+  Else
+  Begin
+    Log(logDebug, 'Game', 'Creating image from source');
+    Result.Buffer := Image.Create(Source);
+  End;
+
   Result.ID := _RefCount;
   Inc(_RefCount);
   Log(logDebug, 'Game', 'TextureAtlas element added');
@@ -383,7 +396,7 @@ Begin
   {$IFDEF CPUBUFFER}
   Target.UpdateRect(Buffer);
 
-  //Buffer.Save(_Name+'_TextureAtlas'+IntToString(_SaveCount)+'.png', 'png','depth=32');
+  Buffer.Save(_Name+'_TextureAtlas'+IntToString(_SaveCount)+'.png', 'png','depth=32');
   ReleaseObject(Buffer);
   {$ENDIF}
 End;

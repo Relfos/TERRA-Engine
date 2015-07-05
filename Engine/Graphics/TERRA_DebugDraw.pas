@@ -28,7 +28,7 @@ Interface
 
 Uses TERRA_String, TERRA_GraphicsManager, TERRA_Renderer, TERRA_Color, TERRA_BoundingBox, TERRA_Frustum,
   TERRA_Ray, TERRA_Matrix4x4, TERRA_Vector3D, TERRA_Vector2D, TERRA_Utils, TERRA_SpriteManager,
-  TERRA_MeshAnimation, TERRA_Collision2D, TERRA_Splines, TERRA_ClipRect;
+  TERRA_MeshSkeleton, TERRA_MeshAnimationNodes, TERRA_Collision2D, TERRA_Splines, TERRA_ClipRect;
 
 // 3d drawing
 Procedure DrawBoundingBox(Const MyBox:BoundingBox; Color:TERRA_Color.Color; KeepAlive:Boolean = False; AlwaysOnTop:Boolean=False);

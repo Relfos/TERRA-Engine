@@ -3,13 +3,14 @@ Unit TERRA_OpenGLCommon;
 {$I terra.inc}
 
 {$DEFINE TRUE_VBO}
+{$DEFINE DEBUG_SHADERS}
 
 Interface
 Uses
   TERRA_String, TERRA_Utils, TERRA_Renderer, TERRA_VertexFormat,
   {$IFDEF MOBILE}TERRA_OpenGLES{$ELSE}TERRA_OpenGL{$ENDIF}, 
   TERRA_Color, TERRA_Image, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D,
-  TERRA_Matrix3x3, TERRA_Matrix4x4;
+  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_Stream, SysUtils;
 
 Type
   OpenGLVBO = Class(VertexBufferInterface)

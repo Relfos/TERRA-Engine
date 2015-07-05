@@ -41,7 +41,7 @@ Const
   meshGroupSpheremap    = 1 Shl 7;
   meshGroupDepthOff     = 1 Shl 8;
   meshGroupTriplanar    = 1 Shl 9;
-  //meshGroupVertexColor  = 1 Shl 10;
+  meshGroupHueShift     = 1 Shl 10;
   meshGroupLightOff     = 1 Shl 11;
   meshGroupOverrideAmbient = 1 Shl 12;
   meshGroupAlphaMap     = 1 Shl 13;

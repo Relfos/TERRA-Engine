@@ -66,6 +66,8 @@ Type
       Constructor Create(Kind:ResourceType; Location:TERRAString);
       Procedure Release; Override;
 
+      Procedure Touch; 
+
       Function IsReady:Boolean;
 
       Class Function GetManager:Pointer; Virtual;
@@ -147,7 +149,7 @@ Begin
 
   If (Status = rsReady) Then
   Begin
-    _Time := Application.GetTime;
+    Self.Touch();
     Result := True;
     Exit;
   End;
@@ -288,6 +290,11 @@ Begin
     Self.SetStatus(rsReady);
   End Else
     Self.SetStatus(rsUnloaded);
+End;
+
+Procedure Resource.Touch;
+Begin
+  _Time := Application.GetTime();
 End;
 
 End.

@@ -570,7 +570,7 @@ Begin
 
   Until Result;
   For I:=0 To Pred(NumMaterials) Do
-    ReleaseObject(Textures[I])
+    ReleaseObject(Textures[I]);
 
   For J:=0 To Pred(NumGroups) Do
   Begin

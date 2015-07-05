@@ -201,6 +201,8 @@ Begin
   	Line('  const mediump float fresnelScale = 0.5;');
   End;
 
+  If (FxFlags And shaderHueChange<>0) Then
+  	Line('varying highp mat4 hue_rotation;');
 
   If (FogFlags<>0) Then
   Begin
@@ -325,6 +327,9 @@ Begin
     	Line('  uniform highp float fogBoxSize;');
     End;
   End;
+
+  If (FxFlags And shaderHueChange<>0) Then
+    Line('  uniform highp float '+HueShiftUniformName+';');
 End;
 
 Procedure ShaderEmitter.FragmentUniforms;
@@ -419,9 +424,6 @@ Begin
 
   If (OutFlags And shader_OutputGlow<>0) Then
 	  Line('  uniform lowp sampler2D glowMap;');
-
-  If (FxFlags And shaderHueChange<>0) Then
-    Line('  uniform highp vec2 '+HueShiftUniformName+';');
 End;
 
 Procedure ShaderEmitter.EmitDecodeBoneMat;
@@ -529,6 +531,9 @@ Begin
 
   If (FxFlags and shaderLightmap<>0) Or (FxFlags and shaderAlphaMap<>0) Or (FxFlags And shaderFresnelTerm<>0) Then
   	Line('attribute highp vec4 terra_UV1;');
+
+  If (FxFlags And shaderHueChange<>0) Then
+  	Line('attribute highp float terra_hue;');
 
   Line('attribute mediump vec3 terra_normal;');
 
@@ -725,6 +730,15 @@ Begin
   Else
     Line('  texCoord0 = terra_UV0;');
 
+  If (FxFlags And shaderHueChange<>0) Then
+  Begin
+    Line(' highp float hue_angle = '+HueShiftUniformName+' + terra_hue;');
+    Line('hue_rotation = ');
+    Line('mat4(  0.299,  0.587,  0.114, 0.0, 0.299,  0.587,  0.114, 0.0, 0.299,  0.587,  0.114, 0.0, 0.000,  0.000,  0.000, 1.0) +');
+    Line('mat4(	 0.701, -0.587, -0.114, 0.0, 	-0.299,  0.413, -0.114, 0.0, -0.300, -0.588,  0.886, 0.0, 0.000,  0.000,  0.000, 0.0) * cos(hue_angle) +');
+    Line('mat4(	 0.168,  0.330, -0.497, 0.0, 	-0.328,  0.035,  0.292, 0.0, 1.250, -1.050, -0.203, 0.0, 0.000,  0.000,  0.000, 0.0) * sin(hue_angle);');
+  End;
+
   If (FxFlags And shaderNormalMap=0) Then
     EmitReflectionCoord(FxFlags, OutFlags, FogFlags, 'vertex_normal');
 
@@ -782,13 +796,6 @@ Begin
 
   If (FxFlags And shaderHueChange<>0) Then
   Begin
-    Line('mediump vec4 shiftHue(mediump vec4 color)	{');
-    Line('mat4 hueRotation = ');
-    Line('mat4(  0.299,  0.587,  0.114, 0.0, 0.299,  0.587,  0.114, 0.0, 0.299,  0.587,  0.114, 0.0, 0.000,  0.000,  0.000, 1.0) +');
-    Line('mat4(	 0.701, -0.587, -0.114, 0.0, 	-0.299,  0.413, -0.114, 0.0, -0.300, -0.588,  0.886, 0.0, 0.000,  0.000,  0.000, 0.0) * '+HueShiftUniformName+'.x +');
-    Line('mat4(	 0.168,  0.330, -0.497, 0.0, 	-0.328,  0.035,  0.292, 0.0, 1.250, -1.050, -0.203, 0.0, 0.000,  0.000,  0.000, 0.0) * '+HueShiftUniformName+'.y;');
-
-    Line('return color * hueRotation;}');
     (*
       Line('const lowp mat3 rgb2yiq = mat3(0.299, 0.587, 0.114, 0.595716, -0.274453, -0.321263, 0.211456, -0.522591, 0.311135);');
       Line('const lowp mat3 yiq2rgb = mat3(1.0, 0.9563, 0.6210, 1.0, -0.2721, -0.6474, 1.0, -1.1070, 1.7046);');
@@ -1265,7 +1272,7 @@ Begin
 
     If (FxFlags And shaderHueChange<>0) Then
     Begin
-      Line('  diffuse = shiftHue(diffuse);');
+      Line('  diffuse *= hue_rotation;');
     End;
 
     If (FxFlags And shaderVertexColor<>0) Then
@@ -1650,6 +1657,9 @@ Begin
 
   If (FxFlags and shaderColorOff<>0) Then
     name := name + '_COLOROFF;';
+
+  If (FxFlags And shaderHueChange<>0) Then
+    name := name + '_HUE';
 
   If (FxFlags and shaderReflectiveMap<>0) Then
     name := name + '_REFMAP;';

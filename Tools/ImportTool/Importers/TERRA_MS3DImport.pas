@@ -30,10 +30,10 @@ Uses TERRA_Application, TERRA_Milkshape, TERRA_MeshAnimation, TERRA_Utils, TERRA
 implementation
 
 Uses TERRA_String, TERRA_Mesh, TERRA_INI, TERRA_Stream, TERRA_Matrix4x4, TERRA_ResourceManager,
-  TERRA_Vector3D, TERRA_Vector2D, TERRA_Math, TERRA_Color, TERRA_Log, TERRA_Lights,
+  TERRA_Vector3D, TERRA_Vector2D, TERRA_Math, TERRA_Color, TERRA_Log, TERRA_Lights, TERRA_Error,
   SysUtils, TERRA_MeshFilter, TERRA_FileImport, TERRA_FileStream, TERRA_MemoryStream,
   TERRA_FileUtils, TERRA_Texture, TERRA_FileManager, TERRA_GraphicsManager, TERRA_Image,
-  TERRA_VertexFormat, TERRA_Resource;
+  TERRA_VertexFormat, TERRA_MeshSkeleton, TERRA_Resource;
 
 
 Procedure CopyFile(SourceFile,DestFile:AnsiString);
@@ -181,6 +181,7 @@ Var
   MS3D:Milkshape3DObject;
   MS3D2:Milkshape3DObject;
   Morphs:Array[0..Pred(MaxMorphs)] Of Milkshape3DObject;
+  MorphSourceID:Array[0..Pred(MaxMorphs)] Of Integer;
 
   I,J,K,MM:Integer;
   W,Z,ZZ,N:Integer;
@@ -306,7 +307,7 @@ Begin
 
   Result := -1;
 End;
- 
+
 Begin
   FileManager.Instance.AddPath(GetFilePath(SourceFile));
 
@@ -677,8 +678,8 @@ Begin
 	  	SetFlag(Group.Flags, meshGroupVegetation, Vegetation);
 //	  	SetFlag(Group.Flags, mgCollision, Collision);
 	  	SetFlag(Group.Flags, meshGroupSphereMap, SphereMap);
-	  	SetFlag(Group.Flags, meshGroupAlphaTest, AlphaTest);
-		  SetFlag(Group.Flags, meshGroupTransparency, Transparency);
+	  	//SetFlag(Group.Flags, meshGroupAlphaTest, AlphaTest);
+		  //SetFlag(Group.Flags, meshGroupTransparency, Transparency);
       SetFlag(Group.Flags, meshGroupLinked, Link);
 		  SetFlag(Group.Flags, meshGroupTriplanar, Triplanar);
 		  //SetFlag(Group.Flags, mgOverrideMaterial, OverrideMaterial);
@@ -739,9 +740,19 @@ Begin
       For I:=0 To Pred(MaxMorphs) Do
       If (Morphs[I].NumVertices>0) Then
       Begin
-        Log(logConsole, 'Import', 'Generating vertex morph '+IntToString(I)+' for '+Group.Name+'...');
-        If FindMorphGroup(I, Group.Name)>=0 Then
+        MorphSourceID[I] := FindMorphGroup(I, Group.Name);
+
+        If MorphSourceID[I] >=0 Then
+        Begin
+          If (Morphs[I].Groups[MorphSourceID[I]].NumTriangles <> MS3D.Groups[N].NumTriangles) Then
+          Begin
+            Log(logConsole, 'Import', 'Failed imported vertex morph '+IntToString(I)+' for '+Group.Name+' (diff tris '+IntToString(Morphs[I].Groups[MorphSourceID[I]].NumTriangles) + ' -> ' + IntToString(MS3D.Groups[N].NumTriangles)+'...');
+            Halt(1);
+          End;
+
+          Log(logConsole, 'Import', 'Imported vertex morph '+IntToString(I)+' for '+Group.Name+' ('+IntToString(MS3D.Groups[N].NumTriangles)+' tris)');
           Group.AddVertexMorph(I);
+        End;
       End;
 
 		  For I:=0 To Pred(Group.TriangleCount) Do
@@ -778,7 +789,7 @@ Begin
   			    If (V.Position.Distance(VP_Position)<=0.001)
             And (V.Normal.Distance(VP_Normal)<=0.001)
 	  		    And (V.UV0.Distance(VP_TextureCoords)<=0.001)
-            And (Cardinal(V.Color) = Cardinal(VP_Color))
+            And (Cardinal(V.BaseColor) = Cardinal(VP_Color))
             And (V.BoneIndex = VP_BoneIndex) Then
 		  	    Begin
               If (LMFile='') Or (V.UV1.Distance(VP_TextureCoords2)<=0.001) Then
@@ -798,20 +809,27 @@ Begin
             Group.Vertices.SetVector2D(W, vertexUV0, VP_TextureCoords);
             Group.Vertices.SetColor(W, vertexColor, VP_Color);
             Group.Vertices.SetFloat(W, vertexBone, VP_BoneIndex);
+
+            Group.Vertices.SetFloat(W, vertexHue, 0.0);
+
             If (LMFile<>'') Then
               Group.Vertices.SetVector2D(W, vertexUV1, VP_TextureCoords2);
 			    End;
 
-          ZZ := MS3D.Triangles[Z].VertexIndices[Succ(J)];
+          //ZZ := MS3D.Triangles[Z].VertexIndices[Succ(J)];
           For MM:=0 To Pred(MaxMorphs) Do
           If (Morphs[MM].NumVertices>0) And (Group.HasVertexMorph(MM)) Then
           Begin
-            If (Morphs[MM].NumVertices<=ZZ) Then
+            (*If (ZZ>=Morphs[MM].NumVertices) Then
             Begin
-              Log(logConsole, 'Import', 'Failed generating vertex morph '+IntToString(I)+' for '+Group.Name+' in vertex '+IntToString(ZZ)+'...');
+              Log(logConsole, 'Import', 'Failed generating vertex morph '+IntToString(MM)+' for '+Group.Name+' in vertex '+IntToString(ZZ)+'...');
+              Log(logConsole, 'Import', 'Expected max vertex = '+IntToString(Morphs[MM].NumVertices));
               Halt(1);
-            End;
+            End;*)
 
+
+            ZZ := Morphs[MM].Groups[MorphSourceID[MM]].TriangleIndices[I];
+            ZZ := Morphs[MM].Triangles[ZZ].VertexIndices[Succ(J)];
             P := Morphs[MM].Vertices[ZZ].Vertex;
             Group.SetVertexMorph(MM, W, P);
           End;
