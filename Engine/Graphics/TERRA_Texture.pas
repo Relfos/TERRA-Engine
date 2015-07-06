@@ -549,7 +549,7 @@ Begin
   End;
 
   _Source := Image.Create(_Width, _Height);
-  _Source.Process(IMP_FillColor, FillColor);
+  _Source.FillRectangleByUV(0, 0, 1.0, 1.0, FillColor);
 
   _TransparencyType := imageOpaque;
 
@@ -568,7 +568,6 @@ Begin
   Begin
     AdjustRatio(Source);
     Self.InitFromSize(Source.Width, Source.Height, ColorWhite);
-    Self.Update();
     Self.UpdateRect(Source);
   End;
 End;
