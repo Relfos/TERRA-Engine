@@ -33,6 +33,7 @@ Uses TERRA_String, TERRA_GraphicsManager, TERRA_Renderer, TERRA_Color, TERRA_Bou
 // 2d drawing
 Procedure DrawPoint2D(View:Viewport; Const P:Vector2D; FillColor:Color; Radius:Single = 2.0);
 Procedure DrawLine2D(View:Viewport; Const A,B:Vector2D; LineColor:Color; LineWidth:Single = 1.0);
+Procedure DrawCircle(View:Viewport; Const P:Vector2D; Radius:Single; LineColor:Color; LineWidth:Single = 1.0);
 Procedure DrawRectangle(View:Viewport; Const A,B:Vector2D; LineColor:Color; LineWidth:Single = 1.0);
 Procedure DrawFilledRect(View:Viewport; Const A,B:Vector2D; FillColor:Color);
 Procedure DrawPolygon2D(View:Viewport; Poly:Polygon2D; LineColor:Color; LineWidth:Single = 1.0);
@@ -93,7 +94,7 @@ Begin
   DY := A.Y - B.Y;
   Angle := Atan2(DY, DX);
 
-  S := SpriteManager.Instance.DrawSprite(A.X, A.Y, Layer, Tex);
+  S := SpriteManager.Instance.DrawSprite(Trunc(A.X), Trunc(A.Y), Layer, Tex);
   S.SetColor(LineColor);
   S.Rect.Width := Trunc(A.Distance(B));
   S.Rect.Height := Trunc(LineWidth);
@@ -112,10 +113,10 @@ Begin
     Exit;
 
   Tex.WrapMode := wrapAll;
-  MinX := FloatMin(A.X, B.X);
-  MinY := FloatMin(A.Y, B.Y);
-  MaxX := FloatMax(A.X, B.X);
-  MaxY := FloatMax(A.Y, B.Y);
+  MinX := Trunc(FloatMin(A.X, B.X));
+  MinY := Trunc(FloatMin(A.Y, B.Y));
+  MaxX := Trunc(FloatMax(A.X, B.X));
+  MaxY := Trunc(FloatMax(A.Y, B.Y));
 
   S := SpriteManager.Instance.DrawSprite(MinX, MinY, Layer, Tex);
   S.SetColor(FillColor);
@@ -136,10 +137,10 @@ Begin
     Exit;
 
   Tex.WrapMode := wrapAll;
-  MinX := FloatMin(A.X, B.X);
-  MinY := FloatMin(A.Y, B.Y);
-  MaxX := FloatMax(A.X, B.X);
-  MaxY := FloatMax(A.Y, B.Y);
+  MinX := Trunc(FloatMin(A.X, B.X));
+  MinY := Trunc(FloatMin(A.Y, B.Y));
+  MaxX := Trunc(FloatMax(A.X, B.X));
+  MaxY := Trunc(FloatMax(A.Y, B.Y));
 
   S := SpriteManager.Instance.DrawSprite(MinX, MinY, Layer, Tex);
   S.SetColor(LineColor);
@@ -164,6 +165,30 @@ Begin
   S.Rect.Width := Trunc(LineWidth);
   S.Rect.Height := Trunc(MaxY-MinY);
 //  S.ClipRect := Clip;
+End;
+
+Procedure DrawCircle(View:Viewport; Const P:Vector2D; Radius:Single; LineColor:Color; LineWidth:Single = 1.0);
+Const
+  SubDivs = 32;
+Var
+  I:Integer;
+  A, B:Vector2D;
+  DX, DY, Angle:Single;
+Begin
+  DX := 1.0;
+  DY := 0.0;
+
+  For I:=1 To SubDivs Do
+  Begin
+    Angle := (I/SubDivs) * PI * 2;
+    A := VectorCreate2D(P.X + DX * Radius, P.Y + DY * Radius);
+
+    DX := Cos(Angle);
+    DY := Sin(Angle);
+    B := VectorCreate2D(P.X + DX * Radius, P.Y + DY * Radius);
+
+    DrawLine2D(View, A, B, LineColor, LineWidth);
+  End;
 End;
 
 Procedure DrawPolygon2D(View:Viewport; Poly:Polygon2D; LineColor:Color; LineWidth:Single);
