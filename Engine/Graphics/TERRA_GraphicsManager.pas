@@ -948,8 +948,6 @@ Begin
        Scene.RenderSprites(Nil);
     End;
 
-    DrawDebug2DObjects();
-
     SpriteManager.Instance.Render();
 
     If ( Not _Prefetching) Then
@@ -1381,8 +1379,6 @@ Begin
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderEverything');{$ENDIF}
     _Scene.RenderViewport(View);
   End;
-
-  DrawDebug3DObjects();
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Particles.Render');{$ENDIF}
   ParticleManager.Instance.Render();
@@ -2031,8 +2027,6 @@ Begin
   If Assigned(Target) Then
     Target.EndCapture();
  
-  ClearTemporaryDebug3DObjects();
-
   Renderer.EndFrame();
   If UpdateFPS Then
     Renderer.UpdateFrameCounter();

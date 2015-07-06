@@ -38,7 +38,7 @@ Begin
   _Scene := MyScene.Create;
   GraphicsManager.Instance.SetScene(_Scene);
 
-  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorBlue;
+  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlue;
 End;
 
 // OnIdle is called once per frame, put your game logic here

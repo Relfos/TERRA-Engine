@@ -75,8 +75,6 @@ Type
 
       Procedure Update;
 
-      Procedure Render(MyColor:Color);
-
       Procedure Synchronize(OtherSpline:Spline);
 
       Procedure Load(Source:Stream); Overload;
@@ -94,7 +92,7 @@ Type
     End;
 
 Implementation
-Uses TERRA_Error, TERRA_Application, TERRA_FileStream, TERRA_DebugDraw, TERRA_OS;
+Uses TERRA_Error, TERRA_Application, TERRA_FileStream, TERRA_OS;
 
 { Spline }
 Constructor Spline.Create;
@@ -380,17 +378,6 @@ Begin
   Result := QuaternionLookRotation(V, VectorUp);
 End;
 
-Procedure Spline.Render(MyColor:Color);
-Var
-  I,K:Integer;
-Begin
-  For I:=0 To Pred(Self._PointCount) Do
-  Begin
-    K := (I + 1) Mod Self._PointCount;
-    DrawLine3D(_Points[I].Position, _Points[K].Position, MyColor, 1);
-    DrawLine3D(_Points[I].Position, VectorAdd(_Points[I].Position, VEctorScale(GetTangent(I), 5)), ColorRed, 1);
-  End;
-End;
 
 Procedure Spline.Release;
 Begin
