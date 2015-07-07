@@ -88,6 +88,7 @@ Const
   shaderCartoonHue      = 1 Shl 28;
   shaderSelfIllumn      = 1 Shl 29;
   shaderAmbientColor    = 1 Shl 30;
+  //shaderTwoSided        = 1 Shl 31;
   //shaderDitherColor     = 1 Shl 31;
 
   //ParallaxScale
@@ -1121,6 +1122,11 @@ Begin
 
 
     Line('  normal = normalize(vertex_normal);');
+
+    (*If (FxFlags and shaderTwoSided<>0) Then
+    Begin
+      Line('  if (!gl_FrontFacing)  normal = -normal;');
+    End;*)
 
     If (FxFlags and shaderNormalMap<>0) Then
     Begin

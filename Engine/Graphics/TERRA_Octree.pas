@@ -249,9 +249,6 @@ End;
 
 Procedure OctreeElement.Render;
 Begin
-{$IFDEF PC}
-  DrawBoundingBox(Box, ColorWhite);
-{$ENDIF}
 End;
 
 End.

@@ -39,16 +39,26 @@ Type
   End;
 
   MeshEdgeAdjancency = Record
-    VertexA, VertexB:Integer;
+    StartVertex, EndVertex:Integer;
     FaceA, FaceB:Integer;
   End;
 
+  MeshVertexAdjancency = Record
+    TriangleList:IntegerArrayObject;
+    EdgeList:IntegerArrayObject;
+  End;
 
   MeshEdgeLoop = Class(TERRAObject)
     Protected
       _Target:MeshGroup;
       _Indices:Array Of Integer;
       _IndexCount:Integer;
+
+      Procedure Add(VertexIndex:Integer);
+      Procedure Clear();
+
+    Public
+      Constructor Create(Target:MeshGroup);
   End;
 
   MeshGroupTopology = Class(TERRAObject)
@@ -61,6 +71,7 @@ Type
       _EdgeAdjacencyList:Array Of MeshEdgeAdjancency;
       _EdgeAdjacencyCount:Integer;
 
+      _VertexAdjancencyList:Array Of MeshVertexAdjancency;
       _VertexSpatialHashes:Array Of Cardinal;
 
       _EdgeLoops:Array Of MeshEdgeLoop;
@@ -79,7 +90,7 @@ Type
       Procedure SubDivide6();
       Procedure Smooth();
 
-      Function GetEdge(Const VertexA, VertexB:Integer):Integer;
+      Function GetEdge(Const StartVertex, EndVertex:Integer):Integer;
       Procedure GetVertexAdjancency(Const VertexIndex:Integer; Out Result:IntegerArrayObject);
 
       Function GetEdgeLoop(Index:Integer):MeshEdgeLoop;
@@ -182,8 +193,8 @@ Var
     I:Integer;
   Begin
     For I:=0 To Pred(_EdgeAdjacencyCount) Do
-    If ((_EdgeAdjacencyList[I].VertexA = VA) And (_EdgeAdjacencyList[I].VertexB = VB)
-    Or (_EdgeAdjacencyList[I].VertexA = VB) And (_EdgeAdjacencyList[I].VertexB = VA)) Then
+    If ((_EdgeAdjacencyList[I].StartVertex = VA) And (_EdgeAdjacencyList[I].EndVertex = VB)
+    Or (_EdgeAdjacencyList[I].StartVertex = VB) And (_EdgeAdjacencyList[I].EndVertex = VA)) Then
     Begin
       _EdgeAdjacencyList[I].FaceB := TriID;
       Exit;
@@ -194,24 +205,21 @@ Var
     If Length(_EdgeAdjacencyList)<=_EdgeAdjacencyCount Then
       SetLength(_EdgeAdjacencyList, Length(_EdgeAdjacencyList) * 2);
 
-    _EdgeAdjacencyList[I].VertexA := VA;
-    _EdgeAdjacencyList[I].VertexB := VB;
+    _EdgeAdjacencyList[I].StartVertex := VA;
+    _EdgeAdjacencyList[I].EndVertex := VB;
     _EdgeAdjacencyList[I].FaceA := TriID;
   End;
 Begin
   _EdgeAdjacencyCount := 0;
   SetLength(_EdgeAdjacencyList, 64);
 
-  For I:=0 To Pred(_Target.TriangleCount) Do
-    For J:=0 To 2 Do
-    Begin
-      T := _Target.GetTriangle(I);
-      MakeEdge(I, T.Indices[J], T.Indices[(J+1) Mod 3]);
-    End;
-
-  SetLength(_VertexSpatialHashes, _Target.Vertices.Count);
-  For I:=0 To Pred(_Target.Vertices.Count) Do
+  SetLength(_VertexAdjancencyList, _Target.VertexCount);
+  SetLength(_VertexSpatialHashes, _Target.VertexCount);
+  For I:=0 To Pred(_Target.VertexCount) Do
   Begin
+    _VertexAdjancencyList[I].TriangleList.Clear();
+    _VertexAdjancencyList[I].EdgeList.Clear();
+
     _Target.Vertices.GetVector3D(I, vertexPosition, P);
     V[0] := Trunc(P.X*SnapFactor);
     V[1] := Trunc(P.Y*SnapFactor);
@@ -219,12 +227,28 @@ Begin
 
     _VertexSpatialHashes[I] := GetCRC32(@V[0], SizeOf(Integer)*3);
   End;
+
+  For I:=0 To Pred(_Target.TriangleCount) Do
+    For J:=0 To 2 Do
+    Begin
+      T := _Target.GetTriangle(I);
+      MakeEdge(I, T.Indices[J], T.Indices[(J+1) Mod 3]);
+
+      _VertexAdjancencyList[T.Indices[J]].TriangleList.Add(I);
+    End;
+
+  For I:=0 To Pred(_EdgeAdjacencyCount) Do
+  Begin
+    _VertexAdjancencyList[_EdgeAdjacencyList[I].StartVertex].EdgeList.Add(I);
+    _VertexAdjancencyList[_EdgeAdjacencyList[I].EndVertex].EdgeList.Add(I);
+  End;
 End;
 
 Constructor MeshGroupTopology.Create(Target: MeshGroup);
 Begin
   _Target := Target;
   Self.CalculateTopology();
+  Self.FindEdgeLoops();
 End;
 
 Procedure MeshGroupTopology.CalculateTopology();
@@ -232,27 +256,112 @@ Begin
   Self.CalculateAdjacency();
 End;
 
+Function MeshGroupTopology.GetEdge(Const StartVertex, EndVertex:Integer):Integer;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_EdgeAdjacencyCount) Do
+  If ((_EdgeAdjacencyList[I].StartVertex = StartVertex) And (_EdgeAdjacencyList[I].EndVertex = EndVertex))
+  Or ((_EdgeAdjacencyList[I].StartVertex = EndVertex) And (_EdgeAdjacencyList[I].EndVertex = StartVertex)) Then
+  Begin
+    Result := I;
+    Exit;
+  End;
+
+  Result := -1;
+End;
+
+Procedure MeshGroupTopology.GetVertexAdjancency(Const VertexIndex:Integer; Out Result:IntegerArrayObject);
+Var
+  J, I, Edge:Integer;
+Begin
+  FillChar(Result, SizeOf(Result), 0);
+
+  For J:=0 To Pred(_Target.Vertices.Count) Do
+  If (J = VertexIndex) Or (_VertexSpatialHashes[J] = _VertexSpatialHashes[VertexIndex]) Then
+  Begin
+    For I:=0 To Pred(_EdgeAdjacencyCount) Do
+    If (_EdgeAdjacencyList[I].StartVertex = J) Then
+    Begin
+      Result.Add(_EdgeAdjacencyList[I].EndVertex);
+    End Else
+    If (_EdgeAdjacencyList[I].EndVertex = J) Then
+    Begin
+      Result.Add(_EdgeAdjacencyList[I].StartVertex);
+    End;
+  End;
+End;
+
 Procedure MeshGroupTopology.FindEdgeLoops;
 Var
-  I,J,K, Count:Integer;
-  Mark:Array Of MeshEdgeLoop;
+  I,J,K:Integer;
+  Mark:Array Of Boolean;
   Group:MeshGroup;
-Begin
-(*  For I:=0 To Pred(_Target.GroupCount) Do
+  Current:MeshEdgeLoop;
+
+(*  Function WalkEdgeLoop(EdgeIndex:Integer):Boolean;
+  Var
+    I, N, VertexIndex:Integer;
+    SideA, SideB:Integer;
   Begin
-    Group := _Target.GetGroup(I);
+    Result := False;
+    Mark[EdgeIndex] := True;
 
-    SetLength(Mark, Group.VertexCount);
-    For J:=0 To Pred(Group.VertexCount) Do
-      Mark[J] := Nil;
+    VertexIndex := _EdgeAdjacencyList[EdgeIndex].EndVertex;
+    SideA := _EdgeAdjacencyList[EdgeIndex].FaceA;
+    SideB := _EdgeAdjacencyList[EdgeIndex].FaceB;
 
-    Count := Group.VertexCount;
-    While Count>0 Do
+    For I:=0 To Pred(_VertexAdjancencyList[VertexIndex].TriangleList.Count) Do
     Begin
-      Group.GetEdge()
+      N := _VertexAdjancencyList[VertexIndex].TriangleList.Items[I];
+      If (N = SideA) Or (N = SideB) Then
+      Begin
+        N := -1;
+      End Else
+        Break;
     End;
 
+    If N<0 Then
+      Exit;
+
+    Current.Add(VertexIndex);
+
+    If Not Mark[N] Then
+      WalkEdgeLoop(N);
+
+    Result := True;
   End;*)
+
+Var
+  Count:Integer;
+Begin
+(*  SetLength(Mark, _EdgeAdjacencyCount);
+  For J:=0 To Pred(_EdgeAdjacencyCount) Do
+    Mark[J] := False;
+
+  Current := MeshEdgeLoop.Create(_Target);
+
+  _EdgeLoopCount := 0;
+  Repeat
+    Count := _EdgeAdjacencyCount;
+
+    For I:=0 To Pred(Count) Do
+      If (Not Mark[I]) Then
+      Begin
+        If (WalkEdgeLoop(I)) Then
+        Begin
+          Inc(_EdgeLoopCount);
+          SetLength(_EdgeLoops, _EdgeLoopCount);
+          _EdgeLoops[Pred(_EdgeLoopCount)]:= Current;
+          Current := MeshEdgeLoop.Create(_Target);
+          Break;
+        End Else
+          Current.Clear();
+      End Else
+        Dec(Count);
+  Until (Count<=0);*)
+
+  IntToString(_EdgeLoopCount);
 End;
 
 Function MeshGroupTopology.GetEdgeLoop(Index: Integer): MeshEdgeLoop;
@@ -272,41 +381,6 @@ Begin
   _EdgeLoopCount := 0;
 End;
 
-Function MeshGroupTopology.GetEdge(Const VertexA, VertexB:Integer):Integer;
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(_EdgeAdjacencyCount) Do
-  If ((_EdgeAdjacencyList[I].VertexA = VertexA) And (_EdgeAdjacencyList[I].VertexB = VertexB))
-  Or ((_EdgeAdjacencyList[I].VertexA = VertexB) And (_EdgeAdjacencyList[I].VertexB = VertexA)) Then
-  Begin
-    Result := I;
-    Exit;
-  End;
-
-  Result := -1;
-End;
-
-Procedure MeshGroupTopology.GetVertexAdjancency(Const VertexIndex:Integer; Out Result:IntegerArrayObject);
-Var
-  J, I, Edge:Integer;
-Begin
-  FillChar(Result, SizeOf(Result), 0);
-
-  For J:=0 To Pred(_Target.Vertices.Count) Do
-  If (J = VertexIndex) Or (_VertexSpatialHashes[J] = _VertexSpatialHashes[VertexIndex]) Then
-  Begin
-    For I:=0 To Pred(_EdgeAdjacencyCount) Do
-    If (_EdgeAdjacencyList[I].VertexA = J) Then
-    Begin
-      Result.Add(_EdgeAdjacencyList[I].VertexB);
-    End Else
-    If (_EdgeAdjacencyList[I].VertexB = J) Then
-    Begin
-      Result.Add(_EdgeAdjacencyList[I].VertexA);
-    End;
-  End;
-End;
 
 {-$DEFINE LAPLACIAN_SMOOTH}
 Procedure MeshGroupTopology.Smooth();
@@ -507,8 +581,6 @@ Begin
   _Target.CalculateTriangleNormals();
   _Target.ReleaseBuffer();
 
-  _EdgeAdjacencyList := Nil;
-
   Self.CalculateTopology();
 End;
 
@@ -561,6 +633,27 @@ Begin
   _Target.ReleaseBuffer();
 
   Self.CalculateTopology();
+End;
+
+{ MeshEdgeLoop }
+Constructor MeshEdgeLoop.Create(Target: MeshGroup);
+Begin
+  _Target := Target;
+End;
+
+Procedure MeshEdgeLoop.Add(VertexIndex: Integer);
+Begin
+  Inc(_IndexCount);
+  
+  If Length(_Indices) < _IndexCount Then
+    SetLength(_Indices, _IndexCount);
+
+  _Indices[Pred(_IndexCount)] := VertexIndex;
+End;
+
+Procedure MeshEdgeLoop.Clear;
+Begin
+  _IndexCount := 0;
 End;
 
 End.
