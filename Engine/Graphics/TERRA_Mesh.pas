@@ -893,8 +893,10 @@ Type
       _CubeMesh:Mesh;
       _SphereMesh:Mesh;
       _CylinderMesh:Mesh;
+      _PlaneMesh:Mesh;
 
       Function GetCubeMesh:Mesh;
+      Function GetPlaneMesh:Mesh;
       Function GetSphereMesh:Mesh;
       Function GetCylinderMesh:Mesh;
 
@@ -910,6 +912,7 @@ Type
       Property CubeMesh:Mesh Read GetCubeMesh;
       Property CylinderMesh:Mesh Read GetCylinderMesh;
       Property SphereMesh:Mesh Read GetSphereMesh;
+      Property PlaneMesh:Mesh Read GetPlaneMesh;
 
       Property Meshes[Name:TERRAString]:Mesh Read GetMesh; Default;
    End;
@@ -1569,6 +1572,20 @@ Begin
   End;
 
   Result := _CubeMesh;
+End;
+
+Function MeshManager.GetPlaneMesh: Mesh;
+Var
+  Plane:TERRA_Solids.PlaneMesh;
+Begin
+  If _PlaneMesh = Nil Then
+  Begin
+    Plane := TERRA_Solids.PlaneMesh.Create(VectorUp, 4, -0.5, -0.5);
+    _PlaneMesh := CreateMeshFromSolid(Plane);
+    ReleaseObject(Plane);
+  End;
+
+  Result := _PlaneMesh;
 End;
 
 Function MeshManager.GetCylinderMesh:Mesh;
