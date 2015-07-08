@@ -20,6 +20,7 @@ uses
   TERRA_PNG,
   TERRA_Texture,
   TERRA_Renderer,
+  TERRA_Math,
   TERRA_FileManager,
   TERRA_Scene,
   TERRA_MeshFilter,
@@ -31,7 +32,33 @@ uses
   TERRA_Resource,
   TERRA_Matrix4x4,
   TERRA_ScreenFX,
+  TERRA_DebugDraw,
   TERRA_InputManager;
+
+
+Const
+  MinimumDelta = 10;
+  SimScale = 2;
+
+  SphereRadius = 4.0;
+  SphereCount = 6;
+
+  DefaultGravity:Vector3d = (X:0.0; Y:-0.98 * SimScale; Z:0.0);
+
+  // size of the cloth mesh
+  ClothScale = 20.0; //10
+
+//Values given to each spring
+  DefaultSpringConstant = 1.5 * ClothScale;
+
+//Values given to each ball
+  mass = 0.01 * SimScale;
+
+//Damping factor. Velocities are multiplied by this
+  dampFactor=0.9;
+
+//Grid complexity. This is the number of Particles across and down in the model
+  gridSize = 13* SimScale; //13;
 
 Type
   MyScene = Class(Scene)
@@ -58,46 +85,28 @@ Type
   End;
 
 
-Const
-  MinimumDelta = 10;
-
-  SphereRadius = 4.0;
-
-  Gravity:Vector3d = (X:0.0; Y:-0.98; Z:0.0);
-
-//Values given to each spring
-  DefaultSpringConstant = 15.0;
-
-//Values given to each ball
-  mass =0.01;
-
-//Damping factor. Velocities are multiplied by this
-  dampFactor=0.9;
-
-  // size of the cloth mesh
-  ClothScale = 20.0; //10
-
-//Grid complexity. This is the number of Particles across and down in the model
-  gridSize = 18*2; //13;
-
 Type
   ClothSystem = Class;
-  
+
   ClothSpring = Object
     Protected
-      _System:ClothSystem;
       _Index:Integer;
 
     	//Indices of the Particles at either end of the spring
-  	  ball1, ball2:Integer;
+  	  P1, P2:Integer;
 
     	//Tension in the spring
-	    tension:Single;
+	    Tension:Double;
 
-  	  springConstant:Single;
-    	naturalLength:Single;
+      NaturalLength:Double;
+    	InverseLength:Double;
 
-    Procedure Init(PID1, PID2: Integer; Len: Single);
+    Procedure Init(System:ClothSystem; PID1, PID2: Integer; Len: Single);
+  End;
+
+  ClothSpringLink = Record
+    SpringIndex:Integer;
+    ParticleIndex:Integer;
   End;
 
   ClothParticle = Object
@@ -112,10 +121,10 @@ Type
 	//Is this ball held in position?
 	  Fixed:Boolean;
 
-    Springs:Array Of Integer;
+    Springs:Array Of ClothSpringLink;
     SpringCount:Integer;
 
-    Procedure AddSpring(Index:Integer);
+    Procedure AddSpring(SpringIndex, ParticleIndex:Integer);
   End;
 
   ClothSystem = Class(TERRAObject)
@@ -129,8 +138,11 @@ Type
       _Group:MeshGroup;
       _VertexFormat:VertexFormat;
 
-      _lastTime:Cardinal;
+      _LastTime:Cardinal;
       _timeSinceLastUpdate:Cardinal;
+
+  	  _SpringConstant:Double;
+      _Gravity:Vector3D;
 
       Procedure InitMesh();
       Procedure UpdateMesh();
@@ -144,7 +156,7 @@ Type
 
 Var
   //What do we want to draw?
-  drawParticles, drawSprings, drawTriangles:Boolean;
+  drawSprings, drawTriangles:Boolean;
 
   //Floor texture
   floorTex:Texture;
@@ -160,13 +172,15 @@ Var
 
   Sun:DirectionalLight;
 
-  Sphere:MeshInstance;
+  Spheres:Array[0..Pred(SphereCount)] Of MeshInstance;
   ClothInstance:MeshInstance;
 
   Text:FontRenderer;
 
 { Game }
 Procedure Demo.OnCreate;
+Var
+  I:Integer;
 Begin
   FileManager.Instance.AddPath('Assets');
 
@@ -187,10 +201,13 @@ Begin
   Floor.SetScale(VectorConstant(SphereRadius * 10.0));
   Floor.SetUVScale(0, 4, 4);
 
-  Sphere := MeshInstance.Create(MeshManager.Instance.SphereMesh);
-  Sphere.SetDiffuseMap(0, DiffuseTex);
-  Sphere.SetPosition(VectorCreate(SphereRadius * 0.75, SphereRadius * 0.2, SphereRadius * 0.5));
-  Sphere.SetScale(VectorConstant(SphereRadius));
+  For I:=0 To Pred(SphereCount) Do
+  Begin
+    Spheres[I] := MeshInstance.Create(MeshManager.Instance.SphereMesh);
+    Spheres[I].SetDiffuseMap(0, DiffuseTex);
+    Spheres[I].SetPosition(VectorCreate(-3 + Cos(I*60*RAD) * SphereRadius * 2, 0, 1.5 + Sin(I*60*RAD) * SphereRadius * 2));
+    Spheres[I].SetScale(VectorConstant(SphereRadius));
+  End;
 
   Sun := DirectionalLight.Create(VectorCreate(-0.25, 0.75, 0.0));
 
@@ -199,12 +216,16 @@ Begin
 End;
 
 Procedure Demo.OnDestroy;
+Var
+  I:Integer;
 Begin
   ReleaseObject(_Scene);
 
+  For I:=0 To Pred(SphereCount) Do
+    ReleaseObject(Spheres[I]);
+
   ReleaseObject(Clothes);
   ReleaseObject(Sun);
-  ReleaseObject(Sphere);
   ReleaseObject(Floor);
   ReleaseObject(ClothInstance);
 
@@ -246,7 +267,7 @@ Begin
 	//Toggle drawing modes
 	If(InputManager.Instance.Keys.WasPressed(Ord('Y'))) Then
 	Begin
-		drawParticles := Not drawParticles;
+		Clothes._Gravity.Scale(-1);
 	End;
 
 	If(InputManager.Instance.Keys.WasPressed(Ord('T'))) Then
@@ -292,14 +313,21 @@ Begin
 End;
 
 Procedure MyScene.RenderViewport(V:Viewport);
+Var
+  I:Integer;
 Begin
   If Assigned(ClothInstance) Then
     ClothInstance.SetWireframeMode(0, drawSprings);
 
   LightManager.Instance.AddLight(Sun);
-  GraphicsManager.Instance.AddRenderable(Sphere);
+
+  For I:=0 To Pred(SphereCount) Do
+    GraphicsManager.Instance.AddRenderable(Spheres[I]);
+
   GraphicsManager.Instance.AddRenderable(Floor);
   GraphicsManager.Instance.AddRenderable(ClothInstance);
+
+  DrawBoundingBox(V, ClothInstance.GetBoundingBox, ColorBlue);
 End;
 
 
@@ -309,23 +337,24 @@ Begin
 End;
 
 { ClothSpring }
-Procedure ClothSpring.Init(PID1, PID2: Integer; Len: Single);
+Procedure ClothSpring.Init(System:ClothSystem; PID1, PID2: Integer; Len: Single);
 Begin
-  Self.ball1 := PID1;
-  Self.ball2 := PID2;
-  Self.naturalLength := Len;
-  Self.springConstant := DefaultSpringConstant;
+  Self.P1 := PID1;
+  Self.P2 := PID2;
+  Self.NaturalLength := Len;
+  Self.InverseLength := 1.0 / Len;
 
-  _System._Particles[PID1].AddSpring(_Index);
-  _System._Particles[PID2].AddSpring(_Index);
+  System._Particles[PID1].AddSpring(_Index, PID2);
+  System._Particles[PID2].AddSpring(_Index, PID1);
 End;
 
 { ClothParticle }
-Procedure ClothParticle.AddSpring(Index: Integer);
+Procedure ClothParticle.AddSpring(SpringIndex, ParticleIndex: Integer);
 Begin
   Inc(SpringCount);
   SetLength(Springs, SpringCount);
-  Springs[Pred(SpringCount)] := Index;
+  Springs[Pred(SpringCount)].SpringIndex := SpringIndex;
+  Springs[Pred(SpringCount)].ParticleIndex := ParticleIndex;
 End;
 
 { ClothSystem }
@@ -335,6 +364,9 @@ Var
 Begin
   _lastTime := 0;
   _timeSinceLastUpdate := 0;
+
+  _SpringConstant := DefaultSpringConstant;
+  _Gravity := DefaultGravity;
 
 	//Calculate number of Particles
 	_ParticleCount := gridSize*gridSize;
@@ -360,7 +392,7 @@ Begin
   For I:=0 To Pred(_SpringCount) Do
   Begin
     _Springs[I]._Index := I;
-    _Springs[I]._System := Self;
+    //_Springs[I]._System := Self;
   End;
 
   InitMesh();
@@ -371,6 +403,7 @@ End;
 
 Procedure ClothSystem.InitMesh();
 Var
+  BallID:Integer;
   I, J, K:Integer;
   i0, i1, i2, i3:Integer;
   T:Triangle;
@@ -406,6 +439,14 @@ Begin
       T.Indices[2] := i1;
       _Group.SetTriangle(T, K); Inc(K);
     End;
+
+  For J:=0 To Pred(gridSize) Do
+    For I:=1 To Pred(gridSize) Do
+		Begin
+      BallID := J*gridSize+I;
+      _Group.Vertices.SetVector2D(BallID, vertexUV0, VectorCreate2D(I/GridSize, J/GridSize));
+      _Group.Vertices.SetColor(BallID, vertexColor, ColorWhite);
+    End;
 End;
 
 Procedure ClothSystem.Reset();
@@ -413,22 +454,28 @@ Var
   I, J, K:Integer;
   BallID, X,Y:Integer;
   currentSpring:Integer;
-
   naturalLength:Single;
+
+  U,V:Single;
 Begin
 	//Initialise the Particles in an evenly spaced grid in the x-z plane
   For J:=0 To Pred(gridSize) Do
     For I:=0 To Pred(gridSize) Do
 		Begin
+      U := (I/Pred(gridSize)) - 0.5;
+      V := (J/Pred(gridSize)) - 0.5;
+
       BallID := J*gridSize+I;
-			_Particles[BallID].CurrentPosition := VectorCreate(ClothScale * (I/Pred(gridSize)), 8.5, ClothScale * (J/ Pred(GridSize)));
+			_Particles[BallID].CurrentPosition := VectorCreate(ClothScale * U, 8.5, ClothScale * V);
 			_Particles[BallID].CurrentVelocity := VectorZero;
 
 			_Particles[BallID].InverseMass := 1 / Mass;
-			_Particles[BallID].fixed := false;
+			_Particles[BallID].Fixed := False;
+
+      _Particles[BallID].SpringCount := 0;
 		End;
 
-  NaturalLength := ClothScale * (1/Pred(gridSize));
+  NaturalLength := _Particles[0].CurrentPosition.Distance(_Particles[1].CurrentPosition);
 
 	//Fix the top left & top right Particles in place
 	_Particles[0].fixed := true;
@@ -446,7 +493,7 @@ Begin
   For J:=0 To Pred(gridSize) Do
     For I:=0 To Pred(gridSize-1) Do
 		Begin
-			_Springs[CurrentSpring].Init(J*gridSize+I, J*gridSize+I+1, naturalLength);
+			_Springs[CurrentSpring].Init(Self, J*gridSize+I, J*gridSize+I+1, naturalLength);
 			Inc(currentSpring);
 		End;
 
@@ -455,7 +502,7 @@ Begin
   For J:=0 To Pred(gridSize-1) Do
     For I:=0 To Pred(gridSize) Do
     Begin
-			_Springs[CurrentSpring].Init(J*gridSize+I, (J+1)*gridSize+I, naturalLength);
+			_Springs[CurrentSpring].Init(Self, J*gridSize+I, (J+1)*gridSize+I, naturalLength);
 			Inc(currentSpring);
     End;
 
@@ -464,7 +511,7 @@ Begin
   For J:=0 To Pred(gridSize-1) Do
     For I:=0 To Pred(gridSize-1) Do
 		Begin
-      _Springs[CurrentSpring].Init(J*gridSize+I, (J+1)*gridSize+I+1, naturalLength*sqrt(2.0));
+      _Springs[CurrentSpring].Init(Self, J*gridSize+I, (J+1)*gridSize+I+1, naturalLength*sqrt(2.0));
 			Inc(currentSpring);
 		End;
 
@@ -473,7 +520,7 @@ Begin
   For J:=0 To Pred(gridSize-1) Do
     For I:=1 To Pred(gridSize) Do
 		Begin
-      _Springs[CurrentSpring].Init(J*gridSize+I, (J+1)*gridSize+I-1, naturalLength*sqrt(2.0));
+      _Springs[CurrentSpring].Init(Self, J*gridSize+I, (J+1)*gridSize+I-1, naturalLength*sqrt(2.0));
 			Inc(currentSpring);
 		End;
 
@@ -482,7 +529,7 @@ Begin
   For J:=0 To Pred(gridSize) Do
     For I:=0 To Pred(gridSize-2) Do
 		Begin
-      _Springs[CurrentSpring].Init(J*gridSize+I, J*gridSize+I+2, naturalLength*2);
+      _Springs[CurrentSpring].Init(Self, J*gridSize+I, J*gridSize+I+2, naturalLength*2);
 			Inc(currentSpring);
 		End;
 
@@ -492,7 +539,7 @@ Begin
   For J:=0 To Pred(gridSize-2) Do
     For I:=0 To Pred(gridSize) Do
 		Begin
-      _Springs[CurrentSpring].Init(J*gridSize+I, (J+2)*gridSize+I, naturalLength*2);
+      _Springs[CurrentSpring].Init(Self, J*gridSize+I, (J+2)*gridSize+I, naturalLength*2);
 			Inc(currentSpring);
 		End;
 
@@ -504,8 +551,12 @@ Procedure ClothSystem.UpdateMesh();
 Var
   I, J, BallID, Index, X, Y:Integer;
   normal:Vector3D;
+
+  Vertices:VertexData;
 Begin
   _Group.CalculateTriangleNormals();
+
+  Vertices := _Group.LockVertices();
 
   //Calculate the normals on the current Particles
   For J:=0 To Pred(gridSize) Do
@@ -524,21 +575,21 @@ Begin
           Normal.Add(_Group.GetTriangleNormal(Index));
         End;
 
-        //Normal := VectorUp;
-      Normal.Normalize();
-      _Group.Vertices.SetVector3D(BallID, vertexNormal, Normal);
+      //Normal.Normalize();
+      Normal.Scale(0.25);
+      Vertices.SetVector3D(BallID, vertexNormal, Normal);
     End;
 
   For J:=0 To Pred(gridSize) Do
     For I:=1 To Pred(gridSize) Do
 		Begin
       BallID := J*gridSize+I;
-      _Group.Vertices.SetVector3D(BallID, vertexPosition, _Particles[BallID].CurrentPosition);
-      _Group.Vertices.SetVector2D(BallID, vertexUV0, VectorCreate2D(I/GridSize, J/GridSize));
-      _Group.Vertices.SetColor(BallID, vertexColor, ColorWhite);
+      Vertices.SetVector3D(BallID, vertexPosition, _Particles[BallID].CurrentPosition);
     End;
 
-  _Group.ReleaseBuffer();
+
+  _Group.UnlockVertices();
+
   _Mesh.UpdateBoundingBox();
 End;
 
@@ -547,8 +598,9 @@ Var
   currentTime, timePassed:Cardinal;
   updateMade:Boolean;
   timePassedInSeconds:Single;
-  I, J, K:Integer;
-  springLength, Extension:Single;
+  I, J, K, N:Integer;
+
+  springLength, Extension:Double;
   force, acceleration, tensionDirection:VECTOR3D;
   P:Vector3D;
 Begin
@@ -578,11 +630,10 @@ Begin
 		//Calculate the tensions in the springs
 		For I:=0 To Pred(_SpringCount) Do
 		Begin
-			springLength := _Particles[_Springs[i].ball1].CurrentPosition.Distance(_Particles[_Springs[i].ball2].CurrentPosition);
-
+			springLength := _Particles[_Springs[i].P1].CurrentPosition.Distance(_Particles[_Springs[i].P2].CurrentPosition);
 			extension := springLength - _Springs[i].naturalLength;
 
-			_Springs[i].tension := (_Springs[i].springConstant*extension) / _Springs[i].naturalLength;
+			_Springs[i].Tension := _SpringConstant * (Extension * _Springs[i].InverseLength);
 		End;
 
 		//Calculate the nextParticles from the currentParticles
@@ -594,74 +645,64 @@ Begin
 			Begin
 				_Particles[i].NextPosition := _Particles[i].CurrentPosition;
 				_Particles[i].NextVelocity := VectorZero;
-
-        If MoveCloth Then
-          _Particles[i].NextPosition.Add(VectorCreate(0, 2 * timePassedInSeconds, 5 * timePassedInSeconds));
-			End Else
-			Begin
-				//Calculate the force on this ball
-
-        Force := gravity;
-
-				//Loop through springs
-        //For J:=0 To Pred(_SpringCount) Do
-        For K:=0 To Pred(_Particles[I].SpringCount) Do
-				Begin
-          J := _Particles[I].Springs[K];
-					//If this ball is "ball1" for this spring, add the tension to the force
-					If(_springs[j].ball1 = i)  Then
-					Begin
-						tensionDirection :=	VectorSubtract(_Particles[_springs[j].ball2].CurrentPosition, _Particles[i].CurrentPosition);
-						tensionDirection.Normalize();
-
-            tensionDirection.Scale(_springs[j].tension);
-						force.Add(tensionDirection);
-					End;
-
-					//Similarly if the ball is "ball2"
-					if(_springs[j].ball2=i) Then
-					Begin
-						tensionDirection :=	VectorSubtract(_Particles[_springs[j].ball1].CurrentPosition, _Particles[i].CurrentPosition);
-						tensionDirection.Normalize();
-
-            tensionDirection.Scale(_springs[j].tension);
-						force.Add(tensionDirection);
-					End;
-        End;
-
-				//Calculate the acceleration
-				acceleration := VectorScale(force, _Particles[i].InverseMass);
-
-				//Update velocity
-				_Particles[i].NextVelocity := VectorAdd(_Particles[i].CurrentVelocity, VectorScale(acceleration, timePassedInSeconds));
-
-				//Damp the velocity
-				_Particles[i].NextVelocity.Scale(dampFactor);
-
-				//Calculate new position
-        //Force := VectorAdd(VectorScale(Particles[i].NextVelocity, 0.5), VectorScale(Particles[i].CurrentVelocity, 0.5));
-        Force := _Particles[i].NextVelocity;
-
-        Force.Scale(timePassedInSeconds);
-				_Particles[i].NextPosition := VectorAdd(_Particles[i].CurrentPosition, Force);
-
-				//Check against sphere (at origin)
-        P := VectorSubtract(_Particles[i].NextPosition, Sphere.Position);
-				if (P.LengthSquared < Sqr(sphereRadius*1.08)) Then
-        Begin
-					P.Normalize();
-          P.Scale(sphereRadius*1.08);
-          _Particles[i].NextPosition := VectorAdd(P, Sphere.Position);
-        End;
-
-				//Check against floor
-				if(_Particles[i].NextPosition.y <= -sphereRadius * 0.92) Then
-        Begin
-					_Particles[i].NextPosition.y := -sphereRadius * 0.92;
-          _Particles[i].NextVelocity.y := 0;
-        End;
-
+        (*If MoveCloth Then
+          _Particles[i].NextPosition.Add(VectorCreate(0, 2 * timePassedInSeconds, 5 * timePassedInSeconds));*)
+        Continue;
 			End;
+
+      //Calculate the force on this ball
+      Force := _Gravity;
+
+			//Loop through springs
+      //For J:=0 To Pred(_SpringCount) Do
+      For J:=0 To Pred(_Particles[I].SpringCount) Do
+			Begin
+        K := _Particles[I].Springs[J].SpringIndex;
+        N := _Particles[I].Springs[J].ParticleIndex;
+
+        TensionDirection :=	VectorSubtract(_Particles[N].CurrentPosition, _Particles[I].CurrentPosition);
+				TensionDirection.Normalize();
+        TensionDirection.Scale(_Springs[K].tension);
+				Force.Add(tensionDirection);
+      End;
+
+			//Calculate the acceleration
+			acceleration := VectorScale(force, _Particles[i].InverseMass);
+
+			//Update velocity
+			_Particles[i].NextVelocity := VectorAdd(_Particles[i].CurrentVelocity, VectorScale(acceleration, timePassedInSeconds));
+
+			//Damp the velocity
+			_Particles[i].NextVelocity.Scale(dampFactor);
+
+			//Calculate new position
+       //Forcse := VectorAdd(VectorScale(Particles[i].NextVelocity, 0.5), VectorScale(Particles[i].CurrentVelocity, 0.5));
+       Force := _Particles[i].NextVelocity;
+
+       Force.Scale(timePassedInSeconds);
+			_Particles[i].NextPosition := VectorAdd(_Particles[i].CurrentPosition, Force);
+
+			//Check against floor
+			If(_Particles[i].NextPosition.y <= -sphereRadius * 0.92) Then
+      Begin
+			  _Particles[i].NextPosition.y := -sphereRadius * 0.92;
+        _Particles[i].NextVelocity.y := 0;
+         Continue;
+      End;
+
+			//Check against sphere (at origin)
+      For J:=0 To Pred(SphereCount) Do
+      Begin
+        P := VectorSubtract(_Particles[i].NextPosition, Spheres[J].Position);
+  			If (P.LengthSquared < Sqr(sphereRadius*1.08)) Then
+        Begin
+		  	  P.Normalize();
+          P.Scale(sphereRadius*1.08);
+          _Particles[i].NextPosition := VectorAdd(P, Spheres[J].Position);
+          _Particles[i].NextVelocity := VectorZero;
+          Break;
+        End;
+      End;
 		End;
 
 		//Swap the currentParticles and newParticles pointers

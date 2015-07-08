@@ -277,8 +277,10 @@ Type
       _Emitters:Array Of MeshEmitter;
       _EmitterCount:Integer;
 
+      _ScratchID:Cardinal;
+
       Procedure SetGeometry(MyMesh:Mesh);
-      
+
       Procedure DrawMesh(Const MyTransform:Matrix4x4; TranslucentPass, StencilTest:Boolean);
 
       Procedure DrawParticles();
@@ -740,6 +742,8 @@ Type
 
       _Lights:Array Of MeshLight;
       _LightCount:Integer;
+
+      _ScratchID:Cardinal;
 
       Function GetSkeleton:MeshSkeleton;
       Function GetGroupCount: Integer;
@@ -1998,6 +2002,9 @@ Begin
     Box := BoundingBoxAdd(Box, _AttachList[I].AttachMesh.BoundingBox);}
 
   _BoundingBox.Transform(_Transform);
+
+  If Assigned(_Mesh) Then
+    _ScratchID := _Mesh._ScratchID;
 End;
 
 Procedure MeshInstance.UpdateTransform;
@@ -2110,7 +2117,10 @@ End;
 Function MeshInstance.GetBoundingBox:BoundingBox; {$IFDEF FPC}Inline;{$ENDIF}
 Begin
   If (_NeedsTransformUpdate) Then
-    UpdateTransform();
+    UpdateTransform()
+  Else
+  If (Assigned(_Mesh)) And (_ScratchID <> _Mesh._ScratchID) Then
+    UpdateBoundingBox();
 
   Result := _BoundingBox;
   If GraphicsManager.Instance.ReflectionActive Then
@@ -5242,6 +5252,9 @@ Begin
     //Self._Buffer.Unlock();
     Self._Buffer.Update(_Vertices.Buffer);
   End;
+
+  If Assigned(_Owner) Then
+    Inc(_Owner._ScratchID);
 End;
 
 Procedure MeshGroup.SetVertexMorph(ID, VertexIndex:Integer; Value:Vector3D);
