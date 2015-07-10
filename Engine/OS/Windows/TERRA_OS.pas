@@ -822,19 +822,21 @@ Var
   I, PlayerID:Integer;
   Msg:TMsg;
 Begin
-  If (PeekMessageW(Msg, 0 {_Handle}, 0, 0, PM_REMOVE)) Then // Check if there is a message for this window
-  Begin
+  Repeat
+
+    If Not (PeekMessageW(Msg, 0 {_Handle}, 0, 0, PM_REMOVE)) Then // Check if there is a message for this window
+      Break;
+
     If (Msg.Message=WM_QUIT) Then     // If WM_QUIT message received then we are done
     Begin
       _Running:=False;
       Exit;
-    End Else
-    Begin   // Else translate and dispatch the message to this window
-      TranslateMessage(msg);
-      DispatchMessageW(msg);
     End;
-  End;
 
+    // translate and dispatch the message to this window
+    TranslateMessage(msg);
+    DispatchMessageW(msg);
+  Until (False);
 End;
 
 Procedure WindowsApplication.Yeld;
