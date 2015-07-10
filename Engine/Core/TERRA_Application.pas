@@ -34,7 +34,7 @@ Unit TERRA_Application;
 {-$DEFINE DEBUG_TAPJOY}
 {$ENDIF}
 
-{-$DEFINE CRASH_REPORT}
+{$DEFINE CRASH_REPORT}
 
 Interface
 Uses TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Mutex;
