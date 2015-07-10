@@ -396,7 +396,10 @@ Begin
   {$IFDEF CPUBUFFER}
   Target.UpdateRect(Buffer);
 
-  Buffer.Save(_Name+'_TextureAtlas'+IntToString(_SaveCount)+'.png', 'png','depth=32');
+  {$IFDEF PC}
+  //Buffer.Save(_Name+'_TextureAtlas'+IntToString(_SaveCount)+'.png', 'png','depth=32');
+  {$ENDIF}
+
   ReleaseObject(Buffer);
   {$ENDIF}
 End;

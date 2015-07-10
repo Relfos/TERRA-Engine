@@ -637,7 +637,6 @@ Begin
 
   If Not _Ready Then
   Begin
-    _CanReceiveEvents := False;
     _Ready := True;
 
     If (_Icon<>0) Then
