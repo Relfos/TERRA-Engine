@@ -42,24 +42,27 @@ Type
   PSocketAddress = Pointer;
 
   // Socket info structure
-  SocketAddress = Packed Record
+  // IPV4
+  SocketAddress4 = Packed Record
     Family:Word;
     Port:Word;
 
-    Case Byte Of
-    // IPV4
-    0:
-    (Address4:Cardinal;
-      Zero:Array[1..8]Of Byte;);
-
-    // IPV6
-    1: (
-      Flowinfo:Cardinal;     // IPv6 flow information
-      Address6:Array[1..8] Of Word;  // IPv6 address
-      ScopeId:Cardinal;     // IPv6 scope-id
-    );
+    Address:Cardinal;
+    Zero:Array[1..8]Of Byte;
   End;
 
+  SocketAddress = SocketAddress4;
+
+  (*
+  // IPV6
+  SocketAddress6 = Packed Record
+    Family:Word;
+    Port:Word;
+    Flowinfo:Cardinal;     // IPv6 flow information
+    Address:Array[1..8] Of Word;  // IPv6 address
+    ScopeId:Cardinal;     // IPv6 scope-id
+  End;
+   *)
   PHostEntity = ^THostEntity;
   THostEntity = Packed Record
     Name:PAnsiChar;
@@ -144,15 +147,15 @@ Type
   Function shutdown(Socket:Integer;how:Integer):Integer; Stdcall;external WinSockDLL;
 {$ELSE}
 
-  function accept(s:Integer; Var addr:SocketAddress; Var len:Integer):Integer;cdecl;external 'libc' name 'accept';
-  function bind(s:Integer; Var addr:SocketAddress; tolen:Integer):Integer;cdecl;external 'libc' name 'bind';
-  function connect(s:Integer; Var addr:SocketAddress; len:Integer):Integer;cdecl;external 'libc' name 'connect';
+  function accept(s:Integer; addr:PSocketAddress; Var len:Integer):Integer;cdecl;external 'libc' name 'accept';
+  function bind(s:Integer; addr:PSocketAddress; tolen:Integer):Integer;cdecl;external 'libc' name 'bind';
+  function connect(s:Integer; addr:PSocketAddress; len:Integer):Integer;cdecl;external 'libc' name 'connect';
   function listen(s:Integer; backlog:Integer):Integer;cdecl;external 'libc' name 'listen';
   function recv(s:Integer; Var buffer; len, flags:Integer):integer;cdecl;external 'libc' name 'recv';
-  function recvfrom(s:Integer; Var buf; len, flags:Integer; Var from:Socketaddress;
+  function recvfrom(s:Integer; Var buf; len, flags:Integer; from:PSocketaddress;
            Var fromlen:Integer):Integer;cdecl;external 'libc' name 'recvfrom';
   function send(s:Integer; Var buffer; len, flags:Integer):Integer;cdecl;external 'libc' name 'send';
-  function sendto(s:Integer; Var buffer; len, flags:Integer; Var _to:Socketaddress;
+  function sendto(s:Integer; Var buffer; len, flags:Integer; _to:PSocketaddress;
            tolen:Integer):Integer;cdecl;external 'libc' name 'sendto';
   function setsockopt(s:Integer; level:Integer; optname:Integer; optval:pointer; optlen:Integer):Integer;cdecl;external 'libc' name 'setsockopt';
   function shutdown(s:Integer; how:Integer):Integer;cdecl;external 'libc' name 'shutdown';
@@ -272,10 +275,10 @@ Uses TERRA_Error, TERRA_Log, TERRA_Application;
 
 
 Function GetSocketNetType(Const Addr:TERRAString):Integer;
-Begin
+Begin                      (*
   If StringContains(':', Addr) Then
     Result := PF_INET6
-  Else
+  Else                   *)
     Result := PF_INET;
 End;
 
@@ -305,9 +308,9 @@ End;
     Result := fprecv(S, @Buffer, Len, Flags);
   End;
 
-  function recvfrom(s:Integer; Var buf; len, flags:Integer; Var from:Socketaddress; Var fromlen:Integer):Integer;
+  function recvfrom(s:Integer; Var buf; len, flags:Integer; from:PSocketaddress; Var fromlen:Integer):Integer;
   Begin
-    Result := fprecvfrom(S, @Buf, Len, Flags, @From, @fromlen);
+    Result := fprecvfrom(S, @Buf, Len, Flags, From, @fromlen);
   End;
 
   function send(s:Integer; Var buffer; len, flags:Integer):Integer;
@@ -315,9 +318,9 @@ End;
     Result := fpSend(S, @buffer, len, flags);
   End;
 
-  function sendto(s:Integer; Var buffer; len, flags:Integer; Var _to:Socketaddress; tolen:Integer):Integer;
+  function sendto(s:Integer; Var buffer; len, flags:Integer; _to:PSocketaddress; tolen:Integer):Integer;
   Begin
-    Result := fpSendTo(S, @Buffer, Len, Flags, @_To, tolen);
+    Result := fpSendTo(S, @Buffer, Len, Flags, _To, tolen);
   End;
 
   function setsockopt(s:Integer; level:Integer; optname:Integer; optval:pointer; optlen:Integer):Integer;
@@ -374,7 +377,8 @@ Begin
 End;
 {$ENDIF}
 
-Procedure inet_addr6_from_string(IP:TERRAString; Var Addr:SocketAddress);
+(*
+Procedure inet_addr6_from_string(IP:TERRAString; Var Addr:SocketAddress6);
 Var
   I:Integer;
   S:TERRAString;
@@ -382,9 +386,9 @@ Begin
   For I:=1 To 8 Do
   Begin
     S := StringGetNextSplit(IP, Ord(':'));
-    Addr.Address6[I] := HexStrToInt(S);
+    Addr.Address[I] := HexStrToInt(S);
   End;
-End;
+End;                  *)
 
 // Decodes an IP stored in 32bit integer format to a string
 Function GetIP(IP:Cardinal):TERRAString;
@@ -559,7 +563,10 @@ Constructor NetSocket.Create(Const Host:TERRAString; Port:Word);
 Var
   IP:TERRAString;
   N:Integer;
-  Addr:SocketAddress;
+  Addr4:SocketAddress4;
+ // Addr6:SocketAddress6;
+  TargetAddr:PSocketAddress;
+  TargetSize:Integer;
 Begin
   _Handle := -1;
   _Blocking := True;
@@ -588,23 +595,39 @@ Begin
     Exit;
   End;
 
-  //Zero fill
-  FillChar(Addr, SizeOf(Addr), 0);
-
-  //Set the address format
-  Addr.Family := _NetType;
-  //Convert to network byte order (using htons) and set port
-  Addr.Port := htons(Port);
   //Specify the IP
-  If _NetType = PF_INET6 Then
+ (* If _NetType = PF_INET6 Then
   Begin
-    inet_addr6_from_string(IP, Addr);
-  End Else
-    Addr.Address4 := inet_addr(PAnsiChar(IP));
-  //_Address := Addr.Address;
+    //Zero fill
+    FillChar(Addr6, SizeOf(Addr6), 0);
+
+    //Set the address format
+    Addr6.Family := _NetType;
+    //Convert to network byte order (using htons) and set port
+    Addr6.Port := htons(Port);
+
+    inet_addr6_from_string(IP, Addr6);
+
+    TargetAddr := @Addr6;
+    TargetSize := SizeOf(Addr6);
+  End Else   *)
+  Begin
+    //Zero fill
+    FillChar(Addr4, SizeOf(Addr4), 0);
+
+    //Set the address format
+    Addr4.Family := _NetType;
+    //Convert to network byte order (using htons) and set port
+    Addr4.Port := htons(Port);
+
+    Addr4.Address := inet_addr(PAnsiChar(IP));
+
+    TargetAddr := @Addr4;
+    TargetSize := SizeOf(Addr4);
+  End;
 
   Log(logDebug, 'Sockets', 'Connecting');
-  N := TERRA_Sockets.connect(_Handle, @Addr, SizeOf(Addr));
+  N := TERRA_Sockets.connect(_Handle, TargetAddr, TargetSize);
 
   //Check for errors
   If N = SOCKET_ERROR Then
@@ -806,8 +829,8 @@ Var
   I,ID:Integer;
   Opv:Integer;
   ClientSock:Integer;
-  ClientAddr:SocketAddress;
-  Addr:SocketAddress;
+  ClientAddr:SocketAddress4;
+  Addr:SocketAddress4;
   Handle:Integer;
 Begin
   Result:=Nil;

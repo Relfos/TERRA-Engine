@@ -26,7 +26,7 @@ Unit TERRA_HTTP;
 {$I terra.inc}
 Interface
 Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_OS, TERRA_Stream, TERRA_Sockets,
-  TERRA_FileStream, TERRA_FileUtils, TERRA_FileManager;
+  TERRA_FileStream, TERRA_FileUtils, TERRA_FileManager, TERRA_Threads, TERRA_Mutex;
 
 {-$DEFINE ALLOW_PERSISTENT_CONNECTIONS}
 
@@ -276,6 +276,7 @@ Type
       _Downloads:Array Of HTTPDownloader;
       _DownloadCount:Integer;
 
+      _Mutex:CriticalSection;
 
   {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
       _Connections:Array Of HTTPConnection;
@@ -298,7 +299,7 @@ Type
       Procedure DummyCallback(Download:HTTPDownloader);
 
     Public
-      Constructor Create;
+      Procedure Init; Override;
       Procedure Release; Override;
 
       Class Function Instance:DownloadManager;
@@ -319,7 +320,7 @@ Var
   DownloadTempPath:TERRAString;
 
 Implementation
-Uses TERRA_Log, TERRA_MemoryStream, TERRA_ResourceManager, TERRA_Threads;
+Uses TERRA_Log, TERRA_MemoryStream, TERRA_ResourceManager;
 
 Function GetTempPath:TERRAString;
 Begin
@@ -371,7 +372,7 @@ Begin
     End Else
       _Target.Update();
 
-  Until (_Target.Progress>=100);
+  Until (_Target.Progress>=100) Or (_Target.ErrorCode<>httpOk);
 End;
 
 { HTTPDownloader }
@@ -979,8 +980,9 @@ Begin
   Result := DownloadManager(_DownloadManager_Instance.Instance);
 End;
 
-Constructor DownloadManager.Create;
+Procedure DownloadManager.Init;
 Begin
+  _Mutex := CriticalSection.Create();
   _DownloadCount := 0;
 End;
 
@@ -993,14 +995,17 @@ Procedure DownloadManager.Release;
 Var
   I:Integer;
 Begin
+  _Mutex.Lock();
   For I:=0 To Pred(_DownloadCount) Do
     _Downloads[I]._Request._Callback := DummyCallback;
+  _Mutex.Unlock();
 
   Self.Flush();
 
   For I:=0 To Pred(_DownloadCount) Do
     ReleaseObject(_Downloads[I]);
 
+  ReleaseObject(_Mutex);
   _DownloadManager_Instance := Nil;
 End;
 
@@ -1050,6 +1055,7 @@ Begin
   {$ENDIF}
 
   I:=0;
+  _Mutex.Lock();
   While (I<_DownloadCount) Do
   Begin
     Remove := False;
@@ -1111,6 +1117,7 @@ Begin
     End Else
       Inc(I);
   End;
+  _Mutex.Unlock();
 End;
 
 Function DownloadManager.StartRequest(Request:HTTPRequest; InBackground:Boolean):HTTPDownloader;
@@ -1123,9 +1130,12 @@ Begin
 
   Result := HTTPDownloader.Create(Request, InBackground);
 
+  _Mutex.Lock();
   Inc(_DownloadCount);
   SetLength(_Downloads, _DownloadCount);
   _Downloads[Pred(_DownloadCount)] := Result;
+
+  _Mutex.Unlock();
   Log(logDebug, 'HTTP', 'Download prepared.');
 End;
 
@@ -1160,30 +1170,39 @@ Begin
     Exit;
   End;
 
+  _Mutex.Lock();
+
   Result := 0;
   For I:=0 To Pred(_DownloadCount) Do
     Inc(Result, _Downloads[I].Progress);
 
   Result := Result Div _DownloadCount;
+
+  _Mutex.Unlock();
 End;
 
 Function DownloadManager.GetDownload(Index: Integer): HTTPDownloader;
 Begin
+  _Mutex.Lock();
   If (Index<0) Or (Index>=_DownloadCount) Then
     Result := Nil
   Else
     Result := _Downloads[Index];
+
+  _Mutex.Unlock();
 End;
 
 Function DownloadManager.GetConnection(const HostName: TERRAString; Port: Integer): HTTPConnection;
 Var
   I:Integer;
 Begin
+  _Mutex.Lock();
   {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
   For I:=0 To Pred(_ConnectionCount) Do
   If (_Connections[I]._Alive)  And (StringEquals(_Connections[I]._Host, HostName)) And (_Connections[I]._Port = Port) Then
   Begin
     Result := _Connections[I];
+    _Mutex.Unlock();
     Exit;
   End;
   {$ENDIF}
@@ -1195,6 +1214,8 @@ Begin
   SetLength(_Connections, _ConnectionCount);
   _Connections[Pred(_ConnectionCount)] := Result;
   {$ENDIF}
+
+  _Mutex.Unlock();
 End;
 
 {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
