@@ -79,7 +79,9 @@ Begin
   Result := Myself._Dispatcher._PropSize;
 End;
 {$ELSE}
-Procedure MySteamCallback_Run(pvParam: Pointer; pSelf: PCCallbackInt); Pascal;
+{$IFDEF LINUX}
+Procedure MySteamCallback_Run(pSelf: PCCallbackInt; pvParam: Pointer); Cdecl; {$ELSE}
+Procedure MySteamCallback_Run(pvParam: Pointer;  pSelf: PCCallbackInt); Pascal;{$ENDIF}
 Begin
   pSelf._Dispatcher._Callback(Pointer(pvParam));
 End;

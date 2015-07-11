@@ -15,7 +15,7 @@ Const
 {$ENDIF}
 
 {$IFDEF LINUX}
-  SteamWrapperName = 'libCSteamworks.so';
+  SteamWrapperName = './libCSteamworks.so';
 {$ENDIF}
 
 Type
@@ -1792,11 +1792,18 @@ Function LoadSteamAPI():Boolean;
 
 
 Implementation
+Uses TERRA_String, TERRA_Log;
 
 Var
   SteamHandle:{$IFDEF MSWINDOWS}THandle{$ELSE}TLibHandle{$ENDIF};
 
-Function LoadSteamAPI():Boolean; 
+{$IFNDEF WINDOWS}
+Function dlerror():PAnsiChar; CDecl; External;
+{$ENDIF}
+
+Function LoadSteamAPI():Boolean;
+Var
+  ErrorMsg:TERRAString;
 Begin
   If SteamHandle<>0 Then
   Begin
@@ -1807,6 +1814,8 @@ Begin
   SteamHandle := LoadLibrary(SteamWrapperName);
   If SteamHandle=0 Then
   Begin
+    ErrorMsg := dlerror();
+    Log(logDebug, 'Steam', ErrorMsg);
     Result := False;
     Exit;
    End;
@@ -2477,4 +2486,4 @@ Begin
 End;
 
 
-End.
+End.
