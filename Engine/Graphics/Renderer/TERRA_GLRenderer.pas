@@ -351,19 +351,11 @@ Var
 Begin
   Inherited Create(Owner);
 
-  {$IFDEF MOBILE}
-  glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, @_MaxTextureUnits);
-  {$ELSE}
   glGetIntegerv(GL_MAX_TEXTURE_UNITS, @_MaxTextureUnits);
-  {$ENDIF}
 
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, @_MaxTextureSize);
 
-{$IFDEF MOBILE}
-	_Settings._maxRenderTargets := 0;
-{$ELSE}
   glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, @_maxRenderTargets);
-{$ENDIF}
 
 {$IFDEF PC}
   If (glExtensionSupported('GL_EXT_texture_filter_anisotropic')) Then
@@ -393,11 +385,7 @@ Begin
   {$IFDEF PC}
 	TextureCompression.Avaliable :=  glExtensionSupported('GL_EXT_texture_compression_s3tc');
   {$ELSE}
-  {$IFDEF MOBILE}
-  TextureCompression.Avaliable :=  True;
-  {$ELSE}
   TextureCompression.Avaliable :=  False;
-  {$ENDIF}
   {$ENDIF}
 
   {$IFDEF PC}
@@ -421,13 +409,7 @@ Begin
   VertexBufferObject.Avaliable := glExtensionSupported('GL_ARB_vertex_buffer_object');
 
   {$IFDEF FRAMEBUFFEROBJECTS}
-    {$IFDEF PC}
-  	FrameBufferObject.Avaliable := glExtensionSupported('GL_ARB_framebuffer_object') Or glExtensionSupported('GL_EXT_framebuffer_object');
-    {$ENDIF}
-
-    {$IFDEF MOBILE}
-	  FrameBufferObject.Avaliable := True;
-    {$ENDIF}
+  FrameBufferObject.Avaliable := glExtensionSupported('GL_ARB_framebuffer_object') Or glExtensionSupported('GL_EXT_framebuffer_object');
   {$ELSE}
   FrameBufferObject.Avaliable := False;
   {$ENDIF}
@@ -442,17 +424,10 @@ Begin
   CubeMapTexture.Avaliable := glExtensionSupported('GL_ARB_texture_cube_map');
   SeparateBlends.Avaliable := glExtensionSupported('GL_EXT_draw_buffers2');
   SeamlessCubeMap.Avaliable := glExtensionSupported('GL_ARB_seamless_cube_map') Or glExtensionSupported('GL_AMD_seamless_cubemap_per_texture');
-  {$IFDEF MOBILE}
-  NPOT.Avaliable := HasShaders;
-  {$ELSE}
-  NPOT.Avaliable := glExtensionSupported('GL_ARB_texture_non_power_of_two');//OES_texture_npot
-  {$ENDIF}
 
-  {$IFDEF MOBILE}
-  PackedStencil.Avaliable := glExtensionSupported('GL_OES_packed_depth_stencil');
-  {$ELSE}
+  NPOT.Avaliable := glExtensionSupported('GL_ARB_texture_non_power_of_two');//OES_texture_npot
+
   PackedStencil.Avaliable := True;
-  {$ENDIF}
 
   (*glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, @_MaxUniformVectors);
   If (_MaxUniformVectors<128) Then
@@ -466,11 +441,7 @@ Begin
 
   DeferredLighting.Avaliable := (MaxRenderTargets>=4) And (FrameBufferObject.Avaliable);
 
-  {$IFDEF MOBILE}
-  StencilBuffer.Avaliable := PackedStencil.Avaliable Or glExtensionSupported('GL_OES_stencil8');
-  {$ELSE}
   StencilBuffer.Avaliable := True;
-  {$ENDIF}
 
 (*  {$IFDEF IPHONE}
   DynamicShadows.Avaliable := glExtensionSupported('GL_OES_packed_depth_stencil') Or glExtensionSupported('GL_OES_stencil8');
@@ -969,7 +940,6 @@ Begin
 
   _DeviceVersion := StringToVersion('0.0.0');
 
-  {$IFNDEF MOBILE}
   If (Features.Shaders.Avaliable) Then
   Begin
     S := glGetString(GL_SHADING_LANGUAGE_VERSION);
@@ -985,7 +955,6 @@ Begin
 
     Log(logDebug,'GraphicsManager','GLSL version:'+VersionToString(_DeviceVersion));
   End;
-  {$ENDIF}
 
   Result := True;
 End;
@@ -1501,12 +1470,10 @@ Begin
   Else
     glTexParameteri(TextureKind, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-  {$IFNDEF MOBILE}
 {	If (_Owner.Settings.Textures.Quality>=QualityHigh) And (_Onwer.Settings.MaxAnisotrophy > 1) Then
   Begin
 	  glTexParameteri(TextureKind, GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, GraphicsManager.Instance.Settings.MaxAnisotrophy);
   End; BIBI}
-  {$ENDIF}
 End;
 
 Function OpenGLRenderer.CreateCubeMap: CubeMapInterface;
@@ -1780,138 +1747,10 @@ Begin
   Log(logDebug, 'Framebuffer','Initializing framebuffer: '{+ Self.Name});
 
   R := OpenGLRenderer(_Owner);
-  
+
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
-  {$IFDEF IPHONE}
-{    bool isSimulator = ( 0 == strcmp((const char*)"Apple Software GraphicsManager",
-                                       (const char*) glGetString(GL_GraphicsManager)) )?TRUE:FALSE;
-
-	char *extensions = glGetString(GL_EXTENSIONS);
-	hasStencil = (strstr(extensions, "GL_OES_packed_depth_stencil")!=0);
-	hasMsaa = (_msaaSamples>0) && (strstr(extensions, "GL_APPLE_framebuffer_multisample")!=0);}
-
-			{// simulator hasMsaa = false;
-
-		glGenFramebuffersOES(1, &viewFramebuffer);
-		glBindFramebufferOES(GL_FRAMEBUFFER_OES, viewFramebuffer);
-
-		glGenRenderbuffersOES(1, &viewRenderbuffer);
-		glBindRenderbufferOES(GL_RENDERBUFFER_OES, viewRenderbuffer);
-
-		[context renderbufferStorage:GL_RENDERBUFFER_OES fromDrawable:(CAEAGLLayer*)self.layer];
-		glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_COLOR_ATTACHMENT0_OES, GL_RENDERBUFFER_OES, viewRenderbuffer);
-		glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_WIDTH_OES, &backingWidth);
-		glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_HEIGHT_OES, &backingHeight);
-
-		glGenRenderbuffersOES(1, &depthRenderbuffer);
-		glBindRenderbufferOES(GL_RENDERBUFFER_OES, depthRenderbuffer);
-		glRenderbufferStorageOES(GL_RENDERBUFFER_OES, GL_DEPTH_COMPONENT24_OES, backingWidth, backingHeight);
-		glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_DEPTH_ATTACHMENT_OES, GL_RENDERBUFFER_OES, depthRenderbuffer);
-
-		glGenRenderbuffersOES(1, &stencilRenderbuffer);
-		glBindRenderbufferOES(GL_RENDERBUFFER_OES, stencilRenderbuffer);
-		glRenderbufferStorageOES(GL_RENDERBUFFER_OES, GL_STENCIL_INDEX8_OES, backingWidth, backingHeight);
-		glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_STENCIL_ATTACHMENT_OES, GL_RENDERBUFFER_OES, stencilRenderbuffer);
-
-     // msaa
-		glGenFramebuffersOES(1, &viewFramebuffer);
-		glBindFramebufferOES(GL_FRAMEBUFFER_OES, viewFramebuffer);
-
-		glGenRenderbuffersOES(1, &viewRenderbuffer);
-		glBindRenderbufferOES(GL_RENDERBUFFER_OES, viewRenderbuffer);
-
-		[context renderbufferStorage:GL_RENDERBUFFER_OES fromDrawable:(CAEAGLLayer*)self.layer];
-		glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_COLOR_ATTACHMENT0_OES, GL_RENDERBUFFER_OES, viewRenderbuffer);
-		glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_WIDTH_OES, &backingWidth);
-		glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_HEIGHT_OES, &backingHeight);
-
-		glGenFramebuffersOES(1, &msaaFramebuffer);
-		glGenRenderbuffersOES(1, &msaaRenderBuffer);
-
-		glBindFramebufferOES(GL_FRAMEBUFFER_OES, msaaFramebuffer);
-		glBindRenderbufferOES(GL_RENDERBUFFER_OES, msaaRenderBuffer);
-
-		glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER_OES, _msaaSamples, GL_RGB5_A1_OES, backingWidth, backingHeight);
-		glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_COLOR_ATTACHMENT0_OES, GL_RENDERBUFFER_OES, msaaRenderBuffer);
-		glGenRenderbuffersOES(1, &msaaDepthBuffer);
-
-		glBindRenderbufferOES(GL_RENDERBUFFER_OES, msaaDepthBuffer);
-		glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER_OES, _msaaSamples, GL_DEPTH24_STENCIL8_OES, backingWidth, backingHeight);
-		glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_DEPTH_ATTACHMENT_OES, GL_RENDERBUFFER_OES, msaaDepthBuffer);
-		glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_STENCIL_ATTACHMENT_OES, GL_RENDERBUFFER_OES, msaaDepthBuffer);
-    }
-
-  If (_Name='device_target0') Then
-  Begin
-    _Handle := GraphicsManager.Instance.GenerateFrameBuffer();
-    glBindFramebuffer(GL_FRAMEBUFFER, _Handle);
-
-    _color_rb := GraphicsManager.Instance.GenerateRenderBuffer();
-    glBindRenderbuffer(GL_RENDERBUFFER, _color_rb);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, _color_rb);
-    SetRenderbufferStorage(); //[context renderbufferStorage:GL_RENDERBUFFER fromDrawable:(CAEAGLLayer*)self.layer];
-    Log(logDebug,'Framebuffer', 'Linked framebuffer to display memory');
-
-    glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, @_Width);
-    glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, @_Height);
-    Log(logDebug,'Framebuffer', 'Framebuffer size:  '+IntToString(_Width)+' x '+IntToString(_Height));
-
-    _depth_rb := GraphicsManager.Instance.GenerateRenderBuffer();
-    glBindRenderbuffer(GL_RENDERBUFFER, _depth_rb);
-
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, _Width, _Height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depth_rb);
-  End;
-  {$ENDIF}
-
-  {$IFDEF MOBILE}
-  If (_Handle = 0) Then
-  Begin
-    // Create a framebuffer and renderbuffer
-    _Handle := GraphicsManager.Instance.GenerateFrameBuffer();
-    _depth_rb := GraphicsManager.Instance.GenerateRenderBuffer();
-    Log(logDebug,'Framebuffer', 'Created framebuffer with handle: '+IntToString(_Handle));
-
-    // Create a texture to hold the frame buffer
-    _Targets[0] := GraphicsManager.Instance.GenerateTexture();
-	  glBindTexture(GL_TEXTURE_2D, _Targets[0]);
-  	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Width, _Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, Nil);
-    Log(logDebug,'Framebuffer', 'Framebuffer size: W: '+IntToString(_Width)+' H: '+IntToString(_Height));
-
-    If GraphicsManager.Instance.Settings.PackedStencil.Avaliable Then
-    Begin
-      I := GL_DEPTH24_STENCIL8_OES;
-      Log(logDebug,'Framebuffer', 'Packed stencil supported, using it!');
-    End Else
-      I := GL_DEPTH_COMPONENT16;
-
-    //bind renderbuffer
-    glBindRenderbuffer(GL_RENDERBUFFER, _depth_rb);
-    glRenderbufferStorage(GL_RENDERBUFFER, I, _Width, _Height);
-    Log(logDebug,'Framebuffer', 'Binding depth renderbuffer to framebuffer with handle: '+IntToString(_depth_rb));
-
-    // bind the framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, _Handle);
-
-    // specify texture as color attachment
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _Targets[0], 0);
-    Log(logDebug,'Framebuffer', 'Binding texture to framebuffer with handle: '+IntToString(_Targets[0]));
-
-    // specify depth_renderbufer as depth attachment
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depth_Rb);
-
-    If GraphicsManager.Instance.Settings.PackedStencil.Avaliable Then
-      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, _depth_rb);
-  End;
-  {$ENDIF}
-
-  {$IFDEF PC}
 	If (_multisample) Then
 	Begin
     _Handle := R.GenerateFrameBuffer();
@@ -2006,7 +1845,6 @@ Begin
       glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, _depth_rb);
 		End;
 	End;
-  {$ENDIF}
 
 	// check for errors
 	Status := glCheckFramebufferStatus(GL_FRAMEBUFFER);

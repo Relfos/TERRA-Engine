@@ -25,7 +25,6 @@ Type
   TLibHandle = Cardinal;
 
 Const
-//  Glu32 = 'glu32.dll';
   {$IFDEF WINDOWS}OpenGLLibName = 'opengl32.dll';{$ENDIF}
   {$IFDEF LINUX}OpenGLLibName = 'libGL.so';{$ENDIF}
   {$IFDEF OSX}

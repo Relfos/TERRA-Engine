@@ -4433,7 +4433,9 @@ Begin
 
 
       If (Graphics.RenderStage<>renderStageShadow) And (Flags And meshGroupDoubleSided<>0) And (Not Graphics.ReflectionActive) Then
-        Graphics.Renderer.SetCullMode(cullNone);
+        Graphics.Renderer.SetCullMode(cullNone)
+      Else
+        Graphics.Renderer.SetCullMode(cullBack);
     End;
 
     If (Flags And meshGroupDepthOff<>0) Or (UseOutline) Then
@@ -6954,7 +6956,7 @@ Begin
 
     If (Group.Flags And meshGroupLightmap<>0) Then
     Begin
-      FxFlags := FxFlags Or shaderAddSigned;
+      //FxFlags := FxFlags Or shaderAddSigned;
 
       If Assigned(DestMaterial.LightMap) Then
         FxFlags := FxFlags Or shaderLightmap;
@@ -7092,7 +7094,7 @@ Begin
 
   If RenderStage = renderStageDiffuse Then
   Begin
-    FxFlags := FxFlags Or shaderAddSigned;
+    //FxFlags := FxFlags Or shaderAddSigned;
 
     If (Group._LightBatch.AmbientColor.A>0) Then
       FxFlags := FxFlags Or shaderAmbientColor;
