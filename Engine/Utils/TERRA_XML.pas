@@ -140,17 +140,17 @@ Type
       Property Root:XMLNode Read _Root Write SetRoot;
   End;
 
-Function XMLGetInteger(P:XMLNode; Const Name:TERRAString; Var Dest:Integer; Default:Integer = 0):Boolean;
-Function XMLGetCardinal(P:XMLNode; Const Name:TERRAString; Var Dest:Cardinal; Default:Cardinal = 0):Boolean;
-Function XMLGetByte(P:XMLNode; Const Name:TERRAString; Var Dest:Byte; Default:Byte):Boolean;
-Function XMLGetBoolean(P:XMLNode; Const Name:TERRAString; Var Dest:Boolean; Default:Boolean = False):Boolean;
-Function XMLGetString(P:XMLNode; Const Name:TERRAString; Var Dest:TERRAString; Const Default:TERRAString = ''):Boolean;
-Function XMLGetSingle(P:XMLNode; Const Name:TERRAString; Var Dest:Single; Default:Single = 0):Boolean;
+Function XMLGetInteger(P:XMLNode; Const Name:TERRAString; Out Dest:Integer; Default:Integer = 0):Boolean;
+Function XMLGetCardinal(P:XMLNode; Const Name:TERRAString; Out Dest:Cardinal; Default:Cardinal = 0):Boolean;
+Function XMLGetByte(P:XMLNode; Const Name:TERRAString; Out Dest:Byte; Default:Byte):Boolean;
+Function XMLGetBoolean(P:XMLNode; Const Name:TERRAString; Out  Dest:Boolean; Default:Boolean = False):Boolean;
+Function XMLGetString(P:XMLNode; Const Name:TERRAString; Out Dest:TERRAString; Const Default:TERRAString = ''):Boolean;
+Function XMLGetSingle(P:XMLNode; Const Name:TERRAString; Out Dest:Single; Default:Single = 0):Boolean;
 
 Implementation
 Uses TERRA_Error, TERRA_Collections, TERRA_FileManager, TERRA_FileStream, TERRA_MemoryStream, TERRA_Log;
 
-Function XMLGetInteger(P:XMLNode; Const Name:TERRAString; Var Dest:Integer; Default:Integer):Boolean;
+Function XMLGetInteger(P:XMLNode; Const Name:TERRAString; Out Dest:Integer; Default:Integer):Boolean;
 Var
   PP:XMLNode;
 Begin
@@ -162,7 +162,7 @@ Begin
     Dest := Default;
 End;
 
-Function XMLGetCardinal(P:XMLNode; Const Name:TERRAString; Var Dest:Cardinal; Default:Cardinal):Boolean;
+Function XMLGetCardinal(P:XMLNode; Const Name:TERRAString; Out Dest:Cardinal; Default:Cardinal):Boolean;
 Var
   PP:XMLNode;
 Begin
@@ -174,7 +174,7 @@ Begin
     Dest := Default;
 End;
 
-Function XMLGetSingle(P:XMLNode; Const Name:TERRAString; Var Dest:Single; Default:Single):Boolean;
+Function XMLGetSingle(P:XMLNode; Const Name:TERRAString; Out Dest:Single; Default:Single):Boolean;
 Var
   PP:XMLNode;
 Begin
@@ -186,7 +186,7 @@ Begin
     Dest := Default;
 End;
 
-Function XMLGetBoolean(P:XMLNode; Const Name:TERRAString; Var Dest:Boolean; Default:Boolean):Boolean;
+Function XMLGetBoolean(P:XMLNode; Const Name:TERRAString; Out Dest:Boolean; Default:Boolean):Boolean;
 Var
   PP:XMLNode;
 Begin
@@ -198,7 +198,7 @@ Begin
     Dest := Default;
 End;
 
-Function XMLGetByte(P:XMLNode; Const Name:TERRAString; Var Dest:Byte; Default:Byte):Boolean;
+Function XMLGetByte(P:XMLNode; Const Name:TERRAString; Out Dest:Byte; Default:Byte):Boolean;
 Var
   PP:XMLNode;
 Begin
@@ -210,7 +210,7 @@ Begin
     Dest := Default;
 End;
 
-Function XMLGetString(P:XMLNode; Const Name:TERRAString; Var Dest:TERRAString; Const Default:TERRAString):Boolean;
+Function XMLGetString(P:XMLNode; Const Name:TERRAString; Out Dest:TERRAString; Const Default:TERRAString):Boolean;
 Var
   PP:XMLNode;
 Begin
