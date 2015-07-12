@@ -56,7 +56,7 @@ void stopAVCapture()
 	dispatch_queue_t queue;
 	queue = dispatch_queue_create("cameraQueue", NULL);
 	[captureOutput setSampleBufferDelegate:self queue:queue];
-	dispatch_release(queue);
+	//dispatch_release(queue);
 	// Set the video output to store frame in BGRA (It is supposed to be faster)
 	NSString* key = (NSString*)kCVPixelBufferPixelFormatTypeKey; 
 	NSNumber* value = [NSNumber numberWithUnsignedInt:kCVPixelFormatType_32BGRA]; 
@@ -81,7 +81,7 @@ void stopAVCapture()
 		return;
 		
 	[self.captureSession stopRunning];
-	[self.captureSession release];
+	//[self.captureSession release];
 	_captureSession  = nil;
 }
 
@@ -96,7 +96,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 	/*We create an autorelease pool because as we are not in the main_queue our code is
 	 not executed in the main thread. So we have to create an autorelease pool for the thread we are in*/
 	
-	NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
+//	NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
 
     CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
     // Lock the image buffer
@@ -164,19 +164,20 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 	CVPixelBufferUnlockBaseAddress(imageBuffer,0);
 	*/
 	
-	[pool drain];
+//	[pool drain];
 } 
 
 #pragma mark -
 #pragma mark Memory management
 
 - (void)viewDidUnload {
+    [super viewDidUnload];
 	//self.customLayer = nil;
 }
 
 - (void)dealloc {
 	[self stopCapture];
-    [super dealloc];
+  //  [super dealloc];
 }
 
 
