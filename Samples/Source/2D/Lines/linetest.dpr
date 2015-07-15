@@ -72,7 +72,7 @@ Begin
   _Scene := MyScene.Create;
   GraphicsManager.Instance.SetScene(_Scene);
 
-  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorBlue;
+  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlue;
 End;
 
 // OnIdle is called once per frame, put your game logic here
@@ -89,7 +89,7 @@ Begin
 End;
 
 { MyScene }
-Procedure MyScene.RenderSprites;
+Procedure MyScene.RenderSprites(V:Viewport);
 Const
   X = 100;
   Y = 500;
@@ -117,12 +117,12 @@ Begin
     Cur := SmoothCurveWithOffset(Delta, Ofs) * Amp;
 
     If I>0 Then
-      DrawLine2D(VectorCreate2D(X+Pred(I)*W, Y-Last), VectorCreate2D(X+I*W, Y-Cur), ColorGreen, 50);
+      DrawLine2D(V, VectorCreate2D(X+Pred(I)*W, Y-Last), VectorCreate2D(X+I*W, Y-Cur), ColorGreen);
   End;
 
-  DrawLine2D(VectorCreate2D(X+50*W, 0), VectorCreate2D(X+50*W, GraphicsManager.Instance.Height), ColorRed, 50);
-  DrawLine2D(VectorCreate2D(0, Y), VectorCreate2D(GraphicsManager.Instance.Width, Y), ColorYellow, 50);
-  DrawLine2D(VectorCreate2D(X+(Ofs*100)*W, 0), VectorCreate2D(X+(Ofs*100)*W, GraphicsManager.Instance.Height), ColorYellow, 50);
+  DrawLine2D(V, VectorCreate2D(X+50*W, 0), VectorCreate2D(X+50*W, GraphicsManager.Instance.Height), ColorRed, 2);
+  DrawLine2D(V, VectorCreate2D(0, Y), VectorCreate2D(GraphicsManager.Instance.Width, Y), ColorYellow, 2);
+  DrawLine2D(V, VectorCreate2D(X+(Ofs*100)*W, 0), VectorCreate2D(X+(Ofs*100)*W, GraphicsManager.Instance.Height), ColorYellow, 2);
 End;
 
 Begin
