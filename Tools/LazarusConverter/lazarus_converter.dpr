@@ -9,17 +9,22 @@ Var
   It:Iterator;
   Info:FileInfo;
 
-  Template, S, OutName, MainFile, MainPackage:TERRAString;
+  Template, S, OutName, MainFile:TERRAString;
   Src, Dest:Stream;
 
-Procedure DoTarget(Target, Package:TERRAString);
+Procedure DoTarget(Target, Package, PathSep:TERRAString);
+Var
+  BinPath, MainPackage:TERRAString;
 Begin
     OutName := Info.Path + PathSeparator + MainFile + '_'+Target+'.lpi';
+    BinPath := '..'+PathSep+'..'+PathSep+'..'+PathSep+'Binaries'+PathSep;
+
     MainPackage := 'TERRA_PACKAGE_'+StringUpper(Package);
 
     S := Template;
     StringReplaceText('#MAINFILE', MainFile, S);
     StringReplaceText('#MAINPACKAGE', MainPackage, S);
+    StringReplaceText('#BINPATH', BinPath, S);
 
     Dest := FileStream.Create(OutName);
     Dest.WriteLine(S);
@@ -43,7 +48,9 @@ Begin
 
     MainFile := GetFileName(Info.Name, True);
 
-    DoTarget('Win32', 'windows');
+    DoTarget('Win32', 'windows', '\');
+    DoTarget('Linux', 'linux', '/');
+    DoTarget('OSX', 'osx', '/');
   End;
 //  ReadLn;
 
