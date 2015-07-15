@@ -1,0 +1,1 @@
+Unit Ships_Opcodes;{$I terra.inc}InterfaceConst  GamePort = 2434;  GameVersion = 100;  netPlayerDrop = 20;	netPlayerData = 21;ImplementationEnd.
