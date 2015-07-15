@@ -2,7 +2,7 @@
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} BasicSample;
 
 Uses TERRA_Application, TERRA_Scene, TERRA_GraphicsManager, TERRA_Viewport,
-  TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_PNG, 
+  TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_PNG,
   TERRA_SpriteManager, TERRA_FileManager, TERRA_Math, TERRA_Vector3D, TERRA_Vector2D,
   TERRA_Renderer, TERRA_InputManager;
 
@@ -67,8 +67,13 @@ Begin
   //        Sprites with higher layer values appear below the others
 
   // Create a simple fliped sprite
-  S := SpriteManager.Instance.DrawSprite(220, 60, 50, Tex);
+  S := SpriteManager.Instance.DrawSprite(620, 60, 50, Tex);
   S.Flip := True;
+
+
+  // An alpha blended sprite
+  S := SpriteManager.Instance.DrawSprite(700, 60, 55, Tex);
+  S.SetColor(ColorCreate(255, 255, 255, 128));
 
   // Create a line of sprites
   For I:=0 To 8 Do
@@ -93,10 +98,6 @@ Begin
 
   S := SpriteManager.Instance.DrawSprite(180,145,55, Tex);
   S.SetScale(0.5);    // Half size
-
-  // An alpha blended sprite
-  S := SpriteManager.Instance.DrawSprite(85, 60, 55, Tex);
-  S.SetColor(ColorCreate(255, 255, 255, 128));
 
   // Some colored sprites
   For I:=0 To 4 Do
