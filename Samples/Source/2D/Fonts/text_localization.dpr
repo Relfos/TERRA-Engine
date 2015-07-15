@@ -39,7 +39,7 @@ Begin
   // Add asset folders
   FileManager.Instance.AddPath('assets');
 
-  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorRed;
+  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorRed;
 
   // Load a font
   _Font := FontManager.Instance.GetFont('droid');

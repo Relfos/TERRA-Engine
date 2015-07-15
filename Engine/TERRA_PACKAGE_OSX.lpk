@@ -2,7 +2,7 @@
 <CONFIG>
   <Package Version="4">
     <PathDelim Value="\"/>
-    <Name Value="LEAF3_PACKAGE_OSX"/>
+    <Name Value="TERRA_PACKAGE_OSX"/>
     <Type Value="RunAndDesignTime"/>
     <CompilerOptions>
       <Version Value="11"/>

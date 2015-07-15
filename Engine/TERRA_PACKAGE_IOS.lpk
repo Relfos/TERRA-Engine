@@ -2,7 +2,7 @@
 <CONFIG>
   <Package Version="4">
     <PathDelim Value="\"/>
-    <Name Value="LEAF3_PACKAGE_LINUX"/>
+    <Name Value="TERRA_PACKAGE_IOS"/>
     <Type Value="RunAndDesignTime"/>
     <CompilerOptions>
       <Version Value="11"/>
@@ -18,10 +18,10 @@
     </RequiredPkgs>
     <UsageOptions>
       <IncludePath Value="$(PkgDir)\Utils;$(PkgDir)\Core"/>
-      <UnitPath Value="$(PkgDir)\Utils;$(PkgDir)\Core\FileIO;$(PkgDir)\Graphics;$(PkgDir)\Graphics\Renderer;$(PkgDir)\Templates;$(PkgDir)\Image;$(PkgDir)\Physics;$(PkgDir)\Image\Formats;$(PkgDir)\OS\Linux;$(PkgDir)\Core;$(PkgDir)\UI;$(PkgDir)\AI;$(PkgDir)\Audio;$(PkgDir)\Audio\Formats;$(PkgDir)\Audio;$(PkgDir)\Graphics\Formats;$(PkgDir)\Network;$(PkgDir)\Libs\pasJPEG;$(PkgDir)\Libs\Steamworks\headers;$(PkgDir)\Math;$(PkgDir)\Network\Protocols;$(PkgDir)\..\Tools\Importers"/>
+      <UnitPath Value="$(PkgDir)\Utils;$(PkgDir)\Core\FileIO;$(PkgDir)\Graphics;$(PkgDir)\Templates;$(PkgDir)\Image;$(PkgDir)\Physics;$(PkgDir)\Image\Formats;$(PkgDir)\OS\iOS;$(PkgDir)\Core;$(PkgDir)\UI;$(PkgDir)\AI;$(PkgDir)\Audio;$(PkgDir)\Audio\Formats;$(PkgDir)\Network;$(PkgDir)\Libs\pasJPEG;$(PkgDir)\Math;$(PkgDir)\Network\Protocols"/>
     </UsageOptions>
     <PublishOptions>
       <Version Value="2"/>
     </PublishOptions>
   </Package>
-</CONFIG>
+</CONFIG>

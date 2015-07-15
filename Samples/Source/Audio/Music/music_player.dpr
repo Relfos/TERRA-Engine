@@ -33,10 +33,9 @@ Begin
   Fnt.SetFont(FontManager.Instance.GetFont('droid'));
 
   GraphicsManager.Instance.Scene := _Scene;
-  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorBlue;
+  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlue;
 
-  MusicManager.Instance.Play('bgm_boss2');
-  //MusicManager.Instance.Play('mar');
+  MusicManager.Instance.Play('mar');
 End;
 
 Procedure Demo.OnDestroy;

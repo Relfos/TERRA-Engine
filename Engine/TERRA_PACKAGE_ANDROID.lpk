@@ -2,7 +2,7 @@
 <CONFIG>
   <Package Version="4">
     <PathDelim Value="\"/>
-    <Name Value="LEAF3_PACKAGE_IOS"/>
+    <Name Value="TERRA_PACKAGE_ANDROID"/>
     <Type Value="RunAndDesignTime"/>
     <CompilerOptions>
       <Version Value="11"/>
@@ -17,8 +17,8 @@
       </Item1>
     </RequiredPkgs>
     <UsageOptions>
-      <IncludePath Value="$(PkgDir)\Utils;$(PkgDir)\Core"/>
-      <UnitPath Value="$(PkgDir)\Utils;$(PkgDir)\Core\FileIO;$(PkgDir)\Graphics;$(PkgDir)\Templates;$(PkgDir)\Image;$(PkgDir)\Physics;$(PkgDir)\Image\Formats;$(PkgDir)\OS\iOS;$(PkgDir)\Core;$(PkgDir)\UI;$(PkgDir)\AI;$(PkgDir)\Audio;$(PkgDir)\Audio\Formats;$(PkgDir)\Network;$(PkgDir)\Libs\pasJPEG;$(PkgDir)\Math;$(PkgDir)\Network\Protocols"/>
+      <IncludePath Value="$(PkgDir)\Utils;$(PkgDir)\Core;$(PkgDir)\OS\Android"/>
+      <UnitPath Value="$(PkgDir)\Utils;$(PkgDir)\Core\FileIO;$(PkgDir)\Graphics;$(PkgDir)\Templates;$(PkgDir)\Image;$(PkgDir)\Physics;$(PkgDir)\Image\Formats;$(PkgDir)\OS\Android;$(PkgDir)\Core;$(PkgDir)\UI;$(PkgDir)\AI;$(PkgDir)\Audio;$(PkgDir)\Audio\Formats;$(PkgDir)\Network;$(PkgDir)\Libs\pasJPEG;$(PkgDir)\Math;$(PkgDir)\Network\Protocols"/>
     </UsageOptions>
     <PublishOptions>
       <Version Value="2"/>
