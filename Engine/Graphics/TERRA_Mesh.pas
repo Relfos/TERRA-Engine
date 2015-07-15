@@ -372,6 +372,9 @@ Type
       Procedure SetWireframeMode(GroupID:Integer; Enabled:Boolean);
       Function GetWireframeMode(GroupID:Integer):Boolean;
 
+      Function GetHueShift(GroupID:Integer): Single;
+      Procedure SetHueShift(GroupID:Integer; Value:Single);
+
       Function AddEffect(FX:MeshFX):Mesh;
 
       Function AddParticleEmitter(Const Name:TERRAString; Position: Vector3D; Const Content:TERRAString; Const ParentBone:TERRAString = ''):MeshEmitter;
@@ -1208,8 +1211,7 @@ Begin
   If (GraphicsManager.Instance.Renderer.Settings.NormalMapping.Enabled)
   And (Not Target.Vertices.HasAttribute(vertexTangent)) Then
   Begin
-    NewFormat := Target.Vertices.Format + [vertexFormatTangent];
-    Target.Vertices.ConvertToFormat(NewFormat);
+    Target.Vertices.AddAttribute(vertexFormatTangent);
     Target._NeedsTangentSetup := True;
   End;
 
@@ -1717,6 +1719,22 @@ Begin
     Result := False
   Else
     Result := _Groups[GroupID].Wireframe;
+End;
+
+Procedure MeshInstance.SetHueShift(GroupID:Integer; Value:Single); {$IFDEF FPC}Inline;{$ENDIF}
+Begin
+  If (GroupID<0) Or (GroupID >= _Mesh._GroupCount) Then
+    Exit;
+
+  _Groups[GroupID].Material.HueShift := Value;
+End;
+
+Function MeshInstance.GetHueShift(GroupID:Integer):Single; {$IFDEF FPC}Inline;{$ENDIF}
+Begin
+  If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
+    Result := 0.0
+  Else
+    Result := _Groups[GroupID].Material.HueShift;
 End;
 
 Function MeshInstance.GetUVOffset(GroupID:Integer):Vector2D;
@@ -7046,8 +7064,12 @@ Begin
       FxFlags := FxFlags Or shaderWireframe;
 
     //DestMaterial.HueShift := 0.0;
-    If (DestMaterial.HueShift<>0.0) Or (Group.Flags And meshGroupHueShift<>0) Then
+    If ((DestMaterial.HueShift<>0.0) Or (Group.Flags And meshGroupHueShift<>0)) Then
+    Begin
+      Group.Vertices.AddAttribute(vertexFormatHue);
+      Group.ReleaseBuffer();
       FxFlags := FxFlags Or shaderHueChange;
+    End;
 
     If (DestMaterial.ReflectiveMap <> Nil) Then
       FxFlags := FxFlags Or shaderSphereMap Or shaderReflectiveMap;

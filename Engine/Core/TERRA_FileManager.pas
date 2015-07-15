@@ -364,17 +364,6 @@ Begin
     End;
   End;
 
-  If Assigned(Application.Instance()) And (Application.Instance().TempPath<>'') Then
-  Begin
-    S := Application.Instance().TempPath + PathSeparator + FileName;
-    If FileStream.Exists(S) Then
-    Begin
-      Result := S;
-      RegisterLocation();
-      Exit;
-    End;
-  End;
-
   If FileStream.Exists(FileName) Then
   Begin
     Result := FileName;
@@ -400,7 +389,7 @@ Begin
       End;
     End;
   End;
-  
+
   For I:=0 To Pred(_PackageCount) Do
   If Assigned(_PackageList[I]) Then
   Begin
@@ -412,6 +401,18 @@ Begin
       Exit;
     End;
   End;
+
+  If Assigned(Application.Instance()) And (Application.Instance().TempPath<>'') Then
+  Begin
+    S := Application.Instance().TempPath + PathSeparator + FileName;
+    If FileStream.Exists(S) Then
+    Begin
+      Result := S;
+      RegisterLocation();
+      Exit;
+    End;
+  End;
+
 
   Result := '';
   RegisterLocation();

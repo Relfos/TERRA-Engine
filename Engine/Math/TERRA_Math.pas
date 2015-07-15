@@ -91,7 +91,7 @@ Function Log2(Const X:Float):Float;
 //Function Log2(X:Integer):Float; Overload;
 Function LNXP1(Const x:Float):Float;
 
-Function float32_unpack(Const x:Cardinal):Single;
+Function float32_Unpack(Const x:Cardinal):Single;
 
 Function ArcSin(Const X:Float):Float;
 Function ArcCos(Const X:Float):Float;

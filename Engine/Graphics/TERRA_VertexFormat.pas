@@ -140,6 +140,9 @@ Type
       Function HasAttribute(Attribute:Cardinal):Boolean;
       Function HasAttributeWithName(Const Name:TERRAString):Boolean;
 
+
+      Procedure AddAttribute(Attribute:VertexFormatAttribute);
+
       Procedure SetAttributeFormat(Attribute:Cardinal; Value:DataFormat);
       Procedure SetAttributeName(Attribute:Cardinal; Const Value:TERRAString);
 
@@ -213,7 +216,7 @@ Begin
   Move(Value, Result, SizeOf(VertexFormat));
 End;
 
-Function VertexFormatAttributeValue(Attr:VertexFormatAttribute):Integer;
+Function VertexFormatAttributeValue(Attr:VertexFormatAttribute):Cardinal;
 Begin
   Case Attr Of
     vertexFormatPosition: Result := vertexPosition;
@@ -361,9 +364,24 @@ Begin
   Result := False;
 End;
 
+
 Function VertexData.HasAttribute(Attribute: Cardinal): Boolean;
 Begin
   Result := (GetAttributeOffsetInFloats(Attribute)>=0);
+End;
+
+
+Procedure VertexData.AddAttribute(Attribute:VertexFormatAttribute);
+Var
+  NewFormat:VertexFormat;
+Begin
+  If Self.HasAttribute(VertexFormatAttributeValue(Attribute)) Then
+    Exit;
+
+  NewFormat := Self.Format;
+  Include(NewFormat, Attribute);
+
+  Self.ConvertToFormat(NewFormat);
 End;
 
 Function VertexData.GetAttributeOffsetInFloats(Attribute: Cardinal): Integer;
