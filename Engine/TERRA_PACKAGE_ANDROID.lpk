@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="4">
+    <PathDelim Value="\"/>
+    <Name Value="TERRA_PACKAGE_ANDROID"/>
+    <Type Value="RunAndDesignTime"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <PathDelim Value="\"/>
+      <SearchPaths>
+        <UnitOutputDirectory Value="Units\$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+    </CompilerOptions>
+    <RequiredPkgs Count="1">
+      <Item1>
+        <PackageName Value="FCL"/>
+      </Item1>
+    </RequiredPkgs>
+    <UsageOptions>
+      <IncludePath Value="$(PkgDir)\Utils;$(PkgDir)\Core;$(PkgDir)\OS\Android"/>
+      <UnitPath Value="$(PkgDir)\Utils;$(PkgDir)\Core\FileIO;$(PkgDir)\Graphics;$(PkgDir)\Templates;$(PkgDir)\Image;$(PkgDir)\Physics;$(PkgDir)\Image\Formats;$(PkgDir)\OS\Android;$(PkgDir)\Core;$(PkgDir)\UI;$(PkgDir)\AI;$(PkgDir)\Audio;$(PkgDir)\Audio\Formats;$(PkgDir)\Network;$(PkgDir)\Libs\pasJPEG;$(PkgDir)\Math;$(PkgDir)\Network\Protocols"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>

@@ -63,6 +63,7 @@ Type
     Function Length:Single;
     Function LengthSquared:Single;
     Function Distance(Const N:Vector3D):Single;
+    Function DistanceSquared(Const N:Vector3D):Single;
     Function Distance2D(Const N:Vector3D):Single;
 
     {$IFDEF BENCHMARK}
@@ -460,14 +461,19 @@ Begin
   {$ENDIF}
 End;
 
-Function Vector3D.Distance(Const N:Vector3D):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Function Vector3D.DistanceSquared(Const N:Vector3D):Single;{$IFDEF FPC} Inline;{$ENDIF}
 Var
   A,B,c:Single;
 Begin
   A := Self.X-N.X;
   B := Self.Y-N.Y;
   C := Self.Z-N.Z;
-  Result := Sqrt((A*A) + (B*B) + (C*C));
+  Result := (A*A) + (B*B) + (C*C);
+End;
+
+Function Vector3D.Distance(Const N:Vector3D):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Begin
+  Result := Sqrt(Self.DistanceSquared(N));
 End;
 {$ENDIF}
 

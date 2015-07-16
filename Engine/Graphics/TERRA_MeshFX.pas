@@ -255,7 +255,7 @@ Begin
 
         V.BoneIndex := 0;
 
-        V.Color.A := Trunc(255*Alpha);
+        V.BaseColor.A := Trunc(255*Alpha);
       End;
     End;
 

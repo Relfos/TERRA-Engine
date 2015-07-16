@@ -561,6 +561,7 @@ Begin
     If (Client.ID <> Owner) Then
       SendMessage(Msg, Client, Owner);
   End;
+  ReleaseObject(It);
   {$ENDIF}
 
   If AutoRelease Then

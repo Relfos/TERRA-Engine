@@ -6,25 +6,17 @@ Uses TERRA_Application, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManage
   TERRA_JPG, TERRA_PNG, TERRA_Lights, TERRA_TTF, TERRA_Math,
   TERRA_UI, TERRA_Widgets, TERRA_Texture, TERRA_SpriteManager,
   TERRA_MeshAnimation, TERRA_Image, TERRA_ScreenFX, TERRA_BoundingBox, TERRA_InputManager,
-  TERRA_ParticleRenderer, TERRA_ParticleEmitters,
+  TERRA_ParticleRenderer, TERRA_ParticleEmitters, TERRA_FontRenderer,
   TERRA_FileManager, TERRA_Scene, TERRA_Mesh, TERRA_Skybox, TERRA_Color, TERRA_Matrix4x4;
 
 Const
-  SpriteRes = 512;
-
-  DefaultZoom = 45;
-
   FXName = 'smoke';
 
 Type
   Demo = Class(Application)
     Public
-      Procedure SelectResolution3D(Var Width, Height:Integer); Override;
 			Procedure OnCreate; Override;
 			Procedure OnIdle; Override;
-
-      Function GetWidth:Word; Override;
-      Function GetHeight:Word; Override;
   End;
 
   MyScene = Class(Scene)
@@ -32,6 +24,7 @@ Type
       Constructor Create;
 
       Procedure RenderViewport(V:Viewport); Override;
+      Procedure RenderSprites(V:Viewport); Override;
   End;
 
 Var
@@ -43,18 +36,11 @@ Var
 
   LastSpawn:Cardinal;
 
+  Main:Viewport;
+
+  TextRenderer:FontRenderer;
 
 { Game }
-Function Demo.GetHeight: Word;
-Begin
-  Result := SpriteRes;
-End;
-
-Function Demo.GetWidth: Word;
-Begin
-  Result := SpriteRes;
-End;
-
 Procedure Demo.OnIdle;
 Var
   Pos:Vector3D;
@@ -78,15 +64,10 @@ Begin
       ParticleManager.Instance.Spawn(Emitter);
   End;
 
-  GraphicsManager.Instance.ActiveViewport.Camera.FreeCam();
+  Main.Camera.FreeCam();
 End;
 
 
-Procedure Demo.SelectResolution3D(var Width, Height: Integer);
-Begin
-  Width := SpriteRes;
-  Height := SpriteRes;
-End;
 
 { MyScene }
 Constructor MyScene.Create;
@@ -100,11 +81,20 @@ Begin
   FileManager.Instance.AddPath('assets');
 
   // set background color
-  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorGrey(64);
+  Main := GraphicsManager.Instance.CreateMainViewport('main', GraphicsManager.Instance.Width, GraphicsManager.Instance.Height);
+  Main.BackgroundColor := ColorGrey(64);
 
   GraphicsManager.Instance.Scene := MyScene.Create;
+
+  TextRenderer := FontRenderer.Create();
+  TextRenderer.SetFont(FontManager.Instance.DefaultFont);
 End;
 
+
+Procedure MyScene.RenderSprites(V: Viewport);
+Begin
+  TextRenderer.DrawText(5, 5, 5, 'Press space to spawn particles');
+End;
 
 Procedure MyScene.RenderViewport(V:Viewport);
 Begin

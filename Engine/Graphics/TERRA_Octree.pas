@@ -160,7 +160,7 @@ Begin
   While I<_ElementCount Do
   If (_Elements[I] = Element) Then
   Begin
-    _Elements[I].Release;
+    ReleaseObject(_Elements[I]);
     _Elements[I] := _Elements[Pred(_ElementCount)];
     Dec(_ElementCount);
     Exit;
@@ -249,9 +249,6 @@ End;
 
 Procedure OctreeElement.Render;
 Begin
-{$IFDEF PC}
-  DrawBoundingBox(Box, ColorWhite);
-{$ENDIF}
 End;
 
 End.

@@ -106,7 +106,7 @@ Begin
   SetLength(_Explosions, _ExplosionCount);
   _Explosions[Pred(_ExplosionCount)].X := X;
   _Explosions[Pred(_ExplosionCount)].Y := Y;
-  _Explosions[Pred(_ExplosionCount)].Time := GetTime;
+  _Explosions[Pred(_ExplosionCount)].Time := Application.GetTime();
 End;
 
 Procedure AddShip(X, Y:Single; ID:Integer);
@@ -117,9 +117,9 @@ Begin
   _Ships[Pred(_ShipCount)].X := X;
   _Ships[Pred(_ShipCount)].Y := Y;
   _Ships[Pred(_ShipCount)].ID := ID;
-  _Ships[Pred(_ShipCount)].LastUpdate := GetTime;
+  _Ships[Pred(_ShipCount)].LastUpdate := Application.GetTime();
   _Ships[Pred(_ShipCount)].Thrust := 1.0;
-  _Ships[Pred(_ShipCount)].Tint := ColorCreate(RandomFloat(0.75, 1), RandomFloat(0.75, 1), RandomFloat(0.75, 1));
+  _Ships[Pred(_ShipCount)].Tint := ColorCreateFromFloat(RandomFloat(0.75, 1), RandomFloat(0.75, 1), RandomFloat(0.75, 1));
 End;
 
 { MyScene }
@@ -146,13 +146,13 @@ Begin
   I:=0;
   While (I<_ExplosionCount) Do
   Begin
-    N := ((GetTime-_Explosions[I].Time) Div ExplosionSpeed);
+    N := ((Application.GetTime() - _Explosions[I].Time) Div ExplosionSpeed);
     If (N<10) Then
     Begin
       TX := N Mod 5;
       TY := N Div 5;
       S := SpriteManager.Instance.DrawSprite(_Explosions[I].X, _Explosions[I].Y, 20, _ExplosionTex);
-      S.Rect.PixelRemap(92*TX, 92*TY, Succ(TX)*92, Succ(TY)*92);
+      S.Rect.PixelRemap(92*TX, 92*TY, Succ(TX)*92, Succ(TY)*92, _ExplosionTex);
       Inc(I);
     End Else
     Begin
@@ -166,11 +166,11 @@ Begin
   While (I<_ShipCount) Do
   Begin
     Begin
-      Delta := (GetTime - _Ships[I].LastUpdate);
+      Delta := (Application.GetTime() - _Ships[I].LastUpdate);
       Delta := Delta/20;
 
       S := SpriteManager.Instance.DrawSprite(_Ships[I].X, _Ships[I].Y, 20, _ShipTex);
-      S.Rect.PixelRemap(64, 0, 112, 32);
+      S.Rect.PixelRemap(64, 0, 112, 32, _ShipTex);
       S.Anchor := VectorCreate2D(0.5, 0.5);
       S.SetScaleAndRotation(1.0, _Ships[I].Rotation);
       S.SetColor(_Ships[I].Tint);
@@ -181,7 +181,7 @@ Begin
         If (_Ships[I].ID = _MyID) Then
         Begin
           _Ships[I].Delta := Delta;
-          _Ships[I].LastUpdate := GetTime;
+          _Ships[I].LastUpdate := Application.GetTime();
 
           DX := -Sin(_Ships[I].Rotation);
           DY := -Cos(_Ships[I].Rotation);
@@ -191,7 +191,7 @@ Begin
           _Ships[I].Y := _Ships[I].Y + Delta *DY;
 
           // we moved a bit, notify the server (and the server will notify all players)
-          If (Assigned(_Client)) And (GetTime - NetUpdate>100) Then
+          If (Assigned(_Client)) And (Application.GetTime() - NetUpdate>100) Then
           Begin
             Msg := NetMessage.Create(netPlayerData);
             Msg.WriteInteger(_MyID);
@@ -201,7 +201,7 @@ Begin
             _Client.SendMessage(Msg);  // send it
             ReleaseObject(Msg);
 
-            NetUpdate := GetTime;
+            NetUpdate := Application.GetTime();
           End;
         End;
 
@@ -249,7 +249,7 @@ Begin
   _Client := MyNetClient.Create;
   _Client.Connect(GamePort, GameVersion, 'localhost', 'username', '');
 
-  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorBlack;
+  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlack;
 
   // Create a scene and set it as the current scene
   _Scene := MyScene.Create;

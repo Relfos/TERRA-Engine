@@ -384,11 +384,17 @@ End;
 Procedure SteamStat.Load;
 Begin
   ISteamUserStats_GetStatInt(PAnsiChar(_ID), _Value);
+  Log(logDebug, 'Steam', 'Stat '+_ID + ' = ' + IntToString(_Value));
 End;
 
+
 Procedure SteamStat.SetValue(const Val: Integer);
-Begin
+Begin  
   _Value := Val;
+
+  If (Not SteamManager.Instance._LoggedOn) Then
+    Exit;
+
   ISteamUserStats_SetStatInt(PAnsiChar(_ID), _Value);
   SteamManager.Instance._StoreStats := True;
 End;

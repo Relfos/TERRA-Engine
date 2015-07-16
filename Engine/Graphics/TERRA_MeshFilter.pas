@@ -34,14 +34,14 @@ Const
   meshGroupHidden       = 1 Shl 0;  // Group is hidden
   meshGroupDoubleSided  = 1 Shl 1;
   meshGroupCastShadow   = 1 Shl 2;
-  meshGroupTransparency = 1 Shl 3;
-  meshGroupAlphaTest    = 1 Shl 4;
+  //meshGroupTransparency = 1 Shl 3;
+  //meshGroupAlphaTest    = 1 Shl 4;
   meshGroupPick         = 1 Shl 5;
   meshGroupLightmap     = 1 Shl 6;
   meshGroupSpheremap    = 1 Shl 7;
   meshGroupDepthOff     = 1 Shl 8;
   meshGroupTriplanar    = 1 Shl 9;
-  //meshGroupVertexColor  = 1 Shl 10;
+  meshGroupHueShift     = 1 Shl 10;
   meshGroupLightOff     = 1 Shl 11;
   meshGroupOverrideAmbient = 1 Shl 12;
   meshGroupAlphaMap     = 1 Shl 13;

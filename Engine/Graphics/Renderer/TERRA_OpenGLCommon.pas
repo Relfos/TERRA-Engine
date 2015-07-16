@@ -3,13 +3,16 @@ Unit TERRA_OpenGLCommon;
 {$I terra.inc}
 
 {$DEFINE TRUE_VBO}
+{$DEFINE DEBUG_SHADERS}
+
+{$IFDEF WINDOWS} {$UNDEF MOBILE} {$ENDIF} 
 
 Interface
 Uses
-  TERRA_String, TERRA_Utils, TERRA_Renderer, TERRA_VertexFormat,
+  TERRA_String, TERRA_Utils, TERRA_Object, TERRA_Renderer, TERRA_VertexFormat,
   {$IFDEF MOBILE}TERRA_OpenGLES{$ELSE}TERRA_OpenGL{$ENDIF}, 
   TERRA_Color, TERRA_Image, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D,
-  TERRA_Matrix3x3, TERRA_Matrix4x4;
+  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_Stream, SysUtils;
 
 Type
   OpenGLVBO = Class(VertexBufferInterface)
@@ -42,7 +45,7 @@ Type
 
       Procedure UniformError(Const Name:TERRAString);
 
-      Function CompileShader(Const Name:TERRAString; Source:TERRAString; ShaderType: Cardinal; var Shader:Cardinal; AllowFallback:Boolean): Boolean;
+      Function CompileShader(Const Name:TERRAString; Source:TERRAString; ShaderType: Cardinal; var Shader:Cardinal): Boolean;
       Function LinkProgram:Boolean;
 
       Function Load():Boolean;
@@ -331,7 +334,7 @@ Const
   FallbackVertexSource = 'void main(){ gl_Position = gl_Vertex;}';
   FallbackFragmentSource = 'void main(){gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);}';
 
-Function OpenGLShader.CompileShader(Const Name:TERRAString; Source:TERRAString; ShaderType: Cardinal; var Shader:Cardinal; AllowFallback:Boolean): Boolean;
+Function OpenGLShader.CompileShader(Const Name:TERRAString; Source:TERRAString; ShaderType: Cardinal; var Shader:Cardinal): Boolean;
 Var
   CompileStatus, ShaderLength:Integer;
   LogInfo,PS:TERRAString;
@@ -393,15 +396,7 @@ Begin
     Log(logDebug,'Shader', Source);
 
     //RaiseError(Name+'.'+PS+': ' + LogInfo);
-    If (AllowFallback) And (ShaderType = GL_FRAGMENT_SHADER) Then
-    Begin
-      Result := CompileShader(Name, FallbackFragmentSource, ShaderType, Shader, False);
-    End Else
-    If (AllowFallback) And (ShaderType = GL_VERTEX_SHADER) Then
-    Begin
-      Result := CompileShader(Name, FallbackVertexSource, ShaderType, Shader, False);
-    End Else
-      Result := False;
+    Result := False;
   End Else
     Result := True;
 End;
@@ -743,13 +738,32 @@ Begin
   Log(logDebug, 'Shader', 'Compiling vertex code for ' + _Name);
 
   _Linked := False;
-  Result := CompileShader(_Name, _VertexCode, GL_VERTEX_SHADER, _VertexShaderHandle, True);
-  If Not Result Then
-    Exit;
+  Result := CompileShader(_Name, _VertexCode, GL_VERTEX_SHADER, _VertexShaderHandle);
 
   Log(logDebug, 'Shader', 'Compiling fragment code for ' + _Name);
 
-  Result := CompileShader(_Name, _FragmentCode, GL_FRAGMENT_SHADER, _FragmentShaderHandle, True);
+  If Result Then
+  Begin
+    Result := CompileShader(_Name, _FragmentCode, GL_FRAGMENT_SHADER, _FragmentShaderHandle);
+
+    If Not Result Then
+    Begin
+      Result := CompileShader(_Name, FallbackFragmentSource, GL_FRAGMENT_SHADER, _FragmentShaderHandle);
+      If Not Result Then
+        Exit;
+    End;
+  End Else
+  Begin
+    Result := CompileShader(_Name, FallbackVertexSource, GL_VERTEX_SHADER, _VertexShaderHandle);
+    If Not Result Then
+      Exit;
+
+    Result := CompileShader(_Name, FallbackFragmentSource, GL_FRAGMENT_SHADER, _FragmentShaderHandle);
+    If Not Result Then
+      Exit;
+  End;
+
+
   If Not Result Then
     Exit;
 

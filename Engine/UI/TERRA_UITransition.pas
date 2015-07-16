@@ -408,7 +408,7 @@ Begin
   {$IFDEF POSTPROCESSING}
   Src := GraphicsManager.Instance.ActiveViewport.GetRenderTarget(captureTargetColor).GetImage();
   _Texture := Texture.Create(rtDynamic, 'ui_slide');
-  _Texture.InitFromSize(Src.Width, Src.Height);
+  _Texture.InitFromSize(Src.Width, Src.Height, ColorWhite);
   _Texture.UpdateRect(Src);
   ReleaseObject(Src);
   {$ELSE}

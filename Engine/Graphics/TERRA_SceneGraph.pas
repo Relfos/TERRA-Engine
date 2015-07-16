@@ -539,8 +539,7 @@ Begin
     MyMesh := MeshManager.Instance.GetMesh(Value);
     If Assigned(MyMesh) Then
     Begin
-      If Assigned(_Instance) Then
-        _Instance.Release;
+      ReleaseObject(_Instance);
 
       _Instance := MeshInstance.Create(MyMesh);
     End;

@@ -247,7 +247,7 @@ Type
       Procedure Release; Override;
 
       Procedure RenderShadowmap(View:Viewport);
-      Procedure RenderReflections(View:Viewport);
+      //Procedure RenderReflections(View:Viewport);
 
 			Procedure RenderScene();
 
@@ -292,6 +292,8 @@ Type
       Function EnableColoredTextureShader(Tex:Texture; Const Transform:Matrix4x4):ShaderInterface;
 
       Procedure EnableReflection(Const ReflectionPoint, ReflectionNormal:Vector3D);
+
+      Function CreateMainViewport(Const Name:TERRAString; Width, Height:Integer):Viewport;
 
       Property ElapsedTime:Single Read _elapsedTime;
 
@@ -487,10 +489,8 @@ Begin
   Line('fragment {');
 	Line('  varying mediump vec2 texCoord;');
 	Line('  uniform sampler2D texture;');
-  Line('  uniform mediump vec4 color;');
 	Line('  void main()	{');
   Line('    lowp vec4 c = texture2D(texture, texCoord.st);');
-  Line('    c = color * c;');
   {$IFDEF TESTFULLSCREENSHADER}
   Line('    gl_FragColor = vec4(0.0,1.0, 0.0, 1.0);}');
   {$ELSE}
@@ -778,6 +778,7 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
 
   // make UI view
   _UIViewport := Viewport.Create('UI', Self.UI_Width, Self.UI_Height, {$IFDEF FRAMEBUFFEROBJECTS}Self.UI_Scale{$ELSE}1.0{$ENDIF});
+  _UIViewport.BackgroundColor := ColorNull;
   _UIViewport.SetRenderTargetState(captureTargetColor, True);
   _UIViewport.SetTarget(_DeviceViewport, 0, 0, 1.0, 1.0);
 
@@ -803,8 +804,6 @@ Procedure GraphicsManager.AddViewport(V:Viewport);
 Begin
   If (V = Nil) Then
     Exit;
-
-  V.OffScreen := True;
 
   Inc(_ViewportCount);
   SetLength(_Viewports, _ViewportCount);
@@ -949,8 +948,6 @@ Begin
        Scene.RenderSprites(Nil);
     End;
 
-    DrawDebug2DObjects();
-
     SpriteManager.Instance.Render();
 
     If ( Not _Prefetching) Then
@@ -975,7 +972,7 @@ Begin
   _Scene.RenderShadowCasters(View);
 End;
 
-{$IFNDEF REFLECTIONS_WITH_STENCIL}
+(*{$IFNDEF REFLECTIONS_WITH_STENCIL}
 Procedure GraphicsManager.RenderReflections(View:Viewport);
 Var
   Normal:Vector3D;
@@ -1136,7 +1133,7 @@ Begin
   Self.ReflectionMatrix4x4Sky := Matrix4x4Identity;
   Self.ReflectionMatrix4x4 := Matrix4x4Identity;
 End;
-{$ENDIF}
+{$ENDIF}*)
 
 Var
   _StencilVolumeShader:ShaderInterface;
@@ -1269,7 +1266,7 @@ Begin
     captureTargetReflection: N := renderStageReflection;
     captureTargetShadow: N := renderStageShadow;
     captureTargetOutline: N := renderStageOutline;
-    captureTargetAlpha: N := renderStageDiffuse;
+    //captureTargetAlpha: N := renderStageDiffuse;
     Else
       Exit;
   End;
@@ -1342,11 +1339,11 @@ Begin
     {$ENDIF}
 {$ENDIF}
 
-  If (_ReflectionsEnabled) Then
+(*  If (_ReflectionsEnabled) And (_RenderStage = renderStageDiffuse) Then
   Begin
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderReflections');{$ENDIF}
     Self.RenderReflections(View);
-  End;
+  End;*)
 
 (*    If (Renderer.Features.Shaders.Avaliable) And (Renderer.Settings.DynamicShadows.Enabled) Then
     Begin
@@ -1360,7 +1357,7 @@ Var
   I, J, Count, SubViews:Integer;
   Target:RenderTargetInterface;
 Begin
-  If Not View.Active Then
+  If Not View.Visible Then
     Exit;
 
   SetCurrentViewport(View);
@@ -1382,8 +1379,6 @@ Begin
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderEverything');{$ENDIF}
     _Scene.RenderViewport(View);
   End;
-
-  DrawDebug3DObjects();
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Particles.Render');{$ENDIF}
   ParticleManager.Instance.Render();
@@ -1408,14 +1403,17 @@ Begin
       If (Target = Nil) Then
         Continue;
 
+      If (Self.ShowDebugTarget <> captureTargetInvalid) And (Self.ShowDebugTarget <> RenderTargetType(I)) Then
+        Continue;
+
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Rendering viewport: '+View.Name+', target '+IntToString(I)+', width:'+IntToString(Target.Width)+', height:'+IntToString(Target.Height));{$ENDIF}
 
       Case RenderTargetType(I) Of
         captureTargetRefraction:
           Target.BackgroundColor := ColorNull;
 
-        captureTargetAlpha:
-          Target.BackgroundColor := ColorNull;
+        (*captureTargetAlpha:
+          Target.BackgroundColor := ColorNull;*)
 
         captureTargetReflection:
           Target.BackgroundColor := ColorBlack;
@@ -1440,8 +1438,7 @@ Begin
       Inc(Count);
 
       {$IFDEF PC}
-      (*
-      If (_RenderStage = renderStageDiffuse) And (InputManager.Instance.Keys.WasPressed(KeyH)) Then
+      (*If (_RenderStage = renderStageDiffuse) And (InputManager.Instance.Keys.WasPressed(KeyH)) Then
         Target.GetImage.Save('frame.png');*)
       
       {If (_RenderStage = renderStageGlow) And (Application.Instance.Input.Keys.WasPressed(Ord('M'))) Then
@@ -1954,6 +1951,7 @@ End;
 Procedure GraphicsManager.Update;
 Var
   I:Integer;
+  TempDebugTarget:RenderTargetType;
   Target:RenderTargetInterface;
   Time:Cardinal;
   UpdateFPS:Boolean;
@@ -1989,14 +1987,16 @@ Begin
   If (Not _Prefetching) And (Render3D) Then
     Self.RenderScene;
 
-
   // resolve offscreen buffers
-  For I:=Pred(_ViewportCount) DownTo 0 Do
-  If (_Viewports[I].Active) And (_Viewports[I].AutoResolve) Then
+  If (Self.ShowDebugTarget = captureTargetInvalid) Then
   Begin
-    _Viewports[I].DrawToTarget(True, True);
+    For I:=Pred(_ViewportCount) DownTo 0 Do
+    If (_Viewports[I].Visible) And (_Viewports[I].AutoResolve) Then
+    Begin
+      _Viewports[I].DrawToTarget(True);
+    End;
   End;
-
+  
 // {$IFDEF PC} Render2D  := Application.Instance.Input.Keys[keyF1];{$ENDIF}
 
   If Render2D Then
@@ -2005,30 +2005,28 @@ Begin
   _DeviceViewport.Bind(0);
   _DeviceViewport.Restore(True);
 
+  Target := _DeviceViewport.GetRenderTarget(captureTargetColor);
 
-   Target := _DeviceViewport.GetRenderTarget(captureTargetColor);
-
- If Assigned(Target) Then
+  If Assigned(Target) Then
     Target.BeginCapture();
 
   For I:=0 To Pred(_ViewportCount) Do
-  If (_Viewports[I].Active) And (Not _Viewports[I].AutoResolve) Then
+  If (_Viewports[I].Visible) And (Not _Viewports[I].AutoResolve) And (_Viewports[I].Target = _DeviceViewport) Then
   Begin
-    If (_Viewports[I].Target = _DeviceViewport) Then
-      _Viewports[I].DrawToTarget(True, True)
-    Else
-    If (_Viewports[I].Target = Nil) Then
-      _Viewports[I].DrawToTarget(True, True);
+    _Viewports[I].DrawToTarget(True);
   End;
 
-  If (Render2D) And (Integer(Self.ShowDebugTarget) <=0) Then
-    _UIViewport.DrawToTarget(False, False);
+  If (Render2D) Then
+  Begin
+    TempDebugTarget := Self.ShowDebugTarget;
+    Self.ShowDebugTarget := captureTargetInvalid;
+    _UIViewport.DrawToTarget(False);
+    Self.ShowDebugTarget := TempDebugTarget;
+  End;
 
   If Assigned(Target) Then
     Target.EndCapture();
  
-  ClearTemporaryDebug3DObjects();
-
   Renderer.EndFrame();
   If UpdateFPS Then
     Renderer.UpdateFrameCounter();
@@ -2077,9 +2075,6 @@ Begin
 
   If (MyScene = _Scene) Then
     Exit;
-
-  {If Assigned(_Scene) Then
-    _Scene.Release;}
 
   _Scene := MyScene;
 End;
@@ -2353,8 +2348,8 @@ Begin
     If (Input.Keys.WasPressed(keyF3)) Then
       Self.ShowDebugTarget := effectTargetEdge;
 
-    If (Input.Keys.WasPressed(keyF4)) Then
-      Self.ShowDebugTarget := captureTargetAlpha;
+    (*If (Input.Keys.WasPressed(keyF4)) Then
+      Self.ShowDebugTarget := captureTargetAlpha;*)
   End Else
   Begin
     If (Input.Keys.WasPressed(keyF1)) Then
@@ -2395,6 +2390,17 @@ Begin
   {$ELSE}
   Self._ReflectionsEnabled := False;
   {$ENDIF}
+End;
+
+Function GraphicsManager.CreateMainViewport(Const Name:TERRAString; Width, Height:Integer):Viewport;
+Begin
+  Result := Viewport.Create(Name, Width, Height);
+  Result.SetTarget(Self.DeviceViewport, 0.0, 0.0, 1.0, 1.0);
+  Self.AddViewport(Result);
+  Result.Visible := True;
+  Result.EnableDefaultTargets();
+  Result.DrawSky := True;
+  Result.BackgroundColor := ColorGreen;
 End;
 
 End.

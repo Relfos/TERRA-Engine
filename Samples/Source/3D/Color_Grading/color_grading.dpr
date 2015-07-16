@@ -1,8 +1,8 @@
 {$I terra.inc}
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} BasicSample;
-
+jerror
 Uses TERRA_Application, TERRA_Scene, TERRA_Utils, TERRA_GraphicsManager, TERRA_Viewport,
-  TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_JPG, TERRA_PNG, TERRA_UI,
+  TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_PNG, TERRA_UI,
   TERRA_SpriteManager, TERRA_FileManager, TERRA_Math, TERRA_Vector3D,
   TERRA_Renderer, TERRA_InputManager;
                                       
@@ -36,9 +36,7 @@ Begin
   FileManager.Instance.AddPath('Assets');
 
   // Load a Tex
-  //Tex := TextureManager.Instance.GetTexture('forest');
-  Tex := TextureManager.Instance.GetTexture('gradient');
-  Tex := TextureManager.Instance.GetTexture('test');
+  Tex := TextureManager.Instance.GetTexture('forest');
   If Assigned(Tex) Then
   Begin
     Tex.PreserveQuality := True;
@@ -53,13 +51,13 @@ Begin
 
   CurrentGrad := GradRamp;
 
-  CurrentGrad := TextureManager.Instance.DefaultColorTable;
+  //CurrentGrad := TextureManager.Instance.DefaultColorTable;
 
   // Create a scene and set it as the current scene
   _Scene := MyScene.Create;
   GraphicsManager.Instance.SetScene(_Scene);
 
-  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorWhite;
+  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorWhite;
 
   Percent := 0.5;
 End;

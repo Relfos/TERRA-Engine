@@ -38,6 +38,7 @@ Const
   IMP_SetGreyscale          = 32;
   IMP_FlipVertical          = 64;
   IMP_FlipHorizontal        = 128;
+  IMP_ScaleColor            = 256;
 
   componentRed    = 0;
   componentGreen  = 1;
@@ -54,6 +55,8 @@ Const
   PixelSize:Cardinal = 4;
 
 Type
+  ImageTransparencyType = (imageUnknown, imageOpaque, imageTransparent, imageTranslucent);
+
   ImageFrame = Class(TERRAObject)
     Protected
       _Data:Array Of Color;
@@ -76,13 +79,15 @@ Type
 
       _CurrentFrame:Cardinal;
 
-      _HasAlpha:Boolean;
+      _TransparencyType:ImageTransparencyType;
 
       Procedure Discard;
       Procedure FillAlpha(AlphaValue:Byte=255);
 
       Function GetPixelCount:Cardinal;
       Function GetPixels:PColor;
+
+      Function GetImageTransparencyType:ImageTransparencyType;
 
     Public
       Constructor Create(Width, Height:Integer);Overload;
@@ -185,7 +190,7 @@ Type
       Property CurrentFrame:Cardinal Read _CurrentFrame Write SetCurrentFrame;
       Property FrameCount:Cardinal Read _FrameCount;
 
-      Property HasAlpha:Boolean Read _HasAlpha Write _HasAlpha;
+      Property TransparencyType:ImageTransparencyType Read GetImageTransparencyType;
   End;
 
 
@@ -323,7 +328,7 @@ Procedure Image.New(Const Width,Height:Cardinal);
 Begin
   Discard();
 
-  _HasAlpha := False;
+  _TransparencyType := imageUnknown;
   _CurrentFrame := MaxInt;
 
   _Width := Width;
@@ -378,7 +383,7 @@ Begin
       Self.AddFrame();
   End;
 
-  _HasAlpha := Source.HasAlpha;
+  _TransparencyType := Source._TransparencyType;
 End;
 
 Procedure Image.Resize(Const NewWidth,NewHeight:Cardinal);
@@ -624,25 +629,26 @@ Var
   I,J,K:Cardinal;
   Source,Dest:PColor;
 
-  SwapChannels,SetColorKey:Boolean;
+  SwapChannels, SetColorKey, ScaleColor:Boolean;
   FilColor,FillAlpha:Boolean;
   SetGreyscale,SetAlphaFromLuminance:Boolean;
   FlipHorizontal,FlipVertical:Boolean;
 Begin
-  SetAlphaFromLuminance:=(Flags And IMP_SetAlphaFromLuminance<>0);
-  SetGreyscale:=(Flags And IMP_SetGreyscale<>0);
-  SwapChannels:=(Flags And IMP_SwapChannels<>0);
-  SetColorKey:=(Flags And IMP_SetColorKey<>0);
-  FillAlpha:=(Flags And IMP_FillAlpha<>0);
-  FilColor:=(Flags And IMP_FillColor<>0);
-  FlipHorizontal:=(Flags And IMP_FlipHorizontal<>0);
-  FlipVertical:=(Flags And IMP_FlipVertical<>0);
+  SetAlphaFromLuminance := (Flags And IMP_SetAlphaFromLuminance<>0);
+  SetGreyscale := (Flags And IMP_SetGreyscale<>0);
+  SwapChannels := (Flags And IMP_SwapChannels<>0);
+  SetColorKey := (Flags And IMP_SetColorKey<>0);
+  FillAlpha := (Flags And IMP_FillAlpha<>0);
+  FilColor := (Flags And IMP_FillColor<>0);
+  FlipHorizontal := (Flags And IMP_FlipHorizontal<>0);
+  FlipVertical := (Flags And IMP_FlipVertical<>0);
+  ScaleColor := (Flags And IMP_ScaleColor<>0);
 
   If (_Width = 0) Or (_Height = 0) Then
-    Exit; 
+    Exit;
 
-  If (FillAlpha)And(Color.A=0) Then
-    _HasAlpha:=True;
+  If (FillAlpha) And (Color.A = 0) Then
+    _TransparencyType := imageTransparent;
 
   For K:=0 To Pred(_FrameCount) Do
   Begin
@@ -675,10 +681,15 @@ Begin
           Source^ := ColorGrey(ColorLuminance(Source^), Source.A);
         End;
 
+        If (ScaleColor) Then
+        Begin
+          Source^ := ColorMultiply(Source^, Color);
+        End;
+
         If (SetColorKey) And (Cardinal(Source^)=Cardinal(Color)) Then
         Begin
-          Cardinal(Source^):=0;
-          _HasAlpha:=True;
+          Cardinal(Source^) := 0;
+          _TransparencyType := imageTransparent;
         End;
 
         If (SwapChannels) Then
@@ -2239,11 +2250,42 @@ Begin
 
     Temp.H := Byte(Hue);
 
-    P^ := ColorHSLToRGB(Temp); 
+    P^ := ColorHSLToRGB(Temp);
 
     Inc(P);
     Dec(Count);
   End;
+End;
+
+Function Image.GetImageTransparencyType:ImageTransparencyType;
+Var
+  P:PColor;
+  Count:Integer;
+Begin
+  If _TransparencyType = imageUnknown Then
+  Begin
+    P := Self.Pixels;
+    Count := Self.Width * Self.Height;
+
+    _TransparencyType := imageOpaque;
+    While Count>0 Do
+    Begin
+      If (P.A<255) Then
+      Begin
+        If (P.A>0) Then
+        Begin
+          _TransparencyType := imageTranslucent;
+          Break;
+        End Else
+          _TransparencyType := imageTransparent;
+      End;
+
+      Inc(P);
+      Dec(Count);
+    End;
+  End;
+
+  Result := _TransparencyType;
 End;
 
 { ImageFrame }

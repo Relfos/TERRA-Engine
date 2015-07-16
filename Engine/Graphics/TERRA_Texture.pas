@@ -30,10 +30,8 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Resource, TERRA_ResourceManager, TERRA_Renderer;
 
 {$IFDEF MOBILE}
-{´-$DEFINE TEXTURES16BIT}
+{-$DEFINE TEXTURES16BIT}
 {$ENDIF}
-
-{$DEFINE KEEPCOPYONRAM}
 
 Const
   MinTextureSize  = 2;
@@ -66,6 +64,8 @@ Type
       _MipMapped:Boolean;
       _Filter:TextureFilterMode;
 
+      _TransparencyType:ImageTransparencyType;
+
       Function GetCurrentFrame():Integer;
       Function GetCurrent:SurfaceInterface;
 
@@ -80,13 +80,15 @@ Type
 
       Function GetOrigin: SurfaceOrigin;
 
+      Function GetTransparencyType: ImageTransparencyType;
+      
     Public
       Uncompressed:Boolean;
       PreserveQuality:Boolean;
 
       Constructor Create(Kind:ResourceType; Location:TERRAString);
 
-      Procedure InitFromSize(TextureWidth, TextureHeight:Cardinal);
+      Procedure InitFromSize(TextureWidth, TextureHeight:Cardinal; FillColor:Color);
       Procedure InitFromImage(Source:Image);
       Procedure InitFromSurface(Surface:SurfaceInterface);
 
@@ -125,6 +127,8 @@ Type
       Property MipMapped:Boolean Read _MipMapped Write SetMipMapping;
       Property Filter:TextureFilterMode Read _Filter Write SetFilter;
 
+      Property TransparencyType:ImageTransparencyType Read GetTransparencyType;
+
       Property Origin: SurfaceOrigin Read GetOrigin;
 
       Property SizeInBytes:Cardinal Read _SizeInBytes;
@@ -155,11 +159,11 @@ Type
       Function GetCellNoise:Texture;
 
       Function CreateTextureWithColor(Name:TERRAString; TexColor:Color):Texture;
-      Procedure FillTextureWithColor(Tex:Texture; TexColor:Color);
 
       Function GetWhiteTexture:Texture;
       Function GetNullTexture:Texture;
       Function GetBlackTexture:Texture;
+      Procedure FillTextureWithColor(Tex: Texture; TexColor: Color);
 
 
     Public
@@ -311,11 +315,10 @@ End;
 Function TextureManager.CreateTextureWithColor(Name:TERRAString; TexColor:Color):Texture;
 Begin
   Result := Texture.Create(rtDynamic, Name);
-  Result.InitFromSize(64, 64);
+  Result.InitFromSize(64, 64, TexColor);
   Result.Uncompressed := True;
   Result.MipMapped := False;
   Result.Filter := filterLinear;
-  Self.FillTextureWithColor(Result, TexColor);
 End;
 
 Procedure TextureManager.FillTextureWithColor(Tex: Texture; TexColor: Color);
@@ -427,7 +430,7 @@ Begin
   If (Not Assigned(_DefaultColorTable)) Then
   Begin
     _DefaultColorTable := DefaultColorTableTexture.Create(rtDynamic, 'default_colortable');
-    _DefaultColorTable.InitFromSize(1024, 32);
+    _DefaultColorTable.InitFromSize(1024, 32, ColorNull);
     _DefaultColorTable.Rebuild();
   End Else
   If (Not _DefaultColorTable.IsValid()) Then
@@ -502,7 +505,7 @@ Procedure Texture.InitFromSurface(Surface: SurfaceInterface);
 Begin
   If (Surface = Nil) Then
   Begin
-    Self.InitFromSize(128, 128);
+    Self.InitFromSize(128, 128, ColorRed);
     Exit;
   End;
 
@@ -520,10 +523,12 @@ Begin
 
   _SettingsChanged := True;
 
+  _TransparencyType := imageTransparent;
+
   _Managed := True;
 End;
 
-Procedure Texture.InitFromSize(TextureWidth, TextureHeight:Cardinal);
+Procedure Texture.InitFromSize(TextureWidth, TextureHeight:Cardinal; FillColor:Color);
 Begin
   _Width := TextureWidth;
   _Height := TextureHeight;
@@ -543,7 +548,9 @@ Begin
   End;
 
   _Source := Image.Create(_Width, _Height);
-  _Source.Process(IMP_FillColor, ColorWhite);
+  _Source.FillRectangleByUV(0, 0, 1.0, 1.0, FillColor);
+
+  _TransparencyType := imageOpaque;
 
   Uncompressed := False;
 
@@ -552,13 +559,14 @@ End;
 
 Procedure Texture.InitFromImage(Source:Image);
 Begin
+  _TransparencyType := imageUnknown;
+
   If (Source = Nil) Then
-    Self.InitFromSize(128, 128)
+    Self.InitFromSize(128, 128, ColorWhite)
   Else
   Begin
     AdjustRatio(Source);
-    Self.InitFromSize(Source.Width, Source.Height);
-    Self.Update();
+    Self.InitFromSize(Source.Width, Source.Height, ColorWhite);
     Self.UpdateRect(Source);
   End;
 End;
@@ -570,6 +578,11 @@ Begin
   Uncompressed := False;
   Ofs := Source.Position;
   _Source := Image.Create(Source);
+
+(*  If (StringContains('monster', Source.Name)) Then
+    IntToString(2);*)
+
+  _TransparencyType := _Source.TransparencyType;
 
   AdjustRatio(_Source);
 
@@ -606,6 +619,8 @@ Begin
 
   ReleaseObject(_Source);
 
+  _TransparencyType := imageUnknown;
+
   Result := Inherited Unload();
 End;
 
@@ -634,6 +649,7 @@ Begin
   Begin
     _Source := Image.Create(_Width, _Height);
     _Source.Process(IMP_FillColor, ColorWhite);
+    _TransparencyType := imageOpaque;
     Exit;
   End;
 
@@ -672,10 +688,6 @@ Begin
 
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Freeing pixels');{$ENDIF}
-
-  {$IFNDEF KEEPCOPYONRAM}
-  ReleaseObject(_Source);
-  {$ENDIF}
 
   Self.SetStatus(rsReady);
 
@@ -733,6 +745,9 @@ Var
   Pixels:PWord;
   SourceFormat:TextureColorFormat;
 Begin
+  If (Self.TransparencyType = imageUnknown) Or (Self.TransparencyType = imageOpaque) Then
+    _TransparencyType := Source.TransparencyType;
+
   If Length(_Handles)<=0 Then
   Begin
     If (Self.Width = Source.Width) And (Self.Height = Source.Height) Then
@@ -1118,6 +1133,22 @@ End;
 Function Texture.IsValid: Boolean;
 Begin
   Result := (Assigned(Self.Current)) And (Self.Current.IsValid());
+End;
+
+Function Texture.GetTransparencyType:ImageTransparencyType;
+Begin
+  If (Self._TransparencyType = imageUnknown) Then
+  Begin
+    If _Source = Nil Then
+    Begin
+      Result := imageOpaque;
+      Exit;
+    End;
+
+    Self._TransparencyType := _Source.TransparencyType;
+  End;
+
+  Result := Self._TransparencyType;
 End;
 
 End.

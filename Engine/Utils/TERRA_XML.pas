@@ -36,7 +36,7 @@ Type
       Procedure LoadFromStream(Document:XMLDocument; Source:Stream; InitTag:TERRAString = '');
       Procedure LoadFromObject(Document:XMLDocument; Source:TERRAObject);
 
-      Procedure Release;Reintroduce;
+      Procedure Release; Override;
 
       Function AddTag(Const Name,Value:TERRAString):XMLNode;
       Procedure AddNode(Node:XMLNode);
@@ -67,7 +67,7 @@ Type
       Procedure SetRoot(const Value: XMLNode);
 
     Public
-      Procedure Release;Reintroduce;
+      Procedure Release; Override;
 
       Procedure LoadFromObject(Source:TERRAObject);
       Procedure LoadFromStream(Source:Stream);
@@ -322,7 +322,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_NodeCount) Do
-    ReleaseObject(_Childs[I]);
+    _Childs[I].Release;
   SetLength(_Childs,0);
   _NodeCount:=0;
 End;
@@ -562,7 +562,8 @@ End;
 // LXMLDocument
 Procedure XMLDocument.Release;
 Begin
-  ReleaseObject(_Root);
+  If Assigned(_Root) Then
+    _Root.Release;
 End;
 
 Function XMLDocument.GetNodeByName(Const Name:TERRAString):XMLNode;
@@ -650,7 +651,7 @@ Begin
   {$IFDEF PC}
  (* Dest := FileStream.Create('debug\'+GetFileName(Source.Name,False));
   DumpXML(_Root, Dest, 0);
-  ReleaseObject(Dest);*)
+  Dest.Release;*)
   {$ENDIF}
 End;
 
@@ -672,7 +673,7 @@ Begin
     Source.Encoding := Encoding;
 
   LoadFromStream(Source);
-  ReleaseObject(Source);
+  Source.Release;
 End;
 
 Procedure XMLDocument.SaveToFile(FileName:TERRAString; SaveFlags:Cardinal);
@@ -681,7 +682,7 @@ Var
 Begin
   Dest := FileStream.Create(FileName);
   Save(Dest, SaveFlags);
-  ReleaseObject(Dest);
+  Dest.Release;
 End;
 
 Procedure XMLDocument.LoadFromString(Data:TERRAString; Encoding:StringEncoding);
@@ -691,7 +692,7 @@ Begin
   Source := MemoryStream.Create(Length(Data), @Data[1]);
   Source.Encoding := Encoding;
   LoadFromStream(Source);
-  ReleaseObject(Source);
+  Source.Release;
 End;
 
 Function XMLDocument.AddVector(Const Name:TERRAString; Value:Vector3D; Parent:XMLNode=Nil):XMLNode;
@@ -736,7 +737,9 @@ Begin
   If Value = _Root Then
     Exit;
 
-  ReleaseObject(_Root);
+  If Assigned(_Root) Then
+    _Root.Release();
+
   _Root := Value;
 End;
 

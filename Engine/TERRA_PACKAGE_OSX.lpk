@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="4">
+    <PathDelim Value="\"/>
+    <Name Value="TERRA_PACKAGE_OSX"/>
+    <Type Value="RunAndDesignTime"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <PathDelim Value="\"/>
+      <SearchPaths>
+        <UnitOutputDirectory Value="Units\$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+    </CompilerOptions>
+    <RequiredPkgs Count="1">
+      <Item1>
+        <PackageName Value="FCL"/>
+      </Item1>
+    </RequiredPkgs>
+    <UsageOptions>
+      <IncludePath Value="$(PkgDir)\Utils;$(PkgDir)\Core"/>
+      <UnitPath Value="$(PkgDir)\Utils;$(PkgDir)\Core\FileIO;$(PkgDir)\Graphics;$(PkgDir)\Graphics\Renderer;$(PkgDir)\Templates;$(PkgDir)\Image;$(PkgDir)\Physics;$(PkgDir)\Image\Formats;$(PkgDir)\OS\OSX\Carbon;$(PkgDir)\Core;$(PkgDir)\UI;$(PkgDir)\AI;$(PkgDir)\Audio;$(PkgDir)\Audio\Formats;$(PkgDir)\Audio;$(PkgDir)\Graphics\Formats;$(PkgDir)\Network;$(PkgDir)\Libs\pasJPEG;$(PkgDir)\Libs\Steamworks\headers;$(PkgDir)\Math;$(PkgDir)\Network\Protocols;$(PkgDir)\..\Tools\Importers"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>

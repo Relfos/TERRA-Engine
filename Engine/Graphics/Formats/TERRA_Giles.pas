@@ -26,7 +26,7 @@ Unit TERRA_Giles;
 
 {$I terra.inc}
 Interface
-Uses TERRA_Utils, TERRA_Math, TERRA_Stream, TERRA_INI, TERRA_Vector3D, TERRA_Vector2D,
+Uses TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Stream, TERRA_INI, TERRA_Vector3D, TERRA_Vector2D,
   TERRA_Color, TERRA_FileStream, TERRA_FileUtils, TERRA_Vector4D, TERRA_MeshFilter;
 
 Const

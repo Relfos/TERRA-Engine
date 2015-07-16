@@ -38,7 +38,6 @@ Type
   Viewport = Class(TERRAObject)
     Protected
       _Name:TERRAString;
-      _Active:Boolean;
       _Visible:Boolean;
 
       _OfsX:Integer;
@@ -70,7 +69,6 @@ Type
       _RenderTextures:Array[0..Pred(TotalCaptureTargets)] Of Texture;
       _RenderSamplers:Array[0..Pred(TotalCaptureTargets)] Of RenderTargetSampler;
 
-      _Offscreen:Boolean;
       _DrawSky:Boolean;
 
       _VR:Boolean;
@@ -117,8 +115,6 @@ Type
 
       Procedure SetPostProcessingState(Enabled:Boolean);
 
-      Procedure SetOffScreenState(Enabled:Boolean);
-
       Procedure SetTarget(Target:Viewport; X1,Y1,X2,Y2:Single);
       Procedure SetTargetInPixels(Target:Viewport; X1,Y1,X2,Y2:Integer);
 
@@ -132,15 +128,13 @@ Type
 
       Function HasPostProcessing():Boolean;
 
-      Procedure DrawToTarget(AllowDebug, ProcessEffects:Boolean);
+      Procedure DrawToTarget(ProcessEffects:Boolean);
 
       Property BackgroundColor:Color Read _BackgroundColor Write SetBackgroundColor;
 
-      Property Active:Boolean Read _Active Write _Active;
       Property Camera:TERRA_Camera.Camera Read _Camera;
 
       Property DrawSky:Boolean Read _DrawSky Write _DrawSky;
-      Property OffScreen:Boolean Read _OffScreen Write SetOffScreenState;
 
       Property Visible:Boolean Read _Visible Write _Visible;
 
@@ -384,7 +378,7 @@ End;
 Constructor Viewport.Create(Name:TERRAString; Width,Height:Integer; Scale:Single);
 Begin
   _Name := Name;
-  _Active := True;
+  _Visible := True;
   _DrawSky := False;
 
   _Width := Width;
@@ -399,8 +393,6 @@ Begin
   _BackgroundColor := ColorCreate(0, 0, 0, 255);
 
   _Camera := TERRA_Camera.Camera.Create(Name);
-
-  SetOffScreenState(False);
 
   Log(logDebug, 'Viewport', 'Created viewport '+Name+' with size '+IntToString(_Width) +' x '+IntToString(_Height)+' and scale = '+FloatToString(_Scale));
 End;
@@ -677,17 +669,16 @@ Begin
     Result := Nil
   Else
   Begin
-    If (Self.IsRenderTargetEnabled(TargetType)) Then
-    Begin
-      If _RenderTextures[TargetValue] = Nil Then
-      Begin
-        _RenderTextures[TargetValue] := Texture.Create(rtDynamic, _Name+'_rt'+IntToString(TargetValue));
-        _RenderTextures[TargetValue].InitFromSurface(Self.GetRenderTarget(TargetType));
-      End;
+    If (Not Self.IsRenderTargetEnabled(TargetType)) Then
+      Self.SetRenderTargetState(TargetType, True);
 
-      Result := _RenderTextures[TargetValue];
-    End Else
-      Result := Nil;
+    If _RenderTextures[TargetValue] = Nil Then
+    Begin
+      _RenderTextures[TargetValue] := Texture.Create(rtDynamic, _Name+'_rt'+IntToString(TargetValue));
+      _RenderTextures[TargetValue].InitFromSurface(Self.GetRenderTarget(TargetType));
+    End;
+
+    Result := _RenderTextures[TargetValue];
   End;
 End;
 
@@ -729,7 +720,7 @@ Begin
 
   _ResolveBuffer.BackgroundColor := ColorNull;
   _ResolveBuffer.BeginCapture();
-  Self.DrawToTarget(True, False);
+  Self.DrawToTarget(False);
   _ResolveBuffer.EndCapture();
 
   GraphicsManager.Instance.ShowDebugTarget := captureTargetInvalid;
@@ -739,11 +730,12 @@ Begin
   Result := _ResolveTexture;
 End;
 
-Procedure Viewport.DrawToTarget(AllowDebug, ProcessEffects:Boolean);
+Procedure Viewport.DrawToTarget(ProcessEffects:Boolean);
 Var
   MyShader:ShaderInterface;
   I:Integer;
   ShowID:RenderTargetType;
+  TempColor:Color;
 Begin
   If (Target = Nil) Then
   Begin
@@ -762,7 +754,10 @@ Begin
   {$ENDIF}
   {$ENDIF}
 
+  TempColor := Target.BackgroundColor;
+  Target.BackgroundColor := Self.BackgroundColor;
   Target.Restore(True);
+  Target.BackgroundColor := TempColor;
 
   {$IFDEF POSTPROCESSING}
   ShowID := GraphicsManager.Instance.ShowDebugTarget;
@@ -781,7 +776,7 @@ Begin
       ReleaseObject(_FXChain);
     End;
 
-    If (Assigned(_FXChain)) And ((ShowID = captureTargetInvalid) Or (Not AllowDebug)) Then
+    If (Assigned(_FXChain)) And (ShowID = captureTargetInvalid) Then
     Begin
       _FXChain.DrawScreen(_TargetX1, _TargetY1, _TargetX2, _TargetY2, Self);
       Exit;
@@ -789,7 +784,7 @@ Begin
   End;
 
 
-  If (ShowID = captureTargetInvalid) Or (Not AllowDebug) Then
+  If (ShowID = captureTargetInvalid) Then
     ShowID := captureTargetColor;
   {$ELSE}
   ShowID := captureTargetColor;
@@ -874,7 +869,7 @@ Begin
 
   If Self.IsDirectDrawing()  Then
     GraphicsManager.Instance.Renderer.SetClearColor(_BackgroundColor);
-    
+
   GraphicsManager.Instance.Renderer.ClearBuffer((Not Self.IsDirectDrawing()) Or (_BackgroundColor.A>=255), True, True);
 
   If UseScissors Then
@@ -892,18 +887,6 @@ Begin
   {$IFDEF ADVANCED_ALPHA_BLEND}
   Self.SetRenderTargetState(captureTargetAlpha, True);
   {$ENDIF}
-End;
-
-Procedure Viewport.SetOffScreenState(Enabled: Boolean);
-Begin
-  {$IFDEF IPHONE}
-  Enabled := True;  // iOS does not support direct rendering
-  {$ENDIF}
-
-  _Offscreen := Enabled;
-
-  If (Enabled) Then
-    Self.EnableDefaultTargets();
 End;
 
 Procedure Viewport.SetTarget(Target: Viewport; X1, Y1, X2, Y2: Single);
@@ -988,15 +971,20 @@ Function Viewport.GetResolveTexture: Texture;
 Var
   ShowID:RenderTargetType;
 Begin
-  If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
+  ShowID := GraphicsManager.Instance.ShowDebugTarget;
+  If (ShowID = captureTargetInvalid) Then
   Begin
-    Result := Self.GetRenderTexture(captureTargetColor);
-    Exit;
+    If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
+      Result := Self.GetRenderTexture(captureTargetColor)
+    Else
+      Result := Self._ResolveTexture;
+
+    Self.AutoResolve := True;
+  End Else
+  Begin
+    Self.AutoResolve := False;
+    Result := Self.GetRenderTexture(ShowID);
   End;
-
-  Self.AutoResolve := True;
-
-  Result := Self._ResolveTexture;
 End;
 
 Function Viewport.HasPostProcessing: Boolean;

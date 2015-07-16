@@ -36,7 +36,7 @@ Const
 
 Const
   TargetNames:Array[0..Pred(TotalCaptureTargets)] Of TERRAString =
-  ('alpha', 'diffuse', 'normal', 'emission', 'refraction', 'outline', 'reflection', 'shadow', 'position', 'glow', 'bloom', 'edge');
+  ('diffuse', 'normal', 'emission', 'refraction', 'outline', 'reflection', 'shadow', 'position', 'glow', 'bloom', 'edge');
 
 Var
   TargetTextureNames:Array[0..Pred(TotalCaptureTargets)] Of TERRAString;
@@ -145,7 +145,7 @@ Type
 
       Procedure DrawScreen(X1,Y1,X2,Y2:Single; Target:TERRAObject);
 
-      Procedure AddEffect(FX:ScreenFX);
+      Function AddEffect(FX:ScreenFX):ScreenFX;
       Procedure RemoveEffect(FX:ScreenFX);
 
       Property Shader:ShaderInterface Read GetShader;
@@ -343,10 +343,12 @@ Begin
   Clear();
 End;
 
-Procedure ScreenFXChain.AddEffect(FX: ScreenFX);
+Function ScreenFXChain.AddEffect(FX: ScreenFX):ScreenFX;
 Var
   I:Integer;
 Begin
+  Result := FX;
+  
   If (FX = Nil) Then
     Exit;
 
@@ -391,7 +393,7 @@ Var
   I:Integer;
 Begin
   _NeedsUpdate := True;
-  For I:=0 To Pred(Length(_FXs)) Do
+  For I:=0 To Pred(_FXCount) Do
     ReleaseObject(_FXs[I]);
   _FXCount := 0;
 

@@ -975,7 +975,7 @@ Begin
     If (_NormalTexture = Nil) Then
     Begin
       _NormalTexture := Texture.Create(rtDynamic, 'particles_normal');
-      _NormalTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height);
+      _NormalTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height, ColorCreate(0, 0, 255));
       _NormalTexture.Update;
     End;
     _NormalTexture.UpdateRect(_NormalImage, 0, 0);
@@ -983,7 +983,7 @@ Begin
     If (_GlowTexture = Nil) Then
     Begin
       _GlowTexture := Texture.Create(rtDynamic, 'particles_glow');
-      _GlowTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height);
+      _GlowTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height, ColorNull);
       _GlowTexture.Update;
     End;
     _GlowTexture.UpdateRect(_GlowImage, 0, 0);
@@ -991,7 +991,7 @@ Begin
     If (_RefractionTexture = Nil) Then
     Begin
       _RefractionTexture := Texture.Create(rtDynamic, 'particles_refraction');
-      _RefractionTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height);
+      _RefractionTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height, ColorNull);
       _RefractionTexture.Update();
     End;
     _RefractionTexture.UpdateRect(_RefractionImage, 0, 0);

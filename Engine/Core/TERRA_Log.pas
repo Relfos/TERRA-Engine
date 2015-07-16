@@ -368,7 +368,11 @@ Initialization
 {$IFDEF PC}
   LoggingEnabled := Application.GetOption('log') = '1';
 {$ELSE}
+{$IFDEF CRASH_REPORT}
+  LoggingEnabled := False;
+{$ELSE}
   LoggingEnabled := True;
+{$ENDIF}  
 {$ENDIF}
 {$ENDIF}
 Finalization

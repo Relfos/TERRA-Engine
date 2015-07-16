@@ -63,7 +63,25 @@ Uses TERRA_Error;
 Var
   MyCallbackVTable: TCCallbackBaseVTable;
 
-Procedure MySteamCallback_Run(pvParam: Pointer; pSelf: PCCallbackInt); Pascal;
+{$IFDEF CPU64}
+Procedure MySteamCallback_Run(pvParam: Pointer; pSelf: PCCallbackInt);
+Begin
+  pSelf._Dispatcher._Callback(Pointer(pvParam));
+End;
+
+Procedure MySteamCallback_Run_2(myself, pvParam: PCCallbackInt);
+Begin
+  Myself._Dispatcher._Callback(Pointer(pvParam));
+End;
+
+Function MySteamCallback_GetCallbackSizeBytes(myself: PCCallbackInt):Integer;
+Begin
+  Result := Myself._Dispatcher._PropSize;
+End;
+{$ELSE}
+{$IFDEF LINUX}
+Procedure MySteamCallback_Run(pSelf: PCCallbackInt; pvParam: Pointer); Cdecl; {$ELSE}
+Procedure MySteamCallback_Run(pvParam: Pointer;  pSelf: PCCallbackInt); Pascal;{$ENDIF}
 Begin
   pSelf._Dispatcher._Callback(Pointer(pvParam));
 End;
@@ -87,25 +105,7 @@ Begin
   End;
   Result := Myself._Dispatcher._PropSize;
 End;
-
-(* 64 bits
-procedure MySteamCallback_Run(pSelf: PCCallbackInt; pvParam: Pointer); pascal;
-begin
-
-end;
-
-procedure MySteamCallback_Run_2(myself: PCCallbackInt; pvParam: PCCallbackInt); pascal;
-begin
-TSteamCallbackBase(myself.delphiclass).FProcedure(pvParam);
-end;
-
-function MySteamCallback_GetCallbackSizeBytes(myself: PCCallbackInt):
-Integer; pascal;
-begin
-result := TSteamCallbackBase(myself.delphiclass).FPropSize;
-end;
-
-*)
+{$ENDIF}
 
 Constructor SteamCallbackDispatcher.Create(iCallback:integer; callbackProc:SteamCallbackDelegate; _propsize: integer);
 Begin

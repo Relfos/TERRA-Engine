@@ -822,6 +822,8 @@ Begin
   Group.DiffuseMap := Tex;
   Group.CalculateTangents();
   Group.CalculateTriangleNormals();
+
+  Result.UpdateBoundingBox();
 End;
 
 { SolidVertex }

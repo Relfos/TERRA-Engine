@@ -156,9 +156,6 @@ Begin
   End;
 
   Image.Process(IMP_SwapChannels Or IMP_FlipVertical);
-
-  If PixelSize=4 Then
-    Image.HasAlpha:=True;
 End;
 
 Procedure TGASave(Dest:Stream; Image:Image; Const Options:TERRAString);

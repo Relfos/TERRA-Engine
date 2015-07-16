@@ -275,7 +275,7 @@ Begin
 {$IFDEF WINDOWS}
 	_Handle := BeginThread(Nil, 0, InternalThreadDispatcher, Self, 0, _ID);
 {$ELSE}
-  pthread_create(@_Handle, Nil, InternalThreadDispatcher, Self);
+  pthread_create(_Handle, Nil, InternalThreadDispatcher, Self);
 {$ENDIF}
 {$ENDIF}
 {$ENDIF}
@@ -554,10 +554,12 @@ Begin
   Begin
     _Threads[I].Shutdown();
 
-    ReleaseObject(_Threads[I]);
-    
   {$IFDEF USEPASCALTHREADS}
+    _Threads[I].Release();
     _Threads[I].Destroy();
+    _Threads[I] := Nil;
+  {$ELSE}
+    ReleaseObject(_Threads[I]);
   {$ENDIF}
   End;
 

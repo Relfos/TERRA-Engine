@@ -86,7 +86,7 @@ Begin
     Tileset.MipMapped := False;
   End;
 
-  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorBlack;
+  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlack;
 
   For J:=0 To Pred(MapHeight) Do
   Begin
@@ -178,7 +178,7 @@ Begin
           // The scroll effect is created by adding MapX/MapY variables the sprite position
           Y := -MapY + J * 16 - 32 * K;
           S := SpriteManager.Instance.DrawSprite(X, Y, 10+K*0.1, Tileset);
-          S.Rect.TileRemap(TileID Mod 10, TileID Div 10, 10, 16);
+          S.Rect.TileRemap(TileID Mod 10, TileID Div 10, 10, 16, Tileset);
 
           S.Rect.Width := 67;
           S.Rect.Height := 67;
@@ -190,7 +190,7 @@ Begin
           Continue;
 
           S := SpriteManager.Instance.DrawSprite(X,Y, 90, Tileset);
-          S.Rect.TileRemap(TileID Mod 10, TileID Div 10, 10, 16);
+          S.Rect.TileRemap(TileID Mod 10, TileID Div 10, 10, 16, Tileset);
       End;
     End;
 End;

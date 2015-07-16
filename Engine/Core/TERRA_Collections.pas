@@ -134,9 +134,9 @@ Type
       _Options:Cardinal;
 
       _SortOrder:CollectionSortOrder;
+      _Share:Collection;
 
       {$IFNDEF DISABLETHREADS}
-      _SharedMutex:Boolean;
       _Mutex:CriticalSection;
       {$ENDIF}
 
@@ -260,14 +260,17 @@ Begin
   Self.Clear();
 
   {$IFNDEF DISABLETHREADS}
-  If Not _SharedMutex Then
-    ReleaseObject(_Mutex);
+  ReleaseObject(_Mutex);
   {$ENDIF}
 End;
 
 Procedure Collection.Lock();
 Begin
   {$IFNDEF DISABLETHREADS}
+  If Assigned(_Share) Then
+  Begin
+    _Share.Lock();
+  End Else
   If Assigned(_Mutex) Then
   Begin
     _Mutex.Lock();
@@ -278,6 +281,10 @@ End;
 Procedure Collection.Unlock();
 Begin
   {$IFNDEF DISABLETHREADS}
+  If Assigned(_Share) Then
+  Begin
+    _Share.Unlock();
+  End Else
   If Assigned(_Mutex) Then
     _Mutex.Unlock();
   {$ENDIF}
@@ -288,11 +295,11 @@ Begin
   {$IFNDEF DISABLETHREADS}
   If (Assigned(Share)) Then
   Begin
-    _Mutex := Share._Mutex;
-    _SharedMutex := True;
+    _Share := Share;
+    _Mutex := Nil;
   End Else
   Begin
-    _SharedMutex := False;
+    _Share := Nil;
     If (Options And coThreadSafe<>0) Then
       _Mutex := CriticalSection.Create({Self.ClassName +CardinalToString(GetTime())})
     Else

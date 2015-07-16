@@ -12,13 +12,14 @@ Const
   vertexTangent   = 2;
   vertexBone      = 3;
   vertexColor     = 4;
-  vertexUV0       = 5;
-  vertexUV1       = 6;
-  vertexUV2       = 7;
-  vertexUV3       = 8;
-  vertexUV4       = 9;
+  vertexHue       = 5;
+  vertexUV0       = 6;
+  vertexUV1       = 7;
+  vertexUV2       = 8;
+  vertexUV3       = 9;
+  vertexUV4       = 10;
 
-  MaxVertexAttributes = 10;
+  MaxVertexAttributes = 11;
 
 Type
   VertexFormatAttribute = (
@@ -26,6 +27,7 @@ Type
     vertexFormatNormal,
     vertexFormatTangent,
     vertexFormatBone,
+    vertexFormatHue,
     vertexFormatColor,
     vertexFormatUV0,
     vertexFormatUV1,
@@ -138,6 +140,9 @@ Type
       Function HasAttribute(Attribute:Cardinal):Boolean;
       Function HasAttributeWithName(Const Name:TERRAString):Boolean;
 
+
+      Procedure AddAttribute(Attribute:VertexFormatAttribute);
+
       Procedure SetAttributeFormat(Attribute:Cardinal; Value:DataFormat);
       Procedure SetAttributeName(Attribute:Cardinal; Const Value:TERRAString);
 
@@ -191,6 +196,7 @@ Const
       'terra_tangent',
       'terra_bone',
       'terra_color',
+      'terra_hue',
       'terra_UV0',
       'terra_UV1',
       'terra_UV2',
@@ -210,13 +216,14 @@ Begin
   Move(Value, Result, SizeOf(VertexFormat));
 End;
 
-Function VertexFormatAttributeValue(Attr:VertexFormatAttribute):Integer;
+Function VertexFormatAttributeValue(Attr:VertexFormatAttribute):Cardinal;
 Begin
   Case Attr Of
     vertexFormatPosition: Result := vertexPosition;
     vertexFormatNormal:   Result := vertexNormal;
     vertexFormatTangent:  Result := vertexTangent;
     vertexFormatBone:     Result := vertexBone;
+    vertexFormatHue:      Result := vertexHue;
     vertexFormatColor:    Result := vertexColor;
     vertexFormatUV0:   Result := vertexUV0;
     vertexFormatUV1:   Result := vertexUV1;
@@ -271,6 +278,7 @@ Begin
     Result := typeFloat;
   End;
 End;
+
 { VertexData }
 Constructor VertexData.Create(Format:VertexFormat; VertexCount:Integer);
 Var
@@ -356,9 +364,24 @@ Begin
   Result := False;
 End;
 
+
 Function VertexData.HasAttribute(Attribute: Cardinal): Boolean;
 Begin
   Result := (GetAttributeOffsetInFloats(Attribute)>=0);
+End;
+
+
+Procedure VertexData.AddAttribute(Attribute:VertexFormatAttribute);
+Var
+  NewFormat:VertexFormat;
+Begin
+  If Self.HasAttribute(VertexFormatAttributeValue(Attribute)) Then
+    Exit;
+
+  NewFormat := Self.Format;
+  Include(NewFormat, Attribute);
+
+  Self.ConvertToFormat(NewFormat);
 End;
 
 Function VertexData.GetAttributeOffsetInFloats(Attribute: Cardinal): Integer;
@@ -656,6 +679,9 @@ Begin
     Log(logWarning, 'VBO', 'No shader!');
     Exit;
   End;
+
+  {If Self.HasAttribute(vertexHue) then
+    IntToString(2);}
 
 {  For I:=0 To Pred(_AttributeCount) Do
   Begin

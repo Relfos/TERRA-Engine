@@ -135,7 +135,7 @@ Var
   VertexBuffer:Array Of Array Of Vector3D;
   ShowGroup:Array Of Boolean;
 
-  TM:PMatrix4x4;
+  TM:Matrix4x4;
 
   T:Triangle;
   Group:MeshGroup;
@@ -184,9 +184,10 @@ Begin
       Begin
         K := Trunc(BoneIndex);
         If (Instance.Animation = Nil) Or (Instance.Animation.Root = Nil) Then
-          TM :=@(MyMesh.Skeleton.BindPose[K])
+          //TM := (MyMesh.Skeleton.BindPose[K])
+          TM := Matrix4x4Identity
         Else
-          TM := @(Instance.Animation.Transforms[K]);
+          TM := (Instance.Animation.Transforms[K]);
 
         V := TM.Transform(V);
       End;
