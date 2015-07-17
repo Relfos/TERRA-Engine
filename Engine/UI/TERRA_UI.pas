@@ -218,7 +218,7 @@ Type
 
       Procedure SetEnabled(Value:Boolean);
 
-      Procedure DrawText(Const Text:TERRAString; Const X,Y, Layer:Single; Const TextRect:Vector2D; Scale:Single; ID:Integer; Selected:Boolean);
+      Procedure DrawText(Const Text:TERRAString; Const X,Y, Layer:Single; Const TextRect:Vector2D; Scale:Single; ID:Integer; Selected:Boolean; Const TextColor:Color);
       Procedure DrawComponent(X, Y, Layer:Single; Const Width, Height:UIDimension; ID:Integer; Selected:Boolean; ScaleColor:Boolean = True);
       Procedure DrawCroppedComponent(X, Y, Layer, U1, V1, U2, V2:Single; Const Width, Height:UIDimension; ID:Integer; Selected:Boolean; ScaleColor:Boolean = True);
 
@@ -1359,7 +1359,7 @@ Begin
     _Component.GetProperties(_Properties, ID, CurrentState, DefaultState);
 End;
 
-Procedure Widget.DrawText(Const Text:TERRAString; Const X,Y, Layer:Single; Const TextRect:Vector2D; Scale:Single; ID:Integer; Selected:Boolean);
+Procedure Widget.DrawText(Const Text:TERRAString; Const X,Y, Layer:Single; Const TextRect:Vector2D; Scale:Single; ID:Integer; Selected:Boolean; Const TextColor:Color);
 Var
   P:Vector2D;
   Z:Single;
@@ -1372,6 +1372,7 @@ Begin
 
   C := _Properties.TextColor;
   C.A := _Properties.QuadColor.A;
+  C := ColorMultiply(C, TextColor);
   //Color.A := Trunc(Color.A * UI.Instance._Alpha);
 
   P := Self.GetAbsolutePosition();

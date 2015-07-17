@@ -252,7 +252,7 @@ Begin
     Self.DrawComponent( X, Add, -2, _Width, _Height,  0, IsSel);
 
     Rect := _FontRenderer.GetTextRect(_Tabs[I].Caption);
-    Self.DrawText(_Tabs[I].Caption, X + (WW-Rect.X) * 0.5, Add + (HH - Rect.Y) * 0.5, -1.5, Rect, Scale, 0, IsSel);
+    Self.DrawText(_Tabs[I].Caption, X + (WW-Rect.X) * 0.5, Add + (HH - Rect.Y) * 0.5, -1.5, Rect, Scale, 0, IsSel, ColorWhite);
 
     X := X + WW;
   End;

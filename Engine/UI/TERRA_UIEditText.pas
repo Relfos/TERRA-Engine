@@ -488,7 +488,7 @@ Var
       Y := 0;
     End;
 
-    Self.DrawText(S, X-_ScrollIndex, Y, 1.0, TextRect, Scale, 0, Self.IsSelected);
+    Self.DrawText(S, X-_ScrollIndex, Y, 1.0, TextRect, Scale, 0, Self.IsSelected, ColorWhite);
   End;
 Begin
   Self.ClearProperties();

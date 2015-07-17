@@ -744,7 +744,7 @@ Begin
   If (SS<>'') Then
   Begin
     TextRect := _FontRenderer.GetTextRect(SS);
-    Self.DrawText(SS, (W - TextRect.X)*0.5, (H - TextRect.Y)*0.5, 1.0, TextRect, TextScale, KeyTypeToInt(_KeyType), Self.IsSelected);
+    Self.DrawText(SS, (W - TextRect.X)*0.5, (H - TextRect.Y)*0.5, 1.0, TextRect, TextScale, KeyTypeToInt(_KeyType), Self.IsSelected, ColorWhite);
   End;
 End;
 

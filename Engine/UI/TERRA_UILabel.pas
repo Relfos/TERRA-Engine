@@ -105,38 +105,8 @@ Begin
     Self.UpdateHighlight();
 
   Color := Self.GetColor;
-  {Color.R := Self._Color.R;
-  Color.G := Self._Color.G;
-  Color.B := Self._Color.B ;}
 
-{  If (_RevealTime = 0) Or (Self.Font = Nil) Then
-    RevealCount := 9999
-  Else
-  Begin
-    Time := GetTime;
-    If (Time<_RevealTime) Then
-      Delta := 0
-    Else
-    Begin
-      Time := (Time - _RevealTime);
-      Delta := Time / _RevealDuration;
-      If Delta<0 Then
-        Delta := 0.0;
-    End;
-
-    If (Delta>=1.0) Then
-    Begin
-      _RevealTime := 0;
-      RevealCount := 9999;
-      If Assigned(OnReveal) Then
-        OnReveal(Self);
-    End Else
-      RevealCount := Trunc(Self.Font.GetLength(Caption) * Delta);
-  End;}
-
-  //RevealCount, {TODO}!!!
-
-  Self.DrawText(_Caption, 0, 0, 0, _TextRect, Scale, 0, False);
+  Self.DrawText(_Caption, 0, 0, 0, _TextRect, Scale, 0, False, Color);
 
   Inherited;
 End;

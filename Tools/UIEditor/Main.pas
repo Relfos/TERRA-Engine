@@ -13,11 +13,12 @@ uses
 
 Const
   SnapValue = 10;
-    
+
 Type
   UIEditTool = (
     uitool_Empty,
-    uitool_Button
+    uitool_Button,
+    uitool_Label
   );
 
   UIEditScene = Class;
@@ -60,6 +61,7 @@ Type
 
       Procedure AddWidget(W:Widget);
       Procedure AddButton(X, Y:Integer);
+      Procedure AddLabel(X, Y:Integer);
 
       Procedure SelectWidget(W:Widget);
   End;
@@ -104,6 +106,7 @@ Type
       Y: Integer);
     procedure RenderPanelMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
+    procedure Label1Click(Sender: TObject);
 
   Protected
     Function FindWidgetNode(W:Widget):TTreeNode;
@@ -121,7 +124,7 @@ Var
   UIEditForm: TUIEditForm;
 
 implementation
-Uses TERRA_UIButton;
+Uses TERRA_UIButton, TERRA_UILabel;
 
 {$R *.dfm}
 
@@ -160,6 +163,12 @@ Begin
   Self.AddWidget(UIButton.Create('button', Self._SelectedView._Target,
     X, Y, 0.1,
     UIPixels(150), UIPixels(50), 'Button', 'round_button'));
+End;
+
+Procedure UIEditScene.AddLabel(X, Y: Integer);
+Begin
+  Self.AddWidget(UILabel.Create('label', Self._SelectedView._Target,
+    X, Y, 0.1, 'text'));
 End;
 
 Procedure UIEditScene.AddView(Const Name:TERRAString);
@@ -256,6 +265,11 @@ begin
   Scene._CurrentTool := uitool_Button;
 end;
 
+procedure TUIEditForm.Label1Click(Sender: TObject);
+begin
+  Scene._CurrentTool := uitool_Label;
+end;
+
 procedure TUIEditForm.RenderPanelMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 Var
@@ -278,6 +292,11 @@ begin
   uitool_Button:
     Begin
       Self.Scene.AddButton(X, Y);
+    End;
+
+  uitool_Label:
+    Begin
+      Self.Scene.AddLabel(X, Y);
     End;
 
   End;

@@ -120,6 +120,7 @@ object UIEditForm: TUIEditForm
         end
         object Label1: TMenuItem
           Caption = '&Label'
+          OnClick = Label1Click
         end
         object Window1: TMenuItem
           Caption = '&Window'
