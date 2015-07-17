@@ -138,7 +138,7 @@ Begin
   Self._Font := FontManager.Instance.GetFont('droid');
 
   // set background color
-  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorGrey(128);
+  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorGrey(128);
 
   Self.AddView('Untitled');
 End;

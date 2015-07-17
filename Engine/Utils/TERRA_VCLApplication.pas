@@ -39,7 +39,7 @@ Type
 
       Public
         Constructor Create(Target:TComponent);
-        Procedure Release; Override;
+        Procedure OnDestroy; Override;
 
         Function GetWidth:Word; Override;
         Function GetHeight:Word; Override;
@@ -86,12 +86,12 @@ Begin
   Inherited Create();
 End;
 
-Procedure VCLApplication.Release;
+Procedure VCLApplication.OnDestroy;
 Begin
+  Inherited;
+
   _Timer.Enabled := False;
   _Timer.Free();
-
-  Inherited;
 End;
 
 Procedure VCLApplication.TimerTick(Sender: TObject);

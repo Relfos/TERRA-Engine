@@ -838,7 +838,7 @@ Begin
   {$IFNDEF OXYGENE}
   If (Not _Managed) Then
   Begin
-    Self.Release;
+    Self.Release();
   End;
   {$ENDIF}
 
