@@ -33,7 +33,7 @@ Begin
 
   Self.SetRelativePosition(VectorCreate2D(X,Y));
   
-  Self._Layer := Z;
+  Self.Layer := Z;
 End;
 
 

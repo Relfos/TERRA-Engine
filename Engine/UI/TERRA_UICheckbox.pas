@@ -43,7 +43,7 @@ Begin
 
   Self.Caption.Value := Caption;
   Self.SetRelativePosition(VectorCreate2D(X,Y));
-  Self._Layer := Z;
+  Self.Layer := Z;
 
   Self._Checked := BooleanProperty.Create('checked', InitialValue);
 

@@ -45,7 +45,7 @@ Begin
   Self._Texture := TextureProperty.Create('image', Nil);
 
   Self.SetRelativePosition(VectorCreate2D(X,Y));
-  Self._Layer := Z;
+  Self.Layer := Z;
   Self.Filter := filterLinear;
 
   Self.U1 := 0;

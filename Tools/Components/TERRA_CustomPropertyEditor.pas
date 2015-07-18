@@ -5,7 +5,7 @@ interface
 uses SysUtils, Classes, Messages, ExtCtrls, Controls, StdCtrls,
   Dialogs, Graphics, Buttons,
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_OS, TERRA_Color, TERRA_VCLApplication,
-  TERRA_FileManager, TERRA_FileUtils;
+  TERRA_FileManager, TERRA_FileUtils, TERRA_Math;
 
 Const
   MarginTop = 30;
@@ -51,8 +51,14 @@ type
       Function CreateEditor():TControl; Override;
       Procedure Update(); Override;
 
-      Procedure OnKeyDown(Sender:TObject; var Key: Word; Shift: TShiftState);
-      Procedure OnChange(Sender:TObject);
+      //Procedure OnKeyDown(Sender:TObject; var Key: Word; Shift: TShiftState);
+      Procedure OnChange(Sender:TObject); Virtual;
+  End;
+
+  TAngleCell = Class(TTextCell)
+    Protected
+      Procedure Update(); Override;
+      Procedure OnChange(Sender:TObject); Override;
   End;
 
   TColorCell = Class(TPropertyCell)
@@ -275,6 +281,9 @@ Begin
   Else
   If StringEquals(S, 'texture') Then
     CellType := TTextureCell
+  Else
+  If StringEquals(S, 'angle') Then
+    CellType := TAngleCell
   Else
     CellType := TTextCell;
 
@@ -522,17 +531,32 @@ begin
   _Prop.SetBlob(_Edit.Text);
 end;
 
-procedure TTextCell.OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+(*procedure TTextCell.OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
   If Key<>keyEnter Then
     Exit;
 
   _Prop.SetBlob(_Edit.Text);
-end;
+end;*)
 
 Procedure TTextCell.Update;
 Begin
   _Edit.Text := _Prop.GetBlob();
+End;
+
+
+{ TAngleCell }              
+Procedure TAngleCell.OnChange(Sender: TObject);
+Begin
+  _Prop.SetBlob(FloatToString(StringToFloat(_Edit.Text) * RAD));
+End;
+
+Procedure TAngleCell.Update;
+Var
+  Angle:Single;
+Begin
+  Angle := Trunc(StringToFloat(_Prop.GetBlob()) * DEG * 10) Div 10;
+  _Edit.Text := FloatToString(Angle);
 End;
 
 { TColorCell }

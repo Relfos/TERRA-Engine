@@ -54,7 +54,7 @@ Const
   TextureAtlasWidth = 1024;
   TextureAtlasHeight = 512;
 
-  CustomPropertiesBaseIndex = 9;
+  CustomPropertiesBaseIndex = 10;
 
 Type
   UI = Class;
@@ -86,6 +86,7 @@ Type
       _Width:DimensionProperty;
       _Height:DimensionProperty;
 			_Position:Vector2DProperty;
+      _Layer:FloatProperty;
       _Color:ColorProperty;
       _Rotation:AngleProperty;
       _Scale:FloatProperty;
@@ -107,7 +108,6 @@ Type
 
 		Protected
 			_Parent:Widget;
-      _Layer:Single;
 
       _Tooltip:TERRAString;
       _Align:Integer;
@@ -283,6 +283,9 @@ Type
       Procedure ClipChildren(Const Clip:ClipRect);
 
       Function GetDimension(Const Dim:UIDimension; Const Target:UIDimensionTarget):Single;
+
+      Procedure ConvertGlobalToLocal(Var V:Vector2D);
+      Procedure ConvertLocalToGlobal(Var V:Vector2D);
 
       Procedure SetPositionRelativeToOther(Other:Widget; OfsX, OfsY:Single);
 
@@ -478,9 +481,6 @@ Type
       Function SelectNearestWidget(Target:Widget):Widget;
       Procedure GetFirstHighLight(GroupID:Integer);
 
-      Procedure ConvertGlobalToLocal(Var X, Y:Integer);
-      Procedure ConvertLocalToGlobal(Var X, Y:Integer);
-
       Function PickWidget(X,Y:Integer):Widget;
 
 		  Function OnKeyDown(Key:Word):Widget;
@@ -644,6 +644,103 @@ Begin
     W.UI.Highlight := Nil;
 End;
 
+
+{ Widget }
+Constructor Widget.Create(Const Name:TERRAString; Parent:Widget; Const ComponentName:TERRAString);
+Begin
+  _ObjectName := Name;
+
+  Self.InitProperties();
+
+  SetVisible(True);
+  _Enabled := True;
+
+  If (Assigned(Parent)) And (Parent Is TERRA_UI.UI) Then
+  Begin
+    _UI := TERRA_UI.UI(Parent);
+    _Parent := Nil;
+  End Else
+  Begin
+    _UI := Parent.UI;
+    _Parent := Parent;
+  End;
+
+  Self.LoadSkin(ComponentName);
+
+  _Pivot := VectorCreate2D(0.5, 0.5);
+  SetScale(1.0);
+  SetRotation(0.0);
+  SetSaturation(1.0);
+  SetColor(ColorWhite);
+  _ColorTable := Nil;
+
+  _ClipRect.Style := clipNothing;
+
+  //_DropShadowColor := ColorNull;
+  _DropShadowColor := ColorGrey(0, 255);
+
+  _Font := UI._DefaultFont;
+  _FontRenderer := UI.FontRenderer;
+
+  _InheritColor := True;
+  _TransformChanged := True;
+
+  UI.AddWidget(Self);
+End;
+
+
+Procedure Widget.Release();
+Begin
+  ReleaseObject(_Width);
+  ReleaseObject(_Height);
+  ReleaseObject(_Visible);
+  ReleaseObject(_Position);
+  ReleaseObject(_Color);
+  ReleaseObject(_Rotation);
+  ReleaseObject(_Layer);
+  ReleaseObject(_Scale);
+  ReleaseObject(_Saturation);
+  ReleaseObject(_Skin);
+End;
+
+Procedure Widget.InitProperties;
+Begin
+  _Width := DimensionProperty.Create('width', UIPixels(0));
+  _Height := DimensionProperty.Create('height', UIPixels(0));
+  _Visible := BooleanProperty.Create('visible', True);
+  _Position := Vector2DProperty.Create('position', VectorCreate2D(0, 0));
+  _Layer := FloatProperty.Create('layer', 1.0);
+  _Color := ColorProperty.Create('color', ColorWhite);
+  _Rotation := AngleProperty.Create('rotation', 0.0);
+  _Scale := FloatProperty.Create('scale', 1.0);
+  _Saturation := FloatProperty.Create('saturation', 1.0);
+  _Skin := StringProperty.Create('skin', '');
+End;
+
+Function Widget.GetPropertyByIndex(Index:Integer):TERRAObject;
+Begin
+  Case Index Of
+  0: Result := _Visible;
+  1: Result := _Position;
+  2: Result := _Layer;
+  3: Result := _Width;
+  4: Result := _Height;
+  5: Result := _Color;
+  6: Result := _Rotation;
+  7: Result := _Scale;
+  8: Result := _Saturation;
+  9: Result := _Skin;
+  Else
+    Result := Nil;
+  End;
+End;
+
+Procedure Widget.LoadSkin(Const ComponentName:TERRAString);
+Begin
+  _Skin.Value := ComponentName;
+  _SkinComponent := _UI.GetComponent(ComponentName);
+End;
+
 Function Widget.HasHighlightedChildren():Boolean;
 Var
   I:Integer;
@@ -748,100 +845,6 @@ Begin
   Result.Y := _Size.Y;
 End;
 
-
-{ Widget }
-Constructor Widget.Create(Const Name:TERRAString; Parent:Widget; Const ComponentName:TERRAString);
-Begin
-  _ObjectName := Name;
-
-  Self.InitProperties();
-
-  SetVisible(True);
-  _Enabled := True;
-
-  If (Assigned(Parent)) And (Parent Is TERRA_UI.UI) Then
-  Begin
-    _UI := TERRA_UI.UI(Parent);
-    _Parent := Nil;
-  End Else
-  Begin
-    _UI := Parent.UI;
-    _Parent := Parent;
-  End;
-
-  Self.LoadSkin(ComponentName);
-
-  _Pivot := VectorCreate2D(0.5, 0.5);
-  SetScale(1.0);
-  SetRotation(0.0);
-  SetSaturation(1.0);
-  SetColor(ColorWhite);
-  _ColorTable := Nil;
-
-  _ClipRect.Style := clipNothing;
-
-  //_DropShadowColor := ColorNull;
-  _DropShadowColor := ColorGrey(0, 255);
-
-  _Font := UI._DefaultFont;
-  _FontRenderer := UI.FontRenderer;
-
-  _InheritColor := True;
-  _TransformChanged := True;
-
-  UI.AddWidget(Self);
-End;
-
-
-Procedure Widget.Release();
-Begin
-  ReleaseObject(_Width);
-  ReleaseObject(_Height);
-  ReleaseObject(_Visible);
-  ReleaseObject(_Position);
-  ReleaseObject(_Color);
-  ReleaseObject(_Rotation);
-  ReleaseObject(_Scale);
-  ReleaseObject(_Saturation);
-  ReleaseObject(_Skin);
-End;
-
-Procedure Widget.InitProperties;
-Begin
-  _Width := DimensionProperty.Create('width', UIPixels(0));
-  _Height := DimensionProperty.Create('height', UIPixels(0));
-  _Visible := BooleanProperty.Create('visible', True);
-  _Position := Vector2DProperty.Create('position', VectorCreate2D(0, 0));
-  _Color := ColorProperty.Create('color', ColorWhite);
-  _Rotation := AngleProperty.Create('rotation', 0.0);
-  _Scale := FloatProperty.Create('scale', 1.0);
-  _Saturation := FloatProperty.Create('saturation', 1.0);
-  _Skin := StringProperty.Create('skin', '');
-End;
-
-Function Widget.GetPropertyByIndex(Index:Integer):TERRAObject;
-Begin
-  Case Index Of
-  0: Result := _Visible;
-  1: Result := _Position;
-  2: Result := _Width;
-  3: Result := _Height;
-  4: Result := _Color;
-  5: Result := _Rotation;
-  6: Result := _Scale;
-  7: Result := _Saturation;
-  8: Result := _Skin;
-  Else
-    Result := Nil;
-  End;
-End;
-
-Procedure Widget.LoadSkin(Const ComponentName:TERRAString);
-Begin
-  _Skin.Value := ComponentName;
-  _SkinComponent := _UI.GetComponent(ComponentName);
-End;
-
 Procedure Widget.CopyValue(Other: CollectionObject);
 Begin
   RemoveHint(Cardinal(Other));
@@ -859,6 +862,23 @@ Function Widget.IsSelectable():Boolean;
 Begin
   Result := Assigned(Self.OnMouseClick);
 End;
+
+Procedure Widget.ConvertGlobalToLocal(Var V:Vector2D);
+Begin
+  If (Self.Rotation<>0.0) Then
+    V := Self._InverseTransform.Transform(V);
+
+  V.Subtract(Self.AbsolutePosition);
+End;
+
+Procedure Widget.ConvertLocalToGlobal(Var V:Vector2D);
+Begin
+  V.Add(Self.AbsolutePosition);
+
+  If (Self.Rotation<>0.0) Then
+    V := Self._Transform.Transform(V);
+End;
+
 
 Function Widget.CanHighlight(GroupID:Integer): Boolean;
 Begin
@@ -1216,10 +1236,10 @@ End;
 
 Procedure Widget.SetLayer(Z:Single);
 Begin
-  If (Z = _Layer) Then
+  If (Z = _Layer.Value) Then
     Exit;
 
-  _Layer := Z;
+  _Layer.Value := Z;
 End;
 
 Procedure Widget.SetColor(MyColor:Color);
@@ -1336,7 +1356,7 @@ End;
 
 Function Widget.GetLayer:Single;  {$IFDEF FPC} Inline;{$ENDIF}
 Begin
-	Result := _Layer;
+	Result := _Layer.Value;
 
 	If (Assigned(_Parent)) Then
 		Result := Result + _Parent.GetLayer();
@@ -1553,12 +1573,7 @@ Begin
 
   V.X := X;
   V.Y := Y;
-
-  If (Self.Rotation<>0.0) Then
-    V := Self._InverseTransform.Transform(V);
-    
-  V.Subtract(Self.AbsolutePosition);
-
+  Self.ConvertGlobalToLocal(V);
 
   Result := (V.X>=0.0) And (V.X <= Size.X) And (V.Y >= 0) And (V.Y <= Size.Y);
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Region result for '+_Name+' was '+BoolToString(Result));{$ENDIF}
@@ -3220,32 +3235,6 @@ Begin
     _Highlight := Nil;
 
   Result := _Highlight;
-End;
-
-Procedure UI.ConvertGlobalToLocal(Var X, Y: Integer);
-Var
-  P:Vector2D;
-Begin
-  P.X := X;
-  P.Y := Y;
-
-  P := _InverseTransform.Transform(P);
-
-  X := Trunc(P.X);
-  Y := Trunc(P.Y);
-End;
-
-Procedure UI.ConvertLocalToGlobal(Var X, Y: Integer);
-Var
-  P:Vector2D;
-Begin
-  P.X := X;
-  P.Y := Y;
-
-  P := _Transform.Transform(P);
-
-  X := Trunc(P.X);
-  Y := Trunc(P.Y);
 End;
 
 Procedure UI.SetTransform(const M: Matrix3x3);

@@ -24,7 +24,7 @@ Begin
 
   Self.Caption.Value := Caption;
   Self.SetRelativePosition(VectorCreate2D(X,Y));
-  Self._Layer := Z;
+  Self.Layer := Z;
 
   Self.Width := Width;
   Self.Height := Height;

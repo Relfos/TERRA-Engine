@@ -283,7 +283,7 @@ Begin
   Self._TabIndex := -1;
 
   Self.RestorePosition();
-  Self._Layer := Z;
+  Self.Layer := Z;
 
   _CurrentLayout := 0;
 
@@ -634,7 +634,7 @@ Begin
   Self._TabIndex := -1;
 
   Self.RelativePosition := VectorCreate2D(X,Y);
-  Self._Layer := Z;
+  Self.Layer := Z;
 
   Self.OnMouseClick := Self.OnKeyDispatch;
 

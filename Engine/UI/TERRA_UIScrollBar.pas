@@ -63,7 +63,7 @@ Begin
   Self._Value := 0.0;
   Self._Max := 100;
   Self.SetRelativePosition(VectorCreate2D(X,Y));
-  Self._Layer := Z;
+  Self.Layer := Z;
 
   If (ScrollWidth.Value >ScrollHeight.Value) Then
     Self._Kind := scrollHorizontal

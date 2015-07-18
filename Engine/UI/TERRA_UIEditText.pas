@@ -73,7 +73,7 @@ Begin
   Inherited Create(Name, Parent, ComponentName);
 
   Self.SetRelativePosition(VectorCreate2D(X,Y));
-  Self._Layer := Z;
+  Self.Layer := Z;
 
   Self.Width := Width;
   Self.Height := Height;

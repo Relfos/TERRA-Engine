@@ -493,7 +493,9 @@ Const
   WidgetBorder = 10;
 Var
   W:Widget;
-  PX, PY, TargetCursor:Integer;
+  P:Vector2D;
+  PX, PY:Integer;
+  TargetCursor:Integer;
 begin
   If Assigned(_DragTarget) Then
   Begin
@@ -511,8 +513,10 @@ begin
   W := Scene._SelectedView.PickWidgetAt(X, Y);
   If Assigned(W) Then
   Begin
-    PX := X - Trunc(W.AbsolutePosition.X);
-    PY := Y - Trunc(W.AbsolutePosition.Y);
+    P := VectorCreate2D(X, Y);
+    W.ConvertGlobalToLocal(P);
+    PX := Trunc(P.X);
+    PY := Trunc(P.Y);
 
     If (PX<=WidgetBorder) And (PY<=WidgetBorder) Then
     Begin
