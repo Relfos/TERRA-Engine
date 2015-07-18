@@ -19,11 +19,11 @@ Type
 
   // A scene is used to render objects
   MyScene = Class(Scene)
-      Procedure RenderSprites(V:Viewport); Override;
+      Procedure RenderSprites(V:TERRAViewport); Override;
   End;
 
 Var
-  Tex:Texture = Nil;
+  Tex:TERRATexture = Nil;
 
 { Game }
 Procedure Demo.OnCreate;

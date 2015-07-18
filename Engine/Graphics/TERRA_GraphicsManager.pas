@@ -41,7 +41,7 @@ Uses {$IFNDEF DEBUG_LEAKS}TERRA_MemoryManager,{$ENDIF} {$IFDEF USEDEBUGUNIT}TERR
   {$IFDEF SHADOWMAPS}TERRA_ShadowMaps,{$ENDIF}
   TERRA_BoundingBox, TERRA_Camera, TERRA_Color, TERRA_Matrix4x4,
   TERRA_Utils, TERRA_Texture, TERRA_Scene, TERRA_Vector3D,
-  TERRA_Viewport, TERRA_Application, TERRA_VertexFormat,
+  TERRA_Viewport, TERRA_Application, TERRA_VertexFormat, TERRA_Renderable,
   TERRA_Image, TERRA_Math, TERRA_Vector2D, TERRA_Ray, TERRA_Collections, TERRA_Pool;
 
 Const
@@ -59,53 +59,6 @@ Const
   renderStageReflection   = 32;
   renderStageShadow       = 64;
 //  renderStageAlpha        = 128;
-
-  renderFlagsSkipFrustum  = 1;
-  renderFlagsSkipSorting  = 2;
-  renderFlagsSkipReflections  = 4;
-
-Type
-  Renderable = Class(TERRAObject)
-    Protected
-      _Distance:Single;
-      _LOD:Single;
-//      _IsReflection:Boolean;
-      _WasVisible:Boolean;
-      _Flags:Integer;
-      _LastUpdate:Cardinal;
-
-    Public
-{      ReflectionPoint:Vector3D;
-      ReflectionNormal:Vector3D;}
-
-      Procedure Release; Override;
-
-      Procedure Update; Virtual;
-
-      Function GetName():TERRAString; Virtual;
-
-      Function GetBoundingBox:BoundingBox; Virtual; Abstract;
-      Procedure Render(TranslucentPass:Boolean); Virtual; Abstract;
-
-      Procedure RenderLights(); Virtual;
-
-      Function IsOpaque():Boolean; Virtual;
-      Function IsTranslucent():Boolean; Virtual;
-
-      Property LOD:Single Read _LOD;
-      Property WasVisible:Boolean Read _WasVisible;
-  End;
-
-  RenderableProxy =  Class(CollectionObject)
-    Protected
-      _Object:Renderable;
-    Public
-
-      Constructor Create(Obj:Renderable);
-
-      Function Sort(Other:CollectionObject):Integer; Override;
-      Procedure CopyValue(Other:CollectionObject); Override;
-  End;
 
 Const
   MaxRenderables  = 4096;
@@ -165,12 +118,6 @@ Type
 
       _FullScreenQuadVertices:VertexData;
 
-      _BucketOpaque:Pool;
-      _BucketAlpha:Pool;
-      {$IFDEF REFLECTIONS_WITH_STENCIL}
-      _BucketReflection:Pool;
-      {$ENDIF}
-
       _FogEnable:Boolean;
       _CurrentBlendMode:Integer;
 
@@ -199,11 +146,12 @@ Type
       _FullscreenQuadShader:ShaderInterface;
       _FullscreenColorShader:ShaderInterface;
 
+      _Renderables:RenderableManager;
+
       Procedure RenderUI;
       Procedure RenderStencilShadows(View:TERRAViewport);
       Procedure RenderSceneInternal(View:TERRAViewport; Pass:RenderTargetType);
       Procedure RenderViewport(View:TERRAViewport);
-      Procedure RenderList(RenderList:List; TranslucentPass:Boolean);
 
       Procedure OnAppResize; Override;
       Procedure OnContextLost; Override;
@@ -270,7 +218,6 @@ Type
 
 
       Function AddRenderable(MyRenderable:Renderable; Flags:Cardinal = 0):Boolean;
-      //Procedure AttachRenderable(MyRenderable, Owner:Renderable);
       Procedure DeleteRenderable(MyRenderable:Renderable);
 
       Procedure AddOccluder(MyOccluder:Occluder);
@@ -604,12 +551,7 @@ Begin
   _UIViewport := Nil;
   _DepthSize := 2048;
 
-  _BucketOpaque := Pool.Create(collection_Sorted_Ascending);
-  _BucketAlpha :=  Pool.Create(collection_Sorted_Descending);
-
-  {$IFDEF REFLECTIONS_WITH_STENCIL}
-  _BucketReflection := Pool.Create(coAppend);
-  {$ENDIF}
+  _Renderables := RenderableManager.Create();
 
   If Application.Instance = Nil Then
     Exit;
@@ -1232,42 +1174,8 @@ Begin
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderOpaqueBucket');{$ENDIF}
 
-  {$IFNDEF DEBUG_REFLECTIONS}
+  _Renderables.Render();
 
-{$IFDEF ADVANCED_ALPHA_BLEND}
-  If Pass = captureTargetAlpha Then
-  Begin
-    RenderList(_BucketOpaque, False);
-    RenderList(_BucketAlpha, True)
-  End Else
-  Begin
-    RenderList(_BucketOpaque, False);
-
-    If (_RenderStage <> renderStageNormal) Then
-    Begin
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderDecals');{$ENDIF}
-      DecalManager.Instance.Render();
-
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderBillboards');{$ENDIF}
-      BillboardManager.Instance.Render();
-    End;
-  End;
-{$ELSE}
-    RenderList(_BucketOpaque, False);
-
-    If (_RenderStage <> renderStageNormal) Then
-    Begin
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderDecals');{$ENDIF}
-      DecalManager.Instance.Render();
-
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderBillboards');{$ENDIF}
-      BillboardManager.Instance.Render();
-    End;
-
-    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderAlphaBucket');{$ENDIF}
-    RenderList(_BucketAlpha, True);
-    {$ENDIF}
-{$ENDIF}
 
 (*  If (_ReflectionsEnabled) And (_RenderStage = renderStageDiffuse) Then
   Begin
@@ -1297,8 +1205,7 @@ Begin
   _Occluders := Nil;
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Buckets.Clear');{$ENDIF}
 
-  _BucketOpaque.Clear();
-  _BucketAlpha.Clear();
+  _Renderables.Clear();
 
   _ReflectionsEnabled := False;
 
@@ -1611,44 +1518,6 @@ Begin
 	glPopMatrix4x4();
 End;}
 
-Procedure InsertIntoPool(Target:Pool; MyRenderable:Renderable; Unsorted:Boolean);
-Var
-  Proxy:CollectionObject;
-Begin
-  Proxy := Target.Recycle();
-  If Assigned(Proxy) Then
-  Begin
-    RenderableProxy(Proxy)._Object := MyRenderable;
-  End Else
-    Proxy := RenderableProxy.Create(MyRenderable);
-
-  Target.Add(Proxy);
-End;
-
-Procedure RemoveFromPool(Target:List; MyRenderable:Renderable);
-Var
-  P:RenderableProxy;
-Begin
-  P := RenderableProxy(Target.First);
-  While Assigned(P) Do
-  Begin
-    If (P._Object = MyRenderable) Then
-    Begin
-      P._Object := Nil;
-      Exit;
-    End;
-    P := RenderableProxy(P.Next);
-  End;
-End;
-
-Procedure GraphicsManager.DeleteRenderable(MyRenderable:Renderable);
-Begin
-  RemoveFromPool(_BucketOpaque, MyRenderable);
-  RemoveFromPool(_BucketAlpha, MyRenderable);
-  {$IFDEF REFLECTIONS_WITH_STENCIL}
-  RemoveFromPool(_BucketReflection, MyRenderable);
-  {$ENDIF}
-End;
 
 {Procedure GraphicsManager.AttachRenderable(MyRenderable, Owner:Renderable);
 Var
@@ -1682,86 +1551,6 @@ Begin
   Result := True;
 End;
 
-Function GraphicsManager.AddRenderable(MyRenderable:Renderable; Flags:Cardinal):Boolean;
-Const
-  LODS:Array[0..MaxLODLevel] Of Single = (0.0, 0.4, 0.8, 1.0);
-Var
-  Box:BoundingBox;
-  Pos:Vector3D;
-  I:Integer;
-  FarDist:Single;
-  Unsorted:Boolean;
-Begin
-  If Not Assigned(MyRenderable) Then
-  Begin
-    Result := False;
-    Exit;
-  End;
-
-  Unsorted := (Flags And renderFlagsSkipSorting<>0);
-  MyRenderable._Flags := Flags;
-
-  {$IFDEF REFLECTIONS_WITH_STENCIL}
-  If (_RenderStage = renderStageReflection) Then
-  Begin
-    InsertIntoPool(_BucketReflection, MyRenderable, Unsorted);
-    Exit;
-  End;
-  {$ENDIF}
-
-  If (_RenderStage<>renderStageDiffuse) Then
-  Begin
-    MyRenderable.Render(False);
-    Result := True;
-    Exit;
-  End;
-
-//Log(logDebug, 'GraphicsManager', 'Rendering lights...');
-//Log(logDebug, 'GraphicsManager', 'Class: '+MyRenderable.ClassName);
-
-  If (Renderer.Settings.DynamicLights.Enabled) Then
-    MyRenderable.RenderLights();
-
-  If (MyRenderable._LastUpdate <> Self._FrameID) Then
-  Begin
-    MyRenderable._LastUpdate := Self._FrameID;
-    MyRenderable.Update();
-  End;
-    
-  // frustum test
-  Box := MyRenderable.GetBoundingBox;
-  If (Flags And renderFlagsSkipFrustum=0) And (Not Self.IsBoxVisible(Box)) Then
-  Begin
-    MyRenderable._WasVisible := False;
-    Result := False;
-    Exit;
-  End;
-
-  Renderer.InternalStat(statRenderables);
-  MyRenderable._WasVisible := True;
-
-  Pos := VectorAdd(Box.Center , VectorScale(ActiveViewport.Camera.View, -Box.Radius));
-  MyRenderable._Distance := Pos.Distance(ActiveViewport.Camera.Position);
-
-  FarDist := Self.ActiveViewport.Camera.Far;
-
-  For I:=1 To MaxLODLevel Do
-  If (MyRenderable._Distance < LODS[I]*FarDist) Then
-  Begin
-    MyRenderable._LOD := Pred(I) + ((MyRenderable._Distance - (LODS[Pred(I)]*FarDist)) / ((LODS[I] - LODS[Pred(I)])*FarDist));
-    Break;
-  End Else
-  If (I >= MaxLODLevel) Then
-    MyRenderable._LOD := MaxLODLevel;
-
-  If (MyRenderable.IsTranslucent()) Then
-    InsertIntoPool(_BucketAlpha, MyRenderable, Unsorted);
-
-  If (MyRenderable.IsOpaque()) Then
-    InsertIntoPool(_BucketOpaque, MyRenderable, Unsorted);
-
-  Result := True;
-End;
 
 
 Procedure GraphicsManager.SetFog(Value:Boolean); {$IFDEF FPC} Inline; {$ENDIF}
@@ -1798,11 +1587,7 @@ Begin
   ReleaseObject(_FullscreenQuadShader);
   ReleaseObject(_FullscreenColorShader);
 
-  ReleaseObject(_BucketOpaque);
-  ReleaseObject(_BucketAlpha);
-  {$IFDEF REFLECTIONS_WITH_STENCIL}
-  ReleaseObject(_BucketReflection);
-  {$ENDIF}
+  ReleaseObject(_Renderables);
 
   ReleaseObject(_UIViewport);
   ReleaseObject(_DeviceViewport);
@@ -1944,27 +1729,6 @@ Begin
   _Scene := MyScene;
 End;
 
-Procedure GraphicsManager.RenderList(RenderList:List; TranslucentPass:Boolean);
-Var
-  P:RenderableProxy;
-Begin
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Rendering bucket'); {$ENDIF}
-
-  P := RenderableProxy(RenderList.First);
-  While (Assigned(P)) Do
-  Begin
-    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Fetching next...');{$ENDIF}
-    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', P.ToString());{$ENDIF}
-
-    If (Assigned(P._Object)) Then
-    Begin
-      If (Not Self.ReflectionActive) Or (P._Object._Flags And renderFlagsSkipReflections=0) Then
-        P._Object.Render(TranslucentPass);
-    End;
-
-    P := RenderableProxy(P.Next);
-  End;
-End;
 
 Procedure GraphicsManager.AddOccluder(MyOccluder: Occluder);
 Var
@@ -2012,65 +1776,6 @@ Begin
   _Renderer.Reset();
 End;
 
-{ Renderable }
-Procedure Renderable.Release;
-Begin
-  GraphicsManager.Instance.DeleteRenderable(Self);
-End;
-
-Function Renderable.GetName:TERRAString;
-Begin
-  Result := Self.ClassName + '_'+HexStr(Cardinal(Self));
-End;
-
-Function Renderable.IsOpaque: Boolean;
-Begin
-  Result := True;
-End;
-
-Function Renderable.IsTranslucent: Boolean;
-Begin
-  Result := False;
-End;
-
-Procedure Renderable.RenderLights;
-Begin
-  // do nothing
-End;
-
-Procedure Renderable.Update();
-Begin
-  // do nothing
-End;
-
-{ RenderableProxy }
-Constructor RenderableProxy.Create(Obj: Renderable);
-Begin
-  Self._Object := Obj;
-End;
-
-Procedure RenderableProxy.CopyValue(Other: CollectionObject);
-Begin
-  Self._Object := RenderableProxy(Other)._Object;
-End;
-
-Function RenderableProxy.Sort(Other: CollectionObject): Integer;
-Var
-  A,B:Renderable;
-Begin
-  A := Self._Object;
-  B := RenderableProxy(Other)._Object;
-  If (A=Nil) Or (B=Nil) Then
-    Result := 0
-  Else
-  If (A._Distance<B._Distance) Then
-    Result := 1
-  Else
-  If (A._Distance>B._Distance) Then
-    Result := -1
-  Else
-    Result := 0;
-End;
 
 Procedure GraphicsManager.SetCurrentViewport(V: TERRAViewport);
 Begin
@@ -2266,6 +1971,16 @@ Begin
   Result.EnableDefaultTargets();
   Result.DrawSky := True;
   Result.BackgroundColor := ColorGreen;
+End;
+
+Function GraphicsManager.AddRenderable(MyRenderable: Renderable; Flags: Cardinal): Boolean;
+Begin
+  Result := _Renderables.AddRenderable(MyRenderable, Flags);
+End;
+
+Procedure GraphicsManager.DeleteRenderable(MyRenderable: Renderable);
+Begin
+  _Renderables.DeleteRenderable(MyRenderable);
 End;
 
 End.

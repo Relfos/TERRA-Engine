@@ -5,6 +5,7 @@ uses
 //  MemCheck,
   TERRA_MemoryManager,
   TERRA_Application,
+  TERRA_Object,
   TERRA_Utils,
   TERRA_ResourceManager,
   TERRA_GraphicsManager,
@@ -22,7 +23,6 @@ uses
   TERRA_Scene,
   TERRA_Mesh,
   TERRA_Skybox,
-  TERRA_Widgets,
   TERRA_Color,
   TERRA_Matrix4x4,
   TERRA_ScreenFX,
@@ -31,14 +31,14 @@ uses
 Type
   MyScene = Class(Scene)
       Sky:Skybox;
-      Main:Viewport;
+      Main:TERRAViewport;
 
       Constructor Create;
       Procedure Release; Override;
 
-      Procedure RenderSprites(V:Viewport); Override;
-      Procedure RenderViewport(V:Viewport); Override;
-      Procedure RenderSky(V:Viewport); Override;
+      Procedure RenderSprites(V:TERRAViewport); Override;
+      Procedure RenderViewport(V:TERRAViewport); Override;
+      Procedure RenderSky(V:TERRAViewport); Override;
   End;
 
   Demo = Class(Application)
@@ -56,8 +56,8 @@ Type
 Var
   Solid:MeshInstance;
 
-  DiffuseTex:Texture;
-  GlowTex:Texture;
+  DiffuseTex:TERRATexture;
+  GlowTex:TERRATexture;
 
   Sun:DirectionalLight;
 
@@ -126,7 +126,7 @@ Procedure MyScene.RenderSprites;
 Begin
 End;
 
-Procedure MyScene.RenderViewport(V:Viewport);
+Procedure MyScene.RenderViewport(V:TERRAViewport);
 Begin
   LightManager.Instance.AddLight(Sun);
   GraphicsManager.Instance.AddRenderable(Solid);

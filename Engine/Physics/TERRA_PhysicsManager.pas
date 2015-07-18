@@ -27,7 +27,7 @@ Unit TERRA_PhysicsManager;
 
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Application, TERRA_GraphicsManager,
-  TERRA_Matrix4x4, TERRA_MeshFilter, TERRA_Vector3D, TERRA_BoundingBox;
+  TERRA_Matrix4x4, TERRA_MeshFilter, TERRA_Vector3D, TERRA_BoundingBox, TERRA_Renderable;
 
 Const
   PhysicsSpeed = 50;

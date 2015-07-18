@@ -31,9 +31,7 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Renderer, TERRA_ResourceManager, TERRA_FileUtils, TERRA_Vector4D, TERRA_Quaternion,
   TERRA_Math, TERRA_Ray, TERRA_Collections, TERRA_ShadowVolumes, TERRA_GraphicsManager, TERRA_MeshFilter,
   TERRA_BoundingBox, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_PhysicsManager, TERRA_VertexFormat,
-  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ParticleRenderer, TERRA_ParticleEmitters, TERRA_Lights 
-//  {$IFDEF PC}, TERRA_Fur, TERRA_Cloth{$ENDIF}
-;
+  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ParticleRenderer, TERRA_ParticleEmitters, TERRA_Lights, TERRA_Renderable;
 
 Const
   MaxBones    = 36;

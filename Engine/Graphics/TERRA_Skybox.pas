@@ -27,7 +27,7 @@ Unit TERRA_Skybox;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Texture, TERRA_Stream, TERRA_Vector3D, TERRA_Vector2D,
+  TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Math, TERRA_Texture, TERRA_Stream, TERRA_Vector3D, TERRA_Vector2D,
   TERRA_Color, TERRA_ShaderFactory, TERRA_Matrix4x4, TERRA_Renderer, TERRA_VertexFormat;
 
 Type
@@ -44,7 +44,7 @@ Type
   Skybox = Class(TERRAObject)
     Protected
       _Cubemap:CubemapInterface;       // Skybox textures
-      _Textures:Array[0..5] Of Texture;
+      _Textures:Array[0..5] Of TERRATexture;
       _Color:Color;           // Skybox color
       _Rotation:Single;
 
@@ -188,7 +188,7 @@ Var
   Projection:Matrix4x4;
   Camera:TERRA_Camera.Camera;
   MyShader:ShaderInterface;
-  View:Viewport;
+  View:TERRAViewport;
 
   Graphics:GraphicsManager;
 

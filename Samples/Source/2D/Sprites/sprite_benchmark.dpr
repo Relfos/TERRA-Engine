@@ -18,14 +18,14 @@ Type
 
   // A scene is used to render objects
   MyScene = Class(Scene)
-      Procedure RenderSprites(V:Viewport); Override;
+      Procedure RenderSprites(V:TERRAViewport); Override;
   End;
 
 Const
   Limit = 500;
 
 Var
-  Tex:Texture = Nil;
+  Tex:TERRATexture = Nil;
 
   Pos:Array[0..Pred(Limit)]Of Vector3D;
   Dir:Array[0..Pred(Limit)]Of Vector2D;
