@@ -28,7 +28,7 @@ Unit TERRA_Skybox;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Math, TERRA_Texture, TERRA_Stream, TERRA_Vector3D, TERRA_Vector2D,
-  TERRA_Color, TERRA_ShaderFactory, TERRA_Matrix4x4, TERRA_Renderer, TERRA_VertexFormat;
+  TERRA_Color, TERRA_ShaderFactory, TERRA_Matrix4x4, TERRA_Renderer, TERRA_VertexFormat, TERRA_Viewport;
 
 Type
 {  SkyboxVertex = Packed Record
@@ -41,7 +41,7 @@ Type
     TexCoord:Vector2D;
   End;}
 
-  Skybox = Class(TERRAObject)
+  TERRASkybox = Class(TERRAObject)
     Protected
       _Cubemap:CubemapInterface;       // Skybox textures
       _Textures:Array[0..5] Of TERRATexture;
@@ -59,7 +59,7 @@ Type
       Constructor Create(SkyTexture:TERRAString);
       Procedure Release; Override;
 
-      Procedure Render(BlendMode:Integer = 0);  // Renders the skybox
+      Procedure Render(View:TERRAViewport; BlendMode:Integer = 0);  // Renders the skybox
 
       Property Color:TERRA_Color.Color Read _Color Write _Color;
       //Property Texture:CubemapTexture Read _Cubemap;
@@ -68,7 +68,7 @@ Type
 
 Implementation
 Uses TERRA_GraphicsManager, TERRA_ResourceManager, TERRA_Log, TERRA_OS, TERRA_Camera,
-  TERRA_Image, TERRA_BoundingBox, TERRA_Viewport;
+  TERRA_Image, TERRA_BoundingBox;
 
 Var
   _SkyboxShader:ShaderInterface = Nil;
@@ -145,7 +145,7 @@ Begin
 End;
 
 { Skybox }
-Constructor SkyBox.Create(SkyTexture:TERRAString);
+Constructor TERRASkyBox.Create(SkyTexture:TERRAString);
 Var
   I, N:Integer;
   W,H:Integer;
@@ -175,20 +175,19 @@ Begin
 End;
 
 // Renders the skybox
-Procedure Skybox.Release;
+Procedure TERRASkybox.Release;
 Begin
   ReleaseObject(_Vertices);
   ReleaseObject(_Cubemap);
 End;
 
-Procedure SkyBox.Render(BlendMode:Integer);
+Procedure TERRASkyBox.Render(View:TERRAViewport; BlendMode:Integer);
 Var
   I:Integer;
   CamVertices:BoundingBoxVertices;
   Projection:Matrix4x4;
   Camera:TERRA_Camera.Camera;
   MyShader:ShaderInterface;
-  View:TERRAViewport;
 
   Graphics:GraphicsManager;
 
@@ -229,10 +228,6 @@ Begin
   End;
 
   If Not MyShader.IsReady() Then
-    Exit;
-
-  View := GraphicsManager.Instance.ActiveViewport;
-  If View = Nil Then
     Exit;
 
   Camera := View.Camera;
@@ -288,7 +283,7 @@ End;
 {Var
   _SkyGeometry:Array[0..5] Of SkyboxFixedVertex;}
 
-Procedure Skybox.RenderFixedPipeline;
+Procedure TERRASkybox.RenderFixedPipeline;
 Var
   I,J:Integer;
   Size:Single;

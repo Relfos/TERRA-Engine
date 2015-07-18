@@ -30,7 +30,7 @@ uses
 
 Type
   MyScene = Class(Scene)
-      Sky:Skybox;
+      Sky:TERRASkybox;
       Main:TERRAViewport;
 
       Constructor Create;
@@ -109,7 +109,7 @@ End;
 { MyScene }
 Constructor MyScene.Create;
 Begin
-  Sky := Skybox.Create('sky');
+  Sky := TERRASkybox.Create('sky');
 
   Main := GraphicsManager.Instance.CreateMainViewport('main', GraphicsManager.Instance.Width, GraphicsManager.Instance.Height);
   Main.SetPostProcessingState(True);
@@ -128,13 +128,13 @@ End;
 
 Procedure MyScene.RenderViewport(V:TERRAViewport);
 Begin
-  LightManager.Instance.AddLight(Sun);
-  GraphicsManager.Instance.AddRenderable(Solid);
+  LightManager.Instance.AddLight(V, Sun);
+  GraphicsManager.Instance.AddRenderable(V, Solid);
 End;
 
 Procedure MyScene.RenderSky;
 Begin
-  Sky.Render;
+  Sky.Render(V);
 End;
 
 {$IFDEF IPHONE}

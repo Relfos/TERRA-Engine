@@ -391,7 +391,7 @@ End;
 
 Procedure NullFBO.BeginCapture(Flags: Cardinal);
 Begin
-  GraphicsManager.Instance.ActiveViewport.SetViewArea(0, 0, _Width, _Height);
+
 End;
 
 Procedure NullFBO.EndCapture;

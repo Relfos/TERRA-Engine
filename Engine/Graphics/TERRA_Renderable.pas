@@ -3,7 +3,8 @@ Unit TERRA_Renderable;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_BoundingBox, TERRA_Renderer, TERRA_Collections, TERRA_Pool;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_BoundingBox, TERRA_Renderer,
+  TERRA_Viewport, TERRA_Collections, TERRA_Pool;
 
 Const
   renderFlagsSkipFrustum  = 1;
@@ -30,14 +31,14 @@ Type
 
       Procedure Release; Override;
 
-      Procedure Update; Virtual;
+      Procedure Update(View:TERRAViewport); Virtual;
 
       Function GetName():TERRAString; Virtual;
 
       Function GetBoundingBox:BoundingBox; Virtual; Abstract;
-      Procedure Render(TranslucentPass:Boolean); Virtual; Abstract;
+      Procedure Render(View:TERRAViewport; TranslucentPass:Boolean); Virtual; Abstract;
 
-      Procedure RenderLights(); Virtual;
+      Procedure RenderLights(View:TERRAViewport); Virtual;
 
       Function IsOpaque():Boolean; Virtual;
       Function IsTranslucent():Boolean; Virtual;
@@ -66,7 +67,7 @@ Type
       _BucketReflection:Pool;
       {$ENDIF}
 
-      Procedure RenderList(RenderList:List; TranslucentPass:Boolean);
+      Procedure RenderList(View:TERRAViewport; RenderList:List; TranslucentPass:Boolean);
 
       Procedure InsertIntoPool(Target:Pool; MyRenderable:Renderable; Unsorted:Boolean);
       Procedure RemoveFromPool(Target:List; MyRenderable:Renderable);
@@ -75,10 +76,10 @@ Type
       Constructor Create();
       Procedure Release(); Override;
 
-      Procedure Render();
+      Procedure Render(View:TERRAViewport);
       Procedure Clear();
 
-      Function AddRenderable(MyRenderable:Renderable; Flags:Cardinal):Boolean;
+      Function AddRenderable(View:TERRAViewport; MyRenderable:Renderable; Flags:Cardinal):Boolean;
       Procedure DeleteRenderable(MyRenderable:Renderable);
   End;
 
@@ -112,7 +113,7 @@ Begin
   // do nothing
 End;
 
-Procedure Renderable.Update();
+Procedure Renderable.Update(View:TERRAViewport);
 Begin
   // do nothing
 End;
@@ -158,7 +159,7 @@ Begin
 End;
 
 
-Procedure RenderableManager.RenderList(RenderList:List; TranslucentPass:Boolean);
+Procedure RenderableManager.RenderList(View:TERRAViewport; RenderList:List; TranslucentPass:Boolean);
 Var
   P:RenderableProxy;
 Begin
@@ -173,14 +174,14 @@ Begin
     If (Assigned(P._Object)) Then
     Begin
       If (Not GraphicsManager.Instance.ReflectionActive) Or (P._Object._Flags And renderFlagsSkipReflections=0) Then
-        P._Object.Render(TranslucentPass);
+        P._Object.Render(View, TranslucentPass);
     End;
 
     P := RenderableProxy(P.Next);
   End;
 End;
 
-Procedure RenderableManager.Render;
+Procedure RenderableManager.Render(View:TERRAViewport);
 Begin
   {$IFNDEF DEBUG_REFLECTIONS}
 
@@ -203,19 +204,19 @@ Begin
     End;
   End;
 {$ELSE}
-    RenderList(_BucketOpaque, False);
+    RenderList(View, _BucketOpaque, False);
 
     If (GraphicsManager.Instance.RenderStage <> renderStageNormal) Then
     Begin
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderDecals');{$ENDIF}
-      DecalManager.Instance.Render();
+      DecalManager.Instance.Render(View);
 
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderBillboards');{$ENDIF}
-      BillboardManager.Instance.Render();
+      BillboardManager.Instance.Render(View);
     End;
 
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderAlphaBucket');{$ENDIF}
-    RenderList(_BucketAlpha, True);
+    RenderList(View, _BucketAlpha, True);
     {$ENDIF}
 {$ENDIF}
 End;
@@ -268,7 +269,7 @@ Begin
   End;
 End;
 
-Function RenderableManager.AddRenderable(MyRenderable:Renderable; Flags:Cardinal):Boolean;
+Function RenderableManager.AddRenderable(View:TERRAViewport; MyRenderable:Renderable; Flags:Cardinal):Boolean;
 Const
   LODS:Array[0..MaxLODLevel] Of Single = (0.0, 0.4, 0.8, 1.0);
 Var
@@ -300,7 +301,7 @@ Begin
 
   If (Graphics.RenderStage <> renderStageDiffuse) Then
   Begin
-    MyRenderable.Render(False);
+    MyRenderable.Render(View, False);
     Result := True;
     Exit;
   End;
@@ -309,17 +310,17 @@ Begin
 //Log(logDebug, 'GraphicsManager', 'Class: '+MyRenderable.ClassName);
 
   If (Graphics.Renderer.Settings.DynamicLights.Enabled) Then
-    MyRenderable.RenderLights();
+    MyRenderable.RenderLights(View);
 
   If (MyRenderable._LastUpdate <> Graphics.FrameID) Then
   Begin
     MyRenderable._LastUpdate := Graphics.FrameID;
-    MyRenderable.Update();
+    MyRenderable.Update(View);
   End;
     
   // frustum test
   Box := MyRenderable.GetBoundingBox;
-  If (Flags And renderFlagsSkipFrustum=0) And (Not Graphics.IsBoxVisible(Box)) Then
+  If (Flags And renderFlagsSkipFrustum=0) And (Not Graphics.IsBoxVisible(View, Box)) Then
   Begin
     MyRenderable._WasVisible := False;
     Result := False;
@@ -329,10 +330,10 @@ Begin
   Graphics.Renderer.InternalStat(statRenderables);
   MyRenderable._WasVisible := True;
 
-  Pos := VectorAdd(Box.Center , VectorScale(Graphics.ActiveViewport.Camera.View, -Box.Radius));
-  MyRenderable._Distance := Pos.Distance(Graphics.ActiveViewport.Camera.Position);
+  Pos := VectorAdd(Box.Center , VectorScale(View.Camera.View, -Box.Radius));
+  MyRenderable._Distance := Pos.Distance(View.Camera.Position);
 
-  FarDist := Graphics.ActiveViewport.Camera.Far;
+  FarDist := View.Camera.Far;
 
   For I:=1 To MaxLODLevel Do
   If (MyRenderable._Distance < LODS[I]*FarDist) Then

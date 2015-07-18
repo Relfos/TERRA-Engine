@@ -27,7 +27,8 @@ Unit TERRA_Decals;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_Color, TERRA_Vector2D, TERRA_Vector3D,
-  TERRA_TextureAtlas, TERRA_Texture, TERRA_Renderer, TERRA_Matrix4x4, TERRA_MeshFilter, TERRA_Lights, TERRA_VertexFormat;
+  TERRA_TextureAtlas, TERRA_Texture, TERRA_Renderer, TERRA_Matrix4x4, TERRA_MeshFilter, TERRA_Lights,
+  TERRA_Viewport, TERRA_VertexFormat;
 
 Const
   DecalDecayDuration = 2000;
@@ -71,7 +72,7 @@ Type
 
       Function AddDecal(Const TextureName:TERRAString; Position, Normal:Vector3D; DecalColor:Color; Size:Single; Rotation:Single = 0; Duration:Integer=20000):Boolean;
 
-      Procedure Render;
+      Procedure Render(View:TERRAViewport);
   End;
 
 Implementation
@@ -225,7 +226,7 @@ Begin
 End;
 
 
-Procedure DecalManager.Render;
+Procedure DecalManager.Render(View:TERRAViewport);
 Var
   I:Integer;
   T, OutFlags, FxFlags:Cardinal;
@@ -242,7 +243,7 @@ Begin
   I := 0;
   T := Application.GetTime;
 
-  Center := GraphicsManager.Instance.ActiveViewport.Camera.Position;
+  Center := View.Camera.Position;
   Box.StartVertex := VectorAdd(Center, VectorCreate(-100, -100, -100));
   Box.EndVertex := VectorAdd(Center, VectorCreate(100, 100, 100));
 
@@ -299,7 +300,7 @@ Begin
     _NeedGeometryRebuild := False;
   End;
 
-  Graphics.ActiveViewport.Camera.SetupUniforms;
+  View.Camera.SetupUniforms;
 
   _Shader.SetIntegerUniform('texture0', 0);
 

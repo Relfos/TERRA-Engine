@@ -28,7 +28,7 @@ Unit TERRA_Billboards;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_Utils, TERRA_Color, TERRA_Vector3D, TERRA_Texture, TERRA_Renderer,
-  TERRA_Mesh, TERRA_Vector2D, TERRA_ParticleRenderer, TERRA_VertexFormat, TERRA_UI;
+  TERRA_Mesh, TERRA_Vector2D, TERRA_ParticleRenderer, TERRA_VertexFormat, TERRA_UI, TERRA_Viewport;
 
 Type
   PBillboard = ^Billboard;
@@ -72,7 +72,7 @@ Type
 
       Function AddBillboard(Position:Vector3D; Width, Height:Single; MyTexture:TERRATexture):PBillboard;
 
-      Procedure Render;
+      Procedure Render(View:TERRAViewport);
 
   End;
 
@@ -199,7 +199,7 @@ Begin
   Result := _BillboardInstance;
 End;
 
-Procedure BillboardManager.Render;
+Procedure BillboardManager.Render(View:TERRAViewport);
 Const
   QuadOffsets:Array[0..3] Of Vector2D = (
     (X:-1.0; Y:1.0),
@@ -229,8 +229,8 @@ Begin
     Up.Scale(-1.0);
   End Else}
   Begin
-    Right := Graphics.ActiveViewport.Camera.Right;
-    Up := Graphics.ActiveViewport.Camera.Up;
+    Right := View.Camera.Right;
+    Up := View.Camera.Up;
   End;
 
   Ratio := UIManager.Instance.Height / UIManager.Instance.Width;
@@ -239,7 +239,7 @@ Begin
 
   Graphics.Renderer.BindShader(_Shader);
 
-  Graphics.ActiveViewport.Camera.SetupUniforms();
+  View.Camera.SetupUniforms();
 
   _Shader.SetVec3Uniform('cameraUp', Up);
   _Shader.SetVec3Uniform('cameraRight', Right);

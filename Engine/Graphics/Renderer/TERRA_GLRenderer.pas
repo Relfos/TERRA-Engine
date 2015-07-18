@@ -1903,8 +1903,6 @@ Begin
   glDrawBuffers(_TargetCount, @_DrawBuffers[0]);
   {$ENDIF}
 
-  GraphicsManager.Instance.ActiveViewport.SetViewArea(0, 0, _Width, _Height);
-
   If (Flags<>0) Then
   Begin
     ClearFlags := 0;

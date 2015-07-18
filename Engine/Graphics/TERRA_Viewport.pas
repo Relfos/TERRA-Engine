@@ -26,7 +26,7 @@ Unit TERRA_Viewport;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Camera, TERRA_Renderer, TERRA_Downsampler, TERRA_Resource,
+  TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Camera, TERRA_Renderer, TERRA_Resource,
   TERRA_Ray, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Color, TERRA_Texture
   {$IFDEF POSTPROCESSING},TERRA_ScreenFX{$ENDIF};
 
@@ -35,6 +35,40 @@ Const
   vpPositionY   = 2;
 
 Type
+  TERRAViewport = Class;
+
+  RenderTargetSampler = Class(TERRAObject)
+    Protected
+      _Name:TERRAString;
+
+	    _Targets:Array Of RenderTargetInterface;
+      _Textures:Array Of TERRATexture;
+      _TargetCount:Integer;
+
+      _ResultIndex:Integer;
+
+    	Procedure Init(Width, Height:Integer; PixelSize:PixelSizeType); Virtual; Abstract;
+
+    	// Free memory
+	    Procedure Clear();
+
+    Public
+	    Constructor Create(Const Name:TERRAString; Width, Height:Integer; PixelSize:PixelSizeType);
+
+	    Procedure Release; Override;
+
+	    Procedure Update(View:TERRAViewport; Source:TERRATexture; DownsamplerShader:ShaderInterface; First, Count:Integer); Virtual; Abstract;
+
+	    // Number of render texture used
+      Property TextureCount:Integer Read _TargetCount;
+
+      // Get a downsampled render texture
+      Function GetRenderTexture(Index:Integer):TERRATexture;
+
+      Function GetResult():TERRATexture;
+  End;
+
+
   TERRAViewport = Class(TERRAObject)
     Protected
       _Name:TERRAString;
@@ -163,7 +197,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_GraphicsManager, TERRA_Application, TERRA_Log, TERRA_OS, TERRA_Vector4D;
+Uses TERRA_Error, TERRA_GraphicsManager, TERRA_Application, TERRA_Log, TERRA_OS, TERRA_Vector4D, TERRA_Downsampler;
 
 {$IFDEF POSTPROCESSING}
 Var
@@ -374,7 +408,59 @@ Begin
   Line('}}');
   Result := S;
 End;
-                                    
+
+{ RenderTargetSampler }
+Constructor RenderTargetSampler.Create(Const Name:TERRAString; Width, Height:Integer; PixelSize:PixelSizeType);
+Begin
+  Self._Name := Name;
+  Self.Init(Width, Height, PixelSize); // {$IFDEF FRAMEBUFFEROBJECTS}FBO_COLOR8{$ELSE}0{$ENDIF}); BIBI
+End;
+
+Function RenderTargetSampler.GetRenderTexture(Index:Integer):TERRATexture;
+Begin
+  If (Index<0) Or (Index>=_TargetCount) Then
+    Result := Nil
+  Else
+  Begin
+    If (_Textures[Index] = Nil) Then
+    Begin
+      _Textures[Index] := TERRATexture.Create(rtDynamic, Self._Name + '_rt'+IntToString(Index));
+      _Textures[Index].InitFromSurface(_Targets[Index]);
+      _Textures[Index].WrapMode := wrapNothing;
+    End;
+
+    Result := _Textures[Index];
+  End;
+End;
+
+Procedure RenderTargetSampler.Release();
+Begin
+  Self.Clear();
+End;
+
+
+Procedure RenderTargetSampler.Clear();
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_TargetCount) Do
+  Begin
+    ReleaseObject(_Textures[I]);
+    ReleaseObject(_Targets[I]);
+  End;
+
+  _TargetCount := 0;
+  SetLength(_Targets, 0);
+  SetLength(_Textures, 0);
+End;
+
+Function RenderTargetSampler.GetResult: TERRATexture;
+Begin
+  Result := Self.GetRenderTexture(_ResultIndex);
+End;
+
+
+{ TERRAViewport }
 Constructor TERRAViewport.Create(Name:TERRAString; Width,Height:Integer; Scale:Single);
 Begin
   _Name := Name;
@@ -719,6 +805,7 @@ Begin
 	{$ENDIF}
 
   _ResolveBuffer.BackgroundColor := ColorNull;
+  Self.SetViewArea(0, 0, _ResolveBuffer.Width, _ResolveBuffer.Height);
   _ResolveBuffer.BeginCapture();
   Self.DrawToTarget(False);
   _ResolveBuffer.EndCapture();
@@ -1050,7 +1137,7 @@ Begin
           Count := 4;
         End;
 
-        Sampler.Update(Self.GetRenderTexture(SrcType), _BlurShader, 0, Count);
+        Sampler.Update(Self, Self.GetRenderTexture(SrcType), _BlurShader, 0, Count);
       End;
 
     effectTargetEdge:
@@ -1069,7 +1156,7 @@ Begin
           _DistanceFieldShader.Generate('DistanceField', GetShader_DistanceField());
         End;*)
 
-        Sampler.Update(Self.GetRenderTexture(captureTargetNormal), _EdgeShader, 0, 1);
+        Sampler.Update(Self, Self.GetRenderTexture(captureTargetNormal), _EdgeShader, 0, 1);
         //Sampler.Update(Sampler.GetResult(), _DistanceFieldShader, 0, 256);
       End;
 

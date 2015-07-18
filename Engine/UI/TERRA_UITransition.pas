@@ -29,7 +29,7 @@ Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Vector2D, TERRA_Vector3D, TERRA_Texture,
   {$IFDEF POSTPROCESSING}TERRA_ScreenFX, {$ENDIF}
-  TERRA_Image, TERRA_Color, TERRA_Matrix4x4, TERRA_Matrix3x3, TERRA_VertexFormat, TERRA_Tween;
+  TERRA_Image, TERRA_Color, TERRA_Matrix4x4, TERRA_Matrix3x3, TERRA_VertexFormat, TERRA_Viewport, TERRA_Tween;
 
 Const
   FadeVertexFormat = [vertexFormatPosition, vertexFormatUV0];
@@ -94,13 +94,14 @@ Type
 
   UISlide = Class(UITransition)
     Protected
+      _View:TERRAViewport;
       _Direction:Vector2D;
       _Texture:TERRATexture;
 
       Procedure Render(Alpha:Single); Override;
 
     Public
-      Constructor Create(Direction:Vector2D; Duration, Delay:Cardinal);
+      Constructor Create(TargetView:TERRAViewport; Direction:Vector2D; Duration, Delay:Cardinal);
       Procedure Release; Override;
   End;
 
@@ -394,10 +395,11 @@ Begin
 End;
 
 { UISlide }
-Constructor UISlide.Create(Direction: Vector2D; Duration,Delay: Cardinal);
+Constructor UISlide.Create(TargetView:TERRAViewport; Direction:Vector2D; Duration,Delay: Cardinal);
 Var
   Src:Image;
 Begin
+  _View := TargetView;
   _Direction := Direction;
   _Duration := Duration;
   _Delay := Delay;
@@ -406,7 +408,7 @@ Begin
   _ID := Random(36242);
 
   {$IFDEF POSTPROCESSING}
-  Src := GraphicsManager.Instance.ActiveViewport.GetRenderTarget(captureTargetColor).GetImage();
+  Src := _View.GetRenderTarget(captureTargetColor).GetImage();
   _Texture := TERRATexture.Create(rtDynamic, 'ui_slide');
   _Texture.InitFromSize(Src.Width, Src.Height, ColorWhite);
   _Texture.UpdateRect(Src);

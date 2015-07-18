@@ -358,6 +358,7 @@ Begin
 		minZ := applyCropMatrix( FrustumCorners);
 
 		// make the current depth map a rendering target
+       View.SetViewArea(0, 0, curRT.Width, curRT.Height);
     _FBO[I].BeginCapture;
 
 		// draw the scene
@@ -460,6 +461,7 @@ Begin
   glCullFace(GL_FRONT);                     
 
 	// make the current depth map a rendering target
+     View.SetViewArea(0, 0, curRT.Width, curRT.Height);
   _fbo.BeginCapture;
 
 	// draw the scene

@@ -28,7 +28,7 @@ Unit TERRA_Lights;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_Utils, TERRA_Math, TERRA_Texture, TERRA_Matrix4x4, TERRA_Renderer,
-  TERRA_Vector3D, TERRA_Color, TERRA_Application, TERRA_BoundingBox;
+  TERRA_Vector3D, TERRA_Color, TERRA_Application, TERRA_BoundingBox, TERRA_Viewport;
 
 Const
   {$IFDEF MOBILE}
@@ -74,7 +74,7 @@ Type
       Procedure Release; Override;
 
       Function GetPosition():Vector3D; Virtual; Abstract;
-      Function IsOccluded():Boolean; Virtual; Abstract;
+      Function IsOccluded(View:TERRAViewport):Boolean; Virtual; Abstract;
 
       Property Color:TERRA_Color.Color Read _Color Write _Color;
       Property Static:Boolean Read _Static Write _Static;
@@ -93,7 +93,7 @@ Type
 
       Procedure SetDirection(Dir:Vector3D);
 
-      Function IsOccluded():Boolean; Override;
+      Function IsOccluded(View:TERRAViewport):Boolean; Override;
 
       Function GetPosition():Vector3D; Override;
 
@@ -124,7 +124,7 @@ Type
       Procedure SetRadius(R:Single);
 
       Function GetPosition():Vector3D; Override;
-      Function IsOccluded():Boolean; Override;
+      Function IsOccluded(View:TERRAViewport):Boolean; Override;
 
       Property Radius:Single Read _Radius Write _Radius;
   End;
@@ -150,7 +150,7 @@ Type
       Procedure SetPosition(Pos:Vector3D); Override;
 
       Function GetPosition():Vector3D; Override;
-      Function IsOccluded():Boolean; Override;
+      Function IsOccluded(View:TERRAViewport):Boolean; Override;
 
       Property InnerAngle:Single Read _InnerAngle Write _InnerAngle;
       Property OuterAngle:Single Read _OuterAngle Write _OuterAngle;
@@ -191,7 +191,7 @@ Type
 
       Procedure Clear;
 
-      Procedure AddLight(Source:Light);
+      Procedure AddLight(View:TERRAViewport; Source:Light);
 
       Procedure SortLights(Target:Vector3D; Box:BoundingBox; Out Result:LightBatch);
       Procedure SetupUniforms(Batch:PLightBatch; Var TextureSlot:Integer);
@@ -246,7 +246,7 @@ Begin
   Inc(_CurrentFrame);
 End;
 
-Procedure LightManager.AddLight(Source:Light);
+Procedure LightManager.AddLight(View:TERRAViewport; Source:Light);
 Begin
   If (Source=Nil) Or (Source._Frame = Self._CurrentFrame) Or (Source.Intensity<=0.0) Then
     Exit;
@@ -256,7 +256,7 @@ Begin
 
   Source._Frame := Self._CurrentFrame;
 
-  If (Source.IsOccluded()) Then
+  If (Source.IsOccluded(View)) Then
     Exit;
 
   Source._Next := _FirstLight;
@@ -407,13 +407,13 @@ Begin
   _Shader.SetColorUniform('plightColor'+IntToString(Index), ColorScale(_Color, Intensity));
 End;
 
-Function PointLight.IsOccluded: Boolean;
+Function PointLight.IsOccluded(View:TERRAViewport): Boolean;
 Var
   Sphere:BoundingSphere;
 Begin
   Sphere.Center := _Position;
   Sphere.Radius := _Radius;
-  Result := Not GraphicsManager.Instance.ActiveViewport.Camera.Frustum.SphereVisible(Sphere);
+  Result := Not View.Camera.Frustum.SphereVisible(Sphere);
 End;
 
 Procedure PointLight.SetRadius(R: Single);
@@ -446,10 +446,10 @@ Function DirectionalLight.GetPosition: Vector3D;
 Begin
   Result := Self.Direction;
   Result.Scale(1000);
-  Result.Add(GraphicsManager.Instance.ActiveViewport.Camera.Position);
+  //Result.Add(GraphicsManager.Instance.ActiveViewport.Camera.Position);
 End;
 
-Function DirectionalLight.IsOccluded: Boolean;
+Function DirectionalLight.IsOccluded(View:TERRAViewport): Boolean;
 Begin
   Result := False;
 End;
@@ -522,7 +522,7 @@ Begin
   Result := _Position;
 End;
 
-Function SpotLight.IsOccluded: Boolean;
+Function SpotLight.IsOccluded(View:TERRAViewport): Boolean;
 Begin
   Result := False;
 End;

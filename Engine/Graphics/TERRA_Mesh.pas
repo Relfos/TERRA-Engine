@@ -31,7 +31,7 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Renderer, TERRA_ResourceManager, TERRA_FileUtils, TERRA_Vector4D, TERRA_Quaternion,
   TERRA_Math, TERRA_Ray, TERRA_Collections, TERRA_ShadowVolumes, TERRA_GraphicsManager, TERRA_MeshFilter,
   TERRA_BoundingBox, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_PhysicsManager, TERRA_VertexFormat,
-  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ParticleRenderer, TERRA_ParticleEmitters, TERRA_Lights, TERRA_Renderable;
+  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ParticleRenderer, TERRA_ParticleEmitters, TERRA_Lights, TERRA_Renderable, TERRA_Viewport;
 
 Const
   MaxBones    = 36;
@@ -279,9 +279,9 @@ Type
 
       Procedure SetGeometry(MyMesh:Mesh);
 
-      Procedure DrawMesh(Const MyTransform:Matrix4x4; TranslucentPass, StencilTest:Boolean);
+      Procedure DrawMesh(View:TERRAViewport; Const MyTransform:Matrix4x4; TranslucentPass, StencilTest:Boolean);
 
-      Procedure DrawParticles();
+      Procedure DrawParticles(View:TERRAViewport);
 
       Function IsGroupTranslucent(Index:Integer):Boolean;
 
@@ -299,7 +299,7 @@ Type
       Diffuse:Color;
       AlwaysOnTop:Boolean;
 
-      Procedure Update; Override;
+      Procedure Update(View:TERRAViewport); Override;
 
       Function ActivatePhysics(Mass:Single):Boolean;
 
@@ -308,7 +308,7 @@ Type
       Function IsOpaque():Boolean; Override;
       Function IsTranslucent():Boolean; Override;
 
-      Procedure RenderLights; Override;
+      Procedure RenderLights(View:TERRAViewport); Override;
 
       Function GetName():TERRAString; Override;
 
@@ -431,7 +431,7 @@ Type
       Procedure Release(); Override;
 
       Function GetBoundingBox:BoundingBox; Override;
-      Procedure Render(TranslucentPass:Boolean); Override;
+      Procedure Render(View:TERRAViewport; TranslucentPass:Boolean); Override;
 
       Function GetAttach(Index:Integer):PMeshAttach;
 
@@ -518,10 +518,10 @@ Type
       _MorphCount:Integer;
 
 
-      Procedure SetupUniforms(Transform:Matrix4x4; State:MeshInstance; Outline, TranslucentPass:Boolean; Const Material:MeshMaterial);
+      Procedure SetupUniforms(View:TERRAViewport; Transform:Matrix4x4; State:MeshInstance; Outline, TranslucentPass:Boolean; Const Material:MeshMaterial);
 
       //Procedure SetCombineWithColor(C:Color);
-      Procedure BindMaterial(Var Slot:Integer; Const Material:MeshMaterial);
+      Procedure BindMaterial(View:TERRAViewport; Var Slot:Integer; Const Material:MeshMaterial);
 
       Procedure Load(Source:Stream);
       Procedure Save(Dest:Stream);
@@ -680,7 +680,7 @@ Type
       Procedure CullTriangles(Box:BoundingBox; Transform:Matrix4x4);
       Procedure UncullTriangles();
 
-      Function Render(Const Transform:Matrix4x4; TranslucentPass:Boolean; State:MeshInstance):Boolean;
+      Function Render(View:TERRAViewport; Const Transform:Matrix4x4; TranslucentPass:Boolean; State:MeshInstance):Boolean;
 
       //Function DuplicateVertex(Index:Integer):Integer;
 
@@ -925,7 +925,7 @@ Type
 
   Function CreatePlaneMesh(Const Normal:Vector3D; SubDivisions:Cardinal):Mesh;
 
-  Function SelectMeshShader(Group:MeshGroup; Position:Vector3D; Outline, TranslucentPass:Boolean; Var DestMaterial:MeshMaterial; UseTextureMatrix:Boolean):ShaderInterface;
+  Function SelectMeshShader(View:TERRAViewport; Group:MeshGroup; Position:Vector3D; Outline, TranslucentPass:Boolean; Var DestMaterial:MeshMaterial; UseTextureMatrix:Boolean):ShaderInterface;
 
   Function MakeWaterFlowBounds(Const Box:BoundingBox):Vector4D;
 
@@ -2143,7 +2143,7 @@ Begin
     Result.Transform(GraphicsManager.Instance.ReflectionMatrix);
 End;
 
-Procedure MeshInstance.Update();
+Procedure MeshInstance.Update(View:TERRAViewport);
 Var
   I,J, N:Integer;
   S:Single;
@@ -2191,7 +2191,7 @@ Begin
   End;
 End;
 
-Procedure MeshInstance.RenderLights;
+Procedure MeshInstance.RenderLights(View:TERRAViewport);
 Var
   I:Integer;
   M, Transform:Matrix4x4;
@@ -2284,12 +2284,12 @@ Begin
     If _Lights[I].Enabled Then
     Begin
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Mesh', 'Adding light to manager...');{$ENDIF}
-      LightManager.Instance.AddLight(TargetLight);
+      LightManager.Instance.AddLight(View, TargetLight);
     End;
   End;
 End;
 
-Procedure MeshInstance.DrawParticles();
+Procedure MeshInstance.DrawParticles(View:TERRAViewport);
 Var
   I, J, ID,ID2:Integer;
   M, Transform:Matrix4x4;
@@ -2361,12 +2361,12 @@ Begin
       PositionalParticleEmitter(_ParticleSystems[I].Emitter).Position := P;
     End;
 
-    _ParticleSystems[I].Update();
-    GraphicsManager.Instance.AddRenderable(_ParticleSystems[I]);
+    _ParticleSystems[I].Update(View);
+    GraphicsManager.Instance.AddRenderable(View, _ParticleSystems[I]);
   End;
 End;
 
-Procedure MeshInstance.DrawMesh(Const MyTransform:Matrix4x4; TranslucentPass, StencilTest:Boolean);
+Procedure MeshInstance.DrawMesh(View:TERRAViewport; Const MyTransform:Matrix4x4; TranslucentPass, StencilTest:Boolean);
 Var
   I:Integer;
   M, Transform:Matrix4x4;
@@ -2403,16 +2403,16 @@ Begin
     Begin
       Box := _Mesh._Groups[I]._BoundingBox;
       Box.Transform(Transform);
-      If Not GraphicsManager.Instance.IsBoxVisible(Box) Then
+      If Not GraphicsManager.Instance.IsBoxVisible(View, Box) Then
         Continue;
     End;
 
     If (IsGroupTranslucent(I) = TranslucentPass) Then
-	    _Mesh._Groups[I].Render(Transform, TranslucentPass, Self);
+	    _Mesh._Groups[I].Render(View, Transform, TranslucentPass, Self);
   End;
 End;
 
-Procedure MeshInstance.Render(TranslucentPass:Boolean);
+Procedure MeshInstance.Render(View:TERRAViewport; TranslucentPass:Boolean);
 Var
   C:Color;
   Time:Cardinal;
@@ -2517,14 +2517,14 @@ Begin
       Begin
         C := _AttachList[I].AttachMesh._Groups[J].DiffuseColor;
         _AttachList[I].AttachMesh._Groups[J].Flags := meshGroupColorOff;
-  	    _AttachList[I].AttachMesh._Groups[J].Render(M, TranslucentPass, Nil);
+  	    _AttachList[I].AttachMesh._Groups[J].Render(View, M, TranslucentPass, Nil);
       End;
     End;
 
     For I:=0 To Pred(_Mesh._GroupCount) Do
     If (_Mesh._Groups[I].Flags And meshGroupStencilMask<>0) Then
     Begin
-      Self._Mesh._Groups[I].Render(_Transform, TranslucentPass, Self);
+      Self._Mesh._Groups[I].Render(View, _Transform, TranslucentPass, Self);
     End;
 
     Graphics.Renderer.SetDepthMask(True);
@@ -2537,11 +2537,11 @@ Begin
 
   If (_StencilID>0) Then
   Begin
-    DrawMesh(_Transform, TranslucentPass, True);
+    DrawMesh(View, _Transform, TranslucentPass, True);
     Graphics.Renderer.SetStencilTest(False);
   End;
 
-  DrawMesh(_Transform, TranslucentPass, False);
+  DrawMesh(View, _Transform, TranslucentPass, False);
 
 {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Main mesh done');{$ENDIF}
 
@@ -2574,7 +2574,7 @@ Begin
       Begin
         S := 0.75 + 0.25 * (1.0 - (J/Pred(MaxTrailSize)));
         _Transform := Matrix4x4Multiply4x3(_OldTransforms[J], Matrix4x4Scale(S, S, S));
-        DrawMesh( _Transform, TranslucentPass, False);
+        DrawMesh( View, _Transform, TranslucentPass, False);
       End;
     End;
 
@@ -2598,13 +2598,13 @@ Begin
     Begin
       C := _AttachList[I].AttachMesh._Groups[J].DiffuseColor;
       _AttachList[I].AttachMesh._Groups[J].DiffuseColor := ColorMultiply(_AttachList[I].AttachMesh._Groups[J].DiffuseColor, _AttachList[I].Color);
-	    _AttachList[I].AttachMesh._Groups[J].Render(M, TranslucentPass, Nil);
+	    _AttachList[I].AttachMesh._Groups[J].Render(View, M, TranslucentPass, Nil);
       _AttachList[I].AttachMesh._Groups[J].DiffuseColor := C;
     End;
   End;
 
   If (TranslucentPass) Then
-    Self.DrawParticles();
+    Self.DrawParticles(View);
 
 {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Inherited mesh');{$ENDIF}
 End;
@@ -4013,7 +4013,7 @@ Begin
 End;
 
 
-Procedure MeshGroup.SetupUniforms(Transform:Matrix4x4; State:MeshInstance; Outline, TranslucentPass:Boolean; Const Material:MeshMaterial);
+Procedure MeshGroup.SetupUniforms(View:TERRAViewport; Transform:Matrix4x4; State:MeshInstance; Outline, TranslucentPass:Boolean; Const Material:MeshMaterial);
 Var
   I:Integer;
   TextureMatrix, M, M2:Matrix4x4;
@@ -4081,7 +4081,7 @@ Begin
   Graphics.Renderer.SetModelMatrix(Transform);
   Graphics.Renderer.SetTextureMatrix(TextureMatrix);
 
-  Graphics.ActiveViewport.Camera.SetupUniforms;
+  View.Camera.SetupUniforms;
 
 {$IFDEF ADVANCED_ALPHA_BLEND}
   If Not TranslucentPass Then
@@ -4161,7 +4161,7 @@ Begin
   End;
 End;
 
-Function MeshGroup.Render(Const Transform:Matrix4x4; TranslucentPass:Boolean; State:MeshInstance):Boolean;
+Function MeshGroup.Render(View:TERRAViewport; Const Transform:Matrix4x4; TranslucentPass:Boolean; State:MeshInstance):Boolean;
 Var
   UseOutline, ShowWireframe, UseTextureMatrix:Boolean;
   I,J,K, PassCount:Integer;
@@ -4284,7 +4284,7 @@ Begin
   And (Graphics.Renderer.Settings.Outlines.Enabled)
   And (Not Graphics.ReflectionActive)
   {$IFDEF POSTPROCESSING}
-  And (Not Graphics.ActiveViewport.IsRenderTargetEnabled(captureTargetNormal))
+  And (Not View.IsRenderTargetEnabled(captureTargetNormal))
   {$ENDIF}
   Then
     PassCount := 2
@@ -4310,9 +4310,9 @@ Begin
     Else
     Begin
       UseTextureMatrix := (Assigned(State)) And (State._Groups[_ID].UseTextureMatrix);
-      Self._Shader := SelectMeshShader(Self, Transform.GetTranslation(), UseOutline, TranslucentPass, DestMaterial, UseTextureMatrix);
+      Self._Shader := SelectMeshShader(View, Self, Transform.GetTranslation(), UseOutline, TranslucentPass, DestMaterial, UseTextureMatrix);
     End;
-    
+
     {If (Assigned(_Shader)) And (Not _Shader.IsReady) Or (_Shader = Nil) Then
       Exit; BIBI}
 
@@ -4343,7 +4343,7 @@ Begin
       If (DestMaterial.FlowMap<>Nil) Then
         IntToString(2);
 
-      BindMaterial(Slot, DestMaterial);
+      BindMaterial(View, Slot, DestMaterial);
 
       If Assigned(_Shader) Then
       Begin
@@ -4380,7 +4380,7 @@ Begin
       Begin
         _Shader.SetIntegerUniform('diffuseMap', 0);
         If Not UseOutline Then
-          BindMaterial(Slot, DestMaterial);
+          BindMaterial(View, Slot, DestMaterial);
       End{ Else
       Begin
         SetCombineWithColor(DestMaterial.DiffuseColor);
@@ -4403,7 +4403,7 @@ Begin
     End;
 
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Setup mesh uniforms');  {$ENDIF}
-    SetupUniforms(Transform, State, UseOutline, TranslucentPass, DestMaterial);
+    SetupUniforms(View, Transform, State, UseOutline, TranslucentPass, DestMaterial);
 
     {$IFDEF EDITOR}
     If (Flags And mgCullFace<>0) Then
@@ -4975,7 +4975,7 @@ Begin
     _Edges[TriangleIndex].Visible[EdgeIndex] := Visible;
 End;
 
-Procedure MeshGroup.BindMaterial(Var Slot: Integer; Const Material:MeshMaterial);
+Procedure MeshGroup.BindMaterial(View:TERRAViewport; Var Slot: Integer; Const Material:MeshMaterial);
 Var
   Tex:TERRATexture;
   FlowCycle:Vector3D;
@@ -4987,7 +4987,7 @@ Begin
 
   If (Graphics.Renderer.Settings.DynamicShadows.Enabled) And (Graphics.RenderStage=renderStageDiffuse) Then
   Begin
-    Tex := Graphics.ActiveViewport.GetRenderTexture(captureTargetShadow);
+    Tex := View.GetRenderTexture(captureTargetShadow);
 
     If Assigned(Tex) Then
     Begin
@@ -6910,7 +6910,7 @@ Begin
 End;
 
 { SelectMeshShader }
-Function SelectMeshShader(Group:MeshGroup; Position:Vector3D; Outline, TranslucentPass:Boolean; Var DestMaterial:MeshMaterial; UseTextureMatrix:Boolean):ShaderInterface;
+Function SelectMeshShader(View:TERRAViewport; Group:MeshGroup; Position:Vector3D; Outline, TranslucentPass:Boolean; Var DestMaterial:MeshMaterial; UseTextureMatrix:Boolean):ShaderInterface;
 Var
   DisableLights:Boolean;
   LightPivot:Vector3D;
@@ -6936,7 +6936,7 @@ Begin
 
   RenderStage := Graphics.RenderStage;
 
-  If (Graphics.ActiveViewport.Camera.UseClipPlane) Then
+  If (View.Camera.UseClipPlane) Then
     FxFlags := FxFlags Or shaderClipPlane;
 
   If (Group.Flags And meshGroupStencilMask<>0) {$IFDEF REFLECTIONS_WITH_STENCIL} Or (Graphics.ReflectionStencil) {$ENDIF}  Then
@@ -7036,7 +7036,7 @@ Begin
           LightPivot := Graphics.ActiveViewport.Camera.Position
         Else
           LightPivot := Position;    *)
-        LightPivot := Graphics.ActiveViewport.Camera.FocusPoint;
+        LightPivot := View.Camera.FocusPoint;
 
         LightManager.Instance.SortLights(LightPivot, Group._BoundingBox, Group._LightBatch);
       End;

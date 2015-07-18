@@ -29,7 +29,7 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Utils, TERRA_Object, TERRA_GraphicsManager, TERRA_Texture, TERRA_Application,
   TERRA_Resource, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_Stream, TERRA_Plane, TERRA_Matrix4x4,
   TERRA_Math, TERRA_TextureAtlas, TERRA_BoundingBox,
-  TERRA_UI, TERRA_Image, TERRA_Renderer, TERRA_FileManager, TERRA_VertexFormat, TERRA_Renderable;
+  TERRA_UI, TERRA_Image, TERRA_Renderer, TERRA_FileManager, TERRA_VertexFormat, TERRA_Renderable, TERRA_Viewport;
 
 Const
   vertexOfs  = vertexUV1;
@@ -266,14 +266,14 @@ Type
       Constructor Create(Emitter:ParticleEmitter{; Pos:Vector3D});
       Procedure Release; Override;
 
-      Procedure Update; Override;
+      Procedure Update(View:TERRAViewport); Override;
 
       Function IsOpaque():Boolean; Override;
       Function IsTranslucent():Boolean; Override;
 
       Procedure Reset;
 
-      Procedure Render(TranslucentPass:Boolean); Override;
+      Procedure Render(View:TERRAViewport; TranslucentPass:Boolean); Override;
       Function GetBoundingBox:BoundingBox; Override;
 
       Property ActiveCount:Integer Read _ActiveCount;
@@ -318,7 +318,7 @@ Type
       //Procedure Update; Override;
 
       Procedure Clear;
-      Procedure Render;
+      Procedure Render(View:TERRAViewport);
 
       Function GetParticleType(Name:TERRAString):ParticleType;
 
@@ -607,7 +607,7 @@ Begin
   ReleaseObject(It);
 End;
 
-Procedure ParticleCollection.Render(TranslucentPass:Boolean);
+Procedure ParticleCollection.Render(View:TERRAViewport; TranslucentPass:Boolean);
 Var
   I, RenderCount:Integer;
 //  Ratio:Single;
@@ -632,8 +632,8 @@ Begin
     Up.Scale(-1.0);
   End Else}
   Begin
-    Right := Graphics.ActiveViewport.Camera.Right;
-    Up := Graphics.ActiveViewport.Camera.Up;
+    Right := View.Camera.Right;
+    Up := View.Camera.Up;
   End;
 
   //Ratio := Graphics.ActiveViewport.Height / Graphics.ActiveViewport.Width;
@@ -641,7 +641,7 @@ Begin
 
   Graphics.Renderer.BindShader(_Shader);
 
-  Graphics.ActiveViewport.Camera.SetupUniforms;
+  View.Camera.SetupUniforms;
 
   _Shader.SetColorUniform('sunColor', ColorWhite);
   _Shader.SetVec3Uniform('cameraUp', Up);
@@ -1046,7 +1046,7 @@ Begin
     _ParticleCollections[I].Update;}
 End;*)
 
-Procedure ParticleManager.Render;
+Procedure ParticleManager.Render(View:TERRAViewport);
 Var
   I:Integer;
 Begin
@@ -1060,7 +1060,7 @@ Begin
       Dec(_ParticleCollectionCount);
     End Else
     Begin
-      GraphicsManager.Instance.AddRenderable(_ParticleCollections[I]);
+      GraphicsManager.Instance.AddRenderable(View, _ParticleCollections[I]);
       Inc(I);
     End;
   End;
