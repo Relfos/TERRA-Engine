@@ -148,7 +148,7 @@ Type
       _OriginalPosition:Vector2D;
 
       _ColorTable:TERRATexture;
-      _Font:Font;
+      _Font:TERRAFont;
 
       _ClipRect:ClipRect;
 
@@ -180,7 +180,7 @@ Type
       Procedure SetRotation(const Value: Single);
       Procedure SetSaturation(const Value: Single);
       Procedure SetScale(const Value: Single);
-      Procedure SetFont(const Value: TERRA_Font.Font);
+      Procedure SetFont(const Value:TERRAFont);
 
       Function GetRotation():Single;
       Function GetScale():Single;
@@ -316,7 +316,7 @@ Type
 
       Function GetSize:Vector2D; Virtual;
 
-      Function GetFont:TERRA_Font.Font;
+      Function GetFont:TERRAFont;
 
       Function GetClipRect():ClipRect;
 
@@ -354,7 +354,7 @@ Type
       Property Saturation:Single Read GetSaturation Write SetSaturation;
       Property Rotation:Single Read GetRotation Write SetRotation;
       Property Scale:Single Read GetScale Write SetScale;
-      Property Font:TERRA_Font.Font Read GetFont Write SetFont;
+      Property Font:TERRAFont Read GetFont Write SetFont;
 
       Property Scroll:Widget Read _Scroll Write _Scroll;
 
@@ -396,7 +396,7 @@ Type
       _Transition:UITransition;
       _Widgets:HashMap;
 
-      _DefaultFont:Font;
+      _DefaultFont:TERRAFont;
       _Language:TERRAString;
 
       _WndCallback1:WidgetEventHandler;
@@ -416,7 +416,7 @@ Type
       Procedure UpdateLanguage();
 
       Procedure SetColorTable(const Value:TERRATexture);
-      Procedure SetDefaultFont(const Value: Font);
+      Procedure SetDefaultFont(const Value:TERRAFont);
       Procedure SetHighlight(const Value: Widget);
       Procedure SetDragger(const Value: Widget);
 
@@ -515,7 +515,7 @@ Type
 
       Property LastWidget:Widget Read _LastWidget;
 
-      Property DefaultFont:Font Read _DefaultFont Write SetDefaultFont;
+      Property DefaultFont:TERRAFont Read _DefaultFont Write SetDefaultFont;
       Property Modal:Widget Read GetModal Write _Modal;
       Property Highlight:Widget Read GetHighlight Write SetHighlight;
 
@@ -1983,7 +1983,7 @@ Begin
     Result.Merge(_UI._ClipRect);
 End;
 
-Function Widget.GetFont:TERRA_Font.Font;
+Function Widget.GetFont:TERRAFont;
 Begin
   Result := _Font;
 
@@ -2094,7 +2094,7 @@ Begin
   Clip.Height := Size.Y - (TopBorder + BottomBorder);
 End;
 
-Procedure Widget.SetFont(const Value: TERRA_Font.Font);
+Procedure Widget.SetFont(const Value:TERRAFont);
 Begin
   If (Self._Font = Value) Then
     Exit;
@@ -2447,7 +2447,7 @@ Begin
   _Focus := W;
 End;
 
-Procedure UI.SetDefaultFont(const Value: Font);
+Procedure UI.SetDefaultFont(const Value:TERRAFont);
 Begin
   FontManager.Instance.PreFetch(Value);
   Self._DefaultFont := Value;

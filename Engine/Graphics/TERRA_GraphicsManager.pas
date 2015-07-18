@@ -86,7 +86,7 @@ Type
       Function PointOccluded(P:Vector3D):Boolean;
       Function BoxOccluded(Box:BoundingBox; V:TERRAViewport):Boolean;
 
-      Procedure Render(View:TERRAViewport; TranslucentPass:Boolean); Override;
+      Procedure Render(View:TERRAViewport; Const Bucket:Cardinal); Override;
       Function GetBoundingBox:BoundingBox; Override;
   End;
 
@@ -112,7 +112,7 @@ Type
       _UIHeight:Integer;
       _UIScale:Single;
       
-      _Scene:Scene;
+      _Scene:TERRAScene;
 
       _Occluders:Occluder;
 
@@ -204,8 +204,8 @@ Type
 
 	    Procedure DrawFullscreenQuad(CustomShader:ShaderInterface; X1,Y1,X2,Y2:Single);
 
-      Function SwapScene(MyScene:Scene):Scene;
-      Procedure SetScene(MyScene:Scene);
+      Function SwapScene(MyScene:TERRAScene):TERRAScene;
+      Procedure SetScene(MyScene:TERRAScene);
       Procedure SetWind(WindDirection:Vector3D; WindIntensity:Single);
 
       Function GetPickRay(View:TERRAViewport; TX,TY:Integer):Ray;
@@ -251,7 +251,7 @@ Type
       Property DeviceViewport:TERRAViewport Read _DeviceViewport;
       Property UIViewport:TERRAViewport Read _UIViewport;
 
-      Property Scene:TERRA_Scene.Scene Read _Scene Write SetScene;
+      Property Scene:TERRAScene Read _Scene Write SetScene;
 
       Property WindVector:Vector3D Read _WindVector;
 
@@ -494,7 +494,7 @@ Begin
   Result := _BoundingBox;
 End;
 
-Procedure Occluder.Render(View:TERRAViewport; TranslucentPass:Boolean);
+Procedure Occluder.Render(View:TERRAViewport; Const Bucket:Cardinal);
 Begin
 {$IFDEF PC_X}
   If (TranslucentPass) Then
@@ -1148,26 +1148,9 @@ Begin
 
   _RenderStage := N;
 
-  If (Assigned(_Scene)) And (View.DrawSky) And (Not View.Camera.Ortho) Then
-  Begin
-    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderSky');{$ENDIF}
-
-    {$IFDEF POSTPROCESSING}
-    If Pass = captureTargetRefraction Then
-    Begin
-      //IntToString(2);
-    End Else
-    If Pass = captureTargetEmission Then
-      _Scene.RenderSkyEmission(View)
-    Else
-    {$ENDIF}
-      _Scene.RenderSky(View);
-  End;
-
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderOpaqueBucket');{$ENDIF}
 
   _Renderables.Render(View);
-
 
 (*  If (_ReflectionsEnabled) And (_RenderStage = renderStageDiffuse) Then
   Begin
@@ -1713,7 +1696,7 @@ Begin
     UIViewport.Resize(UIW, UIH);
 End;
 
-Procedure GraphicsManager.SetScene(MyScene: Scene);
+Procedure GraphicsManager.SetScene(MyScene:TERRAScene);
 Begin
   If (Self = Nil) Then
     Exit;
@@ -1753,7 +1736,7 @@ Begin
   Renderer.InternalStat(statOccluders);
 End;
 
-Function GraphicsManager.SwapScene(MyScene:Scene):Scene;
+Function GraphicsManager.SwapScene(MyScene:TERRAScene):TERRAScene;
 Begin
   Result := _Scene;
   _Scene := MyScene;
@@ -1949,7 +1932,6 @@ Begin
   Self.AddViewport(Result);
   Result.Visible := True;
   Result.EnableDefaultTargets();
-  Result.DrawSky := True;
   Result.BackgroundColor := ColorGreen;
 End;
 

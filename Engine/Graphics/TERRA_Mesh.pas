@@ -293,6 +293,10 @@ Type
       Function GetPosition():Vector3D;
       Function GetRotation():Vector3D;
 
+
+      Function IsOpaque():Boolean;
+      Function IsTranslucent():Boolean;
+
     Public
       CullGroups:Boolean;
       CustomShader:ShaderInterface;
@@ -305,8 +309,7 @@ Type
 
       Function IsReady():Boolean;
 
-      Function IsOpaque():Boolean; Override;
-      Function IsTranslucent():Boolean; Override;
+      Function GetRenderBucket:Cardinal; Override;
 
       Procedure RenderLights(View:TERRAViewport); Override;
 
@@ -431,7 +434,7 @@ Type
       Procedure Release(); Override;
 
       Function GetBoundingBox:BoundingBox; Override;
-      Procedure Render(View:TERRAViewport; TranslucentPass:Boolean); Override;
+      Procedure Render(View:TERRAViewport; Const Bucket:Cardinal); Override;
 
       Function GetAttach(Index:Integer):PMeshAttach;
 
@@ -2412,7 +2415,7 @@ Begin
   End;
 End;
 
-Procedure MeshInstance.Render(View:TERRAViewport; TranslucentPass:Boolean);
+Procedure MeshInstance.Render(View:TERRAViewport; Const Bucket:Cardinal);
 Var
   C:Color;
   Time:Cardinal;
@@ -2421,9 +2424,12 @@ Var
   Temp:Matrix4x4;
   S:Single;
   Graphics:GraphicsManager;
+  TranslucentPass:Boolean;
 Begin
   If (_Mesh=Nil) Then
     Exit;
+
+  TranslucentPass := (Bucket And renderBucket_Translucent<>0);
 
   Graphics := GraphicsManager.Instance;
 
@@ -2623,6 +2629,17 @@ Begin
     Result := _Mesh.Name + '(X:'+FloatToString(_Position.X)+ ', Y:'+FloatToString(_Position.Y)+ ', Z:'+FloatToString(_Position.Z)+')'
   Else
     Result := 'Undefined';
+End;
+
+Function MeshInstance.GetRenderBucket:Cardinal;
+Begin
+  If Self.IsOpaque Then
+    Result := renderBucket_Opaque
+  Else
+    Result := 0;
+
+  If Self.IsTranslucent Then
+    Result := Result Or renderBucket_Translucent;
 End;
 
 Function MeshInstance.IsOpaque:Boolean;

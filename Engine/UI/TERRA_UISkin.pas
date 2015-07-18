@@ -52,7 +52,7 @@ Type
     QuadColor:Color;
     TextColor:Color;
     Clip:ClipRect;
-    TextFont:Font;
+    TextFont:TERRAFont;
   End;
 
   UISkinComponent = Class(TERRAObject)

@@ -11,7 +11,7 @@ Type
       _Caption:StringProperty;
 
       _TextRect:Vector2D;
-      _PreviousFont:Font;
+      _PreviousFont:TERRAFont;
       _OriginalValue:TERRAString;
 
       Function GetLocalizationKey: TERRAString;
@@ -103,7 +103,7 @@ End;
 
 Procedure UICaption.UpdateRects;
 Var
-  Fnt:TERRA_Font.Font;
+  Fnt:TERRAFont;
 Begin
   Inherited;
 

@@ -268,12 +268,11 @@ Type
 
       Procedure Update(View:TERRAViewport); Override;
 
-      Function IsOpaque():Boolean; Override;
-      Function IsTranslucent():Boolean; Override;
+      Function GetRenderBucket:Cardinal; Override;
 
       Procedure Reset;
 
-      Procedure Render(View:TERRAViewport; TranslucentPass:Boolean); Override;
+      Procedure Render(View:TERRAViewport; Const Bucket:Cardinal); Override;
       Function GetBoundingBox:BoundingBox; Override;
 
       Property ActiveCount:Integer Read _ActiveCount;
@@ -607,7 +606,7 @@ Begin
   ReleaseObject(It);
 End;
 
-Procedure ParticleCollection.Render(View:TERRAViewport; TranslucentPass:Boolean);
+Procedure ParticleCollection.Render(View:TERRAViewport; Const Bucket:Cardinal);
 Var
   I, RenderCount:Integer;
 //  Ratio:Single;
@@ -615,9 +614,6 @@ Var
   Landscape:Boolean;
   Graphics:GraphicsManager;
 Begin
-  If (Not TranslucentPass) Then
-    Exit;
-
   Graphics := GraphicsManager.Instance;
 
   {If (_Init) Then
@@ -698,16 +694,10 @@ Begin
   Result := _Box;
 End;
 
-Function ParticleCollection.IsOpaque: Boolean;
+Function ParticleCollection.GetRenderBucket:Cardinal;
 Begin
-  Result := False;
+  Result := renderBucket_Translucent;
 End;
-
-Function ParticleCollection.IsTranslucent: Boolean;
-Begin
-  Result := True;
-End;
-
 
 {Procedure ParticleCollection.SetCustomEmitter(Emitter: ParticleCustomEmitter; GenFlags:Cardinal; UserData: Pointer);
 Begin

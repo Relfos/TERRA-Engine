@@ -22,7 +22,7 @@ Type
       _Next:TERRAChar;
       _Started:Boolean;
 
-      _Font:Font;
+      _Font:TERRAFont;
       _FontOffset:Single;
 
       _StartPosition:Vector2D;
@@ -76,7 +76,7 @@ Type
       Function SetGradient(Const A,B:Color; GradientMode:FontGradient):FontRenderer;
       Function SetOutline(Const OutlineColor:Color):FontRenderer;
 
-      Function  SetFont(Const TargetFont:Font):FontRenderer;
+      Function  SetFont(Const TargetFont:TERRAFont):FontRenderer;
 
       Function SetTransform(Const Transform:Matrix3x3):FontRenderer;
       Function  SetDropShadow(Const DropShadowColor:Color):FontRenderer;
@@ -108,7 +108,7 @@ Type
 
       Property Italics:Boolean Read _Italics;
 
-      Property Font:TERRA_Font.Font Read _Font;
+      Property Font:TERRAFont Read _Font;
   End;
 
 Implementation
@@ -634,7 +634,7 @@ Begin
   Result := Self;
 End;
 
-Function FontRenderer.SetFont(const TargetFont: Font):FontRenderer;
+Function FontRenderer.SetFont(const TargetFont:TERRAFont):FontRenderer;
 Var
   Glyph:FontGlyph;
 Begin

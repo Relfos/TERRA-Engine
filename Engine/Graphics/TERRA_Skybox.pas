@@ -28,7 +28,7 @@ Unit TERRA_Skybox;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Math, TERRA_Texture, TERRA_Stream, TERRA_Vector3D, TERRA_Vector2D,
-  TERRA_Color, TERRA_ShaderFactory, TERRA_Matrix4x4, TERRA_Renderer, TERRA_VertexFormat, TERRA_Viewport;
+  TERRA_Color, TERRA_ShaderFactory, TERRA_Matrix4x4, TERRA_Renderer, TERRA_VertexFormat, TERRA_Viewport, TERRA_BoundingBox, TERRA_Renderable;
 
 Type
 {  SkyboxVertex = Packed Record
@@ -41,7 +41,7 @@ Type
     TexCoord:Vector2D;
   End;}
 
-  TERRASkybox = Class(TERRAObject)
+  TERRASkybox = Class(Renderable)
     Protected
       _Cubemap:CubemapInterface;       // Skybox textures
       _Textures:Array[0..5] Of TERRATexture;
@@ -59,7 +59,10 @@ Type
       Constructor Create(SkyTexture:TERRAString);
       Procedure Release; Override;
 
-      Procedure Render(View:TERRAViewport; BlendMode:Integer = 0);  // Renders the skybox
+      Function GetRenderBucket:Cardinal; Override;
+      Function GetBoundingBox:BoundingBox; Override;
+
+      Procedure Render(View:TERRAViewport; Const Bucket:Cardinal); Override;
 
       Property Color:TERRA_Color.Color Read _Color Write _Color;
       //Property Texture:CubemapTexture Read _Cubemap;
@@ -68,7 +71,7 @@ Type
 
 Implementation
 Uses TERRA_GraphicsManager, TERRA_ResourceManager, TERRA_Log, TERRA_OS, TERRA_Camera,
-  TERRA_Image, TERRA_BoundingBox;
+  TERRA_Image;
 
 Var
   _SkyboxShader:ShaderInterface = Nil;
@@ -175,13 +178,23 @@ Begin
 End;
 
 // Renders the skybox
+Function TERRASkybox.GetBoundingBox: BoundingBox;
+Begin
+  
+End;
+
+Function TERRASkybox.GetRenderBucket: Cardinal;
+Begin
+  Result := renderBucket_Sky;
+End;
+
 Procedure TERRASkybox.Release;
 Begin
   ReleaseObject(_Vertices);
   ReleaseObject(_Cubemap);
 End;
 
-Procedure TERRASkyBox.Render(View:TERRAViewport; BlendMode:Integer);
+Procedure TERRASkyBox.Render(View:TERRAViewport; Const Bucket:Cardinal);
 Var
   I:Integer;
   CamVertices:BoundingBoxVertices;
@@ -199,7 +212,11 @@ Var
 
 Begin
   Graphics := GraphicsManager.Instance;
-  Graphics.Renderer.SetBlendMode(BlendMode);
+
+  If (Graphics.RenderStage <> renderStageDiffuse) Then
+    Exit;
+
+  Graphics.Renderer.SetBlendMode(blendNone);
 
   {$IFDEF PC}
   If (Not Graphics.Renderer.Features.Shaders.Avaliable) Then

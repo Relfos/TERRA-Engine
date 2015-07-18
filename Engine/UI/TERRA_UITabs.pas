@@ -204,7 +204,7 @@ Procedure UITabList.Render;
 Var
   I:Integer;
   MyColor:TERRA_Color.Color;
-  Fnt:TERRA_Font.Font;
+  Fnt:TERRAFont;
   Rect:Vector2D;
   X, WW, HH, Add:Single;
   IsSel:Boolean;

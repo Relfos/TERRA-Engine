@@ -74,7 +74,7 @@ Type
     Ammount:SmallInt;
   End;
 
-  Font=Class;
+  TERRAFont = Class;
   FontGlyphFactory = Class;
 
   FontGlyph = Class(TERRAObject)
@@ -82,7 +82,7 @@ Type
       _Temp:Image;
 
     Protected
-      _Font:Font;
+      _Font:TERRAFont;
       _Factory:FontGlyphFactory;
 
       _Item:TextureAtlasItem;
@@ -137,11 +137,11 @@ Type
       _Scale:Single;
 
     Public
-      Function InitGlyph(Font:Font; ID:Cardinal; Size:Integer):FontGlyph; Virtual; Abstract;
+      Function InitGlyph(Font:TERRAFont; ID:Cardinal; Size:Integer):FontGlyph; Virtual; Abstract;
       Function GetKerning(Current, Next:Cardinal):Integer; Virtual; Abstract;
   End;
 
-  Font = Class(Resource)
+  TERRAFont = Class(Resource)
     Protected
       _TextSize:Integer;
 
@@ -186,7 +186,7 @@ Type
   End;
 
   FontStreamValidateFunction = Function(Source:Stream):Boolean;
-  FontLoader = Function(Source:Stream; Font:Font):Boolean;
+  FontLoader = Function(Source:Stream; Font:TERRAFont):Boolean;
 
   FontClassInfo = Record
     Name:TERRAString;
@@ -196,12 +196,12 @@ Type
 
   FontManager = Class(ResourceManager)
     Protected
-      _DefaultFont:Font;
+      _DefaultFont:TERRAFont;
       _LastAllocFrame:Cardinal;
       _Sprites:Array Of FontSprite;
       _SpriteCount:Integer;
 
-      Function GetDefaultFont: Font;
+      Function GetDefaultFont:TERRAFont;
 
       Function AllocSprite():FontSprite;
 
@@ -214,9 +214,9 @@ Type
 
       Function DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Const Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean):FontSprite;
 
-      Function GetFont(Name:TERRAString; ValidateError:Boolean = True):Font;
+      Function GetFont(Name:TERRAString; ValidateError:Boolean = True):TERRAFont;
 
-      Property DefaultFont:Font Read GetDefaultFont;
+      Property DefaultFont:TERRAFont Read GetDefaultFont;
    End;
 
   Function GetFontLoader(Source:Stream):FontLoader;
@@ -249,17 +249,17 @@ Var
 { GlyphSort }
 Class Procedure GlyphSort.SetPivot(Data:Pointer; A:Integer);
 Var
-  Fnt:Font;
+  Fnt:TERRAFont;
 Begin
-  Fnt := Font(Data);
+  Fnt := TERRAFont(Data);
   _GlyphPivot := Fnt._Glyphs[A].ID;
 End;
 
 Class Function GlyphSort.Compare(Data:Pointer; A:Integer):Integer;
 Var
-  Fnt:Font;
+  Fnt:TERRAFont;
 Begin
-  Fnt := Font(Data);
+  Fnt := TERRAFont(Data);
   If (Fnt._Glyphs[A].ID < _GlyphPivot) Then
     Result := 1
   Else
@@ -271,10 +271,10 @@ End;
 
 Class Procedure GlyphSort.Swap(Data:Pointer; A,B:Integer);
 Var
-  Fnt:Font;
+  Fnt:TERRAFont;
   Temp:FontGlyph;
 Begin
-  Fnt := Font(Data);
+  Fnt := TERRAFont(Data);
   Temp := Fnt._Glyphs[A];
   Fnt._Glyphs[A] := Fnt._Glyphs[B];
   Fnt._Glyphs[B] := Temp;
@@ -342,10 +342,10 @@ Type
 
 Function SearchFontByNameAndSize(P:CollectionObject; UserData:Pointer):Boolean; CDecl;
 Begin
-  Result := (Resource(P).Name = PFontSearch(Userdata).Name) And (Font(P).TextSize = PFontSearch(Userdata).TextSize);
+  Result := (Resource(P).Name = PFontSearch(Userdata).Name) And (TERRAFont(P).TextSize = PFontSearch(Userdata).TextSize);
 End;
 
-Function FontManager.GetFont(Name:TERRAString; ValidateError:Boolean):Font;
+Function FontManager.GetFont(Name:TERRAString; ValidateError:Boolean):TERRAFont;
 Var
   FontName, FileName, S:TERRAString;
   I:Integer;
@@ -378,7 +378,7 @@ Begin
   Name := GetFileName(Name, True);
   Params.Name := Name;
   Params.TextSize := Size;
-  Result := Font(_Resources.Search(SearchFontByNameAndSize, @Params));
+  Result := TERRAFont(_Resources.Search(SearchFontByNameAndSize, @Params));
   If (Assigned(Result)) Then
     Exit;
 
@@ -393,7 +393,7 @@ Begin
 
   If S<>'' Then
   Begin
-    Result := Font.Create(rtLoaded, S);
+    Result := TERRAFont.Create(rtLoaded, S);
     Result._TextSize := Size;
     Result.Priority := 90;
     Self.AddResource(Result);
@@ -450,7 +450,7 @@ Begin
 End;
 
 {$I default_font.inc}
-Function FontManager.GetDefaultFont: Font;
+Function FontManager.GetDefaultFont: TERRAFont;
 Var
   Glyph:FontGlyph;
   I, ID:Integer;
@@ -466,7 +466,7 @@ Begin
   If Assigned(Result) Then
     Exit;
 
-  _DefaultFont := Font.Create(rtDynamic, 'default_font');
+  _DefaultFont := TERRAFont.Create(rtDynamic, 'default_font');
   Result := _DefaultFont;
 
   Src := MemoryStream.Create(bm_size, @bm_data[0]);
@@ -538,7 +538,7 @@ End;
 Procedure FontManager.Update();
 Var
   It:Iterator;
-  Fnt:Font;
+  Fnt:TERRAFont;
 Begin
   _SpriteCount := 0;
 
@@ -548,7 +548,7 @@ Begin
   It := Self.Resources.GetIterator();
   While It.HasNext() Do
   Begin
-    Fnt := Font(It.Value);
+    Fnt := TERRAFont(It.Value);
 
     If (Fnt._NeedsRebuild) Then
       Fnt.RebuildPages();
@@ -626,7 +626,7 @@ Begin
 End;
 
 { Font }
-Function Font.Load(Source: Stream): Boolean;
+Function TERRAFont.Load(Source: Stream): Boolean;
 Var
   Loader:FontLoader;
   Pos:Integer;
@@ -654,7 +654,7 @@ Begin
   Result := Self.Update();
 End;
 
-Procedure Font.RecalculateMetrics();
+Procedure TERRAFont.RecalculateMetrics();
 Var
   Glyph:FontGlyph;
   I, Pos:Integer;
@@ -672,12 +672,12 @@ Begin
     _AvgHeight := _AvgHeight / _GlyphCount;
 End;
 
-Class Function Font.GetManager:Pointer;
+Class Function TERRAFont.GetManager:Pointer;
 Begin
   Result := FontManager.Instance;
 End;
 
-Function Font.GetGlyph(ID:Cardinal; CreatedIfNeeded:Boolean = True):FontGlyph;
+Function TERRAFont.GetGlyph(ID:Cardinal; CreatedIfNeeded:Boolean = True):FontGlyph;
 Var
   A,B, Mid:Integer;
   I:Integer;
@@ -752,7 +752,7 @@ Begin
   Log(logWarning, 'Font', 'Glyph '+IntToString(ID)+' was not found!');
 End;
 
-Function Font.Unload: Boolean;
+Function TERRAFont.Unload: Boolean;
 Var
   I:Integer;
 Var
@@ -778,7 +778,7 @@ Begin
   Result := True;
 End;
 
-Function Font.Update:Boolean;
+Function TERRAFont.Update:Boolean;
 Begin
   Inherited Update();
 
@@ -793,7 +793,7 @@ Begin
 	Result := True;
 End;
 
-Procedure Font.SortGlyphs;
+Procedure TERRAFont.SortGlyphs;
 Var
   I,J:Integer;
   Temp:FontGlyph;
@@ -809,7 +809,7 @@ Begin
     End;
 End;
 
-Procedure Font.AddGlyphFactory(Factory: FontGlyphFactory; Scale:Single);
+Procedure TERRAFont.AddGlyphFactory(Factory: FontGlyphFactory; Scale:Single);
 Var
   F:FontGlyphFactory;
 Begin
@@ -837,7 +837,7 @@ Begin
   Factory._Next := Nil;
 End;
 
-Function Font.AddEmptyGlyph:FontGlyph;
+Function TERRAFont.AddEmptyGlyph:FontGlyph;
 Begin
   Inc(_GlyphCount);
   SetLength(_Glyphs, _GlyphCount);
@@ -846,7 +846,7 @@ Begin
   _Glyphs[Pred(_GlyphCount)] := Result;
 End;
 
-Function Font.AddGlyph(ID:Cardinal; FileName:TERRAString; XOfs, YOfs, XAdvance: SmallInt):FontGlyph;
+Function TERRAFont.AddGlyph(ID:Cardinal; FileName:TERRAString; XOfs, YOfs, XAdvance: SmallInt):FontGlyph;
 Var
   Source: Image;
 Begin
@@ -863,7 +863,7 @@ Begin
   ReleaseObject(Source);
 End;
 
-Function Font.AddGlyph(ID: Cardinal; Source: Image; XOfs, YOfs, XAdvance: SmallInt):FontGlyph;
+Function TERRAFont.AddGlyph(ID: Cardinal; Source: Image; XOfs, YOfs, XAdvance: SmallInt):FontGlyph;
 Begin
   //Self.Prefetch();
 
@@ -905,7 +905,7 @@ Begin
   _NeedsRebuild := True;
 End;
 
-Procedure Font.RebuildPages();
+Procedure TERRAFont.RebuildPages();
 Var
   I:Integer;
 Begin

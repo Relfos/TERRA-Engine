@@ -103,8 +103,6 @@ Type
       _RenderTextures:Array[0..Pred(TotalCaptureTargets)] Of TERRATexture;
       _RenderSamplers:Array[0..Pred(TotalCaptureTargets)] Of RenderTargetSampler;
 
-      _DrawSky:Boolean;
-
       _VR:Boolean;
       _CurrentSubView:Integer;
 
@@ -167,8 +165,6 @@ Type
       Property BackgroundColor:Color Read _BackgroundColor Write SetBackgroundColor;
 
       Property Camera:TERRA_Camera.Camera Read _Camera;
-
-      Property DrawSky:Boolean Read _DrawSky Write _DrawSky;
 
       Property Visible:Boolean Read _Visible Write _Visible;
 
@@ -465,7 +461,6 @@ Constructor TERRAViewport.Create(Name:TERRAString; Width,Height:Integer; Scale:S
 Begin
   _Name := Name;
   _Visible := True;
-  _DrawSky := False;
 
   _Width := Width;
   _Height := Height;
