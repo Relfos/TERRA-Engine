@@ -41,10 +41,9 @@ Type
       // Returns true if insertion was sucessful
       Function Add(Item:CollectionObject):Boolean;Virtual;
       // Returns true if deletion was sucessful
-      Function Delete(Item:CollectionObject):Boolean; Virtual;
+      Function Remove(Item:CollectionObject):Boolean; Override;
 
-      Function ContainsReference(Item:CollectionObject):Boolean; Override;
-      Function ContainsDuplicate(Item:CollectionObject):Boolean; Override;
+      Function Contains(Item:CollectionObject):Boolean; Override;
 
       Function GetItemByIndex(Index:Integer):CollectionObject; Override;
 
@@ -55,8 +54,6 @@ Type
       Function Filter(Visitor:CollectionVisitor; UserData:Pointer = Nil):List;
 
       Procedure Clear(); Override;
-
-      Procedure Reindex(Item:CollectionObject);
 
       Function GetIterator:Iterator; Override;
 
@@ -187,7 +184,7 @@ Begin
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Insertion was ok!');{$ENDIF}
 End;
 
-Function HashMap.Delete(Item:CollectionObject):Boolean;
+Function HashMap.Remove(Item:CollectionObject):Boolean;
 Var
   Key:HashKey;
 Begin
@@ -206,12 +203,12 @@ Begin
     Exit;
 
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Removing item from table...');{$ENDIF}
-  Result := (_Table[Key].Delete(Item));
+  Result := (_Table[Key].Remove(Item));
   If Result Then
     Dec(_ItemCount);
 End;
 
-Function HashMap.ContainsReference(Item:CollectionObject):Boolean;
+Function HashMap.Contains(Item:CollectionObject):Boolean;
 Var
   Key:HashKey;
 Begin
@@ -230,29 +227,7 @@ Begin
     Exit;
 
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Searching item in table...');{$ENDIF}
-  Result := (_Table[Key].ContainsReference(Item));
-End;
-
-Function HashMap.ContainsDuplicate(Item:CollectionObject):Boolean;
-Var
-  Key:HashKey;
-Begin
-  Result := False;
-
-  If (Item = Nil) Then
-    Exit;
-
-  {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Obtaining an hash for this item...');{$ENDIF}
-  Key := Murmur2(Item.ObjectName);
-  {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Got hash index: '+HexStr(Key));{$ENDIF}
-
-  Key := Key Mod _TableSize;
-
-  If Not Assigned(_Table[Key]) Then
-    Exit;
-
-  {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Searching item in table...');{$ENDIF}
-  Result := (_Table[Key].ContainsDuplicate(Item));
+  Result := (_Table[Key].Contains(Item));
 End;
 
 Procedure HashMap.Clear();
@@ -301,11 +276,6 @@ Var
 Begin
   MyIterator := HashMapIterator.Create(Self);
   Result := MyIterator;
-End;
-
-Procedure HashMap.Reindex(Item:CollectionObject);
-Begin
-  DebugBreak;
 End;
 
 { HashMapIterator }

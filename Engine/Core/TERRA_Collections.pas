@@ -33,11 +33,9 @@ Uses TERRA_Object, TERRA_String, TERRA_Utils
 Function GetStringSort(Const A,B:TERRAString):Integer;
 
 Const
-  { Checks that the collection contains no duplicate values }
-  coNoDuplicates    = 2;
   { Insert fails if object already added }
-  coCheckReferencesOnAdd    = 4;
-  coCheckReferencesOnDelete = 8;
+  coCheckReferencesOnAdd    = 2;
+  coCheckReferencesOnDelete = 4;
   { The collection will be thread-safe, meaning adds, deletes and iterators will be protected by a critical section. }
   coThreadSafe      = 32;
 
@@ -163,8 +161,13 @@ Type
       Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Virtual; 
 
       // Should return True if Item contains Key
-      Function ContainsReference(Item:CollectionObject):Boolean; Virtual;
-      Function ContainsDuplicate(Item:CollectionObject):Boolean; Virtual;
+      Function Contains(Item:CollectionObject):Boolean; Virtual;
+
+      // Returns true if deletion was sucessful
+      Function Delete(Item:CollectionObject):Boolean; 
+
+      // Returns true if removal was sucessful
+      Function Remove(Item:CollectionObject):Boolean; Virtual; Abstract;
 
       Function GetItemByIndex(Index:Integer):CollectionObject; Virtual;
 
@@ -198,10 +201,11 @@ Type
 
       // Returns true if insertion was sucessful
       Function Add(Item:CollectionObject):Boolean;Virtual;
-      // Returns true if deletion was sucessful
-      Function Delete(Item:CollectionObject):Boolean; Virtual;
 
-      Function ContainsReference(Item:CollectionObject):Boolean; Override;
+      // Returns true if removal was sucessful
+      Function Remove(Item:CollectionObject):Boolean; Override;
+
+      Function Contains(Item:CollectionObject):Boolean; Override;
 
       Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):CollectionObject; Override;
       Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Override;
@@ -341,7 +345,7 @@ Begin
   End;
 End;
 
-Function Collection.ContainsReference(Item:CollectionObject):Boolean;
+Function Collection.Contains(Item:CollectionObject):Boolean;
 Var
   P:CollectionObject;
   It:Iterator;
@@ -359,22 +363,11 @@ Begin
   ReleaseObject(It);
 End;
 
-Function Collection.ContainsDuplicate(Item:CollectionObject):Boolean;
-Var
-  P:CollectionObject;
-  It:Iterator;
+Function Collection.Delete(Item:CollectionObject):Boolean;
 Begin
-  Result := False;
-  It := Self.GetIterator();
-  While (It.HasNext()) Do
-  Begin
-    If (StringEquals(It.Value.ToString(), Item.ToString())) Then
-    Begin
-      Result := True;
-      Break;
-    End;
-  End;
-  ReleaseObject(It);
+  Result := Self.Remove(Item);
+  If Result Then
+    ReleaseObject(Item);
 End;
 
 {Function Collection.FindByValue(Const Value:TERRAString): CollectionObject;
@@ -827,15 +820,9 @@ Var
 Begin
   Result := False;
 
-  If (Item = Nil) Or ((Options And coCheckReferencesOnAdd<>0) And (Self.ContainsReference(Item))) Then
+  If (Item = Nil) Or ((Options And coCheckReferencesOnAdd<>0) And (Self.Contains(Item))) Then
   Begin
     Log(logWarning, Self.ClassName, 'Reference already inside collection: '+Item.ToString());
-    Exit;
-  End;
-
-  If ((Options And coNoDuplicates<>0) And (Self.ContainsDuplicate(Item))) Then
-  Begin
-    Log(logWarning, Self.ClassName, 'Item duplicated in collection: '+Item.ToString());
     Exit;
   End;
 
@@ -925,7 +912,7 @@ Begin
   End;}
 End;
 
-Function List.Delete(Item:CollectionObject):Boolean;
+Function List.Remove(Item:CollectionObject):Boolean;
 Var
   List,Prev, Next:CollectionObject;
 Begin
@@ -945,9 +932,6 @@ Begin
 
       Next := Item.Next;
 
-      ReleaseObject(Item);
-      {$IFDEF DEBUG}Log(logDebug, 'List', 'Discarded item!');{$ENDIF}
-      
       If Assigned(Prev) Then
         Prev._Next := Next
       Else
@@ -965,7 +949,7 @@ Begin
   Self.Unlock();
 End;
 
-Function List.ContainsReference(Item:CollectionObject):Boolean;
+Function List.Contains(Item:CollectionObject):Boolean;
 Var
   P:CollectionObject;
 Begin

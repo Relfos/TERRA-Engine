@@ -49,8 +49,7 @@ Type
       Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):CollectionObject; Override;
       Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Override;
 
-      Function ContainsReference(Item:CollectionObject):Boolean; Override;
-      Function ContainsDuplicate(Item:CollectionObject):Boolean; Override;
+      Function Contains(Item:CollectionObject):Boolean; Override;
 
       Property First:CollectionObject Read _First;
   End;
@@ -96,15 +95,9 @@ Var
 Begin
   Result := False;
 
-  If (Item = Nil) Or ((Options And coCheckReferencesOnAdd<>0) And (Self.ContainsReference(Item))) Then
+  If (Item = Nil) Or ((Options And coCheckReferencesOnAdd<>0) And (Self.Contains(Item))) Then
   Begin
     Log(logWarning, Self.ClassName, 'Reference already inside collection: '+Item.ToString());
-    Exit;
-  End;
-
-  If ((Options And coNoDuplicates<>0) And (Self.ContainsDuplicate(Item))) Then
-  Begin
-    Log(logWarning, Self.ClassName, 'Item duplicated in collection: '+Item.ToString());
     Exit;
   End;
 
@@ -152,7 +145,7 @@ Begin
   End;
 End;
 
-Function Queue.ContainsReference(Item: CollectionObject): Boolean;
+Function Queue.Contains(Item: CollectionObject): Boolean;
 Var
   P:CollectionObject;
 Begin
@@ -161,22 +154,6 @@ Begin
   While (Assigned(P)) Do
   Begin
     If (Item = P) Then
-      Exit;
-
-    P := P.Next;
-  End;
-  Result := False;
-End;
-
-Function Queue.ContainsDuplicate(Item: CollectionObject): Boolean;
-Var
-  P:CollectionObject;
-Begin
-  Result := True;
-  P := _First;
-  While (Assigned(P)) Do
-  Begin
-    If (Item.Sort(P) = 0) Then
       Exit;
 
     P := P.Next;
