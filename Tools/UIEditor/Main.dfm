@@ -98,12 +98,14 @@ object UIEditForm: TUIEditForm
       end
       object Open1: TMenuItem
         Caption = '&Open'
+        OnClick = Open1Click
       end
       object N1: TMenuItem
         Caption = '-'
       end
       object Save1: TMenuItem
         Caption = '&Save'
+        OnClick = Save1Click
       end
       object N2: TMenuItem
         Caption = '-'

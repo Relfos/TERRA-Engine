@@ -54,7 +54,7 @@ Const
   TextureAtlasWidth = 1024;
   TextureAtlasHeight = 512;
 
-  CustomPropertiesBaseIndex = 8;
+  CustomPropertiesBaseIndex = 9;
 
 Type
   UI = Class;
@@ -91,8 +91,11 @@ Type
       _Scale:FloatProperty;
       _Saturation:FloatProperty;
 			_Visible:BooleanProperty;
+      _Skin:StringProperty;
 
       _Deleted:Boolean;
+
+      _SkinComponent:UISkinComponent;
 
       Procedure UpdateProperties();
 
@@ -134,7 +137,6 @@ Type
       _InverseTransform:Matrix3x3;
       _TransformChanged:Boolean;
 
-      _Component:UISkinComponent;
       _Properties:UISkinProperty;
       _LastState:Integer;
 
@@ -239,6 +241,8 @@ Type
 
       Procedure ApplyDragMode(Const PX, PY:Single; Mode:UIDragMode);
 
+      Property SkinComponent:UISkinComponent Read _SkinComponent;
+
 		Public
       Tag:Integer;
       DisableHighlights:Boolean;
@@ -257,6 +261,8 @@ Type
       Procedure Release; Override;
 
       Procedure Delete();
+
+      Procedure LoadSkin(Const ComponentName:TERRAString);
 
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
 
@@ -462,6 +468,8 @@ Type
       Procedure AddWidget(MyWidget:Widget);
       Procedure DeleteWidget(MyWidget:Widget);
       Function GetWidget(Const Name:TERRAString):Widget;
+
+      Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
 
       Function AddQuad(Const Quad:UIQuad; Const Props:UISkinProperty; Z:Single; Const Transform:Matrix3x3):QuadSprite;
 
@@ -745,6 +753,7 @@ End;
 Constructor Widget.Create(Const Name:TERRAString; Parent:Widget; Const ComponentName:TERRAString);
 Begin
   _ObjectName := Name;
+
   Self.InitProperties();
 
   SetVisible(True);
@@ -760,7 +769,7 @@ Begin
     _Parent := Parent;
   End;
 
-  Self._Component := _UI.GetComponent(ComponentName);
+  Self.LoadSkin(ComponentName);
 
   _Pivot := VectorCreate2D(0.5, 0.5);
   SetScale(1.0);
@@ -794,6 +803,7 @@ Begin
   ReleaseObject(_Rotation);
   ReleaseObject(_Scale);
   ReleaseObject(_Saturation);
+  ReleaseObject(_Skin);
 End;
 
 Procedure Widget.InitProperties;
@@ -806,6 +816,7 @@ Begin
   _Rotation := AngleProperty.Create('rotation', 0.0);
   _Scale := FloatProperty.Create('scale', 1.0);
   _Saturation := FloatProperty.Create('saturation', 1.0);
+  _Skin := StringProperty.Create('skin', '');
 End;
 
 Function Widget.GetPropertyByIndex(Index:Integer):TERRAObject;
@@ -819,9 +830,16 @@ Begin
   5: Result := _Rotation;
   6: Result := _Scale;
   7: Result := _Saturation;
+  8: Result := _Skin;
   Else
     Result := Nil;
   End;
+End;
+
+Procedure Widget.LoadSkin(Const ComponentName:TERRAString);
+Begin
+  _Skin.Value := ComponentName;
+  _SkinComponent := _UI.GetComponent(ComponentName);
 End;
 
 Procedure Widget.CopyValue(Other: CollectionObject);
@@ -1369,8 +1387,8 @@ Begin
   If (Self._MouseOver) Then
     Inc(CurrentState, 2);
 
-  If Assigned(_Component) Then
-    _Component.GetProperties(_Properties, ID, CurrentState, DefaultState);
+  If Assigned(_SkinComponent) Then
+    _SkinComponent.GetProperties(_Properties, ID, CurrentState, DefaultState);
 End;
 
 Procedure Widget.DrawText(Const Text:TERRAString; Const X,Y, Layer:Single; Const TextRect:Vector2D; Scale:Single; ID:Integer; Selected:Boolean; Const TextColor:Color);
@@ -1429,7 +1447,7 @@ Var
 
   CurrentState, DefaultState:Integer;
 Begin
-  If _Component = Nil Then
+  If _SkinComponent = Nil Then
     Exit;
 
   Self.CopyProperties(ID, Selected, CurrentState, DefaultState);
@@ -1446,7 +1464,7 @@ Begin
   P.Y := P.Y + OfsY + Y;
 
   FillChar(Target, SizeOf(Target), 0);
-  _Component.Draw(Target, P.X, P.Y, U1, V1, U2, V2, Trunc(Self.GetDimension(Width, uiDimensionWidth)), Trunc(Self.GetDimension(Height, uiDimensionHeight)), ID, CurrentState, DefaultState);
+  _SkinComponent.Draw(Target, P.X, P.Y, U1, V1, U2, V2, Trunc(Self.GetDimension(Width, uiDimensionWidth)), Trunc(Self.GetDimension(Height, uiDimensionHeight)), ID, CurrentState, DefaultState);
 
   //_FontRenderer.SetFont(Self.GetFont());
   _FontRenderer.SetClipRect(GetClipRect());
@@ -1929,6 +1947,9 @@ Var
 Begin
   If (Not Self.Visible) Or (Self._Deleted) Then
     Exit;
+
+  If (Assigned(_SkinComponent)) And (_SkinComponent.Name <> Self._Skin.Value) Then
+    Self.LoadSkin(Self._Skin.Value);
 
   For I:=0 To Pred(_ChildrenCount) Do
   If (_ChildrenList[I].Visible) And (_ChildrenList[I].CanRender()) Then
@@ -2428,6 +2449,7 @@ Constructor UI.Create;
 Begin
   Self.InitProperties();
 
+  _ObjectName := 'UI';
   _Widgets := HashMap.Create(1024);
   SetVisible(True);
 
@@ -3413,6 +3435,14 @@ Begin
   End;
 
   Result := Self._Modal;
+End;
+
+Function UI.GetPropertyByIndex(Index: Integer): TERRAObject;
+Begin
+  If (Index>=0) And (Index< Widgets.Count) Then
+    Result := Widgets.GetItemByIndex(Index)
+  Else
+    Result := Nil;
 End;
 
 { UIManager }

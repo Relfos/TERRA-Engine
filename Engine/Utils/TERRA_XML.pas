@@ -188,7 +188,6 @@ Var
   Prop:TERRAObject;
 Begin
   Self._Name := Source.ObjectName;
-  Self._Value := Source.GetBlob();
 
   Index := 0;
   Repeat
@@ -196,9 +195,19 @@ Begin
     If Prop = Nil Then
       Exit;
 
-    Node := XMLNode.Create();
-    Self.AddNode(Node);
-    Node.LoadFromObject(Document, Prop);
+    If Prop.IsValueObject() Then
+    Begin
+      Self.AddTag(Prop.ObjectName, Prop.GetBlob());
+    End Else
+    Begin
+      Node := XMLNode.Create();
+      Self.AddNode(Node);
+
+      Node.AddTag('name', Prop.ObjectName);
+      Node.AddTag('type', Prop.GetObjectType());
+
+      Node.LoadFromObject(Document, Prop);
+    End;
 
     Inc(Index);
   Until False;
@@ -762,16 +771,16 @@ Begin
     Self.GetString('name', PropName, '');
 
     Result := Target.CreateProperty(PropName, TypeName);
-    If Result = Nil Then
-      Exit;
-  End Else
+  End;
+
+  If Result = Nil Then
     Result := Target;
 
   For I:=0 To Pred(NodeCount) Do
   Begin
     P := Self.GetNodeByIndex(I);
 
-    If StringEquals(P.Name, 'type') Then
+    If (StringEquals(P.Name, 'type')) Or (StringEquals(P.Name, 'name')) Then
       Continue;
 
     Prop := Result.FindProperty(P.Name);

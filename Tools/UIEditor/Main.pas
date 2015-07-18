@@ -7,13 +7,15 @@ uses
   Dialogs, ExtCtrls, StdCtrls, Menus, IceTabSet, Grids, ValEdit, ComCtrls,
   TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_VCLApplication, TERRA_OS,
   TERRA_String, TERRA_Scene, TERRA_Texture, TERRA_Font, TERRA_TTF,
-  TERRA_Viewport, TERRA_FileManager, TERRA_SpriteManager,
+  TERRA_Viewport, TERRA_FileManager, TERRA_FileUtils, TERRA_SpriteManager,
   TERRA_PNG, TERRA_JPG,
   TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color,
   TERRA_UI, TERRA_XML, TERRA_Collections, TERRA_CustomPropertyEditor;
 
 Const
   SnapValue = 10;
+
+  UIFileFilter = 'UI files (*.xml)|*.xml';
 
   customDefault = crArrow;
   customMove    = crSize;
@@ -50,6 +52,7 @@ Type
       Procedure Release(); Override;
 
       Procedure Open(FileName:TERRAString);
+      Procedure Save(FileName:TERRAString);
 
       Function PickWidgetAt(X, Y:Integer):Widget;
   End;
@@ -68,7 +71,7 @@ Type
       _CurrentTool:UIEditTool;
       _DragMode:UIDragMode;
 
-      Function GetNewTarget():Widget;
+      Function GetNewTarget(X,Y:Integer):Widget;
 
     Public
       Constructor Create();
@@ -142,6 +145,8 @@ Type
     procedure WidgetListEdited(Sender: TObject; Node: TTreeNode;
       var S: String);
     procedure Sprite1Click(Sender: TObject);
+    procedure Save1Click(Sender: TObject);
+    procedure Open1Click(Sender: TObject);
 
   Protected
     Procedure CustomDrawItem(Sender: TObject; ACanvas: TCanvas; ARect: TRect; State: TOwnerDrawState);
@@ -221,7 +226,7 @@ End;
 
 Procedure UIEditScene.AddWindow(X, Y: Integer);
 Begin
-  Self.AddWidget(UIWindow.Create('window', Self.GetNewTarget(),
+  Self.AddWidget(UIWindow.Create('window', Self.GetNewTarget(X, Y),
     X, Y, 0.1,
     UIPixels(300), UIPixels(200),  'window'), X, Y);
 End;
@@ -229,31 +234,31 @@ End;
 
 Procedure UIEditScene.AddButton(X, Y: Integer);
 Begin
-  Self.AddWidget(UIButton.Create('button', Self.GetNewTarget(),
+  Self.AddWidget(UIButton.Create('button', Self.GetNewTarget(X, Y),
     X, Y, 0.1,
     UIPixels(150), UIPixels(50), 'Button', 'round_button'), X, Y);
 End;
 
 Procedure UIEditScene.AddLabel(X, Y: Integer);
 Begin
-  Self.AddWidget(UILabel.Create('label', Self.GetNewTarget(), X, Y, 0.1, 'text'), X, Y);
+  Self.AddWidget(UILabel.Create('label', Self.GetNewTarget(X, Y), X, Y, 0.1, 'text'), X, Y);
 End;
 
 procedure UIEditScene.AddCheckbox(X, Y: Integer);
 Begin
-  Self.AddWidget(UICheckbox.Create('check', Self.GetNewTarget(), X, Y, 0.1, UIPixels(25), True, 'text', 'checkbox'), X, Y);
+  Self.AddWidget(UICheckbox.Create('check', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(25), True, 'text', 'checkbox'), X, Y);
 End;
 
 procedure UIEditScene.AddRadioButton(X, Y: Integer);
 Begin
-  Self.AddWidget(UIRadioButton.Create('radio', Self.GetNewTarget(), X, Y, 0.1, UIPixels(25), 'text', 'checkbox'), X, Y);
+  Self.AddWidget(UIRadioButton.Create('radio', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(25), 'text', 'checkbox'), X, Y);
 End;
 
 procedure UIEditScene.AddProgressBar(X, Y: Integer);
 Var
   P:UIProgressBar;
 begin
-  P := UIProgressBar.Create('bar', Self.GetNewTarget(), X, Y, 0.1, UIPixels(200), UIPixels(30), 'progressbar');
+  P := UIProgressBar.Create('bar', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(200), UIPixels(30), 'progressbar');
   P.Percent.Value := 50;
   Self.AddWidget(P, X, Y);
 end;
@@ -262,7 +267,7 @@ procedure UIEditScene.AddSprite(X, Y: Integer);
 Var
   P:UISprite;
 begin
-  P := UISprite.Create('sprite', Self.GetNewTarget(), X, Y, 0.1, 'sprite');
+  P := UISprite.Create('sprite', Self.GetNewTarget(X, Y), X, Y, 0.1, 'sprite');
   Self.AddWidget(P, X, Y);
 end;
 
@@ -304,11 +309,10 @@ begin
     Node.Selected := True;
 End;
 
-Function UIEditScene.GetNewTarget: Widget;
+Function UIEditScene.GetNewTarget(X,Y:Integer): Widget;
 Begin
-  If Assigned(_SelectedWidget) Then
-    Result := _SelectedWidget
-  Else
+  Result := _SelectedView.PickWidgetAt(X, Y);
+  If Result = Nil Then
     Result := _SelectedView._Target;
 End;
 
@@ -826,12 +830,28 @@ Procedure UIEditableView.Open(FileName: TERRAString);
 Var
   Doc:XMLDocument;
 Begin
+  FileManager.Instance.AddPath(GetFilePath(FileName));
+
   Doc := XMLDocument.Create();
   Doc.LoadFromFile(FileName);
   Doc.SaveToObject(_Target);
   ReleaseObject(Doc);
 
   UIEditForm.BuildWidgetTree();
+
+  UIEditForm._Scene._SelectedWidget := Nil;
+End;
+
+procedure UIEditableView.Save(FileName: TERRAString);
+Var
+  Doc:XMLDocument;
+Begin
+  Doc := XMLDocument.Create();
+
+  Doc.LoadFromObject(_Target);
+
+  Doc.SaveToFile(FileName, xmlSaveCompact);
+  ReleaseObject(Doc);
 End;
 
 Function UIEditableView.PickWidgetAt(X, Y: Integer): Widget;
@@ -875,5 +895,36 @@ begin
 end;
 
 
+
+procedure TUIEditForm.Save1Click(Sender: TObject);
+Var
+  Dialog:TSaveDialog;
+begin
+  Dialog := TSaveDialog.Create(Self);
+  Dialog.Filter := UIFileFilter;
+  Dialog.Options := [ofOverwritePrompt, ofHideReadOnly, ofNoChangeDir, ofPathMustExist];
+
+  If Dialog.Execute Then
+    Self._Scene._SelectedView.Save(Dialog.FileName);
+
+  Dialog.Destroy();
+end;
+
+procedure TUIEditForm.Open1Click(Sender: TObject);
+Var
+  Dialog:TOpenDialog;
+begin
+  Dialog := TOpenDialog.Create(Self);
+  Dialog.Filter := UIFileFilter;
+  Dialog.Options := [ofOverwritePrompt, ofHideReadOnly, ofNoChangeDir, ofPathMustExist];
+
+  If Dialog.Execute Then
+  Begin
+    Self._Scene._SelectedView.Open(Dialog.FileName);
+    Self.FormResize(Sender);
+  End;
+
+  Dialog.Destroy();
+end;
 
 end.

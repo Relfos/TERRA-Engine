@@ -21,7 +21,6 @@ Type
       Procedure SetBlob(Const Blob:TERRAString);Virtual;
 
       Function IsValueObject():Boolean; Virtual;
-      Function IsSharedObject():Boolean; Virtual;
 
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Virtual;
       Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Virtual;
@@ -30,8 +29,6 @@ Type
       Function FindPropertyWithPath(Path:TERRAString):TERRAObject;
 
       Function HasPropertyTweens:Boolean; Virtual;
-
-      Procedure DeleteProperties();
 
       Procedure CopyProperties(Other:TERRAObject);
 
@@ -274,8 +271,6 @@ Begin
 //  RaiseError('Destructors are not allowed in class: '+Self.ClassName);
   {$ENDIF}
 
-  Self.DeleteProperties();
-
   Inherited;
 End;
 
@@ -335,21 +330,6 @@ Begin
   Result := Nil;
 End;
 
-Procedure TERRAObject.DeleteProperties;
-Var
-  I:Integer;
-  Key:TERRAObject;
-Begin
-  I := 0;
-  Repeat
-    Key := Self.GetPropertyByIndex(I);
-    Inc(I);
-
-    If (Assigned(Key)) And (Not Key.IsSharedObject()) Then
-      ReleaseObject(Key);
-  Until Key = Nil;
-End;
-
 Function TERRAObject.FindPropertyWithPath(Path:TERRAString):TERRAObject;
 Var
   S:TERRAString;
@@ -403,11 +383,6 @@ End;
 Procedure TERRAObject.SetBlob(const Blob: TERRAString);
 Begin
   // do nothing
-End;
-
-Function TERRAObject.IsSharedObject: Boolean;
-Begin
-  Result := False;
 End;
 
 Function TERRAObject.IsValueObject: Boolean;

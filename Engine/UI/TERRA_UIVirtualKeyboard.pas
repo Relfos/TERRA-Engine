@@ -677,16 +677,16 @@ End;
 
 Function UIVirtualKeyboardKey.GetKeyWidth(): Integer;
 Begin
-  If Assigned(_Component) Then
-    Result := _Component.GetWidth(KeyTypeToInt(_KeyType), 0)
+  If Assigned(Self.SkinComponent) Then
+    Result := Self.SkinComponent.GetWidth(KeyTypeToInt(_KeyType), 0)
   Else
     Result := 0;
 End;
 
 Function UIVirtualKeyboardKey.GetKeyHeight(): Integer;
 Begin
-  If Assigned(_Component) Then
-    Result := _Component.GetHeight(KeyTypeToInt(_KeyType), 0)
+  If Assigned(Self.SkinComponent) Then
+    Result := Self.SkinComponent.GetHeight(KeyTypeToInt(_KeyType), 0)
   Else
     Result := 0;
 End;
