@@ -8,13 +8,13 @@ Uses Classes, Forms, ExtCtrls, Graphics, TERRA_String, TERRA_Utils, TERRA_Applic
 Type
   VCLCanvasViewport = Class(TERRAObject)
     Protected
-      _Source:Viewport;
+      _Source:TERRAViewport;
       _Target:TCanvas;
 
       Procedure Update();
 
     Public
-      Constructor Create(Source:Viewport; Target:TCanvas);
+      Constructor Create(Source:TERRAViewport; Target:TCanvas);
       Procedure Release; Override;
   End;
 
@@ -173,7 +173,7 @@ Begin
 End;
 
 { VCLCanvasViewport }
-Constructor VCLCanvasViewport.Create(Source:Viewport; Target: TCanvas);
+Constructor VCLCanvasViewport.Create(Source:TERRAViewport; Target: TCanvas);
 Begin
   Self._Source := Source;
   Self._Target := Target;

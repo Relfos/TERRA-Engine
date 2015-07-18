@@ -131,7 +131,7 @@ Type
       Procedure SetTransform(Transform:Matrix4x4; Width,Height:Single);
 
       Function PointOccluded(P:Vector3D):Boolean;
-      Function BoxOccluded(Box:BoundingBox; V:Viewport):Boolean;
+      Function BoxOccluded(Box:BoundingBox; V:TERRAViewport):Boolean;
 
       Procedure Render(TranslucentPass:Boolean); Override;
       Function GetBoundingBox:BoundingBox; Override;
@@ -139,12 +139,12 @@ Type
 
 	GraphicsManager = Class(ApplicationComponent)
 		Protected
-      _Viewports:Array Of Viewport;
+      _Viewports:Array Of TERRAViewport;
       _ViewportCount:Integer;
-      _CurrentViewport:Viewport;
+      _CurrentViewport:TERRAViewport;
 
-      _DeviceViewport:Viewport;
-      _UIViewport:Viewport;
+      _DeviceViewport:TERRAViewport;
+      _UIViewport:TERRAViewport;
 
       _Cameras:Array Of Camera;
       _CameraCount:Integer;
@@ -196,16 +196,13 @@ Type
 
       _ElapsedTime:Single;
 
-      _SimpleColor:ShaderInterface;
-      _SimpleTexture:ShaderInterface;
-      _SimpleTextureColored:ShaderInterface;
       _FullscreenQuadShader:ShaderInterface;
       _FullscreenColorShader:ShaderInterface;
 
       Procedure RenderUI;
-      Procedure RenderStencilShadows(View:Viewport);
-      Procedure RenderSceneInternal(View:Viewport; Pass:RenderTargetType);
-      Procedure RenderViewport(View:Viewport);
+      Procedure RenderStencilShadows(View:TERRAViewport);
+      Procedure RenderSceneInternal(View:TERRAViewport; Pass:RenderTargetType);
+      Procedure RenderViewport(View:TERRAViewport);
       Procedure RenderList(RenderList:List; TranslucentPass:Boolean);
 
       Procedure OnAppResize; Override;
@@ -246,7 +243,7 @@ Type
 
       Procedure Release; Override;
 
-      Procedure RenderShadowmap(View:Viewport);
+      Procedure RenderShadowmap(View:TERRAViewport);
       //Procedure RenderReflections(View:Viewport);
 
 			Procedure RenderScene();
@@ -263,10 +260,10 @@ Type
       Procedure SetScene(MyScene:Scene);
       Procedure SetWind(WindDirection:Vector3D; WindIntensity:Single);
 
-      Function GetPickRay(View:Viewport; TX,TY:Integer):Ray;
+      Function GetPickRay(View:TERRAViewport; TX,TY:Integer):Ray;
 
-      Function ProjectPoint(Pos:Vector3D; V:Viewport):Vector3D;
-      Function ProjectBoundingBox(Box:BoundingBox; V:Viewport):BoundingBox;
+      Function ProjectPoint(Pos:Vector3D; V:TERRAViewport):Vector3D;
+      Function ProjectBoundingBox(Box:BoundingBox; V:TERRAViewport):BoundingBox;
 
       Property Width:Integer Read _Width;
       Property Height:Integer Read _Height;
@@ -280,20 +277,16 @@ Type
 
       Procedure SetFog(Value:Boolean);
 
-      Procedure AddViewport(V:Viewport);
-      Procedure DeleteViewport(V:Viewport);
-      Function GetViewport(Index:Integer):Viewport;
-      Procedure SetCurrentViewport(V:Viewport);
+      Procedure AddViewport(V:TERRAViewport);
+      Procedure DeleteViewport(V:TERRAViewport);
+      Function GetViewport(Index:Integer):TERRAViewport;
+      Procedure SetCurrentViewport(V:TERRAViewport);
 
       Function GenerateStencilID():Byte; 
 
-      Function EnableColorShader(Const MyColor:Color; Const Transform:Matrix4x4):ShaderInterface;
-      Function EnableTextureShader(Const MyColor:Color; Tex:TERRATexture; Const Transform:Matrix4x4):ShaderInterface;
-      Function EnableColoredTextureShader(Tex:TERRATexture; Const Transform:Matrix4x4):ShaderInterface;
-
       Procedure EnableReflection(Const ReflectionPoint, ReflectionNormal:Vector3D);
 
-      Function CreateMainViewport(Const Name:TERRAString; Width, Height:Integer):Viewport;
+      Function CreateMainViewport(Const Name:TERRAString; Width, Height:Integer):TERRAViewport;
 
       Property ElapsedTime:Single Read _elapsedTime;
 
@@ -309,9 +302,9 @@ Type
 
       Property Renderer:GraphicsRenderer Read _Renderer Write SetRenderer;
 
-      Property ActiveViewport:Viewport Read _CurrentViewport Write SetCurrentViewport;
-      Property DeviceViewport:Viewport Read _DeviceViewport;
-      Property UIViewport:Viewport Read _UIViewport;
+      Property ActiveViewport:TERRAViewport Read _CurrentViewport Write SetCurrentViewport;
+      Property DeviceViewport:TERRAViewport Read _DeviceViewport;
+      Property UIViewport:TERRAViewport Read _UIViewport;
 
       Property Scene:TERRA_Scene.Scene Read _Scene Write SetScene;
 
@@ -366,69 +359,6 @@ Begin
   Result := S;
 End;
 
-Function GetShader_SimpleTexture():TERRAString;
-Var
-  S:TERRAString;
-Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
-Begin
-  S := '';
-  Line('version { 110 }');
-  Line('vertex {');
-	Line('  uniform mat4 cameraMatrix;');
-	Line('  uniform mat4 modelMatrix;');
-  Line('  uniform mat4 projectionMatrix;');
-  Line('  attribute highp vec4 terra_position;');
-  Line('  attribute highp vec4 terra_uv;');
-  Line('  varying highp vec2 myUVS;');
-	Line('  void main()	{');
-  Line('    gl_Position = projectionMatrix * cameraMatrix * modelMatrix * terra_position;');
-  Line('    myUVS = terra_uv.xy;');
-  Line('}}');
-  Line('fragment {');
-  Line('  varying highp vec2 myUVS;');
-  Line('  uniform sampler2D out_texture;');
-	Line('  uniform lowp vec4 out_color;');
-	Line('	void main()	{');
-  Line('  lowp vec4 color = texture2D(out_texture, myUVS.xy);');
-	Line('	gl_FragColor = color  * out_color;}');
-//	Line('	gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);}');
-  Line('}');
-  Result := S;
-End;
-
-Function GetShader_ColoredTexture():TERRAString;
-Var
-  S:TERRAString;
-Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
-Begin
-  S := '';
-  Line('version { 110 }');
-  Line('vertex {');
-	Line('  uniform mat4 cameraMatrix;');
-	Line('  uniform mat4 modelMatrix;');
-  Line('  uniform mat4 projectionMatrix;');
-  Line('  attribute highp vec4 terra_position;');
-  Line('  attribute highp vec4 terra_uv;');
-  Line('  attribute highp vec4 terra_color;');
-  Line('  varying highp vec2 myUVS;');
-  Line('  varying highp vec4 myColor;');
-	Line('  void main()	{');
-  Line('    gl_Position = projectionMatrix * cameraMatrix * modelMatrix * terra_position;');
-  Line('    myUVS = terra_uv.xy;');
-  Line('    myColor = terra_color;');
-  Line('}}');
-  Line('fragment {');
-  Line('  varying highp vec2 myUVS;');
-  Line('  varying highp vec4 myColor;');
-  Line('  uniform sampler2D out_texture;');
-	Line('  uniform lowp vec4 out_color;');
-	Line('	void main()	{');
-  Line('  lowp vec4 color = texture2D(out_texture, myUVS.xy);');
-	Line('	gl_FragColor = color  * myColor;}');
-//	Line('	gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);}');
-  Line('}');
-  Result := S;
-End;
 
 Function GetShader_StencilVolumeShader():TERRAString;
 Var
@@ -556,7 +486,7 @@ Begin
           And (Occ._EndVertex.X>_StartVertex.X) And (Occ._EndVertex.X<_EndVertex.X) And (Occ._EndVertex.Z>FloatMin(_StartVertex.Z, _EndVertex.Z));
 End;
 
-Function Occluder.BoxOccluded(Box:BoundingBox; V:Viewport):Boolean;
+Function Occluder.BoxOccluded(Box:BoundingBox; V:TERRAViewport):Boolean;
 Var
   K:Single;
   A,B:Vector3D;
@@ -757,7 +687,7 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
 
   Log(logDebug, 'GraphicsManager', 'Device resolution: '+IntToString(_Width)+' x ' +IntToString(_Height));
 
-  _DeviceViewport := Viewport.Create('device', _Width, _Height);
+  _DeviceViewport := TERRAViewport.Create('device', _Width, _Height);
 
   OW := _Width;
   OH := _Height;
@@ -777,7 +707,7 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
   Log(logDebug, 'GraphicsManager', 'Selected 3D resolution: '+IntToString(OW)+' x ' +IntToString(OH));
 
   // make UI view
-  _UIViewport := Viewport.Create('UI', Self.UI_Width, Self.UI_Height, {$IFDEF FRAMEBUFFEROBJECTS}Self.UI_Scale{$ELSE}1.0{$ENDIF});
+  _UIViewport := TERRAViewport.Create('UI', Self.UI_Width, Self.UI_Height, {$IFDEF FRAMEBUFFEROBJECTS}Self.UI_Scale{$ELSE}1.0{$ENDIF});
   _UIViewport.BackgroundColor := ColorNull;
   _UIViewport.SetRenderTargetState(captureTargetColor, True);
   _UIViewport.SetTarget(_DeviceViewport, 0, 0, 1.0, 1.0);
@@ -800,7 +730,7 @@ Begin
   Result := _FullscreenQuadShader;
 End;
 
-Procedure GraphicsManager.AddViewport(V:Viewport);
+Procedure GraphicsManager.AddViewport(V:TERRAViewport);
 Begin
   If (V = Nil) Then
     Exit;
@@ -813,7 +743,7 @@ Begin
     ActiveViewport := V;
 End;
 
-Function GraphicsManager.GetViewport(Index:Integer):Viewport;
+Function GraphicsManager.GetViewport(Index:Integer):TERRAViewport;
 Begin
   If (Index<0) Or (Index>=_ViewportCount) Then
     Result := Nil
@@ -821,7 +751,7 @@ Begin
     Result := _Viewports[Index];
 End;
 
-Procedure GraphicsManager.DeleteViewport(V:Viewport);
+Procedure GraphicsManager.DeleteViewport(V:TERRAViewport);
 Var
   N, I:Integer;
 Begin
@@ -964,7 +894,7 @@ Begin
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'FinishedUIRendering');{$ENDIF}
 End;
 
-Procedure GraphicsManager.RenderShadowmap(View:Viewport);
+Procedure GraphicsManager.RenderShadowmap(View:TERRAViewport);
 Begin
   If (Not Assigned(_Scene)) Then
     Exit;
@@ -1142,7 +1072,7 @@ Var
 Const
   StencilQuad:Array[0..11] Of Single = (1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0);
 
-Procedure GraphicsManager.RenderStencilShadows(View:Viewport);
+Procedure GraphicsManager.RenderStencilShadows(View:TERRAViewport);
 Var
   StencilID:Byte;
 Begin
@@ -1250,7 +1180,7 @@ Begin
   _WindVector.Scale(WindIntensity);
 End;
 
-Procedure GraphicsManager.RenderSceneInternal(View:Viewport; Pass:RenderTargetType);
+Procedure GraphicsManager.RenderSceneInternal(View:TERRAViewport; Pass:RenderTargetType);
 Var
   N:Integer;
 Begin
@@ -1352,7 +1282,7 @@ Begin
     End;*)
 End;
 
-Procedure GraphicsManager.RenderViewport(View:Viewport);
+Procedure GraphicsManager.RenderViewport(View:TERRAViewport);
 Var
   I, J, Count, SubViews:Integer;
   Target:RenderTargetInterface;
@@ -1848,68 +1778,6 @@ Begin
     *)
 End;
 
-Function GraphicsManager.EnableColorShader(Const MyColor:Color; Const Transform:Matrix4x4):ShaderInterface;
-Begin
-  If (Not Assigned(_SimpleColor)) Then
-  Begin
-    _SimpleColor := Self.Renderer.CreateShader();
-    _SimpleColor.Generate('simple_color', GetShader_SimpleColor()); 
-  End;
-
-  Result := _SimpleColor;
-  If (Not Assigned(Result)) Then
-    Exit;
-
-  Self.Renderer.BindShader(Result);
-  Result.SetMat4Uniform('cameraMatrix', ActiveViewport.Camera.Transform); //BIBI
-  Result.SetMat4Uniform('projectionMatrix', ActiveViewport.Camera.Projection);
-  Result.SetMat4Uniform('modelMatrix', Transform);
-  Result.SetColorUniform('out_color', MyColor); //BIBI
-End;
-
-Function GraphicsManager.EnableTextureShader(Const MyColor:Color; Tex:TERRATexture; Const Transform:Matrix4x4):ShaderInterface;
-Begin
-  If (Not Assigned(_SimpleTexture)) Then
-  Begin
-    _SimpleTexture := Self.Renderer.CreateShader();
-    _SimpleTexture.Generate('simple_texture', GetShader_SimpleTexture()); 
-  End;
-
-  Tex.Bind(0);
-
-  Result := _SimpleTexture;
-  If (Not Assigned(Result)) Then
-    Exit;
-
-  Self.Renderer.BindShader(Result);
-  Result.SetMat4Uniform('cameraMatrix', ActiveViewport.Camera.Transform); //BIBI
-  Result.SetMat4Uniform('projectionMatrix', ActiveViewport.Camera.Projection);
-  Result.SetMat4Uniform('modelMatrix', Transform);
-  Result.SetColorUniform('out_color', MyColor);
-  Result.SetIntegerUniform('out_texture', 0);
-End;
-
-Function GraphicsManager.EnableColoredTextureShader(Tex:TERRATexture; Const Transform:Matrix4x4):ShaderInterface;
-Begin
-  If (Not Assigned(_SimpleTextureColored)) Then
-  Begin
-    _SimpleTextureColored := Self.Renderer.CreateShader();
-    _SimpleTextureColored.Generate('colored_texture', GetShader_ColoredTexture());
-  End;
-
-  Tex.Bind(0);
-
-  Result := _SimpleTextureColored;
-  If (Not Assigned(Result)) Then
-    Exit;
-
-  Self.Renderer.BindShader(Result);
-  Result.SetMat4Uniform('cameraMatrix', ActiveViewport.Camera.Transform); //BIBI
-  Result.SetMat4Uniform('projectionMatrix', ActiveViewport.Camera.Projection);
-  Result.SetMat4Uniform('modelMatrix', Transform);
-  Result.SetIntegerUniform('out_texture', 0);
-End;
-
 Procedure GraphicsManager.Release;
 Var
   I:Integer;
@@ -1927,9 +1795,6 @@ Begin
 
   ReleaseObject(_FullScreenQuadVertices);
 
-  ReleaseObject(_SimpleColor);
-  ReleaseObject(_SimpleTexture);
-  ReleaseObject(_SimpleTextureColored);
   ReleaseObject(_FullscreenQuadShader);
   ReleaseObject(_FullscreenColorShader);
 
@@ -2207,7 +2072,7 @@ Begin
     Result := 0;
 End;
 
-Procedure GraphicsManager.SetCurrentViewport(V: Viewport);
+Procedure GraphicsManager.SetCurrentViewport(V: TERRAViewport);
 Begin
   _CurrentViewport := V;
 End;
@@ -2222,7 +2087,7 @@ Begin
   Renderer.SetViewport(X,Y, Width, Height);
 End;}
 
-Function GraphicsManager.ProjectBoundingBox(Box: BoundingBox; V:Viewport): BoundingBox;
+Function GraphicsManager.ProjectBoundingBox(Box: BoundingBox; V:TERRAViewport): BoundingBox;
 Var
   I:Integer;
   Vertices:BoundingBoxVertices;
@@ -2244,7 +2109,7 @@ Begin
   End;
 End;
 
-Function GraphicsManager.ProjectPoint(Pos: Vector3D; V:Viewport): Vector3D;
+Function GraphicsManager.ProjectPoint(Pos: Vector3D; V:TERRAViewport): Vector3D;
 Var
   RX, RY:Single;
 Begin
@@ -2256,7 +2121,7 @@ Begin
   Result.Y := Result.Y * Ry;
 End;
 
-Function GraphicsManager.GetPickRay(View:Viewport; TX, TY: Integer): Ray;
+Function GraphicsManager.GetPickRay(View:TERRAViewport; TX, TY: Integer): Ray;
 Var
   RX, RY:Single;
 Begin
@@ -2392,9 +2257,9 @@ Begin
   {$ENDIF}
 End;
 
-Function GraphicsManager.CreateMainViewport(Const Name:TERRAString; Width, Height:Integer):Viewport;
+Function GraphicsManager.CreateMainViewport(Const Name:TERRAString; Width, Height:Integer):TERRAViewport;
 Begin
-  Result := Viewport.Create(Name, Width, Height);
+  Result := TERRAViewport.Create(Name, Width, Height);
   Result.SetTarget(Self.DeviceViewport, 0.0, 0.0, 1.0, 1.0);
   Self.AddViewport(Result);
   Result.Visible := True;

@@ -32,14 +32,14 @@ Uses TERRA_Object, TERRA_Utils, TERRA_Matrix4x4, TERRA_Vector3D, TERRA_Viewport;
 Type
   Scene = Class(TERRAObject)
     Public
-      Procedure IncludeShadowCasters(V:Viewport; Var MinZ,MaxZ:Single; Const ShadowMatrix4x4:Matrix4x4); Virtual;
-      Procedure RenderShadowCasters(V:Viewport); Virtual;
+      Procedure IncludeShadowCasters(V:TERRAViewport; Var MinZ,MaxZ:Single; Const ShadowMatrix4x4:Matrix4x4); Virtual;
+      Procedure RenderShadowCasters(V:TERRAViewport); Virtual;
       {Procedure RenderReflections(V:Viewport); Virtual;
       Procedure RenderReflectiveSurfaces(V:Viewport); Virtual;}
-      Procedure RenderViewport(V:Viewport); Virtual;
-      Procedure RenderSky(V:Viewport); Virtual;
-      Procedure RenderSkyEmission(V:Viewport); Virtual;
-      Procedure RenderSprites(V:Viewport); Virtual;
+      Procedure RenderViewport(V:TERRAViewport); Virtual;
+      Procedure RenderSky(V:TERRAViewport); Virtual;
+      Procedure RenderSkyEmission(V:TERRAViewport); Virtual;
+      Procedure RenderSprites(V:TERRAViewport); Virtual;
       Procedure OnMouseDown(X,Y, Button:Integer); Virtual;
   End;
 
@@ -47,7 +47,7 @@ Implementation
 
 { Scene }
 
-Procedure Scene.IncludeShadowCasters(V:Viewport; Var MinZ, MaxZ: Single; Const ShadowMatrix4x4:Matrix4x4);
+Procedure Scene.IncludeShadowCasters(V:TERRAViewport; Var MinZ, MaxZ: Single; Const ShadowMatrix4x4:Matrix4x4);
 Begin
 
 End;
@@ -57,12 +57,12 @@ Begin
 
 End;
 
-Procedure Scene.RenderSprites(V:Viewport);
+Procedure Scene.RenderSprites(V:TERRAViewport);
 Begin
   // do nothing
 End;
 
-Procedure Scene.RenderViewport(V:Viewport);
+Procedure Scene.RenderViewport(V:TERRAViewport);
 Begin
 
 End;

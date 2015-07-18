@@ -31,24 +31,24 @@ Uses TERRA_Object, TERRA_String, TERRA_GraphicsManager, TERRA_Renderer, TERRA_Co
   TERRA_MeshSkeleton, TERRA_MeshAnimationNodes, TERRA_Collision2D, TERRA_Splines, TERRA_ClipRect, TERRA_Viewport;
 
 // 2d drawing
-Procedure DrawPoint2D(View:Viewport; Const P:Vector2D; FillColor:Color; Radius:Single = 2.0);
-Procedure DrawLine2D(View:Viewport; Const A,B:Vector2D; LineColor:Color; LineWidth:Single = 1.0);
-Procedure DrawCircle(View:Viewport; Const P:Vector2D; Radius:Single; LineColor:Color; LineWidth:Single = 1.0);
-Procedure DrawRectangle(View:Viewport; Const A,B:Vector2D; LineColor:Color; LineWidth:Single = 1.0);
-Procedure DrawFilledRect(View:Viewport; Const A,B:Vector2D; FillColor:Color);
-Procedure DrawPolygon2D(View:Viewport; Poly:Polygon2D; LineColor:Color; LineWidth:Single = 1.0);
+Procedure DrawPoint2D(View:TERRAViewport; Const P:Vector2D; FillColor:Color; Radius:Single = 2.0);
+Procedure DrawLine2D(View:TERRAViewport; Const A,B:Vector2D; LineColor:Color; LineWidth:Single = 1.0);
+Procedure DrawCircle(View:TERRAViewport; Const P:Vector2D; Radius:Single; LineColor:Color; LineWidth:Single = 1.0);
+Procedure DrawRectangle(View:TERRAViewport; Const A,B:Vector2D; LineColor:Color; LineWidth:Single = 1.0);
+Procedure DrawFilledRect(View:TERRAViewport; Const A,B:Vector2D; FillColor:Color);
+Procedure DrawPolygon2D(View:TERRAViewport; Poly:Polygon2D; LineColor:Color; LineWidth:Single = 1.0);
 
 // 3d drawing
-Procedure DrawPoint3D(View:Viewport; Const P:Vector3D; FillColor:Color; Radius:Single = 2.0);
-Procedure DrawLine3D(View:Viewport; Const A,B:Vector3D; LineColor:Color; LineWidth:Single = 1.0);
-Procedure DrawRay(View:Viewport; Const R:Ray; LineColor:Color; LineWidth:Single = 1.0; Length:Single =0);
-Procedure DrawBoundingBox(View:Viewport; Const MyBox:BoundingBox; LineColor:Color; LineWidth:Single = 1.0);
-Procedure DrawSpline(View:Viewport; S:Spline; LineColor:Color; LineWidth:Single = 1.0);
+Procedure DrawPoint3D(View:TERRAViewport; Const P:Vector3D; FillColor:Color; Radius:Single = 2.0);
+Procedure DrawLine3D(View:TERRAViewport; Const A,B:Vector3D; LineColor:Color; LineWidth:Single = 1.0);
+Procedure DrawRay(View:TERRAViewport; Const R:Ray; LineColor:Color; LineWidth:Single = 1.0; Length:Single =0);
+Procedure DrawBoundingBox(View:TERRAViewport; Const MyBox:BoundingBox; LineColor:Color; LineWidth:Single = 1.0);
+Procedure DrawSpline(View:TERRAViewport; S:Spline; LineColor:Color; LineWidth:Single = 1.0);
 
-Procedure DrawFrustum(View:Viewport; F:Frustum; LineColor:Color; LineWidth:Single = 1.0);
+Procedure DrawFrustum(View:TERRAViewport; F:Frustum; LineColor:Color; LineWidth:Single = 1.0);
 
-Procedure DrawBone(View:Viewport; Bone:MeshBone; State:AnimationState; Const Transform:Matrix4x4; LineColor:Color; LineWidth:Single);
-Procedure DrawSkeleton(View:Viewport; Skeleton:MeshSkeleton; State:AnimationState; Const Transform:Matrix4x4; LineColor:Color; LineWidth:Single);
+Procedure DrawBone(View:TERRAViewport; Bone:MeshBone; State:AnimationState; Const Transform:Matrix4x4; LineColor:Color; LineWidth:Single);
+Procedure DrawSkeleton(View:TERRAViewport; Skeleton:MeshSkeleton; State:AnimationState; Const Transform:Matrix4x4; LineColor:Color; LineWidth:Single);
 
 (*Procedure DrawFrustum(Const MyFrustum:Frustum; Color:TERRA_Color.Color);
 Procedure DrawPlane(Const Position, Normal:Vector3D; Scale:Single; Color:TERRA_Color.Color);
@@ -61,13 +61,13 @@ Uses TERRA_OS, TERRA_Math, TERRA_Texture;
 Const
   Layer = 20;
 
-Function ConvertTo2D(View:Viewport; P:Vector3D):Vector2D;
+Function ConvertTo2D(View:TERRAViewport; P:Vector3D):Vector2D;
 Begin
   P := View.ProjectPoint(P);
   Result := VectorCreate2D(P.X, P.Y);
 End;
 
-Procedure DrawPoint2D(View:Viewport; Const P:Vector2D; FillColor:Color; Radius:Single = 2.0);
+Procedure DrawPoint2D(View:TERRAViewport; Const P:Vector2D; FillColor:Color; Radius:Single = 2.0);
 Var
   A,B:Vector2D;
 Begin
@@ -80,7 +80,7 @@ Begin
   DrawFilledRect(View, A, B, FillColor);
 End;
 
-Procedure DrawLine2D(View:Viewport; Const A,B:Vector2D; LineColor:Color; LineWidth:Single);
+Procedure DrawLine2D(View:TERRAViewport; Const A,B:Vector2D; LineColor:Color; LineWidth:Single);
 Var
   Tex:TERRATexture;
   DX, DY, Angle, Len:Single;
@@ -101,7 +101,7 @@ Begin
   S.SetScaleAndRotation(1.0, Angle);
 End;
 
-Procedure DrawFilledRect(View:Viewport; Const A,B:Vector2D; FillColor:Color);
+Procedure DrawFilledRect(View:TERRAViewport; Const A,B:Vector2D; FillColor:Color);
 Var
   I:Integer;
   Tex:TERRATexture;
@@ -125,7 +125,7 @@ Begin
 //  S.ClipRect := Clip;
 End;
 
-Procedure DrawRectangle(View:Viewport; Const A,B:Vector2D; LineColor:Color; LineWidth:Single = 1.0);
+Procedure DrawRectangle(View:TERRAViewport; Const A,B:Vector2D; LineColor:Color; LineWidth:Single = 1.0);
 Var
   I:Integer;
   Tex:TERRATexture;
@@ -167,7 +167,7 @@ Begin
 //  S.ClipRect := Clip;
 End;
 
-Procedure DrawCircle(View:Viewport; Const P:Vector2D; Radius:Single; LineColor:Color; LineWidth:Single = 1.0);
+Procedure DrawCircle(View:TERRAViewport; Const P:Vector2D; Radius:Single; LineColor:Color; LineWidth:Single = 1.0);
 Const
   SubDivs = 32;
 Var
@@ -191,7 +191,7 @@ Begin
   End;
 End;
 
-Procedure DrawPolygon2D(View:Viewport; Poly:Polygon2D; LineColor:Color; LineWidth:Single);
+Procedure DrawPolygon2D(View:TERRAViewport; Poly:Polygon2D; LineColor:Color; LineWidth:Single);
 Var
   I:Integer;
 Begin
@@ -202,17 +202,17 @@ Begin
     DrawLine2D(View, Poly.Vertices[I], Poly.Vertices[Succ(I) Mod Poly.VertexCount], LineColor, LineWidth);
 End;
 
-Procedure DrawPoint3D(View:Viewport; Const P:Vector3D; FillColor:Color; Radius:Single);
+Procedure DrawPoint3D(View:TERRAViewport; Const P:Vector3D; FillColor:Color; Radius:Single);
 Begin
   DrawPoint2D(View, ConvertTo2D(View, P), FillColor, Radius);
 End;
 
-Procedure DrawLine3D(View:Viewport; Const A,B:Vector3D; LineColor:Color; LineWidth:Single);
+Procedure DrawLine3D(View:TERRAViewport; Const A,B:Vector3D; LineColor:Color; LineWidth:Single);
 Begin
   DrawLine2D(View, ConvertTo2D(View, A), ConvertTo2D(View, B), LineColor, LineWidth);
 End;
 
-Procedure DrawRay(View:Viewport; Const R:Ray; LineColor:Color; LineWidth:Single = 1.0; Length:Single =0);
+Procedure DrawRay(View:TERRAViewport; Const R:Ray; LineColor:Color; LineWidth:Single = 1.0; Length:Single =0);
 Var
   P:Vector3D;
 Begin
@@ -224,7 +224,7 @@ Begin
   DrawLine3D(View, R.Origin, P, LineColor, LineWidth);
 End;
 
-Procedure DrawBoundingBox(View:Viewport; Const MyBox:BoundingBox; LineColor:Color; LineWidth:Single);
+Procedure DrawBoundingBox(View:TERRAViewport; Const MyBox:BoundingBox; LineColor:Color; LineWidth:Single);
 Var
   Min, Max:Vector3D;
   Points:Array[0..7] Of Vector3D;
@@ -256,7 +256,7 @@ Begin
   DrawLine3D(View, Points[3], Points[7], LineColor, LineWidth);
 End;
 
-Procedure DrawSpline(View:Viewport; S:Spline; LineColor:Color; LineWidth:Single = 1.0);
+Procedure DrawSpline(View:TERRAViewport; S:Spline; LineColor:Color; LineWidth:Single = 1.0);
 Const
   SubDivs = 50;
 Var
@@ -277,7 +277,7 @@ Begin
   End;
 End;
 
-Procedure DrawBone(View:Viewport; Bone:MeshBone; State:AnimationState; Const Transform:Matrix4x4; LineColor:Color; LineWidth:Single);
+Procedure DrawBone(View:TERRAViewport; Bone:MeshBone; State:AnimationState; Const Transform:Matrix4x4; LineColor:Color; LineWidth:Single);
 Var
   A,B:Vector3D;
 Begin
@@ -290,7 +290,7 @@ Begin
   DrawLine3D(View, A, B, LineColor, LineWidth);
 End;
 
-Procedure DrawSkeleton(View:Viewport; Skeleton:MeshSkeleton; State:AnimationState; Const Transform:Matrix4x4; LineColor:Color; LineWidth:Single);
+Procedure DrawSkeleton(View:TERRAViewport; Skeleton:MeshSkeleton; State:AnimationState; Const Transform:Matrix4x4; LineColor:Color; LineWidth:Single);
 Var
   I:Integer;
 Begin
@@ -301,7 +301,7 @@ Begin
     DrawBone(View, Skeleton.GetBone(I), State, Transform, LineColor, LineWidth);
 End;
 
-Procedure DrawFrustum(View:Viewport; F:Frustum; LineColor:Color; LineWidth:Single);
+Procedure DrawFrustum(View:TERRAViewport; F:Frustum; LineColor:Color; LineWidth:Single);
 Var
   V:BoundingBoxVertices;
   P:Array[0..3] Of Vector3D;

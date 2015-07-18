@@ -69,8 +69,6 @@ Type
 
       Procedure Release(); Override;
 
-      Procedure RenderSprites(V:Viewport); Override;
-
       Procedure AddView(Const Name:TERRAString);
 
       Procedure AddWidget(W:Widget; X,Y:Integer);
@@ -269,10 +267,6 @@ Var
 Begin
   For I:=0 To Pred(_ViewCount) Do
     ReleaseObject(_ViewList[I]);
-End;
-
-Procedure UIEditScene.RenderSprites(V: Viewport);
-Begin
 End;
 
 Procedure UIEditScene.SelectWidget(W: Widget);

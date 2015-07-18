@@ -665,7 +665,7 @@ Var
   M:Matrix4x4;
   Tex:TERRATexture;
   Slot:Integer;
-  View:Viewport;
+  View:TERRAViewport;
 Begin
   _SH := Self.GetShader();
 
@@ -677,7 +677,7 @@ Begin
   }
 
   Slot := 0;
-  View := Viewport(Target);
+  View := TERRAViewport(Target);
 
   For I:=0 To Pred(TotalCaptureTargets) Do
   If (Self._NeedTarget[I]) Then
