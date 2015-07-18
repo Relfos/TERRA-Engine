@@ -2291,6 +2291,10 @@ Var
 Begin
   Original := NewWidth;
   NewWidth := Trunc(NewWidth/UISnapSize) * UISnapSize;
+
+  If (NewWidth<UISnapSize) Then
+    NewWidth := UISnapSize;
+
   Result := Original - NewWidth;
 
   If _Width.Value.IsPercent Then
@@ -2308,6 +2312,9 @@ Begin
   Original := NewHeight;
   NewHeight := Trunc(NewHeight/UISnapSize) * UISnapSize;
   Result := Original - NewHeight;
+
+  If (NewHeight<UISnapSize) Then
+    NewHeight := UISnapSize;
 
 
   If _Height.Value.IsPercent Then
