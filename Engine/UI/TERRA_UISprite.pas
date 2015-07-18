@@ -3,14 +3,15 @@ Unit TERRA_UISprite;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font,
   TERRA_UIDimension, TERRA_SpriteManager, TERRA_Texture, TERRA_Renderer;
 
 Type
   UISprite = Class(Widget)
     Protected
-      _Texture:TERRATexture;
+      _Texture:TextureProperty;
 
+      Function GetTexture: TERRATexture;
     Public
       U1, V1, U2, V2:Single;
 
@@ -23,9 +24,12 @@ Type
       Procedure SetTexture(Tex:TERRATexture);
 
       Procedure Render; Override;
+      Procedure Release; Override;
       Procedure UpdateRects; Override;
 
-      Property Texture:TERRATexture Read _Texture Write SetTexture;
+      Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
+
+      Property Texture:TERRATexture Read GetTexture Write SetTexture;
   End;
 
 
@@ -38,6 +42,7 @@ Begin
   Inherited Create(Name, Parent, '');
 
   Self._TabIndex := TabIndex;
+  Self._Texture := TextureProperty.Create('image', Nil);
 
   Self.SetRelativePosition(VectorCreate2D(X,Y));
   Self._Layer := Z;
@@ -84,6 +89,26 @@ Begin
 
   Result := (X>=Pos.X) And (Y>=Pos.Y) And (X<=Pos.X+WH.X*Scale) And (Y<=Pos.Y+WH.Y*Scale);
 End;}
+
+Function UISprite.GetPropertyByIndex(Index: Integer): TERRAObject;
+Begin
+  Case Index Of
+  CustomPropertiesBaseIndex: Result := Self._Texture;
+  Else
+    Result := Inherited GetPropertyByIndex(Index);
+  End;
+End;
+
+Function UISprite.GetTexture: TERRATexture;
+Begin
+  Result := _Texture.Value;
+End;
+
+Procedure UISprite.Release;
+Begin
+  Inherited;
+  ReleaseObject(Self._Texture);
+End;
 
 Procedure UISprite.Render;
 Var
@@ -152,9 +177,9 @@ End;
 Procedure UISprite.SetTexture(Tex: TERRATexture);
 Begin
   If Tex = Nil Then
-    Exit;
-    
-  _Texture := Tex;
+    Tex := TextureManager.Instance.WhiteTexture;
+
+  _Texture.Value := Tex;
   {Self.Rect.Width := Tex.Width;
   Self.Rect.Height := Tex.Height;
   Self.Rect.U1 := 0.0;
@@ -165,15 +190,15 @@ End;
 
 Procedure UISprite.UpdateRects();
 Begin
-  If Assigned(_Texture) Then
+  If Assigned(Self.Texture) Then
   Begin
-    _Texture.Prefetch();
+    Self.Texture.Prefetch();
 
     If (Self.Width.Value<=0) Then
-      Self.Width := UIPixels(Trunc(SafeDiv(_Texture.Width, _Texture.Ratio.X)));
+      Self.Width := UIPixels(Trunc(SafeDiv(Self.Texture.Width, Self.Texture.Ratio.X)));
 
     If (Self.Height.Value<=0) Then
-      Self.Height := UIPixels(Trunc(SafeDiv(_Texture.Height, _Texture.Ratio.Y)));
+      Self.Height := UIPixels(Trunc(SafeDiv(Self.Texture.Height, Self.Texture.Ratio.Y)));
   End;
 
   Inherited;

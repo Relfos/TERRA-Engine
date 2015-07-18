@@ -136,6 +136,23 @@ Type
       Property Current:SurfaceInterface Read GetCurrent;
   End;
 
+  TextureProperty = Class(TERRAObject)
+    Protected
+      _Value:TERRATexture;
+
+    Public
+      Constructor Create(Const Name:TERRAString; InitValue:TERRATexture);
+
+      Function IsValueObject():Boolean; Override;
+
+      Function GetObjectType:TERRAString; Override;
+
+      Function GetBlob():TERRAString; Override;
+      Procedure SetBlob(Const Blob:TERRAString); Override;
+
+      Property Value:TERRATexture Read _Value Write _Value;
+  End;
+
   TextureClass = Class Of TERRATexture;
   TextureFormat = Record
     Extension:TERRAString;
@@ -1150,5 +1167,42 @@ Begin
 
   Result := Self._TransparencyType;
 End;
+
+{ TextureProperty }
+Constructor TextureProperty.Create(const Name: TERRAString; InitValue:TERRATexture);
+Begin
+  Self._ObjectName := Name;
+  Self._Value := InitValue;
+End;
+
+Function TextureProperty.GetBlob: TERRAString;
+Begin
+  If Assigned(_Value) Then
+    Result := Self._Value.Name
+  Else
+    Result := '';
+
+  If Result = '' Then
+    Result := '#';
+End;
+
+Procedure TextureProperty.SetBlob(const Blob: TERRAString);
+Begin
+  If Blob<>'#' Then
+    _Value := TextureManager.Instance.GetTexture(Blob)
+  Else
+    _Value := TextureManager.Instance.WhiteTexture;
+End;
+
+Function TextureProperty.GetObjectType: TERRAString;
+Begin
+  Result := 'texture';
+End;
+
+Function TextureProperty.IsValueObject: Boolean;
+Begin
+  Result := True;
+End;
+
 
 End.

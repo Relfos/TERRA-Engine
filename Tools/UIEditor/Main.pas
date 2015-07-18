@@ -7,7 +7,8 @@ uses
   Dialogs, ExtCtrls, StdCtrls, Menus, IceTabSet, Grids, ValEdit, ComCtrls,
   TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_VCLApplication, TERRA_OS,
   TERRA_String, TERRA_Scene, TERRA_Texture, TERRA_Font, TERRA_TTF,
-  TERRA_Viewport, TERRA_FileManager, TERRA_SpriteManager, TERRA_PNG,
+  TERRA_Viewport, TERRA_FileManager, TERRA_SpriteManager,
+  TERRA_PNG, TERRA_JPG,
   TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color,
   TERRA_UI, TERRA_XML, TERRA_Collections, TERRA_CustomPropertyEditor;
 
@@ -169,7 +170,8 @@ Var
 
 
 implementation
-Uses TERRA_UIDimension, TERRA_UIWindow, TERRA_UIButton, TERRA_UILabel, TERRA_UICheckbox, TERRA_UIRadioButton, TERRA_UIProgressBar;
+Uses TERRA_UIDimension, TERRA_UIWindow, TERRA_UIButton, TERRA_UILabel, TERRA_UICheckbox, TERRA_UIRadioButton, TERRA_UIProgressBar,
+  TERRA_UISprite;
 
 {$R *.dfm}
 
@@ -312,6 +314,7 @@ Begin
 
   // Added Asset folder to search path
   FileManager.Instance.AddPath('..\..\samples\binaries\assets');
+  FileManager.Instance.AddPath('D:\Code\Minimon\Output');
 
   // Create a scene and set it as the current scene
   _Scene := UIEditScene.Create();

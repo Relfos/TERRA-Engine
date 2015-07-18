@@ -4,7 +4,8 @@ interface
 
 uses SysUtils, Classes, Messages, ExtCtrls, Controls, StdCtrls,
   Dialogs, Graphics, Buttons,
-  TERRA_String, TERRA_Object, TERRA_Utils, TERRA_OS, TERRA_Color, TERRA_VCLApplication;
+  TERRA_String, TERRA_Object, TERRA_Utils, TERRA_OS, TERRA_Color, TERRA_VCLApplication,
+  TERRA_FileManager, TERRA_FileUtils;
 
 Const
   MarginTop = 30;
@@ -75,6 +76,17 @@ type
       Procedure OnClick(Sender: TObject);
   End;
 
+  TTextureCell = Class(TPropertyCell)
+    Protected
+      _Name:TLabel;
+      _Dialog:TOpenDialog;
+
+      Function CreateEditor():TControl; Override;
+      Procedure Update(); Override;
+
+      Procedure OnClick(Sender: TObject);
+  End;
+
   TCustomPropertyEditor = class(TPanel)
     private
       _Bevel:TBevel;
@@ -87,8 +99,8 @@ type
       _EditColor:TColor;
 
       procedure SetTarget(Target: TERRAObject);
-    procedure SetMarginColor(const Value: TColor);
-    procedure SetEditColor(const Value: TColor);
+      procedure SetMarginColor(const Value: TColor);
+      procedure SetEditColor(const Value: TColor);
 
     protected
 
@@ -260,6 +272,9 @@ Begin
   Else
   If StringEquals(S, 'bool') Then
     CellType := TBooleanCell
+  Else
+  If StringEquals(S, 'texture') Then
+    CellType := TTextureCell
   Else
     CellType := TTextCell;
 
@@ -578,5 +593,38 @@ Procedure TBooleanCell.OnClick(Sender: TObject);
 begin
   _Prop.SetBlob(BoolToString(_Check.Checked));
 end;
+
+{ TTextureCell }
+Function TTextureCell.CreateEditor: TControl;
+Begin
+  _Name := TLabel.Create(_Owner);
+  _Name.OnClick := Self.OnClick;
+  _Name.Color := _Owner.EditColor;
+  _Name.Font.Color := clWhite;
+  _Name.Cursor := crHandPoint;
+  Result := _Name;
+End;
+
+Procedure TTextureCell.OnClick(Sender: TObject);
+Begin
+  If _Dialog = Nil Then
+  Begin
+    _Dialog := TOpenDialog.Create(_Owner);
+    _Dialog.Options := [ofNoChangeDir, ofPathMustExist, ofFileMustExist];
+  End;
+
+  //_Dialog.Color :=
+  If _Dialog.Execute Then
+  Begin
+    FileManager.Instance.AddPath(GetFilePath(_Dialog.FileName));
+    _Prop.SetBlob(_Dialog.FileName);
+    _Owner.RequestUpdate();
+  End;
+End;
+
+Procedure TTextureCell.Update;
+Begin
+  _Name.Caption := _Prop.GetBlob();
+End;
 
 end.

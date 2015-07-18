@@ -37,7 +37,7 @@ Type
 
       Destructor Destroy; Override;
 
-      Property ObjectName:TERRAString Read _ObjectName Write SetObjectName; 
+      Property ObjectName:TERRAString Read _ObjectName Write SetObjectName;
   End;
 
   BooleanProperty = Class(TERRAObject)
@@ -282,6 +282,12 @@ End;
 Function TERRAObject.GetObjectType: TERRAString;
 Begin
   Result := Self.ClassName;
+End;
+
+
+Procedure TERRAObject.SetObjectName(const Value: TERRAString);
+Begin
+  Self._ObjectName := Value;
 End;
 
 Function TERRAObject.HasPropertyTweens: Boolean;
@@ -866,11 +872,6 @@ End;
 Function StringProperty.IsValueObject: Boolean;
 Begin
   Result := True;
-End;
-
-Procedure TERRAObject.SetObjectName(const Value: TERRAString);
-Begin
-  Self._ObjectName := Value;
 End;
 
 End.
