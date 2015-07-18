@@ -258,6 +258,8 @@ Type
       Procedure UpdateRects; Virtual;
       Function UpdateTransform():Boolean; Virtual;
 
+      Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
+
 			Function GetVisible:Boolean;
 			Function GetLayer:Single;
       Function GetColor:Color;
@@ -594,8 +596,9 @@ Var
   UISnapSize:Single = 20;
 
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_Renderer, TERRA_XML, TERRA_UITabs, TERRA_UIScrollBar, TERRA_UIWindow,
-  TERRA_Matrix4x4, TERRA_Log, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager, TERRA_UIVirtualKeyboard;
+Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_Renderer, TERRA_XML, TERRA_UITabs, TERRA_UIScrollBar,
+  TERRA_Matrix4x4, TERRA_Log, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager,
+  TERRA_UIVirtualKeyboard, TERRA_UIButton, TERRA_UISprite, TERRA_UILabel, TERRA_UIWindow;
 
 
 Var
@@ -2344,6 +2347,23 @@ Begin
     _ChildrenList[I].Delete();
 
   _ChildrenCount := 0;
+End;
+
+Function Widget.CreateProperty(Const KeyName, ObjectType: TERRAString): TERRAObject;
+Begin
+  If (StringEquals(ObjectType, 'UIButton')) Then
+    Result := UIButton.Create(KeyName, Self, 0, 0, 50, UIPixels(10), UIPixels(10), '', 'button')
+  Else
+  If (StringEquals(ObjectType, 'UILabel')) Then
+    Result := UILabel.Create(KeyName, Self, 0, 0, 50, '???')
+  Else
+  If (StringEquals(ObjectType, 'UISprite')) Then
+    Result := UISprite.Create(KeyName, Self, 0, 0, 50, 'sprite')
+  Else
+  If (StringEquals(ObjectType, 'UIWindow')) Then
+    Result := UIWindow.Create(KeyName, Self, 0, 0, 50, UIPixels(10), UIPixels(10), 'window')
+  Else
+    Result := Nil;
 End;
 
 { UI }

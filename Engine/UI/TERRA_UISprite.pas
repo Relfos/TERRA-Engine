@@ -4,12 +4,12 @@ Unit TERRA_UISprite;
 
 Interface
 Uses TERRA_String, TERRA_Utils, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font,
-  TERRA_SpriteManager, TERRA_Texture, TERRA_Renderer;
+  TERRA_UIDimension, TERRA_SpriteManager, TERRA_Texture, TERRA_Renderer;
 
 Type
   UISprite = Class(Widget)
     Protected
-      _Texture:Texture;
+      _Texture:TERRATexture;
 
     Public
       U1, V1, U2, V2:Single;
@@ -20,12 +20,12 @@ Type
 
       Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Picture:TERRAString = ''; TabIndex:Integer=-1);
 
-      Procedure SetTexture(Tex:Texture);
+      Procedure SetTexture(Tex:TERRATexture);
 
       Procedure Render; Override;
       Procedure UpdateRects; Override;
 
-      Property Texture:Texture Read _Texture Write SetTexture;
+      Property Texture:TERRATexture Read _Texture Write SetTexture;
   End;
 
 
@@ -139,8 +139,8 @@ Begin
   S.Rect.V1 := U1;
   S.Rect.U2 := U2;
   S.Rect.V2 := V2;
-  S.Rect.Width := Trunc(Self.GetDimension(_Width));
-  S.Rect.Height := Trunc(Self.GetDimension(_Height));
+  S.Rect.Width := Trunc(Self.GetDimension(Self.Width, uiDimensionWidth));
+  S.Rect.Height := Trunc(Self.GetDimension(Self.Height, uiDimensionHeight));
   S.SetTransform(_Transform);
   S.Flip := Self.Flip;
   S.ClipRect := Self.GetClipRect();
@@ -149,7 +149,7 @@ Begin
   Inherited;
 End;
 
-Procedure UISprite.SetTexture(Tex: Texture);
+Procedure UISprite.SetTexture(Tex: TERRATexture);
 Begin
   If Tex = Nil Then
     Exit;
@@ -169,11 +169,11 @@ Begin
   Begin
     _Texture.Prefetch();
 
-    If (_Width.Value<=0) Then
-      _Width := UIPixels(Trunc(SafeDiv(_Texture.Width, _Texture.Ratio.X)));
+    If (Self.Width.Value<=0) Then
+      Self.Width := UIPixels(Trunc(SafeDiv(_Texture.Width, _Texture.Ratio.X)));
 
-    If (_Height.Value<=0) Then
-      _Height := UIPixels(Trunc(SafeDiv(_Texture.Height, _Texture.Ratio.Y)));
+    If (Self.Height.Value<=0) Then
+      Self.Height := UIPixels(Trunc(SafeDiv(_Texture.Height, _Texture.Ratio.Y)));
   End;
 
   Inherited;

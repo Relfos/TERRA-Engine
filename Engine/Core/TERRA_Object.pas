@@ -24,7 +24,7 @@ Type
       Function IsSharedObject():Boolean; Virtual;
 
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Virtual;
-      Function CreateMissingProperty(Const KeyName:TERRAString):TERRAObject; Virtual;
+      Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Virtual;
 
       Function FindProperty(Const KeyName:TERRAString):TERRAObject;
       Function FindPropertyWithPath(Path:TERRAString):TERRAObject;
@@ -324,7 +324,7 @@ Begin
   Until False;
 End;
 
-Function TERRAObject.CreateMissingProperty(Const KeyName: TERRAString): TERRAObject;
+Function TERRAObject.CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; 
 Begin
   Result := Nil;
 End;

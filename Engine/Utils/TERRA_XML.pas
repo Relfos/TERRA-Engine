@@ -36,6 +36,8 @@ Type
       Procedure LoadFromStream(Document:XMLDocument; Source:Stream; InitTag:TERRAString = '');
       Procedure LoadFromObject(Document:XMLDocument; Source:TERRAObject);
 
+      Function SaveToObject(Target:TERRAObject):TERRAObject;
+
       Procedure Release; Override;
 
       Function AddTag(Const Name,Value:TERRAString):XMLNode;
@@ -79,6 +81,8 @@ Type
 
       Procedure LoadFromString(Data:TERRAString; Encoding:StringEncoding);
       //Procedure SaveToFile(Var Data:TERRAString);Overload;
+
+      Procedure SaveToObject(Target:TERRAObject);
 
       Procedure AddNode(Node:XMLNode; Parent:XMLNode=Nil);
       Function GetNodeByName(Const Name:TERRAString):XMLNode;
@@ -743,6 +747,49 @@ Begin
   _Root := Value;
 End;
 
+Function XMLNode.SaveToObject(Target:TERRAObject):TERRAObject;
+Var
+  TypeName, PropName:TERRAString;
+  I:Integer;
+  P:XMLNode;
+  Prop:TERRAObject;
+Begin
+  Result := Nil;
+
+  Self.GetString('type', TypeName, '');
+  If TypeName = '' Then
+    Exit;
+
+  Self.GetString('name', PropName, '');
+
+  Result := Target.CreateProperty(Name, TypeName);
+  If Result = Nil Then
+    Exit;
+
+
+  For I:=0 To Pred(NodeCount) Do
+  Begin
+    P := Self.GetNodeByIndex(I);
+
+    If StringEquals(P.Name, 'type') Then
+      Continue;
+
+    Prop := P.FindProperty(P.Name);
+    If Assigned(Prop) Then
+      Prop.SetBlob(P.Value);
+    dsds
+    P.SaveToObject(Result);
+  End;
+
+End;
+
+Procedure XMLDocument.SaveToObject(Target: TERRAObject);
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(Root.NodeCount) Do
+    Self.Root.GetNodeByIndex(I).SaveToObject(Target);
+End;
 
 End.
 

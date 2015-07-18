@@ -45,6 +45,8 @@ Type
       Constructor Create(Const Name:TERRAString; Owner:UIEditScene);
       Procedure Release(); Override;
 
+      Procedure Open(FileName:TERRAString);
+
       Function PickWidgetAt(X, Y:Integer):Widget;
   End;
 
@@ -716,6 +718,8 @@ End;
 
 { UIEditableView }
 Constructor UIEditableView.Create(const Name: TERRAString; Owner:UIEditScene);
+Var
+  S:TERRAString;
 Begin
   Self._Name := Name;
   Self._Owner := Owner;
@@ -729,6 +733,19 @@ Begin
 
   // Load a GUI skin
   _Target.LoadSkin('ui_sample_skin');
+
+  S := FileManager.Instance.SearchResourceFile('ui_menu0.xml');
+  Self.Open(S);
+End;
+
+Procedure UIEditableView.Open(FileName: TERRAString);
+Var
+  Doc:XMLDocument;
+Begin
+  Doc := XMLDocument.Create();
+  Doc.LoadFromFile(FileName);
+  Doc.SaveToObject(_Target);
+  ReleaseObject(Doc);
 End;
 
 Function UIEditableView.PickWidgetAt(X, Y: Integer): Widget;
