@@ -539,6 +539,7 @@ Type
 
       _FontRenderer:FontRenderer;
 
+      Procedure OnAppResize; Override;
       Procedure OnLanguageChange; Override;
       Procedure OnOrientationChange; Override;
 
@@ -3593,6 +3594,16 @@ Begin
     _FontRenderer := TERRA_FontRenderer.FontRenderer.Create();
 
   Result := _FontRenderer;
+End;
+
+Procedure UIManager.OnAppResize;
+Var
+  UIW, UIH:Integer;
+Begin
+  UIW := GraphicsManager.Instance.UI_Width;
+  UIH := GraphicsManager.Instance.UI_Height;
+  If (_Viewport.Width<>UIW) Or (_Viewport.Height<>UIH) Then
+    _Viewport.Resize(UIW, UIH);
 End;
 
 End.

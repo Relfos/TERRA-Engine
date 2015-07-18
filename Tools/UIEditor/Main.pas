@@ -48,9 +48,9 @@ Type
       Function PickWidgetAt(X, Y:Integer):Widget;
   End;
 
-  UIEditScene = Class(Scene)
+  UIEditScene = Class(TERRAScene)
     Protected
-      _Font:Font;
+      _Font:TERRAFont;
 
       _ViewList:Array Of UIEditableView;
       _ViewCount:Integer;
@@ -297,6 +297,7 @@ End;
 Function TUIEditForm.AddNewTab(Const Name:TERRAString):TIceTab;
 begin
   Result := TabList.AddTab(Name);
+  Result.Selected := True;
 end;
 
 Procedure TUIEditForm.FormCreate(Sender: TObject);
@@ -636,8 +637,13 @@ Begin
 
   TabList.BackgroundStartColor := SkinBGColor;
   TabList.BackgroundStopColor := TabList.BackgroundStartColor;
+
+  TabList.SelectedTabStartColor :=  SkinTextColor;
+  TabList.SelectedTabStopColor := TabList.SelectedTabStartColor;
+
   TabList.TabStartColor :=  SkinForeColor;
   TabList.TabStopColor := TabList.TabStartColor;
+
   TabList.Font.Color := SkinTextColor;
   TabList.Cursor := customDefault;
 
