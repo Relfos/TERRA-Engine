@@ -761,7 +761,7 @@ Begin
   Begin
     Self.GetString('name', PropName, '');
 
-    Result := Target.CreateProperty(Name, TypeName);
+    Result := Target.CreateProperty(PropName, TypeName);
     If Result = Nil Then
       Exit;
   End Else

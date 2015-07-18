@@ -598,7 +598,8 @@ Var
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_Renderer, TERRA_XML, TERRA_UITabs, TERRA_UIScrollBar,
   TERRA_Matrix4x4, TERRA_Log, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager,
-  TERRA_UIVirtualKeyboard, TERRA_UIButton, TERRA_UISprite, TERRA_UILabel, TERRA_UIWindow;
+  TERRA_UIVirtualKeyboard, TERRA_UIButton, TERRA_UISprite, TERRA_UILabel, TERRA_UIWindow,
+  TERRA_UICheckbox, TERRA_UIEditText, TERRA_UIIcon;
 
 
 Var
@@ -2357,13 +2358,28 @@ Begin
   If (StringEquals(ObjectType, 'UILabel')) Then
     Result := UILabel.Create(KeyName, Self, 0, 0, 50, '???')
   Else
+  If (StringEquals(ObjectType, 'UIEditText')) Then
+    Result := UIEditText.Create(KeyName, Self, 0, 0, 50, UIPixels(10), UIPixels(10), '???')
+  Else
   If (StringEquals(ObjectType, 'UISprite')) Then
     Result := UISprite.Create(KeyName, Self, 0, 0, 50, 'sprite')
+  Else
+  If (StringEquals(ObjectType, 'UIIcon')) Then
+    Result := UIIcon.Create(KeyName, Self, 0, 0, 50, UIPixels(10), UIPixels(10), 'icon')
   Else
   If (StringEquals(ObjectType, 'UIWindow')) Then
     Result := UIWindow.Create(KeyName, Self, 0, 0, 50, UIPixels(10), UIPixels(10), 'window')
   Else
+  If (StringEquals(ObjectType, 'UICheckbox')) Then
+    Result := UICheckbox.Create(KeyName, Self, 0, 0, 50, UIPixels(10), True, '???', 'checkbox')
+  Else
+  If (StringEquals(ObjectType, 'UITabList')) Then
+    Result := UITabList.Create(KeyName, Self, 0, 0, 50, UIPixels(10), UIPixels(10), 'icon')
+  Else
+  Begin
+    Log(logError, 'UI', 'Cannot unserialize object of type ' +ObjectType); 
     Result := Nil;
+  End;
 End;
 
 { UI }

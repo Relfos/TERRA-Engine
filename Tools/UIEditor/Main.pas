@@ -142,6 +142,7 @@ Type
     Procedure CustomMeasureItem(Sender: TObject; ACanvas: TCanvas;  var Width, Height: Integer);
 
 
+    Function AddWidgetNode(W:Widget):TTreeNode;
     Function FindWidgetNode(W:Widget):TTreeNode;
     Procedure UpdateWidgetTree();
     Procedure BuildWidgetTree();
@@ -200,8 +201,8 @@ Begin
     Y := Trunc(Y - W.Parent.AbsolutePosition.Y);
     W.RelativePosition := VectorCreate2D(X, Y);
   End;
-
-  Node := UIEditForm.WidgetList.Items.AddChildObject(UIEditForm.FindWidgetNode(W.Parent), W.Name, W);
+          
+  Node := UIEditForm.AddWidgetNode(W);
 
   UIEditForm.FormResize(UIEditForm.WidgetList);
 
@@ -550,6 +551,22 @@ begin
   Scene.SelectWidget(Scene._SelectedView._Target.GetWidget(Node.Text));
 end;
 
+Function TUIEditForm.AddWidgetNode(W:Widget):TTreeNode;
+Begin
+  Result := Nil;
+  If (W = Nil) Then
+    Exit;
+
+  Result := FindWidgetNode(W);
+  If Assigned(Result) Then
+    Exit;
+
+  If Assigned(W.Parent) Then
+    Self.AddWidgetNode(W.Parent);
+
+  Result := WidgetList.Items.AddChildObject(FindWidgetNode(W.Parent), W.Name, W);
+End;
+
 Procedure TUIEditForm.BuildWidgetTree();
 Var
   It:Iterator;
@@ -562,7 +579,7 @@ Begin
   Begin
     W := Widget(It.Value);
 
-    WidgetList.Items.AddChildObject(FindWidgetNode(W.Parent), W.Name, W);
+    AddWidgetNode(W);
   End;
   ReleaseObject(It);
 End;
