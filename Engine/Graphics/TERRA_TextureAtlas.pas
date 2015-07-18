@@ -61,7 +61,7 @@ Type
       Property Y2:Integer Read _Y2;
   End;
 
-  TextureAtlasPage = Class(Texture)
+  TextureAtlasPage = Class(TERRATexture)
     Protected
       _PageID:Integer;
       _Atlas:TextureAtlas;
@@ -86,8 +86,8 @@ Type
 
       Function CreateTexture(PageID:Integer):TextureAtlasPage;
 
-      Function RedoPage(PageID:Integer):Texture;
-      Procedure RebuildPage(PageID:Integer; Target:Texture);
+      Function RedoPage(PageID:Integer):TERRATexture;
+      Procedure RebuildPage(PageID:Integer; Target:TERRATexture);
 
     Public
       Constructor Create(Name:TERRAString; Width, Height:Integer);
@@ -100,7 +100,7 @@ Type
 
       Procedure Clear;
 
-      Function GetTexture(PageID:Integer):Texture;
+      Function GetTexture(PageID:Integer):TERRATexture;
 
       Function Update:Boolean;
 
@@ -305,7 +305,7 @@ Begin
   Log(logDebug, 'TextureAtlas', 'TextureAtlas is now updated');
 End;
 
-Function TextureAtlas.GetTexture(PageID:Integer):Texture;
+Function TextureAtlas.GetTexture(PageID:Integer):TERRATexture;
 Begin
   If (PageID<Length(_Textures)) Then
   Begin
@@ -325,7 +325,7 @@ Begin
     Result := Nil;
 End;
 
-Function TextureAtlas.RedoPage(PageID:Integer):Texture;
+Function TextureAtlas.RedoPage(PageID:Integer):TERRATexture;
 Begin
   Result := Nil;
 
@@ -369,7 +369,7 @@ Begin
 End;
 
 {$DEFINE CPUBUFFER}
-Procedure TextureAtlas.RebuildPage(PageID: Integer; Target: Texture);
+Procedure TextureAtlas.RebuildPage(PageID: Integer; Target: TERRATexture);
 Var
   I:Integer;
   {$IFDEF CPUBUFFER}

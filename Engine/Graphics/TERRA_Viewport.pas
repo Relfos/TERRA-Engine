@@ -63,10 +63,10 @@ Type
       _ViewHeight:Integer;
 
       _ResolveBuffer:RenderTargetInterface;
-      _ResolveTexture:Texture;
+      _ResolveTexture:TERRATexture;
 
       _RenderBuffers:Array[0..Pred(TotalCaptureTargets)] Of RenderTargetInterface;
-      _RenderTextures:Array[0..Pred(TotalCaptureTargets)] Of Texture;
+      _RenderTextures:Array[0..Pred(TotalCaptureTargets)] Of TERRATexture;
       _RenderSamplers:Array[0..Pred(TotalCaptureTargets)] Of RenderTargetSampler;
 
       _DrawSky:Boolean;
@@ -86,7 +86,7 @@ Type
       Procedure UpdateEffectTargets();
       {$ENDIF}
 
-      Function GetResolveTexture: Texture;
+      Function GetResolveTexture: TERRATexture;
 
     Public
       AutoResolve:Boolean;
@@ -107,9 +107,9 @@ Type
       Function IsDirectDrawing():Boolean;
 
       Function GetRenderTarget(TargetType:RenderTargetType):RenderTargetInterface;
-      Function GetRenderTexture(TargetType:RenderTargetType):Texture;
+      Function GetRenderTexture(TargetType:RenderTargetType):TERRATexture;
 
-      Function ResolveToTexture():Texture;
+      Function ResolveToTexture():TERRATexture;
 
       Procedure SetViewArea(X,Y,Width,Height:Integer);
 
@@ -159,7 +159,7 @@ Type
 
       Property VR:Boolean Read _VR Write _VR;
 
-      Property ResolveTexture:Texture Read GetResolveTexture;
+      Property ResolveTexture:TERRATexture Read GetResolveTexture;
   End;
 
 Implementation
@@ -659,7 +659,7 @@ Begin
   End;
 End;
 
-Function Viewport.GetRenderTexture(TargetType:RenderTargetType):Texture;
+Function Viewport.GetRenderTexture(TargetType:RenderTargetType):TERRATexture;
 Var
   TargetValue:Integer;
 Begin
@@ -674,7 +674,7 @@ Begin
 
     If _RenderTextures[TargetValue] = Nil Then
     Begin
-      _RenderTextures[TargetValue] := Texture.Create(rtDynamic, _Name+'_rt'+IntToString(TargetValue));
+      _RenderTextures[TargetValue] := TERRATexture.Create(rtDynamic, _Name+'_rt'+IntToString(TargetValue));
       _RenderTextures[TargetValue].InitFromSurface(Self.GetRenderTarget(TargetType));
     End;
 
@@ -682,7 +682,7 @@ Begin
   End;
 End;
 
-Function Viewport.ResolveToTexture():Texture;
+Function Viewport.ResolveToTexture():TERRATexture;
 Var
   TempTarget:Viewport;
 Begin
@@ -700,7 +700,7 @@ Begin
 
   If _ResolveTexture = Nil Then
   Begin
-    _ResolveTexture := Texture.Create(rtDynamic, _Name+'_resolve');
+    _ResolveTexture := TERRATexture.Create(rtDynamic, _Name+'_resolve');
     _ResolveTexture.InitFromSurface(_ResolveBuffer);
   End;
 
@@ -967,7 +967,7 @@ Begin
   {$ENDIF}
 End;
 
-Function Viewport.GetResolveTexture: Texture;
+Function Viewport.GetResolveTexture: TERRATexture;
 Var
   ShowID:RenderTargetType;
 Begin

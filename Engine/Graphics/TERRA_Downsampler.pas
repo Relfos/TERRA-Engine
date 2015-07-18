@@ -34,7 +34,7 @@ Type
       _Name:TERRAString;
 
 	    _Targets:Array Of RenderTargetInterface;
-      _Textures:Array Of Texture;
+      _Textures:Array Of TERRATexture;
       _TargetCount:Integer;
 
       _ResultIndex:Integer;
@@ -49,15 +49,15 @@ Type
 
 	    Procedure Release; Override;
 
-	    Procedure Update(Source:Texture; DownsamplerShader:ShaderInterface; First, Count:Integer); Virtual; Abstract;
+	    Procedure Update(Source:TERRATexture; DownsamplerShader:ShaderInterface; First, Count:Integer); Virtual; Abstract;
 
 	    // Number of render texture used
       Property TextureCount:Integer Read _TargetCount;
 
       // Get a downsampled render texture
-      Function GetRenderTexture(Index:Integer):Texture;
+      Function GetRenderTexture(Index:Integer):TERRATexture;
 
-      Function GetResult():Texture;
+      Function GetResult():TERRATexture;
   End;
 
   RenderTargetDownSampler = Class(RenderTargetSampler)
@@ -68,7 +68,7 @@ Type
     Public
 	    // Downsample a framebuffer using the shader
       // Return value is index of smallest texture downsampled
-	    Procedure Update(Source:Texture; DownsamplerShader:ShaderInterface; First, Count:Integer); Override;
+	    Procedure Update(Source:TERRATexture; DownsamplerShader:ShaderInterface; First, Count:Integer); Override;
   End;
 
   RenderTargetBouncer = Class(RenderTargetSampler)
@@ -79,7 +79,7 @@ Type
     Public
 	    // Downsample a framebuffer using the shader
       // Return value is index of smallest texture downsampled
-	    Procedure Update(Source:Texture; DownsamplerShader:ShaderInterface; First, Count:Integer); Override;
+	    Procedure Update(Source:TERRATexture; DownsamplerShader:ShaderInterface; First, Count:Integer); Override;
   End;
 
 Implementation
@@ -92,7 +92,7 @@ Begin
   Self.Init(Width, Height, PixelSize); // {$IFDEF FRAMEBUFFEROBJECTS}FBO_COLOR8{$ELSE}0{$ENDIF}); BIBI
 End;
 
-Function RenderTargetSampler.GetRenderTexture(Index:Integer):Texture;
+Function RenderTargetSampler.GetRenderTexture(Index:Integer):TERRATexture;
 Begin
   If (Index<0) Or (Index>=_TargetCount) Then
     Result := Nil
@@ -100,7 +100,7 @@ Begin
   Begin
     If (_Textures[Index] = Nil) Then
     Begin
-      _Textures[Index] := Texture.Create(rtDynamic, Self._Name + '_rt'+IntToString(Index));
+      _Textures[Index] := TERRATexture.Create(rtDynamic, Self._Name + '_rt'+IntToString(Index));
       _Textures[Index].InitFromSurface(_Targets[Index]);
       _Textures[Index].WrapMode := wrapNothing;
     End;
@@ -130,7 +130,7 @@ Begin
   SetLength(_Textures, 0);
 End;
 
-Function RenderTargetSampler.GetResult: Texture;
+Function RenderTargetSampler.GetResult: TERRATexture;
 Begin
   Result := Self.GetRenderTexture(_ResultIndex);
 End;
@@ -175,7 +175,7 @@ Begin
 	End;
 End;
 
-Procedure RenderTargetDownSampler.Update(Source:Texture; DownsamplerShader:ShaderInterface; First, Count:Integer);
+Procedure RenderTargetDownSampler.Update(Source:TERRATexture; DownsamplerShader:ShaderInterface; First, Count:Integer);
 Var
   N, I:Integer;
   curRT:RenderTargetInterface;
@@ -246,12 +246,12 @@ Begin
 	End;
 End;
 
-Procedure RenderTargetBouncer.Update(Source:Texture; DownsamplerShader: ShaderInterface; First, Count: Integer);
+Procedure RenderTargetBouncer.Update(Source:TERRATexture; DownsamplerShader: ShaderInterface; First, Count: Integer);
 Var
   N, CurIndex:Integer;
   curRT:RenderTargetInterface;
   Graphics:GraphicsManager;
-  Tex:Texture;
+  Tex:TERRATexture;
 Begin
   _ResultIndex := 0;
 

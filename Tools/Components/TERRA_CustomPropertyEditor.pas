@@ -7,7 +7,7 @@ uses SysUtils, Classes, Messages, ExtCtrls, Controls, StdCtrls,
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_OS, TERRA_Color, TERRA_VCLApplication;
 
 Const
-  MarginTop = 10;
+  MarginTop = 30;
   MarginSide = 10;
   ExpandSize = 15;
   CellHeight = 25;
@@ -241,10 +241,8 @@ Begin
     Self.Clear();
 
   _Target := Target;
-  If Target = Nil Then
-    Exit;
-
-  AddPropertiesFromObject(Nil, Target);
+  If Assigned(Target) Then
+    AddPropertiesFromObject(Nil, Target);
 
   Self.Repaint();
 End;
@@ -286,12 +284,10 @@ end;
 
 procedure TCustomPropertyEditor.Paint;
 Var
-  I, N, MidW, H:Integer;
+  I, N, MidW, TW, H, FY:Integer;
+  S:TERRAString;
 begin
 //  inherited;
-
-  If _CellCount<=0 Then
-    Exit;
 
   MidW := GetMiddle();
 
@@ -301,10 +297,6 @@ begin
 
   Canvas.Pen.Style := psDash;
   Canvas.Pen.Color := MarginColor;
-  Canvas.Pen.Width := 2;
-
-  Canvas.MoveTo(MidW, 0);
-  Canvas.LineTo(MidW, Self.Height);
 
   //Canvas.Pen.Style := psDot;
   Canvas.Pen.Width := 1;
@@ -315,13 +307,31 @@ begin
     If Not _Cells[I]._Visible Then
       Continue;
 
-    H := (MarginTop Shr 1) + Succ(N) * CellHeight;
+    H := MarginTop + N * CellHeight - (CellHeight Shr 2);
     Canvas.MoveTo(0, H);
     Canvas.LineTo(Self.Width, H);
-
     Inc(N);
+
+    If I = 0 Then
+      FY := H;
   End;
-end;
+
+  H := MarginTop + N * CellHeight - (CellHeight Shr 2);
+  Canvas.MoveTo(0, H);
+  Canvas.LineTo(Self.Width, H);
+
+  Canvas.Pen.Width := 2;
+  Canvas.MoveTo(MidW, FY);
+  Canvas.LineTo(MidW, Self.Height);
+
+  If (Assigned(_Target)) Then
+  Begin
+    Canvas.Font.Color := Self.Font.Color;
+    S := _Target.ObjectName + ' ('+_Target.GetObjectType()+')';
+    TW := Canvas.TextWidth(S);
+    Canvas.TextOut(MidW -  (TW Shr 1), 5, S);
+  End;
+End;
 
 function TCustomPropertyEditor.GetMiddle: Integer;
 begin

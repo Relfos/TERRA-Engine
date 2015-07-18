@@ -12,7 +12,7 @@ object UIEditForm: TUIEditForm
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  Menu = MainMenu1
+  Menu = MainMenu
   OldCreateOrder = False
   Visible = True
   OnCreate = FormCreate
@@ -64,6 +64,7 @@ object UIEditForm: TUIEditForm
     Indent = 19
     TabOrder = 2
     OnClick = WidgetListClick
+    OnEdited = WidgetListEdited
   end
   object PropertyList: TCustomPropertyEditor
     Left = 0
@@ -74,7 +75,7 @@ object UIEditForm: TUIEditForm
     BevelWidth = 2
     TabOrder = 3
   end
-  object MainMenu1: TMainMenu
+  object MainMenu: TMainMenu
     OwnerDraw = True
     Left = 120
     Top = 496
@@ -149,6 +150,18 @@ object UIEditForm: TUIEditForm
           OnClick = ProgressBar1Click
         end
       end
+    end
+  end
+  object PopupMenu: TPopupMenu
+    OwnerDraw = True
+    Left = 208
+    Top = 496
+    object Copy1: TMenuItem
+      Caption = '&Copy'
+    end
+    object Delete1: TMenuItem
+      Caption = '&Delete'
+      OnClick = Delete1Click
     end
   end
 end

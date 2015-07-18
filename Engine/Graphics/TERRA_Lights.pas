@@ -142,7 +142,7 @@ Type
       Procedure UpdateDistance(Target:Vector3D); Override;
 
     Public
-      Cookie:Texture;
+      Cookie:TERRATexture;
 
       Constructor Create(P, Dir:Vector3D; InnerAngle, OuterAngle:Single);
 

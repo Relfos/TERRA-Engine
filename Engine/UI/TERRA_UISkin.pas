@@ -48,7 +48,7 @@ Type
 
   UISkinProperty = Record
     Saturation:Single;
-    ColorTable:Texture;
+    ColorTable:TERRATexture;
     QuadColor:Color;
     TextColor:Color;
     Clip:ClipRect;

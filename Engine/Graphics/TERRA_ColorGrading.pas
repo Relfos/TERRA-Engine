@@ -39,7 +39,7 @@ Type
   Procedure ColorTableTransform(Dest, ColorTable:Image);
 
   Function GetColorTableShaderCode():TERRAString;
-  Function ColorTableBind(ColorTableTex:Texture; Slot:Integer):Boolean;
+  Function ColorTableBind(ColorTableTex:TERRATexture; Slot:Integer):Boolean;
 
 Implementation
 Uses TERRA_OS, TERRA_GraphicsManager, TERRA_Log;
@@ -108,7 +108,7 @@ Begin
   Result := ColorTable.GetPixel(Trunc(R1*(1.0-DR) + R2*DR) + Trunc(B1*(1.0-DB) + B2*DB) * ColorTable.Height, Trunc(G1*(1.0-DG) + G2*DG));
 End;
 
-Function ColorTableBind(ColorTableTex:Texture; Slot:Integer):Boolean;
+Function ColorTableBind(ColorTableTex:TERRATexture; Slot:Integer):Boolean;
 Var
   MyShader:ShaderInterface;
   Scale:Single;

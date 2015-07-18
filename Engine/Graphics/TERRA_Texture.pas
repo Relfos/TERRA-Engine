@@ -37,7 +37,7 @@ Const
   MinTextureSize  = 2;
 
 Type
-  Texture = Class(Resource)
+  TERRATexture = Class(Resource)
     Protected
       _Handles:Array Of SurfaceInterface;
       _FrameCount:Integer;
@@ -115,7 +115,7 @@ Type
       Function GetImage():Image;
       Function GetPixel(X,Y:Integer):Color; Virtual;
 
-      Class Function LoadFromFile(Const FileName:TERRAString):Texture;
+      Class Function LoadFromFile(Const FileName:TERRAString):TERRATexture;
 
       //Property Format:Cardinal Read _Format;
 
@@ -136,7 +136,7 @@ Type
       Property Current:SurfaceInterface Read GetCurrent;
   End;
 
-  TextureClass = Class Of Texture;
+  TextureClass = Class Of TERRATexture;
   TextureFormat = Record
     Extension:TERRAString;
     ClassType:TextureClass;
@@ -144,26 +144,26 @@ Type
 
   TextureManager = Class(ResourceManager)
     Protected
-      _DefaultColorTable:Texture;
-      _DefaultNormalMap:Texture;
+      _DefaultColorTable:TERRATexture;
+      _DefaultNormalMap:TERRATexture;
 
-      _WhiteTexture:Texture;
-      _BlackTexture:Texture;
-      _NullTexture:Texture;
+      _WhiteTexture:TERRATexture;
+      _BlackTexture:TERRATexture;
+      _NullTexture:TERRATexture;
 
-      _CellNoise:Texture;
+      _CellNoise:TERRATexture;
 
-      Function GetDefaultNormalMap:Texture;
-      Function GetDefaultColorTable:Texture;
+      Function GetDefaultNormalMap:TERRATexture;
+      Function GetDefaultColorTable:TERRATexture;
 
-      Function GetCellNoise:Texture;
+      Function GetCellNoise:TERRATexture;
 
-      Function CreateTextureWithColor(Name:TERRAString; TexColor:Color):Texture;
+      Function CreateTextureWithColor(Name:TERRAString; TexColor:Color):TERRATexture;
 
-      Function GetWhiteTexture:Texture;
-      Function GetNullTexture:Texture;
-      Function GetBlackTexture:Texture;
-      Procedure FillTextureWithColor(Tex: Texture; TexColor: Color);
+      Function GetWhiteTexture:TERRATexture;
+      Function GetNullTexture:TERRATexture;
+      Function GetBlackTexture:TERRATexture;
+      Procedure FillTextureWithColor(Tex: TERRATexture; TexColor: Color);
 
 
     Public
@@ -171,23 +171,23 @@ Type
 //      Procedure OnContextLost; Override;
 
       Class Function Instance:TextureManager;
-      Function GetTexture(Name:TERRAString):Texture;
+      Function GetTexture(Name:TERRAString):TERRATexture;
 
       Procedure Release; Override;
 
-      Property NullTexture:Texture Read GetNullTexture;
-      Property WhiteTexture:Texture Read GetWhiteTexture;
-      Property BlackTexture:Texture Read GetBlackTexture;
+      Property NullTexture:TERRATexture Read GetNullTexture;
+      Property WhiteTexture:TERRATexture Read GetWhiteTexture;
+      Property BlackTexture:TERRATexture Read GetBlackTexture;
 
-      Property CellNoise:Texture Read GetCellNoise;
+      Property CellNoise:TERRATexture Read GetCellNoise;
 
-      Property DefaultColorTable:Texture Read GetDefaultColorTable;
-      Property DefaultNormalMap:Texture Read GetDefaultNormalMap;
+      Property DefaultColorTable:TERRATexture Read GetDefaultColorTable;
+      Property DefaultNormalMap:TERRATexture Read GetDefaultNormalMap;
 
-      Property Textures[Name:TERRAString]:Texture Read GetTexture; Default;
+      Property Textures[Name:TERRAString]:TERRATexture Read GetTexture; Default;
   End;
 
-  DefaultColorTableTexture = Class(Texture)
+  DefaultColorTableTexture = Class(TERRATexture)
     Public
       Function Build():Boolean; Override;
   End;
@@ -231,7 +231,7 @@ Begin
   //Self.UseThreads := True;
 End;
 
-Function TextureManager.GetTexture(Name:TERRAString):Texture;
+Function TextureManager.GetTexture(Name:TERRAString):TERRATexture;
 Var
   I:Integer;
 Var
@@ -246,7 +246,7 @@ Begin
   If (Name='') Then
     Exit;
 
-  Result := Texture(GetResource(Name));
+  Result := TERRATexture(GetResource(Name));
   If Not Assigned(Result) Then
   Begin
     S := '';
@@ -280,7 +280,7 @@ Begin
       If Assigned(TextureFormat) Then
         Result := TextureFormat.Create(rtLoaded, S)
       Else
-        Result := Texture.Create(rtLoaded, S);
+        Result := TERRATexture.Create(rtLoaded, S);
 
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture class instantiated sucessfully!');{$ENDIF}
 
@@ -312,16 +312,16 @@ Begin
   End;
 End;
 
-Function TextureManager.CreateTextureWithColor(Name:TERRAString; TexColor:Color):Texture;
+Function TextureManager.CreateTextureWithColor(Name:TERRAString; TexColor:Color):TERRATexture;
 Begin
-  Result := Texture.Create(rtDynamic, Name);
+  Result := TERRATexture.Create(rtDynamic, Name);
   Result.InitFromSize(64, 64, TexColor);
   Result.Uncompressed := True;
   Result.MipMapped := False;
   Result.Filter := filterLinear;
 End;
 
-Procedure TextureManager.FillTextureWithColor(Tex: Texture; TexColor: Color);
+Procedure TextureManager.FillTextureWithColor(Tex: TERRATexture; TexColor: Color);
 Var
   Buffer:Image;
 Begin
@@ -334,7 +334,7 @@ Begin
   ReleaseObject(Buffer);
 End;
 
-Function TextureManager.GetBlackTexture: Texture;
+Function TextureManager.GetBlackTexture: TERRATexture;
 Begin
   If (Not Assigned(_BlackTexture)) Then
     _BlackTexture := Self.CreateTextureWithColor('default_black', ColorBlack)
@@ -352,7 +352,7 @@ Begin
   Result := _BlackTexture;
 End;
 
-Function TextureManager.GetWhiteTexture: Texture;
+Function TextureManager.GetWhiteTexture: TERRATexture;
 Begin
   If (Not Assigned(_WhiteTexture)) Then
     _WhiteTexture := Self.CreateTextureWithColor('default_white', ColorWhite)
@@ -370,7 +370,7 @@ Begin
   Result := _WhiteTexture;
 End;
 
-Function TextureManager.GetNullTexture: Texture;
+Function TextureManager.GetNullTexture: TERRATexture;
 Begin
   If (Not Assigned(_NullTexture)) Then
     _NullTexture := Self.CreateTextureWithColor('default_null', ColorNull)
@@ -393,7 +393,7 @@ Begin
   Result := ColorCreate(128,128,255);
 End;
 
-Function TextureManager.GetDefaultNormalMap:Texture;
+Function TextureManager.GetDefaultNormalMap:TERRATexture;
 Begin
   If (Not Assigned(_DefaultNormalMap)) Then
     _DefaultNormalMap := Self.CreateTextureWithColor('default_normal', GetDefaultNormalColor())
@@ -425,7 +425,7 @@ Begin
    Result := ColorGreen;
 End;}
 
-Function TextureManager.GetDefaultColorTable:Texture;
+Function TextureManager.GetDefaultColorTable:TERRATexture;
 Begin
   If (Not Assigned(_DefaultColorTable)) Then
   Begin
@@ -455,7 +455,7 @@ begin
   _TextureManager := Nil;
 End;
 
-Function TextureManager.GetCellNoise: Texture;
+Function TextureManager.GetCellNoise: TERRATexture;
 Var
   Noise:NoiseGenerator;
   Img:Image;
@@ -469,7 +469,7 @@ Begin
     Noise.SaveToImage(Img, 0.0, maskRGB);
     //Img.Save('cellnoise.png');
 
-    _CellNoise := Texture.Create(rtDynamic, 'cellnoise');
+    _CellNoise := TERRATexture.Create(rtDynamic, 'cellnoise');
     _CellNoise.InitFromImage(Img);
 
     ReleaseObject(Img);
@@ -480,12 +480,12 @@ Begin
 End;
 
 { Texture }
-Class Function Texture.RAM:Cardinal;
+Class Function TERRATexture.RAM:Cardinal;
 Begin
   Result := _TextureMemory;
 End;
 
-Constructor Texture.Create(Kind:ResourceType; Location:TERRAString);
+Constructor TERRATexture.Create(Kind:ResourceType; Location:TERRAString);
 Begin
   Inherited Create(Kind, Location);
 
@@ -501,7 +501,7 @@ Begin
   _Managed := False;
 End;
 
-Procedure Texture.InitFromSurface(Surface: SurfaceInterface);
+Procedure TERRATexture.InitFromSurface(Surface: SurfaceInterface);
 Begin
   If (Surface = Nil) Then
   Begin
@@ -528,7 +528,7 @@ Begin
   _Managed := True;
 End;
 
-Procedure Texture.InitFromSize(TextureWidth, TextureHeight:Cardinal; FillColor:Color);
+Procedure TERRATexture.InitFromSize(TextureWidth, TextureHeight:Cardinal; FillColor:Color);
 Begin
   _Width := TextureWidth;
   _Height := TextureHeight;
@@ -557,7 +557,7 @@ Begin
   Self.Update();
 End;
 
-Procedure Texture.InitFromImage(Source:Image);
+Procedure TERRATexture.InitFromImage(Source:Image);
 Begin
   _TransparencyType := imageUnknown;
 
@@ -571,7 +571,7 @@ Begin
   End;
 End;
 
-Function Texture.Load(Source: Stream):Boolean;
+Function TERRATexture.Load(Source: Stream):Boolean;
 Var
   Ofs:Cardinal;
 Begin
@@ -598,7 +598,7 @@ Begin
   Result := True;
 End;
 
-Function Texture.Unload:Boolean;
+Function TERRATexture.Unload:Boolean;
 Var
 	MemCount:Integer;
   I,S:Integer;
@@ -632,7 +632,7 @@ End;
 {$DEFINE FORCERGBA}
 {$ENDIF}
 
-Function Texture.Update:Boolean;
+Function TERRATexture.Update:Boolean;
 Var
   W,H,I, J, S:Cardinal;
   Pixels:PWord;
@@ -702,9 +702,9 @@ Begin
 End;
 
 Var
-  _TextureSlots:Array[0..7] Of Texture;
+  _TextureSlots:Array[0..7] Of TERRATexture;
 
-Function Texture.Bind(Slot:Integer):Boolean;
+Function TERRATexture.Bind(Slot:Integer):Boolean;
 Begin
   Result := False;
   If (Self = Nil) Or (Not Self.IsReady()) Then
@@ -740,7 +740,7 @@ Begin
   End;
 End;
 
-Procedure Texture.UpdateRect(Source:Image; X,Y:Integer);
+Procedure TERRATexture.UpdateRect(Source:Image; X,Y:Integer);
 Var
   Pixels:PWord;
   SourceFormat:TextureColorFormat;
@@ -771,7 +771,7 @@ Begin
     RaiseError('Trying to update something that is not a TextureInterface!');
 End;
 
-Procedure Texture.UpdateRect(Source:Image);
+Procedure TERRATexture.UpdateRect(Source:Image);
 Begin
   If (Self.Width<>Source.Width) Or (Self.Height <> Source.Height) Then
   Begin
@@ -782,7 +782,7 @@ Begin
   Self.UpdateRect(Source, 0, 0);
 End;
 
-Class Function Texture.GetManager: Pointer;
+Class Function TERRATexture.GetManager: Pointer;
 Begin
   Result := TextureManager.Instance;
 End;
@@ -792,13 +792,13 @@ Begin
   Inherited;
 
   If Assigned(_WhiteTexture) Then
-    _WhiteTexture.Unload();
+    _WhiteTERRATexture.Unload();
 
   If Assigned(_BlackTexture) Then
-    _BlackTexture.Unload();
+    _BlackTERRATexture.Unload();
 
   If Assigned(_NullTexture) Then
-    _NullTexture.Unload();
+    _NullTERRATexture.Unload();
 
   If Assigned(_DefaultNormalMap) Then
     _DefaultNormalMap.Unload();
@@ -822,7 +822,7 @@ Begin
   Result := True;
 End;
 
-Function Texture.GetCurrentFrame: Integer;
+Function TERRATexture.GetCurrentFrame: Integer;
 Var
   Delta:Single;
 Begin
@@ -840,7 +840,7 @@ Begin
 End;
 
 
-Procedure Texture.AdjustRatio(Source:Image);
+Procedure TERRATexture.AdjustRatio(Source:Image);
 Var
   W,H:Cardinal;
 Begin
@@ -873,18 +873,18 @@ End;
 Var
   Scratch16:Array Of Word;
 
-Function Texture.ConvertToFormat(Source:Pointer; SourceFormat, TargetFormat:TextureColorFormat):Pointer;
+Function TERRATexture.ConvertToFormat(Source:Pointer; SourceFormat, TargetFormat:TextureColorFormat):Pointer;
 Begin
   Result := Source;
 End;
 
-Function Texture.DetectBestFormat(Source:Pointer; SourceFormat:TextureColorFormat):TextureColorFormat;
+Function TERRATexture.DetectBestFormat(Source:Pointer; SourceFormat:TextureColorFormat):TextureColorFormat;
 Begin
   Result := SourceFormat;
 End;
 
 (*
-Procedure Texture.ConvertToFormat(Source:Image; Var Pixels:PWord);
+Procedure TERRATexture.ConvertToFormat(Source:Image; Var Pixels:PWord);
 Var
   HasMask:Boolean;
   HasAlpha:Boolean;
@@ -1025,7 +1025,7 @@ Begin
 End;*)
 
 
-{Function Texture.GetHandle(Frame:Integer): Cardinal;
+{Function TERRATexture.GetHandle(Frame:Integer): Cardinal;
 Begin
   If (Frame<0) Or (Frame>=_FrameCount) Then
     Frame := _CurrentFrame;
@@ -1033,25 +1033,25 @@ Begin
   Result := _Handles[Frame];
 End;}
 
-Procedure Texture.SetFilter(Value: TextureFilterMode);
+Procedure TERRATexture.SetFilter(Value: TextureFilterMode);
 Begin
   Self._Filter := Value;
   Self._SettingsChanged := True;
 End;
 
-Procedure Texture.SetMipMapping(Value: Boolean);
+Procedure TERRATexture.SetMipMapping(Value: Boolean);
 Begin
   Self._MipMapped := Value;
   Self._SettingsChanged := True;
 End;
 
-Procedure Texture.SetWrapMode(Value: TextureWrapMode);
+Procedure TERRATexture.SetWrapMode(Value: TextureWrapMode);
 Begin
   Self._WrapMode := Value;
   Self._SettingsChanged := True;
 End;
 
-Function Texture.GetCurrent:SurfaceInterface;
+Function TERRATexture.GetCurrent:SurfaceInterface;
 Begin
   If (_CurrentFrame>=_FrameCount) Then
     Result := Nil
@@ -1059,7 +1059,7 @@ Begin
     Result := _Handles[_CurrentFrame];
 End;
 
-Procedure Texture.ApplySettings(Slot: Integer);
+Procedure TERRATexture.ApplySettings(Slot: Integer);
 Begin
   {$IFDEF MOBILE}
   If (IsNPOT()) Then
@@ -1075,7 +1075,7 @@ Begin
   Self.Current.Filter := Self.Filter;
 End;
 
-Procedure Texture.Save(const FileName: TERRAString);
+Procedure TERRATexture.Save(const FileName: TERRAString);
 Var
   Img:Image;
 Begin
@@ -1087,7 +1087,7 @@ Begin
   End;
 End;
 
-Function Texture.IsNPOT: Boolean;
+Function TERRATexture.IsNPOT: Boolean;
 Var
   W, H:Cardinal;
 Begin
@@ -1097,17 +1097,17 @@ Begin
   Result := (W<>Self.Width) Or (H<>Self.Height);
 End;
 
-Function Texture.GetImage: Image;
+Function TERRATexture.GetImage: Image;
 Begin
   Result := Self.Current.GetImage();
 End;
 
-Function Texture.GetPixel(X, Y: Integer): Color;
+Function TERRATexture.GetPixel(X, Y: Integer): Color;
 Begin
   Result := Self.Current.GetPixel(X, Y);
 End;
 
-Function Texture.GetOrigin: SurfaceOrigin;
+Function TERRATexture.GetOrigin: SurfaceOrigin;
 Begin
   If Assigned(Self.Current) Then
     Result := Self.Current.Origin
@@ -1115,14 +1115,14 @@ Begin
     Result := surfaceBottomRight;
 End;
 
-Class Function Texture.LoadFromFile(const FileName: TERRAString): Texture;
+Class Function TERRATexture.LoadFromFile(const FileName: TERRAString): TERRATexture;
 Var
   Src:Stream;
 Begin
   Src := FileManager.Instance.OpenStream(FileName);
   If Assigned(Src) Then
   Begin
-    Result := Texture.Create(rtDynamic, FileName);
+    Result := TERRATexture.Create(rtDynamic, FileName);
     Result.Load(Src);
     Result.Update();
     ReleaseObject(Src);
@@ -1130,12 +1130,12 @@ Begin
     Result := Nil;
 End;
 
-Function Texture.IsValid: Boolean;
+Function TERRATexture.IsValid: Boolean;
 Begin
   Result := (Assigned(Self.Current)) And (Self.Current.IsValid());
 End;
 
-Function Texture.GetTransparencyType:ImageTransparencyType;
+Function TERRATexture.GetTransparencyType:ImageTransparencyType;
 Begin
   If (Self._TransparencyType = imageUnknown) Then
   Begin

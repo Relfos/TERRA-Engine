@@ -124,7 +124,7 @@ Type
       Constructor Create(Stacks, Slices:Cardinal; Inverted:Boolean; Capped:Boolean = True);
   End;
 
-  Function CreateMeshFromSolid(S:SolidMesh; Tex:Texture = Nil):Mesh;
+  Function CreateMeshFromSolid(S:SolidMesh; Tex:TERRATexture = Nil):Mesh;
 
 Implementation
 Uses TERRA_Error;
@@ -784,7 +784,7 @@ Begin
   End;
 End;
 
-Function CreateMeshFromSolid(S:SolidMesh; Tex:Texture):Mesh;
+Function CreateMeshFromSolid(S:SolidMesh; Tex:TERRATexture):Mesh;
 Var
   Group:MeshGroup;
   I:Integer;

@@ -230,14 +230,14 @@ Type
       ReflectionTemp:Boolean;
       ReflectionStencil:Boolean;
       {$ELSE}
-      ReflectionMask:Texture;
+      ReflectionMask:TERRATexture;
       {$ENDIF}
 
       Render3D:Boolean;
       Render2D:Boolean;
 
-      EnviromentMap:Texture;
-      ToonRamp:Texture;
+      EnviromentMap:TERRATexture;
+      ToonRamp:TERRATexture;
 
       Procedure Init; Override;
       Procedure Update; Override;
@@ -288,8 +288,8 @@ Type
       Function GenerateStencilID():Byte; 
 
       Function EnableColorShader(Const MyColor:Color; Const Transform:Matrix4x4):ShaderInterface;
-      Function EnableTextureShader(Const MyColor:Color; Tex:Texture; Const Transform:Matrix4x4):ShaderInterface;
-      Function EnableColoredTextureShader(Tex:Texture; Const Transform:Matrix4x4):ShaderInterface;
+      Function EnableTextureShader(Const MyColor:Color; Tex:TERRATexture; Const Transform:Matrix4x4):ShaderInterface;
+      Function EnableColoredTextureShader(Tex:TERRATexture; Const Transform:Matrix4x4):ShaderInterface;
 
       Procedure EnableReflection(Const ReflectionPoint, ReflectionNormal:Vector3D);
 
@@ -1867,7 +1867,7 @@ Begin
   Result.SetColorUniform('out_color', MyColor); //BIBI
 End;
 
-Function GraphicsManager.EnableTextureShader(Const MyColor:Color; Tex:Texture; Const Transform:Matrix4x4):ShaderInterface;
+Function GraphicsManager.EnableTextureShader(Const MyColor:Color; Tex:TERRATexture; Const Transform:Matrix4x4):ShaderInterface;
 Begin
   If (Not Assigned(_SimpleTexture)) Then
   Begin
@@ -1889,7 +1889,7 @@ Begin
   Result.SetIntegerUniform('out_texture', 0);
 End;
 
-Function GraphicsManager.EnableColoredTextureShader(Tex:Texture; Const Transform:Matrix4x4):ShaderInterface;
+Function GraphicsManager.EnableColoredTextureShader(Tex:TERRATexture; Const Transform:Matrix4x4):ShaderInterface;
 Begin
   If (Not Assigned(_SimpleTextureColored)) Then
   Begin

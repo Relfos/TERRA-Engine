@@ -69,7 +69,7 @@ Type
     Name:TERRAString;
     Kind:UniformType;
     Value:Vector4D;
-    Tex:Texture;
+    Tex:TERRATexture;
     Initialized:Boolean;
   End;
 
@@ -98,14 +98,14 @@ Type
       Function AddUniform(Const Name:TERRAString; Kind:UniformType):Integer;
 
     Public
-      Procedure SetTexture(Index:Integer; Value:Texture);
+      Procedure SetTexture(Index:Integer; Value:TERRATexture);
       Procedure SetColor(Index:Integer; Const Value:Color);
       Procedure SetFloat(Index:Integer; Const Value:Single);
       Procedure SetVec2(Index:Integer; Const Value:Vector2D);
       Procedure SetVec3(Index:Integer; Const Value:Vector3D);
       Procedure SetVec4(Index:Integer; Const Value:Vector4D);
 
-      Procedure GetTexture(Index:Integer; Out Value:Texture);
+      Procedure GetTexture(Index:Integer; Out Value:TERRATexture);
       Procedure GetColor(Index:Integer; Out Value:Color);
       Procedure GetFloat(Index:Integer; Out Value:Single);
       Procedure GetVec2(Index:Integer; Out Value:Vector2D);
@@ -202,14 +202,14 @@ Type
 
     Public
 
-      Constructor Create(Palette:Texture);
+      Constructor Create(Palette:TERRATexture);
       Procedure GenerateCode(); Override;
   End;
 
   VibranceFX = Class(ScreenFX)
     Protected
       _Strength:Integer;
-      _Ramp:Texture;
+      _Ramp:TERRATexture;
 
       Function RequiresFunction(FXFunction:ScreenFXFunctionType):Boolean; Override;
 
@@ -287,7 +287,7 @@ Type
 
     Public
 
-      Constructor Create(Pattern, Palette:Texture);
+      Constructor Create(Pattern, Palette:TERRATexture);
 
       Procedure GenerateCode(); Override;
       Procedure GenerateFunctions(); Override;
@@ -320,7 +320,7 @@ Type
       Function GetStrength():Single;
 
     Public
-      Constructor Create(CausticsTex:Texture; Strength:Single = 0.02);
+      Constructor Create(CausticsTex:TERRATexture; Strength:Single = 0.02);
 
       Procedure GenerateCode(); Override;
 
@@ -663,7 +663,7 @@ Var
   _SH:ShaderInterface;
   I:Integer;
   M:Matrix4x4;
-  Tex:Texture;
+  Tex:TERRATexture;
   Slot:Integer;
   View:Viewport;
 Begin
@@ -763,7 +763,7 @@ Begin
     Value := _Uniforms[Index].Value.X;
 End;
 
-Procedure ScreenFX.GetTexture(Index: Integer; out Value: Texture);
+Procedure ScreenFX.GetTexture(Index: Integer; out Value: TERRATexture);
 Begin
   If (Index<0) Or (Index>=_UniformCount) Then
     Value := Nil
@@ -813,7 +813,7 @@ Begin
   End;
 End;
 
-Procedure ScreenFX.SetTexture(Index: Integer; Value: Texture);
+Procedure ScreenFX.SetTexture(Index: Integer; Value: TERRATexture);
 Begin
   If (Index>=0) And (Index<_UniformCount) Then
   Begin
@@ -1061,7 +1061,7 @@ Begin
   Exp.Resize(256, 2);
   //Exp.Save('satramp.png');
 
-  _Ramp := Texture.Create(rtDynamic, 'vibranceramp');
+  _Ramp := TERRATexture.Create(rtDynamic, 'vibranceramp');
   _Ramp.InitFromImage(Exp);
 
   ReleaseObject(Exp);
@@ -1209,7 +1209,7 @@ Begin
 End;
 
 { UnderwaterFX }
-Constructor UnderwaterFX.Create(CausticsTex:Texture; Strength:Single);
+Constructor UnderwaterFX.Create(CausticsTex:TERRATexture; Strength:Single);
 Begin
   Self._FXType := FXOffset;
 
@@ -1237,7 +1237,7 @@ Begin
 End;
 
 { DitherFX }
-Constructor DitherFX.Create(Pattern, Palette: Texture);
+Constructor DitherFX.Create(Pattern, Palette: TERRATexture);
 Begin
   _Pattern := Self.AddUniform('dither_pattern', uniformTexture);
   _Palette := Self.AddUniform('dither_palette', uniformTexture);
@@ -1309,7 +1309,7 @@ Begin
 End;
 
 { ColorGradingFX }
-Constructor ColorGradingFX.Create(Palette: Texture);
+Constructor ColorGradingFX.Create(Palette: TERRATexture);
 Begin
   _Palette := Self.AddUniform(ColorTableUniformName, uniformPalette);
   Self.SetTexture(_Palette, Palette);

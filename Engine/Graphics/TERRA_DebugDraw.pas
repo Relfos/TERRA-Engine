@@ -82,7 +82,7 @@ End;
 
 Procedure DrawLine2D(View:Viewport; Const A,B:Vector2D; LineColor:Color; LineWidth:Single);
 Var
-  Tex:Texture;
+  Tex:TERRATexture;
   DX, DY, Angle, Len:Single;
   S:QuadSprite;
 Begin
@@ -104,7 +104,7 @@ End;
 Procedure DrawFilledRect(View:Viewport; Const A,B:Vector2D; FillColor:Color);
 Var
   I:Integer;
-  Tex:Texture;
+  Tex:TERRATexture;
   MinX, MinY, MaxX, MaxY:Single;
   S:QuadSprite;
 Begin
@@ -128,7 +128,7 @@ End;
 Procedure DrawRectangle(View:Viewport; Const A,B:Vector2D; LineColor:Color; LineWidth:Single = 1.0);
 Var
   I:Integer;
-  Tex:Texture;
+  Tex:TERRATexture;
   MinX, MinY, MaxX, MaxY:Single;
   S:QuadSprite;
 Begin

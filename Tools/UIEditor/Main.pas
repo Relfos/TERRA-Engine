@@ -87,7 +87,7 @@ Type
   TUIEditForm = class(TForm)
     TabList: TIceTabSet;
     RenderPanel: TPanel;
-    MainMenu1: TMainMenu;
+    MainMenu: TMainMenu;
     Project1: TMenuItem;
     New1: TMenuItem;
     Open1: TMenuItem;
@@ -112,6 +112,9 @@ Type
     Sprite1: TMenuItem;
     PropertyList: TCustomPropertyEditor;
     ProgressBar1: TMenuItem;
+    PopupMenu: TPopupMenu;
+    Copy1: TMenuItem;
+    Delete1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -130,6 +133,9 @@ Type
     procedure ProgressBar1Click(Sender: TObject);
     procedure Radiobox1Click(Sender: TObject);
     procedure Window1Click(Sender: TObject);
+    procedure Delete1Click(Sender: TObject);
+    procedure WidgetListEdited(Sender: TObject; Node: TTreeNode;
+      var S: String);
 
   Protected
     Procedure CustomDrawItem(Sender: TObject; ACanvas: TCanvas; ARect: TRect; State: TOwnerDrawState);
@@ -165,9 +171,6 @@ Uses TERRA_UIDimension, TERRA_UIWindow, TERRA_UIButton, TERRA_UILabel, TERRA_UIC
 
 {$R *.dfm}
 
-Var
-  _Tex:Texture = Nil;
-
 { UIEditScene }
 Constructor UIEditScene.Create;
 Begin
@@ -198,7 +201,6 @@ Begin
   End;
 
   Node := UIEditForm.WidgetList.Items.AddChildObject(UIEditForm.FindWidgetNode(W.Parent), W.Name, W);
-  Node.Selected := True;
 
   UIEditForm.FormResize(UIEditForm.WidgetList);
 
@@ -270,24 +272,24 @@ Begin
 End;
 
 Procedure UIEditScene.RenderSprites(V: Viewport);
-Var
-  S:QuadSprite;
-  Angle:Single;
 Begin
-  // A rotating sprite in the bottom, with Scale = 4x
-  Angle := RAD * ((Application.GetTime() Div 15) Mod 360);
-  S := SpriteManager.Instance.DrawSprite(100, 100, 50, _Tex);
-  S.SetScaleAndRotationRelative(VectorCreate2D(0.5, 0.5), 4.0, Angle);  // Calculate rotation, in degrees, from current time
 End;
 
 Procedure UIEditScene.SelectWidget(W: Widget);
-Begin
+Var
+  Node:TTreeNode;
+begin
   If (W = _SelectedWidget) Then
     Exit;
 
   _SelectedWidget := W;
   UIEditForm.PropertyList.Target := _SelectedWidget;
-end;
+
+  Node := UIEditForm.FindWidgetNode(_SelectedWidget);
+
+  If Assigned(Node) Then
+    Node.Selected := True;
+End;
 
 Function UIEditScene.GetNewTarget: Widget;
 Begin
@@ -309,9 +311,6 @@ Begin
 
   // Added Asset folder to search path
   FileManager.Instance.AddPath('..\..\samples\binaries\assets');
-
-  // Load a Tex
-  _Tex := TextureManager.Instance['ghost'];
 
   // Create a scene and set it as the current scene
   _Scene := UIEditScene.Create();
@@ -385,7 +384,15 @@ procedure TUIEditForm.RenderPanelMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 Var
   W:Widget;
+  pnt: TPoint;
 begin
+  If (Button = mbRight) Then
+  Begin
+    If GetCursorPos(pnt) then
+      Self.PopupMenu.Popup(pnt.X, pnt.Y);
+    Exit;
+  End;
+
   Case Scene._CurrentTool Of
   uitool_Empty:
     If Assigned(Scene._SelectedView) Then
@@ -560,12 +567,11 @@ var
   Text:TERRAString;
   Flags: Integer;
 Begin
-  Flags      := DT_VCENTER Or DT_CENTER;
+  Flags := DT_VCENTER Or DT_CENTER;
 
   Text := Trim(TMenuItem(Sender).Caption);
 
   ACanvas.Brush.Style := bsSolid;
-
 
   //ACanvas.FillRect(ARect);
 
@@ -578,7 +584,14 @@ Begin
   End Else
   Begin
     ACanvas.Brush.Color := SkinForeColor;
-    ACanvas.Font.Color := SkinTextColor;
+
+    If (odDisabled In State) then
+      ACanvas.Font.Color := clBtnShadow
+    Else
+    If (odSelected In State) then
+      ACanvas.Font.Color := clWhite
+    Else
+      ACanvas.Font.Color := SkinTextColor;
     DrawTextA(ACanvas.Handle, PAnsiChar(Text), StringLength(Text), ARect, Flags);
   End;
   //ACanvas.TextOut(LeftPos, TopPos, Text);
@@ -652,9 +665,11 @@ Begin
   MenuInfo.cbSize := SizeOf(MenuInfo);
   MenuInfo.fMask := MIM_BACKGROUND Or MIM_APPLYTOSUBMENUS;
   MenuInfo.hbrBack := _Brush.Handle;
-  SetMenuInfo(MainMenu1.Handle, MenuInfo);
+  SetMenuInfo(MainMenu.Handle, MenuInfo);
+  SetMenuInfo(PopupMenu.Handle, MenuInfo);
 
-  SetMenuSkin(MainMenu1.Items);
+  SetMenuSkin(MainMenu.Items);
+  SetMenuSkin(PopupMenu.Items);
 End;
 
 Procedure TUIEditForm.SetMenuSkin(Menu: TMenuItem);
@@ -728,5 +743,32 @@ Begin
 End;
 
 
+
+procedure TUIEditForm.Delete1Click(Sender: TObject);
+Var
+  Node:TTreeNode;
+begin
+  If _Scene._SelectedWidget = Nil Then
+    Exit;
+
+  Node := Self.FindWidgetNode(_Scene._SelectedWidget);
+
+  If Assigned(Node) Then
+  Begin
+    Node.DeleteChildren();
+    Node.Delete();
+  End;
+
+  _Scene._SelectedView._Target.DeleteWidget(_Scene._SelectedWidget);
+  PropertyList.Target := Nil;
+end;
+
+procedure TUIEditForm.WidgetListEdited(Sender: TObject; Node: TTreeNode; var S: String);
+begin
+  If Node.Data = Nil Then
+    Exit;
+
+  Widget(Node.Data).ObjectName := S;
+end;
 
 end.

@@ -87,6 +87,8 @@ Type
       _Saturation:FloatProperty;
 			_Visible:BooleanProperty;
 
+      _Deleted:Boolean;
+
       Procedure UpdateProperties();
 
 			Function GetAbsolutePosition:Vector2D;
@@ -145,7 +147,7 @@ Type
       _OriginalColor:Color;
       _OriginalPosition:Vector2D;
 
-      _ColorTable:Texture;
+      _ColorTable:TERRATexture;
       _Font:Font;
 
       _ClipRect:ClipRect;
@@ -247,6 +249,8 @@ Type
       Constructor Create(Const Name:TERRAString; Parent:Widget; Const ComponentName:TERRAString);
       Procedure Release; Override;
 
+      Procedure Delete();
+
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
 
       Procedure Render; Virtual;
@@ -258,7 +262,7 @@ Type
 			Function GetLayer:Single;
       Function GetColor:Color;
 			Function GetSaturation:Single;
-      Function GetColorTable:Texture;
+      Function GetColorTable:TERRATexture;
       Function GetHighlightGroup:Integer;
 
       Procedure ClipChildren(Const Clip:ClipRect);
@@ -275,8 +279,9 @@ Type
 
       Function OnRegion(X,Y:Single): Boolean; Virtual;
       Function OnCustomRegion(X,Y:Integer; X1,Y1,X2,Y2:Single):Boolean;
-      
+
       Procedure AddChild(W:Widget);
+      Procedure RemoveChild(W:Widget);
       Function GetChild(Index:Integer):Widget; Overload;
       Function GetChild(Const Name:TERRAString):Widget; Overload;
       Function GetChild(ChildClass:WidgetClass; Index:Integer = 0):Widget; Overload;
@@ -345,7 +350,7 @@ Type
       Property InheritColor:Boolean Read _InheritColor Write _InheritColor;
 
       Property Color:TERRA_Color.Color Read GetColor Write SetColor;
-      Property ColorTable:Texture Read GetColorTable Write _ColorTable;
+      Property ColorTable:TERRATexture Read GetColorTable Write _ColorTable;
       Property Saturation:Single Read GetSaturation Write SetSaturation;
       Property Rotation:Single Read GetRotation Write SetRotation;
       Property Scale:Single Read GetScale Write SetScale;
@@ -406,9 +411,11 @@ Type
 
       _Skin:UISkinComponent;
 
+      _HasDeletions:Boolean;
+
       Procedure UpdateLanguage();
 
-      Procedure SetColorTable(const Value:Texture);
+      Procedure SetColorTable(const Value:TERRATexture);
       Procedure SetDefaultFont(const Value: Font);
       Procedure SetHighlight(const Value: Widget);
       Procedure SetDragger(const Value: Widget);
@@ -494,7 +501,7 @@ Type
 
       Function OnRegion(X, Y:Integer):Boolean;
 
-      Property ColorTable:Texture Read _ColorTable Write SetColorTable;
+      Property ColorTable:TERRATexture Read _ColorTable Write SetColorTable;
       Property Saturation:Single Read GetSaturation Write SetSaturation;
 
       Property Focus:Widget Read _Focus Write SetFocus;
@@ -1315,7 +1322,7 @@ Begin
 End;
 
 
-Function Widget.GetColorTable:Texture;
+Function Widget.GetColorTable:TERRATexture;
 Begin
 	Result := _ColorTable;
 	If (Result = Nil) And (Assigned(_Parent)) Then
@@ -1849,11 +1856,27 @@ Begin
   Result := Nil;
 End;
 
+Procedure Widget.RemoveChild(W:Widget);
+Var
+  I:Integer;
+Begin
+  I:=0;
+  While (I<_ChildrenCount) Do
+  If (_ChildrenList[I] = W) Then
+  Begin
+    _ChildrenList[I] := _ChildrenList[Pred(_ChildrenCount)];
+    Dec(_ChildrenCount);
+    Exit;
+  End Else
+    Inc(I);
+End;
+
+
 Procedure Widget.Render;
 Var
   I:Integer;
 Begin
-  If (Not Self.Visible) Then
+  If (Not Self.Visible) Or (Self._Deleted) Then
     Exit;
 
   For I:=0 To Pred(_ChildrenCount) Do
@@ -2294,6 +2317,22 @@ Begin
   Result := True;
 End;
 
+Procedure Widget.Delete();
+Var
+  I:Integer;
+Begin
+  Self._Deleted := True;
+  _UI._HasDeletions := True;
+
+  If Assigned(_Parent) Then
+    _Parent.RemoveChild(SElf);
+
+  For I:=0 To Pred(_ChildrenCount) Do
+    _ChildrenList[I].Delete();
+
+  _ChildrenCount := 0;
+End;
+
 { UI }
 Constructor UI.Create;
 Begin
@@ -2414,7 +2453,7 @@ Begin
   Self._DefaultFont := Value;
 End;
 
-Procedure UI.SetColorTable(Const Value:Texture);
+Procedure UI.SetColorTable(Const Value:TERRATexture);
 Begin
   Self._ColorTable := Value;
 End;
@@ -2501,37 +2540,11 @@ Begin
 End;
 
 Procedure UI.DeleteWidget(MyWidget:Widget);
-Var
-  It:Iterator;
-  Temp:Widget;
 Begin
   If (MyWidget = Nil) Then
     Exit;
 
-  If (MyWidget = _Focus) Then
-    _Focus := Nil;
-
-  If (MyWidget = _Highlight) Then
-    _Highlight := Nil;
-
-  If (_First = MyWidget) Then
-  Begin
-    _First := MyWidget._Next;
-  End Else
-  Begin
-    It := _Widgets.GetIterator();
-    While (It.HasNext) Do
-    Begin
-      Temp := Widget(It.Value);
-      If (Temp._Next = MyWidget) Then
-      Begin
-        Temp._Next := MyWidget._Next;
-        Break;
-      End;
-    End;
-    ReleaseObject(It);
-  End;
-  _Widgets.Delete(MyWidget);
+  MyWidget.Delete();
 End;
 
 Function SearchWidgetByName(P:CollectionObject; UserData:Pointer):Boolean; CDecl;
@@ -2550,7 +2563,7 @@ End;
 
 Function UI.AddQuad(Const Quad:UIQuad; Const Props:UISkinProperty; Z:Single; Const Transform:Matrix3x3):QuadSprite;
 Var
-  Tex:Texture;
+  Tex:TERRATexture;
 Begin
   Tex := UIManager.Instance.TextureAtlas.GetTexture(Quad.PageID);
   Result := SpriteManager.Instance.DrawSprite(Quad.Pos.X, Quad.Pos.Y, Z, Tex, ColorTable, blendBlend, Saturation);
@@ -2588,13 +2601,8 @@ Procedure UI.Render;
 Var
   MyWidget:Widget;
   I, J:Integer;
-  Temp:Image;
-  W,H:Integer;
-  S:TERRAString;
   X,Y:Single;
-  PositionHandle, UVHandle, ColorHandle:Integer;
-  Transform:Matrix4x4;
-  Q:Vector4D;
+  It:Iterator;
 Begin
   _Draw := False;
 
@@ -2632,6 +2640,26 @@ Begin
     Exit;
 
   GraphicsManager.Instance.Renderer.SetBlendMode(blendBlend);
+
+  If _HasDeletions Then
+  Begin
+    _HasDeletions := False;
+
+    While (Assigned(_First)) And (_First._Deleted) Do
+    Begin
+      _First := _First._Next;
+    End;
+
+    It := Self.Widgets.GetIterator();
+    While It.HasNext() Do
+    Begin
+      MyWidget := Widget(It.Value);
+
+      If MyWidget._Deleted Then
+        MyWidget.Discard();
+    End;
+    ReleaseObject(It);
+  End;
 
   MyWidget := _First;
   While (Assigned(MyWidget)) Do

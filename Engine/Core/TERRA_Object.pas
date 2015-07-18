@@ -281,7 +281,7 @@ End;
 
 Function TERRAObject.GetObjectType: TERRAString;
 Begin
-  Result := '';
+  Result := Self.ClassName;
 End;
 
 Function TERRAObject.HasPropertyTweens: Boolean;

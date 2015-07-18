@@ -51,7 +51,7 @@ Type
   BillboardGroup = Record
     _Billboards:Array Of Billboard;
     _BillboardCount:Integer;
-    _Texture:Texture;
+    _Texture:TERRATexture;
   End;
 
   BillboardManager = Class(TERRAObject)
@@ -70,7 +70,7 @@ Type
       Class Function Instance:BillboardManager;
 
 
-      Function AddBillboard(Position:Vector3D; Width, Height:Single; MyTexture:Texture):PBillboard;
+      Function AddBillboard(Position:Vector3D; Width, Height:Single; MyTexture:TERRATexture):PBillboard;
 
       Procedure Render;
 
@@ -139,7 +139,7 @@ Begin
 End;
 
 { BillboardManager }
-Function BillboardManager.AddBillboard(Position:Vector3D; Width, Height:Single; MyTexture:Texture):PBillboard;
+Function BillboardManager.AddBillboard(Position:Vector3D; Width, Height:Single; MyTexture:TERRATexture):PBillboard;
 Var
   N, K:Integer;
   I:Integer;

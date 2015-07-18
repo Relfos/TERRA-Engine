@@ -59,9 +59,9 @@ Type
       Procedure ResizeWithWidth(W:Single);
       Procedure ResizeWithHeight(H:Single);
 
-      Procedure TileRemap(X,Y, TilesPerX, TilesPerY:Integer; Tex:Texture);
-      Procedure TileRemapByID(TileID, TilesPerRow, TileSize:Integer; Tex:Texture);
-      Procedure PixelRemap(X1,Y1, X2, Y2:Integer; Tex:Texture; W:Integer=0; H:Integer=0);
+      Procedure TileRemap(X,Y, TilesPerX, TilesPerY:Integer; Tex:TERRATexture);
+      Procedure TileRemapByID(TileID, TilesPerRow, TileSize:Integer; Tex:TERRATexture);
+      Procedure PixelRemap(X1,Y1, X2, Y2:Integer; Tex:TERRATexture; W:Integer=0; H:Integer=0);
       Procedure UVRemap(_U1,_V1, _U2, _V2:Single);
 
       Procedure FullRemap();
@@ -75,7 +75,7 @@ Type
       _Outline:Color;
 
       {$IFNDEF DISABLECOLORGRADING}
-      _ColorTable:Texture;
+      _ColorTable:TERRATexture;
       {$ENDIF}
 
       _Transform:Matrix3x3;
@@ -83,7 +83,7 @@ Type
 
       _Saturation:Single;
 
-      _Texture:Texture;
+      _Texture:TERRATexture;
 
       _Vertices:VertexData;
 
@@ -113,7 +113,7 @@ Type
 
       Procedure ConcatTransform(Const Mat:Matrix3x3);
 
-      Property Texture:TERRA_Texture.Texture Read _Texture Write _Texture;
+      Property Texture:TERRATexture Read _Texture Write _Texture;
   End;
 
   QuadSprite = Class(Sprite)
@@ -159,12 +159,12 @@ Type
     Protected
       _First:Sprite;
       _Count:Integer;
-      _Texture:Texture;
+      _Texture:TERRATexture;
 
       _Manager:SpriteManager;
 
       {$IFNDEF DISABLECOLORGRADING}
-      _ColorTable:Texture;
+      _ColorTable:TERRATexture;
       {$ENDIF}
 
       _BlendMode:Integer;
@@ -221,8 +221,8 @@ Type
 
       Procedure QueueSprite(S:Sprite);
 
-      Function DrawSprite(X,Y,Layer:Single; SpriteTexture:Texture; ColorTable:Texture = Nil; BlendMode:Integer = blendBlend; Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; IsFont:Boolean = False):QuadSprite;
-      Function DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:Texture; Outline:Color; ColorTable:Texture = Nil; BlendMode:Integer = blendBlend;  Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; IsFont:Boolean = False):QuadSprite;
+      Function DrawSprite(X,Y,Layer:Single; SpriteTexture:TERRATexture; ColorTable:TERRATexture = Nil; BlendMode:Integer = blendBlend; Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; IsFont:Boolean = False):QuadSprite;
+      Function DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:TERRATexture; Outline:Color; ColorTable:TERRATexture = Nil; BlendMode:Integer = blendBlend;  Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; IsFont:Boolean = False):QuadSprite;
   End;
 
 Function CreateSpriteVertexData(Count:Integer):VertexData;
@@ -438,12 +438,12 @@ Begin
 End;
 
 
-Function SpriteManager.DrawSprite(X,Y,Layer:Single; SpriteTexture:Texture; ColorTable:Texture; BlendMode:Integer;  Saturation:Single; Filter:TextureFilterMode; IsFont:Boolean): QuadSprite;
+Function SpriteManager.DrawSprite(X,Y,Layer:Single; SpriteTexture:TERRATexture; ColorTable:TERRATexture; BlendMode:Integer;  Saturation:Single; Filter:TextureFilterMode; IsFont:Boolean): QuadSprite;
 Begin
   Result := Self.DrawSpriteWithOutline(X,Y,Layer, SpriteTexture, ColorNull, ColorTable, BlendMode,  Saturation, Filter, IsFont);
 End;
 
-Function SpriteManager.DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:Texture; Outline:Color; ColorTable:Texture; BlendMode:Integer;  Saturation:Single; Filter:TextureFilterMode; IsFont:Boolean):QuadSprite;
+Function SpriteManager.DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:TERRATexture; Outline:Color; ColorTable:TERRATexture; BlendMode:Integer;  Saturation:Single; Filter:TextureFilterMode; IsFont:Boolean):QuadSprite;
 Var
   I:Integer;
 Begin
@@ -1175,7 +1175,7 @@ Begin
   Self.V2 := 1.0;
 End;
 
-Procedure TextureRect.PixelRemap(X1, Y1, X2, Y2:Integer; Tex:Texture;  W, H: Integer);
+Procedure TextureRect.PixelRemap(X1, Y1, X2, Y2:Integer; Tex:TERRATexture;  W, H: Integer);
 Begin
   If (Tex = Nil) Then
     Exit;
@@ -1198,7 +1198,7 @@ Begin
     Self.Height := IntMax(1, (Abs(Y2-Y1)));
 End;
 
-Procedure TextureRect.TileRemapByID(TileID, TilesPerRow, TileSize:Integer; Tex:Texture);
+Procedure TextureRect.TileRemapByID(TileID, TilesPerRow, TileSize:Integer; Tex:TERRATexture);
 Var
   TX, TY:Integer;
   PX, PY:Single;
@@ -1222,7 +1222,7 @@ Begin
   Height := TileSize;
 End;
 
-Procedure TextureRect.TileRemap(X, Y, TilesPerX, TilesPerY: Integer; Tex:Texture);
+Procedure TextureRect.TileRemap(X, Y, TilesPerX, TilesPerY: Integer; Tex:TERRATexture);
 Var
   SX, SY:Single;
   TX,TY:Single;

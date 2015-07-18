@@ -211,7 +211,7 @@ Var
   Jamo:Word;
   N:Integer;
 Begin
-  Delete(_Lines[_LineIndex], Length(_Lines[_LineIndex])-2, 3);
+  System.Delete(_Lines[_LineIndex], Length(_Lines[_LineIndex])-2, 3);
   If (_KoreanMedialJamo>=0) Then
   Begin
     If (_KoreanFinalJamo>=0) Then

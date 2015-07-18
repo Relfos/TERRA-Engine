@@ -407,7 +407,7 @@ Var
   Filter:TextureFilterMode;
   Item:TextureAtlasItem;
   Target:FontSprite;
-  Tex:Texture;
+  Tex:TERRATexture;
 Begin
   {$IFDEF DISTANCEFIELDFONTS}
   Filter := filterBilinear;

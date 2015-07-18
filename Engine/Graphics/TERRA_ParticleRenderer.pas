@@ -288,13 +288,13 @@ Type
       _Instance:ParticleManager;
       _TextureAtlas:TextureAtlas;
 
-      _NormalTexture:Texture;
+      _NormalTexture:TERRATexture;
       _NormalImage:Image;
 
-      _GlowTexture:Texture;
+      _GlowTexture:TERRATexture;
       _GlowImage:Image;
 
-      _RefractionTexture:Texture;
+      _RefractionTexture:TERRATexture;
       _RefractionImage:Image;
 
       _Types:Array Of ParticleType;
@@ -326,7 +326,7 @@ Type
       //Procedure Spawn(Name:TERRAString; Position:Vector3D);
       Procedure Spawn(Emitter:ParticleEmitter);
 
-      Function GetTexture(Target:ParticleCollection):Texture;
+      Function GetTexture(Target:ParticleCollection):TERRATexture;
 
       Property Shader:ShaderInterface Read GetShader;
   End;
@@ -913,7 +913,7 @@ Begin
   Result := _Shader;
 End;
 
-Function ParticleManager.GetTexture(Target:ParticleCollection): Texture;
+Function ParticleManager.GetTexture(Target:ParticleCollection): TERRATexture;
 Var
   I:Integer;
   Source:Image;
@@ -974,7 +974,7 @@ Begin
 
     If (_NormalTexture = Nil) Then
     Begin
-      _NormalTexture := Texture.Create(rtDynamic, 'particles_normal');
+      _NormalTexture := TERRATexture.Create(rtDynamic, 'particles_normal');
       _NormalTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height, ColorCreate(0, 0, 255));
       _NormalTexture.Update;
     End;
@@ -982,7 +982,7 @@ Begin
 
     If (_GlowTexture = Nil) Then
     Begin
-      _GlowTexture := Texture.Create(rtDynamic, 'particles_glow');
+      _GlowTexture := TERRATexture.Create(rtDynamic, 'particles_glow');
       _GlowTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height, ColorNull);
       _GlowTexture.Update;
     End;
@@ -990,7 +990,7 @@ Begin
 
     If (_RefractionTexture = Nil) Then
     Begin
-      _RefractionTexture := Texture.Create(rtDynamic, 'particles_refraction');
+      _RefractionTexture := TERRATexture.Create(rtDynamic, 'particles_refraction');
       _RefractionTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height, ColorNull);
       _RefractionTexture.Update();
     End;

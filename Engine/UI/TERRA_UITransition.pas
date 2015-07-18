@@ -81,7 +81,7 @@ Type
 
   UIFade = Class(UITransition)
     Protected
-      _FadeTexture:Texture;
+      _FadeTexture:TERRATexture;
       _FadeOut:Boolean;
 
       Procedure Render(Alpha:Single); Override;
@@ -89,13 +89,13 @@ Type
     Public
       Color:TERRA_Color.Color;
 
-      Constructor Create(FadeTexture:Texture; Duration, Delay:Cardinal; Invert:Boolean);
+      Constructor Create(FadeTexture:TERRATexture; Duration, Delay:Cardinal; Invert:Boolean);
   End;
 
   UISlide = Class(UITransition)
     Protected
       _Direction:Vector2D;
-      _Texture:Texture;
+      _Texture:TERRATexture;
 
       Procedure Render(Alpha:Single); Override;
 
@@ -263,7 +263,7 @@ Begin
 End;
 
 { UIFade }
-Constructor UIFade.Create(FadeTexture:Texture; Duration, Delay:Cardinal; Invert:Boolean);
+Constructor UIFade.Create(FadeTexture:TERRATexture; Duration, Delay:Cardinal; Invert:Boolean);
 Begin
   If Not Assigned(FadeTexture) Then
     Exit;
@@ -407,7 +407,7 @@ Begin
 
   {$IFDEF POSTPROCESSING}
   Src := GraphicsManager.Instance.ActiveViewport.GetRenderTarget(captureTargetColor).GetImage();
-  _Texture := Texture.Create(rtDynamic, 'ui_slide');
+  _Texture := TERRATexture.Create(rtDynamic, 'ui_slide');
   _Texture.InitFromSize(Src.Width, Src.Height, ColorWhite);
   _Texture.UpdateRect(Src);
   ReleaseObject(Src);

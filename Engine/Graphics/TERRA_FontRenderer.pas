@@ -62,7 +62,7 @@ Type
       Procedure DoEffects();
 
       Procedure DrawSprite(Const TextureName:TERRAString);
-      Function ResolveTexture(Const TextureName:TERRAString):Texture; Virtual;
+      Function ResolveTexture(Const TextureName:TERRAString):TERRATexture; Virtual;
       Procedure TransformSprite(S:Sprite); Virtual;
 
       Procedure UpdateGradient(Width, Height:Single);
@@ -664,7 +664,7 @@ End;
 
 Procedure FontRenderer.DrawSprite(const TextureName:TERRAString);
 Var
-  Tex:Texture;
+  Tex:TERRATexture;
   S:Sprite;
 Begin
   If (TextureName = '') Then
@@ -701,7 +701,7 @@ Begin
     _MaxY := Tex.Height;
 End;
 
-Function FontRenderer.ResolveTexture(Const TextureName: TERRAString): Texture;
+Function FontRenderer.ResolveTexture(Const TextureName: TERRAString): TERRATexture;
 Begin
   Result := TextureManager.Instance.GetTexture(TextureName);
 End;
