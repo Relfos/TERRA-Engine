@@ -80,11 +80,11 @@ Const
   VertexCompressionLimit = 20000;
 
 Type
-  Mesh = Class;
+  TERRAMesh = Class;
 
   PMeshAttach = ^MeshAttach;
   MeshAttach = Record
-    AttachMesh:Mesh;
+    AttachMesh:TERRAMesh;
     BoneIndex:Integer;
     Matrix:Matrix4x4;
     Color:TERRA_Color.Color;
@@ -97,15 +97,15 @@ Type
     Position:Vector3D;
     BoneIndex:Integer;
     ParentBone:TERRAString;
-    Owner:Mesh;
+    Owner:TERRAMesh;
 
-    Constructor Create(Owner:Mesh);
+    Constructor Create(Owner:TERRAMesh);
     Procedure UpdateBone;
   End;
 
   MeshLight = Class(TERRAObject)
     Name:TERRAString;
-    Owner:Mesh;
+    Owner:TERRAMesh;
     Position:Vector3D;
     BoneIndex:Integer;
     ParentBone:TERRAString;
@@ -119,7 +119,7 @@ Type
 
     GroupIndex:Integer;
 
-    Constructor Create(Owner:Mesh);
+    Constructor Create(Owner:TERRAMesh);
     Procedure UpdateBone();
   End;
 
@@ -152,7 +152,7 @@ Type
 
   MeshFX = Class(TERRAObject)
     Private
-      _Target:Mesh;
+      _Target:TERRAMesh;
       _Callback:MeshFXCallback;
       _UserData:Pointer;
 
@@ -161,7 +161,7 @@ Type
 
       Procedure SetCallback(Callback:MeshFXCallback; UserData:Pointer);
 
-      Property Target:Mesh Read _Target;
+      Property Target:TERRAMesh Read _Target;
   End;
 
   MeshMaterial = Object
@@ -226,7 +226,7 @@ Type
 
   MeshInstance = Class(Renderable)
     Protected
-      _Mesh:Mesh;
+      _Mesh:TERRAMesh;
       _BoundingBox:BoundingBox;
       _Transform:Matrix4x4;
 
@@ -277,7 +277,7 @@ Type
 
       _ScratchID:Cardinal;
 
-      Procedure SetGeometry(MyMesh:Mesh);
+      Procedure SetGeometry(MyMesh:TERRAMesh);
 
       Procedure DrawMesh(View:TERRAViewport; Const MyTransform:Matrix4x4; TranslucentPass, StencilTest:Boolean);
 
@@ -376,7 +376,7 @@ Type
       Function GetHueShift(GroupID:Integer): Single;
       Procedure SetHueShift(GroupID:Integer; Value:Single);
 
-      Function AddEffect(FX:MeshFX):Mesh;
+      Function AddEffect(FX:MeshFX):TERRAMesh;
 
       Function AddParticleEmitter(Const Name:TERRAString; Position: Vector3D; Const Content:TERRAString; Const ParentBone:TERRAString = ''):MeshEmitter;
 
@@ -427,10 +427,10 @@ Type
 
       Procedure SetMotionBlur(Enabled:Boolean);
 
-      Procedure AddAttach(AttachMesh:Mesh; BoneIndex:Integer; M:Matrix4x4; C:Color; IsStencil:Boolean = False);
+      Procedure AddAttach(AttachMesh:TERRAMesh; BoneIndex:Integer; M:Matrix4x4; C:Color; IsStencil:Boolean = False);
       Procedure ClearAttachs;
 
-      Constructor Create(MyMesh:Mesh);
+      Constructor Create(MyMesh:TERRAMesh);
       Procedure Release(); Override;
 
       Function GetBoundingBox:BoundingBox; Override;
@@ -449,7 +449,7 @@ Type
       Property MotionBlur:Boolean Read _MotionBlur Write SetMotionBlur;
 
       Property Animation:AnimationState Read GetAnimation;
-      Property Geometry:TERRA_Mesh.Mesh Read _Mesh Write SetGeometry;
+      Property Geometry:TERRAMesh Read _Mesh Write SetGeometry;
 
       Property AttachCount:Integer Read _AttachCount;
 
@@ -476,7 +476,7 @@ Type
 	MeshGroup = Class(TERRAObject)
     Protected
       _ID:Integer;
-      _Owner:Mesh;
+      _Owner:TERRAMesh;
 	  	_Name:TERRAString;
 
       _Buffer:VertexBufferInterface;
@@ -556,7 +556,7 @@ Type
       FurSettings:TERRA_Fur.FurSettings;
       {$ENDIF}
 
-      Constructor Create(ID:Integer; Parent:Mesh; Format:VertexFormat; Name:TERRAString='');
+      Constructor Create(ID:Integer; Parent:TERRAMesh; Format:VertexFormat; Name:TERRAString='');
       Procedure Release; Override;
 
 		  Procedure Clean; Virtual;
@@ -720,7 +720,7 @@ Type
     Values:Array Of Vector3D;
   End;
 
-	Mesh = Class(Resource)
+	TERRAMesh = Class(Resource)
 		Protected
 			_Groups:Array Of MeshGroup;
 			_GroupCount:Integer;
@@ -810,7 +810,7 @@ Type
 
       Procedure UpdateBoundingBox;
 
-      Procedure Clone(Source:Mesh);
+      Procedure Clone(Source:TERRAMesh);
 
       Function Intersect(Const R:Ray; Var T:Single; Const Transform:Matrix4x4):Boolean;
 
@@ -836,7 +836,7 @@ Type
     Public
       Procedure Release; Override;
 
-      Function Merge(Source, Dest:Mesh; DestFormat:VertexFormat; IndividualGroup:Boolean = False; MaxVertsPerGroup:Integer = -1; UpdateBox:Boolean = True):IntegerArrayObject;
+      Function Merge(Source, Dest:TERRAMesh; DestFormat:VertexFormat; IndividualGroup:Boolean = False; MaxVertsPerGroup:Integer = -1; UpdateBox:Boolean = True):IntegerArrayObject;
       Procedure MergeGroup(Source, Dest:MeshGroup; UpdateBox:Boolean = True);
   End;
 
@@ -851,7 +851,7 @@ Type
 
   CustomMeshFilter = Class(MeshFilter)
     Protected
-      _Mesh:Mesh;
+      _Mesh:TERRAMesh;
       _Animations:Array Of Animation;
       _AnimationCount:Integer;
 
@@ -898,15 +898,15 @@ Type
 
   MeshManager = Class(ResourceManager)
     Protected
-      _CubeMesh:Mesh;
-      _SphereMesh:Mesh;
-      _CylinderMesh:Mesh;
-      _PlaneMesh:Mesh;
+      _CubeMesh:TERRAMesh;
+      _SphereMesh:TERRAMesh;
+      _CylinderMesh:TERRAMesh;
+      _PlaneMesh:TERRAMesh;
 
-      Function GetCubeMesh:Mesh;
-      Function GetPlaneMesh:Mesh;
-      Function GetSphereMesh:Mesh;
-      Function GetCylinderMesh:Mesh;
+      Function GetCubeMesh:TERRAMesh;
+      Function GetPlaneMesh:TERRAMesh;
+      Function GetSphereMesh:TERRAMesh;
+      Function GetCylinderMesh:TERRAMesh;
 
     Public
       Procedure Init; Override;
@@ -914,19 +914,18 @@ Type
 
       Class Function Instance:MeshManager;
 
-      Function GetMesh(Name:TERRAString):Mesh;
-      //Function CloneMesh(Name:TERRAString):Mesh;
+      Function GetMesh(Name:TERRAString):TERRAMesh;
 
-      Property CubeMesh:Mesh Read GetCubeMesh;
-      Property CylinderMesh:Mesh Read GetCylinderMesh;
-      Property SphereMesh:Mesh Read GetSphereMesh;
-      Property PlaneMesh:Mesh Read GetPlaneMesh;
+      Property CubeMesh:TERRAMesh Read GetCubeMesh;
+      Property CylinderMesh:TERRAMesh Read GetCylinderMesh;
+      Property SphereMesh:TERRAMesh Read GetSphereMesh;
+      Property PlaneMesh:TERRAMesh Read GetPlaneMesh;
 
-      Property Meshes[Name:TERRAString]:Mesh Read GetMesh; Default;
+      Property Meshes[Name:TERRAString]:TERRAMesh Read GetMesh; Default;
    End;
 
 
-  Function CreatePlaneMesh(Const Normal:Vector3D; SubDivisions:Cardinal):Mesh;
+  Function CreatePlaneMesh(Const Normal:Vector3D; SubDivisions:Cardinal):TERRAMesh;
 
   Function SelectMeshShader(View:TERRAViewport; Group:MeshGroup; Position:Vector3D; Outline, TranslucentPass:Boolean; Var DestMaterial:MeshMaterial; UseTextureMatrix:Boolean):ShaderInterface;
 
@@ -937,7 +936,7 @@ Uses TERRA_Error, TERRA_Application, TERRA_Log, TERRA_ShaderFactory, TERRA_OS,
   TERRA_FileManager, TERRA_CRC32, TERRA_ColorGrading, TERRA_Solids;
 
 Type
-  MeshDataBlockHandler = Function(Target:Mesh; Size:Integer; Source:Stream):Boolean;
+  MeshDataBlockHandler = Function(Target:TERRAMesh; Size:Integer; Source:Stream):Boolean;
   MeshDataBlockHandlerEntry = Record
     Tag:FileHeader;
     Handler:MeshDataBlockHandler;
@@ -964,7 +963,7 @@ Begin
     Result := False;
 End;
 
-Function DefaultMeshHandler(Target:Mesh; Size:Integer; Source:Stream):Boolean;
+Function DefaultMeshHandler(Target:TERRAMesh; Size:Integer; Source:Stream):Boolean;
 Begin
   Source.Skip(Size);
   Result := True;
@@ -1022,7 +1021,7 @@ Begin
 End;
 
 { Mesh handlers}
-Function MeshReadGroup(Target:Mesh; Size:Integer; Source:Stream):Boolean;
+Function MeshReadGroup(Target:TERRAMesh; Size:Integer; Source:Stream):Boolean;
 Var
   Group:MeshGroup;
   ID:Integer;
@@ -1043,13 +1042,13 @@ Begin
   Result := True;
 End;
 
-Function MeshReadSkeleton(Target:Mesh; Size:Integer; Source:Stream):Boolean;
+Function MeshReadSkeleton(Target:TERRAMesh; Size:Integer; Source:Stream):Boolean;
 Begin
   Target.Skeleton.Read(Source);
   Result := True;
 End;
 
-Function MeshReadEmitter(Target:Mesh; Size:Integer; Source:Stream):Boolean;
+Function MeshReadEmitter(Target:TERRAMesh; Size:Integer; Source:Stream):Boolean;
 Var
   I:Integer;
 Begin
@@ -1067,12 +1066,12 @@ Begin
   Result := True;
 End;
 
-Procedure AddLightGeometry(Index:Integer; Source:MeshLight; Target:Mesh);
+Procedure AddLightGeometry(Index:Integer; Source:MeshLight; Target:TERRAMesh);
 Var
   S:SolidMesh;
   Height, Width:Single;
   Merger:MeshMerger;
-  Temp:Mesh;
+  Temp:TERRAMesh;
   Format:VertexFormat;
   Dir:Vector3D;
   TargetTransform:Matrix4x4;
@@ -1136,7 +1135,7 @@ Begin
   End;
 End;
 
-Function MeshReadLights(Target:Mesh; Size:Integer; Source:Stream):Boolean;
+Function MeshReadLights(Target:TERRAMesh; Size:Integer; Source:Stream):Boolean;
 Var
   I:Integer;
   TargetLight:MeshLight;
@@ -1161,7 +1160,7 @@ Begin
   Result := True;
 End;
 
-Function MeshReadBoneMorph(Target:Mesh; Size:Integer; Source:Stream):Boolean;
+Function MeshReadBoneMorph(Target:TERRAMesh; Size:Integer; Source:Stream):Boolean;
 Var
   N, I, Count:Integer;
 Begin
@@ -1180,7 +1179,7 @@ Begin
   Result := True;
 End;
 
-Function MeshReadMeta(Target:Mesh; Size:Integer; Source:Stream):Boolean;
+Function MeshReadMeta(Target:TERRAMesh; Size:Integer; Source:Stream):Boolean;
 Var
   I:Integer;
 Begin
@@ -1501,7 +1500,7 @@ Begin
   _MeshManager := Nil;
 End;
 
-Function MeshManager.GetMesh(Name:TERRAString):Mesh;
+Function MeshManager.GetMesh(Name:TERRAString):TERRAMesh;
 Var
   I, N:Integer;
   S:TERRAString;
@@ -1512,13 +1511,13 @@ Begin
   If (Name='') Then
     Exit;
 
-  Result := Mesh(GetResource(Name));
+  Result := TERRAMesh(GetResource(Name));
   If (Not Assigned(Result)) Then
   Begin
     S := FileManager.Instance.SearchResourceFile(Name+'.mesh');
     If S<>'' Then
     Begin
-      Result := Mesh.Create(rtLoaded, S);
+      Result := TERRAMesh.Create(rtLoaded, S);
       Result.Priority := 60;
       Self.AddResource(Result);
     End Else
@@ -1538,7 +1537,7 @@ Begin
       Begin
         Filter := MeshFilterList[N].Filter.Create;
         Filter.Load(S);
-        Result := Mesh.CreateFromFilter(Filter);
+        Result := TERRAMesh.CreateFromFilter(Filter);
         ReleaseObject(Filter);
       End;
     End;
@@ -1560,14 +1559,14 @@ Begin
   S := FileManager.Instance.SearchResourceFile(Name+'.mesh');
   If S<>'' Then
   Begin
-    Result := Mesh.Create(rtLoaded, S);
+    Result := TERRAMesh.Create(rtLoaded, S);
   End Else
   Begin
     Result := Nil;
   End;
 End;*)
 
-Function MeshManager.GetCubeMesh: Mesh;
+Function MeshManager.GetCubeMesh: TERRAMesh;
 Var
   Cube:TERRA_Solids.CubeMesh;
 Begin
@@ -1581,7 +1580,7 @@ Begin
   Result := _CubeMesh;
 End;
 
-Function MeshManager.GetPlaneMesh: Mesh;
+Function MeshManager.GetPlaneMesh: TERRAMesh;
 Var
   Plane:TERRA_Solids.PlaneMesh;
 Begin
@@ -1595,7 +1594,7 @@ Begin
   Result := _PlaneMesh;
 End;
 
-Function MeshManager.GetCylinderMesh:Mesh;
+Function MeshManager.GetCylinderMesh:TERRAMesh;
 Var
   Cylinder:TERRA_Solids.CylinderMesh;
 Begin
@@ -1609,7 +1608,7 @@ Begin
   Result := _CylinderMesh;
 End;
 
-Function MeshManager.GetSphereMesh: Mesh;
+Function MeshManager.GetSphereMesh: TERRAMesh;
 Var
   Sphere:TERRA_Solids.SphereMesh;
 Begin
@@ -1623,7 +1622,7 @@ Begin
   Result := _SphereMesh;
 End;
 
-Function CreatePlaneMesh(Const Normal:Vector3D; SubDivisions:Cardinal):Mesh;
+Function CreatePlaneMesh(Const Normal:Vector3D; SubDivisions:Cardinal):TERRAMesh;
 Var
   Plane:TERRA_Solids.PlaneMesh;
 Begin
@@ -1640,15 +1639,15 @@ Begin
 End;
 
 { MeshInstance }
-Procedure MeshInstance.AddAttach(AttachMesh:Mesh; BoneIndex:Integer; M:Matrix4x4; C:Color; IsStencil:Boolean);
+Procedure MeshInstance.AddAttach(AttachMesh:TERRAMesh; BoneIndex:Integer; M:Matrix4x4; C:Color; IsStencil:Boolean);
 Var
   P:Vector3D;
 Begin
   If (BoneIndex<0) Or (AttachMesh = Nil) Then
     Exit;
 
-  (*P := Self._Mesh.Skeleton.BindPose[Succ(BoneIndex)].Transform(VectorZero);
-  M := Matrix4x4Multiply4x4(Matrix4x4Inverse(Self._Mesh.Skeleton.BindPose[Succ(BoneIndex)]), Matrix4x4Multiply4x4(M, Matrix4x4Translation(P)));
+  (*P := Self._TERRAMesh.Skeleton.BindPose[Succ(BoneIndex)].Transform(VectorZero);
+  M := Matrix4x4Multiply4x4(Matrix4x4Inverse(Self._TERRAMesh.Skeleton.BindPose[Succ(BoneIndex)]), Matrix4x4Multiply4x4(M, Matrix4x4Translation(P)));
   *)
 
   P := VectorZero;
@@ -2037,7 +2036,7 @@ Begin
   UpdateBoundingBox();
 End;
 
-Constructor MeshInstance.Create(MyMesh: Mesh);
+Constructor MeshInstance.Create(MyMesh: TERRAMesh);
 Begin
   _ClonedMesh := False;
   _Position := VectorZero;
@@ -2054,7 +2053,7 @@ Begin
   Self.SetGeometry(MyMesh);
 End;
 
-Procedure MeshInstance.SetGeometry(MyMesh:Mesh);
+Procedure MeshInstance.SetGeometry(MyMesh:TERRAMesh);
 Var
   N, I:Integer;
 Begin
@@ -2750,10 +2749,10 @@ Begin
   _ParticleSystems[Pred(_ParticleSystemCount)] := Nil;
 End;
 
-Function MeshInstance.AddEffect(FX: MeshFX):Mesh;
+Function MeshInstance.AddEffect(FX: MeshFX):TERRAMesh;
 Var
   I:Integer;
-  Old:Mesh;
+  Old:TERRAMesh;
 Begin
   If FX = Nil Then
   Begin
@@ -2764,7 +2763,7 @@ Begin
   If (Not _ClonedMesh) Then
   Begin
     Old := _Mesh;
-    _Mesh := Mesh.Create(rtDynamic, Old.Name);
+    _Mesh := TERRAMesh.Create(rtDynamic, Old.Name);
     _Mesh.Clone(Old);// MeshManager.Instance.CloneMesh(_Mesh.Name);
     _Mesh.Prefetch();
 
@@ -5232,7 +5231,7 @@ Begin
   NeedTransparency := (Value <> blendNone);
 End;
 
-Constructor MeshGroup.Create(ID:Integer; Parent:Mesh; Format:VertexFormat; Name:TERRAString);
+Constructor MeshGroup.Create(ID:Integer; Parent:TERRAMesh; Format:VertexFormat; Name:TERRAString);
 Begin
   If Name='' Then
     Name := 'group'+IntToString(ID);
@@ -5709,7 +5708,7 @@ Begin
 End;
 
 { Mesh }
-Class Function Mesh.GetManager: Pointer;
+Class Function TERRAMesh.GetManager: Pointer;
 Begin
   Result := MeshManager.Instance;
 End;
@@ -5722,7 +5721,7 @@ Begin
     _Groups[I].OnContextLost();
 End;*)
 
-Function Mesh.GetGroup(Index:Integer):MeshGroup;
+Function TERRAMesh.GetGroup(Index:Integer):MeshGroup;
 Begin
   If (Index>=0) And (Index<_GroupCount) Then
     Result := _Groups[Index]
@@ -5730,7 +5729,7 @@ Begin
     Result := Nil;
 End;
 
-Function Mesh.GetGroup(Name:TERRAString):MeshGroup;
+Function TERRAMesh.GetGroup(Name:TERRAString):MeshGroup;
 Var
 	I:Integer;
 Begin
@@ -5746,7 +5745,7 @@ Begin
 	Result := Nil;
 End;
 
-Function Mesh.GetGroupIndex(Name:TERRAString):Integer;
+Function TERRAMesh.GetGroupIndex(Name:TERRAString):Integer;
 Var
 	I:Integer;
 Begin
@@ -5761,7 +5760,7 @@ Begin
 End;
 
 
-Function Mesh.AddGroup(Format:VertexFormat; Name:TERRAString=''):MeshGroup;
+Function TERRAMesh.AddGroup(Format:VertexFormat; Name:TERRAString=''):MeshGroup;
 Begin
 	Inc(_GroupCount);
 	SetLength(_Groups, _GroupCount);
@@ -5770,7 +5769,7 @@ Begin
   _Groups[Pred(_GroupCount)] := Result;
 End;
 
-Function Mesh.DuplicateGroup(Group:MeshGroup; Name:TERRAString=''):MeshGroup;
+Function TERRAMesh.DuplicateGroup(Group:MeshGroup; Name:TERRAString=''):MeshGroup;
 Var
   I:Integer;
 Begin
@@ -5792,12 +5791,12 @@ Begin
   Result._BoundingBox := Group._BoundingBox;
 End;
 
-Procedure Mesh.AddTriangle(Const A,B,C:Integer; Group:MeshGroup);
+Procedure TERRAMesh.AddTriangle(Const A,B,C:Integer; Group:MeshGroup);
 Begin
 	Group.AddTriangle(A,B,C);
 End;
 
-Procedure Mesh.AddQuad(Const A,B,C,D:Integer; Group:MeshGroup);
+Procedure TERRAMesh.AddQuad(Const A,B,C,D:Integer; Group:MeshGroup);
 Begin
 	Group.AddQuad(A,B,C,D);
 End;
@@ -5833,7 +5832,7 @@ Begin
 End;
  }
 
-Procedure Mesh.RemoveGroups;
+Procedure TERRAMesh.RemoveGroups;
 Var
 	I:Integer;
 Begin
@@ -5847,7 +5846,7 @@ Begin
 	_Groups := Nil;
 End;
 
-Procedure Mesh.Clean;
+Procedure TERRAMesh.Clean;
 Var
 	I:Integer;
 Begin
@@ -5867,7 +5866,7 @@ Begin
   ReleaseObject(_Skeleton);
 End;
 
-Function Mesh.GetSkeleton:MeshSkeleton;
+Function TERRAMesh.GetSkeleton:MeshSkeleton;
 Begin
   If Not Assigned(_Skeleton) Then
   Begin
@@ -5878,7 +5877,7 @@ Begin
   Result := _Skeleton;
 End;
 
-Function Mesh.Load(Source:Stream):Boolean;
+Function TERRAMesh.Load(Source:Stream):Boolean;
 Var
   Size:Integer;
   Tag:FileHeader;
@@ -5910,7 +5909,7 @@ Begin
   Result := True;
 End;
 
-Function Mesh.Save(Dest:Stream):Boolean;
+Function TERRAMesh.Save(Dest:Stream):Boolean;
 Var
   I,J, Size, Temp, Temp2, Count:Integer;
   Tag:FileHeader;
@@ -6009,7 +6008,7 @@ Begin
   Result := True;
 End;
 
-Function Mesh.Intersect(const R: Ray; var T:Single; Const Transform:Matrix4x4): Boolean;
+Function TERRAMesh.Intersect(const R: Ray; var T:Single; Const Transform:Matrix4x4): Boolean;
 Var
   I:Integer;
 Begin
@@ -6023,14 +6022,14 @@ Begin
   Result := False;
 End;
 
-Function Mesh.Unload:Boolean;
+Function TERRAMesh.Unload:Boolean;
 Begin
   Clean;
   Result := True;
 End;
 
 
-Procedure Mesh.UpdateBoundingBox;
+Procedure TERRAMesh.UpdateBoundingBox;
 Var
 	I:Integer;
 Begin
@@ -6053,7 +6052,7 @@ Begin
   Log(logDebug, 'Mesh', 'Finished updating bounding box for '+Self.Name);
 End;
 
-Function Mesh.Update:Boolean;
+Function TERRAMesh.Update:Boolean;
 Var
 	I:Integer;
 Begin
@@ -6069,7 +6068,7 @@ Begin
 End;
 
 
-Function Mesh.PolyCount:Integer;
+Function TERRAMesh.PolyCount:Integer;
 Var
   I:Integer;
 Begin
@@ -6078,7 +6077,7 @@ Begin
     Inc(Result, _Groups[I].TriangleCount);
 End;
 
-Constructor Mesh.CreateFromFilter(Source:MeshFilter);
+Constructor TERRAMesh.CreateFromFilter(Source:MeshFilter);
 Var
   I, J, N:Integer;
   Format:VertexFormat;
@@ -6174,7 +6173,7 @@ Begin
   Self.Update;
 End;
 
-Function Mesh.GetEmitter(Index:Integer):MeshEmitter;
+Function TERRAMesh.GetEmitter(Index:Integer):MeshEmitter;
 Begin
   If (Index<0) Or (Index>=_EmitterCount) Then
     Result := Nil
@@ -6182,7 +6181,7 @@ Begin
     Result := (_Emitters[Index]);
 End;
 
-Function Mesh.AddEmitter(Name:TERRAString; Position: Vector3D; Content:TERRAString; ParentBone:TERRAString):MeshEmitter;
+Function TERRAMesh.AddEmitter(Name:TERRAString; Position: Vector3D; Content:TERRAString; ParentBone:TERRAString):MeshEmitter;
 Begin
   Result := MeshEmitter.Create(Self);
   Result.Name := Name;
@@ -6196,7 +6195,7 @@ Begin
   _Emitters[Pred(_EmitterCount)] := Result;
 End;
 
-Function Mesh.GetLight(Index:Integer):MeshLight;
+Function TERRAMesh.GetLight(Index:Integer):MeshLight;
 Begin
   If (Index<0) Or (Index>=_LightCount) Then
     Result := Nil
@@ -6204,7 +6203,7 @@ Begin
     Result := (_Lights[Index]);
 End;
 
-Function Mesh.AddLight(Name:TERRAString; Position:Vector3D; LightType:Integer; LightColor:Color; Param1, Param2, Param3:Vector3D; ParentBone:TERRAString):MeshLight;
+Function TERRAMesh.AddLight(Name:TERRAString; Position:Vector3D; LightType:Integer; LightColor:Color; Param1, Param2, Param3:Vector3D; ParentBone:TERRAString):MeshLight;
 Begin
   Result := MeshLight.Create(Self);
   Result.Name := Name;
@@ -6222,12 +6221,12 @@ Begin
   _Lights[Pred(_LightCount)] := Result;
 End;
 
-Function Mesh.AddLight(OtherLight:MeshLight):MeshLight;
+Function TERRAMesh.AddLight(OtherLight:MeshLight):MeshLight;
 Begin
   Result := Self.AddLight(OtherLight.Name, OtherLight.Position, OtherLight.LightType, OtherLight.LightColor, OtherLight.Param1, OtherLight.Param2, OtherLight.Param3, OtherLight.ParentBone);
 End;
 
-Procedure Mesh.AddMetadata(Name:TERRAString; Position: Vector3D; Content:TERRAString);
+Procedure TERRAMesh.AddMetadata(Name:TERRAString; Position: Vector3D; Content:TERRAString);
 Begin
   Inc(_MetaDataCount);
   SetLength(_Metadata, _MetaDataCount);
@@ -6237,7 +6236,7 @@ Begin
   _Metadata[Pred(_MetaDataCount)].Content := Content;
 End;
 
-Function Mesh.GetMetadata(Const Name:TERRAString): MeshMetadata;
+Function TERRAMesh.GetMetadata(Const Name:TERRAString): MeshMetadata;
 Var
   I:Integer;
 Begin
@@ -6251,7 +6250,7 @@ Begin
   Result := Nil;
 End;
 
-Function Mesh.GetMetadata(Index: Integer): MeshMetadata;
+Function TERRAMesh.GetMetadata(Index: Integer): MeshMetadata;
 Begin
   If (Index<0) Or (Index>=_MetadataCount) Then
     Result := Nil
@@ -6259,7 +6258,7 @@ Begin
     Result := _Metadata[Index];
 End;
 
-Procedure Mesh.Optimize(VertexCacheSize:Integer);
+Procedure TERRAMesh.Optimize(VertexCacheSize:Integer);
 Var
   I:Integer;
 Begin
@@ -6268,7 +6267,7 @@ Begin
     _Groups[I].Optimize(VertexCacheSize);
 End;
 
-Procedure Mesh.Transform(const TargetTransform: Matrix4x4);
+Procedure TERRAMesh.Transform(const TargetTransform: Matrix4x4);
 Var
   I:Integer;
 Begin
@@ -6276,7 +6275,7 @@ Begin
     _Groups[I].Transform(TargetTransform);
 End;
 
-Function Mesh.GetGroupCount: Integer;
+Function TERRAMesh.GetGroupCount: Integer;
 Begin
   If (Self._GroupCount<=0) Then
     Self.Prefetch();
@@ -6284,7 +6283,7 @@ Begin
   Result := Self._GroupCount;
 End;
 
-Procedure Mesh.Clone(Source:Mesh);
+Procedure TERRAMesh.Clone(Source:TERRAMesh);
 Var
   I,J:Integer;
   T:Triangle;
@@ -6350,7 +6349,7 @@ Begin
   Self.SetStatus(rsReady);
 End;
 
-Function Mesh.AddBoneMorph(MorphID: Integer):Integer;
+Function TERRAMesh.AddBoneMorph(MorphID: Integer):Integer;
 Begin
   Result := Self._BoneMorphCount;
   Inc(_BoneMorphCount);
@@ -6360,7 +6359,7 @@ Begin
   SetLength(_BoneMorphs[Result].Values, Self.Skeleton.BoneCount);
 End;
 
-Procedure Mesh.SetBoneMorph(MorphID, BoneID:Integer; Const Value:Vector3D);
+Procedure TERRAMesh.SetBoneMorph(MorphID, BoneID:Integer; Const Value:Vector3D);
 Var
   I:Integer;
 Begin
@@ -6373,7 +6372,7 @@ Begin
   End;
 End;
 
-Function Mesh.GetBoneMorph(MorphID, BoneID: Integer): Vector3D;
+Function TERRAMesh.GetBoneMorph(MorphID, BoneID: Integer): Vector3D;
 Var
   I:Integer;
 Begin
@@ -6387,7 +6386,7 @@ Begin
   Result := VectorZero;
 End;
 
-Function Mesh.HasBoneMorph(MorphID: Integer): Boolean;
+Function TERRAMesh.HasBoneMorph(MorphID: Integer): Boolean;
 Var
   I:Integer;
 Begin
@@ -6401,7 +6400,7 @@ Begin
   Result := False;
 End;
 
-Procedure Mesh.CullTriangles(Box: BoundingBox; Transform:Matrix4x4);
+Procedure TERRAMesh.CullTriangles(Box: BoundingBox; Transform:Matrix4x4);
 Var
   I:Integer;
 Begin
@@ -6410,7 +6409,7 @@ Begin
     _Groups[I].CullTriangles(Box, Transform);
 End;
 
-Procedure Mesh.UncullTriangles;
+Procedure TERRAMesh.UncullTriangles;
 Var
   I:Integer;
 Begin
@@ -6418,14 +6417,14 @@ Begin
     _Groups[I].UncullTriangles();
 End;
 
-Procedure Mesh.Release;
+Procedure TERRAMesh.Release;
 Begin
   ReleaseObject(_Filter);
 
   Inherited;
 End;
 
-Function Mesh.GetMeshFilter: MeshFilter;
+Function TERRAMesh.GetMeshFilter: MeshFilter;
 Begin
   If (_Filter = Nil) Then
   Begin
@@ -6653,7 +6652,7 @@ Begin
   // do nothing
 End;
 
-Function MeshMerger.Merge(Source, Dest:Mesh; DestFormat:VertexFormat; IndividualGroup: Boolean; MaxVertsPerGroup: Integer; UpdateBox:Boolean): IntegerArrayObject;
+Function MeshMerger.Merge(Source, Dest:TERRAMesh; DestFormat:VertexFormat; IndividualGroup: Boolean; MaxVertsPerGroup: Integer; UpdateBox:Boolean): IntegerArrayObject;
 Var
   I, J, Init:Integer;
   Target, SourceGroup:MeshGroup;
@@ -6804,7 +6803,7 @@ Begin
 End;
 
 { MeshEmitter }
-Constructor MeshEmitter.Create(Owner: Mesh);
+Constructor MeshEmitter.Create(Owner: TERRAMesh);
 Begin
   Self.Owner := Owner;
   Self.BoneIndex := -1;
@@ -6822,7 +6821,7 @@ Begin
 End;
 
 { MeshLight }
-Constructor MeshLight.Create(Owner: Mesh);
+Constructor MeshLight.Create(Owner: TERRAMesh);
 Begin
   Self.GroupIndex := -1;
   Self.Owner := Owner;

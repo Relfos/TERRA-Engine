@@ -232,8 +232,6 @@ Type
 
       Procedure EnableReflection(Const ReflectionPoint, ReflectionNormal:Vector3D);
 
-      Function CreateMainViewport(Const Name:TERRAString; Width, Height:Integer):TERRAViewport;
-
       Property ElapsedTime:Single Read _elapsedTime;
 
       Property ViewportCount:Integer Read _ViewportCount;
@@ -1925,15 +1923,6 @@ Begin
   {$ENDIF}
 End;
 
-Function GraphicsManager.CreateMainViewport(Const Name:TERRAString; Width, Height:Integer):TERRAViewport;
-Begin
-  Result := TERRAViewport.Create(Name, Width, Height);
-  Result.SetTarget(Self.DeviceViewport, 0.0, 0.0, 1.0, 1.0);
-  Self.AddViewport(Result);
-  Result.Visible := True;
-  Result.EnableDefaultTargets();
-  Result.BackgroundColor := ColorGreen;
-End;
 
 Function GraphicsManager.AddRenderable(View:TERRAViewport; MyRenderable: Renderable; Flags: Cardinal): Boolean;
 Begin

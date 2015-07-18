@@ -123,7 +123,7 @@ Type
       Constructor Create(Stacks, Slices:Cardinal; Inverted:Boolean; Capped:Boolean = True);
   End;
 
-  Function CreateMeshFromSolid(S:SolidMesh; Tex:TERRATexture = Nil):Mesh;
+  Function CreateMeshFromSolid(S:SolidMesh; Tex:TERRATexture = Nil):TERRAMesh;
 
 Implementation
 Uses TERRA_Error;
@@ -752,14 +752,14 @@ Begin
   End;
 End;
 
-Function CreateMeshFromSolid(S:SolidMesh; Tex:TERRATexture):Mesh;
+Function CreateMeshFromSolid(S:SolidMesh; Tex:TERRATexture):TERRAMesh;
 Var
   Group:MeshGroup;
   I:Integer;
   It:VertexIterator;
   Dest:SolidVertex;
 Begin
-  Result := Mesh.Create(rtDynamic, S.ClassName);
+  Result := TERRAMesh.Create(rtDynamic, S.ClassName);
   Group := Result.AddGroup([vertexFormatPosition, vertexFormatColor, vertexFormatNormal, vertexFormatTangent, vertexFormatUV0], '');
   Group.Flags := 0;
 //  Group.AmbientColor := ColorWhite;

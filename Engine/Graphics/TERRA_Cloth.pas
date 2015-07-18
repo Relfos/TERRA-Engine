@@ -25,269 +25,497 @@
 Unit TERRA_Cloth;
 {$I terra.inc}
 
-{
-TODO
-- add stick and slider constraints
-
-GPU ARRAY
-- 1 texture with each particle position x,y,z, mass
-- 2 texture with each particle last position x,y,z, fixed
-- 3 texture with each particle acceleration x,y,z
-- 4 texture with contrainsts A,B, rest distance
-
-}
-
 Interface
-Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_GraphicsManager, TERRA_Texture, TERRA_Quaternion, TERRA_Classes, TERRA_Math,
-  TERRA_BoundingBox, TERRA_Vector3D, TERRA_Vector2D, TERRA_Ray, TERRA_Particles, TERRA_VerletParticle,
-  TERRA_Color, TERRA_Shader;
+Uses TERRA_Object, TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color,
+  TERRA_Resource, TERRA_Texture, TERRA_Mesh, TERRA_MeshFilter, TERRA_VertexFormat;
 
+Const
+  MinimumDelta = 10;
+  SimScale = 1;
+
+  DefaultGravity:Vector3d = (X:0.0; Y:-0.98 * SimScale; Z:0.0);
+
+
+  // size of the cloth mesh
+  ClothScale = 20.0; //10
+
+//Values given to each spring
+  StretchStiffness = 2.5 * ClothScale;
+  BendStiffness = 1.0 * ClothScale;
+
+
+//Values given to each ball
+  mass = 0.01 * SimScale;
+
+//Damping factor. Velocities are multiplied by this
+  dampFactor=0.9;
+
+//Grid complexity. This is the number of Particles across and down in the model
+  gridSize = 13* SimScale; //13;
+  
 Type
-  VerletCloth = Class(TERRAObject)
+  ClothSystem = Class;
+
+  ClothSpring = Object
     Protected
-		  _Shader:Shader;
+    	//Indices of the Particles at either end of the spring
+  	  P1, P2:Integer;
 
-      _ParticleSystem:VerletSystem;
-      _Vertices:Array Of ParticleVertex;
-      _VertexCount:Integer;
-      _Triangles:Array Of Triangle;
-      _TriangleCount:Integer;
-      _SourceMesh:Pointer;
-      _NormalIndices:Array Of IntegerArray;
-      _Normals:Array Of Vector3D;
+      _NaturalLength:Double;
+    	_InverseLength:Double;
 
-	{ A private method used by drawShaded() and addWindForcesForTriangle() to retrieve the
-	normal vector of the triangle defined by the position of the particles p1, p2, and p3.
-	The magnitude of the normal vector is equal to the area of the parallelogram defined by p1, p2 and p3
-	}
-	    Function calcTriangleNormal(A,B,C:Integer):Vector3D;
+      _Stiffness:Double;
+      
+    Procedure Init(PID1, PID2: Integer; Len, Stiffness:Double);
+  End;
 
-	// A private method used by windForce() to calcualte the wind force for a single triangle defined by p1,p2,p3
-	    Procedure AddWindForcesForTriangle(A,B,C:Integer; direction:Vector3D);
+  ClothSpringLink = Record
+    SpringIndex:Integer;
+    ParticleIndex:Integer;
+  End;
 
-      Procedure UpdateNormals;
+  ClothParticle = Object
+    Protected
+	    CurrentPosition:Vector3D;
+    	CurrentVelocity:Vector3D;
 
-  Public
+	    NextPosition:Vector3D;
+  	  NextVelocity:Vector3D;
 
-	  //This is a important constructor for the entire system of particles and constraints*/
-	  Constructor Create(SourceMeshGroup:Pointer);
-    Procedure Release;
+      _Tension:Vector3D;
+	    _InverseMass:Single;
 
-	{ drawing the cloth as a smooth shaded (and colored according to column) OpenGL triangular mesh
-	Called from the display() method
-	The cloth is seen as consisting of triangles for four particles in the grid as follows:
+  	  //Is this ball held in position?
+	    _Fixed:Boolean;
+  End;
 
-	(x,y)   *--* (x+1,y)
-	        | /|
-	        |/ |
-	(x,y+1) *--* (x+1,y+1)
+  ClothCollider = Record
+    Position:Vector3D;
+    Radius:Single;
+  End;
 
-	}
-	  Procedure Render(Instance:Pointer);
-    Function GetBoundingBox:BoundingBox;
+  ClothSystem = Class(TERRAObject)
+    Protected
+      _SpringCount:Integer;
+      _Springs:Array Of ClothSpring;
+      _ParticleCount:Integer;
+      _Particles:Array Of ClothParticle;
 
-    Procedure AddForce(F:Vector3D);
+      _Mesh:TERRAMesh;
+      _Group:MeshGroup;
+      _VertexFormat:VertexFormat;
 
-	// used to add wind forces to all particles, is added for each triangle since the final force is proportional to the triangle area as seen from the wind direction
-	  Procedure WindForce(direction:Vector3D);
+      _LastTime:Cardinal;
+      _timeSinceLastUpdate:Cardinal;
 
-	  Procedure BallCollision(center:Vector3D; Radius:Single);
+      _Gravity:Vector3D;
 
-    Procedure PinPoint(Index:Integer);
+      _Colliders:Array Of ClothCollider;
+      _ColliderCount:Integer;
 
-    Function Intersect(Const R:Ray; Var T:Single):Boolean;
+      Procedure InitMesh(Texture:TERRATexture);
+      Procedure UpdateMesh();
+
+    Public
+      Constructor Create(Texture:TERRATexture);
+      Procedure Release(); Override;
+      Procedure Reset();
+      Procedure Simulate();
+
+      Procedure UnpinParticle(Index:Integer);
+
+      Procedure SetCollider(Index:Integer; Const Pos:Vector3D; Const Radius:Single);
+
+      Property Mesh:TERRAMesh Read _Mesh;
   End;
 
 Implementation
-Uses {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_ResourceManager, TERRA_Matrix, TERRA_Mesh, TERRA_MeshInstance,
-  TERRA_Lights;
+Uses TERRA_OS;
 
-Function VerletCloth.calcTriangleNormal(A,B,C:Integer):Vector3D;
-Var
-  VA,VB:Vector3D;
-  p1,p2,p3:PVerletParticle;
+{ ClothSpring }
+Procedure ClothSpring.Init(PID1, PID2: Integer; Len, Stiffness:Double);
 Begin
-  P1 := _ParticleSystem.GetParticle(A);
-  P2 := _ParticleSystem.GetParticle(B);
-  P3 := _ParticleSystem.GetParticle(C);
-  VA := VectorSubtract(P2.Position, P1.Position);
-  VB := VectorSubtract(P3.Position, P1.Position);
-  Result := VectorCross(VA,VB);
-  Result.Normalize;
+  Self.P1 := PID1;
+  Self.P2 := PID2;
+  Self._NaturalLength := Len;
+  Self._InverseLength := 1.0 / Len;
+  Self._Stiffness := Stiffness;
 End;
 
-Procedure VerletCloth.addWindForcesForTriangle(A,B,C:Integer; direction:Vector3D);
-Var
-  D, Force, Normal:Vector3D;
-  p1,p2,p3:PVerletParticle;
-Begin
-  P1 := _ParticleSystem.GetParticle(A);
-  P2 := _ParticleSystem.GetParticle(B);
-  P3 := _ParticleSystem.GetParticle(C);
-  Normal := CalcTriangleNormal(A,B,C);
-  D := Normal;
-  D.Normalize;
-  Force := VectorScale(Normal, VectorDot(D, direction));
-  p1.addForce(force);
-	p2.addForce(force);
-  p3.addForce(force);
-End;
-
-Constructor VerletCloth.Create(SourceMeshGroup:Pointer);
-Var
-  Pos:Vector3D;
-  P:PVerletParticle;
-  I,J:Integer;
-  Group:MeshGroup;
-  V:MeshVertex;
-  T:Triangle;
-  MinDist:Single;
-Begin
-  _SourceMesh := SourceMeshGroup;
-  Group := SourceMeshGroup;
-
-  _Shader := ResourceManager.Instance.GetShader('cloth');
-
-  _VertexCount := Group.VertexCount;
-
-  SetLength(_Vertices, _VertexCount);
-  For I:=0 To Pred(_VertexCount) Do
-  Begin
-    V := Group.GetVertex(I);
-    _Vertices[I].Position := V.Position; // insert particle in column x at y'th row
-    _Vertices[I].UV := V.TextureCoords;
-    _Vertices[I].Normal := V.Normal;
-    _Vertices[I].Color := ColorWhite;
-  End;
-
-  _ParticleSystem := VerletSystem.Create(@(_Vertices[0]), _VertexCount, False);
-
-  // create geometry
-  _TriangleCount := Group.TriangleCount;
-  SetLength(_Triangles, _TriangleCount);
-  SetLength(_NormalIndices, _VertexCount);
-  SetLength(_Normals, _TriangleCount);
-  For I:=0 To Pred(Group.TriangleCount) Do
-  Begin
-    T := Group.GetTriangle(I);
-
-    _Triangles[I].A := T.A;
-    _Triangles[I].B := T.B;
-    _Triangles[I].C := T.C;
-
-    _NormalIndices[T.A].Add(I);
-    _NormalIndices[T.B].Add(I);
-    _NormalIndices[T.C].Add(I);
-  End;
-
-  T := Group.GetTriangle(0);
-  MinDist := _Vertices[T.A].Position.Distance(_Vertices[T.B].Position)* 1.2;
-
-  For I:=0 To Pred(_VertexCount) Do
-    For J:=0 To Pred(_VertexCount) Do
-      If (I<>J) And (_Vertices[I].Position.Distance(_Vertices[J].Position)<=MinDist) Then
-        _ParticleSystem.AddConstraint(I, J);
-End;
-
-Procedure VerletCloth.Release;
-Begin
-  ReleaseObject(_ParticleSystem);
-End;
-
-Procedure VerletCloth.PinPoint(Index:Integer);
-Var
-  P:PVerletParticle;
-Begin
-  P := _ParticleSystem.GetParticle(Index);
-//  P.offsetPos(VectorCreate(0.0,-0.5,0.0)); // moving the particle a bit towards the center, to make it hang more natural - because I like it ;)
-  P.Fixed := True;
-End;
-
-Function VerletCloth.GetBoundingBox:BoundingBox;
-Begin
-  Result := _ParticleSystem.BoundingBox;
-End;
-
-Procedure VerletCloth.UpdateNormals;
-Var
-  I,J,N:Integer;
-Begin
-  For I:=0 To Pred(_TriangleCount) Do
-    _Normals[I] := calcTriangleNormal(_Triangles[I].A, _Triangles[I].B, _Triangles[I].C);
-
-  //create smooth per particle normals by adding up all the (hard) triangle normals that each particle is part of
-  For I:=0 To Pred(_VertexCount) Do
-    For J := 0 To Pred(_NormalIndices[I].Count) Do
-    Begin
-      N := _NormalIndices[I].Items[J];
-      _Vertices[I].Normal.Add(_Normals[N]);
-    End;
-End;
-
-Procedure VerletCloth.Render(Instance:Pointer);
-Var
-  Normal, Color:Vector3D;
-  I,J:Integer;
-  Group:MeshGroup;
-Begin
-  Group := MeshGroup(Self._SourceMesh);
-
-{  If (Assigned(LightManager.Instance.ActiveShadowMap)) Then
-  Begin
-    LightManager.Instance.ActiveShadowMap.SetShader(False);
-  End Else}
-  Begin
-    Texture.Bind(Group.DiffuseMap, 0);
-  	Shader.Bind(_Shader);
-    Shader.SetUniform('diffuseMap',0);
-    GraphicsManager.Instance.ActiveViewport.Camera.SetUniforms;
-  End;
-
-  Shader.SetUniform('modelMatrix', MeshInstance(Instance).Transform);
-
-  _ParticleSystem.Update;
-
-  UpdateNormals;
-
-{$IFNDEF MOBILE}
-  glDisable(GL_CULL_FACE);    
-  glBegin(GL_TRIANGLES);
-  For I:=0 To Pred(_TriangleCount) Do
-    For J:=0 To 2 Do
-    Begin
-    	glNormal3fv(@_Vertices[_Triangles[I].Indices[J]].Normal);
-    	glColor4fv(@_Vertices[_Triangles[I].Indices[J]].Color);
-      glMultiTexCoord2fv(GL_TEXTURE0, @_Vertices[_Triangles[I].Indices[J]].UV);
-    	glVertex3fv(@_Vertices[_Triangles[I].Indices[J]].Position);
-    End;
-  glEnd;  
-  glEnable(GL_CULL_FACE);  
-  
-{$ENDIF}
-End;
-
-Procedure VerletCloth.AddForce(F:Vector3D);
-Begin
-  _ParticleSystem.AddForce(F);
-End;
-
-Procedure VerletCloth.WindForce(direction:Vector3D);
+{ ClothSystem }
+Constructor ClothSystem.Create(Texture:TERRATexture);
 Var
   I:Integer;
 Begin
-  For I:=0 To Pred(_TriangleCount) Do
-    AddWindForcesForTriangle(_Triangles[I].A, _Triangles[I].B, _Triangles[I].C, direction);
+  _lastTime := 0;
+  _timeSinceLastUpdate := 0;
+
+  _Gravity := DefaultGravity;
+
+	//Calculate number of Particles
+	_ParticleCount := gridSize*gridSize;
+
+	//Calculate number of springs
+	//There is a spring pointing right for each ball which is not on the right edge,
+	//and one pointing down for each ball not on the bottom edge
+	_SpringCount := (gridSize-1)*gridSize*2;
+
+	//There is a spring pointing down & right for each ball not on bottom or right,
+	//and one pointing down & left for each ball not on bottom or left
+	Inc(_SpringCount, (gridSize-1)*(gridSize-1)*2);
+
+	//There is a spring pointing right (to the next but one ball)
+	//for each ball which is not on or next to the right edge,
+	//and one pointing down for each ball not on or next to the bottom edge
+	Inc(_SpringCount, (gridSize-2)*gridSize*2);
+
+	//Create space for Particles & springs
+	SetLength(_Particles, _ParticleCount);
+	SetLength(_Springs, _SpringCount);
+
+  InitMesh(Texture);
+
+	//Reset cloth
+	Self.Reset();
 End;
 
-Procedure VerletCloth.BallCollision(center:Vector3D; Radius:Single);
+Procedure ClothSystem.InitMesh(Texture:TERRATexture);
+Var
+  BallID:Integer;
+  I, J, K:Integer;
+  i0, i1, i2, i3:Integer;
+  T:Triangle;
 Begin
-  _ParticleSystem.BallCollision(Center, Radius);
+  ReleaseObject(_Mesh);
+  _Mesh := TERRAMesh.Create(rtDynamic, 'cloth');
+
+  _VertexFormat := [vertexFormatPosition, vertexFormatNormal, vertexFormatColor, vertexFormatUV0];
+
+  _Group := _Mesh.AddGroup(_VertexFormat);
+  _Group.DiffuseMap := Texture;
+  _Group.Flags := _Group.Flags Or meshGroupDoubleSided;
+
+  _Group.TriangleCount := (gridSize * gridSize) * 2;
+  _Group.VertexCount := (gridSize * gridSize);
+
+  K := 0;
+  For J:=0 To Pred(gridSize-1) Do
+    For I:=1 To Pred(gridSize-1) Do
+		Begin
+      i0 := J*gridSize + I;
+			i1 := J*gridSize + I + 1;
+			i2 := (J+1)*gridSize + I;
+			i3 := (J+1)*gridSize + I + 1;
+
+      T.Indices[0] := i2;
+      T.Indices[1] := i1;
+      T.Indices[2] := i0;
+      _Group.SetTriangle(T, K); Inc(K);
+
+      T.Indices[0] := i2;
+      T.Indices[1] := i3;
+      T.Indices[2] := i1;
+      _Group.SetTriangle(T, K); Inc(K);
+    End;
+
+  For J:=0 To Pred(gridSize) Do
+    For I:=1 To Pred(gridSize) Do
+		Begin
+      BallID := J*gridSize+I;
+      _Group.Vertices.SetVector2D(BallID, vertexUV0, VectorCreate2D(I/GridSize, J/GridSize));
+      _Group.Vertices.SetColor(BallID, vertexColor, ColorWhite);
+    End;
 End;
 
-Function VerletCloth.Intersect(Const R:Ray; Var T:Single):Boolean;
+Procedure ClothSystem.Reset();
+Var
+  I, J, K:Integer;
+  BallID, X,Y:Integer;
+  currentSpring:Integer;
+  naturalLength:Single;
+
+  U,V:Single;
 Begin
-  Result := False;
+	//Initialise the Particles in an evenly spaced grid in the x-z plane
+  For J:=0 To Pred(gridSize) Do
+    For I:=0 To Pred(gridSize) Do
+		Begin
+      U := (I/Pred(gridSize)) - 0.5;
+      V := (J/Pred(gridSize)) - 0.5;
+
+      BallID := J*gridSize+I;
+			_Particles[BallID].CurrentPosition := VectorCreate(ClothScale * U, 8.5, ClothScale * V);
+			_Particles[BallID].CurrentVelocity := VectorZero;
+
+			_Particles[BallID]._InverseMass := 1 / Mass;
+			_Particles[BallID]._Fixed := False;
+
+      _Particles[BallID]._Tension := VectorZero;
+		End;
+
+  NaturalLength := _Particles[0].CurrentPosition.Distance(_Particles[1].CurrentPosition);
+
+	//Fix the top left & top right Particles in place
+	_Particles[0]._Fixed := true;
+	_Particles[gridSize-1]._Fixed :=true;
+
+	//Fix the bottom left & bottom right Particles
+	_Particles[gridSize*(gridSize-1)]._Fixed := true;
+	_Particles[gridSize*gridSize-1]._Fixed := true;
+
+  //_Particles[(gridSize Shr 1) * GRidsize +  (gridSize Shr 1)]._Fixed :=true;
+
+	//Initialise the springs
+	currentSpring := 0;
+
+	//The first (gridSize-1)*gridSize springs go from one ball to the next,
+	//excluding those on the right hand edge
+  For J:=0 To Pred(gridSize) Do
+    For I:=0 To Pred(gridSize-1) Do
+		Begin
+			_Springs[CurrentSpring].Init(J*gridSize+I, J*gridSize+I+1, naturalLength, StretchStiffness);
+			Inc(currentSpring);
+		End;
+
+	//The next (gridSize-1)*gridSize springs go from one ball to the one below,
+	//excluding those on the bottom edge
+  For J:=0 To Pred(gridSize-1) Do
+    For I:=0 To Pred(gridSize) Do
+    Begin
+			_Springs[CurrentSpring].Init(J*gridSize+I, (J+1)*gridSize+I, naturalLength, StretchStiffness);
+			Inc(currentSpring);
+    End;
+
+	//The next (gridSize-1)*(gridSize-1) go from a ball to the one below and right
+	//excluding those on the bottom or right
+  For J:=0 To Pred(gridSize-1) Do
+    For I:=0 To Pred(gridSize-1) Do
+		Begin
+      _Springs[CurrentSpring].Init(J*gridSize+I, (J+1)*gridSize+I+1, naturalLength*sqrt(2.0), BendStiffness);
+			Inc(currentSpring);
+		End;
+
+	//The next (gridSize-1)*(gridSize-1) go from a ball to the one below and left
+	//excluding those on the bottom or right
+  For J:=0 To Pred(gridSize-1) Do
+    For I:=1 To Pred(gridSize) Do
+		Begin
+      _Springs[CurrentSpring].Init(J*gridSize+I, (J+1)*gridSize+I-1, naturalLength*sqrt(2.0), BendStiffness);
+			Inc(currentSpring);
+		End;
+
+	//The first (gridSize-2)*gridSize springs go from one ball to the next but one,
+	//excluding those on or next to the right hand edge
+  For J:=0 To Pred(gridSize) Do
+    For I:=0 To Pred(gridSize-2) Do
+		Begin
+      _Springs[CurrentSpring].Init(J*gridSize+I, J*gridSize+I+2, naturalLength*2, BendStiffness);
+			Inc(currentSpring);
+		End;
+
+
+	//The next (gridSize-2)*gridSize springs go from one ball to the next but one below,
+	//excluding those on or next to the bottom edge
+  For J:=0 To Pred(gridSize-2) Do
+    For I:=0 To Pred(gridSize) Do
+		Begin
+      _Springs[CurrentSpring].Init(J*gridSize+I, (J+2)*gridSize+I, naturalLength*2, BendStiffness);
+			Inc(currentSpring);
+		End;
+
+
+  UpdateMesh();
+End;
+
+Procedure ClothSystem.UpdateMesh();
+Var
+  I, J, BallID, Index, X, Y:Integer;
+  normal:Vector3D;
+
+  Vertices:VertexData;
+Begin
+  _Group.CalculateTriangleNormals();
+
+  Vertices := _Group.LockVertices();
+
+  //Calculate the normals on the current Particles
+  For J:=0 To Pred(gridSize) Do
+    For I:=0 To Pred(gridSize) Do
+    Begin
+      BallID := J*gridSize+I;
+      Normal := VectorZero;
+      For Y:=0 To 1 Do
+        For X:=0 To 1 Do
+        If (X+I<GridSize) And (Y+J<GridSize) Then
+        Begin
+          Index := (J+Y)* gridSize + (I + X) * 2;
+          Normal.Add(_Group.GetTriangleNormal(Index));
+
+          Inc(Index);
+          Normal.Add(_Group.GetTriangleNormal(Index));
+        End;
+
+      //Normal.Normalize();
+      Normal.Scale(0.25);
+      Vertices.SetVector3D(BallID, vertexNormal, Normal);
+    End;
+
+  For J:=0 To Pred(gridSize) Do
+    For I:=1 To Pred(gridSize) Do
+		Begin
+      BallID := J*gridSize+I;
+      Vertices.SetVector3D(BallID, vertexPosition, _Particles[BallID].CurrentPosition);
+    End;
+
+
+  _Group.UnlockVertices();
+
+  _Mesh.UpdateBoundingBox();
+End;
+
+Procedure ClothSystem.Simulate;
+Var
+  currentTime, timePassed:Cardinal;
+  updateMade:Boolean;
+  timePassedInSeconds:Single;
+  I, J, K, N:Integer;
+
+  springLength, Extension, Tension:Double;
+  force, acceleration, tensionDirection:VECTOR3D;
+  P:Vector3D;
+Begin
+	//set currentTime and timePassed
+  If _lastTime =0 Then
+  Begin
+    _lastTime := Application.Instance.GetTime();
+    Exit;
+  End;
+
+	currentTime := Application.Instance.GetTime();
+	timePassed := currentTime - _lastTime;
+	_lastTime := currentTime;
+
+	//Update the physics in intervals of 10ms to prevent problems
+	//with different frame rates causing different damping
+	Inc(_timeSinceLastUpdate, timePassed);
+
+	updateMade := false;	//did we update the positions etc this time?
+
+	while (_timeSinceLastUpdate>MinimumDelta) Do
+	Begin
+		Dec(_timeSinceLastUpdate, MinimumDelta);
+		timePassedInSeconds := 1.0/ (1000/MinimumDelta);
+		updateMade := True;
+
+		//Calculate the tensions in the springs
+		For I:=0 To Pred(_SpringCount) Do
+		Begin
+      TensionDirection :=	VectorSubtract(_Particles[_Springs[i].P1].CurrentPosition, _Particles[_Springs[i].P2].CurrentPosition);
+
+			springLength := TensionDirection.Length();
+			extension := springLength - _Springs[i]._naturalLength;
+
+			//_Springs[i].
+      Tension := _Springs[i]._Stiffness * (Extension * _Springs[i]._InverseLength);
+
+      TensionDirection.Scale(Tension  * (1 / springLength));
+
+      _Particles[_Springs[i].P2]._Tension.Add(tensionDirection);
+      tensionDirection.Scale(-1.0);
+      _Particles[_Springs[i].P1]._Tension.Add(tensionDirection);
+		End;
+
+
+		//Calculate the nextParticles from the currentParticles
+		For I:=0 To Pred(_ParticleCount) Do
+		Begin
+			//If the ball is fixed, transfer the position and zero the velocity, otherwise calculate
+			//the new values
+			If (_Particles[i]._Fixed) Then
+			Begin
+				_Particles[i].NextPosition := _Particles[i].CurrentPosition;
+				_Particles[i].NextVelocity := VectorZero;
+        (*If MoveCloth Then
+          _Particles[i].NextPosition.Add(VectorCreate(0, 2 * timePassedInSeconds, 5 * timePassedInSeconds));*)
+        Continue;
+			End;
+
+      //Calculate the force on this ball
+      Force := VectorAdd(_Gravity, _Particles[I]._Tension);
+
+			//Calculate the acceleration
+			Acceleration := VectorScale(force, _Particles[i]._InverseMass);
+
+			//Update velocity
+			_Particles[i].NextVelocity := VectorAdd(_Particles[i].CurrentVelocity, VectorScale(acceleration, timePassedInSeconds));
+
+			//Damp the velocity
+			_Particles[i].NextVelocity.Scale(dampFactor);
+
+			//Calculate new position
+       //Forcse := VectorAdd(VectorScale(Particles[i].NextVelocity, 0.5), VectorScale(Particles[i].CurrentVelocity, 0.5));
+       Force := _Particles[i].NextVelocity;
+
+       Force.Scale(timePassedInSeconds);
+			_Particles[i].NextPosition := VectorAdd(_Particles[i].CurrentPosition, Force);
+
+			//Check against floor
+(*			If(_Particles[i].NextPosition.y <= -sphereRadius * 0.92) Then
+      Begin
+			  _Particles[i].NextPosition.y := -sphereRadius * 0.92;
+        _Particles[i].NextVelocity.y := 0;
+         Continue;
+      End;*)
+
+			//Check against sphere (at origin)
+      For J:=0 To Pred(_ColliderCount) Do
+      Begin
+        P := VectorSubtract(_Particles[i].NextPosition, _Colliders[J].Position);
+  			If (P.LengthSquared < Sqr(_Colliders[J].Radius*1.08)) Then
+        Begin
+		  	  P.Normalize();
+          P.Scale(_Colliders[J].Radius * 1.08);
+          _Particles[i].NextPosition := VectorAdd(P, _Colliders[J].Position);
+          _Particles[i].NextVelocity := VectorZero;
+          Break;
+        End;
+      End;
+		End;
+
+		//Swap the currentParticles and newParticles pointers
+		For I:=0 To Pred(_ParticleCount) Do
+    Begin
+      _Particles[i].CurrentPosition := _Particles[i].NextPosition;
+			_Particles[i].CurrentVelocity := _Particles[i].NextVelocity;
+      _Particles[i]._Tension := VectorZero;
+    End;
+	End;
+
+	//Calculate the normals if we have updated the positions
+	If(updateMade) Then
+    Self.UpdateMesh();
+End;
+
+Procedure ClothSystem.Release;
+Begin
+  ReleaseObject(_Mesh);
+End;
+
+Procedure ClothSystem.SetCollider(Index: Integer; const Pos: Vector3D; const Radius: Single);
+Begin
+  If (Index>=Pred(_ColliderCount)) Then
+  Begin
+    _ColliderCount := Succ(Index);
+    SetLength(_Colliders, _ColliderCount);
+  End;
+
+  _Colliders[Index].Position := Pos;
+  _Colliders[Index].Radius := Radius;
+End;
+
+Procedure ClothSystem.UnpinParticle(Index: Integer);
+Begin
+  _Particles[Index]._Fixed := False;
 End;
 
 End.

@@ -139,7 +139,7 @@ Var
 
   T:Triangle;
   Group:MeshGroup;
-  MyMesh:Mesh;
+  MyMesh:TERRAMesh;
 Begin
   MyMesh := MeshPtr;
   Result := True;
