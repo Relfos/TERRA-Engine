@@ -218,6 +218,7 @@ Type
 
   UIIcon = Class(Widget)
     Protected
+      _Icon:TERRAString;
       _Width:Integer;
       _Height:Integer;
       _Dual:Boolean;
@@ -234,6 +235,8 @@ Type
 
       Property Width:Integer Read _Width;
       Property Height:Integer Read _Height;
+
+      Property Icon:TERRAString Read _Icon;
   End;
 
   UISprite = Class(Widget)
@@ -959,6 +962,7 @@ Var
 Begin
   Inherited Create(Name, UI, Parent);
 
+  Self._Icon := Icon;
   Self._TabIndex := TabIndex;
 
   Self.SetPosition(VectorCreate2D(X,Y));
