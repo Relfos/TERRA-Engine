@@ -146,7 +146,7 @@ Begin
     Result := TForm(_Target).ClientWidth
   Else
   If (_Target Is TPanel) Then
-    Result := TPanel(_Target).ClientWidth
+    Result := TPanel(_Target).Width
   Else
     Result := 0;
 End;
@@ -157,7 +157,7 @@ Begin
     Result := TForm(_Target).ClientHeight
   Else
   If (_Target Is TPanel) Then
-    Result := TPanel(_Target).ClientHeight
+    Result := TPanel(_Target).Height
   Else
     Result := 0;
 End;

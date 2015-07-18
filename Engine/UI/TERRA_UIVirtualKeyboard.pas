@@ -365,9 +365,9 @@ Begin
   If (Self.UI.Focus<>Nil) And (Self.UI.Focus Is UIEditText) Then
   Begin
     If (UI.Focus.AbsolutePosition.Y >= UIManager.Instance.Height - Self.Size.Y) Then
-      Self._Align := waTopLeft
+      Self.Align := waTopLeft
     Else
-      Self._Align := waBottomLeft;
+      Self.Align := waBottomLeft;
   End;
 
   Self.RelativePosition := VectorCreate2D(0, 0);

@@ -79,7 +79,7 @@ object UIEditForm: TUIEditForm
     OwnerDraw = True
     Left = 120
     Top = 496
-    object Project1: TMenuItem
+    object ProjectMenu: TMenuItem
       Caption = '&Project'
       object New1: TMenuItem
         Caption = '&New'
@@ -114,43 +114,62 @@ object UIEditForm: TUIEditForm
         Caption = '&Exit'
       end
     end
-    object View2: TMenuItem
+    object WidgetMenu: TMenuItem
+      Caption = '&Widgets'
+      object Button1: TMenuItem
+        Caption = '&Button'
+        OnClick = Button1Click
+      end
+      object Label1: TMenuItem
+        Caption = '&Label'
+        OnClick = Label1Click
+      end
+      object Window1: TMenuItem
+        Caption = '&Window'
+        OnClick = Window1Click
+      end
+      object Checkbox1: TMenuItem
+        Caption = '&Checkbox'
+        OnClick = Checkbox1Click
+      end
+      object Radiobox1: TMenuItem
+        Caption = '&Radiobox'
+        OnClick = Radiobox1Click
+      end
+      object Combobox1: TMenuItem
+        Caption = '&Combobox'
+      end
+      object Icon1: TMenuItem
+        Caption = '&Icon'
+      end
+      object Sprite1: TMenuItem
+        Caption = '&Sprite'
+        OnClick = Sprite1Click
+      end
+      object ProgressBar1: TMenuItem
+        Caption = '&Progress Bar'
+        OnClick = ProgressBar1Click
+      end
+    end
+    object ViewMenu: TMenuItem
       Caption = '&View'
-      object Add1: TMenuItem
-        Caption = '&Add'
-        object Button1: TMenuItem
-          Caption = '&Button'
-          OnClick = Button1Click
+      object GridMenu: TMenuItem
+        Caption = '&Grid'
+        object GridOffMenu: TMenuItem
+          Caption = '&Off'
+          OnClick = GridOffMenuClick
         end
-        object Label1: TMenuItem
-          Caption = '&Label'
-          OnClick = Label1Click
+        object GridSmallMenu: TMenuItem
+          Caption = '&Small'
+          OnClick = GridSmallMenuClick
         end
-        object Window1: TMenuItem
-          Caption = '&Window'
-          OnClick = Window1Click
+        object GridMediumMenu: TMenuItem
+          Caption = '&Medium'
+          OnClick = GridMediumMenuClick
         end
-        object Checkbox1: TMenuItem
-          Caption = '&Checkbox'
-          OnClick = Checkbox1Click
-        end
-        object Radiobox1: TMenuItem
-          Caption = '&Radiobox'
-          OnClick = Radiobox1Click
-        end
-        object Combobox1: TMenuItem
-          Caption = '&Combobox'
-        end
-        object Icon1: TMenuItem
-          Caption = '&Icon'
-        end
-        object Sprite1: TMenuItem
-          Caption = '&Sprite'
-          OnClick = Sprite1Click
-        end
-        object ProgressBar1: TMenuItem
-          Caption = '&Progress Bar'
-          OnClick = ProgressBar1Click
+        object GridLargeMenu: TMenuItem
+          Caption = '&Large'
+          OnClick = GridLargeMenuClick
         end
       end
     end

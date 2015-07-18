@@ -29,7 +29,7 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween,
   TERRA_SpriteManager, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_FontRenderer, TERRA_UITransition, TERRA_Viewport,
-  TERRA_UISkin, TERRA_UIDimension, TERRA_ClipRect, TERRA_Hashmap;
+  TERRA_UISkin, TERRA_UIDimension, TERRA_ClipRect, TERRA_EnumProperty, TERRA_Hashmap;
 
 Const
   waTopLeft     = 0;
@@ -54,7 +54,7 @@ Const
   TextureAtlasWidth = 1024;
   TextureAtlasHeight = 512;
 
-  CustomPropertiesBaseIndex = 10;
+  CustomPropertiesBaseIndex = 11;
 
 Type
   UI = Class;
@@ -87,6 +87,7 @@ Type
       _Height:DimensionProperty;
 			_Position:Vector2DProperty;
       _Layer:FloatProperty;
+      _Align:EnumProperty;
       _Color:ColorProperty;
       _Rotation:AngleProperty;
       _Scale:FloatProperty;
@@ -110,7 +111,6 @@ Type
 			_Parent:Widget;
 
       _Tooltip:TERRAString;
-      _Align:Integer;
       _NeedsUpdate:Boolean;
       _NeedsHide:Boolean;
 
@@ -177,6 +177,9 @@ Type
       Function GetDownControl():Widget;
       Function GetLeftControl():Widget;
       Function GetRightControl():Widget;
+
+      Function GetAlign: Integer;
+      Procedure SetAlign(const Value: Integer);
 
       Procedure SetAbsolutePosition(Pos:Vector2D);
       Procedure SetRelativePosition(Const Pos:Vector2D);
@@ -377,7 +380,7 @@ Type
       Property Scroll:Widget Read _Scroll Write _Scroll;
 
       Property Parent:Widget Read _Parent Write _Parent;
-      Property Align:Integer Read _Align Write _Align;
+      Property Align:Integer Read GetAlign Write SetAlign;
 
       Property ChildrenCount:Integer Read _ChildrenCount;
 
@@ -556,6 +559,8 @@ Type
 
       _FontRenderer:FontRenderer;
 
+      _AlignEnums:EnumCollection;
+
       Procedure OnAppResize; Override;
       Procedure OnLanguageChange; Override;
       Procedure OnOrientationChange; Override;
@@ -606,9 +611,6 @@ Type
   End;
 
 Function GetSpriteZOnTop(W:Widget; Ofs:Single = 1.0):Single;
-
-Var
-  UISnapSize:Single = 20;
 
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_Renderer, TERRA_XML, TERRA_UITabs, TERRA_UIScrollBar,
@@ -700,6 +702,7 @@ Begin
   ReleaseObject(_Layer);
   ReleaseObject(_Scale);
   ReleaseObject(_Saturation);
+  ReleaseObject(_Align);
   ReleaseObject(_Skin);
 End;
 
@@ -715,6 +718,8 @@ Begin
   _Scale := FloatProperty.Create('scale', 1.0);
   _Saturation := FloatProperty.Create('saturation', 1.0);
   _Skin := StringProperty.Create('skin', '');
+
+  _Align := EnumProperty.Create('align', 0, UIManager.Instance._AlignEnums);
 End;
 
 Function Widget.GetPropertyByIndex(Index:Integer):TERRAObject;
@@ -723,13 +728,14 @@ Begin
   0: Result := _Visible;
   1: Result := _Position;
   2: Result := _Layer;
-  3: Result := _Width;
-  4: Result := _Height;
-  5: Result := _Color;
-  6: Result := _Rotation;
-  7: Result := _Scale;
-  8: Result := _Saturation;
-  9: Result := _Skin;
+  3: Result := _Align;
+  4: Result := _Width;
+  5: Result := _Height;
+  6: Result := _Color;
+  7: Result := _Rotation;
+  8: Result := _Scale;
+  9: Result := _Saturation;
+  10: Result := _Skin;
   Else
     Result := Nil;
   End;
@@ -779,7 +785,7 @@ End;}
 
 Procedure Widget.CenterOnPoint(X,Y:Single);
 Begin
-  _Align := waTopLeft;
+  Self.Align := waTopLeft;
   Self.UpdateRects;
 
   _Position.X.Value := X - _Size.X * 0.5;
@@ -1695,8 +1701,8 @@ Begin
   Case Mode Of
     UIDrag_Move:
       Begin
-        _Position.X.Value := PX;
-        _Position.Y.Value := PY;
+        _Position.X.Value := UISnap(PX);;
+        _Position.Y.Value := UISnap(PY);
       End;
 
     UIDrag_Left:
@@ -2371,10 +2377,7 @@ Var
   Original, P:Single;
 Begin
   Original := NewWidth;
-  NewWidth := Trunc(NewWidth/UISnapSize) * UISnapSize;
-
-  If (NewWidth<UISnapSize) Then
-    NewWidth := UISnapSize;
+  NewWidth := UISnap(NewWidth);
 
   Result := Original - NewWidth;
 
@@ -2391,12 +2394,8 @@ Var
   Original, P:Single;
 Begin
   Original := NewHeight;
-  NewHeight := Trunc(NewHeight/UISnapSize) * UISnapSize;
+  NewHeight := UISnap(NewHeight);
   Result := Original - NewHeight;
-
-  If (NewHeight<UISnapSize) Then
-    NewHeight := UISnapSize;
-
 
   If _Height.Value.IsPercent Then
   Begin
@@ -2454,9 +2453,19 @@ Begin
     Result := UITabList.Create(KeyName, Self, 0, 0, 50, UIPixels(10), UIPixels(10), 'icon')
   Else
   Begin
-    Log(logError, 'UI', 'Cannot unserialize object of type ' +ObjectType); 
+    Log(logError, 'UI', 'Cannot unserialize object of type ' +ObjectType);
     Result := Nil;
   End;
+End;
+
+Function Widget.GetAlign: Integer;
+Begin
+  Result := _Align.Value;
+End;
+
+Procedure Widget.SetAlign(const Value: Integer);
+Begin
+  _Align.Value := Value;
 End;
 
 { UI }
@@ -2600,11 +2609,11 @@ Begin
     If NameIndex<=0 Then
     Begin
       Temp := GetWidget(MyWidget.Name);
-      Temp.Name := BaseName + IntToString(NameIndex);
+      Temp.Name := BaseName + '_'+IntToString(NameIndex);
     End;
 
     Inc(NameIndex);
-    MyWidget.Name := BaseName + IntToString(NameIndex);
+    MyWidget.Name := BaseName + '_' + IntToString(NameIndex);
   End;
 
   If (Assigned(MyWidget._Parent)) Then
@@ -3441,6 +3450,17 @@ Begin
   _Ratio := 1.0;
   _UpdateTextureAtlas := False;
 
+  _AlignEnums := EnumCollection.Create();
+  _AlignEnums.Add('TopLeft', waTopLeft);
+  _AlignEnums.Add('TopCenter', waTopCenter);
+  _AlignEnums.Add('TopRight', waTopRight);
+  _AlignEnums.Add('LeftCenter', waLeftCenter);
+  _AlignEnums.Add('Center', waCenter);
+  _AlignEnums.Add('RightCenter', waRightCenter);
+  _AlignEnums.Add('BottomLeft', waBottomLeft);
+  _AlignEnums.Add('BottomCenter', waBottomCenter);
+  _AlignEnums.Add('BottomRight', waBottomRight);
+
   // make UI view
   _Viewport := TERRAViewport.Create('UI', GraphicsManager.Instance.UI_Width, GraphicsManager.Instance.UI_Height, {$IFDEF FRAMEBUFFEROBJECTS}GraphicsManager.Instance.UI_Scale{$ELSE}1.0{$ENDIF});
   _Viewport.BackgroundColor := ColorNull;
@@ -3460,8 +3480,9 @@ Begin
   _UICount := 0;
 
   ReleaseObject(_FontRenderer);
-
   ReleaseObject(_TextureAtlas);
+
+  ReleaseObject(_AlignEnums);
 
   _UIManager_Instance := Nil;
 End;
@@ -3537,7 +3558,7 @@ Begin
       UIManager.Instance.RenderUIs();
 
       If (Assigned(Graphics.Scene)) And (Not Application.Instance.HasFatalError) Then
-       Graphics.Scene.RenderSprites(Nil);
+       Graphics.Scene.RenderSprites(_Viewport);
     End;
 
     SpriteManager.Instance.Render(Projection);

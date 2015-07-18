@@ -59,7 +59,7 @@ Implementation
 Uses TERRA_OS, TERRA_Math, TERRA_Texture;
 
 Const
-  Layer = 20;
+  Layer = 99;
 
 Function ConvertTo2D(View:TERRAViewport; P:Vector3D):Vector2D;
 Begin

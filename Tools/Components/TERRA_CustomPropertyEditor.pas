@@ -5,7 +5,7 @@ interface
 uses SysUtils, Classes, Messages, ExtCtrls, Controls, StdCtrls,
   Dialogs, Graphics, Buttons,
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_OS, TERRA_Color, TERRA_VCLApplication,
-  TERRA_FileManager, TERRA_FileUtils, TERRA_Math;
+  TERRA_FileManager, TERRA_FileUtils, TERRA_EnumProperty, TERRA_Math;
 
 Const
   MarginTop = 30;
@@ -86,6 +86,16 @@ type
     Protected
       _Name:TLabel;
       _Dialog:TOpenDialog;
+
+      Function CreateEditor():TControl; Override;
+      Procedure Update(); Override;
+
+      Procedure OnClick(Sender: TObject);
+  End;
+
+  TEnumCell = Class(TPropertyCell)
+    Protected
+      _List:TComboBox;
 
       Function CreateEditor():TControl; Override;
       Procedure Update(); Override;
@@ -284,6 +294,9 @@ Begin
   Else
   If StringEquals(S, 'angle') Then
     CellType := TAngleCell
+  Else
+  If StringEquals(S, 'enum') Then
+    CellType := TEnumCell
   Else
     CellType := TTextCell;
 
@@ -555,7 +568,7 @@ Procedure TAngleCell.Update;
 Var
   Angle:Single;
 Begin
-  Angle := Trunc(StringToFloat(_Prop.GetBlob()) * DEG * 10) Div 10;
+  Angle := Round(StringToFloat(_Prop.GetBlob()) * DEG * 100) Div 100;
   _Edit.Text := FloatToString(Angle);
 End;
 
@@ -651,4 +664,37 @@ Begin
   _Name.Caption := _Prop.GetBlob();
 End;
 
+{ TEnumCell }
+Function TEnumCell.CreateEditor: TControl;
+Begin
+  _List := TComboBox.Create(_Owner);
+  _List.OnClick := Self.OnClick;
+  _List.Color := _Owner.EditColor;
+  _List.Style := csDropDownList;
+  _List.Font.Color := clWhite;
+  _List.Cursor := crHandPoint;
+  Result := _List;
+End;
+
+Procedure TEnumCell.Update;
+Var
+  I:Integer;
+  Enum:EnumProperty;
+Begin
+  If (_List.Items.Count<=0) Then
+  Begin
+    Enum := EnumProperty(Self._Prop);
+    For I:=0 To Pred(Enum.Collection.Count) Do
+      _List.Items.Add(Enum.Collection.GetByIndex(I));
+
+    _List.ItemIndex := Enum.Collection.GetByName(_Prop.GetBlob());
+  End;
+End;
+
+Procedure TEnumCell.OnClick(Sender: TObject);
+Begin
+  _Prop.SetBlob(_List.Items[_List.ItemIndex]);
+End;
+
 end.
+

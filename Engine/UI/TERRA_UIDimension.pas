@@ -36,8 +36,24 @@ Type
 Function UIPixels(Const Pixels:Single):UIDimension;
 Function UIPercent(Const Percent:Single):UIDimension;
 
+Function UISnap(Const X:Single):Single;
+
+Var
+  UISnapSize:Single = 0;
 
 Implementation
+
+Function UISnap(Const X:Single):Single;
+Begin
+  If (UISnapSize>0) Then
+  Begin
+    Result := Trunc(X/UISnapSize) * UISnapSize;
+
+    If (Result<UISnapSize) Then
+      Result := UISnapSize;
+  End Else
+    Result := X;
+End;
 
 Function UIPixels(Const Pixels:Single):UIDimension;
 Begin

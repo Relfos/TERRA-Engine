@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, ExtCtrls, StdCtrls, Menus, IceTabSet, Grids, ValEdit, ComCtrls,
   TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_VCLApplication, TERRA_OS,
-  TERRA_String, TERRA_Scene, TERRA_Texture, TERRA_Font, TERRA_TTF,
+  TERRA_String, TERRA_Scene, TERRA_Texture, TERRA_Font, TERRA_TTF, TERRA_DebugDraw,
   TERRA_Viewport, TERRA_FileManager, TERRA_FileUtils, TERRA_SpriteManager,
   TERRA_PNG, TERRA_JPG,
   TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color,
@@ -71,12 +71,18 @@ Type
       _CurrentTool:UIEditTool;
       _DragMode:UIDragMode;
 
+      _GridSize:Single;
+
       Function GetNewTarget(X,Y:Integer):Widget;
 
     Public
       Constructor Create();
 
       Procedure Release(); Override;
+
+      Procedure RenderSprites(V:TERRAViewport); Override;
+
+      Procedure SetGridSize(Size:Single);
 
       Procedure AddView(Const Name:TERRAString);
 
@@ -96,7 +102,7 @@ Type
     TabList: TIceTabSet;
     RenderPanel: TPanel;
     MainMenu: TMainMenu;
-    Project1: TMenuItem;
+    ProjectMenu: TMenuItem;
     New1: TMenuItem;
     Open1: TMenuItem;
     N1: TMenuItem;
@@ -107,8 +113,7 @@ Type
     N3: TMenuItem;
     View1: TMenuItem;
     Component1: TMenuItem;
-    View2: TMenuItem;
-    Add1: TMenuItem;
+    WidgetMenu: TMenuItem;
     WidgetList: TTreeView;
     Button1: TMenuItem;
     Label1: TMenuItem;
@@ -123,6 +128,12 @@ Type
     PopupMenu: TPopupMenu;
     Copy1: TMenuItem;
     Delete1: TMenuItem;
+    ViewMenu: TMenuItem;
+    GridMenu: TMenuItem;
+    GridOffMenu: TMenuItem;
+    GridSmallMenu: TMenuItem;
+    GridMediumMenu: TMenuItem;
+    GridLargeMenu: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -147,6 +158,10 @@ Type
     procedure Sprite1Click(Sender: TObject);
     procedure Save1Click(Sender: TObject);
     procedure Open1Click(Sender: TObject);
+    procedure GridOffMenuClick(Sender: TObject);
+    procedure GridSmallMenuClick(Sender: TObject);
+    procedure GridMediumMenuClick(Sender: TObject);
+    procedure GridLargeMenuClick(Sender: TObject);
 
   Protected
     Procedure CustomDrawItem(Sender: TObject; ACanvas: TCanvas; ARect: TRect; State: TOwnerDrawState);
@@ -198,6 +213,8 @@ Begin
   GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorGrey(128);
 
   Self.AddView('Untitled');
+
+  Self.SetGridSize(20.0);
 End;
 
 Procedure UIEditScene.AddWidget(W: Widget; X,Y:Integer);
@@ -209,8 +226,8 @@ Begin
 
   If (W.Parent <> Self._SelectedView._Target) And (Assigned(W.Parent)) Then
   Begin
-    X := Trunc(X - W.Parent.AbsolutePosition.X);
-    Y := Trunc(Y - W.Parent.AbsolutePosition.Y);
+    X := Trunc(UISnap(X - W.Parent.AbsolutePosition.X));
+    Y := Trunc(UISnap(Y - W.Parent.AbsolutePosition.Y));
     W.RelativePosition := VectorCreate2D(X, Y);
   End;
           
@@ -316,6 +333,51 @@ Begin
     Result := _SelectedView._Target;
 End;
 
+Procedure UIEditScene.SetGridSize(Size: Single);
+Begin
+  UISnapSize := Size;
+  Self._GridSize := Size;
+End;
+
+Procedure UIEditScene.RenderSprites(V: TERRAViewport);
+Var
+  X,Y, Width:Single;
+  I:Integer;
+  GridColor:Color;
+Begin
+  If _GridSize>1 Then
+  Begin
+    GridColor := ColorGrey(64, 200);
+
+    X := 0;
+    I := 0;
+    While X<V.Width Do
+    Begin
+      Inc(I);
+      Width := 1.0;
+      If (I Mod 5 = 0) Then
+        Width := Width * 2;
+
+      DrawLine2D(V, VectorCreate2D(X, 0), VectorCreate2D(X, V.Height),  GridColor, Width);
+      X := X + _GridSize;
+    End;
+
+    Y := 0;
+    I := 0;
+    While Y<V.Height Do
+    Begin
+      Inc(I);
+      Width := 1.0;
+      If (I Mod 5 = 0) Then
+        Width := Width * 2;
+
+      DrawLine2D(V, VectorCreate2D(0, Y), VectorCreate2D(V.Width, Y),  GridColor, Width);
+      Y := Y + _GridSize;
+    End;
+
+  End;
+End;
+
 { TUIEditForm }
 Function TUIEditForm.AddNewTab(Const Name:TERRAString):TIceTab;
 begin
@@ -355,7 +417,11 @@ begin
 end;
 
 procedure TUIEditForm.FormResize(Sender: TObject);
+Var
+  MenuHeight:Integer;
 begin
+//  MenuHeight := GetSystemMetrics(SM_CYMENU);
+
   PropertyList.Visible := WidgetList.Items.Count>0;
 
   If PropertyList.Visible Then
@@ -369,8 +435,10 @@ begin
   End;
 
   RenderPanel.Left := PropertyList.Width + PropertyList.Left;
-  RenderPanel.Width := Self.Width - RenderPanel.Left;
-  RenderPanel.Height := Self.Height - RenderPanel.Top;
+  RenderPanel.Width := Self.ClientWidth - RenderPanel.Left;
+  RenderPanel.Height := Self.ClientHeight - RenderPanel.Top;
+
+  IntToString(RenderPanel.Height);
 end;
 
 procedure TUIEditForm.Button1Click(Sender: TObject);
@@ -929,6 +997,26 @@ begin
   End;
 
   Dialog.Destroy();
+end;
+
+procedure TUIEditForm.GridOffMenuClick(Sender: TObject);
+begin
+  Self._Scene.SetGridSize(0);
+end;
+
+procedure TUIEditForm.GridSmallMenuClick(Sender: TObject);
+begin
+  Self._Scene.SetGridSize(10);
+end;
+
+procedure TUIEditForm.GridMediumMenuClick(Sender: TObject);
+begin
+  Self._Scene.SetGridSize(20);
+end;
+
+procedure TUIEditForm.GridLargeMenuClick(Sender: TObject);
+begin
+  Self._Scene.SetGridSize(50);
 end;
 
 end.
