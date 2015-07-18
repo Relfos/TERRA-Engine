@@ -28,7 +28,7 @@ Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween,
-  TERRA_SpriteManager, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_FontRenderer, TERRA_UITransition,
+  TERRA_SpriteManager, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_FontRenderer, TERRA_UITransition, TERRA_Viewport,
   TERRA_UISkin, TERRA_UIDimension, TERRA_ClipRect, TERRA_Hashmap;
 
 Const
@@ -528,6 +528,7 @@ Type
 
   UIManager = Class(ApplicationComponent)
     Protected
+      _Viewport:TERRAViewport;
       _TextureAtlas:TextureAtlas;
       _UpdateTextureAtlas:Boolean;
 
@@ -549,6 +550,8 @@ Type
       Function GetTextureAtlas:TextureAtlas;
 
       Function GetFontRenderer: FontRenderer;
+
+      Procedure RenderUIs;
 
     Public
       Procedure Init; Override;
@@ -580,6 +583,8 @@ Type
       Property Count:Integer Read _UICount;
 
       Property FontRenderer:FontRenderer Read GetFontRenderer Write SetFontRenderer;
+
+      Property Viewport:TERRAViewport Read _Viewport;
   End;
 
 Function GetSpriteZOnTop(W:Widget; Ofs:Single = 1.0):Single;
@@ -3331,6 +3336,14 @@ Begin
   _TextureAtlas := Nil;
   _Ratio := 1.0;
   _UpdateTextureAtlas := False;
+
+  // make UI view
+  _Viewport := TERRAViewport.Create('UI', GraphicsManager.Instance.UI_Width, GraphicsManager.Instance.UI_Height, {$IFDEF FRAMEBUFFEROBJECTS}GraphicsManager.Instance.UI_Scale{$ELSE}1.0{$ENDIF});
+  _Viewport.BackgroundColor := ColorNull;
+  _Viewport.SetRenderTargetState(captureTargetColor, True);
+  _Viewport.SetTarget(GraphicsManager.Instance.DeviceViewport, 0, 0, 1.0, 1.0);
+
+  GraphicsManager.Instance.AddViewport(_Viewport);
 End;
 
 Procedure UIManager.Release;
@@ -3379,6 +3392,66 @@ Begin
     Inc(I);
 End;
 
+Procedure UIManager.Render();
+Var
+  Flags:Cardinal;
+  Target:RenderTargetInterface;
+  Graphics:GraphicsManager;
+  Projection:Matrix4x4;
+Begin
+  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'BeginUIRendering');{$ENDIF}
+
+  Graphics := GraphicsManager.Instance;
+
+  _Viewport.BackgroundColor := ColorNull;
+  Target := _Viewport.GetRenderTarget(captureTargetColor);
+  If Assigned(Target) Then
+  Begin
+    Target.BackgroundColor := _Viewport.BackgroundColor;
+    _Viewport.SetViewArea(0, 0, Target.Width, Target.Height);
+    Target.BeginCapture();
+
+    {$IFDEF PC_X}
+    glActiveTexture(GL_TEXTURE0);
+    glEnable(GL_TEXTURE_2D);
+    {$ENDIF}
+
+
+    Graphics.Renderer.SetBlendMode(blendBlend);
+    Graphics.SetFog(False);
+    //glEnable(GL_SCISSOR_TEST);
+
+    Projection := Matrix4x4Ortho(0.0, _Viewport.Width, _Viewport.Height, 0.0, -100, 100);
+    Projection := Matrix4x4Multiply4x4(Projection, Matrix4x4Translation(0.375, 0.375, 0.0));
+
+    _Viewport.SetViewArea(0, 0, _Viewport.Width, _Viewport.Height);
+
+    Graphics.Renderer.ClearBuffer((Not Assigned(Graphics.Scene)), True, True);
+
+    If (Not _Prefetching) Then
+    Begin
+      UIManager.Instance.RenderUIs();
+
+      If (Assigned(Graphics.Scene)) And (Not Application.Instance.HasFatalError) Then
+       Graphics.Scene.RenderSprites(Nil);
+    End;
+
+    SpriteManager.Instance.Render(Projection);
+
+    If ( Not _Prefetching) Then
+    Begin
+      UIManager.Instance.AfterEffects();
+    End;
+
+//  glDisable(GL_SCISSOR_TEST);
+  //glDisable(GL_ALPHA_TEST);
+
+    Target.EndCapture();
+  End;
+
+  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'FinishedUIRendering');{$ENDIF}
+End;
+
 Function UIManager.GetTextureAtlas: TextureAtlas;
 Begin
   If (Not Assigned(_TextureAtlas)) Then
@@ -3396,7 +3469,7 @@ Begin
   Begin
     Result := GraphicsManager.Instance.Width;
   End;}
-  Result := GraphicsManager.Instance.UIViewport.Width;
+  Result := Self.Viewport.Width;
 End;
 
 Function UIManager.GetHeight: Integer;
@@ -3408,7 +3481,7 @@ Begin
   Begin
     Result := GraphicsManager.Instance.Height;
   End;}
-  Result := GraphicsManager.Instance.UIViewport.Height;
+  Result := Self.Viewport.Height;
 End;
 
 {Procedure UIManager.Adjust(Width, Height: Integer);
@@ -3449,7 +3522,7 @@ Begin
   _UpdateTextureAtlas := True;
 End;
 
-Procedure UIManager.Render;
+Procedure UIManager.RenderUIs();
 Var
   I:Integer;
 Begin
@@ -3482,7 +3555,7 @@ Procedure UIManager.OnOrientationChange;
 Var
   I:Integer;
 Begin
-  If (GraphicsManager.Instance.UIViewport = Nil) Then
+  If (Viewport = Nil) Then
     Exit;
 
   UpdateRatio();

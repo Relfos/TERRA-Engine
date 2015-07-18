@@ -15,6 +15,7 @@ Const
   renderBucket_Translucent  = 2;
   renderBucket_Sky          = 4;
   renderBucket_Reflections  = 8;
+  renderBucket_Occluder     = 16;
 
 Type
   RenderableManager = Class;

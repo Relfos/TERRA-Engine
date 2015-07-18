@@ -67,28 +67,6 @@ Const
 Type
 //  SortMethod = (Unsorted, SortBackToFront, SortFrontToBack);
 
-  Occluder = Class(Renderable)
-    Protected
-      _Next:Occluder;
-      _P1,_P2,_P3,_P4:Vector3D;
-      _StartVertex, _EndVertex:Vector3D;
-      _BoundingBox:BoundingBox;
-
-      Function OccluderOccluded(Occ:Occluder):Boolean;
-
-    Public
-      Function IsVisible:Boolean;
-
-      Procedure Update(View:TERRAViewport); Override;
-      
-      Procedure SetTransform(Transform:Matrix4x4; Width,Height:Single);
-
-      Function PointOccluded(P:Vector3D):Boolean;
-      Function BoxOccluded(Box:BoundingBox; V:TERRAViewport):Boolean;
-
-      Procedure Render(View:TERRAViewport; Const Bucket:Cardinal); Override;
-      Function GetBoundingBox:BoundingBox; Override;
-  End;
 
 	GraphicsManager = Class(ApplicationComponent)
 		Protected
@@ -97,7 +75,6 @@ Type
       _CurrentViewport:TERRAViewport;
 
       _DeviceViewport:TERRAViewport;
-      _UIViewport:TERRAViewport;
 
       _Cameras:Array Of Camera;
       _CameraCount:Integer;
@@ -114,8 +91,6 @@ Type
       
       _Scene:TERRAScene;
 
-      _Occluders:Occluder;
-
       _FullScreenQuadVertices:VertexData;
 
       _FogEnable:Boolean;
@@ -125,7 +100,7 @@ Type
       _RenderStage:Integer;
       _FrameID:Cardinal;
 
-      _Projection:Matrix4x4;
+      //_Projection:Matrix4x4;
       _OrientationMatrix4x4:Matrix4x4;
 
       _NeedsContextRestore:Boolean;
@@ -148,7 +123,6 @@ Type
 
       _Renderables:RenderableManager;
 
-      Procedure RenderUI;
       Procedure RenderStencilShadows(View:TERRAViewport);
       Procedure RenderSceneInternal(View:TERRAViewport; Pass:RenderTargetType);
       Procedure RenderViewport(View:TERRAViewport);
@@ -178,9 +152,6 @@ Type
       ReflectionMask:TERRATexture;
       {$ENDIF}
 
-      Render3D:Boolean;
-      Render2D:Boolean;
-
       EnviromentMap:TERRATexture;
       ToonRamp:TERRATexture;
 
@@ -208,10 +179,9 @@ Type
       Procedure SetScene(MyScene:TERRAScene);
       Procedure SetWind(WindDirection:Vector3D; WindIntensity:Single);
 
-      Function GetPickRay(View:TERRAViewport; TX,TY:Integer):Ray;
-
+      (*Function GetPickRay(View:TERRAViewport; TX,TY:Integer):Ray;
       Function ProjectPoint(Pos:Vector3D; V:TERRAViewport):Vector3D;
-      Function ProjectBoundingBox(Box:BoundingBox; V:TERRAViewport):BoundingBox;
+      Function ProjectBoundingBox(Box:BoundingBox; V:TERRAViewport):BoundingBox;*)
 
       Property Width:Integer Read _Width;
       Property Height:Integer Read _Height;
@@ -220,7 +190,7 @@ Type
       Function AddRenderable(View:TERRAViewport; MyRenderable:Renderable; Flags:Cardinal = 0):Boolean;
       Procedure DeleteRenderable(MyRenderable:Renderable);
 
-      Procedure AddOccluder(View:TERRAViewport; MyOccluder:Occluder);
+//      Procedure AddOccluder(View:TERRAViewport; MyOccluder:Occluder);
 
       Procedure SetFog(Value:Boolean);
 
@@ -247,7 +217,6 @@ Type
       Property Renderer:GraphicsRenderer Read _Renderer Write SetRenderer;
 
       Property DeviceViewport:TERRAViewport Read _DeviceViewport;
-      Property UIViewport:TERRAViewport Read _UIViewport;
 
       Property Scene:TERRAScene Read _Scene Write SetScene;
 
@@ -256,7 +225,7 @@ Type
       Property FrameID:Cardinal Read _FrameID;
       Property RenderStage:Integer Read _RenderStage;
 
-      Property ProjectionMatrix:Matrix4x4 Read _Projection;
+      //Property ProjectionMatrix:Matrix4x4 Read _Projection;
 
       Property UI_Width:Integer Read _UIWidth;
       Property UI_Height:Integer Read _UIHeight;
@@ -374,157 +343,6 @@ Begin
 End;
 
 
-{ Occluder }
-Procedure Occluder.SetTransform(Transform:Matrix4x4; Width,Height:Single);
-Var
-  X1,X2,Y1,Y2:Single;
-Begin
-  X1 := -Width*0.5;
-  X2 := -X1;
-  Y1 := 0.0;
-  Y2 := Height;
-
-  _P1 := Transform.Transform(VectorCreate(X1, Y1, 0.0));
-  _P2 := Transform.Transform(VectorCreate(X2, Y1, 0.0));
-  _P3 := Transform.Transform(VectorCreate(X2, Y2, 0.0));
-  _P4 := Transform.Transform(VectorCreate(X1, Y2, 0.0));
-
-  _BoundingBox.Reset;
-  _BoundingBox.Add(_P1);
-  _BoundingBox.Add(_P2);
-  _BoundingBox.Add(_P3);
-  _BoundingBox.Add(_P4);
-End;
-
-Function Occluder.IsVisible:Boolean;
-Begin
-  Result:=Not ((_EndVertex.X<0) Or (_StartVertex.X>GraphicsManager.Instance.Width) Or
-          (_EndVertex.Y<0) Or (_StartVertex.Y>GraphicsManager.Instance.Height) Or
-          ((_StartVertex.Z>1) And (_EndVertex.Z>1)));
-End;
-
-Procedure Occluder.Update(View:TERRAViewport);
-Var
-   T1,T2,T3,T4:Vector3D;
-Begin
-  T1 := View.ProjectPoint(_P1);
-  T2 := View.ProjectPoint(_P2);
-  T3 := View.ProjectPoint(_P3);
-  T4 := View.ProjectPoint(_P4);
-
-  _StartVertex := VectorMin(T1, VectorMin(T2, VectorMin(T3, T4)));
-  _EndVertex := VectorMax(T1, VectorMax(T2, VectorMax(T3, T4)));
-End;
-
-Function Occluder.PointOccluded(P:Vector3D):Boolean;
-Begin
-    Result := (P.X>_StartVertex.X) And (P.X<_EndVertex.X) And
-            (P.Y>_StartVertex.Y) And (P.Y<_EndVertex.Y) And
-            (P.Z>FloatMin(_StartVertex.Z, _EndVertex.Z));
-End;
-
-Function Occluder.OccluderOccluded(Occ:Occluder):Boolean;
-Begin
-  Result := (Occ._StartVertex.X>_StartVertex.X) And (Occ._StartVertex.X<_EndVertex.X) And (Occ._StartVertex.Z>FloatMin(_StartVertex.Z, _EndVertex.Z))
-          And (Occ._EndVertex.X>_StartVertex.X) And (Occ._EndVertex.X<_EndVertex.X) And (Occ._EndVertex.Z>FloatMin(_StartVertex.Z, _EndVertex.Z));
-End;
-
-Function Occluder.BoxOccluded(Box:BoundingBox; V:TERRAViewport):Boolean;
-Var
-  K:Single;
-  A,B:Vector3D;
-  {
-  Image:TERRA_Image.Image;
-  Snap:Boolean;}
-Begin
-  If (_StartVertex.Z>1) Or (_EndVertex.Z>1) Then
-  Begin
-    Result := False;
-    Exit;
-  End;
-
-  {Snap := Application.Instance.Input.Keys.WasPressed(Ord('J'));
-  If Snap Then
-  Begin
-    Image := TERRA_Image.Image.Create;
-    Image.New(GraphicsManager.Instance.Width, GraphicsManager.Instance.Height);
-  End;}
-
-  Box := GraphicsManager.Instance.ProjectBoundingBox(Box, V);
-  A := Box.StartVertex;
-  B := Box.EndVertex;
-
-  If A.X>B.X Then
-  Begin
-    K := A.X;
-    A.X := B.X;
-    B.X := K;
-  End;
-
-  If A.Y>B.Y Then
-  Begin
-    K:=A.Y;
-    A.Y:=B.Y;
-    B.Y:=K;
-  End;
-
-  If ((B.X<0) Or (A.X>Application.Instance.Width) Or (B.Y<0) Or (A.Y>Application.Instance.Height) Or
-      ((A.Z>1) And (B.Z>1))) Then
-  Begin
-    Result:=True;
-    Exit;
-  End;
-
-  {If Snap Then
-  Begin
-    Image.FillRectangle(Integer(Round(_StartVertex.X)), Integer(Round(_StartVertex.Y)), Integer(Round(_EndVertex.X)), Integer(Round(_EndVertex.Y)), ColorRed);
-    Image.FillRectangle(Integer(Round(A.X)), Integer(Round(A.Y)), Integer(Round(B.X)), Integer(Round(B.Y)), ColorBlue);
-    Image.Save('occlusion.png');
-    ReleaseObject(Image)
-    Halt;
-  End;}
-
-  Result:=(Self.PointOccluded(A) And Self.PointOccluded(B));
-End;
-
-Function Occluder.GetBoundingBox:BoundingBox;
-Begin
-  Result := _BoundingBox;
-End;
-
-Procedure Occluder.Render(View:TERRAViewport; Const Bucket:Cardinal);
-Begin
-{$IFDEF PC_X}
-  If (TranslucentPass) Then
-    Exit;
-
-  GraphicsManager.Instance.EnableColorShader(ColorWhite, Matrix4x4Identity);
-  glLineWidth(3);
-//  glLineStipple(1, $FF);
-//  glEnable(GL_LINE_STIPPLE);
-
-  TextureManager.Instance.WhiteTexture.Bind(0);
-  
-  glDisable(GL_CULL_FACE);
-   glBegin(GL_LINE_STRIP);
-  With _P1 Do
-    glVertex3f(X,Y,Z);
-  With _P2 Do
-    glVertex3f(X,Y,Z);
-  With _P3 Do
-    glVertex3f(X,Y,Z);
-  With _P4 Do
-    glVertex3f(X,Y,Z);
-  With _P1 Do
-    glVertex3f(X,Y,Z);
-  glEnd;
-
-
-//  glLineStipple(1, $FFFF);
-//  glDisable(GL_LINE_STIPPLE);
-{$ENDIF}
-End;
-
 { GraphicsManager }
 Class Function GraphicsManager.Instance:GraphicsManager;  {$IFDEF FPC} Inline;{$ENDIF}
 Begin
@@ -544,7 +362,6 @@ Begin
 
   _CurrentViewport := Nil;
   _DeviceViewport := Nil;
-  _UIViewport := Nil;
   _DepthSize := 2048;
 
   _Renderables := RenderableManager.Create();
@@ -579,9 +396,6 @@ Begin
   Application.Instance.SelectResolution2D(_UIWidth, _UIHeight, _UIScale);
   Log(logDebug, 'App', 'Selected UI resolution: '+IntToString(_UIWidth)+' x ' +IntToString(_UIHeight));
    Log(logDebug, 'App', 'Selected UI scale: '+FloatToString(_UIScale));
-
-  Render3D := True;
-  Render2D := True;
 
   ShowDebugTarget := captureTargetInvalid;
 
@@ -643,12 +457,6 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
   End;}
 
   Log(logDebug, 'GraphicsManager', 'Selected 3D resolution: '+IntToString(OW)+' x ' +IntToString(OH));
-
-  // make UI view
-  _UIViewport := TERRAViewport.Create('UI', Self.UI_Width, Self.UI_Height, {$IFDEF FRAMEBUFFEROBJECTS}Self.UI_Scale{$ELSE}1.0{$ENDIF});
-  _UIViewport.BackgroundColor := ColorNull;
-  _UIViewport.SetRenderTargetState(captureTargetColor, True);
-  _UIViewport.SetTarget(_DeviceViewport, 0, 0, 1.0, 1.0);
 
   ShowWireframe := False;
 
@@ -769,62 +577,6 @@ Begin
 {$ENDIF}
 End;
 *)
-
-Procedure GraphicsManager.RenderUI;
-Var
-  Flags:Cardinal;
-  Target:RenderTargetInterface;
-Begin
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'BeginUIRendering');{$ENDIF}
-
-  _UIViewport.BackgroundColor := ColorNull;
-  Target := _UIViewport.GetRenderTarget(captureTargetColor);
-  If Assigned(Target) Then
-  Begin
-    Target.BackgroundColor := _UIViewport.BackgroundColor;
-    _UIViewport.SetViewArea(0, 0, Target.Width, Target.Height);
-    Target.BeginCapture();
-
-    {$IFDEF PC_X}
-    glActiveTexture(GL_TEXTURE0);
-    glEnable(GL_TEXTURE_2D);
-    {$ENDIF}
-
-
-    Self.Renderer.SetBlendMode(blendBlend);
-    Self.SetFog(False);
-    //glEnable(GL_SCISSOR_TEST);
-
-    _Projection := Matrix4x4Ortho(0.0, _UIViewport.Width, _UIViewport.Height, 0.0, -100, 100);
-    _Projection := Matrix4x4Multiply4x4(_Projection, Matrix4x4Translation(0.375, 0.375, 0.0));
-
-    _UIViewport.SetViewArea(0, 0, _UIViewport.Width, _UIViewport.Height);
-
-    Renderer.ClearBuffer((Not Assigned(_Scene)) Or (_ViewportCount<=0), True, True);
-
-    If (Not _Prefetching) Then
-    Begin
-      UIManager.Instance.Render();
-
-      If (Assigned(Scene)) And (Not Application.Instance.HasFatalError) Then
-       Scene.RenderSprites(Nil);
-    End;
-
-    SpriteManager.Instance.Render();
-
-    If ( Not _Prefetching) Then
-    Begin
-      UIManager.Instance.AfterEffects();
-    End;
-
-//  glDisable(GL_SCISSOR_TEST);
-  //glDisable(GL_ALPHA_TEST);
-
-    Target.EndCapture();
-  End;
-
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'FinishedUIRendering');{$ENDIF}
-End;
 
 Procedure GraphicsManager.RenderShadowmap(View:TERRAViewport);
 Begin
@@ -1173,7 +925,6 @@ Begin
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'LightManager.Clear');{$ENDIF}
   LightManager.Instance.Clear;
-  _Occluders := Nil;
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Buckets.Clear');{$ENDIF}
 
   _Renderables.Clear();
@@ -1239,7 +990,7 @@ Begin
         Target.BackgroundColor := ColorBlack;
       End;
 
-      _UIViewport.SetViewArea(0, 0, Target.Width, Target.Height);
+      View.SetViewArea(0, 0, Target.Width, Target.Height);
       Target.BeginCapture();
       Self.RenderSceneInternal(View, RenderTargetType(I));
       Target.EndCapture();
@@ -1505,21 +1256,21 @@ Begin
 End;}
 
 Function GraphicsManager.IsBoxVisible(View:TERRAViewport; Const Box:BoundingBox):Boolean;
-Var
-  Occ:Occluder;
+(*Var
+  Occ:Occluder;*)
 Begin
   Result := False;
   If (Not View.Camera.Frustum.BoxVisible(Box)) Then
     Exit;
 
-  // occlusion test
+(*  // occlusion test
   Occ := _Occluders;
   While Assigned(Occ) Do
   If (Occ.BoxOccluded(Box, View)) Then
   Begin
     Exit;
   End Else
-    Occ := Occ._Next;
+    Occ := Occ._Next;*)
 
   Result := True;
 End;
@@ -1562,7 +1313,6 @@ Begin
 
   ReleaseObject(_Renderables);
 
-  ReleaseObject(_UIViewport);
   ReleaseObject(_DeviceViewport);
 
   SetScene(Nil);
@@ -1607,7 +1357,7 @@ Begin
 
   Inc(_FrameID);
 
-  If (Not _Prefetching) And (Render3D) Then
+  If (Not _Prefetching) Then
     Self.RenderScene;
 
   // resolve offscreen buffers
@@ -1619,11 +1369,8 @@ Begin
       _Viewports[I].DrawToTarget(True);
     End;
   End;
-  
-// {$IFDEF PC} Render2D  := Application.Instance.Input.Keys[keyF1];{$ENDIF}
 
-  If Render2D Then
-    Self.RenderUI();
+  UIManager.Instance.Render();
 
   _DeviceViewport.Bind(0);
   _DeviceViewport.Restore(True);
@@ -1640,14 +1387,6 @@ Begin
   If (_Viewports[I].Visible) And (Not _Viewports[I].AutoResolve) And (_Viewports[I].Target = _DeviceViewport) Then
   Begin
     _Viewports[I].DrawToTarget(True);
-  End;
-
-  If (Render2D) Then
-  Begin
-    TempDebugTarget := Self.ShowDebugTarget;
-    Self.ShowDebugTarget := captureTargetInvalid;
-    _UIViewport.DrawToTarget(False);
-    Self.ShowDebugTarget := TempDebugTarget;
   End;
 
   If Assigned(Target) Then
@@ -1688,10 +1427,10 @@ Begin
     _DeviceViewport.Resize(_Width, _Height);}
   OnViewportChange(0, 0, _Width, _Height);
 
-  UIW := Self.UI_Width;
+(*  UIW := Self.UI_Width;
   UIH := Self.UI_Height;
   If (UIViewport.Width<>UIW) Or (UIViewport.Height<>UIH) Then
-    UIViewport.Resize(UIW, UIH);
+    UIViewport.Resize(UIW, UIH);*)
 End;
 
 Procedure GraphicsManager.SetScene(MyScene:TERRAScene);
@@ -1706,7 +1445,7 @@ Begin
 End;
 
 
-Procedure GraphicsManager.AddOccluder(View:TERRAViewport; MyOccluder: Occluder);
+(*Procedure GraphicsManager.AddOccluder(View:TERRAViewport; MyOccluder: Occluder);
 Var
   Occ:Occluder;
   F:Frustum;
@@ -1732,7 +1471,7 @@ Begin
   _Occluders := MyOccluder;
 
   Renderer.InternalStat(statOccluders);
-End;
+End;*)
 
 Function GraphicsManager.SwapScene(MyScene:TERRAScene):TERRAScene;
 Begin
@@ -1753,7 +1492,7 @@ Begin
 End;
 
 
-Function GraphicsManager.ProjectBoundingBox(Box: BoundingBox; V:TERRAViewport): BoundingBox;
+(*Function GraphicsManager.ProjectBoundingBox(Box: BoundingBox; V:TERRAViewport): BoundingBox;
 Var
   I:Integer;
   Vertices:BoundingBoxVertices;
@@ -1805,7 +1544,7 @@ Begin
   TX := Trunc(TX*Rx);
   TY := Trunc(TY*Ry);
   Result := View.GetPickRay(TX, TY);
-End;
+End;*)
 
 Procedure GraphicsManager.RestoreContext;
 Var
@@ -1819,8 +1558,7 @@ Begin
   Renderer.OnContextLost();
 
   _DeviceViewport.OnContextLost();
-  _UIViewport.OnContextLost();
-
+  
   For I:=0 To Pred(_ViewportCount) Do
     _Viewports[I].OnContextLost();
 End;

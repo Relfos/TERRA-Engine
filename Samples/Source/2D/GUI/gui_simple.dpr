@@ -3,7 +3,7 @@
 
 uses
   MemCheck,
-  TERRA_Object, 
+  TERRA_Object,
   TERRA_MemoryManager,
   TERRA_Application,
   TERRA_Utils,
@@ -25,12 +25,13 @@ uses
   TERRA_String,
   TERRA_Matrix4x4,
   TERRA_UIWindow,
+  TERRA_UIDimension,
   TERRA_UIButton;
 
 Type
   Demo = Class(Application)
     Protected
-      _Scene:Scene;
+      _Scene:TERRAScene;
 
     Public
 			Procedure OnCreate; Override;
@@ -42,7 +43,7 @@ Type
 			Procedure OnIdle; Override;
   End;
 
-  MyScene = Class(Scene)
+  MyScene = Class(TERRAScene)
       Constructor Create;
       Procedure Release; Override;
 
@@ -50,7 +51,7 @@ Type
   End;
 
 Var
-  Fnt:Font;
+  Fnt:TERRAFont;
   MyUI:UI;
   MyWnd:UIWindow;
   MyBtn:UIButton;

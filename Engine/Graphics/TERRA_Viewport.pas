@@ -85,7 +85,6 @@ Type
 
       _BackgroundColor:Color;
 
-      _Target:TERRAViewport;
       _TargetX1:Single;
       _TargetX2:Single;
       _TargetY1:Single;
@@ -122,6 +121,7 @@ Type
 
     Public
       AutoResolve:Boolean;
+      Offscreen:Boolean;
 
       Constructor Create(Name:TERRAString; Width,Height:Integer; Scale:Single = 1.0);
 
@@ -181,7 +181,6 @@ Type
       Property OffsetX:Integer Read _OfsX Write _OfsX;
       Property OffsetY:Integer Read _OfsY Write _OfsY;
 
-      Property Target:TERRAViewport Read _Target;
       Property TargetX1:Single Read _TargetX1;
       Property TargetX2:Single Read _TargetX2;
       Property TargetY1:Single Read _TargetY1;

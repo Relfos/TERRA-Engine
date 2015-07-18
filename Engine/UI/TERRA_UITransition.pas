@@ -106,7 +106,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_OS, TERRA_ResourceManager, TERRA_GraphicsManager, TERRA_Renderer, TERRA_Resource, TERRA_UI;
+Uses TERRA_Error, TERRA_OS, TERRA_ResourceManager, TERRA_GraphicsManager, TERRA_Renderer, TERRA_Resource, TERRA_UI;
 
 Var
   _FadeShader:ShaderInterface;
@@ -318,7 +318,9 @@ Begin
   Graphics.Renderer.BindShader(_Shader);
   //ShaderManager.Instance.Bind(_Shader);
 
-  M := Graphics.ProjectionMatrix;
+  // FIXME
+  RaiseError('needs fix');
+  //M := Graphics.ProjectionMatrix;
   Graphics.Renderer.SetModelMatrix(Matrix4x4Identity);
   Graphics.Renderer.SetProjectionMatrix(M);
   _Shader.SetIntegerUniform('texture', 0);
@@ -451,7 +453,9 @@ Begin
   Graphics.Renderer.BindShader(_Shader);
   //ShaderManager.Instance.Bind(_Shader);
   Graphics.Renderer.SetModelMatrix(Matrix4x4Identity);
-  Graphics.Renderer.SetProjectionMatrix(Graphics.ProjectionMatrix);
+
+  RaiseError('needs fix');
+  //FIXME Graphics.Renderer.SetProjectionMatrix(Graphics.ProjectionMatrix);
   _Shader.SetIntegerUniform('texture', 0);
 
   Graphics.Renderer.SetBlendMode(blendNone);

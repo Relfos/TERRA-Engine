@@ -176,7 +176,7 @@ Type
 
       Procedure AddSprite(P:Sprite);
 
-      Procedure Flush;
+      Procedure Flush(Const Projection:Matrix4x4);
 
       //Procedure SetupSaturationCombiners(Var Slot:Integer);
   End;
@@ -205,19 +205,19 @@ Type
 
       Procedure Init; Override;
 
-      Procedure SetShader(MyShader:ShaderInterface);
+      Procedure SetShader(Const Projection:Matrix4x4; MyShader:ShaderInterface);
+
+      Procedure Flush(Const Projection:Matrix4x4);
 
    Public
       Class Function Instance:SpriteManager;
 
       Procedure Release; Override;
 
-      Procedure Render;
+      Procedure Render(Const Projection:Matrix4x4);
 
-      Procedure EnableSpriteShader(ColorGrading:Boolean);
-      Procedure EnableFontShader();
-
-      Procedure Flush;
+      Procedure EnableSpriteShader(Const Projection:Matrix4x4; ColorGrading:Boolean);
+      Procedure EnableFontShader(Const Projection:Matrix4x4);
 
       Procedure QueueSprite(S:Sprite);
 
@@ -633,7 +633,7 @@ Var
   I,K:Integer;
   Min:Single;
   Total, Index, Count:Integer;
-  Projection, M:Matrix4x4;
+  M:Matrix4x4;
   Graphics:GraphicsManager;
 Begin
   If InputManager.Instance.Keys.IsDown(keyF6) Then
@@ -712,7 +712,7 @@ Begin
 
     If (Index>=0) Then
     Begin
-      _Batches[Index].Flush();
+      _Batches[Index].Flush(Projection);
       Dec(Total);
 
       Inc(Count); //If Count>1 Then break;
@@ -745,9 +745,8 @@ Begin
     _Batches[I]._Closed := True;
 End;
 
-Procedure SpriteManager.SetShader(MyShader: ShaderInterface);
+Procedure SpriteManager.SetShader(Const Projection:Matrix4x4; MyShader: ShaderInterface);
 Var
-  Projection:Matrix4x4;
   Graphics:GraphicsManager;
 Begin
   If (_CurrentShader = MyShader) Then
@@ -758,8 +757,6 @@ Begin
   Graphics := GraphicsManager.Instance;
 
   _CurrentShader := MyShader;
-
-  Projection := Graphics.ProjectionMatrix;
 
   {If Not MyShader.IsReady() Then BIBI
     Exit;}
@@ -782,19 +779,19 @@ Begin
   {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 
-Procedure SpriteManager.EnableFontShader;
+Procedure SpriteManager.EnableFontShader(Const Projection:Matrix4x4);
 Begin
-  SetShader(_FontShader);
+  SetShader(Projection, _FontShader);
 End;
 
-Procedure SpriteManager.EnableSpriteShader(ColorGrading:Boolean);
+Procedure SpriteManager.EnableSpriteShader(Const Projection:Matrix4x4; ColorGrading:Boolean);
 Begin
   {$IFNDEF DISABLECOLORGRADING}
   If (ColorGrading) Then
-    SetShader(_SpriteShaderWithGrading)
+    SetShader(Projection, _SpriteShaderWithGrading)
   Else
   {$ENDIF}
-    SetShader(_SpriteShaderWithoutGrading);
+    SetShader(Projection, _SpriteShaderWithoutGrading);
 End;
 
 { Sprite }
@@ -1019,7 +1016,7 @@ Begin
 End;
 
 
-Procedure SpriteBatch.Flush;
+Procedure SpriteBatch.Flush(Const Projection:Matrix4x4);
 Var
   I, J:Integer;
   S:Sprite;
@@ -1056,12 +1053,12 @@ Begin
 
   If (Self._IsFont) Then
   Begin
-    _Manager.EnableFontShader();
+    _Manager.EnableFontShader(Projection);
     {$IFDEF DISTANCEFIELDFONTS}
     _Manager._FontShader.SetColorUniform('outline', _Outline);
     {$ENDIF}
   End Else
-    _Manager.EnableSpriteShader({$IFDEF DISABLECOLORGRADING}False{$ELSE}Assigned(Self._ColorTable){$ENDIF});
+    _Manager.EnableSpriteShader(Projection, {$IFDEF DISABLECOLORGRADING}False{$ELSE}Assigned(Self._ColorTable){$ENDIF});
 
   If Not _Texture.Bind(0) Then
     Exit;

@@ -167,7 +167,7 @@ Type
 
       Function HasGlyph(ID:Cardinal):Boolean;
 
-      Function InitGlyph(Font:Font; ID:Cardinal; Size:Integer):FontGlyph; Override;
+      Function InitGlyph(Font:TERRAFont; ID:Cardinal; Size:Integer):FontGlyph; Override;
       Function GetKerning(Current, Next:Cardinal):Integer; Override;
 
       Property Ready:Boolean Read _Ready;
@@ -1712,7 +1712,7 @@ begin
   Result := (P>0);
 End;
 
-Function TTFFont.InitGlyph(Font: Font; ID: Cardinal; Size:Integer): FontGlyph;
+Function TTFFont.InitGlyph(Font:TERRAFont; ID: Cardinal; Size:Integer): FontGlyph;
 Var
   W,H,XOfs,YOfs, XAdv,lsb:Integer;
   OpID:Cardinal;
@@ -1779,7 +1779,7 @@ Begin
 End;
 
 
-Function LoadTTF(Source:Stream; Font:Font):Boolean;
+Function LoadTTF(Source:Stream; Font:TERRAFont):Boolean;
 Var
   Factory:TTFFont;
   Img:Image;
