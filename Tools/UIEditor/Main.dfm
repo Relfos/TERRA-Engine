@@ -144,6 +144,7 @@ object UIEditForm: TUIEditForm
         end
         object Sprite1: TMenuItem
           Caption = '&Sprite'
+          OnClick = Sprite1Click
         end
         object ProgressBar1: TMenuItem
           Caption = '&Progress Bar'

@@ -64,7 +64,12 @@ Type
     UIDrag_Left,
     UIDrag_Right,
     UIDrag_Top,
-    UIDrag_Bottom
+    UIDrag_Bottom,
+
+    UIDrag_TopLeft,
+    UIDrag_TopRight,
+    UIDrag_BottomLeft,
+    UIDrag_BottomRight
   );
 
   Widget = Class;
@@ -192,7 +197,7 @@ Type
 
       Procedure ClearProperties();
       Procedure CopyProperties(ID:Integer; Selected:Boolean; Out CurrentState, DefaultState:Integer);
-      
+
       Function IsSelected: Boolean;
 
 			Function OnKeyDown(Key:Word):Boolean;Virtual;
@@ -231,6 +236,8 @@ Type
       Procedure DrawCroppedComponent(X, Y, Layer, U1, V1, U2, V2:Single; Const Width, Height:UIDimension; ID:Integer; Selected:Boolean; ScaleColor:Boolean = True);
 
       Procedure SetObjectName(const Value: TERRAString); Override;
+
+      Procedure ApplyDragMode(Const PX, PY:Single; Mode:UIDragMode);
 
 		Public
       Tag:Integer;
@@ -1648,18 +1655,11 @@ Begin
   End;
 End;
 
-Procedure Widget.OnMouseMove(X,Y:Integer);
+Procedure Widget.ApplyDragMode(Const PX, PY:Single; Mode:UIDragMode);
 Var
-  I:Integer;
-  B:Boolean;
-  PX, PY, Extra:Single;
+  Extra:Single;
 Begin
-  If (_Dragging) Then
-  Begin
-    PX := Trunc(X - _DragX);
-    PY := Trunc(Y - _DragY);
-
-    Case _DragMode Of
+  Case Mode Of
     UIDrag_Move:
       Begin
         _Position.X.Value := PX;
@@ -1692,6 +1692,47 @@ Begin
         Self.UpdateRects();
       End;
 
+    End;
+End;
+
+Procedure Widget.OnMouseMove(X,Y:Integer);
+Var
+  I:Integer;
+  B:Boolean;
+  PX, PY:Single;
+Begin
+  If (_Dragging) Then
+  Begin
+    PX := Trunc(X - _DragX);
+    PY := Trunc(Y - _DragY);
+
+    Case _DragMode Of
+    UIDrag_TopLeft:
+      Begin
+        Self.ApplyDragMode(PX, PY, UIDrag_Top);
+        Self.ApplyDragMode(PX, PY, UIDrag_Left);
+      End;
+
+    UIDrag_TopRight:
+      Begin
+        Self.ApplyDragMode(PX, PY, UIDrag_Top);
+        Self.ApplyDragMode(PX, PY, UIDrag_Right);
+      End;
+
+    UIDrag_BottomLeft:
+      Begin
+        Self.ApplyDragMode(PX, PY, UIDrag_Bottom);
+        Self.ApplyDragMode(PX, PY, UIDrag_Left);
+      End;
+
+    UIDrag_BottomRight:
+      Begin
+        Self.ApplyDragMode(PX, PY, UIDrag_Bottom);
+        Self.ApplyDragMode(PX, PY, UIDrag_Right);
+      End;
+
+    Else
+      ApplyDragMode(PX, PY, _DragMode);
     End;
 
     _TransformChanged := True;

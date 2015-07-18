@@ -21,6 +21,8 @@ Const
   customVertical  = crSizeNS;
   customText = crIBeam;
   customLink = crHandPoint;
+  customDiagonal1 = crSizeNESW;
+  customDiagonal2 = crSizeNWSE;
 
 Type
   UIEditTool = (
@@ -30,7 +32,8 @@ Type
     uitool_Label,
     uitool_Checkbox,
     uitool_Radiobutton,
-    uitool_ProgressBar
+    uitool_ProgressBar,
+    uitool_Sprite
   );
 
   UIEditScene = Class;
@@ -81,6 +84,7 @@ Type
       Procedure AddCheckbox(X, Y:Integer);
       Procedure AddRadioButton(X, Y:Integer);
       Procedure AddProgressBar(X,Y:Integer);
+      Procedure AddSprite(X,Y:Integer);
 
       Procedure SelectWidget(W:Widget);
   End;
@@ -137,6 +141,7 @@ Type
     procedure Delete1Click(Sender: TObject);
     procedure WidgetListEdited(Sender: TObject; Node: TTreeNode;
       var S: String);
+    procedure Sprite1Click(Sender: TObject);
 
   Protected
     Procedure CustomDrawItem(Sender: TObject; ACanvas: TCanvas; ARect: TRect; State: TOwnerDrawState);
@@ -253,6 +258,14 @@ begin
   Self.AddWidget(P, X, Y);
 end;
 
+procedure UIEditScene.AddSprite(X, Y: Integer);
+Var
+  P:UISprite;
+begin
+  P := UISprite.Create('sprite', Self.GetNewTarget(), X, Y, 0.1, 'sprite');
+  Self.AddWidget(P, X, Y);
+end;
+
 Procedure UIEditScene.AddView(Const Name:TERRAString);
 Var
   V:UIEditableView;
@@ -325,7 +338,7 @@ Begin
   Self.LoadSkin();
 
   S := FileManager.Instance.SearchResourceFile('ui_menu0.xml');
-  Self._Scene._SelectedView.Open(S);
+//  Self._Scene._SelectedView.Open(S);
 End;
 
 
@@ -387,6 +400,11 @@ begin
   Scene._CurrentTool := uitool_ProgressBar;
 end;
 
+procedure TUIEditForm.Sprite1Click(Sender: TObject);
+begin
+  Scene._CurrentTool := uitool_Sprite;
+end;
+
 procedure TUIEditForm.RenderPanelMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 Var
@@ -444,6 +462,11 @@ begin
       Self.Scene.AddProgressBar(X, Y);
     End;
 
+  uitool_Sprite:
+    Begin
+      Self.Scene.AddSprite(X, Y);
+    End;
+
 
   End;
 
@@ -486,6 +509,27 @@ begin
   Begin
     PX := X - Trunc(W.AbsolutePosition.X);
     PY := Y - Trunc(W.AbsolutePosition.Y);
+
+    If (PX<=WidgetBorder) And (PY<=WidgetBorder) Then
+    Begin
+      _Scene._DragMode := UIDrag_TopLeft;
+      TargetCursor := customDiagonal1;
+    End Else
+    If (PX>=Trunc(W.Size.X - WidgetBorder)) And (PY<=WidgetBorder) Then
+    Begin
+      _Scene._DragMode := UIDrag_TopRight;
+      TargetCursor := customDiagonal2;
+    End Else
+    If (PX<=WidgetBorder) And (PY>=Trunc(W.Size.Y - WidgetBorder)) Then
+    Begin
+      _Scene._DragMode := UIDrag_BottomLeft;
+      TargetCursor := customDiagonal2;
+    End Else
+    If (PX>=Trunc(W.Size.X - WidgetBorder)) And (PY>=Trunc(W.Size.Y - WidgetBorder)) Then
+    Begin
+      _Scene._DragMode := UIDrag_BottomRight;
+      TargetCursor := customDiagonal1;
+    End Else
 
     If (PX<=WidgetBorder) Then
     Begin
@@ -671,6 +715,8 @@ Begin
   LoadCursor(customVertical, 'vertical');
   LoadCursor(customText, 'text');
   LoadCursor(customLink, 'link');
+  LoadCursor(customDiagonal1, 'diagonal1');
+  LoadCursor(customDiagonal2, 'diagonal2');
 
   ChangeCursor(customDefault);
 
@@ -827,5 +873,7 @@ begin
 
   Widget(Node.Data).ObjectName := S;
 end;
+
+
 
 end.
