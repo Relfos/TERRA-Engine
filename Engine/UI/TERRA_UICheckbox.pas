@@ -3,12 +3,12 @@ Unit TERRA_UICheckbox;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_UICaption;
+Uses TERRA_String, TERRA_Object, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_UIDimension, TERRA_UICaption;
 
 Type
   UICheckBox = Class(UICaption)
     Protected
-      _Checked:Boolean;
+      _Checked:BooleanProperty;
 
       Procedure SetChecked(Value:Boolean); Virtual;
 
@@ -19,14 +19,16 @@ Type
     Public
       Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Const Size:UIDimension; Const InitialValue:Boolean; Caption:TERRAString; Const ComponentName:TERRAString; TabIndex:Integer=-1);
 
+      Procedure Release; Override;
+
+      Function GetPropertyByIndex(Index: Integer): TERRAObject; Override;
+
       Procedure Render; Override;
       Procedure UpdateRects; Override;
 
       Procedure OnMouseDown(X,Y:Integer;Button:Word); Override;
 
-      Procedure SetCheckedWithoutPropagation(Value:Boolean);
-
-      Property Checked:Boolean Read _Checked Write SetChecked;
+      Property Checked:BooleanProperty Read _Checked;
   End;
 
 Implementation
@@ -39,22 +41,22 @@ Begin
 
   Self._TabIndex := TabIndex;
 
-  Self.SetCaption(Caption);
+  Self.Caption.Value := Caption;
   Self.SetRelativePosition(VectorCreate2D(X,Y));
   Self._Layer := Z;
-  Self._Checked := False;
 
-  Self._Width := Size;
-  Self._Height := Size;
+  Self._Checked := BooleanProperty.Create('checked', InitialValue);
 
-  Self._Checked := InitialValue; 
+  Self.Width := Size;
+  Self.Height := Size;
+
 
   _NeedsUpdate := True;
 End;
 
 Procedure UICheckBox.OnMouseDown(X, Y: Integer; Button: Word);
 Begin
-  SetChecked(Not _Checked);
+  SetChecked(Not _Checked.Value);
 End;
 
 Function UICheckBox.HasMouseOver: Boolean;
@@ -62,17 +64,12 @@ Begin
   Result := True;
 End;
 
-Procedure UICheckBox.SetCheckedWithoutPropagation(Value: Boolean);
-Begin
-  _Checked := Value;
-End;
-
 Procedure UICheckBox.SetChecked(Value:Boolean);
 Begin
-  If (Value = _Checked) Then
+  If (Value = _Checked.Value) Then
     Exit;
 
-  _Checked := Value;
+  _Checked.Value := Value;
 
   If (Self.Visible) And (Assigned(OnMouseClick)) Then
   Begin
@@ -87,8 +84,8 @@ Procedure UICheckBox.UpdateRects();
 Begin
   Inherited;
 
-  _Size.X := CheckBoxPixelOfs + Self.GetDimension(_Width) + _TextRect.X;
-  _Size.Y := FloatMax(_TextRect.Y, Self.GetDimension(_Height));
+  _Size.X := CheckBoxPixelOfs + Self.GetDimension(Self.Width, uiDimensionWidth) + _TextRect.X;
+  _Size.Y := FloatMax(_TextRect.Y, Self.GetDimension(Self.Height, uiDimensionHeight));
 End;
 
 Procedure UICheckBox.Render;
@@ -100,9 +97,9 @@ Begin
   If (Not DisableHighlights) Then
     Self.UpdateHighlight();
 
-  Self.DrawComponent(0.0, 0.0, 0.0, _Width, _Height, 0, _Checked);
+  Self.DrawComponent(0.0, 0.0, 0.0, Self.Width, Self.Height, 0, _Checked.Value);
 
-  Self.DrawText(_Caption, Self.GetDimension(_Width) + CheckBoxPixelOfs, (_Size.Y - _TextRect.Y) * 0.5, 0.5, _TextRect, 1.0, 0, _Checked);
+  Self.DrawText(Caption.Value, Self.GetDimension(Self.Width, uiDimensionWidth) + CheckBoxPixelOfs, (_Size.Y - _TextRect.Y) * 0.5, 0.5, _TextRect, 1.0, 0, _Checked.Value, ColorWhite);
 
   Inherited;
 End;
@@ -110,6 +107,22 @@ End;
 Function UICheckBox.IsSelectable: Boolean;
 Begin
   Result := True;
+End;
+
+Procedure UICheckBox.Release;
+Begin
+  Inherited;
+
+  ReleaseObject(_Checked);
+End;
+
+Function UICheckBox.GetPropertyByIndex(Index: Integer): TERRAObject;
+Begin
+  Case Index Of
+    CustomPropertiesBaseIndex + 1: Result := Self._Checked;
+  Else
+    Result := Inherited GetPropertyByIndex(Index);
+  End;
 End;
 
 End.

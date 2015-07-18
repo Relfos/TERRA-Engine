@@ -17,8 +17,12 @@ Const
 Type
   UIEditTool = (
     uitool_Empty,
+    uitool_Window,
     uitool_Button,
-    uitool_Label
+    uitool_Label,
+    uitool_Checkbox,
+    uitool_Radiobutton,
+    uitool_ProgressBar
   );
 
   UIEditScene = Class;
@@ -60,8 +64,12 @@ Type
       Procedure AddView(Const Name:TERRAString);
 
       Procedure AddWidget(W:Widget);
+      Procedure AddWindow(X, Y:Integer);
       Procedure AddButton(X, Y:Integer);
       Procedure AddLabel(X, Y:Integer);
+      Procedure AddCheckbox(X, Y:Integer);
+      Procedure AddRadioButton(X, Y:Integer);
+      Procedure AddProgressBar(X,Y:Integer);
 
       Procedure SelectWidget(W:Widget);
   End;
@@ -93,6 +101,7 @@ Type
     Icon1: TMenuItem;
     Sprite1: TMenuItem;
     PropertyList: TCustomPropertyEditor;
+    ProgressBar1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -107,9 +116,14 @@ Type
     procedure RenderPanelMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure Label1Click(Sender: TObject);
+    procedure Checkbox1Click(Sender: TObject);
+    procedure ProgressBar1Click(Sender: TObject);
+    procedure Radiobox1Click(Sender: TObject);
+    procedure Window1Click(Sender: TObject);
 
   Protected
     Function FindWidgetNode(W:Widget):TTreeNode;
+    Procedure UpdateWidgetTree();
 
   Private
     _Scene:UIEditScene;
@@ -124,7 +138,7 @@ Var
   UIEditForm: TUIEditForm;
 
 implementation
-Uses TERRA_UIButton, TERRA_UILabel;
+Uses TERRA_UIDimension, TERRA_UIWindow, TERRA_UIButton, TERRA_UILabel, TERRA_UICheckbox, TERRA_UIRadioButton, TERRA_UIProgressBar;
 
 {$R *.dfm}
 
@@ -151,12 +165,23 @@ Begin
   Self._LastWidget := Self._SelectedWidget;
   _CurrentTool := uitool_Empty;
 
-  UIEditForm.WidgetList.Items.AddChild(UIEditForm.FindWidgetNode(Nil), W.Name);
+  UIEditForm.WidgetList.Items.AddChildObject(UIEditForm.FindWidgetNode(Nil), W.Name, W);
 
   UIEditForm.FormResize(UIEditForm.WidgetList);
 
+  UIEditForm.UpdateWidgetTree();
+
   Self.SelectWidget(W);
 End;
+
+
+Procedure UIEditScene.AddWindow(X, Y: Integer);
+Begin
+  Self.AddWidget(UIWindow.Create('window', Self._SelectedView._Target,
+    X, Y, 0.1,
+    UIPixels(300), UIPixels(200),  'window'));
+End;
+
 
 Procedure UIEditScene.AddButton(X, Y: Integer);
 Begin
@@ -167,9 +192,27 @@ End;
 
 Procedure UIEditScene.AddLabel(X, Y: Integer);
 Begin
-  Self.AddWidget(UILabel.Create('label', Self._SelectedView._Target,
-    X, Y, 0.1, 'text'));
+  Self.AddWidget(UILabel.Create('label', Self._SelectedView._Target, X, Y, 0.1, 'text'));
 End;
+
+procedure UIEditScene.AddCheckbox(X, Y: Integer);
+Begin
+  Self.AddWidget(UICheckbox.Create('check', Self._SelectedView._Target, X, Y, 0.1, UIPixels(25), True, 'text', 'checkbox'));
+End;
+
+procedure UIEditScene.AddRadioButton(X, Y: Integer);
+Begin
+  Self.AddWidget(UIRadioButton.Create('radio', Self._SelectedView._Target, X, Y, 0.1, UIPixels(25), 'text', 'checkbox'));
+End;
+
+procedure UIEditScene.AddProgressBar(X, Y: Integer);
+Var
+  P:UIProgressBar;
+begin
+  P := UIProgressBar.Create('bar', Self._SelectedView._Target, X, Y, 0.1, UIPixels(200), UIPixels(30), 'progressbar');
+  P.Percent.Value := 50;
+  Self.AddWidget(P);
+end;
 
 Procedure UIEditScene.AddView(Const Name:TERRAString);
 Var
@@ -265,9 +308,30 @@ begin
   Scene._CurrentTool := uitool_Button;
 end;
 
+
+procedure TUIEditForm.Window1Click(Sender: TObject);
+begin
+  Scene._CurrentTool := uitool_Window;
+end;
+
 procedure TUIEditForm.Label1Click(Sender: TObject);
 begin
   Scene._CurrentTool := uitool_Label;
+end;
+
+procedure TUIEditForm.Checkbox1Click(Sender: TObject);
+begin
+  Scene._CurrentTool := uitool_Checkbox;
+end;
+
+procedure TUIEditForm.Radiobox1Click(Sender: TObject);
+begin
+  Scene._CurrentTool := uitool_Radiobutton;
+end;
+
+procedure TUIEditForm.ProgressBar1Click(Sender: TObject);
+begin
+  Scene._CurrentTool := uitool_ProgressBar;
 end;
 
 procedure TUIEditForm.RenderPanelMouseDown(Sender: TObject;
@@ -289,6 +353,11 @@ begin
       End;
     End;
 
+  uitool_Window:
+    Begin
+      Self.Scene.AddWindow(X, Y);
+    End;
+
   uitool_Button:
     Begin
       Self.Scene.AddButton(X, Y);
@@ -298,6 +367,22 @@ begin
     Begin
       Self.Scene.AddLabel(X, Y);
     End;
+
+  uitool_Checkbox:
+    Begin
+      Self.Scene.AddCheckbox(X, Y);
+    End;
+
+  uitool_Radiobutton:
+    Begin
+      Self.Scene.AddRadioButton(X, Y);
+    End;
+
+  uitool_ProgressBar:
+    Begin
+      Self.Scene.AddProgressBar(X, Y);
+    End;
+
 
   End;
 
@@ -351,7 +436,17 @@ begin
   Scene.SelectWidget(Scene._SelectedView._Target.GetWidget(Node.Text));
 end;
 
-
+Procedure TUIEditForm.UpdateWidgetTree;
+Var
+  I:Integer;
+  N:TTreeNode;
+Begin
+  For I:=0 To Pred(WidgetList.Items.Count) Do
+  Begin
+    N := WidgetList.Items[I];
+    N.Text := Widget(N.Data).Name;
+  End;
+End;
 
 { UIEditableView }
 Constructor UIEditableView.Create(const Name: TERRAString; Owner:UIEditScene);

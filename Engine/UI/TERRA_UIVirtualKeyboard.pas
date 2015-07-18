@@ -26,7 +26,7 @@ Unit TERRA_UIVirtualKeyboard;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_UI, TERRA_Utils, TERRA_Color, TERRA_Log, TERRA_Localization;
+Uses TERRA_Object, TERRA_String, TERRA_UI, TERRA_Utils, TERRA_Color, TERRA_Log, TERRA_UIDimension, TERRA_Localization;
 
 Type
   KeyboardKeyType = (
@@ -274,8 +274,8 @@ Var
 Begin
   Inherited Create(Name, UI, ComponentName);
 
-  _Width := UIScreenWidthPercent(100);
-  _Height := UIPixels(320);
+  Self.Width := UIPercent(100);
+  Self.Height := UIPixels(320);
 
   Self.UpdateRects();
 
@@ -349,7 +349,7 @@ Begin
   Self.ClearProperties();
   Self.UpdateTransform();
 
-  Self.DrawComponent(0, 0, 0.0, _Width, _Height, 3, False);
+  Self.DrawComponent(0, 0, 0.0, Self.Width, Self.Height, 3, False);
 
   For J:=0 To Pred(MaxKeyboardLines) Do
     For I:=0 To Pred(MaxKeyboardRows) Do
@@ -711,7 +711,7 @@ Begin
   Self.UpdateTransform();
   Self.UpdateHighlight();
 
-  DrawComponent(0, 0, 0, _Width, _Height, KeyTypeToInt(_KeyType), Self.IsSelected);
+  DrawComponent(0, 0, 0, Self.Width, Self.Height, KeyTypeToInt(_KeyType), Self.IsSelected);
   W := Self.GetKeyWidth();
   H := Self.GetKeyHeight();
 
@@ -754,8 +754,8 @@ Procedure UIVirtualKeyboardKey.OnLanguageChange; Begin End;
 
 Procedure UIVirtualKeyboardKey.UpdateRects;
 Begin
-  _Width := UIPixels(GetKeyWidth());
-  _Height := UIPixels(GetKeyHeight());
+  Self.Width := UIPixels(GetKeyWidth());
+  Self.Height := UIPixels(GetKeyHeight());
   Inherited;
 End;
 

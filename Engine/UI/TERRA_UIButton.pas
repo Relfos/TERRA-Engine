@@ -3,7 +3,7 @@ Unit TERRA_UIButton;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Vector3D, TERRA_Color, TERRA_UICaption;
+Uses TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Vector3D, TERRA_Color, TERRA_UIDimension, TERRA_UICaption;
 
 Type
   UIButton = Class(UICaption)
@@ -22,12 +22,12 @@ Begin
   Inherited Create(Name, Parent, ComponentName);
   Self._TabIndex := TabIndex;
 
-  Self.SetCaption(Caption);
+  Self.Caption.Value := Caption;
   Self.SetRelativePosition(VectorCreate2D(X,Y));
   Self._Layer := Z;
 
-  Self._Width := Width;
-  Self._Height := Height;
+  Self.Width := Width;
+  Self.Height := Height;
 
   _NeedsUpdate := True;
 End;
@@ -43,9 +43,9 @@ Begin
   Self.UpdateTransform();
   Self.UpdateHighlight();
 
-  Self.DrawComponent(0, 0, 0, _Width, _Height, 0, Self.IsSelected);
+  Self.DrawComponent(0, 0, 0, Self.Width, Self.Height, 0, Self.IsSelected);
 
-  If (Assigned(Self.Font)) And (Caption<>'') Then
+  If (Assigned(Self.Font)) And (Caption.Value <> '' ) Then
   Begin
     FontScale := 1.0;
 
@@ -58,7 +58,7 @@ Begin
     TX := (Self._Size.X - _TextRect.X) * 0.5;
     TY := (Self._Size.Y - _TextRect.Y) * 0.5;
 
-    Self.DrawText(_Caption, TX, TY, 0.25, _TextRect, FontScale, 0, Self.IsSelected, ColorWhite);
+    Self.DrawText(Caption.Value, TX, TY, 0.25, _TextRect, FontScale, 0, Self.IsSelected, ColorWhite);
   End;
 
   Inherited;

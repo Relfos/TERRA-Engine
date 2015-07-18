@@ -3,8 +3,7 @@ Unit TERRA_UIRadioButton;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font,
-  TERRA_UICheckbox;
+Uses TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_UIDimension, TERRA_UICheckbox;
 
 Type
   UIRadioButton = Class(UICheckBox)
@@ -58,7 +57,7 @@ End;
 
 Procedure UIRadioButton.OnMouseDown(X, Y: Integer; Button: Word);
 Begin
-  If (Not _Checked) Then
+  If (Not _Checked.Value) Then
     SetChecked(True);
 End;
 
@@ -80,10 +79,10 @@ Var
   W:Widget;
   RB:UIRadioButton;
 Begin
-  If (_Checked = Value) Or (Not Value) Then
+  If (_Checked.Value = Value) Or (Not Value) Then
     Exit;
 
-  _Checked := Value;
+  _Checked.Value := Value;
 
   If (Not Value) Then
     Exit;
@@ -104,7 +103,7 @@ Begin
     Begin
       RB := UIRadioButton(W);
       If (RB.Group = Self.Group) Then
-        RB._Checked := False;
+        RB._Checked.Value := False;
     End;
   End;
 End;

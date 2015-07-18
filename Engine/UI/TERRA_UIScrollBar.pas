@@ -3,7 +3,7 @@ Unit TERRA_UIScrollbar;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font,
+Uses TERRA_Utils, TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font,
   TERRA_UIIcon;
 
 Type
@@ -70,8 +70,8 @@ Begin
   Else
     Self._Kind := scrollVertical;
 
-  Self._Width := ScrollWidth;
-  Self._Height := ScrollHeight;
+  Self.Width := ScrollWidth;
+  Self.Height := ScrollHeight;
 
   _Handle := UIScrollBarHandle.Create(Name+'_handle', Self, 0, 0, 1, HandleWidth, HandleHeight, ComponentName);
 
@@ -109,22 +109,22 @@ Begin
 //If  (UI.Instance.Dragger = Self)  Then  MyColor := ColorBlue;
 
   _HandleMin := VectorCreate2D(0, 0);
-  _HandleMax := VectorCreate2D(Self.GetDimension(_Width) - _Handle.GetDimension(_Handle.Width), Self.GetDimension(_Height) - _Handle.GetDimension(_Handle.Height));
+  _HandleMax := VectorCreate2D(Self.GetDimension(Self.Width, uiDimensionWidth) - _Handle.GetDimension(_Handle.Width, uiDimensionWidth), Self.GetDimension(Self.Height, uiDimensionHeight) - _Handle.GetDimension(_Handle.Height, uiDimensionHeight));
 
   If (_Kind = scrollHorizontal) Then
   Begin
-    HH := Self.GetDimension(_Width) * 0.25;
-    _HandleOffset.X := -(_Handle.GetDimension(_Handle.Width)  * 0.5);
-    _HandleOffset.Y := (Self.GetDimension(_Height) - _Handle.GetDimension(_Handle.Height)) * 0.5;
+    HH := Self.GetDimension(Self.Width, uiDimensionWidth) * 0.25;
+    _HandleOffset.X := -(_Handle.GetDimension(_Handle.Width, uiDimensionWidth)  * 0.5);
+    _HandleOffset.Y := (Self.GetDimension(Self.Height, uiDimensionHeight) - _Handle.GetDimension(_Handle.Height, uiDimensionHeight)) * 0.5;
 
-    Self.DrawComponent(0, 0, 0, _Width, _Height, 1, Self.IsSelected);
+    Self.DrawComponent(0, 0, 0, Self.Width, Self.Height, 1, Self.IsSelected);
   End Else
   Begin
-    HH := Self.GetDimension(_Height) * 0.25;
-    _HandleOffset.X := (Self.GetDimension(_Width) - _Handle.GetDimension(_Handle._Width)) * 0.5;
-    _HandleOffset.Y := -(_Handle.GetDimension(_Handle._Height) * 0.5);
+    HH := Self.GetDimension(Self.Height, uiDimensionHeight) * 0.25;
+    _HandleOffset.X := (Self.GetDimension(Self.Width, uiDimensionWidth) - _Handle.GetDimension(_Handle.Width, uiDimensionWidth)) * 0.5;
+    _HandleOffset.Y := -(_Handle.GetDimension(_Handle.Height, uiDimensionHeight) * 0.5);
 
-    Self.DrawComponent(0, 0, 0, _Width, _Height, 1, Self.IsSelected);
+    Self.DrawComponent(0, 0, 0, Self.Width, Self.Height, 1, Self.IsSelected);
   End;
 
   Inherited;

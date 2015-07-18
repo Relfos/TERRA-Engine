@@ -12,8 +12,6 @@ Type
       _Height:Single;
 
     Public
-      OnReveal:WidgetEventHandler;
-
       Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Caption:TERRAString; TabIndex:Integer=-1);
 
       Procedure Render; Override;
@@ -35,7 +33,7 @@ Begin
   Self._Width := 0;
   Self._Height := 0;
 
-  Self.SetCaption(Caption);
+  Self.Caption.Value := Caption;
   _NeedsUpdate := True;
 End;
 
@@ -84,7 +82,7 @@ Begin
   Self.ClearProperties();
   Self.UpdateRects;
 
-  If (_Caption = '') Then
+  If (Caption.Value = '') Then
     Exit;
 
   Self.UpdateTransform();
@@ -106,7 +104,7 @@ Begin
 
   Color := Self.GetColor;
 
-  Self.DrawText(_Caption, 0, 0, 0, _TextRect, Scale, 0, False, Color);
+  Self.DrawText(Caption.Value, 0, 0, 0, _TextRect, Scale, 0, False, Color);
 
   Inherited;
 End;

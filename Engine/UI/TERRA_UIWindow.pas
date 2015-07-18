@@ -3,7 +3,7 @@ Unit TERRA_UIWindow;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color;
+Uses TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color;
 
 Type
   UIWindow = Class(Widget)
@@ -22,17 +22,12 @@ Type
 //      Procedure EnableHighlights();
 
       Procedure SetCaption(Const Value:TERRAString);
-      Procedure SetHeight(Const Value:UIDimension);
-      Procedure SetWidth(Const Value:UIDimension);
 
       Procedure OnMouseDown(X,Y:Integer;Button:Word); Override;
 			Procedure OnMouseUp(X,Y:Integer;Button:Word); Override;
 			Procedure OnMouseWheel(X,Y:Integer; Delta:Integer); Override;
 
       Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Width, Height:UIDimension; Const ComponentName:TERRAString);
-
-      Property Width:UIDimension Read _Width Write SetWidth;
-      Property Height:UIDimension Read _Height Write SetHeight;
 
       Property Caption:TERRAString Read _Caption Write SetCaption;
   End;
@@ -48,8 +43,8 @@ Begin
 
   Self.SetRelativePosition(VectorCreate2D(X,Y));
   Self._Layer := Z;
-  Self._Width := Width;
-  Self._Height := Height;
+  Self.Width := Width;
+  Self.Height := Height;
   Self._Dragging := False;
 
   Self.Selectable := True;
@@ -124,7 +119,7 @@ Begin
 
   If (Not Frameless) Then
   Begin
-    Self.DrawComponent( 0, 0, 0, _Width, _Height, 0, False);
+    Self.DrawComponent( 0, 0, 0, Self.Width, Self.Height, 0, False);
   End;
 
   Inherited Render();
@@ -138,18 +133,6 @@ End;
 Procedure UIWindow.SetCaption(const Value:TERRAString);
 Begin
   _Caption := Value;
-End;
-
-Procedure UIWindow.SetWidth(const Value:UIDimension);
-Begin
-  _Width := Value;
-  Self.UpdateRects();
-End;
-
-Procedure UIWindow.SetHeight(const Value:UIDimension);
-Begin
-  _Height := Value;
-  Self.UpdateRects();
 End;
 
 Procedure UIWindow.OnMouseWheel(X,Y:Integer; Delta: Integer);

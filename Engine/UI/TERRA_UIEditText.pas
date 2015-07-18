@@ -3,7 +3,7 @@ Unit TERRA_UIEditText;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_Utils, TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font,
+Uses TERRA_Object, TERRA_Utils, TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font,
   TERRA_ClipRect, TERRA_UICaption, TERRA_Collections;
 
 Type
@@ -75,8 +75,8 @@ Begin
   Self.SetRelativePosition(VectorCreate2D(X,Y));
   Self._Layer := Z;
 
-  Self._Width := Width;
-  Self._Height := Height;
+  Self.Width := Width;
+  Self.Height := Height;
 
   Self._TabIndex := TabIndex;
   Self.Text := '';
@@ -298,8 +298,8 @@ Begin
         ChangedLine := True;
         W := _FontRenderer.GetTextWidth(_Lines[_LineIndex] + '_');
 
-        If (W>Self.GetDimension(_Width)) Then
-          _ScrollIndex := W - Self.GetDimension(_Width)
+        If (W>Self.GetDimension(Self.Width, uiDimensionWidth)) Then
+          _ScrollIndex := W - Self.GetDimension(Self.Width, uiDimensionWidth)
         Else
           _ScrollIndex := 0;
       End;
@@ -395,7 +395,7 @@ Begin
       End;
 
       W2 := _FontRenderer.GetTextWidth(_Lines[_LineIndex] + '_');
-      If (W2>Self.GetDimension(_Width)) And (W2>W) Then
+      If (W2>Self.GetDimension(Self.Width, uiDimensionWidth)) And (W2>W) Then
         _ScrollIndex := _ScrollIndex + (W2-W);
     End;
   End;
@@ -483,7 +483,7 @@ Var
 
     Y := HH * Column + HH*0.5;
 
-    If (Y + TextRect.Y>Self.GetDimension(_Height)) Then
+    If (Y + TextRect.Y>Self.GetDimension(Self.Height, uiDimensionHeight)) Then
     Begin
       Y := 0;
     End;
@@ -506,7 +506,7 @@ Begin
   If (UI.Focus <> Self) And (Self.IsHighlighted()) Then
     Self.SetFocus(False);
 
-  Self.DrawComponent(0, 0, 0, _Width, _Height, 0, Self.IsSelected);
+  Self.DrawComponent(0, 0, 0, Self.Width, Self.Height, 0, Self.IsSelected);
 
   HH := _FontRenderer.GetTextHeight('W', 1.0) * 1.1;
 
@@ -530,9 +530,9 @@ Begin
     DrawLine(J, S);
   End;
 
-  If (Caption<>'') And (Count = 0) Then
+  If (Caption.Value <>'') And (Count = 0) Then
   Begin
-    DrawLine(0, Caption);
+    DrawLine(0, Caption.Value);
   End;
 
   Inherited;

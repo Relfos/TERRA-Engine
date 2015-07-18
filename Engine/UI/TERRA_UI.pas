@@ -29,7 +29,7 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween,
   TERRA_SpriteManager, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_FontRenderer, TERRA_UITransition,
-  TERRA_UISkin, TERRA_ClipRect, TERRA_Hashmap;
+  TERRA_UISkin, TERRA_UIDimension, TERRA_ClipRect, TERRA_Hashmap;
 
 Const
   waTopLeft     = 0;
@@ -54,19 +54,10 @@ Const
   TextureAtlasWidth = 1024;
   TextureAtlasHeight = 512;
 
+  CustomPropertiesBaseIndex = 8;
+
 Type
   UI = Class;
-
-  UIDimensionType = (
-    dimPixels,
-    dimScreenWidthPercent,
-    dimScreenHeightPercent
-  );
-
-  UIDimension = Record
-      Kind:UIDimensionType;
-      Value:Single;
-  End;
 
   Widget = Class;
   WidgetClass = Class Of Widget;
@@ -79,6 +70,8 @@ Type
       _Tested:Boolean;
       _RenderFrameID:Cardinal;
 
+      _Width:DimensionProperty;
+      _Height:DimensionProperty;
 			_Position:Vector2DProperty;
       _Color:ColorProperty;
       _Rotation:AngleProperty;
@@ -91,6 +84,9 @@ Type
 			Function GetAbsolutePosition:Vector2D;
       Function GetRelativePosition:Vector2D;
 
+      Function GetHeight: UIDimension;
+      Function GetWidth: UIDimension;
+
 		Protected
 			_Parent:Widget;
       _Layer:Single;
@@ -101,9 +97,6 @@ Type
       _NeedsHide:Boolean;
 
       _MouseOver:Boolean;
-
-      _Width:UIDimension;
-      _Height:UIDimension;
 
       _Enabled:Boolean;
 
@@ -222,6 +215,8 @@ Type
       Procedure DrawComponent(X, Y, Layer:Single; Const Width, Height:UIDimension; ID:Integer; Selected:Boolean; ScaleColor:Boolean = True);
       Procedure DrawCroppedComponent(X, Y, Layer, U1, V1, U2, V2:Single; Const Width, Height:UIDimension; ID:Integer; Selected:Boolean; ScaleColor:Boolean = True);
 
+      Procedure SetObjectName(const Value: TERRAString); Override;
+
 		Public
       Tag:Integer;
       DisableHighlights:Boolean;
@@ -255,7 +250,7 @@ Type
 
       Procedure ClipChildren(Const Clip:ClipRect);
 
-      Function GetDimension(Const Dim:UIDimension):Single;
+      Function GetDimension(Const Dim:UIDimension; Const Target:UIDimensionTarget):Single;
 
       Procedure SetPositionRelativeToOther(Other:Widget; OfsX, OfsY:Single);
 
@@ -288,8 +283,6 @@ Type
 
       Procedure SetClipRect(Value:ClipRect);
       Procedure UpdateClipRect(Clip:ClipRect; LeftBorder:Single = 0.0; TopBorder:Single = 0.0; RightBorder:Single = 0.0; BottomBorder:Single = 0.0);
-
-      Procedure SetName(Const Value:TERRAString);
 
       Function IsHighlighted():Boolean;
       Function HasHighlightedChildren():Boolean;
@@ -329,7 +322,7 @@ Type
       Property Pivot:Vector2D Read _Pivot Write _Pivot;
       Property Size:Vector2D Read GetSize;
 			Property Layer:Single Read GetLayer Write SetLayer;
-			Property Name:TERRAString Read _ObjectName Write SetName;
+			Property Name:TERRAString Read _ObjectName Write SetObjectName;
 
       Property TabIndex:Integer Read _TabIndex Write _TabIndex;
       Property TabControl:Widget Read GetTabControl Write _TabControl;
@@ -365,8 +358,8 @@ Type
       Property UI:UI Read _UI;
       Property FontRenderer:FontRenderer Read GetFontRenderer Write _FontRenderer;
 
-      Property Width:UIDimension Read _Width Write SetWidth;
-      Property Height:UIDimension Read _Height Write SetHeight;
+      Property Width:UIDimension Read GetWidth Write SetWidth;
+      Property Height:UIDimension Read GetHeight Write SetHeight;
 	End;
 
   UI = Class(Widget)
@@ -569,10 +562,6 @@ Type
 
 Function GetSpriteZOnTop(W:Widget; Ofs:Single = 1.0):Single;
 
-Function UIPixels(Const Pixels:Single):UIDimension;
-Function UIScreenWidthPercent(Const Percent:Single):UIDimension;
-Function UIScreenHeightPercent(Const Percent:Single):UIDimension;
-
 
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_Renderer, TERRA_XML, TERRA_UITabs, TERRA_UIScrollBar, TERRA_UIWindow, 
@@ -581,24 +570,6 @@ Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_Renderer, TERRA_XML, TERRA_UITab
 
 Var
   _UIManager_Instance:ApplicationObject = Nil;
-
-Function UIPixels(Const Pixels:Single):UIDimension;
-Begin
-  Result.Kind := dimPixels;
-  Result.Value := Trunc(Pixels);
-End;
-
-Function UIScreenWidthPercent(Const Percent:Single):UIDimension;
-Begin
-  Result.Kind := dimScreenWidthPercent;
-  Result.Value := Percent;
-End;
-
-Function UIScreenHeightPercent(Const Percent:Single):UIDimension;
-Begin
-  Result.Kind := dimScreenHeightPercent;
-  Result.Value := Percent;
-End;
 
 Function GetSpriteZOnTop(W:Widget; Ofs:Single):Single;
 Begin
@@ -713,25 +684,10 @@ Begin
   // do nothing
 End;
 
-Procedure Widget.Release();
-Begin
-  If (UI.Dragger = Self) Then
-    UI.Dragger := Nil;
-
-  If (UI.Focus = Self) Then
-    UI.Focus := Nil;
-
-  If (UI.LastWidget = Self) Then
-    UI._LastWidget := Nil;
-
-  If (UI._LastOver = Self) Then
-    UI._LastOver := Nil; 
-End;
-
 Procedure Widget.UpdateRects();
 Begin
-  _Size.X := Self.GetDimension(_Width);
-  _Size.Y := Self.GetDimension(_Height);
+  _Size.X := Self.GetDimension(Self.Width, uiDimensionWidth);
+  _Size.Y := Self.GetDimension(Self.Height, uiDimensionHeight);
 End;
 
 Function Widget.GetSize: Vector2D;
@@ -786,8 +742,23 @@ Begin
   UI.AddWidget(Self);
 End;
 
+
+Procedure Widget.Release();
+Begin
+  ReleaseObject(_Width);
+  ReleaseObject(_Height);
+  ReleaseObject(_Visible);
+  ReleaseObject(_Position);
+  ReleaseObject(_Color);
+  ReleaseObject(_Rotation);
+  ReleaseObject(_Scale);
+  ReleaseObject(_Saturation);
+End;
+
 Procedure Widget.InitProperties;
 Begin
+  _Width := DimensionProperty.Create('width', UIPixels(0));
+  _Height := DimensionProperty.Create('height', UIPixels(0));
   _Visible := BooleanProperty.Create('visible', True);
   _Position := Vector2DProperty.Create('position', VectorCreate2D(0, 0));
   _Color := ColorProperty.Create('color', ColorWhite);
@@ -801,10 +772,12 @@ Begin
   Case Index Of
   0: Result := _Visible;
   1: Result := _Position;
-  2: Result := _Color;
-  3: Result := _Rotation;
-  4: Result := _Scale;
-  5: Result := _Saturation;
+  2: Result := _Width;
+  3: Result := _Height;
+  4: Result := _Color;
+  5: Result := _Rotation;
+  6: Result := _Scale;
+  7: Result := _Saturation;
   Else
     Result := Nil;
   End;
@@ -1432,7 +1405,7 @@ Begin
   P.Y := P.Y + OfsY + Y;
 
   FillChar(Target, SizeOf(Target), 0);
-  _Component.Draw(Target, P.X, P.Y, U1, V1, U2, V2, Trunc(Self.GetDimension(Width)), Trunc(Self.GetDimension(Height)), ID, CurrentState, DefaultState);
+  _Component.Draw(Target, P.X, P.Y, U1, V1, U2, V2, Trunc(Self.GetDimension(Width, uiDimensionWidth)), Trunc(Self.GetDimension(Height, uiDimensionHeight)), ID, CurrentState, DefaultState);
 
   //_FontRenderer.SetFont(Self.GetFont());
   _FontRenderer.SetClipRect(GetClipRect());
@@ -1990,10 +1963,15 @@ Begin
   Self.SetRelativePosition(P);
 End;
 
-Procedure Widget.SetName(const Value:TERRAString);
+Procedure Widget.SetObjectName(const Value:TERRAString);
+Var
+  Existed:Boolean;
 Begin
-  _ObjectName := Value;
-  Self._UI._Widgets.Reindex(Self);
+  Existed := _UI._Widgets.Remove(Self);
+  Self._ObjectName := Value;
+
+  If Existed Then
+    _UI._Widgets.Add(Self);
 End;
 
 Function Widget.OutsideClipRect(X, Y: Single): Boolean;
@@ -2136,14 +2114,16 @@ Begin
   Result := (P.X + Self.Size.X<0) Or (P.Y + Self.Size.Y<0) Or (P.X> UIManager.Instance.Width) Or (P.Y > UIManager.Instance.Height);
 End;
 
-Function Widget.GetDimension(const Dim: UIDimension): Single;
+Function Widget.GetDimension(Const Dim: UIDimension; Const Target:UIDimensionTarget): Single;
 Begin
-  Case Dim.Kind Of
-    dimScreenWidthPercent:  Result := (Dim.Value * 0.01) * UIManager.Instance.Width;
-    dimScreenHeightPercent:  Result := (Dim.Value * 0.01) * UIManager.Instance.Height;
-  Else
+  If Dim.IsPercent Then
+  Begin
+    If (Target = uiDimensionWidth) Then
+      Result := (Dim.Value * 0.01) * UIManager.Instance.Width
+    Else
+      Result := (Dim.Value * 0.01) * UIManager.Instance.Height
+  End Else
     Result := Dim.Value;
-  End;
 End;
 
 Procedure Widget.ClipChildren(const Clip: ClipRect);
@@ -2155,15 +2135,25 @@ Begin
     _ChildrenList[I].SetClipRect(Clip);
 End;
 
+Function Widget.GetWidth: UIDimension;
+Begin
+  Result := _Width.Value;
+End;
+
+Function Widget.GetHeight: UIDimension;
+Begin
+  Result := _Height.Value;
+End;
+
 Procedure Widget.SetWidth(const Value: UIDimension);
 Begin
-  Self._Width := Value;
+  Self._Width.Value := Value;
   Self.UpdateRects();
 End;
 
 Procedure Widget.SetHeight(const Value: UIDimension);
 Begin
-  Self._Height := Value;
+  Self._Height.Value := Value;
   Self.UpdateRects();
 End;
 
@@ -2206,6 +2196,7 @@ Procedure Widget.NullEventHandler(Src:Widget);
 Begin
   // do nothing
 End;
+
 
 { UI }
 Constructor UI.Create;
@@ -2337,10 +2328,21 @@ Var
   Temp, Last:Widget;
   Found:Boolean;
   It:Iterator;
+  NameIndex:Integer;
+  BaseName:TERRAString;
 Begin
-  If Assigned(GetWidget(MyWidget.Name)) Then
+  BaseName := MyWidget.Name;
+  NameIndex := 0;
+  While Assigned(GetWidget(MyWidget.Name)) Do
   Begin
-    Log(logWarning, 'UI', 'A widget with that name already exists! ['+ MyWidget.Name +']');
+    If NameIndex<=0 Then
+    Begin
+      Temp := GetWidget(MyWidget.Name);
+      Temp.Name := BaseName + IntToString(NameIndex);
+    End;
+
+    Inc(NameIndex);
+    MyWidget.Name := BaseName + IntToString(NameIndex);
   End;
 
   If (Assigned(MyWidget._Parent)) Then

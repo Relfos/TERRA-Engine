@@ -3,7 +3,7 @@ Unit TERRA_UIIcon;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font;
+Uses TERRA_Utils, TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font;
 
 Type
   UIIcon = Class(Widget)
@@ -26,8 +26,8 @@ Begin
   Inherited Create(Name, Parent, ComponentName);
 
 
-  Self._Width := Width;
-  Self._Height := Height;
+  Self.Width := Width;
+  Self.Height := Height;
 
   Self._TabIndex := TabIndex;
 
@@ -46,7 +46,7 @@ Begin
   If (Not DisableHighlights) Then
     Self.UpdateHighlight();
 
-  Self.DrawComponent( 0.0, 0.0, 0.0, _Width, _Height,  0, Self.IsHighlighted());
+  Self.DrawComponent( 0.0, 0.0, 0.0, Self.Width, Self.Height,  0, Self.IsHighlighted());
 
   Inherited;
 End;

@@ -3,7 +3,7 @@ Unit TERRA_UITabs;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_UICaption;
+Uses TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_UICaption;
 
 Type
   UITabEntry = Record
@@ -65,8 +65,8 @@ Begin
   Self._Layer := Z;
   Self._TabIndex := -1;
 
-  Self._Width := Width;
-  Self._Height := Height;
+  Self.Width := Width;
+  Self.Height := Height;
 
   If Assigned(Parent) Then
     Parent.TabControl := Self;
@@ -141,8 +141,8 @@ End;
 
 Procedure UITabList.UpdateRects;
 Begin
-  _Size.X := Self.GetDimension(_Width) * _TabCount;
-  _Size.Y := Self.GetDimension(_Height);
+  _Size.X := Self.GetDimension(Self.Width, uiDimensionWidth) * _TabCount;
+  _Size.Y := Self.GetDimension(Self.Height, uiDimensionHeight);
 End;
 
 Function UITabList.GetTabAt(X, Y: Integer): Integer;
@@ -151,8 +151,8 @@ Var
   TX,WW, HH:Single;
 Begin
   TX := 0;
-  WW := Self.GetDimension(_Width);
-  HH := Self.GetDimension(_Height);
+  WW := Self.GetDimension(Self.Width, uiDimensionWidth);
+  HH := Self.GetDimension(Self.Height, uiDimensionHeight);
   For I:=0 To Pred(_TabCount) Do
   If (_Tabs[I].Visible) Then
   Begin
@@ -239,8 +239,8 @@ Begin
       Add := _TabHeightOn - _TabHeightOff;
     End;*)
 
-    WW := Self.GetDimension(_Width);
-    HH := Self.GetDimension(_Height);
+    WW := Self.GetDimension(Self.Width, uiDimensionWidth);
+    HH := Self.GetDimension(Self.Height, uiDimensionHeight);
 
     If (IsSel) Then
       Add := 0
@@ -249,7 +249,7 @@ Begin
 
     Add := -HH + Add;
 
-    Self.DrawComponent( X, Add, -2, _Width, _Height,  0, IsSel);
+    Self.DrawComponent( X, Add, -2, Self.Width, Self.Height,  0, IsSel);
 
     Rect := _FontRenderer.GetTextRect(_Tabs[I].Caption);
     Self.DrawText(_Tabs[I].Caption, X + (WW-Rect.X) * 0.5, Add + (HH - Rect.Y) * 0.5, -1.5, Rect, Scale, 0, IsSel, ColorWhite);

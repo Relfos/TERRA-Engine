@@ -124,12 +124,15 @@ object UIEditForm: TUIEditForm
         end
         object Window1: TMenuItem
           Caption = '&Window'
+          OnClick = Window1Click
         end
         object Checkbox1: TMenuItem
           Caption = '&Checkbox'
+          OnClick = Checkbox1Click
         end
         object Radiobox1: TMenuItem
           Caption = '&Radiobox'
+          OnClick = Radiobox1Click
         end
         object Combobox1: TMenuItem
           Caption = '&Combobox'
@@ -139,6 +142,10 @@ object UIEditForm: TUIEditForm
         end
         object Sprite1: TMenuItem
           Caption = '&Sprite'
+        end
+        object ProgressBar1: TMenuItem
+          Caption = '&Progress Bar'
+          OnClick = ProgressBar1Click
         end
       end
     end

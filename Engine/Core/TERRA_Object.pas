@@ -12,6 +12,8 @@ Type
 
       Procedure Release; Virtual;
 
+      Procedure SetObjectName(const Value: TERRAString); Virtual;
+
     Public
       Function GetObjectType:TERRAString; Virtual;
 
@@ -35,7 +37,7 @@ Type
 
       Destructor Destroy; Override;
 
-      Property ObjectName:TERRAString Read _ObjectName; 
+      Property ObjectName:TERRAString Read _ObjectName Write SetObjectName; 
   End;
 
   BooleanProperty = Class(TERRAObject)
@@ -53,6 +55,23 @@ Type
       Procedure SetBlob(Const Blob:TERRAString); Override;
 
       Property Value:Boolean Read _Value Write _Value;
+  End;
+
+  StringProperty = Class(TERRAObject)
+    Protected
+      _Value:TERRAString;
+
+    Public
+      Constructor Create(Const Name:TERRAString; Const InitValue:TERRAString);
+
+      Function IsValueObject():Boolean; Override;
+
+      Function GetObjectType:TERRAString; Override;
+
+      Function GetBlob():TERRAString; Override;
+      Procedure SetBlob(Const Blob:TERRAString); Override;
+
+      Property Value:TERRAString Read _Value Write SetBlob;
   End;
 
   TweenCallback = Procedure (Target:TERRAObject) Of Object;
@@ -820,6 +839,38 @@ End;
 Function BooleanProperty.IsValueObject: Boolean;
 Begin
   Result := True;
+End;
+
+{ StringProperty }
+Constructor StringProperty.Create(const Name, InitValue: TERRAString);
+Begin
+  Self._ObjectName := Name;
+  Self._Value := InitValue;
+End;
+
+Function StringProperty.GetBlob: TERRAString;
+Begin
+  Result := _Value;
+End;
+
+Procedure StringProperty.SetBlob(const Blob: TERRAString);
+Begin
+  _Value := Blob;
+End;
+
+Function StringProperty.GetObjectType: TERRAString;
+Begin
+  Result := 'string';
+End;
+
+Function StringProperty.IsValueObject: Boolean;
+Begin
+  Result := True;
+End;
+
+Procedure TERRAObject.SetObjectName(const Value: TERRAString);
+Begin
+  Self._ObjectName := Value;
 End;
 
 End.
