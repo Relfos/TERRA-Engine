@@ -6,7 +6,7 @@ object UIEditForm: TUIEditForm
   HorzScrollBar.Visible = False
   VertScrollBar.Visible = False
   Caption = 'TERRA GUI Editor'
-  Color = clBtnFace
+  Color = 2500134
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
@@ -75,6 +75,7 @@ object UIEditForm: TUIEditForm
     TabOrder = 3
   end
   object MainMenu1: TMainMenu
+    OwnerDraw = True
     Left = 120
     Top = 496
     object Project1: TMenuItem

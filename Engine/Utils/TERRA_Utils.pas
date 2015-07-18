@@ -163,7 +163,7 @@ Function IntToString(Const N:Integer):TERRAString;
 Function CardinalToString(Const N:Cardinal):TERRAString;Overload;
 Function Int64ToString(Const N:Int64):TERRAString;
 Function UInt64ToString(Const N:UInt64):TERRAString;
-Function FloatToString(N:Single; DecimalPlaces:Integer = 4):TERRAString;
+Function FloatToString(N:Single):TERRAString;
 Function BoolToString(Const N:Boolean):TERRAString;Overload;
 Function VersionToString(Const N:TERRAVersion):TERRAString;Overload;
 //Function TicksToString(Const N:Cardinal):TERRAString;Overload;
@@ -692,10 +692,12 @@ Begin
   Result.Second := (Ticks Div 1000) Mod 60;
 End;
 
-Function FloatToString(N:Single; DecimalPlaces:Integer):TERRAString;
+Function FloatToString(N:Single):TERRAString;
 Var
   X:Single;
   A,B, I:Integer;
+
+  Current, DecimalPlaces:Integer;
 Begin
   If (N<0) Then
     Result := '-'
@@ -708,16 +710,19 @@ Begin
 
   Result := Result + IntToString(A) +'.';
 
-  B := 0;
-  For I:=1 To DecimalPlaces Do
-  Begin
-    X := X*10;
-    B := Trunc(X);
-    If B = 0 Then
-      Result := Result + '0';
-  End;
+  DecimalPlaces := 0;
+  I := 10;
+  Repeat
+    Current := Trunc(X * I) Mod 10;
+    I := I * 10;
+    Inc(DecimalPlaces);
+  Until (DecimalPlaces>=7) Or (Current=0);
 
-  Result := Result + IntToString(B);
+  B := 1;
+  For I:=1 To DecimalPlaces Do
+    B := B * 10;
+
+  Result := Result + IntToString(Trunc(B * X));
 End;
 
 {Function TicksToString(Const N:Cardinal):TERRAString;

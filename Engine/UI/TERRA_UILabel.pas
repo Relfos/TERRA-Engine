@@ -14,6 +14,8 @@ Type
     Public
       Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Caption:TERRAString; TabIndex:Integer=-1);
 
+      Function SupportDrag(Mode:UIDragMode):Boolean; Override; 
+
       Procedure Render; Override;
       Procedure UpdateRects; Override;
   End;
@@ -112,5 +114,10 @@ End;
 
 
 
+
+Function UILabel.SupportDrag(Mode: UIDragMode): Boolean;
+Begin
+  Result := (Mode = UIDrag_Move);
+End;
 
 End.

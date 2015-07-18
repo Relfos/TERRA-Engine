@@ -11,9 +11,7 @@ Const
   MarginSide = 10;
   ExpandSize = 15;
   CellHeight = 25;
-  MarginColor = TColor($DDDDDD);
-
-
+  
 type
   TCustomPropertyEditor = Class;
 
@@ -27,7 +25,7 @@ type
 
       _Label:TLabel;
       _Editor:TControl;
-      _Expand:TSpeedButton;
+      _Expand:TPanel;
 
       Function CreateEditor():TControl; Virtual; Abstract;
       Procedure Update(); Virtual; Abstract;
@@ -85,7 +83,12 @@ type
       _Cells:Array Of TPropertyCell;
       _CellCount:Integer;
 
+      _MarginColor:TColor;
+      _EditColor:TColor;
+
       procedure SetTarget(Target: TERRAObject);
+    procedure SetMarginColor(const Value: TColor);
+    procedure SetEditColor(const Value: TColor);
 
     protected
 
@@ -167,6 +170,10 @@ type
     property OnStartDock;
     property OnStartDrag;
     property OnUnDock;
+
+      Property MarginColor:TColor Read _MarginColor Write SetMarginColor;
+      Property EditColor:TColor Read _EditColor Write SetEditColor;
+
 //    property OnValidate: TOnValidateEvent read FOnValidate write FOnValidate;
   end;
 
@@ -190,12 +197,14 @@ begin
   Width := 306;
   Height := 300;
 
+  (*
   _Bevel := TBevel.Create(Self);
   _Bevel.Parent := Self;
   _Bevel.Width := 20;
   _Bevel.Height := Height;
   _Bevel.Top := 10;
-  _Bevel.Left := Width Div 2;
+  _Bevel.Left := Width Div 2;*)
+  
  // _Bevel.Shape := bsLeftLine;
 end;
 
@@ -236,6 +245,8 @@ Begin
     Exit;
 
   AddPropertiesFromObject(Nil, Target);
+
+  Self.Repaint();
 End;
 
 Procedure TCustomPropertyEditor.InsertRow(Parent, Prop: TERRAObject);
@@ -277,12 +288,16 @@ procedure TCustomPropertyEditor.Paint;
 Var
   I, N, MidW, H:Integer;
 begin
-  inherited;
+//  inherited;
 
   If _CellCount<=0 Then
     Exit;
 
   MidW := GetMiddle();
+
+  Canvas.Brush.Style := bsSolid;
+  Canvas.Brush.Color := Self.Color;
+  Canvas.Rectangle(0, 0, Self.Width, Self.Height);
 
   Canvas.Pen.Style := psDash;
   Canvas.Pen.Color := MarginColor;
@@ -333,6 +348,8 @@ Var
 begin
   For I:=0 To Pred(_CellCount) Do
     _Cells[I].Update();
+
+  Self.Repaint();
 end;
 
 function TCustomPropertyEditor.FindCell(Prop: TERRAObject): TPropertyCell;
@@ -346,6 +363,18 @@ begin
     Exit;
   End;
   Result := Nil;
+end;
+
+procedure TCustomPropertyEditor.SetMarginColor(const Value: TColor);
+begin
+  _MarginColor := Value;
+  Self.Repaint();
+end;
+
+procedure TCustomPropertyEditor.SetEditColor(const Value: TColor);
+begin
+  _EditColor := Value;
+  Self.Repaint();
 end;
 
 { TPropertyCell }
@@ -366,6 +395,7 @@ Begin
   _Label := TLabel.Create(Owner);
   _Label.Parent := Owner;
   _Label.Caption := Prop.ObjectName;
+  _Label.Transparent := True;
 
   _Editor := Self.CreateEditor();
   _Editor.Parent := _Owner;
@@ -373,12 +403,15 @@ Begin
 
   If (Not _Prop.IsValueObject()) Then
   Begin
-    _Expand := TSpeedButton.Create(_Owner);
+    _Expand := TPanel.Create(_Owner);
     _Expand.Parent := _Owner;
     _Expand.Width := ExpandSize;
     _Expand.Height := _Expand.Width;
     _Expand.Caption := '+';
+    _Expand.Color := _Owner.Color;
+    _Expand.Ctl3D := False;
     _Expand.OnMouseDown := ExpandProps;
+    _Expand.Cursor := crHandPoint;
   End Else
     _Expand := Nil;
 
@@ -452,7 +485,10 @@ Function TTextCell.CreateEditor: TControl;
 Begin
   _Edit := TEdit.Create(_Owner);
   //_Edit.OnKeyDown := Self.OnKeyDown;
+  _Edit.Color := _Owner.EditColor;
+  _Edit.Font.Color := clWhite;
   _Edit.OnChange := Self.OnChange;
+  _Edit.Cursor := crIBeam;
   Result := _Edit;
 End;
 
@@ -482,6 +518,8 @@ Begin
   _Shape.Width := CellHeight - 10;
   _Shape.Height := _Shape.Width;
   _Shape.OnMouseDown := Self.OnMouseDown;
+  _Shape.Cursor := crHandPoint;
+
   Result := _Shape;
 End;
 
@@ -516,6 +554,8 @@ Function TBooleanCell.CreateEditor: TControl;
 Begin
   _Check := TCheckbox.Create(_Owner);
   _Check.OnClick := OnClick;
+  _Check.Caption := '';
+  _Check.Color := _Owner.Color;
   Result := _Check;
 End;
 

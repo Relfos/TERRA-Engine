@@ -59,6 +59,14 @@ Const
 Type
   UI = Class;
 
+  UIDragMode = (
+    UIDrag_Move,
+    UIDrag_Left,
+    UIDrag_Right,
+    UIDrag_Top,
+    UIDrag_Bottom
+  );
+
   Widget = Class;
   WidgetClass = Class Of Widget;
   WidgetEventHandler = Procedure(Src:Widget) Of Object;
@@ -104,8 +112,10 @@ Type
       _TabControl:Widget;
 
       _Dragging: Boolean;
+      _DragMode:UIDragMode;
       _DragX: Single;
       _DragY: Single;
+      _DragSize:Vector2D;
       _DragStart:Vector2D;
 
       _ChildrenList:Array Of Widget;
@@ -188,6 +198,9 @@ Type
 			Function OnKeyPress(Key:Word):Boolean;Virtual;
 
       Function AllowsEvents(): Boolean;
+
+      Function AdjustWidth(NewWidth:Single):Single;
+      Function AdjustHeight(NewHeight:Single):Single;
 
       Procedure PickAt(Const X, Y:Integer; Var CurrentPick:Widget; Var Max:Single);
 
@@ -302,9 +315,11 @@ Type
 
       Function GetClipRect():ClipRect;
 
-      Procedure BeginDrag(X,Y:Integer);
+      Procedure BeginDrag(X,Y:Integer; Mode:UIDragMode = UIDrag_Move);
       Procedure FinishDrag();
       Procedure CancelDrag();
+
+      Function SupportDrag(Mode:UIDragMode):Boolean; Virtual; 
 
       Function Show(AnimationFlags:Integer; EaseType:TweenEaseType = easeLinear; Delay:Cardinal = 0; Duration:Cardinal = 500; Callback:TweenCallback = Nil):Boolean;
       Function Hide(AnimationFlags:Integer; EaseType:TweenEaseType = easeLinear; Delay:Cardinal = 0; Duration:Cardinal = 500; Callback:TweenCallback = Nil):Boolean;
@@ -562,9 +577,11 @@ Type
 
 Function GetSpriteZOnTop(W:Widget; Ofs:Single = 1.0):Single;
 
+Var
+  UISnapSize:Single = 20;
 
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_Renderer, TERRA_XML, TERRA_UITabs, TERRA_UIScrollBar, TERRA_UIWindow, 
+Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_Renderer, TERRA_XML, TERRA_UITabs, TERRA_UIScrollBar, TERRA_UIWindow,
   TERRA_Matrix4x4, TERRA_Log, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager, TERRA_UIVirtualKeyboard;
 
 
@@ -1541,14 +1558,18 @@ Begin
   End;
 End;
 
-Procedure Widget.BeginDrag(X,Y:Integer);
+Procedure Widget.BeginDrag(X,Y:Integer; Mode:UIDragMode);
 Begin
   If (Assigned(OnBeginDrag)) Then
     Self.OnBeginDrag(Self);
 
   _UI._Dragger := Self;
-  _DragStart := _Position.Value;
+  _DragMode := Mode;
   _Dragging := True;
+
+  _DragStart := _Position.Value;
+  _DragSize := _Size;
+
   _DragX := (X-_Position.X.Value);
   _DragY := (Y-_Position.Y.Value);
 End;
@@ -1614,12 +1635,50 @@ Procedure Widget.OnMouseMove(X,Y:Integer);
 Var
   I:Integer;
   B:Boolean;
+  PX, PY, Extra:Single;
 Begin
   If (_Dragging) Then
   Begin
-    _Position.X.Value := X - _DragX;
-    _Position.Y.Value := Y - _DragY;
+    PX := Trunc(X - _DragX);
+    PY := Trunc(Y - _DragY);
+
+    Case _DragMode Of
+    UIDrag_Move:
+      Begin
+        _Position.X.Value := PX;
+        _Position.Y.Value := PY;
+      End;
+
+    UIDrag_Left:
+      Begin
+        Extra := AdjustWidth(_DragSize.X + (_DragStart.X - PX));
+        _Position.X.Value := PX + Extra;
+        Self.UpdateRects();
+      End;
+
+    UIDrag_Top:
+      Begin
+        Extra := AdjustHeight(_DragSize.Y + (_DragStart.Y - PY));
+        _Position.Y.Value := PY + Extra;
+        Self.UpdateRects();
+      End;
+
+    UIDrag_Right:
+      Begin
+        AdjustWidth(_DragSize.X + (PX - _DragStart.X));
+        Self.UpdateRects();
+      End;
+
+    UIDrag_Bottom:
+      Begin
+        AdjustHeight(_DragSize.Y + (PY - _DragStart.Y));
+        Self.UpdateRects();
+      End;
+
+    End;
+
     _TransformChanged := True;
+
     Exit;
   End;
 End;
@@ -2197,6 +2256,43 @@ Begin
   // do nothing
 End;
 
+Function Widget.AdjustWidth(NewWidth: Single):Single;
+Var
+  Original, P:Single;
+Begin
+  Original := NewWidth;
+  NewWidth := Trunc(NewWidth/UISnapSize) * UISnapSize;
+  Result := Original - NewWidth;
+
+  If _Width.Value.IsPercent Then
+  Begin
+    P := (NewWidth / UIManager.Instance.Width) * 100;
+    _Width.Value := UIPercent(P);
+  End Else
+    _Width.Value := UIPixels(NewWidth);
+End;
+
+Function Widget.AdjustHeight(NewHeight: Single):Single;
+Var
+  Original, P:Single;
+Begin
+  Original := NewHeight;
+  NewHeight := Trunc(NewHeight/UISnapSize) * UISnapSize;
+  Result := Original - NewHeight;
+
+
+  If _Height.Value.IsPercent Then
+  Begin
+    P := (NewHeight / UIManager.Instance.Height) * 100;
+    _Height.Value := UIPercent(P);
+  End Else
+    _Height.Value := UIPixels(NewHeight);
+End;
+
+Function Widget.SupportDrag(Mode: UIDragMode): Boolean;
+Begin
+  Result := True;
+End;
 
 { UI }
 Constructor UI.Create;
