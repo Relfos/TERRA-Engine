@@ -757,15 +757,15 @@ Begin
   Result := Nil;
 
   Self.GetString('type', TypeName, '');
-  If TypeName = '' Then
-    Exit;
+  If TypeName <> '' Then
+  Begin
+    Self.GetString('name', PropName, '');
 
-  Self.GetString('name', PropName, '');
-
-  Result := Target.CreateProperty(Name, TypeName);
-  If Result = Nil Then
-    Exit;
-
+    Result := Target.CreateProperty(Name, TypeName);
+    If Result = Nil Then
+      Exit;
+  End Else
+    Result := Target;
 
   For I:=0 To Pred(NodeCount) Do
   Begin
@@ -774,11 +774,15 @@ Begin
     If StringEquals(P.Name, 'type') Then
       Continue;
 
-    Prop := P.FindProperty(P.Name);
+    Prop := Result.FindProperty(P.Name);
     If Assigned(Prop) Then
-      Prop.SetBlob(P.Value);
-    dsds
-    P.SaveToObject(Result);
+    Begin
+      If P.Value<>'' Then
+        Prop.SetBlob(P.Value)
+      Else
+        P.SaveToObject(Prop);
+    End Else
+      P.SaveToObject(Result);
   End;
 
 End;

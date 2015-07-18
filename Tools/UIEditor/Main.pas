@@ -9,7 +9,7 @@ uses
   TERRA_String, TERRA_Scene, TERRA_Texture, TERRA_Font, TERRA_TTF,
   TERRA_Viewport, TERRA_FileManager, TERRA_SpriteManager, TERRA_PNG,
   TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color,
-  TERRA_UI, TERRA_XML, TERRA_CustomPropertyEditor;
+  TERRA_UI, TERRA_XML, TERRA_Collections, TERRA_CustomPropertyEditor;
 
 Const
   SnapValue = 10;
@@ -144,6 +144,7 @@ Type
 
     Function FindWidgetNode(W:Widget):TTreeNode;
     Procedure UpdateWidgetTree();
+    Procedure BuildWidgetTree();
 
     Procedure LoadCursor(ID:Integer; Name:TERRAString);
     Procedure LoadSkin();
@@ -303,6 +304,8 @@ begin
 end;
 
 Procedure TUIEditForm.FormCreate(Sender: TObject);
+Var
+  S:TERRAString;
 Begin
   VCLApplication.Create(Self.RenderPanel);
 
@@ -316,6 +319,9 @@ Begin
   _Brush := TBrush.Create();
 
   Self.LoadSkin();
+
+  S := FileManager.Instance.SearchResourceFile('ui_menu0.xml');
+  Self._Scene._SelectedView.Open(S);
 End;
 
 
@@ -544,6 +550,23 @@ begin
   Scene.SelectWidget(Scene._SelectedView._Target.GetWidget(Node.Text));
 end;
 
+Procedure TUIEditForm.BuildWidgetTree();
+Var
+  It:Iterator;
+  W:Widget;
+Begin
+  WidgetList.Items.Clear();
+
+  It := Self._Scene._SelectedView._Target.Widgets.GetIterator();
+  While It.HasNext() Do
+  Begin
+    W := Widget(It.Value);
+
+    WidgetList.Items.AddChildObject(FindWidgetNode(W.Parent), W.Name, W);
+  End;
+  ReleaseObject(It);
+End;
+
 Procedure TUIEditForm.UpdateWidgetTree;
 Var
   I:Integer;
@@ -718,8 +741,6 @@ End;
 
 { UIEditableView }
 Constructor UIEditableView.Create(const Name: TERRAString; Owner:UIEditScene);
-Var
-  S:TERRAString;
 Begin
   Self._Name := Name;
   Self._Owner := Owner;
@@ -733,9 +754,6 @@ Begin
 
   // Load a GUI skin
   _Target.LoadSkin('ui_sample_skin');
-
-  S := FileManager.Instance.SearchResourceFile('ui_menu0.xml');
-  Self.Open(S);
 End;
 
 Procedure UIEditableView.Open(FileName: TERRAString);
@@ -746,6 +764,8 @@ Begin
   Doc.LoadFromFile(FileName);
   Doc.SaveToObject(_Target);
   ReleaseObject(Doc);
+
+  UIEditForm.BuildWidgetTree();
 End;
 
 Function UIEditableView.PickWidgetAt(X, Y: Integer): Widget;
