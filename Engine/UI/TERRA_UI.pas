@@ -55,7 +55,7 @@ Const
   TextureAtlasHeight = 512;
 
 Type
-  UI = Class;
+  TERRAUI = Class;
 
   UIDragMode = (
     UIDrag_Move,
@@ -76,7 +76,7 @@ Type
 
 	Widget = Class(CollectionObject)
     Private
-      _UI:UI;
+      _UI:TERRAUI;
       _Next:Widget;
       _Tested:Boolean;
       _RenderFrameID:Cardinal;
@@ -400,7 +400,7 @@ Type
 
       Property HighlightGroup:Integer Read GetHighlightGroup Write _HighlightGroup;
 
-      Property UI:UI Read _UI;
+      Property UI:TERRAUI Read _UI;
       Property Next:Widget Read _Next;
       Property FontRenderer:FontRenderer Read GetFontRenderer Write _FontRenderer;
 
@@ -408,7 +408,7 @@ Type
       Property Height:UIDimension Read GetHeight Write SetHeight;
 	End;
 
-  UI = Class(Widget)
+  TERRAUI = Class(Widget)
     Protected
       _VirtualKeyboard:Widget;
 
@@ -458,6 +458,7 @@ Type
       Function GetModal():Widget;
 
       Procedure InsertIntoTopWidgets(W:Widget);
+      Procedure RemoveFromTopWidgets(W:Widget);
 
     Public
       CloseButton:Widget;
@@ -482,6 +483,7 @@ Type
       Function GetWidget(Const Name:TERRAString):Widget;
 
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
+      Function GetObjectType:TERRAString; Override; 
 
       Function AddQuad(Const Quad:UIQuad; Const Props:UISkinProperty; Z:Single; Const Transform:Matrix3x3):QuadSprite;
 
@@ -560,7 +562,7 @@ Type
       _TextureAtlas:TextureAtlas;
       _UpdateTextureAtlas:Boolean;
 
-      _UIList:Array Of UI;
+      _UIList:Array Of TERRAUI;
       _UICount:Integer;
 
       _Ratio:Single;
@@ -592,8 +594,8 @@ Type
 
       Class Function Instance:UIManager;
 
-      Procedure AddUI(UI:UI);
-      Procedure RemoveUI(UI:UI);
+      Procedure AddUI(UI:TERRAUI);
+      Procedure RemoveUI(UI:TERRAUI);
 
       Procedure TextureAtlasClear();
 
@@ -604,7 +606,7 @@ Type
       
       Procedure SetFontRenderer(const Value: FontRenderer);
 
-      Function GetUI(Index:Integer):UI;
+      Function GetUI(Index:Integer):TERRAUI;
 
       Property Width:Integer Read GetWidth;
       Property Height:Integer Read GetHeight;
@@ -667,9 +669,9 @@ Begin
   SetVisible(True);
   _Enabled := True;
 
-  If (Assigned(Parent)) And (Parent Is TERRA_UI.UI) Then
+  If (Assigned(Parent)) And (Parent Is TERRAUI) Then
   Begin
-    _UI := TERRA_UI.UI(Parent);
+    _UI := TERRAUI(Parent);
     _Parent := Nil;
   End Else
   Begin
@@ -2540,8 +2542,8 @@ Begin
     _UI.InsertIntoTopWidgets(Self);
 End;
 
-{ UI }
-Constructor UI.Create;
+{ TERRAUI }
+Constructor TERRAUI.Create;
 Begin
   Self.InitProperties();
 
@@ -2573,7 +2575,7 @@ Begin
   UIManager.Instance.AddUI(Self);
 End;
 
-Procedure UI.Release;
+Procedure TERRAUI.Release;
 Var
   I:Integer;
 Begin
@@ -2582,7 +2584,7 @@ Begin
 	ReleaseObject(_Widgets);
 End;
 
-Procedure UI.Clear;
+Procedure TERRAUI.Clear;
 Begin
   Log(logError, 'UI', 'Clearing UI');
   _First := Nil;
@@ -2641,7 +2643,7 @@ Begin
 End;
 End;*)
 
-Procedure UI.SetFocus(W: Widget);
+Procedure TERRAUI.SetFocus(W: Widget);
 Begin
   If (W = _Focus) Then
     Exit;
@@ -2655,18 +2657,18 @@ Begin
   _Focus := W;
 End;
 
-Procedure UI.SetDefaultFont(const Value:TERRAFont);
+Procedure TERRAUI.SetDefaultFont(const Value:TERRAFont);
 Begin
   FontManager.Instance.PreFetch(Value);
   Self._DefaultFont := Value;
 End;
 
-Procedure UI.SetColorTable(Const Value:TERRATexture);
+Procedure TERRAUI.SetColorTable(Const Value:TERRATexture);
 Begin
   Self._ColorTable := Value;
 End;
 
-Procedure UI.AddWidget(MyWidget:Widget);
+Procedure TERRAUI.AddWidget(MyWidget:Widget);
 Var
   Temp:Widget;
   Found:Boolean;
@@ -2714,7 +2716,7 @@ Begin
   _Widgets.Add(MyWidget);
 End;
 
-Procedure UI.InsertIntoTopWidgets(W:Widget);
+Procedure TERRAUI.InsertIntoTopWidgets(W:Widget);
 Var
   Found:Boolean;
   Temp, Last:Widget;
@@ -2757,7 +2759,31 @@ Begin
   End;
 End;
 
-Procedure UI.DeleteWidget(MyWidget:Widget);
+Procedure TERRAUI.RemoveFromTopWidgets(W:Widget);
+Var
+  Current, Temp:Widget;
+Begin
+  If (_First = W) Then
+  Begin
+    _First := _First.Next;
+    Exit;
+  End;
+
+  Current := _First;
+  While Assigned(Current) Do
+  Begin
+    Temp := Current.Next;
+    If (Temp = W) Then
+    Begin
+      Current._Next := Temp.Next;
+      Exit;
+    End;
+
+    Current := Temp;
+  End;
+End;
+
+Procedure TERRAUI.DeleteWidget(MyWidget:Widget);
 Begin
   If (MyWidget = Nil) Then
     Exit;
@@ -2770,7 +2796,7 @@ Begin
   Result := (Widget(P).Name = PString(Userdata)^);
 End;
 
-Function UI.GetWidget(Const Name:TERRAString):Widget;
+Function TERRAUI.GetWidget(Const Name:TERRAString):Widget;
 Var
   WidgetName:TERRAString;
 Begin
@@ -2779,7 +2805,7 @@ Begin
 End;
 
 
-Function UI.AddQuad(Const Quad:UIQuad; Const Props:UISkinProperty; Z:Single; Const Transform:Matrix3x3):QuadSprite;
+Function TERRAUI.AddQuad(Const Quad:UIQuad; Const Props:UISkinProperty; Z:Single; Const Transform:Matrix3x3):QuadSprite;
 Var
   Tex:TERRATexture;
 Begin
@@ -2800,7 +2826,7 @@ Begin
   Result.Rect.UVRemap(Quad.StartUV.X, Quad.StartUV.Y, Quad.EndUV.X, Quad.EndUV.Y);
 End;
 
-Procedure UI.UpdateLanguage();
+Procedure TERRAUI.UpdateLanguage();
 Var
   MyWidget:Widget;
   It:Iterator;
@@ -2815,7 +2841,7 @@ Begin
   ReleaseObject(It);
 End;
 
-Procedure UI.Render;
+Procedure TERRAUI.Render;
 Var
   Current, Temp:Widget;
   I, J:Integer;
@@ -2863,18 +2889,18 @@ Begin
   Begin
     _HasDeletions := False;
 
-    While (Assigned(_First)) And (_First._Deleted) Do
-    Begin
-      _First := _First._Next;
-    End;
-
     It := Self.Widgets.GetIterator();
     While It.HasNext() Do
     Begin
       Current := Widget(It.Value);
 
       If Current._Deleted Then
+      Begin
+        If Current.Parent = Nil Then
+          Self.RemoveFromTopWidgets(Current);
+
         Current.Discard();
+      End;
     End;
     ReleaseObject(It);
   End;
@@ -2903,7 +2929,7 @@ Begin
   //glDisable(glCoverage);
 End;
 
-Procedure UI.AfterEffects;
+Procedure TERRAUI.AfterEffects;
 Var
   CurrentTransitionID:Cardinal;
 Begin
@@ -2922,7 +2948,7 @@ Begin
   End;
 End;
 
-Procedure UI.SetTransition(MyTransition:UITransition);
+Procedure TERRAUI.SetTransition(MyTransition:UITransition);
 Begin
   ReleaseObject(_Transition);
 
@@ -2932,7 +2958,7 @@ Begin
     _Transition.Transform := Self.Transform;
 End;
 
-Function UI.OnKeyDown(Key:Word):Widget;
+Function TERRAUI.OnKeyDown(Key:Word):Widget;
 Begin
   Result := Nil;
 
@@ -2943,7 +2969,7 @@ Begin
   End;
 End;
 
-Function UI.OnKeyUp(Key:Word):Widget;
+Function TERRAUI.OnKeyUp(Key:Word):Widget;
 Var
   MyWidget:Widget;
 Begin
@@ -2983,7 +3009,7 @@ Begin
   End;
 End;
 
-Function UI.OnKeyPress(Key:Word):Widget;
+Function TERRAUI.OnKeyPress(Key:Word):Widget;
 Begin
   Result := Nil;
   Log(logDebug, 'UI', 'keypress: '+IntToString(Integer(Key)));
@@ -2998,7 +3024,7 @@ Begin
   Log(logDebug, 'UI', 'keypress done!');
 End;
 
-Function UI.PickWidget(X,Y:Integer; Ignore:Widget = Nil):Widget;
+Function TERRAUI.PickWidget(X,Y:Integer; Ignore:Widget = Nil):Widget;
 Var
 	Current:Widget;
   Max:Single;
@@ -3032,7 +3058,7 @@ Begin
   _LastWidget := Result;
 End;
 
-Function UI.OnMouseDown(X,Y:Integer;Button:Word):Widget;
+Function TERRAUI.OnMouseDown(X,Y:Integer;Button:Word):Widget;
 Begin
   Result := Self.PickWidget(X,Y);
 
@@ -3040,7 +3066,7 @@ Begin
     Result.OnMouseDown(X, Y, Button);
 End;
 
-Function UI.OnMouseUp(X,Y:Integer;Button:Word):Widget;
+Function TERRAUI.OnMouseUp(X,Y:Integer;Button:Word):Widget;
 Begin
   Result := Self.PickWidget(X,Y);
 
@@ -3048,7 +3074,7 @@ Begin
     Result.OnMouseUp(X, Y, Button);
 End;
 
-Function UI.OnMouseMove(X,Y:Integer):Widget;
+Function TERRAUI.OnMouseMove(X,Y:Integer):Widget;
 Begin
   _LastWidget := Nil;
 
@@ -3082,7 +3108,7 @@ Begin
   End;
 End;
 
-Function UI.OnMouseWheel(X,Y:Integer; Delta:Integer):Widget;
+Function TERRAUI.OnMouseWheel(X,Y:Integer; Delta:Integer):Widget;
 Begin
 	If Assigned(_Focus) Then
   Begin
@@ -3098,7 +3124,7 @@ Begin
     Result.OnMouseWheel(X, Y, Delta);
 End;
 
-Procedure UI.SetHighlight(const Value: Widget);
+Procedure TERRAUI.SetHighlight(const Value: Widget);
 Var
   Prev, Temp:Widget;
 Begin
@@ -3115,12 +3141,12 @@ Begin
   End;
 End;
 
-Procedure UI.SetDragger(const Value: Widget);
+Procedure TERRAUI.SetDragger(const Value: Widget);
 Begin
   Self._Dragger := Value;
 End;
 
-Procedure UI.CloseWnd();
+Procedure TERRAUI.CloseWnd();
 Begin
   System_BG.Visible := False;
   System_Wnd.Visible := False;
@@ -3132,7 +3158,7 @@ End;
 
 Function CloseMsgBox(Src:Widget):Boolean; Cdecl;
 Var
-  UI:TERRA_UI.UI;
+  UI:TERRAUI;
 Begin
   Result := True;
 
@@ -3157,7 +3183,7 @@ End;
 
 Function CloseMsgBox2(Src:Widget):Boolean; Cdecl;
 Var
-  UI:TERRA_UI.UI;
+  UI:TERRAUI;
 Begin
   Result := True;
 
@@ -3180,7 +3206,7 @@ Begin
   UI._WndCallback2 := Nil;
 End;
 
-Procedure UI.InitTempWidgets();
+Procedure TERRAUI.InitTempWidgets();
 Var
   N,I:Integer;
 //TODO  S:UISprite;
@@ -3223,7 +3249,7 @@ Begin
   End;*)
 End;
 
-Procedure UI.InitStuff();
+Procedure TERRAUI.InitStuff();
 Var
   I:Integer;
 Begin
@@ -3242,7 +3268,7 @@ Begin
     *)
 End;
 
-Procedure UI.MessageBox(Msg:TERRAString; Callback: WidgetEventHandler);
+Procedure TERRAUI.MessageBox(Msg:TERRAString; Callback: WidgetEventHandler);
 Var
   I:Integer;
 Begin
@@ -3260,7 +3286,7 @@ Begin
 End;
 
 
-Procedure UI.ChoiceBox(Msg, Option1, Option2:TERRAString; Callback1:WidgetEventHandler = Nil; Callback2: WidgetEventHandler = Nil);
+Procedure TERRAUI.ChoiceBox(Msg, Option1, Option2:TERRAString; Callback1:WidgetEventHandler = Nil; Callback2: WidgetEventHandler = Nil);
 Var
   I:Integer;
 Begin
@@ -3280,7 +3306,7 @@ Begin
     Highlight := System_Btn[1];*)
 End;
 
-Procedure UI.ShowModal(W:Widget);
+Procedure TERRAUI.ShowModal(W:Widget);
 Begin
   If W = Nil Then
     Exit;
@@ -3297,7 +3323,7 @@ Begin
     Highlight := W;
 End;
 
-Procedure UI.ClearChoiceBox();
+Procedure TERRAUI.ClearChoiceBox();
 Begin
   Modal := Nil;
 
@@ -3308,7 +3334,7 @@ Begin
     System_Wnd.Visible := False;
 End;
 
-Function UI.GetVirtualKeyboard: Widget;
+Function TERRAUI.GetVirtualKeyboard: Widget;
 Begin
   If (_VirtualKeyboard = Nil) Then
     _VirtualKeyboard := UIVirtualKeyboard.Create('vkb', Self, 97, 'keyboard');
@@ -3316,7 +3342,7 @@ Begin
   Result := _VirtualKeyboard;
 End;
 
-Procedure UI.OnOrientationChange;
+Procedure TERRAUI.OnOrientationChange;
 Var
   MyWidget:Widget;
   It:Iterator;
@@ -3332,7 +3358,7 @@ Begin
   ReleaseObject(It);
 End;
 
-Function UI.GetHighlight: Widget;
+Function TERRAUI.GetHighlight: Widget;
 Begin
   If (Assigned(_Highlight)) And (Not _Highlight.Visible) Then
     _Highlight := Nil;
@@ -3340,7 +3366,7 @@ Begin
   Result := _Highlight;
 End;
 
-Procedure UI.SetTransform(const M: Matrix3x3);
+Procedure TERRAUI.SetTransform(const M: Matrix3x3);
 Var
   It:Iterator;
   W:Widget;
@@ -3365,7 +3391,7 @@ Begin
   ReleaseObject(It);
 End;
 
-Function UI.GetFontRenderer():FontRenderer;
+Function TERRAUI.GetFontRenderer():FontRenderer;
 Begin
   If Self._FontRenderer = Nil Then
     Self._FontRenderer := UIManager.Instance.FontRenderer;
@@ -3378,17 +3404,17 @@ Begin
   Result.SetDropShadow(ColorGrey(0, 64));
 End;
 
-Function UI.OnRegion(X, Y: Integer): Boolean;
+Function TERRAUI.OnRegion(X, Y: Integer): Boolean;
 Begin
   Result := (X>=0) And (Y>=0) And (X<=UIManager.Instance.Width) And (Y<=UIManager.Instance.Height);
 End;
 
-Procedure UI.SetFontRenderer(const Value: FontRenderer);
+Procedure TERRAUI.SetFontRenderer(const Value: FontRenderer);
 Begin
   _FontRenderer := Value;
 End;
 
-Function UI.SelectNearestWidget(Target:Widget):Widget;
+Function TERRAUI.SelectNearestWidget(Target:Widget):Widget;
 Var
   It:Iterator;
   Base:Vector2D;
@@ -3421,7 +3447,7 @@ Begin
   ReleaseObject(It);
 End;
 
-Procedure UI.GetFirstHighLight(GroupID:Integer);
+Procedure TERRAUI.GetFirstHighLight(GroupID:Integer);
 Var
   W:Widget;
   It:Iterator;
@@ -3439,7 +3465,7 @@ Begin
   ReleaseObject(It);
 End;
 
-Function UI.LoadImage(Name:TERRAString):TextureAtlasItem;
+Function TERRAUI.LoadImage(Name:TERRAString):TextureAtlasItem;
 Var
   I:Integer;
   Source, Temp:Image;
@@ -3490,7 +3516,7 @@ Begin
   End;
 End;
 
-Function UI.GetComponent(Const Name:TERRAString): UISkinComponent;
+Function TERRAUI.GetComponent(Const Name:TERRAString): UISkinComponent;
 Begin
   If (Name = '') Then
     Result := Nil
@@ -3498,7 +3524,7 @@ Begin
     Result := _Skin.GetChildByName(Name);
 End;
 
-Function UI.LoadSkin(const FileName: TERRAString):Boolean;
+Function TERRAUI.LoadSkin(const FileName: TERRAString):Boolean;
 Var
   Root:XMLNode;
   Location:TERRAString;
@@ -3519,7 +3545,7 @@ Begin
   Result := True;
 End;
 
-Function UI.GetModal: Widget;
+Function TERRAUI.GetModal: Widget;
 Begin
   If (Assigned(_Modal)) And (Not _Modal.Visible) Then
   Begin
@@ -3529,7 +3555,7 @@ Begin
   Result := Self._Modal;
 End;
 
-Function UI.GetPropertyByIndex(Index: Integer): TERRAObject;
+Function TERRAUI.GetPropertyByIndex(Index: Integer): TERRAObject;
 Var
   P:Widget;
 Begin
@@ -3541,6 +3567,11 @@ Begin
   End;
 
   Result := P;
+End;
+
+Function TERRAUI.GetObjectType: TERRAString;
+Begin
+  Result := 'UI';
 End;
 
 { UIManager }
@@ -3587,7 +3618,7 @@ Begin
   _UIManager_Instance := Nil;
 End;
 
-Procedure UIManager.AddUI(UI: UI);
+Procedure UIManager.AddUI(UI:TERRAUI);
 Var
   I:Integer;
 Begin
@@ -3603,7 +3634,7 @@ Begin
   _UIList[Pred(_UICount)] := UI;
 End;
 
-Procedure UIManager.RemoveUI(UI: UI);
+Procedure UIManager.RemoveUI(UI:TERRAUI);
 Var
   I:Integer;
 Begin
@@ -3796,7 +3827,7 @@ Begin
     _Ratio := 1.0;
 End;
 
-Function UIManager.GetUI(Index: Integer): UI;
+Function UIManager.GetUI(Index: Integer):TERRAUI;
 Begin
   If (Index<0) Or (Index>=Count) Then
     Result := Nil
@@ -3833,7 +3864,7 @@ End;
 Function UIManager.CreateProperty(Owner:TERRAObject; const KeyName, ObjectType: TERRAString): TERRAObject;
 Begin
   If (StringEquals(ObjectType, 'UI')) Then
-    Result := UI.Create()
+    Result := TERRAUI.Create()
   Else
     Result := Nil;
 End;

@@ -68,6 +68,7 @@ object UIEditForm: TUIEditForm
     TabOrder = 2
     OnClick = WidgetListClick
     OnEdited = WidgetListEdited
+    OnMouseDown = WidgetListMouseDown
   end
   object PropertyList: TCustomPropertyEditor
     Left = 0

@@ -325,8 +325,7 @@ begin
     ReleaseObject(_Cells[I]);
 
   _CellCount := 0;
-
-  Self.Repaint();
+  _ScrollRow := 0;
 end;
 
 procedure TCustomPropertyEditor.Paint;

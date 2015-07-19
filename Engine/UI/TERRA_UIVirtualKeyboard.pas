@@ -134,7 +134,7 @@ Type
       Procedure OnSymbolsKey(Src:Widget);
 
     Public
-      Constructor Create(Name:TERRAString; UI:UI; Z:Single; Const ComponentName:TERRAString);
+      Constructor Create(Name:TERRAString; UI:TERRAUI; Z:Single; Const ComponentName:TERRAString);
       Procedure Release; Override;
 
       Procedure Render; Override;
@@ -268,7 +268,7 @@ Begin
   End;
 End;
 
-Constructor UIVirtualKeyboard.Create(Name:TERRAString; UI:UI; Z: Single; Const ComponentName:TERRAString);
+Constructor UIVirtualKeyboard.Create(Name:TERRAString; UI:TERRAUI; Z: Single; Const ComponentName:TERRAString);
 Var
   I:Integer;
 Begin

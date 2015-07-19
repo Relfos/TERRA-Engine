@@ -27,6 +27,12 @@ Const
   customDiagonal2 = crSizeNWSE;
 
 Type
+  FontMode = (
+    font_Normal,
+    font_Selected,
+    font_Disabled
+  );
+
   UIEditTool = (
     uitool_Empty,
     uitool_Window,
@@ -45,7 +51,7 @@ Type
     Protected
       _Owner:UIEditScene;
       _Tab:TIceTab;
-      _Target:UI;
+      _Target:TERRAUI;
 
     Public
       Constructor Create(Const Name:TERRAString; Owner:UIEditScene);
@@ -175,6 +181,8 @@ Type
     procedure Combobox1Click(Sender: TObject);
     procedure FormMouseWheel(Sender: TObject; Shift: TShiftState;
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure WidgetListMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
 
   Protected
     _CurrentCursor:Integer;
@@ -191,6 +199,7 @@ Type
     Procedure LoadCursor(ID:Integer; Name:TERRAString);
     Procedure LoadSkin();
     Procedure SetMenuSkin(Menu:TMenuItem);
+    Procedure ApplyFontStyle(Target:TFont; Mode:FontMode);
 
     Procedure ChangeCursor(ID:Integer);
 
@@ -476,7 +485,7 @@ Begin
   Self._Tab := UIEditForm.AddNewTab(Name);
 
   // Create a new UI
-  Self._Target := UI.Create();
+  Self._Target := TERRAUI.Create();
 
   // Register the font with the UI
   _Target.DefaultFont := Self._Owner._Font;
@@ -618,11 +627,24 @@ procedure TUIEditForm.RenderPanelMouseDown(Sender: TObject;
 Var
   W:Widget;
   pnt: TPoint;
+  Node:TTreeNode;
 begin
   If (Button = mbRight) Then
   Begin
     If GetCursorPos(pnt) then
-      Self.PopupMenu.Popup(pnt.X, pnt.Y);
+    Begin
+      W := Scene._SelectedView.PickWidgetAt(X, Y);
+      If Assigned(W) Then
+      Begin
+        Scene.SelectWidget(W);
+        Node := FindWidgetNode(W);
+        If Assigned(Node) Then
+          Node.Selected := True;
+
+        Self.PopupMenu.Popup(pnt.X, pnt.Y);
+      End;
+    End;
+
     Exit;
   End;
 
@@ -908,12 +930,13 @@ Begin
     ACanvas.Brush.Color := SkinForeColor;
 
     If (odDisabled In State) then
-      ACanvas.Font.Color := clBtnShadow
+      ApplyFontStyle(ACanvas.Font, font_Disabled)
     Else
     If (odSelected In State) then
-      ACanvas.Font.Color := clWhite
+      ApplyFontStyle(ACanvas.Font, font_Selected)
     Else
-      ACanvas.Font.Color := SkinTextColor;
+      ApplyFontStyle(ACanvas.Font, font_Normal);
+
     DrawTextA(ACanvas.Handle, PAnsiChar(Text), StringLength(Text), ARect, Flags);
   End;
   //ACanvas.TextOut(LeftPos, TopPos, Text);
@@ -943,6 +966,20 @@ Begin
   Screen.Cursors[ID] := Cur;
 End;
 
+Procedure TUIEditForm.ApplyFontStyle(Target:TFont; Mode:FontMode);
+Begin
+  If Mode = font_Disabled Then
+    Target.Color := clBtnShadow
+  Else
+  If Mode = font_Selected Then
+    Target.Color := clWhite
+  Else
+    Target.Color := SkinTextColor;
+
+//  Target.Size := 10;
+  Target.Name := 'Verdana';
+End;
+
 Procedure TUIEditForm.LoadSkin;
 Var
   MenuInfo:TMenuInfo;
@@ -964,8 +1001,11 @@ Begin
   SkinEditColor := RGB(128, 128, 128);
 
 
-  TabList.BackgroundStartColor := SkinBGColor;
+  TabList.BackgroundStartColor := SkinForeColor;
   TabList.BackgroundStopColor := TabList.BackgroundStartColor;
+  ApplyFontStyle(TabList.Font, font_Normal);
+  ApplyFontStyle(TabList.SelectedFont, font_Selected);
+  Self.Color := TabList.BackgroundStopColor;
 
   TabList.SelectedTabStartColor :=  SkinTextColor;
   TabList.SelectedTabStopColor := TabList.SelectedTabStartColor;
@@ -973,16 +1013,15 @@ Begin
   TabList.TabStartColor :=  SkinForeColor;
   TabList.TabStopColor := TabList.TabStartColor;
 
-  TabList.Font.Color := SkinTextColor;
   TabList.Cursor := customDefault;
 
   WidgetList.Color := SkinBGColor;
-  WidgetList.Font.Color := SkinTextColor;
+  ApplyFontStyle(WidgetList.Font, font_Normal);
   WidgetList.Ctl3D := False;
   WidgetList.Cursor := customDefault;
 
   PropertyList.Color := SkinForeColor;
-  PropertyList.Font.Color := SkinTextColor;
+  ApplyFontStyle(PropertyList.Font, font_Normal);
   PropertyList.MarginColor := SkinBGColor;
   PropertyList.EditColor := SkinEditColor;
   PropertyList.Ctl3D := False;
@@ -1138,6 +1177,26 @@ begin
     PropertyList.DoMouseWheelUp(Shift, MousePos)
   Else
     PropertyList.DoMouseWheelDown(Shift, MousePos);
+end;
+
+procedure TUIEditForm.WidgetListMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+Var
+  pnt: TPoint;
+  Node:TTreeNode;
+begin
+  If (Button = mbRight) Then
+  Begin
+    Node := Self.WidgetList.GetNodeAt(X, Y);
+
+    If Assigned(Node) Then
+    Begin
+      Node.Selected := True;
+      If GetCursorPos(pnt) then
+        Self.PopupMenu.Popup(pnt.X, pnt.Y);
+    End;
+    
+    Exit;
+  End;
 end;
 
 end.
