@@ -29,7 +29,7 @@ Begin
   Self.Width := Width;
   Self.Height := Height;
 
-  Self._TabIndex := TabIndex;
+  Self.TabIndex := TabIndex;
 
   Self.SetRelativePosition(VectorCreate2D(X,Y));
   

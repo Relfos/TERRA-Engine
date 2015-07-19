@@ -10,7 +10,7 @@ uses
   TERRA_Viewport, TERRA_FileManager, TERRA_FileUtils, TERRA_SpriteManager,
   TERRA_PNG, TERRA_JPG,
   TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color,
-  TERRA_UI, TERRA_XML, TERRA_Collections, TERRA_CustomPropertyEditor;
+  TERRA_UI, TERRA_XML, TERRA_Collections, TERRA_CollectionObjects, TERRA_CustomPropertyEditor;
 
 Const
   SnapValue = 10;
@@ -35,15 +35,15 @@ Type
     uitool_Checkbox,
     uitool_Radiobutton,
     uitool_ProgressBar,
-    uitool_Sprite
+    uitool_Sprite,
+    uitool_Combobox
   );
 
   UIEditScene = Class;
 
-  UIEditableView = Class(TERRAObject)
+  UIEditableView = Class(CollectionObject)
     Protected
       _Owner:UIEditScene;
-      _Name:TERRAString;
       _Tab:TIceTab;
       _Target:UI;
 
@@ -51,18 +51,17 @@ Type
       Constructor Create(Const Name:TERRAString; Owner:UIEditScene);
       Procedure Release(); Override;
 
-      Procedure Open(FileName:TERRAString);
-      Procedure Save(FileName:TERRAString);
+      Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
 
-      Function PickWidgetAt(X, Y:Integer):Widget;
+      Function PickWidgetAt(X, Y:Integer; Ignore:Widget = Nil):Widget;
   End;
 
   UIEditScene = Class(TERRAScene)
     Protected
       _Font:TERRAFont;
 
-      _ViewList:Array Of UIEditableView;
-      _ViewCount:Integer;
+      _Views:List;
+      _Paths:List;
 
       _SelectedView:UIEditableView;
       _SelectedWidget:Widget;
@@ -75,16 +74,24 @@ Type
 
       Function GetNewTarget(X,Y:Integer):Widget;
 
+
     Public
       Constructor Create();
 
       Procedure Release(); Override;
+      
+      Procedure Clear();
 
       Procedure RenderSprites(V:TERRAViewport); Override;
 
+      Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
+
       Procedure SetGridSize(Size:Single);
 
-      Procedure AddView(Const Name:TERRAString);
+      Procedure Open(FileName:TERRAString);
+      Procedure Save(FileName:TERRAString);
+
+      Function AddView(Const Name:TERRAString):UIEditableView;
 
       Procedure AddWidget(W:Widget; X,Y:Integer);
       Procedure AddWindow(X, Y:Integer);
@@ -94,6 +101,7 @@ Type
       Procedure AddRadioButton(X, Y:Integer);
       Procedure AddProgressBar(X,Y:Integer);
       Procedure AddSprite(X,Y:Integer);
+      Procedure AddComboBox(X,Y:Integer);
 
       Procedure SelectWidget(W:Widget);
   End;
@@ -123,7 +131,6 @@ Type
     Combobox1: TMenuItem;
     Icon1: TMenuItem;
     Sprite1: TMenuItem;
-    PropertyList: TCustomPropertyEditor;
     ProgressBar1: TMenuItem;
     PopupMenu: TPopupMenu;
     Copy1: TMenuItem;
@@ -134,6 +141,7 @@ Type
     GridSmallMenu: TMenuItem;
     GridMediumMenu: TMenuItem;
     GridLargeMenu: TMenuItem;
+    PropertyList: TCustomPropertyEditor;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -162,8 +170,13 @@ Type
     procedure GridSmallMenuClick(Sender: TObject);
     procedure GridMediumMenuClick(Sender: TObject);
     procedure GridLargeMenuClick(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure Combobox1Click(Sender: TObject);
 
   Protected
+    _CurrentCursor:Integer;
+
     Procedure CustomDrawItem(Sender: TObject; ACanvas: TCanvas; ARect: TRect; State: TOwnerDrawState);
     Procedure CustomMeasureItem(Sender: TObject; ACanvas: TCanvas;  var Width, Height: Integer);
 
@@ -182,12 +195,19 @@ Type
   Private
     _Scene:UIEditScene;
     _DragTarget:Widget;
+    _DropTarget:Widget;
     _Brush:TBrush;
 
   Public
 
     Property Scene:UIEditScene Read _Scene;
   End;
+
+  UIEditorApplication = Class(VCLApplication)
+    Public
+      Function CreateProperty(Owner:TERRAObject; Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
+  End;
+
 
 Var
   UIEditForm: TUIEditForm;
@@ -196,15 +216,15 @@ Var
 
 implementation
 Uses TERRA_UIDimension, TERRA_UIWindow, TERRA_UIButton, TERRA_UILabel, TERRA_UICheckbox, TERRA_UIRadioButton, TERRA_UIProgressBar,
-  TERRA_UISprite;
+  TERRA_UISprite, TERRA_UIComboBox;
 
 {$R *.dfm}
 
 { UIEditScene }
 Constructor UIEditScene.Create;
 Begin
+  _ObjectName := 'project';
   _CurrentTool := uitool_Empty;
-  Self._ViewCount := 0;
 
   // Load a font
   Self._Font := FontManager.Instance.GetFont('droid');
@@ -212,10 +232,34 @@ Begin
   // set background color
   GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorGrey(128);
 
-  Self.AddView('Untitled');
+  Self.Clear();
 
+  Self.AddView('Untitled');
   Self.SetGridSize(20.0);
 End;
+
+Procedure UIEditScene.Clear();
+Begin
+  UIEditForm.TabList.Tabs.Clear();
+
+  ReleaseObject(_Views);
+  ReleaseObject(_Paths);
+
+  Self._Views := List.Create();
+  Self._Views.Name := 'views';
+
+  Self._Paths := List.Create();
+  Self._Paths.Name := 'paths';
+
+  Self._SelectedView := Nil;
+End;
+
+Procedure UIEditScene.Release;
+Begin
+  ReleaseObject(_Views);
+  ReleaseObject(_Paths);
+End;
+
 
 Procedure UIEditScene.AddWidget(W: Widget; X,Y:Integer);
 Var
@@ -288,26 +332,28 @@ begin
   Self.AddWidget(P, X, Y);
 end;
 
-Procedure UIEditScene.AddView(Const Name:TERRAString);
+procedure UIEditScene.AddComboBox(X,Y:Integer);
 Var
-  V:UIEditableView;
+  P:UIComboBox;
+  Content:List;
+begin
+  Content := List.Create();
+  Content.Add(StringObject.Create('one'));
+  Content.Add(StringObject.Create('two'));
+  Content.Add(StringObject.Create('three'));
+  P := UIComboBox.Create('combo', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(300), UIPixels(50), 'combobox');
+  P.SetContent(Content);
+  P.ItemIndex := 0;
+  
+  Self.AddWidget(P, X, Y);
+end;
+
+Function UIEditScene.AddView(Const Name:TERRAString):UIEditableView;
 Begin
-  V := UIEditableView.Create(Name, Self);
+  Result := UIEditableView.Create(Name, Self);
+  _Views.Add(Result);
 
-  Inc(_ViewCount);
-  SetLength(_ViewList, _ViewCount);
-  _ViewList[Pred(_ViewCount)] := V;
-
-  _SelectedView := V;
-End;
-
-
-Procedure UIEditScene.Release;
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(_ViewCount) Do
-    ReleaseObject(_ViewList[I]);
+  _SelectedView := Result;
 End;
 
 Procedure UIEditScene.SelectWidget(W: Widget);
@@ -378,6 +424,86 @@ Begin
   End;
 End;
 
+Function UIEditScene.GetPropertyByIndex(Index: Integer): TERRAObject;
+Begin
+  Case Index Of
+  0:  Result := _Views;
+  1:  Result := _Paths;
+  Else
+    Result := Nil;
+  End;
+End;
+
+Procedure UIEditScene.Open(FileName: TERRAString);
+Var
+  Root:XMLNode;
+Begin
+  Self.Clear();
+
+  FileManager.Instance.AddPath(GetFilePath(FileName));
+
+  Root := XMLNode.Create();
+  Root.LoadFromFile(FileName);
+  Root.SaveToObject(Self);
+  ReleaseObject(Root);
+
+  If _Views.Count > 0 Then
+  Begin
+    _SelectedView := UIEditableView(_Views.First);
+    UIEditForm.BuildWidgetTree();
+    UIEditForm._Scene._SelectedWidget := Nil;
+  End;
+End;
+
+procedure UIEditScene.Save(FileName: TERRAString);
+Var
+  Root:XMLNode;
+Begin
+  Root := XMLNode.Create();
+  Root.LoadFromObject(Self);
+  Root.SaveToFile(FileName, xmlSaveCompact);
+  ReleaseObject(Root);
+End;
+
+{ UIEditableView }
+Constructor UIEditableView.Create(const Name: TERRAString; Owner:UIEditScene);
+Begin
+  Self._ObjectName := Name;
+  Self._Owner := Owner;
+  Self._Tab := UIEditForm.AddNewTab(Name);
+
+  // Create a new UI
+  Self._Target := UI.Create();
+
+  // Register the font with the UI
+  _Target.DefaultFont := Self._Owner._Font;
+
+  // Load a GUI skin
+  _Target.LoadSkin('ui_sample_skin');
+End;
+
+
+Function UIEditableView.PickWidgetAt(X, Y: Integer; Ignore:Widget): Widget;
+Begin
+  Result := _Target.PickWidget(X, Y, Ignore);
+End;
+
+Procedure UIEditableView.Release;
+Begin
+  UIManager.Instance.RemoveUI(_Target);
+  ReleaseObject(_Target);
+End;
+
+
+Function UIEditableView.GetPropertyByIndex(Index: Integer): TERRAObject;
+Begin
+  Case Index Of
+  0:  Result := _Target;
+  Else
+    Result := Inherited GetPropertyByIndex(Index - 1);
+  End;
+End;
+
 { TUIEditForm }
 Function TUIEditForm.AddNewTab(Const Name:TERRAString):TIceTab;
 begin
@@ -389,11 +515,13 @@ Procedure TUIEditForm.FormCreate(Sender: TObject);
 Var
   S:TERRAString;
 Begin
-  VCLApplication.Create(Self.RenderPanel);
+  _CurrentCursor := 9999;
+  
+  UIEditorApplication.Create(Self.RenderPanel);
 
   // Added Asset folder to search path
   FileManager.Instance.AddPath('..\..\samples\binaries\assets');
-  FileManager.Instance.AddPath('D:\Code\Minimon\Output');
+  FileManager.Instance.AddPath('D:\Code\Minimon\Output\Textures');
 
   // Create a scene and set it as the current scene
   _Scene := UIEditScene.Create();
@@ -477,6 +605,11 @@ begin
   Scene._CurrentTool := uitool_Sprite;
 end;
 
+procedure TUIEditForm.Combobox1Click(Sender: TObject);
+begin
+  Scene._CurrentTool := uitool_Combobox;
+end;
+
 procedure TUIEditForm.RenderPanelMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 Var
@@ -539,6 +672,10 @@ begin
       Self.Scene.AddSprite(X, Y);
     End;
 
+  uitool_Combobox:
+    Begin
+      Self.Scene.AddComboBox(X, Y);
+    End;
 
   End;
 
@@ -549,12 +686,23 @@ begin
   If Assigned(_DragTarget) Then
   Begin
     _DragTarget.FinishDrag();
+
+    If (_DragTarget.Parent <> _DropTarget) Then
+    Begin
+      _DragTarget.Parent := _DropTarget;
+
+      Self.BuildWidgetTree();
+    End;
+
     PropertyList.RequestUpdate();
 
     _DragTarget := Nil;
-  end;
+    _DropTarget := Nil;
 
-end;
+    ChangeCursor(customDefault);
+  End;
+
+End;
 
 procedure TUIEditForm.RenderPanelMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
 Const
@@ -574,6 +722,15 @@ begin
     End;
 
     _DragTarget.OnMouseMove(X, Y);
+
+    _DropTarget := Scene._SelectedView.PickWidgetAt(X, Y, _DragTarget);
+    If (_DropTarget <> _DragTarget.Parent) Then
+    Begin
+      TargetCursor := crHandPoint
+    End Else
+      TargetCursor := customDefault;
+
+    ChangeCursor(TargetCursor);
 
     Exit;
   end;
@@ -675,6 +832,8 @@ begin
 end;
 
 Function TUIEditForm.AddWidgetNode(W:Widget):TTreeNode;
+Var
+  I:Integer;
 Begin
   Result := Nil;
   If (W = Nil) Then
@@ -688,23 +847,23 @@ Begin
     Self.AddWidgetNode(W.Parent);
 
   Result := WidgetList.Items.AddChildObject(FindWidgetNode(W.Parent), W.Name, W);
+
+  For I:=0 To Pred(W.ChildrenCount) Do
+    Self.AddWidgetNode(W.GetChildByIndex(I));
 End;
 
 Procedure TUIEditForm.BuildWidgetTree();
 Var
-  It:Iterator;
   W:Widget;
 Begin
   WidgetList.Items.Clear();
 
-  It := Self._Scene._SelectedView._Target.Widgets.GetIterator();
-  While It.HasNext() Do
+  W := Self._Scene._SelectedView._Target.First;
+  While Assigned(W) Do
   Begin
-    W := Widget(It.Value);
-
     AddWidgetNode(W);
+    W := W.Next;
   End;
-  ReleaseObject(It);
 End;
 
 Procedure TUIEditForm.UpdateWidgetTree;
@@ -854,86 +1013,17 @@ End;
 
 Procedure TUIEditForm.ChangeCursor(ID: Integer);
 Begin
+  If _CurrentCursor = ID Then
+    Exit;
+
+  _CurrentCursor := ID;
   RenderPanel.Cursor := ID;
   WidgetList.Cursor := ID;
   TabList.Cursor := ID;
   PropertyList.Cursor := ID;
+  Screen.Cursor := ID;
 End;
 
-(*Var
-  C: TCanvas;
-  R: TRect;
-Begin
-//  inherited;
-  GetWindowRect(Handle, R);
-  Message.Result := 1;
-  C := TCanvas.Create;
-  C.Handle := GetWindowDC(Handle);
-  C.Brush.Color := SkinBGcolor;
-  C.Pen.Color := SkinForeColor;
-  C.Pen.Width := 2;
-  C.Brush.Style := bsSolid;
-  C.Rectangle(1, 1, R.Right - R.Left, R.Bottom - R.Top);
-  C.Free;
-
-  MainMenu1.Items[0].On
-End;
-*)
-
-
-{ UIEditableView }
-Constructor UIEditableView.Create(const Name: TERRAString; Owner:UIEditScene);
-Begin
-  Self._Name := Name;
-  Self._Owner := Owner;
-  Self._Tab := UIEditForm.AddNewTab(Name);
-
-  // Create a new UI
-  Self._Target := UI.Create();
-
-  // Register the font with the UI
-  _Target.DefaultFont := Self._Owner._Font;
-
-  // Load a GUI skin
-  _Target.LoadSkin('ui_sample_skin');
-End;
-
-Procedure UIEditableView.Open(FileName: TERRAString);
-Var
-  Root:XMLNode;
-Begin
-  FileManager.Instance.AddPath(GetFilePath(FileName));
-
-  Root := XMLNode.Create();
-  Root.LoadFromFile(FileName);
-  Root.SaveToObject(_Target);
-  ReleaseObject(Root);
-
-  UIEditForm.BuildWidgetTree();
-
-  UIEditForm._Scene._SelectedWidget := Nil;
-End;
-
-procedure UIEditableView.Save(FileName: TERRAString);
-Var
-  Root:XMLNode;
-Begin
-  Root := XMLNode.Create();
-  Root.LoadFromObject(_Target);
-  Root.SaveToFile(FileName, xmlSaveCompact);
-  ReleaseObject(Root);
-End;
-
-Function UIEditableView.PickWidgetAt(X, Y: Integer): Widget;
-Begin
-  Result := _Target.PickWidget(X, Y);
-End;
-
-Procedure UIEditableView.Release;
-Begin
-  UIManager.Instance.RemoveUI(_Target);
-  ReleaseObject(_Target);
-End;
 
 procedure TUIEditForm.Delete1Click(Sender: TObject);
 Var
@@ -971,7 +1061,7 @@ begin
   Dialog.Options := [ofOverwritePrompt, ofHideReadOnly, ofNoChangeDir, ofPathMustExist];
 
   If Dialog.Execute Then
-    Self._Scene._SelectedView.Save(Dialog.FileName);
+    Self._Scene.Save(Dialog.FileName);
 
   Dialog.Destroy();
 end;
@@ -986,7 +1076,7 @@ begin
 
   If Dialog.Execute Then
   Begin
-    Self._Scene._SelectedView.Open(Dialog.FileName);
+    Self._Scene.Open(Dialog.FileName);
     Self.FormResize(Sender);
   End;
 
@@ -1012,5 +1102,31 @@ procedure TUIEditForm.GridLargeMenuClick(Sender: TObject);
 begin
   Self._Scene.SetGridSize(50);
 end;
+
+procedure TUIEditForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  If ssCtrl In Shift Then
+  Case Key Of
+    Ord('1'): Self.Button1Click(Sender);
+    Ord('2'): Self.Label1Click(Sender);
+    Ord('3'): Self.Window1Click(Sender);
+    Ord('4'): Self.Checkbox1Click(Sender);
+    Ord('5'): Self.Radiobox1Click(Sender);
+    Ord('6'): Self.Combobox1Click(Sender);
+//    Ord('7'): Self.Icon1Click(Sender);
+    Ord('8'): Self.Sprite1Click(Sender);
+    Ord('9'): Self.ProgressBar1Click(Sender);
+  End;
+end;
+
+
+{ UIEditorApplication }
+Function UIEditorApplication.CreateProperty(Owner:TERRAObject; const KeyName, ObjectType: TERRAString): TERRAObject;
+Begin
+  If StringEquals('UIEditableView', ObjectType) Then
+    Result := UIEditableView.Create(KeyName, UIEditForm._Scene)
+  Else
+    Result := Inherited CreateProperty(Owner, KeyName, ObjectType);
+End;
 
 end.

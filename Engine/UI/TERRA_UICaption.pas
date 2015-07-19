@@ -9,6 +9,7 @@ Type
   UICaption = Class(Widget)
     Protected
       _Caption:StringProperty;
+      _CaptionIndex:Integer;
 
       _TextRect:Vector2D;
       _PreviousFont:TERRAFont;
@@ -63,6 +64,9 @@ Constructor UICaption.Create(const Name:TERRAString; Parent:Widget; Const Compon
 Begin
   Inherited Create(Name, Parent, ComponentName);
   _Caption := CaptionProperty.Create('caption', '', Self);
+
+  Self.ExpandProperties(1);
+  _CaptionIndex := _BasePropertiesIndex;
 End;
 
 Procedure UICaption.Release();
@@ -81,11 +85,10 @@ End;
 
 Function UICaption.GetPropertyByIndex(Index: Integer): TERRAObject;
 Begin
-  Case Index Of
-    CustomPropertiesBaseIndex: Result := Self.Caption;
+  If Index = _CaptionIndex Then
+    Result := Self.Caption
   Else
     Result := Inherited GetPropertyByIndex(Index);
-  End;
 End;
 
 Function UICaption.GetSize: Vector2D;

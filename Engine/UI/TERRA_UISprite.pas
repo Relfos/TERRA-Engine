@@ -10,8 +10,10 @@ Type
   UISprite = Class(Widget)
     Protected
       _Texture:TextureProperty;
+      _TextureIndex:Integer;
 
       Function GetTexture: TERRATexture;
+      
     Public
       U1, V1, U2, V2:Single;
 
@@ -41,7 +43,7 @@ Constructor UISprite.Create(Name:TERRAString; Parent:Widget; X, Y, Z: Single;  P
 Begin
   Inherited Create(Name, Parent, '');
 
-  Self._TabIndex := TabIndex;
+  Self.TabIndex := TabIndex;
   Self._Texture := TextureProperty.Create('image', Nil);
 
   Self.SetRelativePosition(VectorCreate2D(X,Y));
@@ -67,6 +69,9 @@ Begin
 
   Self.Pivot := VectorCreate2D(0, 0);
   Self.Anchor := VectorCreate2D(0, 0);
+
+  Self.ExpandProperties(1);
+  _TextureIndex := _BasePropertiesIndex;
 End;
 
 {Function UISprite.OnRegion(X, Y: Integer): Boolean;
@@ -92,11 +97,10 @@ End;}
 
 Function UISprite.GetPropertyByIndex(Index: Integer): TERRAObject;
 Begin
-  Case Index Of
-  CustomPropertiesBaseIndex: Result := Self._Texture;
+  If Index = _TextureIndex Then
+    Result := Self._Texture
   Else
     Result := Inherited GetPropertyByIndex(Index);
-  End;
 End;
 
 Function UISprite.GetTexture: TERRATexture;

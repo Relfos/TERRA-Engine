@@ -9,6 +9,7 @@ Type
   UICheckBox = Class(UICaption)
     Protected
       _Checked:BooleanProperty;
+      _CheckIndex:Integer;
 
       Procedure SetChecked(Value:Boolean); Virtual;
 
@@ -39,7 +40,7 @@ Constructor UICheckBox.Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Con
 Begin
   Inherited Create(Name, Parent, ComponentName);
 
-  Self._TabIndex := TabIndex;
+  Self.TabIndex := TabIndex;
 
   Self.Caption.Value := Caption;
   Self.SetRelativePosition(VectorCreate2D(X,Y));
@@ -50,6 +51,8 @@ Begin
   Self.Width := Size;
   Self.Height := Size;
 
+  Self.ExpandProperties(1);
+  _CheckIndex := _BasePropertiesIndex;
 
   _NeedsUpdate := True;
 End;
@@ -118,11 +121,10 @@ End;
 
 Function UICheckBox.GetPropertyByIndex(Index: Integer): TERRAObject;
 Begin
-  Case Index Of
-    CustomPropertiesBaseIndex + 1: Result := Self._Checked;
+  If Index = _CheckIndex Then
+    Result := Self._Checked
   Else
     Result := Inherited GetPropertyByIndex(Index);
-  End;
 End;
 
 End.

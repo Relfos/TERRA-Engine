@@ -280,7 +280,7 @@ Begin
   Self.UpdateRects();
 
   Self._LayoutContext := -1;
-  Self._TabIndex := -1;
+  Self.TabIndex := -1;
 
   Self.RestorePosition();
   Self.Layer := Z;
@@ -631,7 +631,7 @@ Begin
   Inherited Create(Name, Parent, ComponentName);
 
   Self.SetVisible(True);
-  Self._TabIndex := -1;
+  Self.TabIndex := -1;
 
   Self.RelativePosition := VectorCreate2D(X,Y);
   Self.Layer := Z;

@@ -63,7 +63,7 @@ Begin
   Self.SetRelativePosition(VectorCreate2D(X,Y));
 
   Self.Layer := Z;
-  Self._TabIndex := -1;
+  Self.TabIndex := -1;
 
   Self.Width := Width;
   Self.Height := Height;

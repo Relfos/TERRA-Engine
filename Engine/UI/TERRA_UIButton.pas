@@ -20,7 +20,7 @@ Uses TERRA_Math;
 Constructor UIButton.Create(Name:TERRAString;  Parent:Widget; X,Y,Z:Single; Width, Height:UIDimension; Caption:TERRAString; Const ComponentName:TERRAString; TabIndex:Integer);
 Begin
   Inherited Create(Name, Parent, ComponentName);
-  Self._TabIndex := TabIndex;
+  Self.TabIndex := TabIndex;
 
   Self.Caption.Value := Caption;
   Self.SetRelativePosition(VectorCreate2D(X,Y));

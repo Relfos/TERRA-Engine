@@ -156,6 +156,7 @@ Type
       Procedure Lock;
       Procedure Unlock;
 
+      Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
 
       Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):CollectionObject; Virtual;
       Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Virtual; 
@@ -206,6 +207,8 @@ Type
       Function Remove(Item:CollectionObject):Boolean; Override;
 
       Function Contains(Item:CollectionObject):Boolean; Override;
+
+      Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
 
       Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):CollectionObject; Override;
       Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Override;
@@ -495,6 +498,14 @@ Begin
     It.Value.Discard();
   End;
   ReleaseObject(It);
+End;
+
+Function Collection.GetPropertyByIndex(Index: Integer): TERRAObject;
+Begin
+  If (Index<Self.Count) Then
+    Result := Self.GetItemByIndex(Index)
+  Else
+    Result := Nil;
 End;
 
 { Iterator }
@@ -993,6 +1004,16 @@ Begin
     Result := Nil;
 End;
 
+
+Function List.CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject;
+Begin
+  Result := Inherited CreateProperty(KeyName, ObjectType);
+
+  If (Assigned(Result)) And (Result Is CollectionObject) Then
+  Begin
+    Self.Add(CollectionObject(Result));
+  End;
+End;
 
 End.
 

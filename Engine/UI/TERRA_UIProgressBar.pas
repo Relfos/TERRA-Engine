@@ -9,6 +9,7 @@ Type
   UIProgressBar = Class(Widget)
     Protected
       _Percent:FloatProperty;
+      _ProgressIndex:Integer;
 
     Public
       Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Const Width, Height:UIDimension; Const ComponentName:TERRAString; TabIndex:Integer=-1);
@@ -29,7 +30,7 @@ Constructor UIProgressBar.Create(Name:TERRAString; Parent:Widget; X, Y, Z: Singl
 Begin
   Inherited Create(Name, Parent, ComponentName);
 
-  Self._TabIndex := TabIndex;
+  Self.TabIndex := TabIndex;
 
   Self._Percent := FloatProperty.Create('percent', 0);
 
@@ -38,15 +39,17 @@ Begin
 
   Self.SetRelativePosition(VectorCreate2D(X,Y));
   Self.Layer := Z;
+
+  Self.ExpandProperties(1);
+  _ProgressIndex := _BasePropertiesIndex;
 End;
 
 Function UIProgressBar.GetPropertyByIndex(Index: Integer): TERRAObject;
 Begin
-  Case Index Of
-  CustomPropertiesBaseIndex: Result := Self.Percent;
+  If Index = _ProgressIndex Then
+    Result := Self.Percent
   Else
     Result := Inherited GetPropertyByIndex(Index);
-  End;
 End;
 
 Procedure UIProgressBar.Release;

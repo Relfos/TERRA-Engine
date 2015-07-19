@@ -35,7 +35,7 @@ Begin
   Count := 0;
   For I:=0 To Pred(Parent.ChildrenCount) Do
   Begin
-    W := Widget(Parent.GetChild(I));
+    W := Widget(Parent.GetChildByIndex(I));
     If W = Self Then
       Continue;
 
@@ -95,7 +95,7 @@ Begin
 
   For I:=0 To Pred(Parent.ChildrenCount) Do
   Begin
-    W := Widget(Parent.GetChild(I));
+    W := Widget(Parent.GetChildByIndex(I));
     If W = Self Then
       Continue;
 

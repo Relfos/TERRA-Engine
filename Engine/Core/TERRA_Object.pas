@@ -325,9 +325,9 @@ Begin
   Until False;
 End;
 
-Function TERRAObject.CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; 
+Function TERRAObject.CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject;
 Begin
-  Result := Nil;
+  Result := Application.Instance.CreateProperty(Self, KeyName, ObjectType);
 End;
 
 Function TERRAObject.FindPropertyWithPath(Path:TERRAString):TERRAObject;

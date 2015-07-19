@@ -54,8 +54,6 @@ Const
   TextureAtlasWidth = 1024;
   TextureAtlasHeight = 512;
 
-  CustomPropertiesBaseIndex = 11;
-
 Type
   UI = Class;
 
@@ -94,6 +92,7 @@ Type
       _Saturation:FloatProperty;
 			_Visible:BooleanProperty;
       _Skin:StringProperty;
+      _TabIndex:IntegerProperty;
 
       _Deleted:Boolean;
 
@@ -107,6 +106,10 @@ Type
       Function GetHeight: UIDimension;
       Function GetWidth: UIDimension;
 
+      Function GetTabIndex: Integer;
+      Procedure SetTabIndex(const Value: Integer);
+      Procedure SetParent(Target:Widget);
+
 		Protected
 			_Parent:Widget;
 
@@ -118,7 +121,6 @@ Type
 
       _Enabled:Boolean;
 
-      _TabIndex:Integer;
       _TabControl:Widget;
 
       _Dragging: Boolean;
@@ -168,7 +170,11 @@ Type
 
       _HighlightGroup:Integer;
 
+      _BasePropertiesIndex:Integer;
+      _CustomPropertiesIndex:Integer;
+
       Procedure InitProperties();
+      Procedure ExpandProperties(Count:Integer);
 
       Procedure CopyValue(Other:CollectionObject); Override;
       Function Sort(Other:CollectionObject):Integer; Override;
@@ -214,7 +220,7 @@ Type
       Function AdjustWidth(NewWidth:Single):Single;
       Function AdjustHeight(NewHeight:Single):Single;
 
-      Procedure PickAt(Const X, Y:Integer; Var CurrentPick:Widget; Var Max:Single);
+      Procedure PickAt(Const X, Y:Integer; Var CurrentPick:Widget; Var Max:Single; Ignore:Widget = Nil);
 
       Function HasMouseOver():Boolean; Virtual;
 
@@ -268,13 +274,12 @@ Type
       Procedure LoadSkin(Const ComponentName:TERRAString);
 
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
+      Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
 
       Procedure Render; Virtual;
 
       Procedure UpdateRects; Virtual;
       Function UpdateTransform():Boolean; Virtual;
-
-      Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
 
 			Function GetVisible:Boolean;
 			Function GetLayer:Single;
@@ -303,9 +308,9 @@ Type
 
       Procedure AddChild(W:Widget);
       Procedure RemoveChild(W:Widget);
-      Function GetChild(Index:Integer):Widget; Overload;
-      Function GetChild(Const Name:TERRAString):Widget; Overload;
-      Function GetChild(ChildClass:WidgetClass; Index:Integer = 0):Widget; Overload;
+      Function GetChildByIndex(Index:Integer):Widget; Overload;
+      Function GetChildByName(Const Name:TERRAString):Widget; Overload;
+      Function GetChildByClass(ChildClass:WidgetClass; Index:Integer = 0):Widget; Overload;
 
       Function OnSelectRight():Boolean; Virtual;
       Function OnSelectLeft():Boolean; Virtual;
@@ -363,9 +368,8 @@ Type
       Property Pivot:Vector2D Read _Pivot Write _Pivot;
       Property Size:Vector2D Read GetSize;
 			Property Layer:Single Read GetLayer Write SetLayer;
-			Property Name:TERRAString Read _ObjectName Write SetObjectName;
 
-      Property TabIndex:Integer Read _TabIndex Write _TabIndex;
+      Property TabIndex:Integer Read GetTabIndex Write SetTabIndex;
       Property TabControl:Widget Read GetTabControl Write _TabControl;
 
       Property InheritColor:Boolean Read _InheritColor Write _InheritColor;
@@ -379,7 +383,7 @@ Type
 
       Property Scroll:Widget Read _Scroll Write _Scroll;
 
-      Property Parent:Widget Read _Parent Write _Parent;
+      Property Parent:Widget Read _Parent Write SetParent;
       Property Align:Integer Read GetAlign Write SetAlign;
 
       Property ChildrenCount:Integer Read _ChildrenCount;
@@ -397,6 +401,7 @@ Type
       Property HighlightGroup:Integer Read GetHighlightGroup Write _HighlightGroup;
 
       Property UI:UI Read _UI;
+      Property Next:Widget Read _Next;
       Property FontRenderer:FontRenderer Read GetFontRenderer Write _FontRenderer;
 
       Property Width:UIDimension Read GetWidth Write SetWidth;
@@ -452,6 +457,7 @@ Type
 
       Function GetModal():Widget;
 
+      Procedure InsertIntoTopWidgets(W:Widget);
 
     Public
       CloseButton:Widget;
@@ -484,7 +490,7 @@ Type
       Function SelectNearestWidget(Target:Widget):Widget;
       Procedure GetFirstHighLight(GroupID:Integer);
 
-      Function PickWidget(X,Y:Integer):Widget;
+      Function PickWidget(X,Y:Integer; Ignore:Widget = Nil):Widget;
 
 		  Function OnKeyDown(Key:Word):Widget;
 		  Function OnKeyUp(Key:Word):Widget;
@@ -544,6 +550,8 @@ Type
       Property FontRenderer:FontRenderer Read GetFontRenderer Write SetFontRenderer;
 
       Property ClipRect:ClipRect Read _ClipRect Write _ClipRect;
+
+      Property First:Widget Read _First;
     End;
 
   UIManager = Class(ApplicationComponent)
@@ -592,6 +600,8 @@ Type
       Procedure Render;
       Procedure AfterEffects;
 
+      Function CreateProperty(Owner:TERRAObject; Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
+      
       Procedure SetFontRenderer(const Value: FontRenderer);
 
       Function GetUI(Index:Integer):UI;
@@ -704,6 +714,7 @@ Begin
   ReleaseObject(_Saturation);
   ReleaseObject(_Align);
   ReleaseObject(_Skin);
+  ReleaseObject(_TabIndex);
 End;
 
 Procedure Widget.InitProperties;
@@ -718,12 +729,25 @@ Begin
   _Scale := FloatProperty.Create('scale', 1.0);
   _Saturation := FloatProperty.Create('saturation', 1.0);
   _Skin := StringProperty.Create('skin', '');
-
+  _TabIndex := IntegerProperty.Create('tabindex', -1);
   _Align := EnumProperty.Create('align', 0, UIManager.Instance._AlignEnums);
+
+  _BasePropertiesIndex := 0;
+  _CustomPropertiesIndex := 12;
 End;
 
 Function Widget.GetPropertyByIndex(Index:Integer):TERRAObject;
 Begin
+  If (Index>=_CustomPropertiesIndex) Then
+  Begin
+    Dec(Index, _CustomPropertiesIndex);
+    If (Index<_ChildrenCount) Then
+      Result := _ChildrenList[Index]
+    Else
+      Result := Nil;
+    Exit;
+  End;
+
   Case Index Of
   0: Result := _Visible;
   1: Result := _Position;
@@ -736,10 +760,18 @@ Begin
   8: Result := _Scale;
   9: Result := _Saturation;
   10: Result := _Skin;
+  11: Result := _TabIndex;
   Else
     Result := Nil;
   End;
 End;
+
+Procedure Widget.ExpandProperties(Count:Integer);
+Begin
+  _BasePropertiesIndex := _CustomPropertiesIndex;
+  Inc(_CustomPropertiesIndex, Count);
+End;
+
 
 Procedure Widget.LoadSkin(Const ComponentName:TERRAString);
 Begin
@@ -1602,13 +1634,13 @@ Begin
     Result := Self.Parent.AllowsEvents();
 End;
 
-Procedure Widget.PickAt(Const X, Y:Integer; Var CurrentPick:Widget; Var Max:Single);
+Procedure Widget.PickAt(Const X, Y:Integer; Var CurrentPick:Widget; Var Max:Single; Ignore:Widget);
 Var
   I:Integer;
 Begin
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', _Name+ '.PickAt called');{$ENDIF}
 
-  If (Self.Layer < Max) Or (Not Self.OnRegion(X,Y)) Then
+  If (Self.Layer < Max) Or (Not Self.OnRegion(X,Y)) Or (Self = Ignore) Then
     Exit;
 
   CurrentPick := Self;
@@ -1617,7 +1649,7 @@ Begin
   For I:=0 To Pred(_ChildrenCount) Do
   If (_ChildrenList[I].AllowsEvents()) Then
   Begin
-    _ChildrenList[I].PickAt(X, Y, CurrentPick, Max);
+    _ChildrenList[I].PickAt(X, Y, CurrentPick, Max, Ignore);
   End;
 End;
 
@@ -1894,7 +1926,7 @@ Begin
   Result := True;
 End;
 
-Function Widget.GetChild(Index:Integer): Widget;
+Function Widget.GetChildByIndex(Index:Integer): Widget;
 Begin
   If (Index>=0) And (Index<=Self.ChildrenCount) Then
     Result := _ChildrenList[Index]
@@ -1902,7 +1934,7 @@ Begin
     Result := Nil;
 End;
 
-Function Widget.GetChild(Const Name:TERRAString): Widget;
+Function Widget.GetChildByName(Const Name:TERRAString): Widget;
 Var
   I:Integer;
 Begin
@@ -1916,18 +1948,7 @@ Begin
   Result := Nil;
 End;
 
-Procedure Widget.AddChild(W: Widget);
-Begin
-  If (W=Nil) Then
-    Exit;
-
-  W._Parent := Self;
-  Inc(_ChildrenCount);
-  SetLength(_ChildrenList, _ChildrenCount);
-  _ChildrenList[Pred(_ChildrenCount)] := W;
-End;
-
-Function Widget.GetChild(ChildClass: WidgetClass; Index:Integer): Widget;
+Function Widget.GetChildByClass(ChildClass: WidgetClass; Index:Integer): Widget;
 Var
   I, Count:Integer;
 Begin
@@ -1946,14 +1967,29 @@ Begin
   Result := Nil;
 End;
 
+Procedure Widget.AddChild(W: Widget);
+Begin
+  If (W=Nil) Or (W = Self) Then
+    Exit;
+
+  W._Parent := Self;
+  Inc(_ChildrenCount);
+  SetLength(_ChildrenList, _ChildrenCount);
+  _ChildrenList[Pred(_ChildrenCount)] := W;
+End;
+
 Procedure Widget.RemoveChild(W:Widget);
 Var
   I:Integer;
 Begin
-  I:=0;
+  If (W = Nil) Then
+    Exit;
+
+  I := 0;
   While (I<_ChildrenCount) Do
   If (_ChildrenList[I] = W) Then
   Begin
+    _ChildrenList[I]._Parent := Nil;
     _ChildrenList[I] := _ChildrenList[Pred(_ChildrenCount)];
     Dec(_ChildrenCount);
     Exit;
@@ -2379,6 +2415,9 @@ Begin
   Original := NewWidth;
   NewWidth := UISnap(NewWidth);
 
+  If (NewWidth<UISnapSize) Then
+      NewWidth := UISnapSize;
+
   Result := Original - NewWidth;
 
   If _Width.Value.IsPercent Then
@@ -2395,6 +2434,10 @@ Var
 Begin
   Original := NewHeight;
   NewHeight := UISnap(NewHeight);
+
+  If (NewHeight<UISnapSize) Then
+      NewHeight := UISnapSize;
+
   Result := Original - NewHeight;
 
   If _Height.Value.IsPercent Then
@@ -2426,7 +2469,28 @@ Begin
   _ChildrenCount := 0;
 End;
 
-Function Widget.CreateProperty(Const KeyName, ObjectType: TERRAString): TERRAObject;
+
+Function Widget.GetAlign: Integer;
+Begin
+  Result := _Align.Value;
+End;
+
+Procedure Widget.SetAlign(const Value: Integer);
+Begin
+  _Align.Value := Value;
+End;
+
+Function Widget.GetTabIndex: Integer;
+Begin
+  Result := _TabIndex.Value;
+End;
+
+Procedure Widget.SetTabIndex(const Value: Integer);
+Begin
+  _TabIndex.Value  := Value;
+End;
+
+Function Widget.CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject;
 Begin
   If (StringEquals(ObjectType, 'UIButton')) Then
     Result := UIButton.Create(KeyName, Self, 0, 0, 50, UIPixels(10), UIPixels(10), '', 'button')
@@ -2452,20 +2516,28 @@ Begin
   If (StringEquals(ObjectType, 'UITabList')) Then
     Result := UITabList.Create(KeyName, Self, 0, 0, 50, UIPixels(10), UIPixels(10), 'icon')
   Else
-  Begin
-    Log(logError, 'UI', 'Cannot unserialize object of type ' +ObjectType);
     Result := Nil;
+End;
+
+Procedure Widget.SetParent(Target:Widget);
+Var
+  P:Vector2D;
+Begin
+  P := Self.AbsolutePosition;
+  If Assigned(Target) Then
+    P.Subtract(Target.AbsolutePosition);
+
+  Self.RelativePosition := P;
+
+  If Assigned(Self.Parent) Then
+  Begin
+    Self.Parent.RemoveChild(Self);
   End;
-End;
 
-Function Widget.GetAlign: Integer;
-Begin
-  Result := _Align.Value;
-End;
-
-Procedure Widget.SetAlign(const Value: Integer);
-Begin
-  _Align.Value := Value;
+  If Assigned(Target) Then
+    Target.AddChild(Self)
+  Else
+    _UI.InsertIntoTopWidgets(Self);
 End;
 
 { UI }
@@ -2596,7 +2668,7 @@ End;
 
 Procedure UI.AddWidget(MyWidget:Widget);
 Var
-  Temp, Last:Widget;
+  Temp:Widget;
   Found:Boolean;
   It:Iterator;
   NameIndex:Integer;
@@ -2616,9 +2688,9 @@ Begin
     MyWidget.Name := BaseName + '_' + IntToString(NameIndex);
   End;
 
-  If (Assigned(MyWidget._Parent)) Then
+  If (Assigned(MyWidget.Parent)) Then
   Begin
-    It := _Widgets.GetIterator();
+    (*It := _Widgets.GetIterator();
     Found := False;
     While (It.HasNext) Do
     Begin
@@ -2633,14 +2705,26 @@ Begin
     ReleaseObject(It);
 
     If Not Found Then
-      Log(logWarning, 'UI', 'Error finding parent for '+ MyWidget.Name +'!');
+      Log(logWarning, 'UI', 'Error finding parent for '+ MyWidget.Name +'!');*)
+
+    MyWidget.Parent.AddChild(MyWidget);
   End Else
+    InsertIntoTopWidgets(MyWidget);
+
+  _Widgets.Add(MyWidget);
+End;
+
+Procedure UI.InsertIntoTopWidgets(W:Widget);
+Var
+  Found:Boolean;
+  Temp, Last:Widget;
+Begin
   If (Assigned(_First)) Then
   Begin
-    If (_First.Layer > MyWidget.Layer) Then
+    If (_First.Layer > W.Layer) Then
     Begin
-      MyWidget._Next := _First;
-      _First := MyWidget;
+      W._Next := _First;
+      _First := W;
     End Else
     Begin
       Last := _First;
@@ -2648,10 +2732,10 @@ Begin
       Found := False;
       While (Assigned(Temp)) Do
       Begin
-        If (Temp.Layer > MyWidget.Layer) Then
+        If (Temp.Layer > W.Layer) Then
         Begin
-          MyWidget._Next := Temp;
-          Last._Next := MyWidget;
+          W._Next := Temp;
+          Last._Next := W;
           Found := True;
           Break;
         End;
@@ -2661,18 +2745,16 @@ Begin
 
       If (Not Found) Then
       Begin
-        Last._Next := MyWidget;
-        MyWidget._Next := Nil;
+        Last._Next := W;
+        W._Next := Nil;
       End;
     End;
 
   End Else
   Begin
-    _First := MyWidget;
-    MyWidget._Next := Nil;
+    _First := W;
+    W._Next := Nil;
   End;
-
-  _Widgets.Add(MyWidget);
 End;
 
 Procedure UI.DeleteWidget(MyWidget:Widget);
@@ -2735,7 +2817,7 @@ End;
 
 Procedure UI.Render;
 Var
-  MyWidget:Widget;
+  Current, Temp:Widget;
   I, J:Integer;
   X,Y:Single;
   It:Iterator;
@@ -2789,21 +2871,33 @@ Begin
     It := Self.Widgets.GetIterator();
     While It.HasNext() Do
     Begin
-      MyWidget := Widget(It.Value);
+      Current := Widget(It.Value);
 
-      If MyWidget._Deleted Then
-        MyWidget.Discard();
+      If Current._Deleted Then
+        Current.Discard();
     End;
     ReleaseObject(It);
   End;
 
-  MyWidget := _First;
-  While (Assigned(MyWidget)) Do
+  While (Assigned(_First)) And (Assigned(_First.Parent)) Do
   Begin
-    If (Not Assigned(MyWidget._Parent)) And (MyWidget.Visible) And (MyWidget.CanRender()) Then
-      MyWidget.Render();
+    _First := _First.Next;
+  End;
 
-    MyWidget := MyWidget._Next;
+  Current := _First;
+  While (Assigned(Current)) Do
+  Begin
+    Temp := Current.Next;
+    If (Assigned(Temp)) And (Assigned(Temp.Parent)) Then
+    Begin
+      Current._Next := Temp.Next;
+      Temp := Current._Next;
+    End;
+
+    If (Current.Visible) And (Current.CanRender()) Then
+      Current.Render();
+
+    Current := Temp;
   End;
 
   //glDisable(glCoverage);
@@ -2904,37 +2998,37 @@ Begin
   Log(logDebug, 'UI', 'keypress done!');
 End;
 
-Function UI.PickWidget(X,Y:Integer):Widget;
+Function UI.PickWidget(X,Y:Integer; Ignore:Widget = Nil):Widget;
 Var
-	W, CurrentPick:Widget;
+	Current:Widget;
   Max:Single;
 Begin
   _LastWidget := Nil;
 
 //  ConvertGlobalToLocal(X, Y);
 
-  CurrentPick := Nil;
+  Result := Nil;
   Max := -9999;
 
-	W := _First;
-	While (Assigned(W)) Do
-	Begin
-    If (W.Parent = Nil) And (W.AllowsEvents()) Then
+  Current := _First;
+  While (Assigned(Current)) Do
+  Begin
+    If (Current.Parent = Nil) And (Current.AllowsEvents()) Then
     Begin
-      W.PickAt(X, Y, CurrentPick, Max);
+      Current.PickAt(X, Y, Result, Max, Ignore);
     End;
 
-    W := W._Next;
-	End;
+    Current := Current.Next;
+  End;
 
-  If (Self.Modal<>Nil) And (Not CurrentPick.IsSameFamily(Modal)) Then
+
+  If (Self.Modal<>Nil) And (Assigned(Result)) And (Not Result.IsSameFamily(Modal)) Then
   Begin
-    CurrentPick := Nil;
+    Result := Nil;
     {$IFDEF DEBUG_GUI}Log(logDebug, 'Game', 'Cancelled because of modal...');{$ENDIF}
   End;
 
   //Log(logDebug, 'Game', 'Found a Widget for picking: '+CurrentPick.Name);
-  Result := CurrentPick;
   _LastWidget := Result;
 End;
 
@@ -3436,11 +3530,17 @@ Begin
 End;
 
 Function UI.GetPropertyByIndex(Index: Integer): TERRAObject;
+Var
+  P:Widget;
 Begin
-  If (Index>=0) And (Index< Widgets.Count) Then
-    Result := Widgets.GetItemByIndex(Index)
-  Else
-    Result := Nil;
+  P := _First;
+  While (Index>0) And (Assigned(P)) Do
+  Begin
+    Dec(Index);
+    P := P._Next;
+  End;
+
+  Result := P;
 End;
 
 { UIManager }
@@ -3728,6 +3828,14 @@ Begin
   UIH := GraphicsManager.Instance.UI_Height;
   If (_Viewport.Width<>UIW) Or (_Viewport.Height<>UIH) Then
     _Viewport.Resize(UIW, UIH);
+End;
+
+Function UIManager.CreateProperty(Owner:TERRAObject; const KeyName, ObjectType: TERRAString): TERRAObject;
+Begin
+  If (StringEquals(ObjectType, 'UI')) Then
+    Result := UI.Create()
+  Else
+    Result := Nil;
 End;
 
 End.

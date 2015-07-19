@@ -78,7 +78,7 @@ Begin
   Self.Width := Width;
   Self.Height := Height;
 
-  Self._TabIndex := TabIndex;
+  Self.TabIndex := TabIndex;
   Self.Text := '';
 
   Self.SetLineCount(1);

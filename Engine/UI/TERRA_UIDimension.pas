@@ -48,9 +48,6 @@ Begin
   If (UISnapSize>0) Then
   Begin
     Result := Trunc(X/UISnapSize) * UISnapSize;
-
-    If (Result<UISnapSize) Then
-      Result := UISnapSize;
   End Else
     Result := X;
 End;

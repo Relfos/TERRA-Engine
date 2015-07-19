@@ -68,7 +68,7 @@ Type
   TERRAObjectNodeClass = Class Of TERRAObjectNode;
 
 Implementation
-Uses TERRA_MemoryStream, TERRA_FileStream, TERRA_XML;
+Uses TERRA_MemoryStream, TERRA_FileStream, TERRA_XML, TERRA_OS;
 
 Procedure DumpObjectTree(Node:TERRAObjectNode; Dest:Stream; Level:Integer);
 Var
@@ -361,7 +361,9 @@ Var
   Prop:TERRAObject;
 Begin
   TargetClass := TERRAObjectNodeClass(Self.ClassType);
-  Self.Name := Source.Name;
+
+  If (Self.Parent = Nil) Then
+    Self.Name := 'root';
 
   Index := 0;
   Repeat
@@ -374,11 +376,10 @@ Begin
       Self.AddString(Prop.Name, Prop.GetBlob());
     End Else
     Begin
-      Node := TargetClass.Create('object');
+      Node := TargetClass.Create(Prop.GetObjectType());
       Self.AddChild(Node);
 
       Node.AddString('name', Prop.Name);
-      Node.AddString('type', Prop.GetObjectType());
 
       Node.LoadFromObject(Prop);
     End;
@@ -396,12 +397,31 @@ Var
 Begin
   Result := Nil;
 
-  Self.GetString('type', TypeName, '');
+  If Target = Nil Then
+  Begin
+    IntToString(2);
+    Exit;
+  End;
+
+  TypeName := Self.Name;
   If TypeName <> '' Then
   Begin
     Self.GetString('name', PropName, '');
 
-    Result := Target.CreateProperty(PropName, TypeName);
+    If (PropName = '') Then
+      PropName := TypeName;
+
+    Prop := Target.FindProperty(PropName);
+    If Assigned(Prop) Then
+      Result := Prop
+    Else
+      Result := Target.CreateProperty(PropName, TypeName);
+
+    If (Assigned(Result)) And (Self.Value<>'') Then
+    Begin
+      Result.SetBlob(Self.Value);
+      Exit;
+    End;
   End;
 
   If Result = Nil Then
@@ -411,17 +431,12 @@ Begin
   Begin
     P := Self.GetChildByIndex(I);
 
-    If (StringEquals(P.Name, 'type')) Or (StringEquals(P.Name, 'name')) Then
+    If (StringEquals(P.Name, 'name')) Then
       Continue;
 
-    Prop := Result.FindProperty(P.Name);
-    If Assigned(Prop) Then
-    Begin
-      If P.Value<>'' Then
-        Prop.SetBlob(P.Value)
-      Else
-        P.SaveToObject(Prop);
-    End Else
+    If P.Name='position' Then
+      IntToString(2);
+
       P.SaveToObject(Result);
   End;
 End;

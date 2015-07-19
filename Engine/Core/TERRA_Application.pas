@@ -176,6 +176,8 @@ Type
       Procedure Init; Virtual;
       Procedure Update; Virtual;
 
+      Function CreateProperty(Owner:TERRAObject; Const KeyName, ObjectType:TERRAString):TERRAObject; Virtual;
+
       Procedure Release; Override;
   End;
 
@@ -514,6 +516,8 @@ Type
 
       Function GetVungleID:TERRAString; Virtual;
 
+      Function CreateProperty(Owner:TERRAObject; Const KeyName, ObjectType:TERRAString):TERRAObject; Virtual;
+
       Property CPUCores:Integer Read _CPUCores;
 
 			Property OS:Cardinal Read GetPlatform;
@@ -568,7 +572,7 @@ Implementation
 
 Uses SysUtils, TERRA_Error, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   {$IFNDEF WINDOWS}BaseUnix, {$ENDIF}
-  TERRA_GraphicsManager, TERRA_Callstack,
+  TERRA_GraphicsManager, TERRA_Callstack, TERRA_Collections, TERRA_CollectionObjects,
   TERRA_Log, TERRA_OS, TERRA_IAP, TERRA_Localization, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager
   {$IFDEF PC}, TERRA_Steam{$ENDIF};
 
@@ -626,6 +630,7 @@ Begin
 
   Result := ApplicationObject.Create();
 
+  Result.Name := TargetClass.ClassName;
   Result._Component := TargetClass;
   Result._Dependency := DestroyBefore;
 
@@ -1152,6 +1157,37 @@ Begin
   // do nothing
 End;
 
+Function BaseApplication.CreateProperty(Owner:TERRAObject; const KeyName, ObjectType: TERRAString): TERRAObject;
+Var
+  I:Integer;
+Begin
+  If StringEquals(ObjectType, 'list') Then
+  Begin
+    Result := List.Create();
+    Result.Name := KeyName;
+  End Else
+  Begin
+    Result := Nil;
+
+    For I:=0 To Pred(_ApplicationComponentCount) Do
+    If Assigned(_ApplicationComponents[I].Instance) Then
+    Begin
+      Result := _ApplicationComponents[I].Instance.CreateProperty(Owner, KeyName, ObjectType);
+      If Assigned(Result) Then
+      Begin
+        Log(logDebug, 'Application', 'Unserialized object of type ' +ObjectType+ ' from '+_ApplicationComponents[I].Name);
+        Exit;
+      End;
+
+    End;
+  End;
+
+  If Result = Nil Then
+  Begin
+    Log(logError, 'Application', 'Cannot unserialize object of type ' +ObjectType+' with name '+KeyName);
+  End;
+End;
+
 { ApplicationObject }
 Procedure ApplicationObject.Release;
 Var
@@ -1178,6 +1214,11 @@ Begin
   End;
 
   Self.Init();
+End;
+
+Function ApplicationComponent.CreateProperty(Owner:TERRAObject; const KeyName, ObjectType: TERRAString): TERRAObject;
+Begin
+  Result := Nil;
 End;
 
 Procedure ApplicationComponent.Init; Begin End;
@@ -1277,7 +1318,7 @@ Begin
 
   _RefreshingComponents := True;
   {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'Running', 'Components: ' + IntToString(_ApplicationComponentCount));{$ENDIF}{$ENDIF}
-  For I:=0 To (_ApplicationComponentCount-1) Do
+  For I:=0 To Pred(_ApplicationComponentCount) Do
   Begin
     {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'Running', _ApplicationComponents[I].Component.ClassName);{$ENDIF}{$ENDIF}
 
@@ -2364,6 +2405,7 @@ Begin
   // do nothing
   Result := False;
 End;*)
+
 
 Initialization
   {$IFDEF FPC}

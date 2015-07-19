@@ -12,11 +12,13 @@ object UIEditForm: TUIEditForm
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  KeyPreview = True
   Menu = MainMenu
   OldCreateOrder = False
   Visible = True
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnKeyDown = FormKeyDown
   OnResize = FormResize
   PixelsPerInch = 96
   TextHeight = 13
@@ -73,6 +75,8 @@ object UIEditForm: TUIEditForm
     Height = 169
     BevelOuter = bvLowered
     BevelWidth = 2
+    Ctl3D = False
+    ParentCtl3D = False
     TabOrder = 3
   end
   object MainMenu: TMainMenu
@@ -138,6 +142,7 @@ object UIEditForm: TUIEditForm
       end
       object Combobox1: TMenuItem
         Caption = '&Combobox'
+        OnClick = Combobox1Click
       end
       object Icon1: TMenuItem
         Caption = '&Icon'

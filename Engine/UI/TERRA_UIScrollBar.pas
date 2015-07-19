@@ -58,7 +58,7 @@ Constructor UIScrollBar.Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Co
 Begin
   Inherited Create(Name, Parent, ComponentName);
 
-  Self._TabIndex := TabIndex;
+  Self.TabIndex := TabIndex;
 
   Self._Value := 0.0;
   Self._Max := 100;

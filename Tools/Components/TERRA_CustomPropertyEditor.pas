@@ -114,6 +114,8 @@ type
       _MarginColor:TColor;
       _EditColor:TColor;
 
+//      _Scroll:TScrollBar;
+
       procedure SetTarget(Target: TERRAObject);
       procedure SetMarginColor(const Value: TColor);
       procedure SetEditColor(const Value: TColor);
@@ -225,6 +227,10 @@ begin
   Width := 306;
   Height := 300;
 
+(*  _Scroll := TScrollBar.Create(Self);
+  _Scroll.Align := alClient;
+  _Scroll.Kind := sbVertical;*)
+
   (*
   _Bevel := TBevel.Create(Self);
   _Bevel.Parent := Self;
@@ -232,7 +238,7 @@ begin
   _Bevel.Height := Height;
   _Bevel.Top := 10;
   _Bevel.Left := Width Div 2;*)
-  
+
  // _Bevel.Shape := bsLeftLine;
 end;
 
@@ -393,6 +399,12 @@ procedure TCustomPropertyEditor.RequestUpdate;
 Var
   I:Integer;
 begin
+(*  _Scroll.Width := 50;
+  _Scroll.Height := Self.Height;
+  _Scroll.Left := Self.Left;
+  _Scroll.Top := Self.Top;
+  _Scroll.Visible := True;*)
+
   For I:=0 To Pred(_CellCount) Do
     _Cells[I].Update();
 

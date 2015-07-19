@@ -3,7 +3,8 @@ Unit TERRA_UIComboBox;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_Collections;
+Uses TERRA_Utils, TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_UIDimension,
+  TERRA_Collections;
 
 Type
   UIComboBox = Class(Widget)
@@ -60,11 +61,11 @@ Begin
   Inherited Create(Name, Parent, ComponentName);
 
   Self.SetRelativePosition(VectorCreate2D(X,Y));
-  Self._Layer := Z;
+  Self.Layer := Z;
 
-  Self._TabIndex := TabIndex;
-  Self._Width := Width;
-  Self._Height := Height;
+  Self.TabIndex := TabIndex;
+  Self.Width := Width;
+  Self.Height := Height;
   Self._ItemHighlight := -1;
   Self._Content := Nil;
 
@@ -105,9 +106,9 @@ Begin
   Pos := Self.AbsolutePosition;
 
   X1 := Trunc(Pos.X);
-  X2 := Trunc(Pos.X + Self.GetDimension(_BarWidth));
+  X2 := Trunc(Pos.X + Self.GetDimension(_BarWidth, uiDimensionWidth));
 
-  HH := Trunc(Self.GetDimension(_BarHeight));
+  HH := Trunc(Self.GetDimension(_BarHeight, uiDimensionHeight));
 
   If (Assigned(_Content)) Then
   For I:=0 To Pred(_Content.Count) Do
@@ -143,7 +144,7 @@ Begin
 
     Self.OnHit(OnMouseClick);
   End Else
-  If (X >= Pos.X) And (X <= Pos.X + Self.GetDimension(_BarWidth) + Self.GetDimension(_HandleWidth)) And (Y>=Pos.Y) And (Y<=Pos.Y+ Self.GetDimension(_BarHeight)) And (Not ShowLabelOnly) Then
+  If (X >= Pos.X) And (X <= Pos.X + Self.GetDimension(_BarWidth, uiDimensionWidth) + Self.GetDimension(_HandleWidth, uiDimensionHeight)) And (Y>=Pos.Y) And (Y<=Pos.Y+ Self.GetDimension(_BarHeight, uiDimensionHeight)) And (Not ShowLabelOnly) Then
   Begin
     _ShowList := Not _ShowList;
 
@@ -180,8 +181,8 @@ Begin
   If (_ItemIndex<0) Or (_Content = Nil) Then
     Exit;
 
-  BW := Self.GetDimension(_BarWidth);
-  HW := Self.GetDimension(_HandleWidth);
+  BW := Self.GetDimension(_BarWidth, uiDimensionWidth);
+  HW := Self.GetDimension(_HandleWidth, uiDimensionWidth);
 
   If (Not ShowLabelOnly) Then
   Begin
@@ -197,7 +198,7 @@ Begin
       S := LocalizationManager.Instance.GetString(Copy(S, 2, MaxInt));
 
     TextRect := Self.FontRenderer.GetTextRect(S);
-    Self.DrawText(S, 5, 5, 2.0, TextRect, 1.0, 1, Self.IsSelected);
+    Self.DrawText(S, 5, 5, 2.0, TextRect, 1.0, 1, Self.IsSelected, ColorWhite);
   End;
 
   If (_ShowList) And (UI.Focus<>Self) Then
@@ -208,14 +209,14 @@ Begin
     ZOfs := 8;
 
 
-    HH := Self.GetDimension(_BarHeight);
+    HH := Self.GetDimension(_BarHeight, uiDimensionHeight);
 
-    _ListWidth := UIPixels(Self.GetDimension(_BarWidth) + Self.GetDimension(_HandleWidth));
+    _ListWidth := UIPixels(Self.GetDimension(_BarWidth, uiDimensionWidth) + Self.GetDimension(_HandleWidth, uiDimensionWidth));
     _ListHeight := UIPixels(HH * _Content.Count);
 
     Self.DrawComponent(0.0, HH, ZOfs, _ListWidth, _ListHeight, 2, Self.IsSelected);
 
-    WW := Self.GetDimension(_ListWidth);
+    WW := Self.GetDimension(_ListWidth, uiDimensionWidth);
 
     P := _Content.First;
     For J:=0 To Pred(_Content.Count) Do
@@ -230,7 +231,7 @@ Begin
 
         TextRect := Self.FontRenderer.GetTextRect(S);
 
-        Self.DrawText(S, (WW - TextRect.X) * 0.5, YY + TextRect.Y * 0.5, ZOfs + 0.5, TextRect, Scale, 2, (J =_ItemHighlight));
+        Self.DrawText(S, (WW - TextRect.X) * 0.5, YY + TextRect.Y * 0.5, ZOfs + 0.5, TextRect, Scale, 2, (J =_ItemHighlight), ColorWhite);
       End;
 
       P := P.Next;
@@ -264,7 +265,7 @@ Begin
   Inherited;
 
   If _ShowList Then
-    _Size.Y := _Size.Y + Self.GetDimension(_ListHeight);
+    _Size.Y := _Size.Y + Self.GetDimension(_ListHeight, uiDimensionHeight);
 End;
 
 End.

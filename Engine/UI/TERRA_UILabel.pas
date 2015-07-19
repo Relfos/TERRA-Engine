@@ -28,7 +28,7 @@ Constructor UILabel.Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Captio
 Begin
   Inherited Create(Name, Parent, '');
 
-  Self._TabIndex := TabIndex;
+  Self.TabIndex := TabIndex;
 
   Self.SetRelativePosition(VectorCreate2D(X,Y));
   Self.Layer := Z;
