@@ -173,6 +173,8 @@ Type
     procedure FormKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure Combobox1Click(Sender: TObject);
+    procedure FormMouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
 
   Protected
     _CurrentCursor:Integer;
@@ -241,6 +243,7 @@ End;
 Procedure UIEditScene.Clear();
 Begin
   UIEditForm.TabList.Tabs.Clear();
+  UIEditForm.PropertyList.Target := Nil;
 
   ReleaseObject(_Views);
   ReleaseObject(_Paths);
@@ -1128,5 +1131,13 @@ Begin
   Else
     Result := Inherited CreateProperty(Owner, KeyName, ObjectType);
 End;
+
+procedure TUIEditForm.FormMouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+begin
+  If WheelDelta<0 Then
+    PropertyList.DoMouseWheelUp(Shift, MousePos)
+  Else
+    PropertyList.DoMouseWheelDown(Shift, MousePos);
+end;
 
 end.

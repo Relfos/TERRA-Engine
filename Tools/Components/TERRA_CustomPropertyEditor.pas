@@ -2,7 +2,7 @@ unit TERRA_CustomPropertyEditor;
 
 interface
 
-uses SysUtils, Classes, Messages, ExtCtrls, Controls, StdCtrls,
+uses Windows, SysUtils, Classes, Messages, ExtCtrls, Controls, StdCtrls,
   Dialogs, Graphics, Buttons,
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_OS, TERRA_Color, TERRA_VCLApplication,
   TERRA_FileManager, TERRA_FileUtils, TERRA_EnumProperty, TERRA_Math;
@@ -12,7 +12,7 @@ Const
   MarginSide = 10;
   ExpandSize = 15;
   CellHeight = 25;
-  
+
 type
   TCustomPropertyEditor = Class;
 
@@ -114,6 +114,8 @@ type
       _MarginColor:TColor;
       _EditColor:TColor;
 
+      _ScrollRow:Integer;
+
 //      _Scroll:TScrollBar;
 
       procedure SetTarget(Target: TERRAObject);
@@ -141,6 +143,8 @@ type
 
       Procedure RequestUpdate();
 
+      Function DoMouseWheelDown(Shift: TShiftState; MousePos: TPoint): Boolean; override;
+      Function DoMouseWheelUp(Shift: TShiftState; MousePos: TPoint): Boolean; override;
 
       Property Target:TERRAObject Read _Target Write SetTarget;
 
@@ -344,7 +348,7 @@ begin
   //Canvas.Pen.Style := psDot;
   Canvas.Pen.Width := 1;
 
-  N := 0;
+  N := -_ScrollRow;
   For I:=0 To Pred(_CellCount) Do
   Begin
     If Not _Cells[I]._Visible Then
@@ -367,7 +371,7 @@ begin
   Canvas.MoveTo(MidW, FY);
   Canvas.LineTo(MidW, Self.Height);
 
-  If (Assigned(_Target)) Then
+  If (Assigned(_Target)) And (_ScrollRow=0) Then
   Begin
     Canvas.Font.Color := Self.Font.Color;
     S := _Target.Name + ' ('+_Target.GetObjectType()+')';
@@ -434,6 +438,38 @@ procedure TCustomPropertyEditor.SetEditColor(const Value: TColor);
 begin
   _EditColor := Value;
   Self.Repaint();
+end;
+
+function TCustomPropertyEditor.DoMouseWheelDown(Shift: TShiftState; MousePos: TPoint): Boolean;
+begin
+  Result := inherited DoMouseWheelDown(Shift, MousePos);
+  if not Result then
+  begin
+    if _ScrollRow < Pred(Self._CellCount) then
+    Begin
+      Inc(_ScrollRow);
+      Self.Resize();
+      Self.Repaint();
+    End;
+
+    Result := True;
+  end;
+end;
+
+function TCustomPropertyEditor.DoMouseWheelUp(Shift: TShiftState; MousePos: TPoint): Boolean;
+begin
+  Result := inherited DoMouseWheelUp(Shift, MousePos);
+  if not Result then
+  begin
+    if _ScrollRow > 0 then
+    Begin
+      Dec(_ScrollRow);
+      Self.Resize();
+      Self.Repaint();
+    End;
+
+    Result := True;
+  end;
 end;
 
 { TPropertyCell }
@@ -512,7 +548,7 @@ End;
 procedure TPropertyCell.Resize;
 begin
   _Label.Left := 10;
-  _Label.Top := MarginTop + _Index * CellHeight;
+  _Label.Top := MarginTop + (_Index - _Owner._ScrollRow) * CellHeight;
 
   _Editor.Top := _Label.Top;
   _Editor.Left := _Owner.GetMiddle() + MarginSide;
