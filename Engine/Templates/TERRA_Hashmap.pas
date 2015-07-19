@@ -166,7 +166,7 @@ Begin
     Exit;
 
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Obtaining an hash for this item...');{$ENDIF}
-  Key := Murmur2(Item.ObjectName);
+  Key := Murmur2(Item.Name);
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Got hash index: '+HexStr(Key));{$ENDIF}
 
   Key := Key Mod _TableSize;
@@ -194,7 +194,7 @@ Begin
     Exit;
 
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Obtaining an hash for this item...');{$ENDIF}
-  Key := Murmur2(Item.ObjectName);
+  Key := Murmur2(Item.Name);
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Got hash index: '+HexStr(Key));{$ENDIF}
 
   Key := Key Mod _TableSize;
@@ -218,7 +218,7 @@ Begin
     Exit;
 
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Obtaining an hash for this item...');{$ENDIF}
-  Key := Murmur2(Item.ObjectName);
+  Key := Murmur2(Item.Name);
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Got hash index: '+HexStr(Key));{$ENDIF}
 
   Key := Key Mod _TableSize;
@@ -259,7 +259,7 @@ Begin
   Begin
     P := _Table[Index].First;
     While Assigned(P) Do
-    If (StringEquals(Key, P.ObjectName)) Then
+    If (StringEquals(Key, P.Name)) Then
     Begin
       Result := P;
       Break;

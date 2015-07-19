@@ -900,14 +900,14 @@ End;
 
 Procedure UIEditableView.Open(FileName: TERRAString);
 Var
-  Doc:XMLDocument;
+  Root:XMLNode;
 Begin
   FileManager.Instance.AddPath(GetFilePath(FileName));
 
-  Doc := XMLDocument.Create();
-  Doc.LoadFromFile(FileName);
-  Doc.SaveToObject(_Target);
-  ReleaseObject(Doc);
+  Root := XMLNode.Create();
+  Root.LoadFromFile(FileName);
+  Root.SaveToObject(_Target);
+  ReleaseObject(Root);
 
   UIEditForm.BuildWidgetTree();
 
@@ -916,14 +916,12 @@ End;
 
 procedure UIEditableView.Save(FileName: TERRAString);
 Var
-  Doc:XMLDocument;
+  Root:XMLNode;
 Begin
-  Doc := XMLDocument.Create();
-
-  Doc.LoadFromObject(_Target);
-
-  Doc.SaveToFile(FileName, xmlSaveCompact);
-  ReleaseObject(Doc);
+  Root := XMLNode.Create();
+  Root.LoadFromObject(_Target);
+  Root.SaveToFile(FileName, xmlSaveCompact);
+  ReleaseObject(Root);
 End;
 
 Function UIEditableView.PickWidgetAt(X, Y: Integer): Widget;
@@ -936,8 +934,6 @@ Begin
   UIManager.Instance.RemoveUI(_Target);
   ReleaseObject(_Target);
 End;
-
-
 
 procedure TUIEditForm.Delete1Click(Sender: TObject);
 Var
@@ -963,10 +959,8 @@ begin
   If Node.Data = Nil Then
     Exit;
 
-  Widget(Node.Data).ObjectName := S;
+  Widget(Node.Data).Name := S;
 end;
-
-
 
 procedure TUIEditForm.Save1Click(Sender: TObject);
 Var

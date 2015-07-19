@@ -4,7 +4,7 @@ Unit TERRA_UISkin;
 
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Color, TERRA_ClipRect, TERRA_Matrix3x3,
-  TERRA_TextureAtlas, TERRA_Texture, TERRA_Font, TERRA_Stream, TERRA_XML;
+  TERRA_TextureAtlas, TERRA_Texture, TERRA_Font, TERRA_Stream, TERRA_ObjectTree;
 
 Const
   layoutHorizontal = 0;
@@ -16,7 +16,7 @@ Const
   System_Name_Text = '@UI_Text';
   System_Name_Btn = '@UI_BTN';
   System_Name_BG = '@UI_BG';
-  
+
 Type
   UISkinTile = Record
     X:Single;
@@ -68,14 +68,14 @@ Type
       Procedure Release; Override;
 
       Procedure AddComponent(Component:UISkinComponent);
-      Function LoadComponentFromNode(Source:XMLNode):UISkinComponent;
+      Function LoadComponentFromNode(Source:TERRAObjectNode):UISkinComponent;
 
-      Procedure InitFromSource(Source:XMLNode);
+      Procedure InitFromSource(Source:TERRAObjectNode);
 
       Procedure AddQuad(Var Target:UIQuadList; Item:TextureAtlasItem; X, Y:Single; U1,V1, U2,V2:Single; Width, Height:Single);
 
     Public
-      Constructor Create(Source:XMLNode; Parent:UISkinComponent);
+      Constructor Create(Source:TERRAObjectNode; Parent:UISkinComponent);
 
       Function GetChildByName(Const Name:TERRAString):UISkinComponent;
 
@@ -97,7 +97,7 @@ Type
       Function GetTile(I,J:Integer):UISkinTile;
 
     Public
-      Constructor Create(Source:XMLNode; Parent:UISkinComponent);
+      Constructor Create(Source:TERRAObjectNode; Parent:UISkinComponent);
 
       Procedure Draw(Var Target:UIQuadList; Const X, Y, U1, V1, U2, V2:Single; Const Width, Height, ID, CurrentState, DefaultState:Integer); Override;
   End;
@@ -107,7 +107,7 @@ Type
       _Texture:TextureAtlasItem;
 
     Public
-      Constructor Create(Source:XMLNode; Parent:UISkinComponent);
+      Constructor Create(Source:TERRAObjectNode; Parent:UISkinComponent);
 
       Function GetWidth(ID, State:Integer):Integer; Override;
       Function GetHeight(ID, State:Integer):Integer; Override;
@@ -120,7 +120,7 @@ Type
       _Color:Color;
 
     Public
-      Constructor Create(Source:XMLNode; Parent:UISkinComponent);
+      Constructor Create(Source:TERRAObjectNode; Parent:UISkinComponent);
 
       Procedure GetProperties(Var Props:UISkinProperty; ID, CurrentState, DefaultState:Integer); Override;
   End;
@@ -171,7 +171,7 @@ Begin
   Target.Quads[Pred(Target.QuadCount)] := Quad;
 End;
 
-Constructor UISkinComponent.Create(Source: XMLNode; Parent: UISkinComponent);
+Constructor UISkinComponent.Create(Source:TERRAObjectNode; Parent:UISkinComponent);
 Var
   I:Integer;
   Component:UISkinComponent;
@@ -184,9 +184,9 @@ Begin
 
   Self.InitFromSource(Source);
 
-  For I:=0 To Pred(Source.NodeCount) Do
+  For I:=0 To Pred(Source.ChildCount) Do
   Begin
-    Component := LoadComponentFromNode(Source.GetNodeByIndex(I));
+    Component := LoadComponentFromNode(Source.GetChildByIndex(I));
     AddComponent(Component);
   End;
 End;
@@ -201,7 +201,7 @@ Begin
   _ChildrenList[Pred(_ChildrenCount)] := Component;
 End;
 
-Function UISkinComponent.LoadComponentFromNode(Source:XMLNode):UISkinComponent;
+Function UISkinComponent.LoadComponentFromNode(Source:TERRAObjectNode):UISkinComponent;
 Var
   I:Integer;
 Begin
@@ -308,7 +308,7 @@ Begin
   Result := Nil;
 End;
 
-Procedure UISkinComponent.InitFromSource(Source: XMLNode);
+Procedure UISkinComponent.InitFromSource(Source:TERRAObjectNode);
 Var
   S:TERRAString;
 Begin
@@ -341,7 +341,7 @@ Begin
 End;
 
 { UISkinRect }
-Constructor UISkinRect.Create(Source:XMLNode; Parent:UISkinComponent);
+Constructor UISkinRect.Create(Source:TERRAObjectNode; Parent:UISkinComponent);
 Var
   I, J:Integer;
   W, H:Integer;
@@ -522,7 +522,7 @@ Begin
 End;
 
 { UISkinImage }
-Constructor UISkinImage.Create(Source: XMLNode; Parent: UISkinComponent);
+Constructor UISkinImage.Create(Source:TERRAObjectNode; Parent: UISkinComponent);
 Var
   SrcFile:TERRAString;
 Begin
@@ -557,7 +557,7 @@ Begin
 End;
 
 { UISkinColor }
-Constructor UISkinColor.Create(Source: XMLNode; Parent: UISkinComponent);
+Constructor UISkinColor.Create(Source:TERRAObjectNode; Parent: UISkinComponent);
 Var
   S:TERRAString;
 Begin

@@ -364,7 +364,7 @@ begin
   If (Assigned(_Target)) Then
   Begin
     Canvas.Font.Color := Self.Font.Color;
-    S := _Target.ObjectName + ' ('+_Target.GetObjectType()+')';
+    S := _Target.Name + ' ('+_Target.GetObjectType()+')';
     TW := Canvas.TextWidth(S);
     Canvas.TextOut(MidW -  (TW Shr 1), 5, S);
   End;
@@ -441,7 +441,7 @@ Begin
 
   _Label := TLabel.Create(Owner);
   _Label.Parent := Owner;
-  _Label.Caption := Prop.ObjectName;
+  _Label.Caption := Prop.Name;
   _Label.Transparent := True;
 
   _Editor := Self.CreateEditor();

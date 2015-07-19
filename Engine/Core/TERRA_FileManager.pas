@@ -110,7 +110,7 @@ End;
 
 Function SearchFileLocation(P:CollectionObject; UserData:Pointer):Boolean; CDecl;
 Begin
-  Result := (FileLocation(P).ObjectName = PString(Userdata)^);
+  Result := (FileLocation(P).Name = PString(Userdata)^);
 End;
 
 { FileManager }
@@ -558,13 +558,13 @@ End;
 { FileLocation }
 Constructor FileLocation.Create(Const Name, Path:TERRAString);
 Begin
-  Self._ObjectName := StringLower(GetFileName(Name, False));
+  Self.Name := StringLower(GetFileName(Name, False));
   Self.Path := Path;
 End;
 
 Procedure FileLocation.CopyValue(Other: CollectionObject);
 Begin
-  Self._ObjectName := FileLocation(Other).ObjectName;
+  Self.Name := FileLocation(Other).Name;
   Self.Path := FileLocation(Other).Path;
 End;
 

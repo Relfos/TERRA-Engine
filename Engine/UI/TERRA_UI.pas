@@ -3406,7 +3406,7 @@ End;
 
 Function UI.LoadSkin(const FileName: TERRAString):Boolean;
 Var
-  Doc:XMLDocument;
+  Root:XMLNode;
   Location:TERRAString;
   I:Integer;
 Begin
@@ -3415,12 +3415,12 @@ Begin
   If Location = '' Then
     Exit;
 
-  Doc := XMLDocument.Create();
-  Doc.LoadFromFile(Location);
+  Root := XMLNode.Create();
+  Root.LoadFromFile(Location);
 
   ReleaseObject(_Skin);
-  _Skin := UISkinComponent.Create(Doc.Root, Nil);
-  ReleaseObject(Doc);
+  _Skin := UISkinComponent.Create(Root, Nil);
+  ReleaseObject(Root);
 
   Result := True;
 End;

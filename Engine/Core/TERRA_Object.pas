@@ -34,7 +34,7 @@ Type
 
       Destructor Destroy; Override;
 
-      Property ObjectName:TERRAString Read _ObjectName Write SetObjectName;
+      Property Name:TERRAString Read _ObjectName Write SetObjectName;
   End;
 
   BooleanProperty = Class(TERRAObject)
@@ -348,7 +348,7 @@ Var
   I:Integer;
   Key:TERRAObject;
 Begin
-  If StringEquals(Self.ObjectName, KeyName)  Then
+  If StringEquals(Self.Name, KeyName)  Then
   Begin
     Result := Self;
     Exit;
