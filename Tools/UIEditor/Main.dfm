@@ -48,6 +48,8 @@ object UIEditForm: TUIEditForm
     MaintainMenu = False
     ModifiedTabStartColor = 10588280
     ModifiedTabStopColor = 10588280
+    OnTabSelected = TabListTabSelected
+    OnTabClose = TabListTabClose
   end
   object RenderPanel: TPanel
     Left = 208
@@ -97,6 +99,7 @@ object UIEditForm: TUIEditForm
         end
         object View1: TMenuItem
           Caption = '&View'
+          OnClick = View1Click
         end
         object Component1: TMenuItem
           Caption = '&Component'

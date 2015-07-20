@@ -57,6 +57,8 @@ Type
       Constructor Create(Const Name:TERRAString; Owner:UIEditScene);
       Procedure Release(); Override;
 
+      Procedure Select();
+
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
 
       Function PickWidgetAt(X, Y:Integer; Ignore:Widget = Nil):Widget;
@@ -85,7 +87,7 @@ Type
       Constructor Create();
 
       Procedure Release(); Override;
-      
+
       Procedure Clear();
 
       Procedure RenderSprites(V:TERRAViewport); Override;
@@ -96,6 +98,8 @@ Type
 
       Procedure Open(FileName:TERRAString);
       Procedure Save(FileName:TERRAString);
+
+      Procedure Select(Index:Integer);
 
       Function AddView(Const Name:TERRAString):UIEditableView;
 
@@ -183,6 +187,10 @@ Type
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
     procedure WidgetListMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
+    procedure View1Click(Sender: TObject);
+    procedure TabListTabSelected(Sender: TObject; ATab: TIceTab;
+      ASelected: Boolean);
+    procedure TabListTabClose(Sender: TObject; ATab: TIceTab);
 
   Protected
     _CurrentCursor:Integer;
@@ -245,7 +253,7 @@ Begin
 
   Self.Clear();
 
-  Self.AddView('Untitled');
+//  Self.AddView('Untitled');
   Self.SetGridSize(20.0);
 End;
 
@@ -365,6 +373,7 @@ Begin
   Result := UIEditableView.Create(Name, Self);
   _Views.Add(Result);
 
+  Result.Select();
   _SelectedView := Result;
 End;
 
@@ -477,23 +486,51 @@ Begin
   ReleaseObject(Root);
 End;
 
+procedure UIEditScene.Select(Index: Integer);
+Var
+  Item:CollectionObject;
+begin
+  If Assigned(_SelectedView) Then
+    _SelectedView._Target.Visible := False;
+
+  Item := _Views.GetItemByIndex(Index);
+
+  UIEditForm.PropertyList.Target := Nil;
+
+  If Assigned(Item) Then
+  Begin
+    _SelectedView := UIEditableView(Item);
+    _SelectedView.Select();
+  End;
+
+  UIEditForm.BuildWidgetTree();
+end;
+
 { UIEditableView }
 Constructor UIEditableView.Create(const Name: TERRAString; Owner:UIEditScene);
 Begin
   Self._ObjectName := Name;
   Self._Owner := Owner;
-  Self._Tab := UIEditForm.AddNewTab(Name);
 
   // Create a new UI
-  Self._Target := TERRAUI.Create();
+  _Target := TERRAUI.Create();
 
   // Register the font with the UI
   _Target.DefaultFont := Self._Owner._Font;
 
   // Load a GUI skin
   _Target.LoadSkin('ui_sample_skin');
+
+  _Target.Visible := False;
+
+  _Tab := UIEditForm.AddNewTab(Name);
 End;
 
+
+Procedure UIEditableView.Select();
+begin
+  _Target.Visible := True;
+end;
 
 Function UIEditableView.PickWidgetAt(X, Y: Integer; Ignore:Widget): Widget;
 Begin
@@ -528,12 +565,12 @@ Var
   S:TERRAString;
 Begin
   _CurrentCursor := 9999;
-  
+
   UIEditorApplication.Create(Self.RenderPanel);
 
   // Added Asset folder to search path
   FileManager.Instance.AddPath('..\..\samples\binaries\assets');
-  FileManager.Instance.AddPath('D:\Code\Minimon\Output\Textures');
+//  FileManager.Instance.AddPath('D:\Code\Minimon\Output\Textures');
 
   // Create a scene and set it as the current scene
   _Scene := UIEditScene.Create();
@@ -542,9 +579,6 @@ Begin
   _Brush := TBrush.Create();
 
   Self.LoadSkin();
-
-  S := FileManager.Instance.SearchResourceFile('ui_menu0.xml');
-//  Self._Scene._SelectedView.Open(S);
 End;
 
 
@@ -629,6 +663,9 @@ Var
   pnt: TPoint;
   Node:TTreeNode;
 begin
+  If Scene._SelectedView = Nil Then
+    Exit;
+
   If (Button = mbRight) Then
   Begin
     If GetCursorPos(pnt) then
@@ -708,6 +745,9 @@ end;
 
 procedure TUIEditForm.RenderPanelMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
+  If Scene._SelectedView = Nil Then
+    Exit;
+
   If Assigned(_DragTarget) Then
   Begin
     _DragTarget.FinishDrag();
@@ -738,6 +778,9 @@ Var
   PX, PY:Integer;
   TargetCursor:Integer;
 begin
+  If Scene._SelectedView = Nil Then
+    Exit;
+
   If Assigned(_DragTarget) Then
   Begin
     If ssCtrl in Shift Then
@@ -883,7 +926,10 @@ Var
 Begin
   WidgetList.Items.Clear();
 
-  W := Self._Scene._SelectedView._Target.First;
+  If _Scene._SelectedView = Nil Then
+    Exit;
+
+  W := _Scene._SelectedView._Target.First;
   While Assigned(W) Do
   Begin
     AddWidgetNode(W);
@@ -1119,6 +1165,9 @@ begin
   If Dialog.Execute Then
   Begin
     Self._Scene.Open(Dialog.FileName);
+
+    Self._Scene.Select(TabList.TabIndex);
+
     Self.FormResize(Sender);
   End;
 
@@ -1197,6 +1246,37 @@ begin
     
     Exit;
   End;
+end;
+
+procedure TUIEditForm.View1Click(Sender: TObject);
+begin
+  Self._Scene.AddView('test');
+
+  Self.BuildWidgetTree();
+end;
+
+procedure TUIEditForm.TabListTabSelected(Sender: TObject; ATab: TIceTab; ASelected: Boolean);
+begin
+  If (_Scene = Nil) Or (Not ASelected) Then
+    Exit;
+
+  _Scene.Select(ATab.Index);
+end;
+
+procedure TUIEditForm.TabListTabClose(Sender: TObject; ATab: TIceTab);
+Var
+  Target:UIEditableView;
+begin
+  Target := _Scene._SelectedView;
+  Self.PropertyList.Target := Nil;
+
+  If (ATab.Index>0) Then
+    _Scene.Select(Pred(ATab.Index))
+  Else
+    _Scene.Select(Succ(ATab.Index));
+
+  _Scene._Views.Remove(Target);
+  Self.TabList.RemoveTab(ATab);
 end;
 
 end.
