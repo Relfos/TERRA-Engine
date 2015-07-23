@@ -3,7 +3,7 @@ Unit TERRA_AudioMixer;
 {$I terra.inc}
 
 Interface
-Uses Windows, TERRA_Utils, TERRA_String;
+Uses TERRA_Utils, TERRA_String;
 
 Const
   DefaultAudioBufferSize:Integer = 8192;
@@ -74,7 +74,7 @@ Begin
   While Not Mixer._ThreadTerminated DO
   Begin
     Mixer.Update();
-    Sleep(50);
+    //Sleep(50);
   End;
 {$IFDEF FPC}
  ExitThread(0);

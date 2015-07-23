@@ -2,7 +2,10 @@ Unit TERRA_CoreAudioDriver;
 
 Interface
 
-Uses TERRA_String, TERRA_AudioMixer, CoreServices, CoreAudio;
+Uses TERRA_String, TERRA_AudioMixer, MacOSAll, CoreAudio;
+
+Const
+  kAudioUnitSubType_RemoteIO =  kAudioUnitSubType_DefaultOutput;
 
 Type
   CoreAudioDriver = Class(TERRAAudioDriver)
@@ -12,9 +15,6 @@ Type
 
       mixer_desc:AudioComponentDescription;
       output_desc:AudioComponentDescription;
-
-    	// Audio Stream Descriptions
-	    outputCASBD:CAStreamBasicDescription;
 
       sinPhase:Single;
 
@@ -33,7 +33,7 @@ Function renderInput(inRefCon:Pointer; Var ioActionFlags:AudioUnitRenderActionFl
 Var
   Driver:CoreAudioDriver;
   outA:PAudioSampleType;
-  Freq, Phase, sinSignal:Single;
+  Freq, Phase, phaseIncrement, sinSignal:Single;
   I:Integer;
 Begin
 	// Get a reference to the object that was passed with the callback
@@ -47,7 +47,7 @@ Begin
 	// A constant frequency value, you can pass in a reference vary this.
 	freq := 600;
 	// The amount the phase changes in  single sample
-	phaseIncrement = PI * freq / 44100.0;
+	phaseIncrement := PI * freq / 44100.0;
 	// Pass in a reference to the phase value, you have to keep track of this
 	// so that the sin resumes right where the last call left off
 	phase := Driver.sinPhase;
@@ -60,7 +60,8 @@ Begin
     // Put the sample into the buffer
     // Scale the -1 to 1 values float to
     // -32767 to 32767 and then cast to an integer
-    outA[i] := SmallInt(Trunc(sinSignal * 32767.0));
+    outA^ := SmallInt(Trunc(sinSignal * 32767.0));
+    Inc(outA);
     // calculate the phase for the next sample
     Phase := Phase + phaseIncrement;
 
@@ -78,13 +79,15 @@ End;
 { CoreAudioDriver }
 Function CoreAudioDriver.Reset(AFrequency, InitBufferSize:Cardinal; RenderProc:AudioRenderBufferProc):Boolean;
 Var
+  I:Integer;
   Status:OSStatus;
   // AUNodes represent AudioUnits on the AUGraph and provide an easy means for connecting audioUnits together.
   outputNode:AUNode;
 	mixerNode:AUNode;
   numbuses, Size:Cardinal;
-  desc:CAStreamBasicDescription;
+  desc:AudioStreamBasicDescription;
   renderCallbackStruct:AURenderCallbackStruct;
+  Temp:AudioComponentDescription;
 Begin
   Self._RenderProc := RenderProc;
   Self._Frequency := AFrequency;
@@ -111,8 +114,8 @@ Begin
 
   // Add nodes to the graph to hold our AudioUnits,
 	// You pass in a reference to the  AudioComponentDescription and get back an  AudioUnit
-	Status := AUGraphAddNode(mGraph, @output_desc, @outputNode);
-	Status := AUGraphAddNode(mGraph, @mixer_desc, @mixerNode);
+	Status := AUGraphAddNode(mGraph, @output_desc, outputNode);
+	Status := AUGraphAddNode(mGraph, @mixer_desc,  mixerNode);
 
 	// Now we can manage connections using nodes in the graph.
   // Connect the mixer node's output to the output node's input
@@ -122,7 +125,7 @@ Begin
 	Status := AUGraphOpen(mGraph);
 
 	// Get a link to the mixer AU so we can talk to it later
-	Status := AUGraphNodeInfo(mGraph, mixerNode, NULL, @mMixer);
+	Status := AUGraphNodeInfo(mGraph, mixerNode, Temp, mMixer);
 
 	//*** Make connections to the mixer unit's inputs ***
   // Set the number of input busses on the Mixer Unit
@@ -147,7 +150,7 @@ Begin
 
 		// Get a CAStreamBasicDescription from the mixer bus.
     size := SizeOf(desc);
-		Status := AudioUnitGetProperty(mMixer, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, i, @desc, @size);
+		Status := AudioUnitGetProperty(mMixer, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, i, @desc, size);
 
 		// Initializes the structure to 0 to ensure there are no spurious values.
 		FillChar(desc, SizeOf(Desc), 0);
@@ -156,13 +159,13 @@ Begin
 		// We're going to use 16 bit Signed Ints because they're easier to deal with
 		// The Mixer unit will accept either 16 bit signed integers or
 		// 32 bit 8.24 fixed point integers.
-		desc.mSampleRate := kGraphSampleRate; // set sample rate
+		desc.mSampleRate := Self._Frequency; // set sample rate
 		desc.mFormatID := kAudioFormatLinearPCM;
 		desc.mFormatFlags      := kAudioFormatFlagIsSignedInteger Or kAudioFormatFlagIsPacked;
 		desc.mBitsPerChannel := SizeOf(AudioSampleType) * 8; // AudioSampleType == 16 bit signed ints
 		desc.mChannelsPerFrame := 1;
 		desc.mFramesPerPacket := 1;
-		desc.mBytesPerFrame := ( desc.mBitsPerChannel / 8 ) * desc.mChannelsPerFrame;
+		desc.mBytesPerFrame := ( desc.mBitsPerChannel Div 8 ) * desc.mChannelsPerFrame;
 		desc.mBytesPerPacket := desc.mBytesPerFrame * desc.mFramesPerPacket;
 
 		//printf("Mixer file format: "); desc.Print();
@@ -177,22 +180,22 @@ Begin
 	//*** Setup the audio output stream ***
 
 	// Get a CAStreamBasicDescription from the output Audio Unit
-  Status := AudioUnitGetProperty(  mMixer, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, 0, 	@desc,	@size);
+  Status := AudioUnitGetProperty(  mMixer, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, 0, 	@desc,	size);
 
 	// Initializes the structure to 0 to ensure there are no spurious values.
-	FillChar(@desc, SizeOf(desc), 0);
+	FillChar(desc, SizeOf(desc), 0);
 
 	// Make modifications to the CAStreamBasicDescription
 	// AUCanonical on the iPhone is the 8.24 integer format that is native to the iPhone.
 	// The Mixer unit does the format shifting for you.
 	desc.SetAUCanonical(1, true);
-	desc.mSampleRate := kGraphSampleRate;
+	desc.mSampleRate := Self._Frequency;
 
        // Apply the modified CAStreamBasicDescription to the output Audio Unit
 	Status := AudioUnitSetProperty(  mMixer, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, 0, @desc, SizeOf(desc));
 
         // Once everything is set up call initialize to validate connections
-	Status = AUGraphInitialize(mGraph);
+	Status := AUGraphInitialize(mGraph);
 
   // Start the AUGraph
 	Status := AUGraphStart(mGraph);
@@ -209,7 +212,7 @@ Begin
   isRunning := False;
 
   // Check to see if the graph is running.
-  Status := AUGraphIsRunning(mGraph, @isRunning);
+  Status := AUGraphIsRunning(mGraph, isRunning);
   // If the graph is running, stop it.
   If (isRunning) Then
     Status := AUGraphStop(mGraph);
