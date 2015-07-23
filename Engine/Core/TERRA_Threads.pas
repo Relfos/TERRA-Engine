@@ -127,7 +127,7 @@ Type
       Property Progress:Integer Read GetProgress;
   End;
 
-  Thread = Class{$IFDEF USEPASCALTHREADS}(TThread){$ELSE}(TERRAObject){$ENDIF}
+  TERRAThread = Class{$IFDEF USEPASCALTHREADS}(TThread){$ELSE}(TERRAObject){$ENDIF}
     Protected
 		  _ID:Cardinal;
 
@@ -155,7 +155,7 @@ Type
 
   ThreadPool = Class;
 
-  TaskDispatcher = Class(Thread)
+  TaskDispatcher = Class(TERRAThread)
     Protected
       _Pool:ThreadPool;
       _Active:Boolean;
@@ -238,9 +238,9 @@ Var
 
 Function InternalThreadDispatcher(P:Pointer):Integer; {$IFNDEF WINDOWS}Cdecl; {$ENDIF}
 Var
-  T:Thread;
+  T:TERRAThread;
 Begin
-  T := Thread(P);
+  T := TERRAThread(P);
 
   Log(logDebug, 'Threads', 'Running new thread...');
   T.Execute();
@@ -259,7 +259,7 @@ Begin
 End;
 
 { Thread }
-Constructor Thread.Create();
+Constructor TERRAThread.Create();
 Begin
   Log(logDebug, 'Threads', 'Starting thread: '+Self.ClassName);
 {$IFDEF DISABLETHREADS}
@@ -270,7 +270,7 @@ Begin
   AndroidApplication(Application.Instance).SpawnThread(Self);
 {$ELSE}
 {$IFDEF USEPASCALTHREADS}
-  Inherited Create(False);
+  Inherited Create(True);
 {$ELSE}
 {$IFDEF WINDOWS}
 	_Handle := BeginThread(Nil, 0, InternalThreadDispatcher, Self, 0, _ID);
@@ -280,16 +280,20 @@ Begin
 {$ENDIF}
 {$ENDIF}
 {$ENDIF}
+
+// SetThreadPriority(_Handle, THREAD_PRIORITY_TIME_CRITICAL);
+//self.Priority := tpTimeCritical;
+
 End;
 
 {$IFDEF USEPASCALTHREADS}
-Procedure Thread.Release;
+Procedure TERRAThread.Release;
 Begin
   // dummy pseudo-destructor
 End;
 {$ENDIF}
 
-Procedure Thread.Finish;
+Procedure TERRAThread.Finish;
 Begin
   Log(logDebug, 'Thread','Terminating...');
 {$IFNDEF DISABLETHREADS}
@@ -308,7 +312,7 @@ Begin
 {$ENDIF}
 End;
 
-Procedure Thread.Shutdown;
+Procedure TERRAThread.Shutdown;
 Begin
 {$IFNDEF DISABLETHREADS}
   {$IFDEF USEPASCALTHREADS}

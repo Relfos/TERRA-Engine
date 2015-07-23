@@ -23,7 +23,7 @@ UNIT MiniMOD;
 
 INTERFACE
 
-Uses Windows, TERRA_AudioMixer;
+Uses Windows, TERRA_AudioMixer, TERRA_Utils;
 
 CONST CMiniMODSampleMoreSize=128;
 
@@ -172,7 +172,7 @@ TYPE PLONGINT=^LONGINT;
 
        PROCEDURE MixChannel(Channel:PMiniMODChannel;StartPosition,LengthCounter:LONGWORD);
        FUNCTION DoMix(StartPosition,LengthCounter:LONGWORD;VAR DoContinue:LONGBOOL):LONGWORD;
-       PROCEDURE Render(DestBuffer:PWord); Override;
+       PROCEDURE Render(DestBuffer:PAudioSample); Override;
       PUBLIC
        Sample:ARRAY[1..31] OF TMiniMODSample;
        SampleExt:ARRAY[1..31] OF TMiniMODSampleExt;
@@ -557,6 +557,7 @@ VAR PatternNote:PMiniMODPatternNote;
     Value,Value1,Value2:LONGINT;
     Jump:LONGBOOL;
 BEGIN
+  IntToString(Self.BPM);
  INC(Tick);
  IF Tick>=((Speed*(PatternDelay+1))+FrameDelay) THEN BEGIN
   Tick:=0;
@@ -1030,7 +1031,7 @@ BEGIN
  END;
 
  Speed:=6;
- BPM:=125;
+ Self.BPM:=125;
  Tick:=0;
  SetTickVariables;
  BPMSamplesZaehler:=0;
@@ -1338,26 +1339,28 @@ BEGIN
  RESULT:=TheLength;
 END;
 
-PROCEDURE TMiniMOD.Render(DestBuffer:PWord);
+PROCEDURE TMiniMOD.Render(DestBuffer:PAudioSample);
 VAR
   Counter:LONGWORD;
   DoContinue:LONGBOOL;
-  DestPointer:PWord;
+  DestPointer:PAudioSample;
   Value:LONGINT;
   Buf:PLONGINT;
 BEGIN
- FILLCHAR(_Buffer,SIZEOF(TMiniMODBuffer),#0);
+ FILLCHAR(_Buffer[0], _OutputBufferSize * 2 * SizeOf(Cardinal), 0);
 
  Counter:=0;
  DoContinue:=TRUE;
- WHILE Counter<CMiniMODBufferSize DO BEGIN
-  IF BPMSamplesZaehler=0 THEN DoTick;
+ WHILE Counter<CMiniMODBufferSize DO
+ BEGIN
+  IF BPMSamplesZaehler=0 THEN
+    DoTick;
   INC(Counter,DoMix(Counter,BPMSamplesZaehler,DoContinue));
  END;
 
  IF Filter THEN BEGIN
   // Lowpass Filter
-  Buf:=@_Buffer;
+  Buf:= @_Buffer[0];
   Counter:=0;
   WHILE Counter<CMiniMODBufferSize DO BEGIN
    Value:=Buf^ DIV 2;
@@ -1373,7 +1376,7 @@ BEGIN
  END;
 
  DestPointer:=DestBuffer;
- Buf:=@_Buffer;
+ Buf:=@_Buffer[0];
 
    FOR Counter:=1 TO CMiniMODBufferSize DO
    BEGIN

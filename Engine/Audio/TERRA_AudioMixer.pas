@@ -3,13 +3,16 @@ Unit TERRA_AudioMixer;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_String;
+Uses TERRA_Utils, TERRA_String, TERRA_Threads, TERRA_Mutex;
 
 Const
   DefaultAudioBufferSize:Integer = 8192;
 
 Type
-  AudioRenderBufferProc = Procedure(DestBuffer:PWord) Of Object;
+  PAudioSample = ^AudioSample;
+  AudioSample = Word;
+
+  TERRAAudioMixer = Class;
 
   TERRAAudioDriver = Class(TERRAObject)
     Protected
@@ -17,10 +20,10 @@ Type
       _Frequency:Cardinal;
       _OutputBufferSize:Cardinal;
 
-      _RenderProc:AudioRenderBufferProc;
+      _Mixer:TERRAAudioMixer;
 
     Public
-      Function Reset(AFrequency, InitBufferSize:Cardinal; RenderProc:AudioRenderBufferProc):Boolean; Virtual; Abstract;
+      Function Reset(AFrequency, InitBufferSize:Cardinal; Mixer:TERRAAudioMixer):Boolean; Virtual; Abstract;
       Procedure Update(); Virtual; Abstract;
   End;
 
@@ -32,14 +35,11 @@ Type
 
        _Buffer:Array Of Cardinal;
 
-       _ThreadHandle:THandle;
-       _ThreadID:THandle;
-       _ThreadCriticalSection:TRTLCriticalSection;
+       _Thread:TERRAThread;
+       _Mutex:CriticalSection;
        _ThreadTerminated:Boolean;
 
        _Driver:TERRAAudioDriver;
-
-       Procedure Render(DestBuffer:PWord); Virtual;
 
        Procedure Update();
 
@@ -53,13 +53,23 @@ Type
        Procedure Start();
        Procedure Stop();
 
+       Procedure Render(DestBuffer:PAudioSample); Virtual;
+
        Property Frequency:Cardinal Read _Frequency;
+  End;
+
+  AudioMixerThread = Class(TERRAThread)
+    Protected
+      _Mixer:TERRAAudioMixer;
+    Public
+      Constructor Create(Mixer:TERRAAudioMixer);
+      Procedure Execute; Override;
   End;
 
 
 Implementation
 
-Uses TERRA_Error
+Uses TERRA_Error, TERRA_OS
 {$IFDEF WINDOWS}
 , TERRA_WinMMAudioDriver
 {$ENDIF}
@@ -68,20 +78,6 @@ Uses TERRA_Error
 , TERRA_CoreAudioDriver
 {$ENDIF}
 ;
-
-Procedure AudioThreadProc(Mixer:TERRAAudioMixer);
-Begin
-  While Not Mixer._ThreadTerminated DO
-  Begin
-    Mixer.Update();
-    //Sleep(50);
-  End;
-{$IFDEF FPC}
- ExitThread(0);
-{$ELSE}
- EndThread(0);
-{$ENDIF}
-End;
 
 { TERRAAudioMixer }
 Constructor TERRAAudioMixer.Create(AFrequency, InitBufferSize:Cardinal);
@@ -94,16 +90,13 @@ Begin
   SetLength(_Buffer, _OutputBufferSize * 2);
 
   _Driver := WindowsAudioDriver.Create();
-  _Driver.Reset(AFrequency, InitBufferSize, Self.Render);
+  _Driver.Reset(AFrequency, InitBufferSize, Self);
 
  _ThreadTerminated := False;
- InitializeCriticalSection(_ThreadCriticalSection);
-{$IFDEF FPC}
- _ThreadHandle := CreateThread(NIL,0,@AudioThreadProc, Self, CREATE_SUSPENDED, _ThreadID);
-{$ELSE}
- _ThreadHandle := BeginThread(NIL,0,@AudioThreadProc, Self, CREATE_SUSPENDED, _ThreadID);
-{$ENDIF}
- SetThreadPriority(_ThreadHandle, THREAD_PRIORITY_TIME_CRITICAL);
+ _Mutex := CriticalSection.Create();
+ _Thread := AudioMixerThread.Create(Self);
+// CREATE_SUSPENDED
+// SetThreadPriority(_ThreadHandle, THREAD_PRIORITY_TIME_CRITICAL);
 End;
 
 Procedure TERRAAudioMixer.Release();
@@ -112,12 +105,10 @@ Begin
   _ThreadTerminated := True;
   Self.Leave();
 
-  WaitForSingleObject(_ThreadHandle, 25);
-  TerminateThread(_ThreadHandle,0);
-  WaitForSingleObject(_ThreadHandle, 5000);
-  IF _ThreadHandle<>0 Then
-    CloseHandle(_ThreadHandle);
-  DeleteCriticalSection(_ThreadCriticalSection);
+  _Thread.Terminate();
+  ReleaseObject(_Thread);
+
+  ReleaseObject(_Mutex);
 
   ReleaseObject(_Driver);
 
@@ -126,26 +117,28 @@ End;
 
 Procedure TERRAAudioMixer.Enter;
 Begin
-  EnterCriticalSection(_ThreadCriticalSection);
+  _Mutex.Lock();
 End;
 
 Procedure TERRAAudioMixer.Leave;
 Begin
-  LeaveCriticalSection(_ThreadCriticalSection);
+  _Mutex.Unlock();
 End;
 
 Procedure TERRAAudioMixer.Start;
 Begin
- ResumeThread(_ThreadHandle);
+  _Thread.Resume();
+// ResumeThread(_ThreadHandle);
 End;
 
 procedure TERRAAudioMixer.Stop;
 begin
- SuspendThread(_ThreadHandle);
+  _Thread.Suspend();
+// SuspendThread(_ThreadHandle);
 end;
 
 
-Procedure TERRAAudioMixer.Render(DestBuffer: PWord);
+Procedure TERRAAudioMixer.Render(DestBuffer:PAudioSample);
 Begin
 
 End;
@@ -155,6 +148,23 @@ Begin
   Self.Enter();
   Self._Driver.Update();
   Self.Leave();
+End;
+
+{ AudioMixerThread }
+Constructor AudioMixerThread.Create(Mixer: TERRAAudioMixer);
+Begin
+  _Mixer := Mixer;
+
+  Inherited Create();
+End;
+
+Procedure AudioMixerThread.Execute;
+Begin
+  While Not _Mixer._ThreadTerminated DO
+  Begin
+    _Mixer.Update();
+    Application.Sleep(50);
+  End;
 End;
 
 End.

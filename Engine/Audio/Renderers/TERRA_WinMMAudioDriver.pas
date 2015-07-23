@@ -17,7 +17,7 @@ Type
        _WaveHandler:ARRAY[0..3] OF PWAVEHDR;
 
     Public
-      Function Reset(AFrequency, InitBufferSize:Cardinal; RenderProc:AudioRenderBufferProc):Boolean; Override;
+      Function Reset(AFrequency, InitBufferSize:Cardinal; Mixer:TERRAAudioMixer):Boolean; Override;
       Procedure Release; Override;
 
       Procedure Update(); Override;
@@ -27,13 +27,13 @@ Type
 Implementation
 
 { WindowsAudioDriver }
-Function WindowsAudioDriver.Reset(AFrequency, InitBufferSize:Cardinal; RenderProc:AudioRenderBufferProc):Boolean;
+Function WindowsAudioDriver.Reset(AFrequency, InitBufferSize:Cardinal; Mixer:TERRAAudioMixer):Boolean;
 Var
   I:Integer;
 Begin
-  Self._RenderProc := RenderProc;
   Self._Frequency := AFrequency;
   Self._OutputBufferSize := InitBufferSize;
+  Self._Mixer := Mixer;
 
   _WaveFormat.wFormatTag := WAVE_FORMAT_PCM;
 
@@ -98,7 +98,7 @@ Begin
       If waveOutUnprepareHeader(_WaveOutHandle, _WaveHandler[_CurrentBuffer], SizeOf(TWAVEHDR)) <> WAVERR_STILLPLAYING Then
       Begin
         _WaveHandler[_CurrentBuffer].dwFlags := _WaveHandler[_CurrentBuffer].dwFlags And (Not WHDR_DONE);
-        _RenderProc(PWord(_WaveHandler[_CurrentBuffer].lpData));
+        _Mixer.Render(PAudioSample(_WaveHandler[_CurrentBuffer].lpData));
         waveOutPrepareHeader(_WaveOutHandle, _WaveHandler[_CurrentBuffer], SizeOf(TWAVEHDR));
         waveOutWrite(_WaveOutHandle, _WaveHandler[_CurrentBuffer], SizeOf(TWAVEHDR));
         _CurrentBuffer := (_CurrentBuffer+1) Mod 4;
