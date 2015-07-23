@@ -1347,7 +1347,7 @@ VAR
   Value:LONGINT;
   Buf:PLONGINT;
 BEGIN
- FILLCHAR(_Buffer[0], _OutputBufferSize * 2 * SizeOf(Cardinal), 0);
+ FILLCHAR(_Buffer[Offset], Samples * 2 * SizeOf(Cardinal), 0);
 
  Counter:=0;
  DoContinue:=TRUE;

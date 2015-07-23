@@ -23,7 +23,7 @@ Type
       _Mixer:TERRAAudioMixer;
 
     Public
-      Function Reset(AFrequency, InitBufferSize:Cardinal; Mixer:TERRAAudioMixer):Boolean; Virtual; Abstract;
+      Function Reset(AFrequency, MaxSamples:Cardinal; Mixer:TERRAAudioMixer):Boolean; Virtual; Abstract;
       Procedure Update(); Virtual; Abstract;
   End;
 
@@ -31,7 +31,7 @@ Type
   TERRAAudioMixer = Class(TERRAObject)
     Protected
        _Frequency:Cardinal;
-       _OutputBufferSize:Cardinal;
+       _SampleBufferSize:Cardinal;
 
        _Buffer:Array Of Cardinal;
 
@@ -51,7 +51,7 @@ Type
        Procedure Render(DestBuffer:PAudioSample; Offset, Samples:Integer); Virtual;
 
     Public
-       Constructor Create(AFrequency, InitBufferSize:Cardinal);
+       Constructor Create(Frequency, MaxSamples:Cardinal);
        Procedure Release(); Override;
 
        Procedure Start();
@@ -60,6 +60,7 @@ Type
        Procedure RequestSamples(DestBuffer:PAudioSample; Samples:Integer);
 
        Property Frequency:Cardinal Read _Frequency;
+       Property SampleBufferSize:Cardinal Read _SampleBufferSize;
   End;
 
   AudioMixerThread = Class(TERRAThread)
@@ -84,14 +85,14 @@ Uses TERRA_Error, TERRA_OS
 ;
 
 { TERRAAudioMixer }
-Constructor TERRAAudioMixer.Create(AFrequency, InitBufferSize:Cardinal);
+Constructor TERRAAudioMixer.Create(Frequency, MaxSamples:Cardinal);
 Var
   I:Integer;
 Begin
-  _Frequency := AFrequency;
- _OutputBufferSize := InitBufferSize;
+  _Frequency := Frequency;
+ _SampleBufferSize := MaxSamples;
 
-  SetLength(_Buffer, _OutputBufferSize * 2);
+  SetLength(_Buffer, MaxSamples * 2); // stereo
 
   {$IFDEF WINDOWS}
   _Driver := WindowsAudioDriver.Create();
@@ -101,7 +102,7 @@ Begin
   _Driver := CoreAudioDriver.Create();
   {$ENDIF}
 
-  _Driver.Reset(AFrequency, InitBufferSize, Self);
+  _Driver.Reset(Frequency, MaxSamples, Self);
 
  _ThreadTerminated := False;
  _Mutex := CriticalSection.Create();
@@ -163,10 +164,17 @@ End;
 
 Procedure TERRAAudioMixer.RequestSamples(DestBuffer:PAudioSample; Samples:Integer);
 Begin
-     Self.Render(DestBuffer, _CurrentOffset, Samples);
-     Inc(_CurrentOffset, Samples);
-If (_CurrentOffset>_OutputBufferSize) Then
+  Self.Render(DestBuffer, _CurrentOffset, Samples);
+  Inc(_CurrentOffset, Samples);
+
+  If (_CurrentOffset >= _SampleBufferSize) Then
+  Begin
+   Samples := _CurrentOffset - _CurrentOffset;
    _CurrentOffset := 0;
+
+   If Samples>0 Then
+    Self.RequestSamples(DestBuffer, Samples);
+  End;
 End;
 
 { AudioMixerThread }

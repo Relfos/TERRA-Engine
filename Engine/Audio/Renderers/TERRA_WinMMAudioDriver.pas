@@ -17,7 +17,7 @@ Type
        _WaveHandler:ARRAY[0..3] OF PWAVEHDR;
 
     Public
-      Function Reset(AFrequency, InitBufferSize:Cardinal; Mixer:TERRAAudioMixer):Boolean; Override;
+      Function Reset(AFrequency, MaxSamples:Cardinal; Mixer:TERRAAudioMixer):Boolean; Override;
       Procedure Release; Override;
 
       Procedure Update(); Override;
@@ -27,21 +27,17 @@ Type
 Implementation
 
 { WindowsAudioDriver }
-Function WindowsAudioDriver.Reset(AFrequency, InitBufferSize:Cardinal; Mixer:TERRAAudioMixer):Boolean;
+Function WindowsAudioDriver.Reset(AFrequency, MaxSamples:Cardinal; Mixer:TERRAAudioMixer):Boolean;
 Var
   I:Integer;
 Begin
   Self._Frequency := AFrequency;
-  Self._OutputBufferSize := InitBufferSize;
+  Self._OutputBufferSize := MaxSamples * 2 * 2; // 2 channels * 16 bits
   Self._Mixer := Mixer;
 
   _WaveFormat.wFormatTag := WAVE_FORMAT_PCM;
-
   _WaveFormat.nChannels := 2;
-  _OutputBufferSize := _OutputBufferSize Shl 1;
-
   _WaveFormat.wBitsPerSample := 16;
-  _OutputBufferSize := _OutputBufferSize Shl 1;
 
   _WaveFormat.nBlockAlign := _WaveFormat.nChannels * _WaveFormat.wBitsPerSample DIV 8;
   _WaveFormat.nSamplesPerSec := _Frequency;
@@ -98,7 +94,7 @@ Begin
       If waveOutUnprepareHeader(_WaveOutHandle, _WaveHandler[_CurrentBuffer], SizeOf(TWAVEHDR)) <> WAVERR_STILLPLAYING Then
       Begin
         _WaveHandler[_CurrentBuffer].dwFlags := _WaveHandler[_CurrentBuffer].dwFlags And (Not WHDR_DONE);
-        _Mixer.Render(PAudioSample(_WaveHandler[_CurrentBuffer].lpData));
+        _Mixer.RequestSamples(PAudioSample(_WaveHandler[_CurrentBuffer].lpData), _Mixer.SampleBufferSize);
         waveOutPrepareHeader(_WaveOutHandle, _WaveHandler[_CurrentBuffer], SizeOf(TWAVEHDR));
         waveOutWrite(_WaveOutHandle, _WaveHandler[_CurrentBuffer], SizeOf(TWAVEHDR));
         _CurrentBuffer := (_CurrentBuffer+1) Mod 4;
