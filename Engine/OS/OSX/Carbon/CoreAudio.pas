@@ -18,8 +18,9 @@ Type
 
  PAudioBufferList = ^AudioBufferList;
  PAudioSampleType = ^AudioSampleType;
+ PAudioUnitSampleType = ^AudioUnitSampleType;
 
- AudioStreamBasicDescription = Object
+ AudioStreamBasicDescription = Packed Object
    mSampleRate:Double;
    mFormatID:Cardinal;
    mFormatFlags:Cardinal;

@@ -23,7 +23,7 @@ UNIT MiniMOD;
 
 INTERFACE
 
-Uses Windows, TERRA_AudioMixer, TERRA_Utils;
+Uses TERRA_AudioMixer, TERRA_Utils;
 
 CONST CMiniMODSampleMoreSize=128;
 
@@ -172,7 +172,7 @@ TYPE PLONGINT=^LONGINT;
 
        PROCEDURE MixChannel(Channel:PMiniMODChannel;StartPosition,LengthCounter:LONGWORD);
        FUNCTION DoMix(StartPosition,LengthCounter:LONGWORD;VAR DoContinue:LONGBOOL):LONGWORD;
-       PROCEDURE Render(DestBuffer:PAudioSample); Override;
+       PROCEDURE Render(DestBuffer:PAudioSample; Offset, Samples:Integer); Override;
       PUBLIC
        Sample:ARRAY[1..31] OF TMiniMODSample;
        SampleExt:ARRAY[1..31] OF TMiniMODSampleExt;
@@ -1339,7 +1339,7 @@ BEGIN
  RESULT:=TheLength;
 END;
 
-PROCEDURE TMiniMOD.Render(DestBuffer:PAudioSample);
+PROCEDURE TMiniMOD.Render(DestBuffer:PAudioSample; Offset, Samples:Integer);
 VAR
   Counter:LONGWORD;
   DoContinue:LONGBOOL;
@@ -1351,7 +1351,7 @@ BEGIN
 
  Counter:=0;
  DoContinue:=TRUE;
- WHILE Counter<CMiniMODBufferSize DO
+ WHILE Counter<Samples DO
  BEGIN
   IF BPMSamplesZaehler=0 THEN
     DoTick;
@@ -1360,9 +1360,9 @@ BEGIN
 
  IF Filter THEN BEGIN
   // Lowpass Filter
-  Buf:= @_Buffer[0];
+  Buf:= @_Buffer[Offset];
   Counter:=0;
-  WHILE Counter<CMiniMODBufferSize DO BEGIN
+  WHILE Counter<Samples DO BEGIN
    Value:=Buf^ DIV 2;
    Buf^:=Value+NoiseReductionLeft;
    NoiseReductionLeft:=Value;
@@ -1376,9 +1376,9 @@ BEGIN
  END;
 
  DestPointer:=DestBuffer;
- Buf:=@_Buffer[0];
+ Buf:=@_Buffer[Offset];
 
-   FOR Counter:=1 TO CMiniMODBufferSize DO
+   FOR Counter:=1 TO Samples DO
    BEGIN
     DestPointer^ := LONGWORD(Buf^ SHR (16-CMiniMODMixerShift));
     INC(DestPointer);

@@ -41,10 +41,14 @@ Type
 
        _Driver:TERRAAudioDriver;
 
+       _CurrentOffset:Integer;
+
        Procedure Update();
 
        Procedure Enter();
        Procedure Leave();
+
+       Procedure Render(DestBuffer:PAudioSample; Offset, Samples:Integer); Virtual;
 
     Public
        Constructor Create(AFrequency, InitBufferSize:Cardinal);
@@ -53,7 +57,7 @@ Type
        Procedure Start();
        Procedure Stop();
 
-       Procedure Render(DestBuffer:PAudioSample); Virtual;
+       Procedure RequestSamples(DestBuffer:PAudioSample; Samples:Integer);
 
        Property Frequency:Cardinal Read _Frequency;
   End;
@@ -89,7 +93,14 @@ Begin
 
   SetLength(_Buffer, _OutputBufferSize * 2);
 
+  {$IFDEF WINDOWS}
   _Driver := WindowsAudioDriver.Create();
+  {$ENDIF}
+
+  {$IFDEF OSX}
+  _Driver := CoreAudioDriver.Create();
+  {$ENDIF}
+
   _Driver.Reset(AFrequency, InitBufferSize, Self);
 
  _ThreadTerminated := False;
@@ -138,7 +149,7 @@ begin
 end;
 
 
-Procedure TERRAAudioMixer.Render(DestBuffer:PAudioSample);
+Procedure TERRAAudioMixer.Render(DestBuffer:PAudioSample; Offset, Samples:Integer);
 Begin
 
 End;
@@ -148,6 +159,14 @@ Begin
   Self.Enter();
   Self._Driver.Update();
   Self.Leave();
+End;
+
+Procedure TERRAAudioMixer.RequestSamples(DestBuffer:PAudioSample; Samples:Integer);
+Begin
+     Self.Render(DestBuffer, _CurrentOffset, Samples);
+     Inc(_CurrentOffset, Samples);
+If (_CurrentOffset>_OutputBufferSize) Then
+   _CurrentOffset := 0;
 End;
 
 { AudioMixerThread }
