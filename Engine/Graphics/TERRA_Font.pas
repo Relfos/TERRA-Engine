@@ -459,7 +459,7 @@ Var
 
   Procedure SubPic(X, Y, W, H:Integer);
   Begin
-    SubImg := SrcImg.SubImage(X, Y, X + W , Y + H);
+    SubImg := SrcImg.Crop(X, Y, X + W , Y + H);
   End;
 Begin
   Result := _DefaultFont;

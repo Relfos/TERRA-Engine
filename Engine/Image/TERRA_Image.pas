@@ -75,6 +75,7 @@ Type
 
       _Width:Cardinal;
       _Height:Cardinal;
+      _Pitch:Cardinal;
       _Size:Cardinal;
 
       _CurrentFrame:Cardinal;
@@ -129,7 +130,7 @@ Type
       Procedure BlitWithMaskByUV(Const U,V,U1,V1,U2,V2:Single; Const Color:Color; Const Source:Image);
       Procedure BlitWithMask(X,Y,X1,Y1,X2,Y2:Integer; Const Color:Color; Const Source:Image);
 
-      Function SubImage(X1,Y1,X2,Y2:Integer):Image;
+      Function Crop(X1,Y1,X2,Y2:Integer):Image;
 
       Function Combine(Layer:Image; Alpha:Single; Mode:ColorCombineMode; Mask:Cardinal):Boolean;
 
@@ -2127,7 +2128,7 @@ Begin
 End;
 {$ENDIF}
 
-Function Image.SubImage(X1,Y1,X2,Y2:Integer):Image;
+Function Image.Crop(X1,Y1,X2,Y2:Integer):Image;
 Var
   W,H:Integer;
   I,J:Integer;

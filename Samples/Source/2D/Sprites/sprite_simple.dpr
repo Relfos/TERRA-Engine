@@ -11,14 +11,14 @@ Type
   // A client is used to process application events
   Demo = Class(Application)
     Protected
-      _Scene:Scene;
+      _Scene:TERRAScene;
 
 			Procedure OnCreate; Override;
 			Procedure OnIdle; Override;
   End;
 
   // A scene is used to render objects
-  MyScene = Class(Scene)
+  MyScene = Class(TERRAScene)
       Procedure RenderSprites(V:TERRAViewport); Override;
   End;
 
