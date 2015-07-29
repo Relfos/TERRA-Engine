@@ -156,7 +156,6 @@ Type
       Function GetPixelByUV(Const U,V:Single):Color; {$IFDEF FPC}Inline;{$ENDIF}
       Function GetComponent(X,Y,Component:Integer):Byte; {$IFDEF FPC}Inline;{$ENDIF}
 
-      Procedure SetPixelByOffset(Ofs:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
       Procedure SetPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
       Procedure SetPixelByUV(Const U,V:Single; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
 
@@ -1287,11 +1286,17 @@ End;
 
 Function Image.GetPixelOffset(X,Y:Integer):PColor;
 Begin
-  If (X<0) Then
-    X := 0;
+  While (X<0) Do
+    X := X + Width;
 
-  If (Y<0) Then
-    Y := 0;
+  If (X>=Width) Then
+    X := X Mod Width;
+
+  While (Y<0) Do
+    Y := Y + Height;
+
+  If (Y>=Height) Then
+    Y := Y Mod Height;
 
   If (_Pixels._Data = Nil) Then
     Result := Nil
@@ -1303,8 +1308,8 @@ Function Image.GetPixelByUV(Const U,V:Single):Color; {$IFDEF FPC}Inline;{$ENDIF}
 Var
   X,Y:Integer;
 Begin
-  X := Trunc(U*Width) Mod Width;
-  Y := Trunc(V*Height) Mod Height;
+  X := Trunc(U*Width);
+  Y := Trunc(V*Height);
   Result := GetPixel(X,Y);
 End;
 
@@ -1315,11 +1320,6 @@ Begin
     Result := ColorNull;
     Exit;
   End;
-
-  If (X<0) Then X := 0;
-  If (Y<0) Then Y := 0;
-  If (X>=Width) Then X := Pred(Width);
-  If (Y>=Height) Then Y := Pred(Height);
 
   Result := GetPixelOffset(X,Y)^;
 End;
@@ -1342,21 +1342,11 @@ Begin
 End;
 
 Procedure Image.SetPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
-Begin
-  If (X<0) Or (Y<0) Or (X>=Integer(Width)) Or (Y>=Integer(Height)) Then
-    Exit;
-
-  SetPixelByOffset(Y*Width+X, Color);
-End;
-
-Procedure Image.SetPixelByOffset(Ofs:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
 Var
   Dest:PColor;
 Begin
-  If (Ofs<0) Or (Ofs >= Width*Height) Then
-    Exit;
-
-  _Pixels._Data[Ofs] := Color;
+  Dest := Self.GetPixelOffset(X, Y);
+  Dest^ := Color;
 End;
 
 Procedure Image.MixPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}

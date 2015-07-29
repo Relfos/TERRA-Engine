@@ -575,7 +575,7 @@ Begin
   Result._Saturation := 1;
   Result._BlendMode := blendBlend;
   Result._Outline := ColorBlack;
-  Result._IsFont := True;
+  Result._Shader := SpriteManager.Instance.FontShader;
 
   Inc(_SpriteCount);
 End;
