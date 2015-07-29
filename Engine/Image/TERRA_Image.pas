@@ -956,8 +956,9 @@ Begin
       End Else
       If (Data.A>0) Then
       Begin
-        Data.A := Dest.A;
-        Dest^ := ColorScale(Data^, 1.3);
+        //Data.A := Dest.A;
+        //Dest^ := ColorScale(Data^, 1.3);
+        Dest^ := Data^;
       End;
 
       Inc(Dest);

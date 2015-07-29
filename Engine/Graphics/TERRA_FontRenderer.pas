@@ -56,6 +56,8 @@ Type
       _MaxY:Single;
       _AdvanceX:Single;
 
+      _NewLineOffset:Single;
+
       Function GetNextChar:TERRAChar;
       Function GetNextArg:TERRAString;
 
@@ -105,6 +107,8 @@ Type
 
       Property MaxX:Single Read _MaxX;
       Property MaxY:Single Read _MaxY;
+
+      Property NewLineOffset:Single Read _NewLineOffset Write _NewLineOffset; 
 
       Property Italics:Boolean Read _Italics;
 
@@ -404,8 +408,9 @@ Begin
   fontControlNewLine:
             Begin
               _CurrentPosition.X := _StartPosition.X;
+
               If Assigned(_Font) Then
-                _CurrentPosition.Y := _CurrentPosition.Y + 4.0 + _Font.NewLineOffset;
+                _CurrentPosition.Y := _CurrentPosition.Y + _NewLineOffset + _Font.NewLineOffset;
             End;
   End;
 

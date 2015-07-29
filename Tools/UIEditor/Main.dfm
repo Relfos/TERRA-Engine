@@ -116,6 +116,13 @@ object UIEditForm: TUIEditForm
         Caption = '&Save'
         OnClick = Save1Click
       end
+      object N4: TMenuItem
+        Caption = '-'
+      end
+      object Settings1: TMenuItem
+        Caption = '&Settings'
+        OnClick = Settings1Click
+      end
       object N2: TMenuItem
         Caption = '-'
       end

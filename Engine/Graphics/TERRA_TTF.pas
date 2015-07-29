@@ -102,7 +102,6 @@ Type
   end;
   PStBttActiveEdge = ^TStBttActiveEdge;
 
-Type
   TTFFont = Class(FontGlyphFactory)
     Private
       _Scale:Single;

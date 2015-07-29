@@ -152,6 +152,8 @@ Type
     GridMediumMenu: TMenuItem;
     GridLargeMenu: TMenuItem;
     PropertyList: TCustomPropertyEditor;
+    N4: TMenuItem;
+    Settings1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -191,6 +193,7 @@ Type
     procedure TabListTabSelected(Sender: TObject; ATab: TIceTab;
       ASelected: Boolean);
     procedure TabListTabClose(Sender: TObject; ATab: TIceTab);
+    procedure Settings1Click(Sender: TObject);
 
   Protected
     _CurrentCursor:Integer;
@@ -235,7 +238,7 @@ Var
 
 implementation
 Uses TERRA_UIDimension, TERRA_UIWindow, TERRA_UIButton, TERRA_UILabel, TERRA_UICheckbox, TERRA_UIRadioButton, TERRA_UIProgressBar,
-  TERRA_UISprite, TERRA_UIComboBox;
+  TERRA_UISprite, TERRA_UIComboBox, FormProjectSettings;
 
 {$R *.dfm}
 
@@ -1277,6 +1280,11 @@ begin
 
   _Scene._Views.Remove(Target);
   Self.TabList.RemoveTab(ATab);
+end;
+
+procedure TUIEditForm.Settings1Click(Sender: TObject);
+begin
+  ProjectSettingsForm.ShowModal;
 end;
 
 end.

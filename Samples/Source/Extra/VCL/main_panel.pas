@@ -26,24 +26,24 @@ var
   Form1: TForm1;
 
 implementation
-Uses TERRA_Utils, TERRA_Application, TERRA_VCLApplication, TERRA_OS, TERRA_Scene, TERRA_Texture,
+Uses TERRA_Utils, TERRA_Object, TERRA_Application, TERRA_VCLApplication, TERRA_OS, TERRA_Scene, TERRA_Texture,
   TERRA_Viewport, TERRA_FileManager, TERRA_SpriteManager, TERRA_PNG,
   TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color;
 
 {$R *.dfm}
 
 Type
-  MyScene = Class(Scene)
-    Procedure RenderSprites(V:Viewport); Override;
+  MyScene = Class(TERRAScene)
+    Procedure RenderSprites(V:TERRAViewport); Override;
   End;
 
 Var
-  _Tex:Texture = Nil;
+  _Tex:TERRATexture = Nil;
   _Scene:MyScene;
-  _ExtraView:Viewport;
+  _ExtraView:TERRAViewport;
 
 { MyScene }
-Procedure MyScene.RenderSprites(V: Viewport);
+Procedure MyScene.RenderSprites(V: TERRAViewport);
 Var
   S:QuadSprite;
   Angle:Single;
@@ -69,7 +69,7 @@ Begin
   GraphicsManager.Instance.SetScene(_Scene);
 
   // set background color
-  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorGreen;
+  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorGreen;
 
 {  _ExtraView := Viewport.Create('extra1', Image1.Width, Image1.Height);
   _ExtraView.OffScreen := True;
@@ -89,7 +89,7 @@ end;
 procedure TForm1.Button1Click(Sender: TObject);
 begin
   If OpenDialog1.Execute Then
-    _Tex := Texture.LoadFromFile(OpenDialog1.FileName);
+    _Tex := TERRATexture.LoadFromFile(OpenDialog1.FileName);
 end;
 
 end.

@@ -26,7 +26,7 @@ Unit TERRA_DistanceField;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Image, TERRA_Color;
+Uses TERRA_Utils, TERRA_Object, TERRA_Image, TERRA_Color;
 
 { Computes a distance field transform of a high resolution binary source channel
 and returns the result as a low resolution channel.
@@ -130,15 +130,20 @@ Var
 
   Temp:Image;
 Begin
-  Padding := Source.Width Div 10;
+  //Padding := Source.Width Div 10;
+  Padding := 0;
 
   Log(logWarning, 'Application', 'Making distance field glyph...');
 
-  Temp := Image.Create(Source);
-  Temp.Resize(Source.Width - Padding * 2, Source.Height - Padding * 2);
+  If Padding> 0 Then
+  Begin
+    Temp := Image.Create(Source);
+    Temp.Resize(Source.Width - Padding * 2, Source.Height - Padding * 2);
 
-  Source := Image.Create(Source.Width, Source.Height);
-  Source.Blit(Padding, Padding, 0, 0, Temp.Width, Temp.Height, Temp);
+    Source := Image.Create(Source.Width, Source.Height);
+    Source.Blit(Padding, Padding, 0, 0, Temp.Width, Temp.Height, Temp);
+  End Else
+    Temp := Nil;
 
   Result := Image.Create(Source.Width, Source.Height);
 
@@ -156,7 +161,9 @@ Begin
     End;
 
   ReleaseObject(Temp);
-  ReleaseObject(Source);
+
+  If Padding> 0 Then
+    ReleaseObject(Source);
 
 (*  While (Scale>1) Do
   Begin
