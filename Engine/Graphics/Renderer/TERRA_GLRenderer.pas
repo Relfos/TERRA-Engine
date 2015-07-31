@@ -2149,7 +2149,8 @@ Begin
   glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, _Handle);
 
-	glReadPixels(X, Y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, @Result);
+  glTexSubImage2D(_Handle, 0, X, Y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, @Result);
+  Result.A := 0;
   {$ENDIF}
 End;
 

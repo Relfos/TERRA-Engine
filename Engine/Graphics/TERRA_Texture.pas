@@ -749,17 +749,11 @@ Begin
   If (Self.TransparencyType = imageUnknown) Or (Self.TransparencyType = imageOpaque) Then
     _TransparencyType := Source.TransparencyType;
 
+  If (Assigned(_Source)) Then
+    _Source.Blit(X,Y, 0, 0, Source.Width, Source.Height, Source);
+
   If Length(_Handles)<=0 Then
   Begin
-    If (Self.Width = Source.Width) And (Self.Height = Source.Height) Then
-    Begin
-      ReleaseObject(_Source);
-
-      _Source := Image.Create(Source);
-    End Else
-    If (Assigned(_Source)) Then
-      _Source.Blit(X,Y, 0, 0, Source.Width, Source.Height, Source);
-
     Exit;
   End;
 
@@ -1105,7 +1099,8 @@ End;
 
 Function Texture.GetPixel(X, Y: Integer): Color;
 Begin
-  Result := Self.Current.GetPixel(X, Y);
+  Result := Self._Source.GetPixel(X, Y);
+  //Result := Self.Current.GetPixel(X, Y);
 End;
 
 Function Texture.GetOrigin: SurfaceOrigin;
