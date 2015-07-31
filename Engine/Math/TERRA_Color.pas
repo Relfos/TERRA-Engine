@@ -92,6 +92,7 @@ Function ColorCreate(Const R,G,B:Byte;A:Byte=255):Color;
 Function ColorCreateFromString(HexValue:TERRAString):Color;
 Function ColorCreateFromFloat(Const R,G,B:Single; A:Single=1.0):Color;
 Function ColorCreateFromVector3D(Const V:Vector3D; A:Single=1.0):Color;
+Function ColorCreateFromNormal(Const N:Vector3D; A:Single=1.0):Color;
 
 Function ColorHSLCreate(Const H,S,L:Byte; A:Byte=255):ColorHSL;
 
@@ -236,6 +237,11 @@ End;
 Function ColorCreateFromVector3D(Const V:Vector3D; A:Single=1.0):Color;
 Begin
   Result := ColorCreateFromFloat(V.X, V.Y, V.Z, A);
+End;
+
+Function ColorCreateFromNormal(Const N:Vector3D; A:Single=1.0):Color;
+Begin
+  Result := ColorCreateFromFloat(N.X*0.5 + 0.5, N.Y*0.5 + 0.5, N.Z*0.5 + 0.5, A);
 End;
 
 Function ColorHSLCreate(Const H,S,L:Byte; A:Byte=255):ColorHSL;

@@ -127,6 +127,7 @@ Type
       Procedure ExpectAttributeFormat(Attribute:Cardinal; Format:DataFormat);
 
       Function GetBuffer:Pointer;
+      Function GetVertexSize: Cardinal;
 
     Public
       Constructor Create(Format:VertexFormat; VertexCount:Integer);
@@ -178,7 +179,7 @@ Type
       Procedure SetVector4D(Index, Attribute:Cardinal; Const Value:Vector4D);}
 
       Property Format:VertexFormat Read _Format;
-      Property Size:Cardinal Read _VertexSize;
+      Property Size:Cardinal Read GetVertexSize;
       Property Buffer:Pointer Read GetBuffer;
   End;
 
@@ -309,7 +310,6 @@ Begin
     End;
   End;
 
-
   Self._ItemCount := 0;
 
   Self.Resize(VertexCount);
@@ -337,9 +337,31 @@ Begin
 End;
 
 Procedure VertexData.SetAttributeFormat(Attribute:Cardinal; Value:DataFormat);
+Var
+  I, Diff:Integer;
+  OldFormat:DataFormat;
 Begin
-  If (Attribute<MaxVertexAttributes)Then
-    _Formats[Attribute] := Value;
+  If (Attribute>=MaxVertexAttributes)Then
+    Exit;
+
+  OldFormat := _Formats[Attribute];
+  If (OldFormat = Value) Then
+    Exit;
+
+  _Formats[Attribute] := Value;
+
+  Diff := GetFormatSizeInFloats(Value) - GetFormatSizeInFloats(OldFormat);
+  If Diff = 0 Then
+    Exit;
+
+  Inc(_ElementsPerVertex, Diff);
+  Inc(_VertexSize, Diff * 4);
+
+  For I:=Succ(Attribute) To vertexUV4 Do
+  If (_Offsets[I]>=0) Then
+    Inc(_Offsets[I], Diff);
+
+  Self.Resize(Self._ItemCount);
 End;
 
 Procedure VertexData.SetAttributeName(Attribute: Cardinal; const Value:TERRAString);
@@ -488,13 +510,13 @@ End;
 
 Procedure VertexData.GetColor(Index:Integer; Attribute:Cardinal; Out Value:Color);
 Begin
-//  ExpectAttributeFormat(Attribute, typeColor);
+  ExpectAttributeFormat(Attribute, typeColor);
   Self.GetFloat(Index, Attribute, Single(Value));
 End;
 
 Procedure VertexData.SetColor(Index:Integer; Attribute:Cardinal; Const Value:Color);
 Begin
-//  ExpectAttributeFormat(Attribute, typeColor);
+  ExpectAttributeFormat(Attribute, typeColor);
   Self.SetFloat(Index, Attribute, Single(Value));
 End;
 
@@ -502,7 +524,7 @@ Procedure VertexData.GetVector2D(Index:Integer; Attribute:Cardinal; Out Value:Ve
 Var
   Pos:Integer;
 Begin
-//  ExpectAttributeFormat(Attribute, typeVector2D);
+  ExpectAttributeFormat(Attribute, typeVector2D);
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
@@ -527,7 +549,7 @@ Procedure VertexData.SetVector2D(Index:Integer; Attribute:Cardinal; Const Value:
 Var
   Pos:Integer;
 Begin
-//  ExpectAttributeFormat(Attribute, typeVector2D);
+  ExpectAttributeFormat(Attribute, typeVector2D);
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
@@ -545,7 +567,7 @@ Procedure VertexData.GetVector3D(Index:Integer; Attribute:Cardinal; Out Value:Ve
 Var
   Pos:Integer;
 Begin
-//  ExpectAttributeFormat(Attribute, typeVector3D);
+  ExpectAttributeFormat(Attribute, typeVector3D);
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
@@ -576,7 +598,7 @@ Procedure VertexData.SetVector3D(Index:Integer; Attribute:Cardinal; Const Value:
 Var
   Pos:Integer;
 Begin
-//  ExpectAttributeFormat(Attribute, typeVector3D);
+  ExpectAttributeFormat(Attribute, typeVector3D);
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
@@ -599,7 +621,7 @@ Procedure VertexData.GetVector4D(Index:Integer; Attribute:Cardinal; Out Value:Ve
 Var
   Pos:Integer;
 Begin
-//  ExpectAttributeFormat(Attribute, typeVector4D);
+  ExpectAttributeFormat(Attribute, typeVector4D);
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
@@ -636,7 +658,7 @@ Procedure VertexData.SetVector4D(Index:Integer; Attribute:Cardinal; Const Value:
 Var
   Pos:Integer;
 Begin
-//  ExpectAttributeFormat(Attribute, typeVector4D);
+  ExpectAttributeFormat(Attribute, typeVector4D);
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
@@ -744,12 +766,13 @@ Procedure VertexData.Resize(NewSize: Cardinal);
 Var
   NewLen, ExpectedLen:Integer;
 Begin
-  If _ItemCount = NewSize Then
+  ExpectedLen := NewSize * _ElementsPerVertex;
+
+  If ExpectedLen = Length(_Values) Then
     Exit;
 
   _ItemCount := NewSize;
 
-  ExpectedLen := _ItemCount * _ElementsPerVertex;
 
   If (_Values = Nil) Then
     SetLength(_Values, ExpectedLen)
@@ -907,6 +930,11 @@ Begin
   End;
 
   ReleaseObject(Temp);
+End;
+
+Function VertexData.GetVertexSize: Cardinal;
+Begin
+  Result := Self._VertexSize;
 End;
 
 { VertexIterator }

@@ -1267,8 +1267,11 @@ Begin
   Log(logDebug, 'Renderer', 'glDrawArrays: '+IntToString(Count));
   {$ENDIF}
 
-  glDrawArrays(PrimitiveToGL(Primitive), 0, Count);
-  Inc(_Stats.TriangleCount, Count Div 3);
+  If Count > 0 Then
+  Begin
+    glDrawArrays(PrimitiveToGL(Primitive), 0, Count);
+    Inc(_Stats.TriangleCount, Count Div 3);
+  End;
 
   glDisableClientState(GL_TEXTURE_COORD_ARRAY);
   glDisableClientState(GL_COLOR_ARRAY);

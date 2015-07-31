@@ -1031,6 +1031,7 @@ End;
 Procedure FontSprite.Rebuild;
 Var
   K:Single;
+  Width, Height:Integer;
   Item:TextureAtlasItem;
 Begin
   Item := _Glyph._Item;
@@ -1038,24 +1039,21 @@ Begin
   If _Vertices = Nil Then
     _Vertices := CreateSpriteVertexData(6);
 
-  _Width := Item.Buffer.Width;
-  _Height := Item.Buffer.Height;
-
-  _USize := Item.U2 - Item.U1;
-  _VSize := Item.V2 - Item.V1;
+  Width := Item.Buffer.Width;
+  Height := Item.Buffer.Height;
 
   _Vertices.SetColor(0, vertexColor, _C);
   _Vertices.SetColor(1, vertexColor, _D);
   _Vertices.SetColor(2, vertexColor, _B);
   _Vertices.SetColor(4, vertexColor, _A);
 
-  _Vertices.SetVector3D(0, vertexPosition, VectorCreate(_X, _Y +_Height, 0));
+  _Vertices.SetVector3D(0, vertexPosition, VectorCreate(_X, _Y +Height, 0));
   _Vertices.SetVector2D(0, vertexUV0, VectorCreate2D(Item.U1, Item.V2));
 
-  _Vertices.SetVector3D(1, vertexPosition, VectorCreate(_X +_Width, _Y +_Height, 0));
+  _Vertices.SetVector3D(1, vertexPosition, VectorCreate(_X +Width, _Y +Height, 0));
   _Vertices.SetVector2D(1, vertexUV0, VectorCreate2D(Item.U2, Item.V2));
 
-  _Vertices.SetVector3D(2, vertexPosition, VectorCreate(_X +_Width + _Skew, _Y, 0));
+  _Vertices.SetVector3D(2, vertexPosition, VectorCreate(_X +Width + _Skew, _Y, 0));
   _Vertices.SetVector2D(2, vertexUV0, VectorCreate2D(Item.U2, Item.V1));
 
   _Vertices.SetVector3D(4, vertexPosition, VectorCreate(_X + _Skew, _Y, 0));

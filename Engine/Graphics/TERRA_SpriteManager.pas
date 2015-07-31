@@ -26,13 +26,9 @@ Unit TERRA_SpriteManager;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_GraphicsManager, TERRA_Texture,
+  TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Color, TERRA_GraphicsManager, TERRA_Texture,
   TERRA_Application, TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ClipRect,
   TERRA_Renderer, TERRA_InputManager, TERRA_VertexFormat;
-
-Const
-  vertexFormatSaturation = vertexFormatUV1;
-  vertexSaturation = vertexUV1;
 
 Type
   SpriteManager = Class;
@@ -46,6 +42,7 @@ Type
       Position:Vector3D;
       Color:Color;
       TexCoord:Vector2D;
+      ClipRect:Vector4D;
       Saturation:Single;
   End;
 
@@ -79,19 +76,13 @@ Type
       {$ENDIF}
 
       _Transform:Matrix3x3;
-      _IsFont:Boolean;
+      _Shader:ShaderInterface;
 
       _Saturation:Single;
 
       _Texture:TERRATexture;
 
       _Vertices:VertexData;
-
-      _USize:Single;
-      _VSize:Single;
-
-      _Width:Single;
-      _Height:Single;
 
       Procedure Rebuild(); Virtual; Abstract;
 
@@ -170,7 +161,7 @@ Type
       _BlendMode:Integer;
       _Layer:Single;
       _Closed:Boolean;
-      _IsFont:Boolean;
+      _Shader:ShaderInterface;
       _Saturation:Single;
       _Outline:Color;
 
@@ -216,13 +207,12 @@ Type
 
       Procedure Render(Const Projection:Matrix4x4);
 
-      Procedure EnableSpriteShader(Const Projection:Matrix4x4; ColorGrading:Boolean);
-      Procedure EnableFontShader(Const Projection:Matrix4x4);
-
       Procedure QueueSprite(S:Sprite);
 
-      Function DrawSprite(X,Y,Layer:Single; SpriteTexture:TERRATexture; ColorTable:TERRATexture = Nil; BlendMode:Integer = blendBlend; Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; IsFont:Boolean = False):QuadSprite;
-      Function DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:TERRATexture; Outline:Color; ColorTable:TERRATexture = Nil; BlendMode:Integer = blendBlend;  Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; IsFont:Boolean = False):QuadSprite;
+      Function DrawSprite(X,Y,Layer:Single; SpriteTexture:TERRATexture; ColorTable:TERRATexture = Nil; BlendMode:Integer = blendBlend; Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; Shader:ShaderInterface = Nil):QuadSprite;
+      Function DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:TERRATexture; Outline:Color; ColorTable:TERRATexture = Nil; BlendMode:Integer = blendBlend;  Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; Shader:ShaderInterface = Nil):QuadSprite;
+
+      Property FontShader:ShaderInterface Read _FontShader;
   End;
 
 Function CreateSpriteVertexData(Count:Integer):VertexData;
@@ -253,31 +243,43 @@ Begin
   Result := S;
 End;
 
-Function GetShader_Sprite(DoColorGrading:Boolean):TERRAString;
+Function GetShader_Sprite(DoColorGrading, IsFont:Boolean):TERRAString;
 Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('vertex {');
+	Line('  varying highp vec4 clipRect;');
+	Line('  varying highp vec2 screen_position;');
+
 	Line('  varying mediump vec2 texCoord;');
+	Line('  varying mediump float saturation;');
 	Line('  varying lowp vec4 color;');
-	Line('  varying lowp float saturation;');
-  Line('  attribute highp vec4 terra_position;');
-  Line('  attribute mediump vec3 terra_UV0;');
+  Line('  attribute highp vec3 terra_position;');
+  Line('  attribute mediump vec2 terra_UV0;');
+  Line('  attribute mediump vec4 terra_UV1;');
+  Line('  attribute mediump float terra_UV2;');
   Line('  attribute lowp vec4 terra_color;');
-  Line('  attribute lowp float terra_saturation;');
   Line('  uniform mat4 projectionMatrix;');
+
 	Line('void main()	{');
-  Line('  gl_Position =  projectionMatrix * terra_position;');
-  Line('  texCoord = terra_UV0.xy;');
-  Line('  saturation = terra_saturation;');
+  Line('  vec4 local_position = vec4(terra_position.x, terra_position.y, terra_position.z, 1.0);');
+  Line('  screen_position = local_position.xy;');
+  Line('  gl_Position =  projectionMatrix * local_position;');
+  Line('  texCoord = terra_UV0;');
+  Line('  clipRect = terra_UV1;');
+  Line('  saturation = terra_UV2;');
   Line('  color = terra_color;}');
   Line('}');
+
   Line('fragment {');
+	Line('  varying highp vec4 clipRect;');
+	Line('  varying highp vec2 screen_position;');
+
 	Line('  varying mediump vec2 texCoord;');
+	Line('  varying mediump float saturation;');
 	Line('  varying lowp vec4 color;');
-	Line('  varying lowp float saturation;');
 	Line('  uniform sampler2D texture;');
 
   Line(GetSaturationAndConstrast());
@@ -288,21 +290,58 @@ Begin
   {$ENDIF}
 
 	Line('  void main()	{');
-  Line('    lowp vec4 c = color * texture2D(texture, texCoord.st);');
-  {$IFNDEF DISABLECOLORGRADING}
+
+  Line('  if ( screen_position.x< clipRect.x) { discard;} ');
+  Line('  if ( screen_position.x> clipRect.z) { discard;} ');
+
+  Line('  if ( screen_position.y< clipRect.y) { discard;} ');
+  Line('  if ( screen_position.y> clipRect.w) { discard;} ');
+
+  Line('    lowp vec4 c = color * texture2D(texture, texCoord.xy);');
+(*  {$IFNDEF DISABLECOLORGRADING}
   If (DoColorGrading) Then
     Line('    c.rgb = ColorTableLookup(c.rgb);');
   {$ENDIF}
   Line('    c.rgb = AdjustSaturation(c.rgb, saturation); ');
 
-//  Line('    c.rgb = vec3(1.0, 0.0, 1.0);');
+ Line('    c.rgb = vec3(1.0, 0.0, 1.0);');
   //Line('    if (c.a<0.1) discard;');
  // Line('    c.rgb *= 0.0;');
-//  Line('    c.rgb += vec3(1.0, 0.0, 0.0);');
+//  Line('    c.rgb += vec3(1.0, 0.0, 0.0);');*)
   Line('    gl_FragColor = c;}');
   Line('}  ');
   Result := S;
 End;
+
+(*
+(*  If IsFont Then
+  Begin
+  {$IFDEF DISTANCEFIELDFONTS}
+  //Line('    if (mask>0.59) baseColor = color; else baseColor = mix(color, outline, outline.a);');
+  //Line('    baseColor = mix(outline, color, alpha);');
+
+
+  Line('    float distance = texture2D(texture, texCoord.xy).a;');
+  Line('    float alpha = smoothstep(outerEdgeCenter - smoothing, outerEdgeCenter + smoothing, distance);');
+  Line('    float border = smoothstep(0.5 - smoothing, 0.5 + smoothing, distance);');
+  Line('    gl_FragColor = vec4( mix(outline.rgb, color.rgb, border), alpha );');
+
+  {$ELSE}
+
+  Line('    lowp float mask = texture2D(texture, texCoord.xy).a;');
+  Line('    lowp float alpha;');
+  Line('    if (mask<0.5) alpha = 0.0; else alpha = 1.0;');
+  {$IFNDEF MOBILE}
+  Line('    alpha *= smoothstep(0.25, 0.75, mask);');// anti-aliasing
+  {$ENDIF}
+  Line('    lowp vec4 baseColor;');
+  Line('    baseColor = color; ');
+
+  //Line('    baseColor.rgb = AdjustSaturation(c.rgb, saturation); ');
+  Line('    baseColor.rgb = AdjustSaturation(baseColor.rgb, saturation); ');
+  Line('    gl_FragColor = vec4(baseColor.r, baseColor.g, baseColor.b, alpha * color.a);}');
+  {$ENDIF}
+  End Else
 
 Function GetShader_Font():TERRAString;
 Var
@@ -311,21 +350,24 @@ Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
   Line('vertex {');
-	Line('  varying mediump vec2 texCoord;');
+	Line('  varying highp vec4 texCoord;');
 	Line('  varying lowp vec4 color;');
 	Line('  varying lowp float saturation;');
   Line('  attribute highp vec4 terra_position;');
   Line('  attribute mediump vec3 terra_UV0;');
+  Line('  attribute mediump vec4 terra_UV1;');
   Line('  attribute lowp vec4 terra_color;');
   Line('  attribute lowp float terra_saturation;');
   Line('  uniform mat4 projectionMatrix;');
 	Line('void main()	{');
   Line('  gl_Position =  projectionMatrix * terra_position;');
-  Line('  texCoord = terra_UV0.xy;');
+  Line('  texCoord = vec4(terra_UV0.x, terra_UV0.y, terra_position.x, terra_position.y);');
+  Line('  clipRect = terra_UV1;');
   Line('  saturation = terra_saturation;');
   Line('  color = terra_color;}');
   Line('}');
   Line('fragment {');
+	Line('  varying highp vec4 clipRect;');
 	Line('  varying mediump vec2 texCoord;');
 	Line('  varying lowp vec4 color;');
 	Line('  varying lowp float saturation;');
@@ -347,14 +389,14 @@ Begin
   //Line('    baseColor = mix(outline, color, alpha);');
 
 
-  Line('    float distance = texture2D(texture, texCoord.st).a;');
+  Line('    float distance = texture2D(texture, texCoord.xy).a;');
   Line('    float alpha = smoothstep(outerEdgeCenter - smoothing, outerEdgeCenter + smoothing, distance);');
   Line('    float border = smoothstep(0.5 - smoothing, 0.5 + smoothing, distance);');
   Line('    gl_FragColor = vec4( mix(outline.rgb, color.rgb, border), alpha );');
 
   {$ELSE}
 
-  Line('    lowp float mask = texture2D(texture, texCoord.st).a;');
+  Line('    lowp float mask = texture2D(texture, texCoord.xy).a;');
   Line('    lowp float alpha;');
   Line('    if (mask<0.5) alpha = 0.0; else alpha = 1.0;');
   {$IFNDEF MOBILE}
@@ -370,61 +412,15 @@ Begin
 //  Line('    gl_FragColor = vec4(baseColor.r, baseColor.g, 1.0, 1.0);}');
   Line('}  ');
   Result := S;
-End;
-
-Procedure ClipVertex(V:SpriteVertex; Clip:ClipRect; Width, Height, USize, VSize:Single{; Landscape:Boolean});
-Var
-  X1,X2,Y1,Y2:Single;
-  Dist, P:Single;
-Begin
-  If (Width=0) Or (Height=0) Then
-    Exit;
-
-  Clip.GetRealRect(X1, Y1, X2, Y2{, Landscape});
-
-  If (Clip.Style = clipEverything) Then
-  Begin
-    V.Position.X := X1;
-    V.Position.Y := Y1;
-    Exit;
-  End;
-
-//  Y2 := 100;
-
-  If (V.Position.X>X2) Then
-  Begin
-    Dist := (V.Position.X-X2)/Width;
-    V.TexCoord.X := V.TexCoord.X - USize * Dist;
-    V.Position.X := X2;
-  End Else
-  If (V.Position.X<X1) Then
-  Begin
-    Dist := (X1 - V.Position.X)/Width;
-    V.TexCoord.X := V.TexCoord.X + USize * Dist;
-    V.Position.X := X1;
-  End;
-
-  If (V.Position.Y>Y2) Then
-  Begin
-    Dist := (V.Position.Y-Y2)/Height;
-    V.TexCoord.Y := V.TexCoord.Y - VSize * Dist;
-    V.Position.Y := Y2;
-  End Else
-  If (V.Position.Y<Y1) Then
-  Begin
-    Dist := (Y1 - V.Position.Y)/Height;
-    V.TexCoord.Y := V.TexCoord.Y + VSize * Dist;
-    V.Position.Y := Y1;
-  End;
-End;
+End;*)
 
 Function CreateSpriteVertexData(Count:Integer):VertexData;
 Const
-  SpriteVertexFormat = [vertexFormatPosition, vertexFormatColor, vertexFormatUV0, vertexFormatSaturation];
+  SpriteVertexFormat = [vertexFormatPosition, vertexFormatColor, vertexFormatUV0, vertexFormatUV1, vertexFormatUV2];
 Begin
   Result := VertexData.Create(SpriteVertexFormat, Count);
-  Result.SetAttributeName(vertexSaturation, 'terra_saturation');
-  Result.SetAttributeFormat(vertexSaturation, typeFloat);
+  Result.SetAttributeFormat(vertexUV1, typeVector4D);
+  Result.SetAttributeFormat(vertexUV2, typeFloat);
 End;
 
 
@@ -438,12 +434,12 @@ Begin
 End;
 
 
-Function SpriteManager.DrawSprite(X,Y,Layer:Single; SpriteTexture:TERRATexture; ColorTable:TERRATexture; BlendMode:Integer;  Saturation:Single; Filter:TextureFilterMode; IsFont:Boolean): QuadSprite;
+Function SpriteManager.DrawSprite(X,Y,Layer:Single; SpriteTexture:TERRATexture; ColorTable:TERRATexture; BlendMode:Integer;  Saturation:Single; Filter:TextureFilterMode; Shader:ShaderInterface): QuadSprite;
 Begin
-  Result := Self.DrawSpriteWithOutline(X,Y,Layer, SpriteTexture, ColorNull, ColorTable, BlendMode,  Saturation, Filter, IsFont);
+  Result := Self.DrawSpriteWithOutline(X,Y,Layer, SpriteTexture, ColorNull, ColorTable, BlendMode,  Saturation, Filter, Shader);
 End;
 
-Function SpriteManager.DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:TERRATexture; Outline:Color; ColorTable:TERRATexture; BlendMode:Integer;  Saturation:Single; Filter:TextureFilterMode; IsFont:Boolean):QuadSprite;
+Function SpriteManager.DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:TERRATexture; Outline:Color; ColorTable:TERRATexture; BlendMode:Integer;  Saturation:Single; Filter:TextureFilterMode; Shader:ShaderInterface):QuadSprite;
 Var
   I:Integer;
 Begin
@@ -490,7 +486,7 @@ Begin
   Result.Mirror := False;
   Result.ClipRect.Style := clipNothing;
   Result._Saturation := Saturation;
-  Result._IsFont := IsFont;
+  Result._Shader := Shader;
   Result._Outline := Outline;
 
   Result._Transform := MatrixIdentity3x3;
@@ -534,7 +530,7 @@ Begin
   For I:=0 To Pred(_BatchCount) Do
   If ((_Batches[I]._Texture = S._Texture) And (_Batches[I]._BlendMode = S._BlendMode)
   {$IFNDEF DISABLECOLORGRADING}And (_Batches[I]._ColorTable = S._ColorTable){$ENDIF}
-  And (_Batches[I]._IsFont = S._IsFont)
+  And (_Batches[I]._Shader = S._Shader)
   And ( (HasShaders) Or (_Batches[I]._Saturation = S._Saturation))
   And (Cardinal(_Batches[I]._Outline) = Cardinal(S._Outline))
   And (_Batches[I]._Count<BatchSize)) And (_Batches[I]._Layer = TargetLayer)
@@ -573,7 +569,7 @@ Begin
     _Batches[N]._ColorTable := S._ColorTable;
     {$ENDIF}
     _Batches[N]._Saturation := S._Saturation;
-    _Batches[N]._IsFont := S._IsFont;
+    _Batches[N]._Shader := S._Shader;
     _Batches[N]._Outline := S._Outline;
     _Batches[N]._First := Nil;
     _Batches[N]._Manager := Self;
@@ -673,21 +669,21 @@ Begin
   If (_SpriteShaderWithoutGrading = Nil) Then
   Begin
     _SpriteShaderWithoutGrading := Graphics.Renderer.CreateShader();
-    _SpriteShaderWithoutGrading.Generate('Sprite', GetShader_Sprite(False)); 
+    _SpriteShaderWithoutGrading.Generate('Sprite', GetShader_Sprite(False, False));
   End;
 
   {$IFNDEF DISABLECOLORGRADING}
   If (_SpriteShaderWithGrading = Nil) Then
   Begin
     _SpriteShaderWithGrading := Graphics.Renderer.CreateShader();
-    _SpriteShaderWithGrading.Generate('SpriteGrading', GetShader_Sprite(True));
+    _SpriteShaderWithGrading.Generate('SpriteGrading', GetShader_Sprite(True, False));
   End;
   {$ENDIF}
 
   If (_FontShader = Nil) Then
   Begin
     _FontShader := Graphics.Renderer.CreateShader();
-    _FontShader.Generate('Font', GetShader_Font());
+    _FontShader.Generate('Font', GetShader_Sprite(False, True));
   End;
 
   _CurrentShader := Nil;
@@ -777,21 +773,6 @@ Begin
   Graphics.Renderer.SetAttributeSource('terra_saturation', typeFloat, @(_Vertices[0].Saturation));}
 
   {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
-End;
-
-Procedure SpriteManager.EnableFontShader(Const Projection:Matrix4x4);
-Begin
-  SetShader(Projection, _FontShader);
-End;
-
-Procedure SpriteManager.EnableSpriteShader(Const Projection:Matrix4x4; ColorGrading:Boolean);
-Begin
-  {$IFNDEF DISABLECOLORGRADING}
-  If (ColorGrading) Then
-    SetShader(Projection, _SpriteShaderWithGrading)
-  Else
-  {$ENDIF}
-    SetShader(Projection, _SpriteShaderWithoutGrading);
 End;
 
 { Sprite }
@@ -944,20 +925,21 @@ Procedure QuadSprite.Rebuild;
 Var
   K:Single;
   Pos:Vector2D;
+  Width, Height:Integer;
 Begin
   If _Vertices = Nil Then
     _Vertices := CreateSpriteVertexData(6);
 
-  _Width := Self.Rect.Width;
-  _Height := Self.Rect.Height;
+  Width := Self.Rect.Width;
+  Height := Self.Rect.Height;
 
-  If (_Width<=0) Then
-    _Width := (Self.Rect.U2-Self.Rect.U1) * (_Texture.Width / _Texture.Ratio.X);
-  If (_Height<=0) Then
-    _Height := (Self.Rect.V2-Self.Rect.V1) * (_Texture.Height / _Texture.Ratio.Y);
+  If (Width<=0) Then
+    Width := Trunc((Self.Rect.U2-Self.Rect.U1) * (_Texture.Width / _Texture.Ratio.X));
+  If (Height<=0) Then
+    Height := Trunc((Self.Rect.V2-Self.Rect.V1) * (_Texture.Height / _Texture.Ratio.Y));
 
-  Pos.X := Position.X - Anchor.X * _Width;
-  Pos.Y := Position.Y - Anchor.Y * _Height;
+  Pos.X := Position.X - Anchor.X * Width;
+  Pos.Y := Position.Y - Anchor.Y * Height;
 
   If (Self.Mirror) Then
   Begin
@@ -981,21 +963,18 @@ Begin
   Self.Rect.V1 := Self.Rect.V1 + Self._ScrollV;
   Self.Rect.V2 := Self.Rect.V2 + Self._Scrollv;
 
-  _USize := Self.Rect.U2 - Self.Rect.U1;
-  _VSize := Self.Rect.V2 - Self.Rect.V1;
-
   _Vertices.SetColor(0, vertexColor, _C);
   _Vertices.SetColor(1, vertexColor, _D);
   _Vertices.SetColor(2, vertexColor, _B);
   _Vertices.SetColor(4, vertexColor, _A);
 
-  _Vertices.SetVector3D(0, vertexPosition, VectorCreate(Pos.X, Pos.Y + _Height, 0));
+  _Vertices.SetVector3D(0, vertexPosition, VectorCreate(Pos.X, Pos.Y + Height, 0));
   _Vertices.SetVector2D(0, vertexUV0, VectorCreate2D(Self.Rect.U1, Self.Rect.V2));
 
-  _Vertices.SetVector3D(1, vertexPosition, VectorCreate(Pos.X + _Width, Pos.Y +_Height, 0));
+  _Vertices.SetVector3D(1, vertexPosition, VectorCreate(Pos.X + Width, Pos.Y +Height, 0));
   _Vertices.SetVector2D(1, vertexUV0, VectorCreate2D(Self.Rect.U2, Self.Rect.V2));
 
-  _Vertices.SetVector3D(2, vertexPosition, VectorCreate(Pos.X + _Width, Pos.Y, 0));
+  _Vertices.SetVector3D(2, vertexPosition, VectorCreate(Pos.X + Width, Pos.Y, 0));
   _Vertices.SetVector2D(2, vertexUV0, VectorCreate2D(Self.Rect.U2, Self.Rect.V1));
 
   _Vertices.SetVector3D(4, vertexPosition, VectorCreate(Pos.X, Pos.Y, 0));
@@ -1020,17 +999,18 @@ Procedure SpriteBatch.Flush(Const Projection:Matrix4x4);
 Var
   I, J:Integer;
   S:Sprite;
-  W,H, K:Single;
+  K:Single;
   MaxX,MinX, MaxY,MinY:Single;
   M:Matrix3x3;
   C:Color;
   InIt, OutIt:VertexIterator;
   Src, Dest:SpriteVertex;
   Ofs:Integer;
-  Landscape, FullyClipped:Boolean;
+  FullyClipped:Boolean;
   Ratio:Single;
   Pos:Vector3D;
   Graphics:GraphicsManager;
+  CurrentClip:Vector4D;
 Begin
   _Closed := False;
   If (_Count<=0) Then
@@ -1038,8 +1018,6 @@ Begin
     _First := Nil;
     Exit;
   End;
-
-  Landscape := IsLandscapeOrientation(Application.Instance.Orientation);
 
   Graphics := GraphicsManager.Instance;
 
@@ -1051,20 +1029,26 @@ Begin
   If (_Saturation<1.0) Then
     Graphics.Renderer.SetAttributeSource(TERRA_SATURATION_ATTRIBUTE, typeFloat, @_Vertices[0].Saturation);}
 
-  If (Self._IsFont) Then
+  If (Assigned(Self._Shader)) Then
   Begin
-    _Manager.EnableFontShader(Projection);
+    _Manager.SetShader(Projection, Self._Shader);
+
     {$IFDEF DISTANCEFIELDFONTS}
     _Manager._FontShader.SetColorUniform('outline', _Outline);
     {$ENDIF}
   End Else
-    _Manager.EnableSpriteShader(Projection, {$IFDEF DISABLECOLORGRADING}False{$ELSE}Assigned(Self._ColorTable){$ENDIF});
+  {$IFNDEF DISABLECOLORGRADING}
+  If (Assigned(Self._ColorTable)) Then
+    _Manager.SetShader(Projection, _Manager._SpriteShaderWithGrading)
+  Else
+  {$ENDIF}
+    _Manager.SetShader(Projection, _Manager._SpriteShaderWithoutGrading);
 
   If Not _Texture.Bind(0) Then
     Exit;
 
   {$IFNDEF DISABLECOLORGRADING}
-  If (Not Self._IsFont) Then
+  If (Self._Shader = Nil) Then
     ColorTableBind(_ColorTable, 1);
   {$ENDIF}
 
@@ -1083,17 +1067,19 @@ Begin
 
     S.Rebuild();
 
+    If (S.ClipRect.Style = clipNothing) Then
+      CurrentClip := VectorCreate4D(0, 0, 9999, 9999)
+    Else
+      CurrentClip := VectorCreate4D(S.ClipRect.X, S.ClipRect.Y, S.ClipRect.X + S.ClipRect.Width, S.ClipRect.Y + S.ClipRect.Height);
+
     MinX := 9999;
     MaxX := -9999;
     MinY := 9999;
     MaxY := -9999;
 
-    W := S._Width;
-    H := S._Height;
-
     If Not OutIt.Seek(Ofs) Then
       Break;
-      
+
     InIt := S._Vertices.GetIteratorForClass(SpriteVertex);
     While (InIt.HasNext()) And (OutIt.HasNext()) Do
     Begin
@@ -1110,10 +1096,7 @@ Begin
       Dest.TexCoord := Src.TexCoord;
       Dest.Color := Src.Color;
 
-      If (S.ClipRect.Style = clipSomething) Then
-      Begin
-        ClipVertex(Dest, S.ClipRect, W, H, S._USize, S._VSize{, Landscape});
-      End;
+      Dest.ClipRect := CurrentClip;
 
       MinX := FloatMin(MinX, Pos.X);
       MinY := FloatMin(MinY, Pos.Y);
@@ -1274,7 +1257,8 @@ Begin
   Self.GetVector3D(vertexPosition, Position);
   Self.GetColor(vertexColor, Color);
   Self.GetVector2D(vertexUV0, TexCoord);
-  Self.GetFloat(vertexSaturation, Saturation);
+  Self.GetVector4D(vertexUV1, ClipRect);
+  Self.GetFloat(vertexUV2, Saturation);
 End;
 
 Procedure SpriteVertex.Save;
@@ -1282,7 +1266,9 @@ Begin
   Self.SetVector3D(vertexPosition, Position);
   Self.SetColor(vertexColor, Color);
   Self.SetVector2D(vertexUV0, TexCoord);
-  Self.SetFloat(vertexSaturation, Saturation);
+  Self.SetVector4D(vertexUV1, ClipRect);
+  Self.SetFloat(vertexUV2, Saturation);
+  
 End;
 
 End.
