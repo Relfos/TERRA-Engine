@@ -128,7 +128,7 @@ Type
     Save1: TMenuItem;
     N2: TMenuItem;
     Exit1: TMenuItem;
-    Project2: TMenuItem;
+    NewProject: TMenuItem;
     N3: TMenuItem;
     View1: TMenuItem;
     Component1: TMenuItem;
@@ -156,6 +156,7 @@ Type
     N4: TMenuItem;
     Settings1: TMenuItem;
     DataSources1: TMenuItem;
+    Paths1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -197,6 +198,8 @@ Type
     procedure TabListTabClose(Sender: TObject; ATab: TIceTab);
     procedure Settings1Click(Sender: TObject);
     procedure DataSources1Click(Sender: TObject);
+    procedure Paths1Click(Sender: TObject);
+    procedure NewProjectClick(Sender: TObject);
 
   Protected
     _CurrentCursor:Integer;
@@ -587,6 +590,8 @@ Begin
   // Create a scene and set it as the current scene
   _Scene := UIEditScene.Create();
   GraphicsManager.Instance.SetScene(_Scene);
+
+  Self.NewProjectClick(Sender);
 
   _Brush := TBrush.Create();
 
@@ -1298,7 +1303,17 @@ end;
 
 procedure TUIEditForm.DataSources1Click(Sender: TObject);
 begin
-  ListEditForm.ShowWithTarget(Self._Scene._Datasources);
+  ListEditForm.ShowWithTarget(Self._Scene._Datasources, False);
+end;
+
+procedure TUIEditForm.Paths1Click(Sender: TObject);
+begin
+  ListEditForm.ShowWithTarget(Self._Scene._Paths, True);
+end;
+
+procedure TUIEditForm.NewProjectClick(Sender: TObject);
+begin
+  Self._Scene.AddView('untitled');
 end;
 
 end.

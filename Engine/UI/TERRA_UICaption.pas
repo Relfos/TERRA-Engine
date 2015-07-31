@@ -3,13 +3,17 @@ Unit TERRA_UICaption;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Object, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font;
+Uses TERRA_String, TERRA_Object, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_DataSource;
 
 Type
   UICaption = Class(Widget)
     Protected
       _Caption:StringProperty;
       _CaptionIndex:Integer;
+
+      _DataSource:DataSourceProperty;
+      _DataSourceIndex:Integer;
+
 
       _TextRect:Vector2D;
       _PreviousFont:TERRAFont;
@@ -63,15 +67,21 @@ End;
 Constructor UICaption.Create(const Name:TERRAString; Parent:Widget; Const ComponentName: TERRAString);
 Begin
   Inherited Create(Name, Parent, ComponentName);
+
   _Caption := CaptionProperty.Create('caption', '', Self);
+  _DataSource := DataSourceProperty.Create('datasource', '');
 
   Self.ExpandProperties(1);
   _CaptionIndex := _BasePropertiesIndex;
+
+  Self.ExpandProperties(1);
+  _DataSourceIndex := _BasePropertiesIndex;
 End;
 
 Procedure UICaption.Release();
 Begin
   ReleaseObject(_Caption);
+  ReleaseObject(_DataSource);
 End;
 
 Function UICaption.GetLocalizationKey: TERRAString;
@@ -87,6 +97,9 @@ Function UICaption.GetPropertyByIndex(Index: Integer): TERRAObject;
 Begin
   If Index = _CaptionIndex Then
     Result := Self.Caption
+  Else
+  If Index = _DataSourceIndex Then
+    Result := _DataSource
   Else
     Result := Inherited GetPropertyByIndex(Index);
 End;

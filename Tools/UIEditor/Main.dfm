@@ -91,8 +91,9 @@ object UIEditForm: TUIEditForm
       Caption = '&Project'
       object New1: TMenuItem
         Caption = '&New'
-        object Project2: TMenuItem
+        object NewProject: TMenuItem
           Caption = '&Project'
+          OnClick = NewProjectClick
         end
         object N3: TMenuItem
           Caption = '-'
@@ -122,6 +123,10 @@ object UIEditForm: TUIEditForm
       object DataSources1: TMenuItem
         Caption = '&Data Sources'
         OnClick = DataSources1Click
+      end
+      object Paths1: TMenuItem
+        Caption = '&Paths'
+        OnClick = Paths1Click
       end
       object Settings1: TMenuItem
         Caption = '&Settings'

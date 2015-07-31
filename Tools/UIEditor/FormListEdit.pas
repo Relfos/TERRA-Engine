@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, TERRA_Object, TERRA_Collections, TERRA_CollectionObjects;
+  Dialogs, StdCtrls, TERRA_Object, TERRA_Collections, TERRA_CollectionObjects, TERRA_FileUtils;
 
 type
   TListEditForm = class(TForm)
@@ -17,10 +17,12 @@ type
     procedure Button3Click(Sender: TObject);
   private
     _Target:List;
+    _FolderOnly:Boolean;
+
   public
     { Public declarations }
 
-    Procedure ShowWithTarget(Target:List);
+    Procedure ShowWithTarget(Target:List; FolderOnly:Boolean);
   end;
 
 var
@@ -32,12 +34,13 @@ implementation
 
 { TListEditForm }
 
-procedure TListEditForm.ShowWithTarget(Target:List);
+procedure TListEditForm.ShowWithTarget(Target:List; FolderOnly:Boolean);
 Var
   I:Integer;
   Key:TERRAObject;
 begin
   _Target := Target;
+  _FolderOnly := FolderOnly;
   Self.ShowModal();
 
   Self.ListBox1.Clear;
@@ -55,11 +58,17 @@ begin
 End;
 
 procedure TListEditForm.Button1Click(Sender: TObject);
+Var
+  S:String;
 begin
   If OpenDialog1.Execute Then
   Begin
-    _Target.Add(StringObject.Create(OpenDialog1.FileName));
-    ListBox1.Items.Add(OpenDialog1.FileName);
+    S := OpenDialog1.FileName;
+    If Self._FolderOnly Then
+      S := GetFilePath(S);
+
+    _Target.Add(StringObject.Create(S));
+    ListBox1.Items.Add(S);
   End;
 end;
 

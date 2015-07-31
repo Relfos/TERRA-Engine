@@ -103,6 +103,16 @@ type
       Procedure OnClick(Sender: TObject);
   End;
 
+  TDataSourceCell = Class(TPropertyCell)
+    Protected
+      _Name:TLabel;
+
+      Function CreateEditor():TControl; Override;
+      Procedure Update(); Override;
+
+      Procedure OnClick(Sender: TObject);
+  End;
+
   TCustomPropertyEditor = class(TPanel)
     private
       _Bevel:TBevel;
@@ -215,7 +225,7 @@ type
 procedure Register;
 
 implementation
-uses Forms, TypInfo, Variants, Consts;
+uses Forms, TypInfo, Variants, Consts, DataSourceBrowser;
 
 
 procedure Register;
@@ -258,16 +268,17 @@ Begin
     If Prop = Nil Then
       Break;
 
-    S := Prop.GetBlob();
+    (*S := Prop.GetBlob();
     If S<>'' Then
     Begin
       Self.InsertRow(Parent, Prop);
-    End;
+    End;*)
 
     If Not Prop.IsValueObject() Then
     Begin
       AddPropertiesFromObject(Prop, Prop);
-    End;
+    End Else
+      Self.InsertRow(Parent, Prop);
 
     Inc(Index);
   Until False;
@@ -304,6 +315,9 @@ Begin
   Else
   If StringEquals(S, 'angle') Then
     CellType := TAngleCell
+  Else
+  If StringEquals(S, 'datasource') Then
+    CellType := TDataSourceCell
   Else
   If StringEquals(S, 'enum') Then
     CellType := TEnumCell
@@ -605,7 +619,7 @@ Begin
 End;
 
 
-{ TAngleCell }              
+{ TAngleCell }
 Procedure TAngleCell.OnChange(Sender: TObject);
 Begin
   _Prop.SetBlob(FloatToString(StringToFloat(_Edit.Text) * RAD));
@@ -741,6 +755,27 @@ End;
 Procedure TEnumCell.OnClick(Sender: TObject);
 Begin
   _Prop.SetBlob(_List.Items[_List.ItemIndex]);
+End;
+
+{ TDataSourceCell }
+Function TDataSourceCell.CreateEditor: TControl;
+Begin
+  _Name := TLabel.Create(_Owner);
+  _Name.OnClick := Self.OnClick;
+  _Name.Color := _Owner.EditColor;
+  _Name.Font.Color := clWhite;
+  _Name.Cursor := crHandPoint;
+
+  Result := Self._Name;
+End;
+
+Procedure TDataSourceCell.OnClick(Sender: TObject);
+Begin
+  DataSourceBrowserForm.ShowModal;
+End;
+
+Procedure TDataSourceCell.Update;
+Begin
 End;
 
 end.
