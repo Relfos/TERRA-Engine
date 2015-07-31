@@ -70,6 +70,7 @@ Type
 
       _Views:List;
       _Paths:List;
+      _Datasources:List;
 
       _SelectedView:UIEditableView;
       _SelectedWidget:Widget;
@@ -154,6 +155,7 @@ Type
     PropertyList: TCustomPropertyEditor;
     N4: TMenuItem;
     Settings1: TMenuItem;
+    DataSources1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -194,6 +196,7 @@ Type
       ASelected: Boolean);
     procedure TabListTabClose(Sender: TObject; ATab: TIceTab);
     procedure Settings1Click(Sender: TObject);
+    procedure DataSources1Click(Sender: TObject);
 
   Protected
     _CurrentCursor:Integer;
@@ -238,7 +241,7 @@ Var
 
 implementation
 Uses TERRA_UIDimension, TERRA_UIWindow, TERRA_UIButton, TERRA_UILabel, TERRA_UICheckbox, TERRA_UIRadioButton, TERRA_UIProgressBar,
-  TERRA_UISprite, TERRA_UIComboBox, FormProjectSettings;
+  TERRA_UISprite, TERRA_UIComboBox, FormProjectSettings, FormListEdit;
 
 {$R *.dfm}
 
@@ -267,12 +270,16 @@ Begin
 
   ReleaseObject(_Views);
   ReleaseObject(_Paths);
+  ReleaseObject(_Datasources);
 
   Self._Views := List.Create();
   Self._Views.Name := 'views';
 
   Self._Paths := List.Create();
   Self._Paths.Name := 'paths';
+
+  Self._Datasources := List.Create();
+  Self._Datasources.Name := 'datasources';
 
   Self._SelectedView := Nil;
 End;
@@ -281,6 +288,7 @@ Procedure UIEditScene.Release;
 Begin
   ReleaseObject(_Views);
   ReleaseObject(_Paths);
+  ReleaseObject(_Datasources);
 End;
 
 
@@ -453,6 +461,7 @@ Begin
   Case Index Of
   0:  Result := _Views;
   1:  Result := _Paths;
+  2:  Result := _Datasources;
   Else
     Result := Nil;
   End;
@@ -1285,6 +1294,11 @@ end;
 procedure TUIEditForm.Settings1Click(Sender: TObject);
 begin
   ProjectSettingsForm.ShowModal;
+end;
+
+procedure TUIEditForm.DataSources1Click(Sender: TObject);
+begin
+  ListEditForm.ShowWithTarget(Self._Scene._Datasources);
 end;
 
 end.

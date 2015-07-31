@@ -119,6 +119,10 @@ object UIEditForm: TUIEditForm
       object N4: TMenuItem
         Caption = '-'
       end
+      object DataSources1: TMenuItem
+        Caption = '&Data Sources'
+        OnClick = DataSources1Click
+      end
       object Settings1: TMenuItem
         Caption = '&Settings'
         OnClick = Settings1Click
@@ -193,8 +197,8 @@ object UIEditForm: TUIEditForm
   end
   object PopupMenu: TPopupMenu
     OwnerDraw = True
-    Left = 208
-    Top = 496
+    Left = 96
+    Top = 560
     object Copy1: TMenuItem
       Caption = '&Copy'
     end

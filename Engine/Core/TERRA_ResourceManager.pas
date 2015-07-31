@@ -40,7 +40,7 @@ Type
     Public
       Value:Resource;
 
-      Function ToString():TERRAString; Override;
+      Function GetBlob():TERRAString; Override;
 
       Constructor Create(MyResource:Resource);
       Procedure CopyValue(Other:CollectionObject); Override;
@@ -418,7 +418,7 @@ Begin
   Self.Value := ResourceEntry(Other).Value;
 End;
 
-Function ResourceEntry.ToString:TERRAString;
+Function ResourceEntry.GetBlob:TERRAString;
 Begin
   Result := Value.Name;
 End;

@@ -78,7 +78,7 @@ Type
 
       Procedure Rebuild();
 
-      Function ToString():TERRAString; Override;
+      Function GetBlob():TERRAString; Override;
 
       Procedure Prefetch;
 
@@ -230,7 +230,7 @@ Begin
   Result := GetStringSort(Self.Name, Resource(Other).Name);
 End;
 
-Function Resource.ToString:TERRAString;
+Function Resource.GetBlob:TERRAString;
 Begin
   Result := Self.Name;
 End;

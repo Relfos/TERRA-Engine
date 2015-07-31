@@ -193,7 +193,7 @@ Begin
 
   If (_Selected<>Nil) And (Assigned(Self.Font)) Then
   Begin
-    S := _Selected.ToString();
+    S := _Selected.GetBlob();
     If (S<>'') And (S[1]='#') Then
       S := LocalizationManager.Instance.GetString(Copy(S, 2, MaxInt));
 
@@ -225,7 +225,7 @@ Begin
 
       If Assigned(Self.Font) Then
       Begin
-        S := P.ToString();
+        S := P.GetBlob();
         If (S<>'') And (S[1]='#') Then
           S := LocalizationManager.Instance.GetString(Copy(S, 2, MaxInt));
 
@@ -249,7 +249,7 @@ Begin
   I := 0;
   P := _Content.First;
   While Assigned(P) Do
-  If (P.ToString() = Value) Then
+  If (P.GetBlob() = Value) Then
   Begin
     SetItemIndex(I);
     Exit;

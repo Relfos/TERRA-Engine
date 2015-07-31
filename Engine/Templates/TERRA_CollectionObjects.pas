@@ -11,7 +11,7 @@ Type
       Value:TERRAString;
 
       Constructor Create(S:TERRAString);
-      Function ToString():TERRAString; Override;
+      Function GetBlob():TERRAString; Override;
 
     Protected
       Procedure CopyValue(Other:CollectionObject); Override;
@@ -23,7 +23,7 @@ Type
       Value:Integer;
 
       Constructor Create(S:Integer);
-      Function ToString():TERRAString; Override;
+      Function GetBlob():TERRAString; Override;
 
     Protected
       Procedure CopyValue(Other:CollectionObject); Override;
@@ -35,7 +35,7 @@ Type
       Value:Cardinal;
 
       Constructor Create(S:Cardinal);
-      Function ToString():TERRAString; Override;
+      Function GetBlob():TERRAString; Override;
 
     Protected
       Procedure CopyValue(Other:CollectionObject); Override;
@@ -63,7 +63,7 @@ Begin
   Result := GetStringSort(Self.Value, S);
 End;
 
-Function StringObject.ToString:TERRAString;
+Function StringObject.GetBlob:TERRAString;
 Begin
   Result := Value;
 End;
@@ -94,7 +94,7 @@ Begin
   Self.Value := S;
 End;
 
-Function IntegerObject.ToString:TERRAString;
+Function IntegerObject.GetBlob:TERRAString;
 Begin
   Result := IntToString(Value);
 End;
@@ -125,7 +125,7 @@ Begin
 End;
 
 
-Function CardinalObject.ToString:TERRAString;
+Function CardinalObject.GetBlob:TERRAString;
 Begin
   Result := CardinalToString(Value);
 End;

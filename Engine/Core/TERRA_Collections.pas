@@ -77,8 +77,6 @@ Type
       { Clones this object. }
       Procedure CopyValue(Other:CollectionObject); Virtual;
 
-      Function ToString():TERRAString; {$IFDEF FPC}Reintroduce;{$ENDIF}  Virtual;
-
       { Compares this object with a similar object. If not implemented, no sorting will happen. }
       Function Sort(Other:CollectionObject):Integer; Virtual;
 
@@ -654,11 +652,6 @@ Begin
     Result := 1;
 End;
 
-Function CollectionObject.ToString:TERRAString;
-Begin
-  Result := Self.ClassName+'@'+HexStr(Cardinal(Self));
-End;
-
 Procedure CollectionObject.Discard();
 Begin
   Self._Discarded := True;
@@ -833,13 +826,13 @@ Begin
 
   If (Item = Nil) Or ((Options And coCheckReferencesOnAdd<>0) And (Self.Contains(Item))) Then
   Begin
-    Log(logWarning, Self.ClassName, 'Reference already inside collection: '+Item.ToString());
+    Log(logWarning, Self.ClassName, 'Reference already inside collection: '+Item.GetBlob());
     Exit;
   End;
 
   If (Item.Collection<>Nil) Then
   Begin
-    Log(logWarning, Self.ClassName, 'Item already belongs to a collection: '+Item.ToString());
+    Log(logWarning, Self.ClassName, 'Item already belongs to a collection: '+Item.GetBlob());
     Exit;
   End;
 

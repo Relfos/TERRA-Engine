@@ -97,13 +97,13 @@ Begin
 
   If (Item = Nil) Or ((Options And coCheckReferencesOnAdd<>0) And (Self.Contains(Item))) Then
   Begin
-    Log(logWarning, Self.ClassName, 'Reference already inside collection: '+Item.ToString());
+    Log(logWarning, Self.ClassName, 'Reference already inside collection: '+Item.GetBlob());
     Exit;
   End;
 
   If (Item.Collection<>Nil) Then
   Begin
-    Log(logWarning, Self.ClassName, 'Item already belongs to a collection: '+Item.ToString());
+    Log(logWarning, Self.ClassName, 'Item already belongs to a collection: '+Item.GetBlob());
     Exit;
   End;
 
