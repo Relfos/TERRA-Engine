@@ -7,10 +7,6 @@ Uses TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Fo
 
 Type
   UILabel = Class(UICaption)
-    Protected
-      _Width:Single;
-      _Height:Single;
-
     Public
       Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Caption:TERRAString; TabIndex:Integer=-1);
 
@@ -32,8 +28,6 @@ Begin
 
   Self.SetRelativePosition(VectorCreate2D(X,Y));
   Self.Layer := Z;
-  Self._Width := 0;
-  Self._Height := 0;
 
   Self.Caption.Value := Caption;
   _NeedsUpdate := True;
@@ -88,9 +82,6 @@ Begin
     Exit;
 
   Self.UpdateTransform();
-
-  _Width := Self._TextRect.X;
-  _Height := Self._TextRect.Y;
 
 (*  {$IFDEF MOBILE}
   Color := Self.GetColor;

@@ -244,7 +244,7 @@ Var
 
 implementation
 Uses TERRA_UIDimension, TERRA_UIWindow, TERRA_UIButton, TERRA_UILabel, TERRA_UICheckbox, TERRA_UIRadioButton, TERRA_UIProgressBar,
-  TERRA_UISprite, TERRA_UIComboBox, FormProjectSettings, FormListEdit;
+  TERRA_UISprite, TERRA_UIList, TERRA_UIComboBox, FormProjectSettings, FormListEdit;
 
 {$R *.dfm}
 

@@ -70,6 +70,11 @@ Type
     UIDrag_BottomRight
   );
 
+  UIDirection = (
+    UIDirection_Vertical,
+    UIDirection_Horizontal
+  );
+  
   Widget = Class;
   WidgetClass = Class Of Widget;
   WidgetEventHandler = Procedure(Src:Widget) Of Object;
@@ -573,6 +578,7 @@ Type
       _FontRenderer:FontRenderer;
 
       _AlignEnums:EnumCollection;
+      _DirectionEnums:EnumCollection;
 
       Procedure OnAppResize; Override;
       Procedure OnLanguageChange; Override;
@@ -623,6 +629,9 @@ Type
       Property FontRenderer:FontRenderer Read GetFontRenderer Write SetFontRenderer;
 
       Property Viewport:TERRAViewport Read _Viewport;
+
+      Property AlignEnums:EnumCollection Read _AlignEnums;
+      Property DirectionEnums:EnumCollection Read _DirectionEnums;
   End;
 
 Function GetSpriteZOnTop(W:Widget; Ofs:Single = 1.0):Single;
@@ -3609,6 +3618,10 @@ Begin
   _AlignEnums.Add('BottomLeft', waBottomLeft);
   _AlignEnums.Add('BottomCenter', waBottomCenter);
   _AlignEnums.Add('BottomRight', waBottomRight);
+
+  _DirectionEnums := EnumCollection.Create();
+  _DirectionEnums.Add('Vertical', Integer(UIDirection_Vertical));
+  _DirectionEnums.Add('Horizontal', Integer(UIDirection_Horizontal));
 
   // make UI view
   _Viewport := TERRAViewport.Create('UI', GraphicsManager.Instance.UI_Width, GraphicsManager.Instance.UI_Height, {$IFDEF FRAMEBUFFEROBJECTS}GraphicsManager.Instance.UI_Scale{$ELSE}1.0{$ENDIF});
