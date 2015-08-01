@@ -47,11 +47,9 @@ Type
       _Dragger:UIWidget;
       _Modal:UIWidget;
       _Highlight:UIWidget;
-      _First:UIWidget;
       _Draw:Boolean;
 
       _Transition:UITransition;
-      _Widgets:HashMap;
 
       _DefaultFont:TERRAFont;
       _Language:TERRAString;
@@ -66,10 +64,6 @@ Type
       _InverseTransform:Matrix3x3;
       _ClipRect:ClipRect;
 
-      _HasDeletions:Boolean;
-
-      Procedure UpdateLanguage();
-
       Procedure SetColorTable(const Value:TERRATexture);
       Procedure SetDefaultFont(const Value:TERRAFont);
       Procedure SetHighlight(const Value:UIWidget);
@@ -77,16 +71,11 @@ Type
 
       Function GetHighlight:UIWidget;
 
-      Procedure OnOrientationChange;
-
       Function GetFontRenderer():FontRenderer;
 
       Function GetModal():UIWidget;
 
       Procedure Clear;
-
-      Procedure InsertIntoTopWidgets(W:UIWidget);
-      Procedure RemoveFromTopWidgets(W:UIWidget);
 
     Public
       CloseButton:UIWidget;
@@ -106,15 +95,10 @@ Type
       Constructor Create;
       Procedure Release; Override;
 
-      Procedure AddWidget(MyWidget:UIWidget);
-      Procedure DeleteWidget(MyWidget:UIWidget);
-      Function GetWidget(Const Name:TERRAString):UIWidget;
-
-      Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
       Function GetObjectType:TERRAString; Override; 
 
-      Function SelectNearestWidget(Target:UIWidget):UIWidget;
-      Procedure GetFirstHighLight(GroupID:Integer);
+      //Function SelectNearestWidget(Target:UIWidget):UIWidget;
+      //Procedure GetFirstHighLight(GroupID:Integer);
 
       Function PickWidget(X,Y:Integer; Ignore:UIWidget = Nil):UIWidget;
 
@@ -127,7 +111,7 @@ Type
 		  Function OnMouseWheel(X,Y:Integer; Delta:Integer):UIWidget;
 		  Function OnMouseMove(X,Y:Integer):UIWidget;
 
-      Procedure Render;
+      Procedure Render; Override;
 
       Procedure AfterEffects;
 
@@ -150,8 +134,6 @@ Type
 
       Property VirtualKeyboard:UIWidget Read GetVirtualKeyboard;
 
-      Property Widgets:HashMap Read _Widgets;
-
       Property LastWidget:UIWidget Read _LastWidget;
 
       Property DefaultFont:TERRAFont Read _DefaultFont Write SetDefaultFont;
@@ -161,8 +143,6 @@ Type
       Property Transform:Matrix3x3 Read _Transform Write SetTransform;
 
       Property ClipRect:ClipRect Read _ClipRect Write _ClipRect;
-
-      Property First:UIWidget Read _First;
     End;
 
   UIManager = Class(ApplicationComponent)
@@ -182,7 +162,6 @@ Type
       _DirectionEnums:EnumCollection;
 
       Procedure OnAppResize; Override;
-      Procedure OnLanguageChange; Override;
       Procedure OnOrientationChange; Override;
 
       Procedure UpdateRatio();
@@ -261,7 +240,7 @@ Begin
   Self.InitProperties();
 
   _ObjectName := 'UI';
-  _Widgets := HashMap.Create(1024);
+
   SetVisible(True);
 
   _Transition := Nil;
@@ -285,18 +264,15 @@ Begin
 End;
 
 Procedure TERRAUI.Release;
-Var
-  I:Integer;
 Begin
   ReleaseObject(_Transition);
-	ReleaseObject(_Widgets);
 End;
 
 Procedure TERRAUI.Clear;
 Begin
   Log(logError, 'UI', 'Clearing UI');
-  _First := Nil;
-  _Widgets.Clear;
+
+  Self.RemoveAllChildren();
 
   SetTransition(Nil);
   Log(logError, 'UI', 'UI is now clear.');
@@ -376,157 +352,6 @@ Begin
   Self._ColorTable := Value;
 End;
 
-Procedure TERRAUI.AddWidget(MyWidget:UIWidget);
-Var
-  Temp:UIWidget;
-  Found:Boolean;
-  It:Iterator;
-  NameIndex:Integer;
-  BaseName:TERRAString;
-Begin
-  BaseName := MyWidget.Name;
-  NameIndex := 0;
-  While Assigned(GetWidget(MyWidget.Name)) Do
-  Begin
-    If NameIndex<=0 Then
-    Begin
-      Temp := GetWidget(MyWidget.Name);
-      Temp.Name := BaseName + '_'+IntToString(NameIndex);
-    End;
-
-    Inc(NameIndex);
-    MyWidget.Name := BaseName + '_' + IntToString(NameIndex);
-  End;
-
-  If (Assigned(MyWidget.Parent)) Then
-  Begin
-    (*It := _Widgets.GetIterator();
-    Found := False;
-    While (It.HasNext) Do
-    Begin
-      Temp := Widget(It.Value);
-      If (Temp = MyWidget._Parent) Then
-      Begin
-        Widget(Temp).AddChild(MyWidget);
-        Found := True;
-        Break;
-      End;
-    End;
-    ReleaseObject(It);
-
-    If Not Found Then
-      Log(logWarning, 'UI', 'Error finding parent for '+ MyWidget.Name +'!');*)
-
-    MyWidget.Parent.AddChild(MyWidget);
-  End Else
-    InsertIntoTopWidgets(MyWidget);
-
-  _Widgets.Add(MyWidget);
-End;
-
-Procedure TERRAUI.InsertIntoTopWidgets(W:UIWidget);
-Var
-  Found:Boolean;
-  Temp, Last:UIWidget;
-Begin
-  If (Assigned(_First)) Then
-  Begin
-    If (_First.Layer > W.Layer) Then
-    Begin
-      W.Next := _First;
-      _First := W;
-    End Else
-    Begin
-      Last := _First;
-      Temp := _First.Next;
-      Found := False;
-      While (Assigned(Temp)) Do
-      Begin
-        If (Temp.Layer > W.Layer) Then
-        Begin
-          W.Next := Temp;
-          Last.Next := W;
-          Found := True;
-          Break;
-        End;
-        Last := Temp;
-        Temp := Temp.Next;
-      End;
-
-      If (Not Found) Then
-      Begin
-        Last.Next := W;
-        W.Next := Nil;
-      End;
-    End;
-
-  End Else
-  Begin
-    _First := W;
-    W.Next := Nil;
-  End;
-End;
-
-Procedure TERRAUI.RemoveFromTopWidgets(W:UIWidget);
-Var
-  Current, Temp:UIWidget;
-Begin
-  If (_First = W) Then
-  Begin
-    _First := _First.Next;
-    Exit;
-  End;
-
-  Current := _First;
-  While Assigned(Current) Do
-  Begin
-    Temp := Current.Next;
-    If (Temp = W) Then
-    Begin
-      Current.Next := Temp.Next;
-      Exit;
-    End;
-
-    Current := Temp;
-  End;
-End;
-
-Procedure TERRAUI.DeleteWidget(MyWidget:UIWidget);
-Begin
-  If (MyWidget = Nil) Then
-    Exit;
-
-  MyWidget.Delete();
-End;
-
-Function SearchWidgetByName(P:CollectionObject; UserData:Pointer):Boolean; CDecl;
-Begin
-  Result := (UIWidget(P).Name = PString(Userdata)^);
-End;
-
-Function TERRAUI.GetWidget(Const Name:TERRAString):UIWidget;
-Var
-  WidgetName:TERRAString;
-Begin
-  WidgetName := GetFileName(Name, True);
-  Result := UIWidget(_Widgets.Search(SearchWidgetByName, @WidgetName));
-End;
-
-
-Procedure TERRAUI.UpdateLanguage();
-Var
-  MyWidget:UIWidget;
-  It:Iterator;
-Begin
-  _Language := Application.Instance.Language;
-  It := _Widgets.GetIterator();
-  While (It.HasNext) Do
-  Begin
-    MyWidget := UIWidget(It.Value);
-    MyWidget.OnLanguageChange();
-  End;
-  ReleaseObject(It);
-End;
 
 Procedure TERRAUI.Render;
 Var
@@ -537,10 +362,11 @@ Var
 Begin
   _Draw := False;
 
+  (* TODO
   If (Assigned(_Highlight)) And ((Not _Highlight.Visible) Or (Not _Highlight.Enabled)) Then
   Begin
     _Highlight := SelectNearestWidget(_Highlight);
-  End;
+  End;*)
 
   If (Assigned(_Focus)) And (Not _Focus.Visible) Then
     _Focus := Nil;
@@ -549,71 +375,17 @@ Begin
     _Modal := Nil;
 
   If (_Language <> Application.Instance.Language) Then
-    UpdateLanguage();
-
-  //glEnable(glCoverage);
-
-  (*ShaderManager.Instance.Bind(Self.GetShader);
-  _Shader.SetUniform('texture', 0);
-  _Shader.SetUniform('projectionMatrix', GraphicsManager.Instance.ProjectionMatrix);
-  Q.X := GraphicsManager.Instance.Ratio2D.X;
-  Q.Y := GraphicsManager.Instance.Ratio2D.Y;
-  Q.Z := 1;
-  Q.W := 1;
-  _Shader.SetUniform('screen_ratio', Q);
-
-  PositionHandle := _Shader.GetAttribute('terra_position');
-  UVHandle := _Shader.GetAttribute('terra_UV0');
-  ColorHandle := _Shader.GetAttribute('terra_color');
-  *)
+  Begin
+    _Language := Application.Instance.Language;
+    Self.OnLanguageChange();
+  End;
 
   If (UIManager.Instance._UpdateTextureAtlas) Then
     Exit;
 
   GraphicsManager.Instance.Renderer.SetBlendMode(blendBlend);
 
-  If _HasDeletions Then
-  Begin
-    _HasDeletions := False;
-
-    It := Self.Widgets.GetIterator();
-    While It.HasNext() Do
-    Begin
-      Current := UIWidget(It.Value);
-
-      If Current.Deleted Then
-      Begin
-        If Current.Parent = Nil Then
-          Self.RemoveFromTopWidgets(Current);
-
-        Current.Discard();
-      End;
-    End;
-    ReleaseObject(It);
-  End;
-
-  While (Assigned(_First)) And (Assigned(_First.Parent)) Do
-  Begin
-    _First := _First.Next;
-  End;
-
-  Current := _First;
-  While (Assigned(Current)) Do
-  Begin
-    Temp := Current.Next;
-    If (Assigned(Temp)) And (Assigned(Temp.Parent)) Then
-    Begin
-      Current.Next := Temp.Next;
-      Temp := Current.Next;
-    End;
-
-    If (Current.Visible) And (Current.CanRender()) Then
-      Current.Render();
-
-    Current := Temp;
-  End;
-
-  //glDisable(glCoverage);
+  Inherited Render();
 End;
 
 Procedure TERRAUI.AfterEffects;
@@ -680,7 +452,7 @@ Begin
     End;
   End;
 
-  MyWidget := _First;
+(*  MyWidget := _First;
   While (Assigned(MyWidget)) Do
   Begin
     If (Not Assigned(MyWidget.Parent)) And (MyWidget.Visible) Then
@@ -693,7 +465,7 @@ Begin
     End;
 
     MyWidget := MyWidget.Next;
-  End;
+  End;*)
 End;
 
 Function TERRAUI.OnKeyPress(Key:Word):UIWidget;
@@ -723,7 +495,7 @@ Begin
   Result := Nil;
   Max := -9999;
 
-  Current := _First;
+(* TODO  Current := _First;
   While (Assigned(Current)) Do
   Begin
     If (Current.Parent = Nil) And (Current.AllowsEvents()) Then
@@ -732,7 +504,7 @@ Begin
     End;
 
     Current := Current.Next;
-  End;
+  End; *)
 
 
   If (Self.Modal<>Nil) And (Assigned(Result)) And (Not Result.IsSameFamily(Modal)) Then
@@ -842,22 +614,6 @@ Begin
   Result := _VirtualKeyboard;
 End;
 
-Procedure TERRAUI.OnOrientationChange;
-Var
-  MyWidget:UIWidget;
-  It:Iterator;
-Begin
-  _Language := Application.Instance.Language;
-  It := _Widgets.GetIterator();
-  While (It.HasNext) Do
-  Begin
-    MyWidget := UIWidget(It.Value);
-    If (MyWidget.Parent =  Nil) Then
-      MyWidget.TransformChanged := True;
-  End;
-  ReleaseObject(It);
-End;
-
 Function TERRAUI.GetHighlight:UIWidget;
 Begin
   If (Assigned(_Highlight)) And (Not _Highlight.Visible) Then
@@ -881,14 +637,7 @@ Begin
   _ClipRect.Height := UIManager.Instance.Height;
   _ClipRect.Transform(M);
 
-  It := Self.Widgets.GetIterator();
-  While It.HasNext() Do
-  Begin
-    W := UIWidget(It.Value);
-
-    W.TransformChanged := True;
-  End;
-  ReleaseObject(It);
+  Self._TransformChanged := True;
 End;
 
 Function TERRAUI.GetFontRenderer():FontRenderer;
@@ -906,7 +655,7 @@ Begin
   Result := (X>=0) And (Y>=0) And (X<=UIManager.Instance.Width) And (Y<=UIManager.Instance.Height);
 End;
 
-Function TERRAUI.SelectNearestWidget(Target:UIWidget):UIWidget;
+(*Function TERRAUI.SelectNearestWidget(Target:UIWidget):UIWidget;
 Var
   It:Iterator;
   Base:Vector2D;
@@ -922,7 +671,7 @@ Begin
   Base := Target.AbsolutePosition;
   GroupID := Target.HighlightGroup;
 
-  It := Self.Widgets.GetIterator();
+  It := Self.GetIterator();
   While It.HasNext() Do
   Begin
     W := UIWidget(It.Value);
@@ -944,7 +693,7 @@ Var
   W:UIWidget;
   It:Iterator;
 Begin
-  It := Self.Widgets.GetIterator();
+  It := Self.GetIterator();
   While It.HasNext() Do
   Begin
     W := UIWidget(It.Value);
@@ -955,8 +704,7 @@ Begin
     Break;
   End;
   ReleaseObject(It);
-End;
-
+End;*)
 
 Function TERRAUI.GetModal:UIWidget;
 Begin
@@ -966,20 +714,6 @@ Begin
   End;
 
   Result := Self._Modal;
-End;
-
-Function TERRAUI.GetPropertyByIndex(Index: Integer): TERRAObject;
-Var
-  P:UIWidget;
-Begin
-  P := _First;
-  While (Index>0) And (Assigned(P)) Do
-  Begin
-    Dec(Index);
-    P := P.Next;
-  End;
-
-  Result := P;
 End;
 
 Function TERRAUI.GetObjectType: TERRAString;
@@ -1182,14 +916,6 @@ Begin
   Result := UIManager(_UIManager_Instance.Instance);
 End;
 
-Procedure UIManager.OnLanguageChange;
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(_UICount) Do
-    _UIList[I].UpdateLanguage();
-End;
-
 Procedure UIManager.Resume;
 Begin
   _UpdateTextureAtlas := True;
@@ -1233,7 +959,7 @@ Begin
 
   UpdateRatio();
   For I:=0 To Pred(_UICount) Do
-    _UIList[I].OnOrientationChange;
+    _UIList[I]._TransformChanged := True;
 End;
 
 Procedure UIManager.UpdateRatio;
