@@ -84,7 +84,7 @@ Begin
   Self.ClearProperties();
   Self.UpdateRects;
 
-  If (Caption.Value = '') Then
+  If (Caption.Text = '') Then
     Exit;
 
   Self.UpdateTransform();
@@ -106,7 +106,7 @@ Begin
 
   Color := Self.GetColor;
 
-  Self.DrawText(Caption.Value, 0, 0, 0, _TextRect, Scale, 0, False, Color);
+  Self.DrawText(Caption.Text, 0, 0, 0, _TextRect, Scale, 0, False, Color);
 
   Inherited;
 End;

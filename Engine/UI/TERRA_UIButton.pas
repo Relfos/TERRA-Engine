@@ -45,7 +45,7 @@ Begin
 
   Self.DrawComponent(0, 0, 0, Self.Width, Self.Height, 0, Self.IsSelected);
 
-  If (Assigned(Self.Font)) And (Caption.Value <> '' ) Then
+  If (Assigned(Self.Font)) And (Caption.Text <> '' ) Then
   Begin
     FontScale := 1.0;
 
@@ -58,7 +58,7 @@ Begin
     TX := (Self._Size.X - _TextRect.X) * 0.5;
     TY := (Self._Size.Y - _TextRect.Y) * 0.5;
 
-    Self.DrawText(Caption.Value, TX, TY, 0.25, _TextRect, FontScale, 0, Self.IsSelected, ColorWhite);
+    Self.DrawText(Caption.Text, TX, TY, 0.25, _TextRect, FontScale, 0, Self.IsSelected, ColorWhite);
   End;
 
   Inherited;

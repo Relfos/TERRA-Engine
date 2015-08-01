@@ -3,21 +3,32 @@ Unit TERRA_UICaption;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Object, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_DataSource;
+Uses TERRA_String, TERRA_Object, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font;
 
 Type
+  UICaption = Class;
+
+  CaptionProperty = Class(StringProperty)
+    Protected
+      _Text:TERRAString;
+      _Owner:UICaption;
+
+    Public
+      Constructor Create(Const Name:TERRAString; Const InitValue:TERRAString; Owner:UICaption);
+
+      Procedure SetBlob(Const Value:TERRAString); Override;
+
+      Property Text:TERRAString Read _Text;
+  End;
+
+
   UICaption = Class(Widget)
     Protected
-      _Caption:StringProperty;
+      _Caption:CaptionProperty;
       _CaptionIndex:Integer;
-
-      _DataSource:DataSourceProperty;
-      _DataSourceIndex:Integer;
-
 
       _TextRect:Vector2D;
       _PreviousFont:TERRAFont;
-      _OriginalValue:TERRAString;
 
       Function GetLocalizationKey: TERRAString;
 
@@ -33,7 +44,7 @@ Type
 
 			Procedure OnLanguageChange(); Override;
 
-      Property Caption:StringProperty Read _Caption;
+      Property Caption:CaptionProperty Read _Caption;
       Property LocalizationKey:TERRAString Read GetLocalizationKey;
   End;
 
@@ -41,18 +52,6 @@ Function GetLocalizedString(Value:TERRAString):TERRAString;
 
 Implementation
 Uses TERRA_Localization;
-
-Type
-  CaptionProperty = Class(StringProperty)
-    Protected
-      _Owner:UICaption;
-
-    Public
-      Constructor Create(Const Name:TERRAString; Const InitValue:TERRAString; Owner:UICaption);
-
-      Procedure SetBlob(Const Value:TERRAString); Override;
-  End;
-
 
 Function GetLocalizedString(Value:TERRAString):TERRAString;
 Begin
@@ -69,26 +68,21 @@ Begin
   Inherited Create(Name, Parent, ComponentName);
 
   _Caption := CaptionProperty.Create('caption', '', Self);
-  _DataSource := DataSourceProperty.Create('datasource', '');
 
   Self.ExpandProperties(1);
   _CaptionIndex := _BasePropertiesIndex;
-
-  Self.ExpandProperties(1);
-  _DataSourceIndex := _BasePropertiesIndex;
 End;
 
 Procedure UICaption.Release();
 Begin
   ReleaseObject(_Caption);
-  ReleaseObject(_DataSource);
 End;
 
 Function UICaption.GetLocalizationKey: TERRAString;
 Begin
-  If StringFirstChar(_OriginalValue) = Ord('#') Then
+  If StringFirstChar(_Caption.Value) = Ord('#') Then
   Begin
-    Result := StringCopy(_OriginalValue, 2, MaxInt);
+    Result := StringCopy(Caption.Value, 2, MaxInt);
   End Else
     Result := '';
 End;
@@ -97,9 +91,6 @@ Function UICaption.GetPropertyByIndex(Index: Integer): TERRAObject;
 Begin
   If Index = _CaptionIndex Then
     Result := Self.Caption
-  Else
-  If Index = _DataSourceIndex Then
-    Result := _DataSource
   Else
     Result := Inherited GetPropertyByIndex(Index);
 End;
@@ -114,7 +105,7 @@ End;
 
 Procedure UICaption.OnLanguageChange;
 Begin
-  Self.Caption.Value := Self._OriginalValue;
+  Self.Caption.SetBlob(Self._Caption._Value);
 End;
 
 Procedure UICaption.UpdateRects;
@@ -142,15 +133,39 @@ End;
 
 Procedure CaptionProperty.SetBlob(const Value: TERRAString);
 Var
-  S:TERRAString;
+  S, S2, Data:TERRAString;
+  It:StringIterator;
 Begin
-  _Owner._OriginalValue := Value;
+  _Value := Value;
   _Owner._NeedsUpdate := True;
 
-  S := GetLocalizedString(Value);
-  S := ConvertFontCodes(S);
+  Data := _Owner.GetDataValue();
 
-  _Value := S;
+  S := Value;
+  _Text := '';
+  Repeat
+    If StringCharPosIterator(Ord('#'), S, It, True) Then
+    Begin
+      It.Split(S2, S);
+      _Text := _Text + S2;
+
+      S2 := StringGetNextSplit(S, Ord(' '));
+
+      If S2='$' Then
+        S2 := Data
+      Else
+        S2 := GetLocalizedString(S2);
+
+      _Text := _Text + S2 + ' ';
+    End Else
+    Begin
+      _Text := _Text + S;
+      Break;
+    End;
+
+  Until False;
+
+  S := ConvertFontCodes(S);
 End;
 
 End.

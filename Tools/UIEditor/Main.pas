@@ -1239,7 +1239,7 @@ End;
 
 procedure TUIEditForm.FormMouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
 begin
-  If WheelDelta<0 Then
+  If WheelDelta>0 Then
     PropertyList.DoMouseWheelUp(Shift, MousePos)
   Else
     PropertyList.DoMouseWheelDown(Shift, MousePos);

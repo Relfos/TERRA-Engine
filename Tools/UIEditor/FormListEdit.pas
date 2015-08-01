@@ -28,12 +28,32 @@ type
 var
   ListEditForm: TListEditForm;
 
+Procedure LoadDataSources(Target:List);
+
 implementation
+Uses TERRA_DataSource;
 
 {$R *.dfm}
 
-{ TListEditForm }
+Procedure LoadDataSources(Target:List);
+Var
+  It:Iterator;
+  S:StringObject;
+Begin
+  DataSourceManager.Instance.Clear;
+  If Target = Nil Then
+    Exit;
 
+  It := Target.GetIterator();
+  While It.HasNext() Do
+  Begin
+    S := StringObject(It.Value);
+    DataSourceManager.Instance.AddFromSession(S.Value);
+  End;
+  ReleaseObject(It);
+End;
+
+{ TListEditForm }
 procedure TListEditForm.ShowWithTarget(Target:List; FolderOnly:Boolean);
 Var
   I:Integer;
@@ -74,6 +94,9 @@ end;
 
 procedure TListEditForm.Button3Click(Sender: TObject);
 begin
+  If Self._Target.Name='datasources' Then
+    LoadDataSources(_Target);
+
   Self.Close;
 end;
 

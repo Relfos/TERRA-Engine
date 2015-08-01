@@ -102,7 +102,7 @@ Begin
 
   Self.DrawComponent(0.0, 0.0, 0.0, Self.Width, Self.Height, 0, _Checked.Value);
 
-  Self.DrawText(Caption.Value, Self.GetDimension(Self.Width, uiDimensionWidth) + CheckBoxPixelOfs, (_Size.Y - _TextRect.Y) * 0.5, 0.5, _TextRect, 1.0, 0, _Checked.Value, ColorWhite);
+  Self.DrawText(Caption.Text, Self.GetDimension(Self.Width, uiDimensionWidth) + CheckBoxPixelOfs, (_Size.Y - _TextRect.Y) * 0.5, 0.5, _TextRect, 1.0, 0, _Checked.Value, ColorWhite);
 
   Inherited;
 End;

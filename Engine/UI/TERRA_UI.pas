@@ -29,7 +29,7 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween,
   TERRA_SpriteManager, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_FontRenderer, TERRA_UITransition, TERRA_Viewport,
-  TERRA_UISkin, TERRA_UIDimension, TERRA_ClipRect, TERRA_EnumProperty, TERRA_Hashmap;
+  TERRA_UISkin, TERRA_UIDimension, TERRA_ClipRect, TERRA_EnumProperty, TERRA_DataSource, TERRA_Hashmap;
 
 Const
   waTopLeft     = 0;
@@ -93,6 +93,7 @@ Type
 			_Visible:BooleanProperty;
       _Skin:StringProperty;
       _TabIndex:IntegerProperty;
+      _DataSource:DataSourceProperty;
 
       _Deleted:Boolean;
 
@@ -202,6 +203,8 @@ Type
       Function GetScale():Single;
 
       Function GetTabControl():Widget;
+
+      Function GetDataValue():TERRAString;
 
       Procedure UpdateHighlight(); Overload;
       Procedure UpdateHighlight(Condition:Boolean); Overload;
@@ -717,6 +720,7 @@ Begin
   ReleaseObject(_Align);
   ReleaseObject(_Skin);
   ReleaseObject(_TabIndex);
+  ReleaseObject(_DataSource);
 End;
 
 Procedure Widget.InitProperties;
@@ -733,9 +737,10 @@ Begin
   _Skin := StringProperty.Create('skin', '');
   _TabIndex := IntegerProperty.Create('tabindex', -1);
   _Align := EnumProperty.Create('align', 0, UIManager.Instance._AlignEnums);
+  _DataSource := DataSourceProperty.Create('datasource', '');
 
   _BasePropertiesIndex := 0;
-  _CustomPropertiesIndex := 12;
+  _CustomPropertiesIndex := 13;
 End;
 
 Function Widget.GetPropertyByIndex(Index:Integer):TERRAObject;
@@ -763,6 +768,7 @@ Begin
   9: Result := _Saturation;
   10: Result := _Skin;
   11: Result := _TabIndex;
+  12: Result := _DataSource;
   Else
     Result := Nil;
   End;
@@ -2254,6 +2260,18 @@ Begin
     Result := _Parent.GetTabControl()
   Else
     Result := Nil;
+End;
+
+Function Widget.GetDataValue: TERRAString;
+Var
+  S:TERRAString;
+Begin
+  S := _DataSource.Value;
+
+  If Assigned(Self.Parent) Then
+    StringReplaceText('$', Self.Parent._DataSource.Value, S);
+
+  Result := DataSourceManager.Instance.GetValueFromPath(S);
 End;
 
 Procedure Widget.SetChildrenVisibilityByTag(Tag: Integer; Visibility: Boolean);

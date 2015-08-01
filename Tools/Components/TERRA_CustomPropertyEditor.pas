@@ -5,7 +5,7 @@ interface
 uses Windows, SysUtils, Classes, Messages, ExtCtrls, Controls, StdCtrls,
   Dialogs, Graphics, Buttons,
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_OS, TERRA_Color, TERRA_VCLApplication,
-  TERRA_FileManager, TERRA_FileUtils, TERRA_EnumProperty, TERRA_Math;
+  TERRA_FileManager, TERRA_FileUtils, TERRA_EnumProperty, TERRA_DataSource, TERRA_Math;
 
 Const
   MarginTop = 30;
@@ -40,6 +40,8 @@ type
       Procedure Release(); Override;
 
       Procedure SetVisible(Value:Boolean);
+
+      Property Prop:TERRAObject Read _Prop;
   End;
 
   TPropertyCellType = Class Of TPropertyCell;
@@ -49,10 +51,12 @@ type
       _Edit:TEdit;
 
       Function CreateEditor():TControl; Override;
-      Procedure Update(); Override;
 
       //Procedure OnKeyDown(Sender:TObject; var Key: Word; Shift: TShiftState);
       Procedure OnChange(Sender:TObject); Virtual;
+
+    Public
+      Procedure Update(); Override;
   End;
 
   TAngleCell = Class(TTextCell)
@@ -67,9 +71,10 @@ type
       _Dialog:TColorDialog;
 
       Function CreateEditor():TControl; Override;
-      Procedure Update(); Override;
-
       Procedure OnMouseDown(Sender: TObject; Button: TMouseButton; Shift:TShiftState; X, Y: Integer);
+
+    Public
+      Procedure Update(); Override;
   End;
 
   TBooleanCell = Class(TPropertyCell)
@@ -77,9 +82,11 @@ type
       _Check:TCheckbox;
 
       Function CreateEditor():TControl; Override;
-      Procedure Update(); Override;
 
       Procedure OnClick(Sender: TObject);
+
+    Public
+      Procedure Update(); Override;
   End;
 
   TTextureCell = Class(TPropertyCell)
@@ -88,9 +95,11 @@ type
       _Dialog:TOpenDialog;
 
       Function CreateEditor():TControl; Override;
-      Procedure Update(); Override;
 
       Procedure OnClick(Sender: TObject);
+
+    Public
+      Procedure Update(); Override;
   End;
 
   TEnumCell = Class(TPropertyCell)
@@ -98,9 +107,11 @@ type
       _List:TComboBox;
 
       Function CreateEditor():TControl; Override;
-      Procedure Update(); Override;
 
       Procedure OnClick(Sender: TObject);
+
+    Public
+      Procedure Update(); Override;
   End;
 
   TDataSourceCell = Class(TPropertyCell)
@@ -108,9 +119,11 @@ type
       _Name:TLabel;
 
       Function CreateEditor():TControl; Override;
-      Procedure Update(); Override;
 
       Procedure OnClick(Sender: TObject);
+
+    Public
+      Procedure Update(); Override;
   End;
 
   TCustomPropertyEditor = class(TPanel)
@@ -771,11 +784,12 @@ End;
 
 Procedure TDataSourceCell.OnClick(Sender: TObject);
 Begin
-  DataSourceBrowserForm.ShowModal;
+  DataSourceBrowserForm.ShowWithTarget(Self);
 End;
 
 Procedure TDataSourceCell.Update;
 Begin
+  _Name.Caption := _Prop.GetBlob();
 End;
 
 end.

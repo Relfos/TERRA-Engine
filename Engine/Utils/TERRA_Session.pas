@@ -3,7 +3,7 @@ Unit TERRA_Session;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_MemoryStream, TERRA_OS, TERRA_ProgressNotifier,
+Uses TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Stream, TERRA_MemoryStream, TERRA_OS, TERRA_ProgressNotifier,
   TERRA_Collections, TERRA_Hashmap;
 
 {-$DEFINE ALLOWBACKUPS}
@@ -12,7 +12,7 @@ Const
   DefaultSessionFileName = 'session';
 
 Type
-  SessionKeyValue = Class(HashMapObject)
+  SessionKeyValue = Class(CollectionObject)
     Protected
       _Value:TERRAString;
 
@@ -70,7 +70,7 @@ Type
 
       Property Data:Hashmap Read GetData;
 
-      Property Path:TERRAString Read _Path;
+      Property Path:TERRAString Read _Path Write _Path;
       Property FileName:TERRAString Read _FileName;
   End;
 
@@ -314,8 +314,8 @@ Begin
     If Assigned(Callback) Then
       Callback.Notify(It.Position / Pred(Data.Count));
 
-    Dest.WriteString(Entry._Key);
-    Dest.WriteString(Entry._Value);
+    Dest.WriteString(Entry.Name);
+    Dest.WriteString(Entry.Value);
   End;
 
   If Assigned(Callback) Then
@@ -505,7 +505,7 @@ Begin
   While It.HasNext() Do
   Begin
     Entry := SessionKeyValue(It.Value);
-    Self.Data.Add(SessionKeyValue.Create(Entry._Key, Entry._Value));
+    Self.Data.Add(SessionKeyValue.Create(Entry.Name, Entry.Value));
   End;
 End;
 
@@ -539,8 +539,8 @@ End;
 { SessionKeyValue }
 Constructor SessionKeyValue.Create(const Key, Value: TERRAString);
 Begin
-  Self._Key := Key;
-  Self._Value := Value;
+  Self.Name := Key;
+  Self.Value := Value;
 End;
 
 Initialization
