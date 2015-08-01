@@ -26,7 +26,7 @@ Unit TERRA_UIVirtualKeyboard;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_UI, TERRA_Utils, TERRA_Color, TERRA_Log, TERRA_UIDimension, TERRA_Localization;
+Uses TERRA_Object, TERRA_String, TERRA_UI, TERRA_Utils, TERRA_Color, TERRA_Log, TERRA_UIDimension, TERRA_UIWidget, TERRA_Localization;
 
 Type
   KeyboardKeyType = (
@@ -57,7 +57,7 @@ Type
     Public
   End;
 
-  UIVirtualKeyboardKey = Class(Widget)
+  UIVirtualKeyboardKey = Class(UIWidget)
     Protected
       _Label:TERRAString;
       _Suggestion:Integer;
@@ -77,19 +77,19 @@ Type
 
 			Procedure OnLanguageChange(); Override;
 
-      Procedure OnKeyDispatch(Src:Widget);
+      Procedure OnKeyDispatch(Src:UIWidget);
 
     Public
       Callback:WidgetEventHandler;
 
-      Constructor Create(Parent:Widget; X, Y, Z: Single; Const ComponentName:TERRAString);
+      Constructor Create(Parent:UIWidget; X, Y, Z: Single; Const ComponentName:TERRAString);
 
       Procedure Render; Override;
 
       Procedure OnMouseUp(X,Y:Integer;Button:Word); Override;
   End;
 
-  UIVirtualKeyboard = Class(Widget)
+  UIVirtualKeyboard = Class(UIWidget)
     Protected
       _KbScale:Single;
 
@@ -105,7 +105,7 @@ Type
       _BackKey:UIVirtualKeyboardKey;
       _EnterKey:UIVirtualKeyboardKey;
 
-      _PreviousHighlight:Widget;
+      _PreviousHighlight:UIWidget;
 
       _Pinyin:PinyinConverter;
 
@@ -126,12 +126,12 @@ Type
 
       Procedure UpdatePinyin();
 
-      Procedure OnBackKey(Src:Widget);
-      Procedure OnEnterKey(Src:Widget);
-      Procedure OnCloseKey(Src:Widget);
-      Procedure OnShiftKey(Src:Widget);
-      Procedure OnLanguageKey(Src:Widget);
-      Procedure OnSymbolsKey(Src:Widget);
+      Procedure OnBackKey(Src:UIWidget);
+      Procedure OnEnterKey(Src:UIWidget);
+      Procedure OnCloseKey(Src:UIWidget);
+      Procedure OnShiftKey(Src:UIWidget);
+      Procedure OnLanguageKey(Src:UIWidget);
+      Procedure OnSymbolsKey(Src:UIWidget);
 
     Public
       Constructor Create(Name:TERRAString; UI:TERRAUI; Z:Single; Const ComponentName:TERRAString);
@@ -220,7 +220,7 @@ Begin
   Result := Key;
 End;
 
-Procedure UIVirtualKeyboard.OnBackKey(Src:Widget);
+Procedure UIVirtualKeyboard.OnBackKey(Src:UIWidget);
 Begin
   If Assigned(Application.Instance()) Then
   Begin
@@ -230,25 +230,26 @@ Begin
   End;
 End;
 
-Procedure UIVirtualKeyboard.OnEnterKey(Src:Widget);
+Procedure UIVirtualKeyboard.OnEnterKey(Src:UIWidget);
 Begin
   Application.Instance.OnKeyPress(keyEnter);
 
+  (*TODO
   If (Self.UI.Focus<>Nil) And (Self.UI.Focus Is UIEditText) And (UIEditText(Self.UI.Focus).LineCount=1) Then
-    Self.Close();
+    Self.Close();*)
 End;
 
-Procedure UIVirtualKeyboard.OnCloseKey(Src:Widget);
+Procedure UIVirtualKeyboard.OnCloseKey(Src:UIWidget);
 Begin
   Self.Close();
 End;
 
-Procedure UIVirtualKeyboard.OnShiftKey(Src:Widget);
+Procedure UIVirtualKeyboard.OnShiftKey(Src:UIWidget);
 Begin
   Self._ShiftMode := Not Self._ShiftMode;
 End;
 
-Procedure UIVirtualKeyboard.OnLanguageKey(Src:Widget);
+Procedure UIVirtualKeyboard.OnLanguageKey(Src:UIWidget);
 Begin
   Inc(Self._CurrentLayout);
   If (Self._CurrentLayout>=_KeyboardLayoutCount) Then
@@ -257,7 +258,7 @@ Begin
   Self.SelectKeyboardLayout(Self._CurrentLayout);
 End;
 
-Procedure UIVirtualKeyboard.OnSymbolsKey(Src:Widget);
+Procedure UIVirtualKeyboard.OnSymbolsKey(Src:UIWidget);
 Begin
   If (Self._CurrentLayout=0) Then
     Self.SelectKeyboardLayout(Self._PreviousLayout)
@@ -343,13 +344,16 @@ Begin
 
   Self._ColorTable := TextureManager.Instance.DefaultColorTable;
 
+  (*TODO
   If (UI.Highlight <> Nil) And (Not (UI.Highlight Is UIVirtualKeyboardKey)) Then
     UI.Highlight := Nil;
 
-  Self.ClearProperties();
+  Self.UpdateProperties();
   Self.UpdateTransform();
 
+
   Self.DrawComponent(0, 0, 0.0, Self.Width, Self.Height, 3, False);
+  *)
 
   For J:=0 To Pred(MaxKeyboardLines) Do
     For I:=0 To Pred(MaxKeyboardRows) Do
@@ -362,6 +366,7 @@ End;
 
 Procedure UIVirtualKeyboard.RestorePosition;
 Begin
+(* TODO
   If (Self.UI.Focus<>Nil) And (Self.UI.Focus Is UIEditText) Then
   Begin
     If (UI.Focus.AbsolutePosition.Y >= UIManager.Instance.Height - Self.Size.Y) Then
@@ -371,6 +376,7 @@ Begin
   End;
 
   Self.RelativePosition := VectorCreate2D(0, 0);
+  *)
 End;
 
 Procedure UIVirtualKeyboard.ShowFocus;
@@ -392,11 +398,14 @@ End;
 
 Procedure UIVirtualKeyboard.Enable;
 Begin
+(* TODO
   _PreviousHighlight := UI.Highlight;
   If (UI.Highlight<>Nil) Then
     UI.Highlight := _Keys[0, 0];
 
   //UI.Modal := Self;
+
+  *)
 End;
 
 Procedure UIVirtualKeyboard.StartHighlight; Begin End;
@@ -405,9 +414,12 @@ Procedure UIVirtualKeyboard.StopHighlight; Begin End;
 Procedure UIVirtualKeyboard.Close;
 Begin
   Self.Hide(widgetAnimatePosY_Bottom);
+(*TODO
   If (UI.Modal = Self) Then
     UI.Modal := Nil;
   UI.Highlight := _PreviousHighlight;
+
+  *)
 End;
 
 Function UIVirtualKeyboard.HasMouseOver: Boolean;
@@ -576,6 +588,7 @@ Var
   Value:Word;
   Text:TERRAString;
 Begin
+(*TODO
   If (_Keys[Row, Line]._Suggestion>=0) And (Self._Pinyin<>Nil)
   And (Assigned(UI.Focus)) And (UI.Focus Is UIEditText) Then
   Begin
@@ -591,8 +604,11 @@ Begin
   Value := Self.GetKeyValue(Row, Line);
   If Value>0 Then
     Application.Instance.OnKeyPress(Value);
-  
+
   Self.UpdatePinyin();
+
+  TODO
+  *)
 End;
 
 Procedure UIVirtualKeyboard.UpdatePinyin;
@@ -600,6 +616,7 @@ Var
   Text:TERRAString;
   N,I:Integer;
 Begin
+(*TODO
   If (_KeyboardLayouts[_CurrentLayout]._HasPinyin)
   And (Assigned(UI.Focus)) And (UI.Focus Is UIEditText) Then
   Begin
@@ -623,10 +640,13 @@ Begin
       Inc(N);
     End;
   End;
+
+  TODO
+  *)
 End;
 
 { UIVirtualKeyboardKey }
-Constructor UIVirtualKeyboardKey.Create(Parent:Widget; X, Y, Z: Single; Const ComponentName:TERRAString);
+Constructor UIVirtualKeyboardKey.Create(Parent:UIWidget; X, Y, Z: Single; Const ComponentName:TERRAString);
 Begin
   Inherited Create(Name, Parent, ComponentName);
 
@@ -641,7 +661,7 @@ Begin
   Self._ColorTable := TextureManager.Instance.DefaultColorTable;
 End;
 
-Procedure UIVirtualKeyboardKey.OnKeyDispatch(Src:Widget);
+Procedure UIVirtualKeyboardKey.OnKeyDispatch(Src:UIWidget);
 Var
   It:StringIterator;
   C:TERRAChar;
@@ -677,17 +697,17 @@ End;
 
 Function UIVirtualKeyboardKey.GetKeyWidth(): Integer;
 Begin
-  If Assigned(Self.SkinComponent) Then
+(*  TODO If Assigned(Self.SkinComponent) Then
     Result := Self.SkinComponent.GetWidth(KeyTypeToInt(_KeyType), 0)
-  Else
+  Else*)
     Result := 0;
 End;
 
 Function UIVirtualKeyboardKey.GetKeyHeight(): Integer;
 Begin
-  If Assigned(Self.SkinComponent) Then
+(*TODO  If Assigned(Self.SkinComponent) Then
     Result := Self.SkinComponent.GetHeight(KeyTypeToInt(_KeyType), 0)
-  Else
+  Else*)
     Result := 0;
 End;
 
@@ -695,23 +715,25 @@ Procedure UIVirtualKeyboardKey.Render;
 Var
   W, H:Integer;
   SS:TERRAString;
-  HG:Widget;
+  HG:UIWidget;
   TextScale:Single;
   TextRect:Vector2D;
   Value:Word;
 Begin
+(* TODO
   HG := UI.Highlight;
   If (HG = Nil) Then
     UI.Highlight := Self;
 
   _Pivot := VectorCreate2D(0, 0.5);
 
-  Self.ClearProperties();
+  Self.UpdateProperties();
   Self.UpdateRects();
   Self.UpdateTransform();
   Self.UpdateHighlight();
 
-  DrawComponent(0, 0, 0, Self.Width, Self.Height, KeyTypeToInt(_KeyType), Self.IsSelected);
+ DrawComponent(0, 0, 0, Self.Width, Self.Height, KeyTypeToInt(_KeyType), Self.IsSelected);
+  *)
   W := Self.GetKeyWidth();
   H := Self.GetKeyHeight();
 
@@ -743,8 +765,9 @@ Begin
 
   If (SS<>'') Then
   Begin
-    TextRect := _FontRenderer.GetTextRect(SS);
-    Self.DrawText(SS, (W - TextRect.X)*0.5, (H - TextRect.Y)*0.5, 1.0, TextRect, TextScale, KeyTypeToInt(_KeyType), Self.IsSelected, ColorWhite);
+    TextRect := FontRenderer.GetTextRect(SS);
+(*TODO    Self.DrawText(SS, (W - TextRect.X)*0.5, (H - TextRect.Y)*0.5, 1.0, TextRect, TextScale, KeyTypeToInt(_KeyType), Self.IsSelected, ColorWhite);
+*)
   End;
 End;
 

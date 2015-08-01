@@ -107,7 +107,7 @@ Type
       Function GetImage():Image;
   End;
 
-  FontSprite = Class(Sprite)
+  FontSprite = Class(TERRASprite)
     Protected
       _Glyph:FontGlyph;
 
@@ -183,6 +183,23 @@ Type
       Property Atlas:TextureAtlas Read _Atlas;
 
       Property NewLineOffset:Single Read _AvgHeight Write _AvgHeight;
+  End;
+
+  FontProperty = Class(TERRAObject)
+    Protected
+      _Value:TERRAFont;
+
+    Public
+      Constructor Create(Const Name:TERRAString; InitValue:TERRAFont);
+
+      Function IsValueObject():Boolean; Override;
+
+      Function GetObjectType:TERRAString; Override;
+
+      Function GetBlob():TERRAString; Override;
+      Procedure SetBlob(Const Blob:TERRAString); Override;
+
+      Property Value:TERRAFont Read _Value Write _Value;
   End;
 
   FontStreamValidateFunction = Function(Source:Stream):Boolean;
@@ -1026,6 +1043,43 @@ Begin
     End;
   End;
 End;
+
+{ FontProperty }
+Constructor FontProperty.Create(const Name: TERRAString; InitValue:TERRAFont);
+Begin
+  Self._ObjectName := Name;
+  Self._Value := InitValue;
+End;
+
+Function FontProperty.GetBlob: TERRAString;
+Begin
+  If Assigned(_Value) Then
+    Result := Self._Value.Name
+  Else
+    Result := '';
+
+  If Result = '' Then
+    Result := '#';
+End;
+
+Procedure FontProperty.SetBlob(const Blob: TERRAString);
+Begin
+  If Blob<>'#' Then
+    _Value := FontManager.Instance.GetFont(Blob)
+  Else
+    _Value := FontManager.Instance.DefaultFont;
+End;
+
+Function FontProperty.GetObjectType: TERRAString;
+Begin
+  Result := 'font';
+End;
+
+Function FontProperty.IsValueObject: Boolean;
+Begin
+  Result := True;
+End;
+
 
 { FontSprite }
 Procedure FontSprite.Rebuild;

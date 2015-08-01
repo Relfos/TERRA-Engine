@@ -3,7 +3,7 @@ Unit TERRA_UICheckbox;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Object, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_UIDimension, TERRA_UICaption;
+Uses TERRA_String, TERRA_Object, TERRA_UI, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_UIDimension, TERRA_UICaption;
 
 Type
   UICheckBox = Class(UICaption)
@@ -93,7 +93,7 @@ End;
 
 Procedure UICheckBox.Render;
 Begin
-  Self.ClearProperties();
+  Self.UpdateProperties();
   Self.UpdateRects();
   Self.UpdateTransform();
 

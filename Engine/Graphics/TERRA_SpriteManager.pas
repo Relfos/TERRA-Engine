@@ -64,9 +64,9 @@ Type
       Procedure FullRemap();
   End;
 
-  Sprite = Class(TERRAObject)
+  TERRASprite = Class(TERRAObject)
     Protected
-      _Next:Sprite;
+      _Next:TERRASprite;
 
       _BlendMode:Integer;
       _Outline:Color;
@@ -107,7 +107,7 @@ Type
       Property Texture:TERRATexture Read _Texture Write _Texture;
   End;
 
-  QuadSprite = Class(Sprite)
+  QuadSprite = Class(TERRASprite)
     Protected
       _ScrollU:Single;
       _ScrollV:Single;
@@ -148,7 +148,7 @@ Type
 
   SpriteBatch = Object
     Protected
-      _First:Sprite;
+      _First:TERRASprite;
       _Count:Integer;
       _Texture:TERRATexture;
 
@@ -165,7 +165,7 @@ Type
       _Saturation:Single;
       _Outline:Color;
 
-      Procedure AddSprite(P:Sprite);
+      Procedure AddSprite(P:TERRASprite);
 
       Procedure Flush(Const Projection:Matrix4x4);
 
@@ -174,11 +174,11 @@ Type
 
   SpriteManager = Class(ApplicationComponent)
     Protected
-      _NullSprite:Sprite;
+      _NullSprite:TERRASprite;
       
       _Index:Integer;
       _SpriteCount:Integer;
-      _Sprites:Array Of Sprite;
+      _Sprites:Array Of TERRASprite;
 
       _Batches:Array Of SpriteBatch;
       _BatchCount:Integer;
@@ -207,7 +207,7 @@ Type
 
       Procedure Render(Const Projection:Matrix4x4);
 
-      Procedure QueueSprite(S:Sprite);
+      Procedure QueueSprite(S:TERRASprite);
 
       Function DrawSprite(X,Y,Layer:Single; SpriteTexture:TERRATexture; ColorTable:TERRATexture = Nil; BlendMode:Integer = blendBlend; Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; Shader:ShaderInterface = Nil):QuadSprite;
       Function DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:TERRATexture; Outline:Color; ColorTable:TERRATexture = Nil; BlendMode:Integer = blendBlend;  Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; Shader:ShaderInterface = Nil):QuadSprite;
@@ -514,12 +514,15 @@ Begin
   Self.QueueSprite(Result);
 End;
 
-Procedure SpriteManager.QueueSprite(S:Sprite);
+Procedure SpriteManager.QueueSprite(S:TERRASprite);
 Var
   N, I:Integer;
   TargetLayer:Single;
   HasShaders, ResetBatch:Boolean;
 Begin
+  If (S = Nil) Then
+    Exit;
+    
   HasShaders := GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable;
 
   ResetBatch := True;
@@ -776,22 +779,22 @@ Begin
 End;
 
 { Sprite }
-Procedure Sprite.Release();
+Procedure TERRASprite.Release();
 Begin
   ReleaseObject(_Vertices);
 End;
 
-Procedure Sprite.SetTransform(Const Mat: Matrix3x3);
+Procedure TERRASprite.SetTransform(Const Mat: Matrix3x3);
 Begin
   _Transform := Mat;
 End;
 
-Procedure Sprite.SetTransform(Const Center:Vector2D; Const Mat: Matrix3x3);
+Procedure TERRASprite.SetTransform(Const Center:Vector2D; Const Mat: Matrix3x3);
 Begin
   SetTransform(MatrixTransformAroundPoint2D(Center, Mat));
 End;
 
-Procedure Sprite.SetScaleAndRotation(Const Center:Vector2D; ScaleX, ScaleY:Single; Rotation:Single);
+Procedure TERRASprite.SetScaleAndRotation(Const Center:Vector2D; ScaleX, ScaleY:Single; Rotation:Single);
 Var
   Mat:Matrix3x3;
 Begin
@@ -799,17 +802,17 @@ Begin
   SetTransform(Center, Mat);
 End;
 
-Procedure Sprite.SetScale(Const Center:Vector2D; ScaleX, ScaleY:Single);
+Procedure TERRASprite.SetScale(Const Center:Vector2D; ScaleX, ScaleY:Single);
 Begin
   SetScaleAndRotation(Center, ScaleX, ScaleY, 0.0);
 End;
 
-Procedure Sprite.ConcatTransform(const Mat: Matrix3x3);
+Procedure TERRASprite.ConcatTransform(const Mat: Matrix3x3);
 Begin
   Self._Transform := MatrixMultiply3x3(_Transform, Mat);
 End;
 
-Procedure Sprite.SetScaleAndRotation(const Center: Vector2D; Scale, Rotation: Single);
+Procedure TERRASprite.SetScaleAndRotation(const Center: Vector2D; Scale, Rotation: Single);
 Begin
   SetScaleAndRotation(Center, Scale, Scale, Rotation);
 End;
@@ -985,9 +988,9 @@ Begin
 End;
 
 { SpriteBatch }
-Procedure SpriteBatch.AddSprite(P: Sprite);
+Procedure SpriteBatch.AddSprite(P:TERRASprite);
 Var
-  S, Prev:Sprite;
+  S, Prev:TERRASprite;
 Begin
   Inc(_Count);
   P._Next := _First;
@@ -998,7 +1001,7 @@ End;
 Procedure SpriteBatch.Flush(Const Projection:Matrix4x4);
 Var
   I, J:Integer;
-  S:Sprite;
+  S:TERRASprite;
   K:Single;
   MaxX,MinX, MaxY,MinY:Single;
   M:Matrix3x3;

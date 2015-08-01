@@ -3,14 +3,14 @@ Unit TERRA_UIIcon;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font;
+Uses TERRA_Utils, TERRA_String, TERRA_UI, TERRA_UIDimension, TERRA_UIWidget, TERRA_Vector2D, TERRA_Color, TERRA_Font;
 
 Type
-  UIIcon = Class(Widget)
+  UIIcon = Class(UIWidget)
     Protected
 
     Public
-      Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Const Width, Height:UIDimension; Const ComponentName:TERRAString; TabIndex:Integer=-1);
+      Constructor Create(Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const ComponentName:TERRAString; TabIndex:Integer=-1);
 
       Procedure OnMouseDown(X,Y:Integer;Button:Word); Override;
 
@@ -19,7 +19,7 @@ Type
 
 Implementation
 
-Constructor UIIcon.Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Const Width, Height:UIDimension; Const ComponentName:TERRAString; TabIndex:Integer);
+Constructor UIIcon.Create(Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const ComponentName:TERRAString; TabIndex:Integer);
 Var
   Base:TERRAString;
 Begin
@@ -39,14 +39,16 @@ End;
 
 Procedure UIIcon.Render;
 Begin
-  Self.ClearProperties();
+  Self.UpdateProperties();
   Self.UpdateRects();
   Self.UpdateTransform();
 
   If (Not DisableHighlights) Then
     Self.UpdateHighlight();
 
-  Self.DrawComponent( 0.0, 0.0, 0.0, Self.Width, Self.Height,  0, Self.IsHighlighted());
+  (*
+  TODO
+  Self.DrawComponent( 0.0, 0.0, 0.0, Self.Width, Self.Height,  0, Self.IsHighlighted());*)
 
   Inherited;
 End;

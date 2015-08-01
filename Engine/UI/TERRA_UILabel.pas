@@ -3,7 +3,7 @@ Unit TERRA_UILabel;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_UICaption;
+Uses TERRA_String, TERRA_UI, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_UICaption;
 
 Type
   UILabel = Class(UICaption)
@@ -75,7 +75,7 @@ Var
   Delta:Single;
   P:Vector2D;
 Begin
-  Self.ClearProperties();
+  Self.UpdateProperties();
   Self.UpdateRects;
 
   If (Caption.Text = '') Then

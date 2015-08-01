@@ -3,7 +3,7 @@ Unit TERRA_UITabs;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_UICaption;
+Uses TERRA_String, TERRA_UI, TERRA_UIDimension, TERRA_UIWidget, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_UICaption;
 
 Type
   UITabEntry = Record
@@ -13,7 +13,7 @@ Type
     Index:Integer;
   End;
 
-  UITabList = Class(Widget)
+  UITabList = Class(UIWidget)
     Protected
       _Tabs:Array Of UITabEntry;
       _TabCount:Integer;
@@ -30,7 +30,7 @@ Type
       Function IsSelectable():Boolean; Override;
 
     Public
-      Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Const Width, Height:UIDimension; Const ComponentName:TERRAString); Overload;
+      Constructor Create(Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const ComponentName:TERRAString); Overload;
 
       Procedure Render; Override;
       Procedure UpdateRects; Override;
@@ -56,7 +56,7 @@ Type
 Implementation
 
 { UITabList }
-Constructor UITabList.Create(Name:TERRAString; Parent:Widget; X, Y, Z: Single; Const Width, Height:UIDimension; Const ComponentName:TERRAString);
+Constructor UITabList.Create(Name:TERRAString; Parent:UIWidget; X, Y, Z: Single; Const Width, Height:UIDimension; Const ComponentName:TERRAString);
 Begin
   Inherited Create(Name, Parent, ComponentName);
 
@@ -209,7 +209,6 @@ Var
   X, WW, HH, Add:Single;
   IsSel:Boolean;
 Begin
-  Self.ClearProperties();
   Self.UpdateRects();
   Self.UpdateTransform();
 
@@ -249,10 +248,12 @@ Begin
 
     Add := -HH + Add;
 
+    (*TODO
     Self.DrawComponent( X, Add, -2, Self.Width, Self.Height,  0, IsSel);
 
     Rect := _FontRenderer.GetTextRect(_Tabs[I].Caption);
     Self.DrawText(_Tabs[I].Caption, X + (WW-Rect.X) * 0.5, Add + (HH - Rect.Y) * 0.5, -1.5, Rect, Scale, 0, IsSel, ColorWhite);
+    *)
 
     X := X + WW;
   End;

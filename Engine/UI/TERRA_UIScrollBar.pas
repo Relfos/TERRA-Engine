@@ -3,7 +3,7 @@ Unit TERRA_UIScrollbar;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font,
+Uses TERRA_Utils, TERRA_String, TERRA_UI, TERRA_UIDimension, TERRA_UIWidget, TERRA_Vector2D, TERRA_Color, TERRA_Font,
   TERRA_UIIcon;
 
 Type
@@ -17,7 +17,7 @@ Type
       Procedure Render(); Override;
   End;
 
-  UIScrollBar = Class(Widget)
+  UIScrollBar = Class(UIWidget)
     Protected
       _Value:Single;
       _Max:Single;
@@ -38,7 +38,7 @@ Type
 
       //Function OnHandleRegion(X,Y:Integer):Boolean;
 
-      Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Const ScrollWidth, ScrollHeight, HandleWidth, HandleHeight:UIDimension; Const ComponentName:TERRAString; TabIndex:Integer=-1);
+      Constructor Create(Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const ScrollWidth, ScrollHeight, HandleWidth, HandleHeight:UIDimension; Const ComponentName:TERRAString; TabIndex:Integer=-1);
 
       Procedure Render; Override;
 
@@ -54,7 +54,7 @@ Implementation
 Uses TERRA_Log;
 
 {UIScrollBar}
-Constructor UIScrollBar.Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Const ScrollWidth, ScrollHeight, HandleWidth, HandleHeight:UIDimension; Const ComponentName:TERRAString; TabIndex:Integer);
+Constructor UIScrollBar.Create(Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const ScrollWidth, ScrollHeight, HandleWidth, HandleHeight:UIDimension; Const ComponentName:TERRAString; TabIndex:Integer);
 Begin
   Inherited Create(Name, Parent, ComponentName);
 
@@ -97,7 +97,7 @@ Var
   HH:Single;
   LastValue, NewValue:Single;
 Begin
-  Self.ClearProperties();
+  Self.UpdateProperties();
   Self.UpdateRects();
   Self.UpdateTransform();
 
@@ -111,6 +111,7 @@ Begin
   _HandleMin := VectorCreate2D(0, 0);
   _HandleMax := VectorCreate2D(Self.GetDimension(Self.Width, uiDimensionWidth) - _Handle.GetDimension(_Handle.Width, uiDimensionWidth), Self.GetDimension(Self.Height, uiDimensionHeight) - _Handle.GetDimension(_Handle.Height, uiDimensionHeight));
 
+  (* TODO
   If (_Kind = scrollHorizontal) Then
   Begin
     HH := Self.GetDimension(Self.Width, uiDimensionWidth) * 0.25;
@@ -142,6 +143,7 @@ Begin
     If Assigned(OnChange) Then
       OnChange(Self);
   End;
+  *)
 End;
 
 Procedure UIScrollBar.SetValue(const Value: Single);

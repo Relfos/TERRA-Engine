@@ -24,6 +24,8 @@ uses
   TERRA_Color,
   TERRA_String,
   TERRA_Matrix4x4,
+  TERRA_UIWidget,
+  TERRA_UITemplates,
   TERRA_UIWindow,
   TERRA_UIDimension,
   TERRA_UIButton;
@@ -47,12 +49,12 @@ Type
       Constructor Create;
       Procedure Release; Override;
 
-      Procedure OnMyButtonClick(Src:Widget);
+      Procedure OnMyButtonClick(Src:UIWidget);
   End;
 
 Var
   Fnt:TERRAFont;
-  MyUI:UI;
+  MyUI:TERRAUI;
   MyWnd:UIWindow;
   MyBtn:UIButton;
 
@@ -65,13 +67,10 @@ Begin
   Fnt := FontManager.Instance.GetFont('droid');
 
   // Create a new UI
-  MyUI := UI.Create;
+  MyUI := TERRAUI.Create;
 
   // Register the font with the UI
   MyUI.DefaultFont := Fnt;
-
-  // Load a GUI skin
-  MyUI.LoadSkin('ui_sample_skin');
 
   // Create a empty scene
   _Scene := MyScene.Create;
@@ -109,7 +108,7 @@ Constructor MyScene.Create;
 Var
   I:Integer;
 Begin
-  MyWnd := UIWindow.Create('mywnd', MyUI, 0, 0, 10, UIPixels(300), UIPixels(150), 'window');
+  MyWnd := UIWindow.Create('mywnd', MyUI, 0, 0, 10, UIPixels(300), UIPixels(150), '#window');
   MyWnd.Draggable := True;
   MyWnd.Align := waCenter;
 
@@ -125,7 +124,7 @@ End;
 // GUI event handlers
 // All event handlers must be procedures that receive a Widget as argument
 // The Widget argument provides the widget that called this event handler
-Procedure MyScene.OnMyButtonClick(Src:Widget);
+Procedure MyScene.OnMyButtonClick(Src:UIWidget);
 Begin
   IntToString(2);
  // MyUI.MessageBox('You clicked the button!');

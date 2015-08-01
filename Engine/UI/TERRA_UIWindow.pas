@@ -3,10 +3,10 @@ Unit TERRA_UIWindow;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color;
+Uses TERRA_String, TERRA_UI, TERRA_UIDimension, TERRA_UIWidget, TERRA_Vector2D, TERRA_Color;
 
 Type
-  UIWindow = Class(Widget)
+  UIWindow = Class(UIWidget)
     Protected
       _Caption:TERRAString;
 
@@ -15,7 +15,6 @@ Type
     Public
       Selectable:Boolean;
       Frameless:Boolean;
-      CloseButton:Widget;
 
       Procedure Render; Override;
 
@@ -27,7 +26,7 @@ Type
 			Procedure OnMouseUp(X,Y:Integer;Button:Word); Override;
 			Procedure OnMouseWheel(X,Y:Integer; Delta:Integer); Override;
 
-      Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Width, Height:UIDimension; Const ComponentName:TERRAString);
+      Constructor Create(Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Width, Height:UIDimension; Const ComponentName:TERRAString);
 
       Property Caption:TERRAString Read _Caption Write SetCaption;
   End;
@@ -37,7 +36,7 @@ Implementation
 Uses TERRA_OS;
 
 { UIWindow }
-Constructor UIWindow.Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Width, Height:UIDimension; Const ComponentName:TERRAString);
+Constructor UIWindow.Create(Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Width, Height:UIDimension; Const ComponentName:TERRAString);
 Begin
   Inherited Create(Name, Parent, ComponentName);
 
@@ -101,7 +100,7 @@ End;}
                                                          
 Procedure UIWindow.Render;
 Begin
-  Self.ClearProperties();
+  Self.UpdateProperties();
   Self.UpdateRects();
   Self.UpdateTransform();
   Self.UpdateHighlight();
@@ -119,7 +118,9 @@ Begin
 
   If (Not Frameless) Then
   Begin
+  (* TODO
     Self.DrawComponent( 0, 0, 0, Self.Width, Self.Height, 0, False);
+    *)
   End;
 
   Inherited Render();

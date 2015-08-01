@@ -279,7 +279,6 @@ Begin
   Result := Self.ClassName;
 End;
 
-
 Procedure TERRAObject.SetObjectName(const Value: TERRAString);
 Begin
   Self._ObjectName := Value;

@@ -65,7 +65,7 @@ Type
 
       Procedure DrawSprite(Const TextureName:TERRAString);
       Function ResolveTexture(Const TextureName:TERRAString):TERRATexture; Virtual;
-      Procedure TransformSprite(S:Sprite); Virtual;
+      Procedure TransformSprite(S:TERRASprite); Virtual;
 
       Procedure UpdateGradient(Width, Height:Single);
 
@@ -670,7 +670,7 @@ End;
 Procedure FontRenderer.DrawSprite(const TextureName:TERRAString);
 Var
   Tex:TERRATexture;
-  S:Sprite;
+  S:TERRASprite;
 Begin
   If (TextureName = '') Then
     Exit;
@@ -711,7 +711,7 @@ Begin
   Result := TextureManager.Instance.GetTexture(TextureName);
 End;
 
-Procedure FontRenderer.TransformSprite(S: Sprite);
+Procedure FontRenderer.TransformSprite(S: TERRASprite);
 Begin
   S.ClipRect := Self._ClipRect;
 End;

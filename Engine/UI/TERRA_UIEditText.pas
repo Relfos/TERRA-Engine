@@ -3,7 +3,7 @@ Unit TERRA_UIEditText;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_Utils, TERRA_String, TERRA_UI, TERRA_UISkin, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font,
+Uses TERRA_Object, TERRA_Utils, TERRA_String, TERRA_UI, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font,
   TERRA_ClipRect, TERRA_UICaption, TERRA_Collections;
 
 Type
@@ -39,7 +39,7 @@ Type
       PasswordField:Boolean;
       Centered:Boolean;
 
-      Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Const Width, Height:UIDimension; Const ComponentName:TERRAString; TabIndex:Integer=-1);
+      Constructor Create(Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const ComponentName:TERRAString; TabIndex:Integer=-1);
 
       Procedure Render; Override;
 
@@ -68,7 +68,7 @@ Uses TERRA_Application, TERRA_OS, TERRA_Log, TERRA_Localization
 {$IFDEF VIRTUALKEYBOARD},TERRA_UIVirtualKeyboard{$ENDIF};
 
 { UIEditText }
-Constructor UIEditText.Create(Name:TERRAString; Parent:Widget; X, Y, Z: Single; Const Width, Height:UIDimension; Const ComponentName:TERRAString; TabIndex:Integer);
+Constructor UIEditText.Create(Name:TERRAString; Parent:UIWidget; X, Y, Z: Single; Const Width, Height:UIDimension; Const ComponentName:TERRAString; TabIndex:Integer);
 Begin
   Inherited Create(Name, Parent, ComponentName);
 
@@ -126,7 +126,7 @@ End;
 
 Procedure UIEditText.SetFocus(ShowKeyboard:Boolean);
 Begin
-  UI.Focus := Self;
+(*TODO  UI.Focus := Self;
   If Not ShowKeyboard Then
     Exit;
 
@@ -142,6 +142,8 @@ Begin
   UIVirtualKeyboard(UI.VirtualKeyboard).ShowFocus();
   {$ENDIF}
   {$ENDIF}
+
+  *)
 End;
 
 Procedure UIEditText.OnMouseUp(X, Y: Integer; Button: Word);
@@ -201,7 +203,9 @@ Begin
   _Clip.Height := Size.Y;
 //  _Clip.Name := Self.Name;
 
+  (* TODO
   _Clip.Transform(Self.UI.Transform);
+  *)
 
   Self._ClipRect := _Clip;
 End;
@@ -232,7 +236,7 @@ Var
   W,W2:Single;
   ChangedLine, Found:Boolean;
   It:Iterator;
-  Wd:Widget;
+  Wd:UIWidget;
 Begin
   If (Not Self.Visible) Or (Self.HasPropertyTweens()) Then
   Begin
@@ -253,7 +257,7 @@ Begin
 
   If (Key = keyBackspace) Then
   Begin
-    W := _FontRenderer.GetTextWidth(_Lines[_LineIndex] + '_');
+    W := FontRenderer.GetTextWidth(_Lines[_LineIndex] + '_');
 
     If (_KoreanFinalJamo>=0) Then
     Begin
@@ -296,7 +300,7 @@ Begin
       Begin
         Dec(_LineIndex);
         ChangedLine := True;
-        W := _FontRenderer.GetTextWidth(_Lines[_LineIndex] + '_');
+        W := FontRenderer.GetTextWidth(_Lines[_LineIndex] + '_');
 
         If (W>Self.GetDimension(Self.Width, uiDimensionWidth)) Then
           _ScrollIndex := W - Self.GetDimension(Self.Width, uiDimensionWidth)
@@ -305,7 +309,7 @@ Begin
       End;
     End;
 
-    W2 := _FontRenderer.GetTextWidth(_Lines[_LineIndex] + '_');
+    W2 := FontRenderer.GetTextWidth(_Lines[_LineIndex] + '_');
     If (Not ChangedLine) And (_ScrollIndex>0) And (W2<W) Then
       _ScrollIndex := _ScrollIndex - (W-W2);
   End Else
@@ -321,7 +325,7 @@ Begin
     If Assigned(OnEnter) Then
       OnEnter(Self);
   End Else
-  If (Key = keyTab) Then
+(*TODO  If (Key = keyTab) Then
   Begin
     Found := False;
     It := UI.Widgets.GetIterator();
@@ -352,13 +356,12 @@ Begin
       End;
       ReleaseObject(It);
     End;
-  End Else
+  End Else*)
   Begin
-    //KeyValue := UnicodeToUCS2(Key);
-
+    (* TODO
     If (Assigned(Self.Font)) Then
     Begin
-      W := _FontRenderer.GetTextWidth(_Lines[_LineIndex] + '_');
+      W := FontRenderer.GetTextWidth(_Lines[_LineIndex] + '_');
 
       If (_KoreanInitialJamo<0) Or (_KoreanFinalJamo>=0) Then
       Begin
@@ -394,10 +397,10 @@ Begin
         StringAppendChar(_Lines[_LineIndex], Key);
       End;
 
-      W2 := _FontRenderer.GetTextWidth(_Lines[_LineIndex] + '_');
+      W2 := FontRenderer.GetTextWidth(_Lines[_LineIndex] + '_');
       If (W2>Self.GetDimension(Self.Width, uiDimensionWidth)) And (W2>W) Then
         _ScrollIndex := _ScrollIndex + (W2-W);
-    End;
+    End;*)
   End;
 
   If (Assigned(OnChange)) And (Not _InsideEvent) Then
@@ -474,7 +477,7 @@ Var
   Var
     Y:Single;
   Begin
-    TextRect := _FontRenderer.GetTextRect(S);
+    TextRect := FontRenderer.GetTextRect(S);
 
     If (Centered) Then
       X := (Self.Size.X - TextRect.X)*0.5
@@ -488,19 +491,18 @@ Var
       Y := 0;
     End;
 
+    (*TODO
     Self.DrawText(S, X-_ScrollIndex, Y, 1.0, TextRect, Scale, 0, Self.IsSelected, ColorWhite);
+    *)
   End;
 Begin
-  Self.ClearProperties();
+  Self.UpdateProperties();
   Self.UpdateRects();
   Self.UpdateTransform();
 
   P := Self.AbsolutePosition;
 
-  {If (UI.Highlight<>Nil) And (Not Self.IsHighlighted())
-  And (UI.Focus=Self) And (Pos('KEY_', UI.Highlight.Name)<>1) Then
-    UI.Focus := Nil;}
-
+(*TODO
   Self.UpdateHighlight((UI.Focus = Self));
 
   If (UI.Focus <> Self) And (Self.IsHighlighted()) Then
@@ -508,7 +510,7 @@ Begin
 
   Self.DrawComponent(0, 0, 0, Self.Width, Self.Height, 0, Self.IsSelected);
 
-  HH := _FontRenderer.GetTextHeight('W', 1.0) * 1.1;
+  HH := FontRenderer.GetTextHeight('W', 1.0) * 1.1;
 
   Count := 0;
   For J:=0 To Pred(_LineCount) Do
@@ -535,7 +537,7 @@ Begin
     DrawLine(0, Caption.Value);
   End;
 
-  Inherited;
+  Inherited;*)
 End;
 
 

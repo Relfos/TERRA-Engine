@@ -3,7 +3,7 @@ Unit TERRA_UISprite;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_UI, TERRA_Vector2D, TERRA_Color, TERRA_Font,
   TERRA_UIDimension, TERRA_SpriteManager, TERRA_Texture, TERRA_Renderer;
 
 Type

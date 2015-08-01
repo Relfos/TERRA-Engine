@@ -3,7 +3,7 @@ Unit TERRA_UICaption;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Object, TERRA_UI, TERRA_UISkin, TERRA_Vector2D, TERRA_Color, TERRA_Font;
+Uses TERRA_String, TERRA_Object, TERRA_UI, TERRA_UIWidget, TERRA_Vector2D, TERRA_Color, TERRA_Font;
 
 Type
   UICaption = Class;
@@ -22,7 +22,7 @@ Type
   End;
 
 
-  UICaption = Class(Widget)
+  UICaption = Class(UIWidget)
     Protected
       _Caption:CaptionProperty;
       _CaptionIndex:Integer;
@@ -33,7 +33,7 @@ Type
       Function GetLocalizationKey: TERRAString;
 
     Public
-      Constructor Create(Const Name:TERRAString; Parent:Widget; Const ComponentName:TERRAString);
+      Constructor Create(Const Name:TERRAString; Parent:UIWidget; Const ComponentName:TERRAString);
       Procedure Release(); Override;
 
       Procedure UpdateRects; Override;
@@ -63,7 +63,7 @@ Begin
     Result := Value;
 End;
 
-Constructor UICaption.Create(const Name:TERRAString; Parent:Widget; Const ComponentName: TERRAString);
+Constructor UICaption.Create(const Name:TERRAString; Parent:UIWidget; Const ComponentName: TERRAString);
 Begin
   Inherited Create(Name, Parent, ComponentName);
 
@@ -114,14 +114,14 @@ Var
 Begin
   Inherited;
 
-  Fnt := Self.GetFont();
+(*TODO  Fnt := Self.GetFont();
 
   If ((_NeedsUpdate) Or (Fnt<>_PreviousFont)) And (Assigned(FontRenderer)) Then
   Begin
     _TextRect := FontRenderer.GetTextRect(_Caption.Value, 1.0);
     _PreviousFont := Fnt;
     _NeedsUpdate := False;
-  End;
+  End;*)
 End;
 
 { CaptionProperty }
