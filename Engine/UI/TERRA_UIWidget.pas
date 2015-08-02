@@ -64,6 +64,15 @@ Type
     widget_Disabled
   );
 
+  WidgetEventType = (
+    widgetEvent_MouseDown,
+    widgetEvent_MouseUp,
+    widgetEvent_MouseOver,
+    widgetEvent_MouseOut,
+    widgetEvent_DragBegin,
+    widgetEvent_DragEnd
+  );
+
   UIWidget = Class;
   UIWidgetClass = Class Of UIWidget;
   WidgetEventHandler = Procedure(Src:UIWidget) Of Object;
@@ -118,6 +127,8 @@ Type
 
       _Properties:Array Of UIProperty;
       _PropertyCount:Integer;
+
+      _EventHandlers:Array [WidgetEventType] Of WidgetEventHandler;
 
       _Tooltip:TERRAString;
       _NeedsUpdate:Boolean;
@@ -204,7 +215,7 @@ Type
       Function AdjustWidth(NewWidth:Single):Single;
       Function AdjustHeight(NewHeight:Single):Single;
 
-      Function HasMouseOver():Boolean; Virtual;
+      //Function HasMouseOver():Boolean; Virtual;
 
       Function GetFontRenderer: FontRenderer;
 
@@ -228,12 +239,6 @@ Type
       DisableUIColor:Boolean;
       UserData:TERRAString;
 
-      OnMouseClick:WidgetEventHandler;
-      OnMouseRelease:WidgetEventHandler;
-      OnMouseOver:WidgetEventHandler;
-      OnMouseOut:WidgetEventHandler;
-      OnBeginDrag:WidgetEventHandler;
-      OnEndDrag:WidgetEventHandler;
 
       Constructor Create(Const Name:TERRAString; Parent:UIWidget);
       Procedure Release; Override;
@@ -244,10 +249,14 @@ Type
       Function IsSelectable():Boolean; Virtual;
       Function CanHighlight(GroupID:Integer):Boolean;
 
-      Procedure OnHit(Handler:WidgetEventHandler); Virtual;
+      Procedure OnHit(EventType:WidgetEventType); Virtual;
       Procedure OnHighlight(Prev:UIWidget); Virtual;
 
       Procedure Delete();
+
+      Procedure SetEventHandler(EventType:WidgetEventType; Handler:WidgetEventHandler);
+      Function GetEventHandler(EventType:WidgetEventType):WidgetEventHandler;
+      Function CallEventHandler(EventType:WidgetEventType):Boolean;
 
       Function CanRender():Boolean;
       Function AllowsEvents(): Boolean;
@@ -550,19 +559,19 @@ Begin
   Self._Color.Value := ColorWhite;
 End;
 
-Procedure UIWidget.OnHit(Handler:WidgetEventHandler);
+Procedure UIWidget.OnHit(EventType:WidgetEventType);
 Var
   N:Integer;
   Target:TERRA_Color.Color;
   Ease:TweenEaseType;
 Begin
   Target := ColorScale(Self.Color, 0.5);
-  N := 150;
+  N := 100;
 
   Ease := easeLinear;
 
   Self._Color.AddTween(Ease, Target, N, 0);
-  Self._Color.AddTween(Ease, Self.Color, N, N, TweenCallback(Handler), Self);
+  Self._Color.AddTween(Ease, Self.Color, N, N, TweenCallback(Self.GetEventHandler(EventType)), Self);
 End;
 
 Procedure UIWidget.OnLanguageChange;
@@ -594,7 +603,7 @@ End;
 
 Function UIWidget.IsSelectable():Boolean;
 Begin
-  Result := Assigned(Self.OnMouseClick);
+  Result := Assigned(_EventHandlers[widgetEvent_MouseDown]);
 End;
 
 Procedure UIWidget.ConvertGlobalToLocal(Var V:Vector2D);
@@ -1248,8 +1257,7 @@ Begin
   If UI = Nil Then
     Exit;
 
-  If (Assigned(OnBeginDrag)) Then
-    Self.OnBeginDrag(Self);
+  Self.CallEventHandler(widgetEvent_DragBegin);
 
   UI.Dragger := Self;
   _DragMode := Mode;
@@ -1293,8 +1301,7 @@ Begin
   If (UI.Dragger <> Self) Then
     Exit;
 
-  If (Assigned(OnEndDrag)) Then
-    Self.OnEndDrag(Self);
+  Self.CallEventHandler(widgetEvent_DragEnd);
 
   _Dragging := False;
   UI.Dragger := Nil;
@@ -1320,7 +1327,7 @@ Begin
   End;
 
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Found, and has handler: '+BoolToString(Assigned(OnMouseClick)));{$ENDIF}
-  Self.OnHit(OnMouseClick);
+  Self.OnHit(widgetEvent_MouseDown);
 End;
 
 Procedure UIWidget.OnMouseUp(X,Y:Integer;Button:Word);
@@ -1329,10 +1336,7 @@ Var
 Begin
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', _Name+ '.OnMouseUp called');{$ENDIF}
 
-  If (Assigned(OnMouseRelease)) Then
-  Begin
-    OnMouseRelease(Self);
-  End;
+  Self.CallEventHandler(widgetEvent_MouseUp);
 End;
 
 Procedure UIWidget.ApplyDragMode(Const PX, PY:Single; Mode:UIDragMode);
@@ -1426,10 +1430,10 @@ Begin
   // do nothing
 End;
 
-Function UIWidget.HasMouseOver: Boolean;
+(*Function UIWidget.HasMouseOver: Boolean;
 Begin
   Result := (Assigned(OnMouseOver)) Or (Assigned(OnMouseOut)) Or (Assigned(OnMouseClick));
-End;
+End;*)
 
 Procedure UIWidget.SetSaturation(const Value: Single);
 Begin
@@ -1629,9 +1633,9 @@ End;
 
 Function UIWidget.OnSelectAction: Boolean;
 Begin
-  If (Self.Selected) And (Assigned(OnMouseClick)) And (Not Self.HasPropertyTweens()) Then
+  If (Self.Selected) And (Not Self.HasPropertyTweens()) Then
   Begin
-    Self.OnHit(OnMouseClick);
+    Self.OnHit(widgetEvent_MouseDown);
     Result := True;
   End Else
     Result := False;
@@ -2193,6 +2197,30 @@ Begin
   _ClipRect.Transform(Value);
 
   _TransformChanged := True;
+End;
+
+Function UIWidget.GetEventHandler(EventType:WidgetEventType):WidgetEventHandler;
+Begin
+  Result := Self._EventHandlers[EventType];
+
+  If (Assigned(Result)) Or (_Parent = Nil) Then
+    Exit;
+
+  Result := _Parent.GetEventHandler(EventType);
+End;
+
+Function UIWidget.CallEventHandler(EventType:WidgetEventType):Boolean;
+Var
+  Handler:WidgetEventHandler;
+Begin
+  Handler := Self.GetEventHandler(EventType);
+  If Assigned(Handler) Then
+    Handler(Self);
+End;
+
+Procedure UIWidget.SetEventHandler(EventType:WidgetEventType; Handler:WidgetEventHandler);
+Begin
+  Self._EventHandlers[EventType] := Handler;
 End;
 
 { UIInstancedWidget }
