@@ -101,7 +101,7 @@ Type
 
 
 Implementation
-Uses TERRA_ResourceManager, TERRA_UI, TERRA_InputManager, TERRA_GraphicsManager, TERRA_Log, TERRA_Image, TERRA_OS, TERRA_Math
+Uses TERRA_ResourceManager, TERRA_InputManager, TERRA_GraphicsManager, TERRA_Log, TERRA_Image, TERRA_OS, TERRA_Math
   {$IFNDEF DISABLECOLORGRADING},TERRA_ColorGrading {$ENDIF};
 
 Const

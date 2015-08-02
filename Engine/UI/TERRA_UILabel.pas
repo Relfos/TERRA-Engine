@@ -3,7 +3,7 @@ Unit TERRA_UILabel;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Object, TERRA_UI, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_Viewport;
+Uses TERRA_String, TERRA_Object, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_Viewport;
 
 Type
   UILabel = Class;
@@ -35,7 +35,6 @@ Type
 
     Public
       Constructor Create(Const Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
-      Procedure Release(); Override;
 
       Procedure UpdateRects; Override;
 
@@ -49,20 +48,8 @@ Type
       Property LocalizationKey:TERRAString Read GetLocalizationKey;
   End;
 
-Function GetLocalizedString(Value:TERRAString):TERRAString;
-
 Implementation
 Uses TERRA_Localization, TERRA_FontRenderer;
-
-Function GetLocalizedString(Value:TERRAString):TERRAString;
-Begin
-  If (Value<>'') And (Value[1]='#') Then
-  Begin
-    Value := Copy(Value, 2, MaxInt);
-    Result := LocalizationManager.Instance.GetString(Value);
-  End Else
-    Result := Value;
-End;
 
 Constructor UILabel.Create(const Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
 Begin
@@ -75,12 +62,7 @@ Begin
   Self.Height := Height;
 
 
-  _Caption := CaptionProperty(Self.AddProperty(CaptionProperty.Create('caption', Text, Self)));
-End;
-
-Procedure UILabel.Release();
-Begin
-  ReleaseObject(_Caption);
+  _Caption := CaptionProperty(Self.AddProperty(CaptionProperty.Create('caption', Text, Self), False));
 End;
 
 Function UILabel.GetLocalizationKey: TERRAString;
@@ -130,28 +112,23 @@ End;
 
 Procedure CaptionProperty.SetBlob(const Value: TERRAString);
 Var
-  S, S2, Data:TERRAString;
+  S, S2:TERRAString;
   It:StringIterator;
 Begin
   _Value := Value;
   _Owner._NeedsUpdate := True;
 
-  Data := _Owner.GetDataValue();
-
   S := Value;
   _Text := '';
   Repeat
-    If StringCharPosIterator(Ord('#'), S, It, True) Then
+    If StringCharPosIterator(UIMacroBeginChar, S, It, True) Then
     Begin
       It.Split(S2, S);
       _Text := _Text + S2;
 
-      S2 := StringGetNextSplit(S, Ord(' '));
+      S2 := StringGetNextSplit(S, UIMacroEndChar);
 
-      If S2='$' Then
-        S2 := Data
-      Else
-        S2 := GetLocalizedString(S2);
+      S2 := _Owner.ResolveMacro(S2);
 
       _Text := _Text + S2 + ' ';
     End Else
@@ -167,21 +144,23 @@ End;
 
 Procedure UILabel.UpdateSprite;
 Var
-  Pos:Vector2D;
   TextRect:Vector2D;
   TextArea:Vector2D;
 Begin
   If _Sprite = Nil Then
     _Sprite := FontSprite.Create();
 
-  Pos := Self.AbsolutePosition;
+  Self._Caption.SetBlob(_Caption.Value);
+
   Self.FontRenderer.SetFont(FontManager.Instance.DefaultFont);
   Self.FontRenderer.SetColor(Self.GetColor());
 
   TextArea := VectorCreate2D(Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)),  Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
   TextRect := Self.FontRenderer.GetTextRect(Self.Caption._Text);
 
-  Self.FontRenderer.DrawTextToSprite(View, Pos.X + (TextArea.X - TextRect.X) * 0.5,  Pos.Y + (TextArea.Y - TextRect.Y) * 0.5, Self.GetLayer(), Self.Caption._Text, FontSprite(_Sprite));
+  Self.FontRenderer.DrawTextToSprite(View, (TextArea.X - TextRect.X) * 0.5,  (TextArea.Y - TextRect.Y) * 0.5, Self.GetLayer(), Self.Caption._Text, FontSprite(_Sprite));
+
+  _Sprite.SetTransform(Self.Transform);
 End;
 
 Function UILabel.SupportDrag(Mode: UIDragMode): Boolean;

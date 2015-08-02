@@ -28,6 +28,12 @@ Const
   widgetAnimatePosX_Bottom = 64;
   widgetAnimatePosY_Bottom = 128;
 
+  UIMacroBeginChar  = Ord('{');
+  UIMacroEndChar    = Ord('}');
+  UITranslationChar = Ord('#');
+  UIPropertyChar    = Ord('!');
+  UIDataSourceChar  = Ord('@');
+
 Type
   UIDragMode = (
     UIDrag_Move,
@@ -62,6 +68,12 @@ Type
   UIWidgetClass = Class Of UIWidget;
   WidgetEventHandler = Procedure(Src:UIWidget) Of Object;
 
+  UIProperty = Record
+    Prop:TERRAObject;
+    Link:TERRAString;
+    Custom:Boolean;
+  End;
+
 	UIWidget = Class(CollectionObject)
     Private
       _Tested:Boolean;
@@ -77,18 +89,23 @@ Type
       _Scale:FloatProperty;
       _Saturation:FloatProperty;
 			_Visible:BooleanProperty;
-      _Skin:StringProperty;     
-      _DataSource:DataSourceProperty;
+      _Skin:StringProperty;
+      _Draggable:BooleanProperty;
 
       _Deleted:Boolean;
 
 			Function GetAbsolutePosition:Vector2D;
       Function GetRelativePosition:Vector2D;
+      Function GetAlignedPosition:Vector2D;
 
       Function GetHeight: UIDimension;
       Function GetWidth: UIDimension;
 
       Procedure SetParent(Target:UIWidget);
+
+      Function GetDraggable: Boolean;
+      Procedure SetDraggable(const Value: Boolean);
+      Function GetUIView: UIWidget;
 
 		Protected
 			_Parent:UIWidget;
@@ -99,7 +116,7 @@ Type
       _Scroll:UIWidget;
       _ScrollValue:Single;
 
-      _Properties:Array Of TERRAObject;
+      _Properties:Array Of UIProperty;
       _PropertyCount:Integer;
 
       _Tooltip:TERRAString;
@@ -125,8 +142,6 @@ Type
 
       _LastState:Integer;
 
-      _UsingHighLightProperties:Boolean;
-      _SelectedWithKeyboard:Boolean;
       _InheritColor:Boolean;
 
       _Hitting:Boolean;
@@ -151,9 +166,9 @@ Type
 
       _Sprite:TERRASprite;
 
-      Function AddProperty(Prop:TERRAObject):TERRAObject;
+      Function AddProperty(Prop:TERRAObject; IsCustom:Boolean):TERRAObject;
 
-      Procedure UpdateSprite(View:TERRAViewport); Virtual; 
+      Procedure UpdateSprite(View:TERRAViewport); Virtual;
 
       Procedure InitProperties();
 
@@ -175,13 +190,12 @@ Type
       Procedure SetSaturation(const Value: Single);
       Procedure SetScale(const Value: Single);
 
+      Procedure SetTransform(const Value: Matrix3x3);
+
       Function GetRotation():Single;
       Function GetScale():Single;
 
-      Function GetDataValue():TERRAString;
-
-      Procedure UpdateHighlight(); Overload;
-      Procedure UpdateHighlight(Condition:Boolean); Overload;
+      Function ResolveMacro(Const Value:TERRAString):TERRAString;
 
       Procedure UpdateProperties();
 
@@ -202,10 +216,6 @@ Type
 
       Procedure UpdateLanguage; 
 
-      (*Procedure DrawText(Const Text:TERRAString; Const X,Y, Layer:Single; Const TextRect:Vector2D; Scale:Single; ID:Integer; Selected:Boolean; Const TextColor:Color);
-      Procedure DrawComponent(X, Y, Layer:Single; Const Width, Height:UIDimension; ID:Integer; Selected:Boolean; ScaleColor:Boolean = True);
-      Procedure DrawCroppedComponent(X, Y, Layer, U1, V1, U2, V2:Single; Const Width, Height:UIDimension; ID:Integer; Selected:Boolean; ScaleColor:Boolean = True);*)
-
       Procedure SetObjectName(const Value: TERRAString); Override;
 
       Procedure ApplyDragMode(Const PX, PY:Single; Mode:UIDragMode);
@@ -217,7 +227,6 @@ Type
       DisableHighlights:Boolean;
       DisableUIColor:Boolean;
       UserData:TERRAString;
-      Draggable:Boolean;
 
       OnMouseClick:WidgetEventHandler;
       OnMouseRelease:WidgetEventHandler;
@@ -305,9 +314,6 @@ Type
       Procedure SetClipRect(Value:ClipRect);
       Procedure UpdateClipRect(Clip:ClipRect; LeftBorder:Single = 0.0; TopBorder:Single = 0.0; RightBorder:Single = 0.0; BottomBorder:Single = 0.0);
 
-      Function IsHighlighted():Boolean;
-      Function HasHighlightedChildren():Boolean;
-
 			Procedure OnMouseDown(X,Y:Integer; Button:Word); Virtual;
 			Procedure OnMouseUp(X,Y:Integer; Button:Word); Virtual;
 			Procedure OnMouseMove(X,Y:Integer); Virtual;
@@ -321,7 +327,7 @@ Type
 
       Function GetClipRect():ClipRect;
 
-      Procedure BeginDrag(X,Y:Integer; Mode:UIDragMode = UIDrag_Move);
+      Procedure BeginDrag(X,Y:Integer; Mode:UIDragMode);
       Procedure FinishDrag();
       Procedure CancelDrag();
 
@@ -374,16 +380,21 @@ Type
       Property Width:UIDimension Read GetWidth Write SetWidth;
       Property Height:UIDimension Read GetHeight Write SetHeight;
 
+      Property Draggable:Boolean Read GetDraggable Write SetDraggable;
+
       Property Deleted:Boolean Read _Deleted;
-      Property SelectedWithKeyboard:Boolean Read _SelectedWithKeyboard Write _SelectedWithKeyboard;
       Property TransformChanged:Boolean Read _TransformChanged Write _TransformChanged;
+
+      Property Transform:Matrix3x3 Read _Transform Write SetTransform;
+
+      Property View:UIWidget Read GetUIView;
 	End;
 
   UIInstancedWidget = Class(UIWidget)
     Protected
       _TemplateName:StringProperty;
 
-      Function InitFromTemplate(Template:UIWidget):UIWidget;
+      Function InitFromTemplate(Template, Parent:UIWidget):UIWidget;
 
     Public
       Constructor Create(Const Name:TERRAString; Parent:UIWidget; X, Y, Z: Single; Const Width, Height:UIDimension; Const TemplateName:TERRAString);
@@ -404,9 +415,29 @@ Type
 
   Function UITemplates():UITemplateList;
 
+  Function UITranslationMacro(Const Value:TERRAString):TERRAString;
+  Function UIPropertyMacro(Const Value:TERRAString):TERRAString;
+  Function UIDataSourceMacro(Const Value:TERRAString):TERRAString;
+
 Implementation
 
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Math, TERRA_GraphicsManager, TERRA_UI, TERRA_UITiledRect, TERRA_UIImage, TERRA_UILabel;
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Math, TERRA_GraphicsManager, TERRA_UIView, TERRA_UITiledRect, TERRA_UIImage, TERRA_UILabel,
+  TERRA_Localization;
+
+Function UITranslationMacro(Const Value:TERRAString):TERRAString;
+Begin
+  Result := StringFromChar(UIMacroBeginChar) + StringFromChar(UITranslationChar) + Value + StringFromChar(UIMacroEndChar);
+End;
+
+Function UIPropertyMacro(Const Value:TERRAString):TERRAString;
+Begin
+  Result := StringFromChar(UIMacroBeginChar) + StringFromChar(UIPropertyChar) + Value + StringFromChar(UIMacroEndChar);
+End;
+
+Function UIDataSourceMacro(Const Value:TERRAString):TERRAString;
+Begin
+  Result := StringFromChar(UIMacroBeginChar) + StringFromChar(UIDataSourceChar) + Value + StringFromChar(UIMacroEndChar);
+End;
 
 Procedure ShowWidget(Source:UIWidget); CDecl;
 Begin
@@ -421,15 +452,10 @@ Begin
   W.SetColor(W._OriginalColor);
   W.SetRelativePosition(W._OriginalPosition);
   W.SetVisible(False);
-
-(* TODO  If (W.UI.Highlight = W) Or (W.HasHighlightedChildren()) Then
-    W.UI.Highlight := Nil;*)
 End;
 
 { UIWidget }
 Constructor UIWidget.Create(Const Name:TERRAString; Parent:UIWidget);
-Var
-  Target:UIWidget;
 Begin
   _ObjectName := Name;
 
@@ -462,36 +488,29 @@ End;
 
 
 Procedure UIWidget.Release();
+Var
+  I:Integer;
 Begin
+  For I:=0 To Pred(_PropertyCount) Do
+    ReleaseObject(Self._Properties[I].Prop);
+
   ReleaseObject(_Sprite);
-  ReleaseObject(_Width);
-  ReleaseObject(_Height);
-  ReleaseObject(_Visible);
-  ReleaseObject(_Position);
-  ReleaseObject(_Color);
-  ReleaseObject(_Rotation);
-  ReleaseObject(_Layer);
-  ReleaseObject(_Scale);
-  ReleaseObject(_Saturation);
-  ReleaseObject(_Align);
-  ReleaseObject(_Skin);
-  ReleaseObject(_DataSource);
 End;
 
 Procedure UIWidget.InitProperties;
 Begin
-  _Width := DimensionProperty(Self.AddProperty(DimensionProperty.Create('width', UIPixels(0))));
-  _Height := DimensionProperty(Self.AddProperty(DimensionProperty.Create('height', UIPixels(0))));
-  _Visible := BooleanProperty(Self.AddProperty(BooleanProperty.Create('visible', True)));
-  _Position := Vector2DProperty(Self.AddProperty(Vector2DProperty.Create('position', VectorCreate2D(0, 0))));
-  _Layer := FloatProperty(Self.AddProperty(FloatProperty.Create('layer', 1.0)));
-  _Color := ColorProperty(Self.AddProperty(ColorProperty.Create('color', ColorWhite)));
-  _Rotation := AngleProperty(Self.AddProperty(AngleProperty.Create('rotation', 0.0)));
-  _Scale := FloatProperty(Self.AddProperty(FloatProperty.Create('scale', 1.0)));
-  _Saturation := FloatProperty(Self.AddProperty(FloatProperty.Create('saturation', 1.0)));
-  _Skin := StringProperty(Self.AddProperty(StringProperty.Create('skin', '')));
-  _Align := EnumProperty(Self.AddProperty(EnumProperty.Create('align', 0, UIManager.Instance.AlignEnums)));
-  _DataSource := DataSourceProperty(Self.AddProperty(DataSourceProperty.Create('datasource', '')));
+  _Width := DimensionProperty(Self.AddProperty(DimensionProperty.Create('width', UIPixels(0)), False));
+  _Height := DimensionProperty(Self.AddProperty(DimensionProperty.Create('height', UIPixels(0)), False));
+  _Visible := BooleanProperty(Self.AddProperty(BooleanProperty.Create('visible', True), False));
+  _Position := Vector2DProperty(Self.AddProperty(Vector2DProperty.Create('position', VectorCreate2D(0, 0)), False));
+  _Layer := FloatProperty(Self.AddProperty(FloatProperty.Create('layer', 1.0), False));
+  _Color := ColorProperty(Self.AddProperty(ColorProperty.Create('color', ColorWhite), False));
+  _Rotation := AngleProperty(Self.AddProperty(AngleProperty.Create('rotation', 0.0), False));
+  _Scale := FloatProperty(Self.AddProperty(FloatProperty.Create('scale', 1.0), False));
+  _Saturation := FloatProperty(Self.AddProperty(FloatProperty.Create('saturation', 1.0), False));
+  _Skin := StringProperty(Self.AddProperty(StringProperty.Create('skin', ''), False));
+  _Draggable := BooleanProperty(Self.AddProperty(BooleanProperty.Create('draggable', False), False));
+  _Align := EnumProperty(Self.AddProperty(EnumProperty.Create('align', 0, UIManager.Instance.AlignEnums), False));
 End;
 
 Function UIWidget.GetPropertyByIndex(Index:Integer):TERRAObject;
@@ -507,49 +526,10 @@ Begin
   End;
 
   If (Index>=0) Then
-    Result := _Properties[Index]
+    Result := _Properties[Index].Prop
   Else
     Result := Nil;
 End;
-
-Function UIWidget.HasHighlightedChildren():Boolean;
-Var
-  I:Integer;
-Begin
-(* TODO  For I:=0 To Pred(_ChildrenCount) Do
-  If (_ChildrenList[I] = UI.Highlight) Then
-  Begin
-    Result := True;
-    Exit;
-  End Else
-  Begin
-    Result := _ChildrenList[I].HasHighlightedChildren();
-    If Result Then
-      Exit;
-  End;
-*)
-  Result := False;
-End;
-
-
-Function UIWidget.IsHighlighted: Boolean;
-Begin
-(* TODO
-  Result := (UI._Highlight = Self) Or (_Parent<>Nil) And (_Parent.IsHighlighted);
-  *)
-End;
-
-{
-Procedure UIWidget.CenterOnScreen(CenterX:Boolean = True; CenterY:Boolean = True);
-Begin
-  _Align := waTopLeft;
-  Self.UpdateRects;
-
-  If CenterX Then
-    _Position.X := (UIManager.Instance.Width * 0.5) - (_Size.X * 0.5  * _Scale);
-  If CenterY Then
-    _Position.Y := (UIManager.Instance.Height * 0.5) - (_Size.Y * 0.5 *_Scale);
-End;}
 
 Procedure UIWidget.CenterOnPoint(X,Y:Single);
 Begin
@@ -559,20 +539,6 @@ Begin
   _Position.X.Value := X - _Size.X * 0.5;
   _Position.Y.Value := Y - _Size.Y * 0.5;
 End;
-
-{Procedure UIWidget.CenterOnParent(CenterX, CenterY: Boolean);
-Begin
-  If Not Assigned(_Parent) Then
-    Exit;
-
-  Self.UpdateRects;
-  _Align := waTopLeft;
-
-  If CenterX Then
-    _Position.X := (_Parent._Size.X * 0.5) - (_Size.X * 0.5);
-  If CenterY Then
-    _Position.Y := (_Parent._Size.Y * 0.5) - (_Size.Y * 0.5);
-End;}
 
 Procedure UIWidget.StartHighlight;
 Begin
@@ -957,13 +923,6 @@ Begin
   If (Result) And (Assigned(_Parent)) Then
   Begin
     Result := Result And (_Parent.Visible);
-
-    (*TODO
-    If (Result) And (Self.TabIndex>=0) And (Parent.TabControl<>Nil) And (_Parent.TabControl Is UITabList) Then
-    Begin
-      If (UITabList(_Parent.TabControl).SelectedIndex<>Self.TabIndex) Then
-        Result := False;
-    End;*)
   End;
 End;
 
@@ -982,7 +941,7 @@ Begin
   If Value Then
     _VisibleFrame := GraphicsManager.Instance.FrameID;
 
-  If (Not Value) And (_UsingHighLightProperties) Then
+  If (Not Value) Then
     Self.StopHighlight();
 End;
 
@@ -1046,7 +1005,7 @@ Begin
   Result := _Position.Value;
 End;
 
-Function UIWidget.GetAbsolutePosition:Vector2D;
+Function UIWidget.GetAlignedPosition:Vector2D;
 Var
   Width, Height:Single;
   ParentSize, Center:Vector2D;
@@ -1117,6 +1076,11 @@ Begin
       End;
     End;
   End;
+End;
+
+Function UIWidget.GetAbsolutePosition:Vector2D;
+Begin
+  Result := Self.GetAlignedPosition();
 
 	If (Assigned(_Parent)) Then
 		Result.Add(_Parent.GetAbsolutePosition());
@@ -1156,48 +1120,6 @@ Procedure UIWidget.UpdateProperties();
 Begin
   // do nothing
 End;
-
-(*Procedure UIWidget.DrawText(Const Text:TERRAString; Const X,Y, Layer:Single; Const TextRect:Vector2D; Scale:Single; ID:Integer; Selected:Boolean; Const TextColor:Color);
-Var
-  P:Vector2D;
-  Z:Single;
-  OfsX,OfsY:Single;
-  M:Matrix3x3;
-  C:TERRA_Color.Color;
-  CurrentState, DefaultState:Integer;
-Begin
-  Self.CopyProperties(ID, Selected, CurrentState, DefaultState);
-
-  C := _Properties.TextColor;
-  C.A := _Properties.QuadColor.A;
-  C := ColorMultiply(C, TextColor);
-  //Color.A := Trunc(Color.A * UI.Instance._Alpha);
-
-  P := Self.GetAbsolutePosition();
-  Z := Self.GetLayer + Layer;
-
-  Self.GetScrollOffset(OfsX, OfsY);
-
-  P.X := P.X + X + OfsX;
-  P.Y := P.Y + Y + OfsY;
-
-  If (Scale = 1.0) Then
-    M := _Transform
-  Else
-  Begin
-    M := MatrixTransformAroundPoint2D(VectorCreate2D(P.X + TextRect.X* 0.5, P.Y + TextRect.Y* 0.5), MatrixScale2D(Scale, Scale));
-    M := MatrixMultiply3x3(M, _Transform);
-  End;
-
-  _FontRenderer.SetFont(_Properties.TextFont);
-  _FontRenderer.SetClipRect(_Properties.Clip);
-  _FontRenderer.SetTransform(M);
-  _FontRenderer.SetDropShadow(_DropShadowColor);
-  _FontRenderer.SetColor(C);
-
-  _FontRenderer.DrawText(P.X, P.Y, Z, Text);
-End;*)
-
 
 Function UIWidget.OnKeyDown(Key:Word):Boolean;
 Begin
@@ -1279,6 +1201,8 @@ Begin
 End;
 
 Function UIWidget.AllowsEvents(): Boolean;
+Var
+  UI:UIView;
 Begin
   If (Not Visible) Then
   Begin
@@ -1288,11 +1212,13 @@ Begin
 
   Result := True;
 
-(* TODO  If (_UI.Modal = Nil) Or  (Self = _UI.Modal) Then
+  UI := UIView(Self.GetUIView);
+
+  If (Assigned(UI)) And ((UI.Modal = Nil) Or  (Self = UI.Modal)) Then
     Exit;
 
   If Assigned(Self.Parent) Then
-    Result := Self.Parent.AllowsEvents();*)
+    Result := Self.Parent.AllowsEvents();
 End;
 
 Procedure UIWidget.PickAt(Const X, Y:Integer; Var CurrentPick:UIWidget; Var Max:Single; Ignore:UIWidget);
@@ -1315,11 +1241,17 @@ Begin
 End;
 
 Procedure UIWidget.BeginDrag(X,Y:Integer; Mode:UIDragMode);
+Var
+  UI:UIView;
 Begin
+  UI := UIView(Self.GetUIView);
+  If UI = Nil Then
+    Exit;
+
   If (Assigned(OnBeginDrag)) Then
     Self.OnBeginDrag(Self);
 
-(*  _UI._Dragger := Self;
+  UI.Dragger := Self;
   _DragMode := Mode;
   _Dragging := True;
 
@@ -1328,43 +1260,61 @@ Begin
 
   _DragX := (X-_Position.X.Value);
   _DragY := (Y-_Position.Y.Value);
-
-  TODO
-  *)
 End;
 
 Procedure UIWidget.CancelDrag;
+Var
+  UI:UIView;
 Begin
-(*TODO  If _Dragging Then
+  UI := UIView(Self.GetUIView);
+  If UI = Nil Then
+    Exit;
+
+  If _Dragging Then
   Begin
     _Position.Value := _DragStart;
     _Dragging := False;
-    If _UI._Dragger = Self Then
-      _UI._Dragger := Nil;
+
+    If UI.Dragger = Self Then
+      UI.Dragger := Nil;
 
     Self._TransformChanged := True;
   End;
-  *)
 End;
 
 Procedure UIWidget.FinishDrag();
+Var
+  UI:UIView;
 Begin
-(*TODO  If (_UI._Dragger <> Self) Then
+  UI := UIView(Self.GetUIView);
+  If UI = Nil Then
+    Exit;
+
+  If (UI.Dragger <> Self) Then
     Exit;
 
   If (Assigned(OnEndDrag)) Then
     Self.OnEndDrag(Self);
 
   _Dragging := False;
-  _UI._Dragger := Nil;*)
+  UI.Dragger := Nil;
 End;
 
 Procedure UIWidget.OnMouseDown(X,Y:Integer;Button:Word);
+Var
+  TargetDragger:UIWidget;
 Begin
   If (Draggable) Then
   Begin
     If (Not _Dragging) Then
-      Self.BeginDrag(X,Y);
+    Begin
+      If (Assigned(Parent)) And (Parent Is UIInstancedWidget) Then
+        TargetDragger := Parent
+      Else
+        TargetDragger := Self;
+
+      TargetDragger.BeginDrag(X,Y, UIDrag_Move);
+    End;
 
     Exit;
   End;
@@ -1377,12 +1327,6 @@ Procedure UIWidget.OnMouseUp(X,Y:Integer;Button:Word);
 Var
   I:Integer;
 Begin
-  If (_Dragging) Then
-  Begin
-    Self.FinishDrag();
-    Exit;
-  End;
-
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', _Name+ '.OnMouseUp called');{$ENDIF}
 
   If (Assigned(OnMouseRelease)) Then
@@ -1482,23 +1426,6 @@ Begin
   // do nothing
 End;
 
-Procedure UIWidget.UpdateHighlight();
-Begin
-  UpdateHighlight(IsHighlighted());
-End;
-
-Procedure UIWidget.UpdateHighlight(Condition:Boolean);
-Begin
-  If (_UsingHighLightProperties = Condition) Then
-    Exit;
-
-  _UsingHighLightProperties := Condition;
-  If (Condition) Then
-    Self.StartHighlight()
-  Else
-    Self.StopHighlight();
-End;
-
 Function UIWidget.HasMouseOver: Boolean;
 Begin
   Result := (Assigned(OnMouseOver)) Or (Assigned(OnMouseOut)) Or (Assigned(OnMouseClick));
@@ -1542,14 +1469,10 @@ Begin
     HideWidget(Self);
   End;
 
-  If (Not _TransformChanged) Then
-    Exit;
+(*  If (Not _TransformChanged) Then
+    Exit;*)
 
   _TransformChanged := False;
-
-  For I:=0 To Pred(_ChildrenCount) Do
-  If (_ChildrenList[I].Visible) Then
-    _ChildrenList[I]._TransformChanged := True;
 
   If Assigned(_Parent) Then
     Ratio := 1.0
@@ -1568,12 +1491,21 @@ Begin
 
   _Transform := MatrixTransformAroundPoint2D(Center, _Transform);
 
+  _Transform := MatrixMultiply3x3(_Transform, MatrixTranslation2D(Self.GetAlignedPosition()));
+
   If Assigned(_Parent) Then
     _Transform := MatrixMultiply3x3(_Transform, Parent._Transform);
 
   Self.GetScrollOffset(OfsX, OfsY);
 
   _InverseTransform := MatrixInverse2D(_Transform);
+
+  For I:=0 To Pred(_ChildrenCount) Do
+  If (_ChildrenList[I].Visible) Then
+  Begin
+    _ChildrenList[I]._TransformChanged := True;
+    _ChildrenList[I].UpdateTransform();
+  End;
 
   Result := True;
 End;
@@ -1893,16 +1825,52 @@ Begin
   Result := StringToInt(S);
 End;
 
-Function UIWidget.GetDataValue: TERRAString;
+Function UIWidget.ResolveMacro(Const Value:TERRAString):TERRAString;
 Var
-  S:TERRAString;
+  I:Integer;
+  Macro:TERRAString;
+  C:TERRAChar;
 Begin
-  S := _DataSource.Value;
+  C := StringFirstChar(Value);
+
+  Result := '';
+
+  If (C = UITranslationChar) Then
+  Begin
+    Macro := StringCopy(Value, 2, MaxInt);
+    Result := LocalizationManager.Instance.GetString(Macro);
+    Exit;
+  End Else
+  If (C = UIPropertyChar) Then
+  Begin
+    Macro := StringCopy(Value, 2, MaxInt);
+    For I:=0 To Pred(_PropertyCount) Do
+    If (StringEquals(_Properties[I].Prop.Name, Macro)) Then
+    Begin
+      Result := _Properties[I].Prop.GetBlob();
+      Exit;
+    End;
+  End Else
+  If (C = UIDataSourceChar) Then
+  Begin
+    Result := 'LOFB';
+(*    For I:=0 To Pred(_PropertyCount) Do
+    If (StringEquals(_Properties[I].Prop.Name, Macro)) Then
+    Begin
+      Result := _Properties[I].Prop.GetBlob();
+      Exit;
+    End;*)
+    Exit;                       
+  End Else
+  Begin
+    Result := Value;
+    Exit;
+  End;
 
   If Assigned(Self.Parent) Then
-    StringReplaceText('$', Self.Parent._DataSource.Value, S);
-
-  Result := DataSourceManager.Instance.GetValueFromPath(S);
+    Result := Self.Parent.ResolveMacro(Value);
+    
+  //Result := DataSourceManager.Instance.GetValueFromPath(S);
 End;
 
 Procedure UIWidget.SetChildrenVisibilityByTag(Tag: Integer; Visibility: Boolean);
@@ -2180,29 +2148,78 @@ Begin
 End;
 
 
-Function UIWidget.AddProperty(Prop: TERRAObject):TERRAObject;
+Function UIWidget.AddProperty(Prop:TERRAObject; IsCustom:Boolean):TERRAObject;
 Begin
   Result := Prop;
   Inc(_PropertyCount);
   SetLength(_Properties, _PropertyCount);
-  _Properties[Pred(_PropertyCount)] := Prop;
+  _Properties[Pred(_PropertyCount)].Prop := Prop;
+  _Properties[Pred(_PropertyCount)].Custom := IsCustom;
+  _Properties[Pred(_PropertyCount)].Link := '';
+End;
+
+Function UIWidget.GetDraggable: Boolean;
+Begin
+  Result := _Draggable.Value;
+End;
+
+Procedure UIWidget.SetDraggable(const Value: Boolean);
+Begin
+  _Draggable.Value := Value;
+End;
+
+Function UIWidget.GetUIView: UIWidget;
+Begin
+  If Assigned(_Parent) Then
+    Result := _Parent.GetUIView()
+  Else
+  If (Self Is UIView) Then
+    Result := Self
+  Else
+    Result := Nil;
+End;
+
+Procedure UIWidget.SetTransform(const Value: Matrix3x3);
+Begin
+  _Transform := Value;
+  _InverseTransform := MatrixInverse2D(Value);
+
+  //_ClipRect.Style := clipSomething;
+  _ClipRect.Style := clipNothing;
+  _ClipRect.X := 0;
+  _ClipRect.Y := 0;
+  _ClipRect.Width := Self.Size.X;
+  _ClipRect.Height := Self.Size.Y;
+  _ClipRect.Transform(Value);
+
+  _TransformChanged := True;
 End;
 
 { UIInstancedWidget }
 Constructor UIInstancedWidget.Create(Const Name: TERRAString; Parent: UIWidget; X, Y, Z: Single; const Width, Height: UIDimension; Const TemplateName:TERRAString);
 Var
   Template:UIWidget;
+  Prop:TERRAObject;
   I:Integer;
 Begin
   Inherited Create(Name, Parent);
 
-  _TemplateName := StringProperty(Self.AddProperty(StringProperty.Create('template', TemplateName)));
+  _TemplateName := StringProperty(Self.AddProperty(StringProperty.Create('template', TemplateName), False));
 
   Template := UITemplates.GetTemplate(TemplateName);
   If Assigned(Template) Then
   Begin
     For I:=0 To Pred(Template.ChildrenCount) Do
-      Self.AddChild(Self.InitFromTemplate(Template.GetChildByIndex(I)));
+      Self.InitFromTemplate(Template.GetChildByIndex(I), Self);
+
+    For I:=0 To Pred(Template._PropertyCount) Do
+    If (Template._Properties[I].Custom) Then
+    Begin
+      Prop := TERRAObject(Template._Properties[I].Prop.ClassType.Create);
+      Prop.Name := Template._Properties[I].Prop.Name;
+      Prop.SetBlob(Template._Properties[I].Prop.GetBlob());
+      Self.AddProperty(Prop, True);
+    End;
   End;
 
   Self.SetRelativePosition(VectorCreate2D(X,Y));
@@ -2223,7 +2240,7 @@ Begin
   Result := 'UITemplate';
 End;
 
-Function UIInstancedWidget.InitFromTemplate(Template:UIWidget):UIWidget;
+Function UIInstancedWidget.InitFromTemplate(Template, Parent:UIWidget):UIWidget;
 Var
   I:Integer;
 Begin
@@ -2235,11 +2252,11 @@ Begin
 
   If (Template Is UILabel) Then
   Begin
-    Result := UILabel.Create(Template.Name, Nil, 0, 0, 0, UIPixels(100), UIPixels(100), 'basaf');
+    Result := UILabel.Create(Template.Name, Parent, 0, 0, 0, UIPixels(100), UIPixels(100), 'basaf');
   End Else
   If (Template Is UITiledRect) Then
   Begin
-    Result := UITiledRect.Create(Template.Name, Nil, 0, 0, 0, UIPixels(100), UIPixels(100), 0, 0, 1, 1);
+    Result := UITiledRect.Create(Template.Name, Parent, 0, 0, 0, UIPixels(100), UIPixels(100), 0, 0, 1, 1);
   End Else
   Begin
     Log(logError, 'UI', 'Cannot instanciate template component of type '+Template.ClassName);
@@ -2250,10 +2267,9 @@ Begin
 
   For I:=0 To Pred(Template.ChildrenCount) Do
   Begin
-    Result.AddChild(InitFromTemplate(Template.GetChildByIndex(I)));
+    InitFromTemplate(Template.GetChildByIndex(I), Result);
   End;
 End;
-
 
 { UITemplateList }
 Var

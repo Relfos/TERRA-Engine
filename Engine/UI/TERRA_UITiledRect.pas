@@ -3,7 +3,7 @@ Unit TERRA_UITiledRect;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_UI, TERRA_UIWidget, TERRA_Color,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_UIWidget, TERRA_Color,
   TERRA_UIDimension, TERRA_Sprite, TERRA_Texture, TERRA_Renderer, TERRA_Vector2D, TERRA_Viewport;
 
 Type
@@ -22,7 +22,6 @@ Type
 
       Procedure SetTexture(Tex:TERRATexture);
 
-      Procedure Release; Override;
       Procedure UpdateRects; Override;
 
       Property Texture:TERRATexture Read GetTexture Write SetTexture;
@@ -41,11 +40,11 @@ Begin
   Self.SetRelativePosition(VectorCreate2D(X,Y));
   Self.Layer := Z;
 
-  Self._Texture := TextureProperty(Self.AddProperty(TextureProperty.Create('image', Nil)));
-  _U1 := FloatProperty(Self.AddProperty(FloatProperty.Create('u1', U1)));
-  _V1 := FloatProperty(Self.AddProperty(FloatProperty.Create('v1', V1)));
-  _U2 := FloatProperty(Self.AddProperty(FloatProperty.Create('u2', U2)));
-  _V2 := FloatProperty(Self.AddProperty(FloatProperty.Create('v2', V2)));
+  Self._Texture := TextureProperty(Self.AddProperty(TextureProperty.Create('image', Nil), False));
+  _U1 := FloatProperty(Self.AddProperty(FloatProperty.Create('u1', U1), False));
+  _V1 := FloatProperty(Self.AddProperty(FloatProperty.Create('v1', V1), False));
+  _U2 := FloatProperty(Self.AddProperty(FloatProperty.Create('u2', U2), False));
+  _V2 := FloatProperty(Self.AddProperty(FloatProperty.Create('v2', V2), False));
 
   Self.Width := Width;
   Self.Height := Height;
@@ -61,16 +60,6 @@ End;
 Function UITiledRect.GetTexture: TERRATexture;
 Begin
   Result := _Texture.Value;
-End;
-
-Procedure UITiledRect.Release;
-Begin
-  Inherited;
-  ReleaseObject(Self._Texture);
-  ReleaseObject(Self._U1);
-  ReleaseObject(Self._V1);
-  ReleaseObject(Self._U2);
-  ReleaseObject(Self._V2);
 End;
 
 Procedure UITiledRect.SetTexture(Tex: TERRATexture);
@@ -100,7 +89,7 @@ End;
 Procedure UITiledRect.UpdateSprite(View:TERRAViewport);
 Var
   OfsX, OfsY:Single;
-  Temp, Pos, Center:Vector2D;
+  //Temp, Pos, Center:Vector2D;
 Begin
   If _Sprite = Nil Then
   Begin
@@ -117,8 +106,8 @@ Begin
 
     Pos := Self.AbsolutePosition;
     Self.SetRelativePosition(Temp);
-  End Else*)
-    Pos := Self.AbsolutePosition;
+  End Else
+    Pos := Self.AbsolutePosition;*)
 
 (*  If (Pos.X>UIManager.Instance.Width) Or (Pos.Y>UIManager.Instance.Height)
   Or (Pos.X<-Size.X) Or (Pos.Y<-Size.Y) Then
@@ -128,13 +117,13 @@ Begin
     Texture := TextureManager.Instance.WhiteTexture;
 
   _Sprite.SetTransform(Self._Transform);
-  _Sprite.ClipRect := Self.GetClipRect();
+ // _Sprite.ClipRect := Self.GetClipRect();
   _Sprite.Texture := Self.Texture;
   _Sprite.Layer := Self.GetLayer();
   _Sprite.Saturation := Self.GetSaturation();
   _Sprite.BlendMode := blendBlend;
 
-  Scale9Sprite(_Sprite).SetPosition(Pos);
+  Scale9Sprite(_Sprite).SetPosition(VectorCreate2D(0, 0));
   Scale9Sprite(_Sprite).SetColor(Self.Color);
   Scale9Sprite(_Sprite).SetSize(Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)),  Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
   Scale9Sprite(_Sprite).SetUVRect(_U1.Value, _V1.Value, _U2.Value, _V2.Value);

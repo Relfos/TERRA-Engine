@@ -28,7 +28,7 @@ Unit TERRA_Billboards;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_Utils, TERRA_Color, TERRA_Vector3D, TERRA_Texture, TERRA_Renderer,
-  TERRA_Mesh, TERRA_Vector2D, TERRA_ParticleRenderer, TERRA_VertexFormat, TERRA_UI, TERRA_Viewport;
+  TERRA_Mesh, TERRA_Vector2D, TERRA_ParticleRenderer, TERRA_VertexFormat, TERRA_Viewport;
 
 Type
   PBillboard = ^Billboard;
@@ -77,7 +77,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_GraphicsManager;
+Uses TERRA_GraphicsManager, TERRA_UIView;
 
 Var
   _BillboardInstance:BillboardManager;

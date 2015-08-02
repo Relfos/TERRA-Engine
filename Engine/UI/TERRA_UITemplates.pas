@@ -30,8 +30,6 @@ Begin
   TileRect := UITiledRect.Create('rect', Self, 0, 0, 1, UIPercent(100), UIPercent(100), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
   TileRect.Texture := Tex;
   TileRect.Draggable := True;
-
-  Self.AddChild(TileRect);
 End;
 
 { UIButtonTemplate }
@@ -43,13 +41,13 @@ Begin
   Inherited Create(Name, Nil);
 
   Tex.Prefetch();
-  TileRect := UITiledRect.Create('btn', Self, 0, 0, 1, UIPercent(100), UIPercent(100), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
+  TileRect := UITiledRect.Create('button', Self, 0, 0, 1, UIPercent(100), UIPercent(100), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
   TileRect.Texture := Tex;
   TileRect.Draggable := True;
 
-  Caption := UILabel.Create('text', Self, 0, 0, 1, UIPercent(100), UIPercent(100), 'test!');
+  Caption := UILabel.Create('label', Self, 0, 0, 1, UIPercent(100), UIPercent(100), UIPropertyMacro('text'));
 
-  Self.AddChild(TileRect);
+  Self.AddProperty(StringProperty.Create('text', 'untitled'), True);
 End;
 
 End.

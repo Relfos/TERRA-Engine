@@ -3,7 +3,7 @@ Unit TERRA_UIImage;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_UI, TERRA_UIWidget, TERRA_Color,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_UIWidget, TERRA_Color,
   TERRA_UIDimension, TERRA_Sprite, TERRA_Texture, TERRA_Renderer, TERRA_Vector2D, TERRA_Viewport;
 
 Type
@@ -28,7 +28,6 @@ Type
 
       Procedure SetTexture(Tex:TERRATexture);
 
-      Procedure Release; Override;
       Procedure UpdateRects; Override;
 
       Property Texture:TERRATexture Read GetTexture Write SetTexture;
@@ -47,11 +46,11 @@ Begin
   Self.Layer := Z;
   Self.Filter := filterLinear;
 
-  Self._Texture := TextureProperty(Self.AddProperty(TextureProperty.Create('image', Nil)));
-  _U1 := FloatProperty(Self.AddProperty(FloatProperty.Create('u1', 0)));
-  _V1 := FloatProperty(Self.AddProperty(FloatProperty.Create('v1', 0)));
-  _U2 := FloatProperty(Self.AddProperty(FloatProperty.Create('u2', 1)));
-  _V2 := FloatProperty(Self.AddProperty(FloatProperty.Create('v2', 1)));
+  Self._Texture := TextureProperty(Self.AddProperty(TextureProperty.Create('image', Nil), False));
+  _U1 := FloatProperty(Self.AddProperty(FloatProperty.Create('u1', 0), False));
+  _V1 := FloatProperty(Self.AddProperty(FloatProperty.Create('v1', 0), False));
+  _U2 := FloatProperty(Self.AddProperty(FloatProperty.Create('u2', 1), False));
+  _V2 := FloatProperty(Self.AddProperty(FloatProperty.Create('v2', 1), False));
 
   Self.Width := Width;
   Self.Height := Height;
@@ -89,16 +88,6 @@ End;
 Function UIImage.GetTexture: TERRATexture;
 Begin
   Result := _Texture.Value;
-End;
-
-Procedure UIImage.Release;
-Begin
-  Inherited;
-  ReleaseObject(Self._Texture);
-  ReleaseObject(Self._U1);
-  ReleaseObject(Self._V1);
-  ReleaseObject(Self._U2);
-  ReleaseObject(Self._V2);  
 End;
 
 Procedure UIImage.SetTexture(Tex: TERRATexture);

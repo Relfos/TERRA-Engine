@@ -23,7 +23,7 @@ uses
   TERRA_Color,
   TERRA_String,
   TERRA_Matrix4x4,
-  TERRA_UI,
+  TERRA_UIView,
   TERRA_UIWidget,
   TERRA_UITemplates,
   TERRA_UIImage,
@@ -54,7 +54,7 @@ Type
 
 Var
   Fnt:TERRAFont;
-  MyUI:TERRAUI;
+  MyUI:UIView;
   MyWnd, MyBtn:UIWidget;
 
 { Game }
@@ -66,7 +66,7 @@ Begin
   Fnt := FontManager.Instance.GetFont('droid');
 
   // Create a new UI
-  MyUI := TERRAUI.Create;
+  MyUI := UIView.Create;
 
   // Register the font with the UI
   MyUI.DefaultFont := Fnt;
@@ -112,6 +112,7 @@ Begin
   UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', TextureManager.Instance.GetTexture('ui_button2'), 25, 10, 220, 37));
 
   MyWnd := UIInstancedWidget.Create('mywnd', MyUI, 0, 0, 10, UIPixels(643), UIPixels(231), 'wnd_template');
+//  MyWnd.Draggable := True;
   MyWnd.Align := waCenter;
 
   MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, 0, 0, 1, UIPixels(250), UIPixels(50), 'btn_template');

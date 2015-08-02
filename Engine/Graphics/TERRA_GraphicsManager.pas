@@ -234,7 +234,7 @@ Type
 
 Implementation
 
-Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_UI, TERRA_ResourceManager, TERRA_InputManager,
+Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_UIView, TERRA_ResourceManager, TERRA_InputManager,
   TERRA_Frustum, TERRA_Lights, TERRA_Mesh,
   TERRA_Decals, TERRA_Billboards, TERRA_ParticleRenderer, TERRA_DebugDraw;
 
