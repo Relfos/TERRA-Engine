@@ -3,112 +3,176 @@ Unit TERRA_UILabel;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_UI, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_UICaption;
+Uses TERRA_String, TERRA_Object, TERRA_UI, TERRA_UIWidget, TERRA_Vector2D, TERRA_Color, TERRA_Font;
 
 Type
-  UILabel = Class(UICaption)
+  UILabel = Class;
+
+  CaptionProperty = Class(StringProperty)
+    Protected
+      _Text:TERRAString;
+      _Owner:UILabel;
+
     Public
-      Constructor Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Caption:TERRAString; TabIndex:Integer=-1);
+      Constructor Create(Const Name:TERRAString; Const InitValue:TERRAString; Owner:UILabel);
 
-      Function SupportDrag(Mode:UIDragMode):Boolean; Override; 
+      Procedure SetBlob(Const Value:TERRAString); Override;
 
-      Procedure Render; Override;
-      Procedure UpdateRects; Override;
+      Property Text:TERRAString Read _Text;
   End;
 
 
+  UILabel = Class(UIWidget)
+    Protected
+      _Caption:CaptionProperty;
+      _CaptionIndex:Integer;
+
+      _TextRect:Vector2D;
+      _PreviousFont:TERRAFont;
+
+      Function GetLocalizationKey: TERRAString;
+
+      Procedure UpdateSprite; Override;
+
+    Public
+      Constructor Create(Const Name:TERRAString; Parent:UIWidget);
+      Procedure Release(); Override;
+
+      Procedure UpdateRects; Override;
+
+      Function GetPropertyByIndex(Index: Integer): TERRAObject; Override;
+
+      Function GetSize:Vector2D; Override;
+
+			Procedure OnLanguageChange(); Override;
+
+      Property Caption:CaptionProperty Read _Caption;
+      Property LocalizationKey:TERRAString Read GetLocalizationKey;
+  End;
+
+Function GetLocalizedString(Value:TERRAString):TERRAString;
+
 Implementation
-Uses TERRA_OS;
+Uses TERRA_Localization;
 
-Constructor UILabel.Create(Name:TERRAString; Parent:Widget; X,Y,Z:Single; Caption:TERRAString; TabIndex:Integer);
+Function GetLocalizedString(Value:TERRAString):TERRAString;
 Begin
-  Inherited Create(Name, Parent, '');
-
-  Self.TabIndex := TabIndex;
-
-  Self.SetRelativePosition(VectorCreate2D(X,Y));
-  Self.Layer := Z;
-
-  Self.Caption.Value := Caption;
-  _NeedsUpdate := True;
+  If (Value<>'') And (Value[1]='#') Then
+  Begin
+    Value := Copy(Value, 2, MaxInt);
+    Result := LocalizationManager.Instance.GetString(Value);
+  End Else
+    Result := Value;
 End;
 
-(*Function UILabel.OnMouseMove(X,Y:Integer):Boolean;
-Var
-  Pos:Vector2D;
-  AO, OH:Boolean;
+Constructor UILabel.Create(const Name:TERRAString; Parent:UIWidget);
 Begin
-  Pos := Self.GetPosition;
-  OH := _HighLight;
-  AO := (Assigned(OnMouseClick));
-  _HighLight := (AO) And (OnRegion(X,Y)) And (Not Self.HasTweens);
-  Result := False;
-  If _HighLight  Then
-    Result := True;
-  {$IFDEF IPHONE}
-  If (_Highlight) And (Not OH) And (Not DisableSlideTouch) Then
-    Self.OnMouseDown(X, Y, 99);
-  {$ENDIF}
-End;*)
+  Inherited Create(Name, Parent);
 
-{Procedure UILabel.Reveal(DurationPerLetter, Delay:Cardinal);
-Begin
-  Self._RevealTime := Delay + GetTime;
+  _Caption := CaptionProperty.Create('caption', '', Self);
 
-  If Not Assigned(Self.Font) Then
-    Exit;
-
-  Self._RevealDuration := Self.Font.GetLength(Caption);
-  Self._RevealDuration := DurationPerLetter * Self._RevealDuration;
-End;}
-
-Procedure UILabel.UpdateRects();
-Begin
-  Inherited;
-  _Size := _TextRect;
+  Self.ExpandProperties(1);
+  _CaptionIndex := _BasePropertiesIndex;
 End;
 
-Procedure UILabel.Render();
-Var
-  S:TERRAString;
-  Time:Cardinal;
-  Delta:Single;
-  P:Vector2D;
+Procedure UILabel.Release();
 Begin
-  Self.UpdateProperties();
-  Self.UpdateRects;
+  ReleaseObject(_Caption);
+End;
 
-  If (Caption.Text = '') Then
-    Exit;
+Function UILabel.GetLocalizationKey: TERRAString;
+Begin
+  If StringFirstChar(_Caption.Value) = Ord('#') Then
+  Begin
+    Result := StringCopy(Caption.Value, 2, MaxInt);
+  End Else
+    Result := '';
+End;
 
-  Self.UpdateTransform();
-
-(*  {$IFDEF MOBILE}
-  Color := Self.GetColor;
-  {$ELSE}
-  If (Not Assigned(OnMouseClick)) Or (_HighLight) Then
-    Color := Self.GetColor
+Function UILabel.GetPropertyByIndex(Index: Integer): TERRAObject;
+Begin
+  If Index = _CaptionIndex Then
+    Result := Self.Caption
   Else
-    Color := ColorGrey(200, Self.Color.A);
-  {$ENDIF}*)
-
-  If (Not DisableHighlights) Then
-    Self.UpdateHighlight();
-
-  Color := Self.GetColor;
-
-  Self.DrawText(Caption.Text, 0, 0, 0, _TextRect, Scale, 0, False, Color);
-
-  Inherited;
+    Result := Inherited GetPropertyByIndex(Index);
 End;
 
-
-
-
-
-Function UILabel.SupportDrag(Mode: UIDragMode): Boolean;
+Function UILabel.GetSize: Vector2D;
 Begin
-  Result := (Mode = UIDrag_Move);
+  If (_NeedsUpdate) Then
+    Self.UpdateRects();
+
+  Result := Inherited GetSize;
+End;
+
+Procedure UILabel.OnLanguageChange;
+Begin
+  Self.Caption.SetBlob(Self._Caption._Value);
+End;
+
+Procedure UILabel.UpdateRects;
+Var
+  Fnt:TERRAFont;
+Begin
+  Inherited;
+
+(*TODO  Fnt := Self.GetFont();
+
+  If ((_NeedsUpdate) Or (Fnt<>_PreviousFont)) And (Assigned(FontRenderer)) Then
+  Begin
+    _TextRect := FontRenderer.GetTextRect(_Caption.Value, 1.0);
+    _PreviousFont := Fnt;
+    _NeedsUpdate := False;
+  End;*)
+End;
+
+{ CaptionProperty }
+Constructor CaptionProperty.Create(const Name, InitValue: TERRAString; Owner: UILabel);
+Begin
+  Inherited Create(Name, InitValue);
+  _Owner := Owner;
+End;
+
+Procedure CaptionProperty.SetBlob(const Value: TERRAString);
+Var
+  S, S2, Data:TERRAString;
+  It:StringIterator;
+Begin
+  _Value := Value;
+  _Owner._NeedsUpdate := True;
+
+  Data := _Owner.GetDataValue();
+
+  S := Value;
+  _Text := '';
+  Repeat
+    If StringCharPosIterator(Ord('#'), S, It, True) Then
+    Begin
+      It.Split(S2, S);
+      _Text := _Text + S2;
+
+      S2 := StringGetNextSplit(S, Ord(' '));
+
+      If S2='$' Then
+        S2 := Data
+      Else
+        S2 := GetLocalizedString(S2);
+
+      _Text := _Text + S2 + ' ';
+    End Else
+    Begin
+      _Text := _Text + S;
+      Break;
+    End;
+
+  Until False;
+
+  S := ConvertFontCodes(S);
+End;
+
+Procedure UILabel.UpdateSprite;
+Begin
+  
 End;
 
 End.

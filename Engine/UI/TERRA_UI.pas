@@ -29,7 +29,7 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween,
   TERRA_SpriteManager, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_FontRenderer, TERRA_UITransition, TERRA_Viewport,
-  TERRA_UIDimension, TERRA_UIComponent, TERRA_UIWidget, TERRA_ClipRect, TERRA_EnumProperty, TERRA_DataSource, TERRA_Hashmap;
+  TERRA_UIDimension, TERRA_UIWidget, TERRA_ClipRect, TERRA_EnumProperty, TERRA_DataSource, TERRA_Hashmap;
 
 Const
 
@@ -218,8 +218,8 @@ Function GetSpriteZOnTop(W:UIWidget; Ofs:Single = 1.0):Single;
 
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_Renderer, TERRA_XML, TERRA_Matrix4x4,
-  TERRA_Log, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager,
-  TERRA_UIVirtualKeyboard, TERRA_UITabs, TERRA_UIScrollBar(*,
+  TERRA_Log, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager(*,
+  TERRA_UIVirtualKeyboard, TERRA_UITabs, TERRA_UIScrollBar,
    TERRA_UIButton, TERRA_UISprite, TERRA_UILabel, TERRA_UIWindow,
   TERRA_UICheckbox, TERRA_UIEditText, TERRA_UIIcon*);
 
@@ -259,6 +259,9 @@ Begin
   Key_Cancel := TERRA_OS.keyEscape;
 
   _ClipRect.SetStyle(clipNothing);
+
+  Self.Width := UIPixels(UIManager.Instance.Width);
+  Self.Height := UIPixels(UIManager.Instance.Height);
 
   UIManager.Instance.AddUI(Self);
 End;
@@ -608,9 +611,9 @@ End;
 
 Function TERRAUI.GetVirtualKeyboard:UIWidget;
 Begin
-  If (_VirtualKeyboard = Nil) Then
+(*  If (_VirtualKeyboard = Nil) Then
     _VirtualKeyboard := UIVirtualKeyboard.Create('vkb', Self, 97, 'keyboard');
-
+*)
   Result := _VirtualKeyboard;
 End;
 

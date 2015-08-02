@@ -76,6 +76,8 @@ Function VectorCross2D(Const A,B:Vector2D):Single;
 Function VectorAdd2D(Const A,B:Vector2D):Vector2D;
 Function VectorSubtract2D(Const A,B:Vector2D):Vector2D;
 
+Function VectorScale2D(Const A:Vector2D; Const S:Single):Vector2D;
+Function VectorLerp2D(Const A, B:Vector2D; Const Delta:Single):Vector2D;
 
 Function VectorAngle3D(Const A,B:Vector3D):Single;
 Function VectorAngle2D(Const A,B:Vector2D):Single;
@@ -109,6 +111,18 @@ Function VectorSubtract2D(Const A,B:Vector2D):Vector2D;
 Begin
   Result.X := A.X - B.X;
   Result.Y := A.Y - B.Y;
+End;
+
+Function VectorScale2D(Const A:Vector2D; Const S:Single):Vector2D;
+Begin
+  Result.X := A.X * S;
+  Result.Y := A.Y * S;
+End;
+
+Function VectorLerp2D(Const A, B:Vector2D; Const Delta:Single):Vector2D;
+Begin
+  Result.X := A.X + Delta * (B.X - A.X);
+  Result.Y := A.Y + Delta * (B.Y - A.Y);
 End;
 
 Procedure Vector2D.Project(Const V:Vector2D);

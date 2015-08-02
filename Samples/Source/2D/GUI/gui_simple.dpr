@@ -13,7 +13,6 @@ uses
   TERRA_Vector2D,
   TERRA_Font,
   TERRA_Texture,
-  TERRA_UI,
   TERRA_FileManager,
   TERRA_InputManager,
   TERRA_Collections,
@@ -24,11 +23,11 @@ uses
   TERRA_Color,
   TERRA_String,
   TERRA_Matrix4x4,
+  TERRA_UI,
   TERRA_UIWidget,
   TERRA_UITemplates,
-  TERRA_UIWindow,
-  TERRA_UIDimension,
-  TERRA_UIButton;
+  TERRA_UIImage,
+  TERRA_UIDimension;
 
 Type
   Demo = Class(Application)
@@ -55,8 +54,8 @@ Type
 Var
   Fnt:TERRAFont;
   MyUI:TERRAUI;
-  MyWnd:UIWindow;
-  MyBtn:UIButton;
+  MyWnd:UIImage;
+//  MyBtn:UIButton;
 
 { Game }
 Procedure Demo.OnCreate;
@@ -108,13 +107,14 @@ Constructor MyScene.Create;
 Var
   I:Integer;
 Begin
-  MyWnd := UIWindow.Create('mywnd', MyUI, 0, 0, 10, UIPixels(300), UIPixels(150), '#window');
+  MyWnd := UIImage.Create('mywnd', MyUI, 0, 0, 10, UIPixels(300), UIPixels(150));
+  MyWnd.Texture := TextureManager.Instance.GetTexture('background');
   MyWnd.Draggable := True;
   MyWnd.Align := waCenter;
 
-  MyBtn := UIButton.Create('btn1', MyWnd, 0, 0, 10, UIPixels(150), UIPixels(50), 'Click me', 'round_button');
+(*  MyBtn := UIButton.Create('btn1', MyWnd, 0, 0, 10, UIPixels(150), UIPixels(50), 'Click me');
   MyBtn.OnMouseClick := OnMyButtonClick; // Assign a onClick event handler
-  MyBtn.Align := waCenter;
+  MyBtn.Align := waCenter;*)
 End;
 
 Procedure MyScene.Release;
