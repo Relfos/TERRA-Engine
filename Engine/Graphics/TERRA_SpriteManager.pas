@@ -85,6 +85,9 @@ Type
       _Vertices:VertexData;
 
       Procedure Rebuild(); Virtual; Abstract;
+      Procedure SetTexture(Value: TERRATexture); Virtual; 
+
+      Procedure MakeQuad(Var Offset:Integer; Const Pos:Vector2D; Const U1, V1, U2, V2:Single; Const Width, Height:Single; Const A,B,C,D:Color);
 
     Public
       Layer:Single;
@@ -104,7 +107,8 @@ Type
 
       Procedure ConcatTransform(Const Mat:Matrix3x3);
 
-      Property Texture:TERRATexture Read _Texture Write _Texture;
+      Property Texture:TERRATexture Read _Texture Write SetTexture;
+      Property Saturation:Single Read _Saturation Write _Saturation;
   End;
 
   QuadSprite = Class(TERRASprite)
@@ -784,6 +788,11 @@ Begin
   ReleaseObject(_Vertices);
 End;
 
+Procedure TERRASprite.SetTexture(Value:TERRATexture);
+Begin
+  _Texture := Value;
+End;
+
 Procedure TERRASprite.SetTransform(Const Mat: Matrix3x3);
 Begin
   _Transform := Mat;
@@ -815,6 +824,34 @@ End;
 Procedure TERRASprite.SetScaleAndRotation(const Center: Vector2D; Scale, Rotation: Single);
 Begin
   SetScaleAndRotation(Center, Scale, Scale, Rotation);
+End;
+
+Procedure TERRASprite.MakeQuad(Var Offset:Integer; Const Pos:Vector2D; Const U1, V1, U2, V2:Single; Const Width, Height:Single; Const A, B, C, D:Color);
+Begin
+  If (Offset >= _Vertices.Count) Then
+    _Vertices.Resize(Offset + 6);
+
+  _Vertices.SetColor(Offset + 0, vertexColor, C);
+  _Vertices.SetColor(Offset + 1, vertexColor, D);
+  _Vertices.SetColor(Offset + 2, vertexColor, B);
+  _Vertices.SetColor(Offset + 4, vertexColor, A);
+
+  _Vertices.SetVector3D(Offset + 0, vertexPosition, VectorCreate(Pos.X, Pos.Y + Height, 0));
+  _Vertices.SetVector2D(Offset + 0, vertexUV0, VectorCreate2D(U1, V2));
+
+  _Vertices.SetVector3D(Offset + 1, vertexPosition, VectorCreate(Pos.X + Width, Pos.Y +Height, 0));
+  _Vertices.SetVector2D(Offset + 1, vertexUV0, VectorCreate2D(U2, V2));
+
+  _Vertices.SetVector3D(Offset + 2, vertexPosition, VectorCreate(Pos.X + Width, Pos.Y, 0));
+  _Vertices.SetVector2D(Offset + 2, vertexUV0, VectorCreate2D(U2, V1));
+
+  _Vertices.SetVector3D(Offset + 4, vertexPosition, VectorCreate(Pos.X, Pos.Y, 0));
+  _Vertices.SetVector2D(Offset + 4, vertexUV0, VectorCreate2D(U1, V1));
+
+  _Vertices.CopyVertex(Offset + 2, Offset + 3);
+  _Vertices.CopyVertex(Offset + 0, Offset + 5);
+
+  Inc(Offset, 6);
 End;
 
 { QuadSprite }
@@ -928,7 +965,7 @@ Procedure QuadSprite.Rebuild;
 Var
   K:Single;
   Pos:Vector2D;
-  Width, Height:Integer;
+  Width, Height, Offset:Integer;
 Begin
   If _Vertices = Nil Then
     _Vertices := CreateSpriteVertexData(6);
@@ -966,25 +1003,8 @@ Begin
   Self.Rect.V1 := Self.Rect.V1 + Self._ScrollV;
   Self.Rect.V2 := Self.Rect.V2 + Self._Scrollv;
 
-  _Vertices.SetColor(0, vertexColor, _C);
-  _Vertices.SetColor(1, vertexColor, _D);
-  _Vertices.SetColor(2, vertexColor, _B);
-  _Vertices.SetColor(4, vertexColor, _A);
-
-  _Vertices.SetVector3D(0, vertexPosition, VectorCreate(Pos.X, Pos.Y + Height, 0));
-  _Vertices.SetVector2D(0, vertexUV0, VectorCreate2D(Self.Rect.U1, Self.Rect.V2));
-
-  _Vertices.SetVector3D(1, vertexPosition, VectorCreate(Pos.X + Width, Pos.Y +Height, 0));
-  _Vertices.SetVector2D(1, vertexUV0, VectorCreate2D(Self.Rect.U2, Self.Rect.V2));
-
-  _Vertices.SetVector3D(2, vertexPosition, VectorCreate(Pos.X + Width, Pos.Y, 0));
-  _Vertices.SetVector2D(2, vertexUV0, VectorCreate2D(Self.Rect.U2, Self.Rect.V1));
-
-  _Vertices.SetVector3D(4, vertexPosition, VectorCreate(Pos.X, Pos.Y, 0));
-  _Vertices.SetVector2D(4, vertexUV0, VectorCreate2D(Self.Rect.U1, Self.Rect.V1));
-
-  _Vertices.CopyVertex(2, 3);
-  _Vertices.CopyVertex(0, 5);
+  Offset := 0;
+  MakeQuad(Offset, Pos, Rect.U1, Rect.V1, Rect.U2, Rect.V2, Width, Height, _A, _B, _C, _D);
 End;
 
 { SpriteBatch }
@@ -1092,7 +1112,10 @@ Begin
       Pos := Src.Position;
 
       Pos := S._Transform.Transform(Pos);
-      Pos.Z := S.Layer;
+
+      (*Pos.X := Trunc(Pos.X);
+      Pos.Y := Trunc(Pos.Y);*)
+      Pos.Z := Pos.Z + S.Layer;
 
       Dest.Position := Pos;
       Dest.Saturation := S._Saturation;
@@ -1273,5 +1296,7 @@ Begin
   Self.SetFloat(vertexUV2, Saturation);
   
 End;
+
+
 
 End.

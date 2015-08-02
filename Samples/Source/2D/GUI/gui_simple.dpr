@@ -27,6 +27,7 @@ uses
   TERRA_UIWidget,
   TERRA_UITemplates,
   TERRA_UIImage,
+  TERRA_UITiledRect,
   TERRA_UIDimension;
 
 Type
@@ -54,7 +55,7 @@ Type
 Var
   Fnt:TERRAFont;
   MyUI:TERRAUI;
-  MyWnd:UIImage;
+  MyWnd:UIWidget;
 //  MyBtn:UIButton;
 
 { Game }
@@ -74,6 +75,8 @@ Begin
   // Create a empty scene
   _Scene := MyScene.Create;
   GraphicsManager.Instance.Scene := _Scene;
+
+  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlue;
 End;
 
 Procedure Demo.OnDestroy;
@@ -104,15 +107,13 @@ End;
 
 { MyScene }
 Constructor MyScene.Create;
-Var
-  I:Integer;
 Begin
-  MyWnd := UIImage.Create('mywnd', MyUI, 0, 0, 10, UIPixels(300), UIPixels(150));
-  MyWnd.Texture := TextureManager.Instance.GetTexture('background');
-  MyWnd.Draggable := True;
+  UIWidget.AddTemplate(UIWindowTemplate.Create('wnd_template', TextureManager.Instance.GetTexture('ui_window')));
+
+  MyWnd := UIInstancedWidget.Create('mywnd', MyUI, 0, 0, 10, UIPixels(643), UIPixels(231), 'wnd_templates');
   MyWnd.Align := waCenter;
 
-(*  MyBtn := UIButton.Create('btn1', MyWnd, 0, 0, 10, UIPixels(150), UIPixels(50), 'Click me');
+  (*MyBtn := UIButton.Create('btn1', MyWnd, 0, 0, 10, UIPixels(150), UIPixels(50), 'Click me');
   MyBtn.OnMouseClick := OnMyButtonClick; // Assign a onClick event handler
   MyBtn.Align := waCenter;*)
 End;
