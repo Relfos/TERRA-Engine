@@ -406,7 +406,7 @@ Type
 
 Implementation
 
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Math, TERRA_GraphicsManager, TERRA_UI, TERRA_UITiledRect;
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Math, TERRA_GraphicsManager, TERRA_UI, TERRA_UITiledRect, TERRA_UIImage, TERRA_UILabel;
 
 Procedure ShowWidget(Source:UIWidget); CDecl;
 Begin
@@ -2201,31 +2201,12 @@ Begin
   // do nothing
 End;
 
-(*
-  UIComponentImage = Class(UIComponent)
-    Protected
-      _Image:TextureProperty;
-      _U1, _V1, _U2, _V2:Single;
 
-      Procedure UpdateSprite; Override;
-
-    Public
-  End;
-
-  UIComponentTiledGrid = Class(UIComponent)
-    Protected
-      _Image:TERRATexture;
-
-  //    Procedure UpdateSprite; Override;
-
-    Public
-  End;
-*)
-
-{ UIComplexWidget }
+{ UIInstancedWidget }
 Constructor UIInstancedWidget.Create(Const Name: TERRAString; Parent: UIWidget; X, Y, Z: Single; const Width, Height: UIDimension; Const TemplateName:TERRAString);
 Var
   Template:UIWidget;
+  I:Integer;
 Begin
   Inherited Create(Name, Parent);
 
@@ -2235,7 +2216,11 @@ Begin
   _TemplateIndex := _BasePropertiesIndex;
 
   Template := UITemplates.GetTemplate(TemplateName);
-  Self.AddChild(Self.InitFromTemplate(Template));
+  If Assigned(Template) Then
+  Begin
+    For I:=0 To Pred(Template.ChildrenCount) Do
+      Self.AddChild(Self.InitFromTemplate(Template.GetChildByIndex(I)));
+  End;
 
   Self.SetRelativePosition(VectorCreate2D(X,Y));
   Self.Layer := Z;
@@ -2265,16 +2250,17 @@ Begin
     Exit;
   End;
 
-  If (Template Is UIInstancedWidget) Then
+  If (Template Is UILabel) Then
   Begin
+    Result := UILabel.Create(Template.Name, Nil, 0, 0, 0, UIPixels(100), UIPixels(100), 'basaf');
   End Else
   If (Template Is UITiledRect) Then
   Begin
     Result := UITiledRect.Create(Template.Name, Nil, 0, 0, 0, UIPixels(100), UIPixels(100), 0, 0, 1, 1);
   End Else
   Begin
-    Result := UIWidget(Template.ClassType.Create());
-    Result.Create(Template.Name, Nil);
+    Log(logError, 'UI', 'Cannot instanciate template component of type '+Template.ClassName);
+    Exit;
   End;
 
   Result.CopyProperties(Template);

@@ -5,14 +5,14 @@ Uses
   {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
   TERRA_Utils, TERRA_Object, TERRA_Application, TERRA_Scene, TERRA_UI, TERRA_GraphicsManager,
   TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_OS, TERRA_FileManager, TERRA_Texture,
-  TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_SpriteManager, TERRA_InputManager,
+  TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_InputManager,
   TERRA_FontRenderer, TERRA_Localization, TERRA_Renderer;
 
 Type
   // A client is used to process application events
   Demo = Class(Application)
     Protected
-      _Scene:Scene;
+      _Scene:TERRAScene;
 
 			Procedure OnCreate; Override;
       Procedure OnDestroy; Override;
@@ -20,8 +20,8 @@ Type
   End;
 
   // A scene is used to render objects
-  MyScene = Class(Scene)
-      Procedure RenderSprites(V:Viewport); Override;
+  MyScene = Class(TERRAScene)
+      Procedure RenderSprites(V:TERRAViewport); Override;
   End;
 
 Const
@@ -29,7 +29,7 @@ Const
   LanguageList: Array[1..LanguageCount] Of AnsiString = ('en', 'de', 'fr', 'es', 'pt', 'it', 'ru', 'zh');
 
 Var
-  _Font:Font = Nil;
+  _Font:TERRAFont = Nil;
   _FontRenderer:FontRenderer;
   _SelectedLanguage:Integer;
 
@@ -80,7 +80,7 @@ Begin
 End;
 
 { MyScene }
-Procedure MyScene.RenderSprites(V:Viewport);
+Procedure MyScene.RenderSprites(V:TERRAViewport);
 Var
   I:Integer;
   Saturation:Single;
@@ -92,16 +92,16 @@ Begin
     Else
       Saturation := 0.0;
 
-    SpriteManager.Instance.DrawSprite(10 + I * 70, 10, 10, TextureManager.Instance.GetTexture('flag_'+LanguageList[I]), Nil, blendBlend, Saturation);
+    V.SpriteRenderer.DrawSprite(10 + I * 70, 10, 10, TextureManager.Instance.GetTexture('flag_'+LanguageList[I]), Nil, blendBlend, Saturation);
   End;
 
   // render some text
   If Assigned(_Font) Then
   Begin
-    _FontRenderer.DrawText(50, 90, 10, ' Language: ' + GetLanguageDescription(LanguageList[_SelectedLanguage]));
-    _FontRenderer.DrawText(100, 160, 10, LocalizationManager.Instance['score'] + ': 1000');
-    _FontRenderer.DrawText(100, 190, 10, LocalizationManager.Instance['totaltime'] + ': 1:23');
-    _FontRenderer.DrawText(100, 230, 10, LocalizationManager.Instance['coinscollected'] + ': 56');
+    _FontRenderer.DrawText(V, 50, 90, 10, ' Language: ' + GetLanguageDescription(LanguageList[_SelectedLanguage]));
+    _FontRenderer.DrawText(V, 100, 160, 10, LocalizationManager.Instance['score'] + ': 1000');
+    _FontRenderer.DrawText(V, 100, 190, 10, LocalizationManager.Instance['totaltime'] + ': 1:23');
+    _FontRenderer.DrawText(V, 100, 230, 10, LocalizationManager.Instance['coinscollected'] + ': 56');
 
   End;
 End;

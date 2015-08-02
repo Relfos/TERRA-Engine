@@ -109,20 +109,8 @@ Type
 
   FontSprite = Class(TERRASprite)
     Protected
-      _Glyph:FontGlyph;
+      Procedure AddGlyph(Const X,Y:Single; Glyph:FontGlyph; Const A, B, C, D:Color; Skew:Single);
 
-      _A, _B, _C, _D:Color;
-
-      _Skew:Single;
-
-      _X:Single;
-      _Y:Single;
-
-    Public
-      Procedure SetColor(Const C:Color); Override;
-      Procedure SetColors(A, B, C, D:Color);
-
-      Procedure Rebuild(); Override;
   End;
 
 
@@ -214,13 +202,8 @@ Type
   FontManager = Class(ResourceManager)
     Protected
       _DefaultFont:TERRAFont;
-      _LastAllocFrame:Cardinal;
-      _Sprites:Array Of FontSprite;
-      _SpriteCount:Integer;
 
       Function GetDefaultFont:TERRAFont;
-
-      Function AllocSprite():FontSprite;
 
     Public
       Procedure Release; Override;
@@ -229,7 +212,7 @@ Type
 
       Class Function Instance:FontManager;
 
-      Function DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Const Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean):FontSprite;
+      Function DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Const Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
 
       Function GetFont(Name:TERRAString; ValidateError:Boolean = True):TERRAFont;
 
@@ -419,13 +402,19 @@ Begin
     RaiseError('Could not find font. ['+Name +']');
 End;
 
-Function FontManager.DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Const Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean):FontSprite;
+Function FontManager.DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Const Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
 Var
   Filter:TextureFilterMode;
   Item:TextureAtlasItem;
   Target:FontSprite;
   Tex:TERRATexture;
+  Skew:Single;
 Begin
+  Result := False;
+
+  If DestSprite = Nil Then
+    Exit;
+
   {$IFDEF DISTANCEFIELDFONTS}
   Filter := filterBilinear;
   {$ELSE}
@@ -436,35 +425,25 @@ Begin
   If Item = Nil Then
     Exit;
 
-  Result := Self.AllocSprite();
-  If Result = Nil Then
-    Exit;
-
   Tex := Glyph._Font._Atlas.GetTexture(Item.PageID);
   If Tex = Nil Then
     Exit;
 
-  Result._Glyph := Glyph;
-  Result._Shader := View.SpriteRenderer.FontShader;
-
-  Result._X := X + Glyph.XOfs;
-  Result._Y := Y + Glyph.YOfs;
-  Result.Layer := Z;
-  Result.Texture := Tex;
-
-  Result.SetTransform(Transform);
-  Result.ClipRect := Clip;
-//  Result.SetScale(Scale);
-
-  //S := SpriteManager.Instance.DrawSpriteWithOutline(Outline, Nil, blendBlend, 1.0, Filter, True);
-  Result.SetColors(A,B,C,D);
-
   If (Italics) Then
-    Result._Skew := 5.0
+    Skew := 5.0
   Else
-    Result._Skew := 0.0;
+    Skew := 0.0;
 
-  View.SpriteRenderer.QueueSprite(Result);
+  DestSprite.Shader := View.SpriteRenderer.FontShader;
+  DestSprite.Layer := Z;
+  DestSprite.Texture := Tex;
+  DestSprite.SetTransform(Transform);
+  DestSprite.ClipRect := Clip;
+//  DestSprite.SetScale(Scale);
+
+  DestSprite.AddGlyph(X + Glyph.XOfs, Y + Glyph.YOfs, Glyph, A, B, C, D, Skew);
+
+  Result := True;
 End;
 
 {$I default_font.inc}
@@ -540,12 +519,7 @@ Begin
 End;
 
 Procedure FontManager.Release;
-Var
-  I:Integer;
 Begin
-  For I:=0 To Pred(Length(_Sprites)) Do
-    ReleaseObject(_Sprites[I]);
-
   ReleaseObject(_DefaultFont);
 
   Inherited;
@@ -558,8 +532,6 @@ Var
   It:Iterator;
   Fnt:TERRAFont;
 Begin
-  _SpriteCount := 0;
-
   If (Assigned(Self._DefaultFont)) And (Self._DefaultFont._NeedsRebuild) Then
     Self._DefaultFont.RebuildPages();
 
@@ -572,29 +544,6 @@ Begin
       Fnt.RebuildPages();
   End;
   ReleaseObject(It);
-End;
-
-Function FontManager.AllocSprite(): FontSprite;
-Begin
-  If (Length(_Sprites)<=_SpriteCount) Then
-  Begin
-    If (Length(_Sprites)<=0) Then
-      SetLength(_Sprites, 64)
-    Else
-      SetLength(_Sprites, Length(_Sprites) * 2);
-  End;
-
-  If _Sprites[_SpriteCount] = Nil Then
-  Begin
-    _Sprites[_SpriteCount] := FontSprite.Create();
-  End;
-
-  Result := _Sprites[_SpriteCount];
-  Result.Saturation := 1;
-  Result.BlendMode := blendBlend;
-  Result.Outline := ColorBlack;
-
-  Inc(_SpriteCount);
 End;
 
 { FontGlyph }
@@ -1082,52 +1031,18 @@ End;
 
 
 { FontSprite }
-Procedure FontSprite.Rebuild;
+Procedure FontSprite.AddGlyph(Const X,Y:Single; Glyph:FontGlyph; Const A, B, C, D:Color; Skew:Single);
 Var
-  K:Single;
   Width, Height:Integer;
   Item:TextureAtlasItem;
 Begin
-  Item := _Glyph._Item;
-
-  If _Vertices = Nil Then
-    _Vertices := CreateSpriteVertexData(6);
+  Item := Glyph._Item;
 
   Width := Item.Buffer.Width;
   Height := Item.Buffer.Height;
 
-  _Vertices.SetColor(0, vertexColor, _C);
-  _Vertices.SetColor(1, vertexColor, _D);
-  _Vertices.SetColor(2, vertexColor, _B);
-  _Vertices.SetColor(4, vertexColor, _A);
-
-  _Vertices.SetVector3D(0, vertexPosition, VectorCreate(_X, _Y +Height, 0));
-  _Vertices.SetVector2D(0, vertexUV0, VectorCreate2D(Item.U1, Item.V2));
-
-  _Vertices.SetVector3D(1, vertexPosition, VectorCreate(_X +Width, _Y +Height, 0));
-  _Vertices.SetVector2D(1, vertexUV0, VectorCreate2D(Item.U2, Item.V2));
-
-  _Vertices.SetVector3D(2, vertexPosition, VectorCreate(_X +Width + _Skew, _Y, 0));
-  _Vertices.SetVector2D(2, vertexUV0, VectorCreate2D(Item.U2, Item.V1));
-
-  _Vertices.SetVector3D(4, vertexPosition, VectorCreate(_X + _Skew, _Y, 0));
-  _Vertices.SetVector2D(4, vertexUV0, VectorCreate2D(Item.U1, Item.V1));
-
-  _Vertices.CopyVertex(2, 3);
-  _Vertices.CopyVertex(0, 5);
+  Self.MakeQuad(VectorCreate2D(X, Y), 0.0, Item.U1, Item.V1, Item.U2, Item.V2, Width, Height, A, B, C, D);
 End;
 
-Procedure FontSprite.SetColor(const C: Color);
-Begin
-  Self.SetColors(C, C, C, C);
-End;
-
-Procedure FontSprite.SetColors(A, B, C, D: Color);
-Begin
-  _A := A;
-  _B := B;
-  _C := C;
-  _D := D;
-End;
 
 End.

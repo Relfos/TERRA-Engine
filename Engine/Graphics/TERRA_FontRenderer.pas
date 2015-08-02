@@ -60,6 +60,12 @@ Type
 
       _View:TERRAViewport;
 
+      _LastAllocFrame:Cardinal;
+      _Sprites:Array Of FontSprite;
+      _SpriteCount:Integer;
+
+      Function AllocSprite():FontSprite;
+
       Function GetNextChar:TERRAChar;
       Function GetNextArg:TERRAString;
 
@@ -73,6 +79,7 @@ Type
 
     Public
       Constructor Create();
+      Procedure Release; Override;
 
       Function Reset():FontRenderer;
 
@@ -92,6 +99,7 @@ Type
       Function RenderNext():Boolean;
 
       Function DrawText(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString):FontRenderer;
+      Function DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):FontRenderer;
       Function DrawTextToImage(Target:Image; X,Y:Integer; Const Text:TERRAString; ForceBlend:Boolean = True):FontRenderer;
 
       Procedure GetColors(Out A,B,C,D:Color);
@@ -118,7 +126,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_OS, TERRA_Math;
+Uses TERRA_OS, TERRA_GraphicsManager, TERRA_Math;
 
 { FontRenderer }
 Constructor FontRenderer.Create;
@@ -509,7 +517,20 @@ Begin
   Result := Result + Temp;
 End;
 
-Function FontRenderer.DrawText(View:TERRAViewport; X,Y, Layer:Single; Const Text:TERRAString):FontRenderer;
+Function FontRenderer.DrawText(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString):FontRenderer;
+Var
+  Dest:FontSprite;
+Begin
+  If (_LastAllocFrame <> GraphicsManager.Instance.FrameID) Then
+    _SpriteCount := 0;
+
+  Dest := Self.AllocSprite();
+  Dest.Shader := View.SpriteRenderer.FontShader;
+  Result := DrawTextToSprite(View, X,Y,Layer, Text, Dest);
+  View.SpriteRenderer.QueueSprite(Dest);
+End;
+
+Function FontRenderer.DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):FontRenderer;
 Var
   Alpha:Integer;
   Projection:Matrix4x4;
@@ -520,6 +541,10 @@ Var
   FM:FontManager;
 Begin
   Result := Self;
+
+  If (DestSprite = Nil) Then
+    Exit;
+    //DestSprite := FontSprite.Create();
 
   If (_Font = Nil) Or (Not _Font.IsReady()) Then
     Exit;
@@ -559,12 +584,15 @@ Begin
 
     {$IFNDEF DISTANCEFIELDFONTS}
     If (_DropShadow) Then
-      FM.DrawGlyph(View, Position.X - 1.0, Position.Y + 1.0, Layer - 0.1, _Transform, _CurrentGlyph, DropColor, DropColor, DropColor, DropColor, DropColor, _ClipRect, _Italics);
+      FM.DrawGlyph(View, Position.X - 1.0, Position.Y + 1.0, Layer - 0.1, _Transform, _CurrentGlyph, DropColor, DropColor, DropColor, DropColor, DropColor, _ClipRect, _Italics, DestSprite);
     {$ENDIF}
 
-    FM.DrawGlyph(View, Position.X, Position.Y, Layer, _Transform, _CurrentGlyph, _Outline, A,B,C,D, _ClipRect, _Italics);
+    FM.DrawGlyph(View, Position.X, Position.Y, Layer, _Transform, _CurrentGlyph, _Outline, A,B,C,D, _ClipRect, _Italics, DestSprite);
   End;
 
+  (*If Assigned(DestSprite.Texture) Then
+    StringToInt(DestSprite.Texture.Name);
+*)
   EndRender();
 End;
 
@@ -674,7 +702,7 @@ End;
 Procedure FontRenderer.DrawSprite(const TextureName:TERRAString);
 Var
   Tex:TERRATexture;
-  S:TERRASprite;
+  S:QuadSprite;
 Begin
   If (TextureName = '') Then
     Exit;
@@ -718,6 +746,35 @@ End;
 Procedure FontRenderer.TransformSprite(S: TERRASprite);
 Begin
   S.ClipRect := Self._ClipRect;
+End;
+
+Function FontRenderer.AllocSprite: FontSprite;
+Begin
+  _LastAllocFrame := GraphicsManager.Instance.FrameID;
+
+  If (Length(_Sprites)<=_SpriteCount) Then
+  Begin
+    If (Length(_Sprites)<=0) Then
+      SetLength(_Sprites, 64)
+    Else
+      SetLength(_Sprites, Length(_Sprites) * 2);
+  End;
+
+  If _Sprites[_SpriteCount] = Nil Then
+  Begin
+    _Sprites[_SpriteCount] := FontSprite.Create();
+  End;
+
+  Result := _Sprites[_SpriteCount];
+  Inc(_SpriteCount);
+End;
+
+Procedure FontRenderer.Release;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(Length(_Sprites)) Do
+    ReleaseObject(_Sprites[I]);
 End;
 
 End.

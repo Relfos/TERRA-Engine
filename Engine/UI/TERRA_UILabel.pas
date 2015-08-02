@@ -3,7 +3,7 @@ Unit TERRA_UILabel;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Object, TERRA_UI, TERRA_UIWidget, TERRA_Vector2D, TERRA_Color, TERRA_Font;
+Uses TERRA_String, TERRA_Object, TERRA_UI, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font;
 
 Type
   UILabel = Class;
@@ -35,7 +35,7 @@ Type
       Procedure UpdateSprite; Override;
 
     Public
-      Constructor Create(Const Name:TERRAString; Parent:UIWidget);
+      Constructor Create(Const Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
       Procedure Release(); Override;
 
       Procedure UpdateRects; Override;
@@ -53,7 +53,7 @@ Type
 Function GetLocalizedString(Value:TERRAString):TERRAString;
 
 Implementation
-Uses TERRA_Localization;
+Uses TERRA_Localization, TERRA_FontRenderer;
 
 Function GetLocalizedString(Value:TERRAString):TERRAString;
 Begin
@@ -65,11 +65,18 @@ Begin
     Result := Value;
 End;
 
-Constructor UILabel.Create(const Name:TERRAString; Parent:UIWidget);
+Constructor UILabel.Create(const Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
 Begin
   Inherited Create(Name, Parent);
 
-  _Caption := CaptionProperty.Create('caption', '', Self);
+  _Caption := CaptionProperty.Create('caption', Text, Self);
+
+  Self.SetRelativePosition(VectorCreate2D(X,Y));
+  Self.Layer := Z;
+
+  Self.Width := Width;
+  Self.Height := Height;
+
 
   Self.ExpandProperties(1);
   _CaptionIndex := _BasePropertiesIndex;

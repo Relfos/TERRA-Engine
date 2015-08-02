@@ -38,7 +38,7 @@ Type
       Procedure SetPosition(Const Pos:Vector2D);
       Procedure SetSize(Const Width, Height:Integer);
       Procedure SetUVRect(Const U1, V1, U2, V2:Single);
-      Procedure SetColor(Const C:Color); Override;
+      Procedure SetColor(Const C:Color); 
 
   End;
 
@@ -130,8 +130,7 @@ Var
   T:Scale9Tile;
   Offset:Integer;
 Begin
-  If _Vertices = Nil Then
-    _Vertices := CreateSpriteVertexData(6);
+  Inherited;
 
   Offset := 0;
   LX := _Width - (Self.GetTile(0, 0).Width + Self.GetTile(2, 0).Width);
@@ -178,10 +177,10 @@ Begin
   For I:=1 To CountX Do
   Begin
     T := Self.GetTile(1, 0);
-    Self.MakeQuad(Offset, VectorCreate2D(_Position.X + CompX, _Position.Y), T.U1, T.V1, T.U2, T.V2, CompSizeX, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
+    Self.MakeQuad(VectorCreate2D(_Position.X + CompX, _Position.Y), 0.0, T.U1, T.V1, T.U2, T.V2, CompSizeX, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
 
     T := Self.GetTile(1, 2);
-    Self.MakeQuad(Offset,  VectorCreate2D(_Position.X + CompX, _Position.Y + BottomY), T.U1, T.V1, T.U2, T.V2, CompSizeX, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
+    Self.MakeQuad(VectorCreate2D(_Position.X + CompX, _Position.Y + BottomY), 0.0, T.U1, T.V1, T.U2, T.V2, CompSizeX, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
 
     CompX := CompX + CompSizeX;
   End;
@@ -190,25 +189,25 @@ Begin
   For I:=1 To CountY Do
   Begin
     T := Self.GetTile(0, 1);
-    Self.MakeQuad(Offset,  VectorCreate2D(_Position.X, _Position.Y + CompY), T.U1, T.V1, T.U2, T.V2, T.Width, CompSizeY, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
+    Self.MakeQuad(VectorCreate2D(_Position.X, _Position.Y + CompY), 0.0, T.U1, T.V1, T.U2, T.V2, T.Width, CompSizeY, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
 
     T := Self.GetTile(2, 1);
-    Self.MakeQuad(Offset,  VectorCreate2D(_Position.X + BottomX, _Position.Y + CompY), T.U1, T.V1, T.U2, T.V2, T.Width, CompSizeY, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
+    Self.MakeQuad(VectorCreate2D(_Position.X + BottomX, _Position.Y + CompY), 0.0, T.U1, T.V1, T.U2, T.V2, T.Width, CompSizeY, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
 
     CompY := CompY + CompSizeY;
   End;
 
   T := Self.GetTile(0, 0);
-  Self.MakeQuad(Offset,  VectorCreate2D(_Position.X, _Position.Y), T.U1, T.V1, T.U2, T.V2, T.Width, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
+  Self.MakeQuad(VectorCreate2D(_Position.X, _Position.Y), 0.0, T.U1, T.V1, T.U2, T.V2, T.Width, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
 
   T := Self.GetTile(2, 0);
-  Self.MakeQuad(Offset,  VectorCreate2D(_Position.X + BottomX, _Position.Y), T.U1, T.V1, T.U2, T.V2, T.Width, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
+  Self.MakeQuad(VectorCreate2D(_Position.X + BottomX, _Position.Y), 0.0, T.U1, T.V1, T.U2, T.V2, T.Width, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
 
   T := Self.GetTile(0, 2);
-  Self.MakeQuad(Offset,  VectorCreate2D(_Position.X, _Position.Y + BottomY), T.U1, T.V1, T.U2, T.V2, T.Width, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
+  Self.MakeQuad(VectorCreate2D(_Position.X, _Position.Y + BottomY), 0.0, T.U1, T.V1, T.U2, T.V2, T.Width, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
 
   T := Self.GetTile(2, 2);
-  Self.MakeQuad(Offset,  VectorCreate2D(_Position.X + BottomX, _Position.Y + BottomY), T.U1, T.V1, T.U2, T.V2, T.Width, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
+  Self.MakeQuad(VectorCreate2D(_Position.X + BottomX, _Position.Y + BottomY), 0.0, T.U1, T.V1, T.U2, T.V2, T.Width, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
 
   CompY := Self.GetTile(0, 0).Height;
   For J:=1 To CountY Do
@@ -218,7 +217,7 @@ Begin
     T := Self.GetTile(1, 1);
     For I:=1 To CountX Do
     Begin
-      Self.MakeQuad(Offset,  VectorCreate2D(_Position.X + CompX, _Position.Y + CompY), T.U1, T.V1, T.U2, T.V2, CompSizeX, CompSizeY, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
+      Self.MakeQuad( VectorCreate2D(_Position.X + CompX, _Position.Y + CompY), 0.0, T.U1, T.V1, T.U2, T.V2, CompSizeX, CompSizeY, _BaseColor, _BaseColor, _BaseColor, _BaseColor);
       CompX := CompX + CompSizeX;
     End;
 

@@ -55,8 +55,7 @@ Type
 Var
   Fnt:TERRAFont;
   MyUI:TERRAUI;
-  MyWnd:UIWidget;
-//  MyBtn:UIButton;
+  MyWnd, MyBtn:UIWidget;
 
 { Game }
 Procedure Demo.OnCreate;
@@ -97,6 +96,7 @@ End;
 
 Procedure Demo.OnMouseMove(X, Y: Integer);
 Begin
+
   MyUI.OnMouseMove(X, Y);
 End;
 
@@ -108,14 +108,15 @@ End;
 { MyScene }
 Constructor MyScene.Create;
 Begin
-  UITemplates.AddTemplate(UIWindowTemplate.Create('wnd_template', TextureManager.Instance.GetTexture('ui_window')));
+  UITemplates.AddTemplate(UIWindowTemplate.Create('wnd_template', TextureManager.Instance.GetTexture('ui_window'), 45, 28, 147, 98));
+  UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', TextureManager.Instance.GetTexture('ui_button2'), 25, 10, 220, 37));
 
   MyWnd := UIInstancedWidget.Create('mywnd', MyUI, 0, 0, 10, UIPixels(643), UIPixels(231), 'wnd_template');
   MyWnd.Align := waCenter;
 
-  (*MyBtn := UIButton.Create('btn1', MyWnd, 0, 0, 10, UIPixels(150), UIPixels(50), 'Click me');
+  MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, 0, 0, 1, UIPixels(250), UIPixels(50), 'btn_template');
+  MyBtn.Align := waCenter;
   MyBtn.OnMouseClick := OnMyButtonClick; // Assign a onClick event handler
-  MyBtn.Align := waCenter;*)
 End;
 
 Procedure MyScene.Release;
