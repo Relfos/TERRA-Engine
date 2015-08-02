@@ -3,21 +3,21 @@
 
 Uses TERRA_Application, TERRA_Scene, TERRA_GraphicsManager, TERRA_Viewport,
   TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_PNG, TERRA_Vector2D,
-  TERRA_SpriteManager, TERRA_FileManager, TERRA_Math, TERRA_Vector3D, TERRA_Utils,
+  TERRA_Sprite, TERRA_FileManager, TERRA_Math, TERRA_Vector3D, TERRA_Utils,
   TERRA_InputManager, TERRA_UI;
 
 Type
   // A client is used to process application events
   Demo = Class(Application)
     Protected
-      _Scene:Scene;
+      _Scene:TERRAScene;
 
 			Procedure OnCreate; Override;
 			Procedure OnIdle; Override;
   End;
 
   // A scene is used to render objects
-  MyScene = Class(Scene)
+  MyScene = Class(TERRAScene)
       Procedure RenderSprites(V:TERRAViewport); Override;
   End;
 
@@ -66,7 +66,7 @@ Begin
 End;
 
 { MyScene }
-Procedure MyScene.RenderSprites;
+Procedure MyScene.RenderSprites(V:TERRAViewport);
 Var
   I:Integer;
   W,H,Z:Single;
@@ -77,7 +77,7 @@ Begin
 
   For I:=0 To Pred(Limit) Do
   Begin
-    S := SpriteManager.Instance.DrawSprite(Pos[I].X, Pos[I].Y, Pos[I].Z, Tex);
+    S := V.SpriteRenderer.DrawSprite(Pos[I].X, Pos[I].Y, Pos[I].Z, Tex);
     S.Mirror := Odd(I);    // Each odd sprite in line will be reflected
     //S.SetScaleAndRotation(1, RAD * (I*360 Div 8));
 

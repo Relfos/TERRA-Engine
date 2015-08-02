@@ -224,7 +224,7 @@ End;
 Procedure SoundManager.Update;
 Var
   I:Integer;
-  Cam:Camera;
+//  Cam:TERRACamera;
 Begin
   Inherited;
 

@@ -5,14 +5,14 @@ Uses
   {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_Scene, TERRA_UI, TERRA_GraphicsManager,
   TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_FontRenderer, TERRA_OS, TERRA_FileManager,
-  TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_SpriteManager, TERRA_Localization,
+  TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_Localization,
   TERRA_InputManager;
 
 Type
   // A client is used to process application events
   Demo = Class(Application)
     Protected
-      _Scene:Scene;
+      _Scene:TERRAScene;
 
 			Procedure OnCreate; Override;
       Procedure OnDestroy; Override;
@@ -20,8 +20,8 @@ Type
   End;
 
   // A scene is used to render objects
-  MyScene = Class(Scene)
-      Procedure RenderSprites(V:Viewport); Override;
+  MyScene = Class(TERRAScene)
+      Procedure RenderSprites(V:TERRAViewport); Override;
   End;
 
 Var
@@ -72,31 +72,31 @@ Begin
 End;
 
 { MyScene }
-Procedure MyScene.RenderSprites(V:Viewport);
+Procedure MyScene.RenderSprites(V:TERRAViewport);
 Begin
   // render some text
   If Assigned(_FontRenderer.Font) Then
   Begin
-    _FontRenderer.DrawText(50, 70, 10, ' Hello World!');
+    _FontRenderer.DrawText(V, 50, 70, 10, ' Hello World!');
 
     _FontRenderer.SetColor(ColorYellow);
-    _FontRenderer.DrawText(200, 160, 10, 'This is a'+StringFromChar(fontControlNewLine)+'line break!');
+    _FontRenderer.DrawText(V, 200, 160, 10, 'This is a'+StringFromChar(fontControlNewLine)+'line break!');
 
     _FontRenderer.SetColor(ColorBlue);
-    _FontRenderer.DrawText(200, 100, 10, StringFromChar(fontControlWave)+'Wavy text!');
+    _FontRenderer.DrawText(V, 200, 100, 10, StringFromChar(fontControlWave)+'Wavy text!');
 
     _FontRenderer.SetColor(ColorGreen);
-    _FontRenderer.DrawText(400, 100, 10, StringFromChar(fontControlItalics)+' Italic text!');
+    _FontRenderer.DrawText(V, 400, 100, 10, StringFromChar(fontControlItalics)+' Italic text!');
 
     // unicode rendering
     _FontRenderer.SetColor(ColorWhite);
-    _FontRenderer.DrawText(50, 200, 10, GetLanguageDescription(language_Russian));
-    _FontRenderer.DrawText(50, 230, 10, GetLanguageDescription(language_Chinese));
-    _FontRenderer.DrawText(50, 260, 10, GetLanguageDescription(language_Korean));
-    _FontRenderer.DrawText(50, 290, 10, GetLanguageDescription(language_Japanese));
+    _FontRenderer.DrawText(V, 50, 200, 10, GetLanguageDescription(language_Russian));
+    _FontRenderer.DrawText(V, 50, 230, 10, GetLanguageDescription(language_Chinese));
+    _FontRenderer.DrawText(V, 50, 260, 10, GetLanguageDescription(language_Korean));
+    _FontRenderer.DrawText(V, 50, 290, 10, GetLanguageDescription(language_Japanese));
 
     // dynamic text
-    _FontRenderer.DrawText(200, 250, 10, CardinalToString(Application.GetTime() Div 1000));
+    _FontRenderer.DrawText(V, 200, 250, 10, CardinalToString(Application.GetTime() Div 1000));
   End;
 End;
 

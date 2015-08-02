@@ -28,7 +28,7 @@ Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween,
-  TERRA_SpriteManager, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_FontRenderer, TERRA_UITransition, TERRA_Viewport,
+  TERRA_Sprite, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_FontRenderer, TERRA_UITransition, TERRA_Viewport,
   TERRA_UIDimension, TERRA_UIWidget, TERRA_ClipRect, TERRA_EnumProperty, TERRA_DataSource, TERRA_Hashmap;
 
 Const
@@ -111,7 +111,7 @@ Type
 		  Function OnMouseWheel(X,Y:Integer; Delta:Integer):UIWidget;
 		  Function OnMouseMove(X,Y:Integer):UIWidget;
 
-      Procedure Render; Override;
+      Procedure Render(View:TERRAViewport); Override;
 
       Procedure AfterEffects;
 
@@ -356,7 +356,7 @@ Begin
 End;
 
 
-Procedure TERRAUI.Render;
+Procedure TERRAUI.Render(View:TERRAViewport);
 Var
   Current, Temp:UIWidget;
   I, J:Integer;
@@ -388,7 +388,7 @@ Begin
 
   GraphicsManager.Instance.Renderer.SetBlendMode(blendBlend);
 
-  Inherited Render();
+  Inherited Render(View);
 End;
 
 Procedure TERRAUI.AfterEffects;
@@ -846,7 +846,7 @@ Begin
        Graphics.Scene.RenderSprites(_Viewport);
     End;
 
-    SpriteManager.Instance.Render(Projection);
+    _Viewport.SpriteRenderer.Render(Projection);
 
     If ( Not _Prefetching) Then
     Begin
@@ -941,7 +941,7 @@ Begin
 
   For I:=0 To Pred(_UICount) Do
   If (_UIList[I].Visible) Then
-    _UIList[I].Render();
+    _UIList[I].Render(_Viewport);
 End;
 
 Procedure UIManager.AfterEffects;

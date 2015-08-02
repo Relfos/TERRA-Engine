@@ -27,7 +27,7 @@ Unit TERRA_Font;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Resource, TERRA_Stream, TERRA_Image, TERRA_Color, TERRA_Vector2D, TERRA_Vector3D,
-  TERRA_Math, TERRA_Texture, TERRA_SpriteManager, TERRA_Renderer, TERRA_TextureAtlas, TERRA_VertexFormat,
+  TERRA_Math, TERRA_Texture, TERRA_Sprite, TERRA_Renderer, TERRA_TextureAtlas, TERRA_VertexFormat, TERRA_Viewport,
   TERRA_ResourceManager, TERRA_Matrix4x4, TERRA_Matrix3x3, TERRA_ClipRect, TERRA_Collections;
 
 
@@ -229,7 +229,7 @@ Type
 
       Class Function Instance:FontManager;
 
-      Function DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Const Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean):FontSprite;
+      Function DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Const Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean):FontSprite;
 
       Function GetFont(Name:TERRAString; ValidateError:Boolean = True):TERRAFont;
 
@@ -419,7 +419,7 @@ Begin
     RaiseError('Could not find font. ['+Name +']');
 End;
 
-Function FontManager.DrawGlyph(X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Const Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean):FontSprite;
+Function FontManager.DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Const Outline, A,B,C,D:Color; Clip:ClipRect; Italics:Boolean):FontSprite;
 Var
   Filter:TextureFilterMode;
   Item:TextureAtlasItem;
@@ -445,6 +445,7 @@ Begin
     Exit;
 
   Result._Glyph := Glyph;
+  Result._Shader := View.SpriteRenderer.FontShader;
 
   Result._X := X + Glyph.XOfs;
   Result._Y := Y + Glyph.YOfs;
@@ -463,7 +464,7 @@ Begin
   Else
     Result._Skew := 0.0;
 
-  SpriteManager.Instance.QueueSprite(Result);
+  View.SpriteRenderer.QueueSprite(Result);
 End;
 
 {$I default_font.inc}
@@ -589,10 +590,9 @@ Begin
   End;
 
   Result := _Sprites[_SpriteCount];
-  Result._Saturation := 1;
-  Result._BlendMode := blendBlend;
-  Result._Outline := ColorBlack;
-  Result._Shader := SpriteManager.Instance.FontShader;
+  Result.Saturation := 1;
+  Result.BlendMode := blendBlend;
+  Result.Outline := ColorBlack;
 
   Inc(_SpriteCount);
 End;

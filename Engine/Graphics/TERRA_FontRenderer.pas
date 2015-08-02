@@ -4,7 +4,7 @@ Unit TERRA_FontRenderer;
 
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Color, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Matrix4x4,
-  TERRA_Resource, TERRA_Texture, TERRA_Font, TERRA_SpriteManager, TERRA_ClipRect, TERRA_Image;
+  TERRA_Resource, TERRA_Texture, TERRA_Font, TERRA_Sprite, TERRA_ClipRect, TERRA_Image, TERRA_Viewport;
 
 Type
   FontRenderer = Class(TERRAObject)
@@ -58,6 +58,8 @@ Type
 
       _NewLineOffset:Single;
 
+      _View:TERRAViewport;
+
       Function GetNextChar:TERRAChar;
       Function GetNextArg:TERRAString;
 
@@ -89,7 +91,7 @@ Type
       Procedure EndRender();
       Function RenderNext():Boolean;
 
-      Function DrawText(X,Y,Layer:Single; Const Text:TERRAString):FontRenderer;
+      Function DrawText(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString):FontRenderer;
       Function DrawTextToImage(Target:Image; X,Y:Integer; Const Text:TERRAString; ForceBlend:Boolean = True):FontRenderer;
 
       Procedure GetColors(Out A,B,C,D:Color);
@@ -366,7 +368,7 @@ Begin
   End;
 End;
 
-Procedure FontRenderer.DoEffects;
+Procedure FontRenderer.DoEffects();
 Var
   I:Integer;
   SS:TERRAString;
@@ -507,7 +509,7 @@ Begin
   Result := Result + Temp;
 End;
 
-Function FontRenderer.DrawText(X,Y, Layer:Single; Const Text:TERRAString):FontRenderer;
+Function FontRenderer.DrawText(View:TERRAViewport; X,Y, Layer:Single; Const Text:TERRAString):FontRenderer;
 Var
   Alpha:Integer;
   Projection:Matrix4x4;
@@ -521,6 +523,8 @@ Begin
 
   If (_Font = Nil) Or (Not _Font.IsReady()) Then
     Exit;
+
+  Self._View := View;
 
   Alpha := IntMin(_Color1.A, _Color2.A);
   Alpha := Alpha - 55;
@@ -555,10 +559,10 @@ Begin
 
     {$IFNDEF DISTANCEFIELDFONTS}
     If (_DropShadow) Then
-      FM.DrawGlyph(Position.X - 1.0, Position.Y + 1.0, Layer - 0.1, _Transform, _CurrentGlyph, DropColor, DropColor, DropColor, DropColor, DropColor, _ClipRect, _Italics);
+      FM.DrawGlyph(View, Position.X - 1.0, Position.Y + 1.0, Layer - 0.1, _Transform, _CurrentGlyph, DropColor, DropColor, DropColor, DropColor, DropColor, _ClipRect, _Italics);
     {$ENDIF}
 
-    FM.DrawGlyph(Position.X, Position.Y, Layer, _Transform, _CurrentGlyph, _Outline, A,B,C,D, _ClipRect, _Italics);
+    FM.DrawGlyph(View, Position.X, Position.Y, Layer, _Transform, _CurrentGlyph, _Outline, A,B,C,D, _ClipRect, _Italics);
   End;
 
   EndRender();
@@ -687,12 +691,12 @@ Begin
   Begin
     If _DropShadow Then
     Begin
-      S := SpriteManager.Instance.DrawSprite(_CurrentPosition.X - 1, _CurrentPosition.Y - Tex.Height + 1, Self._Layer, Tex);
+      S := _View.SpriteRenderer.DrawSprite(_CurrentPosition.X - 1, _CurrentPosition.Y - Tex.Height + 1, Self._Layer, Tex);
       S.SetColor(ColorGrey(0, _Color1.A));
       Self.TransformSprite(S);
     End;
 
-    S := SpriteManager.Instance.DrawSprite(_CurrentPosition.X, _CurrentPosition.Y - Tex.Height, Self._Layer + 0.1, Tex);
+    S := _View.SpriteRenderer.DrawSprite(_CurrentPosition.X, _CurrentPosition.Y - Tex.Height, Self._Layer + 0.1, Tex);
     S.SetColor(ColorGrey(255, _Color1.A));
     Self.TransformSprite(S);
   End;

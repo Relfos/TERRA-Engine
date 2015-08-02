@@ -4,7 +4,7 @@ Unit TERRA_UIImage;
 
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_UI, TERRA_UIWidget, TERRA_Color,
-  TERRA_UIDimension, TERRA_SpriteManager, TERRA_Texture, TERRA_Renderer, TERRA_Vector2D;
+  TERRA_UIDimension, TERRA_Sprite, TERRA_Texture, TERRA_Renderer, TERRA_Vector2D;
 
 Type
   UIImage = Class(UIWidget)

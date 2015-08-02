@@ -45,10 +45,8 @@ Const
   camDirRight     = 3;
 
 Type
-
-  { Camera }
-
-  Camera = Class(TERRAObject)
+  { TERRACamera }
+  TERRACamera = Class(TERRAObject)
     Protected
       _Name:TERRAString;
 
@@ -168,9 +166,8 @@ Type
 Implementation
 Uses TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsManager, TERRA_Renderer,  TERRA_InputManager, TERRA_Log, Math;
 
-// Camera
-
-constructor Camera.Create(Name: TERRAString);
+{ TERRACamera}
+Constructor TERRACamera.Create(Name: TERRAString);
 Begin
   _Name := Name;
   _Roll := VectorUp;
@@ -188,26 +185,26 @@ Begin
   _NeedsUpdate := True;
 End;
 
-procedure Camera.SetPosition(NewPos: Vector3D);
+procedure TERRACamera.SetPosition(NewPos: Vector3D);
 Begin
   _Position:= NewPos;
   _NeedsUpdate := True;
 End;
 
-procedure Camera.SetView(NewView: Vector3D);
+procedure TERRACamera.SetView(NewView: Vector3D);
 Begin
 //  NewView := VectorCreate(0,-1,0);
   _View := NewView;
   _NeedsUpdate := True;
 End;
 
-procedure Camera.SetRoll(NewRoll: Vector3D);
+procedure TERRACamera.SetRoll(NewRoll: Vector3D);
 Begin
   _Roll:= NewRoll;
   _NeedsUpdate := True;
 End;
 
-procedure Camera.UpdateMatrix4x4(Eye: Integer);
+procedure TERRACamera.UpdateMatrix4x4(Eye: Integer);
 Const
   ZoomFactor = 1;
 Var
@@ -268,7 +265,7 @@ Begin
 	_Frustum.Update(_ProjectionMatrix4x4, Self._Transform);
 End;
 
-procedure Camera.SetOrthoScale(Value: Single);
+procedure TERRACamera.SetOrthoScale(Value: Single);
 Begin
   If (_OrthoScale = Value) Then
     Exit;
@@ -277,7 +274,7 @@ Begin
   _NeedsUpdate := True;
 End;
 
-procedure Camera.SetOrthoMode(Enabled: Boolean; X1, Y1, X2, Y2: Single);
+procedure TERRACamera.SetOrthoMode(Enabled: Boolean; X1, Y1, X2, Y2: Single);
 Begin
   If (Ortho = Enabled) Then
     Exit;
@@ -291,7 +288,7 @@ Begin
   _OrthoY2 := Y2;
 End;
 
-procedure Camera.Update(Width, Height, Eye: Integer);
+procedure TERRACamera.Update(Width, Height, Eye: Integer);
 Begin
   _Width := Width;
   _Height := Height;
@@ -306,7 +303,7 @@ Begin
     UpdateMatrix4x4(Eye);
 End;
 
-procedure Camera.Rotate(rotX, rotY: Single);
+procedure TERRACamera.Rotate(rotX, rotY: Single);
 Var
   rot_axis:Vector3D;
 Begin
@@ -322,12 +319,12 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Procedure Camera.SetFocusPoint(const P: Vector3D);
+Procedure TERRACamera.SetFocusPoint(const P: Vector3D);
 Begin
   _Focus := P;
 End;
 
-procedure Camera.SetupUniforms;
+procedure TERRACamera.SetupUniforms;
 Var
   _Shader:ShaderInterface;
   P:Vector3D;
@@ -376,7 +373,7 @@ Begin
   End;
 End;
 
-procedure Camera.SetFOV(Value: Single);
+procedure TERRACamera.SetFOV(Value: Single);
 Begin
   If (Value = _FOV) Then
     Exit;
@@ -385,7 +382,7 @@ Begin
   _NeedsUpdate := True;
 End;
 
-procedure Camera.SetFar(Value: Single);
+procedure TERRACamera.SetFar(Value: Single);
 Begin
   If (Value = _Far) Then
     Exit;
@@ -394,7 +391,7 @@ Begin
   _NeedsUpdate := True;
 End;
 
-procedure Camera.SetNear(Value: Single);
+procedure TERRACamera.SetNear(Value: Single);
 Begin
   If (Value = _Near) Then
     Exit;
@@ -403,7 +400,7 @@ Begin
   _NeedsUpdate := True;
 End;
 
-procedure Camera.AdjustToFit(Box: BoundingBox);
+procedure TERRACamera.AdjustToFit(Box: BoundingBox);
 Var
   oneOverSine:Single;
   distanceToCenter:Single;
@@ -427,14 +424,14 @@ Begin
   SetView(P);
 End;
 
-procedure Camera.LookAt(P: Vector3D);
+procedure TERRACamera.LookAt(P: Vector3D);
 Begin
   P := VectorSubtract(P, _Position);
   P.Normalize;
   SetView(P);
 End;
 
-procedure Camera.FreeCam;
+procedure TERRACamera.FreeCam;
 Var
   Walk_speed:Single;
   Rot:Single;
@@ -486,7 +483,7 @@ Begin
   _NeedsUpdate := True;
 End;
 
-procedure Camera.Move(Dir: Integer; Speed: Single);
+procedure TERRACamera.Move(Dir: Integer; Speed: Single);
 Begin
   Case Dir Of
     camdirForward:   _position := VectorAdd(_position, VectorScale(_view, Speed));
@@ -508,7 +505,7 @@ Begin
 End;
 
 
-function Camera.ConvertPlaneWorldToCameraSpace(Point, Normal: Vector3D): Plane;
+function TERRACamera.ConvertPlaneWorldToCameraSpace(Point, Normal: Vector3D): Plane;
 Var
   A,B,C,N:Single;
   pX, pY, pZ, pW:Single; //transformed point
@@ -558,7 +555,7 @@ Begin
   End;
 End;
 
-procedure Camera.SetClipPlane(Point, Normal: Vector3D);
+procedure TERRACamera.SetClipPlane(Point, Normal: Vector3D);
 {$IFDEF PC}
 Var
   Clip:Array[0..4] Of Double;
@@ -588,7 +585,7 @@ Begin
   UpdateMatrix4x4(0);
 End;
 
-procedure Camera.RemoveClipPlane;
+procedure TERRACamera.RemoveClipPlane;
 Begin
   If Not _UseClipPlane Then
     Exit;
@@ -607,7 +604,7 @@ Begin
   UpdateMatrix4x4(0);
 End;
 
-procedure Camera.SetRatio(Value: Single);
+procedure TERRACamera.SetRatio(Value: Single);
 Begin
   If (_Ratio = Value) Then
     Exit;
@@ -616,12 +613,12 @@ Begin
   _NeedsUpdate := True;
 End;
 
-procedure Camera.Refresh;
+procedure TERRACamera.Refresh;
 Begin
   _NeedsUpdate := True;
 End;
 
-procedure Camera.Release;
+procedure TERRACamera.Release;
 Begin
   // do nothing
 End;

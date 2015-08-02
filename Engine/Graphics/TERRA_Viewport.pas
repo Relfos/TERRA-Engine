@@ -27,7 +27,7 @@ Unit TERRA_Viewport;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Camera, TERRA_Renderer, TERRA_Resource,
-  TERRA_Ray, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Color, TERRA_Texture
+  TERRA_Ray, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Color, TERRA_Texture, TERRA_SpriteRenderer
   {$IFDEF POSTPROCESSING},TERRA_ScreenFX{$ENDIF};
 
 Const
@@ -81,7 +81,7 @@ Type
       _Height:Integer;
       _Scale:Single;
 
-      _Camera:Camera;
+      _Camera:TERRACamera;
 
       _BackgroundColor:Color;
 
@@ -109,6 +109,8 @@ Type
       {$IFDEF POSTPROCESSING}
       _FXChain:ScreenFXChain;
       {$ENDIF}
+
+      _SpriteRenderer:TERRASpriteRenderer;
 
       Function UnprojectVector(WX,WY,WZ:Single):Vector3D;
 
@@ -164,7 +166,7 @@ Type
 
       Property BackgroundColor:Color Read _BackgroundColor Write SetBackgroundColor;
 
-      Property Camera:TERRA_Camera.Camera Read _Camera;
+      Property Camera:TERRACamera Read _Camera;
 
       Property Visible:Boolean Read _Visible Write _Visible;
 
@@ -188,6 +190,8 @@ Type
       Property TargetY2:Single Read _TargetY2;
 
       Property VR:Boolean Read _VR Write _VR;
+
+      Property SpriteRenderer:TERRASpriteRenderer Read _SpriteRenderer;
 
       Property ResolveTexture:TERRATexture Read GetResolveTexture;
   End;
@@ -473,7 +477,9 @@ Begin
 
   _BackgroundColor := ColorCreate(0, 0, 0, 255);
 
-  _Camera := TERRA_Camera.Camera.Create(Name);
+  _SpriteRenderer := TERRASpriteRenderer.Create();
+
+  _Camera := TERRACamera.Create(Name);
 
   Log(logDebug, 'Viewport', 'Created viewport '+Name+' with size '+IntToString(_Width) +' x '+IntToString(_Height)+' and scale = '+FloatToString(_Scale));
 End;

@@ -5,8 +5,8 @@ Unit TERRA_UIWidget;
 Interface
 Uses TERRA_Object, TERRA_Utils, TERRA_String, TERRA_Collections,
   TERRA_Vector2D, TERRA_Color, TERRA_Matrix3x3, TERRA_Texture,
-  TERRA_ClipRect, TERRA_Tween, TERRA_FontRenderer, TERRA_SpriteManager,
-  TERRA_UIDimension, TERRA_EnumProperty, TERRA_DataSource;
+  TERRA_ClipRect, TERRA_Tween, TERRA_FontRenderer, TERRA_Sprite,
+  TERRA_UIDimension, TERRA_EnumProperty, TERRA_DataSource, TERRA_Viewport;
 
 Const
   waTopLeft     = 0;
@@ -254,7 +254,7 @@ Type
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
       Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
 
-      Procedure Render; Virtual;
+      Procedure Render(View:TERRAViewport); Virtual;
 
       Procedure UpdateRects; Virtual;
       Function UpdateTransform():Boolean; Virtual;
@@ -1695,7 +1695,7 @@ Begin
 End;
 
 
-Procedure UIWidget.Render;
+Procedure UIWidget.Render(View:TERRAViewport);
 Var
   I:Integer;
 Begin
@@ -1712,11 +1712,11 @@ Begin
   Self.UpdateSprite();
 
   If Assigned(_Sprite) Then
-    SpriteManager.Instance.QueueSprite(_Sprite);
+    View.SpriteRenderer.QueueSprite(_Sprite);
 
   For I:=0 To Pred(_ChildrenCount) Do
   If (_ChildrenList[I].Visible) And (_ChildrenList[I].CanRender()) Then
-    _ChildrenList[I].Render();
+    _ChildrenList[I].Render(View);
 End;
 
 

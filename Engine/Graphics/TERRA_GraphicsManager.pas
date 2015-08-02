@@ -76,10 +76,10 @@ Type
 
       _DeviceViewport:TERRAViewport;
 
-      _Cameras:Array Of Camera;
+      _Cameras:Array Of TERRACamera;
       _CameraCount:Integer;
 
-      _ReflectionCamera:Camera;
+      _ReflectionCamera:TERRACamera;
 
       _Width:Integer;
       _Height:Integer;
@@ -206,9 +206,9 @@ Type
 
       Property ViewportCount:Integer Read _ViewportCount;
 
-      Procedure AddCamera(Cam:Camera);
-      Procedure DeleteCamera(Cam:Camera);
-      Function GetCamera(Index:Integer):Camera;
+      Procedure AddCamera(Cam:TERRACamera);
+      Procedure DeleteCamera(Cam:TERRACamera);
+      Function GetCamera(Index:Integer):TERRACamera;
 
       Class Function IsShuttingDown:Boolean;
 
@@ -235,7 +235,7 @@ Type
 Implementation
 
 Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_UI, TERRA_ResourceManager, TERRA_InputManager,
-  TERRA_Frustum, TERRA_Lights, TERRA_SpriteManager, TERRA_Mesh,
+  TERRA_Frustum, TERRA_Lights, TERRA_Mesh,
   TERRA_Decals, TERRA_Billboards, TERRA_ParticleRenderer, TERRA_DebugDraw;
 
 Var
@@ -514,14 +514,14 @@ Begin
   Dec(_ViewportCount);
 End;
 
-Procedure GraphicsManager.AddCamera(Cam:Camera);
+Procedure GraphicsManager.AddCamera(Cam:TERRACamera);
 Begin
   Inc(_CameraCount);
   SetLength(_Cameras, _CameraCount);
   _Cameras[Pred(_CameraCount)] := Cam;
 End;
 
-Function GraphicsManager.GetCamera(Index:Integer):Camera;
+Function GraphicsManager.GetCamera(Index:Integer):TERRACamera;
 Begin
   If (Index<0) Or (Index>=_CameraCount) Then
     Result := Nil
@@ -529,7 +529,7 @@ Begin
     Result := _Cameras[Index];
 End;
 
-Procedure GraphicsManager.DeleteCamera(Cam:Camera);
+Procedure GraphicsManager.DeleteCamera(Cam:TERRACamera);
 Var
   N, I:Integer;
 Begin

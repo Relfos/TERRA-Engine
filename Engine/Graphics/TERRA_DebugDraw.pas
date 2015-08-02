@@ -27,7 +27,7 @@ Unit TERRA_DebugDraw;
 Interface
 
 Uses TERRA_Object, TERRA_String, TERRA_GraphicsManager, TERRA_Renderer, TERRA_Color, TERRA_BoundingBox, TERRA_Frustum,
-  TERRA_Ray, TERRA_Matrix4x4, TERRA_Vector3D, TERRA_Vector2D, TERRA_Utils, TERRA_SpriteManager,
+  TERRA_Ray, TERRA_Matrix4x4, TERRA_Vector3D, TERRA_Vector2D, TERRA_Utils, TERRA_Sprite,
   TERRA_MeshSkeleton, TERRA_MeshAnimationNodes, TERRA_Collision2D, TERRA_Splines, TERRA_ClipRect, TERRA_Viewport;
 
 // 2d drawing
@@ -94,7 +94,7 @@ Begin
   DY := A.Y - B.Y;
   Angle := Atan2(DY, DX);
 
-  S := SpriteManager.Instance.DrawSprite(Trunc(A.X), Trunc(A.Y), Layer, Tex);
+  S := View.SpriteRenderer.DrawSprite(Trunc(A.X), Trunc(A.Y), Layer, Tex);
   S.SetColor(LineColor);
   S.Rect.Width := Trunc(A.Distance(B));
   S.Rect.Height := Trunc(LineWidth);
@@ -118,7 +118,7 @@ Begin
   MaxX := Trunc(FloatMax(A.X, B.X));
   MaxY := Trunc(FloatMax(A.Y, B.Y));
 
-  S := SpriteManager.Instance.DrawSprite(MinX, MinY, Layer, Tex);
+  S := View.SpriteRenderer.DrawSprite(MinX, MinY, Layer, Tex);
   S.SetColor(FillColor);
   S.Rect.Width := Trunc(MaxX-MinX);
   S.Rect.Height := Trunc(MaxY-MinY);
@@ -142,25 +142,25 @@ Begin
   MaxX := Trunc(FloatMax(A.X, B.X));
   MaxY := Trunc(FloatMax(A.Y, B.Y));
 
-  S := SpriteManager.Instance.DrawSprite(MinX, MinY, Layer, Tex);
+  S := View.SpriteRenderer.DrawSprite(MinX, MinY, Layer, Tex);
   S.SetColor(LineColor);
   S.Rect.Width := Trunc(MaxX-MinX);
   S.Rect.Height := Trunc(LineWidth);
 //  S.ClipRect := Clip;
 
-  S := SpriteManager.Instance.DrawSprite(MinX, MinY, Layer, Tex);
+  S := View.SpriteRenderer.DrawSprite(MinX, MinY, Layer, Tex);
   S.SetColor(LineColor);
   S.Rect.Width := Trunc(LineWidth);
   S.Rect.Height := Trunc(MaxY-MinY);
 //  S.ClipRect := Clip;
 
-  S := SpriteManager.Instance.DrawSprite(MinX, MaxY, Layer, Tex);
+  S := View.SpriteRenderer.DrawSprite(MinX, MaxY, Layer, Tex);
   S.SetColor(LineColor);
   S.Rect.Width := Trunc(MaxX-MinX);
   S.Rect.Height := Trunc(LineWidth);
 //  S.ClipRect := Clip;
 
-  S := SpriteManager.Instance.DrawSprite(MaxX, MinY, Layer, Tex);
+  S := View.SpriteRenderer.DrawSprite(MaxX, MinY, Layer, Tex);
   S.SetColor(LineColor);
   S.Rect.Width := Trunc(LineWidth);
   S.Rect.Height := Trunc(MaxY-MinY);

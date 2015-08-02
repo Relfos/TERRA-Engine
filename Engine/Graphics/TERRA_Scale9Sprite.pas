@@ -3,7 +3,7 @@ Unit TERRA_Scale9Sprite;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_SpriteManager, TERRA_Texture, TERRA_Color, TERRA_Vector2D;
+Uses TERRA_Object, TERRA_Sprite, TERRA_Texture, TERRA_Color, TERRA_Vector2D;
 
 Type
   Scale9Tile = Record
