@@ -40,7 +40,6 @@ Constructor UITiledRect.Create(Name:TERRAString; Parent:UIWidget; X, Y, Z: Singl
 Begin
   Inherited Create(Name, Parent);
 
-  Self.TabIndex := TabIndex;
   Self._Texture := TextureProperty.Create('image', Nil);
 
   Self.SetRelativePosition(VectorCreate2D(X,Y));

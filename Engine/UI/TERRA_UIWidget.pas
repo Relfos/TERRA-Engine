@@ -78,7 +78,6 @@ Type
       _Saturation:FloatProperty;
 			_Visible:BooleanProperty;
       _Skin:StringProperty;     
-      _TabIndex:IntegerProperty;
       _DataSource:DataSourceProperty;
 
       _Deleted:Boolean;
@@ -89,8 +88,6 @@ Type
       Function GetHeight: UIDimension;
       Function GetWidth: UIDimension;
 
-      Function GetTabIndex: Integer;
-      Procedure SetTabIndex(const Value: Integer);
       Procedure SetParent(Target:UIWidget);
 
 		Protected
@@ -114,8 +111,6 @@ Type
       _MouseOver:Boolean;
 
       _Enabled:Boolean;
-
-      _TabControl:UIWidget;
 
       _Dragging: Boolean;
       _DragMode:UIDragMode;
@@ -181,8 +176,6 @@ Type
 
       Function GetRotation():Single;
       Function GetScale():Single;
-
-      Function GetTabControl():UIWidget;
 
       Function GetDataValue():TERRAString;
 
@@ -350,9 +343,6 @@ Type
       Property Size:Vector2D Read GetSize;
 			Property Layer:Single Read GetLayer Write SetLayer;
 
-      Property TabIndex:Integer Read GetTabIndex Write SetTabIndex;
-      Property TabControl:UIWidget Read GetTabControl Write _TabControl;
-
       Property InheritColor:Boolean Read _InheritColor Write _InheritColor;
 
       Property Color:TERRA_Color.Color Read GetColor Write SetColor;
@@ -485,7 +475,6 @@ Begin
   ReleaseObject(_Saturation);
   ReleaseObject(_Align);
   ReleaseObject(_Skin);
-  ReleaseObject(_TabIndex);
   ReleaseObject(_DataSource);
 End;
 
@@ -501,12 +490,11 @@ Begin
   _Scale := FloatProperty.Create('scale', 1.0);
   _Saturation := FloatProperty.Create('saturation', 1.0);
   _Skin := StringProperty.Create('skin', '');
-  _TabIndex := IntegerProperty.Create('tabindex', -1);
   _Align := EnumProperty.Create('align', 0, UIManager.Instance.AlignEnums);
   _DataSource := DataSourceProperty.Create('datasource', '');
 
   _BasePropertiesIndex := 0;
-  _CustomPropertiesIndex := 13;
+  _CustomPropertiesIndex := 12;
 End;
 
 Function UIWidget.GetPropertyByIndex(Index:Integer):TERRAObject;
@@ -533,8 +521,7 @@ Begin
   8: Result := _Scale;
   9: Result := _Saturation;
   10: Result := _Skin;
-  11: Result := _TabIndex;
-  12: Result := _DataSource;
+  11: Result := _DataSource;
   Else
     Result := Nil;
   End;
@@ -1928,17 +1915,6 @@ Begin
   Result := StringToInt(S);
 End;
 
-Function UIWidget.GetTabControl():UIWidget;
-Begin
-  If Assigned(_TabControl) Then
-    Result := _TabControl
-  Else
-  If (Assigned(_Parent)) Then
-    Result := _Parent.GetTabControl()
-  Else
-    Result := Nil;
-End;
-
 Function UIWidget.GetDataValue: TERRAString;
 Var
   S:TERRAString;
@@ -2156,16 +2132,6 @@ End;
 Procedure UIWidget.SetAlign(const Value: Integer);
 Begin
   _Align.Value := Value;
-End;
-
-Function UIWidget.GetTabIndex: Integer;
-Begin
-  Result := _TabIndex.Value;
-End;
-
-Procedure UIWidget.SetTabIndex(const Value: Integer);
-Begin
-  _TabIndex.Value  := Value;
 End;
 
 Function UIWidget.CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject;
