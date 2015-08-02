@@ -3,7 +3,7 @@ Unit TERRA_UILabel;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Object, TERRA_UI, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font;
+Uses TERRA_String, TERRA_Object, TERRA_UI, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_Viewport;
 
 Type
   UILabel = Class;
@@ -25,14 +25,13 @@ Type
   UILabel = Class(UIWidget)
     Protected
       _Caption:CaptionProperty;
-      _CaptionIndex:Integer;
 
       _TextRect:Vector2D;
       _PreviousFont:TERRAFont;
 
       Function GetLocalizationKey: TERRAString;
 
-      Procedure UpdateSprite; Override;
+      Procedure UpdateSprite(View:TERRAViewport); Override;
 
     Public
       Constructor Create(Const Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
@@ -40,7 +39,7 @@ Type
 
       Procedure UpdateRects; Override;
 
-      Function GetPropertyByIndex(Index: Integer): TERRAObject; Override;
+      Function SupportDrag(Mode:UIDragMode):Boolean; Override; 
 
       Function GetSize:Vector2D; Override;
 
@@ -69,8 +68,6 @@ Constructor UILabel.Create(const Name:TERRAString; Parent:UIWidget; X,Y,Z:Single
 Begin
   Inherited Create(Name, Parent);
 
-  _Caption := CaptionProperty.Create('caption', Text, Self);
-
   Self.SetRelativePosition(VectorCreate2D(X,Y));
   Self.Layer := Z;
 
@@ -78,8 +75,7 @@ Begin
   Self.Height := Height;
 
 
-  Self.ExpandProperties(1);
-  _CaptionIndex := _BasePropertiesIndex;
+  _Caption := CaptionProperty(Self.AddProperty(CaptionProperty.Create('caption', Text, Self)));
 End;
 
 Procedure UILabel.Release();
@@ -94,14 +90,6 @@ Begin
     Result := StringCopy(Caption.Value, 2, MaxInt);
   End Else
     Result := '';
-End;
-
-Function UILabel.GetPropertyByIndex(Index: Integer): TERRAObject;
-Begin
-  If Index = _CaptionIndex Then
-    Result := Self.Caption
-  Else
-    Result := Inherited GetPropertyByIndex(Index);
 End;
 
 Function UILabel.GetSize: Vector2D;
@@ -178,8 +166,27 @@ Begin
 End;
 
 Procedure UILabel.UpdateSprite;
+Var
+  Pos:Vector2D;
+  TextRect:Vector2D;
+  TextArea:Vector2D;
 Begin
-  
+  If _Sprite = Nil Then
+    _Sprite := FontSprite.Create();
+
+  Pos := Self.AbsolutePosition;
+  Self.FontRenderer.SetFont(FontManager.Instance.DefaultFont);
+  Self.FontRenderer.SetColor(Self.GetColor());
+
+  TextArea := VectorCreate2D(Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)),  Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
+  TextRect := Self.FontRenderer.GetTextRect(Self.Caption._Text);
+
+  Self.FontRenderer.DrawTextToSprite(View, Pos.X + (TextArea.X - TextRect.X) * 0.5,  Pos.Y + (TextArea.Y - TextRect.Y) * 0.5, Self.GetLayer(), Self.Caption._Text, FontSprite(_Sprite));
+End;
+
+Function UILabel.SupportDrag(Mode: UIDragMode): Boolean;
+Begin
+  Result := (Mode = UIDrag_Move);
 End;
 
 End.

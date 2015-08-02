@@ -4,20 +4,18 @@ Unit TERRA_UIImage;
 
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_UI, TERRA_UIWidget, TERRA_Color,
-  TERRA_UIDimension, TERRA_Sprite, TERRA_Texture, TERRA_Renderer, TERRA_Vector2D;
+  TERRA_UIDimension, TERRA_Sprite, TERRA_Texture, TERRA_Renderer, TERRA_Vector2D, TERRA_Viewport;
 
 Type
   UIImage = Class(UIWidget)
     Protected
       _Texture:TextureProperty;
-      _TextureIndex:Integer;
-
       _U1, _V1, _U2, _V2:FloatProperty;
 
 
       Function GetTexture: TERRATexture;
 
-      Procedure UpdateSprite; Override;
+      Procedure UpdateSprite(View:TERRAViewport); Override;
 
       Function GetObjectType:TERRAString; Override;
 
@@ -33,8 +31,6 @@ Type
       Procedure Release; Override;
       Procedure UpdateRects; Override;
 
-      Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
-
       Property Texture:TERRATexture Read GetTexture Write SetTexture;
   End;
 
@@ -47,25 +43,21 @@ Constructor UIImage.Create(Name:TERRAString; Parent:UIWidget; X, Y, Z: Single; C
 Begin
   Inherited Create(Name, Parent);
 
-  Self._Texture := TextureProperty.Create('image', Nil);
-
   Self.SetRelativePosition(VectorCreate2D(X,Y));
   Self.Layer := Z;
   Self.Filter := filterLinear;
 
-  _U1 := FloatProperty.Create('u1', 0);
-  _V1 := FloatProperty.Create('v1', 0);
-  _U2 := FloatProperty.Create('u2', 1);
-  _V2 := FloatProperty.Create('v2', 1);
-  
+  Self._Texture := TextureProperty(Self.AddProperty(TextureProperty.Create('image', Nil)));
+  _U1 := FloatProperty(Self.AddProperty(FloatProperty.Create('u1', 0)));
+  _V1 := FloatProperty(Self.AddProperty(FloatProperty.Create('v1', 0)));
+  _U2 := FloatProperty(Self.AddProperty(FloatProperty.Create('u2', 1)));
+  _V2 := FloatProperty(Self.AddProperty(FloatProperty.Create('v2', 1)));
+
   Self.Width := Width;
   Self.Height := Height;
 
   Self.Pivot := VectorCreate2D(0, 0);
   Self.Anchor := VectorCreate2D(0, 0);
-
-  Self.ExpandProperties(5);
-  _TextureIndex := _BasePropertiesIndex;
 End;
 
 {Function UIImage.OnRegion(X, Y: Integer): Boolean;
@@ -92,26 +84,6 @@ End;}
 Function UIImage.GetObjectType: TERRAString;
 Begin
   Result := 'UIImage';
-End;
-
-Function UIImage.GetPropertyByIndex(Index: Integer): TERRAObject;
-Begin
-  If Index = _TextureIndex Then
-    Result := Self._Texture
-  Else
-  If Index = _TextureIndex + 1 Then
-    Result := Self._U1
-  Else
-  If Index = _TextureIndex + 2 Then
-    Result := Self._V1
-  Else
-  If Index = _TextureIndex + 3 Then
-    Result := Self._U2
-  Else
-  If Index = _TextureIndex + 4 Then
-    Result := Self._V2
-  Else  
-    Result := Inherited GetPropertyByIndex(Index);
 End;
 
 Function UIImage.GetTexture: TERRATexture;
@@ -159,7 +131,7 @@ Begin
   Inherited;
 End;
 
-Procedure UIImage.UpdateSprite;
+Procedure UIImage.UpdateSprite(View:TERRAViewport);
 Var
   OfsX, OfsY:Single;
   Temp, Pos, Center:Vector2D;

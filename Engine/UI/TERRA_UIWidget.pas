@@ -99,8 +99,8 @@ Type
       _Scroll:UIWidget;
       _ScrollValue:Single;
 
-      _BasePropertiesIndex:Integer;
-      _CustomPropertiesIndex:Integer;
+      _Properties:Array Of TERRAObject;
+      _PropertyCount:Integer;
 
       _Tooltip:TERRAString;
       _NeedsUpdate:Boolean;
@@ -151,10 +151,11 @@ Type
 
       _Sprite:TERRASprite;
 
-      Procedure UpdateSprite; Virtual; 
+      Function AddProperty(Prop:TERRAObject):TERRAObject;
+
+      Procedure UpdateSprite(View:TERRAViewport); Virtual; 
 
       Procedure InitProperties();
-      Procedure ExpandProperties(Count:Integer);
 
       Function GetUpControl():UIWidget;
       Function GetDownControl():UIWidget;
@@ -381,7 +382,6 @@ Type
   UIInstancedWidget = Class(UIWidget)
     Protected
       _TemplateName:StringProperty;
-      _TemplateIndex:Integer;
 
       Function InitFromTemplate(Template:UIWidget):UIWidget;
 
@@ -480,28 +480,25 @@ End;
 
 Procedure UIWidget.InitProperties;
 Begin
-  _Width := DimensionProperty.Create('width', UIPixels(0));
-  _Height := DimensionProperty.Create('height', UIPixels(0));
-  _Visible := BooleanProperty.Create('visible', True);
-  _Position := Vector2DProperty.Create('position', VectorCreate2D(0, 0));
-  _Layer := FloatProperty.Create('layer', 1.0);
-  _Color := ColorProperty.Create('color', ColorWhite);
-  _Rotation := AngleProperty.Create('rotation', 0.0);
-  _Scale := FloatProperty.Create('scale', 1.0);
-  _Saturation := FloatProperty.Create('saturation', 1.0);
-  _Skin := StringProperty.Create('skin', '');
-  _Align := EnumProperty.Create('align', 0, UIManager.Instance.AlignEnums);
-  _DataSource := DataSourceProperty.Create('datasource', '');
-
-  _BasePropertiesIndex := 0;
-  _CustomPropertiesIndex := 12;
+  _Width := DimensionProperty(Self.AddProperty(DimensionProperty.Create('width', UIPixels(0))));
+  _Height := DimensionProperty(Self.AddProperty(DimensionProperty.Create('height', UIPixels(0))));
+  _Visible := BooleanProperty(Self.AddProperty(BooleanProperty.Create('visible', True)));
+  _Position := Vector2DProperty(Self.AddProperty(Vector2DProperty.Create('position', VectorCreate2D(0, 0))));
+  _Layer := FloatProperty(Self.AddProperty(FloatProperty.Create('layer', 1.0)));
+  _Color := ColorProperty(Self.AddProperty(ColorProperty.Create('color', ColorWhite)));
+  _Rotation := AngleProperty(Self.AddProperty(AngleProperty.Create('rotation', 0.0)));
+  _Scale := FloatProperty(Self.AddProperty(FloatProperty.Create('scale', 1.0)));
+  _Saturation := FloatProperty(Self.AddProperty(FloatProperty.Create('saturation', 1.0)));
+  _Skin := StringProperty(Self.AddProperty(StringProperty.Create('skin', '')));
+  _Align := EnumProperty(Self.AddProperty(EnumProperty.Create('align', 0, UIManager.Instance.AlignEnums)));
+  _DataSource := DataSourceProperty(Self.AddProperty(DataSourceProperty.Create('datasource', '')));
 End;
 
 Function UIWidget.GetPropertyByIndex(Index:Integer):TERRAObject;
 Begin
-  If (Index>=_CustomPropertiesIndex) Then
+  If (Index>=_PropertyCount) Then
   Begin
-    Dec(Index, _CustomPropertiesIndex);
+    Dec(Index, _PropertyCount);
     If (Index<_ChildrenCount) Then
       Result := _ChildrenList[Index]
     Else
@@ -509,30 +506,11 @@ Begin
     Exit;
   End;
 
-  Case Index Of
-  0: Result := _Visible;
-  1: Result := _Position;
-  2: Result := _Layer;
-  3: Result := _Align;
-  4: Result := _Width;
-  5: Result := _Height;
-  6: Result := _Color;
-  7: Result := _Rotation;
-  8: Result := _Scale;
-  9: Result := _Saturation;
-  10: Result := _Skin;
-  11: Result := _DataSource;
+  If (Index>=0) Then
+    Result := _Properties[Index]
   Else
     Result := Nil;
-  End;
 End;
-
-Procedure UIWidget.ExpandProperties(Count:Integer);
-Begin
-  _BasePropertiesIndex := _CustomPropertiesIndex;
-  Inc(_CustomPropertiesIndex, Count);
-End;
-
 
 Function UIWidget.HasHighlightedChildren():Boolean;
 Var
@@ -1696,7 +1674,7 @@ Begin
   Self.UpdateRects();
   Self.UpdateTransform();
 //  Self.UpdateHighlight();
-  Self.UpdateSprite();
+  Self.UpdateSprite(View);
 
   If Assigned(_Sprite) Then
     View.SpriteRenderer.QueueSprite(_Sprite);
@@ -2202,6 +2180,14 @@ Begin
 End;
 
 
+Function UIWidget.AddProperty(Prop: TERRAObject):TERRAObject;
+Begin
+  Result := Prop;
+  Inc(_PropertyCount);
+  SetLength(_Properties, _PropertyCount);
+  _Properties[Pred(_PropertyCount)] := Prop;
+End;
+
 { UIInstancedWidget }
 Constructor UIInstancedWidget.Create(Const Name: TERRAString; Parent: UIWidget; X, Y, Z: Single; const Width, Height: UIDimension; Const TemplateName:TERRAString);
 Var
@@ -2210,10 +2196,7 @@ Var
 Begin
   Inherited Create(Name, Parent);
 
-  _TemplateName := StringProperty.Create('template', TemplateName);
-
-  Self.ExpandProperties(1);
-  _TemplateIndex := _BasePropertiesIndex;
+  _TemplateName := StringProperty(Self.AddProperty(StringProperty.Create('template', TemplateName)));
 
   Template := UITemplates.GetTemplate(TemplateName);
   If Assigned(Template) Then
