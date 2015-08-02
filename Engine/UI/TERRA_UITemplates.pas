@@ -11,6 +11,7 @@ Type
       Constructor Create(Const Name:TERRAString; Tex:TERRATexture);
   End;
 
+
 Implementation
 
 { UIWindowTemplate }

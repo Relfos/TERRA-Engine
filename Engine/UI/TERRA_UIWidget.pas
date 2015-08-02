@@ -235,10 +235,6 @@ Type
       Constructor Create(Const Name:TERRAString; Parent:UIWidget);
       Procedure Release; Override;
 
-      Class Function AddTemplate(Template:UIWidget):UIWidget;
-      Class Function GetTemplate(Const TemplateName:TERRAString):UIWidget;
-      Class Function DeleteTemplate(Const TemplateName:TERRAString):Boolean;
-
       Procedure StartHighlight(); Virtual;
       Procedure StopHighlight(); Virtual;
 
@@ -406,6 +402,17 @@ Type
       Function GetObjectType:TERRAString; Override;
   End;
 
+  UITemplateList = Class(TERRAObject)
+    Protected
+      _Templates:List;
+
+    Public
+      Function AddTemplate(Template:UIWidget):UIWidget;
+      Function GetTemplate(Const TemplateName:TERRAString):UIWidget;
+      Function DeleteTemplate(Const TemplateName:TERRAString):Boolean;
+  End;
+
+  Function UITemplates():UITemplateList;
 
 Implementation
 
@@ -557,69 +564,6 @@ Begin
   End;
 *)
   Result := False;
-End;
-
-Var
-  _UITemplatesList:List;
-
-Class Function UIWidget.AddTemplate(Template:UIWidget): UIWidget;
-Begin
-  Result := Template;
-
-  If Result = Nil Then
-    Exit;
-
-  If _UITemplatesList = Nil Then
-    _UITemplatesList := List.Create();
-
-  _UITemplatesList.Add(Template);
-End;
-
-Class Function UIWidget.GetTemplate(Const TemplateName: TERRAString): UIWidget;
-Var
-  W:UIWidget;
-  It:Iterator;
-Begin
-  Result := Nil;
-  If _UITemplatesList = Nil Then
-    Exit;
-
-  It := _UITemplatesList.GetIterator();
-  While It.HasNext Do
-  Begin
-    W := UIWidget(It.Value);
-
-    If (StringEquals(W.Name, TemplateName)) Then
-    Begin
-      Result := W;
-      Break;
-    End;
-  End;
-  ReleaseObject(It);
-End;
-
-
-Class Function UIWidget.DeleteTemplate(Const TemplateName: TERRAString): Boolean;
-Var
-  W:UIWidget;
-  It:Iterator;
-Begin
-  Result := False;
-  If _UITemplatesList = Nil Then
-    Exit;
-
-  It := _UITemplatesList.GetIterator();
-  While It.HasNext Do
-  Begin
-    W := UIWidget(It.Value);
-
-    If (StringEquals(W.Name, TemplateName)) Then
-    Begin
-      W.Discard();
-      Break;
-    End;
-  End;
-  ReleaseObject(It);
 End;
 
 
@@ -2324,7 +2268,7 @@ Begin
   Self.ExpandProperties(1);
   _TemplateIndex := _BasePropertiesIndex;
 
-  Template := UIWidget.GetTemplate(TemplateName);
+  Template := UITemplates.GetTemplate(TemplateName);
   Self.AddChild(Self.InitFromTemplate(Template));
 
   Self.SetRelativePosition(VectorCreate2D(X,Y));
@@ -2375,5 +2319,77 @@ Begin
   End;
 End;
 
+
+{ UITemplateList }
+Var
+  _UITemplates:UITemplateList;
+
+Function UITemplates():UITemplateList;
+Begin
+  If _UITemplates = Nil Then
+    _UITemplates := UITemplateList.Create();
+
+  Result := _UITemplates;
+End;
+
+Function UITemplateList.AddTemplate(Template:UIWidget): UIWidget;
+Begin
+  Result := Template;
+
+  If Result = Nil Then
+    Exit;
+
+  If _Templates = Nil Then
+    _Templates := List.Create();
+
+  _Templates.Add(Template);
+End;
+
+Function UITemplateList.GetTemplate(Const TemplateName: TERRAString): UIWidget;
+Var
+  W:UIWidget;
+  It:Iterator;
+Begin
+  Result := Nil;
+  If _Templates = Nil Then
+    Exit;
+
+  It := _Templates.GetIterator();
+  While It.HasNext Do
+  Begin
+    W := UIWidget(It.Value);
+
+    If (StringEquals(W.Name, TemplateName)) Then
+    Begin
+      Result := W;
+      Break;
+    End;
+  End;
+  ReleaseObject(It);
+End;
+
+
+Function UITemplateList.DeleteTemplate(Const TemplateName: TERRAString): Boolean;
+Var
+  W:UIWidget;
+  It:Iterator;
+Begin
+  Result := False;
+  If _Templates = Nil Then
+    Exit;
+
+  It := _Templates.GetIterator();
+  While It.HasNext Do
+  Begin
+    W := UIWidget(It.Value);
+
+    If (StringEquals(W.Name, TemplateName)) Then
+    Begin
+      W.Discard();
+      Break;
+    End;
+  End;
+  ReleaseObject(It);
+End;
 
 End.
