@@ -1768,7 +1768,7 @@ Begin
         {If (_MouseOnAdArea) Then
           Self.OnAdClick(Input.Mouse.X, Input.Mouse.Y)
         Else}
-          Self.OnMouseDown(Input.Mouse.X, Input.Mouse.Y, _Events[I].Value);
+          Self.OnMouseDown(Trunc(Input.Mouse.X), Trunc(Input.Mouse.Y), _Events[I].Value);
       End;
 
     eventMouseUp:
@@ -1777,17 +1777,17 @@ Begin
 
         Input.Keys.SetState(_Events[I].Value, False);
         If (Not _MouseOnAdArea) Then
-          Self.OnMouseUp(Input.Mouse.X, Input.Mouse.Y, _Events[I].Value);
+          Self.OnMouseUp(Trunc(Input.Mouse.X), Trunc(Input.Mouse.Y), _Events[I].Value);
       End;
 
     eventMouseMove:
       Begin
-        Self.OnMouseMove(Input.Mouse.X, Input.Mouse.Y);
+        Self.OnMouseMove(Trunc(Input.Mouse.X), Trunc(Input.Mouse.Y));
       End;
 
     eventMouseWheel:
       Begin
-        Self.OnMouseWheel(Input.Mouse.X, Input.Mouse.Y, _Events[I].Value);
+        Self.OnMouseWheel(Trunc(Input.Mouse.X), Trunc(Input.Mouse.Y), _Events[I].Value);
       End;
 
     eventKeyPress:

@@ -26,7 +26,7 @@ Unit TERRA_InputManager;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Application, TERRA_Collections;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Application, TERRA_Collections;
 
 Const
   keyGamepadIndex   = 255;
@@ -63,6 +63,8 @@ Const
   MaxKeys = 512;
   MaximumFrameDelay = 10;
 
+  DoubleTimeWindowDuration = 200;
+
 Type
   GamePadKind = (
     gamepadUnknown = 0,
@@ -82,13 +84,9 @@ Type
     State:Boolean;
     Pressed:Boolean;
     Released:Boolean;
+    DoubleTap:Boolean;
+    LastTime:Cardinal;
   End;
-
-	PCursor=^MouseCursor;
-	MouseCursor=Record
-		X:SmallInt;
-		Y:SmallInt;
-	End;
 
 	InputState = Class(TERRAObject)
     Protected
@@ -99,6 +97,8 @@ Type
 
       Function IsDown(Key:Word):Boolean;
       Function IsUp(Key:Word):Boolean;
+
+      Function WasDoubleTapped(Key:Word):Boolean;
 
       Function WasPressed(Key:Word):Boolean;
       Function WasReleased(Key:Word):Boolean;
@@ -145,7 +145,7 @@ Type
 
 
     Public
-  		Mouse:MouseCursor;
+  		Mouse:Vector2D;
       Accelerometer:Vector3D;
       Gyroscope:Vector3D;
       Compass:Vector3D; // (heading, pitch, roll)
@@ -363,6 +363,8 @@ Begin
 End;
 
 Function InputState.SetState(Key: Word; Value: Boolean):Boolean;
+Var
+  T:Cardinal;
 Begin
   Result := False;
 
@@ -375,8 +377,12 @@ Begin
   _Keys[Key].State := Value;
 
   If Value Then
-    _Keys[Key].Pressed := True
-  Else
+  Begin
+    _Keys[Key].Pressed := True;
+    T := Application.GetTime();
+    _Keys[Key].DoubleTap := (T - _Keys[Key].LastTime < DoubleTimeWindowDuration);
+    _Keys[Key].LastTime := T;
+  End Else
     _Keys[Key].Released := True;
 
   _Keys[Key].Frame := GraphicsManager.Instance.FrameID;
@@ -403,6 +409,25 @@ Begin
     Result := True
   Else
     Result := Not _Keys[Key].State;
+End;
+
+Function InputState.WasDoubleTapped(Key: Word): Boolean;
+Var
+  Delta:Integer;
+Begin
+  If (Key>=MaxKeys) Then
+    Result := False
+  Else
+  Begin
+    Result := (_Keys[Key].DoubleTap);
+
+    If Result Then
+    Begin
+      Delta := GraphicsManager.Instance.FrameID - _Keys[Key].Frame;
+      Result := (Delta<=MaximumFrameDelay);
+      _Keys[Key].DoubleTap := False;
+    End;
+  End;
 End;
 
 Function InputState.WasPressed(Key: Word): Boolean;

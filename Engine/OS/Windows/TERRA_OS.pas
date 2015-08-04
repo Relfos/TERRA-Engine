@@ -282,12 +282,23 @@ End;
 Function WndProc(hWnd:HWND;Msg:UINT;wParam:wPARAM;lParam:LPARAM):LRESULT; Stdcall;
 Var
   Delta:Integer;
-  P:MouseCursor;
   W,H, I:Integer;
   S:TERRAString;
   sz:TRECT;
   Temp:Boolean;
   App:WindowsApplication;
+  MX, MY:Integer;
+
+Procedure GetMouseCoords(Out X, Y:Integer);
+Var
+  P:PSmallInt;
+Begin
+  P := PSmallInt(@lParam);
+  X := P^;
+  Inc(P);
+  Y := P^;
+End;
+
 Begin
   Result:=0;
 
@@ -394,8 +405,8 @@ Begin
               End;*)
 
     WM_SIZE:  Begin
-                P := PCursor(@lParam)^;
-                App.AddCoordEvent(eventWindowResize, P.X, P.Y, 0);
+                GetMouseCoords(MX, MY);
+                App.AddCoordEvent(eventWindowResize, MX, MY, 0);
               End;
 
     WM_CLOSE: Begin
@@ -459,8 +470,8 @@ Begin
 
     WM_MOUSEMOVE: If (App._CanReceiveEvents) Then
                   Begin
-                    P := PCursor(@lParam)^;
-                    App.AddCoordEvent(eventMouseMove, P.X, P.Y, 0);
+                    GetMouseCoords(MX, MY);
+                    App.AddCoordEvent(eventMouseMove, MX, MY, 0);
 
                     If (App._CursorVisible) And (Not App._IgnoreCursor) Then
                     Begin
