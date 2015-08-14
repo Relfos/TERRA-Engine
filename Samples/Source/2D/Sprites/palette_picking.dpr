@@ -5,7 +5,7 @@ Uses
 {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
   TERRA_String, TERRA_Application, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
   TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_UI, TERRA_Lights, TERRA_Image, TERRA_Viewport,
-  TERRA_JPG, TERRA_PNG, TERRA_Texture, TERRA_Renderer, TERRA_Mesh, TERRA_ShaderFactory, TERRA_Resource,
+  TERRA_PNG, TERRA_Texture, TERRA_Renderer, TERRA_Mesh, TERRA_ShaderFactory, TERRA_Resource,
   TERRA_FileManager, TERRA_Scene,  TERRA_Skybox, TERRA_Color, TERRA_Math, TERRA_Matrix4x4,
   TERRA_ScreenFX, TERRA_SpriteManager, TERRA_VertexFormat, TERRA_InputManager;
 
