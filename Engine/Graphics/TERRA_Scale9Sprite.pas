@@ -21,7 +21,7 @@ Type
 
   Scale9Sprite = Class(TERRASprite)
     Protected
-      _BaseColor:Color;
+      _BaseColor:ColorRGBA;
       _Position:Vector2D;
       _Width:Integer;
       _Height:Integer;
@@ -38,7 +38,7 @@ Type
       Procedure SetPosition(Const Pos:Vector2D);
       Procedure SetSize(Const Width, Height:Integer);
       Procedure SetUVRect(Const U1, V1, U2, V2:Single);
-      Procedure SetColor(Const C:Color); 
+      Procedure SetColor(Const C:ColorRGBA);
 
   End;
 
@@ -109,7 +109,7 @@ Begin
   Result := _Tiles[I,J];
 End;
 
-Procedure Scale9Sprite.SetColor(const C: Color);
+Procedure Scale9Sprite.SetColor(const C: ColorRGBA);
 Begin
   _BaseColor := C;
 End;

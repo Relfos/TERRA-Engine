@@ -59,7 +59,7 @@ Type
 
   ImageFrame = Class(TERRAObject)
     Protected
-      _Data:Array Of Color;
+      _Data:Array Of ColorRGBA;
     Public
       Constructor Create(Width, Height:Integer);
       Procedure Release; Override;
@@ -86,7 +86,7 @@ Type
       Procedure FillAlpha(AlphaValue:Byte=255);
 
       Function GetPixelCount:Cardinal;
-      Function GetPixels:PColor;
+      Function GetPixels:PColorRGBA;
 
       Function GetImageTransparencyType:ImageTransparencyType;
 
@@ -115,7 +115,7 @@ Type
 
       {$IFDEF NDS}Function AutoTile:Cardinal;{$ENDIF}
 
-      Procedure Process(Flags:Cardinal; Color:Color); Overload;
+      Procedure Process(Flags:Cardinal; Color:ColorRGBA); Overload;
       Procedure Process(Flags:Cardinal); Overload;
 
       Procedure BlitByUV(Const U,V,U1,V1,U2,V2:Single; Const Source:Image);
@@ -127,8 +127,8 @@ Type
       Procedure BlitWithAlphaByUV(Const U,V,U1,V1,U2,V2:Single; Const Source:Image; ForceBlend:Boolean = True);
       Procedure BlitWithAlpha(X,Y,X1,Y1,X2,Y2:Integer; Const Source:Image; ForceBlend:Boolean = True);
 
-      Procedure BlitWithMaskByUV(Const U,V,U1,V1,U2,V2:Single; Const Color:Color; Const Source:Image);
-      Procedure BlitWithMask(X,Y,X1,Y1,X2,Y2:Integer; Const Color:Color; Const Source:Image);
+      Procedure BlitWithMaskByUV(Const U,V,U1,V1,U2,V2:Single; Const Color:ColorRGBA; Const Source:Image);
+      Procedure BlitWithMask(X,Y,X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA; Const Source:Image);
 
       Function Crop(X1,Y1,X2,Y2:Integer):Image;
 
@@ -136,31 +136,31 @@ Type
 
       Procedure ShiftHue(ShiftAmmount:Integer);
 
-      Procedure LineByUV(Const U1,V1,U2,V2:Single; Const Color:Color);
-      Procedure Line(X1,Y1,X2,Y2:Integer; Const Color:Color);
-      Procedure LineAlpha(X1,Y1,X2,Y2:Integer; Const Color:Color);
+      Procedure LineByUV(Const U1,V1,U2,V2:Single; Const Color:ColorRGBA);
+      Procedure Line(X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA);
+      Procedure LineAlpha(X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA);
 
-      Procedure DrawRectangleByUV(Const U1,V1,U2,V2:Single; Const Color:Color);
-      Procedure DrawRectangle(X1,Y1,X2,Y2:Integer; Const Color:Color);
+      Procedure DrawRectangleByUV(Const U1,V1,U2,V2:Single; Const Color:ColorRGBA);
+      Procedure DrawRectangle(X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA);
 
-      Procedure FillRectangleByUV(Const U1,V1,U2,V2:Single; Const Color:Color);
-      Procedure FillRectangle(X1,Y1,X2,Y2:Integer; Const Color:Color);
+      Procedure FillRectangleByUV(Const U1,V1,U2,V2:Single; Const Color:ColorRGBA);
+      Procedure FillRectangle(X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA);
 
-      Procedure DrawCircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Const Color:Color);
-      Procedure DrawCircle(xCenter,yCenter:Integer; Const Radius:Integer; Const Color:Color);
+      Procedure DrawCircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Const Color:ColorRGBA);
+      Procedure DrawCircle(xCenter,yCenter:Integer; Const Radius:Integer; Const Color:ColorRGBA);
 
-      Procedure FillCircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Const Color:Color);
-      Procedure FillCircle(xCenter,yCenter:Integer; Const Radius:Integer; Const Color:Color);
+      Procedure FillCircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Const Color:ColorRGBA);
+      Procedure FillCircle(xCenter,yCenter:Integer; Const Radius:Integer; Const Color:ColorRGBA);
 
-      Function GetPixel(X,Y:Integer):Color; {$IFDEF FPC}Inline;{$ENDIF}
-      Function GetPixelByUV(Const U,V:Single):Color; {$IFDEF FPC}Inline;{$ENDIF}
+      Function GetPixel(X,Y:Integer):ColorRGBA; {$IFDEF FPC}Inline;{$ENDIF}
+      Function GetPixelByUV(Const U,V:Single):ColorRGBA; {$IFDEF FPC}Inline;{$ENDIF}
       Function GetComponent(X,Y,Component:Integer):Byte; {$IFDEF FPC}Inline;{$ENDIF}
 
-      Procedure SetPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
-      Procedure SetPixelByUV(Const U,V:Single; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
+      Procedure SetPixel(X,Y:Integer; Const Color:ColorRGBA); {$IFDEF FPC}Inline;{$ENDIF}
+      Procedure SetPixelByUV(Const U,V:Single; Const Color:ColorRGBA); {$IFDEF FPC}Inline;{$ENDIF}
 
       //Procedure AddPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
-      Procedure MixPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
+      Procedure MixPixel(X,Y:Integer; Const Color:ColorRGBA); {$IFDEF FPC}Inline;{$ENDIF}
 
       Function MipMap():Image;
 
@@ -178,14 +178,14 @@ Type
       Procedure LineDecodeBGR24(Buffer:Pointer; Line:Cardinal);
       Procedure LineDecodeBGR32(Buffer:Pointer; Line:Cardinal);
 
-      Function GetPixelOffset(X,Y:Integer):PColor;
-      Function GetLineOffset(Y:Integer):PColor;
+      Function GetPixelOffset(X,Y:Integer):PColorRGBA;
+      Function GetLineOffset(Y:Integer):PColorRGBA;
 
       Property Width:Cardinal Read _Width;
       Property Height:Cardinal Read _Height;
       Property PixelCount:Cardinal Read GetPixelCount;
       Property Size:Cardinal Read _Size;
-      Property Pixels:PColor Read GetPixels;
+      Property Pixels:PColorRGBA Read GetPixels;
 
       Property CurrentFrame:Cardinal Read _CurrentFrame Write SetCurrentFrame;
       Property FrameCount:Cardinal Read _FrameCount;
@@ -357,7 +357,7 @@ Begin
   Result := Width * Height;
 End;
 
-Function Image.GetPixels:PColor;
+Function Image.GetPixels:PColorRGBA;
 Begin
   Result := @_Pixels._Data[0];
 End;
@@ -397,9 +397,9 @@ Var
   OneMinusU, OneMinusV, oneMinusUOneMinusV:Single;
   uOneMinusV, vOneMinusU:Single;
   srcX, srcY, srcXStep, srcYStep:Single;
-  pSrcPixelA, pSrcPixelB, pSrcPixelC, pSrcPixelD:Color;
+  pSrcPixelA, pSrcPixelB, pSrcPixelC, pSrcPixelD:ColorRGBA;
   Dest:ImageFrame;
-  Pixel:Color;
+  Pixel:ColorRGBA;
 Begin
   If (NewWidth=Width) And (NewHeight=Height) Then
     Exit;
@@ -518,7 +518,7 @@ Var
   NX,NY:Cardinal;
   PX,PY:Cardinal;
   Buffer:ImageFrame;
-  Dest:PColor;
+  Dest:PColorRGBA;
 Begin
   If (NewWidth=Width)And(NewHeight=Height) Then
     Exit;
@@ -606,7 +606,7 @@ End;
 
 Procedure Image.FillAlpha(AlphaValue:Byte=255);
 Var
-  Color:PColor;
+  Color:PColorRGBA;
   I,J:Integer;
 Begin
   Color:=Pixels;
@@ -623,11 +623,11 @@ Begin
   Process(Flags, ColorWhite);
 End;
 
-Procedure Image.Process(Flags:Cardinal; Color:Color);
+Procedure Image.Process(Flags:Cardinal; Color:ColorRGBA);
 Var
   N:Cardinal;
   I,J,K:Cardinal;
-  Source,Dest:PColor;
+  Source,Dest:PColorRGBA;
 
   SwapChannels, SetColorKey, ScaleColor:Boolean;
   FilColor,FillAlpha:Boolean;
@@ -775,7 +775,7 @@ Begin
 End;
 
 
-Procedure Image.BlitWithMaskByUV(Const U,V,U1,V1,U2,V2:Single; Const Color:Color; Const Source:Image);
+Procedure Image.BlitWithMaskByUV(Const U,V,U1,V1,U2,V2:Single; Const Color:ColorRGBA; Const Source:Image);
 Begin
   BlitWithMask(Integer(Round(U*Width)), Integer(Round(V*Height)),
                   Integer(Round(U1*Source.Width)), Integer(Round(V1*Source.Height)),
@@ -783,7 +783,7 @@ Begin
                   Color, Source);
 End;
 
-Procedure Image.LineByUV(Const U1,V1,U2,V2:Single; Const Color:Color);
+Procedure Image.LineByUV(Const U1,V1,U2,V2:Single; Const Color:ColorRGBA);
 Begin
   Line(Integer(Trunc(U1*Width)), Integer(Trunc(V1*Height)),
        Integer(Trunc(U2*Width)), Integer(Trunc(V2*Height)), Color);
@@ -791,7 +791,7 @@ End;
 
 Procedure Image.Blit(X,Y, X1,Y1,X2,Y2:Integer; Const Source:Image);
 Var
-  Dest, Data:PColor;
+  Dest, Data:PColorRGBA;
   I,J:Integer;
   BlitSize,BlitHeight:Integer;
 Begin
@@ -846,7 +846,7 @@ Var
   I,J:Integer;
   BlitSize,BlitHeight:Integer;
   AX,AY,ADX,ADY:Single;
-  A,B,C:Color;
+  A,B,C:ColorRGBA;
   Alpha:Cardinal;
 Begin
   If (X>=_Width) Or (Y>=_Height) Then
@@ -905,7 +905,7 @@ End;
 Procedure Image.BlitWithAlpha(X,Y,X1,Y1,X2,Y2:Integer; Const Source:Image; ForceBlend:Boolean);
 Var
   I,J,BlitSize,BlitHeight:Integer;
-  Data,Dest:PColor;
+  Data,Dest:PColorRGBA;
 Begin
   X1:=IntMax(X1,0);
   X2:=IntMin(X2,Integer(Source.Width));
@@ -970,10 +970,10 @@ Begin
   End;
 End;
 
-Procedure Image.BlitWithMask(X,Y,X1,Y1,X2,Y2:Integer; Const Color:Color; Const Source:Image);
+Procedure Image.BlitWithMask(X,Y,X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA; Const Source:Image);
 Var
   I,BlitSize,BlitHeight:Integer;
-  Data,Dest:PColor;
+  Data,Dest:PColorRGBA;
 Begin
   X1:=IntMax(X1,0);
   X2:=IntMin(X2,Integer(Pred(Source.Width)));
@@ -1006,7 +1006,7 @@ Begin
 End;
 
 // Bresenham's line algorithm
-Procedure Image.Line(X1,Y1,X2,Y2:Integer; Const Color:Color);
+Procedure Image.Line(X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA);
 Var
   I,DeltaX,DeltaY,NumPixels:Integer;
   D,Dinc1,Dinc2:Integer;
@@ -1072,7 +1072,7 @@ Begin
   End;
 End;
 
-Procedure Image.LineAlpha(X1,Y1,X2,Y2:Integer; Const Color:Color);
+Procedure Image.LineAlpha(X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA);
 Var
   I,DeltaX,DeltaY,NumPixels:Integer;
   D,Dinc1,Dinc2:Integer;
@@ -1138,23 +1138,23 @@ Begin
   End;
 End;
 
-Procedure Image.DrawRectangleByUV(Const U1,V1,U2,V2:Single; Const Color:Color);
+Procedure Image.DrawRectangleByUV(Const U1,V1,U2,V2:Single; Const Color:ColorRGBA);
 Begin
   DrawRectangle(Integer(Trunc(U1*Width)), Integer(Trunc(V1*Height)),
                 Integer(Trunc(U2*Width)), Integer(Trunc(V2*Height)), Color);
 End;
 
-Procedure Image.FillRectangleByUV(Const U1,V1,U2,V2:Single; Const Color:Color);
+Procedure Image.FillRectangleByUV(Const U1,V1,U2,V2:Single; Const Color:ColorRGBA);
 Begin
   FillRectangle(Integer(Trunc(U1*Width)), Integer(Trunc(V1*Height)),
                 Integer(Trunc(U2*Width)), Integer(Trunc(V2*Height)), Color);
 End;
 
 // Fast rectangle draw
-Procedure Image.DrawRectangle(X1,Y1,X2,Y2:Integer; Const Color:Color);
+Procedure Image.DrawRectangle(X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA);
 Var
   J,LineSize,LineSkip:Integer;
-  Dest:PColor;
+  Dest:PColorRGBA;
 Begin
   X1 := IntMax(X1,0);
   X2 := IntMin(X2,Integer(Pred(Width)));
@@ -1188,10 +1188,10 @@ Begin
 End;
 
 // Fast rectangle fill
-Procedure Image.FillRectangle(X1,Y1,X2,Y2:Integer; Const Color:Color);
+Procedure Image.FillRectangle(X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA);
 Var
   J,LineSize:Integer;
-  Dest:PColor;
+  Dest:PColorRGBA;
 Begin
   X1:=IntMax(X1,0);
   X2:=IntMin(X2,Integer(Pred(Width)));
@@ -1211,18 +1211,18 @@ Begin
   End;
 End;
 
-Procedure Image.DrawCircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Const Color:Color);
+Procedure Image.DrawCircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Const Color:ColorRGBA);
 Begin
   DrawCircle(Integer(Round(xCenter*Width)),Integer(Round(yCenter*Height)), Radius, Color);
 End;
 
-Procedure Image.FillCircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Const Color:Color);
+Procedure Image.FillCircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Const Color:ColorRGBA);
 Begin
   FillCircle(Integer(Round(xCenter*Width)),Integer(Round(yCenter*Height)), Radius, Color);
 End;
 
 // Bresenham's circle algorithm
-Procedure Image.DrawCircle(xCenter,yCenter:Integer; Const Radius:Integer; Const Color:Color);
+Procedure Image.DrawCircle(xCenter,yCenter:Integer; Const Radius:Integer; Const Color:ColorRGBA);
 Var
   X,Y,P:Integer;
 Begin
@@ -1252,7 +1252,7 @@ Begin
   End;
 End;
 
-Procedure Image.FillCircle(xCenter,yCenter:Integer; Const Radius:Integer; Const Color:Color);
+Procedure Image.FillCircle(xCenter,yCenter:Integer; Const Radius:Integer; Const Color:ColorRGBA);
 Var
   A,B,I:Integer;
 Begin
@@ -1267,7 +1267,7 @@ Begin
   End;
 End;
 
-Function Image.GetLineOffset(Y:Integer):PColor;
+Function Image.GetLineOffset(Y:Integer):PColorRGBA;
 Begin
   If (_Height<=0) Then
   Begin
@@ -1284,7 +1284,7 @@ Begin
   Result := @_Pixels._Data[Y * Width];
 End;
 
-Function Image.GetPixelOffset(X,Y:Integer):PColor;
+Function Image.GetPixelOffset(X,Y:Integer):PColorRGBA;
 Begin
   While (X<0) Do
     X := X + Width;
@@ -1304,7 +1304,7 @@ Begin
     Result := @_Pixels._Data[Y * Width + X];
 End;
 
-Function Image.GetPixelByUV(Const U,V:Single):Color; {$IFDEF FPC}Inline;{$ENDIF}
+Function Image.GetPixelByUV(Const U,V:Single):ColorRGBA; {$IFDEF FPC}Inline;{$ENDIF}
 Var
   X,Y:Integer;
 Begin
@@ -1313,7 +1313,7 @@ Begin
   Result := GetPixel(X,Y);
 End;
 
-Function Image.GetPixel(X,Y:Integer):Color; {$IFDEF FPC}Inline;{$ENDIF}
+Function Image.GetPixel(X,Y:Integer):ColorRGBA; {$IFDEF FPC}Inline;{$ENDIF}
 Begin
   If (Pixels = Nil) Or (Width<=0) Or (Height<=0)Then
   Begin
@@ -1326,13 +1326,13 @@ End;
 
 Function Image.GetComponent(X,Y,Component:Integer):Byte; {$IFDEF FPC}Inline;{$ENDIF}
 Var
-  P:Color;
+  P:ColorRGBA;
 Begin
   P := GetPixel(X,Y);
   Result := PByteArray(@P)[Component];
 End;
 
-Procedure Image.SetPixelByUV(Const U,V:Single; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
+Procedure Image.SetPixelByUV(Const U,V:Single; Const Color:ColorRGBA); {$IFDEF FPC}Inline;{$ENDIF}
 Var
   X,Y:Integer;
 Begin
@@ -1341,17 +1341,17 @@ Begin
   SetPixel(X,Y,Color);
 End;
 
-Procedure Image.SetPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
+Procedure Image.SetPixel(X,Y:Integer; Const Color:ColorRGBA); {$IFDEF FPC}Inline;{$ENDIF}
 Var
-  Dest:PColor;
+  Dest:PColorRGBA;
 Begin
   Dest := Self.GetPixelOffset(X, Y);
   Dest^ := Color;
 End;
 
-Procedure Image.MixPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
+Procedure Image.MixPixel(X,Y:Integer; Const Color:ColorRGBA); {$IFDEF FPC}Inline;{$ENDIF}
 Var
-  Dest:PColor;
+  Dest:PColorRGBA;
 Begin
   If (X<0) Then X:=0;
   If (Y<0) Then Y:=0;
@@ -1812,7 +1812,7 @@ End;
 Procedure Image.LineDecodeRGB8(Buffer: Pointer; Line: Cardinal);
 Var
   Source:PByte;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
 Begin
   Dest := Self.GetLineOffset(Line);
@@ -1834,7 +1834,7 @@ End;
 Procedure Image.LineDecodeRGB16(Buffer: Pointer; Line:Cardinal);
 Var
   Source:PWord;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
 Begin
   Dest := Self.GetLineOffset(Line);
@@ -1856,7 +1856,7 @@ End;
 Procedure Image.LineDecodeRGB24(Buffer: Pointer; Line:Cardinal);
 Var
   Source:PByte;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
 Begin
   Dest := Self.GetLineOffset(Line);
@@ -1885,7 +1885,7 @@ End;
 
 Procedure Image.LineDecodeRGB32(Buffer: Pointer; Line:Cardinal);
 Var
-  Dest:PColor;
+  Dest:PColorRGBA;
 Begin
   Dest := Self.GetLineOffset(Line);
   If (Dest =  Nil) Then
@@ -1897,7 +1897,7 @@ End;
 Procedure Image.LineDecodeRGBPalette4(Buffer, Palette: Pointer; Line:Cardinal);
 Var
   Source:PByte;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
   A,B:Byte;
 Begin
@@ -1926,7 +1926,7 @@ End;
 Procedure Image.LineDecodeRGBPalette8(Buffer, Palette: Pointer; Line:Cardinal);
 Var
   Source:PByte;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
 Begin
   Dest := Self.GetLineOffset(Line);
@@ -1947,7 +1947,7 @@ End;
 Procedure Image.LineDecodeBGR8(Buffer: Pointer; Line:Cardinal);
 Var
   Source:PByte;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
 Begin
   Dest := Self.GetLineOffset(Line);
@@ -1968,7 +1968,7 @@ End;
 Procedure Image.LineDecodeBGR16(Buffer: Pointer; Line:Cardinal);
 Var
   Source:PWord;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
 Begin
   Dest := Self.GetLineOffset(Line);
@@ -1990,7 +1990,7 @@ End;
 Procedure Image.LineDecodeBGR24(Buffer: Pointer; Line:Cardinal);
 Var
   Source:PByte;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
 Begin
   If (Line>=_Height) Or (Buffer = Nil) Then
@@ -2023,7 +2023,7 @@ End;
 
 Procedure Image.LineDecodeBGR32(Buffer: Pointer; Line:Cardinal);
 Var
-  Dest:PColor;
+  Dest:PColorRGBA;
 Begin
   Dest := Self.GetLineOffset(Line);
   If (Dest =  Nil) Then
@@ -2035,7 +2035,7 @@ End;
 Procedure Image.LineDecodeBGRPalette4(Buffer, Palette: Pointer; Line:Cardinal);
 Var
   Source:PByte;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
   A,B:Byte;
 Begin
@@ -2064,7 +2064,7 @@ End;
 Procedure Image.LineDecodeBGRPalette8(Buffer, Palette: Pointer; Line:Cardinal);
 Var
   Source:PByte;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
 Begin
   Dest := Self.GetLineOffset(Line);
@@ -2142,8 +2142,8 @@ End;
 
 Function Image.Combine(Layer:Image; Alpha:Single; Mode:ColorCombineMode; Mask:Cardinal):Boolean;
 Var
-  A,B:PColor;
-  C:Color;
+  A,B:PColorRGBA;
+  C:ColorRGBA;
   InvAlpha:Single;
   Count:Integer;
 Begin
@@ -2200,7 +2200,7 @@ Function Image.MipMap(): Image;
 Var
   I,J:Integer;
   PX, PY:Single;
-  A, B, C, D, F:Color;
+  A, B, C, D, F:ColorRGBA;
 Begin
   Result := Image.Create(Self.Width Shr 1, Self.Height Shr 1);
 
@@ -2226,11 +2226,11 @@ End;
 
 Procedure Image.ShiftHue(ShiftAmmount:Integer);
 Var
-  P:PColor;
+  P:PColorRGBA;
   Count:Integer;
   Temp:ColorHSL;
   Hue:Integer;
-  C:Color;
+  C:ColorRGBA;
 Begin
   Count := Self.Width * Self.Height;
   P := Self.Pixels;
@@ -2251,7 +2251,7 @@ End;
 
 Function Image.GetImageTransparencyType:ImageTransparencyType;
 Var
-  P:PColor;
+  P:PColorRGBA;
   Count:Integer;
 Begin
   If _TransparencyType = imageUnknown Then

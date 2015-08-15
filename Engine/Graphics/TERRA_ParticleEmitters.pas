@@ -255,7 +255,7 @@ Var
   Dir:Vector3D;
   Pos, DestPos:Vector3D;
   LinearSpeed:Single;
-  C:Color;
+  C:ColorRGBA;
 Begin
   Group := @(Self._Groups[GetRandomGroup()]);
 

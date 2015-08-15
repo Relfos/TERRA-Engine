@@ -50,7 +50,7 @@ Type
       _Closed:Boolean;
       _Shader:ShaderInterface;
       _Saturation:Single;
-      _Outline:Color;
+      _Outline:ColorRGBA;
 
       Procedure AddSprite(P:TERRASprite);
 
@@ -94,7 +94,7 @@ Type
       Procedure QueueSprite(S:TERRASprite);
 
       Function DrawSprite(X,Y,Layer:Single; SpriteTexture:TERRATexture; ColorTable:TERRATexture = Nil; BlendMode:Integer = blendBlend; Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; Shader:ShaderInterface = Nil):QuadSprite;
-      Function DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:TERRATexture; Outline:Color; ColorTable:TERRATexture = Nil; BlendMode:Integer = blendBlend;  Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; Shader:ShaderInterface = Nil):QuadSprite;
+      Function DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:TERRATexture; Outline:ColorRGBA; ColorTable:TERRATexture = Nil; BlendMode:Integer = blendBlend;  Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; Shader:ShaderInterface = Nil):QuadSprite;
 
       Property FontShader:ShaderInterface Read _FontShader;
   End;
@@ -342,7 +342,7 @@ Begin
   Result := Self.DrawSpriteWithOutline(X,Y,Layer, SpriteTexture, ColorNull, ColorTable, BlendMode,  Saturation, Filter, Shader);
 End;
 
-Function TERRASpriteRenderer.DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:TERRATexture; Outline:Color; ColorTable:TERRATexture; BlendMode:Integer;  Saturation:Single; Filter:TextureFilterMode; Shader:ShaderInterface):QuadSprite;
+Function TERRASpriteRenderer.DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:TERRATexture; Outline:ColorRGBA; ColorTable:TERRATexture; BlendMode:Integer;  Saturation:Single; Filter:TextureFilterMode; Shader:ShaderInterface):QuadSprite;
 Var
   I:Integer;
 Begin
@@ -489,7 +489,7 @@ Begin
 End;
 
 
-Function GreyTransform(S:Color):Color; CDecl;
+Function GreyTransform(S:ColorRGBA):ColorRGBA; CDecl;
 Begin
   Result := ColorGrey(ColorLuminance(S));
 End;
@@ -662,7 +662,7 @@ Var
   K:Single;
   MaxX,MinX, MaxY,MinY:Single;
   M:Matrix3x3;
-  C:Color;
+  C:ColorRGBA;
   InIt, OutIt:VertexIterator;
   Src, Dest:SpriteVertex;
   Ofs:Integer;

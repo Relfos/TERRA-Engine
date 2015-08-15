@@ -39,7 +39,7 @@ Type
     Normal:Vector3D;
     Size:Single;
     Rotation:Single;
-    Color:TERRA_Color.Color;
+    Color:ColorRGBA;
     Time:Cardinal;
     Life:Cardinal;
     Item:TextureAtlasItem;
@@ -70,7 +70,7 @@ Type
       Class Function Instance:DecalManager;
 
 
-      Function AddDecal(Const TextureName:TERRAString; Position, Normal:Vector3D; DecalColor:Color; Size:Single; Rotation:Single = 0; Duration:Integer=20000):Boolean;
+      Function AddDecal(Const TextureName:TERRAString; Position, Normal:Vector3D; DecalColor:ColorRGBA; Size:Single; Rotation:Single = 0; Duration:Integer=20000):Boolean;
 
       Procedure Render(View:TERRAViewport);
   End;
@@ -83,7 +83,7 @@ Var
   _DecalInstance:ApplicationObject;
 
 { DecalManager }
-Function DecalManager.AddDecal(Const TextureName:TERRAString; Position,Normal:Vector3D; DecalColor:Color; Size:Single; Rotation:Single; Duration:Integer):Boolean;
+Function DecalManager.AddDecal(Const TextureName:TERRAString; Position,Normal:Vector3D; DecalColor:ColorRGBA; Size:Single; Rotation:Single; Duration:Integer):Boolean;
 Var
   N:Integer;
   S, Name:TERRAString;

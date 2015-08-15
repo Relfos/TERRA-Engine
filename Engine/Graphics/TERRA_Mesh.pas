@@ -87,7 +87,7 @@ Type
     AttachMesh:TERRAMesh;
     BoneIndex:Integer;
     Matrix:Matrix4x4;
-    Color:TERRA_Color.Color;
+    Color:ColorRGBA;
     IsStencil:Boolean;
   End;
 
@@ -111,7 +111,7 @@ Type
     ParentBone:TERRAString;
 
     LightType:Byte;
-    LightColor:Color;
+    LightColor:ColorRGBA;
 
     Param1:Vector3D;
     Param2:Vector3D;
@@ -140,7 +140,7 @@ Type
       Tangent:Vector4D;
       UV0:Vector2D;
       UV1:Vector2D;
-      BaseColor:Color;
+      BaseColor:ColorRGBA;
       HueShift:Single;
       BoneIndex:Integer;
   End;
@@ -167,10 +167,10 @@ Type
   MeshMaterial = Object
     BlendMode:Integer;
 
-    AmbientColor:Color;
-    DiffuseColor:Color;
-    ShadowColor:Color;
-    OutlineColor:Color;
+    AmbientColor:ColorRGBA;
+    DiffuseColor:ColorRGBA;
+    ShadowColor:ColorRGBA;
+    OutlineColor:ColorRGBA;
 
     DiffuseMap:TERRATexture;
     TriplanarMap:TERRATexture;
@@ -300,7 +300,7 @@ Type
     Public
       CullGroups:Boolean;
       CustomShader:ShaderInterface;
-      Diffuse:Color;
+      Diffuse:ColorRGBA;
       AlwaysOnTop:Boolean;
 
       Procedure Update(View:TERRAViewport); Override;
@@ -380,19 +380,19 @@ Type
 
       Function AddParticleEmitter(Const Name:TERRAString; Position: Vector3D; Const Content:TERRAString; Const ParentBone:TERRAString = ''):MeshEmitter;
 
-      Procedure SetDiffuseColor(MyColor:Color); Overload;
-      Procedure SetDiffuseColor(GroupID:Integer; MyColor:Color); Overload;
-      Function GetDiffuseColor(GroupID:Integer):Color;
+      Procedure SetDiffuseColor(MyColor:ColorRGBA); Overload;
+      Procedure SetDiffuseColor(GroupID:Integer; MyColor:ColorRGBA); Overload;
+      Function GetDiffuseColor(GroupID:Integer):ColorRGBA;
 
-      Procedure SetShadowColor(GroupID:Integer; MyColor:Color);
-      Function GetShadowColor(GroupID:Integer):Color;
+      Procedure SetShadowColor(GroupID:Integer; MyColor:ColorRGBA);
+      Function GetShadowColor(GroupID:Integer):ColorRGBA;
 
- (*     Procedure SetAmbientColor(GroupID:Integer; MyColor:Color);
-      Function GetAmbientColor(GroupID:Integer):Color;*)
+ (*     Procedure SetAmbientColor(GroupID:Integer; MyColor:ColorRGBA);
+      Function GetAmbientColor(GroupID:Integer):ColorRGBA;*)
 
-      Procedure SetOutlineColor(MyColor:Color); Overload;
-      Procedure SetOutlineColor(GroupID:Integer; MyColor:Color); Overload;
-      Function GetOutlineColor(GroupID:Integer):Color;
+      Procedure SetOutlineColor(MyColor:ColorRGBA); Overload;
+      Procedure SetOutlineColor(GroupID:Integer; MyColor:ColorRGBA); Overload;
+      Function GetOutlineColor(GroupID:Integer):ColorRGBA;
 
       Procedure SetWaterFlowBounds(GroupID:Integer; Bounds:Vector4D); 
       Function GetWaterFlowBounds(GroupID:Integer):Vector4D;
@@ -427,7 +427,7 @@ Type
 
       Procedure SetMotionBlur(Enabled:Boolean);
 
-      Procedure AddAttach(AttachMesh:TERRAMesh; BoneIndex:Integer; M:Matrix4x4; C:Color; IsStencil:Boolean = False);
+      Procedure AddAttach(AttachMesh:TERRAMesh; BoneIndex:Integer; M:Matrix4x4; C:ColorRGBA; IsStencil:Boolean = False);
       Procedure ClearAttachs;
 
       Constructor Create(MyMesh:TERRAMesh);
@@ -523,7 +523,7 @@ Type
 
       Procedure SetupUniforms(View:TERRAViewport; Transform:Matrix4x4; State:MeshInstance; Outline, TranslucentPass:Boolean; Const Material:MeshMaterial);
 
-      //Procedure SetCombineWithColor(C:Color);
+      //Procedure SetCombineWithColor(C:ColorRGBA);
       Procedure BindMaterial(View:TERRAViewport; Var Slot:Integer; Const Material:MeshMaterial);
 
       Procedure Load(Source:Stream);
@@ -586,11 +586,11 @@ Type
       Function GetDecalMap:TERRATexture;
       Procedure SetDecalMap(const Value:TERRATexture);
 
-      Function GetDiffuseColor: Color;
-      Procedure SetDiffuseColor(const Value: Color);
+      Function GetDiffuseColor:ColorRGBA;
+      Procedure SetDiffuseColor(const Value:ColorRGBA);
 
-      Function GetShadowColor: Color;
-      Procedure SetShadowColor(const Value: Color);
+      Function GetShadowColor:ColorRGBA;
+      Procedure SetShadowColor(const Value:ColorRGBA);
 
       Function GetDiffuseMap:TERRATexture;
       Procedure SetDiffuseMap(const Value:TERRATexture);
@@ -667,9 +667,9 @@ Type
 
       Property EmitterFX:TERRAString Read _EmitterFX Write _EmitterFX;
 
-//      Property AmbientColor:Color Read GetAmbientColor Write SetAmbientColor;
-      Property DiffuseColor:Color  Read GetDiffuseColor Write SetDiffuseColor;
-      Property ShadowColor:Color Read GetShadowColor Write SetShadowColor;
+//      Property AmbientColor:ColorRGBA Read GetAmbientColor Write SetAmbientColor;
+      Property DiffuseColor:ColorRGBA  Read GetDiffuseColor Write SetDiffuseColor;
+      Property ShadowColor:ColorRGBA Read GetShadowColor Write SetShadowColor;
 
       Procedure CalculateTangents();
       Procedure CalculateTriangleNormals();
@@ -791,7 +791,7 @@ Type
       Function AddEmitter(Name:TERRAString; Position:Vector3D; Content:TERRAString; ParentBone:TERRAString):MeshEmitter;
       Function GetEmitter(Index:Integer):MeshEmitter;
 
-      Function AddLight(Name:TERRAString; Position:Vector3D; LightType:Integer; LightColor:Color; Param1, Param2, Param3:Vector3D; ParentBone:TERRAString):MeshLight; Overload;
+      Function AddLight(Name:TERRAString; Position:Vector3D; LightType:Integer; LightColor:ColorRGBA; Param1, Param2, Param3:Vector3D; ParentBone:TERRAString):MeshLight; Overload;
       Function AddLight(OtherLight:MeshLight):MeshLight; Overload;
       Function GetLight(Index:Integer):MeshLight;
 
@@ -871,11 +871,11 @@ Type
       Function GetVertexNormal(GroupID, Index:Integer):Vector3D; Override;
       Function GetVertexTangent(GroupID, Index:Integer):Vector4D; Override;
       Function GetVertexBone(GroupID, Index:Integer):Integer; Override;
-      Function GetVertexColor(GroupID, Index:Integer):Color; Override;
+      Function GetVertexColor(GroupID, Index:Integer):ColorRGBA; Override;
       Function GetVertexUV(GroupID, Index:Integer):Vector2D; Override;
       Function GetVertexUV2(GroupID, Index:Integer):Vector2D; Override;
 
-      Function GetDiffuseColor(GroupID:Integer):Color; Override;
+      Function GetDiffuseColor(GroupID:Integer):ColorRGBA; Override;
       Function GetDiffuseMapName(GroupID:Integer):TERRAString; Override;
 
       Function GetBoneCount():Integer; Override;
@@ -1283,7 +1283,7 @@ Var
 Begin
   S := '';
 
-  Source.Read(@Target._Material.DiffuseColor, SizeOf(Color));
+  Source.Read(@Target._Material.DiffuseColor, SizeOf(ColorRGBA));
   Source.ReadString(S);
   Target._Material.DiffuseMap := TextureManager.Instance.GetTexture(S);
 
@@ -1639,7 +1639,7 @@ Begin
 End;
 
 { MeshInstance }
-Procedure MeshInstance.AddAttach(AttachMesh:TERRAMesh; BoneIndex:Integer; M:Matrix4x4; C:Color; IsStencil:Boolean);
+Procedure MeshInstance.AddAttach(AttachMesh:TERRAMesh; BoneIndex:Integer; M:Matrix4x4; C:ColorRGBA; IsStencil:Boolean);
 Var
   P:Vector3D;
 Begin
@@ -1798,7 +1798,7 @@ Begin
   _Groups[GroupID].Material.BlendMode := Mode;
 End;
 
-Function MeshInstance.GetShadowColor(GroupID: Integer): Color;
+Function MeshInstance.GetShadowColor(GroupID: Integer):ColorRGBA;
 Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Result := ColorBlack
@@ -1806,7 +1806,7 @@ Begin
     Result := _Groups[GroupID].Material.ShadowColor;
 End;
 
-Procedure MeshInstance.SetShadowColor(GroupID: Integer; MyColor: Color);
+Procedure MeshInstance.SetShadowColor(GroupID: Integer; MyColor:ColorRGBA);
 Begin
   If (GroupID<0) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
@@ -1814,7 +1814,7 @@ Begin
   _Groups[GroupID].Material.ShadowColor := MyColor;
 End;
 
-Procedure MeshInstance.SetDiffuseColor(MyColor:Color); {$IFDEF FPC}Inline;{$ENDIF}
+Procedure MeshInstance.SetDiffuseColor(MyColor:ColorRGBA); {$IFDEF FPC}Inline;{$ENDIF}
 Var
   I:Integer;
 Begin
@@ -1822,7 +1822,7 @@ Begin
     SetDiffuseColor(I, MyColor);
 End;
 
-Procedure MeshInstance.SetDiffuseColor(GroupID:Integer; MyColor:Color); {$IFDEF FPC}Inline;{$ENDIF}
+Procedure MeshInstance.SetDiffuseColor(GroupID:Integer; MyColor:ColorRGBA); {$IFDEF FPC}Inline;{$ENDIF}
 Begin
   If (GroupID<0) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
@@ -1830,7 +1830,7 @@ Begin
   _Groups[GroupID].Material.DiffuseColor := MyColor;
 End;
 
-Function MeshInstance.GetDiffuseColor(GroupID:Integer):Color; {$IFDEF FPC}Inline;{$ENDIF}
+Function MeshInstance.GetDiffuseColor(GroupID:Integer):ColorRGBA; {$IFDEF FPC}Inline;{$ENDIF}
 Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Result := ColorWhite
@@ -1841,7 +1841,7 @@ Begin
   End;
 End;
 
-(*Procedure MeshInstance.SetAmbientColor(GroupID:Integer; MyColor:Color); {$IFDEF FPC}Inline;{$ENDIF}
+(*Procedure MeshInstance.SetAmbientColor(GroupID:Integer; MyColor:ColorRGBA); {$IFDEF FPC}Inline;{$ENDIF}
 Begin
   If (GroupID<0) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
@@ -1849,7 +1849,7 @@ Begin
   _Groups[GroupID].Material.AmbientColor := MyColor;
 End;
 
-Function MeshInstance.GetAmbientColor(GroupID:Integer):Color; {$IFDEF FPC}Inline;{$ENDIF}
+Function MeshInstance.GetAmbientColor(GroupID:Integer):ColorRGBA; {$IFDEF FPC}Inline;{$ENDIF}
 Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Result := ColorWhite
@@ -1857,7 +1857,7 @@ Begin
     Result := _Groups[GroupID].Material.AmbientColor;
 End;*)
 
-Procedure MeshInstance.SetOutlineColor(MyColor:Color); {$IFDEF FPC}Inline;{$ENDIF}
+Procedure MeshInstance.SetOutlineColor(MyColor:ColorRGBA); {$IFDEF FPC}Inline;{$ENDIF}
 Var
   I:Integer;
 Begin
@@ -1865,7 +1865,7 @@ Begin
     _Groups[I].Material.OutlineColor := MyColor;
 End;
 
-Procedure MeshInstance.SetOutlineColor(GroupID:Integer; MyColor:Color); {$IFDEF FPC}Inline;{$ENDIF}
+Procedure MeshInstance.SetOutlineColor(GroupID:Integer; MyColor:ColorRGBA); {$IFDEF FPC}Inline;{$ENDIF}
 Begin
   If (GroupID<0) Or (GroupID >= _Mesh._GroupCount) Then
     Exit;
@@ -1905,7 +1905,7 @@ Begin
     Result := _Groups[GroupID].Material.FlowSpeed;
 End;
 
-Function MeshInstance.GetOutlineColor(GroupID:Integer):Color; {$IFDEF FPC}Inline;{$ENDIF}
+Function MeshInstance.GetOutlineColor(GroupID:Integer):ColorRGBA; {$IFDEF FPC}Inline;{$ENDIF}
 Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
     Result := ColorNull
@@ -2416,7 +2416,7 @@ End;
 
 Procedure MeshInstance.Render(View:TERRAViewport; Const Bucket:Cardinal);
 Var
-  C:Color;
+  C:ColorRGBA;
   Time:Cardinal;
   I, J:Integer;
   M:Matrix4x4;
@@ -3506,10 +3506,10 @@ Begin
   Else
     Name := '';
   Tag := tagMaterialDiffuse;
-  Size := SizeOf(Color) + Succ(Length(Name));
+  Size := SizeOf(ColorRGBA) + Succ(Length(Name));
   Dest.Write(@Tag, 4);
   Dest.WriteInteger(Size);
-  Dest.Write(@_Material.DiffuseColor, SizeOf(Color));
+  Dest.Write(@_Material.DiffuseColor, SizeOf(ColorRGBA));
   Dest.WriteString(Name);
 
   If (Self.BlendMode>=0) Then
@@ -4033,7 +4033,7 @@ Procedure MeshGroup.SetupUniforms(View:TERRAViewport; Transform:Matrix4x4; State
 Var
   I:Integer;
   TextureMatrix, M, M2:Matrix4x4;
-  C:Color;
+  C:ColorRGBA;
   BoneVectorLocation:Integer;
   BoneVectors:Array[0..(Succ(MaxBones)*3)] Of Vector4D;
   M2D:Matrix3x3;
@@ -4566,7 +4566,7 @@ Var
   Op:Array[0..2] Of Boolean;
   TP, P, N:Vector3D;
   TUV, UV0, UV1:Vector2D;
-  TC:Color;
+  TC:ColorRGBA;
   C:Vector4D;
   Bones:Array[0..2] Of Single;
   BestBoneIndex:Integer;
@@ -5416,7 +5416,7 @@ Begin
   Result := _Material.AlphaMap;
 End;
 
-(*Function MeshGroup.GetAmbientColor: Color;
+(*Function MeshGroup.GetAmbientColor:ColorRGBA;
 Begin
   Result := _Material.AmbientColor;
 End;*)
@@ -5431,7 +5431,7 @@ Begin
   Result := _Material.DecalMap;
 End;
 
-Function MeshGroup.GetDiffuseColor: Color;
+Function MeshGroup.GetDiffuseColor:ColorRGBA;
 Begin
   Result := _Material.DiffuseColor;
 End;
@@ -5501,7 +5501,7 @@ Begin
   Result := _Material.TriplanarMap;
 End;
 
-(*procedure MeshGroup.SetAmbientColor(const Value: Color);
+(*procedure MeshGroup.SetAmbientColor(const Value:ColorRGBA);
 Begin
   _Material.AmbientColor := Value;
 End;*)
@@ -5511,7 +5511,7 @@ Begin
   _Material.DecalMap := Value;
 End;
 
-Procedure MeshGroup.SetDiffuseColor(const Value: Color);
+Procedure MeshGroup.SetDiffuseColor(const Value:ColorRGBA);
 Begin
   _Material.DiffuseColor := Value;
 End;
@@ -5682,12 +5682,12 @@ Begin
   Result := _Vertices;
 End;
 
-Function MeshGroup.GetShadowColor: Color;
+Function MeshGroup.GetShadowColor:ColorRGBA;
 Begin
   Result := _Material.ShadowColor;
 End;
 
-Procedure MeshGroup.SetShadowColor(const Value: Color);
+Procedure MeshGroup.SetShadowColor(const Value:ColorRGBA);
 Begin
   _Material.ShadowColor := Value;
 End;
@@ -5974,7 +5974,7 @@ Begin
   For I:=0 To Pred(_LightCount) Do
   Begin
     Tag := tagMeshLight;
-    Size := Succ(Length(_Lights[I].Name)) + 4 + SizeOf(Color)+
+    Size := Succ(Length(_Lights[I].Name)) + 4 + SizeOf(ColorRGBA)+
            Succ(Length(_Lights[I].ParentBone)) + SizeOf(Vector3D)*4;
     Dest.Write(@Tag, 4);
     Dest.WriteInteger(Size);
@@ -6203,7 +6203,7 @@ Begin
     Result := (_Lights[Index]);
 End;
 
-Function TERRAMesh.AddLight(Name:TERRAString; Position:Vector3D; LightType:Integer; LightColor:Color; Param1, Param2, Param3:Vector3D; ParentBone:TERRAString):MeshLight;
+Function TERRAMesh.AddLight(Name:TERRAString; Position:Vector3D; LightType:Integer; LightColor:ColorRGBA; Param1, Param2, Param3:Vector3D; ParentBone:TERRAString):MeshLight;
 Begin
   Result := MeshLight.Create(Self);
   Result.Name := Name;
@@ -6507,7 +6507,7 @@ Begin
 {$ENDIF}
 End;
 
-Function CustomMeshFilter.GetDiffuseColor(GroupID: Integer): Color;
+Function CustomMeshFilter.GetDiffuseColor(GroupID: Integer):ColorRGBA;
 Begin
   Result := _Mesh._Groups[GroupID]._Material.DiffuseColor;
 End;
@@ -6605,7 +6605,7 @@ Begin
   Result := Trunc(BoneIndex);
 End;
 
-Function CustomMeshFilter.GetVertexColor(GroupID, Index: Integer): Color;
+Function CustomMeshFilter.GetVertexColor(GroupID, Index: Integer):ColorRGBA;
 Begin
   _Mesh._Groups[GroupID].Vertices.GetColor(Index, vertexColor, Result);
 End;

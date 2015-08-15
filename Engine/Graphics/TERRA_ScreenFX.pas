@@ -99,14 +99,14 @@ Type
 
     Public
       Procedure SetTexture(Index:Integer; Value:TERRATexture);
-      Procedure SetColor(Index:Integer; Const Value:Color);
+      Procedure SetColor(Index:Integer; Const Value:ColorRGBA);
       Procedure SetFloat(Index:Integer; Const Value:Single);
       Procedure SetVec2(Index:Integer; Const Value:Vector2D);
       Procedure SetVec3(Index:Integer; Const Value:Vector3D);
       Procedure SetVec4(Index:Integer; Const Value:Vector4D);
 
       Procedure GetTexture(Index:Integer; Out Value:TERRATexture);
-      Procedure GetColor(Index:Integer; Out Value:Color);
+      Procedure GetColor(Index:Integer; Out Value:ColorRGBA);
       Procedure GetFloat(Index:Integer; Out Value:Single);
       Procedure GetVec2(Index:Integer; Out Value:Vector2D);
       Procedure GetVec3(Index:Integer; Out Value:Vector3D);
@@ -747,7 +747,7 @@ Begin
   _Buffer := '';
 End;
 
-Procedure ScreenFX.GetColor(Index: Integer; out Value: Color);
+Procedure ScreenFX.GetColor(Index:Integer; Out Value:ColorRGBA);
 Begin
   If (Index<0) Or (Index>=_UniformCount) Then
     Value := ColorNull
@@ -795,7 +795,7 @@ Begin
     Value := VectorCreate4D(_Uniforms[Index].Value.X, _Uniforms[Index].Value.Y, _Uniforms[Index].Value.Z, _Uniforms[Index].Value.W);
 End;
 
-Procedure ScreenFX.SetColor(Index: Integer; const Value: Color);
+Procedure ScreenFX.SetColor(Index:Integer; Const Value:ColorRGBA);
 Begin
   If (Index>=0) And (Index<_UniformCount) Then
   Begin
@@ -1048,7 +1048,7 @@ End;
 Constructor VibranceFX.Create(Strength: Single);
 Var
   Exp:Image;
-  C:Color;
+  C:ColorRGBA;
   I:Integer;
 Begin
   Exp := Image.Create(256, 1);

@@ -529,14 +529,14 @@ Var
   Temp:Color;
   {$ENDIF}
   {$IFDEF PIXEL32}
-  Color:PColor;
+  Color:PColorRGBA;
   {$ENDIF}
 Begin
   {$IFDEF PIXEL8}
   Temp.A := 255;
   {$ENDIF}
   {$IFDEF PIXEL32}
-  Color := PColor(Dest);
+  Color := PColorRGBA(Dest);
   {$ENDIF}
   With Buffer Do
   For I:=0 To Pred(Width) Do
@@ -576,7 +576,7 @@ Var
   Color:PByte;
   {$ENDIF}
   {$IFDEF PIXEL32}
-  Color:PColor;
+  Color:PColorRGBA;
   {$ENDIF}
 Begin
   Color := Pointer(Dest);
@@ -664,7 +664,7 @@ Var
   Temp:TERRA_Color.Color;
   {$ENDIF}
   {$IFDEF PIXEL32}
-  Color:PColor;
+  Color:PColorRGBA;
   {$ENDIF}
 Begin
   Color:=Pointer(Dest);
@@ -695,7 +695,7 @@ Procedure PNGLoader.CopyNonInterlacedGrayscale16(Src,Dest:PByte);
 Var
   I:Integer;
   A,B:Byte;
-  Color:PColor;
+  Color:PColorRGBA;
 Begin
   Color:=Pointer(Dest);
   With Buffer Do
@@ -712,7 +712,7 @@ End;
 Procedure PNGLoader.DecodeNonInterlaced(Var ZLIBStream:ZStreamRec2);
 Var
   J:Cardinal;
-  Data:PColor;
+  Data:PColorRGBA;
   CopyProc:Procedure(Src,Dest:PByte) Of Object;
 Begin
   CopyProc:=Nil;
@@ -934,7 +934,7 @@ Begin
   ReleaseObject(Loader);
 End;
 
-Procedure EncodeNonInterlacedRGB(Src:PColor; Dest:PByte; Width:Integer);
+Procedure EncodeNonInterlacedRGB(Src:PColorRGBA; Dest:PByte; Width:Integer);
 Var
   I:Integer;
 Begin
@@ -947,7 +947,7 @@ Begin
   End;
 End;
 
-Procedure EncodeNonInterlacedRGBA(Src:PColor; Dest:PByte; Width:Integer);
+Procedure EncodeNonInterlacedRGBA(Src:PColorRGBA; Dest:PByte; Width:Integer);
 Var
   I:Integer;
 Begin
@@ -1052,8 +1052,8 @@ Procedure EncodeNonInterlaced(Var ZLIBStream:ZStreamRec2);
 Var
   J:Cardinal;
   Filter:Byte;
-  Pixels:PColor;
-  CopyProc: procedure(Src:PColor; Dest:PByte; Width:Integer);
+  Pixels:PColorRGBA;
+  CopyProc: procedure(Src:PColorRGBA; Dest:PByte; Width:Integer);
 Begin
   CopyProc := Nil;
   Case Header.ColorType of

@@ -104,16 +104,16 @@ Begin
     tkString:   PString(Dest)^ := Source;
     tkColor:    If (Source<>'') And (Source[1]='#') Then
                 Begin
-                  PColor(Dest)^ := ColorCreateFromString(Source);
+                  PColorRGBA(Dest)^ := ColorCreateFromString(Source);
                 End Else
                 Begin
-                  PColor(Dest).R := StringToInt(StringGetNextSplit(Source, Ord('\')));
-                  PColor(Dest).G := StringToInt(StringGetNextSplit(Source, Ord('\')));
-                  PColor(Dest).B := StringToInt(StringGetNextSplit(Source, Ord('\')));
+                  PColorRGBA(Dest).R := StringToInt(StringGetNextSplit(Source, Ord('\')));
+                  PColorRGBA(Dest).G := StringToInt(StringGetNextSplit(Source, Ord('\')));
+                  PColorRGBA(Dest).B := StringToInt(StringGetNextSplit(Source, Ord('\')));
                   If Source<>'' Then
-                    PColor(Dest).A := StringToInt(Source)
+                    PColorRGBA(Dest).A := StringToInt(Source)
                   Else
-                    PColor(Dest).A := 255;
+                    PColorRGBA(Dest).A := 255;
                 End;
     tkVector:   Begin
                   PVector3D(Dest).X := StringToFloat(StringGetNextSplit(Source, Ord('\')));
@@ -135,7 +135,7 @@ Begin
      tkBoolean:   Result:=StringLower(BoolToString(PBoolean(Source)^));
      tkByte:      Result:=IntToString(PByte(Source)^);
      tkString:    Result:=PString(Source)^;
-     tkColor:     Result:=ColorToString(PColor(Source)^);
+     tkColor:     Result:=ColorToString(PColorRGBA(Source)^);
      tkVector:    Begin
                     Result:= FloatToString(PVector3D(Source).X)+'\'+
                              FloatToString(PVector3D(Source).Y)+'\'+

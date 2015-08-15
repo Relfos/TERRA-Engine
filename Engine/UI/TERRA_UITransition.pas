@@ -87,7 +87,7 @@ Type
       Procedure Render(Alpha:Single); Override;
 
     Public
-      Color:TERRA_Color.Color;
+      Color:ColorRGBA;
 
       Constructor Create(FadeTexture:TERRATexture; Duration, Delay:Cardinal; Invert:Boolean);
   End;

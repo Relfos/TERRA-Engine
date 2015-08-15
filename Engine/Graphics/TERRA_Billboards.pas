@@ -38,7 +38,7 @@ Type
     Position:Vector3D;
     Width, Height:Single;
     AnchorX, AnchorY:Single;
-    Color:TERRA_Color.Color;
+    Color:ColorRGBA;
     U1, V1, U2, V2:Single;
     Group:PBillboardGroup;
 
@@ -211,7 +211,7 @@ Var
   I,J, K, Ofs:Integer;
   P:Vector3D;
   Offset:Vector2D;
-  CC:Color;
+  CC:ColorRGBA;
   Ratio, W, H:Single;
   Right, Up:Vector3D;
   U1,V1,U2,V2:Single;

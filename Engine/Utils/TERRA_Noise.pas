@@ -110,7 +110,7 @@ Var
 
   A, B :Single;
 
-  P:Color;
+  P:ColorRGBA;
 Begin
   W := Pred(Target.Width);
   H := Pred(Target.Height);

@@ -59,7 +59,7 @@ Type
       Procedure Resize(NewWidth, NewHeight:Integer); Override;
 
       Function GetImage():Image; Override;
-      Function GetPixel(X,Y:Integer):Color; Override;
+      Function GetPixel(X,Y:Integer):ColorRGBA; Override;
 
       Procedure Invalidate(); Override;
   End;
@@ -122,7 +122,7 @@ Type
       Function CreateRenderTarget():RenderTargetInterface; Override;
 
       Procedure ClearBuffer(Color, Depth, Stencil:Boolean); Override;
-      Procedure SetClearColor(Const ClearColor:Color); Override;
+      Procedure SetClearColor(Const ClearColor:ColorRGBA); Override;
 
       Procedure SetStencilTest(Enable:Boolean); Override;
       Procedure SetStencilOp(fail, zfail, zpass:StencilOperation); Override;
@@ -149,7 +149,7 @@ Type
 
       Procedure SetAttributeSource(Const Name:AnsiString; AttributeKind:Cardinal; ElementType:DataFormat; AttributeSource:Pointer); Override;
 
-      Procedure SetDiffuseColor(Const C:Color); Override;
+      Procedure SetDiffuseColor(Const C:ColorRGBA); Override;
 
       Procedure DrawSource(Primitive:RenderPrimitive; Count:Integer); Override;
       Procedure DrawIndexedSource(Primitive:RenderPrimitive; Count:Integer; Indices:System.PWord); Override;
@@ -204,7 +204,7 @@ Procedure NullRenderer.ClearBuffer(Color, Depth, Stencil:Boolean);
 Begin
 End;
 
-Procedure NullRenderer.SetClearColor(const ClearColor: Color);
+Procedure NullRenderer.SetClearColor(const ClearColor:ColorRGBA);
 Begin
 End;
 
@@ -268,7 +268,7 @@ Procedure NullRenderer.SetTextureMatrix(Const Mat: Matrix4x4);
 Begin
 End;
 
-Procedure NullRenderer.SetDiffuseColor(Const C: Color);
+Procedure NullRenderer.SetDiffuseColor(Const C:ColorRGBA);
 Begin
 End;
 
@@ -414,7 +414,7 @@ Begin
   Result := Image.Create(_Width, _Height);
 End;
 
-Function NullFBO.GetPixel(X,Y:Integer):Color;
+Function NullFBO.GetPixel(X,Y:Integer):ColorRGBA;
 Begin
   Result := ColorNull;
 End;

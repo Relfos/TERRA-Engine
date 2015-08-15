@@ -83,7 +83,7 @@ Type
 
       _Camera:TERRACamera;
 
-      _BackgroundColor:Color;
+      _BackgroundColor:ColorRGBA;
 
       _Target:TERRAViewport;
       _TargetX1:Single;
@@ -156,7 +156,7 @@ Type
 
       Function GetPickRay(TX,TY:Integer):Ray;
 
-      Procedure SetBackgroundColor(BG:Color);
+      Procedure SetBackgroundColor(BG:ColorRGBA);
 
       Procedure EnableDefaultTargets();
 
@@ -164,7 +164,7 @@ Type
 
       Procedure DrawToTarget(ProcessEffects:Boolean);
 
-      Property BackgroundColor:Color Read _BackgroundColor Write SetBackgroundColor;
+      Property BackgroundColor:ColorRGBA Read _BackgroundColor Write SetBackgroundColor;
 
       Property Camera:TERRACamera Read _Camera;
 
@@ -823,7 +823,7 @@ Var
   MyShader:ShaderInterface;
   I:Integer;
   ShowID:RenderTargetType;
-  TempColor:Color;
+  TempColor:ColorRGBA;
 Begin
   If (Target = Nil) Then
   Begin
@@ -964,7 +964,7 @@ Begin
     GraphicsManager.Instance.Renderer.SetScissorState(False);
 End;
 
-Procedure TERRAViewport.SetBackgroundColor(BG: Color);
+Procedure TERRAViewport.SetBackgroundColor(BG:ColorRGBA);
 Begin
   _BackgroundColor := BG;
 End;

@@ -235,7 +235,7 @@ Type
       Procedure Resize(NewWidth, NewHeight:Integer); Override;
 
       Function GetImage():Image; Override;
-      Function GetPixel(X,Y:Integer):Color; Override;
+      Function GetPixel(X,Y:Integer):ColorRGBA; Override;
 
       Procedure Invalidate(); Override;
 
@@ -261,7 +261,7 @@ Type
       _Context: TAGLContext;
       {$ENDIF}
 
-      _ClearColor:Color;
+      _ClearColor:ColorRGBA;
 
       _UsedTextures:Array[0..Pred(MaxTextureHandles)] Of Boolean;
       _UsedFrameBuffers:Array[0..Pred(MaxFrameBufferHandles)] Of Boolean;
@@ -301,7 +301,7 @@ Type
       Function CreateRenderTarget():RenderTargetInterface; Override;
 
       Procedure ClearBuffer(Color, Depth, Stencil:Boolean); Override;
-      Procedure SetClearColor(Const ClearColor:Color); Override;
+      Procedure SetClearColor(Const ClearColor:ColorRGBA); Override;
 
       Procedure SetStencilTest(Enable:Boolean); Override;
       Procedure SetStencilFunction(Mode:CompareMode; StencilID:Cardinal; Mask:Cardinal = $FFFFFFFF); Override;
@@ -328,7 +328,7 @@ Type
 
       Procedure SetAttributeSource(Const Name:AnsiString; AttributeKind:Cardinal; ElementType:DataFormat; AttributeSource:Pointer); Override;
 
-      Procedure SetDiffuseColor(Const C:Color); Override;
+      Procedure SetDiffuseColor(Const C:ColorRGBA); Override;
 
       Procedure DrawSource(Primitive:RenderPrimitive; Count:Integer); Override;
       Procedure DrawIndexedSource(Primitive:RenderPrimitive; Count:Integer; Indices:System.PWord); Override;
@@ -547,12 +547,12 @@ End;
 Function TextureColorFormatToGL(Format:TextureColorFormat):Integer;
 Begin
   Case Format Of
-  colorRGB:   Result := GL_RGB;
-  colorBGR:   Result := GL_BGR;
-  colorBGRA:   Result := GL_BGRA;
-  colorAlpha: Result := GL_ALPHA; //GL_LUMINANCE;
+  textureFormat_RGB:   Result := GL_RGB;
+  textureFormat_BGR:   Result := GL_BGR;
+  textureFormat_BGRA:   Result := GL_BGRA;
+  textureFormat_Alpha: Result := GL_ALPHA; //GL_LUMINANCE;
   Else
-      //colorRGBA
+      //textureFormat_RGBA
       Result := GL_RGBA;
   End;
 End;
@@ -609,7 +609,7 @@ Begin
   End;
 End;
 
-Procedure OpenGLRenderer.SetClearColor(const ClearColor: Color);
+Procedure OpenGLRenderer.SetClearColor(const ClearColor: ColorRGBA);
 Begin
   Self._ClearColor := ClearColor;
 End;
@@ -1122,7 +1122,7 @@ Begin
   glLoadMatrixf(@Mat);
 End;
 
-Procedure OpenGLRenderer.SetDiffuseColor(Const C: Color);
+Procedure OpenGLRenderer.SetDiffuseColor(Const C: ColorRGBA);
 Begin
   _DiffuseColor := C;
 
@@ -2024,9 +2024,9 @@ Begin
 	Result.Process(IMP_FlipVertical);
 End;
 
-Function OpenGLFBO.GetPixel(X,Y:Integer):Color;
+Function OpenGLFBO.GetPixel(X,Y:Integer):ColorRGBA;
 Var
-  P:Color;
+  P:ColorRGBA;
 Begin
   Y := _Height - Y;
   {$IFDEF PC}

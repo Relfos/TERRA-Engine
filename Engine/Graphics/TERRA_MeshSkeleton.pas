@@ -37,7 +37,7 @@ Type
     Parent:MeshBone;
     Owner:MeshSkeleton;
 
-    Color:Color;
+    Color:ColorRGBA;
     Selected:Boolean;
 
     StartPosition:Vector3D;

@@ -52,7 +52,7 @@ Type
   { Light }
   Light = Class(TERRAObject)
     Protected
-      _Color:Color;
+      _Color:ColorRGBA;
       _Distance:Single;
       _Static:Boolean;
       _Priority:Integer;
@@ -76,7 +76,7 @@ Type
       Function GetPosition():Vector3D; Virtual; Abstract;
       Function IsOccluded(View:TERRAViewport):Boolean; Virtual; Abstract;
 
-      Property Color:TERRA_Color.Color Read _Color Write _Color;
+      Property Color:ColorRGBA Read _Color Write _Color;
       Property Static:Boolean Read _Static Write _Static;
       Property Priority:Integer Read _Priority Write _Priority;
       Property Intensity:Single Read _Intensity Write SetIntensity;
@@ -159,7 +159,7 @@ Type
 
   PLightBatch = ^LightBatch;
   LightBatch = Object
-    AmbientColor:Color;
+    AmbientColor:ColorRGBA;
 
     DirectionalLights:Array[0..Pred(MaxLightsPerMesh)] Of DirectionalLight;
     DirectionalLightCount:Integer;
@@ -179,10 +179,10 @@ Type
       _CurrentFrame:Integer;
       _LightCount:Integer;
       
-      _AmbientColor:Color;
+      _AmbientColor:ColorRGBA;
 
 
-      Procedure SetAmbientColor(Value:Color);
+      Procedure SetAmbientColor(Value:ColorRGBA);
 
     Public
       Procedure Init; Override;
@@ -200,7 +200,7 @@ Type
 
       Property LightCount:Integer Read _LightCount;
 
-      Property AmbientColor:Color Read _AmbientColor Write SetAmbientColor;
+      Property AmbientColor:ColorRGBA Read _AmbientColor Write SetAmbientColor;
 
       Class Function Instance:LightManager;
   End;
@@ -369,7 +369,7 @@ Begin
   End;
 End;
 
-Procedure LightManager.SetAmbientColor(Value: Color);
+Procedure LightManager.SetAmbientColor(Value:ColorRGBA);
 Begin
   _AmbientColor := Value;
 End;

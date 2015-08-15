@@ -43,7 +43,7 @@ Type
 	  	Normal:Vector3D;
       Tangent:Vector4D;
       TextureCoords:Vector2D;
-      Color:TERRA_Color.Color;
+      Color:ColorRGBA;
   End;
 
 	InternalSolidVertex = Packed Record

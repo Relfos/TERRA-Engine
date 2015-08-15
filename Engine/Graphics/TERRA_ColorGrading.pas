@@ -32,10 +32,10 @@ Const
   ColorTableUniformName = 'color_table_texture';
 
 Type
-  ColorTransform = Function (N:Color; Userdata:Pointer):Color; Cdecl;
+  ColorTransform = Function (N:ColorRGBA; Userdata:Pointer):ColorRGBA; Cdecl;
 
   Function CreateColorTable(Size:Integer; Transform:ColorTransform = Nil; Userdata:Pointer = Nil):Image;
-  Function ColorTableLookUp(ColorTable:Image; Source:Color):Color;
+  Function ColorTableLookUp(ColorTable:Image; Const Source:ColorRGBA):ColorRGBA;
   Procedure ColorTableTransform(Dest, ColorTable:Image);
 
   Function GetColorTableShaderCode():TERRAString;
@@ -48,7 +48,7 @@ Function CreateColorTable(Size:Integer; Transform:ColorTransform; Userdata:Point
 Var
   Scale:Single;
   R,G,B:Integer;
-  Temp:Color;
+  Temp:ColorRGBA;
 Begin
   Result := Image.Create(Size * Size, Size);
   Scale := 255/Pred(Size);
@@ -67,7 +67,7 @@ End;
 Procedure ColorTableTransform(Dest, ColorTable:Image);
 Var
   I,J:Integer;
-  P:Color;
+  P:ColorRGBA;
 Begin
   For J:=0 To Pred(Dest.Height) Do
     For I:=0 To Pred(Dest.Width) Do
@@ -78,7 +78,7 @@ Begin
     End;
 End;
 
-Function ColorTableLookUp(ColorTable:Image; Source:Color):Color;
+Function ColorTableLookUp(ColorTable:Image; Const Source:ColorRGBA):ColorRGBA;
 Var
   R1,G1,B1:Single;
   R2,G2,B2:Single;

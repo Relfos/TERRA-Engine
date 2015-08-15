@@ -77,11 +77,12 @@ object UIEditForm: TUIEditForm
     Top = 288
     Width = 209
     Height = 169
-    BevelOuter = bvLowered
     BevelWidth = 2
     Ctl3D = False
     ParentCtl3D = False
     TabOrder = 3
+    MarginColor = clBlack
+    EditColor = clBlack
   end
   object MainMenu: TMainMenu
     OwnerDraw = True

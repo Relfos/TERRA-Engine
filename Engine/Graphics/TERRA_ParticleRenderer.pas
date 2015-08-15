@@ -50,7 +50,7 @@ Type
 
     Public
   		Position:Vector3D;
-      Color:TERRA_Color.Color;
+      Color:ColorRGBA;
       UV0:Vector2D;
 	  	Ofs:Vector2D;
       Size:Vector2D;
@@ -553,7 +553,7 @@ Function ParticleCollection.UpdateBatch(BlendMode: Integer; Const Landscape:Bool
 Var
   It:VertexIterator;
   I, J, N:Integer;
-  CC:Color;
+  CC:ColorRGBA;
   RenderStage:Integer;
   Angles:Vector2D;
   P:ParticleVertex;

@@ -57,13 +57,13 @@ Type
       Procedure Release(); Override;
 
       Procedure GetFloat(Attribute:Cardinal; Out Value:Single);
-      Procedure GetColor(Attribute:Cardinal; Out Value:Color);
+      Procedure GetColor(Attribute:Cardinal; Out Value:ColorRGBA);
       Procedure GetVector2D(Attribute:Cardinal; Out Value:Vector2D);
       Procedure GetVector3D(Attribute:Cardinal; Out Value:Vector3D);
       Procedure GetVector4D(Attribute:Cardinal; Out Value:Vector4D);
 
       Procedure SetFloat(Attribute:Cardinal; Const Value:Single);
-      Procedure SetColor(Attribute:Cardinal; Const Value:Color);
+      Procedure SetColor(Attribute:Cardinal; Const Value:ColorRGBA);
       Procedure SetVector2D(Attribute:Cardinal; Const Value:Vector2D);
       Procedure SetVector3D(Attribute:Cardinal; Const Value:Vector3D);
       Procedure SetVector4D(Attribute:Cardinal; Const Value:Vector4D);
@@ -152,13 +152,13 @@ Type
       Function Clone():VertexData;
 
       Procedure GetFloat(Index:Integer; Attribute:Cardinal; Out Value:Single);
-      Procedure GetColor(Index:Integer; Attribute:Cardinal; Out Value:Color);
+      Procedure GetColor(Index:Integer; Attribute:Cardinal; Out Value:ColorRGBA);
       Procedure GetVector2D(Index:Integer; Attribute:Cardinal; Out Value:Vector2D);
       Procedure GetVector3D(Index:Integer; Attribute:Cardinal; Out Value:Vector3D);
       Procedure GetVector4D(Index:Integer; Attribute:Cardinal; Out Value:Vector4D);
 
       Procedure SetFloat(Index:Integer; Attribute:Cardinal; Const Value:Single);
-      Procedure SetColor(Index:Integer; Attribute:Cardinal; Const Value:Color);
+      Procedure SetColor(Index:Integer; Attribute:Cardinal; Const Value:ColorRGBA);
       Procedure SetVector2D(Index:Integer; Attribute:Cardinal; Const Value:Vector2D);
       Procedure SetVector3D(Index:Integer; Attribute:Cardinal; Const Value:Vector3D);
       Procedure SetVector4D(Index:Integer; Attribute:Cardinal; Const Value:Vector4D);
@@ -243,7 +243,7 @@ Begin
   typeVector3D: Result := SizeOf(Vector3D);
   typeVector4D: Result := SizeOf(Vector4D);
   typeFloat: Result := SizeOf(Single);
-  typeColor: Result := SizeOf(Color);
+  typeColor: Result := SizeOf(ColorRGBA);
   typeByte: Result := SizeOf(Byte);
   Else
       Result := 0;
@@ -508,13 +508,13 @@ Begin
     _Values[Pos] := Value;
 End;
 
-Procedure VertexData.GetColor(Index:Integer; Attribute:Cardinal; Out Value:Color);
+Procedure VertexData.GetColor(Index:Integer; Attribute:Cardinal; Out Value:ColorRGBA);
 Begin
   ExpectAttributeFormat(Attribute, typeColor);
   Self.GetFloat(Index, Attribute, Single(Value));
 End;
 
-Procedure VertexData.SetColor(Index:Integer; Attribute:Cardinal; Const Value:Color);
+Procedure VertexData.SetColor(Index:Integer; Attribute:Cardinal; Const Value:ColorRGBA);
 Begin
   ExpectAttributeFormat(Attribute, typeColor);
   Self.SetFloat(Index, Attribute, Single(Value));
@@ -868,7 +868,7 @@ Var
   B:Vector2D;
   C:Vector3D;
   D:Vector4D;
-  E:Color;
+  E:ColorRGBA;
 Begin
   If NewFormat = Self.Format Then
     Exit;
@@ -1006,12 +1006,12 @@ Begin
   Self._VertexID := -1;
 End;
 
-Procedure Vertex.GetColor(Attribute:Cardinal; Out Value:Color);
+Procedure Vertex.GetColor(Attribute:Cardinal; Out Value:ColorRGBA);
 Begin
   _Target.GetColor(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.SetColor(Attribute:Cardinal; Const Value:Color);
+Procedure Vertex.SetColor(Attribute:Cardinal; Const Value:ColorRGBA);
 Begin
   _Target.SetColor(Self._VertexID, Attribute, Value);
 End;

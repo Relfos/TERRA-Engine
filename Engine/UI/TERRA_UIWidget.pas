@@ -48,8 +48,6 @@ Type
     UIDrag_BottomRight
   );
 
-
-
   UIDirection = (
     UIDirection_Vertical,
     UIDirection_Horizontal
@@ -58,7 +56,6 @@ Type
 
   WidgetState = (
     widget_Default,
-    widget_Busy,
     widget_Selected,
     widget_Highlighted,
     widget_Disabled
@@ -83,6 +80,10 @@ Type
     Custom:Boolean;
   End;
 
+  UIWidgetStateAnimation = Record
+    Color:ColorRGBA;
+  End;
+
 	UIWidget = Class(CollectionObject)
     Private
       _Tested:Boolean;
@@ -103,6 +104,8 @@ Type
 
       _Deleted:Boolean;
 
+      _StateAnimations:Array[WidgetState] Of UIWidgetStateAnimation;
+
 			Function GetAbsolutePosition:Vector2D;
       Function GetRelativePosition:Vector2D;
       Function GetAlignedPosition:Vector2D;
@@ -115,6 +118,7 @@ Type
       Function GetDraggable: Boolean;
       Procedure SetDraggable(const Value: Boolean);
       Function GetUIView: UIWidget;
+    function IsEnabled: Boolean;
 
 		Protected
 			_Parent:UIWidget;
@@ -138,8 +142,6 @@ Type
 
       _MouseOver:Boolean;
 
-      _Enabled:Boolean;
-
       _Dragging: Boolean;
       _DragMode:UIDragMode;
       _DragX: Single;
@@ -162,7 +164,7 @@ Type
       _Pivot:Vector2D;
       _Center:Vector2D;
 
-      _OriginalColor:Color;
+      _OriginalColor:ColorRGBA;
       _OriginalPosition:Vector2D;
 
       _ColorTable:TERRATexture;
@@ -171,7 +173,7 @@ Type
 
       _VisibleFrame:Cardinal;
 
-      _DropShadowColor:Color;
+      _DropShadowColor:ColorRGBA;
 
       _HighlightGroup:Integer;
 
@@ -196,7 +198,7 @@ Type
 
       Procedure SetVisible(Value:Boolean);
       Procedure SetLayer(Z:Single);
-      Procedure SetColor(MyColor:Color);
+      Procedure SetColor(MyColor:ColorRGBA);
       Procedure SetRotation(const Value: Single);
       Procedure SetSaturation(const Value: Single);
       Procedure SetScale(const Value: Single);
@@ -222,8 +224,6 @@ Type
       Function OutsideClipRect(X,Y:Single):Boolean;
 
       Procedure ResetClipRect();
-
-      Procedure SetEnabled(Value:Boolean);
 
       Procedure UpdateLanguage; 
 
@@ -277,7 +277,7 @@ Type
 
 			Function GetVisible:Boolean;
 			Function GetLayer:Single;
-      Function GetColor:Color;
+      Function GetColor:ColorRGBA;
 			Function GetSaturation:Single;
       Function GetColorTable:TERRATexture;
       Function GetHighlightGroup:Integer;
@@ -361,7 +361,7 @@ Type
 
       Property InheritColor:Boolean Read _InheritColor Write _InheritColor;
 
-      Property Color:TERRA_Color.Color Read GetColor Write SetColor;
+      Property Color:ColorRGBA Read GetColor Write SetColor;
       Property ColorTable:TERRATexture Read GetColorTable Write _ColorTable;
       Property Saturation:Single Read GetSaturation Write SetSaturation;
       Property Rotation:Single Read GetRotation Write SetRotation;
@@ -378,11 +378,11 @@ Type
 
       Property Center:Vector2D Read _Center Write _Center;
 
-      Property Enabled:Boolean  Read _Enabled Write SetEnabled;
+      Property Enabled:Boolean  Read IsEnabled;
 
       Property Selected:Boolean Read IsSelected;
 
-      Property DropShadowColor:Color Read _DropShadowColor Write _DropShadowColor;
+      Property DropShadowColor:ColorRGBA Read _DropShadowColor Write _DropShadowColor;
 
       Property HighlightGroup:Integer Read GetHighlightGroup Write _HighlightGroup;
 
@@ -473,7 +473,8 @@ Begin
   Self.InitProperties();
 
   SetVisible(True);
-  _Enabled := True;
+
+  _State := widget_Default;;
 
   _Pivot := VectorCreate2D(0.5, 0.5);
   SetScale(1.0);
@@ -562,7 +563,7 @@ End;
 Procedure UIWidget.OnHit(EventType:WidgetEventType);
 Var
   N:Integer;
-  Target:TERRA_Color.Color;
+  Target:ColorRGBA;
   Ease:TweenEaseType;
 Begin
   Target := ColorScale(Self.Color, 0.5);
@@ -979,7 +980,7 @@ Begin
   _Layer.Value := Z;
 End;
 
-Procedure UIWidget.SetColor(MyColor:Color);
+Procedure UIWidget.SetColor(MyColor:ColorRGBA);
 Begin
 (*  If (Cardinal(MyColor) = Cardinal(_Color)) Then
     Exit;*)
@@ -987,10 +988,10 @@ Begin
   _Color.Value := MyColor;
 End;
 
-Function UIWidget.GetColor:Color;  {$IFDEF FPC} Inline;{$ENDIF}
+Function UIWidget.GetColor:ColorRGBA;  {$IFDEF FPC} Inline;{$ENDIF}
 Var
   TempAlpha:Byte;
-  ParentColor:TERRA_Color.Color;
+  ParentColor:ColorRGBA;
 Begin
 	Result := _Color.Value;
   If (Not _InheritColor) Then
@@ -1803,11 +1804,6 @@ Begin
   Result := (X<X1) Or (Y<Y1) Or (X>=X2) Or (Y>=Y2);
 End;
 
-Procedure UIWidget.SetEnabled(Value: Boolean);
-Begin
-  Self._Enabled := Value;
-End;
-
 Procedure UIWidget.UpdateClipRect(Clip: ClipRect; LeftBorder,TopBorder, RightBorder, BottomBorder:Single);
 Var
   Pos, Size:Vector2D;
@@ -2145,12 +2141,10 @@ Begin
     _ChildrenList[I].UpdateLanguage();
 End;
 
-
 Procedure UIWidget.UpdateSprite;
 Begin
   // do nothing
 End;
-
 
 Function UIWidget.AddProperty(Prop:TERRAObject; IsCustom:Boolean):TERRAObject;
 Begin
@@ -2221,6 +2215,11 @@ End;
 Procedure UIWidget.SetEventHandler(EventType:WidgetEventType; Handler:WidgetEventHandler);
 Begin
   Self._EventHandlers[EventType] := Handler;
+End;
+
+Function UIWidget.IsEnabled: Boolean;
+Begin
+  Result := (Self._State <> widget_Disabled);
 End;
 
 { UIInstancedWidget }

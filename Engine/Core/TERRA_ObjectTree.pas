@@ -53,7 +53,7 @@ Type
       Function AddInteger(Const Name:TERRAString; Const Value:Integer):TERRAObjectNode;
       Function AddCardinal(Const Name:TERRAString; Const Value:Cardinal):TERRAObjectNode;
       Function AddSingle(Const Name:TERRAString; Const Value:Single):TERRAObjectNode;
-      Function AddColor(Const Name:TERRAString; Const Value:Color):TERRAObjectNode;
+      Function AddColor(Const Name:TERRAString; Const Value:ColorRGBA):TERRAObjectNode;
       Function AddTime(Const Name:TERRAString; Const Value:TERRATime):TERRAObjectNode;
       Function AddVector2D(Const Name:TERRAString; Const Value:Vector2D):TERRAObjectNode;
       Function AddVector3D(Const Name:TERRAString; Const Value:Vector3D):TERRAObjectNode;
@@ -336,7 +336,7 @@ Begin
   Result := Node;
 End;
 
-Function TERRAObjectNode.AddColor(Const Name:TERRAString; Const Value:Color):TERRAObjectNode;
+Function TERRAObjectNode.AddColor(Const Name:TERRAString; Const Value:ColorRGBA):TERRAObjectNode;
 Begin
   Result := AddString(Name, ColorToString(Value));
 End;

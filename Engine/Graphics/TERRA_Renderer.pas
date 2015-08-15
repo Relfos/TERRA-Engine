@@ -106,7 +106,7 @@ Type
 
   TextureFilterMode = (filterLinear, filterBilinear);
   TextureWrapMode = (wrapNothing = 0, wrapVertical = 1, wrapHorizontal  = 2, wrapAll = 3);
-  TextureColorFormat = (colorRGB, colorRGBA, colorBGR, colorBGRA, colorAlpha);
+  TextureColorFormat = (textureFormat_RGB, textureFormat_RGBA, textureFormat_BGR, textureFormat_BGRA, textureFormat_Alpha);
 
   SurfaceProjectionMode = (surfacePlanar, surfaceCylindrical, surfaceSpherical);
 
@@ -175,7 +175,7 @@ Type
 
     Public
       Function GetImage():Image; Virtual;
-      Function GetPixel(X,Y:Integer):Color; Virtual;
+      Function GetPixel(X,Y:Integer):ColorRGBA; Virtual;
 
       Procedure SetFilter(Value:TextureFilterMode); Virtual;
       Procedure SetWrapMode(Value:TextureWrapMode); Virtual;
@@ -202,7 +202,7 @@ Type
 
   RenderTargetInterface = Class(SurfaceInterface)
     Protected
-      _BackgroundColor:Color;
+      _BackgroundColor:ColorRGBA;
 
       _HasDepthBuffer:Boolean;
       _HasStencilBuffer:Boolean;
@@ -216,11 +216,11 @@ Type
 	    Procedure BeginCapture(Flags:Cardinal = clearAll); Virtual; Abstract;
 	    Procedure EndCapture; Virtual; Abstract;
 
-      Procedure SetBackgroundColor(Const Value:Color); Virtual;
+      Procedure SetBackgroundColor(Const Value:ColorRGBA); Virtual;
 
       Procedure Resize(NewWidth, NewHeight:Integer); Virtual; Abstract;
 
-      Property BackgroundColor:Color Read _BackgroundColor Write SetBackgroundColor;
+      Property BackgroundColor:ColorRGBA Read _BackgroundColor Write SetBackgroundColor;
 
       Property PixelSize:PixelSizeType Read _PixelSize;
   End;
@@ -271,7 +271,7 @@ Type
       Procedure SetMat4Uniform(Const Name:TERRAString; Value:Matrix4x4); Virtual; Abstract;
       Procedure SetVec4ArrayUniform(Const Name:TERRAString; Count:Integer; Values:PVector4D); Virtual; Abstract;
 
-			Procedure SetColorUniform(Const Name:TERRAString; Const Value:Color);
+			Procedure SetColorUniform(Const Name:TERRAString; Const Value:ColorRGBA);
 			Procedure SetPlaneUniform(Const Name:TERRAString; Const Value:Plane);
 
       Function HasUniform(Const Name:TERRAString):Boolean; Virtual; 
@@ -435,13 +435,13 @@ Type
       Outlines:RendererSetting;
 
       CartoonHues:RendererSetting;
-      CartoonHueGreen:Color;
-      CartoonHueYellow:Color;
-      CartoonHuePurple:Color;
-      CartoonHueBlack:Color;
+      CartoonHueGreen:ColorRGBA;
+      CartoonHueYellow:ColorRGBA;
+      CartoonHuePurple:ColorRGBA;
+      CartoonHueBlack:ColorRGBA;
 
       FogMode:Integer;
-      FogColor:Color;
+      FogColor:ColorRGBA;
       FogDistanceStart:Single;
       FogDistanceEnd:Single;
       FogHeightStart:Single;
@@ -495,7 +495,7 @@ Type
       _TextureMatrix:Matrix4x4;
 
       //_BackgroundColor:Color;
-      _DiffuseColor:Color;
+      _DiffuseColor:ColorRGBA;
 
       _Stats:RendererStats;
       _PrevStats:RendererStats;
@@ -540,7 +540,7 @@ Type
 
       Procedure InternalStat(Stat:StatType; Count:Integer = 1);
 
-      Procedure SetClearColor(Const ClearColor:Color); Virtual; Abstract;
+      Procedure SetClearColor(Const ClearColor:ColorRGBA); Virtual; Abstract;
       Procedure ClearBuffer(Color, Depth, Stencil:Boolean); Virtual; Abstract;
 
       Procedure SetStencilTest(Enable:Boolean); Virtual; Abstract;
@@ -570,7 +570,7 @@ Type
       Procedure SetScissorState(Enabled:Boolean); Virtual; Abstract;
       Procedure SetScissorArea(X,Y, Width, Height:Integer); Virtual; Abstract;
 
-      Procedure SetDiffuseColor(Const C:Color); Virtual; Abstract;
+      Procedure SetDiffuseColor(Const C:ColorRGBA); Virtual; Abstract;
       //Procedure SetBackgroundColor(Const C:Color);
 
       Procedure SetVertexSource(Data:VertexData);
@@ -585,7 +585,7 @@ Type
 
       Property CurrentContext:Integer Read _CurrentContext;
 
-      Property DiffuseColor:Color Read _DiffuseColor Write SetDiffuseColor;
+      Property DiffuseColor:ColorRGBA Read _DiffuseColor Write SetDiffuseColor;
       //Property BackgroundColor:Color Read _BackgroundColor Write SetBackgroundColor;
 
       Property Name:TERRAString Read _Name;
@@ -1253,7 +1253,7 @@ Begin
   End;
 End;
 
-Procedure ShaderInterface.SetColorUniform(Const Name:TERRAString; Const Value: Color);
+Procedure ShaderInterface.SetColorUniform(Const Name:TERRAString; Const Value:ColorRGBA);
 Begin
   Self.SetVec4Uniform(Name, VectorCreate4D(Value.R / 255.0, Value.G / 255.0, Value.B / 255.0, Value.A / 255.0));
 End;
@@ -1269,7 +1269,7 @@ Begin
 End;
 
 { RenderTargetInterface }
-Procedure RenderTargetInterface.SetBackgroundColor(const Value: Color);
+Procedure RenderTargetInterface.SetBackgroundColor(const Value:ColorRGBA);
 Begin
   Self._BackgroundColor := Value;
 End;
@@ -1284,7 +1284,7 @@ Begin
   Result := surfaceTopLeft;
 End;
 
-Function SurfaceInterface.GetPixel(X, Y: Integer): Color;
+Function SurfaceInterface.GetPixel(X, Y: Integer):ColorRGBA;
 Begin
   Result := ColorBlack;
 End;
@@ -1359,7 +1359,7 @@ Begin
 
     If Waiting Then
     Begin
-      Self.Generate(W, H, colorRGBA, colorRGBA, pixelSizeByte);
+      Self.Generate(W, H, textureFormat_RGBA, textureFormat_RGBA, pixelSizeByte);
       Waiting := False;
     End;
 

@@ -159,14 +159,14 @@ Type
       _Blue:ByteProperty;
       _Alpha:ByteProperty;
 
-      Function GetColorValue:Color;
-      Procedure SetColorValue(const NewValue:Color);
+      Function GetColorValue:ColorRGBA;
+      Procedure SetColorValue(const NewValue:ColorRGBA);
 
     Public
-      Constructor Create(Const Name:TERRAString; Const InitValue:Color);
+      Constructor Create(Const Name:TERRAString; Const InitValue:ColorRGBA);
       Procedure Release(); Override;
 
-      Procedure AddTween(Ease:TweenEaseType; Const TargetValue:Color; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
+      Procedure AddTween(Ease:TweenEaseType; Const TargetValue:ColorRGBA; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
 
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
@@ -180,7 +180,7 @@ Type
       Property Blue:ByteProperty Read _Blue;
       Property Alpha:ByteProperty Read _Alpha;
 
-      Property Value:Color Read GetColorValue Write SetColorValue;
+      Property Value:ColorRGBA Read GetColorValue Write SetColorValue;
   End;
 
   Vector2DProperty = Class(TERRAObject)
@@ -565,7 +565,7 @@ Begin
 End;
 
 { ColorProperty }
-Constructor ColorProperty.Create(Const Name:TERRAString; const InitValue: Color);
+Constructor ColorProperty.Create(Const Name:TERRAString; const InitValue:ColorRGBA);
 Begin
   _ObjectName := Name;
   _Red := ByteProperty.Create('r', InitValue.R);
@@ -598,7 +598,7 @@ Begin
   Alpha.SetBlob(StringGetNextSplit(S, Ord('/')));
 End;*)
 
-Procedure ColorProperty.SetColorValue(const NewValue: Color);
+Procedure ColorProperty.SetColorValue(const NewValue:ColorRGBA);
 Begin
   Red.Value := NewValue.R;
   Green.Value := NewValue.G;
@@ -606,7 +606,7 @@ Begin
   Alpha.Value := NewValue.A;
 End;
 
-Function ColorProperty.GetColorValue: Color;
+Function ColorProperty.GetColorValue:ColorRGBA;
 Begin
   Result.R := Red.Value;
   Result.G := Green.Value;
@@ -620,7 +620,7 @@ Begin
   Result := 'color';
 End;
 
-Procedure ColorProperty.AddTween(Ease:TweenEaseType; Const TargetValue:Color; Duration, Delay:Cardinal; Callback: TweenCallback; CallTarget:TERRAObject);
+Procedure ColorProperty.AddTween(Ease:TweenEaseType; Const TargetValue:ColorRGBA; Duration, Delay:Cardinal; Callback: TweenCallback; CallTarget:TERRAObject);
 Begin
   Self.Red.AddTween(Ease, TargetValue.R, Duration, Delay, Callback, CallTarget);
   Self.Green.AddTween(Ease, TargetValue.G, Duration, Delay, Nil);

@@ -37,7 +37,7 @@ Type
 
     Public
       Position:Vector3D;
-      Color:Color;
+      Color:ColorRGBA;
       TexCoord:Vector2D;
       ClipRect:Vector4D;
       Saturation:Single;
@@ -78,12 +78,12 @@ Type
 
       _Offset:Integer;
 
-      Procedure MakeQuad(Const Pos:Vector2D; LayerOffset:Single; Const U1, V1, U2, V2:Single; Const Width, Height:Single; Const A,B,C,D:Color);
+      Procedure MakeQuad(Const Pos:Vector2D; LayerOffset:Single; Const U1, V1, U2, V2:Single; Const Width, Height:Single; Const A,B,C,D:ColorRGBA);
 
     Public
       Layer:Single;
       ClipRect:ClipRect;
-      Outline:Color;
+      Outline:ColorRGBA;
       BlendMode:Integer;
       Next:TERRASprite;
 
@@ -116,7 +116,7 @@ Type
 
   QuadSprite = Class(TERRASprite)
     Protected
-      _A, _B, _C, _D:Color;
+      _A, _B, _C, _D:ColorRGBA;
 
       Procedure Rebuild(); Override;
 
@@ -132,8 +132,8 @@ Type
       
       Rect:TextureRect;
 
-      Procedure SetColor(Const C:Color); 
-      Procedure SetColors(Const A, B, C, D:Color);
+      Procedure SetColor(Const C:ColorRGBA);
+      Procedure SetColors(Const A, B, C, D:ColorRGBA);
       Procedure SetAlpha(Alpha:Byte);
 
       Procedure SetScroll(U,V:Single);
@@ -240,7 +240,7 @@ Begin
   SetScaleAndRotationWithCenter(Center, Scale, Scale, Rotation);
 End;
 
-Procedure TERRASprite.MakeQuad(Const Pos:Vector2D; LayerOffset:Single; Const U1, V1, U2, V2:Single; Const Width, Height:Single; Const A, B, C, D:Color);
+Procedure TERRASprite.MakeQuad(Const Pos:Vector2D; LayerOffset:Single; Const U1, V1, U2, V2:Single; Const Width, Height:Single; Const A, B, C, D:ColorRGBA);
 Begin
   If _Vertices = Nil Then
     _Vertices := CreateSpriteVertexData(_Offset + 6);
@@ -353,7 +353,7 @@ Begin
   Self.ScrollV := V;
 End;
 
-Procedure QuadSprite.SetColor(Const C:Color);
+Procedure QuadSprite.SetColor(Const C:ColorRGBA);
 Begin
   _A := C;
   _B := C;
@@ -361,7 +361,7 @@ Begin
   _D := C;
 End;
 
-Procedure QuadSprite.SetColors(Const A, B, C, D:Color);
+Procedure QuadSprite.SetColors(Const A, B, C, D:ColorRGBA);
 Begin
   _A := A;
   _B := B;

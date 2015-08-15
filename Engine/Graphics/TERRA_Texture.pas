@@ -88,7 +88,7 @@ Type
 
       Constructor Create(Kind:ResourceType; Location:TERRAString);
 
-      Procedure InitFromSize(TextureWidth, TextureHeight:Cardinal; FillColor:Color);
+      Procedure InitFromSize(TextureWidth, TextureHeight:Cardinal; FillColor:ColorRGBA);
       Procedure InitFromImage(Source:Image);
       Procedure InitFromSurface(Surface:SurfaceInterface);
 
@@ -113,7 +113,7 @@ Type
 	    Procedure Save(Const FileName:TERRAString);
 
       Function GetImage():Image;
-      Function GetPixel(X,Y:Integer):Color; Virtual;
+      Function GetPixel(X,Y:Integer):ColorRGBA; Virtual;
 
       Class Function LoadFromFile(Const FileName:TERRAString):TERRATexture;
 
@@ -175,12 +175,12 @@ Type
 
       Function GetCellNoise:TERRATexture;
 
-      Function CreateTextureWithColor(Name:TERRAString; TexColor:Color):TERRATexture;
+      Function CreateTextureWithColor(Name:TERRAString; TexColor:ColorRGBA):TERRATexture;
 
       Function GetWhiteTexture:TERRATexture;
       Function GetNullTexture:TERRATexture;
       Function GetBlackTexture:TERRATexture;
-      Procedure FillTextureWithColor(Tex: TERRATexture; TexColor: Color);
+      Procedure FillTextureWithColor(Tex: TERRATexture; Const TexColor:ColorRGBA);
 
 
     Public
@@ -329,7 +329,7 @@ Begin
   End;
 End;
 
-Function TextureManager.CreateTextureWithColor(Name:TERRAString; TexColor:Color):TERRATexture;
+Function TextureManager.CreateTextureWithColor(Name:TERRAString; TexColor:ColorRGBA):TERRATexture;
 Begin
   Result := TERRATexture.Create(rtDynamic, Name);
   Result.InitFromSize(64, 64, TexColor);
@@ -338,7 +338,7 @@ Begin
   Result.Filter := filterLinear;
 End;
 
-Procedure TextureManager.FillTextureWithColor(Tex: TERRATexture; TexColor: Color);
+Procedure TextureManager.FillTextureWithColor(Tex: TERRATexture; Const TexColor:ColorRGBA);
 Var
   Buffer:Image;
 Begin
@@ -405,7 +405,7 @@ Begin
   Result := _NullTexture;
 End;
 
-Function GetDefaultNormalColor():Color;
+Function GetDefaultNormalColor():ColorRGBA;
 Begin
   Result := ColorCreate(128,128,255);
 End;
@@ -506,7 +506,7 @@ Constructor TERRATexture.Create(Kind:ResourceType; Location:TERRAString);
 Begin
   Inherited Create(Kind, Location);
 
-  _TargetFormat := colorRGBA;
+  _TargetFormat := textureFormat_RGBA;
   _ByteFormat := pixelSizeByte;
   _Ratio := VectorCreate2D(1, 1);
 
@@ -545,7 +545,7 @@ Begin
   _Managed := True;
 End;
 
-Procedure TERRATexture.InitFromSize(TextureWidth, TextureHeight:Cardinal; FillColor:Color);
+Procedure TERRATexture.InitFromSize(TextureWidth, TextureHeight:Cardinal; FillColor:ColorRGBA);
 Begin
   _Width := TextureWidth;
   _Height := TextureHeight;
@@ -609,7 +609,7 @@ Begin
   If (StringContains('_normal', Source.Name)) Then
     Uncompressed := True;
 
-  _TargetFormat := colorRGBA;
+  _TargetFormat := textureFormat_RGBA;
   _ByteFormat := pixelSizeByte;
 
   Result := True;
@@ -678,7 +678,7 @@ Begin
 
   _CurrentFrame := 0;
 
-  SourceFormat := colorRGBA;
+  SourceFormat := textureFormat_RGBA;
   _TargetFormat := DetectBestFormat(_Source, SourceFormat);
   Pixels := ConvertToFormat(_Source.Pixels, SourceFormat, _TargetFormat);
 
@@ -779,7 +779,7 @@ Begin
     Exit;
   End;
 
-  SourceFormat := colorRGBA;
+  SourceFormat := textureFormat_RGBA;
   Pixels := Self.ConvertToFormat(Source.Pixels, SourceFormat, _TargetFormat);
 
   If Self.Current Is TextureInterface Then
@@ -1119,7 +1119,7 @@ Begin
   Result := Self.Current.GetImage();
 End;
 
-Function TERRATexture.GetPixel(X, Y: Integer): Color;
+Function TERRATexture.GetPixel(X, Y: Integer):ColorRGBA;
 Begin
   Result := Self.Current.GetPixel(X, Y);
 End;

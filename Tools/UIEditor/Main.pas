@@ -7,7 +7,7 @@ uses
   Dialogs, ExtCtrls, StdCtrls, Menus, IceTabSet, Grids, ValEdit, ComCtrls,
   TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_VCLApplication, TERRA_OS,
   TERRA_String, TERRA_Scene, TERRA_Texture, TERRA_Font, TERRA_TTF, TERRA_DebugDraw,
-  TERRA_Viewport, TERRA_FileManager, TERRA_FileUtils, TERRA_SpriteManager,
+  TERRA_Viewport, TERRA_FileManager, TERRA_FileUtils, TERRA_Sprite,
   TERRA_PNG, TERRA_JPG,
   TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color,
   TERRA_UI, TERRA_XML, TERRA_Collections, TERRA_CollectionObjects, TERRA_CustomPropertyEditor;

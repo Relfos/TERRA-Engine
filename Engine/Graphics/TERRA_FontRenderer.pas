@@ -9,8 +9,8 @@ Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Color, TERRA_Vector2D, TERRA
 Type
   FontRenderer = Class(TERRAObject)
     Protected
-      _InitColor1, _InitColor2:Color;
-      _Outline:Color;
+      _InitColor1, _InitColor2:ColorRGBA;
+      _Outline:ColorRGBA;
 
       _Transform:Matrix3x3;
 
@@ -33,8 +33,8 @@ Type
 
       _Layer:Single;
 
-      _Color1:Color;
-      _Color2:Color;
+      _Color1:ColorRGBA;
+      _Color2:ColorRGBA;
 
       _Effects:Array[0..15] Of FontEffect;
       _EffectCount:Integer;
@@ -45,7 +45,7 @@ Type
       _Count:Cardinal;
 
       _DropShadow:Boolean;
-      _InitDropColor:Color;
+      _InitDropColor:ColorRGBA;
 
       _Italics:Boolean;
 
@@ -83,14 +83,14 @@ Type
 
       Function Reset():FontRenderer;
 
-      Function SetColor(Const TextColor:Color):FontRenderer;
-      Function SetGradient(Const A,B:Color; GradientMode:FontGradient):FontRenderer;
-      Function SetOutline(Const OutlineColor:Color):FontRenderer;
+      Function SetColor(Const TextColor:ColorRGBA):FontRenderer;
+      Function SetGradient(Const A,B:ColorRGBA; GradientMode:FontGradient):FontRenderer;
+      Function SetOutline(Const OutlineColor:ColorRGBA):FontRenderer;
 
       Function  SetFont(Const TargetFont:TERRAFont):FontRenderer;
 
       Function SetTransform(Const Transform:Matrix3x3):FontRenderer;
-      Function  SetDropShadow(Const DropShadowColor:Color):FontRenderer;
+      Function  SetDropShadow(Const DropShadowColor:ColorRGBA):FontRenderer;
 
       Function  SetClipRect(Const Clip:ClipRect):FontRenderer;
 
@@ -102,7 +102,7 @@ Type
       Function DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):FontRenderer;
       Function DrawTextToImage(Target:Image; X,Y:Integer; Const Text:TERRAString; ForceBlend:Boolean = True):FontRenderer;
 
-      Procedure GetColors(Out A,B,C,D:Color);
+      Procedure GetColors(Out A,B,C,D:ColorRGBA);
 
       Function AutoWrapText(Const Text:TERRAString; Width:Single; Scale:Single = 1.0):TERRAString;
       Function GetTextWidth(Const Text:TERRAString; Scale:Single = 1.0):Single;
@@ -300,7 +300,7 @@ Begin
   Result := True;
 End;
 
-Function FontRenderer.SetColor(Const TextColor:Color):FontRenderer;
+Function FontRenderer.SetColor(Const TextColor:ColorRGBA):FontRenderer;
 Begin
   _Color1 := TextColor;
   _Color2 := TextColor;
@@ -308,7 +308,7 @@ Begin
   Result := Self;
 End;
 
-Function FontRenderer.SetGradient(Const A,B:Color; GradientMode:FontGradient):FontRenderer;
+Function FontRenderer.SetGradient(Const A,B:ColorRGBA; GradientMode:FontGradient):FontRenderer;
 Begin
   _Color1 := A;
   _Color2 := B;
@@ -328,7 +328,7 @@ Begin
   _Height := Height;
 End;
 
-Procedure FontRenderer.GetColors(Out A, B, C, D:Color);
+Procedure FontRenderer.GetColors(Out A, B, C, D:ColorRGBA);
 Var
   N, Delta1, Delta2:Single;
 Begin
@@ -380,7 +380,7 @@ Procedure FontRenderer.DoEffects();
 Var
   I:Integer;
   SS:TERRAString;
-  C:Color;
+  C:ColorRGBA;
 Begin
   For I:=0 To Pred(_EffectCount) Do
   Case _Effects[I].Effect Of
@@ -534,10 +534,10 @@ Function FontRenderer.DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Con
 Var
   Alpha:Integer;
   Projection:Matrix4x4;
-  A,B,C,D:Color;
+  A,B,C,D:ColorRGBA;
   Size:Vector2D;
   I:Integer;
-  DropColor:Color;
+  DropColor:ColorRGBA;
   FM:FontManager;
 Begin
   Result := Self;
@@ -600,9 +600,9 @@ Function FontRenderer.DrawTextToImage(Target:Image; X, Y: Integer; const Text:TE
 Var
   Next:Cardinal;
   Alpha:Integer;
-  DropShadowColor:TERRA_Color.Color;
+  DropShadowColor:ColorRGBA;
   Projection:Matrix4x4;
-  A,B,C,D:Color;
+  A,B,C,D:ColorRGBA;
   I:Integer;
   GG:Image;
 Begin
@@ -652,7 +652,7 @@ Begin
   Result := Self;
 End;
 
-Function FontRenderer.SetDropShadow(Const DropShadowColor:Color):FontRenderer;
+Function FontRenderer.SetDropShadow(Const DropShadowColor:ColorRGBA):FontRenderer;
 Begin
   _DropShadow := DropShadowColor.A>0;
 
@@ -687,7 +687,7 @@ Begin
     _FontOffset := 0;
 End;
 
-Function FontRenderer.SetOutline(const OutlineColor: Color):FontRenderer;
+Function FontRenderer.SetOutline(const OutlineColor: ColorRGBA):FontRenderer;
 Begin
   Self._Outline := OutlineColor;
   Result := Self;

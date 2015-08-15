@@ -101,12 +101,12 @@ Type
       Function GetVertexNormal(GroupID, Index:Integer):Vector3D; Virtual;
       Function GetVertexTangent(GroupID, Index:Integer):Vector4D; Virtual;
       Function GetVertexBone(GroupID, Index:Integer):Integer; Virtual;
-      Function GetVertexColor(GroupID, Index:Integer):Color; Virtual;
+      Function GetVertexColor(GroupID, Index:Integer):ColorRGBA; Virtual;
       Function GetVertexUV(GroupID, Index:Integer):Vector2D; Virtual;
       Function GetVertexUV2(GroupID, Index:Integer):Vector2D; Virtual;
 
-      Function GetDiffuseColor(GroupID:Integer):Color; Virtual;
-      Function GetAmbientColor(GroupID:Integer):Color; Virtual;
+      Function GetDiffuseColor(GroupID:Integer):ColorRGBA; Virtual;
+      Function GetAmbientColor(GroupID:Integer):ColorRGBA; Virtual;
 
       Function GetDiffuseMapName(GroupID:Integer):TERRAString; Virtual;
       Function GetTriplanarMapName(GroupID:Integer):TERRAString; Virtual;
@@ -192,7 +192,7 @@ Begin
 End;
 
 { MeshFilter }
-Function MeshFilter.GetDiffuseColor(GroupID: Integer): Color;
+Function MeshFilter.GetDiffuseColor(GroupID: Integer): ColorRGBA;
 Begin
   Result := ColorWhite;
 End;
@@ -244,7 +244,7 @@ Begin
   Result := -1;
 End;
 
-Function MeshFilter.GetVertexColor(GroupID, Index: Integer): Color;
+Function MeshFilter.GetVertexColor(GroupID, Index: Integer): ColorRGBA;
 Begin
   Result := ColorWhite;
 End;
@@ -407,7 +407,7 @@ Begin
   Result := '';
 End;
 
-function MeshFilter.GetAmbientColor(GroupID: Integer): Color;
+function MeshFilter.GetAmbientColor(GroupID: Integer): ColorRGBA;
 Begin
   Result := ColorBlack;
 End;
