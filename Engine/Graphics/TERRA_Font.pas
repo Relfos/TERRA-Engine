@@ -34,9 +34,10 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
 Const
   TabSize = 100;
 
-  FontBorder = 6;
+  FontBorder = 10;
+  FontSpread = FontBorder + 2;
 
-  FontRescale = 4;
+  FontRescale = 8;
   FontInvScale = 1.0 / FontRescale;
 
   DefaultFontPageWidth = 256 * FontRescale;
@@ -434,6 +435,7 @@ Begin
   DestSprite.Texture := Tex;
   DestSprite.SetTransform(Transform);
   DestSprite.ClipRect := Clip;
+  DestSprite.Outline := Outline;
 //  DestSprite.SetScale(Scale);
 
   DestSprite.AddGlyph(X + Glyph.XOfs* FontInvScale, Y + Glyph.YOfs * FontInvScale, Glyph, A, B, C, D, Skew);
@@ -557,7 +559,7 @@ Function FontGlyph.GetAdvance(Next:Cardinal):Integer;
 Var
   I:Integer;
 Begin
-  Result := (XAdvance - XOfs);
+  Result := (XAdvance - XOfs) + FontBorder;
 
   For I:=0 To Pred(KerningCount) Do
   If (KerningList[I].Next = Next) Then
@@ -631,6 +633,8 @@ Begin
 
   If (_GlyphCount>0) Then
     _AvgHeight := _AvgHeight / _GlyphCount;
+
+  _AvgHeight := _AvgHeight + FontBorder * 2;
 End;
 
 Class Function TERRAFont.GetManager:Pointer;
@@ -837,6 +841,8 @@ Begin
   If (Source = Nil) Or (Source.Width<=0) Then
     Exit;
 
+  //Source.Save('glyph'+CardinalTOString(ID)+'.png');
+
   Temp := Image.Create(Source.Width + FontBorder * 2, Source.Height + FontBorder * 2);
 
   Temp.Blit(FontBorder, FontBorder, 0, 0, Source.Width, Source.Height, Source);
@@ -879,18 +885,19 @@ Begin
     IntToString(2);}
 
   Result.ID := ID;
-  Result.Width := Temp.Width;
-  Result.Height := Temp.Height;
+  Result.Width := Temp.Width - FontBorder * 2;
+  Result.Height := Temp.Height - FontBorder * 2;
   Result.XOfs := XOfs;
   Result.YOfs := YOfs;
 
-  Result._Temp := CreateDistanceField(Temp, componentAlpha, 1, 8);
+  Result._Temp := CreateDistanceField(Temp, componentAlpha, 1, FontSpread);
+  //Result._Temp := Image.Create(Temp);
 
-  Result._Temp.Save('glyph'+CardinalTOString(ID)+'.png');
+//  Result._Temp.Save('glyph'+CardinalTOString(ID)+'.png');
 
 
   If (XAdvance<=0) Then
-    XAdvance := Temp.Width;
+    XAdvance := Result.Width;
 
   Result.XAdvance := XAdvance;
 
@@ -1069,7 +1076,7 @@ Begin
   Width := Item.Buffer.Width;
   Height := Item.Buffer.Height;
 
-  Self.MakeQuad(VectorCreate2D(X, Y), 0.0, Item.U1, Item.V1, Item.U2, Item.V2, Width *FontInvScale, Height* FontInvScale, A, B, C, D);
+  Self.MakeQuad(VectorCreate2D(X, Y), 0.0, Item.U1, Item.V1, Item.U2, Item.V2, Width *FontInvScale, Height* FontInvScale, A, B, C, D, Skew);
 End;
 
 

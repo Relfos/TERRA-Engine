@@ -44,6 +44,9 @@ Function CreateDistanceField(Source:Image; Component, Scale:Cardinal; Spread:Sin
 Implementation
 Uses TERRA_Log;
 
+Const
+  RescaleFactor = 1.0 / 255.0;
+
 Function SignedDistance(Source:Image; Component, cx, cy:Integer; clamp:Single):Single;
 Var
   w, h, dx, dy:Integer;
@@ -59,14 +62,17 @@ Begin
   If (CX<0) Or (CY<0) Or (CX>=Source.Width) Or (CY>=Source.Height) Then
     C := 0
   Else
-    c := Source.GetComponent(cx, cy, component)/255.0;
+    c := Source.GetComponent(cx, cy, component) * RescaleFactor;
     
   cd := c - 0.5;
 
   min_x := cx - Trunc(clamp) - 1;
-  if (min_x < 0) Then min_x := 0;
+  If (min_x < 0) Then
+    min_x := 0;
+
   max_x := cx + Trunc(clamp) + 1;
-  if (max_x >= w) Then max_x := w-1;
+  If (max_x >= w) Then
+    max_x := w-1;
 
   distance := clamp;
   For dy :=0 To Pred(Trunc(clamp) + 1) Do
@@ -82,7 +88,7 @@ Begin
         If (x - cx > distance) Then
           Continue;
 
-        c := Source.GetComponent(x, y1, component)/255.0;
+        c := Source.GetComponent(x, y1, component) * RescaleFactor;
         d := c - 0.5;
         If (cd*d<0) Then
         Begin
@@ -101,7 +107,7 @@ Begin
         If (x - cx > distance) Then
           Continue;
 
-        c := Source.GetComponent(x, y2, component)/255.0;
+        c := Source.GetComponent(x, y2, component) * RescaleFactor;
         d := c - 0.5;
         If (cd*d<0) Then
         Begin

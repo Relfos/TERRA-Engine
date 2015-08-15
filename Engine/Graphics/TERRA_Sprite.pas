@@ -78,7 +78,7 @@ Type
 
       _Offset:Integer;
 
-      Procedure MakeQuad(Const Pos:Vector2D; LayerOffset:Single; Const U1, V1, U2, V2:Single; Const Width, Height:Single; Const A,B,C,D:ColorRGBA);
+      Procedure MakeQuad(Const Pos:Vector2D; LayerOffset:Single; Const U1, V1, U2, V2:Single; Const Width, Height:Single; Const A,B,C,D:ColorRGBA; Const Skew:Single);
 
     Public
       Layer:Single;
@@ -240,7 +240,7 @@ Begin
   SetScaleAndRotationWithCenter(Center, Scale, Scale, Rotation);
 End;
 
-Procedure TERRASprite.MakeQuad(Const Pos:Vector2D; LayerOffset:Single; Const U1, V1, U2, V2:Single; Const Width, Height:Single; Const A, B, C, D:ColorRGBA);
+Procedure TERRASprite.MakeQuad(Const Pos:Vector2D; LayerOffset:Single; Const U1, V1, U2, V2:Single; Const Width, Height:Single; Const A, B, C, D:ColorRGBA; Const Skew:Single);
 Begin
   If _Vertices = Nil Then
     _Vertices := CreateSpriteVertexData(_Offset + 6);
@@ -261,10 +261,10 @@ Begin
   _Vertices.SetVector3D(_Offset + 1, vertexPosition, VectorCreate(Pos.X + Width, Pos.Y +Height, LayerOffset));
   _Vertices.SetVector2D(_Offset + 1, vertexUV0, VectorCreate2D(U2, V2));
 
-  _Vertices.SetVector3D(_Offset + 2, vertexPosition, VectorCreate(Pos.X + Width, Pos.Y, LayerOffset));
+  _Vertices.SetVector3D(_Offset + 2, vertexPosition, VectorCreate(Pos.X + Width + Skew, Pos.Y, LayerOffset));
   _Vertices.SetVector2D(_Offset + 2, vertexUV0, VectorCreate2D(U2, V1));
 
-  _Vertices.SetVector3D(_Offset + 4, vertexPosition, VectorCreate(Pos.X, Pos.Y, LayerOffset));
+  _Vertices.SetVector3D(_Offset + 4, vertexPosition, VectorCreate(Pos.X + Skew, Pos.Y, LayerOffset));
   _Vertices.SetVector2D(_Offset + 4, vertexUV0, VectorCreate2D(U1, V1));
 
   _Vertices.CopyVertex(_Offset + 2, _Offset + 3);
@@ -428,7 +428,7 @@ Begin
   Self.Rect.V1 := Self.Rect.V1 + Self.ScrollV;
   Self.Rect.V2 := Self.Rect.V2 + Self.Scrollv;
 
-  MakeQuad(Pos, 0.0, Rect.U1, Rect.V1, Rect.U2, Rect.V2, Width, Height, _A, _B, _C, _D);
+  MakeQuad(Pos, 0.0, Rect.U1, Rect.V1, Rect.U2, Rect.V2, Width, Height, _A, _B, _C, _D, 0.0);
 End;
 
 { TextureRect }

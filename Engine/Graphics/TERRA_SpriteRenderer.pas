@@ -165,14 +165,12 @@ Begin
 	Line('  varying lowp vec4 color;');
 	Line('  uniform sampler2D texture;');
 
-  {$IFDEF DISTANCEFIELDFONTS}
-  Line('  const float smoothing = 3.0/16.0;');
-  Line('  const float outlineWidth = 5.0/16.0;');
-  Line('  const float outerEdgeCenter = 0.5 - outlineWidth;');
-  {$ENDIF}
-
   If IsFont Then
   Begin
+    Line('  const float smoothing = 3.0/16.0;');
+    Line('  const float outlineWidth = 5.0/16.0;');
+    Line('  const float outerEdgeCenter = 0.5 - outlineWidth;');
+    Line('  uniform lowp vec4 shadowOffset;');
     Line('  uniform lowp vec4 outlineColor;');
   End;
 
@@ -194,14 +192,18 @@ Begin
   If IsFont Then
   Begin
   {$IFDEF DISTANCEFIELDFONTS}
-  //Line('    if (mask>0.59) baseColor = color; else baseColor = mix(color, outline, outline.a);');
-  //Line('    baseColor = mix(outline, color, alpha);');
+  Line('    float colorDistance = texture2D(texture, texCoord.xy).a;');
+  Line('    float alpha = smoothstep(outerEdgeCenter - smoothing, outerEdgeCenter + smoothing, colorDistance);');
+  Line('    float border = smoothstep(0.5 - smoothing, 0.5 + smoothing, colorDistance);');
+  Line('    vec4 baseColor = mix(outlineColor, color, border);');
 
+(*  Line('    float shadowDistance = texture2D(texture, texCoord.xy + vec2(0.007, 0.005)).a;');
+  Line('    float shadowAlpha = smoothstep(outerEdgeCenter - smoothing, outerEdgeCenter + smoothing, shadowDistance);');
+  Line('    vec4 shadowColor = vec4(0.0, 0.0, 0.0, 1.0);');
 
-  Line('    float distance = texture2D(texture, texCoord.xy).a;');
-  Line('    float alpha = smoothstep(outerEdgeCenter - smoothing, outerEdgeCenter + smoothing, distance);');
-  Line('    float border = smoothstep(0.5 - smoothing, 0.5 + smoothing, distance);');
-  Line('    gl_FragColor = vec4( mix(outlineColor.rgb, color.rgb, border), alpha );');
+  Line('    baseColor = mix(shadowColor, baseColor, shadowAlpha); ');*)
+
+  Line('    gl_FragColor = vec4( baseColor.rgb, alpha );');
   //Line('    gl_FragColor = vec4( color.rgb, border), alpha );');
 
   {$ELSE}
@@ -702,7 +704,8 @@ Begin
   If (Assigned(Self._Shader)) Then
   Begin
     _Manager.SetShader(Projection, Self._Shader);
-    _Manager._FontShader.SetColorUniform('outlineColor', ColorBlack{_Outline});
+    _Manager._FontShader.SetColorUniform('outlineColor', _Outline);
+    _Manager._FontShader.SetVec2Uniform('shadowOffset', VectorCreate2D(0.1, 0.1));
   End Else
   {$IFNDEF DISABLECOLORGRADING}
   If (Assigned(Self._ColorTable)) Then

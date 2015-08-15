@@ -37,7 +37,7 @@ Begin
 
   // Load a font
   _FontRenderer := FontRenderer.Create();
-  _FontRenderer.SetFont(FontManager.Instance.GetFont('droid'));
+  _FontRenderer.SetFont(FontManager.Instance.GetFont('droid@52'));
 
   // Create a scene and set it as the current scene
   _Scene := MyScene.Create;
@@ -79,24 +79,24 @@ Begin
   Begin
     _FontRenderer.DrawText(V, 50, 70, 10, ' Hello World!');
 
-    _FontRenderer.SetColor(ColorYellow);
-    _FontRenderer.DrawText(V, 200, 160, 10, 'This is a'+StringFromChar(fontControlNewLine)+'line break!');
-
     _FontRenderer.SetColor(ColorBlue);
-    _FontRenderer.DrawText(V, 200, 100, 10, StringFromChar(fontControlWave)+'Wavy text!');
+    _FontRenderer.DrawText(V, 350, 100, 10, StringFromChar(fontControlWave)+'Wavy text!');
+
+    _FontRenderer.SetColor(ColorYellow);
+    _FontRenderer.DrawText(V, 300, 200, 10, 'This is a'+StringFromChar(fontControlNewLine)+'line break!');
 
     _FontRenderer.SetColor(ColorGreen);
-    _FontRenderer.DrawText(V, 400, 100, 10, StringFromChar(fontControlItalics)+' Italic text!');
+    _FontRenderer.DrawText(V, 550, 300, 10, StringFromChar(fontControlItalics)+' Italic text!');
 
     // unicode rendering
     _FontRenderer.SetColor(ColorWhite);
     _FontRenderer.DrawText(V, 50, 200, 10, GetLanguageDescription(language_Russian));
-    _FontRenderer.DrawText(V, 50, 230, 10, GetLanguageDescription(language_Chinese));
-    _FontRenderer.DrawText(V, 50, 260, 10, GetLanguageDescription(language_Korean));
-    _FontRenderer.DrawText(V, 50, 290, 10, GetLanguageDescription(language_Japanese));
+    _FontRenderer.DrawText(V, 50, 250, 10, GetLanguageDescription(language_Chinese));
+    _FontRenderer.DrawText(V, 50, 300, 10, GetLanguageDescription(language_Korean));
+    _FontRenderer.DrawText(V, 50, 350, 10, GetLanguageDescription(language_Japanese));
 
     // dynamic text
-    _FontRenderer.DrawText(V, 200, 250, 10, CardinalToString(Application.GetTime() Div 1000));
+    _FontRenderer.DrawText(V, V.Width - 100, 50, 10, CardinalToString(Application.GetTime() Div 1000));
   End;
 End;
 

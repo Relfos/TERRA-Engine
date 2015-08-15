@@ -560,6 +560,8 @@ Begin
 
   Size := Self.GetTextRect(Text);
 
+  _Outline := ColorGreen;
+
   If (_DropShadow) Then
   Begin
     DropColor := _InitDropColor;
