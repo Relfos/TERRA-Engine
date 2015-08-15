@@ -742,7 +742,7 @@ Begin
   End;
 
   // Get the image data pointer
-  Data := Buffer.Pixels;
+  Data := Buffer.RawPixels;
 
   // Reads each line
   With Buffer Do
@@ -1061,7 +1061,7 @@ Begin
     COLOR_RGBALPHA: CopyProc := EncodeNonInterlacedRGBA;
   End;
 
-  Pixels := MyImage.Pixels;
+  Pixels := MyImage.RawPixels;
   For J:=0 To Pred(MyImage.Height) Do
   Begin
     CopyProc(Pixels, @Encode_Buffer[BUFFER][0], MyImage.Width);

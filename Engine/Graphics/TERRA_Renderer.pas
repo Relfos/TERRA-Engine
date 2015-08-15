@@ -1363,7 +1363,7 @@ Begin
       Waiting := False;
     End;
 
-    Self.UpdateFace(I, Img.Pixels, 0, 0, Img.Width, Img.Height);
+    Self.UpdateFace(I, Img.RawPixels, 0, 0, Img.Width, Img.Height);
     ReleaseObject(Img);
   End;
 

@@ -680,7 +680,7 @@ Begin
 
   SourceFormat := textureFormat_RGBA;
   _TargetFormat := DetectBestFormat(_Source, SourceFormat);
-  Pixels := ConvertToFormat(_Source.Pixels, SourceFormat, _TargetFormat);
+  Pixels := ConvertToFormat(_Source.RawPixels, SourceFormat, _TargetFormat);
 
   _Size := 0;
   For I:=0 To Pred(_FrameCount) Do
@@ -691,7 +691,7 @@ Begin
     If (_FrameCount>0) Then
     Begin
       _Source.SetCurrentFrame(I);
-      Pixels := PWord(_Source.Pixels);
+      Pixels := PWord(_Source.RawPixels);
     End;
 
     Tex := GraphicsManager.Instance.Renderer.CreateTexture();
@@ -780,7 +780,7 @@ Begin
   End;
 
   SourceFormat := textureFormat_RGBA;
-  Pixels := Self.ConvertToFormat(Source.Pixels, SourceFormat, _TargetFormat);
+  Pixels := Self.ConvertToFormat(Source.RawPixels, SourceFormat, _TargetFormat);
 
   If Self.Current Is TextureInterface Then
     TextureInterface(Self.Current).Update(Pixels, X, Y, Source.Width, Source.Height)

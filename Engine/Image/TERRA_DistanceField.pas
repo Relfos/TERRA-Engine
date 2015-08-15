@@ -156,7 +156,7 @@ Begin
       sd := SignedDistance(Source, Component, PX, PY, Spread);
       n := (sd + Spread) / (Spread*2);
 
-      C := Trunc(N*255);
+      C := Trunc((1.0-N)*255);
       Result.SetPixel(X, Y, ColorGrey(C, C));
     End;
 

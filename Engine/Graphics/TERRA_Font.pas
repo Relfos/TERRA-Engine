@@ -34,14 +34,13 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
 Const
   TabSize = 100;
 
-  {$IFDEF DISTANCEFIELDFONTS}
-  FontQuality = 4;
-  {$ELSE}
-  FontQuality = 1;
-  {$ENDIF}
+  FontBorder = 6;
 
-  DefaultFontPageWidth = 256 * FontQuality;
-  DefaultFontPageHeight = 512 * FontQuality;
+  FontRescale = 4;
+  FontInvScale = 1.0 / FontRescale;
+
+  DefaultFontPageWidth = 256 * FontRescale;
+  DefaultFontPageHeight = 512 * FontRescale;
 
   fontmode_Sprite   = 0;
   fontmode_Measure  = 1;
@@ -227,8 +226,8 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Sort,
-  TERRA_Log, TERRA_FileUtils, TERRA_MemoryStream,
-  TERRA_GraphicsManager, TERRA_FileManager, TERRA_Packer;
+  TERRA_Log, TERRA_FileUtils, TERRA_MemoryStream, TERRA_ImageDrawing,
+  TERRA_GraphicsManager, TERRA_FileManager, TERRA_Packer, TERRA_DistanceField;
 
 Var
   _FontExtensions:Array Of FontClassInfo;
@@ -415,11 +414,7 @@ Begin
   If DestSprite = Nil Then
     Exit;
 
-  {$IFDEF DISTANCEFIELDFONTS}
   Filter := filterBilinear;
-  {$ELSE}
-  Filter := filterLinear;
-  {$ENDIF}
 
   Item := Glyph._Item;
   If Item = Nil Then
@@ -441,7 +436,7 @@ Begin
   DestSprite.ClipRect := Clip;
 //  DestSprite.SetScale(Scale);
 
-  DestSprite.AddGlyph(X + Glyph.XOfs, Y + Glyph.YOfs, Glyph, A, B, C, D, Skew);
+  DestSprite.AddGlyph(X + Glyph.XOfs* FontInvScale, Y + Glyph.YOfs * FontInvScale, Glyph, A, B, C, D, Skew);
 
   Result := True;
 End;
@@ -705,7 +700,7 @@ Begin
   F := _Factory;
   While Assigned(F) Do
   Begin
-    Result := F.InitGlyph(Self, ID, Trunc(_TextSize * F._Scale));
+    Result := F.InitGlyph(Self, ID, Trunc(_TextSize * F._Scale * FontRescale));
     If Assigned(Result) Then
     Begin
       Result._Factory := F;
@@ -816,9 +811,7 @@ Function TERRAFont.AddGlyph(ID:Cardinal; FileName:TERRAString; XOfs, YOfs, XAdva
 Var
   Source: Image;
 Begin
-  {$IFDEF DISTANCEFIELDFONTS}
-  FileName := GetFileName(FileName, True) + '_.' + GetFileExtension(FileName);
-  {$ENDIF}
+  FileName := GetFileName(FileName, True);
 
   Source := Image.Create(FileName);
   If (Source.Width>0) Then
@@ -829,7 +822,13 @@ Begin
   ReleaseObject(Source);
 End;
 
-Function TERRAFont.AddGlyph(ID: Cardinal; Source: Image; XOfs, YOfs, XAdvance: SmallInt):FontGlyph;
+Function TERRAFont.AddGlyph(ID: Cardinal; Source:Image; XOfs, YOfs, XAdvance:SmallInt):FontGlyph;
+Var
+  It:ImageIterator;
+  C:ColorRGBA;
+  N:Byte;
+
+  Temp:Image;
 Begin
   //Self.Prefetch();
 
@@ -837,6 +836,30 @@ Begin
 
   If (Source = Nil) Or (Source.Width<=0) Then
     Exit;
+
+  Temp := Image.Create(Source.Width + FontBorder * 2, Source.Height + FontBorder * 2);
+
+  Temp.Blit(FontBorder, FontBorder, 0, 0, Source.Width, Source.Height, Source);
+
+  //Temp.Save('glyph'+CardinalTOString(ID)+'.png');
+
+(*  It := Temp.Pixels([image_Kernel, image_Read, image_Write], maskRGBA);
+  While It.HasNext() Do
+  Begin
+    C := It.ApplyKernel(Kernel_Dilate);
+
+    If (C.A<128) And (C.A>0) Then
+      N := 255
+    Else
+      N := 0;
+
+      //N := C.A;
+
+    It.Value := ColorCreate(N, 0, 0, It.Value.R);
+  End;
+  ReleaseObject(It);
+
+  Temp.Save('glyph'+CardinalTOString(ID)+'.png');*)
 
   _AddingGlyph := True;
   Result := Self.GetGlyph(ID, False);
@@ -856,17 +879,22 @@ Begin
     IntToString(2);}
 
   Result.ID := ID;
-  Result.Width := Source.Width;
-  Result.Height := Source.Height;
+  Result.Width := Temp.Width;
+  Result.Height := Temp.Height;
   Result.XOfs := XOfs;
   Result.YOfs := YOfs;
 
-  Result._Temp := Image.Create(Source);
+  Result._Temp := CreateDistanceField(Temp, componentAlpha, 1, 8);
+
+  Result._Temp.Save('glyph'+CardinalTOString(ID)+'.png');
+
 
   If (XAdvance<=0) Then
-    XAdvance := Source.Width;
+    XAdvance := Temp.Width;
 
   Result.XAdvance := XAdvance;
+
+  ReleaseObject(Temp);
 
   _NeedsRebuild := True;
 End;
@@ -1041,7 +1069,7 @@ Begin
   Width := Item.Buffer.Width;
   Height := Item.Buffer.Height;
 
-  Self.MakeQuad(VectorCreate2D(X, Y), 0.0, Item.U1, Item.V1, Item.U2, Item.V2, Width, Height, A, B, C, D);
+  Self.MakeQuad(VectorCreate2D(X, Y), 0.0, Item.U1, Item.V1, Item.U2, Item.V2, Width *FontInvScale, Height* FontInvScale, A, B, C, D);
 End;
 
 

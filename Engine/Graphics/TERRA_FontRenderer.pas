@@ -271,7 +271,7 @@ Begin
 
   //Log(logDebug,'AdWall', 'Calculating advance');
   _TargetPosition := _CurrentPosition;
-  _AdvanceX := _CurrentGlyph.GetAdvance(_Next);
+  _AdvanceX := _CurrentGlyph.GetAdvance(_Next) * FontInvScale;
   _CurrentPosition.X := _CurrentPosition.X + _AdvanceX;
 
   //Log(logDebug,'AdWall', 'Testing effects');
@@ -292,7 +292,7 @@ Begin
   If (_CurrentPosition.X >_MaxX) Then
     _MaxX := _CurrentPosition.X;
 
-  H := _CurrentPosition.Y + _CurrentGlyph.Height;
+  H := _CurrentPosition.Y + _CurrentGlyph.Height * FontInvScale;
   If (H > _MaxY) Then
     _MaxY := H;
 
@@ -363,7 +363,7 @@ Begin
       Begin
         N := Self._CurrentPosition.Y  - Self._StartPosition.Y;
         Delta1 := N / _Height;
-        Delta2 := (N + _CurrentGlyph.Height) / _Height;
+        Delta2 := (N + _CurrentGlyph.Height * FontInvScale) / _Height;
 
         If (Delta2>1.0) Then
           Delta2 := 1.0;
@@ -420,7 +420,7 @@ Begin
               _CurrentPosition.X := _StartPosition.X;
 
               If Assigned(_Font) Then
-                _CurrentPosition.Y := _CurrentPosition.Y + _NewLineOffset + _Font.NewLineOffset;
+                _CurrentPosition.Y := _CurrentPosition.Y + _NewLineOffset + _Font.NewLineOffset * FontInvScale;
             End;
   End;
 
@@ -556,7 +556,7 @@ Begin
   If (Alpha<0) Then
     Alpha := 0;
 
-  Y := Y - _FontOffset;
+  Y := Y - _FontOffset * FontInvScale;
 
   Size := Self.GetTextRect(Text);
 
@@ -581,11 +581,6 @@ Begin
     End;
 
     GetColors(A,B,C,D);
-
-    {$IFNDEF DISTANCEFIELDFONTS}
-    If (_DropShadow) Then
-      FM.DrawGlyph(View, Position.X - 1.0, Position.Y + 1.0, Layer - 0.1, _Transform, _CurrentGlyph, DropColor, DropColor, DropColor, DropColor, DropColor, _ClipRect, _Italics, DestSprite);
-    {$ENDIF}
 
     FM.DrawGlyph(View, Position.X, Position.Y, Layer, _Transform, _CurrentGlyph, _Outline, A,B,C,D, _ClipRect, _Italics, DestSprite);
   End;
@@ -636,7 +631,7 @@ Begin
       Continue;
     End;
 
-    Target.BlitWithAlpha(Trunc(Position.X + _CurrentGlyph.XOfs), Trunc(Position.Y + _CurrentGlyph.YOfs), 0, 0, GG.Width, GG.Height, GG, ForceBlend);
+    Target.BlitWithAlpha(Trunc(Position.X + _CurrentGlyph.XOfs * FontInvScale), Trunc(Position.Y + _CurrentGlyph.YOfs * FontInvScale), 0, 0, GG.Width, GG.Height, GG, ForceBlend);
   End;
   EndRender();
 End;

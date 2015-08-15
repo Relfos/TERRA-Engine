@@ -5,7 +5,7 @@ Uses
   {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_Scene, TERRA_GraphicsManager,
   TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_FontRenderer, TERRA_OS, TERRA_FileManager,
-  TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_Localization,
+  TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_Localization, TERRA_Sprite,
   TERRA_InputManager;
 
 Type
@@ -57,7 +57,7 @@ Begin
     Application.Instance.Terminate;
 End;
 
-// function to translate Unicode strings to TERRA internal format
+// function to translate Unicode strings to TERRA strings
 Function U2T(Const S:WideString):AnsiString;
 Var
   I:Integer;

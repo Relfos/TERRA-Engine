@@ -1562,7 +1562,7 @@ Begin
   W := GraphicsManager.Instance.Width;
   H := GraphicsManager.Instance.Height;
   Result := Image.Create(W, H);
-  glReadPixels(0, 0, W, H, GL_RGBA, GL_UNSIGNED_BYTE, Result.Pixels);
+  glReadPixels(0, 0, W, H, GL_RGBA, GL_UNSIGNED_BYTE, Result.RawPixels);
   Result.FlipVertical();
 End;
 
@@ -2018,7 +2018,7 @@ Begin
 	glReadBuffer(GL_COLOR_ATTACHMENT0 + 0);
   {$ENDIF}
 
-	glReadPixels(0,0, _Width, _Height, GL_RGBA, GL_UNSIGNED_BYTE, Result.Pixels);
+	glReadPixels(0,0, _Width, _Height, GL_RGBA, GL_UNSIGNED_BYTE, Result.RawPixels);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	Result.FlipVertical();
@@ -2154,7 +2154,7 @@ Begin
   glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, @_Width);
   glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, @_Height);
 
-  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, Result.Pixels);
+  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, Result.RawPixels);
 
   Result.FlipVertical();
   {$ENDIF}

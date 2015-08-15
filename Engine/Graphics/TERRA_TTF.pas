@@ -174,8 +174,7 @@ Type
 
 Implementation
 
-Uses TERRA_Log, TERRA_FileManager, Math
-{$IFDEF DISTANCEFIELDFONTS},TERRA_DistanceField{$ENDIF};
+Uses TERRA_Log, TERRA_FileManager, Math;
 
 // platformID
 const   STBTT_PLATFORM_ID_UNICODE   = 0;
@@ -690,6 +689,7 @@ begin
 
   // now we get the size
   Result := Image.Create(w, h);
+  Result.ClearWithColor(ColorNull);
   xoff   := ix0;
   yoff   := iy0;
   stbtt_Rasterize(Result, 0.35, vertices, num_verts, scale_x, scale_y, shift_x, shift_y, ix0, iy0, 1);
@@ -1682,7 +1682,7 @@ begin
       end;
 
       For iii:=0 to Pred(resultBitmap.Width) Do
-        resultBitmap.SetPixel(iii, j, ColorGrey(scanline[iii], scanline[iii]));
+        resultBitmap.SetPixel(iii, j, ColorGrey(255, scanline[iii]));
 
       Inc(j);
    end;
@@ -1716,22 +1716,12 @@ Var
   W,H,XOfs,YOfs, XAdv,lsb:Integer;
   OpID:Cardinal;
   I,J:Integer;
-  LocalScale:Integer;
   Img:Image;
-  {$IFDEF DISTANCEFIELDFONTS}
-  Temp:Image;
-  {$ENDIF}
 Begin
   Result := Nil;
 
   If (Not Self.HasGlyph(ID)) Then
     Exit;
-
-  {$IFDEF DISTANCEFIELDFONTS}
-  LocalScale := FontQuality;
-  {$ELSE}
-  LocalScale := 1;
-  {$ENDIF}
 
   _Scale := Self.ScaleForPixelHeight(Size);
 
@@ -1740,7 +1730,7 @@ Begin
   If (ID = 32) Then
   Begin
     OpID := Ord('E');
-    Img := GetCodepointBitmap(_Scale * LocalScale, _Scale * LocalScale, OpID, xofs, yofs);
+    Img := GetCodepointBitmap(_Scale, _Scale, OpID, xofs, yofs);
     ReleaseObject(Img);
     Img := Image.Create(4,4);
     stbtt_GetCodepointHMetrics(OpID, XAdv, lsb);
@@ -1749,7 +1739,7 @@ Begin
     Exit;
   End;
 
-  Img := GetCodepointBitmap(_Scale * LocalScale, _Scale * LocalScale, ID, xofs, yofs);
+  Img := GetCodepointBitmap(_Scale, _Scale, ID, xofs, yofs);
   If Not Assigned(Img) Then
     Exit;
 
@@ -1757,16 +1747,6 @@ Begin
 
   W := Img.Width;
   H := Img.Height;
-  W := W Div LocalScale;
-  H := H Div LocalScale;
-  XOfs := XOfs Div LocalScale;
-  YOfs := YOfs Div LocalScale;
-
-  {$IFDEF DISTANCEFIELDFONTS}
-  Temp := CreateDistanceField(Img, componentAlpha, LocalScale, LocalScale*2);
-  ReleaseObject(Img);
-  Img := Temp;
-  {$ENDIF}
 
   stbtt_GetCodepointHMetrics(ID, XAdv, lsb);
 
@@ -1798,8 +1778,8 @@ Function ValidateTTF(Source:Stream):Boolean;
 Var
    Major, Minor:Word;
 Begin
-  Source.Read(@Major, 2);
-  Source.Read(@Minor, 2);
+  Source.ReadWord(Major);
+  Source.ReadWord(Minor);
   ByteSwap16(Major);
   ByteSwap16(Minor);
   Result := (Major = 1) And (Minor = 0);

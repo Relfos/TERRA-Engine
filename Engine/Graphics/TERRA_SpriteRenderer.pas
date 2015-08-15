@@ -165,6 +165,17 @@ Begin
 	Line('  varying lowp vec4 color;');
 	Line('  uniform sampler2D texture;');
 
+  {$IFDEF DISTANCEFIELDFONTS}
+  Line('  const float smoothing = 3.0/16.0;');
+  Line('  const float outlineWidth = 5.0/16.0;');
+  Line('  const float outerEdgeCenter = 0.5 - outlineWidth;');
+  {$ENDIF}
+
+  If IsFont Then
+  Begin
+    Line('  uniform lowp vec4 outlineColor;');
+  End;
+
   Line(GetSaturationAndConstrast());
 
   {$IFNDEF DISABLECOLORGRADING}
@@ -190,22 +201,27 @@ Begin
   Line('    float distance = texture2D(texture, texCoord.xy).a;');
   Line('    float alpha = smoothstep(outerEdgeCenter - smoothing, outerEdgeCenter + smoothing, distance);');
   Line('    float border = smoothstep(0.5 - smoothing, 0.5 + smoothing, distance);');
-  Line('    gl_FragColor = vec4( mix(outline.rgb, color.rgb, border), alpha );');
+  Line('    gl_FragColor = vec4( mix(outlineColor.rgb, color.rgb, border), alpha );');
+  //Line('    gl_FragColor = vec4( color.rgb, border), alpha );');
 
   {$ELSE}
 
-  Line('    lowp float mask = texture2D(texture, texCoord.xy).a;');
+  Line('    lowp vec4 mask = texture2D(texture, texCoord.xy);');
   Line('    lowp float alpha;');
-  Line('    if (mask<0.5) alpha = 0.0; else alpha = 1.0;');
+  Line('    if (mask.a<0.5) alpha = 0.0; else alpha = 1.0;');
   {$IFNDEF MOBILE}
-  Line('    alpha *= smoothstep(0.25, 0.75, mask);');// anti-aliasing
+  Line('    alpha *= smoothstep(0.25, 0.75, mask.a);');// anti-aliasing
   {$ENDIF}
   Line('    lowp vec4 baseColor;');
   Line('    baseColor = color; ');
 
   //Line('    baseColor.rgb = AdjustSaturation(c.rgb, saturation); ');
   Line('    baseColor.rgb = AdjustSaturation(baseColor.rgb, saturation); ');
+//  Line('    baseColor.rgb = mix(baseColor.rgb, outlineColor.rgb, mask.r); ');
   Line('    gl_FragColor = vec4(baseColor.r, baseColor.g, baseColor.b, alpha * color.a);}');
+
+  //Line('    gl_FragColor = vec4(mask.r);');
+
   {$ENDIF}
   End Else
   Begin
@@ -260,12 +276,6 @@ Begin
   Line('  uniform lowp vec4 outline;');
 
   Line(GetSaturationAndConstrast());
-
-  {$IFDEF DISTANCEFIELDFONTS}
-  Line('  const float smoothing = 1.0/16.0;');
-  Line('  const float outlineWidth = 5.0/16.0;');
-  Line('  const float outerEdgeCenter = 0.5 - outlineWidth;');
-  {$ENDIF}
 
 	Line('  void main()	{');
 
@@ -692,10 +702,7 @@ Begin
   If (Assigned(Self._Shader)) Then
   Begin
     _Manager.SetShader(Projection, Self._Shader);
-
-    {$IFDEF DISTANCEFIELDFONTS}
-    _Manager._FontShader.SetColorUniform('outline', _Outline);
-    {$ENDIF}
+    _Manager._FontShader.SetColorUniform('outlineColor', ColorBlack{_Outline});
   End Else
   {$IFNDEF DISABLECOLORGRADING}
   If (Assigned(Self._ColorTable)) Then
