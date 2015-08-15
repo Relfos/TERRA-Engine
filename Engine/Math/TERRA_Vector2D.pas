@@ -29,7 +29,7 @@ Unit TERRA_Vector2D;
 {$ENDIF}
 
 Interface
-Uses TERRA_Vector3D, TERRA_Math;
+Uses TERRA_Vector3D, TERRA_Math, TERRA_String, TERRA_Utils;
 
 Type
   {$IFDEF OXYGENE}
@@ -70,6 +70,9 @@ Type
     {$ENDIF}
   End;
 
+Function StringToVector2D(S:TERRAString):Vector2D;
+Function Vector2DToString(Const Val:Vector2D):TERRAString;
+
 Function VectorCreate2D(Const X,Y:Single):Vector2D; 
 Function VectorCross2D(Const A,B:Vector2D):Single;
 
@@ -84,6 +87,17 @@ Function VectorAngle2D(Const A,B:Vector2D):Single;
 
 Implementation
 {$IFDEF NEON_FPU}Uses TERRA_NEON;{$ENDIF}
+
+Function StringToVector2D(S:TERRAString):Vector2D;
+Begin
+  Result.X := StringToFloat(StringGetNextSplit(S, Ord('/')));
+  Result.Y := StringToFloat(StringGetNextSplit(S, Ord('/')));
+End;
+
+Function Vector2DToString(Const Val:Vector2D):TERRAString;
+Begin
+  Result := FloatToString(Val.X) + '/'+ FloatToString(Val.Y);
+End;
 
 Function VectorCreate2D(Const X,Y:Single):Vector2D; {$IFDEF FPC} Inline;{$ENDIF}
 Begin

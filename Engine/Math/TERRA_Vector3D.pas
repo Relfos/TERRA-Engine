@@ -29,7 +29,7 @@ Unit TERRA_Vector3D;
 {$ENDIF}
 
 Interface
-Uses TERRA_Math;
+Uses TERRA_Math, TERRA_Utils, TERRA_String;
 
 Type
   {$IFDEF OXYGENE}
@@ -92,6 +92,9 @@ Const
 // Vector functions
 Function VectorCreate(Const X,Y,Z:Single):Vector3D; {$IFDEF FPC}Inline;{$ENDIF}
 
+Function StringToVector3D(S:TERRAString):Vector3D;
+Function Vector3DToString(Const Val:Vector3D):TERRAString;
+
 Function VectorConstant(Const N:Single):Vector3D; {$IFDEF FPC}Inline;{$ENDIF}
 
 Function VectorMax(Const A,B:Vector3D):Vector3D; {$IFDEF FPC}Inline;{$ENDIF}
@@ -127,6 +130,18 @@ Function GetTriangleHeight(H0,H1,H2:Single; X,Y:Single; Var Normal:Vector3D):Sin
 
 Implementation
 {$IFDEF NEON_FPU}Uses TERRA_NEON;{$ENDIF}
+
+Function StringToVector3D(S:TERRAString):Vector3D;
+Begin
+  Result.X := StringToFloat(StringGetNextSplit(S, Ord('/')));
+  Result.Y := StringToFloat(StringGetNextSplit(S, Ord('/')));
+  Result.Z := StringToFloat(StringGetNextSplit(S, Ord('/')));
+End;
+
+Function Vector3DToString(Const Val:Vector3D):TERRAString;
+Begin
+  Result := FloatToString(Val.X) + '/'+ FloatToString(Val.Y) + '/'+ FloatToString(Val.Z);
+End;
 
 
 Function Vector3D.Get(Index:Integer):Single;

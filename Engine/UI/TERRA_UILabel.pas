@@ -23,8 +23,14 @@ Type
 
 
   UILabel = Class(UIWidget)
+  private
+    function GetFont: TERRAFont;
+    procedure SetFont(const Value: TERRAFont);
     Protected
       _Caption:CaptionProperty;
+      _Outline:ColorProperty;
+      _Size:IntegerProperty;
+      _Font:FontProperty;
 
       _TextRect:Vector2D;
       _PreviousFont:TERRAFont;
@@ -45,6 +51,10 @@ Type
 			Procedure OnLanguageChange(); Override;
 
       Property Caption:CaptionProperty Read _Caption;
+      Property Outline:ColorProperty Read _Outline;
+
+      Property Font:TERRAFont Read GetFont Write SetFont;
+
       Property LocalizationKey:TERRAString Read GetLocalizationKey;
   End;
 
@@ -61,8 +71,10 @@ Begin
   Self.Width := Width;
   Self.Height := Height;
 
-
   _Caption := CaptionProperty(Self.AddProperty(CaptionProperty.Create('caption', Text, Self), False));
+  _Outline := ColorProperty(Self.AddProperty(ColorProperty.Create('outline', ColorBlack), False));
+  _Size := IntegerProperty(Self.AddProperty(IntegerProperty.Create('size', 30), False));
+  _Font := FontProperty(Self.AddProperty(FontProperty.Create('font', FontManager.Instance.GetFont('droid')), False));
 End;
 
 Function UILabel.GetLocalizationKey: TERRAString;
@@ -147,13 +159,19 @@ Var
   TextRect:Vector2D;
   TextArea:Vector2D;
 Begin
+  ReleaseObject(_Sprite);
   If _Sprite = Nil Then
     _Sprite := FontSprite.Create();
 
   Self._Caption.SetBlob(_Caption.Value);
 
-  Self.FontRenderer.SetFont(FontManager.Instance.DefaultFont);
+  Self.FontRenderer.SetFont(_Font.Value);
   Self.FontRenderer.SetColor(Self.GetColor());
+
+  Self.FontRenderer.SetOutline(_Outline.Value);
+  Self.FontRenderer.SetSize(_Size.Value);
+
+  Self.FontRenderer.SetTransform(_Transform);
 
   TextArea := VectorCreate2D(Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)),  Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
   TextRect := Self.FontRenderer.GetTextRect(Self.Caption._Text);
@@ -166,6 +184,16 @@ End;
 Function UILabel.SupportDrag(Mode: UIDragMode): Boolean;
 Begin
   Result := (Mode = UIDrag_Move);
+End;
+
+Function UILabel.GetFont: TERRAFont;
+Begin
+  Result := _Font.Value;
+End;
+
+Procedure UILabel.SetFont(const Value: TERRAFont);
+Begin
+  _Font.Value := Value;
 End;
 
 End.

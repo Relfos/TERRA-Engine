@@ -58,6 +58,7 @@ Type
     widget_Default,
     widget_Selected,
     widget_Highlighted,
+    widget_Dragged,
     widget_Disabled
   );
 
@@ -81,7 +82,9 @@ Type
   End;
 
   UIWidgetStateAnimation = Record
-    Color:ColorRGBA;
+    State:WidgetState;
+    PropName:TERRAString;
+    Value:TERRAString;
   End;
 
 	UIWidget = Class(CollectionObject)
@@ -92,6 +95,7 @@ Type
       _Width:DimensionProperty;
       _Height:DimensionProperty;
 			_Position:Vector2DProperty;
+      _Pivot:Vector2DProperty;
       _Layer:FloatProperty;
       _Align:EnumProperty;
       _Color:ColorProperty;
@@ -99,12 +103,14 @@ Type
       _Scale:FloatProperty;
       _Saturation:FloatProperty;
 			_Visible:BooleanProperty;
-      _Skin:StringProperty;
       _Draggable:BooleanProperty;
 
       _Deleted:Boolean;
 
-      _StateAnimations:Array[WidgetState] Of UIWidgetStateAnimation;
+      _State:WidgetState;
+
+      _Animations:Array Of UIWidgetStateAnimation;
+      _AnimationCount:Integer;
 
 			Function GetAbsolutePosition:Vector2D;
       Function GetRelativePosition:Vector2D;
@@ -118,7 +124,8 @@ Type
       Function GetDraggable: Boolean;
       Procedure SetDraggable(const Value: Boolean);
       Function GetUIView: UIWidget;
-    function IsEnabled: Boolean;
+
+      Function IsEnabled: Boolean;
 
 		Protected
 			_Parent:UIWidget;
@@ -138,9 +145,7 @@ Type
       _NeedsUpdate:Boolean;
       _NeedsHide:Boolean;
 
-      _State:WidgetState;
-
-      _MouseOver:Boolean;
+      _Selected:Boolean;
 
       _Dragging: Boolean;
       _DragMode:UIDragMode;
@@ -153,15 +158,12 @@ Type
       _InverseTransform:Matrix3x3;
       _TransformChanged:Boolean;
 
-      _LastState:Integer;
-
       _InheritColor:Boolean;
 
       _Hitting:Boolean;
       _HitTime:Cardinal;
 
       _Size:Vector2D;
-      _Pivot:Vector2D;
       _Center:Vector2D;
 
       _OriginalColor:ColorRGBA;
@@ -225,11 +227,18 @@ Type
 
       Procedure ResetClipRect();
 
-      Procedure UpdateLanguage; 
+      Procedure UpdateLanguage;
 
       Procedure SetObjectName(const Value: TERRAString); Override;
 
       Procedure ApplyDragMode(Const PX, PY:Single; Mode:UIDragMode);
+
+      Function GetPivot: Vector2D;
+      Procedure SetPivot(const Value: Vector2D);
+
+      Procedure SetState(Value:WidgetState);
+
+      Procedure OnStateChange(); Virtual;
 
       Property FontRenderer:FontRenderer Read GetFontRenderer;
 
@@ -239,6 +248,7 @@ Type
       DisableUIColor:Boolean;
       UserData:TERRAString;
 
+      CanReceiveEvents:Boolean;
 
       Constructor Create(Const Name:TERRAString; Parent:UIWidget);
       Procedure Release; Override;
@@ -249,10 +259,12 @@ Type
       Function IsSelectable():Boolean; Virtual;
       Function CanHighlight(GroupID:Integer):Boolean;
 
-      Procedure OnHit(EventType:WidgetEventType); Virtual;
+      Procedure TriggerEvent(EventType:WidgetEventType); Virtual;
       Procedure OnHighlight(Prev:UIWidget); Virtual;
 
       Procedure Delete();
+
+      Procedure AddAnimation(State:WidgetState; Const PropName, Value:TERRAString);
 
       Procedure SetEventHandler(EventType:WidgetEventType; Handler:WidgetEventHandler);
       Function GetEventHandler(EventType:WidgetEventType):WidgetEventHandler;
@@ -261,7 +273,7 @@ Type
       Function CanRender():Boolean;
       Function AllowsEvents(): Boolean;
 
-      Procedure PickAt(Const X, Y:Integer; Var CurrentPick:UIWidget; Var Max:Single; Ignore:UIWidget = Nil);
+      Procedure PickAt(Const X, Y:Integer; WithEventsOnly:Boolean; Var CurrentPick:UIWidget; Var Max:Single; Ignore:UIWidget = Nil);
 
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
       Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
@@ -273,7 +285,7 @@ Type
 
 			Function OnKeyDown(Key:Word):Boolean;Virtual;
 			Function OnKeyUp(Key:Word):Boolean;Virtual;
-			Function OnKeyPress(Key:Word):Boolean;Virtual;
+			Function OnKeyPress(Key:TERRAChar):Boolean;Virtual;
 
 			Function GetVisible:Boolean;
 			Function GetLayer:Single;
@@ -355,7 +367,7 @@ Type
 			Property AbsolutePosition:Vector2D Read GetAbsolutePosition Write SetAbsolutePosition;
 			Property RelativePosition:Vector2D Read GetRelativePosition Write SetRelativePosition;
 
-      Property Pivot:Vector2D Read _Pivot Write _Pivot;
+      Property Pivot:Vector2D Read GetPivot Write SetPivot;
       Property Size:Vector2D Read GetSize;
 			Property Layer:Single Read GetLayer Write SetLayer;
 
@@ -371,6 +383,8 @@ Type
 
       Property Parent:UIWidget Read _Parent Write SetParent;
       Property Align:Integer Read GetAlign Write SetAlign;
+
+      Property State:WidgetState Read _State;
 
       Property ChildrenCount:Integer Read _ChildrenCount;
 
@@ -430,7 +444,8 @@ Type
 
 Implementation
 
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Math, TERRA_GraphicsManager, TERRA_UIView, TERRA_UITiledRect, TERRA_UIImage, TERRA_UILabel,
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Math, TERRA_GraphicsManager,
+  TERRA_UIView, TERRA_UITiledRect, TERRA_UIImage, TERRA_UILabel, TERRA_UIEditText,
   TERRA_Localization;
 
 Function UITranslationMacro(Const Value:TERRAString):TERRAString;
@@ -465,6 +480,8 @@ End;
 
 { UIWidget }
 Constructor UIWidget.Create(Const Name:TERRAString; Parent:UIWidget);
+Var
+  I:WidgetState;
 Begin
   _ObjectName := Name;
 
@@ -474,9 +491,8 @@ Begin
 
   SetVisible(True);
 
-  _State := widget_Default;;
+  SetState(widget_Default);
 
-  _Pivot := VectorCreate2D(0.5, 0.5);
   SetScale(1.0);
   SetRotation(0.0);
   SetSaturation(1.0);
@@ -488,6 +504,13 @@ Begin
   //_DropShadowColor := ColorNull;
   _DropShadowColor := ColorGrey(0, 255);
 
+  Self.AddAnimation(widget_Default, 'color', 'FFFFFFFF');
+  Self.AddAnimation(widget_Default, 'scale', '1.0');
+
+  Self.AddAnimation(widget_Selected, 'color', '55FF55FF');
+//  Self.AddAnimation(widget_Selected, 'scale', '2.0');
+
+  Self.AddAnimation(widget_Highlighted, 'color', 'FF5555FF');
 
   _InheritColor := True;
   _TransformChanged := True;
@@ -513,12 +536,12 @@ Begin
   _Height := DimensionProperty(Self.AddProperty(DimensionProperty.Create('height', UIPixels(0)), False));
   _Visible := BooleanProperty(Self.AddProperty(BooleanProperty.Create('visible', True), False));
   _Position := Vector2DProperty(Self.AddProperty(Vector2DProperty.Create('position', VectorCreate2D(0, 0)), False));
+  _Pivot := Vector2DProperty(Self.AddProperty(Vector2DProperty.Create('pivot', VectorCreate2D(0.5, 0.5)), False));
   _Layer := FloatProperty(Self.AddProperty(FloatProperty.Create('layer', 1.0), False));
   _Color := ColorProperty(Self.AddProperty(ColorProperty.Create('color', ColorWhite), False));
   _Rotation := AngleProperty(Self.AddProperty(AngleProperty.Create('rotation', 0.0), False));
   _Scale := FloatProperty(Self.AddProperty(FloatProperty.Create('scale', 1.0), False));
   _Saturation := FloatProperty(Self.AddProperty(FloatProperty.Create('saturation', 1.0), False));
-  _Skin := StringProperty(Self.AddProperty(StringProperty.Create('skin', ''), False));
   _Draggable := BooleanProperty(Self.AddProperty(BooleanProperty.Create('draggable', False), False));
   _Align := EnumProperty(Self.AddProperty(EnumProperty.Create('align', 0, UIManager.Instance.AlignEnums), False));
 End;
@@ -560,19 +583,84 @@ Begin
   Self._Color.Value := ColorWhite;
 End;
 
-Procedure UIWidget.OnHit(EventType:WidgetEventType);
+Procedure UIWidget.TriggerEvent(EventType:WidgetEventType);
 Var
-  N:Integer;
-  Target:ColorRGBA;
+  I, J, N, Count:Integer;
   Ease:TweenEaseType;
+  TargetState:WidgetState;
+  Temp:TERRAObject;
+  Prop:TweenableProperty;
+  CurrentValue, TargetValue:TERRAString;
 Begin
-  Target := ColorScale(Self.Color, 0.5);
+  If (Self.State = widget_Disabled) Then
+    Exit;
+
+  Case EventType Of
+    widgetEvent_MouseDown:
+      TargetState := widget_Selected;
+
+    widgetEvent_MouseOver:
+      TargetState := widget_Highlighted;
+
+    widgetEvent_DragBegin:
+      TargetState := widget_Dragged;
+
+    widgetEvent_MouseOut,
+    //widgetEvent_MouseUp,
+    widgetEvent_DragEnd:
+      If _Selected Then
+        TargetState := widget_Selected
+      Else
+        TargetState := widget_Default;
+
+    Else
+      TargetState := Self.State;
+  End;
+
+  If (TargetState = Self.State) Then
+  Begin
+    CallEventHandler(EventType);
+    Exit;
+  End;
+
   N := 100;
-
   Ease := easeLinear;
+  Count := 0;
 
-  Self._Color.AddTween(Ease, Target, N, 0);
-  Self._Color.AddTween(Ease, Self.Color, N, N, TweenCallback(Self.GetEventHandler(EventType)), Self);
+  SetState(TargetState);
+
+  If (_State = widget_Selected) Then
+    _Selected := True
+  Else
+  If (_State = widget_Default) Then
+    _Selected := False;
+
+  For I:=0 To Pred(_AnimationCount) Do
+  If (_Animations[I].State = TargetState) Then
+  Begin
+    Temp := Self.FindProperty(_Animations[I].PropName);
+    If (Temp = Nil) Or (Not (Temp Is TweenableProperty)) Then
+      Continue;
+
+    Prop := TweenableProperty(Temp);
+
+    CurrentValue := Prop.GetBlob();
+    TargetValue := _Animations[I].Value;
+
+    For J:=0 To Pred(_AnimationCount) Do
+    If (_Animations[J].State = Self.State) And (StringEquals(_Animations[J].PropName, Prop.Name)) Then
+    Begin
+      CurrentValue := _Animations[J].Value;
+      Break;
+    End;
+
+
+    Prop.AddTweenFromBlob(Ease, CurrentValue, TargetValue, N, 0, TweenCallback(Self.GetEventHandler(EventType)), Self);
+    //Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Virtual; Abstract;
+  End;
+
+(*  Self._Color.AddTween(Ease, Target, N, 0);
+  Self._Color.AddTween(Ease, Self.Color, N, N, TweenCallback(Self.GetEventHandler(EventType)), Self);*)
 End;
 
 Procedure UIWidget.OnLanguageChange;
@@ -609,18 +697,14 @@ End;
 
 Procedure UIWidget.ConvertGlobalToLocal(Var V:Vector2D);
 Begin
-  If (Self.Rotation<>0.0) Then
-    V := Self._InverseTransform.Transform(V);
-
-  V.Subtract(Self.AbsolutePosition);
+  V := Self._InverseTransform.Transform(V);
+//  V.Subtract(Self.AbsolutePosition);
 End;
 
 Procedure UIWidget.ConvertLocalToGlobal(Var V:Vector2D);
 Begin
-  V.Add(Self.AbsolutePosition);
-
-  If (Self.Rotation<>0.0) Then
-    V := Self._Transform.Transform(V);
+//  V.Add(Self.AbsolutePosition);
+  V := Self._Transform.Transform(V);
 End;
 
 
@@ -765,7 +849,7 @@ End;
 
 Function UIWidget.Show(AnimationFlags:Integer; EaseType:TweenEaseType; Delay, Duration:Cardinal; Callback:TweenCallback):Boolean;
 Var
-  X, Y, TY:Single;
+  TY:Single;
   A:Byte;
 Begin
   If Visible Then
@@ -782,73 +866,55 @@ Begin
 
   If (AnimationFlags And widgetAnimatePosX<>0) Then
   Begin
-    X := _Position.X.Value;
-    _Position.X.Value := -(Self.Size.X);
-    _Position.X.AddTween(EaseType, X, Duration, Delay, Callback, Self);
+    _Position.X.AddTween(EaseType, -(Self.Size.X), _Position.X.Value, Duration, Delay, Callback, Self);
     Callback := Nil;
   End Else
   If (AnimationFlags And widgetAnimatePosX_Bottom<>0) Then
   Begin
-    X := _Position.X.Value;
-    _Position.X.Value := UIManager.Instance.Width + (Self.Size.X);
-    _Position.X.AddTween(EaseType, X, Duration, Delay, Callback, Self);
+    _Position.X.AddTween(EaseType, UIManager.Instance.Width + (Self.Size.X), _Position.X.Value, Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
   If (AnimationFlags And widgetAnimatePosY<>0) Then
   Begin
-    Y := _Position.Y.Value;
-
     TY := -Self.Size.Y;
     If (Self.Align = waCenter) Or (Self.Align = waLeftCenter) Or (Self.Align = waRightCenter) Then
       TY := TY - (UIManager.Instance.Height * 0.5);
 
-    _Position.Y.Value := TY;
-    _Position.Y.AddTween(EaseType, Y, Duration, Delay, Callback, Self);
+    _Position.Y.AddTween(EaseType, TY, _Position.Y.Value, Duration, Delay, Callback, Self);
     Callback := Nil;
   End Else
   If (AnimationFlags And widgetAnimatePosY_Bottom<>0) Then
   Begin
-    Y := _Position.Y.Value;
-
     TY := UIManager.Instance.Height + Self.Size.Y;
     If (Self.Align = waCenter) Or (Self.Align = waLeftCenter) Or (Self.Align = waRightCenter) Then
       TY := TY + (UIManager.Instance.Height * 0.5);
 
-    _Position.Y.Value := TY;
-    _Position.Y.AddTween(EaseType, Y, Duration, Delay, Callback, Self);
+    _Position.Y.AddTween(EaseType, TY, _Position.Y.Value, Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
   If (AnimationFlags And widgetAnimateAlpha<>0) Then
   Begin
-    A := _Color.Alpha.Value;
-    _Color.Alpha.Value := 0;
-    _Color.Alpha.AddTween(EaseType, A, Duration, Delay, Callback, Self);
+    _Color.Alpha.AddTween(EaseType, 0, _Color.Alpha.Value, Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
   If (AnimationFlags And widgetAnimateRotation<>0) Then
   Begin
-    X := GetRotation();
-    SetRotation(X + (360.0 * RAD) * 4.0);
-    _Rotation.AddTween(EaseType, X, Duration, Delay, Callback, Self);
+    _Rotation.AddTween(EaseType, GetRotation() + (360.0 * RAD) * 4.0, GetRotation(), Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
   If (AnimationFlags And widgetAnimateScale<>0) Then
   Begin
-    X := GetScale();
-    SetScale(0.0);
-    _Scale.AddTween(EaseType, X, Duration, Delay, Callback, Self);
+    _Scale.AddTween(EaseType, 0.0, GetScale(), Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
   If (AnimationFlags And widgetAnimateSaturation<>0) Then
   Begin
-    X := GetSaturation();
-    SetSaturation(0.0);
-    _Saturation.AddTween(EaseType, X, Duration, Delay, Callback, Self);
+    _Saturation.AddTween(EaseType, 0.0, GetSaturation(), Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
@@ -878,12 +944,12 @@ Begin
     If (Self.Align = waCenter) Or (Self.Align = waTopCenter) Or (Self.Align = waBottomCenter) Then
       Ofs := Ofs - Self.AbsolutePosition.X;
 
-    _Position.X.AddTween(EaseType, Ofs, Duration, Delay, Callback, Self);
+    _Position.X.AddTween(EaseType, _Position.X.Value, Ofs, Duration, Delay, Callback, Self);
     Callback := Nil;
   End Else
   If (AnimationFlags And widgetAnimatePosX_Bottom<>0) Then
   Begin
-    _Position.X.AddTween(EaseType, UIManager.Instance.Width +(Self.Size.X+15), Duration, Delay, Callback, Self);
+    _Position.X.AddTween(EaseType, _Position.X.Value, UIManager.Instance.Width +(Self.Size.X+15), Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
@@ -894,18 +960,18 @@ Begin
     If (Self.Align = waCenter) Or (Self.Align = waLeftCenter) Or (Self.Align = waRightCenter) Then
       Ofs := Ofs - Self.AbsolutePosition.Y;
 
-    _Position.Y.AddTween(EaseType, Ofs, Duration, Delay, Callback, Self);
+    _Position.Y.AddTween(EaseType, _Position.Y.Value, Ofs, Duration, Delay, Callback, Self);
     Callback := Nil;
   End Else
   If (AnimationFlags And widgetAnimatePosY_Bottom<>0) Then
   Begin
-    _Position.Y.AddTween(EaseType, UIManager.Instance.Height + Self.Size.Y, Duration, Delay, Callback, Self);
+    _Position.Y.AddTween(EaseType, _Position.Y.Value, UIManager.Instance.Height + Self.Size.Y, Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
   If (AnimationFlags And widgetAnimateAlpha<>0) Then
   Begin
-    _Color.Alpha.AddTween(EaseType, 0.0, Duration, Delay, Callback, Self);
+    _Color.Alpha.AddTween(EaseType, _Color.Alpha.Value, 0, Duration, Delay, Callback, Self);
     Callback := Nil;
   End;
 
@@ -1180,7 +1246,7 @@ Begin
   End;*)
 End;
 
-Function UIWidget.OnKeyPress(Key:Word):Boolean;
+Function UIWidget.OnKeyPress(Key:TERRAChar):Boolean;
 Begin
   RemoveHint(Key);
 	Result := False;
@@ -1231,7 +1297,7 @@ Begin
     Result := Self.Parent.AllowsEvents();
 End;
 
-Procedure UIWidget.PickAt(Const X, Y:Integer; Var CurrentPick:UIWidget; Var Max:Single; Ignore:UIWidget);
+Procedure UIWidget.PickAt(Const X, Y:Integer; WithEventsOnly:Boolean; Var CurrentPick:UIWidget; Var Max:Single; Ignore:UIWidget);
 Var
   I:Integer;
 Begin
@@ -1240,13 +1306,16 @@ Begin
   If (Self.Layer < Max) Or (Not Self.OnRegion(X,Y)) Or (Self = Ignore) Then
     Exit;
 
-  CurrentPick := Self;
-  Max := Self.Layer;
+  If (Not WithEventsOnly) Or (Self.CanReceiveEvents) Then
+  Begin
+    CurrentPick := Self;
+    Max := Self.Layer;
+  End;
 
   For I:=0 To Pred(_ChildrenCount) Do
   If (_ChildrenList[I].AllowsEvents()) Then
   Begin
-    _ChildrenList[I].PickAt(X, Y, CurrentPick, Max, Ignore);
+    _ChildrenList[I].PickAt(X, Y, WithEventsOnly, CurrentPick, Max, Ignore);
   End;
 End;
 
@@ -1328,7 +1397,7 @@ Begin
   End;
 
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Found, and has handler: '+BoolToString(Assigned(OnMouseClick)));{$ENDIF}
-  Self.OnHit(widgetEvent_MouseDown);
+  Self.TriggerEvent(widgetEvent_MouseDown);
 End;
 
 Procedure UIWidget.OnMouseUp(X,Y:Integer;Button:Word);
@@ -1485,9 +1554,10 @@ Begin
     Ratio := UIManager.Instance.Ratio;
 
   Center := Self.GetSize();
-  Center.X := Center.X * _Pivot.X;
-  Center.Y := Center.Y * _Pivot.Y;
-  Center.Add(Self.GetAbsolutePosition());
+  Center.Scale(Self.Pivot);
+
+  (*If _Rotation.Value<>0 Then
+    _Rotation.Value := 1.0+RAD*(Trunc(Application.GetTime()/10));*)
 
   If (_Rotation.Value <> 0.0) Then
     _Transform := MatrixRotationAndScale2D(_Rotation.Value, _Scale.Value, _Scale.Value * Ratio)
@@ -1496,10 +1566,10 @@ Begin
 
   _Transform := MatrixTransformAroundPoint2D(Center, _Transform);
 
-  _Transform := MatrixMultiply3x3(_Transform, MatrixTranslation2D(Self.GetAlignedPosition()));
+  _Transform := MatrixMultiply3x3(MatrixTranslation2D(Self.GetAlignedPosition()), _Transform);
 
   If Assigned(_Parent) Then
-    _Transform := MatrixMultiply3x3(_Transform, Parent._Transform);
+    _Transform := MatrixMultiply3x3(Parent._Transform, _Transform);
 
   Self.GetScrollOffset(OfsX, OfsY);
 
@@ -1596,7 +1666,6 @@ Begin
     Inc(I);
 End;
 
-
 Procedure UIWidget.Render(View:TERRAViewport);
 Var
   I:Integer;
@@ -1636,7 +1705,7 @@ Function UIWidget.OnSelectAction: Boolean;
 Begin
   If (Self.Selected) And (Not Self.HasPropertyTweens()) Then
   Begin
-    Self.OnHit(widgetEvent_MouseDown);
+    Self.TriggerEvent(widgetEvent_MouseDown);
     Result := True;
   End Else
     Result := False;
@@ -2222,6 +2291,43 @@ Begin
   Result := (Self._State <> widget_Disabled);
 End;
 
+Procedure UIWidget.AddAnimation(State: WidgetState; const PropName, Value: TERRAString);
+Begin
+  Inc(_AnimationCount);
+  SetLength(_Animations, _AnimationCount);
+
+  _Animations[Pred(_AnimationCount)].State := State;
+  _Animations[Pred(_AnimationCount)].PropName := PropName;
+  _Animations[Pred(_AnimationCount)].Value := Value;
+End;
+
+Function UIWidget.GetPivot: Vector2D;
+Begin
+  Result := _Pivot.Value;
+End;
+
+Procedure UIWidget.SetPivot(const Value: Vector2D);
+Begin
+  _Pivot.Value := Value;
+End;
+
+Procedure UIWidget.OnStateChange;
+Begin
+  // do nothing
+End;
+
+Procedure UIWidget.SetState(Value: WidgetState);
+Var
+  I:Integer;
+Begin
+  _State := Value;
+
+  Self.OnStateChange();
+
+  For I:=0 To Pred(_ChildrenCount) Do
+    _ChildrenList[I].SetState(Value);
+End;
+
 { UIInstancedWidget }
 Constructor UIInstancedWidget.Create(Const Name: TERRAString; Parent: UIWidget; X, Y, Z: Single; const Width, Height: UIDimension; Const TemplateName:TERRAString);
 Var
@@ -2253,6 +2359,8 @@ Begin
   Self.Layer := Z;
   Self.Width := Width;
   Self.Height := Height;
+
+  Self.CanReceiveEvents := True;
 End;
 
 Procedure UIInstancedWidget.Release;
@@ -2277,9 +2385,13 @@ Begin
     Exit;
   End;
 
+  If (Template Is UIEditText) Then
+  Begin
+    Result := UIEditText.Create(Template.Name, Parent, 0, 0, 0, UIPixels(100), UIPixels(100));
+  End Else
   If (Template Is UILabel) Then
   Begin
-    Result := UILabel.Create(Template.Name, Parent, 0, 0, 0, UIPixels(100), UIPixels(100), 'basaf');
+    Result := UILabel.Create(Template.Name, Parent, 0, 0, 0, UIPixels(100), UIPixels(100), '???');
   End Else
   If (Template Is UITiledRect) Then
   Begin
@@ -2291,6 +2403,7 @@ Begin
   End;
 
   Result.CopyProperties(Template);
+  Result.CanReceiveEvents := Template.CanReceiveEvents;
 
   For I:=0 To Pred(Template.ChildrenCount) Do
   Begin

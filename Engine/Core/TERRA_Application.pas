@@ -446,7 +446,7 @@ Type
 
 			Procedure OnKeyDown(Key:Word); Virtual;
 			Procedure OnKeyUp(Key:Word); Virtual;
-			Procedure OnKeyPress(Key:Word); Virtual;
+			Procedure OnKeyPress(Key:TERRAChar); Virtual;
 
 			Procedure OnMouseDown(X,Y:Integer;Button:Word); Virtual;
 			Procedure OnMouseUp(X,Y:Integer;Button:Word); Virtual;
@@ -2166,7 +2166,7 @@ Begin
     Application.Instance.Terminate;
 End;
 
-Procedure BaseApplication.OnKeyPress(Key:Word);
+Procedure BaseApplication.OnKeyPress(Key:TERRAChar);
 Begin
 
 End;

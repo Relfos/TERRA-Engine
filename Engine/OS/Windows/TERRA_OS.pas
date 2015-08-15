@@ -284,6 +284,7 @@ Var
   Delta:Integer;
   W,H, I:Integer;
   S:TERRAString;
+  It:StringIterator;
   sz:TRECT;
   Temp:Boolean;
   App:WindowsApplication;
@@ -430,8 +431,12 @@ Begin
                 If (wParam=22) And  ($8000 And GetKeyState(VK_CONTROL)<>0) Then
                 Begin
                   S := WindowsApplication(App).GetClipboard();
-                  For I:=1 To Length(S) Do
-                    App.AddValueEvent(eventKeyPress, Ord(S[I]));
+                  StringCreateIterator(S, It, False);
+                  While It.HasNext() Do
+                  Begin
+                    App.AddValueEvent(eventKeyPress, It.GetNext());
+                  End;
+                  
                 End Else
                   App.AddValueEvent(eventKeyPress, wParam);
               End;

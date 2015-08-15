@@ -34,11 +34,13 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
 Const
   TabSize = 100;
 
-  FontBorder = 10;
-  FontSpread = FontBorder + 2;
+  FontPadding = 10;
+  FontSpread  = 14;
 
-  FontRescale = 8;
+  FontRescale = 3;
   FontInvScale = 1.0 / FontRescale;
+
+  DefaultFontSize = 30;
 
   DefaultFontPageWidth = 256 * FontRescale;
   DefaultFontPageHeight = 512 * FontRescale;
@@ -109,6 +111,8 @@ Type
 
   FontSprite = Class(TERRASprite)
     Protected
+      _Scale:Single;
+
       Procedure AddGlyph(Const X,Y:Single; Glyph:FontGlyph; Const A, B, C, D:ColorRGBA; Skew:Single);
 
   End;
@@ -212,7 +216,7 @@ Type
 
       Class Function Instance:FontManager;
 
-      Function DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Const Outline, A,B,C,D:ColorRGBA; Clip:ClipRect; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
+      Function DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Const Scale:Single; Glyph:FontGlyph; Const Outline, A,B,C,D:ColorRGBA; Clip:ClipRect; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
 
       Function GetFont(Name:TERRAString; ValidateError:Boolean = True):TERRAFont;
 
@@ -367,12 +371,12 @@ Begin
     If Size<=0 Then
     Begin
       FontName := Name;
-      Size := 30;
+      Size := DefaultFontSize;
     End;
   End Else
   Begin
     FontName := Name;
-    Size := 30;
+    Size := DefaultFontSize;
   End;
 
   Name := GetFileName(Name, True);
@@ -402,7 +406,7 @@ Begin
     RaiseError('Could not find font. ['+Name +']');
 End;
 
-Function FontManager.DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Glyph:FontGlyph; Const Outline, A,B,C,D:ColorRGBA; Clip:ClipRect; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
+Function FontManager.DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Const Scale:Single; Glyph:FontGlyph; Const Outline, A,B,C,D:ColorRGBA; Clip:ClipRect; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
 Var
   Filter:TextureFilterMode;
   Item:TextureAtlasItem;
@@ -436,9 +440,9 @@ Begin
   DestSprite.SetTransform(Transform);
   DestSprite.ClipRect := Clip;
   DestSprite.Outline := Outline;
-//  DestSprite.SetScale(Scale);
+  DestSprite._Scale := Scale;
 
-  DestSprite.AddGlyph(X + Glyph.XOfs* FontInvScale, Y + Glyph.YOfs * FontInvScale, Glyph, A, B, C, D, Skew);
+  DestSprite.AddGlyph(X, Y, Glyph, A, B, C, D, Skew);
 
   Result := True;
 End;
@@ -559,7 +563,7 @@ Function FontGlyph.GetAdvance(Next:Cardinal):Integer;
 Var
   I:Integer;
 Begin
-  Result := (XAdvance - XOfs) + FontBorder;
+  Result := (XAdvance - XOfs);
 
   For I:=0 To Pred(KerningCount) Do
   If (KerningList[I].Next = Next) Then
@@ -634,7 +638,7 @@ Begin
   If (_GlyphCount>0) Then
     _AvgHeight := _AvgHeight / _GlyphCount;
 
-  _AvgHeight := _AvgHeight + FontBorder * 2;
+  _AvgHeight := _AvgHeight;
 End;
 
 Class Function TERRAFont.GetManager:Pointer;
@@ -841,11 +845,10 @@ Begin
   If (Source = Nil) Or (Source.Width<=0) Then
     Exit;
 
-  //Source.Save('glyph'+CardinalTOString(ID)+'.png');
+//  Source.Save('glyph'+CardinalTOString(ID)+'.png');
 
-  Temp := Image.Create(Source.Width + FontBorder * 2, Source.Height + FontBorder * 2);
-
-  Temp.Blit(FontBorder, FontBorder, 0, 0, Source.Width, Source.Height, Source);
+  Temp := Image.Create(Source.Width + FontPadding * 2, Source.Height + FontPadding * 2);
+  Temp.Blit(FontPadding, FontPadding, 0, 0, Source.Width, Source.Height, Source);
 
   //Temp.Save('glyph'+CardinalTOString(ID)+'.png');
 
@@ -885,8 +888,8 @@ Begin
     IntToString(2);}
 
   Result.ID := ID;
-  Result.Width := Temp.Width - FontBorder * 2;
-  Result.Height := Temp.Height - FontBorder * 2;
+  Result.Width := Source.Width;
+  Result.Height := Source.Height;
   Result.XOfs := XOfs;
   Result.YOfs := YOfs;
 
@@ -895,9 +898,8 @@ Begin
 
 //  Result._Temp.Save('glyph'+CardinalTOString(ID)+'.png');
 
-
   If (XAdvance<=0) Then
-    XAdvance := Result.Width;
+    XAdvance := Source.Width;
 
   Result.XAdvance := XAdvance;
 
@@ -920,7 +922,7 @@ Begin
   For I:=0 To Pred(_GlyphCount) Do
   If (Assigned(_Glyphs[I]._Temp)) Then
   Begin
-    _Glyphs[I]._Item := _Atlas.Add(_Glyphs[I]._Temp, CardinalToString(_Glyphs[I].ID));
+    _Glyphs[I]._Item := _Atlas.Add(_Glyphs[I]._Temp, CardinalToString(_Glyphs[I].ID), False, FontPadding);
     ReleaseObject(_Glyphs[I]._Temp);
   End;
 
@@ -1073,10 +1075,10 @@ Var
 Begin
   Item := Glyph._Item;
 
-  Width := Item.Buffer.Width;
-  Height := Item.Buffer.Height;
+  Width := Trunc((Item.Buffer.Width - FontPadding) * _Scale);
+  Height := Trunc((Item.Buffer.Height - FontPadding) * _Scale);
 
-  Self.MakeQuad(VectorCreate2D(X, Y), 0.0, Item.U1, Item.V1, Item.U2, Item.V2, Width *FontInvScale, Height* FontInvScale, A, B, C, D, Skew);
+  Self.MakeQuad(VectorCreate2D(X + Glyph.XOfs * FontInvScale * _Scale, Y +  + Glyph.YOfs * FontInvScale * _Scale), 0.0, Item.U1, Item.V1, Item.U2, Item.V2, Width *FontInvScale, Height* FontInvScale, A, B, C, D, Skew);
 End;
 
 

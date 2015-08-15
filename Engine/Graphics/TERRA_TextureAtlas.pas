@@ -41,6 +41,8 @@ Type
       _X1,_Y1:Integer;
       _X2,_Y2:Integer;
 
+      _Crop:Integer;
+
     Public
       ID:Integer;
       PageID:Integer;
@@ -93,7 +95,8 @@ Type
       Constructor Create(Name:TERRAString; Width, Height:Integer);
       Procedure Release; Override;
 
-      Function Add(Source:Image; Name:TERRAString; ShareSource:Boolean = False):TextureAtlasItem;
+      Function Add(Source:Image; Name:TERRAString; ShareSource:Boolean = False; Crop:Integer = 0):TextureAtlasItem;
+
       Procedure Delete(ID:Integer);
       Function Get(ID:Integer):TextureAtlasItem; Overload;
       Function Get(Const Name:TERRAString):TextureAtlasItem; Overload;
@@ -148,7 +151,7 @@ Begin
   _ItemCount := 0;
 End;
 
-Function TextureAtlas.Add(Source:Image; Name:TERRAString; ShareSource:Boolean): TextureAtlasItem;
+Function TextureAtlas.Add(Source:Image; Name:TERRAString; ShareSource:Boolean; Crop:Integer): TextureAtlasItem;
 Begin
   If (Source = Nil) Or (Source.Width<=0) Or (Source.Height<=0) Then
   Begin
@@ -159,6 +162,7 @@ Begin
   Name := GetFileName(Name, True);
   Inc(_ItemCount);
   SetLength(_ItemList, _ItemCount);
+
   Log(logDebug, 'Game', 'Creating TextureAtlas item');
   Result := TextureAtlasItem.Create;
   _ItemList[Pred(_ItemCount)] := Result;
@@ -173,6 +177,7 @@ Begin
   End;
 
   Result.ID := _RefCount;
+  Result._Crop := Crop;
   Inc(_RefCount);
   Log(logDebug, 'Game', 'TextureAtlas element added');
 End;
@@ -228,7 +233,7 @@ End;
 
 Function TextureAtlas.Update:Boolean;
 Var
-  I, X, Y, W, H:Integer;
+  I, X, Y, W, H, Crop:Integer;
   Packer:RectanglePacker;
   LastCount, Count:Integer;
 Begin
@@ -277,11 +282,13 @@ Begin
       Y := 0;
       If (Packer.GetRect(_ItemList[I].ID, X, Y)) Then
       Begin
-        _ItemList[I]._X1 := X;
-        _ItemList[I]._Y1 := Y;
+        Crop := _ItemList[I]._Crop;
 
-        _ItemList[I]._X2 := X + _ItemList[I].Buffer.Width;
-        _ItemList[I]._Y2 := Y + _ItemList[I].Buffer.Height;
+        _ItemList[I]._X1 := X + Crop;
+        _ItemList[I]._Y1 := Y + Crop;
+
+        _ItemList[I]._X2 := X + (_ItemList[I].Buffer.Width + Crop);
+        _ItemList[I]._Y2 := Y + (_ItemList[I].Buffer.Height + Crop);
 
         _ItemList[I]._U1 := _ItemList[I]._X1 / Self._Width;
         _ItemList[I]._V1 := _ItemList[I]._Y1 / Self._Height;

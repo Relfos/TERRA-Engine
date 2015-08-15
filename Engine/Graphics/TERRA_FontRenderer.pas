@@ -64,6 +64,9 @@ Type
       _Sprites:Array Of FontSprite;
       _SpriteCount:Integer;
 
+      _Size:Single;
+      _Scale:Single;
+
       Function AllocSprite():FontSprite;
 
       Function GetNextChar:TERRAChar;
@@ -87,7 +90,9 @@ Type
       Function SetGradient(Const A,B:ColorRGBA; GradientMode:FontGradient):FontRenderer;
       Function SetOutline(Const OutlineColor:ColorRGBA):FontRenderer;
 
-      Function  SetFont(Const TargetFont:TERRAFont):FontRenderer;
+      Function SetFont(Const TargetFont:TERRAFont):FontRenderer;
+
+      Function SetSize(Const Size:Single):FontRenderer;
 
       Function SetTransform(Const Transform:Matrix3x3):FontRenderer;
       Function  SetDropShadow(Const DropShadowColor:ColorRGBA):FontRenderer;
@@ -138,6 +143,7 @@ Function FontRenderer.Reset():FontRenderer;
 Begin
   SetColor(ColorWhite);
   SetTransform(MatrixIdentity3x3);
+  SetSize(DefaultFontSize);
   Result := Self;
 End;
 
@@ -271,7 +277,7 @@ Begin
 
   //Log(logDebug,'AdWall', 'Calculating advance');
   _TargetPosition := _CurrentPosition;
-  _AdvanceX := _CurrentGlyph.GetAdvance(_Next) * FontInvScale;
+  _AdvanceX := _CurrentGlyph.GetAdvance(_Next) * FontInvScale * _Scale;
   _CurrentPosition.X := _CurrentPosition.X + _AdvanceX;
 
   //Log(logDebug,'AdWall', 'Testing effects');
@@ -420,7 +426,7 @@ Begin
               _CurrentPosition.X := _StartPosition.X;
 
               If Assigned(_Font) Then
-                _CurrentPosition.Y := _CurrentPosition.Y + _NewLineOffset + _Font.NewLineOffset * FontInvScale;
+                _CurrentPosition.Y := _CurrentPosition.Y + _NewLineOffset + _Font.NewLineOffset * FontInvScale *  _Scale;
             End;
   End;
 
@@ -560,8 +566,6 @@ Begin
 
   Size := Self.GetTextRect(Text);
 
-  _Outline := ColorGreen;
-
   If (_DropShadow) Then
   Begin
     DropColor := _InitDropColor;
@@ -584,7 +588,7 @@ Begin
 
     GetColors(A,B,C,D);
 
-    FM.DrawGlyph(View, Position.X, Position.Y, Layer, _Transform, _CurrentGlyph, _Outline, A,B,C,D, _ClipRect, _Italics, DestSprite);
+    FM.DrawGlyph(View, Position.X, Position.Y, Layer, _Transform, _Scale, _CurrentGlyph, _Outline, A,B,C,D, _ClipRect, _Italics, DestSprite);
   End;
 
   (*If Assigned(DestSprite.Texture) Then
@@ -664,6 +668,14 @@ Begin
   {$IFDEF DISTANCEFIELDFONTS}
   Self.SetOutline(DropShadowColor);
   {$ENDIF}
+
+  Result := Self;
+End;
+
+Function FontRenderer.SetSize(const Size: Single): FontRenderer;
+Begin
+  _Size := Size;
+  _Scale := _Size / DefaultFontSize;
 
   Result := Self;
 End;
@@ -773,5 +785,6 @@ Begin
   For I:=0 To Pred(Length(_Sprites)) Do
     ReleaseObject(_Sprites[I]);
 End;
+
 
 End.

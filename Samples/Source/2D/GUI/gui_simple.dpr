@@ -19,6 +19,7 @@ uses
   TERRA_CollectionObjects,
   TERRA_TTF,
   TERRA_PNG,
+  TERRA_Math,
   TERRA_Scene,
   TERRA_Color,
   TERRA_String,
@@ -55,7 +56,7 @@ Type
 Var
   Fnt:TERRAFont;
   MyUI:UIView;
-  MyWnd, MyBtn:UIWidget;
+  MyWnd, MyBtn:UIWidget; 
 
 { Game }
 Procedure Demo.OnCreate;
@@ -112,12 +113,14 @@ Begin
   UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', TextureManager.Instance.GetTexture('ui_button2'), 25, 10, 220, 37));
 
   MyWnd := UIInstancedWidget.Create('mywnd', MyUI, 0, 0, 10, UIPixels(643), UIPixels(231), 'wnd_template');
-//  MyWnd.Draggable := True;
+  MyWnd.Draggable := True;
   MyWnd.Align := waCenter;
 
   MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, 0, 0, 1, UIPixels(250), UIPixels(50), 'btn_template');
   MyBtn.Align := waCenter;
   MyBtn.SetEventHandler(widgetEvent_MouseDown, OnMyButtonClick); // Assign a onClick event handler
+  MyBtn.Rotation := 45*RAD;
+
 End;
 
 Procedure MyScene.Release;

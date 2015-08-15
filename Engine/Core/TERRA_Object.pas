@@ -75,6 +75,8 @@ Type
   TweenState = (tweenWaiting, tweenRunning, tweenFinished);
 
   TweenObject = Object
+    TweenID:Cardinal;
+
     StartValue:Single;
     TargetValue:Single;
 
@@ -91,36 +93,39 @@ Type
 
   TweenableProperty = Class(TERRAObject)
     Protected
-      _CurrentValue:Double;
-
       _TweenList:Array Of TweenObject;
       _TweenCount:Integer;
 
-      Function GetCurrentValue:Single;
-      Procedure SetCurrentValue(Const NewValue:Single);
+      Procedure RegisterTween(Const Ease:TweenEaseType; TweenID:Integer; Const StartValue, TargetValue:Single; Const Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
+
+      Procedure UpdateTweens(); Virtual;
+
+      Procedure UpdateTweenValue(Const TweenID:Integer; Const Value:Single); Virtual; Abstract;
 
     Public
-      Constructor Create(Const Name:TERRAString; Const InitValue:Single);
-
-      Procedure AddTween(Ease:TweenEaseType; TargetValue:Single; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
+      Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Virtual; Abstract;
 
       Function IsValueObject():Boolean; Override;
 
-      Function GetBlob():TERRAString; Override;
-      Procedure SetBlob(Const Blob:TERRAString); Override;
-
       Function HasPropertyTweens:Boolean; Override;
-
-      Property Value:Single Read GetCurrentValue Write SetCurrentValue;
   End;
 
   IntegerProperty = Class(TweenableProperty)
     Protected
+      _Value:Integer;
+
       Function GetIntegerValue: Integer;
       Procedure SetIntegerValue(const NewValue:Integer);
 
+      Procedure UpdateTweenValue(Const TweenID:Integer; Const Value:Single); Override;
+
     Public
+      Constructor Create(Const Name:TERRAString; Const InitValue:Integer);
+
       Function GetObjectType:TERRAString; Override;
+
+      Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
+      Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Integer; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
 
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
@@ -130,11 +135,19 @@ Type
 
   ByteProperty = Class(TweenableProperty)
     Protected
+      _Value:Byte;
+
       Function GetByteValue:Byte;
       Procedure SetByteValue(const NewValue:Byte);
 
+      Procedure UpdateTweenValue(Const TweenID:Integer; Const Value:Single); Override;
+
     Public
+      Constructor Create(Const Name:TERRAString; Const InitValue:Byte);
       Function GetObjectType:TERRAString; Override;
+
+      Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
+      Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Byte; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
 
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
@@ -143,8 +156,26 @@ Type
   End;
 
   FloatProperty = Class(TweenableProperty)
+    Protected
+      _Value:Single;
+
+      Function GetFloatValue: Single;
+      Procedure SetFloatValue(const NewValue:Single);
+
+      Procedure UpdateTweenValue(Const TweenID:Integer; Const Value:Single); Override;
+
     Public
+      Constructor Create(Const Name:TERRAString; Const InitValue:Single);
       Function GetObjectType:TERRAString; Override;
+
+      Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
+      Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Single; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
+
+      Function GetBlob():TERRAString; Override;
+      Procedure SetBlob(Const Blob:TERRAString); Override;
+
+      Property Value:Single Read GetFloatValue Write SetFloatValue;
+
   End;
 
   AngleProperty = Class(FloatProperty)
@@ -152,7 +183,7 @@ Type
       Function GetObjectType:TERRAString; Override;
   End;
 
-  ColorProperty = Class(TERRAObject)
+  ColorProperty = Class(TweenableProperty)
     Protected
       _Red:ByteProperty;
       _Green:ByteProperty;
@@ -162,11 +193,14 @@ Type
       Function GetColorValue:ColorRGBA;
       Procedure SetColorValue(const NewValue:ColorRGBA);
 
+      Procedure UpdateTweens(); Override;
+
     Public
       Constructor Create(Const Name:TERRAString; Const InitValue:ColorRGBA);
       Procedure Release(); Override;
 
-      Procedure AddTween(Ease:TweenEaseType; Const TargetValue:ColorRGBA; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
+      Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
+      Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:ColorRGBA; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
 
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
@@ -183,7 +217,7 @@ Type
       Property Value:ColorRGBA Read GetColorValue Write SetColorValue;
   End;
 
-  Vector2DProperty = Class(TERRAObject)
+  Vector2DProperty = Class(TweenableProperty)
     Protected
       _X:FloatProperty;
       _Y:FloatProperty;
@@ -191,11 +225,14 @@ Type
       Function GetVectorValue:Vector2D;
       Procedure SetVectorValue(const NewValue:Vector2D);
 
+      Procedure UpdateTweens(); Override;
+
     Public
       Constructor Create(Const Name:TERRAString; Const InitValue:Vector2D);
       Procedure Release(); Override;
 
-      Procedure AddTween(Ease:TweenEaseType; Const TargetValue:Vector2D; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
+      Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
+      Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Vector2D; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
 
       Function GetObjectType:TERRAString; Override;
 
@@ -208,7 +245,7 @@ Type
       Property Value:Vector2D Read GetVectorValue Write SetVectorValue;
   End;
 
-  Vector3DProperty = Class(TERRAObject)
+  Vector3DProperty = Class(TweenableProperty)
     Protected
       _X:FloatProperty;
       _Y:FloatProperty;
@@ -217,11 +254,14 @@ Type
       Function GetVectorValue:Vector3D;
       Procedure SetVectorValue(const NewValue:Vector3D);
 
+      Procedure UpdateTweens(); Override;
+
     Public
       Constructor Create(Const Name:TERRAString; Const InitValue:Vector3D);
       Procedure Release(); Override;
 
-      Procedure AddTween(Ease:TweenEaseType; Const TargetValue:Vector3D; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
+      Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
+      Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Vector3D; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
 
       Function GetObjectType:TERRAString; Override;
 
@@ -390,36 +430,20 @@ Begin
 End;
 
 { TweenableProperty }
-Constructor TweenableProperty.Create(Const Name:TERRAString; const InitValue: Single);
-Begin
-  _ObjectName := Name;
-  _CurrentValue := InitValue;
-  _TweenCount := 0;
-End;
-
-Function TweenableProperty.GetBlob: TERRAString;
-Begin
-  Result := FloatToString(GetCurrentValue());
-End;
-
-Procedure TweenableProperty.SetBlob(const Blob: TERRAString);
-Begin
-  SetCurrentValue(StringToFloat(Blob));
-End;
-
 Function TweenableProperty.HasPropertyTweens:Boolean;
 Begin
-  Self.GetCurrentValue();
+  Self.UpdateTweens();
   Result := (_TweenCount>0);
 End;
 
-Procedure TweenableProperty.AddTween(Ease:TweenEaseType; TargetValue:Single; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
+Procedure TweenableProperty.RegisterTween(Const Ease:TweenEaseType; TweenID:Integer; Const StartValue, TargetValue:Single; Const Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
 Var
   T:TweenObject;
 Begin
   T.StartTime := Application.GetTime() + Delay;
   T.EndTime := T.StartTime + Duration;
   T.State := tweenWaiting;
+  T.StartValue := StartValue;
   T.TargetValue := TargetValue;
   T.Duration := Duration;
   T.Ease := Ease;
@@ -436,11 +460,11 @@ Begin
   _TweenList[Pred(_TweenCount)] := T;
 End;
 
-Function TweenableProperty.GetCurrentValue: Single;
+Procedure TweenableProperty.UpdateTweens();
 Var
   I:Integer;
   T:Cardinal;
-  Delta:Single;
+  Val, Delta:Single;
 Begin
   T := Application.GetTime();
 
@@ -456,7 +480,6 @@ Begin
       If (_TweenList[I].StartTime<=T) Then
       Begin
         _TweenList[I].State := tweenRunning;
-        _TweenList[I].StartValue := Self._CurrentValue;
       End;
 
       Inc(I);
@@ -476,7 +499,9 @@ Begin
         End;
 
         Delta := GetEase(Delta, _TweenList[I].Ease);
-        _CurrentValue := (_TweenList[I].TargetValue * Delta) + (_TweenList[I].StartValue * (1.0 - Delta));
+
+        Val := (_TweenList[I].TargetValue * Delta) + (_TweenList[I].StartValue * (1.0 - Delta));
+        Self.UpdateTweenValue(_TweenList[I].TweenID,  Val);
 
         //Inc(I);
         Break;
@@ -488,13 +513,6 @@ Begin
       Dec(_TweenCount);
     End;
   End;
-
-  Result := _CurrentValue;
-End;
-
-Procedure TweenableProperty.SetCurrentValue(const NewValue: Single);
-Begin
-  _CurrentValue := NewValue;
 End;
 
 Function TweenableProperty.IsValueObject: Boolean;
@@ -503,6 +521,12 @@ Begin
 End;
 
 { IntegerProperty }
+Constructor IntegerProperty.Create(const Name: TERRAString; const InitValue: Integer);
+Begin
+  Self._ObjectName := Name;
+  Self._Value := InitValue;
+End;
+
 Function IntegerProperty.GetBlob: TERRAString;
 Begin
   Result := IntToString(Value);
@@ -515,20 +539,42 @@ End;
 
 Function IntegerProperty.GetIntegerValue:Integer;
 Begin
-  Result := Round(GetCurrentValue());
+  Self.UpdateTweens();
+  Result := _Value;
 End;
 
 Procedure IntegerProperty.SetIntegerValue(const NewValue: Integer);
 Begin
-  SetCurrentValue(NewValue);
+  _Value := NewValue;
 End;
 
 Function IntegerProperty.GetObjectType: TERRAString;
 Begin
-  Result := 'number';
+  Result := 'int';
+End;
+
+Procedure IntegerProperty.AddTween(const Ease: TweenEaseType; const StartValue, TargetValue: Integer; Duration, Delay: Cardinal;  Callback: TweenCallback; CallTarget: TERRAObject);
+Begin
+  Self.RegisterTween(Ease, 0, StartValue, TargetValue, Duration, Delay, Callback, CallTarget);
+End;
+
+Procedure IntegerProperty.AddTweenFromBlob(const Ease: TweenEaseType; const StartValue, TargetValue: TERRAString; Duration, Delay: Cardinal; Callback: TweenCallback; CallTarget: TERRAObject);
+Begin
+  Self.AddTween(Ease, StringToInt(StartValue), StringToInt(TargetValue), Duration, Delay, Callback, CallTarget);
+End;
+
+Procedure IntegerProperty.UpdateTweenValue(Const TweenID:Integer; Const Value:Single);
+Begin
+  _Value := Trunc(Value);
 End;
 
 { ByteProperty }
+Constructor ByteProperty.Create(const Name: TERRAString; const InitValue: Byte);
+Begin
+  Self._ObjectName := Name;
+  Self._Value := InitValue;
+End;
+
 Function ByteProperty.GetBlob: TERRAString;
 Begin
   Result := IntToString(Value);
@@ -540,28 +586,82 @@ Begin
 End;
 
 Function ByteProperty.GetByteValue:Byte;
-Var
-  N:Integer;
 Begin
-  N := Round(GetCurrentValue());
-
-  If N>255 Then
-    N := 255
-  Else
-  If (N<0) Then
-    N := 0;
-
-  Result := N;
+  Self.UpdateTweens();
+  Result := _Value;
 End;
 
 Procedure ByteProperty.SetByteValue(const NewValue: Byte);
 Begin
-  SetCurrentValue(NewValue);
+  _Value := NewValue;
 End;
 
 Function ByteProperty.GetObjectType: TERRAString;
 Begin
   Result := 'byte';
+End;
+
+Procedure ByteProperty.AddTween(const Ease: TweenEaseType; const StartValue, TargetValue: Byte; Duration, Delay: Cardinal;  Callback: TweenCallback; CallTarget: TERRAObject);
+Begin
+  Self.RegisterTween(Ease, 0, StartValue, TargetValue, Duration, Delay, Callback, CallTarget);
+End;
+
+Procedure ByteProperty.AddTweenFromBlob(const Ease: TweenEaseType; const StartValue, TargetValue: TERRAString; Duration, Delay: Cardinal; Callback: TweenCallback; CallTarget: TERRAObject);
+Begin
+  Self.AddTween(Ease, StringToInt(StartValue), StringToInt(TargetValue), Duration, Delay, Callback, CallTarget);
+End;
+
+Procedure ByteProperty.UpdateTweenValue(Const TweenID:Integer; Const Value:Single);
+Begin
+  _Value := Trunc(Value);
+End;
+
+{ FloatProperty }
+Constructor FloatProperty.Create(Const Name:TERRAString; const InitValue: Single);
+Begin
+  _ObjectName := Name;
+  _Value := InitValue;
+End;
+
+Function FloatProperty.GetObjectType: TERRAString;
+Begin
+  Result := 'float';
+End;
+
+Function FloatProperty.GetBlob: TERRAString;
+Begin
+  Result := FloatToString(GetFloatValue());
+End;
+
+Procedure FloatProperty.SetBlob(const Blob: TERRAString);
+Begin
+  _Value := StringToFloat(Blob);
+End;
+
+Procedure FloatProperty.SetFloatValue(const NewValue: Single);
+Begin
+  _Value := NewValue;
+End;
+
+Function FloatProperty.GetFloatValue():Single;
+Begin
+  Self.UpdateTweens();
+  Result := _Value;
+End;
+
+Procedure FloatProperty.AddTween(const Ease: TweenEaseType; const StartValue, TargetValue:Single; Duration, Delay: Cardinal;  Callback: TweenCallback; CallTarget: TERRAObject);
+Begin
+  Self.RegisterTween(Ease, 0, StartValue, TargetValue, Duration, Delay, Callback, CallTarget);
+End;
+
+Procedure FloatProperty.AddTweenFromBlob(const Ease: TweenEaseType; const StartValue, TargetValue: TERRAString; Duration, Delay: Cardinal; Callback: TweenCallback; CallTarget: TERRAObject);
+Begin
+  Self.AddTween(Ease, StringToFloat(StartValue), StringToFloat(TargetValue), Duration, Delay, Callback, CallTarget);
+End;
+
+Procedure FloatProperty.UpdateTweenValue(Const TweenID:Integer; Const Value:Single);
+Begin
+  _Value := Value;
 End;
 
 { ColorProperty }
@@ -614,18 +714,22 @@ Begin
   Result.A := Alpha.Value;
 End;
 
-
 Function ColorProperty.GetObjectType: TERRAString;
 Begin
   Result := 'color';
 End;
 
-Procedure ColorProperty.AddTween(Ease:TweenEaseType; Const TargetValue:ColorRGBA; Duration, Delay:Cardinal; Callback: TweenCallback; CallTarget:TERRAObject);
+Procedure ColorProperty.AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
 Begin
-  Self.Red.AddTween(Ease, TargetValue.R, Duration, Delay, Callback, CallTarget);
-  Self.Green.AddTween(Ease, TargetValue.G, Duration, Delay, Nil);
-  Self.Blue.AddTween(Ease, TargetValue.B, Duration, Delay, Nil);
-  Self.Alpha.AddTween(Ease, TargetValue.A, Duration, Delay, Nil);
+  Self.AddTween(Ease, ColorCreateFromString(StartValue), ColorCreateFromString(TargetValue), Duration, Delay, Callback, CallTarget);
+End;
+
+Procedure ColorProperty.AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:ColorRGBA; Duration, Delay:Cardinal; Callback: TweenCallback; CallTarget:TERRAObject);
+Begin
+  Self.Red.AddTween(Ease, StartValue.R, TargetValue.R, Duration, Delay, Callback, CallTarget);
+  Self.Green.AddTween(Ease, StartValue.G, TargetValue.G, Duration, Delay, Nil);
+  Self.Blue.AddTween(Ease, StartValue.B, TargetValue.B, Duration, Delay, Nil);
+  Self.Alpha.AddTween(Ease, StartValue.A, TargetValue.A, Duration, Delay, Nil);
 End;
 
 Function ColorProperty.GetPropertyByIndex(Index: Integer): TERRAObject;
@@ -650,6 +754,14 @@ Begin
   Self.SetColorValue(ColorCreateFromString(Blob));
 End;
 
+Procedure ColorProperty.UpdateTweens;
+Begin
+  Red.UpdateTweens();
+  Green.UpdateTweens();
+  Blue.UpdateTweens();
+  Alpha.UpdateTweens();
+End;
+
 { Vector3DProperty }
 Constructor Vector3DProperty.Create(Const Name:TERRAString; const InitValue: Vector3D);
 Begin
@@ -665,21 +777,6 @@ Begin
   ReleaseObject(_Y);
   ReleaseObject(_Z);
 End;
-
-(*Function Vector3DProperty.GetBlob: TERRAString;
-Begin
-  Result := X.GetBlob() + '/'+ Y.GetBlob() + '/'+ Z.GetBlob();
-End;
-
-Procedure Vector3DProperty.SetBlob(const Blob: TERRAString);
-Var
-  S:TERRAString;
-Begin
-  S := Blob;
-  X.SetBlob(StringGetNextSplit(S, Ord('/')));
-  Y.SetBlob(StringGetNextSplit(S, Ord('/')));
-  Z.SetBlob(StringGetNextSplit(S, Ord('/')));
-End;*)
 
 Function Vector3DProperty.GetVectorValue: Vector3D;
 Begin
@@ -700,11 +797,16 @@ Begin
   Result := 'vec3';
 End;
 
-Procedure Vector3DProperty.AddTween(Ease:TweenEaseType; const TargetValue:Vector3D; Duration, Delay:Cardinal;  Callback:TweenCallback; CallTarget:TERRAObject);
+Procedure Vector3DProperty.AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
 Begin
-  Self.X.AddTween(Ease, TargetValue.X, Duration, Delay, Callback, CallTarget);
-  Self.Y.AddTween(Ease, TargetValue.Y, Duration, Delay, Nil);
-  Self.Z.AddTween(Ease, TargetValue.Z, Duration, Delay, Nil);
+  Self.AddTween(Ease, StringToVector3D(StartValue), StringToVector3D(TargetValue), Duration, Delay, Callback, CallTarget);
+End;
+
+Procedure Vector3DProperty.AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Vector3D; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
+Begin
+  Self.X.AddTween(Ease, StartValue.X, TargetValue.X, Duration, Delay, Callback, CallTarget);
+  Self.Y.AddTween(Ease, StartValue.Y, TargetValue.Y, Duration, Delay, Nil);
+  Self.Z.AddTween(Ease, StartValue.Z, TargetValue.Z, Duration, Delay, Nil);
 End;
 
 Function Vector3DProperty.GetPropertyByIndex(Index: Integer): TERRAObject;
@@ -716,6 +818,13 @@ Begin
   Else
     Result := Nil;
   End;
+End;
+
+Procedure Vector3DProperty.UpdateTweens;
+Begin
+  X.UpdateTweens();
+  Y.UpdateTweens();
+  Z.UpdateTweens();
 End;
 
 { Vector2DProperty }
@@ -763,10 +872,15 @@ Begin
   Result := 'vec2';
 End;
 
-Procedure Vector2DProperty.AddTween(Ease: TweenEaseType; const TargetValue: Vector2D; Duration, Delay: Cardinal; Callback: TweenCallback; CallTarget:TERRAObject);
+Procedure Vector2DProperty.AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
 Begin
-  Self.X.AddTween(Ease, TargetValue.X, Duration, Delay, Callback, CallTarget);
-  Self.Y.AddTween(Ease, TargetValue.Y, Duration, Delay, Nil);
+  Self.AddTween(Ease, StringToVector2D(StartValue), StringToVector2D(TargetValue), Duration, Delay, Callback, CallTarget);
+End;
+
+Procedure Vector2DProperty.AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Vector2D; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
+Begin
+  Self.X.AddTween(Ease, StartValue.X, TargetValue.X, Duration, Delay, Callback, CallTarget);
+  Self.Y.AddTween(Ease, StartValue.Y, TargetValue.Y, Duration, Delay, Nil);
 End;
 
 Function Vector2DProperty.GetPropertyByIndex(Index: Integer): TERRAObject;
@@ -779,15 +893,13 @@ Begin
   End;
 End;
 
-{ FloatProperty }
-
-Function FloatProperty.GetObjectType: TERRAString;
+Procedure Vector2DProperty.UpdateTweens;
 Begin
-  Result := 'float';
+  X.UpdateTweens();
+  Y.UpdateTweens();
 End;
 
 { AngleProperty }
-
 Function AngleProperty.GetObjectType: TERRAString;
 Begin
   Result := 'angle';

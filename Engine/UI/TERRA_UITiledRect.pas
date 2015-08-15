@@ -124,7 +124,7 @@ Begin
   _Sprite.BlendMode := blendBlend;
 
   Scale9Sprite(_Sprite).SetPosition(VectorCreate2D(0, 0));
-  Scale9Sprite(_Sprite).SetColor(Self.Color);
+  Scale9Sprite(_Sprite).SetColor(Self.GetColor());
   Scale9Sprite(_Sprite).SetSize(Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)),  Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
   Scale9Sprite(_Sprite).SetUVRect(_U1.Value, _V1.Value, _U2.Value, _V2.Value);
 End;

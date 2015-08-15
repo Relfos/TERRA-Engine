@@ -151,8 +151,7 @@ Begin
     Exit;*)
 
   Center := Self.GetSize();
-  Center.X := Center.X * _Pivot.X * Scale;
-  Center.Y := Center.Y * _Pivot.Y * Scale;
+  Center.Scale(Self.Pivot);
   Center.Add(Pos);
 
   QuadSprite(_Sprite).Position := Pos;

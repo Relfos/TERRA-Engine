@@ -68,12 +68,6 @@ Function MatrixMultiply3x3(Const A,B:Matrix3x3):Matrix3x3;
 Implementation
 Uses Math{$IFDEF NEON_FPU},TERRA_NEON{$ENDIF};
 
-Function Matrix3x3.Transform(Const P:Vector2D):Vector2D;
-Begin
-  Result.X := P.X * V[0] + P.Y * V[1] + V[2];
-  Result.Y := P.X * V[3] + P.Y * V[4] + V[5];
-End;
-
 Procedure Matrix3x3.Init(Const M: Matrix4x4);
 Begin
   V[0] := M.V[0];
@@ -89,10 +83,38 @@ Begin
   V[8] := M.V[10];
 End;
 
+
+Function MatrixTranslation2D(Const Translation:Vector2D):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
+Begin
+  Result := MatrixTranslation2D(Translation.X,Translation.Y);
+End;
+
+Function MatrixTranslation2D(Const X,Y:Single):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
+Begin
+  Result.V[0] := 1.0;
+  Result.V[1] := 0.0;
+  Result.V[2] := 0.0;
+
+  Result.V[3] := 0.0;
+  Result.V[4] := 1.0;
+  Result.V[5] := 0.0;
+
+  Result.V[6] := X;
+  Result.V[7] := Y;
+  Result.V[8] := 1.0;
+End;
+
+Function Matrix3x3.Transform(Const P:Vector2D):Vector2D;
+Begin
+  Result.X := P.X*V[0] + P.Y*V[3] + V[6];
+  Result.Y := P.X*V[1] + P.Y*V[4] + V[7];
+End;
+
+
 Function Matrix3x3.Transform(Const P:Vector3D):Vector3D;
 Begin
-  Result.X := P.X * V[0] + P.Y * V[1] + V[2];
-  Result.Y := P.X * V[3] + P.Y * V[4] + V[5];
+  Result.X := P.X*V[0] + P.Y*V[3] + V[6];
+  Result.Y := P.X*V[1] + P.Y*V[4] + V[7];
   Result.Z := P.Z;
 End;
 
@@ -139,9 +161,11 @@ Begin
   Result.V[0] := C;
   Result.V[1] := S;
   Result.V[2] := 0.0;
+
   Result.V[3] := -S;
   Result.V[4] := C;
   Result.V[5] := 0.0;
+
   Result.V[6] := 0.0;
   Result.V[7] := 0.0;
   Result.V[8] := 1.0;
@@ -156,9 +180,11 @@ Begin
   Result.V[0] := C * ScaleX;
   Result.V[1] := S * ScaleX;
   Result.V[2] := 0.0;
+
   Result.V[3] := -S * ScaleY;
   Result.V[4] := C * ScaleY;
   Result.V[5] := 0.0;
+
   Result.V[6] := 0.0;
   Result.V[7] := 0.0;
   Result.V[8] := 1.0;
@@ -166,30 +192,12 @@ End;
 
 Function MatrixTransformAroundPoint2D(Const Center:Vector2D; Const Mat:Matrix3x3):Matrix3x3;
 Var
-  A,B:Matrix3x3;
+  ToOrigin, FromOrigin:Matrix3x3;
 Begin
-  A := MatrixTranslation2D(-Center.X, -Center.Y);
-  B := MatrixTranslation2D(Center);
+  ToOrigin := MatrixTranslation2D(-Center.X, -Center.Y);
+  FromOrigin := MatrixTranslation2D(Center);
 
-  Result :=  MatrixMultiply3x3(A, MatrixMultiply3x3(Mat, B));
-End;
-
-Function MatrixTranslation2D(Const Translation:Vector2D):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
-Begin
-  Result := MatrixTranslation2D(Translation.X,Translation.Y);
-End;
-
-Function MatrixTranslation2D(Const X,Y:Single):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
-Begin
-  Result.V[0] := 1.0;
-  Result.V[1] := 0.0;
-  Result.V[2] := X;
-  Result.V[3] := 0.0;
-  Result.V[4] := 1.0;
-  Result.V[5] := Y;
-  Result.V[6] := 0.0;
-  Result.V[7] := 0.0;
-  Result.V[8] := 1.0;
+  Result := MatrixMultiply3x3(FromOrigin, MatrixMultiply3x3(Mat, ToOrigin));
 End;
 
 Function MatrixScale2D(Const Scale:Vector2D):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
@@ -207,9 +215,11 @@ Begin
   Result.V[0] := X;
   Result.V[1] := 0.0;
   Result.V[2] := 0.0;
+
   Result.V[3] := 0.0;
   Result.V[4] := Y;
   Result.V[5] := 0.0;
+
   Result.V[6] := 0.0;
   Result.V[7] := 0.0;
   Result.V[8] := 1.0;
@@ -236,7 +246,7 @@ Begin
 
 	Result.V[6] := A.V[0]*B.V[6] + A.V[3]*B.V[7] + A.V[6]*B.V[8];
 	Result.V[7] := A.V[1]*B.V[6] + A.V[4]*B.V[7] + A.V[7]*B.V[8];
-	Result.V[8] := A.V[2]*B.V[6] + A.V[5]*B.V[7] + A.V[8]*B.V[8];
+	Result.V[8] := 1.0; //A.V[2]*B.V[6] + A.V[5]*B.V[7] + A.V[8]*B.V[8];
 {$ENDIF}
 End;
 
