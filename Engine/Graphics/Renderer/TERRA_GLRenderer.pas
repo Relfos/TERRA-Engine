@@ -1563,7 +1563,7 @@ Begin
   H := GraphicsManager.Instance.Height;
   Result := Image.Create(W, H);
   glReadPixels(0, 0, W, H, GL_RGBA, GL_UNSIGNED_BYTE, Result.Pixels);
-  Result.Process(IMP_FlipVertical);
+  Result.FlipVertical();
 End;
 
 
@@ -2021,7 +2021,7 @@ Begin
 	glReadPixels(0,0, _Width, _Height, GL_RGBA, GL_UNSIGNED_BYTE, Result.Pixels);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	Result.Process(IMP_FlipVertical);
+	Result.FlipVertical();
 End;
 
 Function OpenGLFBO.GetPixel(X,Y:Integer):ColorRGBA;
@@ -2156,7 +2156,7 @@ Begin
 
   glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, Result.Pixels);
 
-  Result.Process(IMP_FlipVertical);
+  Result.FlipVertical();
   {$ENDIF}
 End;
 

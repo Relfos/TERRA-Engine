@@ -346,7 +346,7 @@ Begin
     Exit;
 
   Buffer := Image.Create(Tex.Width, Tex.Height);
-  Buffer.FillRectangleByUV(0,0,1,1, TexColor);
+  Buffer.ClearWithColor(TexColor, maskRGBA);
   Tex.UpdateRect(Buffer, 0, 0);
   ReleaseObject(Buffer);
 End;
@@ -565,7 +565,7 @@ Begin
   End;
 
   _Source := Image.Create(_Width, _Height);
-  _Source.FillRectangleByUV(0, 0, 1.0, 1.0, FillColor);
+  _Source.ClearWithColor(FillColor, maskRGBA);
 
   _TransparencyType := imageOpaque;
 
@@ -665,7 +665,7 @@ Begin
   If (Not Assigned(_Source)) Then
   Begin
     _Source := Image.Create(_Width, _Height);
-    _Source.Process(IMP_FillColor, ColorWhite);
+    _Source.ClearWithColor(ColorWhite, maskRGB);
     _TransparencyType := imageOpaque;
     Exit;
   End;

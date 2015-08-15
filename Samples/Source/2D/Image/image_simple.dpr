@@ -12,7 +12,7 @@ uses
   TERRA_Object,
   TERRA_OS,
   TERRA_PNG,
-  TERRA_SpriteManager,
+  TERRA_Sprite,
   TERRA_FileManager,
   TERRA_Math,
   TERRA_Image,
@@ -46,6 +46,10 @@ Procedure Demo.OnCreate;
 Var
   I:Integer;
   Img:Image;
+  It:ImageIterator;
+
+  U, V:Single;
+  R:Integer;
 Begin
   Inherited;
 
@@ -53,11 +57,35 @@ Begin
   Img := Image.Create(256, 256);
 
   // fill with red color
-  Img.FillRectangleByUV(0, 0, 1, 1, ColorRed);
+  It := Img.RectangleByUV(0, 0, 1, 1, [image_Write, image_Fill]);
+  While It.HasNext() Do
+  Begin
+    It.Color := ColorRed;
+  End;
+  ReleaseObject(It);
 
   // put some random circles into it
   For I:=1 To 20 Do
-    Img.DrawCircleByUV(RandomFloat(0, 1), RandomFloat(0, 1), 50, ColorWhite);
+  Begin
+    U := RandomFloat(0, 1);
+    V := RandomFloat(0, 1);
+    R := 50;
+
+    It := Img.CircleByUV(U, V, R, [image_Write, image_Fill]);
+    While It.HasNext() Do
+    Begin
+      It.Color := ColorWhite;
+    End;
+    ReleaseObject(It);
+
+    It := Img.CircleByUV(U, V, R, [image_Write]);
+    While It.HasNext() Do
+    Begin
+      It.Color := ColorBlack;
+    End;
+    ReleaseObject(It);
+
+  End;
 
   // Create a texture from a image
   Tex := TERRATexture.Create(rtDynamic, '');
@@ -84,7 +112,7 @@ Procedure MyScene.RenderSprites;
 Var
   S:QuadSprite;
 Begin
-  S := SpriteManager.Instance.DrawSprite(20, 20, 50, Tex);
+  S := V.SpriteRenderer.DrawSprite(20, 20, 50, Tex);
 End;
 
 Begin

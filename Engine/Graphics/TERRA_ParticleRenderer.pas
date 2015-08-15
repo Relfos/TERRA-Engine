@@ -932,7 +932,7 @@ Begin
       Else
       Begin
         Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
-        Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
+        Source.ClearWithColor(ColorNull, maskRGBA);
       End;
       _NormalImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
       ReleaseObject(Source);
@@ -944,7 +944,7 @@ Begin
       Else
       Begin
         Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
-        Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
+        Source.ClearWithColor(ColorNull, maskRGBA);
       End;
       _GlowImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
       ReleaseObject(Source);
@@ -956,7 +956,7 @@ Begin
       Else
       Begin
         Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
-        Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
+        Source.ClearWithColor(ColorNull, maskRGBA);
       End;
       _RefractionImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
       ReleaseObject(Source);

@@ -29,17 +29,6 @@ Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Color;
 
 Const
-  // Image processing flags
-  IMP_SwapChannels          = 1;
-  IMP_FillColor             = 2;
-  IMP_FillAlpha             = 4;
-  IMP_SetColorKey           = 8;
-  IMP_SetAlphaFromLuminance = 16;
-  IMP_SetGreyscale          = 32;
-  IMP_FlipVertical          = 64;
-  IMP_FlipHorizontal        = 128;
-  IMP_ScaleColor            = 256;
-
   componentRed    = 0;
   componentGreen  = 1;
   componentBlue   = 2;
@@ -64,6 +53,96 @@ Type
       Constructor Create(Width, Height:Integer);
       Procedure Release; Override;
 
+  End;
+
+  Image = Class;
+
+  ImageProcessFlags = Set Of (image_Read, image_Write, image_Fill);
+
+  ImageIterator = Class(TERRAObject)
+    Protected
+      _Target:Image;
+      _Value:ColorRGBA;
+      _Current:PColorRGBA;
+
+      _X:Integer;
+      _Y:Integer;
+
+      _Flags:ImageProcessFlags;
+
+      Function ObtainNext():PColorRGBA; Virtual; Abstract;
+
+    Public
+      Constructor Create(Target:Image; Flags:ImageProcessFlags);
+      Function HasNext():Boolean;
+
+      Property Color:ColorRGBA Read _Value Write _Value;
+      Property X:Integer Read _X;
+      Property Y:Integer Read _Y;
+  End;
+
+  CircleImageIterator = Class(ImageIterator)
+    Protected
+      _XCenter:Integer;
+      _YCenter:Integer;
+
+      _PX:Integer;
+      _PY:Integer;
+      _PR:Integer;
+      _PH:Integer;
+      _Sub:Integer;
+
+      Function ObtainNext():PColorRGBA; Override;
+
+    Public
+      Constructor Create(Target:Image; XCenter, YCenter, Radius:Integer; Flags:ImageProcessFlags);
+  End;
+
+
+  RectImageIterator = Class(ImageIterator)
+    Protected
+      _X1:Integer;
+      _Y1:Integer;
+
+      _X2:Integer;
+      _Y2:Integer;
+
+      _PX:Integer;
+      _PY:Integer;
+
+      Function ObtainNext():PColorRGBA; Override;
+
+    Public
+      Constructor Create(Target:Image; X1, Y1, X2, Y2:Integer; Flags:ImageProcessFlags);
+  End;
+
+  LineImageIterator = Class(ImageIterator)
+    Protected
+      _X1:Integer;
+      _Y1:Integer;
+
+      _X2:Integer;
+      _Y2:Integer;
+
+      _PX:Integer;
+      _PY:Integer;
+
+      _NumPixels:Integer;
+      _Dir:Integer;
+      _Dinc1:Integer;
+      _Dinc2:Integer;
+
+      _XInc1:Integer;
+      _XInc2:Integer;
+      _YInc1:Integer;
+      _YInc2:Integer;
+
+      _Sub:Integer;
+
+      Function ObtainNext():PColorRGBA; Override;
+
+    Public
+      Constructor Create(Target:Image; X1, Y1, X2, Y2:Integer; Flags:ImageProcessFlags);
   End;
 
   Image = Class(TERRAObject)
@@ -115,9 +194,6 @@ Type
 
       {$IFDEF NDS}Function AutoTile:Cardinal;{$ENDIF}
 
-      Procedure Process(Flags:Cardinal; Color:ColorRGBA); Overload;
-      Procedure Process(Flags:Cardinal); Overload;
-
       Procedure BlitByUV(Const U,V,U1,V1,U2,V2:Single; Const Source:Image);
       Procedure Blit(X,Y,X1,Y1,X2,Y2:Integer; Const Source:Image);
 
@@ -132,25 +208,21 @@ Type
 
       Function Crop(X1,Y1,X2,Y2:Integer):Image;
 
+      Procedure FlipHorizontal();
+      Procedure FlipVertical();
+
       Function Combine(Layer:Image; Alpha:Single; Mode:ColorCombineMode; Mask:Cardinal):Boolean;
 
-      Procedure ShiftHue(ShiftAmmount:Integer);
+      Function LineByUV(Const U1,V1,U2,V2:Single; Flags:ImageProcessFlags):ImageIterator;
+      Function Line(X1,Y1,X2,Y2:Integer; Flags:ImageProcessFlags):ImageIterator;
 
-      Procedure LineByUV(Const U1,V1,U2,V2:Single; Const Color:ColorRGBA);
-      Procedure Line(X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA);
-      Procedure LineAlpha(X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA);
+      Function RectangleByUV(Const U1,V1,U2,V2:Single; Flags:ImageProcessFlags):ImageIterator;
+      Function Rectangle(X1,Y1,X2,Y2:Integer; Flags:ImageProcessFlags):ImageIterator;
 
-      Procedure DrawRectangleByUV(Const U1,V1,U2,V2:Single; Const Color:ColorRGBA);
-      Procedure DrawRectangle(X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA);
+      Function CircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Flags:ImageProcessFlags):ImageIterator;
+      Function Circle(xCenter,yCenter:Integer; Const Radius:Integer; Flags:ImageProcessFlags):ImageIterator;
 
-      Procedure FillRectangleByUV(Const U1,V1,U2,V2:Single; Const Color:ColorRGBA);
-      Procedure FillRectangle(X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA);
-
-      Procedure DrawCircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Const Color:ColorRGBA);
-      Procedure DrawCircle(xCenter,yCenter:Integer; Const Radius:Integer; Const Color:ColorRGBA);
-
-      Procedure FillCircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Const Color:ColorRGBA);
-      Procedure FillCircle(xCenter,yCenter:Integer; Const Radius:Integer; Const Color:ColorRGBA);
+      Procedure ClearWithColor(Const Color:ColorRGBA; Mask:Cardinal);
 
       Function GetPixel(X,Y:Integer):ColorRGBA; {$IFDEF FPC}Inline;{$ENDIF}
       Function GetPixelByUV(Const U,V:Single):ColorRGBA; {$IFDEF FPC}Inline;{$ENDIF}
@@ -294,6 +366,29 @@ Begin
   _ImageExtensions[N].Validate :=Validate;
   _ImageExtensions[N].Loader := Loader;
   _ImageExtensions[N].Saver := Saver;
+End;
+
+{ ImageIterator }
+Constructor ImageIterator.Create(Target: Image; Flags:ImageProcessFlags);
+Begin
+  Self._Flags := Flags;
+  Self._Target := Target;
+End;
+
+Function ImageIterator.HasNext: Boolean;
+Begin
+  If (Assigned(_Current)) And (image_Write In _Flags) Then
+  Begin
+    _Current^ := _Value;
+  End;
+
+  _Current := Self.ObtainNext();
+  Result := Assigned(_Current);
+
+  If (Assigned(_Current)) And (image_Read In _Flags) Then
+  Begin
+    _Value := _Current^;
+  End;
 End;
 
 { Image }
@@ -618,133 +713,69 @@ Begin
     End;
 End;
 
-Procedure Image.Process(Flags:Cardinal);
-Begin
-  Process(Flags, ColorWhite);
-End;
-
-Procedure Image.Process(Flags:Cardinal; Color:ColorRGBA);
+Procedure Image.FlipVertical();
 Var
   N:Cardinal;
   I,J,K:Cardinal;
+  Temp:ColorRGBA;
   Source,Dest:PColorRGBA;
-
-  SwapChannels, SetColorKey, ScaleColor:Boolean;
-  FilColor,FillAlpha:Boolean;
-  SetGreyscale,SetAlphaFromLuminance:Boolean;
-  FlipHorizontal,FlipVertical:Boolean;
 Begin
-  SetAlphaFromLuminance := (Flags And IMP_SetAlphaFromLuminance<>0);
-  SetGreyscale := (Flags And IMP_SetGreyscale<>0);
-  SwapChannels := (Flags And IMP_SwapChannels<>0);
-  SetColorKey := (Flags And IMP_SetColorKey<>0);
-  FillAlpha := (Flags And IMP_FillAlpha<>0);
-  FilColor := (Flags And IMP_FillColor<>0);
-  FlipHorizontal := (Flags And IMP_FlipHorizontal<>0);
-  FlipVertical := (Flags And IMP_FlipVertical<>0);
-  ScaleColor := (Flags And IMP_ScaleColor<>0);
-
   If (_Width = 0) Or (_Height = 0) Then
     Exit;
 
-  If (FillAlpha) And (Color.A = 0) Then
-    _TransparencyType := imageTransparent;
+  For K:=0 To Pred(_FrameCount) Do
+  Begin
+    Source := Pixels;
+    N := _Height Shr 1;
+    If (Not Odd(_Height)) Then
+      Dec(N);
+
+    For J:=0 To N Do
+    For I:=0 To Pred(_Width) Do
+    Begin
+      Dest := @_Frames[K]._Data[((Pred(Height)-J)*_Width+I)];
+
+      Temp := Source^;
+      Source^ := Dest^;
+      Dest^ := Temp;
+
+      Inc(Source);
+    End;
+  End;
+End;
+
+Procedure Image.FlipHorizontal();
+Var
+  N:Cardinal;
+  Temp:ColorRGBA;
+  I,J,K:Cardinal;
+  Source,Dest:PColorRGBA;
+Begin
+  If (_Width = 0) Or (_Height = 0) Then
+    Exit;
 
   For K:=0 To Pred(_FrameCount) Do
   Begin
-    Source := @_Frames[K]._Data[0];
-    For J:=0 To Pred(Height) Do
-      For I:=0 To Pred(Width) Do
+    N := _Width Shr 1;
+    If (Not Odd(_Width)) Then
+      Dec(N);
+
+    For J:=0 To Pred(_Height) Do
+    Begin
+      Source := @_Frames[K]._Data[(J*_Width)];
+      Dest := @_Frames[K]._Data[(J*_Width+Pred(_Width))];
+
+      For I:=0 To N Do
       Begin
-        If (FillAlpha) And (FilColor) Then
-          Source^:=Color
-        Else
-        If (FilColor) Then
-        Begin
-          Source.R := Color.R;
-          Source.G := Color.G;
-          Source.B := Color.B;
-        End;
-
-        If (FillAlpha)And(Not FilColor) Then
-        Begin
-          Source.A:=Color.A;
-        End Else
-        If (SetAlphaFromLuminance) Then
-        Begin
-          N:=Source.R+Source.G+Source.B;
-          Source.A:=(N Shl 1)+N;
-        End;
-
-        If (SetGreyscale) Then
-        Begin
-          Source^ := ColorGrey(ColorLuminance(Source^), Source.A);
-        End;
-
-        If (ScaleColor) Then
-        Begin
-          Source^ := ColorMultiply(Source^, Color);
-        End;
-
-        If (SetColorKey) And (Cardinal(Source^)=Cardinal(Color)) Then
-        Begin
-          Cardinal(Source^) := 0;
-          _TransparencyType := imageTransparent;
-        End;
-
-        If (SwapChannels) Then
-        Begin
-          N:=Source.R;
-          Source.R:=Source.B;
-          Source.B:=N;
-        End;
+        Temp := Source^;
+        Source^ := Dest^;
+        Dest^ := Temp;
 
         Inc(Source);
+        Dec(Dest);
       End;
 
-    If (FlipHorizontal) Then
-    Begin
-      N := _Width Shr 1;
-      If (Not Odd(_Width)) Then
-        Dec(N);
-
-      For J:=0 To Pred(_Height) Do
-      Begin
-        Source := @_Frames[K]._Data[(J*_Width)];
-        Dest := @_Frames[K]._Data[(J*_Width+Pred(_Width))];
-
-        For I:=0 To N Do
-        Begin
-          Color := Source^;
-          Source ^ := Dest^;
-          Dest^ := Color;
-
-          Inc(Source);
-          Dec(Dest);
-        End;
-
-        Inc(Source, N);
-      End;
-    End;
-
-    If (FlipVertical) Then
-    Begin
-      Source := Pixels;
-      N := _Height Shr 1;
-      If (Not Odd(_Height)) Then
-        Dec(N);
-
-      For J:=0 To N Do
-        For I:=0 To Pred(_Width) Do
-        Begin
-          Dest := @_Frames[K]._Data[((Pred(Height)-J)*_Width+I)];
-
-          Color := Source^;
-          Source^ := Dest^;
-          Dest^ := Color;
-
-          Inc(Source);
-        End;
+      Inc(Source, N);
     End;
   End;
 End;
@@ -783,10 +814,9 @@ Begin
                   Color, Source);
 End;
 
-Procedure Image.LineByUV(Const U1,V1,U2,V2:Single; Const Color:ColorRGBA);
+Function Image.LineByUV(Const U1,V1,U2,V2:Single; Flags:ImageProcessFlags):ImageIterator;
 Begin
-  Line(Integer(Trunc(U1*Width)), Integer(Trunc(V1*Height)),
-       Integer(Trunc(U2*Width)), Integer(Trunc(V2*Height)), Color);
+  Result := Line(Integer(Trunc(U1*Width)), Integer(Trunc(V1*Height)), Integer(Trunc(U2*Width)), Integer(Trunc(V2*Height)), Flags);
 End;
 
 Procedure Image.Blit(X,Y, X1,Y1,X2,Y2:Integer; Const Source:Image);
@@ -1005,266 +1035,29 @@ Begin
   End;
 End;
 
-// Bresenham's line algorithm
-Procedure Image.Line(X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA);
-Var
-  I,DeltaX,DeltaY,NumPixels:Integer;
-  D,Dinc1,Dinc2:Integer;
-  X,XInc1,XInc2:Integer;
-  Y,YInc1,YInc2:Integer;
+Function Image.Line(X1,Y1,X2,Y2:Integer; Flags:ImageProcessFlags):ImageIterator;
 Begin
-  //calculate deltaX and deltaY
-  DeltaX:=Abs(x2-x1);
-  DeltaY:=Abs(y2-y1);
-  //initialize
-  If (DeltaX>=DeltaY) Then
-  Begin
-    //If x is independent variable
-    NumPixels:=Succ(DeltaX);
-    D:=(2*DeltaY)-DeltaX;
-    DInc1:=DeltaY Shl 1;
-    DInc2:=(DeltaY-DeltaX) Shl 1;
-    XInc1:=1;
-    XInc2:=1;
-    YInc1:=0;
-    YInc2:=1;
-  End Else
-  Begin
-    //if y is independent variable
-    NumPixels:=Succ(DeltaY);
-    D:=(2*DeltaX)-DeltaY;
-    DInc1:=DeltaX Shl 1;
-    DInc2:=(DeltaX-DeltaY) Shl 1;
-    xinc1:=0;
-    xinc2:=1;
-    yinc1:=1;
-    yinc2:=1;
-  End;
-  //move in the right direction
-  If (X1>X2) Then
-  Begin
-    XInc1:=-XInc1;
-    XInc2:=-Xinc2;
-  End;
-  If (Y1>Y2) Then
-  Begin
-    YInc1:=-YInc1;
-    YInc2:=-YInc2;
-  End;
-
-  x:=x1;
-  y:=y1;
-  //draw the pixels
-  For i:=1 To Pred(numpixels) Do
-  Begin
-    SetPixel(x,y,Color);
-    If (d<0) Then
-    Begin
-      Inc(D,DInc1);
-      Inc(X,XInc1);
-      Inc(Y,YInc1);
-    End Else
-    Begin
-      Inc(D,DInc2);
-      Inc(X,XInc2);
-      Inc(Y,YInc2);
-    End;
-  End;
+  Result := LineImageIterator.Create(Self, X1, Y1, X2, Y2, Flags);
 End;
 
-Procedure Image.LineAlpha(X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA);
-Var
-  I,DeltaX,DeltaY,NumPixels:Integer;
-  D,Dinc1,Dinc2:Integer;
-  X,XInc1,XInc2:Integer;
-  Y,YInc1,YInc2:Integer;
+Function Image.RectangleByUV(Const U1,V1,U2,V2:Single; Flags:ImageProcessFlags):ImageIterator;
 Begin
-  //calculate deltaX and deltaY
-  DeltaX:=Abs(x2-x1);
-  DeltaY:=Abs(y2-y1);
-  //initialize
-  If (DeltaX>=DeltaY) Then
-  Begin
-    //If x is independent variable
-    NumPixels:=Succ(DeltaX);
-    D:=(2*DeltaY)-DeltaX;
-    DInc1:=DeltaY Shl 1;
-    DInc2:=(DeltaY-DeltaX) Shl 1;
-    XInc1:=1;
-    XInc2:=1;
-    YInc1:=0;
-    YInc2:=1;
-  End Else
-  Begin
-    //if y is independent variable
-    NumPixels:=Succ(DeltaY);
-    D:=(2*DeltaX)-DeltaY;
-    DInc1:=DeltaX Shl 1;
-    DInc2:=(DeltaX-DeltaY) Shl 1;
-    xinc1:=0;
-    xinc2:=1;
-    yinc1:=1;
-    yinc2:=1;
-  End;
-  //move in the right direction
-  If (X1>X2) Then
-  Begin
-    XInc1:=-XInc1;
-    XInc2:=-Xinc2;
-  End;
-  If (Y1>Y2) Then
-  Begin
-    YInc1:=-YInc1;
-    YInc2:=-YInc2;
-  End;
-
-  x:=x1;
-  y:=y1;
-  //draw the pixels
-  For i:=1 To Pred(numpixels) Do
-  Begin
-    MixPixel(x,y,Color);
-    If (d<0) Then
-    Begin
-      Inc(D,DInc1);
-      Inc(X,XInc1);
-      Inc(Y,YInc1);
-    End Else
-    Begin
-      Inc(D,DInc2);
-      Inc(X,XInc2);
-      Inc(Y,YInc2);
-    End;
-  End;
+  Result := Rectangle(Integer(Trunc(U1*Width)), Integer(Trunc(V1*Height)), Integer(Trunc(U2*Width)), Integer(Trunc(V2*Height)), Flags);
 End;
 
-Procedure Image.DrawRectangleByUV(Const U1,V1,U2,V2:Single; Const Color:ColorRGBA);
+Function Image.Rectangle(X1,Y1,X2,Y2:Integer; Flags:ImageProcessFlags):ImageIterator;
 Begin
-  DrawRectangle(Integer(Trunc(U1*Width)), Integer(Trunc(V1*Height)),
-                Integer(Trunc(U2*Width)), Integer(Trunc(V2*Height)), Color);
+  Result := RectImageIterator.Create(Self, X1, Y1, X2, Y2, Flags);
 End;
 
-Procedure Image.FillRectangleByUV(Const U1,V1,U2,V2:Single; Const Color:ColorRGBA);
+Function Image.CircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Flags:ImageProcessFlags):ImageIterator;
 Begin
-  FillRectangle(Integer(Trunc(U1*Width)), Integer(Trunc(V1*Height)),
-                Integer(Trunc(U2*Width)), Integer(Trunc(V2*Height)), Color);
+  Result := Self.Circle(Integer(Round(xCenter*Width)),Integer(Round(yCenter*Height)), Radius, Flags);
 End;
 
-// Fast rectangle draw
-Procedure Image.DrawRectangle(X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA);
-Var
-  J,LineSize,LineSkip:Integer;
-  Dest:PColorRGBA;
+Function Image.Circle(xCenter,yCenter:Integer; Const Radius:Integer; Flags:ImageProcessFlags):ImageIterator;
 Begin
-  X1 := IntMax(X1,0);
-  X2 := IntMin(X2,Integer(Pred(Width)));
-
-  Y1 := IntMax(Y1,0);
-  Y2 := IntMin(Y2,Integer(Pred(Height)));
-
-  LineSize := (X2-X1);
-  If (LineSize <= 0) Then
-    Exit;
-
-  LineSkip := Succ(Integer(Width) - LineSize);
-
-  Dest := @_Pixels._Data[Y1*Width + X1 ];
-
-  // Fill top line
-  FillLong(Dest^, LineSize, Cardinal(Color));
-
-  Inc(Dest,Width);
-  // Fill lateral lines
-  For J:=Succ(Y1) To Pred(Y2) Do
-  Begin
-    Dest^ := Color;
-    Inc(Dest, Pred(LineSize));
-    Dest^ := Color;
-    Inc(Dest, LineSkip);
-  End;
-
-  // Fill bottom line
-  FillLong(Dest^, LineSize, Cardinal(Color));
-End;
-
-// Fast rectangle fill
-Procedure Image.FillRectangle(X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA);
-Var
-  J,LineSize:Integer;
-  Dest:PColorRGBA;
-Begin
-  X1:=IntMax(X1,0);
-  X2:=IntMin(X2,Integer(Pred(Width)));
-
-  Y1:=IntMax(Y1,0);
-  Y2:=IntMin(Y2,Integer(Pred(Height)));
-
-  LineSize:=Succ(X2-X1);
-  If (LineSize<=0) Then
-    Exit;
-
-  Dest := @_Pixels._Data[Y1*Width + X1 ];
-  For J:=Y1 To Y2 Do
-  Begin
-    FillLong(Dest^,LineSize,Cardinal(Color));
-    Inc(Dest,Width);
-  End;
-End;
-
-Procedure Image.DrawCircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Const Color:ColorRGBA);
-Begin
-  DrawCircle(Integer(Round(xCenter*Width)),Integer(Round(yCenter*Height)), Radius, Color);
-End;
-
-Procedure Image.FillCircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Const Color:ColorRGBA);
-Begin
-  FillCircle(Integer(Round(xCenter*Width)),Integer(Round(yCenter*Height)), Radius, Color);
-End;
-
-// Bresenham's circle algorithm
-Procedure Image.DrawCircle(xCenter,yCenter:Integer; Const Radius:Integer; Const Color:ColorRGBA);
-Var
-  X,Y,P:Integer;
-Begin
-  x:=0;
-  Y:=Radius;
-  P:=3-Radius*2;
-  While (X<=Y) Do
-  Begin
-    SetPixel(xCenter + x, yCenter + y, Color);
-    SetPixel(xCenter - x, yCenter + y, Color);
-    SetPixel(xCenter + x, yCenter - y, Color);
-    SetPixel(xCenter - x, yCenter - y, Color);
-    SetPixel(xCenter + y, yCenter + x, Color);
-    SetPixel(xCenter - y, yCenter + x, Color);
-    SetPixel(xCenter + y, yCenter - x, Color);
-    SetPixel(xCenter - y, yCenter - x, Color);
-    If (P<0) Then
-    Begin
-      Inc(X);
-      Inc(P,4 *X + 6);
-    End Else
-    Begin
-      Inc(X);
-      Dec(Y);
-      Inc(P, 4*(X-Y)+10);
-    End;
-  End;
-End;
-
-Procedure Image.FillCircle(xCenter,yCenter:Integer; Const Radius:Integer; Const Color:ColorRGBA);
-Var
-  A,B,I:Integer;
-Begin
-  For A:=0 To Pred(Radius) Do
-  Begin
-    B := Trunc(Sqrt((Sqr(Radius) - Sqr(A))));
-    For I:=-B To B Do
-    Begin
-      SetPixel(xCenter+I,yCenter-Pred(A), Color);
-      SetPixel(xCenter+I,yCenter+Pred(A), Color);
-    End;
-  End;
+  Result := CircleImageIterator.Create(Self, xCenter, yCenter, Radius, Flags);
 End;
 
 Function Image.GetLineOffset(Y:Integer):PColorRGBA;
@@ -2224,31 +2017,6 @@ Begin
     End;
 End;
 
-Procedure Image.ShiftHue(ShiftAmmount:Integer);
-Var
-  P:PColorRGBA;
-  Count:Integer;
-  Temp:ColorHSL;
-  Hue:Integer;
-  C:ColorRGBA;
-Begin
-  Count := Self.Width * Self.Height;
-  P := Self.Pixels;
-  While Count>0 Do
-  Begin
-    Temp := ColorRGBToHSL(P^);
-
-    Hue := Temp.H + ShiftAmmount;
-
-    Temp.H := Byte(Hue);
-
-    P^ := ColorHSLToRGB(Temp);
-
-    Inc(P);
-    Dec(Count);
-  End;
-End;
-
 Function Image.GetImageTransparencyType:ImageTransparencyType;
 Var
   P:PColorRGBA;
@@ -2280,6 +2048,44 @@ Begin
   Result := _TransparencyType;
 End;
 
+Procedure Image.ClearWithColor(Const Color:ColorRGBA; Mask:Cardinal);
+Var
+  Count:Integer;
+  P:PColorRGBA;
+Begin
+  P := Self.Pixels;
+  Count := Width * Height;
+
+  If (Mask = maskRGBA) Then
+  Begin
+    While (Count>0) Do
+    Begin
+      P^ := Color;
+      Inc(P);
+      Dec(Count);
+    End;
+  End Else
+  Begin
+    While (Count>0) Do
+    Begin
+      If (Mask And maskRed<>0) Then
+        P.R := Color.R;
+
+      If (Mask And maskGreen<>0) Then
+        P.G := Color.G;
+
+      If (Mask And maskBlue<>0) Then
+        P.B := Color.B;
+
+      If (Mask And maskAlpha<>0) Then
+        P.A := Color.A;
+
+      Inc(P);
+      Dec(Count);
+    End;
+  End;
+End;
+
 { ImageFrame }
 Constructor ImageFrame.Create(Width, Height:Integer);
 Begin
@@ -2293,4 +2099,245 @@ Begin
   SetLength(_Data, 0);
 End;
 
+{ CircleImageIterator }
+Constructor CircleImageIterator.Create(Target:Image; XCenter, YCenter, Radius:Integer; Flags:ImageProcessFlags);
+Begin
+  Inherited Create(Target, Flags);
+  Self._XCenter := XCenter;
+  Self._YCenter := YCenter;
+
+  If (image_Fill In Flags) Then
+  Begin
+    _PX := -Radius;
+    _PY := 0;
+    _PR := Radius;
+  End Else
+  Begin
+    _PX := 0;
+    _PY := Radius;
+    _PR := 3 - Radius * 2;
+  End;
+
+  _PH := 0;
+  _Sub := 0;
+End;
+
+// Bresenham's circle algorithm
+Function CircleImageIterator.ObtainNext():PColorRGBA;
+Begin
+  If (image_Fill In _Flags) Then
+  Begin
+    If (_PH<=0) Or (_PY>=_PH) Then
+    Begin
+      Inc(_PX);
+      _PH := Trunc(Sqrt((Sqr(_PR) - Sqr(_PX))));
+      _PY := -_PH;
+    End;
+
+    If (_PX>=_PR) Then
+    Begin
+      Result := Nil;
+      Exit;
+    End;
+
+    _X := _XCenter + _PX;
+    _Y := _YCenter + _PY;
+    Inc(_PY);
+
+    Result := _Target.GetPixelOffset(_X, _Y);
+
+    Exit;
+  End;
+
+
+  If (_PX > _PY) Then
+  Begin
+    Result := Nil;
+    Exit;
+  End;
+
+
+  Case _Sub Of
+  0:Begin
+      _X := _xCenter + _PX;
+      _Y := _yCenter + _PY;
+    End;
+
+  1:Begin
+      _X := _xCenter - _PX;
+      _Y := _yCenter + _PY;
+    End;
+
+  2:Begin
+      _X := _xCenter + _PX;
+      _Y := _yCenter - _PY;
+    End;
+
+  3:Begin
+      _X := _xCenter - _PX;
+      _Y := _yCenter - _PY;
+    End;
+
+  4:Begin
+      _X := _xCenter + _PY;
+      _Y := _yCenter + _PX;
+    End;
+
+  5:Begin
+      _X := _xCenter - _PY;
+      _Y := _yCenter + _PX;
+    End;
+
+  6:Begin
+      _X := _xCenter + _PY;
+      _Y := _yCenter - _PX;
+    End;
+
+  7:Begin
+      _X := _xCenter - _PY;
+      _Y := _yCenter - _PX;
+    End;
+  End;
+
+  Result := _Target.GetPixelOffset(_X, _Y);
+
+  Inc(_Sub);
+  If (_Sub>=8) Then
+  Begin
+    _Sub := 0;
+    If (_PR<0) Then
+    Begin
+      Inc(_PX);
+      Inc(_PR, 4 * _PX + 6);
+    End Else
+    Begin
+      Inc(_PX);
+      Dec(_PY);
+      Inc(_PR, 4*(_PX - _PY)+10);
+    End;
+  End;
+End;
+
+{ RectImageIterator }
+Constructor RectImageIterator.Create(Target:Image; X1, Y1, X2, Y2: Integer; Flags: ImageProcessFlags);
+Begin
+  Inherited Create(Target, Flags);
+
+  Self._X1 := IntMax(X1,0);
+  Self._X2 := IntMin(X2,Integer(Pred(Target.Width)));
+
+  Self._Y1 := IntMax(Y1,0);
+  Self._Y2 := IntMin(Y2,Integer(Pred(Target.Height)));
+
+  _PX := X1;
+  _PY := Y1;
+End;
+
+Function RectImageIterator.ObtainNext: PColorRGBA;
+Begin
+  If (_PY > _Y2) Then
+  Begin
+    Result := Nil;
+    Exit;
+  End;
+
+  Result := _Target.GetPixelOffset(_PX, _PY);
+
+  Inc(_PX);
+
+  If (_PX>_X2) Then
+  Begin
+    _PX := _X1;
+    Inc(_PY);
+  End;
+End;
+
+{ LineImageIterator }
+Constructor LineImageIterator.Create(Target: Image; X1, Y1, X2, Y2: Integer; Flags: ImageProcessFlags);
+Var
+  DeltaX, DeltaY:Integer;
+Begin
+  Inherited Create(Target, Flags);
+
+  Self._X1 := X1;
+  Self._X2 := X2;
+
+  Self._Y1 := Y1;
+  Self._Y2 := Y2;
+
+  //calculate deltaX and deltaY
+  DeltaX:=Abs(x2-x1);
+  DeltaY:=Abs(y2-y1);
+  //initialize
+  If (DeltaX>=DeltaY) Then
+  Begin
+    //If x is independent variable
+    _NumPixels := Succ(DeltaX);
+    _Dir := (2*DeltaY)-DeltaX;
+    _DInc1 := DeltaY Shl 1;
+    _DInc2 := (DeltaY-DeltaX) Shl 1;
+    _XInc1 := 1;
+    _XInc2 := 1;
+    _YInc1 := 0;
+    _YInc2 := 1;
+  End Else
+  Begin
+    //if y is independent variable
+    _NumPixels := Succ(DeltaY);
+    _Dir := (2*DeltaX)-DeltaY;
+    _DInc1 := DeltaX Shl 1;
+    _DInc2 := (DeltaX-DeltaY) Shl 1;
+    _xinc1 := 0;
+    _xinc2 := 1;
+    _yinc1 := 1;
+    _yinc2 := 1;
+  End;
+  
+  //move in the right direction
+  If (X1>X2) Then
+  Begin
+    _XInc1 := -_XInc1;
+    _XInc2 := -_Xinc2;
+  End;
+
+  If (Y1>Y2) Then
+  Begin
+    _YInc1 := -_YInc1;
+    _YInc2 := -_YInc2;
+  End;
+
+  _PX := X1;
+  _PY := Y1;
+  _Sub := 0;
+
+  Dec(_NumPixels, 2);
+End;
+
+// Bresenham's line algorithm
+Function LineImageIterator.ObtainNext: PColorRGBA;
+Begin
+  If (_NumPixels<=0) Then
+  Begin
+    Result := Nil;
+    Exit;
+  End;
+
+  Dec(_NumPixels);
+
+  Result := _Target.GetPixelOffset(_PX, _PY);
+
+  If (_Dir<0) Then
+  Begin
+    Inc(_Dir, _DInc1);
+    Inc(_PX, _XInc1);
+    Inc(_PY, _YInc1);
+  End Else
+  Begin
+    Inc(_Dir, _DInc2);
+    Inc(_PX, _XInc2);
+    Inc(_PY, _YInc2);
+  End;
+End;
+
 End.
+
