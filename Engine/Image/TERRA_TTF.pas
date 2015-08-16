@@ -34,7 +34,6 @@ Type
      x,y,cx,cy: Smallint;
      vertexType,padding: Byte;
   end;
-  PStBttVertex = ^TStBttVertex;
 
   TStBttVertexArray = Record
     List:Array Of TStBttVertex;
@@ -44,7 +43,6 @@ Type
   TStBttPoint = record
      x,y: Single;
   end;
-  PStBttPoint = ^TStBttPoint;
 
   TStBttPointArray = Record
     List:Array Of TStBttPoint;
@@ -66,16 +64,20 @@ Type
   TTFFont = Class(FontGlyphFactory)
     Private
       _Scale:Single;
-
       _Ready:Boolean;
-      Data: PByteArray;              // pointer to .ttf file
-      numGlyphs: Integer;            // number of glyphs, needed for range checking
+
+      _Scanline:Array Of Byte;
+
+      _GlyphCount:Integer;            // number of glyphs, needed for range checking
+
+
+      _Data:PByteArray;              // pointer to .ttf file
+      _DataSize:Cardinal;
 
       loca,head,glyf,hhea,hmtx, kern: Cardinal; // table locations as offset from start of .ttf
       index_map: Integer;                // a cmap mapping for our chosen character encoding
       indexToLocFormat: Integer;         // format needed to map from glyph index to glyph
 
-      BufferSize:Cardinal;
 
       Function ttBYTE(Const offset: Cardinal): Byte;
       Function ttUSHORT(Const offset: Cardinal): Word;
@@ -105,7 +107,7 @@ Type
       Procedure stbtt_GetFontVMetrics(var ascent, descent, lineGap: Integer);
       Procedure stbtt_setvertex(var v:TStBttVertex; typeByte: Byte; x, y, cx, cy: Smallint);
       Procedure stbtt__rasterize(resultBitmap:Image; Var Pts:TStBttPointArray; Var Windings:TTFContourArray; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
-      Procedure stbtt_FlattenCurves(Var Vertices:TStBttVertexArray; ObjSpaceFlatness: Single; Out Contours:TTFContourArray; Out Result: TStBttPointArray);
+      Procedure stbtt_FlattenCurves(Var Vertices:TStBttVertexArray; ObjSpaceFlatness: Single; Out Contours:TTFContourArray; Out Windings:TStBttPointArray);
       Procedure stbtt__add_point(Var points:TStBttPointArray; n: Integer; x, y: Single);
       Function stbtt__tesselate_curve(Var points:TStBttPointArray; var num_points: Integer; x0, y0, x1, y1, x2, y2, objspace_flatness_squared: Single; n: Integer): Integer;
       Procedure stbtt__rasterize_sorted_edges(resultBitmap:Image; e:EdgeList; vsubsample, off_x, off_y: Integer);
@@ -159,8 +161,8 @@ var
   encoding_record: Cardinal;
   i,numTables: Cardinal;
 begin
-  Data := Nil;
-  BufferSize := 0;
+  _Data := Nil;
+  _DataSize := 0;
   _Ready := False;
 
   If (Source = Nil) then
@@ -170,9 +172,9 @@ begin
   End;
 
   // read file
-  BufferSize := Source.Size;
-  GetMem(Data, BufferSize);
-  Source.Read(@Data[0], BufferSize);
+  _DataSize := Source.Size;
+  GetMem(_Data, _DataSize);
+  Source.Read(@_Data[0], _DataSize);
 
   cmap := stbtt__find_table('cmap');
   loca := stbtt__find_table('loca');
@@ -191,9 +193,9 @@ begin
    t := stbtt__find_table('maxp');
 
    if t<>0 then
-      numGlyphs := ttUSHORT(t+4)
+      _GlyphCount := ttUSHORT(t+4)
    else
-      numGlyphs := -1;
+      _GlyphCount := -1;
 
    // find a cmap encoding table we understand *now* to avoid searching
    // later. (todo: could make this installable)
@@ -232,89 +234,94 @@ End;
 
 Procedure TTFFont.Release;
 Begin
-  If Assigned(Data) Then
+  If Assigned(_Data) Then
   Begin
-    FreeMem(Data);
-    Data := Nil;
+    FreeMem(_Data);
+    _Data := Nil;
   End;
 End;
 
 function TTFFont.ttBYTE(Const offset:Cardinal):Byte;
 begin
-  If (Offset>=BufferSize) Then
+  If (Offset>=_DataSize) Then
     Result := 0
   Else
   Begin
-    Result := Data[offset];
+    Result := _Data[offset];
   End;
 end;
 
 function TTFFont.ttUSHORT(Const offset:Cardinal): Word;
 begin
-  If (Offset>=BufferSize) Then
+  If (Offset>=_DataSize) Then
     Result := 0
   Else
   Begin
-    Result := (Data[offset] shl 8) + Data[offset+1];
+    Result := (_Data[offset] shl 8) + _Data[offset+1];
   End;
 end;
 
 function TTFFont.ttSHORT(Const offset:Cardinal): Smallint;
 begin
-  If (Offset>=BufferSize) Then
+  If (Offset>=_DataSize) Then
     Result := 0
   Else
-    Result := (SmallInt(Data[offset]) shl 8) + SmallInt(Data[offset+1]);
+    Result := (SmallInt(_Data[offset]) shl 8) + SmallInt(_Data[offset+1]);
 end;
 
 function TTFFont.ttULONG(Const offset:Cardinal): Cardinal;
 begin
-  If (Offset>=BufferSize) Then
+  If (Offset>=_DataSize) Then
     Result := 0
   Else
-    Result := (PtrUInt(Data[offset]) shl 24) + (PtrUInt(Data[offset+1]) shl 16) + (PtrUInt(Data[offset+2]) shl 8) + Cardinal(Data[offset+3]);
+    Result := (PtrUInt(_Data[offset]) shl 24) + (PtrUInt(_Data[offset+1]) shl 16) + (PtrUInt(_Data[offset+2]) shl 8) + Cardinal(_Data[offset+3]);
 end;
 
 function TTFFont.ttLONG(Const offset:Cardinal): Integer;
 begin
-  If (Offset>=BufferSize) Then
+  If (Offset>=_DataSize) Then
     Result := 0
   Else
-    Result := PtrUInt(Data[offset] shl 24) + PtrUInt(Data[offset+1] shl 16) + PtrUInt(Data[offset+2] shl 8) + PtrUInt(Data[offset+3]);
+    Result := PtrUInt(_Data[offset] shl 24) + PtrUInt(_Data[offset+1] shl 16) + PtrUInt(_Data[offset+2] shl 8) + PtrUInt(_Data[offset+3]);
 end;
 
 function TTFFont.stbtt_tag(Const offset:Cardinal; Const TableTag:FileHeader):Boolean;
 begin
-  If (Offset>=BufferSize) Then
+  If (Offset>=_DataSize) Then
     Result := False
   Else
-    Result:=(data[offset]=Byte(TableTag[1])) and (data[offset+1]=Byte(TableTag[2])) and (data[offset+2]=Byte(TableTag[3])) and (data[offset+3]=Byte(TableTag[4]));
+    Result:=(_data[offset]=Byte(TableTag[1])) and (_data[offset+1]=Byte(TableTag[2])) and (_data[offset+2]=Byte(TableTag[3])) and (_data[offset+3]=Byte(TableTag[4]));
 end;
 
 
-// @OPTIMIZE: binary search
+// OPTIMIZE: binary search
 function TTFFont.stbtt__find_table(Const TableTag:FileHeader): Cardinal;
 var
   num_tables: Integer;
   tabledir: Cardinal;
   i: Cardinal;
   loc: Cardinal;
-begin
-   num_tables := ttUSHORT(4);
-   tabledir := 12;
+Begin
+  num_tables := ttUSHORT(4);
 
-   Result := 0;
-   If (num_tables>0) Then
-   for i:=0 to num_tables-1 do
-   begin
-      loc := tabledir + 16*i;
-      if stbtt_tag(loc+0, TableTag) then
-      begin
-         Result := ttULONG(loc+8);
-         Break;
-      end;
-   end;
-end;
+  If (num_tables<=0) Then
+  Begin
+    Result := 0;
+    Exit;
+  End;
+
+  tabledir := 12;
+
+  For i:=0 to num_tables-1 do
+  Begin
+    Loc := tabledir + 16*i;
+    If stbtt_tag(loc+0, TableTag) then
+    Begin
+      Result := ttULONG(loc+8);
+      Break;
+    End;
+  End;
+End;
 
 procedure TTFFont.stbtt_GetGlyphHMetrics(GlyphIndex: Integer; var advanceWidth, leftSideBearing: Integer);
 var
@@ -469,7 +476,7 @@ Begin
       bytes := Integer(ttUSHORT( index_map + 2));
       if unicode_codepoint < bytes-6 then
       begin
-         Result := Integer(data[index_map + 6 + unicode_codepoint]);
+         Result := Integer(_Data[index_map + 6 + unicode_codepoint]);
          Exit;
       end;
       Result := 0;
@@ -489,7 +496,7 @@ Begin
 
    2:
    Begin
-      //STBTT_assert(0); // @TODO: high-byte mapping for japanese/chinese/korean
+      //STBTT_assert(0); // TODO: high-byte mapping for japanese/chinese/korean
       Result := 0;
       Exit;
    End;
@@ -585,7 +592,7 @@ Begin
 
   Else
     Begin
-     // @TODO
+     // TODO
      Result := 0;
     End;
 
@@ -610,7 +617,7 @@ function TTFFont.stbtt__GetGlyfOffset(glyph_index: Integer): Integer;
 var
    g1, g2: Integer;
 begin
-   if glyph_index >= numGlyphs then
+   if glyph_index >= _GlyphCount then
    begin
       Result := -1; // glyph index out of range
       Exit;
@@ -683,7 +690,6 @@ var
    PointIndex: Integer;
 
    TempSize:Integer;
-   tmpvx:PStBttVertex;
 begin
    //stbtt_uint8 *data = info->data;
    Result.List := Nil;
@@ -700,11 +706,11 @@ begin
       flags :=0;
       j := 0;
       was_off :=0;
-      endPtsOfContours := PByteArray(PtrUInt(data) + PtrUInt(g) + 10);
+      endPtsOfContours := PByteArray(PtrUInt(_Data) + PtrUInt(g) + 10);
       ins := ttUSHORT(g + 10 + numberOfContours * 2);
-      points := PByteArray(PtrUInt(data) + PtrUInt(g) + 10 + PtrUInt(numberOfContours) * 2 + 2 + PtrUInt(ins));
+      points := PByteArray(PtrUInt(_Data) + PtrUInt(g) + 10 + PtrUInt(numberOfContours) * 2 + 2 + PtrUInt(ins));
 
-      n := 1 + ttUSHORT(PtrUInt(endPtsOfContours) - PtrUInt(Data)+ numberOfContours*2-2);
+      n := 1 + ttUSHORT(PtrUInt(endPtsOfContours) - PtrUInt(_Data)+ numberOfContours*2-2);
 
       m := n + numberOfContours;  // a loose bound on how many vertices we might need
 
@@ -816,7 +822,7 @@ begin
             // now start the new one
             stbtt_setvertex(Result.List[Result.Count], STBTT_vmove,x,y,0,0);
             Inc(Result.Count);
-            next_move := 1 + ttUSHORT(PtrUInt(endPtsOfContours) - PtrUInt(Data)+j*2);
+            next_move := 1 + ttUSHORT(PtrUInt(endPtsOfContours) - PtrUInt(_Data)+j*2);
             Inc(j);
             was_off := 0;
             sx := x;
@@ -856,7 +862,7 @@ begin
    begin
       // Compound shapes.
       more := 1;
-      comp2 := PByteArray(PtrUInt(data) + PtrUInt(g) + 10);
+      comp2 := PByteArray(PtrUInt(_data) + PtrUInt(g) + 10);
       Result.Count := 0;
       Result.List := Nil;
 
@@ -872,18 +878,18 @@ begin
          mtx[4] := 0;
          mtx[5] := 0;
 
-         flags := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0);
+         flags := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0);
          comp2 := Pointer(PtrUInt(comp2)+ 2);
-         gidx := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0);
+         gidx := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0);
          comp2 := Pointer(PtrUInt(comp2)+ 2);
 
          if (flags and 2)<>0 then // XY values
          begin
             If (flags and 1)<>0 then  // shorts
             Begin
-               mtx[4] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0);
+               mtx[4] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0);
                comp2 := Pointer(PtrUInt(comp2)+ 2);
-               mtx[5] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0);
+               mtx[5] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0);
                comp2 := Pointer(PtrUInt(comp2)+ 2);
             End Else
             Begin
@@ -894,33 +900,33 @@ begin
             end;
          End Else
          begin
-            // @TODO handle matching point
+            // TODO handle matching point
             //STBTT_assert(0);
          end;
          if (flags and (1 shl 3))<>0 then  // WE_HAVE_A_SCALE
          begin
-            mtx[0] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0)/16384.0;
+            mtx[0] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0)/16384.0;
             mtx[1] := 0;
             mtx[2] := 0;
-            mtx[3] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0)/16384.0;
+            mtx[3] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0)/16384.0;
             comp2 := Pointer(PtrUInt(comp2)+ 2);
          end else if (flags and (1 shl 6))<>0 then // WE_HAVE_AN_X_AND_YSCALE
          begin
-            mtx[0] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0)/16384.0;
+            mtx[0] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0)/16384.0;
             comp2 := Pointer(PtrUInt(comp2)+ 2);
             mtx[1] := 0;
             mtx[2] := 0;
-            mtx[3] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0)/16384.0;
+            mtx[3] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0)/16384.0;
             comp2 := Pointer(PtrUInt(comp2)+ 2);
          end else if (flags and (1 shl 7))<>0 then// WE_HAVE_A_TWO_BY_TWO
          begin
-            mtx[0] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0)/16384.0;
+            mtx[0] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0)/16384.0;
             comp2 := Pointer(PtrUInt(comp2)+ 2);
-            mtx[1] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0)/16384.0;
+            mtx[1] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0)/16384.0;
             comp2 := Pointer(PtrUInt(comp2)+ 2);
-            mtx[2] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0)/16384.0;
+            mtx[2] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0)/16384.0;
             comp2 := Pointer(PtrUInt(comp2)+ 2);
-            mtx[3] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0)/16384.0;
+            mtx[3] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0)/16384.0;
             comp2 := Pointer(PtrUInt(comp2)+ 2);
          end;
 
@@ -967,7 +973,7 @@ begin
    End Else
    If numberOfContours < 0 Then
    Begin
-      // @TODO other compound variations?
+      // TODO other compound variations?
       //STBTT_assert(0);
    End Else
    Begin
@@ -975,10 +981,7 @@ begin
    End;
 End;
 
-//
 // antialiasing software rasterizer
-//
-
 procedure TTFFont.stbtt_GetGlyphBitmapBox(glyph: Integer; scale_x, scale_y, shift_x, shift_y: Single; var ix0, iy0, ix1, iy1: Integer);
 var
    x0,y0,x1,y1: Integer;
@@ -1012,7 +1015,7 @@ Begin
    points.List[n].y := y;
 End;
 
-// tesselate until threshhold p is happy... @TODO warped to compensate for non-linear stretching
+// tesselate until threshhold p is happy... TODO warped to compensate for non-linear stretching
 function TTFFont.stbtt__tesselate_curve(Var points:TStBttPointArray; var num_points: Integer; x0, y0, x1, y1, x2, y2, objspace_flatness_squared: Single; n: Integer): Integer;
 var
   mx, my, dx, dy: Single;
@@ -1042,15 +1045,15 @@ end;
 
 
 // returns number of contours
-Procedure TTFFont.stbtt_FlattenCurves(Var Vertices:TStBttVertexArray; ObjSpaceFlatness: Single; Out Contours:TTFContourArray; Out Result: TStBttPointArray);
+Procedure TTFFont.stbtt_FlattenCurves(Var Vertices:TStBttVertexArray; ObjSpaceFlatness: Single; Out Contours:TTFContourArray; Out Windings:TStBttPointArray);
 var
    NumPoints: Integer;
    objspace_flatness_squared: Single;
    i, n, start, pass: Integer;
    x, y: Single;
 begin
-   Result.Count := 0;
-   Result.List:= nil;
+   Windings.Count := 0;
+   Windings.List:= nil;
    NumPoints := 0;
 
    objspace_flatness_squared := Sqr(ObjSpaceFlatness);
@@ -1076,8 +1079,8 @@ begin
       y := 0;
       If (pass = 1) Then
       Begin
-        Result.Count := NumPoints * 2 ;
-        SetLength(Result.List, Result.Count);
+        Windings.Count := NumPoints * 2 ;
+        SetLength(Windings.List, Windings.Count);
       End;
 
       NumPoints := 0;
@@ -1096,7 +1099,7 @@ begin
 
                x := vertices.List[i].x;
                y := vertices.List[i].y;
-               stbtt__add_point(Result, NumPoints, x,y);
+               stbtt__add_point(Windings, NumPoints, x,y);
                Inc(NumPoints);
             end;
 
@@ -1104,13 +1107,13 @@ begin
             begin
                x := vertices.List[i].x;
                y := vertices.List[i].y;
-               stbtt__add_point(Result, NumPoints, x, y);
+               stbtt__add_point(Windings, NumPoints, x, y);
                Inc(NumPoints);
             end;
 
             STBTT_vcurve:
             begin
-               stbtt__tesselate_curve(Result, NumPoints, x,y,
+               stbtt__tesselate_curve(Windings, NumPoints, x,y,
                                         vertices.List[i].cx, vertices.List[i].cy,
                                         vertices.List[i].x,  vertices.List[i].y,
                                         objspace_flatness_squared, 0);
@@ -1123,21 +1126,21 @@ begin
    end;
 End;
 
-procedure TTFFont.stbtt_Rasterize(resultBitmap:Image; FlatnessInPixels: Single; Var Vertices:TStBttVertexArray; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
-var
+Procedure TTFFont.stbtt_Rasterize(resultBitmap:Image; FlatnessInPixels: Single; Var Vertices:TStBttVertexArray; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
+Var
   Scale: Single;
   WindingLengths:TTFContourArray;
   Windings: TStBttPointArray;
-begin
-   Scale := Min(ScaleX, ScaleY);
+Begin
+  Scale := Min(ScaleX, ScaleY);
 
-    stbtt_FlattenCurves(Vertices, FlatnessInPixels / Scale, WindingLengths, Windings);
-   If windings.Count>0 then
-   begin
-      stbtt__rasterize(resultBitmap, Windings, WindingLengths, ScaleX, ScaleY, ShiftX, ShiftY, XOff, YOff, Invert);
+  stbtt_FlattenCurves(Vertices, FlatnessInPixels / Scale, WindingLengths, Windings);
+  If windings.Count>0 then
+  Begin
+    stbtt__rasterize(resultBitmap, Windings, WindingLengths, ScaleX, ScaleY, ShiftX, ShiftY, XOff, YOff, Invert);
       //FreeMem(Windings);
-   end;
-end;
+  End;
+End;
 
 Procedure TTFFont.stbtt__rasterize(resultBitmap:Image; Var Pts: TStBttPointArray; Var Windings:TTFContourArray; ScaleX, ScaleY, ShiftX,ShiftY: Single; XOff, YOff, Invert: Integer);
 Var
@@ -1232,7 +1235,7 @@ Var
   z:TStBttActiveEdge;
   dxdy: Single;
 Begin
-  Z := TStBttActiveEdge.Create(); // @TODO: make a pool of these!!!
+  Z := TStBttActiveEdge.Create(); // TODO: make a pool of these!!!
 
   dxdy := (e.x1 - e.x0) / (e.y1 - e.y0);
   //STBTT_assert(e->y0 <= start_point);
@@ -1316,13 +1319,11 @@ begin
    end;
 end;
 
-
 procedure TTFFont.stbtt__rasterize_sorted_edges(resultBitmap:Image; e: EdgeList; vsubsample, off_x, off_y: Integer);
 var
    active: TStBttActiveEdge;
    y,j,s,iii: Integer;
    max_weight: Integer;
-   scanline: ByteArray;
    scan_y: Single;
    Temp, Prev: TStBttActiveEdge;
    p, z: TStBttActiveEdge;
@@ -1343,10 +1344,13 @@ begin
 
    E.Fix(N, (off_y + resultBitmap.Height) * vsubsample + 1);
 
+   If (Length(_Scanline)<resultBitmap.Width) Then
+    SetLength(_Scanline, resultBitmap.Width);
+
    while (j < resultBitmap.Height) do
    begin
       for iii:=0 to resultBitmap.Width do
-         scanline[iii] := 0;
+         _Scanline[iii] := 0;
 
       for s:=0 to vsubsample-1 do
       begin
@@ -1434,13 +1438,14 @@ begin
 
          // now process all active edges in XOR fashion
          If Assigned(active) Then
-            stbtt__fill_active_edges(@scanline[0], resultBitmap.Width, active, max_weight);
+            stbtt__fill_active_edges(@_Scanline[0], resultBitmap.Width, active, max_weight);
 
          Inc(y);
       End;
 
       For iii:=0 to Pred(resultBitmap.Width) Do
-        resultBitmap.SetPixel(iii, j, ColorGrey(255, scanline[iii]));
+      If (_Scanline[iii]>0) Then // OPTIMIZATION?
+        ResultBitmap.SetPixel(iii, j, ColorGrey(255, _Scanline[iii]));
 
       Inc(j);
    End;
