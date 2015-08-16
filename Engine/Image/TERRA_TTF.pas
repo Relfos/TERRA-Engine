@@ -30,7 +30,6 @@ Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Font, TERRA_Co
 {$RANGECHECKS OFF}
 
 Type
-
   TStBttVertex = record
      x,y,cx,cy: Smallint;
      vertexType,padding: Byte;
@@ -48,16 +47,12 @@ Type
   TStBttPointArray = array[0..32767] of TStBttPoint;
   PStBttPointArray = ^TStBttPointArray;
 
-  TIntegerArray = array[0..32767] of Integer;
-  PIntegerArray = ^TIntegerArray;
-
-  type TStBttActiveEdge = record
+  TStBttActiveEdge = Class(TERRAObject)
     x,dx: Integer;
     ey: Single;
-    next: Pointer;
+    next: TStBttActiveEdge;
     valid: Integer;
-  end;
-  PStBttActiveEdge = ^TStBttActiveEdge;
+  End;
 
   TTFFont = Class(FontGlyphFactory)
     Private
@@ -108,8 +103,8 @@ Type
       Procedure stbtt__add_point(points: PStBttPointArray; n: Integer; x, y: Single);
       Function stbtt__tesselate_curve(points:PStBttPointArray; var num_points: Integer; x0, y0, x1, y1, x2, y2, objspace_flatness_squared: Single; n: Integer): Integer;
       Procedure stbtt__rasterize_sorted_edges(resultBitmap:Image; e:EdgeList; vsubsample, off_x, off_y: Integer);
-      Procedure stbtt__fill_active_edges(scanline: PByteArray; len: Integer; e: PStBttActiveEdge; max_weight: Integer);
-      Function new_active(Const e: TStBttEdge; off_x: Integer; start_point: Single): PStBttActiveEdge;
+      Procedure stbtt__fill_active_edges(scanline: PByteArray; len: Integer; e:TStBttActiveEdge; max_weight: Integer);
+      Function new_active(Const e: TStBttEdge; off_x: Integer; start_point: Single):TStBttActiveEdge;
 
     Public
       Constructor Create(Source:Stream); Overload;
@@ -1237,32 +1232,39 @@ Begin
    ReleaseObject(e);
 end;
 
-function TTFFont.new_active(Const e: TStBttEdge; off_x: Integer; start_point: Single): PStBttActiveEdge;
-var
-   z: PStBttActiveEdge;
-   dxdy: Single;
-begin
-   New(z); // @TODO: make a pool of these!!!
-   dxdy := (e.x1 - e.x0) / (e.y1 - e.y0);
-   //STBTT_assert(e->y0 <= start_point);
+Function TTFFont.new_active(Const e: TStBttEdge; off_x: Integer; start_point: Single):TStBttActiveEdge;
+Var
+  z:TStBttActiveEdge;
+  dxdy: Single;
+Begin
+  Z := TStBttActiveEdge.Create(); // @TODO: make a pool of these!!!
 
-   // round dx down to avoid going too far
-   if dxdy < 0 then
-      z^.dx := -Floor(FIX * -dxdy)
-   else
-      z^.dx := Floor(FIX * dxdy);
-   z^.x := Floor(FIX * (e.x0 + dxdy * (start_point - e.y0)));
-   Dec(z^.x, off_x * FIX);
-   z^.ey := e.y1;
-   z^.next := nil;
-   if e.invert<>0 then z^.valid := 1 else z^.valid := -1;
-   Result := z;
+  dxdy := (e.x1 - e.x0) / (e.y1 - e.y0);
+  //STBTT_assert(e->y0 <= start_point);
+
+  // round dx down to avoid going too far
+  If dxdy < 0 then
+    z.dx := -Floor(FIX * -dxdy)
+  Else
+    z.dx := Floor(FIX * dxdy);
+
+  z.x := Floor(FIX * (e.x0 + dxdy * (start_point - e.y0)));
+  Dec(z.x, off_x * FIX);
+  z.ey := e.y1;
+  z.next := nil;
+
+  If e.invert<>0 Then
+    z.valid := 1
+  Else
+    z.valid := -1;
+
+  Result := z;
 end;
 
 // note: this routine clips fills that extend off the edges... ideally this
 // wouldn't happen, but it could happen if the truetype glyph bounding boxes
 // are wrong, or if the user supplies a too-small bitmap
-procedure TTFFont.stbtt__fill_active_edges(scanline: PByteArray; len: Integer; e: PStBttActiveEdge; max_weight: Integer);
+procedure TTFFont.stbtt__fill_active_edges(scanline: PByteArray; len: Integer; e: TStBttActiveEdge; max_weight: Integer);
 var
    x0,x1,w: Integer;
    i,j: Integer;
@@ -1276,11 +1278,11 @@ begin
       if w = 0 then
       begin
          // if we're currently at zero, we need to record the edge start point
-         x0 := e^.x;
-         Inc(w, e^.valid);
+         x0 := e.x;
+         Inc(w, e.valid);
       end else begin
-         x1 := e^.x;
-         Inc(w, e^.valid);
+         x1 := e.x;
+         Inc(w, e.valid);
          // if we went to zero, we need to draw
          if w = 0 then
          begin
@@ -1315,23 +1317,22 @@ begin
          end;
       end;
 
-      e := PStBttActiveEdge(e^.next);
+      e := e.next;
    end;
 end;
 
 
 procedure TTFFont.stbtt__rasterize_sorted_edges(resultBitmap:Image; e: EdgeList; vsubsample, off_x, off_y: Integer);
 var
-   active: PStBttActiveEdge;
+   active: TStBttActiveEdge;
    y,j,s,iii: Integer;
    max_weight: Integer;
-   scanline_data: ByteArray;
-   scanline: PByteArray;
+   scanline: ByteArray;
    scan_y: Single;
-   step: ^PStBttActiveEdge;
-   p, z: PStBttActiveEdge;
+   step: ^TStBttActiveEdge;
+   p, z: TStBttActiveEdge;
    changed: Integer;
-   t, q: PStBttActiveEdge;
+   t, q: TStBttActiveEdge;
    eIndex: Integer;
 
    n, cnt, ofs: Integer;
@@ -1342,8 +1343,6 @@ begin
    active := nil;
    j := 0;
    max_weight := 255 div vsubsample;  // weight per vertical scanline
-
-   scanline := @scanline_data;
 
    y := off_y * vsubsample;
 
@@ -1365,14 +1364,14 @@ begin
          while step^<>nil do
          begin
             z := step^;
-            if (z^.ey <= scan_y) then
+            if (z.ey <= scan_y) then
             begin
-               step^ := z^.next; // delete from list
-               z^.valid := 0;
-               Dispose(z);
+               step^ := z.next; // delete from list
+               z.valid := 0;
+               ReleaseObject(Z);
             end else begin
-               Inc(z^.x, z^.dx); // advance to position for current scanline
-               step := @(PStBttActiveEdge((step^)^.next)); // advance through list
+               Inc(z.x, z.dx); // advance to position for current scanline
+               step := @((step^).next); // advance through list
             end;
          end;
 
@@ -1383,13 +1382,13 @@ begin
             step := @active;
             while (step^<>nil) and (step^.next<>nil) do
             begin
-               if step^.x > PStBttActiveEdge(step^.next)^.x then
+               if step^.x > step^.next.x then
                begin
                   t := step^;
-                  q := t^.next;
+                  q := t.next;
 
-                  t^.next := q^.next;
-                  q^.next := t;
+                  t.next := q.next;
+                  q.next := t;
                   step^ := q;
                   changed := 1;
                end;
@@ -1408,18 +1407,18 @@ begin
                // find insertion point
                if active = nil then
                   active := z
-               else if (z^.x < active^.x) then                  // insert at front
+               else if (z.x < active.x) then                  // insert at front
                begin
-                  z^.next := active;
+                  z.next := active;
                   active := z;
                end else begin
                   // find thing to insert AFTER
                   p := active;
-                  while (p^.next<>nil) and (PStBttActiveEdge(p^.next)^.x < z^.x) do
-                     p := PStBttActiveEdge(p^.next);
+                  while (p.next<>nil) and (p.next.x < z.x) do
+                     p := p.next;
                   // at this point, p->next->x is NOT < z->x
-                  z^.next := p^.next;
-                  p^.next := z;
+                  z.next := p.next;
+                  p.next := z;
                end;
             end;
             Inc(eIndex);
@@ -1427,7 +1426,7 @@ begin
 
          // now process all active edges in XOR fashion
          If Assigned(active) Then
-            stbtt__fill_active_edges(scanline, resultBitmap.Width, active, max_weight);
+            stbtt__fill_active_edges(@scanline[0], resultBitmap.Width, active, max_weight);
 
          Inc(y);
       end;
@@ -1442,11 +1441,8 @@ begin
    Begin
       z := active;
       Active := Active.Next;
-      Dispose(z);
+      ReleaseObject(Z);
    End;
-
-   if scanline<>@scanline_data then
-      FreeMem(scanline);
 End;
 
 Function TTFFont.GetKerning(Current, Next: Cardinal): Integer;
