@@ -129,6 +129,9 @@ Type
       _LocalScale:Single;
 
     Public
+      Procedure LoadFromStream(Source:Stream); Virtual; Abstract;
+      Procedure LoadFromFile(Const FileName:TERRAString);
+
       Function InitGlyph(Font:TERRAFont; ID:Cardinal; Size:Integer):FontGlyph; Virtual; Abstract;
       Function GetKerning(Current, Next:Cardinal):Integer; Virtual; Abstract;
   End;
@@ -1066,6 +1069,18 @@ Begin
   Result := True;
 End;
 
+{ FontGlyphFactory }
+Procedure FontGlyphFactory.LoadFromFile(const FileName: TERRAString);
+Var
+  Source:Stream;
+Begin
+  Source := FileManager.Instance.OpenStream(FileName);
+  If Assigned(Source) Then
+  Begin
+    LoadFromStream(Source);
+    ReleaseObject(Source);
+  End;
+End;
 
 { FontSprite }
 Procedure FontSprite.AddGlyph(Const X,Y:Single; Glyph:FontGlyph; Const A, B, C, D:ColorRGBA; Skew:Single);

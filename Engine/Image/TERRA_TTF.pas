@@ -36,8 +36,10 @@ Type
   end;
   PStBttVertex = ^TStBttVertex;
 
-  TStBttVertexArray = array[0..32767] of TStBttVertex;
-  PStBttVertexArray = ^TStBttVertexArray;
+  TStBttVertexArray = Record
+    List:Array Of TStBttVertex;
+    Count:Integer;
+  End;
 
   TStBttPoint = record
      x,y: Single;
@@ -73,7 +75,7 @@ Type
       index_map: Integer;                // a cmap mapping for our chosen character encoding
       indexToLocFormat: Integer;         // format needed to map from glyph index to glyph
 
-      BufferSize: Int64;
+      BufferSize:Cardinal;
 
       Function ttBYTE(Const offset: Cardinal): Byte;
       Function ttUSHORT(Const offset: Cardinal): Word;
@@ -87,24 +89,23 @@ Type
       Procedure stbtt_GetGlyphHMetrics(GlyphIndex: Integer; var advanceWidth, leftSideBearing: Integer);
       Function stbtt_GetGlyphKernAdvance(glyph1: Integer; glyph2: Integer): Integer;
       Function stbtt_GetGlyphBitmap(scale_x, scale_y, shift_x, shift_y: Single; glyph: Integer; var xoff, yoff: Integer): Image;
-      //Procedure stbtt_MakeGlyphBitmap(output: PByteArray; out_w, out_h, out_stride: Integer; scale_x, scale_y, shift_x, shift_y: Single; glyph: Integer);
 
-      Function stbtt_GetGlyphShape(glyph_index: Integer; var PVertices: PStBttVertexArray): Integer;
+      Procedure stbtt_GetGlyphShape(glyph_index: Integer; Out Result:TStBttVertexArray);
       Function stbtt__GetGlyfOffset(glyph_index: Integer): Integer;
       Function stbtt_GetGlyphBox(glyph_index: Integer; var x0, y0, x1, y1: Integer): Integer;
       Procedure stbtt_GetGlyphBitmapBox(glyph: Integer; scale_x, scale_y, shift_x, shift_y: Single; var ix0, iy0, ix1, iy1: Integer);
 
       Function stbtt_GetCodepointKernAdvance(ch1: Integer; ch2: Integer): Integer;
       Procedure stbtt_GetCodepointHMetrics(codepoint: Integer; var advanceWidth, leftSideBearing: Integer);
-      Function stbtt_GetCodepointShape(unicode_codepoint: Integer; var vertices: PStBttVertexArray): Integer;
+      Procedure stbtt_GetCodepointShape(unicode_codepoint: Integer; Out vertices: TStBttVertexArray);
       Function stbtt_GetCodepointBox(codepoint: Integer; var x0, y0, x1, y1: Integer): Integer;
       Procedure stbtt_GetCodepointBitmapBox(codepoint: Integer; scale_x, scale_y: Single; var ix0, iy0, ix1, iy1: Integer);
 
-      Procedure stbtt_Rasterize(resultBitmap:Image; FlatnessInPixels: Single; Vertices: PStBttVertexArray; NumVerts: Integer; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
+      Procedure stbtt_Rasterize(resultBitmap:Image; FlatnessInPixels: Single; Var Vertices:TStBttVertexArray; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
       Procedure stbtt_GetFontVMetrics(var ascent, descent, lineGap: Integer);
       Procedure stbtt_setvertex(var v:TStBttVertex; typeByte: Byte; x, y, cx, cy: Smallint);
       Procedure stbtt__rasterize(resultBitmap:Image; Var Pts:TStBttPointArray; Var Windings:TTFContourArray; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
-      Procedure stbtt_FlattenCurves(Vertices: PStBttVertexArray; num_verts:Integer; ObjSpaceFlatness: Single; Out Contours:TTFContourArray; Out Result: TStBttPointArray);
+      Procedure stbtt_FlattenCurves(Var Vertices:TStBttVertexArray; ObjSpaceFlatness: Single; Out Contours:TTFContourArray; Out Result: TStBttPointArray);
       Procedure stbtt__add_point(Var points:TStBttPointArray; n: Integer; x, y: Single);
       Function stbtt__tesselate_curve(Var points:TStBttPointArray; var num_points: Integer; x0, y0, x1, y1, x2, y2, objspace_flatness_squared: Single; n: Integer): Integer;
       Procedure stbtt__rasterize_sorted_edges(resultBitmap:Image; e:EdgeList; vsubsample, off_x, off_y: Integer);
@@ -112,9 +113,7 @@ Type
       Function new_active(Const e: TStBttEdge; off_x: Integer; start_point: Single):TStBttActiveEdge;
 
     Public
-      Constructor Create(Source:Stream); Overload;
-      Constructor Create(Const FileName:TERRAString); Overload;
-
+      Procedure LoadFromStream(Source:Stream); Overload;
       Procedure Release; Override;
 
       Function stbtt_FindGlyphIndex(unicode_codepoint: Integer):Word;
@@ -154,20 +153,7 @@ const STBTT_vline = 2;
 const STBTT_vcurve = 3;
 
 { TTF }
-Constructor TTFFont.Create(Const FileName:TERRAString);
-Var
-  Source:Stream;
-Begin
-  Source := FileManager.Instance.OpenStream(FileName);
-  If Assigned(Source) Then
-  Begin
-    Create(Source);
-    ReleaseObject(Source);
-  End;
-End;
-
-
-Constructor TTFFont.Create(Source:Stream);
+Procedure TTFFont.LoadFromStream(Source:Stream);
 var
   cmap, t: Cardinal;
   encoding_record: Cardinal;
@@ -423,13 +409,11 @@ End;
 function TTFFont.stbtt_GetGlyphBitmap(scale_x, scale_y, shift_x, shift_y: Single; glyph: Integer; var xoff, yoff: Integer): Image;
 var
    ix0,iy0,ix1,iy1: Integer;
-   num_verts: Integer;
    w,h:Integer;
-   vertices: PStBttVertexArray;
+   vertices:TStBttVertexArray;
 begin
   Result := nil;
-  vertices := nil;
-  num_verts := stbtt_GetGlyphShape(glyph, vertices);
+  stbtt_GetGlyphShape(glyph, vertices);
 
   if scale_x = 0 then
     scale_x := scale_y;
@@ -455,10 +439,7 @@ begin
   Result.ClearWithColor(ColorNull);
   xoff   := ix0;
   yoff   := iy0;
-  stbtt_Rasterize(Result, 0.35, vertices, num_verts, scale_x, scale_y, shift_x, shift_y, ix0, iy0, 1);
-
-  If Assigned(vertices) Then
-    FreeMem(vertices);
+  stbtt_Rasterize(Result, 0.35, vertices, scale_x, scale_y, shift_x, shift_y, ix0, iy0, 1);
 End;
 
 Function TTFFont.stbtt_FindGlyphIndex(unicode_codepoint: Integer):Word;
@@ -611,9 +592,9 @@ Begin
   End;
 End;
 
-function TTFFont.stbtt_GetCodepointShape(unicode_codepoint: Integer; var vertices: PStBttVertexArray): Integer;
+Procedure TTFFont.stbtt_GetCodepointShape(unicode_codepoint: Integer; Out vertices: TStBttVertexArray);
 begin
-   Result := stbtt_GetGlyphShape(stbtt_FindGlyphIndex(unicode_codepoint), vertices);
+   stbtt_GetGlyphShape(stbtt_FindGlyphIndex(unicode_codepoint), vertices);
 end;
 
 procedure TTFFont.stbtt_setvertex(var v:TStBttVertex; typeByte: Byte; x, y, cx, cy: Smallint);
@@ -680,12 +661,11 @@ begin
    Result := stbtt_GetGlyphBox(stbtt_FindGlyphIndex(codepoint), x0, y0, x1, y1);
 end;
 
-function TTFFont.stbtt_GetGlyphShape(glyph_index: Integer; var PVertices: PStBttVertexArray): Integer;
+Procedure TTFFont.stbtt_GetGlyphShape(glyph_index: Integer; Out Result:TStBttVertexArray);
 var
    numberOfContours: Smallint;
    endPtsOfContours: PByteArray;
-   vertices: PStBttVertexArray;
-   g, num_vertices: Integer;
+   g: Integer;
 
    flags,flagcount: Byte;
    ins,i,j,m,n,next_move,was_off,off: Integer;
@@ -695,27 +675,23 @@ var
    points: PByteArray;
 
    gidx: Word;
-   comp_num_verts: Integer;
-   comp_verts, tmp: PStBttVertexArray;
+   
+   comp_verts: TStBttVertexArray;
    ms,ns: Single;
    mtx: array[0..5] of Single;
    xx, yy: Smallint;
    PointIndex: Integer;
 
+   TempSize:Integer;
    tmpvx:PStBttVertex;
 begin
    //stbtt_uint8 *data = info->data;
-   vertices := nil;
-   num_vertices := 0;
+   Result.List := Nil;
+   Result.Count := 0;
    g := stbtt__GetGlyfOffset(glyph_index);
 
-   PVertices := nil;
-
-   if (g < 0) then
-   begin
-     Result := 0;
+   If (g < 0) Then
      Exit;
-   end;
 
    numberOfContours := ttSHORT(g);
 
@@ -731,12 +707,9 @@ begin
       n := 1 + ttUSHORT(PtrUInt(endPtsOfContours) - PtrUInt(Data)+ numberOfContours*2-2);
 
       m := n + numberOfContours;  // a loose bound on how many vertices we might need
-      GetMem(vertices, m * sizeof(TStBttVertex));
-      if vertices = nil then
-      begin
-         Result := 0;
-         Exit;
-      end;
+
+      Result.Count := M;
+      SetLength(Result.List, Result.Count);
 
       next_move := 0;
       flagcount := 0;
@@ -763,14 +736,15 @@ begin
             end;
          end else
             Dec(flagcount);
-         vertices[off+i].vertexType := flags;
+
+         Result.List[off+i].vertexType := flags;
       end;
 
       // now load x coordinates
       x := 0;
       for i:=0 to n-1 do
       begin
-         flags := vertices[off+i].vertexType;
+         flags := Result.List[off+i].vertexType;
          if (flags and 2)<>0 then
          begin
             dx := points[PointIndex];
@@ -787,14 +761,14 @@ begin
                Inc(PointIndex, 2);
             end;
          end;
-         vertices[off+i].x := x;
+         Result.List[off+i].x := x;
       end;
 
       // now load y coordinates
       y := 0;
       for i:=0 to n-1 do
       begin
-         flags := vertices[off+i].vertexType;
+         flags := Result.List[off+i].vertexType;
          if (flags and 4)<>0 then
          begin
             dy := points[PointIndex];
@@ -811,11 +785,11 @@ begin
                Inc(PointIndex, 2);
             end;
          end;
-         vertices[off+i].y := y;
+         Result.List[off+i].y := y;
       end;
 
       // now convert them to our format
-      num_vertices := 0;
+      Result.Count := 0;
       sx := 0;
       sy := 0;
       cx := 0;
@@ -823,25 +797,25 @@ begin
       i := 0;
       while i<n do
       begin
-         flags := vertices[off+i].vertexType;
-         x := Smallint(vertices[off+i].x);
-         y := Smallint(vertices[off+i].y);
+         flags := Result.List[off+i].vertexType;
+         x := Smallint(Result.List[off+i].x);
+         y := Smallint(Result.List[off+i].y);
          if next_move = i then
          begin
             // when we get to the end, we have to close the shape explicitly
             if i<>0 then
             begin
                if was_off<>0 then
-                  stbtt_setvertex(vertices[num_vertices], STBTT_vcurve, sx, sy, cx, cy)
+                  stbtt_setvertex(Result.List[Result.Count], STBTT_vcurve, sx, sy, cx, cy)
                else
-                  stbtt_setvertex(vertices[num_vertices], STBTT_vline, sx, sy, 0, 0);
+                  stbtt_setvertex(Result.List[Result.Count], STBTT_vline, sx, sy, 0, 0);
 
-               Inc(num_vertices);
+               Inc(Result.Count);
             end;
 
             // now start the new one
-            stbtt_setvertex(vertices[num_vertices], STBTT_vmove,x,y,0,0);
-            Inc(num_vertices);
+            stbtt_setvertex(Result.List[Result.Count], STBTT_vmove,x,y,0,0);
+            Inc(Result.Count);
             next_move := 1 + ttUSHORT(PtrUInt(endPtsOfContours) - PtrUInt(Data)+j*2);
             Inc(j);
             was_off := 0;
@@ -852,18 +826,18 @@ begin
             begin
                if was_off<>0 then // two off-curve control points in a row means interpolate an on-curve midpoint
                begin
-                  stbtt_setvertex(vertices[num_vertices], STBTT_vcurve, (cx+x) shr 1, (cy+y) shr 1, cx, cy);
-                  Inc(num_vertices);
+                  stbtt_setvertex(Result.List[Result.Count], STBTT_vcurve, (cx+x) shr 1, (cy+y) shr 1, cx, cy);
+                  Inc(Result.Count);
                end;
                cx := x;
                cy := y;
                was_off := 1;
             end else begin
                if was_off<>0 then
-                  stbtt_setvertex(vertices[num_vertices], STBTT_vcurve, x,y, cx, cy)
+                  stbtt_setvertex(Result.List[Result.Count], STBTT_vcurve, x,y, cx, cy)
                else
-                  stbtt_setvertex(vertices[num_vertices], STBTT_vline, x,y,0,0);
-               Inc(num_vertices);
+                  stbtt_setvertex(Result.List[Result.Count], STBTT_vline, x,y,0,0);
+               Inc(Result.Count);
                was_off := 0;
             end;
          end;
@@ -872,23 +846,25 @@ begin
       if i<>0 then
       begin
          if was_off<>0 then
-            stbtt_setvertex(vertices[num_vertices], STBTT_vcurve,sx,sy,cx,cy)
+            stbtt_setvertex(Result.List[Result.Count], STBTT_vcurve,sx,sy,cx,cy)
          else
-            stbtt_setvertex(vertices[num_vertices], STBTT_vline,sx,sy,0,0);
-         Inc(num_vertices);
+            stbtt_setvertex(Result.List[Result.Count], STBTT_vline,sx,sy,0,0);
+         Inc(Result.Count);
       end;
-   end else if numberOfContours = -1 then
+   end else
+   if numberOfContours = -1 then
    begin
       // Compound shapes.
       more := 1;
       comp2 := PByteArray(PtrUInt(data) + PtrUInt(g) + 10);
-      num_vertices := 0;
-      vertices := nil;
-      while more<>0 do
-      begin
-         comp_num_verts := 0;
-         comp_verts := nil;
-         tmp := nil;
+      Result.Count := 0;
+      Result.List := Nil;
+
+      While more<>0 Do
+      Begin
+         comp_verts.Count := 0;
+         comp_verts.List := nil;
+
          mtx[0] := 1;
          mtx[1] := 0;
          mtx[2] := 0;
@@ -903,20 +879,21 @@ begin
 
          if (flags and 2)<>0 then // XY values
          begin
-            if (flags and 1)<>0 then  // shorts
-            begin
+            If (flags and 1)<>0 then  // shorts
+            Begin
                mtx[4] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0);
                comp2 := Pointer(PtrUInt(comp2)+ 2);
                mtx[5] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0);
                comp2 := Pointer(PtrUInt(comp2)+ 2);
-            end else begin
+            End Else
+            Begin
                mtx[4] := comp2[0];
                comp2 := Pointer(PtrUInt(comp2)+ 1);
                mtx[5] := comp2[0];
                comp2 := Pointer(PtrUInt(comp2)+ 1);
             end;
-         end
-         else begin
+         End Else
+         begin
             // @TODO handle matching point
             //STBTT_assert(0);
          end;
@@ -952,36 +929,41 @@ begin
          ns := Sqrt(mtx[2]*mtx[2] + mtx[3]*mtx[3]);
 
          // Get indexed glyph.
-         comp_num_verts := stbtt_GetGlyphShape(gidx, comp_verts);
-         if comp_num_verts > 0 then
-         begin
+         stbtt_GetGlyphShape(gidx, comp_verts);
+         If comp_verts.Count > 0 Then
+         Begin
             // Transform vertices.
-            for i := 0 to comp_num_verts-1 do
+            for i := 0 to comp_verts.Count-1 do
             begin
                //comp_verts[i];
-               xx := comp_verts[i].x; yy := comp_verts[i].y;
-               comp_verts[i].x := Smallint(Round(ms * (mtx[0]*xx + mtx[2]*yy + mtx[4])));
-               comp_verts[i].y := Smallint(Round(ns * (mtx[1]*xx + mtx[3]*yy + mtx[5])));
-               xx := comp_verts[i].cx;
-               yy := comp_verts[i].cy;
-               comp_verts[i].cx := Smallint(Round(ms * (mtx[0]*xx + mtx[2]*yy + mtx[4])));
-               comp_verts[i].cy := Smallint(Round(ns * (mtx[1]*xx + mtx[3]*yy + mtx[5])));
-            end;
-            // Append vertices.
-            GetMem(tmp, (num_vertices+comp_num_verts)*SizeOf(TStBttVertex));
-            Move(vertices^, tmp^, num_vertices*sizeof(TStBttVertex));
-            tmpvx := PStBttVertex(tmp);
-            Inc(tmpvx, num_vertices);
-            Move(comp_verts^, tmpvx^, comp_num_verts*sizeof(TStBttVertex));
-            FreeMem(vertices);                                          
-            vertices := tmp;
+               xx := comp_verts.List[i].x;
+               yy := comp_verts.List[i].y;
 
-            FreeMem(comp_verts);
-            Inc(num_vertices, comp_num_verts);
+               comp_verts.List[i].x := Smallint(Round(ms * (mtx[0]*xx + mtx[2]*yy + mtx[4])));
+               comp_verts.List[i].y := Smallint(Round(ns * (mtx[1]*xx + mtx[3]*yy + mtx[5])));
+
+               xx := comp_verts.List[i].cx;
+               yy := comp_verts.List[i].cy;
+
+               comp_verts.List[i].cx := Smallint(Round(ms * (mtx[0]*xx + mtx[2]*yy + mtx[4])));
+               comp_verts.List[i].cy := Smallint(Round(ns * (mtx[1]*xx + mtx[3]*yy + mtx[5])));
+            end;
+            
+            // Append vertices.
+            TempSize := Result.Count + Comp_Verts.Count;
+            SetLength(Result.List, TempSize);
+
+            For I:=0 To Pred(Comp_Verts.Count) Do
+            Begin
+              Result.List[Result.Count + I] := Comp_Verts.List[I];
+            End;
+
+            Result.Count := TempSize;
          end;
+
          // More components ?
          more := flags and  (1 shl 5);
-      end;
+      End;
    End Else
    If numberOfContours < 0 Then
    Begin
@@ -991,9 +973,6 @@ begin
    Begin
       // numberOfCounters == 0, do nothing
    End;
-
-   pvertices := vertices;
-   Result := num_vertices;
 End;
 
 //
@@ -1063,7 +1042,7 @@ end;
 
 
 // returns number of contours
-Procedure TTFFont.stbtt_FlattenCurves(Vertices: PStBttVertexArray; num_verts:Integer; ObjSpaceFlatness: Single; Out Contours:TTFContourArray; Out Result:TStBttPointArray);
+Procedure TTFFont.stbtt_FlattenCurves(Var Vertices:TStBttVertexArray; ObjSpaceFlatness: Single; Out Contours:TTFContourArray; Out Result: TStBttPointArray);
 var
    NumPoints: Integer;
    objspace_flatness_squared: Single;
@@ -1079,15 +1058,16 @@ begin
    start := 0;
 
    // count how many "moves" there are to get the contour count
-   for i:=0 to num_verts-1 do
-      if vertices[i].vertexType = STBTT_vmove then Inc(n);
+  for i:=0 to Vertices.Count-1 do
+  If vertices.List[i].vertexType = STBTT_vmove then
+    Inc(n);
 
-   Contours.List := Nil;
-   Contours.Count := n;
-   If n = 0 Then
-     Exit;
+  Contours.List := Nil;
+  Contours.Count := n;
+  If n = 0 Then
+    Exit;
 
-   SetLength(Contours.List, N);
+  SetLength(Contours.List, N);
 
    // make two passes through the points so we don't need to realloc
    for pass:=0 to 1 do
@@ -1103,9 +1083,9 @@ begin
       NumPoints := 0;
       n := -1;
 
-      for i:=0 to num_verts-1 do
+      for i:=0 to Vertices.Count-1 do
       begin
-         case vertices[i].vertexType of
+         case vertices.List[i].vertexType of
             STBTT_vmove:
             begin
                // start the next contour
@@ -1114,16 +1094,16 @@ begin
                Inc(n);
                start := NumPoints;
 
-               x := vertices[i].x;
-               y := vertices[i].y;
+               x := vertices.List[i].x;
+               y := vertices.List[i].y;
                stbtt__add_point(Result, NumPoints, x,y);
                Inc(NumPoints);
             end;
 
             STBTT_vline:
             begin
-               x := vertices[i].x;
-               y := vertices[i].y;
+               x := vertices.List[i].x;
+               y := vertices.List[i].y;
                stbtt__add_point(Result, NumPoints, x, y);
                Inc(NumPoints);
             end;
@@ -1131,11 +1111,11 @@ begin
             STBTT_vcurve:
             begin
                stbtt__tesselate_curve(Result, NumPoints, x,y,
-                                        vertices[i].cx, vertices[i].cy,
-                                        vertices[i].x,  vertices[i].y,
+                                        vertices.List[i].cx, vertices.List[i].cy,
+                                        vertices.List[i].x,  vertices.List[i].y,
                                         objspace_flatness_squared, 0);
-               x := vertices[i].x;
-               y := vertices[i].y;
+               x := vertices.List[i].x;
+               y := vertices.List[i].y;
             end;
          end;
       end;
@@ -1143,7 +1123,7 @@ begin
    end;
 End;
 
-procedure TTFFont.stbtt_Rasterize(resultBitmap:Image; FlatnessInPixels: Single; Vertices: PStBttVertexArray; NumVerts: Integer; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
+procedure TTFFont.stbtt_Rasterize(resultBitmap:Image; FlatnessInPixels: Single; Var Vertices:TStBttVertexArray; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
 var
   Scale: Single;
   WindingLengths:TTFContourArray;
@@ -1151,7 +1131,7 @@ var
 begin
    Scale := Min(ScaleX, ScaleY);
 
-    stbtt_FlattenCurves(Vertices, NumVerts, FlatnessInPixels / Scale, WindingLengths, Windings);
+    stbtt_FlattenCurves(Vertices, FlatnessInPixels / Scale, WindingLengths, Windings);
    If windings.Count>0 then
    begin
       stbtt__rasterize(resultBitmap, Windings, WindingLengths, ScaleX, ScaleY, ShiftX, ShiftY, XOff, YOff, Invert);
@@ -1541,7 +1521,9 @@ Var
   Scale:Single;
   XAdv,lsb:Integer;
 Begin
-  Factory := TTFFont.Create(Source);
+  Factory := TTFFont.Create();
+
+  Factory.LoadFromStream(Source);
   Result := Factory.Ready;
   If Result Then
   Begin
