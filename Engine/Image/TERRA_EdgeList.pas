@@ -75,10 +75,10 @@ end;
 
 function EdgeCompare(pa, pb: PStBttEdge): Integer;
 begin
-   if pa^.y0 < pb^.y0 then
+   if pa.y0 < pb.y0 then
       Result := -1
    else
-   if pa^.y0 > pb^.y0 then
+   if pa.y0 > pb.y0 then
       Result := 1
    else
       Result := 0;
@@ -92,19 +92,19 @@ begin
   repeat
     I := L;
     J := R;
-    P := SorEdgeList^[(L + R) shr 1];
+    P := SorEdgeList[(L + R) shr 1];
     repeat
-      while EdgeCompare(SorEdgeList^[I], P) < 0 do
+      while EdgeCompare(SorEdgeList[I], P) < 0 do
         Inc(I);
 
-      while EdgeCompare(SorEdgeList^[J], P) > 0 do
+      while EdgeCompare(SorEdgeList[J], P) > 0 do
         Dec(J);
 
       if I <= J then
       begin
-        T := SorEdgeList^[I];
-        SorEdgeList^[I] := SorEdgeList^[J];
-        SorEdgeList^[J] := T;
+        T := SorEdgeList[I];
+        SorEdgeList[I] := SorEdgeList[J];
+        SorEdgeList[J] := T;
         Inc(I);
         Dec(J);
       end;
