@@ -1199,23 +1199,24 @@ Begin
          if p[j].y <> p[k].y then
          begin
             New(en);
-            e.Add(en);
 
             // add edge from j to k to the list
-            en^.invert := 0;
+            en.invert := 0;
 
             if ((invert<>0) and (p[j].y > p[k].y)) or
               ((invert=0) and (p[j].y < p[k].y)) then
             begin
-              en^.invert := 1;
+              en.invert := 1;
               a := j;
               b := k;
             end;
 
-            en^.x0 := p[a].x * ScaleX + ShiftX;
-            en^.y0 := p[a].y * YScaleInv * VSubSample + ShiftY;
-            en^.x1 := p[b].x * ScaleX + ShiftX;
-            en^.y1 := p[b].y * YScaleInv * VSubSample + ShiftY;
+            en.x0 := p[a].x * ScaleX + ShiftX;
+            en.y0 := p[a].y * YScaleInv * VSubSample + ShiftY;
+            en.x1 := p[b].x * ScaleX + ShiftX;
+            en.y1 := p[b].y * YScaleInv * VSubSample + ShiftY;
+
+            e.Add(en);
          end;
 
          j:=k;
