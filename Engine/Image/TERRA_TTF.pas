@@ -315,7 +315,7 @@ Begin
   For i:=0 to num_tables-1 do
   Begin
     Loc := tabledir + 16*i;
-    If stbtt_tag(loc+0, TableTag) then
+    If stbtt_tag(loc, TableTag) then
     Begin
       Result := ttULONG(loc+8);
       Break;
@@ -330,11 +330,11 @@ begin
    numOfLongHorMetrics := Integer(ttUSHORT(hhea + 34));
    if GlyphIndex < numOfLongHorMetrics then
    begin
-      advanceWidth := Integer(ttSHORT(hmtx + 4*PtrUInt(GlyphIndex)));
-      leftSideBearing := Integer(ttSHORT(hmtx + 4*PtrUInt(GlyphIndex) + 2));
+      advanceWidth := Integer(ttSHORT(hmtx + 4* GlyphIndex));
+      leftSideBearing := Integer(ttSHORT(hmtx + 4*GlyphIndex + 2));
    end else begin
       advanceWidth := Integer(ttSHORT(hmtx + 4*(numOfLongHorMetrics-1)));
-      leftSideBearing := Integer(ttSHORT( hmtx + 4*numOfLongHorMetrics + 2*(PtrUInt(GlyphIndex) - numOfLongHorMetrics)));
+      leftSideBearing := Integer(ttSHORT( hmtx + 4*numOfLongHorMetrics + 2*(GlyphIndex - numOfLongHorMetrics)));
    end;
 end;
 
@@ -467,7 +467,7 @@ var
    end_char: Cardinal;
    start_glyph: Cardinal;
 Begin
-   format := ttUSHORT( index_map + 0);
+   format := ttUSHORT( index_map);
 
    Case format Of
 
@@ -486,9 +486,9 @@ Begin
    Begin
       first := Cardinal(ttUSHORT( index_map + 6));
       count := Cardinal(ttUSHORT( index_map + 8));
-      if (Cardinal(unicode_codepoint) >= first) and (PtrUInt(unicode_codepoint) < first+count) then
+      if (Cardinal(unicode_codepoint) >= first) and (unicode_codepoint < first+count) then
       begin
-         Result := Integer(ttUSHORT( PtrUInt(index_map) + 10 + (PtrUInt(unicode_codepoint) - first)*2));
+         Result := Integer(ttUSHORT( PtrUInt(index_map) + 10 + (unicode_codepoint - first)*2));
          Exit;
       end;
       Result := 0;
@@ -575,15 +575,15 @@ Begin
          mid := low + ((high-low) shr 1); // rounds down, so low <= mid < high
          start_char := ttULONG( index_map+16+mid*12);
          end_char := ttULONG( index_map+16+mid*12+4);
-         if PtrUInt(unicode_codepoint) < start_char then
+         if unicode_codepoint < start_char then
             high := mid-1
          else
-         if PtrUInt(unicode_codepoint) > end_char then
+         if unicode_codepoint > end_char then
             low := mid+1
          else
          Begin
             start_glyph := ttULONG( index_map+16+mid*12+8);
-            Result := PtrUInt(start_glyph + PtrUInt(unicode_codepoint) - start_char);
+            Result := start_glyph + unicode_codepoint - start_char;
             Exit;
          End;
       end;
@@ -678,7 +678,7 @@ var
    ins,i,j,m,n,next_move,was_off,off: Integer;
    x,y,cx,cy,sx,sy,dx,dy: Smallint;
    more: Integer;
-   comp2: PByteArray;
+   comp2:Cardinal;
    points: PByteArray;
 
    gidx: Word;
@@ -862,7 +862,7 @@ begin
    begin
       // Compound shapes.
       more := 1;
-      comp2 := PByteArray(PtrUInt(_data) + PtrUInt(g) + 10);
+      comp2 := g + 10;
       Result.Count := 0;
       Result.List := Nil;
 
@@ -878,25 +878,25 @@ begin
          mtx[4] := 0;
          mtx[5] := 0;
 
-         flags := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0);
-         comp2 := Pointer(PtrUInt(comp2)+ 2);
-         gidx := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0);
-         comp2 := Pointer(PtrUInt(comp2)+ 2);
+         flags := ttSHORT(comp2);
+         Inc(Comp2, 2);
+         gidx := ttSHORT(comp2);
+         Inc(Comp2, 2);
 
          if (flags and 2)<>0 then // XY values
          begin
             If (flags and 1)<>0 then  // shorts
             Begin
-               mtx[4] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0);
-               comp2 := Pointer(PtrUInt(comp2)+ 2);
-               mtx[5] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0);
-               comp2 := Pointer(PtrUInt(comp2)+ 2);
+               mtx[4] := ttSHORT(comp2);
+               Inc(Comp2, 2);
+               mtx[5] := ttSHORT(comp2);
+               Inc(Comp2, 2);
             End Else
             Begin
-               mtx[4] := comp2[0];
-               comp2 := Pointer(PtrUInt(comp2)+ 1);
-               mtx[5] := comp2[0];
-               comp2 := Pointer(PtrUInt(comp2)+ 1);
+               mtx[4] := ttByte(comp2);
+               Inc(Comp2);
+               mtx[5] := ttByte(comp2);
+               Inc(Comp2);
             end;
          End Else
          begin
@@ -905,29 +905,29 @@ begin
          end;
          if (flags and (1 shl 3))<>0 then  // WE_HAVE_A_SCALE
          begin
-            mtx[0] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0)/16384.0;
+            mtx[0] := ttSHORT(comp2)/16384.0;
             mtx[1] := 0;
             mtx[2] := 0;
-            mtx[3] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0)/16384.0;
-            comp2 := Pointer(PtrUInt(comp2)+ 2);
+            mtx[3] := ttSHORT(comp2)/16384.0;
+            Inc(Comp2, 2);
          end else if (flags and (1 shl 6))<>0 then // WE_HAVE_AN_X_AND_YSCALE
          begin
-            mtx[0] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0)/16384.0;
-            comp2 := Pointer(PtrUInt(comp2)+ 2);
+            mtx[0] := ttSHORT(comp2)/16384.0;
+            Inc(Comp2, 2);
             mtx[1] := 0;
             mtx[2] := 0;
-            mtx[3] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0)/16384.0;
-            comp2 := Pointer(PtrUInt(comp2)+ 2);
+            mtx[3] := ttSHORT(comp2)/16384.0;
+            Inc(Comp2, 2);
          end else if (flags and (1 shl 7))<>0 then// WE_HAVE_A_TWO_BY_TWO
          begin
-            mtx[0] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0)/16384.0;
-            comp2 := Pointer(PtrUInt(comp2)+ 2);
-            mtx[1] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0)/16384.0;
-            comp2 := Pointer(PtrUInt(comp2)+ 2);
-            mtx[2] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0)/16384.0;
-            comp2 := Pointer(PtrUInt(comp2)+ 2);
-            mtx[3] := ttSHORT(PtrUInt(comp2) - PtrUInt(_Data)+ 0)/16384.0;
-            comp2 := Pointer(PtrUInt(comp2)+ 2);
+            mtx[0] := ttSHORT(comp2)/16384.0;
+            Inc(Comp2, 2);
+            mtx[1] := ttSHORT(comp2)/16384.0;
+            Inc(Comp2, 2);
+            mtx[2] := ttSHORT(comp2)/16384.0;
+            Inc(Comp2, 2);
+            mtx[3] := ttSHORT(comp2)/16384.0;
+            Inc(Comp2, 2);
          end;
 
          // Find transformation scales.
@@ -1344,8 +1344,8 @@ begin
 
    E.Fix(N, (off_y + resultBitmap.Height) * vsubsample + 1);
 
-   If (Length(_Scanline)<resultBitmap.Width) Then
-    SetLength(_Scanline, resultBitmap.Width);
+   If (Length(_Scanline)<=resultBitmap.Width) Then
+    SetLength(_Scanline, Succ(resultBitmap.Width));
 
    while (j < resultBitmap.Height) do
    begin
