@@ -105,7 +105,7 @@ Begin
 
   If (Assigned(Self.Caption)) And (Assigned(FontRenderer))  Then
     _Size := Self.FontRenderer.GetTextRect(Self.Caption._Text);
-    
+
 (*  If ((_NeedsUpdate) Or (Fnt<>_PreviousFont)) And (Assigned(FontRenderer)) Then
   Begin
     _TextRect := FontRenderer.GetTextRect(_Caption.Value, 1.0);
@@ -182,7 +182,7 @@ Begin
 
   _Sprite.SetTransform(Self.Transform);
 
-//  DrawClipRect(View, Self.ClipRect, ColorRed);
+  DrawClipRect(View, Self.ClipRect, ColorRed);
 End;
 
 Function UILabel.SupportDrag(Mode: UIDragMode): Boolean;

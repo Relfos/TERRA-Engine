@@ -298,7 +298,7 @@ Begin
   If (_CurrentPosition.X >_MaxX) Then
     _MaxX := _CurrentPosition.X;
 
-  H := _CurrentPosition.Y + _CurrentGlyph.Height * FontInvScale;
+  H := _CurrentPosition.Y + (_CurrentGlyph.Height + FontPadding) * FontInvScale;
   If (H > _MaxY) Then
     _MaxY := H;
 
