@@ -126,7 +126,7 @@ Type
   FontGlyphFactory = Class(TERRAObject)
     Protected
       _Next:FontGlyphFactory;
-      _Scale:Single;
+      _LocalScale:Single;
 
     Public
       Function InitGlyph(Font:TERRAFont; ID:Cardinal; Size:Integer):FontGlyph; Virtual; Abstract;
@@ -708,7 +708,7 @@ Begin
   F := _Factory;
   While Assigned(F) Do
   Begin
-    Result := F.InitGlyph(Self, ID, Trunc(_TextSize * F._Scale * FontRescale));
+    Result := F.InitGlyph(Self, ID, Trunc(_TextSize * F._LocalScale * FontRescale));
     If Assigned(Result) Then
     Begin
       Result._Factory := F;
@@ -785,7 +785,7 @@ Begin
   If (Factory = Nil) Then
     Exit;
     
-  Factory._Scale := Scale;
+  Factory._LocalScale := Scale;
 
   If (_Factory = Nil) Then
   Begin

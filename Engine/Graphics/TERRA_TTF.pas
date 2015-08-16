@@ -118,12 +118,13 @@ Type
       BufferSize: Int64;
       TtfBuffer: PByteArray;
 
-      Function ttUSHORT(p: PByteArray; offset: Cardinal): Word;
-      Function ttSHORT(p: PByteArray; offset: Cardinal): Smallint;
-      Function ttULONG(p: PByteArray; offset: Cardinal): Cardinal;
-      Function ttLONG(p: PByteArray; offset: Cardinal): Integer;
+      Function ttBYTE(Const offset: Cardinal): Byte;
+      Function ttUSHORT(Const offset: Cardinal): Word;
+      Function ttSHORT(Const offset: Cardinal): Smallint;
+      Function ttULONG(Const offset: Cardinal): Cardinal;
+      Function ttLONG(Const offset: Cardinal): Integer;
 
-      Function stbtt_tag(data: PByteArray; offset: Cardinal; TableTag: PAnsiChar): Boolean;
+      Function stbtt_tag(Const offset: Cardinal; TableTag: PAnsiChar): Boolean;
       Function stbtt__find_table(data: PByteArray; fontstart: Cardinal; TableTag: PAnsiChar): Cardinal;
 
       Procedure stbtt_GetGlyphHMetrics(GlyphIndex: Integer; var advanceWidth, leftSideBearing: Integer);
@@ -435,27 +436,27 @@ begin
    t := stbtt__find_table(Data, FontStart, 'maxp');
 
    if t<>0 then
-      numGlyphs := ttUSHORT(data, t+4)
+      numGlyphs := ttUSHORT(t+4)
    else
       numGlyphs := -1;
 
    // find a cmap encoding table we understand *now* to avoid searching
    // later. (todo: could make this installable)
    // the same regardless of glyph.
-   numTables := Integer(ttUSHORT(data, cmap + 2));
+   numTables := Integer(ttUSHORT( cmap + 2));
    index_map := 0;
 
    for i:=0 to numTables-1 do
    begin
       encoding_record := cmap + 4 + 8 * i;
       // find an encoding we understand:
-      case ttUSHORT(data, encoding_record) of
+      case ttUSHORT(encoding_record) of
         STBTT_PLATFORM_ID_MICROSOFT:
-        case ttUSHORT(data, encoding_record+2) of
+        case ttUSHORT(encoding_record+2) of
           STBTT_MS_EID_UNICODE_BMP,
           STBTT_MS_EID_UNICODE_FULL:
             // MS/Unicode
-            index_map := cmap + ttULONG(data, encoding_record+4);
+            index_map := cmap + ttULONG( encoding_record+4);
         end;
       end;
    end;
@@ -466,7 +467,7 @@ begin
     Exit;
    End;
 
-   indexToLocFormat := ttUSHORT(data, head + 50);
+   indexToLocFormat := ttUSHORT(head + 50);
 
    _Ready := True;
 
@@ -483,41 +484,51 @@ Begin
   End;
 End;
 
-function TTFFont.ttUSHORT(p: PByteArray; offset: Cardinal): Word;
+function TTFFont.ttBYTE(Const offset:Cardinal):Byte;
 begin
   If (Succ(Offset)>=BufferSize) Then
     Result := 0
   Else
   Begin
-    Result := (P[offset] shl 8) + P[offset+1];
+    Result := Data[offset];
   End;
 end;
 
-function TTFFont.ttSHORT(p: PByteArray; offset: Cardinal): Smallint;
+function TTFFont.ttUSHORT(Const offset:Cardinal): Word;
 begin
   If (Succ(Offset)>=BufferSize) Then
     Result := 0
   Else
-    Result := (SmallInt(p[offset]) shl 8) + SmallInt(p[offset+1]);
+  Begin
+    Result := (Data[offset] shl 8) + Data[offset+1];
+  End;
 end;
 
-function TTFFont.ttULONG(p: PByteArray; offset: Cardinal): Cardinal;
+function TTFFont.ttSHORT(Const offset:Cardinal): Smallint;
 begin
   If (Succ(Offset)>=BufferSize) Then
     Result := 0
   Else
-    Result := (PtrUInt(p[offset]) shl 24) + (PtrUInt(p[offset+1]) shl 16) + (PtrUInt(p[offset+2]) shl 8) + Cardinal(p[offset+3]);
+    Result := (SmallInt(Data[offset]) shl 8) + SmallInt(Data[offset+1]);
 end;
 
-function TTFFont.ttLONG(p: PByteArray; offset: Cardinal): Integer;
+function TTFFont.ttULONG(Const offset:Cardinal): Cardinal;
 begin
   If (Succ(Offset)>=BufferSize) Then
     Result := 0
   Else
-    Result := PtrUInt(p[offset] shl 24) + PtrUInt(p[offset+1] shl 16) + PtrUInt(p[offset+2] shl 8) + PtrUInt(p[offset+3]);
+    Result := (PtrUInt(Data[offset]) shl 24) + (PtrUInt(Data[offset+1]) shl 16) + (PtrUInt(Data[offset+2]) shl 8) + Cardinal(Data[offset+3]);
 end;
 
-function TTFFont.stbtt_tag(data: PByteArray; offset: Cardinal; TableTag: PAnsiChar): Boolean;
+function TTFFont.ttLONG(Const offset:Cardinal): Integer;
+begin
+  If (Succ(Offset)>=BufferSize) Then
+    Result := 0
+  Else
+    Result := PtrUInt(Data[offset] shl 24) + PtrUInt(Data[offset+1] shl 16) + PtrUInt(Data[offset+2] shl 8) + PtrUInt(Data[offset+3]);
+end;
+
+function TTFFont.stbtt_tag(Const offset:Cardinal; TableTag:PAnsiChar):Boolean;
 begin
   If (Succ(Offset)>=BufferSize) Then
     Result := False
@@ -549,7 +560,7 @@ var
   i: Cardinal;
   loc: Cardinal;
 begin
-   num_tables := ttUSHORT(data, fontstart+4);
+   num_tables := ttUSHORT(fontstart+4);
    tabledir := fontstart + 12;
 
    Result := 0;
@@ -557,9 +568,9 @@ begin
    for i:=0 to num_tables-1 do
    begin
       loc := tabledir + 16*i;
-      if stbtt_tag(data, loc+0, TableTag) then
+      if stbtt_tag(loc+0, TableTag) then
       begin
-         Result := ttULONG(data, loc+8);
+         Result := ttULONG(loc+8);
          Break;
       end;
    end;
@@ -569,14 +580,14 @@ procedure TTFFont.stbtt_GetGlyphHMetrics(GlyphIndex: Integer; var advanceWidth, 
 var
    numOfLongHorMetrics: Cardinal;
 begin
-   numOfLongHorMetrics := Integer(ttUSHORT(data, hhea + 34));
+   numOfLongHorMetrics := Integer(ttUSHORT(hhea + 34));
    if GlyphIndex < numOfLongHorMetrics then
    begin
-      advanceWidth := Integer(ttSHORT(data, hmtx + 4*PtrUInt(GlyphIndex)));
-      leftSideBearing := Integer(ttSHORT(data, hmtx + 4*PtrUInt(GlyphIndex) + 2));
+      advanceWidth := Integer(ttSHORT(hmtx + 4*PtrUInt(GlyphIndex)));
+      leftSideBearing := Integer(ttSHORT(hmtx + 4*PtrUInt(GlyphIndex) + 2));
    end else begin
-      advanceWidth := Integer(ttSHORT(data, hmtx + 4*(numOfLongHorMetrics-1)));
-      leftSideBearing := Integer(ttSHORT(data, hmtx + 4*numOfLongHorMetrics + 2*(PtrUInt(GlyphIndex) - numOfLongHorMetrics)));
+      advanceWidth := Integer(ttSHORT(hmtx + 4*(numOfLongHorMetrics-1)));
+      leftSideBearing := Integer(ttSHORT( hmtx + 4*numOfLongHorMetrics + 2*(PtrUInt(GlyphIndex) - numOfLongHorMetrics)));
    end;
 end;
 
@@ -592,18 +603,18 @@ Begin
   data := PByteArray(PtrUInt(Self.data) + Self.kern);
 
    // we only look at the first table. it must be 'horizontal' and format 0.
-  If (ttUSHORT(data, 2) < 1) Then // number of tables
+  If (ttUSHORT( 2) < 1) Then // number of tables
     Exit;
-  If (ttUSHORT(data, 8) <> 1) Then // horizontal flag, format
+  If (ttUSHORT( 8) <> 1) Then // horizontal flag, format
     Exit;
 
   l := 0;
-  r := ttUSHORT(data, 10) - 1;
+  r := ttUSHORT( 10) - 1;
   needle := (glyph1 Shl 16) Or glyph2;
   While (l <= r) Do
   Begin
     m := (l + r) Shr 1;
-    straw := ttULONG(data, 18+(m*6)); // note: unaligned read
+    straw := ttULONG(18+(m*6)); // note: unaligned read
     If (needle < straw) Then
       r := m - 1
     Else
@@ -611,7 +622,7 @@ Begin
       l := m + 1
     Else
     Begin
-      Result := ttSHORT(data, 22+(m*6));
+      Result := ttSHORT( 22+(m*6));
       Exit;
     End;
   End;
@@ -632,9 +643,9 @@ end;
 
 procedure TTFFont.stbtt_GetFontVMetrics(var ascent, descent, lineGap: Integer);
 begin
-   ascent  := Integer(ttSHORT(data, hhea + 4));
-   descent := Integer(ttSHORT(data, hhea + 6));
-   lineGap := Integer(ttSHORT(data, hhea + 8));
+   ascent  := Integer(ttSHORT( hhea + 4));
+   descent := Integer(ttSHORT( hhea + 6));
+   lineGap := Integer(ttSHORT( hhea + 8));
 end;
 
 Function TTFFont.ScaleForPixelHeight(height: Single): Single;
@@ -643,7 +654,7 @@ Var
 Begin
   If (_Ready) Then
   Begin
-    fHeight := Integer(ttSHORT(data, hhea + 4) - ttSHORT(data, hhea + 6));
+    fHeight := Integer(ttSHORT( hhea + 4) - ttSHORT( hhea + 6));
     Result := height / fheight;
   End Else
     Result := 0.0;
@@ -740,11 +751,11 @@ begin
    //stbtt_uint8 *data = info->data;
    //stbtt_uint32 index_map = info->index_map;
 
-   format := ttUSHORT(data, index_map + 0);
+   format := ttUSHORT( index_map + 0);
 
    if format = 0 then // apple byte encoding
    begin
-      bytes := Integer(ttUSHORT(data, index_map + 2));
+      bytes := Integer(ttUSHORT( index_map + 2));
       if unicode_codepoint < bytes-6 then
       begin
          Result := Integer(data[index_map + 6 + unicode_codepoint]);
@@ -754,11 +765,11 @@ begin
       Exit;
    end else if format = 6 then
    begin
-      first := Cardinal(ttUSHORT(data, index_map + 6));
-      count := Cardinal(ttUSHORT(data, index_map + 8));
+      first := Cardinal(ttUSHORT( index_map + 6));
+      count := Cardinal(ttUSHORT( index_map + 8));
       if (Cardinal(unicode_codepoint) >= first) and (PtrUInt(unicode_codepoint) < first+count) then
       begin
-         Result := Integer(ttUSHORT(data, PtrUInt(index_map) + 10 + (PtrUInt(unicode_codepoint) - first)*2));
+         Result := Integer(ttUSHORT( PtrUInt(index_map) + 10 + (PtrUInt(unicode_codepoint) - first)*2));
          Exit;
       end;
       Result := 0;
@@ -770,10 +781,10 @@ begin
       Exit;
    end else if format = 4 then // standard mapping for windows fonts: binary search collection of ranges
    begin
-      segcount := ttUSHORT(data, index_map+6) shr 1;
-      searchRange := ttUSHORT(data, index_map+8) shr 1;
-      entrySelector := ttUSHORT(data, index_map+10);
-      rangeShift := ttUSHORT(data, index_map+12) shr 1;
+      segcount := ttUSHORT( index_map+6) shr 1;
+      searchRange := ttUSHORT( index_map+8) shr 1;
+      entrySelector := ttUSHORT( index_map+10);
+      rangeShift := ttUSHORT( index_map+12) shr 1;
 
       // do a binary search of the segments
       endCount := index_map + 14;
@@ -787,7 +798,7 @@ begin
 
       // they lie from endCount .. endCount + segCount
       // but searchRange is the nearest power of two, so...
-      if unicode_codepoint >= Integer(ttUSHORT(data, search + rangeShift*2)) then
+      if unicode_codepoint >= Integer(ttUSHORT( search + rangeShift*2)) then
          Inc(search, rangeShift*2);
 
       // now decrement to bias correctly to find smallest
@@ -796,10 +807,10 @@ begin
       begin
          //stbtt_uint16 start, end;
          searchRange := searchRange shr 1;
-         startValue2 := ttUSHORT(data, search + 2 + segcount*2 + 2);
-         endValue2 := ttUSHORT(data, search + 2);
-         startValue2 := ttUSHORT(data, search + searchRange*2 + segcount*2 + 2);
-         endValue2 := ttUSHORT(data, search + searchRange*2);
+         startValue2 := ttUSHORT( search + 2 + segcount*2 + 2);
+         endValue2 := ttUSHORT( search + 2);
+         startValue2 := ttUSHORT( search + searchRange*2 + segcount*2 + 2);
+         endValue2 := ttUSHORT( search + searchRange*2);
 
          if unicode_codepoint > endValue2 then
             Inc(search, searchRange*2);
@@ -810,8 +821,8 @@ begin
       item := Word((search - endCount) shr 1);
 
       //STBTT_assert(unicode_codepoint <= ttUSHORT(data + endCount + 2*item));
-      startValue := ttUSHORT(data, index_map + 14 + segcount*2 + 2 + 2*item);
-      endValue := ttUSHORT(data, index_map + 14 + 2 + 2*item);
+      startValue := ttUSHORT( index_map + 14 + segcount*2 + 2 + 2*item);
+      endValue := ttUSHORT(index_map + 14 + 2 + 2*item);
       if unicode_codepoint < startValue then
       begin
         //IntToString(unicode_codepoint); //BOO
@@ -819,19 +830,19 @@ begin
          Exit;
       end;
 
-      offset := Integer(ttUSHORT(data, index_map + 14 + segcount*6 + 2 + 2*item));
+      offset := Integer(ttUSHORT( index_map + 14 + segcount*6 + 2 + 2*item));
       if offset = 0 then
       begin
-        n := ttSHORT(data, index_map + 14 + segcount*4 + 2 + 2*item);
+        n := ttSHORT( index_map + 14 + segcount*4 + 2 + 2*item);
          Result := unicode_codepoint + n;
          Exit;
       end;
 
-      Result := ttUSHORT(data, offset + (unicode_codepoint-startValue)*2 + index_map + 14 + segcount*6 + 2 + 2*item);
+      Result := ttUSHORT( offset + (unicode_codepoint-startValue)*2 + index_map + 14 + segcount*6 + 2 + 2*item);
       Exit;
    end else if format = 12 then
    begin
-      ngroups := ttUSHORT(data, index_map+6);
+      ngroups := ttUSHORT( index_map+6);
       g := 0;
       low := 0;
       high := Integer(ngroups);
@@ -839,8 +850,8 @@ begin
       while low <= high do
       begin
          mid := low + ((high-low) shr 1); // rounds down, so low <= mid < high
-         start_char := ttULONG(data, index_map+16+mid*12);
-         end_char := ttULONG(data, index_map+16+mid*12+4);
+         start_char := ttULONG( index_map+16+mid*12);
+         end_char := ttULONG( index_map+16+mid*12+4);
          if PtrUInt(unicode_codepoint) < start_char then
             high := mid-1
          else
@@ -848,7 +859,7 @@ begin
             low := mid+1
          else
          Begin
-            start_glyph := ttULONG(data, index_map+16+mid*12+8);
+            start_glyph := ttULONG( index_map+16+mid*12+8);
             Result := PtrUInt(start_glyph + PtrUInt(unicode_codepoint) - start_char);
             Exit;
          End;
@@ -893,11 +904,11 @@ begin
 
    if indexToLocFormat = 0 then
    begin
-      g1 := glyf + ttUSHORT(data, loca + glyph_index * 2) * 2;
-      g2 := glyf + ttUSHORT(data, loca + glyph_index * 2 + 2) * 2;
+      g1 := glyf + ttUSHORT( loca + glyph_index * 2) * 2;
+      g2 := glyf + ttUSHORT( loca + glyph_index * 2 + 2) * 2;
    end else begin
-      g1 := glyf + ttULONG(data, loca + glyph_index * 4);
-      g2 := glyf + ttULONG(data, loca + glyph_index * 4 + 4);
+      g1 := glyf + ttULONG( loca + glyph_index * 4);
+      g2 := glyf + ttULONG( loca + glyph_index * 4 + 4);
    end;
 
    if g1=g2 then
@@ -917,10 +928,10 @@ begin
      Exit;
    end;
 
-   x0 := ttSHORT(data, g + 2);
-   y0 := ttSHORT(data, g + 4);
-   x1 := ttSHORT(data, g + 6);
-   y1 := ttSHORT(data, g + 8);
+   x0 := ttSHORT( g + 2);
+   y0 := ttSHORT( g + 4);
+   x1 := ttSHORT( g + 6);
+   y1 := ttSHORT( g + 8);
 
    Result := 1;
 end;
@@ -967,7 +978,7 @@ begin
      Exit;
    end;
 
-   numberOfContours := ttSHORT(data, g);
+   numberOfContours := ttSHORT(g);
 
    if numberOfContours > 0 then
    begin
@@ -975,10 +986,10 @@ begin
       j := 0;
       was_off :=0;
       endPtsOfContours := PByteArray(PtrUInt(data) + PtrUInt(g) + 10);
-      ins := ttUSHORT(data, g + 10 + numberOfContours * 2);
+      ins := ttUSHORT(g + 10 + numberOfContours * 2);
       points := PByteArray(PtrUInt(data) + PtrUInt(g) + 10 + PtrUInt(numberOfContours) * 2 + 2 + PtrUInt(ins));
 
-      n := 1 + ttUSHORT(endPtsOfContours, numberOfContours*2-2);
+      n := 1 + ttUSHORT(PtrUInt(endPtsOfContours) - PtrUInt(Data)+ numberOfContours*2-2);
 
       m := n + numberOfContours;  // a loose bound on how many vertices we might need
       GetMem(vertices, m * sizeof(TStBttVertex));
@@ -1092,7 +1103,7 @@ begin
             // now start the new one
             stbtt_setvertex(vertices[num_vertices], STBTT_vmove,x,y,0,0);
             Inc(num_vertices);
-            next_move := 1 + ttUSHORT(endPtsOfContours, j*2);
+            next_move := 1 + ttUSHORT(PtrUInt(endPtsOfContours) - PtrUInt(Data)+j*2);
             Inc(j);
             was_off := 0;
             sx := x;
@@ -1146,18 +1157,18 @@ begin
          mtx[4] := 0;
          mtx[5] := 0;
 
-         flags := ttSHORT(comp2, 0);
+         flags := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0);
          comp2 := Pointer(PtrUInt(comp2)+ 2);
-         gidx := ttSHORT(comp2, 0);
+         gidx := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0);
          comp2 := Pointer(PtrUInt(comp2)+ 2);
 
          if (flags and 2)<>0 then // XY values
          begin
             if (flags and 1)<>0 then  // shorts
             begin
-               mtx[4] := ttSHORT(comp2, 0);
+               mtx[4] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0);
                comp2 := Pointer(PtrUInt(comp2)+ 2);
-               mtx[5] := ttSHORT(comp2, 0);
+               mtx[5] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0);
                comp2 := Pointer(PtrUInt(comp2)+ 2);
             end else begin
                mtx[4] := comp2[0];
@@ -1172,28 +1183,28 @@ begin
          end;
          if (flags and (1 shl 3))<>0 then  // WE_HAVE_A_SCALE
          begin
-            mtx[0] := ttSHORT(comp2, 0)/16384.0;
+            mtx[0] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0)/16384.0;
             mtx[1] := 0;
             mtx[2] := 0;
-            mtx[3] := ttSHORT(comp2, 0)/16384.0;
+            mtx[3] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0)/16384.0;
             comp2 := Pointer(PtrUInt(comp2)+ 2);
          end else if (flags and (1 shl 6))<>0 then // WE_HAVE_AN_X_AND_YSCALE
          begin
-            mtx[0] := ttSHORT(comp2, 0)/16384.0;
+            mtx[0] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0)/16384.0;
             comp2 := Pointer(PtrUInt(comp2)+ 2);
             mtx[1] := 0;
             mtx[2] := 0;
-            mtx[3] := ttSHORT(comp2, 0)/16384.0;
+            mtx[3] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0)/16384.0;
             comp2 := Pointer(PtrUInt(comp2)+ 2);
          end else if (flags and (1 shl 7))<>0 then// WE_HAVE_A_TWO_BY_TWO
          begin
-            mtx[0] := ttSHORT(comp2, 0)/16384.0;
+            mtx[0] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0)/16384.0;
             comp2 := Pointer(PtrUInt(comp2)+ 2);
-            mtx[1] := ttSHORT(comp2, 0)/16384.0;
+            mtx[1] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0)/16384.0;
             comp2 := Pointer(PtrUInt(comp2)+ 2);
-            mtx[2] := ttSHORT(comp2, 0)/16384.0;
+            mtx[2] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0)/16384.0;
             comp2 := Pointer(PtrUInt(comp2)+ 2);
-            mtx[3] := ttSHORT(comp2, 0)/16384.0;
+            mtx[3] := ttSHORT(PtrUInt(comp2) - PtrUInt(Data)+ 0)/16384.0;
             comp2 := Pointer(PtrUInt(comp2)+ 2);
          end;
 

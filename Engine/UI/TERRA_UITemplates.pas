@@ -23,6 +23,8 @@ Type
   End;
 
 Implementation
+Uses TERRA_Localization;
+
 
 { UIWindowTemplate }
 
@@ -74,7 +76,8 @@ Begin
   TileRect.Texture := Tex;
   TileRect.Draggable := True;
 
-  EditText := UIEditText.Create('label', Self, 0, 0, 1, UIPercent(90), UIPercent(50), 'dsafsdfdsjkasdakjdaskjdadfsfsfsfsdfgdgd');
+  EditText := UIEditText.Create('label', Self, 0, 0, 1, UIPercent(90), UIPercent(50),
+    GetLanguageDescription(language_Japanese)+ ' '+ GetLanguageDescription(language_Korean)+ ' '+ GetLanguageDescription(language_Russian)+ ' '+ GetLanguageDescription(language_Chinese){'dsafsdfdsjkasdakjdaskjdadfsfsfsfsdfgdgd'});
   EditText.Align := waCenter;
 
   Self.AddProperty(StringProperty.Create('text', 'untitled'), True);
