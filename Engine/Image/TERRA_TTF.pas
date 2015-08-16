@@ -671,7 +671,7 @@ end;
 Procedure TTFFont.stbtt_GetGlyphShape(glyph_index: Integer; Out Result:TStBttVertexArray);
 var
    numberOfContours: Smallint;
-   endPtsOfContours: PByteArray;
+   endPtsOfContours:Cardinal;
    g: Integer;
 
    flags,flagcount: Byte;
@@ -706,11 +706,11 @@ begin
       flags :=0;
       j := 0;
       was_off :=0;
-      endPtsOfContours := PByteArray(PtrUInt(_Data) + PtrUInt(g) + 10);
+      endPtsOfContours := g + 10;
       ins := ttUSHORT(g + 10 + numberOfContours * 2);
       points := PByteArray(PtrUInt(_Data) + PtrUInt(g) + 10 + PtrUInt(numberOfContours) * 2 + 2 + PtrUInt(ins));
 
-      n := 1 + ttUSHORT(PtrUInt(endPtsOfContours) - PtrUInt(_Data)+ numberOfContours*2-2);
+      n := 1 + ttUSHORT(endPtsOfContours+ numberOfContours*2-2);
 
       m := n + numberOfContours;  // a loose bound on how many vertices we might need
 
@@ -822,7 +822,7 @@ begin
             // now start the new one
             stbtt_setvertex(Result.List[Result.Count], STBTT_vmove,x,y,0,0);
             Inc(Result.Count);
-            next_move := 1 + ttUSHORT(PtrUInt(endPtsOfContours) - PtrUInt(_Data)+j*2);
+            next_move := 1 + ttUSHORT(endPtsOfContours+j*2);
             Inc(j);
             was_off := 0;
             sx := x;
