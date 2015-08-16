@@ -19,24 +19,20 @@ Type
 
     procedure QuickSort(L, R: Integer);
 
-    function Get(Index: Integer): PStBttEdge;
-
 
   Public
     Constructor Create();
     Procedure Release; override;
-    function Add(Const Item: TStBttEdge): Integer;
 
-    procedure Sort();
+    Function Add(Const Item: TStBttEdge): Integer;
+    Function Get(Index: Integer): PStBttEdge;
 
-    property Count: Integer read _Count;
-    property Items[Index: Integer]: PStBttEdge read Get; default;
-  end;
+    Procedure Sort();
+
+    Property Count: Integer read _Count;
+  End;
 
 Implementation
-
-Const
-  MaxListSize = Maxint div 16;
 
 
 { EdgeList }
@@ -59,8 +55,8 @@ Begin
   _Count := 0;
 End;
 
-function EdgeList.Add(Const Item: TStBttEdge): Integer;
-begin
+Function EdgeList.Add(Const Item: TStBttEdge): Integer;
+Begin
   Result := _Count;
 
   While Result >= Length(_List) Do
@@ -68,10 +64,10 @@ begin
 
   _List[Result] := Item;
   Inc(_Count);
-end;
+End;
 
-function EdgeList.Get(Index: Integer): PStBttEdge;
-begin
+Function EdgeList.Get(Index: Integer): PStBttEdge;
+Begin
   If (Index < 0) or (Index >= _Count) then
   Begin
   	Result := Nil;
@@ -79,10 +75,10 @@ begin
   End;
 
   Result := @_List[Index];
-end;
+End;
 
-function EdgeCompare(Const pa, pb: TStBttEdge): Integer;
-begin
+Function EdgeCompare(Const pa, pb: TStBttEdge): Integer;
+Begin
    if pa.y0 < pb.y0 then
       Result := -1
    else
@@ -90,14 +86,14 @@ begin
       Result := 1
    else
       Result := 0;
-end;
+End;
 
-procedure EdgeList.QuickSort(L, R: Integer);
-var
+Procedure EdgeList.QuickSort(L, R: Integer);
+Var
   I, J: Integer;
   P, T:TStBttEdge;
-begin
-  repeat
+Begin
+  Repeat
     I := L;
     J := R;
     P := _List[(L + R) shr 1];
@@ -120,8 +116,8 @@ begin
     if L < J then
       QuickSort( L, J);
     L := I;
-  until I >= R;
-end;
+  Until I >= R;
+End;
 
 Procedure EdgeList.Sort();
 Begin
