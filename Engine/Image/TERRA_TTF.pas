@@ -51,12 +51,6 @@ Type
   TIntegerArray = array[0..32767] of Integer;
   PIntegerArray = ^TIntegerArray;
 
-  type TStBttEdge = record
-    x0,y0, x1,y1: Single;
-    invert: Integer;
-  end;
-  PStBttEdge = ^TStBttEdge;
-
   type TStBttActiveEdge = record
     x,dx: Integer;
     ey: Single;
@@ -313,21 +307,6 @@ begin
     Result:=(data[offset]=Byte(TableTag[0])) and (data[offset+1]=Byte(TableTag[1])) and (data[offset+2]=Byte(TableTag[2])) and (data[offset+3]=Byte(TableTag[3]));
 end;
 
-function EdgeCompare(Item1, Item2: Pointer): Integer;
-var
-   pa, pb: PStBttEdge;
-begin
-   pa := PStBttEdge(Item1);
-   pb := PStBttEdge(Item2);
-
-   if pa^.y0 < pb^.y0 then
-      Result := -1
-   else
-   if pa^.y0 > pb^.y0 then
-      Result := 1
-   else
-      Result := 0;
-end;
 
 // @OPTIMIZE: binary search
 function TTFFont.stbtt__find_table(data: PByteArray; fontstart: Cardinal; TableTag: PAnsiChar): Cardinal;
@@ -1247,7 +1226,7 @@ Begin
    FreeMem(WCount);
 
    // now sort the edges by their highest point (should snap to integer, and then by x)
-   e.Sort(EdgeCompare);
+   e.Sort();
 
    GetMem(en, SizeOf(TStBttEdge));
    en^.y0 := 10000000;

@@ -6,26 +6,30 @@ Interface
 Uses TERRA_Object;
 
 Type
-  EdgeListSortCompare = function (Item1, Item2: Pointer): Integer;
+  TStBttEdge = record
+    x0,y0, x1,y1: Single;
+    invert: Integer;
+  end;
+  PStBttEdge = ^TStBttEdge;
 
   EdgeList = Class(TERRAObject)
   Private
-    _List: Array Of Pointer;
+    _List: Array Of PStBttEdge;
     _Count: Integer;
 
   Protected
-    function Get(Index: Integer): Pointer;
+    function Get(Index: Integer): PStBttEdge;
 
 
   Public
     Constructor Create();
     Procedure Release; override;
-    function Add(Item: Pointer): Integer;
+    function Add(Item: PStBttEdge): Integer;
 
-    procedure Sort(Compare: EdgeListSortCompare);
+    procedure Sort();
 
     property Count: Integer read _Count;
-    property Items[Index: Integer]: Pointer read Get; default;
+    property Items[Index: Integer]: PStBttEdge read Get; default;
   end;
 
 Implementation
@@ -47,7 +51,7 @@ Begin
   _Count := 0;
 End;
 
-function EdgeList.Add(Item: Pointer): Integer;
+function EdgeList.Add(Item: PStBttEdge): Integer;
 begin
   Result := _Count;
 
@@ -58,19 +62,29 @@ begin
   Inc(_Count);
 end;
 
-function EdgeList.Get(Index: Integer): Pointer;
+function EdgeList.Get(Index: Integer): PStBttEdge;
 begin
   If (Index < 0) or (Index >= _Count) then
   Begin
   	Result := Nil;
   	Exit;
   End;
-  
+
   Result := _List[Index];
 end;
 
+function EdgeCompare(pa, pb: PStBttEdge): Integer;
+begin
+   if pa^.y0 < pb^.y0 then
+      Result := -1
+   else
+   if pa^.y0 > pb^.y0 then
+      Result := 1
+   else
+      Result := 0;
+end;
 
-procedure QuickSort(SorEdgeList: PPointerArray; L, R: Integer; SCompare: EdgeListSortCompare);
+procedure QuickSort(SorEdgeList: PPointerArray; L, R: Integer);
 var
   I, J: Integer;
   P, T: Pointer;
@@ -80,10 +94,12 @@ begin
     J := R;
     P := SorEdgeList^[(L + R) shr 1];
     repeat
-      while SCompare(SorEdgeList^[I], P) < 0 do
+      while EdgeCompare(SorEdgeList^[I], P) < 0 do
         Inc(I);
-      while SCompare(SorEdgeList^[J], P) > 0 do
+
+      while EdgeCompare(SorEdgeList^[J], P) > 0 do
         Dec(J);
+
       if I <= J then
       begin
         T := SorEdgeList^[I];
@@ -94,15 +110,15 @@ begin
       end;
     until I > J;
     if L < J then
-      QuickSort(SorEdgeList, L, J, SCompare);
+      QuickSort(SorEdgeList, L, J);
     L := I;
   until I >= R;
 end;
 
-procedure EdgeList.Sort(Compare: EdgeListSortCompare);
+procedure EdgeList.Sort();
 begin
   if (_List <> nil) and (Count > 0) then
-    QuickSort(@_List[0], 0, Count - 1, Compare);
+    QuickSort(@_List[0], 0, Count - 1);
 end;
 
 End.

@@ -122,7 +122,7 @@ Begin
   MyWnd.Draggable := True;
   MyWnd.Align := waCenter;
 
-  MyEdit := UIInstancedWidget.Create('myedit', MyWnd, 0, 0, 1, UIPixels(350), UIPixels(50), 'edit_template');
+  MyEdit := UIInstancedWidget.Create('myedit', MyWnd, 0, 0, 1, UIPixels(450), UIPixels(50), 'edit_template');
   MyEdit.Align := waCenter;
   MyEdit.SetEventHandler(widgetEvent_MouseDown, OnMyButtonClick); // Assign a onClick event handler
 End;
