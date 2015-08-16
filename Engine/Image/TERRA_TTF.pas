@@ -1262,62 +1262,64 @@ end;
 // note: this routine clips fills that extend off the edges... ideally this
 // wouldn't happen, but it could happen if the truetype glyph bounding boxes
 // are wrong, or if the user supplies a too-small bitmap
-procedure TTFFont.stbtt__fill_active_edges(scanline: PByteArray; len: Integer; e: TStBttActiveEdge; max_weight: Integer);
-var
+Procedure TTFFont.stbtt__fill_active_edges(scanline: PByteArray; len: Integer; e: TStBttActiveEdge; max_weight: Integer);
+Var
    x0,x1,w: Integer;
    i,j: Integer;
 begin
-   // non-zero winding fill
-   x0 := 0;
-   w := 0;
+  // non-zero winding fill
+  x0 := 0;
+  w := 0;
 
-   while e<>nil do
-   begin
-      if w = 0 then
-      begin
-         // if we're currently at zero, we need to record the edge start point
-         x0 := e.x;
-         Inc(w, e.valid);
-      end else begin
-         x1 := e.x;
-         Inc(w, e.valid);
-         // if we went to zero, we need to draw
-         if w = 0 then
-         begin
-            i := x0 shr FIXSHIFT;
-            j := x1 shr FIXSHIFT;
+  While Assigned(e) Do
+  Begin
+    If w = 0 Then
+    Begin
+      // if we're currently at zero, we need to record the edge start point
+      x0 := e.x;
+      Inc(w, e.valid);
+    End Else
+    Begin
+      x1 := e.x;
+      Inc(w, e.valid);
+      // if we went to zero, we need to draw
+      If w = 0 then
+      Begin
+        i := x0 shr FIXSHIFT;
+        j := x1 shr FIXSHIFT;
 
-            if (i < len) and (j >= 0) then
-            begin
-               if i = j then
-               begin
-                  // x0,x1 are the same pixel, so compute combined coverage
-                  scanline[i] := scanline[i] + Byte(((x1 - x0) * max_weight) shr FIXSHIFT);
-               end else begin
-                  if i >= 0 then // add antialiasing for x0
-                     scanline[i] := scanline[i] + Byte(((FIX - (x0 and FIXMASK)) * max_weight) shr FIXSHIFT)
-                  else
-                     i := -1; // clip
+        If (i < len) and (j >= 0) then
+        Begin
+          If i = j Then
+          Begin
+            // x0,x1 are the same pixel, so compute combined coverage
+            scanline[i] := scanline[i] + Byte(((x1 - x0) * max_weight) shr FIXSHIFT);
+          End Else
+          Begin
+            If i >= 0 Then // add antialiasing for x0
+              scanline[i] := scanline[i] + Byte(((FIX - (x0 and FIXMASK)) * max_weight) shr FIXSHIFT)
+            Else
+              i := -1; // clip
 
-                  if (j < len) then// add antialiasing for x1
-                     scanline[j] := scanline[j] + Byte(((x1 and FIXMASK) * max_weight) shr FIXSHIFT)
-                  else
-                     j := len; // clip
+            If (j < len) Then// add antialiasing for x1
+              scanline[j] := scanline[j] + Byte(((x1 and FIXMASK) * max_weight) shr FIXSHIFT)
+            Else
+              j := len; // clip
 
-                  Inc(i);
-                  while i<j do // fill pixels between x0 and x1
-                  begin
-                     scanline[i] := scanline[i] + Byte(max_weight);
-                     Inc(i);
-                  end;
-               end;
-            end;
-         end;
-      end;
+            Inc(i);
+            While i<j Do // fill pixels between x0 and x1
+            Begin
+              scanline[i] := scanline[i] + Byte(max_weight);
+              Inc(i);
+            End;
+          End;
+        End;
+      End;
+    End;
 
-      e := e.next;
-   end;
-end;
+    e := e.next;
+  End;
+End;
 
 Procedure TTFFont.stbtt__rasterize_sorted_edges(resultBitmap:Image; e: EdgeList; vsubsample, off_x, off_y: Integer);
 Var

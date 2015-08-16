@@ -26,7 +26,7 @@ Type
     Protected
       _Caption:CaptionProperty;
       _Outline:ColorProperty;
-      _Size:IntegerProperty;
+      _TextSize:IntegerProperty;
       _Font:FontProperty;
 
       _TextRect:Vector2D;
@@ -73,7 +73,7 @@ Begin
 
   _Caption := CaptionProperty(Self.AddProperty(CaptionProperty.Create('caption', Text, Self), False));
   _Outline := ColorProperty(Self.AddProperty(ColorProperty.Create('outline', ColorBlack), False));
-  _Size := IntegerProperty(Self.AddProperty(IntegerProperty.Create('size', 30), False));
+  _TextSize := IntegerProperty(Self.AddProperty(IntegerProperty.Create('textsize', 30), False));
   _Font := FontProperty(Self.AddProperty(FontProperty.Create('font', FontManager.Instance.GetFont('droid')), False));
 End;
 
@@ -100,14 +100,13 @@ Begin
 End;
 
 Procedure UILabel.UpdateRects;
-Var
-  Fnt:TERRAFont;
 Begin
-  Inherited;
+//  Inherited;
 
-(*TODO  Fnt := Self.GetFont();
-
-  If ((_NeedsUpdate) Or (Fnt<>_PreviousFont)) And (Assigned(FontRenderer)) Then
+  If (Assigned(Self.Caption)) And (Assigned(FontRenderer))  Then
+    _Size := Self.FontRenderer.GetTextRect(Self.Caption._Text);
+    
+(*  If ((_NeedsUpdate) Or (Fnt<>_PreviousFont)) And (Assigned(FontRenderer)) Then
   Begin
     _TextRect := FontRenderer.GetTextRect(_Caption.Value, 1.0);
     _PreviousFont := Fnt;
@@ -170,7 +169,7 @@ Begin
   Self.FontRenderer.SetColor(Self.GetColor());
 
   Self.FontRenderer.SetOutline(_Outline.Value);
-  Self.FontRenderer.SetSize(_Size.Value);
+  Self.FontRenderer.SetSize(_TextSize.Value);
 
   Self.FontRenderer.SetTransform(_Transform);
 

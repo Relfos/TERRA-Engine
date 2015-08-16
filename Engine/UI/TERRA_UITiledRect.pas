@@ -117,7 +117,7 @@ Begin
     Texture := TextureManager.Instance.WhiteTexture;
 
   _Sprite.SetTransform(Self._Transform);
- // _Sprite.ClipRect := Self.GetClipRect();
+  _Sprite.ClipRect := Self.ClipRect;
   _Sprite.Texture := Self.Texture;
   _Sprite.Layer := Self.GetLayer();
   _Sprite.Saturation := Self.GetSaturation();

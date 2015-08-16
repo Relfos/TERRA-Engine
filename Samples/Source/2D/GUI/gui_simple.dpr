@@ -119,7 +119,7 @@ Begin
   MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, 0, 0, 1, UIPixels(250), UIPixels(50), 'btn_template');
   MyBtn.Align := waCenter;
   MyBtn.SetEventHandler(widgetEvent_MouseDown, OnMyButtonClick); // Assign a onClick event handler
-  MyBtn.Rotation := 45*RAD;
+//  MyBtn.Rotation := 45*RAD;
 
 End;
 

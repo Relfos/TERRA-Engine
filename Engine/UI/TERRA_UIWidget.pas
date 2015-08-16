@@ -1108,15 +1108,13 @@ Begin
 
   If (Align<>waTopLeft) Then
   Begin
-    Width := _Size.X{ * _Scale};
+    Width := Self._Size.X{ * _Scale};
     Height := _Size.Y{ * _Scale};
 
     {IF _Scale>1 Then
       IntToString(2);}
 
     ParentSize := _Parent.Size;
-{      ParentSize.X := ParentSize.X * _Parent._Scale;
-      ParentSize.Y := ParentSize.Y * _Parent._Scale;}
 
     Center.X := ParentSize.X * 0.5;
     Center.Y := ParentSize.Y * 0.5;
