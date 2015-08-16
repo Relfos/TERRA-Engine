@@ -12,7 +12,7 @@ Type
     clipEverything = 2
   );
 
-  ClipRect = Object
+  TERRAClipRect = Object
     Protected
       _Style:ClipRectStyle;
       _X, _Y:Single;
@@ -29,7 +29,7 @@ Type
 
       Procedure Transform(Const M:Matrix3x3);
 
-      Procedure Merge(Const Other:ClipRect);
+      Procedure Merge(Const Other:TERRAClipRect);
 
       Property X:Single Read _X Write SetX;
       Property Y:Single Read _Y Write SetY;
@@ -40,13 +40,13 @@ Type
       Property Height:Single Read _Height Write SetHeight;
   End;
 
-Function ClipRectCreate(X,Y, Width, Height:Single):ClipRect;
+Function ClipRectCreate(X,Y, Width, Height:Single):TERRAClipRect;
 
 
 Implementation
 
 { ClipRect }
-Procedure ClipRect.GetRealRect(Out X1, Y1, X2, Y2: Single{; Landscape:Boolean});
+Procedure TERRAClipRect.GetRealRect(Out X1, Y1, X2, Y2: Single{; Landscape:Boolean});
 Var
   UIWidth, UIHeight:Integer;
 Begin
@@ -67,37 +67,37 @@ Begin
   End;
 End;
 
-Procedure ClipRect.SetStyle(Const ClipStyle:ClipRectStyle);
+Procedure TERRAClipRect.SetStyle(Const ClipStyle:ClipRectStyle);
 Begin
   _Style := ClipStyle;
 End;
 
 
-Procedure ClipRect.SetHeight(const Value: Single);
+Procedure TERRAClipRect.SetHeight(const Value: Single);
 Begin
   _Height := Value;
   _Style := clipSomething;
 End;
 
-Procedure ClipRect.SetWidth(const Value: Single);
+Procedure TERRAClipRect.SetWidth(const Value: Single);
 Begin
   _Width := Value;
   _Style := clipSomething;
 End;
 
-Procedure ClipRect.SetX(const Value: Single);
+Procedure TERRAClipRect.SetX(const Value: Single);
 Begin
   _X := Value;
   _Style := clipSomething;
 End;
 
-Procedure ClipRect.SetY(const Value: Single);
+Procedure TERRAClipRect.SetY(const Value: Single);
 Begin
   _Y := Value;
   _Style := clipSomething;
 End;
 
-Procedure ClipRect.Transform(const M: Matrix3x3);
+Procedure TERRAClipRect.Transform(const M: Matrix3x3);
 Var
   I:Integer;
   P:Array[0..3] Of Vector2D;
@@ -146,7 +146,7 @@ Begin
   Self.Height := MaxY - MinY;
 End;
 
-Procedure ClipRect.Merge(const Other: ClipRect);
+Procedure TERRAClipRect.Merge(const Other: TERRAClipRect);
 Var
   Diff:Single;
   X1, Y1, X2, Y2: Single;
@@ -179,7 +179,7 @@ Begin
   If (PX2<X2) Then
     X2 := PX2;
 
-  If (PY2>Y2) Then
+  If (PY2<Y2) Then
     Y2 := PY2;
 
 
@@ -189,7 +189,7 @@ Begin
   _Height := Y2-Y1;
 End;
 
-Function ClipRectCreate(X,Y, Width, Height:Single):ClipRect;
+Function ClipRectCreate(X,Y, Width, Height:Single):TERRAClipRect;
 Begin
   Result._Style := clipSomething;
   Result._X := X;

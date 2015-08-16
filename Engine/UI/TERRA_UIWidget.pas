@@ -127,6 +127,8 @@ Type
 
       Function IsEnabled: Boolean;
 
+      Function GetClipRect: TERRAClipRect;
+
 		Protected
 			_Parent:UIWidget;
 
@@ -171,7 +173,7 @@ Type
 
       _ColorTable:TERRATexture;
 
-      _ClipRect:ClipRect;
+      _ClipRect:TERRAClipRect;
 
       _VisibleFrame:Cardinal;
 
@@ -224,8 +226,6 @@ Type
       Function GetFontRenderer: FontRenderer;
 
       Function OutsideClipRect(X,Y:Single):Boolean;
-
-      Procedure ResetClipRect();
 
       Procedure UpdateLanguage;
 
@@ -294,8 +294,6 @@ Type
       Function GetColorTable:TERRATexture;
       Function GetHighlightGroup:Integer;
 
-      Procedure ClipChildren(Const Clip:ClipRect);
-
       Function GetDimension(Const Dim:UIDimension; Const Target:UIDimensionTarget):Single;
 
       Procedure ConvertGlobalToLocal(Var V:Vector2D);
@@ -332,9 +330,6 @@ Type
 
       Procedure SetChildrenVisibilityByTag(Tag:Integer; Visibility:Boolean);
 
-      Procedure SetClipRect(Value:ClipRect);
-      Procedure UpdateClipRect(Clip:ClipRect; LeftBorder:Single = 0.0; TopBorder:Single = 0.0; RightBorder:Single = 0.0; BottomBorder:Single = 0.0);
-
 			Procedure OnMouseDown(X,Y:Integer; Button:Word); Virtual;
 			Procedure OnMouseUp(X,Y:Integer; Button:Word); Virtual;
 			Procedure OnMouseMove(X,Y:Integer); Virtual;
@@ -345,8 +340,6 @@ Type
       Function IsSameFamily(Other:UIWidget):Boolean;
 
       Function GetSize:Vector2D; Virtual;
-
-      Function GetClipRect():ClipRect;
 
       Procedure BeginDrag(X,Y:Integer; Mode:UIDragMode);
       Procedure FinishDrag();
@@ -388,7 +381,7 @@ Type
 
       Property ChildrenCount:Integer Read _ChildrenCount;
 
-      Property ClipRect:ClipRect Read GetClipRect Write SetClipRect;
+      Property ClipRect:TERRAClipRect Read GetClipRect;
 
       Property Center:Vector2D Read _Center Write _Center;
 
@@ -591,6 +584,8 @@ Var
   Temp:TERRAObject;
   Prop:TweenableProperty;
   CurrentValue, TargetValue:TERRAString;
+  Dispatched:Boolean;
+  Callback:TweenCallback;
 Begin
   If (Self.State = widget_Disabled) Then
     Exit;
@@ -635,6 +630,8 @@ Begin
   If (_State = widget_Default) Then
     _Selected := False;
 
+  Dispatched := False;
+
   For I:=0 To Pred(_AnimationCount) Do
   If (_Animations[I].State = TargetState) Then
   Begin
@@ -654,8 +651,15 @@ Begin
       Break;
     End;
 
+    If Dispatched Then
+      Callback := Nil
+    Else
+    Begin
+      Callback := TweenCallback(Self.GetEventHandler(EventType));
+      Dispatched := True;
+    End;
 
-    Prop.AddTweenFromBlob(Ease, CurrentValue, TargetValue, N, 0, TweenCallback(Self.GetEventHandler(EventType)), Self);
+    Prop.AddTweenFromBlob(Ease, CurrentValue, TargetValue, N, 0, Callback, Self);
     //Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Virtual; Abstract;
   End;
 
@@ -1530,7 +1534,7 @@ Function UIWidget.UpdateTransform():Boolean;
 Var
   I:Integer;
   Center:Vector2D;
-  Pos:Vector2D;
+  Pos, SizeRect:Vector2D;
   W,H, Ratio:Single;
   OfsX,OfsY:Single;
 Begin
@@ -1581,6 +1585,13 @@ Begin
     _ChildrenList[I]._TransformChanged := True;
     _ChildrenList[I].UpdateTransform();
   End;
+
+  Pos := Self.AbsolutePosition;
+  SizeRect := Self.Size;
+  _ClipRect.X := Pos.X {+ LeftBorder};
+  _ClipRect.Y := Pos.Y {+ TopBorder};
+  _ClipRect.Width := SizeRect.X {- (RightBorder + LeftBorder)};
+  _ClipRect.Height := SizeRect.Y {- (TopBorder + BottomBorder)};
 
   Result := True;
 End;
@@ -1779,21 +1790,6 @@ Begin
   End;
 End;
 
-Function UIWidget.GetClipRect:ClipRect;
-Begin
-  Result := Self._ClipRect;
-
-  If (Assigned(_Parent)) Then
-    Result.Merge(_Parent.GetClipRect())
-(* TODO  Else
-    Result.Merge(_UI._ClipRect)*);
-End;
-
-Procedure UIWidget.SetClipRect(Value:ClipRect);
-Begin
-  Self._ClipRect := Value;
-End;
-
 Procedure UIWidget.GetScrollOffset(Out OfsX, OfsY: Single);
 Var
   TX, TY:Single;
@@ -1871,18 +1867,6 @@ Begin
   _ClipRect.GetRealRect(X1, Y1, X2, Y2{, IsLandscapeOrientation(Application.Instance.Orientation)});
 
   Result := (X<X1) Or (Y<Y1) Or (X>=X2) Or (Y>=Y2);
-End;
-
-Procedure UIWidget.UpdateClipRect(Clip: ClipRect; LeftBorder,TopBorder, RightBorder, BottomBorder:Single);
-Var
-  Pos, Size:Vector2D;
-Begin
-  Pos := Self.AbsolutePosition;
-  Size := Self.Size;
-  Clip.X := Pos.X + LeftBorder;
-  Clip.Y := Pos.Y + TopBorder;
-  Clip.Width := Size.X - (RightBorder + LeftBorder);
-  Clip.Height := Size.Y - (TopBorder + BottomBorder);
 End;
 
 Function UIWidget.GetIndex: Integer;
@@ -1966,16 +1950,6 @@ Begin
   Result := True;
 End;
 
-Procedure UIWidget.ResetClipRect;
-Begin
-  _ClipRect.Style := clipSomething;
-  _ClipRect.X := Self.AbsolutePosition.X;
-  _ClipRect.Y := Self.AbsolutePosition.Y;
-  _ClipRect.Width := Self.Size.X;
-  _ClipRect.Height := Self.Size.Y;
-  (* TODO _ClipRect.Transform(_UI.Transform);*)
-End;
-
 Function UIWidget.OnCustomRegion(X, Y:Integer; X1, Y1, X2, Y2:Single): Boolean;
 Var
   I:Integer;
@@ -2029,15 +2003,6 @@ Begin
     End;
   End Else
     Result := Dim.Value;
-End;
-
-Procedure UIWidget.ClipChildren(const Clip: ClipRect);
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(_ChildrenCount) Do
-  If Assigned(_ChildrenList[I].Scroll) Then
-    _ChildrenList[I].SetClipRect(Clip);
 End;
 
 Function UIWidget.GetWidth: UIDimension;
@@ -2328,6 +2293,19 @@ Begin
     _ChildrenList[I].SetState(Value);
 End;
 
+Function UIWidget.GetClipRect:TERRAClipRect;
+Var
+  Other:TERRAClipRect;
+Begin
+  Result := Self._ClipRect;
+
+  If (Assigned(_Parent)) Then
+  Begin
+    Other := _Parent.ClipRect;
+    _ClipRect.Merge(Other);
+  End;
+End;
+
 { UIInstancedWidget }
 Constructor UIInstancedWidget.Create(Const Name: TERRAString; Parent: UIWidget; X, Y, Z: Single; const Width, Height: UIDimension; Const TemplateName:TERRAString);
 Var
@@ -2387,11 +2365,11 @@ Begin
 
   If (Template Is UIEditText) Then
   Begin
-    Result := UIEditText.Create(Template.Name, Parent, 0, 0, 0, UIPixels(100), UIPixels(100));
+    Result := UIEditText.Create(Template.Name, Parent, 0, 0, 0, UIPixels(100), UIPixels(100), '');
   End Else
   If (Template Is UILabel) Then
   Begin
-    Result := UILabel.Create(Template.Name, Parent, 0, 0, 0, UIPixels(100), UIPixels(100), '???');
+    Result := UILabel.Create(Template.Name, Parent, 0, 0, 0, UIPixels(100), UIPixels(100), '??');
   End Else
   If (Template Is UITiledRect) Then
   Begin

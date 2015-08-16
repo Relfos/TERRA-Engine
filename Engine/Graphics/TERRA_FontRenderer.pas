@@ -14,7 +14,7 @@ Type
 
       _Transform:Matrix3x3;
 
-      _ClipRect:ClipRect;
+      _ClipRect:TERRAClipRect;
 
       _Text:TERRAString;
       _Iterator:StringIterator;
@@ -97,7 +97,7 @@ Type
       Function SetTransform(Const Transform:Matrix3x3):FontRenderer;
       Function  SetDropShadow(Const DropShadowColor:ColorRGBA):FontRenderer;
 
-      Function  SetClipRect(Const Clip:ClipRect):FontRenderer;
+      Function  SetClipRect(Const Clip:TERRAClipRect):FontRenderer;
 
       Procedure BeginRender(Const S:TERRAString; Mode:Integer; X,Y, Layer:Single);
       Procedure EndRender();
@@ -647,7 +647,7 @@ Begin
   _Started := False;
 End;
 
-Function FontRenderer.SetClipRect(const Clip: ClipRect):FontRenderer;
+Function FontRenderer.SetClipRect(const Clip:TERRAClipRect):FontRenderer;
 Begin
   Self._ClipRect := Clip;
   Result := Self;

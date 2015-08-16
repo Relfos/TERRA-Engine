@@ -37,6 +37,7 @@ Procedure DrawCircle(View:TERRAViewport; Const P:Vector2D; Radius:Single; LineCo
 Procedure DrawRectangle(View:TERRAViewport; Const A,B:Vector2D; LineColor:ColorRGBA; LineWidth:Single = 1.0);
 Procedure DrawFilledRect(View:TERRAViewport; Const A,B:Vector2D; FillColor:ColorRGBA);
 Procedure DrawPolygon2D(View:TERRAViewport; Poly:Polygon2D; LineColor:ColorRGBA; LineWidth:Single = 1.0);
+Procedure DrawClipRect(View:TERRAViewport; Const Rect:TERRAClipRect; LineColor:ColorRGBA; LineWidth:Single = 1.0);
 
 // 3d drawing
 Procedure DrawPoint3D(View:TERRAViewport; Const P:Vector3D; FillColor:ColorRGBA; Radius:Single = 2.0);
@@ -165,6 +166,11 @@ Begin
   S.Rect.Width := Trunc(LineWidth);
   S.Rect.Height := Trunc(MaxY-MinY);
 //  S.ClipRect := Clip;
+End;
+
+Procedure DrawClipRect(View:TERRAViewport; Const Rect:TERRAClipRect; LineColor:ColorRGBA; LineWidth:Single = 1.0);
+Begin
+  DrawRectangle(View, VectorCreate2D(Rect.X, Rect.Y), VectorCreate2D(Rect.X + Rect.Width, Rect.Y + Rect.Height), LineColor, LineWidth);
 End;
 
 Procedure DrawCircle(View:TERRAViewport; Const P:Vector2D; Radius:Single; LineColor:ColorRGBA; LineWidth:Single = 1.0);

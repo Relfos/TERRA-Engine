@@ -173,7 +173,7 @@ Begin
   QuadSprite(_Sprite).Flip := Self.Flip;
   QuadSprite(_Sprite).Mirror := Self.Mirror;
   _Sprite.SetTransform(_Transform);
-  _Sprite.ClipRect := Self.GetClipRect();
+  _Sprite.ClipRect := Self.ClipRect;
 End;
 
 End.

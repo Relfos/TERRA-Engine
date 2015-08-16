@@ -1437,6 +1437,7 @@ Begin
       k:=0;
       while k < wcount[i] do
       begin
+
          a := k;
          b := j;
 

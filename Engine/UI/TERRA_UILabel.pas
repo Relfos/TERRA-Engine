@@ -3,7 +3,7 @@ Unit TERRA_UILabel;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Object, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_Viewport;
+Uses TERRA_String, TERRA_Object, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_Viewport, TERRA_DebugDraw;
 
 Type
   UILabel = Class;
@@ -23,9 +23,6 @@ Type
 
 
   UILabel = Class(UIWidget)
-  private
-    function GetFont: TERRAFont;
-    procedure SetFont(const Value: TERRAFont);
     Protected
       _Caption:CaptionProperty;
       _Outline:ColorProperty;
@@ -38,6 +35,9 @@ Type
       Function GetLocalizationKey: TERRAString;
 
       Procedure UpdateSprite(View:TERRAViewport); Override;
+
+      Function GetFont: TERRAFont;
+      Procedure SetFont(const Value: TERRAFont);
 
     Public
       Constructor Create(Const Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
@@ -154,10 +154,11 @@ Begin
   S := ConvertFontCodes(S);
 End;
 
-Procedure UILabel.UpdateSprite;
+Procedure UILabel.UpdateSprite(View:TERRAViewport);
 Var
-  TextRect:Vector2D;
-  TextArea:Vector2D;
+  Pos:Vector2D;
+(*  TextRect:Vector2D;
+  TextArea:Vector2D;*)
 Begin
   ReleaseObject(_Sprite);
   If _Sprite = Nil Then
@@ -173,12 +174,16 @@ Begin
 
   Self.FontRenderer.SetTransform(_Transform);
 
-  TextArea := VectorCreate2D(Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)),  Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
-  TextRect := Self.FontRenderer.GetTextRect(Self.Caption._Text);
+  Self.FontRenderer.SetClipRect(Self.ClipRect);
 
-  Self.FontRenderer.DrawTextToSprite(View, (TextArea.X - TextRect.X) * 0.5,  (TextArea.Y - TextRect.Y) * 0.5, Self.GetLayer(), Self.Caption._Text, FontSprite(_Sprite));
+  //TextArea := VectorCreate2D(Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)),  Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
+  //TextRect := Self.FontRenderer.GetTextRect(Self.Caption._Text);
+
+  Self.FontRenderer.DrawTextToSprite(View, (*(TextArea.X - TextRect.X) * 0.5,  (TextArea.Y - TextRect.Y) * 0.5*)0, 0, Self.GetLayer(), Self.Caption._Text, FontSprite(_Sprite));
 
   _Sprite.SetTransform(Self.Transform);
+
+  DrawClipRect(View, Self.ClipRect, ColorRed);
 End;
 
 Function UILabel.SupportDrag(Mode: UIDragMode): Boolean;

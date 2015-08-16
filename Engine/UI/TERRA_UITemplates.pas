@@ -74,7 +74,8 @@ Begin
   TileRect.Texture := Tex;
   TileRect.Draggable := True;
 
-  EditText := UIEditText.Create('label', Self, 0, 0, 1, UIPercent(100), UIPercent(100));
+  EditText := UIEditText.Create('label', Self, 0, 0, 1, UIPercent(90), UIPercent(50), 'dsafsdfdsjkasdakjdaskjdadfsfsfsfsdfgdgd');
+  EditText.Align := waCenter;
 
   Self.AddProperty(StringProperty.Create('text', 'untitled'), True);
 

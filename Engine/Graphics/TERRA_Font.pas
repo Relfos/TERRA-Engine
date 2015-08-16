@@ -216,7 +216,7 @@ Type
 
       Class Function Instance:FontManager;
 
-      Function DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Const Scale:Single; Glyph:FontGlyph; Const Outline, A,B,C,D:ColorRGBA; Clip:ClipRect; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
+      Function DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Const Scale:Single; Glyph:FontGlyph; Const Outline, A,B,C,D:ColorRGBA; Clip:TERRAClipRect; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
 
       Function GetFont(Name:TERRAString; ValidateError:Boolean = True):TERRAFont;
 
@@ -406,7 +406,7 @@ Begin
     RaiseError('Could not find font. ['+Name +']');
 End;
 
-Function FontManager.DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Const Scale:Single; Glyph:FontGlyph; Const Outline, A,B,C,D:ColorRGBA; Clip:ClipRect; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
+Function FontManager.DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Const Scale:Single; Glyph:FontGlyph; Const Outline, A,B,C,D:ColorRGBA; Clip:TERRAClipRect; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
 Var
   Filter:TextureFilterMode;
   Item:TextureAtlasItem;
@@ -1078,6 +1078,7 @@ Begin
   Width := Trunc((Item.Buffer.Width - FontPadding) * _Scale);
   Height := Trunc((Item.Buffer.Height - FontPadding) * _Scale);
 
+  //0.25 / (Spread * Scale)
   Self.MakeQuad(VectorCreate2D(X + Glyph.XOfs * FontInvScale * _Scale, Y +  + Glyph.YOfs * FontInvScale * _Scale), 0.0, Item.U1, Item.V1, Item.U2, Item.V2, Width *FontInvScale, Height* FontInvScale, A, B, C, D, Skew);
 End;
 

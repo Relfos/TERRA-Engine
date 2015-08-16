@@ -82,7 +82,7 @@ Type
 
     Public
       Layer:Single;
-      ClipRect:ClipRect;
+      ClipRect:TERRAClipRect;
       Outline:ColorRGBA;
       BlendMode:Integer;
       Next:TERRASprite;

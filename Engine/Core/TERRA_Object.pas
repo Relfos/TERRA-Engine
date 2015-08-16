@@ -359,8 +359,13 @@ Begin
     If (KeyA = Nil) Or (KeyB = Nil) Then
       Break;
 
-    Temp := KeyB.GetBlob();
-    KeyA.SetBlob(Temp);
+    If (KeyB.IsValueObject()) Then
+    Begin
+      Temp := KeyB.GetBlob();
+      KeyA.SetBlob(Temp);
+    End;
+
+    KeyA.CopyProperties(KeyB);
   Until False;
 End;
 
