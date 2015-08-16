@@ -60,6 +60,8 @@ Function MatrixScale2D(Const Scale:Single):Matrix3x3;Overload;   {$IFDEF FPC}Inl
 
 Function MatrixInverse2D(Const Mat:Matrix3x3):Matrix3x3;
 
+Function MatrixTranspose2D(Const Mat:Matrix3x3):Matrix3x3;
+
 Function MatrixSkew2D(TX, TY:Single):Matrix3x3;
 
 // Multiplys two matrices
@@ -116,6 +118,21 @@ Begin
   Result.X := P.X*V[0] + P.Y*V[3] + V[6];
   Result.Y := P.X*V[1] + P.Y*V[4] + V[7];
   Result.Z := P.Z;
+End;
+
+Function MatrixTranspose2D(Const Mat:Matrix3x3):Matrix3x3;
+Begin
+  Result.V[0] := Mat.V[0];
+  Result.V[1] := Mat.V[3];
+  Result.V[2] := Mat.V[6];
+
+  Result.V[3] := Mat.V[1];
+  Result.V[4] := Mat.V[4];
+  Result.V[5] := Mat.V[7];
+
+  Result.V[6] := Mat.V[2];
+  Result.V[7] := Mat.V[5];
+  Result.V[8] := Mat.V[8];
 End;
 
 {

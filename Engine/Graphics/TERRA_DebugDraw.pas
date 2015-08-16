@@ -143,6 +143,21 @@ Begin
   MaxX := Trunc(FloatMax(A.X, B.X));
   MaxY := Trunc(FloatMax(A.Y, B.Y));
 
+  If (MinX = MaxX) Then
+  Begin
+    If (MinY = MaxY) Then
+      DrawPoint2D(View, A, LineColor, LineWidth)
+    Else
+      DrawLine2D(View, A, B, LineColor, LineWidth);
+
+    Exit;
+  End Else
+  If (MinY = MaxY) Then
+  Begin
+    DrawLine2D(View, A, B, LineColor, LineWidth);
+    Exit;
+  End;
+
   S := View.SpriteRenderer.DrawSprite(MinX, MinY, Layer, Tex);
   S.SetColor(LineColor);
   S.Rect.Width := Trunc(MaxX-MinX);

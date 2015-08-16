@@ -3,57 +3,27 @@ Unit TERRA_UILabel;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Object, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_Viewport, TERRA_DebugDraw;
+Uses TERRA_String, TERRA_Object, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_Viewport, TERRA_DebugDraw, TERRA_UIText;
 
 Type
-  UILabel = Class;
-
-  CaptionProperty = Class(StringProperty)
+  UILabel = Class(UIText)
     Protected
-      _Text:TERRAString;
-      _Owner:UILabel;
-
-    Public
-      Constructor Create(Const Name:TERRAString; Const InitValue:TERRAString; Owner:UILabel);
-
-      Procedure SetBlob(Const Value:TERRAString); Override;
-
-      Property Text:TERRAString Read _Text;
-  End;
-
-
-  UILabel = Class(UIWidget)
-    Protected
-      _Caption:CaptionProperty;
-      _Outline:ColorProperty;
-      _TextSize:IntegerProperty;
-      _Font:FontProperty;
-
-      _TextRect:Vector2D;
-      _PreviousFont:TERRAFont;
+      _NeedCaptionUpdate:Boolean;
 
       Function GetLocalizationKey: TERRAString;
 
       Procedure UpdateSprite(View:TERRAViewport); Override;
 
-      Function GetFont: TERRAFont;
-      Procedure SetFont(const Value: TERRAFont);
+      Procedure UpdateCaption();
+
+      Procedure SetText(Const S:TERRAString); Override;
 
     Public
       Constructor Create(Const Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
 
-      Procedure UpdateRects; Override;
-
-      Function SupportDrag(Mode:UIDragMode):Boolean; Override; 
-
-      Function GetSize:Vector2D; Override;
+      Function SupportDrag(Mode:UIDragMode):Boolean; Override;
 
 			Procedure OnLanguageChange(); Override;
-
-      Property Caption:CaptionProperty Read _Caption;
-      Property Outline:ColorProperty Read _Outline;
-
-      Property Font:TERRAFont Read GetFont Write SetFont;
 
       Property LocalizationKey:TERRAString Read GetLocalizationKey;
   End;
@@ -63,126 +33,34 @@ Uses TERRA_Localization, TERRA_FontRenderer;
 
 Constructor UILabel.Create(const Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
 Begin
-  Inherited Create(Name, Parent);
+  Inherited Create(Name, Parent, X, Y, Z, Width, Height, Text);
 
-  Self.SetRelativePosition(VectorCreate2D(X,Y));
-  Self.Layer := Z;
-
-  Self.Width := Width;
-  Self.Height := Height;
-
-  _Caption := CaptionProperty(Self.AddProperty(CaptionProperty.Create('caption', Text, Self), False));
-  _Outline := ColorProperty(Self.AddProperty(ColorProperty.Create('outline', ColorBlack), False));
-  _TextSize := IntegerProperty(Self.AddProperty(IntegerProperty.Create('textsize', 30), False));
-  _Font := FontProperty(Self.AddProperty(FontProperty.Create('font', FontManager.Instance.GetFont('droid')), False));
+  _NeedCaptionUpdate := True;
 End;
 
 Function UILabel.GetLocalizationKey: TERRAString;
 Begin
-  If StringFirstChar(_Caption.Value) = Ord('#') Then
+  If StringFirstChar(Self.Content) = Ord('#') Then
   Begin
-    Result := StringCopy(Caption.Value, 2, MaxInt);
+    Result := StringCopy(Self.Content, 2, MaxInt);
   End Else
     Result := '';
 End;
 
-Function UILabel.GetSize: Vector2D;
-Begin
-  If (_NeedsUpdate) Then
-    Self.UpdateRects();
-
-  Result := Inherited GetSize;
-End;
-
 Procedure UILabel.OnLanguageChange;
 Begin
-  Self.Caption.SetBlob(Self._Caption._Value);
-End;
-
-Procedure UILabel.UpdateRects;
-Begin
-//  Inherited;
-
-  If (Assigned(Self.Caption)) And (Assigned(FontRenderer))  Then
-    _Size := Self.FontRenderer.GetTextRect(Self.Caption._Text);
-
-(*  If ((_NeedsUpdate) Or (Fnt<>_PreviousFont)) And (Assigned(FontRenderer)) Then
-  Begin
-    _TextRect := FontRenderer.GetTextRect(_Caption.Value, 1.0);
-    _PreviousFont := Fnt;
-    _NeedsUpdate := False;
-  End;*)
-End;
-
-{ CaptionProperty }
-Constructor CaptionProperty.Create(const Name, InitValue: TERRAString; Owner: UILabel);
-Begin
-  Inherited Create(Name, InitValue);
-  _Owner := Owner;
-End;
-
-Procedure CaptionProperty.SetBlob(const Value: TERRAString);
-Var
-  S, S2:TERRAString;
-  It:StringIterator;
-Begin
-  _Value := Value;
-  _Owner._NeedsUpdate := True;
-
-  S := Value;
-  _Text := '';
-  Repeat
-    If StringCharPosIterator(UIMacroBeginChar, S, It, True) Then
-    Begin
-      It.Split(S2, S);
-      _Text := _Text + S2;
-
-      S2 := StringGetNextSplit(S, UIMacroEndChar);
-
-      S2 := _Owner.ResolveMacro(S2);
-
-      _Text := _Text + S2 + ' ';
-    End Else
-    Begin
-      _Text := _Text + S;
-      Break;
-    End;
-
-  Until False;
-
-  S := ConvertFontCodes(S);
+  _NeedCaptionUpdate := True;
 End;
 
 Procedure UILabel.UpdateSprite(View:TERRAViewport);
-Var
-  Pos:Vector2D;
-(*  TextRect:Vector2D;
-  TextArea:Vector2D;*)
 Begin
-  ReleaseObject(_Sprite);
-  If _Sprite = Nil Then
-    _Sprite := FontSprite.Create();
+//  If (_NeedCaptionUpdate) Then
+  Begin
+    _NeedCaptionUpdate := False;
+    Self.UpdateCaption();
+  End;
 
-  Self._Caption.SetBlob(_Caption.Value);
-
-  Self.FontRenderer.SetFont(_Font.Value);
-  Self.FontRenderer.SetColor(Self.GetColor());
-
-  Self.FontRenderer.SetOutline(_Outline.Value);
-  Self.FontRenderer.SetSize(_TextSize.Value);
-
-  Self.FontRenderer.SetTransform(_Transform);
-
-  Self.FontRenderer.SetClipRect(Self.ClipRect);
-
-  //TextArea := VectorCreate2D(Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)),  Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
-  //TextRect := Self.FontRenderer.GetTextRect(Self.Caption._Text);
-
-  Self.FontRenderer.DrawTextToSprite(View, (*(TextArea.X - TextRect.X) * 0.5,  (TextArea.Y - TextRect.Y) * 0.5*)0, 0, Self.GetLayer(), Self.Caption._Text, FontSprite(_Sprite));
-
-  _Sprite.SetTransform(Self.Transform);
-
-  DrawClipRect(View, Self.ClipRect, ColorRed);
+  Inherited UpdateSprite(View);
 End;
 
 Function UILabel.SupportDrag(Mode: UIDragMode): Boolean;
@@ -190,14 +68,41 @@ Begin
   Result := (Mode = UIDrag_Move);
 End;
 
-Function UILabel.GetFont: TERRAFont;
+Procedure UILabel.UpdateCaption();
+Var
+  Result, S, S2:TERRAString;
+  It:StringIterator;
 Begin
-  Result := _Font.Value;
+  S := Self.Content;
+  Result := '';
+  Repeat
+    If StringCharPosIterator(UIMacroBeginChar, S, It, True) Then
+    Begin
+      It.Split(S2, S);
+      Result := Result + S2;
+
+      S2 := StringGetNextSplit(S, UIMacroEndChar);
+
+      S2 := Self.ResolveMacro(S2);
+
+      Result := Result + S2 + ' ';
+    End Else
+    Begin
+      Result := Result + S;
+      Break;
+    End;
+
+  Until False;
+
+  _TextValue.Value := ConvertFontCodes(Result);
 End;
 
-Procedure UILabel.SetFont(const Value: TERRAFont);
+
+Procedure UILabel.SetText(const S: TERRAString);
 Begin
-  _Font.Value := Value;
+  Inherited;
+
+  Self.UpdateCaption();
 End;
 
 End.

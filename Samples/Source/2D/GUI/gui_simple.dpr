@@ -46,17 +46,23 @@ Type
 			Procedure OnIdle; Override;
   End;
 
+  DemoUIController = Class(UIController)
+    Public
+      Constructor Create();
+
+      Procedure OnMyButtonClick(Src:UIWidget);
+  End;
+  
   MyScene = Class(TERRAScene)
       Constructor Create;
       Procedure Release; Override;
-
-      Procedure OnMyButtonClick(Src:UIWidget);
   End;
 
 Var
   Fnt:TERRAFont;
   MyUI:UIView;
   MyWnd, MyBtn:UIWidget; 
+  MyController:UIController;
 
 { Game }
 Procedure Demo.OnCreate;
@@ -112,15 +118,21 @@ Begin
   UITemplates.AddTemplate(UIWindowTemplate.Create('wnd_template', TextureManager.Instance.GetTexture('ui_window'), 45, 28, 147, 98));
   UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', TextureManager.Instance.GetTexture('ui_button2'), 25, 10, 220, 37));
 
+  MyController := DemoUIController.Create();
+
   MyWnd := UIInstancedWidget.Create('mywnd', MyUI, 0, 0, 10, UIPixels(643), UIPixels(231), 'wnd_template');
   MyWnd.Draggable := True;
   MyWnd.Align := waCenter;
+  MyWnd.Rotation := 45*RAD;
+  MyWnd.Controller := MyController;
 
   MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, 0, 0, 1, UIPixels(250), UIPixels(50), 'btn_template');
   MyBtn.Align := waCenter;
-  MyBtn.SetEventHandler(widgetEvent_MouseDown, OnMyButtonClick); // Assign a onClick event handler
-//  MyBtn.Rotation := 45*RAD;
+  MyBtn.Controller := MyController;
+//  MyBtn.Draggable := True;
 
+//  MyBtn.SetPropertyValue('caption', 'custom caption!');
+//  MyBtn.Rotation := 45*RAD;
 End;
 
 Procedure MyScene.Release;
@@ -130,7 +142,13 @@ End;
 // GUI event handlers
 // All event handlers must be procedures that receive a Widget as argument
 // The Widget argument provides the widget that called this event handler
-Procedure MyScene.OnMyButtonClick(Src:UIWidget);
+Constructor DemoUIController.Create;
+Begin
+  Self._ObjectName := 'demo';
+  SetHandler(widgetEvent_MouseDown, OnMyButtonClick); // Assign a onClick event handler
+End;
+
+Procedure DemoUIController.OnMyButtonClick(Src:UIWidget);
 Begin
   IntToString(2);
  // MyUI.MessageBox('You clicked the button!');

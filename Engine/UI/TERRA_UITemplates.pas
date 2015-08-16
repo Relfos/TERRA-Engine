@@ -56,10 +56,10 @@ Begin
   TileRect.Draggable := True;
   //TileRect.Scale := 2;
 
-  Caption := UILabel.Create('label', Self, 0, 0, 1, UIPercent(100), UIPercent(100), UIPropertyMacro('text'));
+  Caption := UILabel.Create('label', Self, 0, 0, 1, UIPercent(100), UIPercent(100), UIPropertyMacro('caption'));
   Caption.Align := waCenter;
 
-  Self.AddProperty(StringProperty.Create('text', 'untitled'), True);
+  Self.AddProperty(StringProperty.Create('caption', 'untitled'), True);
 
   Self.CanReceiveEvents := True;
 End;
@@ -68,7 +68,7 @@ End;
 Constructor UIEditTextTemplate.Create(const Name: TERRAString; Tex: TERRATexture; const X1, Y1, X2, Y2: Integer);
 Var
   TileRect:UITiledRect;
-  EditText:UILabel;
+  EditText:UIEditText;
 Begin
   Inherited Create(Name, Nil);
 
@@ -77,12 +77,15 @@ Begin
   TileRect.Texture := Tex;
   TileRect.Draggable := True;
 
-  EditText := UIEditText.Create('label', Self, 0, 0, 1, UIPercent(90), UIPercent(100),
+  EditText := UIEditText.Create('label', Self, 20, 15, 1, UIPercent(90), UIPercent(50),
   //'dsafsdfdsjkasdakjdaskjdadfsfsfsfsdfgdgd'
-    GetLanguageDescription(language_Portuguese)+ ' '+    GetLanguageDescription(language_Japanese)+ ' '+ GetLanguageDescription(language_Korean)+ ' '+ GetLanguageDescription(language_Russian)+ ' '+ GetLanguageDescription(language_Chinese)
+  //'test 12345 12345 12345 12345 12345 2'
+  'test 12345 '
+ //   GetLanguageDescription(language_Portuguese)+ ' '+    GetLanguageDescription(language_Japanese)+ ' '+ GetLanguageDescription(language_Korean)+ ' '+ GetLanguageDescription(language_Russian)+ ' '+ GetLanguageDescription(language_Chinese)
     );
 
-  EditText.Align := waCenter;
+  EditText.Align := waTopLeft;
+  EditText.MultiLine := True;
 
   Self.AddProperty(StringProperty.Create('text', 'untitled'), True);
 

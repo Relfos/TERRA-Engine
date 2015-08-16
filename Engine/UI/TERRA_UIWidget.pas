@@ -56,6 +56,7 @@ Type
 
   WidgetState = (
     widget_Default,
+    widget_Hidden,
     widget_Selected,
     widget_Highlighted,
     widget_Dragged,
@@ -63,17 +64,18 @@ Type
   );
 
   WidgetEventType = (
+    widgetEvent_Show,
+    widgetEvent_Hide,
     widgetEvent_MouseDown,
     widgetEvent_MouseUp,
     widgetEvent_MouseOver,
     widgetEvent_MouseOut,
     widgetEvent_DragBegin,
-    widgetEvent_DragEnd
+    widgetEvent_DragEnd,
+    widgetEvent_FocusBegin,
+    widgetEvent_FocusEnd,
+    widgetEvent_ContentChange
   );
-
-  UIWidget = Class;
-  UIWidgetClass = Class Of UIWidget;
-  WidgetEventHandler = Procedure(Src:UIWidget) Of Object;
 
   UIProperty = Record
     Prop:TERRAObject;
@@ -86,6 +88,35 @@ Type
     Ease:TweenEaseType;
     PropName:TERRAString;
     Value:TERRAString;
+  End;
+
+  UIWidget = Class;
+  UIWidgetClass = Class Of UIWidget;
+
+  UIWidgetEventHandler = Procedure(Src:UIWidget) Of Object;
+
+  UIController = Class(TERRAObject)
+    Private
+      _Handlers:Array[WidgetEventType] Of UIWidgetEventHandler;
+
+    Public
+      Function GetHandler(EventType:WidgetEventType):UIWidgetEventHandler;
+      Procedure SetHandler(EventType:WidgetEventType; Handler:UIWidgetEventHandler);
+  End;
+
+  UIControllerProperty = Class(TERRAObject)
+    Protected
+      _Value:UIController;
+
+    Public
+      Constructor Create(Const Name:TERRAString; Controller:UIController);
+
+      Function IsValueObject():Boolean; Override;
+
+      Function GetObjectType:TERRAString; Override;
+
+      Function GetBlob():TERRAString; Override;
+      Procedure SetBlob(Const Blob:TERRAString); Override;
   End;
 
 	UIWidget = Class(CollectionObject)
@@ -105,10 +136,13 @@ Type
       _Saturation:FloatProperty;
 			_Visible:BooleanProperty;
       _Draggable:BooleanProperty;
+      _Controller:UIControllerProperty;
 
       _Deleted:Boolean;
 
       _State:WidgetState;
+
+      _Scroll:Vector2D;
 
       _Animations:Array Of UIWidgetStateAnimation;
       _AnimationCount:Integer;
@@ -129,6 +163,9 @@ Type
       Function IsEnabled: Boolean;
 
       Function GetClipRect: TERRAClipRect;
+    function GetController: UIController;
+    procedure SetController(const Value: UIController);
+    procedure SetSelected(const Value: Boolean);
 
 		Protected
 			_Parent:UIWidget;
@@ -136,13 +173,8 @@ Type
       _ChildrenList:Array Of UIWidget;
       _ChildrenCount:Integer;
 
-      _Scroll:UIWidget;
-      _ScrollValue:Single;
-
       _Properties:Array Of UIProperty;
       _PropertyCount:Integer;
-
-      _EventHandlers:Array [WidgetEventType] Of WidgetEventHandler;
 
       _Tooltip:TERRAString;
       _NeedsUpdate:Boolean;
@@ -217,16 +249,14 @@ Type
 
       Procedure UpdateProperties();
 
-      Function IsSelected: Boolean;
-
       Function AdjustWidth(NewWidth:Single):Single;
       Function AdjustHeight(NewHeight:Single):Single;
 
       //Function HasMouseOver():Boolean; Virtual;
 
-      Function GetFontRenderer: FontRenderer;
+      Function GetFontRenderer:TERRAFontRenderer;
 
-      Function OutsideClipRect(X,Y:Single):Boolean;
+      //Function OutsideClipRect(X,Y:Single):Boolean;
 
       Procedure UpdateLanguage;
 
@@ -241,7 +271,9 @@ Type
 
       Procedure OnStateChange(); Virtual;
 
-      Property FontRenderer:FontRenderer Read GetFontRenderer;
+      Function GetEventHandler(EventType:WidgetEventType):UIWidgetEventHandler;
+
+      Property FontRenderer:TERRAFontRenderer Read GetFontRenderer;
 
 		Public
       Tag:Integer;
@@ -254,9 +286,6 @@ Type
       Constructor Create(Const Name:TERRAString; Parent:UIWidget);
       Procedure Release; Override;
 
-      Procedure StartHighlight(); Virtual;
-      Procedure StopHighlight(); Virtual;
-
       Function IsSelectable():Boolean; Virtual;
       Function CanHighlight(GroupID:Integer):Boolean;
 
@@ -267,8 +296,6 @@ Type
 
       Procedure AddAnimation(State:WidgetState; Const PropName, Value:TERRAString; Const Ease:TweenEaseType = easeLinear);
 
-      Procedure SetEventHandler(EventType:WidgetEventType; Handler:WidgetEventHandler);
-      Function GetEventHandler(EventType:WidgetEventType):WidgetEventHandler;
       Function CallEventHandler(EventType:WidgetEventType):Boolean;
 
       Function CanRender():Boolean;
@@ -302,7 +329,7 @@ Type
 
       Procedure SetPositionRelativeToOther(Other:UIWidget; OfsX, OfsY:Single);
 
-      Procedure GetScrollOffset(Out OfsX, OfsY:Single);
+      Function GetScrollOffset():Vector2D;
 
 			Procedure OnLanguageChange();Virtual;
 
@@ -314,15 +341,18 @@ Type
       Procedure AddChild(W:UIWidget);
       Procedure RemoveChild(W:UIWidget);
       Procedure RemoveAllChildren();
-      Function GetChildByIndex(Index:Integer):UIWidget; Overload;
-      Function GetChildByName(Const Name:TERRAString):UIWidget; Overload;
-      Function GetChildByClass(ChildClass:UIWidgetClass; Index:Integer = 0):UIWidget; Overload;
+      Function GetChildByIndex(Index:Integer):UIWidget;
+      Function GetChildByName(Const Name:TERRAString):UIWidget;
+
+      Function FindComponent(ComponentType:UIWidgetClass):UIWidget;
 
       Function OnSelectRight():Boolean; Virtual;
       Function OnSelectLeft():Boolean; Virtual;
       Function OnSelectUp():Boolean; Virtual;
       Function OnSelectDown():Boolean; Virtual;
       Function OnSelectAction():Boolean; Virtual;
+
+      Procedure SetPropertyValue(Const PropName, Value:TERRAString);
 
       Function IsOutsideScreen():Boolean;
 
@@ -331,7 +361,6 @@ Type
 
       Procedure SetChildrenVisibilityByTag(Tag:Integer; Visibility:Boolean);
 
-			Procedure OnMouseDown(X,Y:Integer; Button:Word); Virtual;
 			Procedure OnMouseUp(X,Y:Integer; Button:Word); Virtual;
 			Procedure OnMouseMove(X,Y:Integer); Virtual;
 			Procedure OnMouseWheel(X,Y:Integer; Delta:Integer);Virtual;
@@ -340,9 +369,7 @@ Type
 
       Function IsSameFamily(Other:UIWidget):Boolean;
 
-      Function GetSize:Vector2D; Virtual;
-
-      Procedure BeginDrag(X,Y:Integer; Mode:UIDragMode);
+      Procedure BeginDrag(X,Y:Integer; Mode:UIDragMode); 
       Procedure FinishDrag();
       Procedure CancelDrag();
 
@@ -362,7 +389,7 @@ Type
 			Property RelativePosition:Vector2D Read GetRelativePosition Write SetRelativePosition;
 
       Property Pivot:Vector2D Read GetPivot Write SetPivot;
-      Property Size:Vector2D Read GetSize;
+      Property Size:Vector2D Read _Size;
 			Property Layer:Single Read GetLayer Write SetLayer;
 
       Property InheritColor:Boolean Read _InheritColor Write _InheritColor;
@@ -373,12 +400,12 @@ Type
       Property Rotation:Single Read GetRotation Write SetRotation;
       Property Scale:Single Read GetScale Write SetScale;
 
-      Property Scroll:UIWidget Read _Scroll Write _Scroll;
-
       Property Parent:UIWidget Read _Parent Write SetParent;
       Property Align:Integer Read GetAlign Write SetAlign;
 
       Property State:WidgetState Read _State;
+
+      Property Dragging:Boolean Read _Dragging;
 
       Property ChildrenCount:Integer Read _ChildrenCount;
 
@@ -388,7 +415,9 @@ Type
 
       Property Enabled:Boolean  Read IsEnabled;
 
-      Property Selected:Boolean Read IsSelected;
+      Property Selected:Boolean Read _Selected Write SetSelected;
+
+      Property Controller:UIController Read GetController Write SetController;
 
       Property DropShadowColor:ColorRGBA Read _DropShadowColor Write _DropShadowColor;
 
@@ -440,7 +469,7 @@ Implementation
 
 Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Math, TERRA_GraphicsManager,
   TERRA_UIView, TERRA_UITiledRect, TERRA_UIImage, TERRA_UILabel, TERRA_UIEditText,
-  TERRA_Localization;
+  TERRA_DebugDraw, TERRA_Localization;
 
 Function UITranslationMacro(Const Value:TERRAString):TERRAString;
 Begin
@@ -525,6 +554,8 @@ Begin
 End;
 
 Procedure UIWidget.InitProperties;
+Var
+  I:WidgetEventType;
 Begin
   _Width := DimensionProperty(Self.AddProperty(DimensionProperty.Create('width', UIPixels(0)), False));
   _Height := DimensionProperty(Self.AddProperty(DimensionProperty.Create('height', UIPixels(0)), False));
@@ -538,6 +569,7 @@ Begin
   _Saturation := FloatProperty(Self.AddProperty(FloatProperty.Create('saturation', 1.0), False));
   _Draggable := BooleanProperty(Self.AddProperty(BooleanProperty.Create('draggable', False), False));
   _Align := EnumProperty(Self.AddProperty(EnumProperty.Create('align', 0, UIManager.Instance.AlignEnums), False));
+  _Controller := UIControllerProperty(Self.AddProperty(UIControllerProperty.Create('controller', Nil), False));
 End;
 
 Function UIWidget.GetPropertyByIndex(Index:Integer):TERRAObject;
@@ -567,16 +599,6 @@ Begin
   _Position.Y.Value := Y - _Size.Y * 0.5;
 End;
 
-Procedure UIWidget.StartHighlight;
-Begin
-  Self._Color.Value := ColorBlack;
-End;
-
-Procedure UIWidget.StopHighlight;
-Begin
-  Self._Color.Value := ColorWhite;
-End;
-
 Procedure UIWidget.TriggerEvent(EventType:WidgetEventType);
 Var
   I, J, N, Count:Integer;
@@ -600,7 +622,12 @@ Begin
     widgetEvent_DragBegin:
       TargetState := widget_Dragged;
 
+    widgetEvent_Hide:
+      TargetState := widget_Hidden;
+
+    widgetEvent_Show,
     widgetEvent_MouseOut,
+    widgetEvent_FocusEnd,
     //widgetEvent_MouseUp,
     widgetEvent_DragEnd:
       If _Selected Then
@@ -689,15 +716,6 @@ Begin
   _Size.Y := Self.GetDimension(Self.Height, uiDimensionHeight);
 End;
 
-Function UIWidget.GetSize: Vector2D;
-Begin
-  If (_Size.X<=0) Or (_Size.Y<=0) Then
-    Self.UpdateRects();
-
-  Result.X := _Size.X;
-  Result.Y := _Size.Y;
-End;
-
 Function UIWidget.IsSameFamily(Other:UIWidget): Boolean;
 Begin
   Result := (Self = Other);
@@ -707,18 +725,16 @@ End;
 
 Function UIWidget.IsSelectable():Boolean;
 Begin
-  Result := Assigned(_EventHandlers[widgetEvent_MouseDown]);
+  Result := Assigned(Self.GetEventHandler (widgetEvent_MouseDown));
 End;
 
 Procedure UIWidget.ConvertGlobalToLocal(Var V:Vector2D);
 Begin
   V := Self._InverseTransform.Transform(V);
-//  V.Subtract(Self.AbsolutePosition);
 End;
 
 Procedure UIWidget.ConvertLocalToGlobal(Var V:Vector2D);
 Begin
-//  V.Add(Self.AbsolutePosition);
   V := Self._Transform.Transform(V);
 End;
 
@@ -1026,14 +1042,17 @@ Begin
     Exit;
 
   //Log(logDebug,'UI', Self._Name+' visibility is now '+BoolToString(Value));
-    
+
   _Visible.Value := Value;
 
   If Value Then
+  Begin
     _VisibleFrame := GraphicsManager.Instance.FrameID;
-
-  If (Not Value) Then
-    Self.StopHighlight();
+    Self.TriggerEvent(widgetEvent_Show);
+  End Else
+  Begin
+    Self.TriggerEvent(widgetEvent_Hide);
+  End;
 End;
 
 Procedure UIWidget.SetRelativePosition(Const Pos:Vector2D);
@@ -1274,7 +1293,7 @@ Begin
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'X1:'+IntToString(Trunc(_Corners[0].X))+' Y1:'+IntToString(Trunc(_Corners[0].Y)));{$ENDIF}
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'X2:'+IntToString(Trunc(_Corners[2].X))+' Y2:'+IntToString(Trunc(_Corners[2].Y)));{$ENDIF}
 
-  If (GraphicsManager.Instance.FrameID = Self._VisibleFrame) Or (OutsideClipRect(X,Y)) Then
+  If (GraphicsManager.Instance.FrameID = Self._VisibleFrame) {Or (OutsideClipRect(X,Y))} Then
   Begin
     Result := False;
     {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Cliprect clipped!');{$ENDIF}
@@ -1284,6 +1303,8 @@ Begin
   V.X := X;
   V.Y := Y;
   Self.ConvertGlobalToLocal(V);
+
+  //DrawPoint2D(UIManager.Instance.Viewport, V, ColorYellow, 4);
 
   Result := (V.X>=0.0) And (V.X <= Size.X) And (V.Y >= 0) And (V.Y <= Size.Y);
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Region result for '+_Name+' was '+BoolToString(Result));{$ENDIF}
@@ -1340,6 +1361,12 @@ Begin
   If UI = Nil Then
     Exit;
 
+  If (Assigned(Self.Parent)) And (Self.Parent Is UIInstancedWidget) Then
+  Begin
+    Self.Parent.BeginDrag(X, Y, Mode);
+    Exit;
+  End;
+
   Self.CallEventHandler(widgetEvent_DragBegin);
 
   UI.Dragger := Self;
@@ -1388,29 +1415,6 @@ Begin
 
   _Dragging := False;
   UI.Dragger := Nil;
-End;
-
-Procedure UIWidget.OnMouseDown(X,Y:Integer;Button:Word);
-Var
-  TargetDragger:UIWidget;
-Begin
-  If (Draggable) Then
-  Begin
-    If (Not _Dragging) Then
-    Begin
-      If (Assigned(Parent)) And (Parent Is UIInstancedWidget) Then
-        TargetDragger := Parent
-      Else
-        TargetDragger := Self;
-
-      TargetDragger.BeginDrag(X,Y, UIDrag_Move);
-    End;
-
-    Exit;
-  End;
-
-  {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Found, and has handler: '+BoolToString(Assigned(OnMouseClick)));{$ENDIF}
-  Self.TriggerEvent(widgetEvent_MouseDown);
 End;
 
 Procedure UIWidget.OnMouseUp(X,Y:Integer;Button:Word);
@@ -1543,9 +1547,10 @@ Function UIWidget.UpdateTransform():Boolean;
 Var
   I:Integer;
   Center:Vector2D;
-  Pos, SizeRect:Vector2D;
+  Pos:Vector2D;
   W,H, Ratio:Single;
-  OfsX,OfsY:Single;
+
+  Mat:Matrix3x3;
 Begin
   Result := False;
 
@@ -1561,30 +1566,47 @@ Begin
 
   _TransformChanged := False;
 
+  Self.UpdateRects();
+
   If Assigned(_Parent) Then
     Ratio := 1.0
   Else
     Ratio := UIManager.Instance.Ratio;
 
-  Center := Self.GetSize();
+  Center := Self.Size;
   Center.Scale(Self.Pivot);
 
   (*If _Rotation.Value<>0 Then
     _Rotation.Value := 1.0+RAD*(Trunc(Application.GetTime()/10));*)
 
   If (_Rotation.Value <> 0.0) Then
-    _Transform := MatrixRotationAndScale2D(_Rotation.Value, _Scale.Value, _Scale.Value * Ratio)
+    Mat := MatrixRotationAndScale2D(_Rotation.Value, _Scale.Value, _Scale.Value * Ratio)
   Else
-    _Transform := MatrixScale2D(_Scale.Value, _Scale.Value * Ratio);
+    Mat := MatrixScale2D(_Scale.Value, _Scale.Value * Ratio);
 
-  _Transform := MatrixTransformAroundPoint2D(Center, _Transform);
+  Mat := MatrixTransformAroundPoint2D(Center, Mat);
 
-  _Transform := MatrixMultiply3x3(MatrixTranslation2D(Self.GetAlignedPosition()), _Transform);
+  Pos := Self.GetAlignedPosition();
+  Pos.Add(Self.GetScrollOffset());
+
+  Mat := MatrixMultiply3x3(MatrixTranslation2D(Pos), Mat);
+
+  Self.SetTransform(Mat);;
+  _TransformChanged := False;
+
+  Result := True;
+End;
+
+
+Procedure UIWidget.SetTransform(const Value: Matrix3x3);
+Var
+  I:Integer;
+  Pos, SizeRect:Vector2D;
+Begin
+  _Transform := Value;
 
   If Assigned(_Parent) Then
     _Transform := MatrixMultiply3x3(Parent._Transform, _Transform);
-
-  Self.GetScrollOffset(OfsX, OfsY);
 
   _InverseTransform := MatrixInverse2D(_Transform);
 
@@ -1597,12 +1619,17 @@ Begin
 
   Pos := Self.AbsolutePosition;
   SizeRect := Self.Size;
+  _ClipRect.Style := clipNothing;
+  //_ClipRect.Style := clipSomething;
   _ClipRect.X := Pos.X {+ LeftBorder};
   _ClipRect.Y := Pos.Y {+ TopBorder};
   _ClipRect.Width := SizeRect.X {- (RightBorder + LeftBorder)};
   _ClipRect.Height := SizeRect.Y {- (TopBorder + BottomBorder)};
 
-  Result := True;
+
+  //_ClipRect.Transform(Value);
+
+  _TransformChanged := True;
 End;
 
 Function UIWidget.GetChildByIndex(Index:Integer):UIWidget;
@@ -1627,20 +1654,22 @@ Begin
   Result := Nil;
 End;
 
-Function UIWidget.GetChildByClass(ChildClass:UIWidgetClass; Index:Integer):UIWidget;
+Function UIWidget.FindComponent(ComponentType:UIWidgetClass):UIWidget;
 Var
-  I, Count:Integer;
+  I:Integer;
 Begin
-  Count := -1;
   For I:=0 To Pred(_ChildrenCount) Do
-  If (_ChildrenList[I].ClassType = ChildClass) Then
+  If (_ChildrenList[I].ClassType = ComponentType) Then
   Begin
-    Inc(Count);
-    If (Count = Index) Then
-    Begin
-      Result := _ChildrenList[I];
+    Result := _ChildrenList[I];
+    Exit;
+  End;
+
+  For I:=0 To Pred(_ChildrenCount) Do
+  Begin
+    Result := _ChildrenList[I].FindComponent(ComponentType);
+    If Assigned(Result) Then
       Exit;
-    End;
   End;
 
   Result := Nil;
@@ -1690,7 +1719,7 @@ Procedure UIWidget.Render(View:TERRAViewport);
 Var
   I:Integer;
 Begin
-  If (Not Self.Visible) Or (Self._Deleted) Then
+  If (Self._Deleted) Or (Not Self.Visible) Then
     Exit;
 
 (*  If (Assigned(_SkinComponent)) And (_SkinComponent.Name <> Self._Skin.Value) Then
@@ -1714,11 +1743,6 @@ End;
 Procedure UIWidget.OnHighlight(Prev:UIWidget);
 Begin
   // do nothing
-End;
-
-Function UIWidget.IsSelected: Boolean;
-Begin
-  (* TODO Result := (Self = UI.Highlight) Or (Self = UI.Focus);*)
 End;
 
 Function UIWidget.OnSelectAction: Boolean;
@@ -1799,13 +1823,15 @@ Begin
   End;
 End;
 
-Procedure UIWidget.GetScrollOffset(Out OfsX, OfsY: Single);
-Var
-  TX, TY:Single;
-//  Bar:UIScrollBar;
+Function UIWidget.GetScrollOffset():Vector2D;
 Begin
-  OfsX := 0;
-  OfsY := 0;
+  Result := Self._Scroll;
+
+  If _Parent = Nil Then
+    Exit;
+
+  Result.Add(_Parent.GetScrollOffset());
+
 (* TODO
   If (Assigned(Scroll)) And (Scroll Is UIScrollBar) Then
   Begin
@@ -1857,7 +1883,7 @@ Begin
     _UI._Widgets.Add(Self);*)
 End;
 
-Function UIWidget.OutsideClipRect(X, Y: Single): Boolean;
+(*Function UIWidget.OutsideClipRect(X, Y: Single): Boolean;
 Var
   X1, Y1, X2, Y2:Single;
 Begin
@@ -1876,7 +1902,7 @@ Begin
   _ClipRect.GetRealRect(X1, Y1, X2, Y2{, IsLandscapeOrientation(Application.Instance.Orientation)});
 
   Result := (X<X1) Or (Y<Y1) Or (X>=X2) Or (Y>=Y2);
-End;
+End;*)
 
 Function UIWidget.GetIndex: Integer;
 Var
@@ -1980,7 +2006,7 @@ Begin
   Result := (X>= P[0].X) And (X <= P[2].X) And (Y >= P[0].Y) And (Y <= P[2].Y);
 End;
 
-Function UIWidget.GetFontRenderer: FontRenderer;
+Function UIWidget.GetFontRenderer:TERRAFontRenderer;
 Begin
   Result := UIManager.Instance.FontRenderer;
 End;
@@ -2220,25 +2246,13 @@ Begin
     Result := Nil;
 End;
 
-Procedure UIWidget.SetTransform(const Value: Matrix3x3);
+Function UIWidget.GetEventHandler(EventType:WidgetEventType):UIWidgetEventHandler;
 Begin
-  _Transform := Value;
-  _InverseTransform := MatrixInverse2D(Value);
-
-  //_ClipRect.Style := clipSomething;
-  _ClipRect.Style := clipNothing;
-  _ClipRect.X := 0;
-  _ClipRect.Y := 0;
-  _ClipRect.Width := Self.Size.X;
-  _ClipRect.Height := Self.Size.Y;
-  _ClipRect.Transform(Value);
-
-  _TransformChanged := True;
-End;
-
-Function UIWidget.GetEventHandler(EventType:WidgetEventType):WidgetEventHandler;
-Begin
-  Result := Self._EventHandlers[EventType];
+  If (Assigned(_Controller._Value)) Then
+  Begin
+    Result := _Controller._Value._Handlers[EventType];
+  End Else
+    Result := Nil;
 
   If (Assigned(Result)) Or (_Parent = Nil) Then
     Exit;
@@ -2248,16 +2262,11 @@ End;
 
 Function UIWidget.CallEventHandler(EventType:WidgetEventType):Boolean;
 Var
-  Handler:WidgetEventHandler;
+  Handler:UIWidgetEventHandler;
 Begin
   Handler := Self.GetEventHandler(EventType);
   If Assigned(Handler) Then
     Handler(Self);
-End;
-
-Procedure UIWidget.SetEventHandler(EventType:WidgetEventType; Handler:WidgetEventHandler);
-Begin
-  Self._EventHandlers[EventType] := Handler;
 End;
 
 Function UIWidget.IsEnabled: Boolean;
@@ -2312,8 +2321,40 @@ Begin
   If (Assigned(_Parent)) Then
   Begin
     Other := _Parent.ClipRect;
-    _ClipRect.Merge(Other);
+    Result.Merge(Other);
   End;
+End;
+
+Procedure UIWidget.SetPropertyValue(const PropName, Value: TERRAString);
+Var
+  Prop:TERRAObject;
+Begin
+  Prop := Self.FindProperty(PropName);
+  If Assigned(Prop) Then
+    Prop.SetBlob(Value);
+End;
+
+Function UIWidget.GetController: UIController;
+Begin
+  Result := _Controller._Value;
+End;
+
+Procedure UIWidget.SetController(const Value: UIController);
+Begin
+  _Controller._Value := Value;
+End;
+
+Procedure UIWidget.SetSelected(const Value: Boolean);
+Begin
+  If (_Selected = Value) Then
+    Exit;
+
+  _Selected := Value;
+
+  If (Value) Then
+    Self.TriggerEvent(widgetEvent_FocusBegin)
+  Else
+    Self.TriggerEvent(widgetEvent_FocusEnd);
 End;
 
 { UIInstancedWidget }
@@ -2469,6 +2510,50 @@ Begin
     End;
   End;
   ReleaseObject(It);
+End;
+
+{ UIControllerProperty }
+Constructor UIControllerProperty.Create(const Name: TERRAString; Controller:UIController);
+Begin
+  Self._ObjectName := Name;
+  Self._Value := Controller;
+End;
+
+
+Function UIControllerProperty.GetObjectType: TERRAString;
+Begin
+  Result := 'uicontroller';
+End;
+
+Function UIControllerProperty.IsValueObject: Boolean;
+Begin
+  Result := True;
+End;
+
+Function UIControllerProperty.GetBlob: TERRAString;
+Begin
+  If Assigned(_Value) Then
+    Result := _Value.Name
+  Else
+    Result := '#';
+End;
+
+
+Procedure UIControllerProperty.SetBlob(const Blob: TERRAString);
+Begin
+  _Value := UIManager.Instance.GetControllerByName(Blob);
+End;
+
+{ UIController }
+
+Function UIController.GetHandler(EventType: WidgetEventType): UIWidgetEventHandler;
+Begin
+  Result := _Handlers[EventType];
+End;
+
+Procedure UIController.SetHandler(EventType: WidgetEventType; Handler:UIWidgetEventHandler);
+Begin
+  _Handlers[EventType] := Handler;
 End;
 
 End.

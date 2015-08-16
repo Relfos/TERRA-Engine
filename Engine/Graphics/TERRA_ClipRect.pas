@@ -152,6 +152,8 @@ Var
   X1, Y1, X2, Y2: Single;
   PX1, PY1, PX2, PY2: Single;
 Begin
+  _Style := clipNothing;
+
   If (_Style = clipEverything) Or (Other._Style = clipNothing) Then
   Begin
     Exit;

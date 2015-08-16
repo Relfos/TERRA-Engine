@@ -7,7 +7,7 @@ Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Color, TERRA_Vector2D, TERRA
   TERRA_Resource, TERRA_Texture, TERRA_Font, TERRA_Sprite, TERRA_ClipRect, TERRA_Image, TERRA_Viewport;
 
 Type
-  FontRenderer = Class(TERRAObject)
+  TERRAFontRenderer = Class(TERRAObject)
     Protected
       _InitColor1, _InitColor2:ColorRGBA;
       _Outline:ColorRGBA;
@@ -44,8 +44,8 @@ Type
       _GradientMode:FontGradient;
       _Count:Cardinal;
 
-      _DropShadow:Boolean;
-      _InitDropColor:ColorRGBA;
+      //_DropShadow:Boolean;
+      //_InitDropColor:ColorRGBA;
 
       _Italics:Boolean;
 
@@ -84,28 +84,28 @@ Type
       Constructor Create();
       Procedure Release; Override;
 
-      Function Reset():FontRenderer;
+      Function Reset():TERRAFontRenderer;
 
-      Function SetColor(Const TextColor:ColorRGBA):FontRenderer;
-      Function SetGradient(Const A,B:ColorRGBA; GradientMode:FontGradient):FontRenderer;
-      Function SetOutline(Const OutlineColor:ColorRGBA):FontRenderer;
+      Function SetColor(Const TextColor:ColorRGBA):TERRAFontRenderer;
+      Function SetGradient(Const A,B:ColorRGBA; GradientMode:FontGradient):TERRAFontRenderer;
+      Function SetOutline(Const OutlineColor:ColorRGBA):TERRAFontRenderer;
 
-      Function SetFont(Const TargetFont:TERRAFont):FontRenderer;
+      Function SetFont(Const TargetFont:TERRAFont):TERRAFontRenderer;
 
-      Function SetSize(Const Size:Single):FontRenderer;
+      Function SetSize(Const Size:Single):TERRAFontRenderer;
 
-      Function SetTransform(Const Transform:Matrix3x3):FontRenderer;
-      Function  SetDropShadow(Const DropShadowColor:ColorRGBA):FontRenderer;
+      Function SetTransform(Const Transform:Matrix3x3):TERRAFontRenderer;
+      ///Function  SetDropShadow(Const DropShadowColor:ColorRGBA):TERRAFontRenderer;
 
-      Function  SetClipRect(Const Clip:TERRAClipRect):FontRenderer;
+      Function  SetClipRect(Const Clip:TERRAClipRect):TERRAFontRenderer;
 
       Procedure BeginRender(Const S:TERRAString; Mode:Integer; X,Y, Layer:Single);
       Procedure EndRender();
       Function RenderNext():Boolean;
 
-      Function DrawText(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString):FontRenderer;
-      Function DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):FontRenderer;
-      Function DrawTextToImage(Target:Image; X,Y:Integer; Const Text:TERRAString; ForceBlend:Boolean = True):FontRenderer;
+      Function DrawText(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString):TERRAFontRenderer;
+      Function DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):TERRAFontRenderer;
+      Function DrawTextToImage(Target:Image; X,Y:Integer; Const Text:TERRAString; ForceBlend:Boolean = True):TERRAFontRenderer;
 
       Procedure GetColors(Out A,B,C,D:ColorRGBA);
 
@@ -131,15 +131,15 @@ Type
   End;
 
 Implementation
-Uses TERRA_OS, TERRA_GraphicsManager, TERRA_Math;
+Uses TERRA_OS, TERRA_GraphicsManager, TERRA_Math, TERRA_DebugDraw;
 
 { FontRenderer }
-Constructor FontRenderer.Create;
+Constructor TERRAFontRenderer.Create;
 Begin
   Reset();
 End;
 
-Function FontRenderer.Reset():FontRenderer;
+Function TERRAFontRenderer.Reset():TERRAFontRenderer;
 Begin
   SetColor(ColorWhite);
   SetTransform(MatrixIdentity3x3);
@@ -147,7 +147,7 @@ Begin
   Result := Self;
 End;
 
-Procedure FontRenderer.BeginRender(Const S:TERRAString; Mode:Integer; X,Y, Layer:Single);
+Procedure TERRAFontRenderer.BeginRender(Const S:TERRAString; Mode:Integer; X,Y, Layer:Single);
 Begin
   If (_Font = Nil) Then
   Begin
@@ -186,7 +186,7 @@ Begin
   _Next := GetNextChar;
 End;
 
-Function FontRenderer.GetNextArg:TERRAString;
+Function TERRAFontRenderer.GetNextArg:TERRAString;
 Var
   C:TERRAChar;
 Begin
@@ -202,7 +202,7 @@ Begin
   End;
 End;
 
-Function FontRenderer.GetNextChar:Cardinal;
+Function TERRAFontRenderer.GetNextChar:Cardinal;
 Var
   Len:Integer;
   Current, Before, After:TERRAChar;
@@ -229,7 +229,7 @@ Begin
   End;
 End;
 
-Function FontRenderer.RenderNext(): Boolean;
+Function TERRAFontRenderer.RenderNext(): Boolean;
 Var
   ID, K:Cardinal;
   H:Single;
@@ -306,7 +306,7 @@ Begin
   Result := True;
 End;
 
-Function FontRenderer.SetColor(Const TextColor:ColorRGBA):FontRenderer;
+Function TERRAFontRenderer.SetColor(Const TextColor:ColorRGBA):TERRAFontRenderer;
 Begin
   _Color1 := TextColor;
   _Color2 := TextColor;
@@ -314,7 +314,7 @@ Begin
   Result := Self;
 End;
 
-Function FontRenderer.SetGradient(Const A,B:ColorRGBA; GradientMode:FontGradient):FontRenderer;
+Function TERRAFontRenderer.SetGradient(Const A,B:ColorRGBA; GradientMode:FontGradient):TERRAFontRenderer;
 Begin
   _Color1 := A;
   _Color2 := B;
@@ -322,7 +322,7 @@ Begin
   Result := Self;
 End;
 
-Procedure FontRenderer.UpdateGradient(Width, Height:Single);
+Procedure TERRAFontRenderer.UpdateGradient(Width, Height:Single);
 Begin
   If (Width<=0.0) Then
     Width := 1.0;
@@ -334,7 +334,7 @@ Begin
   _Height := Height;
 End;
 
-Procedure FontRenderer.GetColors(Out A, B, C, D:ColorRGBA);
+Procedure TERRAFontRenderer.GetColors(Out A, B, C, D:ColorRGBA);
 Var
   N, Delta1, Delta2:Single;
 Begin
@@ -382,7 +382,7 @@ Begin
   End;
 End;
 
-Procedure FontRenderer.DoEffects();
+Procedure TERRAFontRenderer.DoEffects();
 Var
   I:Integer;
   SS:TERRAString;
@@ -426,24 +426,24 @@ Begin
               _CurrentPosition.X := _StartPosition.X;
 
               If Assigned(_Font) Then
-                _CurrentPosition.Y := _CurrentPosition.Y + _NewLineOffset + _Font.NewLineOffset * FontInvScale *  _Scale;
+                _CurrentPosition.Y := _CurrentPosition.Y + _NewLineOffset + (_Font.NewLineOffset + FontPadding * 2) * FontInvScale *  _Scale;
             End;
   End;
 
   _EffectCount := 0;
 End;
 
-Function FontRenderer.GetTextWidth(Const Text:TERRAString; Scale:Single):Single;
+Function TERRAFontRenderer.GetTextWidth(Const Text:TERRAString; Scale:Single):Single;
 Begin
   Result := GetTextRect(Text, Scale).X ;
 End;
 
-Function FontRenderer.GetTextHeight(Const Text:TERRAString; Scale:Single):Single;
+Function TERRAFontRenderer.GetTextHeight(Const Text:TERRAString; Scale:Single):Single;
 Begin
   Result := GetTextRect(Text, Scale).Y ;
 End;
 
-Function FontRenderer.GetTextRect(Const Text:TERRAString; Scale:Single):Vector2D;
+Function TERRAFontRenderer.GetTextRect(Const Text:TERRAString; Scale:Single):Vector2D;
 Begin
   If (_Font = Nil) Or (Not _Font.IsReady) Then
   Begin
@@ -462,7 +462,7 @@ Begin
   Result.Y := Self.MaxY;
 End;
 
-Function FontRenderer.GetLength(Const Text:TERRAString):Integer;
+Function TERRAFontRenderer.GetLength(Const Text:TERRAString):Integer;
 Begin
   Result := 0;
   BeginRender(Text, fontmode_Measure, 0, 0, -1);
@@ -471,7 +471,7 @@ Begin
   EndRender();
 End;
 
-Function FontRenderer.AutoWrapText(Const Text:TERRAString; Width, Scale: Single):TERRAString;
+Function TERRAFontRenderer.AutoWrapText(Const Text:TERRAString; Width, Scale: Single):TERRAString;
 Var
   Temp, Temp2, S, S2:TERRAString;
   I:Integer;
@@ -523,7 +523,7 @@ Begin
   Result := Result + Temp;
 End;
 
-Function FontRenderer.DrawText(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString):FontRenderer;
+Function TERRAFontRenderer.DrawText(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString):TERRAFontRenderer;
 Var
   Dest:FontSprite;
 Begin
@@ -536,14 +536,14 @@ Begin
   View.SpriteRenderer.QueueSprite(Dest);
 End;
 
-Function FontRenderer.DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):FontRenderer;
+Function TERRAFontRenderer.DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):TERRAFontRenderer;
 Var
   Alpha:Integer;
   Projection:Matrix4x4;
   A,B,C,D:ColorRGBA;
   Size:Vector2D;
   I:Integer;
-  DropColor:ColorRGBA;
+  //DropColor:ColorRGBA;
   FM:FontManager;
 Begin
   Result := Self;
@@ -566,12 +566,12 @@ Begin
 
   Size := Self.GetTextRect(Text);
 
-  If (_DropShadow) Then
+(*  If (_DropShadow) Then
   Begin
     DropColor := _InitDropColor;
     DropColor.A := Trunc(DropColor.A * (Alpha/255));
   End Else
-    DropColor := ColorNull;
+    DropColor := ColorNull;*)
 
   BeginRender(Text, fontmode_Sprite, X, Y, Layer);
   If (_GradientMode <> gradientNone) Then
@@ -591,13 +591,12 @@ Begin
     FM.DrawGlyph(View, Position.X, Position.Y, Layer, _Transform, _Scale, _CurrentGlyph, _Outline, A,B,C,D, _ClipRect, _Italics, DestSprite);
   End;
 
-  (*If Assigned(DestSprite.Texture) Then
-    StringToInt(DestSprite.Texture.Name);
-*)
+  //DrawClipRect(View, _ClipRect, ColorYellow);
+
   EndRender();
 End;
 
-Function FontRenderer.DrawTextToImage(Target:Image; X, Y: Integer; const Text:TERRAString; ForceBlend:Boolean):FontRenderer;
+Function TERRAFontRenderer.DrawTextToImage(Target:Image; X, Y: Integer; const Text:TERRAString; ForceBlend:Boolean):TERRAFontRenderer;
 Var
   Next:Cardinal;
   Alpha:Integer;
@@ -642,18 +641,18 @@ Begin
   EndRender();
 End;
 
-Procedure FontRenderer.EndRender;
+Procedure TERRAFontRenderer.EndRender;
 Begin
   _Started := False;
 End;
 
-Function FontRenderer.SetClipRect(const Clip:TERRAClipRect):FontRenderer;
+Function TERRAFontRenderer.SetClipRect(const Clip:TERRAClipRect):TERRAFontRenderer;
 Begin
   Self._ClipRect := Clip;
   Result := Self;
 End;
 
-Function FontRenderer.SetDropShadow(Const DropShadowColor:ColorRGBA):FontRenderer;
+(*Function TERRAFontRenderer.SetDropShadow(Const DropShadowColor:ColorRGBA):TERRAFontRenderer;
 Begin
   _DropShadow := DropShadowColor.A>0;
 
@@ -670,9 +669,9 @@ Begin
   {$ENDIF}
 
   Result := Self;
-End;
+End;*)
 
-Function FontRenderer.SetSize(const Size: Single): FontRenderer;
+Function TERRAFontRenderer.SetSize(const Size: Single):TERRAFontRenderer;
 Begin
   _Size := Size;
   _Scale := _Size / DefaultFontSize;
@@ -680,7 +679,7 @@ Begin
   Result := Self;
 End;
 
-Function FontRenderer.SetFont(const TargetFont:TERRAFont):FontRenderer;
+Function TERRAFontRenderer.SetFont(const TargetFont:TERRAFont):TERRAFontRenderer;
 Var
   Glyph:FontGlyph;
 Begin
@@ -696,19 +695,19 @@ Begin
     _FontOffset := 0;
 End;
 
-Function FontRenderer.SetOutline(const OutlineColor: ColorRGBA):FontRenderer;
+Function TERRAFontRenderer.SetOutline(const OutlineColor: ColorRGBA):TERRAFontRenderer;
 Begin
   Self._Outline := OutlineColor;
   Result := Self;
 End;
 
-Function FontRenderer.SetTransform(const Transform: Matrix3x3):FontRenderer;
+Function TERRAFontRenderer.SetTransform(const Transform: Matrix3x3):TERRAFontRenderer;
 Begin
   _Transform := Transform;
   Result := Self;
 End;
 
-Procedure FontRenderer.DrawSprite(const TextureName:TERRAString);
+Procedure TERRAFontRenderer.DrawSprite(const TextureName:TERRAString);
 Var
   Tex:TERRATexture;
   S:QuadSprite;
@@ -726,12 +725,12 @@ Begin
 
   If (_Mode = fontmode_Sprite) Then
   Begin
-    If _DropShadow Then
+    (*If _DropShadow Then
     Begin
       S := _View.SpriteRenderer.DrawSprite(_CurrentPosition.X - 1, _CurrentPosition.Y - Tex.Height + 1, Self._Layer, Tex);
       S.SetColor(ColorGrey(0, _Color1.A));
       Self.TransformSprite(S);
-    End;
+    End;*)
 
     S := _View.SpriteRenderer.DrawSprite(_CurrentPosition.X, _CurrentPosition.Y - Tex.Height, Self._Layer + 0.1, Tex);
     S.SetColor(ColorGrey(255, _Color1.A));
@@ -747,17 +746,17 @@ Begin
     _MaxY := Tex.Height;
 End;
 
-Function FontRenderer.ResolveTexture(Const TextureName: TERRAString): TERRATexture;
+Function TERRAFontRenderer.ResolveTexture(Const TextureName: TERRAString): TERRATexture;
 Begin
   Result := TextureManager.Instance.GetTexture(TextureName);
 End;
 
-Procedure FontRenderer.TransformSprite(S: TERRASprite);
+Procedure TERRAFontRenderer.TransformSprite(S: TERRASprite);
 Begin
   S.ClipRect := Self._ClipRect;
 End;
 
-Function FontRenderer.AllocSprite: FontSprite;
+Function TERRAFontRenderer.AllocSprite: FontSprite;
 Begin
   _LastAllocFrame := GraphicsManager.Instance.FrameID;
 
@@ -778,7 +777,7 @@ Begin
   Inc(_SpriteCount);
 End;
 
-Procedure FontRenderer.Release;
+Procedure TERRAFontRenderer.Release;
 Var
   I:Integer;
 Begin

@@ -54,12 +54,14 @@ Type
       _DefaultFont:TERRAFont;
       _Language:TERRAString;
 
-      _WndCallback1:WidgetEventHandler;
+      (*_WndCallback1:WidgetEventHandler;
       _WndCallback2:WidgetEventHandler;
-      _PrevHighlight:UIWidget;
+      _PrevHighlight:UIWidget;*)
 
       _LastOver:UIWidget;
       _LastWidget:UIWidget;
+
+      _HoldWidget:UIWidget;
 
       Procedure SetColorTable(const Value:TERRATexture);
       Procedure SetDefaultFont(const Value:TERRAFont);
@@ -68,7 +70,7 @@ Type
 
       Function GetHighlight:UIWidget;
 
-      Function GetFontRenderer():FontRenderer;
+      Function GetFontRenderer():TERRAFontRenderer;
 
       Function GetModal():UIWidget;
 
@@ -84,10 +86,10 @@ Type
       Key_Action:Integer;
       Key_Cancel:Integer;
 
-      System_Wnd:UIWidget;
+(*      System_Wnd:UIWidget;
       System_Text:UIWidget;
       System_Btn:Array[0..2] Of UIWidget;
-      System_BG:UIWidget;
+      System_BG:UIWidget;*)
 
       Constructor Create;
       Procedure Release; Override;
@@ -112,7 +114,7 @@ Type
 
       Procedure AfterEffects;
 
-      Procedure SetFocus(W:UIWidget);
+      Procedure SetFocus(Value:UIWidget);
       Procedure SetTransition(MyTransition:UITransition);
 
       Function GetVirtualKeyboard():UIWidget;
@@ -147,10 +149,13 @@ Type
 
       _Ratio:Single;
 
-      _FontRenderer:FontRenderer;
+      _FontRenderer:TERRAFontRenderer;
 
       _AlignEnums:EnumCollection;
       _DirectionEnums:EnumCollection;
+
+      _Controllers:Array Of UIController;
+      _ControllerCount:Integer;
 
       Procedure OnAppResize; Override;
       Procedure OnOrientationChange; Override;
@@ -162,7 +167,7 @@ Type
 
       Function GetTextureAtlas:TextureAtlas;
 
-      Function GetFontRenderer: FontRenderer;
+      Function GetFontRenderer:TERRAFontRenderer;
 
       Procedure RenderUIs;
 
@@ -183,8 +188,11 @@ Type
       Procedure AfterEffects;
 
       Function CreateProperty(Owner:TERRAObject; Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
-      
-      Procedure SetFontRenderer(const Value: FontRenderer);
+
+      Procedure AddController(Controller:UIController);
+      Function GetControllerByName(Const Name:TERRAString):UIController;
+
+      Procedure SetFontRenderer(const Value:TERRAFontRenderer);
 
       Function GetUI(Index:Integer):UIView;
 
@@ -197,7 +205,7 @@ Type
 
       Property Count:Integer Read _UICount;
 
-      Property FontRenderer:FontRenderer Read GetFontRenderer Write SetFontRenderer;
+      Property FontRenderer:TERRAFontRenderer Read GetFontRenderer Write SetFontRenderer;
 
       Property Viewport:TERRAViewport Read _Viewport;
 
@@ -266,18 +274,22 @@ Begin
   Log(logError, 'UI', 'UI is now clear.');
 End;
 
-Procedure UIView.SetFocus(W:UIWidget);
+Procedure UIView.SetFocus(Value:UIWidget);
 Begin
-  If (W = _Focus) Then
+  If (Value = _Focus) Then
     Exit;
 
   If (Assigned(_Focus)) Then
   Begin
-    _Focus.StopHighlight();
-    Self.SetHighlight(W);
+    _Focus.TriggerEvent(widgetEvent_FocusEnd);
   End;
 
-  _Focus := W;
+  _Focus := Value;
+
+  If (Assigned(_Focus)) Then
+  Begin
+    _Focus.TriggerEvent(widgetEvent_FocusBegin);
+  End;
 End;
 
 Procedure UIView.SetDefaultFont(const Value:TERRAFont);
@@ -307,7 +319,7 @@ Begin
   End;*)
 
   If (Assigned(_Focus)) And (Not _Focus.Visible) Then
-    _Focus := Nil;
+    SetFocus(Nil);
 
   If (Assigned(_Modal)) And (Not _Modal.Visible) Then
     _Modal := Nil;
@@ -445,8 +457,12 @@ Function UIView.OnMouseDown(X,Y:Integer;Button:Word):UIWidget;
 Begin
   Result := Self.PickWidget(X,Y, True);
 
-  If (Assigned(Result)) And (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
-    Result.OnMouseDown(X, Y, Button);
+  If (Assigned(_Focus)) And (_Focus<>Result) Then
+  Begin
+    SetFocus(Nil);
+  End;
+
+  _HoldWidget := Result;
 End;
 
 
@@ -459,6 +475,19 @@ Begin
     Exit;
   End;
 
+  If (Assigned(_HoldWidget)) Then
+  Begin
+    Result := _HoldWidget;
+
+    If (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
+    Begin
+      {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Calling onmousedown for '+Result.Name));{$ENDIF}
+      Result.TriggerEvent(widgetEvent_MouseDown);
+    End;
+
+    _HoldWidget := Nil;
+  End;
+
   Result := Self.PickWidget(X,Y, True);
 
   If (Assigned(Result)) And (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
@@ -466,12 +495,18 @@ Begin
 End;
 
 Function UIView.OnMouseMove(X,Y:Integer):UIWidget;
-Var
-  Handler:WidgetEventHandler;
 Begin
   _LastWidget := Nil;
 
-//  ConvertGlobalToLocal(X, Y);
+  If (Assigned(_HoldWidget)) And (_HoldWidget.Draggable) And (Not _HoldWidget.Dragging) Then
+  Begin
+    Result := _HoldWidget;
+    Result.BeginDrag(X,Y, UIDrag_Move);
+
+    _HoldWidget := Nil;
+    Exit;
+  End;
+
 
   If Assigned(_Dragger) Then
   Begin
@@ -554,14 +589,14 @@ Begin
   Result := _Highlight;
 End;
 
-Function UIView.GetFontRenderer():FontRenderer;
+Function UIView.GetFontRenderer():TERRAFontRenderer;
 Begin
   Result := Inherited GetFontRenderer;
-  Result.SetFont(Self._DefaultFont);
+(*  Result.SetFont(Self._DefaultFont);
   Result.SetTransform(Self.Transform);
   Result.SetColor(ColorWhite);
-  Result.SetClipRect(_ClipRect);
-  Result.SetDropShadow(ColorGrey(0, 64));
+  Result.SetClipRect(_ClipRect);*)
+  //Result.SetDropShadow(ColorGrey(0, 64));
 End;
 
 Function UIView.OnRegion(X, Y: Integer): Boolean;
@@ -880,7 +915,7 @@ Begin
     Result := Self._UIList[Index];
 End;
 
-Procedure UIManager.SetFontRenderer(const Value: FontRenderer);
+Procedure UIManager.SetFontRenderer(const Value:TERRAFontRenderer);
 Begin
   If _FontRenderer = FontRenderer Then
     Exit;
@@ -888,10 +923,10 @@ Begin
   _FontRenderer := FontRenderer;
 End;
 
-Function UIManager.GetFontRenderer: FontRenderer;
+Function UIManager.GetFontRenderer:TERRAFontRenderer;
 Begin
   If _FontRenderer = Nil Then
-    _FontRenderer := TERRA_FontRenderer.FontRenderer.Create();
+    _FontRenderer := TERRAFontRenderer.Create();
 
   Result := _FontRenderer;
 End;
@@ -1155,5 +1190,26 @@ End;
 
 
 *)
+
+Procedure UIManager.AddController(Controller: UIController);
+Begin
+  Inc(_ControllerCount);
+  SetLength(_Controllers, _ControllerCount);
+  _Controllers[Pred(_ControllerCount)] := Controller;
+End;
+
+Function UIManager.GetControllerByName(Const Name:TERRAString): UIController;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_ControllerCount) Do
+  If (StringEquals(_Controllers[I].Name, Name)) Then
+  Begin
+    Result := _Controllers[I];
+    Exit;
+  End;
+
+  Result := Nil;
+End;
 
 End.

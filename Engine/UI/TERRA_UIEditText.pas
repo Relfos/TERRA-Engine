@@ -5,52 +5,42 @@ Unit TERRA_UIEditText;
 Interface
 
 Uses TERRA_String, TERRA_Object, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font,
-  TERRA_Collections, TERRA_Viewport, TERRA_UILabel;
+  TERRA_Collections, TERRA_Viewport, TERRA_UIText;
 
 Type
-  UIEditText = Class(UILabel)
-    Protected
-      _LineCount:Integer;
-      _Lines:Array Of TERRAString;
-      _LineIndex:Integer;
-      _MaxLines:Integer;
-
+  UIEditText = Class(UIText)
+    Private
       _KoreanBaseJamo:Integer;
       _KoreanInitialJamo:Integer;
       _KoreanMedialJamo:Integer;
       _KoreanFinalJamo:Integer;
 
-      _InsideEvent:Boolean;
-
       Procedure UpdateJamos();
+
+      Function GetMultiLine: Boolean;
+      Function GetPasswordField: Boolean;
+      Procedure SetMultiline(const Value: Boolean);
+      Procedure SetPasswordField(const Value: Boolean);
+
+    Protected
+      _MultiLine:BooleanProperty;
+      _PasswordField:BooleanProperty;
 
       Function IsSelectable():Boolean; Override;
 
-      //Procedure UpdateSprite(View:TERRAViewport); Override;
+      Procedure UpdateSprite(View:TERRAViewport); Override;
 
       Procedure OnStateChange(); Override;
 
     Public
-      OnEnter:WidgetEventHandler;
-      OnChange:WidgetEventHandler;
-      PasswordField:Boolean;
-      Centered:Boolean;
-
       Constructor Create(Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
 
       Procedure SetText(Const Value:TERRAString);
-      Function GetText:TERRAString;
-
-      Procedure SetLineCount(const Value: Integer);
-
-      Function GetCurrentLine:TERRAString;
-      Procedure SetCurrentLine(const Value:TERRAString);
 
       Function OnKeyPress(Key:TERRAChar):Boolean; Override;
 
-      Property Text:TERRAString Read GetText Write SetText;
-      Property Line:TERRAString Read GetCurrentLine Write SetCurrentLine;
-      Property LineCount:Integer Read _LineCount Write SetLineCount;
+      Property MultiLine:Boolean Read GetMultiLine Write SetMultiline;
+      Property PasswordField:Boolean Read GetPasswordField Write SetPasswordField;
   End;
 
 
@@ -63,35 +53,21 @@ Constructor UIEditText.Create(Name:TERRAString; Parent:UIWidget; X, Y, Z: Single
 Begin
   Inherited Create(Name, Parent, X,Y,Z, Width, Height, Text);
 
-  Self.SetLineCount(1);
-  Self._LineIndex := 0;
-  Self._MaxLines := 0;
-
-  Self.PasswordField := False;
+  _Multiline := BooleanProperty(Self.AddProperty(BooleanProperty.Create('multiline', False), False));
+  _PasswordField := BooleanProperty(Self.AddProperty(BooleanProperty.Create('password', False), False));
 
   Self._KoreanInitialJamo := -1;
   Self._KoreanMedialJamo := -1;
   Self._KoreanFinalJamo := -1;
 End;
 
-Procedure UIEditText.SetLineCount(const Value: Integer);
-Begin
-  If (LineCount = Value) Then
-    Exit;
-
-  _LineCount := Value;
-  _MaxLines := 1;
-  SetLength(_Lines, _LineCount);
-
-  Self.UpdateRects();
-End;
-
 Procedure UIEditText.UpdateJamos;
 Var
   Jamo:Word;
   N:Integer;
+  S:TERRAString;
 Begin
-  System.Delete(_Lines[_LineIndex], Length(_Lines[_LineIndex])-2, 3);
+  S := StringCopy(_TextValue.Value, 1, StringLength(_TextValue.Value)-3);
   If (_KoreanMedialJamo>=0) Then
   Begin
     If (_KoreanFinalJamo>=0) Then
@@ -102,17 +78,17 @@ Begin
   End Else
     Jamo := _KoreanBaseJamo;
 
-  StringAppendChar(_Lines[_LineIndex], Jamo);
+  StringAppendChar(S, Jamo);
+  _TextValue.Value := S;
 End;
 
 Function UIEditText.OnKeyPress(Key:TERRAChar):Boolean;
 Var
   I, Len:Integer;
-  //KeyValue:TERRAString;
-  W,W2:Single;
   ChangedLine, Found:Boolean;
   It:Iterator;
   Wd:UIWidget;
+  S:TERRAString;
 Begin
   If (Not Self.Visible) Or (Self.HasPropertyTweens()) Then
   Begin
@@ -131,10 +107,10 @@ Begin
 
   ChangedLine := False;
 
+  S := _TextValue.Value;
+
   If (Key = keyBackspace) Then
   Begin
-    W := FontRenderer.GetTextWidth(_Lines[_LineIndex] + '_');
-
     If (_KoreanFinalJamo>=0) Then
     Begin
       _KoreanFinalJamo := -1;
@@ -147,50 +123,40 @@ Begin
     End Else
     Begin
       _KoreanInitialJamo := -1;
-      Len := StringLength(_Lines[_LineIndex]);
+      Len := StringLength(S);
 
       // check for font control chars/effects
-      If (Len>=2) And (StringGetChar(_Lines[_LineIndex], -1) = Ord('\')) Then
+      If (Len>=2) And (StringGetChar(S, -1) = Ord('\')) Then
       Begin
-        StringDropChars(_Lines[_LineIndex], -2);
+        StringDropChars(S, -2);
       End Else
-      If (_Lines[_LineIndex]<>'') Then
+      If (S<>'') Then
       Begin
         I := Len;
-        If (StringLastChar(_Lines[_LineIndex]) = Ord('}')) Then
+        If (StringLastChar(S) = Ord('}')) Then
         Begin
           While (I>=1) Do
-          If (StringGetChar(_Lines[_LineIndex], I) = Ord('\')) Then
+          If (StringGetChar(S, I) = Ord('\')) Then
             Break
           Else
             Dec(I);
 
           If (I>0) Then
-            _Lines[_LineIndex] := StringCopy(_Lines[_LineIndex], 1, Pred(I))
+            S := StringCopy(S, 1, Pred(I))
           Else
-            _Lines[_LineIndex] := StringCopy(_Lines[_LineIndex], 1, Pred(Len));
+            S := StringCopy(S, 1, Pred(Len));
         End Else
-          _Lines[_LineIndex] := StringCopy(_Lines[_LineIndex], 1, Pred(Len));
-      End Else
-      If (_LineCount>1) And (_LineIndex>0) Then
-      Begin
-        Dec(_LineIndex);
-        ChangedLine := True;
-        W := FontRenderer.GetTextWidth(_Lines[_LineIndex] + '_');
+          S := StringCopy(S, 1, Pred(Len));
       End;
     End;
 
   End Else
   If (Key = keyEnter) Then
   Begin
-    If (_LineCount>1) And (_LineIndex<Pred(_LineCount)) Then
+    If (Self.MultiLine) Then
     Begin
-      Inc(_LineIndex);
-      _MaxLines := _LineIndex;
-    End;
-
-    If Assigned(OnEnter) Then
-      OnEnter(Self);
+      StringAppendChar(S, NewLineChar);
+    End; // Else     Self.TriggerEvent(widgetEvent_Select);
   End Else
 (*TODO  If (Key = keyTab) Then
   Begin
@@ -225,17 +191,13 @@ Begin
     End;
   End Else*)
   Begin
-    If (Assigned(Self.Font)) Then
-    Begin
-      W := FontRenderer.GetTextWidth(_Lines[_LineIndex] + '_');
-
       If (_KoreanInitialJamo<0) Or (_KoreanFinalJamo>=0) Then
       Begin
         _KoreanInitialJamo := GetKoreanInitialJamo(Key);
         _KoreanMedialJamo := -1;
         _KoreanFinalJamo := -1;
         _KoreanBaseJamo := Key;
-        StringAppendChar(_Lines[_LineIndex], Key);
+        StringAppendChar(S, Key);
       End Else
       If (_KoreanMedialJamo<0) And (_KoreanFinalJamo<0) Then
       Begin
@@ -243,7 +205,7 @@ Begin
         If _KoreanMedialJamo<0 Then
         Begin
           _KoreanInitialJamo := GetKoreanInitialJamo(Key);
-          StringAppendChar(_Lines[_LineIndex], Key);
+          StringAppendChar(S, Key);
         End Else
           UpdateJamos();
       End Else
@@ -255,12 +217,12 @@ Begin
         Begin
           _KoreanInitialJamo := GetKoreanInitialJamo(Key);
           _KoreanMedialJamo := -1;
-          StringAppendChar(_Lines[_LineIndex], Key);
+          StringAppendChar(S, Key);
         End Else
           UpdateJamos();
       End Else
       Begin
-        StringAppendChar(_Lines[_LineIndex], Key);
+        StringAppendChar(S, Key);
       End;
 
       (*
@@ -268,18 +230,13 @@ Begin
       W2 := FontRenderer.GetTextWidth(_Lines[_LineIndex] + '_');
       If (W2>Self.GetDimension(Self.Width, uiDimensionWidth)) And (W2>W) Then
         _ScrollIndex := _ScrollIndex + (W2-W);*)
-    End;
   End;
 
-  If (Assigned(OnChange)) And (Not _InsideEvent) Then
+  If (Not StringEquals(S, _TextValue.Value, False)) Then
   Begin
-    _InsideEvent := True;
-    OnChange(Self);
-    _InsideEvent := False;
+    _TextValue.Value := S;
+    Self.TriggerEvent(widgetEvent_ContentChange);
   End;
-
-
-  Self._Caption.Value := _Lines[_LineIndex];
 
   Result := True;
 End;
@@ -289,46 +246,6 @@ Begin
   Self._KoreanInitialJamo := -1;
   Self._KoreanMedialJamo := -1;
   Self._KoreanFinalJamo := -1;
-
-  If (_LineCount<1) Then
-    SetLineCount(1);
-
-  Self._LineIndex := 0;
-  Self.SetCurrentLine(Value);
-End;
-
-Function UIEditText.GetText:TERRAString;
-Var
-  I:Integer;
-Begin
-  If (_LineCount=1) Then
-    Result := _Lines[0]
-  Else
-  Begin
-    Result := '';
-    For I:=0 To _LineIndex Do
-    Begin
-      Result := Result + _Lines[I];
-      If (I<_LineIndex) Then
-        Result := Result + '\n';
-    End;
-  End;
-End;
-
-Function UIEditText.GetCurrentLine:TERRAString;
-Begin
-  Result := _Lines[_LineIndex];
-End;
-
-Procedure UIEditText.SetCurrentLine(const Value:TERRAString);
-Begin
-  _Lines[_LineIndex] := ConvertFontCodes(Value);
-  If (Assigned(OnChange)) And (Not _InsideEvent) Then
-  Begin
-    _InsideEvent := True;
-    OnChange(Self);
-    _InsideEvent := False;
-  End;
 End;
 
 Function UIEditText.IsSelectable: Boolean;
@@ -341,6 +258,44 @@ Begin
   If (Self.State = widget_Selected) Then
   Begin
     UIView(Self.View).SetFocus(Self);
+  End;
+End;
+
+Function UIEditText.GetMultiLine: Boolean;
+Begin
+  Result := _MultiLine.Value;
+End;
+
+Function UIEditText.GetPasswordField: Boolean;
+Begin
+  Result := _PasswordField.Value;
+End;
+
+Procedure UIEditText.SetMultiline(const Value: Boolean);
+Begin
+  _MultiLine.Value := Value;
+End;
+
+procedure UIEditText.SetPasswordField(const Value: Boolean);
+Begin
+  _PasswordField.Value := Value;
+End;
+
+Procedure UIEditText.UpdateSprite(View: TERRAViewport);
+Var
+  S:TERRAString;
+Begin
+  If (Self._PasswordField.Value) Then
+  Begin
+    S := _TextValue.Value;
+    _TextValue.Value := StringFill(StringLength(S), Ord('*'));
+  End;
+
+  Inherited;
+
+  If (Self._PasswordField.Value) Then
+  Begin
+    _TextValue.Value := S;
   End;
 End;
 

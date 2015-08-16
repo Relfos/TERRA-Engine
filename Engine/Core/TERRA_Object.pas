@@ -181,6 +181,11 @@ Type
   AngleProperty = Class(FloatProperty)
     Public
       Function GetObjectType:TERRAString; Override;
+
+      Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
+
+      Function GetBlob():TERRAString; Override;
+      Procedure SetBlob(Const Blob:TERRAString); Override;
   End;
 
   ColorProperty = Class(TweenableProperty)
@@ -277,7 +282,7 @@ Type
 Procedure ReleaseObject(var Obj);
 
 Implementation
-Uses TERRA_Log, TERRA_OS;
+Uses TERRA_Log, TERRA_OS, TERRA_Math;
 
 Procedure ReleaseObject(Var Obj);
 Var
@@ -909,12 +914,6 @@ Begin
   Y.UpdateTweens();
 End;
 
-{ AngleProperty }
-Function AngleProperty.GetObjectType: TERRAString;
-Begin
-  Result := 'angle';
-End;
-
 { BooleanProperty }
 Constructor BooleanProperty.Create(const Name: TERRAString; const InitValue: Boolean);
 Begin
@@ -969,5 +968,27 @@ Function StringProperty.IsValueObject: Boolean;
 Begin
   Result := True;
 End;
+
+{ AngleProperty }
+Function AngleProperty.GetObjectType: TERRAString;
+Begin
+  Result := 'angle';
+End;
+
+Function AngleProperty.GetBlob: TERRAString;
+Begin
+  Result := FloatToString(GetFloatValue() * DEG);
+End;
+
+Procedure AngleProperty.SetBlob(const Blob: TERRAString);
+Begin
+  _Value := StringToFloat(Blob) * RAD;
+End;
+
+Procedure AngleProperty.AddTweenFromBlob(const Ease: TweenEaseType; const StartValue, TargetValue: TERRAString; Duration, Delay: Cardinal; Callback: TweenCallback; CallTarget: TERRAObject);
+Begin
+  Self.AddTween(Ease, StringToFloat(StartValue) * RAD, StringToFloat(TargetValue) * RAD, Duration, Delay, Callback, CallTarget);
+End;
+
 
 End.

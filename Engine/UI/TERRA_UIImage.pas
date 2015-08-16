@@ -121,9 +121,6 @@ Begin
 End;
 
 Procedure UIImage.UpdateSprite(View:TERRAViewport);
-Var
-  OfsX, OfsY:Single;
-  Temp, Pos, Center:Vector2D;
 Begin
   If _Sprite = Nil Then
   Begin
@@ -133,28 +130,7 @@ Begin
   _Sprite.SetTransform(Self._Transform);
   _Sprite.Texture := Self.Texture;
 
-  Self.GetScrollOffset(OfsX, OfsY);
-  If (OfsX<>0) Or (OfsY<>0) Then
-  Begin
-    Temp := Self.RelativePosition;
-    Self.SetRelativePosition(VectorAdd2D(Temp, VectorCreate2D(OfsX, OfsY)));
-    Self._TransformChanged := True;
-    Self.UpdateTransform();
-
-    Pos := Self.AbsolutePosition;
-    Self.SetRelativePosition(Temp);
-  End Else
-    Pos := Self.AbsolutePosition;
-
-(*  If (Pos.X>UIManager.Instance.Width) Or (Pos.Y>UIManager.Instance.Height)
-  Or (Pos.X<-Size.X) Or (Pos.Y<-Size.Y) Then
-    Exit;*)
-
-  Center := Self.GetSize();
-  Center.Scale(Self.Pivot);
-  Center.Add(Pos);
-
-  QuadSprite(_Sprite).Position := Pos;
+  QuadSprite(_Sprite).Position := VectorCreate2D(0, 0);
   QuadSprite(_Sprite).Layer := Self.GetLayer();
   QuadSprite(_Sprite).Saturation := Self.GetSaturation();
 
