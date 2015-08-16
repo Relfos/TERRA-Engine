@@ -1167,7 +1167,7 @@ Var
   i,j,k,m, a,b, VSubSample: Integer;
   e: EdgeList;
   p: PStBttPointArray;
-  en: PStBttEdge;
+  en: TStBttEdge;
 Begin
    If Invert<>0 Then
     YScaleInv := -ScaleY
@@ -1198,8 +1198,6 @@ Begin
          // skip the edge if horizontal
          if p[j].y <> p[k].y then
          begin
-            New(en);
-
             // add edge from j to k to the list
             en.invert := 0;
 
@@ -1229,8 +1227,8 @@ Begin
    // now sort the edges by their highest point (should snap to integer, and then by x)
    e.Sort();
 
-   GetMem(en, SizeOf(TStBttEdge));
-   en^.y0 := 10000000;
+   FillChar(en, SizeOf(TStBttEdge), 0);
+   en.y0 := 10000000;
    e.Add(en);
 
    // now, traverse the scanlines and find the intersections on each scanline, use xor winding rule
