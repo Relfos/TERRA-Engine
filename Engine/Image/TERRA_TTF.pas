@@ -248,7 +248,7 @@ End;
 
 function TTFFont.ttBYTE(Const offset:Cardinal):Byte;
 begin
-  If (Succ(Offset)>=BufferSize) Then
+  If (Offset>=BufferSize) Then
     Result := 0
   Else
   Begin
@@ -258,7 +258,7 @@ end;
 
 function TTFFont.ttUSHORT(Const offset:Cardinal): Word;
 begin
-  If (Succ(Offset)>=BufferSize) Then
+  If (Offset>=BufferSize) Then
     Result := 0
   Else
   Begin
@@ -268,7 +268,7 @@ end;
 
 function TTFFont.ttSHORT(Const offset:Cardinal): Smallint;
 begin
-  If (Succ(Offset)>=BufferSize) Then
+  If (Offset>=BufferSize) Then
     Result := 0
   Else
     Result := (SmallInt(Data[offset]) shl 8) + SmallInt(Data[offset+1]);
@@ -276,7 +276,7 @@ end;
 
 function TTFFont.ttULONG(Const offset:Cardinal): Cardinal;
 begin
-  If (Succ(Offset)>=BufferSize) Then
+  If (Offset>=BufferSize) Then
     Result := 0
   Else
     Result := (PtrUInt(Data[offset]) shl 24) + (PtrUInt(Data[offset+1]) shl 16) + (PtrUInt(Data[offset+2]) shl 8) + Cardinal(Data[offset+3]);
@@ -284,7 +284,7 @@ end;
 
 function TTFFont.ttLONG(Const offset:Cardinal): Integer;
 begin
-  If (Succ(Offset)>=BufferSize) Then
+  If (Offset>=BufferSize) Then
     Result := 0
   Else
     Result := PtrUInt(Data[offset] shl 24) + PtrUInt(Data[offset+1] shl 16) + PtrUInt(Data[offset+2] shl 8) + PtrUInt(Data[offset+3]);
@@ -292,7 +292,7 @@ end;
 
 function TTFFont.stbtt_tag(Const offset:Cardinal; Const TableTag:FileHeader):Boolean;
 begin
-  If (Succ(Offset)>=BufferSize) Then
+  If (Offset>=BufferSize) Then
     Result := False
   Else
     Result:=(data[offset]=Byte(TableTag[1])) and (data[offset+1]=Byte(TableTag[2])) and (data[offset+2]=Byte(TableTag[3])) and (data[offset+3]=Byte(TableTag[4]));
@@ -450,7 +450,7 @@ begin
   yoff   := iy0;
   stbtt_Rasterize(Result, 0.35, vertices, num_verts, scale_x, scale_y, shift_x, shift_y, ix0, iy0, 1);
 
-  If vertices<>nil Then
+  If Assigned(vertices) Then
     FreeMem(vertices);
 End;
 
@@ -1325,9 +1325,9 @@ var
    max_weight: Integer;
    scanline: ByteArray;
    scan_y: Single;
-   step: ^TStBttActiveEdge;
+   Temp, Prev: TStBttActiveEdge;
    p, z: TStBttActiveEdge;
-   changed: Integer;
+   changed:Boolean;
    t, q: TStBttActiveEdge;
    eIndex: Integer;
 
@@ -1353,46 +1353,57 @@ begin
       begin
          // find center of pixel for this scanline
          scan_y := y + 0.5;
-         step := @active;
 
          // update all active edges;
          // remove all active edges that terminate before the center of this scanline
-         while step^<>nil do
+         Temp := Active;
+         Prev := Nil;
+         while Assigned(Temp) do
          begin
-            z := step^;
-            if (z.ey <= scan_y) then
-            begin
-               step^ := z.next; // delete from list
-               z.valid := 0;
-               ReleaseObject(Z);
-            end else begin
-               Inc(z.x, z.dx); // advance to position for current scanline
-               step := @((step^).next); // advance through list
-            end;
+            If (Temp.ey <= scan_y) then
+            Begin
+             // delete from list
+              If Assigned(Prev) Then
+                Prev.Next := Temp.next
+              Else
+                Active := Temp.next;
+
+              Z := Temp;
+              ReleaseObject(Z);
+
+              Temp := Temp.next;
+            End Else
+            Begin
+               Inc(Temp.x, Temp.dx); // advance to position for current scanline
+
+               Prev := Temp;
+               Temp := Temp.next; // advance through list
+            End;
          end;
 
          // resort the list if needed
-         while true do
-         begin
-            changed := 0;
-            step := @active;
-            while (step^<>nil) and (step^.next<>nil) do
-            begin
-               if step^.x > step^.next.x then
-               begin
-                  t := step^;
+         Repeat
+            Changed := False;
+            Temp := Active;
+            Prev := Nil;
+            While (Assigned(Temp)) And (Assigned(Temp.Next)) Do
+            Begin
+               If Temp.x > Temp.Next.x then
+               Begin
+                  t := Temp;
                   q := t.next;
 
                   t.next := q.next;
                   q.next := t;
-                  step^ := q;
-                  changed := 1;
-               end;
-               step := @(step^.next);
-            end;
-            if changed=0 then
-               Break;
-         end;
+                  Temp := q;
+
+                  Changed := True;
+               End;
+
+               Temp := Temp.next;
+            End;
+
+         Until (Not Changed);
 
          // insert all edges that start before the center of this scanline -- omit ones that also end on this scanline
          while (e.Get(eIndex).y0 <= scan_y) do
@@ -1403,11 +1414,13 @@ begin
                // find insertion point
                if active = nil then
                   active := z
-               else if (z.x < active.x) then                  // insert at front
+               else
+               if (z.x < active.x) then                  // insert at front
                begin
                   z.next := active;
                   active := z;
-               end else begin
+               end else
+               begin
                   // find thing to insert AFTER
                   p := active;
                   while (p.next<>nil) and (p.next.x < z.x) do
@@ -1425,7 +1438,7 @@ begin
             stbtt__fill_active_edges(@scanline[0], resultBitmap.Width, active, max_weight);
 
          Inc(y);
-      end;
+      End;
 
       For iii:=0 to Pred(resultBitmap.Width) Do
         resultBitmap.SetPixel(iii, j, ColorGrey(255, scanline[iii]));
