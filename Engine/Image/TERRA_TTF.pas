@@ -1319,142 +1319,150 @@ begin
    end;
 end;
 
-procedure TTFFont.stbtt__rasterize_sorted_edges(resultBitmap:Image; e: EdgeList; vsubsample, off_x, off_y: Integer);
-var
-   active: TStBttActiveEdge;
-   y,j,s,iii: Integer;
-   max_weight: Integer;
-   scan_y: Single;
-   Temp, Prev: TStBttActiveEdge;
-   p, z: TStBttActiveEdge;
-   changed:Boolean;
-   t, q: TStBttActiveEdge;
-   eIndex: Integer;
+Procedure TTFFont.stbtt__rasterize_sorted_edges(resultBitmap:Image; e: EdgeList; vsubsample, off_x, off_y: Integer);
+Var
+  active: TStBttActiveEdge;
+  y,j,s,iii: Integer;
+  max_weight: Integer;
+  scan_y: Single;
+  Temp, Prev: TStBttActiveEdge;
+  p, z: TStBttActiveEdge;
+  changed:Boolean;
+  t, q: TStBttActiveEdge;
+  eIndex: Integer;
 
-   n, cnt, ofs: Integer;
-begin
-   eIndex := 0;
-   n := e.Count-1;
+  n, cnt, ofs: Integer;
 
-   active := nil;
-   j := 0;
-   max_weight := 255 div vsubsample;  // weight per vertical scanline
+  Color:ColorRGBA;
+Begin
+  Color := ColorWhite;
 
-   y := off_y * vsubsample;
+  eIndex := 0;
+  n := e.Count-1;
 
-   E.Fix(N, (off_y + resultBitmap.Height) * vsubsample + 1);
+  Active := nil;
+  j := 0;
+  max_weight := 255 div vsubsample;  // weight per vertical scanline
 
-   If (Length(_Scanline)<=resultBitmap.Width) Then
+  y := off_y * vsubsample;
+
+  E.Fix(N, (off_y + resultBitmap.Height) * vsubsample + 1);
+
+  If (Length(_Scanline)<=resultBitmap.Width) Then
     SetLength(_Scanline, Succ(resultBitmap.Width));
 
-   while (j < resultBitmap.Height) do
-   begin
-      for iii:=0 to resultBitmap.Width do
-         _Scanline[iii] := 0;
+  While (j < resultBitmap.Height) do
+  Begin
+    For iii:=0 to resultBitmap.Width do
+      _Scanline[iii] := 0;
 
-      for s:=0 to vsubsample-1 do
-      begin
-         // find center of pixel for this scanline
-         scan_y := y + 0.5;
+    For s:=0 to vsubsample-1 do
+    Begin
+      // find center of pixel for this scanline
+      scan_y := y + 0.5;
 
-         // update all active edges;
-         // remove all active edges that terminate before the center of this scanline
-         Temp := Active;
-         Prev := Nil;
-         while Assigned(Temp) do
-         begin
-            If (Temp.ey <= scan_y) then
-            Begin
-             // delete from list
-              If Assigned(Prev) Then
-                Prev.Next := Temp.next
-              Else
-                Active := Temp.next;
+      // update all active edges;
+      // remove all active edges that terminate before the center of this scanline
+      Temp := Active;
+      Prev := Nil;
+      While Assigned(Temp) do
+      Begin
+        If (Temp.ey <= scan_y) then
+        Begin
+          // delete from list
+          If Assigned(Prev) Then
+            Prev.Next := Temp.next
+          Else
+            Active := Temp.next;
 
-              Z := Temp;
-              ReleaseObject(Z);
+          Z := Temp;
+          ReleaseObject(Z);
 
-              Temp := Temp.next;
-            End Else
-            Begin
-               Inc(Temp.x, Temp.dx); // advance to position for current scanline
+          Temp := Temp.next;
+        End Else
+        Begin
+          Inc(Temp.x, Temp.dx); // advance to position for current scanline
 
-               Prev := Temp;
-               Temp := Temp.next; // advance through list
-            End;
-         end;
-
-         // resort the list if needed
-         Repeat
-            Changed := False;
-            Temp := Active;
-            Prev := Nil;
-            While (Assigned(Temp)) And (Assigned(Temp.Next)) Do
-            Begin
-               If Temp.x > Temp.Next.x then
-               Begin
-                  t := Temp;
-                  q := t.next;
-
-                  t.next := q.next;
-                  q.next := t;
-                  Temp := q;
-
-                  Changed := True;
-               End;
-
-               Temp := Temp.next;
-            End;
-
-         Until (Not Changed);
-
-         // insert all edges that start before the center of this scanline -- omit ones that also end on this scanline
-         while (e.Get(eIndex).y0 <= scan_y) do
-         begin
-            if (e.Get(eIndex).y1 > scan_y) then
-            begin
-               z := new_active(e.Get(eIndex), off_x, scan_y);
-               // find insertion point
-               if active = nil then
-                  active := z
-               else
-               if (z.x < active.x) then                  // insert at front
-               begin
-                  z.next := active;
-                  active := z;
-               end else
-               begin
-                  // find thing to insert AFTER
-                  p := active;
-                  while (p.next<>nil) and (p.next.x < z.x) do
-                     p := p.next;
-                  // at this point, p->next->x is NOT < z->x
-                  z.next := p.next;
-                  p.next := z;
-               end;
-            end;
-            Inc(eIndex);
-         end;
-
-         // now process all active edges in XOR fashion
-         If Assigned(active) Then
-            stbtt__fill_active_edges(@_Scanline[0], resultBitmap.Width, active, max_weight);
-
-         Inc(y);
+          Prev := Temp;
+          Temp := Temp.next; // advance through list
+        End;
       End;
 
-      For iii:=0 to Pred(resultBitmap.Width) Do
-      If (_Scanline[iii]>0) Then // OPTIMIZATION?
-        ResultBitmap.SetPixel(iii, j, ColorGrey(255, _Scanline[iii]));
+      // resort the list if needed
+      Repeat
+        Changed := False;
+        Temp := Active;
+        While (Assigned(Temp)) And (Assigned(Temp.Next)) Do
+        Begin
+          If Temp.x > Temp.Next.x then
+          Begin
+            t := Temp;
+            q := t.next;
 
-      Inc(j);
-   End;
+            t.next := q.next;
+            q.next := t;
+            Temp := q;
 
-   While Assigned(Active) Do
-   Begin
-      z := active;
-      Active := Active.Next;
-      ReleaseObject(Z);
+            Changed := True;
+          End;
+
+          Temp := Temp.next;
+        End;
+
+      Until (Not Changed);
+
+      // insert all edges that start before the center of this scanline -- omit ones that also end on this scanline
+      While (e.Get(eIndex).y0 <= scan_y) Do
+      Begin
+        If (e.Get(eIndex).y1 > scan_y) Then
+        Begin
+          z := new_active(e.Get(eIndex), off_x, scan_y);
+          // find insertion point
+          If active = nil then
+            active := z
+          Else
+          If (z.x < active.x) then                  // insert at front
+          Begin
+            z.next := active;
+            active := z;
+          End Else
+          Begin
+            // find thing to insert AFTER
+            p := active;
+            While (Assigned(p.next)) and (p.next.x < z.x) Do
+              p := p.next;
+
+            // at this point, p->next->x is NOT < z->x
+            z.next := p.next;
+            p.next := z;
+          End;
+        End;
+
+        Inc(eIndex);
+      End;
+
+      // now process all active edges in XOR fashion
+      If Assigned(active) Then
+        stbtt__fill_active_edges(@_Scanline[0], resultBitmap.Width, active, max_weight);
+
+      Inc(y);
+    End;
+
+    For iii:=0 to Pred(resultBitmap.Width) Do
+    If (_Scanline[iii]>0) Then // OPTIMIZATION?
+    Begin
+      Color.A := _Scanline[iii];
+      ResultBitmap.SetPixel(iii, j, Color);
+    End;
+
+    Inc(j);
+  End;
+
+  While Assigned(Active) Do
+  Begin
+    z := active;
+    Active := Active.Next;
+    ReleaseObject(Z);
    End;
 End;
 
