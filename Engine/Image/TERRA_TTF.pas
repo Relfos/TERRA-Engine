@@ -44,8 +44,10 @@ Type
   end;
   PStBttPoint = ^TStBttPoint;
 
-  TStBttPointArray = array[0..32767] of TStBttPoint;
-  PStBttPointArray = ^TStBttPointArray;
+  TStBttPointArray = Record
+    List:Array Of TStBttPoint;
+    Count:Integer;
+  End;
 
   TStBttActiveEdge = Class(TERRAObject)
     x,dx: Integer;
@@ -96,10 +98,10 @@ Type
       Procedure stbtt_Rasterize(resultBitmap:Image; FlatnessInPixels: Single; Vertices: PStBttVertexArray; NumVerts: Integer; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
       Procedure stbtt_GetFontVMetrics(var ascent, descent, lineGap: Integer);
       Procedure stbtt_setvertex(var v:TStBttVertex; typeByte: Byte; x, y, cx, cy: Smallint);
-      Procedure stbtt__rasterize(resultBitmap:Image; Pts: PStBttPointArray; WCount: PIntegerArray; Windings: Integer; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
-      Function stbtt_FlattenCurves(Vertices: PStBttVertexArray; num_verts:Integer; ObjSpaceFlatness: Single; var contour_lengths: PIntegerArray; var num_contours: Integer): PStBttPointArray;
-      Procedure stbtt__add_point(points: PStBttPointArray; n: Integer; x, y: Single);
-      Function stbtt__tesselate_curve(points:PStBttPointArray; var num_points: Integer; x0, y0, x1, y1, x2, y2, objspace_flatness_squared: Single; n: Integer): Integer;
+      Procedure stbtt__rasterize(resultBitmap:Image; Var Pts:TStBttPointArray; WCount: PIntegerArray; Windings: Integer; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
+      Procedure stbtt_FlattenCurves(Vertices: PStBttVertexArray; num_verts:Integer; ObjSpaceFlatness: Single; var contour_lengths: PIntegerArray; var num_contours: Integer; Out Result: TStBttPointArray);
+      Procedure stbtt__add_point(Var points:TStBttPointArray; n: Integer; x, y: Single);
+      Function stbtt__tesselate_curve(Var points:TStBttPointArray; var num_points: Integer; x0, y0, x1, y1, x2, y2, objspace_flatness_squared: Single; n: Integer): Integer;
       Procedure stbtt__rasterize_sorted_edges(resultBitmap:Image; e:EdgeList; vsubsample, off_x, off_y: Integer);
       Procedure stbtt__fill_active_edges(scanline: PByteArray; len: Integer; e:TStBttActiveEdge; max_weight: Integer);
       Function new_active(Const e: TStBttEdge; off_x: Integer; start_point: Single):TStBttActiveEdge;
@@ -1017,16 +1019,17 @@ begin
    stbtt_GetGlyphBitmapBox(stbtt_FindGlyphIndex(codepoint), scale_x, scale_y, 0, 0, ix0, iy0, ix1, iy1);
 end;
 
-procedure TTFFont.stbtt__add_point(points: PStBttPointArray; n: Integer; x, y: Single);
-begin
-   if points=nil then Exit; // during first pass, it's unallocated
+procedure TTFFont.stbtt__add_point(Var points:TStBttPointArray; n: Integer; x, y: Single);
+Begin
+  If points.Count<=0 Then
+    Exit; // during first pass, it's unallocated
 
-   points[n].x := x;
-   points[n].y := y;
-end;
+   points.List[n].x := x;
+   points.List[n].y := y;
+End;
 
 // tesselate until threshhold p is happy... @TODO warped to compensate for non-linear stretching
-function TTFFont.stbtt__tesselate_curve(points:PStBttPointArray; var num_points: Integer; x0, y0, x1, y1, x2, y2, objspace_flatness_squared: Single; n: Integer): Integer;
+function TTFFont.stbtt__tesselate_curve(Var points:TStBttPointArray; var num_points: Integer; x0, y0, x1, y1, x2, y2, objspace_flatness_squared: Single; n: Integer): Integer;
 var
   mx, my, dx, dy: Single;
 begin
@@ -1055,15 +1058,15 @@ end;
 
 
 // returns number of contours
-function TTFFont.stbtt_FlattenCurves(Vertices: PStBttVertexArray; num_verts:Integer; ObjSpaceFlatness: Single; var contour_lengths: PIntegerArray; var num_contours: Integer): PStBttPointArray;
+Procedure TTFFont.stbtt_FlattenCurves(Vertices: PStBttVertexArray; num_verts:Integer; ObjSpaceFlatness: Single; var contour_lengths: PIntegerArray; var num_contours: Integer; Out Result:TStBttPointArray);
 var
-   points: PStBttPointArray;
    NumPoints: Integer;
    objspace_flatness_squared: Single;
    i, n, start, pass: Integer;
    x, y: Single;
 begin
-   points := nil;
+   Result.Count := 0;
+   Result.List:= nil;
    NumPoints := 0;
 
    objspace_flatness_squared := Sqr(ObjSpaceFlatness);
@@ -1075,11 +1078,8 @@ begin
       if vertices[i].vertexType = STBTT_vmove then Inc(n);
 
    num_contours := n;
-   if n = 0 then
-   begin
-     Result := nil;
+   If n = 0 Then
      Exit;
-   end;
 
    GetMem(contour_lengths, n*sizeof(Integer));
 
@@ -1088,10 +1088,12 @@ begin
    begin
       x := 0;
       y := 0;
-      if pass = 1 then
-      begin
-         GetMem(points, NumPoints * 2 * sizeof(TStBttPoint));
-      end;
+      If (pass = 1) Then
+      Begin
+        Result.Count := NumPoints * 2 ;
+        SetLength(Result.List, Result.Count);
+      End;
+      
       NumPoints := 0;
       n := -1;
 
@@ -1108,19 +1110,21 @@ begin
 
                x := vertices[i].x;
                y := vertices[i].y;
-               stbtt__add_point(points, NumPoints, x,y);
+               stbtt__add_point(Result, NumPoints, x,y);
                Inc(NumPoints);
             end;
+
             STBTT_vline:
             begin
                x := vertices[i].x;
                y := vertices[i].y;
-               stbtt__add_point(points, NumPoints, x, y);
+               stbtt__add_point(Result, NumPoints, x, y);
                Inc(NumPoints);
             end;
+
             STBTT_vcurve:
             begin
-               stbtt__tesselate_curve(points, NumPoints, x,y,
+               stbtt__tesselate_curve(Result, NumPoints, x,y,
                                         vertices[i].cx, vertices[i].cy,
                                         vertices[i].x,  vertices[i].y,
                                         objspace_flatness_squared, 0);
@@ -1131,34 +1135,39 @@ begin
       end;
       contour_lengths[n] := NumPoints - start;
    end;
-
-   Result := points;
-end;
+End;
 
 procedure TTFFont.stbtt_Rasterize(resultBitmap:Image; FlatnessInPixels: Single; Vertices: PStBttVertexArray; NumVerts: Integer; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
 var
   Scale: Single;
   WindingCount: Integer;
   WindingLengths: PIntegerArray;
-  Windings: PStBttPointArray;
+  Windings: TStBttPointArray;
 begin
    Scale := Min(ScaleX, ScaleY);
 
-   Windings := stbtt_FlattenCurves(Vertices, NumVerts, FlatnessInPixels / Scale, WindingLengths, WindingCount);
-   if windings<>nil then
+    stbtt_FlattenCurves(Vertices, NumVerts, FlatnessInPixels / Scale, WindingLengths, WindingCount, Windings);
+   If windings.Count>0 then
    begin
       stbtt__rasterize(resultBitmap, Windings, WindingLengths, WindingCount, ScaleX, ScaleY, ShiftX, ShiftY, XOff, YOff, Invert);
       //FreeMem(Windings);
    end;
 end;
 
-Procedure TTFFont.stbtt__rasterize(resultBitmap:Image; Pts: PStBttPointArray; WCount: PIntegerArray; Windings: Integer; ScaleX, ScaleY, ShiftX,ShiftY: Single; XOff, YOff, Invert: Integer);
+Procedure TTFFont.stbtt__rasterize(resultBitmap:Image; Var Pts: TStBttPointArray; WCount: PIntegerArray; Windings: Integer; ScaleX, ScaleY, ShiftX,ShiftY: Single; XOff, YOff, Invert: Integer);
 Var
   YScaleInv: Single;
   i,j,k,m, a,b, VSubSample: Integer;
   e: EdgeList;
-  p: PStBttPointArray;
   en: TStBttEdge;
+
+  ptOfs:Cardinal;
+
+Function p(Index:Integer): TStBttPoint;
+Begin
+  Result := Pts.List[ptOfs + index];
+End;
+
 Begin
    If Invert<>0 Then
     YScaleInv := -ScaleY
@@ -1176,7 +1185,8 @@ Begin
 
    for i:=0 to windings-1 do
    begin
-      p := @Pts[m];
+      ptOfs := M;
+
       Inc(m, wcount[i]);
       j := wcount[i]-1;
       k:=0;
@@ -1187,23 +1197,23 @@ Begin
          b := j;
 
          // skip the edge if horizontal
-         if p[j].y <> p[k].y then
+         if p(j).y <> p(k).y then
          begin
             // add edge from j to k to the list
             en.invert := 0;
 
-            if ((invert<>0) and (p[j].y > p[k].y)) or
-              ((invert=0) and (p[j].y < p[k].y)) then
+            if ((invert<>0) and (p(j).y > p(k).y)) or
+              ((invert=0) and (p(j).y < p(k).y)) then
             begin
               en.invert := 1;
               a := j;
               b := k;
             end;
 
-            en.x0 := p[a].x * ScaleX + ShiftX;
-            en.y0 := p[a].y * YScaleInv * VSubSample + ShiftY;
-            en.x1 := p[b].x * ScaleX + ShiftX;
-            en.y1 := p[b].y * YScaleInv * VSubSample + ShiftY;
+            en.x0 := p(a).x * ScaleX + ShiftX;
+            en.y0 := p(a).y * YScaleInv * VSubSample + ShiftY;
+            en.x1 := p(b).x * ScaleX + ShiftX;
+            en.y1 := p(b).y * YScaleInv * VSubSample + ShiftY;
 
             e.Add(en);
          end;
@@ -1212,7 +1222,9 @@ Begin
          Inc(k);
       end;
    end;
-   FreeMem(Pts);
+
+   SetLength(Pts.List, 0);
+   Pts.Count := 0;
    FreeMem(WCount);
 
    // now sort the edges by their highest point (should snap to integer, and then by x)
