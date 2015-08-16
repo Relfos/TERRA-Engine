@@ -46,7 +46,14 @@ Begin
 End;
 
 Procedure EdgeList.Release;
+Var
+  I:Integer;
 Begin
+   For I:=0 to Pred(_Count) Do
+   Begin
+      FreeMem(_List[i]);
+   End;
+
   SetLength(_List, 0);
   _Count := 0;
 End;

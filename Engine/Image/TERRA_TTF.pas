@@ -1236,10 +1236,6 @@ Begin
    // now, traverse the scanlines and find the intersections on each scanline, use xor winding rule
    stbtt__rasterize_sorted_edges(resultBitmap, e, e.Count-1, VSubSample, XOff, YOff);
 
-   For I:=0 to Pred(e.Count) Do
-   Begin
-      FreeMem(e[i]);
-   End;
    ReleaseObject(e);
 end;
 
@@ -1351,7 +1347,7 @@ begin
    scanline := @scanline_data;
 
    y := off_y * vsubsample;
-   PStBttEdge(e.Items[n])^.y0 := (off_y + resultBitmap.Height) * vsubsample + 1;
+   e.Items[n]^.y0 := (off_y + resultBitmap.Height) * vsubsample + 1;
 
    while (j < resultBitmap.Height) do
    begin
@@ -1404,11 +1400,11 @@ begin
          end;
 
          // insert all edges that start before the center of this scanline -- omit ones that also end on this scanline
-         while (PStBttEdge(e[eIndex])^.y0 <= scan_y) do
+         while (e[eIndex].y0 <= scan_y) do
          begin
-            if (PStBttEdge(e[eIndex])^.y1 > scan_y) then
+            if (e[eIndex].y1 > scan_y) then
             begin
-               z := new_active(PStBttEdge(e[eIndex]), off_x, scan_y);
+               z := new_active(e[eIndex], off_x, scan_y);
                // find insertion point
                if active = nil then
                   active := z
