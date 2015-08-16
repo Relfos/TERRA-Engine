@@ -10,7 +10,6 @@ Type
     x0,y0, x1,y1: Single;
     invert: Integer;
   end;
-  PStBttEdge = ^TStBttEdge;
 
   EdgeList = Class(TERRAObject)
   Private
@@ -25,7 +24,9 @@ Type
     Procedure Release; override;
 
     Function Add(Const Item: TStBttEdge): Integer;
-    Function Get(Index: Integer): PStBttEdge;
+    Function Get(Index: Integer): TStBttEdge;
+
+    Procedure Fix(Index:Integer; Y0:Single);
 
     Procedure Sort();
 
@@ -66,15 +67,15 @@ Begin
   Inc(_Count);
 End;
 
-Function EdgeList.Get(Index: Integer): PStBttEdge;
+Function EdgeList.Get(Index: Integer): TStBttEdge;
 Begin
   If (Index < 0) or (Index >= _Count) then
   Begin
-  	Result := Nil;
+  	//Result := Nil;
   	Exit;
   End;
 
-  Result := @_List[Index];
+  Result := _List[Index];
 End;
 
 Function EdgeCompare(Const pa, pb: TStBttEdge): Integer;
@@ -124,5 +125,10 @@ Begin
   If (Count > 0) then
     QuickSort(0, Count - 1);
 End;
+
+procedure EdgeList.Fix(Index: Integer; Y0: Single);
+begin
+  _List[Index].y0 := Y0;
+end;
 
 End.

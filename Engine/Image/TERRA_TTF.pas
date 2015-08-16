@@ -107,9 +107,9 @@ Type
       Function stbtt_FlattenCurves(Vertices: PStBttVertexArray; num_verts:Integer; ObjSpaceFlatness: Single; var contour_lengths: PIntegerArray; var num_contours: Integer): PStBttPointArray;
       Procedure stbtt__add_point(points: PStBttPointArray; n: Integer; x, y: Single);
       Function stbtt__tesselate_curve(points:PStBttPointArray; var num_points: Integer; x0, y0, x1, y1, x2, y2, objspace_flatness_squared: Single; n: Integer): Integer;
-      Procedure stbtt__rasterize_sorted_edges(resultBitmap:Image; e: EdgeList; n, vsubsample, off_x, off_y: Integer);
+      Procedure stbtt__rasterize_sorted_edges(resultBitmap:Image; e:EdgeList; vsubsample, off_x, off_y: Integer);
       Procedure stbtt__fill_active_edges(scanline: PByteArray; len: Integer; e: PStBttActiveEdge; max_weight: Integer);
-      Function new_active(e: PStBttEdge; off_x: Integer; start_point: Single): PStBttActiveEdge;
+      Function new_active(Const e: TStBttEdge; off_x: Integer; start_point: Single): PStBttActiveEdge;
 
     Public
       Constructor Create(Source:Stream); Overload;
@@ -1232,18 +1232,18 @@ Begin
    e.Add(en);
 
    // now, traverse the scanlines and find the intersections on each scanline, use xor winding rule
-   stbtt__rasterize_sorted_edges(resultBitmap, e, e.Count-1, VSubSample, XOff, YOff);
+   stbtt__rasterize_sorted_edges(resultBitmap, e, VSubSample, XOff, YOff);
 
    ReleaseObject(e);
 end;
 
-function TTFFont.new_active(e: PStBttEdge; off_x: Integer; start_point: Single): PStBttActiveEdge;
+function TTFFont.new_active(Const e: TStBttEdge; off_x: Integer; start_point: Single): PStBttActiveEdge;
 var
    z: PStBttActiveEdge;
    dxdy: Single;
 begin
    New(z); // @TODO: make a pool of these!!!
-   dxdy := (e^.x1 - e^.x0) / (e^.y1 - e^.y0);
+   dxdy := (e.x1 - e.x0) / (e.y1 - e.y0);
    //STBTT_assert(e->y0 <= start_point);
 
    // round dx down to avoid going too far
@@ -1251,11 +1251,11 @@ begin
       z^.dx := -Floor(FIX * -dxdy)
    else
       z^.dx := Floor(FIX * dxdy);
-   z^.x := Floor(FIX * (e^.x0 + dxdy * (start_point - e^.y0)));
+   z^.x := Floor(FIX * (e.x0 + dxdy * (start_point - e.y0)));
    Dec(z^.x, off_x * FIX);
-   z^.ey := e^.y1;
+   z^.ey := e.y1;
    z^.next := nil;
-   if e^.invert<>0 then z^.valid := 1 else z^.valid := -1;
+   if e.invert<>0 then z^.valid := 1 else z^.valid := -1;
    Result := z;
 end;
 
@@ -1320,7 +1320,7 @@ begin
 end;
 
 
-procedure TTFFont.stbtt__rasterize_sorted_edges(resultBitmap:Image; e: EdgeList; n, vsubsample, off_x, off_y: Integer);
+procedure TTFFont.stbtt__rasterize_sorted_edges(resultBitmap:Image; e: EdgeList; vsubsample, off_x, off_y: Integer);
 var
    active: PStBttActiveEdge;
    y,j,s,iii: Integer;
@@ -1333,11 +1333,12 @@ var
    changed: Integer;
    t, q: PStBttActiveEdge;
    eIndex: Integer;
-   en : PStBttEdge;
 
-   cnt, ofs: Integer;
+   n, cnt, ofs: Integer;
 begin
    eIndex := 0;
+   n := e.Count-1;
+
    active := nil;
    j := 0;
    max_weight := 255 div vsubsample;  // weight per vertical scanline
@@ -1345,7 +1346,8 @@ begin
    scanline := @scanline_data;
 
    y := off_y * vsubsample;
-   e.Get(n).y0 := (off_y + resultBitmap.Height) * vsubsample + 1;
+
+   E.Fix(N, (off_y + resultBitmap.Height) * vsubsample + 1);
 
    while (j < resultBitmap.Height) do
    begin
@@ -1424,9 +1426,8 @@ begin
          end;
 
          // now process all active edges in XOR fashion
-         if active<>nil then
+         If Assigned(active) Then
             stbtt__fill_active_edges(scanline, resultBitmap.Width, active, max_weight);
-
 
          Inc(y);
       end;
@@ -1435,14 +1436,14 @@ begin
         resultBitmap.SetPixel(iii, j, ColorGrey(255, scanline[iii]));
 
       Inc(j);
-   end;
+   End;
 
-   while active<>nil do
-   begin
+   While Assigned(Active) Do
+   Begin
       z := active;
-      active := active^.next;
+      Active := Active.Next;
       Dispose(z);
-   end;
+   End;
 
    if scanline<>@scanline_data then
       FreeMem(scanline);
