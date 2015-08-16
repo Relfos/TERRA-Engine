@@ -25,7 +25,7 @@ Unit TERRA_TTF;
 
 {$I terra.inc}
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Font, TERRA_Color, TERRA_EdgeList, TERRA_Image;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Font, TERRA_Color, TERRA_FileUtils, TERRA_EdgeList, TERRA_Image;
 
 {$RANGECHECKS OFF}
 
@@ -60,7 +60,6 @@ Type
 
       _Ready:Boolean;
       Data: PByteArray;              // pointer to .ttf file
-      FontStart: Integer;            // offset of start of font
       numGlyphs: Integer;            // number of glyphs, needed for range checking
 
       loca,head,glyf,hhea,hmtx, kern: Cardinal; // table locations as offset from start of .ttf
@@ -68,7 +67,6 @@ Type
       indexToLocFormat: Integer;         // format needed to map from glyph index to glyph
 
       BufferSize: Int64;
-      TtfBuffer: PByteArray;
 
       Function ttBYTE(Const offset: Cardinal): Byte;
       Function ttUSHORT(Const offset: Cardinal): Word;
@@ -76,8 +74,8 @@ Type
       Function ttULONG(Const offset: Cardinal): Cardinal;
       Function ttLONG(Const offset: Cardinal): Integer;
 
-      Function stbtt_tag(Const offset: Cardinal; TableTag: PAnsiChar): Boolean;
-      Function stbtt__find_table(data: PByteArray; fontstart: Cardinal; TableTag: PAnsiChar): Cardinal;
+      Function stbtt_tag(Const offset: Cardinal; Const TableTag:FileHeader): Boolean;
+      Function stbtt__find_table(Const TableTag:FileHeader): Cardinal;
 
       Procedure stbtt_GetGlyphHMetrics(GlyphIndex: Integer; var advanceWidth, leftSideBearing: Integer);
       Function stbtt_GetGlyphKernAdvance(glyph1: Integer; glyph2: Integer): Integer;
@@ -168,7 +166,7 @@ var
   encoding_record: Cardinal;
   i,numTables: Cardinal;
 begin
-  TtfBuffer := nil;
+  Data := Nil;
   BufferSize := 0;
   _Ready := False;
 
@@ -180,18 +178,16 @@ begin
 
   // read file
   BufferSize := Source.Size;
-  GetMem(TtfBuffer, BufferSize);
-  Source.Read(@TtfBuffer[0], BufferSize);
-  Data := TtfBuffer;
-  FontStart := 0;
+  GetMem(Data, BufferSize);
+  Source.Read(@Data[0], BufferSize);
 
-  cmap := stbtt__find_table(Data, FontStart, 'cmap');
-  loca := stbtt__find_table(Data, FontStart, 'loca');
-  head := stbtt__find_table(Data, FontStart, 'head');
-  glyf := stbtt__find_table(Data, FontStart, 'glyf');
-  hhea := stbtt__find_table(Data, FontStart, 'hhea');
-  hmtx := stbtt__find_table(Data, FontStart, 'hmtx');
-  kern := stbtt__find_table(Data, FontStart, 'kern');
+  cmap := stbtt__find_table('cmap');
+  loca := stbtt__find_table('loca');
+  head := stbtt__find_table('head');
+  glyf := stbtt__find_table('glyf');
+  hhea := stbtt__find_table('hhea');
+  hmtx := stbtt__find_table('hmtx');
+  kern := stbtt__find_table('kern');
 
   If (cmap=0) or (loca=0) or (head=0) or (glyf=0) or (hhea=0) or (hmtx=0) then
   Begin
@@ -199,7 +195,7 @@ begin
     Exit;
   End;
 
-   t := stbtt__find_table(Data, FontStart, 'maxp');
+   t := stbtt__find_table('maxp');
 
    if t<>0 then
       numGlyphs := ttUSHORT(t+4)
@@ -243,10 +239,10 @@ End;
 
 Procedure TTFFont.Release;
 Begin
-  If Assigned(TtfBuffer) Then
+  If Assigned(Data) Then
   Begin
-    FreeMem(TtfBuffer);
-    TtfBuffer := Nil;
+    FreeMem(Data);
+    Data := Nil;
   End;
 End;
 
@@ -294,25 +290,25 @@ begin
     Result := PtrUInt(Data[offset] shl 24) + PtrUInt(Data[offset+1] shl 16) + PtrUInt(Data[offset+2] shl 8) + PtrUInt(Data[offset+3]);
 end;
 
-function TTFFont.stbtt_tag(Const offset:Cardinal; TableTag:PAnsiChar):Boolean;
+function TTFFont.stbtt_tag(Const offset:Cardinal; Const TableTag:FileHeader):Boolean;
 begin
   If (Succ(Offset)>=BufferSize) Then
     Result := False
   Else
-    Result:=(data[offset]=Byte(TableTag[0])) and (data[offset+1]=Byte(TableTag[1])) and (data[offset+2]=Byte(TableTag[2])) and (data[offset+3]=Byte(TableTag[3]));
+    Result:=(data[offset]=Byte(TableTag[1])) and (data[offset+1]=Byte(TableTag[2])) and (data[offset+2]=Byte(TableTag[3])) and (data[offset+3]=Byte(TableTag[4]));
 end;
 
 
 // @OPTIMIZE: binary search
-function TTFFont.stbtt__find_table(data: PByteArray; fontstart: Cardinal; TableTag: PAnsiChar): Cardinal;
+function TTFFont.stbtt__find_table(Const TableTag:FileHeader): Cardinal;
 var
   num_tables: Integer;
   tabledir: Cardinal;
   i: Cardinal;
   loc: Cardinal;
 begin
-   num_tables := ttUSHORT(fontstart+4);
-   tabledir := fontstart + 12;
+   num_tables := ttUSHORT(4);
+   tabledir := 12;
 
    Result := 0;
    If (num_tables>0) Then
