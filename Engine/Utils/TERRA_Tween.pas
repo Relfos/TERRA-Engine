@@ -67,7 +67,8 @@ Type
   	easeOutBounce = 34,
   	easeInOutBounce = 35,
   	easeOutInBounce = 36,
-    easeWiggle = 37
+    easeWiggle = 37,
+    easeNone = 38
   );
 
 

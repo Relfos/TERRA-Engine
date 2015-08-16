@@ -83,6 +83,7 @@ Type
 
   UIWidgetStateAnimation = Record
     State:WidgetState;
+    Ease:TweenEaseType;
     PropName:TERRAString;
     Value:TERRAString;
   End;
@@ -264,7 +265,7 @@ Type
 
       Procedure Delete();
 
-      Procedure AddAnimation(State:WidgetState; Const PropName, Value:TERRAString);
+      Procedure AddAnimation(State:WidgetState; Const PropName, Value:TERRAString; Const Ease:TweenEaseType = easeLinear);
 
       Procedure SetEventHandler(EventType:WidgetEventType; Handler:WidgetEventHandler);
       Function GetEventHandler(EventType:WidgetEventType):WidgetEventHandler;
@@ -497,8 +498,8 @@ Begin
   //_DropShadowColor := ColorNull;
   _DropShadowColor := ColorGrey(0, 255);
 
-  Self.AddAnimation(widget_Default, 'color', 'FFFFFFFF');
-  Self.AddAnimation(widget_Default, 'scale', '1.0');
+  Self.AddAnimation(widget_Default, 'color', 'FFFFFFFF', easeLinear);
+  Self.AddAnimation(widget_Default, 'scale', '1.0', easeLinear);
 
   Self.AddAnimation(widget_Selected, 'color', '55FF55FF');
 //  Self.AddAnimation(widget_Selected, 'scale', '2.0');
@@ -579,10 +580,9 @@ End;
 Procedure UIWidget.TriggerEvent(EventType:WidgetEventType);
 Var
   I, J, N, Count:Integer;
-  Ease:TweenEaseType;
   TargetState:WidgetState;
-  Temp:TERRAObject;
-  Prop:TweenableProperty;
+  Prop:TERRAObject;
+  TweenableProp:TweenableProperty;
   CurrentValue, TargetValue:TERRAString;
   Dispatched:Boolean;
   Callback:TweenCallback;
@@ -618,28 +618,22 @@ Begin
     Exit;
   End;
 
-  N := 100;
-  Ease := easeLinear;
+  N := 150;
   Count := 0;
-
-  SetState(TargetState);
-
-  If (_State = widget_Selected) Then
-    _Selected := True
-  Else
-  If (_State = widget_Default) Then
-    _Selected := False;
 
   Dispatched := False;
 
   For I:=0 To Pred(_AnimationCount) Do
   If (_Animations[I].State = TargetState) Then
   Begin
-    Temp := Self.FindProperty(_Animations[I].PropName);
-    If (Temp = Nil) Or (Not (Temp Is TweenableProperty)) Then
+    Prop := Self.FindProperty(_Animations[I].PropName);
+    If (Prop = Nil) Then
       Continue;
 
-    Prop := TweenableProperty(Temp);
+    If (Prop Is TweenableProperty) Then
+      TweenableProp := TweenableProperty(Prop)
+    Else
+      TweenableProp  := Nil;
 
     CurrentValue := Prop.GetBlob();
     TargetValue := _Animations[I].Value;
@@ -651,20 +645,37 @@ Begin
       Break;
     End;
 
-    If Dispatched Then
-      Callback := Nil
-    Else
+    If (Assigned(TweenableProp)) And (_Animations[I].Ease <> easeNone) Then
     Begin
-      Callback := TweenCallback(Self.GetEventHandler(EventType));
-      Dispatched := True;
+      If Dispatched Then
+        Callback := Nil
+      Else
+      Begin
+        Callback := TweenCallback(Self.GetEventHandler(EventType));
+        Dispatched := True;
+      End;
+
+      TweenableProp.AddTweenFromBlob(_Animations[I].Ease, CurrentValue, TargetValue, N, 0, Callback, Self)
+    End Else
+    Begin
+      Prop.SetBlob(TargetValue);
+      If Not Dispatched Then
+      Begin
+        Dispatched := True;
+        CallEventHandler(EventType);
+      End;
     End;
 
-    Prop.AddTweenFromBlob(Ease, CurrentValue, TargetValue, N, 0, Callback, Self);
     //Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Virtual; Abstract;
   End;
 
-(*  Self._Color.AddTween(Ease, Target, N, 0);
-  Self._Color.AddTween(Ease, Self.Color, N, N, TweenCallback(Self.GetEventHandler(EventType)), Self);*)
+  SetState(TargetState);
+
+  If (_State = widget_Selected) Then
+    _Selected := True
+  Else
+  If (_State = widget_Default) Then
+    _Selected := False;
 End;
 
 Procedure UIWidget.OnLanguageChange;
@@ -2256,7 +2267,7 @@ Begin
   Result := (Self._State <> widget_Disabled);
 End;
 
-Procedure UIWidget.AddAnimation(State: WidgetState; const PropName, Value: TERRAString);
+Procedure UIWidget.AddAnimation(State: WidgetState; const PropName, Value: TERRAString; Const Ease:TweenEaseType = easeLinear);
 Begin
   Inc(_AnimationCount);
   SetLength(_Animations, _AnimationCount);
@@ -2264,6 +2275,7 @@ Begin
   _Animations[Pred(_AnimationCount)].State := State;
   _Animations[Pred(_AnimationCount)].PropName := PropName;
   _Animations[Pred(_AnimationCount)].Value := Value;
+  _Animations[Pred(_AnimationCount)].Ease := Ease;
 End;
 
 Function UIWidget.GetPivot: Vector2D;

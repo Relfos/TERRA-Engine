@@ -183,7 +183,7 @@ Begin
 
   _Sprite.SetTransform(Self.Transform);
 
-  DrawClipRect(View, Self.ClipRect, ColorRed);
+//  DrawClipRect(View, Self.ClipRect, ColorRed);
 End;
 
 Function UILabel.SupportDrag(Mode: UIDragMode): Boolean;

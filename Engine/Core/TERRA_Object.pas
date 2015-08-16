@@ -100,7 +100,7 @@ Type
 
       Procedure UpdateTweens(); Virtual;
 
-      Procedure UpdateTweenValue(Const TweenID:Integer; Const Value:Single); Virtual; Abstract;
+      Procedure UpdateTweenValue(Const TweenID:Integer; Const Value:Single); Virtual;
 
     Public
       Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Virtual; Abstract;
@@ -523,6 +523,11 @@ End;
 Function TweenableProperty.IsValueObject: Boolean;
 Begin
   Result := True;
+End;
+
+Procedure TweenableProperty.UpdateTweenValue(const TweenID:Integer; const Value:Single);
+Begin
+  // do nothing
 End;
 
 { IntegerProperty }
