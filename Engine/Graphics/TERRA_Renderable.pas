@@ -343,7 +343,7 @@ Begin
     Pos := VectorAdd(Box.Center , VectorScale(View.Camera.View, -Box.Radius));
     MyRenderable._Distance := Pos.Distance(View.Camera.Position);
 
-    FarDist := View.Camera.Far;
+    FarDist := View.Camera.FarDistance;
 
     For I:=1 To MaxLODLevel Do
     If (MyRenderable._Distance < LODS[I]*FarDist) Then

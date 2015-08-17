@@ -28,7 +28,7 @@ Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween,
-  TERRA_Sprite, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_FontRenderer, TERRA_UITransition, TERRA_Viewport,
+  TERRA_Sprite, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_FontRenderer, TERRA_UITransition, TERRA_Viewport, TERRA_Camera,
   TERRA_UIDimension, TERRA_UIWidget, TERRA_ClipRect, TERRA_EnumProperty, TERRA_DataSource, TERRA_Hashmap;
 
 Const
@@ -140,6 +140,8 @@ Type
   UIManager = Class(ApplicationComponent)
     Protected
       _Viewport:TERRAViewport;
+      _Camera:TERRACamera;
+      
       _TextureAtlas:TextureAtlas;
       _UpdateTextureAtlas:Boolean;
 
@@ -656,6 +658,8 @@ End;
 
 { UIManager }
 Procedure UIManager.Init;
+Var
+  TargetWidth, TargetHeight:Integer;
 Begin
   _TextureAtlas := Nil;
   _Ratio := 1.0;
@@ -677,7 +681,14 @@ Begin
   _DirectionEnums.Add('Horizontal', Integer(UIDirection_Horizontal));
 
   // make UI view
-  _Viewport := TERRAViewport.Create('UI', GraphicsManager.Instance.UI_Width, GraphicsManager.Instance.UI_Height, {$IFDEF FRAMEBUFFEROBJECTS}GraphicsManager.Instance.UI_Scale{$ELSE}1.0{$ENDIF});
+  TargetWidth := GraphicsManager.Instance.UI_Width;
+  TargetHeight := GraphicsManager.Instance.UI_Height;
+  _Camera := OrthoCamera.Create('UI');
+  OrthoCamera(_Camera).SetArea(0.0, TargetWidth, TargetHeight, 0.0);
+  _Camera.NearDistance := -100;
+  _Camera.FarDistance := 100;
+
+  _Viewport := TERRAViewport.Create('UI', _Camera, TargetWidth, TargetHeight, {$IFDEF FRAMEBUFFEROBJECTS}GraphicsManager.Instance.UI_Scale{$ELSE}1.0{$ENDIF});
   _Viewport.BackgroundColor := ColorNull;
   _Viewport.SetRenderTargetState(captureTargetColor, True);
   _Viewport.SetTarget(GraphicsManager.Instance.DeviceViewport, 0, 0, 1.0, 1.0);
@@ -698,6 +709,8 @@ Begin
   ReleaseObject(_TextureAtlas);
 
   ReleaseObject(_AlignEnums);
+
+  ReleaseObject(_Camera);
 
   _UIManager_Instance := Nil;
 End;
@@ -750,12 +763,6 @@ Begin
     Target.BackgroundColor := _Viewport.BackgroundColor;
     _Viewport.SetViewArea(0, 0, Target.Width, Target.Height);
     Target.BeginCapture();
-
-    {$IFDEF PC_X}
-    glActiveTexture(GL_TEXTURE0);
-    glEnable(GL_TEXTURE_2D);
-    {$ENDIF}
-
 
     Graphics.Renderer.SetBlendMode(blendBlend);
     Graphics.SetFog(False);

@@ -1930,7 +1930,7 @@ Begin
   End Else
   If (C = UIDataSourceChar) Then
   Begin
-    Result := 'LOFB';
+    Result := 'UNFINISHED!';
 (*    For I:=0 To Pred(_PropertyCount) Do
     If (StringEquals(_Properties[I].Prop.Name, Macro)) Then
     Begin

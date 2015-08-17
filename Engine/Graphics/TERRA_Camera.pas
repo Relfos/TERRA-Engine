@@ -48,24 +48,14 @@ Type
   { TERRACamera }
   TERRACamera = Class(TERRAObject)
     Protected
-      _Name:TERRAString;
-
       _View:Vector3D;
       _Position:Vector3D;
       _Roll:Vector3D;
       _Speed:Single;
 
       _Transform:Matrix4x4;
-      _ScreenMatrix4x4:Matrix4x4;
 
 			_ProjectionMatrix4x4:Matrix4x4;
-      _Ortho:Boolean;
-
-      _OrthoX1:Single;
-      _OrthoX2:Single;
-      _OrthoY1:Single;
-      _OrthoY2:Single;
-      _OrthoScale:Single;
 
       _NeedsUpdate:Boolean;
       _LastOrientation:Single;
@@ -93,10 +83,12 @@ Type
 
       Procedure UpdateMatrix4x4(Eye:Integer);
 
+      Procedure CalculateProjection(Const Eye:Integer; Out Result:Matrix4x4); Virtual; Abstract;
+
       Function ConvertPlaneWorldToCameraSpace(Point, Normal:Vector3D):Plane;
 
     Public
-      Constructor Create(Name:TERRAString);
+      Constructor Create(Const Name:TERRAString);
       Procedure Release; Override;
 
       Procedure Update(Width, Height, Eye:Integer);
@@ -113,9 +105,6 @@ Type
       Procedure SetView(NewView:Vector3D);
       Procedure SetPosition(NewPos:Vector3D);
       Procedure SetRoll(NewRoll:Vector3D);
-
-      Procedure SetOrthoMode(Enabled:Boolean; X1,Y1,X2,Y2:Single);
-      Procedure SetOrthoScale(Value:Single);
 
       Procedure SetNear(Value:Single);
       Procedure SetFar(Value:Single);
@@ -136,25 +125,19 @@ Type
       Property View:Vector3D Read _View  Write SetView;
       Property Roll:Vector3D Read _Roll Write _Roll;
 
-      Property Ortho:Boolean Read _Ortho;
-      Property OrthoScale:Single Read _OrthoScale Write SetOrthoScale;
-
       Property Transform:Matrix4x4 Read _Transform;
       Property Projection:Matrix4x4 Read _ProjectionMatrix4x4;
 
-      Property ScreenMatrix4x4:Matrix4x4 Read _ScreenMatrix4x4;
       Property Speed:Single Read _Speed Write _Speed;
 
-      Property Near:Single Read _Near Write SetNear;
-      Property Far:Single Read _Far Write SetFar;
+      Property NearDistance:Single Read _Near Write SetNear;
+      Property FarDistance:Single Read _Far Write SetFar;
       Property FOV:Single  Read _FOV Write SetFOV;
 
       Property Frustum:TERRA_Frustum.Frustum Read _Frustum;
 
       Property Up:Vector3D Read _Up;
       Property Right:Vector3D Read _Right;
-
-      Property Name:TERRAString Read _Name Write _Name;
 
       Property Ratio:Single Read _Ratio Write SetRatio;
 
@@ -163,13 +146,36 @@ Type
       Property FocusPoint:Vector3D Read _Focus Write SetFocusPoint;
   End;
 
+  PerspectiveCamera = Class(TERRACamera)
+    Protected
+      Procedure CalculateProjection(Const Eye:Integer; Out Result:Matrix4x4); Override;
+
+    Public
+  End;
+
+  OrthoCamera = Class(TERRACamera)
+    Protected
+      _OrthoX1:Single;
+      _OrthoX2:Single;
+      _OrthoY1:Single;
+      _OrthoY2:Single;
+      _OrthoScale:Single;
+
+      Procedure CalculateProjection(Const Eye:Integer; Out Result:Matrix4x4); Override;
+
+    Public
+      Constructor Create(Const Name:TERRAString);
+      Procedure SetArea(X1,Y1,X2,Y2:Single);
+      Procedure SetScale(Value:Single);
+  End;
+
 Implementation
 Uses TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsManager, TERRA_Renderer,  TERRA_InputManager, TERRA_Log, Math;
 
 { TERRACamera}
-Constructor TERRACamera.Create(Name: TERRAString);
+Constructor TERRACamera.Create(Const Name:TERRAString);
 Begin
-  _Name := Name;
+  Self._ObjectName := Name;
   _Roll := VectorUp;
   _FOV := 45.0;
   _LastOrientation := -1;
@@ -178,9 +184,6 @@ Begin
   _Near := 1.0;
   _Far := 300.0;
   _Speed := 4.0;// * GL_WORLD_SCALE;
-
-  _Ortho := False;
-  _OrthoScale := 1.0;
 
   _NeedsUpdate := True;
 End;
@@ -221,16 +224,7 @@ Begin
     _Ratio := SafeDiv(_Width, _Height, 1.0);
 {$ENDIF}
 
-
-  If (_Ortho) Then
-    _ProjectionMatrix4x4 := Matrix4x4Ortho(Ratio*_OrthoX1*_OrthoScale, Ratio*_OrthoX2*_OrthoScale,
-                                       _OrthoY1*_OrthoScale, _OrthoY2*_OrthoScale, _Near, _Far)
-  Else
-  {$IFDEF DISABLEVR}
-    _ProjectionMatrix4x4 := Matrix4x4Perspective(FOV, Ratio, _Near, _Far);
-  {$ELSE}
-    _ProjectionMatrix4x4 := Application.Instance.GetVRProjectionMatrix(Eye, FOV, Ratio, _Near, _Far);
-  {$ENDIF}
+  CalculateProjection(Eye, _ProjectionMatrix4x4);
 
 //Log(logDebug, 'Viewport', 'X:'+IntToString(Trunc(_X)) +' Y:'+IntToString(Trunc(_Y)));
 //  Log(logDebug, 'Viewport', 'W:'+IntToString(Trunc(_Width)) +' W:'+IntToString(Trunc(_Height)));
@@ -241,7 +235,6 @@ Begin
   Else}
 
   _Transform := Matrix4x4LookAt(P, VectorAdd(_Position, _View), _Roll);
-  _ScreenMatrix4x4 := _Transform;
 
   _Up := _Roll;
 {  If (Abs(_Up.Dot(_View))>=0.9) Then
@@ -263,29 +256,6 @@ Begin
     CalculateObliqueMatrix4x4ClipPlane(_ProjectionMatrix4x4, _Transform, _ClipPlane);}
 
 	_Frustum.Update(_ProjectionMatrix4x4, Self._Transform);
-End;
-
-procedure TERRACamera.SetOrthoScale(Value: Single);
-Begin
-  If (_OrthoScale = Value) Then
-    Exit;
-
-  _OrthoScale := Value;
-  _NeedsUpdate := True;
-End;
-
-procedure TERRACamera.SetOrthoMode(Enabled: Boolean; X1, Y1, X2, Y2: Single);
-Begin
-  If (Ortho = Enabled) Then
-    Exit;
-
-  _Ortho := Enabled;
-  _NeedsUpdate := True;
-
-  _OrthoX1 := X1;
-  _OrthoX2 := X2;
-  _OrthoY1 := Y1;
-  _OrthoY2 := Y2;
 End;
 
 procedure TERRACamera.Update(Width, Height, Eye: Integer);
@@ -622,6 +592,55 @@ procedure TERRACamera.Release;
 Begin
   // do nothing
 End;
+
+{ PerspectiveCamera }
+Procedure PerspectiveCamera.CalculateProjection(Const Eye:Integer; Out Result:Matrix4x4);
+Begin
+  {$IFDEF DISABLEVR}
+  Result := Matrix4x4Perspective(FOV, Ratio, _Near, _Far);
+  {$ELSE}
+  Result := Application.Instance.GetVRProjectionMatrix(Eye, FOV, Ratio, _Near, _Far);
+  {$ENDIF}
+End;
+
+{ OrthoCamera }
+Constructor OrthoCamera.Create(Const Name:TERRAString);
+Begin
+  Inherited Create(Name);
+
+  _OrthoScale := 1.0;
+  _Near := 0.0;
+  _Far := 100;
+
+  Self.SetArea(-100, -100, 100, 100);
+End;
+
+Procedure OrthoCamera.CalculateProjection(Const Eye:Integer; Out Result:Matrix4x4);
+Begin
+  Result := Matrix4x4Ortho(Ratio*_OrthoX1*_OrthoScale, Ratio*_OrthoX2*_OrthoScale, _OrthoY1*_OrthoScale, _OrthoY2*_OrthoScale, _Near, _Far);
+  Result := Matrix4x4Multiply4x4(Result, Matrix4x4Translation(0.375, 0.375, 0.0)); // apply "pixel-perfect" correction
+End;
+
+Procedure OrthoCamera.SetArea(X1, Y1, X2, Y2: Single);
+Begin
+  _NeedsUpdate := True;
+
+  _OrthoX1 := X1;
+  _OrthoX2 := X2;
+  _OrthoY1 := Y1;
+  _OrthoY2 := Y2;
+End;
+
+Procedure OrthoCamera.SetScale(Value: Single);
+Begin
+  If (_OrthoScale = Value) Then
+    Exit;
+
+  _OrthoScale := Value;
+  _NeedsUpdate := True;
+End;
+
+
 
 End.
 

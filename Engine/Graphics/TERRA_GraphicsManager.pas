@@ -76,9 +76,6 @@ Type
 
       _DeviceViewport:TERRAViewport;
 
-      _Cameras:Array Of TERRACamera;
-      _CameraCount:Integer;
-
       _ReflectionCamera:TERRACamera;
 
       _Width:Integer;
@@ -206,13 +203,7 @@ Type
 
       Property ViewportCount:Integer Read _ViewportCount;
 
-      Procedure AddCamera(Cam:TERRACamera);
-      Procedure DeleteCamera(Cam:TERRACamera);
-      Function GetCamera(Index:Integer):TERRACamera;
-
       Class Function IsShuttingDown:Boolean;
-
-      Property CameraCount:Integer Read _CameraCount;
 
       Property Renderer:GraphicsRenderer Read _Renderer Write SetRenderer;
 
@@ -439,7 +430,7 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
 
   Log(logDebug, 'GraphicsManager', 'Device resolution: '+IntToString(_Width)+' x ' +IntToString(_Height));
 
-  _DeviceViewport := TERRAViewport.Create('device', _Width, _Height);
+  _DeviceViewport := TERRAViewport.Create('device', Nil, _Width, _Height);
 
   OW := _Width;
   OH := _Height;
@@ -512,41 +503,6 @@ Begin
   ReleaseObject(_Viewports[N]);
   _Viewports[N] := _Viewports[Pred(_ViewportCount)];
   Dec(_ViewportCount);
-End;
-
-Procedure GraphicsManager.AddCamera(Cam:TERRACamera);
-Begin
-  Inc(_CameraCount);
-  SetLength(_Cameras, _CameraCount);
-  _Cameras[Pred(_CameraCount)] := Cam;
-End;
-
-Function GraphicsManager.GetCamera(Index:Integer):TERRACamera;
-Begin
-  If (Index<0) Or (Index>=_CameraCount) Then
-    Result := Nil
-  Else
-    Result := _Cameras[Index];
-End;
-
-Procedure GraphicsManager.DeleteCamera(Cam:TERRACamera);
-Var
-  N, I:Integer;
-Begin
-  N := -1;
-  For I:=0 To Pred(_CameraCount) Do
-  If (_Cameras[I] = Cam) Then
-  Begin
-    N := I;
-    Break;
-  End;
-
-  If (N<0) Then
-    Exit;
-
-  ReleaseObject(_Cameras[N]);
-  _Cameras[N] := _Cameras[Pred(_CameraCount)];
-  Dec(_CameraCount);
 End;
 
 (*Procedure GraphicsManager.RenderAds;
@@ -1297,10 +1253,6 @@ Var
 Begin
   _ShuttingDown := True;
   Log(logDebug, 'GraphicsManager', 'Shutting down');
-
-  For I:=0 To Pred(_CameraCount) Do
-    ReleaseObject(_Cameras[I]);
-  _CameraCount := 0;
 
   For I:=0 To Pred(_ViewportCount) Do
     ReleaseObject(_Viewports[I]);

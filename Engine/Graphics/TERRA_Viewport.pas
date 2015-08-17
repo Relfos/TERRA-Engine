@@ -125,7 +125,7 @@ Type
     Public
       AutoResolve:Boolean;
 
-      Constructor Create(Name:TERRAString; Width,Height:Integer; Scale:Single = 1.0);
+      Constructor Create(Name:TERRAString; Camera:TERRACamera; Width,Height:Integer; Scale:Single = 1.0);
 
       Procedure Release; Override;
 
@@ -461,7 +461,7 @@ End;
 
 
 { TERRAViewport }
-Constructor TERRAViewport.Create(Name:TERRAString; Width,Height:Integer; Scale:Single);
+Constructor TERRAViewport.Create(Name:TERRAString; Camera:TERRACamera; Width,Height:Integer; Scale:Single);
 Begin
   _Name := Name;
   _Visible := True;
@@ -479,7 +479,7 @@ Begin
 
   _SpriteRenderer := TERRASpriteRenderer.Create();
 
-  _Camera := TERRACamera.Create(Name);
+  _Camera := Camera;
 
   Log(logDebug, 'Viewport', 'Created viewport '+Name+' with size '+IntToString(_Width) +' x '+IntToString(_Height)+' and scale = '+FloatToString(_Scale));
 End;
@@ -521,8 +521,6 @@ Begin
   ReleaseObject(_ResolveBuffer);
   ReleaseObject(_ResolveTexture);
 
-  ReleaseObject(_Camera);
-
   {$IFDEF POSTPROCESSING}
   ReleaseObject(_FXChain);
   {$ENDIF}
@@ -562,12 +560,13 @@ Begin
   End;
 
   Temp[7] := 1.0 / Temp[7];
-  If Not Camera.Ortho Then
+  //If Not Camera.Ortho Then
   Begin  //Perspective division
     Temp[4] := Temp[4] * Temp[7];
     Temp[5] := Temp[5] * Temp[7];
     Temp[6] := Temp[6] * Temp[7];
   End;
+
   //Window coordinates
   //Map x, y to range 0-1
   Temp[4] := (Temp[4] *0.5 + 0.5);

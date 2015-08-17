@@ -4,7 +4,7 @@ Unit TERRA_DemoApplication;
 
 Interface
 Uses TERRA_Utils, TERRA_Object, TERRA_String, TERRA_Application, TERRA_OS, TERRA_Scene,
-  TERRA_Vector3D, TERRA_Color,
+  TERRA_Vector3D, TERRA_Color, TERRA_Camera,
   TERRA_Font, TERRA_FontRenderer, TERRA_Skybox, TERRA_Viewport, TERRA_Lights;
 
 Type
@@ -16,6 +16,7 @@ Type
       _Sky:TERRASkybox;
       _Sun:DirectionalLight;
       _Main:TERRAViewport;
+      _Camera:TERRACamera;
 
       Function CreateMainViewport(Const Name:TERRAString; Width, Height:Integer):TERRAViewport;
 
@@ -34,7 +35,7 @@ Type
     Protected
       _Scene:DemoScene;
       _Font:TERRAFont;
-      _FontRenderer:FontRenderer;
+      _FontRenderer:TERRAFontRenderer;
 
     Public
 			Procedure OnCreate; Override;
@@ -58,7 +59,7 @@ Begin
   FileManager.Instance.AddPath('Assets');
 
   _Font := FontManager.Instance.DefaultFont;
-  _FontRenderer := FontRenderer.Create();
+  _FontRenderer := TERRAFontRenderer.Create();
   _FontRenderer.SetFont(_Font);
 
   _Scene := DemoScene.Create(Self);
@@ -90,6 +91,8 @@ Begin
   _Sun := DirectionalLight.Create(VectorCreate(-0.25, 0.75, 0.0));
   _Sky := TERRASkybox.Create('sky');
 
+  _Camera := PerspectiveCamera.Create('main');
+
   _Main := Self.CreateMainViewport('main', GraphicsManager.Instance.Width, GraphicsManager.Instance.Height);
   _Main.SetPostProcessingState(True);
 End;
@@ -98,13 +101,15 @@ Procedure DemoScene.Release;
 Begin
   Inherited;
 
+  ReleaseObject(_Camera);
+
   ReleaseObject(_Sun);
   ReleaseObject(_Sky);
 End;
 
 Function DemoScene.CreateMainViewport(Const Name:TERRAString; Width, Height:Integer):TERRAViewport;
 Begin
-  Result := TERRAViewport.Create(Name, Width, Height);
+  Result := TERRAViewport.Create(Name, _Camera, Width, Height);
   Result.SetTarget(GraphicsManager.Instance.DeviceViewport, 0.0, 0.0, 1.0, 1.0);
   GraphicsManager.Instance.AddViewport(Result);
   Result.Visible := True;
@@ -114,7 +119,7 @@ End;
 
 Procedure DemoScene.RenderSprites(V: TERRAViewport);
 Begin
-  _Owner._FontRenderer.DrawText(5, 5, 50, 'FPS: '+IntToString(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
+  _Owner._FontRenderer.DrawText(V, 5, 5, 50, 'FPS: '+IntToString(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
 End;
 
 Procedure DemoScene.RenderViewport(V: TERRAViewport);

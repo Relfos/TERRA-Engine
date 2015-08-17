@@ -271,7 +271,7 @@ Type
 
     Public
 
-      Constructor Create(Strength:Single);
+      Constructor Create(Strength:Single = 1.0);
 
       Procedure GenerateCode(); Override;
 
@@ -1110,10 +1110,11 @@ Begin
 End;
 
 { VignetteFX }
-Constructor VignetteFX.Create;
+Constructor VignetteFX.Create(InitScale:Single = 10.0);
 Begin
   Self._FXType := FXColor;
   _Scale := Self.AddUniform('vignetteScale', uniformFloat);
+  Self.SetScale(InitScale);
 End;
 
 Procedure VignetteFX.GenerateCode;

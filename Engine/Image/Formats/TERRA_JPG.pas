@@ -59,10 +59,10 @@ Type
     buffer:JOCTET_FIELD_PTR;  //  start of buffer}
   End;
 
-  PImageDest=^LImageDest;
-  LImageDest=Record
+  PImageDest = ^ImageDest;
+  ImageDest = Record
     Output:Image;  // Target ouput image
-    Color:PColor;
+    Color:PColorRGBA;
     Row:Integer;
 
     // image info
@@ -173,9 +173,9 @@ Function jinit_ImageDest(cinfo:j_decompress_ptr; Target:Image):PImageDest;
 Var
   Dest:PImageDest;
 Begin
-  Dest:=PImageDest(cInfo.Mem.alloc_small(j_common_ptr(cinfo),JPOOL_IMAGE, SizeOf(LImageDest)));
-  Dest.Output:=Target;
-  Dest.Color:=Target.Pixels;
+  Dest := PImageDest(cInfo.Mem.alloc_small(j_common_ptr(cinfo),JPOOL_IMAGE, SizeOf(ImageDest)));
+  Dest.Output := Target;
+  Dest.Color := Target.RawPixels;
   Dest.Row:=0;
 
   // image info

@@ -45,7 +45,7 @@ Type
     Protected
       _Cubemap:CubemapInterface;       // Skybox textures
       _Textures:Array[0..5] Of TERRATexture;
-      _Color:Color;           // Skybox color
+      _Color:ColorRGBA;           // Skybox color
       _Rotation:Single;
 
       _Vertices:VertexData;
@@ -64,7 +64,7 @@ Type
 
       Procedure Render(View:TERRAViewport; Const Bucket:Cardinal); Override;
 
-      Property Color:TERRA_Color.Color Read _Color Write _Color;
+      Property Color:ColorRGBA Read _Color Write _Color;
       //Property Texture:CubemapTexture Read _Cubemap;
       Property Rotation:Single Read _Rotation Write _Rotation;
   End;
@@ -199,7 +199,7 @@ Var
   I:Integer;
   CamVertices:BoundingBoxVertices;
   Projection:Matrix4x4;
-  Camera:TERRA_Camera.Camera;
+  Camera:TERRACamera;
   MyShader:ShaderInterface;
 
   Graphics:GraphicsManager;
@@ -305,7 +305,7 @@ Var
   I,J:Integer;
   Size:Single;
   M,M2:Matrix4x4;
-  Cam:Camera;
+  Cam:TERRACamera;
   Ofs:Vector3D;
   Graphics:GraphicsManager;
 Begin
