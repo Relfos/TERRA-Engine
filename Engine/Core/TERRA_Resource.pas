@@ -201,14 +201,8 @@ Begin
   If Self.IsReady() Then
     Exit;
 
-  If _Prefetching Then
-  Begin
-    Log(logDebug, 'Resource', 'Prefetch overflow!');
-    Exit;
-  End;
-
   Log(logDebug, 'Resource', 'Prefetching '+Self.Name);
-  _Prefetching := True;
+
   While (Not Self.IsReady) Do
   Begin
     Application.Instance.RefreshComponents();
@@ -217,7 +211,6 @@ Begin
       Break;
 
   End;
-  _Prefetching := False;
 
   If (Self.Status = rsInvalid) Then
     Log(logError, 'Resource', 'Error prefetching resource')

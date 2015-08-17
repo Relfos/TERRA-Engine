@@ -775,20 +775,14 @@ Begin
 
     Graphics.Renderer.ClearBuffer((Not Assigned(Graphics.Scene)), True, True);
 
-    If (Not _Prefetching) Then
-    Begin
-      UIManager.Instance.RenderUIs();
+    UIManager.Instance.RenderUIs();
 
-      If (Assigned(Graphics.Scene)) And (Not Application.Instance.HasFatalError) Then
-       Graphics.Scene.RenderSprites(_Viewport);
-    End;
+    If (Assigned(Graphics.Scene)) And (Not Application.Instance.HasFatalError) Then
+      Graphics.Scene.RenderSprites(_Viewport);
 
     _Viewport.SpriteRenderer.Render(Projection);
 
-    If ( Not _Prefetching) Then
-    Begin
-      UIManager.Instance.AfterEffects();
-    End;
+    UIManager.Instance.AfterEffects();
 
 //  glDisable(GL_SCISSOR_TEST);
   //glDisable(GL_ALPHA_TEST);

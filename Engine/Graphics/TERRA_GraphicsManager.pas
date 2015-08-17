@@ -1309,8 +1309,7 @@ Begin
 
   Inc(_FrameID);
 
-  If (Not _Prefetching) Then
-    Self.RenderScene;
+  Self.RenderScene;
 
   // resolve offscreen buffers
   If (Self.ShowDebugTarget = captureTargetInvalid) Then
