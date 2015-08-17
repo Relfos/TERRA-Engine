@@ -98,10 +98,7 @@ Begin
 End;
 
 Procedure TERRAClipRect.Merge(const Other: TERRAClipRect);
-Var
-  PX1, PY1, PX2, PY2: Single;
 Begin
-Exit;
   If (_Style = clipEverything) Or (Other._Style = clipNothing) Then
   Begin
     Exit;
@@ -117,17 +114,17 @@ Exit;
     Exit;
   End;
 
-  If (PX1>_X1) Then
-    _X1 := PX1;
+  If (Other.X1>_X1) Then
+    _X1 := Other.X1;
 
-  If (PY1>_Y1) Then
-    _Y1 := PY1;
+  If (Other.Y1>_Y1) Then
+    _Y1 := Other.Y1;
 
-  If (PX2<_X2) Then
-    _X2 := PX2;
+  If (Other.X2<_X2) Then
+    _X2 := Other.X2;
 
-  If (PY2<_Y2) Then
-    _Y2 := PY2;
+  If (Other.Y2<_Y2) Then
+    _Y2 := Other.Y2;
 End;
 
 End.

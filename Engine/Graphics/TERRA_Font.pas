@@ -233,7 +233,7 @@ Type
   Function UnconvertFontCodes(S:TERRAString):TERRAString;
 
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Sort,
+Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Sort, TERRA_TextureManager,
   TERRA_Log, TERRA_FileUtils, TERRA_MemoryStream, TERRA_ImageDrawing,
   TERRA_GraphicsManager, TERRA_FileManager, TERRA_Packer, TERRA_DistanceField;
 

@@ -131,7 +131,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_OS, TERRA_GraphicsManager, TERRA_Math, TERRA_DebugDraw;
+Uses TERRA_OS, TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Math, TERRA_DebugDraw;
 
 { FontRenderer }
 Constructor TERRAFontRenderer.Create;
@@ -748,7 +748,7 @@ End;
 
 Function TERRAFontRenderer.ResolveTexture(Const TextureName: TERRAString): TERRATexture;
 Begin
-  Result := TextureManager.Instance.GetTexture(TextureName);
+  Result := Engine.Textures.GetTexture(TextureName);
 End;
 
 Procedure TERRAFontRenderer.TransformSprite(S: TERRASprite);

@@ -333,7 +333,7 @@ Type
 Function CreateParticleVertexData(Count:Integer):VertexData;
   
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_Camera, TERRA_Mesh,
+Uses TERRA_EngineManager, TERRA_Error, TERRA_OS, TERRA_Log, TERRA_Camera, TERRA_Mesh,
   TERRA_INI, TERRA_FileStream, TERRA_FileUtils;
 
 Var
@@ -1016,7 +1016,7 @@ Begin
     Result.Filter := filterLinear;
     Result.MipMapped := False;
   End Else
-    Result := TextureManager.Instance.WhiteTexture; 
+    Result := Engine.Textures.WhiteTexture;
 End;
 
 Class function ParticleManager.Instance: ParticleManager;

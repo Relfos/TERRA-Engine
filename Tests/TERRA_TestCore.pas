@@ -23,8 +23,8 @@ Type
    End;
 
 Implementation
-Uses TERRA_Utils, TERRA_Sort, TERRA_Collections, 
-  TERRA_HashMap, TERRA_ObjectArray, TERRA_List;
+Uses TERRA_Utils, TERRA_Sort, TERRA_Collections,
+  TERRA_HashMap, TERRA_ObjectArray, TERRA_List, TERRA_Stack;
 
 Type
   IntegerArraySort = Class(Sort)

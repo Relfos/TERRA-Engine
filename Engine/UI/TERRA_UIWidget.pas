@@ -5,7 +5,7 @@ Unit TERRA_UIWidget;
 Interface
 Uses TERRA_Object, TERRA_Utils, TERRA_String, TERRA_Collections, TERRA_List,
   TERRA_Vector2D, TERRA_Color, TERRA_Matrix3x3, TERRA_Texture,
-  TERRA_ClipRect, TERRA_Tween, TERRA_FontRenderer, TERRA_Sprite,
+  TERRA_ClipRect, TERRA_Tween, TERRA_FontRenderer, TERRA_Sprite, TERRA_Renderable,
   TERRA_UIDimension, TERRA_EnumProperty, TERRA_DataSource, TERRA_Viewport;
 
 Const
@@ -119,7 +119,7 @@ Type
       Procedure SetBlob(Const Blob:TERRAString); Override;
   End;
 
-	UIWidget = Class(TERRAObject)
+  UIWidget = Class(TERRARenderable)
     Private
       _Tested:Boolean;
       _RenderFrameID:Cardinal;
@@ -163,12 +163,12 @@ Type
       Function IsEnabled: Boolean;
 
       Function GetClipRect: TERRAClipRect;
-    function GetController: UIController;
-    procedure SetController(const Value: UIController);
-    procedure SetSelected(const Value: Boolean);
+      Function GetController: UIController;
+      Procedure SetController(const Value: UIController);
+      Procedure SetSelected(const Value: Boolean);
 
-		Protected
-			_Parent:UIWidget;
+    Protected
+      _Parent:UIWidget;
 
       _ChildrenList:Array Of UIWidget;
       _ChildrenCount:Integer;
@@ -221,6 +221,8 @@ Type
       Procedure UpdateSprite(View:TERRAViewport); Virtual;
 
       Procedure InitProperties();
+
+      Function GetRenderBucket: Cardinal; Override;
 
       Function GetUpControl():UIWidget;
       Function GetDownControl():UIWidget;
@@ -275,7 +277,7 @@ Type
 
       Property FontRenderer:TERRAFontRenderer Read GetFontRenderer;
 
-		Public
+    Public
       Tag:Integer;
       DisableHighlights:Boolean;
       DisableUIColor:Boolean;
@@ -305,19 +307,15 @@ Type
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
       Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
 
-      Procedure Render(View:TERRAViewport); Virtual;
+      Procedure Render(View:TERRAViewport; Const Bucket:Cardinal); Override;
 
       Procedure UpdateRects; Virtual;
       Function UpdateTransform():Boolean; Virtual;
 
-			Function OnKeyDown(Key:Word):Boolean;Virtual;
-			Function OnKeyUp(Key:Word):Boolean;Virtual;
-			Function OnKeyPress(Key:TERRAChar):Boolean;Virtual;
-
-			Function GetVisible:Boolean;
-			Function GetLayer:Single;
+      Function GetVisible:Boolean;
+      Function GetLayer:Single;
       Function GetColor:ColorRGBA;
-			Function GetSaturation:Single;
+      Function GetSaturation:Single;
       Function GetColorTable:TERRATexture;
       Function GetHighlightGroup:Integer;
 
@@ -360,9 +358,13 @@ Type
 
       Procedure SetChildrenVisibilityByTag(Tag:Integer; Visibility:Boolean);
 
-			Procedure OnMouseUp(X,Y:Integer; Button:Word); Virtual;
-			Procedure OnMouseMove(X,Y:Integer); Virtual;
-			Procedure OnMouseWheel(X,Y:Integer; Delta:Integer);Virtual;
+      Function OnHandleKeyDown(Key:Word):Boolean;Virtual;
+      Function OnHandleKeyUp(Key:Word):Boolean;Virtual;
+      Function OnHandleKeyPress(Key:TERRAChar):Boolean;Virtual;
+
+      Procedure OnHandleMouseUp(X,Y:Integer; Button:Word); Virtual;
+      Procedure OnHandleMouseMove(X,Y:Integer); Virtual;
+      Procedure OnHandleMouseWheel(X,Y:Integer; Delta:Integer);Virtual;
 
       Function GetIndex():Integer;
 
@@ -1228,13 +1230,13 @@ Begin
   // do nothing
 End;
 
-Function UIWidget.OnKeyDown(Key:Word):Boolean;
+Function UIWidget.OnHandleKeyDown(Key:Word):Boolean;
 Begin
   RemoveHint(Key);
 	Result := False;
 End;
 
-Function UIWidget.OnKeyUp(Key:Word):Boolean;
+Function UIWidget.OnHandleKeyUp(Key:Word):Boolean;
 Var
   I:Integer;
 Begin
@@ -1277,7 +1279,7 @@ Begin
   End;*)
 End;
 
-Function UIWidget.OnKeyPress(Key:TERRAChar):Boolean;
+Function UIWidget.OnHandleKeyPress(Key:TERRAChar):Boolean;
 Begin
   RemoveHint(Key);
 	Result := False;
@@ -1416,7 +1418,7 @@ Begin
   UI.Dragger := Nil;
 End;
 
-Procedure UIWidget.OnMouseUp(X,Y:Integer;Button:Word);
+Procedure UIWidget.OnHandleMouseUp(X,Y:Integer;Button:Word);
 Var
   I:Integer;
 Begin
@@ -1465,7 +1467,7 @@ Begin
     End;
 End;
 
-Procedure UIWidget.OnMouseMove(X,Y:Integer);
+Procedure UIWidget.OnHandleMouseMove(X,Y:Integer);
 Var
   I:Integer;
   B:Boolean;
@@ -1511,7 +1513,7 @@ Begin
   End;
 End;
 
-Procedure UIWidget.OnMouseWheel(X,Y:Integer; Delta:Integer);
+Procedure UIWidget.OnHandleMouseWheel(X,Y:Integer; Delta:Integer);
 Begin
   // do nothing
 End;
@@ -1709,7 +1711,7 @@ Begin
     Inc(I);
 End;
 
-Procedure UIWidget.Render(View:TERRAViewport);
+Procedure UIWidget.Render(View:TERRAViewport; Const Bucket:Cardinal);
 Var
   I:Integer;
 Begin
@@ -1730,7 +1732,7 @@ Begin
 
   For I:=0 To Pred(_ChildrenCount) Do
   If (_ChildrenList[I].Visible) And (_ChildrenList[I].CanRender()) Then
-    _ChildrenList[I].Render(View);
+    _ChildrenList[I].Render(View, Bucket);
 End;
 
 
@@ -2254,7 +2256,8 @@ Var
   Handler:UIWidgetEventHandler;
 Begin
   Handler := Self.GetEventHandler(EventType);
-  If Assigned(Handler) Then
+  Result := Assigned(Handler);
+  If Result Then
     Handler(Self);
 End;
 
@@ -2344,6 +2347,11 @@ Begin
     Self.TriggerEvent(widgetEvent_FocusBegin)
   Else
     Self.TriggerEvent(widgetEvent_FocusEnd);
+End;
+
+function UIWidget.GetRenderBucket: Cardinal;
+Begin
+  Result := renderBucket_Overlay;
 End;
 
 { UIInstancedWidget }

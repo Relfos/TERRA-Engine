@@ -41,7 +41,7 @@ Type
     TexCoord:Vector2D;
   End;}
 
-  TERRASkybox = Class(Renderable)
+  TERRASkybox = Class(TERRARenderable)
     Protected
       _Cubemap:CubemapInterface;       // Skybox textures
       _Textures:Array[0..5] Of TERRATexture;
@@ -60,7 +60,6 @@ Type
       Procedure Release; Override;
 
       Function GetRenderBucket:Cardinal; Override;
-      Function GetBoundingBox:BoundingBox; Override;
 
       Procedure Render(View:TERRAViewport; Const Bucket:Cardinal); Override;
 
@@ -70,7 +69,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_GraphicsManager, TERRA_ResourceManager, TERRA_Log, TERRA_OS, TERRA_Camera,
+Uses TERRA_GraphicsManager, TERRA_EngineManager, TERRA_ResourceManager, TERRA_Log, TERRA_OS, TERRA_Camera,
   TERRA_Image;
 
 Var
@@ -155,6 +154,7 @@ Var
   S:TERRAString;
   Img:Image;
 Begin
+  Self._ObjectName := 'skybox';
   _Color := ColorWhite;
 
   _Vertices := VertexData.Create([vertexFormatPosition, vertexFormatNormal], 6);
@@ -173,14 +173,8 @@ Begin
     _Cubemap := Nil;
      // Assign if possible, all 6 sides
      For I:=0 To 5 Do
-      _Textures[I] := TextureManager.Instance.GetTexture(SkyTexture+'_' + CubeFaceNames[I]);
+      _Textures[I] := Engine.Textures.GetTexture(SkyTexture+'_' + CubeFaceNames[I]);
   End;
-End;
-
-// Renders the skybox
-Function TERRASkybox.GetBoundingBox: BoundingBox;
-Begin
-  
 End;
 
 Function TERRASkybox.GetRenderBucket: Cardinal;

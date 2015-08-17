@@ -328,7 +328,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Log, TERRA_Error, TERRA_Math, TERRA_Image, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_Viewport;
+Uses TERRA_Log, TERRA_EngineManager, TERRA_Error, TERRA_Math, TERRA_Image, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_Viewport;
 
 { ScreenFXChain }
 Constructor ScreenFXChain.Create;
@@ -703,7 +703,7 @@ Begin
 
   If (Self._NeedFunction[Integer(fxCellularNoise)]) Then
   Begin
-    TextureManager.Instance.CellNoise.Bind(Slot);
+    Engine.Textures.CellNoise.Bind(Slot);
     _Sh.SetIntegerUniform('cellNoiseTex', Slot);
     Inc(Slot);
   End;
@@ -927,7 +927,7 @@ Begin
     uniformTexture:
       Begin
         If _Uniforms[I].Tex = Nil Then
-          _Uniforms[I].Tex := TextureManager.Instance.WhiteTexture;
+          _Uniforms[I].Tex := Engine.Textures.WhiteTexture;
 
         _Uniforms[I].Tex.Bind(TextureSlot);
 
@@ -938,7 +938,7 @@ Begin
     uniformPalette:
       Begin
         If _Uniforms[I].Tex = Nil Then
-          _Uniforms[I].Tex := TextureManager.Instance.DefaultColorTable;
+          _Uniforms[I].Tex := Engine.Textures.DefaultColorTable;
 
         ColorTableBind(_Uniforms[I].Tex, TextureSlot);
         Inc(TextureSlot);

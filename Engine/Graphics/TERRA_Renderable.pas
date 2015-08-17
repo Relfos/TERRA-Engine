@@ -16,9 +16,12 @@ Const
   renderBucket_Sky          = 4;
   renderBucket_Reflections  = 8;
   renderBucket_Occluder     = 16;
+  renderBucket_Overlay      = 32;
 
 Type
   RenderableManager = Class;
+
+  { TERRARenderable }
 
   TERRARenderable = Class(TERRAObject)
     Protected
@@ -45,7 +48,7 @@ Type
 
       Function GetRenderBucket:Cardinal; Virtual;
 
-      Function GetBoundingBox:BoundingBox; Virtual; Abstract;
+      Function GetBoundingBox:BoundingBox; Virtual;
       Procedure Render(View:TERRAViewport; Const Bucket:Cardinal); Virtual; Abstract;
 
       Procedure RenderLights(View:TERRAViewport); Virtual;
@@ -63,6 +66,7 @@ Type
       {$IFDEF REFLECTIONS_WITH_STENCIL}
       _BucketReflection:List;
       {$ENDIF}
+      _BucketOverlay:List;
 
       Procedure RenderList(View:TERRAViewport; RenderList:List; Const Bucket:Cardinal);
 
@@ -82,33 +86,38 @@ Implementation
 Uses TERRA_GraphicsManager, TERRA_Decals, TERRA_Billboards;
 
 { TERRARenderable }
-Procedure TERRARenderable.Release;
+procedure TERRARenderable.Release;
 Begin
   If Assigned(_Manager) Then
     _Manager.DeleteRenderable(Self);
 End;
 
-Function TERRARenderable.GetName:TERRAString;
+function TERRARenderable.GetName: TERRAString;
 Begin
   Result := Self.ClassName + '_'+HexStr(Cardinal(Self));
 End;
 
-Procedure TERRARenderable.RenderLights;
+procedure TERRARenderable.RenderLights(View: TERRAViewport);
 Begin
   // do nothing
 End;
 
-Procedure TERRARenderable.Update(View:TERRAViewport);
+procedure TERRARenderable.Update(View: TERRAViewport);
 Begin
   // do nothing
 End;
 
-Function TERRARenderable.GetRenderBucket:Cardinal;
+function TERRARenderable.GetRenderBucket: Cardinal;
 Begin
   Result := 0;
 End;
 
-Function TERRARenderable.SortID:Integer;
+Function TERRARenderable.GetBoundingBox: BoundingBox;
+Begin
+       FillChar(Result, SizeOf(Result), 0);
+End;
+
+function TERRARenderable.SortID: Integer;
 Begin
   Result := Trunc(Self._Distance);
 End;
@@ -116,9 +125,10 @@ End;
 { RenderableManager }
 Constructor RenderableManager.Create();
 Begin
-  _BucketSky := List.Create(collection_Sorted_Descending);
-  _BucketOpaque := List.Create(collection_Sorted_Ascending);
-  _BucketAlpha :=  List.Create(collection_Sorted_Descending);
+  _BucketSky := List.Create(collection_Unsorted, coShared);
+  _BucketOpaque := List.Create(collection_Sorted_Ascending, coShared);
+  _BucketAlpha :=  List.Create(collection_Sorted_Descending, coShared);
+  _BucketOverlay := List.Create(collection_Unsorted, coShared);
 
   {$IFDEF REFLECTIONS_WITH_STENCIL}
   _BucketReflection := List.Create(coAppend);
@@ -190,6 +200,8 @@ Begin
     RenderList(View, _BucketAlpha, renderBucket_Opaque);
     {$ENDIF}
 {$ENDIF}
+
+  RenderList(View, _BucketOverlay, renderBucket_Overlay);
 End;
 
 Procedure RenderableManager.DeleteRenderable(MyRenderable:TERRARenderable);
@@ -197,6 +209,7 @@ Begin
   _BucketSky.Remove(MyRenderable);
   _BucketOpaque.Remove(MyRenderable);
   _BucketAlpha.Remove(MyRenderable);
+  _BucketOverlay.Remove(MyRenderable);
   {$IFDEF REFLECTIONS_WITH_STENCIL}
   _BucketReflection.Remove(MyRenderable);
   {$ENDIF}
@@ -207,6 +220,7 @@ Begin
   _BucketSky.Clear();
   _BucketOpaque.Clear();
   _BucketAlpha.Clear();
+  _BucketOverlay.Clear();
 End;
 
 
@@ -302,6 +316,9 @@ Begin
   If (Bucket And renderBucket_Sky<>0) Then
     _BucketSky.Add(Renderable);
 
+  If (Bucket And renderBucket_Overlay<>0) Then
+    _BucketOverlay.Add(Renderable);
+
   Result := True;
 End;
 
@@ -310,6 +327,7 @@ begin
   ReleaseObject(_BucketSky);
   ReleaseObject(_BucketOpaque);
   ReleaseObject(_BucketAlpha);
+  ReleaseObject(_BucketOverlay);
   {$IFDEF REFLECTIONS_WITH_STENCIL}
   ReleaseObject(_BucketReflection);
   {$ENDIF}

@@ -74,6 +74,9 @@ Type
   PByteArray=^ByteArray;
   ByteArray=Array[0..1024*64] Of Byte;
 
+  PShortIntArray=^ShortIntArray;
+  ShortIntArray=Array[0..1024*64] Of ShortInt;
+
   PWordArray=^WordArray;
   WordArray=Array[0..1024*64] Of Word;
 
@@ -163,7 +166,7 @@ Function IntToString(Const N:Integer):TERRAString;
 Function CardinalToString(Const N:Cardinal):TERRAString;Overload;
 Function Int64ToString(Const N:Int64):TERRAString;
 Function UInt64ToString(Const N:UInt64):TERRAString;
-Function FloatToString(N:Single; DecimalPlacesLimit:Integer =7):TERRAString;
+Function FloatToString(N:Single; DecimalPlacesLimit:Integer = 7):TERRAString;
 Function BoolToString(Const N:Boolean):TERRAString;Overload;
 Function VersionToString(Const N:TERRAVersion):TERRAString;Overload;
 //Function TicksToString(Const N:Cardinal):TERRAString;Overload;
@@ -695,9 +698,9 @@ End;
 Function FloatToString(N:Single; DecimalPlacesLimit:Integer):TERRAString;
 Var
   X:Single;
-  A,B, I:Integer;
-
-  Current, DecimalPlaces:Integer;
+  A:Integer;
+  DecimalPlaces, K:Integer;
+  Ready:Boolean;
 Begin
   If (N<0) Then
     Result := '-'
@@ -711,18 +714,20 @@ Begin
   Result := Result + IntToString(A) +'.';
 
   DecimalPlaces := 0;
-  I := 10;
+  Ready := False;
+  K := 10;
   Repeat
-    Current := Trunc(X * I) Mod 10;
-    I := I * 10;
+    N := X * K;
+    K := K * 10;
+    A := Trunc(N) Mod 10;
+
+    Result := Result + IntToString(A);
     Inc(DecimalPlaces);
-  Until (DecimalPlaces>=DecimalPlacesLimit) Or (Current=0);
 
-  B := 1;
-  For I:=1 To DecimalPlaces Do
-    B := B * 10;
+    If A>0 Then
+      Ready := True;
 
-  Result := Result + IntToString(Trunc(B * X));
+  Until (DecimalPlaces>=DecimalPlacesLimit) Or ((A=0) And (Ready));
 End;
 
 {Function TicksToString(Const N:Cardinal):TERRAString;

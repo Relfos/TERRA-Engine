@@ -76,7 +76,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_OS, TERRA_Stream, TERRA_FileStream, TERRA_FileUtils, TERRA_BoundingBox,
+Uses TERRA_OS, TERRA_EngineManager, TERRA_TextureManager, TERRA_Stream, TERRA_FileStream, TERRA_FileUtils, TERRA_BoundingBox,
   TERRA_Image, TERRA_GraphicsManager, TERRA_ShaderFactory, TERRA_Log, TERRA_FileManager;
 
 Var
@@ -224,7 +224,6 @@ Begin
 
   Result := DecalManager(_DecalInstance.Instance);
 End;
-
 
 Procedure DecalManager.Render(View:TERRAViewport);
 Var

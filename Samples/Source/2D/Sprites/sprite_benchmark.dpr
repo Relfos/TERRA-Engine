@@ -1,24 +1,37 @@
 {$I terra.inc}
-{$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} BasicSample;
+{$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
-Uses TERRA_Application, TERRA_Scene, TERRA_GraphicsManager, TERRA_Viewport,
-  TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_PNG, TERRA_Vector2D,
-  TERRA_Sprite, TERRA_FileManager, TERRA_Math, TERRA_Vector3D, TERRA_Utils,
-  TERRA_InputManager, TERRA_UI;
+uses
+  MemCheck,
+  TERRA_Object,
+  TERRA_MemoryManager,
+  TERRA_Application,
+  TERRA_DemoApplication,
+  TERRA_Utils,
+  TERRA_EngineManager,
+  TERRA_GraphicsManager,
+  TERRA_OS,
+  TERRA_Vector2D,
+  TERRA_Vector3D,
+  TERRA_Font,
+  TERRA_Texture,
+  TERRA_FileManager,
+  TERRA_InputManager,
+  TERRA_Collections,
+  TERRA_Viewport,
+  TERRA_UIView,
+  TERRA_PNG,
+  TERRA_Math,
+  TERRA_Scene,
+  TERRA_Color,
+  TERRA_String,
+  TERRA_Sprite;
 
 Type
-  // A client is used to process application events
-  Demo = Class(Application)
-    Protected
-      _Scene:TERRAScene;
-
+  MyDemo = Class(DemoApplication)
+    Public
 			Procedure OnCreate; Override;
-			Procedure OnIdle; Override;
-  End;
-
-  // A scene is used to render objects
-  MyScene = Class(TERRAScene)
-      Procedure RenderSprites(V:TERRAViewport); Override;
+      Procedure OnRender(View:TERRAViewport); Override;
   End;
 
 Const
@@ -31,22 +44,15 @@ Var
   Dir:Array[0..Pred(Limit)]Of Vector2D;
 
 { Game }
-Procedure Demo.OnCreate;
+Procedure MyDemo.OnCreate;
 Var
   I:Integer;
   W,H:Single;
 Begin
-  // Added Asset folder to search path
-  FileManager.Instance.AddPath('assets');
-
-  // Create a scene and set it as the current scene
-  _Scene := MyScene.Create;
-  GraphicsManager.Instance.SetScene(_Scene);
+  Inherited;
 
   // Load a Tex
-  Tex := TextureManager.Instance.GetTexture('ghost');
-
-  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlue;
+  Tex := Engine.Textures.GetTexture('ghost');
 
   W := UIManager.Instance.Width;
   H := UIManager.Instance.Height;
@@ -58,26 +64,20 @@ Begin
   End;
 End;
 
-// OnIdle is called once per frame, put your game logic here
-Procedure Demo.OnIdle;
-Begin
-  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
-    Application.Instance.Terminate;
-End;
-
-{ MyScene }
-Procedure MyScene.RenderSprites(V:TERRAViewport);
+Procedure MyDemo.OnRender(View: TERRAViewport);
 Var
   I:Integer;
   W,H,Z:Single;
   S:QuadSprite;
 Begin
+  Inherited;
+  
   W := UIManager.Instance.Width;
   H := UIManager.Instance.Height;
 
   For I:=0 To Pred(Limit) Do
   Begin
-    S := V.SpriteRenderer.DrawSprite(Pos[I].X, Pos[I].Y, Pos[I].Z, Tex);
+    S := View.SpriteRenderer.DrawSprite(Pos[I].X, Pos[I].Y, Pos[I].Z, Tex);
     S.Mirror := Odd(I);    // Each odd sprite in line will be reflected
     //S.SetScaleAndRotation(1, RAD * (I*360 Div 8));
 
@@ -113,7 +113,17 @@ Begin
   Application.Instance.SetTitle(IntToString(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
 End;
 
+
+{$IFDEF IPHONE}
+Procedure StartGame; cdecl; export;
+{$ENDIF}
 Begin
-  // Start the application
-  Demo.Create();
+  MyDemo.Create();
+{$IFDEF IPHONE}
+End;
+{$ENDIF}
+
+
 End.
+
+

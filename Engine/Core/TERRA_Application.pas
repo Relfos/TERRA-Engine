@@ -176,8 +176,6 @@ Type
       Procedure Init; Virtual;
       Procedure Update; Virtual;
 
-      Function CreateProperty(Owner:TERRAObject; Const KeyName, ObjectType:TERRAString):TERRAObject; Virtual;
-
       Procedure Release; Override;
   End;
 
@@ -516,12 +514,10 @@ Type
 
       Function GetVungleID:TERRAString; Virtual;
 
-      Function CreateProperty(Owner:TERRAObject; Const KeyName, ObjectType:TERRAString):TERRAObject; Virtual;
-
       Property CPUCores:Integer Read _CPUCores;
 
-			Property OS:Cardinal Read GetPlatform;
-			Property CurrentPath:TERRAString Read _Path;
+      Property OS:Cardinal Read GetPlatform;
+      Property CurrentPath:TERRAString Read _Path;
       Property TempPath:TERRAString Read GetTempPath;
       Property StoragePath:TERRAString Read GetStoragePath;
       Property DocumentPath:TERRAString Read GetDocumentPath;
@@ -1155,37 +1151,6 @@ Begin
   // do nothing
 End;
 
-Function BaseApplication.CreateProperty(Owner:TERRAObject; const KeyName, ObjectType: TERRAString): TERRAObject;
-Var
-  I:Integer;
-Begin
-  If StringEquals(ObjectType, 'list') Then
-  Begin
-    Result := List.Create();
-    Result.Name := KeyName;
-  End Else
-  Begin
-    Result := Nil;
-
-    For I:=0 To Pred(_ApplicationComponentCount) Do
-    If Assigned(_ApplicationComponents[I].Instance) Then
-    Begin
-      Result := _ApplicationComponents[I].Instance.CreateProperty(Owner, KeyName, ObjectType);
-      If Assigned(Result) Then
-      Begin
-        Log(logDebug, 'Application', 'Unserialized object of type ' +ObjectType+ ' from '+_ApplicationComponents[I].Name);
-        Exit;
-      End;
-
-    End;
-  End;
-
-  If Result = Nil Then
-  Begin
-    Log(logError, 'Application', 'Cannot unserialize object of type ' +ObjectType+' with name '+KeyName);
-  End;
-End;
-
 { ApplicationObject }
 Procedure ApplicationObject.Release;
 Var
@@ -1212,11 +1177,6 @@ Begin
   End;
 
   Self.Init();
-End;
-
-Function ApplicationComponent.CreateProperty(Owner:TERRAObject; const KeyName, ObjectType: TERRAString): TERRAObject;
-Begin
-  Result := Nil;
 End;
 
 Procedure ApplicationComponent.Init; Begin End;

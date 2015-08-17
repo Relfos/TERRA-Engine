@@ -61,7 +61,6 @@ Const
 //  renderStageAlpha        = 128;
 
 Const
-  MaxRenderables  = 4096;
   MaxLODLevel = 3;
 
 Type
@@ -222,7 +221,7 @@ Type
 
 Implementation
 
-Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_ResourceManager, TERRA_InputManager,
+Uses TERRA_Error, TERRA_EngineManager, TERRA_OS, TERRA_Log, TERRA_ResourceManager, TERRA_InputManager,
   TERRA_Frustum, TERRA_Lights, TERRA_Mesh,
   TERRA_Decals, TERRA_Billboards, TERRA_ParticleRenderer, TERRA_DebugDraw;
 
@@ -510,7 +509,7 @@ Begin
 
   MyShader := GetDefaultFullScreenShader();
   ShaderManager.Instance.Bind(MyShader);
-  //TextureManager.Instance.WhiteTexture.Bind(0);
+  //Engine.Textures.WhiteTexture.Bind(0);
   _AdTex.Bind(0);
   //Log(logDebug, 'GraphicsManager', 'Adsize: '+IntToString(_AdTex.Width)+' '+IntToString(_AdTex.Height));
   MyShader.SetUniform('texture', 0);
@@ -733,7 +732,7 @@ Begin
 
   Self.DrawFullscreenQuad(_FullscreenColorShader, 0, 0, 1, 1);
 
-  TextureManager.Instance.WhiteTexture.Bind(0);
+  Engine.Textures.WhiteTexture.Bind(0);
 
   // Disable z-buffer writes (note: z-testing still occurs), and enable the stencil-buffer
   Renderer.SetDepthMask(False);

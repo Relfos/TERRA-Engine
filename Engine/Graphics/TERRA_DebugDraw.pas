@@ -57,7 +57,7 @@ Procedure DrawPointCloud(Cloud:PointCloud2D; MyColor:ColorRGBA; Layer:Single);
 *)
 
 Implementation
-Uses TERRA_OS, TERRA_Math, TERRA_Texture;
+Uses TERRA_OS, TERRA_EngineManager, TERRA_Math, TERRA_Texture;
 
 Const
   Layer = 99;
@@ -87,7 +87,7 @@ Var
   DX, DY, Angle, Len:Single;
   S:QuadSprite;
 Begin
-  Tex := TextureManager.Instance.WhiteTexture;
+  Tex := Engine.Textures.WhiteTexture;
   If Tex = Nil Then
     Exit;
 
@@ -109,7 +109,7 @@ Var
   MinX, MinY, MaxX, MaxY:Single;
   S:QuadSprite;
 Begin
-  Tex := TextureManager.Instance.WhiteTexture;
+  Tex := Engine.Textures.WhiteTexture;
   If Tex = Nil Then
     Exit;
 
@@ -133,7 +133,7 @@ Var
   MinX, MinY, MaxX, MaxY:Single;
   S:QuadSprite;
 Begin
-  Tex := TextureManager.Instance.WhiteTexture;
+  Tex := Engine.Textures.WhiteTexture;
   If Tex = Nil Then
     Exit;
 

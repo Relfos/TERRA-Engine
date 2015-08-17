@@ -42,7 +42,7 @@ Type
   Function ColorTableBind(ColorTableTex:TERRATexture; Slot:Integer):Boolean;
 
 Implementation
-Uses TERRA_OS, TERRA_GraphicsManager, TERRA_Log;
+Uses TERRA_OS, TERRA_GraphicsManager, TERRA_Log, TERRA_EngineManager;
 
 Function CreateColorTable(Size:Integer; Transform:ColorTransform; Userdata:Pointer):Image;
 Var
@@ -126,8 +126,8 @@ Begin
 
   If (ColorTableTex = Nil) Or (Not ColorTableTex.IsReady()) Then
   Begin
-    If (ColorTableTex<>TextureManager.Instance.DefaultColorTable) Then
-      ColorTableBind(TextureManager.Instance.DefaultColorTable, Slot);
+    If (ColorTableTex<>Engine.Textures.DefaultColorTable) Then
+      ColorTableBind(Engine.Textures.DefaultColorTable, Slot);
     Exit;
   End;
 

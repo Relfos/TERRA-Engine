@@ -206,7 +206,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_GraphicsManager;
+Uses TERRA_EngineManager, TERRA_GraphicsManager;
 
 Var
   _LightManager_Instance:ApplicationObject = Nil;
@@ -512,7 +512,7 @@ Begin
   Self._InnerAngle := InnerAngle;
   Self._OuterAngle := OuterAngle;
   Self.Intensity := 1.0;
-  Self.Cookie := TextureManager.Instance.WhiteTexture;
+  Self.Cookie := Engine.Textures.WhiteTexture;
   SetDirection(Dir);
   SetPosition(P);
 End;
@@ -559,7 +559,7 @@ Begin
   Begin
     Cookie.Bind(TextureSlot);
   End Else
-    TextureManager.Instance.WhiteTexture.Bind(TextureSlot);
+    Engine.Textures.WhiteTexture.Bind(TextureSlot);
 
   Inc(TextureSlot);
 End;

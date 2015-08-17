@@ -51,7 +51,7 @@ Type
     Protected
       _Time:Cardinal;
       _Location:TERRAString;
-      _Size:Integer;
+      _SizeInBytes:Cardinal;
 
       Procedure SetStatus(const Value:ResourceStatus);
 
@@ -86,7 +86,7 @@ Type
       Property Time:Cardinal Read _Time Write _Time;
       Property Status:ResourceStatus Read _Status Write SetStatus;
       Property Kind:ResourceType Read _Kind;
-      Property Size:Integer Read _Size;
+      Property SizeInBytes:Cardinal Read _SizeInBytes;
   End;
 
 Implementation
@@ -109,7 +109,7 @@ Begin
     Self._Location := Location;
   End;
 
-  Self._Size := 0;
+  Self._SizeInBytes := 0;
   Self.SetStatus(rsUnloaded);
   Self.Priority := 50;
 End;

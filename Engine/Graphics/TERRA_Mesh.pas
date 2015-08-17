@@ -932,7 +932,7 @@ Type
   Function MakeWaterFlowBounds(Const Box:BoundingBox):Vector4D;
 
 Implementation
-Uses TERRA_Error, TERRA_Application, TERRA_Log, TERRA_ShaderFactory, TERRA_OS,
+Uses TERRA_Error, TERRA_EngineManager, TERRA_Application, TERRA_Log, TERRA_ShaderFactory, TERRA_OS,
   TERRA_FileManager, TERRA_CRC32, TERRA_ColorGrading, TERRA_Solids;
 
 Type
@@ -1285,7 +1285,7 @@ Begin
 
   Source.Read(@Target._Material.DiffuseColor, SizeOf(ColorRGBA));
   Source.ReadString(S);
-  Target._Material.DiffuseMap := TextureManager.Instance.GetTexture(S);
+  Target._Material.DiffuseMap := Engine.Textures.GetTexture(S);
 
   Result := True;
 End;
@@ -1297,7 +1297,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.TriplanarMap := TextureManager.Instance.GetTexture(S);
+  Target._Material.TriplanarMap := Engine.Textures.GetTexture(S);
 
   Result := True;
 End;
@@ -1309,7 +1309,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.SpecularMap := TextureManager.Instance.GetTexture(S);
+  Target._Material.SpecularMap := Engine.Textures.GetTexture(S);
 
   Result := True;
 End;
@@ -1321,7 +1321,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.NormalMap := TextureManager.Instance.GetTexture(S);
+  Target._Material.NormalMap := Engine.Textures.GetTexture(S);
 
   If Assigned(Target._Material.NormalMap) Then
   Begin
@@ -1339,7 +1339,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.DisplacementMap := TextureManager.Instance.GetTexture(S);
+  Target._Material.DisplacementMap := Engine.Textures.GetTexture(S);
 
   Result := True;
 End;
@@ -1351,7 +1351,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.LightMap := TextureManager.Instance.GetTexture(S);
+  Target._Material.LightMap := Engine.Textures.GetTexture(S);
 
   If Assigned(Target._Material.LightMap) Then
   Begin
@@ -1371,7 +1371,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.RefractionMap := TextureManager.Instance.GetTexture(S);
+  Target._Material.RefractionMap := Engine.Textures.GetTexture(S);
 
   Result := True;
 End;
@@ -1384,7 +1384,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.ReflectiveMap := TextureManager.Instance.GetTexture(S);
+  Target._Material.ReflectiveMap := Engine.Textures.GetTexture(S);
 
   Result := True;
 End;
@@ -1397,7 +1397,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.EnviromentMap := TextureManager.Instance.GetTexture(S);
+  Target._Material.EnviromentMap := Engine.Textures.GetTexture(S);
 
   Result := True;
 End;
@@ -1409,7 +1409,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.GlowMap := TextureManager.Instance.GetTexture(S);
+  Target._Material.GlowMap := Engine.Textures.GetTexture(S);
 
   Result := True;
 End;
@@ -1421,7 +1421,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.AlphaMap := TextureManager.Instance.GetTexture(S);
+  Target._Material.AlphaMap := Engine.Textures.GetTexture(S);
 
   Result := True;
 End;
@@ -1433,7 +1433,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.ToonRamp := TextureManager.Instance.GetTexture(S);
+  Target._Material.ToonRamp := Engine.Textures.GetTexture(S);
 
   If Assigned(Target._Material.ToonRamp) Then
     Target._Material.ToonRamp.Uncompressed := True;
@@ -2038,6 +2038,7 @@ End;
 
 Constructor MeshInstance.Create(MyMesh: TERRAMesh);
 Begin
+  Self._ObjectName := 'mesh';
   _ClonedMesh := False;
   _Position := VectorZero;
   _Rotation := VectorZero;
@@ -4253,7 +4254,7 @@ Begin
     DestMaterial.DiffuseColor := ColorMultiply(DestMaterial.DiffuseColor, State.Diffuse);
 
     If (Self.Flags And meshGroupReflective<>0) Then
-      DestMaterial.ReflectionMap := TextureManager.Instance.WhiteTexture;
+      DestMaterial.ReflectionMap := Engine.Textures.WhiteTexture;
   End Else
     DestMaterial := _Material;
 
@@ -4347,7 +4348,7 @@ Begin
       If Assigned(DestMaterial.GlowMap) Then
         DestMaterial.GlowMap.Bind(0)
       Else
-        TextureManager.Instance.BlackTexture.Bind(0);
+        Engine.Textures.BlackTexture.Bind(0);
 
       If Assigned(_Shader) Then
         _Shader.SetIntegerUniform('glowMap', 0);
@@ -5011,7 +5012,7 @@ Begin
 //      Tex.WrapMode := wrapNothing;
       Tex.MipMapped := False;
     End Else
-      Tex := TextureManager.Instance.WhiteTexture;
+      Tex := Engine.Textures.WhiteTexture;
 
     Tex.Bind(Slot);
     _Shader.SetIntegerUniform(ShadowMapUniformName, Slot);
@@ -5054,7 +5055,7 @@ Begin
     If Assigned(Material.NormalMap) Then
       Tex := Material.NormalMap
     Else
-      Tex := TextureManager.Instance.DefaultNormalMap;
+      Tex := Engine.Textures.DefaultNormalMap;
 
     Tex.Bind(Slot);
     _Shader.SetIntegerUniform(NormalMapUniformName, Slot);
@@ -5069,7 +5070,7 @@ Begin
     If Assigned(Material.DisplacementMap) Then
       Tex := Material.DisplacementMap
     Else
-      Tex := TextureManager.Instance.BlackTexture;
+      Tex := Engine.Textures.BlackTexture;
 
     Tex.Bind(Slot);
     _Shader.SetIntegerUniform(DisplacementMapUniformName, Slot);
@@ -5084,7 +5085,7 @@ Begin
     If (Assigned(Material.SpecularMap)) Then
   	  Material.SpecularMap.Bind(Slot)
     Else
-      TextureManager.Instance.BlackTexture.Bind(Slot);
+      Engine.Textures.BlackTexture.Bind(Slot);
 
     _Shader.SetIntegerUniform(SpecularMapUniformName, Slot);
 
@@ -5108,7 +5109,7 @@ Begin
     If (Assigned(Material.Lightmap)) Then
   	  Material.Lightmap.Bind(Slot)
     Else
-      TextureManager.Instance.WhiteTexture.Bind(Slot);
+      Engine.Textures.WhiteTexture.Bind(Slot);
 
 	  If Assigned(_Shader) Then
 		_Shader.SetIntegerUniform('lightMap', Slot);
@@ -5207,7 +5208,7 @@ Begin
     If Assigned(Graphics.ReflectionMask) Then
       Graphics.ReflectionMask.Bind(Slot)
     Else
-      TextureManager.Instance.BlackTexture.Bind(Slot);
+      Engine.Textures.BlackTexture.Bind(Slot);
 
     If Assigned(_Shader) Then
       _Shader.SetIntegerUniform('screenMask', Slot);
@@ -5625,21 +5626,21 @@ Begin
   Else
     DestMaterial.ColorTable := SelectTexture(OtherMat.ColorTable, _Material.ColorTable, Nil);
 
-  DestMaterial.DiffuseMap := SelectTexture(OtherMat.DiffuseMap, _Material.DiffuseMap, TextureManager.Instance.WhiteTexture);
+  DestMaterial.DiffuseMap := SelectTexture(OtherMat.DiffuseMap, _Material.DiffuseMap, Engine.Textures.WhiteTexture);
   DestMaterial.DecalMap := SelectTexture(OtherMat.DecalMap, _Material.DecalMap, Nil);
   DestMaterial.TriplanarMap := SelectTexture(OtherMat.TriplanarMap, _Material.TriplanarMap, DestMaterial.DiffuseMap);
   DestMaterial.NormalMap := SelectTexture(OtherMat.NormalMap, _Material.NormalMap, Nil);
   DestMaterial.DisplacementMap := SelectTexture(OtherMat.DisplacementMap, _Material.DisplacementMap, Nil);
-  DestMaterial.SpecularMap := SelectTexture(OtherMat.SpecularMap, _Material.SpecularMap, TextureManager.Instance.BlackTexture);
-  DestMaterial.GlowMap := SelectTexture(OtherMat.GlowMap, _Material.GlowMap, TextureManager.Instance.BlackTexture);
-  DestMaterial.RefractionMap := SelectTexture(OtherMat.RefractionMap, _Material.RefractionMap, TextureManager.Instance.BlackTexture);
+  DestMaterial.SpecularMap := SelectTexture(OtherMat.SpecularMap, _Material.SpecularMap, Engine.Textures.BlackTexture);
+  DestMaterial.GlowMap := SelectTexture(OtherMat.GlowMap, _Material.GlowMap, Engine.Textures.BlackTexture);
+  DestMaterial.RefractionMap := SelectTexture(OtherMat.RefractionMap, _Material.RefractionMap, Engine.Textures.BlackTexture);
   DestMaterial.ReflectiveMap := SelectTexture(OtherMat.ReflectiveMap, _Material.ReflectiveMap, Nil);
-  DestMaterial.AlphaMap := SelectTexture(OtherMat.AlphaMap, _Material.AlphaMap, TextureManager.Instance.WhiteTexture);
+  DestMaterial.AlphaMap := SelectTexture(OtherMat.AlphaMap, _Material.AlphaMap, Engine.Textures.WhiteTexture);
   DestMaterial.LightMap := SelectTexture(OtherMat.LightMap, _Material.LightMap, Nil);
   DestMaterial.ToonRamp := SelectTexture(OtherMat.ToonRamp, _Material.ToonRamp, GraphicsManager.Instance.ToonRamp);
   DestMaterial.FlowMap := SelectTexture(OtherMat.FlowMap, _Material.FlowMap, Nil);
   DestMaterial.NoiseMap := SelectTexture(OtherMat.NoiseMap, _Material.NoiseMap, Nil);
-  DestMaterial.ReflectionMap := TextureManager.Instance.BlackTexture;
+  DestMaterial.ReflectionMap := Engine.Textures.BlackTexture;
   DestMaterial.DitherPatternMap := SelectTexture(OtherMat.DitherPatternMap, _Material.DitherPatternMap, Nil);
 
   If Assigned(DestMaterial.NormalMap) Then
@@ -6136,14 +6137,14 @@ Begin
     For I:=0 To Pred(_Groups[N]._TriangleCount) Do
       _Groups[N]._Triangles[I] := Source.GetTriangle(N,I);
 
-    _Groups[N].DiffuseMap := TextureManager.Instance.GetTexture(Source.GetDiffuseMapName(N));
-    _Groups[N].DiffuseMap := TextureManager.Instance.GetTexture(Source.GetDiffuseMapName(N));
-    _Groups[N].DiffuseMap := TextureManager.Instance.GetTexture(Source.GetDiffuseMapName(N));
-    _Groups[N].DiffuseMap := TextureManager.Instance.GetTexture(Source.GetDiffuseMapName(N));
-    _Groups[N].DiffuseMap := TextureManager.Instance.GetTexture(Source.GetDiffuseMapName(N));
-    _Groups[N].DiffuseMap := TextureManager.Instance.GetTexture(Source.GetDiffuseMapName(N));
-    _Groups[N].DiffuseMap := TextureManager.Instance.GetTexture(Source.GetDiffuseMapName(N));
-    _Groups[N].DiffuseMap := TextureManager.Instance.GetTexture(Source.GetDiffuseMapName(N));
+    _Groups[N].DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
+    _Groups[N].DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
+    _Groups[N].DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
+    _Groups[N].DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
+    _Groups[N].DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
+    _Groups[N].DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
+    _Groups[N].DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
+    _Groups[N].DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
 
     _Groups[N]._Material.DiffuseColor := Source.GetDiffuseColor(N);
 

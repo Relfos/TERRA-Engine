@@ -141,7 +141,7 @@ Type
     Protected
       _Owner:GraphicsRenderer;
       _Context:Integer;
-      _Size:Cardinal;
+      _SizeInBytes:Cardinal;
 
       Procedure Initialize(); Virtual;
 
@@ -155,7 +155,7 @@ Type
 
       Procedure Invalidate(); Virtual; Abstract;
 
-      Property Size:Cardinal Read _Size;
+      Property SizeInBytes:Cardinal Read _SizeInBytes;
       Property Owner:GraphicsRenderer Read _Owner;
       Property Valid:Boolean Read IsValid;
   End;
@@ -607,7 +607,7 @@ Type
   Function Renderers():List;
 
 Implementation
-Uses TERRA_Error, TERRA_FileManager, TERRA_Lights, TERRA_Math, TERRA_Log,
+Uses TERRA_Error, TERRA_EngineManager, TERRA_FileManager, TERRA_Lights, TERRA_Math, TERRA_Log,
   TERRA_Texture, TERRA_NullRenderer;
 
 Var
@@ -1161,7 +1161,7 @@ Function GraphicsRenderer.BindSurface(Surface:SurfaceInterface; Slot:Integer):Bo
 Begin
   If (Surface = Nil) Then
   Begin
-    TextureManager.Instance.NullTexture.Bind(Slot);
+    Engine.Textures.NullTexture.Bind(Slot);
     //RaiseError('Cannot bind null surface!');
     Result := False;
     Exit;

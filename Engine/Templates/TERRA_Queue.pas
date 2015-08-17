@@ -18,7 +18,7 @@
  *
  **********************************************************************************************************************
  * TERRA_Queue
- * Implements a generic thread safe queue 
+ * Implements a generic thread safe queue
  ***********************************************************************************************************************
 }
 
@@ -27,26 +27,17 @@ Unit TERRA_Queue;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Object, TERRA_Collections;
+Uses TERRA_String, TERRA_Utils, TERRA_Object, TERRA_List, TERRA_Collections;
 
 Type
-  Queue = Class(TERRACollection)
-    Protected
-      _First:TERRACollectionObject;
-
+  Queue = Class(List)
     Public
       Constructor Create();
-
-      Procedure Clear(); Override;
 
       Function Push(Item:TERRAObject):Boolean; Virtual;
       Function Pop():TERRAObject; Virtual;
 
-      Function GetItemByIndex(Index:Integer):TERRAObject; Override;
-
-      Function Contains(Item:TERRAObject):Boolean; Override;
-
-      Property First:TERRACollectionObject Read _First;
+      Function CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject; Override;
   End;
 
 
@@ -60,71 +51,6 @@ Begin
   _Options := 0;
   _First := Nil;
 End;
-
-Procedure Queue.Clear();
-Var
-  Temp, Next:TERRACollectionObject;
-Begin
-  Temp := _First;
-
-  While (Assigned(Temp)) Do
-  Begin
-    Next := Temp.Next;
-    ReleaseObject(Temp);
-
-    Temp := Next;
-  End;
-
-  _First := Nil;
-End;
-
-Function Queue.Contains(Item:TERRAObject): Boolean;
-Var
-  P:TERRACollectionObject;
-Begin
-  Result := True;
-  P := _First;
-  While (Assigned(P)) Do
-  Begin
-    If (Item = P.Item) Then
-      Exit;
-
-    P := P.Next;
-  End;
-  Result := False;
-End;
-
-Function Queue.GetItemByIndex(Index:Integer):TERRAObject;
-Var
-  I:Integer;
-  P:TERRACollectionObject;
-Begin
-  If (Index<0) Or (Index>=Self.Count) Then
-  Begin
-    Result := Nil;
-    Exit;
-  End;
-
-  P := _First;
-  If (Index > 0) Then
-  Begin
-    I := 0;
-    While (Assigned(P)) Do
-    Begin
-      P := P.Next;
-      Inc(I);
-
-      If (I = Index) Then
-        Break;
-    End;
-  End;
-
-  If Assigned(P) Then
-    Result := P.Item
-  Else
-    Result := Nil;
-End;
-
 
 Function Queue.Push(Item: TERRAObject): Boolean;
 Var
@@ -180,6 +106,16 @@ Begin
 
   Result := P.Item;
   ReleaseObject(P);
+End;
+
+Function Queue.CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject;
+Begin
+  Result := Inherited CreateProperty(KeyName, ObjectType);
+
+  If (Assigned(Result)) Then
+  Begin
+    Self.Push(Result);
+  End;
 End;
 
 End.

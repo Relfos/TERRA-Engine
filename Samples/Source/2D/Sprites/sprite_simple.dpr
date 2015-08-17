@@ -1,62 +1,56 @@
 {$I terra.inc}
-{$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} BasicSample;
+{$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
-Uses TERRA_Application, TERRA_Scene, TERRA_GraphicsManager, TERRA_Viewport,
-  TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_PNG,
-  TERRA_Sprite, TERRA_FileManager, TERRA_Math, TERRA_Vector3D, TERRA_Vector2D,
-  TERRA_Renderer, TERRA_InputManager;
-
+uses
+  MemCheck,
+  TERRA_Object,
+  TERRA_MemoryManager,
+  TERRA_Application,
+  TERRA_DemoApplication,
+  TERRA_Utils,
+  TERRA_ResourceManager,
+  TERRA_GraphicsManager,
+  TERRA_OS,
+  TERRA_Vector2D,
+  TERRA_Font,
+  TERRA_Texture,
+  TERRA_FileManager,
+  TERRA_InputManager,
+  TERRA_Collections,
+  TERRA_Viewport,
+  TERRA_PNG,
+  TERRA_Math,
+  TERRA_Scene,
+  TERRA_Color,
+  TERRA_String,
+  TERRA_Sprite;
 
 Type
-  // A client is used to process application events
-  Demo = Class(Application)
-    Protected
-      _Scene:TERRAScene;
-
+  MyDemo = Class(DemoApplication)
+    Public
 			Procedure OnCreate; Override;
-			Procedure OnIdle; Override;
-  End;
-
-  // A scene is used to render objects
-  MyScene = Class(TERRAScene)
-      Procedure RenderSprites(V:TERRAViewport); Override;
+      Procedure OnRender(View:TERRAViewport); Override;
   End;
 
 Var
-  Tex:TERRATexture = Nil;
+  Tex:TERRATExture;
 
 { Game }
-Procedure Demo.OnCreate;
+Procedure MyDemo.OnCreate;
 Begin
   Inherited;
-  
-  // Added Asset folder to search path
-  FileManager.Instance.AddPath('assets');
 
-  // Load a Tex
-  Tex := TextureManager.Instance['ghost'];
-
-  // Create a scene and set it as the current scene
-  _Scene := MyScene.Create;
-  GraphicsManager.Instance.SetScene(_Scene);
-
-  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlue;
+  Tex := TextureManager.Instance.GetTexture('ghost');
 End;
 
-// OnIdle is called once per frame, put your game logic here
-Procedure Demo.OnIdle;
-Begin
-  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
-    Application.Instance.Terminate;
-End;
-
-{ MyScene }
-Procedure MyScene.RenderSprites(V:TERRAViewport);
+Procedure MyDemo.OnRender(View: TERRAViewport);
 Var
   I:Integer;
   Angle:Single;
   S:QuadSprite;
 Begin
+  Inherited;
+
   If (Tex = Nil) Then
     Exit;
 
@@ -69,42 +63,42 @@ Begin
   //        Sprites with higher layer values appear below the others
 
   // Create a simple fliped sprite
-  S := V.SpriteRenderer.DrawSprite(620, 60, 50, Tex);
+  S := View.SpriteRenderer.DrawSprite(620, 60, 50, Tex);
   S.Flip := True;
 
 
   // An alpha blended sprite
-  S := V.SpriteRenderer.DrawSprite(700, 60, 55, Tex);
+  S := View.SpriteRenderer.DrawSprite(700, 60, 55, Tex);
   S.SetColor(ColorCreate(255, 255, 255, 128));
 
   // Create a line of sprites
   For I:=0 To 8 Do
   Begin
-    S := V.SpriteRenderer.DrawSprite(16 + Tex.Width * I, 10, 50, Tex);
+    S := View.SpriteRenderer.DrawSprite(16 + Tex.Width * I, 10, 50, Tex);
     S.Mirror := Odd(I);    // Each odd sprite in line will be reflected
   End;
 
   // Create a line of rotated sprites
   For I:=0 To 8 Do
   Begin
-    S := V.SpriteRenderer.DrawSprite(16 + Tex.Width * I, 300, 50, Tex);
+    S := View.SpriteRenderer.DrawSprite(16 + Tex.Width * I, 300, 50, Tex);
     S.SetScaleAndRotationRelative(VectorCreate2D(0.5, 0.5), 1, RAD * (I*360 Div 8));
   End;
 
   // Some scaled sprites
-  S := V.SpriteRenderer.DrawSprite(10,120,55, Tex);
+  S := View.SpriteRenderer.DrawSprite(10,120,55, Tex);
   S.SetScale(2.0);    // Double size
 
-  S := V.SpriteRenderer.DrawSprite(110,130,55, Tex);
+  S := View.SpriteRenderer.DrawSprite(110,130,55, Tex);
   S.SetScale(1.5);    // 1.5 Size
 
-  S := V.SpriteRenderer.DrawSprite(180,145,55, Tex);
+  S := View.SpriteRenderer.DrawSprite(180,145,55, Tex);
   S.SetScale(0.5);    // Half size
 
   // Some colored sprites
   For I:=0 To 4 Do
   Begin
-    S := V.SpriteRenderer.DrawSprite(300 + Tex.Width * I,120,50, Tex);
+    S := View.SpriteRenderer.DrawSprite(300 + Tex.Width * I,120,50, Tex);
 
     Case I Of
     0:  S.SetColor(ColorCreate(255,128,255)); // Purple tint
@@ -117,11 +111,22 @@ Begin
 
   // A rotating sprite in the bottom, with Scale = 2x
   Angle := RAD * ((Application.GetTime() Div 15) Mod 360);
-  S := V.SpriteRenderer.DrawSprite(300, 400, 50, Tex);
+  S := View.SpriteRenderer.DrawSprite(300, 400, 50, Tex);
   S.SetScaleAndRotationRelative(VectorCreate2D(0.5, 0.5), 2.0, Angle);  // Calculate rotation, in degrees, from current time
 End;
 
+{$IFDEF IPHONE}
+Procedure StartGame; cdecl; export;
+{$ENDIF}
 Begin
-  // Start the application
-  Demo.Create();
+  MyDemo.Create();
+{$IFDEF IPHONE}
+End;
+{$ENDIF}
+
+
 End.
+
+
+
+

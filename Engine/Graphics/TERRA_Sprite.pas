@@ -118,8 +118,6 @@ Type
     Protected
       _A, _B, _C, _D:ColorRGBA;
 
-      Procedure Rebuild(); Override;
-
     Public
       Position:Vector2D;
       Anchor:Vector2D;
@@ -129,8 +127,10 @@ Type
 
       ScrollU:Single;
       ScrollV:Single;
-      
+
       Rect:TextureRect;
+
+      Procedure Rebuild(); Override;
 
       Procedure SetColor(Const C:ColorRGBA);
       Procedure SetColors(Const A, B, C, D:ColorRGBA);

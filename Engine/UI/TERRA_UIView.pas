@@ -100,25 +100,23 @@ Type
 
       Function PickWidget(X,Y:Integer; WithEventsOnly:Boolean; Ignore:UIWidget = Nil):UIWidget;
 
-		  Function OnKeyDown(Key:Word):UIWidget;
-		  Function OnKeyUp(Key:Word):UIWidget;
-		  Function OnKeyPress(Key:TERRAChar):UIWidget;
+      Function OnKeyDown(Key:Word):UIWidget;
+      Function OnKeyUp(Key:Word):UIWidget;
+      Function OnKeyPress(Key:TERRAChar):UIWidget;
 
-		  Function OnMouseDown(X,Y:Integer;Button:Word):UIWidget;
-		  Function OnMouseUp(X,Y:Integer;Button:Word):UIWidget;
-		  Function OnMouseWheel(X,Y:Integer; Delta:Integer):UIWidget;
-		  Function OnMouseMove(X,Y:Integer):UIWidget;
+      Function OnMouseDown(X,Y:Integer;Button:Word):UIWidget;
+      Function OnMouseUp(X,Y:Integer;Button:Word):UIWidget;
+      Function OnMouseWheel(X,Y:Integer; Delta:Integer):UIWidget;
+      Function OnMouseMove(X,Y:Integer):UIWidget;
 
-      Procedure Render(View:TERRAViewport); Override;
+      Procedure Render(View:TERRAViewport; Const Bucket:Cardinal); Override;
 
-      Procedure AfterEffects;
+      Procedure AfterEffects(View:TERRAViewport);
 
       Procedure SetFocus(Value:UIWidget);
       Procedure SetTransition(MyTransition:UITransition);
 
       Function GetVirtualKeyboard():UIWidget;
-
-      Function OnRegion(X, Y:Integer):Boolean;
 
       Property ColorTable:TERRATexture Read _ColorTable Write SetColorTable;
       Property Saturation:Single Read GetSaturation Write SetSaturation;
@@ -178,14 +176,14 @@ Type
 
       Class Function Instance:UIManager;
 
-      Procedure Render;
+//      Procedure Render;
 
       Procedure AddUI(UI:UIView);
       Procedure RemoveUI(UI:UIView);
 
       Procedure TextureAtlasClear();
 
-      Function CreateProperty(Owner:TERRAObject; Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
+      Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
 
       Procedure AddController(Controller:UIController);
       Function GetControllerByName(Const Name:TERRAString):UIController;
@@ -302,7 +300,7 @@ Begin
 End;
 
 
-Procedure UIView.Render(View:TERRAViewport);
+Procedure UIView.Render(View:TERRAViewport; Const Bucket:Cardinal);
 Var
   Current, Temp:UIWidget;
   I, J:Integer;
@@ -333,10 +331,10 @@ Begin
 
   GraphicsManager.Instance.Renderer.SetBlendMode(blendBlend);
 
-  Inherited Render(View);
+  Inherited Render(View, Bucket);
 End;
 
-Procedure UIView.AfterEffects;
+Procedure UIView.AfterEffects(View:TERRAViewport);
 Var
   CurrentTransitionID:Cardinal;
 Begin
@@ -347,7 +345,7 @@ Begin
   Begin
     CurrentTransitionID := _Transition.ID;
     // note, this is tricky, since transition update can call a callback that remove or setup a new transition
-    If (Not _Transition.Update) Then
+    If (Not _Transition.Update(View)) Then
     Begin
       If (Assigned(_Transition)) And (_Transition.ID = CurrentTransitionID) Then
         SetTransition(Nil);
@@ -369,9 +367,9 @@ Function UIView.OnKeyDown(Key:Word):UIWidget;
 Begin
   Result := Nil;
 
-	If Assigned(_Highlight) Then
+  If Assigned(_Highlight) Then
   Begin
-		If _Highlight.OnKeyDown(Key) Then
+  If _Highlight.OnHandleKeyDown(Key) Then
       Result := _Highlight;
   End;
 End;
@@ -382,9 +380,9 @@ Var
 Begin
   Result := Nil;
 
-	If Assigned(_Highlight) Then
+  If Assigned(_Highlight) Then
   Begin
-		If _Highlight.OnKeyUp(Key) Then
+  If _Highlight.OnHandleKeyUp(Key) Then
     Begin
       Result := _Highlight;
       Exit;
@@ -393,7 +391,7 @@ Begin
 
 	If Assigned(_Focus) Then
   Begin
-		If _Focus.OnKeyUp(Key) Then
+		If _Focus.OnHandleKeyUp(Key) Then
     Begin
       Result := _Focus;
       Exit;
@@ -401,7 +399,7 @@ Begin
   End;
 
   For I:=0 To Pred(_ChildrenCount) Do
-  If (_ChildrenList[I].Visible) And (_ChildrenList[I].OnKeyUp(Key))  Then
+  If (_ChildrenList[I].Visible) And (_ChildrenList[I].OnHandleKeyUp(Key))  Then
   Begin
     Result := _ChildrenList[I];
     Exit;
@@ -416,7 +414,7 @@ Begin
 	If Assigned(_Focus) Then
   Begin
     Log(logDebug, 'UI', 'focus is '+_Focus.Name);
-		_Focus.OnKeyPress(Key);
+		_Focus.OnHandleKeyPress(Key);
     Result := _Focus;
   End;
 
@@ -489,7 +487,7 @@ Begin
   Result := Self.PickWidget(X,Y, True);
 
   If (Assigned(Result)) And (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
-    Result.OnMouseUp(X, Y, Button);
+    Result.OnHandleMouseUp(X, Y, Button);
 End;
 
 Function UIView.OnMouseMove(X,Y:Integer):UIWidget;
@@ -508,7 +506,7 @@ Begin
 
   If Assigned(_Dragger) Then
   Begin
-    _Dragger.OnMouseMove(X, Y);
+    _Dragger.OnHandleMouseMove(X, Y);
     Result := _Dragger;
     _LastWidget := Result;
     Exit;
@@ -519,7 +517,7 @@ Begin
   If (Assigned(Result)) Then
   Begin
     If (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
-      Result.OnMouseMove(X, Y);
+      Result.OnHandleMouseMove(X, Y);
   End;
 
   If (_LastOver <> Result) Then
@@ -536,9 +534,9 @@ End;
 
 Function UIView.OnMouseWheel(X,Y:Integer; Delta:Integer):UIWidget;
 Begin
-	If Assigned(_Focus) Then
+If Assigned(_Focus) Then
   Begin
-		_Focus.OnMouseWheel(X, Y, Delta);
+       _Focus.OnHandleMouseWheel(X, Y, Delta);
     Result := _Focus;
     _LastWidget := Result;
     Exit;
@@ -547,7 +545,7 @@ Begin
   Result := Self.PickWidget(X,Y, True);
 
   If (Assigned(Result)) And (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
-    Result.OnMouseWheel(X, Y, Delta);
+    Result.OnHandleMouseWheel(X, Y, Delta);
 End;
 
 Procedure UIView.SetDragger(const Value:UIWidget);
@@ -580,11 +578,6 @@ Begin
   Result.SetColor(ColorWhite);
   Result.SetClipRect(_ClipRect);*)
   //Result.SetDropShadow(ColorGrey(0, 64));
-End;
-
-Function UIView.OnRegion(X, Y: Integer): Boolean;
-Begin
-  Result := (X>=0) And (Y>=0) And (X<=UIManager.Instance.Width) And (Y<=UIManager.Instance.Height);
 End;
 
 (*Function UIView.SelectNearestWidget(Target:UIWidget):UIWidget;
@@ -840,7 +833,7 @@ Begin
   _UpdateTextureAtlas := True;
 End;
 
-Procedure UIManager.Render();
+(*Procedure UIManager.Render();
 Var
   I:Integer;
 Begin
@@ -861,8 +854,8 @@ Begin
 
   For I:=0 To Pred(_UICount) Do
   If _UIList[I].Visible Then
-    _UIList[I].AfterEffects();
-End;
+    _UIList[I].AfterEffects(_Viewport);
+End;*)
 
 Procedure UIManager.OnOrientationChange;
 Var
@@ -918,7 +911,7 @@ Begin
     _Viewport.Resize(UIW, UIH);
 End;
 
-Function UIManager.CreateProperty(Owner:TERRAObject; const KeyName, ObjectType: TERRAString): TERRAObject;
+Function UIManager.CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject;
 Begin
   If (StringEquals(ObjectType, 'UI')) Then
     Result := UIView.Create()

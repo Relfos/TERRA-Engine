@@ -16,6 +16,7 @@ uses
   TERRA_Scene,
   TERRA_Mesh,
   TERRA_ScreenFX,
+  TERRA_EngineManager,
   TERRA_InputManager;
 
 Type
@@ -44,8 +45,8 @@ Begin
   Self.Scene.MainViewport.FXChain.AddEffect(GlowFX.Create(2.0));
 
 
-  DiffuseTex := TextureManager.Instance.GetTexture('cobble');
-  GlowTex := TextureManager.Instance.GetTexture('cobble_glow');
+  DiffuseTex := Engine.Textures.GetTexture('cobble');
+  GlowTex := Engine.Textures.GetTexture('cobble_glow');
 
   Solid := MeshInstance.Create(MeshManager.Instance.CubeMesh);
   Solid.SetDiffuseMap(0, DiffuseTex);

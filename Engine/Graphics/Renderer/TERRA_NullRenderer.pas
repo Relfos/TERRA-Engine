@@ -377,7 +377,7 @@ End;
 { NullFBO }
 Function NullFBO.Generate(Width, Height:Integer; MultiSample:Boolean; PixelSize:PixelSizeType; TargetCount:Integer; DepthBuffer,StencilBuffer:Boolean):Boolean;
 Begin
-  Self._Size := Width * Height * 4 * 2;
+  Self._SizeInBytes := Width * Height * 4 * 2;
 
   _BackgroundColor := ColorCreate(Byte(0), Byte(0), Byte(0), Byte(0));
 
@@ -433,7 +433,7 @@ Function NullTexture.Generate(Pixels: Pointer; Width, Height:Integer; SourceForm
 Begin
   _Width := Width;
   _Height := Height;
-  _Size := Trunc(4 * _Width * _Height);
+  _SizeInBytes := Trunc(4 * _Width * _Height);
   Result := True;
 End;
 

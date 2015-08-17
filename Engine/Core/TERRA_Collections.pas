@@ -34,6 +34,10 @@ Const
   { Insert fails if object already added }
   coCheckReferencesOnAdd    = 2;
   coCheckReferencesOnDelete = 4;
+
+  { Items are not deleted from memory when Clear() or Release() is called on a collection }
+  coShared = 8;
+
   { The collection will be thread-safe, meaning adds, deletes and iterators will be protected by a critical section. }
   coThreadSafe      = 32;
 
@@ -144,7 +148,7 @@ Type
       Function GetIterator:Iterator; Virtual;
 
       // removes all items
-      Procedure Clear(); Virtual; 
+      Procedure Clear(); Virtual;
 
       Procedure Lock;
       Procedure Unlock;
@@ -158,7 +162,7 @@ Type
       Function Delete(Item:TERRAObject):Boolean;
 
       // Returns true if removal was sucessful
-      Function Remove(Item:TERRAObject):Boolean; Virtual; Abstract;
+      Function Remove(Item:TERRAObject):Boolean; Virtual; 
 
       Function GetItemByIndex(Index:Integer):TERRAObject; Virtual;
 
@@ -206,7 +210,8 @@ End;
 
 Procedure TERRACollectionObject.Release();
 Begin
-  ReleaseObject(_Item);
+  If (Assigned(_Collection)) And (_Collection.Options And coShared = 0) Then
+    ReleaseObject(_Item);
 End;
 
 Procedure TERRACollectionObject.Discard();
@@ -479,6 +484,11 @@ Begin
     Result := -1
   Else
     Result := 0;
+End;
+
+Function TERRACollection.Remove(Item: TERRAObject): Boolean;
+Begin
+  Result := False;
 End;
 
 { Iterator }

@@ -1668,7 +1668,7 @@ Function OpenGLFBO.Generate(Width, Height:Integer; MultiSample:Boolean; PixelSiz
 Var
   I:Integer;
 Begin
-  Self._Size := Width * Height * 4 * 2;
+  Self._SizeInBytes := Width * Height * 4 * 2;
 
   _BackgroundColor := ColorCreate(Byte(0), Byte(0), Byte(0), Byte(0));
 
@@ -2124,7 +2124,7 @@ Begin
     Mult := 4.0;
   End;
 
-  _Size := Trunc(Mult * _Width * _Height);
+  _SizeInBytes := Trunc(Mult * _Width * _Height);
 
   {$IFDEF PC}
   glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, @_Width);

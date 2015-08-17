@@ -2,7 +2,7 @@ Unit TERRA_XML;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_ObjectTree, TERRA_String, TERRA_Stream, TERRA_Utils, TERRA_Vector3D, TERRA_Color;
+Uses TERRA_Object, TERRA_ObjectTree, TERRA_String, TERRA_Stream;
 
 Const
   xmlSaveHeader   = 1;
@@ -25,11 +25,11 @@ Type
       Procedure LoadFromStream(Source:Stream); Override;
 
       Function SaveToObject(Target:TERRAObject):TERRAObject; Override;
-      Procedure SaveToStream(Dest:Stream; SaveFlags:Cardinal = 0); Override;
+      Procedure SaveToStream(Dest:Stream; SaveFlags:Cardinal); Override;
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_Collections, TERRA_FileManager, TERRA_FileStream, TERRA_MemoryStream, TERRA_Log;
+Uses TERRA_Log;
 
 { XMLNode }
 
@@ -134,9 +134,9 @@ Begin
       xmlBeginTag:  Begin
                       Node := XMLNode.Create();
                       Node._InitTag := S;
+                      AddChild(Node);
                       Node.LoadFromStream(Source);
 
-                      AddChild(Node);
                     End;
 
       xmlEndTag:    Break;
@@ -324,6 +324,7 @@ Begin
 
   Result := Inherited SaveToObject(Target);
 End;
+
 
 End.
 

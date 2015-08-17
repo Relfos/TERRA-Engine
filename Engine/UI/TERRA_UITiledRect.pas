@@ -29,7 +29,7 @@ Type
 
 
 Implementation
-Uses TERRA_Log, TERRA_Scale9Sprite;
+Uses TERRA_Log, TERRA_EngineManager, TERRA_Scale9Sprite;
 
 { UITiledRect }
 Constructor UITiledRect.Create(Name:TERRAString; Parent:UIWidget; X, Y, Z: Single; Const Width, Height:UIDimension; Const U1, V1, U2, V2:Single);
@@ -65,7 +65,7 @@ End;
 Procedure UITiledRect.SetTexture(Tex: TERRATexture);
 Begin
   If Tex = Nil Then
-    Tex := TextureManager.Instance.WhiteTexture;
+    Tex := Engine.Textures.WhiteTexture;
 
   _Texture.Value := Tex;
 End;
@@ -114,7 +114,7 @@ Begin
     Exit;*)
 
   If Texture=Nil Then
-    Texture := TextureManager.Instance.WhiteTexture;
+    Texture := Engine.Textures.WhiteTexture;
 
   _Sprite.SetTransform(Self._Transform);
   _Sprite.ClipRect := Self.ClipRect;

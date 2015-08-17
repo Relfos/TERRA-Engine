@@ -91,7 +91,6 @@ Begin
   Self._Value := Value;
 End;
 
-
 Function TERRAObjectNode.GetRoot: TERRAObjectNode;
 Begin
   If Assigned(_Root) Then
@@ -301,39 +300,27 @@ Begin
 End;
 
 Function TERRAObjectNode.AddVector2D(Const Name:TERRAString; Const Value:Vector2D):TERRAObjectNode;
-Var
-  Node:TERRAObjectNode;
 Begin
-  Node := TERRAObjectNode.Create(Name,'');
-  Node.AddSingle('x', Value.X);
-  Node.AddSingle('y', Value.Y);
-  AddChild(Node);
-  Result := Node;
+  Result := Self.AddString(Name,'');
+  Result.AddSingle('x', Value.X);
+  Result.AddSingle('y', Value.Y);
 End;
 
 Function TERRAObjectNode.AddVector3D(Const Name:TERRAString; Const Value:Vector3D):TERRAObjectNode;
-Var
-  Node:TERRAObjectNode;
 Begin
-  Node := TERRAObjectNode.Create(Name,'');
-  Node.AddSingle('x', Value.X);
-  Node.AddSingle('y', Value.Y);
-  Node.AddSingle('z', Value.Z);
-  AddChild(Node);
-  Result := Node;
+  Result := Self.AddString(Name,'');
+  Result.AddSingle('x', Value.X);
+  Result.AddSingle('y', Value.Y);
+  Result.AddSingle('z', Value.Z);
 End;
 
 Function TERRAObjectNode.AddVector4D(Const Name:TERRAString; Const Value:Vector4D):TERRAObjectNode;
-Var
-  Node:TERRAObjectNode;
 Begin
-  Node := TERRAObjectNode.Create(Name,'');
-  Node.AddSingle('x', Value.X);
-  Node.AddSingle('y', Value.Y);
-  Node.AddSingle('z', Value.Z);
-  Node.AddSingle('w', Value.W);
-  AddChild(Node);
-  Result := Node;
+  Result := Self.AddString(Name,'');
+  Result.AddSingle('x', Value.X);
+  Result.AddSingle('y', Value.Y);
+  Result.AddSingle('z', Value.Z);
+  Result.AddSingle('W', Value.W);
 End;
 
 Function TERRAObjectNode.AddColor(Const Name:TERRAString; Const Value:ColorRGBA):TERRAObjectNode;
@@ -342,15 +329,11 @@ Begin
 End;
 
 Function TERRAObjectNode.AddTime(Const Name:TERRAString; Const Value:TERRATime):TERRAObjectNode;
-Var
-  Node:TERRAObjectNode;
 Begin
-  Node := TERRAObjectNode.Create(Name,'');
-  Node.AddInteger('hour', Value.Hour);
-  Node.AddInteger('minute', Value.Minute);
-  Node.AddInteger('second', Value.Second);
-  AddChild(Node);
-  Result:=Node;
+  Result := Self.AddString(Name,'');
+  Result.AddInteger('hour', Value.Hour);
+  Result.AddInteger('minute', Value.Minute);
+  Result.AddInteger('second', Value.Second);
 End;
 
 Procedure TERRAObjectNode.LoadFromObject(Source:TERRAObject);

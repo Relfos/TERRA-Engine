@@ -35,7 +35,7 @@ Type
 
 
 Implementation
-Uses TERRA_Log;
+Uses TERRA_Log, TERRA_EngineManager;
 
 { UIImage }
 Constructor UIImage.Create(Name:TERRAString; Parent:UIWidget; X, Y, Z: Single; Const Width, Height:UIDimension);
@@ -93,7 +93,7 @@ End;
 Procedure UIImage.SetTexture(Tex: TERRATexture);
 Begin
   If Tex = Nil Then
-    Tex := TextureManager.Instance.WhiteTexture;
+    Tex := Engine.Textures.WhiteTexture;
 
   _Texture.Value := Tex;
   {Self.Rect.Width := Tex.Width;
@@ -135,7 +135,7 @@ Begin
   QuadSprite(_Sprite).Saturation := Self.GetSaturation();
 
   If Texture=Nil Then
-    Texture := TextureManager.Instance.WhiteTexture;
+    Texture := Engine.Textures.WhiteTexture;
   Texture.Filter := Filter;
 
   QuadSprite(_Sprite).Anchor := Anchor;

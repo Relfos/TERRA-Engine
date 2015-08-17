@@ -54,8 +54,6 @@ Type
       _Target:VertexData;
       _VertexID:Integer;
 
-      Procedure Release(); Override;
-
       Procedure GetFloat(Attribute:Cardinal; Out Value:Single);
       Procedure GetColor(Attribute:Cardinal; Out Value:ColorRGBA);
       Procedure GetVector2D(Attribute:Cardinal; Out Value:Vector2D);
@@ -73,8 +71,11 @@ Type
 
     Public
       Constructor Create();
+      Procedure Release(); Override;
+
       Function HasAttribute(Attribute:Cardinal):Boolean;
-	End;
+
+    End;
 
   SimpleVertex = Class(Vertex)
     Protected
@@ -1004,6 +1005,7 @@ End;
 Constructor Vertex.Create;
 Begin
   Self._VertexID := -1;
+  Self._Item := Self;
 End;
 
 Procedure Vertex.GetColor(Attribute:Cardinal; Out Value:ColorRGBA);

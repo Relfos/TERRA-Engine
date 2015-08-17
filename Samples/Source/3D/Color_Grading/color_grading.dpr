@@ -1,6 +1,6 @@
 {$I terra.inc}
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} BasicSample;
-jerror
+
 Uses TERRA_Application, TERRA_Scene, TERRA_Utils, TERRA_GraphicsManager, TERRA_Viewport,
   TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_PNG, TERRA_UI,
   TERRA_SpriteManager, TERRA_FileManager, TERRA_Math, TERRA_Vector3D,

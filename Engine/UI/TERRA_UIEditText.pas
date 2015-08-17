@@ -42,7 +42,7 @@ Type
     Public
       Constructor Create(Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
 
-      Function OnKeyPress(Key:TERRAChar):Boolean; Override;
+      Function OnHandleKeyPress(Key:TERRAChar):Boolean; Override;
 
       Property MultiLine:Boolean Read GetMultiLine Write SetMultiline;
       Property PasswordField:Boolean Read GetPasswordField Write SetPasswordField;
@@ -89,7 +89,7 @@ Begin
   _Content.Value := S;
 End;
 
-Function UIEditText.OnKeyPress(Key:TERRAChar):Boolean;
+Function UIEditText.OnHandleKeyPress(Key:TERRAChar):Boolean;
 Var
   I, Len:Integer;
   ChangedLine, Found:Boolean;

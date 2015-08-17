@@ -538,9 +538,9 @@ Begin
   Expect(FloatToString(-7.85679, 5), '-7.85679');
   Expect(FloatToString(-7.85679, 6), '-7.856790');
 
-  Expect(FloatToString(-0.6632), '-0.6632');
+  Expect(FloatToString(-0.6632), '-0.66320');
 
-  Expect(FloatToString(0.0156), '0.0156');
+  Expect(FloatToString(0.0156), '0.01560');
 
   Expect(FloatToString(0.00123, 4), '0.0012');
   Expect(FloatToString(0.00123, 5), '0.00123');

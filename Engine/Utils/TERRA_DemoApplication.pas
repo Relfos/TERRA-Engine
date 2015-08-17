@@ -5,7 +5,7 @@ Unit TERRA_DemoApplication;
 Interface
 Uses TERRA_Utils, TERRA_Object, TERRA_String, TERRA_Application, TERRA_OS, TERRA_Scene,
   TERRA_Vector3D, TERRA_Color, TERRA_Camera,
-  TERRA_Font, TERRA_FontRenderer, TERRA_Skybox, TERRA_Viewport, TERRA_Lights;
+  TERRA_Font, TERRA_FontRenderer, TERRA_Skybox, TERRA_Viewport, TERRA_Lights, TERRA_UIView;
 
 Type
   DemoApplication = Class;
@@ -17,6 +17,7 @@ Type
       _Sun:DirectionalLight;
       _Main:TERRAViewport;
       _Camera:TERRACamera;
+      _GUI:UIView;
 
       Function CreateMainViewport(Const Name:TERRAString; Width, Height:Integer):TERRAViewport;
 
@@ -29,6 +30,9 @@ Type
 
       Property Sun:DirectionalLight Read _Sun;
       Property MainViewport:TERRAViewport Read _Main;
+
+      Property Camera:TERRACamera Read _Camera;
+      Property GUI:UIView Read _GUI;
   End;
 
   DemoApplication = Class(Application)
@@ -43,6 +47,10 @@ Type
 			Procedure OnIdle; Override;
 
       Procedure OnRender(V:TERRAViewport); Virtual;
+
+      Procedure OnMouseDown(X, Y: Integer; Button: Word); Override;
+      Procedure OnMouseMove(X, Y: Integer); Override;
+      Procedure OnMouseUp(X, Y: Integer; Button: Word); Override;
 
       Property Font:TERRAFont Read _Font;
       Property Scene:DemoScene Read _Scene;
@@ -79,7 +87,8 @@ Begin
 
   GraphicsManager.Instance.TestDebugKeys();
 
-  _Scene.MainViewport.Camera.FreeCam;
+  If (Assigned(_Scene.MainViewport)) And (_Scene.MainViewport.Visible) Then
+    _Scene.MainViewport.Camera.FreeCam();
 End;
 
 { DemoScene }
@@ -95,6 +104,14 @@ Begin
 
   _Main := Self.CreateMainViewport('main', GraphicsManager.Instance.Width, GraphicsManager.Instance.Height);
   _Main.SetPostProcessingState(True);
+
+  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorCreate(128, 128, 255);
+
+  // Create a new UI
+  _GUI := UIView.Create;
+
+  // Register the font with the UI
+  _GUI.DefaultFont := Self._Owner.Font;
 End;
 
 Procedure DemoScene.Release;
@@ -114,7 +131,7 @@ Begin
   GraphicsManager.Instance.AddViewport(Result);
   Result.Visible := True;
   Result.EnableDefaultTargets();
-  Result.BackgroundColor := ColorGreen;
+  Result.BackgroundColor := ColorNull;
 End;
 
 Procedure DemoScene.RenderSprites(V: TERRAViewport);
@@ -122,10 +139,31 @@ Begin
   _Owner._FontRenderer.DrawText(V, 5, 5, 50, 'FPS: '+IntToString(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
 End;
 
+Procedure DemoApplication.OnMouseDown(X, Y: Integer; Button: Word);
+Begin
+  Scene.GUI.OnMouseDown(X, Y, Button);
+End;
+
+Procedure DemoApplication.OnMouseMove(X, Y: Integer);
+Begin
+  Scene.GUI.OnMouseMove(X, Y);
+End;
+
+Procedure DemoApplication.OnMouseUp(X, Y: Integer; Button: Word);
+Begin
+  Scene.GUI.OnMouseUp(X, Y, Button);
+End;
+
 Procedure DemoScene.RenderViewport(V: TERRAViewport);
 Begin
-  GraphicsManager.Instance.AddRenderable(V, _Sky);
-  LightManager.Instance.AddLight(V, Sun);
+  If (V = Self._Main) Then
+  Begin
+    GraphicsManager.Instance.AddRenderable(V, _Sky);
+    LightManager.Instance.AddLight(V, Sun);
+  End Else
+  Begin
+    GraphicsManager.Instance.AddRenderable(V, _GUI);
+  End;
 
   _Owner.OnRender(V);
 End;
@@ -134,4 +172,6 @@ Procedure DemoApplication.OnRender(V: TERRAViewport);
 Begin
 End;
 
+
 End.
+

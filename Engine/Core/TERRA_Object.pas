@@ -291,7 +291,7 @@ Type
 Procedure ReleaseObject(var Obj);
 
 Implementation
-Uses TERRA_Log, TERRA_OS, TERRA_Math;
+Uses TERRA_Log, TERRA_Math, TERRA_OS, TERRA_RTTI;
 
 Procedure ReleaseObject(Var Obj);
 Var
@@ -390,8 +390,38 @@ Begin
 End;
 
 Function TERRAObject.CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject;
+Var
+  ObjType:TERRAObjectType;
 Begin
-  Result := Application.Instance.CreateProperty(Self, KeyName, ObjectType);
+  ObjType := RTTI.FindType(ObjectType);
+  If ObjType = Nil Then
+  Begin
+    Log(logError, 'Application', 'Cannot unserialize object of type ' +ObjectType+' with name '+KeyName);
+  End;
+
+  Result := TERRAObject(ObjType.Create());
+
+(*  If StringEquals(ObjectType, 'list') Then
+  Begin
+    Result := List.Create();
+    Result.Name := KeyName;
+  End Else
+  Begin
+    Result := Nil;
+
+    For I:=0 To Pred(_ApplicationComponentCount) Do
+    If Assigned(_ApplicationComponents[I].Instance) Then
+    Begin
+      Result := _ApplicationComponents[I].Instance.CreateProperty(KeyName, ObjectType);
+      If Assigned(Result) Then
+      Begin
+        Log(logDebug, 'Application', 'Unserialized object of type ' +ObjectType+ ' from '+_ApplicationComponents[I].Name);
+        Exit;
+      End;
+
+    End;
+  End;*)
+
 End;
 
 Function TERRAObject.FindPropertyWithPath(Path:TERRAString):TERRAObject;

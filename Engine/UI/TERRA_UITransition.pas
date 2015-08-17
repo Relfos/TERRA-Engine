@@ -60,12 +60,12 @@ Type
       _FadeVertices:VertexData;
 
 
-      Procedure Render(Alpha:Single); Virtual; Abstract;
+      Procedure Render(View:TERRAViewport; Alpha:Single); Virtual; Abstract;
 
       Procedure InitVertices(OfsX, OfsY:Single);
 
     Public
-      Function Update:Boolean;
+      Function Update(View:TERRAViewport):Boolean;
 
       Procedure SetCallback(Callback:FadeCallback; UserData:Pointer = Nil; OnStart:Boolean=False);
 
@@ -84,7 +84,7 @@ Type
       _FadeTexture:TERRATexture;
       _FadeOut:Boolean;
 
-      Procedure Render(Alpha:Single); Override;
+      Procedure Render(View:TERRAViewport; Alpha:Single); Override;
 
     Public
       Color:ColorRGBA;
@@ -98,7 +98,7 @@ Type
       _Direction:Vector2D;
       _Texture:TERRATexture;
 
-      Procedure Render(Alpha:Single); Override;
+      Procedure Render(View:TERRAViewport; Alpha:Single); Override;
 
     Public
       Constructor Create(TargetView:TERRAViewport; Direction:Vector2D; Duration, Delay:Cardinal);
@@ -212,7 +212,7 @@ Begin
   ReleaseObject(_FadeVertices);
 End;
 
-Function UITransition.Update:Boolean;
+Function UITransition.Update(View:TERRAViewport):Boolean;
 Var
   Alpha:Single;
 Begin
@@ -246,10 +246,10 @@ Begin
     _Active := True;
 
     Result := True;
-    Render(Alpha);
+    Render(View, Alpha);
   End Else
   Begin
-    Render(Alpha);
+    Render(View, Alpha);
 
     If (_Active) Then
     Begin
@@ -287,7 +287,7 @@ Begin
   End;
 End;
 
-Procedure UIFade.Render(Alpha:Single);
+Procedure UIFade.Render(View:TERRAViewport; Alpha:Single);
 Var
   I:Integer;
   X,Y:Single;
@@ -320,7 +320,7 @@ Begin
 
   // FIXME
   RaiseError('needs fix');
-  //M := Graphics.ProjectionMatrix;
+  M := View.Camera.Projection;
   Graphics.Renderer.SetModelMatrix(Matrix4x4Identity);
   Graphics.Renderer.SetProjectionMatrix(M);
   _Shader.SetIntegerUniform('texture', 0);
@@ -432,7 +432,7 @@ Begin
   Inherited;
 End;
 
-Procedure UISlide.Render(Alpha: Single);
+Procedure UISlide.Render(View:TERRAViewport; Alpha: Single);
 Var
   X,Y, W, H:Single;
   _Shader:ShaderInterface;
