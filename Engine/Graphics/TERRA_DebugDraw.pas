@@ -185,7 +185,7 @@ End;
 
 Procedure DrawClipRect(View:TERRAViewport; Const Rect:TERRAClipRect; LineColor:ColorRGBA; LineWidth:Single = 1.0);
 Begin
-  DrawRectangle(View, VectorCreate2D(Rect.X, Rect.Y), VectorCreate2D(Rect.X + Rect.Width, Rect.Y + Rect.Height), LineColor, LineWidth);
+  DrawRectangle(View, VectorCreate2D(Rect.X1, Rect.Y1), VectorCreate2D(Rect.X2, Rect.Y2), LineColor, LineWidth);
 End;
 
 Procedure DrawCircle(View:TERRAViewport; Const P:Vector2D; Radius:Single; LineColor:ColorRGBA; LineWidth:Single = 1.0);

@@ -141,12 +141,15 @@ Begin
   MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, -150, 25, 1, UIPixels(150), UIPixels(50), 'btn_template');
   MyBtn.Align := waBottomCenter;
   MyBtn.Controller := MyController;
-  MyBtn.SetPropertyValue('caption', 'Password');
+  MyBtn.SetPropertyValue('value', 'Password');
+
+  MyBtn.AddAnimation(widget_Default, 'value', 'Password');
+  MyBtn.AddAnimation(widget_Selected, 'value', 'Normal');
 
   MyBtn2 := UIInstancedWidget.Create('mybtn', MyWnd, 150, 25, 1, UIPixels(150), UIPixels(50), 'btn_template');
   MyBtn2.Align := waBottomCenter;
   MyBtn2.Controller := MyController;
-  MyBtn2.SetPropertyValue('caption', 'Spin');
+  MyBtn2.SetPropertyValue('value', 'Spin');
 End;
 
 Procedure MyScene.Release;
@@ -178,9 +181,9 @@ Begin
       If MyWnd.Rotation<>0 Then
         Prop.AddTweenFromBlob(easeLinear, '90', '0', 1000)
       Else
-        Prop.AddTweenFromBlob(easeLinear, '0', '15', 1000);
+        Prop.AddTweenFromBlob(easeLinear, '0', '90', 1000);
     End;
-      
+
     Exit;
   End;
 
@@ -190,7 +193,7 @@ Begin
 
   Text.PasswordField := Not Text.PasswordField;
 
-  //Src.Selected := False;
+  //Src.Selected := Not Src.Selected;
 
  // MyUI.MessageBox('You clicked the button!');
 End;

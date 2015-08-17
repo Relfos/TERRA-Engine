@@ -56,10 +56,10 @@ Begin
   TileRect.Draggable := True;
   //TileRect.Scale := 2;
 
-  Caption := UILabel.Create('label', Self, 0, 0, 1, UIPercent(100), UIPercent(100), UIPropertyMacro('caption'));
+  Caption := UILabel.Create('label', Self, 0, 0, 1, UIPercent(100), UIPercent(100), UIPropertyMacro('value'));
   Caption.Align := waCenter;
 
-  Self.AddProperty(StringProperty.Create('caption', 'untitled'), True);
+  Self.AddProperty(StringProperty.Create('value', 'untitled'), True);
 
   Self.CanReceiveEvents := True;
 End;
@@ -86,8 +86,6 @@ Begin
 
   EditText.Align := waTopLeft;
   EditText.MultiLine := True;
-
-  Self.AddProperty(StringProperty.Create('text', 'untitled'), True);
 
   Self.CanReceiveEvents := True;
 End;

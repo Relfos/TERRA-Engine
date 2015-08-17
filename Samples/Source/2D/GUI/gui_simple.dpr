@@ -123,7 +123,7 @@ Begin
   MyWnd := UIInstancedWidget.Create('mywnd', MyUI, 0, 0, 10, UIPixels(643), UIPixels(231), 'wnd_template');
   MyWnd.Draggable := True;
   MyWnd.Align := waCenter;
-  MyWnd.Rotation := 45*RAD;
+//  MyWnd.Rotation := 45*RAD;
   MyWnd.Controller := MyController;
 
   MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, 0, 0, 1, UIPixels(250), UIPixels(50), 'btn_template');

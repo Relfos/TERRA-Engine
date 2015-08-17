@@ -742,7 +742,7 @@ Begin
     If (S.ClipRect.Style = clipNothing) Then
       CurrentClip := VectorCreate4D(0, 0, 9999, 9999)
     Else
-      CurrentClip := VectorCreate4D(S.ClipRect.X, S.ClipRect.Y, S.ClipRect.X + S.ClipRect.Width, S.ClipRect.Y + S.ClipRect.Height);
+      CurrentClip := VectorCreate4D(S.ClipRect.X1, S.ClipRect.Y1, S.ClipRect.X2, S.ClipRect.Y2);
 
     MinX := 9999;
     MaxX := -9999;

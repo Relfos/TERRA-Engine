@@ -65,7 +65,6 @@ Type
 
       Procedure SetColorTable(const Value:TERRATexture);
       Procedure SetDefaultFont(const Value:TERRAFont);
-      Procedure SetHighlight(const Value:UIWidget);
       Procedure SetDragger(const Value:UIWidget);
 
       Function GetHighlight:UIWidget;
@@ -135,7 +134,7 @@ Type
 
       Property DefaultFont:TERRAFont Read _DefaultFont Write SetDefaultFont;
       Property Modal:UIWidget Read GetModal Write _Modal;
-      Property Highlight:UIWidget Read GetHighlight Write SetHighlight;
+      Property Highlight:UIWidget Read GetHighlight;
     End;
 
   UIManager = Class(ApplicationComponent)
@@ -249,7 +248,7 @@ Begin
   Key_Action := TERRA_OS.keyEnter;
   Key_Cancel := TERRA_OS.keyEscape;
 
-  _ClipRect.SetStyle(clipNothing);
+  _ClipRect.Style := clipNothing;
 
   Self.Width := UIPixels(UIManager.Instance.Width);
   Self.Height := UIPixels(UIManager.Instance.Height);
@@ -550,21 +549,6 @@ Begin
 
   If (Assigned(Result)) And (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
     Result.OnMouseWheel(X, Y, Delta);
-End;
-
-Procedure UIView.SetHighlight(const Value: UIWidget);
-Var
-  Prev, Temp:UIWidget;
-Begin
-  Prev := Self._Highlight;
-
-  Self._Highlight := Value;
-
-  If Assigned(Value) Then
-  Begin
-    Temp := Value;
-    Value.OnHighlight(Prev);
-  End;
 End;
 
 Procedure UIView.SetDragger(const Value:UIWidget);

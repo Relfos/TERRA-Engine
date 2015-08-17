@@ -290,7 +290,6 @@ Type
       Function CanHighlight(GroupID:Integer):Boolean;
 
       Procedure TriggerEvent(EventType:WidgetEventType); Virtual;
-      Procedure OnHighlight(Prev:UIWidget); Virtual;
 
       Procedure Delete();
 
@@ -1619,15 +1618,10 @@ Begin
 
   Pos := Self.AbsolutePosition;
   SizeRect := Self.Size;
-  _ClipRect.Style := clipNothing;
-  //_ClipRect.Style := clipSomething;
-  _ClipRect.X := Pos.X {+ LeftBorder};
-  _ClipRect.Y := Pos.Y {+ TopBorder};
-  _ClipRect.Width := SizeRect.X {- (RightBorder + LeftBorder)};
-  _ClipRect.Height := SizeRect.Y {- (TopBorder + BottomBorder)};
-
-
-  //_ClipRect.Transform(Value);
+  //_ClipRect.Style := clipNothing;
+  _ClipRect.Style := clipSomething;
+  _ClipRect.SetArea(0 {+ LeftBorder}, 0 {+ TopBorder}, SizeRect.X {- (RightBorder + LeftBorder)}, SizeRect.Y {- (TopBorder + BottomBorder)});
+  _ClipRect.Transform(_Transform);
 
   _TransformChanged := True;
 End;
@@ -1722,28 +1716,23 @@ Begin
   If (Self._Deleted) Or (Not Self.Visible) Then
     Exit;
 
-(*  If (Assigned(_SkinComponent)) And (_SkinComponent.Name <> Self._Skin.Value) Then
-    Self.LoadSkin(Self._Skin.Value);*)
-
   Self.UpdateProperties();
   Self.UpdateRects();
   Self.UpdateTransform();
-//  Self.UpdateHighlight();
   Self.UpdateSprite(View);
 
   If Assigned(_Sprite) Then
+  Begin
     View.SpriteRenderer.QueueSprite(_Sprite);
+
+    //DrawClipRect(View, Self.ClipRect, ColorRed);
+  End;
 
   For I:=0 To Pred(_ChildrenCount) Do
   If (_ChildrenList[I].Visible) And (_ChildrenList[I].CanRender()) Then
     _ChildrenList[I].Render(View);
 End;
 
-
-Procedure UIWidget.OnHighlight(Prev:UIWidget);
-Begin
-  // do nothing
-End;
 
 Function UIWidget.OnSelectAction: Boolean;
 Begin
@@ -2274,7 +2263,7 @@ Begin
   Result := (Self._State <> widget_Disabled);
 End;
 
-Procedure UIWidget.AddAnimation(State: WidgetState; const PropName, Value: TERRAString; Const Ease:TweenEaseType = easeLinear);
+Procedure UIWidget.AddAnimation(State:WidgetState; const PropName, Value: TERRAString; Const Ease:TweenEaseType = easeLinear);
 Begin
   Inc(_AnimationCount);
   SetLength(_Animations, _AnimationCount);

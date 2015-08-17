@@ -10,13 +10,16 @@ Type
     Protected
       _NeedCaptionUpdate:Boolean;
 
+      _Caption:StringProperty;
+
       Function GetLocalizationKey: TERRAString;
 
       Procedure UpdateSprite(View:TERRAViewport); Override;
 
       Procedure UpdateCaption();
 
-      Procedure SetText(Const S:TERRAString); Override;
+      Procedure SetText(Const S:TERRAString);
+      Function GetText():TERRAString;
 
     Public
       Constructor Create(Const Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
@@ -26,6 +29,8 @@ Type
 			Procedure OnLanguageChange(); Override;
 
       Property LocalizationKey:TERRAString Read GetLocalizationKey;
+
+      Property Caption:TERRAString Read GetText Write SetText;
   End;
 
 Implementation
@@ -33,16 +38,18 @@ Uses TERRA_Localization, TERRA_FontRenderer;
 
 Constructor UILabel.Create(const Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
 Begin
-  Inherited Create(Name, Parent, X, Y, Z, Width, Height, Text);
+  Inherited Create(Name, Parent, X, Y, Z, Width, Height);
+
+  _Caption := StringProperty(Self.AddProperty(StringProperty.Create('caption', Text), False));
 
   _NeedCaptionUpdate := True;
 End;
 
 Function UILabel.GetLocalizationKey: TERRAString;
 Begin
-  If StringFirstChar(Self.Content) = Ord('#') Then
+  If StringFirstChar(_Caption.Value) = Ord('#') Then
   Begin
-    Result := StringCopy(Self.Content, 2, MaxInt);
+    Result := StringCopy(_Caption.Value, 2, MaxInt);
   End Else
     Result := '';
 End;
@@ -73,7 +80,7 @@ Var
   Result, S, S2:TERRAString;
   It:StringIterator;
 Begin
-  S := Self.Content;
+  S := Self._Caption.Value;
   Result := '';
   Repeat
     If StringCharPosIterator(UIMacroBeginChar, S, It, True) Then
@@ -94,7 +101,7 @@ Begin
 
   Until False;
 
-  _TextValue.Value := ConvertFontCodes(Result);
+  _Text := ConvertFontCodes(Result);
 End;
 
 
@@ -103,6 +110,11 @@ Begin
   Inherited;
 
   Self.UpdateCaption();
+End;
+
+Function UILabel.GetText: TERRAString;
+Begin
+  Result := _Caption.Value;
 End;
 
 End.

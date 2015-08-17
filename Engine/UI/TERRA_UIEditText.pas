@@ -7,6 +7,9 @@ Interface
 Uses TERRA_String, TERRA_Object, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font,
   TERRA_Collections, TERRA_Viewport, TERRA_UIText;
 
+Const
+  PasswordCharacter = Ord('*'); 
+
 Type
   UIEditText = Class(UIText)
     Private
@@ -22,7 +25,11 @@ Type
       Procedure SetMultiline(const Value: Boolean);
       Procedure SetPasswordField(const Value: Boolean);
 
+      Procedure SetText(Const Value:TERRAString);
+      Function GetText():TERRAString;
+      
     Protected
+      _Content:StringProperty;
       _MultiLine:BooleanProperty;
       _PasswordField:BooleanProperty;
 
@@ -35,12 +42,11 @@ Type
     Public
       Constructor Create(Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
 
-      Procedure SetText(Const Value:TERRAString);
-
       Function OnKeyPress(Key:TERRAChar):Boolean; Override;
 
       Property MultiLine:Boolean Read GetMultiLine Write SetMultiline;
       Property PasswordField:Boolean Read GetPasswordField Write SetPasswordField;
+      Property Content:TERRAString Read GetText Write SetText;
   End;
 
 
@@ -51,8 +57,9 @@ Uses TERRA_Application, TERRA_OS, TERRA_Log, TERRA_UIView, TERRA_Localization
 { UIEditText }
 Constructor UIEditText.Create(Name:TERRAString; Parent:UIWidget; X, Y, Z: Single; Const Width, Height:UIDimension; Const Text:TERRAString);
 Begin
-  Inherited Create(Name, Parent, X,Y,Z, Width, Height, Text);
+  Inherited Create(Name, Parent, X,Y,Z, Width, Height);
 
+  _Content := StringProperty(Self.AddProperty(StringProperty.Create('content', Text), False));
   _Multiline := BooleanProperty(Self.AddProperty(BooleanProperty.Create('multiline', False), False));
   _PasswordField := BooleanProperty(Self.AddProperty(BooleanProperty.Create('password', False), False));
 
@@ -67,7 +74,7 @@ Var
   N:Integer;
   S:TERRAString;
 Begin
-  S := StringCopy(_TextValue.Value, 1, StringLength(_TextValue.Value)-3);
+  S := StringCopy(_Content.Value, 1, StringLength(_Content.Value)-3);
   If (_KoreanMedialJamo>=0) Then
   Begin
     If (_KoreanFinalJamo>=0) Then
@@ -79,7 +86,7 @@ Begin
     Jamo := _KoreanBaseJamo;
 
   StringAppendChar(S, Jamo);
-  _TextValue.Value := S;
+  _Content.Value := S;
 End;
 
 Function UIEditText.OnKeyPress(Key:TERRAChar):Boolean;
@@ -107,7 +114,7 @@ Begin
 
   ChangedLine := False;
 
-  S := _TextValue.Value;
+  S := _Content.Value;
 
   If (Key = keyBackspace) Then
   Begin
@@ -232,9 +239,9 @@ Begin
         _ScrollIndex := _ScrollIndex + (W2-W);*)
   End;
 
-  If (Not StringEquals(S, _TextValue.Value, False)) Then
+  If (Not StringEquals(S, _Content.Value, False)) Then
   Begin
-    _TextValue.Value := S;
+    _Content.Value := S;
     Self.TriggerEvent(widgetEvent_ContentChange);
   End;
 
@@ -246,6 +253,13 @@ Begin
   Self._KoreanInitialJamo := -1;
   Self._KoreanMedialJamo := -1;
   Self._KoreanFinalJamo := -1;
+
+  Self._Content.Value := Value;
+End;
+
+Function UIEditText.GetText: TERRAString;
+Begin
+  Result := _Content.Value;
 End;
 
 Function UIEditText.IsSelectable: Boolean;
@@ -282,21 +296,15 @@ Begin
 End;
 
 Procedure UIEditText.UpdateSprite(View: TERRAViewport);
-Var
-  S:TERRAString;
 Begin
   If (Self._PasswordField.Value) Then
   Begin
-    S := _TextValue.Value;
-    _TextValue.Value := StringFill(StringLength(S), Ord('*'));
-  End;
+    _Text := StringFill(StringLength(_Content.Value), PasswordCharacter);
+  End Else
+    _Text := _Content.Value;
 
   Inherited;
-
-  If (Self._PasswordField.Value) Then
-  Begin
-    _TextValue.Value := S;
-  End;
 End;
+
 
 End.
