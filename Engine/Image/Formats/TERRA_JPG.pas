@@ -45,7 +45,7 @@ Uses TERRA_Utils, TERRA_Stream, TERRA_Image, TERRA_Log, TERRA_Application,
     {$ELSE}Classes, Graphics, JPEG{$ENDIF};
 
 Implementation
-Uses TERRA_Error, TERRA_FileStream, TERRA_FileUtils, TERRA_INI, TERRA_Color;
+Uses TERRA_Error, TERRA_FileStream, TERRA_FileUtils, TERRA_Color;
 
 {$IFDEF USEPASJPEGLIB}
 Const

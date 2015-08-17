@@ -445,7 +445,7 @@ Procedure TERRATexture.UpdateRect(Source:Image);
 Begin
   If (Self.Width<>Source.Width) Or (Self.Height <> Source.Height) Then
   Begin
-    RaiseError('Invalid texture dimensions: '+IntToString(Self.Width)+' x' + IntToString(Self.Height));
+    RaiseError('Invalid texture dimensions: '+ IntegerProperty.Stringify(Self.Width)+' x' +  IntegerProperty.Stringify(Self.Height));
     Exit;
   End;
 
@@ -531,7 +531,7 @@ Begin
     _Ratio := VectorCreate2D(W/Source.Width, H/Source.Height);
 
     If (W<>Source.Width) Or (H<>Source.Height) Then
-      Log(logDebug, 'Texture', self.Name+ ' needs resizing: '+IntToString(W) +' ' +IntToString(H));
+      Log(logDebug, 'Texture', self.Name+ ' needs resizing: '+ IntegerProperty.Stringify(W) +' ' + IntegerProperty.Stringify(H));
 
     Source.Resize(W,H);
   End Else
@@ -592,7 +592,7 @@ Begin
   HasAlpha := False;
 
 {    If (_Name='SPRITE320') Then
-      IntToString(2);}
+       IntegerProperty.Stringify(2);}
 
   
   I := 0;
@@ -842,7 +842,7 @@ End;
 Procedure TextureProperty.SetBlob(const Blob: TERRAString);
 Begin
   If Blob<>'#' Then
-    _Value := Engine.Textures.GetTexture(Blob)
+    _Value := Engine.Textures.GetItem(Blob)
   Else
     _Value := Engine.Textures.WhiteTexture;
 End;

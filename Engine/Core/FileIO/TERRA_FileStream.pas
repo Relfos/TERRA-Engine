@@ -262,7 +262,7 @@ Begin
   Begin
     Result := 0;
     {$IFDEF PC}
-    Log(logWarning, 'IO', 'Cannot read from file: '+Self._Name+' ('+IntToString(_Pos)+'/'+IntToString(_Size)+')');
+    Log(logWarning, 'IO', 'Cannot read from file: '+Self._Name+' ('+ IntegerProperty.Stringify(_Pos)+'/'+ IntegerProperty.Stringify(_Size)+')');
     {$ENDIF}
     FillChar(Data^, Length, 0);
     Exit;

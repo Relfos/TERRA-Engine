@@ -22,7 +22,6 @@ Type
   RenderableManager = Class;
 
   { TERRARenderable }
-
   TERRARenderable = Class(TERRAObject)
     Protected
       _Manager:RenderableManager;
@@ -49,7 +48,8 @@ Type
       Function GetRenderBucket:Cardinal; Virtual;
 
       Function GetBoundingBox:BoundingBox; Virtual;
-      Procedure Render(View:TERRAViewport; Const Bucket:Cardinal); Virtual; Abstract;
+
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Virtual; Abstract;
 
       Procedure RenderLights(View:TERRAViewport); Virtual;
 
@@ -68,13 +68,14 @@ Type
       {$ENDIF}
       _BucketOverlay:List;
 
-      Procedure RenderList(View:TERRAViewport; RenderList:List; Const Bucket:Cardinal);
+      Procedure RenderList(View:TERRAViewport; RenderList:List; Const Stage:RendererStage; Const Bucket:Cardinal);
 
     Public
       Constructor Create();
       Procedure Release(); Override;
 
-      Procedure Render(View:TERRAViewport);
+      Procedure RenderOverlays(View:TERRAViewport; Const Stage:RendererStage);
+      Procedure RenderBuckets(View:TERRAViewport; Const Stage:RendererStage);
       Procedure Clear();
 
       Function AddRenderable(View:TERRAViewport; Renderable:TERRARenderable):Boolean;
@@ -136,7 +137,7 @@ Begin
 End;
 
 
-Procedure RenderableManager.RenderList(View:TERRAViewport; RenderList:List; Const Bucket:Cardinal);
+Procedure RenderableManager.RenderList(View:TERRAViewport; RenderList:List; Const Stage:RendererStage; Const Bucket:Cardinal);
 Var
   P:TERRACollectionObject;
   Renderable:TERRARenderable;
@@ -153,16 +154,16 @@ Begin
     If (Assigned(Renderable)) Then
     Begin
       If (Not GraphicsManager.Instance.ReflectionActive) Or (Renderable.RenderFlags And renderFlagsSkipReflections=0) Then
-        Renderable.Render(View, Bucket);
+        Renderable.Render(View, Stage, Bucket);
     End;
 
     P := P.Next;
   End;
 End;
 
-Procedure RenderableManager.Render(View:TERRAViewport);
+Procedure RenderableManager.RenderBuckets(View:TERRAViewport; Const Stage:RendererStage);
 Begin
-  RenderList(View, _BucketSky, renderBucket_Sky);
+  RenderList(View, _BucketSky, Stage, renderBucket_Sky);
 
   {$IFNDEF DEBUG_REFLECTIONS}
 
@@ -185,9 +186,9 @@ Begin
     End;
   End;
 {$ELSE}
-    RenderList(View, _BucketOpaque, renderBucket_Opaque);
+    RenderList(View, _BucketOpaque, Stage, renderBucket_Opaque);
 
-    If (GraphicsManager.Instance.RenderStage <> renderStageNormal) Then
+    If (Stage <> renderStageNormal) Then
     Begin
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderDecals');{$ENDIF}
       DecalManager.Instance.Render(View);
@@ -197,11 +198,14 @@ Begin
     End;
 
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderAlphaBucket');{$ENDIF}
-    RenderList(View, _BucketAlpha, renderBucket_Opaque);
+    RenderList(View, _BucketAlpha, Stage, renderBucket_Opaque);
     {$ENDIF}
 {$ENDIF}
+End;
 
-  RenderList(View, _BucketOverlay, renderBucket_Overlay);
+Procedure RenderableManager.RenderOverlays(View:TERRAViewport; Const Stage:RendererStage);
+Begin
+  RenderList(View, _BucketOverlay, Stage, renderBucket_Overlay);
 End;
 
 Procedure RenderableManager.DeleteRenderable(MyRenderable:TERRARenderable);
@@ -225,8 +229,8 @@ End;
 
 
 Function RenderableManager.AddRenderable(View:TERRAViewport; Renderable:TERRARenderable):Boolean;
-Const
-  LODS:Array[0..MaxLODLevel] Of Single = (0.0, 0.4, 0.8, 1.0);
+(*Const
+  LODS:Array[0..MaxLODLevel] Of Single = (0.0, 0.4, 0.8, 1.0);*)
 Var
   Box:BoundingBox;
   Pos:Vector3D;
@@ -256,14 +260,6 @@ Begin
   {$ENDIF}
 
   Graphics := GraphicsManager.Instance;
-
-  If (Graphics.RenderStage <> renderStageDiffuse) Then
-  Begin
-    DebugBreak;
-    //MyTERRARenderable.Render(View, Bucket);
-    Result := True;
-    Exit;
-  End;
 
 //Log(logDebug, 'GraphicsManager', 'Rendering lights...');
 //Log(logDebug, 'GraphicsManager', 'Class: '+MyTERRARenderable.ClassName);

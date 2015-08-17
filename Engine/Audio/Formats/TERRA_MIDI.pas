@@ -1030,7 +1030,7 @@ Begin
               midiEvent._data1 := _ChunkData[_chunkIndex]; inc(_chunkIndex);
             End;
         Else
-          Log(logWarning, 'MIDI', 'Unknown midi event: '+IntToString(event));
+          Log(logWarning, 'MIDI', 'Unknown midi event: '+ IntegerProperty.Stringify(event));
         End;
 
         _CurrentChannel.putEvent(midiEvent);
@@ -1392,7 +1392,7 @@ Function MidiNoteEvent.Start(): Boolean;
 Begin
   Result := (MIDI_Out(MIDIEvent_NoteOn(_Channel, _Note, _Volume)));
 
-//  WriteLn('Starting Note '+IntToString(_Note));
+//  WriteLn('Starting Note '+ IntegerProperty.Stringify(_Note));
 
   _State := notePlaying;
 End;
@@ -1407,7 +1407,7 @@ Begin
   MuteEvent := MIDIEvent_NoteOff(_Channel, _Note, _Volume);
   MIDI_Out(MuteEvent);
 
-  //WriteLn('Stopping Note '+IntToString(_Note));
+  //WriteLn('Stopping Note '+ IntegerProperty.Stringify(_Note));
 
   _State := noteFinished;
 End;

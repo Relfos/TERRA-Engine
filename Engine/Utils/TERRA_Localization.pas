@@ -319,9 +319,9 @@ Begin
     Ext:=#0;
   End;
 
-  Result:=IntToString(Int);
+  Result:= IntegerProperty.Stringify(Int);
   If Rem>0 Then
-  Result:=Result+'.'+IntToString(Rem);
+  Result:=Result+'.'+ IntegerProperty.Stringify(Rem);
   Result:=Result+' ';
   If Ext<>#0 Then
     Result:=Result+Ext;

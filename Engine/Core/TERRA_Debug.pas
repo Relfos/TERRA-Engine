@@ -55,9 +55,6 @@ Begin
   If (ClassType <> Nil) Then
     S := ClassType.ClassName + '.' + S;
 
-  If Pos('(',S)>0 Then
-    IntToString(2);
-
   _Callstack.Push(StringProperty.Create('call', S));
 End;
 

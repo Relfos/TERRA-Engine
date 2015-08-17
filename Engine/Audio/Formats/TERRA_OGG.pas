@@ -34,7 +34,7 @@ Unit TERRA_OGG;
 {$ENDIF}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_SoundStreamer, TERRA_Sound, TERRA_Log;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_SoundStreamer, TERRA_Sound, TERRA_Log;
 
 
 {$IFDEF USELIBVORBIS}
@@ -474,7 +474,7 @@ const
    MAX_BLOCKSIZE_LOG =  13;   // from specification
    MAX_BLOCKSIZE = 1 shl MAX_BLOCKSIZE_LOG;
 
-   // @NOTE
+   // NOTE
    //
    // Some arrays below are tagged "//varies", which means it's actually
    // a variable-sized piece of data, but rather than malloc I assume it's
@@ -1335,7 +1335,7 @@ end;
 
 Function error(f: pvorb; e:STBVorbisError):Boolean;
 Begin
-  Log(logError, 'OGG', 'Decoding error occurred: ' + IntToString(Integer(E)));
+  Log(logError, 'OGG', 'Decoding error occurred: ' +  IntegerProperty.Stringify(Integer(E)));
 
   f.error := e;
   If (not f.eof) and (e<>VORBIS_need_more_data) then
@@ -1457,7 +1457,7 @@ end;
 
 // this is a weird definition of log2() for which log2(1) = 1, log2(2) = 2, log2(4) = 3
 // as required by the specification. fast(?) implementation from stb.h
-// @OPTIMIZE: called multiple times per-packet with "constants"; move to setup
+// OPTIMIZE: called multiple times per-packet with "constants"; move to setup
 function ilog(n:Integer):Integer;
    const log2_4: array [0..15] of Byte = ( 0,1,2,2,3,3,3,3,4,4,4,4,4,4,4,4 );
    var one:Cardinal;
@@ -1681,7 +1681,7 @@ Var
   r:Integer;
   N:Single;
 Begin
-//  Log(logDebug, 'OGG', 'l1 '+IntToString(entries)+' / ' +IntToString(Dim));
+//  Log(logDebug, 'OGG', 'l1 '+ IntegerProperty.Stringify(entries)+' / ' + IntegerProperty.Stringify(Dim));
 //  Log(logDebug, 'OGG', 'l1a');
   N := lnXP1(entries-1);
 
@@ -1915,7 +1915,7 @@ begin
    // absolute granule position
    loc0 := get32(f); 
    loc1 := get32(f);
-   // @TODO: validate loc0,loc1 as valid positions?
+   // TODO: validate loc0,loc1 as valid positions?
    // stream serial number -- vorbis doesn't interleave, so discard
    get32(f);
    //if (f->serial != get32(f)) return error(f, VORBIS_incorrect_stream_serial_number);
@@ -2059,7 +2059,7 @@ begin
    while get8_packet_raw(f) <> EOP do;
 end;
 
-// @OPTIMIZE: this is the secondary bit decoder, so it's probably not as important
+// OPTIMIZE: this is the secondary bit decoder, so it's probably not as important
 // as the huffman decoder?
 function get_bits(f:pvorb; n:integer):Cardinal;
 var 
@@ -2104,7 +2104,7 @@ begin
    Result:=z;
 end;
 
-// @OPTIMIZE: primary accumulator for huffman
+// OPTIMIZE: primary accumulator for huffman
 // expand the buffer to as many bits as possible without reading off end of packet
 // it might be nice to allow f->valid_bits and f->acc to be stored in registers,
 // e.g. cache them locally and decode locally
@@ -2548,13 +2548,13 @@ var dy,adx,err,off:integer;
 begin
    dy := y1 - y0;
    adx := x1 - x0;
-   // @OPTIMIZE: force int division to round in the right direction... is this necessary on x86?
+   // OPTIMIZE: force int division to round in the right direction... is this necessary on x86?
    err := abs(dy) * (x - x0);
    off := err div adx;
    if dy<0 then Result:=y0-off else Result:=y0+off;
 end;
 
-// @OPTIMIZE: if you want to replace this bresenham line-drawing routine,
+// OPTIMIZE: if you want to replace this bresenham line-drawing routine,
 // note that you must produce bit-identical output to decode correctly;
 // this specific sequence of operations is specified in the spec (it's
 // drawing integer-quantized frequency-space lines that the encoder
@@ -3151,7 +3151,7 @@ begin
    n4 := n shr 2;
    n8 := n shr 3;
    //n3_4 := n - n4;
-   // @OPTIMIZE: reduce register pressure by using fewer variables?
+   // OPTIMIZE: reduce register pressure by using fewer variables?
    save_point := temp_alloc_save(f);
    //float *buf2 = (float *) temp_alloc(f, n2 * sizeof(*buf2));
    setlength(buffer2,n2);
@@ -3871,7 +3871,7 @@ begin
    // last half of this data becomes previous window
    f.previous_length := len - right;
 
-   // @OPTIMIZE: could avoid this copy by double-buffering the
+   // OPTIMIZE: could avoid this copy by double-buffering the
    // output (flipping previous_window with channel_buffers), but
    // then previous_window would have to be 2x as large, and
    // channel_buffers couldn't be temp mem (although they're NOT
@@ -4185,7 +4185,7 @@ begin
       total:=0;
       cb := @f.codebooks[i];
 
-//      Log(logDebug, 'OGG', 'X '+IntToString(I)+' / ' +IntToString(Pred(f.codebook_count)));
+//      Log(logDebug, 'OGG', 'X '+ IntegerProperty.Stringify(I)+' / ' + IntegerProperty.Stringify(Pred(f.codebook_count)));
 
       x := get_bits(f, 8); if (x <> $42) then begin Result:=error(f, VORBIS_invalid_setup); Exit; end;
       x := get_bits(f, 8); if (x <> $43) then begin Result:=error(f, VORBIS_invalid_setup); Exit; end;
@@ -4588,8 +4588,8 @@ _skip:
             if m.chan[j].mux >= m.submaps then begin result:=error(f, VORBIS_invalid_setup); exit; end;
          end;
       end else
-         // @SPECIFICATION: this case is missing from the spec
-         for j:=0 to f.channels-1 do 
+         // SPECIFICATION: this case is missing from the spec
+         for j:=0 to f.channels-1 do
             m.chan[j].mux := 0;
 
       for j:=0 to m.submaps-1 do begin
@@ -6365,7 +6365,7 @@ Begin
         Continue;
       End;
 
-      RaiseError('Cannot load '+_Source.Name+ ', error code: '+IntToString(Integer(_Error)));
+      RaiseError('Cannot load '+_Source.Name+ ', error code: '+ IntegerProperty.Stringify(Integer(_Error)));
       Exit;
     End;
 

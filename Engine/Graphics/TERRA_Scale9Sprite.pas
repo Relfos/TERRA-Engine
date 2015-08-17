@@ -47,6 +47,7 @@ Implementation
 { Scale9Sprite }
 Constructor Scale9Sprite.Create;
 Begin
+  Inherited;
   _BaseColor := ColorWhite;
 End;
 

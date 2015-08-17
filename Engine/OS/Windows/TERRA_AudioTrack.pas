@@ -194,7 +194,7 @@ Begin
   If (_DeviceID = 0 ) Or (_IsMIDI) Then
     Exit;
 
-  intError := mciSendString(PAnsiChar('setaudio '+_FileName+' volume to '+IntToString(Trunc(_Volume*1000))), Nil, 0, Application.Instance().Handle);
+  intError := mciSendString(PAnsiChar('setaudio '+_FileName+' volume to '+ IntegerProperty.Stringify(Trunc(_Volume*1000))), Nil, 0, Application.Instance().Handle);
   CheckError( intError );
 End;
 

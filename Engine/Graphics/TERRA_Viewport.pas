@@ -425,7 +425,7 @@ Begin
   Begin
     If (_Textures[Index] = Nil) Then
     Begin
-      _Textures[Index] := TERRATexture.Create(rtDynamic, Self._Name + '_rt'+IntToString(Index));
+      _Textures[Index] := TERRATexture.Create(rtDynamic, Self._Name + '_rt'+ IntegerProperty.Stringify(Index));
       _Textures[Index].InitFromSurface(_Targets[Index]);
       _Textures[Index].WrapMode := wrapNothing;
     End;
@@ -482,7 +482,7 @@ Begin
 
   _Camera := Camera;
 
-  Log(logDebug, 'Viewport', 'Created viewport '+Name+' with size '+IntToString(_Width) +' x '+IntToString(_Height)+' and scale = '+FloatToString(_Scale));
+  Log(logDebug, 'Viewport', 'Created viewport '+Name+' with size '+ IntegerProperty.Stringify(_Width) +' x '+ IntegerProperty.Stringify(_Height)+' and scale = '+FloatProperty.Stringify(_Scale));
 End;
 
 
@@ -677,7 +677,7 @@ Begin
 
   If Enabled Then
   Begin
-    Log(logDebug, 'GraphicsManager', 'Initializing '+IntToString(TargetValue)+' target for '+Self.Name);
+    Log(logDebug, 'GraphicsManager', 'Initializing '+ IntegerProperty.Stringify(TargetValue)+' target for '+Self.Name);
 
     If (TargetValue<RenderCaptureTargets) Then
     Begin
@@ -700,7 +700,7 @@ Begin
 
   End Else
   Begin
-    Log(logDebug, 'GraphicsManager', 'Destroying '+IntToString(TargetValue)+' target for '+Self.Name);
+    Log(logDebug, 'GraphicsManager', 'Destroying '+ IntegerProperty.Stringify(TargetValue)+' target for '+Self.Name);
     If TargetValue<RenderCaptureTargets Then
       ReleaseObject(_RenderTextures[TargetValue]);
 
@@ -759,9 +759,9 @@ Begin
     If (Not Self.IsRenderTargetEnabled(TargetType)) Then
       Self.SetRenderTargetState(TargetType, True);
 
-    If _RenderTextures[TargetValue] = Nil Then
+    If (_RenderTextures[TargetValue] = Nil) {And (TargetValue<RenderCaptureTargets)} Then
     Begin
-      _RenderTextures[TargetValue] := TERRATexture.Create(rtDynamic, _Name+'_rt'+IntToString(TargetValue));
+      _RenderTextures[TargetValue] := TERRATexture.Create(rtDynamic, _Name+'_rt'+ IntegerProperty.Stringify(TargetValue));
       _RenderTextures[TargetValue].InitFromSurface(Self.GetRenderTarget(TargetType));
     End;
 
@@ -1040,7 +1040,7 @@ Begin
   Begin
     If (Assigned(_RenderBuffers[I])) Or (Assigned(_RenderTextures[I])) Then
     Begin
-      Log(logDebug, 'Viewport', 'Reseting '+IntToString(I)+' target for '+Self.Name);
+      Log(logDebug, 'Viewport', 'Reseting '+ IntegerProperty.Stringify(I)+' target for '+Self.Name);
       Self.SetRenderTargetState(RenderTargetType(I), False);
       Self.SetRenderTargetState(RenderTargetType(I), True);
     End;
@@ -1158,7 +1158,6 @@ Begin
         End;*)
 
         Sampler.Update(Self, Self.GetRenderTexture(captureTargetNormal), _EdgeShader, 0, 1);
-        //Sampler.Update(Sampler.GetResult(), _DistanceFieldShader, 0, 256);
       End;
 
     End;

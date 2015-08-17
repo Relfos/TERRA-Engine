@@ -3,7 +3,7 @@ Unit TERRA_Gamepad;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_InputManager;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_InputManager;
 
 Type
   WindowsGamepad = Class(Gamepad)
@@ -55,7 +55,7 @@ Begin
   ErrorCode := RegOpenKeyExA(Root, PAnsiChar(regkey), 0, KEY_READ, Key);
   If (ErrorCode =  ERROR_SUCCESS) Then
   Begin
-    RegValue := 'Joystick'+IntToString(Succ(Index))+ REGSTR_VAL_JOYOEMNAME;
+    RegValue := 'Joystick'+ IntegerProperty.Stringify(Succ(Index))+ REGSTR_VAL_JOYOEMNAME;
     RegSize := 1024;
     SetLength(RegName, RegSize);
     ErrorCode := RegQueryValueExA(Key, PAnsiChar(Regvalue), Nil, Nil, @RegName[1], @RegSize);
@@ -128,8 +128,8 @@ Begin
   End Else
     Self.Connnect();
 
-  //Windows.SetWindowText(Handle, PAnsiChar(IntToString(JoyInfo.wXpos)));
-  //Windows.SetWindowText(Handle, PAnsiChar(IntToString(JoyInfo.wButtons)));
+  //Windows.SetWindowText(Handle, PAnsiChar( IntegerProperty.Stringify(JoyInfo.wXpos)));
+  //Windows.SetWindowText(Handle, PAnsiChar( IntegerProperty.Stringify(JoyInfo.wButtons)));
 
   Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadUp_Offset), (JoyInfo.wYpos=0));
   Keys.SetState(GetGamePadKeyValue(LocalID, keyGamePadDown_Offset), (JoyInfo.wYpos=65535));

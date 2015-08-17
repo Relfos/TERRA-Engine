@@ -507,7 +507,7 @@ Begin
         {$ENDIF}
       End;*)
 
-    Log(logDebug, 'FileManager', 'Open size '+IntToString(Result.Size));
+    Log(logDebug, 'FileManager', 'Open size '+IntegerProperty.Stringify(Result.Size));
     End;
   End;
 End;

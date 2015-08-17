@@ -84,7 +84,7 @@ End;
 
 Function DimensionProperty.GetBlob: TERRAString;
 Begin
-  Result := FloatToString(_Dimension.Value);
+  Result := FloatProperty.Stringify(_Dimension.Value);
 
   If _Dimension.IsPercent Then
     Result := Result +'%';

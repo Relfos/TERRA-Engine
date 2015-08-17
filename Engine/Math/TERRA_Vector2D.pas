@@ -29,7 +29,7 @@ Unit TERRA_Vector2D;
 {$ENDIF}
 
 Interface
-Uses TERRA_Vector3D, TERRA_Math, TERRA_String, TERRA_Utils;
+Uses TERRA_Object, TERRA_Vector3D, TERRA_Math, TERRA_String, TERRA_Utils, TERRA_Tween;
 
 Type
   {$IFDEF OXYGENE}
@@ -70,9 +70,36 @@ Type
     {$ENDIF}
   End;
 
-Function StringToVector2D(S:TERRAString):Vector2D;
-Function Vector2DToString(Const Val:Vector2D):TERRAString;
+  Vector2DProperty = Class(TweenableProperty)
+    Protected
+      _X:FloatProperty;
+      _Y:FloatProperty;
 
+      Function GetVectorValue:Vector2D;
+      Procedure SetVectorValue(const NewValue:Vector2D);
+
+      Procedure UpdateTweens(); Override;
+
+    Public
+      Constructor Create(Const Name:TERRAString; Const InitValue:Vector2D);
+      Procedure Release(); Override;
+
+      Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
+      Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Vector2D; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
+
+      Function GetObjectType:TERRAString; Override;
+
+      Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
+
+      Function Stringify(Const Val:Vector2D):TERRAString;
+
+      Property X:FloatProperty Read _X;
+      Property Y:FloatProperty Read _Y;
+
+      Property Value:Vector2D Read GetVectorValue Write SetVectorValue;
+  End;
+  
+Function StringToVector2D(S:TERRAString):Vector2D;
 Function VectorCreate2D(Const X,Y:Single):Vector2D; 
 Function VectorCross2D(Const A,B:Vector2D):Single;
 
@@ -92,11 +119,6 @@ Function StringToVector2D(S:TERRAString):Vector2D;
 Begin
   Result.X := StringToFloat(StringGetNextSplit(S, Ord('/')));
   Result.Y := StringToFloat(StringGetNextSplit(S, Ord('/')));
-End;
-
-Function Vector2DToString(Const Val:Vector2D):TERRAString;
-Begin
-  Result := FloatToString(Val.X) + '/'+ FloatToString(Val.Y);
 End;
 
 Function VectorCreate2D(Const X,Y:Single):Vector2D; {$IFDEF FPC} Inline;{$ENDIF}
@@ -313,5 +335,85 @@ Begin
   PB   := VectorCreate2D(B.X, B.Z);
   Result := VectorAngle2D(PA, PB);
 End;
+
+
+
+{ Vector2DProperty }
+Constructor Vector2DProperty.Create(Const Name:TERRAString; const InitValue: Vector2D);
+Begin
+  _ObjectName := Name;
+  _X := FloatProperty.Create('x', InitValue.X);
+  _Y := FloatProperty.Create('y', InitValue.Y);
+End;
+
+Procedure Vector2DProperty.Release;
+Begin
+  ReleaseObject(_X);
+  ReleaseObject(_Y);
+End;
+
+(*Function Vector2DProperty.GetBlob: TERRAString;
+Begin
+  Result := X.GetBlob() + '/'+ Y.GetBlob();
+End;
+
+Procedure Vector2DProperty.SetBlob(const Blob: TERRAString);
+Var
+  S:TERRAString;
+Begin
+  S := Blob;
+  X.SetBlob(StringGetNextSplit(S, Ord('/')));
+  Y.SetBlob(StringGetNextSplit(S, Ord('/')));
+End;*)
+
+Function Vector2DProperty.GetVectorValue: Vector2D;
+Begin
+  Result.X := X.Value;
+  Result.Y := Y.Value;
+End;
+
+Procedure Vector2DProperty.SetVectorValue(const NewValue: Vector2D);
+Begin
+  X.Value := NewValue.X;
+  Y.Value := NewValue.Y;
+End;
+
+Function Vector2DProperty.GetObjectType: TERRAString;
+Begin
+  Result := 'vec2';
+End;
+
+Procedure Vector2DProperty.AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
+Begin
+  Self.AddTween(Ease, StringToVector2D(StartValue), StringToVector2D(TargetValue), Duration, Delay, Callback, CallTarget);
+End;
+
+Procedure Vector2DProperty.AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Vector2D; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
+Begin
+  Self.X.AddTween(Ease, StartValue.X, TargetValue.X, Duration, Delay, Callback, CallTarget);
+  Self.Y.AddTween(Ease, StartValue.Y, TargetValue.Y, Duration, Delay, Nil);
+End;
+
+Function Vector2DProperty.GetPropertyByIndex(Index: Integer): TERRAObject;
+Begin
+  Case Index Of
+  0:  Result := X;
+  1:  Result := Y;
+  Else
+    Result := Nil;
+  End;
+End;
+
+Procedure Vector2DProperty.UpdateTweens;
+Begin
+  X.UpdateTweens();
+  Y.UpdateTweens();
+End;
+
+Function Vector2DProperty.Stringify(Const Val:Vector2D):TERRAString;
+Begin
+  Result := FloatProperty.Stringify(Val.X) + '/'+ FloatProperty.Stringify(Val.Y);
+End;
+
 
 End.

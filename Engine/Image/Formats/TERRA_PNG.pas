@@ -30,12 +30,8 @@ Unit TERRA_PNG;
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_Stream, TERRA_Image;
 
-Function ValidatePNG(Source:Stream):Boolean;
-Procedure PNGLoad(Source:Stream; MyImage:Image);
-Procedure PNGSave(Dest:Stream; MyImage:Image; Const Options:TERRAString='');
-
 Implementation
-Uses TERRA_Error, TERRA_Utils, TERRA_CRC32, TERRA_INI, TERRA_Color, TERRA_Log, TERRA_ZLib;
+Uses TERRA_Error, TERRA_Utils, TERRA_CRC32, TERRA_Color, TERRA_Log, TERRA_ZLib;
 
 Type
   RGBQuad=Packed Record
@@ -285,8 +281,8 @@ Begin
 
   Source.Skip(Chunk.Size-SizeOf(PNG.Header));
 
-  Log(logDebug,'PNG', 'Width:' +IntToString(PNG.Header.Width));
-  Log(logDebug,'PNG', 'Height:' +IntToString(PNG.Header.Height));
+  Log(logDebug,'PNG', 'Width:' + IntegerProperty.Stringify(PNG.Header.Width));
+  Log(logDebug,'PNG', 'Height:' + IntegerProperty.Stringify(PNG.Header.Height));
 
   // Compression method must be 0 (inflate/deflate)
   If (PNG.Header.CompressionMethod<>0) then
@@ -840,7 +836,7 @@ Var
   Loader:PNGLoader;
 Begin
   {$IFDEF DEBUG_CORE}
-  Log(logDebug, 'PNG', 'Got PNG stream: '+Source.Name+' -> '+IntToString(Source.Position)+' / '+IntToString(Source.Size));
+  Log(logDebug, 'PNG', 'Got PNG stream: '+Source.Name+' -> '+ IntegerProperty.Stringify(Source.Position)+' / '+ IntegerProperty.Stringify(Source.Size));
 
   Log(logDebug, 'PNG', 'Reading header...');
   {$ENDIF}
@@ -863,7 +859,7 @@ Begin
   // Load chunks
   Repeat
     {$IFDEF DEBUG_CORE}
-    Log(logDebug, 'PNG', 'Reading chunks...'+IntToString(Source.Position));
+    Log(logDebug, 'PNG', 'Reading chunks...'+ IntegerProperty.Stringify(Source.Position));
     {$ENDIF}
 
     Source.Read(@Chunk.Size, 4);
@@ -871,7 +867,7 @@ Begin
     Source.Read(@Chunk.Name[0], 4);
 
     {$IFDEF DEBUG_CORE}
-    Log(logDebug, 'PNG', 'Found chunk: '+Chunk.Name + ' , size: '+IntToString(Chunk.Size));
+    Log(logDebug, 'PNG', 'Found chunk: '+Chunk.Name + ' , size: '+ IntegerProperty.Stringify(Chunk.Size));
     {$ENDIF}
 
     //DisplayMessage('Chunk:' +Chunk.Name);
@@ -961,7 +957,7 @@ Begin
   End;
 End;
 
-Procedure PNGSave(Dest:Stream; MyImage:Image; Const Options:TERRAString='');
+Procedure PNGSave(Dest:Stream; MyImage:Image; Depth:Integer);
 Const
   BUFFER = 5;
 Var
@@ -1103,8 +1099,6 @@ End;
 Var
   Signature:Array[0..7] Of TERRAChar;
   OP,CRC:Cardinal;
-  Depth:Integer;
-  Parser:INIParser;
 Begin
   Move(PNGSignature, Signature, 8);
   Dest.Write(@Signature[0], 8);
@@ -1116,20 +1110,10 @@ Begin
   Header.CompressionMethod:=0;
   Header.FilterMethod:=0;
 
-  Depth := 32;
-  If Options<>'' Then
-  Begin
-    Parser := INIParser.Create;
-    Parser.ParseCommas := True;
-    Parser.AddToken('Depth',tkInteger,@Depth);
-    Parser.LoadFromString(Options);
-    ReleaseObject(Parser);
-  End;
-
-  If Depth=32 Then
-    Header.ColorType:=COLOR_RGBAlpha
+  If Depth=24 Then
+    Header.ColorType:=COLOR_RGB
   Else
-    Header.ColorType:=COLOR_RGB;
+    Header.ColorType:=COLOR_RGBAlpha;
 
   OP:=WriteChunkHeader(Dest, 'IHDR', SizeOf(Header));
   ByteSwap32(Cardinal(Header.Width));

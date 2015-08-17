@@ -33,10 +33,10 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
 Type
   TERRASpriteRenderer = Class;
 
-  SpriteBatch = Object
+  SpriteBatch = Class(TERRAObject)
     Protected
       _First:TERRASprite;
-      _Count:Integer;
+      _SpriteCount:Integer;
       _Texture:TERRATexture;
 
       _Manager:TERRASpriteRenderer;
@@ -50,19 +50,30 @@ Type
       _Closed:Boolean;
       _Shader:ShaderInterface;
       _Saturation:Single;
+      _Glow:ColorRGBA;
       _Outline:ColorRGBA;
+
+      _Vertices:VertexData;
+      _RenderCount:Integer;
+
+      _Ready:Boolean;
 
       Procedure AddSprite(P:TERRASprite);
 
-      Procedure Flush(Const Projection:Matrix4x4);
+      Procedure Prepare();
+      Procedure Render(Const Projection:Matrix4x4; Stage:RendererStage);
+      Procedure Clear();
 
+    Public
+      Constructor Create(Manager:TERRASpriteRenderer);
+      Procedure Release();
       //Procedure SetupSaturationCombiners(Var Slot:Integer);
   End;
 
   TERRASpriteRenderer = Class(TERRAObject)
     Protected
       _NullSprite:TERRASprite;
-      
+
       _Index:Integer;
       _SpriteCount:Integer;
       _Sprites:Array Of TERRASprite;
@@ -71,25 +82,26 @@ Type
       _BatchCount:Integer;
 
       _CurrentShader:ShaderInterface;
+
       _SpriteShaderWithoutGrading:ShaderInterface;
+      _SpriteShaderSolid:ShaderInterface;
       {$IFNDEF DISABLECOLORGRADING}
       _SpriteShaderWithGrading:ShaderInterface;
       {$ENDIF}
+
       _FontShader:ShaderInterface;
-
-      _Vertices:VertexData;
-
-      Procedure Clear;
 
       Procedure SetShader(Const Projection:Matrix4x4; MyShader:ShaderInterface);
 
-      Procedure Flush(Const Projection:Matrix4x4);
 
    Public
       Constructor Create();
       Procedure Release; Override;
 
-      Procedure Render(Const Projection:Matrix4x4);
+      Procedure Prepare;
+      Procedure Render(Const Projection:Matrix4x4; Stage:RendererStage);
+      Procedure Clear;
+
 
       Procedure QueueSprite(S:TERRASprite);
 
@@ -126,7 +138,7 @@ Begin
   Result := S;
 End;
 
-Function GetShader_Sprite(DoColorGrading, IsFont:Boolean):TERRAString;
+Function GetShader_Sprite(DoColorGrading, IsFont, IsSolid:Boolean):TERRAString;
 Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
@@ -137,12 +149,12 @@ Begin
 	Line('  varying highp vec2 screen_position;');
 
 	Line('  varying mediump vec2 texCoord;');
-	Line('  varying mediump float saturation;');
+	Line('  varying lowp vec4 fillColor;');
 	Line('  varying lowp vec4 color;');
   Line('  attribute highp vec3 terra_position;');
   Line('  attribute mediump vec2 terra_UV0;');
   Line('  attribute mediump vec4 terra_UV1;');
-  Line('  attribute mediump float terra_UV2;');
+  Line('  attribute mediump vec4 terra_UV2;');
   Line('  attribute lowp vec4 terra_color;');
   Line('  uniform mat4 projectionMatrix;');
 
@@ -152,18 +164,21 @@ Begin
   Line('  gl_Position =  projectionMatrix * local_position;');
   Line('  texCoord = terra_UV0;');
   Line('  clipRect = terra_UV1;');
-  Line('  saturation = terra_UV2;');
+  Line('  fillColor = terra_UV2;');
   Line('  color = terra_color;}');
   Line('}');
 
   Line('fragment {');
+
 	Line('  varying highp vec4 clipRect;');
 	Line('  varying highp vec2 screen_position;');
 
 	Line('  varying mediump vec2 texCoord;');
-	Line('  varying mediump float saturation;');
+	Line('  varying lowp vec4 fillColor;');
 	Line('  varying lowp vec4 color;');
-	Line('  uniform sampler2D texture;');
+
+  If (Not IsSolid) Then
+	  Line('  uniform sampler2D texture;');
 
   If IsFont Then
   Begin
@@ -189,10 +204,15 @@ Begin
   Line('  if ( screen_position.y< clipRect.y) { discard;} ');
   Line('  if ( screen_position.y> clipRect.w) { discard;} ');
 
+  If (IsSolid) Then
+    Line('    lowp vec4 sourceColor = fillColor;')
+  Else
+    Line('    lowp vec4 sourceColor = texture2D(texture, texCoord.xy);');
+
   If IsFont Then
   Begin
   {$IFDEF DISTANCEFIELDFONTS}
-  Line('    float colorDistance = texture2D(texture, texCoord.xy).a;');
+  Line('    float colorDistance = sourceColor.a;');
   Line('    float alpha = smoothstep(outerEdgeCenter - smoothing, outerEdgeCenter + smoothing, colorDistance);');
   Line('    float border = smoothstep(0.5 - smoothing, 0.5 + smoothing, colorDistance);');
   Line('    vec4 baseColor = mix(outlineColor, color, border);');
@@ -208,7 +228,7 @@ Begin
 
   {$ELSE}
 
-  Line('    lowp vec4 mask = texture2D(texture, texCoord.xy);');
+  Line('    lowp vec4 mask = sourceColor;');
   Line('    lowp float alpha;');
   Line('    if (mask.a<0.5) alpha = 0.0; else alpha = 1.0;');
   {$IFNDEF MOBILE}
@@ -217,8 +237,7 @@ Begin
   Line('    lowp vec4 baseColor;');
   Line('    baseColor = color; ');
 
-  //Line('    baseColor.rgb = AdjustSaturation(c.rgb, saturation); ');
-  Line('    baseColor.rgb = AdjustSaturation(baseColor.rgb, saturation); ');
+  Line('    baseColor.rgb = AdjustSaturation(baseColor.rgb, fillColor.a); ');
 //  Line('    baseColor.rgb = mix(baseColor.rgb, outlineColor.rgb, mask.r); ');
   Line('    gl_FragColor = vec4(baseColor.r, baseColor.g, baseColor.b, alpha * color.a);}');
 
@@ -227,16 +246,14 @@ Begin
   {$ENDIF}
   End Else
   Begin
-    Line('    lowp vec4 c = color * texture2D(texture, texCoord.xy);');
+    Line('    vec4 c = sourceColor * color;');
     {$IFNDEF DISABLECOLORGRADING}
     If (DoColorGrading) Then
       Line('    c.rgb = ColorTableLookup(c.rgb);');
     {$ENDIF}
-    Line('    c.rgb = AdjustSaturation(c.rgb, saturation); ');
+    Line('    c.rgb = AdjustSaturation(c.rgb, fillColor.a); ');
 
     //Line('    if (c.a<0.1) discard;');
-   // Line('    c.rgb *= 0.0;');
-  //  Line('    c.rgb += vec3(1.0, 0.0, 0.0);');
     Line('    gl_FragColor = c;}');
   End;
 
@@ -322,26 +339,31 @@ Begin
   For I:=0 To Pred(_SpriteCount) Do
     _Sprites[I] := QuadSprite.Create;
   _Index := -1;
+
   _BatchCount := 50;
-
-  _Vertices := CreateSpriteVertexData(6 * BatchSize);
-
   SetLength(_Batches, _BatchCount);
+  For I:=0 To Pred(_BatchCount) Do
+    _Batches[I] := SpriteBatch.Create(Self);
 End;
 
 Procedure TERRASpriteRenderer.Release;
 Var
   I:Integer;
 Begin
-  For I:=0 To Pred(Self._SpriteCount) Do
+  For I:=0 To Pred(_SpriteCount) Do
     ReleaseObject(_Sprites[I]);
+  _SpriteCount := 0;
 
-  ReleaseObject(_Vertices);
+  For I:=0 To Pred(_BatchCount) Do
+    ReleaseObject(_Batches[I]);
+  _BatchCount := 0;
+
   ReleaseObject(_NullSprite);
 
   ReleaseObject(_FontShader);
   ReleaseObject(_CurrentShader);
   ReleaseObject(_SpriteShaderWithoutGrading);
+  ReleaseObject(_SpriteShaderSolid);
   {$IFNDEF DISABLECOLORGRADING}
   ReleaseObject(_SpriteShaderWithGrading);
   {$ENDIF}
@@ -450,18 +472,18 @@ Begin
   And (_Batches[I]._Shader = S.Shader)
   And ( (HasShaders) Or (_Batches[I]._Saturation = S.Saturation))
   And (Cardinal(_Batches[I]._Outline) = Cardinal(S.Outline))
-  And (_Batches[I]._Count<BatchSize)) And (_Batches[I]._Layer = TargetLayer)
+  And (_Batches[I]._SpriteCount<BatchSize)) And (_Batches[I]._Layer = TargetLayer)
   And (Not _Batches[I]._Closed) Then
   Begin
     N := I;
     ResetBatch := False;
     Break;
   End;
-
+  
   If (N<0) Then
   Begin
     For I:=0 To Pred(_BatchCount) Do
-    If (_Batches[I]._Count <=0) Then
+    If (_Batches[I]._SpriteCount <=0) Then
     Begin
       N := I;
       Break;
@@ -477,7 +499,7 @@ Begin
 
   If ResetBatch Then
   Begin
-    _Batches[N]._Count := 0;
+    _Batches[N]._SpriteCount := 0;
     _Batches[N]._BlendMode := S.BlendMode;
     _Batches[N]._Texture := S.Texture;
     _Batches[N]._Closed := False;
@@ -486,6 +508,7 @@ Begin
     _Batches[N]._ColorTable := S.ColorTable;
     {$ENDIF}
     _Batches[N]._Saturation := S.Saturation;
+    _Batches[N]._Glow := S.Glow;
     _Batches[N]._Shader := S.Shader;
     _Batches[N]._Outline := S.Outline;
     _Batches[N]._First := Nil;
@@ -495,18 +518,61 @@ Begin
   _Batches[N].AddSprite(S);
 End;
 
-Procedure TERRASpriteRenderer.Clear;
+Procedure TERRASpriteRenderer.Prepare;
+Var
+  I:Integer;
+  Graphics:GraphicsManager;
 Begin
+  Graphics := GraphicsManager.Instance;
+  If (_SpriteShaderWithoutGrading = Nil) Then
+  Begin
+    _SpriteShaderWithoutGrading := Graphics.Renderer.CreateShader();
+    _SpriteShaderWithoutGrading.Generate('Sprite', GetShader_Sprite(False, False, False));
+  End;
+
+  If (_SpriteShaderSolid = Nil) Then
+  Begin
+    _SpriteShaderSolid := Graphics.Renderer.CreateShader();
+    _SpriteShaderSolid.Generate('SpriteSolid', GetShader_Sprite(False, False, True));
+  End;
+
+
+  {$IFNDEF DISABLECOLORGRADING}
+  If (_SpriteShaderWithGrading = Nil) Then
+  Begin
+    _SpriteShaderWithGrading := Graphics.Renderer.CreateShader();
+    _SpriteShaderWithGrading.Generate('SpriteGrading', GetShader_Sprite(True, False, False));
+  End;
+  {$ENDIF}
+
+  If (_FontShader = Nil) Then
+  Begin
+    _FontShader := Graphics.Renderer.CreateShader();
+    _FontShader.Generate('Font', GetShader_Sprite(False, True, False));
+  End;
+
+  For I:=0 To Pred(_BatchCount) Do
+  Begin
+    _Batches[I].Prepare();
+  End;
+
   _Index := -1;
 End;
 
-
-Function GreyTransform(S:ColorRGBA):ColorRGBA; CDecl;
+Procedure TERRASpriteRenderer.Clear;
+Var
+  I:Integer;
 Begin
-  Result := ColorGrey(ColorLuminance(S));
+  For I:=0 To Pred(_BatchCount) Do
+  If (Assigned(_Batches[I]._First)) Then
+  Begin
+    _Batches[I].Clear();
+  End;
+
+  _Index := -1;
 End;
 
-Procedure TERRASpriteRenderer.Render;
+Procedure TERRASpriteRenderer.Render(Const Projection:Matrix4x4; Stage:RendererStage);
 Var
   I,K:Integer;
   Min:Single;
@@ -514,10 +580,6 @@ Var
   M:Matrix4x4;
   Graphics:GraphicsManager;
 Begin
-  If InputManager.Instance.Keys.IsDown(keyF6) Then
-    Exit;
-
-
   {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'Render');{$ENDIF}
 
   Graphics := GraphicsManager.Instance;
@@ -548,25 +610,6 @@ Begin
   BIBI
   *)
 
-  If (_SpriteShaderWithoutGrading = Nil) Then
-  Begin
-    _SpriteShaderWithoutGrading := Graphics.Renderer.CreateShader();
-    _SpriteShaderWithoutGrading.Generate('Sprite', GetShader_Sprite(False, False));
-  End;
-
-  {$IFNDEF DISABLECOLORGRADING}
-  If (_SpriteShaderWithGrading = Nil) Then
-  Begin
-    _SpriteShaderWithGrading := Graphics.Renderer.CreateShader();
-    _SpriteShaderWithGrading.Generate('SpriteGrading', GetShader_Sprite(True, False));
-  End;
-  {$ENDIF}
-
-  If (_FontShader = Nil) Then
-  Begin
-    _FontShader := Graphics.Renderer.CreateShader();
-    _FontShader.Generate('Font', GetShader_Sprite(False, True));
-  End;
 
   _CurrentShader := Nil;
 
@@ -582,15 +625,16 @@ Begin
     Min := 9999;
 
     For I:=0 To Pred(_BatchCount) Do
-    If (Assigned(_Batches[I]._First)) And (_Batches[I]._Layer<Min) Then
+    If (_Batches[I]._Ready) And (_Batches[I]._Layer<Min) Then
     Begin
+      _Batches[I]._Ready := False;
       Min := _Batches[I]._Layer;
       Index := I;
     End;
 
     If (Index>=0) Then
     Begin
-      _Batches[Index].Flush(Projection);
+      _Batches[Index].Render(Projection, Stage);
       Dec(Total);
 
       Inc(Count); //If Count>1 Then break;
@@ -601,8 +645,6 @@ Begin
 
   Graphics.Renderer.SetDepthTest(True);    //BIBI
 
-  Self.Clear();
-
   (*If (Not Graphics.Renderer.Features.Shaders.Avaliable) Then
   Begin
     glDisableClientState(GL_VERTEX_ARRAY);
@@ -612,15 +654,10 @@ Begin
 
   _CurrentShader := Nil;
 
-  {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
-End;
-
-Procedure TERRASpriteRenderer.Flush;
-Var
-  I:Integer;
-Begin
   For I:=0 To Pred(_BatchCount) Do
-    _Batches[I]._Closed := True;
+    _Batches[I]._Ready := (_Batches[I]._SpriteCount>0); 
+
+  {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 
 Procedure TERRASpriteRenderer.SetShader(Const Projection:Matrix4x4; MyShader: ShaderInterface);
@@ -648,26 +685,41 @@ Begin
   {If (MyShader = _FontShader) Then
     IntToString(2);}
 
-{  Graphics.Renderer.SetSourceVertexSize(SizeOf(SpriteVertex));
-  Graphics.Renderer.SetAttributeSource('terra_position', typeVector3D, @(_Vertices[0].Position));
-  Graphics.Renderer.SetAttributeSource('terra_UV0', typeVector3D, @(_Vertices[0].TexCoord));
-  Graphics.Renderer.SetAttributeSource('terra_color', typeColor, @(_Vertices[0].Color));
-  Graphics.Renderer.SetAttributeSource('terra_saturation', typeFloat, @(_Vertices[0].Saturation));}
-
   {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 
 { SpriteBatch }
+Constructor SpriteBatch.Create(Manager: TERRASpriteRenderer);
+Begin
+  _Manager := Manager;
+  _Vertices := CreateSpriteVertexData(6 * BatchSize);
+End;
+
 Procedure SpriteBatch.AddSprite(P:TERRASprite);
 Var
   S, Prev:TERRASprite;
 Begin
-  Inc(_Count);
+  Inc(_SpriteCount);
   P.Next := _First;
   _First := P;
 End;
 
-Procedure SpriteBatch.Flush(Const Projection:Matrix4x4);
+Procedure SpriteBatch.Release;
+Begin
+  ReleaseObject(_Vertices);
+End;
+
+Procedure SpriteBatch.Clear();
+Begin
+  _Closed := False;
+  _SpriteCount := 0;
+  _RenderCount := 0;
+  _Texture := Nil;
+  _First := Nil;
+End;
+
+
+Procedure SpriteBatch.Prepare();
 Var
   I, J:Integer;
   S:TERRASprite;
@@ -684,8 +736,7 @@ Var
   Graphics:GraphicsManager;
   CurrentClip:Vector4D;
 Begin
-  _Closed := False;
-  If (_Count<=0) Then
+  If (_SpriteCount<=0) Then
   Begin
     _First := Nil;
     Exit;
@@ -693,42 +744,7 @@ Begin
 
   Graphics := GraphicsManager.Instance;
 
-{  Graphics.Renderer.SetSourceVertexSize(SizeOf(SpriteVertex));
-  Graphics.Renderer.SetAttributeSource(TERRA_POSITION_ATTRIBUTE, typeVector3D,  @_Vertices[0].Position);
-  Graphics.Renderer.SetAttributeSource(TERRA_UV0_ATTRIBUTE, typeVector2D, @_Vertices[0].TexCoord);
-  Graphics.Renderer.SetAttributeSource(TERRA_COLOR_ATTRIBUTE, typeColor,  @_Vertices[0].Color);
-
-  If (_Saturation<1.0) Then
-    Graphics.Renderer.SetAttributeSource(TERRA_SATURATION_ATTRIBUTE, typeFloat, @_Vertices[0].Saturation);}
-
-  If (Assigned(Self._Shader)) Then
-  Begin
-    _Manager.SetShader(Projection, Self._Shader);
-    _Manager._FontShader.SetColorUniform('outlineColor', _Outline);
-    _Manager._FontShader.SetVec2Uniform('shadowOffset', VectorCreate2D(0.1, 0.1));
-  End Else
-  {$IFNDEF DISABLECOLORGRADING}
-  If (Assigned(Self._ColorTable)) Then
-    _Manager.SetShader(Projection, _Manager._SpriteShaderWithGrading)
-  Else
-  {$ENDIF}
-    _Manager.SetShader(Projection, _Manager._SpriteShaderWithoutGrading);
-
-
-//  _Texture := TextureManager.Instance.WhiteTexture;
-
-  If Not _Texture.Bind(0) Then
-    Exit;
-
-  {$IFNDEF DISABLECOLORGRADING}
-  If (Self._Shader = Nil) Then
-    ColorTableBind(_ColorTable, 1);
-  {$ENDIF}
-
-  Graphics.Renderer.SetBlendMode(_BlendMode);
-//  Ratio := UIManager.Instance.Ratio;
-
-  OutIt := _Manager._Vertices.GetIteratorForClass(SpriteVertex);
+  OutIt := _Vertices.GetIteratorForClass(SpriteVertex);
 
   Ofs := 0;
   S := _First;
@@ -768,6 +784,7 @@ Begin
 
       Dest.Position := Pos;
       Dest.Saturation := S.Saturation;
+      Dest.Glow := S.Glow;
       Dest.TexCoord := Src.TexCoord;
       Dest.Color := Src.Color;
 
@@ -789,8 +806,62 @@ Begin
   End;
   ReleaseObject(OutIt);
 
-  Graphics.Renderer.SetVertexSource(_Manager._Vertices);
-  Graphics.Renderer.DrawSource(renderTriangles, Ofs);
+  _RenderCount := Ofs;
+  _Ready := True;
+End;
+
+Procedure SpriteBatch.Render(Const Projection:Matrix4x4; Stage:RendererStage);
+Var
+  Graphics:GraphicsManager;
+Begin
+  If (_SpriteCount<=0) Then
+  Begin
+    _First := Nil;
+    Exit;
+  End;
+
+  Graphics := GraphicsManager.Instance;
+
+{  Graphics.Renderer.SetSourceVertexSize(SizeOf(SpriteVertex));
+  Graphics.Renderer.SetAttributeSource(TERRA_POSITION_ATTRIBUTE, typeVector3D,  @_Vertices[0].Position);
+  Graphics.Renderer.SetAttributeSource(TERRA_UV0_ATTRIBUTE, typeVector2D, @_Vertices[0].TexCoord);
+  Graphics.Renderer.SetAttributeSource(TERRA_COLOR_ATTRIBUTE, typeColor,  @_Vertices[0].Color);
+
+  If (_Saturation<1.0) Then
+    Graphics.Renderer.SetAttributeSource(TERRA_SATURATION_ATTRIBUTE, typeFloat, @_Vertices[0].Saturation);}
+
+  If (Assigned(Self._Shader)) Then
+  Begin
+    _Manager.SetShader(Projection, Self._Shader);
+    _Manager._FontShader.SetColorUniform('outlineColor', _Outline);
+    _Manager._FontShader.SetVec2Uniform('shadowOffset', VectorCreate2D(0.1, 0.1));
+  End Else
+  If (Stage<>renderStageDiffuse) Then
+    _Manager.SetShader(Projection, _Manager._SpriteShaderSolid)
+  Else
+  {$IFNDEF DISABLECOLORGRADING}
+  If (Assigned(Self._ColorTable)) Then
+    _Manager.SetShader(Projection, _Manager._SpriteShaderWithGrading)
+  Else
+  {$ENDIF}
+    _Manager.SetShader(Projection, _Manager._SpriteShaderWithoutGrading);
+
+
+//  _Texture := TextureManager.Instance.WhiteTexture;
+
+  If Not _Texture.Bind(0) Then
+    Exit;
+
+  {$IFNDEF DISABLECOLORGRADING}
+  If (Self._Shader = Nil) Then
+    ColorTableBind(_ColorTable, 1);
+  {$ENDIF}
+
+  Graphics.Renderer.SetBlendMode(_BlendMode);
+//  Ratio := UIManager.Instance.Ratio;
+
+  Graphics.Renderer.SetVertexSource(_Vertices);
+  Graphics.Renderer.DrawSource(renderTriangles, _RenderCount);
 
   (*
   If (Not Graphics.Renderer.Features.Shaders.Avaliable) Then
@@ -807,10 +878,6 @@ Begin
     End;
   End;
   BIBI *)
-
-  _Count := 0;
-  _Texture := Nil;
-  _First := Nil;
 End;
 
 End.

@@ -293,7 +293,7 @@ Begin
     Line('  uniform mediump float outlineScale;');
 
   If (FxFlags and shaderSkinning<>0) Then
-    Line('uniform vec4 boneVectors['+IntToString(Succ(MaxBones)*3)+'];');
+    Line('uniform vec4 boneVectors['+ IntegerProperty.Stringify(Succ(MaxBones)*3)+'];');
 
   //If (FxFlags and shaderNormalMap<>0) Or (FxFlags and shaderGhost<>0) Or (FxFlags and shaderSphereMap<>0) Or (FxFlags and shaderFresnelTerm<>0) Then
   Begin
@@ -930,27 +930,27 @@ Begin
 
     For I:=1 To Lights.DirectionalLightCount Do
     Begin
- 	    Line('  uniform highp vec3 dlightDirection'+IntToString(I)+';');
-  	  Line('  uniform lowp vec4 dlightColor'+IntToString(I)+';');
+ 	    Line('  uniform highp vec3 dlightDirection'+ IntegerProperty.Stringify(I)+';');
+  	  Line('  uniform lowp vec4 dlightColor'+ IntegerProperty.Stringify(I)+';');
     End;
 
     For I:=1 To Lights.PointLightCount Do
     Begin
-   	  Line('  uniform highp vec3 plightPosition'+IntToString(I)+';');
-	    Line('  uniform lowp vec4 plightColor'+IntToString(I)+';');
-  	  Line('  uniform highp float plightRadius'+IntToString(I)+';');
+   	  Line('  uniform highp vec3 plightPosition'+ IntegerProperty.Stringify(I)+';');
+	    Line('  uniform lowp vec4 plightColor'+ IntegerProperty.Stringify(I)+';');
+  	  Line('  uniform highp float plightRadius'+ IntegerProperty.Stringify(I)+';');
     End;
 
     For I:=1 To Lights.SpotLightCount Do
     Begin
-   	  Line('  uniform highp vec3 slightPosition'+IntToString(I)+';');
-   	  Line('  uniform mediump vec3 slightDirection'+IntToString(I)+';');
-   	  Line('  uniform mediump vec3 slightCross'+IntToString(I)+';');
-	    Line('  uniform lowp vec4 slightColor'+IntToString(I)+';');
-  	  Line('  uniform highp float slightCosInnerAngle'+IntToString(I)+';');
-  	  Line('  uniform mediump float slightCosOuterAngle'+IntToString(I)+';');
-      Line('  uniform lowp sampler2D slightCookie'+IntToString(I)+';');
-      Line('  uniform highp mat4 slightMatrix'+IntToString(I)+';');
+   	  Line('  uniform highp vec3 slightPosition'+ IntegerProperty.Stringify(I)+';');
+   	  Line('  uniform mediump vec3 slightDirection'+ IntegerProperty.Stringify(I)+';');
+   	  Line('  uniform mediump vec3 slightCross'+ IntegerProperty.Stringify(I)+';');
+	    Line('  uniform lowp vec4 slightColor'+ IntegerProperty.Stringify(I)+';');
+  	  Line('  uniform highp float slightCosInnerAngle'+ IntegerProperty.Stringify(I)+';');
+  	  Line('  uniform mediump float slightCosOuterAngle'+ IntegerProperty.Stringify(I)+';');
+      Line('  uniform lowp sampler2D slightCookie'+ IntegerProperty.Stringify(I)+';');
+      Line('  uniform highp mat4 slightMatrix'+ IntegerProperty.Stringify(I)+';');
     End;
 
     If (Lights.SpotLightCount>0) Then
@@ -1193,7 +1193,7 @@ Begin
 
         Line('diffuse *= diffuse_color;');
         If (FxFlags and shaderAlphaTest<>0) Then
-          Line('  if (diffuse.a<'+FloatToString(AlphaReference)+') discard;');
+          Line('  if (diffuse.a<'+FloatProperty.Stringify(AlphaReference)+') discard;');
 //    Line('  color.rgb = diffuse.rgb * 0.333;');
         Line('  color = outlineColor;');
 
@@ -1210,7 +1210,7 @@ Begin
        Line('  diffuse *= vertex_color; ');
 
     If (FxFlags and shaderAlphaTest<>0) Then
-      Line('  if (diffuse.a<'+FloatToString(AlphaReference)+') discard;');
+      Line('  if (diffuse.a<'+FloatProperty.Stringify(AlphaReference)+') discard;');
 
     Line('  color.a = 1.0;'); // refraction ammount
   End Else
@@ -1224,7 +1224,7 @@ Begin
        Line('  diffuse *= vertex_color; ');
 
     If (FxFlags and shaderAlphaTest<>0) Then
-      Line('  if (diffuse.a<'+FloatToString(AlphaReference)+') discard;');
+      Line('  if (diffuse.a<'+FloatProperty.Stringify(AlphaReference)+') discard;');
 
     Line('  highp float zz = screen_position.z;');
     Line('  zz = (2.0 * zNear) / (zFar + zNear - zz * (zFar - zNear));');
@@ -1241,7 +1241,7 @@ Begin
     Line('  diffuse = texture2D(diffuseMap, localUV);');
 
     If (FxFlags and shaderAlphaTest<>0) Then
-      Line('  if (diffuse.a<'+FloatToString(AlphaReference)+') discard;');
+      Line('  if (diffuse.a<'+FloatProperty.Stringify(AlphaReference)+') discard;');
     
     If (FxFlags and shaderLightmap<>0) Then
     Begin
@@ -1311,7 +1311,7 @@ Begin
     End;
 
     If (FxFlags and shaderAlphaTest<>0) Then
-      Line('  if (diffuse.a<'+FloatToString(AlphaReference)+') discard;');
+      Line('  if (diffuse.a<'+FloatProperty.Stringify(AlphaReference)+') discard;');
 
     If (FxFlags and shaderSpecular<>0) Then
       Line('  specular = texture2D('+SpecularMapUniformName+', localUV);');
@@ -1367,7 +1367,7 @@ Begin
       End;
 
       If Lights.DirectionalLightCount>0 Then
-        Line('  color = directionalLight(dlightDirection'+IntToString(I)+', dlightColor'+IntToString(I)+', localUV, colorIndex);');
+        Line('  color = directionalLight(dlightDirection'+ IntegerProperty.Stringify(I)+', dlightColor'+ IntegerProperty.Stringify(I)+', localUV, colorIndex);');
     End Else*)
     If (FxFlags And shaderSelfIllumn<>0) Then
     Begin
@@ -1380,13 +1380,13 @@ Begin
       Line('lowp vec4 lightAccum = vec4(0.0);');
 
       For I:=1 To Lights.DirectionalLightCount Do
-        Line('  lightAccum += directionalLight(dlightDirection'+IntToString(I)+', dlightColor'+IntToString(I)+');');
+        Line('  lightAccum += directionalLight(dlightDirection'+ IntegerProperty.Stringify(I)+', dlightColor'+ IntegerProperty.Stringify(I)+');');
 
       For I:=1 To Lights.PointLightCount Do
-        Line('  lightAccum += pointLight(plightPosition'+IntToString(I)+', plightColor'+IntToString(I)+', plightRadius'+IntToString(I)+');');
+        Line('  lightAccum += pointLight(plightPosition'+ IntegerProperty.Stringify(I)+', plightColor'+ IntegerProperty.Stringify(I)+', plightRadius'+ IntegerProperty.Stringify(I)+');');
 
       For I:=1 To Lights.SpotLightCount Do
-        Line('  lightAccum += spotLight(slightPosition'+IntToString(I)+', slightColor'+IntToString(I)+', slightDirection'+IntToString(I)+', slightCosInnerAngle'+IntToString(I)+', slightCosOuterAngle'+IntToString(I)+', slightMatrix'+IntToString(I)+', slightCookie'+IntToString(I)+');');
+        Line('  lightAccum += spotLight(slightPosition'+ IntegerProperty.Stringify(I)+', slightColor'+ IntegerProperty.Stringify(I)+', slightDirection'+ IntegerProperty.Stringify(I)+', slightCosInnerAngle'+ IntegerProperty.Stringify(I)+', slightCosOuterAngle'+ IntegerProperty.Stringify(I)+', slightMatrix'+ IntegerProperty.Stringify(I)+', slightCookie'+ IntegerProperty.Stringify(I)+');');
 
         If (FxFlags And shaderCartoonHue<>0) Then
           Line('  color = cartoonHueAdjust(diffuse * shadow, lightAccum * shadow);')
@@ -1691,14 +1691,14 @@ Begin
   If (FxFlags and shaderReflectiveMap<>0) Then
     name := name + '_REFMAP;';
 
-  Name := Name + ';F'+IntToString(FogFlags)+';';
+  Name := Name + ';F'+ IntegerProperty.Stringify(FogFlags)+';';
 
   If Lights.DirectionalLightCount>0 Then
-    name := name + 'DL'+IntToString(Lights.DirectionalLightCount)+';';
+    name := name + 'DL'+ IntegerProperty.Stringify(Lights.DirectionalLightCount)+';';
   If Lights.PointLightCount>0 Then
-    name := name + 'PL'+IntToString(Lights.PointLightCount)+';';
+    name := name + 'PL'+ IntegerProperty.Stringify(Lights.PointLightCount)+';';
   If Lights.SpotLightCount>0 Then
-    name := name + 'SL'+IntToString(Lights.SpotLightCount)+';';
+    name := name + 'SL'+ IntegerProperty.Stringify(Lights.SpotLightCount)+';';
 
   Name := StringLower(Name);
   StringReplaceText(';', '_', Name);

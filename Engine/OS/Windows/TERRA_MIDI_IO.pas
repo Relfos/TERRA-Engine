@@ -37,8 +37,7 @@ Function MIDI_Out(Event:Cardinal):Boolean;
 
 Implementation
 
-
-Uses TERRA_Utils, TERRA_Multimedia, TERRA_Log, TERRA_MIDI;
+Uses TERRA_Object, TERRA_Utils, TERRA_Multimedia, TERRA_Log, TERRA_MIDI;
 
 Var
    _midiInitialized:Boolean = False;
@@ -55,7 +54,7 @@ Begin
      Status := midiOutOpen(_midiOut, DEFAULT_MIDI_DEVICE, 0, 0, CALLBACK_NULL);
      If (Status<>0) Then
      Begin
-          Log(logError, 'MIDI', 'Error opening midi device ' + IntToString(status));
+          Log(logError, 'MIDI', 'Error opening midi device ' +  IntegerProperty.Stringify(status));
           Result := False;
           Exit;
      End;

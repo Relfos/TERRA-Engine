@@ -685,7 +685,10 @@ Begin
     View.SetRenderTargetState(RenderTargetType(I), True);
 
     Tex := View.GetRenderTexture(RenderTargetType(I));
-    Tex.Filter := filterBilinear;
+    If Assigned(Tex) Then
+      Tex.Filter := filterBilinear
+    Else
+      Tex := Engine.Textures.BlackTexture;
     Tex.Bind(Slot);
 
     _SH.SetIntegerUniform(TargetTextureNames[I], Slot);
@@ -707,9 +710,16 @@ Begin
     _Sh.SetIntegerUniform('cellNoiseTex', Slot);
     Inc(Slot);
   End;
-    
+
   GraphicsManager.Instance.Renderer.SetBlendMode(blendNone);
   GraphicsManager.Instance.DrawFullscreenQuad(_SH, X1,Y1,X2,Y2);
+
+  Tex := Engine.Textures.WhiteTexture;
+  For I:=0 To Slot Do
+  Begin
+    Tex.Bind(I);
+  End;
+
 End;
 
 Procedure ScreenFXChain.OnContextLost;
@@ -1289,7 +1299,6 @@ End;
 
 Procedure BloomFX.GenerateCode;
 Begin
-  //Line('  output_color.rgb += bloom_strength * texture2D(bloom_texture, output_uv).rgb;');
   Line('  lowp vec3 bloom_color = bloom_strength *texture2D(bloom_texture, output_uv).rgb;');
   Line('  output_color.rgb = 1.0 - ((1.0 - output_color.rgb) * (1.0 - bloom_color));');
 End;

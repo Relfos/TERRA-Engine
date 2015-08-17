@@ -1350,7 +1350,7 @@ Begin
   Log(logDebug, 'GraphicsManager', 'Generating a new frame buffer...');
   Repeat
     glGenFramebuffers(1, @Result);
-    Log(logDebug, 'GraphicsManager', 'Got handle: '+IntToString(Result));
+    Log(logDebug, 'GraphicsManager', 'Got handle: '+ IntegerProperty.Stringify(Result));
   Until (Result>=MaxFrameBufferHandles) Or (Not _UsedFrameBuffers[Result]);
 
   If (Result<MaxFrameBufferHandles) Then
@@ -1362,7 +1362,7 @@ Begin
   Log(logDebug, 'GraphicsManager', 'Generating a new render buffer...');
   Repeat
     glGenRenderbuffers(1, @Result);
-    Log(logDebug, 'GraphicsManager', 'Got handle: '+IntToString(Result));
+    Log(logDebug, 'GraphicsManager', 'Got handle: '+ IntegerProperty.Stringify(Result));
   Until (Result>=MaxFrameBufferHandles) Or (Not _UsedRenderBuffers[Result]);
 
   If (Result<MaxFrameBufferHandles) Then
@@ -1374,7 +1374,7 @@ Begin
   Log(logDebug, 'GraphicsManager', 'Generating a new texture...');
   Repeat
     glGenTextures(1, @Result);
-    Log(logDebug, 'GraphicsManager', 'Got handle: '+IntToString(Result));
+    Log(logDebug, 'GraphicsManager', 'Got handle: '+ IntegerProperty.Stringify(Result));
   Until (Result>=MaxTextureHandles) Or (Not _UsedTextures[Result]);
 
   If (Result<MaxTextureHandles) Then
@@ -1527,7 +1527,7 @@ Begin
   	aglSwapBuffers(_Context);
   {$ENDIF}
 
-  //Application.Instance.SetTitle(IntToString(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
+  //Application.Instance.SetTitle( IntegerProperty.Stringify(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
 End;
 
 Procedure OpenGLRenderer.Resize(Width, Height: Integer);
@@ -1701,7 +1701,7 @@ Begin
   _hasDepthBuffer := DepthBuffer;
   _HasStencilBuffer := StencilBuffer;
 
-  Log(logDebug,'Framebuffer', 'Creating Framebuffer with size: '+IntToString(_Width)+' x '+IntToString(_Height));
+  Log(logDebug,'Framebuffer', 'Creating Framebuffer with size: '+ IntegerProperty.Stringify(_Width)+' x '+ IntegerProperty.Stringify(_Height));
 
   {$IFDEF PC}
 	If (_type = pixelSizeFloat) Then
@@ -1813,7 +1813,7 @@ Begin
 		// initalize FrameBufferObject
     _Handle := R.GenerateFrameBuffer();
 		glBindFramebuffer(GL_FRAMEBUFFER, _Handle);
-    Log(logDebug,'Framebuffer', 'Created framebuffer with handle: '+IntToString(_Handle));
+    Log(logDebug,'Framebuffer', 'Created framebuffer with handle: '+ IntegerProperty.Stringify(_Handle));
 
 		// initialize color texture
     For I:=0 To Pred(_TargetCount) Do
@@ -1834,7 +1834,7 @@ Begin
       End;
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + I, GL_TEXTURE_2D, _Targets[I], 0);
 
-      Log(logDebug,'Framebuffer', 'Binding texture to framebuffer with handle: '+IntToString(_Targets[I]));
+      Log(logDebug,'Framebuffer', 'Binding texture to framebuffer with handle: '+ IntegerProperty.Stringify(_Targets[I]));
     End;
 
 		If (_HasDepthBuffer) Then
@@ -1892,7 +1892,7 @@ Begin
 
  CurrentFBO := Self;
 
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Framebuffer','Begin framebuffer capture: W:'+IntToString(_Width)+' H:'+IntToString(_Height));{$ENDIF}
+  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Framebuffer','Begin framebuffer capture: W:'+ IntegerProperty.Stringify(_Width)+' H:'+ IntegerProperty.Stringify(_Height));{$ENDIF}
 
 	If (_multisample) Then
   Begin
@@ -1928,7 +1928,7 @@ End;
 Procedure OpenGLFBO.EndCapture;
 Begin
 (*  If CurrentFBO <> Self Then
-    IntToString(2);*)
+     IntegerProperty.Stringify(2);*)
 
   CurrentFBO  := Nil;
 
@@ -1959,7 +1959,7 @@ End;
 Function OpenGLFBO.Bind(Slot: Integer):Boolean;
 Begin
 (*  If CurrentFBO = Self Then
-    IntToString(2);*)
+     IntegerProperty.Stringify(2);*)
 
   Result := (_Handle>0) And (Self.IsValid()) And (_Complete);
   If Not Result Then
@@ -2103,7 +2103,7 @@ Begin
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Uploading texture frame...');{$ENDIF}
   glTexImage2D(GL_TEXTURE_2D, 0, TextureColorFormatToGL(TargetFormat), Width, Height, 0, TextureColorFormatToGL(SourceFormat), ByteFormatToGL(ByteFormat), Pixels);
 
-  //_Source.Save('debug\temp\pp'+IntTOString(I)+'.png');
+  //_Source.Save('debug\temp\pp'+ IntegerProperty.Stringify(I)+'.png');
 
 (*  If (_Format = GL_COMPRESSED_RGBA) Then
   Begin

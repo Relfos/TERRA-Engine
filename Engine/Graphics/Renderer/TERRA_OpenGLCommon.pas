@@ -542,7 +542,7 @@ Begin
 	ID := GetUniform(Name);
   If (ID>=0) Then
   Begin
-    If (GraphicsManager.Instance().RenderStage = renderStageReflection) Then
+    (*If (Stage = renderStageReflection) Then
     Begin
       IsModelMatrix := False;
 
@@ -554,7 +554,7 @@ Begin
 
       If IsModelMatrix Then
         Value := Matrix4x4Multiply4x3(GraphicsManager.Instance().ReflectionMatrix, Value);
-    End; 
+    End;*) 
       
 
     glUniformMatrix4fv(Id, 1, False, @(Value.V[0]));

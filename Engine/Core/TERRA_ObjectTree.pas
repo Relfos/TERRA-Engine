@@ -286,7 +286,7 @@ End;
 
 Function TERRAObjectNode.AddInteger(Const Name:TERRAString; Const Value:Integer):TERRAObjectNode;
 Begin
-  Result := AddString(Name, IntToString(Value));
+  Result := AddString(Name,  IntegerProperty.Stringify(Value));
 End;
 
 Function TERRAObjectNode.AddCardinal(Const Name:TERRAString; Const Value:Cardinal):TERRAObjectNode;
@@ -296,7 +296,7 @@ End;
 
 Function TERRAObjectNode.AddSingle(Const Name:TERRAString; Const Value:Single):TERRAObjectNode;
 Begin
-  Result := AddString(Name, FloatToString(Value));
+  Result := AddString(Name, FloatProperty.Stringify(Value));
 End;
 
 Function TERRAObjectNode.AddVector2D(Const Name:TERRAString; Const Value:Vector2D):TERRAObjectNode;
@@ -325,7 +325,7 @@ End;
 
 Function TERRAObjectNode.AddColor(Const Name:TERRAString; Const Value:ColorRGBA):TERRAObjectNode;
 Begin
-  Result := AddString(Name, ColorToString(Value));
+  Result := AddString(Name, ColorProperty.Stringify(Value));
 End;
 
 Function TERRAObjectNode.AddTime(Const Name:TERRAString; Const Value:TERRATime):TERRAObjectNode;
@@ -382,7 +382,7 @@ Begin
 
   If Target = Nil Then
   Begin
-    IntToString(2);
+     IntegerProperty.Stringify(2);
     Exit;
   End;
 
@@ -418,7 +418,7 @@ Begin
       Continue;
 
     If P.Name='position' Then
-      IntToString(2);
+       IntegerProperty.Stringify(2);
 
       P.SaveToObject(Result);
   End;

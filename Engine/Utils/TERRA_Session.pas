@@ -78,7 +78,7 @@ Begin
   For I:=1 To Length(S) Do
   If (S[I]>='0') And (S[I]<='9') Then
   Begin
-    IntToString(1);
+     IntegerProperty.Stringify(1);
   End Else
   Begin
     Result := False;
@@ -222,7 +222,7 @@ Begin
         Data[J] := 0;
       S2 := '';
       For J:=0 To Pred(Count) Do
-        S2 := S2 + IntToString(Data[J]);
+        S2 := S2 +  IntegerProperty.Stringify(Data[J]);
     End;
 
     If (Key = '') Or (InvalidString(Key)) Or (InvalidString(S2)) Then
@@ -237,7 +237,7 @@ Begin
 
   _Read := True;
 
-  Log(logDebug,'Session','Loaded session file, '+IntToString(_Data.Count)+' items found.');
+  Log(logDebug,'Session','Loaded session file, '+ IntegerProperty.Stringify(_Data.Count)+' items found.');
   Result := True;
 End;
 

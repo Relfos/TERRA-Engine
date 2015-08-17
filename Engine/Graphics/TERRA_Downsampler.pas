@@ -89,7 +89,7 @@ Begin
 		Width := Width Div 2;
 		Height := Height Div 2;
 		_Targets[I] := GraphicsManager.Instance.Renderer.CreateRenderTarget();
-    _Targets[I].Generate({_Name+'_target'+IntToString(I), }Width, Height, False, PixelSize, 1, False, False);
+    _Targets[I].Generate({_Name+'_target'+ IntegerProperty.Stringify(I), }Width, Height, False, PixelSize, 1, False, False);
 
     _Targets[I].BackgroundColor := ColorRed;
 	End;
@@ -141,7 +141,7 @@ Begin
     _ResultIndex := I;
 
     {IF InputManager.Instance.Keys.IsDown(Ord('T')) Then
-      curRt.GetImage().Save('ds'+IntToString(I)+'.png');}
+      curRt.GetImage().Save('ds'+ IntegerProperty.Stringify(I)+'.png');}
 	End;
 
 //  Graphics.ActiveViewport.Restore();
@@ -211,7 +211,7 @@ Begin
     _ResultIndex := CurIndex;
 
     IF InputManager.Instance.Keys.IsDown(Ord('T')) Then
-      curRt.GetImage().Save('ds'+IntToString(curIndex)+'.png');
+      curRt.GetImage().Save('ds'+ IntegerProperty.Stringify(curIndex)+'.png');
 
     Tex := Self.GetRenderTexture(0);
     If (Source = Tex) Then

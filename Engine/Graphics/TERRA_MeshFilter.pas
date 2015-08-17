@@ -217,7 +217,7 @@ End;
 
 Function MeshFilter.GetGroupName(GroupID: Integer):TERRAString;
 Begin
-  Result := 'Group'+IntToString(Succ(GroupID));
+  Result := 'Group' + IntegerProperty.Stringify(Succ(GroupID));
 End;
 
 Function MeshFilter.GetSpecularMapName(GroupID: Integer):TERRAString;
@@ -323,7 +323,7 @@ End;
 
 Function MeshFilter.GetBoneName(BoneID: Integer):TERRAString;
 Begin
-  Result := 'bone'+IntToString(BoneID);
+  Result := 'bone' + IntegerProperty.Stringify(BoneID);
 End;
 
 Function MeshFilter.GetPositionKeyCount(AnimationID, BoneID:Integer):Integer;
@@ -371,7 +371,7 @@ End;
 
 Function MeshFilter.GetAnimationName(AnimationID: Integer):TERRAString;
 Begin
-  Result := 'animation'+IntToString(AnimationID);
+  Result := 'animation' + IntegerProperty.Stringify(AnimationID);
 End;
 
 Function MeshFilter.GetBoneParent(BoneID: Integer): Integer;

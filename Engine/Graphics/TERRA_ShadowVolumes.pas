@@ -346,7 +346,7 @@ Begin
   If (_ExtrudedVertexCount<=0) Or (Length(_ExtrudedVertices)<=0) Then
 	  Exit;
 
-  Log(logDebug, 'Shadow', 'Drawing shadow volume: '+IntToSTring(_ExtrudedVertexCount));
+  Log(logDebug, 'Shadow', 'Drawing shadow volume: '+ IntegerProperty.Stringify(_ExtrudedVertexCount));
 
   Graphics := GraphicsManager.Instance;
 

@@ -402,9 +402,9 @@ Begin
   If _Shader = Nil Then
     Exit;
 
-  _Shader.SetVec3Uniform('plightPosition'+IntToString(Index), _Position);
-  _Shader.SetFloatUniform('plightRadius'+IntToString(Index), 1/_Radius);
-  _Shader.SetColorUniform('plightColor'+IntToString(Index), ColorScale(_Color, Intensity));
+  _Shader.SetVec3Uniform('plightPosition'+ IntegerProperty.Stringify(Index), _Position);
+  _Shader.SetFloatUniform('plightRadius'+ IntegerProperty.Stringify(Index), 1/_Radius);
+  _Shader.SetColorUniform('plightColor'+ IntegerProperty.Stringify(Index), ColorScale(_Color, Intensity));
 End;
 
 Function PointLight.IsOccluded(View:TERRAViewport): Boolean;
@@ -467,8 +467,8 @@ Begin
   If _Shader = Nil Then
     Exit;
 
-  _Shader.SetVec3Uniform('dlightDirection'+IntToString(Index), _Direction);
-  _Shader.SetColorUniform('dlightColor'+IntToString(Index), ColorScale(_Color, Intensity));
+  _Shader.SetVec3Uniform('dlightDirection' + IntegerProperty.Stringify(Index), _Direction);
+  _Shader.SetColorUniform('dlightColor' + IntegerProperty.Stringify(Index), ColorScale(_Color, Intensity));
 End;
 
 Procedure LightManager.SetupUniforms(Batch: PLightBatch; Var TextureSlot:Integer);
@@ -547,13 +547,13 @@ Begin
   If _Shader = Nil Then
     Exit;
 
-  _Shader.SetVec3Uniform('slightPosition'+IntToString(Index), _Position);
-  _Shader.SetVec3Uniform('slightDirection'+IntToString(Index), _Direction);
-  _Shader.SetFloatUniform('slightCosInnerAngle'+IntToString(Index), Cos(_InnerAngle));
-  _Shader.SetFloatUniform('slightCosOuterAngle'+IntToString(Index), Cos(_OuterAngle));
-  _Shader.SetColorUniform('slightColor'+IntToString(Index), ColorScale(_Color, Intensity));
-  _Shader.SetMat4Uniform('slightMatrix'+IntToString(Index), _ProjectionMatrix4x4);
-  _Shader.SetIntegerUniform('slightCookie'+IntToString(Index), TextureSlot);
+  _Shader.SetVec3Uniform('slightPosition'+ IntegerProperty.Stringify(Index), _Position);
+  _Shader.SetVec3Uniform('slightDirection'+ IntegerProperty.Stringify(Index), _Direction);
+  _Shader.SetFloatUniform('slightCosInnerAngle'+ IntegerProperty.Stringify(Index), Cos(_InnerAngle));
+  _Shader.SetFloatUniform('slightCosOuterAngle'+ IntegerProperty.Stringify(Index), Cos(_OuterAngle));
+  _Shader.SetColorUniform('slightColor'+ IntegerProperty.Stringify(Index), ColorScale(_Color, Intensity));
+  _Shader.SetMat4Uniform('slightMatrix'+ IntegerProperty.Stringify(Index), _ProjectionMatrix4x4);
+  _Shader.SetIntegerUniform('slightCookie'+ IntegerProperty.Stringify(Index), TextureSlot);
 
   If Assigned(Cookie) Then
   Begin

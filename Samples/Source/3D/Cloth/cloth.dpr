@@ -5,7 +5,7 @@ uses
   TERRA_MemoryManager,
   TERRA_DemoApplication,
   TERRA_OS,
-  TERRA_Object,
+  TERRA_Object, 
   TERRA_Utils,
   TERRA_GraphicsManager,
   TERRA_Vector2D,
@@ -77,9 +77,9 @@ Begin
   GraphicsManager.Instance.Renderer.Settings.NormalMapping.SetValue(True);
   GraphicsManager.Instance.Renderer.Settings.PostProcessing.SetValue(True);
 
-  DiffuseTex := Engine.Textures.GetTexture('cobble');
-  ClothTex := Engine.Textures.GetTexture('cloth_diffuse');
-  FloorTex := Engine.Textures.GetTexture('woodfloor_diffuse');
+  DiffuseTex := Engine.Textures.GetItem('cobble');
+  ClothTex := Engine.Textures.GetItem('cloth_diffuse');
+  FloorTex := Engine.Textures.GetItem('woodfloor_diffuse');
 
   Floor := MeshInstance.Create(MeshManager.Instance.PlaneMesh);
   Floor.SetDiffuseMap(0, FloorTex);

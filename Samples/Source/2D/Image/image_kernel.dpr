@@ -6,6 +6,7 @@ uses
   TERRA_Scene,
   TERRA_GraphicsManager,
   TERRA_Viewport,
+  TERRA_DemoApplication,
   TERRA_ResourceManager,
   TERRA_Texture,
   TERRA_Utils,
@@ -26,18 +27,12 @@ uses
 
 Type
   // A client is used to process application events
-  Demo = Class(Application)
+  Demo = Class(DemoApplication)
     Protected
-      _Scene:TERRAScene;
-
 			Procedure OnCreate; Override;
-			Procedure OnIdle; Override;
+			Procedure OnRender(V:TERRAViewport); Override;
   End;
 
-  // A scene is used to render objects
-  MyScene = Class(TERRAScene)
-      Procedure RenderSprites(V:TERRAViewport); Override;
-  End;
 
 Var
   Tex:TERRATexture = Nil;
@@ -49,8 +44,6 @@ Var
   Img:Image;
   It:ImageIterator;
 
-  U, V:Single;
-  R, N:Integer;
   C:ColorRGBA;
 Begin
   Inherited;
@@ -74,23 +67,9 @@ Begin
   Tex.InitFromImage(Img);
 
   ReleaseObject(Img);
-
-  // Create a scene and set it as the current scene
-  _Scene := MyScene.Create;
-  GraphicsManager.Instance.SetScene(_Scene);
-
-  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlue;
 End;
 
-// OnIdle is called once per frame, put your game logic here
-Procedure Demo.OnIdle;
-Begin
-  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
-    Application.Instance.Terminate;
-End;
-
-{ MyScene }
-Procedure MyScene.RenderSprites;
+Procedure Demo.OnRender(V:TERRAViewport);
 Var
   S:QuadSprite;
 Begin
@@ -101,3 +80,5 @@ Begin
   // Start the application
   Demo.Create();
 End.
+
+

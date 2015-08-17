@@ -311,7 +311,7 @@ Begin
       Exit;
 
     ReadByte(Encoding);
-    If Encoding <> Byte(CurrentStringEncoding) Then
+    If (Encoding <> Byte(CurrentStringEncoding)) And (Encoding <> 1) Then
     Begin
       Log(logError, 'IO', 'Unsupported binary string encoding in '+Self.Name);
       Exit;

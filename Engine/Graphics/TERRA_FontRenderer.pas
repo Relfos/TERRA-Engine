@@ -748,7 +748,7 @@ End;
 
 Function TERRAFontRenderer.ResolveTexture(Const TextureName: TERRAString): TERRATexture;
 Begin
-  Result := Engine.Textures.GetTexture(TextureName);
+  Result := Engine.Textures.GetItem(TextureName);
 End;
 
 Procedure TERRAFontRenderer.TransformSprite(S: TERRASprite);

@@ -160,9 +160,6 @@ Begin
   Inc(_IndexCount, 3);
   SetLength(_IndexList, _IndexCount);
 
-  If (A>=_VertexCount) Or (B>=_VertexCount) Or (C>=_VertexCount) Then
-    IntToString(2);
-
   _IndexList[N+0] := A;
   _IndexList[N+1] := B;
   _IndexList[N+2] := C

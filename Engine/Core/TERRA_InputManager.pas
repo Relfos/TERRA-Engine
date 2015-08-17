@@ -255,10 +255,10 @@ Begin
       keyGamepadDPadDown_Offset:     Result:='DPadDown';
 
       Else
-        Result := 'Button' +IntToString(Key);
+        Result := 'Button' + IntegerProperty.Stringify(Key);
     End;
 
-    Result := 'Gamepad' + Result + IntToString(Succ(GamePadID));
+    Result := 'Gamepad' + Result +  IntegerProperty.Stringify(Succ(GamePadID));
     Exit;
   End;
 
@@ -332,7 +332,7 @@ Begin
   keyZ: Result := 'Z';
 
     Else
-        Result:= 'Key #'+IntToString(Key);
+        Result:= 'Key #'+ IntegerProperty.Stringify(Key);
   End;
 End;
 

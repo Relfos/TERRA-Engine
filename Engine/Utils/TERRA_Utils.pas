@@ -162,11 +162,9 @@ Function LongMin(Const A,B:Cardinal):Cardinal;
 
 Function TicksToTime(Ticks:Cardinal):TERRATime;
 
-Function IntToString(Const N:Integer):TERRAString;
 Function CardinalToString(Const N:Cardinal):TERRAString;Overload;
 Function Int64ToString(Const N:Int64):TERRAString;
 Function UInt64ToString(Const N:UInt64):TERRAString;
-Function FloatToString(N:Single; DecimalPlacesLimit:Integer = 7):TERRAString;
 Function BoolToString(Const N:Boolean):TERRAString;Overload;
 Function VersionToString(Const N:TERRAVersion):TERRAString;Overload;
 //Function TicksToString(Const N:Cardinal):TERRAString;Overload;
@@ -214,7 +212,7 @@ Procedure DebugBreak(Condition:Boolean = True);
 Procedure RemoveHint(X:Integer);
 
 Implementation
-Uses TERRA_Log, TERRA_Error;
+Uses TERRA_Log, TERRA_Error, TERRA_Object;
 
 Function SafeDiv(Const A,B:Single; WhenZero:Single = 0.0):Single;
 Begin
@@ -618,21 +616,6 @@ Begin
   Result.Build := StringToInt(S1);
 End;
 
-{$IFDEF OXYGENE}
-Function IntToString(Const N:Integer):TERRAString;
-Begin
-  Result := System.Convert.ToString(N);
-End;
-{$ELSE}
-Function IntToString(Const N:Integer):TERRAString;
-Var
-  S:TERRAString;
-Begin
-  Str(N,S);
-  Result := S;
-End;
-{$ENDIF}
-
 Function Int64ToString(Const N:Int64):TERRAString;
 Var
   S:TERRAString;
@@ -694,42 +677,6 @@ Begin
   Result.Minute := Result.Minute  Mod 60;
   Result.Second := (Ticks Div 1000) Mod 60;
 End;
-
-Function FloatToString(N:Single; DecimalPlacesLimit:Integer):TERRAString;
-Var
-  X:Single;
-  A:Integer;
-  DecimalPlaces, K:Integer;
-  Ready:Boolean;
-Begin
-  If (N<0) Then
-    Result := '-'
-  Else
-    Result := '';
-
-  N := Abs(N);
-  A := Trunc(N);
-  X := Frac(N);
-
-  Result := Result + IntToString(A) +'.';
-
-  DecimalPlaces := 0;
-  Ready := False;
-  K := 10;
-  Repeat
-    N := X * K;
-    K := K * 10;
-    A := Trunc(N) Mod 10;
-
-    Result := Result + IntToString(A);
-    Inc(DecimalPlaces);
-
-    If A>0 Then
-      Ready := True;
-
-  Until (DecimalPlaces>=DecimalPlacesLimit) Or ((A=0) And (Ready));
-End;
-
 {Function TicksToString(Const N:Cardinal):TERRAString;
 Var
   Ext:TERRAString;
@@ -756,9 +703,9 @@ Begin
     Ext:='ms';
   End;
 
-  Result:=IntToString(Int);
+  Result:= IntegerProperty.Stringify(Int);
   If Rem>0 Then
-    Result:=Result+'.'+IntToString(Rem);
+    Result:=Result+'.'+ IntegerProperty.Stringify(Rem);
   Result:=Result+' '+Ext;
 End;}
 

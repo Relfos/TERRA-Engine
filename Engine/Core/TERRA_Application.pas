@@ -644,7 +644,7 @@ Begin
   End;
 
 {  For I:=0 To Pred(_ApplicationComponentCount) Do
-  Log(logDebug,'App', IntToString(I)+ ' '+_ApplicationComponents[I].Component.ClassName);}
+  Log(logDebug,'App',  IntegerProperty.Stringify(I)+ ' '+_ApplicationComponents[I].Component.ClassName);}
 End;
 
 {$IFDEF HASTHREADS}
@@ -785,7 +785,7 @@ Begin
   {$ENDIF}
     InitWindow;
 
-  Log(logDebug, 'App', 'Found ' + IntToString(_ApplicationComponentCount)+' Components!');
+  Log(logDebug, 'App', 'Found ' +  IntegerProperty.Stringify(_ApplicationComponentCount)+' Components!');
   For I:=0 To Pred(_ApplicationComponentCount) Do
   Begin
     {$IFDEF OXYGENE}
@@ -1133,9 +1133,9 @@ Begin
   Result :=
     'OS: '+GetOSName() + CrLf +
     'CPU: '+GetCPUName() + CrLf +
-    'Cores: '+IntToString(Self.CPUCores) + CrLf +
-    'Width: '+IntToString(Self.Width) + CrLf +
-    'Height: '+IntToString(Self.Height) + CrLf +
+    'Cores: '+ IntegerProperty.Stringify(Self.CPUCores) + CrLf +
+    'Width: '+ IntegerProperty.Stringify(Self.Width) + CrLf +
+    'Height: '+ IntegerProperty.Stringify(Self.Height) + CrLf +
     'Lang: '+ Self.Language + CrLf +
     'Country: '+ Self.Country + CrLf +
     'Bundle: '+ Self.BundleVersion + CrLf;
@@ -1272,10 +1272,10 @@ Var
 Begin
   {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'RefreshComponents');{$ENDIF}
 
-//  Log(logDebug, 'Application', 'Orientation: ' + IntToString(_Orientation));
+//  Log(logDebug, 'Application', 'Orientation: ' +  IntegerProperty.Stringify(_Orientation));
 
   _RefreshingComponents := True;
-  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'Running', 'Components: ' + IntToString(_ApplicationComponentCount));{$ENDIF}{$ENDIF}
+  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'Running', 'Components: ' +  IntegerProperty.Stringify(_ApplicationComponentCount));{$ENDIF}{$ENDIF}
   For I:=0 To Pred(_ApplicationComponentCount) Do
   Begin
     {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'Running', _ApplicationComponents[I].Component.ClassName);{$ENDIF}{$ENDIF}
@@ -1473,18 +1473,18 @@ Begin
 
   If (IsInvalidOrientation(Value)) Then
     Begin
-        Log(logDebug, 'App', 'Invalid orientation change: '+IntToString(Value));
+        Log(logDebug, 'App', 'Invalid orientation change: '+ IntegerProperty.Stringify(Value));
         Exit;
     End;
 
   Delta := GetOrientationDelta();
 If (_Orientation = Value) {Or (Delta<1)} Then
   Begin
-    Log(logDebug, 'App', 'Failed orientation change (delta='+FloatToString(Delta)+')');
+    Log(logDebug, 'App', 'Failed orientation change (delta='+FloatProperty.Stringify(Delta)+')');
     Exit;
   End;
 
-  Log(logDebug, 'App', 'Changing orientation to '+ IntToString(Value));
+  Log(logDebug, 'App', 'Changing orientation to '+  IntegerProperty.Stringify(Value));
   _PreviousOrientation := _Orientation;
   _OrientationTime := Application.GetTime();
   _Orientation := Value;
@@ -1540,12 +1540,12 @@ Var
   SX, SY:Single;
   Temp:Integer;
 Begin
-//  Log(logDebug, 'App', 'PRE1 X'+IntToString(X)+' Y:'+IntToString(Y));
+//  Log(logDebug, 'App', 'PRE1 X'+ IntegerProperty.Stringify(X)+' Y:'+ IntegerProperty.Stringify(Y));
 
   X := (X - Self._DeviceX1);
   Y := (Y - Self._DeviceY1);
 
-//  Log(logDebug, 'App', 'PRE2 X'+IntToString(X)+' Y:'+IntToString(Y));
+//  Log(logDebug, 'App', 'PRE2 X'+ IntegerProperty.Stringify(X)+' Y:'+ IntegerProperty.Stringify(Y));
 
   Case _Orientation Of
   orientationLandscapeLeft:
@@ -1573,7 +1573,7 @@ Begin
     End;
   End;
 
-//  Log(logDebug, 'App', 'PRE3 X'+IntToString(X)+' Y:'+IntToString(Y));
+//  Log(logDebug, 'App', 'PRE3 X'+ IntegerProperty.Stringify(X)+' Y:'+ IntegerProperty.Stringify(Y));
 
   If (IsLandscapeOrientation(Self.Orientation)) Then
   Begin
@@ -1590,7 +1590,7 @@ Begin
   X := Trunc( PX * GraphicsManager.Instance.UI_Width );
   Y := Trunc( PY * GraphicsManager.Instance.UI_Height);
 
-//  Log(logDebug, 'App', 'PRE4 X'+IntToString(X)+' Y:'+IntToString(Y));
+//  Log(logDebug, 'App', 'PRE4 X'+ IntegerProperty.Stringify(X)+' Y:'+ IntegerProperty.Stringify(Y));
 End;
 
 procedure BaseApplication.AddEventToQueue(Action: Integer; X, Y, Z, W: Single;
@@ -1611,7 +1611,7 @@ Begin
   N := _EventCount;
   If N<Pred(EventBufferSize) Then
   Begin
-       {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Adding event with index '+IntToString(N));{$ENDIF}{$ENDIF}
+       {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Adding event with index '+ IntegerProperty.Stringify(N));{$ENDIF}{$ENDIF}
        Inc(_EventCount);
       _Events[N].X := X;
       _Events[N].Y := Y;
@@ -1677,7 +1677,7 @@ Begin
   eventIAPCredits     : Result := 'eventIAPCredits';
   eventIAPError       : Result := 'eventIAPError';
   Else
-    Result := '#'+IntToString(N);
+    Result := '#'+ IntegerProperty.Stringify(N);
   End;
 End;
 {$ENDIF}
@@ -1695,7 +1695,7 @@ Begin
 
   Input := InputManager.Instance;
 
-  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Processing '+IntToString(_EventCount)+ ' events.');{$ENDIF}{$ENDIF}
+  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Processing '+ IntegerProperty.Stringify(_EventCount)+ ' events.');{$ENDIF}{$ENDIF}
   For I:=0 To Pred(_EventCount) Do
   Begin
     If (_Events[I].HasCoords) Then
@@ -1714,13 +1714,13 @@ Begin
     Case _Events[I].Action Of
     eventMouseDown:
       Begin
-        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Mouse down, X:'+IntToString(Input.Mouse.X)+ ' Y:'+IntToString(Input.Mouse.Y));{$ENDIF}
+        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Mouse down, X:'+ IntegerProperty.Stringify(Input.Mouse.X)+ ' Y:'+ IntegerProperty.Stringify(Input.Mouse.Y));{$ENDIF}
         Input.Keys.SetState(_Events[I].Value, True);
 
-        {Log(logDebug, 'App', 'Mouse down, X:'+IntToString(Input.Mouse.X)+ ' Y:'+IntToString(Input.Mouse.Y));
-        Log(logDebug, 'App', 'DeviceX1:'+IntToString(_DeviceX1)+ ' DeviceY1:'+IntToString(_DeviceY1));
-        Log(logDebug, 'App', 'DeviceX2:'+IntToString(_DeviceX2)+ ' DeviceY2:'+IntToString(_DeviceY2));
-        Log(logDebug, 'App', 'DeviceWidth:'+IntToString(_DeviceWidth)+ ' DeviceHeight:'+IntToString(_DeviceHeight));
+        {Log(logDebug, 'App', 'Mouse down, X:'+ IntegerProperty.Stringify(Input.Mouse.X)+ ' Y:'+ IntegerProperty.Stringify(Input.Mouse.Y));
+        Log(logDebug, 'App', 'DeviceX1:'+ IntegerProperty.Stringify(_DeviceX1)+ ' DeviceY1:'+ IntegerProperty.Stringify(_DeviceY1));
+        Log(logDebug, 'App', 'DeviceX2:'+ IntegerProperty.Stringify(_DeviceX2)+ ' DeviceY2:'+ IntegerProperty.Stringify(_DeviceY2));
+        Log(logDebug, 'App', 'DeviceWidth:'+ IntegerProperty.Stringify(_DeviceWidth)+ ' DeviceHeight:'+ IntegerProperty.Stringify(_DeviceHeight));
         }
 
         {If (_MouseOnAdArea) Then
@@ -1731,7 +1731,7 @@ Begin
 
     eventMouseUp:
       Begin
-        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Mouse up, X:'+IntToString(Input.Mouse.X)+ ' Y:'+IntToString(Input.Mouse.Y));{$ENDIF}
+        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Mouse up, X:'+ IntegerProperty.Stringify(Input.Mouse.X)+ ' Y:'+ IntegerProperty.Stringify(Input.Mouse.Y));{$ENDIF}
 
         Input.Keys.SetState(_Events[I].Value, False);
         If (Not _MouseOnAdArea) Then
@@ -1770,8 +1770,8 @@ Begin
 
     eventViewport:
       Begin
-        Log(logDebug, 'App', 'Device viewport, X1:'+IntToString(Trunc(_Events[I].X))+ ' Y1:'+IntToString(Trunc(_Events[I].Y))+
-        ' X2:'+IntToString(Trunc(_Events[I].Z))+ ' Y2:'+IntToString(Trunc(_Events[I].W)));
+        Log(logDebug, 'App', 'Device viewport, X1:'+ IntegerProperty.Stringify(Trunc(_Events[I].X))+ ' Y1:'+ IntegerProperty.Stringify(Trunc(_Events[I].Y))+
+        ' X2:'+ IntegerProperty.Stringify(Trunc(_Events[I].Z))+ ' Y2:'+ IntegerProperty.Stringify(Trunc(_Events[I].W)));
         //Self.SetViewport(Trunc(_Events[I].X), Trunc(_Events[I].Y), Trunc(_Events[I].Z), Trunc(_Events[I].W));
       End;
 
@@ -1810,7 +1810,7 @@ Begin
 
     eventOrientation:
       Begin
-        Log(logDebug, 'App', 'Orientation request: ' + IntToString(_Events[I].Value));
+        Log(logDebug, 'App', 'Orientation request: ' +  IntegerProperty.Stringify(_Events[I].Value));
         Self.OnOrientation(_Events[I].Value);
       End;
 
@@ -1822,20 +1822,20 @@ Begin
       End Else
       Begin
         _Events[I].Value := IAP_PurchaseCanceled;
-        Log(logDebug, 'App', 'In-app-purchase error: ' + IntToString(_Events[I].Value));
+        Log(logDebug, 'App', 'In-app-purchase error: ' +  IntegerProperty.Stringify(_Events[I].Value));
         Self.OnIAP_Error(_Events[I].Value);
       End;
 
     eventIAPCredits:
       If (_Events[I].Value>0) Then
       Begin
-        Log(logDebug, 'App', 'In-app-purchase: ' + IntToString(_Events[I].Value) + ' credits');
+        Log(logDebug, 'App', 'In-app-purchase: ' +  IntegerProperty.Stringify(_Events[I].Value) + ' credits');
         Self.OnIAP_Purchase(_Events[I].Value);
       End;
 
     eventIAPError:
       Begin
-        Log(logDebug, 'App', 'In-app-purchase error: ' + IntToString(_Events[I].Value));
+        Log(logDebug, 'App', 'In-app-purchase error: ' +  IntegerProperty.Stringify(_Events[I].Value));
         Self.OnIAP_Error(_Events[I].Value);
       End;
 
@@ -2100,7 +2100,7 @@ End;
 
 Procedure BaseApplication.OnIAP_Error(ErrorCode:Integer);
 Begin
-  Log(logWarning, 'Client', 'Please implement Self.OnIAP_Cancel, error code = '+IntToString(ErrorCode));
+  Log(logWarning, 'Client', 'Please implement Self.OnIAP_Cancel, error code = '+ IntegerProperty.Stringify(ErrorCode));
 End;
 
 Procedure BaseApplication.OnIAP_Purchase(Const ID:TERRAString);
@@ -2110,7 +2110,7 @@ End;
 
 Procedure BaseApplication.OnIAP_Purchase(Credits: Integer);
 Begin
-  Log(logWarning, 'Client', 'Please implement Self.OnIAP_Purchase, credits  = '+IntToString(Credits));
+  Log(logWarning, 'Client', 'Please implement Self.OnIAP_Purchase, credits  = '+ IntegerProperty.Stringify(Credits));
 End;
 
 Procedure BaseApplication.OnIdle;
@@ -2313,12 +2313,12 @@ End;
 
 Procedure BaseApplication.OnGamepadConnect(Index: Integer);
 Begin
-  Log(logDebug, 'Client', 'Gamepad '+IntToString(Index)+' was connected!');
+  Log(logDebug, 'Client', 'Gamepad '+ IntegerProperty.Stringify(Index)+' was connected!');
 End;
 
 Procedure BaseApplication.OnGamepadDisconnect(Index: Integer);
 Begin
-  Log(logDebug, 'Client', 'Gamepad '+IntToString(Index)+' was disconnected!');
+  Log(logDebug, 'Client', 'Gamepad '+ IntegerProperty.Stringify(Index)+' was disconnected!');
 End;
 
 {$IFNDEF DISABLEVR}

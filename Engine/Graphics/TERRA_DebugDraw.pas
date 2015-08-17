@@ -45,6 +45,7 @@ Procedure DrawLine3D(View:TERRAViewport; Const A,B:Vector3D; LineColor:ColorRGBA
 Procedure DrawRay(View:TERRAViewport; Const R:Ray; LineColor:ColorRGBA; LineWidth:Single = 1.0; Length:Single =0);
 Procedure DrawBoundingBox(View:TERRAViewport; Const MyBox:BoundingBox; LineColor:ColorRGBA; LineWidth:Single = 1.0);
 Procedure DrawSpline(View:TERRAViewport; S:Spline; LineColor:ColorRGBA; LineWidth:Single = 1.0);
+Procedure DrawAxis(V:TERRAViewport; Const Origin, Normal:Vector3D; LineWidth:Single = 1.0);
 
 Procedure DrawFrustum(View:TERRAViewport; F:Frustum; LineColor:ColorRGBA; LineWidth:Single = 1.0);
 
@@ -367,7 +368,18 @@ Begin
     DrawLine3D(View, P[I-1], P[I], LineColor, LineWidth);
 End;
 
+Procedure DrawAxis(V:TERRAViewport; Const Origin, Normal:Vector3D; LineWidth:Single);
+Var
+  Tangent, BiTangent:Vector3D;
+  M:Matrix4x4;
+Begin
+  Tangent := VectorCross(Normal, VectorUp);
+  BiTangent := VectorCross(Normal, Tangent);
 
+  DrawRay(V, RayCreate(Origin, Normal), ColorRed, LineWidth, 5);
+  DrawRay(V, RayCreate(Origin, Tangent), ColorBlue, LineWidth, 5);
+  DrawRay(V, RayCreate(Origin, BiTangent), ColorGreen, LineWidth, 5);
+End;
 (*
 Procedure DrawPointCloud(Cloud:PointCloud2D; MyColor:ColorRGBA; Layer:Single);
 Var

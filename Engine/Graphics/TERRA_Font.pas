@@ -682,7 +682,7 @@ Begin
     F := F._Next;
   End;
 
-  Log(logWarning, 'Font', 'Glyph '+IntToString(ID)+' was not found!');
+  Log(logWarning, 'Font', 'Glyph '+ IntegerProperty.Stringify(ID)+' was not found!');
 End;
 
 Function TERRAFont.Unload: Boolean;
@@ -849,7 +849,7 @@ Begin
   Result := Self.AddEmptyGlyph();
 
   {If (Id=32) Then
-    IntToString(2);}
+     IntegerProperty.Stringify(2);}
 
   Result.ID := ID;
   Result.Width := Source.Width;

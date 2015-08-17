@@ -156,9 +156,6 @@ Begin
     Exit;
   End;*)
 
-  If Self.Name = '' Then
-    IntToString(2);
-
   Log(logDebug, 'Resource', 'Obtaining manager for '+Self.Name);
   Manager := Self.GetManager;
   If (Manager = Nil) Then

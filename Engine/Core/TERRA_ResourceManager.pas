@@ -400,7 +400,7 @@ Begin
     Inc(N);
   End;
 
-  Log(logDebug, 'Resources', 'Unloaded '+IntToString(N) + ' resources.');
+  Log(logDebug, 'Resources', 'Unloaded '+ IntegerProperty.Stringify(N) + ' resources.');
 
   _LastUpdate := Application.GetTime;
 End;

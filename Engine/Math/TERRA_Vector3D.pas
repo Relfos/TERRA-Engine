@@ -29,7 +29,7 @@ Unit TERRA_Vector3D;
 {$ENDIF}
 
 Interface
-Uses TERRA_Math, TERRA_Utils, TERRA_String;
+Uses TERRA_Object, TERRA_Math, TERRA_Utils, TERRA_Tween, TERRA_String;
 
 Type
   {$IFDEF OXYGENE}
@@ -76,6 +76,36 @@ Type
     Procedure Rotate(Const Axis:Vector3D; Const Angle:Single);
   End;
 
+  Vector3DProperty = Class(TweenableProperty)
+    Protected
+      _X:FloatProperty;
+      _Y:FloatProperty;
+      _Z:FloatProperty;
+
+      Function GetVectorValue:Vector3D;
+      Procedure SetVectorValue(const NewValue:Vector3D);
+
+      Procedure UpdateTweens(); Override;
+
+    Public
+      Constructor Create(Const Name:TERRAString; Const InitValue:Vector3D);
+      Procedure Release(); Override;
+
+      Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
+      Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Vector3D; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
+
+      Function GetObjectType:TERRAString; Override;
+
+      Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
+
+      Function Stringify(Const Val:Vector3D):TERRAString;
+
+      Property X:FloatProperty Read _X;
+      Property Y:FloatProperty Read _Y;
+      Property Z:FloatProperty Read _Z;
+
+      Property Value:Vector3D Read GetVectorValue Write SetVectorValue;
+  End;
 
 Const
 // Vector constants
@@ -93,7 +123,6 @@ Const
 Function VectorCreate(Const X,Y,Z:Single):Vector3D; {$IFDEF FPC}Inline;{$ENDIF}
 
 Function StringToVector3D(S:TERRAString):Vector3D;
-Function Vector3DToString(Const Val:Vector3D):TERRAString;
 
 Function VectorConstant(Const N:Single):Vector3D; {$IFDEF FPC}Inline;{$ENDIF}
 
@@ -137,12 +166,6 @@ Begin
   Result.Y := StringToFloat(StringGetNextSplit(S, Ord('/')));
   Result.Z := StringToFloat(StringGetNextSplit(S, Ord('/')));
 End;
-
-Function Vector3DToString(Const Val:Vector3D):TERRAString;
-Begin
-  Result := FloatToString(Val.X) + '/'+ FloatToString(Val.Y) + '/'+ FloatToString(Val.Z);
-End;
-
 
 Function Vector3D.Get(Index:Integer):Single;
 Begin
@@ -552,5 +575,76 @@ Begin
     Self.Z := Z;
 End;
 {$ENDIF}
+
+{ Vector3DProperty }
+Constructor Vector3DProperty.Create(Const Name:TERRAString; const InitValue: Vector3D);
+Begin
+  _ObjectName := Name;
+  _X := FloatProperty.Create('x', InitValue.X);
+  _Y := FloatProperty.Create('y', InitValue.Y);
+  _Z := FloatProperty.Create('z', InitValue.Z);
+End;
+
+Procedure Vector3DProperty.Release;
+Begin
+  ReleaseObject(_X);
+  ReleaseObject(_Y);
+  ReleaseObject(_Z);
+End;
+
+Function Vector3DProperty.GetVectorValue: Vector3D;
+Begin
+  Result.X := X.Value;
+  Result.Y := Y.Value;
+  Result.Z := Z.Value;
+End;
+
+Procedure Vector3DProperty.SetVectorValue(const NewValue: Vector3D);
+Begin
+  X.Value := NewValue.X;
+  Y.Value := NewValue.Y;
+  Z.Value := NewValue.Z;
+End;
+
+Function Vector3DProperty.GetObjectType: TERRAString;
+Begin
+  Result := 'vec3';
+End;
+
+Procedure Vector3DProperty.AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
+Begin
+  Self.AddTween(Ease, StringToVector3D(StartValue), StringToVector3D(TargetValue), Duration, Delay, Callback, CallTarget);
+End;
+
+Procedure Vector3DProperty.AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Vector3D; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
+Begin
+  Self.X.AddTween(Ease, StartValue.X, TargetValue.X, Duration, Delay, Callback, CallTarget);
+  Self.Y.AddTween(Ease, StartValue.Y, TargetValue.Y, Duration, Delay, Nil);
+  Self.Z.AddTween(Ease, StartValue.Z, TargetValue.Z, Duration, Delay, Nil);
+End;
+
+Function Vector3DProperty.GetPropertyByIndex(Index: Integer): TERRAObject;
+Begin
+  Case Index Of
+  0:  Result := X;
+  1:  Result := Y;
+  2:  Result := Z;
+  Else
+    Result := Nil;
+  End;
+End;
+
+Procedure Vector3DProperty.UpdateTweens;
+Begin
+  X.UpdateTweens();
+  Y.UpdateTweens();
+  Z.UpdateTweens();
+End;
+
+Function Vector3DProperty.Stringify(Const Val:Vector3D):TERRAString;
+Begin
+  Result := FloatProperty.Stringify(Val.X) + '/'+ FloatProperty.Stringify(Val.Y) + '/'+ FloatProperty.Stringify(Val.Z);
+End;
+
 
 End.

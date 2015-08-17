@@ -3,7 +3,7 @@
  * TERRA Game Engine
  * ==========================================
  *
- * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ * Copyright (C) 2003, 2014 by S?rgio Flores (relfos@gmail.com)
  *
  ***********************************************************************************************************************
  *
@@ -45,6 +45,8 @@ Const
   PI = 3.14159265359;
   MAXINT = 2147483647;
   {$ENDIF}
+
+  M_SQRT2 = 1.41421356237309504880;
 
   RAND_MAX = (MAXINT-1);
   INV_RAND_MAX = 1.0 / (RAND_MAX + 1);
@@ -587,6 +589,7 @@ Begin
 End;
 
 End.
+
 
 
 

@@ -35,7 +35,7 @@ Type
       Procedure Init; Override;
 //      Procedure OnContextLost; Override;
 
-      Function GetTexture(Name:TERRAString):TERRATexture;
+      Function GetItem(Name:TERRAString):TERRATexture;
 
       Procedure Release; Override;
 
@@ -48,7 +48,7 @@ Type
       Property DefaultColorTable:TERRATexture Read GetDefaultColorTable;
       Property DefaultNormalMap:TERRATexture Read GetDefaultNormalMap;
 
-      Property Textures[Name:TERRAString]:TERRATexture Read GetTexture; Default;
+      Property Textures[Name:TERRAString]:TERRATexture Read GetItem; Default;
   End;
 
   TextureClass = Class Of TERRATexture;
@@ -83,7 +83,7 @@ Begin
   //Self.UseThreads := True;
 End;
 
-Function TextureManager.GetTexture(Name:TERRAString):TERRATexture;
+Function TextureManager.GetItem(Name:TERRAString):TERRATexture;
 Var
   I:Integer;
 Var
@@ -153,7 +153,7 @@ Begin
       S := Self.ResolveResourceLink(Name);
       If S<>'' Then
       Begin
-        Result := Self.GetTexture(S);
+        Result := Self.GetItem(S);
         If Assigned(Result) Then
           Exit;
       End;

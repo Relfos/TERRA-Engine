@@ -991,7 +991,7 @@ Var
 Begin
   If _CurrentVertex = Nil then
   Begin
-    IntToString(2);
+     IntegerProperty.Stringify(2);
     Exit;
   End;
     

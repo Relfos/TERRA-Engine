@@ -51,22 +51,7 @@ Const
   fogHeight   = 2;
   fogBox      = 4;
 
-  renderStageDiffuse      = 1;
-  renderStageNormal       = 2;
-  renderStageGlow         = 4;
-  renderStageRefraction   = 8;
-  renderStageOutline      = 16;
-  renderStageReflection   = 32;
-  renderStageShadow       = 64;
-//  renderStageAlpha        = 128;
-
-Const
-  MaxLODLevel = 3;
-
 Type
-//  SortMethod = (Unsorted, SortBackToFront, SortFrontToBack);
-
-
 	GraphicsManager = Class(ApplicationComponent)
 		Protected
       _Viewports:Array Of TERRAViewport;
@@ -93,7 +78,6 @@ Type
       _CurrentBlendMode:Integer;
 
       _WindVector:Vector3D;
-      _RenderStage:Integer;
       _FrameID:Cardinal;
 
       //_Projection:Matrix4x4;
@@ -210,7 +194,6 @@ Type
       Property WindVector:Vector3D Read _WindVector;
 
       Property FrameID:Cardinal Read _FrameID;
-      Property RenderStage:Integer Read _RenderStage;
 
       //Property ProjectionMatrix:Matrix4x4 Read _Projection;
 
@@ -369,11 +352,11 @@ Begin
 
   If Self.Renderer = Nil Then
   Begin
-    RaiseError('Failed to initialized renderer with ID '+IntToString(RendererID));
+    RaiseError('Failed to initialized renderer with ID '+ IntegerProperty.Stringify(RendererID));
     Exit;
   End;
 
-  Log(logDebug, 'GraphicsManager', 'Width='+IntToString(_Width)+' Height='+IntToString(_Height));
+  Log(logDebug, 'GraphicsManager', 'Width='+ IntegerProperty.Stringify(_Width)+' Height='+ IntegerProperty.Stringify(_Height));
 
   Application.Instance.SetViewport(0,0,_Width,_Height);
 
@@ -381,8 +364,8 @@ Begin
   _UIHeight := _Height;
   _UIScale := 1.0;
   Application.Instance.SelectResolution2D(_UIWidth, _UIHeight, _UIScale);
-  Log(logDebug, 'App', 'Selected UI resolution: '+IntToString(_UIWidth)+' x ' +IntToString(_UIHeight));
-   Log(logDebug, 'App', 'Selected UI scale: '+FloatToString(_UIScale));
+  Log(logDebug, 'App', 'Selected UI resolution: '+ IntegerProperty.Stringify(_UIWidth)+' x ' + IntegerProperty.Stringify(_UIHeight));
+   Log(logDebug, 'App', 'Selected UI scale: '+FloatProperty.Stringify(_UIScale));
 
   ShowDebugTarget := captureTargetInvalid;
 
@@ -424,7 +407,7 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
 
 
 
-  Log(logDebug, 'GraphicsManager', 'Device resolution: '+IntToString(_Width)+' x ' +IntToString(_Height));
+  Log(logDebug, 'GraphicsManager', 'Device resolution: '+ IntegerProperty.Stringify(_Width)+' x ' + IntegerProperty.Stringify(_Height));
 
   _DeviceViewport := TERRAViewport.Create('device', Nil, _Width, _Height);
 
@@ -443,7 +426,7 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
     OH := Temp;
   End;}
 
-  Log(logDebug, 'GraphicsManager', 'Selected 3D resolution: '+IntToString(OW)+' x ' +IntToString(OH));
+  Log(logDebug, 'GraphicsManager', 'Selected 3D resolution: '+ IntegerProperty.Stringify(OW)+' x ' + IntegerProperty.Stringify(OH));
 
   ShowWireframe := False;
 
@@ -511,7 +494,7 @@ Begin
   ShaderManager.Instance.Bind(MyShader);
   //Engine.Textures.WhiteTexture.Bind(0);
   _AdTex.Bind(0);
-  //Log(logDebug, 'GraphicsManager', 'Adsize: '+IntToString(_AdTex.Width)+' '+IntToString(_AdTex.Height));
+  //Log(logDebug, 'GraphicsManager', 'Adsize: '+ IntegerProperty.Stringify(_AdTex.Width)+' '+ IntegerProperty.Stringify(_AdTex.Height));
   MyShader.SetUniform('texture', 0);
   MyShader.SetUniform('color', ColorWhite);
   GraphicsManager.Instance.Renderer.SetBlendMode(blendNone);
@@ -757,7 +740,7 @@ Begin
   _StencilVolumeShader.SetMat4Uniform('cameraMatrix', View.Camera.Transform); // BIBI
   _StencilVolumeShader.SetMat4Uniform('projectionMatrix', View.Camera.Projection); // BIBI
 
-  _RenderStage := renderStageShadow;
+//  _RenderStage := renderStageShadow;
 
   Renderer.SetCullMode(cullBack);
 
@@ -798,7 +781,7 @@ Begin
     Renderer.SetBlendMode(blendBlend);
   End;
 
-  _RenderStage := renderStageDiffuse;
+//  _RenderStage := renderStageDiffuse;
 
   Renderer.SetBlendMode(blendNone);
 
@@ -819,7 +802,7 @@ End;
 Procedure GraphicsManager.RenderViewport(View:TERRAViewport);
 Var
   I, J, Count, SubViews:Integer;
-  N:Integer;
+  Stage:RendererStage;
   Target:RenderTargetInterface;
   Pass:RenderTargetType;
 Begin
@@ -835,7 +818,6 @@ Begin
   _ReflectionsEnabled := False;
 
   // fill renderables list
-  _RenderStage := renderStageDiffuse;
   If (Assigned(_Scene)) Then
   Begin
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderEverything');{$ENDIF}
@@ -845,6 +827,8 @@ Begin
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Particles.Render');{$ENDIF}
   ParticleManager.Instance.Render(View);
 
+  _Renderables.RenderOverlays(View, Stage);
+  View.SpriteRenderer.Prepare();
 
   If (View.VR) Then
     SubViews := 1
@@ -869,7 +853,7 @@ Begin
       If (Self.ShowDebugTarget <> captureTargetInvalid) And (Self.ShowDebugTarget <> RenderTargetType(I)) Then
         Continue;
 
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Rendering viewport: '+View.Name+', target '+IntToString(I)+', width:'+IntToString(Target.Width)+', height:'+IntToString(Target.Height));{$ENDIF}
+      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Rendering viewport: '+View.Name+', target '+ IntegerProperty.Stringify(I)+', width:'+ IntegerProperty.Stringify(Target.Width)+', height:'+ IntegerProperty.Stringify(Target.Height));{$ENDIF}
 
       Case Pass Of
         captureTargetRefraction:
@@ -895,41 +879,37 @@ Begin
       End;
 
       View.SetViewArea(0, 0, Target.Width, Target.Height);
-      Target.BeginCapture();
 
-      {$IFDEF POSTPROCESSING}
-      If (Not GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Or (Not View.HasPostProcessing()) Then
-        N := renderStageDiffuse
-      Else
+      If (Pass <> captureTargetColor) And ((Not GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) {$IFDEF POSTPROCESSING}Or (Not View.HasPostProcessing()){$ENDIF}) Then
+        Continue;
+
       Case Pass Of
-        captureTargetColor:   N := renderStageDiffuse;
-        captureTargetNormal:  N := renderStageNormal;
-        captureTargetEmission: N := renderStageGlow;
-        captureTargetRefraction: N := renderStageRefraction;
-        captureTargetReflection: N := renderStageReflection;
-        captureTargetShadow: N := renderStageShadow;
-        captureTargetOutline: N := renderStageOutline;
-        //captureTargetAlpha: N := renderStageDiffuse;
+        captureTargetColor:   Stage := renderStageDiffuse;
+        captureTargetNormal:  Stage := renderStageNormal;
+        captureTargetEmission: Stage := renderStageGlow;
+        captureTargetRefraction: Stage := renderStageRefraction;
+        captureTargetReflection: Stage := renderStageReflection;
+        captureTargetShadow: Stage := renderStageShadow;
+        captureTargetOutline: Stage := renderStageOutline;
+        //captureTargetAlpha: Stage := renderStageDiffuse;
         Else
-          Exit;
+          Continue;
       End;
-    {$ELSE}
-    N := renderStageDiffuse;
-    {$ENDIF}
 
-    If (N = renderStageReflection) And (Not Self._ReflectionsEnabled) Then
+    If (Stage = renderStageReflection) And (Not Self._ReflectionsEnabled) Then
       Exit;
 
-    If (N = renderStageShadow) Then
+    If (Stage = renderStageShadow) Then
     Begin
       View.SetRenderTargetState(Pass, True);
     End;
 
-    _RenderStage := N;
+    Target.BeginCapture();
+      _Renderables.RenderBuckets(View, Stage);
+      View.SpriteRenderer.Render(View.Camera.Projection, Stage);
+    Target.EndCapture();
+    Inc(Count);
 
-    _Renderables.Render(View);
-
-    View.SpriteRenderer.Render(View.Camera.Projection);
 
 (*  If (_ReflectionsEnabled) And (_RenderStage = renderStageDiffuse) Then
   Begin
@@ -942,14 +922,11 @@ Begin
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderStencilShadows');{$ENDIF}
       RenderStencilShadows(View);
     End;*)
-      Target.EndCapture();
-
-      Inc(Count);
 
       {$IFDEF PC}
       (*If (_RenderStage = renderStageDiffuse) And (InputManager.Instance.Keys.WasPressed(KeyH)) Then
         Target.GetImage.Save('frame.png');*)
-      
+
       {If (_RenderStage = renderStageGlow) And (Application.Instance.Input.Keys.WasPressed(Ord('M'))) Then
         Target.Save('bloom.png');
        If (_RenderStage = renderStageRefraction) And (Application.Instance.Input.Keys.WasPressed(Ord('N'))) Then
@@ -957,6 +934,10 @@ Begin
       {$ENDIF}
     End;
   End;
+
+  View.SpriteRenderer.Clear();
+
+
 
   If (Count<=0) Then
     Log(logWarning, 'GraphicsManager', 'Invalid viewport: '+View.Name);
@@ -1021,7 +1002,7 @@ Var
   PositionHandle, UVHandle:Integer;
   //Delta:Single;
 Begin
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'DrawFullScreenQuad: ('+FloatToString(X1)+','+FloatToString(Y1)+','+FloatToString(X2)+','+FloatToString(Y2)+')');{$ENDIF}
+  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'DrawFullScreenQuad: ('+FloatProperty.Stringify(X1)+','+FloatProperty.Stringify(Y1)+','+FloatProperty.Stringify(X2)+','+FloatProperty.Stringify(Y2)+')');{$ENDIF}
 
   {$IFDEF TESTFULLSCREENSHADER}
   CustomShader := Nil;
@@ -1284,7 +1265,7 @@ Begin
 
   Inc(_FrameID);
 
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'BeginSceneRendering '+IntToString(_ViewportCount));{$ENDIF}
+  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'BeginSceneRendering '+ IntegerProperty.Stringify(_ViewportCount));{$ENDIF}
   If (Not Application.Instance.HasFatalError) Then
   For I:=Pred(_ViewportCount) DownTo 0 Do
     RenderViewport(_Viewports[I]);

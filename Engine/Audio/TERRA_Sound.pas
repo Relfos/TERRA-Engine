@@ -26,7 +26,7 @@ Unit TERRA_Sound;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Resource, TERRA_Collections, TERRA_AL;
+  TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Resource, TERRA_Collections, TERRA_AL;
 
 Const
   DefaultSampleRate = 44100;
@@ -261,7 +261,7 @@ Begin
 
   Pos := Source.Position;
 
-  Log(logDebug, 'Sound', IntToString(_SoundExtensionCount)+ ' sound extensions active');
+  Log(logDebug, 'Sound',  IntegerProperty.Stringify(_SoundExtensionCount)+ ' sound extensions active');
 
   For I:=0 To Pred(_SoundExtensionCount) Do
   Begin

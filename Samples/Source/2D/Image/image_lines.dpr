@@ -6,10 +6,11 @@ uses
   TERRA_Scene,
   TERRA_GraphicsManager,
   TERRA_Viewport,
+  TERRA_DemoApplication,
   TERRA_ResourceManager,
   TERRA_Texture,
-  TERRA_Utils,
   TERRA_String,
+  TERRA_Utils,
   TERRA_Object,
   TERRA_OS,
   TERRA_PNG,
@@ -17,29 +18,22 @@ uses
   TERRA_FileManager,
   TERRA_Math,
   TERRA_Image,
-  TERRA_ImageDrawing,
   TERRA_Color,
   TERRA_Resource,
   TERRA_Vector3D,
   TERRA_Vector2D,
-  TERRA_Renderer,
   TERRA_LineDrawing,
+  TERRA_Renderer,
   TERRA_InputManager;
 
 Type
   // A client is used to process application events
-  Demo = Class(Application)
+  Demo = Class(DemoApplication)
     Protected
-      _Scene:TERRAScene;
-
 			Procedure OnCreate; Override;
-			Procedure OnIdle; Override;
+			Procedure OnRender(V:TERRAViewport); Override;
   End;
 
-  // A scene is used to render objects
-  MyScene = Class(TERRAScene)
-      Procedure RenderSprites(V:TERRAViewport); Override;
-  End;
 
 Var
   Tex:TERRATexture = Nil;
@@ -47,13 +41,10 @@ Var
 { Game }
 Procedure Demo.OnCreate;
 Var
-  I:Integer;
   Img:Image;
-  It:ImageIterator;
-
   S:TERRAString;
   Count:Integer;
-  W,H:Integer;
+  I,W,H:Integer;
   LX,LY:Integer;
   HX, HY:Integer;
   PX, PY:Integer;
@@ -152,23 +143,9 @@ S := '607 23I\XMX]W`VaTbQbOa RXPVNTMQMONMPLSLUMXOZQ[T[VZXX';
   Tex.InitFromImage(Img);
 
   ReleaseObject(Img);
-
-  // Create a scene and set it as the current scene
-  _Scene := MyScene.Create;
-  GraphicsManager.Instance.SetScene(_Scene);
-
-  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlue;
 End;
 
-// OnIdle is called once per frame, put your game logic here
-Procedure Demo.OnIdle;
-Begin
-  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
-    Application.Instance.Terminate;
-End;
-
-{ MyScene }
-Procedure MyScene.RenderSprites;
+Procedure Demo.OnRender(V:TERRAViewport);
 Var
   S:QuadSprite;
 Begin
@@ -179,3 +156,5 @@ Begin
   // Start the application
   Demo.Create();
 End.
+
+

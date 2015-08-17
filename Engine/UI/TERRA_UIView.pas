@@ -27,7 +27,7 @@ Unit TERRA_UIView;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
-  TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween,
+  TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween, TERRA_Renderer,
   TERRA_Sprite, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_FontRenderer, TERRA_UITransition, TERRA_Viewport, TERRA_Camera,
   TERRA_UIDimension, TERRA_UIWidget, TERRA_ClipRect, TERRA_EnumProperty, TERRA_DataSource, TERRA_Hashmap;
 
@@ -109,7 +109,7 @@ Type
       Function OnMouseWheel(X,Y:Integer; Delta:Integer):UIWidget;
       Function OnMouseMove(X,Y:Integer):UIWidget;
 
-      Procedure Render(View:TERRAViewport; Const Bucket:Cardinal); Override;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
 
       Procedure AfterEffects(View:TERRAViewport);
 
@@ -212,7 +212,7 @@ Type
 Function GetSpriteZOnTop(W:UIWidget; Ofs:Single = 1.0):Single;
 
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_Renderer, TERRA_XML, TERRA_Matrix4x4,
+Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_XML, TERRA_Matrix4x4,
   TERRA_Log, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager(*,
   TERRA_UIVirtualKeyboard, TERRA_UITabs, TERRA_UIScrollBar,
    TERRA_UIButton, TERRA_UISprite, TERRA_UILabel, TERRA_UIWindow,
@@ -300,7 +300,7 @@ Begin
 End;
 
 
-Procedure UIView.Render(View:TERRAViewport; Const Bucket:Cardinal);
+Procedure UIView.Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
 Var
   Current, Temp:UIWidget;
   I, J:Integer;
@@ -331,7 +331,7 @@ Begin
 
   GraphicsManager.Instance.Renderer.SetBlendMode(blendBlend);
 
-  Inherited Render(View, Bucket);
+  Inherited Render(View, Stage, Bucket);
 End;
 
 Procedure UIView.AfterEffects(View:TERRAViewport);
@@ -409,7 +409,7 @@ End;
 Function UIView.OnKeyPress(Key:TERRAChar):UIWidget;
 Begin
   Result := Nil;
-  Log(logDebug, 'UI', 'keypress: '+IntToString(Integer(Key)));
+  Log(logDebug, 'UI', 'keypress: '+ IntegerProperty.Stringify(Integer(Key)));
 
 	If Assigned(_Focus) Then
   Begin
@@ -953,7 +953,7 @@ Begin
     Log(logDebug, 'Game', 'Creating image: '+S);
 
     Source := Image.Create(MyStream);
-    Log(logDebug, 'Game', 'Image created: '+IntToString(Source.Width)+'x'+IntToString(Source.Height));
+    Log(logDebug, 'Game', 'Image created: '+ IntegerProperty.Stringify(Source.Width)+'x'+ IntegerProperty.Stringify(Source.Height));
 
     Log(logDebug, 'Game', 'Adding to TextureAtlas');
 
@@ -1029,7 +1029,7 @@ Begin
   System_Wnd := UIWindow(GetWidget(System_Name_Wnd));
   System_Text := UILabel(GetWidget(System_Name_Text));
   For I:=0 To 2 Do
-    System_Btn[I] := UIButton(GetWidget(System_Name_Btn+IntToString(I)));
+    System_Btn[I] := UIButton(GetWidget(System_Name_Btn+ IntegerProperty.Stringify(I)));
 
   If Not Assigned(System_Wnd) Then
   Begin
@@ -1046,7 +1046,7 @@ Begin
       	N := 0;
       End;
 
-      System_Btn[I] := UIButton.Create(System_Name_Btn+IntToString(I), Self, System_Wnd, N, 20, 0.5, 'Ok');
+      System_Btn[I] := UIButton.Create(System_Name_Btn+ IntegerProperty.Stringify(I), Self, System_Wnd, N, 20, 0.5, 'Ok');
       System_Btn[I].Align := waBottomCenter;
     End;
   End;

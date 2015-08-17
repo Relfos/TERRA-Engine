@@ -38,9 +38,10 @@ Type
     Public
       Position:Vector3D;
       Color:ColorRGBA;
-      TexCoord:Vector2D;
-      ClipRect:Vector4D;
+      Glow:ColorRGBA;
       Saturation:Single;
+      ClipRect:Vector4D;
+      TexCoord:Vector2D;
   End;
 
   TextureRect = Object
@@ -78,6 +79,8 @@ Type
 
       _Offset:Integer;
 
+      _Glow:ColorRGBA;
+
       Procedure MakeQuad(Const Pos:Vector2D; LayerOffset:Single; Const U1, V1, U2, V2:Single; Const Width, Height:Single; Const A,B,C,D:ColorRGBA; Const Skew:Single);
 
     Public
@@ -91,7 +94,7 @@ Type
 
       Procedure Release; Override;
 
-      Procedure Rebuild(); Virtual; 
+      Procedure Rebuild(); Virtual;
       Procedure SetTexture(Value: TERRATexture); Virtual;
 
       Procedure SetTransform(Const Mat:Matrix3x3);
@@ -107,6 +110,7 @@ Type
       Property Texture:TERRATexture Read _Texture Write SetTexture;
       Property Shader:ShaderInterface Read _Shader Write _Shader;
       Property Saturation:Single Read _Saturation Write _Saturation;
+      Property Glow:ColorRGBA Read _Glow Write _Glow;
       Property ColorTable:TERRATexture Read _ColorTable Write _ColorTable;
 
       Property Vertices:VertexData Read _Vertices;
@@ -166,27 +170,39 @@ Const
 Begin
   Result := VertexData.Create(SpriteVertexFormat, Count);
   Result.SetAttributeFormat(vertexUV1, typeVector4D);
-  Result.SetAttributeFormat(vertexUV2, typeFloat);
+  Result.SetAttributeFormat(vertexUV2, typeVector4D);
 End;
 
 { SpriteVertex }
 Procedure SpriteVertex.Load;
+Var
+  V:Vector4D;
 Begin
   Self.GetVector3D(vertexPosition, Position);
   Self.GetColor(vertexColor, Color);
   Self.GetVector2D(vertexUV0, TexCoord);
   Self.GetVector4D(vertexUV1, ClipRect);
-  Self.GetFloat(vertexUV2, Saturation);
+  Self.GetVector4D(vertexUV2, V);
+
+  Self.Saturation := V.W;
+  V.W := 1.0;
+  Self.Glow := ColorCreateFromFloat(V.X, V.Y, V.Z);
 End;
 
 Procedure SpriteVertex.Save;
+Var
+  V:Vector4D;
 Begin
+  V.X := Glow.R / 255;
+  V.Y := Glow.G / 255;
+  V.Z := Glow.B / 255;
+  V.W := Saturation;
+
   Self.SetVector3D(vertexPosition, Position);
   Self.SetColor(vertexColor, Color);
   Self.SetVector2D(vertexUV0, TexCoord);
   Self.SetVector4D(vertexUV1, ClipRect);
-  Self.SetFloat(vertexUV2, Saturation);
-  
+  Self.SetVector4D(vertexUV2, V);
 End;
 
 { TERRASprite }
@@ -195,6 +211,7 @@ Begin
   Self.Saturation := 1;
   Self.BlendMode := blendBlend;
   Self.Outline := ColorBlack;
+  Self.Glow := ColorGreen;
 End;
 
 Procedure TERRASprite.Release();

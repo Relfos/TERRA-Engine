@@ -110,7 +110,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_OS, TERRA_Math, TERRA_GraphicsManager, TERRA_Renderer, TERRA_FileManager, TERRA_INI;
+Uses TERRA_OS, TERRA_Math, TERRA_GraphicsManager, TERRA_Renderer, TERRA_FileManager;
 
 { ParticleSettingsEmitter }
 Procedure ParticleSettingsEmitter.Copy(Source: ParticleSettingsEmitter);
@@ -403,9 +403,8 @@ End;
 Procedure ParticleSettingsEmitterGroup.Load(S:TERRAString);
 Var
   Tex:TERRAString;
-  Parser:INIParser;
 Begin
-  Reset();
+(*  Reset();
   StringReplaceText(#9, '', S);
   Parser := INIParser.Create;
   Parser.AddToken('spawnrange', tkFloat, @SpawnRange);
@@ -473,7 +472,7 @@ Begin
   If (MinAlpha>1.0) Then
     MinAlpha := MinAlpha / 255.0;
   If (MaxAlpha>1.0) Then
-    MaxAlpha := MaxAlpha / 255.0;
+    MaxAlpha := MaxAlpha / 255.0;*)
 End;
 
 Function ParticleSettingsEmitterGroup.GetParticleCount: Integer;

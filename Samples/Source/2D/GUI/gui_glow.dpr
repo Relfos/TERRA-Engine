@@ -11,6 +11,7 @@ uses
   TERRA_Utils,
   TERRA_ResourceManager,
   TERRA_GraphicsManager,
+  TERRA_Renderer,
   TERRA_OS,
   TERRA_Vector2D,
   TERRA_Font,
@@ -57,10 +58,13 @@ Procedure MyDemo.OnCreate;
 Begin
   Inherited;
 
-//  UIManager.Instance.Viewport.FXChain.AddEffect(BloomFX.Create());
+  UIManager.Instance.Viewport.FXChain.AddEffect(GlowFX.Create());
+  //UIManager.Instance.Viewport.FXChain.AddEffect(BloomFX.Create());
+  //UIManager.Instance.Viewport.FXChain.AddEffect(VignetteFX.Create());
 
-  UITemplates.AddTemplate(UIWindowTemplate.Create('wnd_template', Engine.Textures.GetTexture('ui_window'), 45, 28, 147, 98));
-  UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', Engine.Textures.GetTexture('ui_button2'), 25, 10, 220, 37));
+
+  UITemplates.AddTemplate(UIWindowTemplate.Create('wnd_template', Engine.Textures.GetItem('ui_window'), 45, 28, 147, 98));
+  UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', Engine.Textures.GetItem('ui_button2'), 25, 10, 220, 37));
 
   MyController := DemoUIController.Create();
 
@@ -90,7 +94,6 @@ End;
 
 Procedure DemoUIController.OnMyButtonClick(Src:UIWidget);
 Begin
-  IntToString(2);
  // MyUI.MessageBox('You clicked the button!');
 End;
 

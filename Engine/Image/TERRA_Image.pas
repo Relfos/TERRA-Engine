@@ -123,8 +123,8 @@ Type
       Procedure Load(Source:Stream);Overload;
       Procedure Load(FileName:TERRAString);Overload;
 
-      Procedure Save(Dest:Stream; Format:TERRAString; Options:TERRAString='');Overload;
-      Procedure Save(Filename:TERRAString; Format:TERRAString=''; Options:TERRAString='');Overload;
+      Procedure Save(Dest:Stream; Format:TERRAString; Depth:Integer = 32);Overload;
+      Procedure Save(Filename:TERRAString; Format:TERRAString=''; Depth:Integer = 32);Overload;
 
       Procedure Copy(Source:Image);
       Procedure Resize(Const NewWidth,NewHeight:Cardinal);
@@ -214,7 +214,7 @@ Type
 
   ImageStreamValidateFunction = Function(Source:Stream):Boolean;
   ImageLoader = Procedure(Source:Stream; Image:Image);
-  ImageSaver = Procedure(Source:Stream; Image:Image; Const Options:TERRAString='');
+  ImageSaver = Procedure(Source:Stream; Image:Image; Depth:Integer);
 
   ImageClassInfo = Record
     Name:TERRAString;
@@ -1218,7 +1218,7 @@ Begin
   Log(logDebug, 'Image', 'Image loaded');
 End;
 
-Procedure Image.Save(Dest:Stream; Format:TERRAString; Options:TERRAString='');
+Procedure Image.Save(Dest:Stream; Format:TERRAString; Depth:Integer);
 Var
   Saver:ImageSaver;
 Begin
@@ -1233,10 +1233,10 @@ Begin
   End;
 
   Log(logDebug, 'Image', 'Saving image in '+Format+' format');
-  Saver(Dest, Self, Options);
+  Saver(Dest, Self, Depth);
 End;
 
-Procedure Image.Save(Filename:TERRAString; Format:TERRAString=''; Options:TERRAString='');
+Procedure Image.Save(Filename:TERRAString; Format:TERRAString; Depth:Integer);
 Var
   Dest:Stream;
 Begin
@@ -1244,7 +1244,7 @@ Begin
     Format := GetFileExtension(FileName);
 
   Dest := FileStream.Create(FileName);
-  Save(Dest, Format, Options);
+  Save(Dest, Format, Depth);
   ReleaseObject(Dest);
 End;
 

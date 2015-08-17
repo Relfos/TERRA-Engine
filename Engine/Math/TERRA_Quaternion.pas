@@ -3,7 +3,7 @@
  * TERRA Game Engine
  * ==========================================
  *
- * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ * Copyright (C) 2003, 2014 by S?rgio Flores (relfos@gmail.com)
  *
  ***********************************************************************************************************************
  *
@@ -25,7 +25,7 @@ Unit TERRA_Quaternion;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Math, TERRA_Vector3D, TERRA_Matrix4x4;
+Uses TERRA_Utils, TERRA_Math, TERRA_Vector3D, TERRA_Matrix4x4;
 
 Type
   PQuaternion = ^Quaternion;
@@ -49,6 +49,12 @@ Type
 
     Procedure Add(Const B:Quaternion);
     Procedure Subtract(Const B:Quaternion);
+
+    Function Mult(Const B:Quaternion):Quaternion;
+
+    Function Matrix():Matrix4x4;
+
+    Function Inverse:Quaternion;
 
     Function Length:Single;
   End;
@@ -80,12 +86,12 @@ Function QuaternionSlerpSSE(A,B:Quaternion; Const T:Single):Quaternion;
 
 // Returns the conjugate of a Quaternion
 Function QuaternionConjugate(Const Q:Quaternion):Quaternion;
+Function QuaternionInverse(Const Q:Quaternion):Quaternion;
 
 // Returns the norm of a Quaternion
 Function QuaternionNorm(Const Q:Quaternion):Single;
 
-// Returns the inverse of a Quaternion
-Function QuaternionInverse(Const Q:Quaternion):Quaternion;
+Function QuaternionNormalize(Const Q:Quaternion):Quaternion;
 
 // Multiplies two Quaternions
 Function QuaternionMultiply(Const Ql,Qr:Quaternion):Quaternion;
@@ -145,6 +151,16 @@ Begin
   Result := (Self.X=B.X) And (Self.Y=B.Y) And(Self.Z=B.Z) And(Self.W=B.W);
 End;
 
+Function Quaternion.Inverse:Quaternion;
+Begin
+  Result := QuaternionInverse(Self);
+End;
+
+Function Quaternion.Mult(Const B:Quaternion):Quaternion;
+Begin
+  Result := QuaternionMultiply(Self, B);
+End;
+
 Function QuaternionDot(Const A,B:Quaternion):Single; {$IFDEF FPC}Inline;{$ENDIF}
 Begin
   {$IFDEF NEON_FPU}
@@ -182,16 +198,6 @@ Begin
 End;
 
 Function QuaternionFromToRotation(Const Src,Dest:Vector3D):Quaternion;
-{Var
-  Temp:Vector3D;
-Begin
-  Temp := VectorCross(A, B);
-  Result.X := Temp.X;
-  Result.Y := Temp.Y;
-  Result.Z := Temp.Z;
-  Result.W := Sqrt(Sqr(A.Length) * Sqr(B.Length)) + VectorDot(A, B);
-  Result.Normalize();
-End;}
 Var
   D,S,Invs:Single;
   axis, v0,v1,c:Vector3D;
@@ -264,9 +270,18 @@ End;
 Begin
 	Result.w := Sqrt(1.0 + M.V[0] + M.V[5] + M.V[10]) / 2.0;
 	w4 := (4.0 * Result.w);
-	Result.x := (M.V[Index(2,1)] - M.V[Index(1,2)]) / w4 ;
-	Result.y := (M.V[Index(0,2)] - M.V[Index(2,0)]) / w4 ;
-	Result.z := (M.V[Index(1,0)] - M.V[Index(0,1)]) / w4 ;
+
+  If (w4<>0.0) Then
+  Begin
+  	Result.x := (M.V[Index(2,1)] - M.V[Index(1,2)]) / w4 ;
+  	Result.y := (M.V[Index(0,2)] - M.V[Index(2,0)]) / w4 ;
+	  Result.z := (M.V[Index(1,0)] - M.V[Index(0,1)]) / w4 ;
+  End Else
+  Begin
+  	Result.x := M.V[0];
+  	Result.y := 0;
+	  Result.z := 0;
+  End;
 End;
 
 Function QuaternionMatrix4x4(Const Quaternion:Quaternion):Matrix4x4;
@@ -303,6 +318,8 @@ Begin
   Result.X := qL.W * qR.X + qL.X * qR.W + qL.Y * qR.Z - qL.Z * qR.Y;
   Result.Y := qL.W * qR.Y + qL.Y * qR.W + qL.Z * qR.X - qL.X * qR.Z;
   Result.Z := qL.W * qR.Z + qL.Z * qR.W + qL.X * qR.Y - qL.Y * qR.X;
+
+  Result.Normalize();
 End;
 
 {$IFDEF SSE}
@@ -376,9 +393,17 @@ Var
   Cosine:Single;
 Begin
   Cosine := a.x*b.x + a.y*b.y + a.z*b.z + a.w*b.w;
-  Cosine := Abs(Cosine);
 
-  If ((1-cosine)>Epsilon) Then
+  If(Cosine<0.0) Then
+  Begin
+    Cosine := -Cosine;
+    B.x := -B.x;   // Reverse all signs
+    B.y := -B.y;
+    B.z := -B.z;
+    B.w := -B.w;
+  End;
+
+  If ((1-cosine) > Epsilon) Then
   Begin
     Theta := ArcCos(cosine);
   	Sine := Sin(theta);
@@ -466,21 +491,41 @@ Begin
   Result.W := Q.W;
 End;
 
-Function QuaternionNorm(Const Q:Quaternion):Single;
+Function QuaternionInverse(Const Q:Quaternion):Quaternion;
+Var
+  C:Quaternion;
+  N:Single;
 Begin
-  Result := (Q.W*Q.W)+(Q.Z*Q.Z)+(Q.Y*Q.Y)+(Q.X*Q.X);
+  C := QuaternionConjugate(Q);
+  N := Sqr(QuaternionNorm(Q));
+
+  If N<>0 Then
+  Begin
+    Result.X := C.X/N;
+    Result.Y := C.Y/N;
+    Result.Z := C.Z/N;
+    Result.W := C.W/N;
+  End;
 End;
 
-Function QuaternionInverse(Const Q:Quaternion):Quaternion;
+Function QuaternionNorm(Const Q:Quaternion):Single;
+Begin
+  Result := Sqr(Q.W)+Sqr(Q.Z)+Sqr(Q.Y)+Sqr(Q.X);
+End;
+
+Function QuaternionNormalize(Const Q:Quaternion):Quaternion;
 Var
   N:Single;
 Begin
-  Result := QuaternionConjugate(Q);
-  N := QuaternionNorm(Result);
-  Result.X := Result.X/N;
-  Result.Y := Result.Y/N;
-  Result.Z := Result.Z/N;
-  Result.W := Result.W/N;
+  N := QuaternionNorm(Q);
+
+  If (N<>0) Then
+  Begin
+    Result.X := Q.X/N;
+    Result.Y := Q.Y/N;
+    Result.Z := Q.Z/N;
+    Result.W := Q.W/N;
+  End;
 End;
 
 {$IFDEF SSE}
@@ -576,36 +621,51 @@ Begin
   Result.W := Cos(angle/2);
 End;
 
+Function Quaternion.Matrix():Matrix4x4;
+
+Var
+
+  q0, q1, q2, q3, qda, qdb, qdc, qaa, qab, qac, qbb, qbc, qcc:Double;
+
+Begin
+
+	q0 := M_SQRT2 * Self.X;
+
+	q1 := M_SQRT2 * Self.Y;
+	q2 := M_SQRT2 * Self.Z;
+	q3 := M_SQRT2 * Self.W;
+
+	qda := q0 * q1;
+	qdb := q0 * q2;
+	qdc := q0 * q3;
+	qaa := q1 * q1;
+	qab := q1 * q2;
+	qac := q1 * q3;
+	qbb := q2 * q2;
+	qbc := q2 * q3;
+	qcc := q3 * q3;
+
+  Result.V[0] := (1.0 - qbb - qcc);
+  Result.V[1] := (qdc + qab);
+	Result.V[2] := (-qdb + qac);
+
+	Result.V[4] := (-qdc + qab);
+	Result.V[5] := (1.0 - qaa - qcc);
+	Result.V[6] := (qda + qbc);
+
+  Result.V[8] := (qdb + qac);
+	Result.V[9] := (-qda + qbc);
+	Result.V[10] := (1.0 - qaa - qbb);
+
+End;
+
 Function QuaternionToEuler(Const Q:Quaternion):Vector3D;
 Var
-  sqx, sqy, sqz:Single;
+  M:Matrix4x4;
 Begin
-{  Result.X := Atan2(2 * q.Y * q.W - 2 * q.X * q.Z,
- 	                1 - 2* Pow(q.Y, 2) - 2*Pow(q.Z, 2)   );
-
-  Result.Y := Arcsin(2*q.X*q.Y + 2*q.Z*q.W);
-
-  Result.Z := Atan2(2*q.X*q.W-2*q.Y*q.Z,
- 	                1 - 2*Pow(q.X, 2) - 2*Pow(q.Z, 2)     );
-
-  If (q.X*q.Y + q.Z*q.W = 0.5) Then
-  Begin
-    Result.X := (2 * Atan2(q.X,q.W));
- 	  Result.Z := 0;
-  End Else
-  If (q.X*q.Y + q.Z*q.W = -0.5) Then
-  Begin
-    Result.X := (-2 * Atan2(q.X, q.W));
-    Result.Z := 0;
-  End;}
-
-	sqx := Sqr(Q.X);
-	sqy := Sqr(Q.Y);
-	sqz := Sqr(Q.Z);
-
-  Result.x := atan2(2 * (Q.z*Q.y + Q.x*Q.W), 1 - 2*(sqx + sqy));
-  Result.y := arcsin(-2 * (Q.x*Q.z - Q.y*Q.W));
-  Result.z := atan2(2 * (Q.x*Q.y + Q.z*Q.W), 1 - 2*(sqy + sqz));
+  M := Q.Matrix();
+  Result := M.GetEulerAngles();
 End;
 
 End.
+

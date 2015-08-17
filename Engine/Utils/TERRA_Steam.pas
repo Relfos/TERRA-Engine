@@ -384,7 +384,7 @@ End;
 Procedure SteamStat.Load;
 Begin
   ISteamUserStats_GetStatInt(PAnsiChar(_ID), _Value);
-  Log(logDebug, 'Steam', 'Stat '+_ID + ' = ' + IntToString(_Value));
+  Log(logDebug, 'Steam', 'Stat '+_ID + ' = ' +  IntegerProperty.Stringify(_Value));
 End;
 
 

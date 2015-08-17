@@ -356,7 +356,7 @@ Function TextureAtlas.CreateTexture(PageID: Integer):TextureAtlasPage;
 Var
   S:TERRAString;
 Begin
-  S := _Name+'_page'+IntToString(PageID);
+  S := _Name+'_page' + IntegerProperty.Stringify(PageID);
   Log(logDebug, 'TextureAtlas', 'Creating TextureAtlas texture: '+S);
 
   ReleaseObject(_Textures[PageID]);

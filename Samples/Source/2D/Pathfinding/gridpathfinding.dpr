@@ -1,12 +1,33 @@
 {$I terra.inc}
-{$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} GridPathfinding;
+{$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} BasicSample;
 
-Uses
-  {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Scene, TERRA_UI, TERRA_GraphicsManager,
-  TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_OS, TERRA_FileManager,
-  TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_SpriteManager, TERRA_Texture,
-  TERRA_InputManager, TERRA_AIGridPath;
+uses
+  TERRA_Application,
+  TERRA_Scene,
+  TERRA_GraphicsManager,
+  TERRA_Viewport,
+  TERRA_DemoApplication,
+  TERRA_ResourceManager,
+  TERRA_Texture,
+  TERRA_String,
+  TERRA_Utils,
+  TERRA_Object,
+  TERRA_AIGridPath,
+  TERRA_OS,
+  TERRA_PNG,
+  TERRA_Sprite,
+  TERRA_EngineManager,
+  TERRA_FileManager,
+  TERRA_Math,
+  TERRA_Image,
+  TERRA_Color,
+  TERRA_Resource,
+  TERRA_Vector3D,
+  TERRA_Vector2D,
+  TERRA_LineDrawing,
+  TERRA_DebugDraw,
+  TERRA_Renderer,
+  TERRA_InputManager;
 
 Const
   // Size of map tiles and objects
@@ -54,30 +75,24 @@ Type
 
 
   // A client is used to process application events
-  Demo = Class(Application)
+  Demo = Class(DemoApplication)
     Protected
-      _Scene:Scene;
-
-      // Our pathfinder object
-      _Pathfinder:MyPathfinder;
-
 			Procedure OnCreate; Override;
+			Procedure OnRender(V:TERRAViewport); Override;
       Procedure OnDestroy; Override;
-			Procedure OnIdle; Override;
 
       Procedure OnMouseDown(X,Y:Integer;Button:Word); Override;
 
-      Procedure SelectResolution2D(Var Width, Height:Integer; Var Scale:Single); Override;
+      Procedure OnIdle(); Override;
   End;
 
-  // A scene is used to render objects
-  MyScene = Class(Scene)
-      Procedure RenderSprites(V:Viewport); Override;
-  End;
+
+Var
+  Tex:TERRATexture = Nil;
 
 Var
   // Some textures needed by our objects
-  GhostTex,BlockTex,ArrowTex,CrossTex, DotTex:Texture;
+  GhostTex,BlockTex,ArrowTex,CrossTex, DotTex:TERRATexture;
 
   // Ghost variables
   GhostX,GhostY:Integer;
@@ -87,6 +102,9 @@ Var
 
   // Target variables
   TargetX,TargetY:Integer;
+
+  // Our pathfinder object
+  _Pathfinder:MyPathfinder;
 
   // This is used to mark the tiles visited during the search
   MapVisited:Array[0..Pred(MapSize),0..Pred(MapSize)] Of Boolean;
@@ -126,16 +144,13 @@ End;
 { Game }
 Procedure Demo.OnCreate;
 Begin
-  // Add asset folders
-  FileManager.Instance.AddPath('assets');
+  Inherited;
 
-  GraphicsManager.Instance.ActiveViewport.BackgroundColor := ColorGrey(128);
-
-  GhostTex := TextureManager.Instance.GetTexture('ghost');
-  BlockTex := TextureManager.Instance.GetTexture('block');
-  ArrowTex := TextureManager.Instance.GetTexture('arrows');
-  CrossTex := TextureManager.Instance.GetTexture('cross');
-  DotTex := TextureManager.Instance.GetTexture('dot');
+  GhostTex := Engine.Textures.GetItem('ghost');
+  BlockTex := Engine.Textures.GetItem('block');
+  ArrowTex := Engine.Textures.GetItem('arrows');
+  CrossTex := Engine.Textures.GetItem('cross');
+  DotTex := Engine.Textures.GetItem('dot');
 
   // Init Ghost position
   GhostX := 5;
@@ -147,9 +162,6 @@ Begin
   // Create pathfinder object
   _Pathfinder := MyPathfinder.Create();
 
-  // Create a scene and set it as the current scene
-  _Scene := MyScene.Create;
-  GraphicsManager.Instance.SetScene(_Scene);
 End;
 
 // OnIdle is called once per frame, put your game logic here
@@ -158,20 +170,19 @@ Begin
   // Destroy pathfinder object
   ReleaseObject(_Pathfinder);
 
-  ReleaseObject(_Scene);
+  Inherited;
 End;
 
-{ MyScene }
-Procedure MyScene.RenderSprites(V:Viewport);
+Procedure Demo.OnRender(V:TERRAViewport);
 Var
   S:QuadSprite;
   I,J:Integer;
-  Mouse:MouseCursor;
+  Mouse:Vector2D;
   Node:GridPathNode;
 Begin
   //  Draw mouse cursor
   Mouse  := InputManager.Instance.Mouse;
-  S := SpriteManager.Instance.DrawSprite(Mouse.X, Mouse.Y, 80, ArrowTex);
+  S := V.SpriteRenderer.DrawSprite(Mouse.X, Mouse.Y, 80, ArrowTex);
   S.Rect.Width := 16;
   S.Rect.Height := 16;
 
@@ -182,7 +193,7 @@ Begin
       // If this tile is solid, draw it
       If MapData[J,I] = 1 Then
       Begin
-        S := SpriteManager.Instance.DrawSprite(MapOffsetX+I*TileSize, MapOffsetY+J*TileSize, 45, BlockTex);
+        S := V.SpriteRenderer.DrawSprite(MapOffsetX+I*TileSize, MapOffsetY+J*TileSize, 45, BlockTex);
         S.Rect.Width := TileSize;
         S.Rect.Height := TileSize;
       End;
@@ -190,20 +201,20 @@ Begin
       // If this tile was visited, then draw a mark
       If MapVisited[J,I] Then
       Begin
-        S := SpriteManager.Instance.DrawSprite(MapOffsetX+I*TileSize, MapOffsetY+J*TileSize, 50, CrossTex);
+        S := V.SpriteRenderer.DrawSprite(MapOffsetX+I*TileSize, MapOffsetY+J*TileSize, 50, CrossTex);
         S.Rect.Width := TileSize;
         S.Rect.Height := TileSize;
       End;
     End;
 
   // Draw target
-  S := SpriteManager.Instance.DrawSprite(MapOffsetX+TargetX*TileSize, MapOffsetY+TargetY*TileSize, 80, ArrowTex);
+  S := V.SpriteRenderer.DrawSprite(MapOffsetX+TargetX*TileSize, MapOffsetY+TargetY*TileSize, 80, ArrowTex);
   S.Rect.Width := TileSize;
   S.Rect.Height := TileSize;
   S.Mirror := True;
 
   // Draw ghost
-  S := SpriteManager.Instance.DrawSprite(MapOffsetX+GhostX*TileSize, MapOffsetY+GhostY*TileSize, 85, GhostTex);
+  S := V.SpriteRenderer.DrawSprite(MapOffsetX+GhostX*TileSize, MapOffsetY+GhostY*TileSize, 85, GhostTex);
   S.Rect.Width := TileSize;
   S.Rect.Height := TileSize;
 
@@ -213,7 +224,7 @@ Begin
     For I:=0 To Pred(GhostPath.Size) Do
     Begin
       GhostPath.GetNode(I, Node);
-      S := SpriteManager.Instance.DrawSprite(MapOffsetX + Node.X * TileSize + TileSize Div 4, MapOffsetY + Node.Y * TileSize + TileSize Div 4, 82, DotTex);
+      S := V.SpriteRenderer.DrawSprite(MapOffsetX + Node.X * TileSize + TileSize Div 4, MapOffsetY + Node.Y * TileSize + TileSize Div 4, 82, DotTex);
       S.Rect.Width := TileSize Div 2;
       S.Rect.Height := TileSize Div 2;
     End;
@@ -225,6 +236,8 @@ Procedure Demo.OnIdle();
 Var
   Node:GridPathNode;
 Begin
+  Inherited;
+  
   // Update Ghost, if a path is avaliable
   If (Assigned(GhostPath)) And (GetTime() - GhostUpdateTime>100) Then
   Begin
@@ -240,17 +253,15 @@ Begin
       ReleaseObject(GhostPath);
     End;
   End;
-
-  If InputManager.Instance.Keys.WasReleased(keyEscape) Then
-    Application.Instance.Terminate;
 End;
 
-Procedure Demo.SelectResolution2D(Var Width, Height:Integer; Var Scale:Single);
+(*Procedure Demo.SelectResolution2D(Var Width, Height:Integer; Var Scale:Single);
 Begin
   Width := MapSize * TileSize;
   Height := MapSize * TileSize;
   Scale := 4.0;
-End;
+End;*)
+
 
 Procedure Demo.OnMouseDown(X,Y:Integer;Button:Word);
 Begin
@@ -313,6 +324,5 @@ Begin
   // Start the application
   Demo.Create();
 End.
-
 
 

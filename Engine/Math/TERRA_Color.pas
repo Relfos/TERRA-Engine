@@ -25,7 +25,7 @@ Unit TERRA_Color;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Vector3D;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Tween;
 
 {$R-}
 
@@ -52,8 +52,41 @@ Type
     A:Byte;
   End;
 
-  PColorArray = ^ColorArray;
-  ColorArray=Array[0..0] Of ColorRGBA;
+  ColorProperty = Class(TweenableProperty)
+    Protected
+      _Red:ByteProperty;
+      _Green:ByteProperty;
+      _Blue:ByteProperty;
+      _Alpha:ByteProperty;
+
+      Function GetColorValue:ColorRGBA;
+      Procedure SetColorValue(const NewValue:ColorRGBA);
+
+      Procedure UpdateTweens(); Override;
+
+    Public
+      Constructor Create(Const Name:TERRAString; Const InitValue:ColorRGBA);
+      Procedure Release(); Override;
+
+      Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
+      Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:ColorRGBA; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
+
+      Function GetBlob():TERRAString; Override;
+      Procedure SetBlob(Const Blob:TERRAString); Override;
+
+      Function GetObjectType:TERRAString; Override;
+
+      Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
+
+      Class Function Stringify(Const N:ColorRGBA):TERRAString;
+
+      Property Red:ByteProperty Read _Red;
+      Property Green:ByteProperty Read _Green;
+      Property Blue:ByteProperty Read _Blue;
+      Property Alpha:ByteProperty Read _Alpha;
+
+      Property Value:ColorRGBA Read GetColorValue Write SetColorValue;
+  End;
 
   PColorPalette = ^ColorPalette;
   ColorPalette = Array[0..255] Of ColorRGBA;
@@ -85,9 +118,6 @@ Const
 //#####################
 //#  Color functions  #
 //#####################
-
-Function ColorToString(Const N:ColorRGBA):TERRAString;
-
 Function ColorCreate(Const R,G,B:Byte;A:Byte=255):ColorRGBA;
 Function ColorCreateFromString(HexValue:TERRAString):ColorRGBA;
 Function ColorCreateFromFloat(Const R,G,B:Single; A:Single=1.0):ColorRGBA;
@@ -188,11 +218,6 @@ Implementation
 Uses TERRA_Math;
 
 // Color functions
-Function ColorToString(Const N:ColorRGBA):TERRAString;
-Begin
-  Result := '#'+HexStr(N.R)+HexStr(N.G)+ HexStr(N.B)+ HexStr(N.A);
-End;
-
 Function ColorCreateFromString(HexValue:TERRAString):ColorRGBA;
   Function H(C:AnsiChar):Byte;
   Begin
@@ -1101,6 +1126,110 @@ Begin
     Else
       Result := A;
   End;
+End;
+
+{ ColorProperty }
+Constructor ColorProperty.Create(Const Name:TERRAString; const InitValue:ColorRGBA);
+Begin
+  _ObjectName := Name;
+  _Red := ByteProperty.Create('r', InitValue.R);
+  _Green := ByteProperty.Create('g', InitValue.G);
+  _Blue := ByteProperty.Create('b', InitValue.B);
+  _Alpha := ByteProperty.Create('a', InitValue.A);
+End;
+
+Procedure ColorProperty.Release;
+Begin
+  ReleaseObject(_Red);
+  ReleaseObject(_Green);
+  ReleaseObject(_Blue);
+  ReleaseObject(_Alpha);
+End;
+
+(*Function ColorProperty.GetBlob: TERRAString;
+Begin
+  Result := Red.GetBlob() + '/'+ Green.GetBlob() + '/'+ Blue.GetBlob() + '/'+ Alpha.GetBlob();
+End;
+
+Procedure ColorProperty.SetBlob(const Blob: TERRAString);
+Var
+  S:TERRAString;
+Begin
+  S := Blob;
+  Red.SetBlob(StringGetNextSplit(S, Ord('/')));
+  Green.SetBlob(StringGetNextSplit(S, Ord('/')));
+  Blue.SetBlob(StringGetNextSplit(S, Ord('/')));
+  Alpha.SetBlob(StringGetNextSplit(S, Ord('/')));
+End;*)
+
+Procedure ColorProperty.SetColorValue(const NewValue:ColorRGBA);
+Begin
+  Red.Value := NewValue.R;
+  Green.Value := NewValue.G;
+  Blue.Value := NewValue.B;
+  Alpha.Value := NewValue.A;
+End;
+
+Function ColorProperty.GetColorValue:ColorRGBA;
+Begin
+  Result.R := Red.Value;
+  Result.G := Green.Value;
+  Result.B := Blue.Value;
+  Result.A := Alpha.Value;
+End;
+
+Function ColorProperty.GetObjectType: TERRAString;
+Begin
+  Result := 'color';
+End;
+
+Procedure ColorProperty.AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
+Begin
+  Self.AddTween(Ease, ColorCreateFromString(StartValue), ColorCreateFromString(TargetValue), Duration, Delay, Callback, CallTarget);
+End;
+
+Procedure ColorProperty.AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:ColorRGBA; Duration, Delay:Cardinal; Callback: TweenCallback; CallTarget:TERRAObject);
+Begin
+  Self.Red.AddTween(Ease, StartValue.R, TargetValue.R, Duration, Delay, Callback, CallTarget);
+  Self.Green.AddTween(Ease, StartValue.G, TargetValue.G, Duration, Delay, Nil);
+  Self.Blue.AddTween(Ease, StartValue.B, TargetValue.B, Duration, Delay, Nil);
+  Self.Alpha.AddTween(Ease, StartValue.A, TargetValue.A, Duration, Delay, Nil);
+End;
+
+Function ColorProperty.GetPropertyByIndex(Index: Integer): TERRAObject;
+Begin
+  Case Index Of
+  0:  Result := Red;
+  1:  Result := Green;
+  2:  Result := Blue;
+  3:  Result := Alpha;
+  Else
+    Result := Nil;
+  End;
+End;
+
+Function ColorProperty.GetBlob: TERRAString;
+Begin
+  Result := ColorProperty.Stringify(Self.GetColorValue());
+End;
+
+Procedure ColorProperty.SetBlob(const Blob: TERRAString);
+Begin
+  Self.SetColorValue(ColorCreateFromString(Blob));
+End;
+
+Procedure ColorProperty.UpdateTweens;
+Begin
+  Red.UpdateTweens();
+  Green.UpdateTweens();
+  Blue.UpdateTweens();
+  Alpha.UpdateTweens();
+End;
+
+
+Class Function ColorProperty.Stringify(Const N:ColorRGBA):TERRAString;
+Begin
+  Result := '#'+HexStr(N.R)+HexStr(N.G)+ HexStr(N.B)+ HexStr(N.A);
 End;
 
 End.

@@ -4,7 +4,7 @@ Unit TERRA_UIWidget;
 
 Interface
 Uses TERRA_Object, TERRA_Utils, TERRA_String, TERRA_Collections, TERRA_List,
-  TERRA_Vector2D, TERRA_Color, TERRA_Matrix3x3, TERRA_Texture,
+  TERRA_Vector2D, TERRA_Color, TERRA_Matrix3x3, TERRA_Texture, TERRA_Renderer,
   TERRA_ClipRect, TERRA_Tween, TERRA_FontRenderer, TERRA_Sprite, TERRA_Renderable,
   TERRA_UIDimension, TERRA_EnumProperty, TERRA_DataSource, TERRA_Viewport;
 
@@ -307,7 +307,7 @@ Type
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
       Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
 
-      Procedure Render(View:TERRAViewport; Const Bucket:Cardinal); Override;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
 
       Procedure UpdateRects; Virtual;
       Function UpdateTransform():Boolean; Virtual;
@@ -890,7 +890,7 @@ Begin
     Exit;
   End;
 
-  Log(logDebug, 'UI', 'Showing '+Self.Name+' with animation '+IntToString(AnimationFlags));
+  Log(logDebug, 'UI', 'Showing '+Self.Name+' with animation '+ IntegerProperty.Stringify(AnimationFlags));
 
   SetVisible(True);
 
@@ -1132,7 +1132,7 @@ Begin
     Height := _Size.Y{ * _Scale};
 
     {IF _Scale>1 Then
-      IntToString(2);}
+       IntegerProperty.Stringify(2);}
 
     ParentSize := _Parent.Size;
 
@@ -1289,10 +1289,10 @@ Function UIWidget.OnRegion(X,Y:Single): Boolean;
 Var
   V:Vector2D;
 Begin
-  {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'X:'+IntToString(X)+' Y:'+IntToString(Y));{$ENDIF}
+  {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'X:'+ IntegerProperty.Stringify(X)+' Y:'+ IntegerProperty.Stringify(Y));{$ENDIF}
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', _Name+ '.OnRegion called');{$ENDIF}
-  {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'X1:'+IntToString(Trunc(_Corners[0].X))+' Y1:'+IntToString(Trunc(_Corners[0].Y)));{$ENDIF}
-  {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'X2:'+IntToString(Trunc(_Corners[2].X))+' Y2:'+IntToString(Trunc(_Corners[2].Y)));{$ENDIF}
+  {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'X1:'+ IntegerProperty.Stringify(Trunc(_Corners[0].X))+' Y1:'+ IntegerProperty.Stringify(Trunc(_Corners[0].Y)));{$ENDIF}
+  {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'X2:'+ IntegerProperty.Stringify(Trunc(_Corners[2].X))+' Y2:'+ IntegerProperty.Stringify(Trunc(_Corners[2].Y)));{$ENDIF}
 
   If (GraphicsManager.Instance.FrameID = Self._VisibleFrame) {Or (OutsideClipRect(X,Y))} Then
   Begin
@@ -1711,7 +1711,7 @@ Begin
     Inc(I);
 End;
 
-Procedure UIWidget.Render(View:TERRAViewport; Const Bucket:Cardinal);
+Procedure UIWidget.Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
 Var
   I:Integer;
 Begin
@@ -1732,7 +1732,7 @@ Begin
 
   For I:=0 To Pred(_ChildrenCount) Do
   If (_ChildrenList[I].Visible) And (_ChildrenList[I].CanRender()) Then
-    _ChildrenList[I].Render(View, Bucket);
+    _ChildrenList[I].Render(View, Stage, Bucket);
 End;
 
 

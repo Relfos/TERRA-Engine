@@ -61,7 +61,7 @@ Type
 
       Function GetRenderBucket:Cardinal; Override;
 
-      Procedure Render(View:TERRAViewport; Const Bucket:Cardinal); Override;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
 
       Property Color:ColorRGBA Read _Color Write _Color;
       //Property Texture:CubemapTexture Read _Cubemap;
@@ -173,7 +173,7 @@ Begin
     _Cubemap := Nil;
      // Assign if possible, all 6 sides
      For I:=0 To 5 Do
-      _Textures[I] := Engine.Textures.GetTexture(SkyTexture+'_' + CubeFaceNames[I]);
+      _Textures[I] := Engine.Textures.GetItem(SkyTexture+'_' + CubeFaceNames[I]);
   End;
 End;
 
@@ -188,7 +188,7 @@ Begin
   ReleaseObject(_Cubemap);
 End;
 
-Procedure TERRASkyBox.Render(View:TERRAViewport; Const Bucket:Cardinal);
+Procedure TERRASkyBox.Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
 Var
   I:Integer;
   CamVertices:BoundingBoxVertices;
@@ -207,7 +207,7 @@ Var
 Begin
   Graphics := GraphicsManager.Instance;
 
-  If (Graphics.RenderStage <> renderStageDiffuse) Then
+  If (Stage <> renderStageDiffuse) Then
     Exit;
 
   Graphics.Renderer.SetBlendMode(blendNone);
@@ -220,7 +220,7 @@ Begin
   End;
   {$ENDIF}
 
-  If (GraphicsManager.Instance.RenderStage=renderStageNormal) Then
+  If (Stage=renderStageNormal) Then
   Begin
     If (_SkyboxNormalShader = Nil) Then
     Begin

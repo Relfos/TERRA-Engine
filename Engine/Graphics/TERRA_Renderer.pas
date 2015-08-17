@@ -85,7 +85,18 @@ Type
     effectTargetEdge  = 10
   );
 
-Type
+
+  RendererStage = (
+    renderStageDiffuse      = 1,
+    renderStageNormal       = 2,
+    renderStageGlow         = 4,
+    renderStageRefraction   = 8,
+    renderStageOutline      = 16,
+    renderStageReflection   = 32,
+    renderStageShadow       = 64
+//    renderStageAlpha        = 128
+  );
+
   GraphicsRenderer = Class;
 
   RendererQuality = (qualityDisabled, qualityLow, qualityMedium, qualityHigh);
@@ -765,9 +776,9 @@ Begin
   Log(logDebug, 'Renderer', 'Device: '+ _Owner._DeviceName);
   Log(logDebug, 'Renderer', 'Vendor: '+ _Owner._DeviceVendor);
   Log(logDebug, 'Renderer', 'Shaders: '+  BoolToString(Shaders.Avaliable));
-  Log(logDebug, 'Renderer', 'Max texture slots:' + IntToString(_MaxTextureUnits));
-  Log(logDebug, 'Renderer', 'Max texture size:' + IntToString(_MaxTextureSize));
-  Log(logDebug, 'Renderer', 'Max render targets:' + IntToString(_maxRenderTargets));
+  Log(logDebug, 'Renderer', 'Max texture slots:' +  IntegerProperty.Stringify(_MaxTextureUnits));
+  Log(logDebug, 'Renderer', 'Max texture size:' +  IntegerProperty.Stringify(_MaxTextureSize));
+  Log(logDebug, 'Renderer', 'Max render targets:' +  IntegerProperty.Stringify(_maxRenderTargets));
   Log(logDebug, 'Renderer', 'Texture compression: '+  BoolToString(TextureCompression.Avaliable));
   Log(logDebug, 'Renderer', 'VertexBufferObject: '+  BoolToString(VertexBufferObject.Avaliable));
   Log(logDebug, 'Renderer', 'FrameBufferObject: '+  BoolToString(FrameBufferObject.Avaliable));
@@ -882,7 +893,7 @@ Begin
   _Stats.Reset();
   _Stats.FramesPerSecond := _PrevStats.FramesPerSecond;
 
-  //Application.Instance.SetTitle(IntToString(N));
+  //Application.Instance.SetTitle( IntegerProperty.Stringify(N));
 End;
 
 { VertexBufferInterface }
@@ -934,7 +945,7 @@ Begin
 //  typeInteger:  Size := Count * 4;
   {$ENDIF}
   Else
-    Log(logWarning, 'VBO', 'Invalid VBO attribute type ['+IntToString(Integer(Format))+']');
+    Log(logWarning, 'VBO', 'Invalid VBO attribute type ['+ IntegerProperty.Stringify(Integer(Format))+']');
   End;
 
   If (Not Skip) Then

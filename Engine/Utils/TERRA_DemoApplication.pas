@@ -5,7 +5,7 @@ Unit TERRA_DemoApplication;
 Interface
 Uses TERRA_Utils, TERRA_Object, TERRA_String, TERRA_Application, TERRA_OS, TERRA_Scene,
   TERRA_Vector3D, TERRA_Color, TERRA_Camera, TERRA_Ray,
-  TERRA_Font, TERRA_FontRenderer, TERRA_Skybox, TERRA_Viewport, TERRA_Lights, TERRA_UIView;
+  TERRA_Font, TERRA_FontRenderer, TERRA_Skybox, TERRA_Viewport, TERRA_Lights, TERRA_UIView, TERRA_ScreenFX;
 
 Type
   DemoApplication = Class;
@@ -109,8 +109,10 @@ Begin
 
   _Camera := PerspectiveCamera.Create('main');
 
-  _Main := Self.CreateMainViewport('main', GraphicsManager.Instance.Width, GraphicsManager.Instance.Height);
+  (*)_Main := Self.CreateMainViewport('main', GraphicsManager.Instance.Width, GraphicsManager.Instance.Height);
   _Main.SetPostProcessingState(True);
+  //_Main.Visible := False;
+  _Main.FXChain.AddEffect(BloomFX.Create());*)
 
   GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorCreate(128, 128, 255);
 
@@ -143,7 +145,7 @@ End;
 
 Procedure DemoScene.RenderSprites(V: TERRAViewport);
 Begin
-  _Owner._FontRenderer.DrawText(V, 5, 5, 50, 'FPS: '+IntToString(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
+  _Owner._FontRenderer.DrawText(V, 5, 5, 50, 'FPS: '+ IntegerProperty.Stringify(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
 End;
 
 Procedure DemoApplication.OnKeyDown(Key: Word);
@@ -179,12 +181,14 @@ End;
 Procedure DemoScene.RenderViewport(V: TERRAViewport);
 Var
   R:Ray;
+  Dir:Vector3D;
 Begin
   If (V = Self._Main) Then
   Begin
     R := V.GetPickRay(Trunc(InputManager.Instance.Mouse.X), Trunc(InputManager.Instance.Mouse.Y));
-    R.Direction.Z := -R.Direction.Z;
-    Sun.SetDirection(R.Direction);
+    Dir := R.Direction;
+    Dir.Normalize();
+    Sun.SetDirection(Dir);
 
     GraphicsManager.Instance.AddRenderable(V, _Sky);
     LightManager.Instance.AddLight(V, Sun);
@@ -204,6 +208,7 @@ end;
 
 Procedure DemoApplication.OnRender(V: TERRAViewport);
 Begin
+//  Sleep(500);
 End;
 
 

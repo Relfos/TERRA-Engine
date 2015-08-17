@@ -1248,7 +1248,7 @@ Begin
 
   If (_CPUCores<=0) Then
     _CPUCores := SystemInfo.dwNumberOfProcessors;
-  Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
+  Log(logDebug, 'App', 'Found '+ IntegerProperty.Stringify(_CPUCores)+' cores');
 
   Self.SetProcessorAffinity();
 

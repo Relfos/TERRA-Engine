@@ -3,7 +3,7 @@ Unit TERRA_Object;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Tween, TERRA_Color, TERRA_Vector2D, TERRA_Vector3D;
+Uses TERRA_String, TERRA_Utils, TERRA_Tween;
 
 Type
   TERRAObject = Class
@@ -101,11 +101,11 @@ Type
 
       Procedure RegisterTween(Const Ease:TweenEaseType; TweenID:Integer; Const StartValue, TargetValue:Single; Const Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
 
-      Procedure UpdateTweens(); Virtual;
-
       Procedure UpdateTweenValue(Const TweenID:Integer; Const Value:Single); Virtual;
 
     Public
+      Procedure UpdateTweens(); Virtual;
+
       Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Virtual; Abstract;
 
       Function IsValueObject():Boolean; Override;
@@ -132,6 +132,8 @@ Type
 
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
+
+      Class Function Stringify(Const N:Integer):TERRAString;
 
       Function SortID:Integer; Override;
 
@@ -183,6 +185,8 @@ Type
 
       Function SortID:Integer; Override;
 
+      Class Function Stringify(N:Single; DecimalPlacesLimit:Integer = 7):TERRAString;
+
       Property Value:Single Read GetFloatValue Write SetFloatValue;
 
   End;
@@ -197,96 +201,6 @@ Type
       Procedure SetBlob(Const Blob:TERRAString); Override;
   End;
 
-  ColorProperty = Class(TweenableProperty)
-    Protected
-      _Red:ByteProperty;
-      _Green:ByteProperty;
-      _Blue:ByteProperty;
-      _Alpha:ByteProperty;
-
-      Function GetColorValue:ColorRGBA;
-      Procedure SetColorValue(const NewValue:ColorRGBA);
-
-      Procedure UpdateTweens(); Override;
-
-    Public
-      Constructor Create(Const Name:TERRAString; Const InitValue:ColorRGBA);
-      Procedure Release(); Override;
-
-      Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
-      Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:ColorRGBA; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
-
-      Function GetBlob():TERRAString; Override;
-      Procedure SetBlob(Const Blob:TERRAString); Override;
-
-      Function GetObjectType:TERRAString; Override;
-
-      Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
-
-      Property Red:ByteProperty Read _Red;
-      Property Green:ByteProperty Read _Green;
-      Property Blue:ByteProperty Read _Blue;
-      Property Alpha:ByteProperty Read _Alpha;
-
-      Property Value:ColorRGBA Read GetColorValue Write SetColorValue;
-  End;
-
-  Vector2DProperty = Class(TweenableProperty)
-    Protected
-      _X:FloatProperty;
-      _Y:FloatProperty;
-
-      Function GetVectorValue:Vector2D;
-      Procedure SetVectorValue(const NewValue:Vector2D);
-
-      Procedure UpdateTweens(); Override;
-
-    Public
-      Constructor Create(Const Name:TERRAString; Const InitValue:Vector2D);
-      Procedure Release(); Override;
-
-      Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
-      Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Vector2D; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
-
-      Function GetObjectType:TERRAString; Override;
-
-
-      Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
-
-      Property X:FloatProperty Read _X;
-      Property Y:FloatProperty Read _Y;
-
-      Property Value:Vector2D Read GetVectorValue Write SetVectorValue;
-  End;
-
-  Vector3DProperty = Class(TweenableProperty)
-    Protected
-      _X:FloatProperty;
-      _Y:FloatProperty;
-      _Z:FloatProperty;
-
-      Function GetVectorValue:Vector3D;
-      Procedure SetVectorValue(const NewValue:Vector3D);
-
-      Procedure UpdateTweens(); Override;
-
-    Public
-      Constructor Create(Const Name:TERRAString; Const InitValue:Vector3D);
-      Procedure Release(); Override;
-
-      Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
-      Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Vector3D; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
-
-      Function GetObjectType:TERRAString; Override;
-
-      Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
-
-      Property X:FloatProperty Read _X;
-      Property Y:FloatProperty Read _Y;
-      Property Z:FloatProperty Read _Z;
-
-      Property Value:Vector3D Read GetVectorValue Write SetVectorValue;
-  End;
 
 Procedure ReleaseObject(var Obj);
 
@@ -505,9 +419,6 @@ Begin
   T.Callback := Callback;
   T.CallTarget := CallTarget;
 
-  If Duration = 150 Then
-    IntToString(2);
-
   Inc(_TweenCount);
   If (Length(_TweenList)<_TweenCount) Then
     SetLength(_TweenList, _TweenCount);
@@ -589,7 +500,7 @@ End;
 
 Function IntegerProperty.GetBlob: TERRAString;
 Begin
-  Result := IntToString(Value);
+  Result :=  IntegerProperty.Stringify(Value);
 End;
 
 Procedure IntegerProperty.SetBlob(const Blob: TERRAString);
@@ -633,6 +544,15 @@ Begin
   Result := _Value;
 End;
 
+Class Function IntegerProperty.Stringify(Const N:Integer):TERRAString;
+Begin
+{$IFDEF OXYGENE}
+  Result := System.Convert.ToString(N);
+{$ELSE}
+  Str(N, Result);
+{$ENDIF}
+End;
+
 { ByteProperty }
 Constructor ByteProperty.Create(const Name: TERRAString; const InitValue: Byte);
 Begin
@@ -642,7 +562,7 @@ End;
 
 Function ByteProperty.GetBlob: TERRAString;
 Begin
-  Result := IntToString(Value);
+  Result :=  IntegerProperty.Stringify(Value);
 End;
 
 Procedure ByteProperty.SetBlob(const Blob: TERRAString);
@@ -700,7 +620,7 @@ End;
 
 Function FloatProperty.GetBlob: TERRAString;
 Begin
-  Result := FloatToString(GetFloatValue());
+  Result := FloatProperty.Stringify(GetFloatValue());
 End;
 
 Procedure FloatProperty.SetBlob(const Blob: TERRAString);
@@ -739,239 +659,39 @@ Begin
   Result := Trunc(_Value);
 End;
 
-{ ColorProperty }
-Constructor ColorProperty.Create(Const Name:TERRAString; const InitValue:ColorRGBA);
-Begin
-  _ObjectName := Name;
-  _Red := ByteProperty.Create('r', InitValue.R);
-  _Green := ByteProperty.Create('g', InitValue.G);
-  _Blue := ByteProperty.Create('b', InitValue.B);
-  _Alpha := ByteProperty.Create('a', InitValue.A);
-End;
-
-Procedure ColorProperty.Release;
-Begin
-  ReleaseObject(_Red);
-  ReleaseObject(_Green);
-  ReleaseObject(_Blue);
-  ReleaseObject(_Alpha);
-End;
-
-(*Function ColorProperty.GetBlob: TERRAString;
-Begin
-  Result := Red.GetBlob() + '/'+ Green.GetBlob() + '/'+ Blue.GetBlob() + '/'+ Alpha.GetBlob();
-End;
-
-Procedure ColorProperty.SetBlob(const Blob: TERRAString);
+Class Function FloatProperty.Stringify(N:Single; DecimalPlacesLimit:Integer):TERRAString;
 Var
-  S:TERRAString;
+  X:Single;
+  A:Integer;
+  DecimalPlaces, K:Integer;
+  Ready:Boolean;
 Begin
-  S := Blob;
-  Red.SetBlob(StringGetNextSplit(S, Ord('/')));
-  Green.SetBlob(StringGetNextSplit(S, Ord('/')));
-  Blue.SetBlob(StringGetNextSplit(S, Ord('/')));
-  Alpha.SetBlob(StringGetNextSplit(S, Ord('/')));
-End;*)
-
-Procedure ColorProperty.SetColorValue(const NewValue:ColorRGBA);
-Begin
-  Red.Value := NewValue.R;
-  Green.Value := NewValue.G;
-  Blue.Value := NewValue.B;
-  Alpha.Value := NewValue.A;
-End;
-
-Function ColorProperty.GetColorValue:ColorRGBA;
-Begin
-  Result.R := Red.Value;
-  Result.G := Green.Value;
-  Result.B := Blue.Value;
-  Result.A := Alpha.Value;
-End;
-
-Function ColorProperty.GetObjectType: TERRAString;
-Begin
-  Result := 'color';
-End;
-
-Procedure ColorProperty.AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
-Begin
-  Self.AddTween(Ease, ColorCreateFromString(StartValue), ColorCreateFromString(TargetValue), Duration, Delay, Callback, CallTarget);
-End;
-
-Procedure ColorProperty.AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:ColorRGBA; Duration, Delay:Cardinal; Callback: TweenCallback; CallTarget:TERRAObject);
-Begin
-  Self.Red.AddTween(Ease, StartValue.R, TargetValue.R, Duration, Delay, Callback, CallTarget);
-  Self.Green.AddTween(Ease, StartValue.G, TargetValue.G, Duration, Delay, Nil);
-  Self.Blue.AddTween(Ease, StartValue.B, TargetValue.B, Duration, Delay, Nil);
-  Self.Alpha.AddTween(Ease, StartValue.A, TargetValue.A, Duration, Delay, Nil);
-End;
-
-Function ColorProperty.GetPropertyByIndex(Index: Integer): TERRAObject;
-Begin
-  Case Index Of
-  0:  Result := Red;
-  1:  Result := Green;
-  2:  Result := Blue;
-  3:  Result := Alpha;
+  If (N<0) Then
+    Result := '-'
   Else
-    Result := Nil;
-  End;
-End;
+    Result := '';
 
-Function ColorProperty.GetBlob: TERRAString;
-Begin
-  Result := ColorToString(Self.GetColorValue());
-End;
+  N := Abs(N);
+  A := Trunc(N);
+  X := Frac(N);
 
-Procedure ColorProperty.SetBlob(const Blob: TERRAString);
-Begin
-  Self.SetColorValue(ColorCreateFromString(Blob));
-End;
+  Result := Result +  IntegerProperty.Stringify(A) +'.';
 
-Procedure ColorProperty.UpdateTweens;
-Begin
-  Red.UpdateTweens();
-  Green.UpdateTweens();
-  Blue.UpdateTweens();
-  Alpha.UpdateTweens();
-End;
+  DecimalPlaces := 0;
+  Ready := False;
+  K := 10;
+  Repeat
+    N := X * K;
+    K := K * 10;
+    A := Trunc(N) Mod 10;
 
-{ Vector3DProperty }
-Constructor Vector3DProperty.Create(Const Name:TERRAString; const InitValue: Vector3D);
-Begin
-  _ObjectName := Name;
-  _X := FloatProperty.Create('x', InitValue.X);
-  _Y := FloatProperty.Create('y', InitValue.Y);
-  _Z := FloatProperty.Create('z', InitValue.Z);
-End;
+    Result := Result +  IntegerProperty.Stringify(A);
+    Inc(DecimalPlaces);
 
-Procedure Vector3DProperty.Release;
-Begin
-  ReleaseObject(_X);
-  ReleaseObject(_Y);
-  ReleaseObject(_Z);
-End;
+    If A>0 Then
+      Ready := True;
 
-Function Vector3DProperty.GetVectorValue: Vector3D;
-Begin
-  Result.X := X.Value;
-  Result.Y := Y.Value;
-  Result.Z := Z.Value;
-End;
-
-Procedure Vector3DProperty.SetVectorValue(const NewValue: Vector3D);
-Begin
-  X.Value := NewValue.X;
-  Y.Value := NewValue.Y;
-  Z.Value := NewValue.Z;
-End;
-
-Function Vector3DProperty.GetObjectType: TERRAString;
-Begin
-  Result := 'vec3';
-End;
-
-Procedure Vector3DProperty.AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
-Begin
-  Self.AddTween(Ease, StringToVector3D(StartValue), StringToVector3D(TargetValue), Duration, Delay, Callback, CallTarget);
-End;
-
-Procedure Vector3DProperty.AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Vector3D; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
-Begin
-  Self.X.AddTween(Ease, StartValue.X, TargetValue.X, Duration, Delay, Callback, CallTarget);
-  Self.Y.AddTween(Ease, StartValue.Y, TargetValue.Y, Duration, Delay, Nil);
-  Self.Z.AddTween(Ease, StartValue.Z, TargetValue.Z, Duration, Delay, Nil);
-End;
-
-Function Vector3DProperty.GetPropertyByIndex(Index: Integer): TERRAObject;
-Begin
-  Case Index Of
-  0:  Result := X;
-  1:  Result := Y;
-  2:  Result := Z;
-  Else
-    Result := Nil;
-  End;
-End;
-
-Procedure Vector3DProperty.UpdateTweens;
-Begin
-  X.UpdateTweens();
-  Y.UpdateTweens();
-  Z.UpdateTweens();
-End;
-
-{ Vector2DProperty }
-Constructor Vector2DProperty.Create(Const Name:TERRAString; const InitValue: Vector2D);
-Begin
-  _ObjectName := Name;
-  _X := FloatProperty.Create('x', InitValue.X);
-  _Y := FloatProperty.Create('y', InitValue.Y);
-End;
-
-Procedure Vector2DProperty.Release;
-Begin
-  ReleaseObject(_X);
-  ReleaseObject(_Y);
-End;
-
-(*Function Vector2DProperty.GetBlob: TERRAString;
-Begin
-  Result := X.GetBlob() + '/'+ Y.GetBlob();
-End;
-
-Procedure Vector2DProperty.SetBlob(const Blob: TERRAString);
-Var
-  S:TERRAString;
-Begin
-  S := Blob;
-  X.SetBlob(StringGetNextSplit(S, Ord('/')));
-  Y.SetBlob(StringGetNextSplit(S, Ord('/')));
-End;*)
-
-Function Vector2DProperty.GetVectorValue: Vector2D;
-Begin
-  Result.X := X.Value;
-  Result.Y := Y.Value;
-End;
-
-Procedure Vector2DProperty.SetVectorValue(const NewValue: Vector2D);
-Begin
-  X.Value := NewValue.X;
-  Y.Value := NewValue.Y;
-End;
-
-Function Vector2DProperty.GetObjectType: TERRAString;
-Begin
-  Result := 'vec2';
-End;
-
-Procedure Vector2DProperty.AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
-Begin
-  Self.AddTween(Ease, StringToVector2D(StartValue), StringToVector2D(TargetValue), Duration, Delay, Callback, CallTarget);
-End;
-
-Procedure Vector2DProperty.AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Vector2D; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
-Begin
-  Self.X.AddTween(Ease, StartValue.X, TargetValue.X, Duration, Delay, Callback, CallTarget);
-  Self.Y.AddTween(Ease, StartValue.Y, TargetValue.Y, Duration, Delay, Nil);
-End;
-
-Function Vector2DProperty.GetPropertyByIndex(Index: Integer): TERRAObject;
-Begin
-  Case Index Of
-  0:  Result := X;
-  1:  Result := Y;
-  Else
-    Result := Nil;
-  End;
-End;
-
-Procedure Vector2DProperty.UpdateTweens;
-Begin
-  X.UpdateTweens();
-  Y.UpdateTweens();
+  Until (DecimalPlaces>=DecimalPlacesLimit) Or ((A=0) And (Ready));
 End;
 
 { BooleanProperty }
@@ -1037,7 +757,7 @@ End;
 
 Function AngleProperty.GetBlob: TERRAString;
 Begin
-  Result := FloatToString(GetFloatValue() * DEG);
+  Result := FloatProperty.Stringify(GetFloatValue() * DEG);
 End;
 
 Procedure AngleProperty.SetBlob(const Blob: TERRAString);

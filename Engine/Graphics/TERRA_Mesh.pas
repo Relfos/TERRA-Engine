@@ -285,7 +285,7 @@ Type
 
       Procedure SetGeometry(MyMesh:TERRAMesh);
 
-      Procedure DrawMesh(View:TERRAViewport; Const MyTransform:Matrix4x4; TranslucentPass, StencilTest:Boolean);
+      Procedure DrawMesh(View:TERRAViewport; Const Stage:RendererStage; Const MyTransform:Matrix4x4; TranslucentPass, StencilTest:Boolean);
 
       Procedure DrawParticles(View:TERRAViewport);
 
@@ -440,7 +440,7 @@ Type
       Procedure Release(); Override;
 
       Function GetBoundingBox:BoundingBox; Override;
-      Procedure Render(View:TERRAViewport; Const Bucket:Cardinal); Override;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
 
       Function GetAttach(Index:Integer):PMeshAttach;
 
@@ -528,10 +528,10 @@ Type
       _MorphCount:Integer;
 
 
-      Procedure SetupUniforms(View:TERRAViewport; Transform:Matrix4x4; State:MeshInstance; Outline, TranslucentPass:Boolean; Const Material:MeshMaterial);
+      Procedure SetupUniforms(View:TERRAViewport; Const Stage:RendererStage; Transform:Matrix4x4; State:MeshInstance; Outline, TranslucentPass:Boolean; Const Material:MeshMaterial);
 
       //Procedure SetCombineWithColor(C:ColorRGBA);
-      Procedure BindMaterial(View:TERRAViewport; Var Slot:Integer; Const Material:MeshMaterial);
+      Procedure BindMaterial(View:TERRAViewport; Const Stage:RendererStage; Var Slot:Integer; Const Material:MeshMaterial);
 
       Procedure Load(Source:Stream; Offset:Cardinal = 0; ChunkSize:Cardinal = 0);
       Procedure Save(Dest:Stream);
@@ -688,7 +688,7 @@ Type
       Procedure CullTriangles(Box:BoundingBox; Transform:Matrix4x4);
       Procedure UncullTriangles();
 
-      Function Render(View:TERRAViewport; Const Transform:Matrix4x4; TranslucentPass:Boolean; State:MeshInstance):Boolean;
+      Function Render(View:TERRAViewport; Const Stage:RendererStage; Const Transform:Matrix4x4; TranslucentPass:Boolean; State:MeshInstance):Boolean;
 
       //Function DuplicateVertex(Index:Integer):Integer;
 
@@ -931,13 +931,13 @@ Type
 
   Function CreatePlaneMesh(Const Normal:Vector3D; SubDivisions:Cardinal):TERRAMesh;
 
-  Function SelectMeshShader(View:TERRAViewport; Group:MeshGroup; Position:Vector3D; Outline, TranslucentPass:Boolean; Var DestMaterial:MeshMaterial; UseTextureMatrix:Boolean):ShaderInterface;
+  Function SelectMeshShader(View:TERRAViewport; Const Stage:RendererStage; Group:MeshGroup; Position:Vector3D; Outline, TranslucentPass:Boolean; Var DestMaterial:MeshMaterial; UseTextureMatrix:Boolean):ShaderInterface;
 
   Function MakeWaterFlowBounds(Const Box:BoundingBox):Vector4D;
 
 Implementation
 Uses TERRA_Error, TERRA_Application, TERRA_Log, TERRA_ShaderFactory, TERRA_OS,
-  TERRA_FileManager, TERRA_EngineManager, TERRA_CRC32, TERRA_ColorGrading, TERRA_Solids;
+  TERRA_EngineManager, TERRA_FileManager, TERRA_CRC32, TERRA_ColorGrading, TERRA_Solids;
 
 Type
   MeshDataBlockHandler = Function(Target:TERRAMesh; Size:Cardinal; Source:Stream):Boolean;
@@ -1306,7 +1306,7 @@ Begin
 
   Source.Read(@Target._Material.DiffuseColor, SizeOf(ColorRGBA));
   Source.ReadString(S);
-  Target._Material.DiffuseMap := Engine.Textures.GetTexture(S);
+  Target._Material.DiffuseMap := Engine.Textures.GetItem(S);
 
   Result := True;
 End;
@@ -1318,7 +1318,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.TriplanarMap := Engine.Textures.GetTexture(S);
+  Target._Material.TriplanarMap := Engine.Textures.GetItem(S);
 
   Result := True;
 End;
@@ -1330,7 +1330,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.SpecularMap := Engine.Textures.GetTexture(S);
+  Target._Material.SpecularMap := Engine.Textures.GetItem(S);
 
   Result := True;
 End;
@@ -1342,7 +1342,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.NormalMap := Engine.Textures.GetTexture(S);
+  Target._Material.NormalMap := Engine.Textures.GetItem(S);
 
   If Assigned(Target._Material.NormalMap) Then
   Begin
@@ -1360,7 +1360,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.DisplacementMap := Engine.Textures.GetTexture(S);
+  Target._Material.DisplacementMap := Engine.Textures.GetItem(S);
 
   Result := True;
 End;
@@ -1372,7 +1372,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.LightMap := Engine.Textures.GetTexture(S);
+  Target._Material.LightMap := Engine.Textures.GetItem(S);
 
   If Assigned(Target._Material.LightMap) Then
   Begin
@@ -1392,7 +1392,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.RefractionMap := Engine.Textures.GetTexture(S);
+  Target._Material.RefractionMap := Engine.Textures.GetItem(S);
 
   Result := True;
 End;
@@ -1405,7 +1405,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.ReflectiveMap := Engine.Textures.GetTexture(S);
+  Target._Material.ReflectiveMap := Engine.Textures.GetItem(S);
 
   Result := True;
 End;
@@ -1418,7 +1418,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.EnviromentMap := Engine.Textures.GetTexture(S);
+  Target._Material.EnviromentMap := Engine.Textures.GetItem(S);
 
   Result := True;
 End;
@@ -1430,7 +1430,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.GlowMap := Engine.Textures.GetTexture(S);
+  Target._Material.GlowMap := Engine.Textures.GetItem(S);
 
   Result := True;
 End;
@@ -1442,7 +1442,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.AlphaMap := Engine.Textures.GetTexture(S);
+  Target._Material.AlphaMap := Engine.Textures.GetItem(S);
 
   Result := True;
 End;
@@ -1454,7 +1454,7 @@ Begin
   S := '';
 
   Source.ReadString(S);
-  Target._Material.ToonRamp := Engine.Textures.GetTexture(S);
+  Target._Material.ToonRamp := Engine.Textures.GetItem(S);
 
   If Assigned(Target._Material.ToonRamp) Then
     Target._Material.ToonRamp.Uncompressed := True;
@@ -2230,7 +2230,7 @@ Begin
 
   {$IFDEF DEBUG_GRAPHICS}
   Log(logDebug, 'Mesh', 'Rendering mesh lights');
-  Log(logDebug, 'Mesh', 'Total '+IntToString(Self._LightCount)+' lights in '+_Mesh.Name);
+  Log(logDebug, 'Mesh', 'Total '+ IntegerProperty.Stringify(Self._LightCount)+' lights in '+_Mesh.Name);
   {$ENDIF}
 
   For I:=0 To Pred(Self._LightCount) Do
@@ -2262,7 +2262,7 @@ Begin
       _Lights[I].GroupID := MyLight.GroupIndex;
     End;
 
-    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Mesh', 'Transforming light '+IntToString(I));{$ENDIF}
+    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Mesh', 'Transforming light '+ IntegerProperty.Stringify(I));{$ENDIF}
 
     P := MyLight.Position;
     If (MyLight.BoneIndex>=0) Then
@@ -2274,7 +2274,7 @@ Begin
 
     P := M.Transform(P);
 
-    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Mesh', 'Setting light '+IntToString(I)+' properties');{$ENDIF}
+    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Mesh', 'Setting light '+ IntegerProperty.Stringify(I)+' properties');{$ENDIF}
 
     TargetLight := _Lights[I].Light;
     TargetLight.Position := P;
@@ -2389,7 +2389,7 @@ Begin
   End;
 End;
 
-Procedure MeshInstance.DrawMesh(View:TERRAViewport; Const MyTransform:Matrix4x4; TranslucentPass, StencilTest:Boolean);
+Procedure MeshInstance.DrawMesh(View:TERRAViewport; Const Stage:RendererStage; Const MyTransform:Matrix4x4; TranslucentPass, StencilTest:Boolean);
 Var
   I:Integer;
   M, Transform:Matrix4x4;
@@ -2431,11 +2431,11 @@ Begin
     End;
 
     If (IsGroupTranslucent(I) = TranslucentPass) Then
-	    _Mesh._Groups[I].Render(View, Transform, TranslucentPass, Self);
+	    _Mesh._Groups[I].Render(View, Stage, Transform, TranslucentPass, Self);
   End;
 End;
 
-Procedure MeshInstance.Render(View:TERRAViewport; Const Bucket:Cardinal);
+Procedure MeshInstance.Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
 Var
   C:ColorRGBA;
   Time:Cardinal;
@@ -2504,7 +2504,7 @@ Begin
     _AlphaLODValue := 1.0;*)
 
   _StencilID := 0;
-  If (Not Graphics.ReflectionActive) And (Graphics.RenderStage<>renderStageShadow) Then
+  If (Not Graphics.ReflectionActive) And (Stage<>renderStageShadow) Then
   Begin
     For I:=0 To Pred(_AttachCount) Do
     If (_AttachList[I].IsStencil) Then
@@ -2543,14 +2543,14 @@ Begin
       Begin
         C := _AttachList[I].AttachMesh._Groups[J].DiffuseColor;
         _AttachList[I].AttachMesh._Groups[J].Flags := meshGroupColorOff;
-  	    _AttachList[I].AttachMesh._Groups[J].Render(View, M, TranslucentPass, Nil);
+  	    _AttachList[I].AttachMesh._Groups[J].Render(View, Stage, M, TranslucentPass, Nil);
       End;
     End;
 
     For I:=0 To Pred(_Mesh._GroupCount) Do
     If (_Mesh._Groups[I].Flags And meshGroupStencilMask<>0) Then
     Begin
-      Self._Mesh._Groups[I].Render(View, _Transform, TranslucentPass, Self);
+      Self._Mesh._Groups[I].Render(View, Stage, _Transform, TranslucentPass, Self);
     End;
 
     Graphics.Renderer.SetDepthMask(True);
@@ -2563,15 +2563,15 @@ Begin
 
   If (_StencilID>0) Then
   Begin
-    DrawMesh(View, _Transform, TranslucentPass, True);
+    DrawMesh(View, Stage, _Transform, TranslucentPass, True);
     Graphics.Renderer.SetStencilTest(False);
   End;
 
-  DrawMesh(View, _Transform, TranslucentPass, False);
+  DrawMesh(View, Stage, _Transform, TranslucentPass, False);
 
 {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Main mesh done');{$ENDIF}
 
-  If (_RenderTrails) And (TranslucentPass) And (Graphics.RenderStage=renderStageDiffuse) Then
+  If (_RenderTrails) And (TranslucentPass) And (Stage=renderStageDiffuse) Then
   Begin
     For I:=0 To Pred(_Mesh.GroupCount) Do
       _Groups[I].TempAlpha := _Groups[I].Material.DiffuseColor.A;
@@ -2600,7 +2600,7 @@ Begin
       Begin
         S := 0.75 + 0.25 * (1.0 - (J/Pred(MaxTrailSize)));
         _Transform := Matrix4x4Multiply4x3(_OldTransforms[J], Matrix4x4Scale(S, S, S));
-        DrawMesh( View, _Transform, TranslucentPass, False);
+        DrawMesh( View, Stage, _Transform, TranslucentPass, False);
       End;
     End;
 
@@ -2612,7 +2612,7 @@ Begin
   For I:=0 To Pred(_AttachCount) Do
   If (Not _AttachList[I].IsStencil) Then
   Begin
-{$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Rendering attach '+IntToString(I));{$ENDIF}
+{$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Rendering attach '+ IntegerProperty.Stringify(I));{$ENDIF}
 
     //M := MatrixMultiply4x3(_Transform, MatrixMultiply4x3(Animation.Transforms[Succ(_AttachList[I].BoneIndex)], _AttachList[I].Matrix));
     M := Matrix4x4Multiply4x3(_Transform, Matrix4x4Multiply4x3(Animation.GetAbsoluteMatrix(_AttachList[I].BoneIndex), _AttachList[I].Matrix));
@@ -2624,7 +2624,7 @@ Begin
     Begin
       C := _AttachList[I].AttachMesh._Groups[J].DiffuseColor;
       _AttachList[I].AttachMesh._Groups[J].DiffuseColor := ColorMultiply(_AttachList[I].AttachMesh._Groups[J].DiffuseColor, _AttachList[I].Color);
-	    _AttachList[I].AttachMesh._Groups[J].Render(View, M, TranslucentPass, Nil);
+	    _AttachList[I].AttachMesh._Groups[J].Render(View, Stage, M, TranslucentPass, Nil);
       _AttachList[I].AttachMesh._Groups[J].DiffuseColor := C;
     End;
   End;
@@ -2646,7 +2646,7 @@ End;
 Function MeshInstance.GetName:TERRAString;
 Begin
   If Assigned(_Mesh) Then
-    Result := _Mesh.Name + '(X:'+FloatToString(_Position.X)+ ', Y:'+FloatToString(_Position.Y)+ ', Z:'+FloatToString(_Position.Z)+')'
+    Result := _Mesh.Name + '(X:'+FloatProperty.Stringify(_Position.X)+ ', Y:'+FloatProperty.Stringify(_Position.Y)+ ', Z:'+FloatProperty.Stringify(_Position.Z)+')'
   Else
     Result := 'Undefined';
 End;
@@ -3188,7 +3188,7 @@ Begin
       V.Position := M.Transform(V.Position);
       V.Normal := M.TransformNormal(V.Normal);
     End Else
-      Log(logWarning, 'Mesh', 'Invalid bone index '+IntToString(It.Position)+ ' in mesh '+Self.Name);
+      Log(logWarning, 'Mesh', 'Invalid bone index '+ IntegerProperty.Stringify(It.Position)+ ' in mesh '+Self.Name);
   End;
   ReleaseObject(It);
 End;*)
@@ -3733,7 +3733,7 @@ Begin
       UnpairedEdges[AdjIndex] := UnpairedEdges[Pred(UnpairedCount)];
       Dec(UnpairedCount);
     End;
-    //RaiseError(Self._Owner.Name+ ' has invalid topology in group '+IntToString(Self._ID));
+    //RaiseError(Self._Owner.Name+ ' has invalid topology in group '+ IntegerProperty.Stringify(Self._ID));
 
 
     // now remove A from paired edge list
@@ -3829,7 +3829,7 @@ Begin
 
 
 {    If (IsNan(T.X)) Or (IsNan(T.Y)) Or (IsNan(T.Z)) Then
-      FloatToString(T.X);}
+      FloatProperty.Stringify(T.X);}
 
     // Calculate handedness
     If (VectorDot( VectorCross(n, t), tan2[i]) < 0.0) Then
@@ -4063,7 +4063,7 @@ Begin
 End;
 
 
-Procedure MeshGroup.SetupUniforms(View:TERRAViewport; Transform:Matrix4x4; State:MeshInstance; Outline, TranslucentPass:Boolean; Const Material:MeshMaterial);
+Procedure MeshGroup.SetupUniforms(View:TERRAViewport; Const Stage:RendererStage; Transform:Matrix4x4; State:MeshInstance; Outline, TranslucentPass:Boolean; Const Material:MeshMaterial);
 Var
   I:Integer;
   TextureMatrix, M, M2:Matrix4x4;
@@ -4145,7 +4145,7 @@ Begin
     _Shader.SetColorUniform('targetColor', ColorWhite);
   End Else
   {$ENDIF}
-  If (Graphics.RenderStage = renderStageOutline) Then
+  If (Stage = renderStageOutline) Then
   Begin
     _Shader.SetColorUniform('targetColor', Material.OutlineColor);
   End Else
@@ -4172,7 +4172,7 @@ Begin
   End;
 
 
-  If (Graphics.RenderStage = renderStageDiffuse) And (Graphics.Renderer.Settings.CartoonHues.Enabled) Then
+  If (Stage = renderStageDiffuse) And (Graphics.Renderer.Settings.CartoonHues.Enabled) Then
   Begin
     _Shader.SetColorUniform('hue_green', Graphics.Renderer.Settings.CartoonHueGreen);
     _Shader.SetColorUniform('hue_yellow', Graphics.Renderer.Settings.CartoonHueYellow);
@@ -4189,7 +4189,7 @@ Begin
   Begin
     If (_GPUSkinning) And (_Owner.Skeleton.BoneCount>MaxBones) Then
     Begin
-      Log(logWarning, 'Mesh', 'Bone limit reached, '+IntToString(_Owner.Skeleton.BoneCount)+' bones'    + ', mesh name = "' + _Owner.Name + '"');
+      Log(logWarning, 'Mesh', 'Bone limit reached, '+ IntegerProperty.Stringify(_Owner.Skeleton.BoneCount)+' bones'    + ', mesh name = "' + _Owner.Name + '"');
       _GPUSkinning := False;
       Exit;
     End;
@@ -4211,7 +4211,7 @@ Begin
   End;
 End;
 
-Function MeshGroup.Render(View:TERRAViewport; Const Transform:Matrix4x4; TranslucentPass:Boolean; State:MeshInstance):Boolean;
+Function MeshGroup.Render(View:TERRAViewport; Const Stage:RendererStage; Const Transform:Matrix4x4; TranslucentPass:Boolean; State:MeshInstance):Boolean;
 Var
   UseOutline, ShowWireframe, UseTextureMatrix:Boolean;
   I,J,K, PassCount:Integer;
@@ -4232,9 +4232,9 @@ Begin
 
   Graphics := GraphicsManager.Instance;
 
-  If (Graphics.RenderStage = renderStageOutline) {$IFNDEF DISABLEOUTLINES} And (Not Graphics.Renderer.Settings.Outlines.Enabled) {$ENDIF} Then
+  If (Stage = renderStageOutline) {$IFNDEF DISABLEOUTLINES} And (Not Graphics.Renderer.Settings.Outlines.Enabled) {$ENDIF} Then
   Begin
-    IntToString(2);
+     IntegerProperty.Stringify(2);
     Exit;
   End;
 
@@ -4247,25 +4247,25 @@ Begin
     Exit;
   {$ENDIF}
 
-  If (Graphics.RenderStage = renderStageRefraction) And (_Material.RefractionMap=Nil) Then
+  If (Stage = renderStageRefraction) And (_Material.RefractionMap=Nil) Then
     Exit;
 
   {If (Self.Flags And meshGroupColorOff<>0) And (Graphics.RenderStage <> renderStageDiffuse) Then
     Exit;}
 
-  If (Self.Flags And meshGroupShadowOnly<>0) And (Graphics.RenderStage <> renderStageShadow) Then
+  If (Self.Flags And meshGroupShadowOnly<>0) And (Stage <> renderStageShadow) Then
     Exit;
 
-  If (Self.Flags And meshGroupNormalsOff<>0) And (Graphics.RenderStage = renderStageNormal)  Then
+  If (Self.Flags And meshGroupNormalsOff<>0) And (Stage = renderStageNormal)  Then
     Exit;
 
-  If (Self.Flags And meshGroupOutlineOff<>0) And (Graphics.RenderStage = renderStageOutline) Then
+  If (Self.Flags And meshGroupOutlineOff<>0) And (Stage = renderStageOutline) Then
     Exit;
 
   {If (Self.Name = 'underwater' ) Then
-    IntToString(2);}
+     IntegerProperty.Stringify(2);}
 
-  {If (Graphics.RenderStage = renderStageGlow)
+  {If (Stage = renderStageGlow)
   And (Self._GlowMap=Nil) Then
     Exit;}
 
@@ -4329,7 +4329,7 @@ Begin
   {$ENDIF}
 
 {$IFNDEF DISABLEOUTLINES}
-  If (Graphics.RenderStage = renderStageDiffuse)
+  If (Stage = renderStageDiffuse)
   And (DestMaterial.OutlineColor.A>0) And (Self.Flags And meshGroupOutlineOff=0)
   And (Graphics.Renderer.Settings.Outlines.Enabled)
   And (Not Graphics.ReflectionActive)
@@ -4360,7 +4360,7 @@ Begin
     Else
     Begin
       UseTextureMatrix := (Assigned(State)) And (State._Groups[_ID].UseTextureMatrix);
-      Self._Shader := SelectMeshShader(View, Self, Transform.GetTranslation(), UseOutline, TranslucentPass, DestMaterial, UseTextureMatrix);
+      Self._Shader := SelectMeshShader(View, Stage, Self, Transform.GetTranslation(), UseOutline, TranslucentPass, DestMaterial, UseTextureMatrix);
     End;
 
     {If (Assigned(_Shader)) And (Not _Shader.IsReady) Or (_Shader = Nil) Then
@@ -4374,7 +4374,7 @@ Begin
   End Else
     _Shader := Nil;
 
-  If (Graphics.RenderStage = renderStageGlow) Then
+  If (Stage = renderStageGlow) Then
   Begin
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Testing glow');{$ENDIF}
 
@@ -4386,11 +4386,11 @@ Begin
       If Assigned(_Shader) Then
         _Shader.SetIntegerUniform('glowMap', 0);
     End Else
-    If (Graphics.RenderStage = renderStageReflection) Then
+    If (Stage = renderStageReflection) Then
     Begin
       Slot := 0;
 
-      BindMaterial(View, Slot, DestMaterial);
+      BindMaterial(View, Stage, Slot, DestMaterial);
 
       If Assigned(_Shader) Then
       Begin
@@ -4422,7 +4422,7 @@ Begin
       Begin
         _Shader.SetIntegerUniform('diffuseMap', 0);
         If Not UseOutline Then
-          BindMaterial(View, Slot, DestMaterial);
+          BindMaterial(View, Stage, Slot, DestMaterial);
       End{ Else
       Begin
         SetCombineWithColor(DestMaterial.DiffuseColor);
@@ -4436,7 +4436,7 @@ Begin
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Setting uniform properties');  {$ENDIF}
     If Assigned(_Shader) Then
     Begin
-      If (Graphics.RenderStage = renderStageShadow)  Then
+      If (Stage = renderStageShadow)  Then
         _Shader.SetColorUniform('diffuse_color', DestMaterial.ShadowColor)
       Else
         _Shader.SetColorUniform('diffuse_color', DestMaterial.DiffuseColor); // BIBI
@@ -4445,7 +4445,7 @@ Begin
     End;
 
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Setup mesh uniforms');  {$ENDIF}
-    SetupUniforms(View, Transform, State, UseOutline, TranslucentPass, DestMaterial);
+    SetupUniforms(View, Stage, Transform, State, UseOutline, TranslucentPass, DestMaterial);
 
     {$IFDEF EDITOR}
     If (Flags And mgCullFace<>0) Then
@@ -4469,10 +4469,10 @@ Begin
         Graphics.Renderer.SetBlendMode(blendBlend)
       Else
       {$ENDIF}
-      If (Graphics.RenderStage = renderStageDiffuse) {Or (Graphics.RenderStage = renderStageOutline)} Then
+      If (Stage = renderStageDiffuse) {Or (Stage = renderStageOutline)} Then
         Graphics.Renderer.SetBlendMode({DestMaterial.BlendMode}blendBlend)
       Else
-      If (Graphics.RenderStage = renderStageShadow)  Then
+      If (Stage = renderStageShadow)  Then
         Graphics.Renderer.SetBlendMode(blendBlend)
       Else
         Graphics.Renderer.SetBlendMode(blendNone);
@@ -4490,7 +4490,7 @@ Begin
       {$ENDIF}
 
 
-      If (Graphics.RenderStage<>renderStageShadow) And (Flags And meshGroupDoubleSided<>0) And (Not Graphics.ReflectionActive) Then
+      If (Stage<>renderStageShadow) And (Flags And meshGroupDoubleSided<>0) And (Not Graphics.ReflectionActive) Then
         Graphics.Renderer.SetCullMode(cullNone)
       Else
         Graphics.Renderer.SetCullMode(cullBack);
@@ -4510,7 +4510,7 @@ Begin
   End;
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Undoing properties');  {$ENDIF}
-    If (UseOutline) Or ((Graphics.RenderStage<>renderStageShadow) And (Flags And meshGroupDoubleSided<>0) And (Not Graphics.ReflectionActive)) Then
+    If (UseOutline) Or ((Stage<>renderStageShadow) And (Flags And meshGroupDoubleSided<>0) And (Not Graphics.ReflectionActive)) Then
       Graphics.Renderer.SetCullMode(cullBack);
 
     If (Flags And meshGroupDepthOff<>0) Or (UseOutline) Then
@@ -5017,7 +5017,7 @@ Begin
     _Edges[TriangleIndex].Visible[EdgeIndex] := Visible;
 End;
 
-Procedure MeshGroup.BindMaterial(View:TERRAViewport; Var Slot: Integer; Const Material:MeshMaterial);
+Procedure MeshGroup.BindMaterial(View:TERRAViewport; Const Stage:RendererStage; Var Slot: Integer; Const Material:MeshMaterial);
 Var
   Tex:TERRATexture;
   FlowCycle:Vector3D;
@@ -5027,7 +5027,7 @@ Begin
 
   Graphics := GraphicsManager.Instance;
 
-  If (Graphics.Renderer.Settings.DynamicShadows.Enabled) And (Graphics.RenderStage=renderStageDiffuse) Then
+  If (Graphics.Renderer.Settings.DynamicShadows.Enabled) And (Stage=renderStageDiffuse) Then
   Begin
     Tex := View.GetRenderTexture(captureTargetShadow);
 
@@ -5260,7 +5260,7 @@ End;
 Constructor MeshGroup.Create(ID:Integer; Parent:TERRAMesh; Format:VertexFormat; Name:TERRAString);
 Begin
   If Name='' Then
-    Name := 'group'+IntToString(ID);
+    Name := 'group'+ IntegerProperty.Stringify(ID);
 
   Self._Name := Name;
   Self._ID := ID;
@@ -6164,7 +6164,7 @@ Begin
       Group._Triangles[I] := Source.GetTriangle(N,I);
     End;
 
-    Group.DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
+    Group.DiffuseMap := Engine.Textures.GetItem(Source.GetDiffuseMapName(N));
     Group.DiffuseColor := Source.GetDiffuseColor(N);
 
     If (vertexFormatTangent In Format) Then
@@ -6723,7 +6723,7 @@ Begin
   End;
 
   Log(logDebug, 'Mesh', 'Finished merging '+Source.Name+' into '+Dest.Name);
-  Log(logDebug, 'Mesh', IntToString(Dest.PolyCount-Init)+' triangles added!');
+  Log(logDebug, 'Mesh',  IntegerProperty.Stringify(Dest.PolyCount-Init)+' triangles added!');
 End;
 
 Procedure MeshMerger.MergeGroup(Source, Dest:MeshGroup; UpdateBox:Boolean = True);
@@ -6736,7 +6736,7 @@ Var
 Begin
   If (Source = Nil) Or (Dest =  Nil) Then
   Begin
-    IntToString(2);
+     IntegerProperty.Stringify(2);
     Exit;
   End;
 
@@ -6935,11 +6935,10 @@ Begin
 End;
 
 { SelectMeshShader }
-Function SelectMeshShader(View:TERRAViewport; Group:MeshGroup; Position:Vector3D; Outline, TranslucentPass:Boolean; Var DestMaterial:MeshMaterial; UseTextureMatrix:Boolean):ShaderInterface;
+Function SelectMeshShader(View:TERRAViewport; Const Stage:RendererStage; Group:MeshGroup; Position:Vector3D; Outline, TranslucentPass:Boolean; Var DestMaterial:MeshMaterial; UseTextureMatrix:Boolean):ShaderInterface;
 Var
   DisableLights:Boolean;
   LightPivot:Vector3D;
-  RenderStage:Integer;
   FxFlags, OutFlags:Cardinal;
   Graphics:GraphicsManager;
 Begin
@@ -6964,8 +6963,6 @@ Begin
 (*  If (Group.AmbientColor.R = 0) And (Group.AmbientColor.G = 0) And (Group.AmbientColor.B=0) Then
     FxFlags := FxFlags Or shaderSkipAmbient;*)
 
-  RenderStage := Graphics.RenderStage;
-
   If (View.Camera.UseClipPlane) Then
     FxFlags := FxFlags Or shaderClipPlane;
 
@@ -6974,27 +6971,27 @@ Begin
     DisableLights := True;
     OutFlags := shader_OutputFixedColor;
   End Else
-  If RenderStage = renderStageOutline Then
+  If Stage = renderStageOutline Then
   Begin
     DisableLights := True;
     OutFlags := OutFlags Or shader_OutputFixedColor;
   End Else
-  If RenderStage = renderStageNormal Then
+  If Stage = renderStageNormal Then
   Begin
     DisableLights := True;
     OutFlags := OutFlags Or shader_OutputNormal;
   End Else
-  If RenderStage = renderStageRefraction Then
+  If Stage = renderStageRefraction Then
   Begin
     DisableLights := True;
     OutFlags := OutFlags Or shader_OutputRefraction
   End Else
-  If RenderStage = renderStageGlow Then
+  If Stage = renderStageGlow Then
   Begin
     DisableLights := True;
     OutFlags := OutFlags Or shader_OutputGlow;
   End Else
-  If RenderStage = renderStageShadow Then
+  If Stage = renderStageShadow Then
   Begin
     DisableLights := True;
 
@@ -7008,7 +7005,7 @@ Begin
         FxFlags := FxFlags Or shaderLightmap;
     End;
   End Else
-  If RenderStage = renderStageReflection Then
+  If Stage = renderStageReflection Then
   Begin
     DisableLights := True;
     OutFlags := OutFlags Or shader_OutputReflection;
@@ -7025,7 +7022,7 @@ Begin
       End;
     End;
   End Else
-  If RenderStage = renderStageDiffuse Then
+  If Stage = renderStageDiffuse Then
   Begin
     OutFlags := OutFlags Or shader_OutputDiffuse;
 
@@ -7125,7 +7122,7 @@ Begin
     FxFlags := FxFlags Xor shaderVertexColor;
   End;
 
-  If (Group._Owner._NormalMapping) And ((RenderStage = renderStageNormal) Or (RenderStage = renderStageDiffuse)) Then
+  If (Group._Owner._NormalMapping) And ((Stage = renderStageNormal) Or (Stage = renderStageDiffuse)) Then
   Begin
     FxFlags := FxFlags Or shaderNormalMap;
     {$IFDEF PC}
@@ -7142,7 +7139,7 @@ Begin
     FxFlags := shaderColorOff;
   End;
 
-  If RenderStage = renderStageDiffuse Then
+  If Stage = renderStageDiffuse Then
   Begin
     //FxFlags := FxFlags Or shaderAddSigned;
 
@@ -7168,7 +7165,7 @@ Begin
   End;
 
 (*  If (StringContains('monster', DestMaterial.DiffuseMap.Name)) Then
-    IntToString(2);*)
+     IntegerProperty.Stringify(2);*)
 
   If (Graphics.Renderer.Settings.AlphaTesting.Enabled) And (IsImageTranslucent(DestMaterial.DiffuseMap))
   And ((Group.Flags And meshGroupShadowOnly)=0)  Then

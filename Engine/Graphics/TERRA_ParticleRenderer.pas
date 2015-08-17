@@ -252,10 +252,10 @@ Type
       //_GenFlags:Cardinal;
 
       Procedure AddBlendMode(Mode:Integer);
-      Procedure UpdateBlendModes();
+      Procedure UpdateBlendModes(Const Stage:RendererStage);
 
       // returns how many vertices processed
-      Function UpdateBatch(BlendMode:Integer; Const Landscape:Boolean):Integer;
+      Function UpdateBatch(BlendMode:Integer; Const Stage:RendererStage; Const Landscape:Boolean):Integer;
 
       Procedure Init;
 
@@ -272,7 +272,7 @@ Type
 
       Procedure Reset;
 
-      Procedure Render(View:TERRAViewport; Const Bucket:Cardinal); Override;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
       Function GetBoundingBox:BoundingBox; Override;
 
       Property ActiveCount:Integer Read _ActiveCount;
@@ -325,7 +325,7 @@ Type
       //Procedure Spawn(Name:TERRAString; Position:Vector3D);
       Procedure Spawn(Emitter:ParticleEmitter);
 
-      Function GetTexture(Target:ParticleCollection):TERRATexture;
+      Function GetTexture(Const Stage:RendererStage; Target:ParticleCollection):TERRATexture;
 
       Property Shader:ShaderInterface Read GetShader;
   End;
@@ -333,8 +333,7 @@ Type
 Function CreateParticleVertexData(Count:Integer):VertexData;
   
 Implementation
-Uses TERRA_EngineManager, TERRA_Error, TERRA_OS, TERRA_Log, TERRA_Camera, TERRA_Mesh,
-  TERRA_INI, TERRA_FileStream, TERRA_FileUtils;
+Uses TERRA_EngineManager, TERRA_Error, TERRA_OS, TERRA_Log, TERRA_Camera, TERRA_Mesh, TERRA_FileStream, TERRA_FileUtils;
 
 Var
   _ParticleManager_Instance:ApplicationObject = Nil;
@@ -549,24 +548,21 @@ Begin
   End;
 End;
 
-Function ParticleCollection.UpdateBatch(BlendMode: Integer; Const Landscape:Boolean): Integer;
+Function ParticleCollection.UpdateBatch(BlendMode:Integer; Const Stage:RendererStage; Const Landscape:Boolean): Integer;
 Var
   It:VertexIterator;
   I, J, N:Integer;
   CC:ColorRGBA;
-  RenderStage:Integer;
   Angles:Vector2D;
   P:ParticleVertex;
 Begin
   Result := 0;
   N := 0;
 
-  RenderStage := GraphicsManager.Instance.RenderStage;
-
   It := Self._Vertices.GetIteratorForClass(ParticleVertex);
   While N<_ParticleCount Do
   Begin
-    If (_Particles[N].Life > 0.0) And ((RenderStage<>renderStageDiffuse) Or (_Particles[N].BlendMode = BlendMode)) Then
+    If (_Particles[N].Life > 0.0) And ((Stage<>renderStageDiffuse) Or (_Particles[N].BlendMode = BlendMode)) Then
     Begin
       CC.R := Trunc(_Particles[N].Red.CurrentValue);
       CC.G := Trunc(_Particles[N].Green.CurrentValue);
@@ -606,7 +602,7 @@ Begin
   ReleaseObject(It);
 End;
 
-Procedure ParticleCollection.Render(View:TERRAViewport; Const Bucket:Cardinal);
+Procedure ParticleCollection.Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
 Var
   I, RenderCount:Integer;
 //  Ratio:Single;
@@ -646,17 +642,17 @@ Begin
 //  _Shader.SetFloatUniform('ratio', Ratio);
   _Shader.SetMat4Uniform('reflectionMatrix', Graphics.ReflectionMatrix);
 
-  Self.UpdateBlendModes();
+  Self.UpdateBlendModes(Stage);
 
 
   For I:=0 To Pred(_BlendModeCount) Do
   Begin
-    RenderCount := Self.UpdateBatch(_BlendModes[I], Landscape);
+    RenderCount := Self.UpdateBatch(_BlendModes[I], Stage, Landscape);
 
     If (I=0) Then
     Begin
       Graphics.Renderer.SetDepthMask(False);
-      ParticleManager.Instance.GetTexture(Self).Bind(0);
+      ParticleManager.Instance.GetTexture(Stage, Self).Bind(0);
     End;
 
     If (RenderCount>0) Then
@@ -726,7 +722,7 @@ Begin
   _BlendModes[Pred(_BlendModeCount)] := Mode;
 End;
 
-Procedure ParticleCollection.UpdateBlendModes;
+Procedure ParticleCollection.UpdateBlendModes(Const Stage:RendererStage);
 Var
   I:Integer;
 Begin
@@ -734,9 +730,9 @@ Begin
 
   FillChar(_BlendModeHashes, SizeOf(_BlendModeHashes), 0);
 
-  If (GraphicsManager.Instance.RenderStage <> renderStageDiffuse) Then
+  If (Stage <> renderStageDiffuse) Then
   Begin
-    If (GraphicsManager.Instance.RenderStage = renderStageRefraction) Then
+    If (Stage = renderStageRefraction) Then
       AddBlendMode(blendBlend)
     Else
       AddBlendMode(blendNone);
@@ -903,7 +899,7 @@ Begin
   Result := _Shader;
 End;
 
-Function ParticleManager.GetTexture(Target:ParticleCollection): TERRATexture;
+Function ParticleManager.GetTexture(Const Stage:RendererStage; Target:ParticleCollection): TERRATexture;
 Var
   I:Integer;
   Source:Image;
@@ -1000,13 +996,13 @@ Begin
     End;
   End;
 
-  If (GraphicsManager.Instance.RenderStage = renderStageRefraction) Then
+  If (Stage = renderStageRefraction) Then
     Result := _RefractionTexture
   Else
-  If (GraphicsManager.Instance.RenderStage = renderStageNormal) Then
+  If (Stage = renderStageNormal) Then
     Result := _NormalTexture
   Else
-  If (GraphicsManager.Instance.RenderStage = renderStageGlow) Then
+  If (Stage = renderStageGlow) Then
     Result := _GlowTexture
   Else
     Result := _TextureAtlas.GetTexture(0);
