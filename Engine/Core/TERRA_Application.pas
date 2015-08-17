@@ -553,8 +553,6 @@ Type
       Property DebuggerPresent:Boolean Read _DebuggerPresent;
 	End;
 
-Var
-  _Prefetching:Boolean;
 
 Function InitializeApplicationComponent(TargetClass, DestroyBefore:ApplicationComponentClass):ApplicationObject;
 

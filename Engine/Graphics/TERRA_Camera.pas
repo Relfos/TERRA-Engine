@@ -66,8 +66,6 @@ Type
       _Far:Single;
       _FOV:Single;
 
-      _Ratio:Single;
-
       _CurrentEye:Integer;
 
       _ClipPlane:Plane;
@@ -110,8 +108,6 @@ Type
       Procedure SetFar(Value:Single);
       Procedure SetFOV(Value:Single);
 
-      Procedure SetRatio(Value:Single);
-
       Procedure LookAt(P:Vector3D);
 
       Procedure Move(Dir:Integer; Speed:Single);
@@ -139,8 +135,6 @@ Type
       Property Up:Vector3D Read _Up;
       Property Right:Vector3D Read _Right;
 
-      Property Ratio:Single Read _Ratio Write SetRatio;
-
       Property UseClipPlane:Boolean Read _UseClipPlane;
 
       Property FocusPoint:Vector3D Read _Focus Write SetFocusPoint;
@@ -148,9 +142,12 @@ Type
 
   PerspectiveCamera = Class(TERRACamera)
     Protected
+      _Ratio:Single;
+
       Procedure CalculateProjection(Const Eye:Integer; Out Result:Matrix4x4); Override;
 
     Public
+      Property Ratio:Single Read _Ratio;
   End;
 
   OrthoCamera = Class(TERRACamera)
@@ -216,13 +213,6 @@ Var
   Proj:Matrix4x4;
 Begin
   _NeedsUpdate := False;
-
-{$IFDEF EMULATED_LANDSCAPE}
- // If (Application.Instance.IsLandscape()) And (_Target<>Nil) Then
-    _Ratio := SafeDiv(_Height, _Width, 1.0) * SafeDiv(GraphicsManager.Instance.Height, GraphicsManager.Instance.Width, 1.0);
-{$ELSE}
-    _Ratio := SafeDiv(_Width, _Height, 1.0);
-{$ENDIF}
 
   CalculateProjection(Eye, _ProjectionMatrix4x4);
 
@@ -574,15 +564,6 @@ Begin
   UpdateMatrix4x4(0);
 End;
 
-procedure TERRACamera.SetRatio(Value: Single);
-Begin
-  If (_Ratio = Value) Then
-    Exit;
-
-  _Ratio := Value;
-  _NeedsUpdate := True;
-End;
-
 procedure TERRACamera.Refresh;
 Begin
   _NeedsUpdate := True;
@@ -596,6 +577,13 @@ End;
 { PerspectiveCamera }
 Procedure PerspectiveCamera.CalculateProjection(Const Eye:Integer; Out Result:Matrix4x4);
 Begin
+{$IFDEF EMULATED_LANDSCAPE}
+ // If (Application.Instance.IsLandscape()) And (_Target<>Nil) Then
+    _Ratio := SafeDiv(_Height, _Width, 1.0) * SafeDiv(GraphicsManager.Instance.Height, GraphicsManager.Instance.Width, 1.0);
+{$ELSE}
+    _Ratio := SafeDiv(_Width, _Height, 1.0);
+{$ENDIF}
+
   {$IFDEF DISABLEVR}
   Result := Matrix4x4Perspective(FOV, Ratio, _Near, _Far);
   {$ELSE}
@@ -617,7 +605,7 @@ End;
 
 Procedure OrthoCamera.CalculateProjection(Const Eye:Integer; Out Result:Matrix4x4);
 Begin
-  Result := Matrix4x4Ortho(Ratio*_OrthoX1*_OrthoScale, Ratio*_OrthoX2*_OrthoScale, _OrthoY1*_OrthoScale, _OrthoY2*_OrthoScale, _Near, _Far);
+  Result := Matrix4x4Ortho(_OrthoX1*_OrthoScale, _OrthoX2*_OrthoScale, _OrthoY2*_OrthoScale, _OrthoY1*_OrthoScale, _Near, _Far);
   Result := Matrix4x4Multiply4x4(Result, Matrix4x4Translation(0.375, 0.375, 0.0)); // apply "pixel-perfect" correction
 End;
 
@@ -626,8 +614,9 @@ Begin
   _NeedsUpdate := True;
 
   _OrthoX1 := X1;
-  _OrthoX2 := X2;
   _OrthoY1 := Y1;
+
+  _OrthoX2 := X2;
   _OrthoY2 := Y2;
 End;
 

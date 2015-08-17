@@ -14,7 +14,6 @@ Type
       Function GetBlob():TERRAString; Override;
 
     Protected
-      Procedure CopyValue(Other:CollectionObject); Override;
       Function Sort(Other:CollectionObject):Integer; Override;
   End;
 
@@ -26,7 +25,6 @@ Type
       Function GetBlob():TERRAString; Override;
 
     Protected
-      Procedure CopyValue(Other:CollectionObject); Override;
       Function Sort(Other:CollectionObject):Integer; Override;
   End;
 
@@ -38,18 +36,12 @@ Type
       Function GetBlob():TERRAString; Override;
 
     Protected
-      Procedure CopyValue(Other:CollectionObject); Override;
       Function Sort(Other:CollectionObject):Integer; Override;
   End;
 
 Implementation
 
 { StringObject }
-Procedure StringObject.CopyValue(Other: CollectionObject);
-Begin
-  Self.Value := StringObject(Other).Value;
-End;
-
 Constructor StringObject.Create(S:TERRAString);
 Begin
   Self.Value := S;
@@ -70,11 +62,6 @@ End;
 
 
 { IntegerObject }
-Procedure IntegerObject.CopyValue(Other: CollectionObject);
-Begin
-  Self.Value := IntegerObject(Other).Value;
-End;
-
 Function IntegerObject.Sort(Other: CollectionObject): Integer;
 Var
   S:Integer;
@@ -100,11 +87,6 @@ Begin
 End;
 
 { CardinalObject }
-Procedure CardinalObject.CopyValue(Other: CollectionObject);
-Begin
-  Self.Value := CardinalObject(Other).Value;
-End;
-
 Function CardinalObject.Sort(Other: CollectionObject): Integer;
 Var
   S:Integer;

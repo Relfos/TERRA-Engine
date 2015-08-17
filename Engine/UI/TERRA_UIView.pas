@@ -170,8 +170,6 @@ Type
 
       Function GetFontRenderer:TERRAFontRenderer;
 
-      Procedure RenderUIs;
-
     Public
       Procedure Init; Override;
       Procedure Resume; Override;
@@ -180,13 +178,12 @@ Type
 
       Class Function Instance:UIManager;
 
+      Procedure Render;
+
       Procedure AddUI(UI:UIView);
       Procedure RemoveUI(UI:UIView);
 
       Procedure TextureAtlasClear();
-
-      Procedure Render;
-      Procedure AfterEffects;
 
       Function CreateProperty(Owner:TERRAObject; Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
 
@@ -684,7 +681,7 @@ Begin
   TargetWidth := GraphicsManager.Instance.UI_Width;
   TargetHeight := GraphicsManager.Instance.UI_Height;
   _Camera := OrthoCamera.Create('UI');
-  OrthoCamera(_Camera).SetArea(0.0, TargetWidth, TargetHeight, 0.0);
+  OrthoCamera(_Camera).SetArea(0.0, 0.0, TargetWidth, TargetHeight);
   _Camera.NearDistance := -100;
   _Camera.FarDistance := 100;
 
@@ -745,7 +742,7 @@ Begin
     Inc(I);
 End;
 
-Procedure UIManager.Render();
+(*Procedure UIManager.Render();
 Var
   Flags:Cardinal;
   Target:RenderTargetInterface;
@@ -791,7 +788,7 @@ Begin
   End;
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'FinishedUIRendering');{$ENDIF}
-End;
+End;*)
 
 Function UIManager.GetTextureAtlas: TextureAtlas;
 Begin
@@ -843,7 +840,7 @@ Begin
   _UpdateTextureAtlas := True;
 End;
 
-Procedure UIManager.RenderUIs();
+Procedure UIManager.Render();
 Var
   I:Integer;
 Begin
@@ -861,12 +858,7 @@ Begin
   For I:=0 To Pred(_UICount) Do
   If (_UIList[I].Visible) Then
     _UIList[I].Render(_Viewport);
-End;
 
-Procedure UIManager.AfterEffects;
-Var
-  I:Integer;
-Begin
   For I:=0 To Pred(_UICount) Do
   If _UIList[I].Visible Then
     _UIList[I].AfterEffects();

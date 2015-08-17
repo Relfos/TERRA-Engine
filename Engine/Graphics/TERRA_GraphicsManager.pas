@@ -121,7 +121,6 @@ Type
       _Renderables:RenderableManager;
 
       Procedure RenderStencilShadows(View:TERRAViewport);
-      Procedure RenderSceneInternal(View:TERRAViewport; Pass:RenderTargetType);
       Procedure RenderViewport(View:TERRAViewport);
 
       Procedure OnAppResize; Override;
@@ -161,8 +160,6 @@ Type
 
       Procedure RenderShadowmap(View:TERRAViewport);
       //Procedure RenderReflections(View:Viewport);
-
-			Procedure RenderScene();
 
       Function GetDefaultFullScreenShader():ShaderInterface;
 
@@ -225,7 +222,7 @@ Type
 
 Implementation
 
-Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_UIView, TERRA_ResourceManager, TERRA_InputManager,
+Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_ResourceManager, TERRA_InputManager,
   TERRA_Frustum, TERRA_Lights, TERRA_Mesh,
   TERRA_Decals, TERRA_Billboards, TERRA_ParticleRenderer, TERRA_DebugDraw;
 
@@ -820,61 +817,12 @@ Begin
   _WindVector.Scale(WindIntensity);
 End;
 
-Procedure GraphicsManager.RenderSceneInternal(View:TERRAViewport; Pass:RenderTargetType);
-Var
-  N:Integer;
-Begin
-  {$IFDEF POSTPROCESSING}
-  If (Not GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Or (Not View.HasPostProcessing()) Then
-    N := renderStageDiffuse
-  Else
-  Case Pass Of
-    captureTargetColor:   N := renderStageDiffuse;
-    captureTargetNormal:  N := renderStageNormal;
-    captureTargetEmission: N := renderStageGlow;
-    captureTargetRefraction: N := renderStageRefraction;
-    captureTargetReflection: N := renderStageReflection;
-    captureTargetShadow: N := renderStageShadow;
-    captureTargetOutline: N := renderStageOutline;
-    //captureTargetAlpha: N := renderStageDiffuse;
-    Else
-      Exit;
-  End;
-  {$ELSE}
-  N := renderStageDiffuse;
-  {$ENDIF}
-
-  If (N = renderStageReflection) And (Not Self._ReflectionsEnabled) Then
-    Exit;
-
-  If (N = renderStageShadow) Then
-  Begin
-    View.SetRenderTargetState(Pass, True);
-  End;
-
-  _RenderStage := N;
-
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderOpaqueBucket');{$ENDIF}
-
-  _Renderables.Render(View);
-
-(*  If (_ReflectionsEnabled) And (_RenderStage = renderStageDiffuse) Then
-  Begin
-    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderReflections');{$ENDIF}
-    Self.RenderReflections(View);
-  End;*)
-
-(*    If (Renderer.Features.Shaders.Avaliable) And (Renderer.Settings.DynamicShadows.Enabled) Then
-    Begin
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderStencilShadows');{$ENDIF}
-      RenderStencilShadows(View);
-    End;*)
-End;
-
 Procedure GraphicsManager.RenderViewport(View:TERRAViewport);
 Var
   I, J, Count, SubViews:Integer;
+  N:Integer;
   Target:RenderTargetInterface;
+  Pass:RenderTargetType;
 Begin
   If Not View.Visible Then
     Exit;
@@ -914,7 +862,8 @@ Begin
 
     For I := Pred(RenderCaptureTargets) DownTo 0 Do
     Begin
-      Target := View.GetRenderTarget(RenderTargetType(I));
+      Pass := RenderTargetType(I);
+      Target := View.GetRenderTarget(Pass);
       If (Target = Nil) Then
         Continue;
 
@@ -923,7 +872,7 @@ Begin
 
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Rendering viewport: '+View.Name+', target '+IntToString(I)+', width:'+IntToString(Target.Width)+', height:'+IntToString(Target.Height));{$ENDIF}
 
-      Case RenderTargetType(I) Of
+      Case Pass Of
         captureTargetRefraction:
           Target.BackgroundColor := ColorNull;
 
@@ -948,7 +897,52 @@ Begin
 
       View.SetViewArea(0, 0, Target.Width, Target.Height);
       Target.BeginCapture();
-      Self.RenderSceneInternal(View, RenderTargetType(I));
+
+      {$IFDEF POSTPROCESSING}
+      If (Not GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Or (Not View.HasPostProcessing()) Then
+        N := renderStageDiffuse
+      Else
+      Case Pass Of
+        captureTargetColor:   N := renderStageDiffuse;
+        captureTargetNormal:  N := renderStageNormal;
+        captureTargetEmission: N := renderStageGlow;
+        captureTargetRefraction: N := renderStageRefraction;
+        captureTargetReflection: N := renderStageReflection;
+        captureTargetShadow: N := renderStageShadow;
+        captureTargetOutline: N := renderStageOutline;
+        //captureTargetAlpha: N := renderStageDiffuse;
+        Else
+          Exit;
+      End;
+    {$ELSE}
+    N := renderStageDiffuse;
+    {$ENDIF}
+
+    If (N = renderStageReflection) And (Not Self._ReflectionsEnabled) Then
+      Exit;
+
+    If (N = renderStageShadow) Then
+    Begin
+      View.SetRenderTargetState(Pass, True);
+    End;
+
+    _RenderStage := N;
+
+    _Renderables.Render(View);
+
+    View.SpriteRenderer.Render(View.Camera.Projection);
+
+(*  If (_ReflectionsEnabled) And (_RenderStage = renderStageDiffuse) Then
+  Begin
+    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderReflections');{$ENDIF}
+    Self.RenderReflections(View);
+  End;*)
+
+(*    If (Renderer.Features.Shaders.Avaliable) And (Renderer.Settings.DynamicShadows.Enabled) Then
+    Begin
+      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderStencilShadows');{$ENDIF}
+      RenderStencilShadows(View);
+    End;*)
       Target.EndCapture();
 
       Inc(Count);
@@ -967,24 +961,6 @@ Begin
 
   If (Count<=0) Then
     Log(logWarning, 'GraphicsManager', 'Invalid viewport: '+View.Name);
-End;
-
-Procedure GraphicsManager.RenderScene;
-Var
-  I:Integer;
-Begin
-  If Not Assigned(_Scene) Then
-    Exit;
-
-  //glAlphaFunc(GL_GREATER, 0.1);
-
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'BeginSceneRendering '+IntToString(_ViewportCount));{$ENDIF}
-
-  If (Not Application.Instance.HasFatalError) Then
-  For I:=Pred(_ViewportCount) DownTo 0 Do
-    RenderViewport(_Viewports[I]);
-
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'EndSceneRendering');{$ENDIF}
 End;
 
 Procedure InitFullScreenQuad(FullscreenQuad:VertexData; X1,Y1,X2,Y2:Single; Orientation:Integer);
@@ -1309,7 +1285,12 @@ Begin
 
   Inc(_FrameID);
 
-  Self.RenderScene;
+  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'BeginSceneRendering '+IntToString(_ViewportCount));{$ENDIF}
+  If (Not Application.Instance.HasFatalError) Then
+  For I:=Pred(_ViewportCount) DownTo 0 Do
+    RenderViewport(_Viewports[I]);
+
+  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'EndSceneRendering');{$ENDIF}
 
   // resolve offscreen buffers
   If (Self.ShowDebugTarget = captureTargetInvalid) Then
@@ -1320,8 +1301,6 @@ Begin
       _Viewports[I].DrawToTarget(True);
     End;
   End;
-
-  UIManager.Instance.Render();
 
   _DeviceViewport.Bind(0);
   _DeviceViewport.Restore(True);

@@ -41,7 +41,6 @@ Type
       Path:TERRAString;
 
       Constructor Create(Const Name, Path:TERRAString);
-      Procedure CopyValue(Other:CollectionObject); Override;
   End;
 
   FileManager = Class(ApplicationComponent)
@@ -560,12 +559,6 @@ Constructor FileLocation.Create(Const Name, Path:TERRAString);
 Begin
   Self.Name := StringLower(GetFileName(Name, False));
   Self.Path := Path;
-End;
-
-Procedure FileLocation.CopyValue(Other: CollectionObject);
-Begin
-  Self.Name := FileLocation(Other).Name;
-  Self.Path := FileLocation(Other).Path;
 End;
 
 End.

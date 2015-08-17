@@ -150,7 +150,7 @@ Begin
     If (Visitor(A, UserData)) Then
     Begin
       B := CollectionObject(A.ClassType.Create());
-      B.CopyValue(A);
+      B.CopyProperties(A);
       Result.Add(B);
     End;
   End;

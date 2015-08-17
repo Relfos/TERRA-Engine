@@ -61,7 +61,6 @@ Type
       _Discarded:Boolean;
 
       Function IsCompatible(Other:CollectionObject):Boolean;
-      Procedure Internal_Copy(Other:CollectionObject);
       Function Internal_Sort(Other:CollectionObject):Integer;
 
     Public
@@ -69,13 +68,10 @@ Type
       Procedure Release(); Override;
 
       { Mark this object for release. It will be auto-released as soon as possible.}
-      Procedure Discard(); 
+      Procedure Discard();
 
       { Links this object to a specific collection. Internal use. }
       Procedure Link(Col:Collection);
-
-      { Clones this object. }
-      Procedure CopyValue(Other:CollectionObject); Virtual;
 
       { Compares this object with a similar object. If not implemented, no sorting will happen. }
       Function Sort(Other:CollectionObject):Integer; Virtual;
@@ -613,20 +609,9 @@ Begin
 End;
 
 { CollectionObject }
-Procedure CollectionObject.CopyValue(Other: CollectionObject);
-Begin
-  // do nothing
-End;
-
 Procedure CollectionObject.Release();
 Begin
   // do nothing
-End;
-
-Procedure CollectionObject.Internal_Copy(Other: CollectionObject);
-Begin
-  If (IsCompatible(Other)) Then
-    Self.CopyValue(Other);
 End;
 
 Function CollectionObject.Internal_Sort(Other: CollectionObject): Integer;
@@ -754,7 +739,7 @@ Begin
   Begin
     Temp := I.Value;
     N := CollectionObject(Temp.ClassType.Create());
-    N.CopyValue(Temp);
+    N.CopyProperties(Temp);
     Self.Add(N);
   End;
   ReleaseObject(C);

@@ -10,7 +10,6 @@ uses
   TERRA_GraphicsManager,
   TERRA_Vector2D,
   TERRA_Vector3D,
-  TERRA_UI,
   TERRA_Lights,
   TERRA_Viewport,
   TERRA_JPG,

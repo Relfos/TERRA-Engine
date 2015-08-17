@@ -25,12 +25,11 @@ Type
       _Manager:RenderableManager;
 
       _Distance:Single;
-      _LOD:Single;
-//      _IsReflection:Boolean;
-      _WasVisible:Boolean;
+      //_WasVisible:Boolean;
       _Flags:Integer;
       _LastUpdate:Cardinal;
 
+//      _IsReflection:Boolean;
     Public
 {      ReflectionPoint:Vector3D;
       ReflectionNormal:Vector3D;}
@@ -48,8 +47,7 @@ Type
 
       Procedure RenderLights(View:TERRAViewport); Virtual;
 
-      Property LOD:Single Read _LOD;
-      Property WasVisible:Boolean Read _WasVisible;
+      //Property WasVisible:Boolean Read _WasVisible;
   End;
 
   RenderableProxy =  Class(CollectionObject)
@@ -60,7 +58,6 @@ Type
       Constructor Create(Obj:Renderable);
 
       Function Sort(Other:CollectionObject):Integer; Override;
-      Procedure CopyValue(Other:CollectionObject); Override;
   End;
 
   RenderableManager = Class(TERRAObject)
@@ -123,11 +120,6 @@ End;
 Constructor RenderableProxy.Create(Obj: Renderable);
 Begin
   Self._Object := Obj;
-End;
-
-Procedure RenderableProxy.CopyValue(Other: CollectionObject);
-Begin
-  Self._Object := RenderableProxy(Other)._Object;
 End;
 
 Function RenderableProxy.Sort(Other: CollectionObject): Integer;
@@ -333,27 +325,26 @@ Begin
     Box := MyRenderable.GetBoundingBox;
     If (Flags And renderFlagsSkipFrustum=0) And (Not Graphics.IsBoxVisible(View, Box)) Then
     Begin
-      MyRenderable._WasVisible := False;
+      //MyRenderable._WasVisible := False;
       Result := False;
       Exit;
     End;
 
-    MyRenderable._WasVisible := True;
+    //MyRenderable._WasVisible := True;
 
     Pos := VectorAdd(Box.Center , VectorScale(View.Camera.View, -Box.Radius));
     MyRenderable._Distance := Pos.Distance(View.Camera.Position);
 
     FarDist := View.Camera.FarDistance;
 
-    For I:=1 To MaxLODLevel Do
+    (*For I:=1 To MaxLODLevel Do
     If (MyRenderable._Distance < LODS[I]*FarDist) Then
     Begin
       MyRenderable._LOD := Pred(I) + ((MyRenderable._Distance - (LODS[Pred(I)]*FarDist)) / ((LODS[I] - LODS[Pred(I)])*FarDist));
       Break;
     End Else
     If (I >= MaxLODLevel) Then
-      MyRenderable._LOD := MaxLODLevel;
-
+      MyRenderable._LOD := MaxLODLevel;*)
   End;
 
   Graphics.Renderer.InternalStat(statRenderables);

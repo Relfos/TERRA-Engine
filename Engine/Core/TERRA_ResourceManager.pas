@@ -43,7 +43,6 @@ Type
       Function GetBlob():TERRAString; Override;
 
       Constructor Create(MyResource:Resource);
-      Procedure CopyValue(Other:CollectionObject); Override;
   End;
 
   ResourceManager = Class(ApplicationComponent)
@@ -411,11 +410,6 @@ End;
 Constructor ResourceEntry.Create(MyResource: Resource);
 Begin
   Self.Value := MyResource;
-End;
-
-Procedure ResourceEntry.CopyValue(Other: CollectionObject);
-Begin
-  Self.Value := ResourceEntry(Other).Value;
 End;
 
 Function ResourceEntry.GetBlob:TERRAString;

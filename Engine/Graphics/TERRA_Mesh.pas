@@ -256,7 +256,7 @@ Type
       _CastShadows:Boolean;
       _ShadowVolume:ShadowVolume;
 
-      _AlphaLODValue:Single;
+      //_AlphaLODValue:Single;
 
       _MotionBlur:Boolean;
       _RenderTrails:Boolean;
@@ -1837,7 +1837,7 @@ Begin
   Else
   Begin
     Result := _Groups[GroupID].Material.DiffuseColor;
-    Result.A := Trunc(Result.A * _AlphaLODValue);
+    //Result.A := Trunc(Result.A * _AlphaLODValue);
   End;
 End;
 
@@ -2467,7 +2467,7 @@ Begin
     Exit;
   End; stencilshadows*)
 
-  If (Graphics.Renderer.Settings.AlphaFade.Enabled) Then
+  (*If (Graphics.Renderer.Settings.AlphaFade.Enabled) Then
   Begin
     If (_LOD>=2.0) Then
       _AlphaLODValue := 0.0
@@ -2480,7 +2480,7 @@ Begin
     If (_AlphaLODValue<=0.0) Then
       Exit;
   End Else
-    _AlphaLODValue := 1.0;
+    _AlphaLODValue := 1.0;*)
 
   _StencilID := 0;
   If (Not Graphics.ReflectionActive) And (Graphics.RenderStage<>renderStageShadow) Then

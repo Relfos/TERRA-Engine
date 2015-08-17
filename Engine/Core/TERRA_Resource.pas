@@ -53,7 +53,6 @@ Type
       _Location:TERRAString;
       _Size:Integer;
 
-      Procedure CopyValue(Other:CollectionObject); Override;
       Function Sort(Other:CollectionObject):Integer; Override;
 
       Procedure SetStatus(const Value:ResourceStatus);
@@ -95,11 +94,6 @@ Type
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Utils, TERRA_ResourceManager, TERRA_FileStream, TERRA_GraphicsManager,
   TERRA_FileUtils, TERRA_Application, TERRA_FileManager;
-
-Procedure Resource.CopyValue(Other: CollectionObject);
-Begin
-  RaiseError('Not implemented!');
-End;
 
 Constructor Resource.Create(Kind:ResourceType; Location:TERRAString);
 Var
