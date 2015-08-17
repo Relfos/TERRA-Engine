@@ -1,4 +1,4 @@
-{***********************************************************************************************************************
+  {***********************************************************************************************************************
  *
  * TERRA Game Engine
  * ==========================================
@@ -26,7 +26,7 @@ Unit TERRA_Viewport;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Camera, TERRA_Renderer, TERRA_Resource,
+  TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Camera, TERRA_Renderer, TERRA_Resource, TERRA_BoundingBox,
   TERRA_Ray, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Color, TERRA_Texture, TERRA_SpriteRenderer
   {$IFDEF POSTPROCESSING},TERRA_ScreenFX{$ENDIF};
 
@@ -152,7 +152,8 @@ Type
       Procedure SetTarget(Target:TERRAViewport; X1,Y1,X2,Y2:Single);
       Procedure SetTargetInPixels(Target:TERRAViewport; X1,Y1,X2,Y2:Integer);
 
-      Function ProjectPoint(Pos:Vector3D):Vector3D;
+      Function ProjectPoint(Const Pos:Vector3D):Vector3D;
+      Function ProjectBoundingBox(Const Box:BoundingBox):BoundingBox;
 
       Function GetPickRay(TX,TY:Integer):Ray;
 
@@ -526,7 +527,7 @@ Begin
   {$ENDIF}
 End;
 
-Function TERRAViewport.ProjectPoint(Pos:Vector3D):Vector3D;
+Function TERRAViewport.ProjectPoint(Const Pos:Vector3D):Vector3D;
 Var
   modelview:Matrix4x4;
   temp:Array[0..7] Of Single;
@@ -1168,5 +1169,26 @@ End;
 
 {$ENDIF}
 
+Function TERRAViewport.ProjectBoundingBox(Const Box:BoundingBox):BoundingBox;
+Var
+  I:Integer;
+  Vertices:BoundingBoxVertices;
+Begin
+  Box.GetVertices(Vertices);
+  For I:=1 To 8 Do
+  Begin
+    Vertices[I] := ProjectPoint(Vertices[I]);
+
+    If I=1 Then
+    Begin
+      Result.StartVertex := Vertices[1];
+      Result.EndVertex := Vertices[1];
+    End Else
+    Begin
+      Result.StartVertex := VectorMin(Vertices[I],Result.StartVertex);
+      Result.EndVertex := VectorMax(Vertices[I],Result.EndVertex);
+    End;
+  End;
+End;
 
 End.

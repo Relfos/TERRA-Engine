@@ -4,7 +4,7 @@ Unit TERRA_DemoApplication;
 
 Interface
 Uses TERRA_Utils, TERRA_Object, TERRA_String, TERRA_Application, TERRA_OS, TERRA_Scene,
-  TERRA_Vector3D, TERRA_Color, TERRA_Camera,
+  TERRA_Vector3D, TERRA_Color, TERRA_Camera, TERRA_Ray,
   TERRA_Font, TERRA_FontRenderer, TERRA_Skybox, TERRA_Viewport, TERRA_Lights, TERRA_UIView;
 
 Type
@@ -51,8 +51,15 @@ Type
       Procedure OnMouseDown(X, Y: Integer; Button: Word); Override;
       Procedure OnMouseMove(X, Y: Integer); Override;
       Procedure OnMouseUp(X, Y: Integer; Button: Word); Override;
+			Procedure OnMouseWheel(X,Y:Integer; Delta:Integer); Override;
+
+			Procedure OnKeyDown(Key:Word); Override;
+			Procedure OnKeyUp(Key:Word); Override;
+			Procedure OnKeyPress(Key:TERRAChar); Override;
+
 
       Property Font:TERRAFont Read _Font;
+      Property FontRenderer:TERRAFontRenderer Read _FontRenderer;
       Property Scene:DemoScene Read _Scene;
   End;
 
@@ -139,6 +146,21 @@ Begin
   _Owner._FontRenderer.DrawText(V, 5, 5, 50, 'FPS: '+IntToString(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
 End;
 
+Procedure DemoApplication.OnKeyDown(Key: Word);
+Begin
+  Scene.GUI.OnKeyDown(Key);
+End;
+
+Procedure DemoApplication.OnKeyUp(Key: Word);
+Begin
+  Scene.GUI.OnKeyUp(Key);
+End;
+
+Procedure DemoApplication.OnKeyPress(Key: TERRAChar);
+Begin
+  Scene.GUI.OnKeyPress(Key);
+End;
+
 Procedure DemoApplication.OnMouseDown(X, Y: Integer; Button: Word);
 Begin
   Scene.GUI.OnMouseDown(X, Y, Button);
@@ -155,9 +177,15 @@ Begin
 End;
 
 Procedure DemoScene.RenderViewport(V: TERRAViewport);
+Var
+  R:Ray;
 Begin
   If (V = Self._Main) Then
   Begin
+    R := V.GetPickRay(Trunc(InputManager.Instance.Mouse.X), Trunc(InputManager.Instance.Mouse.Y));
+    R.Direction.Z := -R.Direction.Z;
+    Sun.SetDirection(R.Direction);
+
     GraphicsManager.Instance.AddRenderable(V, _Sky);
     LightManager.Instance.AddLight(V, Sun);
   End Else
@@ -167,6 +195,12 @@ Begin
 
   _Owner.OnRender(V);
 End;
+
+procedure DemoApplication.OnMouseWheel(X, Y, Delta: Integer);
+begin
+  inherited;
+
+end;
 
 Procedure DemoApplication.OnRender(V: TERRAViewport);
 Begin

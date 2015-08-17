@@ -1414,28 +1414,7 @@ Begin
 End;
 
 
-(*Function GraphicsManager.ProjectBoundingBox(Box: BoundingBox; V:TERRAViewport): BoundingBox;
-Var
-  I:Integer;
-  Vertices:BoundingBoxVertices;
-Begin
-  Box.GetVertices(Vertices);
-  For I:=1 To 8 Do
-  Begin
-    Vertices[I] := ProjectPoint(Vertices[I], V);
-
-    If I=1 Then
-    Begin
-      Result.StartVertex := Vertices[1];
-      Result.EndVertex := Vertices[1];
-    End Else
-    Begin
-      Result.StartVertex := VectorMin(Vertices[I],Result.StartVertex);
-      Result.EndVertex := VectorMax(Vertices[I],Result.EndVertex);
-    End;
-  End;
-End;
-
+(*
 Function GraphicsManager.ProjectPoint(Pos: Vector3D; V:TERRAViewport): Vector3D;
 Var
   RX, RY:Single;

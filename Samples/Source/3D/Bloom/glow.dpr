@@ -44,7 +44,6 @@ Begin
 
   Self.Scene.MainViewport.FXChain.AddEffect(GlowFX.Create(2.0));
 
-
   DiffuseTex := Engine.Textures.GetTexture('cobble');
   GlowTex := Engine.Textures.GetTexture('cobble_glow');
 

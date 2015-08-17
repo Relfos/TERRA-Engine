@@ -7,6 +7,7 @@ uses
   TERRA_MemoryManager,
   TERRA_Application,
   TERRA_DemoApplication,
+  TERRA_EngineManager,
   TERRA_Utils,
   TERRA_ResourceManager,
   TERRA_GraphicsManager,
@@ -58,8 +59,8 @@ Begin
 
 //  UIManager.Instance.Viewport.FXChain.AddEffect(BloomFX.Create());
 
-  UITemplates.AddTemplate(UIWindowTemplate.Create('wnd_template', TextureManager.Instance.GetTexture('ui_window'), 45, 28, 147, 98));
-  UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', TextureManager.Instance.GetTexture('ui_button2'), 25, 10, 220, 37));
+  UITemplates.AddTemplate(UIWindowTemplate.Create('wnd_template', Engine.Textures.GetTexture('ui_window'), 45, 28, 147, 98));
+  UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', Engine.Textures.GetTexture('ui_button2'), 25, 10, 220, 37));
 
   MyController := DemoUIController.Create();
 

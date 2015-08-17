@@ -539,7 +539,10 @@ Begin
   Line('attribute mediump vec3 terra_normal;');
 
   If (FxFlags and shaderNormalMap<>0) Then
+  Begin
 	  Line('attribute mediump vec4 terra_tangent;');
+//	  Line('attribute mediump vec4 terra_binormal;');
+  End;
 
   If (FxFlags and shaderSkinning<>0) Then
   	Line('attribute highp float terra_bone;');

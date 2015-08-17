@@ -3,23 +3,24 @@ Unit TERRA_Occluder;
 {$I terra.inc}
 Interface
 
-Uses TERRA_Object, TERRA_Utils, TERRA_Vector3D, TERRA_Vecto2D, TERRA_Viewport, TERRA_Renderable;
+Uses TERRA_Object, TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_BoundingBox, TERRA_Matrix4x4,
+  TERRA_Viewport, TERRA_Renderable;
 
 Type
-  Occluder = Class(Renderable)
+  TERRAOccluder = Class(TERRARenderable)
     Protected
-      _Next:Occluder;
+      _Next:TERRAOccluder;
       _P1,_P2,_P3,_P4:Vector3D;
       _StartVertex, _EndVertex:Vector3D;
       _BoundingBox:BoundingBox;
 
-      Function OccluderOccluded(Occ:Occluder):Boolean;
+      Function OccluderOccluded(Occ:TERRAOccluder):Boolean;
 
     Public
       Function IsVisible:Boolean;
 
       Procedure Update(View:TERRAViewport); Override;
-      
+
       Procedure SetTransform(Transform:Matrix4x4; Width,Height:Single);
 
       Function PointOccluded(P:Vector3D):Boolean;
@@ -30,9 +31,10 @@ Type
   End;
 
 Implementation
+Uses TERRA_GraphicsManager, TERRA_Math;
 
-{ Occluder }
-Procedure Occluder.SetTransform(Transform:Matrix4x4; Width,Height:Single);
+{ TERRAOccluder }
+Procedure TERRAOccluder.SetTransform(Transform:Matrix4x4; Width,Height:Single);
 Var
   X1,X2,Y1,Y2:Single;
 Begin
@@ -53,14 +55,14 @@ Begin
   _BoundingBox.Add(_P4);
 End;
 
-Function Occluder.IsVisible:Boolean;
+Function TERRAOccluder.IsVisible:Boolean;
 Begin
-  Result:=Not ((_EndVertex.X<0) Or (_StartVertex.X>GraphicsManager.Instance.Width) Or
+  Result := Not ((_EndVertex.X<0) Or (_StartVertex.X>GraphicsManager.Instance.Width) Or
           (_EndVertex.Y<0) Or (_StartVertex.Y>GraphicsManager.Instance.Height) Or
           ((_StartVertex.Z>1) And (_EndVertex.Z>1)));
 End;
 
-Procedure Occluder.Update(View:TERRAViewport);
+Procedure TERRAOccluder.Update(View:TERRAViewport);
 Var
    T1,T2,T3,T4:Vector3D;
 Begin
@@ -73,20 +75,20 @@ Begin
   _EndVertex := VectorMax(T1, VectorMax(T2, VectorMax(T3, T4)));
 End;
 
-Function Occluder.PointOccluded(P:Vector3D):Boolean;
+Function TERRAOccluder.PointOccluded(P:Vector3D):Boolean;
 Begin
     Result := (P.X>_StartVertex.X) And (P.X<_EndVertex.X) And
             (P.Y>_StartVertex.Y) And (P.Y<_EndVertex.Y) And
             (P.Z>FloatMin(_StartVertex.Z, _EndVertex.Z));
 End;
 
-Function Occluder.OccluderOccluded(Occ:Occluder):Boolean;
+Function TERRAOccluder.OccluderOccluded(Occ:TERRAOccluder):Boolean;
 Begin
   Result := (Occ._StartVertex.X>_StartVertex.X) And (Occ._StartVertex.X<_EndVertex.X) And (Occ._StartVertex.Z>FloatMin(_StartVertex.Z, _EndVertex.Z))
           And (Occ._EndVertex.X>_StartVertex.X) And (Occ._EndVertex.X<_EndVertex.X) And (Occ._EndVertex.Z>FloatMin(_StartVertex.Z, _EndVertex.Z));
 End;
 
-Function Occluder.BoxOccluded(Box:BoundingBox; V:TERRAViewport):Boolean;
+Function TERRAOccluder.BoxOccluded(Box:BoundingBox; V:TERRAViewport):Boolean;
 Var
   K:Single;
   A,B:Vector3D;
@@ -107,7 +109,7 @@ Begin
     Image.New(GraphicsManager.Instance.Width, GraphicsManager.Instance.Height);
   End;}
 
-  Box := GraphicsManager.Instance.ProjectBoundingBox(Box, V);
+  Box := V.ProjectBoundingBox(Box);
   A := Box.StartVertex;
   B := Box.EndVertex;
 
@@ -125,7 +127,7 @@ Begin
     B.Y:=K;
   End;
 
-  If ((B.X<0) Or (A.X>Application.Instance.Width) Or (B.Y<0) Or (A.Y>Application.Instance.Height) Or
+  If ((B.X<0) Or (A.X> V.Width) Or (B.Y<0) Or (A.Y>V.Height) Or
       ((A.Z>1) And (B.Z>1))) Then
   Begin
     Result:=True;
@@ -144,12 +146,12 @@ Begin
   Result:=(Self.PointOccluded(A) And Self.PointOccluded(B));
 End;
 
-Function Occluder.GetBoundingBox:BoundingBox;
+Function TERRAOccluder.GetBoundingBox:BoundingBox;
 Begin
   Result := _BoundingBox;
 End;
 
-Procedure Occluder.Render(View:TERRAViewport; Const Bucket:Cardinal);
+Procedure TERRAOccluder.Render(View:TERRAViewport; Const Bucket:Cardinal);
 Begin
 {$IFDEF PC_X}
   If (TranslucentPass) Then
