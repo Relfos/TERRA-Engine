@@ -138,8 +138,6 @@ Type
 
   TERRAFont = Class(Resource)
     Protected
-      _TextSize:Integer;
-
       _Glyphs:Array Of FontGlyph;
       _GlyphCount:Integer;
 
@@ -172,8 +170,6 @@ Type
       Class Function GetManager:Pointer; Override;
 
       Procedure AddGlyphFactory(Factory:FontGlyphFactory; Scale:Single = 1.0);
-
-      Property TextSize:Integer Read _TextSize;
 
       Property Atlas:TextureAtlas Read _Atlas;
 
@@ -344,7 +340,6 @@ Function FontManager.GetFont(Name:TERRAString; ValidateError:Boolean):TERRAFont;
 Var
   FontName, FileName, S:TERRAString;
   I:Integer;
-  Size:Integer;
 Begin
   If (Name='') Then
   Begin
@@ -352,22 +347,7 @@ Begin
     Exit;
   End;
 
-  I := StringCharPosReverse(Ord('@'), Name);
-  If (I>0) Then
-  Begin
-    FontName := Copy(Name, 1, Pred(I));
-    S := Copy(Name, Succ(I), MaxInt);
-    Size := StringToInt(S);
-    If Size<=0 Then
-    Begin
-      FontName := Name;
-      Size := DefaultFontSize;
-    End;
-  End Else
-  Begin
-    FontName := Name;
-    Size := DefaultFontSize;
-  End;
+  FontName := Name;
 
   Name := GetFileName(Name, True);
 
@@ -383,7 +363,6 @@ Begin
   If S<>'' Then
   Begin
     Result := TERRAFont.Create(rtLoaded, S);
-    Result._TextSize := Size;
     Result.Priority := 90;
     Self.AddResource(Result);
   End Else
@@ -693,7 +672,7 @@ Begin
   F := _Factory;
   While Assigned(F) Do
   Begin
-    Result := F.InitGlyph(Self, ID, Trunc(_TextSize * F._LocalScale * FontRescale));
+    Result := F.InitGlyph(Self, ID, Trunc(DefaultFontSize * F._LocalScale * FontRescale));
     If Assigned(Result) Then
     Begin
       Result._Factory := F;
