@@ -301,12 +301,20 @@ End;
 Procedure DrawBone(View:TERRAViewport; Bone:MeshBone; State:AnimationState; Const Transform:Matrix4x4; LineColor:ColorRGBA; LineWidth:Single);
 Var
   A,B:Vector3D;
+  M:Matrix4x4;
 Begin
   If (Bone = Nil) Or (Bone.Parent = Nil) Then
     Exit;
 
-  A := State.Transforms[Bone.Index+1].Transform(VectorZero);
-  B := State.Transforms[Bone.Parent.Index+1].Transform(VectorZero);
+  M := Matrix4x4Multiply4x3(Transform, State.GetAbsoluteMatrix(Bone.ID));
+  //M := Matrix4x4Multiply4x3(Transform, Bone.AbsoluteMatrix);
+  A := M.Transform(VectorZero);
+
+  //DrawPoint3D(View, A, LineColor, 10);
+
+  M := Matrix4x4Multiply4x3(Transform, State.GetAbsoluteMatrix(Bone.Parent.ID));
+  //M := Matrix4x4Multiply4x3(Transform, Bone.Parent.AbsoluteMatrix);
+  B := M.Transform(VectorZero);
 
   DrawLine3D(View, A, B, LineColor, LineWidth);
 End;
@@ -318,8 +326,8 @@ Begin
   If (Skeleton = Nil) Then
     Exit;
 
-  For I:=0 To Pred(Skeleton.BoneCount) Do
-    DrawBone(View, Skeleton.GetBone(I), State, Transform, LineColor, LineWidth);
+  For I:=1 To Pred(Skeleton.BoneCount) Do
+    DrawBone(View, Skeleton.GetBoneByIndex(I), State, Transform, LineColor, LineWidth);
 End;
 
 Procedure DrawFrustum(View:TERRAViewport; F:Frustum; LineColor:ColorRGBA; LineWidth:Single);

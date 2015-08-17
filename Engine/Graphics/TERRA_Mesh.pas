@@ -34,7 +34,11 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ParticleRenderer, TERRA_ParticleEmitters, TERRA_Lights, TERRA_Renderable, TERRA_Viewport;
 
 Const
-  MaxBones    = 36;
+  {$IFDEF PC}
+  MaxBones    = 64;
+  {$ELSE}
+  MaxBones    = 34;
+  {$ENDIF}
 
   MaxTrailSize = 5;
   TrailDelay = 500;
@@ -56,12 +60,13 @@ Const
   tagMeshMetadata       = 'XMET';
   tagMeshBoneMorph      = 'XBMR';
 
-  tagGroupEnd           = 'GEND';
-  tagVertexData         = 'VDAT';
+  tagGroupLOD           = 'GLOD';
+  tagVertexAttribute    = 'VATX';
   tagVertexMorph        = 'VMRP';
-  tagTriangleIndices    = 'TIDX';
+
   tagTriangleNormals    = 'TNRM';
   tagTriangleEdges      = 'TEDG';
+
   tagMaterialDiffuse    = 'MDIF';
   tagMaterialTriplanar  = 'MTRP';
   tagMaterialSpecular   = 'MSPC';
@@ -137,7 +142,8 @@ Type
     Public
   		Position:Vector3D;
 	  	Normal:Vector3D;
-      Tangent:Vector4D;
+      Tangent:Vector3D;
+      BiTangent:Vector3D;
       UV0:Vector2D;
       UV1:Vector2D;
       BaseColor:ColorRGBA;
@@ -501,17 +507,18 @@ Type
       _Cloth:VerletCloth;
       {$ENDIF}
 
+      _BoneVectors:Array Of Vector4D;
+      _BoneVectorCount:Integer;
+
       _EmitterFX:TERRAString;
 
       _Vertices:VertexData;
       _ScratchVertices:VertexData;
 
-      _AlphaInspected:TERRATexture;
-
       _Triangles:Array Of Triangle;
       _Edges:Array Of TriangleEdgesState;
       _TriangleNormals:Array Of Vector3D;
-		  _TriangleCount:Integer;
+		  _TriangleCount:Cardinal;
 
       _VisibleTriangles:Array Of Triangle;
       _VisibleTriangleCount:Integer;
@@ -526,12 +533,12 @@ Type
       //Procedure SetCombineWithColor(C:ColorRGBA);
       Procedure BindMaterial(View:TERRAViewport; Var Slot:Integer; Const Material:MeshMaterial);
 
-      Procedure Load(Source:Stream);
+      Procedure Load(Source:Stream; Offset:Cardinal = 0; ChunkSize:Cardinal = 0);
       Procedure Save(Dest:Stream);
 
       Procedure DrawGeometry(State:MeshInstance; ShowWireframe:Boolean);
 
-      Procedure SetTriangleCount(Count:Integer);
+      Procedure SetTriangleCount(Count:Cardinal);
       Procedure SetVertexCount(Count:Integer);
       Function GetTriangles:PTriangleArray;
 
@@ -546,8 +553,6 @@ Type
       Function CalculateDitherScale():Single;
 
       Procedure InheritMaterial(Const OtherMat:MeshMaterial; Var DestMaterial:MeshMaterial);
-
-      Procedure InspectAlpha(Tex:TERRATexture);
 
     Public
       Userdata:Pointer;
@@ -696,7 +701,7 @@ Type
       Function GetTrianglePointer(Index:Integer):PTriangle;
 
       Property VertexCount:Integer Read GetVertexCount Write SetVertexCount;
-      Property TriangleCount:Integer Read _TriangleCount Write SetTriangleCount;
+      Property TriangleCount:Cardinal Read _TriangleCount Write SetTriangleCount;
 
       Property Triangles:PTriangleArray Read GetTriangles;
       Property Vertices:VertexData Read GetVertices;
@@ -869,11 +874,11 @@ Type
       Function GetVertexFormat(GroupID:Integer):VertexFormat; Override;
       Function GetVertexPosition(GroupID, Index:Integer):Vector3D; Override;
       Function GetVertexNormal(GroupID, Index:Integer):Vector3D; Override;
-      Function GetVertexTangent(GroupID, Index:Integer):Vector4D; Override;
+      Function GetVertexTangent(GroupID, Index:Integer):Vector3D; Override;
+      Function GetVertexBiTangent(GroupID, Index:Integer):Vector3D; Override;
       Function GetVertexBone(GroupID, Index:Integer):Integer; Override;
       Function GetVertexColor(GroupID, Index:Integer):ColorRGBA; Override;
-      Function GetVertexUV(GroupID, Index:Integer):Vector2D; Override;
-      Function GetVertexUV2(GroupID, Index:Integer):Vector2D; Override;
+      Function GetVertexUV(GroupID, Index, Channel:Integer):Vector2D; Override;
 
       Function GetDiffuseColor(GroupID:Integer):ColorRGBA; Override;
       Function GetDiffuseMapName(GroupID:Integer):TERRAString; Override;
@@ -881,8 +886,7 @@ Type
       Function GetBoneCount():Integer; Override;
       Function GetBoneName(BoneID:Integer):TERRAString; Override;
       Function GetBoneParent(BoneID:Integer):Integer; Override;
-      Function GetBonePosition(BoneID:Integer):Vector3D; Override;
-      Function GetBoneRotation(BoneID:Integer):Vector3D; Override;
+      Function GetBoneOffsetMatrix(BoneID:Integer):Matrix4x4; Override;
 
       Function GetAnimationCount():Integer; Override;
       Function GetAnimationName(AnimationID:Integer):TERRAString; Override;
@@ -892,8 +896,8 @@ Type
       Function GetPositionKeyCount(AnimationID, BoneID:Integer):Integer; Override;
       Function GetRotationKeyCount(AnimationID, BoneID:Integer):Integer; Override;
 
-      Function GetPositionKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshVectorKey; Override;
-      Function GetRotationKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshVectorKey; Override;
+      Function GetPositionKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshAnimationKeyframe; Override;
+      Function GetRotationKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshAnimationKeyframe; Override;
   End;
 
   MeshManager = Class(ResourceManager)
@@ -932,11 +936,11 @@ Type
   Function MakeWaterFlowBounds(Const Box:BoundingBox):Vector4D;
 
 Implementation
-Uses TERRA_Error, TERRA_EngineManager, TERRA_Application, TERRA_Log, TERRA_ShaderFactory, TERRA_OS,
-  TERRA_FileManager, TERRA_CRC32, TERRA_ColorGrading, TERRA_Solids;
+Uses TERRA_Error, TERRA_Application, TERRA_Log, TERRA_ShaderFactory, TERRA_OS,
+  TERRA_FileManager, TERRA_EngineManager, TERRA_CRC32, TERRA_ColorGrading, TERRA_Solids;
 
 Type
-  MeshDataBlockHandler = Function(Target:TERRAMesh; Size:Integer; Source:Stream):Boolean;
+  MeshDataBlockHandler = Function(Target:TERRAMesh; Size:Cardinal; Source:Stream):Boolean;
   MeshDataBlockHandlerEntry = Record
     Tag:FileHeader;
     Handler:MeshDataBlockHandler;
@@ -963,7 +967,7 @@ Begin
     Result := False;
 End;
 
-Function DefaultMeshHandler(Target:TERRAMesh; Size:Integer; Source:Stream):Boolean;
+Function DefaultMeshHandler(Target:TERRAMesh; Size:Cardinal; Source:Stream):Boolean;
 Begin
   Source.Skip(Size);
   Result := True;
@@ -1021,34 +1025,41 @@ Begin
 End;
 
 { Mesh handlers}
-Function MeshReadGroup(Target:TERRAMesh; Size:Integer; Source:Stream):Boolean;
+Function MeshReadGroup(Target:TERRAMesh; Size:Cardinal; Source:Stream):Boolean;
 Var
   Group:MeshGroup;
   ID:Integer;
-  Format:Cardinal;
+  Offset:Cardinal;
+  VertexCount:Word;
+  GroupFlags, Format:Cardinal;
   Name:TERRAString;
 Begin
+  Offset := Source.Position;
   ID := Target._GroupCount;
   Inc(Target._GroupCount);
   SetLength(Target._Groups, Target._GroupCount);
 
   Source.ReadCardinal(Format);
   Source.ReadString(Name);
+  Source.ReadCardinal(GroupFlags);
+  Source.ReadWord(VertexCount);
 
   Group := MeshGroup.Create(ID, Target, VertexFormatFromFlags(Format), Name);
-  Group.Load(Source);
+  Group.Vertices.Resize(VertexCount);
+  Group.Flags := GroupFlags;
+  Group.Load(Source, Offset, Size);
   Target._Groups[ID] := Group;
 
   Result := True;
 End;
 
-Function MeshReadSkeleton(Target:TERRAMesh; Size:Integer; Source:Stream):Boolean;
+Function MeshReadSkeleton(Target:TERRAMesh; Size:Cardinal; Source:Stream):Boolean;
 Begin
   Target.Skeleton.Read(Source);
   Result := True;
 End;
 
-Function MeshReadEmitter(Target:TERRAMesh; Size:Integer; Source:Stream):Boolean;
+Function MeshReadEmitter(Target:TERRAMesh; Size:Cardinal; Source:Stream):Boolean;
 Var
   I:Integer;
 Begin
@@ -1135,7 +1146,7 @@ Begin
   End;
 End;
 
-Function MeshReadLights(Target:TERRAMesh; Size:Integer; Source:Stream):Boolean;
+Function MeshReadLights(Target:TERRAMesh; Size:Cardinal; Source:Stream):Boolean;
 Var
   I:Integer;
   TargetLight:MeshLight;
@@ -1160,7 +1171,7 @@ Begin
   Result := True;
 End;
 
-Function MeshReadBoneMorph(Target:TERRAMesh; Size:Integer; Source:Stream):Boolean;
+Function MeshReadBoneMorph(Target:TERRAMesh; Size:Cardinal; Source:Stream):Boolean;
 Var
   N, I, Count:Integer;
 Begin
@@ -1179,7 +1190,7 @@ Begin
   Result := True;
 End;
 
-Function MeshReadMeta(Target:TERRAMesh; Size:Integer; Source:Stream):Boolean;
+Function MeshReadMeta(Target:TERRAMesh; Size:Cardinal; Source:Stream):Boolean;
 Var
   I:Integer;
 Begin
@@ -1197,23 +1208,30 @@ Begin
 End;
 
 { Group handlers }
-Function GroupReadVertexData(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadVertexAttribute(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
 Var
   I, Count:Integer;
   Format:Cardinal;
+  AttrKind, AttrType:Byte;
   PX,PY,PZ:SmallInt;
   P:Vector3D;
   Temp:VertexData;
   NewFormat:VertexFormat;
+  Attribute:VertexFormatAttribute;
 Begin
-  Target.Vertices.Read(Source);
+  Source.ReadByte(AttrKind);
+  Source.ReadByte(AttrType);
 
-  If (GraphicsManager.Instance.Renderer.Settings.NormalMapping.Enabled)
+  Attribute := VertexFormatAttribute(AttrKind);
+
+  Target.Vertices.ReadAttribute(Attribute, DataFormat(AttrType), Source);
+
+  (*If (GraphicsManager.Instance.Renderer.Settings.NormalMapping.Enabled)
   And (Not Target.Vertices.HasAttribute(vertexTangent)) Then
   Begin
     Target.Vertices.AddAttribute(vertexFormatTangent);
     Target._NeedsTangentSetup := True;
-  End;
+  End;*)
 
   Result := True;
 End;
@@ -1238,17 +1256,20 @@ Begin
   Result := True;
 End;
 
-Function GroupReadTriangleIndices(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadLOD(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
 Var
-  I:Integer;
+  LODLevel:Byte;
+  I, J:Integer;
 Begin
-  Source.Read(@Target._TriangleCount, 4);
-  SetLength(Target._Triangles, Target._TriangleCount);
+  Source.ReadByte(LODLevel);
+  Source.ReadCardinal(Target._TriangleCount);
 
+  SetLength(Target._Triangles, Target._TriangleCount);
   Target._VisibleTriangleCount := Target._TriangleCount;
 
   For I:=0 To Pred(Target._TriangleCount) Do
-    Source.Read(@Target._Triangles[I], SizeOf(Triangle));
+    For J:=0 To 2 Do
+      Source.ReadWord(Target._Triangles[I].Indices[J]);
 
   Result := True;
 End;
@@ -2038,7 +2059,6 @@ End;
 
 Constructor MeshInstance.Create(MyMesh: TERRAMesh);
 Begin
-  Self._ObjectName := 'mesh';
   _ClonedMesh := False;
   _Position := VectorZero;
   _Rotation := VectorZero;
@@ -2247,7 +2267,7 @@ Begin
     P := MyLight.Position;
     If (MyLight.BoneIndex>=0) Then
     Begin
-      M := Animation.Transforms[Succ(MyLight.BoneIndex)];
+      M := Animation.GetAbsoluteMatrix(MyLight.BoneIndex);
       M := Matrix4x4Multiply4x3(_Transform, M);
     End Else
       M := _Transform;
@@ -2348,7 +2368,7 @@ Begin
       P := Emitter.Position;
       If (Emitter.BoneIndex>=0) Then
       Begin
-        M := Animation.Transforms[Succ(Emitter.BoneIndex)];
+        M := Animation.GetAbsoluteMatrix(Emitter.BoneIndex);
         M := Matrix4x4Multiply4x3(_Transform, M);
       End Else
         M := _Transform;
@@ -2515,7 +2535,7 @@ Begin
     For I:=0 To Pred(_AttachCount) Do
     If (_AttachList[I].IsStencil) Then
     Begin
-      M := Matrix4x4Multiply4x3(_Transform, Matrix4x4Multiply4x3(Animation.Transforms[Succ(_AttachList[I].BoneIndex)], _AttachList[I].Matrix));
+      M := Matrix4x4Multiply4x3(_Transform, Matrix4x4Multiply4x3(Animation.GetAbsoluteMatrix(_AttachList[I].BoneIndex), _AttachList[I].Matrix));
 
       _AttachList[I].AttachMesh.Prefetch();
 
@@ -2595,7 +2615,7 @@ Begin
 {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Rendering attach '+IntToString(I));{$ENDIF}
 
     //M := MatrixMultiply4x3(_Transform, MatrixMultiply4x3(Animation.Transforms[Succ(_AttachList[I].BoneIndex)], _AttachList[I].Matrix));
-    M := Matrix4x4Multiply4x3(_Transform, Matrix4x4Multiply4x3(Animation.Transforms[Succ(_AttachList[I].BoneIndex)], _AttachList[I].Matrix));
+    M := Matrix4x4Multiply4x3(_Transform, Matrix4x4Multiply4x3(Animation.GetAbsoluteMatrix(_AttachList[I].BoneIndex), _AttachList[I].Matrix));
 
     If Not _AttachList[I].AttachMesh.IsReady() Then
       Continue;
@@ -3224,14 +3244,11 @@ Begin
 
       If V.BoneIndex>0 Then
       Begin
-        If (State.Animation = Nil) Or (State.Animation.Root = Nil) Then
-          //M := _Owner.Skeleton.BindPose[V.BoneIndex]
-          M := Matrix4x4Identity
-        Else
-          M := State.Animation.Transforms[V.BoneIndex];
-                    
+        M := State.Animation.GetBonePoseMatrix(V.BoneIndex);
         V.Position := M.Transform(V.Position);
         V.Normal := M.TransformNormal(V.Normal);
+        V.Tangent := M.TransformNormal(V.Tangent);
+        V.BiTangent := M.TransformNormal(V.BiTangent);
       End;
     End;
     ReleaseObject(It);
@@ -3368,7 +3385,6 @@ Begin
 
 
   _EmitterFX := '';
-  _AlphaInspected := Nil;
   _CullGeometry := False;
 
   ReleaseObject(_Buffer);
@@ -3394,36 +3410,47 @@ Begin
   Self.Vertices.Resize(Count);
 End;
 
-Procedure MeshGroup.SetTriangleCount(Count:Integer);
+Procedure MeshGroup.SetTriangleCount(Count:Cardinal);
 Begin
   _TriangleCount := Count;
   _VisibleTriangleCount := Count;
   SetLength(_Triangles, _TriangleCount);
 End;
 
-Procedure MeshGroup.Load(Source:Stream);
+Procedure MeshGroup.Load(Source:Stream; Offset, ChunkSize:Cardinal);
 Var
 	K:Cardinal;
-  I, Size:Integer;
+  PositionLimit, TargetPosition:Cardinal;
+  I:Integer;
+  Size:Cardinal;
   S:TERRAString;
   Tex:TERRATexture;
   Tag:FileHeader;
   Handler:GroupDataBlockHandler;
 Begin
-  Source.ReadCardinal(Flags);
-
   //_Material.AmbientColor := ColorWhite;
   _Material.DiffuseColor := ColorWhite;
   _Material.BlendMode := -1;
 
+  PositionLimit := Offset + ChunkSize;
   Repeat
     Source.Read(@Tag, 4);
-    If (Tag=tagGroupEnd) Then
-      Break;
+    Source.ReadCardinal(Size);
 
-    Source.ReadInteger(Size);
+    TargetPosition := Source.Position + Size;
+
     Handler := GetMeshGroupHandler(Tag);
     Handler(Self, Size, Source);
+
+    If (Source.Position<>TargetPosition) Then
+      Source.Skip(TargetPosition);
+
+  If (Source.Position>PositionLimit) Then
+  Begin
+    Source.Seek(PositionLimit);
+    Break;
+  End;
+
   Until (Source.EOF);
 End;
 
@@ -3465,7 +3492,7 @@ Begin
   WriteLn('Triangles: ', _TriangleCount, ' [Ofs: ',Dest.Position,']');}
   {$ENDIF}
 
-  Tag := tagVertexData;
+(*  Tag := tagVertexAttribute;
   Size := 4 * 2 + Self.Vertices.Size * Self.Vertices.Count;
 
   Dest.Write(@Tag, 4);
@@ -3507,10 +3534,10 @@ Begin
   Else
     Name := '';
   Tag := tagMaterialDiffuse;
-  Size := SizeOf(ColorRGBA) + Succ(Length(Name));
+  Size := SizeOf(Color) + Succ(Length(Name));
   Dest.Write(@Tag, 4);
   Dest.WriteInteger(Size);
-  Dest.Write(@_Material.DiffuseColor, SizeOf(ColorRGBA));
+  Dest.Write(@_Material.DiffuseColor, SizeOf(Color));
   Dest.WriteString(Name);
 
   If (Self.BlendMode>=0) Then
@@ -3584,6 +3611,7 @@ Begin
 
   Tag := tagGroupEnd;
   Dest.Write(@Tag, 4);
+  *)
 End;
 
 Procedure MeshGroup.CalculateTriangleNormals;
@@ -3809,7 +3837,12 @@ Begin
     Else
       Handness := -1.0;
 
-    _Vertices.SetVector4D(I, vertexTangent, VectorCreate4D(T.X, T.Y, T.Z, Handness));
+    _Vertices.SetVector3D(I, vertexTangent, T);
+
+    T := VectorCross(N, T);
+    T.Scale(Handness);
+    T.Normalize();
+    _Vertices.SetVector3D(I, vertexBiTangent, T);
   End;
 End;
 
@@ -4036,7 +4069,7 @@ Var
   TextureMatrix, M, M2:Matrix4x4;
   C:ColorRGBA;
   BoneVectorLocation:Integer;
-  BoneVectors:Array[0..(Succ(MaxBones)*3)] Of Vector4D;
+
   M2D:Matrix3x3;
   Bend,Delta:Single;
   Graphics:GraphicsManager;
@@ -4061,13 +4094,13 @@ Var
     B3.Z := Mat.Get(2, 2);
     B3.W := Mat.Get(2, 3);
 
-    BoneVectors[ID*3 + 0] := B1;
-    BoneVectors[ID*3 + 1] := B2;
-    BoneVectors[ID*3 + 2] := B3;
+    _BoneVectors[ID*3 + 0] := B1;
+    _BoneVectors[ID*3 + 1] := B2;
+    _BoneVectors[ID*3 + 2] := B3;
   End;
 Begin
   Graphics := GraphicsManager.Instance;
-                     
+
   If (Graphics.ReflectionActive) Then
     Transform := Matrix4x4Multiply4x4(GraphicsManager.Instance.ReflectionMatrix, Transform);
 
@@ -4152,29 +4185,29 @@ Begin
       *)
   End;
 
-  If (_Owner.Skeleton.BoneCount > 0 ) And (Assigned(State)) And (Self.Vertices.HasAttribute(vertexBone)) Then
+  If (_Owner.Skeleton.BoneCount > 0) And (Assigned(State)) And (Self.Vertices.HasAttribute(vertexBone)) And (_GPUSkinning) Then
   Begin
-    EncodeBoneMatrix(0, Matrix4x4Identity);
-
-    If (_Owner.Skeleton.BoneCount>MaxBones) Then
+    If (_GPUSkinning) And (_Owner.Skeleton.BoneCount>MaxBones) Then
     Begin
-      Log(logWarning, 'Mesh', 'Bone limit reached, '+IntToString(_Owner.Skeleton.BoneCount)+' bones'
-        + ', mesh name = "' + _Owner.Name + '"');
+      Log(logWarning, 'Mesh', 'Bone limit reached, '+IntToString(_Owner.Skeleton.BoneCount)+' bones'    + ', mesh name = "' + _Owner.Name + '"');
+      _GPUSkinning := False;
       Exit;
     End;
 
-    For I:=1 To _Owner.Skeleton.BoneCount Do
-    Begin
-      If (State.Animation = Nil) Or (State.Animation.Root = Nil) Then
-        //M := _Owner.Skeleton.BindPose[I]
-        M := Matrix4x4Identity
-      Else
-        M := State.Animation.Transforms[I];
+    _BoneVectorCount := Succ(State.Animation.MaxActiveBones)*3;
 
-        EncodeBoneMatrix(I, M);
+    If (Length(_BoneVectors)<_BoneVectorCount) Then
+      SetLength(_BoneVectors, _BoneVectorCount);
+
+    EncodeBoneMatrix(0, Matrix4x4Identity);
+
+    For I:=1 To State.Animation.MaxActiveBones Do
+    Begin
+      M := State.Animation.GetBonePoseMatrix(I);
+      EncodeBoneMatrix(I, M);
     End;
 
-    Graphics.Renderer.ActiveShader.SetVec4ArrayUniform('boneVectors', Succ(_Owner.Skeleton.BoneCount)*3, @(BoneVectors[0]));
+    Graphics.Renderer.ActiveShader.SetVec4ArrayUniform('boneVectors', _BoneVectorCount, @(_BoneVectors[0]));
   End;
 End;
 
@@ -4357,9 +4390,6 @@ Begin
     Begin
       Slot := 0;
 
-      If (DestMaterial.FlowMap<>Nil) Then
-        IntToString(2);
-
       BindMaterial(View, Slot, DestMaterial);
 
       If Assigned(_Shader) Then
@@ -4379,11 +4409,6 @@ Begin
       Begin
         Tex.IsReady();
         Exit;
-      End;
-
-      If _AlphaInspected = Nil Then
-      Begin
-        Self.InspectAlpha(Tex);
       End;
 
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Setting texture wrap mode');  {$ENDIF}
@@ -5247,7 +5272,6 @@ Begin
   Self._Vertices := VertexData.Create(Format, 0);
 
   Self._GPUSkinning := GraphicsManager.Instance.Renderer.Settings.VertexBufferObject.Enabled;
-//  Self._GPUSkinning := False;
 End;
 
 Function MeshGroup.LockVertices():VertexData;
@@ -5693,11 +5717,6 @@ Begin
   _Material.ShadowColor := Value;
 End;
 
-Procedure MeshGroup.InspectAlpha(Tex:TERRATexture);
-Begin
-  _AlphaInspected := Tex;
-End;
-
 Function MeshGroup.GetHueShift: Single;
 Begin
   Result := _Material.HueShift;
@@ -5869,6 +5888,8 @@ End;
 
 Function TERRAMesh.GetSkeleton:MeshSkeleton;
 Begin
+  Self.IsReady();
+
   If Not Assigned(_Skeleton) Then
   Begin
     _Skeleton := MeshSkeleton.Create;
@@ -5880,7 +5901,7 @@ End;
 
 Function TERRAMesh.Load(Source:Stream):Boolean;
 Var
-  Size:Integer;
+  Size:Cardinal;
   Tag:FileHeader;
   Handler:MeshDataBlockHandler;
 Begin
@@ -5896,12 +5917,14 @@ Begin
     Exit;
   End;
 
+  Source.ReadCardinal(Size);
+
   Repeat
     Source.Read(@Tag, 4);
     If (Tag = tagMeshEnd) Then
       Break;
 
-    Source.Read(@Size, 4);
+    Source.ReadCardinal(Size);
 
     Handler := GetMeshDataHandler(Tag);
     Handler(Self, Size, Source);
@@ -6085,68 +6108,64 @@ Var
   S:TERRAString;
   B:MeshBone;
   P:Vector2D;
+  It:Iterator;
+  Group:MeshGroup;
+  V:MeshVertex;
+  Anim:Animation;
 Begin
+  Self.Create(rtDynamic, '');
+
   Self.Clean();
   If Source = Nil Then
     Exit;
 
-  _GroupCount := Source.GetGroupCount;
-  SetLength(_Groups, _GroupCount);
-  For N:=0 To Pred(_GroupCount) Do
+  For N:=0 To Pred(Source.GetGroupCount) Do
   Begin
     Format := Source.GetVertexFormat(N);
 
-    _Groups[N] := MeshGroup.Create(N, Self, Format, Source.GetGroupName(N));
-    _Groups[N].Flags := Source.GetGroupFlags(N);
-    _Groups[N]._Vertices.Resize(Source.GetVertexCount(N));
-    _Groups[N]._TriangleCount := Source.GetTriangleCount(N);
-    _Groups[N]._VisibleTriangleCount := _Groups[N]._TriangleCount;
+    //Format := [vertexFormatPosition, vertexFormatNormal, vertexFormatUV0];
+    Format := [vertexFormatPosition, vertexFormatColor, vertexFormatNormal, vertexFormatTangent, vertexFormatUV0];
 
-    For I:=0 To Pred(_Groups[N].VertexCount) Do
+    If Source.GetBoneCount>0 Then
+      Format := Format + [vertexFormatBone];
+
+    Group  := Self.AddGroup(Format, Source.GetGroupName(N));
+//    Group.Flags := Source.GetGroupFlags(N);
+    Group.DiffuseColor := ColorWhite;
+    Group.Flags := 0;
+    Group.Vertices.Resize(Source.GetVertexCount(N));
+    Group.TriangleCount := Source.GetTriangleCount(N);
+    Group._VisibleTriangleCount := Group._TriangleCount;
+
+    It := Group.Vertices.GetIteratorForClass(MeshVertex);
+    While It.HasNext() Do
     Begin
-{      _Groups[N]._Vertices.SetVector3D(I, vertexPosition, Source.GetVertexPosition(N, I);
+      I := It.Position;
+      V := MeshVertex(It.Value);
 
-      If (Format And vertexBone<>0) Then
-        _Groups[N].GetSingle(I, vertexBone)^ := Source.GetVertexBone(N, I)
-      Else
-        _Groups[N].GetSingle(I, vertexBone)^ := -1;
+      V.Position := Source.GetVertexPosition(N, I);
+      V.Normal := Source.GetVertexNormal(N, I);
+      V.Tangent := Source.GetVertexTangent(N, I);
 
-      If (Format And vertexNormal<>0) Then
-        _Groups[N]._Vertices[I].Normal := Source.GetVertexNormal(N, I);
+      V.UV0 := Source.GetVertexUV(N, I, 0);
+      //V.UV1 := Source.GetVertexUV(N, I, 1);
 
-      If (Format And vertexUV0<>0) Then
-        _Groups[N]._Vertices[I].TextureCoords := Source.GetVertexUV(N, I);
 
-      If (Format And vertexUV1<>0) Then
-        _Groups[N]._Vertices[I].TextureCoords2 := Source.GetVertexUV2(N, I);
+      V.BoneIndex := Source.GetVertexBone(N, I);
 
-      If (Format And vertexColor<>0) Then
-        _Groups[N]._Vertices[I].Color := Source.GetVertexColor(N, I)
-      Else
-        _Groups[N]._Vertices[I].Color := ColorWhite;
+      V.BaseColor := Source.GetVertexColor(N, I);
 
-      If (Format And vertexTangent<>0) Then
-      Begin
-        _Groups[N]._Vertices[I].Tangent := Source.GetVertexTangent(N, I);
-        _Groups[N]._Vertices[I].Handness := Source.GetVertexHandness(N, I);
-      End;}
-
-      RaiseError('unfinished mesh');
+      V.BaseColor := ColorWhite;
     End;
-    SetLength(_Groups[N]._Triangles, _Groups[N]._TriangleCount);
-    For I:=0 To Pred(_Groups[N]._TriangleCount) Do
-      _Groups[N]._Triangles[I] := Source.GetTriangle(N,I);
 
-    _Groups[N].DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
-    _Groups[N].DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
-    _Groups[N].DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
-    _Groups[N].DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
-    _Groups[N].DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
-    _Groups[N].DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
-    _Groups[N].DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
-    _Groups[N].DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
+    SetLength(Group._Triangles, Group._TriangleCount);
+    For I:=0 To Pred(Group._TriangleCount) Do
+    Begin
+      Group._Triangles[I] := Source.GetTriangle(N,I);
+    End;
 
-    _Groups[N]._Material.DiffuseColor := Source.GetDiffuseColor(N);
+    Group.DiffuseMap := Engine.Textures.GetTexture(Source.GetDiffuseMapName(N));
+    Group.DiffuseColor := Source.GetDiffuseColor(N);
 
     If (vertexFormatTangent In Format) Then
       _Groups[N].CalculateTangents;
@@ -6156,19 +6175,17 @@ Begin
   Begin
     For I:=0 To Pred(Source.GetBoneCount) Do
     Begin
-      B := Skeleton.AddBone();
+      B := Skeleton.AddBone(Skeleton.GetBoneByIndex(Source.GetBoneParent(I)));
       B.Name := Source.GetBoneName(I);
-      B.StartPosition := Source.GetBonePosition(I);
-      {$IFNDEF NO_ROTS}
-      B.StartRotation := Source.GetBoneRotation(I);
-      {$ENDIF}
+      B.RelativeMatrix := Source.GetBoneOffsetMatrix(I);
     End;
+  End;
 
-    For I:=0 To Pred(Source.GetBoneCount) Do
-    Begin
-      B := Skeleton.GetBone(I);
-      B.Parent := Skeleton.GetBone(Source.GetBoneParent(I));
-    End;
+  For I:=0 To Pred(Source.GetAnimationCount) Do
+  Begin
+    Anim := Animation.Create(rtDynamic, Self.Name + '_'+ Source.GetAnimationName(I));
+    Anim.InitFromFilter(I, Source);
+    AnimationManager.Instance.AddResource(Anim);
   End;
 
   Self.Update;
@@ -6483,29 +6500,20 @@ End;
 
 Function CustomMeshFilter.GetBoneName(BoneID: Integer):TERRAString;
 Begin
-  Result := _Mesh.Skeleton.GetBone(BoneID).Name;
+  Result := _Mesh.Skeleton.GetBoneByIndex(BoneID).Name;
 End;
 
 Function CustomMeshFilter.GetBoneParent(BoneID: Integer): Integer;
 Begin
-  If Assigned(_Mesh.Skeleton.GetBone(BoneID).Parent) Then
-    Result := _Mesh.Skeleton.GetBone(BoneID).Parent.Index
+  If Assigned(_Mesh.Skeleton.GetBoneByIndex(BoneID).Parent) Then
+    Result := _Mesh.Skeleton.GetBoneByIndex(BoneID).Parent.ID
   Else
     Result := -1;
 End;
 
-Function CustomMeshFilter.GetBonePosition(BoneID: Integer): Vector3D;
+Function CustomMeshFilter.GetBoneOffsetMatrix(BoneID:Integer):Matrix4x4;
 Begin
-  Result := _Mesh.Skeleton.GetBone(BoneID).StartPosition;
-End;
-
-Function CustomMeshFilter.GetBoneRotation(BoneID: Integer): Vector3D;
-Begin
-{$IFNDEF NO_ROTS}
-  Result := _Mesh.Skeleton.GetBone(BoneID).StartRotation;
-{$ELSE}
-  Result := VectorZero;
-{$ENDIF}
+  Result := _Mesh.Skeleton.GetBoneByIndex(BoneID).RelativeMatrix;
 End;
 
 Function CustomMeshFilter.GetDiffuseColor(GroupID: Integer):ColorRGBA;
@@ -6538,7 +6546,7 @@ Begin
   Result := _Mesh._Groups[GroupID].Name;
 End;
 
-Function CustomMeshFilter.GetPositionKey(AnimationID, BoneID, KeyID: Integer): MeshVectorKey;
+Function CustomMeshFilter.GetPositionKey(AnimationID, BoneID, KeyID: Integer):MeshAnimationKeyframe;
 Var
   Bone:BoneAnimation;
 Begin
@@ -6563,7 +6571,7 @@ Begin
     Result := 0;
 End;
 
-Function CustomMeshFilter.GetRotationKey(AnimationID, BoneID, KeyID: Integer): MeshVectorKey;
+Function CustomMeshFilter.GetRotationKey(AnimationID, BoneID, KeyID: Integer):MeshAnimationKeyframe;
 Var
   Bone:BoneAnimation;
 Begin
@@ -6631,20 +6639,20 @@ Begin
   _Mesh._Groups[GroupID].Vertices.GetVector3D(Index, vertexPosition, Result);
 End;
 
-Function CustomMeshFilter.GetVertexTangent(GroupID, Index: Integer): Vector4D;
+Function CustomMeshFilter.GetVertexTangent(GroupID, Index: Integer): Vector3D;
 Begin
-  _Mesh._Groups[GroupID].Vertices.GetVector4D(Index, vertexTangent, Result);
+  _Mesh._Groups[GroupID].Vertices.GetVector3D(Index, vertexTangent, Result);
 End;
 
-Function CustomMeshFilter.GetVertexUV(GroupID, Index: Integer): Vector2D;
+Function CustomMeshFilter.GetVertexBiTangent(GroupID, Index: Integer): Vector3D;
 Begin
-  _Mesh._Groups[GroupID].Vertices.GetVector2D(Index, vertexUV0, Result);
+  _Mesh._Groups[GroupID].Vertices.GetVector3D(Index, vertexBiTangent, Result);
+End;
+
+Function CustomMeshFilter.GetVertexUV(GroupID, Index, Channel: Integer): Vector2D;
+Begin
+  _Mesh._Groups[GroupID].Vertices.GetVector2D(Index, vertexUV0 + Channel, Result);
   Result.Y := 1 - Result.Y;
-End;
-
-Function CustomMeshFilter.GetVertexUV2(GroupID, Index: Integer): Vector2D;
-Begin
-  _Mesh._Groups[GroupID].Vertices.GetVector2D(Index, vertexUV1, Result);
 End;
 
 { MeshMerger }
@@ -6814,9 +6822,9 @@ Procedure MeshEmitter.UpdateBone;
 Var
   Bone:MeshBone;
 Begin
-  Bone := Owner.Skeleton.GetBone(Self.ParentBone);
+  Bone := Owner.Skeleton.GetBoneByName(Self.ParentBone);
   If Assigned(Bone) Then
-    Self.BoneIndex := Bone.Index
+    Self.BoneIndex := Bone.ID
   Else
     Self.BoneIndex := -1;
 End;
@@ -6832,9 +6840,9 @@ Procedure MeshLight.UpdateBone;
 Var
   Bone:MeshBone;
 Begin
-  Bone := Owner.Skeleton.GetBone(Self.ParentBone);
+  Bone := Owner.Skeleton.GetBoneByName(Self.ParentBone);
   If Assigned(Bone) Then
-    Self.BoneIndex := Bone.Index
+    Self.BoneIndex := Bone.ID
   Else
     Self.BoneIndex := -1;
 End;
@@ -6935,7 +6943,11 @@ Var
   FxFlags, OutFlags:Cardinal;
   Graphics:GraphicsManager;
 Begin
-  FxFlags := shaderVertexColor;
+  If Group.Vertices.HasAttribute(vertexColor) Then
+    FxFlags := shaderVertexColor
+  Else
+    FxFlags := 0;
+
   OutFlags := 0;
   Group._LightBatch.Reset();
   DisableLights := False;
@@ -6947,6 +6959,7 @@ Begin
 
   Group._Owner._Skinning := (Assigned(Group._Owner.Skeleton)) And (Group._Owner.Skeleton.BoneCount>0) And (Group.Vertices.HasAttribute(vertexBone));
   Group._Owner._NormalMapping := (Assigned(DestMaterial.NormalMap)) And (Graphics.Renderer.Settings.NormalMapping.Enabled);
+
 
 (*  If (Group.AmbientColor.R = 0) And (Group.AmbientColor.G = 0) And (Group.AmbientColor.B=0) Then
     FxFlags := FxFlags Or shaderSkipAmbient;*)
@@ -7189,7 +7202,8 @@ Var
 Begin
   Self.GetVector3D(vertexPosition, Self.Position);
   Self.GetVector3D(vertexNormal, Self.Normal);
-  Self.GetVector4D(vertexTangent, Self.Tangent);
+  Self.GetVector3D(vertexTangent, Self.Tangent);
+  Self.GetVector3D(vertexBiTangent, Self.BiTangent);
   Self.GetVector2D(vertexUV0, Self.UV0);
   Self.GetVector2D(vertexUV1, Self.UV1);
   Self.GetFloat(vertexHue, Self.HueShift);
@@ -7197,7 +7211,7 @@ Begin
   Self.GetColor(vertexColor, Self.BaseColor);
 
   Self.GetFloat(vertexBone, N);
-  If (N<0) Or (N>MaxBones) Then
+  If (N<0) Then
     N := 0;
 
   Self.BoneIndex := Trunc(N);
@@ -7207,7 +7221,8 @@ Procedure MeshVertex.Save;
 Begin
   Self.SetVector3D(vertexPosition, Self.Position);
   Self.SetVector3D(vertexNormal, Self.Normal);
-  Self.SetVector4D(vertexTangent, Self.Tangent);
+  Self.SetVector3D(vertexTangent, Self.Tangent);
+  Self.SetVector3D(vertexBiTangent, Self.BiTangent);
   Self.SetVector2D(vertexUV0, Self.UV0);
   Self.SetVector2D(vertexUV1, Self.UV1);
   Self.SetFloat(vertexHue, Self.HueShift);
@@ -7225,10 +7240,10 @@ Initialization
   RegisterMeshDataHandler(tagMeshMetadata, MeshReadMeta);
   RegisterMeshDataHandler(tagMeshBoneMorph, MeshReadBoneMorph);
 
-  RegisterMeshGroupHandler(tagVertexData, GroupReadVertexData);
+  RegisterMeshGroupHandler(tagGroupLOD, GroupReadLOD);
+  RegisterMeshGroupHandler(tagVertexAttribute, GroupReadVertexAttribute);
   RegisterMeshGroupHandler(tagVertexMorph, GroupReadVertexMorphs);
 //  RegisterMeshGroupHandler(tagVertexBoneWeights, GroupReadVertexBoneWeights);
-  RegisterMeshGroupHandler(tagTriangleIndices, GroupReadTriangleIndices);
   RegisterMeshGroupHandler(tagTriangleNormals, GroupReadTriangleNormals);
   RegisterMeshGroupHandler(tagTriangleEdges, GroupReadTriangleEdges);
   RegisterMeshGroupHandler(tagMaterialDiffuse, GroupReadMaterialDiffuse);
