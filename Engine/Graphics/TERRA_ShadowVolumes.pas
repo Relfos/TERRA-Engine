@@ -187,7 +187,7 @@ Begin
           //TM := (MyMesh.Skeleton.BindPose[K])
           TM := Matrix4x4Identity
         Else
-          TM := (Instance.Animation.Transforms[K]);
+          TM := Instance.Animation.GetAbsoluteMatrix(K);
 
         V := TM.Transform(V);
       End;

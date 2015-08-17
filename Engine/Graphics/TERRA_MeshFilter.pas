@@ -28,7 +28,7 @@ Unit TERRA_MeshFilter;
 Interface
 
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Vector4D,
-  TERRA_Quaternion, TERRA_Color, TERRA_Stream, TERRA_VertexFormat;
+  TERRA_Quaternion, TERRA_Color, TERRA_Matrix4x4, TERRA_Stream, TERRA_VertexFormat;
 
 Const
   meshGroupHidden       = 1 Shl 0;  // Group is hidden
@@ -75,15 +75,14 @@ Const
 }
 
 Type
-  MeshVectorKey = Record
-    Value:Vector3D;
+  MeshAnimationKeyframe = Object
+    Value:Vector4D;
     Time:Single;
-  End;
 
-  {MeshQuaternionKey = Record
-    Value:Quaternion;
-    Time:Single;
-  End;}
+    Function GetVector3D():Vector3D;
+    Function GetQuaternion():Quaternion;
+    Function GetColor():ColorRGBA;
+  End;
 
   MeshFilter = Class(TERRAObject)
     Public
@@ -99,11 +98,11 @@ Type
       Function GetVertexFormat(GroupID:Integer):VertexFormat; Virtual;
       Function GetVertexPosition(GroupID, Index:Integer):Vector3D; Virtual;
       Function GetVertexNormal(GroupID, Index:Integer):Vector3D; Virtual;
-      Function GetVertexTangent(GroupID, Index:Integer):Vector4D; Virtual;
+      Function GetVertexTangent(GroupID, Index:Integer):Vector3D; Virtual;
+      Function GetVertexBiTangent(GroupID, Index:Integer):Vector3D; Virtual;
       Function GetVertexBone(GroupID, Index:Integer):Integer; Virtual;
       Function GetVertexColor(GroupID, Index:Integer):ColorRGBA; Virtual;
-      Function GetVertexUV(GroupID, Index:Integer):Vector2D; Virtual;
-      Function GetVertexUV2(GroupID, Index:Integer):Vector2D; Virtual;
+      Function GetVertexUV(GroupID, Index, Channel:Integer):Vector2D; Virtual;
 
       Function GetDiffuseColor(GroupID:Integer):ColorRGBA; Virtual;
       Function GetAmbientColor(GroupID:Integer):ColorRGBA; Virtual;
@@ -121,8 +120,7 @@ Type
       Function GetBoneCount():Integer; Virtual;
       Function GetBoneName(BoneID:Integer):TERRAString; Virtual;
       Function GetBoneParent(BoneID:Integer):Integer; Virtual;
-      Function GetBonePosition(BoneID:Integer):Vector3D; Virtual;
-      Function GetBoneRotation(BoneID:Integer):Vector3D; Virtual;
+      Function GetBoneOffsetMatrix(BoneID:Integer):Matrix4x4; Virtual;
 
       Function GetAnimationCount():Integer; Virtual;
       Function GetAnimationName(AnimationID:Integer):TERRAString; Virtual;
@@ -134,9 +132,9 @@ Type
       Function GetRotationKeyCount(AnimationID, BoneID:Integer):Integer; Virtual;
       Function GetScaleKeyCount(AnimationID, BoneID:Integer):Integer; Virtual;
 
-      Function GetPositionKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshVectorKey; Virtual;
-      Function GetScaleKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshVectorKey; Virtual;
-      Function GetRotationKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshVectorKey; Virtual;
+      Function GetPositionKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshAnimationKeyframe; Virtual;
+      Function GetScaleKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshAnimationKeyframe; Virtual;
+      Function GetRotationKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshAnimationKeyframe; Virtual;
 
       Function Load(Source:Stream):Boolean; Overload; Virtual;
       Function Load(FileName:TERRAString):Boolean; Overload;
@@ -192,7 +190,7 @@ Begin
 End;
 
 { MeshFilter }
-Function MeshFilter.GetDiffuseColor(GroupID: Integer): ColorRGBA;
+Function MeshFilter.GetDiffuseColor(GroupID: Integer):ColorRGBA;
 Begin
   Result := ColorWhite;
 End;
@@ -244,7 +242,7 @@ Begin
   Result := -1;
 End;
 
-Function MeshFilter.GetVertexColor(GroupID, Index: Integer): ColorRGBA;
+Function MeshFilter.GetVertexColor(GroupID, Index: Integer):ColorRGBA;
 Begin
   Result := ColorWhite;
 End;
@@ -269,18 +267,17 @@ Begin
   Result := VectorZero;
 End;
 
-Function MeshFilter.GetVertexTangent(GroupID, Index: Integer): Vector4D;
+Function MeshFilter.GetVertexTangent(GroupID, Index: Integer): Vector3D;
 Begin
-  Result := VectorCreate4D(0,1,0,1);
+  Result := VectorCreate(1,0,0);
 End;
 
-Function MeshFilter.GetVertexUV(GroupID, Index: Integer): Vector2D;
+Function MeshFilter.GetVertexBiTangent(GroupID, Index: Integer): Vector3D;
 Begin
-  Result.X := 0;
-  Result.Y := 0;
+  Result := VectorCreate(0,0,1);
 End;
 
-Function MeshFilter.GetVertexUV2(GroupID, Index: Integer): Vector2D;
+Function MeshFilter.GetVertexUV(GroupID, Index, Channel: Integer): Vector2D;
 Begin
   Result.X := 0;
   Result.Y := 0;
@@ -344,21 +341,21 @@ Begin
   Result := 0;
 End;
 
-Function MeshFilter.GetPositionKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshVectorKey;
+Function MeshFilter.GetPositionKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshAnimationKeyframe;
 Begin
-  Result.Value := VectorZero;
+  Result.Value := VectorCreate4D(0, 0, 0, 1);
   Result.Time := 0;
 End;
 
-Function MeshFilter.GetScaleKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshVectorKey;
+Function MeshFilter.GetScaleKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshAnimationKeyframe;
 Begin
-  Result.Value := VectorOne;
+  Result.Value := VectorCreate4D(1, 1, 1, 1);
   Result.Time := 0;
 End;
 
-Function MeshFilter.GetRotationKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshVectorKey;
+Function MeshFilter.GetRotationKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshAnimationKeyframe;
 Begin
-  Result.Value := VectorZero;
+  Result.Value := VectorCreate4D(0, 0, 0, 1);
   Result.Time := 0;
 End;
 
@@ -382,14 +379,9 @@ Begin
   Result := -1;
 End;
 
-Function MeshFilter.GetBonePosition(BoneID: Integer): Vector3D;
+Function MeshFilter.GetBoneOffsetMatrix(BoneID:Integer):Matrix4x4;
 Begin
-  Result := VectorZero;
-End;
-
-Function MeshFilter.GetBoneRotation(BoneID: Integer): Vector3D;
-Begin
-  Result := VectorZero;
+  Result := Matrix4x4Identity;
 End;
 
 Function MeshFilter.GetAnimationFrameRate(AnimationID: Integer): Single;
@@ -399,7 +391,7 @@ End;
 
 Function MeshFilter.GetAnimationLoop(AnimationID: Integer): Boolean;
 Begin
-  Result := False;
+  Result := True;
 End;
 
 Function MeshFilter.GetAlphaMapName(GroupID: Integer):TERRAString;
@@ -407,7 +399,7 @@ Begin
   Result := '';
 End;
 
-function MeshFilter.GetAmbientColor(GroupID: Integer): ColorRGBA;
+function MeshFilter.GetAmbientColor(GroupID: Integer):ColorRGBA;
 Begin
   Result := ColorBlack;
 End;
@@ -435,6 +427,22 @@ End;
 Function MeshFilter.GetTriplanarMapName(GroupID: Integer):TERRAString;
 Begin
   Result := '';
+End;
+
+{ MeshAnimationKeyframe }
+Function MeshAnimationKeyframe.GetColor:ColorRGBA;
+Begin
+  Result := ColorCreateFromFloat(Value.X, Value.Y, Value.Z, Value.W);
+End;
+
+Function MeshAnimationKeyframe.GetQuaternion: Quaternion;
+Begin
+  Result := QuaternionCreate(Value.X, Value.Y, Value.Z, Value.W);
+End;
+
+function MeshAnimationKeyframe.GetVector3D: Vector3D;
+Begin
+  Result := VectorCreate(Value.X, Value.Y, Value.Z);
 End;
 
 End.

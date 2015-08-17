@@ -17,8 +17,8 @@
  * specific language governing permissions and limitations under the License.
  *
  **********************************************************************************************************************
- * TERRA_MeshAnimation 
- * Implements the Animation resource and other Animation classes 
+ * TERRA_MeshAnimationNodes
+ * Implements the mesh animation node system
  ***********************************************************************************************************************
 }
 Unit TERRA_MeshAnimationNodes;
@@ -41,17 +41,15 @@ Type
   AnimationState = Class;
 
   AnimationObject = Class(TERRAObject)
-      _Name:TERRAString;
-
       Procedure UpdateAnimation(); Virtual;
 
-      Function HasAnimation(MyAnimation:Animation):Boolean; Virtual; Abstract;
-      Function GetActiveAnimation:Animation; Virtual; Abstract;
+      Function HasAnimation(MyAnimation:Animation):Boolean; Virtual;
+      Function GetActiveAnimation:Animation; Virtual;
 
-      Function HasBone(Bone:Integer):Boolean; Virtual; Abstract;
-      Function GetTransform(BoneIndex:Integer):AnimationTransformBlock; Virtual; Abstract;
+      Function HasTransform(Bone:Integer):Boolean; Virtual; Abstract;
+      Function GetTransform(BoneIndex:Integer; Var Block:AnimationTransformBlock):Boolean; Virtual; Abstract;
 
-      Function Finished:Boolean; Virtual; Abstract;
+      Function Finished:Boolean; Virtual;
 
       Function Collapse:AnimationObject; Virtual;
 
@@ -59,8 +57,13 @@ Type
   End;
 
   AnimationMixer = Class(AnimationObject)
+    Protected
       _A, _B:AnimationObject;
+
+    Public
       Alpha:Single;
+
+      Constructor Create(Src,Dest:AnimationObject);
 
       Procedure Release; Override;
 
@@ -69,8 +72,10 @@ Type
       Function GetActiveAnimation:Animation; Override;
 
       Function HasAnimation(MyAnimation:Animation):Boolean; Override;
-      Function HasBone(Bone:Integer):Boolean; Override;
-      Function GetTransform(BoneIndex:Integer):AnimationTransformBlock; Override;
+
+
+      Function HasTransform(Bone:Integer):Boolean; Override;
+      Function GetTransform(BoneIndex:Integer; Var Block:AnimationTransformBlock):Boolean; Override;
   End;
 
   AnimationCrossfader = Class(AnimationMixer)
@@ -79,12 +84,15 @@ Type
       _Duration:Cardinal;
 
     Public
-      Constructor Create(Src,Dest:AnimationObject; Duration:Cardinal);
+      Constructor Create(Src,Dest:AnimationObject; Const Duration:Cardinal);
+
+      Procedure Reset(Const Duration:Cardinal);
 
       Function Collapse:AnimationObject; Override;
-      
+
       Function Finished:Boolean; Override;
-      Function GetTransform(BoneIndex:Integer):AnimationTransformBlock; Override;
+
+      Function GetTransform(BoneIndex:Integer; Var Block:AnimationTransformBlock):Boolean; Override;
   End;
 
   AnimationNode = Class(AnimationObject)
@@ -116,8 +124,8 @@ Type
       Function HasAnimation(MyAnimation:Animation):Boolean; Override;
       Function GetActiveAnimation:Animation; Override;
 
-      Function HasBone(Bone:Integer):Boolean; Override;
-      Function GetTransform(BoneIndex:Integer):AnimationTransformBlock; Override;
+      Function HasTransform(Bone:Integer):Boolean; Override;
+      Function GetTransform(BoneIndex:Integer; Var Block:AnimationTransformBlock):Boolean; Override;
 
       Procedure SetCurrentFrame(Frame:Integer);
 
@@ -139,24 +147,36 @@ Type
   End;
 
   AnimationBoneState = Class(TERRAObject)
-    _Owner:AnimationState;
-    _BoneName:TERRAString;
-    _ID:Integer;
-    _Block:AnimationTransformBlock;
-    _Ready:Boolean;
-    _Parent:AnimationBoneState;
-    _AbsoluteMatrix:Matrix4x4;
-    _RelativeMatrix:Matrix4x4;
-    _FrameMatrix:Matrix4x4;
+    Protected
+      _Owner:AnimationState;
+      _ID:Integer;
+      _Ready:Boolean;
 
-    _BoneSpaceMatrix:Matrix4x4;
+      _Parent:AnimationBoneState;
 
-    Procedure UpdateTransform;
+      _RelativeMatrix:Matrix4x4;
+      _OffsetMatrix:Matrix4x4;
+      _FinalTransform:Matrix4x4;
 
-    Procedure Release; Override;
+      _SkinningIndex:Integer;
+      _Kind:MeshBoneKind;
+
+      Procedure UpdateTransform(Node:AnimationObject);
+
+    Public
+      Procedure Release; Override;
+
+      Property ID:Integer Read _ID;
+      Property Parent:AnimationBoneState Read _Parent;
   End;
 
-  AnimationProcessor = Procedure (State:AnimationState);
+  AnimationProcessor = Class(TERRAObject)
+    Protected
+      _Owner:AnimationState;
+
+    Public
+      Procedure GetTransform(Target:AnimationBoneState; Node:AnimationObject; Out Transform:Matrix4x4); Virtual;
+  End;
 
   AnimationState = Class(TERRAObject)
     Protected
@@ -165,6 +185,8 @@ Type
 
       _BoneCount:Integer;
       _BoneStates:Array Of AnimationBoneState;
+
+      _MaxActiveBones:Integer;
 
       _LastTime:Cardinal;
       _Root:AnimationObject;
@@ -179,15 +201,21 @@ Type
 
       _UpdateID:Cardinal;
 
+      _Processor:AnimationProcessor;
+
+      _Transforms:Array Of Matrix4x4;
+
       Procedure AddBone(Bone:MeshBone);
 
       Procedure CollapseNode(Var Node:AnimationObject);
 
       Procedure UpdateAnimationName(MyAnimation:Animation);
 
+      Procedure SetProcessor(Value:AnimationProcessor);
+
     Public
-      Processor:AnimationProcessor;
-      Transforms:Array Of Matrix4x4;
+
+      //AllowRootMovement:Boolean;
 
       Constructor Create(TargetSkeleton:MeshSkeleton);
       Procedure Release; Override;
@@ -200,18 +228,24 @@ Type
       Procedure SetCallback(Callback:AnimationCallback; CallbackTarget:TERRAObject = Nil; CallbackFrame:Integer=-1);
 
       Function GetAbsoluteMatrix(Index:Integer):Matrix4x4;
-      Function GetRelativeMatrix(Index:Integer):Matrix4x4;
+      Function GetBonePoseMatrix(Index:Integer):Matrix4x4;
 
-      Function Play(Name:TERRAString; Rescale:Single=0):Boolean; Overload;
-      Function Play(MyAnimation:Animation; Rescale:Single=0):Boolean; Overload;
+      Function GetBoneByName(Const Name:TERRAString):AnimationBoneState;
+
+      Function Find(Name:TERRAString):Animation;
+      Function Play(MyAnimation:Animation; Rescale:Single=0):Boolean;
 
       Function Crossfade(Name:TERRAString; Duration:Cardinal = DefaultCrossfadeDuration):Boolean; Overload;
       Function Crossfade(MyAnimation:Animation; Duration:Cardinal = DefaultCrossfadeDuration):Boolean; Overload;
 
       Property Speed:Single Read _Speed Write SetSpeed;
-      Property Root:AnimationObject Read _Root;
+      Property Root:AnimationObject Read _Root Write SetRoot;
 
       Property LastAnimation:TERRAString Read _LastAnimation;
+
+      Property MaxActiveBones:Integer Read _MaxActiveBones;
+
+      Property Processor:AnimationProcessor Read _Processor Write SetProcessor;
   End;
 
 
@@ -225,7 +259,8 @@ Var
   I:Integer;
 Begin
   _Speed := 1;
-  Processor := Nil;
+
+  Self.SetProcessor(AnimationProcessor.Create());
 
   _Name := TargetSkeleton.Name;
   I := Pos('.', _Name);
@@ -236,7 +271,14 @@ Begin
   _LastTime := Application.Instance.GetElapsedTime();
 
   For I:=0 To Pred(TargetSkeleton.BoneCount) Do
-    Self.AddBone(TargetSkeleton.GetBone(I));
+    Self.AddBone(TargetSkeleton.GetBoneByIndex(I));
+
+  _MaxActiveBones := 0;
+  For I:=0 To Pred(TargetSkeleton.BoneCount) Do
+  If (_BoneStates[I]._Kind <> meshBone_Dummy) And (_BoneStates[I]._SkinningIndex >= _MaxActiveBones) Then
+    _MaxActiveBones := Succ(_BoneStates[I]._SkinningIndex);
+
+  SetLength(_Transforms, _MaxActiveBones);
 End;
 
 Procedure AnimationState.AddBone(Bone:MeshBone);
@@ -245,14 +287,16 @@ Var
 Begin
   Inc(_BoneCount);
   SetLength(_BoneStates, _BoneCount);
-  SetLength(Transforms, Succ(_BoneCount));
-
-  Bone.Init();  
 
   _BoneStates[Pred(_BoneCount)] := AnimationBoneState.Create;
-  _BoneStates[Pred(_BoneCount)]._BoneName := Bone.Name;
+  _BoneStates[Pred(_BoneCount)]._ObjectName := Bone.Name;
+
+  _BoneStates[Pred(_BoneCount)]._OffsetMatrix := Bone.OffsetMatrix;
   _BoneStates[Pred(_BoneCount)]._RelativeMatrix := Bone.RelativeMatrix;
-  _BoneStates[Pred(_BoneCount)]._BoneSpaceMatrix:= Bone.AbsoluteMatrix;
+  _BoneStates[Pred(_BoneCount)]._Kind := Bone.Kind;
+  _BoneStates[Pred(_BoneCount)]._SkinningIndex := Bone.SkinningIndex;
+
+
   _BoneStates[Pred(_BoneCount)]._Owner := Self;
   _BoneStates[Pred(_BoneCount)]._ID := Pred(_BoneCount);
   _BoneStates[Pred(_BoneCount)]._Parent := Nil;
@@ -260,7 +304,7 @@ Begin
   If Assigned(Bone.Parent) Then
   Begin
     For I:=0 To Pred(_BoneCount) Do
-    If (StringEquals(_BoneStates[I]._BoneName, Bone.Parent.Name)) Then
+    If (StringEquals(_BoneStates[I].Name, Bone.Parent.Name)) Then
     Begin
       _BoneStates[Pred(_BoneCount)]._Parent := _BoneStates[I];
       Break;
@@ -272,20 +316,19 @@ Procedure AnimationState.Update;
 Var
   I:Integer;
   Time, Delta:Cardinal;
+  BoneState:AnimationBoneState;
+  M:Matrix4x4;
 Begin
-  If (Length(Transforms)<=0) Then
-  Begin
-    SetLength(Transforms, Succ(_BoneCount));
-  End;
-
-  Transforms[0] := Matrix4x4Identity;
+  If (Length(_Transforms)<=0) Then
+    Exit;
+    
+  _Transforms[0] := Matrix4x4Identity;
 
   If (_Next<>'') Then
   Begin
-    Self.Play(_Next);
+    Self.Play(Find(_Next));
     _Next := '';
   End;
-
 
   _UpdateID := GraphicsManager.Instance.FrameID;
 
@@ -298,47 +341,36 @@ Begin
   If Assigned(_Root) Then
     Self.CollapseNode(_Root);
 
-  If Not Assigned(_Root) Then
+  If Assigned(_Root) Then
   Begin
-    For I:=1 To _BoneCount Do
-      Transforms[I] := Matrix4x4Identity;
+    Time := Application.Instance.GetElapsedTime();
+    Delta := Time - _LastTime;
 
-    Exit;
+    _LastTime := Time;
+
+    If Length(_BoneStates)<_BoneCount Then
+      Exit;
   End;
-
-  Time := Application.Instance.GetElapsedTime();
-  Delta := Time - _LastTime;
-
-  {If (Delta<10) Then
-    Exit;
-   }
-
-  _LastTime := Time;
-
-  If Length(_BoneStates)<_BoneCount Then
-    Exit;
 
   // Get all bones tranformations
   For I:=0 To Pred(_BoneCount) Do
-  If Assigned(_Root) Then
   Begin
-    _BoneStates[I]._Block := _Root.GetTransform(I);
     _BoneStates[I]._Ready := False;
   End;
 
   For I:=0 To Pred(_BoneCount) Do
-    _BoneStates[I].UpdateTransform();
+    _BoneStates[I].UpdateTransform(_Root);
 
   For I:=0 To Pred(_BoneCount) Do
-    Transforms[Succ(I)] := _BoneStates[I]._AbsoluteMatrix;
-
-  If Assigned(Processor) Then
-    Processor(Self);
-
-  For I:=1 To _BoneCount Do
   Begin
-    Transforms[I] := Matrix4x4Multiply4x3(Transforms[I], Self._BoneStates[Pred(I)]._BoneSpaceMatrix);
+    BoneState := _BoneStates[I];
+    If BoneState._SkinningIndex<=0 Then
+      Continue;
+      
+    _Transforms[BoneState._SkinningIndex] := Matrix4x4Multiply4x3(BoneState._FinalTransform, BoneState._OffsetMatrix);
   End;
+
+//  FloatToString(Transforms[1].V[1]);
 End;
 
 Procedure AnimationState.SetRoot(Node: AnimationObject);
@@ -357,19 +389,20 @@ Begin
   _BoneCount := 0;
 
   ReleaseObject(_Root);
+  ReleaseObject(_Processor);
 End;
 
-Function AnimationState.Play(Name:TERRAString; Rescale:Single):Boolean;
+Function AnimationState.Find(Name:TERRAString):Animation;
 Var
   MyAnimation: Animation;
 Begin
-  MyAnimation := AnimationManager.Instance.GetAnimation(_Name + '_' + Name, False);
+  MyAnimation := AnimationManager.Instance.GetAnimation(_Name + '@' + Name, False);
   If Assigned(MyAnimation) Then
-    Result := Self.Play(MyAnimation, Rescale)
+    Result := MyAnimation
   Else
   Begin
     Log(logWarning, 'Animation', 'Animation not found: '+Name);
-    Result := False;
+    Result := Nil;
   End;
 End;
 
@@ -477,12 +510,15 @@ End;
 
 Function AnimationState.GetAbsoluteMatrix(Index: Integer): Matrix4x4;
 Begin
-  Result := Transforms[Index+1];
+  Result := _BoneStates[Index]._FinalTransform;
 End;
 
-Function AnimationState.GetRelativeMatrix(Index: Integer): Matrix4x4;
+Function AnimationState.GetBonePoseMatrix(Index: Integer): Matrix4x4;
 Begin
-  Result := _BoneStates[Index]._FrameMatrix;
+  If (Index<0) Or (Index>=Length(_Transforms)) Then
+    Result := Matrix4x4Identity
+  Else
+    Result := _Transforms[Index];
 End;
 
 Procedure AnimationState.SetSpeed(Value: Single);
@@ -517,80 +553,114 @@ Begin
   _LastAnimation := StringLower(_LastAnimation);
 End;
 
+Function AnimationState.GetBoneByName(Const Name:TERRAString):AnimationBoneState;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(Self._BoneCount) Do
+  If (StringEquals(Name, _BoneStates[I].Name)) Then
+  Begin
+    Result := _BoneStates[I];
+    Exit;
+  End;
+
+  Result := Nil;
+End;
+
+Procedure AnimationState.SetProcessor(Value:AnimationProcessor);
+Begin
+  ReleaseObject(_Processor);
+
+  _Processor := Value;
+
+  If Assigned(Value) Then
+    _Processor._Owner := Self;
+End;
+
 { AnimationBoneState }
 Procedure AnimationBoneState.Release;
 Begin
   // do nothing
 End;
 
-Procedure AnimationBoneState.UpdateTransform;
+Procedure AnimationBoneState.UpdateTransform(Node:AnimationObject);
+Var
+  I:Integer;
+  Block:AnimationTransformBlock;
+  LocalTransform:Matrix4x4;
 Begin
-  If (_Ready) Then
+  If _Ready Then
     Exit;
-
-  If (Assigned(_Parent)) And (Not _Parent._Ready) Then
-    _Parent.UpdateTransform;
 
   // Now we know the position and rotation for this animation frame.
 	// Let's calculate the transformation matrix (m_final) for this bone...
 
 	// Create a transformation matrix from the position and rotation
 	// m_frame: additional transformation for this frame of the animation
-  _FrameMatrix := Matrix4x4Multiply4x3(Matrix4x4Translation(_Block.Translation), QuaternionMatrix4x4(_Block.Rotation));
 
-	// Add the animation state to the rest position
-  _FrameMatrix := Matrix4x4Multiply4x3(_RelativeMatrix, _FrameMatrix);
 
-	If (_Parent = nil ) Then					// this is the root node
+  _Owner.Processor.GetTransform(Self, Node, LocalTransform);
+
+  // m_final := parent's m_final * m_rel (matrix concatenation)
+  If (Assigned(_Parent)) Then
   Begin
-    _AbsoluteMatrix := _FrameMatrix;
-  End Else									// not the root node
-	Begin
-		// m_final := parent's m_final * m_rel (matrix concatenation)
-    _AbsoluteMatrix := Matrix4x4Multiply4x3(_Parent._AbsoluteMatrix, _FrameMatrix);
-	End;
+    _Parent.UpdateTransform(Node);
+    _FinalTransform := Matrix4x4Multiply4x3(_Parent._FinalTransform, LocalTransform);
+  End Else
+    _FinalTransform := LocalTransform;
+
+  (*Temp := _Owner.Processor.PostTransform(_Owner, Self, _Block);
+  Temp.MoveTransformOrigin(_FrameGlobalTransform.Transform(VectorZero));
+  _FrameAbsoluteMatrix := Matrix4x4Multiply4x3(Temp, _FrameAbsoluteMatrix);*)
 
   _Ready := True;
 End;
 
 { AnimationMixer }
-Function AnimationMixer.HasBone(Bone:Integer):Boolean;
+Constructor AnimationMixer.Create(Src, Dest: AnimationObject);
 Begin
-  Result := (_A.HasBone(Bone)) Or (_B.HasBone(Bone));
+  Self.Name := Src.Name + ' -> ' + Dest.Name;
+  _A := Src;
+  _B := Dest;
 End;
 
-Function AnimationMixer.GetTransform(BoneIndex:Integer):AnimationTransformBlock;
+Function AnimationMixer.HasTransform(Bone:Integer):Boolean;
+Begin
+  Result := (_A.HasTransform(Bone)) Or (_B.HasTransform(Bone));
+End;
+
+Function AnimationMixer.GetTransform(BoneIndex:Integer; Var Block:AnimationTransformBlock):Boolean;
 Var
   SA, SB:AnimationTransformBlock;
   Beta:Single;
 Begin
-  SA := _A.GetTransform(BoneIndex);
-  SB := _B.GetTransform(BoneIndex);
+  _A.GetTransform(BoneIndex, SA);
+  _B.GetTransform(BoneIndex, SB);
 
   Beta := 1.0 - Alpha;
 
   If (Alpha<=0) Then
   Begin
-    Result.Translation := SA.Translation;
-    Result.Rotation := SA.Rotation;
-    Result.Scale:= SA.Scale;
+    Block.Translation := SA.Translation;
+    Block.Rotation := SA.Rotation;
+    Block.Scale:= SA.Scale;
   End Else
   If (Alpha>=1) Then
   Begin
-    Result.Translation := SB.Translation;
-    Result.Rotation := SB.Rotation;
-    Result.Scale:= SB.Scale;
+    Block.Translation := SB.Translation;
+    Block.Rotation := SB.Rotation;
+    Block.Scale:= SB.Scale;
   End Else
   Begin
-    Result.Translation.X := SB.Translation.X * Alpha + SA.Translation.X * Beta;
-    Result.Translation.Y := SB.Translation.Y * Alpha + SA.Translation.Y * Beta;
-    Result.Translation.Z := SB.Translation.Z * Alpha + SA.Translation.Z * Beta;
+    Block.Translation.X := SB.Translation.X * Alpha + SA.Translation.X * Beta;
+    Block.Translation.Y := SB.Translation.Y * Alpha + SA.Translation.Y * Beta;
+    Block.Translation.Z := SB.Translation.Z * Alpha + SA.Translation.Z * Beta;
 
-    Result.Rotation := QuaternionSlerp(SA.Rotation, SB.Rotation, Alpha);
+    Block.Rotation := QuaternionSlerp(SA.Rotation, SB.Rotation, Alpha);
 
-    Result.Scale.X := SB.Scale.X * Alpha + SA.Scale.X * Beta;
-    Result.Scale.Y := SB.Scale.Y * Alpha + SA.Scale.Y * Beta;
-    Result.Scale.Z := SB.Scale.Z * Alpha + SA.Scale.Z * Beta;
+    Block.Scale.X := SB.Scale.X * Alpha + SA.Scale.X * Beta;
+    Block.Scale.Y := SB.Scale.Y * Alpha + SA.Scale.Y * Beta;
+    Block.Scale.Z := SB.Scale.Z * Alpha + SA.Scale.Z * Beta;
   End;
 End;
 
@@ -619,13 +689,17 @@ Begin
 End;
 
 { AnimationCrossfader }
-Constructor AnimationCrossfader.Create(Src,Dest:AnimationObject;  Duration: Cardinal);
+Constructor AnimationCrossfader.Create(Src,Dest:AnimationObject;  Const Duration: Cardinal);
 Begin
-  _Name := Src._Name + ' -> ' + Dest._Name;
+  Inherited Create(Src, Dest);
+
+  Reset(Duration);
+End;
+
+Procedure AnimationCrossfader.Reset(Const Duration:Cardinal);
+Begin
   _StartTime := Application.Instance.GetElapsedTime();
   _Duration := Duration;
-  _A := Src;
-  _B := Dest;
 End;
 
 Function AnimationCrossfader.Finished: Boolean;
@@ -637,14 +711,14 @@ Begin
   Result := (Alpha>=1);
 End;
 
-Function AnimationCrossfader.GetTransform(BoneIndex:Integer):AnimationTransformBlock;
+Function AnimationCrossfader.GetTransform(BoneIndex:Integer; Var Block:AnimationTransformBlock):Boolean;
 Begin
   Alpha := Application.Instance.GetElapsedTime() - _StartTime;
   Alpha := Alpha / _Duration;
   If (Alpha>=1) Then
     Alpha := 1;
 
-  Result := Inherited GetTransform(BoneIndex);
+  Result := Inherited GetTransform(BoneIndex, Block);
 End;
 
 Function AnimationCrossfader.Collapse: AnimationObject;
@@ -674,7 +748,7 @@ Begin
   If (_Animation = Nil) Then
     Exit;
 
-  _Name := MyAnimation.Name;
+  Self.Name := MyAnimation.Name;
 
   If (MyAnimation.Status<>rsReady) Then
   Begin
@@ -699,18 +773,19 @@ Begin
 
   SetLength(_IndexList, _Owner._BoneCount);
   For I:=0 To Pred(_Owner._BoneCount) Do
-    _IndexList[I] := _Animation.GetBoneIndex(_Owner._BoneStates[I]._BoneName);
+    _IndexList[I] := _Animation.GetBoneIndex(_Owner._BoneStates[I].Name);
 End;
 
-Function AnimationNode.HasBone(Bone: Integer): Boolean;
+Function AnimationNode.HasTransform(Bone: Integer): Boolean;
 Begin
-  Result := (_IndexList[Bone]>=0);
+  Result := (_IndexList[Bone] >= 0);
 End;
 
-Function AnimationNode.GetTransform(BoneIndex:Integer): AnimationTransformBlock;
+Function AnimationNode.GetTransform(BoneIndex:Integer; Var Block:AnimationTransformBlock):Boolean;
 Var
   Bone:BoneAnimation;
 Begin
+  Result := False;
   _Animation.Touch();
 
   Self.UpdateAnimation();
@@ -721,14 +796,11 @@ Begin
 
     If Assigned(Bone) Then
     Begin
-      Bone.GetTransform(_Time, Result);
+      Bone.GetTransform(_Time, Block);
+      Result := True;
       Exit;
     End;
   End;
-
-  Result.Translation := VectorZero;
-  Result.Rotation := QuaternionZero;
-  Result.Scale := VectorOne;
 End;
 
 Function AnimationNode.HasAnimation(MyAnimation: Animation): Boolean;
@@ -869,6 +941,21 @@ Begin
   Result := Self;
 End;
 
+Function AnimationObject.Finished: Boolean;
+Begin
+  Result := False;
+End;
+
+Function AnimationObject.GetActiveAnimation: Animation;
+Begin
+  Result := Nil;
+End;
+
+Function AnimationObject.HasAnimation(MyAnimation: Animation): Boolean;
+Begin
+  Result := False;
+End;
+
 Procedure AnimationObject.Release;
 Begin
 // do nothing
@@ -879,4 +966,27 @@ Begin
 // do nothing
 End;
 
+{ AnimationProcessor }
+Procedure AnimationProcessor.GetTransform(Target:AnimationBoneState; Node:AnimationObject; Out Transform:Matrix4x4);
+Var
+  Block:AnimationTransformBlock;
+  Offset:Vector3D;
+begin
+  If (Assigned(Node)) And (Node.HasTransform(Target.ID)) Then
+  Begin
+    Node.GetTransform(Target.ID, Block);
+    Transform := Matrix4x4Multiply4x3(Matrix4x4Translation(Block.Translation), QuaternionMatrix4x4(Block.Rotation));
+
+    If (Target._Kind = meshBone_Root) {And (Not _Owner.AllowRootMovement)} Then
+    Begin
+      Offset := Transform.GetTranslation();
+      Offset.X := 0;
+      Offset.Y := 0;
+      Transform.SetTranslation(Offset);
+    End;
+  End Else
+    Transform := Target._RelativeMatrix;
+End;
+
 End.
+

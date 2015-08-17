@@ -18,6 +18,7 @@ uses
   TERRA_InputManager,
   TERRA_Collections,
   TERRA_Viewport,
+  TERRA_EngineManager,
   TERRA_PNG,
   TERRA_Math,
   TERRA_Scene,
@@ -40,7 +41,7 @@ Procedure MyDemo.OnCreate;
 Begin
   Inherited;
 
-  Tex := TextureManager.Instance.GetTexture('ghost');
+  Tex := Engine.Textures.GetTexture('ghost');
 End;
 
 Procedure MyDemo.OnRender(View: TERRAViewport);
