@@ -570,7 +570,7 @@ Implementation
 
 Uses SysUtils, TERRA_Error, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   {$IFNDEF WINDOWS}BaseUnix, {$ENDIF}
-  TERRA_GraphicsManager, TERRA_Callstack, TERRA_Collections, TERRA_CollectionObjects,
+  TERRA_GraphicsManager, TERRA_Callstack, TERRA_Collections, TERRA_List, 
   TERRA_Log, TERRA_OS, TERRA_IAP, TERRA_Localization, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager
   {$IFDEF PC}, TERRA_Steam{$ENDIF};
 

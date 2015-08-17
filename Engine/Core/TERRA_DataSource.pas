@@ -3,7 +3,7 @@ Unit TERRA_DataSource;
 {%I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_ObjectTree, TERRA_String, TERRA_Collections, TERRA_CollectionObjects, TERRA_FileUtils;
+Uses TERRA_Object, TERRA_ObjectTree, TERRA_String, TERRA_Collections, TERRA_List, TERRA_FileUtils;
 
 Type
   DataSourceProperty = Class(TERRAObject)
@@ -110,9 +110,8 @@ Procedure DataSourceManager.AddFromSession(FileName: TERRAString);
 Var
   SaveData:Session;
   It:Iterator;
-  Row:SessionKeyValue;
+  Item, Row:StringProperty;
   Obj:List;
-  Item:CollectionObject;
   S, S2, Tag:TERRAString;
 Begin
   SaveData := TERRA_Session.Session.Create(GetFileName(FileName, False));
@@ -123,7 +122,7 @@ Begin
   It := SaveData.Data.GetIterator();
   While It.HasNext() Do
   Begin
-    Row := SessionKeyValue(It.Value);
+    Row := StringProperty(It.Value);
 
     Obj := List.Create();
     Obj.Name := Row.Name;
@@ -134,8 +133,7 @@ Begin
       S2 := StringGetNextSplit(S, Ord('|'));
       Tag := StringGetNextSplit(S2, Ord('='));
 
-      Item := StringObject.Create(S2);
-      Item.Name := Tag;
+      Item := StringProperty.Create(Tag, S2);
       Obj.Add(Item);
     End;
 

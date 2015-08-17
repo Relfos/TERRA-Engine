@@ -43,7 +43,7 @@ Type
 
   ResourceClass = Class Of Resource;
 
-  Resource = Class(CollectionObject)
+  Resource = Class(TERRAObject)
     Private
       _Status:ResourceStatus;
       _Kind:ResourceType;
@@ -52,8 +52,6 @@ Type
       _Time:Cardinal;
       _Location:TERRAString;
       _Size:Integer;
-
-      Function Sort(Other:CollectionObject):Integer; Override;
 
       Procedure SetStatus(const Value:ResourceStatus);
 
@@ -65,7 +63,7 @@ Type
       Constructor Create(Kind:ResourceType; Location:TERRAString);
       Procedure Release; Override;
 
-      Procedure Touch; 
+      Procedure Touch;
 
       Function IsReady:Boolean;
 
@@ -210,11 +208,6 @@ Begin
     Log(logError, 'Resource', 'Error prefetching resource')
   Else
     Log(logDebug, 'Resource', 'Prefetching for '+Self.Name+' is done!');
-End;
-
-Function Resource.Sort(Other: CollectionObject): Integer;
-Begin
-  Result := GetStringSort(Self.Name, Resource(Other).Name);
 End;
 
 Function Resource.GetBlob:TERRAString;

@@ -22,10 +22,10 @@
  ***********************************************************************************************************************
 }
 Unit TERRA_Debug;
-                     
+
 {$I terra.inc}
 Interface
-Uses TERRA_String, TERRA_Callstack;
+Uses TERRA_Object, TERRA_String, TERRA_Callstack;
 
 //Procedure DebugStack(S:TERRAString);
 Procedure DebugOpenAL;
@@ -39,7 +39,7 @@ Implementation
 
 Uses {$IFDEF WINDOWS}Windows,{$ENDIF}
   {$IFDEF FPC}lineinfo, {$ENDIF}
-  SysUtils, TERRA_Utils, TERRA_Application, TERRA_OS, TERRA_Stack, TERRA_CollectionObjects,
+  SysUtils, TERRA_Utils, TERRA_Application, TERRA_OS, TERRA_Stack, TERRA_Collections,
   TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_OpenGL{$ENDIF}, TERRA_AL
 {$IFDEF ANDROID}
   android_log
@@ -59,7 +59,7 @@ Begin
   If Pos('(',S)>0 Then
     IntToString(2);
 
-  _Callstack.Push(StringObject.Create(S));
+  _Callstack.Push(StringProperty.Create('call', S));
 End;
 
 Procedure PopCallstack();
@@ -149,24 +149,24 @@ Procedure TERRADump(S:TERRAString);
 Begin
   DebugStack('');
   RaiseError(S);
-        While (True) Do;
+  While (True) Do;
 End;
 {$ENDIF}
 
 Function GetCallstack:TERRAString;
 Var
-  P:StringObject;
+  It:Iterator;
 Begin
   Result := '';
   If (_Callstack = Nil) Then
     Exit;
 
-  P := StringObject(_Callstack.First);
-  While P<>Nil Do
+  It := _Callstack.GetIterator();
+  While It.HasNext() Do
   Begin
-    Result := Result + P.Value + crLf;
-    P := StringObject(P.Next);
+    Result := Result + StringProperty(It.Value).Value + crLf;
   End;
+  ReleaseObject(It);
 End;
 
 

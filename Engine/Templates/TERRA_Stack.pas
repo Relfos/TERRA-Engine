@@ -27,29 +27,43 @@ Unit TERRA_Stack;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Collections, TERRA_Queue;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Collections, TERRA_Queue;
 
 Type
   Stack = Class(Queue)
     Public
-      Function Push(Item:CollectionObject):Boolean; Override;
-      Function Pop():CollectionObject; Override;
+      Function Push(Item:TERRAObject):Boolean; Override;
+      Function Pop():TERRAObject; Override;
   End;
 
 Implementation
 
 { Stack }
-Function Stack.Pop:CollectionObject;
+Function Stack.Pop:TERRAObject;
+Var
+  Next:TERRACollectionObject;
 Begin
-  Result := _First;
-  If (_First <> Nil) Then
-    _First := _First.Next;
+  If _First = Nil Then
+  Begin
+    Result := Nil;
+    Exit;
+  End;
+
+  Next := _First.Next;
+  Result := _First.Item;
+
+  ReleaseObject(_First);
+  _First := Next;
 End;
 
-Function Stack.Push(Item: CollectionObject): Boolean;
+Function Stack.Push(Item:TERRAObject): Boolean;
+Var
+  Obj:TERRACollectionObject;
 Begin
-  Item.Next := _First;
-  _First := Item;
+  Obj := TERRACollectionObject.Create(Self, Item);
+
+  Obj.Next := _First;
+  _First := Obj;
 
   Result := True;
 End;

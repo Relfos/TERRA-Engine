@@ -163,7 +163,7 @@ Function IntToString(Const N:Integer):TERRAString;
 Function CardinalToString(Const N:Cardinal):TERRAString;Overload;
 Function Int64ToString(Const N:Int64):TERRAString;
 Function UInt64ToString(Const N:UInt64):TERRAString;
-Function FloatToString(N:Single):TERRAString;
+Function FloatToString(N:Single; DecimalPlacesLimit:Integer =7):TERRAString;
 Function BoolToString(Const N:Boolean):TERRAString;Overload;
 Function VersionToString(Const N:TERRAVersion):TERRAString;Overload;
 //Function TicksToString(Const N:Cardinal):TERRAString;Overload;
@@ -692,7 +692,7 @@ Begin
   Result.Second := (Ticks Div 1000) Mod 60;
 End;
 
-Function FloatToString(N:Single):TERRAString;
+Function FloatToString(N:Single; DecimalPlacesLimit:Integer):TERRAString;
 Var
   X:Single;
   A,B, I:Integer;
@@ -716,7 +716,7 @@ Begin
     Current := Trunc(X * I) Mod 10;
     I := I * 10;
     Inc(DecimalPlaces);
-  Until (DecimalPlaces>=7) Or (Current=0);
+  Until (DecimalPlaces>=DecimalPlacesLimit) Or (Current=0);
 
   B := 1;
   For I:=1 To DecimalPlaces Do

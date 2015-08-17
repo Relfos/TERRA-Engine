@@ -32,6 +32,9 @@ Type
 
       Procedure CopyProperties(Other:TERRAObject);
 
+      { Returns a ID to be used for sorting. }
+      Function SortID:Integer; Virtual;
+
       Destructor Destroy; Override;
 
       Property Name:TERRAString Read _ObjectName Write SetObjectName;
@@ -130,6 +133,8 @@ Type
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
 
+      Function SortID:Integer; Override;
+
       Property Value:Integer Read GetIntegerValue Write SetIntegerValue;
   End;
 
@@ -152,6 +157,8 @@ Type
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
 
+      Function SortID:Integer; Override;
+
       Property Value:Byte Read GetByteValue Write SetByteValue;
   End;
 
@@ -173,6 +180,8 @@ Type
 
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
+
+      Function SortID:Integer; Override;
 
       Property Value:Single Read GetFloatValue Write SetFloatValue;
 
@@ -302,6 +311,12 @@ Begin
   Pointer(Obj) := Nil;
 End;
 
+
+{ TERRAObject }
+Function TERRAObject.SortID: Integer;
+Begin
+  Result := 0;
+End;
 
 Procedure TERRAObject.Release;
 Begin
@@ -583,6 +598,11 @@ Begin
   _Value := Trunc(Value);
 End;
 
+Function IntegerProperty.SortID: Integer;
+Begin
+  Result := _Value;
+End;
+
 { ByteProperty }
 Constructor ByteProperty.Create(const Name: TERRAString; const InitValue: Byte);
 Begin
@@ -631,6 +651,11 @@ Begin
   _Value := Trunc(Value);
 End;
 
+Function ByteProperty.SortID: Integer;
+Begin
+  Result := _Value;
+End;
+
 { FloatProperty }
 Constructor FloatProperty.Create(Const Name:TERRAString; const InitValue: Single);
 Begin
@@ -677,6 +702,11 @@ End;
 Procedure FloatProperty.UpdateTweenValue(Const TweenID:Integer; Const Value:Single);
 Begin
   _Value := Value;
+End;
+
+Function FloatProperty.SortID: Integer;
+Begin
+  Result := Trunc(_Value);
 End;
 
 { ColorProperty }

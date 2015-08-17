@@ -25,7 +25,7 @@ Const
   MaxPinyinSuggestions = 64;
 
 Type
-  StringEntry = Class(CollectionObject)
+  LocalizationEntry = Class(TERRAObject)
     Protected
       _Value:TERRAString;
       _Group:Integer;
@@ -365,9 +365,9 @@ End;
 Procedure LocalizationManager.SetString(Const Key, Value:TERRAString; Group:Integer = -1);
 Var
   I:Integer;
-  Entry:StringEntry;
+  Entry:LocalizationEntry;
 Begin
-  Entry := StringEntry(_Strings.GetItemByKey(Key));
+  Entry := LocalizationEntry(_Strings.GetItemByKey(Key));
   If Assigned(Entry) Then
   Begin
     Entry._Value := Value;
@@ -375,18 +375,18 @@ Begin
     Exit;
   End;
 
-  Entry := StringEntry.Create(Key, Value, Group);
+  Entry := LocalizationEntry.Create(Key, Value, Group);
   _Strings.Add(Entry);
 End;
 
 Function LocalizationManager.GetString(Const Key:TERRAString):TERRAString;
 Var
-  Entry:StringEntry;
+  Entry:LocalizationEntry;
 Begin
   If (_Lang ='') And (Assigned(Application.Instance())) Then
     SetLanguage(Application.Instance.Language);
 
-  Entry := StringEntry(_Strings.GetItemByKey(Key));
+  Entry := LocalizationEntry(_Strings.GetItemByKey(Key));
   If Assigned(Entry) Then
   Begin
     Result := Entry._Value;
@@ -486,22 +486,22 @@ End;
 Procedure LocalizationManager.RemoveGroup(GroupID: Integer);
 Var
   It:Iterator;
-  Entry:StringEntry;
+  Entry:LocalizationEntry;
 Begin
   It := _Strings.GetIterator();
   While (It.HasNext) Do
   Begin
-    Entry := StringEntry(It.Value);
+    Entry := LocalizationEntry(It.Value);
     If (Entry._Group = GroupID) Then
-      Entry.Discard();
+      It.Discard();
   End;
 End;
 
 Function LocalizationManager.HasString(Const Key:TERRAString): Boolean;
 Var
-  Temp:StringEntry;
+  Temp:LocalizationEntry;
 Begin
-  Temp := StringEntry(_Strings.GetItemByKey(Key));
+  Temp := LocalizationEntry(_Strings.GetItemByKey(Key));
   Result := (Assigned(Temp)) And (Temp._Value<>'');
 End;
      
@@ -672,8 +672,8 @@ Begin
     Result := invalidString;
 End;
 
-{ StringEntry }
-Constructor StringEntry.Create(const Key, Value: TERRAString; Group: Integer);
+{ LocalizationEntry }
+Constructor LocalizationEntry.Create(const Key, Value: TERRAString; Group: Integer);
 Begin
   Self._ObjectName := Key;
   Self._Value := Value;

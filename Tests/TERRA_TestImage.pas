@@ -22,7 +22,7 @@ Procedure TERRAImage_TestColorBlend.Run();
 Var
   I, J:Integer;
   Alpha, Expected, Delta:Byte;
-  A,B,C:Color;
+  A,B,C:ColorRGBA;
   X,Y:Single;
   Function FailedBlend(Channel:String; Alpha, Got, Expected:Byte):String;
   Begin
@@ -58,7 +58,7 @@ Procedure TERRAImage_TestColorBlendWithSeparateAlpha.Run();
 Var
   I, J:Integer;
   Alpha, Expected, Delta:Byte;
-  A,B,C:Color;
+  A,B,C:ColorRGBA;
   X,Y:Single;
   Function FailedBlend(Channel:String; Alpha, Got, Expected:Byte):String;
   Begin

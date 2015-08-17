@@ -30,7 +30,7 @@ Unit TERRA_Renderer;
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_OS, TERRA_Collections, TERRA_Image, TERRA_VertexFormat,
   TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Matrix3x3, TERRA_Matrix4x4,
-  TERRA_Plane, TERRA_BoundingBox, TERRA_Color;
+  TERRA_Plane, TERRA_BoundingBox, TERRA_Color, TERRA_List;
 
 Const
   MaxTextureHandles = 2048;
@@ -477,7 +477,7 @@ Type
       FramesPerSecond:Integer;
   End;
 
-  GraphicsRenderer = Class(CollectionObject)
+  GraphicsRenderer = Class(TERRAObject)
     Protected
       _Name:TERRAString;
 

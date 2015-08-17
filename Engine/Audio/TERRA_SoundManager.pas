@@ -26,7 +26,7 @@ Unit TERRA_SoundManager;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Sound, TERRA_Application, TERRA_Collections, TERRA_Vector3D,
-  TERRA_Log, TERRA_SoundSource, TERRA_SoundAmbience, TERRA_Resource, TERRA_ResourceManager, TERRA_AL;
+  TERRA_Log, TERRA_SoundSource, TERRA_SoundAmbience, TERRA_Resource, TERRA_ResourceManager, TERRA_List, TERRA_AL;
 
 Type
   SoundManager = Class(ResourceManager)
@@ -74,7 +74,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_CollectionObjects, TERRA_GraphicsManager, TERRA_Camera, TERRA_FileManager;
+Uses TERRA_Error, TERRA_GraphicsManager, TERRA_Camera, TERRA_FileManager;
 
 Var
   _SoundManager_Instance:ApplicationObject = Nil;
@@ -203,7 +203,7 @@ Begin
   S := '';
   If Not Assigned(DeviceList) Then
   Begin
-    DeviceList := TERRA_Collections.List.Create(collection_Unsorted);
+    DeviceList := TERRA_List.List.Create(collection_Unsorted);
     List := alcGetString(Nil,QueryID);
     If Assigned(List) Then
     While (List^<>#0) Do
@@ -212,7 +212,7 @@ Begin
       Inc(List);
       If (List^=#0) Then
       Begin
-        DeviceList.Add(StringObject.Create(S));
+        DeviceList.Add(StringProperty.Create('device', S));
 	      Log(logDebug, 'Audio', 'Device: '+ S);
         S:='';
         Inc(List);

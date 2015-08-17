@@ -30,28 +30,23 @@ Interface
 Uses TERRA_String, TERRA_Utils, TERRA_Object, TERRA_Collections;
 
 Type
-  Queue = Class(Collection)
+  Queue = Class(TERRACollection)
     Protected
-      _First:CollectionObject;
+      _First:TERRACollectionObject;
 
     Public
       Constructor Create();
 
-      Function GetIterator:Iterator; Override;
-
       Procedure Clear(); Override;
 
-      Function Push(Item:CollectionObject):Boolean; Virtual;
-      Function Pop():CollectionObject; Virtual;
+      Function Push(Item:TERRAObject):Boolean; Virtual;
+      Function Pop():TERRAObject; Virtual;
 
-      Function GetItemByIndex(Index:Integer):CollectionObject; Override;
+      Function GetItemByIndex(Index:Integer):TERRAObject; Override;
 
-      Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):CollectionObject; Override;
-      Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Override;
+      Function Contains(Item:TERRAObject):Boolean; Override;
 
-      Function Contains(Item:CollectionObject):Boolean; Override;
-
-      Property First:CollectionObject Read _First;
+      Property First:TERRACollectionObject Read _First;
   End;
 
 
@@ -59,39 +54,81 @@ Implementation
 Uses TERRA_Log;
 
 { Queue }
-Function Queue.Search(Visitor: CollectionVisitor; UserData:Pointer = Nil): CollectionObject;
-Var
-  P:CollectionObject;
+Constructor Queue.Create();
 Begin
-  Result := Nil;
+  _SortOrder := collection_Unsorted;
+  _Options := 0;
+  _First := Nil;
+End;
+
+Procedure Queue.Clear();
+Var
+  Temp, Next:TERRACollectionObject;
+Begin
+  Temp := _First;
+
+  While (Assigned(Temp)) Do
+  Begin
+    Next := Temp.Next;
+    ReleaseObject(Temp);
+
+    Temp := Next;
+  End;
+
+  _First := Nil;
+End;
+
+Function Queue.Contains(Item:TERRAObject): Boolean;
+Var
+  P:TERRACollectionObject;
+Begin
+  Result := True;
   P := _First;
   While (Assigned(P)) Do
   Begin
-    If (Visitor(P, UserData)) Then
-    Begin
-      Result := P;
+    If (Item = P.Item) Then
       Exit;
-    End;
 
     P := P.Next;
   End;
+  Result := False;
 End;
 
-Procedure Queue.Visit(Visitor: CollectionVisitor; UserData:Pointer = Nil);
+Function Queue.GetItemByIndex(Index:Integer):TERRAObject;
 Var
-  P:CollectionObject;
+  I:Integer;
+  P:TERRACollectionObject;
 Begin
-  P := _First;
-  While (Assigned(P)) Do
+  If (Index<0) Or (Index>=Self.Count) Then
   Begin
-    Visitor(P, UserData);
-    P := P.Next;
+    Result := Nil;
+    Exit;
   End;
+
+  P := _First;
+  If (Index > 0) Then
+  Begin
+    I := 0;
+    While (Assigned(P)) Do
+    Begin
+      P := P.Next;
+      Inc(I);
+
+      If (I = Index) Then
+        Break;
+    End;
+  End;
+
+  If Assigned(P) Then
+    Result := P.Item
+  Else
+    Result := Nil;
 End;
 
-Function Queue.Push(Item: CollectionObject): Boolean;
+
+Function Queue.Push(Item: TERRAObject): Boolean;
 Var
-  P:CollectionObject;
+  Obj, P:TERRACollectionObject;
 Begin
   Result := False;
 
@@ -101,19 +138,13 @@ Begin
     Exit;
   End;
 
-  If (Item.Collection<>Nil) Then
-  Begin
-    Log(logWarning, Self.ClassName, 'Item already belongs to a collection: '+Item.GetBlob());
-    Exit;
-  End;
-
-  Item.Link(Self);
+  Obj := TERRACollectionObject.Create(Self, Item);
   Inc(_ItemCount);
   Result := True;
 
   If (Not Assigned(_First)) Then
   Begin
-    _First := Item;
+    _First := Obj;
     _First.Next := Nil;
     Exit;
   End;
@@ -123,7 +154,7 @@ Begin
     If (Not Assigned(P.Next)) Then
     Begin
 
-      P.Next := Item;
+      P.Next := Obj;
       P := P.Next;
       P.Next := Nil;
       Exit;
@@ -133,76 +164,9 @@ Begin
   Until (Not Assigned(P));
 End;
 
-Procedure Queue.Clear();
+Function Queue.Pop:TERRAObject;
 Var
-  Temp:CollectionObject;
-Begin
-  While (Assigned(_First)) Do
-  Begin
-    Temp := Self.Pop();
-
-    ReleaseObject(Temp);
-  End;
-End;
-
-Function Queue.Contains(Item: CollectionObject): Boolean;
-Var
-  P:CollectionObject;
-Begin
-  Result := True;
-  P := _First;
-  While (Assigned(P)) Do
-  Begin
-    If (Item = P) Then
-      Exit;
-
-    P := P.Next;
-  End;
-  Result := False;
-End;
-
-Constructor Queue.Create;
-Begin
-  _SortOrder := collection_Unsorted;
-  _Options := 0;
-  _First := Nil;
-End;
-
-Function Queue.GetIterator: Iterator;
-Begin
-  Result := Nil;
-End;
-
-Function Queue.GetItemByIndex(Index:Integer):CollectionObject;
-Var
-  I:Integer;
-Begin
-  If (Index<0) Or (Index>=Self.Count) Then
-  Begin
-    Result := Nil;
-    Exit;
-  End;
-
-  Result := _First;
-  If (Index = 0) Then
-    Exit;
-
-  I := 0;
-  While (Result<>Nil) Do
-  Begin
-    Result := Result.Next;
-    Inc(I);
-
-    If (I = Index) Then
-      Exit;
-  End;
-
-  Result := Nil;
-End;
-
-Function Queue.Pop:CollectionObject;
-Var
-  P:CollectionObject;
+  P:TERRACollectionObject;
 Begin
   If (_First = Nil) Then
   Begin
@@ -214,7 +178,8 @@ Begin
   _First := _First.Next;
   Dec(_ItemCount);
 
-  Result := P;
+  Result := P.Item;
+  ReleaseObject(P);
 End;
 
 End.

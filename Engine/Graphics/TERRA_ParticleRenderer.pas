@@ -223,7 +223,7 @@ Type
       Property Position:Vector3D Read _Position Write _Position;
   End;
 
-  ParticleCollection = Class(Renderable)
+  ParticleCollection = Class(TERRARenderable)
     Protected
       _Box:BoundingBox;
       _Init:Boolean;

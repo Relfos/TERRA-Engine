@@ -224,7 +224,7 @@ Type
     Material:MeshMaterial;
   End;
 
-  MeshInstance = Class(Renderable)
+  MeshInstance = Class(TERRARenderable)
     Protected
       _Mesh:TERRAMesh;
       _BoundingBox:BoundingBox;

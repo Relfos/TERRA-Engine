@@ -3,7 +3,7 @@ Unit TERRA_TestCore;
 {$I terra.inc}
 
 Interface
-Uses TERRA_TestSuite;
+Uses TERRA_Object, TERRA_TestSuite;
 
 Type
   TERRACore_TestList = class(TestCase)
@@ -23,8 +23,8 @@ Type
    End;
 
 Implementation
-Uses TERRA_Utils, TERRA_Sort, TERRA_Collections, TERRA_CollectionObjects,
-  TERRA_HashMap, TERRA_ObjectArray, TERRA_KeyPairObjects;
+Uses TERRA_Utils, TERRA_Sort, TERRA_Collections, 
+  TERRA_HashMap, TERRA_ObjectArray, TERRA_List;
 
 Type
   IntegerArraySort = Class(Sort)
@@ -150,7 +150,7 @@ Var
   L:List;
   I,J,N, Prev, Count:Integer;
   It:Iterator;
-  Int:IntegerObject;
+  Int:IntegerProperty;
   Table:HashMap;
 begin
   For J:=1 To 100 Do
@@ -161,7 +161,7 @@ begin
     For I:=1 To N Do
     Begin
       IntToString(I);
-      L.Add(IntegerObject.Create(Random(200)));
+      L.Add(IntegerProperty.Create('', Random(200)));
     End;
 
     Check(L.Count=N, 'Invalid list count, got '+IntToString(L.Count)+', expected '+IntToString(N));
@@ -184,14 +184,14 @@ begin
   For I:=1 To N Do
   Begin
     IntToString(I);
-    L.Add(IntegerObject.Create(Random(20000)));
+    L.Add(IntegerProperty.Create('', Random(20000)));
   End;
 
   It := L.GetIterator();
   Prev := -1;
   While It.HasNext Do
   Begin
-    Int := IntegerObject(It.Value);
+    Int := IntegerProperty(It.Value);
     //Write(Int.Value, ' ');
     Check(Prev<=Int.Value, 'List ascending sort error!');
     Prev := Int.Value;
@@ -204,14 +204,14 @@ begin
   For I:=1 To N Do
   Begin
     IntToString(I);
-    L.Add(IntegerObject.Create(Random(20000)));
+    L.Add(IntegerProperty.Create('', Random(20000)));
   End;
 
   It := L.GetIterator();
   Prev := 99999999;
   While It.HasNext Do
   Begin
-    Int := IntegerObject(It.Value);
+    Int := IntegerProperty(It.Value);
     //Write(Int.Value, ' ');
     Check(Prev>=Int.Value, 'List descending sort error!');
     Prev := Int.Value;
@@ -220,15 +220,15 @@ begin
 
   L := List.Create();
   For I:=0 To 10 Do
-    L.Add(IntegerObject.Create(I));
+    L.Add(IntegerProperty.Create('', I));
 
   It := L.GetIterator();
   While It.HasNext Do
   Begin
-    Int := IntegerObject(It.Value);
+    Int := IntegerProperty(It.Value);
 
     If (Odd(Int.Value)) Then
-      Int.Discard();
+      It.Discard();
   End;
 
   Check(L.Count = 6, 'List discard error!');
@@ -246,7 +246,7 @@ End;
 Procedure TERRACore_TestHashMap.Run();
 Var
   I,J,N, Count:Integer;
-  Item:StringKeyPair;
+  Item:StringProperty;
   It:Iterator;
   Table:HashMap;
 Begin
@@ -257,14 +257,14 @@ Begin
 
     For I:=1 To N Do
     Begin
-      Table.Add(StringKeyPair.Create(IntToString(I), IntToString(Random(200))));
+      Table.Add(StringProperty.Create(IntToString(I), IntToString(Random(200))));
     End;
 
     Count := 0;
     It := Table.GetIterator();
     While It.HasNext Do
     Begin
-      Item := StringKeyPair(It.Value);
+      Item := StringProperty(It.Value);
 
       Check(Assigned(Item), 'Hash table iterator error!');
 
@@ -280,13 +280,13 @@ Begin
   Table := HashMap.Create(256);
   For I:=1 To 100 Do
   Begin
-    Table.Add(StringKeyPair.Create('BOO_'+IntToString(I), IntToString(Sqr(I))));
+    Table.Add(StringProperty.Create('BOO_'+IntToString(I), IntToString(Sqr(I))));
   End;
 
-  Item := StringKeyPair(Table['BOO_2']);
+  Item := StringProperty(Table['BOO_2']);
   Check((Assigned(Item)) And (Item.Value = '4'), 'Hash table direct acess error!');
 
-  Item := StringKeyPair(Table['BOO_4']);
+  Item := StringProperty(Table['BOO_4']);
   Check((Assigned(Item)) And (Item.Value = '16'), 'Hash table direct acess error!');
 
   ReleaseObject(Table);
@@ -296,7 +296,7 @@ End;
 Procedure TERRACore_TestObjectArray.Run();
 Var
   I,J,N, Count:Integer;
-  Item:IntegerObject;
+  Item:IntegerProperty;
   It:Iterator;
   V:ObjectArray;
 Begin
@@ -305,14 +305,14 @@ Begin
   N := 30+ Random(100);
   For J:=0 To Pred(N) Do
   Begin
-    V.Add(IntegerObject.Create(Random(200)));
+    V.Add(IntegerProperty.Create('', Random(200)));
   End;
 
   It := V.GetIterator();
   Count := 0;
   While It.HasNext() Do
   Begin
-    Item := IntegerObject(It.Value);
+    Item := IntegerProperty(It.Value);
     Inc(Count);
   End;
   Check(Count = V.Count, 'Iterator did not iterate full list!');

@@ -15,19 +15,18 @@ Type
    End;
 
 Implementation
-Uses TERRA_String, TERRA_Utils, TERRA_XML;
+Uses TERRA_String, TERRA_Utils, TERRA_ObjectTree, TERRA_XML;
 
 
 Procedure TERRAXML_TestSimple.Run;
 Var
   S:TERRAString;
-  Doc:XMLDocument;
-  Node:XMLNode;
+  Doc, Node:TERRAObjectNode;
 
-  Function Expect(Root:XMLNode; Const Name, Value:TERRAString):XMLNode;
+  Function Expect(Root:TERRAObjectNode; Const Name, Value:TERRAString):TERRAObjectNode;
   Begin
     If Assigned(Root) Then
-      Result := Root.GetNodeByName(Name)
+      Result := Root.GetChildByName(Name)
     Else
       Result := Nil;
 
@@ -39,7 +38,7 @@ Var
 
 Begin
   S := '<note><to>Tove</to><from>Jani</from><heading>Reminder</heading><body>Dont forget me this weekend!</body></note>';
-  Doc := XMLDocument.Create();
+  Doc := XMLNode.Create();
   Doc.LoadFromString(S, encodingUTF8);
 
   Node := Expect(Doc.Root, 'to', 'Tove');
@@ -54,13 +53,12 @@ End;
 Procedure TERRAXML_TestShortcuts.Run;
 Var
   S:TERRAString;
-  Doc:XMLDocument;
-  Node:XMLNode;
+  Doc, Node:TERRAObjectNode;
 
-  Function Expect(Root:XMLNode; Const Name, Value:TERRAString):XMLNode;
+  Function Expect(Root:TERRAObjectNode; Const Name, Value:TERRAString):TERRAObjectNode;
   Begin
     If Assigned(Root) Then
-      Result := Root.GetNodeByName(Name)
+      Result := Root.GetChildByName(Name)
     Else
       Result := Nil;
 
@@ -72,7 +70,7 @@ Var
 
 Begin
   S := '<test x="100" y="200" />';
-  Doc := XMLDocument.Create();
+  Doc := XMLNode.Create();
   Doc.LoadFromString(S, encodingUTF8);
 
   Node := Expect(Doc.Root, 'x', '100');

@@ -3,7 +3,7 @@ Unit TERRA_TestSuite;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils;
+Uses TERRA_Object, TERRA_String, TERRA_Utils;
 
 Type
   TestCaseClass = Class Of TestCase;

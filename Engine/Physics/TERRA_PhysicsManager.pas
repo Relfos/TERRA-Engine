@@ -52,7 +52,7 @@ Type
       Property Owner:PhysicsSystem Read _Owner;
   End;
 
-  PhysicsSystem = Class(Renderable)
+  PhysicsSystem = Class(TERRARenderable)
     Protected
       _WorldBox:BoundingBox;
 

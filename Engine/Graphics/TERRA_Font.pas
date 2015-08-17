@@ -340,24 +340,11 @@ Begin
   Result := FontManager(_FontManager_Instance.Instance);
 End;
 
-Type
-  PFontSearch = ^FontSearch;
-  FontSearch = Record
-    Name:TERRAString;
-    TextSize:Integer;
-  End;
-
-Function SearchFontByNameAndSize(P:CollectionObject; UserData:Pointer):Boolean; CDecl;
-Begin
-  Result := (Resource(P).Name = PFontSearch(Userdata).Name) And (TERRAFont(P).TextSize = PFontSearch(Userdata).TextSize);
-End;
-
 Function FontManager.GetFont(Name:TERRAString; ValidateError:Boolean):TERRAFont;
 Var
   FontName, FileName, S:TERRAString;
   I:Integer;
   Size:Integer;
-  Params:FontSearch;
 Begin
   If (Name='') Then
   Begin
@@ -383,11 +370,6 @@ Begin
   End;
 
   Name := GetFileName(Name, True);
-  Params.Name := Name;
-  Params.TextSize := Size;
-  Result := TERRAFont(_Resources.Search(SearchFontByNameAndSize, @Params));
-  If (Assigned(Result)) Then
-    Exit;
 
   S := '';
   I := 0;

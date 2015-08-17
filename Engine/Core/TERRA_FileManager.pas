@@ -36,7 +36,7 @@ Type
     Function HasStream(Const Name:TERRAString):Boolean; Virtual; Abstract;
   End;
 
-  FileLocation = Class(CollectionObject)
+  FileLocation = Class(TERRAObject)
     Public
       Path:TERRAString;
 
@@ -107,10 +107,10 @@ Begin
   Result := StringContains('.terra'+PathSeparator, FileName);
 End;
 
-Function SearchFileLocation(P:CollectionObject; UserData:Pointer):Boolean; CDecl;
+(*Function SearchFileLocation(P:CollectionObject; UserData:Pointer):Boolean; CDecl;
 Begin
   Result := (FileLocation(P).Name = PString(Userdata)^);
-End;
+End;*)
 
 { FileManager }
 Class Function FileManager.Instance:FileManager;

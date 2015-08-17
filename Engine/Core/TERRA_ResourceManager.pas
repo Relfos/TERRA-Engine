@@ -36,7 +36,7 @@ Const
   ResourceDiscardTime = 60000;
 
 Type
-  ResourceEntry = Class(CollectionObject)
+  ResourceEntry = Class(TERRAObject)
     Public
       Value:Resource;
 

@@ -43,7 +43,7 @@ Type
   VertexData = Class;
 
 
-	Vertex = Class(CollectionObject)
+	Vertex = Class(TERRACollectionObject)
     Private
       {$IFNDEF DISABLEALLOCOPTIMIZATIONS}
       Class Function NewInstance:TObject; Override;
@@ -95,7 +95,7 @@ Type
 
       Procedure Init(Target:VertexData; V:VertexClass);
 
-      Function ObtainNext():CollectionObject; Override;
+      Function ObtainNext():TERRACollectionObject; Override;
 
       Procedure Release(); Override;
       Procedure JumpToIndex(Position: Integer); Override;
@@ -104,7 +104,7 @@ Type
       Procedure Reset(); Override;
   End;
 
-  VertexData = Class(Collection)
+  VertexData = Class(TERRACollection)
     Protected
       _Values:Array Of Single;
       _Format:VertexFormat;
@@ -948,7 +948,7 @@ Begin
   Self.JumpToIndex(0);
 End;
 
-Function VertexIterator.ObtainNext:CollectionObject;
+Function VertexIterator.ObtainNext:TERRACollectionObject;
 Begin
   If (Self.Index<_Target.Count) Then
   Begin

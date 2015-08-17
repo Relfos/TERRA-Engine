@@ -42,7 +42,7 @@ Uses {$IFNDEF DEBUG_LEAKS}TERRA_MemoryManager,{$ENDIF} {$IFDEF USEDEBUGUNIT}TERR
   TERRA_BoundingBox, TERRA_Camera, TERRA_Color, TERRA_Matrix4x4,
   TERRA_Utils, TERRA_Texture, TERRA_Scene, TERRA_Vector3D,
   TERRA_Viewport, TERRA_Application, TERRA_VertexFormat, TERRA_Renderable,
-  TERRA_Image, TERRA_Math, TERRA_Vector2D, TERRA_Ray, TERRA_Collections, TERRA_Pool;
+  TERRA_Image, TERRA_Math, TERRA_Vector2D, TERRA_Ray, TERRA_Collections;
 
 Const
   //FogMode
@@ -181,8 +181,8 @@ Type
       Property Height:Integer Read _Height;
 
 
-      Function AddRenderable(View:TERRAViewport; MyRenderable:Renderable; Flags:Cardinal = 0):Boolean;
-      Procedure DeleteRenderable(MyRenderable:Renderable);
+      Function AddRenderable(View:TERRAViewport; MyRenderable:TERRARenderable):Boolean;
+      Procedure DeleteRenderable(MyRenderable:TERRARenderable);
 
 //      Procedure AddOccluder(View:TERRAViewport; MyOccluder:Occluder);
 
@@ -1585,12 +1585,12 @@ Begin
 End;
 
 
-Function GraphicsManager.AddRenderable(View:TERRAViewport; MyRenderable: Renderable; Flags: Cardinal): Boolean;
+Function GraphicsManager.AddRenderable(View:TERRAViewport; MyRenderable:TERRARenderable): Boolean;
 Begin
-  Result := _Renderables.AddRenderable(View, MyRenderable, Flags);
+  Result := _Renderables.AddRenderable(View, MyRenderable);
 End;
 
-Procedure GraphicsManager.DeleteRenderable(MyRenderable: Renderable);
+Procedure GraphicsManager.DeleteRenderable(MyRenderable:TERRARenderable);
 Begin
   _Renderables.DeleteRenderable(MyRenderable);
 End;

@@ -12,16 +12,6 @@ Const
   DefaultSessionFileName = 'session';
 
 Type
-  SessionKeyValue = Class(CollectionObject)
-    Protected
-      _Value:TERRAString;
-
-    Public
-      Constructor Create(Const Key, Value:TERRAString);
-
-      Property Value:TERRAString Read _Value Write _Value;
-  End;
-
   Session = Class(TERRAObject)
     Protected
       _Path:TERRAString;
@@ -238,7 +228,7 @@ Begin
     If (Key = '') Or (InvalidString(Key)) Or (InvalidString(S2)) Then
       Continue;
 
-    _Data.Add(SessionKeyValue.Create(Key, S2));
+    _Data.Add(StringProperty.Create(Key, S2));
     //Log(logDebug,'Session','Session: '+_Data[I].Key+'='+_Data[I].Value);
   End;
 
@@ -290,7 +280,7 @@ Var
   Key, S, S2, S3:TERRAString;
   FileName:TERRAString;
   Header:FileHeader;
-  Entry:SessionKeyValue;
+  Entry:StringProperty;
 Begin
   FileName := Self.GetSaveFileName();
 
@@ -309,7 +299,7 @@ Begin
   It := Data.GetIterator();
   While It.HasNext() Do
   Begin
-    Entry := SessionKeyValue(It.Value);
+    Entry := StringProperty(It.Value);
 
     If Assigned(Callback) Then
       Callback.Notify(It.Position / Pred(Data.Count));
@@ -397,22 +387,22 @@ End;
 
 Procedure Session.SetValue(Const Key,Value:TERRAString);
 Var
-  Entry:SessionKeyValue;
+  Entry:StringProperty;
 Begin
-  Entry := SessionKeyValue(Data.GetItemByKey(Key));
+  Entry := StringProperty(Data.GetItemByKey(Key));
   If Assigned(Entry) Then
   Begin
-    Entry._Value := Value;
+    Entry.Value := Value;
   End Else
   Begin
-    Entry := SessionKeyValue.Create(Key, Value);
+    Entry := StringProperty.Create(Key, Value);
     Data.Add(Entry);
   End;
 End;
 
 Function Session.GetValue(Const Key:TERRAString):TERRAString;
 Var
-  Entry:SessionKeyValue;
+  Entry:StringProperty;
   S:TERRAString;
 Begin
   If (Not _Read) Then
@@ -421,9 +411,9 @@ Begin
     LoadFromFile(S);
   End;
 
-  Entry := SessionKeyValue(Data.GetItemByKey(Key));
+  Entry := StringProperty(Data.GetItemByKey(Key));
   If Assigned(Entry) Then
-    Result := Entry._Value
+    Result := Entry.Value
   Else
     Result := '';
 End;
@@ -494,7 +484,7 @@ End;
 Procedure Session.CopyKeys(Other: Session);
 Var
   It:Iterator;
-  Entry:SessionKeyValue;
+  Entry:StringProperty;
 Begin
   If Other = Nil Then
     Exit;
@@ -504,8 +494,8 @@ Begin
   It := Other.Data.GetIterator();
   While It.HasNext() Do
   Begin
-    Entry := SessionKeyValue(It.Value);
-    Self.Data.Add(SessionKeyValue.Create(Entry.Name, Entry.Value));
+    Entry := StringProperty(It.Value);
+    Self.Data.Add(StringProperty.Create(Entry.Name, Entry.Value));
   End;
 End;
 
@@ -536,12 +526,6 @@ Begin
   Result := Assigned(Data.GetItemByKey(Key));
 End;
 
-{ SessionKeyValue }
-Constructor SessionKeyValue.Create(const Key, Value: TERRAString);
-Begin
-  Self.Name := Key;
-  Self.Value := Value;
-End;
 
 Initialization
 Finalization
