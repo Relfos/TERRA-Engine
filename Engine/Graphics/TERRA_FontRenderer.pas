@@ -11,6 +11,7 @@ Type
     Protected
       _InitColor1, _InitColor2:ColorRGBA;
       _Outline:ColorRGBA;
+      _Glow:ColorRGBA;
 
       _Transform:Matrix3x3;
 
@@ -86,9 +87,10 @@ Type
 
       Function Reset():TERRAFontRenderer;
 
-      Function SetColor(Const TextColor:ColorRGBA):TERRAFontRenderer;
+      Function SetColor(Const Value:ColorRGBA):TERRAFontRenderer;
       Function SetGradient(Const A,B:ColorRGBA; GradientMode:FontGradient):TERRAFontRenderer;
-      Function SetOutline(Const OutlineColor:ColorRGBA):TERRAFontRenderer;
+      Function SetOutline(Const Value:ColorRGBA):TERRAFontRenderer;
+      Function SetGlow(Const Value:ColorRGBA):TERRAFontRenderer;
 
       Function SetFont(Const TargetFont:TERRAFont):TERRAFontRenderer;
 
@@ -306,10 +308,10 @@ Begin
   Result := True;
 End;
 
-Function TERRAFontRenderer.SetColor(Const TextColor:ColorRGBA):TERRAFontRenderer;
+Function TERRAFontRenderer.SetColor(Const Value:ColorRGBA):TERRAFontRenderer;
 Begin
-  _Color1 := TextColor;
-  _Color2 := TextColor;
+  _Color1 := Value;
+  _Color2 := Value;
   _GradientMode := gradientNone;
   Result := Self;
 End;
@@ -588,7 +590,7 @@ Begin
 
     GetColors(A,B,C,D);
 
-    FM.DrawGlyph(View, Position.X, Position.Y, Layer, _Transform, _Scale, _CurrentGlyph, _Outline, A,B,C,D, _ClipRect, _Italics, DestSprite);
+    FM.DrawGlyph(View, Position.X, Position.Y, Layer, _Transform, _Scale, _CurrentGlyph, _Outline, _Glow, A,B,C,D, _ClipRect, _Italics, DestSprite);
   End;
 
   //DrawClipRect(View, _ClipRect, ColorYellow);
@@ -695,9 +697,15 @@ Begin
     _FontOffset := 0;
 End;
 
-Function TERRAFontRenderer.SetOutline(const OutlineColor: ColorRGBA):TERRAFontRenderer;
+Function TERRAFontRenderer.SetGlow(Const Value:ColorRGBA):TERRAFontRenderer;
 Begin
-  Self._Outline := OutlineColor;
+  Self._Outline := Value;
+  Result := Self;
+End;
+
+Function TERRAFontRenderer.SetOutline(const Value:ColorRGBA):TERRAFontRenderer;
+Begin
+  Self._Outline := Value;
   Result := Self;
 End;
 

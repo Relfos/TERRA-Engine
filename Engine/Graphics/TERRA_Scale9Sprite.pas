@@ -30,7 +30,7 @@ Type
 
       Function GetTile(I,J:Integer):Scale9Tile;
 
-      Procedure Rebuild(); Override;
+      Function Rebuild():Boolean; Override;
 
     Public
       Constructor Create();
@@ -121,7 +121,7 @@ Begin
   _Height := Height;
 End;
 
-Procedure Scale9Sprite.Rebuild;
+Function Scale9Sprite.Rebuild():Boolean;
 Var
   CompScaleX, CompScaleY, CompSizeX, CompSizeY, CompX, CompY:Single;
   I,J, CountX, CountY:Integer;
@@ -131,7 +131,13 @@ Var
   T:Scale9Tile;
   Offset:Integer;
 Begin
-  Inherited;
+  If _BaseColor.A<=0 Then
+  Begin
+    Result := False;
+    Exit;
+  End;
+
+  Inherited Rebuild();
 
   Offset := 0;
   LX := _Width - (Self.GetTile(0, 0).Width + Self.GetTile(2, 0).Width);
@@ -224,6 +230,8 @@ Begin
 
     CompY := CompY + CompSizeY;
   End;
+
+  Result := True;
 End;
 
 

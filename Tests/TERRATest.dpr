@@ -24,6 +24,7 @@ Begin
   	Tests.RegisterTest(TERRACore_TestHashMap);
     Tests.RegisterTest(TERRACore_TestObjectArray);
   	Tests.RegisterTest(TERRACore_TestSort);
+  	Tests.RegisterTest(TERRACore_TestRadixSort);
 
   	Tests.RegisterTest(TERRAImage_TestColorBlend);
   	Tests.RegisterTest(TERRAImage_TestColorBlendWithSeparateAlpha);

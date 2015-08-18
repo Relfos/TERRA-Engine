@@ -3,7 +3,7 @@ Unit TERRA_TestImage;
 {$I terra.inc}
 
 Interface
-Uses TERRA_TestSuite;
+Uses TERRA_TestSuite, TERRA_Object;
 
 Type
   TERRAImage_TestColorBlend = class(TestCase)
@@ -26,7 +26,7 @@ Var
   X,Y:Single;
   Function FailedBlend(Channel:String; Alpha, Got, Expected:Byte):String;
   Begin
-    Result := 'Failed blend in '+Channel+' channel with alpha = '+IntToString(Alpha)+', got '+IntToString(Got)+' and expected '+IntToString(Expected);
+    Result := 'Failed blend in '+Channel+' channel with alpha = '+IntegerProperty.Stringify(Alpha)+', got '+IntegerProperty.Stringify(Got)+' and expected '+IntegerProperty.Stringify(Expected);
   End;
 Begin
   For J:=1 To 500 Do
@@ -62,7 +62,7 @@ Var
   X,Y:Single;
   Function FailedBlend(Channel:String; Alpha, Got, Expected:Byte):String;
   Begin
-    Result := 'Failed blend in '+Channel+' channel with alpha = '+IntToString(Alpha)+', got '+IntToString(Got)+' and expected '+IntToString(Expected);
+    Result := 'Failed blend in '+Channel+' channel with alpha = '+IntegerProperty.Stringify(Alpha)+', got '+IntegerProperty.Stringify(Got)+' and expected '+IntegerProperty.Stringify(Expected);
   End;
 Begin
   For J:=1 To 500 Do

@@ -98,6 +98,7 @@ Begin
   FR := Self.FontRenderer;
 
   FR.SetColor(Self.GetColor());
+  FR.SetGlow(Self.GetGlow());
   FR.SetFont(_Style._Family.Value);
   FR.SetOutline(_Style._Outline.Value);
   FR.SetSize(_Style._Size.Value);

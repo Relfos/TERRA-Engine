@@ -121,6 +121,7 @@ Begin
   _Sprite.Texture := Self.Texture;
   _Sprite.Layer := Self.GetLayer();
   _Sprite.Saturation := Self.GetSaturation();
+  _Sprite.Glow := Self.GetGlow();
   _Sprite.BlendMode := blendBlend;
 
   Scale9Sprite(_Sprite).SetPosition(VectorCreate2D(0, 0));

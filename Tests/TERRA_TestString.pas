@@ -3,7 +3,7 @@ Unit TERRA_TestString;
 {$I terra.inc}
 
 Interface
-Uses TERRA_TestSuite;
+Uses TERRA_TestSuite, TERRA_Object;
 
 Type
   TERRAString_TestIterator = class(TestCase)
@@ -111,7 +111,7 @@ Var
   Begin
     Inc(N);
     B := It.GetNext();
-    Check(B = C, 'Expected char "'+ Chr(C) + '" at position '+IntToString(N)+' got "'+Chr(B)+'"');
+    Check(B = C, 'Expected char "'+ Chr(C) + '" at position '+IntegerProperty.Stringify(N)+' got "'+Chr(B)+'"');
   End;
 Begin
   S := 'TEST1';
@@ -137,7 +137,7 @@ Var
   Begin
     Inc(N);
     B := It.GetNext();
-    Check(B = C, 'Expected char "'+ Chr(C) + '" at position '+IntToString(N)+' got "'+Chr(B)+'"');
+    Check(B = C, 'Expected char "'+ Chr(C) + '" at position '+IntegerProperty.Stringify(N)+' got "'+Chr(B)+'"');
   End;
 Begin
   S := 'ABCX3';
@@ -163,7 +163,7 @@ Var
   Begin
     Inc(N);
     B := It.GetNext();
-    Check(B = C, 'Expected char "'+ StringFromChar(C) + '" at position '+IntToString(N)+' got "'+StringFromChar(B)+'"');
+    Check(B = C, 'Expected char "'+ StringFromChar(C) + '" at position '+IntegerProperty.Stringify(N)+' got "'+StringFromChar(B)+'"');
   End;
 Begin
   S := GetCatInCyrillic();
@@ -190,7 +190,7 @@ Var
   Begin
     Inc(N);
     B := It.GetNext();
-    Check(B = C, 'Expected char "'+ StringFromChar(C) + '" at position '+IntToString(N)+' got "'+StringFromChar(B)+'"');
+    Check(B = C, 'Expected char "'+ StringFromChar(C) + '" at position '+IntegerProperty.Stringify(N)+' got "'+StringFromChar(B)+'"');
   End;
 Begin
   S := GetDogInCyrillic();
@@ -215,7 +215,7 @@ Var
     B:TERRAChar;
   Begin
     B := StringGetChar(S, N);
-    Check(B = C, 'Expected char "'+ Chr(C) + '" at position '+IntToString(N)+' got "'+Chr(B)+'"');
+    Check(B = C, 'Expected char "'+ Chr(C) + '" at position '+IntegerProperty.Stringify(N)+' got "'+Chr(B)+'"');
   End;
 Begin
   S := 'PIPO5';
@@ -270,7 +270,7 @@ Var
     P:Integer;
   Begin
     P := StringPos(SubStr, S, IgnoreCase);
-    Check(P = N, 'Expected "'+ SubStr + '" at position '+IntToString(N)+' but found in '+IntToString(P));
+    Check(P = N, 'Expected "'+ SubStr + '" at position '+IntegerProperty.Stringify(N)+' but found in '+IntegerProperty.Stringify(P));
   End;
 
   Procedure ExpectReverse(Const SubStr:TERRAString; N:Integer; IgnoreCase:Boolean);
@@ -278,7 +278,7 @@ Var
     P:Integer;
   Begin
     P := StringPosReverse(SubStr, S, IgnoreCase);
-    Check(P = N, 'Expected "'+ SubStr + '" at position '+IntToString(N)+' but found in '+IntToString(P));
+    Check(P = N, 'Expected "'+ SubStr + '" at position '+IntegerProperty.Stringify(N)+' but found in '+IntegerProperty.Stringify(P));
   End;
 Begin
   S := 'GELLY4LYFE';
@@ -298,7 +298,7 @@ Var
     P:Integer;
   Begin
     P := StringCharPos(C, S, IgnoreCase);
-    Check(P = N, 'Expected "'+ StringFromChar(C) + '" at position '+IntToString(N)+' but found in '+IntToString(P));
+    Check(P = N, 'Expected "'+ StringFromChar(C) + '" at position '+IntegerProperty.Stringify(N)+' but found in '+IntegerProperty.Stringify(P));
   End;
 
   Procedure ExpectReverse(Const C:TERRAChar; N:Integer; IgnoreCase:Boolean);
@@ -306,7 +306,7 @@ Var
     P:Integer;
   Begin
     P := StringCharPosReverse(C, S, IgnoreCase);
-    Check(P = N, 'Expected "'+ StringFromChar(C) + '" at position '+IntToString(N)+' but found in '+IntToString(P));
+    Check(P = N, 'Expected "'+ StringFromChar(C) + '" at position '+IntegerProperty.Stringify(N)+' but found in '+IntegerProperty.Stringify(P));
   End;
 Begin
   S := 'TEST6BATt3rY';
@@ -454,10 +454,10 @@ Procedure TERRAString_TestPad.Run;
   End;
 
 Begin
-  Expect(StringPadLeft(IntToString(2), 2, Ord('x')), 'x2');
-  Expect(StringPadLeft(IntToString(2), 4, Ord('0')), '0002');
-  Expect(StringPadLeft(IntToString(2), 1, Ord('0')), '2');
-  Expect(StringPadRight(IntToString(2), 3, Ord(' ')), '2  ');
+  Expect(StringPadLeft(IntegerProperty.Stringify(2), 2, Ord('x')), 'x2');
+  Expect(StringPadLeft(IntegerProperty.Stringify(2), 4, Ord('0')), '0002');
+  Expect(StringPadLeft(IntegerProperty.Stringify(2), 1, Ord('0')), '2');
+  Expect(StringPadRight(IntegerProperty.Stringify(2), 3, Ord(' ')), '2  ');
 End;
 
 
@@ -530,21 +530,21 @@ Procedure TERRAString_TestConversions.Run;
   End;
 
 Begin
-  Expect(FloatToString(3.14159, 4), '3.1415');
-  Expect(FloatToString(3.14159, 5), '3.14159');
-  Expect(FloatToString(3.14159, 6), '3.141590');
+  Expect(FloatProperty.Stringify(3.14159, 4), '3.1415');
+  Expect(FloatProperty.Stringify(3.14159, 5), '3.14159');
+  Expect(FloatProperty.Stringify(3.14159, 6), '3.141590');
 
-  Expect(FloatToString(-7.85679, 4), '-7.8567');
-  Expect(FloatToString(-7.85679, 5), '-7.85679');
-  Expect(FloatToString(-7.85679, 6), '-7.856790');
+  Expect(FloatProperty.Stringify(-7.85679, 4), '-7.8567');
+  Expect(FloatProperty.Stringify(-7.85679, 5), '-7.85679');
+  Expect(FloatProperty.Stringify(-7.85679, 6), '-7.856790');
 
-  Expect(FloatToString(-0.6632), '-0.66320');
+  Expect(FloatProperty.Stringify(-0.6632), '-0.66320');
 
-  Expect(FloatToString(0.0156), '0.01560');
+  Expect(FloatProperty.Stringify(0.0156), '0.01560');
 
-  Expect(FloatToString(0.00123, 4), '0.0012');
-  Expect(FloatToString(0.00123, 5), '0.00123');
-  Expect(FloatToString(0.00123, 6), '0.001230');
+  Expect(FloatProperty.Stringify(0.00123, 4), '0.0012');
+  Expect(FloatProperty.Stringify(0.00123, 5), '0.00123');
+  Expect(FloatProperty.Stringify(0.00123, 6), '0.001230');
 End;
 
 End.

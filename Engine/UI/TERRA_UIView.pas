@@ -46,7 +46,6 @@ Type
 		  _Focus:UIWidget;
       _Dragger:UIWidget;
       _Modal:UIWidget;
-      _Highlight:UIWidget;
       _Draw:Boolean;
 
       _Transition:UITransition;
@@ -66,8 +65,6 @@ Type
       Procedure SetColorTable(const Value:TERRATexture);
       Procedure SetDefaultFont(const Value:TERRAFont);
       Procedure SetDragger(const Value:UIWidget);
-
-      Function GetHighlight:UIWidget;
 
       Function GetFontRenderer():TERRAFontRenderer;
 
@@ -93,7 +90,7 @@ Type
       Constructor Create;
       Procedure Release; Override;
 
-      Function GetObjectType:TERRAString; Override; 
+      Function GetObjectType:TERRAString; Override;
 
       //Function SelectNearestWidget(Target:UIWidget):UIWidget;
       //Procedure GetFirstHighLight(GroupID:Integer);
@@ -132,7 +129,6 @@ Type
 
       Property DefaultFont:TERRAFont Read _DefaultFont Write SetDefaultFont;
       Property Modal:UIWidget Read GetModal Write _Modal;
-      Property Highlight:UIWidget Read GetHighlight;
     End;
 
   UIManager = Class(ApplicationComponent)
@@ -250,8 +246,6 @@ Begin
   Self.Width := UIPixels(UIManager.Instance.Width);
   Self.Height := UIPixels(UIManager.Instance.Height);
 
-  Self.CanReceiveEvents := True;
-
   UIManager.Instance.AddUI(Self);
 End;
 
@@ -314,10 +308,10 @@ Begin
     _Highlight := SelectNearestWidget(_Highlight);
   End;*)
 
-  If (Assigned(_Focus)) And (Not _Focus.Visible) Then
+  If (Assigned(_Focus)) And (_Focus.Hidden) Then
     SetFocus(Nil);
 
-  If (Assigned(_Modal)) And (Not _Modal.Visible) Then
+  If (Assigned(_Modal)) And (_Modal.Hidden) Then
     _Modal := Nil;
 
   If (_Language <> Application.Instance.Language) Then
@@ -367,11 +361,11 @@ Function UIView.OnKeyDown(Key:Word):UIWidget;
 Begin
   Result := Nil;
 
-  If Assigned(_Highlight) Then
+(*  If Assigned(_Highlight) Then
   Begin
   If _Highlight.OnHandleKeyDown(Key) Then
       Result := _Highlight;
-  End;
+  End;*)
 End;
 
 Function UIView.OnKeyUp(Key:Word):UIWidget;
@@ -380,14 +374,14 @@ Var
 Begin
   Result := Nil;
 
-  If Assigned(_Highlight) Then
+(*  If Assigned(_Highlight) Then
   Begin
   If _Highlight.OnHandleKeyUp(Key) Then
     Begin
       Result := _Highlight;
       Exit;
     End;
-  End;
+  End;*)
 
 	If Assigned(_Focus) Then
   Begin
@@ -399,7 +393,7 @@ Begin
   End;
 
   For I:=0 To Pred(_ChildrenCount) Do
-  If (_ChildrenList[I].Visible) And (_ChildrenList[I].OnHandleKeyUp(Key))  Then
+  If (Not _ChildrenList[I].Hidden) And (_ChildrenList[I].OnHandleKeyUp(Key))  Then
   Begin
     Result := _ChildrenList[I];
     Exit;
@@ -562,13 +556,13 @@ Begin
   Result := _VirtualKeyboard;
 End;
 
-Function UIView.GetHighlight:UIWidget;
+(*Function UIView.GetHighlight:UIWidget;
 Begin
   If (Assigned(_Highlight)) And (Not _Highlight.Visible) Then
     _Highlight := Nil;
 
   Result := _Highlight;
-End;
+End;*)
 
 Function UIView.GetFontRenderer():TERRAFontRenderer;
 Begin
@@ -633,7 +627,7 @@ End;*)
 
 Function UIView.GetModal:UIWidget;
 Begin
-  If (Assigned(_Modal)) And (Not _Modal.Visible) Then
+  If (Assigned(_Modal)) And (_Modal.Hidden) Then
   Begin
     Self.Modal := Nil;
   End;

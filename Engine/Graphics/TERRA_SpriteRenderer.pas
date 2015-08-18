@@ -223,7 +223,8 @@ Begin
 
   Line('    baseColor = mix(shadowColor, baseColor, shadowAlpha); ');*)
 
-  Line('    gl_FragColor = vec4( baseColor.rgb, alpha );');
+  Line('  alpha *=  color.a;');
+  Line('    gl_FragColor = vec4( baseColor.rgb, alpha);');
   //Line('    gl_FragColor = vec4( color.rgb, border), alpha );');
 
   {$ELSE}
@@ -750,10 +751,11 @@ Begin
   S := _First;
   While Assigned(S) Do
   Begin
-    If (S.ClipRect.Style = clipEverything) Then
+    If (S.ClipRect.Style = clipEverything) Or  (Not S.Rebuild()) Then
+    Begin
+      S := S.Next;
       Continue;
-
-    S.Rebuild();
+    End;
 
     If (S.ClipRect.Style = clipNothing) Then
       CurrentClip := VectorCreate4D(0, 0, 9999, 9999)

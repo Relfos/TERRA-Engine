@@ -131,10 +131,11 @@ Type
       _Layer:FloatProperty;
       _Align:EnumProperty;
       _Color:ColorProperty;
+      _Glow:ColorProperty;
       _Rotation:AngleProperty;
       _Scale:FloatProperty;
       _Saturation:FloatProperty;
-			_Visible:BooleanProperty;
+			//_Visible:BooleanProperty;
       _Draggable:BooleanProperty;
       _Controller:UIControllerProperty;
 
@@ -167,6 +168,8 @@ Type
       Procedure SetController(const Value: UIController);
       Procedure SetSelected(const Value: Boolean);
 
+      Function GetState: WidgetState;
+
     Protected
       _Parent:UIWidget;
 
@@ -178,7 +181,6 @@ Type
 
       _Tooltip:TERRAString;
       _NeedsUpdate:Boolean;
-      _NeedsHide:Boolean;
 
       _Selected:Boolean;
 
@@ -193,16 +195,11 @@ Type
       _InverseTransform:Matrix3x3;
       _TransformChanged:Boolean;
 
-      _InheritColor:Boolean;
-
       _Hitting:Boolean;
       _HitTime:Cardinal;
 
       _Size:Vector2D;
       _Center:Vector2D;
-
-      _OriginalColor:ColorRGBA;
-      _OriginalPosition:Vector2D;
 
       _ColorTable:TERRATexture;
 
@@ -237,7 +234,8 @@ Type
 
       Procedure SetVisible(Value:Boolean);
       Procedure SetLayer(Z:Single);
-      Procedure SetColor(MyColor:ColorRGBA);
+      Procedure SetColor(Const Value:ColorRGBA);
+      Procedure SetGlow(Const Value:ColorRGBA);
       Procedure SetRotation(const Value: Single);
       Procedure SetSaturation(const Value: Single);
       Procedure SetScale(const Value: Single);
@@ -277,19 +275,19 @@ Type
 
       Property FontRenderer:TERRAFontRenderer Read GetFontRenderer;
 
+      Function CanReceiveEvents:Boolean; Virtual;
+
     Public
       Tag:Integer;
       DisableHighlights:Boolean;
       DisableUIColor:Boolean;
       UserData:TERRAString;
 
-      CanReceiveEvents:Boolean;
-
       Constructor Create(Const Name:TERRAString; Parent:UIWidget);
       Procedure Release; Override;
 
       Function IsSelectable():Boolean; Virtual;
-      Function CanHighlight(GroupID:Integer):Boolean;
+      //Function CanHighlight(GroupID:Integer):Boolean;
 
       Procedure TriggerEvent(EventType:WidgetEventType); Virtual;
 
@@ -312,9 +310,10 @@ Type
       Procedure UpdateRects; Virtual;
       Function UpdateTransform():Boolean; Virtual;
 
-      Function GetVisible:Boolean;
+      //Function GetVisible:Boolean;
       Function GetLayer:Single;
       Function GetColor:ColorRGBA;
+      Function GetGlow:ColorRGBA;
       Function GetSaturation:Single;
       Function GetColorTable:TERRATexture;
       Function GetHighlightGroup:Integer;
@@ -356,7 +355,7 @@ Type
       Procedure SetHeight(const Value: UIDimension);
       Procedure SetWidth(const Value: UIDimension);
 
-      Procedure SetChildrenVisibilityByTag(Tag:Integer; Visibility:Boolean);
+      //Procedure SetChildrenVisibilityByTag(Tag:Integer; Visibility:Boolean);
 
       Function OnHandleKeyDown(Key:Word):Boolean;Virtual;
       Function OnHandleKeyUp(Key:Word):Boolean;Virtual;
@@ -376,15 +375,19 @@ Type
 
       Function SupportDrag(Mode:UIDragMode):Boolean; Virtual; 
 
-      Function Show(AnimationFlags:Integer; EaseType:TweenEaseType = easeLinear; Delay:Cardinal = 0; Duration:Cardinal = 500; Callback:TweenCallback = Nil):Boolean;
+      (*Function Show(AnimationFlags:Integer; EaseType:TweenEaseType = easeLinear; Delay:Cardinal = 0; Duration:Cardinal = 500; Callback:TweenCallback = Nil):Boolean;
       Function Hide(AnimationFlags:Integer; EaseType:TweenEaseType = easeLinear; Delay:Cardinal = 0; Duration:Cardinal = 500; Callback:TweenCallback = Nil):Boolean;
-      Function ToggleVisibility(AnimationFlags:Integer; EaseType:TweenEaseType = easeLinear; Delay:Cardinal = 0; Duration:Cardinal = 500; Callback:TweenCallback = Nil):Boolean;
+      Function ToggleVisibility(AnimationFlags:Integer; EaseType:TweenEaseType = easeLinear; Delay:Cardinal = 0; Duration:Cardinal = 500; Callback:TweenCallback = Nil):Boolean;*)
+
+      Procedure Show();
+      Procedure Hide();
 
       //Procedure CenterOnScreen(CenterX:Boolean = True; CenterY:Boolean = True);
       //Procedure CenterOnParent(CenterX:Boolean = True; CenterY:Boolean = True);
       Procedure CenterOnPoint(X,Y:Single);
 
-			Property Visible:Boolean Read GetVisible Write SetVisible;
+      Function Hidden():Boolean;
+			//Property Visible:Boolean Read GetVisible Write SetVisible;
 
 			Property AbsolutePosition:Vector2D Read GetAbsolutePosition Write SetAbsolutePosition;
 			Property RelativePosition:Vector2D Read GetRelativePosition Write SetRelativePosition;
@@ -393,9 +396,8 @@ Type
       Property Size:Vector2D Read _Size;
 			Property Layer:Single Read GetLayer Write SetLayer;
 
-      Property InheritColor:Boolean Read _InheritColor Write _InheritColor;
-
       Property Color:ColorRGBA Read GetColor Write SetColor;
+      Property Glow:ColorRGBA Read GetGlow Write SetGlow;
       Property ColorTable:TERRATexture Read GetColorTable Write _ColorTable;
       Property Saturation:Single Read GetSaturation Write SetSaturation;
       Property Rotation:Single Read GetRotation Write SetRotation;
@@ -404,7 +406,7 @@ Type
       Property Parent:UIWidget Read _Parent Write SetParent;
       Property Align:Integer Read GetAlign Write SetAlign;
 
-      Property State:WidgetState Read _State;
+      Property State:WidgetState Read GetState;
 
       Property Dragging:Boolean Read _Dragging;
 
@@ -442,6 +444,8 @@ Type
       _TemplateName:StringProperty;
 
       Function InitFromTemplate(Template, Parent:UIWidget):UIWidget;
+
+      Function CanReceiveEvents:Boolean; Override;
 
     Public
       Constructor Create(Const Name:TERRAString; Parent:UIWidget; X, Y, Z: Single; Const Width, Height:UIDimension; Const TemplateName:TERRAString);
@@ -487,7 +491,7 @@ Begin
   Result := StringFromChar(UIMacroBeginChar) + StringFromChar(UIDataSourceChar) + Value + StringFromChar(UIMacroEndChar);
 End;
 
-Procedure ShowWidget(Source:UIWidget); CDecl;
+(*Procedure ShowWidget(Source:UIWidget); CDecl;
 Begin
   Source.Visible := True;
 End;
@@ -500,7 +504,7 @@ Begin
   W.SetColor(W._OriginalColor);
   W.SetRelativePosition(W._OriginalPosition);
   W.SetVisible(False);
-End;
+End;*)
 
 { UIWidget }
 Constructor UIWidget.Create(Const Name:TERRAString; Parent:UIWidget);
@@ -536,7 +540,8 @@ Begin
 
   Self.AddAnimation(widget_Highlighted, 'color', 'FF5555FF');
 
-  _InheritColor := True;
+  Self.AddAnimation(widget_Hidden, 'color', 'FFFFFF00', easeLinear);
+
   _TransformChanged := True;
 
   If Assigned(Parent) Then
@@ -560,11 +565,12 @@ Var
 Begin
   _Width := DimensionProperty(Self.AddProperty(DimensionProperty.Create('width', UIPixels(0)), False));
   _Height := DimensionProperty(Self.AddProperty(DimensionProperty.Create('height', UIPixels(0)), False));
-  _Visible := BooleanProperty(Self.AddProperty(BooleanProperty.Create('visible', True), False));
+  //_Visible := BooleanProperty(Self.AddProperty(BooleanProperty.Create('visible', True), False));
   _Position := Vector2DProperty(Self.AddProperty(Vector2DProperty.Create('position', VectorCreate2D(0, 0)), False));
   _Pivot := Vector2DProperty(Self.AddProperty(Vector2DProperty.Create('pivot', VectorCreate2D(0.5, 0.5)), False));
   _Layer := FloatProperty(Self.AddProperty(FloatProperty.Create('layer', 1.0), False));
   _Color := ColorProperty(Self.AddProperty(ColorProperty.Create('color', ColorWhite), False));
+  _Glow := ColorProperty(Self.AddProperty(ColorProperty.Create('glow', ColorBlack), False));
   _Rotation := AngleProperty(Self.AddProperty(AngleProperty.Create('rotation', 0.0), False));
   _Scale := FloatProperty(Self.AddProperty(FloatProperty.Create('scale', 1.0), False));
   _Saturation := FloatProperty(Self.AddProperty(FloatProperty.Create('saturation', 1.0), False));
@@ -611,6 +617,9 @@ Var
   Callback:TweenCallback;
 Begin
   If (Self.State = widget_Disabled) Then
+    Exit;
+
+  If (Self.HasPropertyTweens()) Then
     Exit;
 
   Case EventType Of
@@ -740,10 +749,10 @@ Begin
 End;
 
 
-Function UIWidget.CanHighlight(GroupID:Integer): Boolean;
+(*Function UIWidget.CanHighlight(GroupID:Integer): Boolean;
 Begin
   Result := (Self.Visible) And (Self.Enabled) And (Self.IsSelectable()) And (Self.HighlightGroup = GroupID) And (Not Self.HasPropertyTweens());
-End;
+End;*)
 
 Function UIWidget.GetDownControl():UIWidget;
 Var
@@ -879,7 +888,18 @@ Begin
   ReleaseObject(It);*)
 End;
 
-Function UIWidget.Show(AnimationFlags:Integer; EaseType:TweenEaseType; Delay, Duration:Cardinal; Callback:TweenCallback):Boolean;
+
+Procedure UIWidget.Show();
+Begin
+  Self.TriggerEvent(widgetEvent_Show);
+End;
+
+Procedure UIWidget.Hide();
+Begin
+  Self.TriggerEvent(widgetEvent_Hide);
+End;
+
+(*Function UIWidget.Show(AnimationFlags:Integer; EaseType:TweenEaseType; Delay, Duration:Cardinal; Callback:TweenCallback):Boolean;
 Var
   TY:Single;
   A:Byte;
@@ -1032,19 +1052,20 @@ Begin
   Begin
     Result := Result And (_Parent.Visible);
   End;
-End;
+End;*)
 
 Procedure UIWidget.SetVisible(Value:Boolean);
 Begin
   {If (Self = Nil) Then
     Exit;}
 
+    (*
   If (Value = Self.Visible) Then
     Exit;
 
   //Log(logDebug,'UI', Self._Name+' visibility is now '+BoolToString(Value));
 
-  _Visible.Value := Value;
+  _Visible.Value := Value;*)
 
   If Value Then
   Begin
@@ -1081,34 +1102,38 @@ Begin
   _Layer.Value := Z;
 End;
 
-Procedure UIWidget.SetColor(MyColor:ColorRGBA);
+Procedure UIWidget.SetColor(Const Value:ColorRGBA);
 Begin
-(*  If (Cardinal(MyColor) = Cardinal(_Color)) Then
-    Exit;*)
+  If (Cardinal(Value) = Cardinal(_Color.Value)) Then
+    Exit;
 
-  _Color.Value := MyColor;
+  _Color.Value := Value;
+End;
+
+Procedure UIWidget.SetGlow(Const Value:ColorRGBA);
+Begin
+  If (Cardinal(Value) = Cardinal(_Glow.Value)) Then
+    Exit;
+
+  _Glow.Value := Value;
 End;
 
 Function UIWidget.GetColor:ColorRGBA;  {$IFDEF FPC} Inline;{$ENDIF}
-Var
-  TempAlpha:Byte;
-  ParentColor:ColorRGBA;
 Begin
-	Result := _Color.Value;
-  If (Not _InheritColor) Then
-    Exit;
+	Result := Self._Color.Value;
 
 	If (Assigned(_Parent)) Then
-  Begin
-    ParentColor := _Parent.GetColor();
-    TempAlpha := Result.A;
-		Result := ColorMultiply(Result, ParentColor);
+		Result := ColorMultiply(Result, Parent.GetColor());
+End;
 
-    If ParentColor.A < TempAlpha Then
-      Result.A := ParentColor.A
-    Else
-      Result.A := TempAlpha;
-  End;
+Function UIWidget.GetGlow:ColorRGBA;  {$IFDEF FPC} Inline;{$ENDIF}
+Var
+  ParentColor:ColorRGBA;
+Begin
+	Result := _Glow.Value;
+
+	If (Assigned(_Parent)) Then
+		Result := ColorMultiply(Result, _Parent.GetGlow());
 End;
 
 Function UIWidget.GetRelativePosition:Vector2D;
@@ -1240,7 +1265,7 @@ Function UIWidget.OnHandleKeyUp(Key:Word):Boolean;
 Var
   I:Integer;
 Begin
-  If Not Self.Visible Then
+  If Self.Hidden Then
   Begin
     Result := False;
     Exit;
@@ -1315,7 +1340,7 @@ Function UIWidget.AllowsEvents(): Boolean;
 Var
   UI:UIView;
 Begin
-  If (Not Visible) Then
+  If (Self.Hidden) Then
   Begin
     Result := False;
     Exit;
@@ -1338,7 +1363,7 @@ Var
 Begin
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', _Name+ '.PickAt called');{$ENDIF}
 
-  If (Self.Layer < Max) Or (Not Self.OnRegion(X,Y)) Or (Self = Ignore) Then
+  If (Self.Layer < Max) Or (Not Self.OnRegion(X,Y)) Or (Self = Ignore) Or (Self.Hidden) Then
     Exit;
 
   If (Not WithEventsOnly) Or (Self.CanReceiveEvents) Then
@@ -1555,12 +1580,12 @@ Var
 Begin
   Result := False;
 
-  If (_NeedsHide) And (Not Self.HasPropertyTweens()) Then
+  (*If (_NeedsHide) And (Not Self.HasPropertyTweens()) Then
   Begin
     Self.HasPropertyTweens();
     _NeedsHide := False;
     HideWidget(Self);
-  End;
+  End;*)
 
 (*  If (Not _TransformChanged) Then
     Exit;*)
@@ -1612,7 +1637,7 @@ Begin
   _InverseTransform := MatrixInverse2D(_Transform);
 
   For I:=0 To Pred(_ChildrenCount) Do
-  If (_ChildrenList[I].Visible) Then
+  //If (_ChildrenList[I].Visible) Then
   Begin
     _ChildrenList[I]._TransformChanged := True;
     _ChildrenList[I].UpdateTransform();
@@ -1715,7 +1740,7 @@ Procedure UIWidget.Render(View:TERRAViewport; Const Stage:RendererStage; Const B
 Var
   I:Integer;
 Begin
-  If (Self._Deleted) Or (Not Self.Visible) Then
+  If (Self._Deleted) {Or (Not Self.Visible)} Then
     Exit;
 
   Self.UpdateProperties();
@@ -1731,7 +1756,7 @@ Begin
   End;
 
   For I:=0 To Pred(_ChildrenCount) Do
-  If (_ChildrenList[I].Visible) And (_ChildrenList[I].CanRender()) Then
+  If {(_ChildrenList[I].Visible) And} (_ChildrenList[I].CanRender()) Then
     _ChildrenList[I].Render(View, Stage, Bucket);
 End;
 
@@ -1952,14 +1977,14 @@ Begin
   //Result := DataSourceManager.Instance.GetValueFromPath(S);
 End;
 
-Procedure UIWidget.SetChildrenVisibilityByTag(Tag: Integer; Visibility: Boolean);
+(*Procedure UIWidget.SetChildrenVisibilityByTag(Tag: Integer; Visibility: Boolean);
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_ChildrenCount) Do
   If (Assigned(_ChildrenList[I])) And (_ChildrenList[I].Tag = Tag) Then
     _ChildrenList[I].Visible := Visibility;
-End;
+End;*)
 
 Function UIWidget.CanRender: Boolean;
 Var
@@ -2354,6 +2379,26 @@ Begin
   Result := renderBucket_Overlay;
 End;
 
+Function UIWidget.GetState: WidgetState;
+Begin
+(*  If (_Visible) Then
+    Result := _State
+  Else
+    Result := widget_Hidden;*)
+
+  Result := _State;
+End;
+
+function UIWidget.Hidden: Boolean;
+begin
+  Result := (_State = widget_Hidden);
+end;
+
+Function UIWidget.CanReceiveEvents: Boolean;
+Begin
+  Result := False;
+End;
+
 { UIInstancedWidget }
 Constructor UIInstancedWidget.Create(Const Name: TERRAString; Parent: UIWidget; X, Y, Z: Single; const Width, Height: UIDimension; Const TemplateName:TERRAString);
 Var
@@ -2368,6 +2413,8 @@ Begin
   Template := UITemplates.GetTemplate(TemplateName);
   If Assigned(Template) Then
   Begin
+    Self.CopyProperties(Template);
+    
     For I:=0 To Pred(Template.ChildrenCount) Do
       Self.InitFromTemplate(Template.GetChildByIndex(I), Self);
 
@@ -2385,8 +2432,6 @@ Begin
   Self.Layer := Z;
   Self.Width := Width;
   Self.Height := Height;
-
-  Self.CanReceiveEvents := True;
 End;
 
 Procedure UIInstancedWidget.Release;
@@ -2394,6 +2439,11 @@ Begin
   Inherited;
 
   ReleaseObject(_TemplateName);
+End;
+
+Function UIInstancedWidget.CanReceiveEvents:Boolean;
+Begin
+  Result := True;
 End;
 
 Function UIInstancedWidget.GetObjectType: TERRAString;
@@ -2429,7 +2479,6 @@ Begin
   End;
 
   Result.CopyProperties(Template);
-  Result.CanReceiveEvents := Template.CanReceiveEvents;
 
   For I:=0 To Pred(Template.ChildrenCount) Do
   Begin

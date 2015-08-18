@@ -219,28 +219,48 @@ Uses TERRA_Math;
 
 // Color functions
 Function ColorCreateFromString(HexValue:TERRAString):ColorRGBA;
-  Function H(C:AnsiChar):Byte;
+  Function H(C:TERRAChar):Byte;
   Begin
-    C := UpCase(C);
-    If (C>='0') And (C<='9') Then
-      Result := Ord(C)-Ord('0')
+    C := CharUpper(C);
+    If (C>=Ord('0')) And (C<=Ord('9')) Then
+      Result := C - Ord('0')
     Else
-      Result := Ord(C)-Ord('A')+10;
+      Result := C - Ord('A') + 10;
   End;
+
+Var
+  It:StringIterator;
+  A,B:Byte;
 Begin
-  If (Length(HexValue)<6) Then
+  StringCreateIterator(HexValue, It);
+
+  A := H(It.GetNext());
+  B := H(It.GetNext());
+
+  If (A = Ord('#')) Then
   Begin
-  	Result := ColorNull;
-    Exit;
+    A := B;
+    B := H(It.GetNext());
   End;
 
-  If (HexValue[1]='#') Then
-    HexValue := Copy(HexValue, 2, MaxInt);
+  Result.R := A Shl 4 + B;
 
-  Result.R := H(HexValue[1])*16+H(HexValue[2]);
-  Result.G := H(HexValue[3])*16+H(HexValue[4]);
-  Result.B := H(HexValue[5])*16+H(HexValue[6]);
-  Result.A := 255;
+  A := H(It.GetNext());
+  B := H(It.GetNext());
+  Result.G := A Shl 4 + B;
+
+
+  A := H(It.GetNext());
+  B := H(It.GetNext());
+  Result.B := A Shl 4 + B;
+
+  If (It.HasNext()) Then
+  Begin
+    A := H(It.GetNext());
+    B := H(It.GetNext());
+    Result.A := A Shl 4 + B;
+  End Else
+    Result.A := 255;
 End;
 
 Function ColorCreate(Const R,G,B:Byte;A:Byte=255):ColorRGBA;  {$IFDEF FPC} Inline;{$ENDIF}

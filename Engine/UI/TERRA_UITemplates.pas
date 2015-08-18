@@ -3,7 +3,7 @@ Unit TERRA_UITemplates;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Math, TERRA_Texture,
+Uses TERRA_Object, TERRA_String, TERRA_Math, TERRA_Texture, TERRA_Color,
   TERRA_UIWidget, TERRA_UIDimension, TERRA_UIImage, TERRA_UITiledRect, TERRA_UILabel, TERRA_UIEditText;
 
 Type
@@ -38,8 +38,6 @@ Begin
   TileRect := UITiledRect.Create('rect', Self, 0, 0, 1, UIPercent(100), UIPercent(100), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
   TileRect.Texture := Tex;
   TileRect.Draggable := True;
-
-  Self.CanReceiveEvents := True;
 End;
 
 { UIButtonTemplate }
@@ -53,15 +51,17 @@ Begin
   Tex.Prefetch();
   TileRect := UITiledRect.Create('button', Self, 0, 0, 1, UIPercent(100), UIPercent(100), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
   TileRect.Texture := Tex;
-  TileRect.Draggable := True;
+  //TileRect.Draggable := True;
+  //TileRect.Color := ColorBlue;
   //TileRect.Scale := 2;
 
-  Caption := UILabel.Create('label', Self, 0, 0, 1, UIPercent(100), UIPercent(100), UIPropertyMacro('value'));
+  Caption := UILabel.Create('label', TileRect, 0, 0, 1, UIPercent(100), UIPercent(100), UIPropertyMacro('value'));
   Caption.Align := waCenter;
 
   Self.AddProperty(StringProperty.Create('value', 'untitled'), True);
 
-  Self.CanReceiveEvents := True;
+  //Self.Rotation := 45*RAD;
+  //Self.Scale := 2;
 End;
 
 { UIEditTextTemplate }
@@ -86,8 +86,6 @@ Begin
 
   EditText.Align := waTopLeft;
   EditText.MultiLine := True;
-
-  Self.CanReceiveEvents := True;
 End;
 
 End.

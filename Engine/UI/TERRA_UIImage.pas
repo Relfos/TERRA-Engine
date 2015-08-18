@@ -131,8 +131,9 @@ Begin
   _Sprite.Texture := Self.Texture;
 
   QuadSprite(_Sprite).Position := VectorCreate2D(0, 0);
-  QuadSprite(_Sprite).Layer := Self.GetLayer();
-  QuadSprite(_Sprite).Saturation := Self.GetSaturation();
+  _Sprite.Layer := Self.GetLayer();
+  _Sprite.Saturation := Self.GetSaturation();
+  _Sprite.Glow := Self.GetGlow();
 
   If Texture=Nil Then
     Texture := Engine.Textures.WhiteTexture;

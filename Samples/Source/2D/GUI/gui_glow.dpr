@@ -94,6 +94,7 @@ End;
 
 Procedure DemoUIController.OnMyButtonClick(Src:UIWidget);
 Begin
+  Src.Hide();
  // MyUI.MessageBox('You clicked the button!');
 End;
 

@@ -4,7 +4,7 @@ Unit TERRA_Renderable;
 
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_BoundingBox, TERRA_Renderer,
-  TERRA_Viewport, TERRA_Collections, TERRA_List;
+  TERRA_Viewport, TERRA_Collections, TERRA_List, TERRA_RadixSort;
 
 Const
   renderFlagsSkipFrustum  = 1;

@@ -18,12 +18,16 @@ Type
     Procedure Run; Override;
    End;
 
+  TERRACore_TestRadixSort = class(TestCase)
+    Procedure Run; Override;
+   End;
+
    TERRACore_TestObjectArray = class(TestCase)
     Procedure Run; Override;
    End;
 
 Implementation
-Uses TERRA_Utils, TERRA_Sort, TERRA_Collections,
+Uses TERRA_OS, TERRA_Utils, TERRA_Sort, TERRA_RadixSort, TERRA_Collections,
   TERRA_HashMap, TERRA_ObjectArray, TERRA_List, TERRA_Stack;
 
 Type
@@ -145,6 +149,42 @@ Begin
   End;
 End;
 
+Procedure TERRACore_TestRadixSort.Run();
+Var
+  I, J, Count:Integer;
+
+  TA, TB, TS:Cardinal;
+Begin
+  For J:=1 To 5 Do
+  Begin
+    Count := 105500 + Random(1500);
+    SetLength(Items, Count);
+    SetLength(Temp, Count);
+    For I:=0 To Pred(Count) Do
+    Begin
+      Items[I] := Random(9999);
+      Temp[I] := Items[I];
+    End;
+
+    TS := Application.GetTime();
+    QuickSort(Temp,0, Pred(Count)) ;
+    TA := Application.GetTime() - TS;
+
+    TS := Application.GetTime();
+    radix_sort(@Items[0], Count);
+    TB := Application.GetTime() - TS;
+
+    System.WriteLn(TA, '        ', TB);
+
+    For I:=1 To Pred(Count) Do
+    Begin
+      //System.WriteLn(I);
+      Check((Items[I]>=Items[I-1]), 'Radix sort error!');
+      Check((Items[I]=Temp[I]), 'Radix sort error!');
+    End;
+  End;
+End;
+
 Procedure TERRACore_TestList.Run;
 Var
   L:List;
@@ -160,11 +200,11 @@ begin
 
     For I:=1 To N Do
     Begin
-      IntToString(I);
+      IntegerProperty.Stringify(I);
       L.Add(IntegerProperty.Create('', Random(200)));
     End;
 
-    Check(L.Count=N, 'Invalid list count, got '+IntToString(L.Count)+', expected '+IntToString(N));
+    Check(L.Count=N, 'Invalid list count, got '+IntegerProperty.Stringify(L.Count)+', expected '+IntegerProperty.Stringify(N));
 
     It := L.GetIterator();
     Count := 0;
@@ -183,7 +223,7 @@ begin
   N := 2000;
   For I:=1 To N Do
   Begin
-    IntToString(I);
+    IntegerProperty.Stringify(I);
     L.Add(IntegerProperty.Create('', Random(20000)));
   End;
 
@@ -203,7 +243,7 @@ begin
   N := 2000;
   For I:=1 To N Do
   Begin
-    IntToString(I);
+    IntegerProperty.Stringify(I);
     L.Add(IntegerProperty.Create('', Random(20000)));
   End;
 
@@ -257,7 +297,7 @@ Begin
 
     For I:=1 To N Do
     Begin
-      Table.Add(StringProperty.Create(IntToString(I), IntToString(Random(200))));
+      Table.Add(StringProperty.Create(IntegerProperty.Stringify(I), IntegerProperty.Stringify(Random(200))));
     End;
 
     Count := 0;
@@ -280,7 +320,7 @@ Begin
   Table := HashMap.Create(256);
   For I:=1 To 100 Do
   Begin
-    Table.Add(StringProperty.Create('BOO_'+IntToString(I), IntToString(Sqr(I))));
+    Table.Add(StringProperty.Create('BOO_'+IntegerProperty.Stringify(I), IntegerProperty.Stringify(Sqr(I))));
   End;
 
   Item := StringProperty(Table['BOO_2']);

@@ -94,7 +94,8 @@ Type
 
       Procedure Release; Override;
 
-      Procedure Rebuild(); Virtual;
+      Function Rebuild():Boolean; Virtual;
+
       Procedure SetTexture(Value: TERRATexture); Virtual;
 
       Procedure SetTransform(Const Mat:Matrix3x3);
@@ -134,7 +135,7 @@ Type
 
       Rect:TextureRect;
 
-      Procedure Rebuild(); Override;
+      Function Rebuild():Boolean; Override;
 
       Procedure SetColor(Const C:ColorRGBA);
       Procedure SetColors(Const A, B, C, D:ColorRGBA);
@@ -211,7 +212,7 @@ Begin
   Self.Saturation := 1;
   Self.BlendMode := blendBlend;
   Self.Outline := ColorBlack;
-  Self.Glow := ColorGreen;
+  Self.Glow := ColorBlack;
 End;
 
 Procedure TERRASprite.Release();
@@ -290,12 +291,14 @@ Begin
   Inc(_Offset, 6);
 End;
 
-Procedure TERRASprite.Rebuild;
+Function TERRASprite.Rebuild():Boolean;
 Begin
   If _Vertices = Nil Then
     _Vertices := CreateSpriteVertexData(6);
 
   _Offset := 0;
+
+  Result := True;
 End;
 
 { QuadSprite }
@@ -404,13 +407,19 @@ Begin
   SetScaleRelative(Center, Scale, Scale);
 End;
 
-Procedure QuadSprite.Rebuild;
+Function QuadSprite.Rebuild():Boolean;
 Var
   K:Single;
   Pos:Vector2D;
   Width, Height:Integer;
 Begin
-  Inherited;
+  Inherited Rebuild();
+
+  If (Self._A.A=0) And (Self._B.A=0) And (Self._C.A=0) And (Self._D.A=0) Then
+  Begin
+    Result := False;
+    Exit;
+  End;
 
   Width := Self.Rect.Width;
   Height := Self.Rect.Height;
@@ -446,6 +455,8 @@ Begin
   Self.Rect.V2 := Self.Rect.V2 + Self.Scrollv;
 
   MakeQuad(Pos, 0.0, Rect.U1, Rect.V1, Rect.U2, Rect.V2, Width, Height, _A, _B, _C, _D, 0.0);
+
+  Result := True;
 End;
 
 { TextureRect }

@@ -215,7 +215,7 @@ Type
 
       Class Function Instance:FontManager;
 
-      Function DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Const Scale:Single; Glyph:FontGlyph; Const Outline, A,B,C,D:ColorRGBA; Clip:TERRAClipRect; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
+      Function DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Const Scale:Single; Glyph:FontGlyph; Const Outline, Glow, A,B,C,D:ColorRGBA; Clip:TERRAClipRect; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
 
       Function GetFont(Name:TERRAString; ValidateError:Boolean = True):TERRAFont;
 
@@ -370,7 +370,7 @@ Begin
     RaiseError('Could not find font. ['+Name +']');
 End;
 
-Function FontManager.DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Const Scale:Single; Glyph:FontGlyph; Const Outline, A,B,C,D:ColorRGBA; Clip:TERRAClipRect; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
+Function FontManager.DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Const Scale:Single; Glyph:FontGlyph; Const Outline, Glow, A,B,C,D:ColorRGBA; Clip:TERRAClipRect; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
 Var
   Filter:TextureFilterMode;
   Item:TextureAtlasItem;
@@ -404,6 +404,7 @@ Begin
   DestSprite.SetTransform(Transform);
   DestSprite.ClipRect := Clip;
   DestSprite.Outline := Outline;
+  DestSprite.Glow := Glow;
   DestSprite._Scale := Scale;
 
   DestSprite.AddGlyph(X, Y, Glyph, A, B, C, D, Skew);

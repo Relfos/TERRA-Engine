@@ -3,7 +3,7 @@ Unit TERRA_TestMath;
 {$I terra.inc}
 
 Interface
-Uses TERRA_TestSuite;
+Uses TERRA_TestSuite, TERRA_Object;
 
 Type
   TERRAMath_TestLogFunctions = class(TestCase)
@@ -30,7 +30,7 @@ Var
 
   Function Failed(FuncName:String; Value:Single):String;
   Begin
-    Result := 'Failed '+FuncName + ' with arg '+ FloatToString(Value)+' with delta '+FloatToString(Delta);
+    Result := 'Failed '+FuncName + ' with arg '+ FloatProperty.Stringify(Value)+' with delta '+FloatProperty.Stringify(Delta);
   End;
 Begin
   For I:=1 To Runs Do
@@ -98,7 +98,7 @@ Var
 
   Function Failed(FuncName:String; Value1, Value2:Single):String;
   Begin
-    Result := 'Failed '+FuncName + ' with args '+ FloatToString(Value1)+' and '+ FloatToString(Value2)+' with delta '+FloatToString(Delta) + ' -> Got '+FloatToString(Got)+' and expected '+FloatToString(Expected);
+    Result := 'Failed '+FuncName + ' with args '+ FloatProperty.Stringify(Value1)+' and '+ FloatProperty.Stringify(Value2)+' with delta '+FloatProperty.Stringify(Delta) + ' -> Got '+FloatProperty.Stringify(Got)+' and expected '+FloatProperty.Stringify(Expected);
   End;
 Begin
   For I:=1 To Runs Do
