@@ -4,8 +4,10 @@ Unit TERRA_DemoApplication;
 
 Interface
 Uses TERRA_Utils, TERRA_Object, TERRA_String, TERRA_Application, TERRA_OS, TERRA_Scene,
-  TERRA_Vector3D, TERRA_Color, TERRA_Camera, TERRA_Ray,
-  TERRA_Font, TERRA_FontRenderer, TERRA_Skybox, TERRA_Viewport, TERRA_Lights, TERRA_UIView, TERRA_ScreenFX;
+  TERRA_Vector3D, TERRA_Color, TERRA_Camera, TERRA_Ray, TERRA_UIDimension,
+  TERRA_Mesh, TERRA_Texture,
+  TERRA_Font, TERRA_FontRenderer, TERRA_Skybox, TERRA_Viewport, TERRA_Lights, TERRA_UIView, TERRA_ScreenFX,
+  TERRA_TTF, TERRA_PNG, TERRA_JPG;
 
 Type
   DemoApplication = Class;
@@ -19,24 +21,29 @@ Type
       _Camera:TERRACamera;
       _GUI:UIView;
 
+      _Floor:MeshInstance;
+
       Function CreateMainViewport(Const Name:TERRAString; Width, Height:Integer):TERRAViewport;
+      Function GetGUI: UIView;
+
+      Function GetFloor:MeshInstance;
 
     Public
       Constructor Create(Owner:DemoApplication);
       Procedure Release; Override;
 
-      Procedure RenderSprites(V:TERRAViewport); Override;
       Procedure RenderViewport(V:TERRAViewport); Override;
 
       Property Sun:DirectionalLight Read _Sun;
       Property MainViewport:TERRAViewport Read _Main;
 
       Property Camera:TERRACamera Read _Camera;
-      Property GUI:UIView Read _GUI;
+      Property GUI:UIView Read GetGUI;
+      Property Floor:MeshInstance Read GetFloor;
   End;
 
   DemoApplication = Class(Application)
-    Protected
+    Private
       _Scene:DemoScene;
       _Font:TERRAFont;
       _FontRenderer:TERRAFontRenderer;
@@ -48,10 +55,10 @@ Type
 
       Procedure OnRender(V:TERRAViewport); Virtual;
 
-      Procedure OnMouseDown(X, Y: Integer; Button: Word); Override;
-      Procedure OnMouseMove(X, Y: Integer); Override;
-      Procedure OnMouseUp(X, Y: Integer; Button: Word); Override;
-			Procedure OnMouseWheel(X,Y:Integer; Delta:Integer); Override;
+      Procedure OnMouseDown(Const X,Y:Single; Const Button: Word); Override;
+      Procedure OnMouseMove(Const X,Y:Single); Override;
+      Procedure OnMouseUp(Const X,Y:Single; Const Button: Word); Override;
+			Procedure OnMouseWheel(Const X,Y:Single; Const Delta:Integer); Override;
 
 			Procedure OnKeyDown(Key:Word); Override;
 			Procedure OnKeyUp(Key:Word); Override;
@@ -64,7 +71,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_FileManager, TERRA_InputManager, TERRA_GraphicsManager;
+Uses TERRA_EngineManager, TERRA_FileManager, TERRA_InputManager, TERRA_GraphicsManager;
 
 { Demo }
 Procedure DemoApplication.OnCreate;
@@ -108,19 +115,15 @@ Begin
   _Sky := TERRASkybox.Create('sky');
 
   _Camera := PerspectiveCamera.Create('main');
+  _Camera.SetPosition(VectorCreate(0, 5, -20));
+  _Camera.SetView(VectorCreate(0, -0.25, 0.75));
 
-  (*)_Main := Self.CreateMainViewport('main', GraphicsManager.Instance.Width, GraphicsManager.Instance.Height);
+  _Main := Self.CreateMainViewport('main', Owner.Width, Owner.Height);
   _Main.SetPostProcessingState(True);
+//  _Main.FXChain.AddEffect(BloomFX.Create());
   //_Main.Visible := False;
-  _Main.FXChain.AddEffect(BloomFX.Create());*)
 
   GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorCreate(128, 128, 255);
-
-  // Create a new UI
-  _GUI := UIView.Create;
-
-  // Register the font with the UI
-  _GUI.DefaultFont := Self._Owner.Font;
 End;
 
 Procedure DemoScene.Release;
@@ -129,53 +132,94 @@ Begin
 
   ReleaseObject(_Camera);
 
+  ReleaseObject(_Floor);
+
   ReleaseObject(_Sun);
   ReleaseObject(_Sky);
+End;
+
+Function DemoScene.GetGUI: UIView;
+Begin
+  If (_GUI = Nil) Then
+  Begin
+    // Create a new UI
+    _GUI := UIView.Create('UI', UIPixels(_Owner.Width), UIPixels(_Owner.Height));
+
+    // Register the font with the UI
+    _GUI.DefaultFont := Self._Owner.Font;
+  End;
+
+  Result := _GUI;
+End;
+
+Function DemoScene.GetFloor: MeshInstance;
+Var
+  Tex:TERRATexture;
+Begin
+  If (_Floor = Nil) Then
+  Begin
+    Tex := Engine.Textures.GetItem('woodfloor_diffuse');
+
+
+    _Floor := MeshInstance.Create(Engine.Meshes.PlaneMesh);
+    _Floor.SetDiffuseMap(0, Tex);
+    _Floor.SetScale(VectorConstant(40.0));
+    _Floor.SetUVScale(0, 4, 4);
+  End;
+
+  Result := _Floor;
 End;
 
 Function DemoScene.CreateMainViewport(Const Name:TERRAString; Width, Height:Integer):TERRAViewport;
 Begin
   Result := TERRAViewport.Create(Name, _Camera, Width, Height);
-  Result.SetTarget(GraphicsManager.Instance.DeviceViewport, 0.0, 0.0, 1.0, 1.0);
+  Result.SetTargetArea(0.0, 0.0, 1.0, 1.0);
   GraphicsManager.Instance.AddViewport(Result);
   Result.Visible := True;
   Result.EnableDefaultTargets();
   Result.BackgroundColor := ColorNull;
 End;
 
-Procedure DemoScene.RenderSprites(V: TERRAViewport);
-Begin
-  _Owner._FontRenderer.DrawText(V, 5, 5, 50, 'FPS: '+ IntegerProperty.Stringify(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
-End;
-
 Procedure DemoApplication.OnKeyDown(Key: Word);
 Begin
-  Scene.GUI.OnKeyDown(Key);
+  If Assigned(Scene._GUI) Then
+    Scene._GUI.OnKeyDown(Key);
 End;
 
 Procedure DemoApplication.OnKeyUp(Key: Word);
 Begin
-  Scene.GUI.OnKeyUp(Key);
+  If Assigned(Scene._GUI) Then
+    Scene._GUI.OnKeyUp(Key);
 End;
 
 Procedure DemoApplication.OnKeyPress(Key: TERRAChar);
 Begin
-  Scene.GUI.OnKeyPress(Key);
+  If Assigned(Scene._GUI) Then
+    Scene._GUI.OnKeyPress(Key);
 End;
 
-Procedure DemoApplication.OnMouseDown(X, Y: Integer; Button: Word);
+Procedure DemoApplication.OnMouseDown(Const X,Y:Single; Const Button: Word);
 Begin
-  Scene.GUI.OnMouseDown(X, Y, Button);
+  If Assigned(Scene._GUI) Then
+    Scene._GUI.OnMouseDown(X, Y, Button);
 End;
 
-Procedure DemoApplication.OnMouseMove(X, Y: Integer);
+Procedure DemoApplication.OnMouseMove(Const X,Y:Single);
 Begin
-  Scene.GUI.OnMouseMove(X, Y);
+  If Assigned(Scene._GUI) Then
+    Scene._GUI.OnMouseMove(X, Y);
 End;
 
-Procedure DemoApplication.OnMouseUp(X, Y: Integer; Button: Word);
+Procedure DemoApplication.OnMouseUp(Const X,Y:Single; Const Button:Word);
 Begin
-  Scene.GUI.OnMouseUp(X, Y, Button);
+  If Assigned(Scene._GUI) Then
+    Scene._GUI.OnMouseUp(X, Y, Button);
+End;
+
+Procedure DemoApplication.OnMouseWheel(Const X,Y:Single; Const Delta:Integer);
+Begin
+  If Assigned(Scene._GUI) Then
+    Scene._GUI.OnMouseWheel(X, Y, Delta)
 End;
 
 Procedure DemoScene.RenderViewport(V: TERRAViewport);
@@ -188,28 +232,28 @@ Begin
     R := V.GetPickRay(Trunc(InputManager.Instance.Mouse.X), Trunc(InputManager.Instance.Mouse.Y));
     Dir := R.Direction;
     Dir.Normalize();
-    Sun.SetDirection(Dir);
+    //Sun.SetDirection(Dir);
 
     GraphicsManager.Instance.AddRenderable(V, _Sky);
     LightManager.Instance.AddLight(V, Sun);
+
+    GraphicsManager.Instance.AddRenderable(V, _Floor);
   End Else
   Begin
+    _Owner._FontRenderer.DrawText(V, 5, 5, 50, 'FPS: '+ IntegerProperty.Stringify(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
     GraphicsManager.Instance.AddRenderable(V, _GUI);
   End;
 
   _Owner.OnRender(V);
 End;
 
-procedure DemoApplication.OnMouseWheel(X, Y, Delta: Integer);
-begin
-  inherited;
-
-end;
-
 Procedure DemoApplication.OnRender(V: TERRAViewport);
 Begin
 //  Sleep(500);
 End;
+
+
+
 
 
 End.

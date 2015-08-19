@@ -5,7 +5,7 @@ uses
   TERRA_MemoryManager,
   TERRA_DemoApplication,
   TERRA_OS,
-  TERRA_Object, 
+  TERRA_Object,
   TERRA_Utils,
   TERRA_GraphicsManager,
   TERRA_Vector2D,
@@ -52,11 +52,6 @@ Var
   //What do we want to draw?
   drawSprings, drawTriangles:Boolean;
 
-  //Floor texture
-  floorTex:TERRATexture;
-  Floor:MeshInstance;
-
-
   Clothes:ClothSystem;
 
   MoveCloth:Boolean = False;
@@ -79,13 +74,6 @@ Begin
 
   DiffuseTex := Engine.Textures.GetItem('cobble');
   ClothTex := Engine.Textures.GetItem('cloth_diffuse');
-  FloorTex := Engine.Textures.GetItem('woodfloor_diffuse');
-
-  Floor := MeshInstance.Create(MeshManager.Instance.PlaneMesh);
-  Floor.SetDiffuseMap(0, FloorTex);
-  Floor.SetPosition(VectorCreate(0, -SphereRadius, 0));
-  Floor.SetScale(VectorConstant(SphereRadius * 10.0));
-  Floor.SetUVScale(0, 4, 4);
 
   Clothes := ClothSystem.Create(ClothTex);
   ClothInstance := MeshInstance.Create(Clothes.Mesh);
@@ -99,6 +87,7 @@ Begin
     Clothes.SetCollider(I, Spheres[I].Position, SphereRadius);
   End;
 
+  Self.Scene.Floor.SetPosition(VectorCreate(0, -SphereRadius, 0));
 End;
 
 Procedure MyDemo.OnDestroy;
@@ -109,7 +98,6 @@ Begin
     ReleaseObject(Spheres[I]);
 
   ReleaseObject(Clothes);
-  ReleaseObject(Floor);
   ReleaseObject(ClothInstance);
 
   Inherited;
@@ -168,13 +156,13 @@ Procedure MyDemo.OnRender(V:TERRAViewport);
 Var
   I:Integer;
 Begin
+ 
   If Assigned(ClothInstance) Then
     ClothInstance.SetWireframeMode(0, drawSprings);
 
   For I:=0 To Pred(SphereCount) Do
     GraphicsManager.Instance.AddRenderable(V, Spheres[I]);
 
-  GraphicsManager.Instance.AddRenderable(V, Floor);
   GraphicsManager.Instance.AddRenderable(V, ClothInstance);
 
   //DrawBoundingBox(V, ClothInstance.GetBoundingBox, ColorBlue);

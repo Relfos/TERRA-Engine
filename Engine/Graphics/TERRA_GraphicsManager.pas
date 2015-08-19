@@ -62,14 +62,6 @@ Type
 
       _ReflectionCamera:TERRACamera;
 
-      _Width:Integer;
-      _Height:Integer;
-      _DepthSize:Integer;
-
-      _UIWidth:Integer;
-      _UIHeight:Integer;
-      _UIScale:Single;
-      
       _Scene:TERRAScene;
 
       _FullScreenQuadVertices:VertexData;
@@ -160,9 +152,6 @@ Type
       Function ProjectPoint(Pos:Vector3D; V:TERRAViewport):Vector3D;
       Function ProjectBoundingBox(Box:BoundingBox; V:TERRAViewport):BoundingBox;*)
 
-      Property Width:Integer Read _Width;
-      Property Height:Integer Read _Height;
-
 
       Function AddRenderable(View:TERRAViewport; MyRenderable:TERRARenderable):Boolean;
       Procedure DeleteRenderable(MyRenderable:TERRARenderable);
@@ -196,10 +185,6 @@ Type
       Property FrameID:Cardinal Read _FrameID;
 
       //Property ProjectionMatrix:Matrix4x4 Read _Projection;
-
-      Property UI_Width:Integer Read _UIWidth;
-      Property UI_Height:Integer Read _UIHeight;
-      Property UI_Scale:Single Read _UIScale;
 	End;
 
 Implementation
@@ -332,15 +317,11 @@ Begin
 
   _CurrentViewport := Nil;
   _DeviceViewport := Nil;
-  _DepthSize := 2048;
 
   _Renderables := RenderableManager.Create();
 
   If Application.Instance = Nil Then
     Exit;
-
-  _Width := Application.Instance.Width;
-  _Height := Application.Instance.Height;
 
   _FogEnable := False;
 
@@ -356,19 +337,11 @@ Begin
     Exit;
   End;
 
-  Log(logDebug, 'GraphicsManager', 'Width='+ IntegerProperty.Stringify(_Width)+' Height='+ IntegerProperty.Stringify(_Height));
+  Log(logDebug, 'GraphicsManager', 'Width='+ IntegerProperty.Stringify(Application.Instance.Width)+' Height='+ IntegerProperty.Stringify(Application.Instance.Width));
 
-  Application.Instance.SetViewport(0,0,_Width,_Height);
-
-  _UIWidth := _Width;
-  _UIHeight := _Height;
-  _UIScale := 1.0;
-  Application.Instance.SelectResolution2D(_UIWidth, _UIHeight, _UIScale);
-  Log(logDebug, 'App', 'Selected UI resolution: '+ IntegerProperty.Stringify(_UIWidth)+' x ' + IntegerProperty.Stringify(_UIHeight));
-   Log(logDebug, 'App', 'Selected UI scale: '+FloatProperty.Stringify(_UIScale));
+  Application.Instance.SetViewport(0,0, Application.Instance.Width, Application.Instance.Width);
 
   ShowDebugTarget := captureTargetInvalid;
-
 {
   _Settings.TextureCompression._Avaliable := True;
   _Settings.Shaders._Avaliable := True;
@@ -407,32 +380,14 @@ http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
 
 
 
-  Log(logDebug, 'GraphicsManager', 'Device resolution: '+ IntegerProperty.Stringify(_Width)+' x ' + IntegerProperty.Stringify(_Height));
+  Log(logDebug, 'GraphicsManager', 'Device resolution: '+ IntegerProperty.Stringify(Application.Instance.Width)+' x ' + IntegerProperty.Stringify(Application.Instance.Width));
 
-  _DeviceViewport := TERRAViewport.Create('device', Nil, _Width, _Height);
-
-  OW := _Width;
-  OH := _Height;
-
-  If Assigned(Application.Instance()) Then
-  Begin
-    Application.Instance.SelectResolution3D(OW,OH);
-  End;
-
-  {If (Self.LandscapeOrientation) Then
-  Begin
-    Temp := OW;
-    OW := OH;
-    OH := Temp;
-  End;}
-
-  Log(logDebug, 'GraphicsManager', 'Selected 3D resolution: '+ IntegerProperty.Stringify(OW)+' x ' + IntegerProperty.Stringify(OH));
+  _DeviceViewport := TERRAViewport.Create('device', Nil, Application.Instance.Width, Application.Instance.Width);
 
   ShowWireframe := False;
 
   Self.ReflectionMatrixSky := Matrix4x4Identity;
   Self.ReflectionMatrix := Matrix4x4Identity;
- 
 End;
 
 Function GraphicsManager.GetDefaultFullScreenShader():ShaderInterface;
@@ -906,7 +861,7 @@ Begin
 
     Target.BeginCapture();
       _Renderables.RenderBuckets(View, Stage);
-      View.SpriteRenderer.Render(View.Camera.Projection, Stage);
+      View.SpriteRenderer.Render({View.Camera.Transform, }View.Camera.Projection, Stage);
     Target.EndCapture();
     Inc(Count);
 
@@ -924,7 +879,7 @@ Begin
     End;*)
 
       {$IFDEF PC}
-      (*If (_RenderStage = renderStageDiffuse) And (InputManager.Instance.Keys.WasPressed(KeyH)) Then
+      (*If (Stage = renderStageDiffuse) And (InputManager.Instance.Keys.WasPressed(KeyH)) Then
         Target.GetImage.Save('frame.png');*)
 
       {If (_RenderStage = renderStageGlow) And (Application.Instance.Input.Keys.WasPressed(Ord('M'))) Then
@@ -1237,7 +1192,7 @@ Var
   Time:Cardinal;
   UpdateFPS:Boolean;
 Begin
-  If (_Width<=0) Or (_Height<=0) Then
+  If (Self.Renderer = Nil) Then
     Exit;
 
   If (_NeedsContextRestore) Then
@@ -1267,10 +1222,14 @@ Begin
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'BeginSceneRendering '+ IntegerProperty.Stringify(_ViewportCount));{$ENDIF}
   If (Not Application.Instance.HasFatalError) Then
-  For I:=Pred(_ViewportCount) DownTo 0 Do
-    RenderViewport(_Viewports[I]);
 
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'EndSceneRendering');{$ENDIF}
+  //For I:=Pred(_ViewportCount) DownTo 0 Do
+  For I:=0 To Pred(_ViewportCount) Do
+  If (_Viewports[I].AutoResolve) Then
+  Begin
+    RenderViewport(_Viewports[I]);
+//    _Viewports[I].GetRenderTarget(captureTargetColor).GetImage.Save('step1.png');
+  End;
 
   // resolve offscreen buffers
   If (Self.ShowDebugTarget = captureTargetInvalid) Then
@@ -1278,9 +1237,15 @@ Begin
     For I:=Pred(_ViewportCount) DownTo 0 Do
     If (_Viewports[I].Visible) And (_Viewports[I].AutoResolve) Then
     Begin
-      _Viewports[I].DrawToTarget(True);
+      _Viewports[I].DrawToTarget(Nil);
     End;
   End;
+
+  For I:=Pred(_ViewportCount) DownTo 0  Do
+  If (Not _Viewports[I].AutoResolve) Then
+    RenderViewport(_Viewports[I]);
+
+  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'EndSceneRendering');{$ENDIF}
 
   _DeviceViewport.Bind(0);
   _DeviceViewport.Restore(True);
@@ -1294,9 +1259,9 @@ Begin
   End;
 
   For I:=0 To Pred(_ViewportCount) Do
-  If (_Viewports[I].Visible) And (Not _Viewports[I].AutoResolve) And (_Viewports[I].Target = _DeviceViewport) Then
+  If (_Viewports[I].Visible) And (Not _Viewports[I].AutoResolve) Then
   Begin
-    _Viewports[I].DrawToTarget(True);
+    _Viewports[I].DrawToTarget(_DeviceViewport);
   End;
 
   If Assigned(Target) Then
@@ -1315,25 +1280,19 @@ Begin
   Exit;
   {$ENDIF}
 
-  _Width := Application.Instance.Width;
-  _Height := Application.Instance.Height;
+  _Renderer.Resize(Application.Instance.Width, Application.Instance.Height);
 
-  _Renderer.Resize(_Width, _Height);
-
-  NewW := Trunc(_Width);
-  NewH :=  Trunc(_Height);
-
-  Application.Instance.SelectResolution2D(NewW, NewH, _UIScale);
+(*  Application.Instance.SelectResolution2D(NewW, NewH, _UIScale);
   If (NewW<>_UIWidth) Or (NewH<>_UIHeight) Then
   Begin
     _UIWidth := NewW;
     _UIHeight := NewH;
-  End;
+  End;*)
 
   Log(logDebug, 'GraphicsManager', 'Resizing viewports');
   {If Assigned(_DeviceViewport) Then
     _DeviceViewport.Resize(_Width, _Height);}
-  OnViewportChange(0, 0, _Width, _Height);
+//  OnViewportChange(0, 0, _Width, _Height);
 End;
 
 Procedure GraphicsManager.SetScene(MyScene:TERRAScene);
@@ -1469,7 +1428,7 @@ Begin
         Exit;
 
   _DeviceViewport.OffsetX := X1;
-  _DeviceViewport.OffsetY := (_Height - Y2);
+  _DeviceViewport.OffsetY := (Application.Instance.Height - Y2);
   _DeviceViewport.Resize(X2-X1, Y2-Y1);
 End;
 

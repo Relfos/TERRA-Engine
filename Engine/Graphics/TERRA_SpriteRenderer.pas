@@ -61,7 +61,7 @@ Type
       Procedure AddSprite(P:TERRASprite);
 
       Procedure Prepare();
-      Procedure Render(Const Projection:Matrix4x4; Stage:RendererStage);
+      Procedure Render(Const ProjectionMatrix:Matrix4x4; Stage:RendererStage);
       Procedure Clear();
 
     Public
@@ -91,7 +91,7 @@ Type
 
       _FontShader:ShaderInterface;
 
-      Procedure SetShader(Const Projection:Matrix4x4; MyShader:ShaderInterface);
+      Procedure SetShader(Const ProjectionMatrix:Matrix4x4; Shader:ShaderInterface);
 
 
    Public
@@ -99,7 +99,7 @@ Type
       Procedure Release; Override;
 
       Procedure Prepare;
-      Procedure Render(Const Projection:Matrix4x4; Stage:RendererStage);
+      Procedure Render(Const ProjectionMatrix:Matrix4x4; Stage:RendererStage);
       Procedure Clear;
 
 
@@ -157,6 +157,7 @@ Begin
   Line('  attribute mediump vec4 terra_UV2;');
   Line('  attribute lowp vec4 terra_color;');
   Line('  uniform mat4 projectionMatrix;');
+//  Line('  uniform mat4 modelMatrix;');
 
 	Line('void main()	{');
   Line('  vec4 local_position = vec4(terra_position.x, terra_position.y, terra_position.z, 1.0);');
@@ -573,7 +574,7 @@ Begin
   _Index := -1;
 End;
 
-Procedure TERRASpriteRenderer.Render(Const Projection:Matrix4x4; Stage:RendererStage);
+Procedure TERRASpriteRenderer.Render(Const ProjectionMatrix:Matrix4x4; Stage:RendererStage);
 Var
   I,K:Integer;
   Min:Single;
@@ -588,6 +589,9 @@ Begin
 
   //glEnable(GL_DEPTH_TEST); {FIXME}
   Graphics.Renderer.SetDepthFunction(compareLessOrEqual);
+
+  Graphics.Renderer.SetCullMode(cullNone);
+//  Graphics.Renderer.SetColorMask(True, True, True, False);
 
   (*If (Not Graphics.Renderer.Features.Shaders.Avaliable) Then
   Begin
@@ -635,7 +639,7 @@ Begin
 
     If (Index>=0) Then
     Begin
-      _Batches[Index].Render(Projection, Stage);
+      _Batches[Index].Render(ProjectionMatrix, Stage);
       Dec(Total);
 
       Inc(Count); //If Count>1 Then break;
@@ -656,32 +660,32 @@ Begin
   _CurrentShader := Nil;
 
   For I:=0 To Pred(_BatchCount) Do
-    _Batches[I]._Ready := (_Batches[I]._SpriteCount>0); 
+    _Batches[I]._Ready := (_Batches[I]._SpriteCount>0);
 
   {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 
-Procedure TERRASpriteRenderer.SetShader(Const Projection:Matrix4x4; MyShader: ShaderInterface);
+Procedure TERRASpriteRenderer.SetShader(Const ProjectionMatrix:Matrix4x4; Shader:ShaderInterface);
 Var
   Graphics:GraphicsManager;
 Begin
-  If (_CurrentShader = MyShader) Then
+  If (_CurrentShader = Shader) Then
     Exit;
 
   {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'SetShader');{$ENDIF}
 
   Graphics := GraphicsManager.Instance;
 
-  _CurrentShader := MyShader;
+  _CurrentShader := Shader;
 
   {If Not MyShader.IsReady() Then BIBI
     Exit;}
 
-  Graphics.Renderer.BindShader(MyShader);
+  Graphics.Renderer.BindShader(Shader);
 
-  MyShader.SetIntegerUniform('texture', 0);
-  Graphics.Renderer.SetModelMatrix(Matrix4x4Identity);
-  Graphics.Renderer.SetProjectionMatrix(Projection);
+  Shader.SetIntegerUniform('texture', 0);
+  //Graphics.Renderer.SetModelMatrix(CameraMatrix);
+  Graphics.Renderer.SetProjectionMatrix(ProjectionMatrix);
 
   {If (MyShader = _FontShader) Then
     IntToString(2);}
@@ -780,6 +784,7 @@ Begin
 
       Pos := S.Transform.Transform(Pos);
 
+      //Pos.Scale(5);
       (*Pos.X := Trunc(Pos.X);
       Pos.Y := Trunc(Pos.Y);
       Pos.Z := Pos.Z + S.Layer;*)
@@ -812,7 +817,7 @@ Begin
   _Ready := True;
 End;
 
-Procedure SpriteBatch.Render(Const Projection:Matrix4x4; Stage:RendererStage);
+Procedure SpriteBatch.Render(Const ProjectionMatrix:Matrix4x4; Stage:RendererStage);
 Var
   Graphics:GraphicsManager;
 Begin
@@ -834,20 +839,19 @@ Begin
 
   If (Assigned(Self._Shader)) Then
   Begin
-    _Manager.SetShader(Projection, Self._Shader);
+    _Manager.SetShader(ProjectionMatrix, Self._Shader);
     _Manager._FontShader.SetColorUniform('outlineColor', _Outline);
     _Manager._FontShader.SetVec2Uniform('shadowOffset', VectorCreate2D(0.1, 0.1));
   End Else
   If (Stage<>renderStageDiffuse) Then
-    _Manager.SetShader(Projection, _Manager._SpriteShaderSolid)
+    _Manager.SetShader( ProjectionMatrix, _Manager._SpriteShaderSolid)
   Else
   {$IFNDEF DISABLECOLORGRADING}
   If (Assigned(Self._ColorTable)) Then
-    _Manager.SetShader(Projection, _Manager._SpriteShaderWithGrading)
+    _Manager.SetShader(ProjectionMatrix, _Manager._SpriteShaderWithGrading)
   Else
   {$ENDIF}
-    _Manager.SetShader(Projection, _Manager._SpriteShaderWithoutGrading);
-
+    _Manager.SetShader(ProjectionMatrix, _Manager._SpriteShaderWithoutGrading);
 
 //  _Texture := TextureManager.Instance.WhiteTexture;
 

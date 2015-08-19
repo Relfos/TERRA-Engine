@@ -38,20 +38,21 @@ Procedure MyDemo.OnCreate;
 Begin
   Inherited;
 
-
   GraphicsManager.Instance.Renderer.Settings.NormalMapping.SetValue(True);
   GraphicsManager.Instance.Renderer.Settings.PostProcessing.SetValue(True);
 
   Self.Scene.MainViewport.FXChain.AddEffect(GlowFX.Create(2.0));
 
-  DiffuseTex := Engine.Textures.GetTexture('cobble');
-  GlowTex := Engine.Textures.GetTexture('cobble_glow');
+  DiffuseTex := Engine.Textures.GetItem('cobble');
+  GlowTex := Engine.Textures.GetItem('cobble_glow');
 
-  Solid := MeshInstance.Create(MeshManager.Instance.CubeMesh);
+  Solid := MeshInstance.Create(Engine.Meshes.CubeMesh);
   Solid.SetDiffuseMap(0, DiffuseTex);
   Solid.SetGlowMap(0, GlowTex);
-  Solid.SetPosition(VectorCreate(0, -30, -80));
-  Solid.SetScale(VectorConstant(20.0));
+  Solid.SetPosition(VectorCreate(0, 4, 0));
+  Solid.SetScale(VectorConstant(2.0));
+
+  Self.Scene.Floor.SetPosition(VectorZero);
 End;
 
 Procedure MyDemo.OnDestroy;

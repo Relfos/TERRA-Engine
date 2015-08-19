@@ -588,8 +588,8 @@ Begin
       Sy := S * J;
 
       _VertexList[Index].Position := VectorAdd(VectorScale(U, Sx + OfsX), VectorScale(V, Sy + OfsY));
-      _VertexList[Index].TextureCoords.X := (1.0/Succ(SubDivisions)) * I;
-      _VertexList[Index].TextureCoords.Y := (1.0/Succ(SubDivisions)) * J;
+      _VertexList[Index].TextureCoords.X := 1.0 - ((1.0/Succ(SubDivisions)) * J);
+      _VertexList[Index].TextureCoords.Y := ((1.0/Succ(SubDivisions)) * I);
       _VertexList[Index].Normal := Normal;
     End;
 

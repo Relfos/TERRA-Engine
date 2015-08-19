@@ -99,6 +99,8 @@ Type
 
       Function Bind(Slot:Integer):Boolean;
 
+      Class Function GetBindAtSlot(Index:Integer):TERRATexture;
+
       Procedure UpdateRect(Source:Image; X,Y:Integer); Overload;
       Procedure UpdateRect(Source:Image); Overload;
 
@@ -371,10 +373,19 @@ Begin
   _SettingsChanged := True;
 End;
 
+Const
+  MaxSlots = 8;
 Var
-  _TextureSlots:Array[0..7] Of TERRATexture;
+  _TextureSlots:Array[0..Pred(MaxSlots)] Of TERRATexture;
+
+Class Function TERRATexture.GetBindAtSlot(Index:Integer):TERRATexture;
+Begin
+  Result := _TextureSlots[Index];
+End;
 
 Function TERRATexture.Bind(Slot:Integer):Boolean;
+Var
+  I:Integer;
 Begin
   Result := False;
   If (Self = Nil) Or (Not Self.IsReady()) Then
@@ -383,10 +394,17 @@ Begin
     Exit;
   End;
 
-{  If (_TextureSlots[Slot] = MyTexture) Then
+  If (Slot<0) Or (Slot>=MaxSlots) Then
     Exit;
 
-  _TextureSlots[Slot] := MyTexture;}
+(*  For I:=0 To Pred(MaxSlots) Do
+  If (_TextureSlots[I] = Self) And (Engine.Textures.WhiteTexture<>Self) Then
+  Begin
+    Engine.Textures.WhiteTexture.Bind(I);
+    Exit;
+  End;*)
+
+  _TextureSlots[Slot] := Self;
 
   _CurrentFrame := GetCurrentFrame();
 

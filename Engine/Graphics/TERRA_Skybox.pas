@@ -157,6 +157,9 @@ Begin
   Self._ObjectName := 'skybox';
   _Color := ColorWhite;
 
+  _RenderFlags := renderFlagsSkipFrustum Or renderFlagsSkipSorting;
+
+
   _Vertices := VertexData.Create([vertexFormatPosition, vertexFormatNormal], 6);
 
   If (GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Then

@@ -233,7 +233,7 @@ Begin
     Up := View.Camera.Up;
   End;
 
-  Ratio := UIManager.Instance.Height / UIManager.Instance.Width;
+  Ratio := View.Height / View.Width;
 
   _Shader := ParticleManager.Instance.Shader;
 

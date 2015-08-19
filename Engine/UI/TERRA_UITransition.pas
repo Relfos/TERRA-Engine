@@ -172,7 +172,7 @@ Var
   P:Vector2D;
   I:Integer;
 Begin
-  W := UIManager.Instance.Width;
+(*TODO  W := UIManager.Instance.Width;
   H := UIManager.Instance.Height;
 
   If (_FadeVertices = Nil) Then
@@ -198,6 +198,7 @@ Begin
 
     _FadeVertices.SetVector3D(I, vertexPosition, VectorCreate(P.X, P.Y, 0.0));
   End;
+  *)
 End;
 
 Procedure UITransition.SetCallback(Callback:FadeCallback; UserData:Pointer = Nil; OnStart:Boolean=False);
@@ -422,7 +423,7 @@ Begin
   If Not Assigned(_SlideShader) Then
   Begin
     _SlideShader := GraphicsManager.Instance.Renderer.CreateShader();
-    _SlideShader.Generate('ui_slide', GetShader_UISlide()); 
+    _SlideShader.Generate('ui_slide', GetShader_UISlide());
   End;
 End;
 
@@ -460,8 +461,8 @@ Begin
 
   Graphics.Renderer.SetBlendMode(blendNone);
 
-  W := UIManager.Instance.Width;
-  H := UIManager.Instance.Height;
+  W := View.Width;
+  H := View.Height;
 
   X := _Direction.X * Delta * W;
   Y := _Direction.Y * Delta * H;

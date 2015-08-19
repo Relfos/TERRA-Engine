@@ -85,7 +85,8 @@ Type
 
       _BackgroundColor:ColorRGBA;
 
-      _Target:TERRAViewport;
+      _AutoResolve:Boolean;
+
       _TargetX1:Single;
       _TargetX2:Single;
       _TargetY1:Single;
@@ -122,8 +123,9 @@ Type
 
       Function GetResolveTexture: TERRATexture;
 
+      Procedure SetAutoResolve(const Value: Boolean);
+      
     Public
-      AutoResolve:Boolean;
 
       Constructor Create(Name:TERRAString; Camera:TERRACamera; Width,Height:Integer; Scale:Single = 1.0);
 
@@ -143,14 +145,11 @@ Type
       Function GetRenderTarget(TargetType:RenderTargetType):RenderTargetInterface;
       Function GetRenderTexture(TargetType:RenderTargetType):TERRATexture;
 
-      Function ResolveToTexture():TERRATexture;
-
       Procedure SetViewArea(X,Y,Width,Height:Integer);
 
       Procedure SetPostProcessingState(Enabled:Boolean);
 
-      Procedure SetTarget(Target:TERRAViewport; X1,Y1,X2,Y2:Single);
-      Procedure SetTargetInPixels(Target:TERRAViewport; X1,Y1,X2,Y2:Integer);
+      Procedure SetTargetArea(X1,Y1,X2,Y2:Single);
 
       Function ProjectPoint(Const Pos:Vector3D):Vector3D;
       Function ProjectBoundingBox(Const Box:BoundingBox):BoundingBox;
@@ -163,7 +162,7 @@ Type
 
       Function HasPostProcessing():Boolean;
 
-      Procedure DrawToTarget(ProcessEffects:Boolean);
+      Procedure DrawToTarget(Target:TERRAViewport);
 
       Property BackgroundColor:ColorRGBA Read _BackgroundColor Write SetBackgroundColor;
 
@@ -184,7 +183,6 @@ Type
       Property OffsetX:Integer Read _OfsX Write _OfsX;
       Property OffsetY:Integer Read _OfsY Write _OfsY;
 
-      Property Target:TERRAViewport Read _Target;
       Property TargetX1:Single Read _TargetX1;
       Property TargetX2:Single Read _TargetX2;
       Property TargetY1:Single Read _TargetY1;
@@ -195,10 +193,12 @@ Type
       Property SpriteRenderer:TERRASpriteRenderer Read _SpriteRenderer;
 
       Property ResolveTexture:TERRATexture Read GetResolveTexture;
+
+      Property AutoResolve:Boolean Read _AutoResolve Write SetAutoResolve;
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_GraphicsManager, TERRA_Application, TERRA_Log, TERRA_OS, TERRA_Vector4D, TERRA_Downsampler;
+Uses TERRA_Error, TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Application, TERRA_Log, TERRA_OS, TERRA_Vector4D, TERRA_Downsampler, TERRA_InputManager;
 
 {$IFDEF POSTPROCESSING}
 Var
@@ -627,8 +627,8 @@ Begin
   End Else}
   Begin
     TY := _Height - TY;
-  	Px := TX * (GraphicsManager.Instance.Width/_Width);
-	  Py := TY * (GraphicsManager.Instance.Height/_Height);
+  	Px := TX * (Application.Instance.Width/_Width);
+	  Py := TY * (Application.Instance.Height/_Height);
   End;
 
   Px := TX;
@@ -769,83 +769,58 @@ Begin
   End;
 End;
 
-Function TERRAViewport.ResolveToTexture():TERRATexture;
-Var
-  TempTarget:TERRAViewport;
-Begin
-  If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
-  Begin
-    Result := Self.GetResolveTexture();
-    Exit;
-  End;
-
-  If (_ResolveBuffer = Nil) Then
-  Begin
-    _ResolveBuffer := GraphicsManager.Instance.Renderer.CreateRenderTarget();
-    _ResolveBuffer.Generate(_Width, _Height, False, pixelSizeByte, 1, False, False);
-  End;
-
-  If _ResolveTexture = Nil Then
-  Begin
-    _ResolveTexture := TERRATexture.Create(rtDynamic, _Name+'_resolve');
-    _ResolveTexture.InitFromSurface(_ResolveBuffer);
-  End;
-
-  Self._Target := Self;
-  Self._TargetX1 := 0;
-  Self._TargetY1 := 0;
-  Self._TargetX2 := 1.0;
-  Self._TargetY2 := 1.0;
-
-
-//  GraphicsManager.Instance.ShowDebugTarget := captureTargetColor;
-
-  {$IFDEF POSTPROCESSING}
-  If (Self.HasPostProcessing) Then
-    UpdateEffectTargets();
-	{$ENDIF}
-
-  _ResolveBuffer.BackgroundColor := ColorNull;
-  Self.SetViewArea(0, 0, _ResolveBuffer.Width, _ResolveBuffer.Height);
-  _ResolveBuffer.BeginCapture();
-  Self.DrawToTarget(False);
-  _ResolveBuffer.EndCapture();
-
-  GraphicsManager.Instance.ShowDebugTarget := captureTargetInvalid;
-
-  Self._Target := Nil;
-
-  Result := _ResolveTexture;
-End;
-
-Procedure TERRAViewport.DrawToTarget(ProcessEffects:Boolean);
+Procedure TERRAViewport.DrawToTarget(Target:TERRAViewport);
 Var
   MyShader:ShaderInterface;
   I:Integer;
   ShowID:RenderTargetType;
   TempColor:ColorRGBA;
+  View:TERRAViewport;
 Begin
-  If (Target = Nil) Then
-  Begin
-    If AutoResolve Then
-    Begin
-      Self.ResolveToTexture();
-    End;
-
-    Exit;
-  End;
-
   {$IFDEF POSTPROCESSING}
   {$IFDEF FRAMEBUFFEROBJECTS}
-  If (ProcessEffects) And (Self.HasPostProcessing) Then
+  If (Self.HasPostProcessing) And (Target <> Self) Then
     UpdateEffectTargets();
   {$ENDIF}
   {$ENDIF}
 
-  TempColor := Target.BackgroundColor;
+  If (Target = Nil) Then
+  Begin
+    Self._TargetX1 := 0;
+    Self._TargetY1 := 0;
+    Self._TargetX2 := 1.0;
+    Self._TargetY2 := 1.0;
+
+    If (_ResolveBuffer = Nil) Then
+    Begin
+      _ResolveBuffer := GraphicsManager.Instance.Renderer.CreateRenderTarget();
+    _ResolveBuffer.Generate(_Width, _Height, False, pixelSizeByte, 1, False, False);
+    End;
+
+    If _ResolveTexture = Nil Then
+    Begin
+      _ResolveTexture := TERRATexture.Create(rtDynamic, _Name+'_resolve');
+      _ResolveTexture.InitFromSurface(_ResolveBuffer);
+    End;
+
+    If (GetRenderTexture(captureTargetColor) = Nil) Then
+      Exit;
+
+    _ResolveBuffer.BackgroundColor := ColorNull;
+    Self.SetViewArea(0, 0, _ResolveBuffer.Width, _ResolveBuffer.Height);
+
+    _ResolveBuffer.BeginCapture();
+    Self.DrawToTarget(Self);
+    _ResolveBuffer.EndCapture();
+
+    Exit;
+  End;
+
+  Target.Restore(False);
+(*  TempColor := Target.BackgroundColor;
   Target.BackgroundColor := Self.BackgroundColor;
   Target.Restore(True);
-  Target.BackgroundColor := TempColor;
+  Target.BackgroundColor := TempColor;*)
 
   {$IFDEF POSTPROCESSING}
   ShowID := GraphicsManager.Instance.ShowDebugTarget;
@@ -871,7 +846,6 @@ Begin
     End;
   End;
 
-
   If (ShowID = captureTargetInvalid) Then
     ShowID := captureTargetColor;
   {$ELSE}
@@ -883,12 +857,16 @@ Begin
     MyShader := GraphicsManager.Instance.GetDefaultFullScreenShader();
     GraphicsManager.Instance.Renderer.BindShader(MyShader);
     MyShader.SetIntegerUniform('texture', 0);
-    MyShader.SetColorUniform('color', ColorWhite); //BIBI
   End Else
     MyShader := Nil;
 
   If (_RenderBuffers[Integer(ShowID)] = Nil) Then
     Self.SetRenderTargetState(ShowID, True);
+
+
+    {If ( Target = self ) And (InputManager.Instance.Keys.WasPressed(KeyJ)) Then
+      Self.GetRenderTexture(ShowID).GetImage().Save('frame.png');
+      }
 
   Self.GetRenderTexture(ShowID).Bind(0);
   //GraphicsManager.Instance.Renderer.BindSurface(_RenderBuffers[Integer(ShowID)], 0);
@@ -947,7 +925,7 @@ Var
   UseScissors:Boolean;
   Flags:Integer;
 Begin
-  UseScissors := (Trunc(_Width*_Scale)<GraphicsManager.Instance.Width) Or (Trunc(_Height*_Scale)<GraphicsManager.Instance.Height);
+  UseScissors := (Trunc(_Width*_Scale)< Application.Instance.Width) Or (Trunc(_Height*_Scale)< Application.Instance.Height);
 
   If (UseScissors) Then
   Begin
@@ -977,27 +955,12 @@ Begin
   {$ENDIF}
 End;
 
-Procedure TERRAViewport.SetTarget(Target: TERRAViewport; X1, Y1, X2, Y2: Single);
+Procedure TERRAViewport.SetTargetArea(X1, Y1, X2, Y2: Single);
 Begin
-  If (Self._Target = Target) Then
-    Exit;
-
-  Self._Target := Target;
   Self._TargetX1 := X1;
   Self._TargetX2 := X2;
   Self._TargetY1 := Y1;
   Self._TargetY2 := Y2;
-End;
-
-Procedure TERRAViewport.SetTargetInPixels(Target: TERRAViewport; X1, Y1, X2, Y2:Integer);
-Begin
-  If (Self._Target = Target) Then
-    Exit;
-
-  If (Assigned(Target)) Then
-    SetTarget(Target, SafeDiv(X1, Target.Width), SafeDiv(Y1, Target.Height), SafeDiv(X2, Target.Width), SafeDiv(Y2, Target.Height))
-  Else
-    SetTarget(Nil, 0.0, 0.0, 1.0, 1.0);
 End;
 
 Procedure TERRAViewport.SetViewArea(X, Y, Width, Height: Integer);
@@ -1062,15 +1025,16 @@ Begin
   ShowID := GraphicsManager.Instance.ShowDebugTarget;
   If (ShowID = captureTargetInvalid) Then
   Begin
+    Self.SetAutoResolve(True);
+
     If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
       Result := Self.GetRenderTexture(captureTargetColor)
     Else
       Result := Self._ResolveTexture;
-
-    Self.AutoResolve := True;
   End Else
   Begin
-    Self.AutoResolve := False;
+    Self.SetAutoResolve(False);
+
     Result := Self.GetRenderTexture(ShowID);
   End;
 End;
@@ -1188,6 +1152,18 @@ Begin
       Result.EndVertex := VectorMax(Vertices[I],Result.EndVertex);
     End;
   End;
+End;
+
+Procedure TERRAViewport.SetAutoResolve(const Value: Boolean);
+Begin
+  (*If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
+    Value := False;*)
+
+  If Self._AutoResolve = Value Then
+    Exit;
+
+  _AutoResolve := Value;
+
 End;
 
 End.

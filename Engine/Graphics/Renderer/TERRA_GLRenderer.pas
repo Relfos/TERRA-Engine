@@ -195,7 +195,7 @@ Type
 	    _mfb:Cardinal;
 	    _color_rb:Cardinal;
 	    _depth_rb:Cardinal;
-        _stencil_rb:Cardinal;
+      _stencil_rb:Cardinal;
   	  _targets:Array Of Cardinal;
       _targetCount:Integer;
 	    _internalformat:Cardinal;
@@ -1019,6 +1019,7 @@ End;
 Procedure OpenGLRenderer.SetBlendMode(BlendMode: Integer);
 Var
   NeedsAlpha:Boolean;
+  A,B:Integer;
 Begin
 {glEnable(GL_BLEND);
 glBlendFunc(GL_ONE, GL_ONE);
@@ -1052,17 +1053,69 @@ exit;}
 
   If (NeedsAlpha) Then
   Case BlendMode Of
-  blendBlend:   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  blendAdd:     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-  blendFilter:  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-  blendModulate:glBlendFunc(GL_SRC_COLOR, GL_ONE);
-  blendJoin:    glBlendFunc(GL_ONE, GL_ONE);
-  blendZero:    glBlendFunc(GL_ZERO, GL_ZERO);
-  blendOne:     glBlendFunc(GL_ONE, GL_ZERO);
-  blendColor:   glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
-  blendColorAdd:   glBlendFunc(GL_SRC_COLOR, GL_ONE);
-  blendReflection:   glBlendFunc(GL_DST_ALPHA, GL_ONE_MINUS_DST_ALPHA);
+  blendBlend:
+    Begin
+      A := GL_SRC_ALPHA;
+      B := GL_ONE_MINUS_SRC_ALPHA;
+    End;
+
+  blendAdd:
+    Begin
+      A := GL_SRC_ALPHA;
+      B := GL_ONE;
+    End;
+
+  blendFilter:
+    Begin
+      A := GL_ONE;
+      B := GL_ONE_MINUS_SRC_ALPHA;
+    End;
+
+  blendModulate:
+    Begin
+      A := GL_SRC_COLOR;
+      B := GL_ONE;
   End;
+
+  blendJoin:
+    Begin
+      A := GL_ONE;
+      B := GL_ONE;
+    End;
+
+  blendZero:
+    Begin
+      A := GL_ZERO;
+      B := GL_ZERO;
+    End;
+
+  blendOne:
+    Begin
+      A := GL_ONE;
+      B := GL_ZERO;
+    End;
+
+  blendColor:
+    Begin
+      A := GL_SRC_COLOR;
+      B := GL_ONE_MINUS_SRC_COLOR;
+    End;
+
+  blendColorAdd:
+    Begin
+      A := GL_SRC_COLOR;
+      B := GL_ONE;
+    End;
+
+  blendReflection:
+    Begin
+      A := GL_DST_ALPHA;
+      B := GL_ONE_MINUS_DST_ALPHA;
+    End;
+  End;
+
+  glBlendFuncSeparate(A, B, GL_ONE, GL_ONE);
+  //glBlendFunc(A, B);
 
  //_CurrentBlendMode := BlendMode;
 End;
@@ -1559,8 +1612,8 @@ Function OpenGLRenderer.GetScreenshot: Image;
 Var
   W,H:Integer;
 Begin
-  W := GraphicsManager.Instance.Width;
-  H := GraphicsManager.Instance.Height;
+  W := Application.Instance.Width;
+  H := Application.Instance.Height;
   Result := Image.Create(W, H);
   glReadPixels(0, 0, W, H, GL_RGBA, GL_UNSIGNED_BYTE, Result.RawPixels);
   Result.FlipVertical();
@@ -1819,11 +1872,11 @@ Begin
     For I:=0 To Pred(_TargetCount) Do
     Begin
       _Targets[I] := R.GenerateTexture();
-	  	glBindTexture(GL_TEXTURE_2D, _Targets[I]);      
+	  	glBindTexture(GL_TEXTURE_2D, _Targets[I]);
   		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);      
-	  	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);      
+  		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	  	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
       If (_type = pixelSizeFloat) Then
 		  Begin
@@ -1885,14 +1938,22 @@ Var
 
 Procedure OpenGLFBO.BeginCapture(Flags: Cardinal);
 Var
+  I:Integer;
   ClearFlags:Cardinal;
 Begin
+  If (CurrentFBO<>Nil) Then
+  Begin
+     IntegerProperty.Stringify(2);
+     Exit;
+  End;
+
   If (_Handle = 0) Then
     Self.Init();
 
- CurrentFBO := Self;
+  CurrentFBO := Self;
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Framebuffer','Begin framebuffer capture: W:'+ IntegerProperty.Stringify(_Width)+' H:'+ IntegerProperty.Stringify(_Height));{$ENDIF}
+
 
 	If (_multisample) Then
   Begin
@@ -1903,7 +1964,7 @@ Begin
   End;
 
   {$IFDEF PC}
-  glDrawBuffers(_TargetCount, @_DrawBuffers[0]);
+  //glDrawBuffers(_TargetCount, @_DrawBuffers[0]);
   {$ENDIF}
 
   If (Flags<>0) Then
@@ -1926,9 +1987,14 @@ Begin
 End;
 
 Procedure OpenGLFBO.EndCapture;
+Var
+  I:Integer;
 Begin
-(*  If CurrentFBO <> Self Then
-     IntegerProperty.Stringify(2);*)
+  If CurrentFBO <> Self Then
+  Begin
+     IntegerProperty.Stringify(2);
+     Exit;
+  End;
 
   CurrentFBO  := Nil;
 
@@ -1958,8 +2024,8 @@ End;
 
 Function OpenGLFBO.Bind(Slot: Integer):Boolean;
 Begin
-(*  If CurrentFBO = Self Then
-     IntegerProperty.Stringify(2);*)
+  If CurrentFBO = Self Then
+     IntegerProperty.Stringify(2);
 
   Result := (_Handle>0) And (Self.IsValid()) And (_Complete);
   If Not Result Then
@@ -1974,8 +2040,9 @@ Begin
 	glEnable(GL_TEXTURE_2D);
   {$ENDIF}
 
-
 	glBindTexture(GL_TEXTURE_2D, _Targets[0]);
+
+
   Result := True;
 End;
 

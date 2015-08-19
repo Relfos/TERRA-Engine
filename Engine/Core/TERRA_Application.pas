@@ -322,7 +322,7 @@ Type
 
       Procedure UpdateContextLost;
 
-      Procedure ConvertCoords(Var X,Y:Integer);
+      Procedure ConvertCoords(Var X,Y:Single);
 
       Function GetAspectRatio: Single;
 
@@ -439,17 +439,15 @@ Type
       Function GetOrientationDelta:Single;
 
       Function SelectRenderer():Integer; Virtual;
-      Procedure SelectResolution3D(Var Width, Height:Integer); Virtual;
-      Procedure SelectResolution2D(Var Width, Height:Integer; Var Scale:Single); Virtual;
 
 			Procedure OnKeyDown(Key:Word); Virtual;
 			Procedure OnKeyUp(Key:Word); Virtual;
 			Procedure OnKeyPress(Key:TERRAChar); Virtual;
 
-			Procedure OnMouseDown(X,Y:Integer;Button:Word); Virtual;
-			Procedure OnMouseUp(X,Y:Integer;Button:Word); Virtual;
-			Procedure OnMouseMove(X,Y:Integer); Virtual;
-			Procedure OnMouseWheel(X,Y:Integer; Delta:Integer); Virtual;
+			Procedure OnMouseDown(Const X,Y:Single; Const Button:Word); Virtual;
+			Procedure OnMouseUp(Const X,Y:Single; Const Button:Word); Virtual;
+			Procedure OnMouseMove(Const X,Y:Single); Virtual;
+			Procedure OnMouseWheel(Const X,Y:Single; Const Delta:Integer); Virtual;
 
 			Procedure OnAccelerometer(X,Y,Z:Single); Virtual;
 			Procedure OnGyroscope(X,Y,Z:Single); Virtual;
@@ -1534,11 +1532,11 @@ Begin
     Result := 0;
 End;
 
-procedure BaseApplication.ConvertCoords(var X, Y: Integer);
+procedure BaseApplication.ConvertCoords(var X, Y:Single);
 Var
   PX, PY:Single;
   SX, SY:Single;
-  Temp:Integer;
+  Temp:Single;
 Begin
 //  Log(logDebug, 'App', 'PRE1 X'+ IntegerProperty.Stringify(X)+' Y:'+ IntegerProperty.Stringify(Y));
 
@@ -1587,8 +1585,8 @@ Begin
 
   _MouseOnAdArea := (PX<0) Or (PX>1) Or (PY<0) Or (PY>1);
 
-  X := Trunc( PX * GraphicsManager.Instance.UI_Width );
-  Y := Trunc( PY * GraphicsManager.Instance.UI_Height);
+  X := PX;
+  Y := PY;
 
 //  Log(logDebug, 'App', 'PRE4 X'+ IntegerProperty.Stringify(X)+' Y:'+ IntegerProperty.Stringify(Y));
 End;
@@ -1685,7 +1683,7 @@ End;
 procedure BaseApplication.ProcessEvents;
 Var
   I:Integer;
-  PX,PY:Integer;
+  PX,PY:Single;
   NewW, NewH:Integer;
   Input:InputManager;
 Begin
@@ -1700,8 +1698,8 @@ Begin
   Begin
     If (_Events[I].HasCoords) Then
     Begin
-      PX := Trunc(_Events[I].X);
-      PY := Trunc(_Events[I].Y);
+      PX := _Events[I].X;
+      PY := _Events[I].Y;
 
       Self.ConvertCoords(PX, PY);
 
@@ -1726,7 +1724,7 @@ Begin
         {If (_MouseOnAdArea) Then
           Self.OnAdClick(Input.Mouse.X, Input.Mouse.Y)
         Else}
-          Self.OnMouseDown(Trunc(Input.Mouse.X), Trunc(Input.Mouse.Y), _Events[I].Value);
+          Self.OnMouseDown(Input.Mouse.X, Input.Mouse.Y, _Events[I].Value);
       End;
 
     eventMouseUp:
@@ -1735,17 +1733,17 @@ Begin
 
         Input.Keys.SetState(_Events[I].Value, False);
         If (Not _MouseOnAdArea) Then
-          Self.OnMouseUp(Trunc(Input.Mouse.X), Trunc(Input.Mouse.Y), _Events[I].Value);
+          Self.OnMouseUp(Input.Mouse.X, Input.Mouse.Y, _Events[I].Value);
       End;
 
     eventMouseMove:
       Begin
-        Self.OnMouseMove(Trunc(Input.Mouse.X), Trunc(Input.Mouse.Y));
+        Self.OnMouseMove(Input.Mouse.X, Input.Mouse.Y);
       End;
 
     eventMouseWheel:
       Begin
-        Self.OnMouseWheel(Trunc(Input.Mouse.X), Trunc(Input.Mouse.Y), _Events[I].Value);
+        Self.OnMouseWheel(Input.Mouse.X, Input.Mouse.Y, _Events[I].Value);
       End;
 
     eventKeyPress:
@@ -2139,22 +2137,22 @@ Begin
   // Do nothing
 End;
 
-Procedure BaseApplication.OnMouseDown(X, Y: Integer; Button: Word);
+Procedure BaseApplication.OnMouseDown(Const X,Y:Single; Const Button:Word);
 Begin
 //  UI.Instance.OnMouseDown(X, Y, Button);
 End;
 
-Procedure BaseApplication.OnMouseMove(X, Y: Integer);
+Procedure BaseApplication.OnMouseMove(Const X,Y:Single);
 Begin
 //  UI.Instance.OnMouseMove(X, Y);
 End;
 
-Procedure BaseApplication.OnMouseUp(X, Y: Integer; Button: Word);
+Procedure BaseApplication.OnMouseUp(Const X,Y:Single; Const Button: Word);
 Begin
 //  UI.Instance.OnMouseUp(X, Y, Button);
 End;
 
-Procedure BaseApplication.OnMouseWheel(X,Y:Integer; Delta: Integer);
+Procedure BaseApplication.OnMouseWheel(Const X,Y:Single; Const Delta: Integer);
 Begin
 //  UI.Instance.OnMouseWheel(Delta);
 End;
@@ -2172,13 +2170,6 @@ Procedure BaseApplication.OnGyroscope(X, Y, Z: Single);
 Begin
 End;
 
-Procedure BaseApplication.SelectResolution3D(var Width, Height: Integer);
-Begin
-End;
-
-Procedure BaseApplication.SelectResolution2D(var Width, Height: Integer; Var Scale:Single);
-Begin
-End;
 
 Procedure BaseApplication.OnOrientation(Orientation: Integer);
 Begin

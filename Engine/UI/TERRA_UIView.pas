@@ -29,7 +29,7 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween, TERRA_Renderer,
   TERRA_Sprite, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_FontRenderer, TERRA_UITransition, TERRA_Viewport, TERRA_Camera,
-  TERRA_UIDimension, TERRA_UIWidget, TERRA_ClipRect, TERRA_EnumProperty, TERRA_DataSource, TERRA_Hashmap;
+  TERRA_UIDimension, TERRA_UIWidget, TERRA_BoundingBox, TERRA_ClipRect, TERRA_EnumProperty, TERRA_DataSource, TERRA_Hashmap;
 
 Const
 
@@ -41,6 +41,9 @@ Type
 
   UIView = Class(UIWidget)
     Protected
+      _Viewport:TERRAViewport;
+      _Camera:TERRACamera;
+
       _VirtualKeyboard:UIWidget;
 
 		  _Focus:UIWidget;
@@ -87,10 +90,12 @@ Type
       System_Btn:Array[0..2] Of UIWidget;
       System_BG:UIWidget;*)
 
-      Constructor Create;
+      Constructor Create(Const Name:TERRAString; Width, Height:UIDimension);
       Procedure Release; Override;
 
       Function GetObjectType:TERRAString; Override;
+
+      Function GetBoundingBox:BoundingBox; Override;
 
       //Function SelectNearestWidget(Target:UIWidget):UIWidget;
       //Procedure GetFirstHighLight(GroupID:Integer);
@@ -101,10 +106,10 @@ Type
       Function OnKeyUp(Key:Word):UIWidget;
       Function OnKeyPress(Key:TERRAChar):UIWidget;
 
-      Function OnMouseDown(X,Y:Integer;Button:Word):UIWidget;
-      Function OnMouseUp(X,Y:Integer;Button:Word):UIWidget;
-      Function OnMouseWheel(X,Y:Integer; Delta:Integer):UIWidget;
-      Function OnMouseMove(X,Y:Integer):UIWidget;
+      Function OnMouseDown(Const X,Y:Single; Const Button:Word):UIWidget;
+      Function OnMouseUp(Const X,Y:Single; Const Button:Word):UIWidget;
+      Function OnMouseWheel(Const X,Y:Single; Const Delta:Integer):UIWidget;
+      Function OnMouseMove(Const X,Y:Single):UIWidget;
 
       Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
 
@@ -115,9 +120,6 @@ Type
 
       Function GetVirtualKeyboard():UIWidget;
 
-      Property ColorTable:TERRATexture Read _ColorTable Write SetColorTable;
-      Property Saturation:Single Read GetSaturation Write SetSaturation;
-
       Property Focus:UIWidget Read _Focus Write SetFocus;
       Property Dragger:UIWidget Read _Dragger Write SetDragger;
 
@@ -127,22 +129,19 @@ Type
 
       Property LastWidget:UIWidget Read _LastWidget;
 
+      Property Viewport:TERRAViewport Read _Viewport;
+
       Property DefaultFont:TERRAFont Read _DefaultFont Write SetDefaultFont;
       Property Modal:UIWidget Read GetModal Write _Modal;
     End;
 
   UIManager = Class(ApplicationComponent)
     Protected
-      _Viewport:TERRAViewport;
-      _Camera:TERRACamera;
-      
       _TextureAtlas:TextureAtlas;
       _UpdateTextureAtlas:Boolean;
 
       _UIList:Array Of UIView;
       _UICount:Integer;
-
-      _Ratio:Single;
 
       _FontRenderer:TERRAFontRenderer;
 
@@ -154,11 +153,6 @@ Type
 
       Procedure OnAppResize; Override;
       Procedure OnOrientationChange; Override;
-
-      Procedure UpdateRatio();
-
-      Function GetWidth:Integer;
-      Function GetHeight:Integer;
 
       Function GetTextureAtlas:TextureAtlas;
 
@@ -188,18 +182,11 @@ Type
 
       Function GetUI(Index:Integer):UIView;
 
-      Property Width:Integer Read GetWidth;
-      Property Height:Integer Read GetHeight;
-
       Property TextureAtlas:TextureAtlas Read _TextureAtlas;
-
-      Property Ratio:Single Read _Ratio;
 
       Property Count:Integer Read _UICount;
 
       Property FontRenderer:TERRAFontRenderer Read GetFontRenderer Write SetFontRenderer;
-
-      Property Viewport:TERRAViewport Read _Viewport;
 
       Property AlignEnums:EnumCollection Read _AlignEnums;
       Property DirectionEnums:EnumCollection Read _DirectionEnums;
@@ -226,9 +213,11 @@ End;
 
 
 { UIView }
-Constructor UIView.Create;
+Constructor UIView.Create(Const Name:TERRAString; Width, Height:UIDimension);
+Var
+  TargetWidth, TargetHeight:Integer;
 Begin
-  Inherited Create('UI', Nil);
+  Inherited Create(Name, Nil);
 
   _Transition := Nil;
 
@@ -243,14 +232,31 @@ Begin
 
   _ClipRect.Style := clipNothing;
 
-  Self.Width := UIPixels(UIManager.Instance.Width);
-  Self.Height := UIPixels(UIManager.Instance.Height);
+  Self.Width := Width;
+  Self.Height := Height;
+
+  TargetWidth := Trunc(GetDimension(Width, uiDimensionWidth));
+  TargetHeight := Trunc(GetDimension(Height, uiDimensionHeight));
+
+  _Camera := OrthoCamera.Create('UI');
+  OrthoCamera(_Camera).SetArea(0.0, 0.0, TargetWidth, TargetHeight);
+
+  _Camera.NearDistance := -100;
+  _Camera.FarDistance := 100;
+
+  _Viewport := TERRAViewport.Create('UI', _Camera, TargetWidth, TargetHeight, 1.0);
+  _Viewport.BackgroundColor := ColorNull;
+  _Viewport.SetRenderTargetState(captureTargetColor, True);
+  _Viewport.SetTargetArea(0, 0, 1.0, 1.0);
+
+  GraphicsManager.Instance.AddViewport(_Viewport);
 
   UIManager.Instance.AddUI(Self);
 End;
 
 Procedure UIView.Release;
 Begin
+  ReleaseObject(_Camera);
   ReleaseObject(_Transition);
 End;
 
@@ -322,8 +328,6 @@ Begin
 
   If (UIManager.Instance._UpdateTextureAtlas) Then
     Exit;
-
-  GraphicsManager.Instance.Renderer.SetBlendMode(blendBlend);
 
   Inherited Render(View, Stage, Bucket);
 End;
@@ -443,9 +447,14 @@ Begin
   _LastWidget := Result;
 End;
 
-Function UIView.OnMouseDown(X,Y:Integer;Button:Word):UIWidget;
+Function UIView.OnMouseDown(Const X,Y:Single; Const Button:Word):UIWidget;
+Var
+  TX, TY:Integer;
 Begin
-  Result := Self.PickWidget(X,Y, True);
+  TX := Trunc(X * GetDimension(Width, uiDimensionWidth));
+  TY := Trunc(Y * GetDimension(Height, uiDimensionHeight));
+
+  Result := Self.PickWidget(TX, TY, True);
 
   If (Assigned(_Focus)) And (_Focus<>Result) Then
   Begin
@@ -456,8 +465,13 @@ Begin
 End;
 
 
-Function UIView.OnMouseUp(X,Y:Integer;Button:Word):UIWidget;
+Function UIView.OnMouseUp(Const X,Y:Single; Const Button:Word):UIWidget;
+Var
+  TX, TY:Integer;
 Begin
+  TX := Trunc(X * GetDimension(Width, uiDimensionWidth));
+  TY := Trunc(Y * GetDimension(Height, uiDimensionHeight));
+
   If (Assigned(Self.Dragger)) Then
   Begin
     Result := Self.Dragger;
@@ -478,20 +492,25 @@ Begin
     _HoldWidget := Nil;
   End;
 
-  Result := Self.PickWidget(X,Y, True);
+  Result := Self.PickWidget(TX, TY, True);
 
   If (Assigned(Result)) And (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
-    Result.OnHandleMouseUp(X, Y, Button);
+    Result.OnHandleMouseUp(TX, TY, Button);
 End;
 
-Function UIView.OnMouseMove(X,Y:Integer):UIWidget;
+Function UIView.OnMouseMove(Const X,Y:Single):UIWidget;
+Var
+  TX, TY:Integer;
 Begin
+  TX := Trunc(X * GetDimension(Width, uiDimensionWidth));
+  TY := Trunc(Y * GetDimension(Height, uiDimensionHeight));
+
   _LastWidget := Nil;
 
   If (Assigned(_HoldWidget)) And (_HoldWidget.Draggable) And (Not _HoldWidget.Dragging) Then
   Begin
     Result := _HoldWidget;
-    Result.BeginDrag(X,Y, UIDrag_Move);
+    Result.BeginDrag(TX, TY, UIDrag_Move);
 
     _HoldWidget := Nil;
     Exit;
@@ -500,18 +519,18 @@ Begin
 
   If Assigned(_Dragger) Then
   Begin
-    _Dragger.OnHandleMouseMove(X, Y);
+    _Dragger.OnHandleMouseMove(TX, TY);
     Result := _Dragger;
     _LastWidget := Result;
     Exit;
   End;
 
-  Result := Self.PickWidget(X,Y, True);
+  Result := Self.PickWidget(TX, TY, True);
 
   If (Assigned(Result)) Then
   Begin
     If (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
-      Result.OnHandleMouseMove(X, Y);
+      Result.OnHandleMouseMove(TX, TY);
   End;
 
   If (_LastOver <> Result) Then
@@ -526,20 +545,25 @@ Begin
   End;
 End;
 
-Function UIView.OnMouseWheel(X,Y:Integer; Delta:Integer):UIWidget;
+Function UIView.OnMouseWheel(Const X,Y:Single; Const Delta:Integer):UIWidget;
+Var
+  TX, TY:Integer;
 Begin
-If Assigned(_Focus) Then
+  TX := Trunc(X * GetDimension(Width, uiDimensionWidth));
+  TY := Trunc(Y * GetDimension(Height, uiDimensionHeight));
+
+  If Assigned(_Focus) Then
   Begin
-       _Focus.OnHandleMouseWheel(X, Y, Delta);
+    _Focus.OnHandleMouseWheel(TX, TY, Delta);
     Result := _Focus;
     _LastWidget := Result;
     Exit;
   End;
 
-  Result := Self.PickWidget(X,Y, True);
+  Result := Self.PickWidget(TX, TY, True);
 
   If (Assigned(Result)) And (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
-    Result.OnHandleMouseWheel(X, Y, Delta);
+    Result.OnHandleMouseWheel(TX, TY, Delta);
 End;
 
 Procedure UIView.SetDragger(const Value:UIWidget);
@@ -640,13 +664,17 @@ Begin
   Result := 'UI';
 End;
 
+Function UIView.GetBoundingBox: BoundingBox;
+Begin
+  Result.StartVertex := VectorCreate(0, 0, 0);
+  Result.EndVertex := VectorCreate(GetDimension(Width, uiDimensionWidth) * Scale, GetDimension(Height, uiDimensionHeight) * Scale, 1.0);
+End;
+
+
 { UIManager }
 Procedure UIManager.Init;
-Var
-  TargetWidth, TargetHeight:Integer;
 Begin
   _TextureAtlas := Nil;
-  _Ratio := 1.0;
   _UpdateTextureAtlas := False;
 
   _AlignEnums := EnumCollection.Create();
@@ -663,21 +691,6 @@ Begin
   _DirectionEnums := EnumCollection.Create();
   _DirectionEnums.Add('Vertical', Integer(UIDirection_Vertical));
   _DirectionEnums.Add('Horizontal', Integer(UIDirection_Horizontal));
-
-  // make UI view
-  TargetWidth := GraphicsManager.Instance.UI_Width;
-  TargetHeight := GraphicsManager.Instance.UI_Height;
-  _Camera := OrthoCamera.Create('UI');
-  OrthoCamera(_Camera).SetArea(0.0, 0.0, TargetWidth, TargetHeight);
-  _Camera.NearDistance := -100;
-  _Camera.FarDistance := 100;
-
-  _Viewport := TERRAViewport.Create('UI', _Camera, TargetWidth, TargetHeight, {$IFDEF FRAMEBUFFEROBJECTS}GraphicsManager.Instance.UI_Scale{$ELSE}1.0{$ENDIF});
-  _Viewport.BackgroundColor := ColorNull;
-  _Viewport.SetRenderTargetState(captureTargetColor, True);
-  _Viewport.SetTarget(GraphicsManager.Instance.DeviceViewport, 0, 0, 1.0, 1.0);
-
-  GraphicsManager.Instance.AddViewport(_Viewport);
 End;
 
 Procedure UIManager.Release;
@@ -693,8 +706,6 @@ Begin
   ReleaseObject(_TextureAtlas);
 
   ReleaseObject(_AlignEnums);
-
-  ReleaseObject(_Camera);
 
   _UIManager_Instance := Nil;
 End;
@@ -785,30 +796,6 @@ Begin
   Result := _TextureAtlas;
 End;
 
-Function UIManager.GetWidth: Integer;
-Begin
-  {If GraphicsManager.Instance.LandscapeOrientation Then
-  Begin
-    Result := GraphicsManager.Instance.Height;
-  End Else
-  Begin
-    Result := GraphicsManager.Instance.Width;
-  End;}
-  Result := Self.Viewport.Width;
-End;
-
-Function UIManager.GetHeight: Integer;
-Begin
-  {If GraphicsManager.Instance.LandscapeOrientation Then
-  Begin
-    Result := GraphicsManager.Instance.Width;
-  End Else
-  Begin
-    Result := GraphicsManager.Instance.Height;
-  End;}
-  Result := Self.Viewport.Height;
-End;
-
 Procedure UIManager.TextureAtlasClear();
 Begin
   _UpdateTextureAtlas := True;
@@ -855,20 +842,8 @@ Procedure UIManager.OnOrientationChange;
 Var
   I:Integer;
 Begin
-  If (Viewport = Nil) Then
-    Exit;
-
-  UpdateRatio();
   For I:=0 To Pred(_UICount) Do
     _UIList[I]._TransformChanged := True;
-End;
-
-Procedure UIManager.UpdateRatio;
-Begin
- { If (IsLandscapeOrientation(Application.Instance.Orientation)) Then
-    _Ratio := (Height/Width)
-  Else}
-    _Ratio := 1.0;
 End;
 
 Function UIManager.GetUI(Index: Integer):UIView;
@@ -899,16 +874,16 @@ Procedure UIManager.OnAppResize;
 Var
   UIW, UIH:Integer;
 Begin
-  UIW := GraphicsManager.Instance.UI_Width;
+(*  UIW := GraphicsManager.Instance.UI_Width;
   UIH := GraphicsManager.Instance.UI_Height;
   If (_Viewport.Width<>UIW) Or (_Viewport.Height<>UIH) Then
-    _Viewport.Resize(UIW, UIH);
+    _Viewport.Resize(UIW, UIH);*)
 End;
 
 Function UIManager.CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject;
 Begin
   If (StringEquals(ObjectType, 'UI')) Then
-    Result := UIView.Create()
+    Result := UIView.Create(KeyName, UIPixels(100), UIPixels(100))
   Else
     Result := Nil;
 End;

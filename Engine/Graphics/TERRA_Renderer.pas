@@ -182,9 +182,9 @@ Type
 
       Function GetOrigin:SurfaceOrigin; Virtual;
 
+    Public
       Function Bind(Slot:Integer):Boolean; Virtual; Abstract;
 
-    Public
       Function GetImage():Image; Virtual;
       Function GetPixel(X,Y:Integer):ColorRGBA; Virtual;
 

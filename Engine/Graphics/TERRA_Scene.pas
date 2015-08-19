@@ -37,8 +37,6 @@ Type
       {Procedure RenderReflections(V:Viewport); Virtual;
       Procedure RenderReflectiveSurfaces(V:Viewport); Virtual;}
       Procedure RenderViewport(V:TERRAViewport); Virtual;
-
-      Procedure RenderSprites(V:TERRAViewport); Virtual;
   End;
 
 Implementation
@@ -48,11 +46,6 @@ Implementation
 Procedure TERRAScene.IncludeShadowCasters(V:TERRAViewport; Var MinZ, MaxZ: Single; Const ShadowMatrix4x4:Matrix4x4);
 Begin
 
-End;
-
-Procedure TERRAScene.RenderSprites(V:TERRAViewport);
-Begin
-  // do nothing
 End;
 
 Procedure TERRAScene.RenderViewport(V:TERRAViewport);

@@ -350,7 +350,7 @@ Type
 
       Procedure SetPropertyValue(Const PropName, Value:TERRAString);
 
-      Function IsOutsideScreen():Boolean;
+//      Function IsOutsideScreen():Boolean;
 
       Procedure SetHeight(const Value: UIDimension);
       Procedure SetWidth(const Value: UIDimension);
@@ -512,6 +512,8 @@ Var
   I:WidgetState;
 Begin
   _ObjectName := Name;
+
+  _RenderFlags := renderFlagsSkipFrustum;
 
   //_Component := UIComponentImage.Create();
 
@@ -1574,7 +1576,7 @@ Var
   I:Integer;
   Center:Vector2D;
   Pos:Vector2D;
-  W,H, Ratio:Single;
+  W,H:Single;
 
   Mat:Matrix3x3;
 Begin
@@ -1594,11 +1596,6 @@ Begin
 
   Self.UpdateRects();
 
-  If Assigned(_Parent) Then
-    Ratio := 1.0
-  Else
-    Ratio := UIManager.Instance.Ratio;
-
   Center := Self.Size;
   Center.Scale(Self.Pivot);
 
@@ -1606,9 +1603,9 @@ Begin
     _Rotation.Value := 1.0+RAD*(Trunc(Application.GetTime()/10));*)
 
   If (_Rotation.Value <> 0.0) Then
-    Mat := MatrixRotationAndScale2D(_Rotation.Value, _Scale.Value, _Scale.Value * Ratio)
+    Mat := MatrixRotationAndScale2D(_Rotation.Value, _Scale.Value, _Scale.Value)
   Else
-    Mat := MatrixScale2D(_Scale.Value, _Scale.Value * Ratio);
+    Mat := MatrixScale2D(_Scale.Value, _Scale.Value);
 
   Mat := MatrixTransformAroundPoint2D(Center, Mat);
 
@@ -2027,13 +2024,13 @@ Begin
   Result := UIManager.Instance.FontRenderer;
 End;
 
-Function UIWidget.IsOutsideScreen: Boolean;
+(*Function UIWidget.IsOutsideScreen: Boolean;
 Var
   P:Vector2D;
 Begin
   P := Self.AbsolutePosition;
-  Result := (P.X + Self.Size.X<0) Or (P.Y + Self.Size.Y<0) Or (P.X> UIManager.Instance.Width) Or (P.Y > UIManager.Instance.Height);
-End;
+  Result := (P.X + Self.Size.X<0) Or (P.Y + Self.Size.Y<0) Or (P.X> View.Width) Or (P.Y > View.Height);
+End;*)
 
 Function UIWidget.GetDimension(Const Dim: UIDimension; Const Target:UIDimensionTarget): Single;
 Begin
@@ -2044,13 +2041,13 @@ Begin
       If (Target = uiDimensionWidth) Then
         Result := (Dim.Value * 0.01) * Parent.Size.X
       Else
-        Result := (Dim.Value * 0.01) * Parent.Size.Y
+        Result := (Dim.Value * 0.01) * Parent.Size.Y;
     End Else
     Begin
       If (Target = uiDimensionWidth) Then
-        Result := (Dim.Value * 0.01) * UIManager.Instance.Width
+        Result := (Dim.Value * 0.01) * Application.Instance.Screen.Width
       Else
-        Result := (Dim.Value * 0.01) * UIManager.Instance.Height
+        Result := (Dim.Value * 0.01) * Application.Instance.Screen.Height;
     End;
   End Else
     Result := Dim.Value;
@@ -2108,7 +2105,7 @@ Begin
 
   If _Width.Value.IsPercent Then
   Begin
-    P := (NewWidth / UIManager.Instance.Width) * 100;
+    P := (NewWidth / View.GetDimension(Width, uiDimensionWidth)) * 100;
     _Width.Value := UIPercent(P);
   End Else
     _Width.Value := UIPixels(NewWidth);
@@ -2128,7 +2125,7 @@ Begin
 
   If _Height.Value.IsPercent Then
   Begin
-    P := (NewHeight / UIManager.Instance.Height) * 100;
+    P := (NewHeight / View.GetDimension(Height, uiDimensionHeight)) * 100;
     _Height.Value := UIPercent(P);
   End Else
     _Height.Value := UIPixels(NewHeight);

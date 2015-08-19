@@ -3,12 +3,13 @@ Unit TERRA_EngineManager;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_GraphicsManager, TERRA_TextureManager, TERRA_Application;
+Uses TERRA_Object, TERRA_GraphicsManager, TERRA_TextureManager, TERRA_MeshManager, TERRA_Application;
 
 Type
   EngineManager = Class(TERRAObject)
     Protected
       _TextureManager:ApplicationObject;
+      _MeshManager:ApplicationObject;
 
       Constructor Create();
 
@@ -16,6 +17,7 @@ Type
       Procedure Release(); Override;
 
       Function Textures():TextureManager;
+      Function Meshes():MeshManager;
   End;
 
 Function Engine():EngineManager;
@@ -37,6 +39,7 @@ End;
 Constructor EngineManager.Create;
 Begin
   _TextureManager := InitializeApplicationComponent(TextureManager, GraphicsManager);
+  _MeshManager := InitializeApplicationComponent(MeshManager, GraphicsManager);
 End;
 
 Procedure EngineManager.Release;
@@ -48,5 +51,11 @@ Function EngineManager.Textures: TextureManager;
 Begin
   Result := TextureManager(_TextureManager.Instance);
 End;
+
+Function EngineManager.Meshes: MeshManager;
+Begin
+  Result := MeshManager(_MeshManager.Instance);
+End;
+
 
 End.

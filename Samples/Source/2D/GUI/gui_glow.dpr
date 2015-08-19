@@ -58,9 +58,9 @@ Procedure MyDemo.OnCreate;
 Begin
   Inherited;
 
-  UIManager.Instance.Viewport.FXChain.AddEffect(GlowFX.Create());
-  //UIManager.Instance.Viewport.FXChain.AddEffect(BloomFX.Create());
-  //UIManager.Instance.Viewport.FXChain.AddEffect(VignetteFX.Create());
+  Self.Scene.GUI.Viewport.FXChain.AddEffect(GlowFX.Create());
+  //Self.Scene.GUI.Viewport.FXChain.AddEffect(BloomFX.Create());
+  Self.Scene.GUI.Viewport.FXChain.AddEffect(VignetteFX.Create());
 
 
   UITemplates.AddTemplate(UIWindowTemplate.Create('wnd_template', Engine.Textures.GetItem('ui_window'), 45, 28, 147, 98));

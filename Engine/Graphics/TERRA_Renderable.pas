@@ -43,8 +43,6 @@ Type
 
       Procedure Update(View:TERRAViewport); Virtual;
 
-      Function GetName():TERRAString; Virtual;
-
       Function GetRenderBucket:Cardinal; Virtual;
 
       Function GetBoundingBox:BoundingBox; Virtual;
@@ -91,11 +89,6 @@ procedure TERRARenderable.Release;
 Begin
   If Assigned(_Manager) Then
     _Manager.DeleteRenderable(Self);
-End;
-
-function TERRARenderable.GetName: TERRAString;
-Begin
-  Result := Self.ClassName + '_'+HexStr(Cardinal(Self));
 End;
 
 procedure TERRARenderable.RenderLights(View: TERRAViewport);
