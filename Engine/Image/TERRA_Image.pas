@@ -2098,7 +2098,7 @@ Begin
   End;
 End;
 
-Function Image.Pixels(Flags: ImageProcessFlags; Const Mask:Cardinal): ImageIterator;
+Function Image.Pixels(Flags:ImageProcessFlags; Const Mask:Cardinal): ImageIterator;
 Begin
   Result := FullImageIterator.Create(Self, Flags, Mask);
 End;
