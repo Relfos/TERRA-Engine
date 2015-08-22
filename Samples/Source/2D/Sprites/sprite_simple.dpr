@@ -41,7 +41,11 @@ Procedure MyDemo.OnCreate;
 Begin
   Inherited;
 
-  Tex := Engine.Textures.GetTexture('ghost');
+  // Enable 2D viewport for rendering
+  Self.Scene.GUI.Viewport.Visible := True;
+
+  // load and cache a texture called ghost.png (located in the samples/binaries/assets/ folder
+  Tex := Engine.Textures['ghost'];
 End;
 
 Procedure MyDemo.OnRender(View: TERRAViewport);
@@ -51,6 +55,9 @@ Var
   S:QuadSprite;
 Begin
   Inherited;
+
+  If (View <> Self.Scene.GUI.Viewport) Then
+    Exit;
 
   If (Tex = Nil) Then
     Exit;

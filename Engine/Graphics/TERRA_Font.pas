@@ -241,16 +241,16 @@ Var
 Type
   GlyphSort = Class(Sort)
     Public
-      Class Procedure Swap(Data:Pointer; A,B:Integer); Override;
-      Class Procedure SetPivot(Data:Pointer; A:Integer); Override;
-      Class Function Compare(Data:Pointer; A:Integer):Integer; Override;
+      Class Procedure Swap(Data:TERRAObject; A,B:Integer); Override;
+      Class Procedure SetPivot(Data:TERRAObject; A:Integer); Override;
+      Class Function Compare(Data:TERRAObject; A:Integer):Integer; Override;
   End;
 
 Var
   _GlyphPivot:Cardinal;
 
 { GlyphSort }
-Class Procedure GlyphSort.SetPivot(Data:Pointer; A:Integer);
+Class Procedure GlyphSort.SetPivot(Data:TERRAObject; A:Integer);
 Var
   Fnt:TERRAFont;
 Begin
@@ -258,7 +258,7 @@ Begin
   _GlyphPivot := Fnt._Glyphs[A].ID;
 End;
 
-Class Function GlyphSort.Compare(Data:Pointer; A:Integer):Integer;
+Class Function GlyphSort.Compare(Data:TERRAObject; A:Integer):Integer;
 Var
   Fnt:TERRAFont;
 Begin
@@ -272,7 +272,7 @@ Begin
     Result := 0;
 End;
 
-Class Procedure GlyphSort.Swap(Data:Pointer; A,B:Integer);
+Class Procedure GlyphSort.Swap(Data:TERRAObject; A,B:Integer);
 Var
   Fnt:TERRAFont;
   Temp:FontGlyph;

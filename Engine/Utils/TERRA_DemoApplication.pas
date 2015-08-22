@@ -27,6 +27,7 @@ Type
       Function GetGUI: UIView;
 
       Function GetFloor:MeshInstance;
+    function GetMainViewport: TERRAViewport;
 
     Public
       Constructor Create(Owner:DemoApplication);
@@ -35,7 +36,7 @@ Type
       Procedure RenderViewport(V:TERRAViewport); Override;
 
       Property Sun:DirectionalLight Read _Sun;
-      Property MainViewport:TERRAViewport Read _Main;
+      Property MainViewport:TERRAViewport Read GetMainViewport;
 
       Property Camera:TERRACamera Read _Camera;
       Property GUI:UIView Read GetGUI;
@@ -101,7 +102,7 @@ Begin
 
   GraphicsManager.Instance.TestDebugKeys();
 
-  If (Assigned(_Scene.MainViewport)) And (_Scene.MainViewport.Visible) Then
+  If (Assigned(_Scene._Main)) And (_Scene._Main.Visible) Then
     _Scene.MainViewport.Camera.FreeCam();
 End;
 
@@ -118,12 +119,20 @@ Begin
   _Camera.SetPosition(VectorCreate(0, 5, -20));
   _Camera.SetView(VectorCreate(0, -0.25, 0.75));
 
-  _Main := Self.CreateMainViewport('main', Owner.Width, Owner.Height);
-  _Main.SetPostProcessingState(True);
-//  _Main.FXChain.AddEffect(BloomFX.Create());
-  //_Main.Visible := False;
-
   GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorCreate(128, 128, 255);
+End;
+
+Function DemoScene.GetMainViewport: TERRAViewport;
+Begin
+  If (_Main = Nil) Then
+  Begin
+    _Main := Self.CreateMainViewport('main', _Owner.Width, _Owner.Height);
+    _Main.SetPostProcessingState(True);
+  //  _Main.FXChain.AddEffect(BloomFX.Create());
+    //_Main.Visible := False;
+  End;
+
+  Result := _Main;
 End;
 
 Procedure DemoScene.Release;

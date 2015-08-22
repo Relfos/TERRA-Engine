@@ -23,14 +23,14 @@ var
 
 implementation
 Uses TERRA_Utils, TERRA_Application, TERRA_VCLApplication, TERRA_OS, TERRA_Scene, TERRA_Texture,
-  TERRA_Object, TERRA_Viewport, TERRA_FileManager, TERRA_SpriteManager, TERRA_PNG,
-  TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color; 
+  TERRA_Object, TERRA_Viewport, TERRA_FileManager, TERRA_Sprite, TERRA_PNG,
+  TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color;
 
 {$R *.dfm}
 
 Type
   MyScene = Class(TERRAScene)
-    Procedure RenderSprites(V:TERRAViewport); Override;
+    Procedure RenderViewport(V:TERRAViewport); Override;
   End;
 
 Var
@@ -38,14 +38,14 @@ Var
   _Scene:MyScene;
 
 { MyScene }
-Procedure MyScene.RenderSprites(V: TERRAViewport);
+Procedure MyScene.RenderViewport(V: TERRAViewport);
 Var
   S:QuadSprite;
   Angle:Single;
 Begin
   // A rotating sprite in the bottom, with Scale = 4x
   Angle := RAD * ((Application.GetTime() Div 15) Mod 360);
-  S := SpriteManager.Instance.DrawSprite(100, 100, 50, _Tex);
+  S := V.SpriteRenderer.DrawSprite(100, 100, 50, _Tex);
   S.SetScaleAndRotationRelative(VectorCreate2D(0.5, 0.5), 4.0, Angle);  // Calculate rotation, in degrees, from current time
 End;
 
@@ -57,7 +57,7 @@ Begin
   FileManager.Instance.AddPath('assets');
 
   // Load a Tex
-  _Tex := TextureManager.Instance['ghost'];
+  _Tex := Engine.Textures['ghost'];
 
   // Create a scene and set it as the current scene
   _Scene := MyScene.Create;

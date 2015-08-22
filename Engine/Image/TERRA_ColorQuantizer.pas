@@ -2,14 +2,12 @@ Unit TERRA_ColorQuantizer;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_Utils, TERRA_Math, TERRA_Color, TERRA_Image, TERRA_ColorDither;
+Uses TERRA_Object, TERRA_Utils, TERRA_String, TERRA_Stream, TERRA_FileStream, TERRA_Math, TERRA_Color, TERRA_Image, TERRA_ColorDither, TERRA_Sort;
 
 Type
-  RGBQuadArray = Array[BYTE] OF ColorRGBA;
-
   ColorTable = Class(TERRAObject)
     Protected
-      _Palette:RGBQuadArray;
+      _Palette:ColorPalette;
       _Size:Integer;
 
       Function ColorDistance(Const A,B:ColorRGBA):Integer;
@@ -19,9 +17,16 @@ Type
 
       Procedure Apply(Target:Image; DitherMode:Integer);
 
+      Procedure LoadFromStream(Source:Stream);
+      Procedure LoadFromFile(Const FileName:TERRAString);
+
       Procedure GetNearestDitherIndices(Const C:ColorRGBA; Out First, Second:Integer);
       Function GetNearestPaletteIndex(Const C:ColorRGBA):Integer;
       Function GetNearestPaletteColor(Const C:ColorRGBA):ColorRGBA;
+
+      Function GetColorByIndex(Const Index:Integer):ColorRGBA;
+
+      Function GetImage(Const Width, Height:Integer):Image;
   End;
 
   ColorOctreeNode = Class;
@@ -54,7 +59,7 @@ Type
 
           Procedure AddColor(Var   Node:ColorOctreeNode; Const Color:ColorRGBA; Const ColorBits:Integer; Const Level:Integer; Var LeafCount:Integer; Var ReducibleNodes:ReducibleNodes);
           Procedure DeleteTree(Var Node:ColorOctreeNode);
-          Procedure GetPaletteColors(Const Node:ColorOctreeNode; Var RGBQuadArray:RGBQuadArray; Var Index:Integer);
+          Procedure GetPaletteColors(Const Node:ColorOctreeNode; Var ColorPalette:ColorPalette; Var Index:Integer);
           Procedure   ReduceTree(Const ColorBits:Integer; Var LeafCount:Integer; Var ReducibleNodes:ReducibleNodes);
 
     Public
@@ -68,6 +73,7 @@ Type
 
 Implementation
 
+{ ColorOctreeNode }
 Constructor ColorOctreeNode.Create (Const Level:Integer; Const ColorBits:Integer; Var LeafCount:Integer; Var ReducibleNodes: ReducibleNodes);
 Var
   i:Integer;
@@ -111,7 +117,7 @@ Begin
   _LeafCount := 0;
 
   // Initialize all nodes even though only ColorBits+1 of them are needed
-  FOR i := Low(_ReducibleNodes) TO High(_ReducibleNodes) DO
+  For I:=Low(_ReducibleNodes) To High(_ReducibleNodes) Do
     _ReducibleNodes[i] := NIL;
 
   _MaxColors := MaxColors;
@@ -139,7 +145,7 @@ Begin
       Inc(Node.PixelCount);
       Inc(Node.RedSum,   Color.R);
       Inc(Node.GreenSum, Color.G);
-      Inc(Node.BlueSum,  Color.A);
+      Inc(Node.BlueSum,  Color.B);
   End Else
   Begin
     // Recurse a level deeper if the node is not a leaf.
@@ -170,13 +176,13 @@ Begin
 End;
 
 
-Procedure ColorQuantizer.GetPaletteColors(Const Node:ColorOctreeNode; Var RGBQuadArray:RGBQuadArray; Var Index:Integer);
+Procedure ColorQuantizer.GetPaletteColors(Const Node:ColorOctreeNode; Var ColorPalette:ColorPalette; Var Index:Integer);
 Var
   i:Integer;
 Begin
   If Node.IsLeaf Then
   Begin
-    With RGBQuadArray[Index] Do
+    With ColorPalette[Index] Do
     Begin
       R   := BYTE(Node.RedSum   DIV Node.PixelCount);
       G := BYTE(Node.GreenSum DIV Node.PixelCount);
@@ -189,7 +195,7 @@ Begin
     For i := Low(Node.Child) TO High(Node.Child) Do
     Begin
       If Assigned(Node.Child[i]) Then
-        GetPaletteColors(Node.Child[i], RGBQuadArray, Index)
+        GetPaletteColors(Node.Child[i], ColorPalette, Index)
     End;
   End;
 End;
@@ -333,10 +339,7 @@ Var
   Index:Integer;
 Begin
   Index := Self.GetNearestPaletteIndex(C);
-  If (Index>=0) And (Index<_Size) Then
-    Result := Self._Palette[Index]
-  Else
-    Result := ColorNull;
+  Result := Self.GetColorByIndex(Index);
 End;
 
 Function ColorTable.GetNearestPaletteIndex(const C: ColorRGBA): Integer;
@@ -364,7 +367,6 @@ Procedure ColorTable.GetNearestDitherIndices(const C: ColorRGBA; out First, Seco
 Var
   Current:ColorRGBA;
   I, Best, Dist:Integer;
-  DR, DG, DB:Integer;
 Begin
   First := -1;
 
@@ -372,11 +374,7 @@ Begin
   For I:=0 To Pred(_Size) Do
   Begin
     Current := Self._Palette[I];
-    DR := Current.R - C.R;
-    DG := Current.G - C.G;
-    DB := Current.B - C.B;
-
-    Dist := Sqr(DR) + Sqr(DG) + Sqr(DB);
+    Dist := Self.ColorDistance(Current, C);
     If (Dist<Best) Then
     Begin
       Best := Dist;
@@ -391,11 +389,7 @@ Begin
   If (I <> First) Then
   Begin
     Current := Self._Palette[I];
-    DR := Current.R - C.R;
-    DG := Current.G - C.G;
-    DB := Current.B - C.B;
-
-    Dist := Sqr(DR) + Sqr(DG) + Sqr(DB);
+    Dist := Self.ColorDistance(Current, C);
     If (Dist<Best) Then
     Begin
       Best := Dist;
@@ -407,12 +401,28 @@ End;
 Function ColorTable.ColorDistance(const A, B: ColorRGBA):Integer;
 Var
   DR, DG, DB:Integer;
+  DH, DS, DL:Integer;
+  TempA, TempB:ColorHSL;
+
+  Dist1, Dist2:Integer;
 Begin
   DR := A.R - B.R;
   DG := A.G - B.G;
   DB := A.B - B.B;
+  Dist1 := (Sqr(DR) + Sqr(DG) + Sqr(DB));
 
-  Result := Sqr(DR) + Sqr(DG) + Sqr(DB);
+(*  TempA := ColorRGBToHSL(A);
+  TempB := ColorRGBToHSL(B);
+
+  DH := TempA.H - TempB.H;
+  DS := TempA.S - TempB.S;
+  DL := TempA.L - TempB.L;
+
+  Dist2 := Trunc(Sqrt(Sqr(DH) + Sqr(DS) + Sqr(DL)));
+
+  Result := IntMin(Dist1, Dist2);*)
+
+  Result := Dist1;
 End;
 
 Function ColorTable.ColorFindInterpolation(const Val, A, B: ColorRGBA): Single;
@@ -434,6 +444,58 @@ Begin
   Begin
 //  A------C--B
     Result := 0.5 + (DistB / (DistA + DistB));
+  End;
+End;
+
+Function ColorTable.GetColorByIndex(const Index: Integer): ColorRGBA;
+Begin
+  If (Index>=0) And (Index<_Size) Then
+    Result := Self._Palette[Index]
+  Else
+    Result := ColorNull;
+End;
+
+Function ColorTable.GetImage(Const Width, Height:Integer):Image;
+Var
+  I:Integer;
+Begin
+  Result := Image.Create(Width, Height);
+  For I:=0 To Pred(_Size) Do
+    Result.SetPixel(I Mod Width, I Div Width, _Palette[I]);
+End;
+
+
+Procedure ColorTable.LoadFromFile(const FileName: TERRAString);
+Var
+  Src:Stream;
+Begin
+  Src := FileStream.Open(FileName);
+  Self.LoadFromStream(Src);
+  ReleaseObject(Src);
+End;
+
+Procedure ColorTable.LoadFromStream(Source: Stream);
+Var
+  S:TERRAString;
+  I, R, G, B:Integer;
+Begin
+  Source.ReadLine(S); //JASC
+  Source.ReadLine(S); //0100
+
+  Source.ReadLine(S);
+  _Size := StringToInt(S);
+
+  For I:=0 To Pred(_Size) Do
+  If (Source.EOF) Then
+    Break
+  Else
+  Begin
+    Source.ReadLine(S);
+
+    R := StringToInt(StringGetNextSplit(S, Ord(' ')));
+    G := StringToInt(StringGetNextSplit(S, Ord(' ')));
+    B := StringToInt(StringGetNextSplit(S, Ord(' ')));
+    Self._Palette[I] := ColorCreate(R, G, B);
   End;
 End;
 

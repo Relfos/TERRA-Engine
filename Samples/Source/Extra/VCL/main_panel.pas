@@ -5,7 +5,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ExtCtrls, StdCtrls, Menus;
+  Dialogs, ExtCtrls,
+  StdCtrls, Menus;
 
 type
   TForm1 = class(TForm)
@@ -27,42 +28,47 @@ var
 
 implementation
 Uses TERRA_Utils, TERRA_Object, TERRA_Application, TERRA_VCLApplication, TERRA_OS, TERRA_Scene, TERRA_Texture,
-  TERRA_Viewport, TERRA_FileManager, TERRA_SpriteManager, TERRA_PNG,
-  TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color;
+  TERRA_Viewport, TERRA_FileManager, TERRA_Sprite, TERRA_PNG,
+  TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color;
 
 {$R *.dfm}
 
 Type
   MyScene = Class(TERRAScene)
-    Procedure RenderSprites(V:TERRAViewport); Override;
+    Procedure RenderViewport(V:TERRAViewport); Override;
   End;
 
 Var
   _Tex:TERRATexture = Nil;
   _Scene:MyScene;
-  _ExtraView:TERRAViewport;
+  _ExtraView:TERRAVCLViewport;
+
+  _MyApp:VCLApplication;
 
 { MyScene }
-Procedure MyScene.RenderSprites(V: TERRAViewport);
+Procedure MyScene.RenderViewport(V: TERRAViewport);
 Var
   S:QuadSprite;
   Angle:Single;
 Begin
+  If (V<>_ExtraView.Viewport) Then
+    Exit;
+
   // A rotating sprite in the bottom, with Scale = 4x
   Angle := RAD * ((Application.GetTime() Div 15) Mod 360);
-  S := SpriteManager.Instance.DrawSprite(100, 100, 50, _Tex);
+  S := V.SpriteRenderer.DrawSprite(100, 100, 50, _Tex);
   S.SetScaleAndRotationRelative(VectorCreate2D(0.5, 0.5), 4.0, Angle);  // Calculate rotation, in degrees, from current time
 End;
 
 Procedure TForm1.FormCreate(Sender: TObject);
 Begin
-  VCLApplication.Create(Panel1);
+  _MyApp := VCLApplication.Create(Panel1);
 
   // Added Asset folder to search path
   FileManager.Instance.AddPath('assets');
 
   // Load a Tex
-  _Tex := TextureManager.Instance['ghost'];
+  _Tex := Engine.Textures['ghost'];
 
   // Create a scene and set it as the current scene
   _Scene := MyScene.Create;
@@ -71,12 +77,8 @@ Begin
   // set background color
   GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorGreen;
 
-{  _ExtraView := Viewport.Create('extra1', Image1.Width, Image1.Height);
-  _ExtraView.OffScreen := True;
-  _ExtraView.BackgroundColor := ColorRed;
-  _ExtraView.Active := True;
-  GraphicsManager.Instance.AddViewport(_ExtraView);
-  MyClient.AddViewport(VCLCanvasViewport.Create(_ExtraView, Image1.Canvas));}
+  _ExtraView := TERRAVCLViewport.Create(Image1);
+  _MyApp.AddRenderTarget(_ExtraView);
 End;
 
 
