@@ -288,13 +288,13 @@ Type
       _TextureAtlas:TextureAtlas;
 
       _NormalTexture:TERRATexture;
-      _NormalImage:Image;
+      _NormalImage:TERRAImage;
 
       _GlowTexture:TERRATexture;
-      _GlowImage:Image;
+      _GlowImage:TERRAImage;
 
       _RefractionTexture:TERRATexture;
-      _RefractionImage:Image;
+      _RefractionImage:TERRAImage;
 
       _Types:Array Of ParticleType;
       _TypeCount:Integer;
@@ -778,9 +778,9 @@ Procedure ParticleManager.Init;
 Begin
   _NeedsRebuild := False;
   _TextureAtlas := TextureAtlas.Create('particle', 512, 512);
-  _NormalImage := Image.Create(_TextureAtlas.Width, _TextureAtlas.Height);
-  _GlowImage := Image.Create(_TextureAtlas.Width, _TextureAtlas.Height);
-  _RefractionImage := Image.Create(_TextureAtlas.Width, _TextureAtlas.Height);
+  _NormalImage := TERRAImage.Create(_TextureAtlas.Width, _TextureAtlas.Height);
+  _GlowImage := TERRAImage.Create(_TextureAtlas.Width, _TextureAtlas.Height);
+  _RefractionImage := TERRAImage.Create(_TextureAtlas.Width, _TextureAtlas.Height);
 End;
 
 Procedure ParticleManager.Release;
@@ -808,7 +808,7 @@ Function ParticleManager.GetParticleType(Name:TERRAString): ParticleType;
 Var
   I:Integer;
   S:TERRAString;
-  Source:Image;
+  Source:TERRAImage;
 Begin
   If (Name='') Then
   Begin
@@ -839,9 +839,9 @@ Begin
   Begin
     S := FileManager.Instance.SearchResourceFile(Name);
     If S<>'' Then
-      Source := Image.Create(S)
+      Source := TERRAImage.Create(S)
     Else
-      Source := Image.Create(32, 32);
+      Source := TERRAImage.Create(32, 32);
 
     Result.Item := _TextureAtlas.Add(Source, Name);
     _NeedsRebuild := True;
@@ -902,7 +902,7 @@ End;
 Function ParticleManager.GetTexture(Const Stage:RendererStage; Target:ParticleCollection): TERRATexture;
 Var
   I:Integer;
-  Source:Image;
+  Source:TERRAImage;
   Item:TextureAtlasItem;
   S:TERRAString;
 Begin
@@ -924,10 +924,10 @@ Begin
       S := StringLower(GetFileName(Item.Name, True))+'_normal.png';
       S := FileManager.Instance.SearchResourceFile(S);
       If S<>'' Then
-        Source := Image.Create(S)
+        Source := TERRAImage.Create(S)
       Else
       Begin
-        Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
+        Source := TERRAImage.Create(Item.Buffer.Width, Item.Buffer.Height);
         Source.ClearWithColor(ColorNull, maskRGBA);
       End;
       _NormalImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
@@ -936,10 +936,10 @@ Begin
       S := StringLower(GetFileName(Item.Name, True))+'_glow.png';
       S := FileManager.Instance.SearchResourceFile(S);
       If S<>'' Then
-        Source := Image.Create(S)
+        Source := TERRAImage.Create(S)
       Else
       Begin
-        Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
+        Source := TERRAImage.Create(Item.Buffer.Width, Item.Buffer.Height);
         Source.ClearWithColor(ColorNull, maskRGBA);
       End;
       _GlowImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
@@ -948,10 +948,10 @@ Begin
       S := StringLower(GetFileName(Item.Name, True))+'_refraction.png';
       S := FileManager.Instance.SearchResourceFile(S);
       If S<>'' Then
-        Source := Image.Create(S)
+        Source := TERRAImage.Create(S)
       Else
       Begin
-        Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
+        Source := TERRAImage.Create(Item.Buffer.Width, Item.Buffer.Height);
         Source.ClearWithColor(ColorNull, maskRGBA);
       End;
       _RefractionImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);

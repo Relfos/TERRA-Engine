@@ -1364,7 +1364,7 @@ End;*)
 Procedure GraphicsManager.RestoreContext;
 Var
   I:Integer;
-  Img:Image;
+  Img:TERRAImage;
 Begin
   If Renderer = Nil Then
     Exit;
@@ -1395,7 +1395,7 @@ End;
 
 Procedure GraphicsManager.OnViewportChange(X1, Y1, X2, Y2: Integer);
 Var
-  Img:Image;
+  Img:TERRAImage;
   I:Integer;
 Begin
     If _DeviceViewport = Nil Then

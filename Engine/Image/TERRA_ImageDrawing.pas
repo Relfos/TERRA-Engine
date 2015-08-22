@@ -28,7 +28,7 @@ Type
       Function ObtainNext():Boolean; Override;
 
     Public
-      Constructor Create(Target:Image; Flags:ImageProcessFlags; Const Mask:Cardinal);
+      Constructor Create(Target:TERRAImage; Flags:ImageProcessFlags; Const Mask:Cardinal);
   End;
 
   CircleImageIterator = Class(ImageIterator)
@@ -45,7 +45,7 @@ Type
       Function ObtainNext():Boolean; Override;
 
     Public
-      Constructor Create(Target:Image; XCenter, YCenter, Radius:Integer; Flags:ImageProcessFlags; Const Mask:Cardinal);
+      Constructor Create(Target:TERRAImage; XCenter, YCenter, Radius:Integer; Flags:ImageProcessFlags; Const Mask:Cardinal);
   End;
 
 
@@ -63,7 +63,7 @@ Type
       Function ObtainNext():Boolean; Override;
 
     Public
-      Constructor Create(Target:Image; X1, Y1, X2, Y2:Integer; Flags:ImageProcessFlags; Const Mask:Cardinal);
+      Constructor Create(Target:TERRAImage; X1, Y1, X2, Y2:Integer; Flags:ImageProcessFlags; Const Mask:Cardinal);
   End;
 
   LineImageIterator = Class(ImageIterator)
@@ -92,13 +92,13 @@ Type
       Function ObtainNext():Boolean; Override;
 
     Public
-      Constructor Create(Target:Image; X1, Y1, X2, Y2:Integer; Flags:ImageProcessFlags; Const Mask:Cardinal);
+      Constructor Create(Target:TERRAImage; X1, Y1, X2, Y2:Integer; Flags:ImageProcessFlags; Const Mask:Cardinal);
   End;
 
 Implementation
 
 { CircleImageIterator }
-Constructor CircleImageIterator.Create(Target:Image; XCenter, YCenter, Radius:Integer; Flags:ImageProcessFlags; Const Mask:Cardinal);
+Constructor CircleImageIterator.Create(Target:TERRAImage; XCenter, YCenter, Radius:Integer; Flags:ImageProcessFlags; Const Mask:Cardinal);
 Begin
   Inherited Create(Target, Flags, Mask);
   Self._XCenter := XCenter;
@@ -217,7 +217,7 @@ Begin
 End;
 
 { RectImageIterator }
-Constructor RectImageIterator.Create(Target:Image; X1, Y1, X2, Y2: Integer; Flags: ImageProcessFlags; Const Mask:Cardinal);
+Constructor RectImageIterator.Create(Target:TERRAImage; X1, Y1, X2, Y2: Integer; Flags: ImageProcessFlags; Const Mask:Cardinal);
 Begin
   Inherited Create(Target, Flags, Mask);
 
@@ -254,7 +254,7 @@ Begin
 End;
 
 { LineImageIterator }
-Constructor LineImageIterator.Create(Target: Image; X1, Y1, X2, Y2: Integer; Flags: ImageProcessFlags; Const Mask:Cardinal);
+Constructor LineImageIterator.Create(Target:TERRAImage; X1, Y1, X2, Y2: Integer; Flags: ImageProcessFlags; Const Mask:Cardinal);
 Var
   DeltaX, DeltaY:Integer;
 Begin
@@ -344,7 +344,7 @@ Begin
 End;
 
 { FullImageIterator }
-Constructor FullImageIterator.Create(Target:Image; Flags:ImageProcessFlags; Const Mask:Cardinal);
+Constructor FullImageIterator.Create(Target:TERRAImage; Flags:ImageProcessFlags; Const Mask:Cardinal);
 Begin
   Inherited Create(Target, Flags, Mask);
 

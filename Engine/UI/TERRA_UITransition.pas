@@ -400,7 +400,7 @@ End;
 { UISlide }
 Constructor UISlide.Create(TargetView:TERRAViewport; Direction:Vector2D; Duration,Delay: Cardinal);
 Var
-  Src:Image;
+  Src:TERRAImage;
 Begin
   _View := TargetView;
   _Direction := Direction;

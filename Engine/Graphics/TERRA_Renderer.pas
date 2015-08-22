@@ -185,7 +185,7 @@ Type
     Public
       Function Bind(Slot:Integer):Boolean; Virtual; Abstract;
 
-      Function GetImage():Image; Virtual;
+      Function GetImage():TERRAImage; Virtual;
       Function GetPixel(X,Y:Integer):ColorRGBA; Virtual;
 
       Procedure SetFilter(Value:TextureFilterMode); Virtual;
@@ -570,7 +570,7 @@ Type
 
       Procedure OnSettingsChange();
 
-      Function GetScreenshot():Image; Virtual;
+      Function GetScreenshot():TERRAImage; Virtual;
 
       Procedure SetProjectionMatrix(Const Mat:Matrix4x4); Virtual; Abstract;
       Procedure SetModelMatrix(Const Mat:Matrix4x4); Virtual; Abstract;
@@ -1207,7 +1207,7 @@ Begin
   // do nothing
 End;
 
-Function GraphicsRenderer.GetScreenshot: Image;
+Function GraphicsRenderer.GetScreenshot:TERRAImage;
 Begin
   Result := Nil;
 End;
@@ -1285,7 +1285,7 @@ Begin
   Self._BackgroundColor := Value;
 End;
 
-Function SurfaceInterface.GetImage: Image;
+Function SurfaceInterface.GetImage:TERRAImage;
 Begin
   Result := Nil;
 End;
@@ -1329,7 +1329,7 @@ End;
 Function CubeMapInterface.LoadFromFile(Const FileName: TERRAString): Boolean;
 Var
   W,H, N:Integer;
-  Img:Image;
+  Img:TERRAImage;
   S, Ext:TERRAString;
   Waiting:Boolean;
   Info:ImageClassInfo;
@@ -1354,11 +1354,11 @@ Begin
       Continue;
     End;
 
-    Img := Image.Create(S);
+    Img := TERRAImage.Create(S);
     If (Img.Width<=0) Then
     Begin
       ReleaseObject(Img);
-      Img := Image.Create(W, H);
+      Img := TERRAImage.Create(W, H);
     End Else
     Begin
       W := Img.Width;

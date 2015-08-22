@@ -81,7 +81,7 @@ Type
 
   FontGlyph = Class(TERRAObject)
     Private
-      _Temp:Image;
+      _Temp:TERRAImage;
 
     Protected
       _Font:TERRAFont;
@@ -106,7 +106,7 @@ Type
       Function GetAdvance(Next:Cardinal):Integer;
       Procedure AddKerning(Next:Cardinal; Ammount:SmallInt);
 
-      Function GetImage():Image;
+      Function GetImage():TERRAImage;
 
       Property Font:TERRAFont Read _Font;
       Property Item:TextureAtlasItem Read _Item;
@@ -162,7 +162,7 @@ Type
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
 
-      Function AddGlyph(ID:Cardinal; Source:Image; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; Overload;
+      Function AddGlyph(ID:Cardinal; Source:TERRAImage; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; Overload;
       Function AddGlyph(ID:Cardinal; FileName:TERRAString; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; Overload;
       Function AddEmptyGlyph():FontGlyph;
       Function GetGlyph(ID:Cardinal; CreatedIfNeeded:Boolean = True):FontGlyph;
@@ -289,7 +289,7 @@ Begin
     Inc(Result, Self._Factory.GetKerning(ID, Next));
 End;
 
-Function FontGlyph.GetImage: Image;
+Function FontGlyph.GetImage:TERRAImage;
 Begin
   If Assigned(_Temp) Then
     Result := _Temp
@@ -534,11 +534,11 @@ End;
 
 Function TERRAFont.AddGlyph(ID:Cardinal; FileName:TERRAString; XOfs, YOfs, XAdvance: SmallInt):FontGlyph;
 Var
-  Source: Image;
+  Source:TERRAImage;
 Begin
   FileName := GetFileName(FileName, True);
 
-  Source := Image.Create(FileName);
+  Source := TERRAImage.Create(FileName);
   If (Source.Width>0) Then
     Result := Self.AddGlyph(ID, Source, XOfs, YOfs, XAdvance)
   Else
@@ -547,13 +547,13 @@ Begin
   ReleaseObject(Source);
 End;
 
-Function TERRAFont.AddGlyph(ID: Cardinal; Source:Image; XOfs, YOfs, XAdvance:SmallInt):FontGlyph;
+Function TERRAFont.AddGlyph(ID: Cardinal; Source:TERRAImage; XOfs, YOfs, XAdvance:SmallInt):FontGlyph;
 Var
   It:ImageIterator;
   C:ColorRGBA;
   N:Byte;
 
-  Temp:Image;
+  Temp:TERRAImage;
 Begin
   //Self.Prefetch();
 
@@ -564,7 +564,7 @@ Begin
 
 //  Source.Save('glyph'+CardinalTOString(ID)+'.png');
 
-  Temp := Image.Create(Source.Width + FontPadding * 2, Source.Height + FontPadding * 2);
+  Temp := TERRAImage.Create(Source.Width + FontPadding * 2, Source.Height + FontPadding * 2);
   Temp.Blit(FontPadding, FontPadding, 0, 0, Source.Width, Source.Height, Source);
 
   //Temp.Save('glyph'+CardinalTOString(ID)+'.png');

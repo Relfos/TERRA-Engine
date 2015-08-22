@@ -61,7 +61,7 @@ Type
 
   PImageDest = ^ImageDest;
   ImageDest = Record
-    Output:Image;  // Target ouput image
+    Output:TERRAImage;  // Target ouput image
     Color:PColorRGBA;
     Row:Integer;
 
@@ -169,7 +169,7 @@ Begin
   Source.pub.next_input_byte := Nil; // until buffer loaded
 end;
 
-Function jinit_ImageDest(cinfo:j_decompress_ptr; Target:Image):PImageDest;
+Function jinit_ImageDest(cinfo:j_decompress_ptr; Target:TERRAImage):PImageDest;
 Var
   Dest:PImageDest;
 Begin
@@ -219,7 +219,7 @@ Begin
   End;
 End;
 
-Procedure JPGLoad(Source:Stream; Image:TERRA_Image.Image);
+Procedure JPGLoad(Source:Stream; Image:TERRAImage);
 Var
   cinfo:jpeg_decompress_struct;
   jerr:jpeg_error_mgr;

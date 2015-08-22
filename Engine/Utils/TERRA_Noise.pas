@@ -19,7 +19,7 @@ Type
       Function Noise(X,Y,Z:Single):Single; Virtual; Abstract;
       //Function TiledNoise(X,Y,Z:Single; W, H:Single):Single;
 
-      Procedure SaveToImage(Target:Image; Layer:Single; ColorMask:Cardinal);
+      Procedure SaveToImage(Target:TERRAImage; Layer:Single; ColorMask:Cardinal);
     End;
 
   PerlinNoiseGenerator = Class(NoiseGenerator)
@@ -92,7 +92,7 @@ Begin
   Result := Result / (w * h);
 End;*)
 
-Procedure NoiseGenerator.SaveToImage(Target:Image; Layer:Single; ColorMask:Cardinal);
+Procedure NoiseGenerator.SaveToImage(Target:TERRAImage; Layer:Single; ColorMask:Cardinal);
 Const
   BorderSize = 0.25;
   BorderLeft = BorderSize;

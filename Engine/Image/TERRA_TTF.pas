@@ -90,7 +90,7 @@ Type
 
       Procedure stbtt_GetGlyphHMetrics(GlyphIndex: Integer; var advanceWidth, leftSideBearing: Integer);
       Function stbtt_GetGlyphKernAdvance(glyph1: Integer; glyph2: Integer): Integer;
-      Function stbtt_GetGlyphBitmap(scale_x, scale_y, shift_x, shift_y: Single; glyph: Integer; var xoff, yoff: Integer): Image;
+      Function stbtt_GetGlyphBitmap(scale_x, scale_y, shift_x, shift_y: Single; glyph: Integer; var xoff, yoff: Integer):TERRAImage;
 
       Procedure stbtt_GetGlyphShape(glyph_index: Integer; Out Result:TStBttVertexArray);
       Function stbtt__GetGlyfOffset(glyph_index: Integer): Integer;
@@ -103,14 +103,14 @@ Type
       Function stbtt_GetCodepointBox(codepoint: Integer; var x0, y0, x1, y1: Integer): Integer;
       Procedure stbtt_GetCodepointBitmapBox(codepoint: Integer; scale_x, scale_y: Single; var ix0, iy0, ix1, iy1: Integer);
 
-      Procedure stbtt_Rasterize(resultBitmap:Image; FlatnessInPixels: Single; Var Vertices:TStBttVertexArray; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
+      Procedure stbtt_Rasterize(resultBitmap:TERRAImage; FlatnessInPixels: Single; Var Vertices:TStBttVertexArray; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
       Procedure stbtt_GetFontVMetrics(var ascent, descent, lineGap: Integer);
       Procedure stbtt_setvertex(var v:TStBttVertex; typeByte: Byte; x, y, cx, cy: Smallint);
-      Procedure stbtt__rasterize(resultBitmap:Image; Var Pts:TStBttPointArray; Var Windings:TTFContourArray; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
+      Procedure stbtt__rasterize(resultBitmap:TERRAImage; Var Pts:TStBttPointArray; Var Windings:TTFContourArray; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
       Procedure stbtt_FlattenCurves(Var Vertices:TStBttVertexArray; ObjSpaceFlatness: Single; Out Contours:TTFContourArray; Out Windings:TStBttPointArray);
       Procedure stbtt__add_point(Var points:TStBttPointArray; n: Integer; x, y: Single);
       Function stbtt__tesselate_curve(Var points:TStBttPointArray; var num_points: Integer; x0, y0, x1, y1, x2, y2, objspace_flatness_squared: Single; n: Integer): Integer;
-      Procedure stbtt__rasterize_sorted_edges(resultBitmap:Image; e:EdgeList; vsubsample, off_x, off_y: Integer);
+      Procedure stbtt__rasterize_sorted_edges(resultBitmap:TERRAImage; e:EdgeList; vsubsample, off_x, off_y: Integer);
       Procedure stbtt__fill_active_edges(scanline: PByteArray; len: Integer; e:TStBttActiveEdge; max_weight: Integer);
       Function new_active(Const e: TStBttEdge; off_x: Integer; start_point: Single):TStBttActiveEdge;
 
@@ -120,7 +120,7 @@ Type
 
       Function stbtt_FindGlyphIndex(unicode_codepoint: Integer):Word;
 
-      Function GetCodepointBitmap(scaleX, scaleY: Single; codepoint: Integer; var xoff, yoff: Integer):Image;
+      Function GetCodepointBitmap(scaleX, scaleY: Single; codepoint: Integer; var xoff, yoff: Integer):TERRAImage;
       Function ScaleForPixelHeight(height: Single): Single;
 
       Function HasGlyph(ID:Cardinal):Boolean;
@@ -405,7 +405,7 @@ Begin
     Result := 0.0;
 End;
 
-Function TTFFont.GetCodepointBitmap(scaleX, scaleY: Single; codepoint: Integer; var xoff, yoff: Integer):Image;
+Function TTFFont.GetCodepointBitmap(scaleX, scaleY: Single; codepoint: Integer; var xoff, yoff: Integer):TERRAImage;
 Begin
   If (_Ready) Then
     Result := stbtt_GetGlyphBitmap(scaleX, scaleY, 0, 0, stbtt_FindGlyphIndex(codepoint), xoff, yoff)
@@ -413,7 +413,7 @@ Begin
     Result := Nil;
 End;
 
-function TTFFont.stbtt_GetGlyphBitmap(scale_x, scale_y, shift_x, shift_y: Single; glyph: Integer; var xoff, yoff: Integer): Image;
+function TTFFont.stbtt_GetGlyphBitmap(scale_x, scale_y, shift_x, shift_y: Single; glyph: Integer; var xoff, yoff: Integer):TERRAImage;
 var
    ix0,iy0,ix1,iy1: Integer;
    w,h:Integer;
@@ -442,7 +442,7 @@ begin
     Exit;
 
   // now we get the size
-  Result := Image.Create(w, h);
+  Result := TERRAImage.Create(w, h);
   Result.ClearWithColor(ColorNull);
   xoff   := ix0;
   yoff   := iy0;
@@ -1126,7 +1126,7 @@ begin
    end;
 End;
 
-Procedure TTFFont.stbtt_Rasterize(resultBitmap:Image; FlatnessInPixels: Single; Var Vertices:TStBttVertexArray; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
+Procedure TTFFont.stbtt_Rasterize(resultBitmap:TERRAImage; FlatnessInPixels: Single; Var Vertices:TStBttVertexArray; ScaleX, ScaleY, ShiftX, ShiftY: Single; XOff, YOff, Invert: Integer);
 Var
   Scale: Single;
   WindingLengths:TTFContourArray;
@@ -1142,7 +1142,7 @@ Begin
   End;
 End;
 
-Procedure TTFFont.stbtt__rasterize(resultBitmap:Image; Var Pts: TStBttPointArray; Var Windings:TTFContourArray; ScaleX, ScaleY, ShiftX,ShiftY: Single; XOff, YOff, Invert: Integer);
+Procedure TTFFont.stbtt__rasterize(resultBitmap:TERRAImage; Var Pts: TStBttPointArray; Var Windings:TTFContourArray; ScaleX, ScaleY, ShiftX,ShiftY: Single; XOff, YOff, Invert: Integer);
 Var
   YScaleInv: Single;
   i,j,k,m, a,b, VSubSample: Integer;
@@ -1321,7 +1321,7 @@ begin
   End;
 End;
 
-Procedure TTFFont.stbtt__rasterize_sorted_edges(resultBitmap:Image; e: EdgeList; vsubsample, off_x, off_y: Integer);
+Procedure TTFFont.stbtt__rasterize_sorted_edges(resultBitmap:TERRAImage; e: EdgeList; vsubsample, off_x, off_y: Integer);
 Var
   active: TStBttActiveEdge;
   y,j,s,iii: Integer;
@@ -1486,7 +1486,7 @@ Var
   W,H,XOfs,YOfs, XAdv,lsb:Integer;
   OpID:Cardinal;
   I,J:Integer;
-  Img:Image;
+  Img:TERRAImage;
 Begin
   Result := Nil;
 
@@ -1502,7 +1502,7 @@ Begin
     OpID := Ord('E');
     Img := GetCodepointBitmap(_Scale, _Scale, OpID, xofs, yofs);
     ReleaseObject(Img);
-    Img := Image.Create(4,4);
+    Img := TERRAImage.Create(4,4);
     stbtt_GetCodepointHMetrics(OpID, XAdv, lsb);
     Result := Font.AddGlyph(ID, Img, XOfs, YOfs, Trunc(XAdv*_Scale));
     ReleaseObject(Img);
@@ -1531,7 +1531,7 @@ End;
 Function LoadTTF(Source:Stream; Font:TERRAFont):Boolean;
 Var
   Factory:TTFFont;
-  Img:Image;
+  Img:TERRAImage;
   Size:Integer;
   Scale:Single;
   XAdv,lsb:Integer;

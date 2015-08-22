@@ -1057,11 +1057,11 @@ End;
 { VibranceFX }
 Constructor VibranceFX.Create(Strength: Single);
 Var
-  Exp:Image;
+  Exp:TERRAImage;
   C:ColorRGBA;
   I:Integer;
 Begin
-  Exp := Image.Create(256, 1);
+  Exp := TERRAImage.Create(256, 1);
   For I:=0 To 255 Do
   Begin
     C := ColorGrey(Trunc(SmoothCurveWithOffset(I/255, 0.5) * 255));

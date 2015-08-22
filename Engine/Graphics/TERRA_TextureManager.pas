@@ -175,12 +175,12 @@ End;
 
 Procedure TextureManager.FillTextureWithColor(Tex: TERRATexture; Const TexColor:ColorRGBA);
 Var
-  Buffer:Image;
+  Buffer:TERRAImage;
 Begin
   If (Tex = Nil) Then
     Exit;
 
-  Buffer := Image.Create(Tex.Width, Tex.Height);
+  Buffer := TERRAImage.Create(Tex.Width, Tex.Height);
   Buffer.ClearWithColor(TexColor, maskRGBA);
   Tex.UpdateRect(Buffer, 0, 0);
   ReleaseObject(Buffer);
@@ -308,13 +308,13 @@ End;
 Function TextureManager.GetCellNoise: TERRATexture;
 Var
   Noise:NoiseGenerator;
-  Img:Image;
+  Img:TERRAImage;
 Begin
   If _CellNoise = Nil Then
   Begin
     Noise := CellNoiseGenerator.Create();
     //Noise := PerlinNoiseGenerator.Create();
-    Img := Image.Create(512, 512);
+    Img := TERRAImage.Create(512, 512);
 
     Noise.SaveToImage(Img, 0.0, maskRGB);
     //Img.Save('cellnoise.png');

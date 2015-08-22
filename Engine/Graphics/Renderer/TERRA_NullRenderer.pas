@@ -30,7 +30,7 @@ Type
 
       Function Bind(Slot:Integer):Boolean; Override;
 
-      Function GetImage():Image; Override;
+      Function GetImage():TERRAImage; Override;
 
       Procedure Invalidate(); Override;
   End;
@@ -58,7 +58,7 @@ Type
 
       Procedure Resize(NewWidth, NewHeight:Integer); Override;
 
-      Function GetImage():Image; Override;
+      Function GetImage():TERRAImage; Override;
       Function GetPixel(X,Y:Integer):ColorRGBA; Override;
 
       Procedure Invalidate(); Override;
@@ -409,9 +409,9 @@ Begin
   Result := True;
 End;
 
-Function NullFBO.GetImage():Image;
+Function NullFBO.GetImage():TERRAImage;
 Begin
-  Result := Image.Create(_Width, _Height);
+  Result := TERRAImage.Create(_Width, _Height);
 End;
 
 Function NullFBO.GetPixel(X,Y:Integer):ColorRGBA;
@@ -437,9 +437,9 @@ Begin
   Result := True;
 End;
 
-Function NullTexture.GetImage:Image;
+Function NullTexture.GetImage:TERRAImage;
 Begin
-  Result := Image.Create(_Width, _Height);
+  Result := TERRAImage.Create(_Width, _Height);
 End;
 
 

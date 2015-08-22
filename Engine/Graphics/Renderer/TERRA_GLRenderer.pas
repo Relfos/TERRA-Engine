@@ -163,7 +163,7 @@ Type
 
       Function Update(Pixels:Pointer; X,Y, Width, Height:Integer):Boolean; Override;
 
-      Function GetImage():Image; Override;
+      Function GetImage():TERRAImage; Override;
 
       Procedure Invalidate(); Override;
   End;
@@ -234,7 +234,7 @@ Type
 
       Procedure Resize(NewWidth, NewHeight:Integer); Override;
 
-      Function GetImage():Image; Override;
+      Function GetImage():TERRAImage; Override;
       Function GetPixel(X,Y:Integer):ColorRGBA; Override;
 
       Procedure Invalidate(); Override;
@@ -292,7 +292,7 @@ Type
 
       Procedure Resize(Width, Height:Integer); Override;
 
-      Function GetScreenshot():Image; Override;
+      Function GetScreenshot():TERRAImage; Override;
 
       Function CreateTexture():TextureInterface; Override;
       Function CreateCubeMap():CubeMapInterface; Override;
@@ -1608,13 +1608,13 @@ Begin
   {$ENDIF}
 End;
 
-Function OpenGLRenderer.GetScreenshot: Image;
+Function OpenGLRenderer.GetScreenshot:TERRAImage;
 Var
   W,H:Integer;
 Begin
   W := Application.Instance.Width;
   H := Application.Instance.Height;
-  Result := Image.Create(W, H);
+  Result := TERRAImage.Create(W, H);
   glReadPixels(0, 0, W, H, GL_RGBA, GL_UNSIGNED_BYTE, Result.RawPixels);
   Result.FlipVertical();
 End;
@@ -2076,9 +2076,9 @@ Begin
   End;
 End;
 
-Function OpenGLFBO.GetImage():Image;
+Function OpenGLFBO.GetImage():TERRAImage;
 Begin
-  Result := Image.Create(_Width, _Height);
+  Result := TERRAImage.Create(_Width, _Height);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, _Handle);
   {$IFDEF PC}
@@ -2207,11 +2207,11 @@ Begin
   Result := True;
 End;
 
-Function OpenGLTexture.GetImage:Image;
+Function OpenGLTexture.GetImage:TERRAImage;
 Begin
   Log(logDebug, 'Texture', 'Getting image from texture '{+Self.Name});
 
-  Result := Image.Create(_Width, _Height);
+  Result := TERRAImage.Create(_Width, _Height);
 
   {$IFDEF PC}
   glActiveTexture(GL_TEXTURE0);

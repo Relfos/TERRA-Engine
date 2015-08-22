@@ -152,7 +152,7 @@ Var
   I, N:Integer;
   W,H:Integer;
   S:TERRAString;
-  Img:Image;
+  Img:TERRAImage;
 Begin
   Self._ObjectName := 'skybox';
   _Color := ColorWhite;

@@ -39,7 +39,7 @@ is specified in units of the destination image. The spread in the source image
 will be spread*scale_down.
 }
 
-Function CreateDistanceField(Source:Image; Component, Scale:Cardinal; Spread:Single):Image;
+Function CreateDistanceField(Source:TERRAImage; Component, Scale:Cardinal; Spread:Single):TERRAImage;
 
 Implementation
 Uses TERRA_Log, TERRA_ImageDrawing;
@@ -120,7 +120,7 @@ End;
 Const
   RescaleFactor = 1.0 / 255.0;
 
-Function CreateDistanceField(Source:Image; Component, Scale:Cardinal; Spread:Single):Image;
+Function CreateDistanceField(Source:TERRAImage; Component, Scale:Cardinal; Spread:Single):TERRAImage;
 Var
   X,Y:Integer;
   PX, PY:Integer;
@@ -134,7 +134,7 @@ Begin
   //Padding := Source.Width Div 10;
   Log(logWarning, 'Application', 'Making distance field glyph...');
 
-  Result := Image.Create(Source.Width, Source.Height);
+  Result := TERRAImage.Create(Source.Width, Source.Height);
 
   //Result.Save('test.png');
 

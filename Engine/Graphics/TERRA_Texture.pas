@@ -50,7 +50,7 @@ Type
       _TargetFormat:TextureColorFormat;
       _ByteFormat:PixelSizeType;
 
-      _Source:Image;
+      _Source:TERRAImage;
       _Ratio:Vector2D;
 
       _Managed:Boolean;
@@ -66,8 +66,8 @@ Type
 
       Function GetCurrentFrame():Integer;
       Function GetCurrent:SurfaceInterface;
-
-      Procedure AdjustRatio(Source:Image);
+                                       
+      Procedure AdjustRatio(Source:TERRAImage);
 
       Function IsNPOT():Boolean;
 
@@ -87,7 +87,7 @@ Type
       Constructor Create(Kind:ResourceType; Location:TERRAString);
 
       Procedure InitFromSize(TextureWidth, TextureHeight:Cardinal; FillColor:ColorRGBA);
-      Procedure InitFromImage(Source:Image);
+      Procedure InitFromImage(Source:TERRAImage);
       Procedure InitFromSurface(Surface:SurfaceInterface);
 
       Function IsValid():Boolean;
@@ -101,8 +101,8 @@ Type
 
       Class Function GetBindAtSlot(Index:Integer):TERRATexture;
 
-      Procedure UpdateRect(Source:Image; X,Y:Integer); Overload;
-      Procedure UpdateRect(Source:Image); Overload;
+      Procedure UpdateRect(Source:TERRAImage; X,Y:Integer); Overload;
+      Procedure UpdateRect(Source:TERRAImage); Overload;
 
       Procedure SetWrapMode(Value:TextureWrapMode);
       Procedure SetMipMapping(Value:Boolean);
@@ -110,7 +110,7 @@ Type
 
 	    Procedure Save(Const FileName:TERRAString);
 
-      Function GetImage():Image;
+      Function GetImage():TERRAImage;
       Function GetPixel(X,Y:Integer):ColorRGBA; Virtual;
 
       Class Function LoadFromFile(Const FileName:TERRAString):TERRATexture;
@@ -226,7 +226,7 @@ Begin
     _Ratio := VectorCreate2D(_Width/TextureWidth, _Height/TextureHeight);
   End;
 
-  _Source := Image.Create(_Width, _Height);
+  _Source := TERRAImage.Create(_Width, _Height);
   _Source.ClearWithColor(FillColor, maskRGBA);
 
   _TransparencyType := imageOpaque;
@@ -236,7 +236,7 @@ Begin
   Self.Update();
 End;
 
-Procedure TERRATexture.InitFromImage(Source:Image);
+Procedure TERRATexture.InitFromImage(Source:TERRAImage);
 Begin
   _TransparencyType := imageUnknown;
 
@@ -256,7 +256,7 @@ Var
 Begin
   Uncompressed := False;
   Ofs := Source.Position;
-  _Source := Image.Create(Source);
+  _Source := TERRAImage.Create(Source);
 
 (*  If (StringContains('monster', Source.Name)) Then
     IntToString(2);*)
@@ -321,7 +321,7 @@ Begin
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Allocating pixels');{$ENDIF}
   If (Not Assigned(_Source)) Then
   Begin
-    _Source := Image.Create(_Width, _Height);
+    _Source := TERRAImage.Create(_Width, _Height);
     _Source.ClearWithColor(ColorWhite, maskRGB);
     _TransparencyType := imageOpaque;
     Exit;
@@ -428,7 +428,7 @@ Begin
   End;
 End;
 
-Procedure TERRATexture.UpdateRect(Source:Image; X,Y:Integer);
+Procedure TERRATexture.UpdateRect(Source:TERRAImage; X,Y:Integer);
 Var
   Pixels:PWord;
   SourceFormat:TextureColorFormat;
@@ -442,7 +442,7 @@ Begin
     Begin
       ReleaseObject(_Source);
 
-      _Source := Image.Create(Source);
+      _Source := TERRAImage.Create(Source);
     End Else
     If (Assigned(_Source)) Then
       _Source.Blit(X,Y, 0, 0, Source.Width, Source.Height, Source);
@@ -459,7 +459,7 @@ Begin
     RaiseError('Trying to update something that is not a TextureInterface!');
 End;
 
-Procedure TERRATexture.UpdateRect(Source:Image);
+Procedure TERRATexture.UpdateRect(Source:TERRAImage);
 Begin
   If (Self.Width<>Source.Width) Or (Self.Height <> Source.Height) Then
   Begin
@@ -498,7 +498,7 @@ End;*)
 { DefaultColorTable }
 Function DefaultColorTableTexture.Build():Boolean;
 Var
-  Temp:Image;
+  Temp:TERRAImage;
 Begin
   Temp := CreateColorTable(32);
   Self.UpdateRect(Temp);
@@ -528,7 +528,7 @@ Begin
 End;
 
 
-Procedure TERRATexture.AdjustRatio(Source:Image);
+Procedure TERRATexture.AdjustRatio(Source:TERRAImage);
 Var
   W,H:Cardinal;
 Begin
@@ -572,7 +572,7 @@ Begin
 End;
 
 (*
-Procedure TERRATexture.ConvertToFormat(Source:Image; Var Pixels:PWord);
+Procedure TERRATexture.ConvertToFormat(Source:TERRAImage; Var Pixels:PWord);
 Var
   HasMask:Boolean;
   HasAlpha:Boolean;
@@ -765,7 +765,7 @@ End;
 
 Procedure TERRATexture.Save(const FileName: TERRAString);
 Var
-  Img:Image;
+  Img:TERRAImage;
 Begin
   Img := Self.GetImage();
   If Assigned(Img) Then
@@ -785,7 +785,7 @@ Begin
   Result := (W<>Self.Width) Or (H<>Self.Height);
 End;
 
-Function TERRATexture.GetImage: Image;
+Function TERRATexture.GetImage:TERRAImage;
 Begin
   Result := Self.Current.GetImage();
 End;

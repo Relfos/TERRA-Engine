@@ -34,9 +34,9 @@ Const
 Type
   ColorTransform = Function (N:ColorRGBA; Userdata:Pointer):ColorRGBA; Cdecl;
 
-  Function CreateColorTable(Size:Integer; Transform:ColorTransform = Nil; Userdata:Pointer = Nil):Image;
-  Function ColorTableLookUp(ColorTable:Image; Const Source:ColorRGBA):ColorRGBA;
-  Procedure ColorTableTransform(Dest, ColorTable:Image);
+  Function CreateColorTable(Size:Integer; Transform:ColorTransform = Nil; Userdata:Pointer = Nil):TERRAImage;
+  Function ColorTableLookUp(ColorTable:TERRAImage; Const Source:ColorRGBA):ColorRGBA;
+  Procedure ColorTableTransform(Dest, ColorTable:TERRAImage);
 
   Function GetColorTableShaderCode():TERRAString;
   Function ColorTableBind(ColorTableTex:TERRATexture; Slot:Integer):Boolean;
@@ -44,13 +44,13 @@ Type
 Implementation
 Uses TERRA_OS, TERRA_GraphicsManager, TERRA_Log, TERRA_EngineManager;
 
-Function CreateColorTable(Size:Integer; Transform:ColorTransform; Userdata:Pointer):Image;
+Function CreateColorTable(Size:Integer; Transform:ColorTransform; Userdata:Pointer):TERRAImage;
 Var
   Scale:Single;
   R,G,B:Integer;
   Temp:ColorRGBA;
 Begin
-  Result := Image.Create(Size * Size, Size);
+  Result := TERRAImage.Create(Size * Size, Size);
   Scale := 255/Pred(Size);
   For R:=0 To Pred(Size) Do
     For G:=0 To Pred(Size) Do
@@ -64,7 +64,7 @@ Begin
       End;
 End;
 
-Procedure ColorTableTransform(Dest, ColorTable:Image);
+Procedure ColorTableTransform(Dest, ColorTable:TERRAImage);
 Var
   I,J:Integer;
   P:ColorRGBA;
@@ -78,7 +78,7 @@ Begin
     End;
 End;
 
-Function ColorTableLookUp(ColorTable:Image; Const Source:ColorRGBA):ColorRGBA;
+Function ColorTableLookUp(ColorTable:TERRAImage; Const Source:ColorRGBA):ColorRGBA;
 Var
   R1,G1,B1:Single;
   R2,G2,B2:Single;

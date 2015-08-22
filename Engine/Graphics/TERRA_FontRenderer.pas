@@ -107,7 +107,7 @@ Type
 
       Function DrawText(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString):TERRAFontRenderer;
       Function DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):TERRAFontRenderer;
-      Function DrawTextToImage(Target:Image; X,Y:Integer; Const Text:TERRAString; ForceBlend:Boolean = True):TERRAFontRenderer;
+      Function DrawTextToImage(Target:TERRAImage; X,Y:Integer; Const Text:TERRAString; ForceBlend:Boolean = True):TERRAFontRenderer;
 
       Procedure GetColors(Out A,B,C,D:ColorRGBA);
 
@@ -600,7 +600,7 @@ Begin
   EndRender();
 End;
 
-Function TERRAFontRenderer.DrawTextToImage(Target:Image; X, Y: Integer; const Text:TERRAString; ForceBlend:Boolean):TERRAFontRenderer;
+Function TERRAFontRenderer.DrawTextToImage(Target:TERRAImage; X, Y: Integer; const Text:TERRAString; ForceBlend:Boolean):TERRAFontRenderer;
 Var
   Next:Cardinal;
   Alpha:Integer;
@@ -608,7 +608,7 @@ Var
   Projection:Matrix4x4;
   A,B,C,D:ColorRGBA;
   I:Integer;
-  GG:Image;
+  GG:TERRAImage;
 Begin
   Result := Self;
   

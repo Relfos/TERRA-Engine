@@ -186,7 +186,7 @@ Var
   Glyph:FontGlyph;
   I, ID:Integer;
   Src:Stream;
-  SrcImg, SubImg:Image;
+  SrcImg, SubImg:TERRAImage;
 
   Procedure SubPic(X, Y, W, H:Integer);
   Begin
@@ -201,7 +201,7 @@ Begin
   Result := _DefaultFont;
 
   Src := MemoryStream.Create(bm_size, @bm_data[0]);
-  SrcImg := Image.Create(Src);
+  SrcImg := TERRAImage.Create(Src);
   ReleaseObject(Src);
 
   For I:=32 To 128 Do

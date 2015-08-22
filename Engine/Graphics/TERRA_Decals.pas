@@ -89,7 +89,7 @@ Var
   S, Name:TERRAString;
   Src:Stream;
   I:Integer;
-  Img:Image;
+  Img:TERRAImage;
   Info:ImageClassInfo;
   Item:TextureAtlasItem;
 Begin
@@ -112,7 +112,7 @@ Begin
       Log(logDebug, 'Game', 'Got '+S);
 
       Src := FileStream.Open(S);
-      Img := Image.Create(Src);
+      Img := TERRAImage.Create(Src);
       ReleaseObject(Src);
       Item := _TextureAtlas.Add(Img, S);
       _NeedTextureAtlasRebuild := True;

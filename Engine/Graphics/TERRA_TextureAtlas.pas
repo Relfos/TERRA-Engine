@@ -46,7 +46,7 @@ Type
     Public
       ID:Integer;
       PageID:Integer;
-      Buffer:Image;
+      Buffer:TERRAImage;
 
       Procedure Release; Override;
 
@@ -95,7 +95,7 @@ Type
       Constructor Create(Name:TERRAString; Width, Height:Integer);
       Procedure Release; Override;
 
-      Function Add(Source:Image; Name:TERRAString; ShareSource:Boolean = False; Crop:Integer = 0):TextureAtlasItem;
+      Function Add(Source:TERRAImage; Name:TERRAString; ShareSource:Boolean = False; Crop:Integer = 0):TextureAtlasItem;
 
       Procedure Delete(ID:Integer);
       Function Get(ID:Integer):TextureAtlasItem; Overload;
@@ -151,7 +151,7 @@ Begin
   _ItemCount := 0;
 End;
 
-Function TextureAtlas.Add(Source:Image; Name:TERRAString; ShareSource:Boolean; Crop:Integer): TextureAtlasItem;
+Function TextureAtlas.Add(Source:TERRAImage; Name:TERRAString; ShareSource:Boolean; Crop:Integer): TextureAtlasItem;
 Begin
   If (Source = Nil) Or (Source.Width<=0) Or (Source.Height<=0) Then
   Begin
@@ -173,7 +173,7 @@ Begin
   Else
   Begin
     Log(logDebug, 'Game', 'Creating image from source');
-    Result.Buffer := Image.Create(Source);
+    Result.Buffer := TERRAImage.Create(Source);
   End;
 
   Result.ID := _RefCount;
@@ -380,11 +380,11 @@ Procedure TextureAtlas.RebuildPage(PageID: Integer; Target: TERRATexture);
 Var
   I:Integer;
   {$IFDEF CPUBUFFER}
-  Buffer:Image;
+  Buffer:TERRAImage;
   {$ENDIF}
 Begin
   {$IFDEF CPUBUFFER}
-  Buffer := Image.Create(_Width, _Height);
+  Buffer := TERRAImage.Create(_Width, _Height);
   {$ENDIF}
 
   For I:=0 To Pred(_ItemCount) Do

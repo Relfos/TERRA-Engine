@@ -57,7 +57,7 @@ Type
 
   PNGLoader = Class(TERRAObject)
     Protected
-      Buffer:Image;
+      Buffer:TERRAImage;
       Header:PNGHeader;
       BytesPerRow:Cardinal;
       Offset:Cardinal;
@@ -826,7 +826,7 @@ Begin
   End;
 End;
 
-Procedure PNGLoad(Source:Stream; MyImage:Image);
+Procedure PNGLoad(Source:Stream; MyImage:TERRAImage);
 Var
   I,J:Integer;
   Signature:Array[0..7] Of AnsiChar;
@@ -957,7 +957,7 @@ Begin
   End;
 End;
 
-Procedure PNGSave(Dest:Stream; MyImage:Image; Depth:Integer);
+Procedure PNGSave(Dest:Stream; MyImage:TERRAImage; Depth:Integer);
 Const
   BUFFER = 5;
 Var
