@@ -59,10 +59,9 @@ Type
 
     Procedure Normalize;
 
-    Function Length:Single;
+    Function Length():Single;
+    Function LengthSquared():Single;
     Function Distance(Const N:Vector2D):Single;
-
-    Function Dot(B:Vector2D):Single;
 
     {$IFDEF BENCHMARK}
     Function LengthSSE:Single;
@@ -100,7 +99,9 @@ Type
   End;
   
 Function StringToVector2D(S:TERRAString):Vector2D;
-Function VectorCreate2D(Const X,Y:Single):Vector2D; 
+Function VectorCreate2D(Const X,Y:Single):Vector2D;
+
+Function VectorDot2D(Const A,B:Vector2D):Single;  
 Function VectorCross2D(Const A,B:Vector2D):Single;
 
 Function VectorAdd2D(Const A,B:Vector2D):Vector2D;
@@ -125,6 +126,15 @@ Function VectorCreate2D(Const X,Y:Single):Vector2D; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result.X := X;
   Result.Y := Y;
+End;
+
+Function VectorDot2D(Const A,B:Vector2D):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Begin
+  {$IFDEF NEON_FPU}
+  Result := dot2_neon_hfp(@A, @B);
+  {$ELSE}
+  Result := (A.X * B.X) + (A.Y * B.Y);
+  {$ENDIF}
 End;
 
 Function VectorCross2D(Const A,B:Vector2D):Single; {$IFDEF FPC} Inline;{$ENDIF}
@@ -165,7 +175,7 @@ Procedure Vector2D.Project(Const V:Vector2D);
 Var
   thisDotV:Single;
 Begin
-  thisDotV := Self.Dot(V);
+  thisDotV := VectorDot2D(Self, V);
   Self.X := V.X * thisDotV;
   Self.Y := V.Y * thisDotV;
 End;
@@ -261,12 +271,17 @@ End;
 {$IFDEF BENCHMARK} {$UNDEF SSE} {$ENDIF}
 
 {$IFNDEF SSE}
+Function Vector2D.LengthSquared:Single;
+Begin
+  Result := Sqr(X)+Sqr(Y);
+End;
+
 Function Vector2D.Length:Single;
 Begin
     {$IFDEF OXYGENE}
-  Result := System.Math.Sqrt((X*X)+(Y*Y));
+  Result := System.Math.Sqrt(Self.LengthSquared);
     {$ELSE}
-  Result := Sqrt(Sqr(X)+Sqr(Y));
+  Result := Sqrt(Self.LengthSquared);
     {$ENDIF}
 End;
 
@@ -294,15 +309,6 @@ Begin
     
   X := X / K;
   Y := Y / K;
-End;
-
-Function Vector2D.Dot(B:Vector2D):Single;
-Begin
-  {$IFDEF NEON_FPU}
-  Result := dot2_neon_hfp(@Self,@B);
-  {$ELSE}
-  Result := (Self.X * B.X) + (Self.Y * B.Y);
-  {$ENDIF}
 End;
 
 {$IFDEF OXYGENE}

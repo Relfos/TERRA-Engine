@@ -139,7 +139,7 @@ Begin
   Diff := C.Center;
   Diff.Subtract(P1);
 
-  T := Diff.Dot(Dir) / Dir.Dot(Dir);
+  T := VectorDot2D(Diff, Dir) / VectorDot2D(Dir, Dir);
 
   If (T < 0.0) Then
     T := 0.0;
@@ -154,7 +154,7 @@ Begin
   D := C.Center;
   D.Subtract(Closest);
 
-  Distsqr := D.Dot(D);
+  Distsqr := VectorDot2D(D, D);
   If Assigned(Distance) Then
     Distance^ := Sqrt(Distsqr);
 
