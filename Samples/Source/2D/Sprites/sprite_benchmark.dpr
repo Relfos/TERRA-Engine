@@ -22,7 +22,6 @@ uses
   TERRA_UIView,
   TERRA_PNG,
   TERRA_Math,
-  TERRA_Scene,
   TERRA_Color,
   TERRA_String,
   TERRA_Sprite;
@@ -31,7 +30,7 @@ Type
   MyDemo = Class(DemoApplication)
     Public
 			Procedure OnCreate; Override;
-      Procedure OnRender(View:TERRAViewport); Override;
+      Procedure OnRender2D(View:TERRAViewport); Override;
   End;
 
 Const
@@ -52,10 +51,10 @@ Begin
   Inherited;
 
   // Load a Tex
-  Tex := Engine.Textures.GetTexture('ghost');
+  Tex := Engine.Textures['ghost'];
 
-  W := UIManager.Instance.Width;
-  H := UIManager.Instance.Height;
+  W := Self.GUI.Viewport.Width;
+  H := Self.GUI.Viewport.Height;
 
   For I:=0 To Pred(Limit) Do
   Begin
@@ -64,16 +63,14 @@ Begin
   End;
 End;
 
-Procedure MyDemo.OnRender(View: TERRAViewport);
+Procedure MyDemo.OnRender2D(View: TERRAViewport);
 Var
   I:Integer;
   W,H,Z:Single;
   S:QuadSprite;
 Begin
-  Inherited;
-  
-  W := UIManager.Instance.Width;
-  H := UIManager.Instance.Height;
+  W := Self.GUI.Viewport.Width;
+  H := Self.GUI.Viewport.Height;
 
   For I:=0 To Pred(Limit) Do
   Begin
@@ -107,10 +104,11 @@ Begin
       Pos[I].Y := 0;
       Dir[I].Y := -Dir[I].Y;
     End;
-
   End;
 
-  Application.Instance.SetTitle(IntToString(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
+  //Application.Instance.SetTitle(IntToString(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
+
+  Inherited;
 End;
 
 

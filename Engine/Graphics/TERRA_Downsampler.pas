@@ -210,8 +210,8 @@ Begin
 
     _ResultIndex := CurIndex;
 
-    IF InputManager.Instance.Keys.IsDown(Ord('T')) Then
-      curRt.GetImage().Save('ds'+ IntegerProperty.Stringify(curIndex)+'.png');
+(*    IF Engine.Input.Keys.IsDown(Ord('T')) Then
+      curRt.GetImage().Save('ds'+ IntegerProperty.Stringify(curIndex)+'.png');*)
 
     Tex := Self.GetRenderTexture(0);
     If (Source = Tex) Then

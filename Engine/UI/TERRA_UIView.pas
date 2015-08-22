@@ -113,6 +113,8 @@ Type
       Function OnMouseWheel(Const X,Y:Single; Const Delta:Integer):UIWidget;
       Function OnMouseMove(Const X,Y:Single):UIWidget;
 
+      Procedure GetLocalCoords(Const X,Y:Single; Out PX, PY:Integer);
+
       Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
 
       Procedure AfterEffects(View:TERRAViewport);
@@ -197,8 +199,8 @@ Type
 Function GetSpriteZOnTop(W:UIWidget; Ofs:Single = 1.0):Single;
 
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_XML, TERRA_Matrix4x4,
-  TERRA_Log, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager(*,
+Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_XML, TERRA_Matrix4x4, TERRA_EngineManager,
+  TERRA_Log, TERRA_FileUtils, TERRA_FileManager, TERRA_FontManager, TERRA_InputManager(*,
   TERRA_UIVirtualKeyboard, TERRA_UITabs, TERRA_UIScrollBar,
    TERRA_UIButton, TERRA_UISprite, TERRA_UILabel, TERRA_UIWindow,
   TERRA_UICheckbox, TERRA_UIEditText, TERRA_UIIcon*);
@@ -292,7 +294,7 @@ End;
 
 Procedure UIView.SetDefaultFont(const Value:TERRAFont);
 Begin
-  FontManager.Instance.PreFetch(Value);
+  Engine.Fonts.PreFetch(Value);
   Self._DefaultFont := Value;
 End;
 
@@ -461,12 +463,17 @@ Begin
   _LastWidget := Result;
 End;
 
+Procedure UIView.GetLocalCoords(Const X,Y:Single; Out PX, PY:Integer);
+Begin
+  PX := Trunc(X * GetDimension(Width, uiDimensionWidth));
+  PY := Trunc(Y * GetDimension(Height, uiDimensionHeight));
+End;
+
 Function UIView.OnMouseDown(Const X,Y:Single; Const Button:Word):UIWidget;
 Var
   TX, TY:Integer;
 Begin
-  TX := Trunc(X * GetDimension(Width, uiDimensionWidth));
-  TY := Trunc(Y * GetDimension(Height, uiDimensionHeight));
+  Self.GetLocalCoords(X, Y, TX, TY);
 
   Result := Self.PickWidget(TX, TY, True);
 
@@ -483,8 +490,7 @@ Function UIView.OnMouseUp(Const X,Y:Single; Const Button:Word):UIWidget;
 Var
   TX, TY:Integer;
 Begin
-  TX := Trunc(X * GetDimension(Width, uiDimensionWidth));
-  TY := Trunc(Y * GetDimension(Height, uiDimensionHeight));
+  Self.GetLocalCoords(X, Y, TX, TY);
 
   If (Assigned(Self.Dragger)) Then
   Begin
@@ -516,8 +522,7 @@ Function UIView.OnMouseMove(Const X,Y:Single):UIWidget;
 Var
   TX, TY:Integer;
 Begin
-  TX := Trunc(X * GetDimension(Width, uiDimensionWidth));
-  TY := Trunc(Y * GetDimension(Height, uiDimensionHeight));
+  Self.GetLocalCoords(X, Y, TX, TY);
 
   _LastWidget := Nil;
 
@@ -563,8 +568,7 @@ Function UIView.OnMouseWheel(Const X,Y:Single; Const Delta:Integer):UIWidget;
 Var
   TX, TY:Integer;
 Begin
-  TX := Trunc(X * GetDimension(Width, uiDimensionWidth));
-  TY := Trunc(Y * GetDimension(Height, uiDimensionHeight));
+  Self.GetLocalCoords(X, Y, TX, TY);
 
   If Assigned(_Focus) Then
   Begin

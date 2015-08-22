@@ -3,7 +3,6 @@
 
 uses
   TERRA_Application,
-  TERRA_Scene,
   TERRA_GraphicsManager,
   TERRA_Viewport,
   TERRA_DemoApplication,
@@ -78,10 +77,10 @@ Type
   Demo = Class(DemoApplication)
     Protected
 			Procedure OnCreate; Override;
-			Procedure OnRender(V:TERRAViewport); Override;
+			Procedure OnRender2D(V:TERRAViewport); Override;
       Procedure OnDestroy; Override;
 
-      Procedure OnMouseDown(X,Y:Integer;Button:Word); Override;
+      Procedure OnMouseDown(Const X,Y:Single; Const Button:Word); Override;
 
       Procedure OnIdle(); Override;
   End;
@@ -146,6 +145,8 @@ Procedure Demo.OnCreate;
 Begin
   Inherited;
 
+  Self.GUI.Viewport.Visible := True;
+
   GhostTex := Engine.Textures.GetItem('ghost');
   BlockTex := Engine.Textures.GetItem('block');
   ArrowTex := Engine.Textures.GetItem('arrows');
@@ -173,7 +174,7 @@ Begin
   Inherited;
 End;
 
-Procedure Demo.OnRender(V:TERRAViewport);
+Procedure Demo.OnRender2D(V:TERRAViewport);
 Var
   S:QuadSprite;
   I,J:Integer;
@@ -181,7 +182,7 @@ Var
   Node:GridPathNode;
 Begin
   //  Draw mouse cursor
-  Mouse  := InputManager.Instance.Mouse;
+  Mouse  := Engine.Input.Mouse;
   S := V.SpriteRenderer.DrawSprite(Mouse.X, Mouse.Y, 80, ArrowTex);
   S.Rect.Width := 16;
   S.Rect.Height := 16;
@@ -193,7 +194,7 @@ Begin
       // If this tile is solid, draw it
       If MapData[J,I] = 1 Then
       Begin
-        S := V.SpriteRenderer.DrawSprite(MapOffsetX+I*TileSize, MapOffsetY+J*TileSize, 45, BlockTex);
+        S := V.SpriteRenderer.DrawSprite(MapOffsetX+I*TileSize, MapOffsetY+J*TileSize, 10, BlockTex);
         S.Rect.Width := TileSize;
         S.Rect.Height := TileSize;
       End;
@@ -201,20 +202,20 @@ Begin
       // If this tile was visited, then draw a mark
       If MapVisited[J,I] Then
       Begin
-        S := V.SpriteRenderer.DrawSprite(MapOffsetX+I*TileSize, MapOffsetY+J*TileSize, 50, CrossTex);
+        S := V.SpriteRenderer.DrawSprite(MapOffsetX+I*TileSize, MapOffsetY+J*TileSize, 15, CrossTex);
         S.Rect.Width := TileSize;
         S.Rect.Height := TileSize;
       End;
     End;
 
   // Draw target
-  S := V.SpriteRenderer.DrawSprite(MapOffsetX+TargetX*TileSize, MapOffsetY+TargetY*TileSize, 80, ArrowTex);
+  S := V.SpriteRenderer.DrawSprite(MapOffsetX+TargetX*TileSize, MapOffsetY+TargetY*TileSize, 20, ArrowTex);
   S.Rect.Width := TileSize;
   S.Rect.Height := TileSize;
   S.Mirror := True;
 
   // Draw ghost
-  S := V.SpriteRenderer.DrawSprite(MapOffsetX+GhostX*TileSize, MapOffsetY+GhostY*TileSize, 85, GhostTex);
+  S := V.SpriteRenderer.DrawSprite(MapOffsetX+GhostX*TileSize, MapOffsetY+GhostY*TileSize, 30, GhostTex);
   S.Rect.Width := TileSize;
   S.Rect.Height := TileSize;
 
@@ -224,11 +225,13 @@ Begin
     For I:=0 To Pred(GhostPath.Size) Do
     Begin
       GhostPath.GetNode(I, Node);
-      S := V.SpriteRenderer.DrawSprite(MapOffsetX + Node.X * TileSize + TileSize Div 4, MapOffsetY + Node.Y * TileSize + TileSize Div 4, 82, DotTex);
+      S := V.SpriteRenderer.DrawSprite(MapOffsetX + Node.X * TileSize + TileSize Div 4, MapOffsetY + Node.Y * TileSize + TileSize Div 4, 25, DotTex);
       S.Rect.Width := TileSize Div 2;
       S.Rect.Height := TileSize Div 2;
     End;
   End;
+
+  Inherited;
 End;
 
 // This is called every frame, so we put here our main loop code
@@ -263,29 +266,34 @@ Begin
 End;*)
 
 
-Procedure Demo.OnMouseDown(X,Y:Integer;Button:Word);
+Procedure Demo.OnMouseDown(Const X,Y:Single; Const Button:Word);
+Var
+  TX, TY:Integer;
 Begin
   If Assigned(GhostPath) Then
     Exit; // Ghost is moving, dont do anything for now
 
+
+  Self.GUI.GetLocalCoords(X, Y,  TX, TY);
+
   // Calculate map coordinates
   // This is done by first converting to renderer coordinates.
   // Then we subtract the offset, and divide by the size of the tiles
-  X := (Round(X-MapOffsetX) Div TileSize);
-  Y := (Round(Y-MapOffsetY) Div TileSize);
+  TX := (Round(TX-MapOffsetX) Div TileSize);
+  TY := (Round(TY-MapOffsetY) Div TileSize);
 
   // If we clicked in a valid position
-  If (X>=0)And(X<MapSize)And(Y>=0)And(Y<MapSize) Then
+  If (TX>=0) And (TX<MapSize) And (TY>=0) And (TY<MapSize) Then
   Begin
     // If this tile isn't solid
-    If MapData[Y,X]<>1 Then
+    If MapData[TY, TX]<>1 Then
     Begin
       //  Clear visited array
       FillChar(MapVisited, MapSize*MapSize, False);
 
       // Update target position
-      TargetX := X;
-      TargetY := Y;
+      TargetX := TX;
+      TargetY := TY;
 
       //  Now we search the path
       //  There are two versions of the search method.

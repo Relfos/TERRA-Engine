@@ -21,7 +21,6 @@ uses
   TERRA_EngineManager,
   TERRA_PNG,
   TERRA_Math,
-  TERRA_Scene,
   TERRA_Color,
   TERRA_String,
   TERRA_Sprite;
@@ -30,7 +29,7 @@ Type
   MyDemo = Class(DemoApplication)
     Public
 			Procedure OnCreate; Override;
-      Procedure OnRender(View:TERRAViewport); Override;
+      Procedure OnRender2D(View:TERRAViewport); Override;
   End;
 
 Var
@@ -42,13 +41,13 @@ Begin
   Inherited;
 
   // Enable 2D viewport for rendering
-  Self.Scene.GUI.Viewport.Visible := True;
+  Self.GUI.Viewport.Visible := True;
 
   // load and cache a texture called ghost.png (located in the samples/binaries/assets/ folder
   Tex := Engine.Textures['ghost'];
 End;
 
-Procedure MyDemo.OnRender(View: TERRAViewport);
+Procedure MyDemo.OnRender2D(View: TERRAViewport);
 Var
   I:Integer;
   Angle:Single;
@@ -56,10 +55,7 @@ Var
 Begin
   Inherited;
 
-  If (View <> Self.Scene.GUI.Viewport) Then
-    Exit;
-
-  If (Tex = Nil) Then
+    If (Tex = Nil) Then
     Exit;
 
   // This is how sprite rendering works with TERRA.

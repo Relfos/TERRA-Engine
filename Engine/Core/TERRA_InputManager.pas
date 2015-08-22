@@ -157,8 +157,6 @@ Type
       Procedure AddGamePad(Pad:GamePad);
       Function GetGamePad(PadID:Integer):GamePad;
 
-      Class Function Instance:InputManager;
-
       Property Keys:InputState Read _Keys;
 
 
@@ -177,7 +175,7 @@ Function GetKeyByName(Const KeyName:TERRAString):Integer;
 Function GetKeyName(Key:Integer):TERRAString;
 
 Implementation
-Uses TERRA_GraphicsManager, TERRA_OS;
+Uses TERRA_GraphicsManager, TERRA_EngineManager, TERRA_OS;
 
 Var
   _InputManager_Instance:ApplicationObject = Nil;
@@ -474,14 +472,6 @@ Begin
 End;
 
 { InputManager }
-Class Function InputManager.Instance: InputManager;
-Begin
-  If _InputManager_Instance = Nil Then
-    _InputManager_Instance := InitializeApplicationComponent(InputManager, GraphicsManager);
-
-  Result := InputManager(_InputManager_Instance.Instance);
-End;
-
 Procedure InputManager.Init;
 Begin
   _Keys := InputState.Create();
@@ -548,7 +538,7 @@ Begin
   If _Active Then
     Exit;
 
-  Input := InputManager.Instance();
+  Input := Engine.Input();
 
   _Active := True;
 

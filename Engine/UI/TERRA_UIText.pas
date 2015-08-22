@@ -48,7 +48,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Localization, TERRA_FontRenderer, TERRA_Math;
+Uses TERRA_Localization, TERRA_FontRenderer, TERRA_FontManager, TERRA_EngineManager, TERRA_Math;
 
 Constructor UIText.Create(const Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension);
 Begin
@@ -119,7 +119,7 @@ Constructor FontStyleProperty.Create(const Name: TERRAString);
 Begin
   _Outline := ColorProperty.Create('outline', ColorBlack);
   _Size := IntegerProperty.Create('size', 30);
-  _Family := FontProperty.Create('family', FontManager.Instance.GetFont('droid'));
+  _Family := FontProperty.Create('family', Engine.Fonts['droid']);
 End;
 
 Function FontStyleProperty.GetObjectType: TERRAString;

@@ -198,7 +198,7 @@ Type
   Application = WindowsApplication;
 
 Implementation
-Uses TERRA_Error, SysUtils, TERRA_Renderer, TERRA_GLRenderer,
+Uses TERRA_Error, SysUtils, TERRA_Renderer, TERRA_GLRenderer, TERRA_EngineManager,
   TERRA_GraphicsManager, TERRA_Log, TERRA_Stream, TERRA_FileUtils, TERRA_FileManager, TERRA_MemoryStream, TERRA_MusicManager,
   TERRA_Gamepad, TERRA_XInput, TERRA_Ethernet, TERRA_Timer;
 
@@ -502,7 +502,7 @@ Begin
 
     WM_KILLFOCUS: If (App._CanReceiveEvents) Then
                   Begin
-                    InputManager.Instance.Keys.Reset();
+                    Engine.Input.Keys.Reset();
                     //App.OnDeactivate;
                   End;
 
@@ -1254,11 +1254,11 @@ Begin
 
   // Initialize xinput gamepads
   For I:=0 To 3 Do
-    InputManager.Instance.AddGamePad(XInputGamePad.Create(I));
+    Engine.Input.AddGamePad(XInputGamePad.Create(I));
 
   // Initialize other joysticks/gamepads
   For I:=0 To 3 Do
-    InputManager.Instance.AddGamePad(WindowsGamePad.Create(I));
+    Engine.Input.AddGamePad(WindowsGamePad.Create(I));
 
   Self.InitBuildInfo();
 

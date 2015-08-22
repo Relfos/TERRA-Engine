@@ -564,7 +564,7 @@ Implementation
 
 Uses SysUtils, TERRA_Error, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   {$IFNDEF WINDOWS}BaseUnix, {$ENDIF}
-  TERRA_GraphicsManager, TERRA_Callstack, TERRA_Collections, TERRA_List, 
+  TERRA_GraphicsManager, TERRA_EngineManager, TERRA_Callstack, TERRA_Collections, TERRA_List,
   TERRA_Log, TERRA_OS, TERRA_IAP, TERRA_Localization, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager
   {$IFDEF PC}, TERRA_Steam{$ENDIF};
 
@@ -964,7 +964,7 @@ Begin
         If _FatalError<>'' Then
         Begin
           {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logWarning, 'App', 'Fatal error!!!!');{$ENDIF}{$ENDIF}
-          If (InputManager.Instance.Keys.IsDown(keyEscape)) Then
+          If (Engine.Input.Keys.IsDown(keyEscape)) Then
             Self.Terminate(False);
         End Else
         Begin
@@ -1691,7 +1691,7 @@ Begin
   _InputMutex.Lock();
   {$ENDIF}
 
-  Input := InputManager.Instance;
+  Input := Engine.Input;
 
   {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Processing '+ IntegerProperty.Stringify(_EventCount)+ ' events.');{$ENDIF}{$ENDIF}
   For I:=0 To Pred(_EventCount) Do

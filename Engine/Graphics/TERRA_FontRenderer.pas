@@ -133,7 +133,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_OS, TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Math, TERRA_DebugDraw;
+Uses TERRA_OS, TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Math, TERRA_DebugDraw, TERRA_FontManager;
 
 { FontRenderer }
 Constructor TERRAFontRenderer.Create;
@@ -153,7 +153,7 @@ Procedure TERRAFontRenderer.BeginRender(Const S:TERRAString; Mode:Integer; X,Y, 
 Begin
   If (_Font = Nil) Then
   Begin
-    SetFont(FontManager.Instance.DefaultFont);
+    SetFont(Engine.Fonts.DefaultFont);
   End;
 
   If (Not _Font.IsReady()) Then
@@ -557,6 +557,8 @@ Begin
   If (_Font = Nil) Or (Not _Font.IsReady()) Then
     Exit;
 
+  DestSprite.Clear();
+
   Self._View := View;
 
   Alpha := IntMin(_Color1.A, _Color2.A);
@@ -579,7 +581,7 @@ Begin
   If (_GradientMode <> gradientNone) Then
     UpdateGradient(Size.X, Size.Y);
 
-  FM := FontManager.Instance;
+  FM := Engine.Fonts;
 
   While (RenderNext()) Do
   Begin

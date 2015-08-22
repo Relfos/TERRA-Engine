@@ -167,7 +167,8 @@ Type
   End;
 
 Implementation
-Uses TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsManager, TERRA_Renderer,  TERRA_InputManager, TERRA_Log, Math;
+Uses TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsManager, TERRA_Renderer,  TERRA_InputManager, TERRA_Log,
+  TERRA_EngineManager, Math;
 
 { TERRACamera}
 Constructor TERRACamera.Create(Const Name:TERRAString);
@@ -399,7 +400,7 @@ Var
 Begin
   Walk_Speed := GraphicsManager.Instance.ElapsedTime * Speed * 3.0;
 
-  Input := InputManager.Instance;
+  Input := Engine.Input;
 
 	If (Input.Keys.IsDown(keyShift)) Then
     Walk_speed := Walk_speed * 8;

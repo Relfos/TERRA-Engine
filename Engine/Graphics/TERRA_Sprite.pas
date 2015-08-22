@@ -94,6 +94,8 @@ Type
 
       Procedure Release; Override;
 
+      Procedure Clear();
+
       Function Rebuild():Boolean; Virtual;
 
       Procedure SetTexture(Value: TERRATexture); Virtual;
@@ -299,6 +301,12 @@ Begin
   _Offset := 0;
 
   Result := True;
+End;
+
+Procedure TERRASprite.Clear;
+Begin
+  If Assigned(_Vertices) Then
+    _Vertices.Resize(0);
 End;
 
 { QuadSprite }

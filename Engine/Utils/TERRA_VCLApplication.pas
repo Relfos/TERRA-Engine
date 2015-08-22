@@ -7,8 +7,6 @@ Uses Classes, Forms, ExtCtrls, Graphics, TERRA_String, TERRA_Utils, TERRA_Applic
   TERRA_UIView, TERRA_UIDimension;
 
 Type
-  VLCRenderEvent = Procedure (V:TERRAViewport) Of Object;
-
   TERRAVCLViewport = Class(TERRAObject)
     Protected
       _Target:TImage;
@@ -131,6 +129,7 @@ Begin
     Begin
       _GUI := UIView.Create('gui', UIPixels(GetWidth()), UIPixels(GetHeight()));
       _GUI.Viewport.AutoResize := True;
+      _GUI.Viewport.OnRender := Self.Render2D;
     End;
 
   End;

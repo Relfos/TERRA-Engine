@@ -37,6 +37,8 @@ Const
 Type
   TERRAViewport = Class;
 
+  ViewportRenderEvent = Procedure (V:TERRAViewport) Of Object;
+
   RenderTargetSampler = Class(TERRAObject)
     Protected
       _Name:TERRAString;
@@ -126,6 +128,8 @@ Type
       Procedure SetAutoResolve(const Value: Boolean);
       
     Public
+      OnRender:ViewportRenderEvent;
+
 
       Constructor Create(Name:TERRAString; Camera:TERRACamera; Width,Height:Integer; Scale:Single = 1.0);
 

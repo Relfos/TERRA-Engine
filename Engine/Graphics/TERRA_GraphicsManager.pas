@@ -40,7 +40,7 @@ Uses {$IFNDEF DEBUG_LEAKS}TERRA_MemoryManager,{$ENDIF} {$IFDEF USEDEBUGUNIT}TERR
   {$IFDEF POSTPROCESSING}TERRA_ScreenFX,{$ENDIF}
   {$IFDEF SHADOWMAPS}TERRA_ShadowMaps,{$ENDIF}
   TERRA_BoundingBox, TERRA_Camera, TERRA_Color, TERRA_Matrix4x4,
-  TERRA_Utils, TERRA_Texture, TERRA_Scene, TERRA_Vector3D,
+  TERRA_Utils, TERRA_Texture, TERRA_Vector3D,
   TERRA_Viewport, TERRA_Application, TERRA_VertexFormat, TERRA_Renderable,
   TERRA_Image, TERRA_Math, TERRA_Vector2D, TERRA_Ray, TERRA_Collections;
 
@@ -61,8 +61,6 @@ Type
       _DeviceViewport:TERRAViewport;
 
       _ReflectionCamera:TERRACamera;
-
-      _Scene:TERRAScene;
 
       _FullScreenQuadVertices:VertexData;
 
@@ -133,7 +131,7 @@ Type
 
       Procedure Release; Override;
 
-      Procedure RenderShadowmap(View:TERRAViewport);
+      //Procedure RenderShadowmap(View:TERRAViewport);
       //Procedure RenderReflections(View:Viewport);
 
       Function GetDefaultFullScreenShader():ShaderInterface;
@@ -144,8 +142,6 @@ Type
 
 	    Procedure DrawFullscreenQuad(CustomShader:ShaderInterface; X1,Y1,X2,Y2:Single);
 
-      Function SwapScene(MyScene:TERRAScene):TERRAScene;
-      Procedure SetScene(MyScene:TERRAScene);
       Procedure SetWind(WindDirection:Vector3D; WindIntensity:Single);
 
       (*Function GetPickRay(View:TERRAViewport; TX,TY:Integer):Ray;
@@ -177,8 +173,6 @@ Type
       Property Renderer:GraphicsRenderer Read _Renderer Write SetRenderer;
 
       Property DeviceViewport:TERRAViewport Read _DeviceViewport;
-
-      Property Scene:TERRAScene Read _Scene Write SetScene;
 
       Property WindVector:Vector3D Read _WindVector;
 
@@ -468,13 +462,13 @@ Begin
 End;
 *)
 
-Procedure GraphicsManager.RenderShadowmap(View:TERRAViewport);
+(*Procedure GraphicsManager.RenderShadowmap(View:TERRAViewport);
 Begin
   If (Not Assigned(_Scene)) Then
     Exit;
 
   _Scene.RenderShadowCasters(View);
-End;
+End;*)
 
 (*{$IFNDEF REFLECTIONS_WITH_STENCIL}
 Procedure GraphicsManager.RenderReflections(View:Viewport);
@@ -704,13 +698,13 @@ Begin
   Renderer.SetStencilFunction(compareAlways, 0);
   Renderer.SetStencilOp(stencilKeep, stencilKeep, stencilIncrementWithWrap);
 
-  _Scene.RenderShadowCasters(View);
+  //_Scene.RenderShadowCasters(View);
 
   If Not ShowShadowVolumes Then
   Begin
     Renderer.SetCullMode(cullFront);
     Renderer.SetStencilOp(stencilKeep, stencilKeep, stencilDecrementWithWrap);
-    _Scene.RenderShadowCasters(View);
+    //_Scene.RenderShadowCasters(View);
 
     Renderer.SetCullMode(cullBack);
 
@@ -773,10 +767,10 @@ Begin
   _ReflectionsEnabled := False;
 
   // fill renderables list
-  If (Assigned(_Scene)) Then
+  If (Assigned(View.OnRender)) Then
   Begin
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderEverything');{$ENDIF}
-    _Scene.RenderViewport(View);
+    View.OnRender(View);
   End;
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Particles.Render');{$ENDIF}
@@ -1178,8 +1172,6 @@ Begin
 
   ReleaseObject(_DeviceViewport);
 
-  SetScene(Nil);
-
   _GraphicsManager_Instance := Nil;
 End;
 
@@ -1295,18 +1287,6 @@ Begin
 //  OnViewportChange(0, 0, _Width, _Height);
 End;
 
-Procedure GraphicsManager.SetScene(MyScene:TERRAScene);
-Begin
-  If (Self = Nil) Then
-    Exit;
-
-  If (MyScene = _Scene) Then
-    Exit;
-
-  _Scene := MyScene;
-End;
-
-
 (*Procedure GraphicsManager.AddOccluder(View:TERRAViewport; MyOccluder: Occluder);
 Var
   Occ:Occluder;
@@ -1334,12 +1314,6 @@ Begin
 
   Renderer.InternalStat(statOccluders);
 End;*)
-
-Function GraphicsManager.SwapScene(MyScene:TERRAScene):TERRAScene;
-Begin
-  Result := _Scene;
-  _Scene := MyScene;
-End;
 
 Procedure GraphicsManager.SetRenderer(Value: GraphicsRenderer);
 Begin
@@ -1445,7 +1419,7 @@ Procedure GraphicsManager.TestDebugKeys;
 Var
   Input:InputManager;
 Begin
-  Input := InputManager.Instance;
+  Input := Engine.Input;
 
   If (Input.Keys.IsDown(KeyShift)) Then
   Begin
