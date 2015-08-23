@@ -151,7 +151,7 @@ Var
 Begin
   If _PlaneMesh = Nil Then
   Begin
-    Plane := TERRA_Solids.PlaneMesh.Create(VectorUp, 4, -0.5, -0.5);
+    Plane := TERRA_Solids.PlaneMesh.Create(VectorUp, 4);
     _PlaneMesh := CreateMeshFromSolid(Plane);
     ReleaseObject(Plane);
   End;
@@ -191,7 +191,7 @@ Function CreatePlaneMesh(Const Normal:Vector3D; SubDivisions:Cardinal):TERRAMesh
 Var
   Plane:TERRA_Solids.PlaneMesh;
 Begin
-  Plane := TERRA_Solids.PlaneMesh.Create(Normal, SubDivisions, -0.5, -0.5);
+  Plane := TERRA_Solids.PlaneMesh.Create(Normal, SubDivisions);
   Result := CreateMeshFromSolid(Plane);
   ReleaseObject(Plane);
 End;

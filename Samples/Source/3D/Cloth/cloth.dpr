@@ -12,14 +12,11 @@ uses
   TERRA_Vector3D,
   TERRA_Lights,
   TERRA_Viewport,
-  TERRA_JPG,
-  TERRA_PNG,
   TERRA_Texture,
   TERRA_EngineManager,
   TERRA_Renderer,
   TERRA_Math,
   TERRA_FileManager,
-  TERRA_Scene,
   TERRA_MeshFilter,
   TERRA_Mesh,
   TERRA_Color,
@@ -43,7 +40,7 @@ Type
 			Procedure OnDestroy; Override;
 			Procedure OnIdle; Override;
 
-      Procedure OnRender(V:TERRAViewport); Override;
+      Procedure OnRender3D(V:TERRAViewport); Override;
   End;
 
 
@@ -69,6 +66,11 @@ Var
 Begin
   Inherited;
 
+  // enable 3D rendering
+  Self.MainViewport.Visible := True;
+
+  Self.ShowFPS := True;
+
   GraphicsManager.Instance.Renderer.Settings.NormalMapping.SetValue(True);
   GraphicsManager.Instance.Renderer.Settings.PostProcessing.SetValue(True);
 
@@ -80,14 +82,14 @@ Begin
 
   For I:=0 To Pred(SphereCount) Do
   Begin
-    Spheres[I] := MeshInstance.Create(MeshManager.Instance.SphereMesh);
+    Spheres[I] := MeshInstance.Create(Engine.Meshes.SphereMesh);
     Spheres[I].SetDiffuseMap(0, DiffuseTex);
     Spheres[I].SetPosition(VectorCreate(-3 + Cos(I*60*RAD) * SphereRadius * 2, 0, 1.5 + Sin(I*60*RAD) * SphereRadius * 2));
-    Spheres[I].SetScale(VectorConstant(SphereRadius));
+    Spheres[I].SetScale(VectorConstant(SphereRadius * 2));
     Clothes.SetCollider(I, Spheres[I].Position, SphereRadius);
   End;
 
-  Self.Scene.Floor.SetPosition(VectorCreate(0, -SphereRadius, 0));
+  Self.Floor.SetPosition(VectorCreate(0, -SphereRadius, 0));
 End;
 
 Procedure MyDemo.OnDestroy;
@@ -108,41 +110,41 @@ Begin
   Inherited;
 
 	//Release corners
-	If(InputManager.Instance.Keys.WasPressed(Ord('1'))) Then
+	If(Engine.Input.Keys.WasPressed(Ord('1'))) Then
 		Clothes.UnpinParticle(0);
 
-	If(InputManager.Instance.Keys.WasPressed(Ord('2'))) Then
+	If(Engine.Input.Keys.WasPressed(Ord('2'))) Then
 		Clothes.UnpinParticle(gridSize-1);
 
-	If(InputManager.Instance.Keys.WasPressed(Ord('3'))) Then
+	If(Engine.Input.Keys.WasPressed(Ord('3'))) Then
 		Clothes.UnpinParticle(gridSize*(gridSize-1));
 
-	If(InputManager.Instance.Keys.WasPressed(Ord('4'))) Then
+	If(Engine.Input.Keys.WasPressed(Ord('4'))) Then
 		Clothes.UnpinParticle(gridSize*gridSize-1);
 
-	If(InputManager.Instance.Keys.WasPressed(Ord('5'))) Then
+	If(Engine.Input.Keys.WasPressed(Ord('5'))) Then
   Begin
 		Clothes.UnpinParticle(gridSize*(gridSize-1));
 		Clothes.UnpinParticle(gridSize*gridSize-1);
   End;
 
-	If(InputManager.Instance.Keys.WasPressed(Ord('M'))) Then
+	If(Engine.Input.Keys.WasPressed(Ord('M'))) Then
 	Begin
 		MoveCloth := Not MoveCloth;
 	End;
 
 	//Toggle drawing modes
-	If(InputManager.Instance.Keys.WasPressed(Ord('Y'))) Then
+	If(Engine.Input.Keys.WasPressed(Ord('Y'))) Then
 	Begin
 		//Clothes._Gravity.Scale(-1);
 	End;
 
-	If(InputManager.Instance.Keys.WasPressed(Ord('T'))) Then
+	If(Engine.Input.Keys.WasPressed(Ord('T'))) Then
 	Begin
 		drawSprings := Not drawSprings;
 	End;
 
-	If(InputManager.Instance.Keys.WasPressed(Ord('R'))) Then
+	If(Engine.Input.Keys.WasPressed(Ord('R'))) Then
 	Begin
   	//Reset cloth
 		Clothes.Reset();
@@ -152,11 +154,12 @@ Begin
 End;
 
 
-Procedure MyDemo.OnRender(V:TERRAViewport);
+Procedure MyDemo.OnRender3D(V:TERRAViewport);
 Var
   I:Integer;
 Begin
- 
+  Inherited;
+  
   If Assigned(ClothInstance) Then
     ClothInstance.SetWireframeMode(0, drawSprings);
 

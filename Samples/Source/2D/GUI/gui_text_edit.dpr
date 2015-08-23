@@ -22,7 +22,6 @@ uses
   TERRA_TTF,
   TERRA_PNG,
   TERRA_Math,
-  TERRA_Scene,
   TERRA_Color,
   TERRA_String,
   TERRA_ScreenFX,
@@ -68,7 +67,7 @@ Begin
 
   MyController := DemoUIController.Create();
 
-  MyWnd := UIInstancedWidget.Create('mywnd', Self.Scene.GUI, 0, 0, 10, UIPixels(643), UIPixels(231), 'wnd_template');
+  MyWnd := UIInstancedWidget.Create('mywnd', Self.GUI, 0, 0, 10, UIPixels(643), UIPixels(231), 'wnd_template');
   MyWnd.Draggable := True;
   MyWnd.Align := waCenter;
 

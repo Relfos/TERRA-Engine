@@ -23,11 +23,14 @@ Type
 
       _Floor:MeshInstance;
 
+      _ShowFPS:Boolean;
+
       Function CreateMainViewport(Const Name:TERRAString; Width, Height:Integer):TERRAViewport;
       Function GetGUI: UIView;
 
       Function GetFloor:MeshInstance;
       Function GetMainViewport: TERRAViewport;
+    procedure SetShowFPS(const Value: Boolean);
 
     Public
 			Procedure OnCreate; Override;
@@ -45,6 +48,8 @@ Type
 			Procedure OnKeyDown(Key:Word); Override;
 			Procedure OnKeyUp(Key:Word); Override;
 			Procedure OnKeyPress(Key:TERRAChar); Override;
+
+      Property ShowFPS:Boolean Read _ShowFPS Write SetShowFPS;
 
       Property Sun:DirectionalLight Read _Sun;
       Property MainViewport:TERRAViewport Read GetMainViewport;
@@ -152,6 +157,14 @@ Begin
   Result := _Floor;
 End;
 
+Procedure DemoApplication.SetShowFPS(const Value: Boolean);
+Begin
+   _ShowFPS := Value;
+
+   If (Value) Then
+    Self.GUI.Viewport.Visible := True;
+End;
+
 Function DemoApplication.CreateMainViewport(Const Name:TERRAString; Width, Height:Integer):TERRAViewport;
 Begin
   Result := TERRAViewport.Create(Name, _Camera, Width, Height);
@@ -160,6 +173,7 @@ Begin
   Result.Visible := True;
   Result.EnableDefaultTargets();
   Result.BackgroundColor := ColorNull;
+  Result.OnRender := Self.OnRender3D;
 End;
 
 Procedure DemoApplication.OnKeyDown(Key: Word);
@@ -225,6 +239,7 @@ Begin
 
   GraphicsManager.Instance.AddRenderable(V, _Floor);
 End;
+
 
 End.
 

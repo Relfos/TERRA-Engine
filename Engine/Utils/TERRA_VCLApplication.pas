@@ -28,6 +28,9 @@ Type
   End;
 
   VCLApplication = Class(Application)
+  private
+    function GetViewport: TERRAViewport;
+    function GetGUI: UIView;
       Protected
         _Timer:TTimer;
         _CurrentWidth:Integer;
@@ -39,7 +42,6 @@ Type
         _ViewportCount:Integer;
 
         _GUI:UIView;
-        _Scene:TERRAScene;
 
         Procedure TimerTick(Sender: TObject);
         Procedure UpdateSize();
@@ -49,8 +51,6 @@ Type
   			Procedure CloseWindow; Override;
 
       Public
-        OnRender:VLCRenderEvent;
-
         Constructor Create(Target:TComponent);
         Procedure OnDestroy; Override;
 
@@ -60,6 +60,9 @@ Type
         Function GetTitle:TERRAString; Override;
 
         Procedure AddRenderTarget(V:TERRAVCLViewport);
+
+        Property GUI:UIView Read GetGUI;
+        Property Viewport:TERRAViewport Read GetViewport;
   End;
 
 Function TERRAColorUnpack(Const C:ColorRGBA):TColor;
@@ -125,13 +128,8 @@ Begin
     _CurrentHeight := GetHeight();
     Application.Instance.AddRectEvent(eventWindowResize, _CurrentWidth, _CurrentHeight, 0, 0);
 
-    If (_GUI = Nil) Then
-    Begin
-      _GUI := UIView.Create('gui', UIPixels(GetWidth()), UIPixels(GetHeight()));
-      _GUI.Viewport.AutoResize := True;
-      _GUI.Viewport.OnRender := Self.Render2D;
-    End;
-
+    If (Not Assigned(Self.GUI)) Then
+      Exit;
   End;
 End;
 
@@ -193,6 +191,21 @@ Begin
   // do nothing
 End;
 
+Function VCLApplication.GetViewport: TERRAViewport;
+Begin
+  Result := Self.GUI.Viewport;
+End;
+
+Function VCLApplication.GetGUI: UIView;
+Begin
+  If (_GUI = Nil) Then
+  Begin
+    _GUI := UIView.Create('gui', UIPixels(GetWidth()), UIPixels(GetHeight()));
+  End;
+
+  Result := _GUI;
+End;
+
 { TERRAVCLViewport }
 Constructor TERRAVCLViewport.Create(Target:TImage);
 Begin
@@ -223,7 +236,7 @@ End;
 // this is slow!!!! just experimental test
 Procedure TERRAVCLViewport.Update;
 Var
-  Temp:Image;
+  Temp:TERRAImage;
   It:ImageIterator;
   I, J:Integer;
   C:ColorRGBA;

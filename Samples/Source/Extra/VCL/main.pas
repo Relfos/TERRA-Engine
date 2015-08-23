@@ -4,7 +4,10 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ExtCtrls, StdCtrls, Menus;
+  Dialogs, ExtCtrls, StdCtrls, Menus,
+  TERRA_Utils, TERRA_Application, TERRA_VCLApplication, TERRA_OS, TERRA_Texture,
+  TERRA_Object, TERRA_Viewport, TERRA_FileManager, TERRA_Sprite, TERRA_PNG,
+  TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color;
 
 type
   TForm1 = class(TForm)
@@ -12,33 +15,22 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure Button1Click(Sender: TObject);
-  private
-    { Private declarations }
   public
-    { Public declarations }
+    Procedure RenderViewport(V:TERRAViewport);
   end;
 
 var
   Form1: TForm1;
 
 implementation
-Uses TERRA_Utils, TERRA_Application, TERRA_VCLApplication, TERRA_OS, TERRA_Scene, TERRA_Texture,
-  TERRA_Object, TERRA_Viewport, TERRA_FileManager, TERRA_Sprite, TERRA_PNG,
-  TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color;
 
 {$R *.dfm}
 
-Type
-  MyScene = Class(TERRAScene)
-    Procedure RenderViewport(V:TERRAViewport); Override;
-  End;
-
 Var
   _Tex:TERRATexture = Nil;
-  _Scene:MyScene;
 
 { MyScene }
-Procedure MyScene.RenderViewport(V: TERRAViewport);
+Procedure TForm1.RenderViewport(V: TERRAViewport);
 Var
   S:QuadSprite;
   Angle:Single;
@@ -50,18 +42,19 @@ Begin
 End;
 
 Procedure TForm1.FormCreate(Sender: TObject);
+Var
+  VCLEngineApp:VCLApplication;
 Begin
-  VCLApplication.Create(Self);
+  VCLEngineApp := VCLApplication.Create(Self);
+
+  // hooks up our custom render method to the engine viewport created by the VCL wrapper
+  VCLEngineApp.Viewport.OnRender := Self.RenderViewport;
 
   // Added Asset folder to search path
   FileManager.Instance.AddPath('assets');
 
   // Load a Tex
   _Tex := Engine.Textures['ghost'];
-
-  // Create a scene and set it as the current scene
-  _Scene := MyScene.Create;
-  GraphicsManager.Instance.SetScene(_Scene);
 
   // set background color
   GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorGreen;
@@ -70,7 +63,6 @@ End;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
-  ReleaseObject(_Scene);
   Application.Instance.Terminate();
 end;
 

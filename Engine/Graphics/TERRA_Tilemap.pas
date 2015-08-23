@@ -26,7 +26,7 @@ Unit TERRA_Tilemap;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Stream, TERRA_XML, TERRA_Utils, TERRA_Texture, TERRA_SpriteManager,
+Uses TERRA_String, TERRA_Stream, TERRA_XML, TERRA_Utils, TERRA_Texture, TERRA_Sprite,
   TERRA_FileUtils, TERRA_Renderer, TERRA_ZLib;
 
 Const

@@ -10,12 +10,9 @@ uses
   TERRA_GraphicsManager,
   TERRA_Viewport,
   TERRA_Vector3D,
-  TERRA_JPG,
-  TERRA_PNG,
   TERRA_Texture,
-  TERRA_Scene,
-  TERRA_Mesh,
   TERRA_ScreenFX,
+  TERRA_Mesh,
   TERRA_EngineManager,
   TERRA_InputManager;
 
@@ -24,7 +21,7 @@ Type
     Public
 			Procedure OnCreate; Override;
 			Procedure OnDestroy; Override;
-      Procedure OnRender(V:TERRAViewport); Override;
+      Procedure OnRender3D(V:TERRAViewport); Override;
   End;
 
 Var
@@ -41,7 +38,7 @@ Begin
   GraphicsManager.Instance.Renderer.Settings.NormalMapping.SetValue(True);
   GraphicsManager.Instance.Renderer.Settings.PostProcessing.SetValue(True);
 
-  Self.Scene.MainViewport.FXChain.AddEffect(GlowFX.Create(2.0));
+  Self.MainViewport.FXChain.AddEffect(GlowFX.Create(2.0));
 
   DiffuseTex := Engine.Textures.GetItem('cobble');
   GlowTex := Engine.Textures.GetItem('cobble_glow');
@@ -52,7 +49,7 @@ Begin
   Solid.SetPosition(VectorCreate(0, 4, 0));
   Solid.SetScale(VectorConstant(2.0));
 
-  Self.Scene.Floor.SetPosition(VectorZero);
+  Self.Floor.SetPosition(VectorZero);
 End;
 
 Procedure MyDemo.OnDestroy;
@@ -62,9 +59,11 @@ Begin
   Inherited;
 End;
 
-Procedure MyDemo.OnRender(V: TERRAViewport);
+Procedure MyDemo.OnRender3D(V: TERRAViewport);
 Begin
   GraphicsManager.Instance.AddRenderable(V, Solid);
+
+  Inherited;
 End;
 
 {$IFDEF IPHONE}
