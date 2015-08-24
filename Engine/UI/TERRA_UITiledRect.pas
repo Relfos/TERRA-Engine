@@ -18,7 +18,8 @@ Type
       Function GetObjectType:TERRAString; Override;
 
     Public
-      Constructor Create(Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const U1, V1, U2, V2:Single);
+      Constructor Create(Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension;
+        Const U1:Single=0.25; Const V1:Single=0.25; Const U2:Single=0.25; Const V2:Single=0.25);
 
       Procedure SetTexture(Tex:TERRATexture);
 

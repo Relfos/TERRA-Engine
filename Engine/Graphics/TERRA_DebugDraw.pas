@@ -86,7 +86,7 @@ Procedure DrawLine2D(View:TERRAViewport; Const A,B:Vector2D; LineColor:ColorRGBA
 Var
   Tex:TERRATexture;
   DX, DY, Angle, Len:Single;
-  S:QuadSprite;
+  S:TERRASprite;
 Begin
   Tex := Engine.Textures.WhiteTexture;
   If Tex = Nil Then
@@ -96,11 +96,14 @@ Begin
   DY := A.Y - B.Y;
   Angle := Atan2(DY, DX);
 
-  S := View.SpriteRenderer.DrawSprite(Trunc(A.X), Trunc(A.Y), Layer, Tex);
+  S := View.SpriteRenderer.FetchSprite();
+  S.SetTexture(Tex);
+  S.Layer := Layer;
   S.SetColor(LineColor);
-  S.Rect.Width := Trunc(A.Distance(B));
-  S.Rect.Height := Trunc(LineWidth);
-  S.SetScaleAndRotation(1.0, Angle);
+  S.MakeQuad(VectorCreate2D(0,0), 0.0, Trunc(A.Distance(B)), Trunc(LineWidth)); // colors
+
+  S.Rotate(Angle);
+  S.Translate(Trunc(A.X), Trunc(A.Y));
 End;
 
 Procedure DrawFilledRect(View:TERRAViewport; Const A,B:Vector2D; FillColor:ColorRGBA);
@@ -108,7 +111,7 @@ Var
   I:Integer;
   Tex:TERRATexture;
   MinX, MinY, MaxX, MaxY:Single;
-  S:QuadSprite;
+  S:TERRASprite;
 Begin
   Tex := Engine.Textures.WhiteTexture;
   If Tex = Nil Then
@@ -120,10 +123,13 @@ Begin
   MaxX := Trunc(FloatMax(A.X, B.X));
   MaxY := Trunc(FloatMax(A.Y, B.Y));
 
-  S := View.SpriteRenderer.DrawSprite(MinX, MinY, Layer, Tex);
+  S := View.SpriteRenderer.FetchSprite();
+  S.SetTexture(Tex);
+  S.Layer := Layer;
   S.SetColor(FillColor);
-  S.Rect.Width := Trunc(MaxX-MinX);
-  S.Rect.Height := Trunc(MaxY-MinY);
+  S.MakeQuad(VectorCreate2D(0,0), 0.0, Trunc(MaxX-MinX), Trunc(MaxY-MinY)); // colors
+  S.Translate(MinX, MinY);
+
 //  S.ClipRect := Clip;
 End;
 
@@ -132,7 +138,7 @@ Var
   I:Integer;
   Tex:TERRATexture;
   MinX, MinY, MaxX, MaxY:Single;
-  S:QuadSprite;
+  S:TERRASprite;
 Begin
   Tex := Engine.Textures.WhiteTexture;
   If Tex = Nil Then
@@ -159,29 +165,10 @@ Begin
     Exit;
   End;
 
-  S := View.SpriteRenderer.DrawSprite(MinX, MinY, Layer, Tex);
-  S.SetColor(LineColor);
-  S.Rect.Width := Trunc(MaxX-MinX);
-  S.Rect.Height := Trunc(LineWidth);
-//  S.ClipRect := Clip;
-
-  S := View.SpriteRenderer.DrawSprite(MinX, MinY, Layer, Tex);
-  S.SetColor(LineColor);
-  S.Rect.Width := Trunc(LineWidth);
-  S.Rect.Height := Trunc(MaxY-MinY);
-//  S.ClipRect := Clip;
-
-  S := View.SpriteRenderer.DrawSprite(MinX, MaxY, Layer, Tex);
-  S.SetColor(LineColor);
-  S.Rect.Width := Trunc(MaxX-MinX);
-  S.Rect.Height := Trunc(LineWidth);
-//  S.ClipRect := Clip;
-
-  S := View.SpriteRenderer.DrawSprite(MaxX, MinY, Layer, Tex);
-  S.SetColor(LineColor);
-  S.Rect.Width := Trunc(LineWidth);
-  S.Rect.Height := Trunc(MaxY-MinY);
-//  S.ClipRect := Clip;
+  DrawLine2D(View, VectorCreate2D(MinX, MinY), VectorCreate2D(MaxX, MinY), LineColor, LineWidth);
+  DrawLine2D(View, VectorCreate2D(MaxX, MinY), VectorCreate2D(MaxX, MaxY), LineColor, LineWidth);
+  DrawLine2D(View, VectorCreate2D(MaxX, MaxY), VectorCreate2D(MinX, MaxY), LineColor, LineWidth);
+  DrawLine2D(View, VectorCreate2D(MinX, MaxY), VectorCreate2D(MinX, MinY), LineColor, LineWidth);
 End;
 
 Procedure DrawClipRect(View:TERRAViewport; Const Rect:TERRAClipRect; LineColor:ColorRGBA; LineWidth:Single = 1.0);

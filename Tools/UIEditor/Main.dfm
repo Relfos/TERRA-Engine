@@ -77,6 +77,7 @@ object UIEditForm: TUIEditForm
     Top = 288
     Width = 209
     Height = 169
+    BevelOuter = bvRaised
     BevelWidth = 2
     Ctl3D = False
     ParentCtl3D = False
@@ -142,40 +143,21 @@ object UIEditForm: TUIEditForm
     end
     object WidgetMenu: TMenuItem
       Caption = '&Widgets'
-      object Button1: TMenuItem
-        Caption = '&Button'
-        OnClick = Button1Click
+      object Image1: TMenuItem
+        Caption = '&Image'
+        OnClick = Image1Click
+      end
+      object TiledRect1: TMenuItem
+        Caption = '&Tiled Rect'
+        OnClick = TiledRect1Click
       end
       object Label1: TMenuItem
         Caption = '&Label'
         OnClick = Label1Click
       end
-      object Window1: TMenuItem
-        Caption = '&Window'
-        OnClick = Window1Click
-      end
-      object Checkbox1: TMenuItem
-        Caption = '&Checkbox'
-        OnClick = Checkbox1Click
-      end
-      object Radiobox1: TMenuItem
-        Caption = '&Radiobox'
-        OnClick = Radiobox1Click
-      end
-      object Combobox1: TMenuItem
-        Caption = '&Combobox'
-        OnClick = Combobox1Click
-      end
-      object Icon1: TMenuItem
-        Caption = '&Icon'
-      end
-      object Sprite1: TMenuItem
-        Caption = '&Sprite'
-        OnClick = Sprite1Click
-      end
-      object ProgressBar1: TMenuItem
-        Caption = '&Progress Bar'
-        OnClick = ProgressBar1Click
+      object InputText1: TMenuItem
+        Caption = '&Input Text'
+        OnClick = InputText1Click
       end
     end
     object ViewMenu: TMenuItem

@@ -72,8 +72,6 @@ Type
 
   TERRASpriteRenderer = Class(TERRAObject)
     Protected
-      _NullSprite:TERRASprite;
-
       _Index:Integer;
       _SpriteCount:Integer;
       _Sprites:Array Of TERRASprite;
@@ -105,8 +103,8 @@ Type
 
       Procedure QueueSprite(S:TERRASprite);
 
-      Function DrawSprite(X,Y,Layer:Single; SpriteTexture:TERRATexture; ColorTable:TERRATexture = Nil; BlendMode:Integer = blendBlend; Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; Shader:ShaderInterface = Nil):QuadSprite;
-      Function DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:TERRATexture; Outline:ColorRGBA; ColorTable:TERRATexture = Nil; BlendMode:Integer = blendBlend;  Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; Shader:ShaderInterface = Nil):QuadSprite;
+      { Fetches a temporary sprite that will be disposed in the next frame }
+      Function FetchSprite():TERRASprite; //Const Layer:Single; SpriteTexture:TERRATexture; ColorTable:TERRATexture = Nil; BlendMode:Integer = blendBlend;  Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; Shader:ShaderInterface = Nil):TERRASprite;
 
       Property FontShader:ShaderInterface Read _FontShader;
   End;
@@ -339,7 +337,7 @@ Begin
   _SpriteCount := 2000;
   SetLength(_Sprites, _SpriteCount);
   For I:=0 To Pred(_SpriteCount) Do
-    _Sprites[I] := QuadSprite.Create;
+    _Sprites[I] := TERRASprite.Create();
   _Index := -1;
 
   _BatchCount := 50;
@@ -360,8 +358,6 @@ Begin
     ReleaseObject(_Batches[I]);
   _BatchCount := 0;
 
-  ReleaseObject(_NullSprite);
-
   ReleaseObject(_FontShader);
   ReleaseObject(_CurrentShader);
   ReleaseObject(_SpriteShaderWithoutGrading);
@@ -373,31 +369,15 @@ Begin
   _TERRASpriteRenderer_Instance := Nil;
 End;
 
-Function TERRASpriteRenderer.DrawSprite(X,Y,Layer:Single; SpriteTexture:TERRATexture; ColorTable:TERRATexture; BlendMode:Integer;  Saturation:Single; Filter:TextureFilterMode; Shader:ShaderInterface): QuadSprite;
-Begin
-  Result := Self.DrawSpriteWithOutline(X,Y,Layer, SpriteTexture, ColorNull, ColorTable, BlendMode,  Saturation, Filter, Shader);
-End;
-
-Function TERRASpriteRenderer.DrawSpriteWithOutline(X,Y,Layer:Single; SpriteTexture:TERRATexture; Outline:ColorRGBA; ColorTable:TERRATexture; BlendMode:Integer;  Saturation:Single; Filter:TextureFilterMode; Shader:ShaderInterface):QuadSprite;
+//Function TERRASpriteRenderer.DrawSprite(Const Layer:Single; SpriteTexture:TERRATexture; ColorTable:TERRATexture; BlendMode:Integer;  Saturation:Single; Filter:TextureFilterMode; Shader:ShaderInterface):QuadSprite;
+Function TERRASpriteRenderer.FetchSprite():TERRASprite;
 Var
   I:Integer;
 Begin
-  If (Not Assigned(SpriteTexture)) Or (Not SpriteTexture.IsReady()) Then
-  Begin
-    If Not Assigned(_NullSprite) Then
-      _NullSprite := QuadSprite.Create();
-
-    Result := QuadSprite(_NullSprite);
-    Exit;
-  End;
-
-  {$IFDEF WINDOWS}
+(*  {$IFDEF WINDOWS}
   If (Layer<0) Then
     DebugBreak;
-  {$ENDIF}
-
-  X := Trunc(X);
-  Y := Trunc(Y);
+  {$ENDIF}*)
 
   Inc(_Index);
   If (_Index>=_SpriteCount) Then
@@ -405,48 +385,51 @@ Begin
     _SpriteCount := _SpriteCount * 2;
     SetLength(_Sprites, _SpriteCount);
     For I:=_Index To Pred(_SpriteCount) Do
-        _Sprites[I] := QuadSprite.Create;
+        _Sprites[I] := TERRASprite.Create();
   End;
 
   If (_Sprites[_Index] = Nil) Then
-    _Sprites[_Index] := QuadSprite.Create;
+    _Sprites[_Index] := TERRASprite.Create();
 
-  Result := QuadSprite(_Sprites[_Index]);
-  Result.Position.X := X;
-  Result.Position.Y := Y;
-  Result.Layer := Layer;
+  Result := _Sprites[_Index];
+
+  Result.Clear();
+  Result.ColorTable := Nil;
+  Result.SetTexture(Nil);
+  Result.ClipRect.Style := clipNothing;
+  Result.Saturation := 1.0;
+  Result.Shader := Nil;
+  Result.BlendMode := blendBlend;
+  Result.Layer := 50.0;
+  Result.Outline := ColorNull;
+  Result.Next := Nil;
+  Result.SetColor(ColorWhite);
+  Result.SetUVs(0.0, 0.0, 1.0, 1.0);
+
+(*  Result.Layer := Layer;
   Result.Rect.Width := 0;
   Result.Rect.Height := 0;
   {$IFNDEF DISABLECOLORGRADING}
   Result.ColorTable := ColorTable;
   {$ENDIF}
-  Result.Anchor := VectorCreate2D(0, 0);
+
   Result.Flip := False;
   Result.Mirror := False;
   Result.ClipRect.Style := clipNothing;
   Result.Saturation := Saturation;
-  Result.Shader := Shader;
-  Result.Outline := Outline;
+  Result.Shader := Shader;*)
 
   Result.SetTransform(MatrixIdentity3x3);
 
-  SpriteTexture.Filter := Filter;
+(*  SpriteTexture.Filter := Filter;
 //  SpriteTexture.Wrap := True;
   SpriteTexture.MipMapped := False;
 
   Result.SetColor(ColorWhite);
   Result.Texture := SpriteTexture;
-  Result.BlendMode := BlendMode;
+  Result.BlendMode := BlendMode;*)
 
-  Result.Rect.U1 := 0.0;
-  Result.Rect.V1 := 0.0;
-  Result.Rect.U2 := 1.0;
-  Result.Rect.V2 := 1.0;
-
-  Result.ScrollU := 0.0;
-  Result.ScrollV := 0.0;
-
-  Self.QueueSprite(Result);
+//  Self.QueueSprite(Result);
 End;
 
 Procedure TERRASpriteRenderer.QueueSprite(S:TERRASprite);
@@ -755,7 +738,7 @@ Begin
   S := _First;
   While Assigned(S) Do
   Begin
-    If (S.ClipRect.Style = clipEverything) Or  (Not S.Rebuild()) Then
+    If (S.ClipRect.Style = clipEverything) Or (S.Vertices = Nil) Or (S.Vertices.Count <= 0) Then
     Begin
       S := S.Next;
       Continue;

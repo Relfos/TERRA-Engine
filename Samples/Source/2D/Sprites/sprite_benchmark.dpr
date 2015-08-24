@@ -74,7 +74,8 @@ Begin
 
   For I:=0 To Pred(Limit) Do
   Begin
-    S := View.SpriteRenderer.DrawSprite(Pos[I].X, Pos[I].Y, Pos[I].Z, Tex);
+    S := View.SpriteRenderer.DrawSprite(Pos[I].Z, Tex);
+    S.Translate(Pos[I].X, Pos[I].Y);
     S.Mirror := Odd(I);    // Each odd sprite in line will be reflected
     //S.SetScaleAndRotation(1, RAD * (I*360 Div 8));
 

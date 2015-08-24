@@ -635,7 +635,7 @@ End;
 { TAngleCell }
 Procedure TAngleCell.OnChange(Sender: TObject);
 Begin
-  _Prop.SetBlob(FloatToString(StringToFloat(_Edit.Text) * RAD));
+  _Prop.SetBlob(FloatProperty.Stringify(StringToFloat(_Edit.Text) * RAD));
 End;
 
 Procedure TAngleCell.Update;
@@ -643,7 +643,7 @@ Var
   Angle:Single;
 Begin
   Angle := Round(StringToFloat(_Prop.GetBlob()) * DEG * 100) Div 100;
-  _Edit.Text := FloatToString(Angle);
+  _Edit.Text := FloatProperty.Stringify(Angle);
 End;
 
 { TColorCell }
@@ -661,7 +661,7 @@ End;
 
 procedure TColorCell.OnMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 Var
-  C:Color;
+  C:ColorRGBA;
 begin
   If _Dialog = Nil Then
   Begin
@@ -672,7 +672,7 @@ begin
   If _Dialog.Execute Then
   Begin
     C := TERRAColorPack(_Dialog.Color);
-    _Prop.SetBlob(TERRA_Color.ColorToString(C));
+    _Prop.SetBlob(ColorProperty.Stringify(C));
     _Owner.RequestUpdate();
   End;
 end;

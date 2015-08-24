@@ -810,7 +810,9 @@ Begin
   Height := Trunc((Item.Buffer.Height - FontPadding) * _Scale);
 
   //0.25 / (Spread * Scale)
-  Self.MakeQuad(VectorCreate2D(X + Glyph.XOfs * FontInvScale * _Scale, Y +  + Glyph.YOfs * FontInvScale * _Scale), 0.0, Item.U1, Item.V1, Item.U2, Item.V2, Width *FontInvScale, Height* FontInvScale, A, B, C, D, Skew);
+  Self.SetUVs(Item.U1, Item.V1, Item.U2, Item.V2);
+  Self.SetCornerColors(A, B, C, D);
+  Self.MakeQuad(VectorCreate2D(X + Glyph.XOfs * FontInvScale * _Scale, Y +  + Glyph.YOfs * FontInvScale * _Scale), 0.0, Width *FontInvScale, Height* FontInvScale, Skew);
 End;
 
 

@@ -30,16 +30,15 @@ Type
 
       Function GetTile(I,J:Integer):Scale9Tile;
 
-      Function Rebuild():Boolean; Override;
-
     Public
       Constructor Create();
+
+      Procedure Update();
 
       Procedure SetPosition(Const Pos:Vector2D);
       Procedure SetSize(Const Width, Height:Integer);
       Procedure SetUVRect(Const U1, V1, U2, V2:Single);
       Procedure SetColor(Const C:ColorRGBA);
-
   End;
 
 Implementation
@@ -121,7 +120,7 @@ Begin
   _Height := Height;
 End;
 
-Function Scale9Sprite.Rebuild():Boolean;
+Procedure Scale9Sprite.Update();
 Var
   CompScaleX, CompScaleY, CompSizeX, CompSizeY, CompX, CompY:Single;
   I,J, CountX, CountY:Integer;
@@ -131,13 +130,10 @@ Var
   T:Scale9Tile;
   Offset:Integer;
 Begin
-  If _BaseColor.A<=0 Then
-  Begin
-    Result := False;
-    Exit;
-  End;
+  Self.Clear();
 
-  Inherited Rebuild();
+  If _BaseColor.A<=0 Then
+    Exit;
 
   Offset := 0;
   LX := _Width - (Self.GetTile(0, 0).Width + Self.GetTile(2, 0).Width);
@@ -180,14 +176,18 @@ Begin
     CompY := CompY + CompSizeY;
   BottomY := CompY;
 
+  Self.SetColor(_BaseColor);
+
   CompX := Self.GetTile(0, 0).Width;
   For I:=1 To CountX Do
   Begin
     T := Self.GetTile(1, 0);
-    Self.MakeQuad(VectorCreate2D(_Position.X + CompX, _Position.Y), 0.0, T.U1, T.V1, T.U2, T.V2, CompSizeX, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor, 0.0);
+    Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
+    Self.MakeQuad(VectorCreate2D(_Position.X + CompX, _Position.Y), 0.0, CompSizeX, T.Height);
 
     T := Self.GetTile(1, 2);
-    Self.MakeQuad(VectorCreate2D(_Position.X + CompX, _Position.Y + BottomY), 0.0, T.U1, T.V1, T.U2, T.V2, CompSizeX, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor, 0.0);
+    Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
+    Self.MakeQuad(VectorCreate2D(_Position.X + CompX, _Position.Y + BottomY), 0.0, CompSizeX, T.Height);
 
     CompX := CompX + CompSizeX;
   End;
@@ -196,25 +196,31 @@ Begin
   For I:=1 To CountY Do
   Begin
     T := Self.GetTile(0, 1);
-    Self.MakeQuad(VectorCreate2D(_Position.X, _Position.Y + CompY), 0.0, T.U1, T.V1, T.U2, T.V2, T.Width, CompSizeY, _BaseColor, _BaseColor, _BaseColor, _BaseColor, 0.0);
+    Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
+    Self.MakeQuad(VectorCreate2D(_Position.X, _Position.Y + CompY), 0.0, T.Width, CompSizeY);
 
     T := Self.GetTile(2, 1);
-    Self.MakeQuad(VectorCreate2D(_Position.X + BottomX, _Position.Y + CompY), 0.0, T.U1, T.V1, T.U2, T.V2, T.Width, CompSizeY, _BaseColor, _BaseColor, _BaseColor, _BaseColor, 0.0);
+    Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
+    Self.MakeQuad(VectorCreate2D(_Position.X + BottomX, _Position.Y + CompY), 0.0, T.Width, CompSizeY);
 
     CompY := CompY + CompSizeY;
   End;
 
   T := Self.GetTile(0, 0);
-  Self.MakeQuad(VectorCreate2D(_Position.X, _Position.Y), 0.0, T.U1, T.V1, T.U2, T.V2, T.Width, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor, 0.0);
+  Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
+  Self.MakeQuad(VectorCreate2D(_Position.X, _Position.Y), 0.0, T.Width, T.Height);
 
   T := Self.GetTile(2, 0);
-  Self.MakeQuad(VectorCreate2D(_Position.X + BottomX, _Position.Y), 0.0, T.U1, T.V1, T.U2, T.V2, T.Width, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor, 0.0);
+  Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
+  Self.MakeQuad(VectorCreate2D(_Position.X + BottomX, _Position.Y), 0.0, T.Width, T.Height);
 
   T := Self.GetTile(0, 2);
-  Self.MakeQuad(VectorCreate2D(_Position.X, _Position.Y + BottomY), 0.0, T.U1, T.V1, T.U2, T.V2, T.Width, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor, 0.0);
+  Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
+  Self.MakeQuad(VectorCreate2D(_Position.X, _Position.Y + BottomY), 0.0, T.Width, T.Height);
 
   T := Self.GetTile(2, 2);
-  Self.MakeQuad(VectorCreate2D(_Position.X + BottomX, _Position.Y + BottomY), 0.0, T.U1, T.V1, T.U2, T.V2, T.Width, T.Height, _BaseColor, _BaseColor, _BaseColor, _BaseColor, 0.0);
+  Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
+  Self.MakeQuad(VectorCreate2D(_Position.X + BottomX, _Position.Y + BottomY), 0.0, T.Width, T.Height);
 
   CompY := Self.GetTile(0, 0).Height;
   For J:=1 To CountY Do
@@ -224,14 +230,13 @@ Begin
     T := Self.GetTile(1, 1);
     For I:=1 To CountX Do
     Begin
-      Self.MakeQuad( VectorCreate2D(_Position.X + CompX, _Position.Y + CompY), 0.0, T.U1, T.V1, T.U2, T.V2, CompSizeX, CompSizeY, _BaseColor, _BaseColor, _BaseColor, _BaseColor, 0.0);
+      Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
+      Self.MakeQuad( VectorCreate2D(_Position.X + CompX, _Position.Y + CompY), 0.0, CompSizeX, CompSizeY);
       CompX := CompX + CompSizeX;
     End;
 
     CompY := CompY + CompSizeY;
   End;
-
-  Result := True;
 End;
 
 

@@ -81,7 +81,10 @@ Type
 
       _Glow:ColorRGBA;
 
-      Procedure MakeQuad(Const Pos:Vector2D; LayerOffset:Single; Const U1, V1, U2, V2:Single; Const Width, Height:Single; Const A,B,C,D:ColorRGBA; Const Skew:Single);
+      _U1, _V1:Single;
+      _U2, _V2:Single;
+
+      _CA, _CB, _CC, _CD:ColorRGBA;
 
     Public
       Layer:Single;
@@ -90,25 +93,32 @@ Type
       BlendMode:Integer;
       Next:TERRASprite;
 
+      Flip:Boolean;
+      Mirror:Boolean;
+
       Constructor Create();
 
       Procedure Release; Override;
 
       Procedure Clear();
 
-      Function Rebuild():Boolean; Virtual;
+      Procedure SetUVs(Const U1, V1, U2, V2:Single);
+
+      Procedure SetColor(Const Color:ColorRGBA);
+      Procedure SetCornerColors(Const A, B, C, D:ColorRGBA);
+
+      Procedure MakeQuad(Const Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single = 0.0);
 
       Procedure SetTexture(Value: TERRATexture); Virtual;
 
       Procedure SetTransform(Const Mat:Matrix3x3);
-      Procedure SetTransformWithCenter(Const Center:Vector2D; Const Mat:Matrix3x3);
-
-      Procedure SetScale(Const Center:Vector2D; ScaleX, ScaleY:Single); Overload;
-
-      Procedure SetScaleAndRotationWithCenter(Const Center:Vector2D; ScaleX, ScaleY:Single; Rotation:Single); Overload;
-      Procedure SetScaleAndRotationWithCenter(Const Center:Vector2D; Scale:Single; Rotation:Single); Overload;
 
       Procedure ConcatTransform(Const Mat:Matrix3x3);
+      Procedure Translate(Const X,Y:Single);
+      Procedure Rotate(Angle:Single);
+      Procedure Scale(Const X, Y:Single); Overload;
+      Procedure Scale(Const Value:Single); Overload;
+
 
       Property Texture:TERRATexture Read _Texture Write SetTexture;
       Property Shader:ShaderInterface Read _Shader Write _Shader;
@@ -121,49 +131,10 @@ Type
       Property Transform:Matrix3x3 Read _Transform Write SetTransform;
   End;
 
-  QuadSprite = Class(TERRASprite)
-    Protected
-      _A, _B, _C, _D:ColorRGBA;
-
-    Public
-      Position:Vector2D;
-      Anchor:Vector2D;
-
-      Mirror:Boolean;
-      Flip:Boolean;
-
-      ScrollU:Single;
-      ScrollV:Single;
-
-      Rect:TextureRect;
-
-      Function Rebuild():Boolean; Override;
-
-      Procedure SetColor(Const C:ColorRGBA);
-      Procedure SetColors(Const A, B, C, D:ColorRGBA);
-      Procedure SetAlpha(Alpha:Byte);
-
-      Procedure SetScroll(U,V:Single);
-
-      Procedure SetScale(ScaleX, ScaleY:Single); Overload;
-      Procedure SetScale(Scale:Single); Overload;
-
-      Procedure SetScaleRelative(Const Center:Vector2D; ScaleX, ScaleY:Single); Overload;
-      Procedure SetScaleRelative(Const Center:Vector2D; Scale:Single); Overload;
-      Procedure SetScaleAndRotationRelative(Const Center:Vector2D; ScaleX, ScaleY:Single; Rotation:Single ); Overload;
-      Procedure SetScaleAndRotationRelative(Const Center:Vector2D; Scale:Single; Rotation:Single ); Overload;
-      Procedure SetTransformRelative(Const Center:Vector2D; Const Mat:Matrix3x3);
-
-      Procedure SetScaleAndRotation(ScaleX, ScaleY:Single; Rotation:Single); Overload;
-      Procedure SetScaleAndRotation(Scale:Single; Rotation:Single); Overload;
-
-      Property Transform:Matrix3x3 Read _Transform;
-  End;
-
 Function CreateSpriteVertexData(Count:Integer):VertexData;
 
 Implementation
-Uses TERRA_ResourceManager, TERRA_Log, TERRA_Image, TERRA_OS, TERRA_Math
+Uses TERRA_ResourceManager, TERRA_EngineManager, TERRA_Log, TERRA_Image, TERRA_OS, TERRA_Math
   {$IFNDEF DISABLECOLORGRADING},TERRA_ColorGrading {$ENDIF};
 
 
@@ -224,6 +195,9 @@ End;
 
 Procedure TERRASprite.SetTexture(Value:TERRATexture);
 Begin
+  If (Not Assigned(Value)) Or (Not Value.IsReady()) Then
+    Value := Engine.Textures.WhiteTexture;
+
   _Texture := Value;
 End;
 
@@ -232,35 +206,34 @@ Begin
   _Transform := Mat;
 End;
 
-Procedure TERRASprite.SetTransformWithCenter(Const Center:Vector2D; Const Mat: Matrix3x3);
-Begin
-  SetTransform(MatrixTransformAroundPoint2D(Center, Mat));
-End;
-
-Procedure TERRASprite.SetScaleAndRotationWithCenter(Const Center:Vector2D; ScaleX, ScaleY:Single; Rotation:Single);
-Var
-  Mat:Matrix3x3;
-Begin
-  Mat := MatrixRotationAndScale2D(Rotation, ScaleX, ScaleY);
-  SetTransformWithCenter(Center, Mat);
-End;
-
-Procedure TERRASprite.SetScale(Const Center:Vector2D; ScaleX, ScaleY:Single);
-Begin
-  SetScaleAndRotationWithCenter(Center, ScaleX, ScaleY, 0.0);
-End;
-
 Procedure TERRASprite.ConcatTransform(const Mat: Matrix3x3);
 Begin
-  Self._Transform := MatrixMultiply3x3(_Transform, Mat);
+  _Transform := MatrixMultiply3x3(Mat, _Transform);
 End;
 
-Procedure TERRASprite.SetScaleAndRotationWithCenter(const Center: Vector2D; Scale, Rotation: Single);
+Procedure TERRASprite.Translate(const X, Y: Single);
 Begin
-  SetScaleAndRotationWithCenter(Center, Scale, Scale, Rotation);
+  Self.ConcatTransform(MatrixTranslation2D(X, Y));
 End;
 
-Procedure TERRASprite.MakeQuad(Const Pos:Vector2D; LayerOffset:Single; Const U1, V1, U2, V2:Single; Const Width, Height:Single; Const A, B, C, D:ColorRGBA; Const Skew:Single);
+procedure TERRASprite.Rotate(Angle: Single);
+Begin
+  Self.ConcatTransform(MatrixRotation2D(Angle));
+End;
+
+Procedure TERRASprite.Scale(const Value: Single);
+Begin
+  Self.ConcatTransform(MatrixScale2D(Value));
+End;
+
+Procedure TERRASprite.Scale(const X, Y: Single);
+Begin
+  Self.ConcatTransform(MatrixScale2D(X, Y));
+End;
+
+Procedure TERRASprite.MakeQuad(Const Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single);
+Var
+  U1, V1, U2, V2:Single;
 Begin
   If _Vertices = Nil Then
     _Vertices := CreateSpriteVertexData(_Offset + 6);
@@ -270,10 +243,30 @@ Begin
 
   LayerOffset := LayerOffset + Self.Layer;
 
-  _Vertices.SetColor(_Offset + 0, vertexColor, C);
-  _Vertices.SetColor(_Offset + 1, vertexColor, D);
-  _Vertices.SetColor(_Offset + 2, vertexColor, B);
-  _Vertices.SetColor(_Offset + 4, vertexColor, A);
+  If (Self.Mirror) Then
+  Begin
+    U1 := _U2;
+    U2 := _U1;
+  End Else
+  Begin
+    U1 := _U1;
+    U2 := _U2;
+  End;
+
+  If ((Self.Texture.Origin = surfaceBottomRight) <> Self.Flip) Then
+  Begin
+    V1 := _V2;
+    V2 := _V1;
+  End Else
+  Begin
+    V1 := _V1;
+    V2 := _V2;
+  End;
+
+  _Vertices.SetColor(_Offset + 0, vertexColor, _CC);
+  _Vertices.SetColor(_Offset + 1, vertexColor, _CD);
+  _Vertices.SetColor(_Offset + 2, vertexColor, _CB);
+  _Vertices.SetColor(_Offset + 4, vertexColor, _CA);
 
   _Vertices.SetVector3D(_Offset + 0, vertexPosition, VectorCreate(Pos.X, Pos.Y + Height, LayerOffset));
   _Vertices.SetVector2D(_Offset + 0, vertexUV0, VectorCreate2D(U1, V2));
@@ -293,129 +286,15 @@ Begin
   Inc(_Offset, 6);
 End;
 
-Function TERRASprite.Rebuild():Boolean;
-Begin
-  If _Vertices = Nil Then
-    _Vertices := CreateSpriteVertexData(6);
-
-  _Offset := 0;
-
-  Result := True;
-End;
-
 Procedure TERRASprite.Clear;
 Begin
   If Assigned(_Vertices) Then
     _Vertices.Resize(0);
+
+  _Offset := 0;
 End;
 
-{ QuadSprite }
-Procedure QuadSprite.SetTransformRelative(Const Center:Vector2D; Const Mat:Matrix3x3);
-Var
-  Dest:Vector2D;
-  W,H:Single;
-Begin
-  If (Self.Texture = Nil) Then
-  Begin
-    SetTransformWithCenter(Self.Position, Mat);
-  End Else
-  Begin
-    If Rect.Width>0 Then
-      W := Rect.Width
-    Else
-      W := Self.Texture.Width;
-
-    If Rect.Height>0 Then
-      H := Rect.Height
-    Else
-      H := Self.Texture.Height;
-
-    Dest.X := Self.Position.X + Center.X * W;
-    Dest.Y := Self.Position.Y + Center.Y * H;
-    SetTransformWithCenter(Dest, Mat)
-  End;
-End;
-
-Procedure QuadSprite.SetScaleAndRotation(ScaleX, ScaleY, Rotation:Single);
-Begin
-  SetScaleAndRotationWithCenter(Self.Position, ScaleX, ScaleY, Rotation);
-End;
-
-Procedure QuadSprite.SetScale(ScaleX, ScaleY:Single);
-Begin
-  SetScale(Self.Position, ScaleX, ScaleY);
-End;
-
-Procedure QuadSprite.SetScale(Scale: Single);
-Begin
-  SetScale(Scale, Scale);
-End;
-
-Procedure QuadSprite.SetScaleAndRotation(Scale, Rotation: Single);
-Begin
-  SetScaleAndRotation(Scale, Scale, Rotation);
-End;
-
-ProcedurE QuadSprite.SetScaleAndRotationRelative(Const Center:Vector2D; ScaleX, ScaleY:Single; Rotation:Single);
-Var
-  Mat:Matrix3x3;
-Begin
-  Mat := MatrixRotationAndScale2D(Rotation, ScaleX, ScaleY);
-  SetTransformRelative(Center, Mat);
-End;
-
-ProcedurE QuadSprite.SetScaleRelative(Const Center:Vector2D; ScaleX, ScaleY:Single);
-Begin
-  SetScaleAndRotationRelative(Center, ScaleX, ScaleY, 0.0);
-End;
-
-Procedure QuadSprite.SetScroll(U, V: Single);
-Begin
-  If (U>1) Or (U<-1) Then
-    U := Frac(U);
-
-  If (V>1) Or (V<-1) Then
-    V := Frac(V);
-
-  Self.ScrollU := U;
-  Self.ScrollV := V;
-End;
-
-Procedure QuadSprite.SetColor(Const C:ColorRGBA);
-Begin
-  _A := C;
-  _B := C;
-  _C := C;
-  _D := C;
-End;
-
-Procedure QuadSprite.SetColors(Const A, B, C, D:ColorRGBA);
-Begin
-  _A := A;
-  _B := B;
-  _C := C;
-  _D := D;
-End;
-
-Procedure QuadSprite.SetAlpha(Alpha: Byte);
-Begin
-  _A.A := Alpha;
-  _B.A := Alpha;
-  _C.A := Alpha;
-  _D.A := Alpha;
-End;
-
-Procedure QuadSprite.SetScaleAndRotationRelative(const Center: Vector2D; Scale, Rotation: Single);
-Begin
-  SetScaleAndRotationRelative(Center, Scale, Scale, Rotation);
-End;
-
-Procedure QuadSprite.SetScaleRelative(const Center: Vector2D; Scale: Single);
-Begin
-  SetScaleRelative(Center, Scale, Scale);
-End;
-
-Function QuadSprite.Rebuild():Boolean;
+(*Function QuadSprite.Rebuild():Boolean;
 Var
   K:Single;
   Pos:Vector2D;
@@ -437,8 +316,8 @@ Begin
   If (Height<=0) Then
     Height := Trunc((Self.Rect.V2-Self.Rect.V1) * (_Texture.Height / _Texture.Ratio.Y));
 
-  Pos.X := Position.X - Anchor.X * Width;
-  Pos.Y := Position.Y - Anchor.Y * Height;
+  Pos.X := 0;
+  Pos.Y := 0;
 
   If (Self.Mirror) Then
   Begin
@@ -465,6 +344,30 @@ Begin
   MakeQuad(Pos, 0.0, Rect.U1, Rect.V1, Rect.U2, Rect.V2, Width, Height, _A, _B, _C, _D, 0.0);
 
   Result := True;
+End;*)
+
+Procedure TERRASprite.SetUVs(const U1, V1, U2, V2: Single);
+Begin
+  Self._U1 := U1;
+  Self._U2 := U2;
+  Self._V1 := V1;
+  Self._V2 := V2;
+End;
+
+Procedure TERRASprite.SetColor(const Color: ColorRGBA);
+Begin
+  _CA := Color;
+  _CB := Color;
+  _CC := Color;
+  _CD := Color;
+End;
+
+Procedure TERRASprite.SetCornerColors(Const A, B, C, D:ColorRGBA);
+Begin
+  _CA := A;
+  _CB := B;
+  _CC := C;
+  _CD := D;
 End;
 
 { TextureRect }

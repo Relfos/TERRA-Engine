@@ -121,16 +121,19 @@ Begin
 End;
 
 Procedure UIImage.UpdateSprite(View:TERRAViewport);
+Var
+  CurrentColor:ColorRGBA;
 Begin
   If _Sprite = Nil Then
   Begin
-    _Sprite := QuadSprite.Create();
+    _Sprite := TERRASprite.Create();
   End;
+
+  CurrentColor := Self.Color;
 
   _Sprite.SetTransform(Self._Transform);
   _Sprite.Texture := Self.Texture;
 
-  QuadSprite(_Sprite).Position := VectorCreate2D(0, 0);
   _Sprite.Layer := Self.GetLayer();
   _Sprite.Saturation := Self.GetSaturation();
   _Sprite.Glow := Self.GetGlow();
@@ -139,16 +142,12 @@ Begin
     Texture := Engine.Textures.WhiteTexture;
   Texture.Filter := Filter;
 
-  QuadSprite(_Sprite).Anchor := Anchor;
-  QuadSprite(_Sprite).SetColor(Self.Color);
-  QuadSprite(_Sprite).Rect.U1 := _U1.Value;
-  QuadSprite(_Sprite).Rect.V1 := _U1.Value;
-  QuadSprite(_Sprite).Rect.U2 := _U2.Value;
-  QuadSprite(_Sprite).Rect.V2 := _V2.Value;
-  QuadSprite(_Sprite).Rect.Width := Trunc(Self.GetDimension(Self.Width, uiDimensionWidth));
-  QuadSprite(_Sprite).Rect.Height := Trunc(Self.GetDimension(Self.Height, uiDimensionHeight));
-  QuadSprite(_Sprite).Flip := Self.Flip;
-  QuadSprite(_Sprite).Mirror := Self.Mirror;
+  _Sprite.Flip := Self.Flip;
+  _Sprite.Mirror := Self.Mirror;
+  _Sprite.SetUVs(_U1.Value, _V1.Value, _U2.Value, _V2.Value);
+  _Sprite.SetColor(CurrentColor);
+  _Sprite.MakeQuad(VectorCreate2D(0,0), 0.0, Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)), Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
+
   _Sprite.SetTransform(_Transform);
   _Sprite.ClipRect := Self.ClipRect;
 End;

@@ -5,12 +5,12 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, ExtCtrls, StdCtrls, Menus, IceTabSet, Grids, ValEdit, ComCtrls,
-  TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_VCLApplication, TERRA_OS,
-  TERRA_String, TERRA_Scene, TERRA_Texture, TERRA_Font, TERRA_TTF, TERRA_DebugDraw,
-  TERRA_Viewport, TERRA_FileManager, TERRA_FileUtils, TERRA_Sprite,
+  TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_VCLApplication, TERRA_OS, TERRA_Renderer,
+  TERRA_String, TERRA_Texture, TERRA_Font, TERRA_TTF, TERRA_DebugDraw, TERRA_Renderable,
+  TERRA_Viewport, TERRA_FileManager, TERRA_FileUtils, TERRA_Sprite, TERRA_EngineManager,
   TERRA_PNG, TERRA_JPG,
   TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color,
-  TERRA_UI, TERRA_XML, TERRA_Collections, TERRA_CollectionObjects, TERRA_CustomPropertyEditor;
+  TERRA_XML, TERRA_Collections, TERRA_List, TERRA_UIView, TERRA_UIWidget, TERRA_CustomPropertyEditor;
 
 Const
   SnapValue = 10;
@@ -35,23 +35,28 @@ Type
 
   UIEditTool = (
     uitool_Empty,
-    uitool_Window,
-    uitool_Button,
+    uitool_Image,
+    uitool_TiledRect,
     uitool_Label,
-    uitool_Checkbox,
-    uitool_Radiobutton,
-    uitool_ProgressBar,
-    uitool_Sprite,
-    uitool_Combobox
+    uitool_InputText
   );
 
   UIEditScene = Class;
 
-  UIEditableView = Class(CollectionObject)
+  UIGrid = Class(TERRARenderable)
+    Protected
+      _GridSize:Single;
+
+    Public
+      Function GetRenderBucket:Cardinal; Override;
+      Procedure Render(V:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
+  End;
+
+  UIEditableView = Class(TERRAObject)
     Protected
       _Owner:UIEditScene;
       _Tab:TIceTab;
-      _Target:TERRAUI;
+      _Target:UIView;
 
     Public
       Constructor Create(Const Name:TERRAString; Owner:UIEditScene);
@@ -61,10 +66,10 @@ Type
 
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
 
-      Function PickWidgetAt(X, Y:Integer; Ignore:Widget = Nil):Widget;
+      Function PickWidgetAt(X, Y:Integer; Ignore:UIWidget = Nil):UIWidget;
   End;
 
-  UIEditScene = Class(TERRAScene)
+  UIEditScene = Class(TERRAObject)
     Protected
       _Font:TERRAFont;
 
@@ -73,15 +78,15 @@ Type
       _Datasources:List;
 
       _SelectedView:UIEditableView;
-      _SelectedWidget:Widget;
-      _LastWidget:Widget;
+      _SelectedWidget:UIWidget;
+      _LastWidget:UIWidget;
 
       _CurrentTool:UIEditTool;
       _DragMode:UIDragMode;
 
-      _GridSize:Single;
+      _Grid:UIGrid;
 
-      Function GetNewTarget(X,Y:Integer):Widget;
+      Function GetNewTarget(X,Y:Integer):UIWidget;
 
 
     Public
@@ -91,7 +96,7 @@ Type
 
       Procedure Clear();
 
-      Procedure RenderSprites(V:TERRAViewport); Override;
+      Procedure RenderViewport2D(V:TERRAViewport);
 
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
 
@@ -104,17 +109,13 @@ Type
 
       Function AddView(Const Name:TERRAString):UIEditableView;
 
-      Procedure AddWidget(W:Widget; X,Y:Integer);
-      Procedure AddWindow(X, Y:Integer);
-      Procedure AddButton(X, Y:Integer);
+      Procedure AddWidget(W:UIWidget; X,Y:Integer);
+      Procedure AddImage(X, Y:Integer);
+      Procedure AddTiledRect(X, Y:Integer);
       Procedure AddLabel(X, Y:Integer);
-      Procedure AddCheckbox(X, Y:Integer);
-      Procedure AddRadioButton(X, Y:Integer);
-      Procedure AddProgressBar(X,Y:Integer);
-      Procedure AddSprite(X,Y:Integer);
-      Procedure AddComboBox(X,Y:Integer);
+      Procedure AddInputText(X, Y:Integer);
 
-      Procedure SelectWidget(W:Widget);
+      Procedure SelectWidget(W:UIWidget);
   End;
 
   TUIEditForm = class(TForm)
@@ -134,15 +135,10 @@ Type
     Component1: TMenuItem;
     WidgetMenu: TMenuItem;
     WidgetList: TTreeView;
-    Button1: TMenuItem;
+    Image1: TMenuItem;
     Label1: TMenuItem;
-    Window1: TMenuItem;
-    Checkbox1: TMenuItem;
-    Radiobox1: TMenuItem;
-    Combobox1: TMenuItem;
-    Icon1: TMenuItem;
-    Sprite1: TMenuItem;
-    ProgressBar1: TMenuItem;
+    TiledRect1: TMenuItem;
+    InputText1: TMenuItem;
     PopupMenu: TPopupMenu;
     Copy1: TMenuItem;
     Delete1: TMenuItem;
@@ -162,7 +158,7 @@ Type
     procedure FormResize(Sender: TObject);
 
     Function AddNewTab(Const Name:TERRAString):TIceTab;
-    procedure Button1Click(Sender: TObject);
+    procedure Image1Click(Sender: TObject);
     procedure RenderPanelMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure WidgetListClick(Sender: TObject);
@@ -171,14 +167,11 @@ Type
     procedure RenderPanelMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure Label1Click(Sender: TObject);
-    procedure Checkbox1Click(Sender: TObject);
-    procedure ProgressBar1Click(Sender: TObject);
-    procedure Radiobox1Click(Sender: TObject);
-    procedure Window1Click(Sender: TObject);
+    procedure InputText1Click(Sender: TObject);
+    procedure TiledRect1Click(Sender: TObject);
     procedure Delete1Click(Sender: TObject);
     procedure WidgetListEdited(Sender: TObject; Node: TTreeNode;
       var S: String);
-    procedure Sprite1Click(Sender: TObject);
     procedure Save1Click(Sender: TObject);
     procedure Open1Click(Sender: TObject);
     procedure GridOffMenuClick(Sender: TObject);
@@ -187,7 +180,6 @@ Type
     procedure GridLargeMenuClick(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
-    procedure Combobox1Click(Sender: TObject);
     procedure FormMouseWheel(Sender: TObject; Shift: TShiftState;
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
     procedure WidgetListMouseDown(Sender: TObject; Button: TMouseButton;
@@ -201,6 +193,8 @@ Type
     procedure Paths1Click(Sender: TObject);
     procedure NewProjectClick(Sender: TObject);
 
+    Procedure BuildWidgetTreeRecursive(W:UIWidget);
+
   Protected
     _CurrentCursor:Integer;
 
@@ -208,8 +202,8 @@ Type
     Procedure CustomMeasureItem(Sender: TObject; ACanvas: TCanvas;  var Width, Height: Integer);
 
 
-    Function AddWidgetNode(W:Widget):TTreeNode;
-    Function FindWidgetNode(W:Widget):TTreeNode;
+    Function AddWidgetNode(W:UIWidget):TTreeNode;
+    Function FindWidgetNode(W:UIWidget):TTreeNode;
     Procedure UpdateWidgetTree();
     Procedure BuildWidgetTree();
 
@@ -222,8 +216,8 @@ Type
 
   Private
     _Scene:UIEditScene;
-    _DragTarget:Widget;
-    _DropTarget:Widget;
+    _DragTarget:UIWidget;
+    _DropTarget:UIWidget;
     _Brush:TBrush;
 
   Public
@@ -233,7 +227,7 @@ Type
 
   UIEditorApplication = Class(VCLApplication)
     Public
-      Function CreateProperty(Owner:TERRAObject; Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
+      Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
   End;
 
 
@@ -243,10 +237,55 @@ Var
 
 
 implementation
-Uses TERRA_UIDimension, TERRA_UIWindow, TERRA_UIButton, TERRA_UILabel, TERRA_UICheckbox, TERRA_UIRadioButton, TERRA_UIProgressBar,
-  TERRA_UISprite, TERRA_UIList, TERRA_UIComboBox, FormProjectSettings, FormListEdit;
+Uses TERRA_UIDimension, TERRA_UITemplates, TERRA_UIImage, TERRA_UITiledRect, TERRA_UILabel, TERRA_UIEditText, FormProjectSettings, FormListEdit;
 
 {$R *.dfm}
+
+Function UIGrid.GetRenderBucket:Cardinal;
+Begin
+  Result := renderBucket_Overlay;
+End;
+
+Procedure UIGrid.Render(V:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
+Var
+  X,Y, Width:Single;
+  I:Integer;
+  GridColor:ColorRGBA;
+Begin
+  If _GridSize<=1 Then
+    Exit;
+
+  //GridColor := ColorGrey(64, 200);
+  GridColor := ColorRed;
+
+  X := 0;
+  I := 0;
+  While X<V.Width Do
+  Begin
+    Inc(I);
+    Width := 1.0;
+    If (I Mod 5 = 0) Then
+      Width := Width * 2;
+
+    DrawLine2D(V, VectorCreate2D(X, 0), VectorCreate2D(X, V.Height),  GridColor, Width);
+    X := X + _GridSize;
+  End;
+
+  Exit;
+
+  Y := 0;
+  I := 0;
+  While Y<V.Height Do
+  Begin
+    Inc(I);
+    Width := 1.0;
+    If (I Mod 5 = 0) Then
+      Width := Width * 2;
+
+    DrawLine2D(V, VectorCreate2D(0, Y), VectorCreate2D(V.Width, Y),  GridColor, Width);
+    Y := Y + _GridSize;
+  End;
+End;
 
 { UIEditScene }
 Constructor UIEditScene.Create;
@@ -255,7 +294,7 @@ Begin
   _CurrentTool := uitool_Empty;
 
   // Load a font
-  Self._Font := FontManager.Instance.GetFont('droid');
+  Self._Font := Engine.Fonts['droid'];
 
   // set background color
   GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorGrey(128);
@@ -263,7 +302,11 @@ Begin
   Self.Clear();
 
 //  Self.AddView('Untitled');
+
+  _Grid := UIGrid.Create();
   Self.SetGridSize(20.0);
+
+  VCLApplication(Application.Instance).Viewport.OnRender := Self.RenderViewport2D;
 End;
 
 Procedure UIEditScene.Clear();
@@ -271,6 +314,7 @@ Begin
   UIEditForm.TabList.Tabs.Clear();
   UIEditForm.PropertyList.Target := Nil;
 
+  ReleaseObject(_Grid);
   ReleaseObject(_Views);
   ReleaseObject(_Paths);
   ReleaseObject(_Datasources);
@@ -295,7 +339,7 @@ Begin
 End;
 
 
-Procedure UIEditScene.AddWidget(W: Widget; X,Y:Integer);
+Procedure UIEditScene.AddWidget(W:UIWidget; X,Y:Integer);
 Var
   Node:TTreeNode;
 Begin
@@ -319,68 +363,69 @@ Begin
 End;
 
 
-Procedure UIEditScene.AddWindow(X, Y: Integer);
+Procedure UIEditScene.AddImage(X, Y: Integer);
+Var
+  Img:UIImage;
+  Tex:TERRATexture;
 Begin
-  Self.AddWidget(UIWindow.Create('window', Self.GetNewTarget(X, Y),
-    X, Y, 0.1,
-    UIPixels(300), UIPixels(200),  'window'), X, Y);
+  Tex := Engine.Textures['default_image'];
+  Img := UIImage.Create('image', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(300), UIPixels(200));
+  Img.SetTexture(Tex);
+  Self.AddWidget(Img, X, Y);
 End;
 
 
-Procedure UIEditScene.AddButton(X, Y: Integer);
+Procedure UIEditScene.AddTiledRect(X, Y: Integer);
 Begin
-  Self.AddWidget(UIButton.Create('button', Self.GetNewTarget(X, Y),
+  Self.AddWidget(UITiledRect.Create('rect', Self.GetNewTarget(X, Y),
     X, Y, 0.1,
-    UIPixels(150), UIPixels(50), 'Button', 'round_button'), X, Y);
+    UIPixels(300), UIPixels(200)), X, Y);
 End;
 
 Procedure UIEditScene.AddLabel(X, Y: Integer);
 Begin
-  Self.AddWidget(UILabel.Create('label', Self.GetNewTarget(X, Y), X, Y, 0.1, 'text'), X, Y);
+  Self.AddWidget(UILabel.Create('label', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(100), UIPixels(50), 'text'), X, Y);
 End;
 
-procedure UIEditScene.AddCheckbox(X, Y: Integer);
+procedure UIEditScene.AddInputText(X, Y: Integer);
 Begin
-  Self.AddWidget(UICheckbox.Create('check', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(25), True, 'text', 'checkbox'), X, Y);
+  Self.AddWidget(UIEditText.Create('label', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(100), UIPixels(50), 'text'), X, Y);
 End;
 
-procedure UIEditScene.AddRadioButton(X, Y: Integer);
+{procedure UIEditScene.AddRadioButton(X, Y: Integer);
 Begin
-  Self.AddWidget(UIRadioButton.Create('radio', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(25), 'text', 'checkbox'), X, Y);
+(*  Self.AddWidget(UIRadioButton.Create('radio', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(25), 'text', 'checkbox'), X, Y);*)
 End;
 
 procedure UIEditScene.AddProgressBar(X, Y: Integer);
-Var
-  P:UIProgressBar;
+(*Var
+  P:UIProgressBar;*)
 begin
-  P := UIProgressBar.Create('bar', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(200), UIPixels(30), 'progressbar');
+(*  P := UIProgressBar.Create('bar', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(200), UIPixels(30), 'progressbar');
   P.Percent.Value := 50;
-  Self.AddWidget(P, X, Y);
+  Self.AddWidget(P, X, Y);*)
 end;
 
 procedure UIEditScene.AddSprite(X, Y: Integer);
-Var
-  P:UISprite;
 begin
-  P := UISprite.Create('sprite', Self.GetNewTarget(X, Y), X, Y, 0.1, 'sprite');
-  Self.AddWidget(P, X, Y);
+//  Self.AddWidget(UISprite.Create('sprite', Self.GetNewTarget(X, Y), X, Y, 0.1, 'sprite'), X, Y);
 end;
 
 procedure UIEditScene.AddComboBox(X,Y:Integer);
-Var
+(*Var
   P:UIComboBox;
-  Content:List;
+  Content:List;*)
 begin
-  Content := List.Create();
+(*  Content := List.Create();
   Content.Add(StringObject.Create('one'));
   Content.Add(StringObject.Create('two'));
   Content.Add(StringObject.Create('three'));
   P := UIComboBox.Create('combo', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(300), UIPixels(50), 'combobox');
   P.SetContent(Content);
   P.ItemIndex := 0;
-  
-  Self.AddWidget(P, X, Y);
-end;
+
+  Self.AddWidget(P, X, Y);*)
+end;}
 
 Function UIEditScene.AddView(Const Name:TERRAString):UIEditableView;
 Begin
@@ -391,7 +436,7 @@ Begin
   _SelectedView := Result;
 End;
 
-Procedure UIEditScene.SelectWidget(W: Widget);
+Procedure UIEditScene.SelectWidget(W:UIWidget);
 Var
   Node:TTreeNode;
 begin
@@ -407,7 +452,7 @@ begin
     Node.Selected := True;
 End;
 
-Function UIEditScene.GetNewTarget(X,Y:Integer): Widget;
+Function UIEditScene.GetNewTarget(X,Y:Integer):UIWidget;
 Begin
   Result := _SelectedView.PickWidgetAt(X, Y);
   If Result = Nil Then
@@ -417,46 +462,13 @@ End;
 Procedure UIEditScene.SetGridSize(Size: Single);
 Begin
   UISnapSize := Size;
-  Self._GridSize := Size;
+  _Grid._GridSize := Size;
 End;
 
-Procedure UIEditScene.RenderSprites(V: TERRAViewport);
-Var
-  X,Y, Width:Single;
-  I:Integer;
-  GridColor:Color;
+Procedure UIEditScene.RenderViewport2D(V: TERRAViewport);
 Begin
-  If _GridSize>1 Then
-  Begin
-    GridColor := ColorGrey(64, 200);
-
-    X := 0;
-    I := 0;
-    While X<V.Width Do
-    Begin
-      Inc(I);
-      Width := 1.0;
-      If (I Mod 5 = 0) Then
-        Width := Width * 2;
-
-      DrawLine2D(V, VectorCreate2D(X, 0), VectorCreate2D(X, V.Height),  GridColor, Width);
-      X := X + _GridSize;
-    End;
-
-    Y := 0;
-    I := 0;
-    While Y<V.Height Do
-    Begin
-      Inc(I);
-      Width := 1.0;
-      If (I Mod 5 = 0) Then
-        Width := Width * 2;
-
-      DrawLine2D(V, VectorCreate2D(0, Y), VectorCreate2D(V.Width, Y),  GridColor, Width);
-      Y := Y + _GridSize;
-    End;
-
-  End;
+  GraphicsManager.Instance.AddRenderable(V, Self._Grid);
+  GraphicsManager.Instance.AddRenderable(V, Self._SelectedView._Target);
 End;
 
 Function UIEditScene.GetPropertyByIndex(Index: Integer): TERRAObject;
@@ -503,10 +515,10 @@ End;
 
 procedure UIEditScene.Select(Index: Integer);
 Var
-  Item:CollectionObject;
+  Item:TERRAObject;
 begin
   If Assigned(_SelectedView) Then
-    _SelectedView._Target.Visible := False;
+    _SelectedView._Target.Hide();
 
   Item := _Views.GetItemByIndex(Index);
 
@@ -528,15 +540,12 @@ Begin
   Self._Owner := Owner;
 
   // Create a new UI
-  _Target := TERRAUI.Create();
+  _Target := UIView.Create('ui', UIPixels(Application.Instance.Width), UIPixels(Application.Instance.Height));
 
   // Register the font with the UI
   _Target.DefaultFont := Self._Owner._Font;
 
-  // Load a GUI skin
-  _Target.LoadSkin('ui_sample_skin');
-
-  _Target.Visible := False;
+  //_Target.Show();
 
   _Tab := UIEditForm.AddNewTab(Name);
 End;
@@ -544,12 +553,12 @@ End;
 
 Procedure UIEditableView.Select();
 begin
-  _Target.Visible := True;
+  _Target.Show();
 end;
 
-Function UIEditableView.PickWidgetAt(X, Y: Integer; Ignore:Widget): Widget;
+Function UIEditableView.PickWidgetAt(X, Y: Integer; Ignore:UIWidget): UIWidget;
 Begin
-  Result := _Target.PickWidget(X, Y, Ignore);
+  Result := _Target.PickWidget(X, Y, False, Ignore);
 End;
 
 Procedure UIEditableView.Release;
@@ -589,8 +598,6 @@ Begin
 
   // Create a scene and set it as the current scene
   _Scene := UIEditScene.Create();
-  GraphicsManager.Instance.SetScene(_Scene);
-
   Self.NewProjectClick(Sender);
 
   _Brush := TBrush.Create();
@@ -628,19 +635,17 @@ begin
   RenderPanel.Left := PropertyList.Width + PropertyList.Left;
   RenderPanel.Width := Self.ClientWidth - RenderPanel.Left;
   RenderPanel.Height := Self.ClientHeight - RenderPanel.Top;
-
-  IntToString(RenderPanel.Height);
 end;
 
-procedure TUIEditForm.Button1Click(Sender: TObject);
+procedure TUIEditForm.Image1Click(Sender: TObject);
 begin
-  Scene._CurrentTool := uitool_Button;
+  Scene._CurrentTool := uitool_Image;
 end;
 
 
-procedure TUIEditForm.Window1Click(Sender: TObject);
+procedure TUIEditForm.TiledRect1Click(Sender: TObject);
 begin
-  Scene._CurrentTool := uitool_Window;
+  Scene._CurrentTool := uitool_TiledRect;
 end;
 
 procedure TUIEditForm.Label1Click(Sender: TObject);
@@ -648,35 +653,15 @@ begin
   Scene._CurrentTool := uitool_Label;
 end;
 
-procedure TUIEditForm.Checkbox1Click(Sender: TObject);
+procedure TUIEditForm.InputText1Click(Sender: TObject);
 begin
-  Scene._CurrentTool := uitool_Checkbox;
-end;
-
-procedure TUIEditForm.Radiobox1Click(Sender: TObject);
-begin
-  Scene._CurrentTool := uitool_Radiobutton;
-end;
-
-procedure TUIEditForm.ProgressBar1Click(Sender: TObject);
-begin
-  Scene._CurrentTool := uitool_ProgressBar;
-end;
-
-procedure TUIEditForm.Sprite1Click(Sender: TObject);
-begin
-  Scene._CurrentTool := uitool_Sprite;
-end;
-
-procedure TUIEditForm.Combobox1Click(Sender: TObject);
-begin
-  Scene._CurrentTool := uitool_Combobox;
+  Scene._CurrentTool := uitool_InputText;
 end;
 
 procedure TUIEditForm.RenderPanelMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 Var
-  W:Widget;
+  W:UIWidget;
   pnt: TPoint;
   Node:TTreeNode;
 begin
@@ -716,14 +701,14 @@ begin
       End;
     End;
 
-  uitool_Window:
+  uitool_Image:
     Begin
-      Self.Scene.AddWindow(X, Y);
+      Self.Scene.AddImage(X, Y);
     End;
 
-  uitool_Button:
+  uitool_TiledRect:
     Begin
-      Self.Scene.AddButton(X, Y);
+      Self.Scene.AddTiledRect(X, Y);
     End;
 
   uitool_Label:
@@ -731,29 +716,9 @@ begin
       Self.Scene.AddLabel(X, Y);
     End;
 
-  uitool_Checkbox:
+  uitool_InputText:
     Begin
-      Self.Scene.AddCheckbox(X, Y);
-    End;
-
-  uitool_Radiobutton:
-    Begin
-      Self.Scene.AddRadioButton(X, Y);
-    End;
-
-  uitool_ProgressBar:
-    Begin
-      Self.Scene.AddProgressBar(X, Y);
-    End;
-
-  uitool_Sprite:
-    Begin
-      Self.Scene.AddSprite(X, Y);
-    End;
-
-  uitool_Combobox:
-    Begin
-      Self.Scene.AddComboBox(X, Y);
+      Self.Scene.AddInputText(X, Y);
     End;
 
   End;
@@ -790,7 +755,7 @@ procedure TUIEditForm.RenderPanelMouseMove(Sender: TObject; Shift: TShiftState; 
 Const
   WidgetBorder = 10;
 Var
-  W:Widget;
+  W:UIWidget;
   P:Vector2D;
   PX, PY:Integer;
   TargetCursor:Integer;
@@ -806,7 +771,7 @@ begin
       Y := (Y Div SnapValue) * SnapValue;
     End;
 
-    _DragTarget.OnMouseMove(X, Y);
+    _DragTarget.OnHandleMouseMove(X, Y);
 
     _DropTarget := Scene._SelectedView.PickWidgetAt(X, Y, _DragTarget);
     If (_DropTarget <> _DragTarget.Parent) Then
@@ -885,7 +850,7 @@ begin
     ChangeCursor(customDefault);
 End;
 
-Function TUIEditForm.FindWidgetNode(W: Widget): TTreeNode;
+Function TUIEditForm.FindWidgetNode(W:UIWidget): TTreeNode;
 Var
   I:Integer;
 Begin
@@ -903,7 +868,7 @@ End;
 procedure TUIEditForm.WidgetListClick(Sender: TObject);
 Var
   Node:TTreeNode;
-  Source:Widget;
+  Source:UIWidget;
 begin
   Node := Self.WidgetList.Selected;
 
@@ -913,10 +878,10 @@ begin
     Exit;
   End;
 
-  Scene.SelectWidget(Scene._SelectedView._Target.GetWidget(Node.Text));
+  Scene.SelectWidget(Scene._SelectedView._Target.GetChildByName(Node.Text));
 end;
 
-Function TUIEditForm.AddWidgetNode(W:Widget):TTreeNode;
+Function TUIEditForm.AddWidgetNode(W:UIWidget):TTreeNode;
 Var
   I:Integer;
 Begin
@@ -928,8 +893,8 @@ Begin
   If Assigned(Result) Then
     Exit;
 
-  If Assigned(W.Parent) Then
-    Self.AddWidgetNode(W.Parent);
+{  If Assigned(W.Parent) Then
+    Self.AddWidgetNode(W.Parent);}
 
   Result := WidgetList.Items.AddChildObject(FindWidgetNode(W.Parent), W.Name, W);
 
@@ -937,21 +902,29 @@ Begin
     Self.AddWidgetNode(W.GetChildByIndex(I));
 End;
 
+Procedure TUIEditForm.BuildWidgetTreeRecursive(W:UIWidget);
+Var
+  I:Integer;
+Begin
+  If W = Nil Then
+    Exit;
+    
+  AddWidgetNode(W);
+
+  For I:=0 To Pred(W.ChildrenCount) Do
+    Self.BuildWidgetTreeRecursive(W.GetChildByIndex(I));
+End;
+
 Procedure TUIEditForm.BuildWidgetTree();
 Var
-  W:Widget;
+  W:UIWidget;
 Begin
   WidgetList.Items.Clear();
 
   If _Scene._SelectedView = Nil Then
     Exit;
 
-  W := _Scene._SelectedView._Target.First;
-  While Assigned(W) Do
-  Begin
-    AddWidgetNode(W);
-    W := W.Next;
-  End;
+  Self.BuildWidgetTreeRecursive(W);
 End;
 
 Procedure TUIEditForm.UpdateWidgetTree;
@@ -962,7 +935,7 @@ Begin
   For I:=0 To Pred(WidgetList.Items.Count) Do
   Begin
     N := WidgetList.Items[I];
-    N.Text := Widget(N.Data).Name;
+    N.Text := UIWidget(N.Data).Name;
   End;
 End;
 
@@ -1145,7 +1118,9 @@ begin
     Node.Delete();
   End;
 
-  _Scene._SelectedView._Target.DeleteWidget(_Scene._SelectedWidget);
+  //_Scene._SelectedView._Target.DeleteWidget(_Scene._SelectedWidget);
+  _Scene._SelectedWidget.Delete();
+  _Scene._SelectedWidget := Nil;
   PropertyList.Target := Nil;
 end;
 
@@ -1154,7 +1129,7 @@ begin
   If Node.Data = Nil Then
     Exit;
 
-  Widget(Node.Data).Name := S;
+  UIWidget(Node.Data).Name := S;
 end;
 
 procedure TUIEditForm.Save1Click(Sender: TObject);
@@ -1215,26 +1190,26 @@ procedure TUIEditForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftS
 begin
   If ssCtrl In Shift Then
   Case Key Of
-    Ord('1'): Self.Button1Click(Sender);
-    Ord('2'): Self.Label1Click(Sender);
-    Ord('3'): Self.Window1Click(Sender);
-    Ord('4'): Self.Checkbox1Click(Sender);
-    Ord('5'): Self.Radiobox1Click(Sender);
+    Ord('1'): Self.Image1Click(Sender);
+    Ord('2'): Self.TiledRect1Click(Sender);
+    Ord('3'): Self.Label1Click(Sender);
+    Ord('4'): Self.InputText1Click(Sender);
+(*    Ord('5'): Self.Radiobox1Click(Sender);
     Ord('6'): Self.Combobox1Click(Sender);
 //    Ord('7'): Self.Icon1Click(Sender);
     Ord('8'): Self.Sprite1Click(Sender);
-    Ord('9'): Self.ProgressBar1Click(Sender);
+    Ord('9'): Self.ProgressBar1Click(Sender);*)
   End;
 end;
 
 
 { UIEditorApplication }
-Function UIEditorApplication.CreateProperty(Owner:TERRAObject; const KeyName, ObjectType: TERRAString): TERRAObject;
+Function UIEditorApplication.CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject;
 Begin
   If StringEquals('UIEditableView', ObjectType) Then
     Result := UIEditableView.Create(KeyName, UIEditForm._Scene)
   Else
-    Result := Inherited CreateProperty(Owner, KeyName, ObjectType);
+    Result := Inherited CreateProperty(KeyName, ObjectType);
 End;
 
 procedure TUIEditForm.FormMouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);

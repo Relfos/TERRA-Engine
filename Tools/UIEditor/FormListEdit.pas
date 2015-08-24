@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, TERRA_Object, TERRA_Collections, TERRA_CollectionObjects, TERRA_FileUtils;
+  Dialogs, StdCtrls, TERRA_Object, TERRA_Collections, TERRA_List, TERRA_FileUtils;
 
 type
   TListEditForm = class(TForm)
@@ -38,7 +38,7 @@ Uses TERRA_DataSource;
 Procedure LoadDataSources(Target:List);
 Var
   It:Iterator;
-  S:StringObject;
+  S:StringProperty;
 Begin
   DataSourceManager.Instance.Clear;
   If Target = Nil Then
@@ -47,7 +47,7 @@ Begin
   It := Target.GetIterator();
   While It.HasNext() Do
   Begin
-    S := StringObject(It.Value);
+    S := StringProperty(It.Value);
     DataSourceManager.Instance.AddFromSession(S.Value);
   End;
   ReleaseObject(It);
@@ -87,7 +87,7 @@ begin
     If Self._FolderOnly Then
       S := GetFilePath(S);
 
-    _Target.Add(StringObject.Create(S));
+    _Target.Add(StringProperty.Create('string', S));
     ListBox1.Items.Add(S);
   End;
 end;

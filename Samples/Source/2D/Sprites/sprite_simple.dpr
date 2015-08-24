@@ -7,6 +7,7 @@ uses
   TERRA_MemoryManager,
   TERRA_Application,
   TERRA_DemoApplication,
+  TERRA_Renderer,
   TERRA_Utils,
   TERRA_ResourceManager,
   TERRA_GraphicsManager,
@@ -19,7 +20,7 @@ uses
   TERRA_Collections,
   TERRA_Viewport,
   TERRA_EngineManager,
-  TERRA_PNG,
+  TERRA_Matrix3x3,
   TERRA_Math,
   TERRA_Color,
   TERRA_String,
@@ -51,58 +52,106 @@ Procedure MyDemo.OnRender2D(View: TERRAViewport);
 Var
   I:Integer;
   Angle:Single;
-  S:QuadSprite;
+  S:TERRASprite;
 Begin
   Inherited;
 
-    If (Tex = Nil) Then
+  If (Tex = Nil) Then
     Exit;
+
+  Tex.WrapMode := wrapNothing;
 
   // This is how sprite rendering works with TERRA.
   // 1st we ask the Renderer to create a new sprite, using a Tex and position.
   // Note that this sprite instance is only valid during the frame its created.
   // If needed we can configure the sprite properties.
 
-  // Note - The third argument of VectorCreate is the sprite Layer, should be a value between 0 and 100
-  //        Sprites with higher layer values appear below the others
+  // Note - The first argument of VectorCreate is the sprite Layer, should be a value between 0 and 100
+  //        Sprites with lower layer values appear below the others
 
   // Create a simple fliped sprite
-  S := View.SpriteRenderer.DrawSprite(620, 60, 50, Tex);
+  S := View.SpriteRenderer.FetchSprite();
+  S.Layer := 50;
+  S.SetTexture(Tex);
+  S.Translate(620, 60);
   S.Flip := True;
-
+  S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+  View.SpriteRenderer.QueueSprite(S);
 
   // An alpha blended sprite
-  S := View.SpriteRenderer.DrawSprite(700, 60, 55, Tex);
+  S := View.SpriteRenderer.FetchSprite();
+  S.Layer := 55;
+  S.SetTexture(Tex);
+  S.Translate(700, 60);
   S.SetColor(ColorCreate(255, 255, 255, 128));
+  S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+  View.SpriteRenderer.QueueSprite(S);
 
   // Create a line of sprites
   For I:=0 To 8 Do
   Begin
-    S := View.SpriteRenderer.DrawSprite(16 + Tex.Width * I, 10, 50, Tex);
+    S := View.SpriteRenderer.FetchSprite();
+    S.Layer := 50;
+    S.SetTexture(Tex);
+    S.Translate(16 + Tex.Width * I, 10);
     S.Mirror := Odd(I);    // Each odd sprite in line will be reflected
+
+    S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+    View.SpriteRenderer.QueueSprite(S);
   End;
 
   // Create a line of rotated sprites
   For I:=0 To 8 Do
   Begin
-    S := View.SpriteRenderer.DrawSprite(16 + Tex.Width * I, 300, 50, Tex);
-    S.SetScaleAndRotationRelative(VectorCreate2D(0.5, 0.5), 1, RAD * (I*360 Div 8));
+    S := View.SpriteRenderer.FetchSprite();
+    S.Layer := 50;
+    S.SetTexture(Tex);
+    // the order of transformations matter, apply rotation first, then scale, tehn translation always as the last step
+    S.Rotate(RAD * (I*360 Div 8));
+    // by default all transformations apply to the top left corner of a sprite
+    // using MatrixTransformAroundPoint2D() allows to make transformations around any custom anchor point
+    S.SetTransform(MatrixTransformAroundPoint2D(VectorCreate2D(Tex.Width * 0.5, Tex.Height * 0.5), S.Transform));
+    S.Scale(1.5);
+
+    // after we rotate and scale, now we can finally apply a translation
+    S.Translate(16 + Tex.Width * I * 1.5, 300);
+
+    S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+    View.SpriteRenderer.QueueSprite(S);
   End;
 
   // Some scaled sprites
-  S := View.SpriteRenderer.DrawSprite(10,120,55, Tex);
-  S.SetScale(2.0);    // Double size
+  S := View.SpriteRenderer.FetchSprite();
+  S.Layer := 55;
+  S.SetTexture(Tex);
+  S.Scale(2.0);    // Double size
+  S.Translate(10,120);
+  S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+  View.SpriteRenderer.QueueSprite(S);
 
-  S := View.SpriteRenderer.DrawSprite(110,130,55, Tex);
-  S.SetScale(1.5);    // 1.5 Size
+  S := View.SpriteRenderer.FetchSprite();
+  S.Layer := 55;
+  S.SetTexture(Tex);
+  S.Scale(1.5);    // 1.5 Size
+  S.Translate(110,130);
+  S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+  View.SpriteRenderer.QueueSprite(S);
 
-  S := View.SpriteRenderer.DrawSprite(180,145,55, Tex);
-  S.SetScale(0.5);    // Half size
+  S := View.SpriteRenderer.FetchSprite();
+  S.Layer := 55;
+  S.SetTexture(Tex);
+  S.Scale(0.5);    // Half size
+  S.Translate(180,145);
+  S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+  View.SpriteRenderer.QueueSprite(S);
 
   // Some colored sprites
   For I:=0 To 4 Do
   Begin
-    S := View.SpriteRenderer.DrawSprite(300 + Tex.Width * I,120,50, Tex);
+    S := View.SpriteRenderer.FetchSprite();
+    S.Layer := 50;
+    S.SetTexture(Tex);
+    S.Translate(300 + Tex.Width * I, 120);
 
     Case I Of
     0:  S.SetColor(ColorCreate(255,128,255)); // Purple tint
@@ -111,12 +160,22 @@ Begin
     3:  S.SetColor(ColorCreate(128,128,255)); // Blue tint
     4:  S.SetColor(ColorCreate(255,255,128)); // Yellow tint
     End;
+
+    S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+    View.SpriteRenderer.QueueSprite(S);
   End;
 
   // A rotating sprite in the bottom, with Scale = 2x
   Angle := RAD * ((Application.GetTime() Div 15) Mod 360);
-  S := View.SpriteRenderer.DrawSprite(300, 400, 50, Tex);
-  S.SetScaleAndRotationRelative(VectorCreate2D(0.5, 0.5), 2.0, Angle);  // Calculate rotation, in degrees, from current time
+  S := View.SpriteRenderer.FetchSprite();
+  S.Layer := 50;
+  S.SetTexture(Tex);
+  S.Rotate(Angle);
+  S.SetTransform(MatrixTransformAroundPoint2D(VectorCreate2D(Tex.Width * 0.5, Tex.Height * 0.5), S.Transform));
+  S.Scale(2);
+  S.Translate(300, 400);
+  S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+  View.SpriteRenderer.QueueSprite(S);
 End;
 
 {$IFDEF IPHONE}

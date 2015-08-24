@@ -720,7 +720,7 @@ End;
 Procedure TERRAFontRenderer.DrawSprite(const TextureName:TERRAString);
 Var
   Tex:TERRATexture;
-  S:QuadSprite;
+  S:TERRASprite;
 Begin
   If (TextureName = '') Then
     Exit;
@@ -735,16 +735,10 @@ Begin
 
   If (_Mode = fontmode_Sprite) Then
   Begin
-    (*If _DropShadow Then
-    Begin
-      S := _View.SpriteRenderer.DrawSprite(_CurrentPosition.X - 1, _CurrentPosition.Y - Tex.Height + 1, Self._Layer, Tex);
-      S.SetColor(ColorGrey(0, _Color1.A));
-      Self.TransformSprite(S);
-    End;*)
-
-    S := _View.SpriteRenderer.DrawSprite(_CurrentPosition.X, _CurrentPosition.Y - Tex.Height, Self._Layer + 0.1, Tex);
+    (*S := _View.SpriteRenderer.DrawSprite(Self._Layer + 0.1, Tex);
+    S.Translate(_CurrentPosition.X, _CurrentPosition.Y - Tex.Height);
     S.SetColor(ColorGrey(255, _Color1.A));
-    Self.TransformSprite(S);
+    Self.TransformSprite(S);*)
   End;
 
   _CurrentPosition.X := _CurrentPosition.X + Tex.Width + 4;
