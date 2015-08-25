@@ -1342,7 +1342,7 @@ Begin
   Begin
     N := 0;
 
-    Format := Engine.Formats.FindLocationFromName(Name, TERRAImage, Location);
+    Format := Engine.Formats.FindLocationFromName(FileName+'_'+CubeFaceNames[I], TERRAImage, Location);
     If (Format = Nil) Then
     Begin
       Log(logWarning, 'Cubemap', 'Could not load cubemap face '+CubeFaceNames[I]+' for '+FileName);
