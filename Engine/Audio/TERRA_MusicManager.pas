@@ -78,7 +78,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_FileManager, TERRA_SoundManager, TERRA_Log, TERRA_OS, TERRA_Stream, TERRA_Math
+Uses TERRA_EngineManager, TERRA_FileManager, TERRA_SoundManager, TERRA_Log, TERRA_OS, TERRA_Stream, TERRA_Math
 {$IFDEF HAS_MIDI}, TERRA_MIDI{$ENDIF}
 {$IFDEF HAS_AUDIOTRACK}, TERRA_AudioTrack{$ENDIF};
 
@@ -146,7 +146,7 @@ Var
     If S<>'' Then
       Exit;
 
-    S := FileManager.Instance.SearchResourceFile(SourceName+'.'+Ext);
+    S := Engine.Files.SearchResourceFile(SourceName+'.'+Ext);
   End;
 
   Procedure TryClass(C:MusicTrackClass);

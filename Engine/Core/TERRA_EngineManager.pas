@@ -4,7 +4,8 @@ Unit TERRA_EngineManager;
 
 Interface
 Uses TERRA_Object, TERRA_Application,
-  TERRA_GraphicsManager, TERRA_TextureManager, TERRA_MeshManager, TERRA_FontManager, TERRA_InputManager;
+  TERRA_GraphicsManager, TERRA_TextureManager, TERRA_MeshManager, TERRA_FontManager, TERRA_InputManager,
+  TERRA_FileManager, TERRA_FileFormat;
 
 Type
   EngineManager = Class(TERRAObject)
@@ -13,6 +14,9 @@ Type
       _MeshManager:ApplicationObject;
       _FontManager:ApplicationObject;
       _InputManager:ApplicationObject;
+      _FileManager:ApplicationObject;
+
+      _Formats:FormatManager;
 
       Constructor Create();
 
@@ -23,6 +27,8 @@ Type
       Function Meshes():MeshManager;
       Function Fonts():FontManager;
       Function Input():InputManager;
+      Function Files():FileManager;
+      Property Formats:FormatManager Read _Formats;
   End;
 
 Function Engine():EngineManager;
@@ -47,6 +53,9 @@ Begin
   _MeshManager := InitializeApplicationComponent(MeshManager, GraphicsManager);
   _FontManager := InitializeApplicationComponent(FontManager, TextureManager);
   _InputManager := InitializeApplicationComponent(InputManager, Nil);
+  _FileManager :=  InitializeApplicationComponent(FileManager, Nil);
+
+  _Formats := FormatManager.Create();
 End;
 
 Procedure EngineManager.Release;
@@ -54,6 +63,8 @@ Begin
   _TextureManager := Nil;
   _MeshManager := Nil;
   _FontManager := Nil;
+
+  ReleaseObject(_Formats);
 End;
 
 Function EngineManager.Textures: TextureManager;
@@ -74,6 +85,11 @@ End;
 Function EngineManager.Input: InputManager;
 Begin
   Result := InputManager(_InputManager.Instance);
+End;
+
+Function EngineManager.Files: FileManager;
+Begin
+  Result := FileManager(_FileManager.Instance);
 End;
 
 End.

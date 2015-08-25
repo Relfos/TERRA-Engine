@@ -38,11 +38,11 @@ Const
 Type
   ResourceEntry = Class(TERRAObject)
     Public
-      Value:Resource;
+      Value:TERRAResource;
 
       Function GetBlob():TERRAString; Override;
 
-      Constructor Create(MyResource:Resource);
+      Constructor Create(MyResource:TERRAResource);
   End;
 
   ResourceManager = Class(ApplicationComponent)
@@ -70,9 +70,9 @@ Type
 
       Procedure Update; Override;
 
-      Function GetResource(Const Name:TERRAString):Resource;
-      Procedure AddResource(MyResource:Resource);
-      Procedure ReloadResource(Resource:Resource; InBackground:Boolean=True);
+      Function GetResource(Const Name:TERRAString):TERRAResource;
+      Procedure AddResource(MyResource:TERRAResource);
+      Procedure ReloadResource(Resource:TERRAResource; InBackground:Boolean=True);
 
       Function GetLoadedResourceCount:Integer;
 
@@ -87,33 +87,33 @@ Type
       Procedure Clear;
 
       Procedure PurgeResources;
-      Procedure PreFetch(MyResource:Resource);
+      Procedure PreFetch(MyResource:TERRAResource);
 
       Property Resources:HashMap Read _Resources;
   End;
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Image, TERRA_GraphicsManager, TERRA_Utils, TERRA_Color,
-  TERRA_FileUtils, TERRA_FileStream, TERRA_FileManager;
+  TERRA_EngineManager, TERRA_FileUtils, TERRA_FileStream, TERRA_FileManager;
 
 Type
   ResourceLoader = Class(Task)
     Protected
-      _Target:Resource;
+      _Target:TERRAResource;
 
     Public
-      Constructor Create(Target:Resource);
+      Constructor Create(Target:TERRAResource);
       Procedure Execute; Override;
   End;
 
-Constructor ResourceLoader.Create(Target:Resource);
+Constructor ResourceLoader.Create(Target:TERRAResource);
 Begin
   _Target := Target;
 End;
 
 Procedure ResourceLoader.Execute();
 Var
-  MyResource:Resource;
+  MyResource:TERRAResource;
   Source:Stream;
   Result:Boolean;
   Manager:ResourceManager;
@@ -131,7 +131,7 @@ Begin
     Exit;
   End;
 
-  Source := FileManager.Instance.OpenStream(MyResource.Location, smRead);
+  Source := Engine.Files.OpenStream(MyResource.Location);
   If (Source=Nil) Then
   Begin
     Log(logDebug, 'ResourceManager', 'Could not open location...');
@@ -145,7 +145,7 @@ Begin
 
   If Source.Size = 0 Then
   Begin
-    Source := FileManager.Instance.OpenStream(MyResource.Location, smRead);
+    Source := Engine.Files.OpenStream(MyResource.Location);
     Log(logWarning, 'Resources', 'Empty resource stream at '+MyResource.Location);
   end;
 
@@ -208,7 +208,7 @@ Begin
 {$ENDIF}
 End;
 
-Procedure ResourceManager.AddResource(MyResource:Resource);
+Procedure ResourceManager.AddResource(MyResource:TERRAResource);
 Begin
   If (_Resources <> Nil) Then
     _Resources.Add(MyResource)
@@ -216,7 +216,7 @@ Begin
     RaiseError('Resource table is null!');
 End;
 
-Function ResourceManager.GetResource(Const Name:TERRAString): Resource;
+Function ResourceManager.GetResource(Const Name:TERRAString): TERRAResource;
 Var
   Temp:TERRAString;
 Begin
@@ -232,7 +232,7 @@ Begin
   Else
     Temp := Name;
 
-  Result := Resource(_Resources.Items[Temp]);
+  Result := TERRAResource(_Resources.Items[Temp]);
 
   {If Assigned(Result) Then
     Log(logDebug, 'Resource', 'Searched for '+Name+': got '+Result.Name)
@@ -240,7 +240,7 @@ Begin
     Log(logDebug, 'Resource', 'Searched for '+Name+': got (NIL)');}
 End;
 
-Procedure ResourceManager.ReloadResource(Resource: Resource; InBackground:Boolean=True);
+Procedure ResourceManager.ReloadResource(Resource: TERRAResource; InBackground:Boolean=True);
 Begin
   If Not Assigned(Resource) Then
   Begin
@@ -267,7 +267,7 @@ End;
 Procedure ResourceManager.PurgeResources;
 Var
   It:Iterator;
-  MyResource:Resource;
+  MyResource:TERRAResource;
 Begin
   If (Not AutoUnload) Then
     Exit;
@@ -280,7 +280,7 @@ Begin
   It := _Resources.GetIterator();
   While (It.HasNext) Do
   Begin
-    MyResource := Resource(It.Value);
+    MyResource := TERRAResource(It.Value);
     If (MyResource = Nil) Then
       Break;
 
@@ -347,7 +347,7 @@ Begin
   {$ENDIF}
 End;
 
-Procedure ResourceManager.PreFetch(MyResource:Resource);
+Procedure ResourceManager.PreFetch(MyResource:TERRAResource);
 Begin
   If Assigned(MyResource) Then
   Begin
@@ -361,13 +361,13 @@ End;
 Function ResourceManager.GetLoadedResourceCount:Integer;
 Var
   It:Iterator;
-  MyResource:Resource;
+  MyResource:TERRAResource;
 Begin
   Result := 0;
   It := _Resources.GetIterator();
   While (It.HasNext) Do
   Begin
-    MyResource := Resource(It.Value);
+    MyResource := TERRAResource(It.Value);
     If (MyResource.Status <> rsBusy) Then
       Inc(Result);
   End;
@@ -382,14 +382,14 @@ Procedure ResourceManager.Clear;
 Var
   It:Iterator;
   N:Integer;
-  MyResource:Resource;
+  MyResource:TERRAResource;
 Begin
   Log(logDebug, Self.ClassName, 'Unloading all resources.');
   N := 0;
   It := _Resources.GetIterator();
   While (It.HasNext) Do
   Begin
-    MyResource := Resource(It.Value);
+    MyResource := TERRAResource(It.Value);
 
     MyResource.Status := rsBusy;
    // Log(logDebug,'Resource','Unloaded '+MyResource.Name);
@@ -407,7 +407,7 @@ End;
 
 
 { ResourceEntry }
-Constructor ResourceEntry.Create(MyResource: Resource);
+Constructor ResourceEntry.Create(MyResource: TERRAResource);
 Begin
   Self.Value := MyResource;
 End;
@@ -449,7 +449,7 @@ Begin
   If Pos(LinkExtension, ResourceName)>0 Then
   	Exit;
 
-  Src := FileManager.Instance.OpenStream(ResourceName + LinkExtension);
+  Src := Engine.Files.OpenStream(ResourceName + LinkExtension);
   If Assigned(Src) Then
   Begin
     Src.ReadLine(Name);

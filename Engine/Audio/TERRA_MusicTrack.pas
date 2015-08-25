@@ -73,7 +73,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_FileManager, TERRA_Stream;
+Uses TERRA_EngineManager, TERRA_FileManager, TERRA_Stream;
 
 { MusicTrack }
 Constructor MusicTrack.Create(FileName: TERRAString; Volume:Single);
@@ -120,7 +120,7 @@ Begin
   If (OpenALHandle=0) Then
     Exit;
 
-  Source := FileManager.Instance().OpenStream(FileName);
+  Source := Engine.Files.OpenStream(FileName);
   _Stream := CreateSoundStream(Source);
 End;
 

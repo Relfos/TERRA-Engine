@@ -51,30 +51,10 @@ Type
       Property Textures[Name:TERRAString]:TERRATexture Read GetItem; Default;
   End;
 
-  TextureClass = Class Of TERRATexture;
-  TextureFormat = Record
-    Extension:TERRAString;
-    ClassType:TextureClass;
-  End;
-
-Var
-  _TextureFormatList:Array Of TextureFormat;
-  _TextureFormatCount:Integer = 0;
-  
-Procedure RegisterTextureFormat(ClassType:TextureClass; Extension:TERRAString);
-
 Implementation
-Uses TERRA_FileUtils, TERRA_FileManager, TERRA_Noise;
+Uses TERRA_FileUtils, TERRA_FileFormat, TERRA_EngineManager, TERRA_FileManager, TERRA_Noise;
 
 { TextureManager }
-Procedure RegisterTextureFormat(ClassType:TextureClass; Extension:TERRAString);
-Begin
-  Inc(_TextureFormatCount);
-  SetLength(_TextureFormatList, _TextureFormatCount);
-  _TextureFormatList[Pred(_TextureFormatCount)].Extension := Extension;
-  _TextureFormatList[Pred(_TextureFormatCount)].ClassType := ClassType;
-End;
-
 Procedure TextureManager.Init;
 Begin
   Inherited;
@@ -85,11 +65,8 @@ End;
 
 Function TextureManager.GetItem(Name:TERRAString):TERRATexture;
 Var
-  I:Integer;
-Var
-  S:TERRAString;
-  TextureFormat:TextureClass;
-  Info:ImageClassInfo;
+  Format:TERRAFileFormat;
+  Location:TERRAString;
 Begin
   Result := Nil;
 
@@ -99,69 +76,35 @@ Begin
     Exit;
 
   Result := TERRATexture(GetResource(Name));
-  If Not Assigned(Result) Then
+  If Assigned(Result) Then
+    Exit;
+
+  Format := Engine.Formats.FindLocationFromName(Name, TERRATexture, Location);
+  If Format = Nil Then
+    Format := Engine.Formats.FindLocationFromName(Name, TERRAImage, Location);
+
+  If Assigned(Format) Then
   Begin
-    S := '';
-    TextureFormat := Nil;
+    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Found '+S+'...');{$ENDIF}
 
-    I := 0;
-    While (S='') And (I<_TextureFormatCount) Do
-    Begin
-      S := FileManager.Instance.SearchResourceFile(Name+'.'+_TextureFormatList[I].Extension);
-      If S<>'' Then
-      Begin
-        TextureFormat := _TextureFormatList[I].ClassType;
-        Break;
-      End;
-      Inc(I);
-    End;
+    Result := TERRATexture.Create(rtLoaded, Location);
 
-    I := 0;
-    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Searching for file with extension for '+Name);{$ENDIF}
-    While (S='') And (I<GetImageExtensionCount()) Do
-    Begin
-      Info := GetImageExtension(I);
-      S := FileManager.Instance.SearchResourceFile(Name+'.'+Info.Name);
-      Inc(I);
-    End;
+    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture class instantiated sucessfully!');{$ENDIF}
 
-    If S<>'' Then
-    Begin
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Found '+S+'...');{$ENDIF}
+    If (Pos('_', Location)>0) Then
+      Result.Priority := 30
+    Else
+      Result.Priority := 50;
 
-      If Assigned(TextureFormat) Then
-        Result := TextureFormat.Create(rtLoaded, S)
-      Else
-        Result := TERRATexture.Create(rtLoaded, S);
+    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture loading priority set!');{$ENDIF}
 
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture class instantiated sucessfully!');{$ENDIF}
+    Self.AddResource(Result);
 
-      If (Pos('_',S)>0) Then
-        Result.Priority := 30
-      Else
-        Result.Priority := 50;
-
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture loading priority set!');{$ENDIF}
-
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture settings set!');{$ENDIF}
-
-      Self.AddResource(Result);
-
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture added to manager!');{$ENDIF}
-    End Else
-    Begin
-      S := Self.ResolveResourceLink(Name);
-      If S<>'' Then
-      Begin
-        Result := Self.GetItem(S);
-        If Assigned(Result) Then
-          Exit;
-      End;
-
-      {If ValidateError Then
-        RaiseError('Could not find texture. ['+Name+']');}
-    End;
+    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture added to manager!');{$ENDIF}
+    Exit;
   End;
+
+  //RaiseError('Could not find texture. ['+Name+']');
 End;
 
 Function TextureManager.CreateTextureWithColor(Name:TERRAString; TexColor:ColorRGBA):TERRATexture;

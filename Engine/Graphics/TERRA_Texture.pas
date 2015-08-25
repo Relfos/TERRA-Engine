@@ -37,7 +37,7 @@ Const
   MinTextureSize  = 2;
 
 Type
-  TERRATexture = Class(Resource)
+  TERRATexture = Class(TERRAResource)
     Protected
       _Handles:Array Of SurfaceInterface;
       _FrameCount:Integer;
@@ -805,7 +805,7 @@ Class Function TERRATexture.LoadFromFile(const FileName: TERRAString): TERRAText
 Var
   Src:Stream;
 Begin
-  Src := FileManager.Instance.OpenStream(FileName);
+  Src := Engine.Files.OpenStream(FileName);
   If Assigned(Src) Then
   Begin
     Result := TERRATexture.Create(rtDynamic, FileName);

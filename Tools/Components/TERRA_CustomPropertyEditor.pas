@@ -5,7 +5,7 @@ interface
 uses Windows, SysUtils, Classes, Messages, ExtCtrls, Controls, StdCtrls,
   Dialogs, Graphics, Buttons,
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_OS, TERRA_Color, TERRA_VCLApplication,
-  TERRA_FileManager, TERRA_FileUtils, TERRA_EnumProperty, TERRA_DataSource, TERRA_Math;
+  TERRA_EngineManager, TERRA_FileManager, TERRA_FileUtils, TERRA_EnumProperty, TERRA_DataSource, TERRA_Math;
 
 Const
   MarginTop = 30;
@@ -748,7 +748,7 @@ Begin
   //_Dialog.Color :=
   If _Dialog.Execute Then
   Begin
-    FileManager.Instance.AddPath(GetFilePath(_Dialog.FileName));
+    Engine.Files.AddPath(GetFilePath(_Dialog.FileName));
     _Prop.SetBlob(_Dialog.FileName);
     _Owner.RequestUpdate();
   End;

@@ -723,7 +723,7 @@ Type
     Values:Array Of Vector3D;
   End;
 
-	TERRAMesh = Class(Resource)
+	TERRAMesh = Class(TERRAResource)
 		Protected
 			_Groups:Array Of MeshGroup;
 			_GroupCount:Integer;

@@ -490,7 +490,7 @@ Var
 Begin
   Self.Clear();
 
-  FileManager.Instance.AddPath(GetFilePath(FileName));
+  Engine.Files.AddPath(GetFilePath(FileName));
 
   Root := XMLNode.Create();
   Root.LoadFromFile(FileName);
@@ -596,7 +596,7 @@ Begin
   UIEditorApplication.Create(Self.RenderPanel);
 
   // Added Asset folder to search path
-  FileManager.Instance.AddPath('..\..\samples\binaries\assets');
+  Engine.Files.AddPath('..\..\samples\binaries\assets');
 //  FileManager.Instance.AddPath('D:\Code\Minimon\Output\Textures');
 
   // Create a scene and set it as the current scene
@@ -985,9 +985,9 @@ Var
   Cur:HCURSOR;
   S:TERRAString;
 Begin
-  S := FileManager.Instance.SearchResourceFile('cursor_'+Name+'.cur');
+  S := Engine.Files.SearchResourceFile('cursor_'+Name+'.cur');
   If S = '' Then
-    S := FileManager.Instance.SearchResourceFile('cursor_'+Name+'.ani');
+    S := Engine.Files.SearchResourceFile('cursor_'+Name+'.ani');
 
   Cur := LoadCursorFromFile(PAnsiChar(S));
   Screen.Cursors[ID] := Cur;

@@ -794,7 +794,7 @@ Begin
     Log(logDebug, 'App', 'Starting '+S);
   End;
 
-  FileManager.Instance.AddPath(Application.Instance.DocumentPath);
+  Engine.Files.AddFolder(Application.Instance.DocumentPath);
 End;
 
 Constructor BaseApplication.Create();

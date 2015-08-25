@@ -38,14 +38,25 @@ Unit TERRA_JPG;
 {$ENDIF}
 
 Interface
-Uses TERRA_Utils, TERRA_Stream, TERRA_Image, TERRA_Log, TERRA_Application,
+Uses TERRA_Object, TERRA_Utils, TERRA_Stream, TERRA_Image, TERRA_Log, TERRA_FileFormat, TERRA_Application,
     {$IFDEF USEPASJPEGLIB}
      jmorecfg, jpeglib, jerror, jdeferr, jdapimin,
      jdapistd, jdmarker, jdmaster
     {$ELSE}Classes, Graphics, JPEG{$ENDIF};
 
+Type
+  JPEGFormat = Class(TERRAFileFormat)
+    Public
+      Function Identify(Source:Stream):Boolean; Override;
+      Function Load(Target:TERRAObject; Source:Stream):Boolean; Override;
+
+      {$IFNDEF USEPASJPEGLIB}
+      Function Save(Target:TERRAObject; Dest:Stream):Boolean; Override;
+      {$ENDIF}
+  End;
+
 Implementation
-Uses TERRA_Error, TERRA_FileStream, TERRA_FileUtils, TERRA_Color;
+Uses TERRA_Error, TERRA_EngineManager, TERRA_FileStream, TERRA_FileUtils, TERRA_Color;
 
 {$IFDEF USEPASJPEGLIB}
 Const
@@ -218,14 +229,27 @@ Begin
     Exit;
   End;
 End;
+{$ENDIF}
 
-Procedure JPGLoad(Source:Stream; Image:TERRAImage);
+{ JPEGFormat }
+Function JPEGFormat.Identify(Source: Stream): Boolean;
+Var
+  ID:FileHeader;
+Begin
+  Source.Read(@ID, 4);
+  Result := CompareFileHeader(ID, 'ÿØÿà');
+End;
+
+Function JPEGFormat.Load(Target: TERRAObject; Source: Stream): Boolean;
+{$IFDEF USEPASJPEGLIB}
 Var
   cinfo:jpeg_decompress_struct;
   jerr:jpeg_error_mgr;
   Dest:PImageDest;
   ScanlineCount:JDIMENSION;
+  Image:TERRAImage;
 Begin
+  Image := TERRAImage(Target);
   //  Initialize the JPEG decompression object error handling.
   cinfo.err:=jpeg_LEAF_error(jerr);
   jpeg_create_decompress(@cinfo);
@@ -257,10 +281,7 @@ Begin
   jpeg_finish_decompress(@cInfo);
   jpeg_destroy_decompress(@cInfo);
 End;
-
 {$ELSE}
-
-Procedure JPGLoad(Source:Stream; Image:Image);
 Var
   I, J:Integer;
   N:Byte;
@@ -268,7 +289,10 @@ Var
   JPG:TJPEGImage;
   Stream:TMemoryStream;
   P:PColor;
+  Image:TERRAImage;
 Begin
+  Image := TERRAImage(Target);
+
   Stream:=TMemoryStream.Create;
   Stream.SetSize(Source.Size);
   Source.Read(Stream.Memory,Source.Size);
@@ -307,8 +331,10 @@ Begin
 
   Image.Process(IMP_SwapChannels);
 End;
+{$ENDIF}
 
-Procedure JPGSave(Dest:Stream; Image:Image; Options:AnsiString='');
+{$IFNDEF USEPASJPEGLIB}
+Function JPEGFormat.Save(Target: TERRAObject; Dest: Stream): Boolean;
 Const
   BufferSize = 1024;
 Var
@@ -320,7 +346,9 @@ Var
   Count,Size:Integer;
   Parser:INIParser;
   Quality:Integer;
+  Image:TERRAImage;
 Begin
+  Image := TERRAImage(Target);
   Quality:=100;
   If Options<>'' Then
   Begin
@@ -368,17 +396,8 @@ Begin
 
   ReleaseObject(Bitmap);
 End;
-
 {$ENDIF}
 
-Function ValidateJPG(Stream:Stream):Boolean;
-Var
-  ID:FileHeader;
 Begin
-  Stream.Read(@ID,4);
-  Result := CompareFileHeader(ID, 'ÿØÿà');
-End;
-
-Begin
-  RegisterImageFormat('JPG', ValidateJPG,JPGLoad{$IFNDEF USEPASJPEGLIB},JPGSave{$ENDIF});
+  Engine.Formats.Add(JPEGFormat.Create(TERRAImage, 'jpg'));
 End.

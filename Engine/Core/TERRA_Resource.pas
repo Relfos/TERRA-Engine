@@ -41,9 +41,7 @@ Type
     rtDynamic   = 2
   );
 
-  ResourceClass = Class Of Resource;
-
-  Resource = Class(TERRAObject)
+  TERRAResource = Class(TERRAObject)
     Private
       _Status:ResourceStatus;
       _Kind:ResourceType;
@@ -89,11 +87,13 @@ Type
       Property SizeInBytes:Cardinal Read _SizeInBytes;
   End;
 
+  ResourceClass = Class Of TERRAResource;
+
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Utils, TERRA_ResourceManager, TERRA_FileStream, TERRA_GraphicsManager,
   TERRA_FileUtils, TERRA_Application, TERRA_FileManager;
 
-Constructor Resource.Create(Kind:ResourceType; Location:TERRAString);
+Constructor TERRAResource.Create(Kind:ResourceType; Location:TERRAString);
 Var
   I:Integer;
 Begin
@@ -114,7 +114,7 @@ Begin
   Self.Priority := 50;
 End;
 
-Procedure Resource.Release;
+Procedure TERRAResource.Release;
 Begin
   Log(logDebug, 'Resource', 'Destroying resource '+Self.Name);
   {$IFNDEF ANDROID}
@@ -122,12 +122,12 @@ Begin
   {$ENDIF}
 End;
 
-Class Function Resource.GetManager: Pointer;
+Class Function TERRAResource.GetManager: Pointer;
 Begin
   Result := Nil;
 End;
 
-Function Resource.IsReady:Boolean;
+Function TERRAResource.IsReady:Boolean;
 Var
   Manager:ResourceManager;
 Begin
@@ -180,7 +180,7 @@ Begin
   End;
 End;
 
-Procedure Resource.Prefetch;
+Procedure TERRAResource.Prefetch;
 Begin
   If (Self.Status<>rsUnloaded) Then
     Exit;
@@ -207,28 +207,28 @@ Begin
     Log(logDebug, 'Resource', 'Prefetching for '+Self.Name+' is done!');
 End;
 
-Function Resource.GetBlob:TERRAString;
+Function TERRAResource.GetBlob:TERRAString;
 Begin
   Result := Self.Name;
 End;
 
-Function Resource.Unload:Boolean;
+Function TERRAResource.Unload:Boolean;
 Begin
   SetStatus(rsUnloaded);
   Result := True;
 End;
 
-Function Resource.Update:Boolean;
+Function TERRAResource.Update:Boolean;
 Begin
   Result := True;
 End;
 
-Function Resource.ShouldUnload: Boolean;
+Function TERRAResource.ShouldUnload: Boolean;
 Begin
   Result := (Application.GetTime() - Self.Time > ResourceDiscardTime);
 End;
 
-Procedure Resource.SetStatus(const Value:ResourceStatus);
+Procedure TERRAResource.SetStatus(const Value:ResourceStatus);
 Var
   Manager:ResourceManager;
 Begin
@@ -253,12 +253,12 @@ Begin
   Manager.Unlock();
 End;
 
-Function Resource.Build: Boolean;
+Function TERRAResource.Build: Boolean;
 Begin
   Result := False;
 End;
 
-Procedure Resource.Rebuild;
+Procedure TERRAResource.Rebuild;
 Begin
   Self.SetStatus(rsBusy);
   If Self.Build() Then
@@ -269,9 +269,10 @@ Begin
     Self.SetStatus(rsUnloaded);
 End;
 
-Procedure Resource.Touch;
+Procedure TERRAResource.Touch;
 Begin
   _Time := Application.GetTime();
 End;
+
 
 End.

@@ -101,7 +101,7 @@ Function GetCurrencyForCountry(Const Country:TERRAString):TERRAString;
 Function GetLanguageDescription(Lang:TERRAString):TERRAString;
 
 Implementation
-Uses TERRA_FileManager, TERRA_Log, TERRA_OS;
+Uses TERRA_EngineManager, TERRA_FileManager, TERRA_Log, TERRA_OS;
 
 Var
   _LocalizationManager_Instance:ApplicationObject = Nil;
@@ -455,7 +455,7 @@ Begin
     Exit;
 
   S := 'translation_'+ StringLower(Lang)+'.'+ Translation_Extension;
-  S := FileManager.Instance.SearchResourceFile(S);
+  S := Engine.Files.SearchResourceFile(S);
   If S='' Then
   Begin
     Log(logWarning, 'Strings', 'Could not find translation file for lang='+Lang);
@@ -467,7 +467,7 @@ Begin
   End;
 
   _Strings.Clear();
-  Source := FileManager.Instance.OpenStream(S);
+  Source := Engine.Files.OpenStream(S);
   _Lang := Lang;
   Self.MergeGroup(Source, -1, '');
   ReleaseObject(Source);
@@ -524,7 +524,7 @@ Begin
   If (_PinyinCount>0) Then
     Exit;
 
-  Src := FileManager.Instance.OpenStream('pinyin.dat');
+  Src := Engine.Files.OpenStream('pinyin.dat');
   If Src = Nil Then
     Exit;
 

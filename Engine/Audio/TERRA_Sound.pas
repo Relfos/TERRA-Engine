@@ -39,7 +39,7 @@ Const
   SOUND_FORMAT_8BIT  = 0;
 
 Type
-  Sound = Class(Resource)
+  Sound = Class(TERRAResource)
     Protected
       _Buffer:Cardinal;
       _Data:Pointer;

@@ -74,7 +74,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_GraphicsManager, TERRA_Camera, TERRA_FileManager;
+Uses TERRA_Error, TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Camera, TERRA_FileManager;
 
 Var
   _SoundManager_Instance:ApplicationObject = Nil;
@@ -172,9 +172,9 @@ Begin
   Result := Sound(GetResource(Name));
   If (Not Assigned(Result)) Then
   Begin
-    S := FileManager.Instance().SearchResourceFile(Name+'.wav');
+    S := Engine.Files.SearchResourceFile(Name+'.wav');
     If (S='') Then
-      S := FileManager.Instance().SearchResourceFile(Name+'.ogg');
+      S := Engine.Files.SearchResourceFile(Name+'.ogg');
 
     If S<>'' Then
     Begin

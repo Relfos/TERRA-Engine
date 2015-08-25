@@ -97,7 +97,7 @@ Type
      End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Application, TERRA_Utils, TERRA_FileManager, TERRA_MemoryStream, SysUtils;
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Application, TERRA_Utils, TERRA_EngineManager, TERRA_FileManager, TERRA_MemoryStream, SysUtils;
 
 {$I-}
 
@@ -145,7 +145,7 @@ Begin
   Inherited Create(StreamMode);
 
   FileName := GetOSIndependentFileName(FileName);
-  FileManager.Instance.RemoveFromCache(FileName);
+  Engine.Files.RemoveFromCache(FileName);
 
   Log(logDebug,'IO','Creating '+FileName);
   If StreamMode=0 Then

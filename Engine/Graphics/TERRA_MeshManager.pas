@@ -38,7 +38,7 @@ Type
 Function CreatePlaneMesh(Const Normal:Vector3D; SubDivisions:Cardinal):TERRAMesh;
 
 Implementation
-Uses TERRA_Solids, TERRA_MeshFilter, TERRA_FileManager;
+Uses TERRA_Solids, TERRA_MeshFilter, TERRA_EngineManager, TERRA_FileManager;
 
 Var
   _MeshManager:ApplicationObject = Nil;
@@ -79,7 +79,7 @@ Begin
   Result := TERRAMesh(GetResource(Name));
   If (Not Assigned(Result)) Then
   Begin
-    S := FileManager.Instance.SearchResourceFile(Name+'.mesh');
+    S := Engine.Files.SearchResourceFile(Name+'.mesh');
     If S<>'' Then
     Begin
       Result := TERRAMesh.Create(rtLoaded, S);
@@ -90,7 +90,7 @@ Begin
       N := -1;
       For I:=0 To Pred(MeshFilterCount) Do
       Begin
-        S := FileManager.Instance.SearchResourceFile(Name+'.'+MeshFilterList[I].Extension);
+        S := Engine.Files.SearchResourceFile(Name+'.'+MeshFilterList[I].Extension);
         If (S<>'') Then
         Begin
           N := I;

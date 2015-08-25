@@ -80,7 +80,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_CRC32, TERRA_Application, TERRA_OS, TERRA_Log, TERRA_ResourceManager,
-  TERRA_FileStream, TERRA_FileManager, TERRA_MemoryStream;
+  TERRA_EngineManager, TERRA_FileStream, TERRA_FileManager, TERRA_MemoryStream;
 
 Constructor ResourceInfo.Create(Owner:Package; Source:Stream);
 Begin
@@ -230,7 +230,7 @@ Var
 Begin
   If _CRC=0 Then
   Begin
-    Source := FileManager.Instance.OpenStream(_Location);
+    Source := Engine.Files.OpenStream(_Location);
     _CRC := GetCRC32(Source);
     ReleaseObject(Source);
   End;

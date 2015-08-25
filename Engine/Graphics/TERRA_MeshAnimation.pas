@@ -106,8 +106,7 @@ Type
       Property Length:Single Read GetLength;
   End;
 
-
-  Animation = Class(Resource)
+  Animation = Class(TERRAResource)
     Protected
       _BoneCount:Integer;
       _Bones:Array Of BoneAnimation;
@@ -165,7 +164,7 @@ Function TimeToFrame(Time, FPS:Single):Integer;
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_Application, TERRA_OS, TERRA_FileManager,  TERRA_Mesh,
-  TERRA_GraphicsManager, TERRA_FileStream, TERRA_FileUtils, TERRA_MeshAnimationNodes;
+  TERRA_EngineManager, TERRA_GraphicsManager, TERRA_FileStream, TERRA_FileUtils, TERRA_MeshAnimationNodes;
 
 Var
   _AnimationManager:ApplicationObject;
@@ -219,7 +218,7 @@ Begin
   Result := Animation(GetResource(Name));
   If (Not Assigned(Result)) Then
   Begin
-    S := FileManager.Instance.SearchResourceFile(Name+'.anim');
+    S := Engine.Files.SearchResourceFile(Name+'.anim');
     If S<>'' Then
     Begin
       Result := Animation.Create(rtLoaded, S);

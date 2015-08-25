@@ -26,7 +26,7 @@ Unit TERRA_Image;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Color;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Color, TERRA_FileFormat;
 
 Const
   componentRed    = 0;
@@ -123,8 +123,8 @@ Type
       Procedure Load(Source:Stream);Overload;
       Procedure Load(FileName:TERRAString);Overload;
 
-      Procedure Save(Dest:Stream; Format:TERRAString; Depth:Integer = 32);Overload;
-      Procedure Save(Filename:TERRAString; Format:TERRAString=''; Depth:Integer = 32);Overload;
+      Function Save(Dest:Stream; Format:TERRAFileFormat; Depth:Integer = 32):Boolean; Overload;
+      Function Save(Filename:TERRAString; Format:TERRAFileFormat = Nil; Depth:Integer = 32):Boolean; Overload;
 
       Procedure Copy(Source:TERRAImage);
       Procedure Resize(Const NewWidth,NewHeight:Cardinal);
@@ -211,108 +211,8 @@ Type
       Property TransparencyType:ImageTransparencyType Read GetImageTransparencyType;
   End;
 
-
-  ImageStreamValidateFunction = Function(Source:Stream):Boolean;
-  ImageLoader = Procedure(Source:Stream; Image:TERRAImage);
-  ImageSaver = Procedure(Source:Stream; Image:TERRAImage; Depth:Integer);
-
-  ImageClassInfo = Record
-    Name:TERRAString;
-    Validate:ImageStreamValidateFunction;
-    Loader:ImageLoader;
-    Saver:ImageSaver;
-  End;
-
-  Function GetImageLoader(Source:Stream):ImageLoader;
-  Function GetImageSaver(Const Format:TERRAString):ImageSaver;
-  Procedure RegisterImageFormat(Name:TERRAString;
-                                Validate:ImageStreamValidateFunction;
-                                Loader:ImageLoader;
-                                Saver:ImageSaver=Nil);
-
-  Function GetImageExtensionCount():Integer;
-  Function GetImageExtension(Index:Integer):ImageClassInfo;
-
 Implementation
-Uses TERRA_FileStream, TERRA_FileUtils, TERRA_FileManager, TERRA_Math, TERRA_Log, TERRA_Vector4D, TERRA_ImageDrawing;
-
-Var
-  _ImageExtensions:Array Of ImageClassInfo;
-  _ImageExtensionCount:Integer;
-
-Function GetImageExtensionCount():Integer;
-Begin
-  Result := _ImageExtensionCount;
-End;
-
-Function GetImageExtension(Index:Integer):ImageClassInfo;
-Begin
-  If (Index>=0) And (Index<_ImageExtensionCount) Then
-    Result := _ImageExtensions[Index]
-  Else
-  	FillChar(Result, SizeOf(Result), 0);
-End;
-
-Function GetImageLoader(Source:Stream):ImageLoader;
-Var
-  Pos:Cardinal;
-  I:Integer;
-Begin
-  Result := Nil;
-  If Not Assigned(Source) Then
-    Exit;
-
-  Pos := Source.Position;
-
-  For I:=0 To Pred(_ImageExtensionCount) Do
-  Begin
-    Source.Seek(Pos);
-    If _ImageExtensions[I].Validate(Source) Then
-    Begin
-      Log(logDebug, 'Image', 'Found '+_ImageExtensions[I].Name);
-      Result := _ImageExtensions[I].Loader;
-      Break;
-    End;
-  End;
-
-  Source.Seek(Pos);
-End;
-
-Function GetImageSaver(Const Format:TERRAString):ImageSaver;
-Var
-  I:Integer;
-Begin
-  Result := Nil;
-
-  For I:=0 To Pred(_ImageExtensionCount) Do
-  If StringEquals(_ImageExtensions[I].Name, Format) Then
-  Begin
-    Result := _ImageExtensions[I].Saver;
-    Exit;
-  End;
-End;
-
-Procedure RegisterImageFormat(Name:TERRAString;
-                              Validate:ImageStreamValidateFunction;
-                              Loader:ImageLoader;
-                              Saver:ImageSaver=Nil);
-Var
-  I,N:Integer;
-Begin
-  Name := StringLower(Name);
-
-  For I:=0 To Pred(_ImageExtensionCount) Do
-  If (_ImageExtensions[I].Name = Name) Then
-    Exit;
-
-  N := _ImageExtensionCount;
-  Inc(_ImageExtensionCount);
-  SetLength(_ImageExtensions, _ImageExtensionCount);
-  _ImageExtensions[N].Name := Name;
-  _ImageExtensions[N].Validate :=Validate;
-  _ImageExtensions[N].Loader := Loader;
-  _ImageExtensions[N].Saver := Saver;
-End;
+Uses TERRA_EngineManager, TERRA_FileStream, TERRA_FileUtils, TERRA_FileManager, TERRA_Math, TERRA_Log, TERRA_Vector4D, TERRA_ImageDrawing;
 
 { ImageIterator }
 Constructor ImageIterator.Create(Target:TERRAImage; Flags:ImageProcessFlags; Const Mask:Cardinal);
@@ -1186,7 +1086,7 @@ Procedure TERRAImage.Load(FileName:TERRAString);
 Var
   Source:Stream;
 Begin
-  Source := FileManager.Instance.OpenStream(FileName);
+  Source := Engine.Files.OpenStream(FileName);
   If Assigned(Source) Then
   Begin
     Load(Source);
@@ -1196,7 +1096,7 @@ End;
 
 Procedure TERRAImage.Load(Source:Stream);
 Var
-  Loader:ImageLoader;
+  Format:TERRAFileFormat;
 Begin
   If Source = Nil Then
   Begin
@@ -1205,8 +1105,9 @@ Begin
   End;
 
   Log(logDebug, 'Image', 'Searching formats');
-  Loader := GetImageLoader(Source);
-  If Not Assigned(Loader) Then
+
+  Format := Engine.Formats.FindFormatFromStream(Source, TERRAImage);
+  If Format = Nil Then
   Begin
     Self.New(4, 4);
     Log(logDebug, 'Image', 'Unknown image format. ['+Source.Name+']');
@@ -1214,34 +1115,30 @@ Begin
   End;
 
   Log(logDebug, 'Image', 'Loading image from loader ');
-  Loader(Source, Self);
+  Format.Load(Self, Source);
   Log(logDebug, 'Image', 'Image loaded');
 End;
 
-Procedure TERRAImage.Save(Dest:Stream; Format:TERRAString; Depth:Integer);
-Var
-  Saver:ImageSaver;
+Function TERRAImage.Save(Dest:Stream; Format:TERRAFileFormat; Depth:Integer):Boolean;
 Begin
-  If (_Pixels = Nil) Then
+  Result := False;
+  If (_Pixels = Nil) Or (Format = Nil) Then
     Exit;
 
-  Saver := GetImageSaver(Format);
-  If Not Assigned(Saver) Then
+  Result := Format.Save(Self, Dest);
+  If Not Result Then
   Begin
-    Log(logError, 'Image', 'Cannot save image to '+Format+' format. ['+Dest.Name+']');
+    Log(logError, 'Image', 'Cannot save image to '+Format.Extension+' format. ['+Dest.Name+']');
     Exit;
   End;
-
-  Log(logDebug, 'Image', 'Saving image in '+Format+' format');
-  Saver(Dest, Self, Depth);
 End;
 
-Procedure TERRAImage.Save(Filename:TERRAString; Format:TERRAString; Depth:Integer);
+Function TERRAImage.Save(Filename:TERRAString; Format:TERRAFileFormat; Depth:Integer):Boolean;
 Var
   Dest:Stream;
 Begin
-  If Format='' Then
-    Format := GetFileExtension(FileName);
+  If Format = Nil Then
+    Format := Engine.Formats.FindFormatFromExtension(GetFileExtension(FileName));
 
   Dest := FileStream.Create(FileName);
   Save(Dest, Format, Depth);

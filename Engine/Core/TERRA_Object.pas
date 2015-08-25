@@ -38,6 +38,8 @@ Type
       Property Name:TERRAString Read _ObjectName Write SetObjectName;
   End;
 
+  TERRAObjectType = Class Of TERRAObject;
+
   BooleanProperty = Class(TERRAObject)
     Protected
       _Value:Boolean;

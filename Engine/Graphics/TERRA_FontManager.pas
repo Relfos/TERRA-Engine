@@ -54,7 +54,7 @@ Type
 
 
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Sort, TERRA_TextureManager, TERRA_Sprite,
+Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Sort, TERRA_TextureManager, TERRA_Sprite, TERRA_EngineManager,
   TERRA_Log, TERRA_FileUtils, TERRA_MemoryStream, TERRA_ImageDrawing, TERRA_Image, TERRA_Collections,
   TERRA_GraphicsManager, TERRA_FileManager, TERRA_Packer, TERRA_DistanceField, TERRA_TextureAtlas, TERRA_Texture;
 
@@ -126,7 +126,7 @@ Begin
   While (S='') And (I<_FontExtensionCount) Do
   Begin
     FileName := FontName+'.'+_FontExtensions[I].Name;
-    S := FileManager.Instance.SearchResourceFile(FileName);
+    S := Engine.Files.SearchResourceFile(FileName);
     Inc(I);
   End;
 

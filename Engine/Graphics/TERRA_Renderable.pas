@@ -82,7 +82,7 @@ Type
 
 
 Implementation
-Uses TERRA_GraphicsManager, TERRA_Decals, TERRA_Billboards;
+Uses TERRA_GraphicsManager;
 
 { TERRARenderable }
 procedure TERRARenderable.Release;
@@ -183,11 +183,11 @@ Begin
 
     If (Stage <> renderStageNormal) Then
     Begin
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderDecals');{$ENDIF}
+(*      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderDecals');{$ENDIF}
       DecalManager.Instance.Render(View);
 
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderBillboards');{$ENDIF}
-      BillboardManager.Instance.Render(View);
+      BillboardManager.Instance.Render(View);*)
     End;
 
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderAlphaBucket');{$ENDIF}

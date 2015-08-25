@@ -103,7 +103,7 @@ Type
 
 
 Implementation
-Uses TERRA_OS, TERRA_Log, TERRA_GraphicsManager, TERRA_FileManager;
+Uses TERRA_OS, TERRA_Log, TERRA_EngineManager, TERRA_GraphicsManager, TERRA_FileManager;
 
 Var
   _Steam_Instance:ApplicationObject = Nil;
@@ -162,7 +162,7 @@ Begin
   Log(logDebug, 'Steam', 'Language: '+ _Language);
 
 
-  ControllerPath := FileManager.Instance.SearchResourceFile('controller.vdf');
+  ControllerPath := Engine.Files.SearchResourceFile('controller.vdf');
   _HasController := (ControllerPath<>'');
   If (_HasController) Then
   Begin

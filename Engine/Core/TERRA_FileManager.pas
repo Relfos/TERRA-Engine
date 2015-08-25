@@ -48,8 +48,8 @@ Type
       _SourceList:Array Of TERRAString;
       _SourceCount:Integer;
 
-      _PathList:Array Of TERRAString;
-      _PathCount:Integer;
+      _FolderList:Array Of TERRAString;
+      _FolderCount:Integer;
 
       _PackageList:Array Of Package;
       _PackageCount:Integer;
@@ -62,14 +62,14 @@ Type
     Public
       Procedure Init; Override;
 
-      Class Function Instance:FileManager;
       Procedure Release; Override;
 
       Function SearchResourceFile(FileName:TERRAString):TERRAString;
 
-      Procedure AddPath(Path:TERRAString);
-      Procedure RemovePath(Path:TERRAString);
-      Function GetPath(Index:Integer):TERRAString;
+      Procedure AddFolder(Path:TERRAString);
+      Procedure RemoveFolder(Path:TERRAString);
+      Function GetFolder(Index:Integer):TERRAString;
+      
       Function AddPackage(FileName:TERRAString):Package; Overload;
       Function AddPackage(MyPackage:Package):Package; Overload;
 
@@ -85,10 +85,12 @@ Type
 
       Function GetPackage(Name:TERRAString; ValidateError:Boolean = True):Package;
 
-      Function OpenStream(FileName:TERRAString; Mode:Integer = smRead):Stream;
+      Function OpenStream(FileName:TERRAString):Stream;
 
      // Function OpenPackages(FileName:TERRAString):Boolean;
-      Property PathCount:Integer Read _PathCount;
+      Property PathCount:Integer Read _FolderCount;
+
+      Property Files[Name:TERRAString]:Stream Read OpenStream; Default;
   End;
 
 Function IsPackageFileName(Const FileName:TERRAString):Boolean;
@@ -113,13 +115,6 @@ Begin
 End;*)
 
 { FileManager }
-Class Function FileManager.Instance:FileManager;
-Begin
-  If (_FileManager = Nil) Then
-    _FileManager := InitializeApplicationComponent(FileManager, Nil);
-  Result := FileManager(_FileManager.Instance);
-End;
-
 Procedure FileManager.Init;
 Begin
   _Locations := HashMap.Create(256);
@@ -230,15 +225,15 @@ Begin
   Dec(_ProviderCount);
 End;
 
-Function FileManager.GetPath(Index: Integer):TERRAString;
+Function FileManager.GetFolder(Index: Integer):TERRAString;
 Begin
-  If (Index>=0) And (Index<_PathCount) Then
-    Result := _PathList[Index]
+  If (Index>=0) And (Index<_FolderCount) Then
+    Result := _FolderList[Index]
   Else
     Result := '';
 End;
 
-Procedure FileManager.AddPath(Path:TERRAString);
+Procedure FileManager.AddFolder(Path:TERRAString);
 Var
   I:Integer;
 //  FM:FolderManager;
@@ -254,21 +249,21 @@ Begin
   End;
   {$ENDIF}
 
-  For I:=0 To Pred(_PathCount) Do
-  If (_PathList[I] = Path) Then
+  For I:=0 To Pred(_FolderCount) Do
+  If (_FolderList[I] = Path) Then
     Exit;
 
   Log(logDebug, 'FileManager', 'Adding path: '+Path);
-  Inc(_PathCount);
-  SetLength(_PathList, _PathCount);
-  _PathList[Pred(_PathCount)] := Path;
+  Inc(_FolderCount);
+  SetLength(_FolderList, _FolderCount);
+  _FolderList[Pred(_FolderCount)] := Path;
 
 (*  FM := FolderManager.Instance;
   If Assigned(FM) Then
     FM.WatchFolder(Path);*)
 End;
 
-Procedure FileManager.RemovePath(Path:TERRAString);
+Procedure FileManager.RemoveFolder(Path:TERRAString);
 Var
   I, N:Integer;
 Begin
@@ -276,8 +271,8 @@ Begin
   Path := Path + PathSeparator;
 
   N := -1;
-  For I:=0 To Pred(_PathCount) Do
-  If (_PathList[I] = Path) Then
+  For I:=0 To Pred(_FolderCount) Do
+  If (_FolderList[I] = Path) Then
   Begin
     N := I;
     Break;
@@ -285,8 +280,8 @@ Begin
 
   If (N>=0) Then
   Begin
-    _PathList[N] := _PathList[Pred(_PathCount)];
-    Dec(_PathCount);
+    _FolderList[N] := _FolderList[Pred(_FolderCount)];
+    Dec(_FolderCount);
   End;
 End;
 
@@ -377,9 +372,9 @@ Begin
     If _SourceList[J]<>'' Then
       Log(logDebug,'FileManager', 'Testing source: '+_SourceList[J]);
 
-    For I:=0 To Pred(_PathCount) Do
+    For I:=0 To Pred(_FolderCount) Do
     Begin
-      S := _SourceList[J]+_PathList[I] + FileName;
+      S := _SourceList[J]+_FolderList[I] + FileName;
       If FileStream.Exists(S) Then
       Begin
         Result := S;
@@ -440,14 +435,17 @@ Begin
     RaiseError('Could not find package. ['+Name +']');
 End;
 
-Function FileManager.OpenStream(FileName:TERRAString; Mode:Integer):Stream;
+Function FileManager.OpenStream(FileName:TERRAString):Stream;
 Var
   I:Integer;
   PackageName,ResourceName:TERRAString;
   MyPackage:Package;
   Resource:ResourceInfo;
+  Mode:Integer;
 Begin
-  Result:=Nil;
+  Result := Nil;
+
+  Mode := smRead;
 
   Log(logDebug, 'FileManager', 'Searching providers for '+FileName);
   For I:=0 To Pred(_ProviderCount) Do
@@ -494,7 +492,7 @@ Begin
       Log(logDebug, 'FileManager', 'Opening file '+FileName);
 
       If (IsPackageFileName(FileName)) Then
-        Result := Self.OpenStream(FileName, Mode)
+        Result := Self.OpenStream(FileName)
       Else
         Result := MemoryStream.Create(FileName, Mode);
         //Result := FileStream.Open(FileName,Mode);

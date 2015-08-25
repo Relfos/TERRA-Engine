@@ -28,10 +28,18 @@ Unit TERRA_PNG;
 {-$DEFINE LOGGING}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Stream, TERRA_Image;
+Uses TERRA_Object, TERRA_String, TERRA_Stream, TERRA_Image, TERRA_FileFormat;
+
+Type
+  PNGFormat = Class(TERRAFileFormat)
+    Public
+      Function Identify(Source:Stream):Boolean; Override;
+      Function Load(Target:TERRAObject; Source:Stream):Boolean; Override;
+      Function Save(Target:TERRAObject; Dest:Stream):Boolean; Override;
+  End;
 
 Implementation
-Uses TERRA_Error, TERRA_Utils, TERRA_CRC32, TERRA_Color, TERRA_Log, TERRA_ZLib;
+Uses TERRA_Error, TERRA_EngineManager, TERRA_Utils, TERRA_FileUtils, TERRA_CRC32, TERRA_Color, TERRA_Log, TERRA_ZLib;
 
 Type
   RGBQuad=Packed Record
@@ -826,8 +834,37 @@ Begin
   End;
 End;
 
-Procedure PNGLoad(Source:Stream; MyImage:TERRAImage);
+Procedure EncodeNonInterlacedRGB(Src:PColorRGBA; Dest:PByte; Width:Integer);
 Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(Width) Do
+  Begin
+    Dest^ := Src.R; Inc(Dest);
+    Dest^ := Src.G; Inc(Dest);
+    Dest^ := Src.B; Inc(Dest);
+    Inc(Src);
+  End;
+End;
+
+Procedure EncodeNonInterlacedRGBA(Src:PColorRGBA; Dest:PByte; Width:Integer);
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(Width) Do
+  Begin
+    Dest^ := Src.R; Inc(Dest);
+    Dest^ := Src.G; Inc(Dest);
+    Dest^ := Src.B; Inc(Dest);
+    Dest^ := Src.A; Inc(Dest);
+    Inc(Src);
+  End;
+End;
+
+{ PNGFormat }
+Function PNGFormat.Load(Target:TERRAObject; Source: Stream): Boolean;
+Var
+  MyImage:TERRAImage;
   I,J:Integer;
   Signature:Array[0..7] Of AnsiChar;
   HasIDAT:Boolean;
@@ -835,6 +872,8 @@ Var
   ChunkHandler:LPNGChunkHandler;
   Loader:PNGLoader;
 Begin
+  MyImage := TERRAImage(Target);
+  
   {$IFDEF DEBUG_CORE}
   Log(logDebug, 'PNG', 'Got PNG stream: '+Source.Name+' -> '+ IntegerProperty.Stringify(Source.Position)+' / '+ IntegerProperty.Stringify(Source.Size));
 
@@ -930,37 +969,11 @@ Begin
   ReleaseObject(Loader);
 End;
 
-Procedure EncodeNonInterlacedRGB(Src:PColorRGBA; Dest:PByte; Width:Integer);
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(Width) Do
-  Begin
-    Dest^ := Src.R; Inc(Dest);
-    Dest^ := Src.G; Inc(Dest);
-    Dest^ := Src.B; Inc(Dest);
-    Inc(Src);
-  End;
-End;
-
-Procedure EncodeNonInterlacedRGBA(Src:PColorRGBA; Dest:PByte; Width:Integer);
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(Width) Do
-  Begin
-    Dest^ := Src.R; Inc(Dest);
-    Dest^ := Src.G; Inc(Dest);
-    Dest^ := Src.B; Inc(Dest);
-    Dest^ := Src.A; Inc(Dest);
-    Inc(Src);
-  End;
-End;
-
-Procedure PNGSave(Dest:Stream; MyImage:TERRAImage; Depth:Integer);
+Function PNGFormat.Save(Target: TERRAObject; Dest: Stream): Boolean;
 Const
   BUFFER = 5;
 Var
+  MyImage:TERRAImage;
   ZLIBStream:ZStreamRec2;
   Encode_Buffer: Array[0..5] of PByteArray;
   LineSize,Offset:Cardinal;
@@ -1100,6 +1113,7 @@ Var
   Signature:Array[0..7] Of TERRAChar;
   OP,CRC:Cardinal;
 Begin
+  MyImage := TERRAImage(Target); 
   Move(PNGSignature, Signature, 8);
   Dest.Write(@Signature[0], 8);
 
@@ -1110,9 +1124,9 @@ Begin
   Header.CompressionMethod:=0;
   Header.FilterMethod:=0;
 
-  If Depth=24 Then
+(*  If Depth=24 Then
     Header.ColorType:=COLOR_RGB
-  Else
+  Else*)
     Header.ColorType:=COLOR_RGBAlpha;
 
   OP:=WriteChunkHeader(Dest, 'IHDR', SizeOf(Header));
@@ -1139,20 +1153,21 @@ Begin
   Dest.Write(@CRC, 4);
 End;
 
-Function ValidatePNG(Source:Stream):Boolean;
+Function PNGFormat.Identify(Source: Stream): Boolean;
 Var
   ID:Array[1..3] Of AnsiChar;
 Begin
   Source.Skip(1);
   Source.Read(@ID,3);
-  Result:=(ID='PNG');
+  Result := (ID='PNG');
 End;
+
 
 Initialization
   Log(logDebug, 'PNG', 'Initializing');
   _PNGCRCTable := CRC32Table.Create(PNGPolynomial);
-  
-  RegisterImageFormat('PNG', ValidatePNG, PNGLoad, PNGSave);
+
+  Engine.Formats.Add(PNGFormat.Create(TERRAImage, 'png'));
 Finalization
   ReleaseObject(_PNGCRCTable);
 End.

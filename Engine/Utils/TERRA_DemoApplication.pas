@@ -30,7 +30,7 @@ Type
 
       Function GetFloor:MeshInstance;
       Function GetMainViewport: TERRAViewport;
-    procedure SetShowFPS(const Value: Boolean);
+      Procedure SetShowFPS(const Value: Boolean);
 
     Public
 			Procedure OnCreate; Override;
@@ -70,7 +70,7 @@ Procedure DemoApplication.OnCreate;
 Begin
   Inherited;
 
-  FileManager.Instance.AddPath('Assets');
+  Engine.Files.AddFolder('Assets');
 
   _Font := Engine.Fonts['droid'];
   _FontRenderer := TERRAFontRenderer.Create();

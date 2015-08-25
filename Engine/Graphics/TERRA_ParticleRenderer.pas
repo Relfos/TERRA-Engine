@@ -837,7 +837,7 @@ Begin
 
   If Not Assigned(Result.Item) Then
   Begin
-    S := FileManager.Instance.SearchResourceFile(Name);
+    S := Engine.Files.SearchResourceFile(Name);
     If S<>'' Then
       Source := TERRAImage.Create(S)
     Else
@@ -922,7 +922,7 @@ Begin
       Item := _TextureAtlas.Get(I);
 
       S := StringLower(GetFileName(Item.Name, True))+'_normal.png';
-      S := FileManager.Instance.SearchResourceFile(S);
+      S := Engine.Files.SearchResourceFile(S);
       If S<>'' Then
         Source := TERRAImage.Create(S)
       Else
@@ -934,7 +934,7 @@ Begin
       ReleaseObject(Source);
 
       S := StringLower(GetFileName(Item.Name, True))+'_glow.png';
-      S := FileManager.Instance.SearchResourceFile(S);
+      S := Engine.Files.SearchResourceFile(S);
       If S<>'' Then
         Source := TERRAImage.Create(S)
       Else
@@ -946,7 +946,7 @@ Begin
       ReleaseObject(Source);
 
       S := StringLower(GetFileName(Item.Name, True))+'_refraction.png';
-      S := FileManager.Instance.SearchResourceFile(S);
+      S := Engine.Files.SearchResourceFile(S);
       If S<>'' Then
         Source := TERRAImage.Create(S)
       Else

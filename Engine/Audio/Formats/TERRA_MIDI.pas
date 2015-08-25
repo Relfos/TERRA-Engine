@@ -552,7 +552,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_FileManager, TERRA_MIDI_IO, TERRA_Log;
+Uses TERRA_EngineManager, TERRA_FileManager, TERRA_MIDI_IO, TERRA_Log;
 
 Const
   MIDIVolumeBoost = 1.0;
@@ -759,7 +759,7 @@ Begin
   _usPerTick := 1042;
   _BPM := 120;
 
-  Src := FileManager.Instance.OpenStream(_FileName);
+  Src := Engine.Files.OpenStream(_FileName);
   If Src = Nil Then
      Exit;
 

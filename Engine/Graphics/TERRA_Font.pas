@@ -139,7 +139,7 @@ Type
       Function GetKerning(Current, Next:Cardinal):Integer; Virtual; Abstract;
   End;
 
-  TERRAFont = Class(Resource)
+  TERRAFont = Class(TERRAResource)
     Protected
       _Glyphs:Array Of FontGlyph;
       _GlyphCount:Integer;
@@ -781,7 +781,7 @@ Procedure FontGlyphFactory.LoadFromFile(const FileName: TERRAString);
 Var
   Source:Stream;
 Begin
-  Source := FileManager.Instance.OpenStream(FileName);
+  Source := Engine.Files.OpenStream(FileName);
   If Assigned(Source) Then
   Begin
     LoadFromStream(Source);

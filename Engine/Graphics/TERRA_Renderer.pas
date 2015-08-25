@@ -619,7 +619,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_EngineManager, TERRA_FileManager, TERRA_Lights, TERRA_Math, TERRA_Log,
-  TERRA_Texture, TERRA_NullRenderer;
+  TERRA_Texture, TERRA_FileFormat, TERRA_NullRenderer;
 
 Var
   _RendererList:List = Nil;
@@ -1330,9 +1330,10 @@ Function CubeMapInterface.LoadFromFile(Const FileName: TERRAString): Boolean;
 Var
   W,H, N:Integer;
   Img:TERRAImage;
-  S, Ext:TERRAString;
   Waiting:Boolean;
-  Info:ImageClassInfo;
+
+  Format:TERRAFileFormat;
+  Location:TERRAString;
 Begin
   W := 0;
   H := 0;
@@ -1340,21 +1341,15 @@ Begin
   For I:=0 To 5 Do
   Begin
     N := 0;
-    S := '';
-    While (S='') And (N<GetImageExtensionCount()) Do
-    Begin
-      Info := GetImageExtension(N);
-      S := FileManager.Instance.SearchResourceFile(FileName + '_' + CubeFaceNames[I] + '.' + Info.Name);
-      Inc(N);
-    End;
 
-    If (S='') Then
+    Format := Engine.Formats.FindLocationFromName(Name, TERRAImage, Location);
+    If (Format = Nil) Then
     Begin
       Log(logWarning, 'Cubemap', 'Could not load cubemap face '+CubeFaceNames[I]+' for '+FileName);
       Continue;
     End;
 
-    Img := TERRAImage.Create(S);
+    Img := TERRAImage.Create(Location);
     If (Img.Width<=0) Then
     Begin
       ReleaseObject(Img);

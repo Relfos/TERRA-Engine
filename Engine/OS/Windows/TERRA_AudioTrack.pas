@@ -24,7 +24,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_FileManager, TERRA_FileStream, TERRA_Stream, TERRA_Math;
+Uses TERRA_EngineManager, TERRA_Error, TERRA_Log, TERRA_OS, TERRA_FileManager, TERRA_FileStream, TERRA_Stream, TERRA_Math;
 
 Const
   mpNotReady = 0;
@@ -216,7 +216,7 @@ Begin
     // extract from package if necessary
     If IsPackageFileName(FileName) Then
     Begin
-      Src := FileManager.Instance.OpenStream(FileName);
+      Src := Engine.Files.OpenStream(FileName);
       If Not Assigned(Src) Then
         Exit;
 

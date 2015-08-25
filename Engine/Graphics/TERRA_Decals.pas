@@ -103,7 +103,7 @@ Begin
     While (S='') And (I<GetImageExtensionCount()) Do
     Begin
       Info := GetImageExtension(I);
-      S := FileManager.Instance.SearchResourceFile(Name+'.'+Info.Name);
+      S := Engine.Files.SearchResourceFile(Name+'.'+Info.Name);
       Inc(I);
     End;
 

@@ -75,7 +75,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_ResourceManager, TERRA_FileManager, TERRA_SoundManager, TERRA_AL;
+Uses TERRA_EngineManager, TERRA_ResourceManager, TERRA_FileManager, TERRA_SoundManager, TERRA_AL;
 
 Const
 // EAX Reverb effect parameters
@@ -123,7 +123,7 @@ Begin
     Exit;
   End;
 
-  Source := FileManager.Instance().OpenStream(Name);
+  Source := Engine.Files.OpenStream(Name);
   If Assigned(Source) Then
   Begin
     Result := Load(Source);
