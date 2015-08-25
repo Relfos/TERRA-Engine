@@ -25,24 +25,34 @@ Unit TERRA_PSD;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Stream, TERRA_Image;
+Uses TERRA_Object, TERRA_Color, TERRA_Utils, TERRA_String, TERRA_Stream, TERRA_Image, TERRA_FileFormat;
+
+Type
+  PSDFormat = Class(TERRAFileFormat)
+    Public
+      Function Identify(Source:Stream):Boolean; Override;
+      Function Load(Target:TERRAObject; Source:Stream):Boolean; Override;
+  End;
+
 
 Implementation
-Uses TERRA_INI, TERRA_Color, TERRA_Log;
+Uses TERRA_Log, TERRA_EngineManager, TERRA_FileUtils;
 
 // Photoshop PSD loader -- PD by Thatcher Ulrich, integration by Nicolas Schulz, tweaked by STB, ported to Delphi by Sergio Flores
 
-Procedure LoadPSD(Source:Stream; Image:Image);
+Function PSDFormat.Load(Target:TERRAObject; Source:Stream):Boolean;
 Var
+  Image:TERRAImage;
   pixelCount:Integer;
   channelCount:Word;
   compression:Word;
   channel, i, count:Integer;
   len, val:Byte;
-  w,h:Integer;
-  ID, Ofs:Cardinal;
-  N:Word;
-  P:PColor;
+  Width, Height:Cardinal;
+  ID:FileHeader;
+  Ofs:Cardinal;
+  Version, Depth, ColorMode:Word;
+  P:PColorRGBA;
 
   Procedure ReadChannel;
   Begin
@@ -52,6 +62,10 @@ Var
       2: Source.Read(@P.B, 1);
       3: Source.Read(@P.A, 1);
     End;
+
+    If (Channel=0) Then
+      P.A := 255;
+
     Inc(P);
   End;
 
@@ -63,23 +77,30 @@ Var
       2: P.B := Val;
       3: P.A := Val;
     End;
+
+    If (Channel=0) Then
+      P.A := 255;
+
     Inc(P);
   End;
 
 Begin
+  Image := TERRAImage(Target);
+  
   // Check identifier
   Source.Read(@ID, 4);
-  If (ID <> $38425053) Then   // "8BPS"
+  If (ID <> '8BPS') Then   // "8BPS"
   Begin
     Log(logError, 'PSD', 'Corrupt PSD image: '+ Source.Name);
     Exit;
   End;
 
   // Check file type version.
-  Source.Read(@N, 2);
-  If (N <> 1) Then
+  Source.ReadWord(Version);
+  ByteSwap16(Version);
+  If (Version <> 1) Then
   Begin
-    Log(logError, 'PSD', 'Unsupported version of PSD image: '+ Source.Name + ', version= '+ IntToString(N));
+    Log(logError, 'PSD', 'Unsupported version of PSD image: '+ Source.Name + ', version= '+ IntegerProperty.Stringify(Version));
     Exit;
   End;
 
@@ -87,22 +108,26 @@ Begin
   Source.Skip(6);
 
   // Read the number of channels (R, G, B, A, etc).
-  Source.Read(@channelCount, 2);
+  Source.ReadWord(ChannelCount);
+  ByteSwap16(ChannelCount);
   If (channelCount > 16) Then
   Begin
-    Log(logError, 'PSD', 'Unsupported number of channels in PSD: '+ Source.Name + ', channels= '+ IntToString(channelCount));
+    Log(logError, 'PSD', 'Unsupported number of channels in PSD: '+ Source.Name + ', channels= '+ IntegerProperty.Stringify(channelCount));
     Exit;
   End;
 
   // Read the rows and columns of the image.
-  Source.Read(@h, 4);
-  Source.Read(@w, 4);
+  Source.ReadCardinal(Height);
+  Source.ReadCardinal(Width);
+  ByteSwap32(Height);
+  ByteSwap32(Width);
 
   // Make sure the depth is 8 bits.
-  Source.Read(@n, 2);
-  If (N <> 8) Then
+  Source.ReadWord(Depth);
+  ByteSwap16(Depth);
+  If (Depth <> 8) Then
   Begin
-    Log(logError, 'PSD', 'Unsupported bit depth in PSD: '+ Source.Name + ', bitdepth= '+ IntToString(N));
+    Log(logError, 'PSD', 'Unsupported bit depth in PSD: '+ Source.Name + ', bitdepth= '+ IntegerProperty.Stringify(Depth));
     Exit;
   End;
 
@@ -116,42 +141,48 @@ Begin
    //   7: Multichannel
    //   8: Duotone
    //   9: Lab color
-  Source.Read(@n, 2);
-  If (N <> 3) Then
+  Source.ReadWord(ColorMode);
+  ByteSwap16(ColorMode);
+  If (ColorMode <> 3) Then
   Begin
-    Log(logError, 'PSD', 'Wrong color format, PSD is not in RGB color format: '+ Source.Name + ', format= '+ IntToString(N));
+    Log(logError, 'PSD', 'Wrong color format, PSD is not in RGB color format: '+ Source.Name + ', format= '+ IntegerProperty.Stringify(ColorMode));
     Exit;
   End;
 
   // Skip the Mode Data.  (It's the palette for indexed color; other info for other modes.)
-  Source.Read(@Ofs, 4);
+  Source.ReadCardinal(Ofs);
+  ByteSwap32(Ofs);
   Source.skip(Ofs);
 
   // Skip the image resources.  (resolution, pen tool paths, etc)
-  Source.Read(@Ofs, 4);
+  Source.ReadCardinal(Ofs);
+  ByteSwap32(Ofs);
   Source.Skip(Ofs);
 
   // Skip the reserved data.
-  Source.Read(@Ofs, 4);
+  Source.ReadCardinal(Ofs);
+  ByteSwap32(Ofs);
   Source.Skip(Ofs);
 
   // Find out if the data is compressed.
   // Known values:
   //   0: no compression
   //   1: RLE compressed
-  Source.Read(@Compression, 2);
+  Source.ReadWord(Compression);
+  ByteSwap16(Compression);
+
   If (Compression > 1) Then
   Begin
-    Log(logError, 'PSD', 'PSD has an unknown compression format: '+ Source.Name + ', compression= '+ IntToString(Compression));
+    Log(logError, 'PSD', 'PSD has an unknown compression format: '+ Source.Name + ', compression= '+ IntegerProperty.Stringify(Compression));
     Exit;
   End;
 
    // Create the destination image.
-  Image.New(W, H);
+  Image.New(Width, Height);
 
-   // Finally, the image data.
-   If (compression = 1) Then
-   Begin
+  // Finally, the image data.
+  If (compression = 1) Then
+  Begin
       // RLE as used by .PSD and .TIFF
       // Loop until you get the number of unpacked bytes you are expecting:
       //     Read the next source byte into n.
@@ -162,14 +193,12 @@ Begin
 
       // The RLE-compressed data is preceeded by a 2-byte data count for each row in the data,
       // which we're going to just skip.
-      Source.Skip(h * channelCount * 2 );
+      Source.Skip(Height * channelCount * 2 );
 
       // Read the RLE data by channel.
-      For channel := 0 To 3 Do
+      For channel := 0 To Pred(channelCount) Do
       Begin
-        P := Image.Pixels;
-        If (Channel=0) Then
-          P^ := ColorGrey(0);
+        P := Image.RawPixels;
 
          If (channel >= channelCount) Then
           Break;
@@ -178,7 +207,7 @@ Begin
         count := 0;
         While (count < Image.pixelCount) Do
         Begin
-          Source.Read(@len, 1);
+          Source.ReadByte(Len);
           If (len = 128) Then
           Begin
               // No-op.
@@ -200,7 +229,7 @@ Begin
             // (Interpret len as a negative 8-bit int.)
             Len := Len Xor $0FF;
             Inc(len, 2);
-            Source.Read(@val, 1);
+            Source.ReadByte(Val);
             Inc(count, len);
             While (len>0) Do
             Begin
@@ -209,18 +238,16 @@ Begin
             End;
           End;
         End;
-      End;
-   End Else
-   Begin
+     End;
+  End Else
+  Begin
       // We're at the raw image data.  It's each channel in order (Red, Green, Blue, Alpha, ...)
       // where each channel consists of an 8-bit value for each pixel in the image.
 
       // Read the data by channel.
-      For channel := 0 To 3 Do
+      For channel := 0 To Pred(channelCount) Do
       Begin
-        P := Image.Pixels;
-        If (Channel=0) Then
-          P^ := ColorGrey(0);
+        P := Image.RawPixels;
 
          If (channel >= channelCount) Then
           Break;
@@ -229,17 +256,18 @@ Begin
          For I := 0 To Pred(Image.pixelCount) Do
           ReadChannel();
       End;
-   End;
+  End;
 End;
 
-Function ValidatePSD(Stream:Stream):Boolean;
+Function PSDFormat.Identify(Source:Stream):Boolean;
 Var
-  ID:Cardinal;
+  ID:FileHeader;
 Begin
-  Stream.Read(@ID, 4);
-  Result := (ID = $38425053);   // "8BPS"
+  Source.Read(@ID, 4);
+  Result := (ID = '8BPS');
 End;
 
 Begin
-  RegisterImageFormat('PSD', ValidatePSD, LoadPSD, Nil);
+  Engine.Formats.Add(PSDFormat.Create(TERRAImage, 'psd'));
+
 End.

@@ -249,6 +249,7 @@ Var
   ScanlineCount:JDIMENSION;
   Image:TERRAImage;
 Begin
+  Result := False;
   Image := TERRAImage(Target);
   //  Initialize the JPEG decompression object error handling.
   cinfo.err:=jpeg_LEAF_error(jerr);
@@ -280,6 +281,7 @@ Begin
 
   jpeg_finish_decompress(@cInfo);
   jpeg_destroy_decompress(@cInfo);
+  Result := True;
 End;
 {$ELSE}
 Var
@@ -330,6 +332,8 @@ Begin
   ReleaseObject(JPG);
 
   Image.Process(IMP_SwapChannels);
+
+  Result := True;
 End;
 {$ENDIF}
 
@@ -395,6 +399,8 @@ Begin
   ReleaseObject(JPG);
 
   ReleaseObject(Bitmap);
+
+  Result := True;
 End;
 {$ENDIF}
 

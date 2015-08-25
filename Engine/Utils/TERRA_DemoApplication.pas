@@ -7,7 +7,7 @@ Uses TERRA_Utils, TERRA_Object, TERRA_String, TERRA_Application, TERRA_OS,
   TERRA_Vector3D, TERRA_Color, TERRA_Camera, TERRA_Ray, TERRA_UIDimension,
   TERRA_Mesh, TERRA_Texture,
   TERRA_Font, TERRA_FontRenderer, TERRA_Skybox, TERRA_Viewport, TERRA_Lights, TERRA_UIView, TERRA_ScreenFX,
-  TERRA_TTF, TERRA_PNG, TERRA_JPG;
+  TERRA_TTF, TERRA_PNG, TERRA_JPG, TERRA_BMP, TERRA_PSD;
 
 Type
   DemoApplication = Class(Application)

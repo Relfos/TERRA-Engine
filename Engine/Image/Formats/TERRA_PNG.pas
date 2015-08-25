@@ -872,6 +872,7 @@ Var
   ChunkHandler:LPNGChunkHandler;
   Loader:PNGLoader;
 Begin
+  Result := False;
   MyImage := TERRAImage(Target);
   
   {$IFDEF DEBUG_CORE}
@@ -967,6 +968,8 @@ Begin
   End;}
 
   ReleaseObject(Loader);
+
+  Result := True;
 End;
 
 Function PNGFormat.Save(Target: TERRAObject; Dest: Stream): Boolean;
@@ -1113,7 +1116,9 @@ Var
   Signature:Array[0..7] Of TERRAChar;
   OP,CRC:Cardinal;
 Begin
-  MyImage := TERRAImage(Target); 
+  Result := False;
+  
+  MyImage := TERRAImage(Target);
   Move(PNGSignature, Signature, 8);
   Dest.Write(@Signature[0], 8);
 
@@ -1151,6 +1156,8 @@ Begin
   CRC:= GetCRC32('IEND', _PNGCRCTable);
   ByteSwap32(Cardinal(CRC));
   Dest.Write(@CRC, 4);
+
+  Result := True;
 End;
 
 Function PNGFormat.Identify(Source: Stream): Boolean;
