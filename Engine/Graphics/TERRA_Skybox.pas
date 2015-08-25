@@ -70,81 +70,8 @@ Type
 
 Implementation
 Uses TERRA_GraphicsManager, TERRA_EngineManager, TERRA_ResourceManager, TERRA_Log, TERRA_OS, TERRA_Camera,
-  TERRA_Image;
+  TERRA_Image, TERRA_ShaderManager;
 
-Var
-  _SkyboxShader:ShaderInterface = Nil;
-  _SkyboxNormalShader:ShaderInterface = Nil;
-
-(*Function GetShader_Skybox:TERRAString;
-Var
-  S:TERRAString;
-Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
-Begin
-  S := '';
-  Line('version { 110 }');
-  Line('vertex {');
-	Line('  uniform mat4 cameraMatrix;');
-	Line('  uniform mat4 modelMatrix;');
-  Line('  uniform mat4 projectionMatrix;');
-  Line('  attribute vec4 terra_position;');
-  Line('  attribute vec2 terra_UV0;');
-	Line('  varying vec4 local_position;');
-	Line('  varying vec4 world_position;');
-	Line('void main()	{');
-  Line('  local_position = terra_position;');
-  Line('  world_position = modelMatrix * local_position;');
-  Line('  gl_Position = gl_ProjectionMatrix * cameraMatrix * world_position;');
-  Line('  gl_TexCoord[0].st = terra_UV0;	}');
-  Line('}');
-  Line('fragment {');
-	Line('  uniform sampler2D texture;');
-	Line('  uniform vec4 skyColor;');
-  Line('void main(){');
-  Line('  vec4 color = texture2D(texture, gl_TexCoord[0].st);');
-  Line('  gl_FragColor = color * skyColor;}');
-  Line('}');
-  Result := S;
-End;*)
-
-Function GetShader_Skybox(OutputMode:Integer):TERRAString;
-Var
-  S:TERRAString;
-Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
-Begin
-  S := '';
-  Line('vertex {');
-  Line('varying highp vec3 normal;');
-  Line('  uniform mat4 projectionMatrix;');
-  Line('  uniform mat4 rotationMatrix;');
-  Line('  uniform mat4 reflectionMatrix;');
-  Line('  attribute highp vec4 terra_position;');
-  Line('  attribute highp vec3 terra_normal;');
-  Line('  void main()	{');
-  Line('  gl_Position = projectionMatrix * terra_position;');
-  Line('  highp vec4 n = reflectionMatrix * vec4(terra_normal, 1.0);');
-  Line('  normal = (rotationMatrix * n).xyz;}');
-  Line('}');
-  Line('fragment {');
-  Line('varying highp vec3 normal;');
-  Line('uniform samplerCube skyTexture;');
-  Line('uniform lowp vec4 skyColor;');
-  Line('  void main()	{');
-  Line('  highp vec3 n = normalize(normal);');
-  If (OutputMode And shader_OutputNormal<>0) Then
-  Begin
-    Line('  n *= 0.5; n += vec3(0.5, 0.5, 0.5);');
-    Line('  gl_FragColor = vec4(n, 0.0);}');
-  End Else
-  Begin
-    Line('  lowp vec4 sky = textureCube(skyTexture, n) * skyColor; ');
-    Line('  gl_FragColor = vec4(sky.rgb, 1.0);}');
-    //Line('  gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0);}');
-  End;
-
-  Line('}');
-  Result := S;
-End;
 
 { Skybox }
 Constructor TERRASkyBox.Create(SkyTexture:TERRAString);
@@ -225,20 +152,10 @@ Begin
 
   If (Stage=renderStageNormal) Then
   Begin
-    If (_SkyboxNormalShader = Nil) Then
-    Begin
-      _SkyboxNormalShader := Graphics.Renderer.CreateShader();
-      _SkyboxNormalShader.Generate('skybox_normal', GetShader_Skybox(shader_OutputNormal));
-    End;
-    MyShader := _SkyboxNormalShader;
+    MyShader := Get_SkyboxNormalShader();
   End Else
   Begin
-    If (_SkyboxShader = Nil) Then
-    Begin
-      _SkyboxShader := Graphics.Renderer.CreateShader();
-      _SkyboxShader.Generate('skybox', GetShader_Skybox(0));
-    End;
-    MyShader := _SkyboxShader;
+    MyShader := Get_SkyboxDiffuseShader();
   End;
 
   If Not MyShader.IsReady() Then

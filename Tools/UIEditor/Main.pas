@@ -261,7 +261,7 @@ Begin
   While X<V.Width Do
   Begin
     Inc(I);
-    If (I Mod 5 = 0) Then
+    If (I Mod 5 = 0) Then           
       Width := 2.0
     Else
       Width := 1.0;

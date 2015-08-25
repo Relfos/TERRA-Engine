@@ -169,6 +169,7 @@ Type
       Procedure SetSelected(const Value: Boolean);
 
       Function GetState: WidgetState;
+    procedure SetClipRect(const Value: TERRAClipRect);
 
     Protected
       _Parent:UIWidget;
@@ -204,6 +205,7 @@ Type
       _ColorTable:TERRATexture;
 
       _ClipRect:TERRAClipRect;
+      _CustomClip:Boolean;
 
       _VisibleFrame:Cardinal;
 
@@ -412,7 +414,7 @@ Type
 
       Property ChildrenCount:Integer Read _ChildrenCount;
 
-      Property ClipRect:TERRAClipRect Read GetClipRect;
+      Property ClipRect:TERRAClipRect Read GetClipRect Write SetClipRect;
 
       Property Center:Vector2D Read _Center Write _Center;
 
@@ -727,9 +729,12 @@ Begin
   _Size.X := Self.GetDimension(Self.Width, uiDimensionWidth);
   _Size.Y := Self.GetDimension(Self.Height, uiDimensionHeight);
 
-  _ClipRect.Style := clipSomething;
-  _ClipRect.SetArea(0, 0, _Size.X, _Size.Y);
-  _ClipRect.Transform(_Transform);
+  If Not _CustomClip Then
+  Begin
+    _ClipRect.Style := clipSomething;
+    _ClipRect.SetArea(0, 0, _Size.X, _Size.Y);
+    _ClipRect.Transform(_Transform);
+  End;
 End;
 
 Function UIWidget.IsSameFamily(Other:UIWidget): Boolean;
@@ -2392,6 +2397,16 @@ end;
 Function UIWidget.CanReceiveEvents: Boolean;
 Begin
   Result := False;
+End;
+
+Procedure UIWidget.SetClipRect(const Value: TERRAClipRect);
+Begin
+  If (Value.Style = clipSomething) Then
+  Begin
+    Self._CustomClip := True;
+    Self._ClipRect := Value;
+  End Else
+    Self._CustomClip := False;
 End;
 
 { UIInstancedWidget }

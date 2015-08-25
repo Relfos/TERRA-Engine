@@ -34,7 +34,7 @@ Type
       Property Style:ClipRectStyle Read _Style Write _Style;
   End;
 
-//Function ClipRectCreate(X,Y, Width, Height:Single):TERRAClipRect;
+Function ClipRectCreate(Const X1,Y1, X2, Y2:Single):TERRAClipRect;
 
 
 Implementation
@@ -125,6 +125,12 @@ Begin
 
   If (Other.Y2<_Y2) Then
     _Y2 := Other.Y2;
+End;
+
+Function ClipRectCreate(Const X1,Y1, X2, Y2:Single):TERRAClipRect;
+Begin
+  Result.Style := clipSomething;
+  Result.SetArea(X1, Y1, X2, Y2);
 End;
 
 End.
