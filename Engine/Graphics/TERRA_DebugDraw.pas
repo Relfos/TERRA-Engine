@@ -93,7 +93,7 @@ Begin
     Exit;
 
   DX := B.X - A.X;
-  DY := A.Y - B.Y;
+  DY := B.Y - A.Y;
   Angle := Atan2(DY, DX);
 
   S := View.SpriteRenderer.FetchSprite();
@@ -104,6 +104,7 @@ Begin
 
   S.Rotate(Angle);
   S.Translate(Trunc(A.X), Trunc(A.Y));
+  View.SpriteRenderer.QueueSprite(S);
 End;
 
 Procedure DrawFilledRect(View:TERRAViewport; Const A,B:Vector2D; FillColor:ColorRGBA);

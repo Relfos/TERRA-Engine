@@ -67,17 +67,20 @@ Procedure MyDemo.OnRender2D(View: TERRAViewport);
 Var
   I:Integer;
   W,H,Z:Single;
-  S:QuadSprite;
+  S:TERRASprite;
 Begin
   W := Self.GUI.Viewport.Width;
   H := Self.GUI.Viewport.Height;
 
   For I:=0 To Pred(Limit) Do
   Begin
-    S := View.SpriteRenderer.DrawSprite(Pos[I].Z, Tex);
+    S := View.SpriteRenderer.FetchSprite();
+    S.Layer := Pos[I].Z;
+    S.SetTexture(Tex);
     S.Translate(Pos[I].X, Pos[I].Y);
     S.Mirror := Odd(I);    // Each odd sprite in line will be reflected
-    //S.SetScaleAndRotation(1, RAD * (I*360 Div 8));
+    S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+    View.SpriteRenderer.QueueSprite(S);
 
     Pos[I].X := Pos[I].X + Dir[I].X;
     Pos[I].Y := Pos[I].Y + Dir[I].Y;

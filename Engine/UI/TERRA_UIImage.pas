@@ -28,14 +28,12 @@ Type
 
       Procedure SetTexture(Tex:TERRATexture);
 
-      Procedure UpdateRects; Override;
-
       Property Texture:TERRATexture Read GetTexture Write SetTexture;
   End;
 
 
 Implementation
-Uses TERRA_Log, TERRA_EngineManager;
+Uses TERRA_Log, TERRA_EngineManager, TERRA_DebugDraw;
 
 { UIImage }
 Constructor UIImage.Create(Name:TERRAString; Parent:UIWidget; X, Y, Z: Single; Const Width, Height:UIDimension);
@@ -59,26 +57,6 @@ Begin
   Self.Anchor := VectorCreate2D(0, 0);
 End;
 
-{Function UIImage.OnRegion(X, Y: Integer): Boolean;
-Var
-  WH, Pos:Vector2d;
-  OfsX, OfsY:Single;
-Begin
-  If (OutsideClipRect(X,Y)) Then
-  Begin
-    Result := False;
-    Exit;
-  End;
-
-  Pos := Self.GetAbsolutePosition;
-  Self.GetScrollOffset(OfsX, OfsY);
-  Pos.X := Pos.X + OfsX;
-  Pos.Y := Pos.Y + OfsY;
-
-  WH := Self.Size;
-
-  Result := (X>=Pos.X) And (Y>=Pos.Y) And (X<=Pos.X+WH.X*Scale) And (Y<=Pos.Y+WH.Y*Scale);
-End;}
 
 Function UIImage.GetObjectType: TERRAString;
 Begin
@@ -93,43 +71,26 @@ End;
 Procedure UIImage.SetTexture(Tex: TERRATexture);
 Begin
   If Tex = Nil Then
-    Tex := Engine.Textures.WhiteTexture;
+    Tex := Engine.Textures.WhiteTexture
+  Else
+    Tex.Prefetch();
 
   _Texture.Value := Tex;
-  {Self.Rect.Width := Tex.Width;
-  Self.Rect.Height := Tex.Height;
-  Self.Rect.U1 := 0.0;
-  Self.Rect.V1 := 0.0;
-  Self.Rect.U2 := 1.0;
-  Self.Rect.V2 := 1.0;}
-End;
-
-Procedure UIImage.UpdateRects();
-Begin
-  If Assigned(Self.Texture) Then
-  Begin
-    Self.Texture.Prefetch();
-
-    If (Self.Width.Value<=0) Then
-      Self.Width := UIPixels(Trunc(SafeDiv(Self.Texture.Width, Self.Texture.Ratio.X)));
-
-    If (Self.Height.Value<=0) Then
-      Self.Height := UIPixels(Trunc(SafeDiv(Self.Texture.Height, Self.Texture.Ratio.Y)));
-  End;
-
-  Inherited;
 End;
 
 Procedure UIImage.UpdateSprite(View:TERRAViewport);
-Var
-  CurrentColor:ColorRGBA;
 Begin
-  If _Sprite = Nil Then
-  Begin
-    _Sprite := TERRASprite.Create();
-  End;
+  If (Self.Width.Value<=0) And (Assigned(Texture)) Then
+    Self.Width := UIPixels(Trunc(SafeDiv(Texture.Width, Texture.Ratio.X)));
 
-  CurrentColor := Self.Color;
+  If (Self.Height.Value<=0) And (Assigned(Texture)) Then
+    Self.Height := UIPixels(Trunc(SafeDiv(Texture.Height, Texture.Ratio.Y)));
+
+
+  If _Sprite = Nil Then
+    _Sprite := TERRASprite.Create()
+  Else
+    _Sprite.Clear();
 
   _Sprite.SetTransform(Self._Transform);
   _Sprite.Texture := Self.Texture;
@@ -145,11 +106,11 @@ Begin
   _Sprite.Flip := Self.Flip;
   _Sprite.Mirror := Self.Mirror;
   _Sprite.SetUVs(_U1.Value, _V1.Value, _U2.Value, _V2.Value);
-  _Sprite.SetColor(CurrentColor);
+  _Sprite.SetColor(Self.Color);
   _Sprite.MakeQuad(VectorCreate2D(0,0), 0.0, Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)), Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
 
-  _Sprite.SetTransform(_Transform);
   _Sprite.ClipRect := Self.ClipRect;
+  _Sprite.SetTransform(_Transform);
 End;
 
 End.

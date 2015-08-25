@@ -76,8 +76,6 @@ Type
       Procedure Clear;
 
     Public         
-      AutoResize:Boolean;
-
       CloseButton:UIWidget;
 
       Key_Up:Integer;
@@ -98,6 +96,8 @@ Type
       Function GetObjectType:TERRAString; Override;
 
       Function GetBoundingBox:BoundingBox; Override;
+
+      Procedure AutoResize();
 
       //Function SelectNearestWidget(Target:UIWidget):UIWidget;
       //Procedure GetFirstHighLight(GroupID:Integer);
@@ -304,25 +304,26 @@ Begin
 End;
 
 
+Procedure UIView.AutoResize();
+Var
+  TargetWidth, TargetHeight:Integer;
+Begin
+  TargetWidth := Trunc(Self.GetDimension(Width, uiDimensionWidth));
+  TargetHeight := Trunc(Self.GetDimension(Height, uiDimensionHeight));
+  If ((Self.Viewport.Width <> TargetWidth) Or (Self.Viewport.Height <> TargetHeight)) Then
+  Begin
+    Self.Viewport.Resize(TargetWidth, TargetHeight);
+    OrthoCamera(_Camera).SetArea(0.0, 0.0, TargetWidth, TargetHeight);
+  End;
+End;
+
 Procedure UIView.Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
 Var
   Current, Temp:UIWidget;
   I, J:Integer;
   It:Iterator;
-  TargetWidth, TargetHeight:Integer;
 Begin
   _Draw := False;
-
-  If (AutoResize) Then
-  Begin
-    TargetWidth := Trunc(Self.GetDimension(Width, uiDimensionWidth));
-    TargetHeight := Trunc(Self.GetDimension(Height, uiDimensionHeight));
-    If ((Self.Viewport.Width <> TargetWidth) Or (Self.Viewport.Height <> TargetHeight)) Then
-    Begin
-      Self.Viewport.Resize(Trunc(Self.GetDimension(Width, uiDimensionWidth)), Trunc(Self.GetDimension(Height, uiDimensionHeight)));
-      OrthoCamera(_Camera).SetArea(0.0, 0.0, TargetWidth, TargetHeight);
-    End;
-  End;
 
   (* TODO
   If (Assigned(_Highlight)) And ((Not _Highlight.Visible) Or (Not _Highlight.Enabled)) Then

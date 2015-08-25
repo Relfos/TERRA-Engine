@@ -7,7 +7,7 @@ uses
   Dialogs, ExtCtrls, StdCtrls, Menus,
   TERRA_Utils, TERRA_Application, TERRA_VCLApplication, TERRA_OS, TERRA_Texture,
   TERRA_Object, TERRA_Viewport, TERRA_FileManager, TERRA_Sprite, TERRA_PNG,
-  TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color;
+  TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Math, TERRA_Matrix3x3, TERRA_Vector2D, TERRA_Color;
 
 type
   TForm1 = class(TForm)
@@ -32,13 +32,23 @@ Var
 { MyScene }
 Procedure TForm1.RenderViewport(V: TERRAViewport);
 Var
-  S:QuadSprite;
+  S:TERRASprite;
   Angle:Single;
 Begin
   // A rotating sprite in the bottom, with Scale = 4x
   Angle := RAD * ((Application.GetTime() Div 15) Mod 360);
-  S := V.SpriteRenderer.DrawSprite(100, 100, 50, _Tex);
-  S.SetScaleAndRotationRelative(VectorCreate2D(0.5, 0.5), 4.0, Angle);  // Calculate rotation, in degrees, from current time
+  S := V.SpriteRenderer.FetchSprite();
+  S.SetTexture(_Tex);
+  S.Layer := 50;
+  S.Rotate(Angle);
+  S.SetTransform(MatrixTransformAroundPoint2D(VectorCreate2D(_Tex.Width * 0.5, _Tex.Height * 0.5), S.Transform));
+  S.Scale(4);
+  S.Translate(100, 100);
+
+  S.MakeQuad(VectorCreate2D(0, 0), 0.0, _Tex.Width, _Tex.Height);
+  V.SpriteRenderer.QueueSprite(S);
+
+  Inherited;
 End;
 
 Procedure TForm1.FormCreate(Sender: TObject);

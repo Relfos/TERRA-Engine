@@ -52,6 +52,7 @@ Type
       _Saturation:Single;
       _Glow:ColorRGBA;
       _Outline:ColorRGBA;
+      _Smoothing:Single;
 
       _Vertices:VertexData;
       _RenderCount:Integer;
@@ -111,7 +112,7 @@ Type
 
 
 Implementation
-Uses TERRA_ResourceManager, TERRA_InputManager, TERRA_GraphicsManager, TERRA_Log, TERRA_Image, TERRA_OS, TERRA_Math
+Uses TERRA_ResourceManager, TERRA_InputManager, TERRA_GraphicsManager, TERRA_Log, TERRA_Image, TERRA_OS, TERRA_Math, TERRA_Font
   {$IFNDEF DISABLECOLORGRADING},TERRA_ColorGrading {$ENDIF};
 
 Const
@@ -181,7 +182,8 @@ Begin
 
   If IsFont Then
   Begin
-    Line('  const float smoothing = 3.0/16.0;');
+    //Line('  const float smoothing = 3.0/16.0;');
+    Line('  uniform lowp float smoothing;');
     Line('  const float outlineWidth = 5.0/16.0;');
     Line('  const float outerEdgeCenter = 0.5 - outlineWidth;');
     Line('  uniform lowp vec4 shadowOffset;');
@@ -457,7 +459,8 @@ Begin
   And (_Batches[I]._Shader = S.Shader)
   And ( (HasShaders) Or (_Batches[I]._Saturation = S.Saturation))
   And (Cardinal(_Batches[I]._Outline) = Cardinal(S.Outline))
-  And (_Batches[I]._SpriteCount<BatchSize)) And (_Batches[I]._Layer = TargetLayer)
+  And (_Batches[I]._SpriteCount<BatchSize))
+  And (_Batches[I]._Smoothing = S.Smoothing) And (_Batches[I]._Layer = TargetLayer)
   And (Not _Batches[I]._Closed) Then
   Begin
     N := I;
@@ -494,6 +497,7 @@ Begin
     {$ENDIF}
     _Batches[N]._Saturation := S.Saturation;
     _Batches[N]._Glow := S.Glow;
+    _Batches[N]._Smoothing := S.Smoothing;
     _Batches[N]._Shader := S.Shader;
     _Batches[N]._Outline := S.Outline;
     _Batches[N]._First := Nil;
@@ -787,10 +791,12 @@ Begin
     End;
     ReleaseObject(InIt);
 
-    FullyClipped := (S.ClipRect.Style = clipSomething) And ((Abs(MinX-MaxX)<Epsilon) Or (Abs(MinY-MaxY)<Epsilon));
+    (*FullyClipped := (S.ClipRect.Style = clipSomething) And ((Abs(MinX-MaxX)<Epsilon) Or (Abs(MinY-MaxY)<Epsilon));
 
     If Not FullyClipped Then
-      Inc(Ofs, S.Vertices.Count);
+      Inc(Ofs, S.Vertices.Count);*)
+
+    Inc(Ofs, S.Vertices.Count);
 
     S := S.Next;
   End;
@@ -825,6 +831,7 @@ Begin
     _Manager.SetShader(ProjectionMatrix, Self._Shader);
     _Manager._FontShader.SetColorUniform('outlineColor', _Outline);
     _Manager._FontShader.SetVec2Uniform('shadowOffset', VectorCreate2D(0.1, 0.1));
+    _Manager._FontShader.SetFloatUniform('smoothing', Self._Smoothing); //);
   End Else
   If (Stage<>renderStageDiffuse) Then
     _Manager.SetShader( ProjectionMatrix, _Manager._SpriteShaderSolid)

@@ -21,7 +21,6 @@ Type
 
   Scale9Sprite = Class(TERRASprite)
     Protected
-      _BaseColor:ColorRGBA;
       _Position:Vector2D;
       _Width:Integer;
       _Height:Integer;
@@ -38,7 +37,6 @@ Type
       Procedure SetPosition(Const Pos:Vector2D);
       Procedure SetSize(Const Width, Height:Integer);
       Procedure SetUVRect(Const U1, V1, U2, V2:Single);
-      Procedure SetColor(Const C:ColorRGBA);
   End;
 
 Implementation
@@ -47,7 +45,6 @@ Implementation
 Constructor Scale9Sprite.Create;
 Begin
   Inherited;
-  _BaseColor := ColorWhite;
 End;
 
 Procedure Scale9Sprite.SetUVRect(Const U1, V1, U2, V2:Single);
@@ -109,11 +106,6 @@ Begin
   Result := _Tiles[I,J];
 End;
 
-Procedure Scale9Sprite.SetColor(const C: ColorRGBA);
-Begin
-  _BaseColor := C;
-End;
-
 Procedure Scale9Sprite.SetSize(const Width, Height:Integer);
 Begin
   _Width := Width;
@@ -131,9 +123,6 @@ Var
   Offset:Integer;
 Begin
   Self.Clear();
-
-  If _BaseColor.A<=0 Then
-    Exit;
 
   Offset := 0;
   LX := _Width - (Self.GetTile(0, 0).Width + Self.GetTile(2, 0).Width);
@@ -175,8 +164,6 @@ Begin
   For I:=1 To CountY Do
     CompY := CompY + CompSizeY;
   BottomY := CompY;
-
-  Self.SetColor(_BaseColor);
 
   CompX := Self.GetTile(0, 0).Width;
   For I:=1 To CountX Do

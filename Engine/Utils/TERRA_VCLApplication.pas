@@ -28,9 +28,6 @@ Type
   End;
 
   VCLApplication = Class(Application)
-  private
-    function GetViewport: TERRAViewport;
-    function GetGUI: UIView;
       Protected
         _Timer:TTimer;
         _CurrentWidth:Integer;
@@ -49,6 +46,9 @@ Type
 
 	  		Function InitWindow:Boolean; Override;
   			Procedure CloseWindow; Override;
+
+        Function GetViewport: TERRAViewport;
+        Function GetGUI: UIView;
 
       Public
         Constructor Create(Target:TComponent);
@@ -127,10 +127,10 @@ Begin
     _CurrentWidth := GetWidth();
     _CurrentHeight := GetHeight();
     Application.Instance.AddRectEvent(eventWindowResize, _CurrentWidth, _CurrentHeight, 0, 0);
-
-    If (Not Assigned(Self.GUI)) Then
-      Exit;
   End;
+
+  If Assigned(_GUI) Then
+    _GUI.AutoResize();
 End;
 
 Procedure VCLApplication.AddRenderTarget(V:TERRAVCLViewport);
@@ -165,7 +165,7 @@ Begin
     Result := TForm(_Target).ClientWidth
   Else
   If (_Target Is TPanel) Then
-    Result := TPanel(_Target).Width
+    Result := TPanel(_Target).ClientWidth
   Else
     Result := 0;
 End;
@@ -176,7 +176,7 @@ Begin
     Result := TForm(_Target).ClientHeight
   Else
   If (_Target Is TPanel) Then
-    Result := TPanel(_Target).Height
+    Result := TPanel(_Target).ClientHeight
   Else
     Result := 0;
 End;
@@ -200,7 +200,7 @@ Function VCLApplication.GetGUI: UIView;
 Begin
   If (_GUI = Nil) Then
   Begin
-    _GUI := UIView.Create('gui', UIPixels(GetWidth()), UIPixels(GetHeight()));
+    _GUI := UIView.Create('gui', UIPercent(100), UIPercent(100));
   End;
 
   Result := _GUI;

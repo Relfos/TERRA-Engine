@@ -92,6 +92,7 @@ Type
       Outline:ColorRGBA;
       BlendMode:Integer;
       Next:TERRASprite;
+      Smoothing:Single; // for fonts only
 
       Flip:Boolean;
       Mirror:Boolean;
@@ -108,6 +109,7 @@ Type
       Procedure SetCornerColors(Const A, B, C, D:ColorRGBA);
 
       Procedure MakeQuad(Const Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single = 0.0);
+      Procedure MakeLine(Const StartPos, EndPos:Vector2D; LayerOffset:Single; Const Width:Single);
 
       Procedure SetTexture(Value: TERRATexture); Virtual;
 
@@ -196,7 +198,12 @@ End;
 Procedure TERRASprite.SetTexture(Value:TERRATexture);
 Begin
   If (Not Assigned(Value)) Or (Not Value.IsReady()) Then
-    Value := Engine.Textures.WhiteTexture;
+    Value := Engine.Textures.WhiteTexture
+  Else
+  Begin
+    Value.WrapMode := wrapNothing;
+    Value.Filter := filterLinear;
+  End;
 
   _Texture := Value;
 End;
@@ -235,6 +242,9 @@ Procedure TERRASprite.MakeQuad(Const Pos:Vector2D; LayerOffset:Single; Const Wid
 Var
   U1, V1, U2, V2:Single;
 Begin
+  If (Self._CA.A = 0) And (Self._CB.A = 0) And (Self._CC.A=0) And (Self._CD.A=0) Then
+    Exit;
+
   If _Vertices = Nil Then
     _Vertices := CreateSpriteVertexData(_Offset + 6);
 
@@ -286,6 +296,12 @@ Begin
   Inc(_Offset, 6);
 End;
 
+
+Procedure TERRASprite.MakeLine(Const StartPos, EndPos:Vector2D; LayerOffset:Single; Const Width:Single);
+Begin
+
+End;
+
 Procedure TERRASprite.Clear;
 Begin
   If Assigned(_Vertices) Then
@@ -294,57 +310,6 @@ Begin
   _Offset := 0;
 End;
 
-(*Function QuadSprite.Rebuild():Boolean;
-Var
-  K:Single;
-  Pos:Vector2D;
-  Width, Height:Integer;
-Begin
-  Inherited Rebuild();
-
-  If (Self._A.A=0) And (Self._B.A=0) And (Self._C.A=0) And (Self._D.A=0) Then
-  Begin
-    Result := False;
-    Exit;
-  End;
-
-  Width := Self.Rect.Width;
-  Height := Self.Rect.Height;
-
-  If (Width<=0) Then
-    Width := Trunc((Self.Rect.U2-Self.Rect.U1) * (_Texture.Width / _Texture.Ratio.X));
-  If (Height<=0) Then
-    Height := Trunc((Self.Rect.V2-Self.Rect.V1) * (_Texture.Height / _Texture.Ratio.Y));
-
-  Pos.X := 0;
-  Pos.Y := 0;
-
-  If (Self.Mirror) Then
-  Begin
-    K := Self.Rect.U1;
-    Self.Rect.U1 := Self.Rect.U2;
-    Self.Rect.U2 := K;
-  End;
-
-  If (Self.Texture.Origin = surfaceBottomRight) Then
-    Self.Flip := Not Self.Flip;
-
-  If (Self.Flip) Then
-  Begin
-    K := Self.Rect.V1;
-    Self.Rect.V1 := Self.Rect.V2;
-    Self.Rect.V2 := K;
-  End;
-
-  Self.Rect.U1 := Self.Rect.U1 + Self.ScrollU;
-  Self.Rect.U2 := Self.Rect.U2 + Self.ScrollU;
-  Self.Rect.V1 := Self.Rect.V1 + Self.ScrollV;
-  Self.Rect.V2 := Self.Rect.V2 + Self.Scrollv;
-
-  MakeQuad(Pos, 0.0, Rect.U1, Rect.V1, Rect.U2, Rect.V2, Width, Height, _A, _B, _C, _D, 0.0);
-
-  Result := True;
-End;*)
 
 Procedure TERRASprite.SetUVs(const U1, V1, U2, V2: Single);
 Begin

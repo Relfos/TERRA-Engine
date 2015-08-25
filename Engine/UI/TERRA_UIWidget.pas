@@ -726,6 +726,10 @@ Procedure UIWidget.UpdateRects();
 Begin
   _Size.X := Self.GetDimension(Self.Width, uiDimensionWidth);
   _Size.Y := Self.GetDimension(Self.Height, uiDimensionHeight);
+
+  _ClipRect.Style := clipSomething;
+  _ClipRect.SetArea(0, 0, _Size.X, _Size.Y);
+  _ClipRect.Transform(_Transform);
 End;
 
 Function UIWidget.IsSameFamily(Other:UIWidget): Boolean;
@@ -1640,13 +1644,7 @@ Begin
     _ChildrenList[I].UpdateTransform();
   End;
 
-  Pos := Self.AbsolutePosition;
-  SizeRect := Self.Size;
-  //_ClipRect.Style := clipNothing;
-  _ClipRect.Style := clipSomething;
-  _ClipRect.SetArea(0 {+ LeftBorder}, 0 {+ TopBorder}, SizeRect.X {- (RightBorder + LeftBorder)}, SizeRect.Y {- (TopBorder + BottomBorder)});
-  _ClipRect.Transform(_Transform);
-
+  Self.UpdateRects();
   _TransformChanged := True;
 End;
 
@@ -2045,9 +2043,9 @@ Begin
     End Else
     Begin
       If (Target = uiDimensionWidth) Then
-        Result := (Dim.Value * 0.01) * Application.Instance.Screen.Width
+        Result := (Dim.Value * 0.01) * Application.Instance.Width
       Else
-        Result := (Dim.Value * 0.01) * Application.Instance.Screen.Height;
+        Result := (Dim.Value * 0.01) * Application.Instance.Height;
     End;
   End Else
     Result := Dim.Value;

@@ -193,8 +193,6 @@ Type
     procedure Paths1Click(Sender: TObject);
     procedure NewProjectClick(Sender: TObject);
 
-    Procedure BuildWidgetTreeRecursive(W:UIWidget);
-
   Protected
     _CurrentCursor:Integer;
 
@@ -255,8 +253,7 @@ Begin
   If _GridSize<=1 Then
     Exit;
 
-  //GridColor := ColorGrey(64, 200);
-  GridColor := ColorRed;
+  GridColor := ColorGrey(64, 200);
 
   X := 0;
   I := 0;
@@ -270,8 +267,6 @@ Begin
     DrawLine2D(V, VectorCreate2D(X, 0), VectorCreate2D(X, V.Height),  GridColor, Width);
     X := X + _GridSize;
   End;
-
-  Exit;
 
   Y := 0;
   I := 0;
@@ -305,8 +300,6 @@ Begin
 
   _Grid := UIGrid.Create();
   Self.SetGridSize(20.0);
-
-  VCLApplication(Application.Instance).Viewport.OnRender := Self.RenderViewport2D;
 End;
 
 Procedure UIEditScene.Clear();
@@ -353,11 +346,8 @@ Begin
     W.RelativePosition := VectorCreate2D(X, Y);
   End;
           
-  Node := UIEditForm.AddWidgetNode(W);
-
   UIEditForm.FormResize(UIEditForm.WidgetList);
-
-  UIEditForm.UpdateWidgetTree();
+  UIEditForm.BuildWidgetTree();
 
   Self.SelectWidget(W);
 End;
@@ -369,7 +359,7 @@ Var
   Tex:TERRATexture;
 Begin
   Tex := Engine.Textures['default_image'];
-  Img := UIImage.Create('image', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(300), UIPixels(200));
+  Img := UIImage.Create('image', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(0), UIPixels(0));
   Img.SetTexture(Tex);
   Self.AddWidget(Img, X, Y);
 End;
@@ -467,7 +457,15 @@ End;
 
 Procedure UIEditScene.RenderViewport2D(V: TERRAViewport);
 Begin
+  If (Self._SelectedView = Nil) Or (Self._SelectedView._Target = Nil)  Then
+    Exit;
+
+  If (V<>Self._SelectedView._Target.Viewport) Then
+    Exit;
+
   GraphicsManager.Instance.AddRenderable(V, Self._Grid);
+
+  Self._SelectedView._Target.AutoResize();
   GraphicsManager.Instance.AddRenderable(V, Self._SelectedView._Target);
 End;
 
@@ -540,7 +538,8 @@ Begin
   Self._Owner := Owner;
 
   // Create a new UI
-  _Target := UIView.Create('ui', UIPixels(Application.Instance.Width), UIPixels(Application.Instance.Height));
+  _Target := UIView.Create('ui', UIPercent(100), UIPercent(100));
+  _Target.Viewport.OnRender := _Owner.RenderViewport2D;
 
   // Register the font with the UI
   _Target.DefaultFont := Self._Owner._Font;
@@ -734,6 +733,9 @@ begin
   Begin
     _DragTarget.FinishDrag();
 
+    If (_DropTarget = Nil) Then
+      _DropTarget := _DragTarget.View;
+
     If (_DragTarget.Parent <> _DropTarget) Then
     Begin
       _DragTarget.Parent := _DropTarget;
@@ -902,29 +904,14 @@ Begin
     Self.AddWidgetNode(W.GetChildByIndex(I));
 End;
 
-Procedure TUIEditForm.BuildWidgetTreeRecursive(W:UIWidget);
-Var
-  I:Integer;
-Begin
-  If W = Nil Then
-    Exit;
-    
-  AddWidgetNode(W);
-
-  For I:=0 To Pred(W.ChildrenCount) Do
-    Self.BuildWidgetTreeRecursive(W.GetChildByIndex(I));
-End;
-
 Procedure TUIEditForm.BuildWidgetTree();
 Var
   W:UIWidget;
 Begin
   WidgetList.Items.Clear();
 
-  If _Scene._SelectedView = Nil Then
-    Exit;
-
-  Self.BuildWidgetTreeRecursive(W);
+  If Assigned(_Scene._SelectedView) Then
+    Self.AddWidgetNode(_Scene._SelectedView._Target);
 End;
 
 Procedure TUIEditForm.UpdateWidgetTree;

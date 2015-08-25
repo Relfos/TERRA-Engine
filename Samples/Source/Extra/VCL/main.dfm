@@ -1,8 +1,8 @@
 object Form1: TForm1
   Left = 192
   Top = 125
-  Width = 606
-  Height = 492
+  Width = 616
+  Height = 489
   Caption = 'TERRA Demo'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET

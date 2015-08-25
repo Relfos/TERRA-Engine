@@ -93,26 +93,9 @@ Var
   //Temp, Pos, Center:Vector2D;
 Begin
   If _Sprite = Nil Then
-  Begin
-    _Sprite := Scale9Sprite.Create();
-  End;
-
-  (*Self.GestScrollOffset(OfsX, OfsY);
-  If (OfsX<>0) Or (OfsY<>0) Then
-  Begin
-    Temp := Self.RelativePosition;
-    Self.SetRelativePosition(VectorAdd2D(Temp, VectorCreate2D(OfsX, OfsY)));
-    Self._TransformChanged := True;
-    Self.UpdateTransform();
-
-    Pos := Self.AbsolutePosition;
-    Self.SetRelativePosition(Temp);
-  End Else
-    Pos := Self.AbsolutePosition;*)
-
-(*  If (Pos.X>UIManager.Instance.Width) Or (Pos.Y>UIManager.Instance.Height)
-  Or (Pos.X<-Size.X) Or (Pos.Y<-Size.Y) Then
-    Exit;*)
+    _Sprite := Scale9Sprite.Create()
+  Else
+    _Sprite.Clear();
 
   If Texture=Nil Then
     Texture := Engine.Textures.WhiteTexture;
@@ -129,6 +112,8 @@ Begin
   Scale9Sprite(_Sprite).SetColor(Self.GetColor());
   Scale9Sprite(_Sprite).SetSize(Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)),  Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
   Scale9Sprite(_Sprite).SetUVRect(_U1.Value, _V1.Value, _U2.Value, _V2.Value);
+
+  Scale9Sprite(_Sprite).Update();
 End;
 
 End.
