@@ -533,7 +533,7 @@ Begin
     _SpriteCount := 0;
 
   Dest := Self.AllocSprite();
-  Dest.Shader := View.SpriteRenderer.FontShader;
+  Dest.Flags := Dest.Flags Or Sprite_Font;
   Result := DrawTextToSprite(View, X,Y,Layer, Text, Dest);
   View.SpriteRenderer.QueueSprite(Dest);
 End;

@@ -28,7 +28,7 @@ Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween, TERRA_Renderer,
-  TERRA_Sprite, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_FontRenderer, TERRA_UITransition, TERRA_Viewport, TERRA_Camera,
+  TERRA_Sprite, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_FontRenderer, TERRA_Viewport, TERRA_Camera,
   TERRA_UIDimension, TERRA_UIWidget, TERRA_BoundingBox, TERRA_ClipRect, TERRA_EnumProperty, TERRA_DataSource, TERRA_Hashmap;
 
 Const
@@ -50,8 +50,6 @@ Type
       _Dragger:UIWidget;
       _Modal:UIWidget;
       _Draw:Boolean;
-
-      _Transition:UITransition;
 
       _DefaultFont:TERRAFont;
       _Language:TERRAString;
@@ -117,17 +115,12 @@ Type
 
       Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
 
-      Procedure AfterEffects(View:TERRAViewport);
-
       Procedure SetFocus(Value:UIWidget);
-      Procedure SetTransition(MyTransition:UITransition);
 
       Function GetVirtualKeyboard():UIWidget;
 
       Property Focus:UIWidget Read _Focus Write SetFocus;
       Property Dragger:UIWidget Read _Dragger Write SetDragger;
-
-      Property Transition:UITransition Read _Transition Write SetTransition;
 
       Property VirtualKeyboard:UIWidget Read GetVirtualKeyboard;
 
@@ -223,8 +216,6 @@ Var
 Begin
   Inherited Create(Name, Nil);
 
-  _Transition := Nil;
-
   SetTransform(MatrixIdentity3x3);
 
   Key_Up := TERRA_OS.keyUp;
@@ -261,7 +252,6 @@ End;
 Procedure UIView.Release;
 Begin
   ReleaseObject(_Camera);
-  ReleaseObject(_Transition);
 End;
 
 Procedure UIView.Clear;
@@ -270,7 +260,6 @@ Begin
 
   Self.RemoveAllChildren();
 
-  SetTransition(Nil);
   Log(logError, 'UI', 'UI is now clear.');
 End;
 
@@ -349,7 +338,7 @@ Begin
   Inherited Render(View, Stage, Bucket);
 End;
 
-Procedure UIView.AfterEffects(View:TERRAViewport);
+(*Procedure UIView.AfterEffects(View:TERRAViewport);
 Var
   CurrentTransitionID:Cardinal;
 Begin
@@ -376,7 +365,7 @@ Begin
 
   If Assigned(_Transition) Then
     _Transition.Transform := Self.Transform;
-End;
+End;*)
 
 Function UIView.OnKeyDown(Key:Word):UIWidget;
 Begin

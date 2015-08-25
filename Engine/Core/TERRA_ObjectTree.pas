@@ -354,18 +354,14 @@ Begin
     If Prop = Nil Then
       Exit;
 
-    If Prop.IsValueObject() Then
-    Begin
-      Self.AddString(Prop.Name, Prop.GetBlob());
-    End Else
-    Begin
-      Node := TargetClass.Create(Prop.GetObjectType());
-      Self.AddChild(Node);
 
-      Node.AddString('name', Prop.Name);
+    Node := TargetClass.Create(Prop.GetObjectType());
+    Self.AddChild(Node);
 
-      Node.LoadFromObject(Prop);
-    End;
+    Self.AddString(Prop.Name, Prop.GetBlob());
+    //Node.AddString('name', Prop.Name);
+
+    Node.LoadFromObject(Prop);
 
     Inc(Index);
   Until False;

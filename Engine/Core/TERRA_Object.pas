@@ -20,8 +20,6 @@ Type
       Function GetBlob():TERRAString; Virtual;
       Procedure SetBlob(Const Blob:TERRAString);Virtual;
 
-      Function IsValueObject():Boolean; Virtual;
-
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Virtual;
       Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Virtual;
 
@@ -47,8 +45,6 @@ Type
     Public
       Constructor Create(Const Name:TERRAString; Const InitValue:Boolean);
 
-      Function IsValueObject():Boolean; Override;
-
       Function GetObjectType:TERRAString; Override;
 
       Function GetBlob():TERRAString; Override;
@@ -63,8 +59,6 @@ Type
 
     Public
       Constructor Create(Const Name:TERRAString; Const InitValue:TERRAString);
-
-      Function IsValueObject():Boolean; Override;
 
       Function GetObjectType:TERRAString; Override;
 
@@ -107,8 +101,6 @@ Type
       Procedure UpdateTweens(); Virtual;
 
       Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Virtual; Abstract;
-
-      Function IsValueObject():Boolean; Override;
 
       Function HasPropertyTweens:Boolean; Override;
   End;
@@ -293,12 +285,10 @@ Begin
     If (KeyA = Nil) Or (KeyB = Nil) Then
       Break;
 
-    If (KeyB.IsValueObject()) Then
-    Begin
-      Temp := KeyB.GetBlob();
+    Temp := KeyB.GetBlob();
+    If Temp<>'' Then
       KeyA.SetBlob(Temp);
-    End;
-
+      
     KeyA.CopyProperties(KeyB);
   Until False;
 End;
@@ -393,11 +383,6 @@ Begin
   // do nothing
 End;
 
-Function TERRAObject.IsValueObject: Boolean;
-Begin
-  Result := False;
-End;
-
 { TweenableProperty }
 Function TweenableProperty.HasPropertyTweens:Boolean;
 Begin
@@ -479,11 +464,6 @@ Begin
       Dec(_TweenCount);
     End;
   End;
-End;
-
-Function TweenableProperty.IsValueObject: Boolean;
-Begin
-  Result := True;
 End;
 
 Procedure TweenableProperty.UpdateTweenValue(const TweenID:Integer; const Value:Single);
@@ -716,12 +696,6 @@ Begin
   _Value := StringToBool(Blob);
 End;
 
-
-Function BooleanProperty.IsValueObject: Boolean;
-Begin
-  Result := True;
-End;
-
 { StringProperty }
 Constructor StringProperty.Create(const Name, InitValue: TERRAString);
 Begin
@@ -742,11 +716,6 @@ End;
 Function StringProperty.GetObjectType: TERRAString;
 Begin
   Result := 'string';
-End;
-
-Function StringProperty.IsValueObject: Boolean;
-Begin
-  Result := True;
 End;
 
 { AngleProperty }

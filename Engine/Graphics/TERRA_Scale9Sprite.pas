@@ -170,11 +170,11 @@ Begin
   Begin
     T := Self.GetTile(1, 0);
     Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
-    Self.MakeQuad(VectorCreate2D(_Position.X + CompX, _Position.Y), 0.0, CompSizeX, T.Height);
+    Self.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(_Position.X + CompX, _Position.Y), 0.0, CompSizeX, T.Height);
 
     T := Self.GetTile(1, 2);
     Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
-    Self.MakeQuad(VectorCreate2D(_Position.X + CompX, _Position.Y + BottomY), 0.0, CompSizeX, T.Height);
+    Self.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(_Position.X + CompX, _Position.Y + BottomY), 0.0, CompSizeX, T.Height);
 
     CompX := CompX + CompSizeX;
   End;
@@ -184,30 +184,30 @@ Begin
   Begin
     T := Self.GetTile(0, 1);
     Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
-    Self.MakeQuad(VectorCreate2D(_Position.X, _Position.Y + CompY), 0.0, T.Width, CompSizeY);
+    Self.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(_Position.X, _Position.Y + CompY), 0.0, T.Width, CompSizeY);
 
     T := Self.GetTile(2, 1);
     Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
-    Self.MakeQuad(VectorCreate2D(_Position.X + BottomX, _Position.Y + CompY), 0.0, T.Width, CompSizeY);
+    Self.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(_Position.X + BottomX, _Position.Y + CompY), 0.0, T.Width, CompSizeY);
 
     CompY := CompY + CompSizeY;
   End;
 
   T := Self.GetTile(0, 0);
   Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
-  Self.MakeQuad(VectorCreate2D(_Position.X, _Position.Y), 0.0, T.Width, T.Height);
+  Self.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(_Position.X, _Position.Y), 0.0, T.Width, T.Height);
 
   T := Self.GetTile(2, 0);
   Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
-  Self.MakeQuad(VectorCreate2D(_Position.X + BottomX, _Position.Y), 0.0, T.Width, T.Height);
+  Self.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(_Position.X + BottomX, _Position.Y), 0.0, T.Width, T.Height);
 
   T := Self.GetTile(0, 2);
   Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
-  Self.MakeQuad(VectorCreate2D(_Position.X, _Position.Y + BottomY), 0.0, T.Width, T.Height);
+  Self.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(_Position.X, _Position.Y + BottomY), 0.0, T.Width, T.Height);
 
   T := Self.GetTile(2, 2);
   Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
-  Self.MakeQuad(VectorCreate2D(_Position.X + BottomX, _Position.Y + BottomY), 0.0, T.Width, T.Height);
+  Self.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(_Position.X + BottomX, _Position.Y + BottomY), 0.0, T.Width, T.Height);
 
   CompY := Self.GetTile(0, 0).Height;
   For J:=1 To CountY Do
@@ -218,7 +218,7 @@ Begin
     For I:=1 To CountX Do
     Begin
       Self.SetUVs(T.U1, T.V1, T.U2, T.V2);
-      Self.MakeQuad( VectorCreate2D(_Position.X + CompX, _Position.Y + CompY), 0.0, CompSizeX, CompSizeY);
+      Self.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(_Position.X + CompX, _Position.Y + CompY), 0.0, CompSizeX, CompSizeY);
       CompX := CompX + CompSizeX;
     End;
 

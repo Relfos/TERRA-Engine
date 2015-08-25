@@ -107,7 +107,7 @@ Begin
   _Sprite.Mirror := Self.Mirror;
   _Sprite.SetUVs(_U1.Value, _V1.Value, _U2.Value, _V2.Value);
   _Sprite.SetColor(Self.Color);
-  _Sprite.MakeQuad(VectorCreate2D(0,0), 0.0, Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)), Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
+  _Sprite.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(0,0), 0.0, Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)), Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
 
   _Sprite.ClipRect := Self.ClipRect;
   _Sprite.SetTransform(_Transform);

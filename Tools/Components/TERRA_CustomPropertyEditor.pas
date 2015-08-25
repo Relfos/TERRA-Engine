@@ -145,6 +145,8 @@ type
       procedure SetMarginColor(const Value: TColor);
       procedure SetEditColor(const Value: TColor);
 
+      Procedure HideRecursive(Prop:TERRAObject; Value:Boolean);
+
     protected
 
       Procedure InsertRow(Parent, Prop:TERRAObject);
@@ -287,11 +289,8 @@ Begin
       Self.InsertRow(Parent, Prop);
     End;*)
 
-    If Not Prop.IsValueObject() Then
-    Begin
-      AddPropertiesFromObject(Prop, Prop);
-    End Else
-      Self.InsertRow(Parent, Prop);
+    Self.InsertRow(Parent, Prop);
+    AddPropertiesFromObject(Prop, Prop);
 
     Inc(Index);
   Until False;
@@ -498,6 +497,32 @@ begin
   end;
 end;
 
+procedure TCustomPropertyEditor.HideRecursive(Prop: TERRAObject; Value:Boolean);
+Var
+  I:Integer;
+  SubProp:TERRAObject;
+Begin
+  For I:=0 To Pred(_CellCount) Do
+  If (_Cells[I]._Parent = Prop) Then
+  Begin
+    _Cells[I].SetVisible(Value);
+  End;
+
+  If Value Then
+    Exit;
+
+  I := 0;
+  Repeat
+    SubProp := Prop.GetPropertyByIndex(I);
+    If (SubProp = Nil) Then
+      Break;
+
+    Self.HideRecursive(SubProp, Value);
+
+    Inc(I);
+  Until False;
+End;
+
 { TPropertyCell }
 Constructor TPropertyCell.Create(Owner:TCustomPropertyEditor; Parent, Prop: TERRAObject);
 Var
@@ -522,7 +547,7 @@ Begin
   _Editor.Parent := _Owner;
   // Chk.Anchors :=  [akLeft, akTop, akRight, akBottom];
 
-  If (Not _Prop.IsValueObject()) Then
+  If (Assigned(_Prop.GetPropertyByIndex(1))) Then
   Begin
     _Expand := TPanel.Create(_Owner);
     _Expand.Parent := _Owner;
@@ -554,11 +579,7 @@ Begin
   Else
     _Expand.Caption := '+';
 
-  For I:=0 To Pred(_Owner._CellCount) Do
-  If (_Owner._Cells[I]._Parent = Self._Prop) Then
-  Begin
-    _Owner._Cells[I].SetVisible(Value);
-  End;
+  _Owner.HideRecursive(Self._Prop, Value);
 
   _Owner.RequestUpdate();
   _Owner.Resize();

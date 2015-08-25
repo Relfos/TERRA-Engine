@@ -117,6 +117,7 @@ End;
 { FontStyleProperty }
 Constructor FontStyleProperty.Create(const Name: TERRAString);
 Begin
+  _ObjectName := Name;
   _Outline := ColorProperty.Create('outline', ColorBlack);
   _Size := IntegerProperty.Create('size', 30);
   _Family := FontProperty.Create('family', Engine.Fonts['droid']);

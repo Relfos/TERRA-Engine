@@ -23,8 +23,6 @@ Type
     Public
       Constructor Create(Const Name:TERRAString; Const InitValue:UIDimension);
 
-      Function IsValueObject():Boolean; Override;
-
       Function GetObjectType:TERRAString; Override;
 
       Function GetBlob():TERRAString; Override;
@@ -74,11 +72,6 @@ End;
 Function DimensionProperty.GetObjectType: TERRAString;
 Begin
   Result := 'dimension';
-End;
-
-Function DimensionProperty.IsValueObject: Boolean;
-Begin
-  Result := True;
 End;
 
 

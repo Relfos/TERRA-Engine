@@ -30,6 +30,9 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Application, TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ClipRect,
   TERRA_VertexFormat, TERRA_Sprite;
 
+Const
+  MaxSpriteShaders = 64;
+
 Type
   TERRASpriteRenderer = Class;
 
@@ -38,6 +41,9 @@ Type
       _First:TERRASprite;
       _SpriteCount:Integer;
       _Texture:TERRATexture;
+
+      _DissolveTexture:TERRATexture;
+      _DissolveValue:Single;
 
       _Manager:TERRASpriteRenderer;
 
@@ -48,12 +54,12 @@ Type
       _BlendMode:Integer;
       _Layer:Single;
       _Closed:Boolean;
-      _Shader:ShaderInterface;
       _Saturation:Single;
       _Glow:ColorRGBA;
       _Outline:ColorRGBA;
       _Smoothing:Single;
 
+      _ShaderID:Cardinal;
       _Vertices:VertexData;
 
       _Indices:Array Of Word;
@@ -82,19 +88,6 @@ Type
       _Batches:Array Of SpriteBatch;
       _BatchCount:Integer;
 
-      _CurrentShader:ShaderInterface;
-
-      _SpriteShaderWithoutGrading:ShaderInterface;
-      _SpriteShaderSolid:ShaderInterface;
-      {$IFNDEF DISABLECOLORGRADING}
-      _SpriteShaderWithGrading:ShaderInterface;
-      {$ENDIF}
-
-      _FontShader:ShaderInterface;
-
-      Procedure SetShader(Const ProjectionMatrix:Matrix4x4; Shader:ShaderInterface);
-
-
    Public
       Constructor Create();
       Procedure Release; Override;
@@ -108,8 +101,6 @@ Type
 
       { Fetches a temporary sprite that will be disposed in the next frame }
       Function FetchSprite():TERRASprite; //Const Layer:Single; SpriteTexture:TERRATexture; ColorTable:TERRATexture = Nil; BlendMode:Integer = blendBlend;  Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; Shader:ShaderInterface = Nil):TERRASprite;
-
-      Property FontShader:ShaderInterface Read _FontShader;
   End;
 
 
@@ -119,6 +110,10 @@ Uses TERRA_ResourceManager, TERRA_InputManager, TERRA_GraphicsManager, TERRA_Log
 
 Const
   BatchSize = 128;
+
+Var
+  _SpriteShaders:Array[0..Pred(MaxSpriteShaders)] Of ShaderInterface;
+
 
 { TERRASpriteRenderer }
 Constructor TERRASpriteRenderer.Create();
@@ -149,13 +144,8 @@ Begin
     ReleaseObject(_Batches[I]);
   _BatchCount := 0;
 
-  ReleaseObject(_FontShader);
-  ReleaseObject(_CurrentShader);
-  ReleaseObject(_SpriteShaderWithoutGrading);
-  ReleaseObject(_SpriteShaderSolid);
-  {$IFNDEF DISABLECOLORGRADING}
-  ReleaseObject(_SpriteShaderWithGrading);
-  {$ENDIF}
+  For I:=0 To Pred(MaxSpriteShaders) Do
+    ReleaseObject(_SpriteShaders[I]);
 End;
 
 //Function TERRASpriteRenderer.DrawSprite(Const Layer:Single; SpriteTexture:TERRATexture; ColorTable:TERRATexture; BlendMode:Integer;  Saturation:Single; Filter:TextureFilterMode; Shader:ShaderInterface):QuadSprite;
@@ -187,7 +177,6 @@ Begin
   Result.SetTexture(Nil);
   Result.ClipRect.Style := clipNothing;
   Result.Saturation := 1.0;
-  Result.Shader := Nil;
   Result.BlendMode := blendBlend;
   Result.Layer := 50.0;
   Result.Outline := ColorNull;
@@ -241,9 +230,9 @@ Begin
 
   N := -1;
   For I:=0 To Pred(_BatchCount) Do
-  If ((_Batches[I]._Texture = S.Texture) And (_Batches[I]._BlendMode = S.BlendMode)
+  If ((_Batches[I]._Texture = S.Texture) And (_Batches[I]._DissolveTexture = S.DissolveTexture) And (_Batches[I]._DissolveValue = S.DissolveValue) And (_Batches[I]._BlendMode = S.BlendMode)
   {$IFNDEF DISABLECOLORGRADING}And (_Batches[I]._ColorTable = S.ColorTable){$ENDIF}
-  And (_Batches[I]._Shader = S.Shader)
+  And (_Batches[I]._ShaderID = S.Flags)
   And ( (HasShaders) Or (_Batches[I]._Saturation = S.Saturation))
   And (Cardinal(_Batches[I]._Outline) = Cardinal(S.Outline))
   And (_Batches[I]._SpriteCount<BatchSize))
@@ -254,7 +243,7 @@ Begin
     ResetBatch := False;
     Break;
   End;
-  
+
   If (N<0) Then
   Begin
     For I:=0 To Pred(_BatchCount) Do
@@ -277,6 +266,8 @@ Begin
     _Batches[N]._SpriteCount := 0;
     _Batches[N]._BlendMode := S.BlendMode;
     _Batches[N]._Texture := S.Texture;
+    _Batches[N]._DissolveTexture  := S.DissolveTexture;
+    _Batches[N]._DissolveValue  := S.DissolveValue;
     _Batches[N]._Closed := False;
     _Batches[N]._Layer := TargetLayer;
     {$IFNDEF DISABLECOLORGRADING}
@@ -285,7 +276,7 @@ Begin
     _Batches[N]._Saturation := S.Saturation;
     _Batches[N]._Glow := S.Glow;
     _Batches[N]._Smoothing := S.Smoothing;
-    _Batches[N]._Shader := S.Shader;
+    _Batches[N]._ShaderID := S.Flags;
     _Batches[N]._Outline := S.Outline;
     _Batches[N]._First := Nil;
     _Batches[N]._Manager := Self;
@@ -300,7 +291,8 @@ Var
   Graphics:GraphicsManager;
 Begin
   Graphics := GraphicsManager.Instance;
-  If (_SpriteShaderWithoutGrading = Nil) Then
+
+(*  If (_SpriteShaderWithoutGrading = Nil) Then
   Begin
     _SpriteShaderWithoutGrading := Graphics.Renderer.CreateShader();
     _SpriteShaderWithoutGrading.Generate('Sprite', GetShader_Sprite(False, False, False));
@@ -325,7 +317,7 @@ Begin
   Begin
     _FontShader := Graphics.Renderer.CreateShader();
     _FontShader.Generate('Font', GetShader_Sprite(False, True, False));
-  End;
+  End;*)
 
   For I:=0 To Pred(_BatchCount) Do
   Begin
@@ -356,8 +348,6 @@ Var
   M:Matrix4x4;
   Graphics:GraphicsManager;
 Begin
-  {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'Render');{$ENDIF}
-
   Graphics := GraphicsManager.Instance;
   Graphics.Renderer.SetBlendMode(blendNone);
 
@@ -389,8 +379,6 @@ Begin
   BIBI
   *)
 
-
-  _CurrentShader := Nil;
 
   Total := 0;
   For I:=0 To Pred(_BatchCount) Do
@@ -430,40 +418,8 @@ Begin
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
   End;*)
 
-  _CurrentShader := Nil;
-
   For I:=0 To Pred(_BatchCount) Do
     _Batches[I]._Ready := (_Batches[I]._SpriteCount>0);
-
-  {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
-End;
-
-Procedure TERRASpriteRenderer.SetShader(Const ProjectionMatrix:Matrix4x4; Shader:ShaderInterface);
-Var
-  Graphics:GraphicsManager;
-Begin
-  If (_CurrentShader = Shader) Then
-    Exit;
-
-  {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'SetShader');{$ENDIF}
-
-  Graphics := GraphicsManager.Instance;
-
-  _CurrentShader := Shader;
-
-  {If Not MyShader.IsReady() Then BIBI
-    Exit;}
-
-  Graphics.Renderer.BindShader(Shader);
-
-  Shader.SetIntegerUniform('texture', 0);
-  //Graphics.Renderer.SetModelMatrix(CameraMatrix);
-  Graphics.Renderer.SetProjectionMatrix(ProjectionMatrix);
-
-  {If (MyShader = _FontShader) Then
-    IntToString(2);}
-
-  {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 
 { SpriteBatch }
@@ -605,9 +561,10 @@ End;
 Procedure SpriteBatch.Render(Const ProjectionMatrix:Matrix4x4; Stage:RendererStage);
 Var
   Graphics:GraphicsManager;
+  TargetShader:ShaderInterface;
 Begin
   _Ready := False;
-  
+
   If (_SpriteCount<=0) Then
   Begin
     _First := Nil;
@@ -624,30 +581,41 @@ Begin
   If (_Saturation<1.0) Then
     Graphics.Renderer.SetAttributeSource(TERRA_SATURATION_ATTRIBUTE, typeFloat, @_Vertices[0].Saturation);}
 
-  If (Assigned(Self._Shader)) Then
+
+  If (_SpriteShaders[Self._ShaderID] = Nil) Then
   Begin
-    _Manager.SetShader(ProjectionMatrix, Self._Shader);
-    _Manager._FontShader.SetColorUniform('outlineColor', _Outline);
-    _Manager._FontShader.SetVec2Uniform('shadowOffset', VectorCreate2D(0.1, 0.1));
-    _Manager._FontShader.SetFloatUniform('smoothing', Self._Smoothing); //);
+    _SpriteShaders[Self._ShaderID] := Graphics.Renderer.CreateShader();
+    _SpriteShaders[Self._ShaderID].Generate('sprite_'+CardinalToString(Self._ShaderID), GetShader_Sprite(_ShaderID));
+  End;
+
+  TargetShader := _SpriteShaders[Self._ShaderID];
+  Graphics.Renderer.BindShader(TargetShader);
+
+  //Graphics.Renderer.SetModelMatrix(CameraMatrix);
+  Graphics.Renderer.SetProjectionMatrix(ProjectionMatrix);
+
+  If (_ShaderID And Sprite_SolidColor = 0) Then
+  Begin
+    TargetShader.SetIntegerUniform('texture', 0);
+    _Texture.Bind(0);
+  End;
+
+  If (_ShaderID And Sprite_Dissolve<>0) Then
+  Begin
+    TargetShader.SetIntegerUniform('dissolve_texture', 1);
+    _DissolveTexture.WrapMode := wrapNothing;
+    _DissolveTexture.Filter := filterLinear;
+    _DissolveTexture.Bind(1);
+    TargetShader.SetFloatUniform('dissolve_value', _DissolveValue);
+  End;
+
+  If (_ShaderID And Sprite_Font<>0) Then
+  Begin
+    TargetShader.SetColorUniform('outlineColor', _Outline);
+    TargetShader.SetVec2Uniform('shadowOffset', VectorCreate2D(0.1, 0.1));
+    TargetShader.SetFloatUniform('smoothing', Self._Smoothing); //);
   End Else
-  If (Stage<>renderStageDiffuse) Then
-    _Manager.SetShader( ProjectionMatrix, _Manager._SpriteShaderSolid)
-  Else
   {$IFNDEF DISABLECOLORGRADING}
-  If (Assigned(Self._ColorTable)) Then
-    _Manager.SetShader(ProjectionMatrix, _Manager._SpriteShaderWithGrading)
-  Else
-  {$ENDIF}
-    _Manager.SetShader(ProjectionMatrix, _Manager._SpriteShaderWithoutGrading);
-
-//  _Texture := TextureManager.Instance.WhiteTexture;
-
-  If Not _Texture.Bind(0) Then
-    Exit;
-
-  {$IFNDEF DISABLECOLORGRADING}
-  If (Self._Shader = Nil) Then
     ColorTableBind(_ColorTable, 1);
   {$ENDIF}
 

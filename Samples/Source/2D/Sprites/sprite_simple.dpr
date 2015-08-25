@@ -75,7 +75,7 @@ Begin
   S.SetTexture(Tex);
   S.Translate(620, 60);
   S.Flip := True;
-  S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+  S.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
   View.SpriteRenderer.QueueSprite(S);
 
   // An alpha blended sprite
@@ -84,7 +84,7 @@ Begin
   S.SetTexture(Tex);
   S.Translate(700, 60);
   S.SetColor(ColorCreate(255, 255, 255, 128));
-  S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+  S.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
   View.SpriteRenderer.QueueSprite(S);
 
   // Create a line of sprites
@@ -96,7 +96,7 @@ Begin
     S.Translate(16 + Tex.Width * I, 10);
     S.Mirror := Odd(I);    // Each odd sprite in line will be reflected
 
-    S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+    S.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
     View.SpriteRenderer.QueueSprite(S);
   End;
 
@@ -108,15 +108,12 @@ Begin
     S.SetTexture(Tex);
     // the order of transformations matter, apply rotation first, then scale, tehn translation always as the last step
     S.Rotate(RAD * (I*360 Div 8));
-    // by default all transformations apply to the top left corner of a sprite
-    // using MatrixTransformAroundPoint2D() allows to make transformations around any custom anchor point
-    S.SetTransform(MatrixTransformAroundPoint2D(VectorCreate2D(Tex.Width * 0.5, Tex.Height * 0.5), S.Transform));
     S.Scale(1.5);
-
     // after we rotate and scale, now we can finally apply a translation
-    S.Translate(16 + Tex.Width * I * 1.5, 300);
+    S.Translate(64 + Tex.Width * I * 1.5, 300);
 
-    S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+    // notice how spriteAnchor_Center is used, to make sure the rotation is applyed to the center 
+    S.AddQuad(spriteAnchor_Center, VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
     View.SpriteRenderer.QueueSprite(S);
   End;
 
@@ -126,7 +123,7 @@ Begin
   S.SetTexture(Tex);
   S.Scale(2.0);    // Double size
   S.Translate(10,120);
-  S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+  S.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
   View.SpriteRenderer.QueueSprite(S);
 
   S := View.SpriteRenderer.FetchSprite();
@@ -134,7 +131,7 @@ Begin
   S.SetTexture(Tex);
   S.Scale(1.5);    // 1.5 Size
   S.Translate(110,130);
-  S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+  S.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
   View.SpriteRenderer.QueueSprite(S);
 
   S := View.SpriteRenderer.FetchSprite();
@@ -142,7 +139,7 @@ Begin
   S.SetTexture(Tex);
   S.Scale(0.5);    // Half size
   S.Translate(180,145);
-  S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+  S.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
   View.SpriteRenderer.QueueSprite(S);
 
   // Some colored sprites
@@ -161,7 +158,7 @@ Begin
     4:  S.SetColor(ColorCreate(255,255,128)); // Yellow tint
     End;
 
-    S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+    S.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
     View.SpriteRenderer.QueueSprite(S);
   End;
 
@@ -171,10 +168,9 @@ Begin
   S.Layer := 50;
   S.SetTexture(Tex);
   S.Rotate(Angle);
-  S.SetTransform(MatrixTransformAroundPoint2D(VectorCreate2D(Tex.Width * 0.5, Tex.Height * 0.5), S.Transform));
   S.Scale(2);
   S.Translate(300, 400);
-  S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+  S.AddQuad(spriteAnchor_Center, VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
   View.SpriteRenderer.QueueSprite(S);
 End;
 

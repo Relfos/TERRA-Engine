@@ -54,7 +54,7 @@ Type
 
 
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Sort, TERRA_TextureManager,
+Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Sort, TERRA_TextureManager, TERRA_Sprite,
   TERRA_Log, TERRA_FileUtils, TERRA_MemoryStream, TERRA_ImageDrawing, TERRA_Image, TERRA_Collections,
   TERRA_GraphicsManager, TERRA_FileManager, TERRA_Packer, TERRA_DistanceField, TERRA_TextureAtlas, TERRA_Texture;
 
@@ -167,7 +167,7 @@ Begin
   Else
     Skew := 0.0;
 
-  DestSprite.Shader := View.SpriteRenderer.FontShader;
+  DestSprite.Flags := DestSprite.Flags Or Sprite_Font;
   DestSprite.Layer := Z;
   DestSprite.Texture := Tex;
   DestSprite.SetTransform(Transform);

@@ -37,8 +37,6 @@ Type
 
       Function GetObjectType:TERRAString; Override;
 
-      Function IsValueObject():Boolean; Override;
-
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
 
@@ -72,11 +70,6 @@ End;
 Function EnumProperty.GetObjectType: TERRAString;
 Begin
   Result := 'enum';
-End;
-
-Function EnumProperty.IsValueObject: Boolean;
-Begin
-  Result := True;
 End;
 
 

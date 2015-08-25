@@ -188,8 +188,6 @@ Type
     Public
       Constructor Create(Const Name:TERRAString; InitValue:TERRAFont);
 
-      Function IsValueObject():Boolean; Override;
-
       Function GetObjectType:TERRAString; Override;
 
       Function GetBlob():TERRAString; Override;
@@ -778,11 +776,6 @@ Begin
   Result := 'font';
 End;
 
-Function FontProperty.IsValueObject: Boolean;
-Begin
-  Result := True;
-End;
-
 { FontGlyphFactory }
 Procedure FontGlyphFactory.LoadFromFile(const FileName: TERRAString);
 Var
@@ -812,9 +805,10 @@ Begin
   Self.Smoothing := (2.5 / Scale)/16.0;
 
   //0.25 / (Spread * Scale)
+  Self.Flags := Self.Flags Or Sprite_Font;
   Self.SetUVs(Item.U1, Item.V1, Item.U2, Item.V2);
   Self.SetCornerColors(A, B, C, D);
-  Self.MakeQuad(VectorCreate2D(X + Glyph.XOfs * FontInvScale * _Scale, Y +  + Glyph.YOfs * FontInvScale * _Scale), 0.0, Width *FontInvScale, Height* FontInvScale, Skew);
+  Self.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(X + Glyph.XOfs * FontInvScale * _Scale, Y +  + Glyph.YOfs * FontInvScale * _Scale), 0.0, Width *FontInvScale, Height* FontInvScale, Skew);
 End;
 
 

@@ -347,11 +347,13 @@ Begin
     Y := Trunc(UISnap(Y - W.Parent.AbsolutePosition.Y));
     W.RelativePosition := VectorCreate2D(X, Y);
   End;
-          
+
   UIEditForm.FormResize(UIEditForm.WidgetList);
   UIEditForm.BuildWidgetTree();
 
   Self.SelectWidget(W);
+
+  UIEditForm.FormResize(Nil);
 End;
 
 

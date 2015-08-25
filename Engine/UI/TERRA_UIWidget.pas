@@ -111,8 +111,6 @@ Type
     Public
       Constructor Create(Const Name:TERRAString; Controller:UIController);
 
-      Function IsValueObject():Boolean; Override;
-
       Function GetObjectType:TERRAString; Override;
 
       Function GetBlob():TERRAString; Override;
@@ -127,6 +125,7 @@ Type
       _Width:DimensionProperty;
       _Height:DimensionProperty;
 			_Position:Vector2DProperty;
+      _Margin:DimensionProperty;
       _Pivot:Vector2DProperty;
       _Layer:FloatProperty;
       _Align:EnumProperty;
@@ -219,7 +218,7 @@ Type
 
       Procedure UpdateSprite(View:TERRAViewport); Virtual;
 
-      Procedure InitProperties();
+      Procedure InitProperties(Const Name:TERRAString);
 
       Function GetRenderBucket: Cardinal; Override;
 
@@ -519,7 +518,7 @@ Begin
 
   //_Component := UIComponentImage.Create();
 
-  Self.InitProperties();
+  Self.InitProperties(Name);
 
   SetVisible(True);
 
@@ -563,7 +562,7 @@ Begin
   ReleaseObject(_Sprite);
 End;
 
-Procedure UIWidget.InitProperties;
+Procedure UIWidget.InitProperties(Const Name:TERRAString);
 Var
   I:WidgetEventType;
 Begin
@@ -571,6 +570,7 @@ Begin
   _Height := DimensionProperty(Self.AddProperty(DimensionProperty.Create('height', UIPixels(0)), False));
   //_Visible := BooleanProperty(Self.AddProperty(BooleanProperty.Create('visible', True), False));
   _Position := Vector2DProperty(Self.AddProperty(Vector2DProperty.Create('position', VectorCreate2D(0, 0)), False));
+  _Margin := DimensionProperty(Self.AddProperty(DimensionProperty.Create('margin', UIPixels(0)), False));
   _Pivot := Vector2DProperty(Self.AddProperty(Vector2DProperty.Create('pivot', VectorCreate2D(0.5, 0.5)), False));
   _Layer := FloatProperty(Self.AddProperty(FloatProperty.Create('layer', 1.0), False));
   _Color := ColorProperty(Self.AddProperty(ColorProperty.Create('color', ColorWhite), False));
@@ -2579,11 +2579,6 @@ End;
 Function UIControllerProperty.GetObjectType: TERRAString;
 Begin
   Result := 'uicontroller';
-End;
-
-Function UIControllerProperty.IsValueObject: Boolean;
-Begin
-  Result := True;
 End;
 
 Function UIControllerProperty.GetBlob: TERRAString;

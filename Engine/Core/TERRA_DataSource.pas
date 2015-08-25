@@ -13,8 +13,6 @@ Type
     Public
       Constructor Create(Const Name:TERRAString; Const InitValue:TERRAString);
 
-      Function IsValueObject():Boolean; Override;
-
       Function GetObjectType:TERRAString; Override;
 
       Function GetBlob():TERRAString; Override;
@@ -70,11 +68,6 @@ End;
 Function DataSourceProperty.GetObjectType: TERRAString;
 Begin
   Result := 'datasource';
-End;
-
-Function DataSourceProperty.IsValueObject: Boolean;
-Begin
-  Result := True;
 End;
 
 { DataSourceManager }

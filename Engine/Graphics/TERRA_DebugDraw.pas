@@ -100,7 +100,7 @@ Begin
   S.SetTexture(Tex);
   S.Layer := Layer;
   S.SetColor(LineColor);
-  S.MakeLine(A, B, 0.0, LineWidth);
+  S.AddLine(A, B, 0.0, LineWidth);
   View.SpriteRenderer.QueueSprite(S);
 End;
 
@@ -125,7 +125,7 @@ Begin
   S.SetTexture(Tex);
   S.Layer := Layer;
   S.SetColor(FillColor);
-  S.MakeQuad(VectorCreate2D(0,0), 0.0, Trunc(MaxX-MinX), Trunc(MaxY-MinY)); // colors
+  S.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(0,0), 0.0, Trunc(MaxX-MinX), Trunc(MaxY-MinY)); // colors
   S.Translate(MinX, MinY);
 
 //  S.ClipRect := Clip;
