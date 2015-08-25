@@ -100,10 +100,7 @@ Begin
   S.SetTexture(Tex);
   S.Layer := Layer;
   S.SetColor(LineColor);
-  S.MakeQuad(VectorCreate2D(0,0), 0.0, Trunc(A.Distance(B)), Trunc(LineWidth)); // colors
-
-  S.Rotate(Angle);
-  S.Translate(Trunc(A.X), Trunc(A.Y));
+  S.MakeLine(A, B, 0.0, LineWidth);
   View.SpriteRenderer.QueueSprite(S);
 End;
 

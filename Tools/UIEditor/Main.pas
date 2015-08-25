@@ -1,3 +1,4 @@
+
 unit main;
 
 interface
@@ -260,9 +261,10 @@ Begin
   While X<V.Width Do
   Begin
     Inc(I);
-    Width := 1.0;
     If (I Mod 5 = 0) Then
-      Width := Width * 2;
+      Width := 2.0
+    Else
+      Width := 1.0;
 
     DrawLine2D(V, VectorCreate2D(X, 0), VectorCreate2D(X, V.Height),  GridColor, Width);
     X := X + _GridSize;

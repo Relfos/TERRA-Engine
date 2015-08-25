@@ -55,7 +55,9 @@ Type
       _Smoothing:Single;
 
       _Vertices:VertexData;
-      _RenderCount:Integer;
+
+      _Indices:Array Of Word;
+      _IndexCount:Integer;
 
       _Ready:Boolean;
 
@@ -607,7 +609,7 @@ Begin
 
   Total := 0;
   For I:=0 To Pred(_BatchCount) Do
-  If (Assigned(_Batches[I]._First)) Then
+  If (Assigned(_Batches[I]._First)) And (_Batches[I]._Ready) Then
     Inc(Total);
 
   Count := 0;
@@ -619,7 +621,6 @@ Begin
     For I:=0 To Pred(_BatchCount) Do
     If (_Batches[I]._Ready) And (_Batches[I]._Layer<Min) Then
     Begin
-      _Batches[I]._Ready := False;
       Min := _Batches[I]._Layer;
       Index := I;
     End;
@@ -685,6 +686,7 @@ Constructor SpriteBatch.Create(Manager: TERRASpriteRenderer);
 Begin
   _Manager := Manager;
   _Vertices := CreateSpriteVertexData(6 * BatchSize);
+  SetLength(_Indices, 6);
 End;
 
 Procedure SpriteBatch.AddSprite(P:TERRASprite);
@@ -705,7 +707,7 @@ Procedure SpriteBatch.Clear();
 Begin
   _Closed := False;
   _SpriteCount := 0;
-  _RenderCount := 0;
+  _IndexCount := 0;
   _Texture := Nil;
   _First := Nil;
 End;
@@ -721,7 +723,6 @@ Var
   C:ColorRGBA;
   InIt, OutIt:VertexIterator;
   Src, Dest:SpriteVertex;
-  Ofs:Integer;
   FullyClipped:Boolean;
   Ratio:Single;
   Pos:Vector3D;
@@ -738,7 +739,7 @@ Begin
 
   OutIt := _Vertices.GetIteratorForClass(SpriteVertex);
 
-  Ofs := 0;
+  Self._IndexCount := 0;
   S := _First;
   While Assigned(S) Do
   Begin
@@ -758,7 +759,7 @@ Begin
     MinY := 9999;
     MaxY := -9999;
 
-    If Not OutIt.Seek(Ofs) Then
+    If Not OutIt.Seek(Self._IndexCount) Then
       Break;
 
     InIt := S.Vertices.GetIteratorForClass(SpriteVertex);
@@ -791,18 +792,28 @@ Begin
     End;
     ReleaseObject(InIt);
 
+
+    While (Length(_Indices)< Self._IndexCount + S.IndexCount) Do
+    Begin
+      SetLength(_Indices, Length(_Indices) * 2);
+    End;
+
+    For I:=0 To Pred(S.IndexCount) Do
+      Self._Indices[Self._IndexCount + I] := S.GetIndex(I) + Self._IndexCount;
+
+
+
     (*FullyClipped := (S.ClipRect.Style = clipSomething) And ((Abs(MinX-MaxX)<Epsilon) Or (Abs(MinY-MaxY)<Epsilon));
 
     If Not FullyClipped Then
       Inc(Ofs, S.Vertices.Count);*)
 
-    Inc(Ofs, S.Vertices.Count);
+    Inc(Self._IndexCount, S.IndexCount);
 
     S := S.Next;
   End;
   ReleaseObject(OutIt);
 
-  _RenderCount := Ofs;
   _Ready := True;
 End;
 
@@ -810,6 +821,8 @@ Procedure SpriteBatch.Render(Const ProjectionMatrix:Matrix4x4; Stage:RendererSta
 Var
   Graphics:GraphicsManager;
 Begin
+  _Ready := False;
+  
   If (_SpriteCount<=0) Then
   Begin
     _First := Nil;
@@ -857,7 +870,7 @@ Begin
 //  Ratio := UIManager.Instance.Ratio;
 
   Graphics.Renderer.SetVertexSource(_Vertices);
-  Graphics.Renderer.DrawSource(renderTriangles, _RenderCount);
+  Graphics.Renderer.DrawIndexedSource(renderTriangles, _IndexCount, @_Indices[0]);
 
   (*
   If (Not Graphics.Renderer.Features.Shaders.Avaliable) Then

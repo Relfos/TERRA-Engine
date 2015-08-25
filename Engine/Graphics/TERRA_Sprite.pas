@@ -77,7 +77,8 @@ Type
 
       _Vertices:VertexData;
 
-      _Offset:Integer;
+      _VertexOffset:Integer;
+      _IndexOffset:Integer;
 
       _Glow:ColorRGBA;
 
@@ -85,6 +86,8 @@ Type
       _U2, _V2:Single;
 
       _CA, _CB, _CC, _CD:ColorRGBA;
+
+      _Indices:Array Of Word;
 
     Public
       Layer:Single;
@@ -109,11 +112,13 @@ Type
       Procedure SetCornerColors(Const A, B, C, D:ColorRGBA);
 
       Procedure MakeQuad(Const Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single = 0.0);
-      Procedure MakeLine(Const StartPos, EndPos:Vector2D; LayerOffset:Single; Const Width:Single);
+      Procedure MakeLine(Const StartPos, EndPos:Vector2D; LayerOffset:Single; Width:Single);
 
       Procedure SetTexture(Value: TERRATexture); Virtual;
 
       Procedure SetTransform(Const Mat:Matrix3x3);
+
+      Function GetIndex(Index:Integer):Word;
 
       Procedure ConcatTransform(Const Mat:Matrix3x3);
       Procedure Translate(Const X,Y:Single);
@@ -129,6 +134,7 @@ Type
       Property ColorTable:TERRATexture Read _ColorTable Write _ColorTable;
 
       Property Vertices:VertexData Read _Vertices;
+      Property IndexCount:Integer Read _IndexOffset;
 
       Property Transform:Matrix3x3 Read _Transform Write SetTransform;
   End;
@@ -246,10 +252,13 @@ Begin
     Exit;
 
   If _Vertices = Nil Then
-    _Vertices := CreateSpriteVertexData(_Offset + 6);
+    _Vertices := CreateSpriteVertexData(_VertexOffset + 4)
+  Else
+  If (_VertexOffset >= _Vertices.Count) Then
+    _Vertices.Resize(_VertexOffset + 4);
 
-  If (_Offset >= _Vertices.Count) Then
-    _Vertices.Resize(_Offset + 6);
+  If (Length(_Indices)< _IndexOffset + 6) Then
+    SetLength(_Indices, _IndexOffset + 6);
 
   LayerOffset := LayerOffset + Self.Layer;
 
@@ -273,33 +282,110 @@ Begin
     V2 := _V2;
   End;
 
-  _Vertices.SetColor(_Offset + 0, vertexColor, _CC);
-  _Vertices.SetColor(_Offset + 1, vertexColor, _CD);
-  _Vertices.SetColor(_Offset + 2, vertexColor, _CB);
-  _Vertices.SetColor(_Offset + 4, vertexColor, _CA);
+  _Vertices.SetColor(_VertexOffset + 0, vertexColor, _CC);
+  _Vertices.SetColor(_VertexOffset + 1, vertexColor, _CD);
+  _Vertices.SetColor(_VertexOffset + 2, vertexColor, _CB);
+  _Vertices.SetColor(_VertexOffset + 3, vertexColor, _CA);
 
-  _Vertices.SetVector3D(_Offset + 0, vertexPosition, VectorCreate(Pos.X, Pos.Y + Height, LayerOffset));
-  _Vertices.SetVector2D(_Offset + 0, vertexUV0, VectorCreate2D(U1, V2));
+  _Vertices.SetVector3D(_VertexOffset + 0, vertexPosition, VectorCreate(Pos.X, Pos.Y + Height, LayerOffset));
+  _Vertices.SetVector2D(_VertexOffset + 0, vertexUV0, VectorCreate2D(U1, V2));
 
-  _Vertices.SetVector3D(_Offset + 1, vertexPosition, VectorCreate(Pos.X + Width, Pos.Y +Height, LayerOffset));
-  _Vertices.SetVector2D(_Offset + 1, vertexUV0, VectorCreate2D(U2, V2));
+  _Vertices.SetVector3D(_VertexOffset + 1, vertexPosition, VectorCreate(Pos.X + Width, Pos.Y +Height, LayerOffset));
+  _Vertices.SetVector2D(_VertexOffset + 1, vertexUV0, VectorCreate2D(U2, V2));
 
-  _Vertices.SetVector3D(_Offset + 2, vertexPosition, VectorCreate(Pos.X + Width + Skew, Pos.Y, LayerOffset));
-  _Vertices.SetVector2D(_Offset + 2, vertexUV0, VectorCreate2D(U2, V1));
+  _Vertices.SetVector3D(_VertexOffset + 2, vertexPosition, VectorCreate(Pos.X + Width + Skew, Pos.Y, LayerOffset));
+  _Vertices.SetVector2D(_VertexOffset + 2, vertexUV0, VectorCreate2D(U2, V1));
 
-  _Vertices.SetVector3D(_Offset + 4, vertexPosition, VectorCreate(Pos.X + Skew, Pos.Y, LayerOffset));
-  _Vertices.SetVector2D(_Offset + 4, vertexUV0, VectorCreate2D(U1, V1));
+  _Vertices.SetVector3D(_VertexOffset + 3, vertexPosition, VectorCreate(Pos.X + Skew, Pos.Y, LayerOffset));
+  _Vertices.SetVector2D(_VertexOffset + 3, vertexUV0, VectorCreate2D(U1, V1));
 
-  _Vertices.CopyVertex(_Offset + 2, _Offset + 3);
-  _Vertices.CopyVertex(_Offset + 0, _Offset + 5);
+  _Indices[_IndexOffset + 0] := _VertexOffset + 0;
+  _Indices[_IndexOffset + 1] := _VertexOffset + 1;
+  _Indices[_IndexOffset + 2] := _VertexOffset + 2;
 
-  Inc(_Offset, 6);
+  _Indices[_IndexOffset + 3] := _VertexOffset + 2;
+  _Indices[_IndexOffset + 4] := _VertexOffset + 3;
+  _Indices[_IndexOffset + 5] := _VertexOffset + 0;
+
+  Inc(_VertexOffset, 4);
+  Inc(_IndexOffset, 6);
 End;
 
 
-Procedure TERRASprite.MakeLine(Const StartPos, EndPos:Vector2D; LayerOffset:Single; Const Width:Single);
+Procedure TERRASprite.MakeLine(Const StartPos, EndPos:Vector2D; LayerOffset:Single; Width:Single);
+Var
+  Normal, Tangent:Vector2D;
+  U1, V1, U2, V2:Single;
 Begin
+  If (Self._CA.A = 0) And (Self._CB.A = 0) And (Self._CC.A=0) And (Self._CD.A=0) Then
+    Exit;
 
+  Width := Width * 0.5;
+
+  If _Vertices = Nil Then
+    _Vertices := CreateSpriteVertexData(_VertexOffset + 4)
+  Else
+  If (_VertexOffset >= _Vertices.Count) Then
+    _Vertices.Resize(_VertexOffset + 4);
+
+  If (Length(_Indices)< _IndexOffset + 6) Then
+    SetLength(_Indices, _IndexOffset + 6);
+
+  LayerOffset := LayerOffset + Self.Layer;
+
+  If (Self.Mirror) Then
+  Begin
+    U1 := _U2;
+    U2 := _U1;
+  End Else
+  Begin
+    U1 := _U1;
+    U2 := _U2;
+  End;
+
+  If ((Self.Texture.Origin = surfaceBottomRight) <> Self.Flip) Then
+  Begin
+    V1 := _V2;
+    V2 := _V1;
+  End Else
+  Begin
+    V1 := _V1;
+    V2 := _V2;
+  End;
+
+  Normal := EndPos;
+  Normal.Subtract(StartPos);
+  Normal.Normalize();
+
+  Tangent := VectorCreate2D(-Normal.Y, Normal.X);
+
+  _Vertices.SetColor(_VertexOffset + 0, vertexColor, _CC);
+  _Vertices.SetColor(_VertexOffset + 1, vertexColor, _CD);
+  _Vertices.SetColor(_VertexOffset + 2, vertexColor, _CB);
+  _Vertices.SetColor(_VertexOffset + 3, vertexColor, _CA);
+
+  _Vertices.SetVector3D(_VertexOffset + 0, vertexPosition, VectorCreate(Trunc(StartPos.X + Tangent.X * Width), Trunc(StartPos.Y + Tangent.Y * Width), LayerOffset));
+  _Vertices.SetVector2D(_VertexOffset + 0, vertexUV0, VectorCreate2D(U1, V2));
+
+  _Vertices.SetVector3D(_VertexOffset + 1, vertexPosition, VectorCreate(Trunc(EndPos.X + Tangent.X * Width), Trunc(EndPos.Y + Tangent.Y * Width), LayerOffset));
+  _Vertices.SetVector2D(_VertexOffset + 1, vertexUV0, VectorCreate2D(U2, V1));
+
+  _Vertices.SetVector3D(_VertexOffset + 2, vertexPosition, VectorCreate(Trunc(EndPos.X - Tangent.X * Width), Trunc(EndPos.Y - Tangent.Y * Width), LayerOffset));
+  _Vertices.SetVector2D(_VertexOffset + 2, vertexUV0, VectorCreate2D(U1, V1));
+
+  _Vertices.SetVector3D(_VertexOffset + 3, vertexPosition, VectorCreate(Trunc(StartPos.X - Tangent.X * Width), Trunc(StartPos.Y - Tangent.Y * Width), LayerOffset));
+  _Vertices.SetVector2D(_VertexOffset + 3, vertexUV0, VectorCreate2D(U2, V2));
+
+  _Indices[_IndexOffset + 0] := _VertexOffset + 0;
+  _Indices[_IndexOffset + 1] := _VertexOffset + 1;
+  _Indices[_IndexOffset + 2] := _VertexOffset + 2;
+
+  _Indices[_IndexOffset + 3] := _VertexOffset + 2;
+  _Indices[_IndexOffset + 4] := _VertexOffset + 3;
+  _Indices[_IndexOffset + 5] := _VertexOffset + 0;
+
+  Inc(_VertexOffset, 4);
+  Inc(_IndexOffset, 6);
 End;
 
 Procedure TERRASprite.Clear;
@@ -307,7 +393,8 @@ Begin
   If Assigned(_Vertices) Then
     _Vertices.Resize(0);
 
-  _Offset := 0;
+  _VertexOffset := 0;
+  _IndexOffset := 0;
 End;
 
 
@@ -333,6 +420,14 @@ Begin
   _CB := B;
   _CC := C;
   _CD := D;
+End;
+
+Function TERRASprite.GetIndex(Index: Integer): Word;
+Begin
+  If (Index<0) Or (Index>=_IndexOffset) Then
+    Result := 0
+  Else
+    Result := _Indices[Index];
 End;
 
 { TextureRect }
