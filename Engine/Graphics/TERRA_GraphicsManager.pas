@@ -342,8 +342,8 @@ Begin
 
   ShowWireframe := False;
 
-  Self.ReflectionMatrixSky := Matrix4x4Identity;
-  Self.ReflectionMatrix := Matrix4x4Identity;
+  Self.ReflectionMatrixSky := Matrix4x4_Identity;
+  Self.ReflectionMatrix := Matrix4x4_Identity;
 End;
 
 Function GraphicsManager.GetDefaultFullScreenShader():ShaderInterface;
@@ -856,52 +856,52 @@ End;
 
 Procedure InitFullScreenQuad(FullscreenQuad:VertexData; X1,Y1,X2,Y2:Single; Orientation:Integer);
 Begin
-  FullscreenQuad.SetVector3D(0, vertexPosition, VectorCreate(X1, Y2, 0.0));
-  FullscreenQuad.SetVector3D(1, vertexPosition, VectorCreate(X2, Y2, 0.0));
-  FullscreenQuad.SetVector3D(2, vertexPosition, VectorCreate(X2, Y1, 0.0));
-  FullscreenQuad.SetVector3D(3, vertexPosition, VectorCreate(X2, Y1, 0.0));
-  FullscreenQuad.SetVector3D(4, vertexPosition, VectorCreate(X1, Y1, 0.0));
-  FullscreenQuad.SetVector3D(5, vertexPosition, VectorCreate(X1, Y2, 0.0));
+  FullscreenQuad.SetVector3D(0, vertexPosition, Vector3D_Create(X1, Y2, 0.0));
+  FullscreenQuad.SetVector3D(1, vertexPosition, Vector3D_Create(X2, Y2, 0.0));
+  FullscreenQuad.SetVector3D(2, vertexPosition, Vector3D_Create(X2, Y1, 0.0));
+  FullscreenQuad.SetVector3D(3, vertexPosition, Vector3D_Create(X2, Y1, 0.0));
+  FullscreenQuad.SetVector3D(4, vertexPosition, Vector3D_Create(X1, Y1, 0.0));
+  FullscreenQuad.SetVector3D(5, vertexPosition, Vector3D_Create(X1, Y2, 0.0));
 
   Case Orientation Of
     orientationLandscapeLeft:
     Begin
-      FullscreenQuad.SetVector2D(0, vertexUV0, VectorCreate2D(1.0, 0.0));
-      FullscreenQuad.SetVector2D(1, vertexUV0, VectorCreate2D(1.0, 1.0));
-      FullscreenQuad.SetVector2D(2, vertexUV0, VectorCreate2D(0.0, 1.0));
-      FullscreenQuad.SetVector2D(3, vertexUV0, VectorCreate2D(0.0, 1.0));
-      FullscreenQuad.SetVector2D(4, vertexUV0, VectorCreate2D(0.0, 0.0));
-      FullscreenQuad.SetVector2D(5, vertexUV0, VectorCreate2D(1.0, 0.0));
+      FullscreenQuad.SetVector2D(0, vertexUV0, Vector2D_Create(1.0, 0.0));
+      FullscreenQuad.SetVector2D(1, vertexUV0, Vector2D_Create(1.0, 1.0));
+      FullscreenQuad.SetVector2D(2, vertexUV0, Vector2D_Create(0.0, 1.0));
+      FullscreenQuad.SetVector2D(3, vertexUV0, Vector2D_Create(0.0, 1.0));
+      FullscreenQuad.SetVector2D(4, vertexUV0, Vector2D_Create(0.0, 0.0));
+      FullscreenQuad.SetVector2D(5, vertexUV0, Vector2D_Create(1.0, 0.0));
     End;
 
     orientationLandscapeRight:
     Begin
-      FullscreenQuad.SetVector2D(0, vertexUV0, VectorCreate2D(0.0, 1.0));
-      FullscreenQuad.SetVector2D(1, vertexUV0, VectorCreate2D(0.0, 0.0));
-      FullscreenQuad.SetVector2D(2, vertexUV0, VectorCreate2D(1.0, 0.0));
-      FullscreenQuad.SetVector2D(3, vertexUV0, VectorCreate2D(1.0, 0.0));
-      FullscreenQuad.SetVector2D(4, vertexUV0, VectorCreate2D(1.0, 1.0));
-      FullscreenQuad.SetVector2D(5, vertexUV0, VectorCreate2D(0.0, 1.0));
+      FullscreenQuad.SetVector2D(0, vertexUV0, Vector2D_Create(0.0, 1.0));
+      FullscreenQuad.SetVector2D(1, vertexUV0, Vector2D_Create(0.0, 0.0));
+      FullscreenQuad.SetVector2D(2, vertexUV0, Vector2D_Create(1.0, 0.0));
+      FullscreenQuad.SetVector2D(3, vertexUV0, Vector2D_Create(1.0, 0.0));
+      FullscreenQuad.SetVector2D(4, vertexUV0, Vector2D_Create(1.0, 1.0));
+      FullscreenQuad.SetVector2D(5, vertexUV0, Vector2D_Create(0.0, 1.0));
     End;
 
     orientationPortrait:
     Begin
-      FullscreenQuad.SetVector2D(0, vertexUV0, VectorCreate2D(0.0, 0.0));
-      FullscreenQuad.SetVector2D(1, vertexUV0, VectorCreate2D(1.0, 0.0));
-      FullscreenQuad.SetVector2D(2, vertexUV0, VectorCreate2D(1.0, 1.0));
-      FullscreenQuad.SetVector2D(3, vertexUV0, VectorCreate2D(1.0, 1.0));
-      FullscreenQuad.SetVector2D(4, vertexUV0, VectorCreate2D(0.0, 1.0));
-      FullscreenQuad.SetVector2D(5, vertexUV0, VectorCreate2D(0.0, 0.0));
+      FullscreenQuad.SetVector2D(0, vertexUV0, Vector2D_Create(0.0, 0.0));
+      FullscreenQuad.SetVector2D(1, vertexUV0, Vector2D_Create(1.0, 0.0));
+      FullscreenQuad.SetVector2D(2, vertexUV0, Vector2D_Create(1.0, 1.0));
+      FullscreenQuad.SetVector2D(3, vertexUV0, Vector2D_Create(1.0, 1.0));
+      FullscreenQuad.SetVector2D(4, vertexUV0, Vector2D_Create(0.0, 1.0));
+      FullscreenQuad.SetVector2D(5, vertexUV0, Vector2D_Create(0.0, 0.0));
     End;
 
     orientationPortraitInverted:
     Begin
-      FullscreenQuad.SetVector2D(0, vertexUV0, VectorCreate2D(1.0, 1.0));
-      FullscreenQuad.SetVector2D(1, vertexUV0, VectorCreate2D(0.0, 1.0));
-      FullscreenQuad.SetVector2D(2, vertexUV0, VectorCreate2D(0.0, 0.0));
-      FullscreenQuad.SetVector2D(3, vertexUV0, VectorCreate2D(0.0, 0.0));
-      FullscreenQuad.SetVector2D(4, vertexUV0, VectorCreate2D(1.0, 0.0));
-      FullscreenQuad.SetVector2D(5, vertexUV0, VectorCreate2D(1.0, 1.0));
+      FullscreenQuad.SetVector2D(0, vertexUV0, Vector2D_Create(1.0, 1.0));
+      FullscreenQuad.SetVector2D(1, vertexUV0, Vector2D_Create(0.0, 1.0));
+      FullscreenQuad.SetVector2D(2, vertexUV0, Vector2D_Create(0.0, 0.0));
+      FullscreenQuad.SetVector2D(3, vertexUV0, Vector2D_Create(0.0, 0.0));
+      FullscreenQuad.SetVector2D(4, vertexUV0, Vector2D_Create(1.0, 0.0));
+      FullscreenQuad.SetVector2D(5, vertexUV0, Vector2D_Create(1.0, 1.0));
     End;
   End;
 End;
@@ -950,15 +950,15 @@ Begin
   {$ENDIF}
     InitFullScreenQuad(_FullScreenQuadVertices, X1,Y1,X2,Y2, Application.Instance.Orientation);
 
-  Projection := Matrix4x4Ortho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
+  Projection := Matrix4x4_Ortho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
 
   Renderer.SetCullMode(cullNone);
   Renderer.SetDepthTest(False);
   Renderer.SetDepthMask(False);
 
   Renderer.SetProjectionMatrix(Projection);
-  Renderer.SetModelMatrix(Matrix4x4Identity);
-  Renderer.SetTextureMatrix(Matrix4x4Identity);
+  Renderer.SetModelMatrix(Matrix4x4_Identity);
+  Renderer.SetTextureMatrix(Matrix4x4_Identity);
   Renderer.SetDiffuseColor(ColorWhite);
 
 

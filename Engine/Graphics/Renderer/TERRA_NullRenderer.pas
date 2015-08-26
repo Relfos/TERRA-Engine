@@ -100,7 +100,7 @@ Type
 			Procedure SetVec4Uniform(Const Name:TERRAString; const Value:Vector4D); Override;
       Procedure SetMat3Uniform(Const Name:TERRAString; Value:Matrix3x3); Override;
       Procedure SetMat4Uniform(Const Name:TERRAString; Value:Matrix4x4); Override;
-      Procedure SetVec4ArrayUniform(Const Name:TERRAString; Count:Integer; Values:PVector4D); Override;
+      Procedure SetVec4ArrayUniform(Const Name:TERRAString; Count:Integer; Values:Array Of Vector4D); Override;
 
       Function GetUniform(Name:TERRAString):Integer; Override;
       Function GetAttributeHandle(Const Name:TERRAString):Integer; Override;
@@ -508,7 +508,7 @@ Procedure NullShader.SetVec4Uniform(const Name: TERRAString; const Value:Vector4
 Begin
 End;
 
-Procedure NullShader.SetVec4ArrayUniform(const Name: TERRAString; Count:Integer; Values: PVector4D);
+Procedure NullShader.SetVec4ArrayUniform(const Name: TERRAString; Count:Integer; Values: Array Of Vector4D);
 Begin
 End;
 

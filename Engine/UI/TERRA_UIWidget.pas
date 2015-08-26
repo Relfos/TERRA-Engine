@@ -575,9 +575,9 @@ Begin
   _Width := DimensionProperty(Self.AddProperty(DimensionProperty.Create('width', UIPixels(0)), False));
   _Height := DimensionProperty(Self.AddProperty(DimensionProperty.Create('height', UIPixels(0)), False));
   //_Visible := BooleanProperty(Self.AddProperty(BooleanProperty.Create('visible', True), False));
-  _Position := Vector2DProperty(Self.AddProperty(Vector2DProperty.Create('position', VectorCreate2D(0, 0)), False));
+  _Position := Vector2DProperty(Self.AddProperty(Vector2DProperty.Create('position', Vector2D_Create(0, 0)), False));
   _Margin := DimensionProperty(Self.AddProperty(DimensionProperty.Create('margin', UIPixels(0)), False));
-  _Pivot := Vector2DProperty(Self.AddProperty(Vector2DProperty.Create('pivot', VectorCreate2D(0.5, 0.5)), False));
+  _Pivot := Vector2DProperty(Self.AddProperty(Vector2DProperty.Create('pivot', Vector2D_Create(0.5, 0.5)), False));
   _Layer := FloatProperty(Self.AddProperty(FloatProperty.Create('layer', 1.0), False));
   _Color := ColorProperty(Self.AddProperty(ColorProperty.Create('color', ColorWhite), False));
   _Glow := ColorProperty(Self.AddProperty(ColorProperty.Create('glow', ColorBlack), False));
@@ -1616,16 +1616,16 @@ Begin
     _Rotation.Value := 1.0+RAD*(Trunc(Application.GetTime()/10));*)
 
   If (_Rotation.Value <> 0.0) Then
-    Mat := MatrixRotationAndScale2D(_Rotation.Value, _Scale.Value, _Scale.Value)
+    Mat := Matrix3x3_RotationAndScale(_Rotation.Value, _Scale.Value, _Scale.Value)
   Else
-    Mat := MatrixScale2D(_Scale.Value, _Scale.Value);
+    Mat := Matrix3x3_Scale(_Scale.Value, _Scale.Value);
 
-  Mat := MatrixTransformAroundPoint2D(Center, Mat);
+  Mat := Matrix3x3_TransformAroundPoint(Center, Mat);
 
   Pos := Self.GetAlignedPosition();
   Pos.Add(Self.GetScrollOffset());
 
-  Mat := MatrixMultiply3x3(MatrixTranslation2D(Pos), Mat);
+  Mat := Matrix3x3_Multiply(Matrix3x3_Translation(Pos), Mat);
 
   Self.SetTransform(Mat);;
   _TransformChanged := False;
@@ -1642,9 +1642,9 @@ Begin
   _Transform := Value;
 
   If Assigned(_Parent) Then
-    _Transform := MatrixMultiply3x3(Parent._Transform, _Transform);
+    _Transform := Matrix3x3_Multiply(Parent._Transform, _Transform);
 
-  _InverseTransform := MatrixInverse2D(_Transform);
+  _InverseTransform := Matrix3x3_Inverse(_Transform);
 
   For I:=0 To Pred(_ChildrenCount) Do
   //If (_ChildrenList[I].Visible) Then
@@ -1886,7 +1886,7 @@ Begin
   If (Other.Parent<>Nil) Then
     P.Subtract(Other.Parent.AbsolutePosition);
 
-  P.Add(VectorCreate2D(OfsX, OfsY));
+  P.Add(Vector2D_Create(OfsX, OfsY));
 
   Self.SetRelativePosition(P);
 End;
@@ -2012,10 +2012,10 @@ Var
   P:Array[0..3] Of Vector2D;
 Begin
   Pos := Self.GetAbsolutePosition();
-  P[0] := VectorCreate2D(X1, Y1);
-  P[1] := VectorCreate2D(X2, Y1);
-  P[2] := VectorCreate2D(X2, Y2);
-  P[3] := VectorCreate2D(X1, Y2);
+  P[0] := Vector2D_Create(X1, Y1);
+  P[1] := Vector2D_Create(X2, Y1);
+  P[2] := Vector2D_Create(X2, Y2);
+  P[3] := Vector2D_Create(X1, Y2);
 
   For I:=0 To 3 Do
   Begin
@@ -2451,7 +2451,7 @@ Begin
     End;
   End;
 
-  Self.SetRelativePosition(VectorCreate2D(X,Y));
+  Self.SetRelativePosition(Vector2D_Create(X,Y));
   Self.Layer := Z;
   Self.Width := Width;
   Self.Height := Height;

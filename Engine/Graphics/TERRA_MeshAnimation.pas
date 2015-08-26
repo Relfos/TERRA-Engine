@@ -275,17 +275,17 @@ End;
 
 Procedure VectorKeyframeArray.AddVector3DKey(Const Time:Single; Const Value:Vector3D);
 Begin
-  Self.AddValueKey(Time, VectorCreate4D(Value.X, Value.Y, Value.Z, 1.0));
+  Self.AddValueKey(Time, Vector4D_Create(Value.X, Value.Y, Value.Z, 1.0));
 End;
 
 Procedure VectorKeyframeArray.AddQuaternionKey(Const Time:Single; Const Value:Quaternion);
 Begin
-  Self.AddValueKey(Time, VectorCreate4D(Value.X, Value.Y, Value.Z, Value.Z));
+  Self.AddValueKey(Time, Vector4D_Create(Value.X, Value.Y, Value.Z, Value.Z));
 End;
 
 Procedure VectorKeyframeArray.AddColorKey(Const Time:Single; Const Value:ColorRGBA);
 Begin
-  Self.AddValueKey(Time, VectorCreate4D(Value.R/255, Value.G/255, Value.B/255, Value.A/255));
+  Self.AddValueKey(Time, Vector4D_Create(Value.R/255, Value.G/255, Value.B/255, Value.A/255));
 End;
 
 
@@ -425,7 +425,7 @@ Begin
   If (Key=0) And (Positions.Count>0) Then
  	  Block.Translation := Positions.KeyFrames[Key].GetVector3D()
   Else
-    Block.Translation := VectorZero;
+    Block.Translation := Vector3D_Zero;
 
 	// Rotation
   // Find appropriate rotation key frame
@@ -457,7 +457,7 @@ Begin
     Block.Rotation := QuaternionZero;
 
     //TODO
-  Block.Scale := VectorOne;
+  Block.Scale := Vector3D_One;
 End;
 
 

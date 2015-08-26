@@ -697,7 +697,7 @@ Begin
 
   //If Self.AntiAlias Then
   Begin
-    _Sh.SetVec2Uniform('screenResolution', VectorCreate2D(View.Width, View.Height));
+    _Sh.SetVec2Uniform('screenResolution', Vector2D_Create(View.Width, View.Height));
     _Sh.SetFloatUniform('globalTime', Application.Instance.GetTime() / 1000);
   End;
 
@@ -784,25 +784,25 @@ End;
 Procedure ScreenFX.GetVec2(Index: Integer; out Value: Vector2D);
 Begin
   If (Index<0) Or (Index>=_UniformCount) Then
-    Value := VectorCreate2D(0.0, 0.0)
+    Value := Vector2D_Create(0.0, 0.0)
   Else
-    Value := VectorCreate2D(_Uniforms[Index].Value.X, _Uniforms[Index].Value.Y);
+    Value := Vector2D_Create(_Uniforms[Index].Value.X, _Uniforms[Index].Value.Y);
 End;
 
 Procedure ScreenFX.GetVec3(Index: Integer; out Value: Vector3D);
 Begin
   If (Index<0) Or (Index>=_UniformCount) Then
-    Value := VectorCreate(0.0, 0.0, 0.0)
+    Value := Vector3D_Create(0.0, 0.0, 0.0)
   Else
-    Value := VectorCreate(_Uniforms[Index].Value.X, _Uniforms[Index].Value.Y, _Uniforms[Index].Value.Z);
+    Value := Vector3D_Create(_Uniforms[Index].Value.X, _Uniforms[Index].Value.Y, _Uniforms[Index].Value.Z);
 End;
 
 Procedure ScreenFX.GetVec4(Index: Integer; out Value: Vector4D);
 Begin
   If (Index<0) Or (Index>=_UniformCount) Then
-    Value := VectorCreate4D(0.0, 0.0, 0.0, 0.0)
+    Value := Vector4D_Create(0.0, 0.0, 0.0, 0.0)
   Else
-    Value := VectorCreate4D(_Uniforms[Index].Value.X, _Uniforms[Index].Value.Y, _Uniforms[Index].Value.Z, _Uniforms[Index].Value.W);
+    Value := Vector4D_Create(_Uniforms[Index].Value.X, _Uniforms[Index].Value.Y, _Uniforms[Index].Value.Z, _Uniforms[Index].Value.W);
 End;
 
 Procedure ScreenFX.SetColor(Index:Integer; Const Value:ColorRGBA);
@@ -810,7 +810,7 @@ Begin
   If (Index>=0) And (Index<_UniformCount) Then
   Begin
     _Uniforms[Index].Initialized := True;
-    _Uniforms[Index].Value := VectorCreate4D(Value.R/255, Value.G/255, Value.B/255, Value.A/255);
+    _Uniforms[Index].Value := Vector4D_Create(Value.R/255, Value.G/255, Value.B/255, Value.A/255);
   End;
 End;
 
@@ -837,7 +837,7 @@ Begin
   If (Index>=0) And (Index<_UniformCount) Then
   Begin
     _Uniforms[Index].Initialized := True;
-    _Uniforms[Index].Value := VectorCreate4D(Value.X, Value.Y, 0.0, 0.0);
+    _Uniforms[Index].Value := Vector4D_Create(Value.X, Value.Y, 0.0, 0.0);
   End;
 End;
 
@@ -846,7 +846,7 @@ Begin
   If (Index>=0) And (Index<_UniformCount) Then
   Begin
     _Uniforms[Index].Initialized := True;
-    _Uniforms[Index].Value := VectorCreate4D(Value.X, Value.Y, Value.Z, 0.0);
+    _Uniforms[Index].Value := Vector4D_Create(Value.X, Value.Y, Value.Z, 0.0);
   End;
 End;
 
@@ -855,7 +855,7 @@ Begin
   If (Index>=0) And (Index<_UniformCount) Then
   Begin
     _Uniforms[Index].Initialized := True;
-    _Uniforms[Index].Value := VectorCreate4D(Value.X, Value.Y, Value.Z, Value.W);
+    _Uniforms[Index].Value := Vector4D_Create(Value.X, Value.Y, Value.Z, Value.W);
   End;
 End;
 
@@ -929,8 +929,8 @@ Begin
 
     Case _Uniforms[I].Kind Of
     uniformFloat:   Sh.SetFloatUniform(_Uniforms[I].Name, _Uniforms[I].Value.X);
-    uniformVec2:   Sh.SetVec2Uniform(_Uniforms[I].Name, VectorCreate2D(_Uniforms[I].Value.X, _Uniforms[I].Value.Y));
-    uniformVec3:   Sh.SetVec3Uniform(_Uniforms[I].Name, VectorCreate(_Uniforms[I].Value.X, _Uniforms[I].Value.Y, _Uniforms[I].Value.Z));
+    uniformVec2:   Sh.SetVec2Uniform(_Uniforms[I].Name, Vector2D_Create(_Uniforms[I].Value.X, _Uniforms[I].Value.Y));
+    uniformVec3:   Sh.SetVec3Uniform(_Uniforms[I].Name, Vector3D_Create(_Uniforms[I].Value.X, _Uniforms[I].Value.Y, _Uniforms[I].Value.Z));
     uniformVec4:   Sh.SetVec4Uniform(_Uniforms[I].Name, _Uniforms[I].Value);
     uniformColor:   Sh.SetVec4Uniform(_Uniforms[I].Name, _Uniforms[I].Value);
 

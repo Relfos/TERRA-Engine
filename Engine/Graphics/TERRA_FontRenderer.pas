@@ -144,7 +144,7 @@ End;
 Function TERRAFontRenderer.Reset():TERRAFontRenderer;
 Begin
   SetColor(ColorWhite);
-  SetTransform(MatrixIdentity3x3);
+  SetTransform(Matrix3x3_Identity);
   SetSize(DefaultFontSize);
   Result := Self;
 End;

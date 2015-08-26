@@ -403,10 +403,10 @@ Procedure PointLight.UpdateDistance(Target: Vector3D);
 Var
   N:Vector3D;
 Begin
-  N := VectorSubtract(Target, _Position);
+  N := Vector3D_Subtract(Target, _Position);
   N.Normalize();
 
-  N := VectorAdd(_Position, VectorScale(N, Self._Radius));
+  N := Vector3D_Add(_Position, Vector3D_Scale(N, Self._Radius));
 
   _Distance := N.Distance(Target);
 End;
@@ -470,7 +470,7 @@ Function LightManager.GetDefaultDirection: Vector3D;
 Var
   MyLight:Light;
 Begin
-  Result := VectorCreate(-0.25, 0.75, 0.0);
+  Result := Vector3D_Create(-0.25, 0.75, 0.0);
 
   MyLight := _FirstLight;
   While Assigned(MyLight) Do
@@ -560,13 +560,13 @@ Var
   M, M2:Matrix4x4;
 Begin
   If (Abs(_Direction.Y)>=0.999) Then
-    Roll := VectorCreate(0, 0, 1)
+    Roll := Vector3D_Create(0, 0, 1)
   Else
-    Roll := VectorUp;
+    Roll := Vector3D_Up;
 
-  M := Matrix4x4LookAt(_Position, VectorAdd(_Position, VectorScale(_Direction, 50)), Roll);
-  M2 := Matrix4x4Perspective(DEG*_OuterAngle, 1.0, 0.1, 1000);
-  _ProjectionMatrix4x4 := Matrix4x4Multiply4x4(M2, M);
+  M := Matrix4x4_LookAt(_Position, Vector3D_Add(_Position, Vector3D_Scale(_Direction, 50)), Roll);
+  M2 := Matrix4x4_Perspective(DEG*_OuterAngle, 1.0, 0.1, 1000);
+  _ProjectionMatrix4x4 := Matrix4x4_Multiply4x4(M2, M);
 
   {$IFDEF DRAWVOLUMES}
   Inst := _Instance;

@@ -34,7 +34,7 @@ Type
       Origin:Vector3D;
       Direction:Vector3D;
 
-      Function Intersect(Const A:BoundingBox; Var T:Single; Normal:PVector3D=Nil):Boolean; Overload;
+      Function Intersect(Const A:BoundingBox; Var T:Single; Out Normal:Vector3D):Boolean; Overload;
       Function Intersect(Const P:Plane; Var T:Single):Boolean; Overload;
 
       // Returns true if the ray intersects the triangle
@@ -71,10 +71,10 @@ Begin
   Edge2.z := V2.z - V0.z;
 
   // Begin calculating determinant - also used to calculate U parameter
-  PVec := VectorCross(Direction, Edge2);
+  PVec := Vector3D_Cross(Direction, Edge2);
 
   // If determinant is near zero, ray lies in plane of triangle
-  Det := VectorDot(PVec, Edge1);
+  Det := Vector3D_Dot(PVec, Edge1);
 
   {If (det > -EPSILON) And (det < EPSILON) Then
     Exit;}
@@ -84,22 +84,22 @@ Begin
   InvDet := 1.0 / det;
 
   // calculate distance from vert0 to ray origin
-  TVec := VectorSubtract(Origin, V0);
+  TVec := Vector3D_Subtract(Origin, V0);
 
   // calculate U parameter and test bounds
-  U := VectorDot(tvec, pvec) * InvDet;
+  U := Vector3D_Dot(tvec, pvec) * InvDet;
   If (U < 0.0) Or (U > 1.0) Then
     Exit;
 
   // prepare to test V parameter */
-  QVec := VectorCross(Tvec,Edge1);
+  QVec := Vector3D_Cross(Tvec,Edge1);
 
   // calculate V parameter and test bounds
-  V := VectorDot(Direction,QVec) * InvDet;
+  V := Vector3D_Dot(Direction,QVec) * InvDet;
   If (V<0.0) Or (U+V> 1.0) Then Exit;
 
   // calculate t, ray intersects triangle
-  T := VectorDot(Edge2, qvec) * InvDet;
+  T := Vector3D_Dot(Edge2, qvec) * InvDet;
   Result := (T>=0.0);
 End;
 
@@ -121,9 +121,9 @@ Var
   Dest:Vector3D;
   B,C,D:Single;
 Begin
-	Dest := VectorSubtract(Origin, Position);
-	B := VectorDot(Dest, Direction);
-	C := VectorDot(Dest, Dest) - Sqr(Radius);
+	Dest := Vector3D_Subtract(Origin, Position);
+	B := Vector3D_Dot(Dest, Direction);
+	C := Vector3D_Dot(Dest, Dest) - Sqr(Radius);
 	D := Sqr(B) - C;
 	Result := (D > 0.0);
   If Result Then
@@ -133,7 +133,7 @@ Begin
   End;
 End;
 
-Function Ray.Intersect(Const A:BoundingBox; Var T:Single; Normal:PVector3D=Nil):Boolean;
+Function Ray.Intersect(Const A:BoundingBox; Var T:Single; Out Normal:Vector3D):Boolean;
 Const
   Normals:Array[0..5] Of Vector3D = ((X:1; Y:0; Z:0), (X:0; Y:1; Z:0), (X:0; Y:0; Z:1), (X:-1; Y:0; Z:0), (X:0; Y:-1; Z:0), (X:0; Y:0; Z:-1));
 Var
@@ -168,7 +168,7 @@ Begin
   For I:=0 To 5 Do
   If (dist[i] > 0) Then
   Begin
-    ip := VectorAdd(Origin, VectorScale(Direction, dist[i]));
+    ip := Vector3D_Add(Origin, Vector3D_Scale(Direction, dist[i]));
 		if ((ip.x > (A.StartVertex.x - EPSILON)) And (ip.x < (A.EndVertex.x + EPSILON)) And
   	    (ip.y > (A.StartVertex.y - EPSILON)) And (ip.y < (A.EndVertex.y + EPSILON)) And
 	  		(ip.z > (A.StartVertex.z - EPSILON)) And (ip.z < (A.EndVertex.z + EPSILON))) Then
@@ -177,8 +177,7 @@ Begin
         Begin
           T := Dist[I];
   			  Result := True;
-          If Assigned(Normal) Then
-            Normal^ := Normals[I];
+          Normal := Normals[I];
           //Exit;
         End;
   		End;
@@ -318,7 +317,7 @@ End;
 *)
 Function Ray.IntersectionPoint(Const T:Single):Vector3D;
 Begin
-  Result := VectorAdd(Origin, VectorScale(Direction, T));
+  Result := Vector3D_Add(Origin, Vector3D_Scale(Direction, T));
 End;
 
 

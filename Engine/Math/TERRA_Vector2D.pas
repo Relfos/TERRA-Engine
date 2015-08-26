@@ -99,19 +99,19 @@ Type
   End;
   
 Function StringToVector2D(S:TERRAString):Vector2D;
-Function VectorCreate2D(Const X,Y:Single):Vector2D;
+Function Vector2D_Create(Const X,Y:Single):Vector2D;
 
-Function VectorDot2D(Const A,B:Vector2D):Single;  
-Function VectorCross2D(Const A,B:Vector2D):Single;
+Function Vector2D_Dot(Const A,B:Vector2D):Single;
+Function Vector2D_Cross(Const A,B:Vector2D):Single;
 
-Function VectorAdd2D(Const A,B:Vector2D):Vector2D;
-Function VectorSubtract2D(Const A,B:Vector2D):Vector2D;
+Function Vector2D_Add(Const A,B:Vector2D):Vector2D;
+Function Vector2D_Subtract(Const A,B:Vector2D):Vector2D;
 
-Function VectorScale2D(Const A:Vector2D; Const S:Single):Vector2D;
-Function VectorLerp2D(Const A, B:Vector2D; Const Delta:Single):Vector2D;
+Function Vector2D_Scale(Const A:Vector2D; Const S:Single):Vector2D;
+Function Vector2D_Lerp(Const A, B:Vector2D; Const Delta:Single):Vector2D;
 
-Function VectorAngle3D(Const A,B:Vector3D):Single;
-Function VectorAngle2D(Const A,B:Vector2D):Single;
+Function Vector2D_Angle3D(Const A,B:Vector3D):Single;
+Function Vector2D_Angle2D(Const A,B:Vector2D):Single;
 
 Implementation
 {$IFDEF NEON_FPU}Uses TERRA_NEON;{$ENDIF}
@@ -122,13 +122,13 @@ Begin
   Result.Y := StringToFloat(StringGetNextSplit(S, Ord('/')));
 End;
 
-Function VectorCreate2D(Const X,Y:Single):Vector2D; {$IFDEF FPC} Inline;{$ENDIF}
+Function Vector2D_Create(Const X,Y:Single):Vector2D; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result.X := X;
   Result.Y := Y;
 End;
 
-Function VectorDot2D(Const A,B:Vector2D):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Function Vector2D_Dot(Const A,B:Vector2D):Single; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   {$IFDEF NEON_FPU}
   Result := dot2_neon_hfp(@A, @B);
@@ -137,7 +137,7 @@ Begin
   {$ENDIF}
 End;
 
-Function VectorCross2D(Const A,B:Vector2D):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Function Vector2D_Cross(Const A,B:Vector2D):Single; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result := (A.X * B.Y) - (A.Y * B.X);
 End;
@@ -147,25 +147,25 @@ Begin
   Result := (Self.X = B.X) And (Self.Y = B.Y);
 End;
 
-Function VectorAdd2D(Const A,B:Vector2D):Vector2D;
+Function Vector2D_Add(Const A,B:Vector2D):Vector2D;
 Begin
   Result.X := A.X + B.X;
   Result.Y := A.Y + B.Y;
 End;
 
-Function VectorSubtract2D(Const A,B:Vector2D):Vector2D;
+Function Vector2D_Subtract(Const A,B:Vector2D):Vector2D;
 Begin
   Result.X := A.X - B.X;
   Result.Y := A.Y - B.Y;
 End;
 
-Function VectorScale2D(Const A:Vector2D; Const S:Single):Vector2D;
+Function Vector2D_Scale(Const A:Vector2D; Const S:Single):Vector2D;
 Begin
   Result.X := A.X * S;
   Result.Y := A.Y * S;
 End;
 
-Function VectorLerp2D(Const A, B:Vector2D; Const Delta:Single):Vector2D;
+Function Vector2D_Lerp(Const A, B:Vector2D; Const Delta:Single):Vector2D;
 Begin
   Result.X := A.X + Delta * (B.X - A.X);
   Result.Y := A.Y + Delta * (B.Y - A.Y);
@@ -175,7 +175,7 @@ Procedure Vector2D.Project(Const V:Vector2D);
 Var
   thisDotV:Single;
 Begin
-  thisDotV := VectorDot2D(Self, V);
+  thisDotV := Vector2D_Dot(Self, V);
   Self.X := V.X * thisDotV;
   Self.Y := V.Y * thisDotV;
 End;
@@ -306,7 +306,7 @@ Begin
   K := Length;
   If (K<=1.0) Then
     Exit;
-    
+
   X := X / K;
   Y := Y / K;
 End;
@@ -319,7 +319,7 @@ Begin
 End;
 {$ENDIF}
 
-Function VectorAngle2D(Const A,B:Vector2D):Single;
+Function Vector2D_Angle2D(Const A,B:Vector2D):Single;
 Var
   XDiff, YDiff: Single;
   fpAngle: Single;
@@ -333,15 +333,14 @@ begin
   Result := fpAngle + 90*RAD;
 End;
 
-Function VectorAngle3D(Const A,B:Vector3D):Single;
+Function Vector2D_Angle3D(Const A,B:Vector3D):Single;
 Var
   PA, PB:Vector2D;
 Begin
-  PA := VectorCreate2D(A.X, A.Z);
-  PB   := VectorCreate2D(B.X, B.Z);
-  Result := VectorAngle2D(PA, PB);
+  PA := Vector2D_Create(A.X, A.Z);
+  PB   := Vector2D_Create(B.X, B.Z);
+  Result := Vector2D_Angle2D(PA, PB);
 End;
-
 
 
 { Vector2DProperty }

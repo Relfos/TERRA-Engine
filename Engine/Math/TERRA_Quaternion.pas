@@ -176,9 +176,9 @@ Var
   right:Vector3D;
   w4_recip:Single;
 Begin
-	VectorOrthoNormalize(lookAt, up);
+	Vector3D_OrthoNormalize(lookAt, up);
   lookAt.Normalize();
-	right := VectorCross(up, lookAt);
+	right := Vector3D_Cross(up, lookAt);
 
   m00 := right.x;
   m01 := up.x;
@@ -207,7 +207,7 @@ Begin
   v0.Normalize();
   v1.Normalize();
 
-  d := VectorDot(v0, v1);
+  d := Vector3D_Dot(v0, v1);
   // If dot == 1, vectors are the same
   If (d >= 1.0) Then
   Begin
@@ -218,9 +218,9 @@ Begin
   If (d < (1e-6 - 1.0)) Then
   Begin
     // Generate an axis
-    axis := VectorCross(VectorCreate(1,0,0), Src);
+    axis := Vector3D_Cross(Vector3D_Create(1,0,0), Src);
     If (axis.Length<=0) Then // pick another if colinear
-      axis := VectorCross(VectorCreate(0,1,0), Src);
+      axis := Vector3D_Cross(Vector3D_Create(0,1,0), Src);
     Axis.Normalize();
     Result := QuaternionFromAxisAngle(Axis, PI);
   End Else
@@ -228,7 +228,7 @@ Begin
     s := Sqrt( (1+d)*2 );
     invs := 1 / s;
 
-    c := VectorCross(v0, v1);
+    c := Vector3D_Cross(v0, v1);
 
     Result.x := c.x * invs;
     Result.y := c.y * invs;
@@ -471,16 +471,16 @@ Begin
   S := Sqrt(Sqr(Q.X) + Sqr(Q.Y));
 
   If s=0 Then
-    arcFrom:=VectorCreate(0.0, 1.0, 0.0)
+    arcFrom := Vector3D_Create(0.0, 1.0, 0.0)
   Else
-    arcFrom:=VectorCreate(-Q.Y/S, Q.X/S, 0.0);
+    arcFrom := Vector3D_Create(-Q.Y/S, Q.X/S, 0.0);
 
   arcTo.X := (Q.W * arcFrom.X) - (Q.Z * arcFrom.Y);
   arcTo.Y := (Q.W * arcFrom.Y) + (Q.Z * arcFrom.X);
   arcTo.Z := (Q.X * arcFrom.Y) - (Q.Y * arcFrom.X);
 
   If Q.W<0.0 Then
-    arcFrom := VectorCreate(-arcFrom.X, -arcFrom.Y, 0.0);
+    arcFrom := Vector3D_Create(-arcFrom.X, -arcFrom.Y, 0.0);
 End;
 
 Function QuaternionConjugate(Const Q:Quaternion):Quaternion;

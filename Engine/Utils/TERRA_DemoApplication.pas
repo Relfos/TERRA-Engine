@@ -73,15 +73,18 @@ Begin
   Engine.Files.AddFolder('Assets');
 
   _Font := Engine.Fonts['droid'];
-  _FontRenderer := TERRAFontRenderer.Create();
-  _FontRenderer.SetFont(_Font);
+  If Assigned(_Font) Then
+  Begin
+    _FontRenderer := TERRAFontRenderer.Create();
+    _FontRenderer.SetFont(_Font);
+  End;
 
-  _Sun := DirectionalLight.Create(VectorCreate(-0.25, 0.75, 0.0));
+  _Sun := DirectionalLight.Create(Vector3D_Create(-0.25, 0.75, 0.0));
   _Sky := TERRASkybox.Create('sky');
 
   _Camera := PerspectiveCamera.Create('main');
-  _Camera.SetPosition(VectorCreate(0, 5, -20));
-  _Camera.SetView(VectorCreate(0, -0.25, 0.75));
+  _Camera.SetPosition(Vector3D_Create(0, 5, -20));
+  _Camera.SetView(Vector3D_Create(0, -0.25, 0.75));
 
   Engine.Graphics.DeviceViewport.BackgroundColor := ColorCreate(128, 128, 255);
 End;
@@ -150,7 +153,7 @@ Begin
 
     _Floor := MeshInstance.Create(Engine.Meshes.PlaneMesh);
     _Floor.SetDiffuseMap(0, Tex);
-    _Floor.SetScale(VectorConstant(40.0));
+    _Floor.SetScale(Vector3D_Constant(40.0));
     _Floor.SetUVScale(0, 4, 4);
   End;
 

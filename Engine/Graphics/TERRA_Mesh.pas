@@ -1062,7 +1062,7 @@ Begin
     Exit;
 
   Temp := Nil;
-  TargetTransform := Matrix4x4Identity;
+  TargetTransform := Matrix4x4_Identity;
 
   Case Source.LightType Of
   lightTypeSpot:
@@ -1072,9 +1072,9 @@ Begin
       Dir := Source.Param2;
 
       If (Abs(Dir.Y)>=0.999) Then
-        TargetTransform := Matrix4x4Transform(Source.Position, VectorCreate(0.0, 0.0, -Dir.Y*180*RAD), VectorCreate(Width, Height, Width))
+        TargetTransform := Matrix4x4_Transform(Source.Position, Vector3D_Create(0.0, 0.0, -Dir.Y*180*RAD), Vector3D_Create(Width, Height, Width))
       Else
-        TargetTransform := Matrix4x4Orientation(Source.Position, Dir, VectorCreate(0, 1.0, 0.0), VectorCreate(Width, Height, Width));
+        TargetTransform := Matrix4x4_Orientation(Source.Position, Dir, Vector3D_Create(0, 1.0, 0.0), Vector3D_Create(Width, Height, Width));
 
       S := ConeMesh.Create(1, 8, False, False);
       Temp := CreateMeshFromSolid(S);
@@ -1478,8 +1478,8 @@ Begin
   M := Matrix4x4Multiply4x4(Matrix4x4Inverse(Self._TERRAMesh.Skeleton.BindPose[Succ(BoneIndex)]), Matrix4x4Multiply4x4(M, Matrix4x4Translation(P)));
   *)
 
-  P := VectorZero;
-  M := Matrix4x4Multiply4x4(M, Matrix4x4Translation(P));
+  P := Vector3D_Zero;
+  M := Matrix4x4_Multiply4x4(M, Matrix4x4_Translation(P));
 
   Inc(_AttachCount);
   SetLength(_AttachList, _AttachCount);
@@ -1568,9 +1568,9 @@ End;
 Function MeshInstance.GetUVOffset(GroupID:Integer):Vector2D;
 Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
-    Result := VectorCreate2D(0, 0)
+    Result := Vector2D_Create(0, 0)
   Else
-    Result := VectorCreate2D(_Groups[GroupID].TextureTransform.V[12], _Groups[GroupID].TextureTransform.V[13]);
+    Result := Vector2D_Create(_Groups[GroupID].TextureTransform.V[12], _Groups[GroupID].TextureTransform.V[13]);
 End;
 
 Procedure MeshInstance.SetUVOffset(GroupID:Integer; X,Y:Single);
@@ -1605,7 +1605,7 @@ End;
 Function MeshInstance.GetTextureTransform(GroupID:Integer):Matrix4x4;
 Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
-    Result := Matrix4x4Identity
+    Result := Matrix4x4_Identity
   Else
     Result := _Groups[GroupID].TextureTransform;
 End;
@@ -1712,7 +1712,7 @@ End;
 Function MeshInstance.GetWaterFlowBounds(GroupID:Integer):Vector4D;
 Begin
   If (GroupID<0) Or (GroupID>=_Mesh._GroupCount) Then
-    Result := Vector4DZero
+    Result := Vector4D_Zero
   Else
     Result := _Groups[GroupID].Material.FlowBounds;
 End;
@@ -1779,7 +1779,7 @@ Begin
     Exit;
   End;}
 
-  Ofs := VectorSubtract(P, _Position);
+  Ofs := Vector3D_Subtract(P, _Position);
 
   If (Abs(Ofs.X)<MinDelta) And (Abs(Ofs.Y)<MinDelta) And (Abs(Ofs.Z)<MinDelta) Then
     Exit;
@@ -1860,16 +1860,16 @@ Begin
 
   _NeedsTransformUpdate := False;
 //  _NeedsShadowUpdate := True;
-  _Transform := Matrix4x4Transform(_Position, _Rotation, _Scale);
+  _Transform := Matrix4x4_Transform(_Position, _Rotation, _Scale);
   UpdateBoundingBox();
 End;
 
 Constructor MeshInstance.Create(MyMesh: TERRAMesh);
 Begin
   _ClonedMesh := False;
-  _Position := VectorZero;
-  _Rotation := VectorZero;
-  _Scale := VectorOne;
+  _Position := Vector3D_Zero;
+  _Rotation := Vector3D_Zero;
+  _Scale := Vector3D_One;
   _NeedsTransformUpdate := True;
   _NeedsShadowUpdate := True;
 
@@ -1921,7 +1921,7 @@ Begin
     _Groups[I].Visibility := (_Mesh._Groups[I].Flags And meshGroupHidden=0);
     _Groups[I].Material.Reset();
     _Groups[I].GeometryTransformType := customTransformNone;
-    _Groups[I].TextureTransform := Matrix4x4Identity;
+    _Groups[I].TextureTransform := Matrix4x4_Identity;
 
     If (_Mesh._Groups[I].Flags And meshGroupCastShadow<>0) Then
       Inc(N);
@@ -2051,13 +2051,13 @@ Begin
       Case MyLight.LightType Of
       lightTypePoint:
         Begin
-          _Lights[I].Light := PointLight.Create(VectorZero);
+          _Lights[I].Light := PointLight.Create(Vector3D_Zero);
           {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Mesh', 'Creating point light...');{$ENDIF}
         End;
 
       lightTypeSpot:
         Begin
-          _Lights[I].Light := SpotLight.Create(VectorZero, VectorUp {MyLight.Param2}, MyLight.Param1.X * RAD, MyLight.Param1.Y * RAD);
+          _Lights[I].Light := SpotLight.Create(Vector3D_Zero, Vector3D_Up {MyLight.Param2}, MyLight.Param1.X * RAD, MyLight.Param1.Y * RAD);
           {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Mesh', 'Creating point light...');{$ENDIF}
         End;
 
@@ -2075,7 +2075,7 @@ Begin
     If (MyLight.BoneIndex>=0) Then
     Begin
       M := Animation.GetAbsoluteMatrix(MyLight.BoneIndex);
-      M := Matrix4x4Multiply4x3(_Transform, M);
+      M := Matrix4x4_Multiply4x3(_Transform, M);
     End Else
       M := _Transform;
 
@@ -2168,7 +2168,7 @@ Begin
     Begin
       If (_ParticleSystems[I]=Nil) Then
       Begin
-        _ParticleSystems[I] := ParticleCollection.Create(ParticleSettingsEmitter.Create(Emitter.Content, VectorAdd(Emitter.Position, Self.Position)));
+        _ParticleSystems[I] := ParticleCollection.Create(ParticleSettingsEmitter.Create(Emitter.Content, Vector3D_Add(Emitter.Position, Self.Position)));
         _ParticleSystems[I].Respawn := True;
       End;
 
@@ -2176,13 +2176,13 @@ Begin
       If (Emitter.BoneIndex>=0) Then
       Begin
         M := Animation.GetAbsoluteMatrix(Emitter.BoneIndex);
-        M := Matrix4x4Multiply4x3(_Transform, M);
+        M := Matrix4x4_Multiply4x3(_Transform, M);
       End Else
         M := _Transform;
     End Else
     Begin
-    	M := Matrix4x4Identity;
-    	P := VectorZero;
+    	M := Matrix4x4_Identity;
+    	P := Vector3D_Zero;
     End;
 
     If _ParticleSystems[I].Emitter Is PositionalParticleEmitter Then
@@ -2223,7 +2223,7 @@ Begin
       Continue;
 
     Case _Groups[I].GeometryTransformType Of
-      customTransformLocal: Transform := Matrix4x4Multiply4x4(MyTransform, _Groups[I].GeometryTransform);
+      customTransformLocal: Transform := Matrix4x4_Multiply4x4(MyTransform, _Groups[I].GeometryTransform);
       customTransformGlobal: Transform := _Groups[I].GeometryTransform;
       Else
         Transform := MyTransform;
@@ -2262,7 +2262,7 @@ Begin
 
   If Assigned(_Body) Then
   Begin
-    Self._Transform := Matrix4x4Multiply4x4(_Body.Transform, Matrix4x4Scale(_Scale));
+    Self._Transform := Matrix4x4_Multiply4x4(_Body.Transform, Matrix4x4_Scale(_Scale));
     Self.UpdateBoundingBox();
 
     _NeedsTransformUpdate := False;
@@ -2342,7 +2342,7 @@ Begin
     For I:=0 To Pred(_AttachCount) Do
     If (_AttachList[I].IsStencil) Then
     Begin
-      M := Matrix4x4Multiply4x3(_Transform, Matrix4x4Multiply4x3(Animation.GetAbsoluteMatrix(_AttachList[I].BoneIndex), _AttachList[I].Matrix));
+      M := Matrix4x4_Multiply4x3(_Transform, Matrix4x4_Multiply4x3(Animation.GetAbsoluteMatrix(_AttachList[I].BoneIndex), _AttachList[I].Matrix));
 
       _AttachList[I].AttachMesh.Prefetch();
 
@@ -2406,7 +2406,7 @@ Begin
       If _RenderTrails Then
       Begin
         S := 0.75 + 0.25 * (1.0 - (J/Pred(MaxTrailSize)));
-        _Transform := Matrix4x4Multiply4x3(_OldTransforms[J], Matrix4x4Scale(S, S, S));
+        _Transform := Matrix4x4_Multiply4x3(_OldTransforms[J], Matrix4x4_Scale(S, S, S));
         DrawMesh( View, Stage, _Transform, TranslucentPass, False);
       End;
     End;
@@ -2422,7 +2422,7 @@ Begin
 {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Rendering attach '+ IntegerProperty.Stringify(I));{$ENDIF}
 
     //M := MatrixMultiply4x3(_Transform, MatrixMultiply4x3(Animation.Transforms[Succ(_AttachList[I].BoneIndex)], _AttachList[I].Matrix));
-    M := Matrix4x4Multiply4x3(_Transform, Matrix4x4Multiply4x3(Animation.GetAbsoluteMatrix(_AttachList[I].BoneIndex), _AttachList[I].Matrix));
+    M := Matrix4x4_Multiply4x3(_Transform, Matrix4x4_Multiply4x3(Animation.GetAbsoluteMatrix(_AttachList[I].BoneIndex), _AttachList[I].Matrix));
 
     If Not _AttachList[I].AttachMesh.IsReady() Then
       Continue;
@@ -2895,9 +2895,6 @@ Begin
     _Animation := AnimationState.Create(_Mesh.Skeleton);
 
   Result := _Animation;
-
-  If Result = Nil Then
-    RaiseError('lol');
 End;
 
 Function MeshInstance.GetTransform: Matrix4x4;
@@ -3264,7 +3261,6 @@ Var
   SX,SY,SZ:Shortint;
   PU,PV:Byte;
   PositionRange:Vector3D;
-  P:PVector3D;
 //  UVRange:Vector2D;
 
   It:VertexIterator;
@@ -3563,8 +3559,8 @@ Begin
 
 	For I := 0 To Pred(Self.VertexCount) Do
 	Begin
-		tan1[i] := VectorZero;
-		tan2[i] := VectorZero;
+		tan1[i] := Vector3D_Zero;
+		tan2[i] := Vector3D_Zero;
 	End;
 
   If Self._Vertices.HasAttribute(vertexUV1) Then
@@ -3604,16 +3600,16 @@ Begin
 
     R := 1.0 / R;
 
-		sdir := VectorCreate(	(t2 * x1 - t1 * x2) * r, (t2 * y1 - t1 * y2) * r, (t2 * z1 - t1 * z2) * r);
-    tdir := VectorCreate(	(s1 * x2 - s2 * x1) * r, (s1 * y2 - s2 * y1) * r, (s1 * z2 - s2 * z1) * r);
+		sdir := Vector3D_Create(	(t2 * x1 - t1 * x2) * r, (t2 * y1 - t1 * y2) * r, (t2 * z1 - t1 * z2) * r);
+    tdir := Vector3D_Create(	(s1 * x2 - s2 * x1) * r, (s1 * y2 - s2 * y1) * r, (s1 * z2 - s2 * z1) * r);
 
-    tan1[i1] := VectorAdd(tan1[i1], sdir);
-		tan1[i2] := VectorAdd(tan1[i2], sdir);
-		tan1[i3] := VectorAdd(tan1[i3], sdir);
+    tan1[i1] := Vector3D_Add(tan1[i1], sdir);
+		tan1[i2] := Vector3D_Add(tan1[i2], sdir);
+		tan1[i3] := Vector3D_Add(tan1[i3], sdir);
 
-    tan2[i1] := VectorAdd(tan2[i1], tdir);
-		tan2[i2] := VectorAdd(tan2[i2], tdir);
-		tan2[i3] := VectorAdd(tan2[i3], tdir);
+    tan2[i1] := Vector3D_Add(tan2[i1], tdir);
+		tan2[i2] := Vector3D_Add(tan2[i2], tdir);
+		tan2[i3] := Vector3D_Add(tan2[i3], tdir);
   End;
 
   For I := 0 To Pred(Self.VertexCount) Do
@@ -3623,7 +3619,7 @@ Begin
     T.Normalize();
 
     // Gram-Schmidt orthogonalize
-		T := VectorSubtract(t, VectorScale(n, VectorDot(n, t)));
+		T := Vector3D_Subtract(t, Vector3D_Scale(n, Vector3D_Dot(n, t)));
     T.Normalize();
 
 
@@ -3631,14 +3627,14 @@ Begin
       FloatProperty.Stringify(T.X);}
 
     // Calculate handedness
-    If (VectorDot( VectorCross(n, t), tan2[i]) < 0.0) Then
+    If (Vector3D_Dot( Vector3D_Cross(n, t), tan2[i]) < 0.0) Then
       Handness := 1.0
     Else
       Handness := -1.0;
 
     _Vertices.SetVector3D(I, vertexTangent, T);
 
-    T := VectorCross(N, T);
+    T := Vector3D_Cross(N, T);
     T.Scale(Handness);
     T.Normalize();
     _Vertices.SetVector3D(I, vertexBiTangent, T);
@@ -3901,15 +3897,15 @@ Begin
   Graphics := Engine.Graphics;
 
   If (Graphics.ReflectionActive) Then
-    Transform := Matrix4x4Multiply4x4(Graphics.ReflectionMatrix, Transform);
+    Transform := Matrix4x4_Multiply4x4(Graphics.ReflectionMatrix, Transform);
 
   If (Graphics.ReflectionActive) Then
-    Transform := Matrix4x4Multiply4x4(Graphics.ReflectionMatrix, Transform);
+    Transform := Matrix4x4_Multiply4x4(Graphics.ReflectionMatrix, Transform);
 
   If Assigned(State) Then
     TextureMatrix := State._Groups[Self._ID].TextureTransform
   Else
-    TextureMatrix := Matrix4x4Identity;
+    TextureMatrix := Matrix4x4_Identity;
 
   {$IFDEF PC}
   (*If (Not GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Then
@@ -3998,7 +3994,7 @@ Begin
     If (Length(_BoneVectors)<_BoneVectorCount) Then
       SetLength(_BoneVectors, _BoneVectorCount);
 
-    EncodeBoneMatrix(0, Matrix4x4Identity);
+    EncodeBoneMatrix(0, Matrix4x4_Identity);
 
     For I:=1 To State.Animation.MaxActiveBones Do
     Begin
@@ -4006,7 +4002,7 @@ Begin
       EncodeBoneMatrix(I, M);
     End;
 
-    Graphics.Renderer.ActiveShader.SetVec4ArrayUniform('boneVectors', _BoneVectorCount, @(_BoneVectors[0]));
+    Graphics.Renderer.ActiveShader.SetVec4ArrayUniform('boneVectors', _BoneVectorCount, _BoneVectors);
   End;
 End;
 
@@ -4112,7 +4108,7 @@ Begin
 {$IFDEF PC}
 {  If (Assigned(_Cloth)) Then
   Begin
- 	  _Cloth.AddForce(VectorScale(VectorCreate(0, -0.005,0), TIME_STEPSIZE2)); // add gravity each frame, pointing down
+ 	  _Cloth.AddForce(VectorScale(Vector3D_Create(0, -0.005,0), TIME_STEPSIZE2)); // add gravity each frame, pointing down
 	  _Cloth.WindForce(VectorScale(Graphics.WindVector,TIME_STEPSIZE2)); // generate some wind each frame
 
     If Assigned(Instance) Then
@@ -4404,11 +4400,11 @@ Begin
   Op[1] := UseB;
   Op[2] := UseC;
 
-  P := VectorZero;
-  N := VectorZero;
-  UV0 := VectorCreate2D(0, 0);
+  P := Vector3D_Zero;
+  N := Vector3D_Zero;
+  UV0 := Vector2D_Create(0, 0);
   UV1 := UV0;
-  C := VectorCreate4D(0,0,0,0);
+  C := Vector4D_Create(0,0,0,0);
   Count := 0;
 
   For J:=0 To 2 Do
@@ -4434,7 +4430,7 @@ Begin
     UV1.Add(TUV);
 
     _Vertices.GetColor(K, vertexColor, TC);
-    C.Add(VectorCreate4D(TC.R/255, TC.G/255, TC.B/255, TC.A/255));
+    C.Add(Vector4D_Create(TC.R/255, TC.G/255, TC.B/255, TC.A/255));
 
     UV1.Add(TUV);
   End;
@@ -5153,7 +5149,7 @@ Var
 Begin
   If (VertexIndex<0) Or (VertexIndex >= Self.VertexCount) Then
   Begin
-    Result := VectorZero;
+    Result := Vector3D_Zero;
     Exit;
   End;
 
@@ -6200,7 +6196,7 @@ Begin
     Exit;
   End;
 
-  Result := VectorZero;
+  Result := Vector3D_Zero;
 End;
 
 Function TERRAMesh.HasBoneMorph(MorphID: Integer): Boolean;
@@ -6707,7 +6703,7 @@ End;
 Constructor MeshParticleEmitter.Create(Const FXName:TERRAString; Target: MeshGroup);
 Begin
   Self._TargetGroup := Target;
-  Inherited Create(FXName, VectorZero);
+  Inherited Create(FXName, Vector3D_Zero);
 End;
 
 Procedure MeshParticleEmitter.Emit(Target:Particle);

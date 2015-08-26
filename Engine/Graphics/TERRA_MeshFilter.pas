@@ -259,22 +259,22 @@ End;
 
 Function MeshFilter.GetVertexNormal(GroupID, Index: Integer): Vector3D;
 Begin
-  Result := VectorUp;
+  Result := Vector3D_Up;
 End;
 
 Function MeshFilter.GetVertexPosition(GroupID, Index: Integer): Vector3D;
 Begin
-  Result := VectorZero;
+  Result := Vector3D_Zero;
 End;
 
 Function MeshFilter.GetVertexTangent(GroupID, Index: Integer): Vector3D;
 Begin
-  Result := VectorCreate(1,0,0);
+  Result := Vector3D_Create(1,0,0);
 End;
 
 Function MeshFilter.GetVertexBiTangent(GroupID, Index: Integer): Vector3D;
 Begin
-  Result := VectorCreate(0,0,1);
+  Result := Vector3D_Create(0,0,1);
 End;
 
 Function MeshFilter.GetVertexUV(GroupID, Index, Channel: Integer): Vector2D;
@@ -343,19 +343,19 @@ End;
 
 Function MeshFilter.GetPositionKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshAnimationKeyframe;
 Begin
-  Result.Value := VectorCreate4D(0, 0, 0, 1);
+  Result.Value := Vector4D_Create(0, 0, 0, 1);
   Result.Time := 0;
 End;
 
 Function MeshFilter.GetScaleKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshAnimationKeyframe;
 Begin
-  Result.Value := VectorCreate4D(1, 1, 1, 1);
+  Result.Value := Vector4D_Create(1, 1, 1, 1);
   Result.Time := 0;
 End;
 
 Function MeshFilter.GetRotationKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshAnimationKeyframe;
 Begin
-  Result.Value := VectorCreate4D(0, 0, 0, 1);
+  Result.Value := Vector4D_Create(0, 0, 0, 1);
   Result.Time := 0;
 End;
 
@@ -381,7 +381,7 @@ End;
 
 Function MeshFilter.GetBoneOffsetMatrix(BoneID:Integer):Matrix4x4;
 Begin
-  Result := Matrix4x4Identity;
+  Result := Matrix4x4_Identity;
 End;
 
 Function MeshFilter.GetAnimationFrameRate(AnimationID: Integer): Single;
@@ -442,7 +442,7 @@ End;
 
 function MeshAnimationKeyframe.GetVector3D: Vector3D;
 Begin
-  Result := VectorCreate(Value.X, Value.Y, Value.Z);
+  Result := Vector3D_Create(Value.X, Value.Y, Value.Z);
 End;
 
 End.

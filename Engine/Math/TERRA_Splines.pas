@@ -165,7 +165,7 @@ Begin
 
   If (_PointCount<2) Then
   Begin
-    Result := VectorZero;
+    Result := Vector3D_Zero;
     Exit;
   End;
 
@@ -325,7 +325,7 @@ End;
 Function Spline.GetPointByIndex(Index: Integer): Vector3D;
 Begin
   If (Index<0) Or (Index>=_PointCount) Then
-    Result := VectorZero
+    Result := Vector3D_Zero
   Else
     Result := _Points[Index].Position;
 End;
@@ -348,7 +348,7 @@ Begin
   A := _Points[PrevIndex].Position;
   B := _Points[Index].Position;
 
-  V := VectorSubtract(B, A);
+  V := Vector3D_Subtract(B, A);
   V.Normalize();
 
   //V := VectorCross(V, VectorUp);
@@ -375,7 +375,7 @@ Begin
   V.Y := CatmullRomInterpolate(T0.Y, T1.Y, T2.Y, T3.Y, Delta);
   V.Z := CatmullRomInterpolate(T0.Z, T1.Z, T2.Z, T3.Z, Delta);
 
-  Result := QuaternionLookRotation(V, VectorUp);
+  Result := QuaternionLookRotation(V, Vector3D_Up);
 End;
 
 

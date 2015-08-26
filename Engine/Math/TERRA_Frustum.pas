@@ -58,24 +58,24 @@ Var
   Mat:Matrix4x4;
   P:Vector4D;
 Begin
-  Result[1] := VectorCreate(1,-1,-1);
-  Result[2] := VectorCreate(-1,-1,-1);
-  Result[3] := VectorCreate(1,1,-1);
-  Result[4] := VectorCreate(-1,1,-1);
-  Result[5] := VectorCreate(1,-1,1);
-  Result[6] := VectorCreate(-1,-1,1);
-  Result[7] := VectorCreate(1,1,1);
-  Result[8] := VectorCreate(-1,1,1);
+  Result[1] := Vector3D_Create(1,-1,-1);
+  Result[2] := Vector3D_Create(-1,-1,-1);
+  Result[3] := Vector3D_Create(1,1,-1);
+  Result[4] := Vector3D_Create(-1,1,-1);
+  Result[5] := Vector3D_Create(1,-1,1);
+  Result[6] := Vector3D_Create(-1,-1,1);
+  Result[7] := Vector3D_Create(1,1,1);
+  Result[8] := Vector3D_Create(-1,1,1);
 
-  Mat := Matrix4x4Multiply4x4(ProjectionMatrix4x4, CameraMatrix4x4);
-  Mat := Matrix4x4Inverse(Mat);
+  Mat := Matrix4x4_Multiply4x4(ProjectionMatrix4x4, CameraMatrix4x4);
+  Mat := Matrix4x4_Inverse(Mat);
   For I:=1 To 8 Do
   Begin
-    P := VectorCreate4D(Result[I]);
+    P := Vector4D_Create(Result[I]);
     P.Transform(Mat);
     If (P.W = 0) Then
       P.W := 1.0;
-    Result[I] := VectorCreate(P.X/P.W, P.Y/P.W, P.Z/P.W);
+    Result[I] := Vector3D_Create(P.X/P.W, P.Y/P.W, P.Z/P.W);
   End;
 End;
 

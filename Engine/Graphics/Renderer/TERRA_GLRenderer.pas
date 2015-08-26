@@ -1131,7 +1131,7 @@ Begin
       Self.ActiveShader.SetMat4Uniform('modelMatrix', Mat);
 
       If Self.Settings.SurfaceProjection<>surfacePlanar Then
-        Self.ActiveShader.SetMat4Uniform('modelMatrixInverse', Matrix4x4Inverse(Mat));
+        Self.ActiveShader.SetMat4Uniform('modelMatrixInverse', Matrix4x4_Inverse(Mat));
       Exit;
     End;
   End;

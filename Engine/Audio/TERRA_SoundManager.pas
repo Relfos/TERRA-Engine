@@ -110,8 +110,8 @@ Begin
   LoadDeviceList(_SoundDeviceList, ALC_DEVICE_SPECIFIER);
   LoadDeviceList(_SoundCaptureDeviceList, ALC_CAPTURE_DEVICE_SPECIFIER);
 
-  alListenerfv(AL_Position, @VectorZero);
-  alListenerfv(AL_VELOCITY, @VectorZero);
+  alListenerfv(AL_Position, @Vector3D_Zero);
+  alListenerfv(AL_VELOCITY, @Vector3D_Zero);
 
   //alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
 
@@ -300,7 +300,7 @@ Begin
   If Assigned(GraphicsManager.Instance().MainViewport) Then
     Result.Position := GraphicsManager.Instance().MainViewport.Camera.Position
   Else*)
-    Result.Position := VectorZero;
+    Result.Position := Vector3D_Zero;
 
   Log(logDebug, 'Sound', 'Registering sound in manager');
   Inc(_SourceCount);

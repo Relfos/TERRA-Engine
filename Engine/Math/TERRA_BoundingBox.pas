@@ -76,8 +76,8 @@ Implementation
 
 Procedure BoundingBox.Reset;
 Begin
-  StartVertex := VectorCreate(99999,99999,99999);
-  EndVertex := VectorCreate(-99999,-99999,-99999);
+  StartVertex := Vector3D_Create(99999,99999,99999);
+  EndVertex := Vector3D_Create(-99999,-99999,-99999);
 End;
 
 Procedure BoundingBox.Add(Const P:Vector3D); {$IFDEF FPC} Inline; {$ENDIF}
@@ -125,8 +125,8 @@ Var
   C:Vector3D;
 Begin
   C := Self.Center;
-  StartVertex := VectorAdd(C, VectorScale(VectorSubtract(StartVertex, C),S));
-  EndVertex := VectorAdd(C, VectorScale(VectorSubtract(EndVertex, C) ,S));
+  StartVertex := Vector3D_Add(C, Vector3D_Scale(Vector3D_Subtract(StartVertex, C),S));
+  EndVertex := Vector3D_Add(C, Vector3D_Scale(Vector3D_Subtract(EndVertex, C) ,S));
 End;
 
 Procedure BoundingBox.Scale(Const V:Vector3D);
@@ -134,14 +134,14 @@ Var
   C:Vector3D;
 Begin
   C := Self.Center;
-  StartVertex := VectorAdd(C, VectorMultiply(VectorSubtract(StartVertex, C), V));
-  EndVertex := VectorAdd(C, VectorMultiply(VectorSubtract(EndVertex, C) , V));
+  StartVertex := Vector3D_Add(C, Vector3D_Multiply(Vector3D_Subtract(StartVertex, C), V));
+  EndVertex := Vector3D_Add(C, Vector3D_Multiply(Vector3D_Subtract(EndVertex, C) , V));
 End;
 
 Constructor BoundingBox.Create(Const A,B:Vector3D);
 Begin
-  StartVertex := VectorMin(A,B);
-  EndVertex := VectorMax(A,B);
+  StartVertex := Vector3D_Min(A,B);
+  EndVertex := Vector3D_Max(A,B);
 End;
 
 Procedure BoundingBox.Add(Const B:BoundingBox);

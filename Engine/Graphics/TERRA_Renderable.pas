@@ -285,7 +285,7 @@ Begin
 
     //MyTERRARenderable._WasVisible := True;
 
-    Pos := VectorAdd(Box.Center , VectorScale(View.Camera.View, -Box.Radius));
+    Pos := Vector3D_Add(Box.Center , Vector3D_Scale(View.Camera.View, -Box.Radius));
     Renderable._Distance := Pos.Distance(View.Camera.Position);
 
     FarDist := View.Camera.FarDistance;

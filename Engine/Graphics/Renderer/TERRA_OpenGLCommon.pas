@@ -69,7 +69,7 @@ Type
 			Procedure SetVec4Uniform(Const Name:TERRAString; const Value:Vector4D); Override;
       Procedure SetMat3Uniform(Const Name:TERRAString; Value:Matrix3x3); Override;
       Procedure SetMat4Uniform(Const Name:TERRAString; Value:Matrix4x4); Override;
-      Procedure SetVec4ArrayUniform(Const Name:TERRAString; Count:Integer; Values:PVector4D); Override;
+      Procedure SetVec4ArrayUniform(Const Name:TERRAString; Count:Integer; Values:Array Of Vector4D); Override;
 
       Function HasUniform(Const Name:TERRAString):Boolean; Override;
 
@@ -607,7 +607,7 @@ Begin
     UniformError(Name);
 End;
 
-Procedure OpenGLShader.SetVec4ArrayUniform(const Name: TERRAString; Count:Integer; Values: PVector4D);
+Procedure OpenGLShader.SetVec4ArrayUniform(const Name: TERRAString; Count:Integer; Values: Array Of Vector4D);
 Var
   ID:Integer;
 Begin
@@ -617,7 +617,7 @@ Begin
 	ID := GetUniform(Name);
   If (ID>=0) Then
   Begin
-    glUniform4fv(Id, Count, Pointer(Values));
+    glUniform4fv(Id, Count, Pointer(@Values[Low(Values)]));
   End Else
     UniformError(Name);
 End;

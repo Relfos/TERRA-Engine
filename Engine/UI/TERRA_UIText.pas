@@ -54,7 +54,7 @@ Constructor UIText.Create(const Name:TERRAString; Parent:UIWidget; X,Y,Z:Single;
 Begin
   Inherited Create(Name, Parent);
 
-  Self.SetRelativePosition(VectorCreate2D(X,Y));
+  Self.SetRelativePosition(Vector2D_Create(X,Y));
   Self.Layer := Z;
 
   Self.Width := Width;
@@ -106,7 +106,7 @@ Begin
   FR.SetTransform(_Transform);
   FR.SetClipRect(Self.ClipRect);
 
-  //TextArea := VectorCreate2D(Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)),  Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
+  //TextArea := Vector2D_Create(Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)),  Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
   //TextRect := Self.FontRenderer.GetTextRect(Self.Caption._Text);
 
   FR.DrawTextToSprite(View, (*(TextArea.X - TextRect.X) * 0.5,  (TextArea.Y - TextRect.Y) * 0.5*)0, 0, Self.GetLayer(), _Text, FontSprite(_Sprite));

@@ -47,8 +47,8 @@ Begin
   Solid := MeshInstance.Create(Engine.Meshes.CubeMesh);
   Solid.SetDiffuseMap(0, DiffuseTex);
   Solid.SetGlowMap(0, GlowTex);
-  Solid.SetPosition(VectorCreate(0, 4, 0));
-  Solid.SetScale(VectorConstant(2.0));
+  Solid.SetPosition(Vector3D_Create(0, 4, 0));
+  Solid.SetScale(Vector3D_Constant(2.0));
 
   Self.Floor.SetPosition(VectorZero);
 End;

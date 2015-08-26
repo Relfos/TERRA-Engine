@@ -166,7 +166,7 @@ Begin
     Result := 0
   Else
   Begin
-    P := VectorSubtract(Self.GetAbsolutePosition(), Parent.GetAbsolutePosition());
+    P := Vector3D_Subtract(Self.GetAbsolutePosition(), Parent.GetAbsolutePosition());
     Result := P.Length();
   End;
 End;
@@ -174,10 +174,10 @@ End;
 Function MeshBone.GetNormal: Vector3D;
 Begin
   If (Self.Parent=Nil) Then
-    Result := VectorUp
+    Result := Vector3D_Up
   Else
   Begin
-    Result := VectorSubtract(Self.GetAbsolutePosition(), Parent.GetAbsolutePosition());
+    Result := Vector3D_Subtract(Self.GetAbsolutePosition(), Parent.GetAbsolutePosition());
     Result.Normalize();
   End;
 End;
@@ -198,7 +198,7 @@ Begin
 
   If (_Kind = meshBone_Dummy) Then
   Begin
-    _OffsetMatrix := Matrix4x4Identity;
+    _OffsetMatrix := Matrix4x4_Identity;
     _SkinningIndex := 0;
   End Else
   Begin
@@ -216,7 +216,7 @@ End;
 
 Function MeshBone.GetAbsolutePosition: Vector3D;
 Begin
-  Result := Self.AbsoluteMatrix.Transform(VectorZero);
+  Result := Self.AbsoluteMatrix.Transform(Vector3D_Zero);
 End;
 
 
@@ -225,7 +225,7 @@ Begin
   Result := _RelativeMatrix;
 
   If Assigned(Parent) Then
-    Result := Matrix4x4Multiply4x3(_Parent.AbsoluteMatrix, Result);
+    Result := Matrix4x4_Multiply4x3(_Parent.AbsoluteMatrix, Result);
 End;
 
 
@@ -324,8 +324,8 @@ Begin
     Exit;
   End;
 
-  A := _BoneList[Index].AbsoluteMatrix.Transform(VectorZero);
-  B := _BoneList[_BoneList[Index].Parent.ID].AbsoluteMatrix.Transform(VectorZero);
+  A := _BoneList[Index].AbsoluteMatrix.Transform(Vector3D_Zero);
+  B := _BoneList[_BoneList[Index].Parent.ID].AbsoluteMatrix.Transform(Vector3D_Zero);
   Result := A.Distance(B);
 End;
 
@@ -386,9 +386,9 @@ Begin
     Bone := Self.GetBoneByIndex(I);
 
     If Assigned(Bone.Parent) Then
-      B := Matrix4x4Translation(VectorSubtract(CurrentPos[Bone.ID], CurrentPos[Bone.Parent.ID]))
+      B := Matrix4x4_Translation(Vector3D_Subtract(CurrentPos[Bone.ID], CurrentPos[Bone.Parent.ID]))
     Else
-      B := Matrix4x4Translation(Bone.AbsolutePosition);
+      B := Matrix4x4_Translation(Bone.AbsolutePosition);
 
     Bone._RelativeMatrix := B;
   End;

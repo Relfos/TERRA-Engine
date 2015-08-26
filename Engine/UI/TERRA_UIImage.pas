@@ -40,7 +40,7 @@ Constructor UIImage.Create(Name:TERRAString; Parent:UIWidget; X, Y, Z: Single; C
 Begin
   Inherited Create(Name, Parent);
 
-  Self.SetRelativePosition(VectorCreate2D(X,Y));
+  Self.SetRelativePosition(Vector2D_Create(X,Y));
   Self.Layer := Z;
   Self.Filter := filterLinear;
 
@@ -53,8 +53,8 @@ Begin
   Self.Width := Width;
   Self.Height := Height;
 
-  Self.Pivot := VectorCreate2D(0, 0);
-  Self.Anchor := VectorCreate2D(0, 0);
+  Self.Pivot := Vector2D_Create(0, 0);
+  Self.Anchor := Vector2D_Create(0, 0);
 End;
 
 
@@ -107,7 +107,7 @@ Begin
   _Sprite.Mirror := Self.Mirror;
   _Sprite.SetUVs(_U1.Value, _V1.Value, _U2.Value, _V2.Value);
   _Sprite.SetColor(Self.Color);
-  _Sprite.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(0,0), 0.0, Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)), Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
+  _Sprite.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0,0), 0.0, Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)), Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
 
   _Sprite.ClipRect := Self.ClipRect;
   _Sprite.SetTransform(_Transform);

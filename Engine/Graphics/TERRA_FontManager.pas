@@ -58,20 +58,19 @@ Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Sort, TERRA_TextureManager,
 { FontManager }
 Function FontManager.GetItem(Name:TERRAString):TERRAFont;
 Var
-  FontName, FileName:TERRAString;
   Format:TERRAFileFormat;
   Location:TERRALocation;
-  I:Integer;
 Begin
-  If (Name='') Then
-  Begin
-    Result := Nil;
-    Exit;
-  End;
+  Result := Nil;
 
-  FontName := Name;
+  If (Name='') Then
+    Exit;
 
   Name := GetFileName(Name, True);
+
+  Result := TERRAFont(Self.GetResource(Name));
+  If Assigned(Result) Then
+    Exit;
 
   Format := Engine.Formats.FindLocationFromName(Name, TERRAFont, Location);
   If Assigned(Format) Then

@@ -264,7 +264,7 @@ Begin
     Result := _VertexList[Index]
   Else
   Begin
-  	Result.Position := VectorZero;
+  	Result.Position := Vector3D_Zero;
     RaiseError('Invalid vertex index');
   End;
 End;
@@ -317,10 +317,10 @@ Constructor TetrahedronMesh.Create;
 Begin
   _VertexCount := 4;
   SetLength(_VertexList, _VertexCount);
-  _VertexList[0].Position := VectorCreate(0, 0, Scale);
-  _VertexList[1].Position := VectorCreate((2 * Sqrt(2)/3) * Scale, 0.0, (-1/3)*Scale);
-  _VertexList[2].Position := VectorCreate((-Sqrt(2)/3) * Scale, (Sqrt(6)/3) * Scale, (-1/3)*Scale);
-  _VertexList[3].Position := VectorCreate((-Sqrt(2)/3) * Scale, (-Sqrt(6)/3) * Scale, (-1/3)*Scale);
+  _VertexList[0].Position := Vector3D_Create(0, 0, Scale);
+  _VertexList[1].Position := Vector3D_Create((2 * Sqrt(2)/3) * Scale, 0.0, (-1/3)*Scale);
+  _VertexList[2].Position := Vector3D_Create((-Sqrt(2)/3) * Scale, (Sqrt(6)/3) * Scale, (-1/3)*Scale);
+  _VertexList[3].Position := Vector3D_Create((-Sqrt(2)/3) * Scale, (-Sqrt(6)/3) * Scale, (-1/3)*Scale);
 
   _IndexCount := 0;
   AddTriangle(0,0,1);
@@ -335,12 +335,12 @@ Constructor OctahedronMesh.Create;
 Begin
   _VertexCount := 6;
   SetLength(_VertexList, _VertexCount);
-  _VertexList[0].Position := VectorCreate(Scale, 0, 0);
-  _VertexList[1].Position := VectorCreate(-Scale, 0, 0);
-  _VertexList[2].Position := VectorCreate(0, Scale, 0);
-  _VertexList[3].Position := VectorCreate(0, -Scale, 0);
-  _VertexList[4].Position := VectorCreate(0, 0, Scale);
-  _VertexList[5].Position := VectorCreate(0, 0, -Scale);
+  _VertexList[0].Position := Vector3D_Create(Scale, 0, 0);
+  _VertexList[1].Position := Vector3D_Create(-Scale, 0, 0);
+  _VertexList[2].Position := Vector3D_Create(0, Scale, 0);
+  _VertexList[3].Position := Vector3D_Create(0, -Scale, 0);
+  _VertexList[4].Position := Vector3D_Create(0, 0, Scale);
+  _VertexList[5].Position := Vector3D_Create(0, 0, -Scale);
 
   _IndexCount := 0;
   AddTriangle(4,0,2);
@@ -364,18 +364,18 @@ Begin
 
   _VertexCount := 12;
   SetLength(_VertexList, _VertexCount);
-  _VertexList[0].Position := VectorCreate(T,1,0);
-  _VertexList[1].Position := VectorCreate(-T,1,0);
-  _VertexList[2].Position := VectorCreate(T,-1,0);
-  _VertexList[3].Position := VectorCreate(-T,-1,0);
-  _VertexList[4].Position := VectorCreate(1,0,T);
-  _VertexList[5].Position := VectorCreate(1,0,-T);
-  _VertexList[6].Position := VectorCreate(-1,0,T);
-  _VertexList[7].Position := VectorCreate(-1,0,-T);
-  _VertexList[8].Position := VectorCreate(0,T,1);
-  _VertexList[9].Position := VectorCreate(0,-T,1);
-  _VertexList[10].Position := VectorCreate(0,T,-1);
-  _VertexList[11].Position := VectorCreate(0,-T,-1);
+  _VertexList[0].Position := Vector3D_Create(T,1,0);
+  _VertexList[1].Position := Vector3D_Create(-T,1,0);
+  _VertexList[2].Position := Vector3D_Create(T,-1,0);
+  _VertexList[3].Position := Vector3D_Create(-T,-1,0);
+  _VertexList[4].Position := Vector3D_Create(1,0,T);
+  _VertexList[5].Position := Vector3D_Create(1,0,-T);
+  _VertexList[6].Position := Vector3D_Create(-1,0,T);
+  _VertexList[7].Position := Vector3D_Create(-1,0,-T);
+  _VertexList[8].Position := Vector3D_Create(0,T,1);
+  _VertexList[9].Position := Vector3D_Create(0,-T,1);
+  _VertexList[10].Position := Vector3D_Create(0,T,-1);
+  _VertexList[11].Position := Vector3D_Create(0,-T,-1);
 
   _IndexCount := 0;
   AddTriangle(0,8,4);
@@ -419,10 +419,10 @@ Begin
     For I:=0 To (Slices) Do
     Begin
       Angle := (I/Slices)*360*RAD;
-      _VertexList[J*Succ(Slices) + I].Position := VectorCreate(0.5 * Scale * Cos(Angle), Scale * ((Dy * J) - 0.5), -0.5 * Scale * Sin(Angle));
+      _VertexList[J*Succ(Slices) + I].Position := Vector3D_Create(0.5 * Scale * Cos(Angle), Scale * ((Dy * J) - 0.5), -0.5 * Scale * Sin(Angle));
       _VertexList[J*Succ(Slices) + I].TextureCoords.X := (I/(Slices));
       _VertexList[J*Succ(Slices) + I].TextureCoords.Y := (J/Stacks);
-      _VertexList[J*Succ(Slices) + I].Normal := VectorCreate(Cos(Angle), 0, -Sin(Angle));
+      _VertexList[J*Succ(Slices) + I].Normal := Vector3D_Create(Cos(Angle), 0, -Sin(Angle));
     End;
   End;
 
@@ -450,14 +450,14 @@ Begin
     Begin
       If (J=0) Then
       Begin
-        _VertexList[A+J].Position := VectorCreate(0, 0.5 * Scale, 0);
-        _VertexList[A+J].Normal := VectorUp;
+        _VertexList[A+J].Position := Vector3D_Create(0, 0.5 * Scale, 0);
+        _VertexList[A+J].Normal := Vector3D_Up;
       End Else
       Begin
-        _VertexList[A+J].Position := VectorCreate(0, 0, 0);
-        _VertexList[A+J].Normal := VectorCreate(0, -0.5 * Scale, 0);
+        _VertexList[A+J].Position := Vector3D_Create(0, 0, 0);
+        _VertexList[A+J].Normal := Vector3D_Create(0, -0.5 * Scale, 0);
       End;
-      _VertexList[A+J].TextureCoords := VectorCreate2D(0.5, 0.5);
+      _VertexList[A+J].TextureCoords := Vector2D_Create(0.5, 0.5);
       For I:=0 To Pred(Slices) Do
       Begin
         C := I;
@@ -492,10 +492,10 @@ Begin
     For I:=0 To (Slices) Do
     Begin
       Angle := (I/Slices)*360*RAD;
-      _VertexList[J*Succ(Slices) + I].Position := VectorCreate(0.5 * Scale * Cos(Angle), Scale * ((Dy * J) - 0.5), -0.5 * Scale * Sin(Angle));
+      _VertexList[J*Succ(Slices) + I].Position := Vector3D_Create(0.5 * Scale * Cos(Angle), Scale * ((Dy * J) - 0.5), -0.5 * Scale * Sin(Angle));
       _VertexList[J*Succ(Slices) + I].TextureCoords.X := (I/(Slices));
       _VertexList[J*Succ(Slices) + I].TextureCoords.Y := (J/Stacks);
-      _VertexList[J*Succ(Slices) + I].Normal := VectorCreate(Cos(Angle), 0, -Sin(Angle));
+      _VertexList[J*Succ(Slices) + I].Normal := Vector3D_Create(Cos(Angle), 0, -Sin(Angle));
     End;
   End;
 
@@ -519,12 +519,12 @@ Begin
     SetLength(_VertexList, _VertexCount);
 
     If Inverted Then
-      _VertexList[A].Position := VectorCreate(0, 0, 0)
+      _VertexList[A].Position := Vector3D_Create(0, 0, 0)
     Else
-      _VertexList[A].Position := VectorCreate(0, 1 * Scale, 0);
+      _VertexList[A].Position := Vector3D_Create(0, 1 * Scale, 0);
       
-    _VertexList[A].Normal := VectorCreate(0, -1, 0);
-    _VertexList[A].TextureCoords := VectorCreate2D(0.5, 0.5);
+    _VertexList[A].Normal := Vector3D_Create(0, -1, 0);
+    _VertexList[A].TextureCoords := Vector2D_Create(0.5, 0.5);
     For I:=0 To Pred(Slices) Do
     Begin
       C := I;
@@ -553,13 +553,13 @@ Begin
 
   If (Abs(Normal.Y)>Abs(Normal.X)) And (Abs(Normal.Y)>Abs(Normal.Z)) Then
   Begin
-    U := VectorCreate(Normal.X, Normal.Z, Normal.Y);
+    U := Vector3D_Create(Normal.X, Normal.Z, Normal.Y);
   End Else
   Begin
-    U := VectorCreate(Normal.Z, Normal.Y, Normal.X);
+    U := Vector3D_Create(Normal.Z, Normal.Y, Normal.X);
   End;
 
-  V := VectorCross(Normal, U) ;
+  V := Vector3D_Cross(Normal, U) ;
 
   S := (1.0 / (SubDivisions)) * Scale;
   For J:=0 To SubDivisions Do
@@ -569,7 +569,7 @@ Begin
       Sx := (S * I) - 0.5;
       Sy := (S * J) - 0.5;
 
-      _VertexList[Index].Position := VectorAdd(VectorScale(U, Sx), VectorScale(V, Sy ));
+      _VertexList[Index].Position := Vector3D_Add(Vector3D_Scale(U, Sx), Vector3D_Scale(V, Sy ));
       _VertexList[Index].TextureCoords.X := 1.0 - ((1.0/Succ(SubDivisions)) * J);
       _VertexList[Index].TextureCoords.Y := ((1.0/Succ(SubDivisions)) * I);
       _VertexList[Index].Normal := Normal;
@@ -595,8 +595,8 @@ Var
   MyMatrix:Matrix4x4;
   I:Integer;
 Begin
-  Mesh := PlaneMesh.Create(VectorCreate(0, 0, 1.0), SubDivisions);
-  MyMatrix := Matrix4x4Translation(0, 0, Size * 0.5);
+  Mesh := PlaneMesh.Create(Vector3D_Create(0, 0, 1.0), SubDivisions);
+  MyMatrix := Matrix4x4_Translation(0, 0, Size * 0.5);
   Mesh.Transform(MyMatrix);
   For I:=0 To Pred(Mesh._VertexCount) Do
   Begin
@@ -606,8 +606,8 @@ Begin
   Self.AddMesh(Mesh);
   ReleaseObject(Mesh);
 
-  Mesh := PlaneMesh.Create(VectorCreate(0,0, -1.0), SubDivisions);
-  MyMatrix := Matrix4x4Translation(0, 0, -Size * 0.5);
+  Mesh := PlaneMesh.Create(Vector3D_Create(0,0, -1.0), SubDivisions);
+  MyMatrix := Matrix4x4_Translation(0, 0, -Size * 0.5);
   Mesh.Transform(MyMatrix);
   For I:=0 To Pred(Mesh._VertexCount) Do
   Begin
@@ -617,8 +617,8 @@ Begin
   Self.AddMesh(Mesh);
   ReleaseObject(Mesh);
 
-  Mesh := PlaneMesh.Create(VectorCreate(1.0,0,0.0), SubDivisions);
-  MyMatrix := Matrix4x4Translation(Size * 0.5, 0, 0);
+  Mesh := PlaneMesh.Create(Vector3D_Create(1.0,0,0.0), SubDivisions);
+  MyMatrix := Matrix4x4_Translation(Size * 0.5, 0, 0);
   Mesh.Transform(MyMatrix);
   For I:=0 To Pred(Mesh._VertexCount) Do
   Begin
@@ -627,8 +627,8 @@ Begin
   Self.AddMesh(Mesh);
   ReleaseObject(Mesh);
 
-  Mesh := PlaneMesh.Create(VectorCreate(-1.0,0,0.0), SubDivisions);
-  MyMatrix := Matrix4x4Translation(-Size * 0.5, 0, 0);
+  Mesh := PlaneMesh.Create(Vector3D_Create(-1.0,0,0.0), SubDivisions);
+  MyMatrix := Matrix4x4_Translation(-Size * 0.5, 0, 0);
   Mesh.Transform(MyMatrix);
   For I:=0 To Pred(Mesh._VertexCount) Do
   Begin
@@ -637,14 +637,14 @@ Begin
   Self.AddMesh(Mesh);
   ReleaseObject(Mesh);
 
-  Mesh := PlaneMesh.Create(VectorCreate(0.0,1.0,0.0), SubDivisions);
-  MyMatrix := Matrix4x4Translation(0, Size * 0.5, 0);
+  Mesh := PlaneMesh.Create(Vector3D_Create(0.0,1.0,0.0), SubDivisions);
+  MyMatrix := Matrix4x4_Translation(0, Size * 0.5, 0);
   Mesh.Transform(MyMatrix);
   Self.AddMesh(Mesh);
   ReleaseObject(Mesh);
 
-  Mesh := PlaneMesh.Create(VectorCreate(0.0,-1.0,0.0), SubDivisions);
-  MyMatrix := Matrix4x4Translation(0, -Size * 0.5, 0);
+  Mesh := PlaneMesh.Create(Vector3D_Create(0.0,-1.0,0.0), SubDivisions);
+  MyMatrix := Matrix4x4_Translation(0, -Size * 0.5, 0);
   Mesh.Transform(MyMatrix);
   For I:=0 To Pred(Mesh._VertexCount) Do
   Begin
@@ -702,7 +702,7 @@ Begin
   Begin
     Normal := _VertexList[I].Position;
     Normal.Normalize();
-    _VertexList[I].Position := VectorScale(Normal, Scale * 0.5);
+    _VertexList[I].Position := Vector3D_Scale(Normal, Scale * 0.5);
     _VertexList[I].Normal := Normal;
     _VertexList[I].TextureCoords.X := ((Atan2(Normal.X, Normal.Z) / PI) * 0.5) + 0.5; //(Normal.X * 0.5) + 0.5;
     _VertexList[I].TextureCoords.Y := Arccos(Normal.Y) / PI;//(Normal.Y * 0.5) + 0.5;

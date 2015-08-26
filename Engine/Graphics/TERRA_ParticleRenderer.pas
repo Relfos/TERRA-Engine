@@ -1145,9 +1145,9 @@ Var
   UD,UW:Single;
   U1,U2,V1,V2:Single;
 Begin
-  P.Position := VectorCreate(Self.PosX.CurrentValue,  Self.PosY.CurrentValue, Self.PosZ.CurrentValue);
-  P.Size := VectorCreate2D(Self.Size.CurrentValue, Self.Size.CurrentValue);
-  P.Ofs := VectorCreate2D(ParticleQuadOffsets[SubIndex].X, ParticleQuadOffsets[SubIndex].Y);
+  P.Position := Vector3D_Create(Self.PosX.CurrentValue,  Self.PosY.CurrentValue, Self.PosZ.CurrentValue);
+  P.Size := Vector2D_Create(Self.Size.CurrentValue, Self.Size.CurrentValue);
+  P.Ofs := Vector2D_Create(ParticleQuadOffsets[SubIndex].X, ParticleQuadOffsets[SubIndex].Y);
 
   If Assigned(Self.Texture) Then
   Begin
@@ -1170,18 +1170,18 @@ Begin
     If (Landscape) Then
     Begin
       Case SubIndex Of
-      0: P.UV0 := VectorCreate2D(U1, V2);
-      1: P.UV0 := VectorCreate2D(U2, V2);
-      2: P.UV0 := VectorCreate2D(U2, V1);
-      3: P.UV0 := VectorCreate2D(U1, V1);
+      0: P.UV0 := Vector2D_Create(U1, V2);
+      1: P.UV0 := Vector2D_Create(U2, V2);
+      2: P.UV0 := Vector2D_Create(U2, V1);
+      3: P.UV0 := Vector2D_Create(U1, V1);
       End;
     End Else
     Begin
       Case SubIndex Of
-      0: P.UV0 := VectorCreate2D(U1, V1);
-      1: P.UV0 := VectorCreate2D(U2, V1);
-      2: P.UV0 := VectorCreate2D(U2, V2);
-      3: P.UV0 := VectorCreate2D(U1, V2);
+      0: P.UV0 := Vector2D_Create(U1, V1);
+      1: P.UV0 := Vector2D_Create(U2, V1);
+      2: P.UV0 := Vector2D_Create(U2, V2);
+      3: P.UV0 := Vector2D_Create(U1, V2);
       End;
     End;
   End;

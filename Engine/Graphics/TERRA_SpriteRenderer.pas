@@ -197,7 +197,7 @@ Begin
   Result.Saturation := Saturation;
   Result.Shader := Shader;*)
 
-  Result.SetTransform(MatrixIdentity3x3);
+  Result.SetTransform(Matrix3x3_Identity);
 
 (*  SpriteTexture.Filter := Filter;
 //  SpriteTexture.Wrap := True;
@@ -491,9 +491,9 @@ Begin
     End;
 
     If (S.ClipRect.Style = clipNothing) Then
-      CurrentClip := VectorCreate4D(0, 0, 9999, 9999)
+      CurrentClip := Vector4D_Create(0, 0, 9999, 9999)
     Else
-      CurrentClip := VectorCreate4D(S.ClipRect.X1, S.ClipRect.Y1, S.ClipRect.X2, S.ClipRect.Y2);
+      CurrentClip := Vector4D_Create(S.ClipRect.X1, S.ClipRect.Y1, S.ClipRect.X2, S.ClipRect.Y2);
 
     MinX := 9999;
     MaxX := -9999;
@@ -612,7 +612,7 @@ Begin
   If (_ShaderID And Sprite_Font<>0) Then
   Begin
     TargetShader.SetColorUniform('outlineColor', _Outline);
-    TargetShader.SetVec2Uniform('shadowOffset', VectorCreate2D(0.1, 0.1));
+    TargetShader.SetVec2Uniform('shadowOffset', Vector2D_Create(0.1, 0.1));
     TargetShader.SetFloatUniform('smoothing', Self._Smoothing); //);
   End Else
   {$IFNDEF DISABLECOLORGRADING}

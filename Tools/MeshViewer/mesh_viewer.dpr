@@ -13,21 +13,19 @@ uses
   TERRA_Vector3D,
   TERRA_Color,
   TERRA_Matrix4x4,
-  TERRA_JPG,
-  TERRA_PNG,
   TERRA_Texture,
-  TERRA_Scene,
   TERRA_Mesh,
   TERRA_OS,
   TERRA_ScreenFX,
   TERRA_DebugDraw,
   TERRA_Renderer,
+  TERRA_EngineManager,
   TERRA_FileManager,
-  TERRA_MeshSkeleton, TERRA_MeshAnimation, TERRA_MeshAnimationNodes,
+  TERRA_MeshSkeleton, TERRA_MeshAnimation, TERRA_MeshAnimationNodes
 //  TERRA_Assimp,
 //  TERRA_Milkshape,
-//  TERRA_XMLMeshImporter,
-  TERRA_InputManager;
+//  TERRA_XMLMeshImporter
+;
 
 Type
   MyDemo = Class(DemoApplication)
@@ -37,7 +35,7 @@ Type
 
       Procedure OnIdle; Override;
 
-      Procedure OnRender(V:TERRAViewport); Override;
+      Procedure OnRender3D(V:TERRAViewport); Override;
   End;
 
 
@@ -56,7 +54,10 @@ Procedure MyDemo.OnCreate;
 Begin
   Inherited;
 
-  GraphicsManager.Instance.Renderer.Settings.PostProcessing.SetValue(True);
+  Self.MainViewport.Visible := True;
+  Self.Floor.SetPosition(Vector3D_Zero);
+
+//  Engine.Graphics.Renderer.Settings.PostProcessing.SetValue(True);
 
 (*
   ///MyFilter := AssimpFilter.Create();
@@ -74,10 +75,10 @@ Begin
 
   MyMesh := TERRAMesh.CreateFromFilter(MyFilter);*)
 
-  MyMesh := MeshManager.Instance.GetMesh('brute');
+  MyMesh := Engine.Meshes['brute'];
 
   Solid := MeshInstance.Create(MyMesh);
-  Solid.SetScale(VectorConstant(5));
+  Solid.SetScale(Vector3D_Constant(5));
 
   //Solid.Geometry.Skeleton.NormalizeJoints();
 
@@ -91,8 +92,8 @@ Begin
 
  //Milkshape3DModel.Save('output.ms3d', MyFilter);
 
-  Self._Scene.MainViewport.Camera.SetView(VectorCreate(0, -0.25, -0.75));
-  Self._Scene.MainViewport.Camera.SetPosition(VectorCreate(0, 20, 50));
+  Self.MainViewport.Camera.SetView(Vector3D_Create(0, -0.25, -0.75));
+  Self.MainViewport.Camera.SetPosition(Vector3D_Create(0, 20, 50));
 //  Self._Scene.MainViewport.Camera.SetPosition(VectorCreate(0, 10, 25));
 End;
 
@@ -110,26 +111,24 @@ Procedure MyDemo.OnIdle;
 Begin
   inherited;
 
-  If (InputManager.Instance.Keys.WasPressed(keyN)) Then
+  If (Engine.Input.Keys.WasPressed(keyN)) Then
     Solid.Animation.Crossfade(Solid.Animation.Find('run'), 500);
 
-  If (InputManager.Instance.Keys.WasPressed(keyM)) Then
+  If (Engine.Input.Keys.WasPressed(keyM)) Then
     Solid.Animation.Crossfade(Solid.Animation.Find('idle'), 500);
 
-  If (InputManager.Instance.Keys.WasPressed(keyM)) Then
+  If (Engine.Input.Keys.WasPressed(keyM)) Then
     Solid.Animation.Crossfade(Solid.Animation.Find('jump'), 500);
 
 End;
 
-Procedure MyDemo.OnRender(V: TERRAViewport);
+Procedure MyDemo.OnRender3D(V: TERRAViewport);
 Begin
-  If (V <> Self._Scene.MainViewport) Then
-    Exit;
-
+  Inherited;
 
   DrawSkeleton(V, Solid.Geometry.Skeleton, Solid.Animation, Solid.Transform, ColorGreen, 1.0);
   DrawBoundingBox(V, Solid.GetBoundingBox(), ColorBlue);
-  GraphicsManager.Instance.AddRenderable(V, Solid);
+  Engine.Graphics.AddRenderable(V, Solid);
 End;
 
 {$IFDEF IPHONE}

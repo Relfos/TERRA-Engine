@@ -322,7 +322,7 @@ Begin
   If (Length(_Transforms)<=0) Then
     Exit;
     
-  _Transforms[0] := Matrix4x4Identity;
+  _Transforms[0] := Matrix4x4_Identity;
 
   If (_Next<>'') Then
   Begin
@@ -367,7 +367,7 @@ Begin
     If BoneState._SkinningIndex<=0 Then
       Continue;
       
-    _Transforms[BoneState._SkinningIndex] := Matrix4x4Multiply4x3(BoneState._FinalTransform, BoneState._OffsetMatrix);
+    _Transforms[BoneState._SkinningIndex] := Matrix4x4_Multiply4x3(BoneState._FinalTransform, BoneState._OffsetMatrix);
   End;
 
 //  FloatToString(Transforms[1].V[1]);
@@ -516,7 +516,7 @@ End;
 Function AnimationState.GetBonePoseMatrix(Index: Integer): Matrix4x4;
 Begin
   If (Index<0) Or (Index>=Length(_Transforms)) Then
-    Result := Matrix4x4Identity
+    Result := Matrix4x4_Identity
   Else
     Result := _Transforms[Index];
 End;
@@ -605,7 +605,7 @@ Begin
   If (Assigned(_Parent)) Then
   Begin
     _Parent.UpdateTransform(Node);
-    _FinalTransform := Matrix4x4Multiply4x3(_Parent._FinalTransform, LocalTransform);
+    _FinalTransform := Matrix4x4_Multiply4x3(_Parent._FinalTransform, LocalTransform);
   End Else
     _FinalTransform := LocalTransform;
 
@@ -975,7 +975,7 @@ begin
   If (Assigned(Node)) And (Node.HasTransform(Target.ID)) Then
   Begin
     Node.GetTransform(Target.ID, Block);
-    Transform := Matrix4x4Multiply4x3(Matrix4x4Translation(Block.Translation), QuaternionMatrix4x4(Block.Rotation));
+    Transform := Matrix4x4_Multiply4x3(Matrix4x4_Translation(Block.Translation), QuaternionMatrix4x4(Block.Rotation));
 
     If (Target._Kind = meshBone_Root) {And (Not _Owner.AllowRootMovement)} Then
     Begin

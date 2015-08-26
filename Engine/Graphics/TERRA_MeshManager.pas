@@ -143,7 +143,7 @@ Var
 Begin
   If _PlaneMesh = Nil Then
   Begin
-    Plane := TERRA_Solids.PlaneMesh.Create(VectorUp, 4);
+    Plane := TERRA_Solids.PlaneMesh.Create(Vector3D_Up, 4);
     _PlaneMesh := CreateMeshFromSolid(Plane);
     ReleaseObject(Plane);
   End;

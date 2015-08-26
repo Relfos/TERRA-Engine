@@ -182,7 +182,7 @@ Begin
         K := Trunc(BoneIndex);
         If (Instance.Animation = Nil) Or (Instance.Animation.Root = Nil) Then
           //TM := (MyMesh.Skeleton.BindPose[K])
-          TM := Matrix4x4Identity
+          TM := Matrix4x4_Identity
         Else
           TM := Instance.Animation.GetAbsoluteMatrix(K);
 
@@ -226,20 +226,20 @@ Begin
     End;
   End;
 
-  VS := VectorScale(L, ExtrusionValue);
-  VX := VectorScale(L, BiasExtrusionValue);
+  VS := Vector3D_Scale(L, ExtrusionValue);
+  VX := Vector3D_Scale(L, BiasExtrusionValue);
 
   SetLength(_ExtrudedVertices, _ExtrudedVertexCount+EdgeCount*6);
   For I:=0 To Pred(EdgeCount) Do
   Begin
-    V1:=VertexBuffer[Edges[I].A.GroupID, Edges[I].A.VertexID];
-    V2:=VertexBuffer[Edges[I].B.GroupID, Edges[I].B.VertexID];
+    V1 := VertexBuffer[Edges[I].A.GroupID, Edges[I].A.VertexID];
+    V2 := VertexBuffer[Edges[I].B.GroupID, Edges[I].B.VertexID];
 
-    V1:=VectorSubtract(V1,VX);
-    V2:=VectorSubtract(V2,VX);
+    V1 := Vector3D_Subtract(V1,VX);
+    V2 := Vector3D_Subtract(V2,VX);
 
-    V3:=VectorSubtract(V1,VS);
-    V4:=VectorSubtract(V2,VS);
+    V3 := Vector3D_Subtract(V1,VS);
+    V4 := Vector3D_Subtract(V2,VS);
 
     // Add a quad to the vertex list
     _ExtrudedVertices[_ExtrudedVertexCount]:=V3; Inc(_ExtrudedVertexCount);
@@ -308,8 +308,8 @@ Begin
     Exit;
   End;
 
-  _BoundingBox.StartVertex := VectorConstant(ExtrusionValue*2);
-  _BoundingBox.EndVertex := VectorConstant(-ExtrusionValue*2);
+  _BoundingBox.StartVertex := Vector3D_Constant(ExtrusionValue*2);
+  _BoundingBox.EndVertex := Vector3D_Constant(-ExtrusionValue*2);
 
   For I:=0 To Pred(_ExtrudedVertexCount) Do
   With _ExtrudedVertices[I] Do

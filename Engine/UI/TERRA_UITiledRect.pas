@@ -38,7 +38,7 @@ Begin
   Inherited Create(Name, Parent);
 
 
-  Self.SetRelativePosition(VectorCreate2D(X,Y));
+  Self.SetRelativePosition(Vector2D_Create(X,Y));
   Self.Layer := Z;
 
   Self._Texture := TextureProperty(Self.AddProperty(TextureProperty.Create('image', Nil), False));
@@ -50,7 +50,7 @@ Begin
   Self.Width := Width;
   Self.Height := Height;
 
-  Self.Pivot := VectorCreate2D(0, 0);
+  Self.Pivot := Vector2D_Create(0, 0);
 End;
 
 Function UITiledRect.GetObjectType: TERRAString;
@@ -108,7 +108,7 @@ Begin
   _Sprite.Glow := Self.GetGlow();
   _Sprite.BlendMode := blendBlend;
 
-  Scale9Sprite(_Sprite).SetPosition(VectorCreate2D(0, 0));
+  Scale9Sprite(_Sprite).SetPosition(Vector2D_Create(0, 0));
   Scale9Sprite(_Sprite).SetColor(Self.GetColor());
   Scale9Sprite(_Sprite).SetSize(Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)),  Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
   Scale9Sprite(_Sprite).SetUVRect(_U1.Value, _V1.Value, _U2.Value, _V2.Value);

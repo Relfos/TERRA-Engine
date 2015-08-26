@@ -280,7 +280,7 @@ Type
 			Procedure SetVec4Uniform(Const Name:TERRAString; const Value:Vector4D); Virtual; Abstract;
       Procedure SetMat3Uniform(Const Name:TERRAString; Value:Matrix3x3); Virtual; Abstract;
       Procedure SetMat4Uniform(Const Name:TERRAString; Value:Matrix4x4); Virtual; Abstract;
-      Procedure SetVec4ArrayUniform(Const Name:TERRAString; Count:Integer; Values:PVector4D); Virtual; Abstract;
+      Procedure SetVec4ArrayUniform(Const Name:TERRAString; Count:Integer; Values:Array Of Vector4D); Virtual; Abstract;
 
 			Procedure SetColorUniform(Const Name:TERRAString; Const Value:ColorRGBA);
 			Procedure SetPlaneUniform(Const Name:TERRAString; Const Value:Plane);
@@ -1266,12 +1266,12 @@ End;
 
 Procedure ShaderInterface.SetColorUniform(Const Name:TERRAString; Const Value:ColorRGBA);
 Begin
-  Self.SetVec4Uniform(Name, VectorCreate4D(Value.R / 255.0, Value.G / 255.0, Value.B / 255.0, Value.A / 255.0));
+  Self.SetVec4Uniform(Name, Vector4D_Create(Value.R / 255.0, Value.G / 255.0, Value.B / 255.0, Value.A / 255.0));
 End;
 
 Procedure ShaderInterface.SetPlaneUniform(const Name: AnsiString; Const Value: Plane);
 Begin
-  Self.SetVec4Uniform(Name, VectorCreate4D(Value.A, Value.B, Value.C, Value.D));
+  Self.SetVec4Uniform(Name, Vector4D_Create(Value.A, Value.B, Value.C, Value.D));
 End;
 
 Function ShaderInterface.HasUniform(const Name: TERRAString): Boolean;

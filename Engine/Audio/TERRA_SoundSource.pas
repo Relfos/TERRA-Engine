@@ -120,8 +120,8 @@ Begin
   _Volume := 1.0;
   _Pitch := 1.0;
 
-  _Position := VectorZero; //GraphicsManager.Instance().MainViewport.Camera.Position;
-  _Velocity := VectorZero;
+  _Position := Vector3D_Zero; //GraphicsManager.Instance().MainViewport.Camera.Position;
+  _Velocity := Vector3D_Zero;
   _Loop := False;
 
   {$IFDEF USEJAVA}

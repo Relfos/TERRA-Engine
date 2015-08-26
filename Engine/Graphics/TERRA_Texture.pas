@@ -168,7 +168,7 @@ Begin
 
   _TargetFormat := textureFormat_RGBA;
   _ByteFormat := pixelSizeByte;
-  _Ratio := VectorCreate2D(1, 1);
+  _Ratio := Vector2D_Create(1, 1);
 
   _SettingsChanged := True;
   _WrapMode := wrapAll;
@@ -221,7 +221,7 @@ Begin
       _Height := IntMin(_Height, Engine.Graphics.Renderer.Features.MaxTextureSize);
     End;
 
-    _Ratio := VectorCreate2D(_Width/TextureWidth, _Height/TextureHeight);
+    _Ratio := Vector2D_Create(_Width/TextureWidth, _Height/TextureHeight);
   End;
 
   _Source := TERRAImage.Create(_Width, _Height);
@@ -544,7 +544,7 @@ Begin
       H := IntMin(H, Engine.Graphics.Renderer.Features.MaxTextureSize);
     End;
 
-    _Ratio := VectorCreate2D(W/Source.Width, H/Source.Height);
+    _Ratio := Vector2D_Create(W/Source.Width, H/Source.Height);
 
     If (W<>Source.Width) Or (H<>Source.Height) Then
       Log(logDebug, 'Texture', self.Name+ ' needs resizing: '+ IntegerProperty.Stringify(W) +' ' + IntegerProperty.Stringify(H));
@@ -552,7 +552,7 @@ Begin
     Source.Resize(W,H);
   End Else
   Begin
-    _Ratio := VectorCreate2D(1, 1);
+    _Ratio := Vector2D_Create(1, 1);
   End;
 End;
 

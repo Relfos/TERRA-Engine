@@ -251,27 +251,27 @@ End;
 
 Procedure TERRASprite.ConcatTransform(const Mat: Matrix3x3);
 Begin
-  _Transform := MatrixMultiply3x3(Mat, _Transform);
+  _Transform := Matrix3x3_Multiply(Mat, _Transform);
 End;
 
 Procedure TERRASprite.Translate(const X, Y: Single);
 Begin
-  Self.ConcatTransform(MatrixTranslation2D(X, Y));
+  Self.ConcatTransform(Matrix3x3_Translation(X, Y));
 End;
 
 procedure TERRASprite.Rotate(Angle: Single);
 Begin
-  Self.ConcatTransform(MatrixRotation2D(Angle));
+  Self.ConcatTransform(Matrix3x3_Rotation(Angle));
 End;
 
 Procedure TERRASprite.Scale(const Value: Single);
 Begin
-  Self.ConcatTransform(MatrixScale2D(Value));
+  Self.ConcatTransform(Matrix3x3_Scale(Value));
 End;
 
 Procedure TERRASprite.Scale(const X, Y: Single);
 Begin
-  Self.ConcatTransform(MatrixScale2D(X, Y));
+  Self.ConcatTransform(Matrix3x3_Scale(X, Y));
 End;
 
 Procedure TERRASprite.AddTriangle(Const PosA, PosB, PosC:Vector2D; LayerOffset:Single);
@@ -293,16 +293,16 @@ Begin
   LayerOffset := LayerOffset + Self.Layer;
 
   _Vertices.SetColor(_VertexOffset + 0, vertexColor, _CA); //SampleColorAt(PX, PY)
-  _Vertices.SetVector3D(_VertexOffset + 0, vertexPosition, VectorCreate(PosA.X, PosA.Y, LayerOffset));
-  _Vertices.SetVector2D(_VertexOffset + 0, vertexUV0, VectorCreate2D(0.5, 0.5));
+  _Vertices.SetVector3D(_VertexOffset + 0, vertexPosition, Vector3D_Create(PosA.X, PosA.Y, LayerOffset));
+  _Vertices.SetVector2D(_VertexOffset + 0, vertexUV0, Vector2D_Create(0.5, 0.5));
 
   _Vertices.SetColor(_VertexOffset + 1, vertexColor, _CA); //SampleColorAt(PX, PY)
-  _Vertices.SetVector3D(_VertexOffset + 1, vertexPosition, VectorCreate(PosB.X, PosB.Y, LayerOffset));
-  _Vertices.SetVector2D(_VertexOffset + 1, vertexUV0, VectorCreate2D(0.5, 0.5));
+  _Vertices.SetVector3D(_VertexOffset + 1, vertexPosition, Vector3D_Create(PosB.X, PosB.Y, LayerOffset));
+  _Vertices.SetVector2D(_VertexOffset + 1, vertexUV0, Vector2D_Create(0.5, 0.5));
 
   _Vertices.SetColor(_VertexOffset + 2, vertexColor, _CA); //SampleColorAt(PX, PY)
-  _Vertices.SetVector3D(_VertexOffset + 2, vertexPosition, VectorCreate(PosC.X, PosC.Y, LayerOffset));
-  _Vertices.SetVector2D(_VertexOffset + 2, vertexUV0, VectorCreate2D(0.5, 0.5));
+  _Vertices.SetVector3D(_VertexOffset + 2, vertexPosition, Vector3D_Create(PosC.X, PosC.Y, LayerOffset));
+  _Vertices.SetVector2D(_VertexOffset + 2, vertexUV0, Vector2D_Create(0.5, 0.5));
 
   _Indices[_IndexOffset + 0] := _VertexOffset + 0;
   _Indices[_IndexOffset + 1] := _VertexOffset + 1;
@@ -356,10 +356,10 @@ Begin
 
   Case Anchor Of
     spriteAnchor_Center:
-      Pos.Subtract(VectorCreate2D(RadiusX * 0.5, RadiusY * 0.5));
+      Pos.Subtract(Vector2D_Create(RadiusX * 0.5, RadiusY * 0.5));
 
     spriteAnchor_BottomMiddle:
-      Pos.Subtract(VectorCreate2D(RadiusX * 0.5, -RadiusY * 0.5));
+      Pos.Subtract(Vector2D_Create(RadiusX * 0.5, -RadiusY * 0.5));
   End;
 
   For I:=0 To SubDivs Do
@@ -377,8 +377,8 @@ Begin
     End;
 
     _Vertices.SetColor(_VertexOffset + I, vertexColor, _CA); //SampleColorAt(PX, PY)
-    _Vertices.SetVector3D(_VertexOffset + I, vertexPosition, VectorCreate(Pos.X + RadiusX * PX, Pos.Y + + RadiusY * PY, LayerOffset));
-    _Vertices.SetVector2D(_VertexOffset + I, vertexUV0, VectorCreate2D(PX, PY));
+    _Vertices.SetVector3D(_VertexOffset + I, vertexPosition, Vector3D_Create(Pos.X + RadiusX * PX, Pos.Y + + RadiusY * PY, LayerOffset));
+    _Vertices.SetVector2D(_VertexOffset + I, vertexUV0, Vector2D_Create(PX, PY));
   End;
 
   For I:=0 To Pred(SubDivs) Do
@@ -438,10 +438,10 @@ Begin
 
   Case Anchor Of
     spriteAnchor_Center:
-      Pos.Subtract(VectorCreate2D(Width * 0.5, Height * 0.5));
+      Pos.Subtract(Vector2D_Create(Width * 0.5, Height * 0.5));
 
     spriteAnchor_BottomMiddle:
-      Pos.Subtract(VectorCreate2D(Width * 0.5, -Height * 0.5));
+      Pos.Subtract(Vector2D_Create(Width * 0.5, -Height * 0.5));
   End;
 
   _Vertices.SetColor(_VertexOffset + 0, vertexColor, _CC);
@@ -449,17 +449,17 @@ Begin
   _Vertices.SetColor(_VertexOffset + 2, vertexColor, _CB);
   _Vertices.SetColor(_VertexOffset + 3, vertexColor, _CA);
 
-  _Vertices.SetVector3D(_VertexOffset + 0, vertexPosition, VectorCreate(Pos.X, Pos.Y + Height, LayerOffset));
-  _Vertices.SetVector2D(_VertexOffset + 0, vertexUV0, VectorCreate2D(U1, V2));
+  _Vertices.SetVector3D(_VertexOffset + 0, vertexPosition, Vector3D_Create(Pos.X, Pos.Y + Height, LayerOffset));
+  _Vertices.SetVector2D(_VertexOffset + 0, vertexUV0, Vector2D_Create(U1, V2));
 
-  _Vertices.SetVector3D(_VertexOffset + 1, vertexPosition, VectorCreate(Pos.X + Width, Pos.Y +Height, LayerOffset));
-  _Vertices.SetVector2D(_VertexOffset + 1, vertexUV0, VectorCreate2D(U2, V2));
+  _Vertices.SetVector3D(_VertexOffset + 1, vertexPosition, Vector3D_Create(Pos.X + Width, Pos.Y +Height, LayerOffset));
+  _Vertices.SetVector2D(_VertexOffset + 1, vertexUV0, Vector2D_Create(U2, V2));
 
-  _Vertices.SetVector3D(_VertexOffset + 2, vertexPosition, VectorCreate(Pos.X + Width + Skew, Pos.Y, LayerOffset));
-  _Vertices.SetVector2D(_VertexOffset + 2, vertexUV0, VectorCreate2D(U2, V1));
+  _Vertices.SetVector3D(_VertexOffset + 2, vertexPosition, Vector3D_Create(Pos.X + Width + Skew, Pos.Y, LayerOffset));
+  _Vertices.SetVector2D(_VertexOffset + 2, vertexUV0, Vector2D_Create(U2, V1));
 
-  _Vertices.SetVector3D(_VertexOffset + 3, vertexPosition, VectorCreate(Pos.X + Skew, Pos.Y, LayerOffset));
-  _Vertices.SetVector2D(_VertexOffset + 3, vertexUV0, VectorCreate2D(U1, V1));
+  _Vertices.SetVector3D(_VertexOffset + 3, vertexPosition, Vector3D_Create(Pos.X + Skew, Pos.Y, LayerOffset));
+  _Vertices.SetVector2D(_VertexOffset + 3, vertexUV0, Vector2D_Create(U1, V1));
 
   _Indices[_IndexOffset + 0] := _VertexOffset + 0;
   _Indices[_IndexOffset + 1] := _VertexOffset + 1;
@@ -535,7 +535,7 @@ Begin
     Normal.Subtract(Positions[A]);
     Len := Normal.Length;
     Normal.Normalize();
-    Tangent := VectorCreate2D(-Normal.Y, Normal.X);
+    Tangent := Vector2D_Create(-Normal.Y, Normal.X);
 
     Pos := Positions[I];
 
@@ -549,11 +549,11 @@ Begin
     Else
       TU := U1;
 
-    _Vertices.SetVector3D(_VertexOffset + 0, vertexPosition, VectorCreate(Trunc(Pos.X + Tangent.X * Width), Trunc(Pos.Y + Tangent.Y * Width), LayerOffset));
-    _Vertices.SetVector2D(_VertexOffset + 0, vertexUV0, VectorCreate2D(TU * Mult, V1));
+    _Vertices.SetVector3D(_VertexOffset + 0, vertexPosition, Vector3D_Create(Trunc(Pos.X + Tangent.X * Width), Trunc(Pos.Y + Tangent.Y * Width), LayerOffset));
+    _Vertices.SetVector2D(_VertexOffset + 0, vertexUV0, Vector2D_Create(TU * Mult, V1));
 
-    _Vertices.SetVector3D(_VertexOffset + 1, vertexPosition, VectorCreate(Trunc(Pos.X - Tangent.X * Width), Trunc(Pos.Y - Tangent.Y * Width), LayerOffset));
-    _Vertices.SetVector2D(_VertexOffset + 1, vertexUV0, VectorCreate2D(TU * Mult, V2));
+    _Vertices.SetVector3D(_VertexOffset + 1, vertexPosition, Vector3D_Create(Trunc(Pos.X - Tangent.X * Width), Trunc(Pos.Y - Tangent.Y * Width), LayerOffset));
+    _Vertices.SetVector2D(_VertexOffset + 1, vertexUV0, Vector2D_Create(TU * Mult, V2));
 
     If (I>Low(Positions)) Then
     Begin
@@ -592,7 +592,7 @@ Begin
 
   Len := Normal.Length;
   Normal.Normalize();
-  Tangent := VectorCreate2D(-Normal.Y, Normal.X);
+  Tangent := Vector2D_Create(-Normal.Y, Normal.X);
 
   Delta := (ArrowLength) / Len;
   If (Delta>1) Then
@@ -600,11 +600,11 @@ Begin
 
   ArrowWidth := ArrowLength * 0.3333;
 
-  ArrowCenter := VectorCreate2D(StartPos.X * Delta + EndPos.X * (1.0-Delta), StartPos.Y * Delta + EndPos.Y * (1.0-Delta));
-  ArrowPoint := EndPos;//VectorAdd2D(EndPos, VectorCreate2D(Normal.X * ArrowWidth * 0.5, Normal.Y * ArrowWidth * 0.5));
+  ArrowCenter := Vector2D_Create(StartPos.X * Delta + EndPos.X * (1.0-Delta), StartPos.Y * Delta + EndPos.Y * (1.0-Delta));
+  ArrowPoint := EndPos;//VectorAdd2D(EndPos, Vector2D_Create(Normal.X * ArrowWidth * 0.5, Normal.Y * ArrowWidth * 0.5));
 
-  SideA := VectorAdd2D(ArrowCenter, VectorCreate2D(Tangent.X * ArrowWidth, Tangent.Y * ArrowWidth));
-  SideB := VectorAdd2D(ArrowCenter, VectorCreate2D(Tangent.X * -ArrowWidth, Tangent.Y * -ArrowWidth));
+  SideA := Vector2D_Add(ArrowCenter, Vector2D_Create(Tangent.X * ArrowWidth, Tangent.Y * ArrowWidth));
+  SideB := Vector2D_Add(ArrowCenter, Vector2D_Create(Tangent.X * -ArrowWidth, Tangent.Y * -ArrowWidth));
 
   Self.AddLine(StartPos, ArrowCenter, LayerOffset, LineWidth);
   Self.AddTriangle(ArrowPoint, SideA, SideB, LayerOffset);

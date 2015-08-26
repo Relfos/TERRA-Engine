@@ -556,7 +556,7 @@ Begin
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
   Begin
-    Value := VectorCreate2D(0.0, 0.0);
+    Value := Vector2D_Create(0.0, 0.0);
     Exit;
   End;
 
@@ -599,7 +599,7 @@ Begin
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
   Begin
-    Value := VectorCreate(0.0, 0.0, 0.0);
+    Value := Vector3D_Create(0.0, 0.0, 0.0);
     Exit;
   End;
 
@@ -653,7 +653,7 @@ Begin
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
   Begin
-    Value := VectorCreate4D(0.0, 0.0, 0.0, 1.0);
+    Value := Vector4D_Create(0.0, 0.0, 0.0, 1.0);
     Exit;
   End;
 

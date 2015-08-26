@@ -194,7 +194,7 @@ Var
 Begin
   Inherited Create(Name, Nil);
 
-  SetTransform(MatrixIdentity3x3);
+  SetTransform(Matrix3x3_Identity);
 
   Key_Up := TERRA_OS.keyUp;
   Key_Down := TERRA_OS.keyDown;
@@ -629,8 +629,8 @@ End;
 
 Function UIView.GetBoundingBox: BoundingBox;
 Begin
-  Result.StartVertex := VectorCreate(0, 0, 0);
-  Result.EndVertex := VectorCreate(GetDimension(Width, uiDimensionWidth) * Scale, GetDimension(Height, uiDimensionHeight) * Scale, 1.0);
+  Result.StartVertex := Vector3D_Create(0, 0, 0);
+  Result.EndVertex := Vector3D_Create(GetDimension(Width, uiDimensionWidth) * Scale, GetDimension(Height, uiDimensionHeight) * Scale, 1.0);
 End;
 
 

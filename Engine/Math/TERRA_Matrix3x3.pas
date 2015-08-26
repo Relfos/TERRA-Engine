@@ -28,7 +28,6 @@ Interface
 Uses TERRA_Vector2D, TERRA_Vector3D, TERRA_Matrix4x4;
 
 Type
-  PMatrix3x3 = ^Matrix3x3;
   Matrix3x3=Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     V:Array [0..8] Of Single;
 
@@ -42,33 +41,33 @@ Type
   End;
 
 Const
- MatrixIdentity3x3:Matrix3x3= (V:(1.0, 0.0, 0.0,
+ Matrix3x3_Identity:Matrix3x3= (V:(1.0, 0.0, 0.0,
                               0.0, 1.0, 0.0,
                               0.0, 0.0, 1.0));
 
 // Returns a rotation matrix
-Function MatrixRotation2D(Const Angle:Single):Matrix3x3; {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix3x3_Rotation(Const Angle:Single):Matrix3x3; {$IFDEF FPC}Inline;{$ENDIF}
 
-Function MatrixRotationAndScale2D(Const Angle, ScaleX, ScaleY:Single):Matrix3x3; {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix3x3_RotationAndScale(Const Angle, ScaleX, ScaleY:Single):Matrix3x3; {$IFDEF FPC}Inline;{$ENDIF}
 
-Function MatrixTransformAroundPoint2D(Const Center:Vector2D; Const Mat:Matrix3x3):Matrix3x3;
+Function Matrix3x3_TransformAroundPoint(Const Center:Vector2D; Const Mat:Matrix3x3):Matrix3x3;
 
 // Returns a translation matrix
-Function MatrixTranslation2D(Const Translation:Vector2D):Matrix3x3;Overload; {$IFDEF FPC}Inline;{$ENDIF}
-Function MatrixTranslation2D(Const X,Y:Single):Matrix3x3;Overload; {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix3x3_Translation(Const Translation:Vector2D):Matrix3x3;Overload; {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix3x3_Translation(Const X,Y:Single):Matrix3x3;Overload; {$IFDEF FPC}Inline;{$ENDIF}
 
-Function MatrixScale2D(Const Scale:Vector2D):Matrix3x3;Overload; {$IFDEF FPC}Inline;{$ENDIF}
-Function MatrixScale2D(Const X,Y:Single):Matrix3x3;Overload;   {$IFDEF FPC}Inline;{$ENDIF}
-Function MatrixScale2D(Const Scale:Single):Matrix3x3;Overload;   {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix3x3_Scale(Const Scale:Vector2D):Matrix3x3;Overload; {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix3x3_Scale(Const X,Y:Single):Matrix3x3;Overload;   {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix3x3_Scale(Const Scale:Single):Matrix3x3;Overload;   {$IFDEF FPC}Inline;{$ENDIF}
 
-Function MatrixInverse2D(Const Mat:Matrix3x3):Matrix3x3;
+Function Matrix3x3_Inverse(Const Mat:Matrix3x3):Matrix3x3;
 
-Function MatrixTranspose2D(Const Mat:Matrix3x3):Matrix3x3;
+Function Matrix3x3_Transpose(Const Mat:Matrix3x3):Matrix3x3;
 
-Function MatrixSkew2D(TX, TY:Single):Matrix3x3;
+Function Matrix3x3_Skew(TX, TY:Single):Matrix3x3;
 
 // Multiplys two matrices
-Function MatrixMultiply3x3(Const A,B:Matrix3x3):Matrix3x3;
+Function Matrix3x3_Multiply(Const A,B:Matrix3x3):Matrix3x3;
 
 Implementation
 Uses TERRA_Math{$IFDEF NEON_FPU},TERRA_NEON{$ENDIF};
@@ -89,12 +88,12 @@ Begin
 End;
 
 
-Function MatrixTranslation2D(Const Translation:Vector2D):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix3x3_Translation(Const Translation:Vector2D):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
 Begin
-  Result := MatrixTranslation2D(Translation.X,Translation.Y);
+  Result := Matrix3x3_Translation(Translation.X,Translation.Y);
 End;
 
-Function MatrixTranslation2D(Const X,Y:Single):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix3x3_Translation(Const X,Y:Single):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
 Begin
   Result.V[0] := 1.0;
   Result.V[1] := 0.0;
@@ -135,7 +134,7 @@ Begin
   Result.Z := P.Z;
 End;
 
-Function MatrixTranspose2D(Const Mat:Matrix3x3):Matrix3x3;
+Function Matrix3x3_Transpose(Const Mat:Matrix3x3):Matrix3x3;
 Begin
   Result.V[0] := Mat.V[0];
   Result.V[1] := Mat.V[3];
@@ -157,7 +156,7 @@ End;
 }
 
 //http://www.cg.info.hiroshima-cu.ac.jp/~miyazaki/knowledge/teche23.html
-Function MatrixInverse2D(Const Mat:Matrix3x3):Matrix3x3;
+Function Matrix3x3_Inverse(Const Mat:Matrix3x3):Matrix3x3;
 Var
   InvDet, Det:Double;
 Begin
@@ -184,7 +183,7 @@ Begin
   Result.V[8] := ((Mat.V[0] * Mat.V[4]) - (Mat.V[1] * Mat.V[3]))  * InvDet;
 End;
 
-Function MatrixRotation2D(Const Angle:Single):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix3x3_Rotation(Const Angle:Single):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
 Var
   S,C:Single;
 Begin
@@ -203,7 +202,7 @@ Begin
   Result.V[8] := 1.0;
 End;
 
-Function MatrixRotationAndScale2D(Const Angle, ScaleX, ScaleY:Single):Matrix3x3; {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix3x3_RotationAndScale(Const Angle, ScaleX, ScaleY:Single):Matrix3x3; {$IFDEF FPC}Inline;{$ENDIF}
 Var
   S,C:Single;
 Begin
@@ -222,27 +221,27 @@ Begin
   Result.V[8] := 1.0;
 End;
 
-Function MatrixTransformAroundPoint2D(Const Center:Vector2D; Const Mat:Matrix3x3):Matrix3x3;
+Function Matrix3x3_TransformAroundPoint(Const Center:Vector2D; Const Mat:Matrix3x3):Matrix3x3;
 Var
   ToOrigin, FromOrigin:Matrix3x3;
 Begin
-  ToOrigin := MatrixTranslation2D(-Center.X, -Center.Y);
-  FromOrigin := MatrixTranslation2D(Center);
+  ToOrigin := Matrix3x3_Translation(-Center.X, -Center.Y);
+  FromOrigin := Matrix3x3_Translation(Center);
 
-  Result := MatrixMultiply3x3(FromOrigin, MatrixMultiply3x3(Mat, ToOrigin));
+  Result := Matrix3x3_Multiply(FromOrigin, Matrix3x3_Multiply(Mat, ToOrigin));
 End;
 
-Function MatrixScale2D(Const Scale:Vector2D):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix3x3_Scale(Const Scale:Vector2D):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
 Begin
-  Result := MatrixScale2D(Scale.X, Scale.Y);
+  Result := Matrix3x3_Scale(Scale.X, Scale.Y);
 End;
 
-Function MatrixScale2D(Const Scale:Single):Matrix3x3;Overload;   {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix3x3_Scale(Const Scale:Single):Matrix3x3;Overload;   {$IFDEF FPC}Inline;{$ENDIF}
 Begin
-  Result := MatrixScale2D(Scale, Scale);
+  Result := Matrix3x3_Scale(Scale, Scale);
 End;
 
-Function MatrixScale2D(Const X,Y:Single):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix3x3_Scale(Const X,Y:Single):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
 Begin
   Result.V[0] := X;
   Result.V[1] := 0.0;
@@ -263,7 +262,7 @@ End;
   6 7 8
 }
 
-Function MatrixMultiply3x3(Const A,B:Matrix3x3):Matrix3x3;
+Function Matrix3x3_Multiply(Const A,B:Matrix3x3):Matrix3x3;
 Begin
 {$IFDEF NEON_FPU}
   matmul3_neon(@A,@B,@Result);
@@ -282,7 +281,7 @@ Begin
 {$ENDIF}
 End;
 
-Function MatrixSkew2D(TX, TY:Single):Matrix3x3;
+Function Matrix3x3_Skew(TX, TY:Single):Matrix3x3;
 Begin
   If (TX<>0) Then
     TX := Tan(TX);

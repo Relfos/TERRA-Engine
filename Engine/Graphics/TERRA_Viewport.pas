@@ -593,14 +593,14 @@ Var
 Begin
   If _Camera = Nil Then
   Begin
-    Result := VectorCreate(WX, WY, WZ);
+    Result := Vector3D_Create(WX, WY, WZ);
     Exit;
   End;
 
   //Calculation for inverting a matrix, compute projection x modelview and store in A
-  M := Matrix4x4Multiply4x4(Camera.Projection, Camera.Transform);
+  M := Matrix4x4_Multiply4x4(Camera.Projection, Camera.Transform);
   //Now compute the inverse of matrix A
-  M := Matrix4x4Inverse(M);
+  M := Matrix4x4_Inverse(M);
 
   //Transformation of normalized coordinates between -1 and 1
   P.X := ((WX/_Width) *2.0) - 1.0;
@@ -610,7 +610,7 @@ Begin
 
   //Objects coordinates
   P.Transform(M);
-  Result := VectorCreate(P.X/P.W, P.Y/P.W, P.Z/P.W);
+  Result := Vector3D_Create(P.X/P.W, P.Y/P.W, P.Z/P.W);
 End;
 
 Function TERRAViewport.GetPickRay(TX, TY:Integer):Ray;
@@ -640,7 +640,7 @@ Begin
   N := UnprojectVector(px, py, 0.0);
 	F := UnprojectVector(px, py, 1.0);
 
-  Result.Direction := VectorSubtract(F, N);
+  Result.Direction := Vector3D_Subtract(F, N);
   Result.Direction.Normalize;
   Result.Origin := N;
 End;
@@ -1152,8 +1152,8 @@ Begin
       Result.EndVertex := Vertices[1];
     End Else
     Begin
-      Result.StartVertex := VectorMin(Vertices[I],Result.StartVertex);
-      Result.EndVertex := VectorMax(Vertices[I],Result.EndVertex);
+      Result.StartVertex := Vector3D_Min(Vertices[I],Result.StartVertex);
+      Result.EndVertex := Vector3D_Max(Vertices[I],Result.EndVertex);
     End;
   End;
 End;

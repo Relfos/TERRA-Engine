@@ -130,7 +130,7 @@ Var
 
   Function GetNormal(V:Vector3D):Vector3D;
   Begin
-    Result := VectorSubtract(V, Camera.Position);
+    Result := Vector3D_Subtract(V, Camera.Position);
     Result.Normalize;
   End;
 
@@ -168,20 +168,20 @@ Begin
   CamVertices := Camera.Frustum.Vertices;
 
   _Vertices.SetVector3D(0, vertexNormal, GetNormal(CamVertices[5]));
-  _Vertices.SetVector3D(0, vertexPosition, VectorCreate(1.0, 0.0, 0.0));
+  _Vertices.SetVector3D(0, vertexPosition, Vector3D_Create(1.0, 0.0, 0.0));
   _Vertices.CopyVertex(0, 5);
 
   _Vertices.SetVector3D(1, vertexNormal, GetNormal(CamVertices[7]));
-  _Vertices.SetVector3D(1, vertexPosition, VectorCreate(1.0, 1.0, 0.0));
+  _Vertices.SetVector3D(1, vertexPosition, Vector3D_Create(1.0, 1.0, 0.0));
 
   _Vertices.SetVector3D(2, vertexNormal, GetNormal(CamVertices[8]));
-  _Vertices.SetVector3D(2, vertexPosition, VectorCreate(0.0, 1.0, 0.0));
+  _Vertices.SetVector3D(2, vertexPosition, Vector3D_Create(0.0, 1.0, 0.0));
   _Vertices.CopyVertex(2, 3);
 
   _Vertices.SetVector3D(4, vertexNormal, GetNormal(CamVertices[6]));
-  _Vertices.SetVector3D(4, vertexPosition, VectorCreate(0.0, 0.0, 0.0));
+  _Vertices.SetVector3D(4, vertexPosition, Vector3D_Create(0.0, 0.0, 0.0));
 
-  Projection := Matrix4x4Ortho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
+  Projection := Matrix4x4_Ortho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
 
   Graphics.Renderer.BindShader(MyShader);
 
@@ -194,7 +194,7 @@ Begin
   MyShader.SetIntegerUniform('skyTexture', 0);
   MyShader.SetColorUniform('skyColor', _Color);
 
-  MyShader.SetMat4Uniform('rotationMatrix', Matrix4x4Rotation(0, _Rotation, 0));
+  MyShader.SetMat4Uniform('rotationMatrix', Matrix4x4_Rotation(0, _Rotation, 0));
   MyShader.SetMat4Uniform('projectionMatrix', Projection);
   MyShader.SetMat4Uniform('reflectionMatrix', Engine.Graphics.ReflectionMatrixSky);
 

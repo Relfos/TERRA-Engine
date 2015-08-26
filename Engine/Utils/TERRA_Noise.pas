@@ -330,7 +330,7 @@ Begin
     For J:=0 To Pred(CellGridSize) Do
       For I:=0 To Pred(CellGridSize) Do
       Begin
-        _Points[I,J,K] := VectorCreate(RandomFloat, RandomFloat, RandomFloat);
+        _Points[I,J,K] := Vector3D_Create(RandomFloat, RandomFloat, RandomFloat);
       End;
 End;
 
@@ -370,8 +370,8 @@ Begin
         CY := (TY+J);
         CZ := (TZ+K);
 
-        P.Add(VectorCreate(CX, CY, CZ));
-        R := P.Distance(VectorCreate(X,Y,Z));
+        P.Add(Vector3D_Create(CX, CY, CZ));
+        R := P.Distance(Vector3D_Create(X,Y,Z));
         If (R<Dist) Then
           Dist := R;
       End;

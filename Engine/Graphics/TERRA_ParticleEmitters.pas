@@ -266,10 +266,10 @@ Begin
 
   Case Group.EmitterMode Of
     particleEmitterCylinder:
-      Pos := VectorScale(VectorCreate(RandomFloat(-1.0, 1.0), 0, RandomFloat(-1.0, 1.0)), Group.SpawnRange);
+      Pos := Vector3D_Scale(Vector3D_Create(RandomFloat(-1.0, 1.0), 0, RandomFloat(-1.0, 1.0)), Group.SpawnRange);
 
     Else
-      Pos := VectorScale(VectorCreate(RandomFloat(-1.0, 1.0), RandomFloat(-1.0, 1.0), RandomFloat(-1.0, 1.0)), Group.SpawnRange);
+      Pos := Vector3D_Scale(Vector3D_Create(RandomFloat(-1.0, 1.0), RandomFloat(-1.0, 1.0), RandomFloat(-1.0, 1.0)), Group.SpawnRange);
   End;
 
   Pos.Add(Self.Position);
@@ -292,7 +292,7 @@ Begin
 
   Target.LinearSpeed.MakeConstant(LinearSpeed);
   {$ELSE}
-  DestPos := VectorAdd(Pos, VectorScale(Dir, Target.Life * LinearSpeed * 0.5));
+  DestPos := Vector3D_Add(Pos, Vector3D_Scale(Dir, Target.Life * LinearSpeed * 0.5));
 
   Target.PosX.AddGraph(Pos.X, DestPos.X, 1.0);
   Target.PosY.AddGraph(Pos.Y, DestPos.Y, 1.0);
@@ -387,8 +387,8 @@ Begin
   MinAlpha := 0.5;
   MaxAlpha := 1.0;
 
-  MinDirection := VectorConstant(-1.0);
-  MaxDirection := VectorConstant(1.0);
+  MinDirection := Vector3D_Constant(-1.0);
+  MaxDirection := Vector3D_Constant(1.0);
 
   MinSpeed := 0.8;
   MaxSpeed := 1.2;

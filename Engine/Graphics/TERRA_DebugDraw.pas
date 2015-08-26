@@ -66,7 +66,7 @@ Const
 Function ConvertTo2D(View:TERRAViewport; P:Vector3D):Vector2D;
 Begin
   P := View.ProjectPoint(P);
-  Result := VectorCreate2D(P.X, P.Y);
+  Result := Vector2D_Create(P.X, P.Y);
 End;
 
 Procedure DrawPoint2D(View:TERRAViewport; Const P:Vector2D; FillColor:ColorRGBA; Radius:Single = 2.0);
@@ -125,7 +125,7 @@ Begin
   S.SetTexture(Tex);
   S.Layer := Layer;
   S.SetColor(FillColor);
-  S.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(0,0), 0.0, Trunc(MaxX-MinX), Trunc(MaxY-MinY)); // colors
+  S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0,0), 0.0, Trunc(MaxX-MinX), Trunc(MaxY-MinY)); // colors
   S.Translate(MinX, MinY);
 
 //  S.ClipRect := Clip;
@@ -163,15 +163,15 @@ Begin
     Exit;
   End;
 
-  DrawLine2D(View, VectorCreate2D(MinX, MinY), VectorCreate2D(MaxX, MinY), LineColor, LineWidth);
-  DrawLine2D(View, VectorCreate2D(MaxX, MinY), VectorCreate2D(MaxX, MaxY), LineColor, LineWidth);
-  DrawLine2D(View, VectorCreate2D(MaxX, MaxY), VectorCreate2D(MinX, MaxY), LineColor, LineWidth);
-  DrawLine2D(View, VectorCreate2D(MinX, MaxY), VectorCreate2D(MinX, MinY), LineColor, LineWidth);
+  DrawLine2D(View, Vector2D_Create(MinX, MinY), Vector2D_Create(MaxX, MinY), LineColor, LineWidth);
+  DrawLine2D(View, Vector2D_Create(MaxX, MinY), Vector2D_Create(MaxX, MaxY), LineColor, LineWidth);
+  DrawLine2D(View, Vector2D_Create(MaxX, MaxY), Vector2D_Create(MinX, MaxY), LineColor, LineWidth);
+  DrawLine2D(View, Vector2D_Create(MinX, MaxY), Vector2D_Create(MinX, MinY), LineColor, LineWidth);
 End;
 
 Procedure DrawClipRect(View:TERRAViewport; Const Rect:TERRAClipRect; LineColor:ColorRGBA; LineWidth:Single = 1.0);
 Begin
-  DrawRectangle(View, VectorCreate2D(Rect.X1, Rect.Y1), VectorCreate2D(Rect.X2, Rect.Y2), LineColor, LineWidth);
+  DrawRectangle(View, Vector2D_Create(Rect.X1, Rect.Y1), Vector2D_Create(Rect.X2, Rect.Y2), LineColor, LineWidth);
 End;
 
 Procedure DrawCircle(View:TERRAViewport; Const P:Vector2D; Radius:Single; LineColor:ColorRGBA; LineWidth:Single = 1.0);
@@ -188,11 +188,11 @@ Begin
   For I:=1 To SubDivs Do
   Begin
     Angle := (I/SubDivs) * PI * 2;
-    A := VectorCreate2D(P.X + DX * Radius, P.Y + DY * Radius);
+    A := Vector2D_Create(P.X + DX * Radius, P.Y + DY * Radius);
 
     DX := Cos(Angle);
     DY := Sin(Angle);
-    B := VectorCreate2D(P.X + DX * Radius, P.Y + DY * Radius);
+    B := Vector2D_Create(P.X + DX * Radius, P.Y + DY * Radius);
 
     DrawLine2D(View, A, B, LineColor, LineWidth);
   End;
@@ -226,7 +226,7 @@ Begin
   If Length<=0 Then
     Length := 9999;
 
-  P := VectorAdd(R.Origin, VectorScale(R.Direction, Length));
+  P := Vector3D_Add(R.Origin, Vector3D_Scale(R.Direction, Length));
 
   DrawLine3D(View, R.Origin, P, LineColor, LineWidth);
 End;
@@ -239,15 +239,15 @@ Begin
   Min := MyBox.StartVertex;
   Max := MyBox.EndVertex;
 
-  Points[0] := VectorCreate(Min.X, Min.Y, Min.Z);
-  Points[1] := VectorCreate(Max.X, Min.Y, Min.Z);
-  Points[2] := VectorCreate(Min.X, Min.Y, Max.Z);
-  Points[3] := VectorCreate(Max.X, Min.Y, Max.Z);
+  Points[0] := Vector3D_Create(Min.X, Min.Y, Min.Z);
+  Points[1] := Vector3D_Create(Max.X, Min.Y, Min.Z);
+  Points[2] := Vector3D_Create(Min.X, Min.Y, Max.Z);
+  Points[3] := Vector3D_Create(Max.X, Min.Y, Max.Z);
 
-  Points[4] := VectorCreate(Min.X, Max.Y, Min.Z);
-  Points[5] := VectorCreate(Max.X, Max.Y, Min.Z);
-  Points[6] := VectorCreate(Min.X, Max.Y, Max.Z);
-  Points[7] := VectorCreate(Max.X, Max.Y, Max.Z);
+  Points[4] := Vector3D_Create(Min.X, Max.Y, Min.Z);
+  Points[5] := Vector3D_Create(Max.X, Max.Y, Min.Z);
+  Points[6] := Vector3D_Create(Min.X, Max.Y, Max.Z);
+  Points[7] := Vector3D_Create(Max.X, Max.Y, Max.Z);
 
   DrawLine3D(View, Points[0], Points[1], LineColor, LineWidth);
   DrawLine3D(View, Points[0], Points[2], LineColor, LineWidth);
@@ -293,18 +293,18 @@ Begin
     Exit;
 
   If Assigned(State) Then
-    M := Matrix4x4Multiply4x3(Transform, State.GetAbsoluteMatrix(Bone.ID))
+    M := Matrix4x4_Multiply4x3(Transform, State.GetAbsoluteMatrix(Bone.ID))
   Else
-    M := Matrix4x4Multiply4x3(Transform, Bone.AbsoluteMatrix);
+    M := Matrix4x4_Multiply4x3(Transform, Bone.AbsoluteMatrix);
 
-  A := M.Transform(VectorZero);
+  A := M.Transform(Vector3D_Zero);
 
   If Assigned(State) Then
-    M := Matrix4x4Multiply4x3(Transform, State.GetAbsoluteMatrix(Bone.Parent.ID))
+    M := Matrix4x4_Multiply4x3(Transform, State.GetAbsoluteMatrix(Bone.Parent.ID))
   Else
-    M := Matrix4x4Multiply4x3(Transform, Bone.Parent.AbsoluteMatrix);
+    M := Matrix4x4_Multiply4x3(Transform, Bone.Parent.AbsoluteMatrix);
     
-  B := M.Transform(VectorZero);
+  B := M.Transform(Vector3D_Zero);
 
   DrawLine3D(View, A, B, LineColor, LineWidth);
 End;
@@ -328,31 +328,31 @@ Var
 Begin
   V := F.Vertices;
 
-	P[0] := VectorCreate(V[2].X, V[2].Y, V[2].z);
-	P[1] := VectorCreate(V[1].X, V[1].Y, V[1].z);
-  P[2] := VectorCreate(V[3].X, V[3].Y, V[3].z);
-  P[3] := VectorCreate(V[4].X, V[4].Y, V[4].z);
+	P[0] := Vector3D_Create(V[2].X, V[2].Y, V[2].z);
+	P[1] := Vector3D_Create(V[1].X, V[1].Y, V[1].z);
+  P[2] := Vector3D_Create(V[3].X, V[3].Y, V[3].z);
+  P[3] := Vector3D_Create(V[4].X, V[4].Y, V[4].z);
 	For I:=1 To 3 Do
     DrawLine3D(View, P[I-1], P[I], LineColor, LineWidth);
 
-	P[0] := VectorCreate(V[6].X, V[6].Y, V[6].z);
-	P[1] := VectorCreate(V[5].X, V[5].Y, V[5].z);
-  P[2] := VectorCreate(V[7].X, V[7].Y, V[7].z);
-  P[3] := VectorCreate(V[8].X, V[8].Y, V[8].z);
+	P[0] := Vector3D_Create(V[6].X, V[6].Y, V[6].z);
+	P[1] := Vector3D_Create(V[5].X, V[5].Y, V[5].z);
+  P[2] := Vector3D_Create(V[7].X, V[7].Y, V[7].z);
+  P[3] := Vector3D_Create(V[8].X, V[8].Y, V[8].z);
 	For I:=1 To 3 Do
     DrawLine3D(View, P[I-1], P[I], LineColor, LineWidth);
 
-	P[0] := VectorCreate(V[1].X, V[1].Y, V[1].z);
-	P[1] := VectorCreate(V[3].X, V[3].Y, V[3].z);
-  P[2] := VectorCreate(V[7].X, V[7].Y, V[7].z);
-  P[3] := VectorCreate(V[5].X, V[5].Y, V[5].z);
+	P[0] := Vector3D_Create(V[1].X, V[1].Y, V[1].z);
+	P[1] := Vector3D_Create(V[3].X, V[3].Y, V[3].z);
+  P[2] := Vector3D_Create(V[7].X, V[7].Y, V[7].z);
+  P[3] := Vector3D_Create(V[5].X, V[5].Y, V[5].z);
 	For I:=1 To 3 Do
     DrawLine3D(View, P[I-1], P[I], LineColor, LineWidth);
 
-	P[0] := VectorCreate(V[2].X, V[2].Y, V[2].z);
-	P[1] := VectorCreate(V[4].X, V[4].Y, V[4].z);
-  P[2] := VectorCreate(V[8].X, V[8].Y, V[8].z);
-  P[3] := VectorCreate(V[6].X, V[6].Y, V[6].z);
+	P[0] := Vector3D_Create(V[2].X, V[2].Y, V[2].z);
+	P[1] := Vector3D_Create(V[4].X, V[4].Y, V[4].z);
+  P[2] := Vector3D_Create(V[8].X, V[8].Y, V[8].z);
+  P[3] := Vector3D_Create(V[6].X, V[6].Y, V[6].z);
 	For I:=1 To 3 Do
     DrawLine3D(View, P[I-1], P[I], LineColor, LineWidth);
 End;
@@ -362,8 +362,8 @@ Var
   Tangent, BiTangent:Vector3D;
   M:Matrix4x4;
 Begin
-  Tangent := VectorCross(Normal, VectorUp);
-  BiTangent := VectorCross(Normal, Tangent);
+  Tangent := Vector3D_Cross(Normal, Vector3D_Up);
+  BiTangent := Vector3D_Cross(Normal, Tangent);
 
   DrawRay(V, RayCreate(Origin, Normal), ColorRed, LineWidth, 5);
   DrawRay(V, RayCreate(Origin, Tangent), ColorBlue, LineWidth, 5);
@@ -392,10 +392,10 @@ Var
 Begin
   If (Abs(Normal.Y)>Abs(Normal.X)) And (Abs(Normal.Y)>Abs(Normal.Z)) Then
   Begin
-    U := VectorCreate(Normal.X, Normal.Z, Normal.Y);
+    U := Vector3D_Create(Normal.X, Normal.Z, Normal.Y);
   End Else
   Begin
-    U := VectorCreate(Normal.Z, Normal.Y, Normal.X);
+    U := Vector3D_Create(Normal.Z, Normal.Y, Normal.X);
   End;
   V := VectorCross(Normal, U);
 

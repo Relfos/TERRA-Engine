@@ -174,11 +174,11 @@ Uses TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsManager, TERRA_Ren
 Constructor TERRACamera.Create(Const Name:TERRAString);
 Begin
   Self._ObjectName := Name;
-  _Roll := VectorUp;
+  _Roll := Vector3D_Up;
   _FOV := 45.0;
   _LastOrientation := -1;
-  _Position := VectorCreate(0.0, 0.0, 1.0);
-  _View := VectorCreate(0.0, 0.0, -1.0);
+  _Position := Vector3D_Create(0.0, 0.0, 1.0);
+  _View := Vector3D_Create(0.0, 0.0, -1.0);
   _Near := 1.0;
   _Far := 300.0;
   _Speed := 4.0;// * GL_WORLD_SCALE;
@@ -225,7 +225,7 @@ Begin
     _Up := VectorCreate(_Roll.Y, _Roll.X, _Roll.Z)
   Else}
 
-  _Transform := Matrix4x4LookAt(P, VectorAdd(_Position, _View), _Roll);
+  _Transform := Matrix4x4_LookAt(P, Vector3D_Add(_Position, _View), _Roll);
 
   _Up := _Roll;
 {  If (Abs(_Up.Dot(_View))>=0.9) Then
@@ -236,8 +236,8 @@ Begin
     _Up := VectorCross(_View, _Right);
   End Else}
   Begin
-    _Right := VectorCross(_Up, _View);
-    _Up := VectorCross(_View, _Right);
+    _Right := Vector3D_Cross(_Up, _View);
+    _Up := Vector3D_Cross(_View, _Right);
   End;
 
   //_Right.Normalize;
@@ -271,8 +271,8 @@ Begin
   rotX := rotX * (Speed * Engine.Graphics.ElapsedTime) * 0.5;
   rotY := rotY * (Speed * Engine.Graphics.ElapsedTime) * 0.5;
 
-	_view.Rotate(VectorUp, rotX);
-	rot_axis := VectorCreate(-_view.z, 0.0, _view.x);
+	_view.Rotate(Vector3D_Up, rotX);
+	rot_axis := Vector3D_Create(-_view.z, 0.0, _view.x);
   rot_axis.Normalize;
 	_view.Rotate(rot_axis, rotY);
   _view.Normalize;
@@ -369,15 +369,15 @@ Var
   p,N:Vector3D;
 Begin
   Center := Box.Center;
-  offset := VectorSubtract(Box.EndVertex, Center); // Radius of bounding sphere
+  offset := Vector3D_Subtract(Box.EndVertex, Center); // Radius of bounding sphere
 
   P := center;
   oneOverSine := 1.0 / Tan(_FOV *RAD / 4.0); // 1 / sin = adjacent / opposite
   distanceToCenter := Offset.Length * oneOverSine; // (adjacent / opposite) * opposite = adjacent
 
-  N := VectorConstant(1);
+  N := Vector3D_Constant(1.0);
   N.Normalize;
-  P.Add( VectorScale(N, distanceToCenter));
+  P.Add( Vector3D_Scale(N, distanceToCenter));
   SetPosition(P);
   P.Subtract(Center);
   P.Normalize;
@@ -387,7 +387,7 @@ End;
 
 procedure TERRACamera.LookAt(P: Vector3D);
 Begin
-  P := VectorSubtract(P, _Position);
+  P := Vector3D_Subtract(P, _Position);
   P.Normalize;
   SetView(P);
 End;
@@ -447,8 +447,8 @@ End;
 procedure TERRACamera.Move(Dir: Integer; Speed: Single);
 Begin
   Case Dir Of
-    camdirForward:   _position := VectorAdd(_position, VectorScale(_view, Speed));
-    camdirBackward:  _position := VectorAdd(_position, VectorScale(_view, -Speed));
+    camdirForward:   _position := Vector3D_Add(_position, Vector3D_Scale(_view, Speed));
+    camdirBackward:  _position := Vector3D_Add(_position, Vector3D_Scale(_view, -Speed));
     camdirLeft:
       Begin
     		_position.x := _position.x + (_view.z * Speed);
@@ -586,7 +586,7 @@ Begin
 {$ENDIF}
 
   {$IFDEF DISABLEVR}
-  Result := Matrix4x4Perspective(FOV, Ratio, _Near, _Far);
+  Result := Matrix4x4_Perspective(FOV, Ratio, _Near, _Far);
   {$ELSE}
   Result := Application.Instance.GetVRProjectionMatrix(Eye, FOV, Ratio, _Near, _Far);
   {$ENDIF}
@@ -606,8 +606,8 @@ End;
 
 Procedure OrthoCamera.CalculateProjection(Const Eye:Integer; Out Result:Matrix4x4);
 Begin
-  Result := Matrix4x4Ortho(_OrthoX1*_OrthoScale, _OrthoX2*_OrthoScale, _OrthoY2*_OrthoScale, _OrthoY1*_OrthoScale, _Near, _Far);
-  Result := Matrix4x4Multiply4x4(Result, Matrix4x4Translation(0.375, 0.375, 0.0)); // apply "pixel-perfect" correction
+  Result := Matrix4x4_Ortho(_OrthoX1*_OrthoScale, _OrthoX2*_OrthoScale, _OrthoY2*_OrthoScale, _OrthoY1*_OrthoScale, _Near, _Far);
+  Result := Matrix4x4_Multiply4x4(Result, Matrix4x4_Translation(0.375, 0.375, 0.0)); // apply "pixel-perfect" correction
 End;
 
 Procedure OrthoCamera.SetArea(X1, Y1, X2, Y2: Single);
