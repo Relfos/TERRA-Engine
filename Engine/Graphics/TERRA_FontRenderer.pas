@@ -529,7 +529,7 @@ Function TERRAFontRenderer.DrawText(View:TERRAViewport; X,Y,Layer:Single; Const 
 Var
   Dest:FontSprite;
 Begin
-  If (_LastAllocFrame <> GraphicsManager.Instance.FrameID) Then
+  If (_LastAllocFrame <> Engine.Graphics.FrameID) Then
     _SpriteCount := 0;
 
   Dest := Self.AllocSprite();
@@ -762,7 +762,7 @@ End;
 
 Function TERRAFontRenderer.AllocSprite: FontSprite;
 Begin
-  _LastAllocFrame := GraphicsManager.Instance.FrameID;
+  _LastAllocFrame := Engine.Graphics.FrameID;
 
   If (Length(_Sprites)<=_SpriteCount) Then
   Begin

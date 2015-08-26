@@ -10,8 +10,10 @@ Function Get_SkyboxNormalShader():ShaderInterface;
 
 Function GetShader_Sprite(SpriteFlags:Cardinal):TERRAString;
 
+Function GetShader_Particles():TERRAString;
+
 Implementation
-Uses TERRA_OS, TERRA_ShaderFactory, TERRA_Sprite, TERRA_GraphicsManager
+Uses TERRA_OS, TERRA_ShaderFactory, TERRA_Sprite, TERRA_EngineManager, TERRA_GraphicsManager
 {$IFNDEF DISABLECOLORGRADING},TERRA_ColorGrading {$ENDIF};
 
 Var
@@ -61,7 +63,7 @@ Function Get_SkyboxNormalShader():ShaderInterface;
 Begin
   If (_SkyboxNormalShader = Nil) Then
   Begin
-    _SkyboxNormalShader := GraphicsManager.Instance.Renderer.CreateShader();
+    _SkyboxNormalShader := Engine.Graphics.Renderer.CreateShader();
     _SkyboxNormalShader.Generate('skybox_normal', GetShader_Skybox(shader_OutputNormal));
   End;
 
@@ -72,7 +74,7 @@ Function Get_SkyboxDiffuseShader():ShaderInterface;
 Begin
   If (_SkyboxDiffuseShader = Nil) Then
   Begin
-    _SkyboxDiffuseShader := GraphicsManager.Instance.Renderer.CreateShader();
+    _SkyboxDiffuseShader := Engine.Graphics.Renderer.CreateShader();
     _SkyboxDiffuseShader.Generate('skybox', GetShader_Skybox(0));
   End;
 
@@ -241,6 +243,54 @@ Begin
   End;
 
   Line('}  ');
+  Result := S;
+End;
+
+Function GetShader_Particles():TERRAString;
+Var
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
+Begin
+  S := '';
+  Line('version { 120 }');
+  Line('vertex {');
+  Line('	varying mediump vec4 texCoord;');
+  Line('	varying lowp vec4 diffuse;');
+  Line('	uniform highp vec3 cameraPosition;');
+  Line('  attribute highp vec4 terra_position;');
+  Line('  attribute mediump vec4 terra_UV0;');
+  Line('  attribute mediump vec2 terra_ofs;');
+  Line('  attribute lowp vec4 terra_color;');
+  Line('  attribute mediump vec2 terra_size;');
+  Line('  attribute mediump vec2 terra_angle;');
+  Line('	uniform mat4 cameraMatrix;');
+  Line('	uniform mat4 projectionMatrix;');
+  Line('  uniform mat4 reflectionMatrix;');
+  Line('	uniform mediump vec3 cameraRight;');
+  Line('	uniform mediump vec3 cameraUp;');
+//  Line('	uniform highp float ratio;');
+  Line('	void main()	{');
+  Line('		texCoord = terra_UV0;');
+  Line('		diffuse = terra_color;	');
+  Line('		highp vec4 world_position = terra_position;');
+  Line('    world_position = reflectionMatrix * world_position;');
+  Line('    highp vec2 pp = terra_size * terra_ofs;');
+  Line('    pp = vec2(pp.x * terra_angle.x - pp.y * terra_angle.y, pp.x * terra_angle.y + pp.y * terra_angle.x);');
+  Line('		world_position.xyz += (pp.x * cameraRight + pp.y * cameraUp);');//  Line('		world_position.xyz += (ratio * pp.x * cameraRight + pp.y * cameraUp);');
+  Line('		gl_Position = projectionMatrix * cameraMatrix * world_position;}');
+  Line('}');
+  Line('fragment {');
+  Line('	uniform sampler2D texture0;');
+  Line('	uniform highp vec3 cameraPosition;');
+  Line('	uniform lowp vec4 sunColor;');
+  Line('	varying mediump vec4 texCoord;');
+  Line('	varying lowp vec4 diffuse;');
+  Line('	void main()	{');
+  Line('	  lowp vec4 color = texture2D(texture0, texCoord.st) * diffuse;');
+  Line('    if (color.a<0.1) discard;');
+  Line('    color *= sunColor;');
+  Line('		gl_FragColor = color;}');
+  Line('}');
   Result := S;
 End;
 

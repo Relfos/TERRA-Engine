@@ -6,7 +6,8 @@ Uses
   TERRA_Utils, TERRA_Object, TERRA_Application,  TERRA_GraphicsManager,
   TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_OS, TERRA_FileManager, TERRA_Texture,
   TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_InputManager,
-  TERRA_EngineManager, TERRA_Renderer,
+  TERRA_EngineManager, TERRA_Renderer, TERRA_Sprite,
+  TERRA_Vector2D,
   TERRA_FontRenderer, TERRA_Localization, TERRA_DemoApplication;
 
 Type
@@ -44,13 +45,13 @@ Begin
   If (Engine.Input.Keys.WasPressed(keyLeft)) And (_SelectedLanguage>1) Then
   Begin
     Dec(_SelectedLanguage);
-    LocalizationManager.Instance.SetLanguage(LanguageList[_SelectedLanguage]);
+    Engine.Localization.SetLanguage(LanguageList[_SelectedLanguage]);
   End;
 
   If (Engine.Input.Keys.WasPressed(keyright)) And (_SelectedLanguage<LanguageCount) Then
   Begin
     Inc(_SelectedLanguage);
-    LocalizationManager.Instance.SetLanguage(LanguageList[_SelectedLanguage]);
+    Engine.Localization.SetLanguage(LanguageList[_SelectedLanguage]);
   End;
 End;
 
@@ -58,6 +59,8 @@ Procedure Demo.OnRender2D(V:TERRAViewport);
 Var
   I:Integer;
   Saturation:Single;
+  S:TERRASprite;
+  Tex:TERRATexture;
 Begin
   For I:=1 To LanguageCount Do
   Begin
@@ -66,14 +69,24 @@ Begin
     Else
       Saturation := 0.0;
 
-    V.SpriteRenderer.DrawSprite(10 + I * 70, 10, 10, Engine.Textures['flag_'+LanguageList[I]], Nil, blendBlend, Saturation);
+    Tex := Engine.Textures['flag_'+LanguageList[I]];
+
+    S := V.SpriteRenderer.FetchSprite();
+    S.Translate(10 + I * 70, 20);
+    S.Layer := 10;
+    S.SetTexture(Tex);
+    S.Saturation := Saturation;
+
+    S.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+
+    V.SpriteRenderer.QueueSprite(S);
   End;
 
   // render some text
-  Self.FontRenderer.DrawText(V, 50, 90, 10, ' Language: ' + GetLanguageDescription(LanguageList[_SelectedLanguage]));
-  Self.FontRenderer.DrawText(V, 100, 160, 10, LocalizationManager.Instance['score'] + ': 1000');
-  Self.FontRenderer.DrawText(V, 100, 190, 10, LocalizationManager.Instance['totaltime'] + ': 1:23');
-  Self.FontRenderer.DrawText(V, 100, 230, 10, LocalizationManager.Instance['coinscollected'] + ': 56');
+  Self.FontRenderer.DrawText(V, 50, 100, 10, ' Language: ' + GetLanguageDescription(LanguageList[_SelectedLanguage]));
+  Self.FontRenderer.DrawText(V, 100, 160, 10, Engine.Localization['score'] + ': 1000');
+  Self.FontRenderer.DrawText(V, 100, 190, 10, Engine.Localization['totaltime'] + ': 1:23');
+  Self.FontRenderer.DrawText(V, 100, 230, 10, Engine.Localization['coinscollected'] + ': 56');
 
   Inherited;
 End;

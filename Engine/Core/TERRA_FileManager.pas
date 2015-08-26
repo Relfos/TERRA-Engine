@@ -46,7 +46,7 @@ Type
       Property Path:TERRAString Read _Path;
   End;
 
-  FileManager = Class(ApplicationComponent)
+  FileManager = Class(TERRAObject)
     Protected
       _SourceList:Array Of TERRAString;
       _SourceCount:Integer;
@@ -65,8 +65,7 @@ Type
       Function RegisterLocation(Location:TERRALocation):TERRALocation;
 
     Public
-      Procedure Init; Override;
-
+      Constructor Create();
       Procedure Release; Override;
 
       Function Search(FileName:TERRAString):TERRALocation;
@@ -141,7 +140,7 @@ Begin
 End;
 
 { FileManager }
-Procedure FileManager.Init;
+Constructor FileManager.Create();
 Begin
   _Locations := TERRAHashMap.Create(256);
   Self.AddSource('');

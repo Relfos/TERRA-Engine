@@ -34,7 +34,7 @@ Type
       Constructor Create(Const Key, Value:TERRAString; Group:Integer);
   End;
 
-  LocalizationManager = Class(ApplicationComponent)
+  LocalizationManager = Class(TERRAObject)
     Protected
       _Lang:TERRAString;
       _Strings:TERRAHashmap;
@@ -42,10 +42,9 @@ Type
       Function GetLang:TERRAString;
 
     Public
-      Procedure Init; Override;
+      Constructor Create();
       Procedure Release; Override;
 
-      Class Function Instance:LocalizationManager;
       Procedure SetLanguage(Lang:TERRAString);
 
       Function GetString(Const Key:TERRAString):TERRAString;
@@ -103,8 +102,6 @@ Function GetLanguageDescription(Lang:TERRAString):TERRAString;
 Implementation
 Uses TERRA_EngineManager, TERRA_FileManager, TERRA_Log, TERRA_OS;
 
-Var
-  _LocalizationManager_Instance:ApplicationObject = Nil;
 
 Function IsSupportedLanguage(Const Lang:TERRAString):Boolean;
 Begin
@@ -333,15 +330,10 @@ Begin
 End;
 
 { LocalizationManager }
-Procedure LocalizationManager.Init();
+Constructor LocalizationManager.Create();
 Begin
   _Lang := '';
   _Strings := TERRAHashMap.Create(1024);
-
-  If Assigned(Application.Instance()) Then
-    SetLanguage(Application.Instance.Language)
-  Else
-    SetLanguage('EN');
 End;
 
 Procedure LocalizationManager.Release();
@@ -395,14 +387,6 @@ Begin
 
   Log(logWarning, 'Strings', 'String value for ['+Key+'] not found!');
   Result := Self.EmptyString;
-End;
-
-Class Function LocalizationManager.Instance:LocalizationManager;
-Begin
-  If _LocalizationManager_Instance = Nil Then
-    _LocalizationManager_Instance := InitializeApplicationComponent(LocalizationManager, Nil);
-
-  Result := LocalizationManager(_LocalizationManager_Instance.Instance);
 End;
 
 Procedure LocalizationManager.MergeGroup(Source: TERRAStream; GroupID:Integer; Const Prefix:TERRAString);

@@ -251,7 +251,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_Application, TERRA_OS, TERRA_FileManager,  TERRA_Mesh,
-  TERRA_GraphicsManager, TERRA_FileStream, TERRA_FileUtils;
+  TERRA_GraphicsManager, TERRA_EngineManager, TERRA_FileStream, TERRA_FileUtils;
 
 { AnimationState }
 Constructor AnimationState.Create(TargetSkeleton:MeshSkeleton);
@@ -330,7 +330,7 @@ Begin
     _Next := '';
   End;
 
-  _UpdateID := GraphicsManager.Instance.FrameID;
+  _UpdateID := Engine.Graphics.FrameID;
 
 {  If (Assigned(_QueueAnimation)) And ((Not Assigned(_Root)) Or (_Root Is AnimationCrossfader) And (AnimationCrossfader(_Root).Alpha >=1)) Then
   Begin
@@ -396,7 +396,7 @@ Function AnimationState.Find(Name:TERRAString):Animation;
 Var
   MyAnimation: Animation;
 Begin
-  MyAnimation := AnimationManager.Instance.GetAnimation(_Name + '@' + Name, False);
+  MyAnimation := Engine.Animations.GetAnimation(_Name + '@' + Name, False);
   If Assigned(MyAnimation) Then
     Result := MyAnimation
   Else
@@ -445,7 +445,7 @@ Function AnimationState.Crossfade(Name:TERRAString; Duration:Cardinal):Boolean;
 Var
   MyAnimation: Animation;
 Begin
-  MyAnimation := AnimationManager.Instance.GetAnimation(_Name + '_' + Name, False);
+  MyAnimation := Engine.Animations.GetAnimation(_Name + '_' + Name, False);
   If Assigned(MyAnimation) Then
     Result := Self.Crossfade(MyAnimation, Duration)
   Else
@@ -914,13 +914,13 @@ Begin
     Begin
       If (_Animation.Next<>'') Then
       Begin
-        {MyAnimation := AnimationManager.Instance.GetAnimation(_Animation.Next, False);
+        {MyAnimation := Engine.Animations.GetAnimation(_Animation.Next, False);
         If Not Assigned(MyAnimation) Then
         Begin
           S := _Animation._Name;
           I := PosRev('_', S);
           S := Copy(S, 1, I);
-          MyAnimation := AnimationManager.Instance.GetAnimation(S+_Animation.Next, False);
+          MyAnimation := Engine.Animations.GetAnimation(S+_Animation.Next, False);
         End;
 
         If Assigned(MyAnimation) Then

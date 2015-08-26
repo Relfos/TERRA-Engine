@@ -71,7 +71,7 @@ Function MatrixSkew2D(TX, TY:Single):Matrix3x3;
 Function MatrixMultiply3x3(Const A,B:Matrix3x3):Matrix3x3;
 
 Implementation
-Uses Math{$IFDEF NEON_FPU},TERRA_NEON{$ENDIF};
+Uses TERRA_Math{$IFDEF NEON_FPU},TERRA_NEON{$ENDIF};
 
 Procedure Matrix3x3.Init(Const M: Matrix4x4);
 Begin

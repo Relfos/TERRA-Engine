@@ -74,9 +74,9 @@ Type
     Protected
       _Font:TERRAFont;
 
-      _Views:List;
-      _Paths:List;
-      _Datasources:List;
+      _Views:TERRAList;
+      _Paths:TERRAList;
+      _Datasources:TERRAList;
 
       _SelectedView:UIEditableView;
       _SelectedWidget:UIWidget;
@@ -294,7 +294,7 @@ Begin
   Self._Font := Engine.Fonts['droid'];
 
   // set background color
-  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorGrey(128);
+  Engine.Graphics.DeviceViewport.BackgroundColor := ColorGrey(128);
 
   Self.Clear();
 
@@ -314,13 +314,13 @@ Begin
   ReleaseObject(_Paths);
   ReleaseObject(_Datasources);
 
-  Self._Views := List.Create();
+  Self._Views := TERRAList.Create();
   Self._Views.Name := 'views';
 
-  Self._Paths := List.Create();
+  Self._Paths := TERRAList.Create();
   Self._Paths.Name := 'paths';
 
-  Self._Datasources := List.Create();
+  Self._Datasources := TERRAList.Create();
   Self._Datasources.Name := 'datasources';
 
   Self._SelectedView := Nil;
@@ -467,10 +467,10 @@ Begin
   If (V<>Self._SelectedView._Target.Viewport) Then
     Exit;
 
-  GraphicsManager.Instance.AddRenderable(V, Self._Grid);
+  Engine.Graphics.AddRenderable(V, Self._Grid);
 
   Self._SelectedView._Target.AutoResize();
-  GraphicsManager.Instance.AddRenderable(V, Self._SelectedView._Target);
+  Engine.Graphics.AddRenderable(V, Self._SelectedView._Target);
 End;
 
 Function UIEditScene.GetPropertyByIndex(Index: Integer): TERRAObject;
@@ -490,7 +490,7 @@ Var
 Begin
   Self.Clear();
 
-  Engine.Files.AddPath(GetFilePath(FileName));
+  Engine.Files.AddFolder(GetFilePath(FileName));
 
   Root := XMLNode.Create();
   Root.LoadFromFile(FileName);
@@ -566,7 +566,6 @@ End;
 
 Procedure UIEditableView.Release;
 Begin
-  UIManager.Instance.RemoveUI(_Target);
   ReleaseObject(_Target);
 End;
 
@@ -596,7 +595,7 @@ Begin
   UIEditorApplication.Create(Self.RenderPanel);
 
   // Added Asset folder to search path
-  Engine.Files.AddPath('..\..\samples\binaries\assets');
+  Engine.Files.AddFolder('..\..\samples\binaries\assets');
 //  FileManager.Instance.AddPath('D:\Code\Minimon\Output\Textures');
 
   // Create a scene and set it as the current scene
@@ -983,13 +982,13 @@ End;
 Procedure TUIEditForm.LoadCursor(ID:Integer; Name: TERRAString);
 Var
   Cur:HCURSOR;
-  S:TERRAString;
+  Location:TERRALocation;
 Begin
-  S := Engine.Files.SearchResourceFile('cursor_'+Name+'.cur');
-  If S = '' Then
-    S := Engine.Files.SearchResourceFile('cursor_'+Name+'.ani');
+  Location := Engine.Files.Search('cursor_'+Name+'.cur');
+  If Location = Nil Then
+    Location := Engine.Files.Search('cursor_'+Name+'.ani');
 
-  Cur := LoadCursorFromFile(PAnsiChar(S));
+  Cur := LoadCursorFromFile(PAnsiChar(Location.Path));
   Screen.Cursors[ID] := Cur;
 End;
 

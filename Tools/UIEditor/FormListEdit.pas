@@ -16,26 +16,26 @@ type
     procedure Button1Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
   private
-    _Target:List;
+    _Target:TERRAList;
     _FolderOnly:Boolean;
 
   public
     { Public declarations }
 
-    Procedure ShowWithTarget(Target:List; FolderOnly:Boolean);
+    Procedure ShowWithTarget(Target:TERRAList; FolderOnly:Boolean);
   end;
 
 var
   ListEditForm: TListEditForm;
 
-Procedure LoadDataSources(Target:List);
+Procedure LoadDataSources(Target:TERRAList);
 
 implementation
 Uses TERRA_DataSource;
 
 {$R *.dfm}
 
-Procedure LoadDataSources(Target:List);
+Procedure LoadDataSources(Target:TERRAList);
 Var
   It:Iterator;
   S:StringProperty;
@@ -54,7 +54,7 @@ Begin
 End;
 
 { TListEditForm }
-procedure TListEditForm.ShowWithTarget(Target:List; FolderOnly:Boolean);
+procedure TListEditForm.ShowWithTarget(Target:TERRAList; FolderOnly:Boolean);
 Var
   I:Integer;
   Key:TERRAObject;

@@ -67,7 +67,7 @@ Type
       Procedure AttachSource(Source:Pointer);
       Procedure RemoveSource(Source:Pointer);
 
-      Class Function GetManager:Pointer; Override;
+      Class Function GetManager:TERRAObject; Override;
 
       Procedure New(Size,Channels,BitsPerSample,Frequency:Cardinal);
 
@@ -106,7 +106,7 @@ Var
   _SoundExtensionCount:Integer = 0;
 
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Log, TERRA_SoundManager, TERRA_SoundSource;
+Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Log, TERRA_EngineManager, TERRA_SoundManager, TERRA_SoundSource;
 
 
 Function Sound.Unload:Boolean;
@@ -114,7 +114,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_AttachCount) Do
-    SoundManager.Instance().Delete(SoundSource(_AttachList[I]));
+    Engine.Audio.Delete(SoundSource(_AttachList[I]));
   _AttachCount := 0;
 
   If (_Buffer<>0) Then
@@ -333,9 +333,9 @@ Begin
   _SoundExtensions[N].Saver := Saver;
 End;
 
-Class Function Sound.GetManager: Pointer;
+Class Function Sound.GetManager:TERRAObject;
 Begin
-  Result := SoundManager.Instance;
+  Result := Engine.Audio;
 End;
 
 End. 

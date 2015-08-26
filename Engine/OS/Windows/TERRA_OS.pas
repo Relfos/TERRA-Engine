@@ -327,8 +327,8 @@ Begin
     MM_MCINOTIFY:
       Begin
         // end of play has been reached
-        If (wParam = mci_Notify_Successful) And (MusicManager.Instance.CurrentTrack<>Nil) Then
-          MusicManager.Instance.CurrentTrack.Play();
+        If (wParam = mci_Notify_Successful) And (Assigned(Engine.Music.CurrentTrack)) Then
+          Engine.Music.CurrentTrack.Play();
       End;
 
     WM_SYSCOMMAND:
@@ -1025,7 +1025,7 @@ End;
 
 Function WindowsApplication.GetRecommendedSettings: Integer;
 Begin
-  If (Not GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Then
+  If (Not Engine.Graphics.Renderer.Features.Shaders.Avaliable) Then
     Result := settingsHintLow
   Else
     Result := settingsHintHigh;

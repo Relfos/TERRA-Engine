@@ -5,14 +5,14 @@ uses
 //  MemCheck,
   TERRA_MemoryManager,
   TERRA_DemoApplication,
+  TERRA_OS,
   TERRA_Object,
   TERRA_Utils,
-  TERRA_GraphicsManager,
   TERRA_Viewport,
   TERRA_Vector3D,
   TERRA_Texture,
   TERRA_ScreenFX,
-  TERRA_Mesh,                  
+  TERRA_Mesh,
   TERRA_EngineManager,
   TERRA_InputManager;
 
@@ -21,6 +21,7 @@ Type
     Public
 			Procedure OnCreate; Override;
 			Procedure OnDestroy; Override;
+      Procedure OnIdle; Override;
       Procedure OnRender3D(V:TERRAViewport); Override;
   End;
 
@@ -35,8 +36,8 @@ Procedure MyDemo.OnCreate;
 Begin
   Inherited;
 
-  GraphicsManager.Instance.Renderer.Settings.NormalMapping.SetValue(True);
-  GraphicsManager.Instance.Renderer.Settings.PostProcessing.SetValue(True);
+  Engine.Graphics.Renderer.Settings.NormalMapping.SetValue(True);
+  Engine.Graphics.Renderer.Settings.PostProcessing.SetValue(True);
 
   Self.MainViewport.FXChain.AddEffect(GlowFX.Create(2.0));
 
@@ -59,9 +60,17 @@ Begin
   Inherited;
 End;
 
+procedure MyDemo.OnIdle;
+begin
+  inherited;
+
+  If Engine.Input.Keys.WasPressed(keyEnter) Then
+    Engine.Graphics.Renderer.GetScreenshot().Save('screenshot.jpg');
+end;
+
 Procedure MyDemo.OnRender3D(V: TERRAViewport);
 Begin
-  GraphicsManager.Instance.AddRenderable(V, Solid);
+  Engine.Graphics.AddRenderable(V, Solid);
 
   Inherited;
 End;

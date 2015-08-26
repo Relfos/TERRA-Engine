@@ -109,7 +109,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_GraphicsManager, TERRA_SoundManager, TERRA_Log;
+Uses TERRA_GraphicsManager, TERRA_EngineManager, TERRA_SoundManager, TERRA_Log;
 
 // SoundSource
 Constructor SoundSource.Create;
@@ -327,8 +327,8 @@ Begin
       Java_End(Frame);
     End;
     {$ELSE}
-    If (Assigned(SoundManager.Instance().Ambience)) Then
-      alSource3i(_Handle, AL_AUXILIARY_SEND_FILTER, SoundManager.Instance().Ambience.Handle, 0, AL_FILTER_NULL);
+    If (Assigned(Engine.Audio.Ambience)) Then
+      alSource3i(_Handle, AL_AUXILIARY_SEND_FILTER, Engine.Audio.Ambience.Handle, 0, AL_FILTER_NULL);
 
     alSourcei(_Handle, AL_LOOPING, Integer(_Loop)); {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
     alSourcePlay(_Handle);  {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
@@ -372,7 +372,7 @@ Begin
 
     {$ELSE}
     alSourceStop(_Handle);  {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-    If (Assigned(SoundManager.Instance().Ambience)) Then
+    If (Assigned(Engine.Audio.Ambience)) Then
     Begin
       alSource3i(_Handle, AL_AUXILIARY_SEND_FILTER, AL_EFFECTSLOT_NULL, 0, AL_FILTER_NULL);
       {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}

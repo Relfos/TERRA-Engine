@@ -7,6 +7,12 @@ Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_BoundingBox,
   TERRA_Viewport, TERRA_Collections, TERRA_List, TERRA_RadixSort;
 
 Const
+  //FogMode
+  fogOff      = 0;
+  fogDistance = 1;
+  fogHeight   = 2;
+  fogBox      = 4;
+
   renderFlagsSkipFrustum  = 1;
   renderFlagsSkipSorting  = 2;
   renderFlagsSkipReflections  = 4;
@@ -82,7 +88,7 @@ Type
 
 
 Implementation
-Uses TERRA_GraphicsManager;
+Uses TERRA_EngineManager, TERRA_GraphicsManager;
 
 { TERRARenderable }
 procedure TERRARenderable.Release;
@@ -146,7 +152,7 @@ Begin
     Renderable := TERRARenderable(P.Item);
     If (Assigned(Renderable)) Then
     Begin
-      If (Not GraphicsManager.Instance.ReflectionActive) Or (Renderable.RenderFlags And renderFlagsSkipReflections=0) Then
+      If (Not Engine.Graphics.ReflectionActive) Or (Renderable.RenderFlags And renderFlagsSkipReflections=0) Then
         Renderable.Render(View, Stage, Bucket);
     End;
 
@@ -252,7 +258,7 @@ Begin
   End;
   {$ENDIF}
 
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
 //Log(logDebug, 'GraphicsManager', 'Rendering lights...');
 //Log(logDebug, 'GraphicsManager', 'Class: '+MyTERRARenderable.ClassName);

@@ -35,7 +35,7 @@ Unit TERRA_ShaderFactory;
 
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Renderer, TERRA_Application,
-  TERRA_Lights, TERRA_BoundingBox, TERRA_Vector4D, TERRA_Color;
+  TERRA_Lights, TERRA_BoundingBox, TERRA_Vector4D, TERRA_Color, TERRA_Renderable;
 
 Const
   NormalMapUniformName = 'normalMap';
@@ -143,18 +143,18 @@ Type
       Function Emit(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch):TERRAString;
   End;
 
-  ShaderFactory = Class(ApplicationComponent)
+  TERRAShaderFactory = Class(TERRAObject)
     Protected
       _Shaders:Array Of ShaderEntry;
       _ShaderCount:Integer;
       _Emitter:ShaderEmitter;
 
     Public
-      Class Function Instance:ShaderFactory;
+      Constructor Create;
       Procedure Release; Override;
 
-      Procedure Init; Override;
-      Procedure OnContextLost; Override;
+      // !!!
+      Procedure OnContextLost; 
 
       Procedure Clear;
 
@@ -165,10 +165,7 @@ Type
 
 Implementation
 
-Uses TERRA_Log, TERRA_Mesh, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_OS;
-
-Var
-  _ShaderFactory_Instance:ApplicationObject;
+Uses TERRA_Log, TERRA_Mesh, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_OS, TERRA_EngineManager;
 
 { ShaderEmitter }
 Procedure ShaderEmitter.Line(S2:TERRAString);
@@ -677,13 +674,13 @@ Begin
     Line('  fogFactor = min(distanceFactor + heightFactor + boxFactor, 1.0);');
   End;
 
-  If GraphicsManager.Instance.Renderer.Settings.SurfaceProjection<>surfacePlanar Then
+  If Engine.Graphics.Renderer.Settings.SurfaceProjection<>surfacePlanar Then
   Begin
     Line(' highp vec4 cyofs = world_position;');
     Line('  cyofs.xyz -= cameraPosition.xyz;');
     Line('  highp float curvatureAmmount = -0.001;');
 
-    If GraphicsManager.Instance.Renderer.Settings.SurfaceProjection = surfaceSpherical Then
+    If Engine.Graphics.Renderer.Settings.SurfaceProjection = surfaceSpherical Then
       Line('  cyofs = vec4( 0.0, ((cyofs.x * cyofs.x) + (cyofs.z * cyofs.z)) * curvatureAmmount, 0.0, 0.0);')
     Else
       Line('  cyofs = vec4( 0.0, (cyofs.z * cyofs.z) * curvatureAmmount, 0.0, 0.0);');
@@ -1515,8 +1512,22 @@ Begin
   // do nothing
 End;
 
-{ ShaderFactory }
-Procedure ShaderFactory.Clear;
+{ TERRAShaderFactory }
+Constructor TERRAShaderFactory.Create;
+Begin
+  _Emitter := ShaderEmitter.Create();
+  _Emitter.Init();
+End;
+
+Procedure TERRAShaderFactory.Release;
+Begin
+  ReleaseObject(_Emitter);
+
+  Self.Clear;
+End;
+
+
+Procedure TERRAShaderFactory.Clear;
 Var
   I:Integer;
 Begin
@@ -1526,21 +1537,7 @@ Begin
   _ShaderCount := 0;
 End;
 
-Procedure ShaderFactory.Init;
-Begin
-  _Emitter := ShaderEmitter.Create();
-  _Emitter.Init();
-End;
-
-Procedure ShaderFactory.Release;
-Begin
-  ReleaseObject(_Emitter);
-
-  Self.Clear;
-  _ShaderFactory_Instance := Nil;
-End;
-
-Function ShaderFactory.GetShader(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch):ShaderInterface;
+Function TERRAShaderFactory.GetShader(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch):ShaderInterface;
 Var
   I:Integer;
   S:ShaderEntry;
@@ -1554,7 +1551,7 @@ Begin
     BlendMode := combineNone;}
 
   {$IFDEF DEBUG_GRAPHICS}
-  Log(logDebug, 'ShaderFactory', 'Searching for shader with flags '+CardinalToString(FXFlags));
+  Log(logDebug, 'TERRAShaderFactory', 'Searching for shader with flags '+CardinalToString(FXFlags));
   {$ENDIF}
 
   For I:=0 To Pred(_ShaderCount) Do
@@ -1567,7 +1564,7 @@ Begin
     And (S.SpotLightCount = Lights.SpotLightCount) Then
     Begin
     {$IFDEF DEBUG_GRAPHICS}
-    Log(logDebug, 'ShaderFactory', 'Found, binding... ');
+    Log(logDebug, 'TERRAShaderFactory', 'Found, binding... ');
     {$ENDIF}
 
       Result := S.Shader;
@@ -1579,7 +1576,7 @@ Begin
   End;
 
   {$IFDEF DEBUG_GRAPHICS}
-  Log(logDebug, 'ShaderFactory', 'Not found, creating new shader...');
+  Log(logDebug, 'TERRAShaderFactory', 'Not found, creating new shader...');
   {$ENDIF}
 
   S := ShaderEntry.Create();
@@ -1707,30 +1704,22 @@ Begin
     StringDropChars(Name, -1);
 
   {$IFDEF DEBUG_GRAPHICS}
-  Log(logDebug, 'ShaderFactory', 'Preparing shader '+Name);
+  Log(logDebug, 'TERRAShaderFactory', 'Preparing shader '+Name);
   {$ENDIF}
 
   SS := _Emitter.Emit(FxFlags, OutFlags, FogFlags, Lights);
 
   {$IFDEF DEBUG_GRAPHICS}
-  Log(logDebug, 'ShaderFactory', 'Got shader code, compiling');
+  Log(logDebug, 'TERRAShaderFactory', 'Got shader code, compiling');
   {$ENDIF}
 
-  S.Shader := GraphicsManager.Instance.Renderer.CreateShader();
+  S.Shader := Engine.Graphics.Renderer.CreateShader();
   S.Shader.Generate(Name, SS);
   Result := S.Shader;
   _Emitter.Bind(FxFlags, OutFlags, FogFlags, Lights);
 End;
 
-Class Function ShaderFactory.Instance: ShaderFactory;
-Begin
-  If Not Assigned(_ShaderFactory_Instance) Then
-    _ShaderFactory_Instance := InitializeApplicationComponent(ShaderFactory, GraphicsManager);
-
-  Result := ShaderFactory(_ShaderFactory_Instance.Instance);
-End;
-
-Procedure ShaderFactory.OnContextLost;
+Procedure TERRAShaderFactory.OnContextLost;
 Var
   I:Integer;
 Begin
@@ -1739,7 +1728,7 @@ Begin
     _Shaders[I].Shader.Invalidate();
 End;
 
-Procedure ShaderFactory.SetShaderEmitter(Emitter: ShaderEmitter);
+Procedure TERRAShaderFactory.SetShaderEmitter(Emitter: ShaderEmitter);
 Begin
   ReleaseObject(_Emitter);
   Self._Emitter := Emitter;

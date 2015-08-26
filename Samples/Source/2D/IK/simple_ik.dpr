@@ -36,11 +36,10 @@ Var
   BodyTex, HeadTex:TERRATexture;
   Dragging:Boolean;
 
-
 Procedure DrawBone(Bone:IKBone2D; V:TERRAViewport);
 Var
   Mat:Matrix3x3;
-  S:QuadSprite;
+  S:TERRASprite;
   Visual:TERRATexture;
 Begin
   Mat := Bone.GetAbsoluteMatrix();
@@ -50,11 +49,14 @@ Begin
   Else
     Visual := BodyTex;
 
-  S := V.SpriteRenderer.DrawSprite(0, 0, 10, Visual);
-  S.Anchor := VectorCreate2D(0.5, 0.5);
-  S.Rect.Width := SnakeSize;
-  S.Rect.Height:= SnakeSize;
+  S := V.SpriteRenderer.FetchSprite();
+  S.Layer := 10;
+  S.SetTexture(Visual);
+
+  S.AddQuad(spriteAnchor_Center, VectorCreate2D(0.0, 0.0), 0.0, SnakeSize, SnakeSize);
   S.SetTransform(Mat);
+
+  V.SpriteRenderer.QueueSprite(S);
 
   If Assigned(Bone.Child) Then
     DrawBone(Bone.Child, V);

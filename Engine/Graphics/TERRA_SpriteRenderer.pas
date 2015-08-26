@@ -105,7 +105,7 @@ Type
 
 
 Implementation
-Uses TERRA_ResourceManager, TERRA_InputManager, TERRA_GraphicsManager, TERRA_Log, TERRA_Image, TERRA_OS, TERRA_Math, TERRA_Font, TERRA_ShaderManager
+Uses TERRA_ResourceManager, TERRA_EngineManager, TERRA_InputManager, TERRA_GraphicsManager, TERRA_Log, TERRA_Image, TERRA_OS, TERRA_Math, TERRA_Font, TERRA_ShaderManager
   {$IFNDEF DISABLECOLORGRADING},TERRA_ColorGrading {$ENDIF};
 
 Const
@@ -222,7 +222,7 @@ Begin
   If (S.Texture = Nil) Then
     Exit;
     
-  HasShaders := GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable;
+  HasShaders := Engine.Graphics.Renderer.Features.Shaders.Avaliable;
 
   ResetBatch := True;
 
@@ -290,7 +290,7 @@ Var
   I:Integer;
   Graphics:GraphicsManager;
 Begin
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
 (*  If (_SpriteShaderWithoutGrading = Nil) Then
   Begin
@@ -348,7 +348,7 @@ Var
   M:Matrix4x4;
   Graphics:GraphicsManager;
 Begin
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
   Graphics.Renderer.SetBlendMode(blendNone);
 
   //glEnable(GL_DEPTH_TEST); {FIXME}
@@ -476,7 +476,7 @@ Begin
     Exit;
   End;
 
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
   OutIt := _Vertices.GetIteratorForClass(SpriteVertex);
 
@@ -571,7 +571,7 @@ Begin
     Exit;
   End;
 
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
 {  Graphics.Renderer.SetSourceVertexSize(SizeOf(SpriteVertex));
   Graphics.Renderer.SetAttributeSource(TERRA_POSITION_ATTRIBUTE, typeVector3D,  @_Vertices[0].Position);

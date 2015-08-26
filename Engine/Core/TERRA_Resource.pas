@@ -65,7 +65,7 @@ Type
 
       Function IsReady:Boolean;
 
-      Class Function GetManager:Pointer; Virtual;
+      Class Function GetManager:TERRAObject; Virtual;
 
       Function Load(MyStream:TERRAStream):Boolean; Virtual;Abstract;
       Function Unload:Boolean; Virtual;
@@ -91,7 +91,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Utils, TERRA_ResourceManager, TERRA_FileStream, TERRA_GraphicsManager,
-  TERRA_FileUtils, TERRA_Application;
+  TERRA_EngineManager, TERRA_FileUtils, TERRA_Application;
 
 Constructor TERRAResource.Create(Kind:ResourceType; Location:TERRALocation);
 Var
@@ -117,7 +117,7 @@ Begin
   {$ENDIF}
 End;
 
-Class Function TERRAResource.GetManager: Pointer;
+Class Function TERRAResource.GetManager:TERRAObject;
 Begin
   Result := Nil;
 End;
@@ -152,7 +152,7 @@ Begin
   End;*)
 
   Log(logDebug, 'Resource', 'Obtaining manager for '+Self.Name);
-  Manager := Self.GetManager;
+  Manager := ResourceManager(Self.GetManager);
   If (Manager = Nil) Then
   Begin
     Log(logDebug, 'Resource', 'Failed to obtain a manager...');
@@ -189,7 +189,7 @@ Begin
 
   While (Not Self.IsReady) Do
   Begin
-    Application.Instance.RefreshComponents();
+    Engine.Update();
 
     If (Self.Status = rsInvalid) Then
       Break;
@@ -236,7 +236,7 @@ Begin
     Exit;
   End;
 
-  Manager := Self.GetManager;
+  Manager := ResourceManager(Self.GetManager);
   If (Manager = Nil) Then
   Begin
     Log(logDebug, 'Resource', 'Failed to obtain a manager...');

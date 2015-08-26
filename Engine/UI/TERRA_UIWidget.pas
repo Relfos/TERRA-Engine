@@ -168,7 +168,7 @@ Type
       Procedure SetSelected(const Value: Boolean);
 
       Function GetState: WidgetState;
-    procedure SetClipRect(const Value: TERRAClipRect);
+      Procedure SetClipRect(const Value: TERRAClipRect);
 
     Protected
       _Parent:UIWidget;
@@ -207,6 +207,8 @@ Type
       _CustomClip:Boolean;
 
       _VisibleFrame:Cardinal;
+
+      _FontRenderer:TERRAFontRenderer;
 
       _DropShadowColor:ColorRGBA;
 
@@ -255,7 +257,7 @@ Type
 
       //Function HasMouseOver():Boolean; Virtual;
 
-      Function GetFontRenderer:TERRAFontRenderer;
+      Function GetFontRenderer:TERRAFontRenderer; 
 
       //Function OutsideClipRect(X,Y:Single):Boolean;
 
@@ -475,7 +477,11 @@ Implementation
 
 Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Math, TERRA_GraphicsManager,
   TERRA_UIView, TERRA_UITiledRect, TERRA_UIImage, TERRA_UILabel, TERRA_UIEditText,
-  TERRA_DebugDraw, TERRA_Localization;
+  TERRA_DebugDraw, TERRA_EngineManager, TERRA_Localization;
+
+Var
+  _AlignEnums:EnumCollection;
+  _DirectionEnums:EnumCollection;
 
 Function UITranslationMacro(Const Value:TERRAString):TERRAString;
 Begin
@@ -579,7 +585,7 @@ Begin
   _Scale := FloatProperty(Self.AddProperty(FloatProperty.Create('scale', 1.0), False));
   _Saturation := FloatProperty(Self.AddProperty(FloatProperty.Create('saturation', 1.0), False));
   _Draggable := BooleanProperty(Self.AddProperty(BooleanProperty.Create('draggable', False), False));
-  _Align := EnumProperty(Self.AddProperty(EnumProperty.Create('align', 0, UIManager.Instance.AlignEnums), False));
+  _Align := EnumProperty(Self.AddProperty(EnumProperty.Create('align', 0, _AlignEnums), False));
   _Controller := UIControllerProperty(Self.AddProperty(UIControllerProperty.Create('controller', Nil), False));
 End;
 
@@ -696,6 +702,9 @@ Begin
         Dispatched := True;
       End;
 
+      (*If TweenableProp.Name = 'scale' Then
+        DebugBreak;*)
+
       TweenableProp.AddTweenFromBlob(_Animations[I].Ease, CurrentValue, TargetValue, N, 0, Callback, Self)
     End Else
     Begin
@@ -706,8 +715,6 @@ Begin
         CallEventHandler(EventType);
       End;
     End;
-
-    //Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Virtual; Abstract;
   End;
 
   SetState(TargetState);
@@ -1080,7 +1087,7 @@ Begin
 
   If Value Then
   Begin
-    _VisibleFrame := GraphicsManager.Instance.FrameID;
+    _VisibleFrame := Engine.Graphics.FrameID;
     Self.TriggerEvent(widgetEvent_Show);
   End Else
   Begin
@@ -1164,11 +1171,8 @@ Begin
 
   If (Align<>waTopLeft) Then
   Begin
-    Width := Self._Size.X{ * _Scale};
-    Height := _Size.Y{ * _Scale};
-
-    {IF _Scale>1 Then
-       IntegerProperty.Stringify(2);}
+    Width := Self._Size.X;
+    Height := _Size.Y;
 
     ParentSize := _Parent.Size;
 
@@ -1330,7 +1334,7 @@ Begin
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'X1:'+ IntegerProperty.Stringify(Trunc(_Corners[0].X))+' Y1:'+ IntegerProperty.Stringify(Trunc(_Corners[0].Y)));{$ENDIF}
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'X2:'+ IntegerProperty.Stringify(Trunc(_Corners[2].X))+' Y2:'+ IntegerProperty.Stringify(Trunc(_Corners[2].Y)));{$ENDIF}
 
-  If (GraphicsManager.Instance.FrameID = Self._VisibleFrame) {Or (OutsideClipRect(X,Y))} Then
+  If (Engine.Graphics.FrameID = Self._VisibleFrame) {Or (OutsideClipRect(X,Y))} Then
   Begin
     Result := False;
     {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Cliprect clipped!');{$ENDIF}
@@ -1942,7 +1946,7 @@ Begin
   If (C = UITranslationChar) Then
   Begin
     Macro := StringCopy(Value, 2, MaxInt);
-    Result := LocalizationManager.Instance.GetString(Macro);
+    Result := Engine.Localization.GetString(Macro);
     Exit;
   End Else
   If (C = UIPropertyChar) Then
@@ -1990,7 +1994,7 @@ Function UIWidget.CanRender: Boolean;
 Var
   CurrentFrameID:Cardinal;
 Begin
-  CurrentFrameID := GraphicsManager.Instance.FrameID;
+  CurrentFrameID := Engine.Graphics.FrameID;
   If (_RenderFrameID = CurrentFrameID) Then
   Begin
     Result := False;
@@ -2024,7 +2028,16 @@ End;
 
 Function UIWidget.GetFontRenderer:TERRAFontRenderer;
 Begin
-  Result := UIManager.Instance.FontRenderer;
+  If (Assigned(_Parent)) Then
+  Begin
+    Result := _Parent.GetFontRenderer();
+    Exit;
+  End;
+
+  If (_FontRenderer = Nil) Then
+    _FontRenderer := TERRAFontRenderer.Create();
+
+  Result := _FontRenderer;
 End;
 
 (*Function UIWidget.IsOutsideScreen: Boolean;
@@ -2592,7 +2605,7 @@ End;
 
 Procedure UIControllerProperty.SetBlob(const Blob: TERRAString);
 Begin
-  _Value := UIManager.Instance.GetControllerByName(Blob);
+//  _Value := UIManager.Instance.GetControllerByName(Blob);
 End;
 
 { UIController }
@@ -2607,4 +2620,22 @@ Begin
   _Handlers[EventType] := Handler;
 End;
 
+Initialization
+  _AlignEnums := EnumCollection.Create();
+  _AlignEnums.Add('TopLeft', waTopLeft);
+  _AlignEnums.Add('TopCenter', waTopCenter);
+  _AlignEnums.Add('TopRight', waTopRight);
+  _AlignEnums.Add('LeftCenter', waLeftCenter);
+  _AlignEnums.Add('Center', waCenter);
+  _AlignEnums.Add('RightCenter', waRightCenter);
+  _AlignEnums.Add('BottomLeft', waBottomLeft);
+  _AlignEnums.Add('BottomCenter', waBottomCenter);
+  _AlignEnums.Add('BottomRight', waBottomRight);
+
+  _DirectionEnums := EnumCollection.Create();
+  _DirectionEnums.Add('Vertical', Integer(UIDirection_Vertical));
+  _DirectionEnums.Add('Horizontal', Integer(UIDirection_Horizontal));
+Finalization
+  ReleaseObject(_AlignEnums);
+  ReleaseObject(_DirectionEnums);
 End.

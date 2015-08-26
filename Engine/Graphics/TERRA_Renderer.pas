@@ -884,7 +884,7 @@ Procedure GraphicsRenderer.BeginFrame;
 Var
   Temp:RendererStats;
 Begin
-  _Stats.LightCount := LightManager.Instance.LightCount;
+  _Stats.LightCount := Engine.Lights.LightCount;
 
   Temp := _Stats;
   _Stats := _PrevStats;

@@ -59,12 +59,16 @@ End;
 
 Function EnumProperty.GetBlob: TERRAString;
 Begin
-  Result := _Collection.GetByValue(_Value);
+  If Assigned(_Collection) Then
+    Result := _Collection.GetByValue(_Value)
+  Else
+    Result := '0';
 End;
 
 Procedure EnumProperty.SetBlob(const Blob: TERRAString);
 Begin
-  Value := _Collection.GetByName(Blob);
+  If Assigned(_Collection) Then
+    Value := _Collection.GetByName(Blob);
 End;
 
 Function EnumProperty.GetObjectType: TERRAString;

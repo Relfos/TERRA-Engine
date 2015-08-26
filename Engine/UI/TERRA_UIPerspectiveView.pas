@@ -34,7 +34,7 @@ Begin
   Self._ObjectName := Name;
   _Target := View;
 
-  _Mesh := TERRAMesh.Create(rtDynamic, '');
+  _Mesh := TERRAMesh.Create(rtDynamic);
   _Mesh.Clone(Engine.Meshes.PlaneMesh);
 
   ScaleMat := Matrix4x4Scale(960/640, 1, 1);
@@ -54,8 +54,8 @@ Procedure UIPerspectiveView.Render(View: TERRAViewport; Const Stage:RendererStag
 Begin
   Self.SetDiffuseMap(0, Self.Target.Viewport.ResolveTexture);
 
-  If InputManager.Instance.Keys.WasPressed(keyK) Then
-    Self.Target.Viewport.ResolveTexture.Save('frake.png');
+(*  If Engine.Input.Keys.WasPressed(keyK) Then
+    Self.Target.Viewport.ResolveTexture.Save('frake.png');*)
 
   Inherited Render(View, Stage, Bucket);
 End;

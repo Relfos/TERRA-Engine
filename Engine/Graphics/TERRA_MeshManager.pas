@@ -20,10 +20,8 @@ Type
       Function GetCylinderMesh:TERRAMesh;
 
     Public
-      Procedure Init; Override;
+      Constructor Create();
       Procedure Release; Override;
-
-      Class Function Instance:MeshManager;
 
       Function GetMesh(Name:TERRAString):TERRAMesh;
 
@@ -40,19 +38,12 @@ Function CreatePlaneMesh(Const Normal:Vector3D; SubDivisions:Cardinal):TERRAMesh
 Implementation
 Uses TERRA_Solids, TERRA_MeshFilter, TERRA_EngineManager, TERRA_FileManager;
 
-Var
-  _MeshManager:ApplicationObject = Nil;
-
 { MeshManager }
-Class Function MeshManager.Instance:MeshManager;
+Constructor MeshManager.Create;
 Begin
-  If _MeshManager = Nil Then
-  Begin
-    _MeshManager := InitializeApplicationComponent(MeshManager, GraphicsManager);
-    MeshManager(_MeshManager.Instance).AutoUnload := False;
-  End;
+  Inherited;
 
-  Result := MeshManager(_MeshManager.Instance);
+//  Self.UseThreads := True;
 End;
 
 
@@ -61,8 +52,9 @@ Begin
   Inherited;
 
   ReleaseObject(_CubeMesh);
-
-  _MeshManager := Nil;
+  ReleaseObject(_SphereMesh);
+  ReleaseObject(_CylinderMesh);
+  ReleaseObject(_PlaneMesh);
 End;
 
 Function MeshManager.GetMesh(Name:TERRAString):TERRAMesh;
@@ -195,13 +187,5 @@ Begin
   Result := CreateMeshFromSolid(Plane);
   ReleaseObject(Plane);
 End;
-
-Procedure MeshManager.Init;
-Begin
-  Inherited;
-
-//  Self.UseThreads := True;
-End;
-
 
 End.

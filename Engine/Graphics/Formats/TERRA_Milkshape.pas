@@ -227,8 +227,7 @@ Type
 
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_TextureAtlas, TERRA_Image, TERRA_Application, TERRA_ResourceManager,
-  Math;
+Uses TERRA_Error, TERRA_Log, TERRA_TextureAtlas, TERRA_Image, TERRA_Application, TERRA_ResourceManager;
 
 { Milkshape3DObject }
 Function Milkshape3DObject.GetMaterialFile(MaterialIndex:Integer; SourceFile:AnsiString):AnsiString;

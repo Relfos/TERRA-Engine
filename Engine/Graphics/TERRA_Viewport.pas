@@ -669,7 +669,7 @@ Begin
   If (TargetValue < 0) Or (TargetValue >= TotalCaptureTargets) Then
     Exit;
 
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
   {If (TargetType = captureTargetEmission) And (Enabled) And (Not Graphics.Renderer.Features.FrameBufferObject.Avaliable) Then
     Enabled := False;}
@@ -797,7 +797,7 @@ Begin
 
     If (_ResolveBuffer = Nil) Then
     Begin
-      _ResolveBuffer := GraphicsManager.Instance.Renderer.CreateRenderTarget();
+      _ResolveBuffer := Engine.Graphics.Renderer.CreateRenderTarget();
     _ResolveBuffer.Generate(_Width, _Height, False, pixelSizeByte, 1, False, False);
     End;
 
@@ -827,13 +827,13 @@ Begin
   Target.BackgroundColor := TempColor;*)
 
   {$IFDEF POSTPROCESSING}
-  ShowID := GraphicsManager.Instance.ShowDebugTarget;
+  ShowID := Engine.Graphics.ShowDebugTarget;
   If (Integer(ShowID) >= TotalCaptureTargets) Then
     ShowID := captureTargetColor;
 
   If (Assigned(_FXChain)) And (ShowID = captureTargetInvalid) Then
   Begin
-    If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
+    If (Not Engine.Graphics.Renderer.Settings.PostProcessing.Enabled) Then
     Begin
       For I:=0 To Pred(TotalCaptureTargets) Do
         Self.SetRenderTargetState(RenderTargetType(I), False);
@@ -856,10 +856,10 @@ Begin
   ShowID := captureTargetColor;
   {$ENDIF}
 
-  If (GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Then
+  If (Engine.Graphics.Renderer.Features.Shaders.Avaliable) Then
   Begin
-    MyShader := GraphicsManager.Instance.GetDefaultFullScreenShader();
-    GraphicsManager.Instance.Renderer.BindShader(MyShader);
+    MyShader := Engine.Graphics.GetDefaultFullScreenShader();
+    Engine.Graphics.Renderer.BindShader(MyShader);
     MyShader.SetIntegerUniform('texture', 0);
   End Else
     MyShader := Nil;
@@ -876,12 +876,12 @@ Begin
   //GraphicsManager.Instance.Renderer.BindSurface(_RenderBuffers[Integer(ShowID)], 0);
   //_Buffers[ShowID].BilinearFilter := False;
 
-  GraphicsManager.Instance.Renderer.SetBlendMode(blendNone);
+  Engine.Graphics.Renderer.SetBlendMode(blendNone);
 
-  If (Integer(GraphicsManager.Instance.ShowDebugTarget) <=0) Then
-    GraphicsManager.Instance.Renderer.SetBlendMode(blendBlend);
+  If (Integer(Engine.Graphics.ShowDebugTarget) <=0) Then
+    Engine.Graphics.Renderer.SetBlendMode(blendBlend);
 
-  GraphicsManager.Instance.DrawFullscreenQuad(MyShader, _TargetX1, _TargetY1, _TargetX2, _TargetY2);
+  Engine.Graphics.DrawFullscreenQuad(MyShader, _TargetX1, _TargetY1, _TargetX2, _TargetY2);
 End;
 
 (*Procedure TERRAViewport.BindStageTexture(Stage:RenderTargetType; Slot:Integer);
@@ -896,7 +896,7 @@ End;*)
 
 Procedure TERRAViewport.SetPostProcessingState(Enabled: Boolean);
 Begin
-  If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
+  If (Not Engine.Graphics.Renderer.Settings.PostProcessing.Enabled) Then
     Enabled := False;
 
   {$IFDEF POSTPROCESSING}
@@ -933,17 +933,17 @@ Begin
 
   If (UseScissors) Then
   Begin
-    GraphicsManager.Instance.Renderer.SetScissorArea(0, 0, Trunc(_Width*_Scale), Trunc(_Height*_Scale));
-    GraphicsManager.Instance.Renderer.SetScissorState(True);
+    Engine.Graphics.Renderer.SetScissorArea(0, 0, Trunc(_Width*_Scale), Trunc(_Height*_Scale));
+    Engine.Graphics.Renderer.SetScissorState(True);
   End;
 
   If Self.IsDirectDrawing()  Then
-    GraphicsManager.Instance.Renderer.SetClearColor(_BackgroundColor);
+    Engine.Graphics.Renderer.SetClearColor(_BackgroundColor);
 
-  GraphicsManager.Instance.Renderer.ClearBuffer((Not Self.IsDirectDrawing()) Or (_BackgroundColor.A>=255), True, True);
+  Engine.Graphics.Renderer.ClearBuffer((Not Self.IsDirectDrawing()) Or (_BackgroundColor.A>=255), True, True);
 
   If UseScissors Then
-    GraphicsManager.Instance.Renderer.SetScissorState(False);
+    Engine.Graphics.Renderer.SetScissorState(False);
 End;
 
 Procedure TERRAViewport.SetBackgroundColor(BG:ColorRGBA);
@@ -987,13 +987,13 @@ Begin
     Width := Trunc(Width * _Scale);
   End;
 
-  GraphicsManager.Instance.Renderer.SetViewport(X, Y, Width, Height);
+  Engine.Graphics.Renderer.SetViewport(X, Y, Width, Height);
   If (_VR) Then
   Begin
-    GraphicsManager.Instance.Renderer.SetScissorState(True);
-    GraphicsManager.Instance.Renderer.SetScissorArea(X, Y, Width, Height);
+    Engine.Graphics.Renderer.SetScissorState(True);
+    Engine.Graphics.Renderer.SetScissorArea(X, Y, Width, Height);
   End Else
-    GraphicsManager.Instance.Renderer.SetScissorState(False);
+    Engine.Graphics.Renderer.SetScissorState(False);
 End;
 
 
@@ -1026,12 +1026,12 @@ Function TERRAViewport.GetResolveTexture: TERRATexture;
 Var
   ShowID:RenderTargetType;
 Begin
-  ShowID := GraphicsManager.Instance.ShowDebugTarget;
+  ShowID := Engine.Graphics.ShowDebugTarget;
   If (ShowID = captureTargetInvalid) Then
   Begin
     Self.SetAutoResolve(True);
 
-    If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
+    If (Not Engine.Graphics.Renderer.Settings.PostProcessing.Enabled) Then
       Result := Self.GetRenderTexture(captureTargetColor)
     Else
       Result := Self._ResolveTexture;
@@ -1055,7 +1055,7 @@ End;
 {$IFDEF POSTPROCESSING}
 Function TERRAViewport.GetFXChain: ScreenFXChain;
 Begin
-  If Not GraphicsManager.Instance.Renderer.Features.PostProcessing.Avaliable Then
+  If Not Engine.Graphics.Renderer.Features.PostProcessing.Avaliable Then
   Begin
     Log(logError, 'Viewport', 'Postprocessing not supported in this device!');
     Result := Nil;
@@ -1075,7 +1075,7 @@ Var
   SrcType:RenderTargetType;
   Graphics:GraphicsManager;
 Begin
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
   For I:=RenderCaptureTargets To Pred(TotalCaptureTargets) Do
   Begin

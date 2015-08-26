@@ -45,7 +45,7 @@ Type
       Constructor Create(MyResource:TERRAResource);
   End;
 
-  ResourceManager = Class(ApplicationComponent)
+  ResourceManager = Class(TERRAObject)
     Protected
       _LastUpdate:Cardinal;
       _Queue:TERRAQueue;
@@ -65,10 +65,10 @@ Type
 
       AutoUnload:Boolean;
 
-      Procedure Init; Override;
+      Constructor Create();
       Procedure Release; Override;
 
-      Procedure Update; Override;
+      Procedure Update; Virtual;
 
       Function GetResource(Const Name:TERRAString):TERRAResource;
       Procedure AddResource(MyResource:TERRAResource);
@@ -120,7 +120,7 @@ Begin
     Exit;
 
   Log(logDebug, 'ResourceManager', 'Obtaining manager for '+MyResource.Name);
-  Manager := MyResource.GetManager();
+  Manager := ResourceManager(MyResource.GetManager());
   If (Manager = Nil) Then
   Begin
     Log(logDebug, 'ResourceManager', 'Could not find a manager for '+MyResource.Name);
@@ -174,7 +174,7 @@ Begin
   Log(logDebug, 'Resource', 'Finished '+MyResource.Name);
 End;
 
-Procedure ResourceManager.Init;
+Constructor ResourceManager.Create();
 Begin
   Log(logDebug, 'Resource', 'Creating resource manager for class: '+Self.ClassName);
 
@@ -250,7 +250,7 @@ Begin
   Else
     Log(logDebug, 'ResourceManager', 'Reloading '+Resource.Name+' in foreground');
 
-  ThreadPool.Instance.RunTask(ResourceLoader.Create(Resource), (InBackground And UseThreads), Nil, Resource.Priority);
+  Engine.Tasks.RunTask(ResourceLoader.Create(Resource), (InBackground And UseThreads), Nil, Resource.Priority);
 End;
 
 

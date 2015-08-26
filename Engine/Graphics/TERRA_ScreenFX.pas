@@ -650,7 +650,7 @@ Begin
     Line('    gl_FragColor = output_color;}');
     Line('}');
 
-    _Shader := GraphicsManager.Instance.Renderer.CreateShader();
+    _Shader := Engine.Graphics.Renderer.CreateShader();
     _Shader.Generate(Self.GetShaderName(), S);
     _NeedsUpdate := False;
   End;
@@ -669,7 +669,7 @@ Var
 Begin
   _SH := Self.GetShader();
 
-  GraphicsManager.Instance.Renderer.BindShader(_SH);
+  Engine.Graphics.Renderer.BindShader(_SH);
 
   {M := GraphicsManager.Instance.ActiveViewport.Projection;
   M := MatrixInverse(M);
@@ -711,8 +711,8 @@ Begin
     Inc(Slot);
   End;
 
-  GraphicsManager.Instance.Renderer.SetBlendMode(blendNone);
-  GraphicsManager.Instance.DrawFullscreenQuad(_SH, X1,Y1,X2,Y2);
+  Engine.Graphics.Renderer.SetBlendMode(blendNone);
+  Engine.Graphics.DrawFullscreenQuad(_SH, X1,Y1,X2,Y2);
 
   Tex := Engine.Textures.WhiteTexture;
   For I:=0 To Slot Do

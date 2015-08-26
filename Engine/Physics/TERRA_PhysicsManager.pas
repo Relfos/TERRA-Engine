@@ -84,22 +84,20 @@ Type
       Property WorldBox:BoundingBox Read _WorldBox Write SetWorldBox;
   End;
 
-  PhysicsManager = Class(ApplicationComponent)
-  private
-    procedure SetSystem(const Value: PhysicsSystem);
+  PhysicsManager = Class(TERRAObject)
     Protected
       _System:PhysicsSystem;
 
       _AccTimeSlice:Single;
       _TimeLastFrame:Cardinal;
 
+      Procedure SetSystem(const Value: PhysicsSystem);
+
     Public
-      Procedure Update; Override;
-      Procedure Init; Override;
-
-      Class Function Instance:PhysicsManager;
-
+      Constructor Create();
       Procedure Release; Override;
+
+      Procedure Update;
 
 //      Function CreateConvexMeshRigidBody(Mesh:MeshFilter; Const Transform:Matrix4x4; Mass:Single):PhysicsBody;
       Function CreateBoxRigidBody(Const Size:Vector3D; Const Position, Rotation:Vector3D; Mass:Single):PhysicsBody;
@@ -115,19 +113,8 @@ Type
 Implementation
 Uses TERRA_OS;
 
-Var
-  _PhysicsManager_Instance:ApplicationObject = Nil;
-
 { PhysicsManager }
-Class Function PhysicsManager.Instance: PhysicsManager;
-Begin
-  If _PhysicsManager_Instance = Nil Then
-    _PhysicsManager_Instance := InitializeApplicationComponent(PhysicsManager, Nil);
-
-  Result := PhysicsManager(_PhysicsManager_Instance.Instance);
-End;
-
-Procedure PhysicsManager.Init;
+Constructor PhysicsManager.Create();
 Begin
   _System := Nil;
   _TimeLastFrame := Application.GetTime();

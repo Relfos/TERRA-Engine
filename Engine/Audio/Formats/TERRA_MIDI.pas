@@ -520,7 +520,7 @@ Type
       Procedure Stop();
   End;
 
-  MidiManager = Class(ApplicationComponent)
+  MidiManager = Class(TERRAObject)
     Protected
       _Notes:Array Of MidiNoteEvent;
       _NoteCount:Integer;
@@ -535,9 +535,7 @@ Type
       Procedure FlushNotes(Channel, Note:Byte);
 
     Public
-      Procedure Update; Override;
-
-      Class Function Instance:MidiManager;
+      Procedure Update; 
 
       // play a midi note with a certain duration and volume
       Function PlayNote(Channel, Note:Byte; Duration:Cardinal; Volume:Single = 0.8; Delay:Cardinal = 0):Boolean;
@@ -559,9 +557,6 @@ Const
   MaxMIDIVolume = 127;
   DefaultMIDIVolume = 127;
   DefaultMIDIPanning = 127;
-
-Var
-  _MidiManager_Instance:ApplicationObject;
 
 Function MIDIEvent_SetVolume(Channel, Volume:Byte):Cardinal;
 Begin
@@ -785,7 +780,7 @@ Var
   I:Integer;
   Manager:MidiManager;
 Begin
-  Manager := MidiManager.Instance();
+  Manager := Engine.MIDI;
 
   For I:=0 To MaxMIDIChannels Do
   Begin
@@ -1107,7 +1102,7 @@ Var
   Velocity:Integer;
   Manager:MidiManager;
 Begin
-  Manager := MidiManager.Instance();
+  Manager := Engine.MIDI;
 
   Case Event._Opcode of
     MidiMessage_ProgramChange:
@@ -1177,7 +1172,7 @@ Var
   I, Velocity:Integer;
   Manager:MidiManager;
 Begin
-  Manager := MidiManager.Instance;
+  Manager := Engine.MIDI;
   For I:=0 To MaxMIDIChannels Do
   Begin
     Velocity := Trunc(Manager._Channels[I].Volume * (_Volume * MIDIVolumeBoost));
@@ -1219,14 +1214,6 @@ Procedure MidiManager.Release;
 Begin
   Self.Clear();
   Inherited;
-End;
-
-Class Function MidiManager.Instance:MidiManager;
-Begin
-  If _MidiManager_Instance = Nil Then
-    _MidiManager_Instance := InitializeApplicationComponent(MidiManager, Nil);
-
-  Result := MidiManager(_MidiManager_Instance.Instance);
 End;
 
 Procedure MidiManager.Clear;

@@ -22,6 +22,32 @@
  ***********************************************************************************************************************
 }
 
+(*
+TEXTURE_CUBE_MAP_SEAMLESS
+  GL_ARB_shader_texture_lod
+GL_ARB_texture_compression_rgtc
+
+GL_ARB_draw_instanced
+
+// for gpu particles
+GL_ARB_draw_indirect
+http://www.opengl.org/registry/specs/ARB/draw_indirect.txt
+http://www.opengl.org/registry/specs/EXT/texture_buffer_object.txt
+GL_EXT_texture_buffer_object
+
+// useful for HDR
+GL_EXT_texture_shared_exponent
+http://www.opengl.org/registry/specs/EXT/texture_shared_exponent.txt
+
+// setuniform replacing?
+GL_EXT_gpu_program_parameters
+
+GL_EXT_texture_sRGB
+http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
+
+*)
+
+
 Unit TERRA_GraphicsManager;
 {$I terra.inc}
 
@@ -44,15 +70,8 @@ Uses {$IFNDEF DEBUG_LEAKS}TERRA_MemoryManager,{$ENDIF} {$IFDEF USEDEBUGUNIT}TERR
   TERRA_Viewport, TERRA_Application, TERRA_VertexFormat, TERRA_Renderable,
   TERRA_Image, TERRA_Math, TERRA_Vector2D, TERRA_Ray, TERRA_Collections;
 
-Const
-  //FogMode
-  fogOff      = 0;
-  fogDistance = 1;
-  fogHeight   = 2;
-  fogBox      = 4;
-
 Type
-	GraphicsManager = Class(ApplicationComponent)
+	GraphicsManager = Class(TERRAObject)
 		Protected
       _Viewports:Array Of TERRAViewport;
       _ViewportCount:Integer;
@@ -72,8 +91,6 @@ Type
 
       //_Projection:Matrix4x4;
       _OrientationMatrix4x4:Matrix4x4;
-
-      _NeedsContextRestore:Boolean;
 
       _StencilID:Byte;
 
@@ -96,13 +113,6 @@ Type
       Procedure RenderStencilShadows(View:TERRAViewport);
       Procedure RenderViewport(View:TERRAViewport);
 
-      Procedure OnAppResize; Override;
-      Procedure OnContextLost; Override;
-      Procedure OnOrientationChange; Override;
-      Procedure OnViewportChange(X1, Y1, X2, Y2:Integer); Override;
-
-      Procedure RestoreContext;
-
       Procedure SetRenderer(Value: GraphicsRenderer);
 
     Public
@@ -124,12 +134,13 @@ Type
       EnviromentMap:TERRATexture;
       ToonRamp:TERRATexture;
 
-      Procedure Init; Override;
-      Procedure Update; Override;
-
-      Class Function Instance:GraphicsManager;
-
+      Constructor Create; 
       Procedure Release; Override;
+
+      Procedure Update;
+      
+      Procedure ResizeDevice(Const Width, Height:Integer);
+      Procedure OnOrientationChange;
 
       //Procedure RenderShadowmap(View:TERRAViewport);
       //Procedure RenderReflections(View:Viewport);
@@ -187,7 +198,6 @@ Uses TERRA_Error, TERRA_EngineManager, TERRA_OS, TERRA_Log, TERRA_ResourceManage
   TERRA_Frustum, TERRA_Lights, TERRA_Mesh, TERRA_ParticleRenderer, TERRA_DebugDraw;
 
 Var
-  _GraphicsManager_Instance:ApplicationObject = Nil;
   _ShuttingDown:Boolean = False;
 
 Class Function GraphicsManager.IsShuttingDown:Boolean;
@@ -292,15 +302,7 @@ End;
 
 
 { GraphicsManager }
-Class Function GraphicsManager.Instance:GraphicsManager;  {$IFDEF FPC} Inline;{$ENDIF}
-Begin
-  If (Not Assigned(_GraphicsManager_Instance)) Then
-    _GraphicsManager_Instance := InitializeApplicationComponent(GraphicsManager, Nil);
-
-  Result := GraphicsManager(_GraphicsManager_Instance.Instance);
-End;
-
-Procedure GraphicsManager.Init;
+Constructor GraphicsManager.Create();
 Var
   OW, OH:Integer;
   S:TERRAString;
@@ -332,46 +334,7 @@ Begin
 
   Log(logDebug, 'GraphicsManager', 'Width='+ IntegerProperty.Stringify(Application.Instance.Width)+' Height='+ IntegerProperty.Stringify(Application.Instance.Width));
 
-  Application.Instance.SetViewport(0,0, Application.Instance.Width, Application.Instance.Width);
-
   ShowDebugTarget := captureTargetInvalid;
-{
-  _Settings.TextureCompression._Avaliable := True;
-  _Settings.Shaders._Avaliable := True;
-  _Settings.VertexBufferObject._Avaliable := True;
-  _Settings.FrameBufferObject._Avaliable := True;
-  _Settings.VolumeTexture._Avaliable := False;
-  _Settings.CubemapTexture._Avaliable := True;
-  _Settings.FloatTexture._Avaliable := False;
-  _Settings.TextureArray._Avaliable := False;
-  _Settings.SeparateBlends._Avaliable := False;
-  _Settings.SeamlessCubeMap._Avaliable := False;}
-
-  {TEXTURE_CUBE_MAP_SEAMLESS
-  GL_ARB_shader_texture_lod
-GL_ARB_texture_compression_rgtc
-
-GL_ARB_draw_instanced
-
-// for gpu particles
-GL_ARB_draw_indirect
-http://www.opengl.org/registry/specs/ARB/draw_indirect.txt
-http://www.opengl.org/registry/specs/EXT/texture_buffer_object.txt
-GL_EXT_texture_buffer_object
-
-// useful for HDR
-GL_EXT_texture_shared_exponent
-http://www.opengl.org/registry/specs/EXT/texture_shared_exponent.txt
-
-// setuniform replacing?
-GL_EXT_gpu_program_parameters
-
-GL_EXT_texture_sRGB
-http://www.opengl.org/registry/specs/EXT/texture_sRGB.txt
-
-   }
-
-
 
   Log(logDebug, 'GraphicsManager', 'Device resolution: '+ IntegerProperty.Stringify(Application.Instance.Width)+' x ' + IntegerProperty.Stringify(Application.Instance.Width));
 
@@ -387,7 +350,7 @@ Function GraphicsManager.GetDefaultFullScreenShader():ShaderInterface;
 Begin
   If (_FullscreenQuadShader = Nil) Then
   Begin
-    _FullscreenQuadShader := GraphicsManager.Instance.Renderer.CreateShader();
+    _FullscreenQuadShader := Engine.Graphics.Renderer.CreateShader();
     _FullscreenQuadShader.Generate('fullscreen_quad', GetShader_FullscreenQuad());
   End;
 
@@ -671,7 +634,7 @@ Begin
 
   If ShowShadowVolumes Then
   Begin
-    GraphicsManager.Instance.Renderer.SetBlendMode(blendJoin);
+    Engine.Graphics.Renderer.SetBlendMode(blendJoin);
     Renderer.SetColorMask(True, True, True, True);
   End Else
     Renderer.SetColorMask(False, False, False, False);
@@ -758,7 +721,7 @@ Begin
     Exit;
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'LightManager.Clear');{$ENDIF}
-  LightManager.Instance.Clear;
+  Engine.Lights.Clear;
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Buckets.Clear');{$ENDIF}
 
   _Renderables.Clear();
@@ -773,7 +736,7 @@ Begin
   End;
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Particles.Render');{$ENDIF}
-  ParticleManager.Instance.Render(View);
+  Engine.Particles.Render(View);
 
   _Renderables.RenderOverlays(View, Stage);
   View.SpriteRenderer.Prepare();
@@ -828,7 +791,7 @@ Begin
 
       View.SetViewArea(0, 0, Target.Width, Target.Height);
 
-      If (Pass <> captureTargetColor) And ((Not GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) {$IFDEF POSTPROCESSING}Or (Not View.HasPostProcessing()){$ENDIF}) Then
+      If (Pass <> captureTargetColor) And ((Not Engine.Graphics.Renderer.Features.Shaders.Avaliable) {$IFDEF POSTPROCESSING}Or (Not View.HasPostProcessing()){$ENDIF}) Then
         Continue;
 
       Case Pass Of
@@ -1170,8 +1133,6 @@ Begin
   ReleaseObject(_Renderables);
 
   ReleaseObject(_DeviceViewport);
-
-  _GraphicsManager_Instance := Nil;
 End;
 
 
@@ -1185,12 +1146,6 @@ Var
 Begin
   If (Self.Renderer = Nil) Then
     Exit;
-
-  If (_NeedsContextRestore) Then
-  Begin
-    _NeedsContextRestore := False;
-    Self.RestoreContext();
-  End;
 
   Time := Application.GetTime();
   _ElapsedTime := (Time - _LastTime) / 1000.0;
@@ -1263,27 +1218,19 @@ Begin
     Renderer.UpdateFrameCounter();
 End;
 
-Procedure GraphicsManager.OnAppResize;
-Var
-  NewW, NewH:Integer;
+Procedure GraphicsManager.ResizeDevice(Const Width, Height:Integer);
 Begin
   {$IFDEF MOBILE}
   Exit;
   {$ENDIF}
 
-  _Renderer.Resize(Application.Instance.Width, Application.Instance.Height);
+  If Assigned(_Renderer) Then
+    _Renderer.Resize(Width, Height);
 
-(*  Application.Instance.SelectResolution2D(NewW, NewH, _UIScale);
-  If (NewW<>_UIWidth) Or (NewH<>_UIHeight) Then
-  Begin
-    _UIWidth := NewW;
-    _UIHeight := NewH;
-  End;*)
+  If Assigned(_DeviceViewport) Then
+    _DeviceViewport.Resize(Width, Height);
 
   Log(logDebug, 'GraphicsManager', 'Resizing viewports');
-  {If Assigned(_DeviceViewport) Then
-    _DeviceViewport.Resize(_Width, _Height);}
-//  OnViewportChange(0, 0, _Width, _Height);
 End;
 
 (*Procedure GraphicsManager.AddOccluder(View:TERRAViewport; MyOccluder: Occluder);
@@ -1360,28 +1307,23 @@ Begin
   Result := View.GetPickRay(TX, TY);
 End;*)
 
-Procedure GraphicsManager.RestoreContext;
+(*Procedure GraphicsManager.RestoreContext;
 Var
   I:Integer;
   Img:TERRAImage;
 Begin
   If Renderer = Nil Then
     Exit;
-    
+
   Log(logDebug, 'GraphicsManager', 'Restoring rendering context');
   Renderer.OnContextLost();
 
   _DeviceViewport.OnContextLost();
-  
+
   For I:=0 To Pred(_ViewportCount) Do
     _Viewports[I].OnContextLost();
 End;
-
-Procedure GraphicsManager.OnContextLost;
-Begin
-  _NeedsContextRestore := True;
-End;
-
+ *)
 
 Procedure GraphicsManager.OnOrientationChange;
 Var
@@ -1390,19 +1332,6 @@ Begin
   For I:=0 To Pred(_ViewportCount) Do
   If Assigned(_Viewports[I].Camera) Then
     _Viewports[I].Camera.Refresh();
-End;
-
-Procedure GraphicsManager.OnViewportChange(X1, Y1, X2, Y2: Integer);
-Var
-  Img:TERRAImage;
-  I:Integer;
-Begin
-    If _DeviceViewport = Nil Then
-        Exit;
-
-  _DeviceViewport.OffsetX := X1;
-  _DeviceViewport.OffsetY := (Application.Instance.Height - Y2);
-  _DeviceViewport.Resize(X2-X1, Y2-Y1);
 End;
 
 Function GraphicsManager.GenerateStencilID:Byte;

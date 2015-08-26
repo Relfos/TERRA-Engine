@@ -79,7 +79,7 @@ Begin
     S.SetTexture(Tex);
     S.Translate(Pos[I].X, Pos[I].Y);
     S.Mirror := Odd(I);    // Each odd sprite in line will be reflected
-    S.MakeQuad(VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+    S.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
     View.SpriteRenderer.QueueSprite(S);
 
     Pos[I].X := Pos[I].X + Dir[I].X;

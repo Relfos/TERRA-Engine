@@ -10,7 +10,7 @@ Procedure WuLine(Target:Image; x1, y1, x2, y2:Integer);
 
 
 Implementation
-Uses Math;
+Uses TERRA_Math;
 
 
   procedure swap(var a, b: longint);

@@ -12,6 +12,7 @@ uses
   TERRA_ResourceManager,
   TERRA_GraphicsManager,
   TERRA_OS,
+  TERRA_Math,
   TERRA_Vector2D,
   TERRA_Vector3D,
   TERRA_Font,
@@ -21,8 +22,6 @@ uses
   TERRA_Collections,
   TERRA_Viewport,
   TERRA_Mesh,
-  TERRA_Math,
-  TERRA_Scene,
   TERRA_Color,
   TERRA_String,
   TERRA_ScreenFX,
@@ -40,7 +39,8 @@ Type
     Public
 			Procedure OnCreate; Override;
       Procedure OnDestroy; Override;
-      Procedure OnRender(V: TERRAViewport); Override;
+      Procedure OnRender2D(V: TERRAViewport); Override;
+      Procedure OnRender3D(V: TERRAViewport); Override;
   End;
 
 
@@ -66,7 +66,7 @@ Begin
   Inherited;
 
   // enable demo floor
-  Self.Scene.Floor.SetPosition(VectorZero);
+  Self.Floor.SetPosition(VectorZero);
 
   UITemplates.AddTemplate(UIWindowTemplate.Create('wnd_template', Engine.Textures.GetItem('ui_window'), 45, 28, 147, 98));
   UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', Engine.Textures.GetItem('ui_button2'), 25, 10, 220, 37));
@@ -107,18 +107,18 @@ Begin
   Inherited;
 End;
 
-Procedure MyDemo.OnRender(V: TERRAViewport);
+Procedure MyDemo.OnRender2D(V: TERRAViewport);
 Begin
-  If (V = Self.Scene.MainViewport) Then
-  Begin
-    GraphicsManager.Instance.AddRenderable(V, Solid);
+  Engine.Graphics.AddRenderable(V, MyUI);
 
-    GraphicsManager.Instance.AddRenderable(V, MyUIProxy);
-  End Else
-  If (V = MyUI.Viewport) Then
-  Begin
-    GraphicsManager.Instance.AddRenderable(V, MyUI);
-  End;
+  Inherited;
+End;
+
+Procedure MyDemo.OnRender3D(V: TERRAViewport);
+Begin
+  Inherited;
+  Engine.Graphics.AddRenderable(V, Solid);
+  Engine.Graphics.AddRenderable(V, MyUIProxy);
 End;
 
 // GUI event handlers

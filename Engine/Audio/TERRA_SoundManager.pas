@@ -46,15 +46,15 @@ Type
 
       Procedure LoadDeviceList(Var DeviceList:TERRAList; QueryID:Integer);
 
-      Procedure Init; Override;
-      Procedure Update; Override;
-
       Procedure UpdatePosition(Position, Direction, Up:Vector3D);
 
       Procedure SetEnabled(Const Value: Boolean);
 
     Public
+      Constructor Create();
       Procedure Release; Override;
+
+      Procedure Update; 
 
       Function Play(MySound:Sound):SoundSource; Overload;
       Function Play(Const Name:TERRAString):SoundSource; Overload;
@@ -66,8 +66,6 @@ Type
 
       Procedure ValidateSource(Var Source:SoundSource);
 
-      Class Function Instance:SoundManager;
-
       Property Ambience:SoundAmbience Read _Ambience;
 
       Property Enabled:Boolean Read _Enabled Write SetEnabled;
@@ -76,11 +74,8 @@ Type
 Implementation
 Uses TERRA_Error, TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Camera, TERRA_FileManager;
 
-Var
-  _SoundManager_Instance:ApplicationObject = Nil;
-
 { SoundSystem }
-Procedure SoundManager.Init;
+Constructor SoundManager.Create();
 Var
   Attribs:Array[0..1] Of Integer;
 Begin
@@ -156,8 +151,6 @@ Begin
     alcCloseDevice(_Device);                 //Close device
 
   FreeOpenAL();
-
-  _SoundManager_Instance := Nil;
 End;
 
 Function SoundManager.GetSound(Name:TERRAString; ValidateError:Boolean):Sound;
@@ -184,15 +177,6 @@ Begin
     If ValidateError Then
       RaiseError('Could not find sound resource. ['+Name +']');
   End;
-End;
-
-
-Class function SoundManager.Instance: SoundManager;
-Begin
-  If Not Assigned(_SoundManager_Instance) Then
-    _SoundManager_Instance := InitializeApplicationComponent(SoundManager, Nil);
-
-  Result := SoundManager(_SoundManager_Instance.Instance);
 End;
 
 Procedure SoundManager.LoadDeviceList(var DeviceList:TERRAList; QueryID: Integer);

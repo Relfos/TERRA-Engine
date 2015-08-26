@@ -67,8 +67,6 @@ Type
       Procedure SetDefaultFont(const Value:TERRAFont);
       Procedure SetDragger(const Value:UIWidget);
 
-      Function GetFontRenderer():TERRAFontRenderer;
-
       Function GetModal():UIWidget;
 
       Procedure Clear;
@@ -132,7 +130,7 @@ Type
       Property Modal:UIWidget Read GetModal Write _Modal;
     End;
 
-  UIManager = Class(ApplicationComponent)
+(*  UIManager = Class(TERRAObject)
     Protected
       _TextureAtlas:TextureAtlas;
       _UpdateTextureAtlas:Boolean;
@@ -148,22 +146,15 @@ Type
       _Controllers:Array Of UIController;
       _ControllerCount:Integer;
 
-      Procedure OnAppResize; Override;
-      Procedure OnOrientationChange; Override;
-
       Function GetTextureAtlas:TextureAtlas;
 
       Function GetFontRenderer:TERRAFontRenderer;
 
     Public
-      Procedure Init; Override;
-      Procedure Resume; Override;
-
+      Constructor Create();
       Procedure Release; Override;
 
-      Class Function Instance:UIManager;
-
-//      Procedure Render;
+      Procedure Resume;
 
       Procedure AddUI(UI:UIView);
       Procedure RemoveUI(UI:UIView);
@@ -187,9 +178,7 @@ Type
 
       Property AlignEnums:EnumCollection Read _AlignEnums;
       Property DirectionEnums:EnumCollection Read _DirectionEnums;
-  End;
-
-Function GetSpriteZOnTop(W:UIWidget; Ofs:Single = 1.0):Single;
+  End;*)
 
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_XML, TERRA_Matrix4x4, TERRA_EngineManager,
@@ -197,17 +186,6 @@ Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_XML, TERRA_Matrix4x4, TERRA_Engi
   TERRA_UIVirtualKeyboard, TERRA_UITabs, TERRA_UIScrollBar,
    TERRA_UIButton, TERRA_UISprite, TERRA_UILabel, TERRA_UIWindow,
   TERRA_UICheckbox, TERRA_UIEditText, TERRA_UIIcon*);
-
-
-Var
-  _UIManager_Instance:ApplicationObject = Nil;
-
-Function GetSpriteZOnTop(W:UIWidget; Ofs:Single):Single;
-Begin
-  //Result := (100 - W.GetLayer()) - Ofs;
-  Result := W.GetLayer() + Ofs;
-End;
-
 
 { UIView }
 Constructor UIView.Create(Const Name:TERRAString; Width, Height:UIDimension);
@@ -244,9 +222,7 @@ Begin
   _Viewport.SetRenderTargetState(captureTargetColor, True);
   _Viewport.SetTargetArea(0, 0, 1.0, 1.0);
 
-  GraphicsManager.Instance.AddViewport(_Viewport);
-
-  UIManager.Instance.AddUI(Self);
+  Engine.Graphics.AddViewport(_Viewport);
 End;
 
 Procedure UIView.Release;
@@ -331,9 +307,6 @@ Begin
     _Language := Application.Instance.Language;
     Self.OnLanguageChange();
   End;
-
-  If (UIManager.Instance._UpdateTextureAtlas) Then
-    Exit;
 
   Inherited Render(View, Stage, Bucket);
 End;
@@ -588,24 +561,6 @@ Begin
   Result := _VirtualKeyboard;
 End;
 
-(*Function UIView.GetHighlight:UIWidget;
-Begin
-  If (Assigned(_Highlight)) And (Not _Highlight.Visible) Then
-    _Highlight := Nil;
-
-  Result := _Highlight;
-End;*)
-
-Function UIView.GetFontRenderer():TERRAFontRenderer;
-Begin
-  Result := Inherited GetFontRenderer;
-(*  Result.SetFont(Self._DefaultFont);
-  Result.SetTransform(Self.Transform);
-  Result.SetColor(ColorWhite);
-  Result.SetClipRect(_ClipRect);*)
-  //Result.SetDropShadow(ColorGrey(0, 64));
-End;
-
 (*Function UIView.SelectNearestWidget(Target:UIWidget):UIWidget;
 Var
   It:Iterator;
@@ -680,25 +635,11 @@ End;
 
 
 { UIManager }
-Procedure UIManager.Init;
+{Procedure UIManager.Init;
 Begin
   _TextureAtlas := Nil;
   _UpdateTextureAtlas := False;
 
-  _AlignEnums := EnumCollection.Create();
-  _AlignEnums.Add('TopLeft', waTopLeft);
-  _AlignEnums.Add('TopCenter', waTopCenter);
-  _AlignEnums.Add('TopRight', waTopRight);
-  _AlignEnums.Add('LeftCenter', waLeftCenter);
-  _AlignEnums.Add('Center', waCenter);
-  _AlignEnums.Add('RightCenter', waRightCenter);
-  _AlignEnums.Add('BottomLeft', waBottomLeft);
-  _AlignEnums.Add('BottomCenter', waBottomCenter);
-  _AlignEnums.Add('BottomRight', waBottomRight);
-
-  _DirectionEnums := EnumCollection.Create();
-  _DirectionEnums.Add('Vertical', Integer(UIDirection_Vertical));
-  _DirectionEnums.Add('Horizontal', Integer(UIDirection_Horizontal));
 End;
 
 Procedure UIManager.Release;
@@ -747,54 +688,6 @@ Begin
   End Else
     Inc(I);
 End;
-
-(*Procedure UIManager.Render();
-Var
-  Flags:Cardinal;
-  Target:RenderTargetInterface;
-  Graphics:GraphicsManager;
-  Projection:Matrix4x4;
-Begin
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'BeginUIRendering');{$ENDIF}
-
-  Graphics := GraphicsManager.Instance;
-
-  _Viewport.BackgroundColor := ColorNull;
-  Target := _Viewport.GetRenderTarget(captureTargetColor);
-  If Assigned(Target) Then
-  Begin
-    Target.BackgroundColor := _Viewport.BackgroundColor;
-    _Viewport.SetViewArea(0, 0, Target.Width, Target.Height);
-    Target.BeginCapture();
-
-    Graphics.Renderer.SetBlendMode(blendBlend);
-    Graphics.SetFog(False);
-    //glEnable(GL_SCISSOR_TEST);
-
-    Projection := Matrix4x4Ortho(0.0, _Viewport.Width, _Viewport.Height, 0.0, -100, 100);
-    Projection := Matrix4x4Multiply4x4(Projection, Matrix4x4Translation(0.375, 0.375, 0.0));
-
-    _Viewport.SetViewArea(0, 0, _Viewport.Width, _Viewport.Height);
-
-    Graphics.Renderer.ClearBuffer((Not Assigned(Graphics.Scene)), True, True);
-
-    UIManager.Instance.RenderUIs();
-
-    If (Assigned(Graphics.Scene)) And (Not Application.Instance.HasFatalError) Then
-      Graphics.Scene.RenderSprites(_Viewport);
-
-    _Viewport.SpriteRenderer.Render(Projection);
-
-    UIManager.Instance.AfterEffects();
-
-//  glDisable(GL_SCISSOR_TEST);
-  //glDisable(GL_ALPHA_TEST);
-
-    Target.EndCapture();
-  End;
-
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'FinishedUIRendering');{$ENDIF}
-End;*)
 
 Function UIManager.GetTextureAtlas: TextureAtlas;
 Begin
@@ -895,6 +788,7 @@ Begin
   Else
     Result := Nil;
 End;
+}
 
 (*
 Function UIView.LoadImage(Name:TERRAString):TextureAtlasItem;
@@ -1138,6 +1032,8 @@ End;
 
 *)
 
+{
+
 Procedure UIManager.AddController(Controller: UIController);
 Begin
   Inc(_ControllerCount);
@@ -1158,5 +1054,5 @@ Begin
 
   Result := Nil;
 End;
-
+ }
 End.

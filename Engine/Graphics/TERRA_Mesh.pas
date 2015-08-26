@@ -771,7 +771,7 @@ Type
 
       Property Filter:MeshFilter Read GetMeshFilter;
 
-      Class Function GetManager:Pointer; Override;
+      Class Function GetManager:TERRAObject; Override;
 
       Procedure CullTriangles(Box:BoundingBox; Transform:Matrix4x4);
       Procedure UncullTriangles();
@@ -1969,8 +1969,8 @@ Begin
     UpdateBoundingBox();
 
   Result := _BoundingBox;
-  If GraphicsManager.Instance.ReflectionActive Then
-    Result.Transform(GraphicsManager.Instance.ReflectionMatrix);
+  If Engine.Graphics.ReflectionActive Then
+    Result.Transform(Engine.Graphics.ReflectionMatrix);
 End;
 
 Procedure MeshInstance.Update(View:TERRAViewport);
@@ -2114,7 +2114,7 @@ Begin
     If _Lights[I].Enabled Then
     Begin
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Mesh', 'Adding light to manager...');{$ENDIF}
-      LightManager.Instance.AddLight(View, TargetLight);
+      Engine.Lights.AddLight(View, TargetLight);
     End;
   End;
 End;
@@ -2192,7 +2192,7 @@ Begin
     End;
 
     _ParticleSystems[I].Update(View);
-    GraphicsManager.Instance.AddRenderable(View, _ParticleSystems[I]);
+    Engine.Graphics.AddRenderable(View, _ParticleSystems[I]);
   End;
 End;
 
@@ -2214,7 +2214,7 @@ Begin
   Log(logDebug, 'Mesh', 'Drawing mesh '+Self.Geometry.Name);
   {$ENDIF}
 
-  Reflections := GraphicsManager.Instance.ReflectionActive;
+  Reflections := Engine.Graphics.ReflectionActive;
 
   For I:=0 To Pred(_Mesh._GroupCount) Do
   If (_StencilID=0) Or ((_Mesh._Groups[I].Flags And meshGroupStencilTest<>0) = (StencilTest Or Reflections)) Then
@@ -2233,7 +2233,7 @@ Begin
     Begin
       Box := _Mesh._Groups[I]._BoundingBox;
       Box.Transform(Transform);
-      If Not GraphicsManager.Instance.IsBoxVisible(View, Box) Then
+      If Not Engine.Graphics.IsBoxVisible(View, Box) Then
         Continue;
     End;
 
@@ -2258,7 +2258,7 @@ Begin
 
   TranslucentPass := (Bucket And renderBucket_Translucent<>0);
 
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
   If Assigned(_Body) Then
   Begin
@@ -2916,7 +2916,7 @@ Begin
     Exit;
   End;
 
-  _Body := PhysicsManager.Instance.CreateSphereRigidBody(Self._Scale.X, _Position, _Rotation, Mass);
+  _Body := Engine.Physics.CreateSphereRigidBody(Self._Scale.X, _Position, _Rotation, Mass);
   Result := True;
 End;
 
@@ -3011,7 +3011,7 @@ Begin
     ReleaseObject(_Buffer);
   End;
 
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
   If (Self._GPUSkinning) Then
   Begin
@@ -3898,10 +3898,10 @@ Var
     _BoneVectors[ID*3 + 2] := B3;
   End;
 Begin
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
   If (Graphics.ReflectionActive) Then
-    Transform := Matrix4x4Multiply4x4(GraphicsManager.Instance.ReflectionMatrix, Transform);
+    Transform := Matrix4x4Multiply4x4(Graphics.ReflectionMatrix, Transform);
 
   If (Graphics.ReflectionActive) Then
     Transform := Matrix4x4Multiply4x4(Graphics.ReflectionMatrix, Transform);
@@ -4029,7 +4029,7 @@ Var
 Begin
   Result := False;
 
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
   If (Stage = renderStageOutline) {$IFNDEF DISABLEOUTLINES} And (Not Graphics.Renderer.Settings.Outlines.Enabled) {$ENDIF} Then
   Begin
@@ -4230,7 +4230,7 @@ Begin
     End;
 
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Setuping uniforms'); {$ENDIF}
-    LightManager.Instance.SetupUniforms(@_LightBatch, Slot);
+    Engine.Lights.SetupUniforms(@_LightBatch, Slot);
 
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Setting uniform properties');  {$ENDIF}
     If Assigned(_Shader) Then
@@ -4824,7 +4824,7 @@ Var
 Begin
   Slot := 1;
 
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
   If (Graphics.Renderer.Settings.DynamicShadows.Enabled) And (Stage=renderStageDiffuse) Then
   Begin
@@ -5070,7 +5070,7 @@ Begin
 
   Self._Vertices := VertexData.Create(Format, 0);
 
-  Self._GPUSkinning := GraphicsManager.Instance.Renderer.Settings.VertexBufferObject.Enabled;
+  Self._GPUSkinning := Engine.Graphics.Renderer.Settings.VertexBufferObject.Enabled;
 End;
 
 Function MeshGroup.LockVertices():VertexData;
@@ -5460,7 +5460,7 @@ Begin
   DestMaterial.ReflectiveMap := SelectTexture(OtherMat.ReflectiveMap, _Material.ReflectiveMap, Nil);
   DestMaterial.AlphaMap := SelectTexture(OtherMat.AlphaMap, _Material.AlphaMap, Engine.Textures.WhiteTexture);
   DestMaterial.LightMap := SelectTexture(OtherMat.LightMap, _Material.LightMap, Nil);
-  DestMaterial.ToonRamp := SelectTexture(OtherMat.ToonRamp, _Material.ToonRamp, GraphicsManager.Instance.ToonRamp);
+  DestMaterial.ToonRamp := SelectTexture(OtherMat.ToonRamp, _Material.ToonRamp, Engine.Graphics.ToonRamp);
   DestMaterial.FlowMap := SelectTexture(OtherMat.FlowMap, _Material.FlowMap, Nil);
   DestMaterial.NoiseMap := SelectTexture(OtherMat.NoiseMap, _Material.NoiseMap, Nil);
   DestMaterial.ReflectionMap := Engine.Textures.BlackTexture;
@@ -5475,7 +5475,7 @@ Begin
   DestMaterial.VegetationBend := OtherMat.VegetationBend;
   DestMaterial.Ghost := OtherMat.Ghost;
 
-  DestMaterial.EnviromentMap := GraphicsManager.Instance.EnviromentMap;
+  DestMaterial.EnviromentMap := Engine.Graphics.EnviromentMap;
 
   Transparency := (DestMaterial.DiffuseColor.A<255) Or (DestMaterial.DiffuseMap.TransparencyType<>imageOpaque);
 
@@ -5527,7 +5527,7 @@ Begin
 End;
 
 { Mesh }
-Class Function TERRAMesh.GetManager: Pointer;
+Class Function TERRAMesh.GetManager:TERRAObject;
 Begin
   Result := Engine.Meshes;
 End;
@@ -5984,7 +5984,7 @@ Begin
   Begin
     Anim := Animation.Create(rtDynamic{, Self.Name + '_'+ Source.GetAnimationName(I)});
     Anim.InitFromFilter(I, Source);
-    AnimationManager.Instance.AddResource(Anim);
+    Engine.Animations.AddResource(Anim);
   End;
 
   Self.Update;
@@ -6750,7 +6750,7 @@ Begin
   Group._LightBatch.Reset();
   DisableLights := False;
 
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
   If (Group.Flags And meshGroupVegetation<>0) And (DestMaterial.VegetationBend>0) Then
     FxFlags := FxFlags Or shaderVegetation;
@@ -6864,7 +6864,7 @@ Begin
           LightPivot := Position;    *)
         LightPivot := View.Camera.FocusPoint;
 
-        LightManager.Instance.SortLights(LightPivot, Group._BoundingBox, Group._LightBatch);
+        Engine.Lights.SortLights(LightPivot, Group._BoundingBox, Group._LightBatch);
       End;
     End;
 
@@ -6983,7 +6983,7 @@ Begin
 {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'MeshGroup', 'Getting shader with flags '+CardinalToString(FXFlags));{$ENDIF}
 
   DestMaterial.AmbientColor := Group._LightBatch.AmbientColor;
-  Result := ShaderFactory.Instance.GetShader(FxFlags, OutFlags, Graphics.Renderer.Settings.FogMode, Group._LightBatch);
+  Result := Engine.ShaderFactory.GetShader(FxFlags, OutFlags, Graphics.Renderer.Settings.FogMode, Group._LightBatch);
 End;
 
 { MeshFX }

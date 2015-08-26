@@ -50,7 +50,7 @@ Type
       Procedure Post(Const Value:Integer);
   End;
 
-  SteamManager = Class(ApplicationComponent)
+  SteamManager = Class(TERRAObject)
     Protected
       _Loaded:Boolean;
       _Running:Boolean;
@@ -76,10 +76,8 @@ Type
       Procedure OnUserStats(P:Pointer);
 
     Public
-      Class Function Instance:SteamManager;
-
-      Procedure Update; Override;
-      Procedure Init; Override;
+      Constructor Create();
+      Procedure Update;
 
       Function GetAchievement(Const AchID:TERRAString):SteamAchievement;
       Function AddAchievement(Const AchID:TERRAString):SteamAchievement;
@@ -103,20 +101,8 @@ Type
 Implementation
 Uses TERRA_OS, TERRA_Log, TERRA_EngineManager, TERRA_GraphicsManager, TERRA_FileManager;
 
-Var
-  _Steam_Instance:ApplicationObject = Nil;
-
-
 { Steam }
-Class Function SteamManager.Instance:SteamManager;
-Begin
-  If _Steam_Instance = Nil Then
-    _Steam_Instance := InitializeApplicationComponent(SteamManager, Nil);
-
-  Result := SteamManager(_Steam_Instance.Instance);
-End;
-
-Procedure SteamManager.Init;
+Constructor SteamManager.Create();
 Var
    CurrentAppID:Cardinal;
 Begin
@@ -177,8 +163,6 @@ Begin
 
   For I:=0 To Pred(_StatCount) Do
     ReleaseObject(_Stats[I]);
-
-  _Steam_Instance := Nil;
 End;
 
 Procedure SteamManager.Update;
@@ -269,7 +253,7 @@ End;
 
 Function SteamAchievement.Unlock():Boolean;
 Begin
-  If (_Achieved) Or (Not SteamManager.Instance._LoggedOn) Then
+  If (_Achieved) Or (Not Engine.Steam._LoggedOn) Then
   Begin
     Result := False;
     Exit;
@@ -284,7 +268,7 @@ Begin
   ISteamUserStats_SetAchievement(PAnsiChar(ID));
 
  // Store stats end of frame
-  SteamManager.Instance._StoreStats := True;
+  Engine.Steam._StoreStats := True;
 
   Result := True;
 End;
@@ -376,11 +360,11 @@ Procedure SteamStat.SetValue(const Val: Integer);
 Begin  
   _Value := Val;
 
-  If (Not SteamManager.Instance._LoggedOn) Then
+  If (Not Engine.Steam._LoggedOn) Then
     Exit;
 
   ISteamUserStats_SetStatInt(PAnsiChar(_ID), _Value);
-  SteamManager.Instance._StoreStats := True;
+  Engine.Steam._StoreStats := True;
 End;
 
 { SteamLeaderboard }

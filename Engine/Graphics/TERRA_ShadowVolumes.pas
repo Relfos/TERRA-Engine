@@ -65,7 +65,7 @@ Type
     End;
 
 Implementation
-Uses TERRA_OS, TERRA_GraphicsManager, TERRA_Lights, TERRA_Mesh, TERRA_Renderer, TERRA_MeshFilter, TERRA_Log, TERRA_Matrix4x4;
+Uses TERRA_OS, TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Lights, TERRA_Mesh, TERRA_Renderer, TERRA_MeshFilter, TERRA_Log, TERRA_Matrix4x4;
 
 Type
   GroupVertex = Record
@@ -147,7 +147,7 @@ Begin
 
   EdgeCount:=0;
 
-  L := LightManager.Instance.GetDefaultDirection();
+  L := Engine.Lights.GetDefaultDirection();
   //L.Scale(-1.0);
   {If L.Y<0 Then
     L.Y := - L.Y;
@@ -345,7 +345,7 @@ Begin
 
   Log(logDebug, 'Shadow', 'Drawing shadow volume: '+ IntegerProperty.Stringify(_ExtrudedVertexCount));
 
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
   {Graphics.Renderer.SetSourceVertexSize(SizeOf(Vector3D));
   Graphics.Renderer.SetAttributeSource('terra_position', vertexPosition, typeVector3D, @(_ExtrudedVertices[0]));}

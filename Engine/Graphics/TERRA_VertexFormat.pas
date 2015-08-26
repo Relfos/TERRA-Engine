@@ -191,7 +191,7 @@ Type
   Function VertexFormatToFlags(Const Value:VertexFormat):Cardinal;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_GraphicsManager, TERRA_Renderer
+Uses TERRA_Error, TERRA_Log, TERRA_GraphicsManager, TERRA_EngineManager, TERRA_Renderer
 {$IFNDEF DISABLEALLOCOPTIMIZATIONS}, TERRA_StackObject{$ENDIF};
 
 Const
@@ -720,9 +720,9 @@ Begin
   If Self._Values = Nil Then
     Exit;
 
-  GraphicsManager.Instance.Renderer.SetVertexSource(Self);
+  Engine.Graphics.Renderer.SetVertexSource(Self);
 
-  Shader := GraphicsManager.Instance.Renderer.ActiveShader;
+  Shader := Engine.Graphics.Renderer.ActiveShader;
   If Not Assigned(Shader) Then
   Begin
     Log(logWarning, 'VBO', 'No shader!');
@@ -756,7 +756,7 @@ Begin
     Else
       AttrOfs := Pointer(BaseOfs);
 
-    GraphicsManager.Instance.Renderer.SetAttributeSource(Name, I, _Formats[I], AttrOfs);
+    Engine.Graphics.Renderer.SetAttributeSource(Name, I, _Formats[I], AttrOfs);
   End;
 
   Result := True;

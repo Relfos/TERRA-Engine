@@ -282,7 +282,7 @@ Type
       //Property Position:Vector3D Read _Position Write _Position;
   End;
 
-  ParticleManager = Class(ApplicationComponent)
+  ParticleManager = Class(TERRAObject)
     Protected
       _Instance:ParticleManager;
       _TextureAtlas:TextureAtlas;
@@ -309,12 +309,8 @@ Type
       Function GetShader:ShaderInterface;
 
     Public
-      Class Function Instance:ParticleManager;
-
+      Constructor Create(); 
       Procedure Release; Override;
-
-      Procedure Init; Override;
-      //Procedure Update; Override;
 
       Procedure Clear;
       Procedure Render(View:TERRAViewport);
@@ -331,60 +327,9 @@ Type
   End;
 
 Function CreateParticleVertexData(Count:Integer):VertexData;
-  
+
 Implementation
-Uses TERRA_EngineManager, TERRA_Error, TERRA_OS, TERRA_Log, TERRA_Camera, TERRA_Mesh, TERRA_FileStream, TERRA_FileUtils;
-
-Var
-  _ParticleManager_Instance:ApplicationObject = Nil;
-
-Function GetShader_Particles():TERRAString;
-Var
-  S:TERRAString;
-Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
-Begin
-  S := '';
-  Line('version { 120 }');
-  Line('vertex {');
-  Line('	varying mediump vec4 texCoord;');
-  Line('	varying lowp vec4 diffuse;');
-  Line('	uniform highp vec3 cameraPosition;');
-  Line('  attribute highp vec4 terra_position;');
-  Line('  attribute mediump vec4 terra_UV0;');
-  Line('  attribute mediump vec2 terra_ofs;');
-  Line('  attribute lowp vec4 terra_color;');
-  Line('  attribute mediump vec2 terra_size;');
-  Line('  attribute mediump vec2 terra_angle;');
-  Line('	uniform mat4 cameraMatrix;');
-  Line('	uniform mat4 projectionMatrix;');
-  Line('  uniform mat4 reflectionMatrix;');
-  Line('	uniform mediump vec3 cameraRight;');
-  Line('	uniform mediump vec3 cameraUp;');
-//  Line('	uniform highp float ratio;');
-  Line('	void main()	{');
-  Line('		texCoord = terra_UV0;');
-  Line('		diffuse = terra_color;	');
-  Line('		highp vec4 world_position = terra_position;');
-  Line('    world_position = reflectionMatrix * world_position;');
-  Line('    highp vec2 pp = terra_size * terra_ofs;');
-  Line('    pp = vec2(pp.x * terra_angle.x - pp.y * terra_angle.y, pp.x * terra_angle.y + pp.y * terra_angle.x);');
-  Line('		world_position.xyz += (pp.x * cameraRight + pp.y * cameraUp);');//  Line('		world_position.xyz += (ratio * pp.x * cameraRight + pp.y * cameraUp);');
-  Line('		gl_Position = projectionMatrix * cameraMatrix * world_position;}');
-  Line('}');
-  Line('fragment {');
-  Line('	uniform sampler2D texture0;');
-  Line('	uniform highp vec3 cameraPosition;');
-  Line('	uniform lowp vec4 sunColor;');
-  Line('	varying mediump vec4 texCoord;');
-  Line('	varying lowp vec4 diffuse;');
-  Line('	void main()	{');
-  Line('	  lowp vec4 color = texture2D(texture0, texCoord.st) * diffuse;');
-  Line('    if (color.a<0.1) discard;');
-  Line('    color *= sunColor;');
-  Line('		gl_FragColor = color;}');
-  Line('}');
-  Result := S;
-End;
+Uses TERRA_EngineManager, TERRA_Error, TERRA_OS, TERRA_Log, TERRA_Camera, TERRA_Mesh, TERRA_FileStream, TERRA_FileUtils, TERRA_ShaderManager;
 
 
 Function CreateParticleVertexData(Count:Integer):VertexData;
@@ -400,7 +345,7 @@ Constructor ParticleCollection.Create(Emitter:ParticleEmitter);
 Var
   Count:Integer;
 Begin
-  _Shader := ParticleManager.Instance.Shader;
+  _Shader := Engine.Particles.Shader;
 
   {_SettingsTemplate := ParticleManager.Instance.GetSettings(SettingName);
   Settings := ParticleSettings.Create;
@@ -610,7 +555,7 @@ Var
   Landscape:Boolean;
   Graphics:GraphicsManager;
 Begin
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
   {If (_Init) Then
     Self.Update;}
@@ -652,7 +597,7 @@ Begin
     If (I=0) Then
     Begin
       Graphics.Renderer.SetDepthMask(False);
-      ParticleManager.Instance.GetTexture(Stage, Self).Bind(0);
+      Engine.Particles.GetTexture(Stage, Self).Bind(0);
     End;
 
     If (RenderCount>0) Then
@@ -774,7 +719,7 @@ Begin
   _ParticleCollectionCount := 0;
 End;
 
-Procedure ParticleManager.Init;
+Constructor ParticleManager.Create();
 Begin
   _NeedsRebuild := False;
   _TextureAtlas := TextureAtlas.Create('particle', 512, 512);
@@ -800,8 +745,6 @@ Begin
   ReleaseObject(_GlowImage);
   ReleaseObject(_RefractionTexture);
   ReleaseObject(_RefractionImage);
-
-  _ParticleManager_Instance := Nil;
 End;
 
 Function ParticleManager.GetParticleType(Name:TERRAString): ParticleType;
@@ -892,7 +835,7 @@ Function ParticleManager.GetShader: ShaderInterface;
 Begin
   If (_Shader = Nil) Then
   Begin
-    _Shader := GraphicsManager.Instance.Renderer.CreateShader();
+    _Shader := Engine.Graphics.Renderer.CreateShader();
     _Shader.Generate('particles', GetShader_Particles());
   End;
 
@@ -1012,23 +955,6 @@ Begin
     Result := Engine.Textures.WhiteTexture;
 End;
 
-Class function ParticleManager.Instance: ParticleManager;
-Begin
-  If Not Assigned(_ParticleManager_Instance) Then
-    _ParticleManager_Instance := InitializeApplicationComponent(ParticleManager, GraphicsManager);
-
-  Result := ParticleManager(_ParticleManager_Instance.Instance);
-End;
-
-
-(*Procedure ParticleManager.Update;
-Var
-  I:Integer;
-Begin
-  {For I:=0 To Pred(_ParticleCollectionCount) Do
-    _ParticleCollections[I].Update;}
-End;*)
-
 Procedure ParticleManager.Render(View:TERRAViewport);
 Var
   I:Integer;
@@ -1043,7 +969,7 @@ Begin
       Dec(_ParticleCollectionCount);
     End Else
     Begin
-      GraphicsManager.Instance.AddRenderable(View, _ParticleCollections[I]);
+      Engine.Graphics.AddRenderable(View, _ParticleCollections[I]);
       Inc(I);
     End;
   End;

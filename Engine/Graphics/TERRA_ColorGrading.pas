@@ -117,7 +117,7 @@ Var
 Begin
   Result := False;
 
-  MyShader := GraphicsManager.Instance.Renderer.ActiveShader;
+  MyShader := Engine.Graphics.Renderer.ActiveShader;
   If (MyShader = Nil) Then
     Exit;
 

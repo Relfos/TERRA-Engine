@@ -75,6 +75,8 @@ Type
   End;
 
   TERRASprite = Class(TERRAObject)
+  private
+    procedure SetColorTable(const Value: TERRATexture);
     Protected
       {$IFNDEF DISABLECOLORGRADING}
       _ColorTable:TERRATexture;
@@ -156,7 +158,7 @@ Type
 
       Property Saturation:Single Read _Saturation Write _Saturation;
       Property Glow:ColorRGBA Read _Glow Write _Glow;
-      Property ColorTable:TERRATexture Read _ColorTable Write _ColorTable;
+      Property ColorTable:TERRATexture Read _ColorTable Write SetColorTable;
 
       Property Vertices:VertexData Read _Vertices;
       Property IndexCount:Integer Read _IndexOffset;
@@ -664,6 +666,12 @@ Begin
   Self._Flags := _Flags Or Sprite_Dissolve;
   Self._DissolveValue := Value;
   Self._DissolveTexture := Mask;
+End;
+
+Procedure TERRASprite.SetColorTable(const Value: TERRATexture);
+Begin
+  Self._ColorTable := Value;
+  Self._Flags := _Flags Or Sprite_ColorGrading;
 End;
 
 { TextureRect }

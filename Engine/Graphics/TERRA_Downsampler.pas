@@ -52,7 +52,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_GraphicsManager, TERRA_InputManager, TERRA_Color;
+Uses TERRA_GraphicsManager, TERRA_EngineManager, TERRA_InputManager, TERRA_Color;
 
 
 { RenderTargetDownSampler }
@@ -88,7 +88,7 @@ Begin
 	Begin
 		Width := Width Div 2;
 		Height := Height Div 2;
-		_Targets[I] := GraphicsManager.Instance.Renderer.CreateRenderTarget();
+		_Targets[I] := Engine.Graphics.Renderer.CreateRenderTarget();
     _Targets[I].Generate({_Name+'_target'+ IntegerProperty.Stringify(I), }Width, Height, False, PixelSize, 1, False, False);
 
     _Targets[I].BackgroundColor := ColorRed;
@@ -103,7 +103,7 @@ Var
 Begin
   _ResultIndex := 0;
 
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
 	// Set max number of textures
   If (Count<0) Then
@@ -161,7 +161,7 @@ Begin
 	// Create FrameBuffer Objects
 	For I :=0 To Pred(_TargetCount) Do
 	Begin
-		_Targets[I] := GraphicsManager.Instance.Renderer.CreateRenderTarget();
+		_Targets[I] := Engine.Graphics.Renderer.CreateRenderTarget();
     _Targets[I].Generate(Width, Height, False, PixelSize, 1, False, False);
     _Targets[I].BackgroundColor := ColorRed;
 	End;
@@ -176,7 +176,7 @@ Var
 Begin
   _ResultIndex := 0;
 
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
   Tex := Self.GetRenderTexture(0);
   If (Source = Tex) Then

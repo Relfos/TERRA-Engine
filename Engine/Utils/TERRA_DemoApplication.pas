@@ -83,7 +83,7 @@ Begin
   _Camera.SetPosition(VectorCreate(0, 5, -20));
   _Camera.SetView(VectorCreate(0, -0.25, 0.75));
 
-  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorCreate(128, 128, 255);
+  Engine.Graphics.DeviceViewport.BackgroundColor := ColorCreate(128, 128, 255);
 End;
 
 Procedure DemoApplication.OnDestroy;
@@ -103,7 +103,7 @@ Begin
   If Engine.Input.Keys.WasPressed(keyEscape) Then
     Application.Instance.Terminate();
 
-  GraphicsManager.Instance.TestDebugKeys();
+  Engine.Graphics.TestDebugKeys();
 
   If (Assigned(_Main)) And (_Main.Visible) Then
     MainViewport.Camera.FreeCam();
@@ -127,7 +127,7 @@ Begin
   If (_GUI = Nil) Then
   Begin
     // Create a new UI
-    _GUI := UIView.Create('UI', UIPixels(Width), UIPixels(Height));
+    _GUI := UIView.Create('UI', UIPercent(100), UIPercent(100));
 
     // Register the font with the UI
     _GUI.DefaultFont := Self.Font;
@@ -169,7 +169,7 @@ Function DemoApplication.CreateMainViewport(Const Name:TERRAString; Width, Heigh
 Begin
   Result := TERRAViewport.Create(Name, _Camera, Width, Height);
   Result.SetTargetArea(0.0, 0.0, 1.0, 1.0);
-  GraphicsManager.Instance.AddViewport(Result);
+  Engine.Graphics.AddViewport(Result);
   Result.Visible := True;
   Result.EnableDefaultTargets();
   Result.BackgroundColor := ColorNull;
@@ -220,8 +220,8 @@ End;
 
 Procedure DemoApplication.OnRender2D(V: TERRAViewport);
 Begin
-  _FontRenderer.DrawText(V, 5, 25, 90, 'FPS: '+ IntegerProperty.Stringify(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
-  GraphicsManager.Instance.AddRenderable(V, _GUI);
+  _FontRenderer.DrawText(V, 5, 25, 90, 'FPS: '+ IntegerProperty.Stringify(Engine.Graphics.Renderer.Stats.FramesPerSecond));
+  Engine.Graphics.AddRenderable(V, _GUI);
 End;
 
 Procedure DemoApplication.OnRender3D(V: TERRAViewport);
@@ -234,10 +234,10 @@ Begin
   Dir.Normalize();
   //Sun.SetDirection(Dir);
 
-  GraphicsManager.Instance.AddRenderable(V, _Sky);
-  LightManager.Instance.AddLight(V, Sun);
+  Engine.Graphics.AddRenderable(V, _Sky);
+  Engine.Lights.AddLight(V, Sun);
 
-  GraphicsManager.Instance.AddRenderable(V, _Floor);
+  Engine.Graphics.AddRenderable(V, _Floor);
 End;
 
 

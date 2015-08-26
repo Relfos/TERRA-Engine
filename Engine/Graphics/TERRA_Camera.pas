@@ -168,7 +168,7 @@ Type
 
 Implementation
 Uses TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsManager, TERRA_Renderer,  TERRA_InputManager, TERRA_Log,
-  TERRA_EngineManager, Math;
+  TERRA_EngineManager, TERRA_Renderable;
 
 { TERRACamera}
 Constructor TERRACamera.Create(Const Name:TERRAString);
@@ -268,8 +268,8 @@ procedure TERRACamera.Rotate(rotX, rotY: Single);
 Var
   rot_axis:Vector3D;
 Begin
-  rotX := rotX * (Speed * GraphicsManager.Instance.ElapsedTime) * 0.5;
-  rotY := rotY * (Speed * GraphicsManager.Instance.ElapsedTime) * 0.5;
+  rotX := rotX * (Speed * Engine.Graphics.ElapsedTime) * 0.5;
+  rotY := rotY * (Speed * Engine.Graphics.ElapsedTime) * 0.5;
 
 	_view.Rotate(VectorUp, rotX);
 	rot_axis := VectorCreate(-_view.z, 0.0, _view.x);
@@ -291,7 +291,7 @@ Var
   P:Vector3D;
   A,B,C, Delta:Single;
 Begin
-  _Shader := GraphicsManager.Instance.Renderer.ActiveShader;
+  _Shader := Engine.Graphics.Renderer.ActiveShader;
   If (_Shader=Nil) Then
     Exit;
 
@@ -305,30 +305,30 @@ Begin
   If (_UseClipPlane) Then
     _Shader.SetPlaneUniform('clipPlane', _ClipPlane);
 
-  If (GraphicsManager.Instance.Renderer.Settings.FogMode<>0) Then
+  If (Engine.Graphics.Renderer.Settings.FogMode<>0) Then
   Begin
-    _Shader.SetColorUniform('fogColor', GraphicsManager.Instance.Renderer.Settings.FogColor);
+    _Shader.SetColorUniform('fogColor', Engine.Graphics.Renderer.Settings.FogColor);
 
-    If (GraphicsManager.Instance.Renderer.Settings.FogMode And fogDistance<>0) Then
+    If (Engine.Graphics.Renderer.Settings.FogMode And fogDistance<>0) Then
     Begin
-      A := GraphicsManager.Instance.Renderer.Settings.FogDistanceStart;
-      B := GraphicsManager.Instance.Renderer.Settings.FogDistanceEnd;
+      A := Engine.Graphics.Renderer.Settings.FogDistanceStart;
+      B := Engine.Graphics.Renderer.Settings.FogDistanceEnd;
       C := (B-A) * 0.5;
       _Shader.SetFloatUniform('fogDistanceCenter', C + A);
       _Shader.SetFloatUniform('fogDistanceSize', C);
     End;
 
-    If (GraphicsManager.Instance.Renderer.Settings.FogMode And fogHeight<>0) Then
+    If (Engine.Graphics.Renderer.Settings.FogMode And fogHeight<>0) Then
     Begin
-      _Shader.SetFloatUniform('fogHeightStart', GraphicsManager.Instance.Renderer.Settings.FogHeightStart);
-      _Shader.SetFloatUniform('fogHeightEnd', GraphicsManager.Instance.Renderer.Settings.FogHeightEnd);
+      _Shader.SetFloatUniform('fogHeightStart', Engine.Graphics.Renderer.Settings.FogHeightStart);
+      _Shader.SetFloatUniform('fogHeightEnd', Engine.Graphics.Renderer.Settings.FogHeightEnd);
     End;
 
-    If (GraphicsManager.Instance.Renderer.Settings.FogMode And fogBox<>0) Then
+    If (Engine.Graphics.Renderer.Settings.FogMode And fogBox<>0) Then
     Begin
-      _Shader.SetVec3Uniform('fogBoxAreaStart', GraphicsManager.Instance.Renderer.Settings.FogBoxArea.StartVertex);
-      _Shader.SetVec3Uniform('fogBoxAreaEnd', GraphicsManager.Instance.Renderer.Settings.FogBoxArea.EndVertex);
-      _Shader.SetFloatUniform('fogBoxSize', GraphicsManager.Instance.Renderer.Settings.FogBoxSize);
+      _Shader.SetVec3Uniform('fogBoxAreaStart', Engine.Graphics.Renderer.Settings.FogBoxArea.StartVertex);
+      _Shader.SetVec3Uniform('fogBoxAreaEnd', Engine.Graphics.Renderer.Settings.FogBoxArea.EndVertex);
+      _Shader.SetFloatUniform('fogBoxSize', Engine.Graphics.Renderer.Settings.FogBoxSize);
     End;
 
   End;
@@ -398,7 +398,7 @@ Var
   Rot:Single;
   Input:InputManager;
 Begin
-  Walk_Speed := GraphicsManager.Instance.ElapsedTime * Speed * 3.0;
+  Walk_Speed := Engine.Graphics.ElapsedTime * Speed * 3.0;
 
   Input := Engine.Input;
 

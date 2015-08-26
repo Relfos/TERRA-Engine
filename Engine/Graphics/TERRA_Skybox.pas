@@ -89,9 +89,9 @@ Begin
 
   _Vertices := VertexData.Create([vertexFormatPosition, vertexFormatNormal], 6);
 
-  If (GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Then
+  If (Engine.Graphics.Renderer.Features.Shaders.Avaliable) Then
   Begin
-    _Cubemap := GraphicsManager.Instance.Renderer.CreateCubeMap();
+    _Cubemap := Engine.Graphics.Renderer.CreateCubeMap();
 
     _Cubemap.LoadFromFile(SkyTexture);
 
@@ -135,7 +135,7 @@ Var
   End;
 
 Begin
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
   If (Stage <> renderStageDiffuse) Then
     Exit;
@@ -196,7 +196,7 @@ Begin
 
   MyShader.SetMat4Uniform('rotationMatrix', Matrix4x4Rotation(0, _Rotation, 0));
   MyShader.SetMat4Uniform('projectionMatrix', Projection);
-  MyShader.SetMat4Uniform('reflectionMatrix', GraphicsManager.Instance.ReflectionMatrixSky);
+  MyShader.SetMat4Uniform('reflectionMatrix', Engine.Graphics.ReflectionMatrixSky);
 
 {  Graphics.Renderer.SetSourceVertexSize(SizeOf(SkyboxVertex));
   Graphics.Renderer.SetAttributeSource(TERRA_POSITION_ATTRIBUTE, typeVector3D, @(V[0].Position));

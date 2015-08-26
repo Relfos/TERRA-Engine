@@ -51,7 +51,7 @@ Type
   End;
 
 Implementation
-Uses Math, TERRA_Math, TERRA_Log;
+Uses TERRA_Math, TERRA_Log;
 
 { Equalizer }
 

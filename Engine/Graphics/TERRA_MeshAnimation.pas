@@ -133,7 +133,7 @@ Type
       Procedure Save(Dest:TERRAStream); Overload;
       Procedure Save(FileName:TERRAString); Overload;
 
-      Class Function GetManager:Pointer; Override;
+      Class Function GetManager:TERRAObject; Override;
 
       Function GetLength:Single;
 
@@ -153,9 +153,6 @@ Type
 
   AnimationManager = Class(ResourceManager)
     Public
-      Procedure Release; Override;
-      Class Function Instance:AnimationManager;
-
       Function GetAnimation(Name:TERRAString; ValidateError:Boolean = True):Animation;
    End;
 
@@ -165,9 +162,6 @@ Function TimeToFrame(Time, FPS:Single):Integer;
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_Application, TERRA_OS, TERRA_FileManager,  TERRA_Mesh,
   TERRA_EngineManager, TERRA_GraphicsManager, TERRA_FileStream, TERRA_FileUtils, TERRA_MeshAnimationNodes;
-
-Var
-  _AnimationManager:ApplicationObject;
 
 Function FrameToTime(Frame, FPS:Single):Single;
 Begin
@@ -186,23 +180,6 @@ Begin
 End;
 
 { AnimationManager }
-Class Function AnimationManager.Instance:AnimationManager;
-Begin
-  If _AnimationManager = Nil Then
-  Begin
-    _AnimationManager := InitializeApplicationComponent(AnimationManager, Nil);
-    AnimationManager(_AnimationManager.Instance).AutoUnload := False;
-  End;
-  Result := AnimationManager(_AnimationManager.Instance);
-End;
-
-
-Procedure AnimationManager.Release;
-Begin
-  Inherited;
-  _AnimationManager := Nil;
-End;
-
 Function AnimationManager.GetAnimation(Name:TERRAString; ValidateError:Boolean):Animation;
 Var
   Location:TERRALocation;
@@ -530,9 +507,9 @@ Begin
 End;
 
 { Animation }
-Class Function Animation.GetManager: Pointer;
+Class Function Animation.GetManager:TERRAObject;
 Begin
-  Result := AnimationManager.Instance;
+  Result := Engine.Animations;
 End;
 
 Function Animation.Load(Source:TERRAStream):Boolean;

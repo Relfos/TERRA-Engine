@@ -25,7 +25,7 @@ Unit TERRA_Vector4D;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Math, TERRA_Vector3D, TERRA_Matrix4x4;
+Uses TERRA_Vector3D, TERRA_Matrix4x4;
 
 Type
   PVector4D = ^Vector4D;
@@ -74,7 +74,7 @@ Function Vector4DScale(Const A:Vector4D; Const Value:Single):Vector4D;
 Function Vector4DDot(Const A,B:Vector4D):Single; {$IFDEF FPC}Inline;{$ENDIF}
 
 Implementation
-Uses Math{$IFDEF SSE},TERRA_SSE{$ENDIF}{$IFDEF NEON_FPU},TERRA_NEON{$ENDIF};
+Uses TERRA_Math{$IFDEF SSE},TERRA_SSE{$ENDIF}{$IFDEF NEON_FPU},TERRA_NEON{$ENDIF};
 
 Function VectorCreate4D(Const X,Y,Z,W:Single):Vector4D;
 Begin

@@ -264,6 +264,7 @@ Begin
 
     If (Assigned(Key)) And (Key.HasPropertyTweens()) Then
     Begin
+      Key.GetBlob();
       Result := True;
       Exit;
     End;
@@ -396,6 +397,9 @@ Procedure TweenableProperty.RegisterTween(Const Ease:TweenEaseType; TweenID:Inte
 Var
   T:TweenObject;
 Begin
+  If (StartValue = TargetValue) Then
+    Exit;
+
   T.StartTime := Application.GetTime() + Delay;
   T.EndTime := T.StartTime + Duration;
   T.State := tweenWaiting;
@@ -423,48 +427,47 @@ Begin
 
   I:=0;
   While (I<_TweenCount) Do
-  Case _TweenList[I].State Of
-    tweenWaiting:
-    Begin
-      If (_TweenList[I].EndTime<=T) Then
+  Begin
+    Case _TweenList[I].State Of
+      tweenWaiting:
       Begin
-        _TweenList[I].State := tweenFinished;
-      End Else
-      If (_TweenList[I].StartTime<=T) Then
-      Begin
-        _TweenList[I].State := tweenRunning;
+        If (_TweenList[I].EndTime<=T) Then
+        Begin
+          _TweenList[I].State := tweenFinished;
+        End Else
+        If (_TweenList[I].StartTime<=T) Then
+        Begin
+          _TweenList[I].State := tweenRunning;
+        End;
       End;
 
-      Inc(I);
+      tweenRunning:
+        Begin
+          Delta := (T - _TweenList[I].StartTime) / _TweenList[I].Duration;
+
+          If Delta>=1.0 Then
+          Begin
+            Delta := 1.0;
+            _TweenList[I].State := tweenFinished;
+
+            If Assigned(_TweenList[I].Callback) Then
+              _TweenList[I].Callback(_TweenList[I].CallTarget);
+          End;
+
+          Delta := GetEase(Delta, _TweenList[I].Ease);
+
+          Val := (_TweenList[I].TargetValue * Delta) + (_TweenList[I].StartValue * (1.0 - Delta));
+          Self.UpdateTweenValue(_TweenList[I].TweenID,  Val);
+
+        End;
     End;
 
-    tweenRunning:
-      Begin
-        Delta := (T - _TweenList[I].StartTime) / _TweenList[I].Duration;
-
-        If Delta>=1.0 Then
-        Begin
-          Delta := 1.0;
-          _TweenList[I].State := tweenFinished;
-
-          If Assigned(_TweenList[I].Callback) Then
-            _TweenList[I].Callback(_TweenList[I].CallTarget);
-        End;
-
-        Delta := GetEase(Delta, _TweenList[I].Ease);
-
-        Val := (_TweenList[I].TargetValue * Delta) + (_TweenList[I].StartValue * (1.0 - Delta));
-        Self.UpdateTweenValue(_TweenList[I].TweenID,  Val);
-
-        //Inc(I);
-        Break;
-      End;
-
-  Else
+    If (_TweenList[I].State = tweenFinished) Then
     Begin
       _TweenList[I] := _TweenList[Pred(_TweenCount)];
       Dec(_TweenCount);
-    End;
+    End Else
+      Inc(I);
   End;
 End;
 

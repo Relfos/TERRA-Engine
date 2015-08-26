@@ -187,7 +187,7 @@ Var
   T:Triangle;
 Begin
   ReleaseObject(_Mesh);
-  _Mesh := TERRAMesh.Create(rtDynamic, 'cloth');
+  _Mesh := TERRAMesh.Create(rtDynamic);
 
   _VertexFormat := [vertexFormatPosition, vertexFormatNormal, vertexFormatColor, vertexFormatUV0];
 

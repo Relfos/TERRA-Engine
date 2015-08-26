@@ -165,7 +165,7 @@ Type
       Procedure Execute; Override;
   End;
 
-  ThreadPool = Class(ApplicationComponent)
+  ThreadPool = Class(TERRAObject)
 	  Protected
 		  _Threads:Array Of TaskDispatcher;
       _MaxThreads:Integer;
@@ -193,8 +193,7 @@ Type
       {$ENDIF}
 
 	  Public
-		  Procedure Init; Override;
-
+		  Constructor Create();
 		  Procedure Release; Override;
 
 		  Function GetNextTask:Task;
@@ -208,8 +207,6 @@ Type
       {$IFNDEF DISABLETHREADS}
       Property MainThread:PtrUInt Read _MainThread;
       {$ENDIF}
-
-		  Class Function Instance:ThreadPool;
     End;
 
 {$IFDEF ANDROID}
@@ -218,9 +215,6 @@ Function InternalThreadDispatcher(P:Pointer):Integer; Cdecl;
 
 Implementation
 Uses TERRA_Error, TERRA_OS;
-
-Var
-  _ThreadPool_Instance:ApplicationObject  = Nil;
 
 {$IFDEF WINDOWS}
 { SyncEvent is an Event handle that is signaled every time a thread wishes to
@@ -325,17 +319,7 @@ Begin
 {$ENDIF}
 End;
 
-Class Function ThreadPool.Instance;
-Begin
-  If (Not Assigned(_ThreadPool_Instance)) Then
-  Begin
-      Log(logDebug, 'ThreadPool','Creating thread pool!');
-    _ThreadPool_Instance := InitializeApplicationComponent(ThreadPool, Nil);
-  End;
-
-  Result := ThreadPool(_ThreadPool_Instance.Instance);
-End;
-
+{ ThreadPool }
 Constructor TaskDispatcher.Create(Parent:ThreadPool);
 Begin
   Self._Pool := Parent;
@@ -364,6 +348,80 @@ Begin
 
   _Active := False;
   Self.Finish();
+End;
+
+Constructor ThreadPool.Create();
+Var
+  I:Integer;
+Begin
+  If (Application.Instance<>Nil) Then
+    _MaxThreads := Application.Instance.CPUCores
+  Else
+    _MaxThreads := 2;
+
+  _CriticalSection := CriticalSection.Create({Self.ClassName});
+  _Semaphore := Semaphore.Create(_MaxThreads);
+
+	_Active := True;
+	_ThreadCount := 0;
+  _PendingTaskCount := 0;
+  _RunningTaskCount := 0;
+
+  {$IFNDEF DISABLETHREADS}
+  _MainThread := PtrUInt(GetCurrentThreadId());
+  {$ENDIF}
+
+  SetLength(_Threads, _MaxThreads);
+	For I:=0 To Pred(_MaxThreads) Do
+		_Threads[i] := Nil;
+End;
+
+Procedure ThreadPool.CancelTasks;
+Begin
+	_CriticalSection.Lock;
+	_PendingTaskCount := 0;
+	_CriticalSection.Unlock;
+End;
+
+Procedure ThreadPool.Release;
+Var
+  I, Count:Integer;
+Begin
+	_Active := False;
+
+  Self.CancelTasks();
+
+  Repeat
+    Count := 0;
+	  For I:=0 To Pred(_MaxThreads) Do
+  	Begin
+		  If (Not Assigned(_Threads[i])) Then
+			  Continue;
+
+      If (_Threads[I]._Active) Then
+        Inc(Count);
+	  End;
+
+    Application.Instance.Yeld();
+    _Semaphore.Signal();
+  Until (Count<=0);
+
+  For I:=0 To Pred(_MaxThreads) Do
+  If (Assigned(_Threads[i])) Then
+  Begin
+    _Threads[I].Shutdown();
+
+  {$IFDEF USEPASCALTHREADS}
+    _Threads[I].Release();
+    _Threads[I].Destroy();
+    _Threads[I] := Nil;
+  {$ELSE}
+    ReleaseObject(_Threads[I]);
+  {$ENDIF}
+  End;
+
+  ReleaseObject(_CriticalSection);
+  ReleaseObject(_Semaphore);
 End;
 
 Function ThreadPool.TasksPending:Integer;
@@ -493,81 +551,6 @@ Begin
 		Result := Nil;
 End;
 
-Procedure ThreadPool.Init;
-Var
-  I:Integer;
-Begin
-  If (Application.Instance<>Nil) Then
-    _MaxThreads := Application.Instance.CPUCores
-  Else
-    _MaxThreads := 2;
-
-  _CriticalSection := CriticalSection.Create({Self.ClassName});
-  _Semaphore := Semaphore.Create(_MaxThreads);
-
-	_Active := True;
-	_ThreadCount := 0;
-  _PendingTaskCount := 0;
-  _RunningTaskCount := 0;
-
-  {$IFNDEF DISABLETHREADS}
-  _MainThread := PtrUInt(GetCurrentThreadId());
-  {$ENDIF}
-
-  SetLength(_Threads, _MaxThreads);
-	For I:=0 To Pred(_MaxThreads) Do
-		_Threads[i] := Nil;
-End;
-
-Procedure ThreadPool.CancelTasks;
-Begin
-	_CriticalSection.Lock;
-	_PendingTaskCount := 0;
-	_CriticalSection.Unlock;
-End;
-
-Procedure ThreadPool.Release;
-Var
-  I, Count:Integer;
-Begin
-	_Active := False;
-
-  Self.CancelTasks();
-
-  Repeat
-    Count := 0;
-	  For I:=0 To Pred(_MaxThreads) Do
-  	Begin
-		  If (Not Assigned(_Threads[i])) Then
-			  Continue;
-
-      If (_Threads[I]._Active) Then
-        Inc(Count);
-	  End;
-
-    Application.Instance.Yeld();
-    _Semaphore.Signal();
-  Until (Count<=0);
-
-  For I:=0 To Pred(_MaxThreads) Do
-  If (Assigned(_Threads[i])) Then
-  Begin
-    _Threads[I].Shutdown();
-
-  {$IFDEF USEPASCALTHREADS}
-    _Threads[I].Release();
-    _Threads[I].Destroy();
-    _Threads[I] := Nil;
-  {$ELSE}
-    ReleaseObject(_Threads[I]);
-  {$ENDIF}
-  End;
-
-  ReleaseObject(_CriticalSection);
-  ReleaseObject(_Semaphore);
-
-  _ThreadPool_Instance := Nil;
-End;
 
 Procedure ThreadPool.KillTask(MyTask: Task);
 Var

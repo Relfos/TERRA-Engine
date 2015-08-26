@@ -95,7 +95,7 @@ Type
       Function Load(Source:TERRAStream):Boolean; Override;
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
-      Class Function GetManager:Pointer; Override;
+      Class Function GetManager:TERRAObject; Override;
 
       Function Bind(Slot:Integer):Boolean;
 
@@ -172,7 +172,7 @@ Begin
 
   _SettingsChanged := True;
   _WrapMode := wrapAll;
-  _MipMapped := GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable;
+  _MipMapped := Engine.Graphics.Renderer.Features.Shaders.Avaliable;
   _Filter := filterBilinear;
 
   _Managed := False;
@@ -210,15 +210,15 @@ Begin
   _Width := TextureWidth;
   _Height := TextureHeight;
 
-  If (Not GraphicsManager.Instance.Renderer.Features.NPOT.Avaliable) Then
+  If (Not Engine.Graphics.Renderer.Features.NPOT.Avaliable) Then
   Begin
     _Width := IntMax(NearestPowerOfTwo(_Width), MinTextureSize);
     _Height := IntMax(NearestPowerOfTwo(_Height), MinTextureSize);
 
-    If GraphicsManager.Instance.Renderer.Features.MaxTextureSize>0 Then
+    If Engine.Graphics.Renderer.Features.MaxTextureSize>0 Then
     Begin
-      _Width := IntMin(_Width, GraphicsManager.Instance.Renderer.Features.MaxTextureSize);
-      _Height := IntMin(_Height, GraphicsManager.Instance.Renderer.Features.MaxTextureSize);
+      _Width := IntMin(_Width, Engine.Graphics.Renderer.Features.MaxTextureSize);
+      _Height := IntMin(_Height, Engine.Graphics.Renderer.Features.MaxTextureSize);
     End;
 
     _Ratio := VectorCreate2D(_Width/TextureWidth, _Height/TextureHeight);
@@ -349,7 +349,7 @@ Begin
       Pixels := PWord(_Source.RawPixels);
     End;
 
-    Tex := GraphicsManager.Instance.Renderer.CreateTexture();
+    Tex := Engine.Graphics.Renderer.CreateTexture();
     Tex.Generate(Pixels, _Source.Width, _Source.Height, SourceFormat, _TargetFormat, _ByteFormat);
 
     _Handles[I] := Tex;
@@ -416,7 +416,7 @@ Begin
     Exit;
   End;
 
-  Result := GraphicsManager.Instance.Renderer.BindSurface(Self.Current, Slot);
+  Result := Engine.Graphics.Renderer.BindSurface(Self.Current, Slot);
 
   If (_SettingsChanged) Then
   Begin
@@ -468,7 +468,7 @@ Begin
   Self.UpdateRect(Source, 0, 0);
 End;
 
-Class Function TERRATexture.GetManager: Pointer;
+Class Function TERRATexture.GetManager:TERRAObject;
 Begin
   Result := Engine.Textures;
 End;
@@ -533,15 +533,15 @@ Begin
   If Source = Nil Then
     Exit;
 
-  If (Not GraphicsManager.Instance.Renderer.Features.NPOT.Avaliable) Then
+  If (Not Engine.Graphics.Renderer.Features.NPOT.Avaliable) Then
   Begin
     W := IntMax(NearestPowerOfTwo(Source.Width), MinTextureSize);
     H := IntMax(NearestPowerOfTwo(Source.Height), MinTextureSize);
 
-    If GraphicsManager.Instance.Renderer.Features.MaxTextureSize>0 Then
+    If Engine.Graphics.Renderer.Features.MaxTextureSize>0 Then
     Begin
-      W := IntMin(W, GraphicsManager.Instance.Renderer.Features.MaxTextureSize);
-      H := IntMin(H, GraphicsManager.Instance.Renderer.Features.MaxTextureSize);
+      W := IntMin(W, Engine.Graphics.Renderer.Features.MaxTextureSize);
+      H := IntMin(H, Engine.Graphics.Renderer.Features.MaxTextureSize);
     End;
 
     _Ratio := VectorCreate2D(W/Source.Width, H/Source.Height);

@@ -170,7 +170,7 @@ Type
 
       Procedure RecalculateMetrics();
 
-      Class Function GetManager:Pointer; Override;
+      Class Function GetManager:TERRAObject; Override;
 
       Procedure AddGlyphFactory(Factory:FontGlyphFactory; Scale:Single = 1.0);
 
@@ -340,7 +340,7 @@ Begin
   _AvgHeight := _AvgHeight;
 End;
 
-Class Function TERRAFont.GetManager:Pointer;
+Class Function TERRAFont.GetManager:TERRAObject;
 Begin
   Result := Engine.Fonts;
 End;

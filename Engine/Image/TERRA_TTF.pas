@@ -140,7 +140,7 @@ Type
 
 Implementation
 
-Uses TERRA_Log, TERRA_FileManager, TERRA_FontManager, TERRA_EngineManager, Math;
+Uses TERRA_Log, TERRA_FileManager, TERRA_FontManager, TERRA_EngineManager, TERRA_Math;
 
 // platformID
 const   STBTT_PLATFORM_ID_UNICODE   = 0;
@@ -1139,7 +1139,7 @@ Var
   WindingLengths:TTFContourArray;
   Windings: TStBttPointArray;
 Begin
-  Scale := Min(ScaleX, ScaleY);
+  Scale := FloatMin(ScaleX, ScaleY);
 
   stbtt_FlattenCurves(Vertices, FlatnessInPixels / Scale, WindingLengths, Windings);
   If windings.Count>0 then

@@ -71,8 +71,6 @@ Type
     Public
       Enabled:Boolean;
 
-      Procedure Release; Override;
-
       Function GetPosition():Vector3D; Virtual; Abstract;
       Function IsOccluded(View:TERRAViewport):Boolean; Virtual; Abstract;
 
@@ -173,7 +171,7 @@ Type
     Procedure Reset();
   End;
 
-  LightManager = Class(ApplicationComponent)
+  LightManager = Class(TERRAObject)
     Protected
       _FirstLight:Light;
       _CurrentFrame:Integer;
@@ -185,7 +183,7 @@ Type
       Procedure SetAmbientColor(Value:ColorRGBA);
 
     Public
-      Procedure Init; Override;
+      Constructor Create; 
 
       Procedure Release; Override;
 
@@ -201,32 +199,13 @@ Type
       Property LightCount:Integer Read _LightCount;
 
       Property AmbientColor:ColorRGBA Read _AmbientColor Write SetAmbientColor;
-
-      Class Function Instance:LightManager;
   End;
 
 Implementation
 Uses TERRA_EngineManager, TERRA_GraphicsManager;
 
-Var
-  _LightManager_Instance:ApplicationObject = Nil;
-
-{ Light }
-procedure Light.Release;
-Begin
-  // do nothing
-End;
-
 { LightManager }
-Class Function LightManager.Instance:LightManager;
-Begin
-  If Not Assigned(_LightManager_Instance) Then
-    _LightManager_Instance := InitializeApplicationComponent(LightManager, GraphicsManager);
-
-  Result := LightManager(_LightManager_Instance.Instance);
-End;
-
-Procedure LightManager.Init;
+Constructor LightManager.Create();
 Begin
   AmbientColor := ColorNull;
   _LightCount := 0;
@@ -236,7 +215,6 @@ End;
 Procedure LightManager.Release;
 Begin
   Clear;
-  _LightManager_Instance := Nil;
 End;
 
 Procedure LightManager.Clear;
@@ -251,7 +229,7 @@ Begin
   If (Source=Nil) Or (Source._Frame = Self._CurrentFrame) Or (Source.Intensity<=0.0) Then
     Exit;
 
-  If (Not GraphicsManager.Instance.Renderer.Settings.DynamicLights.Enabled) Then
+  If (Not Engine.Graphics.Renderer.Settings.DynamicLights.Enabled) Then
     Exit;
 
   Source._Frame := Self._CurrentFrame;
@@ -274,7 +252,7 @@ Var
 Begin
   Result.Reset();
 
-  If (Not GraphicsManager.Instance.Renderer.Settings.DynamicLights.Enabled) Then
+  If (Not Engine.Graphics.Renderer.Settings.DynamicLights.Enabled) Then
     Exit;
 
   For I:=0 To Pred(MaxLightsPerMesh) Do
@@ -398,7 +376,7 @@ Procedure PointLight.SetupUniforms(Index:Integer; Var TextureSlot:Integer);
 Var
   _Shader:ShaderInterface;
 Begin
-  _Shader := GraphicsManager.Instance.Renderer.ActiveShader;
+  _Shader := Engine.Graphics.Renderer.ActiveShader;
   If _Shader = Nil Then
     Exit;
 
@@ -463,7 +441,7 @@ Procedure DirectionalLight.SetupUniforms(Index: Integer; Var TextureSlot:Integer
 Var
   _Shader:ShaderInterface;
 Begin
-  _Shader := GraphicsManager.Instance.Renderer.ActiveShader;
+  _Shader := Engine.Graphics.Renderer.ActiveShader;
   If _Shader = Nil Then
     Exit;
 
@@ -476,7 +454,7 @@ Var
   I:Integer;
   _Shader:ShaderInterface;
 Begin
-  _Shader := GraphicsManager.Instance.Renderer.ActiveShader;
+  _Shader := Engine.Graphics.Renderer.ActiveShader;
 
   For I:=0 To Pred(Batch.DirectionalLightCount) Do
     Batch.DirectionalLights[I].SetupUniforms(Succ(I), TextureSlot);
@@ -543,7 +521,7 @@ Procedure SpotLight.SetupUniforms(Index: Integer; Var TextureSlot:Integer);
 Var
   _Shader:ShaderInterface;
 Begin
-  _Shader := GraphicsManager.Instance.Renderer.ActiveShader;
+  _Shader := Engine.Graphics.Renderer.ActiveShader;
   If _Shader = Nil Then
     Exit;
 
@@ -622,7 +600,7 @@ End;
 { LightBatch }
 Procedure LightBatch.Reset;
 Begin
-  AmbientColor := LightManager.Instance.AmbientColor;
+  AmbientColor := Engine.Lights.AmbientColor;
   DirectionalLightCount := 0;
   PointLightCount := 0;
   SpotLightCount := 0;

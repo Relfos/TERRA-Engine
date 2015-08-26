@@ -81,7 +81,7 @@ Const
   MAX_IK_TRIES = 10;
 
 Implementation
-Uses TERRA_GraphicsManager, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Color, TERRA_Log, Math;
+Uses TERRA_GraphicsManager, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_GL{$ENDIF}, TERRA_Color, TERRA_Log, TERRA_Math;
 
 // Procedure:	CheckDOFRestrictions
 // Purpose:		Make sure link is within valid DOF

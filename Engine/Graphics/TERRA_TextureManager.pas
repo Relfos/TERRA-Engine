@@ -32,7 +32,7 @@ Type
 
 
     Public
-      Procedure Init; Override;
+      Constructor Create();
 //      Procedure OnContextLost; Override;
 
       Function GetItem(Name:TERRAString):TERRATexture;
@@ -55,7 +55,7 @@ Implementation
 Uses TERRA_FileUtils, TERRA_FileFormat, TERRA_EngineManager, TERRA_FileManager, TERRA_Noise;
 
 { TextureManager }
-Procedure TextureManager.Init;
+Constructor TextureManager.Create();
 Begin
   Inherited;
 

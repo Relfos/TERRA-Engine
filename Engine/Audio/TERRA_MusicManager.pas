@@ -32,7 +32,7 @@ Const
   DefaultMusicCrossFadeDuration = 6000;
 
 Type
-  MusicManager = Class(ApplicationComponent)
+  MusicManager = Class(TERRAObject)
     Protected
       _Enabled:Boolean;
 
@@ -54,13 +54,10 @@ Type
       Procedure InitTrack(Const SourceName:TERRAString);
 
     Public
-      Class Function Instance:MusicManager;
-
+      Constructor Create; 
       Procedure Release; Override;
 
-
-      Procedure Init; Override;
-      Procedure Update; Override;
+      Procedure Update;
 
       Procedure Play(SourceName:TERRAString; CrossFadeDuration:Integer = DefaultMusicCrossFadeDuration);
       Procedure Stop;
@@ -82,21 +79,8 @@ Uses TERRA_EngineManager, TERRA_FileManager, TERRA_SoundManager, TERRA_Log, TERR
 {$IFDEF HAS_MIDI}, TERRA_MIDI{$ENDIF}
 {$IFDEF HAS_AUDIOTRACK}, TERRA_AudioTrack{$ENDIF};
 
-Var
-  _MusicManager_Instance:ApplicationObject;
-
-Class Function MusicManager.Instance:MusicManager;
+Constructor MusicManager.Create;
 Begin
-  If Not Assigned(_MusicManager_Instance) Then
-    _MusicManager_Instance := InitializeApplicationComponent(MusicManager, {$IFDEF USE_OPENAL}SoundManager{$ELSE}Nil{$ENDIF});
-
-  Result := MusicManager(_MusicManager_Instance.Instance);
-End;
-
-Procedure MusicManager.Init;
-Begin
-  SoundManager.Instance(); // load open AL
-
   // set initial values
   _Volume := 0.8;
   _Enabled := True;
@@ -221,8 +205,6 @@ Begin
     _CurrentTrack.Stop();
     ReleaseObject(_CurrentTrack);
   End;
-
-  _MusicManager_Instance := Nil;
 End;
 
 Procedure MusicManager.SetVolume(Volume:Single);

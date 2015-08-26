@@ -71,8 +71,8 @@ Begin
 
   Self.ShowFPS := True;
 
-  GraphicsManager.Instance.Renderer.Settings.NormalMapping.SetValue(True);
-  GraphicsManager.Instance.Renderer.Settings.PostProcessing.SetValue(True);
+  Engine.Graphics.Renderer.Settings.NormalMapping.SetValue(True);
+  Engine.Graphics.Renderer.Settings.PostProcessing.SetValue(True);
 
   DiffuseTex := Engine.Textures.GetItem('cobble');
   ClothTex := Engine.Textures.GetItem('cloth_diffuse');
@@ -164,15 +164,15 @@ Begin
     ClothInstance.SetWireframeMode(0, drawSprings);
 
   For I:=0 To Pred(SphereCount) Do
-    GraphicsManager.Instance.AddRenderable(V, Spheres[I]);
+    Engine.Graphics.AddRenderable(V, Spheres[I]);
 
-  GraphicsManager.Instance.AddRenderable(V, ClothInstance);
+  Engine.Graphics.AddRenderable(V, ClothInstance);
 
   //DrawBoundingBox(V, ClothInstance.GetBoundingBox, ColorBlue);
 End;
 
 
-(*  Text.DrawText(10, 10, 10, 'FPS :'+IntToString(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
+(*  Text.DrawText(10, 10, 10, 'FPS :'+IntToString(Engine.Graphics.Renderer.Stats.FramesPerSecond));
   Text.DrawText(10, 30, 10, 'Vertices :'+IntToString(Clothes._ParticleCount));
   Text.DrawText(10, 50, 10, 'Sprints :'+IntToString(Clothes._SpringCount));*)
 

@@ -23,7 +23,6 @@ uses
   TERRA_TTF,
   TERRA_PNG,
   TERRA_Math,
-  TERRA_Scene,
   TERRA_Color,
   TERRA_String,
   TERRA_ScreenFX,
@@ -58,9 +57,9 @@ Procedure MyDemo.OnCreate;
 Begin
   Inherited;
 
-  Self.Scene.GUI.Viewport.FXChain.AddEffect(GlowFX.Create());
+  Self.GUI.Viewport.FXChain.AddEffect(GlowFX.Create());
   //Self.Scene.GUI.Viewport.FXChain.AddEffect(BloomFX.Create());
-  Self.Scene.GUI.Viewport.FXChain.AddEffect(VignetteFX.Create());
+  Self.GUI.Viewport.FXChain.AddEffect(VignetteFX.Create());
 
 
   UITemplates.AddTemplate(UIWindowTemplate.Create('wnd_template', Engine.Textures.GetItem('ui_window'), 45, 28, 147, 98));
@@ -68,7 +67,7 @@ Begin
 
   MyController := DemoUIController.Create();
 
-  MyWnd := UIInstancedWidget.Create('mywnd', Self.Scene.GUI, 0, 0, 10, UIPixels(643), UIPixels(231), 'wnd_template');
+  MyWnd := UIInstancedWidget.Create('mywnd', Self.GUI, 0, 0, 10, UIPixels(643), UIPixels(231), 'wnd_template');
   MyWnd.Draggable := True;
   MyWnd.Align := waCenter;
 //  MyWnd.Rotation := 45*RAD;

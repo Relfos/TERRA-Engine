@@ -748,7 +748,7 @@ Begin
   //_Dialog.Color :=
   If _Dialog.Execute Then
   Begin
-    Engine.Files.AddPath(GetFilePath(_Dialog.FileName));
+    Engine.Files.AddFolder(GetFilePath(_Dialog.FileName));
     _Prop.SetBlob(_Dialog.FileName);
     _Owner.RequestUpdate();
   End;

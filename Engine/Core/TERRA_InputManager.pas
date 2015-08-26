@@ -26,7 +26,7 @@ Unit TERRA_InputManager;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Application, TERRA_Collections;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Collections;
 
 Const
   keyGamepadIndex   = 255;
@@ -135,7 +135,7 @@ Type
       Property Name:TERRAString Read _Name;
   End;
 
-  InputManager = Class(ApplicationComponent)
+  InputManager = Class(TERRAObject)
     Protected
   		_Keys:InputState; //Keyboard/mouse/gamepad state
 
@@ -150,9 +150,10 @@ Type
       Gyroscope:Vector3D;
       Compass:Vector3D; // (heading, pitch, roll)
 
-      Procedure Update; Override;
-      Procedure Init; Override;
+      Constructor Create();
       Procedure Release; Override;
+
+      Procedure Update; 
 
       Procedure AddGamePad(Pad:GamePad);
       Function GetGamePad(PadID:Integer):GamePad;
@@ -176,9 +177,6 @@ Function GetKeyName(Key:Integer):TERRAString;
 
 Implementation
 Uses TERRA_GraphicsManager, TERRA_EngineManager, TERRA_OS;
-
-Var
-  _InputManager_Instance:ApplicationObject = Nil;
 
 Function IsMouseInput(Key:Integer):Boolean;
 Begin
@@ -383,7 +381,7 @@ Begin
   End Else
     _Keys[Key].Released := True;
 
-  _Keys[Key].Frame := GraphicsManager.Instance.FrameID;
+  _Keys[Key].Frame := Engine.Graphics.FrameID;
 
   If (Value) Then
     Application.Instance.OnKeyDown(Key)
@@ -421,7 +419,7 @@ Begin
 
     If Result Then
     Begin
-      Delta := GraphicsManager.Instance.FrameID - _Keys[Key].Frame;
+      Delta := Engine.Graphics.FrameID - _Keys[Key].Frame;
       Result := (Delta<=MaximumFrameDelay);
       _Keys[Key].DoubleTap := False;
     End;
@@ -440,7 +438,7 @@ Begin
 
     If Result Then
     Begin
-      Delta := GraphicsManager.Instance.FrameID - _Keys[Key].Frame;
+      Delta := Engine.Graphics.FrameID - _Keys[Key].Frame;
       Result := (Delta<=MaximumFrameDelay);
       _Keys[Key].Pressed := False;
     End;
@@ -459,7 +457,7 @@ Begin
 
     If Result Then
     Begin
-      Delta := GraphicsManager.Instance.FrameID - _Keys[Key].Frame;
+      Delta := Engine.Graphics.FrameID - _Keys[Key].Frame;
       Result := (Delta<=MaximumFrameDelay);
       _Keys[Key].Released := False;
     End;
@@ -472,7 +470,7 @@ Begin
 End;
 
 { InputManager }
-Procedure InputManager.Init;
+Constructor InputManager.Create();
 Begin
   _Keys := InputState.Create();
 End;
@@ -532,21 +530,18 @@ End;
 //https://github.com/adamdruppe/arsd/blob/master/joystick.d
 Procedure GamePad.Connnect;
 Var
-  Input:InputManager;
   N, I:Integer;
 Begin
   If _Active Then
     Exit;
 
-  Input := Engine.Input();
-
   _Active := True;
 
   N := -1;
   For I:=0 To Pred(MaxGamePads) Do
-  If (Assigned(Input._GamePads[I])) And (Input._GamePads[I]._LocalID>=N) Then
+  If (Assigned(Engine.Input._GamePads[I])) And (Engine.Input._GamePads[I]._LocalID>=N) Then
   Begin
-    N := Input._GamePads[I]._LocalID;
+    N := Engine.Input._GamePads[I]._LocalID;
   End;
 
   _LocalID := Succ(N);
