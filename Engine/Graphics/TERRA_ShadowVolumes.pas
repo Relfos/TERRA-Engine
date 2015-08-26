@@ -60,9 +60,6 @@ Type
 
       Procedure Translate(Ofs:Vector3D);
 
-      Procedure Load(Source:Stream);
-      Procedure Save(Dest:Stream);
-
       Property BoundingBox:TERRA_BoundingBox.BoundingBox Read _BoundingBox;
       Property Time:Cardinal Read _LastTime;
     End;
@@ -444,21 +441,6 @@ Begin
   For I:=0 To Pred(_CappingVertexCount) Do
     _CappingVertices[I].Add(Ofs);
 {$ENDIF}
-End;
-
-Procedure ShadowVolume.Load(Source: Stream);
-Begin
-  Source.Read(@_ExtrudedVertexCount, 4);
-  SetLength(_ExtrudedVertices, _ExtrudedVertexCount);
-  If (_ExtrudedVertexCount>0) Then
-    Source.Read(@_ExtrudedVertices[0], _ExtrudedVertexCount * SizeOf(Vector3D));
-End;
-
-Procedure ShadowVolume.Save(Dest: Stream);
-Begin
-  Dest.Write(@_ExtrudedVertexCount, 4);
-  If (_ExtrudedVertexCount>0) Then
-    Dest.Write(@_ExtrudedVertices[0], _ExtrudedVertexCount * SizeOf(Vector3D));
 End;
 
 End.

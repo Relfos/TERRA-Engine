@@ -27,7 +27,7 @@ Type
       _ExternalPath:TERRAString;        // External path/override
 
     Public
-      Constructor Create(Owner:TERRAPackage; Source:Stream);
+      Constructor Create(Owner:TERRAPackage; Source:TERRAStream);
 
       Function GetLocation:TERRAString;
 
@@ -44,7 +44,7 @@ Type
       _TableOffset:Cardinal; // Table position in the file
       _CRC:Cardinal;
 
-      _Resources:List; // List of all resources within the file
+      _Resources:TERRAList; // List of all resources within the file
 
       Function GetCRC():Cardinal;
 
@@ -71,18 +71,18 @@ Type
       // Loads a resource into a stream
       // Note: If resource file is found in search path the is loaded from there
       // This can be used for patches/mods
-      Function LoadResource(Resource:ResourceInfo):Stream;
+      Function LoadResource(Resource:ResourceInfo):TERRAStream;
 
       // Package name
       Property Name:TERRAString Read _Name;
-      Property Resources:List Read _Resources;
+      Property Resources:TERRAList Read _Resources;
     End;
 
 Implementation
 Uses TERRA_Error, TERRA_CRC32, TERRA_Application, TERRA_OS, TERRA_Log, TERRA_ResourceManager,
   TERRA_EngineManager, TERRA_FileStream, TERRA_FileManager, TERRA_MemoryStream;
 
-Constructor ResourceInfo.Create(Owner:TERRAPackage; Source:Stream);
+Constructor ResourceInfo.Create(Owner:TERRAPackage; Source:TERRAStream);
 Begin
   _Owner := Owner;
 
@@ -129,7 +129,7 @@ Var
   S:TERRAString;
   Header:FileHeader;
   Resource:ResourceInfo;
-  Source:Stream;
+  Source:TERRAStream;
 Begin
   Self.Unload();
 
@@ -149,7 +149,7 @@ Begin
   Source.ReadCardinal(_TableOffset);
   Source.Seek(_TableOffset);
 
-  _Resources := List.Create(collection_Unsorted);
+  _Resources := TERRAList.Create(collection_Unsorted);
   For I:=1 To ResCount Do
   Begin
     Resource := ResourceInfo.Create(Self, Source);
@@ -194,9 +194,9 @@ Begin
 End;
 
 //Loads a resource from the package into a stream
-Function TERRAPackage.LoadResource(Resource:ResourceInfo):Stream;
+Function TERRAPackage.LoadResource(Resource:ResourceInfo):TERRAStream;
 Var
-  Source:Stream;
+  Source:TERRAStream;
 Begin
      Result := Nil;
 
@@ -226,7 +226,7 @@ End;
 
 Function TERRAPackage.GetCRC:Cardinal;
 Var
-  Source:Stream;
+  Source:TERRAStream;
 Begin
   If _CRC=0 Then
   Begin

@@ -30,9 +30,9 @@ Uses TERRA_Object, TERRA_Color, TERRA_Utils, TERRA_String, TERRA_Stream, TERRA_I
 Type
   BMPFormat = Class(TERRAFileFormat)
     Public
-      Function Identify(Source:Stream):Boolean; Override;
-      Function Load(Target:TERRAObject; Source:Stream):Boolean; Override;
-      Function Save(Target:TERRAObject; Dest:Stream):Boolean; Override;
+      Function Identify(Source:TERRAStream):Boolean; Override;
+      Function Load(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
+      Function Save(Target:TERRAObject; Dest:TERRAStream):Boolean; Override;
   End;
 
 
@@ -67,7 +67,7 @@ Const
   BI_RLE4 = 2;
   BI_BITFIELDS = 3;
 
-Procedure DecompressLine(Source:Stream; Buffer:PByteArray; Width:Word);
+Procedure DecompressLine(Source:TERRAStream; Buffer:PByteArray; Width:Word);
 Var
   X,N:Word;
   First,Second:Byte;
@@ -99,7 +99,7 @@ Begin
 End;
 
 { BMPFormat }
-Function BMPFormat.Identify(Source: Stream): Boolean;
+Function BMPFormat.Identify(Source: TERRAStream): Boolean;
 Var
   ID:Array[1..2] Of AnsiChar;
 Begin
@@ -107,7 +107,7 @@ Begin
   Result := (ID='BM');
 End;
 
-Function BMPFormat.Load(Target: TERRAObject; Source: Stream): Boolean;
+Function BMPFormat.Load(Target: TERRAObject; Source: TERRAStream): Boolean;
 Var
   Header:BitmapFileHeader;
   Palette:ColorPalette;
@@ -215,7 +215,7 @@ Begin
   Result := True;
 End;
 
-Function BMPFormat.Save(Target: TERRAObject; Dest: Stream): Boolean;
+Function BMPFormat.Save(Target: TERRAObject; Dest: TERRAStream): Boolean;
 Var
   Header:BitmapFileHeader;
   SizeImage:Cardinal;

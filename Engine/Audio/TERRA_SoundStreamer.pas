@@ -37,7 +37,7 @@ Type
   SoundStreamClass = Class Of SoundStream;
   SoundStream = Class(TERRAObject)
     Protected
-      _Source:Stream;
+      _Source:TERRAStream;
       _Handle:Cardinal;
       _Buffers:Array[0..1] Of Cardinal;
       _Channels:Cardinal;
@@ -58,10 +58,10 @@ Type
 
       Procedure InitStream; Virtual; Abstract;
       Procedure Stream(Buffer:Cardinal); Virtual;
-      Class Function Validate(Source:Stream):Boolean; Virtual; Abstract;
+      Class Function Validate(Source:TERRAStream):Boolean; Virtual; Abstract;
 
     Public
-      Constructor Create(Source:Stream);
+      Constructor Create(Source:TERRAStream);
       Procedure Release; Override;
 
       Procedure Update;
@@ -78,13 +78,13 @@ Type
 	Protected
 		Procedure InitStream; Override;
 		Procedure Stream(Buffer:Cardinal); Override;
-		Class Function Validate(Source:Stream):Boolean; Override;
+		Class Function Validate(Source:TERRAStream):Boolean; Override;
 	Public
   End;
 
 Procedure RegisterSoundStreamFormat(MyClass:SoundStreamClass);
 
-Function CreateSoundStream(Source:Stream):SoundStream;
+Function CreateSoundStream(Source:TERRAStream):SoundStream;
 
 Implementation
 Uses TERRA_OS, TERRA_GraphicsManager, TERRA_SoundManager, TERRA_SoundAmbience, TERRA_Log;
@@ -100,7 +100,7 @@ Begin
   _SoundStreamClassList[Pred(_SoundStreamClassCount)] := MyClass;
 End;
 
-Function CreateSoundStream(Source:Stream):SoundStream;
+Function CreateSoundStream(Source:TERRAStream):SoundStream;
 Var
   I:Integer;
   Ofs:Cardinal;
@@ -128,13 +128,13 @@ Procedure NullSoundStreamer.Stream(Buffer:Cardinal);
 Begin
 End;
 
-Class Function NullSoundStreamer.Validate(Source:Stream):Boolean; 
+Class Function NullSoundStreamer.Validate(Source:TERRAStream):Boolean; 
 Begin
 	Result := True;
 End;
 
 //  SoundStreamer
-Constructor SoundStream.Create(Source:Stream);
+Constructor SoundStream.Create(Source:TERRAStream);
 Begin
   _Handle := 0;
   _Buffers[0] := 0;
@@ -188,7 +188,7 @@ Begin
 End;
 
 Var
-  F:Stream;
+  F:TERRAStream;
 Procedure SoundStream.Stream(Buffer:Cardinal);
 Begin
   alBufferData(Buffer, AL_FORMAT_STEREO16, _Data, _BufferSize, _Frequency);    {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}

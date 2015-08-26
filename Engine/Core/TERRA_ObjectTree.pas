@@ -26,12 +26,12 @@ Type
       Function GetPath():TERRAString;
 
       Function SaveToObject(Target:TERRAObject):TERRAObject; Virtual;
-      Procedure SaveToStream(Dest:Stream; SaveFlags:Cardinal); Virtual; Abstract;
+      Procedure SaveToStream(Dest:TERRAStream; SaveFlags:Cardinal); Virtual; Abstract;
       Procedure SaveToFile(FileName:TERRAString; SaveFlags:Cardinal = 0);
       Function SaveToString(Encoding:StringEncoding; SaveFlags:Cardinal = 0):TERRAString;
 
       Procedure LoadFromObject(Source:TERRAObject); Virtual;
-      Procedure LoadFromStream(Source:Stream); Virtual; Abstract;
+      Procedure LoadFromStream(Source:TERRAStream); Virtual; Abstract;
       Procedure LoadFromString(Const Data:TERRAString; Encoding:StringEncoding);
       Procedure LoadFromFile(Const FileName:TERRAString; Encoding:StringEncoding = encodingUnknown);
 
@@ -70,7 +70,7 @@ Type
 Implementation
 Uses TERRA_MemoryStream, TERRA_FileStream, TERRA_XML, TERRA_OS;
 
-Procedure DumpObjectTree(Node:TERRAObjectNode; Dest:Stream; Level:Integer);
+Procedure DumpObjectTree(Node:TERRAObjectNode; Dest:TERRAStream; Level:Integer);
 Var
   I:Integer;
   S:TERRAString;

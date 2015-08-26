@@ -129,7 +129,7 @@ Function FontManager.GetDefaultFont: TERRAFont;
 Var
   Glyph:FontGlyph;
   I, ID:Integer;
-  Src:Stream;
+  Src:TERRAStream;
   SrcImg, SubImg:TERRAImage;
 
   Procedure SubPic(X, Y, W, H:Integer);

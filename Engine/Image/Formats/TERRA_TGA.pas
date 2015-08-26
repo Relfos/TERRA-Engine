@@ -31,9 +31,9 @@ Uses TERRA_Object, TERRA_String, TERRA_Stream, TERRA_Image, TERRA_FileFormat;
 Type
   TGAFormat = Class(TERRAFileFormat)
     Public
-      Function Identify(Source:Stream):Boolean; Override;
-      Function Load(Target:TERRAObject; Source:Stream):Boolean; Override;
-      Function Save(Target:TERRAObject; Dest:Stream):Boolean; Override;
+      Function Identify(Source:TERRAStream):Boolean; Override;
+      Function Load(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
+      Function Save(Target:TERRAObject; Dest:TERRAStream):Boolean; Override;
   End;
 
 Implementation
@@ -54,7 +54,7 @@ Type
   End;
 
 { TGAFormat }
-Function TGAFormat.Identify(Source: Stream): Boolean;
+Function TGAFormat.Identify(Source: TERRAStream): Boolean;
 Var
   ID:FileHeader;
 Begin
@@ -63,7 +63,7 @@ Begin
   Result := (ID='TRUE');
 End;
 
-Function TGAFormat.Load(Target: TERRAObject; Source: Stream): Boolean;
+Function TGAFormat.Load(Target: TERRAObject; Source: TERRAStream): Boolean;
 Var
   Header:TGAHeader;
   ColorDepth:Cardinal;
@@ -178,7 +178,7 @@ Begin
   Result := True;
 End;
 
-Function TGAFormat.Save(Target:TERRAObject; Dest:Stream):Boolean;
+Function TGAFormat.Save(Target:TERRAObject; Dest:TERRAStream):Boolean;
 Var
   I,J:Integer;
   Header:TGAHeader;

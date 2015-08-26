@@ -115,7 +115,7 @@ End;
 { StreamingMusicTrack }
 Procedure StreamingMusicTrack.Init;
 Var
-  Source:Stream;
+  Source:TERRAStream;
 Begin
   If (OpenALHandle=0) Then
     Exit;

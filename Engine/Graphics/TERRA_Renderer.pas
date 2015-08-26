@@ -615,20 +615,20 @@ Type
       Property DeviceVersion:TERRAVersion Read _DeviceVersion;
   End;
 
-  Function Renderers():List;
+  Function Renderers():TERRAList;
 
 Implementation
 Uses TERRA_Error, TERRA_EngineManager, TERRA_FileManager, TERRA_Lights, TERRA_Math, TERRA_Log,
   TERRA_Texture, TERRA_FileFormat, TERRA_NullRenderer;
 
 Var
-  _RendererList:List = Nil;
+  _RendererList:TERRAList = Nil;
 
-Function Renderers():List;
+Function Renderers():TERRAList;
 Begin
   If _RendererList = Nil Then
   Begin
-    _RendererList := List.Create();
+    _RendererList := TERRAList.Create();
     _RendererList.Add(NullRenderer.Create());
   End;
 

@@ -132,7 +132,7 @@ Type
       _LocalScale:Single;
 
     Public
-      Procedure LoadFromStream(Source:Stream); Virtual; Abstract;
+      Procedure LoadFromStream(Source:TERRAStream); Virtual; Abstract;
       Procedure LoadFromFile(Const FileName:TERRAString);
 
       Function InitGlyph(Font:TERRAFont; ID:Cardinal; Size:Integer):FontGlyph; Virtual; Abstract;
@@ -154,7 +154,7 @@ Type
       _Loading:Boolean;
 
     Public
-      Function Load(Source:Stream):Boolean; Override;
+      Function Load(Source:TERRAStream):Boolean; Override;
       //Function Save(FileName:TERRAString):Boolean;
 
       Procedure RebuildPages();
@@ -295,7 +295,7 @@ Begin
 End;
 
 { Font }
-Function TERRAFont.Load(Source: Stream): Boolean;
+Function TERRAFont.Load(Source: TERRAStream): Boolean;
 Var
   Pos:Integer;
   Format:TERRAFileFormat;
@@ -767,7 +767,7 @@ End;
 { FontGlyphFactory }
 Procedure FontGlyphFactory.LoadFromFile(const FileName: TERRAString);
 Var
-  Source:Stream;
+  Source:TERRAStream;
 Begin
   Source := Engine.Files.OpenFile(FileName);
   If Assigned(Source) Then

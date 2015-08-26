@@ -30,7 +30,7 @@ Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Collections, TERRA_Queue;
 
 Type
-  Stack = Class(Queue)
+  TERRAStack = Class(TERRAQueue)
     Public
       Function Push(Item:TERRAObject):Boolean; Override;
       Function Pop():TERRAObject; Override;
@@ -39,7 +39,7 @@ Type
 Implementation
 
 { Stack }
-Function Stack.Pop:TERRAObject;
+Function TERRAStack.Pop:TERRAObject;
 Var
   Next:TERRACollectionObject;
 Begin
@@ -56,7 +56,7 @@ Begin
   _First := Next;
 End;
 
-Function Stack.Push(Item:TERRAObject): Boolean;
+Function TERRAStack.Push(Item:TERRAObject): Boolean;
 Var
   Obj:TERRACollectionObject;
 Begin

@@ -6,7 +6,7 @@ Interface
 Uses TERRA_Object, TERRA_String, TERRA_Collections;
 
 Type
-  List = Class(TERRACollection)
+  TERRAList = Class(TERRACollection)
     Protected
       _First:TERRACollectionObject;
       _Last:TERRACollectionObject;
@@ -22,7 +22,7 @@ Type
       Function GetItemByIndex(Index:Integer):TERRAObject; Override;
 
       // adds copies of items, not references!
-      Function Merge(C:TERRACollection):List;
+      Function Merge(C:TERRACollection):TERRAList;
 
       // Returns true if insertion was sucessful
       Function Add(Item:TERRAObject):Boolean;Virtual;
@@ -51,7 +51,7 @@ Implementation
 Uses TERRA_Debug, TERRA_Log;
 
 { List }
-Constructor List.Create(SortOrder:CollectionSortOrder; Options:Integer);
+Constructor TERRAList.Create(SortOrder:CollectionSortOrder; Options:Integer);
 Begin
   _SortOrder := SortOrder;
   _First := Nil;
@@ -59,7 +59,7 @@ Begin
   Self.Init(Options, Nil);
 End;
 
-Procedure List.RemoveDiscardedItems();
+Procedure TERRAList.RemoveDiscardedItems();
 Var
   P, Prev:TERRACollectionObject;
 Begin
@@ -90,7 +90,7 @@ Begin
   End;
 End;
 
-Function List.GetItemByIndex(Index:Integer):TERRAObject;
+Function TERRAList.GetItemByIndex(Index:Integer):TERRAObject;
 Var
   I:Integer;
   Src:TERRACollectionObject;
@@ -123,7 +123,7 @@ Begin
   Self.Unlock();
 End;
 
-Function List.Merge(C:TERRACollection):List;
+Function TERRAList.Merge(C:TERRACollection):TERRAList;
 Var
   I:Iterator;
   Temp, N: TERRAObject;
@@ -146,7 +146,7 @@ Begin
   ReleaseObject(C);
 End;
 
-Procedure List.Clear();
+Procedure TERRAList.Clear();
 Var
   List,Next:TERRACollectionObject;
 Begin
@@ -166,7 +166,7 @@ Begin
   Self.Unlock();
 End;
 
-Function List.Add(Item:TERRAObject):Boolean;
+Function TERRAList.Add(Item:TERRAObject):Boolean;
 Var
   N:Integer;
   Obj, P, Prev:TERRACollectionObject;
@@ -247,7 +247,7 @@ Begin
   Self.Unlock();
 End;
 
-Function List.Remove(Item:TERRAObject):Boolean;
+Function TERRAList.Remove(Item:TERRAObject):Boolean;
 Var
   List,Prev, Next:TERRACollectionObject;
 Begin
@@ -284,7 +284,7 @@ Begin
   Self.Unlock();
 End;
 
-(*Function List.Contains(Item:TERRAObject):Boolean;
+(*Function TERRAList.Contains(Item:TERRAObject):Boolean;
 Var
   P:TERRAObject;
 Begin
@@ -305,16 +305,27 @@ Begin
   Self.Unlock();
 End;*)
 
-Function List.GetIterator:Iterator;
+Function TERRAList.GetIterator:Iterator;
 Begin
   Result := ListIterator.Create(Self);
 End;
 
+Function TERRAList.CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject;
+Begin
+  Result := Inherited CreateProperty(KeyName, ObjectType);
+
+  If (Assigned(Result)) Then
+  Begin
+    Self.Add(Result);
+  End;
+End;
+
+{ ListIterator }
 Procedure ListIterator.Reset;
 Begin
   Inherited;
 
-  _Current := List(Self.Collection)._First;
+  _Current := TERRAList(Self.Collection)._First;
 End;
 
 Function ListIterator.ObtainNext:TERRACollectionObject;
@@ -326,16 +337,6 @@ Begin
     _Current := _Current.Next;
   End Else
     Result := Nil;
-End;
-
-Function List.CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject;
-Begin
-  Result := Inherited CreateProperty(KeyName, ObjectType);
-
-  If (Assigned(Result)) Then
-  Begin
-    Self.Add(Result);
-  End;
 End;
 
 End.

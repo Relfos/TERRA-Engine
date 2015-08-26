@@ -17,13 +17,13 @@ Type
       _Path:TERRAString;
       _FileName:TERRAString;
 
-      _Data:Hashmap;
+      _Data:TERRAHashmap;
 
       _Read:Boolean;
 
       _Backup:Boolean;
 
-      Function GetData: Hashmap;
+      Function GetData: TERRAHashmap;
 
       Function GetDefaultFilePath():TERRAString;
 
@@ -54,11 +54,11 @@ Type
 
       Procedure CopyKeys(Other:Session);
 
-      Function Save(Target:Stream = Nil; Callback:ProgressNotifier = Nil):Boolean;
+      Function Save(Target:TERRAStream = Nil; Callback:ProgressNotifier = Nil):Boolean;
 
       Function Restore():Boolean;
 
-      Property Data:Hashmap Read GetData;
+      Property Data:TERRAHashmap Read GetData;
 
       Property Path:TERRAString Read _Path Write _Path;
       Property FileName:TERRAString Read _FileName;
@@ -267,7 +267,7 @@ Begin
   Result := S + _FileName;
 End;
 
-Function Session.Save(Target:Stream = Nil; Callback:ProgressNotifier = Nil):Boolean;
+Function Session.Save(Target:TERRAStream = Nil; Callback:ProgressNotifier = Nil):Boolean;
 Var
   ZLIB:z_stream;
   OutBuff:Pointer;
@@ -276,7 +276,7 @@ Var
   It:Iterator;
   J, N, Len:Integer;
   Dest, Temp:MemoryStream;
-  Pref:Stream;
+  Pref:TERRAStream;
   Key, S, S2, S3:TERRAString;
   FileName:TERRAString;
   Header:FileHeader;
@@ -461,7 +461,7 @@ Begin
   If (FileName = '') Then
     FileName := DefaultSessionFileName;
 
-  _Data := HashMap.Create(1024);
+  _Data := TERRAHashMap.Create(1024);
 
   _Backup := Backup;
 
@@ -511,7 +511,7 @@ Begin
   _Read := False;
 End;
 
-Function Session.GetData: Hashmap;
+Function Session.GetData: TERRAHashmap;
 Begin
   If (Not _Read) Then
   Begin

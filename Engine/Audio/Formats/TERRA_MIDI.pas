@@ -134,9 +134,9 @@ Type
 
     Procedure ProcessMidiEvent(Event:PMidiEvent; Channel:Integer);
 
-    procedure ReadChunkHeader(Source:Stream);
-    procedure ReadChunkContent(Source:Stream);
-    procedure ReadChunk(Source:Stream);
+    procedure ReadChunkHeader(Source:TERRAStream);
+    procedure ReadChunkContent(Source:TERRAStream);
+    procedure ReadChunk(Source:TERRAStream);
     procedure ProcessHeaderChunk;
     procedure ProcessTrackChunk;
     function ReadVarLength: integer;
@@ -752,7 +752,7 @@ End;
 
 Procedure MidiTrack.Init();
 Var
-   Src:Stream;
+   Src:TERRAStream;
 Begin
   Clear();
   _ChunkType := midi_Illegal;
@@ -866,7 +866,7 @@ Begin
   _LastTime := _CurrentTime;
 End;
 
-procedure MidiTrack.ReadChunkHeader(Source:Stream);
+procedure MidiTrack.ReadChunkHeader(Source:TERRAStream);
 var
   data: array[0..7] of byte;
 Begin
@@ -888,7 +888,7 @@ Begin
   _chunkLength := data[7] + data[6] * $100 + data[5] * $10000 + data[4] * $1000000;
 End;
 
-procedure MidiTrack.ReadChunkContent(Source:Stream);
+procedure MidiTrack.ReadChunkContent(Source:TERRAStream);
 Begin
   SetLength(_chunkData, _chunkLength + 10);
   Source.Read(@(_chunkData[0]), _chunkLength);
@@ -896,7 +896,7 @@ Begin
   _chunkEnd := Pred(_chunkLength);
 end;
 
-procedure MidiTrack.ReadChunk(Source:Stream);
+procedure MidiTrack.ReadChunk(Source:TERRAStream);
 Begin
   ReadChunkHeader(Source);
   ReadChunkContent(Source);

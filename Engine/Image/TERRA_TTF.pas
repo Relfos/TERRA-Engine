@@ -32,8 +32,8 @@ Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Font, TERRA_Co
 Type
   TTFFormat = Class(TERRAFileFormat)
     Public
-      Function Identify(Source:Stream):Boolean; Override;
-      Function Load(Target:TERRAObject; Source:Stream):Boolean; Override;
+      Function Identify(Source:TERRAStream):Boolean; Override;
+      Function Load(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
   End;
 
 
@@ -122,7 +122,7 @@ Type
       Function new_active(Const e: TStBttEdge; off_x: Integer; start_point: Single):TStBttActiveEdge;
 
     Public
-      Procedure LoadFromStream(Source:Stream); Overload;
+      Procedure LoadFromStream(Source:TERRAStream); Overload;
       Procedure Release; Override;
 
       Function stbtt_FindGlyphIndex(unicode_codepoint: Integer):Word;
@@ -162,7 +162,7 @@ const STBTT_vline = 2;
 const STBTT_vcurve = 3;
 
 { TTF }
-Procedure TTFFont.LoadFromStream(Source:Stream);
+Procedure TTFFont.LoadFromStream(Source:TERRAStream);
 var
   cmap, t: Cardinal;
   encoding_record: Cardinal;
@@ -1535,7 +1535,7 @@ Begin
 End;
 
 { TTFFormat }
-Function TTFFormat.Identify(Source: Stream): Boolean;
+Function TTFFormat.Identify(Source: TERRAStream): Boolean;
 Var
    Major, Minor:Word;
 Begin
@@ -1546,7 +1546,7 @@ Begin
   Result := (Major = 1) And (Minor = 0);
 End;
 
-Function TTFFormat.Load(Target: TERRAObject; Source: Stream): Boolean;
+Function TTFFormat.Load(Target: TERRAObject; Source: TERRAStream): Boolean;
 Var
   Font:TERRAFont;
   Factory:TTFFont;

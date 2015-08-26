@@ -1272,7 +1272,7 @@ Const
   iconSize = 64;
 Var
   Name:TERRAString;
-  Src:Stream;
+  Src:TERRAStream;
   offset:Integer;
   Data:PByteArray;
 Begin

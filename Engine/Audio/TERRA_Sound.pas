@@ -60,7 +60,7 @@ Type
       Function GetHandle:Cardinal;
 
     Public
-      Function Load(Source:Stream):Boolean; Override;
+      Function Load(Source:TERRAStream):Boolean; Override;
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
 
@@ -82,9 +82,9 @@ Type
       Property Buffer:Cardinal Read _Buffer;
   End;
 
-  SoundStreamValidateFunction=Function(Source:Stream):Boolean;
-  SoundLoader=Function(Source:Stream; Sound:Sound):Boolean;
-  SoundSaver=Procedure(Source:Stream; Sound:Sound; Const Options:TERRAString='');
+  SoundStreamValidateFunction=Function(Source:TERRAStream):Boolean;
+  SoundLoader=Function(Source:TERRAStream; Sound:Sound):Boolean;
+  SoundSaver=Procedure(Source:TERRAStream; Sound:Sound; Const Options:TERRAString='');
 
   PSoundClassInfo = ^SoundClassInfo;
   SoundClassInfo = Record
@@ -94,7 +94,7 @@ Type
     Saver:SoundSaver;
   End;
 
-Function GetSoundLoader(Source:Stream):SoundLoader;
+Function GetSoundLoader(Source:TERRAStream):SoundLoader;
 //Function GetSoundSaver(Format:TERRAString):SoundSaver;
 Procedure RegisterSoundFormat(Name:TERRAString;
                               Validate:SoundStreamValidateFunction;
@@ -248,7 +248,7 @@ Begin
   Dec(_AttachCount);
 End;
 
-Function GetSoundLoader(Source:Stream):SoundLoader;
+Function GetSoundLoader(Source:TERRAStream):SoundLoader;
 Var
   Pos:Cardinal;
   I:Integer;
@@ -288,7 +288,7 @@ Begin
   Result := NIl;
 End;
 
-Function Sound.Load(Source:Stream):Boolean;
+Function Sound.Load(Source:TERRAStream):Boolean;
 Var
   I:Integer;
   Loader:SoundLoader;

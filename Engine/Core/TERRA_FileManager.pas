@@ -32,7 +32,7 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
 
 Type
   ResourceProvider = Class(TERRAObject)
-    Function GetStream(Const Name:TERRAString):Stream; Virtual; Abstract;
+    Function GetStream(Const Name:TERRAString):TERRAStream; Virtual; Abstract;
     Function HasStream(Const Name:TERRAString):Boolean; Virtual; Abstract;
   End;
 
@@ -40,7 +40,7 @@ Type
     Protected
       _Path:TERRAString;
 
-      Function GetStream():Stream; Virtual; Abstract;
+      Function GetStream():TERRAStream; Virtual; Abstract;
     Public
 
       Property Path:TERRAString Read _Path;
@@ -60,7 +60,7 @@ Type
       _ProviderCount:Integer;
       _Providers:Array Of ResourceProvider;
 
-      _Locations:HashMap;
+      _Locations:TERRAHashMap;
 
       Function RegisterLocation(Location:TERRALocation):TERRALocation;
 
@@ -90,13 +90,13 @@ Type
 
       Function GetPackage(Name:TERRAString; ValidateError:Boolean = True):TERRAPackage;
 
-      Function OpenLocation(Location:TERRALocation):Stream;
-      Function OpenFile(Const FileName:TERRAString):Stream;
+      Function OpenLocation(Location:TERRALocation):TERRAStream;
+      Function OpenFile(Const FileName:TERRAString):TERRAStream;
 
      // Function OpenPackages(FileName:TERRAString):Boolean;
       Property PathCount:Integer Read _FolderCount;
 
-      Property Files[Const Name:TERRAString]:Stream Read OpenFile; Default;
+      Property Files[Const Name:TERRAString]:TERRAStream Read OpenFile; Default;
   End;
 
 Function IsPackageFileName(Const FileName:TERRAString):Boolean;
@@ -110,7 +110,7 @@ Type
     Protected
       _Package:TERRAPackage;
 
-      Function GetStream():Stream; Override;
+      Function GetStream():TERRAStream; Override;
 
     Public
       Constructor Create(Const Name, Path:TERRAString; Package:TERRAPackage);
@@ -118,7 +118,7 @@ Type
 
   TERRAFileLocation = Class(TERRALocation)
     Protected
-      Function GetStream():Stream; Override;
+      Function GetStream():TERRAStream; Override;
 
     Public
       Constructor Create(Const Name, Path:TERRAString);
@@ -126,7 +126,7 @@ Type
 
   TERRANullLocation = Class(TERRALocation)
     Protected
-      Function GetStream():Stream; Override;
+      Function GetStream():TERRAStream; Override;
 
     Public
       Constructor Create(Const Name:TERRAString);
@@ -143,7 +143,7 @@ End;
 { FileManager }
 Procedure FileManager.Init;
 Begin
-  _Locations := HashMap.Create(256);
+  _Locations := TERRAHashMap.Create(256);
   Self.AddSource('');
 End;
 
@@ -455,7 +455,7 @@ Begin
     RaiseError('Could not find package. ['+Name +']');
 End;
 
-Function FileManager.OpenFile(Const FileName:TERRAString):Stream;
+Function FileManager.OpenFile(Const FileName:TERRAString):TERRAStream;
 Var
   Location:TERRALocation;
 Begin
@@ -463,7 +463,7 @@ Begin
   Result := Self.OpenLocation(Location);
 End;
 
-Function FileManager.OpenLocation(Location:TERRALocation):Stream;
+Function FileManager.OpenLocation(Location:TERRALocation):TERRAStream;
 Var
   I:Integer;
   PackageName,ResourceName:TERRAString;
@@ -582,7 +582,7 @@ Begin
   Self._Path := Path;
 End;
 
-Function TERRAFileLocation.GetStream: Stream;
+Function TERRAFileLocation.GetStream: TERRAStream;
 Begin
   Result := MemoryStream.Create(_Path, smRead);
 End;
@@ -595,7 +595,7 @@ Begin
   Self._Package := Package;
 End;
 
-Function TERRAPackageLocation.GetStream: Stream;
+Function TERRAPackageLocation.GetStream: TERRAStream;
 Var
   I:Integer;
   ResourceName:TERRAString;
@@ -623,7 +623,7 @@ Begin
   Self._ObjectName := Name;
 End;
 
-Function TERRANullLocation.GetStream: Stream;
+Function TERRANullLocation.GetStream: TERRAStream;
 Begin
   Result := Nil;
 End;

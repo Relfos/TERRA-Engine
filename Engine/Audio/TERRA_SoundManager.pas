@@ -34,8 +34,8 @@ Type
       _Context:PALCcontext;
       _Device:PALCdevice;
 
-      _SoundDeviceList:List;
-      _SoundCaptureDeviceList:List;
+      _SoundDeviceList:TERRAList;
+      _SoundCaptureDeviceList:TERRAList;
 
       _Sources:Array Of SoundSource;
       _SourceCount:Integer;
@@ -44,7 +44,7 @@ Type
 
       _Enabled:Boolean;
 
-      Procedure LoadDeviceList(Var DeviceList:List; QueryID:Integer);
+      Procedure LoadDeviceList(Var DeviceList:TERRAList; QueryID:Integer);
 
       Procedure Init; Override;
       Procedure Update; Override;
@@ -195,7 +195,7 @@ Begin
   Result := SoundManager(_SoundManager_Instance.Instance);
 End;
 
-Procedure SoundManager.LoadDeviceList(var DeviceList:List; QueryID: Integer);
+Procedure SoundManager.LoadDeviceList(var DeviceList:TERRAList; QueryID: Integer);
 Var
   S:TERRAString;
   List:PAnsiChar;
@@ -203,7 +203,7 @@ Begin
   S := '';
   If Not Assigned(DeviceList) Then
   Begin
-    DeviceList := TERRA_List.List.Create(collection_Unsorted);
+    DeviceList := TERRA_List.TERRAList.Create(collection_Unsorted);
     List := alcGetString(Nil,QueryID);
     If Assigned(List) Then
     While (List^<>#0) Do

@@ -32,8 +32,8 @@ Uses TERRA_Object, TERRA_String, TERRA_Stream, TERRA_Image, TERRA_FileFormat;
 Type
   GIFFormat = Class(TERRAFileFormat)
     Public
-      Function Identify(Source:Stream):Boolean; Override;
-      Function Load(Target:TERRAObject; Source:Stream):Boolean; Override;
+      Function Identify(Source:TERRAStream):Boolean; Override;
+      Function Load(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
   End;
 
 Implementation
@@ -83,14 +83,14 @@ Type
       Image:TERRAImage;
       TransparencyColor:Integer;
 
-      Procedure DecodeGIFLZW(Source:Stream; FrameBuffer:TERRAImage; Palette:PPalette; Interlaced:Boolean);
+      Procedure DecodeGIFLZW(Source:TERRAStream; FrameBuffer:TERRAImage; Palette:PPalette; Interlaced:Boolean);
       Procedure CopyFrame(FrameBuffer:TERRAImage; X,Y,FrameWidth,FrameHeight:Word);
       Procedure MaskFrame;
 
-      Procedure Load(Source:Stream);
+      Procedure Load(Source:TERRAStream);
   End;
 
-Procedure DumpData(Source:Stream);
+Procedure DumpData(Source:TERRAStream);
 Var
   Count:Byte;
 Begin
@@ -165,7 +165,7 @@ Begin
   End;
 End;
 
-Procedure GIFLoader.DecodeGIFLZW(Source:Stream; FrameBuffer:TERRAImage; Palette:PPalette; Interlaced:Boolean);
+Procedure GIFLoader.DecodeGIFLZW(Source:TERRAStream; FrameBuffer:TERRAImage; Palette:PPalette; Interlaced:Boolean);
 Var
   xd,yd:Cardinal;
 Const
@@ -415,7 +415,7 @@ Var
   End;
 
 
-Procedure GIFLoader.Load(Source:Stream);
+Procedure GIFLoader.Load(Source:TERRAStream);
 var
   GIFHeader:TERRA_GIF.GIFHeader;
   GIFBlockID:AnsiChar;
@@ -546,7 +546,7 @@ Begin
 End;
 
 { GIFFormat }
-Function GIFFormat.Identify(Source: Stream): Boolean;
+Function GIFFormat.Identify(Source: TERRAStream): Boolean;
 Var
   ID:Array[1..3] Of AnsiChar;
 Begin
@@ -554,7 +554,7 @@ Begin
   Result := (ID='GIF');
 End;
 
-Function GIFFormat.Load(Target: TERRAObject; Source: Stream): Boolean;
+Function GIFFormat.Load(Target: TERRAObject; Source: TERRAStream): Boolean;
 Var
   Loader:GIFLoader;
 Begin

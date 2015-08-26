@@ -45,12 +45,12 @@ Uses {$IFDEF WINDOWS}Windows,{$ENDIF}
 {$ENDIF};
 
 Var
-  _Callstack:Stack;
+  _Callstack:TERRAStack;
 
 Procedure PushCallstack(ClassType:TClass; S:TERRAString);
 Begin
   If (_Callstack = Nil) Then
-    _Callstack := Stack.Create();
+    _Callstack := TERRAStack.Create();
 
   If (ClassType <> Nil) Then
     S := ClassType.ClassName + '.' + S;

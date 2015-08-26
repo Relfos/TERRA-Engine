@@ -37,7 +37,7 @@ Type
   LocalizationManager = Class(ApplicationComponent)
     Protected
       _Lang:TERRAString;
-      _Strings:Hashmap;
+      _Strings:TERRAHashmap;
 
       Function GetLang:TERRAString;
 
@@ -56,7 +56,7 @@ Type
       Procedure Reload();
 
       Procedure RemoveGroup(GroupID:Integer);
-      Procedure MergeGroup(Source:Stream; GroupID:Integer; Const Prefix:TERRAString);
+      Procedure MergeGroup(Source:TERRAStream; GroupID:Integer; Const Prefix:TERRAString);
 
 
       Property Language:TERRAString Read GetLang Write SetLanguage;
@@ -336,7 +336,7 @@ End;
 Procedure LocalizationManager.Init();
 Begin
   _Lang := '';
-  _Strings := HashMap.Create(1024);
+  _Strings := TERRAHashMap.Create(1024);
 
   If Assigned(Application.Instance()) Then
     SetLanguage(Application.Instance.Language)
@@ -405,7 +405,7 @@ Begin
   Result := LocalizationManager(_LocalizationManager_Instance.Instance);
 End;
 
-Procedure LocalizationManager.MergeGroup(Source: Stream; GroupID:Integer; Const Prefix:TERRAString);
+Procedure LocalizationManager.MergeGroup(Source: TERRAStream; GroupID:Integer; Const Prefix:TERRAString);
 Var
   Ofs, Count, I:Integer;
   Header:FileHeader;
@@ -441,7 +441,7 @@ End;
 
 Procedure LocalizationManager.SetLanguage(Lang:TERRAString);
 Var
-  Source:Stream;
+  Source:TERRAStream;
   I:Integer;
   Location:TERRALocation;
 Begin
@@ -517,7 +517,7 @@ Var
 { PinyinConverter }
 Constructor PinyinConverter.Create;
 Var
-  Src:Stream;
+  Src:TERRAStream;
   I:Integer;
 Begin
   If (_PinyinCount>0) Then

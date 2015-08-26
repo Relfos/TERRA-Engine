@@ -531,8 +531,8 @@ Type
       //Procedure SetCombineWithColor(C:ColorRGBA);
       Procedure BindMaterial(View:TERRAViewport; Const Stage:RendererStage; Var Slot:Integer; Const Material:MeshMaterial);
 
-      Procedure Load(Source:Stream; Offset:Cardinal = 0; ChunkSize:Cardinal = 0);
-      Procedure Save(Dest:Stream);
+      Procedure Load(Source:TERRAStream; Offset:Cardinal = 0; ChunkSize:Cardinal = 0);
+      Procedure Save(Dest:TERRAStream);
 
       Procedure DrawGeometry(State:MeshInstance; ShowWireframe:Boolean);
 
@@ -763,8 +763,8 @@ Type
       Constructor CreateFromFilter(Source:MeshFilter);
       Procedure Release; Override;
 
-      Function Load(Source:Stream):Boolean; Override;
-	    Function Save(Dest:Stream):Boolean;
+      Function Load(Source:TERRAStream):Boolean; Override;
+	    Function Save(Dest:TERRAStream):Boolean;
 
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
@@ -908,13 +908,13 @@ Uses TERRA_Error, TERRA_Application, TERRA_Log, TERRA_ShaderFactory, TERRA_OS,
   TERRA_EngineManager, TERRA_FileManager, TERRA_CRC32, TERRA_ColorGrading, TERRA_Solids;
 
 Type
-  MeshDataBlockHandler = Function(Target:TERRAMesh; Size:Cardinal; Source:Stream):Boolean;
+  MeshDataBlockHandler = Function(Target:TERRAMesh; Size:Cardinal; Source:TERRAStream):Boolean;
   MeshDataBlockHandlerEntry = Record
     Tag:FileHeader;
     Handler:MeshDataBlockHandler;
   End;
 
-  GroupDataBlockHandler = Function(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+  GroupDataBlockHandler = Function(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
   GroupDataBlockHandlerEntry = Record
     Tag:FileHeader;
     Handler:GroupDataBlockHandler;
@@ -934,7 +934,7 @@ Begin
     Result := False;
 End;
 
-Function DefaultMeshHandler(Target:TERRAMesh; Size:Cardinal; Source:Stream):Boolean;
+Function DefaultMeshHandler(Target:TERRAMesh; Size:Cardinal; Source:TERRAStream):Boolean;
 Begin
   Source.Skip(Size);
   Result := True;
@@ -962,7 +962,7 @@ Begin
   Result := DefaultMeshHandler;
 End;
 
-Function DefaultGroupHandler(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function DefaultGroupHandler(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Begin
   Source.Skip(Size);
   Result := True;
@@ -992,7 +992,7 @@ Begin
 End;
 
 { Mesh handlers}
-Function MeshReadGroup(Target:TERRAMesh; Size:Cardinal; Source:Stream):Boolean;
+Function MeshReadGroup(Target:TERRAMesh; Size:Cardinal; Source:TERRAStream):Boolean;
 Var
   Group:MeshGroup;
   ID:Integer;
@@ -1020,13 +1020,13 @@ Begin
   Result := True;
 End;
 
-Function MeshReadSkeleton(Target:TERRAMesh; Size:Cardinal; Source:Stream):Boolean;
+Function MeshReadSkeleton(Target:TERRAMesh; Size:Cardinal; Source:TERRAStream):Boolean;
 Begin
   Target.Skeleton.Read(Source);
   Result := True;
 End;
 
-Function MeshReadEmitter(Target:TERRAMesh; Size:Cardinal; Source:Stream):Boolean;
+Function MeshReadEmitter(Target:TERRAMesh; Size:Cardinal; Source:TERRAStream):Boolean;
 Var
   I:Integer;
 Begin
@@ -1113,7 +1113,7 @@ Begin
   End;
 End;
 
-Function MeshReadLights(Target:TERRAMesh; Size:Cardinal; Source:Stream):Boolean;
+Function MeshReadLights(Target:TERRAMesh; Size:Cardinal; Source:TERRAStream):Boolean;
 Var
   I:Integer;
   TargetLight:MeshLight;
@@ -1138,7 +1138,7 @@ Begin
   Result := True;
 End;
 
-Function MeshReadBoneMorph(Target:TERRAMesh; Size:Cardinal; Source:Stream):Boolean;
+Function MeshReadBoneMorph(Target:TERRAMesh; Size:Cardinal; Source:TERRAStream):Boolean;
 Var
   N, I, Count:Integer;
 Begin
@@ -1157,7 +1157,7 @@ Begin
   Result := True;
 End;
 
-Function MeshReadMeta(Target:TERRAMesh; Size:Cardinal; Source:Stream):Boolean;
+Function MeshReadMeta(Target:TERRAMesh; Size:Cardinal; Source:TERRAStream):Boolean;
 Var
   I:Integer;
 Begin
@@ -1175,7 +1175,7 @@ Begin
 End;
 
 { Group handlers }
-Function GroupReadVertexAttribute(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadVertexAttribute(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   I, Count:Integer;
   Format:Cardinal;
@@ -1203,7 +1203,7 @@ Begin
   Result := True;
 End;
 
-Function GroupReadVertexMorphs(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadVertexMorphs(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   N,I:Integer;
 Begin
@@ -1223,7 +1223,7 @@ Begin
   Result := True;
 End;
 
-Function GroupReadLOD(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadLOD(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   LODLevel:Byte;
   I, J:Integer;
@@ -1241,7 +1241,7 @@ Begin
   Result := True;
 End;
 
-Function GroupReadTriangleNormals(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadTriangleNormals(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   I:Integer;
 Begin
@@ -1253,7 +1253,7 @@ Begin
   Result := True;
 End;
 
-Function GroupReadTriangleEdges(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadTriangleEdges(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   I:Integer;
 Begin
@@ -1265,7 +1265,7 @@ Begin
   Result := True;
 End;
 
-Function GroupReadMaterialDiffuse(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadMaterialDiffuse(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   S:TERRAString;
 Begin
@@ -1278,7 +1278,7 @@ Begin
   Result := True;
 End;
 
-Function GroupReadMaterialTriplanar(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadMaterialTriplanar(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   S:TERRAString;
 Begin
@@ -1290,7 +1290,7 @@ Begin
   Result := True;
 End;
 
-Function GroupReadMaterialSpecular(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadMaterialSpecular(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   S:TERRAString;
 Begin
@@ -1302,7 +1302,7 @@ Begin
   Result := True;
 End;
 
-Function GroupReadMaterialBump(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadMaterialBump(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   S:TERRAString;
 Begin
@@ -1320,7 +1320,7 @@ Begin
   Result := True;
 End;
 
-Function GroupReadMaterialDisplacement(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadMaterialDisplacement(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   S:TERRAString;
 Begin
@@ -1332,7 +1332,7 @@ Begin
   Result := True;
 End;
 
-Function GroupReadMaterialLightmap(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadMaterialLightmap(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   S:TERRAString;
 Begin
@@ -1352,7 +1352,7 @@ Begin
   Result := True;
 End;
 
-Function GroupReadMaterialRefraction(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadMaterialRefraction(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   S:TERRAString;
 Begin
@@ -1365,7 +1365,7 @@ Begin
 End;
 
 
-Function GroupReadMaterialReflective(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadMaterialReflective(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   S:TERRAString;
 Begin
@@ -1378,7 +1378,7 @@ Begin
 End;
 
 
-Function GroupReadMaterialEnvMap(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadMaterialEnvMap(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   S:TERRAString;
 Begin
@@ -1390,7 +1390,7 @@ Begin
   Result := True;
 End;
 
-Function GroupReadMaterialGlow(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadMaterialGlow(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   S:TERRAString;
 Begin
@@ -1402,7 +1402,7 @@ Begin
   Result := True;
 End;
 
-Function GroupReadMaterialAlphaMap(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadMaterialAlphaMap(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   S:TERRAString;
 Begin
@@ -1414,7 +1414,7 @@ Begin
   Result := True;
 End;
 
-Function GroupReadMaterialRamp(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadMaterialRamp(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   S:TERRAString;
 Begin
@@ -1429,7 +1429,7 @@ Begin
   Result := True;
 End;
 
-Function GroupReadMaterialBlendMode(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadMaterialBlendMode(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Var
   N:Byte;
 Begin
@@ -1438,7 +1438,7 @@ Begin
   Result := True;
 End;
 
-Function GroupReadMaterialParticles(Target:MeshGroup; Size:Integer; Source:Stream):Boolean;
+Function GroupReadMaterialParticles(Target:MeshGroup; Size:Integer; Source:TERRAStream):Boolean;
 Begin
   Source.ReadString(Target._EmitterFX);
   Result := True;
@@ -3216,7 +3216,7 @@ Begin
   SetLength(_Triangles, _TriangleCount);
 End;
 
-Procedure MeshGroup.Load(Source:Stream; Offset, ChunkSize:Cardinal);
+Procedure MeshGroup.Load(Source:TERRAStream; Offset, ChunkSize:Cardinal);
 Var
 	K:Cardinal;
   PositionLimit, TargetPosition:Cardinal;
@@ -3253,7 +3253,7 @@ Begin
   Until (Source.EOF);
 End;
 
-Procedure MeshGroup.Save(Dest:Stream);
+Procedure MeshGroup.Save(Dest:TERRAStream);
 Var
   I, J, Size:Integer;
   Name:TERRAString;
@@ -5698,7 +5698,7 @@ Begin
   Result := _Skeleton;
 End;
 
-Function TERRAMesh.Load(Source:Stream):Boolean;
+Function TERRAMesh.Load(Source:TERRAStream):Boolean;
 Var
   Size:Cardinal;
   Tag:FileHeader;
@@ -5732,7 +5732,7 @@ Begin
   Result := True;
 End;
 
-Function TERRAMesh.Save(Dest:Stream):Boolean;
+Function TERRAMesh.Save(Dest:TERRAStream):Boolean;
 Var
   I,J, Size, Temp, Temp2, Count:Integer;
   Tag:FileHeader;

@@ -33,9 +33,9 @@ Uses TERRA_Object, TERRA_String, TERRA_Stream, TERRA_Image, TERRA_FileFormat;
 Type
   PNGFormat = Class(TERRAFileFormat)
     Public
-      Function Identify(Source:Stream):Boolean; Override;
-      Function Load(Target:TERRAObject; Source:Stream):Boolean; Override;
-      Function Save(Target:TERRAObject; Dest:Stream):Boolean; Override;
+      Function Identify(Source:TERRAStream):Boolean; Override;
+      Function Load(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
+      Function Save(Target:TERRAObject; Dest:TERRAStream):Boolean; Override;
   End;
 
 Implementation
@@ -50,7 +50,7 @@ Type
   ZStreamRec2=Packed Record
     ZLIB:z_stream;   // From ZLIB
     Data:Pointer;       // Additional info
-    Source:Stream;
+    Source:TERRAStream;
   End;
 
   PNGHeader=Packed Record
@@ -86,26 +86,26 @@ Type
 	    Procedure CopyNonInterlacedGrayscale16(Src,Dest:PByte);
   End;
 
-  LPNGChunkName=Array[0..3] Of AnsiChar;
+  PNGChunkName=Array[0..3] Of AnsiChar;
 
-  PPNGChunk=^LPNGChunk;
-  LPNGChunk=Record
-    Name:LPNGChunkName;
+  PPNGChunk = ^PNGChunk;
+  PNGChunk = Record
+    Name:PNGChunkName;
     Size:Integer;
   End;
 
-  LPNGChunkHandler=Procedure(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);
+  PNGChunkHandler=Procedure(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream);
 
-  LPNGChunkRec=Record
-    Name:LPNGChunkName;
-    Handler:LPNGChunkHandler;
+  PNGChunkRec=Record
+    Name:PNGChunkName;
+    Handler:PNGChunkHandler;
   End;
 
-  Procedure SkipChunk(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);Forward;
-  Procedure Process_IHDR(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);Forward;
-  Procedure Process_PLTE(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);Forward;
-  Procedure Process_IDAT(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);Forward;
-  Procedure Process_TRNS(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);Forward;
+  Procedure SkipChunk(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream); Forward;
+  Procedure Process_IHDR(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream); Forward;
+  Procedure Process_PLTE(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream); Forward;
+  Procedure Process_IDAT(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream); Forward;
+  Procedure Process_TRNS(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream); Forward;
 
 Const
   PNGSignature:Array[0..7] Of AnsiChar = (#137, #80, #78, #71, #13, #10, #26, #10);
@@ -141,7 +141,7 @@ Const
   COLOR_RGBALPHA       = 6;
 
   ChunkListSize=4{16};
-  ChunkList:Array[0..Pred(ChunkListSize)] Of LPNGChunkRec=
+  ChunkList:Array[0..Pred(ChunkListSize)] Of PNGChunkRec=
         ((Name:'IHDR'; Handler:Process_IHDR),
          (Name:'PLTE'; Handler:Process_PLTE),
          (Name:'IDAT'; Handler:Process_IDAT),
@@ -212,7 +212,7 @@ Const
   ZLIBAllocate = High(Word);
 
 // Initializes ZLIB for decompression
-Function ZLIBInitInflate(Source:Stream):ZStreamRec2;
+Function ZLIBInitInflate(Source:TERRAStream):ZStreamRec2;
 Begin
   // Fill record
   FillChar(Result, SizeOf(ZStreamRec2),0);
@@ -235,7 +235,7 @@ Begin
 End;
 
 // Initializes ZLIB for compression
-Function ZLIBInitDeflate(Source:Stream):ZStreamRec2;
+Function ZLIBInitDeflate(Source:TERRAStream):ZStreamRec2;
 Begin
   // Fill record
   FillChar(Result,SizeOf(ZStreamRec2),0);
@@ -260,13 +260,13 @@ Begin
   FreeMem(ZLIBStream.Data);
 End;
 
-Procedure SkipChunk(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);
+Procedure SkipChunk(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream);
 Begin
   Source.Skip(Chunk.Size);
 End;
 
 // Process header
-Procedure Process_IHDR(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);
+Procedure Process_IHDR(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream);
 Var
   I:Integer;
 Begin
@@ -320,7 +320,7 @@ Begin
   End;
 End;
 
-Procedure Process_PLTE(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);
+Procedure Process_PLTE(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream);
 Begin
   Source.Read(@PNG.Palette, Chunk.Size);
 End;
@@ -331,7 +331,7 @@ Function IDATZlibRead(Var ZLIBStream:ZStreamRec2;
                       Count:Cardinal;
                       Var EndPos:Integer):Integer;
 Var
-  IDATHeader:LPNGChunkName;
+  IDATHeader:PNGChunkName;
 Begin
   Result:=-1;
   With ZLIBStream,ZLIBStream.ZLIB Do
@@ -400,7 +400,7 @@ Begin
   End;
 End;
 
-Function WriteChunkHeader(Source:Stream; ChunkName:LPNGChunkName; ChunkSize:Integer):Cardinal;
+Function WriteChunkHeader(Source:TERRAStream; ChunkName:PNGChunkName; ChunkSize:Integer):Cardinal;
 Begin
   ByteSwap32(Cardinal(ChunkSize));
   Source.Write(@ChunkSize, 4);
@@ -408,7 +408,7 @@ Begin
   Source.Write(@ChunkName, 4);
 End;
 
-Procedure WriteIDAT(Dest:Stream; Data:Pointer; Const Length:Cardinal);
+Procedure WriteIDAT(Dest:TERRAStream; Data:Pointer; Const Length:Cardinal);
 Var
   OP,CRC:Cardinal;
 Begin
@@ -482,7 +482,7 @@ begin
   end {with ZLIBStream, ZLIBStream.ZLIB};
 end;
 
-Procedure Process_TRNS(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);
+Procedure Process_TRNS(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream);
 Begin
   If (PNG.Header.ColorType<>COLOR_PALETTE) Then
   Begin
@@ -493,7 +493,7 @@ Begin
   Source.Read(@PNG.PaletteAlpha, Chunk.Size);
 End;
 
-Procedure Process_IDAT(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);
+Procedure Process_IDAT(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream);
 Var
   ZLIBStream: ZStreamRec2;
 Begin
@@ -862,14 +862,14 @@ Begin
 End;
 
 { PNGFormat }
-Function PNGFormat.Load(Target:TERRAObject; Source: Stream): Boolean;
+Function PNGFormat.Load(Target:TERRAObject; Source: TERRAStream): Boolean;
 Var
   MyImage:TERRAImage;
   I,J:Integer;
   Signature:Array[0..7] Of AnsiChar;
   HasIDAT:Boolean;
-  Chunk:LPNGChunk;
-  ChunkHandler:LPNGChunkHandler;
+  Chunk:PNGChunk;
+  ChunkHandler:PNGChunkHandler;
   Loader:PNGLoader;
 Begin
   Result := False;
@@ -972,7 +972,7 @@ Begin
   Result := True;
 End;
 
-Function PNGFormat.Save(Target: TERRAObject; Dest: Stream): Boolean;
+Function PNGFormat.Save(Target: TERRAObject; Dest: TERRAStream): Boolean;
 Const
   BUFFER = 5;
 Var
@@ -1160,7 +1160,7 @@ Begin
   Result := True;
 End;
 
-Function PNGFormat.Identify(Source: Stream): Boolean;
+Function PNGFormat.Identify(Source: TERRAStream): Boolean;
 Var
   ID:Array[1..3] Of AnsiChar;
 Begin

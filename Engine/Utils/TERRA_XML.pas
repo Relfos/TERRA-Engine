@@ -16,16 +16,16 @@ Type
       _TempBuffer:TERRAString;
       _InitTag:TERRAString;
 
-      Function Read(Source:Stream):TERRAString;
+      Function Read(Source:TERRAStream):TERRAString;
       Function GetTagType(Const S:TERRAString):XMLTagType;
       Function GetTagName(Const S:TERRAString):TERRAString;
 
     Public
       //Procedure LoadFromObject(Source:TERRAObject); Override;
-      Procedure LoadFromStream(Source:Stream); Override;
+      Procedure LoadFromStream(Source:TERRAStream); Override;
 
       Function SaveToObject(Target:TERRAObject):TERRAObject; Override;
-      Procedure SaveToStream(Dest:Stream; SaveFlags:Cardinal); Override;
+      Procedure SaveToStream(Dest:TERRAStream; SaveFlags:Cardinal); Override;
   End;
 
 Implementation
@@ -33,7 +33,7 @@ Uses TERRA_Log;
 
 { XMLNode }
 
-Procedure XMLNode.LoadFromStream(Source:Stream);
+Procedure XMLNode.LoadFromStream(Source:TERRAStream);
 Var
   S, S2:TERRAString;
   Tag, Value:TERRAString;
@@ -172,7 +172,7 @@ Begin
 End;
 
 
-Function XMLNode.Read(Source:Stream):TERRAString;
+Function XMLNode.Read(Source:TERRAStream):TERRAString;
 {Const
   BufferSize = 1024;}
 Var
@@ -255,7 +255,7 @@ Begin
   End;
 End;
 
-Procedure XMLNode.SaveToStream(Dest:Stream; SaveFlags:Cardinal);
+Procedure XMLNode.SaveToStream(Dest:TERRAStream; SaveFlags:Cardinal);
 Var
   Tabs, S:TERRAString;
   I, Count:Integer;

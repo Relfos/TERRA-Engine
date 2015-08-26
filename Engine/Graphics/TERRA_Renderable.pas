@@ -58,15 +58,15 @@ Type
 
   RenderableManager = Class(TERRAObject)
     Protected
-      _BucketSky:List;
-      _BucketOpaque:List;
-      _BucketAlpha:List;
+      _BucketSky:TERRAList;
+      _BucketOpaque:TERRAList;
+      _BucketAlpha:TERRAList;
       {$IFDEF REFLECTIONS_WITH_STENCIL}
-      _BucketReflection:List;
+      _BucketReflection:TERRAList;
       {$ENDIF}
-      _BucketOverlay:List;
+      _BucketOverlay:TERRAList;
 
-      Procedure RenderList(View:TERRAViewport; RenderList:List; Const Stage:RendererStage; Const Bucket:Cardinal);
+      Procedure RenderList(View:TERRAViewport; RenderList:TERRAList; Const Stage:RendererStage; Const Bucket:Cardinal);
 
     Public
       Constructor Create();
@@ -119,18 +119,18 @@ End;
 { RenderableManager }
 Constructor RenderableManager.Create();
 Begin
-  _BucketSky := List.Create(collection_Unsorted, coShared);
-  _BucketOpaque := List.Create(collection_Sorted_Ascending, coShared);
-  _BucketAlpha :=  List.Create(collection_Sorted_Descending, coShared);
-  _BucketOverlay := List.Create(collection_Unsorted, coShared);
+  _BucketSky := TERRAList.Create(collection_Unsorted, coShared);
+  _BucketOpaque := TERRAList.Create(collection_Sorted_Ascending, coShared);
+  _BucketAlpha :=  TERRAList.Create(collection_Sorted_Descending, coShared);
+  _BucketOverlay := TERRAList.Create(collection_Unsorted, coShared);
 
   {$IFDEF REFLECTIONS_WITH_STENCIL}
-  _BucketReflection := List.Create(coAppend);
+  _BucketReflection := TERRAList.Create(coAppend);
   {$ENDIF}
 End;
 
 
-Procedure RenderableManager.RenderList(View:TERRAViewport; RenderList:List; Const Stage:RendererStage; Const Bucket:Cardinal);
+Procedure RenderableManager.RenderList(View:TERRAViewport; RenderList:TERRAList; Const Stage:RendererStage; Const Bucket:Cardinal);
 Var
   P:TERRACollectionObject;
   Renderable:TERRARenderable;

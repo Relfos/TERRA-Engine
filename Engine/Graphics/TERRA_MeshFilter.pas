@@ -136,10 +136,10 @@ Type
       Function GetScaleKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshAnimationKeyframe; Virtual;
       Function GetRotationKey(AnimationID, BoneID:Integer; KeyID:Integer):MeshAnimationKeyframe; Virtual;
 
-      Function Load(Source:Stream):Boolean; Overload; Virtual;
+      Function Load(Source:TERRAStream):Boolean; Overload; Virtual;
       Function Load(FileName:TERRAString):Boolean; Overload;
 
-      Class Function Save(Dest:Stream; MyMesh:MeshFilter):Boolean; Overload; Virtual;
+      Class Function Save(Dest:TERRAStream; MyMesh:MeshFilter):Boolean; Overload; Virtual;
       Class Function Save(FileName:TERRAString; MyMesh:MeshFilter):Boolean; Overload;
     End;
 
@@ -170,7 +170,7 @@ End;
 Function CreateMeshFilter(FileName:TERRAString):MeshFilter;
 Var
   Ext:TERRAString;
-  Src:Stream;
+  Src:TERRAStream;
   I:Integer;
 Begin
   Result := Nil;
@@ -283,19 +283,19 @@ Begin
   Result.Y := 0;
 End;
 
-Class Function MeshFilter.Save(Dest:Stream; MyMesh: MeshFilter): Boolean;
+Class Function MeshFilter.Save(Dest:TERRAStream; MyMesh: MeshFilter): Boolean;
 Begin
   Result := False;
 End;
 
-Function MeshFilter.Load(Source: Stream): Boolean;
+Function MeshFilter.Load(Source: TERRAStream): Boolean;
 Begin
   Result := False;
 End;
 
 Function MeshFilter.Load(FileName:TERRAString): Boolean;
 Var
-  Src:Stream;
+  Src:TERRAStream;
 Begin
   Src := MemoryStream.Create(FileName);
   Result := Load(Src);
@@ -304,7 +304,7 @@ End;
 
 Class Function MeshFilter.Save(FileName:TERRAString; MyMesh: MeshFilter): Boolean;
 Var
-  Dest:Stream;
+  Dest:TERRAStream;
 Begin
   Dest := FileStream.Create(FileName);
   Result := Save(Dest, MyMesh);

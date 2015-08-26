@@ -67,9 +67,9 @@ Type
       Constructor Create;
       Procedure Release; Override;
 
-      Function Load(Source:Stream):Boolean; Overload;
+      Function Load(Source:TERRAStream):Boolean; Overload;
       Function Load(Name:TERRAString):Boolean; Overload;
-      Function Save(Dest:Stream):Boolean;
+      Function Save(Dest:TERRAStream):Boolean;
 
       Property Handle:Integer Read _SlotHandle;
   End;
@@ -107,7 +107,7 @@ Const
 
 Function SoundAmbience.Load(Name:TERRAString):Boolean;
 Var
-  Source:Stream;
+  Source:TERRAStream;
 Begin
   If (Name='') Then
   Begin
@@ -134,7 +134,7 @@ Begin
   _Name := Name;
 End;
               
-Function SoundAmbience.Load(Source: Stream): Boolean;
+Function SoundAmbience.Load(Source: TERRAStream): Boolean;
 Begin
   Source.Read(@_Density, 4);
 	Source.Read(@_Diffusion, 4);
@@ -168,7 +168,7 @@ Begin
   Result := True;
 End;
 
-Function SoundAmbience.Save(Dest: Stream): Boolean;
+Function SoundAmbience.Save(Dest: TERRAStream): Boolean;
 Begin
   Dest.Write(@_Density, 4);
 	Dest.Write(@_Diffusion, 4);

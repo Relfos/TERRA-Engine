@@ -30,9 +30,9 @@ Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Collections, TERRA_List;
 
 Type
-  HashMap = Class(TERRACollection)
+  TERRAHashMap = Class(TERRACollection)
     Protected
-      _Table:Array Of List;
+      _Table:Array Of TERRAList;
       _TableSize:Word;
 
     Public
@@ -69,18 +69,18 @@ Type
       Procedure Reset(); Override;
   End;
 
-Function LoadKeypairList(SourceFile:TERRAString):HashMap;
+Function LoadKeypairList(SourceFile:TERRAString):TERRAHashMap;
 
 Implementation
 Uses TERRA_Log, TERRA_Stream, TERRA_FileStream, TERRA_MurmurHash;
 
-Function LoadKeypairList(SourceFile:TERRAString):HashMap;
+Function LoadKeypairList(SourceFile:TERRAString):TERRAHashMap;
 Var
-  Source:Stream;
+  Source:TERRAStream;
   S,S2:TERRAString;
 Begin
   S := '';
-  Result := HashMap.Create();
+  Result := TERRAHashMap.Create();
   If  (SourceFile<>'') And (FileStream.Exists(SourceFile)) Then
   Begin
     Source :=  FileStream.Open(SourceFile);
@@ -95,7 +95,7 @@ Begin
 End;
 
 { HashMap }
-Constructor HashMap.Create(TableSize:Word);
+Constructor TERRAHashMap.Create(TableSize:Word);
 Begin
   _SortOrder := collection_Unsorted;
   _ItemCount := 0;
@@ -105,7 +105,7 @@ Begin
   Self.Init(0, Nil);
 End;
 
-Function HashMap.GetItemByIndex(Index: Integer): TERRAObject;
+Function TERRAHashMap.GetItemByIndex(Index: Integer): TERRAObject;
 Var
   I, K, Count:Integer;
 Begin
@@ -175,7 +175,7 @@ Begin
   End;
 End;*)
 
-Function HashMap.Add(Item:TERRAObject):Boolean;
+Function TERRAHashMap.Add(Item:TERRAObject):Boolean;
 Var
   Key:HashKey;
 Begin
@@ -193,7 +193,7 @@ Begin
   If Not Assigned(_Table[Key]) Then
   Begin
     {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Allocating a new table...');{$ENDIF}
-    _Table[Key] := List.Create(collection_Unsorted);
+    _Table[Key] := TERRAList.Create(collection_Unsorted);
   End;
 
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Adding item to table...');{$ENDIF}
@@ -203,7 +203,7 @@ Begin
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Insertion was ok!');{$ENDIF}
 End;
 
-Function HashMap.Remove(Item:TERRAObject):Boolean;
+Function TERRAHashMap.Remove(Item:TERRAObject):Boolean;
 Var
   Key:HashKey;
 Begin
@@ -227,7 +227,7 @@ Begin
     Dec(_ItemCount);
 End;
 
-Function HashMap.Contains(Item:TERRAObject):Boolean;
+Function TERRAHashMap.Contains(Item:TERRAObject):Boolean;
 Var
   Key:HashKey;
 Begin
@@ -249,7 +249,7 @@ Begin
   Result := (_Table[Key].Contains(Item));
 End;
 
-Procedure HashMap.Clear();
+Procedure TERRAHashMap.Clear();
 Var
   I:Integer;
 Begin
@@ -261,7 +261,7 @@ Begin
     End;
 End;
 
-Function HashMap.GetItemByKey(Const Key: TERRAString):TERRAObject;
+Function TERRAHashMap.GetItemByKey(Const Key: TERRAString):TERRAObject;
 Var
   K:HashKey;
   Index:Integer;
@@ -289,7 +289,7 @@ Begin
   Self.Unlock();
 End;
 
-Function HashMap.GetIterator:Iterator;
+Function TERRAHashMap.GetIterator:Iterator;
 Var
   MyIterator:HashMapIterator;
 Begin
@@ -308,9 +308,9 @@ End;
 Function HashMapIterator.FindNextItem():TERRACollectionObject;
 Var
   I:Integer;
-  Table:HashMap;
+  Table:TERRAHashMap;
 Begin
-  Table := HashMap(Self.Collection);
+  Table := TERRAHashMap(Self.Collection);
   For I := Succ(_CurrentTable) To Pred(Table._TableSize) Do
   If Assigned(Table._Table[I]) Then
   Begin

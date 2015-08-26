@@ -6122,7 +6122,7 @@ Type
 
       Procedure InitStream; Override;
       Procedure Stream(Target:Cardinal); Override;
-      Class Function Validate(Source:Stream):Boolean; Override;
+      Class Function Validate(Source:TERRAStream):Boolean; Override;
 
     Public
       Procedure Release; Override;
@@ -6130,7 +6130,7 @@ Type
   End;
 
    
-Function ValidateOGG(Source:Stream):Boolean;
+Function ValidateOGG(Source:TERRAStream):Boolean;
 Var
   ID:FileHeader;
 Begin
@@ -6140,7 +6140,7 @@ Begin
   Result := CompareFileHeader(ID, 'OggS');
 End;
 
-Function OGGLoad(Source:Stream; MySound:Sound):Boolean;
+Function OGGLoad(Source:TERRAStream; MySound:Sound):Boolean;
 Var
   Mem:Array Of Byte;
   Samples, Channels, SampleRate, Size:Integer;
@@ -6495,7 +6495,7 @@ Begin
 End;
 {$ENDIF}
 
-Class Function OggStreamer.Validate(Source:Stream):Boolean;
+Class Function OggStreamer.Validate(Source:TERRAStream):Boolean;
 Begin
   Result := ValidateOGG(Source);
 End;

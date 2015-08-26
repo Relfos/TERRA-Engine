@@ -63,8 +63,8 @@ Type
       Constructor Create(ID:Integer; Parent:MeshBone);
       Procedure Release; Override;
 
-      Function Read(Source:Stream):TERRAString;
-      Procedure Write(Dest:Stream);
+      Function Read(Source:TERRAStream):TERRAString;
+      Procedure Write(Dest:TERRAStream);
 
       //Procedure SetLength(Const Value:Single);
 
@@ -105,8 +105,8 @@ Type
 
       Procedure Clone(Other:MeshSkeleton);
 
-      Procedure Read(Source:Stream);
-      Procedure Write(Dest:Stream);
+      Procedure Read(Source:TERRAStream);
+      Procedure Write(Dest:TERRAStream);
 
       Function AddBone(Parent:MeshBone = Nil):MeshBone;
 
@@ -182,7 +182,7 @@ Begin
   End;
 End;
 
-Function MeshBone.Read(Source:Stream):TERRAString;
+Function MeshBone.Read(Source:TERRAStream):TERRAString;
 Var
   N:Byte;
   ParentName:TERRAString;
@@ -209,7 +209,7 @@ Begin
   Result := ParentName;
 End;
 
-Procedure MeshBone.Write(Dest: Stream);
+Procedure MeshBone.Write(Dest:TERRAStream);
 Begin
   RaiseError('Not implemented');
 End;
@@ -274,7 +274,7 @@ Begin
   Result := Nil;
 End;
 
-Procedure MeshSkeleton.Read(Source: Stream);
+Procedure MeshSkeleton.Read(Source:TERRAStream);
 Var
   Parents:Array Of TERRAString;
   I:Integer;
@@ -297,7 +297,7 @@ Begin
     _BoneList[I]._Parent := Self.GetBoneByName(Parents[I]);
 End;
 
-Procedure MeshSkeleton.Write(Dest: Stream);
+Procedure MeshSkeleton.Write(Dest:TERRAStream);
 Begin
   RaiseError('Not implemented');
 End;

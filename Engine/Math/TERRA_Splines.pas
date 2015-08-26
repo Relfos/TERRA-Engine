@@ -77,9 +77,9 @@ Type
 
       Procedure Synchronize(OtherSpline:Spline);
 
-      Procedure Load(Source:Stream); Overload;
+      Procedure Load(Source:TERRAStream); Overload;
       Procedure Load(Const FileName:TERRAString); Overload;
-      Procedure Save(Dest:Stream); Overload;
+      Procedure Save(Dest:TERRAStream); Overload;
       Procedure Save(FileName:TERRAString); Overload;
 
       Property Speed:Single Read _Speed Write _Speed;
@@ -252,7 +252,7 @@ Begin
     Build;
 End;
 
-Procedure Spline.Load(Source:Stream);
+Procedure Spline.Load(Source:TERRAStream);
 Var
   I:Integer;
 Begin
@@ -263,7 +263,7 @@ Begin
   _NeedsBuild := True;
 End;
 
-Procedure Spline.Save(Dest:Stream);
+Procedure Spline.Save(Dest:TERRAStream);
 Var
   I:Integer;
 Begin
@@ -274,7 +274,7 @@ End;
 
 Procedure Spline.Save(FileName:TERRAString);
 Var
-  Dest:Stream;
+  Dest:TERRAStream;
 Begin
   Dest := FileStream.Create(FileName);
   Save(Dest);
@@ -283,7 +283,7 @@ End;
 
 Procedure Spline.Load(Const FileName:TERRAString);
 Var
-  Source:Stream;
+  Source:TERRAStream;
 Begin
   Source := FileStream.Open(FileName);
   Load(Source);

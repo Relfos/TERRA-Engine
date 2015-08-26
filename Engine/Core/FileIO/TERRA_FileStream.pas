@@ -72,9 +72,9 @@ Interface
 Uses TERRA_Stream, TERRA_Object, TERRA_FileUtils, TERRA_String;
 
 Type
-  FilePointer=File;
+  FilePointer = File;
 
-  FileStream=Class(Stream)
+  FileStream = Class(TERRAStream)
      Protected
         _File:FilePointer;
         _Open:Boolean;
@@ -328,7 +328,7 @@ End;
 
 Class procedure FileStream.CopyFile(SourceName, DestName:TERRAString);
 Var
-  Source, Dest:Stream;
+  Source, Dest:TERRAStream;
 Begin
   Source := MemoryStream.Create(SourceName);
   Dest := FileStream.Create(DestName);

@@ -48,13 +48,13 @@ Type
   ResourceManager = Class(ApplicationComponent)
     Protected
       _LastUpdate:Cardinal;
-      _Queue:Queue;
+      _Queue:TERRAQueue;
 
       {$IFNDEF DISABLETHREADS}
       _LockSection:CriticalSection;
       {$ENDIF}
 
-      _Resources:HashMap;
+      _Resources:TERRAHashMap;
 
       _Purging:Boolean;
 
@@ -86,7 +86,7 @@ Type
       Procedure PurgeResources;
       Procedure PreFetch(MyResource:TERRAResource);
 
-      Property Resources:HashMap Read _Resources;
+      Property Resources:TERRAHashMap Read _Resources;
   End;
 
 Implementation
@@ -111,7 +111,7 @@ End;
 Procedure ResourceLoader.Execute();
 Var
   MyResource:TERRAResource;
-  Source:Stream;
+  Source:TERRAStream;
   Result:Boolean;
   Manager:ResourceManager;
 Begin
@@ -178,9 +178,9 @@ Procedure ResourceManager.Init;
 Begin
   Log(logDebug, 'Resource', 'Creating resource manager for class: '+Self.ClassName);
 
-  _Resources := HashMap.Create(1024);
+  _Resources := TERRAHashMap.Create(1024);
   _LastUpdate := 0;
-  _Queue := Queue.Create();
+  _Queue := TERRAQueue.Create();
 
 {$IFNDEF DISABLETHREADS}
   _LockSection := CriticalSection.Create({Self.ClassName});

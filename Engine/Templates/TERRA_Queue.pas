@@ -30,7 +30,7 @@ Interface
 Uses TERRA_String, TERRA_Utils, TERRA_Object, TERRA_List, TERRA_Collections;
 
 Type
-  Queue = Class(List)
+  TERRAQueue = Class(TERRAList)
     Public
       Constructor Create();
 
@@ -44,15 +44,15 @@ Type
 Implementation
 Uses TERRA_Log;
 
-{ Queue }
-Constructor Queue.Create();
+{ TERRAQueue }
+Constructor TERRAQueue.Create();
 Begin
   _SortOrder := collection_Unsorted;
   _Options := 0;
   _First := Nil;
 End;
 
-Function Queue.Push(Item: TERRAObject): Boolean;
+Function TERRAQueue.Push(Item: TERRAObject): Boolean;
 Var
   Obj, P:TERRACollectionObject;
 Begin
@@ -90,7 +90,7 @@ Begin
   Until (Not Assigned(P));
 End;
 
-Function Queue.Pop:TERRAObject;
+Function TERRAQueue.Pop:TERRAObject;
 Var
   P:TERRACollectionObject;
 Begin
@@ -108,7 +108,7 @@ Begin
   ReleaseObject(P);
 End;
 
-Function Queue.CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject;
+Function TERRAQueue.CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject;
 Begin
   Result := Inherited CreateProperty(KeyName, ObjectType);
 

@@ -626,7 +626,7 @@ End;
 Procedure SaveShader(Const Code, Name, Prefix:TERRAString);
 Var
   FileName:TERRAString;
-  Dest:Stream;
+  Dest:TERRAStream;
 Begin
   FileName := 'Shaders'+PathSeparator + Name+'.'+Prefix+'.txt';
 

@@ -457,7 +457,7 @@ Type
 
   UITemplateList = Class(TERRAObject)
     Protected
-      _Templates:List;
+      _Templates:TERRAList;
 
     Public
       Function AddTemplate(Template:UIWidget):UIWidget;
@@ -2516,7 +2516,7 @@ Begin
     Exit;
 
   If _Templates = Nil Then
-    _Templates := List.Create();
+    _Templates := TERRAList.Create();
 
   _Templates.Add(Template);
 End;

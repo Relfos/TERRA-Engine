@@ -35,13 +35,13 @@ Type
       _Extension:TERRAString;
       _Kind:TERRAObjectType;
 
-      Function Identify(Source:Stream):Boolean; Virtual;
+      Function Identify(Source:TERRAStream):Boolean; Virtual;
 
     Public
       Constructor Create(Const Kind:TERRAObjectType; Const Extension:TERRAString);
 
-      Function Load(Target:TERRAObject; Source:Stream):Boolean; Virtual;
-      Function Save(Target:TERRAObject; Dest:Stream):Boolean; Virtual;
+      Function Load(Target:TERRAObject; Source:TERRAStream):Boolean; Virtual;
+      Function Save(Target:TERRAObject; Dest:TERRAStream):Boolean; Virtual;
 
       Property Extension:TERRAString Read _Extension;
       Property Kind:TERRAObjectType Read _Kind;
@@ -59,7 +59,7 @@ Type
 
       Function FindLocationFromName(Const Name:TERRAString; Kind:TERRAObjectType; Out Location:TERRALocation):TERRAFileFormat;
       Function FindFormatFromExtension(Const Ext:TERRAString):TERRAFileFormat;
-      Function FindFormatFromStream(Source:Stream; Kind:TERRAObjectType):TERRAFileFormat;
+      Function FindFormatFromStream(Source:TERRAStream; Kind:TERRAObjectType):TERRAFileFormat;
 
       Property FormatCount:Integer Read _FormatCount;
 
@@ -76,17 +76,17 @@ Begin
   _Extension := Extension;
 End;
 
-Function TERRAFileFormat.Identify(Source: Stream): Boolean;
+Function TERRAFileFormat.Identify(Source: TERRAStream): Boolean;
 Begin
   Result := StringEquals(GetFileExtension(Source.Name), Self.Extension);
 End;
 
-Function TERRAFileFormat.Load(Target:TERRAObject; Source:Stream):Boolean;
+Function TERRAFileFormat.Load(Target:TERRAObject; Source:TERRAStream):Boolean;
 Begin
   Result := False;
 End;
 
-Function TERRAFileFormat.Save(Target:TERRAObject; Dest:Stream):Boolean;
+Function TERRAFileFormat.Save(Target:TERRAObject; Dest:TERRAStream):Boolean;
 Begin
   Result := False;
 End;
@@ -134,7 +134,7 @@ Begin
   End;
 End;
 
-Function FormatManager.FindFormatFromStream(Source:Stream; Kind:TERRAObjectType):TERRAFileFormat;
+Function FormatManager.FindFormatFromStream(Source:TERRAStream; Kind:TERRAObjectType):TERRAFileFormat;
 Var
   I:Integer;
   Ofs:Cardinal;

@@ -67,7 +67,7 @@ Type
 
       Class Function GetManager:Pointer; Virtual;
 
-      Function Load(MyStream:Stream):Boolean; Virtual;Abstract;
+      Function Load(MyStream:TERRAStream):Boolean; Virtual;Abstract;
       Function Unload:Boolean; Virtual;
       Function Update:Boolean; Virtual;
 

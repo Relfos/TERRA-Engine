@@ -92,7 +92,7 @@ Type
 
       Function IsValid():Boolean;
 
-      Function Load(Source:Stream):Boolean; Override;
+      Function Load(Source:TERRAStream):Boolean; Override;
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
       Class Function GetManager:Pointer; Override;
@@ -248,7 +248,7 @@ Begin
   End;
 End;
 
-Function TERRATexture.Load(Source: Stream):Boolean;
+Function TERRATexture.Load(Source:TERRAStream):Boolean;
 Var
   Ofs:Cardinal;
 Begin
@@ -803,7 +803,7 @@ End;
 
 Class Function TERRATexture.LoadFromFile(const FileName: TERRAString): TERRATexture;
 Var
-  Src:Stream;
+  Src:TERRAStream;
 Begin
   Src := Engine.Files.OpenFile(FileName);
   If Assigned(Src) Then

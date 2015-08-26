@@ -137,8 +137,8 @@ Type
 
       Procedure ConvertToFormat(NewFormat:VertexFormat);
 
-      Procedure ReadAttribute(Attribute:VertexFormatAttribute; Format:DataFormat; Source:Stream);
-      Procedure Write(Dest:Stream);
+      Procedure ReadAttribute(Attribute:VertexFormatAttribute; Format:DataFormat; Source:TERRAStream);
+      Procedure Write(Dest:TERRAStream);
 
       Function HasAttribute(Attribute:Cardinal):Boolean;
       Function HasAttributeWithName(Const Name:TERRAString):Boolean;
@@ -474,7 +474,7 @@ Begin
   //RaiseError('Attribute '+GetDefaultAttributeName(Attribute) +' does not exist in this buffer!');
 End;
 
-Procedure VertexData.ReadAttribute(Attribute:VertexFormatAttribute; Format:DataFormat; Source:Stream);
+Procedure VertexData.ReadAttribute(Attribute:VertexFormatAttribute; Format:DataFormat; Source:TERRAStream);
 Var
   I:Integer;
   Ofs, AttrSize, BlockSize:Integer;
@@ -500,7 +500,7 @@ Begin
   End;
 End;
 
-Procedure VertexData.Write(Dest:Stream);
+Procedure VertexData.Write(Dest:TERRAStream);
 Begin
   Dest.WriteInteger(Self.Count);
   If Self.Count>0 Then

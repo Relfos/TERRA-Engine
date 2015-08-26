@@ -101,7 +101,7 @@ Type
 
       Procedure SetGroupPercent(Const ID, Value:Integer);
 
-      Procedure Load(Source:Stream);
+      Procedure Load(Source:TERRAStream);
 
       Procedure Emit(Target:Particle); Override;
       Function GetParticleCount: Integer; Override;
@@ -135,7 +135,7 @@ End;
 Constructor ParticleSettingsEmitter.Create(Const FXName:TERRAString; Position:Vector3D);
 Var
   S:TERRAString;
-  Source:Stream;
+  Source:TERRAStream;
 Begin
   _Position := Position;
   _GroupCount := 0;
@@ -159,7 +159,7 @@ Begin
     Inc(Result, _Groups[I].GetParticleCount);
 End;
 
-Procedure ParticleSettingsEmitter.Load(Source: Stream);
+Procedure ParticleSettingsEmitter.Load(Source:TERRAStream);
 Var
   I:Integer;
   S, S2:TERRAString;

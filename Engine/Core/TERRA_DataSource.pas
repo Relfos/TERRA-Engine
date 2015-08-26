@@ -104,7 +104,7 @@ Var
   SaveData:Session;
   It:Iterator;
   Item, Row:StringProperty;
-  Obj:List;
+  Obj:TERRAList;
   S, S2, Tag:TERRAString;
 Begin
   SaveData := TERRA_Session.Session.Create(GetFileName(FileName, False));
@@ -117,7 +117,7 @@ Begin
   Begin
     Row := StringProperty(It.Value);
 
-    Obj := List.Create();
+    Obj := TERRAList.Create();
     Obj.Name := Row.Name;
     S := Row.Value;
 

@@ -59,8 +59,8 @@ Type
 
       Function GetExactKey(Time:Single):Integer;
 
-      Procedure Load(Source:Stream);
-      Procedure Save(Dest:Stream);
+      Procedure Load(Source:TERRAStream);
+      Procedure Save(Dest:TERRAStream);
 
       Function GetLength():Single;
 
@@ -93,8 +93,8 @@ Type
       Constructor Create(ID:Integer; Owner:Animation);
       Procedure Release; Override;
 
-      Procedure Load(Source:Stream);
-      Procedure Save(Dest:Stream);
+      Procedure Load(Source:TERRAStream);
+      Procedure Save(Dest:TERRAStream);
 
       Function GetLength():Single;
 
@@ -129,8 +129,8 @@ Type
       Procedure Clone(Other:Animation);
       Function Retarget(SourceSkeleton, TargetSkeleton:MeshSkeleton):Animation;
 
-      Function Load(Source:Stream):Boolean; Override;
-      Procedure Save(Dest:Stream); Overload;
+      Function Load(Source:TERRAStream):Boolean; Override;
+      Procedure Save(Dest:TERRAStream); Overload;
       Procedure Save(FileName:TERRAString); Overload;
 
       Class Function GetManager:Pointer; Override;
@@ -312,7 +312,7 @@ Begin
 End;
 
 
-Procedure VectorKeyframeArray.Load(Source:Stream);
+Procedure VectorKeyframeArray.Load(Source:TERRAStream);
 Var
   I:Integer;
   Time:Single;
@@ -336,7 +336,7 @@ Begin
   End;
 End;
 
-Procedure VectorKeyframeArray.Save(Dest:Stream);
+Procedure VectorKeyframeArray.Save(Dest:TERRAStream);
 Var
   I:Integer;
 Begin
@@ -396,7 +396,7 @@ Begin
   Result := FloatMax(Self.Positions.Length, FloatMax(Self.Rotations.Length, Self.Scales.Length));
 End;
 
-Procedure BoneAnimation.Load(Source:Stream);
+Procedure BoneAnimation.Load(Source:TERRAStream);
 Begin
   Source.ReadString(Name);
   Positions.Load(Source);
@@ -404,7 +404,7 @@ Begin
   Scales.Load(Source);
 End;
 
-Procedure BoneAnimation.Save(Dest:Stream);
+Procedure BoneAnimation.Save(Dest:TERRAStream);
 Var
   I:Integer;
 Begin
@@ -535,7 +535,7 @@ Begin
   Result := AnimationManager.Instance;
 End;
 
-Function Animation.Load(Source:Stream):Boolean;
+Function Animation.Load(Source:TERRAStream):Boolean;
 Var
   Header:FileHeader;
   I, J, Count:Integer;
@@ -577,7 +577,7 @@ Begin
   ReleaseObject(Stream);
 End;
 
-Procedure Animation.Save(Dest:Stream);
+Procedure Animation.Save(Dest:TERRAStream);
 Var
   Header:FileHeader;
   I:Integer;

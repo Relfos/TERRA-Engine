@@ -200,7 +200,7 @@ End;
 
 Procedure AudioMusicTrack.Init();
 Var
-  Src, Dest:Stream;
+  Src, Dest:TERRAStream;
   OpenParm:MCI_OPEN_PARAMS;
   lMode :Integer;
   intFlags:Integer;

@@ -115,17 +115,17 @@ Type
 
     Public
       Constructor Create(Width, Height:Integer);Overload;
-      Constructor Create(Source:Stream);Overload;
+      Constructor Create(Source:TERRAStream);Overload;
       Constructor Create(Location:TERRALocation);Overload;
       Constructor Create(FileName:TERRAString);Overload;
       Constructor Create(Source:TERRAImage);Overload;
       Procedure Release; Override;
 
-      Procedure Load(Source:Stream);Overload;
+      Procedure Load(Source:TERRAStream);Overload;
       Procedure Load(Location:TERRALocation);Overload;
       Procedure Load(FileName:TERRAString);Overload;
 
-      Function Save(Dest:Stream; Format:TERRAFileFormat; Depth:Integer = 32):Boolean; Overload;
+      Function Save(Dest:TERRAStream; Format:TERRAFileFormat; Depth:Integer = 32):Boolean; Overload;
       Function Save(Filename:TERRAString; Format:TERRAFileFormat = Nil; Depth:Integer = 32):Boolean; Overload;
 
       Procedure Copy(Source:TERRAImage);
@@ -326,7 +326,7 @@ Begin
   New(Width, Height);
 End;
 
-Constructor TERRAImage.Create(Source:Stream);
+Constructor TERRAImage.Create(Source:TERRAStream);
 Begin
   Load(Source);
 End;
@@ -1101,7 +1101,7 @@ End;
 
 Procedure TERRAImage.Load(Location:TERRALocation);
 Var
-  Source:Stream;
+  Source:TERRAStream;
 Begin
   Source := Engine.Files.OpenLocation(Location);
   If Assigned(Source) Then
@@ -1111,7 +1111,7 @@ Begin
   End;
 End;
 
-Procedure TERRAImage.Load(Source:Stream);
+Procedure TERRAImage.Load(Source:TERRAStream);
 Var
   Format:TERRAFileFormat;
 Begin
@@ -1136,7 +1136,7 @@ Begin
   Log(logDebug, 'Image', 'Image loaded');
 End;
 
-Function TERRAImage.Save(Dest:Stream; Format:TERRAFileFormat; Depth:Integer):Boolean;
+Function TERRAImage.Save(Dest:TERRAStream; Format:TERRAFileFormat; Depth:Integer):Boolean;
 Begin
   Result := False;
   If (_Pixels = Nil) Or (Format = Nil) Then
@@ -1152,7 +1152,7 @@ End;
 
 Function TERRAImage.Save(Filename:TERRAString; Format:TERRAFileFormat; Depth:Integer):Boolean;
 Var
-  Dest:Stream;
+  Dest:TERRAStream;
 Begin
   If Format = Nil Then
     Format := Engine.Formats.FindFormatFromExtension(GetFileExtension(FileName));

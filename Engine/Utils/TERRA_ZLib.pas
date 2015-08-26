@@ -392,7 +392,7 @@ function zlibVersion :AnsiString;
   not compatible with the zlib.h header file used by the application.
   This check is automatically made by deflateInit and inflateInit. }
 
-Function zUncompress(source, dest:Stream):Integer;
+Function zUncompress(source, dest:TERRAStream):Integer;
 
 function zError(err : int) :AnsiString;
 
@@ -7935,7 +7935,7 @@ end;
    invalid or incomplete, Z_VERSION_ERROR if the version of zlib.h and
    the version of the library linked do not match, or Z_ERRNO if there
    is an error reading or writing the files. *)
-Function zUncompress(source, dest:Stream):Integer;
+Function zUncompress(source, dest:TERRAStream):Integer;
 Const
   CHUNK = 1024;
 Var
