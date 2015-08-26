@@ -155,6 +155,8 @@ Type
       Procedure FlipHorizontal();
       Procedure FlipVertical();
 
+      Procedure SwapChannels();
+
       Function Combine(Layer:TERRAImage; Alpha:Single; Mode:ColorCombineMode; Const Mask:Cardinal = maskRGBA):Boolean;
 
       Function LineByUV(Const U1,V1,U2,V2:Single; Flags:ImageProcessFlags; Const Mask:Cardinal = maskRGBA):ImageIterator;
@@ -2011,6 +2013,18 @@ End;
 Procedure ImageFrame.Release;
 Begin
   SetLength(_Data, 0);
+End;
+
+Procedure TERRAImage.SwapChannels;
+Var
+  It:ImageIterator;
+Begin
+  It := Self.Pixels([image_Read, image_Write]);
+  While It.HasNext() Do
+  Begin
+    It.Value := ColorCreate(It.Value.B, It.Value.G, It.Value.R, It.Value.A);
+  End;
+  ReleaseObject(It);
 End;
 
 End.

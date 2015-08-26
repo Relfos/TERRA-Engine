@@ -210,13 +210,8 @@ Begin
     End;
   End;
 
-  It := Image.Pixels([image_Read, image_Write]);
-  While It.HasNext() Do
-  Begin
-    It.Value := ColorCreate(It.Value.B, It.Value.G, It.Value.R, It.Value.A);
-  End;
-  ReleaseObject(It);
-
+  Image.SwapChannels();
+  
   Result := True;
 End;
 

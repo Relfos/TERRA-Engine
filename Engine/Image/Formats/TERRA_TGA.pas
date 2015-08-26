@@ -26,36 +26,61 @@ Unit TERRA_TGA;
 {$I terra.inc}
 
 Interface
-
-Implementation
-Uses TERRA_String, TERRA_Error, TERRA_Utils, TERRA_Stream, TERRA_Image, TERRA_Application, TERRA_Color;
+Uses TERRA_Object, TERRA_String, TERRA_Stream, TERRA_Image, TERRA_FileFormat;
 
 Type
- LTGAHeader=Packed Record   // Header type for TGA images
-   FileType:Byte;
-   ColorMapType:Byte;
-   ImageType:Byte;
-   ColorMapSpec:Array[0..4] of Byte;
-   OrigX:Word;
-   OrigY:Word;
-   Width:Word;
-   Height:Word;
-   BPP:Byte;
-   ImageInfo:Byte;
+  TGAFormat = Class(TERRAFileFormat)
+    Public
+      Function Identify(Source:Stream):Boolean; Override;
+      Function Load(Target:TERRAObject; Source:Stream):Boolean; Override;
+      Function Save(Target:TERRAObject; Dest:Stream):Boolean; Override;
   End;
 
-Procedure TGALoad(Source:Stream; Image:Image);
+Implementation
+Uses TERRA_Error, TERRA_EngineManager, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_Color;
+
+Type
+  TGAHeader=Packed Record   // Header type for TGA images
+    FileType:Byte;
+    ColorMapType:Byte;
+    ImageType:Byte;
+    ColorMapSpec:Array[0..4] of Byte;
+    OrigX:Word;
+    OrigY:Word;
+    Width:Word;
+    Height:Word;
+    BPP:Byte;
+    ImageInfo:Byte;
+  End;
+
+{ TGAFormat }
+Function TGAFormat.Identify(Source: Stream): Boolean;
 Var
-  Header:LTGAHeader;
+  ID:FileHeader;
+Begin
+  Source.Seek(Source.Size - 18);
+  Source.Read(@ID, 4);
+  Result := (ID='TRUE');
+End;
+
+Function TGAFormat.Load(Target: TERRAObject; Source: Stream): Boolean;
+Var
+  Header:TGAHeader;
   ColorDepth:Cardinal;
   PacketHdr,PacketLen:Byte;
   I,J:Integer;
-  Color:TERRA_Color.Color;
+  Color:ColorRGBA;
   PixelSize:Integer;
   N, Count:Integer;
   Flags:Cardinal;
-  Dest, Buffer:PColor;
+
+  SrcLine:Array Of Byte;
+  Dest:PColorRGBA;
+  Image:TERRAImage;
 Begin
+  Image := TERRAImage(Target);
+  Result := False;
+
   // Read in the bitmap file header
   Source.Read(@Header,SizeOf(Header));
 
@@ -84,91 +109,90 @@ Begin
   End;
 
   Image.New(Header.Width,Header.Height);
-  PixelSize:=ColorDepth Div 8;
+  PixelSize := ColorDepth Div 8;
   Color := ColorWhite;
 
   Case Header.ImageType Of
     2:  Begin   // Standard TGA file
-       // Get the actual pixel data
+          SetLength(SrcLine, Image.Width * PixelSize);
+         // Get the actual pixel data
           For J:=0 To Pred(Image.Height) Do
-            For I:=0 To Pred(Image.Width) Do
-            Begin
-              Source.Read(@Color,PixelSize);
-              Image.SetPixel(I,J, Color);
-            End;
+          Begin
+            Source.Read(@SrcLine[0], PixelSize * Image.Width);
+
+            If (ColorDepth = 24) Then
+              Image.LineDecodeBGR24(@SrcLine[0], Pred(Image.Height)-J)
+            Else
+              Image.LineDecodeBGR32(@SrcLine[0], Pred(Image.Height)-J);
+          End;
+
+          SetLength(SrcLine, 0);
         End;
+
     10: Begin // Compressed TGA files
-          Count:=Image.Width*Image.Height;
-          GetMem(Buffer, Image.Width);
-          Dest:=Buffer;
-          J:=Pred(Image.Height);
-          N:=0;
-          Color.A := 255;
+          Count := Image.Width * Image.Height;
+          N :=0;
+
+          Dest := Image.RawPixels;
 
           // Extract pixel information from compressed data
-          Repeat
-            Source.Read(@PacketHdr,1);
-            PacketLen:=Succ(PacketHdr And $7F);
+          While (Count>0) Do
+          Begin
+            Source.ReadByte(PacketHdr);
+            PacketLen := Succ(PacketHdr And $7F);
 
             If (PacketHdr And $80 <> 0) Then
             Begin
               // Run-length packet.
+              Color.A := 255;
               Source.Read(@Color, PixelSize);
+              Color := ColorSwap(Color);
+
               // Replicate the packet in the destination buffer.
               For I:=0 To Pred(PacketLen) Do
               Begin
-                Dest^:=Color;
+                Dest^ := Color;
                 Inc(Dest);
                 Dec(Count);
-                Inc(N);
-                If (N=Image.Width) Then
-                Begin
-                  Image.LineDecodeBGR32(Buffer, J);
-                  Dec(J);
-                  Dest:=Buffer;
-                  N:=0;
-                End;
               End;
+
             End Else
             Begin
             // Raw packet.
               For I:=0 To Pred(packetLen) Do
               Begin
+                Color.A := 255;
                 Source.Read(@Color, PixelSize);
-                Dest^:=Color;
+                Color := ColorSwap(Color);
+                Dest ^:= Color;
                 Inc(Dest);
                 Dec(Count);
-                Inc(N);
-                If (N=Image.Width) Then
-                Begin
-                  Image.LineDecodeBGR32(Buffer, J);
-                  Dec(J);
-                  Dest:=Buffer;
-                  N:=0;
-                End;
               End;
             End;
+        End;
 
-        Until Count<=0;
-
-        FreeMem(Buffer);
+        Image.FlipVertical();
     End;
   End;
 
-  Image.Process(IMP_SwapChannels Or IMP_FlipVertical);
+  Result := True;
 End;
 
-Procedure TGASave(Dest:Stream; Image:Image; Const Options:TERRAString);
+Function TGAFormat.Save(Target:TERRAObject; Dest:Stream):Boolean;
 Var
   I,J:Integer;
-  Header:LTGAHeader;
-  Color:TERRA_Color.Color;
+  Header:TGAHeader;
+  Color:ColorRGBA;
+  Image:TERRAImage;
 Begin
+  Image := TERRAImage(Target);
+  Result := True;
+
   FillChar(Header,SizeOf(Header),0);
-  Header.ImageType:=2;
-  Header.BPP:=32;
-  Header.Width:=Image.Width;
-  Header.Height:=Image.Height;
+  Header.ImageType := 2;
+  Header.BPP := 32;
+  Header.Width := Image.Width;
+  Header.Height := Image.Height;
 
   Dest.Write(@Header,SizeOf(Header));
   For J:=0 To Pred(Image.Height) Do
@@ -179,14 +203,7 @@ Begin
     End;
 End;
 
-Function ValidateTGA(Stream:Stream):Boolean;
-Var
-  ID:Word;
-Begin
-  Stream.ReadWord(ID);
-  Result := (ID=0);
-End;
 
 Begin
-  RegisterImageFormat('TGA', ValidateTGA, TGALoad, TGASave);
+  Engine.Formats.Add(TGAFormat.Create(TERRAImage, 'tga'));
 End.
