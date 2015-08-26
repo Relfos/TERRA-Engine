@@ -140,13 +140,14 @@ End;
 
 Procedure MusicManager.InitTrack(Const SourceName:TERRAString);
 Var
-  S, Ext:TERRAString;
+  Location:TERRALocation;
+  Ext:TERRAString;
   Procedure TryExtension(Ext:TERRAString);
   Begin
-    If S<>'' Then
+    If Assigned(Location) Then
       Exit;
 
-    S := Engine.Files.SearchResourceFile(SourceName+'.'+Ext);
+    Location := Engine.Files.Search(SourceName + '.' + Ext);
   End;
 
   Procedure TryClass(C:MusicTrackClass);
@@ -155,7 +156,7 @@ Var
       Exit;
 
     If (C.Supports(Ext)) Then
-      _CurrentTrack := C.Create(S, Self._Volume);
+      _CurrentTrack := C.Create(Location.Path, Self._Volume);
   End;
 Begin
   If (SourceName='') Then
@@ -177,16 +178,16 @@ Begin
     _PreviousTrackName := SourceName;
   End;
 
-  S := '';
+  Location := Nil;
   TryExtension('ogg');
   TryExtension('mid');
   TryExtension('mp3');
   TryExtension('mod');
 
-  If (S='') Then
+  If (Location = Nil) Then
     Exit;
 
-  Ext := GetFileExtension(S);
+  Ext := GetFileExtension(Location.Path);
 
   _CurrentTrack := Nil;
 

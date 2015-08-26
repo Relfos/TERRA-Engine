@@ -25,11 +25,18 @@ Unit TERRA_TTF;
 
 {$I terra.inc}
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Font, TERRA_Color, TERRA_FileUtils, TERRA_EdgeList, TERRA_Image;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Font, TERRA_Color, TERRA_FileUtils, TERRA_EdgeList, TERRA_Image, TERRA_FileFormat;
 
 {$RANGECHECKS OFF}
 
 Type
+  TTFFormat = Class(TERRAFileFormat)
+    Public
+      Function Identify(Source:Stream):Boolean; Override;
+      Function Load(Target:TERRAObject; Source:Stream):Boolean; Override;
+  End;
+
+
   TStBttVertex = record
      x,y,cx,cy: Smallint;
      vertexType,padding: Byte;
@@ -133,7 +140,7 @@ Type
 
 Implementation
 
-Uses TERRA_Log, TERRA_FileManager, TERRA_FontManager, Math;
+Uses TERRA_Log, TERRA_FileManager, TERRA_FontManager, TERRA_EngineManager, Math;
 
 // platformID
 const   STBTT_PLATFORM_ID_UNICODE   = 0;
@@ -1527,26 +1534,8 @@ Begin
   ReleaseObject(Img);
 End;
 
-
-Function LoadTTF(Source:Stream; Font:TERRAFont):Boolean;
-Var
-  Factory:TTFFont;
-  Img:TERRAImage;
-  Size:Integer;
-  Scale:Single;
-  XAdv,lsb:Integer;
-Begin
-  Factory := TTFFont.Create();
-
-  Factory.LoadFromStream(Source);
-  Result := Factory.Ready;
-  If Result Then
-  Begin
-    Font.AddGlyphFactory(Factory);
-  End;
-End;
-
-Function ValidateTTF(Source:Stream):Boolean;
+{ TTFFormat }
+Function TTFFormat.Identify(Source: Stream): Boolean;
 Var
    Major, Minor:Word;
 Begin
@@ -1557,9 +1546,28 @@ Begin
   Result := (Major = 1) And (Minor = 0);
 End;
 
+Function TTFFormat.Load(Target: TERRAObject; Source: Stream): Boolean;
+Var
+  Font:TERRAFont;
+  Factory:TTFFont;
+  Img:TERRAImage;
+  Size:Integer;
+  Scale:Single;
+  XAdv,lsb:Integer;
+Begin
+  Font := TERRAFont(Target);
+  Factory := TTFFont.Create();
+
+  Factory.LoadFromStream(Source);
+  Result := Factory.Ready;
+  If Result Then
+  Begin
+    Font.AddGlyphFactory(Factory);
+  End;
+End;
 
 Initialization
-  RegisterFontFormat('TTF', ValidateTTF, LoadTTF);
+  Engine.Formats.Add(TTFFormat.Create(TERRAFont, 'ttf'));
 End.
 
 

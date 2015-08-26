@@ -1277,7 +1277,7 @@ Var
   Data:PByteArray;
 Begin
   Name := GetFileName(ParamStr(0), True)+'.ico';
-  Src := Engine.Files.OpenStream(Name);
+  Src := Engine.Files.OpenFile(Name);
   If (Src = Nil) Or (Not (Src Is MemoryStream)) Then
     Exit;
 

@@ -120,7 +120,7 @@ Begin
   If (OpenALHandle=0) Then
     Exit;
 
-  Source := Engine.Files.OpenStream(FileName);
+  Source := Engine.Files.OpenFile(FileName);
   _Stream := CreateSoundStream(Source);
 End;
 

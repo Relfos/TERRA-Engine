@@ -59,7 +59,6 @@ Type
       _Pos:Cardinal;
       _Size:Cardinal;
       _Mode:Integer;
-      _Name:TERRAString;
       _Encoding:StringEncoding;
       _EOL:Integer;
 
@@ -128,7 +127,6 @@ Type
 
       Property EOL:Integer Read _EOL Write _EOL;
 
-      Property Name:TERRAString Read _Name Write _Name;
       Property Encoding:StringEncoding Read _Encoding Write _Encoding;
      End;
 
@@ -139,7 +137,7 @@ Uses TERRA_Error, TERRA_Log, TERRA_OS;
 
 Constructor Stream.Create(StreamMode:Integer=smDefault);
 Begin
-  _Name := '';
+  _ObjectName := '';
   _Mode := StreamMode;
   _Pos := 0;
   _Encoding := encodingUnknown;

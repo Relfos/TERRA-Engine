@@ -123,7 +123,7 @@ Begin
     Exit;
   End;
 
-  Source := Engine.Files.OpenStream(Name);
+  Source := Engine.Files.OpenFile(Name);
   If Assigned(Source) Then
   Begin
     Result := Load(Source);

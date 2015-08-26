@@ -26,7 +26,7 @@ Unit TERRA_Image;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Color, TERRA_FileFormat;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Color, TERRA_FileFormat, TERRA_FileManager;
 
 Const
   componentRed    = 0;
@@ -116,11 +116,13 @@ Type
     Public
       Constructor Create(Width, Height:Integer);Overload;
       Constructor Create(Source:Stream);Overload;
+      Constructor Create(Location:TERRALocation);Overload;
       Constructor Create(FileName:TERRAString);Overload;
       Constructor Create(Source:TERRAImage);Overload;
       Procedure Release; Override;
 
       Procedure Load(Source:Stream);Overload;
+      Procedure Load(Location:TERRALocation);Overload;
       Procedure Load(FileName:TERRAString);Overload;
 
       Function Save(Dest:Stream; Format:TERRAFileFormat; Depth:Integer = 32):Boolean; Overload;
@@ -214,7 +216,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_EngineManager, TERRA_FileStream, TERRA_FileUtils, TERRA_FileManager, TERRA_Math, TERRA_Log, TERRA_Vector4D, TERRA_ImageDrawing;
+Uses TERRA_EngineManager, TERRA_FileStream, TERRA_FileUtils, TERRA_Math, TERRA_Log, TERRA_Vector4D, TERRA_ImageDrawing;
 
 { ImageIterator }
 Constructor ImageIterator.Create(Target:TERRAImage; Flags:ImageProcessFlags; Const Mask:Cardinal);
@@ -327,6 +329,11 @@ End;
 Constructor TERRAImage.Create(Source:Stream);
 Begin
   Load(Source);
+End;
+
+Constructor TERRAImage.Create(Location:TERRALocation);
+Begin
+  Load(Location);
 End;
 
 Constructor TERRAImage.Create(FileName:TERRAString);
@@ -1086,9 +1093,17 @@ End;*)
 
 Procedure TERRAImage.Load(FileName:TERRAString);
 Var
+  Location:TERRALocation;
+Begin
+  Location := Engine.Files.Search(FileName);
+  Load(Location);
+End;
+
+Procedure TERRAImage.Load(Location:TERRALocation);
+Var
   Source:Stream;
 Begin
-  Source := Engine.Files.OpenStream(FileName);
+  Source := Engine.Files.OpenLocation(Location);
   If Assigned(Source) Then
   Begin
     Load(Source);

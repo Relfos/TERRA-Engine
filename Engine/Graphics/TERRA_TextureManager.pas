@@ -66,7 +66,7 @@ End;
 Function TextureManager.GetItem(Name:TERRAString):TERRATexture;
 Var
   Format:TERRAFileFormat;
-  Location:TERRAString;
+  Location:TERRALocation;
 Begin
   Result := Nil;
 
@@ -91,11 +91,6 @@ Begin
 
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture class instantiated sucessfully!');{$ENDIF}
 
-    If (Pos('_', Location)>0) Then
-      Result.Priority := 30
-    Else
-      Result.Priority := 50;
-
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture loading priority set!');{$ENDIF}
 
     Self.AddResource(Result);
@@ -109,7 +104,8 @@ End;
 
 Function TextureManager.CreateTextureWithColor(Name:TERRAString; TexColor:ColorRGBA):TERRATexture;
 Begin
-  Result := TERRATexture.Create(rtDynamic, Name);
+  Result := TERRATexture.Create(rtDynamic, Nil);
+  //Result.Name := Name;
   Result.InitFromSize(64, 64, TexColor);
   Result.Uncompressed := True;
   Result.MipMapped := False;
@@ -224,7 +220,7 @@ Function TextureManager.GetDefaultColorTable:TERRATexture;
 Begin
   If (Not Assigned(_DefaultColorTable)) Then
   Begin
-    _DefaultColorTable := DefaultColorTableTexture.Create(rtDynamic, 'default_colortable');
+    _DefaultColorTable := DefaultColorTableTexture.Create(rtDynamic);
     _DefaultColorTable.InitFromSize(1024, 32, ColorNull);
     _DefaultColorTable.Rebuild();
   End Else
@@ -262,7 +258,7 @@ Begin
     Noise.SaveToImage(Img, 0.0, maskRGB);
     //Img.Save('cellnoise.png');
 
-    _CellNoise := TERRATexture.Create(rtDynamic, 'cellnoise');
+    _CellNoise := TERRATexture.Create(rtDynamic);
     _CellNoise.InitFromImage(Img);
 
     ReleaseObject(Img);

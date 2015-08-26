@@ -162,7 +162,7 @@ End;
 
 Function SoundManager.GetSound(Name:TERRAString; ValidateError:Boolean):Sound;
 Var
-  S:TERRAString;
+  Location:TERRALocation;
 Begin
   Result := Nil;
   Name := StringTrim(Name);
@@ -172,13 +172,13 @@ Begin
   Result := Sound(GetResource(Name));
   If (Not Assigned(Result)) Then
   Begin
-    S := Engine.Files.SearchResourceFile(Name+'.wav');
-    If (S='') Then
-      S := Engine.Files.SearchResourceFile(Name+'.ogg');
+    Location := Engine.Files.Search(Name+'.wav');
+    If (Location = Nil) Then
+      Location := Engine.Files.Search(Name+'.ogg');
 
-    If S<>'' Then
+    If Assigned(Location) Then
     Begin
-      Result := Sound.Create(rtLoaded, S);
+      Result := Sound.Create(rtLoaded, Location);
       Self.AddResource(Result);
     End Else
     If ValidateError Then

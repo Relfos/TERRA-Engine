@@ -27,7 +27,7 @@ Unit TERRA_FileManager;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-    TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Resource, TERRA_Collections, TERRA_Stream, TERRA_FileStream,
+    TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Collections, TERRA_Stream, TERRA_FileStream,
     TERRA_Application, TERRA_Hashmap, TERRA_Package;
 
 Type
@@ -36,11 +36,14 @@ Type
     Function HasStream(Const Name:TERRAString):Boolean; Virtual; Abstract;
   End;
 
-  FileLocation = Class(TERRAObject)
-    Public
-      Path:TERRAString;
+  TERRALocation = Class(TERRAObject)
+    Protected
+      _Path:TERRAString;
 
-      Constructor Create(Const Name, Path:TERRAString);
+      Function GetStream():Stream; Virtual; Abstract;
+    Public
+
+      Property Path:TERRAString Read _Path;
   End;
 
   FileManager = Class(ApplicationComponent)
@@ -51,7 +54,7 @@ Type
       _FolderList:Array Of TERRAString;
       _FolderCount:Integer;
 
-      _PackageList:Array Of Package;
+      _PackageList:Array Of TERRAPackage;
       _PackageCount:Integer;
 
       _ProviderCount:Integer;
@@ -59,19 +62,21 @@ Type
 
       _Locations:HashMap;
 
+      Function RegisterLocation(Location:TERRALocation):TERRALocation;
+
     Public
       Procedure Init; Override;
 
       Procedure Release; Override;
 
-      Function SearchResourceFile(FileName:TERRAString):TERRAString;
+      Function Search(FileName:TERRAString):TERRALocation;
 
       Procedure AddFolder(Path:TERRAString);
       Procedure RemoveFolder(Path:TERRAString);
       Function GetFolder(Index:Integer):TERRAString;
-      
-      Function AddPackage(FileName:TERRAString):Package; Overload;
-      Function AddPackage(MyPackage:Package):Package; Overload;
+
+      Function AddPackage(FileName:TERRAString):TERRAPackage; Overload;
+      Function AddPackage(MyPackage:TERRAPackage):TERRAPackage; Overload;
 
       Procedure AddSource(Source:TERRAString);
       Procedure RemoveSource(Source:TERRAString);
@@ -83,14 +88,15 @@ Type
 
       Procedure ExcludeFileFromBackup(Source:FileStream);
 
-      Function GetPackage(Name:TERRAString; ValidateError:Boolean = True):Package;
+      Function GetPackage(Name:TERRAString; ValidateError:Boolean = True):TERRAPackage;
 
-      Function OpenStream(FileName:TERRAString):Stream;
+      Function OpenLocation(Location:TERRALocation):Stream;
+      Function OpenFile(Const FileName:TERRAString):Stream;
 
      // Function OpenPackages(FileName:TERRAString):Boolean;
       Property PathCount:Integer Read _FolderCount;
 
-      Property Files[Name:TERRAString]:Stream Read OpenStream; Default;
+      Property Files[Const Name:TERRAString]:Stream Read OpenFile; Default;
   End;
 
 Function IsPackageFileName(Const FileName:TERRAString):Boolean;
@@ -99,8 +105,33 @@ Implementation
 Uses SysUtils, TERRA_Error, TERRA_Log, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF} TERRA_OS, TERRA_Image,
   TERRA_GraphicsManager, TERRA_Color, TERRA_FileUtils, TERRA_MemoryStream;
 
-Var
-  _FileManager:ApplicationObject = Nil;
+Type
+  TERRAPackageLocation = Class(TERRALocation)
+    Protected
+      _Package:TERRAPackage;
+
+      Function GetStream():Stream; Override;
+
+    Public
+      Constructor Create(Const Name, Path:TERRAString; Package:TERRAPackage);
+  End;
+
+  TERRAFileLocation = Class(TERRALocation)
+    Protected
+      Function GetStream():Stream; Override;
+
+    Public
+      Constructor Create(Const Name, Path:TERRAString);
+  End;
+
+  TERRANullLocation = Class(TERRALocation)
+    Protected
+      Function GetStream():Stream; Override;
+
+    Public
+      Constructor Create(Const Name:TERRAString);
+  End;
+
 
 Function IsPackageFileName(Const FileName:TERRAString):Boolean;
 Var
@@ -108,11 +139,6 @@ Var
 Begin
   Result := StringContains('.terra'+PathSeparator, FileName);
 End;
-
-(*Function SearchFileLocation(P:CollectionObject; UserData:Pointer):Boolean; CDecl;
-Begin
-  Result := (FileLocation(P).Name = PString(Userdata)^);
-End;*)
 
 { FileManager }
 Procedure FileManager.Init;
@@ -123,16 +149,14 @@ End;
 
 Procedure FileManager.RemoveFromCache(FileName:TERRAString);
 Var
-  Location:FileLocation;
+  Location:TERRALocation;
 Begin
-{$IFNDEF DISABLEFILECACHE}
   FileName := StringLower(FileName);
   FileName := GetFileName(FileName, False);
 
-  Location := FileLocation(_Locations.Search(SearchFileLocation, @FileName));
+  Location := TERRALocation(_Locations.GetItemByKey(FileName));
   If Assigned(Location) Then
     _Locations.Delete(Location);
-{$ENDIF}
 End;
 
 Procedure FileManager.ExcludeFileFromBackup(Source: FileStream);
@@ -285,7 +309,7 @@ Begin
   End;
 End;
 
-Function FileManager.AddPackage(MyPackage:Package):Package;
+Function FileManager.AddPackage(MyPackage:TERRAPackage):TERRAPackage;
 Begin
   Result := MyPackage;
                    
@@ -300,33 +324,31 @@ Begin
   MyPackage.Load();
 End;
 
-Function FileManager.AddPackage(FileName:TERRAString):Package;
+Function FileManager.AddPackage(FileName:TERRAString):TERRAPackage;
 Begin
   If (Pos('.',FileName)<=0) Then
     FileName := FileName + '.terra';
 
   If FileStream.Exists(FileName) Then
-    Result := Self.AddPackage(Package.Create(FileName))
+    Result := Self.AddPackage(TERRAPackage.Create(FileName))
   Else
     Result := Nil;
 End;
 
-Function FileManager.SearchResourceFile(FileName:TERRAString):TERRAString;
+Function FileManager.RegisterLocation(Location:TERRALocation):TERRALocation;
+Begin
+  Result := Location;
+  _Locations.Add(Result);
+End;
+
+Function FileManager.Search(FileName:TERRAString):TERRALocation;
 Var
   S:TERRAString;
   I, J:Integer;
   Resource:ResourceInfo;
-  Location:FileLocation;
-  Procedure RegisterLocation();
-  Begin
-    If IsPackageFileName(FileName) Then
-      Exit;
-      
-    Location := FileLocation.Create(FileName, Result);
-    _Locations.Add(Location);
-  End;
+  Location:TERRALocation;
 Begin
-  Result := '';
+  Result := Nil;
 
   If (FileName='') Then
     Exit;
@@ -336,32 +358,33 @@ Begin
 
   {$IFDEF DEBUG_FILECACHE}Log(logDebug, 'FileManager', 'Searching for file '+FileName+' in cache');{$ENDIF}
 
-{$IFNDEF DISABLEFILECACHE}
-  Location := FileLocation(_Locations.Search(SearchFileLocation, @FileName));
+  Location := TERRALocation(_Locations.GetItemByKey(FileName));
   If Assigned(Location) Then
   Begin
     {$IFDEF DEBUG_FILECACHE}Log(logDebug, 'FileManager', 'Was found in cache: '+Location.Path);{$ENDIF}
-    Result := Location.Path;
+
+    If Location.Path = '' Then
+      Result := Nil
+    Else
+      Result := Location;
+      
     Exit;
   End;
-{$ENDIF}
 
   {$IFDEF DEBUG_FILECACHE}Log(logDebug, 'FileManager', 'Searching for file '+FileName+' in storage');{$ENDIF}
 
-  For I:=0 To Pred(_ProviderCount) Do
+  (*For I:=0 To Pred(_ProviderCount) Do
   Begin
     If (_Providers[I].HasStream(FileName)) Then
     Begin
-      Result := FileName;
-      RegisterLocation();
+      Result := RegisterLocation(FileName, FileName);
       Exit;
     End;
-  End;
+  End;*)
 
   If FileStream.Exists(FileName) Then
   Begin
-    Result := FileName;
-    RegisterLocation();
+    Result := RegisterLocation(TERRAFileLocation.Create(FileName, FileName));
     Exit;
   End;
 
@@ -377,8 +400,7 @@ Begin
       S := _SourceList[J]+_FolderList[I] + FileName;
       If FileStream.Exists(S) Then
       Begin
-        Result := S;
-        RegisterLocation();
+        Result := RegisterLocation(TERRAFileLocation.Create(FileName, S));
         Exit;
       End;
     End;
@@ -390,8 +412,7 @@ Begin
     Resource := _PackageList[I].FindResourceByName(FileName);
     If Assigned(Resource) Then
     Begin
-      Result := Resource.GetLocation;
-      RegisterLocation();
+      Result := RegisterLocation(TERRAPackageLocation.Create(FileName, Resource.GetLocation, _PackageList[I]));
       Exit;
     End;
   End;
@@ -401,18 +422,17 @@ Begin
     S := Application.Instance().TempPath + PathSeparator + FileName;
     If FileStream.Exists(S) Then
     Begin
-      Result := S;
-      RegisterLocation();
+      Result := RegisterLocation(TERRAFileLocation.Create(FileName, S));
       Exit;
     End;
   End;
 
 
-  Result := '';
-  RegisterLocation();
+  RegisterLocation(TERRANullLocation.Create(FileName));
+  Result := Nil;
 End;
 
-Function FileManager.GetPackage(Name:TERRAString; ValidateError:Boolean):Package;
+Function FileManager.GetPackage(Name:TERRAString; ValidateError:Boolean):TERRAPackage;
 Var
   I:Integer;
 Begin
@@ -435,16 +455,30 @@ Begin
     RaiseError('Could not find package. ['+Name +']');
 End;
 
-Function FileManager.OpenStream(FileName:TERRAString):Stream;
+Function FileManager.OpenFile(Const FileName:TERRAString):Stream;
+Var
+  Location:TERRALocation;
+Begin
+  Location := Self.Search(FileName);
+  Result := Self.OpenLocation(Location);
+End;
+
+Function FileManager.OpenLocation(Location:TERRALocation):Stream;
 Var
   I:Integer;
   PackageName,ResourceName:TERRAString;
-  MyPackage:Package;
+  MyPackage:TERRAPackage;
   Resource:ResourceInfo;
-  Mode:Integer;
 Begin
   Result := Nil;
 
+  If Location = Nil Then
+    Exit;
+
+  Result := Location.GetStream();
+End;
+
+{
   Mode := smRead;
 
   Log(logDebug, 'FileManager', 'Searching providers for '+FileName);
@@ -483,9 +517,8 @@ Begin
       Exit;
     End;
 
-    FileName := GetFileName(FileName, False);
-    FileName := Self.SearchResourceFile(FileName);
-    If (FileName = '') Then
+    Location := Self.Search(GetFileName(FileName, False));
+    If (Location = Nil) Then
       Result := Nil
     Else
     Begin
@@ -497,18 +530,10 @@ Begin
         Result := MemoryStream.Create(FileName, Mode);
         //Result := FileStream.Open(FileName,Mode);
 
-     (* If (Result.Size<=0) Then
-      Begin
-        {$IFDEF PC}
-        Result := OpenStream(FileName, Mode);
-        Halt;
-        {$ENDIF}
-      End;*)
-
     Log(logDebug, 'FileManager', 'Open size '+IntegerProperty.Stringify(Result.Size));
     End;
   End;
-End;
+End;}
 
 Procedure FileManager.Release;
 Var
@@ -522,8 +547,6 @@ Begin
   _PackageCount := 0;
 
   ReleaseObject(_Locations);
-  
-  _FileManager := Nil;
 End;
 
 Procedure FileManager.AddSource(Source:TERRAString);
@@ -552,11 +575,57 @@ Begin
     Inc(I);
 End;
 
-{ FileLocation }
-Constructor FileLocation.Create(Const Name, Path:TERRAString);
+{ TERRAFileLocation }
+Constructor TERRAFileLocation.Create(Const Name, Path:TERRAString);
 Begin
-  Self.Name := StringLower(GetFileName(Name, False));
-  Self.Path := Path;
+  Self._ObjectName := StringLower(GetFileName(Name, False));
+  Self._Path := Path;
+End;
+
+Function TERRAFileLocation.GetStream: Stream;
+Begin
+  Result := MemoryStream.Create(_Path, smRead);
+End;
+
+{ TERRAPackageLocation }
+Constructor TERRAPackageLocation.Create(const Name, Path: TERRAString; Package: TERRAPackage);
+Begin
+  Self._ObjectName := StringLower(GetFileName(Name, False));
+  Self._Path := Path;
+  Self._Package := Package;
+End;
+
+Function TERRAPackageLocation.GetStream: Stream;
+Var
+  I:Integer;
+  ResourceName:TERRAString;
+  Resource:ResourceInfo;
+Begin
+  I := StringPosReverse(PathSeparator, _Path);
+  ResourceName := StringCopy(_Path, Succ(I), MaxInt);
+
+  Resource := _Package.FindResourceByName(ResourceName);
+
+  If Not Assigned(Resource) Then
+  Begin
+    Result := Nil;
+    //RaiseError('Resource '+ResourceName+' not found in '+PackageName);
+    Exit;
+  End;
+
+  Result := _Package.LoadResource(Resource);
+End;
+
+{ TERRANullLocation }
+
+Constructor TERRANullLocation.Create(const Name: TERRAString);
+Begin
+  Self._ObjectName := Name;
+End;
+
+Function TERRANullLocation.GetStream: Stream;
+Begin
+  Result := Nil;
 End;
 
 End.

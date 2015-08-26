@@ -152,11 +152,11 @@ Begin
     RaiseError('Invalid file mode.['+FileName+']')
   Else
   Begin
-    _Name:=FileName;
+    _ObjectName := FileName;
     _Size:=0;
     FileMode := 2;
 
-    AssignFile(_File,_Name);
+    AssignFile(_File, _ObjectName);
     Rewrite(_File,1);
 
     _Open:=True;
@@ -170,7 +170,7 @@ Begin
   FileName := GetOSIndependentFileName(FileName);
 
   _Open := False;
-  _Name := FileName;
+  _ObjectName := FileName;
 
   {$IFNDEF NDS}
   If Not FileExists(PAnsiChar(FileName)) Then
@@ -194,7 +194,7 @@ Begin
     IOResult();
 
   Log(logDebug,'IO','Opening '+FileName);
-    AssignFile(_File,_Name);
+    AssignFile(_File, _ObjectName);
     Reset(_File,1);
     _Size := FileSize(_File);
 
@@ -239,11 +239,11 @@ Begin
 {$IFNDEF PC}
   RaiseError('File.Rename() not implemented!');
 {$ELSE}
-  _Name:=NewName;
+  _ObjectName := NewName;
   CloseFile(_File);
   Erase(_File);
-  FileRename(_File,_Name);
-  AssignFile(_File,_Name);
+  FileRename(_File, _ObjectName);
+  AssignFile(_File, _ObjectName);
   Reset(_File,1);
 
   Seek(Position);
@@ -262,7 +262,7 @@ Begin
   Begin
     Result := 0;
     {$IFDEF PC}
-    Log(logWarning, 'IO', 'Cannot read from file: '+Self._Name+' ('+ IntegerProperty.Stringify(_Pos)+'/'+ IntegerProperty.Stringify(_Size)+')');
+    Log(logWarning, 'IO', 'Cannot read from file: '+Self.Name+' ('+ IntegerProperty.Stringify(_Pos)+'/'+ IntegerProperty.Stringify(_Size)+')');
     {$ENDIF}
     FillChar(Data^, Length, 0);
     Exit;
@@ -295,13 +295,13 @@ Begin
 
   If (_Mode And smWrite=0)Then
   Begin
-    RaiseError('File is write protected.['+_Name+']');
+    RaiseError('File is write protected.['+Name+']');
     Exit;
   End;
 
   If (_Pos+Length>_Size)And(_Mode And smDynamic=0) Then
   Begin
-    RaiseError('Cannot write to file.['+_Name+']');
+    RaiseError('Cannot write to file.['+Name+']');
     Exit;
   End;
 
@@ -318,7 +318,7 @@ Procedure FileStream.Seek(NewPosition:Cardinal);
 Begin
   If _Pos>_Size Then
   Begin
-    RaiseError('Cannot seek in file.['+_Name+']');
+    RaiseError('Cannot seek in file.['+Name+']');
     Exit;
   End;
   _Pos := NewPosition;
@@ -341,7 +341,7 @@ Procedure FileStream.Flush;
 Begin
   CloseFile(_File);
   FileMode := 2;
-  AssignFile(_File,_Name);
+  AssignFile(_File, _ObjectName);
   Reset(_File,1);
   FileSeek(_File, _Pos);
 End;

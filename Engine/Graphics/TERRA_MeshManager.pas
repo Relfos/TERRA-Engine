@@ -68,7 +68,7 @@ End;
 Function MeshManager.GetMesh(Name:TERRAString):TERRAMesh;
 Var
   I, N:Integer;
-  S:TERRAString;
+  Location:TERRALocation;
   Filter:MeshFilter;
 Begin
   Result := Nil;
@@ -79,15 +79,15 @@ Begin
   Result := TERRAMesh(GetResource(Name));
   If (Not Assigned(Result)) Then
   Begin
-    S := Engine.Files.SearchResourceFile(Name+'.mesh');
-    If S<>'' Then
+    Location := Engine.Files.Search(Name+'.mesh');
+    If Assigned(Location) Then
     Begin
-      Result := TERRAMesh.Create(rtLoaded, S);
+      Result := TERRAMesh.Create(rtLoaded, Location);
       Result.Priority := 60;
       Self.AddResource(Result);
     End Else
     Begin
-      N := -1;
+      (*N := -1;
       For I:=0 To Pred(MeshFilterCount) Do
       Begin
         S := Engine.Files.SearchResourceFile(Name+'.'+MeshFilterList[I].Extension);
@@ -104,7 +104,7 @@ Begin
         Filter.Load(S);
         Result := TERRAMesh.CreateFromFilter(Filter);
         ReleaseObject(Filter);
-      End;
+      End;*)
     End;
   End;
 End;

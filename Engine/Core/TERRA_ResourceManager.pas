@@ -76,9 +76,6 @@ Type
 
       Function GetLoadedResourceCount:Integer;
 
-      Function ResolveResourceLink(Const ResourceName:TERRAString):TERRAString;
-
-
       Function Busy:Boolean;
 
       Procedure Lock;
@@ -131,7 +128,7 @@ Begin
     Exit;
   End;
 
-  Source := Engine.Files.OpenStream(MyResource.Location);
+  Source := Engine.Files.OpenLocation(MyResource.Location);
   If (Source=Nil) Then
   Begin
     Log(logDebug, 'ResourceManager', 'Could not open location...');
@@ -145,9 +142,9 @@ Begin
 
   If Source.Size = 0 Then
   Begin
-    Source := Engine.Files.OpenStream(MyResource.Location);
-    Log(logWarning, 'Resources', 'Empty resource stream at '+MyResource.Location);
-  end;
+    //Source := Engine.Files.OpenLocation(MyResource.Location);
+    Log(logWarning, 'Resources', 'Empty resource stream at '+MyResource.Name);
+  End;
 
   Result := MyResource.Load(Source);
   If (MyResource.Kind <> rtStreamed) Then
@@ -436,30 +433,5 @@ Begin
     End;
   End;
 End;*)
-
-Function ResourceManager.ResolveResourceLink(Const ResourceName: TERRAString):TERRAString;
-Const
-	LinkExtension = '.link';
-Var
-  Name:TERRAString;
-  Src:Stream;
-Begin
-  Result := '';
-  
-  If Pos(LinkExtension, ResourceName)>0 Then
-  	Exit;
-
-  Src := Engine.Files.OpenStream(ResourceName + LinkExtension);
-  If Assigned(Src) Then
-  Begin
-    Src.ReadLine(Name);
-    ReleaseObject(Src);
-
-    If (StringLower(Name) = StringLower(ResourceName)) Then
-      Exit;
-
-    Result := Name;
-  End;
-End;
 
 End.

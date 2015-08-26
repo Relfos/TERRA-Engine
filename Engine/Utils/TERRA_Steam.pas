@@ -59,8 +59,6 @@ Type
       _StatsRequested:Boolean;
       _StoreStats:Boolean;
 
-      _HasController:Boolean;
-
       _SteamID:TERRAString;
       _AppID:TERRAString;
 
@@ -120,7 +118,6 @@ End;
 
 Procedure SteamManager.Init;
 Var
-   ControllerPath:TERRAString;
    CurrentAppID:Cardinal;
 Begin
   _LoggedOn := False;
@@ -161,14 +158,6 @@ Begin
     _Language := Application.Instance.Language;
   Log(logDebug, 'Steam', 'Language: '+ _Language);
 
-
-  ControllerPath := Engine.Files.SearchResourceFile('controller.vdf');
-  _HasController := (ControllerPath<>'');
-  If (_HasController) Then
-  Begin
-       _HasController := ISteamController_Init(PAnsiChar(ControllerPath));
-  End;
-
   //_LicenseResult := ISteamGameServer_UserHasLicenseForApp(steamID:SteamID; appID:SteamAppId):
 End;
 
@@ -178,11 +167,6 @@ Var
 Begin
   If _Running Then
   Begin
-    If (_HasController) Then
-    Begin
-         ISteamController_Shutdown();
-    End;
-
     _Running := False;
     SteamAPI_Shutdown();
   End;

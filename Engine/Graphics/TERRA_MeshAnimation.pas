@@ -205,7 +205,7 @@ End;
 
 Function AnimationManager.GetAnimation(Name:TERRAString; ValidateError:Boolean):Animation;
 Var
-  S:TERRAString;
+  Location:TERRALocation;
 Begin
   Result := Nil;
   Name := StringTrim(Name);
@@ -218,10 +218,10 @@ Begin
   Result := Animation(GetResource(Name));
   If (Not Assigned(Result)) Then
   Begin
-    S := Engine.Files.SearchResourceFile(Name+'.anim');
-    If S<>'' Then
+    Location := Engine.Files.Search(Name+'.anim');
+    If Assigned(Location) Then
     Begin
-      Result := Animation.Create(rtLoaded, S);
+      Result := Animation.Create(rtLoaded, Location);
       Result.Priority := 70;
       Self.AddResource(Result);
     End Else
@@ -826,7 +826,7 @@ Begin
 Exit;
   TargetSkeleton.NormalizeJoints();
 
-  Result := Animation.Create(rtDynamic, '');
+  Result := Animation.Create(rtDynamic);
   Result.Clone(Self);
 
   For I:=0 To Pred(_BoneCount) Do

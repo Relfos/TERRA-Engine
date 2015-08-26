@@ -773,7 +773,7 @@ Function CreateMeshFromSolid(Source:SolidMesh; Tex:TERRATexture):TERRAMesh;
 Var
   Group:MeshGroup;
 Begin
-  Result := TERRAMesh.Create(rtDynamic, Source.ClassName);
+  Result := TERRAMesh.Create(rtDynamic);
 
   Group := MergeSolidToMesh(Source, Result);
   Group.DiffuseMap := Tex;

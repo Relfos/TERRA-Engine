@@ -759,7 +759,7 @@ Begin
   _usPerTick := 1042;
   _BPM := 120;
 
-  Src := Engine.Files.OpenStream(_FileName);
+  Src := Engine.Files.OpenFile(_FileName);
   If Src = Nil Then
      Exit;
 

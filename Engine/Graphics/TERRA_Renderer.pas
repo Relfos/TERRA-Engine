@@ -1333,7 +1333,7 @@ Var
   Waiting:Boolean;
 
   Format:TERRAFileFormat;
-  Location:TERRAString;
+  Location:TERRALocation;
 Begin
   W := 0;
   H := 0;
@@ -1349,7 +1349,7 @@ Begin
       Continue;
     End;
 
-    Img := TERRAImage.Create(Location);
+    Img := TERRAImage.Create(Location.Path);
     If (Img.Width<=0) Then
     Begin
       ReleaseObject(Img);

@@ -28,7 +28,7 @@ Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Resource, TERRA_Stream, TERRA_Image, TERRA_Color, TERRA_Vector2D, TERRA_Vector3D,
   TERRA_Math, TERRA_Texture, TERRA_Sprite, TERRA_Renderer, TERRA_TextureAtlas, TERRA_VertexFormat, TERRA_Viewport,
-  TERRA_ResourceManager, TERRA_Matrix4x4, TERRA_Matrix3x3, TERRA_ClipRect, TERRA_Collections;
+  TERRA_ResourceManager, TERRA_Matrix4x4, TERRA_Matrix3x3, TERRA_ClipRect, TERRA_Collections, TERRA_FileFormat;
 
 
 Const
@@ -196,15 +196,6 @@ Type
       Property Value:TERRAFont Read _Value Write _Value;
   End;
 
-  FontStreamValidateFunction = Function(Source:Stream):Boolean;
-  FontLoader = Function(Source:Stream; Font:TERRAFont):Boolean;
-
-  FontClassInfo = Record
-    Name:TERRAString;
-    Validate:FontStreamValidateFunction;
-    Loader:FontLoader;
-  End;
-
   Function ConvertFontCodes(S:TERRAString):TERRAString;
   Function UnconvertFontCodes(S:TERRAString):TERRAString;
 
@@ -306,8 +297,8 @@ End;
 { Font }
 Function TERRAFont.Load(Source: Stream): Boolean;
 Var
-  Loader:FontLoader;
   Pos:Integer;
+  Format:TERRAFileFormat;
 Begin
   Result := False;
   If (Source = Nil) Then
@@ -315,19 +306,16 @@ Begin
 
   _GlyphCount := 0;
 
-  Pos := Source.Position;
-  Loader := GetFontLoader(Source);
-  If (Not Assigned(Loader)) Then
+  Format := Engine.Formats.FindFormatFromStream(Source, TERRAFont);
+  If (Not Assigned(Format)) Then
     Exit;
 
-  Source.Seek(Pos);
   _Loading := True;
-  Result := Loader(Source, Self);
+  Result := Format.Load(Self, Source);
   _Loading := False;
 
   If (Not Result) Then
     Exit;
-
 
   Result := Self.Update();
 End;
@@ -781,7 +769,7 @@ Procedure FontGlyphFactory.LoadFromFile(const FileName: TERRAString);
 Var
   Source:Stream;
 Begin
-  Source := Engine.Files.OpenStream(FileName);
+  Source := Engine.Files.OpenFile(FileName);
   If Assigned(Source) Then
   Begin
     LoadFromStream(Source);
@@ -810,6 +798,7 @@ Begin
   Self.SetCornerColors(A, B, C, D);
   Self.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(X + Glyph.XOfs * FontInvScale * _Scale, Y +  + Glyph.YOfs * FontInvScale * _Scale), 0.0, Width *FontInvScale, Height* FontInvScale, Skew);
 End;
+
 
 
 End.

@@ -142,7 +142,7 @@ Begin
   _NeedsShuffle := True;
 
   S := FXName + '.fx';
-  Source := Engine.Files.OpenStream(S);
+  Source := Engine.Files.OpenFile(S);
   If Assigned(Source) Then
   Begin
     Self.Load(Source);

@@ -4,7 +4,7 @@ Unit TERRA_Package;
 {-$DEFINE ALLOWEXTERNAL}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_FileUtils, TERRA_Stream, TERRA_Collections, TERRA_List, TERRA_Resource;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_FileUtils, TERRA_Stream, TERRA_Collections, TERRA_List;
 
 Const
   terraHeader:FileHeader = 'TePK';
@@ -13,11 +13,11 @@ Const
   resEncrypted  = 2;
 
 Type
-  Package = Class;
+  TERRAPackage = Class;
 
   ResourceInfo = Class(TERRAObject)
     Protected
-      _Owner:Package;
+      _Owner:TERRAPackage;
       _FileName:TERRAString;                // Resource name
 
       _Offset:Cardinal;            // Offset of the resource
@@ -27,7 +27,7 @@ Type
       _ExternalPath:TERRAString;        // External path/override
 
     Public
-      Constructor Create(Owner:Package; Source:Stream);
+      Constructor Create(Owner:TERRAPackage; Source:Stream);
 
       Function GetLocation:TERRAString;
 
@@ -37,7 +37,7 @@ Type
       Property CRC:Cardinal Read _CRC;
   End;
 
-  Package = Class(TERRAObject)
+  TERRAPackage = Class(TERRAObject)
     Protected
       _Name:TERRAString;
       _Location:TERRAString;
@@ -82,7 +82,7 @@ Implementation
 Uses TERRA_Error, TERRA_CRC32, TERRA_Application, TERRA_OS, TERRA_Log, TERRA_ResourceManager,
   TERRA_EngineManager, TERRA_FileStream, TERRA_FileManager, TERRA_MemoryStream;
 
-Constructor ResourceInfo.Create(Owner:Package; Source:Stream);
+Constructor ResourceInfo.Create(Owner:TERRAPackage; Source:Stream);
 Begin
   _Owner := Owner;
 
@@ -98,31 +98,31 @@ Begin
 End;
 
 
-{ Package }
-Constructor Package.Create(FileName:TERRAString);
+{ TERRAPackage }
+Constructor TERRAPackage.Create(FileName:TERRAString);
 Begin
   _Location := FileName;
   _Name := GetFileName(FileName, True);
   _Resources := Nil;
 End;
 
-Procedure Package.Release;
+Procedure TERRAPackage.Release;
 Begin
   Unload();
 End;
 
-Function Package.FindResourceByIndex(Index:Integer):ResourceInfo;
+Function TERRAPackage.FindResourceByIndex(Index:Integer):ResourceInfo;
 Begin
   Result := ResourceInfo(_Resources.GetItemByIndex(Index));
 End;
 
-Function Package.Unload:Boolean;
+Function TERRAPackage.Unload:Boolean;
 Begin
   ReleaseObject(_Resources);
   Result := True;
 End;
 
-Function Package.Load():Boolean;
+Function TERRAPackage.Load():Boolean;
 Var
   I,J:Integer;
   ResCount:Integer;
@@ -168,7 +168,7 @@ End;
 
 //Searches for a resource within the file table
 //If not found returns nil
-Function Package.FindResourceByName(Const ResourceName:TERRAString):ResourceInfo;
+Function TERRAPackage.FindResourceByName(Const ResourceName:TERRAString):ResourceInfo;
 Var
   It:Iterator;
   Res:ResourceInfo;
@@ -194,12 +194,12 @@ Begin
 End;
 
 //Loads a resource from the package into a stream
-Function Package.LoadResource(Resource:ResourceInfo):Stream;
+Function TERRAPackage.LoadResource(Resource:ResourceInfo):Stream;
 Var
   Source:Stream;
 Begin
      Result := Nil;
-	
+
   If Not Assigned(Resource) Then
   Begin
     RaiseError('Package.LoadResource(): Null resource');
@@ -217,20 +217,20 @@ Begin
 
   Result := MemoryStream.Create(Resource._Size);
   Result.Name := Resource.GetLocation();
-  
+
   Source := FileStream.Open(_Location, smRead);
   Source.Copy(Result, Resource._Offset, Resource._Size);
   Result.Seek(0);
   ReleaseObject(Source);
 End;
 
-Function Package.GetCRC:Cardinal;
+Function TERRAPackage.GetCRC:Cardinal;
 Var
   Source:Stream;
 Begin
   If _CRC=0 Then
   Begin
-    Source := Engine.Files.OpenStream(_Location);
+    Source := Engine.Files.OpenFile(_Location);
     _CRC := GetCRC32(Source);
     ReleaseObject(Source);
   End;

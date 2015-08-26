@@ -216,7 +216,7 @@ Begin
     // extract from package if necessary
     If IsPackageFileName(FileName) Then
     Begin
-      Src := Engine.Files.OpenStream(FileName);
+      Src := Engine.Files.OpenFile(FileName);
       If Not Assigned(Src) Then
         Exit;
 

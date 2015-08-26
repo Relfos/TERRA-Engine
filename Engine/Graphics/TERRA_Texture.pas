@@ -27,7 +27,7 @@ Unit TERRA_Texture;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Object, TERRA_Image, TERRA_Stream, TERRA_Color, TERRA_Vector2D, TERRA_Math,
-  TERRA_Resource, TERRA_ResourceManager, TERRA_Renderer;
+  TERRA_Resource, TERRA_ResourceManager, TERRA_Renderer, TERRA_FileManager;
 
 {$IFDEF MOBILE}
 {-$DEFINE TEXTURES16BIT}
@@ -66,7 +66,7 @@ Type
 
       Function GetCurrentFrame():Integer;
       Function GetCurrent:SurfaceInterface;
-                                       
+
       Procedure AdjustRatio(Source:TERRAImage);
 
       Function IsNPOT():Boolean;
@@ -79,12 +79,12 @@ Type
       Function GetOrigin: SurfaceOrigin;
 
       Function GetTransparencyType: ImageTransparencyType;
-      
+
     Public
       Uncompressed:Boolean;
       PreserveQuality:Boolean;
 
-      Constructor Create(Kind:ResourceType; Location:TERRAString);
+      Constructor Create(Kind:ResourceType; Location:TERRALocation = Nil);
 
       Procedure InitFromSize(TextureWidth, TextureHeight:Cardinal; FillColor:ColorRGBA);
       Procedure InitFromImage(Source:TERRAImage);
@@ -159,10 +159,10 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_Utils, TERRA_Application, TERRA_EngineManager, TERRA_Log, TERRA_GraphicsManager, TERRA_OS,
-  TERRA_FileUtils, TERRA_FileStream, TERRA_FileManager, TERRA_ColorGrading, TERRA_Noise;
+  TERRA_FileUtils, TERRA_FileStream, TERRA_ColorGrading, TERRA_Noise;
 
 { TERRATexture }
-Constructor TERRATexture.Create(Kind:ResourceType; Location:TERRAString);
+Constructor TERRATexture.Create(Kind:ResourceType; Location:TERRALocation);
 Begin
   Inherited Create(Kind, Location);
 
@@ -805,10 +805,10 @@ Class Function TERRATexture.LoadFromFile(const FileName: TERRAString): TERRAText
 Var
   Src:Stream;
 Begin
-  Src := Engine.Files.OpenStream(FileName);
+  Src := Engine.Files.OpenFile(FileName);
   If Assigned(Src) Then
   Begin
-    Result := TERRATexture.Create(rtDynamic, FileName);
+    Result := TERRATexture.Create(rtDynamic{, FileName});
     Result.Load(Src);
     Result.Update();
     ReleaseObject(Src);

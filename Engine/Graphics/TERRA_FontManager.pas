@@ -49,66 +49,18 @@ Type
       Property Fonts[Name:TERRAString]:TERRAFont Read GetItem; Default;
    End;
 
-  Function GetFontLoader(Source:Stream):FontLoader;
-  Procedure RegisterFontFormat(Name:TERRAString; Validate:FontStreamValidateFunction; Loader:FontLoader);
-
-
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Sort, TERRA_TextureManager, TERRA_Sprite, TERRA_EngineManager,
   TERRA_Log, TERRA_FileUtils, TERRA_MemoryStream, TERRA_ImageDrawing, TERRA_Image, TERRA_Collections,
-  TERRA_GraphicsManager, TERRA_FileManager, TERRA_Packer, TERRA_DistanceField, TERRA_TextureAtlas, TERRA_Texture;
+ TERRA_GraphicsManager, TERRA_FileManager, TERRA_FileFormat, TERRA_Packer, TERRA_DistanceField, TERRA_TextureAtlas, TERRA_Texture;
 
-Var
-  _FontExtensions:Array Of FontClassInfo;
-  _FontExtensionCount:Integer;
-
-Function GetFontLoader(Source:Stream):FontLoader;
-Var
-  Pos:Cardinal;
-  I:Integer;
-Begin
-  Result := Nil;
-  If Not Assigned(Source) Then
-    Exit;
-
-  Pos := Source.Position;
-
-  For I:=0 To Pred(_FontExtensionCount) Do
-  Begin
-    Source.Seek(Pos);
-    If _FontExtensions[I].Validate(Source) Then
-    Begin
-      Log(logDebug, 'Font', 'Found '+_FontExtensions[I].Name);
-      Result := _FontExtensions[I].Loader;
-      Break;
-    End;
-  End;
-
-  Source.Seek(Pos);
-End;
-
-Procedure RegisterFontFormat(Name:TERRAString; Validate:FontStreamValidateFunction; Loader:FontLoader);
-Var
-  I,N:Integer;
-Begin
-  Name := StringLower(Name);
-
-  For I:=0 To Pred(_FontExtensionCount) Do
-  If (_FontExtensions[I].Name = Name) Then
-    Exit;
-
-  N := _FontExtensionCount;
-  Inc(_FontExtensionCount);
-  SetLength(_FontExtensions, _FontExtensionCount);
-  _FontExtensions[N].Name := Name;
-  _FontExtensions[N].Validate :=Validate;
-  _FontExtensions[N].Loader := Loader;
-End;
 
 { FontManager }
 Function FontManager.GetItem(Name:TERRAString):TERRAFont;
 Var
-  FontName, FileName, S:TERRAString;
+  FontName, FileName:TERRAString;
+  Format:TERRAFileFormat;
+  Location:TERRALocation;
   I:Integer;
 Begin
   If (Name='') Then
@@ -121,18 +73,10 @@ Begin
 
   Name := GetFileName(Name, True);
 
-  S := '';
-  I := 0;
-  While (S='') And (I<_FontExtensionCount) Do
+  Format := Engine.Formats.FindLocationFromName(Name, TERRAFont, Location);
+  If Assigned(Format) Then
   Begin
-    FileName := FontName+'.'+_FontExtensions[I].Name;
-    S := Engine.Files.SearchResourceFile(FileName);
-    Inc(I);
-  End;
-
-  If S<>'' Then
-  Begin
-    Result := TERRAFont.Create(rtLoaded, S);
+    Result := TERRAFont.Create(rtLoaded, Location);
     Result.Priority := 90;
     Self.AddResource(Result);
   End Else
@@ -197,7 +141,7 @@ Begin
   If Assigned(Result) Then
     Exit;
 
-  _DefaultFont := TERRAFont.Create(rtDynamic, 'default_font');
+  _DefaultFont := TERRAFont.Create(rtDynamic);
   Result := _DefaultFont;
 
   Src := MemoryStream.Create(bm_size, @bm_data[0]);

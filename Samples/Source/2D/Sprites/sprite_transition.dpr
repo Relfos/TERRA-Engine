@@ -2,22 +2,12 @@
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
 uses
-  MemCheck,
   TERRA_Object,
-  TERRA_MemoryManager,
-  TERRA_Application,
   TERRA_DemoApplication,
-  TERRA_Renderer,
-  TERRA_Utils,
-  TERRA_ResourceManager,
   TERRA_GraphicsManager,
   TERRA_OS,
   TERRA_Vector2D,
-  TERRA_Font,
   TERRA_Texture,
-  TERRA_FileManager,
-  TERRA_InputManager,
-  TERRA_Collections,
   TERRA_Viewport,
   TERRA_EngineManager,
   TERRA_Matrix3x3,

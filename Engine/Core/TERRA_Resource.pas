@@ -25,7 +25,7 @@ Unit TERRA_Resource;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Object, TERRA_Collections, TERRA_Hashmap, TERRA_Stream;
+Uses TERRA_String, TERRA_Object, TERRA_Collections, TERRA_Hashmap, TERRA_Stream, TERRA_FileManager;
 
 Type
   ResourceStatus = (
@@ -48,7 +48,7 @@ Type
 
     Protected
       _Time:Cardinal;
-      _Location:TERRAString;
+      _Location:TERRALocation;
       _SizeInBytes:Cardinal;
 
       Procedure SetStatus(const Value:ResourceStatus);
@@ -58,7 +58,7 @@ Type
     Public
       Priority:Integer;
 
-      Constructor Create(Kind:ResourceType; Location:TERRAString);
+      Constructor Create(Kind:ResourceType; Location:TERRALocation = Nil);
       Procedure Release; Override;
 
       Procedure Touch;
@@ -80,7 +80,7 @@ Type
       Function ShouldUnload():Boolean;
 
       Property Name:TERRAString Read _ObjectName;
-      Property Location:TERRAString Read _Location;
+      Property Location:TERRALocation Read _Location;
       Property Time:Cardinal Read _Time Write _Time;
       Property Status:ResourceStatus Read _Status Write SetStatus;
       Property Kind:ResourceType Read _Kind;
@@ -91,23 +91,18 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Utils, TERRA_ResourceManager, TERRA_FileStream, TERRA_GraphicsManager,
-  TERRA_FileUtils, TERRA_Application, TERRA_FileManager;
+  TERRA_FileUtils, TERRA_Application;
 
-Constructor TERRAResource.Create(Kind:ResourceType; Location:TERRAString);
+Constructor TERRAResource.Create(Kind:ResourceType; Location:TERRALocation);
 Var
   I:Integer;
 Begin
   Self._Kind := Kind;
 
-  If Kind = rtDynamic Then
-  Begin
-    Self._ObjectName := Location;
-    Self._Location := '';
-  End Else
-  Begin
-    Self._ObjectName := GetFileName(Location,True);
-    Self._Location := Location;
-  End;
+  If Assigned(Location) Then
+    Self._ObjectName := GetFileName(Location.Path, True);
+
+  Self._Location := Location;
 
   Self._SizeInBytes := 0;
   Self.SetStatus(rsUnloaded);
@@ -164,7 +159,7 @@ Begin
     Exit;
   End;
 
-  If (Self.Location<>'') Then
+  If (Assigned(Self.Location)) Then
   Begin
     Self.SetStatus(rsBusy);
     Log(logDebug, 'Resource', 'Loading the resource...');
@@ -235,7 +230,7 @@ Begin
   {If Value<>rsUnloaded Then
     StringToInt(Self._Key);}
 
-  If (_Location = '') Then
+  If (_Location = Nil) Then
   Begin
     _Status := Value;
     Exit;

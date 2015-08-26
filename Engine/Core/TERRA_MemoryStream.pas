@@ -111,7 +111,7 @@ Begin
   F.Read(_Buffer, _Size);
   ReleaseObject(F);
 
-  _Name := FileName;
+  _ObjectName := FileName;
 End;
 
 {$IFDEF OXYGENE}
@@ -153,7 +153,7 @@ Begin
   If (_Pos>=_Size) Then
   Begin
     {$IFDEF PC}
-    Log(logWarning, 'IO', 'Cannot read from memory in '+Self._Name+' ('+IntegerProperty.Stringify(_Pos) + '/'+ IntegerProperty.Stringify(_Size)+')');
+    Log(logWarning, 'IO', 'Cannot read from memory in '+Self.Name+' ('+IntegerProperty.Stringify(_Pos) + '/'+ IntegerProperty.Stringify(_Size)+')');
     {$ENDIF}
     FillChar(Data^, Length, 0);
     Result := 0;

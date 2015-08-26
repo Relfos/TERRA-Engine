@@ -429,7 +429,7 @@ Begin
   Begin
     If (_Textures[Index] = Nil) Then
     Begin
-      _Textures[Index] := TERRATexture.Create(rtDynamic, Self._Name + '_rt'+ IntegerProperty.Stringify(Index));
+      _Textures[Index] := TERRATexture.Create(rtDynamic{, Self._Name + '_rt'+ IntegerProperty.Stringify(Index)});
       _Textures[Index].InitFromSurface(_Targets[Index]);
       _Textures[Index].WrapMode := wrapNothing;
     End;
@@ -765,7 +765,7 @@ Begin
 
     If (_RenderTextures[TargetValue] = Nil) {And (TargetValue<RenderCaptureTargets)} Then
     Begin
-      _RenderTextures[TargetValue] := TERRATexture.Create(rtDynamic, _Name+'_rt'+ IntegerProperty.Stringify(TargetValue));
+      _RenderTextures[TargetValue] := TERRATexture.Create(rtDynamic{, _Name+'_rt'+ IntegerProperty.Stringify(TargetValue)});
       _RenderTextures[TargetValue].InitFromSurface(Self.GetRenderTarget(TargetType));
     End;
 
@@ -803,7 +803,7 @@ Begin
 
     If _ResolveTexture = Nil Then
     Begin
-      _ResolveTexture := TERRATexture.Create(rtDynamic, _Name+'_resolve');
+      _ResolveTexture := TERRATexture.Create(rtDynamic{, _Name+'_resolve'});
       _ResolveTexture.InitFromSurface(_ResolveBuffer);
     End;
 

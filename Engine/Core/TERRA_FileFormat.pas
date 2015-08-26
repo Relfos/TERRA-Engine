@@ -27,7 +27,7 @@ Unit TERRA_FileFormat;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Stream;
+Uses TERRA_Object, TERRA_String, TERRA_Stream, TERRA_FileManager;
 
 Type
   TERRAFileFormat = Class(TERRAObject)
@@ -57,7 +57,7 @@ Type
       Procedure Add(Format:TERRAFileFormat);
       Function GetFormatByIndex(Index:Integer):TERRAFileFormat;
 
-      Function FindLocationFromName(Const Name:TERRAString; Kind:TERRAObjectType; Out Location:TERRAString):TERRAFileFormat;
+      Function FindLocationFromName(Const Name:TERRAString; Kind:TERRAObjectType; Out Location:TERRALocation):TERRAFileFormat;
       Function FindFormatFromExtension(Const Ext:TERRAString):TERRAFileFormat;
       Function FindFormatFromStream(Source:Stream; Kind:TERRAObjectType):TERRAFileFormat;
 
@@ -78,7 +78,7 @@ End;
 
 Function TERRAFileFormat.Identify(Source: Stream): Boolean;
 Begin
-  Result := False;
+  Result := StringEquals(GetFileExtension(Source.Name), Self.Extension);
 End;
 
 Function TERRAFileFormat.Load(Target:TERRAObject; Source:Stream):Boolean;
@@ -116,17 +116,17 @@ Begin
     Result := _Formats[Index];
 End;
 
-Function FormatManager.FindLocationFromName(Const Name:TERRAString; Kind:TERRAObjectType; Out Location:TERRAString):TERRAFileFormat;
+Function FormatManager.FindLocationFromName(Const Name:TERRAString; Kind:TERRAObjectType; Out Location:TERRALocation):TERRAFileFormat;
 Var
   I:Integer;
 Begin
   Result := Nil;
-  Location := '';
+  Location := Nil;
   For I:=0 To Pred(_FormatCount) Do
   If (_Formats[I].Kind = Kind) Then
   Begin
-    Location := Engine.Files.SearchResourceFile(Name + '.' + _Formats[I].Extension);
-    If (Location <> '') Then
+    Location := Engine.Files.Search(Name + '.' + _Formats[I].Extension);
+    If (Assigned(Location)) Then
     Begin
       Result := _Formats[I];
       Exit;

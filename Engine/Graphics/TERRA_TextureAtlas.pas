@@ -349,7 +349,8 @@ End;
 
 Function TextureAtlas.AllocTexture(Const Name:TERRAString): TextureAtlasPage;
 Begin
-  Result := TextureAtlasPage.Create(rtDynamic, Name);
+  Result := TextureAtlasPage.Create(rtDynamic, Nil);
+  //Result.Name := Name;
 End;
 
 Function TextureAtlas.CreateTexture(PageID: Integer):TextureAtlasPage;

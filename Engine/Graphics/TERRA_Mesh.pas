@@ -2583,8 +2583,8 @@ Begin
   If (Not _ClonedMesh) Then
   Begin
     Old := _Mesh;
-    _Mesh := TERRAMesh.Create(rtDynamic, Old.Name);
-    _Mesh.Clone(Old);// MeshManager.Instance.CloneMesh(_Mesh.Name);
+    _Mesh := TERRAMesh.Create(rtDynamic);
+    _Mesh.Clone(Old);
     _Mesh.Prefetch();
 
     For I:=0 To Pred(_Mesh.GroupCount) Do
@@ -5912,7 +5912,7 @@ Var
   V:MeshVertex;
   Anim:Animation;
 Begin
-  Self.Create(rtDynamic, '');
+  Self.Create(rtDynamic);
 
   Self.Clean();
   If Source = Nil Then
@@ -5982,7 +5982,7 @@ Begin
 
   For I:=0 To Pred(Source.GetAnimationCount) Do
   Begin
-    Anim := Animation.Create(rtDynamic, Self.Name + '_'+ Source.GetAnimationName(I));
+    Anim := Animation.Create(rtDynamic{, Self.Name + '_'+ Source.GetAnimationName(I)});
     Anim.InitFromFilter(I, Source);
     AnimationManager.Instance.AddResource(Anim);
   End;

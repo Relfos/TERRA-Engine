@@ -807,7 +807,7 @@ End;
 Function ParticleManager.GetParticleType(Name:TERRAString): ParticleType;
 Var
   I:Integer;
-  S:TERRAString;
+  Location:TERRALocation;
   Source:TERRAImage;
 Begin
   If (Name='') Then
@@ -837,9 +837,9 @@ Begin
 
   If Not Assigned(Result.Item) Then
   Begin
-    S := Engine.Files.SearchResourceFile(Name);
-    If S<>'' Then
-      Source := TERRAImage.Create(S)
+    Location := Engine.Files.Search(Name);
+    If Assigned(Location) Then
+      Source := TERRAImage.Create(Location)
     Else
       Source := TERRAImage.Create(32, 32);
 
@@ -904,7 +904,7 @@ Var
   I:Integer;
   Source:TERRAImage;
   Item:TextureAtlasItem;
-  S:TERRAString;
+  Location:TERRALocation;
 Begin
   If Not Assigned(_TextureAtlas) Then
   Begin
@@ -921,10 +921,9 @@ Begin
     Begin
       Item := _TextureAtlas.Get(I);
 
-      S := StringLower(GetFileName(Item.Name, True))+'_normal.png';
-      S := Engine.Files.SearchResourceFile(S);
-      If S<>'' Then
-        Source := TERRAImage.Create(S)
+      Location := Engine.Files.Search(StringLower(GetFileName(Item.Name, True))+'_normal.png');
+      If Assigned(Location) Then
+        Source := TERRAImage.Create(Location)
       Else
       Begin
         Source := TERRAImage.Create(Item.Buffer.Width, Item.Buffer.Height);
@@ -933,10 +932,9 @@ Begin
       _NormalImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
       ReleaseObject(Source);
 
-      S := StringLower(GetFileName(Item.Name, True))+'_glow.png';
-      S := Engine.Files.SearchResourceFile(S);
-      If S<>'' Then
-        Source := TERRAImage.Create(S)
+      Location := Engine.Files.Search(StringLower(GetFileName(Item.Name, True))+'_glow.png');
+      If Assigned(Location) Then
+        Source := TERRAImage.Create(Location)
       Else
       Begin
         Source := TERRAImage.Create(Item.Buffer.Width, Item.Buffer.Height);
@@ -945,10 +943,9 @@ Begin
       _GlowImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
       ReleaseObject(Source);
 
-      S := StringLower(GetFileName(Item.Name, True))+'_refraction.png';
-      S := Engine.Files.SearchResourceFile(S);
-      If S<>'' Then
-        Source := TERRAImage.Create(S)
+      Location := Engine.Files.Search(StringLower(GetFileName(Item.Name, True))+'_refraction.png');
+      If Assigned(Location) Then
+        Source := TERRAImage.Create(Location)
       Else
       Begin
         Source := TERRAImage.Create(Item.Buffer.Width, Item.Buffer.Height);
@@ -960,7 +957,7 @@ Begin
 
     If (_NormalTexture = Nil) Then
     Begin
-      _NormalTexture := TERRATexture.Create(rtDynamic, 'particles_normal');
+      _NormalTexture := TERRATexture.Create(rtDynamic);
       _NormalTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height, ColorCreate(0, 0, 255));
       _NormalTexture.Update;
     End;
@@ -968,7 +965,7 @@ Begin
 
     If (_GlowTexture = Nil) Then
     Begin
-      _GlowTexture := TERRATexture.Create(rtDynamic, 'particles_glow');
+      _GlowTexture := TERRATexture.Create(rtDynamic);
       _GlowTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height, ColorNull);
       _GlowTexture.Update;
     End;
@@ -976,7 +973,7 @@ Begin
 
     If (_RefractionTexture = Nil) Then
     Begin
-      _RefractionTexture := TERRATexture.Create(rtDynamic, 'particles_refraction');
+      _RefractionTexture := TERRATexture.Create(rtDynamic);
       _RefractionTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height, ColorNull);
       _RefractionTexture.Update();
     End;

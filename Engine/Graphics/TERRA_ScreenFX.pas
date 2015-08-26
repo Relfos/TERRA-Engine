@@ -1071,7 +1071,7 @@ Begin
   Exp.Resize(256, 2);
   //Exp.Save('satramp.png');
 
-  _Ramp := TERRATexture.Create(rtDynamic, 'vibranceramp');
+  _Ramp := TERRATexture.Create(rtDynamic{, 'vibranceramp'});
   _Ramp.InitFromImage(Exp);
 
   ReleaseObject(Exp);

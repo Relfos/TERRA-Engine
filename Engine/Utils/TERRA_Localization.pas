@@ -441,9 +441,9 @@ End;
 
 Procedure LocalizationManager.SetLanguage(Lang:TERRAString);
 Var
-  S, S2:TERRAString;
   Source:Stream;
   I:Integer;
+  Location:TERRALocation;
 Begin
   Lang := StringUpper(Lang);
   If (Lang = 'CH') Or (Lang='CN') Then
@@ -454,9 +454,8 @@ Begin
   If (_Lang = Lang) Then
     Exit;
 
-  S := 'translation_'+ StringLower(Lang)+'.'+ Translation_Extension;
-  S := Engine.Files.SearchResourceFile(S);
-  If S='' Then
+  Location := Engine.Files.Search('translation_'+ StringLower(Lang)+'.'+ Translation_Extension);
+  If Location = Nil Then
   Begin
     Log(logWarning, 'Strings', 'Could not find translation file for lang='+Lang);
 
@@ -467,7 +466,7 @@ Begin
   End;
 
   _Strings.Clear();
-  Source := Engine.Files.OpenStream(S);
+  Source := Engine.Files.OpenLocation(Location);
   _Lang := Lang;
   Self.MergeGroup(Source, -1, '');
   ReleaseObject(Source);
@@ -524,7 +523,7 @@ Begin
   If (_PinyinCount>0) Then
     Exit;
 
-  Src := Engine.Files.OpenStream('pinyin.dat');
+  Src := Engine.Files.OpenFile('pinyin.dat');
   If Src = Nil Then
     Exit;
 
