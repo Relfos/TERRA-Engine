@@ -65,7 +65,9 @@ Begin
 
   _FatalError := Desc;
 
+    {$IFNDEF OXYGENE}
   ForceLogFlush := True;
+  {$ENDIF}
 
   Log(logError, 'Application', Desc);
 

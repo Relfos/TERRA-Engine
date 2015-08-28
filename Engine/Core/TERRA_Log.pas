@@ -35,6 +35,7 @@ Unit TERRA_Log;
 
 Interface
 
+{$IFNDEF OXYGENE}
 {$IFDEF IPHONE}
 {$UNDEF USE_LOGFILE}
 {$ELSE}
@@ -60,6 +61,7 @@ Uses TERRA_Object, TERRA_FileStream, TERRA_String
 {$IFDEF WINDOWS},Windows{$ENDIF}
 ;
 
+{$ENDIF}
 Const
   logDebug   = 0;
   logError   = 1;
@@ -94,7 +96,10 @@ Var
   ForceLogFlush:Boolean;
 
 Implementation
+
+{$IFNDEF OXYGENE}
 Uses TERRA_Utils, TERRA_OS, TERRA_Application, TERRA_FileUtils;
+{$ENDIF}
 
 {$IFDEF ANDROID}
 
@@ -361,6 +366,7 @@ Begin
 {$ENDIF}
 End;
 
+{$IFNDEF OXYGENE}
 Initialization
 {$IFDEF DEBUG_LOG}
   LoggingEnabled := True;
@@ -377,4 +383,5 @@ Initialization
 {$ENDIF}
 Finalization
   Log_Shutdown();
+{$ENDIF}
 End.

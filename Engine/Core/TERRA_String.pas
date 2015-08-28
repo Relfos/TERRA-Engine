@@ -67,7 +67,7 @@ Type
 
   StringArray = Array Of TERRAString;
 
-  StringEncoding = (encodingUnknown, encodingASCII,  encodingUCS2LE, encodingUCS2BE, encodingUTF8);
+  StringEncoding = {$IFDEF OXYGENE}Public Enum{$ENDIF}  (encodingUnknown, encodingASCII,  encodingUCS2LE, encodingUCS2BE, encodingUTF8);
 
   StringIteratorState = {$IFDEF OXYGENE}public Record{$ELSE}Record{$ENDIF}
     Position:Integer; // logical position (note: in reverse iterators, this is the position counting from end)
@@ -207,6 +207,7 @@ Function StringFill(Length:Integer; C:TERRAChar):TERRAString;
 // test if pattern Expression is found in string S
 // example pattern: *.png
 Function StringMatchRegEx(Const S, Expression:TERRAString; IgnoreCase:Boolean = True):Boolean;
+
 
 //Function StringExplode(Const S, Token:TERRAString):StringArray;
 
@@ -1503,7 +1504,11 @@ Procedure StringIterator.Split(Out A, B: TERRAString);
 Var
   Count:Integer;
 Begin
+  {$IFDEF OXYGENE}
+  A := _Target.Substring(0, _State.PrevIndex - 1);
+  {$ELSE}
   A := Copy(_Target, 1, Pred(_State.PrevIndex));
+  {$ENDIF}
 
   Count := Self._Remainder;
   While (Count>0) And (Self.HasNext()) Do
@@ -1512,7 +1517,11 @@ Begin
     Dec(Count);
   End;
 
+  {$IFDEF OXYGENE}
+  B := _Target.Substring(_State.Index -1); // TODO
+  {$else}
   B := Copy(_Target, _State.Index, MaxInt); // TODO
+  {$ENDIF}
 End;
 
 Function StringIterator.HasNext: Boolean;
