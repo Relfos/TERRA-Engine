@@ -222,10 +222,10 @@ Function ColorCreateFromString(HexValue:TERRAString):ColorRGBA;
   Function H(C:TERRAChar):Byte;
   Begin
     C := CharUpper(C);
-    If (C>=Ord('0')) And (C<=Ord('9')) Then
-      Result := C - Ord('0')
+    If (C>='0') And (C<='9') Then
+      Result := Byte(Ord(C) - Ord('0'))
     Else
-      Result := C - Ord('A') + 10;
+      Result := Byte(Ord(C) - Ord('A') + 10);
   End;
 
 Var

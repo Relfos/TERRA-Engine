@@ -49,18 +49,18 @@ Const
   fontmode_Measure  = 1;
   fontmode_Offscreen=2;
 
-  fontControlColor = 1;
-  fontControlCornerColorA = 2;
-  fontControlCornerColorB = 3;
-  fontControlCornerColorC = 4;
-  fontControlCornerColorD = 5;
-  fontControlTab = 8;
-  fontControlBlink = 9;
-  fontControlItalics = 11;
-  fontControlWave = 12;
-  fontControlNewLine = 13;
-  fontControlSprite = 14;
-  fontControlEnd = 31;
+  fontControlColor = #1;
+  fontControlCornerColorA = #2;
+  fontControlCornerColorB = #3;
+  fontControlCornerColorC = #4;
+  fontControlCornerColorD = #5;
+  fontControlTab = #8;
+  fontControlBlink = #9;
+  fontControlItalics = #11;
+  fontControlWave = #12;
+  fontControlNewLine = #13;
+  fontControlSprite = #14;
+  fontControlEnd = #31;
 
 Type
   FontGradient = (
@@ -72,7 +72,7 @@ Type
 
   PFontKerning = ^FontKerning;
   FontKerning = Record
-    Next:Cardinal;
+    Next:TERRAChar;
     Ammount:SmallInt;
   End;
 
@@ -90,7 +90,7 @@ Type
       _Item:TextureAtlasItem;
 
     Public
-      ID:Cardinal;
+      ID:TERRAChar;
 
       Width:Word;
       Height:Word;
@@ -103,8 +103,8 @@ Type
 
       Procedure Release; Override;
 
-      Function GetAdvance(Next:Cardinal):Integer;
-      Procedure AddKerning(Next:Cardinal; Ammount:SmallInt);
+      Function GetAdvance(Next:TERRAChar):Integer;
+      Procedure AddKerning(Next:TERRAChar; Ammount:SmallInt);
 
       Function GetImage():TERRAImage;
 
@@ -135,8 +135,8 @@ Type
       Procedure LoadFromStream(Source:TERRAStream); Virtual; Abstract;
       Procedure LoadFromFile(Const FileName:TERRAString);
 
-      Function InitGlyph(Font:TERRAFont; ID:Cardinal; Size:Integer):FontGlyph; Virtual; Abstract;
-      Function GetKerning(Current, Next:Cardinal):Integer; Virtual; Abstract;
+      Function InitGlyph(Font:TERRAFont; ID:TERRAChar; Size:Integer):FontGlyph; Virtual; Abstract;
+      Function GetKerning(Current, Next:TERRAChar):Integer; Virtual; Abstract;
   End;
 
   TERRAFont = Class(TERRAResource)
@@ -162,10 +162,10 @@ Type
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
 
-      Function AddGlyph(ID:Cardinal; Source:TERRAImage; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; Overload;
-      Function AddGlyph(ID:Cardinal; FileName:TERRAString; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; Overload;
+      Function AddGlyph(ID:TERRAChar; Source:TERRAImage; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; Overload;
+      Function AddGlyph(ID:TERRAChar; FileName:TERRAString; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; Overload;
       Function AddEmptyGlyph():FontGlyph;
-      Function GetGlyph(ID:Cardinal; CreatedIfNeeded:Boolean = True):FontGlyph;
+      Function GetGlyph(ID:TERRAChar; CreatedIfNeeded:Boolean = True):FontGlyph;
       Procedure SortGlyphs();
 
       Procedure RecalculateMetrics();
@@ -213,7 +213,7 @@ Type
   End;
 
 Var
-  _GlyphPivot:Cardinal;
+  _GlyphPivot:TERRAChar;
 
 { GlyphSort }
 Class Procedure GlyphSort.SetPivot(Data:TERRAObject; A:Integer);
@@ -250,7 +250,7 @@ Begin
 End;
 
 { FontGlyph }
-Procedure FontGlyph.AddKerning(Next: Cardinal; Ammount: SmallInt);
+Procedure FontGlyph.AddKerning(Next:TERRAChar; Ammount: SmallInt);
 Var
   N:Integer;
 Begin
@@ -261,7 +261,7 @@ Begin
   Self.KerningList[N].Ammount := Ammount;
 End;
 
-Function FontGlyph.GetAdvance(Next:Cardinal):Integer;
+Function FontGlyph.GetAdvance(Next:TERRAChar):Integer;
 Var
   I:Integer;
 Begin
@@ -345,7 +345,7 @@ Begin
   Result := Engine.Fonts;
 End;
 
-Function TERRAFont.GetGlyph(ID:Cardinal; CreatedIfNeeded:Boolean = True):FontGlyph;
+Function TERRAFont.GetGlyph(ID:TERRAChar; CreatedIfNeeded:Boolean = True):FontGlyph;
 Var
   A,B, Mid:Integer;
   I:Integer;
@@ -417,7 +417,7 @@ Begin
     F := F._Next;
   End;
 
-  Log(logWarning, 'Font', 'Glyph '+ IntegerProperty.Stringify(ID)+' was not found!');
+  Log(logWarning, 'Font', 'Glyph '+ IntegerProperty.Stringify(CharValue(ID))+' was not found!');
 End;
 
 Function TERRAFont.Unload: Boolean;
@@ -518,7 +518,7 @@ Begin
   _Glyphs[Pred(_GlyphCount)] := Result;
 End;
 
-Function TERRAFont.AddGlyph(ID:Cardinal; FileName:TERRAString; XOfs, YOfs, XAdvance: SmallInt):FontGlyph;
+Function TERRAFont.AddGlyph(ID:TERRAChar; FileName:TERRAString; XOfs, YOfs, XAdvance: SmallInt):FontGlyph;
 Var
   Source:TERRAImage;
 Begin
@@ -533,7 +533,7 @@ Begin
   ReleaseObject(Source);
 End;
 
-Function TERRAFont.AddGlyph(ID: Cardinal; Source:TERRAImage; XOfs, YOfs, XAdvance:SmallInt):FontGlyph;
+Function TERRAFont.AddGlyph(ID:TERRAChar; Source:TERRAImage; XOfs, YOfs, XAdvance:SmallInt):FontGlyph;
 Var
   It:ImageIterator;
   C:ColorRGBA;
@@ -625,7 +625,7 @@ Begin
   For I:=0 To Pred(_GlyphCount) Do
   If (Assigned(_Glyphs[I]._Temp)) Then
   Begin
-    _Glyphs[I]._Item := _Atlas.Add(_Glyphs[I]._Temp, CardinalToString(_Glyphs[I].ID), False, FontPadding);
+    _Glyphs[I]._Item := _Atlas.Add(_Glyphs[I]._Temp, CardinalToString(CharValue(_Glyphs[I].ID)), False, FontPadding);
     ReleaseObject(_Glyphs[I]._Temp);
   End;
 
@@ -643,7 +643,7 @@ Var
 Begin
   Result := '';
 
-  While StringCharPosIterator(Ord('\'), S, It) Do
+  While StringCharPosIterator('\', S, It) Do
   Begin
     It.Split(S2, S);
 
@@ -653,22 +653,22 @@ Begin
     S := StringCopy(S, 2, MaxInt);
 
     Case C Of
-    Ord('n'):  Result := Result + StringFromChar(fontControlNewLine);
-    Ord('t'):  Result := Result + StringFromChar(fontControlTab);
-    Ord('b'):  Result := Result + StringFromChar(fontControlBlink);
-    Ord('i'):  Result := Result + StringFromChar(fontControlItalics);
-    Ord('w'):  Result := Result + StringFromChar(fontControlWave);
+    'n':  Result := Result + StringFromChar(fontControlNewLine);
+    't':  Result := Result + StringFromChar(fontControlTab);
+    'b':  Result := Result + StringFromChar(fontControlBlink);
+    'i':  Result := Result + StringFromChar(fontControlItalics);
+    'w':  Result := Result + StringFromChar(fontControlWave);
 
-    Ord('p'):
+    'p':
       Begin
-        S2 := StringGetNextSplit(S, Ord('}'));
+        S2 := StringGetNextSplit(S, '}');
         S2 := StringCopy(S2, 2, MaxInt);
         Result := Result + StringFromChar(fontControlSprite) + S2 + StringFromChar(fontControlEnd);
       End;
 
-    Ord('c'):
+    'c':
       Begin
-        S2 := StringGetNextSplit(S, Ord('}'));
+        S2 := StringGetNextSplit(S, '}');
         S2 := StringCopy(S2, 2, MaxInt);
         Result := Result + StringFromChar(fontControlColor) + S2 + StringFromChar(fontControlEnd);
       End;

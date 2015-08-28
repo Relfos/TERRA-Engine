@@ -223,7 +223,7 @@ End;
 
 Procedure DemoApplication.OnRender2D(V: TERRAViewport);
 Begin
-  _FontRenderer.DrawText(V, 5, 25, 90, 'FPS: '+ IntegerProperty.Stringify(Engine.Graphics.Renderer.Stats.FramesPerSecond));
+//  _FontRenderer.DrawText(V, 5, 25, 90, 'FPS: '+ IntegerProperty.Stringify(Engine.Graphics.Renderer.Stats.FramesPerSecond));
   Engine.Graphics.AddRenderable(V, _GUI);
 End;
 

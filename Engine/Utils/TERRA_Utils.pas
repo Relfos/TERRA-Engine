@@ -510,13 +510,13 @@ Begin
   Begin
     C := It.GetNext();
 
-    If (C= Ord('-')) Then
+    If (C= '-') Then
     Begin
       Negative := True;
       Continue;
     End;
 
-    If (C<Ord('0')) Or (C>Ord('9')) Then
+    If (C<'0') Or (C>'9') Then
     Begin
       {$IFDEF WINDOW}
       If CheckError Then
@@ -525,7 +525,7 @@ Begin
       Exit;
     End;
 
-    Value := C - Ord('0');
+    Value := Ord(C) - Ord('0');
     Inc(Result, Value * N);
 
     N := N * 10;
@@ -547,7 +547,7 @@ Begin
   If S = '' Then
     Exit;
 
-  If (StringFirstChar(S) = Ord('-')) Then
+  If (StringFirstChar(S) = '-') Then
   Begin
     Exit;
   End;
@@ -557,7 +557,7 @@ Begin
   While It.HasNext Do
   Begin
     C := It.GetNext();
-    If (C<Ord('0')) Or (C>Ord('9')) Then
+    If (C<'0') Or (C>'9') Then
     Begin
       {$IFDEF WINDOW}
       If CheckError Then
@@ -567,7 +567,7 @@ Begin
       Exit;
     End;
 
-    Value := C - Ord('0');
+    Value := Ord(C) - Ord('0');
     Inc(Result, Value * N);
 
     N := N * 10;
@@ -609,9 +609,9 @@ Var
   S1,S2:TERRAString;
 Begin
   S1 := S;
-  S2 := StringGetNextSplit(S1, Ord('.'));
+  S2 := StringGetNextSplit(S1, '.');
   Result.Major := StringToInt(S2);
-  S2 := StringGetNextSplit(S1, Ord('.'));
+  S2 := StringGetNextSplit(S1, '.');
   Result.Minor := StringToInt(S2);
   Result.Build := StringToInt(S1);
 End;

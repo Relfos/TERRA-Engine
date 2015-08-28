@@ -224,7 +224,7 @@ Begin
     Exit;
   End;
 
-  If (StringContainsChar(Ord('.'), Name)) Then
+  If (StringContainsChar('.', Name)) Then
     Temp := GetFileName(Name, True)
   Else
     Temp := Name;

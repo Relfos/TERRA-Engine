@@ -175,12 +175,12 @@ Begin
   _GroupCount := 0;
   While S<>'' Do
   Begin
-    I := StringCharPos(Ord('{'), S);
+    I := StringCharPos('{', S);
     If (I<=0) Then
       Break;
 
     S := StringCopy(S, I + 1, MaxInt);
-    I := StringCharPos(Ord('}'), S);
+    I := StringCharPos('}', S);
     If (I<=0) Then
       I := Succ(StringLength(S));
 

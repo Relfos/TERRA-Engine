@@ -87,7 +87,7 @@ Begin
     While Not Source.EOF Do
     Begin
       Source.ReadLine(S);
-      S2 := StringGetNextSplit(S, Ord(','));
+      S2 := StringGetNextSplit(S, ',');
       Result.Add(StringProperty.Create(S2,S));
     End;
     ReleaseObject(Source);

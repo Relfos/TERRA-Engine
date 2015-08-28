@@ -120,7 +120,7 @@ Type
       Property Position:Vector2D Read _TargetPosition;
       Property Blink:Boolean Read _Blink;
       //Property Glyph:FontGlyph Read _CurrentGlyph;
-      Property Next:Cardinal Read _Next;
+      Property Next:TERRAChar Read _Next;
 
       Property MaxX:Single Read _MaxX;
       Property MaxY:Single Read _MaxY;
@@ -204,7 +204,7 @@ Begin
   End;
 End;
 
-Function TERRAFontRenderer.GetNextChar:Cardinal;
+Function TERRAFontRenderer.GetNextChar:TERRAChar;
 Var
   Len:Integer;
   Current, Before, After:TERRAChar;
@@ -217,7 +217,7 @@ Begin
 
   Result := _Iterator.GetNext();
 
-  If (Result>0) And (Result<32) Then
+  If (Result>#0) And (Result<#32) Then
   Begin
     _Effects[_EffectCount].Effect := Result;
 
@@ -233,7 +233,8 @@ End;
 
 Function TERRAFontRenderer.RenderNext(): Boolean;
 Var
-  ID, K:Cardinal;
+  ID:TERRAChar;
+  K:Cardinal;
   H:Single;
 Begin
   ID := _Next;
@@ -244,7 +245,7 @@ Begin
 
   //Log(logDebug,'AdWall', 'Nextchar: ' + IntToString(_Next));
 
-  If (ID=0) Or (_Font = Nil) Then
+  If (ID=NullChar) Or (_Font = Nil) Then
   Begin
     Result := False;
     DoEffects();
@@ -692,7 +693,7 @@ Begin
   If _Font = Nil Then
     Exit;
 
-  Glyph := _Font.GetGlyph(Ord('E'));
+  Glyph := _Font.GetGlyph('E');
   If Assigned(Glyph) Then
     _FontOffset := Glyph.YOfs
   Else

@@ -123,8 +123,8 @@ Begin
 
     While S<>'' Do
     Begin
-      S2 := StringGetNextSplit(S, Ord('|'));
-      Tag := StringGetNextSplit(S2, Ord('='));
+      S2 := StringGetNextSplit(S, '|');
+      Tag := StringGetNextSplit(S2, '=');
 
       Item := StringProperty.Create(Tag, S2);
       Obj.Add(Item);
@@ -142,7 +142,7 @@ Var
   Key:TERRAObject;
   BaseName:TERRAString;
 Begin
-  BaseName := StringGetNextSplit(Path, Ord('.'));
+  BaseName := StringGetNextSplit(Path, '.');
 
   If (Obj = Nil) Or (Not StringEquals(Obj.Name, BaseName)) Then
     Result := ''

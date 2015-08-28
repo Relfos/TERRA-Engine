@@ -161,9 +161,9 @@ Implementation
 
 Function StringToVector3D(S:TERRAString):Vector3D;
 Begin
-  Result.X := StringToFloat(StringGetNextSplit(S, Ord('/')));
-  Result.Y := StringToFloat(StringGetNextSplit(S, Ord('/')));
-  Result.Z := StringToFloat(StringGetNextSplit(S, Ord('/')));
+  Result.X := StringToFloat(StringGetNextSplit(S, '/'));
+  Result.Y := StringToFloat(StringGetNextSplit(S, '/'));
+  Result.Z := StringToFloat(StringGetNextSplit(S, '/'));
 End;
 
 Function Vector3D.Get(Index:Integer):Single;

@@ -434,7 +434,7 @@ Begin
                   StringCreateIterator(S, It, False);
                   While It.HasNext() Do
                   Begin
-                    App.AddValueEvent(eventKeyPress, It.GetNext());
+                    App.AddValueEvent(eventKeyPress, Cardinal(It.GetNext()));
                   End;
                   
                 End Else
@@ -531,7 +531,7 @@ Begin
       If (N=0) Then
         Break;
 
-      StringAppendChar(Result, N);
+      StringAppendChar(Result, TERRAChar(N));
       Inc(P);
     Until False;
 

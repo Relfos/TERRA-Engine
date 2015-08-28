@@ -28,11 +28,11 @@ Const
   widgetAnimatePosX_Bottom = 64;
   widgetAnimatePosY_Bottom = 128;
 
-  UIMacroBeginChar  = Ord('{');
-  UIMacroEndChar    = Ord('}');
-  UITranslationChar = Ord('#');
-  UIPropertyChar    = Ord('!');
-  UIDataSourceChar  = Ord('@');
+  UIMacroBeginChar  = '{';
+  UIMacroEndChar    = '}';
+  UITranslationChar = '#';
+  UIPropertyChar    = '!';
+  UIDataSourceChar  = '@';
 
 Type
   UIDragMode = (
@@ -1321,7 +1321,6 @@ End;
 
 Function UIWidget.OnHandleKeyPress(Key:TERRAChar):Boolean;
 Begin
-  RemoveHint(Key);
 	Result := False;
 End;
 
@@ -1929,7 +1928,7 @@ Var
   S:TERRAString;
 Begin
   S := Self.Name;
-  StringGetNextSplit(S, Ord('_'));
+  StringGetNextSplit(S, '_');
   Result := StringToInt(S);
 End;
 

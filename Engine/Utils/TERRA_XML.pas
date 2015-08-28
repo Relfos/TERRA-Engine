@@ -61,7 +61,7 @@ Begin
 
       S := Read(Source);
       C := StringGetChar(S, 2);
-    Until (C <> Ord('?')) And (C <> Ord('!'));
+    Until (C <> '?') And (C <> '!');
   End Else
     S := _InitTag;
 
@@ -71,16 +71,16 @@ Begin
     Exit;
   End;
 
-  ShortTag := (StringGetChar(S, -2) = Ord('/'));
+  ShortTag := (StringGetChar(S, -2) = '/');
   S := GetTagName(S);
 
-  If (StringCharPosIterator(Ord(' '), S, It)) Then
+  If (StringCharPosIterator(' ', S, It)) Then
   Begin
     It.Split(S, S2);
     Self._ObjectName := S;
 
     S := S2;
-    If (StringLastChar(S) = Ord('/')) Then
+    If (StringLastChar(S) = '/') Then
       StringDropChars(S, -1);
 
     While (S<>'') Do
@@ -92,10 +92,10 @@ Begin
       While It.HasNext() Do
       Begin
         C := It.GetNext();
-        If (C= Ord('"')) Then
+        If (C= '"') Then
           Inside := Not Inside
         Else
-        If (C = Ord(' ')) And (Not Inside) Then
+        If (C = ' ') And (Not Inside) Then
         Begin
           It.Split(S2, S);
           Found := True;
@@ -109,7 +109,7 @@ Begin
         S := '';
       End;
 
-      If StringCharPosIterator(Ord('='), S2, It) Then
+      If StringCharPosIterator('=', S2, It) Then
       Begin
         It.Split(Tag, Value);
 
@@ -143,7 +143,7 @@ Begin
 
       xmlData:
         Begin
-          If (StringLastChar(S) = Ord('"')) Then
+          If (StringLastChar(S) = '"') Then
             StringDropChars(S, -1);
 
           StringRemoveSpecialHTMLChars(S);
@@ -156,9 +156,9 @@ End;
 
 Function XMLNode.GetTagType(Const S:TERRAString):XMLTagType;
 Begin
-  If (StringGetChar(S, 1) = Ord('<')) Then
+  If (StringGetChar(S, 1) = '<') Then
   Begin
-    If (StringGetChar(S, 2) = Ord('/')) Then
+    If (StringGetChar(S, 2) = '/') Then
       Result := xmlEndTag
     Else
       Result := xmlBeginTag;
@@ -184,8 +184,8 @@ Begin
 
   If (Document._TempBuffer<>'') Then
   Begin
-    I := StringCharPos(Ord('<'), Document._TempBuffer);
-    J := StringCharPos(Ord('>'), Document._TempBuffer);
+    I := StringCharPos('<', Document._TempBuffer);
+    J := StringCharPos('>', Document._TempBuffer);
 
     If (I=1) Then
       I := 0;

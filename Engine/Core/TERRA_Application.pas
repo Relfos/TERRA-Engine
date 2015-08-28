@@ -1416,7 +1416,7 @@ Begin
 
     eventKeyPress:
       Begin
-        Self.OnKeyPress(_Events[I].Value);
+        Self.OnKeyPress(TERRAChar(_Events[I].Value));
       End;
 
     eventKeyDown:
@@ -1695,10 +1695,10 @@ Begin
   For I:=1 To ParamCount Do
   Begin
     S := ParamStr(I);
-    If Not StringFirstChar(S) = Ord('-') Then
+    If (StringFirstChar(S) <> '-') Then
       Continue;
 
-    S2 := StringGetNextSplit(S, Ord('='));
+    S2 := StringGetNextSplit(S, '=');
     If StringEquals(S2, '-'+OptName) Then
     Begin
       Result := True;
@@ -1719,10 +1719,10 @@ Begin
   For I:=1 To ParamCount Do
   Begin
     S := ParamStr(I);
-    If Not StringFirstChar(S) = Ord('-') Then
+    If (StringFirstChar(S) <> '-') Then
       Continue;
 
-    S2 := StringGetNextSplit(S, Ord('='));
+    S2 := StringGetNextSplit(S, '=');
     If StringEquals(S2, '-'+OptName) Then
     Begin
       Result := S;

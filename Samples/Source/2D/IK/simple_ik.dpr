@@ -53,7 +53,7 @@ Begin
   S.Layer := 10;
   S.SetTexture(Visual);
 
-  S.AddQuad(spriteAnchor_Center, VectorCreate2D(0.0, 0.0), 0.0, SnakeSize, SnakeSize);
+  S.AddQuad(spriteAnchor_Center, Vector2D_Create(0.0, 0.0), 0.0, SnakeSize, SnakeSize);
   S.SetTransform(Mat);
 
   V.SpriteRenderer.QueueSprite(S);
@@ -79,7 +79,7 @@ Begin
 	SnakeRoot := IKBone2D.Create(SnakeJointCount);
 
   For I:=1 To Pred(SnakeJointCount) Do
-	  SnakeRoot.GetChainBone(I).Position := VectorCreate2D(0, SnakeSize - 20);
+	  SnakeRoot.GetChainBone(I).Position := Vector2D_Create(0, SnakeSize - 20);
 End;
 
 Procedure MyDemo.OnDestroy;
@@ -92,7 +92,7 @@ End;
 
 Procedure MyDemo.OnRender2D(V:TERRAViewport);
 Begin
-  SnakeRoot.Position := VectorCreate2D(V.Width  * 0.5,  2* SnakeSize * 0.5);
+  SnakeRoot.Position := Vector2D_Create(V.Width  * 0.5,  2* SnakeSize * 0.5);
   DrawBone(SnakeRoot, V);
 
   Inherited;
@@ -105,7 +105,7 @@ Begin
   If Button = keyMouseRight Then
   Begin
     Self.GUI.GetLocalCoords(X, Y, TX, TY);
-    SnakeRoot.Solve(VectorCreate2D(TX, TY), True, True);
+    SnakeRoot.Solve(Vector2D_Create(TX, TY), True, True);
     Exit;
   End;
 
@@ -120,7 +120,7 @@ Begin
     Exit;
 
   Self.GUI.GetLocalCoords(X, Y, TX, TY);
-  SnakeRoot.Solve(VectorCreate2d(TX, TY), True, True);
+  SnakeRoot.Solve(Vector2D_Create(TX, TY), True, True);
 End;
 
 Procedure MyDemo.OnMouseUp(Const X,Y:Single; Const Button:Word);

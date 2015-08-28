@@ -130,10 +130,10 @@ Type
       Function GetCodepointBitmap(scaleX, scaleY: Single; codepoint: Integer; var xoff, yoff: Integer):TERRAImage;
       Function ScaleForPixelHeight(height: Single): Single;
 
-      Function HasGlyph(ID:Cardinal):Boolean;
+      Function HasGlyph(ID:TERRAChar):Boolean;
 
-      Function InitGlyph(Font:TERRAFont; ID:Cardinal; Size:Integer):FontGlyph; Override;
-      Function GetKerning(Current, Next:Cardinal):Integer; Override;
+      Function InitGlyph(Font:TERRAFont; ID:TERRAChar; Size:Integer):FontGlyph; Override;
+      Function GetKerning(Current, Next:TERRAChar):Integer; Override;
 
       Property Ready:Boolean Read _Ready;
     End;
@@ -1475,20 +1475,22 @@ Begin
    End;
 End;
 
-Function TTFFont.GetKerning(Current, Next: Cardinal): Integer;
+Function TTFFont.GetKerning(Current, Next:TERRAChar): Integer;
 Begin
-  Result := Trunc(stbtt_GetCodepointKernAdvance(Current, Next) * _Scale);
+  Result := Trunc(stbtt_GetCodepointKernAdvance(CharValue(Current), CharValue(Next)) * _Scale);
 End;
 
-Function TTFFont.HasGlyph(ID: Cardinal): Boolean;
+Function TTFFont.HasGlyph(ID:TERRAChar): Boolean;
 Var
+  N:Cardinal;
   P:Integer;
 begin
-  P := stbtt_FindGlyphIndex(ID);
+  N := CharValue(ID);
+  P := stbtt_FindGlyphIndex(N);
   Result := (P>0);
 End;
 
-Function TTFFont.InitGlyph(Font:TERRAFont; ID: Cardinal; Size:Integer): FontGlyph;
+Function TTFFont.InitGlyph(Font:TERRAFont; ID:TERRAChar; Size:Integer): FontGlyph;
 Var
   W,H,XOfs,YOfs, XAdv,lsb:Integer;
   OpID:Cardinal;
@@ -1504,9 +1506,9 @@ Begin
 
   {$IFDEF DEBUG_FONTS}Log(logDebug,'Font','Rendering ttf '+IntToString(ID));{$ENDIF}
 
-  If (ID = 32) Then
+  If (ID = #32) Then
   Begin
-    OpID := Ord('E');
+    OpID := CharValue('E');
     Img := GetCodepointBitmap(_Scale, _Scale, OpID, xofs, yofs);
     ReleaseObject(Img);
     Img := TERRAImage.Create(4,4);
@@ -1516,7 +1518,7 @@ Begin
     Exit;
   End;
 
-  Img := GetCodepointBitmap(_Scale, _Scale, ID, xofs, yofs);
+  Img := GetCodepointBitmap(_Scale, _Scale, CharValue(ID), xofs, yofs);
   If Not Assigned(Img) Then
     Exit;
 
@@ -1525,7 +1527,7 @@ Begin
   W := Img.Width;
   H := Img.Height;
 
-  stbtt_GetCodepointHMetrics(ID, XAdv, lsb);
+  stbtt_GetCodepointHMetrics(CharValue(ID), XAdv, lsb);
 
   Result := Font.AddGlyph(ID, Img, XOfs, YOfs, Trunc(XAdv*_Scale));
 

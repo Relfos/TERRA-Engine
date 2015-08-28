@@ -559,7 +559,7 @@ Begin
   If _Encoding = encodingASCII Then
   Begin
     Self.ReadByte(A);
-    If (A = NewLineChar) Then
+    If (A = Ord(NewLineChar)) Then
     Begin
       If (Not Self.EOF) Then
       Begin
@@ -574,7 +574,7 @@ Begin
     Begin
       Value := NewLineChar;
     End Else
-      Value := A;
+      Value := TERRAChar(A);
 
     Exit;
   End;
@@ -588,11 +588,11 @@ Begin
 
     If (A<$80) Then
     Begin
-      Value := A;
+      Value := TERRAChar(A);
       Exit;
     End;
 
-    If ((A And $F0)=$F0) Then
+(*    If ((A And $F0)=$F0) Then
     Begin
       ReadByte(B);
       ReadByte(C);
@@ -604,8 +604,8 @@ Begin
         Exit;
       End;
 
-      Value := ((A And $0F) Shl 24) Or ((B And $0F) Shl 12) Or ((C And $3F) Shl 6) Or (D And $3F);
-    End Else
+      Value := TERRAChar(((A And $0F) Shl 24) Or ((B And $0F) Shl 12) Or ((C And $3F) Shl 6) Or (D And $3F));
+    End Else*)
     If ((A And $E0)=$E0) Then
     Begin
       ReadByte(B);
@@ -617,7 +617,7 @@ Begin
         Exit;
       End;
 
-      Value := ((A And $0F) Shl 12) Or ((B And $3F) Shl 6) Or (C And $3F);
+      Value := TERRAChar(((A And $0F) Shl 12) Or ((B And $3F) Shl 6) Or (C And $3F));
     End Else
     If ((A And $C0)=$C0) Then
     Begin
@@ -629,10 +629,10 @@ Begin
         Exit;
       End;
 
-      Value := ((A And $1F) Shl 6) Or (B And $3F);
+      Value := TERRAChar(((A And $1F) Shl 6) Or (B And $3F));
     End Else
     Begin
-      Value := A;
+      Value := TERRAChar(A);
       Log(logError, 'UTF8', 'Decoding error #4');
     End;
 
@@ -669,7 +669,7 @@ Begin
     End Else
     If (A=0) Then
     Begin
-      Value := B;
+      Value := TERRAChar(B);
     End Else
     Begin
       Value := BytesToChar(A, B);

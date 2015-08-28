@@ -335,7 +335,7 @@ Function TERRAObject.FindPropertyWithPath(Path:TERRAString):TERRAObject;
 Var
   S:TERRAString;
 Begin
-  S := StringGetNextSplit(Path, Ord('.'));
+  S := StringGetNextSplit(Path, '.');
   Result := Self.FindProperty(S);
 
   If (Path = '') Or (Result = Nil) Then

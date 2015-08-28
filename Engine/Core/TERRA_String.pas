@@ -24,9 +24,13 @@
 
 //http://stackoverflow.com/questions/199260/how-do-i-reverse-a-utf-8-string-in-place
 
-Unit TERRA_String;
+{$IFDEF OXYGENE}
+namespace TERRA;
 
+{$ELSE}
+Unit TERRA_String;
 {$I terra.inc}
+{$ENDIF}
 
 Interface
 
@@ -42,17 +46,24 @@ Interface
 Uses MemCheck;
 {$ELSE}
 {$IFNDEF DEBUG_LEAKS}
+{$IFNDEF OXYGENE}
 Uses TERRA_MemoryManager;
+{$ENDIF}
 {$ENDIF}
 {$ENDIF}
 
 Const
-  NullChar = 0;
-  NewLineChar = 13;
+  NullChar = #0;
+  NewLineChar = #13;
 
 Type
+  {$IFDEF OXYGENE}
+  TERRAString = String;
+  TERRAChar = Char;
+  {$ELSE}
   TERRAString = AnsiString;
-  TERRAChar = Cardinal;
+  TERRAChar = WideChar;
+  {$ENDIF}
 
   StringArray = Array Of TERRAString;
 
@@ -64,7 +75,7 @@ Type
     PrevIndex:Integer;
   End;
 
-  StringIterator = Object
+  StringIterator = {$IFDEF OXYGENE}Record{$ELSE}Object{$ENDIF}
     Protected
       _Target:TERRAString;
       _State:StringIteratorState;
@@ -129,7 +140,7 @@ Function StringUpper(Const S:TERRAString):TERRAString;
 Function StringLower(Const S:TERRAString):TERRAString;
 Function StringCapitals(Const S:TERRAString):TERRAString;
 
-Function StringFromChar(Const C:TERRAChar):TERRAString;
+Function StringFromChar(Const Value:TERRAChar):TERRAString;
 
 Function StringCharCount(Const S:TERRAString; Const C:TERRAChar):Integer;
 
@@ -149,6 +160,7 @@ Function StringCompare(Const A,B:TERRAString; IgnoreCase:Boolean = False):Intege
 Function BytesToChar(A, B:Byte):TERRAChar;
 Function CharToByte(Const Value:TERRAChar):Byte;
 Procedure CharToBytes(Const Value:TERRAChar; Out A,B:Byte);
+Function CharValue(Const Value:TERRAChar):Cardinal;
 
 Function CharUpper(Const C:TERRAChar):TERRAChar;
 Function CharLower(Const C:TERRAChar):TERRAChar;
@@ -199,7 +211,10 @@ Function StringMatchRegEx(Const S, Expression:TERRAString; IgnoreCase:Boolean = 
 //Function StringExplode(Const S, Token:TERRAString):StringArray;
 
 Implementation
+
+{$IFNDEF OXYGENE}
 Uses TERRA_Error;
+{$ENDIF}
 
 Function StringMatchRegEx(Const S, Expression:TERRAString; IgnoreCase:Boolean):Boolean;
 Var
@@ -216,9 +231,9 @@ Begin
     A := It.GetNext();
     B := SubIt.GetNext();
 
-    If (B = Ord('*')) Then
+    If (B = '*') Then
     Begin
-      While (B = Ord('*')) Do
+      While (B = '*') Do
       Begin
         If (Not SubIt.HasNext()) Then
         Begin
@@ -437,30 +452,35 @@ Begin
   B := (Word(Value)) And $FF;
 End;
 
+Function CharValue(Const Value:TERRAChar):Cardinal;
+Begin
+  Result := Cardinal(Value);
+End;
+
 Function CharUpper(Const C:TERRAChar):TERRAChar;
 Begin
-  If (C>=Ord('a')) And (C<=Ord('z')) Then
-    Result := C - 32
+  If (C>='a') And (C<='z') Then
+    Result := TERRAChar(CharValue(C) - 32)
   Else
-  If (C>=1072) And (C<=1103) Then // cyrillic
-    Result := C - 32
+  If (C>=#1072) And (C<=#1103) Then // cyrillic
+    Result := TERRAChar(CharValue(C) - 32)
   Else
-  If (C>=1104) And (C<=1119) Then // cyrillic2
-    Result := C - 80
+  If (C>=#1104) And (C<=#1119) Then // cyrillic2
+    Result := TERRAChar(CharValue(C) - 80)
   Else
     Result := C;
 End;
 
 Function CharLower(Const C:TERRAChar):TERRAChar;
 Begin
-  If (C>=Ord('A')) And (C<=Ord('Z')) Then
-    Result := C + 32
+  If (C>='A') And (C<='Z') Then
+    Result := TERRAChar(CharValue(C) + 32)
   Else
-  If (C>=1040) And (C<=1071) Then // cyrillic
-    Result := C + 32
+  If (C>=#1040) And (C<=#1071) Then // cyrillic
+    Result := TERRAChar(CharValue(C) + 32)
   Else
-  If (C>=1024) And (C<=1039) Then // cyrillic2
-    Result := C + 80
+  If (C>=#1024) And (C<=#1039) Then // cyrillic2
+    Result := TERRAChar(CharValue(C) + 80)
   Else
     Result := C;
 End;
@@ -491,21 +511,31 @@ Begin
   Result := NullChar;
 End;
 
-Function StringFromChar(Const C:TERRAChar):TERRAString;
+Function StringFromChar(Const Value:TERRAChar):TERRAString;
+Var
+  N:Cardinal;
+  A, B, C:Byte;
 Begin
-  If C<$80 Then
+  N := CharValue(Value);
+
+  If N<$80 Then
   Begin
-    Result := Char(Byte(C));
+    Result := Value;
     Exit;
   End;
 
-  If C<=$7FF Then
+  If N<=$7FF Then
   Begin
-    Result := Char($C0 Or (C Shr 6)) + Char($80 Or (C and $3F));
+    A := $C0 Or (N Shr 6);
+    B := $80 Or (N and $3F);
+    Result := '' + Char(A) + Char(B);
     Exit;
   End;
 
-  Result := Char($E0 Or (C Shr 12)) + Char($80 Or ((C Shr 6) And $3F)) + Char($80 Or (C And $3F));
+  A := $E0 Or (N Shr 12);
+  B := $80 Or ((N Shr 6) And $3F);
+  C := $80 Or (N And $3F);
+  Result := '' + Char(A) + Char(B) + Char(C);
 End;
 
 Procedure StringAppendChar(Var Str:TERRAString; Const C:TERRAChar);
@@ -522,6 +552,7 @@ Function StringPosIteratorSearch(Var It, SubIt:StringIterator; IgnoreCase:Boolea
 Var
   A,B:TERRAChar;
   Temp:StringIteratorState;
+  Found:Boolean;
 
   Procedure DoMatch();
   Begin
@@ -535,11 +566,11 @@ Var
       It.RestoreState(Temp);
 
       It._Remainder := Pred(StringLength(SubIt._Target));
-      Result := True;
+      Found := True;
     End;
   End;
 Begin
-  Result := False;
+  Found := False;
 
   While (It.HasNext) And (Not Result) Do
   Begin
@@ -560,6 +591,8 @@ Begin
         SubIt.Reset();
     End;
   End;
+
+  Result := Found;
 End;
 
 Function StringPosIterator(Const Substr, S:TERRAString; Out It:StringIterator; IgnoreCase:Boolean):Boolean;
@@ -809,7 +842,7 @@ Var
   It:StringIterator;
   N, Min, Max, Len:Integer;
   C:TERRAChar;
-  Result:TERRAString;
+  S:TERRAString;
 Begin
   If Str = '' Then
     Exit;
@@ -827,7 +860,7 @@ Begin
   End;
 
   N := 0;
-  Result := '';
+  S := '';
   StringCreateIterator(Str, It);
   While It.HasNext Do
   Begin
@@ -835,10 +868,10 @@ Begin
     Inc(N);
 
     If (N>=Min) And (N<=Max) Then
-      StringAppendChar(Result, C);
+      StringAppendChar(S, C);
   End;
 
-  Str := Result; 
+  Str := S; 
 End;
 
 Function StringFirstChar(Const Str:TERRAString):TERRAChar;
@@ -887,7 +920,7 @@ Begin
   While It.HasNext Do
   Begin
     C := It.GetNext();
-    If (C>32) Then
+    If (C>#32) Then
     Begin
       It.Split(Temp, Result);
       StringPrependChar(Result, C);
@@ -915,7 +948,7 @@ Begin
   While It.HasNext Do
   Begin
     C := It.GetNext();
-    If (C>32) Then
+    If (C>#32) Then
     Begin
       It.Split(Temp, Result);
       StringPrependChar(Result, C);
@@ -952,7 +985,7 @@ Begin
 End;
 
 Const
-  WordSeparators: TERRAString = ' ,:><!?'+Chr(NewLineChar);
+  WordSeparators: TERRAString = ' ,:><!?'+NewLineChar;
 
 Function StringExtractNextWord(Var S:TERRAString; Out Separator:TERRAChar):TERRAString;
 Var
@@ -1168,7 +1201,7 @@ Const
      '%f8', '%f9', '%fa', '%fb', '%fc', '%fd', '%fe', '%ff');
 Var
   It:StringIterator;
-  C:Word;
+  C:TERRAChar;
   IsSafe:Boolean;
 Begin
   Result := '';
@@ -1177,40 +1210,40 @@ Begin
   Begin
     C := It.GetNext();
 
-    If (C>=Ord('a')) And (C<=Ord('z')) Then
+    If (C>='a') And (C<='z') Then
       IsSafe := True
     Else
-    If (C>=Ord('A')) And (C<=Ord('Z')) Then
+    If (C>='A') And (C<='Z') Then
       IsSafe := True
     Else
-    If (C>=Ord('0')) And (C<=Ord('9')) Then
+    If (C>='0') And (C<='9') Then
       IsSafe := True
     Else
-    If (C = Ord('-')) Or (C = Ord('.')) Or (C = Ord('!')) Or (C = Ord('*')) Or
-    (C = Ord('~')) Or (C = Ord('\')) Or (C = Ord('(')) Or (C = Ord(')')) Or (C = Ord('@')) Then
+    If (C = '-') Or (C = '.') Or (C = '!') Or (C = '*') Or
+    (C = '~') Or (C = '\') Or (C = '(') Or (C = ')') Or (C = '@') Then
       IsSafe := True
     Else
       IsSafe := False;
 
     If (IsSafe) Then
     Begin
-      Result := Result + Chr(C);
+      Result := Result + C;
     End Else
-    If (C = Ord(' ')) Then 
+    If (C = ' ') Then
     Begin
       Result := Result + '+';
     End Else
-    If (C <= $07F) Then
-      Result := Result + Hex[C]
+    If (C <= #$07F) Then
+      Result := Result + Hex[CharValue(C)]
     Else
-    If (C <= $7FF) Then
+    If (C <= #$7FF) Then
     Begin
-      Result := Result + Hex[$C0 Or (C Shr 6)] + Hex[$80 Or (C And $3F)];
+      Result := Result + Hex[$C0 Or (CharValue(C) Shr 6)] + Hex[$80 Or (CharValue(C) And $3F)];
     End Else
     Begin
-      Result := Result + Hex[$E0 Or (C shr 12)];
-      Result := Result + Hex[$80 Or ((C shr 6) And $3F)];
-      Result := Result + Hex[$80 Or (C And $3F)];
+      Result := Result + Hex[$E0 Or (CharValue(C) shr 12)];
+      Result := Result + Hex[$80 Or ((CharValue(C) shr 6) And $3F)];
+      Result := Result + Hex[$80 Or (CharValue(C) And $3F)];
     End;
   End;
 End;
@@ -1258,7 +1291,7 @@ Begin
   While I>=1 Do
   Begin
     FileName := StringCopy(FileName, I+1, MaxInt);
-    I := StringCharPosReverse(Ord(PathSeparator), FileName);
+    I := StringCharPosReverse(CharValue(PathSeparator), FileName);
   End;
 End;}
 
@@ -1269,7 +1302,7 @@ Begin
   StringCreateIterator(S, It);
   While It.HasNext() Do
   Begin
-    If It.GetNext() > 127 Then
+    If It.GetNext() > #127 Then
     Begin
       Result := True;
       Exit;
@@ -1336,6 +1369,7 @@ End;
 Function StringIterator.GetNext: TERRAChar;
 Var
   A,B,C:Byte;
+  N:Cardinal;
 Begin
   If (_State.Index > _Size) Then
   Begin
@@ -1353,7 +1387,7 @@ Begin
   A := NextRawByte();
   If (A<$80) Then
   Begin
-    Result := A;
+    Result := TERRAChar(A);
   End Else
   If ((A And $E0) = $E0) Then
   Begin
@@ -1365,7 +1399,8 @@ Begin
       Exit;
     End;
 
-    Result := ((A And $0F) Shl 12) Or ((B And $3F) Shl 6) Or (C And $3F);
+    N := ((A And $0F) Shl 12) Or ((B And $3F) Shl 6) Or (C And $3F);
+    Result := TERRAChar(N);
   End Else
   If ((A And $C0) = $C0) Then
   Begin
@@ -1376,7 +1411,8 @@ Begin
       Exit;
     End;
 
-    Result := ((A And $1F) Shl 6) Or (B And $3F);
+    N := ((A And $1F) Shl 6) Or (B And $3F);
+    Result := TERRAChar(N);
   End Else
     Result := NullChar;
 
@@ -1410,7 +1446,10 @@ Function StringFill(Length:Integer; C:TERRAChar):TERRAString;
 Var
   I:Integer;
 Begin
-  If (C<255) Then
+  {$IFDEF OXYGENE}
+  Result := TERRAString.create(C, length);
+  {$else}
+  If (C<#255) Then
   Begin
     SetLength(Result, Length);
     For I:=1 To Length Do
@@ -1421,6 +1460,7 @@ Begin
     For I:=1 To Length Do
       StringAppendChar(Result, C);
   End;
+  {$ENDIF}
 End;
 
 Function StringCompare(Const A,B:TERRAString; IgnoreCase:Boolean = False):Integer;
@@ -1436,12 +1476,12 @@ Begin
     If (IA.HasNext) Then
       CA := IA.GetNext()
     Else
-      CA := 0;
+      CA := NullChar;
 
     If (IB.HasNext) Then
       CB := IB.GetNext()
     Else
-      CB := 0;
+      CB := NullChar;
 
     If (CA<CB) Then
     Begin

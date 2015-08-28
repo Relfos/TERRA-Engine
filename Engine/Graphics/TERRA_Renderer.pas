@@ -1246,11 +1246,11 @@ Begin
       Break;
 
     Source := Copy(Source, I + 10, MaxInt);
-    S := StringGetNextSplit(Source, Ord(' '));      // type
+    S := StringGetNextSplit(Source, ' ');      // type
     S := StringUpper(S);
     If (S='HIGHP') Or (S='LOWP') Or (S='MEDIUMP') Then
-      S := StringGetNextSplit(Source, Ord(' '));      // type
-    S2 := StringGetNextSplit(Source, Ord(';'));      // name
+      S := StringGetNextSplit(Source, ' ');      // type
+    S2 := StringGetNextSplit(Source, ';');      // name
 
     Inc(_AttributeCount);
     SetLength(_Attributes, _AttributeCount);

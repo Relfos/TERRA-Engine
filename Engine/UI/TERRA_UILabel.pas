@@ -47,7 +47,7 @@ End;
 
 Function UILabel.GetLocalizationKey: TERRAString;
 Begin
-  If StringFirstChar(_Caption.Value) = Ord('#') Then
+  If StringFirstChar(_Caption.Value) = '#' Then
   Begin
     Result := StringCopy(_Caption.Value, 2, MaxInt);
   End Else

@@ -106,7 +106,7 @@ Begin
   While It.HasNext() Do
   Begin
     C := It.GetNext();
-    If (C<Ord(' ')) Then
+    If (C<' ') Then
     Begin
       Result := True;
       Exit;

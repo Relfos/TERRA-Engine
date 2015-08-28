@@ -118,8 +118,8 @@ Implementation
 
 Function StringToVector2D(S:TERRAString):Vector2D;
 Begin
-  Result.X := StringToFloat(StringGetNextSplit(S, Ord('/')));
-  Result.Y := StringToFloat(StringGetNextSplit(S, Ord('/')));
+  Result.X := StringToFloat(StringGetNextSplit(S, '/'));
+  Result.Y := StringToFloat(StringGetNextSplit(S, '/'));
 End;
 
 Function Vector2D_Create(Const X,Y:Single):Vector2D; {$IFDEF FPC} Inline;{$ENDIF}

@@ -8,7 +8,7 @@ Uses TERRA_String, TERRA_Object, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector
   TERRA_Collections, TERRA_Viewport, TERRA_UIText;
 
 Const
-  PasswordCharacter = Ord('*'); 
+  PasswordCharacter = '*'; 
 
 Type
   UIEditText = Class(UIText)
@@ -70,7 +70,7 @@ End;
 
 Procedure UIEditText.UpdateJamos;
 Var
-  Jamo:Word;
+  Jamo:TERRAChar;
   N:Integer;
   S:TERRAString;
 Begin
@@ -81,9 +81,9 @@ Begin
       N := _KoreanFinalJamo
     Else
       N := 0;
-    Jamo := (_KoreanInitialJamo*588)+(_KoreanMedialJamo*28)+N+44032;
+    Jamo := TERRAChar((_KoreanInitialJamo*588)+(_KoreanMedialJamo*28)+N+44032);
   End Else
-    Jamo := _KoreanBaseJamo;
+    Jamo := TERRAChar(_KoreanBaseJamo);
 
   StringAppendChar(S, Jamo);
   _Content.Value := S;
@@ -103,7 +103,7 @@ Begin
     Exit;
   End;
 
-  If (Key = keyShift) Or (Key = keyControl) Or (Key = keyAlt) Then
+  If (Ord(Key) = keyShift) Or (Ord(Key) = keyControl) Or (Ord(Key) = keyAlt) Then
   Begin
     Result := False;
     Exit;
@@ -116,7 +116,7 @@ Begin
 
   S := _Content.Value;
 
-  If (Key = keyBackspace) Then
+  If (Ord(Key) = keyBackspace) Then
   Begin
     If (_KoreanFinalJamo>=0) Then
     Begin
@@ -133,17 +133,17 @@ Begin
       Len := StringLength(S);
 
       // check for font control chars/effects
-      If (Len>=2) And (StringGetChar(S, -1) = Ord('\')) Then
+      If (Len>=2) And (StringGetChar(S, -1) = '\') Then
       Begin
         StringDropChars(S, -2);
       End Else
       If (S<>'') Then
       Begin
         I := Len;
-        If (StringLastChar(S) = Ord('}')) Then
+        If (StringLastChar(S) = '}') Then
         Begin
           While (I>=1) Do
-          If (StringGetChar(S, I) = Ord('\')) Then
+          If (StringGetChar(S, I) = '\') Then
             Break
           Else
             Dec(I);
@@ -158,7 +158,7 @@ Begin
     End;
 
   End Else
-  If (Key = keyEnter) Then
+  If (Ord(Key) = keyEnter) Then
   Begin
     If (Self.MultiLine) Then
     Begin
@@ -203,7 +203,7 @@ Begin
         _KoreanInitialJamo := GetKoreanInitialJamo(Key);
         _KoreanMedialJamo := -1;
         _KoreanFinalJamo := -1;
-        _KoreanBaseJamo := Key;
+        _KoreanBaseJamo := Ord(Key);
         StringAppendChar(S, Key);
       End Else
       If (_KoreanMedialJamo<0) And (_KoreanFinalJamo<0) Then

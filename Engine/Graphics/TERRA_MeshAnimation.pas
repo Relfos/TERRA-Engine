@@ -189,7 +189,7 @@ Begin
   If (Name='') Then
     Exit;
 
-  If (StringFirstChar(Name) = Ord('@')) Then
+  If (StringFirstChar(Name) = '@') Then
     Name := StringCopy(Name, 2, MaxInt);
 
   Result := Animation(GetResource(Name));

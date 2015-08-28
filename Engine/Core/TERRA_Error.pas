@@ -21,12 +21,21 @@
  * Implements a generic engine error exception
  ***********************************************************************************************************************
 }
-Unit TERRA_Error;
 
+{$IFDEF OXYGENE}
+namespace TERRA;
+
+{$ELSE}
+Unit TERRA_Error;
 {$I terra.inc}
+{$ENDIF}
+
 
 Interface
+
+{$IFNDEF OXYGENE}
 Uses SysUtils, TERRA_String;
+{$ENDIF} 
 
 Var
   _FatalError:TERRAString = '';
@@ -34,8 +43,10 @@ Var
 Procedure RaiseError(Const Desc:TERRAString);
 
 Implementation
-Uses TERRA_Log;
 
+{$IFNDEF OXYGENE}
+Uses TERRA_Log;
+{$ENDIF} 
 
 Type
   TERRAException = Class(Exception)

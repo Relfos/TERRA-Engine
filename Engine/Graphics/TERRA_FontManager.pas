@@ -127,7 +127,8 @@ End;
 Function FontManager.GetDefaultFont: TERRAFont;
 Var
   Glyph:FontGlyph;
-  I, ID:Integer;
+  I:Integer;
+  ID:TERRAChar;
   Src:TERRAStream;
   SrcImg, SubImg:TERRAImage;
 
@@ -149,25 +150,25 @@ Begin
 
   For I:=32 To 128 Do
   Begin
-    ID := I;
+    ID := TERRAChar(I);
     Glyph := Nil;
     SubImg := Nil;
 
 	  Case ID Of
-	  32: SubPic(8*20, 12*2, 4, 12);
-	  Ord('#'):	SubPic(8*10, 12*2, 8, 12);
-	  Ord('!'):	SubPic(8*11, 12*2, 4, 12);
-	  Ord('?'): SubPic(8*12, 12*2, 8, 12);
-	  Ord(','): SubPic(8*13, 12*2, 4, 12);
-    Ord('.'): SubPic(8*14, 12*2, 4, 12);
-	  Ord('$'): SubPic(8*15, 12*2, 8, 12);
-	  Ord(':'): SubPic(8*16, 12*2, 8, 12);
-	  Ord('+'): SubPic(8*17, 12*2, 8, 12);
-	  Ord('-'): SubPic(8*18, 12*2, 8, 12);
-	  Ord(''''):SubPic(8*19, 12*2, 4, 12);
-	  48..57: SubPic(8*(ID-48), 12*2, 8, 12);
-	  65..90: SubPic(8*(ID-65), 12*0, 8, 12);
-	  97..122:  SubPic(8*(ID-97), 12*1, 8, 12);
+	  #32: SubPic(8*20, 12*2, 4, 12);
+	  '#':	SubPic(8*10, 12*2, 8, 12);
+	  '!':	SubPic(8*11, 12*2, 4, 12);
+	  '?': SubPic(8*12, 12*2, 8, 12);
+	  ',': SubPic(8*13, 12*2, 4, 12);
+    '.': SubPic(8*14, 12*2, 4, 12);
+	  '$': SubPic(8*15, 12*2, 8, 12);
+	  ':': SubPic(8*16, 12*2, 8, 12);
+	  '+': SubPic(8*17, 12*2, 8, 12);
+	  '-': SubPic(8*18, 12*2, 8, 12);
+	  '''':SubPic(8*19, 12*2, 4, 12);
+	  #48..#57: SubPic(8*(Ord(ID)-48), 12*2, 8, 12);
+	  #65..#90: SubPic(8*(Ord(ID)-65), 12*0, 8, 12);
+	  #97..#122:  SubPic(8*(Ord(ID)-97), 12*1, 8, 12);
 	  End;
 
     If Assigned(SubImg) Then
@@ -178,10 +179,10 @@ Begin
 
 	  If (Assigned(Glyph)) Then
     Begin
-		  If (ID=73) Then
+		  If (ID=#73) Then
   			Glyph.XAdvance := 5
       Else
-		  If (ID=105) Then
+		  If (ID=#105) Then
 			  Glyph.XAdvance := 5
       Else
     		Glyph.XAdvance := Glyph.Width;

@@ -194,25 +194,25 @@ End;
 Function GetKoreanInitialJamo(N:TERRAChar):Integer;
 Begin
   Case N Of
-	12593: Result := 0;
-	12594: Result := 1;
-	12596: Result := 2;
-	12599: Result := 3;
-	12600: Result := 4;
-	12601: Result := 5;
-	12609: Result := 6;
-	12610: Result := 7;
-	12611: Result := 8;
-	12613: Result := 9;
-	12614: Result := 10;
-	12615: Result := 11;
-	12616: Result := 12;
-	12617: Result := 13;
-	12618: Result := 14;
-	12619: Result := 15;
-	12620: Result := 16;
-	12621: Result := 17;
-	12622: Result := 18;
+	#12593: Result := 0;
+	#12594: Result := 1;
+	#12596: Result := 2;
+	#12599: Result := 3;
+	#12600: Result := 4;
+	#12601: Result := 5;
+	#12609: Result := 6;
+	#12610: Result := 7;
+	#12611: Result := 8;
+	#12613: Result := 9;
+	#12614: Result := 10;
+	#12615: Result := 11;
+	#12616: Result := 12;
+	#12617: Result := 13;
+	#12618: Result := 14;
+	#12619: Result := 15;
+	#12620: Result := 16;
+	#12621: Result := 17;
+	#12622: Result := 18;
   Else
     Result := -1;
   End;
@@ -221,27 +221,27 @@ End;
 Function GetKoreanMedialJamo(N:TERRAChar):Integer;
 Begin
   Case N Of
-	12623: Result := 0;
-	12624: Result := 1;
-	12625: Result := 2;
-	12626: Result := 3;
-	12627: Result := 4;
-	12628: Result := 5;
-	12629: Result := 6;
-	12630: Result := 7;
-	12631: Result := 8;
-	12632: Result := 9;
-	12633: Result := 10;
-	12634: Result := 11;
-	12635: Result := 12;
-	12636: Result := 13;
-	12637: Result := 14;
-	12638: Result := 15;
-	12639: Result := 16;
-	12640: Result := 17;
-	12641: Result := 18;
-	12642: Result := 19;
-	12643: Result := 20;
+	#12623: Result := 0;
+	#12624: Result := 1;
+	#12625: Result := 2;
+	#12626: Result := 3;
+	#12627: Result := 4;
+	#12628: Result := 5;
+	#12629: Result := 6;
+	#12630: Result := 7;
+	#12631: Result := 8;
+	#12632: Result := 9;
+	#12633: Result := 10;
+	#12634: Result := 11;
+	#12635: Result := 12;
+	#12636: Result := 13;
+	#12637: Result := 14;
+	#12638: Result := 15;
+	#12639: Result := 16;
+	#12640: Result := 17;
+	#12641: Result := 18;
+	#12642: Result := 19;
+	#12643: Result := 20;
   Else
     Result := -1;
   End;
@@ -250,33 +250,33 @@ End;
 Function GetKoreanFinalJamo(N:TERRAChar):Integer;
 Begin
   Case N Of
-	12593: Result := 1;
-	12594: Result := 2;
-	12595: Result := 3;
-	12596: Result := 4;
-	12597: Result := 5;
-	12598: Result := 6;
-	12599: Result := 7;
-	12601: Result := 8;
-	12602: Result := 9;
-	12603: Result := 10;
-	12604: Result := 11;
-	12605: Result := 12;
-	12606: Result := 13;
-	12607: Result := 14;
-	12608: Result := 15;
-	12609: Result := 16;
-	12610: Result := 17;
-	12612: Result := 18;
-	12613: Result := 19;
-	12614: Result := 20;
-	12615: Result := 21;
-	12616: Result := 22;
-	12618: Result := 23;
-	12619: Result := 24;
-	12620: Result := 25;
-	12621: Result := 26;
-	12622: Result := 27;
+	#12593: Result := 1;
+	#12594: Result := 2;
+	#12595: Result := 3;
+	#12596: Result := 4;
+	#12597: Result := 5;
+	#12598: Result := 6;
+	#12599: Result := 7;
+	#12601: Result := 8;
+	#12602: Result := 9;
+	#12603: Result := 10;
+	#12604: Result := 11;
+	#12605: Result := 12;
+	#12606: Result := 13;
+	#12607: Result := 14;
+	#12608: Result := 15;
+	#12609: Result := 16;
+	#12610: Result := 17;
+	#12612: Result := 18;
+	#12613: Result := 19;
+	#12614: Result := 20;
+	#12615: Result := 21;
+	#12616: Result := 22;
+	#12618: Result := 23;
+	#12619: Result := 24;
+	#12620: Result := 25;
+	#12621: Result := 26;
+	#12622: Result := 27;
   Else
     Result := -1;
   End;
@@ -324,7 +324,7 @@ Begin
     Result:=Result+Ext;
 
   If (Application.Instance.Language = language_Russian) Then
-    StringAppendChar(Result, 1073)
+    StringAppendChar(Result, #1073)
   Else
     Result := Result + 'b';
 End;
@@ -539,7 +539,7 @@ Begin
   While It.HasNext() Do
   Begin
     C := It.GetNext();
-    If (C>255) Then
+    If (C>#255) Then
     Begin
       N := It.Position + 1;
       Break;
@@ -612,7 +612,7 @@ Begin
   S2 := Copy(Text, I+Length(_Suggestions[Index].Text), MaxInt);
 
   Text := S;
-  StringAppendChar(Text, _Suggestions[Index].ID);
+  StringAppendChar(Text, TERRAChar(_Suggestions[Index].ID));
   Text := Text + S2;
 
   Result := True;
@@ -629,28 +629,28 @@ Begin
     Result := 'Deutsch'
   Else
   If Lang = language_Spanish Then
-    Result := 'Espa'+StringFromChar(Ord('ñ'))+'ol'
+    Result := 'Espa'+StringFromChar('ñ')+'ol'
   Else
   If Lang = language_Portuguese Then
-    Result := 'Portugu'+StringFromChar(Ord('ê'))+'s'
+    Result := 'Portugu'+StringFromChar('ê')+'s'
   Else
   If Lang = language_French Then
-    Result := 'Fran'+StringFromChar(Ord('ç'))+'ais'
+    Result := 'Fran'+StringFromChar('ç')+'ais'
   Else
   If Lang = language_Italian Then
     Result := 'Italiano'
   Else
   If Lang = language_Russian Then
-    Result := StringFromChar(1056)+ StringFromChar(1091) + StringFromChar(1089) + StringFromChar(1089) + StringFromChar(1082) + StringFromChar(1080) + StringFromChar(1081)
+    Result := StringFromChar(#1056)+ StringFromChar(#1091) + StringFromChar(#1089) + StringFromChar(#1089) + StringFromChar(#1082) + StringFromChar(#1080) + StringFromChar(#1081)
   Else
   If Lang = language_Korean Then
-    Result := StringFromChar(54620) + StringFromChar(44544)
+    Result := StringFromChar(#54620) + StringFromChar(#44544)
   Else
   If Lang = language_Japanese Then
-    Result := StringFromChar(26085) + StringFromChar(26412) + StringFromChar(35486)
+    Result := StringFromChar(#26085) + StringFromChar(#26412) + StringFromChar(#35486)
   Else
   If Lang = language_Chinese Then
-    Result := StringFromChar(20013) + StringFromChar(22269)
+    Result := StringFromChar(#20013) + StringFromChar(#22269)
   Else
     Result := invalidString;
 End;

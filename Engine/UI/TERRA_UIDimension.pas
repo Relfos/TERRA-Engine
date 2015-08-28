@@ -89,7 +89,7 @@ Var
 Begin
   S := Blob;
 
-  If StringLastChar(S) = Ord('%') Then
+  If StringLastChar(S) = '%' Then
   Begin
     _Dimension.IsPercent := True;
 

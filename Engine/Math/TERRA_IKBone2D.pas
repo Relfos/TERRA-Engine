@@ -117,12 +117,12 @@ Function IKBone2D.GetAbsoluteMatrix: Matrix3x3;
 Begin
   Result := Self.GetRelativeMatrix();
   If Assigned(Self.parent) Then
-    Result := MatrixMultiply3x3(Parent.GetAbsoluteMatrix(), Result);
+    Result := Matrix3x3_Multiply(Parent.GetAbsoluteMatrix(), Result);
 End;
 
 Function IKBone2D.GetRelativeMatrix: Matrix3x3;
 Begin
-  Result := MatrixRotation2D(_Rotation);
+  Result := Matrix3x3_Rotation(_Rotation);
   Result.SetTranslation(_Position);
 End;
 
@@ -159,30 +159,30 @@ Begin
 		desiredEnd := endPos;
 
 		// SEE IF I AM ALREADY CLOSE ENOUGH
-    If (VectorSubtract2D(curEnd, desiredEnd).LengthSquared <= IK_POS_THRESH) Then
+    If (Vector2D_Subtract(curEnd, desiredEnd).LengthSquared <= IK_POS_THRESH) Then
     Begin
       Result := True;
       Exit;
     End;
 
     // CREATE THE VECTOR TO THE CURRENT EFFECTOR POS
-		curVector := VectorSubtract2D(curEnd, rootPos);
+		curVector := Vector2D_Subtract(curEnd, rootPos);
 
 		// CREATE THE DESIRED EFFECTOR POSITION VECTOR
-		targetVector := VectorSubtract2D(endPos, rootPos);
+		targetVector := Vector2D_Subtract(endPos, rootPos);
 
 		// NORMALIZE THE VECTORS (EXPENSIVE, REQUIRES A SQRT)
 		curVector.Normalize;
 		targetVector.Normalize;
 
 		// THE DOT PRODUCT GIVES ME THE COSINE OF THE DESIRED ANGLE
-		cosAngle := VectorDot2D(targetVector, curVector);
+		cosAngle := Vector2D_Dot(targetVector, curVector);
 
     // IF THE DOT PRODUCT RETURNS 1.0, I DON'T NEED TO ROTATE AS IT IS 0 DEGREES
 		If (cosAngle < 0.99999) Then
     Begin
       // USE THE CROSS PRODUCT TO CHECK WHICH WAY TO ROTATE
-			crossResult := VectorCross(VectorCreate(targetVector.X, targetVector.Y, 0), VectorCreate(curVector.X, curVector.Y, 0));
+			crossResult := Vector3D_Cross(Vector3D_Create(targetVector.X, targetVector.Y, 0), Vector3D_Create(curVector.X, curVector.Y, 0));
 			If (crossResult.z > 0.0)	Then // IF THE Z ELEMENT IS POSITIVE, ROTATE CLOCKWISE
 			Begin
 			  turnAngle := arccos(cosAngle);	// GET THE ANGLE
