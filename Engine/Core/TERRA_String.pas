@@ -69,13 +69,13 @@ Type
 
   StringEncoding = (encodingUnknown, encodingASCII,  encodingUCS2LE, encodingUCS2BE, encodingUTF8);
 
-  StringIteratorState = Record
+  StringIteratorState = {$IFDEF OXYGENE}public Record{$ELSE}Record{$ENDIF}
     Position:Integer; // logical position (note: in reverse iterators, this is the position counting from end)
     Index:Integer;   // real position (in raw bytes)
     PrevIndex:Integer;
   End;
 
-  StringIterator = {$IFDEF OXYGENE}Record{$ELSE}Object{$ENDIF}
+  StringIterator = {$IFDEF OXYGENE}public Record{$ELSE}Object{$ENDIF}
     Protected
       _Target:TERRAString;
       _State:StringIteratorState;
