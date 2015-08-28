@@ -40,7 +40,7 @@ Type
 
 
     Public
-      Constructor Create(Const Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension);
+      Constructor Create(Const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension);
 
       Procedure UpdateRects; Override;
 
@@ -50,12 +50,13 @@ Type
 Implementation
 Uses TERRA_Localization, TERRA_FontRenderer, TERRA_FontManager, TERRA_EngineManager, TERRA_Math;
 
-Constructor UIText.Create(const Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension);
+Constructor UIText.Create(const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension);
 Begin
   Inherited Create(Name, Parent);
 
-  Self.SetRelativePosition(Vector2D_Create(X,Y));
-  Self.Layer := Z;
+  Self.Left := X;
+  Self.Top := Y;
+  Self.Layer := Layer;
 
   Self.Width := Width;
   Self.Height := Height;

@@ -24,7 +24,7 @@ Type
       Flip, Mirror:Boolean;
       Filter:TextureFilterMode;
 
-      Constructor Create(Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension);
+      Constructor Create(Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension);
 
       Procedure SetTexture(Tex:TERRATexture);
 
@@ -36,12 +36,13 @@ Implementation
 Uses TERRA_Log, TERRA_EngineManager, TERRA_DebugDraw;
 
 { UIImage }
-Constructor UIImage.Create(Name:TERRAString; Parent:UIWidget; X, Y, Z: Single; Const Width, Height:UIDimension);
+Constructor UIImage.Create(Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension);
 Begin
   Inherited Create(Name, Parent);
 
-  Self.SetRelativePosition(Vector2D_Create(X,Y));
-  Self.Layer := Z;
+  Self.Left := X;
+  Self.Top := Y;
+  Self.Layer := Layer;
   Self.Filter := filterLinear;
 
   Self._Texture := TextureProperty(Self.AddProperty(TextureProperty.Create('image', Nil), False));

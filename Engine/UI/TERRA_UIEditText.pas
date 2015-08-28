@@ -40,7 +40,7 @@ Type
       Procedure OnStateChange(); Override;
 
     Public
-      Constructor Create(Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
+      Constructor Create(Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
 
       Function OnHandleKeyPress(Key:TERRAChar):Boolean; Override;
 
@@ -55,9 +55,9 @@ Uses TERRA_Application, TERRA_OS, TERRA_Log, TERRA_UIView, TERRA_Localization
 {$IFDEF VIRTUALKEYBOARD},TERRA_UIVirtualKeyboard{$ENDIF};
 
 { UIEditText }
-Constructor UIEditText.Create(Name:TERRAString; Parent:UIWidget; X, Y, Z: Single; Const Width, Height:UIDimension; Const Text:TERRAString);
+Constructor UIEditText.Create(Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
 Begin
-  Inherited Create(Name, Parent, X,Y,Z, Width, Height);
+  Inherited Create(Name, Parent, X,Y, Layer, Width, Height);
 
   _Content := StringProperty(Self.AddProperty(StringProperty.Create('content', Text), False));
   _Multiline := BooleanProperty(Self.AddProperty(BooleanProperty.Create('multiline', False), False));

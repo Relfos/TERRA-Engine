@@ -66,7 +66,8 @@ Begin
   Inherited;
 
   // enable demo floor
-  Self.Floor.SetPosition(VectorZero);
+  Self.Floor.SetPosition(Vector3D_Zero);
+  Self.MainViewport.Visible := True;
 
   UITemplates.AddTemplate(UIWindowTemplate.Create('wnd_template', Engine.Textures.GetItem('ui_window'), 45, 28, 147, 98));
   UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', Engine.Textures.GetItem('ui_button2'), 25, 10, 220, 37));
@@ -79,9 +80,9 @@ Begin
   MyUI.Viewport.FXChain.AddEffect(VignetteFX.Create());
 
   MyUIProxy := UIPerspectiveView.Create('proxy', MyUI);
-  MyUIProxy.SetScale(VectorConstant(4));
-  MyUIProxy.SetPosition(VectorCreate(0, 4, -4.1));
-  MyUIProxy.SetRotation(VectorCreate(-90*RAD, 0, 0));
+  MyUIProxy.SetScale(Vector3D_Constant(4));
+  MyUIProxy.SetPosition(Vector3D_Create(0, 4, -4.1));
+  MyUIProxy.SetRotation(Vector3D_Create(-90*RAD, 0, 0));
 
   MyWnd := UIInstancedWidget.Create('mywnd', MyUI, 0, 0, 10, UIPixels(643), UIPixels(231), 'wnd_template');
   MyWnd.Draggable := True;
@@ -96,8 +97,8 @@ Begin
   DiffuseTex := Engine.Textures.GetItem('metal_diffuse');
   Solid := MeshInstance.Create(Engine.Meshes.CubeMesh);
   Solid.SetDiffuseMap(0, DiffuseTex);
-  Solid.SetPosition(VectorCreate(0, 4, 0));
-  Solid.SetScale(VectorConstant(8.0));
+  Solid.SetPosition(Vector3D_Create(0, 4, 0));
+  Solid.SetScale(Vector3D_Constant(8.0));
 End;
 
 Procedure MyDemo.OnDestroy;

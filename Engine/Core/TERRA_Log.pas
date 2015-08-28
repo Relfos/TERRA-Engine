@@ -70,18 +70,14 @@ Const
   logFilterCount = 4;
 
 Type
-  LogFilterHandler = Procedure(ModuleName, Description:TERRAString);
+  LogFilterHandler = {$IFDEF OXYGENE}Public {$ENDIF} Procedure(ModuleName, Description:TERRAString);
 
-  {$IFDEF OXYGENE}
-  LogEntry = Class
-  {$ELSE}
-  LogEntry = Record
-  {$ENDIF}
+  LogEntry = {$IFDEF OXYGENE}Public {$ENDIF} Record  
     ModuleName:TERRAString;
     Description:TERRAString;
   End;
 
-  LogFilter = Record
+  LogFilter = {$IFDEF OXYGENE}Public {$ENDIF} Record
     FilterType:Integer;
     Modules:TERRAString;
     Handler:LogFilterHandler;

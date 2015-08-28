@@ -6,140 +6,105 @@ uses
   TERRA_Object,
   TERRA_MemoryManager,
   TERRA_Application,
+  TERRA_DemoApplication,
+  TERRA_EngineManager,
   TERRA_Utils,
-  TERRA_ResourceManager,
-  TERRA_GraphicsManager,
   TERRA_OS,
   TERRA_Vector2D,
-  TERRA_Font,
-  TERRA_Texture,
-  TERRA_FileManager,
-  TERRA_InputManager,
-  TERRA_Collections,
-  TERRA_CollectionObjects,
-  TERRA_TTF,
-  TERRA_PNG,
-  TERRA_Scene,
-  TERRA_Color,
-  TERRA_String,
-  TERRA_Matrix4x4,
+  TERRA_Viewport,
   TERRA_UIView,
   TERRA_UIWidget,
+  TERRA_UILabel,
   TERRA_UITemplates,
   TERRA_UIImage,
   TERRA_UITiledRect,
   TERRA_UIDimension;
 
 Type
-  Demo = Class(Application)
-    Protected
-      _Scene:TERRAScene;
-
+  MyDemo = Class(DemoApplication)
     Public
 			Procedure OnCreate; Override;
-			Procedure OnDestroy; Override;
-			Procedure OnMouseDown(X,Y:Integer; Button:Word); Override;
-			Procedure OnMouseUp(X,Y:Integer; Button:Word); Override;
-			Procedure OnMouseMove(X,Y:Integer); Override;
-
-			Procedure OnIdle; Override;
   End;
 
-  MyScene = Class(TERRAScene)
-      Constructor Create;
-      Procedure Release; Override;
+
+  DemoUIController = Class(UIController)
+    Public
+      Constructor Create();
 
       Procedure OnMyButtonClick(Src:UIWidget);
   End;
 
+Const
+  TabCount = 3;
+
 Var
-  Fnt:TERRAFont;
-  MyUI:UIView;
   MyWnd, MyBtn:UIWidget;
+  MyText:UILabel;
+  MyImg:UIImage;
+  MyTabGroups:Array[1..TabCount] Of UIWidget;
+
+  MyController:UIController;
 
 { Game }
-Procedure Demo.OnCreate;
+Procedure MyDemo.OnCreate;
+Var
+  I:Integer;
 Begin
-  FileManager.Instance.AddPath('Assets');
+  Inherited;
 
-  // Load a font
-  Fnt := FontManager.Instance.GetFont('droid');
+  UITemplates.AddTemplate(UITabbedWindowTemplate.Create('wnd_template', Engine.Textures.GetItem('ui_window'), 45, 28, 147, 98, TabCount));
+  UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', Engine.Textures.GetItem('ui_button2'), 25, 10, 220, 37));
 
-  // Create a new UI
-  MyUI := UIView.Create;
+  UITemplates.AddTemplate(UIButtonTemplate.Create('tab_template', Engine.Textures.GetItem('ui_tab_on'), 4, 4, 54, 21));
 
-  // Register the font with the UI
-  MyUI.DefaultFont := Fnt;
+  MyController := DemoUIController.Create();
 
-  // Create a empty scene
-  _Scene := MyScene.Create;
-  GraphicsManager.Instance.Scene := _Scene;
+  MyWnd := UIInstancedWidget.Create('mywnd', Self.GUI, UIPixels(0), UIPixels(0), 10, UIPixels(643), UIPixels(231), 'wnd_template');
+  MyWnd.Draggable := True;
+  MyWnd.Align := UIAlign_Center;
+  MyWnd.Controller := MyController;
 
-  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlue;
-End;
+  For I:=1 To TabCount Do
+    MyTabGroups[I] := MyWnd.GetChildByName('tab_group', I);
 
-Procedure Demo.OnDestroy;
-Begin
-  ReleaseObject(_Scene);
-End;
-
-Procedure Demo.OnIdle;
-Begin
-  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
-    Application.Instance.Terminate;
-End;
-
-Procedure Demo.OnMouseDown(X, Y: Integer; Button: Word);
-Begin
-  MyUI.OnMouseDown(X, Y, Button);
-End;
-
-Procedure Demo.OnMouseMove(X, Y: Integer);
-Begin
-
-  MyUI.OnMouseMove(X, Y);
-End;
-
-Procedure Demo.OnMouseUp(X, Y: Integer; Button: Word);
-Begin
-  MyUI.OnMouseUp(X, Y, Button);
-End;
-
-{ MyScene }
-Constructor MyScene.Create;
-Begin
-  UITemplates.AddTemplate(UIWindowTemplate.Create('wnd_template', TextureManager.Instance.GetTexture('ui_window'), 45, 28, 147, 98));
-  UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', TextureManager.Instance.GetTexture('ui_button2'), 25, 10, 220, 37));
-
-  MyWnd := UIInstancedWidget.Create('mywnd', MyUI, 0, 0, 10, UIPixels(643), UIPixels(231), 'wnd_template');
-//  MyWnd.Draggable := True;
-  MyWnd.Align := waCenter;
-
-  MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, 0, 0, 1, UIPixels(250), UIPixels(50), 'btn_template');
+    (*
+  MyBtn := UIInstancedWidget.Create('mybtn', MyTabGroups[1], UIPixels(0), UIPixels(0), 1, UIPixels(250), UIPixels(50), 'btn_template');
   MyBtn.Align := waCenter;
-  MyBtn.SetEventHandler(widgetEvent_MouseDown, OnMyButtonClick); // Assign a onClick event handler
-End;
+  MyBtn.Controller := MyController;
+//  MyBtn.Draggable := True;
+//  MyBtn.SetPropertyValue('caption', 'custom caption!');
 
-Procedure MyScene.Release;
-Begin
+  MyImg := UIImage.Create('sampleimg', MyTabGroups[2], UIPixels(0), UIPixels(30), 1, UIPixels(64), UIPixels(64));
+  MyImg.Align := waTopCenter;
+  MyImg.Texture := Engine.Textures['ghost'];
+
+  MyText := UILabel.Create('title', MyTabGroups[3], UIPixels(0), UIPixels(30), 1, UIPercent(100), UIPixels(64), 'This is a label that belongs to a tab!');
+  MyText.Align := waBottomCenter;*)
 End;
 
 // GUI event handlers
 // All event handlers must be procedures that receive a Widget as argument
 // The Widget argument provides the widget that called this event handler
-Procedure MyScene.OnMyButtonClick(Src:UIWidget);
+Constructor DemoUIController.Create;
 Begin
-  IntToString(2);
+  Self._ObjectName := 'demo';
+  SetHandler(widgetEvent_MouseDown, OnMyButtonClick); // Assign a onClick event handler
+End;
+
+Procedure DemoUIController.OnMyButtonClick(Src:UIWidget);
+Begin
  // MyUI.MessageBox('You clicked the button!');
 End;
+
 
 {$IFDEF IPHONE}
 Procedure StartGame; cdecl; export;
 {$ENDIF}
 Begin
-  Demo.Create();
+  MyDemo.Create();
 {$IFDEF IPHONE}
 End;
 {$ENDIF}
+
 End.
 

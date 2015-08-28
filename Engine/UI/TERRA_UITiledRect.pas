@@ -18,7 +18,7 @@ Type
       Function GetObjectType:TERRAString; Override;
 
     Public
-      Constructor Create(Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension;
+      Constructor Create(Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension;
         Const U1:Single=0.25; Const V1:Single=0.25; Const U2:Single=0.25; Const V2:Single=0.25);
 
       Procedure SetTexture(Tex:TERRATexture);
@@ -33,13 +33,14 @@ Implementation
 Uses TERRA_Log, TERRA_EngineManager, TERRA_Scale9Sprite;
 
 { UITiledRect }
-Constructor UITiledRect.Create(Name:TERRAString; Parent:UIWidget; X, Y, Z: Single; Const Width, Height:UIDimension; Const U1, V1, U2, V2:Single);
+Constructor UITiledRect.Create(Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension; Const U1, V1, U2, V2:Single);
 Begin
   Inherited Create(Name, Parent);
 
 
-  Self.SetRelativePosition(Vector2D_Create(X,Y));
-  Self.Layer := Z;
+  Self.Left := X;
+  Self.Top := Y;
+  Self.Layer := Layer;
 
   Self._Texture := TextureProperty(Self.AddProperty(TextureProperty.Create('image', Nil), False));
   _U1 := FloatProperty(Self.AddProperty(FloatProperty.Create('u1', U1), False));

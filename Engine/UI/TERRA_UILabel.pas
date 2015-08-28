@@ -22,7 +22,7 @@ Type
       Function GetText():TERRAString;
 
     Public
-      Constructor Create(Const Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
+      Constructor Create(Const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
 
       Function SupportDrag(Mode:UIDragMode):Boolean; Override;
 
@@ -36,9 +36,9 @@ Type
 Implementation
 Uses TERRA_Localization, TERRA_FontRenderer;
 
-Constructor UILabel.Create(const Name:TERRAString; Parent:UIWidget; X,Y,Z:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
+Constructor UILabel.Create(const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
 Begin
-  Inherited Create(Name, Parent, X, Y, Z, Width, Height);
+  Inherited Create(Name, Parent, X, Y, Layer, Width, Height);
 
   _Caption := StringProperty(Self.AddProperty(StringProperty.Create('caption', Text), False));
 

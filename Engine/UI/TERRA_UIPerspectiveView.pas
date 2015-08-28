@@ -37,7 +37,7 @@ Begin
   _Mesh := TERRAMesh.Create(rtDynamic);
   _Mesh.Clone(Engine.Meshes.PlaneMesh);
 
-  ScaleMat := Matrix4x4Scale(960/640, 1, 1);
+  ScaleMat := Matrix4x4_Scale(960/640, 1, 1);
   _Mesh.Transform(ScaleMat);
 
   Inherited Create(_Mesh);

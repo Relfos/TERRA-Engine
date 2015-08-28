@@ -47,13 +47,13 @@ Begin
 
   MyController := DemoUIController.Create();
 
-  MyWnd := UIInstancedWidget.Create('mywnd', Self.GUI, 0, 0, 10, UIPixels(643), UIPixels(231), 'wnd_template');
+  MyWnd := UIInstancedWidget.Create('mywnd', Self.GUI, UIPixels(0), UIPixels(0), 10, UIPixels(643), UIPixels(231), 'wnd_template');
   MyWnd.Draggable := True;
   MyWnd.Align := waCenter;
 //  MyWnd.Rotation := 45*RAD;
   MyWnd.Controller := MyController;
 
-  MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, 0, 0, 1, UIPixels(250), UIPixels(50), 'btn_template');
+  MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, UIPixels(0), UIPixels(0), 1, UIPixels(250), UIPixels(50), 'btn_template');
   MyBtn.Align := waCenter;
   MyBtn.Controller := MyController;
 //  MyBtn.Draggable := True;

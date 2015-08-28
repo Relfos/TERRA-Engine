@@ -9,16 +9,6 @@ Uses TERRA_Object, TERRA_Utils, TERRA_String, TERRA_Collections, TERRA_List,
   TERRA_UIDimension, TERRA_EnumProperty, TERRA_DataSource, TERRA_Viewport;
 
 Const
-  waTopLeft     = 0;
-  waTopCenter   = 1;
-  waTopRight    = 2;
-  waLeftCenter  = 3;
-  waCenter      = 4;
-  waRightCenter = 5;
-  waBottomLeft     = 6;
-  waBottomCenter   = 7;
-  waBottomRight    = 8;
-
   widgetAnimateAlpha  = 1;
   widgetAnimatePosX   = 2;
   widgetAnimatePosY   = 4;
@@ -51,6 +41,24 @@ Type
   UIDirection = (
     UIDirection_Vertical,
     UIDirection_Horizontal
+  );
+
+  UILayout = (
+    UILayout_Free,
+    UILayout_Horizontal,
+    UILayout_Vertical
+  );
+
+  UIAlign = (
+    UIAlign_TopLeft = 0,
+    UIAlign_TopCenter   = 1,
+    UIAlign_TopRight    = 2,
+    UIAlign_LeftCenter  = 3,
+    UIAlign_Center      = 4,
+    UIAlign_RightCenter = 5,
+    UIAlign_BottomLeft     = 6,
+    UIAlign_BottomCenter   = 7,
+    UIAlign_BottomRight    = 8
   );
 
 
@@ -120,12 +128,13 @@ Type
   UIWidget = Class(TERRARenderable)
     Private
       _Tested:Boolean;
-      _RenderFrameID:Cardinal;
+      //_RenderFrameID:Cardinal;
 
       _Width:DimensionProperty;
       _Height:DimensionProperty;
-			_Position:Vector2DProperty;
-      _Margin:DimensionProperty;
+			_X:DimensionProperty;
+			_Y:DimensionProperty;
+      //_Margin:DimensionProperty;
       _Pivot:Vector2DProperty;
       _Layer:FloatProperty;
       _Align:EnumProperty;
@@ -144,15 +153,20 @@ Type
 
       _Scroll:Vector2D;
 
+      _Index:Integer;
+
       _Animations:Array Of UIWidgetStateAnimation;
       _AnimationCount:Integer;
 
 			Function GetAbsolutePosition:Vector2D;
-      Function GetRelativePosition:Vector2D;
       Function GetAlignedPosition:Vector2D;
+      Function GetRelativePosition:Vector2D;
 
       Function GetHeight: UIDimension;
       Function GetWidth: UIDimension;
+      Function GetPosition_Left: UIDimension;
+      Function GetPosition_Top: UIDimension;
+      //Function GetMargin: UIDimension;
 
       Procedure SetParent(Target:UIWidget);
 
@@ -190,6 +204,8 @@ Type
       _DragY: Single;
       _DragSize:Vector2D;
       _DragStart:Vector2D;
+      _DragStartLeft:UIDimension;
+      _DragStartTop:UIDimension;
 
       _Transform:Matrix3x3;
       _InverseTransform:Matrix3x3;
@@ -220,7 +236,7 @@ Type
 
       Procedure UpdateSprite(View:TERRAViewport); Virtual;
 
-      Procedure InitProperties(Const Name:TERRAString);
+      Procedure InitProperties(Const Name:TERRAString); Virtual;
 
       Function GetRenderBucket: Cardinal; Override;
 
@@ -229,11 +245,8 @@ Type
       Function GetLeftControl():UIWidget;
       Function GetRightControl():UIWidget;
 
-      Function GetAlign: Integer;
-      Procedure SetAlign(const Value: Integer);
-
-      Procedure SetAbsolutePosition(Pos:Vector2D);
-      Procedure SetRelativePosition(Const Pos:Vector2D);
+      Function GetAlign:UIAlign;
+      Procedure SetAlign(const Value:UIAlign);
 
       Procedure SetVisible(Value:Boolean);
       Procedure SetLayer(Z:Single);
@@ -255,9 +268,7 @@ Type
       Function AdjustWidth(NewWidth:Single):Single;
       Function AdjustHeight(NewHeight:Single):Single;
 
-      //Function HasMouseOver():Boolean; Virtual;
-
-      Function GetFontRenderer:TERRAFontRenderer; 
+      Function GetFontRenderer:TERRAFontRenderer;
 
       //Function OutsideClipRect(X,Y:Single):Boolean;
 
@@ -279,6 +290,8 @@ Type
       Property FontRenderer:TERRAFontRenderer Read GetFontRenderer;
 
       Function CanReceiveEvents:Boolean; Virtual;
+
+      Procedure ConvertAlign(Const Direction:UIDirection);
 
     Public
       Tag:Integer;
@@ -326,7 +339,7 @@ Type
       Procedure ConvertGlobalToLocal(Var V:Vector2D);
       Procedure ConvertLocalToGlobal(Var V:Vector2D);
 
-      Procedure SetPositionRelativeToOther(Other:UIWidget; OfsX, OfsY:Single);
+      //Procedure SetPositionRelativeToOther(Other:UIWidget; OfsX, OfsY:Single);
 
       Function GetScrollOffset():Vector2D;
 
@@ -341,7 +354,7 @@ Type
       Procedure RemoveChild(W:UIWidget);
       Procedure RemoveAllChildren();
       Function GetChildByIndex(Index:Integer):UIWidget;
-      Function GetChildByName(Const Name:TERRAString):UIWidget;
+      Function GetChildByName(Const Name:TERRAString; ID:Integer = 1):UIWidget;
 
       Function FindComponent(ComponentType:UIWidgetClass):UIWidget;
 
@@ -357,6 +370,9 @@ Type
 
       Procedure SetHeight(const Value: UIDimension);
       Procedure SetWidth(const Value: UIDimension);
+      Procedure SetPosition_Left(const Value: UIDimension);
+      Procedure SetPosition_Top(const Value: UIDimension);
+      //Procedure SetMargin(const Value: UIDimension);
 
       //Procedure SetChildrenVisibilityByTag(Tag:Integer; Visibility:Boolean);
 
@@ -387,13 +403,13 @@ Type
 
       //Procedure CenterOnScreen(CenterX:Boolean = True; CenterY:Boolean = True);
       //Procedure CenterOnParent(CenterX:Boolean = True; CenterY:Boolean = True);
-      Procedure CenterOnPoint(X,Y:Single);
+      //Procedure CenterOnPoint(X,Y:Single);
 
       Function Hidden():Boolean;
 			//Property Visible:Boolean Read GetVisible Write SetVisible;
 
-			Property AbsolutePosition:Vector2D Read GetAbsolutePosition Write SetAbsolutePosition;
-			Property RelativePosition:Vector2D Read GetRelativePosition Write SetRelativePosition;
+			Property Left:UIDimension Read GetPosition_Left Write SetPosition_Left;
+			Property Top:UIDimension Read GetPosition_Top Write SetPosition_Top;
 
       Property Pivot:Vector2D Read GetPivot Write SetPivot;
       Property Size:Vector2D Read _Size;
@@ -407,13 +423,16 @@ Type
       Property Scale:Single Read GetScale Write SetScale;
 
       Property Parent:UIWidget Read _Parent Write SetParent;
-      Property Align:Integer Read GetAlign Write SetAlign;
+      Property Align:UIAlign Read GetAlign Write SetAlign;
 
       Property State:WidgetState Read GetState;
 
       Property Dragging:Boolean Read _Dragging;
 
       Property ChildrenCount:Integer Read _ChildrenCount;
+
+      Property AbsolutePosition:Vector2D Read GetAbsolutePosition;
+      Property RelativePosition:Vector2D Read GetRelativePosition;
 
       Property ClipRect:TERRAClipRect Read GetClipRect Write SetClipRect;
 
@@ -431,6 +450,7 @@ Type
 
       Property Width:UIDimension Read GetWidth Write SetWidth;
       Property Height:UIDimension Read GetHeight Write SetHeight;
+      //Property Margin:UIDimension Read GetMargin Write SetMargin;
 
       Property Draggable:Boolean Read GetDraggable Write SetDraggable;
 
@@ -440,7 +460,25 @@ Type
       Property Transform:Matrix3x3 Read _Transform Write SetTransform;
 
       Property View:UIWidget Read GetUIView;
+
+      Property ID:Integer Read _Index;
 	End;
+
+  UIWidgetGroup = Class(UIWidget)
+    Protected
+      _Layout:EnumProperty;
+
+      Function UpdateTransform():Boolean; Override;
+      Procedure InitProperties(Const Name:TERRAString); Override;
+
+      Function GetLayout: UILayout;
+      Procedure SetLayout(const Value: UILayout);
+
+    Public
+      Constructor Create(Const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension);
+
+      Property Layout:UILayout Read GetLayout Write SetLayout;
+  End;
 
   UIInstancedWidget = Class(UIWidget)
     Protected
@@ -451,7 +489,7 @@ Type
       Function CanReceiveEvents:Boolean; Override;
 
     Public
-      Constructor Create(Const Name:TERRAString; Parent:UIWidget; X, Y, Z: Single; Const Width, Height:UIDimension; Const TemplateName:TERRAString);
+      Constructor Create(Const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension; Const TemplateName:TERRAString);
       Procedure Release(); Override;
 
       Function GetObjectType:TERRAString; Override;
@@ -482,6 +520,7 @@ Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Math, TERRA_GraphicsManager,
 Var
   _AlignEnums:EnumCollection;
   _DirectionEnums:EnumCollection;
+  _LayoutEnums:EnumCollection;
 
 Function UITranslationMacro(Const Value:TERRAString):TERRAString;
 Begin
@@ -526,16 +565,14 @@ Begin
 
   Self.InitProperties(Name);
 
-  SetVisible(True);
-
-  SetState(widget_Default);
-
   SetScale(1.0);
   SetRotation(0.0);
   SetSaturation(1.0);
   SetColor(ColorWhite);
   _ColorTable := Nil;
 
+  SetState(widget_Default);
+  
   _ClipRect.Style := clipNothing;
 
   //_DropShadowColor := ColorNull;
@@ -575,8 +612,9 @@ Begin
   _Width := DimensionProperty(Self.AddProperty(DimensionProperty.Create('width', UIPixels(0)), False));
   _Height := DimensionProperty(Self.AddProperty(DimensionProperty.Create('height', UIPixels(0)), False));
   //_Visible := BooleanProperty(Self.AddProperty(BooleanProperty.Create('visible', True), False));
-  _Position := Vector2DProperty(Self.AddProperty(Vector2DProperty.Create('position', Vector2D_Create(0, 0)), False));
-  _Margin := DimensionProperty(Self.AddProperty(DimensionProperty.Create('margin', UIPixels(0)), False));
+  _X := DimensionProperty(Self.AddProperty(DimensionProperty.Create('left', UIPixels(0)), False));
+  _Y := DimensionProperty(Self.AddProperty(DimensionProperty.Create('top', UIPixels(0)), False));
+  //_Margin := DimensionProperty(Self.AddProperty(DimensionProperty.Create('margin', UIPixels(0)), False));
   _Pivot := Vector2DProperty(Self.AddProperty(Vector2DProperty.Create('pivot', Vector2D_Create(0.5, 0.5)), False));
   _Layer := FloatProperty(Self.AddProperty(FloatProperty.Create('layer', 1.0), False));
   _Color := ColorProperty(Self.AddProperty(ColorProperty.Create('color', ColorWhite), False));
@@ -607,14 +645,14 @@ Begin
     Result := Nil;
 End;
 
-Procedure UIWidget.CenterOnPoint(X,Y:Single);
+(*Procedure UIWidget.CenterOnPoint(X,Y:Single);
 Begin
   Self.Align := waTopLeft;
   Self.UpdateRects;
 
   _Position.X.Value := X - _Size.X * 0.5;
   _Position.Y.Value := Y - _Size.Y * 0.5;
-End;
+End;*)
 
 Procedure UIWidget.TriggerEvent(EventType:WidgetEventType);
 Var
@@ -1095,7 +1133,7 @@ Begin
   End;
 End;
 
-Procedure UIWidget.SetRelativePosition(Const Pos:Vector2D);
+(*Procedure UIWidget.SetRelativePosition(Const Pos:Vector2D);
 Begin
   If (Pos.X = _Position.X.Value) And (Pos.Y = _Position.Y.Value) Then
     Exit;
@@ -1110,7 +1148,7 @@ Begin
     Pos.Subtract(_Parent.AbsolutePosition);
 
   Self.SetRelativePosition(Pos);
-End;
+End;*)
 
 Procedure UIWidget.SetLayer(Z:Single);
 Begin
@@ -1156,74 +1194,81 @@ End;
 
 Function UIWidget.GetRelativePosition:Vector2D;
 Begin
-  Result := _Position.Value;
+  Result.X := Self.GetDimension(Self.Left, uiDimensionWidth);
+  Result.Y := Self.GetDimension(Self.Top, uiDimensionHeight);
 End;
 
 Function UIWidget.GetAlignedPosition:Vector2D;
 Var
   Width, Height:Single;
-  ParentSize, Center:Vector2D;
+  ParentSize, ParentMargin, Center:Vector2D;
 Begin
-  Result := _Position.Value;
+  Result := Self.RelativePosition;
 
   If (Parent = Nil) Then
     Exit;
 
-  If (Align<>waTopLeft) Then
+  //ParentMargin := Vector2D_Create(Parent.GetDimension(Parent.Margin, uiDimensionWidth), Parent.GetDimension(Parent.Margin, uiDimensionHeight));
+
+  If (Align = UIAlign_TopLeft) Then
   Begin
-    Width := Self._Size.X;
-    Height := _Size.Y;
+    Result.X := Result.X + ParentMargin.X;
+    Result.Y := Result.Y + ParentMargin.Y;
+    Exit;
+  End;
 
-    ParentSize := _Parent.Size;
+  Width := Self._Size.X;
+  Height := _Size.Y;
 
-    Center.X := ParentSize.X * 0.5;
-    Center.Y := ParentSize.Y * 0.5;
+  ParentSize := _Parent.Size;
 
-    Case Align Of
-      waCenter:
+  Center.X := ParentMargin.X + ((ParentSize.X - ParentMargin.X * 2.0) * 0.5);
+  Center.Y := ParentMargin.Y + ((ParentSize.Y - ParentMargin.Y * 2.0) * 0.5);
+
+  Case Align Of
+    UIAlign_Center:
       Begin
         Result.X := Result.X + Center.X - Width * 0.5;
         Result.Y := Result.Y + Center.Y - Height * 0.5;
       End;
 
-      waTopCenter:
+    UIAlign_TopCenter:
       Begin
         Result.X := Result.X + Center.X - Width * 0.5;
       End;
 
-      waTopRight:
+    UIAlign_TopRight:
       Begin
         Result.X := (ParentSize.X - Width) - Result.X;
       End;
 
-      waLeftCenter:
+    UIAlign_LeftCenter:
       Begin
         Result.Y := Result.Y + Center.Y - Height * 0.5;
       End;
 
-      waRightCenter:
+    UIAlign_RightCenter:
       Begin
         Result.X := (ParentSize.X - Width) - Result.X;
         Result.Y := Result.Y + Center.Y - Height * 0.5;
       End;
 
-      waBottomLeft:
+    UIAlign_BottomLeft:
       Begin
         Result.Y := (ParentSize.Y - Height) - Result.Y;
       End;
 
-      waBottomCenter:
+    UIAlign_BottomCenter:
       Begin
         Result.X := Result.X + Center.X - Width * 0.5;
         Result.Y := (ParentSize.Y - Height) - Result.Y;
       End;
 
-      waBottomRight:
+    UIAlign_BottomRight:
       Begin
         Result.X := (ParentSize.X - Width) - Result.X;
         Result.Y := (ParentSize.Y - Height) - Result.Y;
       End;
-    End;
   End;
 End;
 
@@ -1413,11 +1458,13 @@ Begin
   _DragMode := Mode;
   _Dragging := True;
 
-  _DragStart := _Position.Value;
   _DragSize := _Size;
+  _DragStartLeft := Self.Left;
+  _DragStartTop := Self.Top;
+  _DragStart := Self.RelativePosition;
 
-  _DragX := (X-_Position.X.Value);
-  _DragY := (Y-_Position.Y.Value);
+  _DragX := (X- _DragStart.X);
+  _DragY := (Y- _DragStart.Y);
 End;
 
 Procedure UIWidget.CancelDrag;
@@ -1430,7 +1477,8 @@ Begin
 
   If _Dragging Then
   Begin
-    _Position.Value := _DragStart;
+    Self.Left := _DragStartLeft;
+    Self.Top := _DragStartTop;
     _Dragging := False;
 
     If UI.Dragger = Self Then
@@ -1473,21 +1521,21 @@ Begin
   Case Mode Of
     UIDrag_Move:
       Begin
-        _Position.X.Value := UISnap(PX);;
-        _Position.Y.Value := UISnap(PY);
+        Self.Left := UIPixels(UISnap(PX));
+        Self.Top := UIPixels(UISnap(PY));
       End;
 
     UIDrag_Left:
       Begin
         Extra := AdjustWidth(_DragSize.X + (_DragStart.X - PX));
-        _Position.X.Value := PX + Extra;
+        Self.Left := UIPixels(PX + Extra);
         Self.UpdateRects();
       End;
 
     UIDrag_Top:
       Begin
         Extra := AdjustHeight(_DragSize.Y + (_DragStart.Y - PY));
-        _Position.Y.Value := PY + Extra;
+        Self.Top := UIPixels(PY + Extra);
         Self.UpdateRects();
       End;
 
@@ -1626,7 +1674,7 @@ Begin
 
   Mat := Matrix3x3_Multiply(Matrix3x3_Translation(Pos), Mat);
 
-  Self.SetTransform(Mat);;
+  Self.SetTransform(Mat);
   _TransformChanged := False;
 
   Result := True;
@@ -1664,15 +1712,22 @@ Begin
     Result := Nil;
 End;
 
-Function UIWidget.GetChildByName(Const Name:TERRAString):UIWidget;
-Var
+Function UIWidget.GetChildByName(Const Name:TERRAString; ID:Integer):UIWidget;
+Var      
   I:Integer;
 Begin
-  For I:=0 To Pred(_ChildrenCount) Do
-  If (StringEquals(_ChildrenList[I].Name, Name)) Then
+  For I:=0 To Pred(Self._ChildrenCount) Do
+  If (StringEquals(_ChildrenList[I].Name, Name)) And (_ChildrenList[I].ID = ID) Then
   Begin
     Result := _ChildrenList[I];
     Exit;
+  End;
+
+  For I:=0 To Pred(_ChildrenCount) Do
+  Begin
+    Result := _ChildrenList[I].GetChildByName(Name, ID);
+    If Assigned(Result) Then
+      Exit;
   End;
 
   Result := Nil;
@@ -1700,11 +1755,26 @@ Begin
 End;
 
 Procedure UIWidget.AddChild(W:UIWidget);
+Var
+  I, TargetID:Integer;
 Begin
   If (W=Nil) Or (W = Self) Then
     Exit;
 
+  TargetID := 1;
+  For I:=0 To Pred(_ChildrenCount) Do
+  If (_ChildrenList[I] = W) Then
+  Begin
+    Exit;
+  End Else
+  If (StringEquals(_ChildrenList[I].Name, W.Name)) Then
+  Begin
+    Inc(TargetID);
+  End;
+
+
   W._Parent := Self;
+  W._Index := TargetID;
   Inc(_ChildrenCount);
   SetLength(_ChildrenList, _ChildrenCount);
   _ChildrenList[Pred(_ChildrenCount)] := W;
@@ -1746,6 +1816,12 @@ Begin
   If (Self._Deleted) {Or (Not Self.Visible)} Then
     Exit;
 
+//  Application.Sleep(100);
+
+  For I:=0 To Pred(_ChildrenCount) Do
+  If {(_ChildrenList[I].Visible) And} (_ChildrenList[I].CanRender()) Then
+    _ChildrenList[I].Render(View, Stage, Bucket);
+
   Self.UpdateProperties();
   Self.UpdateRects();
   Self.UpdateTransform();
@@ -1754,13 +1830,10 @@ Begin
   If Assigned(_Sprite) Then
   Begin
     View.SpriteRenderer.QueueSprite(_Sprite);
-
     //DrawClipRect(View, Self.ClipRect, ColorRed);
   End;
 
-  For I:=0 To Pred(_ChildrenCount) Do
-  If {(_ChildrenList[I].Visible) And} (_ChildrenList[I].CanRender()) Then
-    _ChildrenList[I].Render(View, Stage, Bucket);
+
 End;
 
 
@@ -1876,7 +1949,7 @@ Begin
   End;*)
 End;
 
-Procedure UIWidget.SetPositionRelativeToOther(Other:UIWidget; OfsX, OfsY: Single);
+(*Procedure UIWidget.SetPositionRelativeToOther(Other:UIWidget; OfsX, OfsY: Single);
 Var
   P:Vector2D;
 Begin
@@ -1888,7 +1961,7 @@ Begin
   P.Add(Vector2D_Create(OfsX, OfsY));
 
   Self.SetRelativePosition(P);
-End;
+End;*)
 
 Procedure UIWidget.SetObjectName(const Value:TERRAString);
 Var
@@ -1993,14 +2066,16 @@ Function UIWidget.CanRender: Boolean;
 Var
   CurrentFrameID:Cardinal;
 Begin
-  CurrentFrameID := Engine.Graphics.FrameID;
-  If (_RenderFrameID = CurrentFrameID) Then
-  Begin
-    Result := False;
-    Exit;
-  End;
+  Result := False;
 
-  _RenderFrameID := CurrentFrameID;
+  If (Self.Color.A<0) Then
+    Exit;
+
+(*  CurrentFrameID := Engine.Graphics.FrameID;
+  If (_RenderFrameID = CurrentFrameID) Then
+    Exit;
+
+  _RenderFrameID := CurrentFrameID;*)
   Result := True;
 End;
 
@@ -2066,6 +2141,9 @@ Begin
     End;
   End Else
     Result := Dim.Value;
+
+  (*If (Assigned(Parent)) Then
+    Result := Result - Parent.GetDimension(Parent.Margin, Target) * 2;*)
 End;
 
 Function UIWidget.GetWidth: UIDimension;
@@ -2077,6 +2155,31 @@ Function UIWidget.GetHeight: UIDimension;
 Begin
   Result := _Height.Value;
 End;
+
+Function UIWidget.GetPosition_Left: UIDimension;
+Begin
+  Result := Self._X.Value;
+End;
+
+Function UIWidget.GetPosition_Top: UIDimension;
+Begin
+  Result := Self._Y.Value;
+End;
+
+Procedure UIWidget.SetPosition_Left(const Value: UIDimension);
+Begin
+  Self._X.Value := Value;
+End;
+
+Procedure UIWidget.SetPosition_Top(const Value: UIDimension);
+Begin
+  Self._Y.Value := Value;
+End;
+
+(*Function UIWidget.GetMargin: UIDimension;
+Begin
+  Result := _Margin.Value;
+End;*)
 
 Procedure UIWidget.SetWidth(const Value: UIDimension);
 Begin
@@ -2090,6 +2193,11 @@ Begin
   Self.UpdateRects();
 End;
 
+(*Procedure UIWidget.SetMargin(const Value: UIDimension);
+Begin
+  Self._Margin.Value := Value;
+  Self.UpdateRects();
+End;*)
 
 Function UIWidget.GetRotation: Single;
 Begin
@@ -2167,14 +2275,14 @@ Begin
 End;
 
 
-Function UIWidget.GetAlign: Integer;
+Function UIWidget.GetAlign:UIAlign;
 Begin
-  Result := _Align.Value;
+  Result := UIAlign(_Align.Value);
 End;
 
-Procedure UIWidget.SetAlign(const Value: Integer);
+Procedure UIWidget.SetAlign(const Value:UIAlign);
 Begin
-  _Align.Value := Value;
+  _Align.Value := Integer(Value);
 End;
 
 Function UIWidget.CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject;
@@ -2214,7 +2322,8 @@ Begin
   If Assigned(Target) Then
     P.Subtract(Target.AbsolutePosition);
 
-  Self.RelativePosition := P;
+  Self.Left := UIPixels(P.X);
+  Self.Top := UIPixels(P.Y);
 
   If Assigned(Self.Parent) Then
   Begin
@@ -2421,8 +2530,122 @@ Begin
     Self._CustomClip := False;
 End;
 
+Procedure UIWidget.ConvertAlign(const Direction: UIDirection);
+Begin
+  Case Direction Of
+    UIDirection_Vertical:
+    Case Self.Align Of
+      UIAlign_TopLeft,
+      UIAlign_TopRight:
+        Self.Align := UIAlign_TopCenter;
+
+      UIAlign_LeftCenter,
+      UIAlign_RightCenter:
+        Self.Align := UIAlign_Center;
+
+      UIAlign_BottomLeft,
+      UIAlign_BottomRight:
+        Self.Align := UIAlign_BottomCenter;
+    End;
+
+    UIDirection_Horizontal:
+    Case Self.Align Of
+      UIAlign_TopCenter,
+      UIAlign_TopRight:
+        Self.Align := UIAlign_TopLeft;
+
+      UIAlign_Center,
+      UIAlign_RightCenter:
+        Self.Align := UIAlign_LeftCenter;
+
+      UIAlign_BottomCenter,
+      UIAlign_BottomRight:
+        Self.Align := UIAlign_BottomLeft;
+    End;
+
+  End;
+End;
+
+{ UIWidgetGroup }
+Constructor UIWidgetGroup.Create(Const Name:TERRAString; Parent:UIWidget;  Const X,Y:UIDimension; Const Layer:Single; const Width, Height: UIDimension);
+Begin
+  Inherited Create(Name, Parent);
+
+  Self.Left := X;
+  Self.Top := Y;
+  Self.Layer := Layer;
+  Self.Width := Width;
+  Self.Height := Height;
+
+  Self.Layout := UILayout_Free;
+End;
+
+Function UIWidgetGroup.GetLayout: UILayout;
+Begin
+  Result := UILayout(_Layout.Value);
+End;
+
+Procedure UIWidgetGroup.InitProperties(const Name: TERRAString);
+Begin
+  Inherited;
+
+  Self._Layout := EnumProperty(Self.AddProperty(EnumProperty.Create('layout', 0, _LayoutEnums), False));
+End;
+
+Procedure UIWidgetGroup.SetLayout(const Value: UILayout);
+Begin
+  _Layout.Value := Integer(Value);
+End;
+
+Function UIWidgetGroup.UpdateTransform: Boolean;
+Var
+   TotalVisible, I:Integer;
+  Temp:Vector2D;
+  TotalSize, PadSize, SepSize, CurrentPos:Single;
+Begin
+  //If (_TransformChanged) Then
+  Begin
+    CurrentPos := 0.0;
+    Case Self.Layout Of
+      UILayout_Horizontal:
+      Begin
+        TotalSize := 0;
+        TotalVisible := 0;
+
+        For I:=0 To Pred(_ChildrenCount) Do
+        If (_ChildrenList[I].CanRender()) Then
+        Begin
+          Inc(TotalVisible);
+          TotalSize := TotalSize + _ChildrenList[I].Size.X;
+        End;
+
+        If (TotalVisible>0) Then
+        Begin
+          PadSize := Self.Size.X - TotalSize;
+          SepSize := PadSize / Succ(TotalVisible);
+
+          CurrentPos := SepSize;
+
+          For I:=0 To Pred(_ChildrenCount) Do
+          If (_ChildrenList[I].CanRender()) Then
+          Begin
+            _ChildrenList[I].ConvertAlign(UIDirection_Horizontal);
+            _ChildrenList[I].Left := UIPixels(CurrentPos);
+
+            CurrentPos := CurrentPos + SepSize + _ChildrenList[I].Size.X;
+          End;
+
+        End;
+
+      End;
+    End;
+  End;
+
+  Result := Inherited UpdateTransform;
+End;
+
 { UIInstancedWidget }
-Constructor UIInstancedWidget.Create(Const Name: TERRAString; Parent: UIWidget; X, Y, Z: Single; const Width, Height: UIDimension; Const TemplateName:TERRAString);
+Constructor UIInstancedWidget.Create(Const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; const Width, Height: UIDimension; Const TemplateName:TERRAString);
 Var
   Template:UIWidget;
   Prop:TERRAObject;
@@ -2436,7 +2659,7 @@ Begin
   If Assigned(Template) Then
   Begin
     Self.CopyProperties(Template);
-    
+
     For I:=0 To Pred(Template.ChildrenCount) Do
       Self.InitFromTemplate(Template.GetChildByIndex(I), Self);
 
@@ -2450,8 +2673,9 @@ Begin
     End;
   End;
 
-  Self.SetRelativePosition(Vector2D_Create(X,Y));
-  Self.Layer := Z;
+  Self.Left := X;
+  Self.Top := Y;
+  Self.Layer := Layer;
   Self.Width := Width;
   Self.Height := Height;
 End;
@@ -2476,6 +2700,7 @@ End;
 Function UIInstancedWidget.InitFromTemplate(Template, Parent:UIWidget):UIWidget;
 Var
   I:Integer;
+  S:TERRAString;
 Begin
   If Template = Nil Then
   Begin
@@ -2485,18 +2710,27 @@ Begin
 
   If (Template Is UIEditText) Then
   Begin
-    Result := UIEditText.Create(Template.Name, Parent, 0, 0, 0, UIPixels(100), UIPixels(100), '');
+    Result := UIEditText.Create(Template.Name, Parent, UIPixels(0), UIPixels(0), 0, UIPixels(100), UIPixels(100), '');
   End Else
   If (Template Is UILabel) Then
   Begin
-    Result := UILabel.Create(Template.Name, Parent, 0, 0, 0, UIPixels(100), UIPixels(100), '??');
+    Result := UILabel.Create(Template.Name, Parent, UIPixels(0), UIPixels(0), 0, UIPixels(100), UIPixels(100), '??');
   End Else
   If (Template Is UITiledRect) Then
   Begin
-    Result := UITiledRect.Create(Template.Name, Parent, 0, 0, 0, UIPixels(100), UIPixels(100), 0, 0, 1, 1);
+    Result := UITiledRect.Create(Template.Name, Parent, UIPixels(0), UIPixels(0), 0, UIPixels(100), UIPixels(100), 0, 0, 1, 1);
+  End Else
+  If (Template Is UIImage) Then
+  Begin
+    Result := UIImage.Create(Template.Name, Parent, UIPixels(0), UIPixels(0), 0, UIPixels(100), UIPixels(100));
+  End Else
+  If (Template Is UIWidgetGroup) Then
+  Begin
+    Result := UIWidgetGroup.Create(Template.Name, Parent, UIPixels(0), UIPixels(0), 0, UIPixels(100), UIPixels(100));
   End Else
   Begin
-    Log(logError, 'UI', 'Cannot instanciate template component of type '+Template.ClassName);
+    S := Template.ClassName;
+    Log(logError, 'UI', 'Cannot instanciate template component of type '+S);
     Exit;
   End;
 
@@ -2619,22 +2853,30 @@ Begin
   _Handlers[EventType] := Handler;
 End;
 
+
 Initialization
   _AlignEnums := EnumCollection.Create();
-  _AlignEnums.Add('TopLeft', waTopLeft);
-  _AlignEnums.Add('TopCenter', waTopCenter);
-  _AlignEnums.Add('TopRight', waTopRight);
-  _AlignEnums.Add('LeftCenter', waLeftCenter);
-  _AlignEnums.Add('Center', waCenter);
-  _AlignEnums.Add('RightCenter', waRightCenter);
-  _AlignEnums.Add('BottomLeft', waBottomLeft);
-  _AlignEnums.Add('BottomCenter', waBottomCenter);
-  _AlignEnums.Add('BottomRight', waBottomRight);
+  _AlignEnums.Add('TopLeft', Integer(UIAlign_TopLeft));
+  _AlignEnums.Add('TopCenter', Integer(UIAlign_TopCenter));
+  _AlignEnums.Add('TopRight', Integer(UIAlign_TopRight));
+  _AlignEnums.Add('LeftCenter', Integer(UIAlign_LeftCenter));
+  _AlignEnums.Add('Center', Integer(UIAlign_Center));
+  _AlignEnums.Add('RightCenter', Integer(UIAlign_RightCenter));
+  _AlignEnums.Add('BottomLeft', Integer(UIAlign_BottomLeft));
+  _AlignEnums.Add('BottomCenter', Integer(UIAlign_BottomCenter));
+  _AlignEnums.Add('BottomRight', Integer(UIAlign_BottomRight));
 
   _DirectionEnums := EnumCollection.Create();
   _DirectionEnums.Add('Vertical', Integer(UIDirection_Vertical));
   _DirectionEnums.Add('Horizontal', Integer(UIDirection_Horizontal));
+
+  _LayoutEnums := EnumCollection.Create();
+  _LayoutEnums.Add('Free', Integer(UILayout_Free));
+  _LayoutEnums.Add('Vertical', Integer(UILayout_Vertical));
+  _LayoutEnums.Add('Horizontal', Integer(UILayout_Horizontal));
+
 Finalization
   ReleaseObject(_AlignEnums);
   ReleaseObject(_DirectionEnums);
+  ReleaseObject(_LayoutEnums);
 End.
