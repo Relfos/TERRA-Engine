@@ -103,28 +103,6 @@ Type
 
   UIWidgetEventHandler = Procedure(Src:UIWidget) Of Object;
 
-  UIController = Class(TERRAObject)
-    Private
-      _Handlers:Array[WidgetEventType] Of UIWidgetEventHandler;
-
-    Public
-      Function GetHandler(EventType:WidgetEventType):UIWidgetEventHandler;
-      Procedure SetHandler(EventType:WidgetEventType; Handler:UIWidgetEventHandler);
-  End;
-
-  UIControllerProperty = Class(TERRAObject)
-    Protected
-      _Value:UIController;
-
-    Public
-      Constructor Create(Const Name:TERRAString; Controller:UIController);
-
-      Function GetObjectType:TERRAString; Override;
-
-      Function GetBlob():TERRAString; Override;
-      Procedure SetBlob(Const Blob:TERRAString); Override;
-  End;
-
   UIWidget = Class(TERRARenderable)
     Private
       _Tested:Boolean;
@@ -143,9 +121,10 @@ Type
       _Rotation:AngleProperty;
       _Scale:FloatProperty;
       _Saturation:FloatProperty;
-			//_Visible:BooleanProperty;
+			_Visible:BooleanProperty;
       _Draggable:BooleanProperty;
-      _Controller:UIControllerProperty;
+
+      _Handlers:Array[WidgetEventType] Of UIWidgetEventHandler;
 
       _Deleted:Boolean;
 
@@ -177,8 +156,6 @@ Type
       Function IsEnabled: Boolean;
 
       Function GetClipRect: TERRAClipRect;
-      Function GetController: UIController;
-      Procedure SetController(const Value: UIController);
       Procedure SetSelected(const Value: Boolean);
 
       Function GetState: WidgetState;
@@ -285,8 +262,6 @@ Type
 
       Procedure OnStateChange(); Virtual;
 
-      Function GetEventHandler(EventType:WidgetEventType):UIWidgetEventHandler;
-
       Property FontRenderer:TERRAFontRenderer Read GetFontRenderer;
 
       Function CanReceiveEvents:Boolean; Virtual;
@@ -326,7 +301,7 @@ Type
       Procedure UpdateRects; Virtual;
       Function UpdateTransform():Boolean; Virtual;
 
-      //Function GetVisible:Boolean;
+      Function GetVisible:Boolean;
       Function GetLayer:Single;
       Function GetColor:ColorRGBA;
       Function GetGlow:ColorRGBA;
@@ -341,14 +316,18 @@ Type
 
       //Procedure SetPositionRelativeToOther(Other:UIWidget; OfsX, OfsY:Single);
 
+      Function GetEventHandler(EventType: WidgetEventType): UIWidgetEventHandler;
+      Procedure SetEventHandler(EventType: WidgetEventType; Handler:UIWidgetEventHandler);
+
       Function GetScrollOffset():Vector2D;
 
 			Procedure OnLanguageChange();Virtual;
 
       Procedure NullEventHandler(Src:UIWidget);
 
-      Function OnRegion(X,Y:Single): Boolean; Virtual;
-      Function OnCustomRegion(X,Y:Integer; X1,Y1,X2,Y2:Single):Boolean;
+      Function OnChildrenRegion(Const X,Y:Single):Boolean;
+      Function OnRegion(Const X,Y:Single): Boolean; Virtual;
+      Function OnCustomRegion(Const X,Y:Integer; X1,Y1,X2,Y2:Single):Boolean;
 
       Procedure AddChild(W:UIWidget);
       Procedure RemoveChild(W:UIWidget);
@@ -406,7 +385,7 @@ Type
       //Procedure CenterOnPoint(X,Y:Single);
 
       Function Hidden():Boolean;
-			//Property Visible:Boolean Read GetVisible Write SetVisible;
+			Property Visible:Boolean Read GetVisible Write SetVisible;
 
 			Property Left:UIDimension Read GetPosition_Left Write SetPosition_Left;
 			Property Top:UIDimension Read GetPosition_Top Write SetPosition_Top;
@@ -442,8 +421,6 @@ Type
 
       Property Selected:Boolean Read _Selected Write SetSelected;
 
-      Property Controller:UIController Read GetController Write SetController;
-
       Property DropShadowColor:ColorRGBA Read _DropShadowColor Write _DropShadowColor;
 
       Property HighlightGroup:Integer Read GetHighlightGroup Write _HighlightGroup;
@@ -467,6 +444,7 @@ Type
   UIWidgetGroup = Class(UIWidget)
     Protected
       _Layout:EnumProperty;
+      _Padding:DimensionProperty;
 
       Function UpdateTransform():Boolean; Override;
       Procedure InitProperties(Const Name:TERRAString); Override;
@@ -474,11 +452,23 @@ Type
       Function GetLayout: UILayout;
       Procedure SetLayout(const Value: UILayout);
 
+      Function GetPadding: UIDimension;
+      Procedure SetPadding(const Value: UIDimension);
+
+(*      Function GetTemplate: TERRAString;
+      Procedure SetTemplate(const Value: TERRAString);*)
+
+      Function OnRegion(Const X,Y:Single): Boolean; Override;
+
     Public
-      Constructor Create(Const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension);
+      Constructor Create(Const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension{; Const TemplateName:TERRAString = ''});
+
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
 
       Property Layout:UILayout Read GetLayout Write SetLayout;
-  End;
+      Property Padding:UIDimension Read GetPadding Write SetPadding;
+//      Property Template:TERRAString Read GetTemplate Write SetTemplate;
+    End;
 
   UIInstancedWidget = Class(UIWidget)
     Protected
@@ -487,6 +477,8 @@ Type
       Function InitFromTemplate(Template, Parent:UIWidget):UIWidget;
 
       Function CanReceiveEvents:Boolean; Override;
+
+      Function OnRegion(Const X,Y:Single): Boolean; Override;
 
     Public
       Constructor Create(Const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension; Const TemplateName:TERRAString);
@@ -611,7 +603,7 @@ Var
 Begin
   _Width := DimensionProperty(Self.AddProperty(DimensionProperty.Create('width', UIPixels(0)), False));
   _Height := DimensionProperty(Self.AddProperty(DimensionProperty.Create('height', UIPixels(0)), False));
-  //_Visible := BooleanProperty(Self.AddProperty(BooleanProperty.Create('visible', True), False));
+  _Visible := BooleanProperty(Self.AddProperty(BooleanProperty.Create('visible', True), False));
   _X := DimensionProperty(Self.AddProperty(DimensionProperty.Create('left', UIPixels(0)), False));
   _Y := DimensionProperty(Self.AddProperty(DimensionProperty.Create('top', UIPixels(0)), False));
   //_Margin := DimensionProperty(Self.AddProperty(DimensionProperty.Create('margin', UIPixels(0)), False));
@@ -624,7 +616,6 @@ Begin
   _Saturation := FloatProperty(Self.AddProperty(FloatProperty.Create('saturation', 1.0), False));
   _Draggable := BooleanProperty(Self.AddProperty(BooleanProperty.Create('draggable', False), False));
   _Align := EnumProperty(Self.AddProperty(EnumProperty.Create('align', 0, _AlignEnums), False));
-  _Controller := UIControllerProperty(Self.AddProperty(UIControllerProperty.Create('controller', Nil), False));
 End;
 
 Function UIWidget.GetPropertyByIndex(Index:Integer):TERRAObject;
@@ -1115,13 +1106,11 @@ Begin
   {If (Self = Nil) Then
     Exit;}
 
-    (*
   If (Value = Self.Visible) Then
     Exit;
 
   //Log(logDebug,'UI', Self._Name+' visibility is now '+BoolToString(Value));
-
-  _Visible.Value := Value;*)
+  _Visible.Value := Value;
 
   If Value Then
   Begin
@@ -1369,7 +1358,7 @@ Begin
 	Result := False;
 End;
 
-Function UIWidget.OnRegion(X,Y:Single): Boolean;
+Function UIWidget.OnRegion(Const X,Y:Single): Boolean;
 Var
   V:Vector2D;
 Begin
@@ -1694,7 +1683,7 @@ Begin
   _InverseTransform := Matrix3x3_Inverse(_Transform);
 
   For I:=0 To Pred(_ChildrenCount) Do
-  //If (_ChildrenList[I].Visible) Then
+  If (_ChildrenList[I].Visible) Then
   Begin
     _ChildrenList[I]._TransformChanged := True;
     _ChildrenList[I].UpdateTransform();
@@ -1813,15 +1802,15 @@ Procedure UIWidget.Render(View:TERRAViewport; Const Stage:RendererStage; Const B
 Var
   I:Integer;
 Begin
-  If (Self._Deleted) {Or (Not Self.Visible)} Then
+  If (Self._Deleted) Then
     Exit;
 
 //  Application.Sleep(100);
 
   For I:=0 To Pred(_ChildrenCount) Do
-  If {(_ChildrenList[I].Visible) And} (_ChildrenList[I].CanRender()) Then
+  If (_ChildrenList[I].CanRender()) Then
     _ChildrenList[I].Render(View, Stage, Bucket);
-
+                                
   Self.UpdateProperties();
   Self.UpdateRects();
   Self.UpdateTransform();
@@ -2033,14 +2022,9 @@ Begin
   End Else
   If (C = UIDataSourceChar) Then
   Begin
-    Result := 'UNFINISHED!';
-(*    For I:=0 To Pred(_PropertyCount) Do
-    If (StringEquals(_Properties[I].Prop.Name, Macro)) Then
-    Begin
-      Result := _Properties[I].Prop.GetBlob();
-      Exit;
-    End;*)
-    Exit;                       
+    Macro := StringCopy(Value, 2, MaxInt);
+    Result := DataSourceManager.Instance.GetValueFromPath(Macro);
+    Exit;
   End Else
   Begin
     Result := Value;
@@ -2049,8 +2033,6 @@ Begin
 
   If Assigned(Self.Parent) Then
     Result := Self.Parent.ResolveMacro(Value);
-    
-  //Result := DataSourceManager.Instance.GetValueFromPath(S);
 End;
 
 (*Procedure UIWidget.SetChildrenVisibilityByTag(Tag: Integer; Visibility: Boolean);
@@ -2068,6 +2050,9 @@ Var
 Begin
   Result := False;
 
+  If (Not Self.Visible) Then
+    Exit;
+
   If (Self.Color.A<0) Then
     Exit;
 
@@ -2079,7 +2064,7 @@ Begin
   Result := True;
 End;
 
-Function UIWidget.OnCustomRegion(X, Y:Integer; X1, Y1, X2, Y2:Single): Boolean;
+Function UIWidget.OnCustomRegion(Const X, Y:Integer; X1, Y1, X2, Y2:Single): Boolean;
 Var
   I:Integer;
   Pos:Vector2D;
@@ -2383,13 +2368,14 @@ Begin
     Result := Nil;
 End;
 
+Procedure UIWidget.SetEventHandler(EventType: WidgetEventType; Handler:UIWidgetEventHandler);
+Begin
+  _Handlers[EventType] := Handler;
+End;
+
 Function UIWidget.GetEventHandler(EventType:WidgetEventType):UIWidgetEventHandler;
 Begin
-  If (Assigned(_Controller._Value)) Then
-  Begin
-    Result := _Controller._Value._Handlers[EventType];
-  End Else
-    Result := Nil;
+  Result := _Handlers[EventType];
 
   If (Assigned(Result)) Or (_Parent = Nil) Then
     Exit;
@@ -2472,16 +2458,6 @@ Begin
     Prop.SetBlob(Value);
 End;
 
-Function UIWidget.GetController: UIController;
-Begin
-  Result := _Controller._Value;
-End;
-
-Procedure UIWidget.SetController(const Value: UIController);
-Begin
-  _Controller._Value := Value;
-End;
-
 Procedure UIWidget.SetSelected(const Value: Boolean);
 Begin
   If (_Selected = Value) Then
@@ -2502,12 +2478,10 @@ End;
 
 Function UIWidget.GetState: WidgetState;
 Begin
-(*  If (_Visible) Then
+  If (Self.Visible) Then
     Result := _State
   Else
-    Result := widget_Hidden;*)
-
-  Result := _State;
+    Result := widget_Hidden;
 End;
 
 function UIWidget.Hidden: Boolean;
@@ -2566,6 +2540,25 @@ Begin
   End;
 End;
 
+Function UIWidget.OnChildrenRegion(const X, Y: Single): Boolean;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_ChildrenCount) Do
+  If (_ChildrenList[I].OnRegion(X, Y)) Then
+  Begin
+    Result := True;
+    Exit;
+  End;
+
+  Result := False;
+End;
+
+Function UIWidget.GetVisible: Boolean;
+Begin
+  Result := _Visible.Value;
+End;
+
 { UIWidgetGroup }
 Constructor UIWidgetGroup.Create(Const Name:TERRAString; Parent:UIWidget;  Const X,Y:UIDimension; Const Layer:Single; const Width, Height: UIDimension);
 Begin
@@ -2578,11 +2571,7 @@ Begin
   Self.Height := Height;
 
   Self.Layout := UILayout_Free;
-End;
-
-Function UIWidgetGroup.GetLayout: UILayout;
-Begin
-  Result := UILayout(_Layout.Value);
+//  Self.Template := TemplateName;
 End;
 
 Procedure UIWidgetGroup.InitProperties(const Name: TERRAString);
@@ -2590,11 +2579,27 @@ Begin
   Inherited;
 
   Self._Layout := EnumProperty(Self.AddProperty(EnumProperty.Create('layout', 0, _LayoutEnums), False));
+  Self._Padding := DimensionProperty(Self.AddProperty(DimensionProperty.Create('padding', UIPercent(100)), False));
+End;
+
+Function UIWidgetGroup.GetLayout: UILayout;
+Begin
+  Result := UILayout(_Layout.Value);
+End;
+
+Function UIWidgetGroup.GetPadding: UIDimension;
+Begin
+  Result := _Padding.Value;
 End;
 
 Procedure UIWidgetGroup.SetLayout(const Value: UILayout);
 Begin
   _Layout.Value := Integer(Value);
+End;
+
+Procedure UIWidgetGroup.SetPadding(const Value: UIDimension);
+Begin
+  _Padding.Value := Value;
 End;
 
 Function UIWidgetGroup.UpdateTransform: Boolean;
@@ -2607,7 +2612,7 @@ Begin
   Begin
     CurrentPos := 0.0;
     Case Self.Layout Of
-      UILayout_Horizontal:
+    UILayout_Horizontal:
       Begin
         TotalSize := 0;
         TotalVisible := 0;
@@ -2622,7 +2627,13 @@ Begin
         If (TotalVisible>0) Then
         Begin
           PadSize := Self.Size.X - TotalSize;
-          SepSize := PadSize / Succ(TotalVisible);
+
+          If (Self.Padding.IsPercent) Then
+          Begin
+            SepSize := PadSize / Succ(TotalVisible);
+            SepSize := SepSize * Self.Padding.Value * 0.01;
+          End Else
+            SepSize := Self.Padding.Value;
 
           CurrentPos := SepSize;
 
@@ -2642,6 +2653,32 @@ Begin
   End;
 
   Result := Inherited UpdateTransform;
+End;
+
+(*Function UIWidgetGroup.GetTemplate: TERRAString;
+Begin
+  Result := _Template.Value;
+End;
+
+Procedure UIWidgetGroup.SetTemplate(const Value: TERRAString);
+Begin
+  _Template.Value := Value;
+End;*)
+
+Procedure UIWidgetGroup.Render(View: TERRAViewport; Const Stage: RendererStage; const Bucket: Cardinal);
+Var
+  I:Integer;
+Begin
+(*  If (Self.ChildrenCount<=0) And (Self.Template<>'') Then
+  Begin
+  End;*)
+
+  Inherited;
+End;
+
+Function UIWidgetGroup.OnRegion(const X, Y: Single): Boolean;
+Begin
+  Result := Self.OnChildrenRegion(X, Y);
 End;
 
 { UIInstancedWidget }
@@ -2701,12 +2738,12 @@ Function UIInstancedWidget.InitFromTemplate(Template, Parent:UIWidget):UIWidget;
 Var
   I:Integer;
   S:TERRAString;
+  Temp:UIWidget;
 Begin
+  Result := Nil;
+
   If Template = Nil Then
-  Begin
-    Result := Nil;
     Exit;
-  End;
 
   If (Template Is UIEditText) Then
   Begin
@@ -2728,18 +2765,39 @@ Begin
   Begin
     Result := UIWidgetGroup.Create(Template.Name, Parent, UIPixels(0), UIPixels(0), 0, UIPixels(100), UIPixels(100));
   End Else
+  If (Template Is UIInstancedWidget) Then
   Begin
-    S := Template.ClassName;
-    Log(logError, 'UI', 'Cannot instanciate template component of type '+S);
-    Exit;
+    Result := UIInstancedWidget.Create(Template.Name, Parent, UIPixels(0), UIPixels(0), 0, UIPixels(100), UIPixels(100), Template.Name);
+  End Else
+  Begin
+    If (Not (Template Is UIInstancedWidget)) Then
+    Begin
+      S := Template.ClassName;
+      Log(logError, 'UI', 'Cannot instanciate template component of type '+S);
+      Exit;
+    End;
   End;
 
-  Result.CopyProperties(Template);
+  If Assigned(Result) Then
+    Result.CopyProperties(Template)
+  Else
+    Result := Parent;
 
   For I:=0 To Pred(Template.ChildrenCount) Do
   Begin
-    InitFromTemplate(Template.GetChildByIndex(I), Result);
+    Temp := InitFromTemplate(Template.GetChildByIndex(I), Result);
+
+    (*If Result = Parent Then
+    Begin
+      Temp.CopyProperties(Template);
+    End;*)
+
   End;
+End;
+
+Function UIInstancedWidget.OnRegion(Const X, Y: Single): Boolean;
+Begin
+  Result := Self.OnChildrenRegion(X, Y);
 End;
 
 { UITemplateList }
@@ -2814,57 +2872,18 @@ Begin
   ReleaseObject(It);
 End;
 
-{ UIControllerProperty }
-Constructor UIControllerProperty.Create(const Name: TERRAString; Controller:UIController);
-Begin
-  Self._ObjectName := Name;
-  Self._Value := Controller;
-End;
-
-
-Function UIControllerProperty.GetObjectType: TERRAString;
-Begin
-  Result := 'uicontroller';
-End;
-
-Function UIControllerProperty.GetBlob: TERRAString;
-Begin
-  If Assigned(_Value) Then
-    Result := _Value.Name
-  Else
-    Result := '#';
-End;
-
-
-Procedure UIControllerProperty.SetBlob(const Blob: TERRAString);
-Begin
-//  _Value := UIManager.Instance.GetControllerByName(Blob);
-End;
-
-{ UIController }
-
-Function UIController.GetHandler(EventType: WidgetEventType): UIWidgetEventHandler;
-Begin
-  Result := _Handlers[EventType];
-End;
-
-Procedure UIController.SetHandler(EventType: WidgetEventType; Handler:UIWidgetEventHandler);
-Begin
-  _Handlers[EventType] := Handler;
-End;
-
 
 Initialization
   _AlignEnums := EnumCollection.Create();
-  _AlignEnums.Add('TopLeft', Integer(UIAlign_TopLeft));
-  _AlignEnums.Add('TopCenter', Integer(UIAlign_TopCenter));
-  _AlignEnums.Add('TopRight', Integer(UIAlign_TopRight));
-  _AlignEnums.Add('LeftCenter', Integer(UIAlign_LeftCenter));
+  _AlignEnums.Add('Top.Left', Integer(UIAlign_TopLeft));
+  _AlignEnums.Add('Top.Center', Integer(UIAlign_TopCenter));
+  _AlignEnums.Add('Top.Right', Integer(UIAlign_TopRight));
+  _AlignEnums.Add('Left.Center', Integer(UIAlign_LeftCenter));
   _AlignEnums.Add('Center', Integer(UIAlign_Center));
-  _AlignEnums.Add('RightCenter', Integer(UIAlign_RightCenter));
-  _AlignEnums.Add('BottomLeft', Integer(UIAlign_BottomLeft));
-  _AlignEnums.Add('BottomCenter', Integer(UIAlign_BottomCenter));
-  _AlignEnums.Add('BottomRight', Integer(UIAlign_BottomRight));
+  _AlignEnums.Add('Right.Center', Integer(UIAlign_RightCenter));
+  _AlignEnums.Add('Bottom.Left', Integer(UIAlign_BottomLeft));
+  _AlignEnums.Add('Bottom.Center', Integer(UIAlign_BottomCenter));
+  _AlignEnums.Add('Bottom.Right', Integer(UIAlign_BottomRight));
 
   _DirectionEnums := EnumCollection.Create();
   _DirectionEnums.Add('Vertical', Integer(UIDirection_Vertical));
@@ -2872,8 +2891,8 @@ Initialization
 
   _LayoutEnums := EnumCollection.Create();
   _LayoutEnums.Add('Free', Integer(UILayout_Free));
-  _LayoutEnums.Add('Vertical', Integer(UILayout_Vertical));
   _LayoutEnums.Add('Horizontal', Integer(UILayout_Horizontal));
+  _LayoutEnums.Add('Vertical', Integer(UILayout_Vertical));
 
 Finalization
   ReleaseObject(_AlignEnums);

@@ -230,18 +230,19 @@ Function ColorCreateFromString(HexValue:TERRAString):ColorRGBA;
 
 Var
   It:StringIterator;
+  Init:TERRAChar;
   A,B:Byte;
 Begin
   StringCreateIterator(HexValue, It);
 
-  A := H(It.GetNext());
-  B := H(It.GetNext());
-
-  If (A = Ord('#')) Then
+  Init := It.GetNext();
+  If (Init = '#') Then
   Begin
-    A := B;
-    B := H(It.GetNext());
-  End;
+    A := H(It.GetNext());
+  End Else
+    A := H(Init);
+
+  B := H(It.GetNext());
 
   Result.R := A Shl 4 + B;
 
@@ -1210,6 +1211,9 @@ End;
 
 Procedure ColorProperty.AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:ColorRGBA; Duration, Delay:Cardinal; Callback: TweenCallback; CallTarget:TERRAObject);
 Begin
+IF TargetValue.A <255 Then
+  DebugBreak;
+  
   Self.Red.AddTween(Ease, StartValue.R, TargetValue.R, Duration, Delay, Callback, CallTarget);
   Self.Green.AddTween(Ease, StartValue.G, TargetValue.G, Duration, Delay, Nil);
   Self.Blue.AddTween(Ease, StartValue.B, TargetValue.B, Duration, Delay, Nil);

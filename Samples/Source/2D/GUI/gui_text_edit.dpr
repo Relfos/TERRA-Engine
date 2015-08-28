@@ -40,19 +40,13 @@ Type
   MyDemo = Class(DemoApplication)
     Public
 			Procedure OnCreate; Override;
-  End;
 
-
-  DemoUIController = Class(UIController)
-    Public
-      Constructor Create();
-
-      Procedure OnMyButtonClick(Src:UIWidget);
+      Procedure OnTogglePassword(Src:UIWidget);
+      Procedure OnButtonSpin(Src:UIWidget);
   End;
 
 Var
   Fnt:TERRAFont;
-  MyController:UIController;
   MyWnd, MyEdit:UIWidget;
   MyBtn, MyBtn2:UIWidget;
 
@@ -65,59 +59,46 @@ Begin
   UITemplates.AddTemplate(UIEditTextTemplate.Create('edit_template', Engine.Textures.GetItem('ui_button2'), 25, 10, 220, 37));
   UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', Engine.Textures.GetItem('ui_button2'), 25, 10, 220, 37));
 
-  MyController := DemoUIController.Create();
-
-  MyWnd := UIInstancedWidget.Create('mywnd', Self.GUI, 0, 0, 10, UIPixels(643), UIPixels(231), 'wnd_template');
+  MyWnd := UIInstancedWidget.Create('mywnd', Self.GUI, UIPixels(0), UIPixels(0), 10, UIPixels(643), UIPixels(231), 'wnd_template');
   MyWnd.Draggable := True;
-  MyWnd.Align := waCenter;
+  MyWnd.Align := UIAlign_Center;
 
-  MyEdit := UIInstancedWidget.Create('myedit', MyWnd, 0, -20, 1, UIPixels(450), UIPixels(50), 'edit_template');
-  MyEdit.Align := waCenter;
+  MyEdit := UIInstancedWidget.Create('myedit', MyWnd, UIPixels(0), UIPixels(-20), 1, UIPixels(450), UIPixels(50), 'edit_template');
+  MyEdit.Align := UIAlign_Center;
 
-  MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, -150, 40, 1, UIPixels(150), UIPixels(50), 'btn_template');
-  MyBtn.Align := waBottomCenter;
-  MyBtn.Controller := MyController;
+  MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, UIPixels(-150), UIPixels(40), 1, UIPixels(150), UIPixels(50), 'btn_template');
+  MyBtn.Align := UIAlign_BottomCenter;
+  MyBtn.SetEventHandler(widgetEvent_MouseDown, Self.OnTogglePassword);
   MyBtn.SetPropertyValue('value', 'Password');
 
   MyBtn.AddAnimation(widget_Default, 'value', 'Password');
   MyBtn.AddAnimation(widget_Selected, 'value', 'Normal');
 
-  MyBtn2 := UIInstancedWidget.Create('mybtn', MyWnd, 150, 40, 1, UIPixels(150), UIPixels(50), 'btn_template');
-  MyBtn2.Align := waBottomCenter;
-  MyBtn2.Controller := MyController;
+  MyBtn2 := UIInstancedWidget.Create('mybtn', MyWnd, UIPixels(150), UIPixels(40), 1, UIPixels(150), UIPixels(50), 'btn_template');
+  MyBtn2.Align := UIAlign_BottomCenter;
+  MyBtn2.SetEventHandler(widgetEvent_MouseDown, Self.OnButtonSpin);
   MyBtn2.SetPropertyValue('value', 'Spin');
-
 End;
 
-// GUI event handlers
-// All event handlers must be procedures that receive a Widget as argument
-// The Widget argument provides the widget that called this event handler
-Constructor DemoUIController.Create;
-Begin
-  Self._ObjectName := 'demo';
-  SetHandler(widgetEvent_MouseDown, OnMyButtonClick); // Assign a onClick event handler
-End;
-
-Procedure DemoUIController.OnMyButtonClick(Src:UIWidget);
+Procedure MyDemo.OnButtonSpin(Src:UIWidget);
 Var
-  Text:UIEditText;
   Prop:TweenableProperty;
 Begin
-  If (Src = MyBtn2) Then
+  Prop := TweenableProperty(MyWnd.FindProperty('rotation'));
+
+  If Assigned(Prop) Then
   Begin
-    Prop := TweenableProperty(MyWnd.FindProperty('rotation'));
-
-    If Assigned(Prop) Then
-    Begin
-      If MyWnd.Rotation<>0 Then
-        Prop.AddTweenFromBlob(easeLinear, '90', '0', 1000)
-      Else
-        Prop.AddTweenFromBlob(easeLinear, '0', '90', 1000);
-    End;
-
-    Exit;
+    If MyWnd.Rotation<>0 Then
+      Prop.AddTweenFromBlob(easeLinear, '90', '0', 1000)
+    Else
+      Prop.AddTweenFromBlob(easeLinear, '0', '90', 1000);
   End;
+End;
 
+Procedure MyDemo.OnTogglePassword(Src:UIWidget);
+Var
+  Text:UIEditText;
+Begin
   Text := UIEditText(MyEdit.FindComponent(UIEditText));
   If Text = Nil Then
     Exit;
@@ -125,10 +106,7 @@ Begin
   Text.PasswordField := Not Text.PasswordField;
 
   //Src.Selected := Not Src.Selected;
-
- // MyUI.MessageBox('You clicked the button!');
 End;
-
 
 {$IFDEF IPHONE}
 Procedure StartGame; cdecl; export;

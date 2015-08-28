@@ -8,7 +8,9 @@ uses
   TERRA_Application,
   TERRA_DemoApplication,
   TERRA_EngineManager,
+  TERRA_String,
   TERRA_Utils,
+  TERRA_Color,
   TERRA_OS,
   TERRA_Vector2D,
   TERRA_Viewport,
@@ -24,26 +26,25 @@ Type
   MyDemo = Class(DemoApplication)
     Public
 			Procedure OnCreate; Override;
-  End;
-
-
-  DemoUIController = Class(UIController)
-    Public
-      Constructor Create();
 
       Procedure OnMyButtonClick(Src:UIWidget);
+
+      Procedure OnTabDown(Src:UIWidget);
   End;
+
 
 Const
   TabCount = 3;
+
+  TabText:Array[1..TabCount] Of TERRAString = ('Red', 'Yellow', 'Blue');
+  TabColor:Array[1..TabCount] Of ColorRGBA = ((R:255; G:100; B:100; A:255), (R:255; G:255; B:100; A:255), (R:100; G:100; B:255; A:255) );
 
 Var
   MyWnd, MyBtn:UIWidget;
   MyText:UILabel;
   MyImg:UIImage;
-  MyTabGroups:Array[1..TabCount] Of UIWidget;
-
-  MyController:UIController;
+  MyTabGroups, MyTabs:Array[1..TabCount] Of UIWidget;
+  SelectedTab:UIWidget;
 
 { Game }
 Procedure MyDemo.OnCreate;
@@ -52,48 +53,65 @@ Var
 Begin
   Inherited;
 
-  UITemplates.AddTemplate(UITabbedWindowTemplate.Create('wnd_template', Engine.Textures.GetItem('ui_window'), 45, 28, 147, 98, TabCount));
-  UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', Engine.Textures.GetItem('ui_button2'), 25, 10, 220, 37));
-
   UITemplates.AddTemplate(UIButtonTemplate.Create('tab_template', Engine.Textures.GetItem('ui_tab_on'), 4, 4, 54, 21));
 
-  MyController := DemoUIController.Create();
+  UITemplates.AddTemplate(UITabbedWindowTemplate.Create('wnd_template', Engine.Textures.GetItem('ui_window'), 45, 28, 147, 98, TabCount, 'tab_template'));
+  UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', Engine.Textures.GetItem('ui_button2'), 25, 10, 220, 37));
 
   MyWnd := UIInstancedWidget.Create('mywnd', Self.GUI, UIPixels(0), UIPixels(0), 10, UIPixels(643), UIPixels(231), 'wnd_template');
   MyWnd.Draggable := True;
   MyWnd.Align := UIAlign_Center;
-  MyWnd.Controller := MyController;
 
   For I:=1 To TabCount Do
+  Begin
     MyTabGroups[I] := MyWnd.GetChildByName('tab_group', I);
+    MyTabs[I] := MyWnd.GetChildByName('tab_button', I);
 
-    (*
+    If Assigned(MyTabs[I]) Then
+    Begin
+      MyTabs[I].SetPropertyValue('caption', TabText[I]);
+      MyTabs[I].SetEventHandler(widgetEvent_MouseDown, Self.OnTabDown);
+      MyTabs[I].Color := TabColor[I];
+      MyTabs[I].AddAnimation(widget_Default, 'color', ColorProperty.Stringify(TabColor[I]));
+      MyTabs[I].AddAnimation(widget_Highlighted, 'color', 'FFFFFFFF');
+    End;
+  End;
+
   MyBtn := UIInstancedWidget.Create('mybtn', MyTabGroups[1], UIPixels(0), UIPixels(0), 1, UIPixels(250), UIPixels(50), 'btn_template');
-  MyBtn.Align := waCenter;
-  MyBtn.Controller := MyController;
+  MyBtn.Align := UIAlign_Center;
+  MyBtn.SetEventHandler(widgetEvent_MouseDown, Self.OnMyButtonClick);
 //  MyBtn.Draggable := True;
 //  MyBtn.SetPropertyValue('caption', 'custom caption!');
 
-  MyImg := UIImage.Create('sampleimg', MyTabGroups[2], UIPixels(0), UIPixels(30), 1, UIPixels(64), UIPixels(64));
-  MyImg.Align := waTopCenter;
+  MyImg := UIImage.Create('sampleimg', MyTabGroups[2], UIPixels(0), UIPixels(0), 1, UIPixels(64), UIPixels(64));
+  MyImg.Align := UIAlign_Center;
   MyImg.Texture := Engine.Textures['ghost'];
 
   MyText := UILabel.Create('title', MyTabGroups[3], UIPixels(0), UIPixels(30), 1, UIPercent(100), UIPixels(64), 'This is a label that belongs to a tab!');
-  MyText.Align := waBottomCenter;*)
+  MyText.Align := UIAlign_BottomCenter;
 End;
 
-// GUI event handlers
-// All event handlers must be procedures that receive a Widget as argument
-// The Widget argument provides the widget that called this event handler
-Constructor DemoUIController.Create;
+Procedure MyDemo.OnMyButtonClick(Src: UIWidget);
 Begin
-  Self._ObjectName := 'demo';
-  SetHandler(widgetEvent_MouseDown, OnMyButtonClick); // Assign a onClick event handler
+
 End;
 
-Procedure DemoUIController.OnMyButtonClick(Src:UIWidget);
+Procedure MyDemo.OnTabDown(Src: UIWidget);
+Var
+  I:Integer;
 Begin
- // MyUI.MessageBox('You clicked the button!');
+  Src.Selected := False;
+
+  If SelectedTab = Nil Then
+    SelectedTab := MyTabs[1];
+
+  If (SelectedTab = Src) Then
+    Exit;
+
+  SelectedTab := Src;
+
+  For I:=1 To TabCount Do
+    MyTabGroups[I].Visible := (I = Src.ID);
 End;
 
 
@@ -105,6 +123,5 @@ Begin
 {$IFDEF IPHONE}
 End;
 {$ENDIF}
-
 End.
 

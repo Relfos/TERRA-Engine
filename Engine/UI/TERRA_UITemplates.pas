@@ -14,7 +14,7 @@ Type
 
   UITabbedWindowTemplate = Class(UIWidget)
     Public
-      Constructor Create(Const Name:TERRAString; Tex:TERRATexture; Const X1, Y1, X2, Y2:Integer; TabCount:Integer);
+      Constructor Create(Const Name:TERRAString; Tex:TERRATexture; Const X1, Y1, X2, Y2:Integer; Const TabCount:Integer; Const TabTemplate:TERRAString);
   End;
 
   UIButtonTemplate = Class(UIWidget)
@@ -47,42 +47,35 @@ End;
 
 
 { UITabbedWindowTemplate }
-Constructor UITabbedWindowTemplate.Create(const Name: TERRAString; Tex: TERRATexture; const X1, Y1, X2, Y2: Integer; TabCount: Integer);
+Constructor UITabbedWindowTemplate.Create(const Name: TERRAString; Tex: TERRATexture; const X1, Y1, X2, Y2: Integer; Const TabCount:Integer; Const TabTemplate:TERRAString);
 Const
-  TabHeight = 10;
+  TabHeight = 20;
 Var
   TabLayout, TabGroup:UIWidgetGroup;
-  Tab:UITiledRect;
+  Tab:UIWidget;
   TileRect:UITiledRect;
   I:Integer;
-  TabTex:TERRATexture;
 Begin
   Inherited Create(Name, Nil);
 
-  Tex.Prefetch();
-  TileRect := UITiledRect.Create('rect', Self, UIPixels(0), UIPixels(TabHeight), 1, UIPercent(100), UIPercent(100 - TabHeight), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
-  TileRect.Texture := Tex;
-  TileRect.Draggable := True;
-
-  TabLayout := UIWidgetGroup.Create('tab_layout', Self, UIPixels(0), UIPixels(0), 5, UIPercent(100), UIPercent(TabHeight));
+  TabLayout := UIWidgetGroup.Create('tab_layout', Self, UIPixels(0), UIPixels(0), 0.2, UIPercent(100), UIPercent(TabHeight));
   TabLayout.Layout := UILayout_Horizontal;
   TabLayout.Align := UIAlign_TopLeft;
+  TabLayout.Padding := UIPixels(10);
 
-  TabTex := Engine.Textures.GetItem('ui_tab_on');
+  Tex.Prefetch();
+  TileRect := UITiledRect.Create('rect', Self, UIPixels(0), UIPercent(TabHeight), 1, UIPercent(100), UIPercent(100 - TabHeight), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
+  TileRect.Texture := Tex;
+  TileRect.Draggable := True;
 
   // create the widget groups inside the gui window
   // the group size is 100% of the parent
   For I:=1 To TabCount Do
   Begin
-    Tab := UITiledRect.Create('tab_button', TabLayout, UIPixels(0), UIPixels(0), 2, UIPixels(150), UIPercent(100), 0.25, 0.25, 0.75, 0.75);
-    Tab.Align := UIAlign_TopCenter;
-    Tab.Texture := TabTex;
-
+    Tab := UIInstancedWidget.Create('tab_button', TabLayout, UIPixels(0), UIPixels(0), 0.5, UIPixels(100), UIPercent(100), TabTemplate);
     TabGroup := UIWidgetGroup.Create('tab_group', TileRect, UIPixels(0), UIPixels(0), 1, UIPercent(100), UIPercent(100));
-    //TabGroup.TriggerEvent(widgetEvent_Hide);
+    TabGroup.Visible := (I=1);
   End;
-  //Tab.TriggerEvent(widgetEvent_Show);
-
 End;
 
 { UIButtonTemplate }
@@ -94,7 +87,7 @@ Begin
   Inherited Create(Name, Nil);
 
   Tex.Prefetch();
-  TileRect := UITiledRect.Create('button', Self, UIPixels(0), UIPixels(0), 1, UIPercent(100), UIPercent(100), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
+  TileRect := UITiledRect.Create('button', Self, UIPixels(0), UIPixels(0), 0.5, UIPercent(100), UIPercent(100), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
   TileRect.Texture := Tex;
   //TileRect.Draggable := True;
   //TileRect.Color := ColorBlue;
