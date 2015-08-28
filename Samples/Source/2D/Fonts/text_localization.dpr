@@ -77,7 +77,7 @@ Begin
     S.SetTexture(Tex);
     S.Saturation := Saturation;
 
-    S.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+    S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
 
     V.SpriteRenderer.QueueSprite(S);
   End;

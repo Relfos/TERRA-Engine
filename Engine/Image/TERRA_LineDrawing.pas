@@ -6,7 +6,7 @@ Unit TERRA_LineDrawing;
 Interface
 Uses TERRA_Object, TERRA_Color, TERRA_Image;
 
-Procedure WuLine(Target:Image; x1, y1, x2, y2:Integer);
+Procedure WuLine(Target:TERRAImage; x1, y1, x2, y2:Integer);
 
 
 Implementation

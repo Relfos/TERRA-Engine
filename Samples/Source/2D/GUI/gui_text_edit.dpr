@@ -71,10 +71,10 @@ Begin
   MyWnd.Draggable := True;
   MyWnd.Align := waCenter;
 
-  MyEdit := UIInstancedWidget.Create('myedit', MyWnd, 0, 0, 1, UIPixels(450), UIPixels(50), 'edit_template');
+  MyEdit := UIInstancedWidget.Create('myedit', MyWnd, 0, -20, 1, UIPixels(450), UIPixels(50), 'edit_template');
   MyEdit.Align := waCenter;
 
-  MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, -150, 25, 1, UIPixels(150), UIPixels(50), 'btn_template');
+  MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, -150, 40, 1, UIPixels(150), UIPixels(50), 'btn_template');
   MyBtn.Align := waBottomCenter;
   MyBtn.Controller := MyController;
   MyBtn.SetPropertyValue('value', 'Password');
@@ -82,7 +82,7 @@ Begin
   MyBtn.AddAnimation(widget_Default, 'value', 'Password');
   MyBtn.AddAnimation(widget_Selected, 'value', 'Normal');
 
-  MyBtn2 := UIInstancedWidget.Create('mybtn', MyWnd, 150, 25, 1, UIPixels(150), UIPixels(50), 'btn_template');
+  MyBtn2 := UIInstancedWidget.Create('mybtn', MyWnd, 150, 40, 1, UIPixels(150), UIPixels(50), 'btn_template');
   MyBtn2.Align := waBottomCenter;
   MyBtn2.Controller := MyController;
   MyBtn2.SetPropertyValue('value', 'Spin');
