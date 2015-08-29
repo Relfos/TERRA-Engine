@@ -74,14 +74,14 @@ Begin
      Status := MIDIClientCreate(CFSTR('MIDI client'), Nil, Nil, @_midiClient);
      If (Status != noErr) Then
      Begin
-          Log(logError, 'MIDI', 'Error creating MIDI client ' + IntToString(status));
+          Log(logError, 'MIDI', 'Error creating MIDI client ' + IntegerProperty.Stringify(status));
           Result := False;
      End;
 
      Status := MIDIOutputPortCreate(_midiClient, CFSTR('MIDI Output'), _midiOut);
      If (Status != noErr) Then
      Begin
-          Log(logError, 'MIDI', 'Error creating MIDI output port ' + IntToString(status));
+          Log(logError, 'MIDI', 'Error creating MIDI output port ' + IntegerProperty.Stringify(status));
           Result := False;
      End;
 
@@ -177,7 +177,7 @@ Begin
      Status := NewAUGraph(_outGraph);
      If (Status <> noErr) Then
      Begin
-          Log(logError, 'MIDI', 'Error creating audio graph: ' + IntToString(status));
+          Log(logError, 'MIDI', 'Error creating audio graph: ' + IntegerProperty.Stringify(status));
           Result := False;
           Exit;
      End;
@@ -188,7 +188,7 @@ Begin
      Status := AUGraphAddNode(_outGraph, @cd, synthNode);
      If (Status <> noErr) Then
      Begin
-          Log(logError, 'MIDI', 'Error adding DLS node to audio graph: ' + IntToString(status));
+          Log(logError, 'MIDI', 'Error adding DLS node to audio graph: ' + IntegerProperty.Stringify(status));
           Result := False;
           Exit;
      End;
@@ -199,7 +199,7 @@ Begin
      Status := AUGraphAddNode(_outGraph, @cd, limiterNode);
      If (Status <> noErr) Then
      Begin
-          Log(logError, 'MIDI', 'Error adding effect node to audio graph: ' + IntToString(status));
+          Log(logError, 'MIDI', 'Error adding effect node to audio graph: ' + IntegerProperty.Stringify(status));
           Result := False;
           Exit;
      End;
@@ -209,7 +209,7 @@ Begin
     Status := AUGraphAddNode(_outGraph, @cd, &outNode);
     If (Status <> noErr) Then
     Begin
-         Log(logError, 'MIDI', 'Error adding output node to audio graph: ' + IntToString(status));
+         Log(logError, 'MIDI', 'Error adding output node to audio graph: ' + IntegerProperty.Stringify(status));
          Result := False;
          Exit;
     End;
@@ -217,7 +217,7 @@ Begin
     Status := AUGraphOpen(_outGraph);
     If (Status <> noErr) Then
     Begin
-         Log(logError, 'MIDI', 'Error opening audio graph: ' + IntToString(status));
+         Log(logError, 'MIDI', 'Error opening audio graph: ' + IntegerProperty.Stringify(status));
          Result := False;
          Exit;
     End;
@@ -225,7 +225,7 @@ Begin
     Status := AUGraphConnectNodeInput(_outGraph, synthNode, 0, limiterNode, 0);
     If (Status <> noErr) Then
     Begin
-         Log(logError, 'MIDI', 'Error conneting synth graph node for input: ' + IntToString(status));
+         Log(logError, 'MIDI', 'Error conneting synth graph node for input: ' + IntegerProperty.Stringify(status));
          Result := False;
          Exit;
     End;
@@ -233,7 +233,7 @@ Begin
     Status := AUGraphConnectNodeInput(_outGraph, limiterNode, 0, outNode, 0);
     If (Status <> noErr) Then
     Begin
-         Log(logError, 'MIDI', 'Error connecting effect graph node : ' + IntToString(status));
+         Log(logError, 'MIDI', 'Error connecting effect graph node : ' + IntegerProperty.Stringify(status));
          Result := False;
          Exit;
     End;
@@ -242,7 +242,7 @@ Begin
     Status := AUGraphNodeInfo(_outGraph, synthNode, outDesc, _outSynth);
     If (Status <> noErr) Then
     Begin
-         Log(logError, 'MIDI', 'Error getting graph node info: ' + IntToString(status));
+         Log(logError, 'MIDI', 'Error getting graph node info: ' + IntegerProperty.Stringify(status));
          Result := False;
          Exit;
     End;
@@ -250,7 +250,7 @@ Begin
     Status := AUGraphInitialize(_outGraph);
     If (Status <> noErr) Then
     Begin
-         Log(logError, 'MIDI', 'Error initializting graph: ' + IntToString(status));
+         Log(logError, 'MIDI', 'Error initializting graph: ' + IntegerProperty.Stringify(status));
          Result := False;
          Exit;
     End;
@@ -269,7 +269,7 @@ Begin
     Status := AUGraphStart(_outGraph);
     If (Status <> noErr) Then
     Begin
-         Log(logError, 'MIDI', 'Error starting graph: ' + IntToString(status));
+         Log(logError, 'MIDI', 'Error starting graph: ' + IntegerProperty.Stringify(status));
          Result := False;
          Exit;
     End;

@@ -132,7 +132,7 @@ End;
 Interface
 Uses
   {$IFDEF WINDOWS}Windows, {$ENDIF}
-  {$IFDEF OSX}MacOSAll, AGL, {$ENDIF}
+  {$IFDEF OSX}MacOSAll, TERRA_AGL, {$ENDIF}
   {$IFDEF LINUX}GLX,X,Xlib,Xutil,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Renderer, TERRA_VertexFormat,
   {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_OpenGL{$ENDIF},

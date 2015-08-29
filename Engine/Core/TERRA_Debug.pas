@@ -38,7 +38,7 @@ Function GetCallstack:TERRAString;
 Implementation
 
 Uses {$IFDEF WINDOWS}Windows,{$ENDIF}
-  SysUtils, TERRA_Utils, TERRA_Application, TERRA_OS, TERRA_Stack, TERRA_Collections,
+  SysUtils, TERRA_Utils, TERRA_Application, TERRA_Error, TERRA_OS, TERRA_Stack, TERRA_Collections,
   TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_OpenGL{$ENDIF}, TERRA_AL
 {$IFDEF ANDROID}
   android_log

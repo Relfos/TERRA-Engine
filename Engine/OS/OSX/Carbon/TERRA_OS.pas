@@ -128,7 +128,7 @@ Type
 
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_InputManager, TERRA_FileUtils, TERRA_Renderer, TERRA_GLRenderer,
+Uses TERRA_Error, TERRA_Log, TERRA_InputManager, TERRA_FileUtils, TERRA_Renderer, TERRA_EngineManager, TERRA_GLRenderer,
      BaseUnix, machapi, machexc, dateutils, sysutils, ctypes, sysctl, TERRA_MIDI_IO, TERRA_MIDI;
 
 Var
@@ -428,7 +428,7 @@ Begin
       End;
   Else
     Begin
-      TERRA_Log.Log(logError, 'App', 'Invalid mouse event: '+IntToString(EventKind));
+      TERRA_Log.Log(logError, 'App', 'Invalid mouse event: '+IntegerProperty.Stringify(EventKind));
       Exit;
     End;
   End;
@@ -462,7 +462,7 @@ Var
   Begin
     GetEventParameter(AEvent, kEventParamKeyModifiers, typeUInt32, nil, SizeOf(CurMod), nil, @CurMod);
 
-    {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got key modifier: '+IntToString(CurMod));{$ENDIF}
+    {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got key modifier: '+IntegerProperty.Stringify(CurMod));{$ENDIF}
 
     //see what changed. we only care of bits 8 through 12
     diff := (PrevKeyModifiers xor CurMod) and $1F00;
@@ -510,7 +510,7 @@ Var
     //for these keys, only send keydown/keyup (not char or UTF8KeyPress)
     GetEventParameter(AEvent, kEventParamKeyCode, typeUInt32, nil, Sizeof(VKKeyCode), nil, @VKKeyCode);
 
-    {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got keycode: '+IntToString(VKKeyCode));{$ENDIF}
+    {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got keycode: '+IntegerProperty.Stringify(VKKeyCode));{$ENDIF}
 
     // get untranslated key (key without modifiers)
     KLGetCurrentKeyboardLayout(KeyboardLayout);
@@ -525,25 +525,25 @@ Var
     Begin
       UCKeyTranslate(Layout^, VKKeyCode, kUCKeyActionDisplay, CurrentKeyModifiers, LMGetKbdType, kUCKeyTranslateNoDeadKeysMask, DeadKeys, 6, TextLen, @WideBuf[1]);
 
-      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called UCKeyTranslate: '+IntToString(TextLen));{$ENDIF}
+      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called UCKeyTranslate: '+IntegerProperty.Stringify(TextLen));{$ENDIF}
 
       If TextLen>0 Then
       Begin
-        CharPress := Word(WideBuf[1]);
+        CharPress := TERRAChar(WideBuf[1]);
 
         {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got Unicode: '+CardinalToString(VKKeyCode));{$ENDIF}
 
-        If (CharPress>127) Then //not ascii, get the Mac character.
+        If (CharPress>#127) Then //not ascii, get the Mac character.
         Begin
           GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TemPAnsiChar), nil, @TemPAnsiChar);
           VKKeyCode := Ord(TemPAnsiChar);
         End Else
-        If (CharPress>=Ord('a')) And (CharPress<=Ord('z')) Then
-           VKKeyCode := CharPress - 32
+        If (CharPress>='a') And (CharPress<='z') Then
+           VKKeyCode := CharValue(CharPress) - 32
         Else
-            VKKeyCode := CharPress;
+            VKKeyCode := CharValue(CharPress);
 
-        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Final key result: '+IntToString(VKKeyCode));{$ENDIF}
+        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Final key result: '+IntegerProperty.Stringify(VKKeyCode));{$ENDIF}
         Exit;
       End;
 
@@ -554,7 +554,7 @@ Var
         DeadKeys := 0;
         UCKeyTranslate(Layout^, VKKeyCode, kUCKeyActionDisplay, CurrentKeyModifiers, LMGetKbdType,
             kUCKeyTranslateNoDeadKeysMask, DeadKeys, 6, TextLen, @WideBuf[1]);
-      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called UCKeyTranslate (syskey): '+IntToString(TextLen));{$ENDIF}
+      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called UCKeyTranslate (syskey): '+IntegerProperty.Stringify(TextLen));{$ENDIF}
       End;
 
       Exit;
@@ -565,7 +565,7 @@ Var
       VKKeyCode := KeyTranslate(Layout, VKKeyCode, DeadKeys) And 255;
       // TODO: workaround for Command modifier suppressing shift?
 
-      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called KeyTranslate (nolayout): '+IntToString(VkKeyCode));{$ENDIF}
+      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called KeyTranslate (nolayout): '+IntegerProperty.Stringify(VkKeyCode));{$ENDIF}
       Exit;
     End;
 
@@ -573,20 +573,20 @@ Var
     If TextLen = 0 Then
     Begin
       GetEventParameter(AEvent, kEventParamKeyUnicodes, typeUnicodeText, nil, 6, @TextLen, @WideBuf[1]);
-      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called GetEventParameter: '+IntToString(TextLen));{$ENDIF}
+      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called GetEventParameter: '+IntegerProperty.Stringify(TextLen));{$ENDIF}
 
       If TextLen>0 Then
       Begin
-        CharPress := Word(WideBuf[1]);
+        CharPress := TERRAChar(WideBuf[1]);
 
-        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got Unicode2: '+IntToString(VKKeyCode));{$ENDIF}
+        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got Unicode2: '+IntegerProperty.Stringify(VKKeyCode));{$ENDIF}
 
-        If (CharPress>127) Then  //not ascii, get the Mac character.
+        If (CharPress>#127) Then  //not ascii, get the Mac character.
         Begin
           GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TemPAnsiChar), nil, @TemPAnsiChar);
           VKKeyCode := Ord(TemPAnsiChar);
         End Else
-            VKKeyCode := CharPress;
+            VKKeyCode := CharValue(CharPress);
 
         // the VKKeyCode is independent of the modifier
         // => use the VKKeyChar instead of the KeyChar
@@ -603,7 +603,7 @@ Begin
   	Exit;
 
   VKKeyCode := 0;
-  CharPress := 0;
+  CharPress := NullChar;
 
   EventKind := GetEventKind(AEvent);
   If EventKind = kEventRawKeyModifiersChanged Then
@@ -611,33 +611,33 @@ Begin
   Else
       TranslateMacKeyCode();
 
-  If (VKKeyCode=0) And (CharPress=0) Then
+  If (VKKeyCode=0) And (CharPress=NullChar) Then
     Exit;  
 
   Case EventKind of
     kEventRawKeyDown,
     kEventRawKeyRepeat:
     Begin
-      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Keyevent: '+IntToString(VKKeycode));{$ENDIF}
+      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Keyevent: '+IntegerProperty.Stringify(VKKeycode));{$ENDIF}
 
       // clipboard paste
-      If (CharPress = 118) And (InputManager.Instance.Keys.IsDown(keyCommand)) Then
+      If (CharPress = #118) And (Engine.Input.Keys.IsDown(keyCommand)) Then
       Begin
            S := App.GetClipboardContent();
            StringCreateIterator(S, It);
            While It.HasNext() Do
            Begin
-               App.AddValueEvent(eventKeyPress,  It.GetNext());
+               App.AddValueEvent(eventKeyPress,  CharValue(It.GetNext()));
            End;
       End Else
       // full screen
-      If (VKKeyCode = keyEnter) And (InputManager.Instance.Keys.IsDown(keyAlt)) Then
+      If (VKKeyCode = keyEnter) And (Engine.Input.Keys.IsDown(keyAlt)) Then
       Begin
          App._ChangeToFullScreen := True;
       End Else
       Begin
-           If CharPress>0 Then
-              App.AddValueEvent(eventKeyPress, CharPress);
+           If CharPress>#0 Then
+              App.AddValueEvent(eventKeyPress, CharValue(CharPress));
 
            If (VKKeyCode<256) Then
               App.AddValueEvent(eventKeyDown, VKKeyCode);
@@ -769,7 +769,7 @@ Begin
 
   Log(logDebug,'App', 'Getting cpu core count...');
   _CPUCores := sysconf(_SC_NPROCESSORS_ONLN);
-  Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
+  Log(logDebug, 'App', 'Found '+IntegerProperty.Stringify(_CPUCores)+' cores');
 
   // get current resolution
   Log(logDebug,'App', 'Getting screen resolution...');

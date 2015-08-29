@@ -1,6 +1,14 @@
 program UIEditor;
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
 uses
+{$IFnDEF FPC}
+{$ELSE}
+  Interfaces,
+{$ENDIF}
   Forms,
   Main in 'Main.pas' {UIEditForm},
   FormProjectSettings in 'FormProjectSettings.pas' {ProjectSettingsForm},
