@@ -98,7 +98,7 @@ Type
       //Function SelectNearestWidget(Target:UIWidget):UIWidget;
       //Procedure GetFirstHighLight(GroupID:Integer);
 
-      Function PickWidget(X,Y:Integer; WithEventsOnly:Boolean; Ignore:UIWidget = Nil):UIWidget;
+      Function PickWidget(X,Y:Integer; Const EventClass:WidgetEventClass = widgetEventClass_Any; Ignore:UIWidget = Nil):UIWidget;
 
       Function OnKeyDown(Key:Word):UIWidget;
       Function OnKeyUp(Key:Word):UIWidget;
@@ -398,7 +398,7 @@ Begin
   Log(logDebug, 'UI', 'keypress done!');
 End;
 
-Function UIView.PickWidget(X,Y:Integer; WithEventsOnly:Boolean; Ignore:UIWidget = Nil):UIWidget;
+Function UIView.PickWidget(X,Y:Integer; Const EventClass:WidgetEventClass; Ignore:UIWidget):UIWidget;
 Var
   I:Integer;
   Max:Single;
@@ -413,7 +413,7 @@ Begin
   For I:=0 To Pred(_ChildrenCount) Do
   If (_ChildrenList[I].AllowsEvents) Then
   Begin
-    _ChildrenList[I].PickAt(X, Y, WithEventsOnly, Result, Max, Ignore);
+    _ChildrenList[I].PickAt(X, Y, EventClass, Result, Max, Ignore);
   End;
 
   If (Self.Modal<>Nil) And (Assigned(Result)) And (Not Result.IsSameFamily(Modal)) Then
@@ -438,7 +438,7 @@ Var
 Begin
   Self.GetLocalCoords(X, Y, TX, TY);
 
-  Result := Self.PickWidget(TX, TY, True);
+  Result := Self.PickWidget(TX, TY, widgetEventClass_Click);
 
   If (Assigned(_Focus)) And (_Focus<>Result) Then
   Begin
@@ -475,7 +475,7 @@ Begin
     _HoldWidget := Nil;
   End;
 
-  Result := Self.PickWidget(TX, TY, True);
+  Result := Self.PickWidget(TX, TY, widgetEventClass_Click);
 
   If (Assigned(Result)) And (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
     Result.OnHandleMouseUp(TX, TY, Button);
@@ -507,7 +507,7 @@ Begin
     Exit;
   End;
 
-  Result := Self.PickWidget(TX, TY, True);
+  Result := Self.PickWidget(TX, TY, widgetEventClass_Hover);
 
   If (Assigned(Result)) Then
   Begin
@@ -541,7 +541,7 @@ Begin
     Exit;
   End;
 
-  Result := Self.PickWidget(TX, TY, True);
+  Result := Self.PickWidget(TX, TY, widgetEventClass_Scroll);
 
   If (Assigned(Result)) And (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
     Result.OnHandleMouseWheel(TX, TY, Delta);

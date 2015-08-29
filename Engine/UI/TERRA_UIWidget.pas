@@ -80,9 +80,22 @@ Type
     widgetEvent_MouseOut,
     widgetEvent_DragBegin,
     widgetEvent_DragEnd,
+    widgetEvent_ScrollDown,
+    widgetEvent_ScrollUp,
     widgetEvent_FocusBegin,
     widgetEvent_FocusEnd,
     widgetEvent_ContentChange
+  );
+
+  WidgetEventClass = (
+    widgetEventClass_Any,
+    widgetEventClass_Visibility,
+    widgetEventClass_Click,
+    widgetEventClass_Scroll,
+    widgetEventClass_Hover,
+    widgetEventClass_Drag,
+    widgetEventClass_Focus,
+    widgetEventClass_Content
   );
 
   UIProperty = Record
@@ -160,6 +173,7 @@ Type
 
       Function GetState: WidgetState;
       Procedure SetClipRect(const Value: TERRAClipRect);
+
 
     Protected
       _Parent:UIWidget;
@@ -264,8 +278,6 @@ Type
 
       Property FontRenderer:TERRAFontRenderer Read GetFontRenderer;
 
-      Function CanReceiveEvents:Boolean; Virtual;
-
       Procedure ConvertAlign(Const Direction:UIDirection);
 
     Public
@@ -286,12 +298,10 @@ Type
 
       Procedure AddAnimation(State:WidgetState; Const PropName, Value:TERRAString; Const Ease:TweenEaseType = easeLinear);
 
-      Function CallEventHandler(EventType:WidgetEventType):Boolean;
-
       Function CanRender():Boolean;
       Function AllowsEvents(): Boolean;
 
-      Procedure PickAt(Const X, Y:Integer; WithEventsOnly:Boolean; Var CurrentPick:UIWidget; Var Max:Single; Ignore:UIWidget = Nil);
+      Procedure PickAt(Const X, Y:Integer; Const EventClass:WidgetEventClass; Var CurrentPick:UIWidget; Var Max:Single; Ignore:UIWidget = Nil);
 
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
       Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
@@ -315,6 +325,12 @@ Type
       Procedure ConvertLocalToGlobal(Var V:Vector2D);
 
       //Procedure SetPositionRelativeToOther(Other:UIWidget; OfsX, OfsY:Single);
+
+      Function HasAnimation(State:WidgetState):Boolean;
+      Function HasEvent(EventType:WidgetEventType):Boolean;
+      
+      Function ReactsToEventClass(Const EventClass:WidgetEventClass):Boolean;
+      Function CallEventHandler(EventType:WidgetEventType):Boolean;
 
       Function GetEventHandler(EventType: WidgetEventType): UIWidgetEventHandler;
       Procedure SetEventHandler(EventType: WidgetEventType; Handler:UIWidgetEventHandler);
@@ -475,8 +491,6 @@ Type
       _TemplateName:StringProperty;
 
       Function InitFromTemplate(Template, Parent:UIWidget):UIWidget;
-
-      Function CanReceiveEvents:Boolean; Override;
 
       Function OnRegion(Const X,Y:Single): Boolean; Override;
 
@@ -1405,7 +1419,7 @@ Begin
     Result := Self.Parent.AllowsEvents();
 End;
 
-Procedure UIWidget.PickAt(Const X, Y:Integer; WithEventsOnly:Boolean; Var CurrentPick:UIWidget; Var Max:Single; Ignore:UIWidget);
+Procedure UIWidget.PickAt(Const X, Y:Integer; Const EventClass:WidgetEventClass; Var CurrentPick:UIWidget; Var Max:Single; Ignore:UIWidget);
 Var
   I:Integer;
 Begin
@@ -1414,7 +1428,7 @@ Begin
   If (Self.Layer < Max) Or (Not Self.OnRegion(X,Y)) Or (Self = Ignore) Or (Self.Hidden) Then
     Exit;
 
-  If (Not WithEventsOnly) Or (Self.CanReceiveEvents) Then
+  If (Self.ReactsToEventClass(EventClass)) Then
   Begin
     CurrentPick := Self;
     Max := Self.Layer;
@@ -1423,7 +1437,7 @@ Begin
   For I:=0 To Pred(_ChildrenCount) Do
   If (_ChildrenList[I].AllowsEvents()) Then
   Begin
-    _ChildrenList[I].PickAt(X, Y, WithEventsOnly, CurrentPick, Max, Ignore);
+    _ChildrenList[I].PickAt(X, Y, EventClass, CurrentPick, Max, Ignore);
   End;
 End;
 
@@ -2489,10 +2503,6 @@ begin
   Result := (_State = widget_Hidden);
 end;
 
-Function UIWidget.CanReceiveEvents: Boolean;
-Begin
-  Result := False;
-End;
 
 Procedure UIWidget.SetClipRect(const Value: TERRAClipRect);
 Begin
@@ -2557,6 +2567,58 @@ End;
 Function UIWidget.GetVisible: Boolean;
 Begin
   Result := _Visible.Value;
+End;
+
+
+Function UIWidget.HasAnimation(State:WidgetState):Boolean;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_AnimationCount) Do
+  If (_Animations[I].State = State) Then
+  Begin
+    Result := True;
+    Exit;
+  End;
+
+  Result := False;
+End;
+
+Function UIWidget.HasEvent(EventType:WidgetEventType):Boolean;
+Begin
+  Result := (Assigned(Self.GetEventHandler(EventType)));
+End;
+
+Function UIWidget.ReactsToEventClass(Const EventClass: WidgetEventClass): Boolean;
+Begin
+  Case EventClass Of
+    widgetEventClass_Any:
+      Result := True;
+
+    widgetEventClass_Visibility:
+      Result := (HasEvent(widgetEvent_Show)) Or (HasEvent(widgetEvent_Hide)) Or (HasAnimation(widget_Hidden));
+
+    widgetEventClass_Click:
+      Result := (HasEvent(widgetEvent_MouseDown) Or HasEvent(widgetEvent_MouseUp));
+
+    widgetEventClass_Scroll:
+      Result := (HasEvent(widgetEvent_ScrollDown) Or HasEvent(widgetEvent_ScrollUp));
+
+    widgetEventClass_Hover:
+      Result := (HasEvent(widgetEvent_MouseOut)) Or (HasEvent(widgetEvent_MouseOver))  Or (HasAnimation(widget_Highlighted));
+
+    widgetEventClass_Drag:
+      Result := (HasEvent(widgetEvent_DragEnd)) Or (HasEvent(widgetEvent_DragBegin)) Or (HasAnimation(widget_Dragged));
+
+    widgetEventClass_Focus:
+      Result := (HasEvent(widgetEvent_FocusEnd) Or HasEvent(widgetEvent_FocusBegin)) Or (HasAnimation(widget_Selected));
+
+    widgetEventClass_Content:
+      Result := (HasEvent(widgetEvent_ContentChange));
+
+    Else
+      Result := False;
+  End;
 End;
 
 { UIWidgetGroup }
@@ -2722,11 +2784,6 @@ Begin
   Inherited;
 
   ReleaseObject(_TemplateName);
-End;
-
-Function UIInstancedWidget.CanReceiveEvents:Boolean;
-Begin
-  Result := True;
 End;
 
 Function UIInstancedWidget.GetObjectType: TERRAString;
