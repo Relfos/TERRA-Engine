@@ -122,7 +122,7 @@ Type
       Function new_active(Const e: TStBttEdge; off_x: Integer; start_point: Single):TStBttActiveEdge;
 
     Public
-      Procedure LoadFromStream(Source:TERRAStream); Overload;
+      Procedure LoadFromStream(Source:TERRAStream); Override;
       Procedure Release; Override;
 
       Function stbtt_FindGlyphIndex(unicode_codepoint: Integer):Word;

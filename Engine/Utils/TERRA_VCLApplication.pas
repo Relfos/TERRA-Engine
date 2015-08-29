@@ -5,7 +5,7 @@ Interface
 Uses Classes, Forms, ExtCtrls, Graphics, TERRA_String, TERRA_Utils, TERRA_Application,
   TERRA_Object, TERRA_GraphicsManager, TERRA_Viewport, TERRA_Image, TERRA_Color, TERRA_OS, TERRA_Renderer,
   TERRA_UIView, TERRA_UIDimension
-  {$IFDEF OSX}, MacOSAll{$ENDIF};
+  {$IFDEF OSX}, MacOSAll, CarbonDef{$ENDIF};
 
 Type
   TERRAVCLViewport = Class(TERRAObject)
@@ -99,10 +99,10 @@ Begin
 
   {$IFDEF OSX}
   If (_Target Is TForm) Then
-    _Handle := WindowPtr(TForm(_Target).Handle)
+    _Handle :=WindowPtr(TCarbonWidget(TForm(_Target).Handle).Widget)
   Else
   If (_Target Is TPanel) Then
-    _Handle := WindowPtr(TPanel(_Target).Handle)
+   _Handle :=WindowPtr(TCarbonWidget(TPanel(_Target).Handle).Widget)
   {$ELSE}
   If (_Target Is TForm) Then
     _Handle := TForm(_Target).Handle

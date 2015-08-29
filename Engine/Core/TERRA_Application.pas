@@ -1669,6 +1669,9 @@ Begin
   {$ENDIF}
   _Language := 'EN';
 
+
+  _DebuggerPresent := Self.IsDebuggerPresent();
+
 {$IFDEF INSTALL_SIGNAL}
   Log(logDebug, 'App', 'Installing signals');
   new(na);
@@ -1681,8 +1684,6 @@ Begin
 {$ENDIF}
 
   _CPUCores := 1;
-
-  _DebuggerPresent := Self.IsDebuggerPresent();
 
   Result := True;
 End;

@@ -1217,8 +1217,8 @@ Begin
 
   If (Align = UIAlign_TopLeft) Then
   Begin
-    Result.X := Result.X + ParentMargin.X;
-    Result.Y := Result.Y + ParentMargin.Y;
+    Result.X := Result.X; // + ParentMargin.X;
+    Result.Y := Result.Y; // + ParentMargin.Y;
     Exit;
   End;
 
@@ -1227,8 +1227,10 @@ Begin
 
   ParentSize := _Parent.Size;
 
-  Center.X := ParentMargin.X + ((ParentSize.X - ParentMargin.X * 2.0) * 0.5);
-  Center.Y := ParentMargin.Y + ((ParentSize.Y - ParentMargin.Y * 2.0) * 0.5);
+//  Center.X := ParentMargin.X + ((ParentSize.X - ParentMargin.X * 2.0) * 0.5);
+//  Center.Y := ParentMargin.Y + ((ParentSize.Y - ParentMargin.Y * 2.0) * 0.5);
+  Center.X := (ParentSize.X* 0.5);
+  Center.Y := (ParentSize.Y* 0.5);
 
   Case Align Of
     UIAlign_Center:
@@ -2069,7 +2071,7 @@ Begin
   If (Not Self.Visible) Then
     Exit;
 
-  If (Self.Color.A<0) Then
+  If (Self.Color.A<=0) Then
     Exit;
 
 (*  CurrentFrameID := Engine.Graphics.FrameID;

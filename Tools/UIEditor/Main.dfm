@@ -1,7 +1,7 @@
 object UIEditForm: TUIEditForm
   Left = 229
   Height = 705
-  Top = 146
+  Top = 23
   Width = 926
   HorzScrollBar.Visible = False
   VertScrollBar.Visible = False

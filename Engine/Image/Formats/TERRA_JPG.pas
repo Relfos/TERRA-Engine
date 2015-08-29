@@ -74,7 +74,7 @@ Type
   end;
   PsdHuffmanLookupTable = ^TsdHuffmanLookupTable;
   
-  TsdJpegQuality = 1..100;
+  TsdJpegQuality = Byte;
 
   TsdJpegScale = (
     jsFull,  // Read the complete image (DC + AC 1..63)
@@ -1171,7 +1171,7 @@ Type
     procedure SaveBitmapStripByStrip(Target:TERRAImage);
 
     // call UpdateBitmap after calling LoadJpeg(Scale, False)
-    function UpdateBitmap: TObject;
+    Procedure UpdateBitmap;
     // All metadata markers will be extracted from the file, and put in AList.
     // AList must be initialized (AList := TsdJpegMarkerList.Create)
     procedure ExtractMetadata(AList: TsdJpegMarkerList);
@@ -2202,10 +2202,10 @@ end;
 
 function ComparePointer(Item1, Item2: pointer): integer;
 begin
-  if integer(Item1) < integer(Item2) then
+  if UIntPtr(Item1) < UIntPtr(Item2) then
     Result := -1
   else
-    if integer(Item1) > integer(Item2) then
+    if UIntPtr(Item1) > UIntPtr(Item2) then
       Result := 1
     else
       Result := 0;
@@ -4797,7 +4797,7 @@ Begin
   FMapIterator.BitCount := 32;
 End;
 
-function TsdJpegImage.UpdateBitmap: TObject;
+Procedure TsdJpegImage.UpdateBitmap;
 var
   Transform: TsdColorTransform;
   TransformClass: TsdColorTransformClass;

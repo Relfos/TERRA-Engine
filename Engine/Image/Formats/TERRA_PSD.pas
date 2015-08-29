@@ -85,6 +85,7 @@ Var
   End;
 
 Begin
+  Result := False;
   Image := TERRAImage(Target);
   
   // Check identifier
@@ -257,6 +258,8 @@ Begin
           ReadChannel();
       End;
   End;
+
+  Result := True;
 End;
 
 Function PSDFormat.Identify(Source:TERRAStream):Boolean;

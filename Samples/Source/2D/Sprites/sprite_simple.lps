@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <Version Value="9"/>
+    <BuildModes Active="Default"/>
+    <Units Count="2">
+      <Unit0>
+        <Filename Value="sprite_simple.dpr"/>
+        <IsPartOfProject Value="True"/>
+        <CursorPos X="3" Y="5"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="../../../../Engine/Graphics/TERRA_Renderer.pas"/>
+        <UnitName Value="TERRA_Renderer"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="1316"/>
+        <CursorPos X="6" Y="1331"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit1>
+    </Units>
+    <JumpHistory Count="3" HistoryIndex="2">
+      <Position1>
+        <Filename Value="sprite_simple.dpr"/>
+      </Position1>
+      <Position2>
+        <Filename Value="../../../../Engine/Graphics/TERRA_Renderer.pas"/>
+      </Position2>
+      <Position3>
+        <Filename Value="../../../../Engine/Graphics/TERRA_Renderer.pas"/>
+        <Caret Line="191" Column="27" TopLine="176"/>
+      </Position3>
+    </JumpHistory>
+  </ProjectSession>
+</CONFIG>

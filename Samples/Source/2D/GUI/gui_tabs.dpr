@@ -2,7 +2,6 @@
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
 uses
-  MemCheck,
   TERRA_Object,
   TERRA_MemoryManager,
   TERRA_Application,

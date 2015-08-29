@@ -625,7 +625,8 @@ Begin
   PropertyList.MarginColor := clBlack;
   PropertyList.EditColor := clBlack;
 
-  UIEditorApplication.Create(Self.RenderPanel);
+  //UIEditorApplication.Create(Self.RenderPanel);
+    UIEditorApplication.Create(Self);
 
   // Added Asset folder to search path
   Engine.Files.AddFolder('..\..\samples\binaries\assets');

@@ -1328,7 +1328,7 @@ End;
 
 Function CubeMapInterface.LoadFromFile(Const FileName: TERRAString): Boolean;
 Var
-  W,H, N:Integer;
+  W,H:Integer;
   Img:TERRAImage;
   Waiting:Boolean;
 
@@ -1340,8 +1340,6 @@ Begin
   Waiting := True;
   For I:=0 To 5 Do
   Begin
-    N := 0;
-
     Format := Engine.Formats.FindLocationFromName(FileName+'_'+CubeFaceNames[I], TERRAImage, Location);
     If (Format = Nil) Then
     Begin

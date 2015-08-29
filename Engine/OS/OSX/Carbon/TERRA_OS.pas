@@ -103,7 +103,7 @@ Type
 
       Procedure MoveToBundleFolder(); Virtual;
 
-      Function IsDebuggerPresent():Boolean; Override;
+      //Function IsDebuggerPresent():Boolean; Override;
    Public
       Constructor Create();
       
@@ -717,8 +717,10 @@ Begin
   CFRelease(pathCFStr);
 
   pathMedia := pathStr + BundleResourceFolder;
-  ChDir(PathMedia);
-
+  If (DirectoryExists(PathMedia)) Then
+  Begin
+       ChDir(PathMedia);
+  End;
 End;
 
 function CarbonApplication.InitSettings: Boolean;
@@ -994,7 +996,7 @@ Begin
 End;
 
 //http://stackoverflow.com/questions/2200277/detecting-debugger-on-mac-os-x
-function CarbonApplication.IsDebuggerPresent: Boolean;
+(*function CarbonApplication.IsDebuggerPresent: Boolean;
 Var
    count:mach_msg_type_number_t;
    masks:TException_Mask_array;
@@ -1020,7 +1022,7 @@ Begin
         End;
   End;
   Result := False;
-End;
+End; *)
 
 
 procedure CarbonApplication.ProcessMessages;

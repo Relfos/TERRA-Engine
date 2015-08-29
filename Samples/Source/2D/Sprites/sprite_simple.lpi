@@ -35,7 +35,7 @@
     </RunParams>
     <RequiredPackages Count="1">
       <Item1>
-        <PackageName Value="LEAF3_PACKAGE_WINDOWS"/>
+        <PackageName Value="TERRA_PACKAGE_OSX"/>
       </Item1>
     </RequiredPackages>
     <Units Count="1">
@@ -53,7 +53,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <Libraries Value="\Users\Mac\Documents\code\leaf3_terra\trunk\Libs\Steamworks\bin;\System\Library\Frameworks\OpenGL.framework\Versions\Current\Libraries"/>
+      <Libraries Value="\Users\Mac\Documents\code\leaf3_terra\trunk\Libs\Steamworks\bin\;\System\Library\Frameworks\OpenGL.framework\Versions\Current\Libraries\"/>
       <UnitOutputDirectory Value="Units\Minimon\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>

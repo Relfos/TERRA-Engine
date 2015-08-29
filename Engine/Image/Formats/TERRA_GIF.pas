@@ -562,6 +562,7 @@ Begin
   Loader.Image := TERRAImage(Target);
   Loader.Load(Source);
   ReleaseObject(Loader);
+  Result := True;
 End;
 
 Begin

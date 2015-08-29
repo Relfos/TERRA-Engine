@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <Version Value="9"/>
+    <BuildModes Active="Default"/>
+    <Units Count="10">
+      <Unit0>
+        <Filename Value="gui_tabs.dpr"/>
+        <IsPartOfProject Value="True"/>
+        <CursorPos Y="5"/>
+        <UsageCount Value="21"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_PSD.pas"/>
+        <UnitName Value="TERRA_PSD"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="243"/>
+        <CursorPos X="17" Y="262"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_GIF.pas"/>
+        <UnitName Value="TERRA_GIF"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="538"/>
+        <CursorPos X="16" Y="565"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="../../../../Engine/OS/OSX/Carbon/TERRA_OS.pas"/>
+        <UnitName Value="TERRA_OS"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="1016"/>
+        <CursorPos Y="1034"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="../../../../Engine/Utils/TERRA_DemoApplication.pas"/>
+        <UnitName Value="TERRA_DemoApplication"/>
+        <EditorIndex Value="1"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="../../../../Engine/Core/TERRA_Application.pas"/>
+        <UnitName Value="TERRA_Application"/>
+        <EditorIndex Value="6"/>
+        <TopLine Value="1648"/>
+        <CursorPos Y="1673"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="../../../../Engine/UI/TERRA_UIWidget.pas"/>
+        <UnitName Value="TERRA_UIWidget"/>
+        <EditorIndex Value="5"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="../../../../Engine/Image/TERRA_TTF.pas"/>
+        <UnitName Value="TERRA_TTF"/>
+        <EditorIndex Value="7"/>
+        <TopLine Value="109"/>
+        <CursorPos X="61" Y="125"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="../../../../Engine/Graphics/TERRA_MeshManager.pas"/>
+        <UnitName Value="TERRA_MeshManager"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="117"/>
+        <CursorPos X="18" Y="133"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+        <UnitName Value="TERRA_JPG"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="4785"/>
+        <CursorPos X="10" Y="4800"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit9>
+    </Units>
+    <JumpHistory Count="30" HistoryIndex="29">
+      <Position1>
+        <Filename Value="../../../../Engine/Core/TERRA_Application.pas"/>
+        <Caret Line="1668" TopLine="1648"/>
+      </Position1>
+      <Position2>
+        <Filename Value="../../../../Engine/Core/TERRA_Application.pas"/>
+        <Caret Line="1670" TopLine="1648"/>
+      </Position2>
+      <Position3>
+        <Filename Value="../../../../Engine/Core/TERRA_Application.pas"/>
+        <Caret Line="1673" TopLine="1648"/>
+      </Position3>
+      <Position4>
+        <Filename Value="../../../../Engine/Core/TERRA_Application.pas"/>
+        <Caret Line="626" TopLine="611"/>
+      </Position4>
+      <Position5>
+        <Filename Value="../../../../Engine/Core/TERRA_Application.pas"/>
+        <Caret Line="1664" TopLine="1648"/>
+      </Position5>
+      <Position6>
+        <Filename Value="../../../../Engine/Core/TERRA_Application.pas"/>
+        <Caret Line="1670" TopLine="1648"/>
+      </Position6>
+      <Position7>
+        <Filename Value="../../../../Engine/OS/OSX/Carbon/TERRA_OS.pas"/>
+        <Caret Line="10" Column="16"/>
+      </Position7>
+      <Position8>
+        <Filename Value="../../../../Engine/OS/OSX/Carbon/TERRA_OS.pas"/>
+        <Caret Line="106" Column="35" TopLine="80"/>
+      </Position8>
+      <Position9>
+        <Filename Value="../../../../Engine/Graphics/TERRA_MeshManager.pas"/>
+      </Position9>
+      <Position10>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+      </Position10>
+      <Position11>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+        <Caret Line="2189" Column="82" TopLine="2189"/>
+      </Position11>
+      <Position12>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+        <Caret Line="2208" Column="15" TopLine="2190"/>
+      </Position12>
+      <Position13>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+        <Caret Line="4974" Column="43" TopLine="4958"/>
+      </Position13>
+      <Position14>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+        <Caret Line="3395" Column="8" TopLine="3380"/>
+      </Position14>
+      <Position15>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+        <Caret Line="877" Column="5" TopLine="861"/>
+      </Position15>
+      <Position16>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+        <Caret Line="3398" Column="17" TopLine="3382"/>
+      </Position16>
+      <Position17>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+        <Caret Line="3395" Column="14" TopLine="3379"/>
+      </Position17>
+      <Position18>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+      </Position18>
+      <Position19>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+        <Caret Line="2208" Column="15" TopLine="2208"/>
+      </Position19>
+      <Position20>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+      </Position20>
+      <Position21>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+        <Caret Line="877" Column="29" TopLine="851"/>
+      </Position21>
+      <Position22>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+        <Caret Line="889" Column="37" TopLine="863"/>
+      </Position22>
+      <Position23>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+      </Position23>
+      <Position24>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+        <Caret Line="77" Column="24" TopLine="51"/>
+      </Position24>
+      <Position25>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+        <Caret Line="2208" Column="15" TopLine="2192"/>
+      </Position25>
+      <Position26>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+        <Caret Line="4800" Column="35" TopLine="4798"/>
+      </Position26>
+      <Position27>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+      </Position27>
+      <Position28>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+        <Caret Line="1174" Column="27" TopLine="1149"/>
+      </Position28>
+      <Position29>
+        <Filename Value="../../../../Engine/Image/Formats/TERRA_JPG.pas"/>
+        <Caret Line="4800" Column="10" TopLine="4785"/>
+      </Position29>
+      <Position30>
+        <Filename Value="../../../../Engine/Core/TERRA_Application.pas"/>
+        <Caret Line="1673" TopLine="1648"/>
+      </Position30>
+    </JumpHistory>
+  </ProjectSession>
+</CONFIG>
