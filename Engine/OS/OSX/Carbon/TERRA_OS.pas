@@ -5,7 +5,7 @@ Unit TERRA_OS;
 {$LINKFRAMEWORK Carbon}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Application, MacOSAll, AGL;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Application, MacOSAll, TERRA_AGL;
 
 Const
 	PathSeparator = '/';
@@ -81,7 +81,7 @@ Type
   { CarbonApplication }
   CarbonApplication = Class(BaseApplication)
     Protected
-      _Window:WindowRef;
+      _Handle:WindowRef;
       _Rect: MacOSAll.Rect;
       _InitRect: MacOSAll.Rect;
       _ScreenRect:MacOSAll.Rect;
@@ -119,7 +119,7 @@ Type
 
       Class Function Instance:CarbonApplication;
 
-      Property Handle:WindowRef Read _Window;
+      Property Handle:WindowRef Read _Handle;
 
       Property InitRect: MacOSAll.Rect Read _InitRect;
   End;
@@ -315,8 +315,8 @@ Begin
   If Not Assigned(App) Then
     Exit;
 
-  SizeWindow(App._Window, Width, Height, True);
-  GetWindowBounds(App._Window, kWindowContentRgn, ClientRect);
+  SizeWindow(App._Handle, Width, Height, True);
+  GetWindowBounds(App._Handle, kWindowContentRgn, ClientRect);
 
   App.AddCoordEvent(eventWindowResize, clientRect.Right - clientRect.Left, clientRect.Bottom - clientRect.Top, 0);
 End;
@@ -342,7 +342,7 @@ Begin
   kEventWindowExpanded,
   kEventWindowZoomed:
     Begin
-      Fullscreen := IsWindowInStandardState(App._Window, Nil, Nil);
+      Fullscreen := IsWindowInStandardState(App._Handle, Nil, Nil);
       //LCLSendSizeMsg(AWidget.LCLObject, WidgetBounds.Right - WidgetBounds.Left, idgetBounds.Bottom - WidgetBounds.Top, Size_SourceIsInterface or Kind);
     End Else
       TERRA_Log.Log(logDebug, 'App','CarbonWindow_ShowWindow invalid event kind');
@@ -819,7 +819,7 @@ Begin
 
   Log(logDebug,'App', 'Calling createwindow()');
 
-  If CreateNewWindow(NewWindowClass, Attributes, _InitRect, _Window)<>noErr Then
+  If CreateNewWindow(NewWindowClass, Attributes, _InitRect, _Handle)<>noErr Then
   Begin
     RaiseError('Unable to create a window!');
     Exit;
@@ -827,8 +827,8 @@ Begin
 
  Log(logDebug,'App', 'Changing title');
 
-  SetWTitle(_Window, _Title); // Set the windows title
-  SetWindowGroup(_Window, GetWindowGroupOfClass(GroupClass));
+  SetWTitle(_Handle, _Title); // Set the windows title
+  SetWindowGroup(_Handle, GetWindowGroupOfClass(GroupClass));
 
 
   Log(logDebug,'App', 'Installing closewindow event');
@@ -836,7 +836,7 @@ Begin
   // Window Events
   TmpSpec.eventClass := kEventClassWindow;
   TmpSpec.eventKind := kEventWindowClosed;
-  InstallEventHandler(GetWindowEventTarget(_Window), NewEventHandlerUPP(Carbon_CloseWindow), 1, @TmpSpec, Pointer(Self), nil);
+  InstallEventHandler(GetWindowEventTarget(_Handle), NewEventHandlerUPP(Carbon_CloseWindow), 1, @TmpSpec, Pointer(Self), nil);
 
 
   Log(logDebug,'App', 'Installing mouse events');
@@ -854,7 +854,7 @@ Begin
   MouseSpec[5].eventKind := kEventMouseExited;
   MouseSpec[6].eventClass := kEventClassMouse;
   MouseSpec[6].eventKind := kEventMouseWheelMoved;
-  InstallEventHandler(GetWindowEventTarget(_Window), NewEventHandlerUPP(CarbonWindow_MouseProc), 7, @MouseSpec[0], Pointer(Self), nil);
+  InstallEventHandler(GetWindowEventTarget(_Handle), NewEventHandlerUPP(CarbonWindow_MouseProc), 7, @MouseSpec[0], Pointer(Self), nil);
 
 
   Log(logDebug,'App', 'Installing key events');
@@ -866,7 +866,7 @@ Begin
   KeySpecs[2].eventKind := kEventRawKeyUp;
   KeySpecs[3].eventClass := kEventClassKeyboard;
   KeySpecs[3].eventKind := kEventRawKeyModifiersChanged;
-  InstallEventHandler(GetWindowEventTarget(_Window), NewEventHandlerUPP(CarbonWindow_KeyboardProc), 4, @KeySpecs[0], Pointer(Self), nil);
+  InstallEventHandler(GetWindowEventTarget(_Handle), NewEventHandlerUPP(CarbonWindow_KeyboardProc), 4, @KeySpecs[0], Pointer(Self), nil);
 
 
   Log(logDebug,'App', 'Installing window events');
@@ -876,7 +876,7 @@ Begin
   ShowWindowSpecs[1].eventKind := kEventWindowExpanded;
   ShowWindowSpecs[2].eventClass := kEventClassWindow;
   ShowWindowSpecs[2].eventKind := kEventWindowZoomed;
-  InstallEventHandler(GetWindowEventTarget(_Window), NewEventHandlerUPP(CarbonWindow_ShowWindow), 3, @ShowWindowSpecs[0], Pointer(Self), nil);
+  InstallEventHandler(GetWindowEventTarget(_Handle), NewEventHandlerUPP(CarbonWindow_ShowWindow), 3, @ShowWindowSpecs[0], Pointer(Self), nil);
 
 (*eventType.eventClass = kEventClassWindow;
 eventType.eventKind = kEventWindowActivated;
@@ -888,7 +888,7 @@ eventType.eventKind = kEventWindowDeactivated;
   Log(logDebug,'App', 'Installing command events');
   TmpSpec.eventClass := kEventClassCommand;
   TmpSpec.eventKind := kEventCommandProcess;
-  InstallEventHandler(GetWindowEventTarget(_Window), Carbon_HandleCommand, 1, @TmpSpec, Pointer(Self), nil);
+  InstallEventHandler(GetWindowEventTarget(_Handle), Carbon_HandleCommand, 1, @TmpSpec, Pointer(Self), nil);
 
   QuitAEHandler := NewAEEventHandlerUPP(AEEventHandlerProcPtr(Pointer(@Carbon_QuitEventHandler)));
   AEInstallEventHandler(kCoreEventClass, kAEQuitApplication, QuitAEHandler, 0, False);
@@ -896,10 +896,10 @@ eventType.eventKind = kEventWindowDeactivated;
   Log(logDebug,'App', 'Installing resize events');
   TmpSpec.eventClass := kEventClassWindow;
   TmpSpec.eventKind := kEventWindowBoundsChanged;
-  InstallEventHandler(GetWindowEventTarget(_Window), Carbon_ResizeWindow, 1, @TmpSpec, Pointer(Self), nil);
+  InstallEventHandler(GetWindowEventTarget(_Handle), Carbon_ResizeWindow, 1, @TmpSpec, Pointer(Self), nil);
 
-  GetWindowBounds(_Window, kWindowStructureRgn, WndRect);
-  GetWindowBounds(_Window, kWindowContentRgn, ClientRect);
+  GetWindowBounds(_Handle, kWindowStructureRgn, WndRect);
+  GetWindowBounds(_Handle, kWindowContentRgn, ClientRect);
 
   _Rect.Left := ClientRect.Left - WndRect.Left;
   _Rect.Top := ClientRect.Top - WndRect.Top;
@@ -916,7 +916,7 @@ eventType.eventKind = kEventWindowDeactivated;
   kUTTypeUTF16PlainText := CFSTR('public.utf16-plain-text');
 
   Log(logDebug,'App', 'OK!');
-  ShowWindow(_Window);
+  ShowWindow(_Handle);
 
   UpdateScreenSize();
 
@@ -939,10 +939,10 @@ Begin
 
   Log(logDebug,'App', 'Destroying window');
 
-  If Assigned(_Window) Then
+  If Assigned(_Handle) Then
   Begin
-    DisposeWindow(_Window);
-    _Window := Nil;
+    DisposeWindow(_Handle);
+    _Handle := Nil;
   End;
 
 	Log(logDebug,'App', 'Ok');
@@ -971,7 +971,7 @@ Begin
 
         _Rect := _ScreenRect;
 
-        HIWindowChangeAttributes(_Window, @clearAttr[0], @setAttr[0]);
+        HIWindowChangeAttributes(_Handle, @clearAttr[0], @setAttr[0]);
   End Else
   Begin
     ShowMenuBar();
@@ -979,7 +979,7 @@ Begin
 
     _Rect := _InitRect;
 
-    HIWindowChangeAttributes(_Window, @setAttr[0], @clearAttr[0]);
+    HIWindowChangeAttributes(_Handle, @setAttr[0], @clearAttr[0]);
   End;
 
 
@@ -987,7 +987,7 @@ Begin
   _Height := _Rect.Bottom - _Rect.Top;
    Self.AddCoordEvent(eventWindowResize, _Width, _Height, 0);
    *)
-   SetWindowBounds(_Window, kWindowContentRgn, _Rect);
+   SetWindowBounds(_Handle, kWindowContentRgn, _Rect);
 
 
   Result := True;
@@ -1120,7 +1120,7 @@ begin
   MinSize.height := 240;
   MaxSize.width := _ScreenRect.Right - _ScreenRect.Left;
   MaxSize.height := _ScreenRect.Bottom - _ScreenRect.Top;
-  SetWindowResizeLimits(_Window, @MinSize, @MaxSize);
+  SetWindowResizeLimits(_Handle, @MinSize, @MaxSize);
 end;
 
 Procedure CarbonApplication.OnFatalError(const ErrorMsg, CrashLog, Callstack: TERRAString);

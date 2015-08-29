@@ -734,7 +734,7 @@ Begin
 End;*)
 
 Const
-  Hex : Array[0..15] of TERRAChar = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
+  Hex : Array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
 
 Function HexStr(Const Value:Byte):TERRAString;
 Begin
@@ -751,9 +751,10 @@ Begin
   Result := ''+ Hex[(value SHR 28) AND $0F] + Hex[(value SHR 24) AND $0F] + Hex[(value SHR 20) AND $0F] + Hex[(value SHR 16) AND $0F] + Hex[(value SHR 12) AND $0F] + Hex[(value SHR  8) AND $0F] + Hex[(value SHR  4) AND $0F] + Hex[value AND $0F];
 End;
 
-Function HexStr(Const Value:UInt64):TERRAString;Overload;
+Function HexStr(Const Value:UInt64):TERRAString;
 Begin
-  Result := ''+ Hex[(value SHR 60) AND $0F] + Hex[(value SHR 56) AND $0F] + Hex[(value SHR 52) AND $0F] + Hex[(value SHR 48) AND $0F]+
+  Result := '';
+  Result := Result + Hex[(value SHR 60) AND $0F] + Hex[(value SHR 56) AND $0F] + Hex[(value SHR 52) AND $0F] + Hex[(value SHR 48) AND $0F]+
   Hex[(value SHR 44) AND $0F] + Hex[(value SHR  40) AND $0F] + Hex[(value SHR  36) AND $0F] + Hex[value AND 32]+ Hex[(value SHR 28) AND $0F] +
   Hex[(value SHR 24) AND $0F] + Hex[(value SHR 20) AND $0F] + Hex[(value SHR 16) AND $0F] + Hex[(value SHR 12) AND $0F]+
   Hex[(value SHR  8) AND $0F] +  Result[15] + Hex[(value SHR  4) AND $0F] + Hex[value AND $0F];

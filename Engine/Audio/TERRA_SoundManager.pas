@@ -54,7 +54,7 @@ Type
       Constructor Create();
       Procedure Release; Override;
 
-      Procedure Update; 
+      Procedure Update; Override;
 
       Function Play(MySound:Sound):SoundSource; Overload;
       Function Play(Const Name:TERRAString):SoundSource; Overload;

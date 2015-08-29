@@ -521,7 +521,7 @@ Begin
 
   If N<$80 Then
   Begin
-    Result := Value;
+    Result := TERRAString('' + Value);
     Exit;
   End;
 
@@ -573,7 +573,7 @@ Var
 Begin
   Found := False;
 
-  While (It.HasNext) And (Not Result) Do
+  While (It.HasNext) And (Not Found) Do
   Begin
     A := It.GetNext();
     B := SubIt.GetNext();
@@ -1228,7 +1228,7 @@ Begin
 
     If (IsSafe) Then
     Begin
-      Result := Result + C;
+      StringAppendChar(Result, C);
     End Else
     If (C = ' ') Then
     Begin

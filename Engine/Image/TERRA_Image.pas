@@ -1158,7 +1158,7 @@ Begin
     Format := Engine.Formats.FindFormatFromExtension(GetFileExtension(FileName));
 
   Dest := FileStream.Create(FileName);
-  Save(Dest, Format, Depth);
+  Result := Save(Dest, Format, Depth);
   ReleaseObject(Dest);
 End;
 

@@ -4,7 +4,8 @@ Unit TERRA_VCLApplication;
 Interface
 Uses Classes, Forms, ExtCtrls, Graphics, TERRA_String, TERRA_Utils, TERRA_Application,
   TERRA_Object, TERRA_GraphicsManager, TERRA_Viewport, TERRA_Image, TERRA_Color, TERRA_OS, TERRA_Renderer,
-  TERRA_UIView, TERRA_UIDimension;
+  TERRA_UIView, TERRA_UIDimension
+  {$IFDEF OSX}, MacOSAll{$ENDIF};
 
 Type
   TERRAVCLViewport = Class(TERRAObject)
@@ -26,6 +27,8 @@ Type
 
       Property Viewport:TERRAViewport Read GetViewport;
   End;
+
+  { VCLApplication }
 
   VCLApplication = Class(Application)
       Protected
@@ -49,6 +52,10 @@ Type
 
         Function GetViewport: TERRAViewport;
         Function GetGUI: UIView;
+
+        {$IFDEF OSX}
+         Procedure MoveToBundleFolder(); Override;
+         {$ENDIF}
 
       Public
         Constructor Create(Target:TComponent);
@@ -82,7 +89,7 @@ Begin
 End;
 
 { VCLApplication }
-Constructor VCLApplication.Create(Target:TComponent);
+constructor VCLApplication.Create(Target: TComponent);
 Begin
   _Target := Target;
   _Timer := TTimer.Create(Target);
@@ -90,11 +97,19 @@ Begin
   _Timer.Enabled := True;
   _Timer.OnTimer := TimerTick;
 
+  {$IFDEF OSX}
+  If (_Target Is TForm) Then
+    _Handle := WindowPtr(TForm(_Target).Handle)
+  Else
+  If (_Target Is TPanel) Then
+    _Handle := WindowPtr(TPanel(_Target).Handle)
+  {$ELSE}
   If (_Target Is TForm) Then
     _Handle := TForm(_Target).Handle
   Else
   If (_Target Is TPanel) Then
     _Handle := TPanel(_Target).Handle
+  {$ENDIF}
   Else
     _Handle := 0;
 
@@ -102,7 +117,7 @@ Begin
   Inherited Create();
 End;
 
-Procedure VCLApplication.OnDestroy;
+procedure VCLApplication.OnDestroy;
 Begin
   Inherited;
 
@@ -110,14 +125,14 @@ Begin
   _Timer.Free();
 End;
 
-Procedure VCLApplication.TimerTick(Sender: TObject);
+procedure VCLApplication.TimerTick(Sender: TObject);
 Begin
   Self.UpdateSize();
   Application.Instance.Run();
   Self.UpdateViewports();
 End;
 
-Procedure VCLApplication.UpdateSize;
+procedure VCLApplication.UpdateSize;
 Begin
   If Not Self.CanReceiveEvents Then
     Exit;
@@ -133,14 +148,14 @@ Begin
     _GUI.AutoResize();
 End;
 
-Procedure VCLApplication.AddRenderTarget(V:TERRAVCLViewport);
+procedure VCLApplication.AddRenderTarget(V: TERRAVCLViewport);
 Begin
   Inc(_ViewportCount);
   SetLength(_Viewports, _ViewportCount);
   _Viewports[Pred(_ViewportCount)] := V;
 End;
 
-Procedure VCLApplication.UpdateViewports;
+procedure VCLApplication.UpdateViewports;
 Var
   I:Integer;
 Begin
@@ -148,7 +163,7 @@ Begin
     _Viewports[I].Update();
 End;
 
-Function VCLApplication.GetTitle: TERRAString;
+function VCLApplication.GetTitle: TERRAString;
 Begin
   If (_Target Is TForm) Then
     Result := TForm(_Target).Caption
@@ -159,7 +174,7 @@ Begin
     Result := '';
 End;
 
-Function VCLApplication.GetWidth: Word;
+function VCLApplication.GetWidth: Word;
 Begin
   If (_Target Is TForm) Then
     Result := TForm(_Target).ClientWidth
@@ -170,7 +185,7 @@ Begin
     Result := 0;
 End;
 
-Function VCLApplication.GetHeight: Word;
+function VCLApplication.GetHeight: Word;
 Begin
   If (_Target Is TForm) Then
     Result := TForm(_Target).ClientHeight
@@ -181,22 +196,22 @@ Begin
     Result := 0;
 End;
 
-Function VCLApplication.InitWindow: Boolean;
+function VCLApplication.InitWindow: Boolean;
 Begin
   Result := True;
 End;
 
-Procedure VCLApplication.CloseWindow;
+procedure VCLApplication.CloseWindow;
 Begin
   // do nothing
 End;
 
-Function VCLApplication.GetViewport: TERRAViewport;
+function VCLApplication.GetViewport: TERRAViewport;
 Begin
   Result := Self.GUI.Viewport;
 End;
 
-Function VCLApplication.GetGUI: UIView;
+function VCLApplication.GetGUI: UIView;
 Begin
   If (_GUI = Nil) Then
   Begin
@@ -204,6 +219,11 @@ Begin
   End;
 
   Result := _GUI;
+End;
+
+procedure VCLApplication.MoveToBundleFolder;
+Begin
+  // do nothing
 End;
 
 { TERRAVCLViewport }

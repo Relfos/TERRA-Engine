@@ -3513,7 +3513,7 @@ end;
 { TsdSOFnMarker }
 function TsdSOFnMarker.GetMarkerName: Utf8String;
 begin
-  Result := 'SOF' + HexStr(MarkerTag and $0F);
+  Result := 'SOF' + HexStr(Byte(MarkerTag and $0F));
 end;
 
 procedure TsdSOFnMarker.ReadMarker;

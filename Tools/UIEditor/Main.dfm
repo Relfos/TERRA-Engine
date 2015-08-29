@@ -1,65 +1,51 @@
 object UIEditForm: TUIEditForm
   Left = 229
+  Height = 705
   Top = 146
   Width = 926
-  Height = 705
   HorzScrollBar.Visible = False
   VertScrollBar.Visible = False
   Caption = 'TERRA GUI Editor'
+  ClientHeight = 705
+  ClientWidth = 926
   Color = 2500134
-  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
-  Font.Style = []
   KeyPreview = True
   Menu = MainMenu
-  OldCreateOrder = False
-  Visible = True
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnKeyDown = FormKeyDown
   OnMouseWheel = FormMouseWheel
   OnResize = FormResize
-  PixelsPerInch = 96
-  TextHeight = 13
+  LCLVersion = '1.4.0.4'
+  Visible = True
   object TabList: TTabControl
     Left = 0
+    Height = 561
     Top = 0
     Width = 857
-    Height = 561
+    OnChange = TabListChange
     TabHeight = 25
     TabOrder = 0
-    OnChange = TabListChange
     object WidgetList: TTreeView
       Left = 0
+      Height = 249
       Top = 80
       Width = 209
-      Height = 249
+      DefaultItemHeight = 16
       Indent = 19
       TabOrder = 0
       OnClick = WidgetListClick
       OnEdited = WidgetListEdited
       OnMouseDown = WidgetListMouseDown
     end
-    object PropertyList: TCustomPropertyEditor
-      Left = 0
-      Top = 320
-      Width = 209
-      Height = 169
-      BevelOuter = bvRaised
-      BevelWidth = 2
-      Ctl3D = False
-      ParentCtl3D = False
-      TabOrder = 1
-      MarginColor = clBlack
-      EditColor = clBlack
-    end
     object RenderPanel: TPanel
       Left = 208
+      Height = 401
       Top = -48
       Width = 577
-      Height = 401
       TabOrder = 2
       OnMouseDown = RenderPanelMouseDown
       OnMouseMove = RenderPanelMouseMove
@@ -67,9 +53,8 @@ object UIEditForm: TUIEditForm
     end
   end
   object MainMenu: TMainMenu
-    OwnerDraw = True
-    Left = 120
-    Top = 496
+    left = 120
+    top = 496
     object ProjectMenu: TMenuItem
       Caption = '&Project'
       object New1: TMenuItem
@@ -165,9 +150,8 @@ object UIEditForm: TUIEditForm
     end
   end
   object PopupMenu: TPopupMenu
-    OwnerDraw = True
-    Left = 96
-    Top = 560
+    left = 96
+    top = 560
     object Copy1: TMenuItem
       Caption = '&Copy'
     end

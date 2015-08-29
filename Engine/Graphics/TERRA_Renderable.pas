@@ -272,7 +272,7 @@ Begin
     Renderable.Update(View);
   End;
 
-  If (Bucket And renderBucket_Sky = 0)  Then
+  If (Bucket And renderBucket_Sky = 0)  And (Bucket And renderBucket_Overlay = 0) Then
   Begin
     // frustum test
     Box := Renderable.GetBoundingBox;

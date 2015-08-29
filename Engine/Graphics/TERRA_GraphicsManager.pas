@@ -738,7 +738,7 @@ Begin
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Particles.Render');{$ENDIF}
   Engine.Particles.Render(View);
 
-  _Renderables.RenderOverlays(View, Stage);
+  _Renderables.RenderOverlays(View, renderStageDiffuse);
   View.SpriteRenderer.Prepare();
 
   If (View.VR) Then

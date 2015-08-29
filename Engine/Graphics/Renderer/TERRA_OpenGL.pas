@@ -18,7 +18,7 @@ Uses
   {$IFDEF WINDOWS}Windows,{$ENDIF}
   {$IFDEF FPC}Math,DynLibs,{$ENDIF}
   {$IFDEF LINUX}GLX,{$ENDIF}
-  {$IFDEF OSX}AGL,{$ENDIF}
+  {$IFDEF OSX}TERRA_AGL,{$ENDIF}
   TERRA_String, TERRA_Log, TERRA_Matrix4x4, TERRA_Math;
 
 Type

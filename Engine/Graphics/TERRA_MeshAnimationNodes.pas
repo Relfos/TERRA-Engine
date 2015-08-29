@@ -637,6 +637,8 @@ Begin
   _A.GetTransform(BoneIndex, SA);
   _B.GetTransform(BoneIndex, SB);
 
+  Result := True;
+
   Beta := 1.0 - Alpha;
 
   If (Alpha<=0) Then

@@ -197,7 +197,13 @@ type
     property Caption;
     property Color;
     property Constraints;
+    {$IFNDEF FPC}
     property Ctl3D;
+    property Locked;
+    property ParentBackground;
+    property ParentCtl3D;
+    property OnCanResize;
+    {$ENDIF}
     property UseDockManager default True;
     property DockSite;
     property DragCursor;
@@ -205,12 +211,13 @@ type
     property DragMode;
     property Enabled;
     property FullRepaint;
+
     property Font;
-    property Locked;
+
     property ParentBiDiMode;
-    property ParentBackground;
+
     property ParentColor;
-    property ParentCtl3D;
+
     property ParentFont;
     property ParentShowHint;
     property PopupMenu;
@@ -218,7 +225,7 @@ type
     property TabOrder;
     property TabStop;
     property Visible;
-    property OnCanResize;
+
     property OnClick;
     property OnConstrainedResize;
     property OnContextPopup;
@@ -250,7 +257,7 @@ type
 procedure Register;
 
 implementation
-uses Forms, TypInfo, Variants, Consts, DataSourceBrowser;
+uses Forms, TypInfo, Variants, {$IFNDEF FPC}Consts,{$ENDIF} DataSourceBrowser;
 
 
 procedure Register;
@@ -565,7 +572,9 @@ Begin
     _Expand.Height := _Expand.Width;
     _Expand.Caption := '+';
     _Expand.Color := _Owner.Color;
+    {$IFNDEF FPC}
     _Expand.Ctl3D := False;
+    {$ENDIF}
     _Expand.OnMouseDown := ExpandProps;
     _Expand.Cursor := crHandPoint;
   End Else
@@ -822,6 +831,7 @@ Procedure TDataSourceCell.Update;
 Begin
   _Name.Caption := _Prop.GetBlob();
 End;
+
 
 end.
 

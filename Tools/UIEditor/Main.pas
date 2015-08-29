@@ -164,7 +164,6 @@ Type
     Paths1: TMenuItem;
     TabList: TTabControl;
     WidgetList: TTreeView;
-    PropertyList: TCustomPropertyEditor;
     RenderPanel: TPanel;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -212,8 +211,11 @@ Type
   Protected
     _CurrentCursor:Integer;
 
+    PropertyList: TCustomPropertyEditor;
+
     Procedure CustomDrawItem(Sender: TObject; ACanvas: TCanvas; ARect: TRect; State: TOwnerDrawState);
     Procedure CustomMeasureItem(Sender: TObject; ACanvas: TCanvas;  var Width, Height: Integer);
+
 
 
     Function AddWidgetNode(W:UIWidget):TTreeNode;
@@ -608,6 +610,21 @@ Var
 Begin
   _CurrentCursor := 9999;
 
+  PropertyList := TCustomPropertyEditor.Create(Self);
+  PropertyList.Left := 0;
+  PropertyList.Top := 320;
+  PropertyList.Width := 209;
+  PropertyList.Height := 169;
+  PropertyList.BevelOuter := bvRaised;
+  PropertyList.BevelWidth := 2;
+  {$IFNDEF FPC}
+  PropertyList.Ctl3D := False;
+  PropertyList.ParentCtl3D := False;
+  {$ENDIF}
+  PropertyList.TabOrder := 1;
+  PropertyList.MarginColor := clBlack;
+  PropertyList.EditColor := clBlack;
+
   UIEditorApplication.Create(Self.RenderPanel);
 
   // Added Asset folder to search path
@@ -985,7 +1002,7 @@ Begin
     Else
       ApplyFontStyle(ACanvas.Font, font_Normal);
 
-    DrawTextA(ACanvas.Handle, PAnsiChar(Text), StringLength(Text), ARect, Flags);
+    DrawText(ACanvas.Handle, PAnsiChar(Text), StringLength(Text), ARect, Flags);
   End;
   //ACanvas.TextOut(LeftPos, TopPos, Text);
   //ACanvas.TextRect(ARect, ARect.Left, ARect.Top, Text);*)
@@ -1010,8 +1027,10 @@ Begin
   If Location = Nil Then
     Location := Engine.Files.Search('cursor_'+Name+'.ani');
 
+  {$IFDEF WINDOWS}
   Cur := LoadCursorFromFile(PAnsiChar(Location.Path));
   Screen.Cursors[ID] := Cur;
+  {$ENDIF}
 End;
 
 Procedure TUIEditForm.ApplyFontStyle(Target:TFont; Mode:FontMode);
@@ -1029,9 +1048,12 @@ Begin
 End;
 
 Procedure TUIEditForm.LoadSkin;
+{$IFDEF WINDOWS}
 Var
   MenuInfo:TMenuInfo;
+  {$ENDIF}
 Begin
+  {$IFDEF WINDOWS}
   LoadCursor(customDefault, 'normal');
   LoadCursor(customMove, 'move');
   LoadCursor(customHorizontal, 'horizontal');
@@ -1089,12 +1111,14 @@ Begin
 
   SetMenuSkin(MainMenu.Items);
   SetMenuSkin(PopupMenu.Items);
+  {$ENDIF}
 End;
 
 Procedure TUIEditForm.SetMenuSkin(Menu: TMenuItem);
 Var
   I:Integer;
 Begin
+  {$IFDEF WINDOWS}
   Menu.OnAdvancedDrawItem := Self.CustomDrawItem;;
   Menu.OnMeasureItem := Self.CustomMeasureItem;
 
@@ -1102,6 +1126,7 @@ Begin
   Begin
     SetMenuSkin(Menu.Items[I]);
   End;
+  {$ENDIF}
 End;
 
 Procedure TUIEditForm.ChangeCursor(ID: Integer);

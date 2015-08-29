@@ -7,7 +7,8 @@ program UIEditor;
 uses
 {$IFnDEF FPC}
 {$ELSE}
-  Interfaces,
+{$IFDEF UNIX}Cthreads, cmem,{$ENDIF}
+ Interfaces,
 {$ENDIF}
   Forms,
   Main in 'Main.pas' {UIEditForm},

@@ -39,9 +39,9 @@ Type
       _Steam:SteamManager;
       {$ENDIF}
 
+    Public
       Constructor Create();
 
-    Public
       Procedure Init();
       Procedure Release(); Override;
 

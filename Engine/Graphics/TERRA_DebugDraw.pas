@@ -85,16 +85,11 @@ End;
 Procedure DrawLine2D(View:TERRAViewport; Const A,B:Vector2D; LineColor:ColorRGBA; LineWidth:Single);
 Var
   Tex:TERRATexture;
-  DX, DY, Angle, Len:Single;
   S:TERRASprite;
 Begin
   Tex := Engine.Textures.WhiteTexture;
   If Tex = Nil Then
     Exit;
-
-  DX := B.X - A.X;
-  DY := B.Y - A.Y;
-  Angle := Atan2(DY, DX);
 
   S := View.SpriteRenderer.FetchSprite();
   S.SetTexture(Tex);

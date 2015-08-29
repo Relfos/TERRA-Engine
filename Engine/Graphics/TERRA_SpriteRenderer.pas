@@ -75,7 +75,7 @@ Type
 
     Public
       Constructor Create(Manager:TERRASpriteRenderer);
-      Procedure Release();
+      Procedure Release(); Override;
       //Procedure SetupSaturationCombiners(Var Slot:Integer);
   End;
 
