@@ -1211,9 +1211,6 @@ End;
 
 Procedure ColorProperty.AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:ColorRGBA; Duration, Delay:Cardinal; Callback: TweenCallback; CallTarget:TERRAObject);
 Begin
-IF TargetValue.A <255 Then
-  DebugBreak;
-  
   Self.Red.AddTween(Ease, StartValue.R, TargetValue.R, Duration, Delay, Callback, CallTarget);
   Self.Green.AddTween(Ease, StartValue.G, TargetValue.G, Duration, Delay, Nil);
   Self.Blue.AddTween(Ease, StartValue.B, TargetValue.B, Duration, Delay, Nil);

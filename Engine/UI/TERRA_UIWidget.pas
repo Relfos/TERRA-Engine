@@ -161,6 +161,7 @@ Type
       //Function GetMargin: UIDimension;
 
       Procedure SetParent(Target:UIWidget);
+      Procedure SetRelativePosition(Const Pos:Vector2D);
 
       Function GetDraggable: Boolean;
       Procedure SetDraggable(const Value: Boolean);
@@ -427,7 +428,7 @@ Type
       Property ChildrenCount:Integer Read _ChildrenCount;
 
       Property AbsolutePosition:Vector2D Read GetAbsolutePosition;
-      Property RelativePosition:Vector2D Read GetRelativePosition;
+      Property RelativePosition:Vector2D Read GetRelativePosition Write SetRelativePosition;
 
       Property ClipRect:TERRAClipRect Read GetClipRect Write SetClipRect;
 
@@ -1136,16 +1137,17 @@ Begin
   End;
 End;
 
-(*Procedure UIWidget.SetRelativePosition(Const Pos:Vector2D);
+Procedure UIWidget.SetRelativePosition(Const Pos:Vector2D);
 Begin
-  If (Pos.X = _Position.X.Value) And (Pos.Y = _Position.Y.Value) Then
-    Exit;
+(*  If (Pos.X = Self.Left.Value) And (Pos.Y = _Top.Value) Then
+    Exit;*)
 
-  _Position.Value := Pos;
+  Self.Left := UIPixels(Pos.X);
+  Self.Top := UIPixels(Pos.Y);
   _TransformChanged := True;
 End;
 
-Procedure UIWidget.SetAbsolutePosition(Pos:Vector2D);
+(*Procedure UIWidget.SetAbsolutePosition(Pos:Vector2D);
 Begin
   If Assigned(_Parent) Then
     Pos.Subtract(_Parent.AbsolutePosition);

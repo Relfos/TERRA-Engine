@@ -727,6 +727,8 @@ Begin
     _InitApp := True;
     _StartTime := GetElapsedTime();
 
+    Engine.Init();
+
     _Startup := False;
     If (_Managed) Or (_Hidden) Then
       Exit;
@@ -751,7 +753,6 @@ Begin
 
       If (_InitApp) Then
       Begin
-        Engine.Init();
         Self.OnCreate();
         _InitApp := False;
         _CanReceiveEvents := True;

@@ -23,67 +23,48 @@ object UIEditForm: TUIEditForm
   OnResize = FormResize
   PixelsPerInch = 96
   TextHeight = 13
-  object TabList: TIceTabSet
+  object TabList: TTabControl
     Left = 0
     Top = 0
-    Width = 910
-    Height = 41
-    Align = alTop
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWhite
-    Font.Height = -11
-    Font.Name = 'Tahoma'
-    Font.Style = []
-    SelectedFont.Charset = DEFAULT_CHARSET
-    SelectedFont.Color = clBlack
-    SelectedFont.Height = -11
-    SelectedFont.Name = 'Tahoma'
-    SelectedFont.Style = []
-    ModifiedFont.Charset = DEFAULT_CHARSET
-    ModifiedFont.Color = 11777023
-    ModifiedFont.Height = -11
-    ModifiedFont.Name = 'Tahoma'
-    ModifiedFont.Style = []
-    Tabs = <>
-    MaintainMenu = False
-    ModifiedTabStartColor = 10588280
-    ModifiedTabStopColor = 10588280
-    OnTabSelected = TabListTabSelected
-    OnTabClose = TabListTabClose
-  end
-  object RenderPanel: TPanel
-    Left = 208
-    Top = 40
-    Width = 577
-    Height = 401
-    TabOrder = 1
-    OnMouseDown = RenderPanelMouseDown
-    OnMouseMove = RenderPanelMouseMove
-    OnMouseUp = RenderPanelMouseUp
-  end
-  object WidgetList: TTreeView
-    Left = 0
-    Top = 40
-    Width = 209
-    Height = 249
-    Indent = 19
-    TabOrder = 2
-    OnClick = WidgetListClick
-    OnEdited = WidgetListEdited
-    OnMouseDown = WidgetListMouseDown
-  end
-  object PropertyList: TCustomPropertyEditor
-    Left = 0
-    Top = 288
-    Width = 209
-    Height = 169
-    BevelOuter = bvRaised
-    BevelWidth = 2
-    Ctl3D = False
-    ParentCtl3D = False
-    TabOrder = 3
-    MarginColor = clBlack
-    EditColor = clBlack
+    Width = 857
+    Height = 561
+    TabHeight = 25
+    TabOrder = 0
+    OnChange = TabListChange
+    object WidgetList: TTreeView
+      Left = 0
+      Top = 80
+      Width = 209
+      Height = 249
+      Indent = 19
+      TabOrder = 0
+      OnClick = WidgetListClick
+      OnEdited = WidgetListEdited
+      OnMouseDown = WidgetListMouseDown
+    end
+    object PropertyList: TCustomPropertyEditor
+      Left = 0
+      Top = 320
+      Width = 209
+      Height = 169
+      BevelOuter = bvRaised
+      BevelWidth = 2
+      Ctl3D = False
+      ParentCtl3D = False
+      TabOrder = 1
+      MarginColor = clBlack
+      EditColor = clBlack
+    end
+    object RenderPanel: TPanel
+      Left = 208
+      Top = -48
+      Width = 577
+      Height = 401
+      TabOrder = 2
+      OnMouseDown = RenderPanelMouseDown
+      OnMouseMove = RenderPanelMouseMove
+      OnMouseUp = RenderPanelMouseUp
+    end
   end
   object MainMenu: TMainMenu
     OwnerDraw = True

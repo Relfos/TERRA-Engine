@@ -5,7 +5,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ExtCtrls, StdCtrls, Menus, IceTabSet, Grids, ValEdit, ComCtrls,
+  Dialogs, ExtCtrls, StdCtrls, Menus, Grids, ValEdit, ComCtrls,
   TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_VCLApplication, TERRA_OS, TERRA_Renderer,
   TERRA_String, TERRA_Texture, TERRA_Font, TERRA_TTF, TERRA_DebugDraw, TERRA_Renderable,
   TERRA_Viewport, TERRA_FileManager, TERRA_FileUtils, TERRA_Sprite, TERRA_EngineManager,
@@ -28,6 +28,9 @@ Const
   customDiagonal2 = crSizeNWSE;
 
 Type
+  //TargetTab = TIceTab;
+  TargetTab = Integer;
+
   FontMode = (
     font_Normal,
     font_Selected,
@@ -56,7 +59,7 @@ Type
   UIEditableView = Class(TERRAObject)
     Protected
       _Owner:UIEditScene;
-      _Tab:TIceTab;
+      _Tab:TargetTab;
       _Target:UIView;
 
     Public
@@ -120,8 +123,6 @@ Type
   End;
 
   TUIEditForm = class(TForm)
-    TabList: TIceTabSet;
-    RenderPanel: TPanel;
     MainMenu: TMainMenu;
     ProjectMenu: TMenuItem;
     New1: TMenuItem;
@@ -135,7 +136,6 @@ Type
     View1: TMenuItem;
     Component1: TMenuItem;
     WidgetMenu: TMenuItem;
-    WidgetList: TTreeView;
     Image1: TMenuItem;
     Label1: TMenuItem;
     TiledRect1: TMenuItem;
@@ -149,16 +149,19 @@ Type
     GridSmallMenu: TMenuItem;
     GridMediumMenu: TMenuItem;
     GridLargeMenu: TMenuItem;
-    PropertyList: TCustomPropertyEditor;
     N4: TMenuItem;
     Settings1: TMenuItem;
     DataSources1: TMenuItem;
     Paths1: TMenuItem;
+    TabList: TTabControl;
+    WidgetList: TTreeView;
+    PropertyList: TCustomPropertyEditor;
+    RenderPanel: TPanel;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
 
-    Function AddNewTab(Const Name:TERRAString):TIceTab;
+    Function AddNewTab(Const Name:TERRAString):TargetTab;
     procedure Image1Click(Sender: TObject);
     procedure RenderPanelMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
@@ -186,13 +189,16 @@ Type
     procedure WidgetListMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure View1Click(Sender: TObject);
-    procedure TabListTabSelected(Sender: TObject; ATab: TIceTab;
+
+(*    procedure TabListTabSelected(Sender: TObject; ATab: TargetTab;
       ASelected: Boolean);
-    procedure TabListTabClose(Sender: TObject; ATab: TIceTab);
+    procedure TabListTabClose(Sender: TObject; ATab: TargetTab);*)
+    
     procedure Settings1Click(Sender: TObject);
     procedure DataSources1Click(Sender: TObject);
     procedure Paths1Click(Sender: TObject);
     procedure NewProjectClick(Sender: TObject);
+    procedure TabListChange(Sender: TObject);
 
   Protected
     _CurrentCursor:Integer;
@@ -266,7 +272,7 @@ Begin
     Else
       Width := 1.0;
 
-    DrawLine2D(V, VectorCreate2D(X, 0), VectorCreate2D(X, V.Height),  GridColor, Width);
+    DrawLine2D(V, Vector2D_Create(X, 0), Vector2D_Create(X, V.Height),  GridColor, Width);
     X := X + _GridSize;
   End;
 
@@ -279,7 +285,7 @@ Begin
     If (I Mod 5 = 0) Then
       Width := Width * 2;
 
-    DrawLine2D(V, VectorCreate2D(0, Y), VectorCreate2D(V.Width, Y),  GridColor, Width);
+    DrawLine2D(V, Vector2D_Create(0, Y), Vector2D_Create(V.Width, Y),  GridColor, Width);
     Y := Y + _GridSize;
   End;
 End;
@@ -345,7 +351,7 @@ Begin
   Begin
     X := Trunc(UISnap(X - W.Parent.AbsolutePosition.X));
     Y := Trunc(UISnap(Y - W.Parent.AbsolutePosition.Y));
-    W.RelativePosition := VectorCreate2D(X, Y);
+    W.RelativePosition := Vector2D_Create(X, Y);
   End;
 
   UIEditForm.FormResize(UIEditForm.WidgetList);
@@ -363,7 +369,7 @@ Var
   Tex:TERRATexture;
 Begin
   Tex := Engine.Textures['default_image'];
-  Img := UIImage.Create('image', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(0), UIPixels(0));
+  Img := UIImage.Create('image', Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(0), UIPixels(0));
   Img.SetTexture(Tex);
   Self.AddWidget(Img, X, Y);
 End;
@@ -371,19 +377,17 @@ End;
 
 Procedure UIEditScene.AddTiledRect(X, Y: Integer);
 Begin
-  Self.AddWidget(UITiledRect.Create('rect', Self.GetNewTarget(X, Y),
-    X, Y, 0.1,
-    UIPixels(300), UIPixels(200)), X, Y);
+  Self.AddWidget(UITiledRect.Create('rect', Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(300), UIPixels(200)), X, Y);
 End;
 
 Procedure UIEditScene.AddLabel(X, Y: Integer);
 Begin
-  Self.AddWidget(UILabel.Create('label', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(100), UIPixels(50), 'text'), X, Y);
+  Self.AddWidget(UILabel.Create('label', Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(100), UIPixels(50), 'text'), X, Y);
 End;
 
 procedure UIEditScene.AddInputText(X, Y: Integer);
 Begin
-  Self.AddWidget(UIEditText.Create('label', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(100), UIPixels(50), 'text'), X, Y);
+  Self.AddWidget(UIEditText.Create('label', Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(100), UIPixels(50), 'text'), X, Y);
 End;
 
 {procedure UIEditScene.AddRadioButton(X, Y: Integer);
@@ -520,7 +524,7 @@ Var
   Item:TERRAObject;
 begin
   If Assigned(_SelectedView) Then
-    _SelectedView._Target.Hide();
+    _SelectedView._Target.Visible := False;
 
   Item := _Views.GetItemByIndex(Index);
 
@@ -548,7 +552,7 @@ Begin
   // Register the font with the UI
   _Target.DefaultFont := Self._Owner._Font;
 
-  //_Target.Show();
+  _Target.Visible := True;
 
   _Tab := UIEditForm.AddNewTab(Name);
 End;
@@ -556,12 +560,12 @@ End;
 
 Procedure UIEditableView.Select();
 begin
-  _Target.Show();
+  _Target.Visible := True;
 end;
 
 Function UIEditableView.PickWidgetAt(X, Y: Integer; Ignore:UIWidget): UIWidget;
 Begin
-  Result := _Target.PickWidget(X, Y, False, Ignore);
+  Result := _Target.PickWidget(X, Y, widgetEventClass_Any, Ignore);
 End;
 
 Procedure UIEditableView.Release;
@@ -580,10 +584,13 @@ Begin
 End;
 
 { TUIEditForm }
-Function TUIEditForm.AddNewTab(Const Name:TERRAString):TIceTab;
+Function TUIEditForm.AddNewTab(Const Name:TERRAString):TargetTab;
 begin
-  Result := TabList.AddTab(Name);
-  Result.Selected := True;
+  //Result := TabList.AddTab(Name);
+  Result := TabList.Tabs.Add(Name);
+  TabList.TabIndex := Result;
+  UIEditForm.FormResize(Nil);
+  //Result.Selected := True;
 end;
 
 Procedure TUIEditForm.FormCreate(Sender: TObject);
@@ -624,6 +631,11 @@ begin
 
   PropertyList.Visible := WidgetList.Items.Count>0;
 
+  TabList.Width := Self.Width;
+  TabList.Height := Self.Height - TabList.Top;
+
+  WidgetList.Top := TabList.TabHeight;
+
   If PropertyList.Visible Then
   Begin
     WidgetList.Height := Self.Height Div 3;
@@ -634,6 +646,7 @@ begin
     WidgetList.Height := Self.Height -WidgetList.Top;
   End;
 
+  RenderPanel.Top := TabList.TabHeight;
   RenderPanel.Left := PropertyList.Width + PropertyList.Left;
   RenderPanel.Width := Self.ClientWidth - RenderPanel.Left;
   RenderPanel.Height := Self.ClientHeight - RenderPanel.Top;
@@ -793,7 +806,7 @@ begin
   W := Scene._SelectedView.PickWidgetAt(X, Y);
   If Assigned(W) Then
   Begin
-    P := VectorCreate2D(X, Y);
+    P := Vector2D_Create(X, Y);
     W.ConvertGlobalToLocal(P);
     PX := Trunc(P.X);
     PY := Trunc(P.Y);
@@ -1026,12 +1039,15 @@ Begin
   SkinTextColor := RGB(254, 163, 0);
   SkinEditColor := RGB(128, 128, 128);
 
+  Self.Color := SkinForeColor;
 
-  TabList.BackgroundStartColor := SkinForeColor;
+  TabList.Canvas.Brush.Color := SkinForeColor;
+  ApplyFontStyle(TabList.Font, font_Normal);
+
+  (*TabList.BackgroundStartColor := SkinForeColor;
   TabList.BackgroundStopColor := TabList.BackgroundStartColor;
   ApplyFontStyle(TabList.Font, font_Normal);
   ApplyFontStyle(TabList.SelectedFont, font_Selected);
-  Self.Color := TabList.BackgroundStopColor;
 
   TabList.SelectedTabStartColor :=  SkinTextColor;
   TabList.SelectedTabStopColor := TabList.SelectedTabStartColor;
@@ -1039,7 +1055,7 @@ Begin
   TabList.TabStartColor :=  SkinForeColor;
   TabList.TabStopColor := TabList.TabStartColor;
 
-  TabList.Cursor := customDefault;
+  TabList.Cursor := customDefault;*)
 
   WidgetList.Color := SkinBGColor;
   ApplyFontStyle(WidgetList.Font, font_Normal);
@@ -1225,7 +1241,7 @@ begin
       If GetCursorPos(pnt) then
         Self.PopupMenu.Popup(pnt.X, pnt.Y);
     End;
-    
+
     Exit;
   End;
 end;
@@ -1237,7 +1253,7 @@ begin
   Self.BuildWidgetTree();
 end;
 
-procedure TUIEditForm.TabListTabSelected(Sender: TObject; ATab: TIceTab; ASelected: Boolean);
+(*procedure TUIEditForm.TabListTabSelected(Sender: TObject; ATab: TargetTab; ASelected: Boolean);
 begin
   If (_Scene = Nil) Or (Not ASelected) Then
     Exit;
@@ -1245,7 +1261,7 @@ begin
   _Scene.Select(ATab.Index);
 end;
 
-procedure TUIEditForm.TabListTabClose(Sender: TObject; ATab: TIceTab);
+procedure TUIEditForm.TabListTabClose(Sender: TObject; ATab: TargetTab);
 Var
   Target:UIEditableView;
 begin
@@ -1259,7 +1275,7 @@ begin
 
   _Scene._Views.Remove(Target);
   Self.TabList.RemoveTab(ATab);
-end;
+end;*)
 
 procedure TUIEditForm.Settings1Click(Sender: TObject);
 begin
@@ -1279,6 +1295,14 @@ end;
 procedure TUIEditForm.NewProjectClick(Sender: TObject);
 begin
   Self._Scene.AddView('untitled');
+end;
+
+procedure TUIEditForm.TabListChange(Sender: TObject);
+begin
+  If (_Scene = Nil) Then
+    Exit;
+
+  _Scene.Select(TabList.TabIndex);
 end;
 
 end.
