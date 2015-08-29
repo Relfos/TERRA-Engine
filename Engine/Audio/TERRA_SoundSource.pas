@@ -43,7 +43,7 @@ Const
 Type
   SoundSource = Class;
 
-  SoundSourceCallback = Procedure(MySource:SoundSource; UserData:Pointer); Cdecl;
+  SoundSourceCallback = Procedure(MySource:SoundSource) Of Object;
 
   SoundSource = Class(TERRAObject)
     Protected
@@ -65,7 +65,6 @@ Type
       {$ENDIF}
 
       _Callback:SoundSourceCallback;
-      _UserData:Pointer;
 
       Function GetStatus:Integer;
 
@@ -91,7 +90,7 @@ Type
 
       Procedure OnFinish();
 
-      Procedure SetCallback(Callback:SoundSourceCallback; UserData:Pointer = Nil);
+      Procedure SetCallback(Callback:SoundSourceCallback);
 
       Property Handle:Integer Read _Handle;
       Property Sound:TERRA_Sound.Sound Read _Sound;
@@ -408,17 +407,16 @@ Begin
   {$ENDIF}
 End;
 
-Procedure SoundSource.SetCallback(Callback: SoundSourceCallback; UserData: Pointer);
+Procedure SoundSource.SetCallback(Callback: SoundSourceCallback);
 Begin
   _Callback := Callback;
-  _UserData := Userdata;
 End;
 
 Procedure SoundSource.OnFinish;
 Begin
   If Assigned(_Callback) Then
   Begin
-    _Callback(Self, _UserData);
+    _Callback(Self);
     _Callback := Nil;
   End;
 End;

@@ -163,6 +163,7 @@ Type
 
       Function Update(Pixels:Pointer; X,Y, Width, Height:Integer):Boolean; Override;
 
+      Function GetPixel(X,Y:Integer):Color; Override;
       Function GetImage():Image; Override;
 
       Procedure Invalidate(); Override;
@@ -2139,6 +2140,20 @@ Begin
   Result := True;
 End;
 
+Function OpenGLTexture.GetPixel(X, Y: Integer): Color;
+Begin
+  Y := _Height - Y;
+
+  {$IFDEF PC}
+  glActiveTexture(GL_TEXTURE0);
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, _Handle);
+
+  glTexSubImage2D(_Handle, 0, X, Y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, @Result);
+  Result.A := 0;
+  {$ENDIF}
+End;
+
 Function OpenGLTexture.GetImage:Image;
 Begin
   Log(logDebug, 'Texture', 'Getting image from texture '{+Self.Name});
@@ -2203,6 +2218,7 @@ Begin
   Self._WrapMode := Value;
   OpenGLRenderer(_Owner).ApplyTextureWrap(_Handle, GL_TEXTURE_2D, Value);
 End;
+
 
 
 

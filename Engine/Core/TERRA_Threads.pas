@@ -270,7 +270,7 @@ Begin
   AndroidApplication(Application.Instance).SpawnThread(Self);
 {$ELSE}
 {$IFDEF USEPASCALTHREADS}
-  Inherited Create(True);
+  Inherited Create(False);
 {$ELSE}
 {$IFDEF WINDOWS}
 	_Handle := BeginThread(Nil, 0, InternalThreadDispatcher, Self, 0, _ID);
