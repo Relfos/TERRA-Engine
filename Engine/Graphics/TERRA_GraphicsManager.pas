@@ -338,7 +338,7 @@ Begin
 
   Log(logDebug, 'GraphicsManager', 'Device resolution: '+ IntegerProperty.Stringify(Application.Instance.Width)+' x ' + IntegerProperty.Stringify(Application.Instance.Width));
 
-  _DeviceViewport := TERRAViewport.Create('device', Nil, Application.Instance.Width, Application.Instance.Width);
+  _DeviceViewport := TERRAViewport.Create('device', Nil, Application.Instance.Width, Application.Instance.Height);
 
   ShowWireframe := False;
 

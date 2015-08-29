@@ -3,11 +3,11 @@
   <ProjectSession>
     <Version Value="9"/>
     <BuildModes Active="Default"/>
-    <Units Count="2">
+    <Units Count="3">
       <Unit0>
         <Filename Value="sprite_simple.dpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="3" Y="5"/>
+        <CursorPos X="11" Y="12"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -15,26 +15,43 @@
       <Unit1>
         <Filename Value="../../../../Engine/Graphics/TERRA_Renderer.pas"/>
         <UnitName Value="TERRA_Renderer"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1316"/>
+        <CursorPos X="67" Y="1333"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="../../../../Engine/Graphics/TERRA_GraphicsManager.pas"/>
+        <UnitName Value="TERRA_GraphicsManager"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="1316"/>
-        <CursorPos X="6" Y="1331"/>
+        <TopLine Value="318"/>
+        <CursorPos Y="343"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit1>
+      </Unit2>
     </Units>
-    <JumpHistory Count="3" HistoryIndex="2">
+    <JumpHistory Count="5" HistoryIndex="4">
       <Position1>
         <Filename Value="sprite_simple.dpr"/>
       </Position1>
       <Position2>
-        <Filename Value="../../../../Engine/Graphics/TERRA_Renderer.pas"/>
+        <Filename Value="../../../../Engine/Graphics/TERRA_GraphicsManager.pas"/>
       </Position2>
       <Position3>
-        <Filename Value="../../../../Engine/Graphics/TERRA_Renderer.pas"/>
-        <Caret Line="191" Column="27" TopLine="176"/>
+        <Filename Value="../../../../Engine/Graphics/TERRA_GraphicsManager.pas"/>
+        <Caret Line="80" Column="15" TopLine="54"/>
       </Position3>
+      <Position4>
+        <Filename Value="../../../../Engine/Graphics/TERRA_GraphicsManager.pas"/>
+        <Caret Line="186" Column="65" TopLine="162"/>
+      </Position4>
+      <Position5>
+        <Filename Value="../../../../Engine/Graphics/TERRA_GraphicsManager.pas"/>
+        <Caret Line="314" Column="18" TopLine="288"/>
+      </Position5>
     </JumpHistory>
   </ProjectSession>
 </CONFIG>
