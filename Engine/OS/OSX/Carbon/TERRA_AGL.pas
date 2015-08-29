@@ -1,4 +1,4 @@
-Unit AGL;
+Unit TERRA_AGL;
 
 {$ifdef fpc}
   {$mode objfpc}
