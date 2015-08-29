@@ -25,7 +25,7 @@ Unit TERRA_HTTP;
 
 {$I terra.inc}
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_OS, TERRA_Stream, TERRA_Sockets,
+Uses TERRA_Object,TERRA_String, TERRA_Utils, TERRA_Application, TERRA_OS, TERRA_Stream, TERRA_Sockets,
   TERRA_FileStream, TERRA_FileUtils, TERRA_FileManager, TERRA_Threads, TERRA_Mutex;
 
 {-$DEFINE ALLOW_PERSISTENT_CONNECTIONS}
@@ -34,7 +34,7 @@ Const
   HTTPProtocol='HTTP';
   FILEProtocol='FILE';
 
-  HTTPSeparator:TERRAChar = Ord('/');
+  HTTPSeparator:TERRAChar = '/';
 
   HTTPPort = 80;
   BufferSize = 2048;
@@ -128,9 +128,9 @@ Type
 
   HTTPStreamArgument = Class(HTTPArgument)
     Public
-      Value:Stream;
+      Value:TERRAStream;
 
-      Constructor Create(Value:Stream);
+      Constructor Create(Value:TERRAStream);
       Procedure Release; Override;
       Function GetValue(SafeEncode:Boolean):TERRAString; Override;
   End;
@@ -149,7 +149,7 @@ Type
       Procedure AddInteger(Const ArgName:TERRAString; Value:Integer);
       Procedure AddCardinal(Const ArgName:TERRAString; Value:Cardinal);
       Procedure AddBoolean(Const ArgName:TERRAString; Value:Boolean);
-      Procedure AddStream(Const ArgName:TERRAString; Value:Stream);
+      Procedure AddStream(Const ArgName:TERRAString; Value:TERRAStream);
 
       Function Get(Const ArgName:TERRAString):HTTPArgument;
       Function GetQueryString(SafeEncode:Boolean):TERRAString;
@@ -164,7 +164,7 @@ Type
       _FileName:TERRAString;
       _Cookie:TERRAString;
 
-      _Dest:Stream;
+      _Dest:TERRAStream;
       _Callback:DownloadCallback;
       _Port:Integer;
       _AllowCache:Boolean;
@@ -189,7 +189,7 @@ Type
       Function GetFullURL():TERRAString;
 
       Procedure SetCookie(Const Cookie:TERRAString);
-      Procedure SetTarget(Target:Stream);
+      Procedure SetTarget(Target:TERRAStream);
       Procedure SetMethod(Const MethodType:HTTPMethod);
       Procedure SetCallback(Callback:DownloadCallback);
 
@@ -214,7 +214,7 @@ Type
       _ErrorCode:HTTPError;
       _ErrorMessage:TERRAString;
       _Offset:Integer;
-      _Target:Stream;
+      _Target:TERRAStream;
       _TargetName:TERRAString;
       _Downloading:Boolean;
       _TotalSize:Integer;
@@ -228,7 +228,7 @@ Type
       _Progress:Integer;
       _UpdateTime:Cardinal;
 
-      _FileSource:Stream;
+      _FileSource:TERRAStream;
 
       {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
       _KeepAlive:Boolean;
@@ -246,11 +246,11 @@ Type
       Procedure Update();
       Procedure WriteLeftovers();
 
-      Function GetStream: Stream;
-      Function GetDest: Stream;
+      Function GetStream:TERRAStream;
+      Function GetDest:TERRAStream;
 
-      Property Source:Stream Read GetStream;
-      Property Dest:Stream Read GetDest;
+      Property Source:TERRAStream Read GetStream;
+      Property Dest:TERRAStream Read GetDest;
 
       Procedure Release; Override;
 
@@ -266,12 +266,12 @@ Type
       Property Progress:Integer Read _Progress;
       Property URL:TERRAString Read _URL;
       Property Request:HTTPRequest Read _Request;
-      Property Target:Stream Read _Target;
+      Property Target:TERRAStream Read _Target;
       Property ErrorCode:HTTPError Read _ErrorCode;
       Property ErrorMessage:TERRAString Read _ErrorMessage;
   End;
 
-  DownloadManager = Class(ApplicationComponent)
+  DownloadManager = Class(TERRAObject)
     Protected
       _Downloads:Array Of HTTPDownloader;
       _DownloadCount:Integer;
