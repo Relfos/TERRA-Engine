@@ -2202,10 +2202,10 @@ end;
 
 function ComparePointer(Item1, Item2: pointer): integer;
 begin
-  if UIntPtr(Item1) < UIntPtr(Item2) then
+  if PtrUInt(Item1) < PtrUInt(Item2) then
     Result := -1
   else
-    if UIntPtr(Item1) > UIntPtr(Item2) then
+    if PtrUInt(Item1) > PtrUInt(Item2) then
       Result := 1
     else
       Result := 0;

@@ -174,6 +174,7 @@ Type
 
       Function GetState: WidgetState;
       Procedure SetClipRect(const Value: TERRAClipRect);
+    function IsSelected: Boolean;
 
 
     Protected
@@ -187,8 +188,6 @@ Type
 
       _Tooltip:TERRAString;
       _NeedsUpdate:Boolean;
-
-      _Selected:Boolean;
 
       _Dragging: Boolean;
       _DragMode:UIDragMode;
@@ -436,7 +435,7 @@ Type
 
       Property Enabled:Boolean  Read IsEnabled;
 
-      Property Selected:Boolean Read _Selected Write SetSelected;
+      Property Selected:Boolean Read IsSelected Write SetSelected;
 
       Property DropShadowColor:ColorRGBA Read _DropShadowColor Write _DropShadowColor;
 
@@ -588,10 +587,9 @@ Begin
   Self.AddAnimation(widget_Default, 'color', 'FFFFFFFF', easeLinear);
   Self.AddAnimation(widget_Default, 'scale', '1.0', easeLinear);
 
-  Self.AddAnimation(widget_Selected, 'color', '55FF55FF');
-//  Self.AddAnimation(widget_Selected, 'scale', '2.0');
+//  Self.AddAnimation(widget_Selected, 'color', '55FF55FF');
 
-  Self.AddAnimation(widget_Highlighted, 'color', 'FF5555FF');
+//  Self.AddAnimation(widget_Highlighted, 'color', 'FF5555FF');
 
   Self.AddAnimation(widget_Hidden, 'color', 'FFFFFF00', easeLinear);
 
@@ -694,9 +692,9 @@ Begin
     widgetEvent_FocusEnd,
     //widgetEvent_MouseUp,
     widgetEvent_DragEnd:
-      If _Selected Then
+      (*If Self.Selected Then
         TargetState := widget_Selected
-      Else
+      Else*)
         TargetState := widget_Default;
 
     Else
@@ -729,12 +727,12 @@ Begin
     CurrentValue := Prop.GetBlob();
     TargetValue := _Animations[I].Value;
 
-    For J:=0 To Pred(_AnimationCount) Do
+    (*For J:=0 To Pred(_AnimationCount) Do
     If (_Animations[J].State = Self.State) And (StringEquals(_Animations[J].PropName, Prop.Name)) Then
     Begin
       CurrentValue := _Animations[J].Value;
       Break;
-    End;
+    End;*)
 
     If (Assigned(TweenableProp)) And (_Animations[I].Ease <> easeNone) Then
     Begin
@@ -753,21 +751,16 @@ Begin
     End Else
     Begin
       Prop.SetBlob(TargetValue);
-      If Not Dispatched Then
-      Begin
-        Dispatched := True;
-        CallEventHandler(EventType);
-      End;
     End;
   End;
 
-  SetState(TargetState);
+  If Not Dispatched Then
+  Begin
+    Dispatched := True;
+    CallEventHandler(EventType);
+  End;
 
-  If (_State = widget_Selected) Then
-    _Selected := True
-  Else
-  If (_State = widget_Default) Then
-    _Selected := False;
+  SetState(TargetState);
 End;
 
 Procedure UIWidget.OnLanguageChange;
@@ -1435,6 +1428,7 @@ Begin
   If (Self.ReactsToEventClass(EventClass)) Then
   Begin
     CurrentPick := Self;
+    Self.ReactsToEventClass(EventClass);
     Max := Self.Layer;
   End;
 
@@ -2395,10 +2389,10 @@ Function UIWidget.GetEventHandler(EventType:WidgetEventType):UIWidgetEventHandle
 Begin
   Result := _Handlers[EventType];
 
-  If (Assigned(Result)) Or (_Parent = Nil) Then
+(*  If (Assigned(Result)) Or (_Parent = Nil) Then
     Exit;
 
-  Result := _Parent.GetEventHandler(EventType);
+  Result := _Parent.GetEventHandler(EventType);*)
 End;
 
 Function UIWidget.CallEventHandler(EventType:WidgetEventType):Boolean;
@@ -2417,14 +2411,28 @@ Begin
 End;
 
 Procedure UIWidget.AddAnimation(State:WidgetState; const PropName, Value: TERRAString; Const Ease:TweenEaseType = easeLinear);
+Var
+  I, N:Integer;
 Begin
-  Inc(_AnimationCount);
-  SetLength(_Animations, _AnimationCount);
+  N := -1;
+  For I:=0 To Pred(_AnimationCount) Do
+  If (_Animations[I].State = State) And (StringEquals(_Animations[I].PropName, PropName)) Then
+  Begin
+    N := I;
+    Break;
+  End;
 
-  _Animations[Pred(_AnimationCount)].State := State;
-  _Animations[Pred(_AnimationCount)].PropName := PropName;
-  _Animations[Pred(_AnimationCount)].Value := Value;
-  _Animations[Pred(_AnimationCount)].Ease := Ease;
+  If (N<0) Then
+  Begin
+    N := _AnimationCount;
+    Inc(_AnimationCount);
+    SetLength(_Animations, _AnimationCount);
+    _Animations[N].State := State;
+    _Animations[N].PropName := PropName;
+  End;
+
+  _Animations[N].Value := Value;
+  _Animations[N].Ease := Ease;
 End;
 
 Function UIWidget.GetPivot: Vector2D;
@@ -2478,10 +2486,8 @@ End;
 
 Procedure UIWidget.SetSelected(const Value: Boolean);
 Begin
-  If (_Selected = Value) Then
+  If (Self.Selected = Value) Then
     Exit;
-
-  _Selected := Value;
 
   If (Value) Then
     Self.TriggerEvent(widgetEvent_FocusBegin)
@@ -2609,7 +2615,7 @@ Begin
       Result := (HasEvent(widgetEvent_ScrollDown) Or HasEvent(widgetEvent_ScrollUp));
 
     widgetEventClass_Hover:
-      Result := (HasEvent(widgetEvent_MouseOut)) Or (HasEvent(widgetEvent_MouseOver))  Or (HasAnimation(widget_Highlighted));
+      Result := (Not Self.Selected) And ((HasEvent(widgetEvent_MouseOut)) Or (HasEvent(widgetEvent_MouseOver))  Or (HasAnimation(widget_Highlighted)));
 
     widgetEventClass_Drag:
       Result := (HasEvent(widgetEvent_DragEnd)) Or (HasEvent(widgetEvent_DragBegin)) Or (HasAnimation(widget_Dragged));
@@ -2623,6 +2629,11 @@ Begin
     Else
       Result := False;
   End;
+End;
+
+Function UIWidget.IsSelected: Boolean;
+Begin
+  Result := (Self.State = widget_Selected);
 End;
 
 { UIWidgetGroup }

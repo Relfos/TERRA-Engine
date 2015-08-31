@@ -398,7 +398,12 @@ Var
   T:TweenObject;
 Begin
   If (StartValue = TargetValue) Then
+  Begin
+    If Assigned(Callback) Then
+      Callback(CallTarget);
+
     Exit;
+  End;
 
   T.StartTime := Application.GetTime() + Delay;
   T.EndTime := T.StartTime + Duration;

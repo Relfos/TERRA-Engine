@@ -117,6 +117,7 @@ Begin
   DestSprite.ClipRect := Clip;
   DestSprite.Outline := Outline;
   DestSprite.Glow := Glow;
+  DestSprite.Smoothing := (2.5 / Scale)/16.0;
 
   DestSprite.AddGlyph(X, Y, Glyph, A, B, C, D, Skew, Scale);
 

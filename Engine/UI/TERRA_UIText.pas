@@ -36,6 +36,8 @@ Type
       _TextRect:Vector2D;
       _PreviousFont:TERRAFont;
 
+      _AutoWrap:Boolean;
+
       Procedure UpdateSprite(View:TERRAViewport); Override;
 
 
@@ -60,6 +62,8 @@ Begin
 
   Self.Width := Width;
   Self.Height := Height;
+
+  _AutoWrap := True;
 
   _Style := FontStyleProperty(Self.AddProperty(FontStyleProperty.Create('style'), False));
 End;
@@ -103,6 +107,7 @@ Begin
   FR.SetFont(_Style._Family.Value);
   FR.SetOutline(_Style._Outline.Value);
   FR.SetSize(_Style._Size.Value);
+  FR.SetAutoWrap(Self._AutoWrap);
 
   FR.SetTransform(_Transform);
   FR.SetClipRect(Self.ClipRect);
@@ -110,7 +115,7 @@ Begin
   //TextArea := Vector2D_Create(Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)),  Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
   //TextRect := Self.FontRenderer.GetTextRect(Self.Caption._Text);
 
-  FR.DrawTextToSprite(View, (*(TextArea.X - TextRect.X) * 0.5,  (TextArea.Y - TextRect.Y) * 0.5*)0, 0, Self.GetLayer(), _Text, FontSprite(_Sprite));
+  FR.DrawTextToSprite(View, (*(TextArea.X - TextRect.X) * 0.5,  (TextArea.Y - TextRect.Y) * 0.5*)0, 0, Self.GetLayer(), _Text, FontSprite(_Sprite), Self.GetDimension(Self.Width, uiDimensionWidth));
 
   //DrawClipRect(View, Self.ClipRect, ColorRed);
 End;

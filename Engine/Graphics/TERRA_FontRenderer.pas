@@ -53,11 +53,15 @@ Type
       _Width:Single;
       _Height:Single;
 
+      _MaxWidth:Single;
+
       _MaxX:Single;
       _MaxY:Single;
       _AdvanceX:Single;
 
       _NewLineOffset:Single;
+
+      _AutoWrap:Boolean;
 
       _View:TERRAViewport;
 
@@ -81,6 +85,8 @@ Type
 
       Procedure UpdateGradient(Width, Height:Single);
 
+      Procedure ApplyLineBreak();
+
     Public
       Constructor Create();
       Procedure Release; Override;
@@ -92,6 +98,8 @@ Type
       Function SetOutline(Const Value:ColorRGBA):TERRAFontRenderer;
       Function SetGlow(Const Value:ColorRGBA):TERRAFontRenderer;
 
+      Function SetAutoWrap(Const Enabled:Boolean):TERRAFontRenderer;
+
       Function SetFont(Const TargetFont:TERRAFont):TERRAFontRenderer;
 
       Function SetSize(Const Size:Single):TERRAFontRenderer;
@@ -101,20 +109,19 @@ Type
 
       Function  SetClipRect(Const Clip:TERRAClipRect):TERRAFontRenderer;
 
-      Procedure BeginRender(Const S:TERRAString; Mode:Integer; X,Y, Layer:Single);
+      Procedure BeginRender(Const S:TERRAString; Mode:Integer; X,Y, Layer, MaxWidth:Single);
       Procedure EndRender();
       Function RenderNext():Boolean;
 
-      Function DrawText(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString):TERRAFontRenderer;
-      Function DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):TERRAFontRenderer;
-      Function DrawTextToImage(Target:TERRAImage; X,Y:Integer; Const Text:TERRAString; ForceBlend:Boolean = True):TERRAFontRenderer;
+      Function DrawText(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Const MaxWidth:Single = 0):TERRAFontRenderer;
+      Function DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite; Const MaxWidth:Single = 0):TERRAFontRenderer;
+      Function DrawTextToImage(Target:TERRAImage; X,Y:Integer; Const Text:TERRAString; ForceBlend:Boolean = True; Const MaxWidth:Single = 0):TERRAFontRenderer;
 
       Procedure GetColors(Out A,B,C,D:ColorRGBA);
 
-      Function AutoWrapText(Const Text:TERRAString; Width:Single; Scale:Single = 1.0):TERRAString;
-      Function GetTextWidth(Const Text:TERRAString; Scale:Single = 1.0):Single;
-      Function GetTextHeight(Const Text:TERRAString; Scale:Single = 1.0):Single;
-      Function GetTextRect(Const Text:TERRAString; Scale:Single = 1.0):Vector2D;
+      Function GetTextWidth(Const Text:TERRAString; Scale:Single = 1.0; MaxWidth:Single = 0.0):Single;
+      Function GetTextHeight(Const Text:TERRAString; Scale:Single = 1.0; MaxWidth:Single = 0.0):Single;
+      Function GetTextRect(Const Text:TERRAString; Scale:Single = 1.0; MaxWidth:Single = 0.0):Vector2D;
       Function GetLength(Const Text:TERRAString):Integer;
 
       Property Position:Vector2D Read _TargetPosition;
@@ -149,7 +156,7 @@ Begin
   Result := Self;
 End;
 
-Procedure TERRAFontRenderer.BeginRender(Const S:TERRAString; Mode:Integer; X,Y, Layer:Single);
+Procedure TERRAFontRenderer.BeginRender(Const S:TERRAString; Mode:Integer; X,Y, Layer, MaxWidth:Single);
 Begin
   If (_Font = Nil) Then
   Begin
@@ -182,6 +189,8 @@ Begin
   _CurrentPosition := _StartPosition;
 
   _Started := True;
+
+  _MaxWidth := MaxWidth;
 
   _MaxX := X;
   _MaxY := Y;
@@ -278,9 +287,13 @@ Begin
   If (_Started) Then
     DoEffects();
 
+  _AdvanceX := _CurrentGlyph.GetAdvance(_Next) * FontInvScale * _Scale;
+
+  If (Self._MaxWidth>0) And (_CurrentPosition.X + _AdvanceX >= Self._StartPosition.X+  Self._MaxWidth) Then
+    Self.ApplyLineBreak();
+
   //Log(logDebug,'AdWall', 'Calculating advance');
   _TargetPosition := _CurrentPosition;
-  _AdvanceX := _CurrentGlyph.GetAdvance(_Next) * FontInvScale * _Scale;
   _CurrentPosition.X := _CurrentPosition.X + _AdvanceX;
 
   //Log(logDebug,'AdWall', 'Testing effects');
@@ -304,6 +317,10 @@ Begin
   H := _CurrentPosition.Y + (_CurrentGlyph.Height + FontPadding) * FontInvScale;
   If (H > _MaxY) Then
     _MaxY := H;
+
+  // don't wast time rendering spaces...
+  If (ID = #32) Then
+    _CurrentGlyph := Nil;
 
   //Log(logDebug,'AdWall', 'Finisedh ok');
   Result := True;
@@ -426,27 +443,32 @@ Begin
 
   fontControlNewLine:
             Begin
-              _CurrentPosition.X := _StartPosition.X;
-
-              If Assigned(_Font) Then
-                _CurrentPosition.Y := _CurrentPosition.Y + _NewLineOffset + (_Font.NewLineOffset + FontPadding * 2) * FontInvScale *  _Scale;
+              ApplyLineBreak();
             End;
   End;
 
   _EffectCount := 0;
 End;
 
-Function TERRAFontRenderer.GetTextWidth(Const Text:TERRAString; Scale:Single):Single;
+Procedure TERRAFontRenderer.ApplyLineBreak();
 Begin
-  Result := GetTextRect(Text, Scale).X ;
+  _CurrentPosition.X := _StartPosition.X;
+
+  If Assigned(_Font) Then
+    _CurrentPosition.Y := _CurrentPosition.Y + _NewLineOffset + (_Font.NewLineOffset + FontPadding * 2) * FontInvScale *  _Scale;
 End;
 
-Function TERRAFontRenderer.GetTextHeight(Const Text:TERRAString; Scale:Single):Single;
+Function TERRAFontRenderer.GetTextWidth(Const Text:TERRAString; Scale:Single; MaxWidth:Single):Single;
 Begin
-  Result := GetTextRect(Text, Scale).Y ;
+  Result := GetTextRect(Text, Scale, MaxWidth).X ;
 End;
 
-Function TERRAFontRenderer.GetTextRect(Const Text:TERRAString; Scale:Single):Vector2D;
+Function TERRAFontRenderer.GetTextHeight(Const Text:TERRAString; Scale:Single; MaxWidth:Single):Single;
+Begin
+  Result := GetTextRect(Text, Scale, MaxWidth).Y ;
+End;
+
+Function TERRAFontRenderer.GetTextRect(Const Text:TERRAString; Scale:Single; MaxWidth:Single):Vector2D;
 Begin
   If (_Font = Nil) Or (Not _Font.IsReady) Then
   Begin
@@ -456,7 +478,7 @@ Begin
   End;
 
   //Log(logDebug,'AdWall', 'Starting gettextrect');
-  BeginRender(Text, fontmode_Measure, 0, 0, -1);
+  BeginRender(Text, fontmode_Measure, 0, 0, -1, MaxWidth);
   While (RenderNext()) Do;
   EndRender();
 
@@ -468,13 +490,13 @@ End;
 Function TERRAFontRenderer.GetLength(Const Text:TERRAString):Integer;
 Begin
   Result := 0;
-  BeginRender(Text, fontmode_Measure, 0, 0, -1);
+  BeginRender(Text, fontmode_Measure, 0, 0, -1, 0.0);
   While (RenderNext()) Do
     Inc(Result);
   EndRender();
 End;
 
-Function TERRAFontRenderer.AutoWrapText(Const Text:TERRAString; Width, Scale: Single):TERRAString;
+(*Function TERRAFontRenderer.AutoWrapText(Const Text:TERRAString; Width, Scale: Single):TERRAString;
 Var
   Temp, Temp2, S, S2:TERRAString;
   I:Integer;
@@ -524,9 +546,9 @@ Begin
   End;
 
   Result := Result + Temp;
-End;
+End;*)
 
-Function TERRAFontRenderer.DrawText(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString):TERRAFontRenderer;
+Function TERRAFontRenderer.DrawText(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Const MaxWidth:Single):TERRAFontRenderer;
 Var
   Dest:FontSprite;
 Begin
@@ -535,11 +557,11 @@ Begin
 
   Dest := Self.AllocSprite();
   Dest.Flags := Dest.Flags Or Sprite_Font;
-  Result := DrawTextToSprite(View, X,Y,Layer, Text, Dest);
+  Result := DrawTextToSprite(View, X,Y,Layer, Text, Dest, MaxWidth);
   View.SpriteRenderer.QueueSprite(Dest);
 End;
 
-Function TERRAFontRenderer.DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):TERRAFontRenderer;
+Function TERRAFontRenderer.DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite; Const MaxWidth:Single):TERRAFontRenderer;
 Var
   Alpha:Integer;
   Projection:Matrix4x4;
@@ -578,7 +600,7 @@ Begin
   End Else
     DropColor := ColorNull;*)
 
-  BeginRender(Text, fontmode_Sprite, X, Y, Layer);
+  BeginRender(Text, fontmode_Sprite, X, Y, Layer, MaxWidth);
   If (_GradientMode <> gradientNone) Then
     UpdateGradient(Size.X, Size.Y);
 
@@ -596,12 +618,18 @@ Begin
     FM.DrawGlyph(View, Position.X, Position.Y, Layer, _Transform, _Scale, _CurrentGlyph, _Outline, _Glow, A,B,C,D, _ClipRect, _Italics, DestSprite);
   End;
 
+
+  If (Assigned(DestSprite.Vertices)) Then
+  Begin
+    IntegerProperty.Stringify(DestSprite.Vertices.Count);
+    IntegerProperty.Stringify(DestSprite.IndexCount);
+  End;
   //DrawClipRect(View, _ClipRect, ColorYellow);
 
   EndRender();
 End;
 
-Function TERRAFontRenderer.DrawTextToImage(Target:TERRAImage; X, Y: Integer; const Text:TERRAString; ForceBlend:Boolean):TERRAFontRenderer;
+Function TERRAFontRenderer.DrawTextToImage(Target:TERRAImage; X, Y: Integer; const Text:TERRAString; ForceBlend:Boolean; Const MaxWidth:Single):TERRAFontRenderer;
 Var
   Next:Cardinal;
   Alpha:Integer;
@@ -612,7 +640,7 @@ Var
   GG:TERRAImage;
 Begin
   Result := Self;
-  
+
   If Target = Nil Then
     Exit;
 
@@ -627,8 +655,8 @@ Begin
   GetTextRect(Text, 1.0); // TODO CHECK REALLY NECESSARY HERE?
 
   Y := Trunc(Y - _FontOffset);
-  
-  BeginRender(Text, fontmode_Offscreen, X, Y, 0);
+
+  BeginRender(Text, fontmode_Offscreen, X, Y, 0, MaxWidth);
   While (RenderNext()) Do
   Begin
     If (_CurrentGlyph = Nil) Then
@@ -790,5 +818,10 @@ Begin
     ReleaseObject(_Sprites[I]);
 End;
 
+
+Function TERRAFontRenderer.SetAutoWrap(Const Enabled: Boolean): TERRAFontRenderer;
+Begin
+  Self._AutoWrap := Enabled;
+End;
 
 End.

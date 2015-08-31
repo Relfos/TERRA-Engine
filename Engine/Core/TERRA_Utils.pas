@@ -774,7 +774,7 @@ Begin
     C := CharUpper(It.GetNext());
 
     For J:=0 To 15 Do
-    If (C = Hex[J]) Then
+    If (AnsiChar(C) = Hex[J]) Then
     Begin
       Inc(Result, J * K);
       Break;

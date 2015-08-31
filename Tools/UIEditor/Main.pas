@@ -7,6 +7,8 @@ unit Main;
 
 interface
 
+{$I terra.inc}
+
 uses
 {$IFnDEF FPC}
   Windows,
@@ -611,6 +613,7 @@ Begin
   _CurrentCursor := 9999;
 
   PropertyList := TCustomPropertyEditor.Create(Self);
+  PropertyList.Parent := Self.TabList;
   PropertyList.Left := 0;
   PropertyList.Top := 320;
   PropertyList.Width := 209;
@@ -625,8 +628,12 @@ Begin
   PropertyList.MarginColor := clBlack;
   PropertyList.EditColor := clBlack;
 
-  //UIEditorApplication.Create(Self.RenderPanel);
-    UIEditorApplication.Create(Self);
+  {$IFNDEF FPC}
+  MainMenu.OwnerDraw := True;
+  {$ENDIF}
+
+  UIEditorApplication.Create(Self.RenderPanel);
+    //UIEditorApplication.Create(Self);
 
   // Added Asset folder to search path
   Engine.Files.AddFolder('..\..\samples\binaries\assets');

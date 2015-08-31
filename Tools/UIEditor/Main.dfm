@@ -1,40 +1,41 @@
 object UIEditForm: TUIEditForm
   Left = 229
-  Height = 705
   Top = 23
-  Width = 926
+  Width = 942
+  Height = 764
   HorzScrollBar.Visible = False
   VertScrollBar.Visible = False
   Caption = 'TERRA GUI Editor'
-  ClientHeight = 705
-  ClientWidth = 926
   Color = 2500134
+  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
+  Font.Style = []
   KeyPreview = True
   Menu = MainMenu
+  OldCreateOrder = True
+  Visible = True
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnKeyDown = FormKeyDown
   OnMouseWheel = FormMouseWheel
   OnResize = FormResize
-  LCLVersion = '1.4.0.4'
-  Visible = True
+  PixelsPerInch = 96
+  TextHeight = 13
   object TabList: TTabControl
     Left = 0
-    Height = 561
     Top = 0
     Width = 857
-    OnChange = TabListChange
+    Height = 561
     TabHeight = 25
     TabOrder = 0
+    OnChange = TabListChange
     object WidgetList: TTreeView
       Left = 0
-      Height = 249
       Top = 80
       Width = 209
-      DefaultItemHeight = 16
+      Height = 249
       Indent = 19
       TabOrder = 0
       OnClick = WidgetListClick
@@ -43,18 +44,18 @@ object UIEditForm: TUIEditForm
     end
     object RenderPanel: TPanel
       Left = 208
-      Height = 401
       Top = -48
       Width = 577
-      TabOrder = 2
+      Height = 401
+      TabOrder = 1
       OnMouseDown = RenderPanelMouseDown
       OnMouseMove = RenderPanelMouseMove
       OnMouseUp = RenderPanelMouseUp
     end
   end
   object MainMenu: TMainMenu
-    left = 120
-    top = 496
+    Left = 120
+    Top = 496
     object ProjectMenu: TMenuItem
       Caption = '&Project'
       object New1: TMenuItem
@@ -150,8 +151,8 @@ object UIEditForm: TUIEditForm
     end
   end
   object PopupMenu: TPopupMenu
-    left = 96
-    top = 560
+    Left = 96
+    Top = 560
     object Copy1: TMenuItem
       Caption = '&Copy'
     end

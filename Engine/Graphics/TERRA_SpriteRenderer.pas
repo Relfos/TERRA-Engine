@@ -61,6 +61,8 @@ Type
 
       _ShaderID:Cardinal;
       _Vertices:VertexData;
+      _RequiredVertices:Integer;
+
 
       _Indices:Array Of Word;
       _IndexCount:Integer;
@@ -109,7 +111,7 @@ Uses TERRA_ResourceManager, TERRA_EngineManager, TERRA_InputManager, TERRA_Graph
   {$IFNDEF DISABLECOLORGRADING},TERRA_ColorGrading {$ENDIF};
 
 Const
-  BatchSize = 128;
+  MaxIndicesPerBatch = 1024;
 
 Var
   _SpriteShaders:Array[0..Pred(MaxSpriteShaders)] Of ShaderInterface;
@@ -120,7 +122,7 @@ Constructor TERRASpriteRenderer.Create();
 Var
     I:Integer;
 Begin
-  _SpriteCount := 2000;
+  _SpriteCount := 64;
   SetLength(_Sprites, _SpriteCount);
   For I:=0 To Pred(_SpriteCount) Do
     _Sprites[I] := TERRASprite.Create();
@@ -235,7 +237,7 @@ Begin
   And (_Batches[I]._ShaderID = S.Flags)
   And ( (HasShaders) Or (_Batches[I]._Saturation = S.Saturation))
   And (Cardinal(_Batches[I]._Outline) = Cardinal(S.Outline))
-  And (_Batches[I]._SpriteCount<BatchSize))
+  And (_Batches[I]._IndexCount<MaxIndicesPerBatch))
   And (_Batches[I]._Smoothing = S.Smoothing) And (_Batches[I]._Layer = TargetLayer)
   And (Not _Batches[I]._Closed) Then
   Begin
@@ -280,6 +282,7 @@ Begin
     _Batches[N]._Outline := S.Outline;
     _Batches[N]._First := Nil;
     _Batches[N]._Manager := Self;
+    _Batches[N]._RequiredVertices := 0;
   End;
 
   _Batches[N].AddSprite(S);
@@ -426,22 +429,29 @@ End;
 Constructor SpriteBatch.Create(Manager: TERRASpriteRenderer);
 Begin
   _Manager := Manager;
-  _Vertices := CreateSpriteVertexData(6 * BatchSize);
-  SetLength(_Indices, 6);
+  _Vertices := CreateSpriteVertexData(128);
+  SetLength(_Indices, 4);
 End;
 
 Procedure SpriteBatch.AddSprite(P:TERRASprite);
 Var
   S, Prev:TERRASprite;
 Begin
+  If (P = Nil) Or (P.Vertices=Nil) Then
+    Exit;
+
   Inc(_SpriteCount);
   P.Next := _First;
   _First := P;
+
+  Inc(_RequiredVertices, P.Vertices.Count);
 End;
 
 Procedure SpriteBatch.Release;
 Begin
   ReleaseObject(_Vertices);
+  SetLength(_Indices, 0);
+  _IndexCount := 0;
 End;
 
 Procedure SpriteBatch.Clear();
@@ -475,6 +485,9 @@ Begin
     _First := Nil;
     Exit;
   End;
+
+  If (_Vertices.Count<_RequiredVertices) Then
+    _Vertices.Resize(_RequiredVertices);
 
   Graphics := Engine.Graphics;
 
@@ -541,7 +554,6 @@ Begin
 
     For I:=0 To Pred(S.IndexCount) Do
       Self._Indices[Self._IndexCount + I] := S.GetIndex(I) + Self._IndexCount;
-
 
 
     (*FullyClipped := (S.ClipRect.Style = clipSomething) And ((Abs(MinX-MaxX)<Epsilon) Or (Abs(MinY-MaxY)<Epsilon));

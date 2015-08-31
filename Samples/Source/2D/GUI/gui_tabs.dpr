@@ -99,8 +99,6 @@ Procedure MyDemo.OnTabDown(Src: UIWidget);
 Var
   I:Integer;
 Begin
-  Src.Selected := False;
-
   If SelectedTab = Nil Then
     SelectedTab := MyTabs[1];
 

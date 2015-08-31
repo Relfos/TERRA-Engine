@@ -811,7 +811,7 @@ Begin
       Repeat
         SetLength(_Values, NewLen * 2);
         NewLen := Length(_Values);
-      Until (NewLen >= ExpectedLen) Or (NewLen>65500);
+      Until (NewLen >= ExpectedLen);
     End;
   End;
 End;

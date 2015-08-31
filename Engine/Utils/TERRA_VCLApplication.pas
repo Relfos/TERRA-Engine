@@ -53,10 +53,6 @@ Type
         Function GetViewport: TERRAViewport;
         Function GetGUI: UIView;
 
-        {$IFDEF OSX}
-         Procedure MoveToBundleFolder(); Override;
-         {$ENDIF}
-
       Public
         Constructor Create(Target:TComponent);
         Procedure OnDestroy; Override;
@@ -219,11 +215,6 @@ Begin
   End;
 
   Result := _GUI;
-End;
-
-procedure VCLApplication.MoveToBundleFolder;
-Begin
-  // do nothing
 End;
 
 { TERRAVCLViewport }

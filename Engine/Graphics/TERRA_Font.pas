@@ -790,8 +790,6 @@ Begin
   Width := Trunc((Item.Buffer.Width - FontPadding) * _Scale);
   Height := Trunc((Item.Buffer.Height - FontPadding) * _Scale);
 
-  Self.Smoothing := (2.5 / Scale)/16.0;
-
   //0.25 / (Spread * Scale)
   Self.Flags := Self.Flags Or Sprite_Font;
   Self.SetUVs(Item.U1, Item.V1, Item.U2, Item.V2);
