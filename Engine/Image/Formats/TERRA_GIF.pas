@@ -137,11 +137,11 @@ Var
   Src, Dest:PColorRGBA;
   {$ENDIF}
 Begin
-  If Image.CurrentFrame<=0 Then
+(*  If Image.CurrentFrame<=0 Then
   Begin
     Image.Copy(FrameBuffer);
     Exit;
-  End;
+  End;*)
 
   {MyImage.SetCurrentFrame(Pred(MyImage.CurrentFrame));
   PrevFrame := MyImage.Pixels;
@@ -418,7 +418,7 @@ Var
 Procedure GIFLoader.Load(Source:TERRAStream);
 var
   GIFHeader:TERRA_GIF.GIFHeader;
-  GIFBlockID:AnsiChar;
+  GIFBlockID:Byte;
   GIFImageDescriptor:TERRA_GIF.GIFImageDescriptor;
   GIFExtensionBlock:TERRA_GIF.GIFExtensionBlock;
   GIFGraphicControlExtension:TERRA_GIF.GIFGraphicControlExtension;
@@ -453,16 +453,9 @@ Begin
     For I:=0 To Pred(K) Do
     Begin
       Source.Read(@rgb,3);
-      {$IFDEF RGB}
       GlobalPalette[i].R := RGB.Red;
       GlobalPalette[i].G := RGB.Green;
       GlobalPalette[i].B := RGB.Blue;
-      {$ENDIF}
-      {$IFDEF BGR}
-      GlobalPalette[i].B := RGB.Red;
-      GlobalPalette[i].G := RGB.Green;
-      GlobalPalette[i].R := RGB.Blue;
-      {$ENDIF}
       GlobalPalette[i].A := 255;
     End;
 
@@ -471,12 +464,15 @@ Begin
   End;
 
   Repeat
-    Source.Read(@GIFBlockID,1);
+    Source.ReadByte(GIFBlockID);
     Case GIFBlockID Of
-    ';':Begin
+    Ord(';'):
+        Begin
+          Break;
         End;
 
-    ',':Begin //image separator
+    Ord(','):
+        Begin //image separator
           Palette := @GlobalPalette;
           Source.Read(@GIFImageDescriptor,SizeOf(GIFImageDescriptor));
           If (GIFImageDescriptor.Flags And $80<>0) Then
@@ -522,7 +518,8 @@ Begin
           Inc(Frame);
         End;
 
-    '!':Begin
+    Ord('!'):
+        Begin
           Source.Read(@GIFExtensionBlock, SizeOf(GIFExtensionBlock));
 
           Case GIFExtensionBlock.FunctionCode Of
@@ -537,11 +534,10 @@ Begin
           End;
         End;
     Else
-      Exit;
+      Break;
     End;
-  Until (GIFBlockID=';') Or (Source.EOF);
+  Until (Source.EOF);
 
-  ReleaseObject(FrameBuffer);
   Image.SetCurrentFrame(0);
 End;
 
