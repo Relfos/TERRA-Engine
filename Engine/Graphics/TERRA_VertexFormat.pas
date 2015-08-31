@@ -791,15 +791,15 @@ End;
 
 Procedure VertexData.Resize(NewSize: Cardinal);
 Var
-  NewLen, ExpectedLen:Integer;
+  NewLen, CurrentLen, ExpectedLen:Integer;
 Begin
   ExpectedLen := NewSize * _ElementsPerVertex;
 
-  If ExpectedLen = Length(_Values) Then
-    Exit;
-
   _ItemCount := NewSize;
 
+  CurrentLen := Length(_Values);
+  If ExpectedLen <= CurrentLen Then
+    Exit;
 
   If (_Values = Nil) Then
     SetLength(_Values, ExpectedLen)

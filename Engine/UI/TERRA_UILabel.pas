@@ -3,7 +3,8 @@ Unit TERRA_UILabel;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Object, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_Viewport, TERRA_DebugDraw, TERRA_UIText;
+Uses TERRA_String, TERRA_Object, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_Viewport, TERRA_DebugDraw,
+  TERRA_UICursor, TERRA_UIText;
 
 Type
   UILabel = Class(UIText)
@@ -11,6 +12,8 @@ Type
       _NeedCaptionUpdate:Boolean;
 
       _Caption:StringProperty;
+
+      _CurrentLink:TERRAString;
 
       Function GetLocalizationKey: TERRAString;
 
@@ -21,10 +24,15 @@ Type
       Procedure SetText(Const S:TERRAString);
       Function GetText():TERRAString;
 
+      Function ReactsToEventClass(Const EventClass:WidgetEventClass):Boolean; Override;
+
     Public
       Constructor Create(Const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
 
       Function SupportDrag(Mode:UIDragMode):Boolean; Override;
+
+      Procedure OnHandleMouseMove(X, Y: Integer); Override;
+      Procedure OnHandleMouseUp(X,Y:Integer; Button:Word); Override;
 
 			Procedure OnLanguageChange(); Override;
 
@@ -34,7 +42,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Localization, TERRA_FontRenderer;
+Uses TERRA_Localization, TERRA_OS, TERRA_FontRenderer;
 
 Constructor UILabel.Create(const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
 Begin
@@ -115,6 +123,43 @@ End;
 Function UILabel.GetText: TERRAString;
 Begin
   Result := _Caption.Value;
+End;
+
+Function UILabel.ReactsToEventClass(const EventClass: WidgetEventClass): Boolean;
+Begin
+  If (EventClass = widgetEventClass_Hover) Then
+    Result := True
+  Else
+  If (EventClass = widgetEventClass_Click) And (_CurrentLink<>'') Then
+    Result := True
+  Else
+    Result := Inherited ReactsToEventClass(EventClass);
+End;
+
+Procedure UILabel.OnHandleMouseMove(X, Y: Integer);
+Var
+  Style:TERRAFontCharStyle;
+  Hit:Vector2D;
+  Temp:TERRAString;
+Begin
+  Hit := Vector2D_Create(X, Y);
+  Self.ConvertGlobalToLocal(Hit);
+
+  If (_FontRenderer.GetTextAt(Hit.X, Hit.Y, Temp, Style)) And (Style.Link<>'') Then
+  Begin
+    _CurrentLink := Style.Link;
+    _CurrentCursor := Cursor_Link;
+  End Else
+  Begin
+    _CurrentLink := '';
+    _CurrentCursor := Cursor_Default;
+  End;
+End;
+
+Procedure UILabel.OnHandleMouseUp(X, Y: Integer; Button: Word);
+Begin
+  If (_CurrentCursor = Cursor_Link) And (_CurrentLink<>'') Then
+    Application.Instance.OpenURL(_CurrentLink);
 End;
 
 End.

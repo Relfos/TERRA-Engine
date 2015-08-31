@@ -53,7 +53,6 @@ Type
 
       _BlendMode:Integer;
       _Layer:Single;
-      _Closed:Boolean;
       _Saturation:Single;
       _Glow:ColorRGBA;
       _Outline:ColorRGBA;
@@ -61,8 +60,9 @@ Type
 
       _ShaderID:Cardinal;
       _Vertices:VertexData;
-      _RequiredVertices:Integer;
 
+      _RequiredVertices:Integer;
+      _RequiredIndices:Integer;
 
       _Indices:Array Of Word;
       _IndexCount:Integer;
@@ -111,7 +111,7 @@ Uses TERRA_ResourceManager, TERRA_EngineManager, TERRA_InputManager, TERRA_Graph
   {$IFNDEF DISABLECOLORGRADING},TERRA_ColorGrading {$ENDIF};
 
 Const
-  MaxIndicesPerBatch = 1024;
+  MaxVerticesPerBatch = 1024 * 32;
 
 Var
   _SpriteShaders:Array[0..Pred(MaxSpriteShaders)] Of ShaderInterface;
@@ -229,23 +229,22 @@ Begin
   ResetBatch := True;
 
   TargetLayer := S.Layer * 0.01;
-
   N := -1;
+
   For I:=0 To Pred(_BatchCount) Do
-  If ((_Batches[I]._Texture = S.Texture) And (_Batches[I]._DissolveTexture = S.DissolveTexture) And (_Batches[I]._DissolveValue = S.DissolveValue) And (_Batches[I]._BlendMode = S.BlendMode)
+  If (_Batches[I]._Texture = S.Texture) And (_Batches[I]._DissolveTexture = S.DissolveTexture) And (_Batches[I]._DissolveValue = S.DissolveValue) And (_Batches[I]._BlendMode = S.BlendMode)
   {$IFNDEF DISABLECOLORGRADING}And (_Batches[I]._ColorTable = S.ColorTable){$ENDIF}
   And (_Batches[I]._ShaderID = S.Flags)
   And ( (HasShaders) Or (_Batches[I]._Saturation = S.Saturation))
   And (Cardinal(_Batches[I]._Outline) = Cardinal(S.Outline))
-  And (_Batches[I]._IndexCount<MaxIndicesPerBatch))
-  And (_Batches[I]._Smoothing = S.Smoothing) And (_Batches[I]._Layer = TargetLayer)
-  And (Not _Batches[I]._Closed) Then
+  And (_Batches[I]._RequiredVertices + S.Vertices.Count < MaxVerticesPerBatch)
+  And (_Batches[I]._Smoothing = S.Smoothing) And (_Batches[I]._Layer = TargetLayer) Then
   Begin
     N := I;
     ResetBatch := False;
     Break;
   End;
-
+  
   If (N<0) Then
   Begin
     For I:=0 To Pred(_BatchCount) Do
@@ -270,7 +269,6 @@ Begin
     _Batches[N]._Texture := S.Texture;
     _Batches[N]._DissolveTexture  := S.DissolveTexture;
     _Batches[N]._DissolveValue  := S.DissolveValue;
-    _Batches[N]._Closed := False;
     _Batches[N]._Layer := TargetLayer;
     {$IFNDEF DISABLECOLORGRADING}
     _Batches[N]._ColorTable := S.ColorTable;
@@ -283,6 +281,7 @@ Begin
     _Batches[N]._First := Nil;
     _Batches[N]._Manager := Self;
     _Batches[N]._RequiredVertices := 0;
+    _Batches[N]._RequiredIndices := 0;
   End;
 
   _Batches[N].AddSprite(S);
@@ -445,6 +444,7 @@ Begin
   _First := P;
 
   Inc(_RequiredVertices, P.Vertices.Count);
+  Inc(_RequiredIndices, P.IndexCount);
 End;
 
 Procedure SpriteBatch.Release;
@@ -456,118 +456,10 @@ End;
 
 Procedure SpriteBatch.Clear();
 Begin
-  _Closed := False;
   _SpriteCount := 0;
   _IndexCount := 0;
   _Texture := Nil;
   _First := Nil;
-End;
-
-
-Procedure SpriteBatch.Prepare();
-Var
-  I, J:Integer;
-  S:TERRASprite;
-  K:Single;
-  MaxX,MinX, MaxY,MinY:Single;
-  M:Matrix3x3;
-  C:ColorRGBA;
-  InIt, OutIt:VertexIterator;
-  Src, Dest:SpriteVertex;
-  FullyClipped:Boolean;
-  Ratio:Single;
-  Pos:Vector3D;
-  Graphics:GraphicsManager;
-  CurrentClip:Vector4D;
-Begin
-  If (_SpriteCount<=0) Then
-  Begin
-    _First := Nil;
-    Exit;
-  End;
-
-  If (_Vertices.Count<_RequiredVertices) Then
-    _Vertices.Resize(_RequiredVertices);
-
-  Graphics := Engine.Graphics;
-
-  OutIt := _Vertices.GetIteratorForClass(SpriteVertex);
-
-  Self._IndexCount := 0;
-  S := _First;
-  While Assigned(S) Do
-  Begin
-    If (S.ClipRect.Style = clipEverything) Or (S.Vertices = Nil) Or (S.Vertices.Count <= 0) Then
-    Begin
-      S := S.Next;
-      Continue;
-    End;
-
-    If (S.ClipRect.Style = clipNothing) Then
-      CurrentClip := Vector4D_Create(0, 0, 9999, 9999)
-    Else
-      CurrentClip := Vector4D_Create(S.ClipRect.X1, S.ClipRect.Y1, S.ClipRect.X2, S.ClipRect.Y2);
-
-    MinX := 9999;
-    MaxX := -9999;
-    MinY := 9999;
-    MaxY := -9999;
-
-    If Not OutIt.Seek(Self._IndexCount) Then
-      Break;
-
-    InIt := S.Vertices.GetIteratorForClass(SpriteVertex);
-    While (InIt.HasNext()) And (OutIt.HasNext()) Do
-    Begin
-      Src := SpriteVertex(InIt.Value);
-      Dest := SpriteVertex(OutIt.Value);
-
-      Pos := Src.Position;
-
-      Pos := S.Transform.Transform(Pos);
-
-      //Pos.Scale(5);
-      (*Pos.X := Trunc(Pos.X);
-      Pos.Y := Trunc(Pos.Y);
-      Pos.Z := Pos.Z + S.Layer;*)
-
-      Dest.Position := Pos;
-      Dest.Saturation := S.Saturation;
-      Dest.Glow := S.Glow;
-      Dest.TexCoord := Src.TexCoord;
-      Dest.Color := Src.Color;
-
-      Dest.ClipRect := CurrentClip;
-
-      MinX := FloatMin(MinX, Pos.X);
-      MinY := FloatMin(MinY, Pos.Y);
-      MaxX := FloatMax(MaxX, Pos.X);
-      MaxY := FloatMax(MaxY, Pos.Y);
-    End;
-    ReleaseObject(InIt);
-
-
-    While (Length(_Indices)< Self._IndexCount + S.IndexCount) Do
-    Begin
-      SetLength(_Indices, Length(_Indices) * 2);
-    End;
-
-    For I:=0 To Pred(S.IndexCount) Do
-      Self._Indices[Self._IndexCount + I] := S.GetIndex(I) + Self._IndexCount;
-
-
-    (*FullyClipped := (S.ClipRect.Style = clipSomething) And ((Abs(MinX-MaxX)<Epsilon) Or (Abs(MinY-MaxY)<Epsilon));
-
-    If Not FullyClipped Then
-      Inc(Ofs, S.Vertices.Count);*)
-
-    Inc(Self._IndexCount, S.IndexCount);
-
-    S := S.Next;
-  End;
-  ReleaseObject(OutIt);
-
-  _Ready := True;
 End;
 
 Procedure SpriteBatch.Render(Const ProjectionMatrix:Matrix4x4; Stage:RendererStage);
@@ -652,6 +544,120 @@ Begin
     End;
   End;
   BIBI *)
+End;
+
+
+Procedure SpriteBatch.Prepare();
+Var
+  I, J:Integer;
+  S:TERRASprite;
+  K:Single;
+  MaxX,MinX, MaxY,MinY:Single;
+  M:Matrix3x3;
+  C:ColorRGBA;
+  InIt, OutIt:VertexIterator;
+  Src, Dest:SpriteVertex;
+  FullyClipped:Boolean;
+  Ratio:Single;
+  BaseID:Integer;
+  Pos:Vector3D;
+  Graphics:GraphicsManager;
+  CurrentClip:Vector4D;
+Begin
+  If (_SpriteCount<=0) Then
+  Begin
+    _First := Nil;
+    Exit;
+  End;
+
+  _RequiredVertices := 0;
+  S := _First;
+  While Assigned(S) Do
+  Begin
+    Inc(_RequiredVertices, S.Vertices.Count);
+    S := S.Next;
+  End;
+
+  If (_Vertices.Count<_RequiredVertices) Then
+    _Vertices.Resize(_RequiredVertices);
+
+  SetLength(_Indices, _RequiredIndices);
+
+  Graphics := Engine.Graphics;
+
+  OutIt := _Vertices.GetIteratorForClass(SpriteVertex);
+
+  BaseID := 0;
+  Self._IndexCount := 0;
+  S := _First;
+  While Assigned(S) Do
+  Begin
+    If (S.ClipRect.Style = clipEverything) Or (S.Vertices = Nil) Or (S.Vertices.Count <= 0) Then
+    Begin
+      S := S.Next;
+      Continue;
+    End;
+
+    If (S.ClipRect.Style = clipNothing) Then
+      CurrentClip := Vector4D_Create(0, 0, 9999, 9999)
+    Else
+      CurrentClip := Vector4D_Create(S.ClipRect.X1, S.ClipRect.Y1, S.ClipRect.X2, S.ClipRect.Y2);
+
+    MinX := 9999;
+    MaxX := -9999;
+    MinY := 9999;
+    MaxY := -9999;
+
+(*    If Not OutIt.Seek(Self._IndexCount) Then
+      Break;*)
+
+    InIt := S.Vertices.GetIteratorForClass(SpriteVertex);
+    While (InIt.HasNext()) Do
+    Begin
+      If (Not OutIt.HasNext()) Then
+      Begin
+        Log(logWarning, 'Sprite', 'Failed batch merge of sprite vertices...');
+        Break;
+      End;
+
+      Src := SpriteVertex(InIt.Value);
+      Dest := SpriteVertex(OutIt.Value);
+
+      Pos := Src.Position;
+
+      Pos := S.Transform.Transform(Pos);
+
+      //Pos.Scale(5);
+      (*Pos.X := Trunc(Pos.X);
+      Pos.Y := Trunc(Pos.Y);
+      Pos.Z := Pos.Z + S.Layer;*)
+
+      Dest.Position := Pos;
+      Dest.Saturation := S.Saturation;
+      Dest.Glow := S.Glow;
+      Dest.TexCoord := Src.TexCoord;
+      Dest.Color := Src.Color;
+
+      Dest.ClipRect := CurrentClip;
+
+      MinX := FloatMin(MinX, Pos.X);
+      MinY := FloatMin(MinY, Pos.Y);
+      MaxX := FloatMax(MaxX, Pos.X);
+      MaxY := FloatMax(MaxY, Pos.Y);
+    End;
+    ReleaseObject(InIt);
+
+    For I:=0 To Pred(S.IndexCount) Do
+      Self._Indices[Self._IndexCount + I] := S.GetIndex(I) + BaseID;
+
+    Inc(BaseID, S.Vertices.Count);
+    Inc(Self._IndexCount, S.IndexCount);
+
+    S := S.Next;
+  End;
+  ReleaseObject(OutIt);
+
+  _Ready := True;
 End;
 
 End.

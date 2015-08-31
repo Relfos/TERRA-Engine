@@ -3,7 +3,7 @@ Unit TERRA_UIText;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Object, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font,
+Uses TERRA_String, TERRA_Object, TERRA_UIWidget, TERRA_UIDimension, TERRA_UICursor, TERRA_Vector2D, TERRA_Color, TERRA_Font,
   TERRA_FontRenderer, TERRA_Viewport, TERRA_DebugDraw;
 
 Type
@@ -12,7 +12,6 @@ Type
       _Size:IntegerProperty;
       _Outline:ColorProperty;
       _Family:FontProperty;
-      _FontRenderer:TERRAFontRenderer;
 
       Function GetFamily: TERRAFont;
       Procedure SetFamily(const Value: TERRAFont);
@@ -39,6 +38,8 @@ Type
       _PreviousFont:TERRAFont;
 
       _AutoWrap:Boolean;
+
+      _FontRenderer:TERRAFontRenderer;
 
       Procedure UpdateSprite(View:TERRAViewport); Override;
 

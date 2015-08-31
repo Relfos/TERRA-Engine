@@ -512,7 +512,7 @@ Begin
 
   Result := Self.PickWidget(TX, TY, widgetEventClass_Click);
 
-  If (Assigned(Result)) And (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
+  If (Assigned(Result)) Then
     Result.OnHandleMouseUp(TX, TY, Button);
 End;
 
@@ -546,12 +546,7 @@ Begin
   Result := Self.PickWidget(TX, TY, widgetEventClass_Hover);
 
   If (Assigned(Result)) Then
-  Begin
-    If (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
-    Begin
-      Result.OnHandleMouseMove(TX, TY);
-    End;
-  End;
+    Result.OnHandleMouseMove(TX, TY);
 
   If (_LastOver <> Result) Then
   Begin
@@ -559,17 +554,18 @@ Begin
       _LastOver.TriggerEvent(widgetEvent_MouseOut);
 
     If (Assigned(Result)) Then
-    Begin
       Result.TriggerEvent(widgetEvent_MouseOver);
-
-      TargetType := Result.CurrentCursor;
-    End Else
-      TargetType := Self.CurrentCursor;
-
-    _CurrentCursor := Engine.Cursors.GetCursor(TargetType);
 
     _LastOver := Result;
   End;
+
+  If (Assigned(Result)) Then
+  Begin
+    TargetType := Result.CurrentCursor;
+  End Else
+    TargetType := Self.CurrentCursor;
+
+  _CurrentCursor := Engine.Cursors.GetCursor(TargetType);
 End;
 
 Function UIView.OnMouseWheel(Const X,Y:Single; Const Delta:Single):UIWidget;

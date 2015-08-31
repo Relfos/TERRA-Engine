@@ -87,7 +87,7 @@ Begin
   _Camera.SetPosition(Vector3D_Create(0, 5, -20));
   _Camera.SetView(Vector3D_Create(0, -0.25, 0.75));
 
-  Engine.Cursors.SetCursor(cursor_Default, Engine.Textures['cursor_normal']);
+  Engine.Cursors.SetCursor(cursor_Default, Engine.Textures['cursor_normal'], 0, 0);
   Engine.Cursors.SetCursor(cursor_Busy, Engine.Textures['cursor_busy'], 13, 14);
   Engine.Cursors.SetCursor(cursor_Precision, Engine.Textures['cursor_precision'], 15, 15);
   Engine.Cursors.SetCursor(cursor_Text, Engine.Textures['cursor_text'], 15, 14);
@@ -99,7 +99,7 @@ Begin
 
   Engine.Cursors.SetCursor(cursor_Move, Engine.Textures['cursor_move'], 15, 15);
   Engine.Cursors.SetCursor(cursor_Rotate, Engine.Textures['cursor_rotate'], 15, 15);
-  Engine.Cursors.SetCursor(cursor_Link, Engine.Textures['cursor_link']);
+  Engine.Cursors.SetCursor(cursor_Link, Engine.Textures['cursor_link'], 0, 0);
 
   Engine.Graphics.DeviceViewport.BackgroundColor := ColorCreate(128, 128, 255);
 End;
@@ -239,8 +239,12 @@ End;
 Procedure DemoApplication.OnRender2D(V: TERRAViewport);
 Begin
   If Assigned(_FontRenderer) Then
-     _FontRenderer.DrawText(V, 5, 25, 90, 'FPS: '+ IntegerProperty.Stringify(Engine.Graphics.Renderer.Stats.FramesPerSecond));
-     
+  Begin
+    _FontRenderer.SetColor(ColorWhite);
+    _FontRenderer.SetSize(30);
+    _FontRenderer.DrawText(V, 5, 25, 90, 'FPS: '+ IntegerProperty.Stringify(Engine.Graphics.Renderer.Stats.FramesPerSecond));
+  End;
+  
   Engine.Graphics.AddRenderable(V, _GUI);
 End;
 

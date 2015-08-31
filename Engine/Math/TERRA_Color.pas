@@ -115,11 +115,9 @@ Const
   ColorYellow:ColorRGBA=(R:255; G:255; B:0; A:255);
   {$ENDIF}
 
-//#####################
-//#  Color functions  #
-//#####################
+
 Function ColorCreate(Const R,G,B:Byte;A:Byte=255):ColorRGBA;
-Function ColorCreateFromString(HexValue:TERRAString):ColorRGBA;
+Function ColorCreateFromString(Const Value:TERRAString):ColorRGBA;
 Function ColorCreateFromFloat(Const R,G,B:Single; A:Single=1.0):ColorRGBA;
 Function ColorCreateFromVector3D(Const V:Vector3D; A:Single=1.0):ColorRGBA;
 Function ColorCreateFromNormal(Const N:Vector3D; A:Single=1.0):ColorRGBA;
@@ -215,10 +213,10 @@ Function ColorCombineSaturation(Const A,B:ColorRGBA):ColorRGBA;
 Function ColorCombineLuminosity(Const A,B:ColorRGBA):ColorRGBA;
 
 Implementation
-Uses TERRA_Math;
+Uses TERRA_Math, TERRA_ColorNames;
 
 // Color functions
-Function ColorCreateFromString(HexValue:TERRAString):ColorRGBA;
+Function ColorCreateFromString(Const Value:TERRAString):ColorRGBA;
   Function H(C:TERRAChar):Byte;
   Begin
     C := CharUpper(C);
@@ -233,14 +231,20 @@ Var
   Init:TERRAChar;
   A,B:Byte;
 Begin
-  StringCreateIterator(HexValue, It);
+  StringCreateIterator(Value, It);
 
   Init := It.GetNext();
   If (Init = '#') Then
   Begin
     A := H(It.GetNext());
   End Else
+  Begin
+    Result := CreateColorFromName(Value);
+    If Result.A>0 Then
+      Exit;
+
     A := H(Init);
+  End;
 
   B := H(It.GetNext());
 

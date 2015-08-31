@@ -24,13 +24,11 @@ Type
   MyDemo = Class(DemoApplication)
     Public
 			Procedure OnCreate; Override;
-
-      Procedure OnMyButtonClick(Src:UIWidget);
   End;
 
 
 Const
-  Content =  'This is a [i]link[/i] example, try clicking here:'+CrLf+'[url=www.pascalgameengine.com]Linky![/url]'+CrLf+CrLf+'[w]Wavy[/w], yes?';
+  Content =  'This is a [i]link[/i] [color=darkviolet]example[/color], try clicking here:'+CrLf+'[url=www.pascalgameengine.com]Linky![/url]'+CrLf+CrLf+'[w]Wavy[/w], yes?';
 Var
   MyWnd, MyText:UIWidget;
 
@@ -47,17 +45,11 @@ Begin
   MyWnd.Align := UIAlign_Center;
 //  MyWnd.Rotation := 45*RAD;
 
-  MyText := UILabel.Create('mytext', MyWnd, UIPixels(0), UIPixels(0), 1, UIPercent(100), UIPercent(100), Content);
+  MyText := UILabel.Create('mytext', MyWnd, UIPixels(0), UIPixels(0), 1, UIPercent(100), UIPercent(60), Content);
   MyText.Align := UIAlign_Center;
-  MyText.SetEventHandler(widgetEvent_MouseDown, OnMyButtonClick);
 
 //  MyBtn.SetPropertyValue('caption', 'custom caption!');
 //  MyBtn.Rotation := 45*RAD;
-End;
-
-Procedure MyDemo.OnMyButtonClick(Src:UIWidget);
-Begin
-  Src.SetPropertyValue('caption', 'Hello!');
 End;
 
 

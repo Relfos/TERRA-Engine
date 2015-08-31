@@ -325,7 +325,8 @@ Type
       Procedure DisableAds; Virtual;
       Procedure ShowFullscreenAd; Virtual;
 
-      Procedure OpenAppStore(AppID:TERRAString); Virtual;
+      Procedure OpenURL(Const URL:TERRAString); Virtual;
+
       Procedure SendEmail(DestEmail, Subject, Body:TERRAString); Virtual;
 
       Function SaveToCloud():Boolean; Virtual;
@@ -920,7 +921,10 @@ End;
 procedure BaseApplication.EnableAds; Begin End;
 procedure BaseApplication.DisableAds; Begin End;
 
-procedure BaseApplication.OpenAppStore(AppID: TERRAString); Begin End;
+Procedure BaseApplication.OpenURL(Const URL:TERRAString);
+Begin
+  Log(logError, 'App', 'Opening URLs is not supported in this platform.');
+End;
 
 Procedure BaseApplication.LogToConsole(const Text: TERRAString);
 Begin

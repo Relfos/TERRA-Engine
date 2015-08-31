@@ -5,7 +5,7 @@ Unit TERRA_UIWidget;
 Interface
 Uses TERRA_Object, TERRA_Utils, TERRA_String, TERRA_Collections, TERRA_List,
   TERRA_Vector2D, TERRA_Color, TERRA_Matrix3x3, TERRA_Texture, TERRA_Renderer,
-  TERRA_ClipRect, TERRA_Tween, TERRA_FontRenderer, TERRA_Sprite, TERRA_Renderable,
+  TERRA_ClipRect, TERRA_Tween, TERRA_Sprite, TERRA_Renderable,
   TERRA_UIDimension, TERRA_UICursor, TERRA_EnumProperty, TERRA_DataSource, TERRA_Viewport;
 
 Const
@@ -176,8 +176,9 @@ Type
 
       Function GetState: WidgetState;
       Procedure SetClipRect(const Value: TERRAClipRect);
-    function IsSelected: Boolean;
-    function IsScrollable: Boolean;
+
+      Function IsSelected: Boolean;
+      Function IsScrollable: Boolean;
 
 
     Protected
@@ -219,13 +220,13 @@ Type
 
       _VisibleFrame:Cardinal;
 
-      _FontRenderer:TERRAFontRenderer;
-
       _DropShadowColor:ColorRGBA;
 
       _HighlightGroup:Integer;
 
       _Sprite:TERRASprite;
+
+      _CurrentCursor:TERRACursorType;
 
       Function AddProperty(Prop:TERRAObject; IsCustom:Boolean):TERRAObject;
 
@@ -331,8 +332,8 @@ Type
 
       Function HasAnimation(State:WidgetState):Boolean;
       Function HasEvent(EventType:WidgetEventType):Boolean;
-      
-      Function ReactsToEventClass(Const EventClass:WidgetEventClass):Boolean;
+
+      Function ReactsToEventClass(Const EventClass:WidgetEventClass):Boolean; Virtual;
       Function CallEventHandler(EventType:WidgetEventType):Boolean;
 
       Function GetEventHandler(EventType: WidgetEventType): UIWidgetEventHandler;
@@ -593,6 +594,7 @@ Begin
   SetState(widget_Default);
   
   _ClipRect.Style := clipNothing;
+  _CurrentCursor := Cursor_Default;
 
   //_DropShadowColor := ColorNull;
   _DropShadowColor := ColorGrey(0, 255);
@@ -798,7 +800,7 @@ Begin
     ClipMin.Add(Self.GetScrollOffset);
     ClipMax.Add(Self.GetScrollOffset);
 
-    _ClipRect.SetArea(ClipMin.X, ClipMin.Y, ClipMax.X, ClipMax.Y,);
+    _ClipRect.SetArea(ClipMin.X, ClipMin.Y, ClipMax.X, ClipMax.Y);
     _ClipRect.Transform(_Transform);
   End;
 
@@ -2719,7 +2721,10 @@ End;
 
 Function UIWidget.GetCurrentCursor: TERRACursorType;
 Begin
-  Result := Cursor_Default;
+  Result := _CurrentCursor;
+
+  If Result<>Cursor_Default Then
+    Exit;
 
   If (SupportDrag(UI_DragScroll)) Then
     Result := Cursor_Move

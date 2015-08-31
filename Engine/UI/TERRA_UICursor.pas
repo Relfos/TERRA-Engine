@@ -37,7 +37,8 @@ Type
       Procedure Release(); Override;
 
       Function GetCursor(CursorType:TERRACursorType):TERRACursor;
-      Function SetCursor(CursorType:TERRACursorType; Texture:TERRATexture; Const OfsX:Integer = 0; Const OfsY:Integer = 0):TERRACursor;
+      function SetCursor(CursorType: TERRACursorType; Texture: TERRATexture;
+        const OfsX, OfsY: Integer): TERRACursor;
   End;
 
 Implementation
@@ -73,9 +74,10 @@ End;
 
 Function CursorManager.SetCursor(CursorType: TERRACursorType; Texture:TERRATexture; const OfsX, OfsY: Integer): TERRACursor;
 Begin
-  _Cursors[CursorType].Texture := Texture;
-  _Cursors[CursorType].OfsX := OfsX;
-  _Cursors[CursorType].OfsY := OfsY;
+     Result := _Cursors[CursorType];
+  Result.Texture := Texture;
+  Result.OfsX := OfsX;
+  Result.OfsY := OfsY;
 End;
 
 End.

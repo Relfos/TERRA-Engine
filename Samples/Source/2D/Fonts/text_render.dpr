@@ -42,26 +42,30 @@ End;
 Procedure SampleApp.OnRender2D(V:TERRAViewport);
 Begin
   Inherited;
-  
+
   Self.FontRenderer.SetSize(60.0);
   Self.FontRenderer.DrawText(V, 50, 70, 10, ' Hello World!');
 
+  // restore size
   Self.FontRenderer.SetSize(30.0);
-  Self.FontRenderer.SetColor(ColorCreate(128, 128, 255));
-  Self.FontRenderer.DrawText(V, 500, 100, 10, StringFromChar(fontControlWave)+'Wavy text!');
-
-  Self.FontRenderer.SetColor(ColorYellow);
-  Self.FontRenderer.DrawText(V, 550, 200, 10, 'This is a'+StringFromChar(fontControlNewLine)+'line break!');
-
-  Self.FontRenderer.SetColor(ColorGreen);
-  Self.FontRenderer.DrawText(V, 600, 300, 10, StringFromChar(fontControlItalics)+' Italic text!');
 
   // unicode rendering
   Self.FontRenderer.SetColor(ColorWhite);
   Self.FontRenderer.DrawText(V, 50, 200, 10, GetLanguageDescription(language_Russian));
   Self.FontRenderer.DrawText(V, 50, 250, 10, GetLanguageDescription(language_Chinese));
+
   Self.FontRenderer.DrawText(V, 50, 300, 10, GetLanguageDescription(language_Korean));
   Self.FontRenderer.DrawText(V, 50, 350, 10, GetLanguageDescription(language_Japanese));
+
+  // bbcode text
+  Self.FontRenderer.SetColor(ColorCreate(128, 128, 255));
+  Self.FontRenderer.DrawText(V, 500, 100, 10, '[w]Wavy text![/w]');
+
+  Self.FontRenderer.SetColor(ColorYellow);
+  Self.FontRenderer.DrawText(V, 550, 200, 10, 'This is a' + CrLf + 'line break!');
+
+  Self.FontRenderer.SetColor(ColorGreen);
+  Self.FontRenderer.DrawText(V, 600, 300, 10, '[i]Italic text![/i]');
 
   // dynamic text
   Self.FontRenderer.DrawText(V, V.Width - 100, 50, 10, CardinalToString(Application.GetTime() Div 1000));

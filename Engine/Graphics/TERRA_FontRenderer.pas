@@ -17,8 +17,8 @@ Type
     WavyText:Boolean;
     Bold:Boolean;
     Italics:Boolean;
-    IsLink:Boolean;
-    A, B, C, D:ColorRGBA;
+    Link:TERRAString;
+    Color:ColorRGBA;
   End;
 
   TERRAFontCommand = Record
@@ -27,13 +27,12 @@ Type
     Y:Single;
     Width:Single;
     Height:Single;
-    Style:TERRAFontCharStyle;
     Glyph:FontGlyph;
+    StyleID:Cardinal;
   End;
 
   TERRAFontRenderer = Class(TERRAObject)
     Protected
-      _InitColor1, _InitColor2:ColorRGBA;
       _Outline:ColorRGBA;
       _Glow:ColorRGBA;
 
@@ -76,6 +75,9 @@ Type
       _CharList:Array Of TERRAFontCommand;
       _CharCount:Integer;
 
+      _StylesList:Array Of TERRAFontCharStyle;
+      _StyleCount:Integer;
+
       Function AllocSprite():FontSprite;
 
       Procedure DrawSprite(Const TextureName:TERRAString);
@@ -83,8 +85,11 @@ Type
       Procedure TransformSprite(S:TERRASprite); Virtual;
 
       Procedure QueueChar(Const Value:TERRAChar; Const X, Y:Single);
+      Procedure AddStyle();
 
-      Function DrawGlyph(View:TERRAViewport; X,Y:Single; Glyph:FontGlyph; A,B,C,D:ColorRGBA; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
+      Function PopColor():ColorRGBA;
+
+      Function DrawGlyph(View:TERRAViewport; X,Y:Single; Const CommandID:Integer; Var DestSprite:FontSprite):Boolean;
 
     Public
       Constructor Create();
@@ -110,15 +115,15 @@ Type
       Function SetTransform(Const Transform:Matrix3x3):TERRAFontRenderer;
       ///Function  SetDropShadow(Const DropShadowColor:ColorRGBA):TERRAFontRenderer;
 
+      Function GetTextAt(Const X,Y:Single; Out Text:TERRAString; Out Style:TERRAFontCharStyle):Boolean;
+
       Function  SetClipRect(Const Clip:TERRAClipRect):TERRAFontRenderer;
 
-      Function Compile(Const S:TERRAString; Mode:Integer; X,Y, Layer:Single):Boolean;
+      Function Compile(Const S:TERRAString; Mode:Integer; X,Y:Single):Boolean;
 
       Function DrawText(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString):TERRAFontRenderer;
       Function DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):TERRAFontRenderer;
       //Function DrawTextToImage(Target:TERRAImage; X,Y:Integer; Const Text:TERRAString; ForceBlend:Boolean = True):TERRAFontRenderer;
-
-      Procedure GetColors(Const U, V:Single; Const CommandID:Integer);
 
       Function GetTextWidth(Const Text:TERRAString):Single;
       Function GetTextHeight(Const Text:TERRAString):Single;
@@ -161,7 +166,16 @@ Begin
   Inc(_CharCount);
 End;
 
-Function TERRAFontRenderer.Compile(Const S:TERRAString; Mode:Integer; X,Y, Layer:Single):Boolean;
+Procedure TERRAFontRenderer.AddStyle();
+Begin
+  Inc(_StyleCount);
+  SetLength(_StylesList, _StyleCount);
+
+  If _StyleCount>1 Then
+    _StylesList[_StyleCount-1] := _StylesList[_StyleCount-2];
+End;
+
+Function TERRAFontRenderer.Compile(Const S:TERRAString; Mode:Integer; X,Y:Single):Boolean;
 Var
   It:StringIterator;
   C, TempChar, NextChar:TERRAChar;
@@ -172,13 +186,11 @@ Var
 
   Glyph:FontGlyph;
 
-  StartX, StartY, AdvanceX, TargetHeight, H:Single;
+  StartX, AdvanceX, TargetHeight, H:Single;
   N, K:Integer;
 
   Tag, Arg:TERRAString;
-  ArgMode, Active:Boolean;
-
-  Style:TERRAFontCharStyle;
+  ArgMode, Active, StyleChanged:Boolean;
 
   SkipSpaces:Boolean;
 
@@ -202,10 +214,6 @@ Begin
 
   _CharCount := 0;
 
-  Style.Italics := False;
-  Style.WavyText := False;
-  Style.IsLink := False;
-
   _Width := 1.0;
   _Height := 1.0;
 
@@ -213,9 +221,17 @@ Begin
   _MaxY := Y;
 
   StartX := X;
-  StartY := Y;
   WasWord := False;
   SkipSpaces := False;
+
+  _StyleCount := 0;
+  StyleChanged := False;
+
+  Self.AddStyle();
+  _StylesList[0].Italics := False;
+  _StylesList[0].WavyText := False;
+  _StylesList[0].Link := '';
+  _StylesList[0].Color := Self._ColorA;
 
   StringCreateIterator(S, It);
   While It.HasNext Do
@@ -224,6 +240,12 @@ Begin
 
     If (C = fontEffectBegin) Then
     Begin
+      If (Not StyleChanged) Then
+      Begin
+        AddStyle();
+        StyleChanged := True;
+      End;
+
       Tag := '';
       Arg := '';
       Active := True;
@@ -248,19 +270,22 @@ Begin
 
       If (Tag = 'i') Then
       Begin
-        Style.Italics := Active;
+        _StylesList[Pred(_StyleCount)].Italics := Active;
       End Else
       If (Tag = 'b') Then
       Begin
-        Style.Bold := Active;
+        _StylesList[Pred(_StyleCount)].Bold := Active;
       End Else
       If (Tag = 'w') Then
       Begin
-        Style.WavyText := Active;
+        _StylesList[Pred(_StyleCount)].WavyText := Active;
       End Else
       If (Tag = 'color') Then
       Begin
-        Self.SetColor(ColorCreateFromString(Arg));
+        If Active Then
+          _StylesList[Pred(_StyleCount)].Color := ColorCreateFromString(Arg)
+        Else
+          _StylesList[Pred(_StyleCount)].Color := PopColor();
       End Else
       If (Tag = 'img') Then
       Begin
@@ -268,12 +293,12 @@ Begin
       End Else
       If (Tag = 'url') Then
       Begin
-        Style.IsLink := Active;
+        _StylesList[Pred(_StyleCount)].Link := Arg;
 
-        If Style.IsLink Then
-          Self.SetColor(ColorCreate(128, 128, 255))
+        If Active Then
+          _StylesList[Pred(_StyleCount)].Color := ColorCreate(128, 128, 255)
         Else
-          Self.SetColor(ColorWhite);
+          _StylesList[Pred(_StyleCount)].Color := PopColor();
       End Else
         Log(logWarning, 'Font', 'Unknown font effect tag: '+Tag);
 
@@ -285,6 +310,8 @@ Begin
       ApplyLineBreak();
       Continue;
     End;
+
+    StyleChanged := False;
 
     IsWord := (CharIsAlphaNumeric(C)) Or (CharIsPunctuation(C));
     If (_AutoWrap) And (Self._MaxWidth>0) And ((Not IsWord) Or ((IsWord) And (Not WasWord))) Then
@@ -329,10 +356,7 @@ Begin
     _CharList[N].Width := AdvanceX;
     _CharList[N].Height := TargetHeight;
     _CharList[N].Glyph := Glyph;
-    _CharList[N].Style := Style;
-
-    //GetColors((X-StartX)/MaxWidth, (Y-StartY)/MaxHeight, A,B,C,D);
-    GetColors(0, 0, N);
+    _CharList[N].StyleID := Pred(_StyleCount);
 
     If (SkipSpaces) Then
     Begin
@@ -387,21 +411,6 @@ Begin
   Result := Self;
 End;
 
-Procedure TERRAFontRenderer.GetColors(Const U, V:Single; Const CommandID:Integer);
-Var
-  A, B, C, D:ColorRGBA;
-Begin
-  A := ColorMix(_ColorA, _ColorB, U);
-  B := ColorMix(_ColorA, _ColorB, U);
-  C := ColorMix(_ColorA, _ColorB, V);
-  D := ColorMix(_ColorA, _ColorB, V);
-
-  _CharList[CommandID].Style.A := A;
-  _CharList[CommandID].Style.B := B;
-  _CharList[CommandID].Style.C := C;
-  _CharList[CommandID].Style.D := D;
-End;
-
 Function TERRAFontRenderer.GetTextWidth(Const Text:TERRAString):Single;
 Begin
   Result := GetTextRect(Text).X ;
@@ -422,7 +431,7 @@ Begin
   End;
 
   //Log(logDebug,'AdWall', 'Starting gettextrect');
-  Compile(Text, fontmode_Measure, 0, 0, -1);
+  Compile(Text, fontmode_Measure, 0, 0);
 
   //Log(logDebug,'AdWall', 'Finished textrect');
   Result.X := Self.MaxX;
@@ -431,7 +440,7 @@ End;
 
 Function TERRAFontRenderer.GetLength(Const Text:TERRAString):Integer;
 Begin
-  Self.Compile(Text, fontmode_Measure, 0, 0, -1);
+  Self.Compile(Text, fontmode_Measure, 0, 0);
   Result := Self._CharCount;
 End;
 
@@ -502,7 +511,6 @@ End;
 
 Function TERRAFontRenderer.DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):TERRAFontRenderer;
 Var
-  Size:Vector2D;
   I:Integer;
   Color:ColorRGBA;
   TargetX, TargetY:Single;
@@ -523,8 +531,6 @@ Begin
 
   Y := Y - _FontOffset * FontInvScale;
 
-  Size := Self.GetTextRect(Text);
-
   DestSprite.Flags := DestSprite.Flags Or Sprite_Font;
   DestSprite.Layer := Layer;
   DestSprite.SetTransform(_Transform);
@@ -533,14 +539,14 @@ Begin
   DestSprite.Glow := _Glow;
   DestSprite.Smoothing := (2.5 / _Scale)/16.0;
 
-  Compile(Text, fontmode_Sprite, X, Y, Layer);
+  Compile(Text, fontmode_Sprite, X, Y);
 
   For I:=0 To Pred(_CharCount) Do
   Begin
     TargetX := _CharList[I].X;
     TargetY := _CharList[I].Y;
 
-    If (_CharList[I].Style.WavyText) Then
+    If (_StylesList[_CharList[I].StyleID].WavyText) Then
     Begin
       K := (Application.GetTime() Div 3);
       K := K + I* 8;
@@ -548,23 +554,27 @@ Begin
     End;
 
 
-    DrawGlyph(View, TargetX, TargetY, _CharList[I].Glyph, _CharList[I].Style.A, _CharList[I].Style.B, _CharList[I].Style.C, _CharList[I].Style.D, _CharList[I].Style.Italics, DestSprite);
+    DrawGlyph(View, TargetX, TargetY, I, DestSprite);
   End;
 
   //DrawClipRect(View, _ClipRect, ColorYellow);
 End;
 
-Function TERRAFontRenderer.DrawGlyph(View:TERRAViewport; X,Y:Single; Glyph:FontGlyph; A,B,C,D:ColorRGBA; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
+Function TERRAFontRenderer.DrawGlyph(View:TERRAViewport; X,Y:Single; Const CommandID:Integer; Var DestSprite:FontSprite):Boolean;
 Var
   Item:TextureAtlasItem;
   Target:FontSprite;
   Tex:TERRATexture;
   Skew:Single;
+  Glyph:FontGlyph;
+  A, B, C, D:ColorRGBA;
 Begin
   Result := False;
 
   If DestSprite = Nil Then
     Exit;
+
+  Glyph := _CharList[CommandID].Glyph;
 
   Item := Glyph.Item;
   If Item = Nil Then
@@ -574,12 +584,29 @@ Begin
   If Tex = Nil Then
     Exit;
 
-  If (Italics) Then
+  If (_StylesList[_CharList[CommandID].StyleID].Italics) Then
     Skew := 5.0
   Else
     Skew := 0.0;
 
   DestSprite.Texture := Tex;
+
+  A := _StylesList[_CharList[CommandID].StyleID].Color;
+  B := _StylesList[_CharList[CommandID].StyleID].Color;
+  C := _StylesList[_CharList[CommandID].StyleID].Color;
+  D := _StylesList[_CharList[CommandID].StyleID].Color;
+
+  (*A := ColorWhite;
+  B := ColorWhite;
+  C := ColorWhite;
+  D := ColorWhite;*)
+
+(*  A := ColorMix(_ColorA, _ColorB, U);
+  B := ColorMix(_ColorA, _ColorB, U);
+  C := ColorMix(_ColorA, _ColorB, V);
+  D := ColorMix(_ColorA, _ColorB, V);*)
+
+  //_CharList[CommandID].A, _CharList[CommandID].B, _CharList[CommandID].C, _CharList[CommandID].D
 
   DestSprite.AddGlyph(X, Y, Glyph, A, B, C, D, Skew, _Scale);
 
@@ -775,12 +802,63 @@ End;
 Function TERRAFontRenderer.SetAutoWrap(Const Enabled: Boolean): TERRAFontRenderer;
 Begin
   Self._AutoWrap := Enabled;
+  Result := Self;
 End;
 
 Function TERRAFontRenderer.SetAreaLimit(const Width, Height: Single): TERRAFontRenderer;
 Begin
   _MaxWidth := Width;
   _MaxHeight := Height;
+  Result := Self;
+End;
+
+Function TERRAFontRenderer.PopColor: ColorRGBA;
+Var
+  I:Integer;
+  Current:Cardinal;
+Begin
+  Current := Cardinal(_StylesList[Pred(_StyleCount)].Color);
+
+  For I:=_StyleCount-2 DownTo 0 Do
+  If (Cardinal(_StylesList[I].Color) <> Current) Then
+  Begin
+    Result := _StylesList[I].Color;
+    Exit;
+  End;
+
+  Result := Self._ColorA;
+End;
+
+
+
+Function TERRAFontRenderer.GetTextAt(Const X, Y:Single; Out Text:TERRAString; out Style:TERRAFontCharStyle): Boolean;
+Var
+  I, J:Integer;
+Begin
+  Text := '';
+
+  For I:=0 To Pred(_CharCount) Do
+  If (X>=_CharList[I].X) And (Y>=_CharList[I].Y - _CharList[I].Height) And (X <= _CharList[I].X + _CharList[I].Width) And (Y<=_CharList[I].Y) Then
+  Begin
+    Result := True;
+
+    Style := _StylesList[_CharList[I].StyleID];
+
+    For J:=0 To Pred(_CharCount) Do
+    If (_CharList[J].StyleID = _CharList[I].StyleID) Then
+    Begin
+      StringAppendChar(Text, _CharList[J].Value);
+    End;
+    
+    Exit;
+  End;
+
+  Result := False;
+
+  If _StyleCount<=0 Then
+    Self.AddStyle();
+
+  Style := _StylesList[0];
 End;
 
 End.

@@ -171,7 +171,7 @@ Type
 
       Function GetRecommendedSettings: Integer; Override;
 
-      Procedure OpenAppStore(URL:TERRAString); Override;
+      Procedure OpenURL(Const URL:TERRAString); Override;
 
       Procedure EnableAds(); Override;
       Procedure DisableAds(); Override;
@@ -864,15 +864,9 @@ End;
 
 Function ShellExecute(hWnd: HWND; Operation, FileName, Parameters, Directory: PAnsiChar; ShowCmd: Integer): HINST; stdcall; external 'shell32.dll' name 'ShellExecuteA';
 
-Procedure WindowsApplication.OpenAppStore(URL:TERRAString);
-Var
-  S:PAnsiChar;
+Procedure WindowsApplication.OpenURL(Const URL:TERRAString);
 Begin
-  If (Pos('http',URL)>0) Or (Pos('file',URL)>0) Then
-    S := PAnsiChar(URL)
-  Else
-    S := PAnsiChar('http://itunes.apple.com/us/app/myapp/id'+URL);
-  ShellExecute(Application.Instance.Handle, 'open', S,nil,nil, SW_SHOWNORMAL) ;
+  ShellExecute(Application.Instance.Handle, 'open', PAnsiChar(URL), Nil, Nil, SW_SHOWNORMAL);
 End;
 
 Type
