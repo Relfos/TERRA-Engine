@@ -87,11 +87,19 @@ Begin
   _Camera.SetPosition(Vector3D_Create(0, 5, -20));
   _Camera.SetView(Vector3D_Create(0, -0.25, 0.75));
 
-  //Engine.Cursors.SetCursor(cursor_Default, Engine.Textures['cursor_normal']);
-  Engine.Cursors.SetCursor(cursor_Default, Engine.Textures['cursor_busy']);
+  Engine.Cursors.SetCursor(cursor_Default, Engine.Textures['cursor_normal']);
+  Engine.Cursors.SetCursor(cursor_Busy, Engine.Textures['cursor_busy'], 13, 14);
+  Engine.Cursors.SetCursor(cursor_Precision, Engine.Textures['cursor_precision'], 15, 15);
+  Engine.Cursors.SetCursor(cursor_Text, Engine.Textures['cursor_text'], 15, 14);
+  Engine.Cursors.SetCursor(cursor_Forbidden, Engine.Textures['cursor_forbidden'], 15, 14);
+  Engine.Cursors.SetCursor(cursor_ResizeVertical, Engine.Textures['cursor_vertical'], 15, 14);
+  Engine.Cursors.SetCursor(cursor_ResizeHorizontal, Engine.Textures['cursor_horizontal'], 15, 15);
+  Engine.Cursors.SetCursor(cursor_ResizeDiagonal, Engine.Textures['cursor_diagonal1'], 15, 14);
+  Engine.Cursors.SetCursor(cursor_ResizeDiagonal2, Engine.Textures['cursor_diagonal2'], 15, 15);
 
-  Engine.Cursors.SetCursor(cursor_Move, Engine.Textures['cursor_move']);
-
+  Engine.Cursors.SetCursor(cursor_Move, Engine.Textures['cursor_move'], 15, 15);
+  Engine.Cursors.SetCursor(cursor_Rotate, Engine.Textures['cursor_rotate'], 15, 15);
+  Engine.Cursors.SetCursor(cursor_Link, Engine.Textures['cursor_link']);
 
   Engine.Graphics.DeviceViewport.BackgroundColor := ColorCreate(128, 128, 255);
 End;

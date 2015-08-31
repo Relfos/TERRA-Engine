@@ -49,27 +49,7 @@ Const
   fontmode_Measure  = 1;
   fontmode_Offscreen=2;
 
-  fontControlColor = #1;
-  fontControlCornerColorA = #2;
-  fontControlCornerColorB = #3;
-  fontControlCornerColorC = #4;
-  fontControlCornerColorD = #5;
-  fontControlTab = #8;
-  fontControlBlink = #9;
-  fontControlItalics = #11;
-  fontControlWave = #12;
-  fontControlNewLine = #13;
-  fontControlSprite = #14;
-  fontControlEnd = #31;
-
 Type
-  FontGradient = (
-    gradientNone      = 0,
-    gradientHorizontal= 1,
-    gradientVertical  = 2
-  );
-
-
   PFontKerning = ^FontKerning;
   FontKerning = Record
     Next:TERRAChar;
@@ -118,12 +98,6 @@ Type
 
     Public
       Procedure AddGlyph(Const X,Y:Single; Glyph:FontGlyph; Const A, B, C, D:ColorRGBA; Skew, Scale:Single);
-  End;
-
-
-  FontEffect = Record
-    Effect:TERRAChar;
-    Arg:TERRAString;
   End;
 
   FontGlyphFactory = Class(TERRAObject)
@@ -195,9 +169,6 @@ Type
 
       Property Value:TERRAFont Read _Value Write _Value;
   End;
-
-  Function ConvertFontCodes(S:TERRAString):TERRAString;
-  Function UnconvertFontCodes(S:TERRAString):TERRAString;
 
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Sort, TERRA_TextureManager,
@@ -632,105 +603,6 @@ Begin
   _Atlas.Update();
 
   Self.RecalculateMetrics();
-End;
-
-
-Function ConvertFontCodes(S:TERRAString):TERRAString;
-Var
-  S2:TERRAString;
-  C:TERRAChar;
-  It:StringIterator;
-Begin
-  Result := '';
-
-  While StringCharPosIterator('\', S, It) Do
-  Begin
-    It.Split(S2, S);
-
-    Result := Result + S2;
-
-    C := CharLower(StringFirstChar(S));
-    S := StringCopy(S, 2, MaxInt);
-
-    Case C Of
-    'n':  Result := Result + StringFromChar(fontControlNewLine);
-    't':  Result := Result + StringFromChar(fontControlTab);
-    'b':  Result := Result + StringFromChar(fontControlBlink);
-    'i':  Result := Result + StringFromChar(fontControlItalics);
-    'w':  Result := Result + StringFromChar(fontControlWave);
-
-    'p':
-      Begin
-        S2 := StringGetNextSplit(S, '}');
-        S2 := StringCopy(S2, 2, MaxInt);
-        Result := Result + StringFromChar(fontControlSprite) + S2 + StringFromChar(fontControlEnd);
-      End;
-
-    'c':
-      Begin
-        S2 := StringGetNextSplit(S, '}');
-        S2 := StringCopy(S2, 2, MaxInt);
-        Result := Result + StringFromChar(fontControlColor) + S2 + StringFromChar(fontControlEnd);
-      End;
-
-    Else
-      Result := Result + StringFromChar(C);
-
-    End;
-  End;
-
-  Result := Result + S;
-End;
-
-Function UnconvertFontCodes(S:TERRAString):TERRAString;
-Var
-  S2:TERRAString;
-  C:TERRAChar;
-  It:StringIterator;
-Begin
-  Result := '';
-
-  StringCreateIterator(S, It);
-  While It.HasNext Do
-  Begin
-    C := It.GetNext();
-    Case C Of
-    fontControlNewLine: Result := Result + '\n';
-    fontControlTab: Result := Result + '\t';
-    fontControlBlink: Result := Result + '\b';
-    fontControlItalics: Result := Result + '\i';
-    fontControlWave: Result := Result + '\w';
-
-    fontControlSprite:
-      Begin
-        Result := Result + '\p{';
-        Repeat
-          C := It.GetNext();
-          If C = fontControlEnd Then
-            Break;
-
-          StringAppendChar(Result, C);
-        Until False;
-        Result := Result + '}';
-      End;
-
-    fontControlColor:
-      Begin
-        Result := Result + '\c{';
-        Repeat
-          C := It.GetNext();
-          If C = fontControlEnd Then
-            Break;
-
-          StringAppendChar(Result, C);
-        Until False;
-        Result := Result + '}';
-      End;
-
-    Else
-      StringAppendChar(Result, C);
-    End;
-  End;
 End;
 
 { FontProperty }

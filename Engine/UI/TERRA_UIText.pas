@@ -3,7 +3,8 @@ Unit TERRA_UIText;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Object, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font, TERRA_Viewport, TERRA_DebugDraw;
+Uses TERRA_String, TERRA_Object, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font,
+  TERRA_FontRenderer, TERRA_Viewport, TERRA_DebugDraw;
 
 Type
   FontStyleProperty = Class(TERRAObject)
@@ -11,6 +12,7 @@ Type
       _Size:IntegerProperty;
       _Outline:ColorProperty;
       _Family:FontProperty;
+      _FontRenderer:TERRAFontRenderer;
 
       Function GetFamily: TERRAFont;
       Procedure SetFamily(const Value: TERRAFont);
@@ -43,12 +45,13 @@ Type
 
     Public
       Constructor Create(Const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension);
+      Procedure Release(); Override;
 
       Property Style:FontStyleProperty Read _Style;
   End;
 
 Implementation
-Uses TERRA_Localization, TERRA_FontRenderer, TERRA_FontManager, TERRA_EngineManager, TERRA_Math;
+Uses TERRA_Localization, TERRA_FontManager, TERRA_EngineManager, TERRA_Math;
 
 Constructor UIText.Create(const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension);
 Begin
@@ -61,22 +64,31 @@ Begin
   Self.Width := Width;
   Self.Height := Height;
 
+  _FontRenderer := TERRAFontRenderer.Create();
+
   _AutoWrap := True;
 
   _Style := FontStyleProperty(Self.AddProperty(FontStyleProperty.Create('style'), False));
 End;
 
+Procedure UIText.Release;
+Begin
+  Inherited;
+
+  ReleaseObject(_FontRenderer);
+End;
 
 Procedure UIText.UpdateSprite(View:TERRAViewport);
 Var
   FR:TERRAFontRenderer;
+  TX, TY:Single;
 Begin
   //ReleaseObject(_Sprite);
 
   If _Sprite = Nil Then
     _Sprite := FontSprite.Create();
 
-  FR := Self.FontRenderer;
+  FR := _FontRenderer;
 
   FR.SetColor(Self.GetColor());
   FR.SetGlow(Self.GetGlow());
@@ -90,12 +102,14 @@ Begin
 
   FR.SetAreaLimit(Self.CurrentSize.X, Self.CurrentSize.Y);
 
-  _FullSize := Self.FontRenderer.GetTextRect(_Text);
+  _FullSize := FR.GetTextRect(_Text);
 
   //TextArea := Vector2D_Create(Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)),  Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
   //TextRect := Self.FontRenderer.GetTextRect(Self.Caption._Text);
 
-  FR.DrawTextToSprite(View, (_CurrentSize.X - _FullSize.X) * 0.5,  (_CurrentSize.Y - _FullSize.Y) * 0.5, Self.GetLayer(), _Text, FontSprite(_Sprite));
+  TX := (_CurrentSize.X - _FullSize.X) * 0.5;
+  TY := (_CurrentSize.Y - _FullSize.Y) * 0.5;
+  FR.DrawTextToSprite(View, TX, TY, Self.GetLayer(), _Text, FontSprite(_Sprite));
 
   //DrawClipRect(View, Self.ClipRect, ColorRed);
   //DrawRectangle(View, Self.AbsolutePosition, Vector2D_Create(Self.AbsolutePosition.X + Self.FullSize.X, Self.AbsolutePosition.Y + Self.FullSize.Y), ColorGreen);

@@ -101,7 +101,7 @@ Begin
 
   Until False;
 
-  _Text := ConvertFontCodes(Result);
+  _Text := Result;
 End;
 
 

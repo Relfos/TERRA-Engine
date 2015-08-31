@@ -263,8 +263,6 @@ Type
       Function AdjustWidth(NewWidth:Single):Single;
       Function AdjustHeight(NewHeight:Single):Single;
 
-      Function GetFontRenderer:TERRAFontRenderer;
-
       //Function OutsideClipRect(X,Y:Single):Boolean;
 
       Procedure UpdateLanguage;
@@ -279,8 +277,6 @@ Type
       Procedure SetState(Value:WidgetState);
 
       Procedure OnStateChange(); Virtual;
-
-      Property FontRenderer:TERRAFontRenderer Read GetFontRenderer;
 
       Procedure ConvertAlign(Const Direction:UIDirection);
 
@@ -2153,20 +2149,6 @@ Begin
   End;
 
   Result := (X>= P[0].X) And (X <= P[2].X) And (Y >= P[0].Y) And (Y <= P[2].Y);
-End;
-
-Function UIWidget.GetFontRenderer:TERRAFontRenderer;
-Begin
-  If (Assigned(_Parent)) Then
-  Begin
-    Result := _Parent.GetFontRenderer();
-    Exit;
-  End;
-
-  If (_FontRenderer = Nil) Then
-    _FontRenderer := TERRAFontRenderer.Create();
-
-  Result := _FontRenderer;
 End;
 
 (*Function UIWidget.IsOutsideScreen: Boolean;

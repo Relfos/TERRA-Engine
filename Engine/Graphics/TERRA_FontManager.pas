@@ -40,8 +40,6 @@ Type
 
       Procedure Update; Override;
 
-      Function DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Const Scale:Single; Glyph:FontGlyph; Const Outline, Glow, A,B,C,D:ColorRGBA; Clip:TERRAClipRect; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
-
       Function GetItem(Name:TERRAString):TERRAFont;
 
       Property DefaultFont:TERRAFont Read GetDefaultFont;
@@ -82,47 +80,6 @@ Begin
     Log(logWarning, 'Font', 'Could not find font. ['+Name +']');
 End;
 
-Function FontManager.DrawGlyph(View:TERRAViewport; X,Y,Z:Single; Const Transform:Matrix3x3; Const Scale:Single; Glyph:FontGlyph; Const Outline, Glow, A,B,C,D:ColorRGBA; Clip:TERRAClipRect; Italics:Boolean; Var DestSprite:FontSprite):Boolean;
-Var
-  Filter:TextureFilterMode;
-  Item:TextureAtlasItem;
-  Target:FontSprite;
-  Tex:TERRATexture;
-  Skew:Single;
-Begin
-  Result := False;
-
-  If DestSprite = Nil Then
-    Exit;
-
-  Filter := filterBilinear;
-
-  Item := Glyph.Item;
-  If Item = Nil Then
-    Exit;
-
-  Tex := Glyph.Font.Atlas.GetTexture(Item.PageID);
-  If Tex = Nil Then
-    Exit;
-
-  If (Italics) Then
-    Skew := 5.0
-  Else
-    Skew := 0.0;
-
-  DestSprite.Flags := DestSprite.Flags Or Sprite_Font;
-  DestSprite.Layer := Z;
-  DestSprite.Texture := Tex;
-  DestSprite.SetTransform(Transform);
-  DestSprite.ClipRect := Clip;
-  DestSprite.Outline := Outline;
-  DestSprite.Glow := Glow;
-  DestSprite.Smoothing := (2.5 / Scale)/16.0;
-
-  DestSprite.AddGlyph(X, Y, Glyph, A, B, C, D, Skew, Scale);
-
-  Result := True;
-End;
 
 {$I default_font.inc}
 Function FontManager.GetDefaultFont: TERRAFont;

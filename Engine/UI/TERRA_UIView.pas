@@ -28,7 +28,7 @@ Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween, TERRA_Renderer,
-  TERRA_Sprite, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_FontRenderer, TERRA_Viewport, TERRA_Camera,
+  TERRA_Sprite, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_Viewport, TERRA_Camera,
   TERRA_UIDimension, TERRA_UIWidget, TERRA_UICursor, TERRA_BoundingBox, TERRA_ClipRect, TERRA_EnumProperty, TERRA_DataSource, TERRA_Hashmap;
 
 Const
