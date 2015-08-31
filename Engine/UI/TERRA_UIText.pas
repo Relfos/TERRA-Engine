@@ -44,8 +44,6 @@ Type
     Public
       Constructor Create(Const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension);
 
-      Procedure UpdateRects; Override;
-
       Property Style:FontStyleProperty Read _Style;
   End;
 
@@ -69,28 +67,6 @@ Begin
 End;
 
 
-Procedure UIText.UpdateRects;
-Var
-  TextRect:Vector2D;
-Begin
-  Inherited;
-
-  If (Assigned(FontRenderer))  Then
-  Begin
-    TextRect := Self.FontRenderer.GetTextRect(_Text);
-
-    _Size.X := FloatMin(_Size.X, TextRect.X);
-    _Size.Y := FloatMin(_Size.Y, TextRect.Y);
-  End;
-
-(*  If ((_NeedsUpdate) Or (Fnt<>_PreviousFont)) And (Assigned(FontRenderer)) Then
-  Begin
-    _TextRect := FontRenderer.GetTextRect(_Caption.Value, 1.0);
-    _PreviousFont := Fnt;
-    _NeedsUpdate := False;
-  End;*)
-End;
-
 Procedure UIText.UpdateSprite(View:TERRAViewport);
 Var
   FR:TERRAFontRenderer;
@@ -112,12 +88,17 @@ Begin
   FR.SetTransform(_Transform);
   FR.SetClipRect(Self.ClipRect);
 
+  FR.SetAreaLimit(Self.CurrentSize.X, Self.CurrentSize.Y);
+
+  _FullSize := Self.FontRenderer.GetTextRect(_Text);
+
   //TextArea := Vector2D_Create(Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)),  Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
   //TextRect := Self.FontRenderer.GetTextRect(Self.Caption._Text);
 
-  FR.DrawTextToSprite(View, (*(TextArea.X - TextRect.X) * 0.5,  (TextArea.Y - TextRect.Y) * 0.5*)0, 0, Self.GetLayer(), _Text, FontSprite(_Sprite), Self.GetDimension(Self.Width, uiDimensionWidth));
+  FR.DrawTextToSprite(View, (_CurrentSize.X - _FullSize.X) * 0.5,  (_CurrentSize.Y - _FullSize.Y) * 0.5, Self.GetLayer(), _Text, FontSprite(_Sprite));
 
   //DrawClipRect(View, Self.ClipRect, ColorRed);
+  //DrawRectangle(View, Self.AbsolutePosition, Vector2D_Create(Self.AbsolutePosition.X + Self.FullSize.X, Self.AbsolutePosition.Y + Self.FullSize.Y), ColorGreen);
 End;
 
 { FontStyleProperty }

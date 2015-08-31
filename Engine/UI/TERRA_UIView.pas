@@ -29,7 +29,7 @@ Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween, TERRA_Renderer,
   TERRA_Sprite, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_FontRenderer, TERRA_Viewport, TERRA_Camera,
-  TERRA_UIDimension, TERRA_UIWidget, TERRA_BoundingBox, TERRA_ClipRect, TERRA_EnumProperty, TERRA_DataSource, TERRA_Hashmap;
+  TERRA_UIDimension, TERRA_UIWidget, TERRA_UICursor, TERRA_BoundingBox, TERRA_ClipRect, TERRA_EnumProperty, TERRA_DataSource, TERRA_Hashmap;
 
 Const
 
@@ -63,6 +63,8 @@ Type
 
       _HoldWidget:UIWidget;
 
+      _CurrentCursor:TERRACursor;
+
       Procedure SetColorTable(const Value:TERRATexture);
       Procedure SetDefaultFont(const Value:TERRAFont);
       Procedure SetDragger(const Value:UIWidget);
@@ -71,7 +73,11 @@ Type
 
       Procedure Clear;
 
-    Public         
+      Procedure RenderCursor(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
+
+      Function SupportDrag(Mode:UIDragMode):Boolean; Override;
+
+    Public
       CloseButton:UIWidget;
 
       Key_Up:Integer;
@@ -106,7 +112,7 @@ Type
 
       Function OnMouseDown(Const X,Y:Single; Const Button:Word):UIWidget;
       Function OnMouseUp(Const X,Y:Single; Const Button:Word):UIWidget;
-      Function OnMouseWheel(Const X,Y:Single; Const Delta:Integer):UIWidget;
+      Function OnMouseWheel(Const X,Y:Single; Const Delta:Single):UIWidget;
       Function OnMouseMove(Const X,Y:Single):UIWidget;
 
       Procedure GetLocalCoords(Const X,Y:Single; Out PX, PY:Integer);
@@ -205,6 +211,8 @@ Begin
 
   _ClipRect.Style := clipNothing;
 
+  _CurrentCursor := Engine.Cursors.GetCursor(cursor_Default); 
+
   Self.Width := Width;
   Self.Height := Height;
 
@@ -228,6 +236,11 @@ End;
 Procedure UIView.Release;
 Begin
   ReleaseObject(_Camera);
+End;
+
+Function UIView.SupportDrag(Mode: UIDragMode): Boolean;
+Begin
+  Result := False;
 End;
 
 Procedure UIView.Clear;
@@ -309,7 +322,29 @@ Begin
   End;
 
   Inherited Render(View, Stage, Bucket);
+
+  Self.RenderCursor(View, Stage, Bucket);
 End;
+
+Procedure UIView.RenderCursor(View: TERRAViewport;  const Stage:RendererStage; const Bucket:Cardinal);
+Var
+  S:TERRASprite;
+  MousePos:Vector2D;
+  MX, MY:Integer;
+Begin
+  If (_CurrentCursor = Nil) Or (_CurrentCursor.Texture = Nil) Then
+    Exit;
+
+  MousePos := Engine.Input.Mouse;
+  Self.GetLocalCoords(MousePos.X, MousePos.Y, MX, MY);
+
+  S := View.SpriteRenderer.FetchSprite();
+  S.SetTexture(_CurrentCursor.Texture);
+  S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0, _CurrentCursor.Texture.Width, _CurrentCursor.Texture.Height);
+  S.Translate(MX, MY);
+  View.SpriteRenderer.QueueSprite(S);
+End;
+
 
 (*Procedure UIView.AfterEffects(View:TERRAViewport);
 Var
@@ -484,6 +519,7 @@ End;
 Function UIView.OnMouseMove(Const X,Y:Single):UIWidget;
 Var
   TX, TY:Integer;
+  TargetType:TERRACursorType;
 Begin
   Self.GetLocalCoords(X, Y, TX, TY);
 
@@ -512,7 +548,9 @@ Begin
   If (Assigned(Result)) Then
   Begin
     If (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
+    Begin
       Result.OnHandleMouseMove(TX, TY);
+    End;
   End;
 
   If (_LastOver <> Result) Then
@@ -521,13 +559,20 @@ Begin
       _LastOver.TriggerEvent(widgetEvent_MouseOut);
 
     If (Assigned(Result)) Then
+    Begin
       Result.TriggerEvent(widgetEvent_MouseOver);
+
+      TargetType := Result.CurrentCursor;
+    End Else
+      TargetType := Self.CurrentCursor;
+
+    _CurrentCursor := Engine.Cursors.GetCursor(TargetType);
 
     _LastOver := Result;
   End;
 End;
 
-Function UIView.OnMouseWheel(Const X,Y:Single; Const Delta:Integer):UIWidget;
+Function UIView.OnMouseWheel(Const X,Y:Single; Const Delta:Single):UIWidget;
 Var
   TX, TY:Integer;
 Begin
@@ -632,7 +677,6 @@ Begin
   Result.StartVertex := Vector3D_Create(0, 0, 0);
   Result.EndVertex := Vector3D_Create(GetDimension(Width, uiDimensionWidth) * Scale, GetDimension(Height, uiDimensionHeight) * Scale, 1.0);
 End;
-
 
 { UIManager }
 {Procedure UIManager.Init;
@@ -1055,4 +1099,6 @@ Begin
   Result := Nil;
 End;
  }
+
+
 End.

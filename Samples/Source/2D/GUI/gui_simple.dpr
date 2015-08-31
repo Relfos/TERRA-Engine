@@ -46,7 +46,7 @@ Begin
   MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, UIPixels(0), UIPixels(0), 1, UIPixels(250), UIPixels(50), 'btn_template');
   MyBtn.Align := UIAlign_Center;
   MyBtn.SetEventHandler(widgetEvent_MouseDown, OnMyButtonClick);
-//  MyBtn.Draggable := True;
+  MyBtn.AddAnimation(widget_Highlighted, 'color', 'FF5555FF');
 
 //  MyBtn.SetPropertyValue('caption', 'custom caption!');
 //  MyBtn.Rotation := 45*RAD;
@@ -54,7 +54,7 @@ End;
 
 Procedure MyDemo.OnMyButtonClick(Src:UIWidget);
 Begin
- // MyUI.MessageBox('You clicked the button!');
+  Src.SetPropertyValue('caption', 'Hello!');
 End;
 
 

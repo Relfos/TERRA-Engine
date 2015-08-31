@@ -6,7 +6,7 @@ Interface
 Uses TERRA_Object, TERRA_Utils, TERRA_String, TERRA_Collections, TERRA_List,
   TERRA_Vector2D, TERRA_Color, TERRA_Matrix3x3, TERRA_Texture, TERRA_Renderer,
   TERRA_ClipRect, TERRA_Tween, TERRA_FontRenderer, TERRA_Sprite, TERRA_Renderable,
-  TERRA_UIDimension, TERRA_EnumProperty, TERRA_DataSource, TERRA_Viewport;
+  TERRA_UIDimension, TERRA_UICursor, TERRA_EnumProperty, TERRA_DataSource, TERRA_Viewport;
 
 Const
   widgetAnimateAlpha  = 1;
@@ -35,7 +35,9 @@ Type
     UIDrag_TopLeft,
     UIDrag_TopRight,
     UIDrag_BottomLeft,
-    UIDrag_BottomRight
+    UIDrag_BottomRight,
+
+    UI_DragScroll
   );
 
   UIDirection = (
@@ -125,7 +127,7 @@ Type
       _Height:DimensionProperty;
 			_X:DimensionProperty;
 			_Y:DimensionProperty;
-      //_Margin:DimensionProperty;
+      _Margin:MarginProperty;
       _Pivot:Vector2DProperty;
       _Layer:FloatProperty;
       _Align:EnumProperty;
@@ -143,7 +145,8 @@ Type
 
       _State:WidgetState;
 
-      _Scroll:Vector2D;
+      _CurrentScroll:Vector2D;
+      _ScrollLimits:Vector2D;
 
       _Index:Integer;
 
@@ -158,7 +161,6 @@ Type
       Function GetWidth: UIDimension;
       Function GetPosition_Left: UIDimension;
       Function GetPosition_Top: UIDimension;
-      //Function GetMargin: UIDimension;
 
       Procedure SetParent(Target:UIWidget);
       Procedure SetRelativePosition(Const Pos:Vector2D);
@@ -175,6 +177,7 @@ Type
       Function GetState: WidgetState;
       Procedure SetClipRect(const Value: TERRAClipRect);
     function IsSelected: Boolean;
+    function IsScrollable: Boolean;
 
 
     Protected
@@ -205,7 +208,8 @@ Type
       _Hitting:Boolean;
       _HitTime:Cardinal;
 
-      _Size:Vector2D;
+      _CurrentSize:Vector2D;
+      _FullSize:Vector2D;
       _Center:Vector2D;
 
       _ColorTable:TERRATexture;
@@ -279,6 +283,9 @@ Type
       Property FontRenderer:TERRAFontRenderer Read GetFontRenderer;
 
       Procedure ConvertAlign(Const Direction:UIDirection);
+
+      Function GetCurrentCursor():TERRACursorType;
+
 
     Public
       Tag:Integer;
@@ -367,7 +374,6 @@ Type
       Procedure SetWidth(const Value: UIDimension);
       Procedure SetPosition_Left(const Value: UIDimension);
       Procedure SetPosition_Top(const Value: UIDimension);
-      //Procedure SetMargin(const Value: UIDimension);
 
       //Procedure SetChildrenVisibilityByTag(Tag:Integer; Visibility:Boolean);
 
@@ -377,17 +383,17 @@ Type
 
       Procedure OnHandleMouseUp(X,Y:Integer; Button:Word); Virtual;
       Procedure OnHandleMouseMove(X,Y:Integer); Virtual;
-      Procedure OnHandleMouseWheel(X,Y:Integer; Delta:Integer);Virtual;
+      Procedure OnHandleMouseWheel(X,Y:Integer; Delta:Single);Virtual;
 
       Function GetIndex():Integer;
 
       Function IsSameFamily(Other:UIWidget):Boolean;
 
-      Procedure BeginDrag(X,Y:Integer; Mode:UIDragMode); 
+      Function BeginDrag(X,Y:Integer; Mode:UIDragMode):Boolean;
       Procedure FinishDrag();
       Procedure CancelDrag();
 
-      Function SupportDrag(Mode:UIDragMode):Boolean; Virtual; 
+      Function SupportDrag(Mode:UIDragMode):Boolean; Virtual;
 
       (*Function Show(AnimationFlags:Integer; EaseType:TweenEaseType = easeLinear; Delay:Cardinal = 0; Duration:Cardinal = 500; Callback:TweenCallback = Nil):Boolean;
       Function Hide(AnimationFlags:Integer; EaseType:TweenEaseType = easeLinear; Delay:Cardinal = 0; Duration:Cardinal = 500; Callback:TweenCallback = Nil):Boolean;
@@ -403,11 +409,15 @@ Type
       Function Hidden():Boolean;
 			Property Visible:Boolean Read GetVisible Write SetVisible;
 
+      Property CurrentCursor:TERRACursorType Read GetCurrentCursor;
+
 			Property Left:UIDimension Read GetPosition_Left Write SetPosition_Left;
 			Property Top:UIDimension Read GetPosition_Top Write SetPosition_Top;
 
       Property Pivot:Vector2D Read GetPivot Write SetPivot;
-      Property Size:Vector2D Read _Size;
+      Property CurrentSize:Vector2D Read _CurrentSize;
+      Property FullSize:Vector2D Read _FullSize;
+      Property ScrollLimits:Vector2D Read _ScrollLimits;
 			Property Layer:Single Read GetLayer Write SetLayer;
 
       Property Color:ColorRGBA Read GetColor Write SetColor;
@@ -443,9 +453,10 @@ Type
 
       Property Width:UIDimension Read GetWidth Write SetWidth;
       Property Height:UIDimension Read GetHeight Write SetHeight;
-      //Property Margin:UIDimension Read GetMargin Write SetMargin;
+      Property Margin:MarginProperty Read _Margin;
 
       Property Draggable:Boolean Read GetDraggable Write SetDraggable;
+      Property Scrollable:Boolean Read IsScrollable;
 
       Property Deleted:Boolean Read _Deleted;
       Property TransformChanged:Boolean Read _TransformChanged Write _TransformChanged;
@@ -484,6 +495,12 @@ Type
       Property Layout:UILayout Read GetLayout Write SetLayout;
       Property Padding:UIDimension Read GetPadding Write SetPadding;
 //      Property Template:TERRAString Read GetTemplate Write SetTemplate;
+    End;
+
+  UIScrollArea = Class(UIWidgetGroup)
+    Protected
+      Function SupportDrag(Mode:UIDragMode):Boolean; Override;
+    Public
     End;
 
   UIInstancedWidget = Class(UIWidget)
@@ -619,7 +636,7 @@ Begin
   _Visible := BooleanProperty(Self.AddProperty(BooleanProperty.Create('visible', True), False));
   _X := DimensionProperty(Self.AddProperty(DimensionProperty.Create('left', UIPixels(0)), False));
   _Y := DimensionProperty(Self.AddProperty(DimensionProperty.Create('top', UIPixels(0)), False));
-  //_Margin := DimensionProperty(Self.AddProperty(DimensionProperty.Create('margin', UIPixels(0)), False));
+  _Margin := MarginProperty(Self.AddProperty(MarginProperty.Create('margin'), False));
   _Pivot := Vector2DProperty(Self.AddProperty(Vector2DProperty.Create('pivot', Vector2D_Create(0.5, 0.5)), False));
   _Layer := FloatProperty(Self.AddProperty(FloatProperty.Create('layer', 1.0), False));
   _Color := ColorProperty(Self.AddProperty(ColorProperty.Create('color', ColorWhite), False));
@@ -769,16 +786,36 @@ Begin
 End;
 
 Procedure UIWidget.UpdateRects();
+Var
+  I:Integer;
+  Temp, ClipMin, ClipMax:Vector2D;
 Begin
-  _Size.X := Self.GetDimension(Self.Width, uiDimensionWidth);
-  _Size.Y := Self.GetDimension(Self.Height, uiDimensionHeight);
+  _CurrentSize.X := Self.GetDimension(Self.Width, uiDimensionWidth);
+  _CurrentSize.Y := Self.GetDimension(Self.Height, uiDimensionHeight);
 
   If Not _CustomClip Then
   Begin
     _ClipRect.Style := clipSomething;
-    _ClipRect.SetArea(0, 0, _Size.X, _Size.Y);
+    ClipMin := Vector2D_Zero;
+    ClipMax := _CurrentSize;
+
+    ClipMin.Add(Self.GetScrollOffset);
+    ClipMax.Add(Self.GetScrollOffset);
+
+    _ClipRect.SetArea(ClipMin.X, ClipMin.Y, ClipMax.X, ClipMax.Y,);
     _ClipRect.Transform(_Transform);
   End;
+
+  _ScrollLimits := Self.CurrentSize;
+  For I:=0 To Pred(_ChildrenCount) Do
+  Begin
+    Temp := _ChildrenList[I].RelativePosition;
+    Temp.Add(_ChildrenList[I].FullSize);
+
+    _ScrollLimits.X := FloatMax(_ScrollLimits.X, Temp.X);
+    _ScrollLimits.Y := FloatMax(_ScrollLimits.Y, Temp.Y);
+  End;
+  _ScrollLimits.Subtract(Self.CurrentSize);
 End;
 
 Function UIWidget.IsSameFamily(Other:UIWidget): Boolean;
@@ -821,7 +858,7 @@ Begin
 
   Min := 99999;
   Base := Self.AbsolutePosition;
-  Base.Y := Base.Y + Self.Size.Y;
+  Base.Y := Base.Y + Self.CurrentSize.Y;
   GroupID := Self.HighlightGroup;
 
 (* TODO  It := Self.UI.Widgets.GetIterator();
@@ -1192,8 +1229,8 @@ End;
 
 Function UIWidget.GetRelativePosition:Vector2D;
 Begin
-  Result.X := Self.GetDimension(Self.Left, uiDimensionWidth);
-  Result.Y := Self.GetDimension(Self.Top, uiDimensionHeight);
+  Result.X := Self.GetDimension(Self.Left, uiDimensionLeft);
+  Result.Y := Self.GetDimension(Self.Top, uiDimensionTop);
 End;
 
 Function UIWidget.GetAlignedPosition:Vector2D;
@@ -1215,10 +1252,10 @@ Begin
     Exit;
   End;
 
-  Width := Self._Size.X;
-  Height := _Size.Y;
+  Width := Self.CurrentSize.X;
+  Height := CurrentSize.Y;
 
-  ParentSize := _Parent.Size;
+  ParentSize := _Parent.CurrentSize;
 
 //  Center.X := ParentMargin.X + ((ParentSize.X - ParentMargin.X * 2.0) * 0.5);
 //  Center.Y := ParentMargin.Y + ((ParentSize.Y - ParentMargin.Y * 2.0) * 0.5);
@@ -1391,7 +1428,9 @@ Begin
 
   //DrawPoint2D(UIManager.Instance.Viewport, V, ColorYellow, 4);
 
-  Result := (V.X>=0.0) And (V.X <= Size.X) And (V.Y >= 0) And (V.Y <= Size.Y);
+  V.Subtract(Self.GetScrollOffset);
+
+  Result := (V.X>=0.0) And (V.X <= CurrentSize.X) And (V.Y >= 0) And (V.Y <= CurrentSize.Y);
   {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Region result for '+_Name+' was '+BoolToString(Result));{$ENDIF}
 End;
 
@@ -1439,19 +1478,24 @@ Begin
   End;
 End;
 
-Procedure UIWidget.BeginDrag(X,Y:Integer; Mode:UIDragMode);
+Function UIWidget.BeginDrag(X,Y:Integer; Mode:UIDragMode):Boolean;
 Var
   UI:UIView;
 Begin
+  Result := False;
+
   UI := UIView(Self.GetUIView);
   If UI = Nil Then
     Exit;
 
   If (Assigned(Self.Parent)) And (Self.Parent Is UIInstancedWidget) Then
   Begin
-    Self.Parent.BeginDrag(X, Y, Mode);
+    Result := Self.Parent.BeginDrag(X, Y, Mode);
     Exit;
   End;
+
+  If (Not Self.SupportDrag(Mode)) Then
+    Exit;
 
   Self.CallEventHandler(widgetEvent_DragBegin);
 
@@ -1459,13 +1503,15 @@ Begin
   _DragMode := Mode;
   _Dragging := True;
 
-  _DragSize := _Size;
+  _DragSize := CurrentSize;
   _DragStartLeft := Self.Left;
   _DragStartTop := Self.Top;
   _DragStart := Self.RelativePosition;
 
   _DragX := (X- _DragStart.X);
   _DragY := (Y- _DragStart.Y);
+
+  Result := True;
 End;
 
 Procedure UIWidget.CancelDrag;
@@ -1601,9 +1647,23 @@ Begin
   End;
 End;
 
-Procedure UIWidget.OnHandleMouseWheel(X,Y:Integer; Delta:Integer);
+Procedure UIWidget.OnHandleMouseWheel(X,Y:Integer; Delta:Single);
+Var
+  ScrollValue:Single;
 Begin
-  // do nothing
+  ScrollValue := 5;
+  _CurrentScroll.Add(Vector2D_Create(0, -ScrollValue * Delta));
+
+  If (_CurrentScroll.Y < 0) Then
+    _CurrentScroll.Y := 0
+  Else
+  If (_CurrentScroll.Y > Self.ScrollLimits.Y) Then
+    _CurrentScroll.Y := Self.ScrollLimits.Y;
+
+  If (Delta<0) Then
+    Self.TriggerEvent(widgetEvent_ScrollDown)
+  Else
+    Self.TriggerEvent(widgetEvent_ScrollUp);
 End;
 
 (*Function UIWidget.HasMouseOver: Boolean;
@@ -1657,7 +1717,7 @@ Begin
 
   Self.UpdateRects();
 
-  Center := Self.Size;
+  Center := Self.CurrentSize;
   Center.Scale(Self.Pivot);
 
   (*If _Rotation.Value<>0 Then
@@ -1671,7 +1731,7 @@ Begin
   Mat := Matrix3x3_TransformAroundPoint(Center, Mat);
 
   Pos := Self.GetAlignedPosition();
-  Pos.Add(Self.GetScrollOffset());
+  Pos.Subtract(Self.GetScrollOffset());
 
   Mat := Matrix3x3_Multiply(Matrix3x3_Translation(Pos), Mat);
 
@@ -1918,12 +1978,10 @@ End;
 
 Function UIWidget.GetScrollOffset():Vector2D;
 Begin
-  Result := Self._Scroll;
-
-  If _Parent = Nil Then
-    Exit;
-
-  Result.Add(_Parent.GetScrollOffset());
+  If Assigned(_Parent) Then
+    Result := _Parent._CurrentScroll
+  Else
+    Result := Vector2D_Create(0.0, 0.0);
 
 (* TODO
   If (Assigned(Scroll)) And (Scroll Is UIScrollBar) Then
@@ -2120,24 +2178,60 @@ Begin
 End;*)
 
 Function UIWidget.GetDimension(Const Dim: UIDimension; Const Target:UIDimensionTarget): Single;
+Var
+  Percent:Single;
+  TargetSize, ParentSize:Vector2D;
 Begin
   If Dim.IsPercent Then
   Begin
+    Percent := (Dim.Value * 0.01);
     If Assigned(Parent) Then
-    Begin
-      If (Target = uiDimensionWidth) Then
-        Result := (Dim.Value * 0.01) * Parent.Size.X
-      Else
-        Result := (Dim.Value * 0.01) * Parent.Size.Y;
-    End Else
-    Begin
-      If (Target = uiDimensionWidth) Then
-        Result := (Dim.Value * 0.01) * Application.Instance.Width
-      Else
-        Result := (Dim.Value * 0.01) * Application.Instance.Height;
+      ParentSize := Parent.CurrentSize
+    Else
+      ParentSize := Vector2D_Create(Application.Instance.Width, Application.Instance.Height);
+
+    TargetSize := Vector2D_Scale(ParentSize, Percent);
+
+    Case Target Of
+      uiDimensionHorizontal:
+        Result := TargetSize.X;
+
+      uiDimensionVertical:
+        Result := TargetSize.Y;
+
+      uiDimensionLeft:
+        Result := (TargetSize.X) + Self.GetDimension(Self.Margin.Left, uiDimensionHorizontal);
+
+      uiDimensionTop:
+        Result := (TargetSize.Y) + Self.GetDimension(Self.Margin.Top, uiDimensionVertical);
+
+      uiDimensionWidth:
+        Result := (TargetSize.X) - ( Self.GetDimension(Self.Margin.Left, uiDimensionHorizontal) + Self.GetDimension(Self.Margin.Right, uiDimensionHorizontal));
+
+      uiDimensionHeight:
+        Result := (TargetSize.Y) - (Self.GetDimension(Self.Margin.Top, uiDimensionVertical) + Self.GetDimension(Self.Margin.Bottom, uiDimensionVertical));
     End;
+
   End Else
-    Result := Dim.Value;
+  Begin
+    Case Target Of
+      uiDimensionHorizontal,
+      uiDimensionVertical:
+        Result := Dim.Value;
+
+      uiDimensionLeft:
+        Result := Dim.Value + Self.GetDimension(Self.Margin.Left, uiDimensionHorizontal);
+
+      uiDimensionTop:
+        Result := Dim.Value + Self.GetDimension(Self.Margin.Top, uiDimensionVertical);
+
+      uiDimensionWidth:
+        Result := Dim.Value - ( Self.GetDimension(Self.Margin.Left, uiDimensionHorizontal) + Self.GetDimension(Self.Margin.Right, uiDimensionHorizontal));
+
+      uiDimensionHeight:
+        Result := Dim.Value - (Self.GetDimension(Self.Margin.Top, uiDimensionVertical) + Self.GetDimension(Self.Margin.Bottom, uiDimensionVertical));
+    End;
+  End;
 
   (*If (Assigned(Parent)) Then
     Result := Result - Parent.GetDimension(Parent.Margin, Target) * 2;*)
@@ -2253,7 +2347,7 @@ End;
 
 Function UIWidget.SupportDrag(Mode: UIDragMode): Boolean;
 Begin
-  Result := True;
+  Result := False;
 End;
 
 Procedure UIWidget.Delete();
@@ -2609,10 +2703,10 @@ Begin
       Result := (HasEvent(widgetEvent_Show)) Or (HasEvent(widgetEvent_Hide)) Or (HasAnimation(widget_Hidden));
 
     widgetEventClass_Click:
-      Result := (HasEvent(widgetEvent_MouseDown) Or HasEvent(widgetEvent_MouseUp));
+      Result := (HasEvent(widgetEvent_MouseDown) Or HasEvent(widgetEvent_MouseUp)) Or (Draggable) Or (Self.Scrollable);
 
     widgetEventClass_Scroll:
-      Result := (HasEvent(widgetEvent_ScrollDown) Or HasEvent(widgetEvent_ScrollUp));
+      Result := (HasEvent(widgetEvent_ScrollDown)) Or (HasEvent(widgetEvent_ScrollUp)) Or (Self.ScrollLimits.X>0) Or (Self.ScrollLimits.Y>0);
 
     widgetEventClass_Hover:
       Result := (Not Self.Selected) And ((HasEvent(widgetEvent_MouseOut)) Or (HasEvent(widgetEvent_MouseOver))  Or (HasAnimation(widget_Highlighted)));
@@ -2634,6 +2728,22 @@ End;
 Function UIWidget.IsSelected: Boolean;
 Begin
   Result := (Self.State = widget_Selected);
+End;
+
+Function UIWidget.IsScrollable: Boolean;
+Begin
+  Result := (Self.ScrollLimits.X>0) Or (Self.ScrollLimits.Y>0);
+End;
+
+Function UIWidget.GetCurrentCursor: TERRACursorType;
+Begin
+  Result := Cursor_Default;
+
+  If (SupportDrag(UI_DragScroll)) Then
+    Result := Cursor_Move
+  Else
+  If (Assigned(_Parent)) Then
+    Result := _Parent.GetCurrentCursor;
 End;
 
 { UIWidgetGroup }
@@ -2698,12 +2808,12 @@ Begin
         If (_ChildrenList[I].CanRender()) Then
         Begin
           Inc(TotalVisible);
-          TotalSize := TotalSize + _ChildrenList[I].Size.X;
+          TotalSize := TotalSize + _ChildrenList[I].CurrentSize.X;
         End;
 
         If (TotalVisible>0) Then
         Begin
-          PadSize := Self.Size.X - TotalSize;
+          PadSize := Self.CurrentSize.X - TotalSize;
 
           If (Self.Padding.IsPercent) Then
           Begin
@@ -2720,7 +2830,7 @@ Begin
             _ChildrenList[I].ConvertAlign(UIDirection_Horizontal);
             _ChildrenList[I].Left := UIPixels(CurrentPos);
 
-            CurrentPos := CurrentPos + SepSize + _ChildrenList[I].Size.X;
+            CurrentPos := CurrentPos + SepSize + _ChildrenList[I].CurrentSize.X;
           End;
 
         End;
@@ -2944,6 +3054,12 @@ Begin
   ReleaseObject(It);
 End;
 
+
+{ UIScrollArea }
+Function UIScrollArea.SupportDrag(Mode: UIDragMode): Boolean;
+Begin
+  Result := (Mode = UI_DragScroll);
+End;
 
 Initialization
   _AlignEnums := EnumCollection.Create();

@@ -40,7 +40,7 @@ Begin
   Inherited Create(Name, Nil);
 
   Tex.Prefetch();
-  TileRect := UITiledRect.Create('rect', Self, UIPixels(0), UIPixels(0), 1, UIPercent(100), UIPercent(100), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
+  TileRect := UITiledRect.Create('rect', Self, UIPixels(0), UIPixels(0), 0, UIPercent(100), UIPercent(100), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
   TileRect.Texture := Tex;
   TileRect.Draggable := True;
 End;
@@ -58,13 +58,13 @@ Var
 Begin
   Inherited Create(Name, Nil);
 
-  TabLayout := UIWidgetGroup.Create('tab_layout', Self, UIPixels(0), UIPixels(0), 0.2, UIPercent(100), UIPercent(TabHeight));
+  TabLayout := UIWidgetGroup.Create('tab_layout', Self, UIPixels(0), UIPixels(0), 0, UIPercent(100), UIPercent(TabHeight));
   TabLayout.Layout := UILayout_Horizontal;
   TabLayout.Align := UIAlign_TopLeft;
   TabLayout.Padding := UIPixels(10);
 
   Tex.Prefetch();
-  TileRect := UITiledRect.Create('rect', Self, UIPixels(0), UIPercent(TabHeight), 1, UIPercent(100), UIPercent(100 - TabHeight), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
+  TileRect := UITiledRect.Create('rect', Self, UIPixels(0), UIPercent(TabHeight), 0.2, UIPercent(100), UIPercent(100 - TabHeight), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
   TileRect.Texture := Tex;
   TileRect.Draggable := True;
 
@@ -72,7 +72,7 @@ Begin
   // the group size is 100% of the parent
   For I:=1 To TabCount Do
   Begin
-    Tab := UIInstancedWidget.Create('tab_button', TabLayout, UIPixels(0), UIPixels(0), 0.5, UIPixels(100), UIPercent(100), TabTemplate);
+    Tab := UIInstancedWidget.Create('tab_button', TabLayout, UIPixels(0), UIPixels(0), 0.1, UIPixels(100), UIPercent(100), TabTemplate);
     TabGroup := UIWidgetGroup.Create('tab_group', TileRect, UIPixels(0), UIPixels(0), 1, UIPercent(100), UIPercent(100));
     TabGroup.Visible := (I=1);
   End;
@@ -87,13 +87,13 @@ Begin
   Inherited Create(Name, Nil);
 
   Tex.Prefetch();
-  TileRect := UITiledRect.Create('button', Self, UIPixels(0), UIPixels(0), 0.5, UIPercent(100), UIPercent(100), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
+  TileRect := UITiledRect.Create('button', Self, UIPixels(0), UIPixels(0), 0.0, UIPercent(100), UIPercent(100), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
   TileRect.Texture := Tex;
   //TileRect.Draggable := True;
   //TileRect.Color := ColorBlue;
   //TileRect.Scale := 2;
 
-  Caption := UILabel.Create('label', TileRect, UIPixels(0), UIPixels(0), 1, UIPercent(100), UIPercent(100), UIPropertyMacro('value'));
+  Caption := UILabel.Create('label', TileRect, UIPixels(0), UIPixels(0), 0.1, UIPercent(100), UIPercent(100), UIPropertyMacro('value'));
   Caption.Align := UIAlign_Center;
 
   Self.AddProperty(StringProperty.Create('value', 'untitled'), True);
@@ -111,11 +111,11 @@ Begin
   Inherited Create(Name, Nil);
 
   Tex.Prefetch();
-  TileRect := UITiledRect.Create('button', Self, UIPixels(0), UIPixels(0), 1, UIPercent(100), UIPercent(100), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
+  TileRect := UITiledRect.Create('button', Self, UIPixels(0), UIPixels(0), 0, UIPercent(100), UIPercent(100), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
   TileRect.Texture := Tex;
   TileRect.Draggable := True;
 
-  EditText := UIEditText.Create('label', Self, UIPixels(20), UIPixels(15), 1, UIPercent(90), UIPercent(50),
+  EditText := UIEditText.Create('label', Self, UIPixels(20), UIPixels(15), 0.1, UIPercent(90), UIPercent(50),
   //'dsafsdfdsjkasdakjdaskjdadfsfsfsfsdfgdgd'
   //'test 12345 12345 12345 12345 12345 2'
   'test 12345 '

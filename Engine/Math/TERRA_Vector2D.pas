@@ -113,6 +113,11 @@ Function Vector2D_Lerp(Const A, B:Vector2D; Const Delta:Single):Vector2D;
 Function Vector2D_Angle3D(Const A,B:Vector3D):Single;
 Function Vector2D_Angle2D(Const A,B:Vector2D):Single;
 
+Const
+  Vector2D_Zero:  Vector2D = (X:0.0; Y:0.0);
+  Vector2D_One:  Vector2D = (X:1.0; Y:1.0);
+  Vector2D_Up:   Vector2D = (X:0.0; Y:1.0);
+
 Implementation
 {$IFDEF NEON_FPU}Uses TERRA_NEON;{$ENDIF}
 

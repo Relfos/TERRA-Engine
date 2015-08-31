@@ -223,7 +223,7 @@ Type
       _AntialiasSamples:Integer;
 			_FullScreen:Boolean;
       _IgnoreCursor:Boolean;
-
+                
       _PauseStart:Cardinal;
       _PauseCounter:Cardinal;
       _Paused:Boolean;
@@ -306,6 +306,7 @@ Type
       Procedure AddRectEvent(Action:Integer; X1,Y1,X2,Y2:Single); Overload;
       Procedure AddVectorEvent(Action:Integer; X,Y,Z:Single); Overload;
       Procedure AddCoordEvent(Action:Integer; X,Y, Value:Integer); Overload;
+      Procedure AddFloatEvent(Action:Integer; Const Value:Single); Overload;
       Procedure AddValueEvent(Action:Integer; Value:Integer); Overload;
       Procedure AddStringEvent(Action:Integer; S:TERRAString); Overload;
 
@@ -406,7 +407,7 @@ Type
 			Procedure OnMouseDown(Const X,Y:Single; Const Button:Word); Virtual;
 			Procedure OnMouseUp(Const X,Y:Single; Const Button:Word); Virtual;
 			Procedure OnMouseMove(Const X,Y:Single); Virtual;
-			Procedure OnMouseWheel(Const X,Y:Single; Const Delta:Integer); Virtual;
+			Procedure OnMouseWheel(Const X,Y:Single; Const Delta:Single); Virtual;
 
 			Procedure OnAccelerometer(X,Y,Z:Single); Virtual;
 			Procedure OnGyroscope(X,Y,Z:Single); Virtual;
@@ -1313,6 +1314,11 @@ Begin
   Self.AddEventToQueue(Action, X, Y, 0, 0, Value, '', True);
 End;
 
+procedure BaseApplication.AddFloatEvent(Action:Integer; Const Value:Single);
+Begin
+  Self.AddEventToQueue(Action, Value, 0, 0, 0, 0, '', False);
+End;
+
 procedure BaseApplication.AddValueEvent(Action: Integer; Value: Integer);
 Begin
   Self.AddEventToQueue(Action, 0, 0, 0, 0, Value, '', False);
@@ -1412,7 +1418,7 @@ Begin
 
     eventMouseWheel:
       Begin
-        Self.OnMouseWheel(Input.Mouse.X, Input.Mouse.Y, _Events[I].Value);
+        Self.OnMouseWheel(Input.Mouse.X, Input.Mouse.Y, _Events[I].X);
       End;
 
     eventKeyPress:
@@ -1815,7 +1821,7 @@ Begin
 //  UI.Instance.OnMouseUp(X, Y, Button);
 End;
 
-Procedure BaseApplication.OnMouseWheel(Const X,Y:Single; Const Delta: Integer);
+Procedure BaseApplication.OnMouseWheel(Const X,Y:Single; Const Delta: Single);
 Begin
 //  UI.Instance.OnMouseWheel(Delta);
 End;
@@ -1886,7 +1892,7 @@ End;
 
 Function BaseApplication.GetIgnoreCursor: Boolean;
 Begin
-  Result := True;
+  Result := False;
 End;
 
 

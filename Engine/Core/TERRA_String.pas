@@ -165,6 +165,9 @@ Function CharValue(Const Value:TERRAChar):Cardinal;
 Function CharUpper(Const C:TERRAChar):TERRAChar;
 Function CharLower(Const C:TERRAChar):TERRAChar;
 
+Function CharIsPunctuation(Const C:TERRAChar):Boolean;
+Function CharIsAlphaNumeric(Const C:TERRAChar):Boolean;
+
 //Returns the position of a substring inside of a string
 Function StringPos(Const Substr, S:TERRAString; IgnoreCase:Boolean = False):Integer;
 //Same as StringPos, but search starts from the end of the string.
@@ -484,6 +487,24 @@ Begin
     Result := TERRAChar(CharValue(C) + 80)
   Else
     Result := C;
+End;
+
+Function CharIsPunctuation(Const C:TERRAChar):Boolean;
+Var
+  N:Cardinal;
+Begin
+  N := CharValue(C);
+
+  Result := (N=33) Or (N=44) Or (N=46) Or (N=63);
+End;
+
+Function CharIsAlphaNumeric(Const C:TERRAChar):Boolean;
+Var
+  N:Cardinal;
+Begin
+  N := CharValue(C);
+
+  Result := ((N>=48) And (N<=57)) Or ((N>=65) And (N<=90)) Or ((N>=97) And (N<=122)) Or (N>=127);
 End;
 
 Function StringGetChar(Const S:TERRAString; Index:Integer):TERRAChar;

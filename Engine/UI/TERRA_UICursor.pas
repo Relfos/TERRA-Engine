@@ -3,87 +3,79 @@ Unit TERRA_UICursor;
 {$I terra.inc}
 Interface
 
+Uses TERRA_Object, TERRA_String, TERRA_Texture;
+
 Type
-  UICursor = Class(TERRAObject)
-    Protected
-      _UI:UI;
-      _Name:TERRAString;
-      _Item:TextureAtlasItem;
-      _OfsX:Integer;
-      _OfsY:Integer;
+  TERRACursorType = (
+    cursor_Default,
+    cursor_Busy,
+    cursor_Precision,
+    cursor_Text,
+    cursor_Forbidden,
+    cursor_ResizeVertical,
+    cursor_ResizeHorizontal,
+    cursor_ResizeDiagonal,
+    cursor_ResizeDiagonal2,
+    cursor_Move,
+    cursor_Rotate,
+    cursor_Link
+  );
 
-      Procedure Render;
-
-    Public
-      Constructor Create(Name:TERRAString; UI:UI; OfsX:Integer = 0; OfsY:Integer=0);
-      Procedure Release; Override;
-
-      Property UI:UI Read _UI;
+  TERRACursor = Class(TERRAObject)
+    Texture:TERRATexture;
+    OfsX:Integer;
+    OfsY:Integer;
   End;
 
 
+  CursorManager = Class(TERRAObject)
+    Protected
+      _Cursors:Array[TERRACursorType] Of TERRACursor;
+
+    Public
+      Constructor Create();
+      Procedure Release(); Override;
+
+      Function GetCursor(CursorType:TERRACursorType):TERRACursor;
+      Function SetCursor(CursorType:TERRACursorType; Texture:TERRATexture; Const OfsX:Integer = 0; Const OfsY:Integer = 0):TERRACursor;
+  End;
 
 Implementation
 
-{ UICursor }
-Constructor UICursor.Create(Name:TERRAString; UI:UI; OfsX, OfsY:Integer);
-Var
-  Source:Image;
-  MyStream:Stream;
-Begin
-  _UI := UI;
-  _Item := UIManager.Instance.GetTextureAtlas.Get(Name);
 
-  If Not Assigned(_Item) Then
+{ CursorManager }
+Constructor CursorManager.Create;
+Var
+  I:TERRACursorType;
+Begin
+  For I:=Low(TERRACursorType) To High(TERRACursorType) Do
   Begin
-    Name := FileManager.Instance.SearchResourceFile(Name);
-    If Name<>'' Then
-    Begin
-      MyStream := FileManager.Instance.OpenStream(Name);
-      Source := Image.Create(MyStream);
-      _Item := UIManager.Instance.GetTextureAtlas.Add(Source, Name);
-      UIManager.Instance._UpdateTextureAtlas := True;
-      Source.Release;
-      MyStream.Release;
-    End;
+    _Cursors[I] := TERRACursor.Create();
   End;
-
-  _Name := Name;
-  _OfsX := OfsY;
-  _OfsY := OfsY;
 End;
 
-Procedure UICursor.Release;
-Begin
-  // do nothing
-End;
-
-Procedure UICursor.Render;
+Procedure CursorManager.Release;
 Var
-  StartPos, EndPos:Vector2D;
-  T1, T2:Vector2D;
-  MyTextureAtlas:TextureAtlas;
-  MyColor:Color;
-  CR:ClipRect;
+  I:TERRACursorType;
 Begin
-  If (Not Assigned(_Item)) Then
-    Exit;
+  For I:=Low(TERRACursorType) To High(TERRACursorType) Do
+    ReleaseObject(_Cursors[I]);
+End;
 
-  CR.Style := clipNothing;
-
-  StartPos := VectorCreate2D(UI._CursorPos.X - _OfsX, UI._CursorPos.Y - _OfsY);
-  EndPos.X := StartPos.X + _Item.Buffer.Width;
-  EndPos.Y := StartPos.Y + _Item.Buffer.Height;
-  T1 := VectorCreate2D(_Item.X, _Item.Y);
-  MyTextureAtlas := UIManager.Instance.GetTextureAtlas;
-  T2.X := T1.X + (_Item.Buffer.Width / MyTextureAtlas.Width);
-  T2.Y := T1.Y + (_Item.Buffer.Height / MyTextureAtlas.Height);
-  MyColor := ColorGrey(255, UI._Color.A);
-  UI.AddQuad(StartPos, EndPos, T1, T2, MyColor, 99, _Item.PageID, MatrixIdentity3x3, 1, Nil, CR);
+Function CursorManager.GetCursor(CursorType: TERRACursorType): TERRACursor;
+Begin
+  If (Assigned(_Cursors[CursorType])) And (Assigned(_Cursors[CursorType].Texture)) Then
+    Result := _Cursors[CursorType]
+  Else
+    Result := Nil;
 End;
 
 
-  _CursorPos.X := InputManager.Instance.Mouse.X;
-  _CursorPos.Y := InputManager.Instance.Mouse.Y;
+Function CursorManager.SetCursor(CursorType: TERRACursorType; Texture:TERRATexture; const OfsX, OfsY: Integer): TERRACursor;
+Begin
+  _Cursors[CursorType].Texture := Texture;
+  _Cursors[CursorType].OfsX := OfsX;
+  _Cursors[CursorType].OfsY := OfsY;
+End;
 
 End.

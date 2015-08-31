@@ -5,7 +5,7 @@ Unit TERRA_EngineManager;
 Interface
 Uses TERRA_Object, TERRA_Application, TERRA_Threads,
   TERRA_GraphicsManager, TERRA_TextureManager, TERRA_MeshManager, TERRA_FontManager, TERRA_InputManager,
-  TERRA_PhysicsManager, TERRA_ParticleRenderer, TERRA_ShaderFactory, TERRA_MeshAnimation, TERRA_Lights,
+  TERRA_PhysicsManager, TERRA_ParticleRenderer, TERRA_ShaderFactory, TERRA_MeshAnimation, TERRA_Lights, TERRA_UICursor,
   TERRA_FileManager, TERRA_SoundManager, TERRA_FileFormat, TERRA_MusicManager, TERRA_MIDI, TERRA_Localization,
   {$IFDEF PC}TERRA_Steam{$ENDIF};
 
@@ -21,6 +21,8 @@ Type
       _FileManager:FileManager;
       _InputManager:InputManager;
       _Formats:FormatManager;
+
+      _Cursors:CursorManager;
 
       _Audio:SoundManager;
       _Midi:MidiManager;
@@ -67,6 +69,8 @@ Type
 
       Property Localization:LocalizationManager Read _Localization;
 
+      Property Cursors:CursorManager Read _Cursors;
+
       Property Formats:FormatManager Read _Formats;
       Property Files:FileManager Read _FileManager;
       Property Tasks:ThreadPool Read _Tasks;
@@ -105,6 +109,8 @@ Begin
   _Music := MusicManager.Create();
   _MIDI := MidiManager.Create();
 
+  _Cursors := CursorManager.Create();
+
   _Localization := LocalizationManager.Create();
 
   {$IFDEF PC}
@@ -141,6 +147,8 @@ Begin
   ReleaseObject(_Animations);
   ReleaseObject(_Physics);
   ReleaseObject(_Tasks);
+
+  ReleaseObject(_Cursors);
 
   ReleaseObject(_MIDI);
   ReleaseObject(_Music);

@@ -93,6 +93,8 @@ Var
   OfsX, OfsY:Single;
   //Temp, Pos, Center:Vector2D;
 Begin
+  _FullSize := _CurrentSize;
+
   If _Sprite = Nil Then
     _Sprite := Scale9Sprite.Create()
   Else

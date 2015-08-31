@@ -203,6 +203,8 @@ Uses TERRA_Error, SysUtils, TERRA_Renderer, TERRA_GLRenderer, TERRA_EngineManage
   TERRA_Gamepad, TERRA_XInput, TERRA_Ethernet, TERRA_Timer;
 
 Const
+  WHEEL_DELTA = 120;
+
   FILE_READ_DATA         = $0001; // file & pipe
   FILE_LIST_DIRECTORY    = $0001; // directory
   FILE_WRITE_DATA        = $0002; // file & pipe
@@ -497,7 +499,7 @@ Begin
     WM_MOUSEWHEEL:If (App._CanReceiveEvents) Then
                   Begin
                     Delta := Integer(wParam Div High(Word));
-                    App.AddValueEvent(eventMouseWheel, Delta);
+                    App.AddFloatEvent(eventMouseWheel, Delta / WHEEL_DELTA);
                   End;
 
     WM_KILLFOCUS: If (App._CanReceiveEvents) Then

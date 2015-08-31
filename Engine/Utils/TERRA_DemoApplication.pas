@@ -6,7 +6,8 @@ Interface
 Uses TERRA_Utils, TERRA_Object, TERRA_String, TERRA_Application, TERRA_OS,
   TERRA_Vector3D, TERRA_Color, TERRA_Camera, TERRA_Ray, TERRA_UIDimension,
   TERRA_Mesh, TERRA_Texture,
-  TERRA_Font, TERRA_FontRenderer, TERRA_Skybox, TERRA_Viewport, TERRA_Lights, TERRA_UIView, TERRA_ScreenFX,
+  TERRA_Font, TERRA_FontRenderer, TERRA_Skybox, TERRA_Viewport, TERRA_Lights,
+  TERRA_UICursor, TERRA_UIView, TERRA_ScreenFX,
   TERRA_TTF, TERRA_PNG, TERRA_JPG, TERRA_BMP, TERRA_PSD, TERRA_TGA, TERRA_GIF;
 
 Type
@@ -43,7 +44,7 @@ Type
       Procedure OnMouseDown(Const X,Y:Single; Const Button: Word); Override;
       Procedure OnMouseMove(Const X,Y:Single); Override;
       Procedure OnMouseUp(Const X,Y:Single; Const Button: Word); Override;
-			Procedure OnMouseWheel(Const X,Y:Single; Const Delta:Integer); Override;
+			Procedure OnMouseWheel(Const X,Y:Single; Const Delta:Single); Override;
 
 			Procedure OnKeyDown(Key:Word); Override;
 			Procedure OnKeyUp(Key:Word); Override;
@@ -85,6 +86,12 @@ Begin
   _Camera := PerspectiveCamera.Create('main');
   _Camera.SetPosition(Vector3D_Create(0, 5, -20));
   _Camera.SetView(Vector3D_Create(0, -0.25, 0.75));
+
+  //Engine.Cursors.SetCursor(cursor_Default, Engine.Textures['cursor_normal']);
+  Engine.Cursors.SetCursor(cursor_Default, Engine.Textures['cursor_busy']);
+
+  Engine.Cursors.SetCursor(cursor_Move, Engine.Textures['cursor_move']);
+
 
   Engine.Graphics.DeviceViewport.BackgroundColor := ColorCreate(128, 128, 255);
 End;
@@ -215,7 +222,7 @@ Begin
     _GUI.OnMouseUp(X, Y, Button);
 End;
 
-Procedure DemoApplication.OnMouseWheel(Const X,Y:Single; Const Delta:Integer);
+Procedure DemoApplication.OnMouseWheel(Const X,Y:Single; Const Delta:Single);
 Begin
   If Assigned(_GUI) Then
     _GUI.OnMouseWheel(X, Y, Delta)
@@ -223,9 +230,8 @@ End;
 
 Procedure DemoApplication.OnRender2D(V: TERRAViewport);
 Begin
-(*  If Assigned(_FontRenderer) Then
+  If Assigned(_FontRenderer) Then
      _FontRenderer.DrawText(V, 5, 25, 90, 'FPS: '+ IntegerProperty.Stringify(Engine.Graphics.Renderer.Stats.FramesPerSecond));
-     *)
      
   Engine.Graphics.AddRenderable(V, _GUI);
 End;
