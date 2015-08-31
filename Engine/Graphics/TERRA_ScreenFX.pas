@@ -711,7 +711,7 @@ Begin
     Inc(Slot);
   End;
 
-  Engine.Graphics.Renderer.SetBlendMode(blendNone);
+  Engine.Graphics.Renderer.SetBlendMode(blendBlend);
   Engine.Graphics.DrawFullscreenQuad(_SH, X1,Y1,X2,Y2);
 
   Tex := Engine.Textures.WhiteTexture;

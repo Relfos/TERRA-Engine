@@ -45,6 +45,8 @@ Type
       _DissolveTexture:TERRATexture;
       _DissolveValue:Single;
 
+      _Pattern:TERRATexture;
+
       _Manager:TERRASpriteRenderer;
 
       {$IFNDEF DISABLECOLORGRADING}
@@ -184,6 +186,7 @@ Begin
   Result.Outline := ColorNull;
   Result.Next := Nil;
   Result.SetColor(ColorWhite);
+  Result.Pattern := Nil;
   Result.SetUVs(0.0, 0.0, 1.0, 1.0);
 
 (*  Result.Layer := Layer;
@@ -232,7 +235,8 @@ Begin
   N := -1;
 
   For I:=0 To Pred(_BatchCount) Do
-  If (_Batches[I]._Texture = S.Texture) And (_Batches[I]._DissolveTexture = S.DissolveTexture) And (_Batches[I]._DissolveValue = S.DissolveValue) And (_Batches[I]._BlendMode = S.BlendMode)
+  If (_Batches[I]._Texture = S.Texture) And (_Batches[I]._Pattern = S.Pattern)
+  And (_Batches[I]._DissolveTexture = S.DissolveTexture) And (_Batches[I]._DissolveValue = S.DissolveValue) And (_Batches[I]._BlendMode = S.BlendMode)
   {$IFNDEF DISABLECOLORGRADING}And (_Batches[I]._ColorTable = S.ColorTable){$ENDIF}
   And (_Batches[I]._ShaderID = S.Flags)
   And ( (HasShaders) Or (_Batches[I]._Saturation = S.Saturation))
@@ -267,6 +271,7 @@ Begin
     _Batches[N]._SpriteCount := 0;
     _Batches[N]._BlendMode := S.BlendMode;
     _Batches[N]._Texture := S.Texture;
+    _Batches[N]._Pattern  := S.Pattern;
     _Batches[N]._DissolveTexture  := S.DissolveTexture;
     _Batches[N]._DissolveValue  := S.DissolveValue;
     _Batches[N]._Layer := TargetLayer;
@@ -511,6 +516,12 @@ Begin
     _DissolveTexture.Filter := filterLinear;
     _DissolveTexture.Bind(1);
     TargetShader.SetFloatUniform('dissolve_value', _DissolveValue);
+  End;
+
+  If (_ShaderID And Sprite_Pattern<>0) Then
+  Begin
+    TargetShader.SetIntegerUniform('pattern_texture', 1);
+    _Pattern.Bind(1);
   End;
 
   If (_ShaderID And Sprite_Font<>0) Then

@@ -97,7 +97,7 @@ Type
       _Scale:Single;
 
     Public
-      Procedure AddGlyph(Const X,Y:Single; Glyph:FontGlyph; Const A, B, C, D:ColorRGBA; Skew, Scale:Single);
+      Procedure AddGlyph(X,Y:Single; Glyph:FontGlyph; Const A, B, C, D:ColorRGBA; Skew, Scale:Single; Bold:Boolean);
   End;
 
   FontGlyphFactory = Class(TERRAObject)
@@ -650,17 +650,27 @@ Begin
 End;
 
 { FontSprite }
-Procedure FontSprite.AddGlyph(Const X,Y:Single; Glyph:FontGlyph; Const A, B, C, D:ColorRGBA; Skew, Scale:Single);
+Procedure FontSprite.AddGlyph(X,Y:Single; Glyph:FontGlyph; Const A, B, C, D:ColorRGBA; Skew, Scale:Single; Bold:Boolean);
+Const
+  BoldOfs = 4;
 Var
   Width, Height:Integer;
   Item:TextureAtlasItem;
 Begin
   Self._Scale := Scale;
-  
+
   Item := Glyph._Item;
 
   Width := Trunc((Item.Buffer.Width - FontPadding) * _Scale);
   Height := Trunc((Item.Buffer.Height - FontPadding) * _Scale);
+
+  If (Bold) Then
+  Begin
+    X := X - BoldOfs;
+    Y := Y - BoldOfs * 0.5;
+    Width := Width + BoldOfs * 2;
+    Height := Height + BoldOfs * 2;
+  End;
 
   //0.25 / (Spread * Scale)
   Self.Flags := Self.Flags Or Sprite_Font;

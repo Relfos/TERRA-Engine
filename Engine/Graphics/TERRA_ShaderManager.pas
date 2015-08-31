@@ -100,13 +100,14 @@ End;
 Function GetShader_Sprite(SpriteFlags:Cardinal):TERRAString;
 Var
   S:TERRAString;
-  DoColorGrading, IsFont, IsSolid, IsDissolve:Boolean;
+  DoColorGrading, IsFont, IsSolid, IsDissolve, HasPattern:Boolean;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   DoColorGrading := (SpriteFlags And Sprite_ColorGrading)<>0;
   IsFont := (SpriteFlags And Sprite_Font)<>0;
   IsSolid := (SpriteFlags And Sprite_SolidColor)<>0;
   IsDissolve := (SpriteFlags And Sprite_Dissolve)<>0;
+  HasPattern := (SpriteFlags And Sprite_Pattern)<>0;
 
   S := '';
   Line('vertex {');
@@ -149,6 +150,11 @@ Begin
 	  Line('  uniform sampler2D dissolve_texture;');
   End;
 
+  If (HasPattern) Then
+  Begin
+	  Line('  uniform sampler2D pattern_texture;');
+  End;
+
   If (Not IsSolid) Then
 	  Line('  uniform sampler2D texture;');
 
@@ -183,6 +189,11 @@ Begin
     Line('  alphaCut *= step(dissolve_value, dissolve_limit); ');
   End;
 
+  If (HasPattern) Then
+  Begin
+    Line('    lowp vec4 pattern = texture2D(pattern_texture, screen_position.xy * 0.01);');
+  End;
+
 (*  Line('  if ( screen_position.x< clipRect.x) { discard;} ');
   Line('  if ( screen_position.x> clipRect.z) { discard;} ');
 
@@ -203,15 +214,19 @@ Begin
   Line('    float border = smoothstep(0.5 - smoothing, 0.5 + smoothing, colorDistance);');
   Line('    vec4 baseColor = mix(outlineColor, color, border);');
 
+  If HasPattern Then
+    Line(' baseColor *= pattern; ');
+
   Line('  alpha *=  color.a;');
   Line('  alpha *= alphaCut;');
-  Line('    gl_FragColor = vec4( baseColor.rgb, alpha);');
+  Line('    gl_FragColor = vec4( baseColor.rgb, baseColor.a * alpha);');
 
   {$ELSE}
 
   Line('    lowp vec4 mask = sourceColor;');
   Line('    lowp float alpha;');
   Line('    if (mask.a<0.5) alpha = 0.0; else alpha = 1.0;');
+
   {$IFNDEF MOBILE}
   Line('    alpha *= smoothstep(0.25, 0.75, mask.a);');// anti-aliasing
   {$ENDIF}
@@ -219,6 +234,9 @@ Begin
   Line('    baseColor = color; ');
 
   Line('  alpha *= alphaCut;');
+
+  If HasPattern Then
+    Line(' baseColor *= pattern; ');
 
   Line('    baseColor.rgb = AdjustSaturation(baseColor.rgb, fillColor.a); ');
 //  Line('    baseColor.rgb = mix(baseColor.rgb, outlineColor.rgb, mask.r); ');

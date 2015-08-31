@@ -34,6 +34,7 @@ Const
   Sprite_SolidColor   = 2;
   Sprite_ColorGrading = 4;
   Sprite_Dissolve     = 8;
+  Sprite_Pattern      = 16;
 
 Type
   SpriteAnchor = (
@@ -75,8 +76,6 @@ Type
   End;
 
   TERRASprite = Class(TERRAObject)
-  private
-    procedure SetColorTable(const Value: TERRATexture);
     Protected
       {$IFNDEF DISABLECOLORGRADING}
       _ColorTable:TERRATexture;
@@ -90,6 +89,8 @@ Type
 
       _DissolveTexture:TERRATexture;
       _DissolveValue:Single;
+
+      _Pattern:TERRATexture;
 
       _Vertices:VertexData;
 
@@ -130,6 +131,9 @@ Type
       Procedure SetCornerColors(Const A, B, C, D:ColorRGBA);
       Procedure SetLineColor(Const StartColor, EndColor:ColorRGBA);
 
+      Procedure SetColorTable(const Value: TERRATexture);
+      Procedure SetPattern(const Value: TERRATexture);
+
       Procedure AddQuad(Const Anchor:SpriteAnchor; Const Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single = 0.0);
       Procedure AddEllipse(Const Anchor:SpriteAnchor; Const Pos:Vector2D; LayerOffset:Single; Const RadiusX, RadiusY:Single);
       Procedure AddCircle(Const Anchor:SpriteAnchor; Const Pos:Vector2D; LayerOffset:Single; Const Radius:Single);
@@ -158,6 +162,8 @@ Type
 
       Property Saturation:Single Read _Saturation Write _Saturation;
       Property Glow:ColorRGBA Read _Glow Write _Glow;
+
+      Property Pattern:TERRATexture Read _Pattern Write SetPattern;
       Property ColorTable:TERRATexture Read _ColorTable Write SetColorTable;
 
       Property Vertices:VertexData Read _Vertices;
@@ -669,16 +675,35 @@ End;
 
 Procedure TERRASprite.SetDissolve(Mask:TERRATexture; Const Value:Single);
 Begin
-  Self._Flags := _Flags Or Sprite_Dissolve;
   Self._DissolveValue := Value;
   Self._DissolveTexture := Mask;
+
+  If ((_Flags And Sprite_Dissolve<>0) <> Assigned(Mask)) Then
+    Self._Flags := _Flags Xor Sprite_Dissolve;
 End;
 
 Procedure TERRASprite.SetColorTable(const Value: TERRATexture);
 Begin
   Self._ColorTable := Value;
-  Self._Flags := _Flags Or Sprite_ColorGrading;
+
+  If ((_Flags And Sprite_ColorGrading<>0) <> Assigned(Value)) Then
+    Self._Flags := _Flags Xor Sprite_ColorGrading;
 End;
+
+Procedure TERRASprite.SetPattern(const Value: TERRATexture);
+Begin
+  _Pattern := Value;
+
+  If ((_Flags And Sprite_Pattern<>0) <> Assigned(Value)) Then
+    Self._Flags := _Flags Xor Sprite_Pattern;
+
+  If Assigned(Value) Then
+  Begin
+    Value.WrapMode := wrapAll;
+    Value.Filter := filterBilinear;
+  End;
+End;
+
 
 { TextureRect }
 Procedure TextureRect.UVRemap(_U1, _V1, _U2, _V2:Single);

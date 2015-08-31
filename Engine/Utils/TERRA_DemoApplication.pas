@@ -240,8 +240,7 @@ Procedure DemoApplication.OnRender2D(V: TERRAViewport);
 Begin
   If Assigned(_FontRenderer) Then
   Begin
-    _FontRenderer.SetColor(ColorWhite);
-    _FontRenderer.SetSize(30);
+    _FontRenderer.Reset();
     _FontRenderer.DrawText(V, 5, 25, 90, 'FPS: '+ IntegerProperty.Stringify(Engine.Graphics.Renderer.Stats.FramesPerSecond));
   End;
   
