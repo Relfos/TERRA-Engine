@@ -16,6 +16,7 @@ uses
   TERRA_UIWidget,
   TERRA_UITemplates,
   TERRA_UIImage,
+  TERRA_UILabel,
   TERRA_UITiledRect,
   TERRA_UIDimension;
 
@@ -47,9 +48,7 @@ Begin
   MyBtn.Align := UIAlign_Center;
   MyBtn.SetEventHandler(widgetEvent_MouseDown, OnMyButtonClick);
   MyBtn.AddAnimation(widget_Highlighted, 'color', 'FF5555FF');
-
-//  MyBtn.SetPropertyValue('caption', 'custom caption!');
-//  MyBtn.Rotation := 45*RAD;
+  MyBtn.SetPropertyValue('caption', 'Click me!');
 End;
 
 Procedure MyDemo.OnMyButtonClick(Src:UIWidget);

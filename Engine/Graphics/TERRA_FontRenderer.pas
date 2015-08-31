@@ -97,7 +97,7 @@ Type
       Function ResolveTexture(Const TextureName:TERRAString):TERRATexture; Virtual;
       Procedure TransformSprite(S:TERRASprite); Virtual;
 
-      Procedure QueueChar(Const Value:TERRAChar; Const X, Y, Width, Height:Single);
+      Procedure QueueChar(Const Value:TERRAChar; Var X:Single; Const Y, Width, Height:Single);
       Procedure AddStyle();
 
       Function PopColor():ColorRGBA;
@@ -176,6 +176,8 @@ Begin
 
   _CharLimit := -1;
 
+  _AutoWrap := False;
+
   _Pattern := Nil;
 
   _Glow := ColorNull;
@@ -202,8 +204,9 @@ Begin
   Result := Self._ColorBase;
 End;
 
-
-Procedure TERRAFontRenderer.QueueChar(Const Value:TERRAChar; Const X, Y, Width, Height:Single);
+Procedure TERRAFontRenderer.QueueChar(Const Value:TERRAChar; Var X:Single; Const Y, Width, Height:Single);
+Var
+  H:Single;
 Begin
   If (Length(_CharList) <= _CharCount) Then
     SetLength(_CharList, Succ(_CharCount));
@@ -214,6 +217,17 @@ Begin
   _CharList[_CharCount].Y := Y;
   _CharList[_CharCount].Width := Width;
   _CharList[_CharCount].Height := Height;
+
+  X := X + Width;
+
+  If (X >_MaxX) Then
+    _MaxX := X;
+
+  H := Y + Height;
+  If (H > _MaxY) Then
+    _MaxY := H;
+
+
   Inc(_CharCount);
 End;
 
@@ -230,7 +244,7 @@ Function TERRAFontRenderer.Compile(Const S:TERRAString; Mode:Integer; X,Y:Single
 Var
   I:Integer;
   It:StringIterator;
-  C, TempChar, NextChar:TERRAChar;
+  LastChar, NextChar, TempChar, TempNext:TERRAChar;
 
   WasWord, IsWord:Boolean;
 
@@ -269,8 +283,8 @@ Begin
   _Width := 1.0;
   _Height := 1.0;
 
-  _MaxX := X;
-  _MaxY := Y;
+  _MaxX := 0;
+  _MaxY := 0;
 
   StartX := X;
   WasWord := False;
@@ -291,11 +305,21 @@ Begin
   _StylesList[0].Color := Self._ColorBase;
 
   StringCreateIterator(S, It);
-  While It.HasNext Do
-  Begin
-    C := It.GetNext();
 
-    If (C = fontEffectBegin) Then
+  NextChar := NullChar;
+  While (NextChar <> NullChar) Or (_CharCount<=0) Do
+  Begin
+    LastChar := NextChar;
+
+    If It.HasNext Then
+      NextChar := It.GetNext()
+    Else
+      NextChar := NullChar;
+
+    If (LastChar = NullChar) Then
+      Continue;
+
+    If (LastChar = fontEffectBegin) Then
     Begin
       If (Not StyleChanged) Then
       Begin
@@ -307,23 +331,25 @@ Begin
       Arg := '';
       Active := True;
       ArgMode := False;
-      While It.HasNext() Do
+      While (It.HasNext()) Do
       Begin
-        C := It.GetNext();
-        If (C = fontEffectEnd) Then
+        LastChar := NextChar;
+        NextChar := It.GetNext();
+
+        If (LastChar = fontEffectEnd) Then
           Break
         Else
-        If (C = '/') And (Tag ='') Then
+        If (LastChar = '/') And (Tag ='') Then
           Active := False
         Else
-        If (C = '=') Then
+        If (LastChar = '=') Then
           ArgMode := True
         Else
         If (ArgMode) Then
-          StringAppendChar(Arg, C)
+          StringAppendChar(Arg, LastChar)
         Else
-          StringAppendChar(Tag, C);
-     End;
+          StringAppendChar(Tag, LastChar);
+      End;
 
       If (Tag = 'i') Then
       Begin
@@ -359,7 +385,7 @@ Begin
         If Active Then
         Begin
           ImgName := '';
-          
+
           N := _CharCount;
           X := X + TargetWidth;
 
@@ -375,10 +401,6 @@ Begin
           QueueChar('!', X, Y, TargetWidth, TargetHeight);
           _CharList[N].Glyph := Nil;
           _CharList[N].StyleID := Pred(_StyleCount);
-
-          X := X + TargetWidth;
-          If (Self._MaxWidth>0) And (X + TargetWidth >= StartX + Self._MaxWidth) Then
-            ApplyLineBreak();
         End Else
         Begin
           _StylesList[Pred(_StyleCount)].Texture := Engine.Textures.GetItem(ImgName);
@@ -399,7 +421,7 @@ Begin
       Continue;
     End;
 
-    If (C = NewLineChar) Then
+    If (LastChar = NewLineChar) Then
     Begin
       ApplyLineBreak();
       Continue;
@@ -409,33 +431,35 @@ Begin
     If (InsideImage) Then
     Begin
       StyleChanged := True;
-      StringAppendChar(ImgName, C);
+      StringAppendChar(ImgName, LastChar);
       Continue;
     End;
 
     StyleChanged := False;
 
-    IsWord := (CharIsAlphaNumeric(C)) Or (CharIsPunctuation(C));
+    IsWord := (CharIsAlphaNumeric(LastChar));
     If (_AutoWrap) And (Self._MaxWidth>0) And ((Not IsWord) Or ((IsWord) And (Not WasWord))) Then
     Begin
       It.SaveState(State);
-      TempChar := C;
+      TempChar := LastChar;
+      TempNext := NextChar;
       TargetWidth := 0.0;
       While (It.HasNext) Do
       Begin
-        NextChar := It.GetNext();
-        Glyph := _Font.GetGlyph(C);
+        Glyph := _Font.GetGlyph(LastChar);
 
         If Assigned(Glyph) Then
           TargetWidth := TargetWidth + Glyph.GetAdvance(NextChar) * FontInvScale * _Scale;
 
-        C := NextChar;
+        LastChar := NextChar;
+        NextChar := It.GetNext();
 
-        If (Not CharIsAlphaNumeric(C)) Then
+        If (Not CharIsAlphaNumeric(LastChar)) Then
           Break;
       End;
 
-      C := TempChar;
+      LastChar := TempChar;
+      NextChar := TempNext;
       It.RestoreState(State);
 
       If  (X + TargetWidth >= StartX+  Self._MaxWidth) Then
@@ -444,7 +468,7 @@ Begin
 
     WasWord := IsWord;
 
-    Glyph := _Font.GetGlyph(C);
+    Glyph := _Font.GetGlyph(LastChar);
     If (Glyph = Nil) Then
       Continue;
 
@@ -455,32 +479,25 @@ Begin
     If (_CharLimit>=0) And (N>=_CharLimit) Then
       Break;
 
-    QueueChar(C, X, Y, TargetWidth, TargetHeight);
-    _CharList[N].Glyph := Glyph;
-    _CharList[N].StyleID := Pred(_StyleCount);
-
     If (SkipSpaces) Then
     Begin
-      If (C = #32) Then
+      If (LastChar = #32) Then
         TargetWidth := 0
       Else
         SkipSpaces := False;
     End;
 
-    If (X >_MaxX) Then
-      _MaxX := X;
 
-    H := Y + TargetHeight;
-    If (H > _MaxY) Then
-      _MaxY := H;
+    QueueChar(LastChar, X, Y, TargetWidth, TargetHeight);
+    _CharList[N].Glyph := Glyph;
+    _CharList[N].StyleID := Pred(_StyleCount);
 
     // don't wast time rendering spaces...
     (*If (C = #32) Then
       _CurrentGlyph := Nil;*)
 
-    X := X + TargetWidth;
-    If (Self._MaxWidth>0) And (X + TargetWidth >= StartX + Self._MaxWidth) Then
-      ApplyLineBreak();
+    (*If (Self._MaxWidth>0) And (X + TargetWidth >= StartX + Self._MaxWidth) Then
+      ApplyLineBreak();*)
 
   End;
 
@@ -738,6 +755,8 @@ Var
   TargetX, TargetY:Single;
   K:Integer;
 
+  XOfs:Single;
+
   S:TERRASprite;
 Begin
   Result := Self;
@@ -766,9 +785,18 @@ Begin
 
   Compile(Text, fontmode_Sprite, X, Y);
 
+  If _CharCount<0 Then
+    Exit;
+
+  I := 0;
+  XOfs := 0;
+  While (I<_CharCount) And (_CharList[I].Glyph = Nil) Do
+    Inc(I);
+  XOfs := _CharList[I].Glyph.XOfs * FontInvScale * _Scale; // HACK!!!!
+
   For I:=0 To Pred(_CharCount) Do
   Begin
-    TargetX := _CharList[I].X;
+    TargetX := _CharList[I].X - XOfs;
     TargetY := _CharList[I].Y;
 
     If (_StylesList[_CharList[I].StyleID].WavyText) Then

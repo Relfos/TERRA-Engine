@@ -108,12 +108,21 @@ Begin
   //TextArea := Vector2D_Create(Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)),  Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
   //TextRect := Self.FontRenderer.GetTextRect(Self.Caption._Text);
 
-  TX := (_CurrentSize.X - _FullSize.X) * 0.5;
-  TY := (_CurrentSize.Y - _FullSize.Y) * 0.5;
+  If (_CurrentSize.X > _FullSize.X) Then
+    TX := (_CurrentSize.X - _FullSize.X) * 0.5
+  Else
+    TX := 0;
+
+  If (_CurrentSize.Y > _FullSize.Y) Then
+    TY := (_CurrentSize.Y - _FullSize.Y) * 0.5
+  Else
+    TY := 0;
+    
   FR.DrawTextToSprite(View, TX, TY, Self.GetLayer(), _Text, FontSprite(_Sprite));
 
   //DrawClipRect(View, Self.ClipRect, ColorRed);
-  //DrawRectangle(View, Self.AbsolutePosition, Vector2D_Create(Self.AbsolutePosition.X + Self.FullSize.X, Self.AbsolutePosition.Y + Self.FullSize.Y), ColorGreen);
+  //DrawRectangle(View, Vector2D_Create(TX + Self.AbsolutePosition.X, TY + Self.AbsolutePosition.Y), Vector2D_Create(TX + Self.AbsolutePosition.X + Self.FullSize.X, TY + Self.AbsolutePosition.Y + Self.FullSize.Y), ColorGreen);
+  //DrawRectangle(View, Vector2D_Create(Self.AbsolutePosition.X, Self.AbsolutePosition.Y), Vector2D_Create(Self.AbsolutePosition.X + Self.CurrentSize.X, Self.AbsolutePosition.Y + Self.CurrentSize.Y), ColorGreen);
 End;
 
 { FontStyleProperty }

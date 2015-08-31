@@ -504,7 +504,7 @@ Var
 Begin
   N := CharValue(C);
 
-  Result := ((N>=48) And (N<=57)) Or ((N>=65) And (N<=90)) Or ((N>=97) And (N<=122)) Or (N>=127);
+  Result := ((N>=48) And (N<=57)) Or ((N>=65) And (N<=90)) Or ((N>=97) And (N<=122)) Or (N>=127) Or (CharIsPunctuation(C));
 End;
 
 Function StringGetChar(Const S:TERRAString; Index:Integer):TERRAChar;
