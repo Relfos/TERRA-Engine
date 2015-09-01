@@ -340,7 +340,7 @@ Begin
 
   S := View.SpriteRenderer.FetchSprite();
   S.SetTexture(_CurrentCursor.Texture);
-  S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0, _CurrentCursor.Texture.Width, _CurrentCursor.Texture.Height);
+  S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(-_CurrentCursor.OfsX, -_CurrentCursor.OfsY), 0, _CurrentCursor.Texture.Width, _CurrentCursor.Texture.Height);
   S.Translate(MX, MY);
   View.SpriteRenderer.QueueSprite(S);
 End;
