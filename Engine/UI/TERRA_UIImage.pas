@@ -81,7 +81,7 @@ End;
 
 Procedure UIImage.UpdateSprite(View:TERRAViewport);
 Begin
-  _FullSize := _CurrentSize;
+  _FullSize := Vector2D_Create(Self.Texture.Width, Self.Texture.Height);
 
   If (Self.Width.Value<=0) And (Assigned(Texture)) Then
     Self.Width := UIPixels(Trunc(SafeDiv(Texture.Width, Texture.Ratio.X)));
@@ -110,7 +110,7 @@ Begin
   _Sprite.Mirror := Self.Mirror;
   _Sprite.SetUVs(_U1.Value, _V1.Value, _U2.Value, _V2.Value);
   _Sprite.SetColor(Self.Color);
-  _Sprite.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0,0), 0.0, Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)), Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
+  _Sprite.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0,0), 0.0, _FullSize.X, _FullSize.Y);
 
   _Sprite.ClipRect := Self.ClipRect;
   _Sprite.SetTransform(_Transform);

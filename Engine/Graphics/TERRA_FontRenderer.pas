@@ -13,6 +13,14 @@ Const
   MaxStackedFontEffects = 16;
 
 Type
+  TextAlign = (
+    TextAlign_Left,
+    TextAlign_Right,
+    TextAlign_Center,
+    TextAlign_Justify
+  );
+
+
   TERRAFontCharStyle = Record
     WavyText:Boolean;
     Bold:Boolean;
@@ -32,9 +40,12 @@ Type
     Height:Single;
     Glyph:FontGlyph;
     StyleID:Cardinal;
+    LineID:Cardinal;
+  End;
 
-    U1, V1:Single;
-    U2, V2:Single;
+  TERRAFontRendererLine = Record
+    Width:Single;
+    Spaces:Integer;
   End;
 
   TERRAFontRenderer = Class(TERRAObject)
@@ -43,7 +54,7 @@ Type
 
       _ClipRect:TERRAClipRect;
 
-      _Mode:Integer;
+      _Align:TextAlign;
 
       _Font:TERRAFont;
       _FontOffset:Single;
@@ -87,6 +98,9 @@ Type
       _CharList:Array Of TERRAFontCommand;
       _CharCount:Integer;
 
+      _LineCount:Integer;
+      _Lines:Array Of TERRAFontRendererLine;
+
       _StylesList:Array Of TERRAFontCharStyle;
       _StyleCount:Integer;
 
@@ -99,6 +113,7 @@ Type
 
       Procedure QueueChar(Const Value:TERRAChar; Var X:Single; Const Y, Width, Height:Single);
       Procedure AddStyle();
+      Procedure AddLine();
 
       Function PopColor():ColorRGBA;
 
@@ -117,13 +132,15 @@ Type
       Function SetOutline(Const Value:ColorRGBA):TERRAFontRenderer;
       Function SetGlow(Const Value:ColorRGBA):TERRAFontRenderer;
 
-      Procedure SetCharLimit(Const Limit:Integer);
+      Function SetCharLimit(Const Limit: Integer): TERRAFontRenderer;
 
       Function SetAutoWrap(Const Enabled:Boolean):TERRAFontRenderer;
 
       Function SetFont(Const TargetFont:TERRAFont):TERRAFontRenderer;
 
       Function SetPattern(Pattern:TERRATexture):TERRAFontRenderer;
+
+      Function SetAlign(Const Align:TextAlign):TERRAFontRenderer;
 
       Function SetSize(Const Size:Single):TERRAFontRenderer;
 
@@ -136,7 +153,7 @@ Type
 
       Function  SetClipRect(Const Clip:TERRAClipRect):TERRAFontRenderer;
 
-      Function Compile(Const S:TERRAString; Mode:Integer; X,Y:Single):Boolean;
+      Function Compile(Const S:TERRAString; X,Y:Single):Boolean;
 
       Function DrawText(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString):TERRAFontRenderer;
       Function DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):TERRAFontRenderer;
@@ -144,7 +161,7 @@ Type
 
       Function GetTextWidth(Const Text:TERRAString):Single;
       Function GetTextHeight(Const Text:TERRAString):Single;
-      Function GetTextRect(Const Text:TERRAString ):Vector2D;
+      Function GetTextRect(Const Text:TERRAString):Vector2D;
       Function GetLength(Const Text:TERRAString):Integer;
 
       Property MaxX:Single Read _MaxX;
@@ -167,6 +184,8 @@ End;
 Function TERRAFontRenderer.Reset():TERRAFontRenderer;
 Begin
   SetColor(ColorWhite);
+
+  SetAlign(TextAlign_Left);
 
   _VerticalGradient := False;
   _HorizontalGradient := False;
@@ -217,8 +236,14 @@ Begin
   _CharList[_CharCount].Y := Y;
   _CharList[_CharCount].Width := Width;
   _CharList[_CharCount].Height := Height;
+  _CharList[_CharCount].LineID := Pred(_LineCount);
 
   X := X + Width;
+
+  _Lines[Pred(_LineCount)].Width := X;
+
+  If (Value = #32) Then
+    Inc(_Lines[Pred(_LineCount)].Spaces);
 
   If (X >_MaxX) Then
     _MaxX := X;
@@ -240,9 +265,18 @@ Begin
     _StylesList[_StyleCount-1] := _StylesList[_StyleCount-2];
 End;
 
-Function TERRAFontRenderer.Compile(Const S:TERRAString; Mode:Integer; X,Y:Single):Boolean;
+
+Procedure TERRAFontRenderer.AddLine;
+Begin
+  Inc(_LineCount);
+  SetLength(_Lines, _LineCount);
+  _Lines[Pred(_LineCount)].Width := 0.0;
+  _Lines[Pred(_LineCount)].Spaces := 0;
+End;
+
+Function TERRAFontRenderer.Compile(Const S:TERRAString; X,Y:Single):Boolean;
 Var
-  I:Integer;
+  I, J:Integer;
   It:StringIterator;
   LastChar, NextChar, TempChar, TempNext:TERRAChar;
 
@@ -265,6 +299,8 @@ Var
     X := StartX;
     Y := Y + _NewLineOffset + (_Font.NewLineOffset + FontPadding * 2) * FontInvScale *  _Scale;
 
+    AddLine();
+
     SkipSpaces := True;
   End;
 Begin
@@ -276,9 +312,9 @@ Begin
   If (_Font = Nil) Or (Not _Font.IsReady()) Then
     Exit;
 
-  _Mode := Mode;
-
   _CharCount := 0;
+  _LineCount := 0;
+  AddLine();
 
   _Width := 1.0;
   _Height := 1.0;
@@ -472,21 +508,20 @@ Begin
     If (Glyph = Nil) Then
       Continue;
 
+    If (SkipSpaces) Then
+    Begin
+      If (LastChar = #32) Then
+        Continue
+      Else
+        SkipSpaces := False;
+    End;
+
     TargetWidth := Glyph.GetAdvance(NextChar) * FontInvScale * _Scale;
     TargetHeight := (Glyph.Height + FontPadding) * FontInvScale * _Scale;
 
     N := _CharCount;
     If (_CharLimit>=0) And (N>=_CharLimit) Then
       Break;
-
-    If (SkipSpaces) Then
-    Begin
-      If (LastChar = #32) Then
-        TargetWidth := 0
-      Else
-        SkipSpaces := False;
-    End;
-
 
     QueueChar(LastChar, X, Y, TargetWidth, TargetHeight);
     _CharList[N].Glyph := Glyph;
@@ -502,21 +537,49 @@ Begin
   End;
 
   For I:=0 To Pred(_CharCount) Do
-  If Assigned(_CharList[I].Glyph) Then
   Begin
-    _CharList[I].U1 := (_CharList[I].X) / _MaxX;
-    _CharList[I].V1 := (_CharList[I].Y - _CharList[I].Width) / _MaxY;
+    TargetWidth := _Lines[_CharList[I].LineID].Width;
 
-    _CharList[I].U2 := (_CharList[I].X + _CharList[I].Width) / _MaxX;
-    _CharList[I].V2 := (_CharList[I].Y) / _MaxY;
+    Case Self._Align Of
+    //TextAlign_Left:
+
+    TextAlign_Right:
+      Begin
+        _CharList[I].X := (_MaxWidth - TargetWidth) + _CharList[I].X;
+      End;
+
+    TextAlign_Center:
+      Begin
+        _CharList[I].X := (_MaxWidth - TargetWidth) * 0.5 + _CharList[I].X;
+      End;
+
+    TextAlign_Justify:
+      If (_CharList[I].Value = #32) Then
+      Begin
+        TargetWidth := (_MaxWidth - TargetWidth) / _Lines[_CharList[I].LineID].Spaces;
+
+        For J:=Succ(I) To Pred(_CharCount) Do
+        If (_CharList[J].LineID = _CharList[I].LineID) Then
+          _CharList[J].X := _CharList[J].X + TargetWidth;
+
+      End;
+    End;
+    
   End;
 
   Result := True;
 End;
 
-Procedure TERRAFontRenderer.SetCharLimit(const Limit: Integer);
+Function TERRAFontRenderer.SetAlign(const Align: TextAlign): TERRAFontRenderer;
+Begin
+  _Align := Align;
+  Result := Self;
+End;
+
+Function TERRAFontRenderer.SetCharLimit(const Limit: Integer): TERRAFontRenderer;
 Begin
   _CharLimit := Limit;
+  Result := Self;
 End;
 
 Function TERRAFontRenderer.SetPattern( Pattern: TERRATexture): TERRAFontRenderer;
@@ -569,7 +632,7 @@ Begin
   End;
 
   //Log(logDebug,'AdWall', 'Starting gettextrect');
-  Compile(Text, fontmode_Measure, 0, 0);
+  Compile(Text, 0, 0);
 
   //Log(logDebug,'AdWall', 'Finished textrect');
   Result.X := Self.MaxX;
@@ -578,7 +641,7 @@ End;
 
 Function TERRAFontRenderer.GetLength(Const Text:TERRAString):Integer;
 Begin
-  Self.Compile(Text, fontmode_Measure, 0, 0);
+  Self.Compile(Text, 0, 0);
   Result := Self._CharCount;
 End;
 
@@ -783,7 +846,7 @@ Begin
   DestSprite.Smoothing := (2.5 / _Scale)/16.0;
   //DestSprite.Smoothing := 0.9; -> adds blur
 
-  Compile(Text, fontmode_Sprite, X, Y);
+  Compile(Text, X, Y);
 
   If _CharCount<0 Then
     Exit;
@@ -795,6 +858,7 @@ Begin
   XOfs := _CharList[I].Glyph.XOfs * FontInvScale * _Scale; // HACK!!!!
 
   For I:=0 To Pred(_CharCount) Do
+  If (_CharList[I].Value <> #32) Then
   Begin
     TargetX := _CharList[I].X - XOfs;
     TargetY := _CharList[I].Y;
@@ -806,8 +870,7 @@ Begin
       TargetY := TargetY + Sin((K Mod 360) * RAD) * 2.0 * _Scale;
     End;
 
-
-    If Assigned(_CharList[I].Glyph) Then
+    If (Assigned(_CharList[I].Glyph)) Then
     Begin
       DrawGlyph(View, TargetX, TargetY, I, DestSprite);
     End Else
@@ -955,7 +1018,6 @@ Begin
   End;
   EndRender();
 End;*)
-
 
 
 End.

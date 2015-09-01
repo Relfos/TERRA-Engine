@@ -63,7 +63,6 @@ Type
     UIAlign_BottomRight    = 8
   );
 
-
   WidgetState = (
     widget_Default,
     widget_Hidden,
@@ -2584,7 +2583,7 @@ Procedure UIWidget.SetPropertyValue(const PropName, Value: TERRAString);
 Var
   Prop:TERRAObject;
 Begin
-  Prop := Self.FindProperty(PropName);
+  Prop := Self.FindPropertyWithPath(PropName);
   If Assigned(Prop) Then
     Prop.SetBlob(Value);
 End;

@@ -45,10 +45,6 @@ Const
   DefaultFontPageWidth = 256 * FontRescale;
   DefaultFontPageHeight = 512 * FontRescale;
 
-  fontmode_Sprite   = 0;
-  fontmode_Measure  = 1;
-  fontmode_Offscreen=2;
-
 Type
   PFontKerning = ^FontKerning;
   FontKerning = Record

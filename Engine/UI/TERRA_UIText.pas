@@ -4,7 +4,7 @@ Unit TERRA_UIText;
 
 Interface
 Uses TERRA_String, TERRA_Object, TERRA_UIWidget, TERRA_UIDimension, TERRA_UICursor, TERRA_Vector2D, TERRA_Color, TERRA_Font,
-  TERRA_FontRenderer, TERRA_Viewport, TERRA_DebugDraw;
+  TERRA_EnumProperty, TERRA_FontRenderer, TERRA_Viewport, TERRA_DebugDraw;
 
 Type
   FontStyleProperty = Class(TERRAObject)
@@ -12,6 +12,7 @@ Type
       _Size:IntegerProperty;
       _Outline:ColorProperty;
       _Family:FontProperty;
+      _Align:EnumProperty;
 
       Function GetFamily: TERRAFont;
       Procedure SetFamily(const Value: TERRAFont);
@@ -54,6 +55,9 @@ Type
 Implementation
 Uses TERRA_Localization, TERRA_FontManager, TERRA_EngineManager, TERRA_Math;
 
+Var
+  _AlignEnums:EnumCollection;
+
 Constructor UIText.Create(const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension);
 Begin
   Inherited Create(Name, Parent);
@@ -94,6 +98,7 @@ Begin
   FR.SetColor(Self.GetColor());
   FR.SetGlow(Self.GetGlow());
   FR.SetFont(_Style._Family.Value);
+  FR.SetAlign(TextAlign(_Style._Align.Value));
   FR.SetOutline(_Style._Outline.Value);
   FR.SetSize(_Style._Size.Value);
   FR.SetAutoWrap(Self._AutoWrap);
@@ -117,7 +122,8 @@ Begin
     TY := (_CurrentSize.Y - _FullSize.Y) * 0.5
   Else
     TY := 0;
-    
+
+    TX := 0; TY:=0;
   FR.DrawTextToSprite(View, TX, TY, Self.GetLayer(), _Text, FontSprite(_Sprite));
 
   //DrawClipRect(View, Self.ClipRect, ColorRed);
@@ -132,6 +138,7 @@ Begin
   _Outline := ColorProperty.Create('outline', ColorBlack);
   _Size := IntegerProperty.Create('size', 30);
   _Family := FontProperty.Create('family', Engine.Fonts['droid']);
+  _Align := EnumProperty.Create('align', 0, _AlignEnums);
 End;
 
 Function FontStyleProperty.GetObjectType: TERRAString;
@@ -145,6 +152,7 @@ Begin
   0:  Result := _Family;
   1:  Result := _Size;
   2:  Result := _Outline;
+  3:  Result := _Align;
   Else
     Result := Nil;
   End;
@@ -155,6 +163,7 @@ Begin
   ReleaseObject(_Family);
   ReleaseObject(_Size);
   ReleaseObject(_Outline);
+  ReleaseObject(_Align);
 End;
 
 Function FontStyleProperty.GetFamily: TERRAFont;
@@ -168,4 +177,12 @@ Begin
 End;
 
 
+Initialization
+  _AlignEnums := EnumCollection.Create();
+  _AlignEnums.Add('Left', Integer(TextAlign_Left));
+  _AlignEnums.Add('Right', Integer(TextAlign_Right));
+  _AlignEnums.Add('Center', Integer(TextAlign_Center));
+  _AlignEnums.Add('Justify', Integer(TextAlign_Justify));
+Finalization
+  ReleaseObject(_AlignEnums);
 End.

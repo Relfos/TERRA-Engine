@@ -60,6 +60,7 @@ Begin
 
   MyText := UILabel.Create('mytext', MyScrollPanel, UIPixels(0), UIPixels(0), 1, UIPercent(100), UIPercent(100), IpsuLorem);
   MyText.AddAnimation(widget_Highlighted, 'color', 'FF5555FF');
+  MyText.SetPropertyValue('style.align', 'right');
   //MyText.Align := UIAlign_Center;
 End;
 
