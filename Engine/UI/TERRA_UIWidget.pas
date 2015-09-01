@@ -283,6 +283,7 @@ Type
 
       Function GetCurrentCursor():TERRACursorType;
 
+      Procedure CopyAnimations(Other:UIWidget);
 
     Public
       Tag:Integer;
@@ -366,6 +367,7 @@ Type
 
       Procedure SetPropertyValue(Const PropName, Value:TERRAString);
 
+      Procedure SetNativeSize();
 //      Function IsOutsideScreen():Boolean;
 
       Procedure SetHeight(const Value: UIDimension);
@@ -1911,7 +1913,6 @@ Begin
     //DrawClipRect(View, Self.ClipRect, ColorRed);
   End;
 
-
 End;
 
 
@@ -2562,8 +2563,8 @@ Begin
 
   Self.OnStateChange();
 
-  For I:=0 To Pred(_ChildrenCount) Do
-    _ChildrenList[I].SetState(Value);
+(*  For I:=0 To Pred(_ChildrenCount) Do
+    _ChildrenList[I].SetState(Value);*)
 End;
 
 Function UIWidget.GetClipRect:TERRAClipRect;
@@ -2757,6 +2758,23 @@ Begin
   Else
   If (Assigned(_Parent)) Then
     Result := _Parent.GetCurrentCursor;
+End;
+
+Procedure UIWidget.SetNativeSize;
+Begin
+  Self.Width := UIPixels(_Fullsize.X);
+  Self.Height := UIPixels(_Fullsize.Y);
+End;
+
+Procedure UIWidget.CopyAnimations(Other: UIWidget);
+Var
+  I:Integer;
+Begin
+  If Other = Nil Then
+    Exit;
+
+  For I:=0 To Pred(Other._AnimationCount) Do
+    Self.AddAnimation(Other._Animations[I].State, Other._Animations[I].PropName, Other._Animations[I].Value, Other._Animations[I].Ease);
 End;
 
 { UIWidgetGroup }
@@ -2974,8 +2992,10 @@ Begin
   End;
 
   If Assigned(Result) Then
-    Result.CopyProperties(Template)
-  Else
+  Begin
+    Result.CopyProperties(Template);
+    Result.CopyAnimations(Template);
+  End Else
     Result := Parent;
 
   For I:=0 To Pred(Template.ChildrenCount) Do

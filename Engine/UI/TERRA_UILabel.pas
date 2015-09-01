@@ -11,6 +11,7 @@ Type
     Protected
       _NeedCaptionUpdate:Boolean;
 
+      _Stretch:BooleanProperty;
       _Caption:StringProperty;
 
       _CurrentLink:TERRAString;
@@ -49,8 +50,11 @@ Begin
   Inherited Create(Name, Parent, X, Y, Layer, Width, Height);
 
   _Caption := StringProperty(Self.AddProperty(StringProperty.Create('caption', Text), False));
+  _Stretch := BooleanProperty(Self.AddProperty(BooleanProperty.Create('stretch', False), False));
 
   _NeedCaptionUpdate := True;
+  
+  _ShouldWrap := True;
 End;
 
 Function UILabel.GetLocalizationKey: TERRAString;
@@ -74,6 +78,8 @@ Begin
     _NeedCaptionUpdate := False;
     Self.UpdateCaption();
   End;
+
+  _ShouldStretch := _Stretch.Value;
 
   Inherited UpdateSprite(View);
 End;

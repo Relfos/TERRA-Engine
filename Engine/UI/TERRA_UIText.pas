@@ -38,7 +38,8 @@ Type
       _TextRect:Vector2D;
       _PreviousFont:TERRAFont;
 
-      _AutoWrap:Boolean;
+      _ShouldStretch:Boolean;
+      _ShouldWrap:Boolean;
 
       _FontRenderer:TERRAFontRenderer;
 
@@ -71,8 +72,6 @@ Begin
 
   _FontRenderer := TERRAFontRenderer.Create();
 
-  _AutoWrap := True;
-
   _Style := FontStyleProperty(Self.AddProperty(FontStyleProperty.Create('style'), False));
 End;
 
@@ -101,7 +100,7 @@ Begin
   FR.SetAlign(TextAlign(_Style._Align.Value));
   FR.SetOutline(_Style._Outline.Value);
   FR.SetSize(_Style._Size.Value);
-  FR.SetAutoWrap(Self._AutoWrap);
+  FR.SetAutoWrap(Self._ShouldWrap);
 
   FR.SetTransform(_Transform);
   FR.SetClipRect(Self.ClipRect);
@@ -113,20 +112,27 @@ Begin
   //TextArea := Vector2D_Create(Trunc(Self.GetDimension(Self.Width, uiDimensionWidth)),  Trunc(Self.GetDimension(Self.Height, uiDimensionHeight)));
   //TextRect := Self.FontRenderer.GetTextRect(Self.Caption._Text);
 
-  If (_CurrentSize.X > _FullSize.X) Then
-    TX := (_CurrentSize.X - _FullSize.X) * 0.5
-  Else
+  If (Self._ShouldStretch) Then
+  Begin
+    If (_CurrentSize.X > _FullSize.X) Then
+      TX := (_CurrentSize.X - _FullSize.X) * 0.5
+    Else
+      TX := 0;
+
+    If (_CurrentSize.Y > _FullSize.Y) Then
+      TY := (_CurrentSize.Y - _FullSize.Y) * 0.5
+    Else
+      TY := 0;
+  End Else
+  Begin
+    Self.SetNativeSize();
     TX := 0;
-
-  If (_CurrentSize.Y > _FullSize.Y) Then
-    TY := (_CurrentSize.Y - _FullSize.Y) * 0.5
-  Else
-    TY := 0;
-
-    TX := 0; TY:=0;
+    TY:=0;
+  End;
+  
   FR.DrawTextToSprite(View, TX, TY, Self.GetLayer(), _Text, FontSprite(_Sprite));
 
-  //DrawClipRect(View, Self.ClipRect, ColorRed);
+ // DrawClipRect(View, Self.ClipRect, ColorRed);
   //DrawRectangle(View, Vector2D_Create(TX + Self.AbsolutePosition.X, TY + Self.AbsolutePosition.Y), Vector2D_Create(TX + Self.AbsolutePosition.X + Self.FullSize.X, TY + Self.AbsolutePosition.Y + Self.FullSize.Y), ColorGreen);
   //DrawRectangle(View, Vector2D_Create(Self.AbsolutePosition.X, Self.AbsolutePosition.Y), Vector2D_Create(Self.AbsolutePosition.X + Self.CurrentSize.X, Self.AbsolutePosition.Y + Self.CurrentSize.Y), ColorGreen);
 End;

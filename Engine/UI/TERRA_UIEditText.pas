@@ -5,7 +5,7 @@ Unit TERRA_UIEditText;
 Interface
 
 Uses TERRA_String, TERRA_Object, TERRA_UIWidget, TERRA_UIDimension, TERRA_Vector2D, TERRA_Color, TERRA_Font,
-  TERRA_Collections, TERRA_Viewport, TERRA_UIText;
+  TERRA_Collections, TERRA_Viewport, TERRA_UIText, TERRA_UICursor;
 
 Const
   PasswordCharacter = '*'; 
@@ -39,6 +39,8 @@ Type
 
       Procedure OnStateChange(); Override;
 
+      Function ReactsToEventClass(Const EventClass:WidgetEventClass):Boolean; Override;
+
     Public
       Constructor Create(Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension; Const Text:TERRAString);
 
@@ -66,6 +68,10 @@ Begin
   Self._KoreanInitialJamo := -1;
   Self._KoreanMedialJamo := -1;
   Self._KoreanFinalJamo := -1;
+
+  Self._ShouldStretch := True;
+
+  Self._CurrentCursor := Cursor_Text;
 End;
 
 Procedure UIEditText.UpdateJamos;
@@ -303,8 +309,23 @@ Begin
   End Else
     _Text := _Content.Value;
 
+  If (Self.State = widget_Selected) And  (Blink(100)) Then
+    _Text := _Text + '_'
+  Else
+    _Text := _Text + ' ';
+
   Inherited;
 End;
 
+Function UIEditText.ReactsToEventClass(const EventClass: WidgetEventClass): Boolean;
+Begin
+  If (EventClass = widgetEventClass_Hover) Then
+    Result := True
+  Else
+  If (EventClass = widgetEventClass_Click) Then
+    Result := True
+  Else
+    Result := Inherited ReactsToEventClass(EventClass);
+End;
 
 End.

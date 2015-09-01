@@ -111,15 +111,19 @@ Begin
   TileRect := UITiledRect.Create('button', Self, UIPixels(0), UIPixels(0), 0, UIPercent(100), UIPercent(100), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
   TileRect.Texture := Tex;
 
-  EditText := UIEditText.Create('label', Self, UIPixels(20), UIPixels(15), 0.1, UIPercent(90), UIPercent(50),
+  EditText := UIEditText.Create('edit', Self, UIPixels(20), UIPixels(15), 0.1, UIPercent(90), UIPercent(50),
   //'dsafsdfdsjkasdakjdaskjdadfsfsfsfsdfgdgd'
   //'test 12345 12345 12345 12345 12345 2'
-  'test 12345 '
+  'test 12345'
  //   GetLanguageDescription(language_Portuguese)+ ' '+    GetLanguageDescription(language_Japanese)+ ' '+ GetLanguageDescription(language_Korean)+ ' '+ GetLanguageDescription(language_Russian)+ ' '+ GetLanguageDescription(language_Chinese)
     );
 
   EditText.Align := UIAlign_TopLeft;
   EditText.MultiLine := True;
+
+  //EditText.AddAnimation(widget_Selected, 'color', '#FF2222FF');
+
+  //EditText.AddAnimation(widget_Highlighted, 'color', '#FF2222FF');
 End;
 
 End.

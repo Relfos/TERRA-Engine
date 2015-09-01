@@ -1508,7 +1508,7 @@ Begin
 
   If (ID = #32) Then
   Begin
-    OpID := CharValue('E');
+    OpID := CharValue('_');
     Img := GetCodepointBitmap(_Scale, _Scale, OpID, xofs, yofs);
     ReleaseObject(Img);
     Img := TERRAImage.Create(4,4);

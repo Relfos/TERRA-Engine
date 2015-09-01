@@ -558,10 +558,10 @@ Begin
 
   If (_LastOver <> Result) Then
   Begin
-    If (Assigned(_LastOver)) Then
+    If (Assigned(_LastOver)) And (_LastOver.State = widget_Highlighted) Then
       _LastOver.TriggerEvent(widgetEvent_MouseOut);
 
-    If (Assigned(Result)) Then
+    If (Assigned(Result)) And (Result.State = widget_Default) Then
       Result.TriggerEvent(widgetEvent_MouseOver);
 
     _LastOver := Result;
