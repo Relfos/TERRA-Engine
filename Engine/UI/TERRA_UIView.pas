@@ -520,15 +520,23 @@ Function UIView.OnMouseMove(Const X,Y:Single):UIWidget;
 Var
   TX, TY:Integer;
   TargetType:TERRACursorType;
+  DragMode:UIDragMode;
 Begin
   Self.GetLocalCoords(X, Y, TX, TY);
 
   _LastWidget := Nil;
 
-  If (Assigned(_HoldWidget)) And (_HoldWidget.Draggable) And (Not _HoldWidget.Dragging) Then
+  If (Assigned(_HoldWidget)) And (Not _HoldWidget.Dragging) Then
   Begin
     Result := _HoldWidget;
-    Result.BeginDrag(TX, TY, UIDrag_Move);
+
+    If (Result.SupportDrag(UIDrag_Move)) Then
+      DragMode := UIDrag_Move
+    Else
+      DragMode := UIDrag_Scroll;
+
+
+    Result.BeginDrag(TX, TY, DragMode);
 
     _HoldWidget := Nil;
     Exit;

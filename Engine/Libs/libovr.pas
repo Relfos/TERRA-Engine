@@ -28,8 +28,14 @@ Unit libovr;
 
 Interface
 
+{$IFDEF MSWINDOWS}
+Uses Windows;
+{$ENDIF}
+
 Const
+{$IFDEF MSWINDOWS}
   OVR_LIB_NAME = 'libovr.dll';
+{$ENDIF}  
 
   OVR_KEY_USER                        = 'User';              // string
   OVR_KEY_NAME                        = 'Name';              // string
@@ -61,6 +67,13 @@ Const
 
 Type
   ovrBool = Boolean;
+
+  WordArray = Array[0..99999] Of Word;
+  PWordArray = ^WordArray;
+
+  ovrRGB = Packed Record
+    r,g, b:Byte;
+  End;
   
   /// A 2D vector with integer components.
   ovrVector2i = Packed Record
@@ -74,6 +87,7 @@ Type
 
 /// A 2D rectangle with a position and size.
 /// All components are integers.
+  PovrRecti = ^ovrRecti;
   ovrRecti  = Packed Record
     Pos:ovrVector2i;
     Size:ovrSizei;
@@ -88,22 +102,30 @@ Type
   ovrVector2f  = Packed Record
     x, y:Single;
   End;
+  ovrVector2fArray = Array[0..1] Of ovrVector2f;
+  PovrVector2fArray = ^ovrVector2fArray;
 
 /// A 3D vector with float components.
   ovrVector3f  = Packed Record
     x, y, z:Single;
   End;
+  ovrVector3fArray = Array[0..1] Of ovrVector3f;
+  PovrVector3fArray = ^ovrVector3fArray;
 
 /// A 4x4 matrix with float elements.
   ovrMatrix4f  = Packed Record
     M:Array[0..15] Of Single;
   End;
+  ovrMatrix4fArray = Array[0..1] Of ovrMatrix4f;
+  PovrMatrix4fArray = ^ovrMatrix4fArray;
 
 /// Position and orientation together.
   ovrPosef  = Packed Record
     Orientation:ovrQuatf;
     Position:ovrVector3f;
   End;
+  ovrPosefArray = Array[0..1] Of ovrPosef;
+  PovrPosefArray = ^ovrPosefArray;
 
 /// A full pose (rigid body) configuration with first and second derivatives.
   ovrPoseStatef  = Packed Record
@@ -128,19 +150,23 @@ Type
     /// The tangent of the angle between the viewing vector and the right edge of the field of view.
     RightTan:Single;
   End;
+  PovrFovPort = ^ovrFovPort;
+
+  ovrFovPortArray = Array[0..1] Of ovrFovPort;
+  PovrFovPortArray = ^ovrFovPortArray;
 
 //-----------------------------------------------------------------------------------
 // ***** HMD Types
 
 /// Enumerates all HMD types that we support.
 
-  ovrHmdType = (
-    ovrHmd_None             = 0,
-    ovrHmd_DK1              = 3,
-    ovrHmd_DKHD             = 4,
-    ovrHmd_DK2              = 6,
-    ovrHmd_Other             // Some HMD other then the one in the enumeration.
-  );
+  ovrHmdType = Integer;
+
+Const
+    ovrHmd_None             = 0;
+    ovrHmd_DK1              = 3;
+    ovrHmd_DKHD             = 4;
+    ovrHmd_DK2              = 6;
 
 /// HMD capability bits reported by device.
 Const
@@ -200,17 +226,17 @@ Type
 /// This type explicitly does not include a third "NoStereo" option, as such is
 /// not required for an HMD-centered API.
 
-ovrEyeType = (
-    ovrEye_Left  = 0,
-    ovrEye_Right = 1
-);
+ovrEyeType = Integer;
 
 Const
-  ovrEye_Count = 2;
+    ovrEye_Left  = 0;
+    ovrEye_Right = 1;
+    ovrEye_Count = 2;
 
 Type
+  ovrHmd = ^ovrHmdDesc;
 /// This is a complete descriptor of the HMD.
-  ovrHmdDesc = Packed Record
+  ovrHmdDesc = Record
     /// Internal handle of this HMD.
     Handle:Pointer;
 
@@ -289,7 +315,8 @@ Type
 
 /// Tracking state at a given absolute time (describes predicted HMD pose etc).
 /// Returned by ovrHmd_GetTrackingState.
-  ovrTrackingState = Packed Record
+  PovrTrackingState = ^ovrTrackingState;
+  ovrTrackingState = Record
     /// Predicted head pose (and derivatives) at the requested absolute time.
     /// The look-ahead interval is equal to (HeadPose.TimeInSeconds - RawSensorData.TimeInSeconds).
     HeadPose:ovrPoseStatef;
@@ -365,6 +392,9 @@ Type
     HmdToEyeViewOffset:ovrVector3f;         ///< Translation to be applied to view matrix for each eye offset.
   End;
 
+  ovrEyeRenderDescArray = Array[0..1] Of ovrEyeRenderDesc;
+  PovrEyeRenderDescArray = ^ovrEyeRenderDescArray;
+
 //-----------------------------------------------------------------------------------
 // ***** Platform-independent Rendering Configuration
 
@@ -376,28 +406,52 @@ Type
 /// engine that has multiple back ends, say GL and D3D. Portable code that calls
 /// these back ends may also use LibOVR. To do this, back ends can be modified
 /// to return portable types such as ovrTexture and ovrRenderAPIConfig.
-ovrRenderAPIType = (
-    ovrRenderAPI_None,
-    ovrRenderAPI_OpenGL,
-    ovrRenderAPI_Android_GLES,  // May include extra native window pointers, etc.
-    ovrRenderAPI_D3D9,
-    ovrRenderAPI_D3D10,
-    ovrRenderAPI_D3D11,
-    ovrRenderAPI_Count
-);
 
+ovrRenderAPIType = Cardinal;
+Const
+    ovrRenderAPI_None = 0;
+    ovrRenderAPI_OpenGL = 1;
+    ovrRenderAPI_Android_GLES = 2;  // May include extra native window pointers, etc.
+    ovrRenderAPI_D3D9 = 3;
+    ovrRenderAPI_D3D10 = 4;
+    ovrRenderAPI_D3D11 = 5;
+    ovrRenderAPI_Count = 6;
+
+Type
 /// Platform-independent part of rendering API-configuration data.
 /// It is a part of ovrRenderAPIConfig, passed to ovrHmd_Configure.
   ovrRenderAPIConfigHeader = Packed Record
-    API:ovrRenderAPIType;
+    API:Integer;
     BackBufferSize:ovrSizei;    // Previously named RTSize.
     Multisample:Integer;
   End;
 
 /// Contains platform-specific information for rendering.
+  PovrRenderAPIConfig = ^ovrRenderAPIConfig;
   ovrRenderAPIConfig = Packed Record
     Header:ovrRenderAPIConfigHeader;
-    PlatformData:Array[0..7] Of Pointer;
+    PlatformData:Array[0..7] Of Cardinal;
+  End;
+
+  ovrGLConfig = Packed Record
+    Case Integer Of
+    0: (
+    /// General device settings.
+      Header:ovrRenderAPIConfigHeader;
+
+      {$IFDEF MSWINDOWS}
+      /// The optional window handle. If unset, rendering will use the current window.
+      Window:HWND;
+      /// The optional device context. If unset, rendering will use a new context.
+      DC:HDC;
+      {$ENDIF}
+
+    {$IFDEF LINUX}
+      /// Optional display. If unset, will issue glXGetCurrentDisplay when context is current.
+      Disp:PXDisplay;
+    {$ENDIF}
+    );
+    1: (Generic:ovrRenderAPIConfig);
   End;
 
 /// Platform-independent part of the eye texture descriptor.
@@ -407,14 +461,26 @@ ovrRenderAPIType = (
     API:ovrRenderAPIType;
     TextureSize:ovrSizei;
     RenderViewport:ovrRecti;  // Pixel viewport in texture that holds eye image.
-    _PAD0_:Cardinal;
   End;
 
 /// Contains platform-specific information about a texture.
-  ovrTexture = Packed Record
-    Header:ovrTextureHeader ;
-    PlatformData:Array[0..7] Of Pointer;
+  ovrTexture = Record
+    Header:ovrTextureHeader;
+    PlatformData:Array[0..7] Of Cardinal;
   End;
+
+  ovrGLTexture = Record
+    /// General device settings.
+    Case Integer Of
+    0: (Header:ovrTextureHeader;
+        /// The OpenGL name for this texture.
+        TexId:Cardinal);
+    1:  (Generic:ovrTexture;)
+  End;
+
+
+  ovrTextureArray = Array[0..1] Of ovrTexture;
+  PovrTextureArray = ^ovrTextureArray;
 
 // -----------------------------------------------------------------------------------
 // ***** API Interfaces
@@ -460,32 +526,33 @@ Function ovr_InitializeRenderingShim():ovrBool; CDecl; External OVR_LIB_NAME;
 // No other functions calls besides ovr_InitializeRenderingShim are allowed
 // before ovr_Initialize succeeds or after ovr_Shutdown.
 /// Initializes all Oculus functionality.
-Function ovr_Initialize():ovrBool;
+Function ovr_Initialize():ovrBool; CDecl; External OVR_LIB_NAME;
+
 /// Shuts down all Oculus functionality.
-Procedure ovr_Shutdown();
+Procedure ovr_Shutdown(); CDecl; External OVR_LIB_NAME;
 
 /// Returns version string representing libOVR version. Static, so
 /// string remains valid for app lifespan
-Function ovr_GetVersionString():PAnsiChar;
+Function ovr_GetVersionString():PAnsiChar; CDecl; External OVR_LIB_NAME;
 
 /// Detects or re-detects HMDs and reports the total number detected.
 /// Users can get information about each HMD by calling ovrHmd_Create with an index.
-Function ovrHmd_Detect():Integer;
+Function ovrHmd_Detect():Integer; CDecl; External OVR_LIB_NAME;
 
 /// Creates a handle to an HMD which doubles as a description structure.
 /// Index can [0 .. ovrHmd_Detect()-1]. Index mappings can cange after each ovrHmd_Detect call.
 /// If not null, then the returned handle must be freed with ovrHmd_Destroy.
-Function ovrHmd_Create(index:Integer):ovrHmd;
-Procedure ovrHmd_Destroy(hmd:ovrHmd);
+Function ovrHmd_Create(index:Integer):ovrHmd; CDecl; External OVR_LIB_NAME;
+Procedure ovrHmd_Destroy(hmd:ovrHmd); CDecl; External OVR_LIB_NAME;
 
 /// Creates a 'fake' HMD used for debugging only. This is not tied to specific hardware,
 /// but may be used to debug some of the related rendering.
-Function ovrHmd_CreateDebug(hmdtype:ovrHmdType):ovrHmd;
+Function ovrHmd_CreateDebug(hmdtype:ovrHmdType):ovrHmd; CDecl; External OVR_LIB_NAME;
 
 /// Returns last error for HMD state. Returns null for no error.
 /// String is valid until next call or GetLastError or HMD is destroyed.
 /// Pass null hmd to get global errors (during create etc).
-Function ovrHmd_GetLastError(hmd:ovrHmd):PAnsiChar;
+Function ovrHmd_GetLastError(hmd:ovrHmd):PAnsiChar; CDecl; External OVR_LIB_NAME;
 
 /// Platform specific function to specify the application window whose output will be
 /// displayed on the HMD. Only used if the ovrHmdCap_ExtendDesktop flag is false.
@@ -494,18 +561,16 @@ Function ovrHmd_GetLastError(hmd:ovrHmd):PAnsiChar;
 ///            of the render target output that will be mirrored from 'sourceRenderTargetRect'.
 ///            Null pointers mean "full size".
 /// @note Source and dest mirror rects are not yet implemented.
-Function ovrHmd_AttachToWindow(ovrHmd hmd, void* window,
-										 const ovrRecti* destMirrorRect,
-										 const ovrRecti* sourceRenderTargetRect):ovrBool ;
+Function ovrHmd_AttachToWindow(hmd:ovrHmd; window:Cardinal; destMirrorRect, sourceRenderTargetRect:PovrRecti):Boolean; CDecl; External OVR_LIB_NAME;
 
 /// Returns capability bits that are enabled at this time as described by ovrHmdCaps.
 /// Note that this value is different font ovrHmdDesc::HmdCaps, which describes what
 /// capabilities are available for that HMD.
-Function ovrHmd_GetEnabledCaps(ovrHmd hmd):Cardinal;
+Function ovrHmd_GetEnabledCaps(hmd:ovrHmd):Cardinal; CDecl; External OVR_LIB_NAME;
 
 /// Modifies capability bits described by ovrHmdCaps that can be modified,
 /// such as ovrHmdCap_LowPersistance.
-Procedure ovrHmd_SetEnabledCaps(ovrHmd hmd, unsigned int hmdCaps);
+Procedure ovrHmd_SetEnabledCaps(hmd:ovrHmd; hmdCaps:Cardinal); CDecl; External OVR_LIB_NAME;
 
 //-------------------------------------------------------------------------------------
 // ***** Tracking Interface
@@ -522,20 +587,19 @@ Procedure ovrHmd_SetEnabledCaps(ovrHmd hmd, unsigned int hmdCaps);
 ///    If they are not available, the function will fail. Pass 0 if only specifying
 ///    supportedTrackingCaps.
 ///  - Pass 0 for both supportedTrackingCaps and requiredTrackingCaps to disable tracking.
-Function ovrHmd_ConfigureTracking(ovrHmd hmd, unsigned int supportedTrackingCaps,
-													     unsigned int requiredTrackingCaps):ovrBool;
+Function ovrHmd_ConfigureTracking(hmd:ovrHmd; supportedTrackingCaps, requiredTrackingCaps:Cardinal):ovrBool; CDecl; External OVR_LIB_NAME;
 
 /// Re-centers the sensor orientation.
 /// Normally this will recenter the (x,y,z) translational components and the yaw
 /// component of orientation.
-Procedure ovrHmd_RecenterPose(ovrHmd hmd);
+Procedure ovrHmd_RecenterPose(hmd:ovrHmd); CDecl; External OVR_LIB_NAME;
 
 /// Returns tracking state reading based on the specified absolute system time.
 /// Pass an absTime value of 0.0 to request the most recent sensor reading. In this case
 /// both PredictedPose and SamplePose will have the same value.
 /// ovrHmd_GetEyePoses relies on this function internally.
 /// This may also be used for more refined timing of FrontBuffer rendering logic, etc.
-OVR_EXPORT ovrTrackingState ovrHmd_GetTrackingState(ovrHmd hmd, double absTime);
+Function ovrHmd_GetTrackingState(hmd:ovrHmd; absTime:Double):ovrTrackingState; CDecl; External OVR_LIB_NAME;
 
 //-------------------------------------------------------------------------------------
 // ***** Graphics Setup
@@ -546,8 +610,7 @@ OVR_EXPORT ovrTrackingState ovrHmd_GetTrackingState(ovrHmd hmd, double absTime);
 ///  - pixelsPerDisplayPixel specifies the ratio of the number of render target pixels
 ///    to display pixels at the center of distortion. 1.0 is the default value. Lower
 ///    values can improve performance.
-OVR_EXPORT ovrSizei ovrHmd_GetFovTextureSize(ovrHmd hmd, ovrEyeType eye, ovrFovPort fov,
-                                             float pixelsPerDisplayPixel);
+Function ovrHmd_GetFovTextureSize(hmd:ovrHmd; eye:ovrEyeType; fov:ovrFovPort; pixelsPerDisplayPixel:Single):Int64; CDecl; External OVR_LIB_NAME;
 
 //-------------------------------------------------------------------------------------
 // *****  Rendering API Thread Safety
@@ -578,17 +641,14 @@ OVR_EXPORT ovrSizei ovrHmd_GetFovTextureSize(ovrHmd hmd, ovrEyeType eye, ovrFovP
 ///  - apiConfig provides D3D/OpenGL specific parameters. Pass null
 ///    to shutdown rendering and release all resources.
 ///  - distortionCaps describe desired distortion settings.
-OVR_EXPORT ovrBool ovrHmd_ConfigureRendering( ovrHmd hmd,
-                                              const ovrRenderAPIConfig* apiConfig,
-                                              unsigned int distortionCaps,
-                                              const ovrFovPort eyeFovIn[2],
-                                              ovrEyeRenderDesc eyeRenderDescOut[2] );
+Function ovrHmd_ConfigureRendering(hmd:ovrHmd; apiConfig:PovrRenderAPIConfig; distortionCaps:Cardinal; eyeFovIn:PovrFovPortArray;
+                                              eyeRenderDescOut:PovrEyeRenderDescArray):ovrBool; CDecl; External OVR_LIB_NAME;
 
 
 /// Begins a frame, returning timing information.
 /// This should be called at the beginning of the game rendering loop (on the render thread).
 /// Pass 0 for the frame index if not using ovrHmd_GetFrameTiming.
-OVR_EXPORT ovrFrameTiming ovrHmd_BeginFrame(ovrHmd hmd, unsigned int frameIndex);
+Function ovrHmd_BeginFrame(hmd:ovrHmd; frameIndex:Cardinal):ovrFrameTiming; CDecl; External OVR_LIB_NAME;
 
 /// Ends a frame, submitting the rendered textures to the frame buffer.
 /// - RenderViewport within each eyeTexture can change per frame if necessary.
@@ -599,9 +659,7 @@ OVR_EXPORT ovrFrameTiming ovrHmd_BeginFrame(ovrHmd hmd, unsigned int frameIndex)
 ///   delegated to another thread.
 /// - Must be called on the same thread as BeginFrame.
 /// - *** This Function will call Present/SwapBuffers and potentially wait for GPU Sync ***.
-Procedure ovrHmd_EndFrame(ovrHmd hmd,
-                                    const ovrPosef renderPose[2],
-                                    const ovrTexture eyeTexture[2]);
+Procedure ovrHmd_EndFrame(hmd:ovrHmd; renderPose:PovrPosefArray; eyeTexture:PovrTextureArray); CDecl; External OVR_LIB_NAME;
 
 /// Returns predicted head pose in outHmdTrackingState and offset eye poses in outEyePoses
 /// as an atomic operation. Caller need not worry about applying HmdToEyeViewOffset to the
@@ -614,8 +672,8 @@ Procedure ovrHmd_EndFrame(ovrHmd hmd,
 /// - If frameIndex is not being used, pass in 0.
 /// - Assuming outEyePoses are used for rendering, it should be passed into ovrHmd_EndFrame.
 /// - If called doesn't need outHmdTrackingState, it can be NULL
-OVR_EXPORT void ovrHmd_GetEyePoses(ovrHmd hmd, unsigned int frameIndex, ovrVector3f hmdToEyeViewOffset[2],
-                                   ovrPosef outEyePoses[2], ovrTrackingState* outHmdTrackingState);
+Procedure ovrHmd_GetEyePoses(hmd:ovrHmd; frameIndex:Cardinal; hmdToEyeViewOffset:PovrVector3fArray;
+                                   outEyePoses:PovrPosefArray; outHmdTrackingState:PovrTrackingState); CDecl; External OVR_LIB_NAME;
 
 /// Function was previously called ovrHmd_GetEyePose
 /// Returns the predicted head pose to use when rendering the specified eye.
@@ -623,7 +681,7 @@ OVR_EXPORT void ovrHmd_GetEyePoses(ovrHmd hmd, unsigned int frameIndex, ovrVecto
 /// - Must be called between ovrHmd_BeginFrameTiming and ovrHmd_EndFrameTiming.
 /// - If the pose is used for rendering the eye, it should be passed to ovrHmd_EndFrame.
 /// - Parameter 'eye' is used for prediction timing only
-OVR_EXPORT ovrPosef ovrHmd_GetHmdPosePerEye(ovrHmd hmd, ovrEyeType eye);
+Function ovrHmd_GetHmdPosePerEye(hmd:ovrHmd; eye:ovrEyeType):ovrPosef; CDecl; External OVR_LIB_NAME;
 
 
 //-------------------------------------------------------------------------------------
@@ -647,36 +705,38 @@ OVR_EXPORT ovrPosef ovrHmd_GetHmdPosePerEye(ovrHmd hmd, ovrEyeType eye);
 /// Computes the distortion viewport, view adjust, and other rendering parameters for
 /// the specified eye. This can be used instead of ovrHmd_ConfigureRendering to do
 /// setup for client rendered distortion.
-OVR_EXPORT ovrEyeRenderDesc ovrHmd_GetRenderDesc(ovrHmd hmd,
-                                                 ovrEyeType eyeType, ovrFovPort fov);
+Function ovrHmd_GetRenderDesc(hmd:ovrHmd; eyeType:ovrEyeType; fov:ovrFovPort):ovrEyeRenderDesc; CDecl; External OVR_LIB_NAME;
 
 
 /// Describes a vertex used by the distortion mesh. This is intended to be converted into
 /// the engine-specific format. Some fields may be unused based on the ovrDistortionCaps
 /// flags selected. TexG and TexB, for example, are not used if chromatic correction is
 /// not requested.
-typedef struct ovrDistortionVertex_
-{
-    ovrVector2f ScreenPosNDC;    ///< [-1,+1],[-1,+1] over the entire framebuffer.
-    float       TimeWarpFactor;  ///< Lerp factor between time-warp matrices. Can be encoded in Pos.z.
-    float       VignetteFactor;  ///< Vignette fade factor. Can be encoded in Pos.w.
-    ovrVector2f TanEyeAnglesR;   ///< The tangents of the horizontal and vertical eye angles for the red channel.
-	ovrVector2f TanEyeAnglesG;   ///< The tangents of the horizontal and vertical eye angles for the green channel.
-	ovrVector2f TanEyeAnglesB;   ///< The tangents of the horizontal and vertical eye angles for the blue channel.
-} ovrDistortionVertex;
+Type
+ovrDistortionVertex = Packed Record
+    ScreenPosNDC:ovrVector2f ;    ///< [-1,+1],[-1,+1] over the entire framebuffer.
+    TimeWarpFactor:Single;  ///< Lerp factor between time-warp matrices. Can be encoded in Pos.z.
+    VignetteFactor:Single;  ///< Vignette fade factor. Can be encoded in Pos.w.
+    TanEyeAnglesR:ovrVector2f ;   ///< The tangents of the horizontal and vertical eye angles for the red channel.
+	  TanEyeAnglesG:ovrVector2f ;   ///< The tangents of the horizontal and vertical eye angles for the green channel.
+	  TanEyeAnglesB:ovrVector2f ;   ///< The tangents of the horizontal and vertical eye angles for the blue channel.
+End;
+
+ovrDistortionVertexArray = Array[0..9999] Of ovrDistortionVertex;
+PovrDistortionVertexArray = ^ovrDistortionVertexArray;
 
 /// Describes a full set of distortion mesh data, filled in by ovrHmd_CreateDistortionMesh.
 /// Contents of this data structure, if not null, should be freed by ovrHmd_DestroyDistortionMesh.
-typedef struct ovrDistortionMesh_
-{
-    ovrDistortionVertex* pVertexData; ///< The distortion vertices representing each point in the mesh.
-    unsigned short*      pIndexData;  ///< Indices for connecting the mesh vertices into polygons.
-    unsigned int         VertexCount; ///< The number of vertices in the mesh.
-    unsigned int         IndexCount;  ///< The number of indices in the mesh.
-} ovrDistortionMesh;
+PovrDistortionMesh=^ovrDistortionMesh;
+ovrDistortionMesh = Packed Record
+    pVertexData:PovrDistortionVertexArray; ///< The distortion vertices representing each point in the mesh.
+    pIndexData:PWordArray;  ///< Indices for connecting the mesh vertices into polygons.
+    VertexCount:Cardinal; ///< The number of vertices in the mesh.
+    IndexCount:Cardinal;  ///< The number of indices in the mesh.
+End;
 
 /// Generate distortion mesh per eye.
-/// Distortion capabilities will depend on 'distortionCaps' flags. Users should 
+/// Distortion capabilities will depend on 'distortionCaps' flags. Users should
 /// render using the appropriate shaders based on their settings.
 /// Distortion mesh data will be allocated and written into the ovrDistortionMesh data structure,
 /// which should be explicitly freed with ovrHmd_DestroyDistortionMesh.
@@ -685,110 +745,104 @@ typedef struct ovrDistortionMesh_
 /// ovrDistortionMesh values will be set to null.
 /// This is the only function in the SDK reliant on eye relief, currently imported from profiles,
 /// or overridden here.
-OVR_EXPORT ovrBool  ovrHmd_CreateDistortionMesh( ovrHmd hmd,
-                                                 ovrEyeType eyeType, ovrFovPort fov,
-                                                 unsigned int distortionCaps,
-                                                 ovrDistortionMesh *meshData);
-OVR_EXPORT ovrBool ovrHmd_CreateDistortionMeshDebug( ovrHmd hmddesc,
-                                                     ovrEyeType eyeType, ovrFovPort fov,
-                                                     unsigned int distortionCaps,
-                                                     ovrDistortionMesh *meshData,
-												     float debugEyeReliefOverrideInMetres);
+Function ovrHmd_CreateDistortionMesh(hmd: ovrHmd; eyeType:ovrEyeType; fov:ovrFovPort;
+                                                 distortionCaps:Cardinal;
+                                                 meshData:ovrDistortionMesh):ovrBool; CDecl; External OVR_LIB_NAME;
+                                                 
+Function ovrHmd_CreateDistortionMeshDebug(hmddesc:ovrHmd;
+                                                     eyeType:ovrEyeType; fov:ovrFovPort;
+                                                     distortionCaps:Cardinal;
+                                                     meshData:PovrDistortionMesh;
+												     debugEyeReliefOverrideInMetres:Single):ovrBool; CDecl; External OVR_LIB_NAME;
 
 
 /// Used to free the distortion mesh allocated by ovrHmd_GenerateDistortionMesh. meshData elements
 /// are set to null and zeroes after the call.
-Procedure ovrHmd_DestroyDistortionMesh( ovrDistortionMesh* meshData );
+Procedure ovrHmd_DestroyDistortionMesh(meshData:PovrDistortionMesh); CDecl; External OVR_LIB_NAME;
 
 /// Computes updated 'uvScaleOffsetOut' to be used with a distortion if render target size or
 /// viewport changes after the fact. This can be used to adjust render size every frame if desired.
-Procedure ovrHmd_GetRenderScaleAndOffset( ovrFovPort fov,
-                                                    ovrSizei textureSize, ovrRecti renderViewport,
-                                                    ovrVector2f uvScaleOffsetOut[2] );
+Procedure ovrHmd_GetRenderScaleAndOffset(fov:ovrFovPort; textureSize:ovrSizei; renderViewport:ovrRecti; uvScaleOffsetOut:PovrVector2fArray); CDecl; External OVR_LIB_NAME;
 
 /// Thread-safe timing function for the main thread. Caller should increment frameIndex
 /// with every frame and pass the index where applicable to functions called on the
 /// rendering thread.
-OVR_EXPORT ovrFrameTiming ovrHmd_GetFrameTiming(ovrHmd hmd, unsigned int frameIndex);
+Function ovrHmd_GetFrameTiming(hmd:ovrHmd; frameIndex:Cardinal):ovrFrameTiming; CDecl; External OVR_LIB_NAME;
 
 /// Called at the beginning of the frame on the rendering thread.
 /// Pass frameIndex == 0 if ovrHmd_GetFrameTiming isn't being used. Otherwise,
 /// pass the same frame index as was used for GetFrameTiming on the main thread.
-OVR_EXPORT ovrFrameTiming ovrHmd_BeginFrameTiming(ovrHmd hmd, unsigned int frameIndex);
+Function ovrHmd_BeginFrameTiming(hmd:ovrHmd; frameIndex:Cardinal):ovrFrameTiming; CDecl; External OVR_LIB_NAME;
 
 /// Marks the end of client distortion rendered frame, tracking the necessary timing information.
 /// This function must be called immediately after Present/SwapBuffers + GPU sync. GPU sync is
 /// important before this call to reduce latency and ensure proper timing.
-Procedure ovrHmd_EndFrameTiming(ovrHmd hmd);
+Procedure ovrHmd_EndFrameTiming(hmd:ovrHmd); CDecl; External OVR_LIB_NAME;
 
 /// Initializes and resets frame time tracking. This is typically not necessary, but
 /// is helpful if game changes vsync state or video mode. vsync is assumed to be on if this
 /// isn't called. Resets internal frame index to the specified number.
-Procedure ovrHmd_ResetFrameTiming(ovrHmd hmd, unsigned int frameIndex);
+Procedure ovrHmd_ResetFrameTiming(hmd:ovrHmd; frameIndex:Cardinal); CDecl; External OVR_LIB_NAME;
 
 /// Computes timewarp matrices used by distortion mesh shader, these are used to adjust
 /// for head orientation change since the last call to ovrHmd_GetEyePoses
 /// when rendering this eye. The ovrDistortionVertex::TimeWarpFactor is used to blend between the
 /// matrices, usually representing two different sides of the screen.
 /// Must be called on the same thread as ovrHmd_BeginFrameTiming.
-Procedure ovrHmd_GetEyeTimewarpMatrices     (ovrHmd hmd, ovrEyeType eye,
-                                                       ovrPosef renderPose, ovrMatrix4f twmOut[2]);
-Procedure ovrHmd_GetEyeTimewarpMatricesDebug(ovrHmd hmd, ovrEyeType eye,
-                                                       ovrPosef renderPose, ovrMatrix4f twmOut[2],
-													   double debugTimingOffsetInSeconds);
+Procedure ovrHmd_GetEyeTimewarpMatrices(hmd:ovrHmd; eye:ovrEyeType; renderPose:ovrPosef; twmOut:PovrMatrix4fArray); CDecl; External OVR_LIB_NAME;
 
-
+Procedure ovrHmd_GetEyeTimewarpMatricesDebug(hmd:ovrHmd; eye:ovrEyeType; renderPose:ovrPosef; twmOut:PovrMatrix4fArray;
+													   debugTimingOffsetInSeconds:Double); CDecl; External OVR_LIB_NAME;
 
 
 //-------------------------------------------------------------------------------------
 // ***** Stateless math setup functions
 
 /// Used to generate projection from ovrEyeDesc::Fov.
-OVR_EXPORT ovrMatrix4f ovrMatrix4f_Projection( ovrFovPort fov,
-                                               float znear, float zfar, ovrBool rightHanded );
+Function ovrMatrix4f_Projection(fov:ovrFovPort; znear, zfar:Single; rightHanded:ovrBool):ovrMatrix4f; CDecl; External OVR_LIB_NAME;
 
 /// Used for 2D rendering, Y is down
 /// orthoScale = 1.0f / pixelsPerTanAngleAtCenter
 /// orthoDistance = distance from camera, such as 0.8m
-OVR_EXPORT ovrMatrix4f ovrMatrix4f_OrthoSubProjection(ovrMatrix4f projection, ovrVector2f orthoScale,
-                                                      float orthoDistance, float hmdToEyeViewOffsetX);
+Function ovrMatrix4f_OrthoSubProjection(projection:ovrMatrix4f; orthoScale:ovrVector2f; orthoDistance:Single; hmdToEyeViewOffsetX:Single):ovrMatrix4f; CDecl; External OVR_LIB_NAME;
 
 /// Returns global, absolute high-resolution time in seconds. This is the same
 /// value as used in sensor messages.
-OVR_EXPORT double   ovr_GetTimeInSeconds();
+Function ovr_GetTimeInSeconds():Double; CDecl; External OVR_LIB_NAME;
 
 /// Waits until the specified absolute time.
-OVR_EXPORT double   ovr_WaitTillTime(double absTime);
+Function ovr_WaitTillTime(absTime:double):double; CDecl; External OVR_LIB_NAME;
 
 // -----------------------------------------------------------------------------------
 // ***** Latency Test interface
 
 /// Does latency test processing and returns 'TRUE' if specified rgb color should
 /// be used to clear the screen.
-OVR_EXPORT ovrBool      ovrHmd_ProcessLatencyTest(ovrHmd hmd, unsigned char rgbColorOut[3]);
+Function ovrHmd_ProcessLatencyTest(hmd:ovrHmd; rgbColorOut:ovrRGB):ovrBool; CDecl; External OVR_LIB_NAME;
 
 /// Returns non-null string once with latency test result, when it is available.
 /// Buffer is valid until next call.
-OVR_EXPORT const char*  ovrHmd_GetLatencyTestResult(ovrHmd hmd);
+Function ovrHmd_GetLatencyTestResult(hmd:ovrHmd):PAnsiChar; CDecl; External OVR_LIB_NAME;
 
 /// Returns the latency testing color in rgbColorOut to render when using a DK2
 /// Returns false if this feature is disabled or not-applicable (e.g. using a DK1)
-OVR_EXPORT ovrBool      ovrHmd_GetLatencyTest2DrawColor(ovrHmd hmddesc, unsigned char rgbColorOut[3]);
+Function ovrHmd_GetLatencyTest2DrawColor(hmddesc:ovrHmd; rgbColorOut:ovrRGB):ovrBool; CDecl; External OVR_LIB_NAME;
 
 //-------------------------------------------------------------------------------------
 // ***** Health and Safety Warning Display interface
 //
 
 /// Used by ovrhmd_GetHSWDisplayState to report the current display state.
-typedef struct ovrHSWDisplayState_
-{
+Type
+ ovrHSWDisplayState = Packed Record
     /// If true then the warning should be currently visible
     /// and the following variables have meaning. Else there is no
     /// warning being displayed for this application on the given HMD.
-    ovrBool Displayed;       ///< True if the Health&Safety Warning is currently displayed.
-    double  StartTime;       ///< Absolute time when the warning was first displayed. See ovr_GetTimeInSeconds().
-    double  DismissibleTime; ///< Earliest absolute time when the warning can be dismissed. May be a time in the past.
-} ovrHSWDisplayState;
+    Displayed:ovrBool;       ///< True if the Health&Safety Warning is currently displayed.
+    StartTime:double;       ///< Absolute time when the warning was first displayed. See ovr_GetTimeInSeconds().
+    DismissibleTime:double; ///< Earliest absolute time when the warning can be dismissed. May be a time in the past.
+  End;
+  PovrHSWDisplayState = ^ovrHSWDisplayState;
 
 /// Returns the current state of the HSW display. If the application is doing the rendering of
 /// the HSW display then this function serves to indicate that the warning should be
@@ -807,7 +861,7 @@ typedef struct ovrHSWDisplayState_
 ///        <insert model into the scene that stays in front of the user>
 ///        HSWDisplayCurrentlyDisplayed = true;
 ///    }
-OVR_EXPORT void ovrHmd_GetHSWDisplayState(ovrHmd hmd, ovrHSWDisplayState *hasWarningState);
+Procedure ovrHmd_GetHSWDisplayState(hmd:ovrHmd; hasWarningState:PovrHSWDisplayState); CDecl; External OVR_LIB_NAME;
 
 /// Dismisses the HSW display if the warning is dismissible and the earliest dismissal time
 /// has occurred. Returns true if the display is valid and could be dismissed. The application
@@ -827,47 +881,43 @@ OVR_EXPORT void ovrHmd_GetHSWDisplayState(ovrHmd hmd, ovrHSWDisplayState *hasWar
 ///            }
 ///        }
 ///    }
-OVR_EXPORT ovrBool ovrHmd_DismissHSWDisplay(ovrHmd hmd);
+Function ovrHmd_DismissHSWDisplay(hmd:ovrHmd ):ovrBool ; CDecl; External OVR_LIB_NAME;
 
 /// Get boolean property. Returns first element if property is a boolean array.
 /// Returns defaultValue if property doesn't exist.
-OVR_EXPORT ovrBool      ovrHmd_GetBool(ovrHmd hmd, const char* propertyName, ovrBool defaultVal);
+Function ovrHmd_GetBool(hmd:ovrHmd; propertyName:PAnsiChar; defaultVal:ovrBool):ovrBool; CDecl; External OVR_LIB_NAME;
 
 /// Modify bool property; false if property doesn't exist or is readonly.
-OVR_EXPORT ovrBool      ovrHmd_SetBool(ovrHmd hmd, const char* propertyName, ovrBool value);
+Function ovrHmd_SetBool(hmd:ovrHmd; propertyName:PAnsiChar; value:ovrBool ):ovrBool; CDecl; External OVR_LIB_NAME;
 
 /// Get integer property. Returns first element if property is an integer array.
 /// Returns defaultValue if property doesn't exist.
-OVR_EXPORT int          ovrHmd_GetInt(ovrHmd hmd, const char* propertyName, int defaultVal);
+Function ovrHmd_GetInt(hmd:ovrHmd; propertyName:PAnsiChar; defaultVal:Integer):Integer; CDecl; External OVR_LIB_NAME;
 
 /// Modify integer property; false if property doesn't exist or is readonly.
-OVR_EXPORT ovrBool      ovrHmd_SetInt(ovrHmd hmd, const char* propertyName, int value);
+Function ovrHmd_SetInt(hmd:ovrHmd; propertyName:PAnsiChar; value:Integer):ovrBool; CDecl; External OVR_LIB_NAME;
 
 /// Get float property. Returns first element if property is a float array.
 /// Returns defaultValue if property doesn't exist.
-OVR_EXPORT float        ovrHmd_GetFloat(ovrHmd hmd, const char* propertyName, float defaultVal);
+Function ovrHmd_GetFloat(hmd:ovrHmd; propertyName:PAnsiChar; defaultVal:Single):Single; CDecl; External OVR_LIB_NAME;
 
 /// Modify float property; false if property doesn't exist or is readonly.
-OVR_EXPORT ovrBool      ovrHmd_SetFloat(ovrHmd hmd, const char* propertyName, float value);
+Function ovrHmd_SetFloat(hmd:ovrHmd; propertyName:PAnsiChar; value:Single):ovrBool; CDecl; External OVR_LIB_NAME;
 
 /// Get float[] property. Returns the number of elements filled in, 0 if property doesn't exist.
 /// Maximum of arraySize elements will be written.
-OVR_EXPORT unsigned int ovrHmd_GetFloatArray(ovrHmd hmd, const char* propertyName,
-                                            float values[], unsigned int arraySize);
+Function ovrHmd_GetFloatArray(hmd:ovrHmd; propertyName:PAnsiChar; values:PSingle; arraySize:Cardinal):Cardinal; CDecl; External OVR_LIB_NAME;
 
 /// Modify float[] property; false if property doesn't exist or is readonly.
-OVR_EXPORT ovrBool      ovrHmd_SetFloatArray(ovrHmd hmd, const char* propertyName,
-                                             float values[], unsigned int arraySize);
+Function ovrHmd_SetFloatArray(hmd:ovrHmd; propertyName:PAnsiChar; values:PSingle; arraySize:Cardinal):ovrBool; CDecl; External OVR_LIB_NAME;
 
 /// Get string property. Returns first element if property is a string array.
 /// Returns defaultValue if property doesn't exist.
 /// String memory is guaranteed to exist until next call to GetString or GetStringArray, or HMD is destroyed.
-OVR_EXPORT const char*  ovrHmd_GetString(ovrHmd hmd, const char* propertyName,
-                                        const char* defaultVal);
+Function ovrHmd_GetString(hmd:ovrHmd; propertyName:PAnsiChar; defaultVal:PAnsiChar):PAnsiChar; CDecl; External OVR_LIB_NAME;
 
 /// Set string property
-OVR_EXPORT ovrBool ovrHmd_SetString(ovrHmd hmddesc, const char* propertyName,
-                                    const char* value);
+Function ovrHmd_SetString(hmd:ovrHmddesc; propertyName:PAnsiChar; value:PAnsiChar):ovrBool; CDecl; External OVR_LIB_NAME;
 
 // -----------------------------------------------------------------------------------
 // ***** Logging
@@ -875,10 +925,9 @@ OVR_EXPORT ovrBool ovrHmd_SetString(ovrHmd hmddesc, const char* propertyName,
 /// Start performance logging. guid is optional and if included is written with each file entry.
 /// If called while logging is already active with the same filename, only the guid will be updated
 /// If called while logging is already active with a different filename, ovrHmd_StopPerfLog() will be called, followed by ovrHmd_StartPerfLog()
-OVR_EXPORT ovrBool ovrHmd_StartPerfLog(ovrHmd hmd, const char* fileName, const char* userData1);
+Function ovrHmd_StartPerfLog(hmd:ovrHmd; fileName, userData1:PAnsiChar):ovrBool; CDecl; External OVR_LIB_NAME;
 /// Stop performance logging.
-OVR_EXPORT ovrBool ovrHmd_StopPerfLog(ovrHmd hmd);
-
+Function ovrHmd_StopPerfLog(hmd:ovrHmd):ovrBool; CDecl; External OVR_LIB_NAME;
 
 Implementation
 

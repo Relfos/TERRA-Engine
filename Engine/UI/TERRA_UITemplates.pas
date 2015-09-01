@@ -42,7 +42,6 @@ Begin
   Tex.Prefetch();
   TileRect := UITiledRect.Create('rect', Self, UIPixels(0), UIPixels(0), 0, UIPercent(100), UIPercent(100), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
   TileRect.Texture := Tex;
-  TileRect.Draggable := True;
 End;
 
 
@@ -66,7 +65,6 @@ Begin
   Tex.Prefetch();
   TileRect := UITiledRect.Create('rect', Self, UIPixels(0), UIPercent(TabHeight), 0.2, UIPercent(100), UIPercent(100 - TabHeight), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
   TileRect.Texture := Tex;
-  TileRect.Draggable := True;
 
   // create the widget groups inside the gui window
   // the group size is 100% of the parent
@@ -89,7 +87,6 @@ Begin
   Tex.Prefetch();
   TileRect := UITiledRect.Create('button', Self, UIPixels(0), UIPixels(0), 0.0, UIPercent(100), UIPercent(100), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
   TileRect.Texture := Tex;
-  //TileRect.Draggable := True;
   //TileRect.Color := ColorBlue;
   //TileRect.Scale := 2;
 
@@ -113,7 +110,6 @@ Begin
   Tex.Prefetch();
   TileRect := UITiledRect.Create('button', Self, UIPixels(0), UIPixels(0), 0, UIPercent(100), UIPercent(100), X1/Tex.Width, Y1/Tex.Height, X2/Tex.Width, Y2/Tex.Height);
   TileRect.Texture := Tex;
-  TileRect.Draggable := True;
 
   EditText := UIEditText.Create('label', Self, UIPixels(20), UIPixels(15), 0.1, UIPercent(90), UIPercent(50),
   //'dsafsdfdsjkasdakjdaskjdadfsfsfsfsdfgdgd'

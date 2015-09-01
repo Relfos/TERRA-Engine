@@ -37,7 +37,7 @@ Type
     UIDrag_BottomLeft,
     UIDrag_BottomRight,
 
-    UI_DragScroll
+    UIDrag_Scroll
   );
 
   UIDirection = (
@@ -199,6 +199,7 @@ Type
       _DragY: Single;
       _DragSize:Vector2D;
       _DragStart:Vector2D;
+      _DragScroll:Vector2D;
       _DragStartLeft:UIDimension;
       _DragStartTop:UIDimension;
 
@@ -340,6 +341,7 @@ Type
       Procedure SetEventHandler(EventType: WidgetEventType; Handler:UIWidgetEventHandler);
 
       Function GetScrollOffset():Vector2D;
+      Procedure SetScrollOffset(Const Ofs:Vector2D);
 
 			Procedure OnLanguageChange();Virtual;
 
@@ -1486,14 +1488,13 @@ Begin
   If UI = Nil Then
     Exit;
 
-  If (Assigned(Self.Parent)) And (Self.Parent Is UIInstancedWidget) Then
+  If (Not Self.SupportDrag(Mode)) Then
   Begin
-    Result := Self.Parent.BeginDrag(X, Y, Mode);
+    If (Assigned(Self.Parent)) And (Self.Parent Is UIInstancedWidget) Then
+      Result := Self.Parent.BeginDrag(X, Y, Mode);
+
     Exit;
   End;
-
-  If (Not Self.SupportDrag(Mode)) Then
-    Exit;
 
   Self.CallEventHandler(widgetEvent_DragBegin);
 
@@ -1502,6 +1503,7 @@ Begin
   _Dragging := True;
 
   _DragSize := CurrentSize;
+  _DragScroll := Self._CurrentScroll;
   _DragStartLeft := Self.Left;
   _DragStartTop := Self.Top;
   _DragStart := Self.RelativePosition;
@@ -1524,6 +1526,7 @@ Begin
   Begin
     Self.Left := _DragStartLeft;
     Self.Top := _DragStartTop;
+    Self._CurrentScroll := _DragScroll;
     _Dragging := False;
 
     If UI.Dragger = Self Then
@@ -1596,6 +1599,12 @@ Begin
         Self.UpdateRects();
       End;
 
+    UIDrag_Scroll:
+      Begin
+        Self.SetScrollOffset(Vector2D_Subtract(Self._DragScroll, Vector2D_Create(PX, PY)));
+        Self.UpdateRects();
+      End;
+
     End;
 End;
 
@@ -1645,18 +1654,29 @@ Begin
   End;
 End;
 
-Procedure UIWidget.OnHandleMouseWheel(X,Y:Integer; Delta:Single);
-Var
-  ScrollValue:Single;
+Procedure UIWidget.SetScrollOffset(Const Ofs:Vector2D);
 Begin
-  ScrollValue := 5;
-  _CurrentScroll.Add(Vector2D_Create(0, -ScrollValue * Delta));
+  _CurrentScroll := Ofs;
+
+  If (_CurrentScroll.X < 0) Then
+    _CurrentScroll.X := 0
+  Else
+  If (_CurrentScroll.X > Self.ScrollLimits.X) Then
+    _CurrentScroll.X := Self.ScrollLimits.X;
 
   If (_CurrentScroll.Y < 0) Then
     _CurrentScroll.Y := 0
   Else
   If (_CurrentScroll.Y > Self.ScrollLimits.Y) Then
     _CurrentScroll.Y := Self.ScrollLimits.Y;
+End;
+
+Procedure UIWidget.OnHandleMouseWheel(X,Y:Integer; Delta:Single);
+Var
+  ScrollValue:Single;
+Begin
+  ScrollValue := 5;
+  SetScrollOffset(Vector2D_Add(_CurrentScroll, Vector2D_Create(0, -ScrollValue * Delta)));
 
   If (Delta<0) Then
     Self.TriggerEvent(widgetEvent_ScrollDown)
@@ -2331,7 +2351,14 @@ End;
 
 Function UIWidget.SupportDrag(Mode: UIDragMode): Boolean;
 Begin
-  Result := False;
+  Case Mode Of
+  UIDrag_Move:  Result := Self.Draggable;
+
+  UIDrag_Scroll: Result := Self.Scrollable;
+
+  Else
+    Result := False;
+  End;
 End;
 
 Procedure UIWidget.Delete();
@@ -2726,7 +2753,7 @@ Begin
   If Result<>Cursor_Default Then
     Exit;
 
-  If (SupportDrag(UI_DragScroll)) Then
+  If (SupportDrag(UIDrag_Scroll)) Then
     Result := Cursor_Move
   Else
   If (Assigned(_Parent)) Then
@@ -3045,7 +3072,7 @@ End;
 { UIScrollArea }
 Function UIScrollArea.SupportDrag(Mode: UIDragMode): Boolean;
 Begin
-  Result := (Mode = UI_DragScroll);
+  Result := (Mode = UIDrag_Scroll);
 End;
 
 Initialization

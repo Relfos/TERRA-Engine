@@ -50,7 +50,7 @@ Begin
   Solid.SetPosition(Vector3D_Create(0, 4, 0));
   Solid.SetScale(Vector3D_Constant(2.0));
 
-  Self.Floor.SetPosition(VectorZero);
+  Self.Floor.SetPosition(Vector3D_Zero);
 End;
 
 Procedure MyDemo.OnDestroy;

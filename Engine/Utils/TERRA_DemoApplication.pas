@@ -2,16 +2,19 @@ Unit TERRA_DemoApplication;
 
 {$I terra.inc}
 
+{-$DEFINE USE_OCULUS_RIFT}
+
 Interface
 Uses TERRA_Utils, TERRA_Object, TERRA_String, TERRA_Application, TERRA_OS,
   TERRA_Vector3D, TERRA_Color, TERRA_Camera, TERRA_Ray, TERRA_UIDimension,
   TERRA_Mesh, TERRA_Texture,
   TERRA_Font, TERRA_FontRenderer, TERRA_Skybox, TERRA_Viewport, TERRA_Lights,
   TERRA_UICursor, TERRA_UIView, TERRA_ScreenFX,
-  TERRA_TTF, TERRA_PNG, TERRA_JPG, TERRA_BMP, TERRA_PSD, TERRA_TGA, TERRA_GIF;
+  TERRA_TTF, TERRA_PNG, TERRA_JPG, TERRA_BMP, TERRA_PSD, TERRA_TGA, TERRA_GIF
+  {$IFDEF USE_OCULUS_RIFT},TERRA_OculusRift{$ENDIF};
 
 Type
-  DemoApplication = Class(Application)
+  DemoApplication = Class({$IFDEF USE_OCULUS_RIFT}OculusApplication{$ELSE}Application{$ENDIF})
     Private
       _Font:TERRAFont;
       _FontRenderer:TERRAFontRenderer;
@@ -83,7 +86,11 @@ Begin
   _Sun := DirectionalLight.Create(Vector3D_Create(-0.25, 0.75, 0.0));
   _Sky := TERRASkybox.Create('sky');
 
+  {$IFDEF USE_OCULUS_RIFT}
+  _Camera := OculusCamera.Create('main');
+  {$ELSE}
   _Camera := PerspectiveCamera.Create('main');
+  {$ENDIF}
   _Camera.SetPosition(Vector3D_Create(0, 5, -20));
   _Camera.SetView(Vector3D_Create(0, -0.25, 0.75));
 
@@ -130,12 +137,7 @@ End;
 Function DemoApplication.GetMainViewport: TERRAViewport;
 Begin
   If (_Main = Nil) Then
-  Begin
     _Main := Self.CreateMainViewport('main', Width, Height);
-    _Main.SetPostProcessingState(True);
-  //  _Main.FXChain.AddEffect(BloomFX.Create());
-    //_Main.Visible := False;
-  End;
 
   Result := _Main;
 End;
@@ -192,6 +194,11 @@ Begin
   Result.EnableDefaultTargets();
   Result.BackgroundColor := ColorNull;
   Result.OnRender := Self.OnRender3D;
+  Result.SetPostProcessingState(True);
+
+  {$IFDEF USE_OCULUS_RIFT}
+  Result.VR := True;
+  {$ENDIF}
 End;
 
 Procedure DemoApplication.OnKeyDown(Key: Word);
