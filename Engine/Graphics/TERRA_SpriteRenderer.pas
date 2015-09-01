@@ -638,10 +638,9 @@ Begin
 
       Pos := S.Transform.Transform(Pos);
 
-      //Pos.Scale(5);
-      (*Pos.X := Trunc(Pos.X);
-      Pos.Y := Trunc(Pos.Y);
-      Pos.Z := Pos.Z + S.Layer;*)
+      //Pos.X := Trunc(Pos.X);
+      //Pos.Y := Trunc(Pos.Y);
+      //Pos.Z := Pos.Z + S.Layer;
 
       Dest.Position := Pos;
       Dest.Saturation := S.Saturation;

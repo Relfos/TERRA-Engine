@@ -69,13 +69,15 @@ Type
       Procedure SetDefaultFont(const Value:TERRAFont);
       Procedure SetDragger(const Value:UIWidget);
 
+      Procedure SetVirtualKeyboard(const Value: UIWidget);
+
       Function GetModal():UIWidget;
 
       Procedure Clear;
 
       Procedure RenderCursor(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
 
-      Function SupportDrag(Mode:UIDragMode):Boolean; Override;
+      Function SupportDrag(Mode:UIDragMode):Boolean;
 
     Public
       CloseButton:UIWidget;
@@ -121,12 +123,10 @@ Type
 
       Procedure SetFocus(Value:UIWidget);
 
-      Function GetVirtualKeyboard():UIWidget;
+      Property VirtualKeyboard:UIWidget Read _VirtualKeyboard Write SetVirtualKeyboard;
 
       Property Focus:UIWidget Read _Focus Write SetFocus;
       Property Dragger:UIWidget Read _Dragger Write SetDragger;
-
-      Property VirtualKeyboard:UIWidget Read GetVirtualKeyboard;
 
       Property LastWidget:UIWidget Read _LastWidget;
 
@@ -340,6 +340,7 @@ Begin
 
   S := View.SpriteRenderer.FetchSprite();
   S.SetTexture(_CurrentCursor.Texture);
+  S.Layer := 99;
   S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(-_CurrentCursor.OfsX, -_CurrentCursor.OfsY), 0, _CurrentCursor.Texture.Width, _CurrentCursor.Texture.Height);
   S.Translate(MX, MY);
   View.SpriteRenderer.QueueSprite(S);
@@ -520,7 +521,6 @@ Function UIView.OnMouseMove(Const X,Y:Single):UIWidget;
 Var
   TX, TY:Integer;
   TargetType:TERRACursorType;
-  DragMode:UIDragMode;
 Begin
   Self.GetLocalCoords(X, Y, TX, TY);
 
@@ -530,13 +530,21 @@ Begin
   Begin
     Result := _HoldWidget;
 
-    If (Result.SupportDrag(UIDrag_Move)) Then
-      DragMode := UIDrag_Move
-    Else
-      DragMode := UIDrag_Scroll;
+    While Assigned(Result) Do
+    Begin
+      If (Result.SupportDrag(UIDrag_Move)) Then
+      Begin
+        Result.BeginDrag(TX, TY, UIDrag_Move);
+        Break;
+      End Else
+      If (Result.SupportDrag(UIDrag_Scroll)) Then
+      Begin
+        Result.BeginDrag(TX, TY, UIDrag_Scroll);
+        Break;
+      End Else
+        Result := Result.Parent;
 
-
-    Result.BeginDrag(TX, TY, DragMode);
+    End;
 
     _HoldWidget := Nil;
     Exit;
@@ -599,15 +607,6 @@ End;
 Procedure UIView.SetDragger(const Value:UIWidget);
 Begin
   Self._Dragger := Value;
-End;
-
-
-Function UIView.GetVirtualKeyboard:UIWidget;
-Begin
-(*  If (_VirtualKeyboard = Nil) Then
-    _VirtualKeyboard := UIVirtualKeyboard.Create('vkb', Self, 97, 'keyboard');
-*)
-  Result := _VirtualKeyboard;
 End;
 
 (*Function UIView.SelectNearestWidget(Target:UIWidget):UIWidget;
@@ -1104,5 +1103,15 @@ Begin
 End;
  }
 
+Procedure UIView.SetVirtualKeyboard(const Value: UIWidget);
+Begin
+  If (Value = _VirtualKeyboard) Then
+    Exit;
+
+  If (Assigned(_VirtualKeyboard)) Then
+    _VirtualKeyboard.Delete();
+
+  _VirtualKeyboard := Value;
+End;
 
 End.

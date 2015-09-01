@@ -411,12 +411,6 @@ Begin
   If (Self._CA.A = 0) And (Self._CB.A = 0) And (Self._CC.A=0) And (Self._CD.A=0) Then
     Exit;
 
-  If (_VertexOffset>16*1024) Then
-  Begin
-    IntegerProperty.Stringify(2);
-    Exit;
-  End;
-
   If _Vertices = Nil Then
     _Vertices := CreateSpriteVertexData(_VertexOffset + 4)
   Else
