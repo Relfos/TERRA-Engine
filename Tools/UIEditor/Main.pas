@@ -387,10 +387,17 @@ Begin
   Self.AddWidget(Img, X, Y);
 End;
 
-
 Procedure UIEditScene.AddTiledRect(X, Y: Integer);
+Var
+  Img:UITiledRect;
+  Tex:TERRATexture;
 Begin
-  Self.AddWidget(UITiledRect.Create('rect', Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(300), UIPixels(200)), X, Y);
+  //Tex := Engine.Textures['default_image'];
+  Tex := Engine.Textures['menu_window'];
+  Tex.Prefetch();
+  Img := UITiledRect.Create('rect', Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(300), UIPixels(200), Trunc(Tex.Width * 0.25), Trunc(Tex.Height * 0.25), Trunc(Tex.Width * 0.75), Trunc(Tex.Height * 0.75));
+  Img.SetTexture(Tex);
+  Self.AddWidget(Img, X, Y);
 End;
 
 Procedure UIEditScene.AddLabel(X, Y: Integer);
@@ -637,6 +644,7 @@ Begin
 
   // Added Asset folder to search path
   Engine.Files.AddFolder('..\..\samples\binaries\assets');
+  Engine.Files.AddFolder('d:\uitest');
 //  FileManager.Instance.AddPath('D:\Code\Minimon\Output\Textures');
 
   // Create a scene and set it as the current scene
@@ -850,17 +858,17 @@ begin
       _Scene._DragMode := UIDrag_TopLeft;
       TargetCursor := customDiagonal1;
     End Else
-    If (PX>=Trunc(W.Size.X - WidgetBorder)) And (PY<=WidgetBorder) Then
+    If (PX>=Trunc(W.CurrentSize.X - WidgetBorder)) And (PY<=WidgetBorder) Then
     Begin
       _Scene._DragMode := UIDrag_TopRight;
       TargetCursor := customDiagonal2;
     End Else
-    If (PX<=WidgetBorder) And (PY>=Trunc(W.Size.Y - WidgetBorder)) Then
+    If (PX<=WidgetBorder) And (PY>=Trunc(W.CurrentSize.Y - WidgetBorder)) Then
     Begin
       _Scene._DragMode := UIDrag_BottomLeft;
       TargetCursor := customDiagonal2;
     End Else
-    If (PX>=Trunc(W.Size.X - WidgetBorder)) And (PY>=Trunc(W.Size.Y - WidgetBorder)) Then
+    If (PX>=Trunc(W.CurrentSize.X - WidgetBorder)) And (PY>=Trunc(W.CurrentSize.Y - WidgetBorder)) Then
     Begin
       _Scene._DragMode := UIDrag_BottomRight;
       TargetCursor := customDiagonal1;
@@ -876,12 +884,12 @@ begin
       _Scene._DragMode := UIDrag_Top;
       TargetCursor := customVertical;
     End Else
-    If (PX>=Trunc(W.Size.X - WidgetBorder)) Then
+    If (PX>=Trunc(W.CurrentSize.X - WidgetBorder)) Then
     Begin
       _Scene._DragMode := UIDrag_Right;
       TargetCursor := customHorizontal;
     End Else
-    If (PY>=Trunc(W.Size.Y - WidgetBorder)) Then
+    If (PY>=Trunc(W.CurrentSize.Y - WidgetBorder)) Then
     Begin
       _Scene._DragMode := UIDrag_Bottom;
       TargetCursor := customVertical;
@@ -891,11 +899,11 @@ begin
       TargetCursor := customMove;
     End;
 
-    If (Not W.SupportDrag(_Scene._DragMode)) Then
+    (*If (Not W.SupportDrag(_Scene._DragMode)) Then
     Begin
       _Scene._DragMode := UIDrag_Move;
       TargetCursor := customMove;
-    End;
+    End;*)
 
     ChangeCursor(TargetCursor);
   End Else

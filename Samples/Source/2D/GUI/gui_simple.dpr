@@ -41,7 +41,9 @@ Begin
 
   MyWnd := UIInstancedWidget.Create('mywnd', Self.GUI, UIPixels(0), UIPixels(0), 10, UIPixels(643), UIPixels(231), 'wnd_template');
   MyWnd.Draggable := True;
+  MyWnd.Sizable := True;
   MyWnd.Align := UIAlign_Center;
+  MyWnd.Align := UIAlign_BottomCenter;
 //  MyWnd.Rotation := 45*RAD;
 
   MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, UIPixels(0), UIPixels(0), 1, UIPixels(250), UIPixels(50), 'btn_template');

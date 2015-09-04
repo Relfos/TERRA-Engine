@@ -667,6 +667,12 @@ Begin
 
   Result := Result +  IntegerProperty.Stringify(A) +'.';
 
+  If (X = 0.0) Then
+  Begin
+    Result := Result + '0';
+    Exit;
+  End;
+
   DecimalPlaces := 0;
   Ready := False;
   K := 10;

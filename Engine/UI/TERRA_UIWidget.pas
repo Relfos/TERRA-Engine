@@ -26,6 +26,7 @@ Const
 
 Type
   UIDragMode = (
+    UIDrag_Unknown,
     UIDrag_Move,
     UIDrag_Left,
     UIDrag_Right,
@@ -137,6 +138,7 @@ Type
       _Saturation:FloatProperty;
 			_Visible:BooleanProperty;
       _Draggable:BooleanProperty;
+      _Sizable:BooleanProperty;
 
       _Handlers:Array[WidgetEventType] Of UIWidgetEventHandler;
 
@@ -163,9 +165,14 @@ Type
 
       Procedure SetParent(Target:UIWidget);
       Procedure SetRelativePosition(Const Pos:Vector2D);
+      Procedure SetAbsolutePosition(Pos: Vector2D);
 
-      Function GetDraggable: Boolean;
+      Function IsDraggable: Boolean;
+      Function IsSizable:Boolean;
+
       Procedure SetDraggable(const Value: Boolean);
+      Procedure SetSizable(const Value: Boolean);
+
       Function GetUIView: UIWidget;
 
       Function IsEnabled: Boolean;
@@ -178,6 +185,9 @@ Type
 
       Function IsSelected: Boolean;
       Function IsScrollable: Boolean;
+      Function CanResizeWidth: Boolean;
+      Function CanResizeHeight: Boolean;
+
 
 
     Protected
@@ -199,7 +209,6 @@ Type
       _DragSize:Vector2D;
       _DragStart:Vector2D;
       _DragScroll:Vector2D;
-      _DragStartLeft:UIDimension;
       _DragStartTop:UIDimension;
 
       _Transform:Matrix3x3;
@@ -393,6 +402,7 @@ Type
       Procedure FinishDrag();
       Procedure CancelDrag();
 
+      Function GetRecommendedDragMode(X, Y:Integer):UIDragMode; Virtual;
       Function SupportDrag(Mode:UIDragMode):Boolean; Virtual;
 
       (*Function Show(AnimationFlags:Integer; EaseType:TweenEaseType = easeLinear; Delay:Cardinal = 0; Duration:Cardinal = 500; Callback:TweenCallback = Nil):Boolean;
@@ -436,7 +446,7 @@ Type
 
       Property ChildrenCount:Integer Read _ChildrenCount;
 
-      Property AbsolutePosition:Vector2D Read GetAbsolutePosition;
+      Property AbsolutePosition:Vector2D Read GetAbsolutePosition Write SetAbsolutePosition;
       Property RelativePosition:Vector2D Read GetRelativePosition Write SetRelativePosition;
 
       Property ClipRect:TERRAClipRect Read GetClipRect Write SetClipRect;
@@ -455,7 +465,8 @@ Type
       Property Height:UIDimension Read GetHeight Write SetHeight;
       Property Margin:MarginProperty Read _Margin;
 
-      Property Draggable:Boolean Read GetDraggable Write SetDraggable;
+      Property Draggable:Boolean Read IsDraggable Write SetDraggable;
+      Property Sizable:Boolean Read IsSizable Write SetSizable;
       Property Scrollable:Boolean Read IsScrollable;
 
       Property Deleted:Boolean Read _Deleted;
@@ -646,6 +657,7 @@ Begin
   _Scale := FloatProperty(Self.AddProperty(FloatProperty.Create('scale', 1.0), False));
   _Saturation := FloatProperty(Self.AddProperty(FloatProperty.Create('saturation', 1.0), False));
   _Draggable := BooleanProperty(Self.AddProperty(BooleanProperty.Create('draggable', False), False));
+  _Sizable := BooleanProperty(Self.AddProperty(BooleanProperty.Create('sizable', False), False));
   _Align := EnumProperty(Self.AddProperty(EnumProperty.Create('align', 0, _AlignEnums), False));
 End;
 
@@ -1178,13 +1190,13 @@ Begin
   _TransformChanged := True;
 End;
 
-(*Procedure UIWidget.SetAbsolutePosition(Pos:Vector2D);
+Procedure UIWidget.SetAbsolutePosition(Pos:Vector2D);
 Begin
   If Assigned(_Parent) Then
     Pos.Subtract(_Parent.AbsolutePosition);
 
   Self.SetRelativePosition(Pos);
-End;*)
+End;
 
 Procedure UIWidget.SetLayer(Z:Single);
 Begin
@@ -1489,15 +1501,40 @@ Begin
   If UI = Nil Then
     Exit;
 
-  If (Not Self.SupportDrag(Mode)) Then
+  (*If (Not Self.SupportDrag(Mode)) Then
   Begin
     If (Assigned(Self.Parent)) And (Self.Parent Is UIInstancedWidget) Then
       Result := Self.Parent.BeginDrag(X, Y, Mode);
 
     Exit;
-  End;
+  End;*)
 
   Self.CallEventHandler(widgetEvent_DragBegin);
+
+  Case Self.Align Of
+    UIAlign_BottomLeft,
+    UIAlign_BottomCenter,
+    UIAlign_BottomRight:
+      Case Mode Of
+        UIDrag_Top:
+          Mode := UIDrag_Bottom;
+
+        UIDrag_Bottom:
+          Mode := UIDrag_Top;
+
+        UIDrag_TopLeft:
+          Mode := UIDrag_BottomLeft;
+
+        UIDrag_TopRight:
+          Mode := UIDrag_BottomRight;
+
+        UIDrag_BottomLeft:
+          Mode := UIDrag_TopLeft;
+
+        UIDrag_BottomRight:
+          Mode := UIDrag_TopRight;
+      End;
+  End;
 
   UI.Dragger := Self;
   _DragMode := Mode;
@@ -1505,12 +1542,19 @@ Begin
 
   _DragSize := CurrentSize;
   _DragScroll := Self._CurrentScroll;
-  _DragStartLeft := Self.Left;
-  _DragStartTop := Self.Top;
   _DragStart := Self.RelativePosition;
 
-  _DragX := (X- _DragStart.X);
-  _DragY := (Y- _DragStart.Y);
+(*  Case Self.Align Of
+    UIAlign_BottomLeft,
+    UIAlign_BottomCenter,
+    UIAlign_BottomRight:
+      Begin
+        _DragY := Self.View.CurrentSize.Y  - _DragY;
+      End;
+    End;*)
+
+  _DragX := X;
+  _DragY := Y;
 
   Result := True;
 End;
@@ -1525,8 +1569,7 @@ Begin
 
   If _Dragging Then
   Begin
-    Self.Left := _DragStartLeft;
-    Self.Top := _DragStartTop;
+    Self.RelativePosition := Self._DragStart;
     Self._CurrentScroll := _DragScroll;
     _Dragging := False;
 
@@ -1570,33 +1613,33 @@ Begin
   Case Mode Of
     UIDrag_Move:
       Begin
-        Self.Left := UIPixels(UISnap(PX));
-        Self.Top := UIPixels(UISnap(PY));
+        Self.Left := UIPixels(UISnap(_DragStart.X + PX));
+        Self.Top := UIPixels(UISnap(_DragStart.Y + PY));
       End;
 
     UIDrag_Left:
       Begin
-        Extra := AdjustWidth(_DragSize.X + (_DragStart.X - PX));
-        Self.Left := UIPixels(PX + Extra);
+        Extra := AdjustWidth(_DragSize.X - PX);
+        Self.Left := UIPixels(_DragStart.X + PX + Extra);
         Self.UpdateRects();
       End;
 
     UIDrag_Top:
       Begin
-        Extra := AdjustHeight(_DragSize.Y + (_DragStart.Y - PY));
-        Self.Top := UIPixels(PY + Extra);
+        Extra := AdjustHeight(_DragSize.Y - PY);
+        Self.Top := UIPixels(_DragStart.Y + PY + Extra);
         Self.UpdateRects();
       End;
 
     UIDrag_Right:
       Begin
-        AdjustWidth(_DragSize.X + (PX - _DragStart.X));
+        AdjustWidth(_DragSize.X + PX);
         Self.UpdateRects();
       End;
 
     UIDrag_Bottom:
       Begin
-        AdjustHeight(_DragSize.Y + (PY - _DragStart.Y));
+        AdjustHeight(_DragSize.Y + PY);
         Self.UpdateRects();
       End;
 
@@ -1619,6 +1662,16 @@ Begin
   Begin
     PX := Trunc(X - _DragX);
     PY := Trunc(Y - _DragY);
+
+    Case Self.Align Of
+      UIAlign_BottomLeft,
+      UIAlign_BottomCenter,
+      UIAlign_BottomRight:
+        Begin
+          PY := Trunc(_DragY - Y);
+        End;
+    End;
+
 
     Case _DragMode Of
     UIDrag_TopLeft:
@@ -2352,12 +2405,14 @@ End;
 Function UIWidget.SupportDrag(Mode: UIDragMode): Boolean;
 Begin
   Case Mode Of
+  UIDrag_Unknown:  Result := False;
+
   UIDrag_Move:  Result := Self.Draggable;
 
   UIDrag_Scroll: Result := Self.Scrollable;
 
   Else
-    Result := False;
+    Result := Self.Sizable;
   End;
 End;
 
@@ -2464,9 +2519,19 @@ Begin
   _Properties[Pred(_PropertyCount)].Link := '';
 End;
 
-Function UIWidget.GetDraggable: Boolean;
+Function UIWidget.IsDraggable: Boolean;
 Begin
   Result := _Draggable.Value;
+End;
+
+Function UIWidget.IsSizable: Boolean;
+Begin
+  Result := _Sizable.Value;
+End;
+
+Procedure UIWidget.SetSizable(const Value: Boolean);
+Begin
+  _Sizable.Value := Value;
 End;
 
 Procedure UIWidget.SetDraggable(const Value: Boolean);
@@ -2720,7 +2785,7 @@ Begin
       Result := (HasEvent(widgetEvent_ScrollDown)) Or (HasEvent(widgetEvent_ScrollUp)) Or (Self.ScrollLimits.X>0) Or (Self.ScrollLimits.Y>0);
 
     widgetEventClass_Hover:
-      Result := (Not Self.Selected) And ((HasEvent(widgetEvent_MouseOut)) Or (HasEvent(widgetEvent_MouseOver))  Or (HasAnimation(widget_Highlighted)));
+      Result := (Not Self.Selected) And ((HasEvent(widgetEvent_MouseOut)) Or (HasEvent(widgetEvent_MouseOver))  Or (HasAnimation(widget_Highlighted)) Or (Self.Sizable) Or (Self.Scrollable) Or (Self.Draggable));
 
     widgetEventClass_Drag:
       Result := (HasEvent(widgetEvent_DragEnd)) Or (HasEvent(widgetEvent_DragBegin)) Or (HasAnimation(widget_Dragged));
@@ -2775,6 +2840,75 @@ Begin
 
   For I:=0 To Pred(Other._AnimationCount) Do
     Self.AddAnimation(Other._Animations[I].State, Other._Animations[I].PropName, Other._Animations[I].Value, Other._Animations[I].Ease);
+End;
+
+Function UIWidget.GetRecommendedDragMode(X, Y: Integer): UIDragMode;
+Const
+  WidgetBorder = 20;
+Var
+  Pos:Vector2D;
+Begin
+  Pos := Vector2D_Create(X, Y);
+  Self.ConvertGlobalToLocal(Pos);
+
+  Result := UIDrag_Unknown;
+
+  If (Self.Sizable) Then
+  Begin
+    If (Pos.X <= WidgetBorder) And (Pos.Y <= WidgetBorder) Then
+    Begin
+      Result := UIDrag_TopLeft;
+    End Else
+    If (Pos.X >= Trunc(Self.CurrentSize.X - WidgetBorder)) And (Pos.Y <= WidgetBorder) Then
+    Begin
+      Result := UIDrag_TopRight;
+    End Else
+    If (Pos.X <= WidgetBorder) And (Pos.Y >= Trunc(Self.CurrentSize.Y - WidgetBorder)) Then
+    Begin
+      Result := UIDrag_BottomLeft;
+    End Else
+    If (Pos.X >= Trunc(Self.CurrentSize.X - WidgetBorder)) And (Pos.Y >= Trunc(Self.CurrentSize.Y - WidgetBorder)) Then
+    Begin
+      Result := UIDrag_BottomRight;
+    End Else
+    If (Pos.X <= WidgetBorder) Then
+    Begin
+      Result := UIDrag_Left;
+    End Else
+    If (Pos.Y<=WidgetBorder) Then
+    Begin
+      Result := UIDrag_Top;
+    End Else
+    If (Pos.X >= Trunc(Self.CurrentSize.X - WidgetBorder)) Then
+    Begin
+      Result := UIDrag_Right;
+    End Else
+    If (Pos.Y >= Trunc(Self.CurrentSize.Y - WidgetBorder)) Then
+    Begin
+      Result := UIDrag_Bottom;
+    End;
+
+    If Result <> UIDrag_Unknown  Then
+      Exit;
+  End;
+
+  If (Self.Scrollable) Then
+    Result := UIDrag_Scroll
+  Else
+  If (Self.Draggable) Then
+    Result := UIDrag_Move
+  Else
+    Result := UIDrag_Unknown;
+End;
+
+Function UIWidget.CanResizeHeight: Boolean;
+Begin
+  Result := True;
+End;
+
+Function UIWidget.CanResizeWidth: Boolean;
+Begin
+  Result := True;
 End;
 
 { UIWidgetGroup }

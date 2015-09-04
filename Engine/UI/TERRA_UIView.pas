@@ -103,6 +103,8 @@ Type
 
       Procedure AutoResize();
 
+      Function GetCursorForDrag(Mode:UIDragMode):TERRACursorType;
+
       //Function SelectNearestWidget(Target:UIWidget):UIWidget;
       //Procedure GetFirstHighLight(GroupID:Integer);
 
@@ -517,10 +519,13 @@ Begin
     Result.OnHandleMouseUp(TX, TY, Button);
 End;
 
+
 Function UIView.OnMouseMove(Const X,Y:Single):UIWidget;
 Var
   TX, TY:Integer;
   TargetType:TERRACursorType;
+  DragMode:UIDragMode;
+  Temp:UIWidget;
 Begin
   Self.GetLocalCoords(X, Y, TX, TY);
 
@@ -532,18 +537,13 @@ Begin
 
     While Assigned(Result) Do
     Begin
-      If (Result.SupportDrag(UIDrag_Move)) Then
+      DragMode := Result.GetRecommendedDragMode(TX, TY);
+      If (DragMode<>UIDrag_Unknown) And (Result.SupportDrag(DragMode)) Then
       Begin
-        Result.BeginDrag(TX, TY, UIDrag_Move);
-        Break;
-      End Else
-      If (Result.SupportDrag(UIDrag_Scroll)) Then
-      Begin
-        Result.BeginDrag(TX, TY, UIDrag_Scroll);
+        Result.BeginDrag(TX, TY, DragMode);
         Break;
       End Else
         Result := Result.Parent;
-
     End;
 
     _HoldWidget := Nil;
@@ -575,11 +575,27 @@ Begin
     _LastOver := Result;
   End;
 
+  TargetType := Self.CurrentCursor;
   If (Assigned(Result)) Then
   Begin
-    TargetType := Result.CurrentCursor;
-  End Else
-    TargetType := Self.CurrentCursor;
+    Temp := Result;
+
+    While Assigned(Temp) Do
+    Begin
+      TargetType := Result.CurrentCursor;
+      If TargetType<>Cursor_Default Then
+        Break;
+
+      DragMode := Temp.GetRecommendedDragMode(TX, TY);
+      If (DragMode<>UIDrag_Unknown) And (Temp.SupportDrag(DragMode)) Then
+      Begin
+        TargetType := Self.GetCursorForDrag(DragMode);
+        Break;
+      End Else
+        Temp := Temp.Parent;
+    End;
+
+  End;
 
   _CurrentCursor := Engine.Cursors.GetCursor(TargetType);
 End;
@@ -659,6 +675,45 @@ Begin
   End;
   ReleaseObject(It);
 End;*)
+
+
+Function UIView.GetCursorForDrag(Mode: UIDragMode): TERRACursorType;
+Begin
+  Case Mode Of
+    UIDrag_Move:
+      Result := Cursor_Move;
+
+    UIDrag_Left:
+      Result := Cursor_ResizeHorizontal;
+
+    UIDrag_Right:
+      Result := Cursor_ResizeHorizontal;
+
+    UIDrag_Top:
+      Result := Cursor_ResizeVertical;
+
+    UIDrag_Bottom:
+      Result := Cursor_ResizeVertical;
+
+    UIDrag_TopLeft:
+      Result := Cursor_ResizeDiagonal1;
+
+    UIDrag_TopRight:
+      Result := Cursor_ResizeDiagonal2;
+
+    UIDrag_BottomLeft:
+      Result := Cursor_ResizeDiagonal2;
+
+    UIDrag_BottomRight:
+      Result := Cursor_ResizeDiagonal1;
+
+    UIDrag_Scroll:
+      Result := Cursor_Move;
+      
+  Else
+    Result := Cursor_Default;
+  End;
+End;
 
 Function UIView.GetModal:UIWidget;
 Begin

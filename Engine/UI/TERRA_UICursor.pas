@@ -14,7 +14,7 @@ Type
     cursor_Forbidden,
     cursor_ResizeVertical,
     cursor_ResizeHorizontal,
-    cursor_ResizeDiagonal,
+    cursor_ResizeDiagonal1,
     cursor_ResizeDiagonal2,
     cursor_Move,
     cursor_Rotate,

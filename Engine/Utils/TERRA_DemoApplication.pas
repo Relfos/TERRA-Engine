@@ -101,7 +101,7 @@ Begin
   Engine.Cursors.SetCursor(cursor_Forbidden, Engine.Textures['cursor_forbidden'], 15, 14);
   Engine.Cursors.SetCursor(cursor_ResizeVertical, Engine.Textures['cursor_vertical'], 15, 14);
   Engine.Cursors.SetCursor(cursor_ResizeHorizontal, Engine.Textures['cursor_horizontal'], 15, 15);
-  Engine.Cursors.SetCursor(cursor_ResizeDiagonal, Engine.Textures['cursor_diagonal1'], 15, 14);
+  Engine.Cursors.SetCursor(cursor_ResizeDiagonal1, Engine.Textures['cursor_diagonal1'], 15, 14);
   Engine.Cursors.SetCursor(cursor_ResizeDiagonal2, Engine.Textures['cursor_diagonal2'], 15, 15);
 
   Engine.Cursors.SetCursor(cursor_Move, Engine.Textures['cursor_move'], 15, 15);
