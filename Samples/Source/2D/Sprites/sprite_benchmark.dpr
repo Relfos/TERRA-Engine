@@ -23,6 +23,7 @@ uses
   TERRA_PNG,
   TERRA_Math,
   TERRA_Color,
+  TERRA_Profiler,
   TERRA_String,
   TERRA_Sprite;
 
