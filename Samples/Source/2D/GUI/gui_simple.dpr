@@ -44,6 +44,7 @@ Begin
   MyWnd.Sizable := True;
   MyWnd.Align := UIAlign_Center;
   MyWnd.Align := UIAlign_BottomCenter;
+  MyWnd.Align := UIAlign_RightCenter;
 //  MyWnd.Rotation := 45*RAD;
 
   MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, UIPixels(0), UIPixels(0), 1, UIPixels(250), UIPixels(50), 'btn_template');

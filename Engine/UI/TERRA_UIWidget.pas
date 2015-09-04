@@ -1512,9 +1512,57 @@ Begin
   Self.CallEventHandler(widgetEvent_DragBegin);
 
   Case Self.Align Of
-    UIAlign_BottomLeft,
-    UIAlign_BottomCenter,
+    UIAlign_TopRight,
+    UIAlign_RightCenter:
+      Case Mode Of
+        UIDrag_Right:
+          Mode := UIDrag_Left;
+
+        UIDrag_Left:
+          Mode := UIDrag_Right;
+
+        UIDrag_TopLeft:
+          Mode := UIDrag_TopRight;
+
+        UIDrag_TopRight:
+          Mode := UIDrag_TopLeft;
+
+        UIDrag_BottomLeft:
+          Mode := UIDrag_BottomRight;
+
+        UIDrag_BottomRight:
+          Mode := UIDrag_BottomLeft;
+      End;
+
     UIAlign_BottomRight:
+      Case Mode Of
+        UIDrag_Right:
+          Mode := UIDrag_Left;
+
+        UIDrag_Left:
+          Mode := UIDrag_Right;
+
+        UIDrag_Top:
+          Mode := UIDrag_Bottom;
+
+        UIDrag_Bottom:
+          Mode := UIDrag_Top;
+
+        UIDrag_TopLeft:
+          Mode := UIDrag_BottomRight;
+
+        UIDrag_TopRight:
+          Mode := UIDrag_BottomLeft;
+
+        UIDrag_BottomLeft:
+          Mode := UIDrag_TopRight;
+
+        UIDrag_BottomRight:
+          Mode := UIDrag_TopLeft;
+      End;
+
+    UIAlign_BottomLeft,
+    UIAlign_BottomCenter:
       Case Mode Of
         UIDrag_Top:
           Mode := UIDrag_Bottom;
@@ -1543,15 +1591,6 @@ Begin
   _DragSize := CurrentSize;
   _DragScroll := Self._CurrentScroll;
   _DragStart := Self.RelativePosition;
-
-(*  Case Self.Align Of
-    UIAlign_BottomLeft,
-    UIAlign_BottomCenter,
-    UIAlign_BottomRight:
-      Begin
-        _DragY := Self.View.CurrentSize.Y  - _DragY;
-      End;
-    End;*)
 
   _DragX := X;
   _DragY := Y;
@@ -1609,7 +1648,27 @@ End;
 Procedure UIWidget.ApplyDragMode(Const PX, PY:Single; Mode:UIDragMode);
 Var
   Extra:Single;
+  CenterX, CenterY:Boolean;
 Begin
+  Case Self.Align Of
+    UIAlign_TopCenter,
+    UIAlign_Center,
+    UIAlign_BottomCenter:
+      CenterX := True;
+    Else
+      CenterX := False;
+  End;
+
+
+  Case Self.Align Of
+    UIAlign_LeftCenter,
+    UIAlign_Center,
+    UIAlign_RightCenter:
+      CenterY := True;
+    Else
+      CenterY := False;
+  End;
+
   Case Mode Of
     UIDrag_Move:
       Begin
@@ -1620,14 +1679,20 @@ Begin
     UIDrag_Left:
       Begin
         Extra := AdjustWidth(_DragSize.X - PX);
-        Self.Left := UIPixels(_DragStart.X + PX + Extra);
+
+        If (Not CenterX) Then
+          Self.Left := UIPixels(_DragStart.X + PX + Extra);
+
         Self.UpdateRects();
       End;
 
     UIDrag_Top:
       Begin
         Extra := AdjustHeight(_DragSize.Y - PY);
-        Self.Top := UIPixels(_DragStart.Y + PY + Extra);
+
+        If (Not CenterY) Then
+          Self.Top := UIPixels(_DragStart.Y + PY + Extra);
+
         Self.UpdateRects();
       End;
 
@@ -1660,8 +1725,17 @@ Var
 Begin
   If (_Dragging) Then
   Begin
-    PX := Trunc(X - _DragX);
-    PY := Trunc(Y - _DragY);
+    Case Self.Align Of
+      UIAlign_TopRight,
+      UIAlign_RightCenter,
+      UIAlign_BottomRight:
+        Begin
+          PX := Trunc(_DragX - X);
+        End;
+
+      Else
+        PX := Trunc(X - _DragX);
+    End;
 
     Case Self.Align Of
       UIAlign_BottomLeft,
@@ -1670,6 +1744,9 @@ Begin
         Begin
           PY := Trunc(_DragY - Y);
         End;
+
+      Else
+        PY := Trunc(Y - _DragY);
     End;
 
 
