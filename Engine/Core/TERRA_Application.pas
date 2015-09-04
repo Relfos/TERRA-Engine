@@ -441,6 +441,9 @@ Type
         Function GetVRProjectionMatrix(Eye:Integer; FOV, Ratio, zNear, zFar:Single):Matrix4x4; Virtual;
       {$ENDIF}
 
+      Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
+
+
       Function GetTitle:TERRAString; Virtual;
       Function GetWidth:Word; Virtual;
       Function GetHeight:Word; Virtual;
@@ -2028,6 +2031,11 @@ Begin
   Result := False;
 End;*)
 
+
+Function BaseApplication.CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject;
+Begin
+  Result := Engine.CreateObject(KeyName, ObjectType);
+End;
 
 Initialization
   {$IFDEF FPC}

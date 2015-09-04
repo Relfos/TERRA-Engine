@@ -504,7 +504,7 @@ Begin
   Begin
     Result := _HoldWidget;
 
-    If (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
+    If (Result.Enabled) And (Not Result.HasActiveTweens()) Then
     Begin
       {$IFDEF DEBUG_GUI}Log(logDebug, 'UI', 'Calling onmousedown for '+Result.Name));{$ENDIF}
       Result.TriggerEvent(widgetEvent_MouseDown);
@@ -616,7 +616,7 @@ Begin
 
   Result := Self.PickWidget(TX, TY, widgetEventClass_Scroll);
 
-  If (Assigned(Result)) And (Result.Enabled) And (Not Result.HasPropertyTweens()) Then
+  If (Assigned(Result)) And (Result.Enabled) And (Not Result.HasActiveTweens()) Then
     Result.OnHandleMouseWheel(TX, TY, Delta);
 End;
 
@@ -883,13 +883,6 @@ Begin
     _Viewport.Resize(UIW, UIH);*)
 End;
 
-Function UIManager.CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject;
-Begin
-  If (StringEquals(ObjectType, 'UI')) Then
-    Result := UIView.Create(KeyName, UIPixels(100), UIPixels(100))
-  Else
-    Result := Nil;
-End;
 }
 
 (*

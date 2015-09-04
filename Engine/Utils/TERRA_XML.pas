@@ -24,7 +24,6 @@ Type
       //Procedure LoadFromObject(Source:TERRAObject); Override;
       Procedure LoadFromStream(Source:TERRAStream); Override;
 
-      Function SaveToObject(Target:TERRAObject):TERRAObject; Override;
       Procedure SaveToStream(Dest:TERRAStream; SaveFlags:Cardinal); Override;
   End;
 
@@ -308,22 +307,6 @@ Begin
   End;
 End;
 
-
-Function XMLNode.SaveToObject(Target:TERRAObject):TERRAObject;
-Var
-  I:Integer;
-Begin
-  If (Self._Parent = Nil) Then
-  Begin
-    For I:=0 To Pred(ChildCount) Do
-      _ChildList[I].SaveToObject(Target);
-
-    Result := Nil;
-    Exit;
-  End;
-
-  Result := Inherited SaveToObject(Target);
-End;
 
 
 End.

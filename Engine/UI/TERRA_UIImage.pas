@@ -81,7 +81,8 @@ End;
 
 Procedure UIImage.UpdateSprite(View:TERRAViewport);
 Begin
-  _FullSize := Vector2D_Create(Self.Texture.Width, Self.Texture.Height);
+  //_FullSize := Vector2D_Create(Self.Texture.Width, Self.Texture.Height);
+  _FullSize := CurrentSize;
 
   If (Self.Width.Value<=0) And (Assigned(Texture)) Then
     Self.Width := UIPixels(Trunc(SafeDiv(Texture.Width, Texture.Ratio.X)));

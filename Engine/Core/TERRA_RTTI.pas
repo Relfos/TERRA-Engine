@@ -6,44 +6,50 @@ Interface
 Uses TERRA_Object, TERRA_String;
 
 Type
-  TERRAObjectType = Class Of TERRAObject;
+  RTTIEntry = Record
+    Alias:TERRAString;
+    ObjectType:TERRAObjectType;
+  End;
 
-  RTTI = Class
+  RTTIManager = Class
+    Protected
+      _RTTIList:Array Of RTTIEntry;
+      _RTTICount:Integer;
+
     Public
-      Class Procedure RegisterType(Obj:TERRAObject);
-      Class Function FindType(Const Name:TERRAString):TERRAObjectType;
+      Procedure RegisterType(Obj:TERRAObjectType; Alias:TERRAString = '');
+      Function FindType(Const Name:TERRAString):TERRAObjectType;
   End;
 
 Implementation
 
-{ RTTI }
-
-Var
-  _RTTIList:Array Of TERRAObjectType;
-  _RTTICount:Integer;
-
-Class Procedure RTTI.RegisterType(Obj: TERRAObject);
+{ RTTIManager }
+Procedure RTTIManager.RegisterType(Obj:TERRAObjectType; Alias:TERRAString = '');
 Begin
   If (Obj = Nil) Then
     Exit;
 
-  If Assigned(RTTI.FindType(Obj.ClassName)) Then
+  If (Alias = '') Then
+    Alias := Obj.ClassName;
+
+  If Assigned(FindType(Alias)) Then
     Exit;
 
   Inc(_RTTICount);
   SetLength(_RTTIList, _RTTICount);
-  _RTTIList[Pred(_RTTICount)] := TERRAObjectType(Obj.ClassType);
+  _RTTIList[Pred(_RTTICount)].Alias := Alias;
+  _RTTIList[Pred(_RTTICount)].ObjectType := Obj;
 End;
 
 
-Class Function RTTI.FindType(const Name: TERRAString):TERRAObjectType;
+Function RTTIManager.FindType(const Name: TERRAString):TERRAObjectType;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_RTTICount) Do
-  If (StringEquals(_RTTIList[I].ClassName, Name)) Then
+  If (StringEquals(_RTTIList[I].Alias, Name)) Then
   Begin
-    Result := _RTTIList[I];
+    Result := _RTTIList[I].ObjectType;
     Exit;
   End;
 

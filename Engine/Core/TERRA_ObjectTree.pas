@@ -25,7 +25,7 @@ Type
 
       Function GetPath():TERRAString;
 
-      Function SaveToObject(Target:TERRAObject):TERRAObject; Virtual;
+      Function SaveToObject(Target:TERRAObject; Owner:TERRAObject = Nil):TERRAObject;
       Procedure SaveToStream(Dest:TERRAStream; SaveFlags:Cardinal); Virtual; Abstract;
       Procedure SaveToFile(FileName:TERRAString; SaveFlags:Cardinal = 0);
       Function SaveToString(Encoding:StringEncoding; SaveFlags:Cardinal = 0):TERRAString;
@@ -68,7 +68,7 @@ Type
   TERRAObjectNodeClass = Class Of TERRAObjectNode;
 
 Implementation
-Uses TERRA_MemoryStream, TERRA_FileStream, TERRA_XML, TERRA_OS;
+Uses TERRA_MemoryStream, TERRA_FileStream, TERRA_EngineManager, TERRA_XML, TERRA_OS;
 
 Procedure DumpObjectTree(Node:TERRAObjectNode; Dest:TERRAStream; Level:Integer);
 Var
@@ -342,6 +342,7 @@ Var
   Node:TERRAObjectNode;
   TargetClass:TERRAObjectNodeClass;
   Prop:TERRAObject;
+  Value:TERRAString;
 Begin
   TargetClass := TERRAObjectNodeClass(Self.ClassType);
 
@@ -354,20 +355,32 @@ Begin
     If Prop = Nil Then
       Exit;
 
+  (*  If (Prop.Name = 'dimension') Or (Prop.GetObjectType = 'dimension') Then
+      DebugBreak;*)
 
-    Node := TargetClass.Create(Prop.GetObjectType());
-    Self.AddChild(Node);
+    Value := Prop.GetBlob();
 
-    Self.AddString(Prop.Name, Prop.GetBlob());
-    //Node.AddString('name', Prop.Name);
+    If (Value <> '') Or (Prop.HasProperties) Then
+    Begin
+      If (Prop.HasProperties()) Then
+      Begin
+        Node := TargetClass.Create(Prop.GetObjectType());
+        Self.AddChild(Node);
 
-    Node.LoadFromObject(Prop);
+        Node.AddString('name', Prop.Name);
+        Node.LoadFromObject(Prop);
+      End Else
+      Begin
+          Self.AddString(Prop.Name, Value);
+        //Node.AddString('name', Prop.Name);
+      End;
+    End;
 
     Inc(Index);
   Until False;
 End;
 
-Function TERRAObjectNode.SaveToObject(Target: TERRAObject): TERRAObject;
+Function TERRAObjectNode.SaveToObject(Target:TERRAObject; Owner:TERRAObject): TERRAObject;
 Var
   TypeName, PropName:TERRAString;
   I:Integer;
@@ -375,6 +388,14 @@ Var
   Prop:TERRAObject;
 Begin
   Result := Nil;
+
+  If (Owner = Nil) Then
+  Begin
+    For I:=0 To Pred(ChildCount) Do
+      _ChildList[I].SaveToObject(Target, Target);
+
+    Exit;
+  End;
 
   If Target = Nil Then
   Begin
@@ -416,7 +437,7 @@ Begin
     If P.Name='position' Then
        IntegerProperty.Stringify(2);
 
-      P.SaveToObject(Result);
+      P.SaveToObject(Result, Target);
   End;
 End;
 

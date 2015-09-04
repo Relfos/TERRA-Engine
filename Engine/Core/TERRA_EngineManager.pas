@@ -3,7 +3,7 @@ Unit TERRA_EngineManager;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_Application, TERRA_Threads,
+Uses TERRA_Object, TERRA_String, TERRA_Application, TERRA_Threads,
   TERRA_GraphicsManager, TERRA_TextureManager, TERRA_MeshManager, TERRA_FontManager, TERRA_InputManager,
   TERRA_PhysicsManager, TERRA_ParticleRenderer, TERRA_ShaderFactory, TERRA_MeshAnimation, TERRA_Lights, TERRA_UICursor,
   TERRA_FileManager, TERRA_SoundManager, TERRA_FileFormat, TERRA_MusicManager, TERRA_MIDI, TERRA_Localization,
@@ -50,6 +50,8 @@ Type
       Procedure Update();
       Procedure OnContextLost();
 
+      Function CreateObject(Const KeyName, ObjectType:TERRAString):TERRAObject;
+
       Property Textures:TextureManager Read _Textures;
       Property Meshes:MeshManager Read _Meshes;
       Property Animations:AnimationManager Read _Animations;
@@ -83,6 +85,7 @@ Type
 Function Engine():EngineManager;
 
 Implementation
+Uses TERRA_List, TERRA_UIView, TERRA_UIDimension, TERRA_Color, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Quaternion;
 
 Var
   _EngineManager:EngineManager = Nil;
@@ -116,6 +119,55 @@ Begin
   {$IFDEF PC}
   _Steam := SteamManager.Create();
   {$ENDIF}
+End;
+
+Function EngineManager.CreateObject(const KeyName, ObjectType: TERRAString): TERRAObject;
+Begin
+  If (StringEquals(ObjectType, 'UI')) Then
+    Result := UIView.Create(Name, UIPercent(100), UIPercent(100))
+  Else
+  If (StringEquals(ObjectType, 'string')) Then
+    Result := StringProperty.Create(Name, '')
+  Else
+  If (StringEquals(ObjectType, 'color')) Then
+    Result := ColorProperty.Create(Name, ColorWhite)
+  Else
+  If (StringEquals(ObjectType, 'vec2')) Then
+    Result := Vector2DProperty.Create(Name, Vector2D_Zero)
+  Else
+  If (StringEquals(ObjectType, 'vec3')) Then
+    Result := Vector3DProperty.Create(Name, Vector3D_Zero)
+  Else
+(*  If (StringEquals(ObjectType, 'vec4')) Then
+    Result := Vector4DProperty.Create(Name, Vector4D_Zero)
+  Else
+  If (StringEquals(ObjectType, 'quaternion')) Then
+    Result := QuaternionProperty.Create(Name, Quaternion_Zero)
+  Else*)
+  If (StringEquals(ObjectType, 'float')) Then
+    Result := FloatProperty.Create(Name, 0)
+  Else
+  If (StringEquals(ObjectType, 'integer')) Then
+    Result := IntegerProperty.Create(Name, 0)
+  Else
+  If (StringEquals(ObjectType, 'byte')) Then
+    Result := ByteProperty.Create(Name, 0)
+  Else
+  If (StringEquals(ObjectType, 'angle')) Then
+    Result := AngleProperty.Create(Name, 0)
+  Else
+  If (StringEquals(ObjectType, 'dimension')) Then
+    Result := DimensionProperty.Create(Name, UIPercent(100))
+  Else
+  If (StringEquals(ObjectType, 'margin')) Then
+    Result := MarginProperty.Create(Name)
+  Else
+  If StringEquals(ObjectType, 'list') Then
+  Begin
+    Result := TERRAList.Create();
+    Result.Name := KeyName;
+  End Else
+    Result := Nil;
 End;
 
 Procedure EngineManager.Init();

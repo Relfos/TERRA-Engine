@@ -21,6 +21,8 @@ Type
 
       Function GetItemByIndex(Index:Integer):TERRAObject; Override;
 
+      Function GetObjectType:TERRAString; Override;
+
       // adds copies of items, not references!
       Function Merge(C:TERRACollection):TERRAList;
 
@@ -337,6 +339,11 @@ Begin
     _Current := _Current.Next;
   End Else
     Result := Nil;
+End;
+
+Function TERRAList.GetObjectType: TERRAString;
+Begin
+  Result := 'list';
 End;
 
 End.

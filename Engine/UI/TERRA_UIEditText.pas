@@ -103,7 +103,7 @@ Var
   Wd:UIWidget;
   S:TERRAString;
 Begin
-  If (Self.Hidden) Or (Self.HasPropertyTweens()) Then
+  If (Self.Hidden) Or (Self.HasActiveTweens()) Then
   Begin
     Result := False;
     Exit;

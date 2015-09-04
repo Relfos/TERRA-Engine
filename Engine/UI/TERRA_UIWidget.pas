@@ -701,7 +701,7 @@ Begin
   If (Self.State = widget_Disabled) Then
     Exit;
 
-  If (Self.HasPropertyTweens()) Then
+  If (Self.HasActiveTweens()) Then
     Exit;
 
   Case EventType Of
@@ -2048,7 +2048,7 @@ End;
 
 Function UIWidget.OnSelectAction: Boolean;
 Begin
-  If (Self.Selected) And (Not Self.HasPropertyTweens()) Then
+  If (Self.Selected) And (Not Self.HasActiveTweens()) Then
   Begin
     Self.TriggerEvent(widgetEvent_MouseDown);
     Result := True;
@@ -2065,7 +2065,7 @@ Begin
   If (Self.Selected) Then
   Begin
     W := Self.GetDownControl();
-    If (Assigned(W)) And (Not Self.HasPropertyTweens()) Then
+    If (Assigned(W)) And (Not Self.HasActiveTweens()) Then
     Begin
       Result := True;
       (*TODO UI.Highlight := W; *)
@@ -2082,7 +2082,7 @@ Begin
   If (Self.Selected) Then
   Begin
     W := Self.GetLeftControl();
-    If (Assigned(W)) And (Not Self.HasPropertyTweens()) Then
+    If (Assigned(W)) And (Not Self.HasActiveTweens()) Then
     Begin
       Result := True;
       (* TODO UI.Highlight := W;*)
@@ -2099,7 +2099,7 @@ Begin
   If (Self.Selected) Then
   Begin
     W := Self.GetRightControl();
-    If (Assigned(W)) And (Not Self.HasPropertyTweens()) Then
+    If (Assigned(W)) And (Not Self.HasActiveTweens()) Then
     Begin
       Result := True;
       (* TODO UI.Highlight := W;*)
@@ -2116,7 +2116,7 @@ Begin
   If (Self.Selected) Then
   Begin
     W := Self.GetUpControl();
-    If (Assigned(W)) And (Not Self.HasPropertyTweens()) Then
+    If (Assigned(W)) And (Not Self.HasActiveTweens()) Then
     Begin
       Result := True;
       (* TODO UI.Highlight := W;*)
@@ -2521,31 +2521,22 @@ End;
 
 Function UIWidget.CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject;
 Begin
-(*  If (StringEquals(ObjectType, 'UIButton')) Then
-    Result := UIButton.Create(KeyName, Self, 0, 0, 50, UIPixels(10), UIPixels(10), '', 'button')
+  If (StringEquals(ObjectType, 'UI')) Then
+    Result := UIView.Create(KeyName, UIPixels(100), UIPixels(100))
+  Else
+  If (StringEquals(ObjectType, 'UITiledRect')) Then
+    Result := UITiledRect.Create(KeyName, Self, UIPixels(100), UIPixels(100), 0.0, UIPixels(100), UIPixels(100), 0, 0, 5, 5)
+  Else
+  If (StringEquals(ObjectType, 'UIImage')) Then
+    Result := UIImage.Create(KeyName, Self, UIPixels(100), UIPixels(100), 0.0, UIPixels(100), UIPixels(100))
   Else
   If (StringEquals(ObjectType, 'UILabel')) Then
-    Result := UILabel.Create(KeyName, Self, 0, 0, 50, '???')
+    Result := UIImage.Create(KeyName, Self, UIPixels(100), UIPixels(100), 0.0, UIPixels(100), UIPixels(100))
   Else
   If (StringEquals(ObjectType, 'UIEditText')) Then
-    Result := UIEditText.Create(KeyName, Self, 0, 0, 50, UIPixels(10), UIPixels(10), '???')
+    Result := UIEditText.Create(KeyName, Self, UIPixels(100), UIPixels(100), 0.0, UIPixels(100), UIPixels(100), '')
   Else
-  If (StringEquals(ObjectType, 'UISprite')) Then
-    Result := UISprite.Create(KeyName, Self, 0, 0, 50, 'sprite')
-  Else
-  If (StringEquals(ObjectType, 'UIIcon')) Then
-    Result := UIIcon.Create(KeyName, Self, 0, 0, 50, UIPixels(10), UIPixels(10), 'icon')
-  Else
-  If (StringEquals(ObjectType, 'UIWindow')) Then
-    Result := UIWindow.Create(KeyName, Self, 0, 0, 50, UIPixels(10), UIPixels(10), 'window')
-  Else
-  If (StringEquals(ObjectType, 'UICheckbox')) Then
-    Result := UICheckbox.Create(KeyName, Self, 0, 0, 50, UIPixels(10), True, '???', 'checkbox')
-  Else
-  If (StringEquals(ObjectType, 'UITabList')) Then
-    Result := UITabList.Create(KeyName, Self, 0, 0, 50, UIPixels(10), UIPixels(10), 'icon')
-  Else*)
-    Result := Nil;
+    Result := Inherited CreateProperty(KeyName, ObjectType);
 End;
 
 Procedure UIWidget.SetParent(Target:UIWidget);

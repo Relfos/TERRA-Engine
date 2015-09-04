@@ -82,6 +82,8 @@ Type
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
 
       Function PickWidgetAt(X, Y:Integer; Ignore:UIWidget = Nil):UIWidget;
+
+      Property Target:UIView Read _Target;
   End;
 
   UIEditScene = Class(TERRAObject)
@@ -372,6 +374,9 @@ Begin
 
   Self.SelectWidget(W);
 
+  UIEditForm._DragTarget := W;
+  UIEditForm._DragTarget.BeginDrag(X, Y, UIDrag_BottomRight);
+
   UIEditForm.FormResize(Nil);
 End;
 
@@ -395,7 +400,7 @@ Begin
   //Tex := Engine.Textures['default_image'];
   Tex := Engine.Textures['menu_window'];
   Tex.Prefetch();
-  Img := UITiledRect.Create('rect', Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(300), UIPixels(200), Trunc(Tex.Width * 0.25), Trunc(Tex.Height * 0.25), Trunc(Tex.Width * 0.75), Trunc(Tex.Height * 0.75));
+  Img := UITiledRect.Create('rect', Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(30), UIPixels(30), Trunc(Tex.Width * 0.25), Trunc(Tex.Height * 0.25), Trunc(Tex.Width * 0.75), Trunc(Tex.Height * 0.75));
   Img.SetTexture(Tex);
   Self.AddWidget(Img, X, Y);
 End;
@@ -523,7 +528,7 @@ Begin
 
   If _Views.Count > 0 Then
   Begin
-    _SelectedView := UIEditableView(_Views.First);
+    _SelectedView := UIEditableView(_Views.GetItemByIndex(0));
     UIEditForm.BuildWidgetTree();
     UIEditForm._Scene._SelectedWidget := Nil;
   End;
@@ -544,7 +549,7 @@ Var
   Item:TERRAObject;
 begin
   If Assigned(_SelectedView) Then
-    _SelectedView._Target.Visible := False;
+    _SelectedView.Target.Visible := False;
 
   Item := _Views.GetItemByIndex(Index);
 
@@ -635,6 +640,9 @@ Begin
   PropertyList.MarginColor := clBlack;
   PropertyList.EditColor := clBlack;
 
+  Self.ClientWidth := 960 + WidgetList.Width;
+  Self.ClientHeight := 640 + WidgetList.Top;
+
   {$IFNDEF FPC}
   MainMenu.OwnerDraw := True;
   {$ENDIF}
@@ -649,7 +657,8 @@ Begin
 
   // Create a scene and set it as the current scene
   _Scene := UIEditScene.Create();
-  Self.NewProjectClick(Sender);
+
+  //Self.NewProjectClick(Sender);
 
   _Brush := TBrush.Create();
 

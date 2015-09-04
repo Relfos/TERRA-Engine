@@ -26,7 +26,8 @@ Type
       Function FindProperty(Const KeyName:TERRAString):TERRAObject;
       Function FindPropertyWithPath(Path:TERRAString):TERRAObject;
 
-      Function HasPropertyTweens:Boolean; Virtual;
+      Function HasActiveTweens:Boolean; Virtual;
+      Function HasProperties():Boolean;
 
       Procedure CopyProperties(Other:TERRAObject);
 
@@ -104,7 +105,7 @@ Type
 
       Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Virtual; Abstract;
 
-      Function HasPropertyTweens:Boolean; Override;
+      Function HasActiveTweens:Boolean; Override;
   End;
 
   IntegerProperty = Class(TweenableProperty)
@@ -199,7 +200,7 @@ Type
 Procedure ReleaseObject(var Obj);
 
 Implementation
-Uses TERRA_Log, TERRA_Math, TERRA_OS, TERRA_RTTI;
+Uses TERRA_Log, TERRA_Math, TERRA_OS, TERRA_EngineManager;
 
 Procedure ReleaseObject(Var Obj);
 Var
@@ -252,7 +253,7 @@ Begin
   Self._ObjectName := Value;
 End;
 
-Function TERRAObject.HasPropertyTweens: Boolean;
+Function TERRAObject.HasActiveTweens: Boolean;
 Var
   I:Integer;
   Key:TERRAObject;
@@ -262,7 +263,7 @@ Begin
     Key := Self.GetPropertyByIndex(I);
     Inc(I);
 
-    If (Assigned(Key)) And (Key.HasPropertyTweens()) Then
+    If (Assigned(Key)) And (Key.HasActiveTweens()) Then
     Begin
       Key.GetBlob();
       Result := True;
@@ -297,38 +298,12 @@ Begin
 End;
 
 Function TERRAObject.CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject;
-Var
-  ObjType:TERRAObjectType;
 Begin
-  ObjType := RTTI.FindType(ObjectType);
-  If ObjType = Nil Then
-  Begin
-    Log(logError, 'Application', 'Cannot unserialize object of type ' +ObjectType+' with name '+KeyName);
-  End;
+  Result := Application.Instance.CreateProperty(KeyName, ObjectType);
+  If Assigned(Result) Then
+    Exit;
 
-  Result := TERRAObject(ObjType.Create());
-
-(*  If StringEquals(ObjectType, 'list') Then
-  Begin
-    Result := List.Create();
-    Result.Name := KeyName;
-  End Else
-  Begin
-    Result := Nil;
-
-    For I:=0 To Pred(_ApplicationComponentCount) Do
-    If Assigned(_ApplicationComponents[I].Instance) Then
-    Begin
-      Result := _ApplicationComponents[I].Instance.CreateProperty(KeyName, ObjectType);
-      If Assigned(Result) Then
-      Begin
-        Log(logDebug, 'Application', 'Unserialized object of type ' +ObjectType+ ' from '+_ApplicationComponents[I].Name);
-        Exit;
-      End;
-
-    End;
-  End;*)
-
+  Log(logError, 'Application', 'Cannot unserialize object of type ' +ObjectType+' with name '+KeyName);
 End;
 
 Function TERRAObject.FindPropertyWithPath(Path:TERRAString):TERRAObject;
@@ -386,8 +361,13 @@ Begin
   // do nothing
 End;
 
+Function TERRAObject.HasProperties: Boolean;
+Begin
+  Result := Assigned(Self.GetPropertyByIndex(0));
+End;
+
 { TweenableProperty }
-Function TweenableProperty.HasPropertyTweens:Boolean;
+Function TweenableProperty.HasActiveTweens:Boolean;
 Begin
   Self.UpdateTweens();
   Result := (_TweenCount>0);
