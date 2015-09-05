@@ -6,8 +6,8 @@ Interface
 Uses TERRA_Object, TERRA_String, TERRA_Application, TERRA_Threads,
   TERRA_GraphicsManager, TERRA_TextureManager, TERRA_MeshManager, TERRA_FontManager, TERRA_InputManager,
   TERRA_PhysicsManager, TERRA_ParticleRenderer, TERRA_ShaderFactory, TERRA_MeshAnimation, TERRA_Lights, TERRA_UICursor,
-  TERRA_FileManager, TERRA_SoundManager, TERRA_FileFormat, TERRA_MusicManager, TERRA_MIDI, TERRA_Localization,
-  {$IFDEF PC}TERRA_Steam{$ENDIF};
+  TERRA_FileManager, TERRA_SoundManager, TERRA_FileFormat, TERRA_MusicManager, TERRA_MIDI, TERRA_Localization, TERRA_Network
+  {$IFDEF PC}, TERRA_Steam{$ENDIF};
 
 Type
   EngineManager = Class(TERRAObject)
@@ -36,6 +36,8 @@ Type
       _Localization:LocalizationManager;
 
       _Tasks:ThreadPool;
+
+      _Network:NetworkManager;
 
       {$IFDEF PC}
       _Steam:SteamManager;
@@ -77,6 +79,8 @@ Type
       Property Files:FileManager Read _FileManager;
       Property Tasks:ThreadPool Read _Tasks;
 
+      Property Network:NetworkManager Read _Network;
+
       {$IFDEF PC}
       Property Steam:SteamManager Read _Steam;
       {$ENDIF}
@@ -114,6 +118,8 @@ Begin
   _MIDI := MidiManager.Create();
 
   _Cursors := CursorManager.Create();
+
+  _Network := NetworkManager.Create();
 
   _Localization := LocalizationManager.Create();
 
@@ -222,6 +228,8 @@ Begin
   ReleaseObject(_Steam);
   {$ENDIF}
 
+  ReleaseObject(_Network);
+
   ReleaseObject(_FileManager);
   ReleaseObject(_InputManager);
   ReleaseObject(_Formats);
@@ -241,6 +249,8 @@ Begin
   _Audio.Update();
   _Music.Update();
   _MIDI.Update();
+
+  _Network.Update();
 
   {$IFDEF PC}
   _Steam.Update();

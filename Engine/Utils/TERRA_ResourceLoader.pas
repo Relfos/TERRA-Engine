@@ -3,27 +3,26 @@ Unit TERRA_ResourceLoader;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Application, TERRA_Resource;
+Uses TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_Resource;
 
 Type
-  ResourceLoader = Class(ApplicationComponent)
+  ResourceLoader = Class(TERRAObject)
     Protected
-      _Resources:Array Of Resource;
+      _Resources:Array Of TERRAResource;
       _ResourceCount:Integer;
       _Index:Integer;
       _FistTime:Boolean;
       _LastProgress:Single;
 
-      Procedure Update; Override;
-      Procedure Init; Override;
 
     Public
-      Class Function Instance:ResourceLoader;
-      Procedure Release; Override;
+      Constructor Create;
+
+      Procedure Update;
 
       Procedure Clear;
-      Procedure AddResource(Res:Resource);
-      Function GetCurrent:Resource;
+      Procedure AddResource(Res:TERRAResource);
+      Function GetCurrent:TERRAResource;
 
       Function GetProgress:Single;
       Function IsReady:Boolean;
@@ -32,17 +31,18 @@ Type
 Implementation
 Uses TERRA_ResourceManager, TERRA_Mesh, TERRA_Log;
 
-{ LoaderManager }
-Var
-  _LoaderManagerInstance:ApplicationObject;
+{ ResourceLoader }
+Constructor ResourceLoader.Create;
+Begin
+  Self.Clear;
+End;
 
-Procedure ResourceLoader.AddResource(Res: Resource);
+Procedure ResourceLoader.AddResource(Res: TERRAResource);
 Var
   I:Integer;
 Begin
   If (Res= Nil) Then
   Begin
-    IntToString(2);
     Exit;
   End;
 
@@ -64,17 +64,7 @@ Begin
   _LastProgress := 0;
 End;
 
-Procedure ResourceLoader.Init;
-Begin
-  Self.Clear;
-End;
-
-Procedure ResourceLoader.Release;
-Begin
-  _LoaderManagerInstance := Nil;
-End;
-
-Function ResourceLoader.GetCurrent:Resource;
+Function ResourceLoader.GetCurrent:TERRAResource;
 Begin
   If _ResourceCount<=0 Then
     Result := Nil
@@ -101,14 +91,6 @@ Begin
   _LastProgress := Result;
 End;
 
-Class Function ResourceLoader.Instance:ResourceLoader;
-Begin
-  If _LoaderManagerInstance = Nil Then
-    _LoaderManagerInstance := InitializeApplicationComponent(ResourceLoader, Nil);
-
-  Result := ResourceLoader(_LoaderManagerInstance.Instance);
-End;
-
 Function ResourceLoader.IsReady: Boolean;
 Begin
   Result := GetProgress>=100;
@@ -118,7 +100,7 @@ Procedure ResourceLoader.Update;
 Var
   J:Integer;
   Group:MeshGroup;
-  MyMesh:Mesh;
+  MyMesh:TERRAMesh;
 Begin
   If (_ResourceCount<=0) Then
     Exit;
@@ -131,9 +113,9 @@ Begin
   _Resources[_Index].IsReady();
   If (_Resources[_Index].Status = rsReady) Then
   Begin
-      If _Resources[_Index] Is Mesh Then
+      If _Resources[_Index] Is TERRAMesh Then
       Begin
-        MyMesh := Mesh(_Resources[_Index]);
+        MyMesh := TERRAMesh(_Resources[_Index]);
         For J:=0 To Pred(MyMesh.GroupCount) Do
         Begin
           Group := MyMesh.GetGroup(J);
@@ -150,5 +132,6 @@ Begin
       Inc(_Index);
   End;
 End;
+
 
 End.

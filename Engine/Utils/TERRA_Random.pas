@@ -9,7 +9,7 @@ Unit TERRA_Random;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Stream;
+Uses TERRA_Object, TERRA_Utils, TERRA_Stream;
 
 Const
   { Period parameters }
@@ -31,8 +31,8 @@ Type
       Function Random(Max:Cardinal):LongWord;
       Function RandomFloat(Const min,max:Single):Single;
 
-      Procedure SaveState(Dest:Stream);
-      Procedure LoadState(Source:Stream);
+      Procedure SaveState(Dest:TERRAStream);
+      Procedure LoadState(Source:TERRAStream);
 
       Function GetCRC():Cardinal;
 
@@ -159,14 +159,14 @@ Begin
 	Result := Min + ((max - min) * (Self.Random(RAND_MAX) * INV_RAND_MAX));
 End;
 
-Procedure MersenneTwister.SaveState(Dest:Stream);
+Procedure MersenneTwister.SaveState(Dest:TERRAStream);
 Begin
   Dest.Write(@_RandSeed, 4);
   Dest.Write(@mt[0], _N * Sizeof(Int64));
   Dest.Write(@mti, 4);
 End;
 
-Procedure MersenneTwister.LoadState(Source:Stream);
+Procedure MersenneTwister.LoadState(Source:TERRAStream);
 Begin
   Source.Read(@_RandSeed, 4);
   Source.Read(@mt[0], _N * Sizeof(Int64));

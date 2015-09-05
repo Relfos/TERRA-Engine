@@ -28,7 +28,7 @@ Unit TERRA_Network;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_MemoryStream, TERRA_OS, TERRA_Sockets, TERRA_Application;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_MemoryStream, TERRA_OS, TERRA_Sockets, TERRA_Application;
 
 Const
 //Message types
@@ -152,19 +152,16 @@ Type
   End;
 
 
-  NetworkManager = Class(ApplicationComponent)
+  NetworkManager = Class(TERRAObject)
     Protected
       _Objects:Array Of NetObject;
       _ObjectCount:Integer;
 
     Public
-      Procedure Update; Override;
+      Procedure Update;
 
       Procedure AddObject(Obj:NetObject);
       Procedure RemoveObject(Obj:NetObject);
-
-      Procedure Release; Override;
-      Class Function Instance:NetworkManager;
   End;
 
 
@@ -174,10 +171,7 @@ Function GetNetErrorDesc(ErrorCode:Word):TERRAString;
 //Function CreateMessageWithWord(Opcode:Byte; Code:Word):NetMessage;  // Creates a server message
 
 Implementation
-Uses TERRA_Error, TERRA_Log;
-
-Var
-  _NetworkManager:ApplicationObject;
+Uses TERRA_Error, TERRA_Log, TERRA_EngineManager;
 
 Function GetNetErrorDesc(ErrorCode:Word):TERRAString;
 Begin
@@ -197,13 +191,13 @@ Begin
     errServerShutdown:      Result:='Server shutdown.';
     errServerCrash:         Result:='Server crash.';
     errKicked:              Result:='Kicked!';
-    Else                    Result:='Unknown server error.['+IntToString(ErrorCode)+']';
+    Else                    Result:='Unknown server error.['+IntegerProperty.Stringify(ErrorCode)+']';
   End;
 End;
 
 Function _GetOpcode(MsgId:Byte):TERRAString;
 Begin
-  Result:='Unknown message type['+IntToString(MsgId)+']';
+  Result:='Unknown message type['+IntegerProperty.Stringify(MsgId)+']';
 End;
 
 Function GetMsgDesc(MsgId:Byte):TERRAString;
@@ -216,7 +210,7 @@ Begin
     nmClientDrop:     Result:='Client drop';
     nmIgnore:         Result:='Ignore';
   Else
-    Result := 'opcode #'+IntToString(MsgID);
+    Result := 'opcode #'+IntegerProperty.Stringify(MsgID);
   End;
 End;
 
@@ -224,7 +218,7 @@ Procedure LogMsg(Prefix:TERRAString;Msg:NetMessage;Postfix:TERRAString);
 Var
   S:TERRAString;
 Begin
-  S:=Prefix+' "'+GetMsgDesc(Msg.Opcode)+'" Size='+IntToString(Msg.Length)+' ';
+  S:=Prefix+' "'+GetMsgDesc(Msg.Opcode)+'" Size='+IntegerProperty.Stringify(Msg.Length)+' ';
   S:=S+Postfix;
   Log(logDebug,'Network', S);
 End;
@@ -295,7 +289,7 @@ Begin
   Msg.AdjustSize();
 
 
-  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Packet size: '+IntToString(Msg.Length));{$ENDIF}
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Packet size: '+IntegerProperty.Stringify(Msg.Length));{$ENDIF}
   //LogMsg(_Name+'.Send():',@Rm,' to '+GetIP(Dest.Address));
 
     //EncodeMessage(Msg);
@@ -356,7 +350,7 @@ Begin
   Repeat
     Rem := SizeOf(MessageHeader) - Cnt;
     N := Sock.Read(P, Rem);
-    {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Read result: '+IntToString(N));{$ENDIF}
+    {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Read result: '+IntegerProperty.Stringify(N));{$ENDIF}
 
    //Check for errors
     If (N=SOCKET_ERROR) Or (N<=0) Then //There was no message waiting
@@ -366,7 +360,7 @@ Begin
 
     Inc(Cnt, N);
     Inc(P, N);
-    //Log(logDebug, 'Network', 'Received '+IntToString(N)+' bytes');
+    //Log(logDebug, 'Network', 'Received '+IntegerProperty.Stringify(N)+' bytes');
   Until (Cnt>=SizeOf(MessageHeader));
 
   Inc(_Input, SizeOf(MessageHeader) + Header.Length);
@@ -403,10 +397,10 @@ Begin
     Exit;
   End;
 
-  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Preparing message '+IntToString(Msg.Opcode));{$ENDIF}
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Preparing message '+IntegerProperty.Stringify(Msg.Opcode));{$ENDIF}
   Msg.Seek(SizeOf(MessageHeader));
 
-  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Processing message '+IntToString(Msg.Opcode));{$ENDIF}
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Processing message '+IntegerProperty.Stringify(Msg.Opcode));{$ENDIF}
   OnPacketReceived(Sock, Msg);
 
 {    Self.ProcessMessage(Msg, Sock);
@@ -417,19 +411,19 @@ Begin
     End;
   End Else
   If (Header.Opcode<>nmServerAck) Then
-    Log(logWarning,'Network',Self.ClassName+'.Update: Invalid opcode ['+IntToString(Header.Opcode)+']');}
+    Log(logWarning,'Network',Self.ClassName+'.Update: Invalid opcode ['+IntegerProperty.Stringify(Header.Opcode)+']');}
 
-  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Releasing message '+IntToString(Msg.Opcode));{$ENDIF}
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Releasing message '+IntegerProperty.Stringify(Msg.Opcode));{$ENDIF}
   ReleaseObject(Msg);
 
   Result := True;
 
-  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Opcode '+IntToString(Header.Opcode)+' processed');{$ENDIF}
+  {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Opcode '+IntegerProperty.Stringify(Header.Opcode)+' processed');{$ENDIF}
 End;
 
 {Procedure NetObject.OnInvalidMessage(Msg:NetMessage; Sock:NetSocket);
 Begin
-  Log(logError, 'Network', 'InvalidMessage: Unknown opcode.['+IntToString(Msg.Opcode)+']');
+  Log(logError, 'Network', 'InvalidMessage: Unknown opcode.['+IntegerProperty.Stringify(Msg.Opcode)+']');
 End;
 
 Procedure NetObject.IgnoreMessage(Msg:NetMessage; Sock:NetSocket);
@@ -451,7 +445,7 @@ End;
 
 Procedure NetObject.Release;
 Begin
-  NetworkManager.Instance.RemoveObject(Self);
+  Engine.Network.RemoveObject(Self);
 End;
 
 Procedure NetObject.UpdateIO;
@@ -477,20 +471,6 @@ Begin
 
   If AutoRelease  Then
     ReleaseObject(Msg);
-End;
-
-
-Procedure NetworkManager.Release;
-Begin
-  _NetworkManager := Nil;
-End;
-
-Class Function NetworkManager.Instance:NetworkManager;
-Begin
-  If Not Assigned(_NetworkManager) Then
-    _NetworkManager := InitializeApplicationComponent(NetworkManager, Nil);
-
-  Result := NetworkManager(_NetworkManager.Instance);
 End;
 
 Procedure NetworkManager.AddObject(Obj: NetObject);

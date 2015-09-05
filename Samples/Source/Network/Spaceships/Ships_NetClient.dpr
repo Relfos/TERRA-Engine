@@ -1,11 +1,11 @@
 {$I terra.inc}
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} Ships_NetClient;
 
-Uses TERRA_Application, TERRA_Scene, TERRA_UI, TERRA_GraphicsManager,
+Uses TERRA_DemoApplication, TERRA_Object,
   TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_OS, TERRA_PNG, TERRA_FileManager,
-  TERRA_Texture, TERRA_Network, TERRA_SpriteManager, TERRA_Sockets, TERRA_Viewport,
+  TERRA_Texture, TERRA_Network, TERRA_Sprite, TERRA_Sockets, TERRA_Viewport,
   TERRA_Math, TERRA_Vector3D, TERRA_Vector2D, TERRA_TTF, TERRA_Utils, TERRA_InputManager,
-  TERRA_NetClient, Ships_Opcodes;
+  TERRA_NetClient, TERRA_EngineManager, Ships_Opcodes;
 
 Const
   ExplosionSpeed = 100;
@@ -13,18 +13,13 @@ Const
 
 Type
   // A client is used to process application events
-  Demo = Class(Application)
+  Demo = Class(DemoApplication)
     Protected
-      _Scene:Scene;
-
 			Procedure OnCreate; Override;
 			Procedure OnDestroy; Override;
 			Procedure OnIdle; Override;
-  End;
 
-  // A scene is used to render objects
-  MyScene = Class(Scene)
-      Procedure RenderSprites(View:Viewport); Override;
+      Procedure OnRender2D(View:TERRAViewport); Override;
   End;
 
 {Creating a TERRA netclient is simple, register all custom message handlers in the constructor using AddHandler()
@@ -56,7 +51,7 @@ Method ConnectionEnd() is called when connection ends or fails}
     LastUpdate:Integer;
     Delta:Single;
     Thrust:Single;
-    Tint:Color;
+    Tint:ColorRGBA;
     Dead:Boolean;
 
     Procedure Rotate(DW:Single);
@@ -66,8 +61,8 @@ Method ConnectionEnd() is called when connection ends or fails}
 
 Var
   // game resources
-  _ShipTex:Texture;
-  _ExplosionTex:Texture;
+  _ShipTex:TERRATexture;
+  _ExplosionTex:TERRATexture;
 
   // our netclient
   _Client:MyNetClient;
@@ -122,10 +117,55 @@ Begin
   _Ships[Pred(_ShipCount)].Tint := ColorCreateFromFloat(RandomFloat(0.75, 1), RandomFloat(0.75, 1), RandomFloat(0.75, 1));
 End;
 
-{ MyScene }
-Procedure MyScene.RenderSprites(View:Viewport);
+{ Game }
+Procedure Demo.OnCreate;
+Begin
+  Inherited;
+
+  // enable 2D/GUI rendering
+
+  Self.GUI.Viewport.Visible := True;
+
+  StatusMsg := 'Not connected.';
+
+  _ShipTex := Engine.Textures['ships'];
+  _ExplosionTex := Engine.Textures['explosion'];
+
+  _MyID := -1;
+
+  _Client := MyNetClient.Create;
+  _Client.Connect(GamePort, GameVersion, 'localhost', 'username', '');
+End;
+
+// OnIdle is called once per frame, put your game logic here
+Procedure Demo.OnDestroy;
+Begin
+  ReleaseObject(_Client);
+End;
+
+Procedure Demo.OnIdle;
+Begin
+  Inherited;
+
+  If (_MyID>=0) Then
+  Begin
+    If Engine.Input.Keys.IsDown(keyLeft) Then
+      _Ships[GetID(_MyID)].Rotate(1);
+
+    If Engine.Input.Keys.IsDown(keyRight) Then
+      _Ships[GetID(_MyID)].Rotate(-1);
+
+    If Engine.Input.Keys.IsDown(keyUp) Then
+      _Ships[GetID(_MyID)].Accelerate(1);
+
+    If Engine.Input.Keys.IsDown(keyDown) Then
+      _Ships[GetID(_MyID)].Accelerate(-1);
+  End;
+End;
+
+Procedure Demo.OnRender2D(View:TERRAViewport);
 Var
-  S:QuadSprite;
+  S:TERRASprite;
   P,V:Vector3D;
   T:Cardinal;
   I:Integer;
@@ -133,6 +173,8 @@ Var
   Delta ,DX, DY:Single;
   Msg:NetMessage;
 Begin
+  Inherited;
+  
   If (ConnectionFail) And (Assigned(_Client)) Then
   Begin
     _Client.Release();
@@ -140,7 +182,7 @@ Begin
   End;
 
   // render some text
-  UIManager.Instance.FontRenderer.DrawText(50, 70, 10, PAnsiChar(StatusMsg));
+  Self.FontRenderer.DrawText(View, 50, 70, 10, StatusMsg);
 
   // update and render all explosions
   I:=0;
@@ -151,8 +193,14 @@ Begin
     Begin
       TX := N Mod 5;
       TY := N Div 5;
-      S := SpriteManager.Instance.DrawSprite(_Explosions[I].X, _Explosions[I].Y, 20, _ExplosionTex);
-      S.Rect.PixelRemap(92*TX, 92*TY, Succ(TX)*92, Succ(TY)*92, _ExplosionTex);
+      S := View.SpriteRenderer.FetchSprite();
+      S.Layer := 20;
+      S.SetTexture(_ExplosionTex);
+      S.SetUVs((92*TX) / _ExplosionTex.Width, (92*TY) / _ExplosionTex.Height, (Succ(TX)*92) / _ExplosionTex.Width, (Succ(TY)*92) / _ExplosionTex.Height);
+      S.Translate(_Explosions[I].X, _Explosions[I].Y);
+      S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, 64, 64);
+      View.SpriteRenderer.QueueSprite(S);
+
       Inc(I);
     End Else
     Begin
@@ -169,11 +217,17 @@ Begin
       Delta := (Application.GetTime() - _Ships[I].LastUpdate);
       Delta := Delta/20;
 
-      S := SpriteManager.Instance.DrawSprite(_Ships[I].X, _Ships[I].Y, 20, _ShipTex);
-      S.Rect.PixelRemap(64, 0, 112, 32, _ShipTex);
-      S.Anchor := VectorCreate2D(0.5, 0.5);
-      S.SetScaleAndRotation(1.0, _Ships[I].Rotation);
+      S := View.SpriteRenderer.FetchSprite();
+      S.Layer := 20;
+      S.SetTexture(_ShipTex);
+      S.SetUVs(64/_ShipTex.Width, 0, 112/_ShipTex.Width, 32/_ShipTex.Height);
       S.SetColor(_Ships[I].Tint);
+
+      S.Rotate(_Ships[I].Rotation);
+      S.Translate(_Ships[I].X, _Ships[I].Y);
+
+      S.AddQuad(spriteAnchor_Center, Vector2D_Create(0, 0), 0.0, 64, 64);
+      View.SpriteRenderer.QueueSprite(S);
 
       If (Delta>=1) Then
       Begin
@@ -183,7 +237,7 @@ Begin
           _Ships[I].Delta := Delta;
           _Ships[I].LastUpdate := Application.GetTime();
 
-          DX := -Sin(_Ships[I].Rotation);
+          DX := Sin(_Ships[I].Rotation);
           DY := -Cos(_Ships[I].Rotation);
 
           Delta := Delta * _Ships[I].Thrust;
@@ -206,17 +260,17 @@ Begin
         End;
 
         // wrap around the ship if it reaches the screen edges
-        If (_Ships[I].X> GraphicsManager.Instance.Width) Then
+        If (_Ships[I].X> View.Width) Then
           _Ships[I].X := 0;
 
-        If (_Ships[I].Y> GraphicsManager.Instance.Height) Then
+        If (_Ships[I].Y> View.Height) Then
           _Ships[I].Y := 0;
 
         If (_Ships[I].X<0) Then
-          _Ships[I].X := GraphicsManager.Instance.Width;
+          _Ships[I].X := View.Width;
 
         If (_Ships[I].Y<0) Then
-          _Ships[I].Y := GraphicsManager.Instance.Height;
+          _Ships[I].Y := View.Height;
 
       End Else
         _Ships[I].Delta := 0;
@@ -226,61 +280,10 @@ Begin
       Begin
         _Ships[I] := _Ships[Pred(_ShipCount)];
         Dec(_ShipCount);
-        StatusMsg := ' Players connected:' + IntToString(_ShipCount);
+        StatusMsg := ' Players connected:' + IntegerProperty.Stringify(_ShipCount);
       End Else
         Inc(I);
     End;
-  End;
-End;
-
-{ Game }
-Procedure Demo.OnCreate;
-Begin
-  StatusMsg := 'Not connected.';
-
-  FileManager.Instance.AddPath('Assets');
-
-  // Load a font
-  _ShipTex := TextureManager.Instance.GetTexture('ships');
-  _ExplosionTex := TextureManager.Instance.GetTexture('explosion');
-
-  _MyID := -1;
-
-  _Client := MyNetClient.Create;
-  _Client.Connect(GamePort, GameVersion, 'localhost', 'username', '');
-
-  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlack;
-
-  // Create a scene and set it as the current scene
-  _Scene := MyScene.Create;
-  GraphicsManager.Instance.SetScene(_Scene);
-End;
-
-// OnIdle is called once per frame, put your game logic here
-Procedure Demo.OnDestroy;
-Begin
-  If Assigned(_Client) Then
-    _Client.Release;
-End;
-
-Procedure Demo.OnIdle;
-Begin
-  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
-    Application.Instance.Terminate();
-
-  If (_MyID>=0) Then
-  Begin
-    If InputManager.Instance.Keys.IsDown(keyLeft) Then
-      _Ships[GetID(_MyID)].Rotate(-1);
-
-    If InputManager.Instance.Keys.IsDown(keyRight) Then
-      _Ships[GetID(_MyID)].Rotate(1);
-
-    If InputManager.Instance.Keys.IsDown(keyUp) Then
-      _Ships[GetID(_MyID)].Accelerate(1);
-
-    If InputManager.Instance.Keys.IsDown(keyDown) Then
-      _Ships[GetID(_MyID)].Accelerate(-1);
   End;
 End;
 
@@ -298,10 +301,12 @@ End;
 Procedure Ship.Accelerate(DS:Single);
 Begin
   Thrust := Thrust + DS * Delta * 0.1;
+
   If (Thrust<0.1) Then
     Thrust := 0.1;
-  If (Thrust>2) Then
-    Thrust := 2;
+
+  If (Thrust>5) Then
+    Thrust := 5;
 End;
 
 { MyClient }
@@ -329,12 +334,12 @@ Begin
   StatusMsg := ' Players connected: 1';
 
   _MyID := Self._LocalID;
-  AddShip(Random(GraphicsManager.Instance.Width), Random(GraphicsManager.Instance.Height), _MyID);
+  AddShip(Random(400), Random(300), _MyID);
 End;
 
 Procedure MyNetClient.ConnectionEnd(ErrorCode:Integer; ErrorLog:String);
 Begin
-  StatusMsg := 'Net error (code: '+IntToString(ErrorCode)+')';
+  StatusMsg := 'Net error (code: '+IntegerProperty.Stringify(ErrorCode)+')';
   ConnectionFail := True;
 End;
 
@@ -354,7 +359,7 @@ Begin
   If (GetID(ID)<0) Then
   Begin
     AddShip(X, Y, ID);
-    StatusMsg := ' Players connected:' + IntToString(_ShipCount);
+    StatusMsg := ' Players connected:' + IntegerProperty.Stringify(_ShipCount);
   End;
 
   For I:=0 To Pred(_ShipCount) Do

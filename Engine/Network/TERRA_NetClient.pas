@@ -26,7 +26,7 @@ Unit TERRA_NetClient;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Application, TERRA_OS, TERRA_Sockets, TERRA_Network;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Application, TERRA_OS, TERRA_Sockets, TERRA_Network;
 
 Type
   NetClientMessageHandler = Procedure(Msg:NetMessage) Of Object;
@@ -91,7 +91,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Log;
+Uses TERRA_Log, TERRA_EngineManager;
 
 { NetClient }
  // Creates a new client instance
@@ -101,7 +101,7 @@ Var
 Begin
   Inherited Create();
 
-  NetworkManager.Instance.AddObject(Self);
+  Engine.Network.AddObject(Self);
 
   _Status := nsDisconnected;
 
@@ -140,8 +140,6 @@ End;
 // Disconnects from server and destroys the client instance
 Procedure NetClient.Release;
 Begin
-  NetworkManager.Instance.RemoveObject(Self);
-
   While (ReceivePacket(_TCPSocket)) Do;
 
   Disconnect();
