@@ -75,7 +75,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Callstack, TERRA_Error;
+Uses TERRA_Callstack, TERRA_Error, TERRA_Log;
 
 {$IFDEF USE_MSVCTR}
 Const
@@ -118,7 +118,8 @@ Begin
 
   If (Size>0) And (Result = Nil) Then
   Begin
-    RaiseError('Out of memory!');
+    Log(logError, 'App', 'Out of memory!');
+    Halt(0);
     Exit;
   End;
 
