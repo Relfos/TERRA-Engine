@@ -9,7 +9,7 @@ Uses TERRA_Utils, TERRA_Object, TERRA_String, TERRA_Application, TERRA_OS,
   TERRA_Vector3D, TERRA_Color, TERRA_Camera, TERRA_Ray, TERRA_UIDimension,
   TERRA_Mesh, TERRA_Texture,
   TERRA_Font, TERRA_FontRenderer, TERRA_Skybox, TERRA_Viewport, TERRA_Lights,
-  TERRA_UICursor, TERRA_UIView, TERRA_ScreenFX,
+  TERRA_UICursor, TERRA_UIView, TERRA_UITransition, TERRA_ScreenFX,
   TERRA_OGG, TERRA_WAVE,
   TERRA_TTF, TERRA_PNG, TERRA_JPG, TERRA_BMP, TERRA_PSD, TERRA_TGA, TERRA_GIF
   {$IFDEF USE_OCULUS_RIFT},TERRA_OculusRift{$ENDIF};
@@ -110,6 +110,8 @@ Begin
   Engine.Cursors.SetCursor(cursor_Link, Engine.Textures['cursor_link'], 0, 0);
 
   Engine.Graphics.DeviceViewport.BackgroundColor := ColorCreate(128, 128, 255);
+
+  _ShowFPS := True;
 End;
 
 Procedure DemoApplication.OnDestroy;
@@ -246,12 +248,12 @@ End;
 
 Procedure DemoApplication.OnRender2D(V: TERRAViewport);
 Begin
-  If Assigned(_FontRenderer) Then
+  If (Assigned(_FontRenderer)) And (_ShowFPS) Then
   Begin
     _FontRenderer.Reset();
-//    _FontRenderer.DrawText(V, 5, 25, 90, 'FPS: '+ IntegerProperty.Stringify(Engine.Graphics.Renderer.Stats.FramesPerSecond));
+    _FontRenderer.DrawText(V, 5, 25, 90, 'FPS: '+ IntegerProperty.Stringify(Engine.Graphics.Renderer.Stats.FramesPerSecond));
   End;
-  
+
   Engine.Graphics.AddRenderable(V, _GUI);
 End;
 

@@ -73,6 +73,8 @@ Begin
   _FontRenderer := TERRAFontRenderer.Create();
 
   _Style := FontStyleProperty(Self.AddProperty(FontStyleProperty.Create('style'), False));
+
+  Self.AddDefaultAnimations();
 End;
 
 Procedure UIText.Release;
@@ -129,10 +131,10 @@ Begin
     TX := 0;
     TY:=0;
   End;
-  
+
   FR.DrawTextToSprite(View, TX, TY, Self.GetLayer(), _Text, FontSprite(_Sprite));
 
- // DrawClipRect(View, Self.ClipRect, ColorRed);
+  //DrawClipRect(View, Self.ClipRect, ColorRed);
   //DrawRectangle(View, Vector2D_Create(TX + Self.AbsolutePosition.X, TY + Self.AbsolutePosition.Y), Vector2D_Create(TX + Self.AbsolutePosition.X + Self.FullSize.X, TY + Self.AbsolutePosition.Y + Self.FullSize.Y), ColorGreen);
   //DrawRectangle(View, Vector2D_Create(Self.AbsolutePosition.X, Self.AbsolutePosition.Y), Vector2D_Create(Self.AbsolutePosition.X + Self.CurrentSize.X, Self.AbsolutePosition.Y + Self.CurrentSize.Y), ColorGreen);
 End;

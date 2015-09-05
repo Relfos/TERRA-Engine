@@ -367,10 +367,14 @@ Begin
       Arg := '';
       Active := True;
       ArgMode := False;
-      While (It.HasNext()) Do
+      While (True) Do
       Begin
         LastChar := NextChar;
-        NextChar := It.GetNext();
+
+        If It.HasNext() Then
+          NextChar := It.GetNext()
+        Else
+          NextChar := NullChar;
 
         If (LastChar = fontEffectEnd) Then
           Break
@@ -474,7 +478,7 @@ Begin
     StyleChanged := False;
 
     IsWord := (CharIsAlphaNumeric(LastChar));
-    If (_AutoWrap) And (Self._MaxWidth>0) And ((Not IsWord) Or ((IsWord) And (Not WasWord))) Then
+    If (_CharCount>0) And (_AutoWrap) And (Self._MaxWidth>0) And ((Not IsWord) Or ((IsWord) And (Not WasWord))) Then
     Begin
       It.SaveState(State);
       TempChar := LastChar;
@@ -498,7 +502,7 @@ Begin
       NextChar := TempNext;
       It.RestoreState(State);
 
-      If  (X + TargetWidth >= StartX+  Self._MaxWidth) Then
+      If  (X + TargetWidth > StartX+  Self._MaxWidth) Then
         ApplyLineBreak();
     End;
 

@@ -312,5 +312,57 @@ Begin
   Result := S;
 End;
 
+(*Function GetShader_UIFade:TERRAString;
+Var
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
+Begin
+  S := '';
+  Line('vertex {');
+  Line('  attribute vec4 terra_position;');
+  Line('  attribute vec4 terra_UV0;');
+  Line('  uniform mat4 projectionMatrix;');
+  Line('  varying mediump vec4 texCoord;');
+	Line('void main()	{');
+  Line('  texCoord = terra_UV0;');
+  Line('  gl_Position = projectionMatrix * terra_position;}');
+	Line('}');
+  Line('fragment {');
+	Line('  uniform sampler2D texture;');
+	Line('  uniform highp float alpha;');
+  Line('  uniform lowp vec4 fadeColor;');
+  Line('  varying mediump vec4 texCoord;');
+  Line('	void main()	{');
+  Line('    highp float t = texture2D(texture, texCoord.xy).a;');
+  Line('    highp float p; if (t<alpha) p = 0.0; else p = 1.0;');
+  Line('    gl_FragColor = vec4(fadeColor.rgb, p);}');
+  Line('}');
+  Result := S;
+End;
+
+Function GetShader_UISlide:TERRAString;
+Var
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
+Begin
+  S := '';
+  Line('vertex {');
+  Line('  attribute vec4 terra_position;');
+  Line('  attribute vec4 terra_UV0;');
+  Line('  uniform mat4 projectionMatrix;');
+  Line('  varying mediump vec4 texCoord;');
+	Line('void main()	{');
+  Line('  texCoord = terra_UV0;');
+  Line('  gl_Position = projectionMatrix * terra_position;}');
+	Line('}');
+  Line('fragment {');
+	Line('  uniform sampler2D texture;');
+  Line('  varying mediump vec4 texCoord;');
+  Line('	void main()	{');
+  Line('    highp vec4 p = texture2D(texture, texCoord.xy);');
+  Line('    gl_FragColor = p;}');
+  Line('}');
+  Result := S;
+End;*)
 
 End.

@@ -58,6 +58,8 @@ Begin
 
   Self.Pivot := Vector2D_Create(0, 0);
   Self.Anchor := Vector2D_Create(0, 0);
+
+  Self.AddDefaultAnimations();
 End;
 
 
@@ -100,7 +102,6 @@ Begin
   Else
     _Sprite.Clear();
 
-  _Sprite.SetTransform(Self._Transform);
   _Sprite.Texture := Self.Texture;
 
   _Sprite.Layer := Self.GetLayer();

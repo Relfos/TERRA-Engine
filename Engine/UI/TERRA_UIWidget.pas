@@ -294,6 +294,8 @@ Type
 
       Procedure CopyAnimations(Other:UIWidget);
 
+      Procedure AddDefaultAnimations();
+
     Public
       Tag:Integer;
       DisableHighlights:Boolean;
@@ -613,21 +615,11 @@ Begin
   //_DropShadowColor := ColorNull;
   _DropShadowColor := ColorGrey(0, 255);
 
-  Self.AddAnimation(widget_Default, 'color', 'FFFFFFFF', easeLinear);
-  Self.AddAnimation(widget_Default, 'scale', '1.0', easeLinear);
-
-//  Self.AddAnimation(widget_Selected, 'color', '55FF55FF');
-
-//  Self.AddAnimation(widget_Highlighted, 'color', 'FF5555FF');
-
-  Self.AddAnimation(widget_Hidden, 'color', 'FFFFFF00', easeLinear);
-
   _TransformChanged := True;
 
   If Assigned(Parent) Then
     Parent.AddChild(Self);
 End;
-
 
 Procedure UIWidget.Release();
 Var
@@ -637,6 +629,18 @@ Begin
     ReleaseObject(Self._Properties[I].Prop);
 
   ReleaseObject(_Sprite);
+End;
+
+Procedure UIWidget.AddDefaultAnimations();
+Begin
+  Self.AddAnimation(widget_Default, 'color', 'FFFFFFFF', easeLinear);
+  Self.AddAnimation(widget_Default, 'scale', '1.0', easeLinear);
+
+//  Self.AddAnimation(widget_Selected, 'color', '55FF55FF');
+
+//  Self.AddAnimation(widget_Highlighted, 'color', 'FF5555FF');
+
+  Self.AddAnimation(widget_Hidden, 'color', 'FFFFFF00', easeLinear);
 End;
 
 Procedure UIWidget.InitProperties(Const Name:TERRAString);
@@ -2497,6 +2501,9 @@ Procedure UIWidget.Delete();
 Var
   I:Integer;
 Begin
+  If (UIView(Self.View).Modal = Self) Then
+    UIView(Self.View).Modal := Nil;
+
   Self._Deleted := True;
 
   For I:=0 To Pred(_ChildrenCount) Do
