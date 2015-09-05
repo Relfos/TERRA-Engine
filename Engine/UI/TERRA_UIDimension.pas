@@ -136,6 +136,7 @@ End;
 { MarginProperty }
 Constructor MarginProperty.Create(const Name: TERRAString);
 Begin
+  _ObjectName := Name;
   _Left := DimensionProperty.Create('left', UIPixels(0));
   _Top := DimensionProperty.Create('top', UIPixels(0));
   _Right := DimensionProperty.Create('right', UIPixels(0));

@@ -238,6 +238,7 @@ End;
 Procedure UIView.Release;
 Begin
   ReleaseObject(_Camera);
+  ReleaseObject(_Viewport);
 End;
 
 Function UIView.SupportDrag(Mode: UIDragMode): Boolean;

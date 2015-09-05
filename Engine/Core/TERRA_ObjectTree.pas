@@ -362,17 +362,16 @@ Begin
 
     If (Value <> '') Or (Prop.HasProperties) Then
     Begin
+      Node := TargetClass.Create(Prop.GetObjectType());
+      Self.AddChild(Node);
+
+      Node.AddString('name', Prop.Name);
       If (Prop.HasProperties()) Then
       Begin
-        Node := TargetClass.Create(Prop.GetObjectType());
-        Self.AddChild(Node);
-
-        Node.AddString('name', Prop.Name);
         Node.LoadFromObject(Prop);
       End Else
       Begin
-          Self.AddString(Prop.Name, Value);
-        //Node.AddString('name', Prop.Name);
+        Node.Value := Value;
       End;
     End;
 
@@ -412,7 +411,7 @@ Begin
       PropName := TypeName;
 
     Prop := Target.FindProperty(PropName);
-    If Assigned(Prop) Then
+    If (Assigned(Prop)) And (StringEquals(Prop.GetObjectType, TypeName))  Then
       Result := Prop
     Else
       Result := Target.CreateProperty(PropName, TypeName);
@@ -434,7 +433,7 @@ Begin
     If (StringEquals(P.Name, 'name')) Then
       Continue;
 
-    If P.Name='position' Then
+    If P.Name='UIImage' Then
        IntegerProperty.Stringify(2);
 
       P.SaveToObject(Result, Target);

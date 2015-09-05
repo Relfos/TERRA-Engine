@@ -85,7 +85,8 @@ Type
 Function Engine():EngineManager;
 
 Implementation
-Uses TERRA_List, TERRA_UIView, TERRA_UIDimension, TERRA_Color, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Quaternion;
+Uses TERRA_List, TERRA_UIView, TERRA_UIDimension, TERRA_Color, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Quaternion,
+  TERRA_Texture, TERRA_Font;
 
 Var
   _EngineManager:EngineManager = Nil;
@@ -125,6 +126,12 @@ Function EngineManager.CreateObject(const KeyName, ObjectType: TERRAString): TER
 Begin
   If (StringEquals(ObjectType, 'UI')) Then
     Result := UIView.Create(Name, UIPercent(100), UIPercent(100))
+  Else
+  If (StringEquals(ObjectType, 'texture')) Then
+    Result := TextureProperty.Create(Name, Textures.WhiteTexture)
+  Else
+  If (StringEquals(ObjectType, 'font')) Then
+    Result := FontProperty.Create(Name, Fonts.DefaultFont)
   Else
   If (StringEquals(ObjectType, 'string')) Then
     Result := StringProperty.Create(Name, '')

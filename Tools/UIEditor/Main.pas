@@ -326,9 +326,21 @@ Begin
 End;
 
 Procedure UIEditScene.Clear();
+Var
+  It:Iterator;
 Begin
   UIEditForm.TabList.Tabs.Clear();
   UIEditForm.PropertyList.Target := Nil;
+
+  (*If Assigned(_Views) Then
+  Begin
+    It := _Views.GetIterator();
+    While It.HasNext Do
+    Begin
+      It.Discard();
+    End;
+    ReleaseObject(It);
+  End;*)
 
   ReleaseObject(_Grid);
   ReleaseObject(_Views);
@@ -374,8 +386,8 @@ Begin
 
   Self.SelectWidget(W);
 
-  UIEditForm._DragTarget := W;
-  UIEditForm._DragTarget.BeginDrag(X, Y, UIDrag_BottomRight);
+(*  UIEditForm._DragTarget := W;
+  UIEditForm._DragTarget.BeginDrag(X, Y, UIDrag_BottomRight);*)
 
   UIEditForm.FormResize(Nil);
 End;
@@ -400,7 +412,7 @@ Begin
   //Tex := Engine.Textures['default_image'];
   Tex := Engine.Textures['menu_window'];
   Tex.Prefetch();
-  Img := UITiledRect.Create('rect', Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(30), UIPixels(30), Trunc(Tex.Width * 0.25), Trunc(Tex.Height * 0.25), Trunc(Tex.Width * 0.75), Trunc(Tex.Height * 0.75));
+  Img := UITiledRect.Create('rect', Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(300), UIPixels(200), Trunc(Tex.Width * 0.25), Trunc(Tex.Height * 0.25), Trunc(Tex.Width * 0.75), Trunc(Tex.Height * 0.75));
   Img.SetTexture(Tex);
   Self.AddWidget(Img, X, Y);
 End;
@@ -598,7 +610,6 @@ Begin
   ReleaseObject(_Target);
 End;
 
-
 Function UIEditableView.GetPropertyByIndex(Index: Integer): TERRAObject;
 Begin
   Case Index Of
@@ -658,7 +669,7 @@ Begin
   // Create a scene and set it as the current scene
   _Scene := UIEditScene.Create();
 
-  //Self.NewProjectClick(Sender);
+  Self.NewProjectClick(Sender);
 
   _Brush := TBrush.Create();
 

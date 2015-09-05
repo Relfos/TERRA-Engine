@@ -1171,22 +1171,6 @@ Begin
   ReleaseObject(_Alpha);
 End;
 
-(*Function ColorProperty.GetBlob: TERRAString;
-Begin
-  Result := Red.GetBlob() + '/'+ Green.GetBlob() + '/'+ Blue.GetBlob() + '/'+ Alpha.GetBlob();
-End;
-
-Procedure ColorProperty.SetBlob(const Blob: TERRAString);
-Var
-  S:TERRAString;
-Begin
-  S := Blob;
-  Red.SetBlob(StringGetNextSplit(S, Ord('/')));
-  Green.SetBlob(StringGetNextSplit(S, Ord('/')));
-  Blue.SetBlob(StringGetNextSplit(S, Ord('/')));
-  Alpha.SetBlob(StringGetNextSplit(S, Ord('/')));
-End;*)
-
 Procedure ColorProperty.SetColorValue(const NewValue:ColorRGBA);
 Begin
   Red.Value := NewValue.R;
