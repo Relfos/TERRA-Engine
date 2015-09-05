@@ -6,7 +6,8 @@ Interface
 Uses TERRA_Object, TERRA_String, TERRA_Application, TERRA_Threads,
   TERRA_GraphicsManager, TERRA_TextureManager, TERRA_MeshManager, TERRA_FontManager, TERRA_InputManager,
   TERRA_PhysicsManager, TERRA_ParticleRenderer, TERRA_ShaderFactory, TERRA_MeshAnimation, TERRA_Lights, TERRA_UICursor,
-  TERRA_FileManager, TERRA_SoundManager, TERRA_FileFormat, TERRA_MusicManager, TERRA_MIDI, TERRA_Localization, TERRA_Network
+  TERRA_FileManager, TERRA_SoundManager, TERRA_FileFormat, TERRA_MusicManager, TERRA_MIDI, TERRA_Localization,
+  TERRA_Network, TERRA_NetDownloader
   {$IFDEF PC}, TERRA_Steam{$ENDIF};
 
 Type
@@ -38,6 +39,8 @@ Type
       _Tasks:ThreadPool;
 
       _Network:NetworkManager;
+
+      _HTTP:DownloadManager;
 
       {$IFDEF PC}
       _Steam:SteamManager;
@@ -80,6 +83,7 @@ Type
       Property Tasks:ThreadPool Read _Tasks;
 
       Property Network:NetworkManager Read _Network;
+      Property HTTP:DownloadManager Read _HTTP;
 
       {$IFDEF PC}
       Property Steam:SteamManager Read _Steam;
@@ -120,6 +124,7 @@ Begin
   _Cursors := CursorManager.Create();
 
   _Network := NetworkManager.Create();
+  _HTTP := DownloadManager.Create();
 
   _Localization := LocalizationManager.Create();
 
@@ -228,6 +233,7 @@ Begin
   ReleaseObject(_Steam);
   {$ENDIF}
 
+  ReleaseObject(_HTTP);
   ReleaseObject(_Network);
 
   ReleaseObject(_FileManager);

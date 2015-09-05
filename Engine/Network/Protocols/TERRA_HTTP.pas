@@ -193,6 +193,8 @@ Type
       Procedure SetMethod(Const MethodType:HTTPMethod);
       Procedure SetCallback(Callback:DownloadCallback);
 
+      Property Callback:DownloadCallback Read _Callback Write SetCallback;
+
       Property ClientName:TERRAString Read _ClientName;
       Property FileName:TERRAString Read _FileName;
       Property FilePath:TERRAString Read _FilePath;
@@ -238,12 +240,10 @@ Type
 
       Procedure PrepareTransfer();
       Procedure ContinueTransfer(Count: Integer);
-      Procedure InitTransfer();
       Procedure RetryTransfer();
 
       Function ReceiveHeader():Boolean;
       Function ReadChunkHeader():Integer;
-      Procedure Update();
       Procedure WriteLeftovers();
 
       Function GetStream:TERRAStream;
@@ -255,12 +255,14 @@ Type
       Procedure Release; Override;
 
     Public
-
       Constructor Create(Request:HTTPRequest; InBackground:Boolean);
 
       Function GetHeaderProperty(Name:TERRAString):TERRAString;
 
       Function GetTag(Const Name:TERRAString):TERRAString;
+
+      Procedure InitTransfer();
+      Procedure Update();
 
       Property TagCount:Integer Read _TagCount;
       Property Progress:Integer Read _Progress;
@@ -269,58 +271,18 @@ Type
       Property Target:TERRAStream Read _Target;
       Property ErrorCode:HTTPError Read _ErrorCode;
       Property ErrorMessage:TERRAString Read _ErrorMessage;
+
+      Property InBackground:Boolean Read _InBackground;
+      Property Offset:Integer Read _Offset;
+      Property TotalSize:Integer Read _TotalSize;
   End;
 
-  DownloadManager = Class(TERRAObject)
-    Protected
-      _Downloads:Array Of HTTPDownloader;
-      _DownloadCount:Integer;
-
-      _Mutex:CriticalSection;
-
-  {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
-      _Connections:Array Of HTTPConnection;
-      _ConnectionCount:Integer;
-  {$ENDIF}
-
-      Function InvokeCallbackOnMainThread(Obj:TERRAObject):Boolean;
-
-      Function GetOverallProgress:Integer;
-
-      Function GetConnection(Const HostName:TERRAString; Port:Integer):HTTPConnection;
-
-  {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
-      Function HasDownloadsWithConnection(Connection:HTTPConnection):Boolean;
-      Procedure InterruptConnections(Connection:HTTPConnection);
-
-      Procedure ClearConnectionsToDownload(Download:HTTPDownloader);
-  {$ENDIF}
-
-      Procedure DummyCallback(Download:HTTPDownloader);
-
-    Public
-      Procedure Init; Override;
-      Procedure Release; Override;
-
-      Class Function Instance:DownloadManager;
-
-      Procedure Update; Override;
-
-      Procedure Flush;
-
-      Function GetDownload(Index:Integer):HTTPDownloader;
-
-      Function StartRequest(Request:HTTPRequest; InBackground:Boolean):HTTPDownloader;
-
-      Property Count:Integer Read _DownloadCount;
-      Property Progress:Integer Read GetOverallProgress;
-  End;
 
 Var
   DownloadTempPath:TERRAString;
 
 Implementation
-Uses TERRA_Log, TERRA_MemoryStream, TERRA_ResourceManager;
+Uses TERRA_Log, TERRA_MemoryStream, TERRA_EngineManager, TERRA_ResourceManager;
 
 Function GetTempPath:TERRAString;
 Begin
@@ -347,7 +309,7 @@ Begin
 End;
 
 Type
-  HTTPThread = Class(Task)
+  HTTPThread = Class(TERRATask)
     Protected
       _Target:HTTPDownloader;
 
@@ -383,7 +345,7 @@ Begin
   Self._InBackground := InBackground;
 
   If InBackground Then
-    ThreadPool.Instance.RunTask(HTTPThread.Create(Self), True)
+    Engine.Tasks.RunTask(HTTPThread.Create(Self), True)
   Else
     PrepareTransfer();
 End;
@@ -427,7 +389,7 @@ Begin
   _UpdateTime := Application.GetTime();
   If (Request.Protocol = HTTPProtocol) Then
   Begin
-    _Connection := DownloadManager.Instance.GetConnection(Request.HostName, Request.Port);
+    _Connection := Engine.HTTP.GetConnection(Request.HostName, Request.Port);
 
     If _Connection._Target = Nil Then
     Begin
@@ -528,8 +490,8 @@ Begin
 
       Log(logDebug, 'HTTP', 'Full response: '+_Response);
 
-      Tag := StringGetNextSplit(Header, Ord(' ')); // HTTP/1.1
-      Value := StringGetNextSplit(Header, Ord(' '));
+      Tag := StringGetNextSplit(Header, ' '); // HTTP/1.1
+      Value := StringGetNextSplit(Header, ' ');
 
       HTTPCode := StringToInt(Value);
       If (HTTPCode<>200) Then
@@ -592,7 +554,7 @@ Begin
 
           If (StringEquals(Tag, 'set-cookie')) Then
           Begin
-            Request._Cookie := StringGetNextSplit(Value, Ord(';'));
+            Request._Cookie := StringGetNextSplit(Value, ';');
           End;
 
           If (StringEquals(Tag, 'connection')) And (Assigned(_Connection)) Then
@@ -611,7 +573,7 @@ Begin
           If (StringEquals(Tag, 'content-length')) Then
           Begin
             _TotalSize := StringToInt(Value);
-            Log(logDebug, 'HTTP', 'Content-length '+IntToString(_TotalSize));
+            Log(logDebug, 'HTTP', 'Content-length '+IntegerProperty.Stringify(_TotalSize));
           End;
 
           If (StringEquals(Tag, 'transfer-encoding')) Then
@@ -640,7 +602,7 @@ Begin
   If (_TotalSize<0) And (Not _ChunkedTransfer) Then
   Begin
     _TotalSize := Length(_Response);
-    Log(logDebug, 'HTTP', 'Adjusting content length to '+IntToString(_TotalSize));
+    Log(logDebug, 'HTTP', 'Adjusting content length to '+IntegerProperty.Stringify(_TotalSize));
   End;
 
   Log(logDebug, 'HTTP', 'Response Remainder: '+_Response);
@@ -665,7 +627,7 @@ Begin
         Move(_Buffer^, _Response[1], Len);
       End;
 
-      //Log(logDebug, 'HTTP', 'Fetched '+IntToString(Len));
+      //Log(logDebug, 'HTTP', 'Fetched '+IntegerProperty.Stringify(Len));
     End;
 
     //Log(logDebug, 'HTTP', 'Leftover: '+_Response);
@@ -700,7 +662,7 @@ Begin
     _Response := '';
   End;
 
-  Log(logDebug, 'HTTP', 'Target position: '+IntToString(_Target.Position));
+  Log(logDebug, 'HTTP', 'Target position: '+IntegerProperty.Stringify(_Target.Position));
 End;
 
 Procedure HTTPDownloader.ContinueTransfer(Count:Integer);
@@ -735,9 +697,9 @@ Begin
     If Count2>BufferSize Then
       Count2 := BufferSize;
 
-    Log(logDebug, 'HTTP', 'Reading '+IntToString(Count2));
+    Log(logDebug, 'HTTP', 'Reading '+IntegerProperty.Stringify(Count2));
     Len := Source.Read(_Buffer, Count2);
-    Log(logDebug, 'HTTP', 'Got '+IntToString(Len));
+    Log(logDebug, 'HTTP', 'Got '+IntegerProperty.Stringify(Len));
     If Len>0 Then
     Begin
       _UpdateTime := Application.GetTime;
@@ -748,7 +710,7 @@ Begin
       {If (_ChunkedTransfer) And (Count=0) Then
       Begin
         Len := _Stream.ReadWord(Temp);
-        IntToString(Len);
+        IntegerProperty.Stringify(Len);
       End;}
     End;
   End;
@@ -888,7 +850,7 @@ Begin
   Log(logDebug, 'HTTP', 'Sending request to '+URL);
 
   Inc(_Connection._RequestCount);
-  Log(logDebug, 'HTTP', 'Request count: '+IntToString(_Connection._RequestCount));
+  Log(logDebug, 'HTTP', 'Request count: '+IntegerProperty.Stringify(_Connection._RequestCount));
 
   S := Request.GetMethodString() +' '+ Request.FilePath+' HTTP/1.1'+#13#10;
   S := S + 'User-Agent: ' + Request.ClientName + #13#10;
@@ -905,7 +867,7 @@ Begin
   If (Request._Data<>'') Then
   Begin
     S := S + 'Content-Type: application/x-www-form-urlencoded'#13#10;
-    S := S + 'Content-Length: '+IntToString(Length(Request._Data))+#13#10;
+    S := S + 'Content-Length: '+IntegerProperty.Stringify(Length(Request._Data))+#13#10;
   End;
 
   S := S + #13#10;
@@ -951,192 +913,8 @@ Begin
 
   Log(logDebug, 'HTTP', 'Retrying download: '+URL);
 
-  _Connection := DownloadManager.Instance.GetConnection(Request.Hostname, Request.Port);
+  _Connection := Engine.HTTP.GetConnection(Request.Hostname, Request.Port);
   Self.InitTransfer();
-End;
-
-Function HTTPDownloader.GetDest: Stream;
-Begin
-  Result := Self._Request._Dest;
-End;
-
-Function HTTPDownloader.GetStream: Stream;
-Begin
-  If Assigned(_Connection) Then
-    Result := _Connection._Socket
-  Else
-    Result := Self._FileSource;
-End;
-
-{ DownloadManager }
-Var
-  _DownloadManager_Instance:ApplicationObject = Nil;
-
-Class Function DownloadManager.Instance:DownloadManager;
-Begin
-  If Not Assigned(_DownloadManager_Instance) Then
-    _DownloadManager_Instance := InitializeApplicationComponent(DownloadManager, Nil);
-
-  Result := DownloadManager(_DownloadManager_Instance.Instance);
-End;
-
-Procedure DownloadManager.Init;
-Begin
-  _Mutex := CriticalSection.Create();
-  _DownloadCount := 0;
-End;
-
-Procedure DownloadManager.DummyCallback(Download:HTTPDownloader);
-Begin
-  // do nothing
-End;
-
-Procedure DownloadManager.Release;
-Var
-  I:Integer;
-Begin
-  _Mutex.Lock();
-  For I:=0 To Pred(_DownloadCount) Do
-    _Downloads[I]._Request._Callback := DummyCallback;
-  _Mutex.Unlock();
-
-  Self.Flush();
-
-  For I:=0 To Pred(_DownloadCount) Do
-    ReleaseObject(_Downloads[I]);
-
-  ReleaseObject(_Mutex);
-  _DownloadManager_Instance := Nil;
-End;
-
-Function DownloadManager.InvokeCallbackOnMainThread(Obj:TERRAObject):Boolean;
-Begin
-  ReleaseObject(Obj);
-  Result := False;
-End;
-
-Procedure DownloadManager.Update();
-Var
-  Remove:Boolean;
-  I, J:Integer;
-Begin
-  If (_Prefetching) Then
-    Exit;
-
-  //Application.Instance.Yeld();
-
-  {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
-  I := 0;
-  While (I<_ConnectionCount) Do
-  Begin
-    Remove := False;
-    If (_Connections[I]._Alive) Then
-    Begin
-      If (_Connections[I]._Socket.EOF) Then
-        Remove := True
-      Else
-      If ((GetTime() - _Connections[I]._LastUpdate)>KeepAliveDuration) Then
-      Begin
-        If (Not Self.HasDownloadsWithConnection(_Connections[I])) Then
-          Remove := True;
-      End;
-    End Else
-      Remove := True;
-
-    If (Remove) Then
-    Begin
-      Self.InterruptConnections(_Connections[I]);
-      ReleaseObject(_Connections[I]);
-      _Connections[I] := _Connections[Pred(_ConnectionCount)];
-      Dec(_ConnectionCount);
-    End Else
-      Inc(I);
-  End;
-  {$ENDIF}
-
-  I:=0;
-  _Mutex.Lock();
-  While (I<_DownloadCount) Do
-  Begin
-    Remove := False;
-
-    If (_Downloads[I]._ErrorCode<>httpOk) Then
-    Begin
-      Log(logDebug, 'HTTP', 'Download error :'+_Downloads[i]._URL+' -> error ' +IntToString(Integer(_Downloads[I]._ErrorCode)));
-      Remove := True;
-    End Else
-    If (Not _Downloads[I]._InBackground) And (_Downloads[I]._TotalSize<0) Then
-    Begin
-      _Downloads[I].InitTransfer();
-    End Else
-    Begin
-      {If (_Downloads[I]._Progress<100) And (GetTime - _Downloads[I]._UpdateTime>ConnectionTimeOut) Then
-      Begin
-        Log(logWarning, 'HTTP', 'Connection time out :'+_Downloads[i]._URL);
-        _Downloads[I]._ErrorCode := httpConnectionTimeOut;
-      End;}
-
-      If (Not _Downloads[I]._InBackground) Then
-      Begin
-        _Downloads[I].Update();
-      End;
-
-      If (_Downloads[I].Progress>=100) Then
-      Begin
-        Remove := True;
-
-        Log(logDebug, 'HTTP', 'Download finished :'+_Downloads[i]._URL);
-        Log(logDebug, 'HTTP', 'Total size: '+IntToString(_Downloads[i]._Target.Position));
-
-        If (_Downloads[I]._Target Is MemoryStream) Then
-        Begin
-          Log(logDebug, 'HTTP', 'Truncating memory stream');
-          _Downloads[I]._Target.Truncate();
-        End;
-
-        Log(logDebug, 'HTTP', 'Seeking to zero');
-        _Downloads[I]._Target.Seek(_Downloads[I]._Offset);
-      End;
-    End;
-
-    If (Remove) Then
-    Begin
-    {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
-      Self.ClearConnectionsToDownload(_Downloads[I]);
-    {$ENDIF}
-
-      If Assigned(_Downloads[I].Request._Callback) Then
-        Application.Instance.PostCallback(DownloadManager.Instance.InvokeCallbackOnMainThread, _Downloads[I])
-      Else
-        ReleaseObject(_Downloads[I]);
-
-      For J:=I To (_DownloadCount-2) Do
-        _Downloads[J] := _Downloads[Succ(J)];
-
-      Dec(_DownloadCount);
-    End Else
-      Inc(I);
-  End;
-  _Mutex.Unlock();
-End;
-
-Function DownloadManager.StartRequest(Request:HTTPRequest; InBackground:Boolean):HTTPDownloader;
-Begin
-  If Request = Nil Then
-  Begin
-    Result := Nil;
-    Exit;
-  End;
-
-  Result := HTTPDownloader.Create(Request, InBackground);
-
-  _Mutex.Lock();
-  Inc(_DownloadCount);
-  SetLength(_Downloads, _DownloadCount);
-  _Downloads[Pred(_DownloadCount)] := Result;
-
-  _Mutex.Unlock();
-  Log(logDebug, 'HTTP', 'Download prepared.');
 End;
 
 Function HTTPDownloader.GetTag(Const Name:TERRAString):TERRAString;
@@ -1153,109 +931,20 @@ Begin
   Result := '';
 End;
 
-Procedure DownloadManager.Flush;
+Function HTTPDownloader.GetDest:TERRAStream;
 Begin
-  Repeat
-    Self.Update();
-  Until Self.Count <=0;
+  Result := Self._Request._Dest;
 End;
 
-Function DownloadManager.GetOverallProgress: Integer;
-Var
-  I:Integer;
+Function HTTPDownloader.GetStream:TERRAStream;
 Begin
-  If (Self._DownloadCount<=0) Then
-  Begin
-    Result := 100;
-    Exit;
-  End;
-
-  _Mutex.Lock();
-
-  Result := 0;
-  For I:=0 To Pred(_DownloadCount) Do
-    Inc(Result, _Downloads[I].Progress);
-
-  Result := Result Div _DownloadCount;
-
-  _Mutex.Unlock();
-End;
-
-Function DownloadManager.GetDownload(Index: Integer): HTTPDownloader;
-Begin
-  _Mutex.Lock();
-  If (Index<0) Or (Index>=_DownloadCount) Then
-    Result := Nil
+  If Assigned(_Connection) Then
+    Result := _Connection._Socket
   Else
-    Result := _Downloads[Index];
-
-  _Mutex.Unlock();
+    Result := Self._FileSource;
 End;
 
-Function DownloadManager.GetConnection(const HostName: TERRAString; Port: Integer): HTTPConnection;
-Var
-  I:Integer;
-Begin
-  _Mutex.Lock();
-  {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
-  For I:=0 To Pred(_ConnectionCount) Do
-  If (_Connections[I]._Alive)  And (StringEquals(_Connections[I]._Host, HostName)) And (_Connections[I]._Port = Port) Then
-  Begin
-    Result := _Connections[I];
-    _Mutex.Unlock();
-    Exit;
-  End;
-  {$ENDIF}
 
-  Result := HTTPConnection.Create(HostName, Port);
-
-  {$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
-  Inc(_ConnectionCount);
-  SetLength(_Connections, _ConnectionCount);
-  _Connections[Pred(_ConnectionCount)] := Result;
-  {$ENDIF}
-
-  _Mutex.Unlock();
-End;
-
-{$IFDEF ALLOW_PERSISTENT_CONNECTIONS}
-Function DownloadManager.HasDownloadsWithConnection(Connection: HTTPConnection): Boolean;
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(_DownloadCount) Do
-  If (_Downloads[I]._Connection = Connection) Then
-  Begin
-    Result := True;
-    Exit;
-  End;
-
-  Result := False;
-End;
-
-Procedure DownloadManager.InterruptConnections(Connection: HTTPConnection);
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(_DownloadCount) Do
-  If (_Downloads[I]._Connection = Connection) Then
-  Begin
-    _Downloads[I]._Connection := Nil;
-    _Downloads[I]._Stream := Nil;
-  End;
-End;
-
-Procedure DownloadManager.ClearConnectionsToDownload(Download: HTTPDownloader);
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(_ConnectionCount) Do
-  If (_Connections[I]._Target = Download) Then
-  Begin
-    _Connections[I]._Target := Nil;
-  End;
-End;
-{$ENDIF}
 
 { HTTPConnection }
 Constructor HTTPConnection.Create(const HostName: TERRAString; Port: Integer);
@@ -1346,7 +1035,7 @@ Begin
     CachedFile := FileManager.Instance.SearchResourceFile(FileName);
   End;}
 
-  StringReplaceChar(Ord('\'), HTTPSeparator, URL);
+  StringReplaceChar('\', HTTPSeparator, URL);
 
   _HostName := URL;
   // extract http:// from url
@@ -1359,7 +1048,7 @@ Begin
   _HostName := StringCopy(_HostName, 1, Pred(I));
 
   _FileName := _FilePath;
-  I := StringCharPos(Ord('?'), _FileName);
+  I := StringCharPos('?', _FileName);
   If I>0 Then
     _FileName := StringCopy(_FilePath, 1, Pred(I));
 
@@ -1398,7 +1087,7 @@ Begin
   Self._MethodType := MethodType; 
 End;
 
-Procedure HTTPRequest.SetTarget(Target: Stream);
+Procedure HTTPRequest.SetTarget(Target:TERRAStream);
 Begin
   Self._Dest := Target;
 End;
@@ -1470,7 +1159,7 @@ Begin
   Self.AddArg(ArgName, HTTPIntegerArgument.Create(Value));
 End;
 
-Procedure HTTPArgumentList.AddStream(const ArgName: TERRAString; Value: Stream);
+Procedure HTTPArgumentList.AddStream(const ArgName: TERRAString; Value:TERRAStream);
 Begin
   Self.AddArg(ArgName, HTTPStreamArgument.Create(Value));
 End;
@@ -1488,7 +1177,7 @@ End;
 
 Function HTTPIntegerArgument.GetValue(SafeEncode:Boolean): TERRAString;
 Begin
-  Result := IntToString(Self.Value);
+  Result := IntegerProperty.Stringify(Self.Value);
 End;
 
 { HTTPCardinalArgument }
@@ -1531,7 +1220,7 @@ Begin
 End;
 
 { HTTPStreamArgument }
-Constructor HTTPStreamArgument.Create(Value: Stream);
+Constructor HTTPStreamArgument.Create(Value:TERRAStream);
 Begin
   Self.Value := Value;
 End;

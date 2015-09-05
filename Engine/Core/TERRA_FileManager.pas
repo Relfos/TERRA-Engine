@@ -62,6 +62,7 @@ Type
 
       _Locations:TERRAHashMap;
 
+      Function FindLocation(FileName:TERRAString):TERRALocation;
       Function RegisterLocation(Location:TERRALocation):TERRALocation;
 
     Public
@@ -71,6 +72,8 @@ Type
       Procedure Reset();
 
       Function Search(FileName:TERRAString):TERRALocation;
+
+      Procedure AddLocation(Location:TERRALocation);
 
       Procedure AddFolder(Path:TERRAString);
       Procedure RemoveFolder(Path:TERRAString);
@@ -354,12 +357,7 @@ Begin
   _Locations.Add(Result);
 End;
 
-Function FileManager.Search(FileName:TERRAString):TERRALocation;
-Var
-  S:TERRAString;
-  I, J:Integer;
-  Resource:ResourceInfo;
-  Location:TERRALocation;
+Function FileManager.FindLocation(FileName:TERRAString):TERRALocation;
 Begin
   Result := Nil;
 
@@ -369,18 +367,25 @@ Begin
   FileName := StringLower(FileName);
   FileName := GetFileName(FileName, False);
 
-  {$IFDEF DEBUG_FILECACHE}Log(logDebug, 'FileManager', 'Searching for file '+FileName+' in cache');{$ENDIF}
+  Result := TERRALocation(_Locations.GetItemByKey(FileName));
+End;
 
-  Location := TERRALocation(_Locations.GetItemByKey(FileName));
-  If Assigned(Location) Then
+Function FileManager.Search(FileName:TERRAString):TERRALocation;
+Var
+  S:TERRAString;
+  I, J:Integer;
+  Resource:ResourceInfo;
+Begin
+  {$IFDEF DEBUG_FILECACHE}Log(logDebug, 'FileManager', 'Searching for file '+FileName+' in cache');{$ENDIF}
+  Result := Self.FindLocation(FileName);
+
+  If Assigned(Result) Then
   Begin
     {$IFDEF DEBUG_FILECACHE}Log(logDebug, 'FileManager', 'Was found in cache: '+Location.Path);{$ENDIF}
 
-    If Location.Path = '' Then
-      Result := Nil
-    Else
-      Result := Location;
-      
+    If Result.Path = '' Then
+      Result := Nil;
+
     Exit;
   End;
 
@@ -591,6 +596,20 @@ End;
 Procedure FileManager.Reset;
 Begin
   Self._FolderCount := 1;
+End;
+
+Procedure FileManager.AddLocation(Location: TERRALocation);
+Var
+  Previous:TERRALocation;
+Begin
+  If Location = Nil Then
+    Exit;
+
+  Previous := Self.FindLocation(Location.Name);
+  If Assigned(Previous) Then
+    Self._Locations.Delete(Previous);
+
+  RegisterLocation(Location);
 End;
 
 { TERRAFileLocation }
