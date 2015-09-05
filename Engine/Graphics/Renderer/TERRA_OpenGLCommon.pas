@@ -12,7 +12,7 @@ Uses
   TERRA_String, TERRA_Utils, TERRA_Object, TERRA_Renderer, TERRA_VertexFormat,
   {$IFDEF MOBILE}TERRA_OpenGLES{$ELSE}TERRA_OpenGL{$ENDIF}, 
   TERRA_Color, TERRA_Image, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D,
-  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_Stream, TERRA_ShaderNode, SysUtils;
+  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_Stream, TERRA_ShaderNode, TERRA_GLSLCompiler;
 
 Type
   OpenGLVBO = Class(VertexBufferInterface)
@@ -82,7 +82,7 @@ Type
 Function CompareToGL(Mode:CompareMode):Integer;
   
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_GraphicsManager, TERRA_FileManager, TERRA_FileUtils, TERRA_FileStream;
+Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_GraphicsManager, TERRA_FileManager, TERRA_FileUtils, TERRA_FileStream, SysUtils;
 
 Function CompareToGL(Mode:CompareMode):Integer;
 Begin

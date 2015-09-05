@@ -3,14 +3,21 @@ Unit TERRA_ShaderManager;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Renderer;
+Uses TERRA_Object, TERRA_String, TERRA_Renderer, TERRA_ShaderNode;
 
 Function Get_SkyboxDiffuseShader():ShaderInterface;
 Function Get_SkyboxNormalShader():ShaderInterface;
 
-Function GetShader_Sprite(SpriteFlags:Cardinal):TERRAString;
+Function GetShader_Sprite(SpriteFlags:Cardinal):ShaderGroup;
+Function GetShader_Particles():ShaderGroup;
 
-Function GetShader_Particles():TERRAString;
+Function GetShader_StencilVolumeShader():ShaderGroup;
+
+Function GetShader_FullscreenQuad():ShaderGroup;
+Function GetShader_FullscreenColor():ShaderGroup;
+
+Function GetShader_Blur():ShaderGroup;
+Function GetShader_Edge():ShaderGroup;
 
 Implementation
 Uses TERRA_OS, TERRA_ShaderFactory, TERRA_Sprite, TERRA_EngineManager, TERRA_GraphicsManager
@@ -20,13 +27,14 @@ Var
   _SkyboxDiffuseShader:ShaderInterface = Nil;
   _SkyboxNormalShader:ShaderInterface = Nil;
 
-Function GetShader_Skybox(OutputMode:Integer):TERRAString;
+Function GetShader_Skybox(OutputMode:Integer):ShaderGroup;
 Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
+  Result := ShaderGroup.Create();
+
   S := '';
-  Line('vertex {');
   Line('varying highp vec3 normal;');
   Line('  uniform mat4 projectionMatrix;');
   Line('  uniform mat4 rotationMatrix;');
@@ -37,7 +45,10 @@ Begin
   Line('  gl_Position = projectionMatrix * terra_position;');
   Line('  highp vec4 n = reflectionMatrix * vec4(terra_normal, 1.0);');
   Line('  normal = (rotationMatrix * n).xyz;}');
-  Line('}');
+
+  Result.XVertexCode := S;
+
+  S := '';
   Line('fragment {');
   Line('varying highp vec3 normal;');
   Line('uniform samplerCube skyTexture;');
@@ -55,8 +66,7 @@ Begin
     //Line('  gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0);}');
   End;
 
-  Line('}');
-  Result := S;
+  Result.XFragmentCode := S;
 End;
 
 Function Get_SkyboxNormalShader():ShaderInterface;
@@ -97,12 +107,14 @@ Begin
   Result := S;
 End;
 
-Function GetShader_Sprite(SpriteFlags:Cardinal):TERRAString;
+Function GetShader_Sprite(SpriteFlags:Cardinal):ShaderGroup;
 Var
   S:TERRAString;
   DoColorGrading, IsFont, IsSolid, IsDissolve, HasPattern:Boolean;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
+  Result := ShaderGroup.Create();
+
   DoColorGrading := (SpriteFlags And Sprite_ColorGrading)<>0;
   IsFont := (SpriteFlags And Sprite_Font)<>0;
   IsSolid := (SpriteFlags And Sprite_SolidColor)<>0;
@@ -110,7 +122,6 @@ Begin
   HasPattern := (SpriteFlags And Sprite_Pattern)<>0;
 
   S := '';
-  Line('vertex {');
 	Line('  varying highp vec4 clipRect;');
 	Line('  varying highp vec2 screen_position;');
 
@@ -133,10 +144,9 @@ Begin
   Line('  clipRect = terra_UV1;');
   Line('  fillColor = terra_UV2;');
   Line('  color = terra_color;}');
-  Line('}');
+  Result.XVertexCode := S;
 
-  Line('fragment {');
-
+  S := '';
 	Line('  varying highp vec4 clipRect;');
 	Line('  varying highp vec2 screen_position;');
 
@@ -219,7 +229,7 @@ Begin
 
   Line('  alpha *=  color.a;');
   Line('  alpha *= alphaCut;');
-  Line('    gl_FragColor = vec4( baseColor.rgb, baseColor.a * alpha);');
+  Line('    gl_FragColor = vec4( baseColor.rgb, baseColor.a * alpha);}');
 
   {$ELSE}
 
@@ -260,18 +270,17 @@ Begin
     Line('    gl_FragColor = c;}');
   End;
 
-  Line('}  ');
-  Result := S;
+  Result.XFragmentCode := S;
 End;
 
-Function GetShader_Particles():TERRAString;
+Function GetShader_Particles():ShaderGroup;
 Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
+  Result := ShaderGroup.Create();
+
   S := '';
-  Line('version { 120 }');
-  Line('vertex {');
   Line('	varying mediump vec4 texCoord;');
   Line('	varying lowp vec4 diffuse;');
   Line('	uniform highp vec3 cameraPosition;');
@@ -296,8 +305,9 @@ Begin
   Line('    pp = vec2(pp.x * terra_angle.x - pp.y * terra_angle.y, pp.x * terra_angle.y + pp.y * terra_angle.x);');
   Line('		world_position.xyz += (pp.x * cameraRight + pp.y * cameraUp);');//  Line('		world_position.xyz += (ratio * pp.x * cameraRight + pp.y * cameraUp);');
   Line('		gl_Position = projectionMatrix * cameraMatrix * world_position;}');
-  Line('}');
-  Line('fragment {');
+  Result.XVertexCode := S;
+
+  S := '';
   Line('	uniform sampler2D texture0;');
   Line('	uniform highp vec3 cameraPosition;');
   Line('	uniform lowp vec4 sunColor;');
@@ -308,61 +318,312 @@ Begin
   Line('    if (color.a<0.1) discard;');
   Line('    color *= sunColor;');
   Line('		gl_FragColor = color;}');
-  Line('}');
-  Result := S;
+  Result.XFragmentCode := S;
 End;
 
-(*Function GetShader_UIFade:TERRAString;
+
+(*Function GetShader_SimpleColor():TERRAString;
 Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   S := '';
+  Line('version { 110 }');
   Line('vertex {');
-  Line('  attribute vec4 terra_position;');
-  Line('  attribute vec4 terra_UV0;');
+	Line('  uniform mat4 cameraMatrix;');
+	Line('  uniform mat4 modelMatrix;');
   Line('  uniform mat4 projectionMatrix;');
-  Line('  varying mediump vec4 texCoord;');
-	Line('void main()	{');
-  Line('  texCoord = terra_UV0;');
-  Line('  gl_Position = projectionMatrix * terra_position;}');
-	Line('}');
-  Line('fragment {');
-	Line('  uniform sampler2D texture;');
-	Line('  uniform highp float alpha;');
-  Line('  uniform lowp vec4 fadeColor;');
-  Line('  varying mediump vec4 texCoord;');
-  Line('	void main()	{');
-  Line('    highp float t = texture2D(texture, texCoord.xy).a;');
-  Line('    highp float p; if (t<alpha) p = 0.0; else p = 1.0;');
-  Line('    gl_FragColor = vec4(fadeColor.rgb, p);}');
+  Line('  attribute highp vec4 terra_position;');
+	Line('  void main()	{');
+  Line('    gl_Position = projectionMatrix * cameraMatrix * modelMatrix * terra_position;}');
   Line('}');
-  Result := S;
-End;
-
-Function GetShader_UISlide:TERRAString;
-Var
-  S:TERRAString;
-Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
-Begin
-  S := '';
-  Line('vertex {');
-  Line('  attribute vec4 terra_position;');
-  Line('  attribute vec4 terra_UV0;');
-  Line('  uniform mat4 projectionMatrix;');
-  Line('  varying mediump vec4 texCoord;');
-	Line('void main()	{');
-  Line('  texCoord = terra_UV0;');
-  Line('  gl_Position = projectionMatrix * terra_position;}');
-	Line('}');
   Line('fragment {');
-	Line('  uniform sampler2D texture;');
-  Line('  varying mediump vec4 texCoord;');
-  Line('	void main()	{');
-  Line('    highp vec4 p = texture2D(texture, texCoord.xy);');
-  Line('    gl_FragColor = p;}');
+	Line('  uniform lowp vec4 out_color;');
+	Line('	void main()	{');
+	Line('	gl_FragColor = out_color;}');
   Line('}');
   Result := S;
 End;*)
+
+
+Function GetShader_StencilVolumeShader():ShaderGroup;
+Var
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
+Begin
+  Result := ShaderGroup.Create();
+
+  S := '';
+	Line('  uniform mat4 cameraMatrix;');
+  Line('  uniform mat4 projectionMatrix;');
+  Line('  attribute highp vec4 terra_position;');
+	Line('  void main()	{');
+  Line('    gl_Position = projectionMatrix * cameraMatrix * terra_position;}');
+  Result.XVertexCode := S;
+
+  S := '';
+	Line('	void main()	{');
+	Line('	gl_FragColor = vec4(1.0, 1.0, 0.0, 0.5);}');
+  Result.XFragmentCode := S;
+End;
+
+Function GetShader_FullscreenColor():ShaderGroup;
+Var
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
+Begin
+  Result := ShaderGroup.Create();
+
+  S := '';
+  Line('vertex {');
+  Line('  attribute highp vec4 terra_position;');
+  Line('  uniform mat4 projectionMatrix;');
+	Line('void main()	{');
+  Line('  gl_Position =  projectionMatrix * terra_position;}');
+  Result.XVertexCode := S;
+
+  S := '';
+  Line('  uniform mediump vec4 color;');
+	Line('  void main()	{');
+  Line('    gl_FragColor = color;}');
+  Result.XFragmentCode := S;
+End;
+
+Function GetShader_FullscreenQuad():ShaderGroup;
+Var
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
+Begin
+  Result := ShaderGroup.Create();
+
+  S := '';
+	Line('  varying mediump vec2 texCoord;');
+  Line('  attribute highp vec4 terra_position;');
+  Line('  attribute mediump vec3 terra_UV0;');
+  Line('  uniform mat4 projectionMatrix;');
+	Line('void main()	{');
+  Line('  gl_Position =  projectionMatrix * terra_position;');
+  Line('  texCoord = terra_UV0.xy;}');
+
+  Result.XVertexCode := S;
+
+  S := '';
+	Line('  varying mediump vec2 texCoord;');
+	Line('  uniform sampler2D texture;');
+	Line('  void main()	{');
+  Line('    lowp vec4 c = texture2D(texture, texCoord.st);');
+  {$IFDEF TESTFULLSCREENSHADER}
+  Line('    gl_FragColor = vec4(0.0,1.0, 0.0, 1.0);}');
+  {$ELSE}
+  Line('    gl_FragColor = c;}');
+  {$ENDIF}
+  Result.XFragmentCode := S;
+End;
+
+Function GetShader_Blur():ShaderGroup;
+Var
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
+Begin
+  Result := ShaderGroup.Create();
+
+  S := '';
+  Line('  uniform mat4 projectionMatrix;');
+  Line('  varying highp vec2 texCoord;');
+  Line('  attribute highp vec4 terra_position;');
+  Line('  attribute highp vec2 terra_UV0;');
+	Line('  void main()	{');
+  Line('    texCoord = terra_UV0;');
+  Line('    gl_Position = projectionMatrix * terra_position;}');
+  Result.XVertexCode := S;
+
+  S := '';
+  Line('varying highp vec2 texCoord;');
+  Line('uniform highp float dx, dy;');
+  Line('uniform sampler2D texture;');
+	Line('void main()	{');
+  Line('lowp vec2 st = texCoord.st;');
+
+  // Apply 3x3 gaussian filter
+	Line('lowp vec4 color	= texture2D(texture, st);');
+  Line('lowp float alpha = color.a;');
+  Line('color *= 4.0;');
+  Line('lowp vec4 temp = texture2D(texture, st + vec2(+dx, 0.0));');
+  Line('alpha = max(alpha, temp.a);');
+  Line('color		+= 2.0 * temp;');
+  Line('temp = texture2D(texture, st + vec2(-dx, 0.0));;');
+  Line('alpha = max(alpha, temp.a);');
+  Line('color		+= 2.0 * temp;');
+  Line('temp = texture2D(texture, st + vec2(0.0, +dy));');
+  Line('alpha = max(alpha, temp.a);');
+  Line('color		+= 2.0 * temp;');
+  Line('temp = texture2D(texture, st + vec2(0.0, -dy));');
+  Line('alpha = max(alpha, temp.a);');
+  Line('color		+= 2.0 * temp;');
+  Line('temp = texture2D(texture, st + vec2(+dx, +dy));');
+  Line('alpha = max(alpha, temp.a);');
+  Line('color		+= temp;');
+  Line('temp = texture2D(texture, st + vec2(-dx, +dy));;');
+  Line('alpha = max(alpha, temp.a);');
+  Line('color		+= temp;');
+  Line('temp = texture2D(texture, st + vec2(-dx, -dy));;');
+  Line('alpha = max(alpha, temp.a);');
+  Line('color		+= temp;');
+  Line('temp = texture2D(texture, st + vec2(+dx, -dy));');
+  Line('alpha = max(alpha, temp.a);');
+  Line('color		+= temp;');
+
+  Line('color = color / 16.0;');
+  Line('color.a = alpha;');
+  Line('gl_FragColor = color;');
+
+  Result.XFragmentCode := S;
+End;
+
+
+(*	Line('float sobelFilter(vec2 texCoord){');
+	Line('	vec3 s00 = texture2D(normal_texture, texCoord + vec2(-offX, -offY)).rgb;');
+	Line('	vec3 s01 = texture2D(normal_texture, texCoord + vec2( 0,   -offY)).rgb;');
+	Line('	vec3 s02 = texture2D(normal_texture, texCoord + vec2( offX, -offY)).rgb;');
+
+	Line('	vec3 s10 = texture2D(normal_texture, texCoord + vec2(-offX,  0)).rgb;');
+	Line('	vec3 s12 = texture2D(normal_texture, texCoord + vec2( offX,  0)).rgb;');
+
+	Line('	vec3 s20 = texture2D(normal_texture, texCoord + vec2(-offX,  offY)).rgb;');
+	Line('	vec3 s21 = texture2D(normal_texture, texCoord + vec2( 0,    offY)).rgb;');
+	Line('	vec3 s22 = texture2D(normal_texture, texCoord + vec2( offX,  offY)).rgb;');
+
+	Line('	vec3 sobelX = s00 + 2.0 * s10 + s20 - s02 - 2.0 * s12 - s22;');
+	Line('	vec3 sobelY = s00 + 2.0 * s01 + s02 - s20 - 2.0 * s21 - s22;');
+
+	Line('	vec3 edgeSqr = sobelX * sobelX + sobelY * sobelY;');
+  Line('  vec4 px = texture2D(normal_texture, texCoord).rgba;');
+	Line('	float p = dot(edgeSqr, edgeSqr);');
+
+
+//  Line('	return px.a;	}');
+
+	//Line('	return p * 0.3 + 0.7;	}');*)
+
+Function GetShader_Edge():ShaderGroup;
+Var
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
+Begin
+  Result := ShaderGroup.Create();
+
+  S := '';
+  Line('  uniform mat4 projectionMatrix;');
+  Line('  varying highp vec2 texCoord;');
+  Line('  attribute highp vec4 terra_position;');
+  Line('  attribute mediump vec2 terra_UV0;');
+	Line('  void main()	{');
+  Line('    texCoord = terra_UV0;');
+  Line('    gl_Position = projectionMatrix * terra_position;}');
+  Result.XVertexCode := S;
+
+  S := '';
+  Line('varying highp vec2 texCoord;');
+  Line('uniform highp float dx, dy;');
+  Line('uniform sampler2D texture;');
+
+	Line('void main()	{');
+	Line('lowp float offX = dx;');
+  Line('lowp float offY = dy;');
+
+  // Apply sobel filter
+
+  Line('mediump vec3 sample;');
+  //Line('lowp float depth = texture2D(normal_texture, texCoord).a;');
+
+  //Line(' depth = (1.0 - depth) * 0.5;');
+  Line(' mediump float kox = offX; ');
+  Line(' mediump float koy = offY; ');
+
+// fetch the 3x3 neighbourhood and use the RGB vector's length as intensity value
+  Line('  lowp float spv0;');
+  Line('  lowp float spv1;');
+  Line('  lowp float spv2;');
+  Line(' spv0 = length(texture2D(texture, texCoord + vec2(-kox,-koy)).rgb);');
+  Line(' spv1 = length(texture2D(texture, texCoord + vec2(-kox, 0.0)).rgb);');
+  Line(' spv2 = length(texture2D(texture, texCoord + vec2(-kox, koy)).rgb);');
+  Line(' lowp vec3 sample0 = vec3(spv0, spv1, spv2);');
+  Line(' spv0 = length(texture2D(texture, texCoord + vec2(0.0, -koy)).rgb);');
+  Line(' spv1 = length(texture2D(texture, texCoord).rgb);');
+  Line(' spv2 = length(texture2D(texture, texCoord + vec2(0.0, koy)).rgb);');
+  Line(' lowp vec3 sample1 = vec3(spv0, spv1, spv2);');
+  Line(' spv0 = length(texture2D(texture, texCoord + vec2(kox,-koy)).rgb);');
+  Line(' spv1 = length(texture2D(texture, texCoord + vec2(kox, 0.0)).rgb);');
+  Line(' spv2 = length(texture2D(texture, texCoord + vec2(kox, koy)).rgb);');
+  Line(' lowp vec3 sample2 = vec3(spv0, spv1, spv2);');
+
+// calculate the convolution values for all the masks
+	// calculate the convolution values for all the masks
+  Line('lowp float conv0;');
+  Line('lowp float conv1;');
+  Line('mediump float dp3;');
+  Line(' mediump vec3 gk0_0 = vec3(1.0, 2.0, 1.0); ');
+  Line(' mediump vec3 gk0_2 = vec3(-1.0, -2.0, -1.0); ');
+  Line(' mediump vec3 gk1_0 = vec3(1.0, 0.0, -1.0); ');
+  Line(' mediump vec3 gk1_1 = vec3(2.0, 0.0, -2.0); ');
+  Line(' mediump vec3 gk1_2 = vec3(1.0, 0.0, -1.0); ');
+  Line(' dp3 =  dot(gk0_0, sample0) +  dot(gk0_2, sample2) ;');
+  Line(' conv0 = dp3 * dp3;	');
+  Line(' dp3 =  dot(gk1_0, sample0)  +  dot(gk1_1, sample1)  +  dot(gk1_2, sample2) ;');
+  Line(' conv1 = dp3 * dp3;	');
+  Line(' mediump float pp = sqrt(conv0*conv0+conv1*conv1);');
+
+  Line('	pp = 1.0 - min(1.0, pp);');
+
+//  Line('  pp = pp * 0.3 + 0.7;');
+  //Line('	if (pp<0.99) return 0.0;  else return 1.0; 	}');
+
+  Line('gl_FragColor = vec4(pp, pp, pp, 1.0);');
+
+  //Line('gl_FragColor = texture2D(texture, texCoord);');
+  Line('}');
+
+  Result.XFragmentCode := S;
+End;
+
+Function GetShader_DistanceField():TERRAString;
+Var
+  S:TERRAString;
+Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
+Begin
+  S := '';
+  Line('version { 110 }');
+  Line('vertex {');
+  Line('  uniform mat4 projectionMatrix;');
+  Line('  varying highp vec2 texCoord;');
+  Line('  attribute highp vec4 terra_position;');
+  Line('  attribute highp vec2 terra_UV0;');
+	Line('  void main()	{');
+  Line('    texCoord = terra_UV0;');
+  Line('    gl_Position = projectionMatrix * terra_position;}');
+  Line('}');
+  Line('fragment {');
+  Line('varying highp vec2 texCoord;');
+  Line('uniform highp float dx, dy;');
+  Line('uniform sampler2D texture;');
+
+  Line('highp float minDist;');
+
+  Line('void measurePixel(lowp ofst)	{');
+  Line('lowp vec4 pB = texture2D(texture, st + vec2(dx, 0.0));');
+  Line('}');
+
+	Line('void main()	{');
+  Line('lowp vec2 st = texCoord.st;');
+  Line('  minDist = 9999.0;');
+
+	Line('lowp vec4 pA	= texture2D(texture, st);');
+  Line('lowp vec4 pB = texture2D(texture, st + vec2(dx, 0.0));');
+  Line('lowp vec4 color = (pA + pB) * 0.5;');
+  Line('gl_FragColor = color;');
+  Line('}}');
+  Result := S;
+End;
+
 
 End.

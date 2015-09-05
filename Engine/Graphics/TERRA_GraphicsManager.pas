@@ -195,7 +195,7 @@ Type
 Implementation
 
 Uses TERRA_Error, TERRA_EngineManager, TERRA_OS, TERRA_Log, TERRA_ResourceManager, TERRA_InputManager,
-  TERRA_Frustum, TERRA_Lights, TERRA_Mesh, TERRA_ParticleRenderer, TERRA_DebugDraw;
+  TERRA_Frustum, TERRA_Lights, TERRA_Mesh, TERRA_ShaderManager, TERRA_DebugDraw;
 
 Var
   _ShuttingDown:Boolean = False;
@@ -205,100 +205,6 @@ Begin
   Result := _ShuttingDown;
 End;
 
-
-Function GetShader_SimpleColor():TERRAString;
-Var
-  S:TERRAString;
-Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
-Begin
-  S := '';
-  Line('version { 110 }');
-  Line('vertex {');
-	Line('  uniform mat4 cameraMatrix;');
-	Line('  uniform mat4 modelMatrix;');
-  Line('  uniform mat4 projectionMatrix;');
-  Line('  attribute highp vec4 terra_position;');
-	Line('  void main()	{');
-  Line('    gl_Position = projectionMatrix * cameraMatrix * modelMatrix * terra_position;}');
-  Line('}');
-  Line('fragment {');
-	Line('  uniform lowp vec4 out_color;');
-	Line('	void main()	{');
-	Line('	gl_FragColor = out_color;}');
-  Line('}');
-  Result := S;
-End;
-
-
-Function GetShader_StencilVolumeShader():TERRAString;
-Var
-  S:TERRAString;
-Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
-Begin
-  S := '';
-  Line('version { 110 }');
-  Line('vertex {');
-	Line('  uniform mat4 cameraMatrix;');
-  Line('  uniform mat4 projectionMatrix;');
-  Line('  attribute highp vec4 terra_position;');
-	Line('  void main()	{');
-  Line('    gl_Position = projectionMatrix * cameraMatrix * terra_position;}');
-  Line('}');
-  Line('fragment {');
-	Line('	void main()	{');
-	Line('	gl_FragColor = vec4(1.0, 1.0, 0.0, 0.5);}');
-  Line('}');
-  Result := S;
-End;
-
-Function GetShader_FullscreenColor():TERRAString;
-Var
-  S:TERRAString;
-Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
-Begin
-  S := '';
-  Line('vertex {');
-  Line('  attribute highp vec4 terra_position;');
-  Line('  uniform mat4 projectionMatrix;');
-	Line('void main()	{');
-  Line('  gl_Position =  projectionMatrix * terra_position;}');
-  Line('}');
-  Line('fragment {');
-  Line('  uniform mediump vec4 color;');
-	Line('  void main()	{');
-  Line('    gl_FragColor = color;}');
-  Line('}  ');
-  Result := S;
-End;
-
-Function GetShader_FullscreenQuad():TERRAString;
-Var
-  S:TERRAString;
-Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
-Begin
-  S := '';
-  Line('vertex {');
-	Line('  varying mediump vec2 texCoord;');
-  Line('  attribute highp vec4 terra_position;');
-  Line('  attribute mediump vec3 terra_UV0;');
-  Line('  uniform mat4 projectionMatrix;');
-	Line('void main()	{');
-  Line('  gl_Position =  projectionMatrix * terra_position;');
-  Line('  texCoord = terra_UV0.xy;}');
-  Line('}');
-  Line('fragment {');
-	Line('  varying mediump vec2 texCoord;');
-	Line('  uniform sampler2D texture;');
-	Line('  void main()	{');
-  Line('    lowp vec4 c = texture2D(texture, texCoord.st);');
-  {$IFDEF TESTFULLSCREENSHADER}
-  Line('    gl_FragColor = vec4(0.0,1.0, 0.0, 1.0);}');
-  {$ELSE}
-  Line('    gl_FragColor = c;}');
-  {$ENDIF}
-  Line('}  ');
-  Result := S;
-End;
 
 
 { GraphicsManager }

@@ -4,7 +4,7 @@ Unit TERRA_NullRenderer;
 Interface
 Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Renderer, TERRA_VertexFormat,
   TERRA_Color, TERRA_Image, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D,
-  TERRA_Matrix3x3, TERRA_Matrix4x4;
+  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ShaderNode;
 
 Type
   NullFeatures = Class(RendererFeatures)
@@ -86,7 +86,7 @@ Type
 
 
     Public
-      Function Generate(Const Name:TERRAString; ShaderCode:TERRAString):Boolean; Override;
+      Function Generate(Const Name:TERRAString; Shader:ShaderGroup):Boolean; Override;
 
       Function IsReady():Boolean; Override;
 
@@ -512,7 +512,7 @@ Procedure NullShader.SetVec4ArrayUniform(const Name: TERRAString; Count:Integer;
 Begin
 End;
 
-Function NullShader.Generate(const Name: TERRAString; ShaderCode: TERRAString): Boolean;
+Function NullShader.Generate(const Name: TERRAString; Shader:ShaderGroup): Boolean;
 Begin
   Result := True;
 End;

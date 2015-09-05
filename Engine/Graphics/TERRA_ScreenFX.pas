@@ -26,7 +26,7 @@ Unit TERRA_ScreenFX;
 
 Interface
 Uses TERRA_String, TERRA_Object, TERRA_Utils, TERRA_OS, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Matrix4x4, TERRA_Color,
-  TERRA_Resource, TERRA_Texture, TERRA_Renderer, TERRA_Noise;
+  TERRA_Resource, TERRA_Texture, TERRA_Renderer, TERRA_Noise, TERRA_ShaderNode;
 
 Const
   MaxVignetteScale = 20.0;
@@ -416,6 +416,9 @@ Function ScreenFXChain.GetShader:ShaderInterface;
 Var
   S:TERRAString;
   I, J:Integer;
+
+  Shader:ShaderGroup;
+
   Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   If (_NeedsUpdate) Then
@@ -453,9 +456,11 @@ Begin
     Self._NeedTarget[Integer(captureTargetAlpha)] := True;
     {$ENDIF}
 
+    Shader := ShaderGroup.Create();
+
     S := '';
-    Line('version { 110 }');
-    Line('vertex {');
+//    Line('version { 110 }');
+
     Line('  uniform mat4 projectionMatrix;');
     Line('	varying mediump vec4 texCoord;');
     Line('  attribute highp vec4 terra_position;');
@@ -487,8 +492,9 @@ Begin
     End;
 
     Line('  gl_Position = projectionMatrix * terra_position;}');
-    Line('}');
-    Line('fragment {');
+
+    Shader.XVertexCode := S;
+    S := '';
 
     //Line('  uniform mat4 inverseProjectionMatrix;');
     Line('	varying mediump vec4 texCoord;');
@@ -645,13 +651,15 @@ Begin
     Begin
       Line('  output_color.rgb = pow(output_color.rgb, vec3(2.2));');
     End;
-    
+
     //Line('    gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);}');
     Line('    gl_FragColor = output_color;}');
-    Line('}');
+    Shader.XFragmentCode := S;
 
     _Shader := Engine.Graphics.Renderer.CreateShader();
-    _Shader.Generate(Self.GetShaderName(), S);
+    _Shader.Generate(Self.GetShaderName(), Shader);
+
+    ReleaseObject(Shader);
     _NeedsUpdate := False;
   End;
 
