@@ -35,6 +35,7 @@ Const
   Sprite_ColorGrading = 4;
   Sprite_Dissolve     = 8;
   Sprite_Pattern      = 16;
+  Sprite_GUI          = 32;
 
 Type
   SpriteAnchor = (

@@ -723,7 +723,7 @@ Begin
 
     Target.BeginCapture();
       _Renderables.RenderBuckets(View, Stage);
-      View.SpriteRenderer.Render({View.Camera.Transform, }View.Camera.Projection, Stage);
+      View.SpriteRenderer.Render(View.Camera.Projection, View.Camera.Transform, Stage);
     Target.EndCapture();
     Inc(Count);
 

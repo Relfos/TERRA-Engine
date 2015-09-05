@@ -812,6 +812,7 @@ Begin
   Dest := Self.AllocSprite();
   Dest.Flags := Dest.Flags Or Sprite_Font;
   Result := DrawTextToSprite(View, X,Y,Layer, Text, Dest);
+  Dest.Flags := Dest.Flags Or Sprite_GUI; 
   View.SpriteRenderer.QueueSprite(Dest);
 End;
 

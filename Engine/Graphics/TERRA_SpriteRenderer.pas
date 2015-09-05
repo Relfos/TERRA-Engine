@@ -74,7 +74,7 @@ Type
       Procedure AddSprite(P:TERRASprite);
 
       Procedure Prepare();
-      Procedure Render(Const ProjectionMatrix:Matrix4x4; Stage:RendererStage);
+      Procedure Render(Const ProjectionMatrix, TransformMatrix:Matrix4x4; Stage:RendererStage);
       Procedure Clear();
 
     Public
@@ -97,9 +97,8 @@ Type
       Procedure Release; Override;
 
       Procedure Prepare;
-      Procedure Render(Const ProjectionMatrix:Matrix4x4; Stage:RendererStage);
+      Procedure Render(Const ProjectionMatrix, TransformMatrix:Matrix4x4; Stage:RendererStage);
       Procedure Clear;
-
 
       Procedure QueueSprite(S:TERRASprite);
 
@@ -347,7 +346,7 @@ Begin
   _Index := -1;
 End;
 
-Procedure TERRASpriteRenderer.Render(Const ProjectionMatrix:Matrix4x4; Stage:RendererStage);
+Procedure TERRASpriteRenderer.Render(Const ProjectionMatrix, TransformMatrix:Matrix4x4; Stage:RendererStage);
 Var
   I,K:Integer;
   Min:Single;
@@ -407,7 +406,7 @@ Begin
 
     If (Index>=0) Then
     Begin
-      _Batches[Index].Render(ProjectionMatrix, Stage);
+      _Batches[Index].Render(ProjectionMatrix, TransformMatrix, Stage);
       Dec(Total);
 
       Inc(Count); //If Count>1 Then break;
@@ -467,7 +466,7 @@ Begin
   _First := Nil;
 End;
 
-Procedure SpriteBatch.Render(Const ProjectionMatrix:Matrix4x4; Stage:RendererStage);
+Procedure SpriteBatch.Render(Const ProjectionMatrix, TransformMatrix:Matrix4x4; Stage:RendererStage);
 Var
   Graphics:GraphicsManager;
   TargetShader:ShaderInterface;
@@ -500,7 +499,9 @@ Begin
   TargetShader := _SpriteShaders[Self._ShaderID];
   Graphics.Renderer.BindShader(TargetShader);
 
-  //Graphics.Renderer.SetModelMatrix(CameraMatrix);
+  If (_ShaderID And Sprite_GUI = 0) Then
+    Graphics.Renderer.SetModelMatrix(TransformMatrix);
+
   Graphics.Renderer.SetProjectionMatrix(ProjectionMatrix);
 
   If (_ShaderID And Sprite_SolidColor = 0) Then

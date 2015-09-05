@@ -109,7 +109,7 @@ End;
 Function GetShader_Sprite(SpriteFlags:Cardinal):TERRAShaderGroup;
 Var
   S:TERRAString;
-  DoColorGrading, IsFont, IsSolid, IsDissolve, HasPattern:Boolean;
+  DoColorGrading, IsFont, IsSolid, IsDissolve, IsGUI, HasPattern:Boolean;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   Result := TERRAShaderGroup.Create();
@@ -119,6 +119,7 @@ Begin
   IsSolid := (SpriteFlags And Sprite_SolidColor)<>0;
   IsDissolve := (SpriteFlags And Sprite_Dissolve)<>0;
   HasPattern := (SpriteFlags And Sprite_Pattern)<>0;
+  IsGUI := (SpriteFlags And Sprite_GUI)<>0;
 
   S := '';
 	Line('  varying highp vec4 clipRect;');
@@ -133,12 +134,19 @@ Begin
   Line('  attribute mediump vec4 terra_UV2;');
   Line('  attribute lowp vec4 terra_color;');
   Line('  uniform mat4 projectionMatrix;');
-//  Line('  uniform mat4 modelMatrix;');
+
+  If Not IsGUI Then
+    Line('  uniform mat4 modelMatrix;');
 
 	Line('void main()	{');
   Line('  vec4 local_position = vec4(terra_position.x, terra_position.y, terra_position.z, 1.0);');
   Line('  screen_position = local_position.xy;');
-  Line('  gl_Position =  projectionMatrix * local_position;');
+
+  If IsGUI Then
+    Line('  gl_Position =  projectionMatrix * local_position;')
+  Else
+    Line('  gl_Position =  projectionMatrix * modelMatrix * local_position;');
+
   Line('  texCoord = terra_UV0;');
   Line('  clipRect = terra_UV1;');
   Line('  fillColor = terra_UV2;');
@@ -516,6 +524,7 @@ Begin
   Line('  varying highp vec2 texCoord;');
   Line('  attribute highp vec4 terra_position;');
   Line('  attribute mediump vec2 terra_UV0;');
+
 	Line('  void main()	{');
   Line('    texCoord = terra_UV0;');
   Line('    gl_Position = projectionMatrix * terra_position;}');
