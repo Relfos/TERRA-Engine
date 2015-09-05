@@ -3,7 +3,7 @@ Unit TERRA_AudioConverter;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_AudioBuffer;
+Uses TERRA_Object, TERRA_Utils, TERRA_AudioBuffer;
 
 Type
   FilterWindowType = (fwHamming, fwHann, fwBlackman);

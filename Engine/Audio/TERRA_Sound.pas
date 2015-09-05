@@ -42,28 +42,23 @@ Type
 
       Class Function GetManager:TERRAObject; Override;
 
-      Procedure New(Samples, Frequency:Cardinal; Stereo:Boolean; Data:Pointer);
+      Procedure SamplesFromBuffer(Samples, Frequency:Cardinal; Stereo:Boolean; Data:Pointer);
+      Procedure SamplesFromStream(Samples, Frequency:Cardinal; Stereo:Boolean; Source:TERRAStream);
 
       Property Buffer:TERRAAudioBuffer Read _Buffer;
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Log, TERRA_SoundManager, TERRA_SoundSource, TERRA_AudioConverter, TERRA_AudioMixer;
+Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Log, TERRA_SoundManager, TERRA_SoundSource,
+  TERRA_AudioConverter, TERRA_FileFormat, TERRA_EngineManager, TERRA_AudioMixer;
 
 Function TERRASound.Unload:Boolean;
-Var
-  I:Integer;
 Begin
-  For I:=0 To Pred(_AttachCount) Do
-    SoundManager.Instance().Delete(SoundSource(_AttachList[I]));
-  _AttachCount := 0;
-
   ReleaseObject(_Buffer);
-
   Result := Inherited Unload();
 End;
 
-Procedure TERRASound.New(Samples, Frequency:Cardinal; Stereo:Boolean; Data:Pointer);
+Procedure TERRASound.SamplesFromBuffer(Samples, Frequency:Cardinal; Stereo:Boolean; Data:Pointer);
 Var
   Temp:TERRAAudioBuffer;
   Converter:AudioRateConverter;
@@ -85,127 +80,47 @@ Begin
   SetStatus(rsReady);
 End;
 
-Procedure TERRASound.AttachSource(Source:Pointer);
+Procedure TERRASound.SamplesFromStream(Samples, Frequency:Cardinal; Stereo:Boolean; Source:TERRAStream);
 Var
-  I:Integer;
+  Temp:Array Of AudioSample;
+  Len:Integer;
 Begin
-  For I:=0 To Pred(_AttachCount) Do
-  If (_AttachList[I] = Source) Then
-    Exit;
+  Len := Samples;
+  If Stereo Then
+    Len := Len * 2;
 
-  Inc(_AttachCount);
-  If Length(_AttachList)<_AttachCount Then
-    SetLength(_AttachList, _AttachCount);
-  _AttachList[Pred(_AttachCount)] := Source;
+  SetLength(Temp, Len);
+  Source.Read(@Temp[0], Len * SizeOf(AudioSample));
+
+  Self.SamplesFromBuffer(Samples, Frequency, Stereo, @Temp[0]);
+
+  SetLength(Temp, 0);
 End;
 
-Procedure TERRASound.RemoveSource(Source:Pointer);
+Function TERRASound.Load(Source:TERRAStream):Boolean;
 Var
-  N,I:Integer;
+  Format:TERRAFileFormat;
 Begin
-  N := -1;
-  For I:=0 To Pred(_AttachCount) Do
-  If (_AttachList[I] = Source) Then
-  Begin
-    N := I;
-    Break;
-  End;
-
-  If (N<0) Then
-    Exit;
-
-  _AttachList[I] := _AttachList[Pred(_AttachCount)];
-  Dec(_AttachCount);
-End;
-
-Function GetSoundLoader(Source:Stream):SoundLoader;
-Var
-  Pos:Cardinal;
-  I:Integer;
-Begin
-  Log(logDebug, 'Sound', 'Getting sound loader for '+Source.Name);
-
-  Result := Nil;
-  If Not Assigned(Source) Then
-    Exit;
-
-  Pos := Source.Position;
-
-  Log(logDebug, 'Sound', IntToString(_SoundExtensionCount)+ ' sound extensions active');
-
-  For I:=0 To Pred(_SoundExtensionCount) Do
-  Begin
-    Source.Seek(Pos);
-
-    Log(logDebug, 'Sound', 'Testing sound extension: '+_SoundExtensions[I].Name);
-
-    If _SoundExtensions[I].Validate(Source) Then
-    Begin
-      Log(logDebug, 'Sound', 'Sound extension  '+_SoundExtensions[I].Name+' matched!');
-
-      Result := _SoundExtensions[I].Loader;
-
-      Log(logDebug, 'Sound', 'Seeking... '+CardinalToString(Pos));
-      Source.Seek(Pos);
-
-      Log(logDebug, 'Sound', 'Returning...');
-      Exit;
-    End;
-  End;
-
-
-  Log(logWarning, 'Sound', 'No sound extensions matched!');
-  Result := NIl;
-End;
-
-Function Sound.Load(Source:Stream):Boolean;
-Var
-  I:Integer;
-  Loader:SoundLoader;
-Begin
-  Loader := GetSoundLoader(Source);
-  If Not Assigned(Loader) Then
+  Format := Engine.Formats.FindFormatFromStream(Source, TERRASound);
+  If Not Assigned(Format) Then
   Begin
     Result := False;
-    RaiseError('Unknown sound format. ['+Source.Name+']');
 
-    {Log(logError, 'Sound', 'Unknown sound format. ['+Source.Name+']');
-    _Status := rsInvalid;}
+    Log(logError, 'Sound', 'Unknown sound format. ['+Source.Name+']');
+    SetStatus(rsInvalid);
 
     Exit;
   End;
 
   Log(logDebug, 'Sound', 'Calling sound loader...');
-  Result := Loader(Source, Self);
+
+  Result := Format.Load(Self, Source);
   SetStatus(rsReady);
 End;
 
-
-Procedure RegisterSoundFormat(Name:TERRAString;
-                              Validate:SoundStreamValidateFunction;
-                              Loader:SoundLoader;
-                              Saver:SoundSaver=Nil);
-Var
-  I,N:Integer;
+Class Function TERRASound.GetManager:TERRAObject;
 Begin
-  Name := StringLower(Name);
-
-  For I:=0 To Pred(_SoundExtensionCount) Do
-  If (_SoundExtensions[I].Name = Name) Then
-    Exit;
-
-  N := _SoundExtensionCount;
-  Inc(_SoundExtensionCount);
-  SetLength(_SoundExtensions, _SoundExtensionCount);
-  _SoundExtensions[N].Name := Name;
-  _SoundExtensions[N].Validate :=Validate;
-  _SoundExtensions[N].Loader := Loader;
-  _SoundExtensions[N].Saver := Saver;
-End;
-
-Class Function Sound.GetManager: Pointer;
-Begin
-  Result := SoundManager.Instance;
+  Result := Engine.Audio;
 End;
 
 

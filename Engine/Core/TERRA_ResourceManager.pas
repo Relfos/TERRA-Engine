@@ -94,7 +94,7 @@ Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Image, TERRA_GraphicsManager, TERRA
   TERRA_EngineManager, TERRA_FileUtils, TERRA_FileStream, TERRA_FileManager;
 
 Type
-  ResourceLoader = Class(Task)
+  ResourceLoader = Class(TERRATask)
     Protected
       _Target:TERRAResource;
 

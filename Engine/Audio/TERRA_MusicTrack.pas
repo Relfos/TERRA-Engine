@@ -26,7 +26,7 @@ Unit TERRA_MusicTrack;
 {$I terra.inc}
 Interface
 
-Uses TERRA_String, TERRA_Utils, TERRA_OGG, TERRA_SoundManager, TERRA_SoundSource, TERRA_SoundStreamer;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_OGG, TERRA_SoundManager, TERRA_SoundSource, TERRA_SoundStreamer;
 
 Type
   MusicTrackClass = Class Of MusicTrack;
@@ -73,7 +73,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_FileManager, TERRA_Stream;
+Uses TERRA_FileManager, TERRA_EngineManager, TERRA_Stream;
 
 { MusicTrack }
 Constructor MusicTrack.Create(FileName: TERRAString; Volume:Single);
@@ -115,9 +115,9 @@ End;
 { StreamingMusicTrack }
 Procedure StreamingMusicTrack.Init;
 Var
-  Source:Stream;
+  Source:TERRAStream;
 Begin
-  Source := FileManager.Instance().OpenStream(FileName);
+  Source := Engine.Files.OpenFile(FileName);
   _Stream := CreateSoundStream(soundSource_Static, Source);
   _Stream.Volume := Self.Volume;
 End;
@@ -132,7 +132,7 @@ Begin
   If Assigned(_Stream) Then
   Begin
     SetVolume(_Volume);
-    SoundManager.Instance.Mixer.AddSource(_Stream);
+    Engine.Audio.Mixer.AddSource(_Stream);
   End;
 End;
 
@@ -146,7 +146,7 @@ Procedure StreamingMusicTrack.Stop;
 Begin
   If Assigned(_Stream) Then
   Begin
-    SoundManager.Instance.Mixer.RemoveSource(_Stream);
+    Engine.Audio.Mixer.RemoveSource(_Stream);
   End;
 End;
 

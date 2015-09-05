@@ -25,7 +25,7 @@ Unit TERRA_SoundManager;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_Sound, TERRA_Application, TERRA_Collections, TERRA_Vector3D,
+  TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Sound, TERRA_Application, TERRA_Collections, TERRA_Vector3D,
   TERRA_Log, TERRA_AudioMixer, TERRA_SoundSource, TERRA_SoundAmbience, TERRA_Resource, TERRA_ResourceManager;
 
 Type
@@ -42,8 +42,6 @@ Type
     Public
       Constructor Create();
 
-      Procedure Update;
-
       Function Play(Sound:TERRASound):SoundSource; Overload;
       Function Play(Const Name:TERRAString):SoundSource; Overload;
 
@@ -59,7 +57,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_FileManager, TERRA_EngineManager, TERRA_FileFormat;
+Uses TERRA_Error, TERRA_FileUtils, TERRA_FileManager, TERRA_EngineManager, TERRA_FileFormat;
 
 
 { SoundManager }
@@ -91,19 +89,17 @@ Begin
   If (Name='') Then
     Exit;
 
-  Result := TERRATexture(GetResource(Name));
+  Result := TERRASound(GetResource(Name));
   If Assigned(Result) Then
     Exit;
 
-  Format := Engine.Formats.FindLocationFromName(Name, TERRATexture, Location);
-  If Format = Nil Then
-    Format := Engine.Formats.FindLocationFromName(Name, TERRAImage, Location);
+  Format := Engine.Formats.FindLocationFromName(Name, TERRASound, Location);
 
   If Assigned(Format) Then
   Begin
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Found '+S+'...');{$ENDIF}
 
-    Result := TERRATexture.Create(rtLoaded, Location);
+    Result := TERRASound.Create(rtLoaded, Location);
 
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture class instantiated sucessfully!');{$ENDIF}
 
@@ -115,48 +111,7 @@ Begin
     Exit;
   End;
 
-  //RaiseError('Could not find texture. ['+Name+']');
-End;
-
-Var
-  S:TERRAString;
-Begin
-  Result := Nil;
-  Name := StringTrim(Name);
-  If (Name='') Then
-    Exit;
-
-  Result := Sound(GetResource(Name));
-  If (Not Assigned(Result)) Then
-  Begin
-    S := Engine.Files.SearchResourceFile(Name+'.wav');
-    If (S='') Then
-      S := Engine.Files.SearchResourceFile(Name+'.ogg');
-
-    If S<>'' Then
-    Begin
-      Result := Sound.Create(rtLoaded, S);
-      Self.AddResource(Result);
-    End Else
-    If ValidateError Then
-      RaiseError('Could not find sound resource. ['+Name +']');
-  End;
-End;
-
-
-Class function SoundManager.Instance: SoundManager;
-Begin
-  If Not Assigned(_SoundManager_Instance) Then
-    _SoundManager_Instance := InitializeApplicationComponent(SoundManager, Nil);
-
-  Result := SoundManager(_SoundManager_Instance.Instance);
-End;
-
-Procedure SoundManager.Update;
-Var
-  I:Integer;
-Begin
-  Inherited;
+  //RaiseError('Could not find sound. ['+Name+']');
 End;
 
 Procedure SoundManager.Delete(Source:SoundSource);
@@ -170,9 +125,9 @@ End;
 
 Function SoundManager.Play(Const Name:TERRAString): SoundSource;
 Var
-  Snd:Sound;
+  Snd:TERRASound;
 Begin
-  Snd := Self.GetSound(Name, False);
+  Snd := Self.GetItem(Name);
   If Snd = Nil Then
   Begin
     Result := Nil;
@@ -182,14 +137,14 @@ Begin
   Result := Self.Play(Snd);
 End;
 
-Function SoundManager.Play(MySound:Sound): SoundSource;
+Function SoundManager.Play(Sound:TERRASound): SoundSource;
 Begin
   {$IFDEF DISABLESOUND}
   Result := Nil;
   Exit;
   {$ENDIF}
 
-  If (Not Assigned(MySound)) Then
+  If (Not Assigned(Sound)) Then
   Begin
     Result := Nil;
     Exit;
@@ -201,15 +156,15 @@ Begin
     Exit;
   End;
 
-  Log(logDebug, 'Sound', 'Playing '+MySound.Name);
+  Log(logDebug, 'Sound', 'Playing '+Sound.Name);
 
-  MySound.Prefetch();
+  Sound.Prefetch();
 
-  Result := ResourceSoundSource.Create(MySound);
+  Result := ResourceSoundSource.Create(Sound);
 
-  Log(logDebug, 'Sound', 'Setting '+MySound.Name+' position');
+  Log(logDebug, 'Sound', 'Setting '+Sound.Name+' position');
 
-  Result.Position := VectorZero;
+  Result.Position := Vector3D_Zero;
 
   Log(logDebug, 'Sound', 'Registering sound in mixer');
   _Mixer.AddSource(Result);

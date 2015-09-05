@@ -95,8 +95,7 @@ Type
       _Sound:TERRASound;
 
     Public
-      Constructor Create(MySound:TERRASound);
-      Procedure Release; Override;
+      Constructor Create(Sound:TERRASound);
 
       Procedure RenderSamples(Dest:TERRAAudioMixingBuffer); Override;
 
@@ -112,7 +111,7 @@ Begin
   _Gain := 1.0;
   _Pitch := 1.0;
 
-  _Position := VectorZero; //GraphicsManager.Instance().MainViewport.Camera.Position;
+  _Position := Vector3D_Zero; //GraphicsManager.Instance().MainViewport.Camera.Position;
   _Loop := False;
 
   _Status := soundSource_Finished;
@@ -245,25 +244,17 @@ Begin
 End;
 
 { ResourceSoundSource }
-Constructor ResourceSoundSource.Create(MySound:Sound);
+Constructor ResourceSoundSource.Create(Sound:TERRASound);
 Begin
   Inherited Create();
 
-  If (Not Assigned(MySound)) Then
+  If (Not Assigned(Sound)) Then
     Exit;
 
-  Log(logDebug, 'SoundSource', 'Binding '+ MySound.Name);
+  Log(logDebug, 'SoundSource', 'Binding '+ Sound.Name);
 
-  _Sound := MySound;
-  _Sound.AttachSource(Self);
-
+  _Sound := Sound;
   _Status := soundSource_Playing;
-End;
-
-Procedure ResourceSoundSource.Release;
-Begin
-  If Assigned(_Sound) Then
-    _Sound.RemoveSource(Self);
 End;
 
 Procedure ResourceSoundSource.RenderSamples(Dest:TERRAAudioMixingBuffer);

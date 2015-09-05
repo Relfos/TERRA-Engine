@@ -29,293 +29,8 @@ Unit TERRA_OGG;
 {$RANGECHECKS OFF}
 {$OVERFLOWCHECKS OFF}
 
-{$IFDEF MOBILE}
-{-$DEFINE USELIBVORBIS}
-{$ENDIF}
-
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_SoundStreamer, TERRA_Sound, TERRA_Log;
-
-
-{$IFDEF USELIBVORBIS}
-Const
-{$IFDEF WIN32}
-  OggLib = 'libogg.dll';
-  VorbisLib = 'libvorbis.dll';
-  VorbisFileLib = 'libvorbisfile.dll';
-  {$IFDEF FPC}
-    {$PACKRECORDS C}
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF LINUX}
-  OggLib = 'libogg.so';
-  VorbisLib = 'libvorbis.so';
-  VorbisFileLib = 'libvorbisfile.so';
-{$ENDIF}
-
-{$IFDEF MACOS}
-  OggLib = 'ogg';
-  VorbisLib = 'vorbis';
-  VorbisFileLib = 'vorbis';
-  {$LINKFRAMEWORK OGG}
-  {$LINKFRAMEWORK VORBIS}
-{$ENDIF}
-
-{$IFDEF IPHONE}
-  OggLib = 'ogg';
-  VorbisLib = 'vorbis';
-  VorbisFileLib = 'vorbis';
-  {$LINKFRAMEWORK OGG}
-  {$LINKFRAMEWORK VORBIS}
-{$ENDIF}
-
-// Vorbis error/return codes
-  OV_FALSE      = -1;
-  OV_EOF        = -2;
-  OV_HOLE       = -3;
-
-  OV_EREAD      = -128;
-  OV_EFAULT     = -129;
-  OV_EIMPL      = -130;
-  OV_EINVAL     = -131;
-  OV_ENOTVORBIS = -132;
-  OV_EBADHEADER = -133;
-  OV_EVERSION   = -134;
-  OV_ENOTAUDIO  = -135;
-  OV_EBADPACKET = -136;
-  OV_EBADLINK   = -137;
-  OV_ENOSEEK    = -138;
-
-Type
-// Array types
-  p_PTERRAChar_array = ^t_PTERRAChar_array;
-  t_PTERRAChar_array = packed array[0..maxint div SizeOf(PTERRAChar)-1] Of PTERRAChar;
-
-  p_int_array = ^t_int_array;
-  t_int_array = packed array[0..maxint div SizeOf(Integer)-1] Of Integer;
-
-  p_float_array = ^t_float_array;
-  t_float_array = packed array[0..maxint div SizeOf(Single)-1] Of Single;
-
-  p_p_float_p_float_array = ^p_float_p_float_array;
-  p_float_p_float_array = ^t_float_p_float_array;
-  t_float_p_float_array = packed array[0..maxint div SizeOf(p_float_array)-1] of p_float_array;
-
-
-(* ogg_stream_state contains the current encode/decode state of a logical
-   Ogg bitstream **********************************************************)
-
-  POggStreamState=^TOggStreamState;
-  TOggStreamState=Record
-      BodyData: PTERRAChar;          // bytes from packet bodies
-      BodyStorage:Integer;      // storage elements allocated
-      BodyFill:Integer;         // elements stored; fill mark
-      BodyReturned:Integer;     // elements of fill returned
-
-      LacingValues:p_int_array; // The values that will go to the segment table
-      GranuleValues:Pointer;    // granulepos values for headers.
-
-      LacingStorage:Integer;
-      LacingFill: Integer;
-      LacingPacket: Integer;
-      LacingReturned: Integer;
-
-      Header:Array[0..282] Of TERRAChar;   // working space for header encode
-      HeaderFill:Integer;
-      EOS:Integer;                    // set when we have buffered the last packet in the logical bitstream
-      BOS:Integer;                    // set after we've written the initial page of a logical bitstream
-
-      SerialNo:Integer;
-      PageNo:Integer;
-      PacketNo:int64;           // sequence number for decode
-
-      GranulePos:int64;
-    End;
-
-
-  POggSyncState=^TOggSyncState;
-  TOggSyncState=Record
-    Data:PTERRAChar;
-    Storage:Integer;
-    Fill:Integer;
-    Returned:Integer;
-
-    Unsynced:Integer;
-    HeaderBytes:Integer;
-    BodyBytes:Integer;
-  End;
-
-  PVorbisInfo=^TVorbisInfo;
-  TVorbisInfo=Record
-      Version:Integer;
-      Channels:Integer;
-      Rate:Integer;
-      BitRate:Record
-                Upper:Integer;
-                Nominal:Integer;
-                Lower:Integer;
-                Window:Integer;
-              End;
-      CodecSetup:Pointer;
-  End;
-
-  PVorbisDspState=^TVorbisDspState;
-  TVorbisDspState=Record
-    Analysisp:Integer;
-    vi:PVorbisInfo;
-    PCM:p_float_p_float_array;
-    PCMRet:p_float_p_float_array;
-    PCMStorage:Integer;
-    PCMCurrent:Integer;
-    PCMReturned:Integer;
-    PreExtrapolate:Integer;
-    EOFFlag:Integer;
-    lW:Integer;
-    W:Integer;
-    nW:Integer;
-    centerW:Integer;
-    GranulePos:int64;
-    Sequence:int64;
-    GlueBits:int64;
-    TimeBits:int64;
-    FloorBits:int64;
-    ResBits:int64;
-    BackendState:Pointer;
-  End;
-
-  PAllocChain=^TAllocChain;
-  TAllocChain=Record
-    Ptr:Pointer;
-    Next:PAllocChain;
-  End;
-
-  POggPackBuffer=^TOggpackBuffer;
-  TOggPackBuffer=Record
-    EndByte:Integer;
-    EndBit:Integer;
-    Buffer:PTERRAChar;
-    Ptr:PTERRAChar;
-    Storage:Integer;
-  End;
-
-  PVorbisBlock=^TVorbisBlock;
-  TVorbisBlock=Record
-    PCM:p_float_p_float_array; // this is a pointer into local storage
-    opb:TOggPackBuffer;
-    lW:Integer;
-    W:Integer;
-    nW:Integer;
-    pcmend:Integer;
-    mode:Integer;
-
-    eofflag:Integer;
-    granulepos: int64;
-    sequence: int64;
-    vd: PVorbisDspState; // For read-only access of configuration
-
-    LocalStore:Pointer;
-    LocalTop:Integer;
-    LocalAlloc:Integer;
-    TotalUse:Integer;
-    Reap:PAllocChain;
-
-    // bitmetrics for the frame
-    GlueBits:Integer;
-    TimeBits:Integer;
-    FloorBits:Integer;
-    ResBits:Integer;
-
-    Internal:Pointer;
-  End;
-
-  PVorbisComment=^TVorbisComment;
-  TVorbisComment=Record
-    UserComments:p_PTERRAChar_array;
-    CommentLengths: p_int_array;
-    Comments:Integer;
-    Vendor:PTERRAChar;
-  End;
-
-
-  // Callback functions
-  OggReadFunction  = Function(Var Ptr; Size,nmemb:Cardinal; Const DataSource):Cardinal; CDecl;
-  OggSeekFunction  = Function(Const Datasource; Offset: int64; Whence:Integer):Integer; CDecl;
-  OggCloseFunction = Function(Const DataSource):Integer; CDecl;
-  OggTellFunction  = Function(Const DataSource):Integer; CDecl;
-
-  POggCallbacks=^TOggCallbacks;
-  TOggCallbacks=Record
-    ReadFunction:OggReadFunction;
-    SeekFunction:OggSeekFunction;
-    CloseFunction:OggCloseFunction;
-    TellFunction:OggTellFunction;
-  End;
-
-  POggVorbisFile=^TOggVorbisFile;
-  TOggVorbisFile=Record
-      DataSource:Pointer; // Pointer to a FILE *, etc.
-      Seekable:Integer;
-      Offset:int64;
-      EndF:int64;
-      SyncState:TOggSyncState;
-
-      // If the FILE handle isn't seekable (eg, a pipe), only the current stream appears
-      Links:Integer;
-      Offsets:Pointer;
-      DataOffsets:Pointer;
-      SerialNos:Pointer;
-      PCMLengths:Pointer;
-      Info:PVorbisInfo;
-      Comments:PvorbisComment;
-
-      // Decoding working state local storage
-      PCMOffset:int64;
-      ReadyState:Integer;
-      CurrentSerialNo:Integer;
-      CurrentLink:Integer;
-
-      BitTrack:Double;
-      SampTrack:Double;
-
-      State:TOggStreamState;    // take physical pages, weld into a logical stream of packets
-      DSPState:TVorbisDspState; // central working state for the packet->PCM decoder *)
-      Block:TVorbisBlock;       // local working space for packet->PCM decode *)
-
-      Callbacks:TOggCallbacks;
-    End;
-
-Function ov_clear(var vf: TOggVorbisFile):Integer; cdecl; external VorbisfileLib;
-Function ov_open_callbacks(const datasource; var vf: TOggVorbisFile; initial: PTERRAChar; ibytes: Integer; callbacks: TOggCallbacks):Integer; cdecl; external VorbisfileLib;
- {
-Function ov_bitrate(var vf: TOggVorbisFile; i:Integer): Integer; cdecl; external VorbisfileLib;
-Function ov_bitrate_instant(var vf: TOggVorbisFile): Integer; cdecl; external VorbisfileLib;
-Function ov_streams(var vf: TOggVorbisFile): Integer; cdecl; external VorbisfileLib;
-Function ov_seekable(var vf: TOggVorbisFile): Integer; cdecl; external VorbisfileLib;
-Function ov_serialnumber(var vf: TOggVorbisFile; i:Integer): Integer; cdecl; external VorbisfileLib;
-
-Function ov_raw_total(var vf: TOggVorbisFile; i:Integer): int64; cdecl; external VorbisfileLib;
-Function ov_pcm_total(var vf: TOggVorbisFile; i:Integer): int64; cdecl; external VorbisfileLib;}
-
-Function ov_time_total(var vf: TOggVorbisFile; i:Integer): double; cdecl; external VorbisfileLib;
-
-Function ov_raw_seek(var vf: TOggVorbisFile; pos: int64):Integer; cdecl; external VorbisfileLib;
-{Function ov_pcm_seek(var vf: TOggVorbisFile; pos: int64):Integer; cdecl; external VorbisfileLib;
-Function ov_pcm_seek_page(var vf: TOggVorbisFile; pos: int64):Integer; cdecl; external VorbisfileLib;
-Function ov_time_seek(var vf: TOggVorbisFile; pos: double):Integer; cdecl; external VorbisfileLib;
-Function ov_time_seek_page(var vf: TOggVorbisFile; pos: double):Integer; cdecl; external VorbisfileLib;
-
-Function ov_raw_tell(var vf: TOggVorbisFile): int64; cdecl; external VorbisfileLib;
-Function ov_pcm_tell(var vf: TOggVorbisFile): int64; cdecl; external VorbisfileLib;
-Function ov_time_tell(var vf: TOggVorbisFile): double; cdecl; external VorbisfileLib;
-}
-
-Function ov_info(var vf: TOggVorbisFile; link:Integer): PVorbisInfo; cdecl; external VorbisfileLib;
-//Function ov_comment(var vf: TOggVorbisFile; link:Integer): PVorbisComment; cdecl; external VorbisfileLib;
-
-
-Function ov_read(var vf: TOggVorbisFile; buffer:PByte; length:Integer; bigendianp:Integer; word:Integer; sgned:Integer; bitstream: PInteger):Integer; cdecl; external VorbisfileLib;
-{$ELSE}
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_SoundStreamer, TERRA_Sound, TERRA_FileFormat, TERRA_Log;
 
 {$IFDEF STB_VORBIS_NO_CRT}
 {$IFNDEF STB_VORBIS_NO_STDIO}
@@ -323,12 +38,21 @@ Function ov_read(var vf: TOggVorbisFile; buffer:PByte; length:Integer; bigendian
 {$ENDIF}
 {$ENDIF}
 
-const   
+Type
+  OGGFormat = Class(TERRAFileFormat)
+    Protected
+      Function Identify(Source:TERRAStream):Boolean; Virtual;
+
+    Public
+      Function Load(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
+  End;
+
+Const
    // global configuration settings (e.g. set these in the project/makefile),
    // or just set them in this file at the top (although ideally the first few
    // should be visible when the header file is compiled too, although it's not
    // crucial)
-   
+
    // STB_VORBIS_NO_PUSHDATA_API
    //     does not compile the code for the various stb_vorbis_*_pushdata()
    //     functions
@@ -519,7 +243,7 @@ const
       4.8260743e-07, 5.1396998e-07, 5.4737065e-07, 5.8294187e-07,
       6.2082472e-07, 6.6116941e-07, 7.0413592e-07, 7.4989464e-07, 
       7.9862701e-07, 8.5052630e-07, 9.0579828e-07, 9.6466216e-07,
-      1.0273513e-06, 1.0941144e-06, 1.1652161e-06, 1.2409384e-06, 
+      1.0273513e-06, 1.0941144e-06, 1.1652161e-06, 1.2409384e-06,
       1.3215816e-06, 1.4074654e-06, 1.4989305e-06, 1.5963394e-06, 
       1.7000785e-06, 1.8105592e-06, 1.9282195e-06, 2.0535261e-06,
       2.1869758e-06, 2.3290978e-06, 2.4804557e-06, 2.6416497e-06,
@@ -843,7 +567,7 @@ type
 
       // input config
       {$IFNDEF STB_VORBIS_NO_STDIO}
-      f:TFileHandle;
+      f:TFileHandle;              
       f_len:LongInt;
       f_pos:LongInt;
       f_start: Cardinal;
@@ -1176,23 +900,10 @@ type
 
    {$ENDIF}
 
-function IncPointer(p:PShortInt; i:integer):PShortInt; overload;
-function IncPointer(p:PByte; i:integer):PByte; overload;
-function IncPointer(p:PSmallInt; i:integer):PSmallInt; overload;
-function IncPointer(p:PYTYPE; i:integer):PYTYPE; overload;
-function IncPointer(p:PWord; i:integer):PWord; overload;
-function IncPointer(p:PInteger; i:integer):PInteger; overload;
-function IncPointer(p:PSingle; i:integer):PSingle; overload;
-function IncPointer(p:PFPArray; i:integer):PFPArray; overload;
-
-{$ENDIF}
-
 Implementation
-Uses TERRA_FileUtils, TERRA_Error{$IFNDEF USELIBVORBIS},Sysutils{$ENDIF}, TERRA_CRC32, TERRA_Math;
+Uses TERRA_FileUtils, TERRA_Error, TERRA_CRC32, TERRA_Math, TERRA_EngineManager, TERRA_AudioBuffer, Sysutils;
 
-{$IFNDEF USELIBVORBIS}
-var
-   crc_table: array [0..256-1] of Cardinal;
+Var
 {$IFNDEF STB_VORBIS_DIVIDES_IN_RESIDUE}
    part_classdata: BBBArray;
 {$ELSE}
@@ -1424,26 +1135,6 @@ begin
    end;
    FreeMem(p);
 end;
-
-{procedure crc32_init;
-var
-   i,j: integer;
-   s: Cardinal;
-begin
-   for i:=0 to 255 do begin
-      s:=i shl 24;
-      for j:=0 to 7 do begin
-         //         s = (s << 1) ^ (s >= (1<<31) ? CRC32_POLY : 0);
-         if (s>=PtrUInt(1 shl 31)) then s:=(s shl 1) xor CRC32_POLY else s:=(s shl 1) xor 0;
-      end;
-      crc_table[i] := s;
-   end;
-end;
-
-function crc32_update(crc:Cardinal; byte:Byte):Cardinal;
-begin
-   Result :=  (crc shl 8) xor crc_table[byte xor (crc shr 24)];
-end;}
 
 // used in setup, and for huffman that doesn't go fast path
 function  bit_reverse(n:Cardinal):Cardinal;
@@ -6093,22 +5784,12 @@ end;*)
 
 {$ENDIF} // STB_VORBIS_NO_PULLDATA_API
 
-{$ENDIF}
-
 Const
   BufferSize = 1024 * 8;
 
 Type
-  OggStreamer=Class(SoundStream)
+  OggStreamer = Class(SoundStream)
     Protected
-      {$IFDEF USELIBVORBIS}
-      _StreamSize:Cardinal;
-      _StreamPosition:Cardinal;
-      _VorbisInfo:TVorbisInfo;
-      _OggStream:TOGGVorbisFile;
-
-      Function ReadBuffer(Buffer:PByte; BufferSize:Integer; Var Change:Integer):Cardinal;
-      {$ELSE}
       _Vorbis:Pvorb;
       _Info:stb_vorbis_info;
       _Error:STBVorbisError;
@@ -6116,232 +5797,15 @@ Type
       _TargetSampleRate:Integer;
       _Temp:Array[0..Pred(BufferSize)] Of Byte;
 
-      Function ResampleSound(left, right:PSingle; Offset, Length:Integer):Integer;
-      Function FillBuffer(Offset:Integer):Integer;
-      {$ENDIF}
+      Function ResampleSound(left, right:PSingle; Offset, Length:Integer; Target:PAudioSample):Integer;
+      Function FillBuffer(Offset:Integer; Target:PAudioSample):Integer;
 
       Procedure InitStream; Override;
-      Procedure Stream(Target:Cardinal); Override;
-      Class Function Validate(Source:TERRAStream):Boolean; Override;
+      Procedure RenderSamples(Dest:TERRAAudioMixingBuffer); Override;
 
     Public
       Procedure Release; Override;
-
   End;
-
-   
-Function ValidateOGG(Source:TERRAStream):Boolean;
-Var
-  ID:FileHeader;
-Begin
-  Source.Read(@ID, 4);
-  Log(logDebug, 'Ogg', 'Got ID: '+ID);
-
-  Result := CompareFileHeader(ID, 'OggS');
-End;
-
-Function OGGLoad(Source:TERRAStream; MySound:Sound):Boolean;
-Var
-  Mem:Array Of Byte;
-  Samples, Channels, SampleRate, Size:Integer;
-  Output:pSmallInt;
-Begin
-  Result := False;
-
-  SetLength(Mem, Source.Size);
-  Source.Seek(0);
-
-  Source.Read(@Mem[0], Source.Size);
-
-  Samples := stb_vorbis_decode_memory(@Mem[0], Source.Size, Channels, SampleRate, output);
-
-  If (Samples<0) Then
-    Exit;
-
-  Size := Samples * Channels * 2;
-  MySound.New(Size, Channels, 16, SampleRate);
-  Move(Output^, MySound.Data^, Size);
-
-  FreeMem(Output);
-  
-  Result := True;
-End;
-
-{$IFDEF USELIBVORBIS}
-Const
-  // Seek constants
-  SEEK_SET = 0;
-  SEEK_CUR = 1;
-  SEEK_END = 2;
-
-Function OggTERRAReadFunction(Var Dest; Size,nmemb:Cardinal; Const DataSource):Cardinal;CDecl;
-Begin
-  If (Size=0) Or (nmemb=0) Then
-  Begin
-    Result:=0;
-    Exit;
-  End;
-
-  If (Stream(DataSource).Position >= Stream(DataSource).Size) Then
-  Begin
-    Result:=0;
-    Exit;
-  End;
-
-  Result := Cardinal(Stream(DataSource).Read(Dest,Size*nmemb));
-End;
-
-Function OggTERRASeekFunction(Const DataSource; Offset:int64; SeekMode:Integer):Integer;CDecl;
-Begin
-    Case SeekMode Of
-      SEEK_CUR: Begin
-                  If (Stream(DataSource).Position+Offset > Stream(DataSource).Size) Then
-                  Begin
-                    Result := -1;
-                    Exit;
-                  End;
-                  Stream(DataSource).Skip(offset);
-                End;
-      SEEK_END: Begin
-                  If (Stream(DataSource).Size+Offset > Stream(DataSource).Size) Then
-                  Begin
-                    Result:=-1;
-                    Exit;
-                  End;
-                  Stream(DataSource).Seek(Stream(datasource).Size+Offset);
-                End;
-      SEEK_SET: Begin
-                  If (Offset>Stream(DataSource).Size) Then
-                  Begin
-                    Result:=-1;
-                    Exit;
-                  End;
-                  Stream(DataSource).Seek(Offset);
-                End;
-    End;
-
-  Result:=0;
-End;
-
-Function OggTERRACloseFunction(Const DataSource):Integer;CDecl;
-Begin
-  Result := 0;
-End;
-
-Function OggTERRATellFunction(Const DataSource):Integer;CDecl;
-Begin
-  Result := Stream(DataSource).Position;
-End;
-
-Function GetVorbisErrorName(ErrorCode:Integer):TERRAString;
-Begin
-  Case ErrorCode of
-    OV_FALSE:      Result:='OV_FALSE';
-    OV_EOF:        Result:='OV_EOF';
-    OV_HOLE:       Result:='OV_HOLE';
-    OV_EREAD:      Result:='OV_EREAD';
-    OV_EFAULT:     Result:='OV_EFAULT';
-    OV_EIMPL:      Result:='OV_EIMPL';
-    OV_EINVAL:     Result:='OV_EINVAL';
-    OV_ENOTVORBIS: Result:='OV_ENOTVORBIS';
-    OV_EBADHEADER: Result:='OV_EBADHEADER';
-    OV_EVERSION:   Result:='OV_EVERSION';
-    OV_ENOTAUDIO:  Result:='OV_ENOTAUDIO';
-    OV_EBADPACKET: Result:='OV_EBADPACKET';
-    OV_EBADLINK:   Result:='OV_EBADLINK';
-    OV_ENOSEEK:    Result:='OV_ENOSEEK';
-  Else
-    Result := 'Unknown';
-  End;
-End;
-
-// LOgg
-
-Function OggStreamer.ReadBuffer(Buffer:PByte; BufferSize:Integer; Var Change:Integer):Cardinal;
-Var
-  BytesRead:Integer;
-Begin
-  BytesRead := 0;
-  If Not Assigned(Buffer) Then
-    Exit;
-
-  { ov_read usually does not fill the entire buffer, because it decodes one
-    vorbis packet at most which is uncompressed probably smaller than our
-    buffer, so call ov_read repeatedly to fill the entire buffer }
-  Repeat
-    Change := ov_read(_OggStream, Buffer, BufferSize - BytesRead, 0, 2, 1, Nil);
-
-    If (Change=OV_HOLE) Or (Change=OV_EOF) Then
-    Begin
-      Break;
-    End;
-
-    If (Change<0) Then
-    Begin
-      RaiseError('Error while decoding stream. ['+GetVorbisErrorName(Change)+']');
-      Result:=0;
-      Exit;
-    End Else
-    Begin
-      BytesRead := BytesRead + Change;
-      Inc(Buffer, Change);
-    End;
-
-  Until (Change=0) Or (BytesRead>=BufferSize);
-
-  Result := BytesRead;
-End;
-
-Procedure OggStreamer.InitStream;
-Var
-  N:Integer;
-  Size,Change:Integer;
-  Callbacks:TOggCallbacks;
-Begin
-  Callbacks.ReadFunction := OggTERRAReadFunction;
-  Callbacks.SeekFunction := OggTERRASeekFunction;
-  Callbacks.CloseFunction := OggTERRACloseFunction;
-  Callbacks.TellFunction := OggTERRATellFunction;
-
-  N := ov_open_callbacks(_Source, _OggStream, Nil, 0, Callbacks);
-  If N<>0 Then
-  Begin
-    RaiseError('Could not open Ogg stream. ['+GetVorbisErrorName(N)+']');
-    Exit;
-  End;
-
-  _VorbisInfo := ov_info(_OggStream, -1)^;
-
-  Size := Round(ov_time_total(_OggStream, -1));
-  Self.AllocBuffer(_VorbisInfo.Channels, 16, _VorbisInfo.Rate);
-End;
-
-Procedure OggStreamer.Stream(Target:Cardinal);
-Var
-  ErrorCode, Change:Integer;
-Begin
-   _BufferSize := ReadBuffer(_Data, StreamBufferSize, Change);
-
-  _StreamSize := _OggStream.EndF;
-  _StreamPosition := _OggStream.Offset;
-
-  If _StreamPosition>=_StreamSize Then
-  Begin
-    ErrorCode := ov_raw_seek(_OggStream, 0);
-    If ErrorCode<>0 Then
-      RaiseError('Ogg.Seek: '+GetVorbisErrorName(ErrorCode));
-  End;
-
-  Inherited;
-End;
-
-Procedure OggStreamer.Release;
-Begin
-  ov_clear(_OggStream);
-  Inherited;
-End;
-
-{$ELSE}
 
 Procedure OggStreamer.InitStream;
 Var
@@ -6377,8 +5841,7 @@ Begin
   _Info := stb_vorbis_get_info(_Vorbis);
   _TargetSampleRate := _Info.sample_rate; // 44100;
 
-  Self.AllocBuffer(_Info.Channels, 16, _TargetSampleRate);
-
+///  Self.AllocBuffer(_Info.Channels, 16, _TargetSampleRate);
 End;
 
 Function stb_clamp(I,min,max:Integer):Integer;
@@ -6388,37 +5851,32 @@ begin
   result := I;
 End;
 
-Function OggStreamer.ResampleSound(left, right:PSingle; Offset, Length:Integer):Integer;
-Type
-  PSample = ^Sample;
-  Sample = Record
-    Left, Right:Word;
-  End;
+Function OggStreamer.ResampleSound(left, right:PSingle; Offset, Length:Integer; Target:PAudioSample):Integer;
 Const
   scale:Single = 32768.0;
 Var
   fs:Single;
   j, newsamples:Cardinal;
   index:Cardinal;
-  S:PSample;
+  OutSample:PAudioSample;
 Begin
   fs := _TargetSampleRate / _Info.sample_rate;
 
   newsamples := Trunc(Length * fs);
   Result := newsamples;
 
-  for j:=0 to pred(newsamples) do
+  For j:=0 to pred(newsamples) do
   Begin
-    index := trunc(j/fs);
-    S := PSample(_Data);
-    Inc(S, Index+Offset);
-    S.left := trunc( stb_clamp(trunc((scale * IncPointer(left,+index)^)), -32768, 32767));
-    S.right := trunc( stb_clamp(trunc((scale * IncPointer(right,+index)^)), -32768, 32767));
+    Index := trunc(j/fs);
+    OutSample := Target;
+    Inc(OutSample, (Index + Offset) * 2);
+    OutSample^ := trunc( stb_clamp(trunc((scale * IncPointer(left,+index)^)), -32768, 32767));
+    Inc(OutSample);
+    OutSample^ := trunc( stb_clamp(trunc((scale * IncPointer(right,+index)^)), -32768, 32767));
   End;
 End;
 
-
-Function OggStreamer.FillBuffer(Offset: Integer): Integer;
+Function OggStreamer.FillBuffer(Offset:Integer; Target:PAudioSample): Integer;
 Label retry3;
 Var
   Q:Integer;
@@ -6469,23 +5927,21 @@ Begin
       right := outputs[0];
 
 
-    Result := ResampleSound(left, right, Offset, n);
+  Result := ResampleSound(left, right, Offset, n, Target);
 End;
 
-Procedure OggStreamer.Stream(Target:Cardinal);
+Procedure OggStreamer.RenderSamples(Dest:TERRAAudioMixingBuffer);
 Var
-  Ofs, Count:Integer;
+  Ofs, Count, Total:Integer;
 Begin
-  _BufferSize := 0;
+  Total := 0;
 
   Ofs := 0;
   Repeat
-    Count := FillBuffer(Ofs);
+    Count := FillBuffer(Ofs, Dest.Samples);
     Inc(Ofs, Count);
-    Inc(_BufferSize, Count * 4);
-  Until (_BufferSize>=StreamBufferSize Div 2);
-
-  Inherited;
+    Inc(Total, Count * 4);
+  Until (Total >= StreamingAudioSampleCount);
 End;
 
 Procedure OggStreamer.Release;
@@ -6493,16 +5949,50 @@ Begin
   stb_vorbis_close(_Vorbis);
   Inherited;
 End;
-{$ENDIF}
 
-Class Function OggStreamer.Validate(Source:TERRAStream):Boolean;
+{ OGGFormat }
+Function OGGFormat.Identify(Source: TERRAStream): Boolean;
+Var
+  ID:FileHeader;
 Begin
-  Result := ValidateOGG(Source);
+  Source.Read(@ID, 4);
+  Log(logDebug, 'Ogg', 'Got ID: '+ID);
+
+  Result := CompareFileHeader(ID, 'OggS');
+End;
+
+Function OGGFormat.Load(Target:TERRAObject; Source:TERRAStream): Boolean;
+Var
+  Mem:Array Of Byte;
+  Samples, Channels, SampleRate, Size:Integer;
+  Output:pSmallInt;
+  Sound:TERRASound;
+Begin
+  Result := False;
+
+  SetLength(Mem, Source.Size);
+  Source.Seek(0);
+
+  Source.Read(@Mem[0], Source.Size);
+
+  Samples := stb_vorbis_decode_memory(@Mem[0], Source.Size, Channels, SampleRate, output);
+
+  If (Samples<0) Then
+    Exit;
+
+  Size := Samples * Channels * 2;
+  Sound := TERRASound(Target);
+  Sound.SamplesFromBuffer(Samples, SampleRate, Channels>1, Output);
+
+  FreeMem(Output);
+
+  Result := True;
 End;
 
 Initialization
   Log(logDebug, 'OGG', 'Initializing');
   RegisterSoundStreamFormat(OggStreamer);
-  RegisterSoundFormat('OGG',ValidateOGG,OGGLoad);
+
+  Engine.Formats.Add(OGGFormat.Create(TERRASound, 'ogg'));
   Log(logDebug, 'OGG', 'OGG Sound format ready!');
 End.

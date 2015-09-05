@@ -18,7 +18,7 @@
  *
  **********************************************************************************************************************
  * TERRA_SoundAmbience
- * Implements support for 3D sound ambience reverb effects 
+ * Implements support for 3D sound ambience reverb effects
  ***********************************************************************************************************************
 }
 
@@ -193,15 +193,10 @@ Type
 
     Public
       Constructor Create(Const Name:TERRAString);
-      Procedure Release; Override;
 
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
       Function GetObjectType:TERRAString; Override;
       
-      Function Load(Source:TERRAStream):Boolean; Overload;
-      Function Load(Name:TERRAString):Boolean; Overload;
-      Function Save(Dest:TERRAStream):Boolean;
-
       Property Density:Single Read GetDensity Write SetDensity;
       Property Diffusion:Single Read GetDiffusion Write SetDiffusion;
 
@@ -237,7 +232,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_ResourceManager, TERRA_FileManager, TERRA_SoundManager, TERRA_AL;
+Uses TERRA_ResourceManager, TERRA_FileManager, TERRA_SoundManager;
 
 Const
 // EAX Reverb effect parameters
@@ -266,451 +261,323 @@ Const
   AL_EAXREVERB_DECAY_HFLIMIT               = $0017;
 
 { SoundAmbience }
-
-Function SoundAmbience.Load(Name:TERRAString):Boolean;
-Var
-  Source:Stream;
-Begin
-  If (Name='') Then
-  Begin
-    Result := False;
-    Exit;
-  End;
-
-  If Pos('.', Name)<=0 Then
-    Name := Name + '.afx';
-  If (Name = _Name) Then
-  Begin
-    Result := True;
-    Exit;
-  End;
-
-  Source := FileManager.Instance().OpenStream(Name);
-  If Assigned(Source) Then
-  Begin
-    Result := Load(Source);
-    ReleaseObject(Source);
-  End Else
-    Result := False;
-
-  _Name := Name;
-End;
-              
-Function SoundAmbience.Load(Source: Stream): Boolean;
-Begin
-  Source.Read(@_Density, 4);
-	Source.Read(@_Diffusion, 4);
-  Source.Read(@_Gain, 4);
-  Source.Read(@_GainHF, 4);
-  Source.Read(@_GainLF, 4);
-  Source.Read(@_DecayTime, 4);
-  Source.Read(@_DecayHFRatio, 4);
-  Source.Read(@_DecayLFRatio, 4);
-  Source.Read(@_ReflectionsGain, 4);
-  Source.Read(@_ReflectionsDelay, 4);
-  Source.Read(@_ReflectionsPan[0], 4);
-  Source.Read(@_ReflectionsPan[1], 4);
-  Source.Read(@_ReflectionsPan[2], 4);
-  Source.Read(@_LateReverbGain, 4);
-  Source.Read(@_LateReverbDelay, 4);
-  Source.Read(@_LateReverbPan[0], 4);
-  Source.Read(@_LateReverbPan[1], 4);
-  Source.Read(@_LateReverbPan[2], 4);
-  Source.Read(@_EchoTime, 4);
-  Source.Read(@_EchoDepth, 4);
-  Source.Read(@_ModulationTime, 4);
-  Source.Read(@_ModulationDepth, 4);
-  Source.Read(@_AirAbsorptionGainHF, 4);
-  Source.Read(@_HFReference, 4);
-  Source.Read(@_LFReference, 4);
-  Source.Read(@_RoomRolloffFactor, 4);
-  Source.Read(@_DecayHFLimit, 4);
-
-  Self.Update;
-  Result := True;
-End;
-
-Function SoundAmbience.Save(Dest: Stream): Boolean;
-Begin
-  Dest.Write(@_Density, 4);
-	Dest.Write(@_Diffusion, 4);
-  Dest.Write(@_Gain, 4);
-  Dest.Write(@_GainHF, 4);
-  Dest.Write(@_GainLF, 4);
-  Dest.Write(@_DecayTime, 4);
-  Dest.Write(@_DecayHFRatio, 4);
-  Dest.Write(@_DecayLFRatio, 4);
-  Dest.Write(@_ReflectionsGain, 4);
-  Dest.Write(@_ReflectionsDelay, 4);
-  Dest.Write(@_ReflectionsPan[0], 4);
-  Dest.Write(@_ReflectionsPan[1], 4);
-  Dest.Write(@_ReflectionsPan[2], 4);
-  Dest.Write(@_LateReverbGain, 4);
-  Dest.Write(@_LateReverbDelay, 4);
-  Dest.Write(@_LateReverbPan[0], 4);
-  Dest.Write(@_LateReverbPan[1], 4);
-  Dest.Write(@_LateReverbPan[2], 4);
-  Dest.Write(@_EchoTime, 4);
-  Dest.Write(@_EchoDepth, 4);
-  Dest.Write(@_ModulationTime, 4);
-  Dest.Write(@_ModulationDepth, 4);
-  Dest.Write(@_AirAbsorptionGainHF, 4);
-  Dest.Write(@_HFReference, 4);
-  Dest.Write(@_LFReference, 4);
-  Dest.Write(@_RoomRolloffFactor, 4);
-  Dest.Write(@_DecayHFLimit, 4);
-  Result := False;
-End;
-
-Procedure SoundAmbience.Update;
-Begin
-  If Not Assigned(alGenEffects) Then
-    Exit;
-
-  alEffectf(_EffectHandle, AL_EAXREVERB_DENSITY, _Density);               {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_DIFFUSION, _Diffusion);           {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_GAIN, _Gain);                     {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_GAINHF, _GainHF);                 {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_GAINLF, _GainLF);                 {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_DECAY_TIME, _DecayTime);          {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_DECAY_HFRATIO, _DecayHFRatio);    {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_DECAY_LFRATIO, _DecayLFRatio);    {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_REFLECTIONS_GAIN, _ReflectionsGain);    {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_REFLECTIONS_DELAY, _ReflectionsDelay);  {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectfv(_EffectHandle, AL_EAXREVERB_REFLECTIONS_PAN, @_ReflectionsPan);    {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_LATE_REVERB_GAIN, _LateReverbGain);     {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_LATE_REVERB_DELAY, _LateReverbDelay);   {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectfv(_EffectHandle, AL_EAXREVERB_LATE_REVERB_PAN, @_LateReverbPan);     {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_ECHO_TIME, _EchoTime);                  {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_ECHO_DEPTH, _EchoDepth);                {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_MODULATION_TIME, _ModulationTime);      {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_MODULATION_DEPTH, _ModulationDepth);    {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_AIR_ABSORPTION_GAINHF, _AirAbsorptionGainHF); {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_HFREFERENCE, _HFReference);                   {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_LFREFERENCE, _LFReference);                   {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffectf(_EffectHandle, AL_EAXREVERB_ROOM_ROLLOFF_FACTOR, _RoomRolloffFactor);     {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  alEffecti(_EffectHandle, AL_EAXREVERB_DECAY_HFLIMIT, _DecayHFLimit);                {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-
-  // Load Effect into Auxiliary Effect Slot
-  alAuxiliaryEffectSloti(_SlotHandle, AL_EFFECTSLOT_EFFECT, _EffectHandle); {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-End;
-
 Constructor SoundAmbience.Create(Const Name:TERRAString);
 Begin
   Self._ObjectName := Name;
-  
-  If Assigned(alGenEffects) Then
-  Begin
-    // Generate an Auxiliary Effect Slot
-    alGenAuxiliaryEffectSlots(1, @_SlotHandle);                              {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
 
-    // Generate an Effect
-    alGenEffects(1, @_EffectHandle);                                          {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
+  _Density := FloatProperty.Create('Density', EAXREVERB_DEFAULT_DENSITY);
+	_Diffusion := FloatProperty.Create('Diffusion', EAXREVERB_DEFAULT_DIFFUSION);
+	_Gain := FloatProperty.Create('Gain', EAXREVERB_DEFAULT_GAIN);
+	_GainHF := FloatProperty.Create('GainHF', EAXREVERB_DEFAULT_GainHF);
+	_GainLF := FloatProperty.Create('GainLF', EAXREVERB_DEFAULT_GainLF);
+	_DecayTime := FloatProperty.Create('DecayTime', EAXREVERB_DEFAULT_DECAY_TIME);
+  _DecayHFRatio := FloatProperty.Create('DecayHFRatio', EAXREVERB_DEFAULT_DECAY_HFRATIO);
+	_DecayLFRatio := FloatProperty.Create('DecayLFRatio', EAXREVERB_DEFAULT_DECAY_LFRATIO);
+	_ReflectionsGain := FloatProperty.Create('ReflectionsGain', EAXREVERB_DEFAULT_REFLECTIONS_GAIN);
+	_ReflectionsDelay := FloatProperty.Create('ReflectionsDelay', EAXREVERB_DEFAULT_REFLECTIONS_DELAY);
+	_ReflectionsPan :=  Vector3DProperty.Create('ReflectionsPan', Vector3D_Zero);
+	_LateReverbGain := FloatProperty.Create('LateReverbGain', EAXREVERB_DEFAULT_LATE_REVERB_GAIN);
+	_LateReverbDelay := FloatProperty.Create('LateReverbDelay', EAXREVERB_DEFAULT_LATE_REVERB_DELAY);
+	_LateReverbPan :=  Vector3DProperty.Create('LateReverbPan', Vector3D_Zero);
+	_EchoTime := FloatProperty.Create('EchoTime', EAXREVERB_DEFAULT_ECHO_TIME);
+	_EchoDepth := FloatProperty.Create('EchoDepth', EAXREVERB_DEFAULT_ECHO_DEPTH);
+	_ModulationTime := FloatProperty.Create('ModulationTime', EAXREVERB_DEFAULT_MODULATION_TIME);
+	_ModulationDepth := FloatProperty.Create('ModulationDepth', EAXREVERB_DEFAULT_MODULATION_DEPTH);
+	_AirAbsorptionGainHF := FloatProperty.Create('AirAbsorptionGainHF', EAXREVERB_DEFAULT_AIR_ABSORPTION_GAINHF);
+	_HFReference := FloatProperty.Create('HFReference', EAXREVERB_DEFAULT_HFReference);
+	_LFReference := FloatProperty.Create('LFReference', EAXREVERB_DEFAULT_LFReference);
+	_RoomRolloffFactor := FloatProperty.Create('RoomRolloffFactor', EAXREVERB_DEFAULT_ROOM_ROLLOFF_FACTOR);
+	_DecayHFLimit := BooleanProperty.Create('DecayHFLimit', EAXREVERB_DEFAULT_DECAY_HFLIMIT);
 
-    // Set the Effect Type
-    alEffecti(_EffectHandle, AL_EFFECT_TYPE, AL_EFFECT_EAXREVERB);            {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  End Else
-  Begin
-    _EffectHandle := 0;
-    _SlotHandle := 0;
-  End;
-
-	_Density := 1.0;
-	_Diffusion := 0.20999999344;
-	_Gain := 0.31622776389;
-	_GainHF := 0.10000000149;
-	_GainLF := 1.0;
-	_DecayTime := 1.4900000095;
-	_DecayHFRatio := 0.5;
-	_DecayLFRatio := 1.0;
-	_ReflectionsGain := 0.058479003608;
-	_ReflectionsDelay := 0.17900000513;
-	_ReflectionsPan[0] := 0.0;
-	_ReflectionsPan[1] := 0.0;
-	_ReflectionsPan[2] := 0.0;
-	_LateReverbGain := 0.10889300704;
-	_LateReverbDelay := 0.10000000149;
-	_LateReverbPan[0] := 0.0;
-	_LateReverbPan[1] := 0.0;
-	_LateReverbPan[2] := 0.0;
-	_EchoTime := 0.25;
-	_EchoDepth := 1.0;
-	_ModulationTime := 0.25;
-	_ModulationDepth := 0.0;
-	_AirAbsorptionGainHF := 0.99426007271;
-	_HFReference := 5000;
-	_LFReference := 250;
-	_RoomRolloffFactor := 0.0;
-	_DecayHFLimit := 0;
-
-  Self.Update;
+	(*Density := 1.0;
+	Diffusion := 0.20999999344;
+	Gain := 0.31622776389;
+	GainHF := 0.10000000149;
+	GainLF := 1.0;
+	DecayTime := 1.4900000095;
+	DecayHFRatio := 0.5;
+	DecayLFRatio := 1.0;
+	ReflectionsGain := 0.058479003608;
+	ReflectionsDelay := 0.17900000513;
+	ReflectionsPan := Vector3D_Zero;
+	LateReverbGain := 0.10889300704;
+	LateReverbDelay := 0.10000000149;
+	LateReverbPan := Vector3D_Zero;
+	EchoTime := 0.25;
+	EchoDepth := 1.0;
+	ModulationTime := 0.25;
+	ModulationDepth := 0.0;
+	AirAbsorptionGainHF := 0.99426007271;
+	HFReference := 5000;
+	LFReference := 250;
+	RoomRolloffFactor := 0.0;
+	DecayHFLimit := False;*)
 End;
 
-Procedure SoundAmbience.Release;
-Var
-  I:Integer;
+Function SoundAmbience.GetAirAbsorptionGainHF: Single;
 Begin
-  If (_SlotHandle<>0) Then
-  Begin
-    // Load NULL Effect into Effect Slot
-    alAuxiliaryEffectSloti(_SlotHandle, AL_EFFECTSLOT_EFFECT, AL_EFFECT_NULL);  {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-
-    // Delete Auxiliary Effect Slot
-    alDeleteAuxiliaryEffectSlots(1, @_SlotHandle);                              {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-    _SlotHandle := 0;
-  End;
-
-  // Delete Effect
-  If (_EffectHandle<>0) Then
-  Begin
-    alDeleteEffects(1, @_EffectHandle);                                         {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-    _EffectHandle := 0;
-  End;
+  Result := _AirAbsorptionGainHF.Value;
 End;
 
-function SoundAmbience.GetAirAbsorptionGainHF: Single;
-begin
-
-end;
-
-function SoundAmbience.GetDecayHFLimit: Boolean;
-begin
-
-end;
-
-function SoundAmbience.GetDecayHFRatio: Single;
-begin
-
-end;
-
-function SoundAmbience.GetDecayLFRatio: Single;
-begin
-
-end;
-
-function SoundAmbience.GetDecayTime: Single;
-begin
-
-end;
-
-function SoundAmbience.GetDensity: Single;
-begin
-
-end;
-
-function SoundAmbience.GetDiffusion: Single;
-begin
-
-end;
-
-function SoundAmbience.GetEchoDepth: Single;
-begin
-
-end;
-
-function SoundAmbience.GetEchoTime: Single;
-begin
-
-end;
-
-function SoundAmbience.GetGain: Single;
-begin
-
-end;
-
-function SoundAmbience.GetGainHF: Single;
-begin
-
-end;
-
-function SoundAmbience.GetGainLF: Single;
-begin
-
-end;
-
-function SoundAmbience.GetHFReference: Single;
-begin
-
-end;
-
-function SoundAmbience.GetLateReverbDelay: Single;
-begin
-
-end;
-
-function SoundAmbience.GetLateReverbGain: Single;
-begin
-
-end;
-
-function SoundAmbience.GetLateReverbPan: Vector3D;
-begin
-
-end;
-
-function SoundAmbience.GetLFReference: Single;
-begin
-
-end;
-
-function SoundAmbience.GetModulationDepth: Single;
-begin
-
-end;
-
-function SoundAmbience.GetModulationTime: Single;
-begin
-
-end;
-
-function SoundAmbience.GetObjectType: TERRAString;
-begin
-
-end;
-
-function SoundAmbience.GetPropertyByIndex(Index: Integer): TERRAObject;
-begin
-
-end;
-
-function SoundAmbience.GetReflectionsDelay: Single;
-begin
-
-end;
-
-function SoundAmbience.GetReflectionsGain: Single;
-begin
-
-end;
-
-function SoundAmbience.GetReflectionsPan: Vector3D;
-begin
-
-end;
-
-function SoundAmbience.GetRoomRolloffFactor: Single;
-begin
-
-end;
-
-function SoundAmbience.Load(Source: TERRAStream): Boolean;
-begin
-
-end;
-
-procedure SoundAmbience.SetAirAbsorptionGainHF(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetDecayHFLimit(const Value: Boolean);
-begin
-
-end;
-
-procedure SoundAmbience.SetDecayHFRatio(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetDecayLFRatio(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetDecayTime(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetDensity(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetDiffusion(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetEchoDepth(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetEchoTime(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetGain(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetGainHF(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetGainLF(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetHFReference(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetLateReverbDelay(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetLateReverbGain(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetLateReverbPan(const Value: Vector3D);
-begin
-
-end;
-
-procedure SoundAmbience.SetLFReference(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetModulationDepth(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetModulationTime(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetReflectionsDelay(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetReflectionsGain(const Value: Single);
-begin
-
-end;
-
-procedure SoundAmbience.SetReflectionsPan(const Value: Vector3D);
-begin
-
-end;
-
-procedure SoundAmbience.SetRoomRolloffFactor(const Value: Single);
-begin
-
-end;
+Function SoundAmbience.GetDecayHFLimit: Boolean;
+Begin
+  Result := _DecayHFLimit.Value;
+End;
+
+Function SoundAmbience.GetDecayHFRatio: Single;
+Begin
+  Result := _DecayHFRatio.Value;
+End;
+
+Function SoundAmbience.GetDecayLFRatio: Single;
+Begin
+  Result := _DecayLFRatio.Value;
+End;
+
+Function SoundAmbience.GetDecayTime: Single;
+Begin
+  Result := _DecayTime.Value;
+End;
+
+Function SoundAmbience.GetDensity: Single;
+Begin
+  Result := _Density.Value;
+End;
+
+Function SoundAmbience.GetDiffusion: Single;
+Begin
+  Result := _Diffusion.Value;
+End;
+
+Function SoundAmbience.GetEchoDepth: Single;
+Begin
+  Result := _EchoDepth.Value;
+End;
+
+Function SoundAmbience.GetEchoTime: Single;
+Begin
+  Result := _EchoTime.Value;
+End;
+
+Function SoundAmbience.GetGain: Single;
+Begin
+  Result := _Gain.Value;
+End;
+
+Function SoundAmbience.GetGainHF: Single;
+Begin
+  Result := _GainHF.Value;
+End;
+
+Function SoundAmbience.GetGainLF: Single;
+Begin
+  Result := _GainLF.Value;
+End;
+
+Function SoundAmbience.GetHFReference: Single;
+Begin
+  Result := _HFReference.Value;
+End;
+
+Function SoundAmbience.GetLateReverbDelay: Single;
+Begin
+  Result := _LateReverbDelay.Value;
+End;
+
+Function SoundAmbience.GetLateReverbGain: Single;
+Begin
+  Result := _LateReverbGain.Value;
+End;
+
+Function SoundAmbience.GetLateReverbPan: Vector3D;
+Begin
+  Result := _LateReverbPan.Value;
+End;
+
+Function SoundAmbience.GetLFReference: Single;
+Begin
+  Result := _LFReference.Value;
+End;
+
+Function SoundAmbience.GetModulationDepth: Single;
+Begin
+  Result := _ModulationDepth.Value;
+End;
+
+Function SoundAmbience.GetModulationTime: Single;
+Begin
+  Result := _ModulationTime.Value;
+End;
+
+Function SoundAmbience.GetReflectionsDelay: Single;
+Begin
+  Result := _ReflectionsDelay.Value;
+End;
+
+Function SoundAmbience.GetReflectionsGain: Single;
+Begin
+  Result := _ReflectionsGain.Value;
+End;
+
+Function SoundAmbience.GetReflectionsPan: Vector3D;
+Begin
+  Result := _ReflectionsPan.Value;
+End;
+
+Function SoundAmbience.GetRoomRolloffFactor: Single;
+Begin
+  Result := _RoomRolloffFactor.Value;
+End;
+
+Procedure SoundAmbience.SetAirAbsorptionGainHF(const Value: Single);
+Begin
+  _AirAbsorptionGainHF.Value := Value;
+End;
+
+Procedure SoundAmbience.SetDecayHFLimit(const Value: Boolean);
+Begin
+  _DecayHFLimit.Value := Value;
+End;
+
+Procedure SoundAmbience.SetDecayHFRatio(const Value: Single);
+Begin
+  _DecayHFRatio.Value := Value;
+End;
+
+Procedure SoundAmbience.SetDecayLFRatio(const Value: Single);
+Begin
+  _DecayLFRatio.Value := Value;
+End;
+
+Procedure SoundAmbience.SetDecayTime(const Value: Single);
+Begin
+  _DecayTime.Value := Value;
+End;
+
+Procedure SoundAmbience.SetDensity(const Value: Single);
+Begin
+  _Density.Value := Value;
+End;
+
+Procedure SoundAmbience.SetDiffusion(const Value: Single);
+Begin
+  _Diffusion.Value := Value;
+End;
+
+Procedure SoundAmbience.SetEchoDepth(const Value: Single);
+Begin
+  _EchoDepth.Value := Value;
+End;
+
+Procedure SoundAmbience.SetEchoTime(const Value: Single);
+Begin
+  _EchoTime.Value := Value;
+End;
+
+Procedure SoundAmbience.SetGain(const Value: Single);
+Begin
+  _Gain.Value := Value;
+End;
+
+Procedure SoundAmbience.SetGainHF(const Value: Single);
+Begin
+  _GainHF.Value := Value;
+End;
+
+Procedure SoundAmbience.SetGainLF(const Value: Single);
+Begin
+  _GainLF.Value := Value;
+End;
+
+Procedure SoundAmbience.SetHFReference(const Value: Single);
+Begin
+  _HFReference.Value := Value;
+End;
+
+Procedure SoundAmbience.SetLateReverbDelay(const Value: Single);
+Begin
+  _LateReverbDelay.Value := Value;
+End;
+
+Procedure SoundAmbience.SetLateReverbGain(const Value: Single);
+Begin
+  _LateReverbGain.Value := Value;
+End;
+
+Procedure SoundAmbience.SetLateReverbPan(const Value: Vector3D);
+Begin
+  _LateReverbPan.Value := Value;
+End;
+
+Procedure SoundAmbience.SetLFReference(const Value: Single);
+Begin
+  _LFReference.Value := Value;
+End;
+
+Procedure SoundAmbience.SetModulationDepth(const Value: Single);
+Begin
+  _ModulationDepth.Value := Value;
+End;
+
+Procedure SoundAmbience.SetModulationTime(const Value: Single);
+Begin
+  _ModulationTime.Value := Value;
+End;
+
+Procedure SoundAmbience.SetReflectionsDelay(const Value: Single);
+Begin
+  _ReflectionsDelay.Value := Value;
+End;
+
+Procedure SoundAmbience.SetReflectionsGain(const Value: Single);
+Begin
+  _ReflectionsGain.Value := Value;
+End;
+
+Procedure SoundAmbience.SetReflectionsPan(const Value: Vector3D);
+Begin
+  _ReflectionsPan.Value := Value;
+End;
+
+Procedure SoundAmbience.SetRoomRolloffFactor(const Value: Single);
+Begin
+  _RoomRolloffFactor.Value := Value;
+End;
+
+Function SoundAmbience.GetObjectType: TERRAString;
+Begin
+  Result := 'ambience';
+End;
+
+Function SoundAmbience.GetPropertyByIndex(Index: Integer): TERRAObject;
+Begin
+  Case Index Of
+    0: Result := _Density;
+    1: Result := _Diffusion;
+    2: Result := _Gain;
+    3: Result := _GainHF;
+    4: Result := _GainLF;
+    5: Result := _DecayTime;
+    6: Result := _DecayHFRatio;
+    7: Result := _DecayLFRatio;
+    8: Result := _ReflectionsGain;
+    9: Result := _ReflectionsDelay;
+    10: Result := _ReflectionsPan;
+    11: Result := _LateReverbGain;
+    12: Result := _LateReverbDelay;
+    13: Result := _LateReverbPan;
+    14: Result := _EchoTime;
+    15: Result := _EchoDepth;
+    16: Result := _ModulationTime;
+    17: Result := _ModulationDepth;
+    18: Result := _AirAbsorptionGainHF;
+    19: Result := _HFReference;
+    20: Result := _LFReference;
+    21: Result := _RoomRolloffFactor;
+    22: Result := _DecayHFLimit;
+    Else
+      Result := Nil;
+  End;
+End;
 
 End.

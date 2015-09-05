@@ -1,70 +1,77 @@
 {$I terra.inc}
-{$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} BasicSample;
+{$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
-Uses TERRA_Application, TERRA_Scene, TERRA_GraphicsManager, TERRA_Viewport,
-  TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_PNG,
-  TERRA_SpriteManager, TERRA_FileManager, TERRA_Math, TERRA_Vector3D, TERRA_Vector2D,
-  TERRA_Renderer, TERRA_InputManager, 
-  TERRA_SoundManager, TERRA_Sound, TERRA_SoundSource, TERRA_WAVE, TERRA_OGG;
-
+uses
+  TERRA_Object,
+  TERRA_MemoryManager,
+  TERRA_Application,
+  TERRA_DemoApplication,
+  TERRA_Renderer,
+  TERRA_Utils,
+  TERRA_ResourceManager,
+  TERRA_GraphicsManager,
+  TERRA_OS,
+  TERRA_Vector2D,
+  TERRA_Font,
+  TERRA_Texture,
+  TERRA_FileManager,
+  TERRA_InputManager,
+  TERRA_Collections,
+  TERRA_Viewport,
+  TERRA_EngineManager,
+  TERRA_Matrix3x3,
+  TERRA_Math,
+  TERRA_Vector3D,
+  TERRA_Sound,
+  TERRA_SoundSource,
+  TERRA_Color,
+  TERRA_String,
+  TERRA_Sprite;
 
 Type
-  // A client is used to process application events
-  Demo = Class(Application)
-    Protected
-      _Scene:Scene;
-
+  MyDemo = Class(DemoApplication)
+    Public
 			Procedure OnCreate; Override;
-			Procedure OnIdle; Override;
-  End;
+      Procedure OnRender2D(View:TERRAViewport); Override;
 
-  // A scene is used to render objects
-  MyScene = Class(Scene)
-      Procedure RenderSprites(V:Viewport); Override;
+      Procedure OnIdle; Override;
   End;
 
 Var
-  Tex:Texture = Nil;
-
+  Tex:TERRATexture = Nil;
   GhostPos:Vector3D;
 
 { Game }
-Procedure Demo.OnCreate;
+Procedure MyDemo.OnCreate;
 Begin
-  // Added Asset folder to search path
-  FileManager.Instance.AddPath('assets');
+  Inherited;
 
-  // Load a Tex
-  Tex := TextureManager.Instance['ghost'];
+  // Enable 2D viewport for rendering
+  Self.GUI.Viewport.Visible := True;
 
-  // Create a scene and set it as the current scene
-  _Scene := MyScene.Create;
-  GraphicsManager.Instance.SetScene(_Scene);
-
-  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlue;
+  // load and cache a texture called ghost.png (located in the samples/binaries/assets/ folder
+  Tex := Engine.Textures['ghost'];
 End;
 
-// OnIdle is called once per frame, put your game logic here
-Procedure Demo.OnIdle;
+Procedure MyDemo.OnIdle;
 Var
   Sound:SoundSource;
 Begin
-  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
-    Application.Instance.Terminate;
+  Inherited;
 
   Sound := Nil;
 
-  If InputManager.Instance.Keys.WasPressed(keyEnter) Then
-    Sound := SoundManager.Instance.Play('ghost');
+  If Engine.Input.Keys.WasPressed(keyEnter) Then
+    Sound := Engine.Audio.Play('ghost');
 
-  If InputManager.Instance.Keys.WasPressed(keyZ) Then
-    Sound := SoundManager.Instance.Play('ghost3');
+  If Engine.Input.Keys.WasPressed(keyZ) Then
+    Sound := Engine.Audio.Play('ghost3');
 
-  If InputManager.Instance.Keys.WasPressed(keyX) Then
-    Sound := SoundManager.Instance.Play('attack');
+  If Engine.Input.Keys.WasPressed(keyX) Then
+    Sound := Engine.Audio.Play('attack');
 
-  If InputManager.Instance.Keys.WasPressed(keyC) Then
-    Sound := SoundManager.Instance.Play('sfx_beep');
+  If Engine.Input.Keys.WasPressed(keyC) Then
+    Sound := Engine.Audio.Play('sfx_beep');
 
   If Assigned(Sound) Then
   Begin
@@ -72,26 +79,39 @@ Begin
   End;
 End;
 
-{ MyScene }
-Procedure MyScene.RenderSprites;
+Procedure MyDemo.OnRender2D(View: TERRAViewport);
 Var
   I:Integer;
   Angle:Single;
-  S:QuadSprite;
+  S:TERRASprite;
 Begin
-  If (Tex = Nil) Then
-    Exit;
+  Inherited;
 
   GhostPos.X := Abs(Sin(Application.GetTime()/3500));
   GhostPos.Y := 0.5;
   GhostPos.Z := 0;
 
-  S := SpriteManager.Instance.DrawSprite(GhostPos.X * 960,  GhostPos.Y * 640, 50, Tex);
-  S.SetScale(2.0);
+  If (Tex = Nil) Then
+    Exit;
+
+  S := View.SpriteRenderer.FetchSprite();
+  S.Layer := 50;
+  S.SetTexture(Tex);
+  S.Translate(GhostPos.X * 960,  GhostPos.Y * 640);
+  S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
+  View.SpriteRenderer.QueueSprite(S);
 End;
 
-
+{$IFDEF IPHONE}
+Procedure StartGame; cdecl; export;
+{$ENDIF}
 Begin
-  // Start the application
-  Demo.Create();
+  MyDemo.Create();
+{$IFDEF IPHONE}
+End;
+{$ENDIF}
+
+
 End.
+
+
