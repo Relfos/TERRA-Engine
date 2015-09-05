@@ -124,15 +124,6 @@ End;
 
 Function EngineManager.CreateObject(const KeyName, ObjectType: TERRAString): TERRAObject;
 Begin
-  If (StringEquals(ObjectType, 'UI')) Then
-    Result := UIView.Create(Name, UIPercent(100), UIPercent(100))
-  Else
-  If (StringEquals(ObjectType, 'texture')) Then
-    Result := TextureProperty.Create(Name, Textures.WhiteTexture)
-  Else
-  If (StringEquals(ObjectType, 'font')) Then
-    Result := FontProperty.Create(Name, Fonts.DefaultFont)
-  Else
   If (StringEquals(ObjectType, 'string')) Then
     Result := StringProperty.Create(Name, '')
   Else
@@ -174,6 +165,18 @@ Begin
     Result := TERRAList.Create();
     Result.Name := KeyName;
   End Else
+  If (StringEquals(ObjectType, 'UI')) Then
+    Result := UIView.Create(Name, UIPercent(100), UIPercent(100))
+  Else
+  If (StringEquals(ObjectType, 'texture')) Then
+    Result := TextureProperty.Create(Name, Textures.WhiteTexture)
+  Else
+  If (StringEquals(ObjectType, 'font')) Then
+    Result := FontProperty.Create(Name, Fonts.DefaultFont)
+  Else
+  If (StringEquals(ObjectType, 'path')) Then
+    Result := PathProperty.Create(Name, '')
+  Else
     Result := Nil;
 End;
 

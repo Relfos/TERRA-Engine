@@ -10,6 +10,7 @@ Type
   UIImage = Class(UIWidget)
     Protected
       _Texture:TextureProperty;
+      _Stretch:BooleanProperty;
       _U1, _V1, _U2, _V2:FloatProperty;
 
 
@@ -46,6 +47,7 @@ Begin
   Self.Filter := filterLinear;
 
   Self._Texture := TextureProperty(Self.AddProperty(TextureProperty.Create('image', Nil), False));
+  _Stretch := BooleanProperty(Self.AddProperty(BooleanProperty.Create('stretch', False), False));
   _U1 := FloatProperty(Self.AddProperty(FloatProperty.Create('u1', 0), False));
   _V1 := FloatProperty(Self.AddProperty(FloatProperty.Create('v1', 0), False));
   _U2 := FloatProperty(Self.AddProperty(FloatProperty.Create('u2', 1), False));
@@ -81,8 +83,10 @@ End;
 
 Procedure UIImage.UpdateSprite(View:TERRAViewport);
 Begin
-  //_FullSize := Vector2D_Create(Self.Texture.Width, Self.Texture.Height);
-  _FullSize := CurrentSize;
+  If (_Stretch.Value) Or (Self.Texture = Nil) Then
+    _FullSize := CurrentSize
+  Else
+    _FullSize := Vector2D_Create(Self.Texture.Width, Self.Texture.Height);
 
   If (Self.Width.Value<=0) And (Assigned(Texture)) Then
     Self.Width := UIPixels(Trunc(SafeDiv(Texture.Width, Texture.Ratio.X)));

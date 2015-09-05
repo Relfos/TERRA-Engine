@@ -68,6 +68,8 @@ Type
       Constructor Create();
       Procedure Release; Override;
 
+      Procedure Reset();
+
       Function Search(FileName:TERRAString):TERRALocation;
 
       Procedure AddFolder(Path:TERRAString);
@@ -98,11 +100,20 @@ Type
       Property Files[Const Name:TERRAString]:TERRAStream Read OpenFile; Default;
   End;
 
+  PathProperty = Class(TERRAObject)
+    Protected
+      _Value:TERRAString;
+    Public
+      Constructor Create(Const Name, InitValue:TERRAString);
+      Function GetBlob():TERRAString; Override;
+      Procedure SetBlob(Const Blob:TERRAString); Override;
+  End;
+
 Function IsPackageFileName(Const FileName:TERRAString):Boolean;
 
 Implementation
 Uses SysUtils, TERRA_Error, TERRA_Log, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF} TERRA_OS, TERRA_Image,
-  TERRA_GraphicsManager, TERRA_Color, TERRA_FileUtils, TERRA_MemoryStream;
+  TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Color, TERRA_FileUtils, TERRA_MemoryStream;
 
 Type
   TERRAPackageLocation = Class(TERRALocation)
@@ -261,6 +272,9 @@ Var
   I:Integer;
 //  FM:FolderManager;
 Begin
+  If Path = '' Then
+    Exit;
+
   Path := GetOSIndependentFilePath(Path);
   Path := Path + PathSeparator;
 
@@ -574,6 +588,11 @@ Begin
     Inc(I);
 End;
 
+Procedure FileManager.Reset;
+Begin
+  Self._FolderCount := 1;
+End;
+
 { TERRAFileLocation }
 Constructor TERRAFileLocation.Create(Const Name, Path:TERRAString);
 Begin
@@ -625,6 +644,26 @@ End;
 Function TERRANullLocation.GetStream: TERRAStream;
 Begin
   Result := Nil;
+End;
+
+{ PathProperty }
+Constructor PathProperty.Create(const Name, InitValue: TERRAString);
+Begin
+  Self._ObjectName := Name;
+  If InitValue<>'' Then
+    SetBlob(InitValue);
+End;
+
+Function PathProperty.GetBlob: TERRAString;
+Begin
+  Result := _Value;
+End;
+
+Procedure PathProperty.SetBlob(const Blob: TERRAString);
+Begin
+  Self._Value := Blob;
+
+  Engine.Files.AddFolder(Blob);
 End;
 
 End.

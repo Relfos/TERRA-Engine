@@ -153,6 +153,13 @@ object UIEditForm: TUIEditForm
   object PopupMenu: TPopupMenu
     Left = 96
     Top = 560
+    object ResetSize1: TMenuItem
+      Caption = '&Reset Size'
+      OnClick = ResetSize1Click
+    end
+    object N5: TMenuItem
+      Caption = '-'
+    end
     object Copy1: TMenuItem
       Caption = '&Copy'
     end

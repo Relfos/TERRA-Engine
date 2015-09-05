@@ -40,7 +40,7 @@ var
 Procedure LoadDataSources(Target:TERRAList);
 
 implementation
-Uses TERRA_DataSource;
+Uses TERRA_DataSource, TERRA_FileManager;
 
 {$R *.dfm}
 
@@ -96,7 +96,10 @@ begin
     If Self._FolderOnly Then
       S := GetFilePath(S);
 
-    _Target.Add(StringProperty.Create('string', S));
+    If Self._FolderOnly Then
+      _Target.Add(PathProperty.Create('path', S))
+    Else
+      _Target.Add(StringProperty.Create('string', S));
     ListBox1.Items.Add(S);
   End;
 end;

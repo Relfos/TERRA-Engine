@@ -88,6 +88,8 @@ Type
 
   UIEditScene = Class(TERRAObject)
     Protected
+      _Workname:TERRAString;
+
       _Font:TERRAFont;
 
       _Views:TERRAList;
@@ -171,6 +173,8 @@ Type
     TabList: TTabControl;
     WidgetList: TTreeView;
     RenderPanel: TPanel;
+    ResetSize1: TMenuItem;
+    N5: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -207,15 +211,17 @@ Type
 (*    procedure TabListTabSelected(Sender: TObject; ATab: TargetTab;
       ASelected: Boolean);
     procedure TabListTabClose(Sender: TObject; ATab: TargetTab);*)
-    
+
     procedure Settings1Click(Sender: TObject);
     procedure DataSources1Click(Sender: TObject);
     procedure Paths1Click(Sender: TObject);
     procedure NewProjectClick(Sender: TObject);
     procedure TabListChange(Sender: TObject);
+    procedure ResetSize1Click(Sender: TObject);
 
   Protected
     _CurrentCursor:Integer;
+    _Title:TERRAString;
 
     PropertyList: TCustomPropertyEditor;
 
@@ -321,6 +327,9 @@ Begin
 
   Self.Clear();
 
+  _Grid := UIGrid.Create();
+  Self.SetGridSize(20.0);
+  
 //  Self.AddView('Untitled');
 End;
 
@@ -331,17 +340,6 @@ Begin
   UIEditForm.TabList.Tabs.Clear();
   UIEditForm.PropertyList.Target := Nil;
 
-  (*If Assigned(_Views) Then
-  Begin
-    It := _Views.GetIterator();
-    While It.HasNext Do
-    Begin
-      It.Discard();
-    End;
-    ReleaseObject(It);
-  End;*)
-
-  ReleaseObject(_Grid);
   ReleaseObject(_Views);
   ReleaseObject(_Paths);
   ReleaseObject(_Datasources);
@@ -356,17 +354,13 @@ Begin
   Self._Datasources.Name := 'datasources';
 
   Self._SelectedView := Nil;
-
-
-  _Grid := UIGrid.Create();
-  Self.SetGridSize(20.0);
 End;
 
 Procedure UIEditScene.Release;
 Begin
-  ReleaseObject(_Views);
-  ReleaseObject(_Paths);
-  ReleaseObject(_Datasources);
+  Self.Clear();
+
+  ReleaseObject(_Grid);
 End;
 
 
@@ -503,9 +497,9 @@ End;
 Function UIEditScene.GetPropertyByIndex(Index: Integer): TERRAObject;
 Begin
   Case Index Of
-  0:  Result := _Views;
-  1:  Result := _Paths;
-  2:  Result := _Datasources;
+  0:  Result := _Paths;
+  1:  Result := _Datasources;
+  2:  Result := _Views;
   Else
     Result := Nil;
   End;
@@ -517,6 +511,11 @@ Var
 Begin
   Self.Clear();
 
+  Self._Workname := FileName;
+
+  UIEditForm.Caption := UIEditForm._Title + ' - ' + FileName;
+
+  Engine.Files.Reset();
   Engine.Files.AddFolder(GetFilePath(FileName));
 
   Root := XMLNode.Create();
@@ -634,6 +633,8 @@ Var
 Begin
   _CurrentCursor := 9999;
 
+  _Title := Self.Name;
+
   PropertyList := TCustomPropertyEditor.Create(Self);
   PropertyList.Parent := Self.TabList;
   PropertyList.Left := 0;
@@ -668,7 +669,7 @@ Begin
   // Create a scene and set it as the current scene
   _Scene := UIEditScene.Create();
 
-  Self.NewProjectClick(Sender);
+//  Self.NewProjectClick(Sender);
 
   _Brush := TBrush.Create();
 
@@ -1177,28 +1178,6 @@ Begin
   Screen.Cursor := ID;
 End;
 
-
-procedure TUIEditForm.Delete1Click(Sender: TObject);
-Var
-  Node:TTreeNode;
-begin
-  If _Scene._SelectedWidget = Nil Then
-    Exit;
-
-  Node := Self.FindWidgetNode(_Scene._SelectedWidget);
-
-  If Assigned(Node) Then
-  Begin
-    Node.DeleteChildren();
-    Node.Delete();
-  End;
-
-  //_Scene._SelectedView._Target.DeleteWidget(_Scene._SelectedWidget);
-  _Scene._SelectedWidget.Delete();
-  _Scene._SelectedWidget := Nil;
-  PropertyList.Target := Nil;
-end;
-
 procedure TUIEditForm.WidgetListEdited(Sender: TObject; Node: TTreeNode; var S: String);
 begin
   If Node.Data = Nil Then
@@ -1211,14 +1190,19 @@ procedure TUIEditForm.Save1Click(Sender: TObject);
 Var
   Dialog:TSaveDialog;
 begin
-  Dialog := TSaveDialog.Create(Self);
-  Dialog.Filter := UIFileFilter;
-  Dialog.Options := [ofOverwritePrompt, ofHideReadOnly, ofNoChangeDir, ofPathMustExist];
+  If (Self._Scene._Workname = '') Then
+  Begin
+    Dialog := TSaveDialog.Create(Self);
+    Dialog.Filter := UIFileFilter;
+    Dialog.Options := [ofOverwritePrompt, ofHideReadOnly, ofNoChangeDir, ofPathMustExist];
 
-  If Dialog.Execute Then
-    Self._Scene.Save(Dialog.FileName);
+    If Dialog.Execute Then
+      _Scene._Workname := Dialog.FileName;
 
-  Dialog.Destroy();
+    Dialog.Destroy();
+  End;
+
+  Self._Scene.Save(_Scene._Workname);
 end;
 
 procedure TUIEditForm.Open1Click(Sender: TObject);
@@ -1372,6 +1356,38 @@ begin
     Exit;
 
   _Scene.Select(TabList.TabIndex);
+end;
+
+
+
+procedure TUIEditForm.Delete1Click(Sender: TObject);
+Var
+  Node:TTreeNode;
+begin
+  If _Scene._SelectedWidget = Nil Then
+    Exit;
+
+  Node := Self.FindWidgetNode(_Scene._SelectedWidget);
+
+  If Assigned(Node) Then
+  Begin
+    Node.DeleteChildren();
+    Node.Delete();
+  End;
+
+  //_Scene._SelectedView._Target.DeleteWidget(_Scene._SelectedWidget);
+  _Scene._SelectedWidget.Delete();
+  _Scene._SelectedWidget := Nil;
+  PropertyList.Target := Nil;
+end;
+
+
+procedure TUIEditForm.ResetSize1Click(Sender: TObject);
+begin
+  If _Scene._SelectedWidget = Nil Then
+    Exit;
+
+  _Scene._SelectedWidget.SetNativeSize();
 end;
 
 end.
