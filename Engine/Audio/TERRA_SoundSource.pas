@@ -146,7 +146,6 @@ Begin
   _Position := Position;
 
   _Mode := soundSource_Dynamic;
-  CalculatePositionalVolume();
 End;
 
 
@@ -169,6 +168,8 @@ Var
   SampleCount, CopyTotal, Temp, Leftovers:Integer;
   FreqRate:Single;
 Begin
+  CalculatePositionalVolume();
+
   FreqRate := _Buffer.Frequency / Dest.Frequency;
 
   SampleCount := Dest.SampleCount;

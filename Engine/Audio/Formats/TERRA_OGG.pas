@@ -41,7 +41,7 @@ Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_SoundStreamer,
 Type
   OGGFormat = Class(TERRAFileFormat)
     Protected
-      Function Identify(Source:TERRAStream):Boolean; Virtual;
+      Function Identify(Source:TERRAStream):Boolean; Override;
 
     Public
       Function Load(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
@@ -901,7 +901,7 @@ type
    {$ENDIF}
 
 Implementation
-Uses TERRA_FileUtils, TERRA_Error, TERRA_CRC32, TERRA_Math, TERRA_EngineManager, TERRA_AudioBuffer, Sysutils;
+Uses TERRA_FileUtils, TERRA_Error, TERRA_CRC32, TERRA_Math, TERRA_EngineManager, TERRA_AudioBuffer, TERRA_AudioMixer, Sysutils;
 
 Var
 {$IFNDEF STB_VORBIS_DIVIDES_IN_RESIDUE}
@@ -5785,7 +5785,9 @@ end;*)
 {$ENDIF} // STB_VORBIS_NO_PULLDATA_API
 
 Const
-  BufferSize = 1024 * 8;
+  OggBufferSize = 1024 * 8;
+  OggSamplesBufferSize = 1024 * 32;
+  OggMaxLeftovers = 1024;
 
 Type
   OggStreamer = Class(SoundStream)
@@ -5795,13 +5797,19 @@ Type
       _Error:STBVorbisError;
       _BaseOffset:Integer;
       _TargetSampleRate:Integer;
-      _Temp:Array[0..Pred(BufferSize)] Of Byte;
+      _Temp:Array[0..Pred(OggBufferSize)] Of Byte;
 
-      Function ResampleSound(left, right:PSingle; Offset, Length:Integer; Target:PAudioSample):Integer;
-      Function FillBuffer(Offset:Integer; Target:PAudioSample):Integer;
+      _LeftOversBuffer:TERRAAudioBuffer;
+      _LeftOversTotal:Integer;
+
+      Function ResampleSound(left, right:PSingle; Offset, Length:Integer):Integer;
+      Function FillBuffer(Offset:Integer):Integer;
 
       Procedure InitStream; Override;
-      Procedure RenderSamples(Dest:TERRAAudioMixingBuffer); Override;
+      Procedure RequestMoreSamples(); Override;
+
+
+      Class Function Validate(Source:TERRAStream):Boolean; Override;
 
     Public
       Procedure Release; Override;
@@ -5812,6 +5820,8 @@ Var
   Q, N, Used:Integer;
   Data:Pointer;
 Begin
+  Self._Loop := True;
+
   Q := 4096;
   Repeat
     GetMem(Data, Q);
@@ -5841,48 +5851,64 @@ Begin
   _Info := stb_vorbis_get_info(_Vorbis);
   _TargetSampleRate := _Info.sample_rate; // 44100;
 
-///  Self.AllocBuffer(_Info.Channels, 16, _TargetSampleRate);
+  Self._Buffer := TERRAAudioBuffer.Create(OggSamplesBufferSize, _TargetSampleRate, True);
+  Self._LeftOversBuffer := TERRAAudioBuffer.Create(OggMaxLeftovers, _TargetSampleRate, True);
 End;
 
-Function stb_clamp(I,min,max:Integer):Integer;
-begin
-  if (i<min) then i := min;
-  if (i>max) Then i := max;
-  result := I;
+Procedure OggStreamer.Release();
+Begin
+  Inherited;
+
+  ReleaseObject(_LeftoversBuffer);
+  stb_vorbis_close(_Vorbis);
 End;
 
-Function OggStreamer.ResampleSound(left, right:PSingle; Offset, Length:Integer; Target:PAudioSample):Integer;
+Function OggStreamer.ResampleSound(left, right:PSingle; Offset, Length:Integer):Integer;
 Const
-  scale:Single = 32768.0;
+  Scale = 32767;
 Var
   fs:Single;
-  j, newsamples:Cardinal;
+  I, J, newsamples:Cardinal;
   index:Cardinal;
+  InSample:MixingAudioSample;
   OutSample:PAudioSample;
 Begin
   fs := _TargetSampleRate / _Info.sample_rate;
 
-  newsamples := Trunc(Length * fs);
-  Result := newsamples;
+  NewSamples := Trunc(Length * fs);
+  Result := NewSamples;
 
   For j:=0 to pred(newsamples) do
   Begin
-    Index := trunc(j/fs);
-    OutSample := Target;
-    Inc(OutSample, (Index + Offset) * 2);
-    OutSample^ := trunc( stb_clamp(trunc((scale * IncPointer(left,+index)^)), -32768, 32767));
+    Index := Trunc(j/fs);
+
+    InSample.Left := IncPointer(Left ,+index)^;
+    InSample.Right := IncPointer(Right ,+index)^;
+
+    I := Index + Offset;
+
+    If (I<_Buffer.SampleCount) Then
+    Begin
+      OutSample := _Buffer.GetSampleAt(I, 0);
+    End Else
+    Begin
+      _LeftOversTotal := Succ(I - _Buffer.SampleCount);
+      OutSample := _LeftOversBuffer.GetSampleAt(_LeftOversTotal - 1, 0);
+    End;
+
+    OutSample^ := Trunc(FloatClamp(InSample.Left, -1, 1.0) * 32767);
     Inc(OutSample);
-    OutSample^ := trunc( stb_clamp(trunc((scale * IncPointer(right,+index)^)), -32768, 32767));
+    OutSample^ := Trunc(FloatClamp(InSample.Right, -1, 1.0) * 32767);
   End;
 End;
 
-Function OggStreamer.FillBuffer(Offset:Integer; Target:PAudioSample): Integer;
+Function OggStreamer.FillBuffer(Offset:Integer): Integer;
 Label retry3;
 Var
   Q:Integer;
   outputs:TOutput;
   left, right:PSingle;
-  N, num_c:Integer;
+  SamplesToRender, ChannelCount:Integer;
   Ofs, Used:Integer;
 Begin
   Result := 0;
@@ -5893,7 +5919,7 @@ Begin
       q := _Source.Size - _Source.Position;
 
     _Source.Read(@_Temp[0], Q);
-    Used := stb_vorbis_decode_frame_pushdata(_Vorbis, @(_Temp[0]), q, num_c, @outputs, n);
+    Used := stb_vorbis_decode_frame_pushdata(_Vorbis, @(_Temp[0]), q, ChannelCount, @outputs, SamplesToRender);
     If (Used = 0) Then
     Begin
       If (_Source.Position + q >= _Source.Size) Then
@@ -5903,7 +5929,7 @@ Begin
         q := 128;
       q := q * 2;
 
-      If (Q>BufferSize) Then
+      If (Q>OggBufferSize) Then
       Begin
         Log(logWarning, 'OGG', 'Buffer too small!');
       End;
@@ -5912,42 +5938,57 @@ Begin
       Goto retry3;
     End;
 
-    If (Ofs + Used>= _Source.Position) Then
-      _Source.Seek(_BaseOffset)
-    Else
-      _Source.Seek(Ofs + Used);
+  If (Ofs + Used>= _Source.Position) Then
+    _Source.Seek(_BaseOffset)
+  Else
+    _Source.Seek(Ofs + Used);
 
-    If (n = 0) Then
-      Exit; // seek/error recovery
+  If (SamplesToRender = 0) Then
+    Exit; // seek/error recovery
 
-    left := outputs[0];
-    If (num_c > 1) Then
-      right := outputs[1]
-    else
-      right := outputs[0];
+  Left := outputs[0];
+  If (ChannelCount > 1) Then
+    Right := outputs[1]
+  Else
+    Right := outputs[0];
 
-
-  Result := ResampleSound(left, right, Offset, n, Target);
+  Result := ResampleSound(Left, Right, Offset, SamplesToRender);
 End;
 
-Procedure OggStreamer.RenderSamples(Dest:TERRAAudioMixingBuffer);
+Procedure OggStreamer.RequestMoreSamples();
 Var
   Ofs, Count, Total:Integer;
 Begin
-  Total := 0;
+  _CurrentSample := 0;
 
-  Ofs := 0;
-  Repeat
-    Count := FillBuffer(Ofs, Dest.Samples);
+  Total := _Buffer.SampleCount;
+
+  If (_LeftOversTotal>0) Then
+  Begin
+    Move(_LeftOversBuffer.Samples^, _Buffer.Samples^, SizeOf(AudioSample) * _LeftOversTotal * 2);
+    Dec(Total, _LeftOversTotal);
+    Ofs := _LeftOversTotal;
+    _LeftOversTotal := 0;
+  End Else
+    Ofs := 0;
+
+  While Total>0 Do
+  Begin
+    Count := FillBuffer(Ofs);
     Inc(Ofs, Count);
-    Inc(Total, Count * 4);
-  Until (Total >= StreamingAudioSampleCount);
+    Dec(Total, Count);
+  End;
 End;
 
-Procedure OggStreamer.Release;
+
+Class Function OggStreamer.Validate(Source:TERRAStream):Boolean;
+Var
+  ID:FileHeader;
 Begin
-  stb_vorbis_close(_Vorbis);
-  Inherited;
+  Source.Read(@ID, 4);
+  Log(logDebug, 'Ogg', 'Got ID: '+ID);
+
+  Result := CompareFileHeader(ID, 'OggS');
 End;
 
 { OGGFormat }
