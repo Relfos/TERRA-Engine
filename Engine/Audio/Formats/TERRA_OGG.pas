@@ -32,12 +32,6 @@ Unit TERRA_OGG;
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_SoundStreamer, TERRA_Sound, TERRA_FileFormat, TERRA_Log;
 
-{$IFDEF STB_VORBIS_NO_CRT}
-{$IFNDEF STB_VORBIS_NO_STDIO}
-{$DEFINE STB_VORBIS_NO_STDIO}
-{$ENDIF}
-{$ENDIF}
-
 Type
   OGGFormat = Class(TERRAFileFormat)
     Protected
@@ -53,19 +47,9 @@ Const
    // should be visible when the header file is compiled too, although it's not
    // crucial)
 
-   // STB_VORBIS_NO_PUSHDATA_API
-   //     does not compile the code for the various stb_vorbis_*_pushdata()
-   //     functions
-   // {$DEFINE STB_VORBIS_NO_PUSHDATA_API}
-
    // STB_VORBIS_NO_PULLDATA_API
    //     does not compile the code for the non-pushdata APIs
    // {$DEFINE STB_VORBIS_NO_PULLDATA_API}
-
-   // STB_VORBIS_NO_STDIO
-   //     does not compile the code for the APIs that use FILE *s internally
-   //     or externally (implied by STB_VORBIS_NO_PULLDATA_API)
-   // {$DEFINE STB_VORBIS_NO_STDIO}
 
    // STB_VORBIS_NO_INTEGER_CONVERSION
    //     does not compile the code for converting audio sample data from
@@ -174,13 +158,9 @@ Const
 
    {$IFDEF STB_VORBIS_NO_PULLDATA_API}
    {$DEFINE STB_VORBIS_NO_INTEGER_CONVERSION}
-   {$DEFINE STB_VORBIS_NO_STDIO}
    {$ENDIF}
 
    {$IFDEF STB_VORBIS_NO_CRT}
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   {$DEFINE STB_VORBIS_NO_STDIO}
-   {$ENDIF}
    {$ENDIF}
 
    {$IFNDEF STB_VORBIS_NO_INTEGER_CONVERSION}
@@ -566,14 +546,6 @@ type
       setup_temp_memory_required: Cardinal;
 
       // input config
-      {$IFNDEF STB_VORBIS_NO_STDIO}
-      f:TFileHandle;              
-      f_len:LongInt;
-      f_pos:LongInt;
-      f_start: Cardinal;
-      close_on_free: boolean;
-      {$ENDIF}
-
       stream: pByte;
       stream_start: pByte;
       stream_end: pByte;
@@ -658,9 +630,8 @@ type
 
       // push mode scanning
       page_crc_tests: Integer; // only in push_mode: number of tests active; -1 if not searching
-      {$IFNDEF STB_VORBIS_NO_PUSHDATA_API}
+
       scan: array [0..STB_VORBIS_PUSHDATA_CRC_COUNT-1] of CRCscan;
-      {$ENDIF}
 
       // sample-access
       channel_buffer_start: Integer;
@@ -708,7 +679,6 @@ type
    procedure stb_vorbis_close(f:pvorb);
 
    ///////////   PUSHDATA API
-   {$IFNDEF STB_VORBIS_NO_PUSHDATA_API}
    // this API allows you to get blocks of data from any source and hand
    // them to stb_vorbis. you have to buffer them; stb_vorbis will tell
    // you how much it used, and you have to give it the rest next time;
@@ -775,10 +745,8 @@ type
    // call stb_vorbis_flush_pushdata(), then start calling decoding, then once
    // decoding is returning you data, call stb_vorbis_get_sample_offset, and
    // if you don't like the result, seek your file again and repeat.
-   {$ENDIF}
-   
+
    //////////   PULLING INPUT API
-   {$IFNDEF STB_VORBIS_NO_PULLDATA_API}
    // This API assumes stb_vorbis is allowed to pull data from a source--
    // either a block of memory containing the _entire_ vorbis stream, or a
    // FILE * that you or it create, or possibly some other reading mechanism
@@ -787,11 +755,6 @@ type
    // just want to go ahead and use pushdata.)
 
 
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   {$IFNDEF STB_VORBIS_NO_INTEGER_CONVERSION}
-   function stb_vorbis_decode_filename(filename:TERRAString; var channels:integer; var output:pSmallInt):integer;
-   {$ENDIF}
-   {$ENDIF}
    function stb_vorbis_decode_memory(mem:pByte; len:integer; var channels, SampleRate:integer; var output:pSmallInt):Integer;
    // decode an entire file and output the data interleaved into a malloc()ed
    // buffer stored in *output. The return value is the number of samples
@@ -801,30 +764,6 @@ type
    function stb_vorbis_open_memory(data: pByte; len: Cardinal; var _error: STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
    // create an ogg vorbis decoder from an ogg vorbis stream in memory (note
    // this must be the entire stream!). on failure, returns NULL and sets *error
-
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   function stb_vorbis_open_filename(filename:TERRAString; var _error:STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
-   // create an ogg vorbis decoder from a filename via fopen(). on failure,
-   // returns NULL and sets *error (possibly to VORBIS_file_open_failure).
-
-   function stb_vorbis_open_file(var _file:TFileHandle; close_on_free:boolean;
-            var _error: STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
-   // create an ogg vorbis decoder from an open FILE *, looking for a stream at
-   // the _current_ seek point (ftell). on failure, returns NULL and sets *error.
-   // note that stb_vorbis must "own" this stream; if you seek it in between
-   // calls to stb_vorbis, it will become confused. Morever, if you attempt to
-   // perform stb_vorbis_seek_*() operations on this file, it will assume it
-   // owns the _entire_ rest of the file after the start point. Use the next
-   // function, stb_vorbis_open_file_section(), to limit it.
-
-   function stb_vorbis_open_file_section(var _file: TFileHandle; close_on_free:boolean;
-            var _error:STBVorbisError; alloc: pstb_vorbis_alloc; length:Cardinal):pvorb;
-   // create an ogg vorbis decoder from an open FILE *, looking for a stream at
-   // the _current_ seek point (ftell); the stream will be of length 'len' bytes.
-   // on failure, returns NULL and sets *error. note that stb_vorbis must "own"
-   // this stream; if you seek it in between calls to stb_vorbis, it will become
-   // confused.
-   {$ENDIF}
 
    function stb_vorbis_seek_frame(f:pvorb; sample_number:Cardinal):Boolean;
    function stb_vorbis_seek(f:pvorb; sample_number:Cardinal):Boolean;
@@ -898,7 +837,6 @@ type
    // it may be less than requested at the end of the file. If there are no more
    // samples in the file, returns 0.
 
-   {$ENDIF}
 
 Implementation
 Uses TERRA_FileUtils, TERRA_Error, TERRA_CRC32, TERRA_Math, TERRA_EngineManager, TERRA_AudioBuffer, TERRA_AudioMixer, Sysutils;
@@ -1032,17 +970,10 @@ begin
 end;
 {$ENDIF}
 
-function IS_PUSH_MODE(f:pvorb) : Boolean;
-begin
-   {$IFDEF STB_VORBIS_NO_PUSHDATA_API}
-   Result := FALSE;
-   {$ENDIF}
-   {$IFDEF STB_VORBIS_NO_PULLDATA_API}
-   Result := TRUE;
-   {$ELSE}
-   Result := f.push_mode;
-   {$ENDIF}
-end;
+Function IS_PUSH_MODE(f:pvorb) : Boolean;
+Begin
+  Result := f.push_mode;
+End;
 
 Function error(f: pvorb; e:STBVorbisError):Boolean;
 Begin
@@ -1472,36 +1403,20 @@ begin
    else Result:=1;
 end;
 
-//
 /////////////////////// END LEAF SETUP FUNCTIONS //////////////////////////
-
-
-function USE_MEMORY(z:pvorb):Boolean;
-begin
-{$IFDEF STB_VORBIS_NO_STDIO}
-   REsult:=true;
-{$ELSE}
-   Result:=z.stream<>nil;
-{$ENDIF}
-end;
-
-function get8(z:pvorb):Byte;
-begin
+Function get8(z:pvorb):Byte;
+Begin
    Result:=0;
-   if USE_MEMORY(z) then begin
-      if PtrUInt(z.stream) >= PtrUInt(z.stream_end) then begin  z.eof:=true; Exit; end;
-      Result:=z.stream^;
-      Inc(z.stream);
-      Exit;
-   end;
 
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   begin
-      if z.f_pos = z.f_len then begin z.eof:=true; Exit; end;
-      Inc(z.f_pos, FileRead(z.f, Result, SizeOf(Result)));
-   end;
-   {$ENDIF}
-end;
+   if PtrUInt(z.stream) >= PtrUInt(z.stream_end) Then
+    begin
+      z.eof:=true;
+      Exit;
+    end;
+
+    Result:=z.stream^;
+    Inc(z.stream);
+End;
 
 function get32(f:pvorb):Cardinal;
 begin
@@ -1511,77 +1426,48 @@ begin
    Result := Result+(get8(f) shl 24);
 end;
 
-function getn(z:pvorb; var data:array of Byte; n:integer):Boolean;
-var nread,i:integer;
-begin
-   Result:=false;
-   if USE_MEMORY(z) then begin
-      if (PtrUInt(z.stream)+n>PtrUInt(z.stream_end)) then begin z.eof:=true; Exit; end;
-      for i:=0 to n-1 do data[i]:=(IncPointer(z.stream,i))^;
-      //Move(z.stream,data,n);//!!not working for unknown reason
-      z.stream := IncPointer(z.stream,n);
-      Result:=true;
-      Exit;
-   end;
+Function getn(z:pvorb; var data:array of Byte; n:integer):Boolean;
+Var
+  nread,i:integer;
+Begin
+  Result := False;
 
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   nread := FileRead(z.f, data, n);
-   Inc(z.f_pos, nread);
-   if nread=n then begin Result:=true; Exit; end
-   else z.eof:=true;
-   {$ENDIF}
-end;
+  If (PtrUInt(z.stream)+n > PtrUInt(z.stream_end)) Then
+  Begin
+    z.eof := True;
+    Exit;
+  End;
 
-procedure skip(z:pvorb; n:integer);
-begin
-   if USE_MEMORY(z) then begin
-      z.stream := IncPointer(z.stream,n);
-      if PtrUInt(z.stream)>=PtrUInt(z.stream_end) then z.eof:=true;
-      Exit;
-   end;
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   begin
-      z.f_pos := FileSeek(z.f, n, 1);
-      z.eof := (z.f_pos = -1) or (z.f_pos >= z.f_len);
-   end;
-   {$ENDIF}
-end;
+  For i:=0 to n-1 Do
+    data[i] := (IncPointer(z.stream,i))^;
 
-function set_file_offset(f:pvorb; loc:Cardinal):boolean;
-begin
-   Result:=false;
-   {$IFNDEF STB_VORBIS_NO_PUSHDATA_API}
-   if f.push_mode then Exit;;
-   {$ENDIF}
-   f.eof := false;
-   if USE_MEMORY(f) then begin
-      if (PtrUInt(f.stream_start)+loc>=PtrUInt(f.stream_end)) or
-         (PtrUInt(f.stream_start)+loc<PtrUInt(f.stream_start)) then begin
-         f.stream := f.stream_end;
-         f.eof := true;
-         Exit;
-      end else begin
-         f.stream := IncPointer(f.stream_start, loc);
-         Result := true;
-         Exit;
-      end;
-   end;
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   if (loc+f.f_start<loc) or (loc>=$80000000) then begin
-      loc := $7fffffff;
-      f.eof := true;
-   end else begin
-      loc := loc+f.f_start;
-   end;
-   try
-      Result:= FileSeek(f.f, loc, 0) <> -1;
-   except
-      f.eof := true;
-      FileSeek(f.f, 0, 2);
-      Result:=false;
-   end;
-   {$ENDIF}
-end;
+  //Move(z.stream,data,n);//!!not working for unknown reason
+  z.stream := IncPointer(z.stream,n);
+  Result := true;
+End;
+
+Procedure skip(z:pvorb; n:integer);
+Begin
+  z.stream := IncPointer(z.stream,n);
+  If PtrUInt(z.stream) >= PtrUInt(z.stream_end) Then
+    z.eof:=true;
+End;
+
+Function set_file_offset(f:pvorb; loc:Cardinal):boolean;
+Begin
+  Result := False;
+  f.eof := false;
+
+  If (PtrUInt(f.stream_start)+loc>=PtrUInt(f.stream_end)) or (PtrUInt(f.stream_start)+loc<PtrUInt(f.stream_start)) Then
+  Begin
+    f.stream := f.stream_end;
+    f.eof := true;
+  End Else
+  Begin
+    f.stream := IncPointer(f.stream_start, loc);
+    Result := true;
+  End;
+End;
 
 function capture_pattern(f:pvorb):Boolean;
 begin
@@ -3601,7 +3487,6 @@ begin
       vorbis_finish_frame(f, len, left, right);
 end;
 
-{$IFNDEF STB_VORBIS_NO_PUSHDATA_API}
 function is_whole_packet_present(f:pvorb; end_page: Boolean):Boolean;
 var
    s,n: integer;
@@ -3694,7 +3579,6 @@ begin
    end;
    Result:=true;
 end;
-{$ENDIF} // !STB_VORBIS_NO_PUSHDATA_API
 
 function start_decoder(f:pvorb):Boolean;
 label _skip;
@@ -3837,18 +3721,6 @@ begin
 
    // third packet!
    if not start_packet(f) then begin Result:=false; Exit; end;
-
-   {$IFNDEF STB_VORBIS_NO_PUSHDATA_API}
-   if IS_PUSH_MODE(f) then begin
-      if not is_whole_packet_present(f, TRUE) then begin
-         // convert error in ogg header to write type
-         if f.error = VORBIS_invalid_stream then
-            f.error := VORBIS_invalid_setup;
-         Result:=false;
-         Exit;
-      end;
-   end;
-   {$ENDIF}
 
    //crc32_init(); // always init it, to avoid multithread race conditions
 
@@ -4421,12 +4293,7 @@ begin
       SetLength(p.window[i],0);
       SetLength(p.bit_reverse[i],0);
    End;
-
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   if p.close_on_free then
-    FileClose(p.f);
-   {$ENDIF}
-end;
+End;
 
 procedure stb_vorbis_close(f:pvorb);
 begin
@@ -4455,11 +4322,6 @@ begin
    p.stream := nil;
    setlength(p.codebooks,0);
    p.page_crc_tests := -1;
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   p.close_on_free := false;
-   p.push_mode := false;
-      //p.f := nil;
-   {$ENDIF}
 end;
 
 function stb_vorbis_get_sample_offset(f:pvorb):integer;
@@ -4491,8 +4353,6 @@ begin
    New(Result);
    FillChar(Result^, SizeOf(vorb), 0);
 end;
-
-{$IFNDEF STB_VORBIS_NO_PUSHDATA_API}
 
 procedure stb_vorbis_flush_pushdata(f:pvorb);
 begin
@@ -4715,26 +4575,14 @@ begin
    data_used := PtrUInt(f.stream) - PtrUInt(data);//@data[0];
    _error := VORBIS__no_error;
 end;
-{$ENDIF} // STB_VORBIS_NO_PUSHDATA_API
 
-function stb_vorbis_get_file_offset(f:pvorb):Cardinal;
-begin
-   result:=0;
-   {$IFNDEF STB_VORBIS_NO_PUSHDATA_API}
-   if f.push_mode then begin result:=0; exit; end;
-   {$ENDIF}
-   if USE_MEMORY(f) then begin result:=PtrUInt(f.stream)-PtrUInt(f.stream_start); exit; end;
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   result:=FileSeek(f.f,0,1) - f.f_start;
-   {$ENDIF}
-end;
+Function stb_vorbis_get_file_offset(f:pvorb):Cardinal;
+Begin
+   result := PtrUInt(f.stream) - PtrUInt(f.stream_start);
+End;
 
-{$IFNDEF STB_VORBIS_NO_PULLDATA_API}
-//
 // DATA-PULLING API
-//
-
-function vorbis_find_page(f:pvorb; var _end,last: Cardinal):Boolean;
+Function vorbis_find_page(f:pvorb; var _end,last: Cardinal):Boolean;
 label invalid;
 var
    n,i,s: integer;
@@ -5282,61 +5130,6 @@ begin
    result:=len;
 end;
 
-{$IFNDEF STB_VORBIS_NO_STDIO}
-
-function stb_vorbis_open_file_section(var _file: TFileHandle; close_on_free:boolean;
-         var _error:STBVorbisError; alloc: pstb_vorbis_alloc; length:Cardinal):pvorb;
-
-var f: pvorb;
-begin
-   result := vorbis_alloc;
-   if result=nil then exit;
-   f:=result;
-   vorbis_init(f, alloc);
-
-   f.f := _file;
-   f.f_len := FileSeek(_file, 0, 2);
-   f.f_start := FileSeek(_file, 0, 1);
-   f.f_pos := f.f_start;
-   FileSeek(_file, f.f_start, 0);
-   f.stream_len   := length;
-   f.close_on_free := close_on_free;
-   if start_decoder(f) then begin
-      vorbis_pump_first_frame(f);
-      Exit;
-   end;
-   _error := f.error;
-   stb_vorbis_close(f);
-   result:=nil;
-end;
-
-function stb_vorbis_open_file(var _file:TFileHandle; close_on_free:boolean;
-         var _error: STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
-var
-   len: Cardinal;
-   cp:LongInt;
-begin
-   cp := FileSeek(_file, 0, 1);
-   len := FileSeek(_file, 0, 2);
-   FileSeek(_file,cp, 0);
-   result:=stb_vorbis_open_file_section(_file, close_on_free, _error, alloc, len);
-end;
-
-function stb_vorbis_open_filename(filename:TERRAString; var _error:STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
-var f: TFileHandle;
-begin
-   f := FileOpen(filename, fmOpenRead or fmShareDenyNone);
-   if f>0 then begin
-      result:=stb_vorbis_open_file(f, true, _error, alloc);
-      Exit;
-   end;
-   _error := VORBIS_file_open_failure;
-   FileClose(f);
-   Result := nil;
-end;
-
-{$ENDIF} // STB_VORBIS_NO_STDIO
-
 function stb_vorbis_open_memory(data: pByte; len: Cardinal; var _error: STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
 Var
   f:pvorb;
@@ -5371,8 +5164,6 @@ end;
 
 {$IFNDEF STB_VORBIS_NO_INTEGER_CONVERSION}
 
-
-
 {$IFNDEF STB_VORBIS_NO_FAST_SCALED_FLOAT}
 //   typedef union {
 //      float f;
@@ -5380,20 +5171,20 @@ end;
 //   } float_conv;
 //   typedef char stb_vorbis_float_size_test[sizeof(float)==4 && sizeof(int) == 4];
 //   #define FASTDEF(x) float_conv x
-   
+
 // add (1<<23) to convert to int, then divide by 2^SHIFT, then add 0.5/2^SHIFT to round
 //#define MAGIC(SHIFT) (1.5f * (1 << (23-SHIFT)) + 0.5f/(1 << SHIFT))
 function MAGIC(SHIFT:integer):single;
 begin
    result := 1.5 * (1 shl (23-SHIFT)) + 0.5/(1 shl SHIFT);
 end;
-   
+
 //#define ADDEND(SHIFT) (((150-SHIFT) << 23) + (1 << 22))
 function ADDEND(SHIFT:Integer):longint;
 begin
    result := ((150-SHIFT) shl 23) + (1 shl 22);
-end;   
-   
+end;
+
 //#define FAST_SCALED_FLOAT_TO_INT(temp,x,s) (temp.f = (x) + MAGIC(s), temp.i - ADDEND(s))
 
 function FAST_SCALED_FLOAT_TO_INT(x:Single; s:Integer) : Integer;
@@ -5404,7 +5195,7 @@ type
          1:(i:Integer);
 //         1:(i:SmallInt);
       end;
-var 
+var
    temp: float_conv;
 begin
    temp.f := x + MAGIC(s);
@@ -5635,36 +5426,6 @@ begin
    result:=n;
 end;
 
-{$IFNDEF STB_VORBIS_NO_STDIO}
-function stb_vorbis_decode_filename(filename:TERRAString; var channels:integer; var output:pSmallInt):integer;
-var
-   data_len,n,offset,total,limit: Cardinal;
-   _error: STBVorbisError;
-   //data: array of SmallInt;
-   v: pvorb;
-begin
-   v := stb_vorbis_open_filename(filename, _error, nil);
-   if v=nil then begin result:=-1; exit; end;
-   limit := v.channels * 4096;
-   channels := v.channels;
-   offset := 0;
-   data_len := 0;
-   total := limit;
-   getMem(output, total*sizeof(SmallInt));
-   while true do begin
-      n := stb_vorbis_get_frame_short_interleaved(v, v.channels, IncPointer(output,offset), total-offset);
-      if n=0 then break;
-      data_len := data_len + n;
-      offset := offset+ n*v.channels;
-      if offset+limit > total then begin
-         total := total * 2;
-         output:=reallocMem(output,total*sizeof(SmallInt));
-      end;
-   end;
-   result:=data_len;
-end;
-{$ENDIF} // NO_STDIO
-
 function stb_vorbis_decode_memory(mem:pByte; len:integer; var channels, SampleRate:integer; var output:pSmallInt):Integer;
 Var
   data_len,offset,total,limit,n: integer;
@@ -5781,8 +5542,6 @@ begin
    end;
    result:=n;
 end;*)
-
-{$ENDIF} // STB_VORBIS_NO_PULLDATA_API
 
 Const
   OggBufferSize = 1024 * 8;

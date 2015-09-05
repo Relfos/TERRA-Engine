@@ -28,7 +28,7 @@ Unit TERRA_SoundSource;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_Utils, TERRA_Math, TERRA_Vector3D, TERRA_Sound,
-  TERRA_OS, TERRA_Resource, TERRA_AudioBuffer, TERRA_AudioPanning;
+  TERRA_OS, TERRA_Resource, TERRA_AudioBuffer, TERRA_AudioPanning, TERRA_SoundAmbience;
 
 Type
   SoundSource = Class;
@@ -62,6 +62,8 @@ Type
 
       _Position:Vector3D;
 
+      _Ambience:SoundAmbience;
+
       _Callback:SoundSourceCallback;
 
       Procedure SetPitch(Const Value:Single);
@@ -88,6 +90,8 @@ Type
       Property Loop:Boolean Read _Loop Write SetLoop;
 
       Property Position:Vector3D Read _Position Write SetPosition;
+
+      Property Ambience:SoundAmbience Read _Ambience Write _Ambience;
   End;
 
   ResourceSoundSource = Class(SoundSource)
