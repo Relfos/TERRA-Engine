@@ -12,7 +12,7 @@ Uses
   TERRA_String, TERRA_Utils, TERRA_Object, TERRA_Renderer, TERRA_VertexFormat,
   {$IFDEF MOBILE}TERRA_OpenGLES{$ELSE}TERRA_OpenGL{$ENDIF}, 
   TERRA_Color, TERRA_Image, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D,
-  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_Stream, SysUtils;
+  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_Stream, TERRA_ShaderNode, SysUtils;
 
 Type
   OpenGLVBO = Class(VertexBufferInterface)
@@ -56,7 +56,7 @@ Type
       Function Unbind():Boolean; Override;
 
     Public
-      Function Generate(Const Name:TERRAString; ShaderCode:TERRAString):Boolean; Override;
+      Function Generate(Const Name:TERRAString; Shader:ShaderGroup):Boolean; Override;
 
       Function IsReady():Boolean; Override;
 
@@ -637,78 +637,28 @@ Begin
 End;
 {$ENDIF}
 
-Function OpenGLShader.Generate(const Name: TERRAString; ShaderCode: TERRAString): Boolean;
+Function OpenGLShader.Generate(const Name: TERRAString; Shader:ShaderGroup): Boolean;
 Var
-  I:Integer;
-
-Function ReadBlock(Name:TERRAString):TERRAString;
-Var
-  S2:TERRAString;
-  I:Integer;
-  N:Integer;
+  Version:TERRAString;    //'#version 120'+StringFromChar(NewLineChar);
+  Compiler:GLSLShaderCompiler;
 Begin
-  I := Pos(StringUpper(Name), StringUpper(ShaderCode));
-  If (I>0) Then
+  If Shader = Nil Then
   Begin
-    S2 := Copy(ShaderCode, I +1, MaxInt);
-    I := Pos('{', S2);
-    S2 := Copy(S2, I+1, MaxInt);
-    I := 1;
-    N := 0;
-    Repeat
-      If (S2[I]='}') Then
-      Begin
-        If (N=0) Then
-          Break
-        Else
-          Dec(N);
-      End Else
-      If (S2[I]='{') Then
-        Inc(N);
-      Inc(I);
-    Until (I>=Length(S2));
+    DebugBreak;
+  End;
 
-    ShaderCode := Copy(S2, I + 1, MaxInt);
-    S2 := Copy(S2, 1, I-1);
-    Result := S2;
-  End Else
-    Result := '';
-
-  Result := StringTrim(Result);
-End;
-
-Var
-  Version:TERRAString;
-Begin
   _Name := Name;
   Log(logDebug, 'Shader', 'Creating shader from string: '+ Name);
 
-{  Version := Version + '#define ' + _Owner.Vendor + StringFromChar(NewLineChar);
-  If (HasGLSL120) Then
-    Version := Version + '#define MATRIX_CAST' + StringFromChar(NewLineChar);
-
-  If (_Owner.Features.PostProcessing.Avaliable) Then
-    Version := Version + '#define POSTPROCESSING' + StringFromChar(NewLineChar);
-
-  If (_Owner.Settings.NormalMapping.Enabled) Then
-    Version := Version + '#define NORMAL_MAPPING' + StringFromChar(NewLineChar);
-
-{  If (_Owner.Features.FloatTexture.Avaliable) Then
-    Version := Version + '#define FLOATBUFFERS' + StringFromChar(NewLineChar);
-
-  If (_Owner.Settings.DepthOfField.Enabled) Then
-    Version := Version + '#define DEPTHOFFIELD' + StringFromChar(NewLineChar);
-
-  If (_Owner.Settings.ShadowSplitCount>1) Then
-    Version := Version + '#define SHADOWSPLIT1' + StringFromChar(NewLineChar);
-  If (_Owner.Settings.ShadowSplitCount>2) Then
-    Version := Version + '#define SHADOWSPLIT2' + StringFromChar(NewLineChar);
-  If (_Owner.Settings.ShadowSplitCount>3) Then
-    Version := Version + '#define SHADOWSPLIT3' + StringFromChar(NewLineChar);}
-
-  Version := ''; //'#version 120'+StringFromChar(NewLineChar);
-	_VertexCode := Version + ReadBlock('vertex');
-	_FragmentCode := Version + ReadBlock('fragment');
+  Compiler := GLSLShaderCompiler.Create();
+  Result := Shader.GenerateCode(Shader.GetSubNodeAt(0), Compiler, _VertexCode, _FragmentCode);
+  ReleaseObject(Compiler);
+  
+  If Not Result Then
+  Begin
+    Log(logError, 'Shader', 'Failed processing shader nodes for ' + _Name);
+    Exit;
+  End;
 
   _MRT := Pos('gl_FragData', _FragmentCode)>0;
 

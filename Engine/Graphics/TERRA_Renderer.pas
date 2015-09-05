@@ -30,7 +30,7 @@ Unit TERRA_Renderer;
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_OS, TERRA_Collections, TERRA_Image, TERRA_VertexFormat,
   TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Matrix3x3, TERRA_Matrix4x4,
-  TERRA_Plane, TERRA_BoundingBox, TERRA_Color, TERRA_List;
+  TERRA_Plane, TERRA_BoundingBox, TERRA_Color, TERRA_ShaderNode, TERRA_List;
 
 Const
   MaxTextureHandles = 2048;
@@ -269,7 +269,7 @@ Type
 
 
     Public
-      Function Generate(Const Name:TERRAString; ShaderCode:TERRAString):Boolean; Virtual; Abstract;
+      Function Generate(Const Name:TERRAString; Shader:ShaderGroup):Boolean; Virtual; Abstract;
 
       Function IsReady():Boolean; Virtual; Abstract;
 

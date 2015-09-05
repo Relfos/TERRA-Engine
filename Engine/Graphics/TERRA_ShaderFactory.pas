@@ -165,7 +165,7 @@ Type
 
 Implementation
 
-Uses TERRA_Log, TERRA_Mesh, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_OS, TERRA_EngineManager;
+Uses TERRA_Log, TERRA_Mesh, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_OS, TERRA_EngineManager, TERRA_ShaderNode, TERRA_ShaderCompiler;
 
 { ShaderEmitter }
 Procedure ShaderEmitter.Line(S2:TERRAString);
@@ -1543,6 +1543,10 @@ Var
   S:ShaderEntry;
   Location:TERRAString;
   SS, Name:TERRAString;
+
+  Graph:ShaderGroup;
+  OutColor:ShaderOutputNode;
+  
 //  BlendMode:ColorCombineMode;
 Begin
 {  If GraphicsManager.Instance.Renderer.ActiveBlendMode Then
@@ -1713,9 +1717,17 @@ Begin
   Log(logDebug, 'TERRAShaderFactory', 'Got shader code, compiling');
   {$ENDIF}
 
+  Graph := ShaderGroup.Create();
+  OutColor := ShaderOutputNode.Create(shaderOutput_Diffuse);
+  OutColor.Input := ShaderVec4Constant.Create(Vector4D_Create(1.0, 0.0, 0.0, 1.0));
+  Graph.AddNode(OutColor);
+
   S.Shader := Engine.Graphics.Renderer.CreateShader();
-  S.Shader.Generate(Name, SS);
+  S.Shader.Generate(Name, Graph {SS});
   Result := S.Shader;
+
+  ReleaseObject(Graph);
+
   _Emitter.Bind(FxFlags, OutFlags, FogFlags, Lights);
 End;
 
