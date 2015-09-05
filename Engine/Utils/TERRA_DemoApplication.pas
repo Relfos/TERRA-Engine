@@ -182,9 +182,9 @@ End;
 
 Procedure DemoApplication.SetShowFPS(const Value: Boolean);
 Begin
-   _ShowFPS := Value;
+  _ShowFPS := Value;
 
-   If (Value) Then
+  If (Value) Then
     Self.GUI.Viewport.Visible := True;
 End;
 

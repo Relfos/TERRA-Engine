@@ -86,7 +86,7 @@ Type
 
 
     Public
-      Function Generate(Const Name:TERRAString; Shader:ShaderGroup):Boolean; Override;
+      Function Generate(Const Name:TERRAString; Shader:TERRAShaderGroup):Boolean; Override;
 
       Function IsReady():Boolean; Override;
 
@@ -512,7 +512,7 @@ Procedure NullShader.SetVec4ArrayUniform(const Name: TERRAString; Count:Integer;
 Begin
 End;
 
-Function NullShader.Generate(const Name: TERRAString; Shader:ShaderGroup): Boolean;
+Function NullShader.Generate(const Name: TERRAString; Shader:TERRAShaderGroup): Boolean;
 Begin
   Result := True;
 End;

@@ -305,7 +305,6 @@ Type
 
     Public
       CullGroups:Boolean;
-      CustomShader:ShaderInterface;
       Diffuse:ColorRGBA;
       AlwaysOnTop:Boolean;
 
@@ -4150,13 +4149,8 @@ Begin
 
   If (Graphics.Renderer.Features.Shaders.Avaliable) Then
   Begin
-    If Assigned(State) And (State.CustomShader<>Nil) Then
-      _Shader := State.CustomShader
-    Else
-    Begin
-      UseTextureMatrix := (Assigned(State)) And (State._Groups[_ID].UseTextureMatrix);
-      Self._Shader := SelectMeshShader(View, Stage, Self, Transform.GetTranslation(), UseOutline, TranslucentPass, DestMaterial, UseTextureMatrix);
-    End;
+    UseTextureMatrix := (Assigned(State)) And (State._Groups[_ID].UseTextureMatrix);
+    Self._Shader := SelectMeshShader(View, Stage, Self, Transform.GetTranslation(), UseOutline, TranslucentPass, DestMaterial, UseTextureMatrix);
 
     {If (Assigned(_Shader)) And (Not _Shader.IsReady) Or (_Shader = Nil) Then
       Exit; BIBI}

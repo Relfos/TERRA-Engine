@@ -269,7 +269,7 @@ Type
 
 
     Public
-      Function Generate(Const Name:TERRAString; Shader:ShaderGroup):Boolean; Virtual; Abstract;
+      Function Generate(Const Name:TERRAString; Shader:TERRAShaderGroup):Boolean; Virtual; Abstract;
 
       Function IsReady():Boolean; Virtual; Abstract;
 

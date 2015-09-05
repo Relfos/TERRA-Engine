@@ -56,7 +56,7 @@ Type
       Function Unbind():Boolean; Override;
 
     Public
-      Function Generate(Const Name:TERRAString; Shader:ShaderGroup):Boolean; Override;
+      Function Generate(Const Name:TERRAString; Shader:TERRAShaderGroup):Boolean; Override;
 
       Function IsReady():Boolean; Override;
 
@@ -376,10 +376,11 @@ Begin
     LogInfo := StringTrimRight(LogInfo);
 
     If ShaderType=GL_VERTEX_SHADER Then
-      PS:='Vertex'
+      PS := 'Vertex'
     Else
-      PS:='Fragment';
-    Log(logDebug,'Shader', LogInfo);
+      PS := 'Fragment';
+
+    Log(logDebug, 'Shader', LogInfo + Name);
   End Else
     LogInfo:='';
 
@@ -637,7 +638,7 @@ Begin
 End;
 {$ENDIF}
 
-Function OpenGLShader.Generate(const Name: TERRAString; Shader:ShaderGroup): Boolean;
+Function OpenGLShader.Generate(const Name: TERRAString; Shader:TERRAShaderGroup): Boolean;
 Var
   Version:TERRAString;    //'#version 120'+StringFromChar(NewLineChar);
   Compiler:GLSLShaderCompiler;

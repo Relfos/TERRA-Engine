@@ -16,10 +16,10 @@ Const
   vectorComponentW = 8;
 
 Type
-  ShaderNode = Class;
-  ShaderGroup = Class;
+  TERRAShaderNode = Class;
+  TERRAShaderGroup = Class;
 
-	ShaderNode = Class(TERRAObject)
+	TERRAShaderNode = Class(TERRAObject)
 		Protected
       _Block:ShaderBlock;
 
@@ -37,32 +37,32 @@ Type
       // should return false if there are problems with inputs, otherwise returns true
       Function Validate():Boolean; Virtual;
 
-      Function GetSubNodeAt(Index:Integer):ShaderNode; Virtual;
+      Function GetSubNodeAt(Index:Integer):TERRAShaderNode; Virtual;
       Function GetSubNodeCount():Integer; Virtual;
 
       // should return a sub graph for complex nodes, nil for others
-      Function GetSubGraph():ShaderGroup; Virtual;
+      Function GetSubGraph():TERRAShaderGroup; Virtual;
 	End;
 
-	ShaderGroup = Class(ShaderNode)
+	TERRAShaderGroup = Class(TERRAShaderNode)
 		Private
-			_Nodes:Array Of ShaderNode;
+			_Nodes:Array Of TERRAShaderNode;
 			_NodeCount:Integer;
 
 		Public
       XVertexCode:TERRAString;
       XFragmentCode:TERRAString;
 
-      Procedure AddNode(Node:ShaderNode);
+      Procedure AddNode(Node:TERRAShaderNode);
 
-      Function GenerateCode(Target:ShaderNode; Compiler:ShaderCompiler; Out VertexShader, FragmentShader:TERRAString):Boolean;
+      Function GenerateCode(Target:TERRAShaderNode; Compiler:ShaderCompiler; Out VertexShader, FragmentShader:TERRAString):Boolean;
 
-      Function GetSubNodeAt(Index:Integer):ShaderNode; Override;
+      Function GetSubNodeAt(Index:Integer):TERRAShaderNode; Override;
       Function GetSubNodeCount():Integer; Override;
 	End;
 
 	// constant
-	ShaderFloatConstant = Class(ShaderNode)
+	ShaderFloatConstant = Class(TERRAShaderNode)
 		Protected
 			_Value:Single;
 
@@ -76,7 +76,7 @@ Type
 			Property Value:Single Read _Value Write _Value;
 	End;
 
-	ShaderVec2Constant = Class(ShaderNode)
+	ShaderVec2Constant = Class(TERRAShaderNode)
 		Protected
 			_Value:Vector2D;
 
@@ -90,7 +90,7 @@ Type
 			Property Value:Vector2D Read _Value Write _Value;
 	End;
 
-	ShaderVec3Constant = Class(ShaderNode)
+	ShaderVec3Constant = Class(TERRAShaderNode)
 		Protected
 			_Value:Vector3D;
 
@@ -105,7 +105,7 @@ Type
 	End;
 
 
-	ShaderVec4Constant = Class(ShaderNode)
+	ShaderVec4Constant = Class(TERRAShaderNode)
 		Protected
 			_Value:Vector4D;
 
@@ -119,7 +119,7 @@ Type
 			Property Value:Vector4D Read _Value Write _Value;
 	End;
 
-	ShaderUniformNode = Class(ShaderNode)
+	ShaderUniformNode = Class(TERRAShaderNode)
 		Protected
       _Name:TERRAString;
       _Type:ShaderNodeType;
@@ -130,7 +130,7 @@ Type
 			Function GetType():ShaderNodeType; Override;
 	End;
 
-	ShaderAttributeNode = Class(ShaderNode)
+	ShaderAttributeNode = Class(TERRAShaderNode)
 		Protected
       _Name:TERRAString;
       _Kind:VertexFormatAttribute;
@@ -148,18 +148,18 @@ Type
 	End;
 
 	// shader unary nodes
-	ShaderUnaryNode = Class(ShaderNode)
+	ShaderUnaryNode = Class(TERRAShaderNode)
 		Protected
-			_Input:ShaderNode;
+			_Input:TERRAShaderNode;
 
-      Procedure SetInput(const Value: ShaderNode);
+      Procedure SetInput(const Value: TERRAShaderNode);
 		Public
 			Function GetType():ShaderNodeType; Override;
 
-      Function GetSubNodeAt(Index:Integer):ShaderNode; Override;
+      Function GetSubNodeAt(Index:Integer):TERRAShaderNode; Override;
       Function GetSubNodeCount():Integer; Override;
 
-			Property Input:ShaderNode Read _Input Write SetInput;
+			Property Input:TERRAShaderNode Read _Input Write SetInput;
 	End;
 
 	ShaderUnaryFunctionNode = Class(ShaderUnaryNode)
@@ -190,23 +190,23 @@ Type
 	End;
 
 	// shader binary nodes
-	ShaderBinaryNode = Class(ShaderNode)
+	ShaderBinaryNode = Class(TERRAShaderNode)
 		Protected
-			_A:ShaderNode;
-			_B:ShaderNode;
+			_A:TERRAShaderNode;
+			_B:TERRAShaderNode;
       _Func:ShaderFunctionType;
 
-      Procedure SetInputA(const Value: ShaderNode);
-      Procedure SetInputB(const Value: ShaderNode);
+      Procedure SetInputA(const Value: TERRAShaderNode);
+      Procedure SetInputB(const Value: TERRAShaderNode);
 		Public
 			Function GetType():ShaderNodeType; Override;
       Function Validate():Boolean; Override;
 
-      Function GetSubNodeAt(Index:Integer):ShaderNode; Override;
+      Function GetSubNodeAt(Index:Integer):TERRAShaderNode; Override;
       Function GetSubNodeCount():Integer; Override;
 
-			Property InputA:ShaderNode Read _A Write SetInputA;
-			Property InputB:ShaderNode Read _B Write SetInputB;
+			Property InputA:TERRAShaderNode Read _A Write SetInputA;
+			Property InputB:TERRAShaderNode Read _B Write SetInputB;
 
       Property FunctionType:ShaderFunctionType Read _Func Write _Func;
 	End;
@@ -232,26 +232,26 @@ Type
     Public
   End;
 
-	ShaderTernaryNode = Class(ShaderNode)
+	ShaderTernaryNode = Class(TERRAShaderNode)
 		Protected
-			_A:ShaderNode;
-			_B:ShaderNode;
-			_C:ShaderNode;
+			_A:TERRAShaderNode;
+			_B:TERRAShaderNode;
+			_C:TERRAShaderNode;
 
-      Procedure SetInputA(const Value: ShaderNode);
-      Procedure SetInputB(const Value: ShaderNode);
-      Procedure SetInputC(const Value: ShaderNode);
+      Procedure SetInputA(const Value: TERRAShaderNode);
+      Procedure SetInputB(const Value: TERRAShaderNode);
+      Procedure SetInputC(const Value: TERRAShaderNode);
 
 		Public
 			Function GetType():ShaderNodeType; Override;
       Function Validate():Boolean; Override;
 
-      Function GetSubNodeAt(Index:Integer):ShaderNode; Override;
+      Function GetSubNodeAt(Index:Integer):TERRAShaderNode; Override;
       Function GetSubNodeCount():Integer; Override;
 
-			Property InputA:ShaderNode Read _A Write SetInputA;
-			Property InputB:ShaderNode Read _B Write SetInputB;
-			Property InputC:ShaderNode Read _C Write SetInputC;
+			Property InputA:TERRAShaderNode Read _A Write SetInputA;
+			Property InputB:TERRAShaderNode Read _B Write SetInputB;
+			Property InputC:TERRAShaderNode Read _C Write SetInputC;
 	End;
 
 	ShaderTernaryFunctionNode = Class(ShaderTernaryNode)
@@ -290,43 +290,43 @@ Type
 
 Implementation
 
-{ ShaderNode }
-Function ShaderNode.GetSubGraph: ShaderGroup;
+{ TERRAShaderNode }
+Function TERRAShaderNode.GetSubGraph:TERRAShaderGroup;
 Begin
   Result := Nil;
 End;
 
-Function ShaderNode.IsMatrix(T: ShaderNodeType): Boolean;
+Function TERRAShaderNode.IsMatrix(T: ShaderNodeType): Boolean;
 Begin
-  Result := (T = shaderNode_Matrix3x3) Or (T = shaderNode_Matrix4x4);
+  Result := (T = ShaderNode_Matrix3x3) Or (T = ShaderNode_Matrix4x4);
 End;
 
-Function ShaderNode.IsSampler(T: ShaderNodeType): Boolean;
+Function TERRAShaderNode.IsSampler(T: ShaderNodeType): Boolean;
 Begin
-  Result := (T = shaderNode_Texture2D) Or (T = shaderNode_Cubemap);
+  Result := (T = ShaderNode_Texture2D) Or (T = ShaderNode_Cubemap);
 End;
 
-Function ShaderNode.IsVector(T: ShaderNodeType): Boolean;
+Function TERRAShaderNode.IsVector(T: ShaderNodeType): Boolean;
 Begin
-  Result := (T = shaderNode_Vector2D) Or (T = shaderNode_Vector3D) Or (T = shaderNode_Vector4D);
+  Result := (T = ShaderNode_Vector2D) Or (T = ShaderNode_Vector3D) Or (T = ShaderNode_Vector4D);
 End;
 
-Function ShaderNode.Validate: Boolean;
+Function TERRAShaderNode.Validate: Boolean;
 Begin
   Result := True;
 End;
 
-Function ShaderNode.GetSubNodeAt(Index:Integer):ShaderNode;
+Function TERRAShaderNode.GetSubNodeAt(Index:Integer):TERRAShaderNode;
 Begin
   Result := Nil;
 End;
 
-Function ShaderNode.GetSubNodeCount():Integer;
+Function TERRAShaderNode.GetSubNodeCount():Integer;
 Begin
   Result := 0;
 End;
 
-Function ShaderNode.Compile(Target: ShaderCompiler): Boolean;
+Function TERRAShaderNode.Compile(Target: ShaderCompiler): Boolean;
 Begin
   Result := False;
 End;
@@ -345,7 +345,7 @@ End;
 
 Function ShaderFloatConstant.GetType: ShaderNodeType;
 Begin
-  Result := shaderNode_Float;
+  Result := ShaderNode_Float;
 End;
 
 { ShaderVec2Constant }
@@ -362,7 +362,7 @@ End;
 
 Function ShaderVec2Constant.GetType: ShaderNodeType;
 Begin
-  Result := shaderNode_Vector2D;
+  Result := ShaderNode_Vector2D;
 End;
 
 { ShaderVec3Constant }
@@ -379,7 +379,7 @@ End;
 
 Function ShaderVec3Constant.GetType: ShaderNodeType;
 Begin
-  Result := shaderNode_Vector3D;
+  Result := ShaderNode_Vector3D;
 End;
 
 { ShaderVec4Constant }
@@ -396,7 +396,7 @@ End;
 
 Function ShaderVec4Constant.GetType: ShaderNodeType;
 Begin
-  Result := shaderNode_Vector4D;
+  Result := ShaderNode_Vector4D;
 End;
 
 { ShaderUnaryNode }
@@ -406,7 +406,7 @@ Begin
 End;
 
 
-Function ShaderUnaryNode.GetSubNodeAt(Index:Integer):ShaderNode;
+Function ShaderUnaryNode.GetSubNodeAt(Index:Integer):TERRAShaderNode;
 Begin
   Result := Nil;
 End;
@@ -416,7 +416,7 @@ Begin
   Result := 2;
 End;
 
-Procedure ShaderUnaryNode.SetInput(const Value: ShaderNode);
+Procedure ShaderUnaryNode.SetInput(const Value: TERRAShaderNode);
 Begin
   Self._Input := Value;
 End;
@@ -452,12 +452,12 @@ Begin
 
 
   Case Count Of
-  1:  Result := shaderNode_Float;
-  2:  Result := shaderNode_Vector2D;
-  3:  Result := shaderNode_Vector3D;
-  4:  Result := shaderNode_Vector4D;
+  1:  Result := ShaderNode_Float;
+  2:  Result := ShaderNode_Vector2D;
+  3:  Result := ShaderNode_Vector3D;
+  4:  Result := ShaderNode_Vector4D;
   Else
-    Result := shaderNode_Invalid;
+    Result := ShaderNode_Invalid;
   End;
 End;
 
@@ -473,7 +473,7 @@ Begin
   Result := _A.GetType();
 
   If _B.GetType() <> Result Then
-    Result := shaderNode_Invalid;
+    Result := ShaderNode_Invalid;
 End;
 
 Function ShaderBinaryNode.Validate: Boolean;
@@ -481,7 +481,7 @@ Begin
   Result := (_A.GetType() = _B.GetType());
 End;
 
-Function ShaderBinaryNode.GetSubNodeAt(Index:Integer):ShaderNode;
+Function ShaderBinaryNode.GetSubNodeAt(Index:Integer):TERRAShaderNode;
 Begin
   Case Index Of
   0: Result := _A;
@@ -496,12 +496,12 @@ Begin
   Result := 2;
 End;
 
-Procedure ShaderBinaryNode.SetInputA(const Value: ShaderNode);
+Procedure ShaderBinaryNode.SetInputA(const Value: TERRAShaderNode);
 Begin
   _A := Value;
 End;
 
-Procedure ShaderBinaryNode.SetInputB(const Value: ShaderNode);
+Procedure ShaderBinaryNode.SetInputB(const Value: TERRAShaderNode);
 Begin
   _B := Value;
 End;
@@ -512,7 +512,7 @@ Begin
   Result := _A.GetType();
 
   If _B.GetType() <> Result Then
-    Result := shaderNode_Invalid;
+    Result := ShaderNode_Invalid;
 End;
 
 Function ShaderTernaryNode.Validate: Boolean;
@@ -520,7 +520,7 @@ Begin
   Result := (_A.GetType() = _B.GetType());
 End;
 
-Function ShaderTernaryNode.GetSubNodeAt(Index:Integer):ShaderNode;
+Function ShaderTernaryNode.GetSubNodeAt(Index:Integer):TERRAShaderNode;
 Begin
   Case Index Of
   0: Result := _A;
@@ -536,17 +536,17 @@ Begin
   Result := 3;
 End;
 
-Procedure ShaderTernaryNode.SetInputA(const Value: ShaderNode);
+Procedure ShaderTernaryNode.SetInputA(const Value: TERRAShaderNode);
 Begin
   _A := Value;
 End;
 
-Procedure ShaderTernaryNode.SetInputB(const Value: ShaderNode);
+Procedure ShaderTernaryNode.SetInputB(const Value: TERRAShaderNode);
 Begin
   _B := Value;
 End;
 
-Procedure ShaderTernaryNode.SetInputC(const Value: ShaderNode);
+Procedure ShaderTernaryNode.SetInputC(const Value: TERRAShaderNode);
 Begin
   _C := Value;
 End;
@@ -576,12 +576,12 @@ Begin
   Begin
     Result := ShaderUniformNode(_A)._Type;
   End Else
-    Result := shaderNode_Invalid;
+    Result := ShaderNode_Invalid;
 End;
 
 Function ShaderSamplerNode.Validate: Boolean;
 Begin
-  Result := (IsSampler(_A.GetType())) And (_B.GetType() = shaderNode_Vector2D);
+  Result := (IsSampler(_A.GetType())) And (_B.GetType() = ShaderNode_Vector2D);
 End;
 
 
@@ -597,8 +597,8 @@ Begin
   Result := _Type;
 End;
 
-{ ShaderGroup }
-Procedure ShaderGroup.AddNode(Node: ShaderNode);
+{ TERRAShaderGroup }
+Procedure TERRAShaderGroup.AddNode(Node: TERRAShaderNode);
 Var
   I:Integer;
 Begin
@@ -614,7 +614,7 @@ Begin
   _Nodes[Pred(_NodeCount)] := Node;
 End;
 
-Function ShaderGroup.GenerateCode(Target:ShaderNode; Compiler:ShaderCompiler; Out VertexShader, FragmentShader:TERRAString):Boolean;
+Function TERRAShaderGroup.GenerateCode(Target:TERRAShaderNode; Compiler:ShaderCompiler; Out VertexShader, FragmentShader:TERRAString):Boolean;
 Begin
   If Self.XVertexCode<>'' Then
   Begin
@@ -630,7 +630,7 @@ Begin
     Result := Compiler.GenerateCode(VertexShader, FragmentShader);
 End;
 
-Function ShaderGroup.GetSubNodeAt(Index: Integer): ShaderNode;
+Function TERRAShaderGroup.GetSubNodeAt(Index: Integer): TERRAShaderNode;
 Begin
   If (Index<0) Or (Index>=_NodeCount) Then
     Result := Nil
@@ -638,7 +638,7 @@ Begin
     Result := _Nodes[Index];
 End;
 
-Function ShaderGroup.GetSubNodeCount: Integer;
+Function TERRAShaderGroup.GetSubNodeCount: Integer;
 Begin
   Result := _NodeCount;
 End;
@@ -661,7 +661,7 @@ End;
 
 Function ShaderOutputNode.GetType: ShaderNodeType;
 Begin
-  Result := shaderNode_Output;
+  Result := ShaderNode_Output;
 End;
 
 { ShaderAttributeNode }
@@ -713,13 +713,13 @@ Begin
     shaderFunction_Tan:
       Result := _Input.GetType();
     Else
-      Result := shaderNode_Invalid;
+      Result := ShaderNode_Invalid;
   End;
 End;
 
 Function ShaderUnaryFunctionNode.Validate: Boolean;
 Begin
-  Result := (GetType() <> shaderNode_Invalid) And (Not IsSampler(GetType()));
+  Result := (GetType() <> ShaderNode_Invalid) And (Not IsSampler(GetType()));
 End;
 
 { ShaderBinaryFunctionNode }
@@ -757,7 +757,7 @@ Begin
     shaderFunction_SmoothStep:
       Result := _A.GetType();
     Else
-      Result := shaderNode_Invalid;
+      Result := ShaderNode_Invalid;
   End;
 End;
 
@@ -789,7 +789,7 @@ End;
 
 Function ShaderBinaryOptionNode.Compile(Target: ShaderCompiler): Boolean;
 Var
-  Choice:ShaderNode;
+  Choice:TERRAShaderNode;
 Begin
   If (Self._Option <>0) Then
     Choice := _A

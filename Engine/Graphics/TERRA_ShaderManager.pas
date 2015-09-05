@@ -8,16 +8,16 @@ Uses TERRA_Object, TERRA_String, TERRA_Renderer, TERRA_ShaderNode;
 Function Get_SkyboxDiffuseShader():ShaderInterface;
 Function Get_SkyboxNormalShader():ShaderInterface;
 
-Function GetShader_Sprite(SpriteFlags:Cardinal):ShaderGroup;
-Function GetShader_Particles():ShaderGroup;
+Function GetShader_Sprite(SpriteFlags:Cardinal):TERRAShaderGroup;
+Function GetShader_Particles():TERRAShaderGroup;
 
-Function GetShader_StencilVolumeShader():ShaderGroup;
+Function GetShader_StencilVolumeShader():TERRAShaderGroup;
 
-Function GetShader_FullscreenQuad():ShaderGroup;
-Function GetShader_FullscreenColor():ShaderGroup;
+Function GetShader_FullscreenQuad():TERRAShaderGroup;
+Function GetShader_FullscreenColor():TERRAShaderGroup;
 
-Function GetShader_Blur():ShaderGroup;
-Function GetShader_Edge():ShaderGroup;
+Function GetShader_Blur():TERRAShaderGroup;
+Function GetShader_Edge():TERRAShaderGroup;
 
 Implementation
 Uses TERRA_OS, TERRA_ShaderFactory, TERRA_Sprite, TERRA_EngineManager, TERRA_GraphicsManager
@@ -27,12 +27,12 @@ Var
   _SkyboxDiffuseShader:ShaderInterface = Nil;
   _SkyboxNormalShader:ShaderInterface = Nil;
 
-Function GetShader_Skybox(OutputMode:Integer):ShaderGroup;
+Function GetShader_Skybox(OutputMode:Integer):TERRAShaderGroup;
 Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
-  Result := ShaderGroup.Create();
+  Result := TERRAShaderGroup.Create();
 
   S := '';
   Line('varying highp vec3 normal;');
@@ -49,7 +49,6 @@ Begin
   Result.XVertexCode := S;
 
   S := '';
-  Line('fragment {');
   Line('varying highp vec3 normal;');
   Line('uniform samplerCube skyTexture;');
   Line('uniform lowp vec4 skyColor;');
@@ -107,13 +106,13 @@ Begin
   Result := S;
 End;
 
-Function GetShader_Sprite(SpriteFlags:Cardinal):ShaderGroup;
+Function GetShader_Sprite(SpriteFlags:Cardinal):TERRAShaderGroup;
 Var
   S:TERRAString;
   DoColorGrading, IsFont, IsSolid, IsDissolve, HasPattern:Boolean;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
-  Result := ShaderGroup.Create();
+  Result := TERRAShaderGroup.Create();
 
   DoColorGrading := (SpriteFlags And Sprite_ColorGrading)<>0;
   IsFont := (SpriteFlags And Sprite_Font)<>0;
@@ -273,12 +272,12 @@ Begin
   Result.XFragmentCode := S;
 End;
 
-Function GetShader_Particles():ShaderGroup;
+Function GetShader_Particles():TERRAShaderGroup;
 Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
-  Result := ShaderGroup.Create();
+  Result := TERRAShaderGroup.Create();
 
   S := '';
   Line('	varying mediump vec4 texCoord;');
@@ -346,12 +345,12 @@ Begin
 End;*)
 
 
-Function GetShader_StencilVolumeShader():ShaderGroup;
+Function GetShader_StencilVolumeShader():TERRAShaderGroup;
 Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
-  Result := ShaderGroup.Create();
+  Result := TERRAShaderGroup.Create();
 
   S := '';
 	Line('  uniform mat4 cameraMatrix;');
@@ -367,12 +366,12 @@ Begin
   Result.XFragmentCode := S;
 End;
 
-Function GetShader_FullscreenColor():ShaderGroup;
+Function GetShader_FullscreenColor():TERRAShaderGroup;
 Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
-  Result := ShaderGroup.Create();
+  Result := TERRAShaderGroup.Create();
 
   S := '';
   Line('vertex {');
@@ -389,12 +388,12 @@ Begin
   Result.XFragmentCode := S;
 End;
 
-Function GetShader_FullscreenQuad():ShaderGroup;
+Function GetShader_FullscreenQuad():TERRAShaderGroup;
 Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
-  Result := ShaderGroup.Create();
+  Result := TERRAShaderGroup.Create();
 
   S := '';
 	Line('  varying mediump vec2 texCoord;');
@@ -420,12 +419,12 @@ Begin
   Result.XFragmentCode := S;
 End;
 
-Function GetShader_Blur():ShaderGroup;
+Function GetShader_Blur():TERRAShaderGroup;
 Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
-  Result := ShaderGroup.Create();
+  Result := TERRAShaderGroup.Create();
 
   S := '';
   Line('  uniform mat4 projectionMatrix;');
@@ -475,7 +474,7 @@ Begin
 
   Line('color = color / 16.0;');
   Line('color.a = alpha;');
-  Line('gl_FragColor = color;');
+  Line('gl_FragColor = color;}');
 
   Result.XFragmentCode := S;
 End;
@@ -505,12 +504,12 @@ End;
 
 	//Line('	return p * 0.3 + 0.7;	}');*)
 
-Function GetShader_Edge():ShaderGroup;
+Function GetShader_Edge():TERRAShaderGroup;
 Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
-  Result := ShaderGroup.Create();
+  Result := TERRAShaderGroup.Create();
 
   S := '';
   Line('  uniform mat4 projectionMatrix;');

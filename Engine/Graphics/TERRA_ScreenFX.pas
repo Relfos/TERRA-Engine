@@ -417,7 +417,7 @@ Var
   S:TERRAString;
   I, J:Integer;
 
-  Shader:ShaderGroup;
+  Shader:TERRAShaderGroup;
 
   Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
@@ -456,7 +456,7 @@ Begin
     Self._NeedTarget[Integer(captureTargetAlpha)] := True;
     {$ENDIF}
 
-    Shader := ShaderGroup.Create();
+    Shader := TERRAShaderGroup.Create();
 
     S := '';
 //    Line('version { 110 }');

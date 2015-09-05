@@ -140,7 +140,7 @@ Type
       Procedure Bind(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch); Virtual;
 
     Public
-      Function Emit(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch):TERRAString;
+      Procedure Emit(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch; Out VertexCode, FragmentCode:TERRAString);
   End;
 
   TERRAShaderFactory = Class(TERRAObject)
@@ -472,7 +472,7 @@ Begin
   End;
 End;
 
-Function ShaderEmitter.Emit(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch):TERRAString;
+Procedure ShaderEmitter.Emit(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch; Out VertexCode, FragmentCode:TERRAString);
 Var
   N, I:Integer;
   S2:TERRAString;
@@ -518,10 +518,6 @@ Begin
   Result := _Buffer;
   Exit;*)
 
-{$IFDEF PC}
-  Line('version { 120 }');
-{$ENDIF}
-  Line('vertex {');
 	Line('attribute highp vec4 terra_position;');
   Line('  attribute lowp vec4 terra_color;');
 
@@ -764,20 +760,10 @@ Begin
   Self.VertexPass(FxFlags, OutFlags, FogFlags);
 
   Line('	}');
-  Line('}');
+  VertexCode := _Buffer;
+  _Buffer := '';
 
-(*	Line('fragment	{ ');
-  	Line('varying mediump vec3 vertex_normal;');
-  Line('void main()	{ ');
-  Line('  gl_FragColor = vec4(vertex_normal * 0.5 + 0.5, 1.0);}}');
-  Result := _Buffer;
 
-  Log(logDebug, 'Shader', _Buffer);
-  Exit;
-  //-----------------
-*)
-
-  Line('fragment {');
   Self.Varyings(FxFlags, OutFlags, FogFlags);
   Self.FragmentUniforms(FxFlags, OutFlags, FogFlags);
 
@@ -799,8 +785,7 @@ Begin
     End;
 
     Line('  gl_FragColor = color;}');
-    Line('}');
-    Result := _Buffer;
+    FragmentCode := _Buffer;
     Exit;
   End;
 
@@ -808,8 +793,7 @@ Begin
   Begin
   	Line('void main()	{');
     Line('  gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);}');
-    Line('}');
-    Result := _Buffer;
+    FragmentCode := _Buffer;
     Exit;
   End;
 
@@ -1092,7 +1076,7 @@ Begin
     Line('  screen_position *= vec3(0.5);');
     Line('  screen_position += vec3(0.5);');
   End;
-  
+
   {$IFDEF SIMPLESHADER}
   Line('  gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);}');
   {$ELSE}
@@ -1487,8 +1471,8 @@ Begin
   Line('  gl_FragColor = color;}');
   End;
   {$ENDIF}
-  Line('}');
-  Result := _Buffer;
+
+  FragmentCode := _Buffer;
 End;
 
 Procedure ShaderEmitter.FinalPass(FxFlags, OutFlags,FogFlags:Cardinal);
@@ -1542,11 +1526,13 @@ Var
   I:Integer;
   S:ShaderEntry;
   Location:TERRAString;
-  SS, Name:TERRAString;
+  Name:TERRAString;
 
-  Graph:ShaderGroup;
+  Graph:TERRAShaderGroup;
   OutColor:ShaderOutputNode;
-  
+
+  VertexCode, FragmentCode:TERRAString;
+
 //  BlendMode:ColorCombineMode;
 Begin
 {  If GraphicsManager.Instance.Renderer.ActiveBlendMode Then
@@ -1711,19 +1697,23 @@ Begin
   Log(logDebug, 'TERRAShaderFactory', 'Preparing shader '+Name);
   {$ENDIF}
 
-  SS := _Emitter.Emit(FxFlags, OutFlags, FogFlags, Lights);
+  _Emitter.Emit(FxFlags, OutFlags, FogFlags, Lights, VertexCode, FragmentCode);
 
   {$IFDEF DEBUG_GRAPHICS}
   Log(logDebug, 'TERRAShaderFactory', 'Got shader code, compiling');
   {$ENDIF}
 
-  Graph := ShaderGroup.Create();
+  Graph := TERRAShaderGroup.Create;
+  Graph.XVertexCode := VertexCode;
+  Graph.XFragmentCode := FragmentCode;
+
+  (*Graph := ShaderGroup.Create();
   OutColor := ShaderOutputNode.Create(shaderOutput_Diffuse);
   OutColor.Input := ShaderVec4Constant.Create(Vector4D_Create(1.0, 0.0, 0.0, 1.0));
-  Graph.AddNode(OutColor);
+  Graph.AddNode(OutColor);*)
 
   S.Shader := Engine.Graphics.Renderer.CreateShader();
-  S.Shader.Generate(Name, Graph {SS});
+  S.Shader.Generate(Name, Graph);
   Result := S.Shader;
 
   ReleaseObject(Graph);
