@@ -135,8 +135,12 @@ Type
   End;
 
   TextureProperty = Class(TERRAObject)
+  private
+    function GetTexture: TERRATexture;
+    procedure SetTexture(const Value: TERRATexture);
     Protected
-      _Value:TERRATexture;
+      _Value:TERRAString;
+      _Texture:TERRATexture;
 
     Public
       Constructor Create(Const Name:TERRAString; InitValue:TERRATexture);
@@ -146,7 +150,7 @@ Type
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
 
-      Property Value:TERRATexture Read _Value Write _Value;
+      Property Value:TERRATexture Read GetTexture Write SetTexture;
   End;
 
 
@@ -841,15 +845,12 @@ End;
 Constructor TextureProperty.Create(const Name: TERRAString; InitValue:TERRATexture);
 Begin
   Self._ObjectName := Name;
-  Self._Value := InitValue;
+  Self.SetTexture(InitValue);
 End;
 
 Function TextureProperty.GetBlob: TERRAString;
 Begin
-  If Assigned(_Value) Then
-    Result := Self._Value.Name
-  Else
-    Result := '';
+  Result := _Value;
 
   If Result = '' Then
     Result := '#';
@@ -858,9 +859,14 @@ End;
 Procedure TextureProperty.SetBlob(const Blob: TERRAString);
 Begin
   If Blob<>'#' Then
-    _Value := Engine.Textures.GetItem(Blob)
-  Else
-    _Value := Engine.Textures.WhiteTexture;
+  Begin
+    _Texture := Engine.Textures.GetItem(Blob);
+    _Value := Blob;
+  End Else
+  Begin
+    _Texture := Engine.Textures.WhiteTexture;
+    _Value := '';
+  End;
 End;
 
 Function TextureProperty.GetObjectType: TERRAString;
@@ -868,5 +874,22 @@ Begin
   Result := 'texture';
 End;
 
+Function TextureProperty.GetTexture: TERRATexture;
+Begin
+  If (_Texture = Nil) And (_Value<>'') Then
+    _Texture := Engine.Textures[_Value];
+
+  Result := _Texture;
+End;
+
+Procedure TextureProperty.SetTexture(const Value: TERRATexture);
+Begin
+  If Assigned(Value) Then
+    _Value := Value.Name
+  Else
+    _Value := '';
+
+  _Texture := VAlue;
+End;
 
 End.

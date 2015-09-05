@@ -126,6 +126,8 @@ Type
 
       Function AddView(Const Name:TERRAString):UIEditableView;
 
+      Function GetNameForNewWidget(Const Prefix:TERRAString):TERRAString;
+
       Procedure AddWidget(W:UIWidget; X,Y:Integer);
       Procedure AddImage(X, Y:Integer);
       Procedure AddTiledRect(X, Y:Integer);
@@ -320,9 +322,6 @@ Begin
   Self.Clear();
 
 //  Self.AddView('Untitled');
-
-  _Grid := UIGrid.Create();
-  Self.SetGridSize(20.0);
 End;
 
 Procedure UIEditScene.Clear();
@@ -357,6 +356,10 @@ Begin
   Self._Datasources.Name := 'datasources';
 
   Self._SelectedView := Nil;
+
+
+  _Grid := UIGrid.Create();
+  Self.SetGridSize(20.0);
 End;
 
 Procedure UIEditScene.Release;
@@ -399,7 +402,7 @@ Var
   Tex:TERRATexture;
 Begin
   Tex := Engine.Textures['default_image'];
-  Img := UIImage.Create('image', Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(0), UIPixels(0));
+  Img := UIImage.Create(GetNameForNewWidget('image'), Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(0), UIPixels(0));
   Img.SetTexture(Tex);
   Self.AddWidget(Img, X, Y);
 End;
@@ -412,40 +415,23 @@ Begin
   //Tex := Engine.Textures['default_image'];
   Tex := Engine.Textures['menu_window'];
   Tex.Prefetch();
-  Img := UITiledRect.Create('rect', Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(300), UIPixels(200), Trunc(Tex.Width * 0.25), Trunc(Tex.Height * 0.25), Trunc(Tex.Width * 0.75), Trunc(Tex.Height * 0.75));
+  Img := UITiledRect.Create(GetNameForNewWidget('rect'), Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(300), UIPixels(200), Trunc(Tex.Width * 0.25), Trunc(Tex.Height * 0.25), Trunc(Tex.Width * 0.75), Trunc(Tex.Height * 0.75));
   Img.SetTexture(Tex);
   Self.AddWidget(Img, X, Y);
 End;
 
 Procedure UIEditScene.AddLabel(X, Y: Integer);
 Begin
-  Self.AddWidget(UILabel.Create('label', Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(100), UIPixels(50), 'text'), X, Y);
+  Self.AddWidget(UILabel.Create(GetNameForNewWidget('label'), Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(100), UIPixels(50), 'text'), X, Y);
 End;
 
 procedure UIEditScene.AddInputText(X, Y: Integer);
 Begin
-  Self.AddWidget(UIEditText.Create('label', Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(100), UIPixels(50), 'text'), X, Y);
+  Self.AddWidget(UIEditText.Create(GetNameForNewWidget('edit'), Self.GetNewTarget(X, Y), UIPixels(X), UIPixels(Y), 0.1, UIPixels(100), UIPixels(50), 'text'), X, Y);
 End;
 
-{procedure UIEditScene.AddRadioButton(X, Y: Integer);
-Begin
-(*  Self.AddWidget(UIRadioButton.Create('radio', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(25), 'text', 'checkbox'), X, Y);*)
-End;
 
-procedure UIEditScene.AddProgressBar(X, Y: Integer);
-(*Var
-  P:UIProgressBar;*)
-begin
-(*  P := UIProgressBar.Create('bar', Self.GetNewTarget(X, Y), X, Y, 0.1, UIPixels(200), UIPixels(30), 'progressbar');
-  P.Percent.Value := 50;
-  Self.AddWidget(P, X, Y);*)
-end;
-
-procedure UIEditScene.AddSprite(X, Y: Integer);
-begin
-//  Self.AddWidget(UISprite.Create('sprite', Self.GetNewTarget(X, Y), X, Y, 0.1, 'sprite'), X, Y);
-end;
-
+{
 procedure UIEditScene.AddComboBox(X,Y:Integer);
 (*Var
   P:UIComboBox;
@@ -575,6 +561,19 @@ begin
 
   UIEditForm.BuildWidgetTree();
 end;
+
+Function UIEditScene.GetNameForNewWidget(const Prefix: TERRAString): TERRAString;
+Var
+  I:Integer;
+  W:UIWidget;
+Begin
+  I := 0;
+  Repeat
+    Inc(I);
+    Result := Prefix + IntegerProperty.Stringify(I);
+    W := Self._SelectedView._Target.GetChildByName(Result);
+  Until (W = Nil);
+End;
 
 { UIEditableView }
 Constructor UIEditableView.Create(const Name: TERRAString; Owner:UIEditScene);

@@ -68,7 +68,7 @@ Type
   TERRAObjectNodeClass = Class Of TERRAObjectNode;
 
 Implementation
-Uses TERRA_MemoryStream, TERRA_FileStream, TERRA_EngineManager, TERRA_XML, TERRA_OS;
+Uses TERRA_Log, TERRA_MemoryStream, TERRA_FileStream, TERRA_EngineManager, TERRA_XML, TERRA_OS;
 
 Procedure DumpObjectTree(Node:TERRAObjectNode; Dest:TERRAStream; Level:Integer);
 Var
@@ -382,6 +382,7 @@ End;
 Function TERRAObjectNode.SaveToObject(Target:TERRAObject; Owner:TERRAObject): TERRAObject;
 Var
   TypeName, PropName:TERRAString;
+  CurrentType:TERRAString;
   I:Integer;
   P:TERRAObjectNode;
   Prop:TERRAObject;
@@ -411,7 +412,18 @@ Begin
       PropName := TypeName;
 
     Prop := Target.FindProperty(PropName);
-    If (Assigned(Prop)) And (StringEquals(Prop.GetObjectType, TypeName))  Then
+
+    If (Assigned(Prop)) Then
+    Begin
+      CurrentType := Prop.GetObjectType;
+      If (Not StringEquals(CurrentType, TypeName)) Then
+      Begin
+        Log(logWarning, 'Object', 'Unseralization mistmatch:' + CurrentType+ ' vs ' +TypeName);
+        Prop := Nil;
+      End;
+    End;
+
+    If (Assigned(Prop)) Then
       Result := Prop
     Else
       Result := Target.CreateProperty(PropName, TypeName);
@@ -433,8 +445,8 @@ Begin
     If (StringEquals(P.Name, 'name')) Then
       Continue;
 
-    If P.Name='UIImage' Then
-       IntegerProperty.Stringify(2);
+{    If P.Name='texture' Then
+       IntegerProperty.Stringify(2);}
 
       P.SaveToObject(Result, Target);
   End;
