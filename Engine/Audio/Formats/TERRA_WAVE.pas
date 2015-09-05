@@ -27,8 +27,8 @@ Unit TERRA_WAVE;
 Interface
 Uses TERRA_Stream, TERRA_Sound;
 
-Function ValidateWAV(Source:Stream):Boolean;
-Function WAVLoad(Source:Stream; MySound:Sound):Boolean;
+Function ValidateWAV(Source:TERRAStream):Boolean;
+Function WAVLoad(Source:TERRAStream; MySound:Sound):Boolean;
 
 Implementation
 Uses TERRA_Error, TERRA_Utils, TERRA_FileStream, TERRA_FileUtils, TERRA_Log, TERRA_Application;
@@ -56,7 +56,7 @@ Type
                 Size:Cardinal;
               End;
 
-Function FindChunk(Source:Stream; ID:Cardinal; Var Chunk:TWaveChunk):Boolean;
+Function FindChunk(Source:TERRAStream; ID:Cardinal; Var Chunk:TWaveChunk):Boolean;
 Var
   Pos:Cardinal;
 Begin
