@@ -26,13 +26,13 @@ Unit TERRA_MusicManager;
 {$I terra.inc}
 Interface
 
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_MusicTrack;
+Uses TERRA_String, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_MusicTrack;
 
 Const
   DefaultMusicCrossFadeDuration = 6000;
 
 Type
-  MusicManager = Class(TERRAObject)
+  MusicManager = Class(ApplicationComponent)
     Protected
       _Enabled:Boolean;
 
@@ -54,10 +54,13 @@ Type
       Procedure InitTrack(Const SourceName:TERRAString);
 
     Public
-      Constructor Create; 
+      Class Function Instance:MusicManager;
+
       Procedure Release; Override;
 
-      Procedure Update;
+
+      Procedure Init; Override;
+      Procedure Update; Override;
 
       Procedure Play(SourceName:TERRAString; CrossFadeDuration:Integer = DefaultMusicCrossFadeDuration);
       Procedure Stop;
@@ -75,12 +78,25 @@ Type
   End;
 
 Implementation
-Uses TERRA_EngineManager, TERRA_FileManager, TERRA_SoundManager, TERRA_Log, TERRA_OS, TERRA_Stream, TERRA_Math
+Uses TERRA_FileManager, TERRA_SoundManager, TERRA_Log, TERRA_OS, TERRA_Stream, TERRA_Math
 {$IFDEF HAS_MIDI}, TERRA_MIDI{$ENDIF}
 {$IFDEF HAS_AUDIOTRACK}, TERRA_AudioTrack{$ENDIF};
 
-Constructor MusicManager.Create;
+Var
+  _MusicManager_Instance:ApplicationObject;
+
+Class Function MusicManager.Instance:MusicManager;
 Begin
+  If Not Assigned(_MusicManager_Instance) Then
+    _MusicManager_Instance := InitializeApplicationComponent(MusicManager, {$IFDEF USE_OPENAL}SoundManager{$ELSE}Nil{$ENDIF});
+
+  Result := MusicManager(_MusicManager_Instance.Instance);
+End;
+
+Procedure MusicManager.Init;
+Begin
+  SoundManager.Instance(); // load open AL
+
   // set initial values
   _Volume := 0.8;
   _Enabled := True;
@@ -124,14 +140,13 @@ End;
 
 Procedure MusicManager.InitTrack(Const SourceName:TERRAString);
 Var
-  Location:TERRALocation;
-  Ext:TERRAString;
+  S, Ext:TERRAString;
   Procedure TryExtension(Ext:TERRAString);
   Begin
-    If Assigned(Location) Then
+    If S<>'' Then
       Exit;
 
-    Location := Engine.Files.Search(SourceName + '.' + Ext);
+    S := FileManager.Instance.SearchResourceFile(SourceName+'.'+Ext);
   End;
 
   Procedure TryClass(C:MusicTrackClass);
@@ -140,7 +155,7 @@ Var
       Exit;
 
     If (C.Supports(Ext)) Then
-      _CurrentTrack := C.Create(Location.Path, Self._Volume);
+      _CurrentTrack := C.Create(S, Self._Volume);
   End;
 Begin
   If (SourceName='') Then
@@ -162,16 +177,16 @@ Begin
     _PreviousTrackName := SourceName;
   End;
 
-  Location := Nil;
+  S := '';
   TryExtension('ogg');
   TryExtension('mid');
   TryExtension('mp3');
   TryExtension('mod');
 
-  If (Location = Nil) Then
+  If (S='') Then
     Exit;
 
-  Ext := GetFileExtension(Location.Path);
+  Ext := GetFileExtension(S);
 
   _CurrentTrack := Nil;
 
@@ -205,6 +220,8 @@ Begin
     _CurrentTrack.Stop();
     ReleaseObject(_CurrentTrack);
   End;
+
+  _MusicManager_Instance := Nil;
 End;
 
 Procedure MusicManager.SetVolume(Volume:Single);

@@ -28,7 +28,6 @@ Interface
 Uses TERRA_Object, TERRA_String, TERRA_Callstack;
 
 //Procedure DebugStack(S:TERRAString);
-Procedure DebugOpenAL;
 
 Procedure PushCallstack(ClassType:TClass; S:TERRAString);
 Procedure PopCallstack();
@@ -39,9 +38,9 @@ Implementation
 
 Uses {$IFDEF WINDOWS}Windows,{$ENDIF}
   SysUtils, TERRA_Utils, TERRA_Application, TERRA_Error, TERRA_OS, TERRA_Stack, TERRA_Collections,
-  TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_OpenGL{$ENDIF}, TERRA_AL
+  TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_OpenGL{$ENDIF}
 {$IFDEF ANDROID}
-  android_log
+  ,android_log
 {$ENDIF};
 
 Var
@@ -165,28 +164,6 @@ Begin
   ReleaseObject(It);
 End;
 
-
-Procedure DebugOpenAL;
-Var
-  ErrorCode:Cardinal;
-  S:TERRAString;
-Begin
-  ErrorCode := alGetError;
-  If ErrorCode = GL_NO_ERROR Then
-    Exit;
-
-  Case ErrorCode Of
-  AL_INVALID_NAME: S := 'Invalid Name paramater passed to AL call.';
-  AL_INVALID_ENUM: S := 'Invalid parameter passed to AL call.';
-  AL_INVALID_VALUE: S := 'Invalid enum parameter value.';
-  AL_INVALID_OPERATION: S:= 'Invalid operation';
-  Else
-    S := 'Unknown AL error.';
-  End;
-
-  S := 'OpenAL Error ['+S+']';
-  TERRADump(S);
-End;
 
 {$IFDEF WINDOWS}
 

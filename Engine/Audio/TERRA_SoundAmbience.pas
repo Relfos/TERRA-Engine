@@ -28,26 +28,25 @@ Unit TERRA_SoundAmbience;
 Interface
 
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Stream, TERRA_SoundSource;
+  TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Stream, TERRA_SoundSource, TERRA_Vector3D;
 
 Type
   SoundAmbience = Class(TERRAObject)
     Protected
-      _Name:TERRAString;
-	    _Density: Single;
-	    _Diffusion: Single;
-	    _Gain: Single;
-	    _GainHF: Single;
-	    _GainLF: Single;
-	    _DecayTime: Single;
-	    _DecayHFRatio: Single;
-	    _DecayLFRatio: Single;
+	    _Density:FloatProperty;
+	    _Diffusion:FloatProperty;
+	    _Gain:FloatProperty;
+	    _GainHF:FloatProperty;
+	    _GainLF:FloatProperty;
+	    _DecayTime:FloatProperty;
+	    _DecayHFRatio:FloatProperty;
+	    _DecayLFRatio:FloatProperty;
 	    _ReflectionsGain: Single;
 	    _ReflectionsDelay: Single;
-	    _ReflectionsPan: packed array[0..2] of Single;
+	    _ReflectionsPan: Vector3D;
 	    _LateReverbGain: Single;
 	    _LateReverbDelay: Single;
-	    _LateReverbPan: packed array[0..2] of Single;
+	    _LateReverbPan: Vector3D;
 	    _EchoTime: Single;
 	    _EchoDepth: Single;
 	    _ModulationTime: Single;
@@ -58,24 +57,44 @@ Type
 	    _RoomRolloffFactor: Single;
 	    _DecayHFLimit: integer;
 
-      _EffectHandle:Integer;
-      _SlotHandle:Integer;
-
       Procedure Update;
 
     Public
       Constructor Create;
       Procedure Release; Override;
 
-      Function Load(Source:TERRAStream):Boolean; Overload;
+      Function Load(Source:Stream):Boolean; Overload;
       Function Load(Name:TERRAString):Boolean; Overload;
-      Function Save(Dest:TERRAStream):Boolean;
+      Function Save(Dest:Stream):Boolean;
 
-      Property Handle:Integer Read _SlotHandle;
+      Property Density:Single;
+      Property Diffusion:Single;
+      Property Gain:Single;
+      Property GainHF:Single;
+      Property DecayTime:Single;
+      Property DecayHFRatio:Single;
+      Property ReflectionsGain:Single;
+      Property ReflectionsDelay:Single;
+      Property LateReverbGain:Single;
+      Property LateReverbDelay:Single;
+      Property AirAbsorptionGainHF:Single;
+      Property RoomRolloffFactor:Single;
+      Property DecayHFLimit:Boolean;
+
+      Property GainLF:Single;
+      Property DecayLFRatio:Single;
+      Property ReflectionsPan:Vector3D;
+      Property LateReverbPan:Vector3D;
+    Property EchoTime:Single;
+    EchoDepth:Single;
+    ModulationTime:Single;
+    ModulationDepth:Single;
+    HFReference:Single;
+    LFReference:Single;
   End;
 
 Implementation
-Uses TERRA_EngineManager, TERRA_ResourceManager, TERRA_FileManager, TERRA_SoundManager, TERRA_AL;
+Uses TERRA_ResourceManager, TERRA_FileManager, TERRA_SoundManager, TERRA_AL;
 
 Const
 // EAX Reverb effect parameters
@@ -107,7 +126,7 @@ Const
 
 Function SoundAmbience.Load(Name:TERRAString):Boolean;
 Var
-  Source:TERRAStream;
+  Source:Stream;
 Begin
   If (Name='') Then
   Begin
@@ -123,7 +142,7 @@ Begin
     Exit;
   End;
 
-  Source := Engine.Files.OpenFile(Name);
+  Source := FileManager.Instance().OpenStream(Name);
   If Assigned(Source) Then
   Begin
     Result := Load(Source);
@@ -134,7 +153,7 @@ Begin
   _Name := Name;
 End;
               
-Function SoundAmbience.Load(Source: TERRAStream): Boolean;
+Function SoundAmbience.Load(Source: Stream): Boolean;
 Begin
   Source.Read(@_Density, 4);
 	Source.Read(@_Diffusion, 4);
@@ -168,7 +187,7 @@ Begin
   Result := True;
 End;
 
-Function SoundAmbience.Save(Dest: TERRAStream): Boolean;
+Function SoundAmbience.Save(Dest: Stream): Boolean;
 Begin
   Dest.Write(@_Density, 4);
 	Dest.Write(@_Diffusion, 4);

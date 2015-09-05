@@ -56,6 +56,7 @@ Type
 
 Function FloatMax(Const A,B:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
 Function FloatMin(Const A,B:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
+Function FloatClamp(Const Value, Min, Max:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
 
 Function RandomFloat:Float; Overload;
 Function RandomFloat(Const min,max:Float):Float; Overload;
@@ -484,12 +485,21 @@ End;
 
 Function FloatMax(Const A,B:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
-  If A>B Then Result:=A Else Result:=B;
+  Result := (a + b + abs(a-b)) * 0.5;
 End;
 
 Function FloatMin(Const A,B:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
-  If A<B Then Result:=A Else Result:=B;
+   Result := (a + b - abs(a-b)) * 0.5;
+End;
+
+Function FloatClamp(Const Value, Min, Max:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
+Var
+  Temp:Float;
+Begin
+  Temp := Value + Max - Abs(Value - Max);
+// when max =0    return (temp + abs(temp)) * 0.25;
+  Result := (Temp + (2.0* Min) + Abs(Temp - (2.0*Min))) * 0.25;
 End;
 
   {$IFDEF OXYGENE}

@@ -26,193 +26,69 @@ Unit TERRA_Sound;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Resource, TERRA_Collections, TERRA_AL;
+  TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Resource, TERRA_Collections, TERRA_AudioBuffer;
 
 Const
   DefaultSampleRate = 44100;
 
-  sndStopped = 0;
-  sndPlaying = 1;
-  sndPaused   = 2;
-
-  SOUND_FORMAT_16BIT = 1;
-  SOUND_FORMAT_8BIT  = 0;
-
 Type
   Sound = Class(TERRAResource)
     Protected
-      _Buffer:Cardinal;
-      _Data:Pointer;
-      _BufferSize:Cardinal;
-      _Frequency:Cardinal;
-      _BitsPerSample:Cardinal;
-      _Channels:Cardinal;
+      _Buffer:TERRAAudioBuffer;
 
-      _AttachList:Array Of Pointer;
+      _AttachList:Array Of TERRAObject;
       _AttachCount:Integer;
-
-      Function GetBufferLength(Size,Channels,BitsPerSample,Frequency:Cardinal):Cardinal;
-      Function GetBufferSize(Length,Channels,BitsPerSample,Frequency:Cardinal):Cardinal;
-      Function GetSampleSize:Cardinal;
-      Function GetLength:Cardinal;
-      Function GetFormat:Integer;
-
-      Function GetHandle:Cardinal;
 
     Public
       Function Load(Source:TERRAStream):Boolean; Override;
       Function Unload:Boolean; Override;
-      Function Update:Boolean; Override;
 
-      Procedure AttachSource(Source:Pointer);
-      Procedure RemoveSource(Source:Pointer);
+      Procedure AttachSource(Source:TERRAObject);
+      Procedure RemoveSource(Source:TERRAObject);
 
       Class Function GetManager:TERRAObject; Override;
 
-      Procedure New(Size,Channels,BitsPerSample,Frequency:Cardinal);
+      Procedure New(Samples, Frequency:Cardinal; Stereo:Boolean; Data:Pointer);
 
-      Property Data:Pointer Read _Data;
-      Property Size:Cardinal Read _BufferSize;
-      Property BufferSize:Cardinal Read _BufferSize Write _BufferSize;
-      Property Frequency:Cardinal Read _Frequency;
-      Property BitsPerSample:Cardinal Read _BitsPerSample;
-      Property SampleSize:Cardinal Read GetSampleSize;
-      Property Channels:Cardinal Read _Channels;
-      Property Format:Integer Read GetFormat;
-      Property Buffer:Cardinal Read _Buffer;
+      Property Buffer:TERRAAudioBuffer Read _Buffer;
   End;
-
-  SoundStreamValidateFunction=Function(Source:TERRAStream):Boolean;
-  SoundLoader=Function(Source:TERRAStream; Sound:Sound):Boolean;
-  SoundSaver=Procedure(Source:TERRAStream; Sound:Sound; Const Options:TERRAString='');
-
-  PSoundClassInfo = ^SoundClassInfo;
-  SoundClassInfo = Record
-    Name:TERRAString;
-    Validate:SoundStreamValidateFunction;
-    Loader:SoundLoader;
-    Saver:SoundSaver;
-  End;
-
-Function GetSoundLoader(Source:TERRAStream):SoundLoader;
-//Function GetSoundSaver(Format:TERRAString):SoundSaver;
-Procedure RegisterSoundFormat(Name:TERRAString;
-                              Validate:SoundStreamValidateFunction;
-                              Loader:SoundLoader;
-                              Saver:SoundSaver=Nil);
-
-Var
-  _SoundExtensions:Array Of SoundClassInfo;
-  _SoundExtensionCount:Integer = 0;
 
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Log, TERRA_EngineManager, TERRA_SoundManager, TERRA_SoundSource;
-
+Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Log, TERRA_SoundManager, TERRA_SoundSource, TERRA_AudioConverter, TERRA_AudioMixer;
 
 Function Sound.Unload:Boolean;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_AttachCount) Do
-    Engine.Audio.Delete(SoundSource(_AttachList[I]));
+    SoundManager.Instance().Delete(SoundSource(_AttachList[I]));
   _AttachCount := 0;
 
-  If (_Buffer<>0) Then
-  Begin
-    alDeleteBuffers(1, @_Buffer); {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-    _Buffer := 0;
-  End;
-
-  If Assigned(_Data) Then
-  Begin
-    FreeMem(_Data);
-    _Data:=Nil;
-  End;
+  ReleaseObject(_Buffer);
 
   Result := Inherited Unload();
 End;
 
-Procedure Sound.New(Size, Channels, BitsPerSample, Frequency: Cardinal);
+Procedure Sound.New(Samples, Frequency:Cardinal; Stereo:Boolean; Data:Pointer);
+Var
+  Temp:TERRAAudioBuffer;
+  Converter:AudioRateConverter;
 Begin
-  _Channels:=Channels;
-  _Frequency:=Frequency;
-  _BitsPerSample:=BitsPerSample;
-  _BufferSize:=Size;
+  ReleaseObject(_Buffer);
 
-  _Buffer := 0;
-  GetMem(_Data,_BufferSize);
+  _Buffer := TERRAAudioBuffer.Create(Samples, Frequency, Stereo);
+  Move(Data^, _Buffer.Samples^, _Buffer.SizeInBytes);
 
-  SetStatus(rsReady);
-End;
-
-Function Sound.Update:Boolean;
-Begin
-  Inherited Update();
-
-  Result := False;
-
-  If (_Buffer=0) Then
+  If (Frequency <> DefaultSampleFrequency) Then
   Begin
-    alGenBuffers(1, @_Buffer);  {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-  End Else
-    Exit;
-
-  If Format=-1 Then
-  Begin
-    RaiseError('Invalid sound format.');
-    Result := False;
-    Exit;
+    Converter := AudioRateConverter.Create(_Buffer);
+    Temp := _Buffer;
+    _Buffer := Converter.Convert(DefaultSampleFrequency);
+    ReleaseObject(Converter);
+    ReleaseObject(Temp);
   End;
 
-  alBufferData(_Buffer, Format, Data, BufferSize, Frequency);    {$IFDEF FULLDEBUG}DebugOpenAL;{$ENDIF}
-
   SetStatus(rsReady);
-End;
-
-Function Sound.GetSampleSize:Cardinal;
-Begin
-  Result := BitsPerSample Div 8;
-End;
-
-Function Sound.GetHandle:Cardinal;
-Begin
-  Result := _Buffer;
-End;
-
-Function Sound.GetBufferLength(Size,Channels,BitsPerSample,Frequency:Cardinal):Cardinal;
-Begin
-  Result := Round((((Size/Self.Channels)/Self.SampleSize)*1000)/Frequency);
-End;
-
-Function Sound.GetBufferSize(Length,Channels,BitsPerSample,Frequency:Cardinal):Cardinal;
-Begin
-  Result := Round((Length/1000)*Frequency*Self.SampleSize*Self.Channels);
-End;
-
-Function Sound.GetLength:Cardinal;
-Begin
-  Result := GetBufferLength(BufferSize,Channels,SampleSize,Frequency);
-End;
-
-Function Sound.GetFormat:Integer;
-Begin
-  Result := -1;
-
-  If Channels=2 Then
-  Begin
-    If BitsPerSample=8 Then
-      Result := AL_FORMAT_STEREO8
-    Else
-    If BitsPerSample=16 Then
-      Result := AL_FORMAT_STEREO16;
-  End Else
-  Begin
-    If BitsPerSample=8 Then
-      Result := AL_FORMAT_MONO8
-    Else
-    If BitsPerSample=16 Then
-      Result := AL_FORMAT_MONO16;
-  End;
 End;
 
 Procedure Sound.AttachSource(Source:Pointer);
@@ -248,7 +124,7 @@ Begin
   Dec(_AttachCount);
 End;
 
-Function GetSoundLoader(Source:TERRAStream):SoundLoader;
+Function GetSoundLoader(Source:Stream):SoundLoader;
 Var
   Pos:Cardinal;
   I:Integer;
@@ -261,7 +137,7 @@ Begin
 
   Pos := Source.Position;
 
-  Log(logDebug, 'Sound',  IntegerProperty.Stringify(_SoundExtensionCount)+ ' sound extensions active');
+  Log(logDebug, 'Sound', IntToString(_SoundExtensionCount)+ ' sound extensions active');
 
   For I:=0 To Pred(_SoundExtensionCount) Do
   Begin
@@ -288,7 +164,7 @@ Begin
   Result := NIl;
 End;
 
-Function Sound.Load(Source:TERRAStream):Boolean;
+Function Sound.Load(Source:Stream):Boolean;
 Var
   I:Integer;
   Loader:SoundLoader;
@@ -333,9 +209,10 @@ Begin
   _SoundExtensions[N].Saver := Saver;
 End;
 
-Class Function Sound.GetManager:TERRAObject;
+Class Function Sound.GetManager: Pointer;
 Begin
-  Result := Engine.Audio;
+  Result := SoundManager.Instance;
 End;
 
-End. 
+
+End.
