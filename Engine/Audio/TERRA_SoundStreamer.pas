@@ -27,7 +27,7 @@ Unit TERRA_SoundStreamer;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Math, TERRA_Collections, TERRA_Application, TERRA_Stream, TERRA_FileStream,
+  TERRA_Object, TERRA_Utils, TERRA_Math, TERRA_Collections, TERRA_Application, TERRA_Stream, TERRA_FileStream,
   TERRA_Sound, TERRA_SoundSource, TERRA_AudioBuffer, TERRA_AudioMixer;
 
 Const
@@ -38,26 +38,26 @@ Type
 
   SoundStream = Class(SoundSource)
     Protected
-      _Source:Stream;
+      _Source:TERRAStream;
 
       Procedure InitStream; Virtual; Abstract;
-      Class Function Validate(Source:Stream):Boolean; Virtual; Abstract;
+      Class Function Validate(Source:TERRAStream):Boolean; Virtual; Abstract;
 
     Public
-      Constructor Create(Mode:SoundSourceMode; Source:Stream);
+      Constructor Create(Mode:SoundSourceMode; Source:TERRAStream);
       Procedure Release; Override;
   End;
 
   NullSoundStreamer = Class(SoundStream)
 	  Protected
 		  Procedure InitStream; Override;
-	  	Class Function Validate(Source:Stream):Boolean; Override;
+	  	Class Function Validate(Source:TERRAStream):Boolean; Override;
   	Public
   End;
 
 Procedure RegisterSoundStreamFormat(MyClass:SoundStreamClass);
 
-Function CreateSoundStream(Mode:SoundSourceMode; Source:Stream):SoundStream;
+Function CreateSoundStream(Mode:SoundSourceMode; Source:TERRAStream):SoundStream;
 
 Implementation
 Uses TERRA_OS, TERRA_GraphicsManager, TERRA_SoundManager, TERRA_SoundAmbience, TERRA_Log;
@@ -73,7 +73,7 @@ Begin
   _SoundStreamClassList[Pred(_SoundStreamClassCount)] := MyClass;
 End;
 
-Function CreateSoundStream(Mode:SoundSourceMode; Source:Stream):SoundStream;
+Function CreateSoundStream(Mode:SoundSourceMode; Source:TERRAStream):SoundStream;
 Var
   I:Integer;
   Ofs:Cardinal;
@@ -97,13 +97,13 @@ Procedure NullSoundStreamer.InitStream;
 Begin
 End;
 
-Class Function NullSoundStreamer.Validate(Source:Stream):Boolean;
+Class Function NullSoundStreamer.Validate(Source:TERRAStream):Boolean;
 Begin
 	Result := True;
 End;
 
 //  SoundStreamer
-Constructor SoundStream.Create(Mode:SoundSourceMode; Source:Stream);
+Constructor SoundStream.Create(Mode:SoundSourceMode; Source:TERRAStream);
 Begin
   Inherited Create();
 

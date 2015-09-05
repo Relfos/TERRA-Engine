@@ -93,11 +93,11 @@ Const
   DefaultPriority = 0;
 
 Type
-  Task = Class;
+  TERRATask = Class;
 
   TaskGroup = Class(TERRAObject)
     Protected
-      _Tasks:Array Of Task;
+      _Tasks:Array Of TERRATask;
       _TaskCount:Integer;
 
       Function GetProgress():Integer;
@@ -111,7 +111,7 @@ Type
       Property Progress:Integer Read GetProgress;
   End;
 
-  Task = Class(TERRAObject)
+  TERRATask = Class(TERRAObject)
     Protected
 	    _Time:Cardinal;
 	    _Priority:Integer;
@@ -127,7 +127,7 @@ Type
       Property Progress:Integer Read GetProgress;
   End;
 
-  Thread = Class{$IFDEF USEPASCALTHREADS}(TThread){$ELSE}(TERRAObject){$ENDIF}
+  TERRAThread = Class{$IFDEF USEPASCALTHREADS}(TThread){$ELSE}(TERRAObject){$ENDIF}
     Protected
 		  _ID:Cardinal;
 
@@ -155,7 +155,7 @@ Type
 
   ThreadPool = Class;
 
-  TaskDispatcher = Class(Thread)
+  TaskDispatcher = Class(TERRAThread)
     Protected
       _Pool:ThreadPool;
       _Active:Boolean;
@@ -170,10 +170,10 @@ Type
 		  _Threads:Array Of TaskDispatcher;
       _MaxThreads:Integer;
 
-		  _PendingTaskList:Array Of Task;
+		  _PendingTaskList:Array Of TERRATask;
       _PendingTaskCount:Integer;
 
-		  _RunningTaskList:Array Of Task;
+		  _RunningTaskList:Array Of TERRATask;
       _RunningTaskCount:Integer;
 
 		  _Active:Boolean;
@@ -186,7 +186,7 @@ Type
       _CriticalSection:CriticalSection;
       _Semaphore:Semaphore;
 
-      Procedure KillTask(MyTask:Task);
+      Procedure KillTask(MyTask:TERRATask);
 
       {$IFNDEF DISABLETHREADS}
       Function AddThreadToPool(MyTask:TERRAObject):Boolean;
@@ -196,10 +196,10 @@ Type
 		  Constructor Create();
 		  Procedure Release; Override;
 
-		  Function GetNextTask:Task;
+		  Function GetNextTask:TERRATask;
 		  Property Active:Boolean Read _Active;
 
-		  Procedure RunTask(MyTask:Task; InBackGround:Boolean = True; Group:TaskGroup = Nil; Priority:Integer = DefaultPriority);
+		  Procedure RunTask(MyTask:TERRATask; InBackGround:Boolean = True; Group:TaskGroup = Nil; Priority:Integer = DefaultPriority);
 		  Function TasksPending:Integer;
 
 		  Procedure CancelTasks;
@@ -232,9 +232,9 @@ Uses TERRA_Error, TERRA_OS;
 
 Function InternalThreadDispatcher(P:Pointer):Integer; {$IFNDEF WINDOWS}Cdecl; {$ENDIF}
 Var
-  T:Thread;
+  T:TERRAThread;
 Begin
-  T := Thread(P);
+  T := TERRAThread(P);
 
   Log(logDebug, 'Threads', 'Running new thread...');
   T.Execute();
@@ -253,7 +253,7 @@ Begin
 End;
 
 { Thread }
-Constructor Thread.Create();
+Constructor TERRAThread.Create();
 Begin
   Log(logDebug, 'Threads', 'Starting thread: '+Self.ClassName);
 {$IFDEF DISABLETHREADS}
@@ -277,13 +277,13 @@ Begin
 End;
 
 {$IFDEF USEPASCALTHREADS}
-Procedure Thread.Release;
+Procedure TERRAThread.Release;
 Begin
   // dummy pseudo-destructor
 End;
 {$ENDIF}
 
-Procedure Thread.Finish;
+Procedure TERRAThread.Finish;
 Begin
   Log(logDebug, 'Thread','Terminating...');
 {$IFNDEF DISABLETHREADS}
@@ -302,7 +302,7 @@ Begin
 {$ENDIF}
 End;
 
-Procedure Thread.Shutdown;
+Procedure TERRAThread.Shutdown;
 Begin
 {$IFNDEF DISABLETHREADS}
   {$IFDEF USEPASCALTHREADS}
@@ -329,7 +329,7 @@ End;
 
 Procedure TaskDispatcher.Execute();
 Var
-  MyTask:Task;
+  MyTask:TERRATask;
 Begin
   Repeat
     _Pool._CriticalSection.Lock();
@@ -442,7 +442,7 @@ Begin
   End;
 End;
 }
-Procedure ThreadPool.RunTask(MyTask:Task; InBackGround:Boolean; Group:TaskGroup; Priority:Integer);
+Procedure ThreadPool.RunTask(MyTask:TERRATask; InBackGround:Boolean; Group:TaskGroup; Priority:Integer);
 Begin
   If MyTask = Nil Then
     Exit;
@@ -496,7 +496,7 @@ Begin
   If (_PendingTaskCount>Length(_PendingTaskList)) Then
 	  SetLength(_PendingTaskList, _PendingTaskCount);
 
-  _PendingTaskList[Pred(_PendingTaskCount)] := Task(MyTask);
+  _PendingTaskList[Pred(_PendingTaskCount)] := TERRATask(MyTask);
 
 	_CriticalSection.Unlock();
 
@@ -506,11 +506,11 @@ Begin
 End;
 {$ENDIF}
 
-Function ThreadPool.GetNextTask:Task;
+Function ThreadPool.GetNextTask:TERRATask;
 Var
   HP,k:Cardinal;
 	I, Next:Integer;
-  Temp:Task;
+  Temp:TERRATask;
 Begin
   If (_PendingTaskCount<=0) Then
   Begin
@@ -552,7 +552,7 @@ Begin
 End;
 
 
-Procedure ThreadPool.KillTask(MyTask: Task);
+Procedure ThreadPool.KillTask(MyTask: TERRATask);
 Var
   I,N:Integer;
 Begin
@@ -582,13 +582,13 @@ Begin
 End;
 
 { Task }
-Procedure Task.Execute;
+Procedure TERRATask.Execute;
 Begin
   // do nothing
 End;
 
 
-Function Task.GetProgress: Integer;
+Function TERRATask.GetProgress: Integer;
 Begin
   Result := _Progress;
   If (Result<0) Then

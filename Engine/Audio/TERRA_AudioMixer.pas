@@ -3,7 +3,7 @@ Unit TERRA_AudioMixer;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_String, TERRA_Threads, TERRA_Mutex, TERRA_Sound, TERRA_SoundSource, TERRA_AudioBuffer, TERRA_AudioReverb;
+Uses TERRA_Object, TERRA_Utils, TERRA_String, TERRA_Threads, TERRA_Mutex, TERRA_Sound, TERRA_SoundSource, TERRA_AudioBuffer, TERRA_AudioReverb;
 
 Const
   {$IFDEF MOBILE}

@@ -33,43 +33,37 @@ Type
     Protected
       _Mixer:TERRAAudioMixer;
 
-      _Ambience:SoundAmbience;
-
       _Enabled:Boolean;
-
-      Procedure Init; Override;
-      Procedure Update; Override;
 
       Procedure UpdatePosition(Position, Direction, Up:Vector3D);
 
       Procedure SetEnabled(Const Value: Boolean);
 
     Public
-      Procedure Release; Override;
+      Constructor Create();
 
-      Function Play(MySound:Sound):SoundSource; Overload;
+      Procedure Update;
+
+      Function Play(Sound:TERRASound):SoundSource; Overload;
       Function Play(Const Name:TERRAString):SoundSource; Overload;
 
       Procedure Delete(Source:SoundSource);
 
-      Function GetSound(Name:TERRAString; ValidateError:Boolean = True):Sound;
+      Function GetItem(Name:TERRAString):TERRASound;
 
-      Class Function Instance:SoundManager;
-
-      Property Ambience:SoundAmbience Read _Ambience;
       Property Mixer:TERRAAudioMixer Read _Mixer;
 
       Property Enabled:Boolean Read _Enabled Write SetEnabled;
+
+      Property Sounds[Name:TERRAString]:TERRASound Read GetItem; Default;
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_CollectionObjects, TERRA_FileManager;
+Uses TERRA_Error, TERRA_FileManager, TERRA_EngineManager, TERRA_FileFormat;
 
-Var
-  _SoundManager_Instance:ApplicationObject = Nil;
 
-{ SoundSystem }
-Procedure SoundManager.Init;
+{ SoundManager }
+Constructor SoundManager.Create();
 Var
   Attribs:Array[0..1] Of Integer;
 Begin
@@ -80,25 +74,50 @@ Begin
 	Log(logDebug, 'Audio','Initializing audio mixer');
   _Mixer := TERRAAudioMixer.Create(DefaultSampleFrequency, DefaultAudioSampleCount);
 
-  _Ambience := SoundAmbience.Create();
-
   _Enabled := True;
 
   AutoUnload := False;
 End;
 
-Procedure SoundManager.Release;
+Function SoundManager.GetItem(Name:TERRAString):TERRASound;
 Var
-  I:Integer;
+  Format:TERRAFileFormat;
+  Location:TERRALocation;
 Begin
-  Inherited;
+  Result := Nil;
 
-  ReleaseObject(_Ambience);
+  Name := StringTrim(Name);
+  Name := GetFileName(Name, True);
+  If (Name='') Then
+    Exit;
 
-  _SoundManager_Instance := Nil;
+  Result := TERRATexture(GetResource(Name));
+  If Assigned(Result) Then
+    Exit;
+
+  Format := Engine.Formats.FindLocationFromName(Name, TERRATexture, Location);
+  If Format = Nil Then
+    Format := Engine.Formats.FindLocationFromName(Name, TERRAImage, Location);
+
+  If Assigned(Format) Then
+  Begin
+    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Found '+S+'...');{$ENDIF}
+
+    Result := TERRATexture.Create(rtLoaded, Location);
+
+    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture class instantiated sucessfully!');{$ENDIF}
+
+    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture loading priority set!');{$ENDIF}
+
+    Self.AddResource(Result);
+
+    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Texture added to manager!');{$ENDIF}
+    Exit;
+  End;
+
+  //RaiseError('Could not find texture. ['+Name+']');
 End;
 
-Function SoundManager.GetSound(Name:TERRAString; ValidateError:Boolean):Sound;
 Var
   S:TERRAString;
 Begin
@@ -110,9 +129,9 @@ Begin
   Result := Sound(GetResource(Name));
   If (Not Assigned(Result)) Then
   Begin
-    S := FileManager.Instance().SearchResourceFile(Name+'.wav');
+    S := Engine.Files.SearchResourceFile(Name+'.wav');
     If (S='') Then
-      S := FileManager.Instance().SearchResourceFile(Name+'.ogg');
+      S := Engine.Files.SearchResourceFile(Name+'.ogg');
 
     If S<>'' Then
     Begin

@@ -92,15 +92,15 @@ Type
 
   ResourceSoundSource = Class(SoundSource)
     Protected
-      _Sound:Sound;
+      _Sound:TERRASound;
 
     Public
-      Constructor Create(MySound:Sound);
+      Constructor Create(MySound:TERRASound);
       Procedure Release; Override;
 
       Procedure RenderSamples(Dest:TERRAAudioMixingBuffer); Override;
 
-      Property Sound:TERRA_Sound.Sound Read _Sound;
+      Property Sound:TERRASound Read _Sound;
   End;
 
 Implementation

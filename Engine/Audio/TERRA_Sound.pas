@@ -32,19 +32,13 @@ Const
   DefaultSampleRate = 44100;
 
 Type
-  Sound = Class(TERRAResource)
+  TERRASound = Class(TERRAResource)
     Protected
       _Buffer:TERRAAudioBuffer;
-
-      _AttachList:Array Of TERRAObject;
-      _AttachCount:Integer;
 
     Public
       Function Load(Source:TERRAStream):Boolean; Override;
       Function Unload:Boolean; Override;
-
-      Procedure AttachSource(Source:TERRAObject);
-      Procedure RemoveSource(Source:TERRAObject);
 
       Class Function GetManager:TERRAObject; Override;
 
@@ -56,7 +50,7 @@ Type
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Log, TERRA_SoundManager, TERRA_SoundSource, TERRA_AudioConverter, TERRA_AudioMixer;
 
-Function Sound.Unload:Boolean;
+Function TERRASound.Unload:Boolean;
 Var
   I:Integer;
 Begin
@@ -69,7 +63,7 @@ Begin
   Result := Inherited Unload();
 End;
 
-Procedure Sound.New(Samples, Frequency:Cardinal; Stereo:Boolean; Data:Pointer);
+Procedure TERRASound.New(Samples, Frequency:Cardinal; Stereo:Boolean; Data:Pointer);
 Var
   Temp:TERRAAudioBuffer;
   Converter:AudioRateConverter;
@@ -91,7 +85,7 @@ Begin
   SetStatus(rsReady);
 End;
 
-Procedure Sound.AttachSource(Source:Pointer);
+Procedure TERRASound.AttachSource(Source:Pointer);
 Var
   I:Integer;
 Begin
@@ -105,7 +99,7 @@ Begin
   _AttachList[Pred(_AttachCount)] := Source;
 End;
 
-Procedure Sound.RemoveSource(Source:Pointer);
+Procedure TERRASound.RemoveSource(Source:Pointer);
 Var
   N,I:Integer;
 Begin

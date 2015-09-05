@@ -69,7 +69,8 @@ Function Tan(X:Float):Float;
 
 Function SmoothStep(A,B,X:Float):Float;
 
-Function NearestPowerOfTwo(P:Cardinal):Cardinal;
+Function PreviousPowerOfTwo(Value:Cardinal):Cardinal;
+Function NextPowerOfTwo(Value:Cardinal):Cardinal;
 
 Function LinearInterpolate(a,b, mu:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
 Function CubicInterpolate(y0, y1, y2, y3, mu:Float):Float; {$IFDEF FPC} Inline;{$ENDIF}
@@ -91,7 +92,7 @@ Function SmoothCurveWithOffset(Delta, Offset:Float):Float;
 
 Function Ln(Const X:Float):Float;
 Function Log2(Const X:Float):Float;
-//Function Log2(X:Integer):Float; Overload;
+Function Log10(Const X:Float):Float;
 Function LNXP1(Const x:Float):Float;
 
 Function float32_Unpack(Const x:Cardinal):Single;
@@ -162,6 +163,11 @@ End;
 Function Log2(Const X:Float):Float;
 Begin
   Result := Ln(x) * 1.4426950408889634079;    // 1/ln(2)
+End;
+
+Function Log10(Const X:Float):Float;
+Begin
+  Result := Ln(x) * 0.4342944819;    // 1/ln(10)
 End;
 
 {Function Log2(X:Integer):Float;
@@ -394,19 +400,34 @@ Begin
     Result := Exp(Y * Ln(X));
 End;}
 
-Function NearestPowerOfTwo(P:Cardinal):Cardinal;
+Function PreviousPowerOfTwo(Value:Cardinal):Cardinal;
 Var
   I,N:Cardinal;
 Begin
   Result := 0;
   For I:=14 DownTo 2 Do
   Begin
-    N:=(1 Shl I);
-    If N<P Then
-     Break
+    N := (1 Shl I);
+    If N<Value Then
+      Break
     Else
       Result:=N;
   End;
+End;
+
+Function NextPowerOfTwo(Value:Cardinal):Cardinal;
+Begin
+  If (value > 0) Then
+  Begin
+    Dec(Value);
+    Value := Value Or (Value Shr 1);
+    Value := Value Or (Value Shr 2);
+    Value := Value Or (Value Shr 4);
+    Value := Value Or (Value Shr 8);
+    Value := Value Or (Value Shr 16);
+  End;
+
+  Result := Value + 1;
 End;
 
 Function SmoothCurveWithOffset(Delta,Offset:Float):Float;

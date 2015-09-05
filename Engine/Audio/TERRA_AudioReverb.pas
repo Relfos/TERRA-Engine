@@ -5,7 +5,7 @@ Unit TERRA_AudioReverb;
 Interface
 {$I terra.inc}
 
-Uses TERRA_Utils, TERRA_Vector3D, TERRA_AudioBuffer, TERRA_AudioPanning, TERRA_SoundAmbience;
+Uses TERRA_Object, TERRA_Utils, TERRA_Vector3D, TERRA_AudioBuffer, TERRA_AudioPanning, TERRA_SoundAmbience;
 
 Const
   OUTPUT_CHANNELS  = 2;
@@ -127,6 +127,8 @@ Type
 
   AudioReverbEffect = Class(TERRAObject)
     Protected
+      _Ambience:SoundAmbience;
+
       // All delay lines are allocated as a single buffer to reduce memory
       // fragmentation and management code.
       _SampleBuffer:Array Of Single;
@@ -189,19 +191,10 @@ Type
       Procedure Update3DPanning(Const ReflectionsPan, LateReverbPan:Vector3D; Const Gain:Single);
 
     Public
-        Constructor Create(frequency:Integer);
+        Constructor Create(Frequency:Cardinal; Ambience:SoundAmbience);
         Procedure Release(); Override;
 
         Procedure Process(SamplesToDo:Integer; SamplesIn:PAudioSample; SamplesOut:PFloatAudioSampleArray);
-        Procedure Update(frequency:Integer);
-
-        Procedure LoadPreset(Const environment:Integer; Const environmentSize, environmentDiffusion:Single; Const room, roomHF, roomLF:Integer;
-                        Const decayTime, decayHFRatio, decayLFRatio:Single;
-                        Const reflections:Integer; Const reflectionsDelay:Single; Const reflectionsPan:Vector3D;
-                        Const reverb:Integer; Const reverbDelay:Single; Const reverbPan:Vector3D;
-                        Const echoTime, echoDepth, modulationTime, modulationDepth, airAbsorptionHF:Single;
-                        Const hfReference, lfReference, roomRolloffFactor:Single);
-
   End;
 
 Implementation
@@ -217,92 +210,6 @@ Const
 
 // This is a user config option for modifying the overall output of the reverb effect.
   ReverbBoost = 1.0;
-
-// Effect parameter ranges and defaults.
-EAXREVERB_MIN_DENSITY                 = 0.0;
-EAXREVERB_MAX_DENSITY                 = 1.0;
-EAXREVERB_DEFAULT_DENSITY             = 1.0;
-
-EAXREVERB_MIN_DIFFUSION               = 0.0;
-EAXREVERB_MAX_DIFFUSION               = 1.0;
-EAXREVERB_DEFAULT_DIFFUSION           = 1.0;
-
-EAXREVERB_MIN_GAIN                    = 0.0;
-EAXREVERB_MAX_GAIN                    = 1.0;
-EAXREVERB_DEFAULT_GAIN                = 0.32;
-
-EAXREVERB_MIN_GAINHF                  = 0.0;
-EAXREVERB_MAX_GAINHF                  = 1.0;
-EAXREVERB_DEFAULT_GAINHF              = 0.89;
-
-EAXREVERB_MIN_GAINLF                  = 0.0;
-EAXREVERB_MAX_GAINLF                  = 1.0;
-EAXREVERB_DEFAULT_GAINLF              = 1.0;
-
-EAXREVERB_MIN_DECAY_TIME              = 0.1;
-EAXREVERB_MAX_DECAY_TIME              = 20.0;
-EAXREVERB_DEFAULT_DECAY_TIME          = 1.49;
-
-EAXREVERB_MIN_DECAY_HFRATIO           = 0.1;
-EAXREVERB_MAX_DECAY_HFRATIO           = 2.0;
-EAXREVERB_DEFAULT_DECAY_HFRATIO       = 0.83;
-
-EAXREVERB_MIN_DECAY_LFRATIO           = 0.1;
-EAXREVERB_MAX_DECAY_LFRATIO           = 2.0;
-EAXREVERB_DEFAULT_DECAY_LFRATIO       = 1.0;
-
-EAXREVERB_MIN_REFLECTIONS_GAIN        = 0.0;
-EAXREVERB_MAX_REFLECTIONS_GAIN        = 3.16;
-EAXREVERB_DEFAULT_REFLECTIONS_GAIN    = 0.05;
-
-EAXREVERB_MIN_REFLECTIONS_DELAY       = 0.0;
-EAXREVERB_MAX_REFLECTIONS_DELAY       = 0.3;
-EAXREVERB_DEFAULT_REFLECTIONS_DELAY   = 0.007;
-
-EAXREVERB_MIN_LATE_REVERB_GAIN        = 0.0;
-EAXREVERB_MAX_LATE_REVERB_GAIN        = 10.0;
-EAXREVERB_DEFAULT_LATE_REVERB_GAIN    = 1.26;
-
-EAXREVERB_MIN_LATE_REVERB_DELAY       = 0.0;
-EAXREVERB_MAX_LATE_REVERB_DELAY       = 0.1;
-EAXREVERB_DEFAULT_LATE_REVERB_DELAY   = 0.011;
-
-EAXREVERB_MIN_ECHO_TIME               = 0.075;
-EAXREVERB_MAX_ECHO_TIME               = 0.25;
-EAXREVERB_DEFAULT_ECHO_TIME           = 0.25;
-
-EAXREVERB_MIN_ECHO_DEPTH              = 0.0;
-EAXREVERB_MAX_ECHO_DEPTH              = 1.0;
-EAXREVERB_DEFAULT_ECHO_DEPTH          = 0.0;
-
-EAXREVERB_MIN_MODULATION_TIME         = 0.04;
-EAXREVERB_MAX_MODULATION_TIME         = 4.0;
-EAXREVERB_DEFAULT_MODULATION_TIME     = 0.25;
-
-EAXREVERB_MIN_MODULATION_DEPTH        = 0.0;
-EAXREVERB_MAX_MODULATION_DEPTH        = 1.0;
-EAXREVERB_DEFAULT_MODULATION_DEPTH    = 0.0;
-
-EAXREVERB_MIN_AIR_ABSORPTION_GAINHF   = 0.892;
-EAXREVERB_MAX_AIR_ABSORPTION_GAINHF   = 1.0;
-EAXREVERB_DEFAULT_AIR_ABSORPTION_GAINHF = 0.994;
-
-EAXREVERB_MIN_HFREFERENCE             = 1000.0;
-EAXREVERB_MAX_HFREFERENCE             = 20000.0;
-EAXREVERB_DEFAULT_HFREFERENCE         = 5000.0;
-
-EAXREVERB_MIN_LFREFERENCE             = 20.0;
-EAXREVERB_MAX_LFREFERENCE             = 1000.0;
-EAXREVERB_DEFAULT_LFREFERENCE         = 250.0;
-
-EAXREVERB_MIN_ROOM_ROLLOFF_FACTOR     = 0.0;
-EAXREVERB_MAX_ROOM_ROLLOFF_FACTOR     = 10.0;
-EAXREVERB_DEFAULT_ROOM_ROLLOFF_FACTOR = 0.0;
-
-EAXREVERB_MIN_DECAY_HFLIMIT           = False;
-EAXREVERB_MAX_DECAY_HFLIMIT           = True;
-EAXREVERB_DEFAULT_DECAY_HFLIMIT       = True;
-
 
 (* This coefficient is used to define the maximum frequency range controlled
  * by the modulation depth.  The current value of 0.1 will allow it to swing
@@ -487,7 +394,7 @@ End;
 // Calculate a decay length from a coefficient and the time until the decay reaches -60 dB.
 Function CalcDecayLength(coeff, decayTime:Single):Single;
 Begin
-  Result := log10(coeff) * decayTime / log10(0.001){-60 dB};
+  Result := Log10(coeff) * decayTime / log10(0.001){-60 dB};
 End;
 
 // Calculate the limited HF ratio for use with the late reverb low-pass filters.
@@ -557,10 +464,14 @@ Begin
 End;
 
 { AudioReverbEffect }
-Constructor AudioReverbEffect.Create(frequency: Integer);
+Constructor AudioReverbEffect.Create(Frequency:Cardinal; Ambience:SoundAmbience);
 Var
+  lfscale, hfscale, hfRatio:Single;
+  cw, x, y:Single;
   index:Integer;
 Begin
+  _Ambience := Ambience;
+
   _LpFilter.Clear();
   _HpFilter.Clear();
 
@@ -626,30 +537,6 @@ Begin
 
   _Offset := 0;
 
-  _settings.Density   := EAXREVERB_DEFAULT_DENSITY;
-  _settings.Diffusion := EAXREVERB_DEFAULT_DIFFUSION;
-  _settings.Gain   := EAXREVERB_DEFAULT_GAIN;
-  _settings.GainHF := EAXREVERB_DEFAULT_GAINHF;
-  _settings.GainLF := EAXREVERB_DEFAULT_GAINLF;
-  _settings.DecayTime    := EAXREVERB_DEFAULT_DECAY_TIME;
-  _settings.DecayHFRatio := EAXREVERB_DEFAULT_DECAY_HFRATIO;
-  _settings.DecayLFRatio := EAXREVERB_DEFAULT_DECAY_LFRATIO;
-  _settings.ReflectionsGain   := EAXREVERB_DEFAULT_REFLECTIONS_GAIN;
-  _settings.ReflectionsDelay  := EAXREVERB_DEFAULT_REFLECTIONS_DELAY;
-  _settings.ReflectionsPan := VectorZero;
-  _settings.LateReverbGain   := EAXREVERB_DEFAULT_LATE_REVERB_GAIN;
-  _settings.LateReverbDelay  := EAXREVERB_DEFAULT_LATE_REVERB_DELAY;
-  _settings.LateReverbPan := VectorZero;
-  _settings.EchoTime  := EAXREVERB_DEFAULT_ECHO_TIME;
-  _settings.EchoDepth := EAXREVERB_DEFAULT_ECHO_DEPTH;
-  _settings.ModulationTime  := EAXREVERB_DEFAULT_MODULATION_TIME;
-  _settings.ModulationDepth := EAXREVERB_DEFAULT_MODULATION_DEPTH;
-  _settings.AirAbsorptionGainHF := EAXREVERB_DEFAULT_AIR_ABSORPTION_GAINHF;
-  _settings.HFReference := EAXREVERB_DEFAULT_HFREFERENCE;
-  _settings.LFReference := EAXREVERB_DEFAULT_LFREFERENCE;
-  _settings.RoomRolloffFactor := EAXREVERB_DEFAULT_ROOM_ROLLOFF_FACTOR;
-  _settings.DecayHFLimit := EAXREVERB_DEFAULT_DECAY_HFLIMIT;
-
   // Allocate the delay lines.
   AllocLines(frequency);
 
@@ -667,6 +554,49 @@ Begin
 
   // The echo all-pass filter line length is static, so its offset only needs to be calculated once.
   _Echo.ApOffset := Trunc(ECHO_ALLPASS_LENGTH * frequency);
+
+  //setup ambience settings
+
+  // Calculate the master low-pass filter (from the master effect HF gain).
+  hfscale := _Ambience.HFReference / frequency;
+  _LpFilter.setParams(ALfilterType_HighShelf, _Ambience.GainHF, hfscale, 0.0);
+
+  lfscale := _Ambience.LFReference / frequency;
+  _HpFilter.setParams(ALfilterType_LowShelf, _Ambience.GainLF, lfscale, 0.0);
+
+  // Update the modulator line.
+  UpdateModulator(_Ambience.ModulationTime, _Ambience.ModulationDepth, frequency);
+
+  // Update the initial effect delay.
+  UpdateDelayLine(_Ambience.ReflectionsDelay, _Ambience.LateReverbDelay, frequency);
+
+  // Update the early lines.
+  UpdateEarlyLines(_Ambience.Gain, _Ambience.ReflectionsGain, _Ambience.LateReverbDelay);
+
+  // Update the decorrelator.
+  UpdateDecorrelator(_Ambience.Density, frequency);
+
+  // Get the mixing matrix coefficients (x and y).
+  CalcMatrixCoeffs(_Ambience.Diffusion, x, y);
+
+  // Then divide x into y to simplify the matrix calculation.
+  _Late.MixCoeff := y / x;
+
+  // If the HF limit parameter is flagged, calculate an appropriate limit based on the air absorption parameter.
+  hfRatio := _Ambience.DecayHFRatio;
+
+  If (_Ambience.DecayHFLimit) And (_Ambience.AirAbsorptionGainHF < 1.0) Then
+    hfRatio := CalcLimitedHfRatio(hfRatio, _Ambience.AirAbsorptionGainHF, _Ambience.DecayTime);
+
+  cw := Cos(F_2PI * hfscale);
+  // Update the late lines.
+  UpdateLateLines(_Ambience.Gain, _Ambience.LateReverbGain, x, _Ambience.Density, _Ambience.DecayTime, _Ambience.Diffusion, hfRatio, cw, frequency);
+
+  // Update the echo line.
+  UpdateEchoLine(_Ambience.Gain, _Ambience.LateReverbGain, _Ambience.EchoTime, _Ambience.DecayTime, _Ambience.Diffusion, _Ambience.EchoDepth, hfRatio, cw, frequency);
+
+  // Update early and late 3D panning.
+  Update3DPanning(_Ambience.ReflectionsPan, _Ambience.LateReverbPan, ReverbBoost);
 End;
 
 Procedure AudioReverbEffect.AllocLines(frequency: Integer);
@@ -736,7 +666,7 @@ Begin
   SetLength(_SampleBuffer, 0);
 End;
 
-Procedure AudioReverbEffect.LoadPreset(Const environment:Integer; Const environmentSize, environmentDiffusion:Single; Const room, roomHF, roomLF:Integer;
+(*Procedure AudioReverbEffect.LoadPreset(Const environment:Integer; Const environmentSize, environmentDiffusion:Single; Const room, roomHF, roomLF:Integer;
                         Const decayTime, decayHFRatio, decayLFRatio:Single;
                         Const reflections:Integer; Const reflectionsDelay:Single; Const reflectionsPan:Vector3D;
                         Const reverb:Integer; Const reverbDelay:Single; Const reverbPan:Vector3D;
@@ -766,54 +696,7 @@ Begin
   _Settings.LFReference := lfReference;
   _Settings.RoomRolloffFactor := roomRolloffFactor;
   _Settings.DecayHFLimit := True;
-End;
-
-Procedure AudioReverbEffect.Update(frequency: Integer);
-Var
-  lfscale, hfscale, hfRatio:Single;
-  cw, x, y:Single;
-Begin
-  // Calculate the master low-pass filter (from the master effect HF gain).
-  hfscale := _settings.HFReference / frequency;
-  _LpFilter.setParams(ALfilterType_HighShelf, _settings.GainHF, hfscale, 0.0);
-
-  lfscale := _settings.LFReference / frequency;
-  _HpFilter.setParams(ALfilterType_LowShelf, _settings.GainLF, lfscale, 0.0);
-
-  // Update the modulator line.
-  UpdateModulator(_settings.ModulationTime, _settings.ModulationDepth, frequency);
-
-  // Update the initial effect delay.
-  UpdateDelayLine(_settings.ReflectionsDelay, _settings.LateReverbDelay, frequency);
-
-  // Update the early lines.
-  UpdateEarlyLines(_settings.Gain, _settings.ReflectionsGain, _settings.LateReverbDelay);
-
-  // Update the decorrelator.
-  UpdateDecorrelator(_settings.Density, frequency);
-
-  // Get the mixing matrix coefficients (x and y).
-  CalcMatrixCoeffs(_settings.Diffusion, x, y);
-
-  // Then divide x into y to simplify the matrix calculation.
-  _Late.MixCoeff := y / x;
-
-  // If the HF limit parameter is flagged, calculate an appropriate limit based on the air absorption parameter.
-  hfRatio := _settings.DecayHFRatio;
-
-  If (_settings.DecayHFLimit) And (_settings.AirAbsorptionGainHF < 1.0) Then
-    hfRatio := CalcLimitedHfRatio(hfRatio, _settings.AirAbsorptionGainHF, _settings.DecayTime);
-
-  cw := Cos(F_2PI * hfscale);
-  // Update the late lines.
-  UpdateLateLines(_settings.Gain, _settings.LateReverbGain, x, _settings.Density, _settings.DecayTime, _settings.Diffusion, hfRatio, cw, frequency);
-
-  // Update the echo line.
-  UpdateEchoLine(_settings.Gain, _settings.LateReverbGain, _settings.EchoTime, _settings.DecayTime, _settings.Diffusion, _settings.EchoDepth, hfRatio, cw, frequency);
-
-  // Update early and late 3D panning.
-  Update3DPanning(_settings.ReflectionsPan, _settings.LateReverbPan, ReverbBoost);
-End;
+End;*)
 
 Procedure AudioReverbEffect.EAXVerbPass(input:Single; Var early, late:ReverbTapSamples);
 Var
