@@ -341,7 +341,7 @@ Type
   End;
 
 Implementation
-Uses SysUtils, TERRA_Log, TERRA_Application, TERRA_GraphicsManager, TERRA_Error, TERRA_OS, TERRA_TEXTURE;
+Uses SysUtils, TERRA_Log, TERRA_Application, TERRA_GraphicsManager, TERRA_Error, TERRA_OS, TERRA_Texture, TERRA_RendererStats;
 
 { OpenGLFeatures }
 Constructor OpenGLFeatures.Create(Owner:GraphicsRenderer);
@@ -1323,7 +1323,7 @@ Begin
   If Count > 0 Then
   Begin
     glDrawArrays(PrimitiveToGL(Primitive), 0, Count);
-    Inc(_Stats.TriangleCount, Count Div 3);
+    _Stats.Update(RendererStat_Triangles, Count Div 3);
   End;
 
   glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -1350,7 +1350,7 @@ Begin
 
   glDrawElements(PrimitiveToGL(Primitive), Count, GL_UNSIGNED_SHORT, Indices);
 
-  Inc(_Stats.TriangleCount, Count Div 3);
+  _Stats.Update(RendererStat_Triangles, Count Div 3);
 
   glDisableClientState(GL_TEXTURE_COORD_ARRAY);
   glDisableClientState(GL_COLOR_ARRAY);

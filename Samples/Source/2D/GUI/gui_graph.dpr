@@ -8,14 +8,17 @@ uses
   TERRA_Application,
   TERRA_DemoApplication,
   TERRA_EngineManager,
+  TERRA_Renderer,
   TERRA_Utils,
   TERRA_OS,
   TERRA_Vector2D,
   TERRA_Viewport,
+  TERRA_Color,
   TERRA_UIView,
   TERRA_UIWidget,
   TERRA_UITemplates,
   TERRA_UIImage,
+  TERRA_UIGraph,
   TERRA_UILabel,
   TERRA_UITiledRect,
   TERRA_UIDimension;
@@ -24,22 +27,26 @@ Type
   MyDemo = Class(DemoApplication)
     Public
 			Procedure OnCreate; Override;
-
-      Procedure OnMyButtonClick(Src:UIWidget);
+      Procedure OnDestroy; Override;
+      Procedure OnIdle; Override;
   End;
 
 Var
-  MyWnd, MyBtn:UIWidget;
+  MyWnd:UIWidget;
+  MyGraph:UISampledGraph;
 
-{ Game }
+  MyProp:FloatProperty;
+
 Procedure MyDemo.OnCreate;
+Var
+  I:Integer;
 Begin
   Inherited;
 
   UITemplates.AddTemplate(UIWindowTemplate.Create('wnd_template', Engine.Textures.GetItem('ui_window'), 45, 28, 147, 98));
   UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', Engine.Textures.GetItem('ui_button2'), 25, 10, 220, 37));
 
-  MyWnd := UIInstancedWidget.Create('mywnd', Self.GUI, UIPixels(0), UIPixels(0), 10, UIPixels(643), UIPixels(231), 'wnd_template');
+  MyWnd := UIInstancedWidget.Create('mywnd', Self.GUI, UIPixels(0), UIPixels(0), 10, UIPixels(400), UIPixels(200), 'wnd_template');
   MyWnd.Draggable := True;
   MyWnd.Sizable := True;
   MyWnd.Align := UIAlign_Center;
@@ -47,16 +54,29 @@ Begin
 //  MyWnd.Align := UIAlign_RightCenter;
 //  MyWnd.Rotation := 45*RAD;
 
-  MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, UIPixels(0), UIPixels(0), 1, UIPixels(250), UIPixels(50), 'btn_template');
-  MyBtn.Align := UIAlign_Center;
-  MyBtn.SetEventHandler(widgetEvent_MouseDown, OnMyButtonClick);
-  MyBtn.AddAnimation(widget_Highlighted, 'color', 'FF5555FF');
-  MyBtn.SetPropertyValue('caption', 'Click me!');
+  MyProp := FloatProperty.Create('test', 0.0);
+
+  MyGraph := UISampledGraph.Create('myGraph', MyWnd, UIPixels(0), UIPixels(0), 1, UIPercent(80), UIPercent(60));
+  MyGraph.Align := UIAlign_Center;
+  MyGraph.Color := ColorGreen;
+  //MyGraph.Target := MyProp;
+
+  MyGraph.Target := Engine.Graphics.Renderer.Stats.FindProperty('fps');
+
 End;
 
-Procedure MyDemo.OnMyButtonClick(Src:UIWidget);
+Procedure MyDemo.OnDestroy;
 Begin
-  Src.SetPropertyValue('caption', 'Hello!');
+  Inherited;
+
+  ReleaseObject(MyProp);
+End;
+
+Procedure MyDemo.OnIdle;
+Begin
+  Inherited;
+
+  MyProp.Value := Random(30);
 End;
 
 
@@ -68,6 +88,5 @@ Begin
 {$IFDEF IPHONE}
 End;
 {$ENDIF}
-
 End.
 

@@ -94,6 +94,12 @@ Begin
   If _Sprite = Nil Then
     _Sprite := FontSprite.Create();
 
+  If (_Text = '') Then
+  Begin
+    _Sprite.Clear();
+    Exit;
+  End;
+
   FR := _FontRenderer;
 
   FR.SetColor(Self.GetColor());

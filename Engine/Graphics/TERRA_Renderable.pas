@@ -88,7 +88,7 @@ Type
 
 
 Implementation
-Uses TERRA_EngineManager, TERRA_GraphicsManager;
+Uses TERRA_EngineManager, TERRA_GraphicsManager, TERRA_RendererStats;
 
 { TERRARenderable }
 procedure TERRARenderable.Release;
@@ -300,7 +300,7 @@ Begin
       MyTERRARenderable._LOD := MaxLODLevel;*)
   End;
 
-  Graphics.Renderer.InternalStat(statRenderables);
+  Graphics.Renderer.Stats.Update(RendererStat_Renderables);
 
   If (Bucket And renderBucket_Translucent<>0) Then
     _BucketAlpha.Add(Renderable);

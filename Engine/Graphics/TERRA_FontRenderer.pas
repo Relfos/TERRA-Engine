@@ -259,7 +259,9 @@ End;
 Procedure TERRAFontRenderer.AddStyle();
 Begin
   Inc(_StyleCount);
-  SetLength(_StylesList, _StyleCount);
+
+  If (Length(_StylesList)<_StyleCount) Then
+    SetLength(_StylesList, _StyleCount);
 
   If _StyleCount>1 Then
     _StylesList[_StyleCount-1] := _StylesList[_StyleCount-2];
@@ -269,7 +271,10 @@ End;
 Procedure TERRAFontRenderer.AddLine;
 Begin
   Inc(_LineCount);
-  SetLength(_Lines, _LineCount);
+
+  If (Length(_Lines)<_LineCount) Then
+    SetLength(_Lines, _LineCount);
+
   _Lines[Pred(_LineCount)].Width := 0.0;
   _Lines[Pred(_LineCount)].Spaces := 0;
 End;
@@ -500,7 +505,7 @@ Begin
 
       LastChar := TempChar;
       NextChar := TempNext;
-      It.Position := State;
+      It.Position := Succ(State);
 
       If  (X + TargetWidth > StartX+  Self._MaxWidth) Then
         ApplyLineBreak();

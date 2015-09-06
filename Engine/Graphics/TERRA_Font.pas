@@ -384,7 +384,8 @@ Begin
     F := F._Next;
   End;
 
-  Log(logWarning, 'Font', 'Glyph '+ IntegerProperty.Stringify(CharValue(ID))+' was not found!');
+  Result := Nil;
+  //Log(logWarning, 'Font', 'Glyph '+ IntegerProperty.Stringify(CharValue(ID))+' was not found!');
 End;
 
 Function TERRAFont.Unload: Boolean;

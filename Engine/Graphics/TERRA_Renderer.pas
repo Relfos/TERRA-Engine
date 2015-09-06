@@ -30,7 +30,7 @@ Unit TERRA_Renderer;
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_OS, TERRA_Collections, TERRA_Image, TERRA_VertexFormat,
   TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Matrix3x3, TERRA_Matrix4x4,
-  TERRA_Plane, TERRA_BoundingBox, TERRA_Color, TERRA_ShaderNode, TERRA_List;
+  TERRA_Plane, TERRA_BoundingBox, TERRA_Color, TERRA_ShaderNode, TERRA_List, TERRA_RendererStats;
 
 Const
   MaxTextureHandles = 2048;
@@ -100,8 +100,6 @@ Type
   GraphicsRenderer = Class;
 
   RendererQuality = (qualityDisabled, qualityLow, qualityMedium, qualityHigh);
-
-  StatType = (statTriangles, statShaders, statRenderables, statLights, statOccluders);
 
   CullMode = (cullNone, cullFront, cullBack);
 
@@ -474,20 +472,6 @@ Type
       Property Changed:Boolean Read _Changed;
 	End;
 
-  RendererStats = Class(TERRAObject)
-    Protected
-      Procedure Reset;
-
-    Public
-      TriangleCount:Integer;
-      ShaderSwitches:Integer;
-      DrawCalls:Integer;
-      LightCount:Integer;
-      OccluderCount:Integer;
-      RenderableCount:Integer;
-      FramesPerSecond:Integer;
-  End;
-
   GraphicsRenderer = Class(TERRAObject)
     Protected
       _Name:TERRAString;
@@ -548,8 +532,6 @@ Type
 
       Function BindShader(Shader:ShaderInterface):Boolean;
       Function BindSurface(Surface:SurfaceInterface; Slot:Integer):Boolean;
-
-      Procedure InternalStat(Stat:StatType; Count:Integer = 1);
 
       Procedure SetClearColor(Const ClearColor:ColorRGBA); Virtual; Abstract;
       Procedure ClearBuffer(Color, Depth, Stencil:Boolean); Virtual; Abstract;
@@ -848,50 +830,19 @@ Begin
     Settings.VertexBufferObject.SetValue(False);
 End;
 
-Procedure GraphicsRenderer.InternalStat(Stat: StatType; Count: Integer);
-Begin
-  Case Stat Of
-  statTriangles:
-    Begin
-      Inc(_Stats.TriangleCount, Count);
-      Inc(_Stats.DrawCalls);
-    End;
-
-  statShaders:
-    Begin
-      Inc(_Stats.ShaderSwitches, Count);
-    End;
-
-  statRenderables:
-    Begin
-      Inc(_Stats.RenderableCount, Count);
-    End;
-
-  statLights:
-    Begin
-      Inc(_Stats.LightCount, Count);
-    End;
-
-  statOccluders:
-    Begin
-      Inc(_Stats.OccluderCount, Count);
-    End;
-
-  End;
-End;
 
 Procedure GraphicsRenderer.BeginFrame;
 Var
   Temp:RendererStats;
 Begin
-  _Stats.LightCount := Engine.Lights.LightCount;
+  _Stats.Update(RendererStat_Lights, Engine.Lights.LightCount);
 
   Temp := _Stats;
   _Stats := _PrevStats;
   _PrevStats := Temp;
 
   _Stats.Reset();
-  _Stats.FramesPerSecond := _PrevStats.FramesPerSecond;
+  _Stats.Update(RendererStat_Frames, _PrevStats.FramesPerSecond);
 
   //Application.Instance.SetTitle( IntegerProperty.Stringify(N));
 End;
@@ -1026,7 +977,7 @@ End;
 
 Procedure GraphicsRenderer.UpdateFrameCounter();
 Begin
-  _Stats.FramesPerSecond := _Frames;
+  _Stats.Update(RendererStat_Frames, _Frames);
   _Frames := 1;
 End;
 
@@ -1379,17 +1330,6 @@ Begin
   Result := False;
 End;
 
-{ RendererStats }
-Procedure RendererStats.Reset;
-Begin
-  TriangleCount := 0;
-  ShaderSwitches := 0;
-  DrawCalls := 0;
-  LightCount := 0;
-  OccluderCount := 0;
-  RenderableCount := 0;
-  FramesPerSecond := 0;
-End;
 
 { TextureInterface }
 Function TextureInterface.Update(Pixels: Pointer; X, Y, Width,  Height: Integer):Boolean;
