@@ -1269,7 +1269,7 @@ Begin
   Self.SetVec4Uniform(Name, Vector4D_Create(Value.R / 255.0, Value.G / 255.0, Value.B / 255.0, Value.A / 255.0));
 End;
 
-Procedure ShaderInterface.SetPlaneUniform(const Name: AnsiString; Const Value: Plane);
+Procedure ShaderInterface.SetPlaneUniform(const Name:TERRAString; Const Value: Plane);
 Begin
   Self.SetVec4Uniform(Name, Vector4D_Create(Value.A, Value.B, Value.C, Value.D));
 End;

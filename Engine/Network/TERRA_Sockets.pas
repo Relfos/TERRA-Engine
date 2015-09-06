@@ -434,15 +434,18 @@ Begin
   Log(logDebug, 'Sockets', 'Result: '+ Result);
 End;
 {$ELSE}
+
 Function ResolveHostAddress(HostName:TERRAString):TERRAString;
 Var
   Host:PHostEntity;
+  C:TERRAChar;
 Begin
   Result:='127.0.0.1';
   If HostName='' Then
     Exit;
 
-  If HostName[1] In ['0'..'9'] Then
+  C := StringFirstChar(HostName);
+  If (C>='0') And (C<='9') Then
   Begin
     Result := HostName;
     Exit;

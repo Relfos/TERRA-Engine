@@ -326,7 +326,7 @@ Type
 
       Procedure SetViewport(X,Y, Width, Height:Integer); Override;
 
-      Procedure SetAttributeSource(Const Name:AnsiString; AttributeKind:Cardinal; ElementType:DataFormat; AttributeSource:Pointer); Override;
+      Procedure SetAttributeSource(Const Name:TERRAString; AttributeKind:Cardinal; ElementType:DataFormat; AttributeSource:Pointer); Override;
 
       Procedure SetDiffuseColor(Const C:ColorRGBA); Override;
 
@@ -1191,7 +1191,7 @@ Begin
   glColor4f(C.R/255, C.G/255, C.B/255, C.A/255);
 End;
 
-Procedure OpenGLRenderer.SetAttributeSource(Const Name:AnsiString; AttributeKind:Cardinal; ElementType:DataFormat; AttributeSource:Pointer);
+Procedure OpenGLRenderer.SetAttributeSource(Const Name:TERRAString; AttributeKind:Cardinal; ElementType:DataFormat; AttributeSource:Pointer);
 Var
   Count, Format:Integer;
   Norm:Boolean;

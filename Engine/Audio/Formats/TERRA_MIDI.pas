@@ -1052,14 +1052,14 @@ Begin
   result := i;
 end;
 
-Function MidiTrack.ReadString(l: integer):TERRAString;
+Function MidiTrack.ReadString(L:Integer):TERRAString;
 Var
   I:Integer;
 Begin
-  SetLength(Result, L);
+  Result := '';
   For I := 1 to L Do
   Begin
-    Result[i] := AnsiChar(_ChunkData[_chunkIndex]);
+    StringAppendChar(Result, TERRAChar(_ChunkData[_chunkIndex]));
     Inc(_chunkIndex);
   End;
 End;

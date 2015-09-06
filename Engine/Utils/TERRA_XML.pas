@@ -72,7 +72,7 @@ Begin
   If (StringCharPosIterator(' ', S, It)) Then
   Begin
     It.Split(S, S2);
-    Self._ObjectName := S;
+    Target.Name := S;
 
     S := S2;
     If (StringLastChar(S) = '/') Then
@@ -121,7 +121,7 @@ Begin
         Node := Nil;
     End;
   End Else
-    Self._ObjectName := S;
+    Target.Name := S;
 
   If (ShortTag) Then
     Exit;
@@ -208,7 +208,7 @@ Begin
       Exit;
     End;
 
-    Application.Instance.LogToConsole(Result);
+    //Application.Instance.LogToConsole(Result);
     Exit;
   End;
 
@@ -241,7 +241,7 @@ Begin
   End;
 
   Result := StringTrim(S);
-  Application.Instance.LogToConsole(Result);
+  //Application.Instance.LogToConsole(Result);
 
   If (Result='') And (Not Source.EOF) Then
   Begin

@@ -61,47 +61,53 @@ Type
   TERRAString = String;
   TERRAChar = Char;
   {$ELSE}
-  TERRAString = AnsiString;
+  TERRAString = String;
   TERRAChar = WideChar;
   {$ENDIF}
 
-  StringArray = Array Of TERRAString;
 
   StringEncoding = {$IFDEF OXYGENE}Public Enum{$ENDIF}  (encodingUnknown, encodingASCII,  encodingUCS2LE, encodingUCS2BE, encodingUTF8);
 
-  StringIteratorState = {$IFDEF OXYGENE}public Record{$ELSE}Record{$ENDIF}
-    Position:Integer; // logical position (note: in reverse iterators, this is the position counting from end)
-    Index:Integer;   // real position (in raw bytes)
-    PrevIndex:Integer;
-  End;
+  StringArray = Array Of TERRAString;
+
+  (*StringIteratorEntry = Record
+    Value:TERRAChar;
+    StartPos:Cardinal;
+    EndPos:Cardinal;
+  End;*)
 
   StringIterator = {$IFDEF OXYGENE}public Record{$ELSE}Object{$ENDIF}
     Protected
-      _Target:TERRAString;
-      _State:StringIteratorState;
-      _Size:Integer; // length (in bytes)
-      _Remainder:Integer;
+      _Chars:Array Of TERRAChar; //StringIteratorEntry;
+      _Length:Integer; // length (in chars)
+
+      _Prev:Integer;
+      _Position:Integer; // current index
 
       _Reverse:Boolean;
       _AutoCase:Boolean;
 
-      Function NextRawByte():Byte;
+      _SplitLength:Integer;
+
+      Procedure SetPosition(Const Value:Integer);
+      Procedure Reset(Const S:TERRAString);
 
     Public
       Function HasNext():Boolean;
       Function GetNext():TERRAChar;
       Function PeekNext():TERRAChar;
 
-      Procedure Reset();
+      Procedure Restart();
 
-      Procedure SaveState(Out State:StringIteratorState);
-      Procedure RestoreState(Const State:StringIteratorState);
+      Procedure Advance();
+      Procedure Rewind();
 
       Function Seek(Pos:Integer):Boolean; // jumps to character at specifc pos, can be negative
 
       Procedure Split(Out A, B:TERRAString);
 
-      Property Position:Integer Read _State.Position;
+      Property Length:Integer Read _Length; 
+      Property Position:Integer Read _Prev Write SetPosition;
       Property Reverse:Boolean Read _Reverse;
   End;
 
@@ -194,7 +200,6 @@ Function StringSplit(Const S:TERRAString; Out A, B:TERRAString; Const C:TERRAStr
 Function StringSplitByChar(Const S:TERRAString; Out A, B:TERRAString; C:TERRAChar; IgnoreCase:Boolean = False):Boolean;
 
 Function StringGetNextSplit(Var S:TERRAString; Separator:TERRAChar):TERRAString;
-Function StringExtractNextWord(Var S:TERRAString; Out Separator:TERRAChar):TERRAString;
 
 Procedure StringReplaceText(Const Token, Value:TERRAString; Var S:TERRAString);
 Procedure StringReplaceChar(Const Token, Value:TERRAChar; Var S:TERRAString);
@@ -280,7 +285,7 @@ Var
   pStr1, pStr2:StringIterator;
   pStr1R, pStr2R:StringIterator;
   D:Array Of Integer;
-  Temp:StringIteratorState;
+  Temp:Integer;
 
   A,B, PrevA, PrevB:TERRAChar;
 Begin
@@ -347,7 +352,7 @@ Begin
     D[I] := I;
 
   //S1 := pStr1;
-  pStr2.SaveState(Temp);
+  Temp := pStr2.Position;
 
   PrevA := NullChar;
   PrevB := NullChar;
@@ -356,7 +361,7 @@ Begin
   begin
     PrevCost := I - 1;
     Cost := I;
-    pStr2.RestoreState(Temp);
+    pStr2.Position := Temp;
 
     A := pStr1.GetNext();
 
@@ -509,28 +514,20 @@ End;
 
 Function StringGetChar(Const S:TERRAString; Index:Integer):TERRAChar;
 Var
-  N, Target:Integer;
+  Target:Integer;
   It:StringIterator;
 Begin
+  StringCreateIterator(S, It);
+
   If (Index<0) Then
-    Target := StringLength(S) + Succ(Index)
+    Target := It._Length + Succ(Index)
   Else
     Target := Index;
 
-  N := 0;
-
-  StringCreateIterator(S, It);
-  While It.HasNext Do
-  Begin
-    Result := It.GetNext();
-    Inc(N);
-
-    //WriteLn(N,' ', Chr(Result));
-    If N = Target Then
-      Exit;
-  End;
-
-  Result := NullChar;
+  If (Target>0) And (Target<= It._Length) Then
+    Result := It._Chars[Target]
+  Else
+    Result := NullChar; 
 End;
 
 Function StringFromChar(Const Value:TERRAChar):TERRAString;
@@ -573,26 +570,25 @@ End;
 Function StringPosIteratorSearch(Var It, SubIt:StringIterator; IgnoreCase:Boolean):Boolean;
 Var
   A,B:TERRAChar;
-  Temp:StringIteratorState;
+  Temp:Integer;
   Found:Boolean;
 
   Procedure DoMatch();
   Begin
     If (SubIt.Position = 1) Then
     Begin
-      It.SaveState(Temp);
+      Temp := It.Position;
     End;
 
     If Not SubIt.HasNext Then
     Begin
-      It.RestoreState(Temp);
-
-      It._Remainder := Pred(StringLength(SubIt._Target));
+      It.Position := Temp;
       Found := True;
     End;
   End;
 Begin
   Found := False;
+  Temp := 1;
 
   While (It.HasNext) And (Not Found) Do
   Begin
@@ -604,13 +600,13 @@ Begin
       DoMatch();
     End Else
     Begin
-      SubIt.Reset();
+      SubIt.Restart();
       B := SubIt.GetNext();
 
       If A = B Then
         DoMatch()
       Else
-        SubIt.Reset();
+        SubIt.Restart();
     End;
   End;
 
@@ -624,6 +620,7 @@ Begin
   StringCreateIterator(S, It, IgnoreCase);
   StringCreateIterator(SubStr, SubIt, IgnoreCase);
 
+  It._SplitLength := SubIt.Length;
   Result := StringPosIteratorSearch(It, SubIt, IgnoreCase);
 End;
 
@@ -644,6 +641,7 @@ Begin
   StringCreateReverseIterator(S, It);
   StringCreateReverseIterator(SubStr, SubIt);
 
+  It._SplitLength := SubIt.Length;
   Result := StringPosIteratorSearch(It, SubIt, IgnoreCase);
 End;
 
@@ -672,7 +670,7 @@ Begin
   Begin
     A := It.GetNext();
 
-    SubIt.Reset();
+    SubIt.Restart();
     While SubIt.HasNext() Do
     Begin
       B := SubIt.GetNext();
@@ -735,6 +733,7 @@ Var
   B:TERRAChar;
 Begin
   StringCreateReverseIterator(S, It, IgnoreCase);
+
   While It.HasNext Do
   Begin
     B := It.GetNext();
@@ -759,6 +758,7 @@ Begin
     Result := 0;
 End;
 
+{OPTIMIZE ME!}
 Function StringCopy(Const S:TERRAString; Index, Count:Integer):TERRAString;
 Var
   It:StringIterator;
@@ -772,33 +772,27 @@ Begin
     Exit;
   End;
 
+  StringCreateIterator(S, It);
+
   If (Index < 0) Then
   Begin
-    Index := StringLength(S) + Succ(Index);
+    Index := It.Length + Succ(Index);
   End;
 
   If (Count < 0) Then
   Begin
-    Count := StringLength(S) + Count;
+    Count := It.Length + Count;
   End;
 
-  StringCreateIterator(S, It);
-
-  If Index>0 Then
-    It.Seek(Index);
-
-  It.Split(Temp, Result);
-
-  If Count<MaxInt Then
+  Result := '';
+  If Not It.Seek(Index) Then
+    Exit;
+    
+  While (Count>0) And (It.HasNext()) Do
   Begin
-    StringCreateIterator(Result, It);
-    While Count>0 Do
-    Begin
-      It.GetNext();
-      Dec(Count);
-    End;
-
-    Result := System.Copy(Result, 0, Pred(IT._State.Index));
+    C := It.GetNext();
+    StringAppendChar(Result, C);
+    Dec(Count);
   End;
 End;
 
@@ -852,11 +846,7 @@ Begin
     Exit;
 
   StringCreateIterator(Str, It);
-  While It.HasNext Do
-  Begin
-    It.GetNext();
-    Inc(Result);
-  End;
+  Result := It._Length;
 End;
 
 Procedure StringDropChars(Var Str:TERRAString; Count:Integer);
@@ -925,10 +915,7 @@ End;
 
 Function StringTrim(Const S:TERRAString):TERRAString;
 Begin
-  If (StringFirstChar(S) = NullChar) Then
-    Result := ''
-  Else
-    Result := StringTrimRight(StringTrimLeft(S));
+  Result := StringTrimRight(StringTrimLeft(S));
 End;
 
 Function StringTrimLeft(Const S:TERRAString):TERRAString;
@@ -937,13 +924,6 @@ Var
   C:TERRAChar;
   Temp:TERRAString;
 Begin
-  C := StringFirstChar(S);
-  If C>#32 Then
-  Begin
-    Result := S;
-    Exit;
-  End;
-  
   Result := '';
   StringCreateIterator(S, It);
   While It.HasNext Do
@@ -971,10 +951,8 @@ Begin
     C := It.GetNext();
     If (C>#32) Then
     Begin
-      It.Split(Temp, Result);
-      StringPrependChar(Result, C);
-
-      Result := StringReverse(Result);
+      It.Split(Result, Temp);
+      StringAppendChar(Result, C);
       Exit;
     End;
   End;
@@ -1005,29 +983,6 @@ Begin
   End;
 End;
 
-Const
-  WordSeparators: TERRAString = ' ,:><!?'+NewLineChar;
-
-Function StringExtractNextWord(Var S:TERRAString; Out Separator:TERRAChar):TERRAString;
-Var
-  It:StringIterator;
-  Temp:TERRAString;
-Begin
-  Result := '';
-  Separator := NullChar;
-
-  If S = '' Then
-    Exit;
-
-  If StringCharListPosIterator(WordSeparators, S, It, Separator) Then
-  Begin
-    It.Split(Result, S);
-  End Else
-  Begin
-    Result := S;
-    S := '';
-  End;
-End;
 
 //Converts a string to upcase
 Function StringUpper(Const S:TERRAString):TERRAString;
@@ -1115,7 +1070,7 @@ Var
   I, Len:Integer;
   S2:TERRAString;
 Begin
-  If (Token = Value) Then
+  If (Token = Value) Or (S = '') Then
     Exit;
 
   I := StringPos(Token, S, True);
@@ -1155,7 +1110,7 @@ Begin
   StringCreateIterator(A, ItA, IgnoreCase);
   StringCreateIterator(B, ItB, IgnoreCase);
 
-  If (ItA._Size <> ItB._Size) Then
+  If (ItA.Length <> ItB.Length) Then
   Begin
     Result := False;
     Exit;
@@ -1335,132 +1290,99 @@ End;
 
 Procedure StringCreateIterator(Const S:TERRAString; Out It:StringIterator; AutoCase:Boolean);
 Begin
-  It._Target := S;
   It._Reverse := False;
   It._AutoCase := AutoCase;
-
-  It.Reset();
+  It._SplitLength := 1;
+  It.Reset(S);
 End;
 
 Procedure StringCreateReverseIterator(Const S:TERRAString; Out It:StringIterator; AutoCase:Boolean);
-Var
-  Temp:TERRAString;
 Begin
-  Temp := '';
-  StringCreateIterator(S, It);
-  While It.HasNext() Do
-  Begin
-    StringPrependChar(Temp, It.GetNext());
-  End;
-
-  It._Target := Temp;
   It._Reverse := True;
   It._AutoCase := AutoCase;
-  It.Reset();
+  It._SplitLength := 1;
+  It.Reset(S);
 End;
 
 { StringIterator }
-
-Procedure StringIterator.RestoreState(Const State: StringIteratorState);
-Begin
-  _State := State;
-End;
-
-Procedure StringIterator.SaveState(Out State: StringIteratorState);
-Begin
-  State := _State;
-End;
-
-Procedure StringIterator.Reset;
-Begin
-  _Size := Length(_Target);
-
-  If (_Reverse) Then
-    _State.Position := Succ(_Size)
-  Else
-    _State.Position := 0;
-
-  _State.Index := 1;
-  _State.PrevIndex := 0;
-
-  _Remainder := 0;
-End;
-
-
-Function StringIterator.GetNext: TERRAChar;
+Procedure StringIterator.Reset(Const S:TERRAString);
 Var
   A,B,C:Byte;
-  N:Cardinal;
-Begin
-  If (_State.Index > _Size) Then
+  Prev, I, N, RawSize:Cardinal;
+
+  Function NextRawByte():Byte;
   Begin
-    Result := NullChar;
-    Exit;
+    If (I>RawSize) Then
+      Result := 0
+    Else
+    Begin
+      Result := Byte(S[I]);
+      Inc(I);
+    End;
   End;
 
-  _State.PrevIndex := _State.Index;
-
-  If (_Reverse) Then
-    Dec(_State.Position)
-  Else
-    Inc(_State.Position);
-
-  A := NextRawByte();
-  If (A<$80) Then
+  Procedure AddChar(CC:TERRAChar);
   Begin
-    Result := TERRAChar(A);
-  End Else
-  If ((A And $E0) = $E0) Then
-  Begin
-    B := NextRawByte();
-    C := NextRawByte();
-    If (B = 0) Or (C = 0) Then
+    Inc(_Length);
+
+    SetLength(_Chars, Succ(_Length));
+    _Chars[_Length] := CC;
+    (*_Chars[Pred(_Length)].StartPos := Prev;
+    _Chars[Pred(_Length)].EndPos := I; *)
+  End;
+
+Begin
+  RawSize := System.Length(S);
+  _Length := 0;
+
+  I := 1;
+  Prev := 0;
+  Repeat
+    If (I > RawSize) Then
+      Break;
+
+    Prev := I;
+
+    A := NextRawByte();
+    If (A<$80) Then
     Begin
-      Result := NullChar;
-      Exit;
-    End;
-
-    N := ((A And $0F) Shl 12) Or ((B And $3F) Shl 6) Or (C And $3F);
-    Result := TERRAChar(N);
-  End Else
-  If ((A And $C0) = $C0) Then
-  Begin
-    B := NextRawByte();
-    If (B = 0) Then
+      AddChar(TERRAChar(A));
+      Continue;
+    End Else
+    If ((A And $E0) = $E0) Then
     Begin
-      Result := NullChar;
-      Exit;
-    End;
+      B := NextRawByte();
+      C := NextRawByte();
+      If (B = 0) Or (C = 0) Then
+        Break;
 
-    N := ((A And $1F) Shl 6) Or (B And $3F);
-    Result := TERRAChar(N);
-  End Else
-    Result := NullChar;
 
-  If _AutoCase Then
-    Result := CharUpper(Result);
+      N := ((A And $0F) Shl 12) Or ((B And $3F) Shl 6) Or (C And $3F);
+      AddChar(TERRAChar(N));
+    End Else
+    If ((A And $C0) = $C0) Then
+    Begin
+      B := NextRawByte();
+      If (B = 0) Then
+        Break;
+
+      N := ((A And $1F) Shl 6) Or (B And $3F);
+      AddChar(TERRAChar(N));
+    End Else
+      Break;
+
+  Until False;
+
+  Self.Restart();
 End;
-
 
 Function StringIterator.PeekNext: TERRAChar;
 Var
-  Temp:StringIteratorState;
+  Temp:Integer;
 Begin
-  Self.SaveState(Temp);
+  Temp := Self.Position;
   Result := Self.GetNext();
-  Self.RestoreState(Temp);
-End;
-
-Function StringIterator.NextRawByte():Byte;
-Begin
-  If (_State.Index > _Size) Then
-  Begin
-    Result := 0;
-    Exit;
-  End;
-
-  Result := Byte(_Target[_State.Index]);
-  Inc(_State.Index);
+  Self.Position := Temp;
 End;
 
 Function StringFill(Length:Integer; C:TERRAChar):TERRAString;
@@ -1519,56 +1441,93 @@ Begin
   Result := 0;
 End;
 
-// note: using System.Copy here for speed, since we know the raw indices already!
+{OPTIMIZE ME!}
 Procedure StringIterator.Split(Out A, B: TERRAString);
 Var
-  Count:Integer;
+  I, Count:Integer;
 Begin
-  {$IFDEF OXYGENE}
-  A := _Target.Substring(0, _State.PrevIndex - 1);
-  {$ELSE}
-  A := Copy(_Target, 1, Pred(_State.PrevIndex));
-  {$ENDIF}
+  A := '';
+  For I:=1 To Pred(Self.Position) Do
+    StringAppendChar(A, _Chars[I]);
 
-  Count := Self._Remainder;
-  While (Count>0) And (Self.HasNext()) Do
-  Begin
-    Self.GetNext();
-    Dec(Count);
-  End;
-
-  {$IFDEF OXYGENE}
-  B := _Target.Substring(_State.Index -1); // TODO
-  {$else}
-  B := Copy(_Target, _State.Index, MaxInt); // TODO
-  {$ENDIF}
+  B := '';
+  For I := Self.Position + Self._SplitLength To Self.Length Do
+    StringAppendChar(B, _Chars[I]);
 End;
 
 Function StringIterator.HasNext: Boolean;
 Begin
-  Result := _State.Index <= _Size;
+  If (_Reverse) Then
+    Result := (_Position>=1)
+  Else
+    Result := (_Position <= _Length);
 End;
 
 Function StringIterator.Seek(Pos: Integer):Boolean;
 Begin
-  If (_State.Position = Pos) Then
+  Result := True;
+
+  If (Pos<=0) Then
   Begin
-    Result := True;
-    Exit;
+    Result := False;
+    Pos := 1;
+  End Else
+  If (Pos > _Length) Then
+  Begin
+    Result := False;
+    Pos := _Length;
   End;
 
-  Self.Reset();
+  _Position := Pos;
+  _Prev := Pos;
+End;
 
-  If (Pos<0) Then
+Procedure StringIterator.SetPosition(Const Value:Integer);
+Begin
+  Seek(Value);
+End;
+
+Procedure StringIterator.Advance();
+Begin
+  _Prev := _Position;
+  If _Reverse Then
+    Dec(_Position)
+  Else
+    Inc(_Position);
+End;
+
+Procedure StringIterator.Rewind();
+Begin
+  _Prev := _Position;
+  If _Reverse Then
+    Inc(_Position)
+  Else
+    Dec(_Position);
+End;
+
+
+Function StringIterator.GetNext():TERRAChar;
+Begin
+  If (_Position>0) And (_Position<=_Length) Then
   Begin
-    Pos := StringLength(_Target) + Succ(Pos);
-  End;
+    Result := _Chars[_Position];
 
-  Dec(Pos);
-  While (Self.Position<Pos) And (HasNext()) Do
-    Self.GetNext();
+    If _AutoCase Then
+      Result := CharUpper(Result);
 
-  Result := (_State.Position = Pos);
+    Self.Advance();
+  End Else
+    Result := NullChar;
+End;
+
+Procedure StringIterator.Restart();
+Begin
+  If (_Reverse) Then
+    _Position := _Length
+  Else
+    _Position := 1;
+
+  _Prev := _Position;
 End;
 
 End.

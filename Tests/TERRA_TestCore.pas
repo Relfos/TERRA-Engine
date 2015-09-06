@@ -33,40 +33,40 @@ Uses TERRA_OS, TERRA_Utils, TERRA_Sort, TERRA_RadixSort, TERRA_Collections,
 Type
   IntegerArraySort = Class(Sort)
     Public
-      Class Procedure Swap(Data:Pointer; A,B:Integer); Override;
-      Class Procedure SetPivot(Data:Pointer; A:Integer); Override;
-      Class Function Compare(Data:Pointer; A:Integer):Integer; Override;
+      Class Procedure Swap(Data:TERRAObject; A,B:Integer); Override;
+      Class Procedure SetPivot(Data:TERRAObject; A:Integer); Override;
+      Class Function Compare(Data:TERRAObject; A:Integer):Integer; Override;
   End;
 
 Var
   Items, Temp:Array Of Integer;
   Pivot:Integer;
 
-Class Procedure IntegerArraySort.Swap(Data:Pointer; A,B:Integer);
+Class Procedure IntegerArraySort.Swap(Data:TERRAObject; A,B:Integer);
 Var
   P:PIntegerArray;
   Temp:Integer;
 Begin
-  P := Data;
+  P := PIntegerArray(Data);
   Temp := P[A];
   P[A] := P[B];
   P[B] := Temp;
 End;
 
-Class Procedure IntegerArraySort.SetPivot(Data:Pointer; A: Integer);
+Class Procedure IntegerArraySort.SetPivot(Data:TERRAObject; A: Integer);
 Var
   P:PIntegerArray;
 Begin
-  P := Data;
+  P := PIntegerArray(Data);
   Pivot := P[A];
 End;
 
-Class Function IntegerArraySort.Compare(Data:Pointer; A:Integer):Integer;
+Class Function IntegerArraySort.Compare(Data:TERRAObject; A:Integer):Integer;
 Var
   P:PIntegerArray;
 Begin
   //WriteLn('Compare: ',A,' -> ', B);
-  P := Data;
+  P := PIntegerArray(Data);
   If (P[A] < Pivot) Then
     Result := 1
   Else
@@ -187,15 +187,15 @@ End;
 
 Procedure TERRACore_TestList.Run;
 Var
-  L:List;
+  L:TERRAList;
   I,J,N, Prev, Count:Integer;
   It:Iterator;
   Int:IntegerProperty;
-  Table:HashMap;
+  Table:TERRAHashMap;
 begin
   For J:=1 To 100 Do
   Begin
-    L := List.Create();
+    L := TERRAList.Create();
     N := 500+Random(1500);
 
     For I:=1 To N Do
@@ -219,7 +219,7 @@ begin
   End;
 
   //WriteLn('List sort test...');
-  L := List.Create(collection_Sorted_Ascending);
+  L := TERRAList.Create(collection_Sorted_Ascending);
   N := 2000;
   For I:=1 To N Do
   Begin
@@ -239,7 +239,7 @@ begin
   ReleaseObject(L);
 
   //WriteLn('List descending sort test...');
-  L := List.Create(collection_Sorted_Descending);
+  L := TERRAList.Create(collection_Sorted_Descending);
   N := 2000;
   For I:=1 To N Do
   Begin
@@ -258,7 +258,7 @@ begin
   End;
   ReleaseObject(L);
 
-  L := List.Create();
+  L := TERRAList.Create();
   For I:=0 To 10 Do
     L.Add(IntegerProperty.Create('', I));
 
@@ -288,11 +288,11 @@ Var
   I,J,N, Count:Integer;
   Item:StringProperty;
   It:Iterator;
-  Table:HashMap;
+  Table:TERRAHashMap;
 Begin
   For J:=1 To 5 Do
   Begin
-    Table := HashMap.Create(256);
+    Table := TERRAHashMap.Create(256);
     N := 1500+Random(1500);
 
     For I:=1 To N Do
@@ -317,7 +317,7 @@ Begin
     ReleaseObject(Table);
   End;
 
-  Table := HashMap.Create(256);
+  Table := TERRAHashMap.Create(256);
   For I:=1 To 100 Do
   Begin
     Table.Add(StringProperty.Create('BOO_'+IntegerProperty.Stringify(I), IntegerProperty.Stringify(Sqr(I))));

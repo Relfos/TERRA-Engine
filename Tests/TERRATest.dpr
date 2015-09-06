@@ -44,7 +44,7 @@ Begin
     Tests.RegisterTest(TERRAString_TestCopy);
     Tests.RegisterTest(TERRAString_TestSplits);
     Tests.RegisterTest(TERRAString_TestIteratorSplits);
-    Tests.RegisterTest(TERRAString_TestWordExtract);
+//    Tests.RegisterTest(TERRAString_TestWordExtract);
     Tests.RegisterTest(TERRAString_TestPad);
     Tests.RegisterTest(TERRAString_TestReplace);
     Tests.RegisterTest(TERRAString_TestReverse);

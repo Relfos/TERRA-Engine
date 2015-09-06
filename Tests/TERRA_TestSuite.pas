@@ -93,10 +93,10 @@ Begin
 
   WriteLn('');
   WriteLn('Test Results:');
-  WriteLn(StringPadLeft('Run:', Pad, Ord(' '))+ IntegerProperty.Stringify(_TestCount));
-  WriteLn(StringPadLeft('Success:', Pad, Ord(' ')) +IntegerProperty.Stringify(Sucess));
-  WriteLn(StringPadLeft('Failures:', Pad, Ord(' '))+IntegerProperty.Stringify(Failures));
-  WriteLn(StringPadLeft('Errors:', Pad, Ord(' '))+IntegerProperty.Stringify(Result));
+  WriteLn(StringPadLeft('Run:', Pad, ' ')+ IntegerProperty.Stringify(_TestCount));
+  WriteLn(StringPadLeft('Success:', Pad, ' ') +IntegerProperty.Stringify(Sucess));
+  WriteLn(StringPadLeft('Failures:', Pad, ' ')+IntegerProperty.Stringify(Failures));
+  WriteLn(StringPadLeft('Errors:', Pad, ' ')+IntegerProperty.Stringify(Result));
   If (Result>0) Then
   Begin
     WriteLn('There were '+IntegerProperty.Stringify(Result)+' failures:');

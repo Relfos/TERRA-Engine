@@ -282,7 +282,7 @@ Var
 
   WasWord, IsWord:Boolean;
 
-  State:StringIteratorState;
+  State:Integer;
 
   Glyph:FontGlyph;
 
@@ -480,7 +480,7 @@ Begin
     IsWord := (CharIsAlphaNumeric(LastChar));
     If (_CharCount>0) And (_AutoWrap) And (Self._MaxWidth>0) And ((Not IsWord) Or ((IsWord) And (Not WasWord))) Then
     Begin
-      It.SaveState(State);
+      State := It.Position;
       TempChar := LastChar;
       TempNext := NextChar;
       TargetWidth := 0.0;
@@ -500,7 +500,7 @@ Begin
 
       LastChar := TempChar;
       NextChar := TempNext;
-      It.RestoreState(State);
+      It.Position := State;
 
       If  (X + TargetWidth > StartX+  Self._MaxWidth) Then
         ApplyLineBreak();
