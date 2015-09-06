@@ -642,6 +642,8 @@ Begin
   Self.Pattern := Nil;
   Self.SetUVs(0.0, 0.0, 1.0, 1.0);
   Self.Glow := ColorBlack;
+
+  Self.SetTransform(Matrix3x3_Identity);
 End;
 
 Procedure TERRASprite.SetUVs(const U1, V1, U2, V2: Single);

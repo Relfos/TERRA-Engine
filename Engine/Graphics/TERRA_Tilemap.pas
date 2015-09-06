@@ -158,8 +158,8 @@ Type
 
       Function GetObject(Index:Integer):PTileObject;
 
-      Function GetLayer(Index:Integer):TileLayer; Overload;
-      Function GetLayer(Const Name:TERRAString):TileLayer; Overload;
+      Function GetLayerByIndex(Index:Integer):TileLayer; Overload;
+      Function GetLayerByName(Const Name:TERRAString):TileLayer; Overload;
 
       Property Tileset:TERRATexture Read GetTileset;
 
@@ -170,6 +170,7 @@ Type
       Property Width:Integer Read GetWidth;
       Property Height:Integer Read GetHeight;
 
+      Property Layers[ID:Integer]:TileLayer Read GetLayerByIndex; Default;
   End;
 
 Implementation
@@ -414,8 +415,8 @@ Begin
   For I:=0 To Pred(_LayerCount) Do
   If (_Layers[I].Visible) Then
   Begin
+    _Layers[I].Layer := I * 0.1;
     View.SpriteRenderer.QueueSprite(_Layers[I]);
-    Break;
   End;
 End;
 
@@ -443,7 +444,7 @@ Begin
     Result := @_ObjectList[Index];
 End;
 
-Function TileMap.GetLayer(Index: Integer): TileLayer;
+Function TileMap.GetLayerByIndex(Index: Integer): TileLayer;
 Begin
   If (Index<0) Or (Index>=_LayerCount) Then
     Result := Nil
@@ -451,7 +452,7 @@ Begin
     Result := _Layers[Index];
 End;
 
-Function TileMap.GetLayer(Const Name:TERRAString): TileLayer;
+Function TileMap.GetLayerByName(Const Name:TERRAString): TileLayer;
 Var
   I:Integer;
 Begin
@@ -573,7 +574,6 @@ Begin
   Self._ExtraCount := 0;
   Self._Width := W;
   Self._Height := H;
-  Self._TilesPerRow := W Div Map._TileWidth;
   SetLength(_Data, W, H);
   SetLength(_Flags, W, H);
 
@@ -671,7 +671,7 @@ Var
 Begin
   Self.Clear();
 
-  Self.SetTexture(Self._Map._Tileset);
+  Self.SetTexture(_Map.GetTileset);
 
   (*X1 := Trunc(_Map.CamX/_Map._TileWidth/_Map.Scale);
   Y1 := Trunc(_Map.CamY/_Map._TileHeight/_Map.Scale);
@@ -692,8 +692,12 @@ Begin
   X1 := 0;
   Y1 := 0;
 
-  X2 := 2; //Pred(_Width);
-  Y2 := 2; //Pred(_Height);
+  X2 := Pred(_Width);
+  Y2 := Pred(_Height);
+
+  If (_TilesPerRow<=0) Then
+    _TilesPerRow :=  _Map.GetTileset.Width Div _Map._TileWidth;
+
 
   For J:=Y1 To Y2 Do
     For I:=X1 To X2 Do
@@ -705,9 +709,8 @@ Begin
       Dec(N);
       N := _Map._Palette[N];
 
-
       Tx := (N Mod _TilesPerRow);
-      Ty := (N Div _TilesPerRow);
+      TY := (N Div _TilesPerRow);
 
       U1 := TX * (_Map._TileWidth / _Texture.Width);
       U2 := Succ(TX) * (_Map._TileWidth / _Texture.Width);

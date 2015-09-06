@@ -2,8 +2,8 @@
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
 uses
-  TERRA_Object,
   TERRA_MemoryManager,
+  TERRA_Object,
   TERRA_Application,
   TERRA_DemoApplication,
   TERRA_Renderer,

@@ -195,8 +195,6 @@ Begin
   Result.Saturation := Saturation;
   Result.Shader := Shader;*)
 
-  Result.SetTransform(Matrix3x3_Identity);
-
 (*  SpriteTexture.Filter := Filter;
 //  SpriteTexture.Wrap := True;
   SpriteTexture.MipMapped := False;
@@ -217,7 +215,7 @@ Begin
   If (S = Nil) Then
     Exit;
 
-  If (S.Texture = Nil) Or (S.BatchID>0) Then
+  If (S.Texture = Nil) Or (S.BatchID>0) Or (S.IndexCount<=0) Then
     Exit;
 
   If (_BatchCount<=0) Then

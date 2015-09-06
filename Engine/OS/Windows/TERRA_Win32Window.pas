@@ -2,6 +2,8 @@ Unit TERRA_Win32Window;
 
 Interface
 
+{-$DEFINE MOUSE_CAPTURE}
+
 Uses TERRA_Utils, TERRA_Object, TERRA_String, TERRA_Window, Windows, Messages;
 
 Type
@@ -46,6 +48,10 @@ Type
 Implementation
 Uses TERRA_Log, TERRA_Error, TERRA_Stream, TERRA_MemoryStream, TERRA_FileUtils,
   TERRA_Application, TERRA_OS, TERRA_Multimedia, TERRA_EngineManager, TERRA_InputManager;
+
+Var
+  _CursorVisible:Boolean;
+
 
 //WM_WINDOWPOSCHANGING
 Function WndProc(hWnd:HWND;Msg:UINT;wParam:wPARAM;lParam:LPARAM):LRESULT; Stdcall;
@@ -250,15 +256,24 @@ Begin
                   Begin
                     GetMouseCoords(MX, MY);
                     App.AddCoordEvent(eventMouseMove, MX, MY, 0);
-                  End;
 
-    WM_NCMOUSELEAVE:Begin
+                    If (_CursorVisible) Then
+                    Begin
+                      _CursorVisible := False;
                       ShowCursor(False);
                     End;
+                  End;
 
-    WM_NCMOUSEMOVE: Begin
+(*    WM_NCMOUSELEAVE:Begin
                       ShowCursor(True);
-                    End;
+                    End;*)
+
+    WM_NCMOUSEMOVE:
+      If (Not _CursorVisible) Then
+      Begin
+        ShowCursor(True);
+        _CursorVisible := True;
+      End;
 
     WM_MOUSEWHEEL:If (App.CanReceiveEvents) Then
                   Begin
