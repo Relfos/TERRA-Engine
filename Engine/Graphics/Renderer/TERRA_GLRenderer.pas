@@ -681,7 +681,7 @@ Begin
   LoadOpenGL();
 
   {$IFDEF WINDOWS}
-  _HDC := GetDC(Application.Instance.Handle);
+  _HDC := GetDC(Application.Instance.Window.Handle);
   If _HDC=0 Then
   Begin
     RaiseError('Unable to retrieve a device context.');
@@ -899,7 +899,7 @@ Begin
     _hRC:=0;
   End;
 
-  ReleaseDC(Application.Instance.Handle, _HDC);
+  ReleaseDC(Application.Instance.Window.Handle, _HDC);
   {$ENDIF}
 
   {$IFDEF LINUX}
@@ -1612,8 +1612,8 @@ Function OpenGLRenderer.GetScreenshot:TERRAImage;
 Var
   W,H:Integer;
 Begin
-  W := Application.Instance.Width;
-  H := Application.Instance.Height;
+  W := Application.Instance.Window.Width;
+  H := Application.Instance.Window.Height;
   Result := TERRAImage.Create(W, H);
   glReadPixels(0, 0, W, H, GL_RGBA, GL_UNSIGNED_BYTE, Result.RawPixels);
   Result.FlipVertical();

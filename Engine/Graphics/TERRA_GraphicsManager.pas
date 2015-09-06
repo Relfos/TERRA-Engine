@@ -238,13 +238,13 @@ Begin
     Exit;
   End;
 
-  Log(logDebug, 'GraphicsManager', 'Width='+ IntegerProperty.Stringify(Application.Instance.Width)+' Height='+ IntegerProperty.Stringify(Application.Instance.Width));
+  Log(logDebug, 'GraphicsManager', 'Width='+ IntegerProperty.Stringify(Application.Instance.Window.Width)+' Height='+ IntegerProperty.Stringify(Application.Instance.Window.Width));
 
   ShowDebugTarget := captureTargetInvalid;
 
-  Log(logDebug, 'GraphicsManager', 'Device resolution: '+ IntegerProperty.Stringify(Application.Instance.Width)+' x ' + IntegerProperty.Stringify(Application.Instance.Width));
+  Log(logDebug, 'GraphicsManager', 'Device resolution: '+ IntegerProperty.Stringify(Application.Instance.Window.Width)+' x ' + IntegerProperty.Stringify(Application.Instance.Window.Width));
 
-  _DeviceViewport := TERRAViewport.Create('device', Nil, Application.Instance.Width, Application.Instance.Height);
+  _DeviceViewport := TERRAViewport.Create('device', Nil, Application.Instance.Window.Width, Application.Instance.Window.Height);
 
   ShowWireframe := False;
 

@@ -8,6 +8,7 @@ Interface
 Uses TERRA_Utils, TERRA_Object, TERRA_String, TERRA_Application, TERRA_OS,
   TERRA_Vector3D, TERRA_Color, TERRA_Camera, TERRA_Ray, TERRA_UIDimension,
   TERRA_Mesh, TERRA_Texture,
+  TERRA_FPSCameraController,
   TERRA_Font, TERRA_FontRenderer, TERRA_Skybox, TERRA_Viewport, TERRA_Lights,
   TERRA_UICursor, TERRA_UIView, TERRA_UITransition, TERRA_ScreenFX,
   TERRA_OGG, TERRA_WAVE,
@@ -23,7 +24,7 @@ Type
       _Sky:TERRASkybox;
       _Sun:DirectionalLight;
       _Main:TERRAViewport;
-      _Camera:TERRACamera;
+      _Camera:PerspectiveCamera;
       _GUI:UIView;
 
       _Floor:MeshInstance;
@@ -59,7 +60,7 @@ Type
       Property Sun:DirectionalLight Read _Sun;
       Property MainViewport:TERRAViewport Read GetMainViewport;
 
-      Property Camera:TERRACamera Read _Camera;
+      Property Camera:PerspectiveCamera Read _Camera;
       Property GUI:UIView Read GetGUI;
       Property Floor:MeshInstance Read GetFloor;
 
@@ -94,6 +95,7 @@ Begin
   {$ENDIF}
   _Camera.SetPosition(Vector3D_Create(0, 5, -20));
   _Camera.SetView(Vector3D_Create(0, -0.25, 0.75));
+  _Camera.Controller := FPSCameraController.Create();
 
   Engine.Cursors.SetCursor(cursor_Default, Engine.Textures['cursor_normal'], 0, 0);
   Engine.Cursors.SetCursor(cursor_Busy, Engine.Textures['cursor_busy'], 13, 14);
@@ -132,15 +134,12 @@ Begin
     Application.Instance.Terminate();
 
   Engine.Graphics.TestDebugKeys();
-
-  If (Assigned(_Main)) And (_Main.Visible) Then
-    MainViewport.Camera.FreeCam();
 End;
 
 Function DemoApplication.GetMainViewport: TERRAViewport;
 Begin
   If (_Main = Nil) Then
-    _Main := Self.CreateMainViewport('main', Width, Height);
+    _Main := Self.CreateMainViewport('main', Window.Width, Window.Height);
 
   Result := _Main;
 End;

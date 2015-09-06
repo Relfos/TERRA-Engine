@@ -52,7 +52,7 @@ Unit TERRA_Application;
 
 
 Interface
-Uses TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Mutex;
+Uses TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Window, TERRA_Mutex;
 
 Const
 	// Operating System Class
@@ -88,11 +88,6 @@ Const
 
   OrientationAnimationDuration = 1000;
 
-	// Window state
-	wsNormal    = 0;
-	wsMinimized = 1;
-	wsMaximized = 2;
-
   orientationPortrait =  0;
   orientationLandscapeLeft =  1;
   orientationLandscapeRight =  2;
@@ -111,10 +106,11 @@ Const
   eventCompass        = 10;
   eventContextLost    = 11;
   eventOrientation    = 12;
-  //eventViewport       = 13;
+  eventJoystick       = 13;
   eventIAPPurchase    = 14;
   eventIAPCredits     = 15;
   eventIAPError       = 16;
+  eventQuit           = 17;
 
   EventBufferSize = 512;
   CallbackBufferSize = 64;
@@ -142,7 +138,7 @@ Const
   tapjoyVideoUnvailable    = 35;
   tapjoyVideoSuccess       = 36;
   tapjoyOfferSuccess       = 37;
-  
+
 Type
   ApplicationEvent = Record
     X,Y,Z,W:Single;
@@ -186,15 +182,12 @@ Type
 
  BaseApplication = Class(TERRAObject)
 		Protected
+      _Window:TERRAWindow;
 			_Running:Boolean;
-      _Ready:Boolean;
-      _Hidden:Boolean;
 			_CanReceiveEvents:Boolean;
       _Suspended:Boolean;
 			_Startup:Boolean;
       _StartTime:Cardinal;
-			_Title:TERRAString;
-			_State:Cardinal;
 			_Path:TERRAString;
       _Managed:Boolean;
 
@@ -216,14 +209,6 @@ Type
 
       _InitApp:Boolean;
 
-      _Width:Integer;
-      _Height:Integer;
-
-      _AspectRatio:Single;
-      _AntialiasSamples:Integer;
-			_FullScreen:Boolean;
-      _IgnoreCursor:Boolean;
-                
       _PauseStart:Cardinal;
       _PauseCounter:Cardinal;
       _Paused:Boolean;
@@ -233,8 +218,6 @@ Type
       _BundleVersion:TERRAString;
 
       _CurrentUser:TERRAString;
-
-      _ChangeToFullScreen:Boolean;
 
       _Terminated:Boolean;
 
@@ -263,8 +246,7 @@ Type
       //_InputThread:Thread;
       {$ENDIF}
 
-			Function InitWindow:Boolean; Virtual; Abstract;
-			Procedure CloseWindow; Virtual; Abstract;
+      Function CreateWindow():TERRAWindow; Virtual; Abstract;
 
       Procedure OnShutdown; Virtual;
 
@@ -301,6 +283,9 @@ Type
 
 			Function Run:Boolean; Virtual;
 
+      Function GetClipboard():TERRAString; Virtual;
+      Function SetClipboard(Const Value:TERRAString):Boolean; Virtual;
+
 			Procedure Terminate(ForceClose:Boolean = False);Virtual;
 
       Procedure AddRectEvent(Action:Integer; X1,Y1,X2,Y2:Single); Overload;
@@ -316,9 +301,6 @@ Type
       Procedure Yeld; Virtual;
 
       Class Procedure Sleep(Time:Cardinal);
-
-      Function SetFullscreenMode(UseFullScreen:Boolean):Boolean; Virtual;
-      Procedure ToggleFullscreen;
 
       // ads
       Procedure EnableAds; Virtual;
@@ -363,11 +345,7 @@ Type
 
       Procedure LogToConsole(Const Text:TERRAString); Virtual;
 
-      Procedure Resize(Width, Height:Integer);
-
       Procedure SetSuspend(Value:Boolean);
-
-      Procedure SetTitle(Const Name:TERRAString); Virtual;
 
       Procedure SetLanguage(Language:TERRAString);
 
@@ -413,6 +391,7 @@ Type
 			Procedure OnAccelerometer(X,Y,Z:Single); Virtual;
 			Procedure OnGyroscope(X,Y,Z:Single); Virtual;
 			Procedure OnCompass(Heading, Pitch, Roll:Single); Virtual;
+      Procedure OnJoystick(Const X,Y:Single; Const PadID, StickID:Integer); Virtual;
 
       Procedure OnOrientation(Orientation:Integer); Virtual;
 
@@ -433,7 +412,7 @@ Type
 			Procedure OnCreate; Virtual;
 			Procedure OnDestroy; Virtual;
 			Procedure OnIdle; Virtual;
-			Procedure OnStateChange(State:Integer); Virtual;
+			Procedure OnStateChange(Const State:TERRAWindowState); Virtual;
 
       Procedure OnGesture(StartX, StartY, EndX, EndY, GestureType:Integer; Delta:Single); Virtual;
 
@@ -448,10 +427,6 @@ Type
       Function GetWidth:Word; Virtual;
       Function GetHeight:Word; Virtual;
       Function GetFullScreen:Boolean; Virtual;
-      Function GetIgnoreCursor:Boolean; Virtual;
-      Function GetHidden:Boolean; Virtual;
-      Function GetAntialiasSamples:Integer; Virtual;
-      Function GetLogging:Boolean; Virtual;
 
       Function GetAppID:TERRAString; Virtual;
 
@@ -485,10 +460,6 @@ Type
       Property DocumentPath:TERRAString Read GetDocumentPath;
       Property FontPath:TERRAString Read _FontPath;
 
-			Property Title:TERRAString Read _Title;
-			Property Width:Integer Read _Width;
-			Property Height:Integer Read _Height;
-			Property FullScreen:Boolean Read _Fullscreen;
       Property Language:TERRAString Read _Language Write SetLanguage;
       Property Country:TERRAString Read _Country;
       Property BundleVersion:TERRAString Read _BundleVersion;
@@ -507,6 +478,7 @@ Type
       Property AspectRatio:Single Read GetAspectRatio;
 
       Property Screen:ApplicationScreenDimensions Read _Screen;
+      Property Window:TERRAWindow Read _Window;
 
       Property DebuggerPresent:Boolean Read _DebuggerPresent;
 	End;
@@ -553,7 +525,6 @@ Procedure BaseApplication.ShutdownSystem;
 Begin
   Engine.Release();
 
-  _Ready := False;
   _CanReceiveEvents := False;
 
   {$IFNDEF DISABLEINPUTMUTEX}
@@ -562,11 +533,7 @@ Begin
 
   ReleaseObject(_CallbackMutex);
 
-
-  If (Not _Managed) Then
-  Begin
-    CloseWindow;
-  End;
+  ReleaseObject(_Window);
 
   Self.OnShutdown;
 End;
@@ -603,19 +570,11 @@ Begin
   _OrientationTime := 0;
   _PreviousOrientation := _Orientation;
 
-  _Ready := False;
-
   _BundleVersion := '0.0';
 
   Log(logDebug, 'App', 'Initializing settings');
   If (Not InitSettings()) Then
     Halt(0);
-
-  _Title := Self.GetTitle();
-  _Width := Self.GetWidth();
-  _Height := Self.GetHeight();
-  _Fullscreen := Self.GetFullscreen();
-  _AntialiasSamples := Self.GetAntialiasSamples();
 
   {$IFDEF PC}
   If (Engine.Steam.Enabled) And (IsSupportedLanguage(Engine.Steam.Language)) Then
@@ -625,7 +584,10 @@ Begin
   {$IFNDEF MOBILE}
   If (Not _Managed) Then
   {$ENDIF}
-    InitWindow;
+  Begin
+    _Window := Self.CreateWindow();
+    _CanReceiveEvents := True;
+  End;
 
   Engine.Files.AddFolder(Application.Instance.DocumentPath);
 End;
@@ -634,10 +596,6 @@ Constructor BaseApplication.Create();
 Begin
   _Startup := True;
   _CanReceiveEvents := False;
-  _Hidden := Self.GetHidden();
-  _State := wsNormal;
-
-  _IgnoreCursor := Self.GetIgnoreCursor();
 
 {  _UsesAccelerometer := ApplicationSettings.UsesAccelerometer;
   _UsesGyroscope := ApplicationSettings.UsesGyroscope;
@@ -692,19 +650,6 @@ Begin
   {$ENDIF}
 End;
 
-procedure BaseApplication.Resize(Width, Height: Integer);
-Var
-  I:Integer;
-Begin
-  If (Width=0) Or (Height=0) Then
-    Exit;
-
-  _Width := Width;
-  _Height := Height;
-
-  Engine.Graphics.ResizeDevice(Width, Height);
-End;
-
 Function BaseApplication.Run: Boolean;
 Begin
   If (_Terminated) Then
@@ -735,7 +680,7 @@ Begin
     Engine.Init();
 
     _Startup := False;
-    If (_Managed) Or (_Hidden) Then
+    If (_Managed) Then
       Exit;
   End;
 
@@ -794,11 +739,8 @@ Begin
 
 
     {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Swapping buffers');{$ENDIF}{$ENDIF}
-    If (_ChangeToFullScreen) Then
-    Begin
-	    _ChangeToFullScreen := False;
-	    ToggleFullScreen();
-    End;
+    If Assigned(_Window) Then
+      _Window.Update();
 
     Self.OnFrameEnd();
 
@@ -867,21 +809,6 @@ Begin
   End;
 End;
 
-function BaseApplication.SetFullscreenMode(UseFullScreen: Boolean): Boolean;
-Begin
-  Log(logError, 'App','ToggleFullscreen not implemented!');
-  Result := False;
-End;
-
-procedure BaseApplication.ToggleFullscreen;
-Var
-   NewMode:Boolean;
-Begin
-  NewMode := Not Self._Fullscreen;
-  If SetFullscreenMode(NewMode) Then
-    Self._Fullscreen := NewMode;
-End;
-
 procedure BaseApplication.SetState(State: Cardinal);
 Begin
  Log(logError, 'App','SetState not implemented!');
@@ -940,8 +867,8 @@ Begin
     'OS: '+GetOSName() + CrLf +
     'CPU: '+GetCPUName() + CrLf +
     'Cores: '+ IntegerProperty.Stringify(Self.CPUCores) + CrLf +
-    'Width: '+ IntegerProperty.Stringify(Self.Width) + CrLf +
-    'Height: '+ IntegerProperty.Stringify(Self.Height) + CrLf +
+    'Width: '+ IntegerProperty.Stringify(Self.Window.Width) + CrLf +
+    'Height: '+ IntegerProperty.Stringify(Self.Window.Height) + CrLf +
     'Lang: '+ Self.Language + CrLf +
     'Country: '+ Self.Country + CrLf +
     'Bundle: '+ Self.BundleVersion + CrLf;
@@ -991,14 +918,6 @@ End;
 procedure BaseApplication.LikeFacebookPage(page, url: TERRAString);
 Begin
   Self.OnAPIResult(apiFacebook, facebookLikeError);
-End;
-
-procedure BaseApplication.SetTitle(const Name: TERRAString);
-Begin
-	If (Name = _Title) Or (Name='') Then
-		Exit;
-		
-	_Title := Name;
 End;
 
 procedure BaseApplication.SetSuspend(Value: Boolean);
@@ -1244,13 +1163,13 @@ Begin
     Begin
       Temp := X;
       X := Y;
-      Y := Self.Height - Temp;
+      Y := Self.Window.Height - Temp;
     End;
 
   orientationLandscapeRight:
     Begin
       Temp := X;
-      X := Self.Height - Y;
+      X := Self.Window.Height - Y;
       Y := Temp;
     End;
 
@@ -1260,13 +1179,13 @@ Begin
 
   orientationPortraitInverted:
     Begin
-      X := Self.Width - X;
-      Y := Self.Height - Y;
+      X := Self.Window.Width - X;
+      Y := Self.Window.Height - Y;
     End;
   End;
 
-  X := X / Self.Width;
-  Y := Y / Self.Height;
+  X := X / Self.Window.Width;
+  Y := Y / Self.Window.Height;
 End;
 
 procedure BaseApplication.AddEventToQueue(Action: Integer; X, Y, Z, W: Single;
@@ -1357,6 +1276,7 @@ Begin
   eventIAPPurchase    : Result := 'eventIAPPurchase';
   eventIAPCredits     : Result := 'eventIAPCredits';
   eventIAPError       : Result := 'eventIAPError';
+  eventQuit           : Result := 'eventQuit';          
   Else
     Result := '#'+ IntegerProperty.Stringify(N);
   End;
@@ -1393,6 +1313,12 @@ Begin
     {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Events type: '+GetEventTypeName(_Events[I].Action));{$ENDIF}
 
     Case _Events[I].Action Of
+    eventQuit:
+      Begin
+        _Running := False;
+        _CanReceiveEvents := False;
+      End;
+
     eventMouseDown:
       Begin
         {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Mouse down, X:'+ IntegerProperty.Stringify(Input.Mouse.X)+ ' Y:'+ IntegerProperty.Stringify(Input.Mouse.Y));{$ENDIF}
@@ -1445,7 +1371,7 @@ Begin
 
     eventWindowResize:
       Begin
-        Self.Resize(Trunc(_Events[I].X), Trunc(_Events[I].Y));
+        Self.Window.Resize(Trunc(_Events[I].X), Trunc(_Events[I].Y));
       End;
 
     eventAccelerometer:
@@ -1473,6 +1399,14 @@ Begin
         Input.Compass.Z := _Events[I].Z;
 
         Self.OnCompass(Input.Compass.X, Input.Compass.Y, Input.Compass.Z);
+      End;
+
+    eventJoystick:
+      Begin
+        Input.Mouse.X := _Events[I].X;
+        Input.Mouse.Y := _Events[I].Y;
+
+        Self.OnJoystick(Input.Mouse.X, Input.Mouse.Y, -1, 0);
       End;
 
     eventContextLost:
@@ -1538,9 +1472,9 @@ Begin
      Result := False;
 End;
 
-function BaseApplication.GetRecommendedSettings: Integer;
+Function BaseApplication.GetRecommendedSettings: Integer;
 Begin
-  If (Self.Width<480) Or (Self.Height<480) Then
+  If (Self.Window.Width<480) Or (Self.Window.Height<480) Then
     Result := settingsHintLow
   Else
     Result := settingsHintMedium;
@@ -1592,7 +1526,7 @@ End;
 
 Function BaseApplication.GetAspectRatio: Single;
 Begin
-  Result := SafeDiv(_Height, _Width, 1.0);
+  Result := SafeDiv(Window.Height, Window.Width, 1.0);
 End;
 
 Function BaseApplication.PostCallback(Callback:ApplicationCallback; Arg:TERRAObject; Const Delay:Cardinal):Boolean;
@@ -1833,12 +1767,16 @@ Begin
 //  UI.Instance.OnMouseWheel(Delta);
 End;
 
-Procedure BaseApplication.OnStateChange(State: Integer);
+Procedure BaseApplication.OnStateChange(Const State:TERRAWindowState);
 Begin
-
+  // do nothing
 End;
 
 Procedure BaseApplication.OnCompass(Heading, Pitch, Roll: Single);
+Begin
+End;
+
+Procedure BaseApplication.OnJoystick(const X, Y: Single; const PadID, StickID: Integer);
 Begin
 End;
 
@@ -1850,11 +1788,6 @@ End;
 Procedure BaseApplication.OnOrientation(Orientation: Integer);
 Begin
   Application.Instance.SetOrientation(Orientation);
-End;
-
-Function BaseApplication.GetAntialiasSamples: Integer;
-Begin
-  Result := 0;
 End;
 
 Function BaseApplication.GetAppID:TERRAString;
@@ -1892,17 +1825,6 @@ Begin
   Result := 640;
 End;
 
-Function BaseApplication.GetHidden: Boolean;
-Begin
-  Result := False;
-End;
-
-Function BaseApplication.GetIgnoreCursor: Boolean;
-Begin
-  Result := False;
-End;
-
-
 Procedure BaseApplication.OnFatalError(Const ErrorMsg, CrashLog, Callstack:TERRAString); 
 Begin
   _Running := False;
@@ -1921,11 +1843,6 @@ End;
 Function BaseApplication.GetAdMobInterstitialID:TERRAString;
 Begin
   Result := '';
-End;
-
-Function BaseApplication.GetLogging: Boolean;
-Begin
-  Result := True;
 End;
 
 Function BaseApplication.GetFortumoID:TERRAString;
@@ -2036,6 +1953,17 @@ Function BaseApplication.CreateProperty(const KeyName, ObjectType: TERRAString):
 Begin
   Result := Engine.CreateObject(KeyName, ObjectType);
 End;
+
+Function BaseApplication.GetClipboard: TERRAString;
+Begin
+  Result := '';
+End;
+
+Function BaseApplication.SetClipboard(const Value: TERRAString): Boolean;
+Begin
+  Result := False;
+End;
+
 
 Initialization
   {$IFDEF FPC}

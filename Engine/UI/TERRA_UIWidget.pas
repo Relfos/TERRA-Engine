@@ -2326,7 +2326,7 @@ Begin
     If Assigned(Parent) Then
       ParentSize := Parent.CurrentSize
     Else
-      ParentSize := Vector2D_Create(Application.Instance.Width, Application.Instance.Height);
+      ParentSize := Vector2D_Create(Application.Instance.Window.Width, Application.Instance.Window.Height);
 
     TargetSize := Vector2D_Scale(ParentSize, Percent);
 

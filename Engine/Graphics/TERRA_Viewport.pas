@@ -429,8 +429,8 @@ Begin
   End Else}
   Begin
     TY := _Height - TY;
-  	Px := TX * (Application.Instance.Width/_Width);
-	  Py := TY * (Application.Instance.Height/_Height);
+  	Px := TX * (Application.Instance.Window.Width/_Width);
+	  Py := TY * (Application.Instance.Window.Height/_Height);
   End;
 
   Px := TX;
@@ -727,7 +727,7 @@ Var
   UseScissors:Boolean;
   Flags:Integer;
 Begin
-  UseScissors := (Trunc(_Width*_Scale)< Application.Instance.Width) Or (Trunc(_Height*_Scale)< Application.Instance.Height);
+  UseScissors := (Trunc(_Width*_Scale)< Application.Instance.Window.Width) Or (Trunc(_Height*_Scale)< Application.Instance.Window.Height);
 
   If (UseScissors) Then
   Begin

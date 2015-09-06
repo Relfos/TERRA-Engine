@@ -194,7 +194,7 @@ Begin
   If (_DeviceID = 0 ) Or (_IsMIDI) Then
     Exit;
 
-  intError := mciSendString(PAnsiChar('setaudio '+_FileName+' volume to '+ IntegerProperty.Stringify(Trunc(_Volume*1000))), Nil, 0, Application.Instance().Handle);
+  intError := mciSendString(PAnsiChar('setaudio '+_FileName+' volume to '+ IntegerProperty.Stringify(Trunc(_Volume*1000))), Nil, 0, Application.Instance.Window.Handle);
   CheckError( intError );
 End;
 
@@ -266,12 +266,12 @@ Begin
   If (_DeviceID = 0 ) Then
     Exit;
 
-  intError := mciSendString(PAnsiChar('seek '+FileName+' to 0'), Nil, 0, Application.Instance().Handle);
+  intError := mciSendString(PAnsiChar('seek '+FileName+' to 0'), Nil, 0, Application.Instance.Window.Handle);
   CheckError( intError );
 
   intFlags := mci_Notify;
-  PlayParm.dwCallback := Application.Instance().Handle;
-  intError := mciSendString(PAnsiChar('Play '+FileName+' notify'), Nil, 0, Application.Instance().Handle);
+  PlayParm.dwCallback := Application.Instance.Window.Handle;
+  intError := mciSendString(PAnsiChar('Play '+FileName+' notify'), Nil, 0, Application.Instance.Window.Handle);
   //intError := mciSendCommand(_DeviceID, mci_Play,intFlags,Longint( @PlayParm ) );
   CheckError( intError );
 
