@@ -89,7 +89,7 @@ Type
 
       Procedure Release; Override;
 
-      Procedure Rebuild(Const LayerOfs:Single);
+      Procedure Rebuild();
 
       Procedure SetTileAt(X, Y, Value:Integer);
       Function GetTileAt(X, Y:Integer):Integer;
@@ -414,8 +414,8 @@ Begin
   For I:=0 To Pred(_LayerCount) Do
   If (_Layers[I].Visible) Then
   Begin
-    _Layers[I].Rebuild(I*0.1);
     View.SpriteRenderer.QueueSprite(_Layers[I]);
+    Break;
   End;
 End;
 
@@ -496,6 +496,8 @@ Var
   PP, PPP:TERRAObjectNode;
   B:Byte;
 Begin
+  Inherited Create();
+  
   PP := P.GetChildByName('name');
   Name := PP.Value;
 
@@ -555,6 +557,8 @@ Begin
       End;
     End;
   End;
+
+  Self.Rebuild();
 End;
 
 Constructor TileLayer.Create(Name:TERRAString; W, H: Integer; Source, Compression:TERRAString; Map:TileMap);
@@ -656,7 +660,7 @@ Begin
     Result := _Flags[X,Y];
 End;
 
-Procedure TileLayer.Rebuild(Const LayerOfs:Single);
+Procedure TileLayer.Rebuild();
 Var
   X1,Y1,X2,Y2:Integer;
   U1, V1, U2, V2:Single;
@@ -666,8 +670,8 @@ Var
   Tx, Ty:Integer;
 Begin
   Self.Clear();
-  Self.SetTexture(_Texture);
-  Self.Layer := LayerOfs;;
+
+  Self.SetTexture(Self._Map._Tileset);
 
   (*X1 := Trunc(_Map.CamX/_Map._TileWidth/_Map.Scale);
   Y1 := Trunc(_Map.CamY/_Map._TileHeight/_Map.Scale);
@@ -688,8 +692,8 @@ Begin
   X1 := 0;
   Y1 := 0;
 
-  X2 := Pred(_Width);
-  Y2 := Pred(_Height);
+  X2 := 2; //Pred(_Width);
+  Y2 := 2; //Pred(_Height);
 
   For J:=Y1 To Y2 Do
     For I:=X1 To X2 Do

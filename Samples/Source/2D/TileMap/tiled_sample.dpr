@@ -53,7 +53,7 @@ Procedure MyDemo.OnRender2D(View: TERRAViewport);
 Begin
   Inherited;
 
-//  Engine.Graphics.AddRenderable(View, _Map);
+  Engine.Graphics.AddRenderable(View, _Map);
 End;
 
 {$IFDEF IPHONE}

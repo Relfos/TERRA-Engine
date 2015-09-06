@@ -38,6 +38,7 @@ Type
 
   SpriteBatch = Class(TERRAObject)
     Protected
+      _ID:Cardinal;
       _First:TERRASprite;
       _SpriteCount:Integer;
       _Texture:TERRATexture;
@@ -78,7 +79,7 @@ Type
       Procedure Clear();
 
     Public
-      Constructor Create(Manager:TERRASpriteRenderer);
+      Constructor Create(ID:Cardinal; Manager:TERRASpriteRenderer);
       Procedure Release(); Override;
       //Procedure SetupSaturationCombiners(Var Slot:Integer);
   End;
@@ -93,7 +94,7 @@ Type
       _BatchCount:Integer;
 
    Public
-      Constructor Create();
+      Procedure InitBatches();
       Procedure Release; Override;
 
       Procedure Prepare;
@@ -119,7 +120,7 @@ Var
 
 
 { TERRASpriteRenderer }
-Constructor TERRASpriteRenderer.Create();
+Procedure TERRASpriteRenderer.InitBatches;
 Var
     I:Integer;
 Begin
@@ -132,7 +133,7 @@ Begin
   _BatchCount := 50;
   SetLength(_Batches, _BatchCount);
   For I:=0 To Pred(_BatchCount) Do
-    _Batches[I] := SpriteBatch.Create(Self);
+    _Batches[I] := SpriteBatch.Create(Succ(I), Self);
 End;
 
 Procedure TERRASpriteRenderer.Release;
@@ -156,6 +157,9 @@ Function TERRASpriteRenderer.FetchSprite():TERRASprite;
 Var
   I:Integer;
 Begin
+  If (_SpriteCount<=0) Then
+    Self.InitBatches();
+
 (*  {$IFDEF WINDOWS}
   If (Layer<0) Then
     DebugBreak;
@@ -176,17 +180,7 @@ Begin
   Result := _Sprites[_Index];
 
   Result.Clear();
-  Result.ColorTable := Nil;
-  Result.SetTexture(Nil);
-  Result.ClipRect.Style := clipNothing;
-  Result.Saturation := 1.0;
-  Result.BlendMode := blendBlend;
-  Result.Layer := 50.0;
-  Result.Outline := ColorNull;
-  Result.Next := Nil;
-  Result.SetColor(ColorWhite);
-  Result.Pattern := Nil;
-  Result.SetUVs(0.0, 0.0, 1.0, 1.0);
+  Result.Reset();
 
 (*  Result.Layer := Layer;
   Result.Rect.Width := 0;
@@ -223,9 +217,12 @@ Begin
   If (S = Nil) Then
     Exit;
 
-  If (S.Texture = Nil) Then
+  If (S.Texture = Nil) Or (S.BatchID>0) Then
     Exit;
-    
+
+  If (_BatchCount<=0) Then
+    Self.InitBatches();
+
   HasShaders := Engine.Graphics.Renderer.Features.Shaders.Avaliable;
 
   ResetBatch := True;
@@ -429,9 +426,10 @@ Begin
 End;
 
 { SpriteBatch }
-Constructor SpriteBatch.Create(Manager: TERRASpriteRenderer);
+Constructor SpriteBatch.Create(ID:Cardinal; Manager:TERRASpriteRenderer);
 Begin
   _Manager := Manager;
+  _ID := ID;
   _Vertices := CreateSpriteVertexData(128);
   SetLength(_Indices, 4);
 End;
@@ -445,6 +443,7 @@ Begin
 
   Inc(_SpriteCount);
   P.Next := _First;
+  P.BatchID := Self._ID;
   _First := P;
 
   Inc(_RequiredVertices, P.Vertices.Count);
@@ -604,6 +603,8 @@ Begin
   S := _First;
   While Assigned(S) Do
   Begin
+    S.BatchID := 0;
+    
     If (S.ClipRect.Style = clipEverything) Or (S.Vertices = Nil) Or (S.Vertices.Count <= 0) Then
     Begin
       S := S.Next;

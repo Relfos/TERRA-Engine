@@ -114,8 +114,10 @@ Type
       ClipRect:TERRAClipRect;
       Outline:ColorRGBA;
       BlendMode:Integer;
-      Next:TERRASprite;
       Smoothing:Single; // for fonts only
+
+      Next:TERRASprite;
+      BatchID:Cardinal;
 
       Flip:Boolean;
       Mirror:Boolean;
@@ -125,6 +127,7 @@ Type
       Procedure Release; Override;
 
       Procedure Clear();
+      Procedure Reset();
 
       Procedure SetUVs(Const U1, V1, U2, V2:Single);
 
@@ -226,10 +229,8 @@ End;
 { TERRASprite }
 Constructor TERRASprite.Create;
 Begin
-  Self.Saturation := 1;
-  Self.BlendMode := blendBlend;
-  Self.Outline := ColorBlack;
-  Self.Glow := ColorBlack;
+  Self.Clear();
+  Self.Reset();
 End;
 
 Procedure TERRASprite.Release();
@@ -627,6 +628,21 @@ Begin
   _Flags := 0;
 End;
 
+Procedure TERRASprite.Reset();
+Begin
+  Self.ColorTable := Nil;
+  Self.SetTexture(Nil);
+  Self.ClipRect.Style := clipNothing;
+  Self.Saturation := 1.0;
+  Self.BlendMode := blendBlend;
+  Self.Layer := 50.0;
+  Self.Outline := ColorNull;
+  Self.Next := Nil;
+  Self.SetColor(ColorWhite);
+  Self.Pattern := Nil;
+  Self.SetUVs(0.0, 0.0, 1.0, 1.0);
+  Self.Glow := ColorBlack;
+End;
 
 Procedure TERRASprite.SetUVs(const U1, V1, U2, V2: Single);
 Begin
