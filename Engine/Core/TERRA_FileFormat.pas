@@ -40,8 +40,14 @@ Type
     Public
       Constructor Create(Const Kind:TERRAObjectType; Const Extension:TERRAString);
 
-      Function Load(Target:TERRAObject; Source:TERRAStream):Boolean; Virtual;
-      Function Save(Target:TERRAObject; Dest:TERRAStream):Boolean; Virtual;
+      Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Virtual;
+      Procedure LoadFromString(Target:TERRAObject; Const Data:TERRAString; Encoding:StringEncoding);
+      Procedure LoadFromFile(Target:TERRAObject; Const FileName:TERRAString; Encoding:StringEncoding = encodingUnknown);
+
+      Function SaveToStream(Target:TERRAObject; Dest:TERRAStream):Boolean; Virtual;
+      Procedure SaveToFile(Target:TERRAObject; Const FileName:TERRAString);
+      Function SaveToString(Target:TERRAObject; Encoding:StringEncoding):TERRAString;
+
 
       Property Extension:TERRAString Read _Extension;
       Property Kind:TERRAObjectType Read _Kind;
@@ -67,7 +73,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_EngineManager, TERRA_FileUtils;
+Uses TERRA_EngineManager, TERRA_FileUtils, TERRA_FileStream, TERRA_MemoryStream;
 
 { TERRAFileFormat }
 Constructor TERRAFileFormat.Create(Const Kind:TERRAObjectType; Const Extension:TERRAString);
@@ -81,15 +87,59 @@ Begin
   Result := StringEquals(GetFileExtension(Source.Name), Self.Extension);
 End;
 
-Function TERRAFileFormat.Load(Target:TERRAObject; Source:TERRAStream):Boolean;
+Function TERRAFileFormat.LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean;
 Begin
   Result := False;
 End;
 
-Function TERRAFileFormat.Save(Target:TERRAObject; Dest:TERRAStream):Boolean;
+Function TERRAFileFormat.SaveToStream(Target:TERRAObject; Dest:TERRAStream):Boolean;
 Begin
   Result := False;
 End;
+
+Procedure TERRAFileFormat.SaveToFile(Target:TERRAObject; Const FileName:TERRAString);
+Var
+  Dest:FileStream;
+Begin
+  Dest := FileStream.Create(FileName);
+  SaveToStream(Target, Dest);
+  ReleaseObject(Dest);
+End;
+
+Function TERRAFileFormat.SaveToString(Target:TERRAObject; Encoding:StringEncoding):TERRAString;
+Var
+  Dest:MemoryStream;
+Begin
+  Dest := MemoryStream.Create();
+  SaveToStream(Target, Dest);
+  SetLength(Result, Dest.Size);
+  Move(Dest.Buffer^, Result[1], Dest.Size);
+  ReleaseObject(Dest);
+End;
+
+Procedure TERRAFileFormat.LoadFromFile(Target:TERRAObject; Const FileName:TERRAString; Encoding:StringEncoding);
+Var
+  Source:FileStream;
+Begin
+  Source := FileStream.Open(FileName);
+
+  If Encoding <> encodingUnknown Then
+    Source.Encoding := Encoding;
+
+  LoadFromStream(Target, Source);
+  ReleaseObject(Source);
+End;
+
+Procedure TERRAFileFormat.LoadFromString(Target:TERRAObject; Const Data:TERRAString; Encoding:StringEncoding);
+Var
+  Source:MemoryStream;
+Begin
+  Source := MemoryStream.Create(Length(Data), @Data[1]);
+  Source.Encoding := Encoding;
+  LoadFromStream(Target, Source);
+  ReleaseObject(Source);
+End;
+
 
 { FormatManager }
 Procedure FormatManager.Add(Format:TERRAFileFormat);

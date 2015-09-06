@@ -38,7 +38,7 @@ Unit TERRA_Stream;
 Interface
 
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Object, TERRA_Utils, TERRA_FileUtils, TERRA_String;
+  TERRA_Object, TERRA_ObjectTree, TERRA_Utils, TERRA_FileUtils, TERRA_String;
 
 Const
  // Stream access/permission flags
@@ -92,7 +92,8 @@ Type
       Function ReadInteger(Out Value:Integer):Boolean; Virtual;
       Function ReadCardinal(Out Value:Cardinal):Boolean; Virtual;
       Function ReadSingle(Out Value:Single):Boolean; Virtual;
-      Function ReadBoolean(Out Value:Boolean):Boolean; Virtual;
+      Function ReadBoolean(Out Value:Boolean):Boolean;
+      Function ReadObject():TERRAObjectNode;
 
       Procedure ReadString(Out S:TERRAString; NullTerminated:Boolean = False);Virtual;
       Procedure WriteString(Const S:TERRAString; NullTerminated:Boolean = False);Virtual;
@@ -131,7 +132,7 @@ Type
      End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_OS;
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_EngineManager, TERRA_FileFormat;
 
 // Stream Object
 
@@ -725,8 +726,7 @@ End;
 
 Function TERRAStream.ReadBoolean(Out Value: Boolean):Boolean;
 Begin
-  Value := False;
-  Result := Self.Read(@Value, 1)>0;
+  Result := Self.ReadByte(Byte(Value));
 End;
 
 Function TERRAStream.WriteByte(const Value: Byte): Boolean;
@@ -845,6 +845,19 @@ Begin
   SetLength(S, Self.Size);
   Self.Seek(0);
   Self.Read(@S[1], Self.Size);
+End;
+
+Function TERRAStream.ReadObject():TERRAObjectNode;
+Var
+  Format:TERRAFileFormat;
+Begin
+  Format := Engine.Formats.FindFormatFromStream(Self, TERRAObjectNode);
+  If Assigned(Format) Then
+  Begin
+    Result := TERRAObjectNode.Create();
+    Format.LoadFromStream(Result, Self);
+  End Else
+    Result := Nil;
 End;
 
 End.

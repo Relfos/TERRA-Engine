@@ -114,7 +114,7 @@ Begin
 
   Log(logDebug, 'Sound', 'Calling sound loader...');
 
-  Result := Format.Load(Self, Source);
+  Result := Format.LoadFromStream(Self, Source);
   SetStatus(rsReady);
 End;
 

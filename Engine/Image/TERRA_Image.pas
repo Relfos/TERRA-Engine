@@ -1132,7 +1132,7 @@ Begin
   End;
 
   Log(logDebug, 'Image', 'Loading image from loader ');
-  Format.Load(Self, Source);
+  Format.LoadFromStream(Self, Source);
   Log(logDebug, 'Image', 'Image loaded');
 End;
 
@@ -1142,7 +1142,7 @@ Begin
   If (_Pixels = Nil) Or (Format = Nil) Then
     Exit;
 
-  Result := Format.Save(Self, Dest);
+  Result := Format.SaveToSTream(Self, Dest);
   If Not Result Then
   Begin
     Log(logError, 'Image', 'Cannot save image to '+Format.Extension+' format. ['+Dest.Name+']');

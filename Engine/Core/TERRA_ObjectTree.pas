@@ -3,7 +3,7 @@ Unit TERRA_ObjectTree;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Collections, TERRA_Stream,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Collections,
   TERRA_Color, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D;
 
 Type
@@ -26,15 +26,8 @@ Type
       Function GetPath():TERRAString;
 
       Function SaveToObject(Target:TERRAObject; Owner:TERRAObject = Nil):TERRAObject;
-      Procedure SaveToStream(Dest:TERRAStream; SaveFlags:Cardinal); Virtual; Abstract;
-      Procedure SaveToFile(FileName:TERRAString; SaveFlags:Cardinal = 0);
-      Function SaveToString(Encoding:StringEncoding; SaveFlags:Cardinal = 0):TERRAString;
 
       Procedure LoadFromObject(Source:TERRAObject); Virtual;
-      Procedure LoadFromStream(Source:TERRAStream); Virtual; Abstract;
-      Procedure LoadFromString(Const Data:TERRAString; Encoding:StringEncoding);
-      Procedure LoadFromFile(Const FileName:TERRAString; Encoding:StringEncoding = encodingUnknown);
-
 
       Function GetInteger(Const Name:TERRAString; Var Dest:Integer; Default:Integer = 0):Boolean;
       Function GetCardinal(Const Name:TERRAString; Var Dest:Cardinal; Default:Cardinal = 0):Boolean;
@@ -63,14 +56,14 @@ Type
       Property Parent:TERRAObjectNode Read _Parent;
       Property Value:TERRAString Read _Value Write _Value;
       Property ChildCount:Integer Read _ChildCount;
-  End;
 
-  TERRAObjectNodeClass = Class Of TERRAObjectNode;
+      Property Children[ID:Integer]:TERRAObjectNode Read GetChildByIndex; Default;
+  End;
 
 Implementation
 Uses TERRA_Log, TERRA_MemoryStream, TERRA_FileStream, TERRA_EngineManager, TERRA_XML, TERRA_OS;
 
-Procedure DumpObjectTree(Node:TERRAObjectNode; Dest:TERRAStream; Level:Integer);
+(*Procedure DumpObjectTree(Node:TERRAObjectNode; Dest:TERRAStream; Level:Integer);
 Var
   I:Integer;
   S:TERRAString;
@@ -82,8 +75,7 @@ Begin
   Dest.WriteLine(S+Node.Name +':'+ Node.Value);
   For I:=0 To Pred(Node.ChildCount) Do
     DumpObjectTree(Node.GetChildByIndex(I), Dest, Succ(Level));
-End;
-
+End;*)
 
 Constructor TERRAObjectNode.Create(Const Name, Value:TERRAString);
 Begin
@@ -270,11 +262,9 @@ End;
 
 Function TERRAObjectNode.AddString(Const Name:TERRAString; Const Value:TERRAString):TERRAObjectNode;
 Var
-  TargetClass:TERRAObjectNodeClass;
   Node:TERRAObjectNode;
 Begin
-  TargetClass := TERRAObjectNodeClass(Self.ClassType);
-  Node := TargetClass.Create(Name, Value);
+  Node := TERRAObjectNode.Create(Name, Value);
   AddChild(Node);
   Result := Node;
 End;
@@ -340,12 +330,9 @@ Procedure TERRAObjectNode.LoadFromObject(Source:TERRAObject);
 Var
   Index:Integer;
   Node:TERRAObjectNode;
-  TargetClass:TERRAObjectNodeClass;
   Prop:TERRAObject;
   Value:TERRAString;
 Begin
-  TargetClass := TERRAObjectNodeClass(Self.ClassType);
-
   If (Self.Parent = Nil) Then
     Self.Name := 'root';
 
@@ -362,7 +349,7 @@ Begin
 
     If (Value <> '') Or (Prop.HasProperties) Then
     Begin
-      Node := TargetClass.Create(Prop.GetObjectType());
+      Node := TERRAObjectNode.Create(Prop.GetObjectType());
       Self.AddChild(Node);
 
       Node.AddString('name', Prop.Name);
@@ -452,48 +439,5 @@ Begin
   End;
 End;
 
-
-Procedure TERRAObjectNode.SaveToFile(FileName: TERRAString; SaveFlags:Cardinal);
-Var
-  Dest:FileStream;
-Begin
-  Dest := FileStream.Create(FileName);
-  SaveToStream(Dest, SaveFlags);
-  ReleaseObject(Dest);
-End;
-
-Function TERRAObjectNode.SaveToString(Encoding:StringEncoding; SaveFlags:Cardinal):TERRAString;
-Var
-  Dest:MemoryStream;
-Begin
-  Dest := MemoryStream.Create();
-  SaveToStream(Dest, SaveFlags);
-  SetLength(Result, Dest.Size);
-  Move(Dest.Buffer^, Result[1], Dest.Size);
-  ReleaseObject(Dest);
-End;
-
-Procedure TERRAObjectNode.LoadFromFile(const FileName:TERRAString; Encoding: StringEncoding);
-Var
-  Source:FileStream;
-Begin
-  Source := FileStream.Open(FileName);
-
-  If Encoding <> encodingUnknown Then
-    Source.Encoding := Encoding;
-
-  LoadFromStream(Source);
-  Source.Release;
-End;
-
-Procedure TERRAObjectNode.LoadFromString(Const Data:TERRAString; Encoding:StringEncoding);
-Var
-  Source:MemoryStream;
-Begin
-  Source := MemoryStream.Create(Length(Data), @Data[1]);
-  Source.Encoding := Encoding;
-  LoadFromStream(Source);
-  ReleaseObject(Source);
-End;
 
 End.

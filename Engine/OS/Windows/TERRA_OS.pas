@@ -146,7 +146,7 @@ Type
 
       Procedure Yeld; Override;
 
-      Function SetOrientation(Value:Integer):Boolean; Override;
+      Function SetOrientation(Const Value:TERRAOrientation):Boolean; Override;
 
       Function GetRecommendedSettings: Integer; Override;
 
@@ -468,7 +468,7 @@ Begin
 
 End;
 
-Function WindowsApplication.SetOrientation(Value:Integer):Boolean;
+Function WindowsApplication.SetOrientation(Const Value:TERRAOrientation):Boolean;
 Var
   Temp:Boolean;
   Rect:TRect;

@@ -31,7 +31,7 @@ Type
   PSDFormat = Class(TERRAFileFormat)
     Public
       Function Identify(Source:TERRAStream):Boolean; Override;
-      Function Load(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
+      Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
   End;
 
 
@@ -40,7 +40,7 @@ Uses TERRA_Log, TERRA_EngineManager, TERRA_FileUtils;
 
 // Photoshop PSD loader -- PD by Thatcher Ulrich, integration by Nicolas Schulz, tweaked by STB, ported to Delphi by Sergio Flores
 
-Function PSDFormat.Load(Target:TERRAObject; Source:TERRAStream):Boolean;
+Function PSDFormat.LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean;
 Var
   Image:TERRAImage;
   pixelCount:Integer;

@@ -22,15 +22,6 @@
  ***********************************************************************************************************************
 }
 
-(*
-      Procedure OnAppResize; Virtual;
-      Procedure Suspend; Virtual;
-      Procedure Resume; Virtual;
-      Procedure OnLanguageChange; Virtual;
-      Procedure OnOrientationChange; Virtual;
-      Procedure OnContextLost; Virtual;
-      Procedure OnViewportChange(X1, Y1, X2, Y2:Integer); Virtual;
-*)
 {$IFDEF OXYGENE}
 namespace TERRA;
 
@@ -87,11 +78,6 @@ Const
   TimerMultiplier = 4;
 
   OrientationAnimationDuration = 1000;
-
-  orientationPortrait =  0;
-  orientationLandscapeLeft =  1;
-  orientationLandscapeRight =  2;
-  orientationPortraitInverted =  3;
 
   eventMouseUp   = 0;
   eventMouseDown = 1;
@@ -180,6 +166,13 @@ Type
       Procedure AddWatcher(Notifier:AssetWatchNotifier);
   End;*)
 
+  TERRAOrientation = (
+    orientation_Portrait,
+    orientation_LandscapeLeft,
+    orientation_LandscapeRight,
+    orientation_PortraitInverted
+  );
+  
  BaseApplication = Class(TERRAObject)
 		Protected
       _Window:TERRAWindow;
@@ -189,7 +182,6 @@ Type
 			_Startup:Boolean;
       _StartTime:Cardinal;
 			_Path:TERRAString;
-      _Managed:Boolean;
 
       _Screen:ApplicationScreenDimensions;
 
@@ -221,8 +213,8 @@ Type
 
       _Terminated:Boolean;
 
-      _Orientation:Integer;
-      _PreviousOrientation:Integer;
+      _Orientation:TERRAOrientation;
+      _PreviousOrientation:TERRAOrientation;
       _OrientationTime:Integer;
 
       _CPUCores:Integer;
@@ -295,7 +287,7 @@ Type
       Procedure AddValueEvent(Action:Integer; Value:Integer); Overload;
       Procedure AddStringEvent(Action:Integer; S:TERRAString); Overload;
 
-      Function SetOrientation(Value:Integer):Boolean; Virtual;
+      Function SetOrientation(Const Value:TERRAOrientation):Boolean; Virtual;
 
 			Procedure SetState(State:Cardinal); Virtual;
       Procedure Yeld; Virtual;
@@ -393,7 +385,7 @@ Type
 			Procedure OnCompass(Heading, Pitch, Roll:Single); Virtual;
       Procedure OnJoystick(Const X,Y:Single; Const PadID, StickID:Integer); Virtual;
 
-      Procedure OnOrientation(Orientation:Integer); Virtual;
+      Procedure OnOrientation(Const Orientation:TERRAOrientation); Virtual;
 
       Procedure OnIAP_Error(ErrorCode:Integer); Virtual;
       Procedure OnIAP_Purchase(Const ID:TERRAString); Overload; Virtual;
@@ -472,8 +464,8 @@ Type
 
       Property TapjoyCredits:Integer Read _TapjoyCredits;
 
-      Property Orientation:Integer Read _Orientation;
-      Property PreviousOrientation:Integer Read _PreviousOrientation;
+      Property Orientation:TERRAOrientation Read _Orientation;
+      //Property PreviousOrientation:TERRAOrientation Read _PreviousOrientation;
 
       Property AspectRatio:Single Read GetAspectRatio;
 
@@ -490,9 +482,9 @@ Function GetOSName(OS:Integer=0):TERRAString;
 Function GetCPUName(CPUType:Integer=0):TERRAString;
 Function GetProgramName():TERRAString;
 
-Function IsLandscapeOrientation(Orientation:Integer):Boolean;
-Function IsPortraitOrientation(Orientation:Integer):Boolean;
-Function IsInvalidOrientation(Orientation:Integer):Boolean;
+Function IsLandscapeOrientation(Const Orientation:TERRAOrientation):Boolean;
+Function IsPortraitOrientation(Const Orientation:TERRAOrientation):Boolean;
+Function IsInvalidOrientation(Const Orientation:TERRAOrientation):Boolean;
 
 Implementation
 
@@ -505,19 +497,19 @@ Uses SysUtils, TERRA_Error, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
 Var
   _Application_Ready:Boolean;
 
-Function IsInvalidOrientation(Orientation:Integer):Boolean;
+Function IsInvalidOrientation(Const Orientation:TERRAOrientation):Boolean;
 Begin
-    Result := (Orientation<0) Or (Orientation>=4);
+    Result := (Integer(Orientation)<0) Or (Integer(Orientation)>=4);
 End;
 
-Function IsLandscapeOrientation(Orientation:Integer): Boolean;
+Function IsLandscapeOrientation(Const Orientation:TERRAOrientation): Boolean;
 Begin
-  Result := (Orientation = orientationLandscapeLeft) Or (Orientation = orientationLandscapeRight);
+  Result := (Orientation = orientation_LandscapeLeft) Or (Orientation = orientation_LandscapeRight);
 End;
 
-Function IsPortraitOrientation(Orientation:Integer): Boolean;
+Function IsPortraitOrientation(Const Orientation:TERRAOrientation): Boolean;
 Begin
-  Result := (Orientation = orientationPortrait) Or (Orientation = orientationPortraitInverted);
+  Result := (Orientation = orientation_Portrait) Or (Orientation = orientation_PortraitInverted);
 End;
 
 { BaseApplication }
@@ -566,7 +558,7 @@ Begin
 
   Log(logDebug, 'App', 'Initializing window');
 
-  _Orientation := orientationPortrait;
+  _Orientation := orientation_Portrait;
   _OrientationTime := 0;
   _PreviousOrientation := _Orientation;
 
@@ -581,13 +573,8 @@ Begin
     _Language := Engine.Steam.Language;
   {$ENDIF}
 
-  {$IFNDEF MOBILE}
-  If (Not _Managed) Then
-  {$ENDIF}
-  Begin
-    _Window := Self.CreateWindow();
-    _CanReceiveEvents := True;
-  End;
+  _Window := Self.CreateWindow();
+  _CanReceiveEvents := True;
 
   Engine.Files.AddFolder(Application.Instance.DocumentPath);
 End;
@@ -623,12 +610,7 @@ Begin
   ShutdownSystem;
   Log(logWarning, 'App', 'All subsystems destroyed.');
 
-  {$IFNDEF OXYGENE}
-  If (Not _Managed) Then
-  Begin
-    Self.Release();
-  End;
-  {$ENDIF}
+  Self.Release();
 
   Log(logWarning, 'App', 'Application has shutdown.');
 End;
@@ -659,7 +641,7 @@ Begin
     Exit;
   End;
 
-  If (Not _Managed) And (_Running) Then
+  If (_Running) Then
   Begin
     RaiseError('Application is already running.');
     Result := False;
@@ -680,7 +662,8 @@ Begin
     Engine.Init();
 
     _Startup := False;
-    If (_Managed) Then
+
+    If (Window.Managed) Then
       Exit;
   End;
 
@@ -744,7 +727,7 @@ Begin
 
     Self.OnFrameEnd();
 
-    If (_Managed) Then
+    If (Window.Managed) Then
       Exit;
 
   {$IFDEF CRASH_REPORT}
@@ -1087,7 +1070,7 @@ Begin
   Result := _FatalError<>'';
 End;
 
-function BaseApplication.SetOrientation(Value: Integer): Boolean;
+function BaseApplication.SetOrientation(Const Value:TERRAOrientation): Boolean;
 Var
   Delta:Single;
   I:Integer;
@@ -1096,39 +1079,39 @@ Begin
 
   If (IsInvalidOrientation(Value)) Then
     Begin
-        Log(logDebug, 'App', 'Invalid orientation change: '+ IntegerProperty.Stringify(Value));
+        Log(logDebug, 'App', 'Invalid orientation change: '+ IntegerProperty.Stringify(Integer(Value)));
         Exit;
     End;
 
   Delta := GetOrientationDelta();
-If (_Orientation = Value) {Or (Delta<1)} Then
+  If (_Orientation = Value) {Or (Delta<1)} Then
   Begin
     Log(logDebug, 'App', 'Failed orientation change (delta='+FloatProperty.Stringify(Delta)+')');
     Exit;
   End;
 
-  Log(logDebug, 'App', 'Changing orientation to '+  IntegerProperty.Stringify(Value));
+  Log(logDebug, 'App', 'Changing orientation to '+  IntegerProperty.Stringify(Integer(Value)));
   _PreviousOrientation := _Orientation;
   _OrientationTime := Application.GetTime();
   _Orientation := Value;
 
     Case _Orientation Of
-    orientationLandscapeLeft:
+    orientation_LandscapeLeft:
     Begin
         Log(logDebug, 'App', 'Changing orientation to landscape-left');
     End;
 
-    orientationLandscapeRight:
+    orientation_LandscapeRight:
     Begin
         Log(logDebug, 'App', 'Changing orientation to landscape-right');
     End;
 
-    orientationPortrait:
+    orientation_Portrait:
     Begin
         Log(logDebug, 'App', 'Changing orientation to portrait');
     End;
 
-    orientationPortraitInverted:
+    orientation_PortraitInverted:
     Begin
         Log(logDebug, 'App', 'Changing orientation to portrait-inverted');
     End;
@@ -1159,25 +1142,25 @@ Var
   Temp:Single;
 Begin
   Case _Orientation Of
-  orientationLandscapeLeft:
+  orientation_LandscapeLeft:
     Begin
       Temp := X;
       X := Y;
       Y := Self.Window.Height - Temp;
     End;
 
-  orientationLandscapeRight:
+  orientation_LandscapeRight:
     Begin
       Temp := X;
       X := Self.Window.Height - Y;
       Y := Temp;
     End;
 
-  orientationPortrait:
+  orientation_Portrait:
     Begin
     End;
 
-  orientationPortraitInverted:
+  orientation_PortraitInverted:
     Begin
       X := Self.Window.Width - X;
       Y := Self.Window.Height - Y;
@@ -1418,7 +1401,7 @@ Begin
     eventOrientation:
       Begin
         Log(logDebug, 'App', 'Orientation request: ' +  IntegerProperty.Stringify(_Events[I].Value));
-        Self.OnOrientation(_Events[I].Value);
+        Self.OnOrientation(TERRAOrientation(_Events[I].Value));
       End;
 
     eventIAPPurchase:
@@ -1784,8 +1767,7 @@ Procedure BaseApplication.OnGyroscope(X, Y, Z: Single);
 Begin
 End;
 
-
-Procedure BaseApplication.OnOrientation(Orientation: Integer);
+Procedure BaseApplication.OnOrientation(Const Orientation:TERRAOrientation);
 Begin
   Application.Instance.SetOrientation(Orientation);
 End;

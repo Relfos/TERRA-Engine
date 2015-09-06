@@ -38,7 +38,7 @@ Type
       Function Identify(Source:TERRAStream):Boolean; Override;
 
     Public
-      Function Load(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
+      Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
   End;
 
 Const
@@ -5761,7 +5761,7 @@ Begin
   Result := CompareFileHeader(ID, 'OggS');
 End;
 
-Function OGGFormat.Load(Target:TERRAObject; Source:TERRAStream): Boolean;
+Function OGGFormat.LoadFromStream(Target:TERRAObject; Source:TERRAStream): Boolean;
 Var
   Mem:Array Of Byte;
   Samples, Channels, SampleRate, Size:Integer;

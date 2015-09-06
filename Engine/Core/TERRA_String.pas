@@ -937,6 +937,13 @@ Var
   C:TERRAChar;
   Temp:TERRAString;
 Begin
+  C := StringFirstChar(S);
+  If C>#32 Then
+  Begin
+    Result := S;
+    Exit;
+  End;
+  
   Result := '';
   StringCreateIterator(S, It);
   While It.HasNext Do
@@ -957,14 +964,6 @@ Var
   C:TERRAChar;
   Temp:TERRAString;
 Begin
-  If (StringCharPosIterator(NullChar, S, It)) Then
-  Begin
-    It.Split(Result, Temp);
-
-    Result := StringTrimRight(Result);
-    Exit;
-  End;
-
   Result := '';
   StringCreateReverseIterator(S, It);
   While It.HasNext Do

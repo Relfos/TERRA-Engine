@@ -33,7 +33,7 @@ Type
       Function Identify(Source:TERRAStream):Boolean; Virtual;
 
     Public
-      Function Load(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
+      Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
   End;
 
 Implementation
@@ -88,7 +88,7 @@ Begin
   Result := CompareFileHeader(ID, 'RIFF');
 End;
 
-Function WAVFormat.Load(Target: TERRAObject; Source: TERRAStream): Boolean;
+Function WAVFormat.LoadFromStream(Target: TERRAObject; Source: TERRAStream): Boolean;
 Var
   Chunk:TWaveChunk;
   Header:TWaveHeader;

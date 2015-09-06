@@ -33,7 +33,7 @@ Type
   GIFFormat = Class(TERRAFileFormat)
     Public
       Function Identify(Source:TERRAStream):Boolean; Override;
-      Function Load(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
+      Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
   End;
 
 Implementation
@@ -550,7 +550,7 @@ Begin
   Result := (ID='GIF');
 End;
 
-Function GIFFormat.Load(Target: TERRAObject; Source: TERRAStream): Boolean;
+Function GIFFormat.LoadFromStream(Target: TERRAObject; Source: TERRAStream): Boolean;
 Var
   Loader:GIFLoader;
 Begin

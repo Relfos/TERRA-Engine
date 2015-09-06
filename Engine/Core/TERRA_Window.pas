@@ -14,6 +14,7 @@ Type
   TERRAWindow = Class(TERRAObject)
     Protected
       _Handle:Cardinal;
+      _Managed:Boolean;
     
 			_Title:TERRAString;
 			_State:TERRAWindowState;
@@ -64,6 +65,8 @@ Type
       Property Position:Vector2D Read _Position Write SetPosition;
 
       Property Handle:Cardinal Read _Handle;
+
+      Property Managed:Boolean Read _Managed;
   End;
 
 Implementation

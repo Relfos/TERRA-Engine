@@ -135,12 +135,12 @@ Type
   End;
 
   TextureProperty = Class(TERRAObject)
-  private
-    function GetTexture: TERRATexture;
-    procedure SetTexture(const Value: TERRATexture);
     Protected
       _Value:TERRAString;
       _Texture:TERRATexture;
+
+      Function GetTexture: TERRATexture;
+      Procedure SetTexture(const Value: TERRATexture);
 
     Public
       Constructor Create(Const Name:TERRAString; InitValue:TERRATexture);

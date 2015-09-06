@@ -33,7 +33,7 @@ Type
   TTFFormat = Class(TERRAFileFormat)
     Public
       Function Identify(Source:TERRAStream):Boolean; Override;
-      Function Load(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
+      Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
   End;
 
 
@@ -1548,7 +1548,7 @@ Begin
   Result := (Major = 1) And (Minor = 0);
 End;
 
-Function TTFFormat.Load(Target: TERRAObject; Source: TERRAStream): Boolean;
+Function TTFFormat.LoadFromStream(Target: TERRAObject; Source: TERRAStream): Boolean;
 Var
   Font:TERRAFont;
   Factory:TTFFont;

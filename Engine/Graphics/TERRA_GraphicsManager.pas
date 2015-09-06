@@ -89,7 +89,6 @@ Type
       _WindVector:Vector3D;
       _FrameID:Cardinal;
 
-      //_Projection:Matrix4x4;
       _OrientationMatrix4x4:Matrix4x4;
 
       _StencilID:Byte;
@@ -760,7 +759,7 @@ Begin
     Log(logWarning, 'GraphicsManager', 'Invalid viewport: '+View.Name);
 End;
 
-Procedure InitFullScreenQuad(FullscreenQuad:VertexData; X1,Y1,X2,Y2:Single; Orientation:Integer);
+Procedure InitFullScreenQuad(FullscreenQuad:VertexData; X1,Y1,X2,Y2:Single; Orientation:TERRAOrientation);
 Begin
   FullscreenQuad.SetVector3D(0, vertexPosition, Vector3D_Create(X1, Y2, 0.0));
   FullscreenQuad.SetVector3D(1, vertexPosition, Vector3D_Create(X2, Y2, 0.0));
@@ -770,7 +769,7 @@ Begin
   FullscreenQuad.SetVector3D(5, vertexPosition, Vector3D_Create(X1, Y2, 0.0));
 
   Case Orientation Of
-    orientationLandscapeLeft:
+    orientation_LandscapeLeft:
     Begin
       FullscreenQuad.SetVector2D(0, vertexUV0, Vector2D_Create(1.0, 0.0));
       FullscreenQuad.SetVector2D(1, vertexUV0, Vector2D_Create(1.0, 1.0));
@@ -780,7 +779,7 @@ Begin
       FullscreenQuad.SetVector2D(5, vertexUV0, Vector2D_Create(1.0, 0.0));
     End;
 
-    orientationLandscapeRight:
+    orientation_LandscapeRight:
     Begin
       FullscreenQuad.SetVector2D(0, vertexUV0, Vector2D_Create(0.0, 1.0));
       FullscreenQuad.SetVector2D(1, vertexUV0, Vector2D_Create(0.0, 0.0));
@@ -790,7 +789,7 @@ Begin
       FullscreenQuad.SetVector2D(5, vertexUV0, Vector2D_Create(0.0, 1.0));
     End;
 
-    orientationPortrait:
+    orientation_Portrait:
     Begin
       FullscreenQuad.SetVector2D(0, vertexUV0, Vector2D_Create(0.0, 0.0));
       FullscreenQuad.SetVector2D(1, vertexUV0, Vector2D_Create(1.0, 0.0));
@@ -800,7 +799,7 @@ Begin
       FullscreenQuad.SetVector2D(5, vertexUV0, Vector2D_Create(0.0, 0.0));
     End;
 
-    orientationPortraitInverted:
+    orientation_PortraitInverted:
     Begin
       FullscreenQuad.SetVector2D(0, vertexUV0, Vector2D_Create(1.0, 1.0));
       FullscreenQuad.SetVector2D(1, vertexUV0, Vector2D_Create(0.0, 1.0));

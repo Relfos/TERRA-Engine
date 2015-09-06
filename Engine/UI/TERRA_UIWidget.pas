@@ -2740,7 +2740,7 @@ Begin
     Self.TriggerEvent(widgetEvent_FocusEnd);
 End;
 
-function UIWidget.GetRenderBucket: Cardinal;
+Function UIWidget.GetRenderBucket: Cardinal;
 Begin
   Result := renderBucket_Overlay;
 End;

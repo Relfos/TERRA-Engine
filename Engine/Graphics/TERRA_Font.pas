@@ -278,7 +278,7 @@ Begin
     Exit;
 
   _Loading := True;
-  Result := Format.Load(Self, Source);
+  Result := Format.LoadFromStream(Self, Source);
   _Loading := False;
 
   If (Not Result) Then

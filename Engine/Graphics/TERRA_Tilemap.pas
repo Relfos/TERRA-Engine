@@ -26,8 +26,8 @@ Unit TERRA_Tilemap;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Stream, TERRA_XML, TERRA_Utils, TERRA_Texture, TERRA_Sprite,
-  TERRA_FileUtils, TERRA_Renderer, TERRA_ZLib;
+Uses TERRA_Object, TERRA_ObjectTree, TERRA_String, TERRA_Stream, TERRA_Utils, TERRA_Texture, TERRA_Sprite,
+  TERRA_FileUtils, TERRA_Viewport, TERRA_Renderer, TERRA_Renderable, TERRA_Vector2D, TERRA_ZLib;
 
 Const
   TileMapExtension = 'tmx';
@@ -68,9 +68,8 @@ Type
     Data:Array Of Array Of Byte;
   End;
 
-  TileLayer = Class(TERRAObject)
+  TileLayer = Class(TERRASprite)
     Protected
-      _Name:TERRAString;
       _Width:Integer;
       _Height:Integer;
       _TilesPerRow:Integer;
@@ -86,11 +85,11 @@ Type
       Visible:Boolean;
 
       Constructor Create(Name:TERRAString; W,H:Integer; Source, Compression:TERRAString; Map:TileMap); Overload;
-      Constructor Create(P:XMLNode; Map:TileMap); Overload;
+      Constructor Create(P:TERRAObjectNode; Map:TileMap); Overload;
 
       Procedure Release; Override;
 
-      Procedure Render(Depth:Single);
+      Procedure Rebuild(Const LayerOfs:Single);
 
       Procedure SetTileAt(X, Y, Value:Integer);
       Function GetTileAt(X, Y:Integer):Integer;
@@ -109,21 +108,18 @@ Type
     Properties:Array Of ObjectProperty;
     PropertyCount:Integer;
 
-    IsShadow:Boolean;
-    IsTop:Boolean;
-
     AnimationCycle:Cardinal;
     AnimationGap:Cardinal;
     AnimationDuration:Cardinal;
   End;
 
-  TileMap = Class(TERRAOBject)
+  TileMap = Class(TERRARenderable)
     Protected
       _LayerCount:Integer;
       _Layers:Array Of TileLayer;
       _TileWidth:Integer;
       _TileHeight:Integer;
-      _Tileset:Texture;
+      _Tileset:TERRATexture;
       _TilesetName:TERRASTring;
       _TileInfo:Array[0..Pred(MaxTileIDs)] Of TileInfo;
       _Palette:Array[0..Pred(MaxTileIDs)] Of Cardinal;
@@ -134,12 +130,12 @@ Type
       _Properties:Array Of ObjectProperty;
       _PropertyCount:Integer;
 
-      Function GetTileset: Texture;
+      Function GetTileset:TERRATexture;
+      Function GetWidth:Integer;
+      Function GetHeight:Integer;
 
     Public
       Name:TERRAString;
-      CamX,CamY:Single;
-      Scale:Single;
 
       Constructor Create(TileWidth, TileHeight:Integer); Overload;
       Procedure Release; Override;
@@ -148,12 +144,8 @@ Type
 
       Function AddLayer(Width,Height:Integer; Name:TERRAString):TileLayer;
 
-      Procedure Render(Depth:Single);
-
-      Function GetWidth:Integer;
-      Function GetHeight:Integer;
-
-      Procedure SetPosition(Var X,Y:Single);
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
+      Function GetRenderBucket: Cardinal; Override;
 
       Function GetTileAt(X, Y:Integer; Layer:Integer=-1; UsePalette:Boolean = False):Integer; Cdecl;
       Function GetTileProperty(ID:Integer; Key:TERRAString):TERRAString;
@@ -169,7 +161,7 @@ Type
       Function GetLayer(Index:Integer):TileLayer; Overload;
       Function GetLayer(Const Name:TERRAString):TileLayer; Overload;
 
-      Property Tileset:Texture Read GetTileset;
+      Property Tileset:TERRATexture Read GetTileset;
 
       Property ObjectCount:Integer Read _ObjectCount;
       Property LayerCount:Integer Read _LayerCount;
@@ -181,7 +173,8 @@ Type
   End;
 
 Implementation
-Uses TERRA_UI, TERRA_OS, TERRA_FileManager, TERRA_MemoryStream, TERRA_XMLBinary, TERRA_Log;
+Uses TERRA_OS, TERRA_EngineManager, TERRA_FileManager, TERRA_MemoryStream,
+  TERRA_Log, TERRA_Base64, TERRA_XML;
 
 { TileMap }
 Constructor TileMap.Create(TileWidth, TileHeight: Integer);
@@ -193,18 +186,28 @@ End;
 
 Function TileMap.Load(Const SourceName:TERRAString):Boolean;
 Var
-  Doc:XMLDocument;
-  Node, P, PP, PPP, PX:XMLNode;
-  Name, S:TERRAString;
+  SourceData:TERRAObjectNode;
+  P, PP, PPP, PX:TERRAObjectNode;
+  Name:TERRAString;
   I, J, K, N, W, H:Integer;
-  Src:Stream;
+  Src:TERRAStream;
+
+  S:TERRAString;
+
+  Location:TERRALocation;
 Begin
   Result := False;
-  Self.Scale := 1;
   Self.Name := GetFileName(SourceName, True);
 
-  S := FileManager.Instance.SearchResourceFile(Self.Name+'.bin');
-  If S='' Then
+  Location := Engine.Files.Search(Self.Name+'.tmx');
+  If Location = Nil Then
+    Exit;
+
+  Src := Engine.Files.OpenLocation(Location);
+  SourceData := Src.ReadObject();
+  ReleaseObject(Src);
+
+(*  If S='' Then
   Begin
     S := FileManager.Instance.SearchResourceFile(Self.Name+'.'+TileMapExtension);
     If S='' Then
@@ -220,10 +223,7 @@ Begin
   End Else
   Begin
     Doc := XMLLoadBinary(S);
-  End;
-
-  CamX := 0;
-  CamY := 0;
+  End;*)
 
   For I:=0 To Pred(MaxTileIDs) Do
   Begin
@@ -233,52 +233,51 @@ Begin
   End;
 
 
-  Node := Doc.Root;
-  P := Node.GetNodeByName('properties');
+  P := SourceData.GetChildByName('properties');
   _PropertyCount := 0;
   If Assigned(P) Then
   Begin
-    For I:=0 To Pred(P.NodeCount) Do
+    For I:=0 To Pred(P.ChildCount) Do
     Begin
-      PP := P.GetNodeByIndex(I);
+      PP := P.GetChildByIndex(I);
       Inc(Self._PropertyCount);
       SetLength(_Properties, _PropertyCount);
-      _Properties[Pred(_PropertyCount)].Key := PP.GetNodeByName('name').Value;
-      _Properties[Pred(_PropertyCount)].Value := PP.GetNodeByName('value').Value;
+
+      PP.GetString('name', _Properties[Pred(_PropertyCount)].Key);
+      PP.GetString('value', _Properties[Pred(_PropertyCount)].Value);
     End;
   End;
 
 
-  P := Node.GetNodeByName('tileset');
+  P := SourceData.GetChildByName('tileset');
 
-  PP := P.GetNodeByName('tilewidth');
+  PP := P.GetChildByName('tilewidth');
   _TileWidth := StringToInt(PP.Value);
 
-  PP := P.GetNodeByName('tileheight');
+  PP := P.GetChildByName('tileheight');
   _TileHeight := StringToInt(PP.Value);
 
-  For I:=0 To Pred(P.NodeCount) Do
+  For I:=0 To Pred(P.ChildCount) Do
   Begin
-    PP := P.GetNodeByIndex(I);
+    PP := P.GetChildByIndex(I);
     If (PP.Name<>'tile') Then
       Continue;
 
-    N := StringToInt(PP.GetNodeByName('id').Value);
-    PP := PP.GetNodeByName('properties');
-    _TileInfo[N].PropertyCount := PP.NodeCount;
+    N := StringToInt(PP.GetChildByName('id').Value);
+    PP := PP.GetChildByName('properties');
+    _TileInfo[N].PropertyCount := PP.ChildCount;
     SetLength(_TileInfo[N].Properties, _TileInfo[N].PropertyCount);
-    For J:=0 To Pred(PP.NodeCount) Do
+    For J:=0 To Pred(PP.ChildCount) Do
     Begin
-      PPP := PP.GetNodeByIndex(J);
-      _TileInfo[N].Properties[J].Key := PPP.GetNodeByName('name').Value;
-      _TileInfo[N].Properties[J].Value := PPP.GetNodeByName('value').Value;
+      PPP := PP.GetChildByIndex(J);
+      _TileInfo[N].Properties[J].Key := PPP.GetChildByName('name').Value;
+      _TileInfo[N].Properties[J].Value := PPP.GetChildByName('value').Value;
     End;
   End;
 
   For I:=0 To Pred(MaxTileIDs ) Do
   Begin
-    _TileInfo[I].IsShadow := Self.HasTileProperty(I, 'shadow') ;
-    _TileInfo[I].IsTop := Self.HasTileProperty(I, 'top');
+    //_TileInfo[I].IsShadow := Self.HasTileProperty(I, 'shadow') ;
 
     S := Self.GetTileProperty(I, 'cycle');
     If (S='') Then
@@ -294,18 +293,18 @@ Begin
       _TileInfo[I].AnimationDuration := DefaultTileAnimationDuration;
   End;
 
-  PP := P.GetNodeByName('image');
-  PPP := PP.GetNodeByName('source');
+  PP := P.GetChildByName('image');
+  PPP := PP.GetChildByName('source');
   S := GetFileName(PPP.Value, True);
   _TileSetName := S;
 
-  {PPP := PP.GetNodeByName('height');
+  {PPP := PP.GetChildByName('height');
   _TilesPerCol := StringToInt(PPP.Value) Div _TileHeight;}
 
   _LayerCount := 0;
-  For I:=0 To Pred(Node.NodeCount) Do
+  For I:=0 To Pred(SourceData.ChildCount) Do
   Begin
-    P := Node.GetNodeByIndex(I);
+    P := SourceData.GetChildByIndex(I);
     If (P.Name<>'layer') Then
       Continue;
 
@@ -315,15 +314,15 @@ Begin
   End;
 
   _ObjectCount := 0;
-  For I:=0 To Pred(Node.NodeCount) Do
+  For I:=0 To Pred(SourceData.ChildCount) Do
   Begin
-    P := Node.GetNodeByIndex(I);
+    P := SourceData.GetChildByIndex(I);
     If (P.Name<>'objectgroup') Then
       Continue;
 
-    For J:=0 To Pred(P.NodeCount) Do
+    For J:=0 To Pred(P.ChildCount) Do
     Begin
-      PP := P.GetNodeByIndex(J);
+      PP := P.GetChildByIndex(J);
       If (PP.Name<>'object') Then
         Continue;
 
@@ -331,19 +330,19 @@ Begin
       Inc(_ObjectCount);
       SetLength(_ObjectList, _ObjectCount);
 
-      PPP := PP.GetNodeByName('x');
+      PPP := PP.GetChildByName('x');
       If Assigned(PPP) Then
         _ObjectList[N].X := StringToInt(PPP.Value);
 
-      PPP := PP.GetNodeByName('y');
+      PPP := PP.GetChildByName('y');
       If Assigned(PPP) Then
         _ObjectList[N].Y := StringToInt(PPP.Value);
 
-      PPP := PP.GetNodeByName('width');
+      PPP := PP.GetChildByName('width');
       If Assigned(PPP) Then
         _ObjectList[N].Width := StringToInt(PPP.Value);
 
-      PPP := PP.GetNodeByName('height');
+      PPP := PP.GetChildByName('height');
       If Assigned(PPP) Then
         _ObjectList[N].Height := StringToInt(PPP.Value);
 
@@ -351,22 +350,22 @@ Begin
       _ObjectList[N].TY := Trunc(_ObjectList[N].Y / Self._TileHeight);
       _ObjectList[N].PropertyCount := 0;
 
-      PPP := PP.GetNodeByName('properties');
+      PPP := PP.GetChildByName('properties');
       If Assigned(PPP) Then
       Begin
-        _ObjectList[N].PropertyCount := PPP.NodeCount;
-        SetLength(_ObjectList[N].Properties, PPP.NodeCount);
-        For K:=0 To Pred(PPP.NodeCount) Do
+        _ObjectList[N].PropertyCount := PPP.ChildCount;
+        SetLength(_ObjectList[N].Properties, PPP.ChildCount);
+        For K:=0 To Pred(PPP.ChildCount) Do
         Begin
-          PX := PPP.GetNodeByIndex(K);
-          _ObjectList[N].Properties[K].Key := PX.GetNodeByName('name').Value;
-          _ObjectList[N].Properties[K].Value := PX.GetNodeByName('value').Value;
+          PX := PPP.GetChildByIndex(K);
+          _ObjectList[N].Properties[K].Key := PX.GetChildByName('name').Value;
+          _ObjectList[N].Properties[K].Value := PX.GetChildByName('value').Value;
         End;
       End;
     End;
   End;
 
-  ReleaseObject(Doc);
+  ReleaseObject(SourceData);
 
   Result := True;  
 End;
@@ -400,11 +399,10 @@ Begin
     Result := _Layers[I].Width;
 End;
 
-Procedure TileMap.Render(Depth:Single);
+Procedure TileMap.Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
 Var
   I:Integer;
   N:Cardinal;
-  Z:Single;
 Begin
   For I:=0 To Pred(MaxTileIDs) Do
   If (_TileInfo[I].AnimationCycle>0) Then
@@ -413,30 +411,12 @@ Begin
     _Palette[I] := Cardinal(I) + N * _TileInfo[I].AnimationGap;
   End;
 
-  Z := Depth;
   For I:=0 To Pred(_LayerCount) Do
   If (_Layers[I].Visible) Then
   Begin
-    _Layers[I].Render(Z-I);
-    SpriteManager.Instance.Flush;
+    _Layers[I].Rebuild(I*0.1);
+    View.SpriteRenderer.QueueSprite(_Layers[I]);
   End;
-End;
-
-Procedure TileMap.SetPosition(Var X, Y: Single);
-Var
-  MaxX, MaxY:Single;
-Begin
-  If (X<0) Then X := 0;
-  If (Y<0) Then Y := 0;
-
-  MaxX := (_Layers[0].Width * _TileWidth* Scale ) - UIManager.Instance.Width;
-  MaxY := (_Layers[0].Height * _TileHeight* Scale )  - UIManager.Instance.Height;
-
-  If (X>MaxX) Then X := MaxX;
-  If (Y>MaxY) Then Y := MaxY;
-
-  CamX := X;
-  CamY := Y;
 End;
 
 Procedure TileMap.Release;
@@ -476,7 +456,7 @@ Var
   I:Integer;
 Begin
   For I:=0 To Pred(_LayerCount) Do
-  If (StringEquals(_Layers[I]._Name, Name)) Then
+  If (StringEquals(_Layers[I].Name, Name)) Then
   Begin
     Result := _Layers[I];
     Exit;
@@ -485,11 +465,11 @@ Begin
   Result := Nil
 End;
 
-Function TileMap.GetTileset: Texture;
+Function TileMap.GetTileset: TERRATexture;
 Begin
   If (_Tileset = Nil) Then
   Begin
-    _Tileset := TextureManager.Instance.GetTexture(_TilesetName);
+    _Tileset := Engine.Textures[_TilesetName];
     If Assigned(_Tileset) Then
     Begin
       _Tileset.Filter := filterLinear;
@@ -501,28 +481,33 @@ Begin
   Result := _TileSet;
 End;
 
+Function TileMap.GetRenderBucket: Cardinal;
+Begin
+  Result := renderBucket_Overlay;
+End;
+
 { TileLayer }
-Constructor TileLayer.Create(P: XMLNode; Map:TileMap);
+Constructor TileLayer.Create(P:TERRAObjectNode; Map:TileMap);
 Var
   X,Y, K :Integer;
   Name:TERRAString;
   W, H, I: Integer;
   Data, Compression:TERRAString;
-  PP, PPP:XMLNode;
+  PP, PPP:TERRAObjectNode;
   B:Byte;
 Begin
-  PP := P.GetNodeByName('name');
+  PP := P.GetChildByName('name');
   Name := PP.Value;
 
-  PP := P.GetNodeByName('width');
+  PP := P.GetChildByName('width');
   W := StringToInt(PP.Value);
 
-  PP := P.GetNodeByName('height');
+  PP := P.GetChildByName('height');
   H := StringToInt(PP.Value);
 
-  PP := P.GetNodeByName('data');
+  PP := P.GetChildByName('data');
 
-  PPP := PP.GetNodeByName('compression');
+  PPP := PP.GetChildByName('compression');
   If Assigned(PPP) Then
     Compression := PPP.Value
   Else
@@ -531,21 +516,21 @@ Begin
   Self.Create(Name, W, H, PP.Value, Compression, Map);
 
 
-  For I:=0 To Pred(P.NodeCount) Do
+  For I:=0 To Pred(P.ChildCount) Do
   Begin
-    PP :=P.GetNodeByIndex(I);
+    PP :=P.GetChildByIndex(I);
     If PP.Name<>'extra' Then
       Continue;
 
     Inc(Self._ExtraCount);
     SetLength(Self._Extra, Self._ExtraCount);
 
-    PPP := PP.GetNodeByName('name');
+    PPP := PP.GetChildByName('name');
     Self._Extra[Pred(Self._ExtraCount)].Name := PPP.Value;
 
     Data := PP.Value;
 
-    PPP := PP.GetNodeByName('compression');
+    PPP := PP.GetChildByName('compression');
     If Assigned(PPP) Then
       Compression := PPP.Value
     Else
@@ -580,7 +565,7 @@ Var
 Begin
   Self.Visible := True;
   Self._Map := Map;
-  Self._Name := Name;
+  Self._ObjectName := Name;
   Self._ExtraCount := 0;
   Self._Width := W;
   Self._Height := H;
@@ -671,15 +656,20 @@ Begin
     Result := _Flags[X,Y];
 End;
 
-Procedure TileLayer.Render(Depth: Single);
+Procedure TileLayer.Rebuild(Const LayerOfs:Single);
 Var
   X1,Y1,X2,Y2:Integer;
+  U1, V1, U2, V2:Single;
   I,J, N:Integer;
   Z:Single;
-  S:QuadSprite;
+  S:TERRASprite;
   Tx, Ty:Integer;
 Begin
-  X1 := Trunc(_Map.CamX/_Map._TileWidth/_Map.Scale);
+  Self.Clear();
+  Self.SetTexture(_Texture);
+  Self.Layer := LayerOfs;;
+
+  (*X1 := Trunc(_Map.CamX/_Map._TileWidth/_Map.Scale);
   Y1 := Trunc(_Map.CamY/_Map._TileHeight/_Map.Scale);
 
   X2 := Succ(X1) + Trunc((UIManager.Instance.Width/_Map._TileWidth)/_Map.Scale);
@@ -693,7 +683,13 @@ Begin
   If (Y1<0) Then
     Y1 := 0;
   If (Y2>=Height) Then
-    Y2 := Pred(Height);
+    Y2 := Pred(Height);*)
+
+  X1 := 0;
+  Y1 := 0;
+
+  X2 := Pred(_Width);
+  Y2 := Pred(_Height);
 
   For J:=Y1 To Y2 Do
     For I:=X1 To X2 Do
@@ -704,20 +700,23 @@ Begin
 
       Dec(N);
       N := _Map._Palette[N];
-      If (_Map._TileInfo[N].IsTop) Then
-        Z := Depth - 10
-      Else
-        Z := Depth;
-      S := SpriteManager.Instance.DrawSprite(I*_Map._TileWidth*_Map.Scale - _Map.CamX, J*_Map._TileHeight*_Map.Scale - _Map.CamY, Z, _Map.Tileset);
+
+
       Tx := (N Mod _TilesPerRow);
       Ty := (N Div _TilesPerRow);
-      S.Rect.PixelRemap(Tx*_Map._TileWidth, Ty*_Map._TileWidth, Succ(Tx)*_Map._TileWidth-1, Succ(Ty)*_Map._TileWidth-1, _Map.GetTileset());
-      S.Rect.Width := _Map._TileWidth;
-      S.Rect.Height := _Map._TileHeight;
-      S.SetScale(_Map.Scale, _Map.Scale);
 
-      S.Mirror := (_Flags[I,J] And TILE_FLIPPED_HORIZONTAL<>0);
-      S.Flip := (_Flags[I,J] And TILE_FLIPPED_VERTICAL<>0);
+      U1 := TX * (_Map._TileWidth / _Texture.Width);
+      U2 := Succ(TX) * (_Map._TileWidth / _Texture.Width);
+
+      V1 := TY * (_Map._TileHeight / _Texture.Height);
+      V2 := Succ(TY) * (_Map._TileHeight / _Texture.Height);
+
+      Self.SetUVs(U1, V1, U2, V2);
+
+      Self.Mirror := (_Flags[I,J] And TILE_FLIPPED_HORIZONTAL<>0);
+      Self.Flip := (_Flags[I,J] And TILE_FLIPPED_VERTICAL<>0);
+
+      Self.AddQuad(SpriteAnchor_TopLeft, Vector2D_Create(I * _Map._TileWidth, J *_Map._TileHeight), 0, _Map._TileWidth, _Map._TileHeight);
     End;
 End;
 
@@ -771,10 +770,10 @@ Begin
 
   While PropList<>'' Do
   Begin
-    S2 := StringGetNextSplit(PropList, Ord('|'));
+    S2 := StringGetNextSplit(PropList, '|');
     Inc(Self.PropertyCount);
     SetLength(Properties, PropertyCount);
-    Properties[Pred(PropertyCount)].Key := StringGetNextSplit(S2, Ord('='));
+    Properties[Pred(PropertyCount)].Key := StringGetNextSplit(S2, '=');
     Properties[Pred(PropertyCount)].Value := S2;
   End;
 End;
@@ -834,9 +833,6 @@ Begin
     Result := _Layers[I]._Data[X,Y];
     If (UsePalette) Then
       Result := _Palette[Result];
-
-    If (Not _TileInfo[Result].IsShadow) And (Not _TileInfo[Result].IsTop) Then
-      Exit;
   End;
 End;
 

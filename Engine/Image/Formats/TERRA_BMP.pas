@@ -31,8 +31,8 @@ Type
   BMPFormat = Class(TERRAFileFormat)
     Public
       Function Identify(Source:TERRAStream):Boolean; Override;
-      Function Load(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
-      Function Save(Target:TERRAObject; Dest:TERRAStream):Boolean; Override;
+      Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
+      Function SaveToStream(Target:TERRAObject; Dest:TERRAStream):Boolean; Override;
   End;
 
 
@@ -107,7 +107,7 @@ Begin
   Result := (ID='BM');
 End;
 
-Function BMPFormat.Load(Target: TERRAObject; Source: TERRAStream): Boolean;
+Function BMPFormat.LoadFromStream(Target: TERRAObject; Source: TERRAStream): Boolean;
 Var
   Header:BitmapFileHeader;
   Palette:ColorPalette;
@@ -215,7 +215,7 @@ Begin
   Result := True;
 End;
 
-Function BMPFormat.Save(Target: TERRAObject; Dest: TERRAStream): Boolean;
+Function BMPFormat.SaveToStream(Target: TERRAObject; Dest: TERRAStream): Boolean;
 Var
   Header:BitmapFileHeader;
   SizeImage:Cardinal;

@@ -34,8 +34,8 @@ Type
   JPEGFormat = Class(TERRAFileFormat)
     Public
       Function Identify(Source:TERRAStream):Boolean; Override;
-      Function Load(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
-      Function Save(Target:TERRAObject; Dest:TERRAStream):Boolean; Override;
+      Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
+      Function SaveToStream(Target:TERRAObject; Dest:TERRAStream):Boolean; Override;
   End;
 
 Implementation
@@ -10746,7 +10746,7 @@ Begin
   Result := CompareFileHeader(ID, 'ÿØÿà');
 End;
 
-Function JPEGFormat.Load(Target: TERRAObject; Source: TERRAStream): Boolean;
+Function JPEGFormat.LoadFromStream(Target: TERRAObject; Source: TERRAStream): Boolean;
 Var
   Image:TERRAImage;
   jpeg:TsdJpegImage;
@@ -10762,7 +10762,7 @@ Begin
   Result := True;
 End;
 
-Function JPEGFormat.Save(Target:TERRAObject; Dest:TERRAStream):Boolean;
+Function JPEGFormat.SaveToStream(Target:TERRAObject; Dest:TERRAStream):Boolean;
 Var
   Image:TERRAImage;
   jpeg:TsdJpegImage;

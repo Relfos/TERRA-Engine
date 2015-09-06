@@ -34,8 +34,8 @@ Type
   PNGFormat = Class(TERRAFileFormat)
     Public
       Function Identify(Source:TERRAStream):Boolean; Override;
-      Function Load(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
-      Function Save(Target:TERRAObject; Dest:TERRAStream):Boolean; Override;
+      Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
+      Function SaveToStream(Target:TERRAObject; Dest:TERRAStream):Boolean; Override;
   End;
 
 Implementation
@@ -862,7 +862,7 @@ Begin
 End;
 
 { PNGFormat }
-Function PNGFormat.Load(Target:TERRAObject; Source: TERRAStream): Boolean;
+Function PNGFormat.LoadFromStream(Target:TERRAObject; Source: TERRAStream): Boolean;
 Var
   MyImage:TERRAImage;
   I,J:Integer;
@@ -972,7 +972,7 @@ Begin
   Result := True;
 End;
 
-Function PNGFormat.Save(Target: TERRAObject; Dest: TERRAStream): Boolean;
+Function PNGFormat.SaveToStream(Target: TERRAObject; Dest: TERRAStream): Boolean;
 Const
   BUFFER = 5;
 Var
