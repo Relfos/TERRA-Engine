@@ -74,7 +74,7 @@ Type
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
 
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
 
@@ -1187,7 +1187,7 @@ Begin
   Result.A := Alpha.Value;
 End;
 
-Function ColorProperty.GetObjectType: TERRAString;
+Class Function ColorProperty.GetObjectType: TERRAString;
 Begin
   Result := 'color';
 End;

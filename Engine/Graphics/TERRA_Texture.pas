@@ -145,7 +145,7 @@ Type
     Public
       Constructor Create(Const Name:TERRAString; InitValue:TERRATexture);
 
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
@@ -869,7 +869,7 @@ Begin
   End;
 End;
 
-Function TextureProperty.GetObjectType: TERRAString;
+Class Function TextureProperty.GetObjectType: TERRAString;
 Begin
   Result := 'texture';
 End;

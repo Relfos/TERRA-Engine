@@ -3,8 +3,8 @@ Unit TERRA_EngineManager;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Application, TERRA_Threads,
-  TERRA_GraphicsManager, TERRA_TextureManager, TERRA_MeshManager, TERRA_FontManager, TERRA_InputManager,
+Uses TERRA_Object, TERRA_String, TERRA_Application, TERRA_Threads, TERRA_List,
+  TERRA_GraphicsManager, TERRA_TextureManager, TERRA_MeshManager, TERRA_FontManager, TERRA_InputManager, TERRA_Pool,
   TERRA_PhysicsManager, TERRA_ParticleRenderer, TERRA_ShaderFactory, TERRA_MeshAnimation, TERRA_Lights, TERRA_UICursor,
   TERRA_FileManager, TERRA_SoundManager, TERRA_FileFormat, TERRA_MusicManager, TERRA_MIDI, TERRA_Localization,
   TERRA_Network, TERRA_NetDownloader
@@ -13,6 +13,8 @@ Uses TERRA_Object, TERRA_String, TERRA_Application, TERRA_Threads,
 Type
   EngineManager = Class(TERRAObject)
     Protected
+      _Pool:TERRAPool;
+
       _Textures:TextureManager;
       _Meshes:MeshManager;
       _Animations:AnimationManager;
@@ -42,6 +44,8 @@ Type
 
       _HTTP:DownloadManager;
 
+      _RendererList:TERRAList;
+
       {$IFDEF PC}
       _Steam:SteamManager;
       {$ENDIF}
@@ -68,6 +72,8 @@ Type
       Property Particles:ParticleManager Read _Particles;
       Property Lights:LightManager Read _Lights;
 
+      Property Renderers:TERRAList Read _RendererList;
+
       Property Audio:SoundManager Read _Audio;
       Property Music:MusicManager Read _Music;
       Property MIDI:MidiManager Read _MIDI;
@@ -85,6 +91,8 @@ Type
       Property Network:NetworkManager Read _Network;
       Property HTTP:DownloadManager Read _HTTP;
 
+      Property Pool:TERRAPool Read _Pool;
+
       {$IFDEF PC}
       Property Steam:SteamManager Read _Steam;
       {$ENDIF}
@@ -93,7 +101,7 @@ Type
 Function Engine():EngineManager;
 
 Implementation
-Uses TERRA_List, TERRA_UIView, TERRA_UIDimension, TERRA_Color, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Quaternion,
+Uses TERRA_NullRenderer, TERRA_UIView, TERRA_UIDimension, TERRA_Color, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Quaternion,
   TERRA_Texture, TERRA_Font;
 
 Var
@@ -102,14 +110,19 @@ Var
 Function Engine():EngineManager;
 Begin
   If _EngineManager = Nil Then
+  Begin
     _EngineManager := EngineManager.Create();
-
+    _EngineManager.Renderers.Add(NullRenderer.Create());
+  End;
+  
   Result := _EngineManager;
 End;
 
 { EngineManager }
 Constructor EngineManager.Create;
 Begin
+  _Pool := TERRAPool.Create();
+
   _InputManager := InputManager.Create();
   _FileManager := FileManager.Create();
   _Formats := FormatManager.Create();
@@ -131,65 +144,10 @@ Begin
   {$IFDEF PC}
   _Steam := SteamManager.Create();
   {$ENDIF}
+
+  _RendererList := TERRAList.Create();
 End;
 
-Function EngineManager.CreateObject(const KeyName, ObjectType: TERRAString): TERRAObject;
-Begin
-  If (StringEquals(ObjectType, 'string')) Then
-    Result := StringProperty.Create(Name, '')
-  Else
-  If (StringEquals(ObjectType, 'color')) Then
-    Result := ColorProperty.Create(Name, ColorWhite)
-  Else
-  If (StringEquals(ObjectType, 'vec2')) Then
-    Result := Vector2DProperty.Create(Name, Vector2D_Zero)
-  Else
-  If (StringEquals(ObjectType, 'vec3')) Then
-    Result := Vector3DProperty.Create(Name, Vector3D_Zero)
-  Else
-(*  If (StringEquals(ObjectType, 'vec4')) Then
-    Result := Vector4DProperty.Create(Name, Vector4D_Zero)
-  Else
-  If (StringEquals(ObjectType, 'quaternion')) Then
-    Result := QuaternionProperty.Create(Name, Quaternion_Zero)
-  Else*)
-  If (StringEquals(ObjectType, 'float')) Then
-    Result := FloatProperty.Create(Name, 0)
-  Else
-  If (StringEquals(ObjectType, 'integer')) Then
-    Result := IntegerProperty.Create(Name, 0)
-  Else
-  If (StringEquals(ObjectType, 'byte')) Then
-    Result := ByteProperty.Create(Name, 0)
-  Else
-  If (StringEquals(ObjectType, 'angle')) Then
-    Result := AngleProperty.Create(Name, 0)
-  Else
-  If (StringEquals(ObjectType, 'dimension')) Then
-    Result := DimensionProperty.Create(Name, UIPercent(100))
-  Else
-  If (StringEquals(ObjectType, 'margin')) Then
-    Result := MarginProperty.Create(Name)
-  Else
-  If StringEquals(ObjectType, 'list') Then
-  Begin
-    Result := TERRAList.Create();
-    Result.Name := KeyName;
-  End Else
-  If (StringEquals(ObjectType, 'UI')) Then
-    Result := UIView.Create(Name, UIPercent(100), UIPercent(100))
-  Else
-  If (StringEquals(ObjectType, 'texture')) Then
-    Result := TextureProperty.Create(Name, Textures.WhiteTexture)
-  Else
-  If (StringEquals(ObjectType, 'font')) Then
-    Result := FontProperty.Create(Name, Fonts.DefaultFont)
-  Else
-  If (StringEquals(ObjectType, 'path')) Then
-    Result := PathProperty.Create(Name, '')
-  Else
-    Result := Nil;
-End;
 
 Procedure EngineManager.Init();
 Begin
@@ -239,6 +197,9 @@ Begin
   ReleaseObject(_FileManager);
   ReleaseObject(_InputManager);
   ReleaseObject(_Formats);
+
+  ReleaseObject(_RendererList);
+  ReleaseObject(_Pool);
 End;
 
 Procedure EngineManager.Update;
@@ -261,6 +222,64 @@ Begin
   {$IFDEF PC}
   _Steam.Update();
   {$ENDIF}
+End;
+
+Function EngineManager.CreateObject(const KeyName, ObjectType: TERRAString): TERRAObject;
+Begin
+  If (StringEquals(ObjectType, 'string')) Then
+    Result := StringProperty.Create(Name, '')
+  Else
+  If (StringEquals(ObjectType, 'color')) Then
+    Result := ColorProperty.Create(Name, ColorWhite)
+  Else
+  If (StringEquals(ObjectType, 'vec2')) Then
+    Result := Vector2DProperty.Create(Name, Vector2D_Zero)
+  Else
+  If (StringEquals(ObjectType, 'vec3')) Then
+    Result := Vector3DProperty.Create(Name, Vector3D_Zero)
+  Else
+(*  If (StringEquals(ObjectType, 'vec4')) Then
+    Result := Vector4DProperty.Create(Name, Vector4D_Zero)
+  Else
+  If (StringEquals(ObjectType, 'quaternion')) Then
+    Result := QuaternionProperty.Create(Name, Quaternion_Zero)
+  Else*)
+  If (StringEquals(ObjectType, 'float')) Then
+    Result := FloatProperty.Create(Name, 0)
+  Else
+  If (StringEquals(ObjectType, 'integer')) Then
+    Result := IntegerProperty.Create(Name, 0)
+  Else
+  If (StringEquals(ObjectType, 'byte')) Then
+    Result := ByteProperty.Create(Name, 0)
+  Else
+  If (StringEquals(ObjectType, 'angle')) Then
+    Result := AngleProperty.Create(Name, 0)
+  Else
+  If (StringEquals(ObjectType, 'dimension')) Then
+    Result := DimensionProperty.Create(Name, UIPercent(100))
+  Else
+  If (StringEquals(ObjectType, 'margin')) Then
+    Result := MarginProperty.Create(Name)
+  Else
+  If StringEquals(ObjectType, 'list') Then
+  Begin
+    Result := TERRAList.Create();
+    Result.Name := KeyName;
+  End Else
+  If (StringEquals(ObjectType, 'UI')) Then
+    Result := UIView.Create(Name, UIPercent(100), UIPercent(100), 0)
+  Else
+  If (StringEquals(ObjectType, 'texture')) Then
+    Result := TextureProperty.Create(Name, Textures.WhiteTexture)
+  Else
+  If (StringEquals(ObjectType, 'font')) Then
+    Result := FontProperty.Create(Name, Fonts.DefaultFont)
+  Else
+  If (StringEquals(ObjectType, 'path')) Then
+    Result := PathProperty.Create(Name, '')
+  Else
+    Result := Nil;
 End;
 
 End.

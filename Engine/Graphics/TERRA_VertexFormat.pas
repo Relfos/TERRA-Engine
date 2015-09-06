@@ -45,7 +45,7 @@ Type
   VertexData = Class;
 
 
-	Vertex = Class(TERRACollectionObject)
+	TERRAVertex = Class(TERRACollectionObject)
     Private
       {$IFNDEF DISABLEALLOCOPTIMIZATIONS}
       Class Function NewInstance:TObject; Override;
@@ -77,9 +77,10 @@ Type
 
       Function HasAttribute(Attribute:Cardinal):Boolean;
 
+      Class Function CanBePooled: Boolean;
     End;
 
-  SimpleVertex = Class(Vertex)
+  SimpleVertex = Class(TERRAVertex)
     Protected
       Procedure Load(); Override;
       Procedure Save(); Override;
@@ -88,15 +89,15 @@ Type
       Position:Vector3D;
   End;
 
-  VertexClass = Class Of Vertex;
+  VertexClass = Class Of TERRAVertex;
 
   VertexIterator = Class(Iterator)
     Protected
       _Target:VertexData;
       _LastIndex:Integer;
-      _CurrentVertex:Vertex;
+      _CurrentVertex:TERRAVertex;
 
-      Procedure Init(Target:VertexData; V:VertexClass);
+      Procedure Setup(Target:VertexData; V:VertexClass);
 
       Function ObtainNext():TERRACollectionObject; Override;
 
@@ -167,7 +168,7 @@ Type
 
       Function GetIterator():Iterator; Override;
       Function GetIteratorForClass(V:VertexClass):VertexIterator;
-      Function GetVertex(V:VertexClass; Index:Integer):Vertex;
+      //Function GetVertex(V:VertexClass; Index:Integer):TERRAVertex;
 
       Function GetVertexSizeInBytes():Cardinal;
 
@@ -780,8 +781,13 @@ End;
 
 Function VertexData.GetIteratorForClass(V:VertexClass):VertexIterator;
 Begin
-  Result := VertexIterator.Create(Self);
-  Result.Init(Self, V);
+  Result := VertexIterator(Engine.Pool.Fetch(VertexIterator));
+  If Assigned(Result) Then
+    Result.Init(Self)
+  Else
+    Result := VertexIterator.Create(Self);
+
+  Result.Setup(Self, V);
 End;
 
 Function VertexData.GetIterator():Iterator;
@@ -871,13 +877,18 @@ Begin
   End;
 End;
 
-Function VertexData.GetVertex(V: VertexClass; Index: Integer): Vertex;
+(*Function VertexData.GetVertex(V:VertexClass; Index:Integer):TERRAVertex;
 Begin
-  Result := V.Create();
+  Result := TERRAVertex(Engine.Pool.Fetch(V));
+  If Result = Nil Then
+    Result := V.Create()
+  Else
+    DebugBreak;
+
   Result._Target := Self;
   Result._VertexID := Index;
   Result.Load();
-End;
+End;*)
 
 Function VertexData.GetBuffer: Pointer;
 Begin
@@ -965,7 +976,7 @@ Begin
 End;
 
 { VertexIterator }
-Procedure VertexIterator.Init(Target:VertexData; V:VertexClass);
+Procedure VertexIterator.Setup(Target:VertexData; V:VertexClass);
 Begin
   Self._Target := Target;
   Self._LastIndex := 0;
@@ -1009,7 +1020,7 @@ Begin
     Self._CurrentVertex._VertexID := Position;
     If Position>=0 Then
       Self._CurrentVertex.Load();
-      
+
     _LastIndex := Position;
   End;
 //  _CurrentVertex := Pointer(PtrUInt(_Target._Data) + VertexIndex * _Target._VertexSize);
@@ -1027,69 +1038,69 @@ Begin
   Inherited Release();
 End;
 
-{ Vertex }
-Constructor Vertex.Create;
+{ TERRAVertex }
+Constructor TERRAVertex.Create;
 Begin
   Self._VertexID := -1;
   Self._Item := Self;
 End;
 
-Procedure Vertex.GetColor(Attribute:Cardinal; Out Value:ColorRGBA);
+Procedure TERRAVertex.GetColor(Attribute:Cardinal; Out Value:ColorRGBA);
 Begin
   _Target.GetColor(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.SetColor(Attribute:Cardinal; Const Value:ColorRGBA);
+Procedure TERRAVertex.SetColor(Attribute:Cardinal; Const Value:ColorRGBA);
 Begin
   _Target.SetColor(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.GetFloat(Attribute:Cardinal; Out Value:Single);
+Procedure TERRAVertex.GetFloat(Attribute:Cardinal; Out Value:Single);
 Begin
   _Target.GetFloat(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.SetFloat(Attribute:Cardinal; Const Value:Single);
+Procedure TERRAVertex.SetFloat(Attribute:Cardinal; Const Value:Single);
 Begin
   _Target.SetFloat(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.GetVector2D(Attribute:Cardinal; Out Value:Vector2D);
+Procedure TERRAVertex.GetVector2D(Attribute:Cardinal; Out Value:Vector2D);
 Begin
   _Target.GetVector2D(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.SetVector2D(Attribute:Cardinal; Const Value:Vector2D);
+Procedure TERRAVertex.SetVector2D(Attribute:Cardinal; Const Value:Vector2D);
 Begin
   _Target.SetVector2D(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.GetVector3D(Attribute:Cardinal; Out Value:Vector3D);
+Procedure TERRAVertex.GetVector3D(Attribute:Cardinal; Out Value:Vector3D);
 Begin
   _Target.GetVector3D(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.SetVector3D(Attribute:Cardinal; Const Value:Vector3D);
+Procedure TERRAVertex.SetVector3D(Attribute:Cardinal; Const Value:Vector3D);
 Begin
   _Target.SetVector3D(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.GetVector4D(Attribute:Cardinal; Out Value:Vector4D);
+Procedure TERRAVertex.GetVector4D(Attribute:Cardinal; Out Value:Vector4D);
 Begin
   _Target.GetVector4D(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.SetVector4D(Attribute:Cardinal; Const Value:Vector4D);
+Procedure TERRAVertex.SetVector4D(Attribute:Cardinal; Const Value:Vector4D);
 Begin
   _Target.SetVector4D(Self._VertexID, Attribute, Value);
 End;
 
-Function Vertex.HasAttribute(Attribute: Cardinal): Boolean;
+Function TERRAVertex.HasAttribute(Attribute: Cardinal): Boolean;
 Begin
   Result := _Target.HasAttribute(Attribute);
 End;
 
-Procedure Vertex.Release;
+Procedure TERRAVertex.Release;
 Begin
   If (Self._VertexID>=0) Then
   Begin
@@ -1099,7 +1110,7 @@ Begin
 End;
 
 {$IFNDEF DISABLEALLOCOPTIMIZATIONS}
-Class Function Vertex.NewInstance: TObject;
+Class Function TERRAVertex.NewInstance: TObject;
 Var
   ObjSize, GlobalSize:Integer;
 Begin
@@ -1110,10 +1121,15 @@ Begin
   InitInstance(Result);
 End;
 
-Procedure Vertex.FreeInstance;
+Procedure TERRAVertex.FreeInstance;
 Begin
 End;
 {$ENDIF}
+
+Class Function TERRAVertex.CanBePooled: Boolean;
+Begin
+  Result := True;
+End;
 
 { SimpleVertex }
 Procedure SimpleVertex.Load;

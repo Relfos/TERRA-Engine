@@ -27,7 +27,7 @@ Type
     Public
       Constructor Create(Const Name:TERRAString; Const InitValue:UIDimension);
 
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
@@ -54,7 +54,7 @@ Type
     Public
       Constructor Create(Const Name:TERRAString);
 
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
 
@@ -102,11 +102,10 @@ Begin
   Self._Dimension := InitValue;
 End;
 
-Function DimensionProperty.GetObjectType: TERRAString;
+Class Function DimensionProperty.GetObjectType: TERRAString;
 Begin
   Result := 'dimension';
 End;
-
 
 Function DimensionProperty.GetBlob: TERRAString;
 Begin
@@ -143,7 +142,7 @@ Begin
   _Bottom := DimensionProperty.Create('bottom', UIPixels(0));
 End;
 
-Function MarginProperty.GetObjectType: TERRAString;
+Class Function MarginProperty.GetObjectType: TERRAString;
 Begin
   Result := 'margin';
 End;

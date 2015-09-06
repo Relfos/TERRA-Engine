@@ -35,7 +35,7 @@ Type
     Public
       Constructor Create(Const Name:TERRAString; Const InitValue:Integer; Collection:EnumCollection);
 
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
@@ -71,11 +71,10 @@ Begin
     Value := _Collection.GetByName(Blob);
 End;
 
-Function EnumProperty.GetObjectType: TERRAString;
+Class Function EnumProperty.GetObjectType: TERRAString;
 Begin
   Result := 'enum';
 End;
-
 
 { EnumCollection }
 Procedure EnumCollection.Add(const Name: TERRAString; const Value: Integer);

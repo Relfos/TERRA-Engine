@@ -140,7 +140,7 @@ Begin
   If (_GUI = Nil) Then
   Begin
     // Create a new UI
-    _GUI := UIView.Create('UI', UIPercent(100), UIPercent(100));
+    _GUI := UIView.Create('UI', UIPercent(100), UIPercent(100), 5);
 
     // Register the font with the UI
     _GUI.DefaultFont := Self.Font;

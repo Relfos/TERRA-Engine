@@ -528,7 +528,7 @@ Type
       Constructor Create(Const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension; Const TemplateName:TERRAString);
       Procedure Release(); Override;
 
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
   End;
 
   UITemplateList = Class(TERRAObject)
@@ -2528,9 +2528,6 @@ End;
 
 Function UIWidget.CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject;
 Begin
-  If (StringEquals(ObjectType, 'UI')) Then
-    Result := UIView.Create(KeyName, UIPixels(100), UIPixels(100))
-  Else
   If (StringEquals(ObjectType, 'UITiledRect')) Then
     Result := UITiledRect.Create(KeyName, Self, UIPixels(100), UIPixels(100), 0.0, UIPixels(100), UIPixels(100), 0, 0, 5, 5)
   Else
@@ -3151,7 +3148,7 @@ Begin
   ReleaseObject(_TemplateName);
 End;
 
-Function UIInstancedWidget.GetObjectType: TERRAString;
+Class Function UIInstancedWidget.GetObjectType: TERRAString;
 Begin
   Result := 'UITemplate';
 End;

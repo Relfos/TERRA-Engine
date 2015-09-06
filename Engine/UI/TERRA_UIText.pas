@@ -21,7 +21,7 @@ Type
       Constructor Create(Const Name:TERRAString);
       Procedure Release(); Override;
 
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
 
@@ -155,7 +155,7 @@ Begin
   _Align := EnumProperty.Create('align', 0, _AlignEnums);
 End;
 
-Function FontStyleProperty.GetObjectType: TERRAString;
+Class Function FontStyleProperty.GetObjectType: TERRAString;
 Begin
   Result := 'fontstyle';
 End;

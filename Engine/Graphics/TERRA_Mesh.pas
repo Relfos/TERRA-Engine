@@ -134,7 +134,7 @@ Type
     GroupID:Integer;
   End;
 
-  MeshVertex = Class(Vertex)
+  MeshVertex = Class(TERRAVertex)
     Protected
       Procedure Load(); Override;
       Procedure Save(); Override;

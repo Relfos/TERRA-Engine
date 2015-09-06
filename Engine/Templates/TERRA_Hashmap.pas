@@ -72,7 +72,7 @@ Type
 Function LoadKeypairList(SourceFile:TERRAString):TERRAHashMap;
 
 Implementation
-Uses TERRA_Log, TERRA_Stream, TERRA_FileStream, TERRA_MurmurHash;
+Uses TERRA_EngineManager, TERRA_Log, TERRA_Stream, TERRA_FileStream, TERRA_MurmurHash;
 
 Function LoadKeypairList(SourceFile:TERRAString):TERRAHashMap;
 Var
@@ -293,7 +293,14 @@ Function TERRAHashMap.GetIterator:Iterator;
 Var
   MyIterator:HashMapIterator;
 Begin
-  MyIterator := HashMapIterator.Create(Self);
+  MyIterator := HashMapIterator(Engine.Pool.Fetch(HashMapIterator));
+  If Assigned(MyIterator) Then
+  Begin
+    MyIterator.Init(Self);
+    MyIterator.Reset();
+  End Else
+    MyIterator := HashMapIterator.Create(Self);
+
   Result := MyIterator;
 End;
 

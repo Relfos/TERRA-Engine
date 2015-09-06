@@ -18,7 +18,7 @@ Type
 
       Procedure UpdateSprite(View:TERRAViewport); Override;
 
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
     Public
       Anchor:Vector2D;
@@ -63,7 +63,7 @@ Begin
 End;
 
 
-Function UIImage.GetObjectType: TERRAString;
+Class Function UIImage.GetObjectType: TERRAString;
 Begin
   Result := 'UIImage';
 End;

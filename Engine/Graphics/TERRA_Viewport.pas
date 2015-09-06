@@ -76,6 +76,10 @@ Type
       _Name:TERRAString;
       _Visible:Boolean;
 
+      _FrameID:Cardinal;
+
+      _Layer:Single;
+
       _OfsX:Integer;
       _OfsY:Integer;
 
@@ -197,6 +201,11 @@ Type
       Property SpriteRenderer:TERRASpriteRenderer Read _SpriteRenderer;
 
       Property ResolveTexture:TERRATexture Read GetResolveTexture;
+
+      Property Layer:Single Read _Layer Write _Layer;
+
+
+      Property FrameID:Cardinal Read _FrameID;
 
       Property AutoResolve:Boolean Read _AutoResolve Write SetAutoResolve;
   End;
@@ -579,6 +588,8 @@ Var
   TempColor:ColorRGBA;
   View:TERRAViewport;
 Begin
+  _FrameID := Engine.Graphics.FrameID;
+  
   {$IFDEF POSTPROCESSING}
   {$IFDEF FRAMEBUFFEROBJECTS}
   If (Self.HasPostProcessing) And (Target <> Self) Then

@@ -30,11 +30,11 @@ Uses SysUtils, TERRA_DebugInfo;
 
 Type
   CallInfo = Record
-    Name:^String;
+    Routine:TERRARoutineInfo;
     Line:Cardinal;
   End;
 
-Procedure GetCurrentCall(Var Info:CallInfo);
+Procedure GetCurrentCall(Out Info:CallInfo);
 
 //Function TextualDebugInfoForAddress(Const TheAddress: Cardinal):TERRAString;
 
@@ -145,7 +145,7 @@ Begin
 End;
 
 
-Procedure GetCurrentCall(Var Info:CallInfo);
+Procedure GetCurrentCall(Out Info:CallInfo);
 Var
 	I, Count:Integer;
   TheAddress:Cardinal;
@@ -161,7 +161,7 @@ Begin
   SettingCallStack := False;
 
 	I := 0;
-	Info.Name := Nil;
+	Info.Routine := Nil;
   Info.Line := 0;
 
   Count := SkillCalls;
@@ -182,7 +182,7 @@ Begin
         If Assigned(Routine) Then
         Begin
           Dec(Count);
-          Info.Name := @Routine.Name;
+          Info.Routine := Routine;
           Info.Line := U.FindLineWithAddress(AddressInDebugInfos);
           If (Count<0) Then
             Exit;

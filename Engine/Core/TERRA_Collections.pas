@@ -74,6 +74,8 @@ Type
       { Mark this object for release. It will be auto-released as soon as possible.}
       Procedure Discard();
 
+      Class Function CanBePooled:Boolean; Override;
+
       Property Collection:TERRACollection Read _Collection;
       Property Next:TERRACollectionObject Read _Next Write _Next; // FIXME should not have write acess
       Property Item:TERRAObject Read _Item;
@@ -108,13 +110,17 @@ Type
       Property Index:Integer Read _Index;
 
     Public
-      Constructor Create(Col:TERRACollection);
+      Constructor Create(Collection:TERRACollection);
+
+      Procedure Init(Collection:TERRACollection);
 
       Function HasNext():Boolean;
 
       Function Seek(Position:Integer):Boolean;
 
       Procedure Discard();
+
+      Class Function CanBePooled:Boolean; Override;
 
       Property Value:TERRAObject Read GetValue;
       Property Position:Integer Read GetPosition;
@@ -140,6 +146,8 @@ Type
       Procedure Update();
       Procedure RemoveDiscardedItems(); Virtual;
 
+      Function NewItem(Content:TERRAObject):TERRACollectionObject;
+
       Function CompareItems(A,B:TERRACollectionObject):Integer;
 
     Public
@@ -162,7 +170,7 @@ Type
       Function Delete(Item:TERRAObject):Boolean;
 
       // Returns true if removal was sucessful
-      Function Remove(Item:TERRAObject):Boolean; Virtual; 
+      Function Remove(Item:TERRAObject):Boolean; Virtual;
 
       Function GetItemByIndex(Index:Integer):TERRAObject; Virtual;
 
@@ -193,7 +201,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_FileStream, TERRA_Stream
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_EngineManager, TERRA_FileStream, TERRA_Stream
 {$IFNDEF DISABLEALLOCOPTIMIZATIONS}, TERRA_StackObject{$ENDIF};
 
 {$IFDEF DEBUG_ITERATORS}
@@ -221,6 +229,11 @@ Begin
     Self._Collection._HasDiscards := True
   Else
     DebugBreak;
+End;
+
+Class Function TERRACollectionObject.CanBePooled: Boolean;
+Begin
+  Result := True;
 End;
 
 { TERRACollection }
@@ -331,6 +344,7 @@ End;
 Function TERRACollection.Delete(Item:TERRAObject):Boolean;
 Begin
   Result := Self.Remove(Item);
+  
   If Result Then
     ReleaseObject(Item);
 End;
@@ -491,10 +505,28 @@ Begin
   Result := False;
 End;
 
-{ Iterator }
-Constructor Iterator.Create(Col:TERRACollection);
+Function TERRACollection.NewItem(Content:TERRAObject): TERRACollectionObject;
 Begin
-  _Collection := Col;
+  Result := TERRACollectionObject(Engine.Pool.Fetch(TERRACollectionObject));
+  If Assigned(Result) Then
+  Begin
+    Result._Item := Content;
+    Result._Discarded := False;
+    Exit;
+  End;
+
+  Result := TERRACollectionObject.Create(Self, Content);
+End;
+
+{ Iterator }
+Constructor Iterator.Create(Collection:TERRACollection);
+Begin
+  Self.Init(Collection);
+End;
+
+Procedure Iterator.Init(Collection:TERRACollection);
+Begin
+  _Collection := Collection;
 
   If Assigned(_Collection) Then
   Begin
@@ -606,6 +638,11 @@ Procedure Iterator.Discard;
 Begin
   If Assigned(_Value) Then
     _Value.Discard();
+End;
+
+Class Function Iterator.CanBePooled: Boolean;
+Begin
+  Result := True;
 End;
 
 End.

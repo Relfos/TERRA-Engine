@@ -15,7 +15,8 @@ Type
       Procedure SetObjectName(const Value: TERRAString); Virtual;
 
     Public
-      Function GetObjectType:TERRAString; Virtual;
+      Class Function GetObjectType:TERRAString; Virtual;
+      Class Function CanBePooled:Boolean; Virtual;
 
       Function GetBlob():TERRAString; Virtual;
       Procedure SetBlob(Const Blob:TERRAString);Virtual;
@@ -48,7 +49,8 @@ Type
     Public
       Constructor Create(Const Name:TERRAString; Const InitValue:Boolean);
 
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
+      Class Function CanBePooled:Boolean; Override;
 
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
@@ -63,7 +65,8 @@ Type
     Public
       Constructor Create(Const Name:TERRAString; Const InitValue:TERRAString);
 
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
+      Class Function CanBePooled:Boolean; Override;
 
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
@@ -103,6 +106,8 @@ Type
     Public
       Procedure UpdateTweens(); Virtual;
 
+      Class Function CanBePooled:Boolean; Override;
+
       Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Virtual; Abstract;
 
       Function HasActiveTweens:Boolean; Override;
@@ -120,7 +125,7 @@ Type
     Public
       Constructor Create(Const Name:TERRAString; Const InitValue:Integer);
 
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
       Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
       Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Integer; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
@@ -146,7 +151,7 @@ Type
 
     Public
       Constructor Create(Const Name:TERRAString; Const InitValue:Byte);
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
       Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
       Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Byte; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
@@ -170,7 +175,7 @@ Type
 
     Public
       Constructor Create(Const Name:TERRAString; Const InitValue:Single);
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
       Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
       Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Single; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
@@ -188,7 +193,7 @@ Type
 
   AngleProperty = Class(FloatProperty)
     Public
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
       Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
 
@@ -213,7 +218,11 @@ Begin
   If (Temp Is TERRAObject) Then
   Begin
     TERRAObject(Temp).Release();
-    TERRAObject(Temp).Destroy();
+
+    If (TERRAObject(Temp).CanBePooled) And (Assigned(Engine())) Then
+      Engine.Pool.Recycle(TERRAObject(Temp))
+    Else
+      TERRAObject(Temp).Destroy();
   End Else
     Log(logWarning, 'App', Temp.ClassName +' is not a TERRA-Object!');
 
@@ -243,7 +252,7 @@ Begin
   Inherited;
 End;
 
-Function TERRAObject.GetObjectType: TERRAString;
+Class Function TERRAObject.GetObjectType: TERRAString;
 Begin
   Result := Self.ClassName;
 End;
@@ -366,7 +375,17 @@ Begin
   Result := Assigned(Self.GetPropertyByIndex(0));
 End;
 
+Class Function TERRAObject.CanBePooled: Boolean;
+Begin
+  Result := False;
+End;
+
 { TweenableProperty }
+Class Function TweenableProperty.CanBePooled: Boolean;
+Begin
+  Result := True;
+End;
+
 Function TweenableProperty.HasActiveTweens:Boolean;
 Begin
   Self.UpdateTweens();
@@ -489,7 +508,7 @@ Begin
   _Value := NewValue;
 End;
 
-Function IntegerProperty.GetObjectType: TERRAString;
+Class Function IntegerProperty.GetObjectType: TERRAString;
 Begin
   Result := 'int';
 End;
@@ -551,7 +570,7 @@ Begin
   _Value := NewValue;
 End;
 
-Function ByteProperty.GetObjectType: TERRAString;
+Class Function ByteProperty.GetObjectType: TERRAString;
 Begin
   Result := 'byte';
 End;
@@ -583,7 +602,7 @@ Begin
   _Value := InitValue;
 End;
 
-Function FloatProperty.GetObjectType: TERRAString;
+Class Function FloatProperty.GetObjectType: TERRAString;
 Begin
   Result := 'float';
 End;
@@ -677,7 +696,7 @@ Begin
   Self._Value := InitValue;
 End;
 
-Function BooleanProperty.GetObjectType: TERRAString;
+Class Function BooleanProperty.GetObjectType: TERRAString;
 Begin
   Result := 'bool';
 End;
@@ -690,6 +709,11 @@ End;
 Procedure BooleanProperty.SetBlob(const Blob: TERRAString);
 Begin
   _Value := StringToBool(Blob);
+End;
+
+Class Function BooleanProperty.CanBePooled: Boolean;
+Begin
+  Result := True;
 End;
 
 { StringProperty }
@@ -709,13 +733,18 @@ Begin
   _Value := Blob;
 End;
 
-Function StringProperty.GetObjectType: TERRAString;
+Class Function StringProperty.GetObjectType: TERRAString;
 Begin
   Result := 'string';
 End;
 
+Class Function StringProperty.CanBePooled: Boolean;
+Begin
+  Result := True;
+End;
+
 { AngleProperty }
-Function AngleProperty.GetObjectType: TERRAString;
+Class Function AngleProperty.GetObjectType: TERRAString;
 Begin
   Result := 'angle';
 End;

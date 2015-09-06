@@ -748,7 +748,7 @@ Begin
 
   Self.InitBuildInfo();
 
-  Renderers.Add(OpenGLRenderer.Create());
+  Engine.Renderers.Add(OpenGLRenderer.Create());
 
   Result := True;
 End;

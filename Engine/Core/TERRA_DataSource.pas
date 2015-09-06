@@ -13,7 +13,7 @@ Type
     Public
       Constructor Create(Const Name:TERRAString; Const InitValue:TERRAString);
 
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
@@ -65,7 +65,7 @@ Begin
   _Value := Blob;
 End;
 
-Function DataSourceProperty.GetObjectType: TERRAString;
+Class Function DataSourceProperty.GetObjectType: TERRAString;
 Begin
   Result := 'datasource';
 End;

@@ -43,7 +43,7 @@ Const
   ParticleVertexFormat = [vertexFormatPosition, vertexFormatColor, vertexFormatUV0, vertexFormatOfs, vertexFormatSize, vertexFormatAngles];
 
 Type
-  ParticleVertex = Class(Vertex)
+  ParticleVertex = Class(TERRAVertex)
     Protected
       Procedure Load(); Override;
       Procedure Save(); Override;

@@ -94,10 +94,10 @@ Type
       System_Btn:Array[0..2] Of UIWidget;
       System_BG:UIWidget;*)
 
-      Constructor Create(Const Name:TERRAString; Width, Height:UIDimension);
+      Constructor Create(Const Name:TERRAString; Width, Height:UIDimension; Layer:Single);
       Procedure Release; Override;
 
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
       Function GetBoundingBox:BoundingBox; Override;
 
@@ -196,7 +196,7 @@ Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_XML, TERRA_Matrix4x4, TERRA_Engi
   TERRA_UICheckbox, TERRA_UIEditText, TERRA_UIIcon*);
 
 { UIView }
-Constructor UIView.Create(Const Name:TERRAString; Width, Height:UIDimension);
+Constructor UIView.Create(Const Name:TERRAString; Width, Height:UIDimension; Layer:Single);
 Var
   TargetWidth, TargetHeight:Integer;
 Begin
@@ -231,6 +231,7 @@ Begin
   _Viewport.BackgroundColor := ColorNull;
   _Viewport.SetRenderTargetState(captureTargetColor, True);
   _Viewport.SetTargetArea(0, 0, 1.0, 1.0);
+  _Viewport.Layer := Layer;
 
   Engine.Graphics.AddViewport(_Viewport);
 End;
@@ -336,6 +337,9 @@ Var
   MX, MY:Integer;
 Begin
   If (_CurrentCursor = Nil) Or (_CurrentCursor.Texture = Nil) Then
+    Exit;
+
+  If Application.Instance.Window.LockedCursor Then
     Exit;
 
   MousePos := Engine.Input.Mouse;
@@ -726,7 +730,7 @@ Begin
   Result := Self._Modal;
 End;
 
-Function UIView.GetObjectType: TERRAString;
+Class Function UIView.GetObjectType: TERRAString;
 Begin
   Result := 'UI';
 End;

@@ -115,7 +115,7 @@ Type
       Procedure Release(); Override;
 
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
       Property Density:Single Read GetDensity Write SetDensity;
       Property Diffusion:Single Read GetDiffusion Write SetDiffusion;
@@ -441,7 +441,7 @@ Begin
   _RoomRolloffFactor.Value := Value;
 End;
 
-Function SoundAmbience.GetObjectType: TERRAString;
+Class Function SoundAmbience.GetObjectType: TERRAString;
 Begin
   Result := 'ambience';
 End;

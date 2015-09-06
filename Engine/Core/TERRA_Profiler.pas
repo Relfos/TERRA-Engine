@@ -3,7 +3,7 @@ Unit TERRA_Profiler;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Object, TERRA_DebugInfo;
+Uses TERRA_Utils, TERRA_Object, TERRA_Threads, TERRA_DebugInfo;
 
 Type
   ProfilerSample = Record
@@ -12,13 +12,15 @@ Type
     Samples:Int64;
   End;
 
-  TERRAProfiler = Class(TERRAObject)
+  TERRAProfiler = Class(TERRAThread)
     Protected
       _Samples:ProfilerSample;
       _SampleCount:Integer;
 
-      Procedure TakeSample;
     Public
+      TargetThread:ThreadHandle;
+
+      Procedure Execute; Override;
   End;
 
 
@@ -26,7 +28,7 @@ Implementation
 Uses Windows;
 
 { TERRAProfiler }
-Procedure TERRAProfiler.TakeSample;
+Procedure TERRAProfiler.Execute;
 Var
   TargetContext:_CONTEXT;
   Routine:TERRARoutineInfo;

@@ -158,7 +158,7 @@ Type
     Public
       Constructor Create(Const Name:TERRAString; InitValue:TERRAFont);
 
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
       Function GetBlob():TERRAString; Override;
       Procedure SetBlob(Const Blob:TERRAString); Override;
@@ -628,7 +628,7 @@ Begin
     _Value := Engine.Fonts.DefaultFont;
 End;
 
-Function FontProperty.GetObjectType: TERRAString;
+Class Function FontProperty.GetObjectType: TERRAString;
 Begin
   Result := 'font';
 End;

@@ -11,7 +11,7 @@ uses
   TERRA_ResourceManager,
   TERRA_GraphicsManager,
   TERRA_Log,
-  TERRA_OS,
+  TERRA_OS, 
   TERRA_Vector2D,
   TERRA_Font,
   TERRA_Texture,
@@ -41,13 +41,13 @@ Type
 
 { Game }
 Procedure MyDemo.OnCreate;
-Begin
+Begin                      
   Inherited;
 
   // Enable 2D viewport for rendering
   Self.GUI.Viewport.Visible := True;
 
-  UIMemoryAllocDebugWidget.Create('meminfo', Self.GUI, UIPixels(10), UIPixels(40), 10.1, UIPercent(100), UIPercent(100));
+  UIMemoryAllocDebugWidget.Create('meminfo', Self.GUI, UIPixels(10), UIPixels(40), 90, UIPercent(100), UIPercent(100));
 
   // load a tilemap
   _Map := TileMap.Create();
@@ -58,7 +58,7 @@ Procedure MyDemo.OnRender2D(View: TERRAViewport);
 Begin
   Inherited;
 
-  //Engine.Graphics.AddRenderable(View, _Map);
+  Engine.Graphics.AddRenderable(View, _Map);
 End;
 
 {$IFDEF IPHONE}

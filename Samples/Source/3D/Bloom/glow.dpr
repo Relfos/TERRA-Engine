@@ -36,6 +36,7 @@ Procedure MyDemo.OnCreate;
 Begin
   Inherited;
 
+  Self.GUI.Viewport.Visible := True;
   Self.ShowFPS := True;
 
   Engine.Graphics.Renderer.Settings.NormalMapping.SetValue(True);

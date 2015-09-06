@@ -226,10 +226,10 @@ Begin
   _FogEnable := False;
 
   RendererID := Application.Instance.SelectRenderer();
-  If (RendererID<0) Or (RendererID>=Renderers.Count) Then
+  If (RendererID<0) Or (RendererID >= Engine.Renderers.Count) Then
     RendererID := 0;
 
-  SetRenderer(GraphicsRenderer(Renderers.GetItemByIndex(RendererID)));
+  SetRenderer(GraphicsRenderer(Engine.Renderers.GetItemByIndex(RendererID)));
 
   If Self.Renderer = Nil Then
   Begin
@@ -1048,6 +1048,7 @@ Var
   Target:RenderTargetInterface;
   Time:Cardinal;
   UpdateFPS:Boolean;
+  NextViewport:TERRAViewport;
 Begin
   If (Self.Renderer = Nil) Then
     Exit;
@@ -1109,15 +1110,26 @@ Begin
     Target.BeginCapture();
   End;
 
-  For I:=0 To Pred(_ViewportCount) Do
-  If (_Viewports[I].Visible) And (Not _Viewports[I].AutoResolve) Then
-  Begin
-    _Viewports[I].DrawToTarget(_DeviceViewport);
-  End;
+  Repeat
+    NextViewport := Nil;
+
+    For I:=0 To Pred(_ViewportCount) Do
+    If (_Viewports[I].Visible) And (Not _Viewports[I].AutoResolve) And (_Viewports[I].FrameID <> Self.FrameID) Then
+    Begin
+      If (NextViewport = Nil) Or (_Viewports[I].Layer < NextViewport.Layer) Then
+        NextViewport := _Viewports[I];
+    End;
+
+    If Assigned(NextViewport) Then
+      NextViewport.DrawToTarget(_DeviceViewport)
+    Else
+      Break;
+
+  Until False;
 
   If Assigned(Target) Then
     Target.EndCapture();
- 
+
   Renderer.EndFrame();
   If UpdateFPS Then
     Renderer.UpdateFrameCounter();

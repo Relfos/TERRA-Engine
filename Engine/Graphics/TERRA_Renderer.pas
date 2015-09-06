@@ -597,25 +597,10 @@ Type
       Property DeviceVersion:TERRAVersion Read _DeviceVersion;
   End;
 
-  Function Renderers():TERRAList;
-
 Implementation
 Uses TERRA_Error, TERRA_EngineManager, TERRA_FileManager, TERRA_Lights, TERRA_Math, TERRA_Log,
   TERRA_Texture, TERRA_FileFormat, TERRA_NullRenderer;
 
-Var
-  _RendererList:TERRAList = Nil;
-
-Function Renderers():TERRAList;
-Begin
-  If _RendererList = Nil Then
-  Begin
-    _RendererList := TERRAList.Create();
-    _RendererList.Add(NullRenderer.Create());
-  End;
-
-  Result := _RendererList;
-End;
 
 { RendererSettings }
 Constructor RendererSettings.Create(Owner: GraphicsRenderer);
@@ -1341,8 +1326,4 @@ Begin
   Result := False;
 End;
 
-
-Initialization
-Finalization
-  ReleaseObject(_RendererList);
 End.

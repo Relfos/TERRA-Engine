@@ -31,7 +31,7 @@ Uses cmem;
 {$ENDIF}
 
 {$IFNDEF FPC}
-Uses {FastMM4, }Windows;
+Uses {FastMM4, }TERRA_DebugInfo;
 
 {.$DEFINE USE_MSVCTR}
 {$ENDIF}
@@ -53,7 +53,7 @@ Type
 
   PMemoryAllocStats = ^MemoryAllocStats;
   MemoryAllocStats = Record
-    Name:^String;
+    Routine:TERRARoutineInfo;
     Line:Cardinal;
     AllocCount:Cardinal;
     AllocSize:SizeType;
@@ -137,7 +137,7 @@ Begin
   If (_AllocStatsCount>=MaxAllocStats) Then
     Exit;
 
-  If (Info.Name=Nil)  Then
+  If (Info.Routine = Nil)  Then
     Exit;
 
   Temp := _AllocStatsEnabled;
@@ -146,7 +146,7 @@ Begin
 
   N := -1;
   For I:=0 To Pred(_AllocStatsCount) Do
-  If (Cardinal(_AllocStats[I].Name) = Cardinal(Info.Name)) Then
+  If (_AllocStats[I].Routine = Info.Routine) Then
   Begin
     N := I;
     Break;
@@ -157,7 +157,7 @@ Begin
     N := _AllocStatsCount;
     Inc(_AllocStatsCount);
 
-    Cardinal(_AllocStats[N].Name) := Cardinal(Info.Name);
+    _AllocStats[N].Routine := Info.Routine;
     _AllocStats[N].Line := Info.Line;
     _AllocStats[N].AllocCount := 0;
     _AllocStats[N].AllocSize := 0;

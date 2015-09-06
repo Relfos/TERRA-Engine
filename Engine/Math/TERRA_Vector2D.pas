@@ -86,7 +86,7 @@ Type
       Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
       Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Vector2D; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
 
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
 
@@ -388,7 +388,7 @@ Begin
   Y.Value := NewValue.Y;
 End;
 
-Function Vector2DProperty.GetObjectType: TERRAString;
+Class Function Vector2DProperty.GetObjectType: TERRAString;
 Begin
   Result := 'vec2';
 End;

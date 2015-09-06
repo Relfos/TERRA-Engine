@@ -44,7 +44,7 @@ Type
     spriteAnchor_BottomMiddle
     );
 
-  SpriteVertex = Class(Vertex)
+  SpriteVertex = Class(TERRAVertex)
     Protected
       Procedure Load(); Override;
       Procedure Save(); Override;

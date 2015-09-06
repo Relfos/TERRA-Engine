@@ -33,7 +33,7 @@ Uses TERRA_Utils, TERRA_Object, TERRA_Math, TERRA_GraphicsManager, TERRA_Resourc
   TERRA_VertexFormat;
 
 Type
-  SolidVertex = Class(Vertex)
+  SolidVertex = Class(TERRAVertex)
     Protected
       Procedure Load(); Override;
       Procedure Save(); Override;

@@ -21,7 +21,7 @@ Type
 
       Function GetItemByIndex(Index:Integer):TERRAObject; Override;
 
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
       // adds copies of items, not references!
       Function Merge(C:TERRACollection):TERRAList;
@@ -50,7 +50,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Debug, TERRA_Log;
+Uses TERRA_EngineManager, TERRA_Debug, TERRA_Log;
 
 { List }
 Constructor TERRAList.Create(SortOrder:CollectionSortOrder; Options:Integer);
@@ -154,17 +154,25 @@ Var
 Begin
   Self.Lock();
 
-  List := _First;
-  While Assigned(List)Do
+  If _ItemCount>0 Then
   Begin
-    Next := List.Next;
-    ReleaseObject(List);
-    List := Next;
+    Engine.Pool.Grow(Engine.Pool.Count + Self.Count);
+
+    List := _First;
+    While Assigned(List)Do
+    Begin
+      Next := List.Next;
+      //ReleaseObject(List);
+
+      Engine.Pool.Recycle(List);
+
+      List := Next;
+    End;
+
+    _First := Nil;
+    _ItemCount := 0;
   End;
-
-  _First := Nil;
-  _ItemCount := 0;
-
+  
   Self.Unlock();
 End;
 
@@ -182,7 +190,7 @@ Begin
     Exit;
   End;
 
-  Obj := TERRACollectionObject.Create(Self, Item);
+  Obj := Self.NewItem(Item);
 
   Result := True;
 
@@ -309,7 +317,13 @@ End;*)
 
 Function TERRAList.GetIterator:Iterator;
 Begin
-  Result := ListIterator.Create(Self);
+  Result := ListIterator(Engine.Pool.Fetch(ListIterator));
+  If Assigned(Result) Then
+  Begin
+    Result.Init(Self);
+    ListIterator(Result).Reset();
+  End Else
+    Result := ListIterator.Create(Self);
 End;
 
 Function TERRAList.CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject;
@@ -341,7 +355,7 @@ Begin
     Result := Nil;
 End;
 
-Function TERRAList.GetObjectType: TERRAString;
+Class Function TERRAList.GetObjectType: TERRAString;
 Begin
   Result := 'list';
 End;

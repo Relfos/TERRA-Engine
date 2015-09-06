@@ -15,7 +15,7 @@ Type
       Function GetTexture: TERRATexture;
 
       Procedure UpdateSprite(View:TERRAViewport); Override;
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
     Public
       Constructor Create(Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension; Const PX1, PY1, PX2, PY2:Integer);
@@ -55,7 +55,7 @@ Begin
   Self.AddDefaultAnimations();
 End;
 
-Function UITiledRect.GetObjectType: TERRAString;
+Class Function UITiledRect.GetObjectType: TERRAString;
 Begin
   Result := 'UITiledRect';
 End;
