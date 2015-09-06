@@ -212,7 +212,9 @@ Begin
 
     WM_LBUTTONDOWN: If (App.CanReceiveEvents) Then
                     Begin
+                      {$IFDEF MOUSE_CAPTURE}
                       SetCapture(App.Window.Handle);
+                      {$ENDIF}
                       App.AddValueEvent(eventMouseDown, keyMouseLeft);
                     End;
 
@@ -233,7 +235,9 @@ Begin
 
     WM_LBUTTONUP: If (App.CanReceiveEvents) Then
                   Begin
+                    {$IFDEF MOUSE_CAPTURE}
                     ReleaseCapture;
+                    {$ENDIF}
                     App.AddValueEvent(eventMouseUp, keyMouseLeft);
                   End;
 
@@ -248,13 +252,13 @@ Begin
                     App.AddCoordEvent(eventMouseMove, MX, MY, 0);
                   End;
 
-    (*WM_NCMOUSEMOVE: Begin
-                      If (Not App._CursorVisible) And (Not App._IgnoreCursor)  Then
-                      Begin
-                        App._CursorVisible := True;
-                        ShowCursor(True);
-                      End;
-                    End;*)
+    WM_NCMOUSELEAVE:Begin
+                      ShowCursor(False);
+                    End;
+
+    WM_NCMOUSEMOVE: Begin
+                      ShowCursor(True);
+                    End;
 
     WM_MOUSEWHEEL:If (App.CanReceiveEvents) Then
                   Begin
@@ -400,8 +404,10 @@ Begin
 
   ShowCursor(False);
 
+  {$IFDEF MOUSE_CAPTURE}
   ReleaseCapture();
   SetCapture(_Handle);
+  {$ENDIF}
 
   If (_FullScreen) Then
   Begin
@@ -530,7 +536,10 @@ Begin
     ToggleFullScreen();
 
   ShowCursor(True);
+
+  {$IFDEF MOUSE_CAPTURE}
   ReleaseCapture();
+  {$ENDIF}
 
   If ((_Handle <> 0)And(Not DestroyWindow(_Handle)))Then
   Begin
