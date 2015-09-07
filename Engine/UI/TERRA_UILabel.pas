@@ -97,9 +97,12 @@ Begin
   S := Self._Caption.Value;
   Result := '';
   Repeat
-    If StringCharPosIterator(UIMacroBeginChar, S, It, True) Then
+    It := StringCharPosIterator(UIMacroBeginChar, S, True);
+    If Assigned(It) Then
     Begin
       It.Split(S2, S);
+      ReleaseObject(It);
+      
       Result := Result + S2;
 
       S2 := StringGetNextSplit(S, UIMacroEndChar);

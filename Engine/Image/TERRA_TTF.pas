@@ -140,7 +140,7 @@ Type
 
 Implementation
 
-Uses TERRA_Log, TERRA_FileManager, TERRA_FontManager, TERRA_EngineManager, TERRA_Math;
+Uses TERRA_Log, TERRA_FileManager, TERRA_FontManager, TERRA_Engine, TERRA_Math;
 
 // platformID
 const   STBTT_PLATFORM_ID_UNICODE   = 0;

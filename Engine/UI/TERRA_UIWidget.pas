@@ -551,7 +551,7 @@ Implementation
 
 Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Math, TERRA_GraphicsManager,
   TERRA_UIView, TERRA_UITiledRect, TERRA_UIImage, TERRA_UILabel, TERRA_UIEditText,
-  TERRA_DebugDraw, TERRA_EngineManager, TERRA_Localization;
+  TERRA_DebugDraw, TERRA_Engine, TERRA_Localization;
 
 Var
   _AlignEnums:EnumCollection;

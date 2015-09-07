@@ -152,7 +152,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_ResourceManager, TERRA_FileManager, TERRA_EngineManager, TERRA_AudioMixer;
+Uses TERRA_ResourceManager, TERRA_FileManager, TERRA_Engine, TERRA_AudioMixer;
 
 { SoundAmbience }
 Constructor SoundAmbience.Create(Const Name:TERRAString);

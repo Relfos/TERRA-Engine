@@ -189,7 +189,7 @@ Type
   End;*)
 
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_XML, TERRA_Matrix4x4, TERRA_EngineManager,
+Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_XML, TERRA_Matrix4x4, TERRA_Engine,
   TERRA_Log, TERRA_FileUtils, TERRA_FileManager, TERRA_FontManager, TERRA_InputManager(*,
   TERRA_UIVirtualKeyboard, TERRA_UITabs, TERRA_UIScrollBar,
    TERRA_UIButton, TERRA_UISprite, TERRA_UILabel, TERRA_UIWindow,
@@ -311,7 +311,8 @@ Begin
   If (Assigned(_Highlight)) And ((Not _Highlight.Visible) Or (Not _Highlight.Enabled)) Then
   Begin
     _Highlight := SelectNearestWidget(_Highlight);
-  End;*)
+  End
+  ;*)
 
   If (Assigned(_Focus)) And (_Focus.Hidden) Then
     SetFocus(Nil);

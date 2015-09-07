@@ -126,7 +126,7 @@ Type
   Function CreateMeshFromSolid(Source:SolidMesh; Tex:TERRATexture = Nil):TERRAMesh;
 
 Implementation
-Uses TERRA_Error;
+Uses TERRA_Error, TERRA_Engine;
 
 Const
   Scale = 1.0;
@@ -265,7 +265,7 @@ Begin
   Else
   Begin
   	Result.Position := Vector3D_Zero;
-    RaiseError('Invalid vertex index');
+    Engine.RaiseError('Invalid vertex index');
   End;
 End;
 

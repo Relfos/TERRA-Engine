@@ -165,7 +165,7 @@ Type
 
 Implementation
 
-Uses TERRA_Log, TERRA_Mesh, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_OS, TERRA_EngineManager, TERRA_ShaderNode, TERRA_ShaderCompiler;
+Uses TERRA_Log, TERRA_Mesh, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_OS, TERRA_Engine, TERRA_ShaderNode, TERRA_ShaderCompiler;
 
 { ShaderEmitter }
 Procedure ShaderEmitter.Line(S2:TERRAString);

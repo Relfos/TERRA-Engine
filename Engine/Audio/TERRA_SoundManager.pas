@@ -57,7 +57,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_FileUtils, TERRA_FileManager, TERRA_EngineManager, TERRA_FileFormat;
+Uses TERRA_Error, TERRA_FileUtils, TERRA_FileManager, TERRA_Engine, TERRA_FileFormat;
 
 
 { SoundManager }

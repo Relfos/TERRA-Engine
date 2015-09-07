@@ -36,7 +36,7 @@ Type
 Function CreatePlaneMesh(Const Normal:Vector3D; SubDivisions:Cardinal):TERRAMesh;
 
 Implementation
-Uses TERRA_Solids, TERRA_MeshFilter, TERRA_EngineManager, TERRA_FileManager;
+Uses TERRA_Solids, TERRA_MeshFilter, TERRA_Engine, TERRA_FileManager;
 
 { MeshManager }
 Constructor MeshManager.Create;

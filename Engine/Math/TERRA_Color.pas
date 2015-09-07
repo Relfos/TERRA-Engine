@@ -231,7 +231,7 @@ Var
   Init:TERRAChar;
   A,B:Byte;
 Begin
-  StringCreateIterator(Value, It);
+  It := StringCreateIterator(Value);
 
   Init := It.GetNext();
   If (Init = '#') Then
@@ -241,7 +241,10 @@ Begin
   Begin
     Result := CreateColorFromName(Value);
     If Result.A>0 Then
+    Begin
+      ReleaseObject(It);
       Exit;
+    End;
 
     A := H(Init);
   End;
@@ -266,6 +269,8 @@ Begin
     Result.A := A Shl 4 + B;
   End Else
     Result.A := 255;
+
+  ReleaseObject(It);
 End;
 
 Function ColorCreate(Const R,G,B:Byte;A:Byte=255):ColorRGBA;  {$IFDEF FPC} Inline;{$ENDIF}

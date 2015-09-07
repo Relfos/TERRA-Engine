@@ -97,7 +97,7 @@ Type
      End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Application, TERRA_Utils, TERRA_EngineManager, TERRA_FileManager, TERRA_MemoryStream, SysUtils;
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Application, TERRA_Utils, TERRA_Engine, TERRA_FileManager, TERRA_MemoryStream, SysUtils;
 
 {$I-}
 
@@ -149,7 +149,7 @@ Begin
 
   Log(logDebug,'IO','Creating '+FileName);
   If StreamMode=0 Then
-    RaiseError('Invalid file mode.['+FileName+']')
+    Engine.RaiseError('Invalid file mode.['+FileName+']')
   Else
   Begin
     _ObjectName := FileName;
@@ -172,17 +172,15 @@ Begin
   _Open := False;
   _ObjectName := FileName;
 
-  {$IFNDEF NDS}
   If Not FileExists(PAnsiChar(FileName)) Then
   Begin
-    RaiseError('File not found. ['+FileName+']');
+    Engine.RaiseError('File not found. ['+FileName+']');
     Exit;
   End;
-  {$ENDIF}
 
   If StreamMode=0 Then
   Begin
-    RaiseError('Invalid file mode. ['+FileName+']');
+    Engine.RaiseError('Invalid file mode. ['+FileName+']');
     Exit;
   End Else
   Begin
@@ -295,13 +293,13 @@ Begin
 
   If (_Mode And smWrite=0)Then
   Begin
-    RaiseError('File is write protected.['+Name+']');
+    Engine.RaiseError('File is write protected.['+Name+']');
     Exit;
   End;
 
   If (_Pos+Length>_Size)And(_Mode And smDynamic=0) Then
   Begin
-    RaiseError('Cannot write to file.['+Name+']');
+    Engine.RaiseError('Cannot write to file.['+Name+']');
     Exit;
   End;
 
@@ -318,7 +316,7 @@ Procedure FileStream.Seek(NewPosition:Cardinal);
 Begin
   If _Pos>_Size Then
   Begin
-    RaiseError('Cannot seek in file.['+Name+']');
+    Engine.RaiseError('Cannot seek in file.['+Name+']');
     Exit;
   End;
   _Pos := NewPosition;

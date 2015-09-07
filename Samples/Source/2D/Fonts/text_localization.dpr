@@ -6,7 +6,7 @@ Uses
   TERRA_Utils, TERRA_Object, TERRA_Application,  TERRA_GraphicsManager,
   TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_OS, TERRA_FileManager, TERRA_Texture,
   TERRA_PNG, TERRA_TTF, TERRA_Viewport, TERRA_InputManager,
-  TERRA_EngineManager, TERRA_Renderer, TERRA_Sprite,
+  TERRA_Engine, TERRA_Renderer, TERRA_Sprite,
   TERRA_Vector2D,
   TERRA_FontRenderer, TERRA_Localization, TERRA_DemoApplication;
 

@@ -20,7 +20,7 @@ Function GetShader_Blur():TERRAShaderGroup;
 Function GetShader_Edge():TERRAShaderGroup;
 
 Implementation
-Uses TERRA_OS, TERRA_ShaderFactory, TERRA_Sprite, TERRA_EngineManager, TERRA_GraphicsManager
+Uses TERRA_OS, TERRA_ShaderFactory, TERRA_Sprite, TERRA_Engine, TERRA_GraphicsManager
 {$IFNDEF DISABLECOLORGRADING},TERRA_ColorGrading {$ENDIF};
 
 Var

@@ -66,7 +66,7 @@ Type
      End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_Application, TERRA_FileStream, TERRA_OS;
+Uses TERRA_Error, TERRA_Log, TERRA_Application, TERRA_FileStream, TERRA_OS, TERRA_Engine;
 
 // MemoryStream object
 Constructor MemoryStream.Create(BufferSize:Integer; Buffer:PByte; StreamMode:Integer);
@@ -146,7 +146,7 @@ Begin
 
   If Not Assigned(_Buffer) Then
   Begin
-    RaiseError('Buffer not assigned.');
+    Engine.RaiseError('Buffer not assigned.');
     Exit;
   End;
 
@@ -195,7 +195,7 @@ Begin
   Begin
     If (_Mode And smDynamic=0) Then
     Begin
-      RaiseError('Cannot write to memory.');
+      Engine.RaiseError('Cannot write to memory.');
       Exit;
     End Else
     Begin
@@ -213,7 +213,7 @@ Begin
 
   If Not Assigned(_Buffer) Then
   Begin
-    RaiseError('Buffer not assigned.');
+    Engine.RaiseError('Buffer not assigned.');
     Exit;
   End;
 
@@ -240,7 +240,7 @@ Procedure MemoryStream.Seek(NewPosition:Cardinal);
 Begin
   If NewPosition>_Size Then
   Begin
-    RaiseError('Cannot seek in memory inside '+Self.Name+ ' at pos ' + CardinalToString(NewPosition)+ ' -> '+ CardinalToString(_Size));
+    Engine.RaiseError('Cannot seek in memory inside '+Self.Name+ ' at pos ' + CardinalToString(NewPosition)+ ' -> '+ CardinalToString(_Size));
     Exit;
   End;
 

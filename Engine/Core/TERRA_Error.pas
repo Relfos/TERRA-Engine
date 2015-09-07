@@ -32,27 +32,31 @@ Unit TERRA_Error;
 
 
 Interface
+Uses SysUtils, TERRA_Object, TERRA_Callstack;
 
-{$IFNDEF OXYGENE}
-Uses SysUtils, TERRA_String;
-{$ENDIF} 
+Type
+  TERRAError = Class(Exception)
+      _Desc:TERRAString;
+      _CrashLog:TERRAString;
+      _Callstack:TERRACallstack;
 
-Var
-  _FatalError:TERRAString = '';
+    Public
+      Constructor Create(Const Desc:TERRAString; E:Exception);
+      Destructor Destroy();
 
-Procedure RaiseError(Const Desc:TERRAString);
+      Property Description:TERRAString Read _Desc;
+
+      Property CrashLog:TERRAString Read _CrashLog;
+      Property Callstack:TERRACallstack Read _Callstack;
+  End;
 
 Implementation
 
 {$IFNDEF OXYGENE}
-Uses TERRA_Log;
-{$ENDIF} 
+Uses TERRA_String, TERRA_Log;
+{$ENDIF}
 
-Type
-  TERRAException = Class(Exception)
-  End;
-
-Procedure RaiseError(Const Desc:TERRAString);
+Constructor TERRAError.Create(Const Desc:TERRAString; E:Exception);
 Var
   S:TERRAString;
   {$IFDEF CALLSTACKINFO}
@@ -60,21 +64,24 @@ Var
   CallStack:TERRAString;
   {$ENDIF}
 Begin
-  If _FatalError<>'' Then
-    Exit;
-
-  _FatalError := Desc;
+  _Desc := Desc;
 
     {$IFNDEF OXYGENE}
   ForceLogFlush := True;
   {$ENDIF}
 
-  Log(logError, 'Application', Desc);
+  Log(logError, 'Engine', Desc);
 
-  Raise TERRAException.Create(Desc);
+  If E = Nil Then
+    E := Self;
+
+  _Callstack := TERRACallstack.Create();
+  _Callstack.FillExceptionCallStack(E);
 End;
 
-//    DiscardWhiteSpace = WhiteSpace -> { };
-  //  Comment = '{' A '}' -> { A.Discard(); };
+Destructor TERRAError.Destroy;
+Begin
+  ReleaseObject(_Callstack);
+End;
 
 End.

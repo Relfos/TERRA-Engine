@@ -5,7 +5,7 @@ Uses TERRA_DemoApplication, TERRA_Object,
   TERRA_ResourceManager, TERRA_Color, TERRA_Font, TERRA_OS, TERRA_PNG, TERRA_FileManager,
   TERRA_Texture, TERRA_Network, TERRA_Sprite, TERRA_Sockets, TERRA_Viewport,
   TERRA_Math, TERRA_Vector3D, TERRA_Vector2D, TERRA_TTF, TERRA_Utils, TERRA_InputManager,
-  TERRA_NetClient, TERRA_EngineManager, Ships_Opcodes;
+  TERRA_NetClient, TERRA_Engine, Ships_Opcodes;
 
 Const
   ExplosionSpeed = 100;

@@ -50,7 +50,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_EngineManager, TERRA_Debug, TERRA_Log;
+Uses TERRA_Engine, TERRA_Debug, TERRA_Log;
 
 { List }
 Constructor TERRAList.Create(SortOrder:CollectionSortOrder; Options:Integer);

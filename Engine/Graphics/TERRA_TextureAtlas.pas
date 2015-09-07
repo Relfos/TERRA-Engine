@@ -115,7 +115,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_FileUtils, TERRA_Log;
+Uses TERRA_Error, TERRA_Engine, TERRA_FileUtils, TERRA_Log;
 
 // LTextureAtlas
 Constructor TextureAtlas.Create(Name:TERRAString; Width, Height:Integer);
@@ -262,7 +262,7 @@ Begin
     Count := Packer.Pack(Self._Width, Self._Height);
     If (Count=LastCount) Then
     Begin
-      RaiseError('Not enough space to pack TextureAtlas.');
+      Engine.RaiseError('Not enough space to pack TextureAtlas.');
       Result := False;
       ReleaseObject(Packer);
       Exit;

@@ -1,4 +1,4 @@
-Unit TERRA_EngineManager;
+Unit TERRA_Engine;
 
 {$I terra.inc}
 
@@ -7,13 +7,14 @@ Uses TERRA_Object, TERRA_String, TERRA_Application, TERRA_Threads, TERRA_List,
   TERRA_GraphicsManager, TERRA_TextureManager, TERRA_MeshManager, TERRA_FontManager, TERRA_InputManager, TERRA_Pool,
   TERRA_PhysicsManager, TERRA_ParticleRenderer, TERRA_ShaderFactory, TERRA_MeshAnimation, TERRA_Lights, TERRA_UICursor,
   TERRA_FileManager, TERRA_SoundManager, TERRA_FileFormat, TERRA_MusicManager, TERRA_MIDI, TERRA_Localization,
-  TERRA_Network, TERRA_NetDownloader
+  TERRA_Callstack, TERRA_Error, TERRA_Network, TERRA_NetDownloader
   {$IFDEF PC}, TERRA_Steam{$ENDIF};
 
 Type
   EngineManager = Class(TERRAObject)
     Protected
       _Pool:TERRAPool;
+      _Error:TERRAError;
 
       _Textures:TextureManager;
       _Meshes:MeshManager;
@@ -50,6 +51,8 @@ Type
       _Steam:SteamManager;
       {$ENDIF}
 
+      Procedure SetError(Value:TERRAError);
+
     Public
       Constructor Create();
 
@@ -58,6 +61,8 @@ Type
 
       Procedure Update();
       Procedure OnContextLost();
+
+      Procedure RaiseError(Const Desc:TERRAString);
 
       Function CreateObject(Const KeyName, ObjectType:TERRAString):TERRAObject;
 
@@ -92,6 +97,8 @@ Type
       Property HTTP:DownloadManager Read _HTTP;
 
       Property Pool:TERRAPool Read _Pool;
+
+      Property Error:TERRAError Read _Error Write SetError;
 
       {$IFDEF PC}
       Property Steam:SteamManager Read _Steam;
@@ -280,6 +287,18 @@ Begin
     Result := PathProperty.Create(Name, '')
   Else
     Result := Nil;
+End;
+
+Procedure EngineManager.RaiseError(Const Desc:TERRAString);
+Begin
+  SetError(TERRAError.Create(Desc, Nil));
+  Raise _Error;
+End;
+
+Procedure EngineManager.SetError(Value:TERRAError);
+Begin
+  ReleaseObject(_Error);
+  _Error := Value;
 End;
 
 End.

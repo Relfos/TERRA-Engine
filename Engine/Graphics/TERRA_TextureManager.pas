@@ -52,7 +52,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_FileUtils, TERRA_FileFormat, TERRA_EngineManager, TERRA_FileManager, TERRA_Noise;
+Uses TERRA_FileUtils, TERRA_FileFormat, TERRA_Engine, TERRA_FileManager, TERRA_Noise;
 
 { TextureManager }
 Constructor TextureManager.Create();

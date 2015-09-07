@@ -162,7 +162,7 @@ Type
 
 
 Implementation
-Uses TERRA_Error, TERRA_Utils, TERRA_Application, TERRA_EngineManager, TERRA_Log, TERRA_GraphicsManager, TERRA_OS,
+Uses TERRA_Error, TERRA_Utils, TERRA_Application, TERRA_Engine, TERRA_Log, TERRA_GraphicsManager, TERRA_OS,
   TERRA_FileUtils, TERRA_FileStream, TERRA_ColorGrading, TERRA_Noise;
 
 { TERRATexture }
@@ -458,14 +458,14 @@ Begin
   If Self.Current Is TextureInterface Then
     TextureInterface(Self.Current).Update(Pixels, X, Y, Source.Width, Source.Height)
   Else
-    RaiseError('Trying to update something that is not a TextureInterface!');
+    Engine.RaiseError('Trying to update something that is not a TextureInterface!');
 End;
 
 Procedure TERRATexture.UpdateRect(Source:TERRAImage);
 Begin
   If (Self.Width<>Source.Width) Or (Self.Height <> Source.Height) Then
   Begin
-    RaiseError('Invalid texture dimensions: '+ IntegerProperty.Stringify(Self.Width)+' x' +  IntegerProperty.Stringify(Self.Height));
+    Engine.RaiseError('Invalid texture dimensions: '+ IntegerProperty.Stringify(Self.Width)+' x' +  IntegerProperty.Stringify(Self.Height));
     Exit;
   End;
 

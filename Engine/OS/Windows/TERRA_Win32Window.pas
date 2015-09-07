@@ -28,12 +28,16 @@ Type
       _CurrentDX:Integer;
       _CurrentDY:Integer;
 
+      _WasLocked:Boolean;
+
       Procedure InitIcon();
 
       Function SetFullscreenMode(UseFullScreen:Boolean):Boolean; Override;
       Procedure SetTitle(Const Value:TERRAString); Override;
       Procedure SetState(Const State:TERRAWindowState); Override;
       Procedure SetSize(Width, Height:Integer); Override;
+
+      Procedure LockCursor(Value:Boolean); Override;
 
     Public
       Constructor Create(Const Title:TERRAString;  Width, Height:Integer; Fullscreen:Boolean);
@@ -47,7 +51,7 @@ Type
 
 Implementation
 Uses TERRA_Log, TERRA_Error, TERRA_Stream, TERRA_MemoryStream, TERRA_FileUtils,
-  TERRA_Application, TERRA_OS, TERRA_Multimedia, TERRA_EngineManager, TERRA_InputManager;
+  TERRA_Application, TERRA_OS, TERRA_Multimedia, TERRA_Engine, TERRA_InputManager;
 
 Var
   _CursorVisible:Boolean;
@@ -206,11 +210,12 @@ Begin
                 If (wParam=22) And  ($8000 And GetKeyState(VK_CONTROL)<>0) Then
                 Begin
                   S := App.GetClipboard();
-                  StringCreateIterator(S, It, False);
+                  It := StringCreateIterator(S, False);
                   While It.HasNext() Do
                   Begin
                     App.AddValueEvent(eventKeyPress, Cardinal(It.GetNext()));
                   End;
+                  ReleaseObject(It);
                   
                 End Else
                   App.AddValueEvent(eventKeyPress, wParam);
@@ -338,7 +343,7 @@ Begin
 
   If (RegisterClassW(wndClass)=0) Then  // Attemp to register the window class
   Begin
-    RaiseError('Failed to register the window class.');
+    Engine.RaiseError('Failed to register the window class.');
     Exit;
   End;
 
@@ -558,14 +563,14 @@ Begin
 
   If ((_Handle <> 0)And(Not DestroyWindow(_Handle)))Then
   Begin
-    RaiseError('Unable to destroy window.');
+    Engine.RaiseError('Unable to destroy window.');
     _Handle:=0;
   End;
 
  // Attempts to unregister the window class
   If (Not UnRegisterClass('TERRA',hInstance))Then
   Begin
-    RaiseError('Unable to unregister window class.');
+    Engine.RaiseError('Unable to unregister window class.');
   End;
 End;
 
@@ -613,7 +618,15 @@ Begin
 
     DX := MX - MousePos.X;
     DY := MY - MousePos.Y;
+    
+    If (_WasLocked) Then
+    Begin
+      _WasLocked := False;
+      _CurrentDX := 0;
+      _CurrentDY := 0;
 
+      Application.Instance.AddCoordEvent(eventJoystick, _CurrentDX, _CurrentDY, 0);
+    End Else
     If (DX<>_CurrentDX) Or (DY<>_CurrentDY) Then
     Begin
       _CurrentDX := DX;
@@ -622,6 +635,13 @@ Begin
     End;
 
   End;
+End;
+
+Procedure Win32Window.LockCursor(Value:Boolean);
+Begin
+  _WasLocked := Not Self.LockedCursor;
+
+  Inherited;
 End;
 
 End.

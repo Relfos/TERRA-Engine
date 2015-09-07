@@ -7,7 +7,7 @@ uses
   Dialogs, ExtCtrls, StdCtrls, Menus,
   TERRA_Utils, TERRA_Application, TERRA_VCLApplication, TERRA_OS, TERRA_Texture,
   TERRA_Object, TERRA_Viewport, TERRA_FileManager, TERRA_Sprite, TERRA_PNG,
-  TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Math, TERRA_Matrix3x3, TERRA_Vector2D, TERRA_Color;
+  TERRA_Engine, TERRA_GraphicsManager, TERRA_Math, TERRA_Matrix3x3, TERRA_Vector2D, TERRA_Color;
 
 type
   TForm1 = class(TForm)

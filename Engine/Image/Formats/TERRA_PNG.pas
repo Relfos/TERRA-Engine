@@ -39,7 +39,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_EngineManager, TERRA_Utils, TERRA_FileUtils, TERRA_CRC32, TERRA_Color, TERRA_Log, TERRA_ZLib;
+Uses TERRA_Error, TERRA_Engine, TERRA_Utils, TERRA_FileUtils, TERRA_CRC32, TERRA_Color, TERRA_Log, TERRA_ZLib;
 
 Type
   RGBQuad=Packed Record
@@ -272,7 +272,7 @@ Var
 Begin
   If Chunk.Size<SizeOf(PNG.Header) Then
   Begin
-    RaiseError('Invalid header size');
+    Engine.RaiseError('Invalid header size');
     Exit;
   End;
 
@@ -295,14 +295,14 @@ Begin
   // Compression method must be 0 (inflate/deflate)
   If (PNG.Header.CompressionMethod<>0) then
   Begin
-    RaiseError('Invalid compression method');
+    Engine.RaiseError('Invalid compression method');
     Exit;
   End;
 
   If  (PNG.Header.InterlaceMethod<>imNone)
   And (PNG.Header.InterlaceMethod<>imAdam7) then
   Begin
-    RaiseError('Invalid interlace method');
+    Engine.RaiseError('Invalid interlace method');
     Exit;
   End;
 
@@ -358,7 +358,7 @@ Begin
         // PNG specification says that multiple IDAT chunks must be consecutive
         If IDATHeader<>'IDAT' Then
         Begin
-          RaiseError('IDAT chunk expected.');
+          Engine.RaiseError('IDAT chunk expected.');
           Exit;
         End;
 
@@ -392,7 +392,7 @@ Begin
       // In case the result was not sucessfull
       If (Result<0) Then
       Begin
-        RaiseError('ZLib error.'+zliberrors[Result]);
+        Engine.RaiseError('ZLib error.'+zliberrors[Result]);
         Exit;
       End Else
         Result := Avail_In;
@@ -439,7 +439,7 @@ Begin
       // In case the result was not sucessfull
       If (Result<>Z_OK) Then
       Begin
-        RaiseError('ZLib error.'+zliberrors[Result]);
+        Engine.RaiseError('ZLib error.'+zliberrors[Result]);
         Exit;
       End Else
         Result:=Avail_Out;
@@ -513,7 +513,7 @@ Begin
   Case PNG.Header.InterlaceMethod of
     imNone:  PNG.DecodeNonInterlaced(ZLIBStream);
     Else
-      RaiseError('Interlace method not supported in '+Source.Name);
+      Engine.RaiseError('Interlace method not supported in '+Source.Name);
 //    imAdam7: DecodeInterlacedAdam7(stream, ZLIBStream, size, crcfile);
   End;
 
@@ -725,13 +725,13 @@ Begin
    COLOR_RGB:
        Case Header.BitDepth Of
         8:  CopyProc := CopyNonInterlacedRGB;
-        16: RaiseError('Decoder.NonInterlacedRGB16 not implemented!');
+        16: Engine.RaiseError('Decoder.NonInterlacedRGB16 not implemented!');
        End;
     COLOR_PALETTE, COLOR_GRAYSCALE:
        Case Header.BitDepth Of
         1, 2, 4, 8:
           CopyProc := CopyNonInterlacedPalette;
-        16: RaiseError('Decoder.CopyNonInterlacedGrayscale16 not implemented!');
+        16: Engine.RaiseError('Decoder.CopyNonInterlacedGrayscale16 not implemented!');
        End;
    COLOR_RGBALPHA:
       Case Header.BitDepth of
@@ -741,7 +741,7 @@ Begin
   COLOR_GRAYSCALEALPHA:
       Case Header.BitDepth of
         8  : CopyProc := CopyNonInterlacedGrayscaleAlpha;
-       16  : RaiseError('Decoder.CopyNonInterlacedGrayscaleAlpha16 not implemented!');
+       16  : Engine.RaiseError('Decoder.CopyNonInterlacedGrayscaleAlpha16 not implemented!');
       End;
   End;
 
@@ -884,7 +884,7 @@ Begin
 
   If Signature<>PNGSignature then
   Begin
-    RaiseError('Invalid header.');
+    Engine.RaiseError('Invalid header.');
     Exit;
   End;
 
@@ -914,7 +914,7 @@ Begin
     // The first chunk need to be a header chunk
     If (Not Assigned(ChunkHandler))And(Chunk.Name <> 'IHDR') then
     Begin
-      RaiseError('Header not found.');
+      Engine.RaiseError('Header not found.');
       Exit;
     End;
 
@@ -955,7 +955,7 @@ Begin
   // Check if there is data
   If Not HasIDAT Then
   Begin
-    RaiseError('Image data not found.');
+    Engine.RaiseError('Image data not found.');
     Exit;
   End;
 

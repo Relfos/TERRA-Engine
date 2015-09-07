@@ -148,7 +148,7 @@ Const
 Implementation
 Uses TERRA_Error, TERRA_Vector2D, TERRA_Vector3D, TERRA_SoundManager,
   TERRA_Texture, TERRA_Application, TERRA_OS, TERRA_FileManager,
-  TERRA_Stream, TERRA_UIEditText, TERRA_UIView, TERRA_EngineManager;
+  TERRA_Stream, TERRA_UIEditText, TERRA_UIView, TERRA_Engine;
 
 Var
   _KeyboardLayouts:Array Of KeyboardLayout;
@@ -795,7 +795,7 @@ Begin
       End;
 
       I := 0;
-      StringCreateIterator(Line, It);
+      It := StringCreateIterator(Line);
       While It.HasNext() Do
       Begin
         Value := It.GetNext();
@@ -823,6 +823,7 @@ Begin
         If (I>=MaxKeyboardRows) Then
           Break;
       End;
+      ReleaseObject(It);
 
     End;
   End;

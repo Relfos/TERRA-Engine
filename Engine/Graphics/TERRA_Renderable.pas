@@ -88,7 +88,7 @@ Type
 
 
 Implementation
-Uses TERRA_EngineManager, TERRA_GraphicsManager, TERRA_RendererStats;
+Uses TERRA_Engine, TERRA_GraphicsManager, TERRA_RendererStats;
 
 { TERRARenderable }
 procedure TERRARenderable.Release;

@@ -37,7 +37,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_EngineManager, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_Color;
+Uses TERRA_Error, TERRA_Engine, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_Color;
 
 Type
   TGAHeader=Packed Record   // Header type for TGA images
@@ -88,14 +88,14 @@ Begin
   If (Header.ImageType<>2) And    // TGA_RGB
      (Header.ImageType<>10) Then  // Compressed RGB
   Begin
-    RaiseError('Invalid header.');
+    Engine.RaiseError('Invalid header.');
     Exit;
   End;
 
   // Don't support colormapped files
   If Header.ColorMapType<>0 Then
   Begin
-    RaiseError('Colormapped texture not supported.');
+    Engine.RaiseError('Colormapped texture not supported.');
     Exit;
   End;
 
@@ -104,7 +104,7 @@ Begin
 
   If ColorDepth<24 Then
   Begin
-    RaiseError('Invalid color format.');
+    Engine.RaiseError('Invalid color format.');
     Exit;
   End;
 

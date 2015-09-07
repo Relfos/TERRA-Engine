@@ -328,7 +328,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Log, TERRA_EngineManager, TERRA_Error, TERRA_Math, TERRA_Image, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_Viewport;
+Uses TERRA_Log, TERRA_Engine, TERRA_Error, TERRA_Math, TERRA_Image, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_Viewport;
 
 { ScreenFXChain }
 Constructor ScreenFXChain.Create;
@@ -931,7 +931,7 @@ Begin
   Begin
     If Not _Uniforms[I].Initialized Then
     Begin
-      RaiseError('Uniform '+_Uniforms[I].Name+ ' is not initialized in '+Self.ClassName);
+      Engine.RaiseError('Uniform '+_Uniforms[I].Name+ ' is not initialized in '+Self.ClassName);
       Exit;
     End;
 

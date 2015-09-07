@@ -251,7 +251,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_Application, TERRA_OS, TERRA_FileManager,  TERRA_Mesh,
-  TERRA_GraphicsManager, TERRA_EngineManager, TERRA_FileStream, TERRA_FileUtils;
+  TERRA_GraphicsManager, TERRA_Engine, TERRA_FileStream, TERRA_FileUtils;
 
 { AnimationState }
 Constructor AnimationState.Create(TargetSkeleton:MeshSkeleton);

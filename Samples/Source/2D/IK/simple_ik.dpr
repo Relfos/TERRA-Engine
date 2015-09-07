@@ -6,7 +6,7 @@ Uses
   TERRA_DemoApplication, TERRA_Utils, TERRA_Object, TERRA_GraphicsManager,
   TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_Lights, TERRA_Viewport,
   TERRA_JPG, TERRA_PNG, TERRA_String, Math,
-  TERRA_EngineManager,
+  TERRA_Engine,
   TERRA_Vector2D, TERRA_Mesh, TERRA_MeshSkeleton, TERRA_MeshAnimation, TERRA_MeshAnimationNodes,
   TERRA_FileManager, TERRA_Color, TERRA_DebugDraw, TERRA_Resource, TERRA_Ray,
   TERRA_ScreenFX, TERRA_Math, TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_Quaternion, TERRA_InputManager,

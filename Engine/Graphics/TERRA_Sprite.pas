@@ -181,7 +181,7 @@ Type
 Function CreateSpriteVertexData(Count:Integer):VertexData;
 
 Implementation
-Uses TERRA_ResourceManager, TERRA_EngineManager, TERRA_Log, TERRA_Image, TERRA_OS, TERRA_Math
+Uses TERRA_ResourceManager, TERRA_Engine, TERRA_Log, TERRA_Image, TERRA_OS, TERRA_Math
   {$IFNDEF DISABLECOLORGRADING},TERRA_ColorGrading {$ENDIF};
 
 

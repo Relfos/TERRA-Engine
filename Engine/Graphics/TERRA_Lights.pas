@@ -202,7 +202,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_EngineManager, TERRA_GraphicsManager;
+Uses TERRA_Engine, TERRA_GraphicsManager;
 
 { LightManager }
 Constructor LightManager.Create();

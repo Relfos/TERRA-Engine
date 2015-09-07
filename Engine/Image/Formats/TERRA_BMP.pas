@@ -37,7 +37,7 @@ Type
 
 
 Implementation
-Uses TERRA_Log, TERRA_EngineManager;
+Uses TERRA_Log, TERRA_Engine;
 
 Type
   BitmapFileHeader = Packed Record

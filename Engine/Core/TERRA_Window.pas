@@ -70,7 +70,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Log, TERRA_EngineManager;
+Uses TERRA_Log, TERRA_Engine;
 
 { TERRAWindow }
 Constructor TERRAWindow.Create(const Title: TERRAString; Width, Height: Integer; Fullscreen: Boolean);

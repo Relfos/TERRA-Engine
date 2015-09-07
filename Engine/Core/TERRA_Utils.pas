@@ -34,7 +34,7 @@ Unit TERRA_Utils;
 Interface
 
 {$IFNDEF OXYGENE}
-Uses TERRA_String;
+Uses TERRA_Object;
 {$ENDIF}
 
 Type
@@ -161,7 +161,7 @@ Function LongMin(Const A,B:Cardinal):Cardinal;
 
 Function TicksToTime(Ticks:Cardinal):TERRATime;
 
-Function CardinalToString(Const N:Cardinal):TERRAString;Overload;
+Function CardinalToString(Const N:Cardinal):TERRAString; Overload;
 Function Int64ToString(Const N:Int64):TERRAString;
 Function UInt64ToString(Const N:UInt64):TERRAString;
 Function BoolToString(Const N:Boolean):TERRAString;Overload;
@@ -210,7 +210,7 @@ Procedure RemoveHint(X:Integer);
 Implementation
 
 {$IFNDEF OXYGENE}
-Uses TERRA_Log, TERRA_Error, TERRA_Object;
+Uses TERRA_Log, TERRA_Error, TERRA_String;
 {$ENDIF}
 
 Function SafeDiv(Const A,B:Single; WhenZero:Single = 0.0):Single;
@@ -504,7 +504,7 @@ Begin
 
   N := 1;
   Negative := False;
-  StringCreateReverseIterator(StringTrim(S), It);
+  It := StringCreateReverseIterator(StringTrim(S));
   While It.HasNext Do
   Begin
     C := It.GetNext();
@@ -529,6 +529,7 @@ Begin
 
     N := N * 10;
   End;
+  ReleaseObject(It);
 
   If Negative Then
     Result := -Result;
@@ -552,7 +553,7 @@ Begin
   End;
 
   N := 1;
-  StringCreateReverseIterator(StringTrim(S), It);
+  It := StringCreateReverseIterator(StringTrim(S));
   While It.HasNext Do
   Begin
     C := It.GetNext();
@@ -571,6 +572,7 @@ Begin
 
     N := N * 10;
   End;
+  ReleaseObject(It);
 End;
 
 
@@ -768,7 +770,7 @@ Var
 Begin
   Result := 0;
   K := 1;
-  StringCreateReverseIterator(S, It);
+  It := StringCreateReverseIterator(S);
   While It.HasNext() Do
   Begin
     C := CharUpper(It.GetNext());
@@ -782,6 +784,7 @@ Begin
 
     K := K Shl 4;
   End;
+  ReleaseObject(It);
 End;
 
 Procedure SetFlag(Var N:Byte; Const Flag:Byte; Const Value:Boolean);

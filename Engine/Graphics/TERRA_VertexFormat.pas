@@ -2,6 +2,8 @@ Unit TERRA_VertexFormat;
 
 {$I terra.inc}
 
+{-$DEFINE DEBUG_VERTEX_FORMAT}
+
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Collections, TERRA_Stream,
   TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Color;
@@ -125,10 +127,12 @@ Type
       Function GetAttributeSizeInBytes(Attribute:Cardinal):Integer;
       Function GetAttributeSizeInFloats(Attribute:Cardinal):Integer;
 
-      Function GetAttributePosition(Index, Attribute:Cardinal):Integer;
+      Function GetAttributePosition(Const Index, Attribute:Cardinal):Integer;
       Function GetVertexPosition(Index:Cardinal):Integer;
 
+      {$IFDEF DEBUG_VERTEX_FORMAT}
       Procedure ExpectAttributeFormat(Attribute:Cardinal; Format:DataFormat);
+      {$ENDIF}
 
       Function GetBuffer:Pointer;
 
@@ -192,7 +196,7 @@ Type
   Function VertexFormatToFlags(Const Value:VertexFormat):Cardinal;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_GraphicsManager, TERRA_EngineManager, TERRA_Renderer
+Uses TERRA_Error, TERRA_Log, TERRA_GraphicsManager, TERRA_Engine, TERRA_Renderer
 {$IFNDEF DISABLEALLOCOPTIMIZATIONS}, TERRA_StackObject{$ENDIF};
 
 Const
@@ -337,16 +341,16 @@ Begin
 End;
 
 
+{$IFDEF DEBUG_VERTEX_FORMAT}
 Procedure VertexData.ExpectAttributeFormat(Attribute: Cardinal; Format: DataFormat);
 Begin
-  {$IFDEF PC}
   If (Attribute<MaxVertexAttributes)Then
   Begin
     If (_Formats[Attribute] <> Format) And (_Formats[Attribute] <> typeNull) Then
       RaiseError('Trying to access attribute '+DefaultAttributeNames[Attribute]+' using invalid format!');
   End;
-  {$ENDIF}
 End;
+{$ENDIF}
 
 Procedure VertexData.SetAttributeFormat(Attribute:Cardinal; Value:DataFormat);
 Var
@@ -438,7 +442,7 @@ Begin
   Else
     Begin
       Result := 0;
-      RaiseError('Invalid attribute: '+CardinalToString(Attribute));
+      Engine.RaiseError('Invalid attribute: '+CardinalToString(Attribute));
     End;
 End;
 
@@ -449,11 +453,11 @@ Begin
   Else
   Begin
     Result := 0;
-    RaiseError('Invalid attribute: '+CardinalToString(Attribute));
+    Engine.RaiseError('Invalid attribute: '+CardinalToString(Attribute));
   End;
 End;
 
-Function VertexData.GetAttributePosition(Index, Attribute: Cardinal):Integer;
+Function VertexData.GetAttributePosition(Const Index, Attribute: Cardinal):Integer;
 Var
   Ofs:Cardinal;
 Begin
@@ -538,13 +542,17 @@ End;
 
 Procedure VertexData.GetColor(Index:Integer; Attribute:Cardinal; Out Value:ColorRGBA);
 Begin
+  {$IFDEF DEBUG_VERTEX_FORMAT}
   ExpectAttributeFormat(Attribute, typeColor);
+  {$ENDIF}
   Self.GetFloat(Index, Attribute, Single(Value));
 End;
 
 Procedure VertexData.SetColor(Index:Integer; Attribute:Cardinal; Const Value:ColorRGBA);
 Begin
+  {$IFDEF DEBUG_VERTEX_FORMAT}
   ExpectAttributeFormat(Attribute, typeColor);
+  {$ENDIF}
   Self.SetFloat(Index, Attribute, Single(Value));
 End;
 
@@ -552,7 +560,9 @@ Procedure VertexData.GetVector2D(Index:Integer; Attribute:Cardinal; Out Value:Ve
 Var
   Pos:Integer;
 Begin
+  {$IFDEF DEBUG_VERTEX_FORMAT}
   ExpectAttributeFormat(Attribute, typeVector2D);
+  {$ENDIF}
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
@@ -577,7 +587,9 @@ Procedure VertexData.SetVector2D(Index:Integer; Attribute:Cardinal; Const Value:
 Var
   Pos:Integer;
 Begin
+  {$IFDEF DEBUG_VERTEX_FORMAT}
   ExpectAttributeFormat(Attribute, typeVector2D);
+  {$ENDIF}
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
@@ -595,7 +607,9 @@ Procedure VertexData.GetVector3D(Index:Integer; Attribute:Cardinal; Out Value:Ve
 Var
   Pos:Integer;
 Begin
+  {$IFDEF DEBUG_VERTEX_FORMAT}
   ExpectAttributeFormat(Attribute, typeVector3D);
+  {$ENDIF}
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
@@ -626,7 +640,9 @@ Procedure VertexData.SetVector3D(Index:Integer; Attribute:Cardinal; Const Value:
 Var
   Pos:Integer;
 Begin
+  {$IFDEF DEBUG_VERTEX_FORMAT}
   ExpectAttributeFormat(Attribute, typeVector3D);
+  {$ENDIF}
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
@@ -649,7 +665,9 @@ Procedure VertexData.GetVector4D(Index:Integer; Attribute:Cardinal; Out Value:Ve
 Var
   Pos:Integer;
 Begin
+  {$IFDEF DEBUG_VERTEX_FORMAT}
   ExpectAttributeFormat(Attribute, typeVector4D);
+  {$ENDIF}
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
@@ -686,7 +704,9 @@ Procedure VertexData.SetVector4D(Index:Integer; Attribute:Cardinal; Const Value:
 Var
   Pos:Integer;
 Begin
+  {$IFDEF DEBUG_VERTEX_FORMAT}
   ExpectAttributeFormat(Attribute, typeVector4D);
+  {$ENDIF}
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
@@ -981,7 +1001,13 @@ Begin
   Self._Target := Target;
   Self._LastIndex := 0;
 
-  Self._CurrentVertex := V.Create();
+  Self._CurrentVertex := TERRAVertex(Engine.Pool.Fetch(V));
+  If Self._CurrentVertex = Nil Then
+    Self._CurrentVertex := V.Create()
+  Else
+    Self._CurrentVertex.Create();
+
+
   Self._CurrentVertex._Target := Target;
   Self.JumpToIndex(0);
 End;

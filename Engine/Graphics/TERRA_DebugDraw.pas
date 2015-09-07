@@ -58,7 +58,7 @@ Procedure DrawPointCloud(Cloud:PointCloud2D; MyColor:ColorRGBA; Layer:Single);
 *)
 
 Implementation
-Uses TERRA_OS, TERRA_EngineManager, TERRA_Math, TERRA_Texture;
+Uses TERRA_OS, TERRA_Engine, TERRA_Math, TERRA_Texture;
 
 Const
   Layer = 99;

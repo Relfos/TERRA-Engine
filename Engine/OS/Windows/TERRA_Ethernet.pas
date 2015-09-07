@@ -1,7 +1,7 @@
 Unit TERRA_Ethernet;
 
 Interface
-Uses TERRA_String, TERRA_Utils;
+Uses TERRA_Object, TERRA_String, TERRA_Utils;
 
 Const
   MAX_INTERFACE_NAME_LEN = $100;

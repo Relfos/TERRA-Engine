@@ -271,7 +271,7 @@ Const
   SOCKET_ERROR      = -1;     // Error return value
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_Application;
+Uses TERRA_Error, TERRA_Log, TERRA_Engine, TERRA_Application;
 
 
 Function GetSocketNetType(Const Addr:TERRAString):Integer;
@@ -874,7 +874,7 @@ Begin
 
     If Bind(WaitingList[ID].Handle, @Addr, SizeOf(Addr))<0 Then
     Begin
-      RaiseError('Cannot bind NetSocket.');
+      Engine.RaiseError('Cannot bind NetSocket.');
       Exit;
     End;
 

@@ -42,7 +42,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Log, TERRA_GraphicsManager, TERRA_EngineManager, TERRA_GLRenderer;
+Uses TERRA_Log, TERRA_GraphicsManager, TERRA_Engine, TERRA_GLRenderer;
 
 Var
   _hmd:ovrHmd;

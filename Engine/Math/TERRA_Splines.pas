@@ -92,7 +92,7 @@ Type
     End;
 
 Implementation
-Uses TERRA_Error, TERRA_Application, TERRA_FileStream, TERRA_OS;
+Uses TERRA_Error, TERRA_Application, TERRA_FileStream, TERRA_Engine, TERRA_OS;
 
 { Spline }
 Constructor Spline.Create;
@@ -186,7 +186,7 @@ Var
 Begin
   If (OtherSpline._PointCount <> Self._PointCount) Then
   Begin
-    RaiseError('Spline.Synchronize: Failed');
+    Engine.RaiseError('Spline.Synchronize: Failed');
     Exit;
   End;
 

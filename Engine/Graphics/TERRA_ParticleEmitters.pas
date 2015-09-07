@@ -110,7 +110,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_OS, TERRA_Math, TERRA_GraphicsManager, TERRA_EngineManager, TERRA_Renderer, TERRA_FileManager;
+Uses TERRA_OS, TERRA_Math, TERRA_GraphicsManager, TERRA_Engine, TERRA_Renderer, TERRA_FileManager;
 
 { ParticleSettingsEmitter }
 Procedure ParticleSettingsEmitter.Copy(Source: ParticleSettingsEmitter);

@@ -75,7 +75,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Callstack, TERRA_Error;
+Uses TERRA_Callstack, TERRA_Object, TERRA_Engine, TERRA_Error;
 
 {$IFDEF USE_MSVCTR}
 Const
@@ -104,6 +104,8 @@ Var
   _PrevAllocStats:Array[0..Pred(MaxAllocStats)] Of MemoryAllocStats;
   _PrevAllocStatsCount:Integer;
 
+  _Callstack:TERRACallstack;
+
 Function TERRA_GetMem(Size: SizeType): Pointer;{$IFDEF FPC} {$IFNDEF PC}{$IFNDEF CPU64}Stdcall;{$ENDIF} {$ELSE}Register;{$ENDIF}{$ENDIF}
 Var
   I,N:Integer;
@@ -118,7 +120,7 @@ Begin
 
   If (Size>0) And (Result = Nil) Then
   Begin
-    RaiseError('Out of memory!');
+    Engine.RaiseError('Out of memory!');
     Exit;
   End;
 
@@ -142,7 +144,7 @@ Begin
 
   Temp := _AllocStatsEnabled;
   _AllocStatsEnabled := False;
-  GetCurrentCall(Info);
+  _Callstack.GetCurrentCall(Info);
 
   N := -1;
   For I:=0 To Pred(_AllocStatsCount) Do
@@ -206,7 +208,7 @@ Begin
 
   If (Size>0) And (Result = Nil) Then
   Begin
-    RaiseError('Out of memory!');
+    Engine.RaiseError('Out of memory!');
     Exit;
   End;
 End;
@@ -289,6 +291,7 @@ Var
 {$ENDIF}
 
 Initialization
+  _Callstack := TERRACallstack.Create();
   GetMemoryManager(PrevManager);
 
   {$IFNDEF DEBUG_LEAKS}
@@ -303,4 +306,8 @@ Initialization
   //MemoryManager.Instance();
   {$ENDIF}
   {$ENDIF}
+
+Finalization
+  SetMemoryManager(PrevManager);
+  ReleaseObject(_Callstack);
 End.

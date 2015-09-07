@@ -201,7 +201,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_EngineManager, TERRA_FileStream, TERRA_Stream
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Engine, TERRA_FileStream, TERRA_Stream
 {$IFNDEF DISABLEALLOCOPTIMIZATIONS}, TERRA_StackObject{$ENDIF};
 
 {$IFDEF DEBUG_ITERATORS}

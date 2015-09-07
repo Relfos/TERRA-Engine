@@ -161,7 +161,7 @@ Function TimeToFrame(Time, FPS:Single):Integer;
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_Application, TERRA_OS, TERRA_FileManager,  TERRA_Mesh,
-  TERRA_EngineManager, TERRA_GraphicsManager, TERRA_FileStream, TERRA_FileUtils, TERRA_MeshAnimationNodes;
+  TERRA_Engine, TERRA_GraphicsManager, TERRA_FileStream, TERRA_FileUtils, TERRA_MeshAnimationNodes;
 
 Function FrameToTime(Frame, FPS:Single):Single;
 Begin
@@ -203,7 +203,7 @@ Begin
       Self.AddResource(Result);
     End Else
     If ValidateError Then
-      RaiseError('Could not find animation. ['+Name +']');
+      Engine.RaiseError('Could not find animation. ['+Name +']');
   End;
 End;
 

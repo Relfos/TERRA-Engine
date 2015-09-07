@@ -123,7 +123,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_Application, TERRA_OS, TERRA_FileManager,  TERRA_Mesh,
-  TERRA_GraphicsManager, TERRA_FileStream, TERRA_FileUtils;
+  TERRA_Engine, TERRA_FileStream, TERRA_FileUtils;
 
 { MeshBone }
 
@@ -211,7 +211,7 @@ End;
 
 Procedure MeshBone.Write(Dest:TERRAStream);
 Begin
-  RaiseError('Not implemented');
+  Engine.RaiseError('Not implemented');
 End;
 
 Function MeshBone.GetAbsolutePosition: Vector3D;
@@ -299,7 +299,7 @@ End;
 
 Procedure MeshSkeleton.Write(Dest:TERRAStream);
 Begin
-  RaiseError('Not implemented');
+  Engine.RaiseError('Not implemented');
 End;
 
 Procedure MeshSkeleton.Release;

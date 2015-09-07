@@ -91,7 +91,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Utils, TERRA_ResourceManager, TERRA_FileStream, TERRA_GraphicsManager,
-  TERRA_EngineManager, TERRA_FileUtils, TERRA_Application;
+  TERRA_Engine, TERRA_FileUtils, TERRA_Application;
 
 Constructor TERRAResource.Create(Kind:ResourceType; Location:TERRALocation);
 Var

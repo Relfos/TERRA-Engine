@@ -48,7 +48,7 @@ Type
    End;
 
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Sort, TERRA_TextureManager, TERRA_Sprite, TERRA_EngineManager,
+Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Sort, TERRA_TextureManager, TERRA_Sprite, TERRA_Engine,
   TERRA_Log, TERRA_FileUtils, TERRA_MemoryStream, TERRA_ImageDrawing, TERRA_Image, TERRA_Collections,
  TERRA_GraphicsManager, TERRA_FileManager, TERRA_FileFormat, TERRA_Packer, TERRA_DistanceField, TERRA_TextureAtlas, TERRA_Texture;
 

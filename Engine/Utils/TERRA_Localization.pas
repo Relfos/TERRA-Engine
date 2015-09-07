@@ -100,7 +100,7 @@ Function GetCurrencyForCountry(Const Country:TERRAString):TERRAString;
 Function GetLanguageDescription(Lang:TERRAString):TERRAString;
 
 Implementation
-Uses TERRA_EngineManager, TERRA_FileManager, TERRA_Log, TERRA_OS;
+Uses TERRA_Engine, TERRA_FileManager, TERRA_Log, TERRA_OS;
 
 
 Function IsSupportedLanguage(Const Lang:TERRAString):Boolean;
@@ -535,7 +535,7 @@ Begin
   _SuggestionCount :=0 ;
 
   N := -1;
-  StringCreateIterator(Text, It);
+  It := StringCreateIterator(Text);
   While It.HasNext() Do
   Begin
     C := It.GetNext();
@@ -545,6 +545,7 @@ Begin
       Break;
     End;
   End;
+  ReleaseObject(It);
 
   If (N>0) Then
     Text := StringCopy(Text, N, MaxInt);

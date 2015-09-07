@@ -82,7 +82,7 @@ Type
 Function CompareToGL(Mode:CompareMode):Integer;
   
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_GraphicsManager, TERRA_FileManager, TERRA_FileUtils, TERRA_FileStream, SysUtils;
+Uses TERRA_Error, TERRA_Engine, TERRA_OS, TERRA_Log, TERRA_GraphicsManager, TERRA_FileManager, TERRA_FileUtils, TERRA_FileStream, SysUtils;
 
 Function CompareToGL(Mode:CompareMode):Integer;
 Begin
@@ -431,7 +431,7 @@ Begin
   _Linked := (LinkStatus=1);
   If Not _Linked Then
   Begin
-    RaiseError('Shader Linking failed.['+_Name+']'+StringFromChar(NewLineChar)+LogInfo);
+    Engine.RaiseError('Shader Linking failed.['+_Name+']'+StringFromChar(NewLineChar)+LogInfo);
     Exit;
   End;
 

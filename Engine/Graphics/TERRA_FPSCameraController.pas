@@ -24,12 +24,15 @@ Type
   End;
 
 Implementation
-Uses TERRA_InputManager, TERRA_EngineManager, TERRA_OS;
+Uses TERRA_InputManager, TERRA_Engine, TERRA_OS;
 
 
 { FPSCameraController }
 Constructor FPSCameraController.Create();
 Begin
+  _Heading := -45.0 * RAD;
+  _Tilt := -30.0 * RAD;
+
   Application.Instance.Window.LockedCursor := True;
 End;
 
@@ -87,12 +90,12 @@ Begin
   If (Application.Instance.Window.LockedCursor) Then
   Begin
     _Heading := _Heading + Input.Mouse.X * MouseSpeed;
-    _Tilt := _Tilt - Input.Mouse.Y * MouseSpeed;
+    _Tilt := _Tilt + Input.Mouse.Y * MouseSpeed;
 
     If _Tilt > Max_Tilt Then _Tilt := Max_Tilt;
     If _Tilt < Min_Tilt Then _Tilt := Min_Tilt;
 
-    TargetView := Vector3D_Create(Cos(_Heading), -Sin(_Tilt), -Sin(_Heading));
+    TargetView := Vector3D_Create(Cos(_Heading), Sin(_Tilt), -Sin(_Heading));
     TargetCam.View := TargetView;
   End;
 

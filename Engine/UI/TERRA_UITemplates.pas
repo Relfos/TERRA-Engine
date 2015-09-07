@@ -33,7 +33,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_EngineManager, TERRA_Localization;
+Uses TERRA_Engine, TERRA_Localization;
 
 
 { UIWindowTemplate }

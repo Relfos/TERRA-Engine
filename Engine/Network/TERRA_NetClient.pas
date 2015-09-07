@@ -91,7 +91,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Log, TERRA_EngineManager;
+Uses TERRA_Log, TERRA_Engine;
 
 { NetClient }
  // Creates a new client instance

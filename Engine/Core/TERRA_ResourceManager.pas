@@ -91,7 +91,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Image, TERRA_GraphicsManager, TERRA_Utils, TERRA_Color,
-  TERRA_EngineManager, TERRA_FileUtils, TERRA_FileStream, TERRA_FileManager;
+  TERRA_Engine, TERRA_FileUtils, TERRA_FileStream, TERRA_FileManager;
 
 Type
   ResourceLoader = Class(TERRATask)
@@ -210,7 +210,7 @@ Begin
   If (_Resources <> Nil) Then
     _Resources.Add(MyResource)
   Else
-    RaiseError('Resource table is null!');
+    Engine.RaiseError('Resource table is null!');
 End;
 
 Function ResourceManager.GetResource(Const Name:TERRAString): TERRAResource;
@@ -219,7 +219,7 @@ Var
 Begin
   If _Resources = Nil Then
   Begin
-    RaiseError('Resource table is null!');
+    Engine.RaiseError('Resource table is null!');
     Result := Nil;
     Exit;
   End;
@@ -241,7 +241,7 @@ Procedure ResourceManager.ReloadResource(Resource: TERRAResource; InBackground:B
 Begin
   If Not Assigned(Resource) Then
   Begin
-    RaiseError('Cannot load null resource!');
+    Engine.RaiseError('Cannot load null resource!');
     Exit;
   End;
 

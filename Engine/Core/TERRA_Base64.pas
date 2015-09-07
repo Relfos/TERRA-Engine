@@ -3,7 +3,7 @@ Unit TERRA_Base64;
 
 
 Interface
-Uses TERRA_String;
+Uses TERRA_Object, TERRA_String;
 
 Function StringToBase64(Buf:TERRAString):TERRAString;
 Function Base64ToString(B64:TERRAString):TERRAString;

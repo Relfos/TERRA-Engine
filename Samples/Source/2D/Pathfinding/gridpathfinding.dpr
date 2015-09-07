@@ -15,7 +15,7 @@ uses
   TERRA_OS,
   TERRA_PNG,
   TERRA_Sprite,
-  TERRA_EngineManager,
+  TERRA_Engine,
   TERRA_FileManager,
   TERRA_Math,
   TERRA_Image,

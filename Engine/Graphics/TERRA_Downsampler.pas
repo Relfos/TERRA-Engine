@@ -52,7 +52,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_GraphicsManager, TERRA_EngineManager, TERRA_InputManager, TERRA_Color;
+Uses TERRA_GraphicsManager, TERRA_Engine, TERRA_InputManager, TERRA_Color;
 
 
 { RenderTargetDownSampler }

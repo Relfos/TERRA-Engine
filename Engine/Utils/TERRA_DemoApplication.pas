@@ -69,7 +69,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_EngineManager, TERRA_FileManager, TERRA_InputManager, TERRA_GraphicsManager;
+Uses TERRA_Engine, TERRA_FileManager, TERRA_InputManager, TERRA_GraphicsManager;
 
 { Demo }
 Procedure DemoApplication.OnCreate;

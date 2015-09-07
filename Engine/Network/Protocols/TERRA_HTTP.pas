@@ -282,7 +282,7 @@ Var
   DownloadTempPath:TERRAString;
 
 Implementation
-Uses TERRA_Log, TERRA_MemoryStream, TERRA_EngineManager, TERRA_ResourceManager;
+Uses TERRA_Log, TERRA_MemoryStream, TERRA_Engine, TERRA_ResourceManager;
 
 Function GetTempPath:TERRAString;
 Begin

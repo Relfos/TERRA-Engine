@@ -31,7 +31,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Log, TERRA_EngineManager, TERRA_OS;
+Uses TERRA_Log, TERRA_Engine, TERRA_OS;
 
 { XMLFormat }
 Procedure XMLFormat.ReadNode(Source:TERRAStream; Target:TERRAObjectNode);
@@ -69,10 +69,13 @@ Begin
   ShortTag := (StringGetChar(S, -2) = '/');
   S := GetTagName(S);
 
-  If (StringCharPosIterator(' ', S, It)) Then
+  It := StringCharPosIterator(' ', S);
+  If (Assigned(It)) Then
   Begin
     It.Split(S, S2);
     Target.Name := S;
+
+    ReleaseObject(It);
 
     S := S2;
     If (StringLastChar(S) = '/') Then
@@ -80,7 +83,7 @@ Begin
 
     While (S<>'') Do
     Begin
-      StringCreateIterator(S, It);
+      It := StringCreateIterator(S);
       Inside := False;
       Found := False;
 
@@ -97,6 +100,7 @@ Begin
           Break;
         End;
       End;
+      ReleaseObject(It);
 
       If Not Found Then
       Begin
@@ -104,9 +108,11 @@ Begin
         S := '';
       End;
 
-      If StringCharPosIterator('=', S2, It) Then
+      It := StringCharPosIterator('=', S2);
+      If Assigned(It) Then
       Begin
         It.Split(Tag, Value);
+        ReleaseObject(It);
 
         Value := StringTrim(Value);
         Temp := VAlue;

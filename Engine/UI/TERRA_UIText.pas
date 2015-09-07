@@ -54,7 +54,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Localization, TERRA_FontManager, TERRA_EngineManager, TERRA_Math;
+Uses TERRA_Localization, TERRA_FontManager, TERRA_Engine, TERRA_Math;
 
 Var
   _AlignEnums:EnumCollection;

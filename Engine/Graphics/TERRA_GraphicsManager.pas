@@ -193,7 +193,7 @@ Type
 
 Implementation
 
-Uses TERRA_Error, TERRA_EngineManager, TERRA_OS, TERRA_Log, TERRA_ResourceManager, TERRA_InputManager,
+Uses TERRA_Error, TERRA_Engine, TERRA_OS, TERRA_Log, TERRA_ResourceManager, TERRA_InputManager,
   TERRA_Frustum, TERRA_Lights, TERRA_Mesh, TERRA_ShaderManager, TERRA_DebugDraw;
 
 Var
@@ -233,7 +233,7 @@ Begin
 
   If Self.Renderer = Nil Then
   Begin
-    RaiseError('Failed to initialized renderer with ID '+ IntegerProperty.Stringify(RendererID));
+    Engine.RaiseError('Failed to initialized renderer with ID '+ IntegerProperty.Stringify(RendererID));
     Exit;
   End;
 
@@ -1073,7 +1073,8 @@ Begin
   Inc(_FrameID);
 
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'BeginSceneRendering '+ IntegerProperty.Stringify(_ViewportCount));{$ENDIF}
-  If (Not Application.Instance.HasFatalError) Then
+(*  If (Assigned(Engine.Error)) Then
+    Exit;*)
 
   //For I:=Pred(_ViewportCount) DownTo 0 Do
   For I:=0 To Pred(_ViewportCount) Do

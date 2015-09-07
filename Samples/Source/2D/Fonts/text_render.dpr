@@ -5,7 +5,7 @@ Uses
   {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Application, 
   TERRA_ResourceManager, TERRA_Color, TERRA_OS,
-  TERRA_EngineManager, TERRA_ScreenFX,
+  TERRA_Engine, TERRA_ScreenFX,
   TERRA_Viewport, TERRA_Localization, TERRA_DemoApplication;
 
 Type

@@ -65,7 +65,7 @@ Type
     End;
 
 Implementation
-Uses TERRA_OS, TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Lights, TERRA_Mesh, TERRA_Renderer, TERRA_MeshFilter, TERRA_Log, TERRA_Matrix4x4;
+Uses TERRA_OS, TERRA_Engine, TERRA_GraphicsManager, TERRA_Lights, TERRA_Mesh, TERRA_Renderer, TERRA_MeshFilter, TERRA_Log, TERRA_Matrix4x4;
 
 Type
   GroupVertex = Record

@@ -7,7 +7,7 @@ uses
   TERRA_MemoryManager,
   TERRA_Application,
   TERRA_DemoApplication,
-  TERRA_EngineManager,
+  TERRA_Engine,
   TERRA_Utils,
   TERRA_String,
   TERRA_Stream,

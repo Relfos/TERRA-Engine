@@ -72,7 +72,7 @@ Type
 Function LoadKeypairList(SourceFile:TERRAString):TERRAHashMap;
 
 Implementation
-Uses TERRA_EngineManager, TERRA_Log, TERRA_Stream, TERRA_FileStream, TERRA_MurmurHash;
+Uses TERRA_Engine, TERRA_Log, TERRA_Stream, TERRA_FileStream, TERRA_MurmurHash;
 
 Function LoadKeypairList(SourceFile:TERRAString):TERRAHashMap;
 Var

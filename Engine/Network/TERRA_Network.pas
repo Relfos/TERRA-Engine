@@ -171,7 +171,7 @@ Function GetNetErrorDesc(ErrorCode:Word):TERRAString;
 //Function CreateMessageWithWord(Opcode:Byte; Code:Word):NetMessage;  // Creates a server message
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_EngineManager;
+Uses TERRA_Error, TERRA_Log, TERRA_Engine;
 
 Function GetNetErrorDesc(ErrorCode:Word):TERRAString;
 Begin

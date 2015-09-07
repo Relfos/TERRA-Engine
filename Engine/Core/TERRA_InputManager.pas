@@ -176,7 +176,7 @@ Function GetKeyByName(Const KeyName:TERRAString):Integer;
 Function GetKeyName(Key:Integer):TERRAString;
 
 Implementation
-Uses TERRA_GraphicsManager, TERRA_EngineManager, TERRA_OS;
+Uses TERRA_GraphicsManager, TERRA_Engine, TERRA_OS;
 
 Function IsMouseInput(Key:Integer):Boolean;
 Begin

@@ -52,7 +52,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_Application;
+Uses TERRA_Error, TERRA_Application, TERRA_Engine;
 
 Constructor PackerNode.Create(X, Y, Width, Height:Integer);
 Begin
@@ -138,7 +138,7 @@ Var
 Begin
 	If (Width<1) Or (Height<1) Then
 	Begin
-		RaiseError('Invalid rect!');
+		Engine.RaiseError('Invalid rect!');
 		Exit;
 	End;
 

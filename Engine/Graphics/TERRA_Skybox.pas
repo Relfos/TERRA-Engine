@@ -69,7 +69,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_GraphicsManager, TERRA_EngineManager, TERRA_ResourceManager, TERRA_Log, TERRA_OS, TERRA_Camera,
+Uses TERRA_GraphicsManager, TERRA_Engine, TERRA_ResourceManager, TERRA_Log, TERRA_OS, TERRA_Camera,
   TERRA_Image, TERRA_ShaderManager;
 
 

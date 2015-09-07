@@ -13,7 +13,7 @@ uses
   TERRA_Texture,
   TERRA_ScreenFX,
   TERRA_Mesh,
-  TERRA_EngineManager,
+  TERRA_Engine,
   TERRA_InputManager;
 
 Type

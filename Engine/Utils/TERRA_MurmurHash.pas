@@ -27,7 +27,7 @@ Unit TERRA_MurmurHash;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String;
+Uses TERRA_Object, TERRA_String;
 
 Type
   HashKey = Cardinal;

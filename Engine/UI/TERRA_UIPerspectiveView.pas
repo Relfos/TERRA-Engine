@@ -4,7 +4,7 @@ Unit TERRA_UIPerspectiveView;
 
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_UIView, TERRA_Renderer, TERRA_Renderable, TERRA_Resource, TERRA_Mesh, TERRA_BoundingBox,
-  TERRA_InputManager, TERRA_EngineManager, TERRA_Viewport, TERRA_Matrix4x4;
+  TERRA_InputManager, TERRA_Engine, TERRA_Viewport, TERRA_Matrix4x4;
 
 Type
   UIPerspectiveView = Class(MeshInstance)

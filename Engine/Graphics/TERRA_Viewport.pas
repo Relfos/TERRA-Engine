@@ -211,7 +211,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Application, TERRA_Log, TERRA_OS, TERRA_Vector4D,
+Uses TERRA_Error, TERRA_Engine, TERRA_GraphicsManager, TERRA_Application, TERRA_Log, TERRA_OS, TERRA_Vector4D,
   TERRA_Downsampler, TERRA_ShaderManager;
 
 {$IFDEF POSTPROCESSING}

@@ -16,7 +16,7 @@ Type
 
       Procedure UpdateSprite(View:TERRAViewport); Override;
 
-      Function GetObjectType:TERRAString; Override;
+      Class Function GetObjectType:TERRAString; Override;
 
     Public
       Constructor Create(Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension);
@@ -42,7 +42,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Log, TERRA_OS, TERRA_EngineManager, TERRA_DebugDraw;
+Uses TERRA_Log, TERRA_OS, TERRA_Engine, TERRA_DebugDraw;
 
 { UIImage }
 Constructor UIGraph.Create(Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension);
@@ -60,7 +60,7 @@ Begin
 End;
 
 
-Function UIGraph.GetObjectType: TERRAString;
+Class Function UIGraph.GetObjectType: TERRAString;
 Begin
   Result := 'UIGraph';
 End;

@@ -80,7 +80,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_CRC32, TERRA_Application, TERRA_OS, TERRA_Log, TERRA_ResourceManager,
-  TERRA_EngineManager, TERRA_FileStream, TERRA_FileManager, TERRA_MemoryStream;
+  TERRA_Engine, TERRA_FileStream, TERRA_FileManager, TERRA_MemoryStream;
 
 Constructor ResourceInfo.Create(Owner:TERRAPackage; Source:TERRAStream);
 Begin
@@ -140,7 +140,7 @@ Begin
   Source.ReadHeader(Header);
   If Header<>TERRAHeader Then
   Begin
-    RaiseError('Invalid header. ['+Source.Name+']');
+    Engine.RaiseError('Invalid header. ['+Source.Name+']');
     ReleaseObject(Source);
     Exit;
   End;
@@ -202,7 +202,7 @@ Begin
 
   If Not Assigned(Resource) Then
   Begin
-    RaiseError('Package.LoadResource(): Null resource');
+    Engine.RaiseError('Package.LoadResource(): Null resource');
     Exit;
   End;
 

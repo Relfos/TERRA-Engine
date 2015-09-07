@@ -26,7 +26,6 @@ Unit TERRA_Tween;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Math;
 
 Type
   TweenEaseType = (
@@ -161,11 +160,11 @@ Function GetEaseWiggle(t, b,c,d:Single):Single;
 Function GetEase(Const Delta:Single; Const Ease:TweenEaseType):Single;
 
 Implementation
-Uses TERRA_OS, TERRA_GraphicsManager;
+Uses TERRA_Utils, TERRA_Math, TERRA_OS, TERRA_GraphicsManager;
 
 (*Var
   _TweenManager_Instance:ApplicationObject = Nil;*)
-  
+
 {     * @param t     Current time (in frames or seconds).
      * @param b     Starting value.
      * @param c     Change needed in value.

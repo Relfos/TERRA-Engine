@@ -904,7 +904,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_Application, TERRA_Log, TERRA_ShaderFactory, TERRA_OS,
-  TERRA_EngineManager, TERRA_FileManager, TERRA_CRC32, TERRA_ColorGrading, TERRA_Solids;
+  TERRA_Engine, TERRA_FileManager, TERRA_CRC32, TERRA_ColorGrading, TERRA_Solids;
 
 Type
   MeshDataBlockHandler = Function(Target:TERRAMesh; Size:Cardinal; Source:TERRAStream):Boolean;
@@ -5490,7 +5490,7 @@ Function MeshGroup.GetVertices:VertexData;
 Begin
   If _Vertices = Nil Then
   Begin
-    RaiseError('Vertex format not set!');
+    Engine.RaiseError('Vertex format not set!');
   End;
 
   Result := _Vertices;

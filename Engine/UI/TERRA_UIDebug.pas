@@ -15,7 +15,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_OS, TERRA_Localization, TERRA_FontManager, TERRA_EngineManager, TERRA_Math;
+Uses TERRA_OS, TERRA_Localization, TERRA_FontManager, TERRA_Engine, TERRA_Math;
 
 Procedure UIMemoryAllocDebugWidget.UpdateSprite(View:TERRAViewport);
 Var

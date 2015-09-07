@@ -329,7 +329,7 @@ Type
 Function CreateParticleVertexData(Count:Integer):VertexData;
 
 Implementation
-Uses TERRA_EngineManager, TERRA_Error, TERRA_OS, TERRA_Log, TERRA_Camera, TERRA_Mesh, TERRA_FileStream, TERRA_FileUtils, TERRA_ShaderManager;
+Uses TERRA_Engine, TERRA_Error, TERRA_OS, TERRA_Log, TERRA_Camera, TERRA_Mesh, TERRA_FileStream, TERRA_FileUtils, TERRA_ShaderManager;
 
 
 Function CreateParticleVertexData(Count:Integer):VertexData;

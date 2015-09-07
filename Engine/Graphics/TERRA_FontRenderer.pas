@@ -173,7 +173,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Log, TERRA_OS, TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Math, TERRA_DebugDraw, TERRA_FontManager, TERRA_TextureAtlas;
+Uses TERRA_Log, TERRA_OS, TERRA_Engine, TERRA_GraphicsManager, TERRA_Math, TERRA_DebugDraw, TERRA_FontManager, TERRA_TextureAtlas;
 
 { FontRenderer }
 Constructor TERRAFontRenderer.Create;
@@ -345,8 +345,7 @@ Begin
   _StylesList[0].Link := '';
   _StylesList[0].Color := Self._ColorBase;
 
-  StringCreateIterator(S, It);
-
+  It := StringCreateIterator(S);
   NextChar := NullChar;
   While (NextChar <> NullChar) Or (_CharCount<=0) Do
   Begin
@@ -544,6 +543,7 @@ Begin
       ApplyLineBreak();*)
 
   End;
+  ReleaseObject(It);
 
   For I:=0 To Pred(_CharCount) Do
   Begin

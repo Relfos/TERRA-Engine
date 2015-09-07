@@ -99,7 +99,7 @@ Type
 
 
 Implementation
-Uses TERRA_OS, TERRA_Log, TERRA_EngineManager, TERRA_GraphicsManager, TERRA_FileManager;
+Uses TERRA_OS, TERRA_Log, TERRA_Engine, TERRA_GraphicsManager, TERRA_FileManager;
 
 { Steam }
 Constructor SteamManager.Create();

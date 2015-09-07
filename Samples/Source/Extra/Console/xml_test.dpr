@@ -2,7 +2,7 @@ program xml_test;
 
 {$APPTYPE CONSOLE}
 
-Uses TERRA_Object, TERRA_String, TERRA_ConsoleApplication, TERRA_ObjectTree, TERRA_Stream, TERRA_EngineManager, TERRA_XML;
+Uses TERRA_Object, TERRA_String, TERRA_ConsoleApplication, TERRA_ObjectTree, TERRA_Stream, TERRA_Engine, TERRA_XML;
 
 Var
   Console:ConsoleApplication;

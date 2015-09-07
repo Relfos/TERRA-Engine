@@ -10,7 +10,7 @@ Unit TERRA_OS;
 {-$DEFINE TRUE_FULLSCREEN}
 
 Interface
-Uses TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_Window, TERRA_InputManager, TERRA_Multimedia, 
+Uses TERRA_String, TERRA_Object, TERRA_Error, TERRA_Utils, TERRA_Application, TERRA_Window, TERRA_InputManager, TERRA_Multimedia,
   Windows, Messages;
 
 Const
@@ -161,7 +161,7 @@ Type
 
       Function GetDeviceID():TERRAString; Override;
 
-      Procedure OnFatalError(Const ErrorMsg, CrashLog, Callstack:TERRAString); Override;
+      Procedure OnFatalError(Error:TERRAError); Override;
 
       Class Function GetCurrentTime:TERRATime;
       Class Function GetCurrentDate:TERRADate;
@@ -173,7 +173,7 @@ Type
   Application = WindowsApplication;
 
 Implementation
-Uses TERRA_Error, SysUtils, TERRA_Renderer, TERRA_GLRenderer, TERRA_EngineManager,
+Uses SysUtils, TERRA_Renderer, TERRA_GLRenderer, TERRA_Engine,
   TERRA_GraphicsManager, TERRA_Log, TERRA_Stream, TERRA_FileUtils, TERRA_FileManager, TERRA_MemoryStream, TERRA_MusicManager,
   TERRA_Gamepad, TERRA_XInput, TERRA_Ethernet, TERRA_Timer, TERRA_Win32Window;
 
@@ -754,13 +754,13 @@ Begin
 End;
 
 
-Procedure WindowsApplication.OnFatalError(Const ErrorMsg, CrashLog, Callstack: TERRAString);
+Procedure WindowsApplication.OnFatalError(Error:TERRAError);
 Var
   S:TERRAString;
 Begin
   _Running := False;
 
-  S := 'A fatal error has occurred.' + CrLf + ErrorMsg + CrLf+CrashLog + CrLf+ Callstack;
+  S := 'A fatal error has occurred.' + CrLf + Error.Description + CrLf+ Error.CrashLog + CrLf+ Error.Callstack.GetDescription();
   Windows.MessageBoxA(0, PAnsiChar(S), PAnsiChar(GetProgramName()), MB_OK Or MB_ICONERROR);
 End;
 

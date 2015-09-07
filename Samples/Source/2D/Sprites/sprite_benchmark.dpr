@@ -2,13 +2,12 @@
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
 uses
-  MemCheck,
   TERRA_Object,
   TERRA_MemoryManager,
   TERRA_Application,
   TERRA_DemoApplication,
   TERRA_Utils,
-  TERRA_EngineManager,
+  TERRA_Engine,
   TERRA_GraphicsManager,
   TERRA_OS,
   TERRA_Vector2D,
@@ -59,8 +58,8 @@ Begin
 
   For I:=0 To Pred(Limit) Do
   Begin
-    Pos[I] := VectorCreate(RandomFloat(0, W), RandomFloat(0, H), Trunc(RandomFloat(20, 40)));
-    Dir[I] := VectorCreate2D(RandomFloat(-1, 1), RandomFloat(-1, 1));
+    Pos[I] := Vector3D_Create(RandomFloat(0, W), RandomFloat(0, H), Trunc(RandomFloat(20, 40)));
+    Dir[I] := Vector2D_Create(RandomFloat(-1, 1), RandomFloat(-1, 1));
   End;
 End;
 
@@ -80,7 +79,7 @@ Begin
     S.SetTexture(Tex);
     S.Translate(Pos[I].X, Pos[I].Y);
     S.Mirror := Odd(I);    // Each odd sprite in line will be reflected
-    S.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(0, 0), 0.0, Tex.Width, Tex.Height);
+    S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
     View.SpriteRenderer.QueueSprite(S);
 
     Pos[I].X := Pos[I].X + Dir[I].X;

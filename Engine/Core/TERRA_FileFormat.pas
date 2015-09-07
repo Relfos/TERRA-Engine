@@ -73,7 +73,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_EngineManager, TERRA_FileUtils, TERRA_FileStream, TERRA_MemoryStream;
+Uses TERRA_Engine, TERRA_FileUtils, TERRA_FileStream, TERRA_MemoryStream;
 
 { TERRAFileFormat }
 Constructor TERRAFileFormat.Create(Const Kind:TERRAObjectType; Const Extension:TERRAString);

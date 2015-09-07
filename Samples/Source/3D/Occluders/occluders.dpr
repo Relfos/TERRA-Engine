@@ -5,7 +5,7 @@ Uses TERRA_Object, TERRA_Application, TERRA_Utils, TERRA_ResourceManager, TERRA_
   TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_Viewport, TERRA_Texture, TERRA_Renderer,
   TERRA_JPG, TERRA_PNG, TERRA_Lights, TERRA_ShaderFactory, TERRA_InputManager,
   TERRA_FileManager, TERRA_Scene, TERRA_Mesh, TERRA_Skybox, TERRA_Color, TERRA_Matrix4x4,
-  TERRA_DemoApplication, TERRA_EngineManager, TERRA_Occluder;
+  TERRA_DemoApplication, TERRA_Engine, TERRA_Occluder;
 
 Type
   Demo = Class(DemoApplication)

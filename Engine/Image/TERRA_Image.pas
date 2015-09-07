@@ -216,7 +216,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_EngineManager, TERRA_FileStream, TERRA_FileUtils, TERRA_Math, TERRA_Log, TERRA_Vector4D, TERRA_ImageDrawing;
+Uses TERRA_Engine, TERRA_FileStream, TERRA_FileUtils, TERRA_Math, TERRA_Log, TERRA_Vector4D, TERRA_ImageDrawing;
 
 { ImageIterator }
 Constructor ImageIterator.Create(Target:TERRAImage; Flags:ImageProcessFlags; Const Mask:Cardinal);

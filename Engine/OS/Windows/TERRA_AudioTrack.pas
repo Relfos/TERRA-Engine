@@ -24,7 +24,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_EngineManager, TERRA_Error, TERRA_Log, TERRA_OS, TERRA_FileManager, TERRA_FileStream, TERRA_Stream, TERRA_Math;
+Uses TERRA_Engine, TERRA_Error, TERRA_Log, TERRA_OS, TERRA_FileManager, TERRA_FileStream, TERRA_Stream, TERRA_Math;
 
 Const
   mpNotReady = 0;

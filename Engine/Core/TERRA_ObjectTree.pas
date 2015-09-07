@@ -61,7 +61,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Log, TERRA_MemoryStream, TERRA_FileStream, TERRA_EngineManager, TERRA_XML, TERRA_OS;
+Uses TERRA_Log, TERRA_MemoryStream, TERRA_FileStream, TERRA_Engine, TERRA_XML, TERRA_OS;
 
 (*Procedure DumpObjectTree(Node:TERRAObjectNode; Dest:TERRAStream; Level:Integer);
 Var

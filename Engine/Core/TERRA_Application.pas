@@ -43,7 +43,7 @@ Unit TERRA_Application;
 
 
 Interface
-Uses TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Window, TERRA_Mutex;
+Uses TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Window, TERRA_Mutex, TERRA_Error;
 
 Const
 	// Operating System Class
@@ -309,7 +309,6 @@ Type
 
       Function HasInternet:Boolean; Virtual;
 
-      Function HasFatalError:Boolean;
       Function GetCrashLog():TERRAString; Virtual;
 
       Function PostCallback(Callback:ApplicationCallback; Arg:TERRAObject = Nil; Const Delay:Cardinal = 0):Boolean;
@@ -397,7 +396,7 @@ Type
 
       Procedure OnAPIResult(API, Code:Integer); Virtual;
 
-      Procedure OnFatalError(Const ErrorMsg, CrashLog, Callstack:TERRAString); Virtual;
+      Procedure OnFatalError(Error:TERRAError); Virtual;
 
       Procedure OnContextLost(); Virtual;
 
@@ -488,9 +487,9 @@ Function IsInvalidOrientation(Const Orientation:TERRAOrientation):Boolean;
 
 Implementation
 
-Uses SysUtils, TERRA_Error, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
+Uses SysUtils, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   {$IFNDEF WINDOWS}BaseUnix, {$ENDIF}
-  TERRA_GraphicsManager, TERRA_EngineManager, TERRA_Callstack, TERRA_Collections, TERRA_List,
+  TERRA_GraphicsManager, TERRA_Engine, TERRA_Callstack, TERRA_Collections, TERRA_List,
   TERRA_Log, TERRA_OS, TERRA_IAP, TERRA_Localization, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager
   {$IFDEF PC}, TERRA_Steam{$ENDIF};
 
@@ -595,7 +594,6 @@ Begin
 
   _PauseCounter := 0;
 
-  _FatalError := '';
   _Application_Ready := True;
   Self.Run();
 End;
@@ -641,9 +639,9 @@ Begin
     Exit;
   End;
 
-  If (_Running) Then
+  If (_Running) And (Assigned(_Window)) And (Not _Window.Managed) Then
   Begin
-    RaiseError('Application is already running.');
+    Engine.RaiseError('Application is already running.');
     Result := False;
     Exit;
   End;
@@ -693,7 +691,7 @@ Begin
       Begin
         Self.ProcessEvents();
 
-        If _FatalError<>'' Then
+        If Assigned(Engine.Error) Then
         Begin
           {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logWarning, 'App', 'Fatal error!!!!');{$ENDIF}{$ENDIF}
           If (Engine.Input.Keys.IsDown(keyEscape)) Then
@@ -734,9 +732,11 @@ Begin
   Except
     On E : Exception do
     Begin
-      //FillCallStack(St, 0);
-      Log(logError, 'Application', 'Exception: '+E.ClassName +' '+E.Message);
-      Self.OnFatalError(CrLf+E.Message, Self.GetCrashLog(), DumpExceptionCallStack(E));
+      If Not (E Is TERRAError) Then
+        Engine.Error := TERRAError.Create(E.ClassName +' '+E.Message, E);
+
+      If Assigned(Engine.Error) Then
+        Self.OnFatalError(Engine.Error);
       Exit;
     End;
   End;
@@ -1064,11 +1064,6 @@ Begin
   Halt();
 End;
 {$ENDIF}
-
-Function BaseApplication.HasFatalError: Boolean;
-Begin
-  Result := _FatalError<>'';
-End;
 
 function BaseApplication.SetOrientation(Const Value:TERRAOrientation): Boolean;
 Var
@@ -1807,7 +1802,7 @@ Begin
   Result := 640;
 End;
 
-Procedure BaseApplication.OnFatalError(Const ErrorMsg, CrashLog, Callstack:TERRAString); 
+Procedure BaseApplication.OnFatalError(Error:TERRAError); 
 Begin
   _Running := False;
 End;

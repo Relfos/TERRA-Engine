@@ -116,7 +116,7 @@ Function IsPackageFileName(Const FileName:TERRAString):Boolean;
 
 Implementation
 Uses SysUtils, TERRA_Error, TERRA_Log, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF} TERRA_OS, TERRA_Image,
-  TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Color, TERRA_FileUtils, TERRA_MemoryStream;
+  TERRA_Engine, TERRA_GraphicsManager, TERRA_Color, TERRA_FileUtils, TERRA_MemoryStream;
 
 Type
   TERRAPackageLocation = Class(TERRALocation)
@@ -470,7 +470,7 @@ Begin
 
   Result := Nil;
   If ValidateError Then
-    RaiseError('Could not find package. ['+Name +']');
+    Engine.RaiseError('Could not find package. ['+Name +']');
 End;
 
 Function FileManager.OpenFile(Const FileName:TERRAString):TERRAStream;

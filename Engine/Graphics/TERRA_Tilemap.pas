@@ -174,7 +174,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_OS, TERRA_EngineManager, TERRA_FileManager, TERRA_MemoryStream,
+Uses TERRA_OS, TERRA_Engine, TERRA_FileManager, TERRA_MemoryStream,
   TERRA_Log, TERRA_Base64, TERRA_XML;
 
 { TileMap }

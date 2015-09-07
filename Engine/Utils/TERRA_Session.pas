@@ -102,7 +102,7 @@ Var
   It:StringIterator;
   C:TERRAChar;
 Begin
-  StringCreateIterator(S, It);
+  It := StringCreateIterator(S);
   While It.HasNext() Do
   Begin
     C := It.GetNext();
@@ -112,6 +112,7 @@ Begin
       Exit;
     End;
   End;
+  ReleaseObject(It);
 
   Result := False;
 End;

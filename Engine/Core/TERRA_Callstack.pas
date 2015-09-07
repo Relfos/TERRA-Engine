@@ -26,27 +26,7 @@ Unit TERRA_Callstack;
 {$I terra.inc}
 
 Interface
-Uses SysUtils, TERRA_DebugInfo;
-
-Type
-  CallInfo = Record
-    Routine:TERRARoutineInfo;
-    Line:Cardinal;
-  End;
-
-Procedure GetCurrentCall(Out Info:CallInfo);
-
-//Function TextualDebugInfoForAddress(Const TheAddress: Cardinal):TERRAString;
-
-Function DumpCallstack:String;
-Function DumpExceptionCallStack(E: Exception):String;
-
-//Function GetLibraryAddress():Cardinal;
-
-Var
-  SettingCallStack:Boolean = False;
-
-Implementation
+Uses SysUtils, TERRA_Object, TERRA_DebugInfo;
 
 Const
 {$IFNDEF FPC}
@@ -58,11 +38,37 @@ Const
 {$ENDIF}
 
 Type
+  CallInfo = Record
+    Routine:TERRARoutineInfo;
+    Line:Cardinal;
+  End;
+
 	CallStackArray = Array[0..StoredCallStackDepth] of Pointer;
 
+  TERRACallstack = Class(TERRAObject)
+    Protected
+      _CurrentCallstack:CallStackArray;
+      _CurrentCallstackSize:Integer;
+
+      Procedure FillCallStackFromAddress(StackStart, StackMax:Pointer);
+
+    Public
+      Procedure FillCurrentCallStack();
+      Procedure FillExceptionCallStack(E: Exception);
+
+      Procedure GetCurrentCall(Out Info:CallInfo);
+
+      Function GetDescription():TERRAString;
+  End;
+
+//Function GetLibraryAddress():Cardinal;
+
 Var
-  _CurrentCallstack:CallStackArray;
-  _CurrentCallstackSize:Integer;
+  SettingCallStack:Boolean = False;
+
+Implementation
+
+{ TERRACallstack }
 
 {$IFDEF DELPHI}
 Function BackTraceStrFunc(Const TargetAddress:Pointer):String;
@@ -101,7 +107,7 @@ begin
 	Result := Num + ' (No debug info)';
 End;
 
-Procedure FillCallStackFromAddress(StackStart, StackMax:Pointer);
+Procedure TERRACallstack.FillCallStackFromAddress(StackStart, StackMax:Pointer);
 	{Works only with stack frames - Without, St contains correct info, but is not as deep as it should
 	I just don't know a general rule for walking the stack when they are not there}
 Var
@@ -125,7 +131,7 @@ begin
   _CurrentCallstackSize := Count;
 End;
 
-Procedure FillCurrentCallStack();
+Procedure TERRACallstack.FillCurrentCallStack();
 Var
   StackStart, StackMax:Pointer;
 Begin
@@ -138,14 +144,13 @@ Begin
   FillCallStackFromAddress(StackStart, StackMax);
 End;
 
-Procedure FillExceptionCallStack(E:Exception);
+Procedure TERRACallstack.FillExceptionCallStack(E:Exception);
 Begin
   FillCurrentCallStack();
   //FillCallStackFromAddress(ExceptAddr, Pointer(Cardinal(ExceptAddr) + 16));
 End;
 
-
-Procedure GetCurrentCall(Out Info:CallInfo);
+Procedure TERRACallstack.GetCurrentCall(Out Info:CallInfo);
 Var
 	I, Count:Integer;
   TheAddress:Cardinal;
@@ -203,7 +208,7 @@ Begin
   Info.Line := 0;
 End;
 
-Procedure FillCurrentCallStack();
+Procedure TERRACallstack.FillCurrentCallStack();
 Var
   I:Integer;
   prevbp: Pointer;
@@ -266,7 +271,7 @@ Begin
 End;
 {$ENDIF}
 
-Function GetCallstackString():String;
+Function TERRACallstack.GetDescription():TERRAString;
 Var
   I:Integer;
 Begin
@@ -280,19 +285,5 @@ Begin
   For I:=0 To Pred(_CurrentCallstackSize) Do
     Result := Result + BackTraceStrFunc(_CurrentCallstack[I]) + LineEnding;
 End;
-
-Function DumpCallstack:String;
-Begin
-  FillCurrentCallStack();
-  Result := GetCallstackString();
-End;
-
-Function DumpExceptionCallStack(E: Exception):String;
-Begin
-  FillExceptionCallStack(E);
-  Result := GetCallstackString();
-End;
-
-
 
 End.

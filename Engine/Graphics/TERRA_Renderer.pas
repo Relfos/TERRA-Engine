@@ -598,7 +598,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_EngineManager, TERRA_FileManager, TERRA_Lights, TERRA_Math, TERRA_Log,
+Uses TERRA_Error, TERRA_Engine, TERRA_FileManager, TERRA_Lights, TERRA_Math, TERRA_Log,
   TERRA_Texture, TERRA_FileFormat, TERRA_NullRenderer;
 
 
@@ -1039,7 +1039,7 @@ Begin
   Begin
     If (Not CreateContext()) Then
     Begin
-      RaiseError('Cannot create renderer context!');
+      Engine.RaiseError('Cannot create renderer context!');
       Exit;
     End;
 
@@ -1047,7 +1047,7 @@ Begin
       _Features.WriteToLog()
     Else
     Begin
-      RaiseError('Renderer failed to initialize!');
+      Engine.RaiseError('Renderer failed to initialize!');
       Exit;
     End;
 
@@ -1090,7 +1090,7 @@ Function GraphicsRenderer.BindShader(Shader:ShaderInterface):Boolean;
 Begin
   If Shader = Nil Then
   Begin
-    RaiseError('Cannot bind null shader!');
+    Engine.RaiseError('Cannot bind null shader!');
     Result := False;
     Exit;
   End;

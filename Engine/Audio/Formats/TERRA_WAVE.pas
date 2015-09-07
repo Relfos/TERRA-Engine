@@ -37,7 +37,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_Utils, TERRA_FileStream, TERRA_FileUtils, TERRA_Log, TERRA_Application, TERRA_EngineManager;
+Uses TERRA_Error, TERRA_Utils, TERRA_FileStream, TERRA_FileUtils, TERRA_Log, TERRA_Application, TERRA_Engine;
 
 Const
   PCM_FORMAT =  1;

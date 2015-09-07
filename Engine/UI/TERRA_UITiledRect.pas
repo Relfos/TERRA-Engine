@@ -29,7 +29,7 @@ Type
 
 
 Implementation
-Uses TERRA_Log, TERRA_EngineManager;
+Uses TERRA_Log, TERRA_Engine;
 
 { UITiledRect }
 Constructor UITiledRect.Create(Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension; Const PX1, PY1, PX2, PY2:Integer);

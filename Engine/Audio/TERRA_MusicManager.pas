@@ -76,7 +76,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_FileManager, TERRA_EngineManager, TERRA_SoundManager, TERRA_Log, TERRA_OS, TERRA_Stream, TERRA_Math
+Uses TERRA_FileManager, TERRA_Engine, TERRA_SoundManager, TERRA_Log, TERRA_OS, TERRA_Stream, TERRA_Math
 {$IFDEF HAS_MIDI}, TERRA_MIDI{$ENDIF}
 {$IFDEF HAS_AUDIOTRACK}, TERRA_AudioTrack{$ENDIF};
 

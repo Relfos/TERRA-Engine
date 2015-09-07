@@ -210,7 +210,7 @@ Type
 
 Implementation
 Uses TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsManager, TERRA_Renderer,  TERRA_InputManager, TERRA_Log,
-  TERRA_EngineManager, TERRA_Renderable;
+  TERRA_Engine, TERRA_Renderable;
 
 { TERRACamera}
 Constructor TERRACamera.Create(Const Name:TERRAString);

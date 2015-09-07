@@ -2,7 +2,7 @@
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
 Uses TERRA_Object, TERRA_DemoApplication, TERRA_Utils, TERRA_OS, TERRA_Viewport, TERRA_FileUtils,
-  TERRA_EngineManager, TERRA_MusicManager;
+  TERRA_Engine, TERRA_MusicManager;
 
 Type
   Demo = Class(DemoApplication)

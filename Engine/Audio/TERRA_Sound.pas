@@ -50,7 +50,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Log, TERRA_SoundManager, TERRA_SoundSource,
-  TERRA_AudioConverter, TERRA_FileFormat, TERRA_EngineManager, TERRA_AudioMixer;
+  TERRA_AudioConverter, TERRA_FileFormat, TERRA_Engine, TERRA_AudioMixer;
 
 Function TERRASound.Unload:Boolean;
 Begin

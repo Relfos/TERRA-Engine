@@ -3,9 +3,19 @@ Unit TERRA_Object;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Tween;
+Uses TERRA_Tween;
 
 Type
+  {$IFDEF OXYGENE}
+  TERRAString = String;
+  TERRAChar = Char;
+  {$ELSE}
+  TERRAString = String;
+  TERRAChar = WideChar;
+  {$ENDIF}
+
+  StringArray = Array Of TERRAString;
+
   TERRAObject = Class
     Protected
       _ObjectName:TERRAString;
@@ -205,7 +215,7 @@ Type
 Procedure ReleaseObject(var Obj);
 
 Implementation
-Uses TERRA_Log, TERRA_Math, TERRA_OS, TERRA_EngineManager;
+Uses TERRA_Log, TERRA_Utils, TERRA_Math, TERRA_OS, TERRA_String, TERRA_Engine;
 
 Procedure ReleaseObject(Var Obj);
 Var

@@ -4,7 +4,7 @@
 Uses TERRA_Application, TERRA_DemoApplication, TERRA_Utils, TERRA_GraphicsManager, TERRA_Viewport,
   TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS,
   TERRA_Sprite, TERRA_FileManager, TERRA_Math, TERRA_Vector3D, TERRA_Vector2D,
-  TERRA_Renderer, TERRA_EngineManager;
+  TERRA_Renderer, TERRA_Engine;
 
 Type
   // A client is used to process application events

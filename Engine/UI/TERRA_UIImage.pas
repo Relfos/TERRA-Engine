@@ -34,7 +34,7 @@ Type
 
 
 Implementation
-Uses TERRA_Log, TERRA_EngineManager, TERRA_DebugDraw;
+Uses TERRA_Log, TERRA_Engine, TERRA_DebugDraw;
 
 { UIImage }
 Constructor UIImage.Create(Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension);

@@ -1,11 +1,12 @@
 Unit TERRA_ColorNames;
 
 Interface
-Uses TERRA_String, TERRA_Color;
+Uses TERRA_Object, TERRA_Color;
 
 Function CreateColorFromName(Const Name:TERRAString):ColorRGBA;
 
 Implementation
+Uses TERRA_String;
 
 Type
   NamedColor = Record

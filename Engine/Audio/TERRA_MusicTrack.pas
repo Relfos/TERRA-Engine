@@ -73,7 +73,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_FileManager, TERRA_EngineManager, TERRA_Stream;
+Uses TERRA_FileManager, TERRA_Engine, TERRA_Stream;
 
 { MusicTrack }
 Constructor MusicTrack.Create(FileName: TERRAString; Volume:Single);

@@ -19,7 +19,7 @@ Uses
   {$IFDEF FPC}Math,DynLibs,{$ENDIF}
   {$IFDEF LINUX}GLX,{$ENDIF}
   {$IFDEF OSX}TERRA_AGL,{$ENDIF}
-  TERRA_String, TERRA_Log, TERRA_Matrix4x4, TERRA_Math;
+  TERRA_Object, TERRA_String, TERRA_Log, TERRA_Matrix4x4, TERRA_Math;
 
 Type
   TLibHandle = Cardinal;
@@ -1846,7 +1846,7 @@ Var
 
 Implementation
 
-Uses TERRA_OS, TERRA_Error;
+Uses TERRA_OS, TERRA_Engine, TERRA_Error;
 
 Function glGetExtensionString():AnsiString;
 Begin
@@ -1930,7 +1930,7 @@ Begin
 
   If OpenGLHandle=0 Then
   Begin
-    RaiseError('Error loading OpenGL');
+    Engine.RaiseError('Error loading OpenGL');
     Exit;
   End;
 End;

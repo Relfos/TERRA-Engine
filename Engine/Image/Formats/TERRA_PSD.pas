@@ -36,7 +36,7 @@ Type
 
 
 Implementation
-Uses TERRA_Log, TERRA_EngineManager, TERRA_FileUtils;
+Uses TERRA_Log, TERRA_Engine, TERRA_FileUtils;
 
 // Photoshop PSD loader -- PD by Thatcher Ulrich, integration by Nicolas Schulz, tweaked by STB, ported to Delphi by Sergio Flores
 

@@ -839,7 +839,7 @@ type
 
 
 Implementation
-Uses TERRA_FileUtils, TERRA_Error, TERRA_CRC32, TERRA_Math, TERRA_EngineManager, TERRA_AudioBuffer, TERRA_AudioMixer, Sysutils;
+Uses TERRA_FileUtils, TERRA_Error, TERRA_CRC32, TERRA_Math, TERRA_Engine, TERRA_AudioBuffer, TERRA_AudioMixer, Sysutils;
 
 Var
 {$IFNDEF STB_VORBIS_DIVIDES_IN_RESIDUE}
@@ -1320,7 +1320,7 @@ Begin
 //  Log(logDebug, 'OGG', 'l3');
   If (power(r+1, dim)<=entries) Or (floor(power(r,dim))>entries) Then // (int),floor() as above
   Begin
-    RaiseError('Assertion failed while decoding stream.');
+    Engine.RaiseError('Assertion failed while decoding stream.');
   End;
 
 //  Log(logDebug, 'OGG', 'l4');
@@ -5598,7 +5598,7 @@ Begin
         Continue;
       End;
 
-      RaiseError('Cannot load '+_Source.Name+ ', error code: '+ IntegerProperty.Stringify(Integer(_Error)));
+      Engine.RaiseError('Cannot load '+_Source.Name+ ', error code: '+ IntegerProperty.Stringify(Integer(_Error)));
       Exit;
     End;
 

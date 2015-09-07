@@ -39,7 +39,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_EngineManager, TERRA_FileStream, TERRA_FileUtils, TERRA_Color, TERRA_Math;
+Uses TERRA_Error, TERRA_Engine, TERRA_FileStream, TERRA_FileUtils, TERRA_Color, TERRA_Math;
 
 Type
   // Supported encoding methods in this implementation
@@ -3238,7 +3238,7 @@ begin
   jcRGBA, jcYCbCrA, jcCMYK, jcYCCK, jcPhotoYCCA:
     Info.FFrameCount := 4;
   else
-    RaiseError('JPG '+sUnsupportedColorSpace);
+    Engine.RaiseError('JPG '+sUnsupportedColorSpace);
   end;
 
   // Subsampling used?
@@ -5107,7 +5107,7 @@ begin
     until (BytesRead = 0) or (B = $FF);
 
     if BytesRead = 0 then
-      RaiseError('JPEG: '+sMarkerExpected);
+      Engine.RaiseError('JPEG: '+sMarkerExpected);
     S.Seek(S.Position -1);
     //DoDebugOut(Self, wsHint, Format('Resuming at %.6d', [S.Position]));
   end;
@@ -5379,7 +5379,7 @@ begin
   begin
     // We do not yet have a marker
     if not FMarkers.HasMarker([mkSOI]) then
-      RaiseError('JPG' +sCommentCannotBeSet);
+      Engine.RaiseError('JPG' +sCommentCannotBeSet);
     // Create the marker and insert after SOI or JFIF marker (whichever comes last)
     M := TsdCOMMarker.Create(FJpegInfo, mkCOM);
     FMarkers.InsertAfter([mkSOI, mkAPP0], M);
@@ -5425,7 +5425,7 @@ begin
     Error := FPixelFormat <> spf32bit;
   end;
   if Error then
-    RaiseError('JPG: '+sInvalidFormatForSelectedCS);
+    Engine.RaiseError('JPG: '+sInvalidFormatForSelectedCS);
 
   // Select correct colorspace to store
   if Result = jcAutoDetect then
@@ -8303,7 +8303,7 @@ begin
   //  [integer(FIsDCBand), integer(FIsFirst)]));
 
   if FTileMode then
-    RaiseError('JPG: '+sCannotUseTileMode);
+    Engine.RaiseError('JPG: '+sCannotUseTileMode);
 
   // Use the standard decoder, with overridden methods
   inherited Decode(S, Iteration);
@@ -9032,7 +9032,7 @@ var
   IdxClose: integer;
 begin
   if not Sorted then
-    raiseError(sListMustBeSorted);
+    Engine.RaiseError(sListMustBeSorted);
 
   ACount := 0;
 

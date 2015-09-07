@@ -87,7 +87,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_ResourceManager, TERRA_Resource, TERRA_EngineManager;
+Uses TERRA_Error, TERRA_OS, TERRA_ResourceManager, TERRA_Resource, TERRA_Engine;
 
 
 { UITransition }

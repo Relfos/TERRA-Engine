@@ -341,7 +341,7 @@ Type
   End;
 
 Implementation
-Uses SysUtils, TERRA_Log, TERRA_Application, TERRA_GraphicsManager, TERRA_Error, TERRA_OS, TERRA_Texture, TERRA_RendererStats;
+Uses SysUtils, TERRA_Engine, TERRA_Log, TERRA_Application, TERRA_GraphicsManager, TERRA_Error, TERRA_OS, TERRA_Texture, TERRA_RendererStats;
 
 { OpenGLFeatures }
 Constructor OpenGLFeatures.Create(Owner:GraphicsRenderer);
@@ -684,7 +684,7 @@ Begin
   _HDC := GetDC(Application.Instance.Window.Handle);
   If _HDC=0 Then
   Begin
-    RaiseError('Unable to retrieve a device context.');
+    Engine.RaiseError('Unable to retrieve a device context.');
     Halt;
   End;
 
@@ -711,14 +711,14 @@ Begin
 
   If (_PixelFormat=0) Then
   Begin
-    RaiseError('Unable to find a suitable pixel format.');
+    Engine.RaiseError('Unable to find a suitable pixel format.');
     Exit;
   End;
 
   // Sets the specified device context's pixel format to the format specified by the PixelFormat.
   If (Not SetPixelFormat(_HDC, _PixelFormat, @Pfd)) then
   Begin
-    RaiseError('Unable to set the pixel format.');
+    Engine.RaiseError('Unable to set the pixel format.');
     Exit;
   End;
 
@@ -726,14 +726,14 @@ Begin
   _hRC := wglCreateContext(_hDC);
   If (_hRC = 0) Then
   Begin
-    RaiseError('Unable to create an OpenGL rendering context.');
+    Engine.RaiseError('Unable to create an OpenGL rendering context.');
     Exit;
   End;
 
   // Makes the specified OpenGL rendering context the calling thread's current rendering context
   If (Not wglMakeCurrent(_hDC,_hRC))Then
   Begin
-    RaiseError('Unable to activate OpenGL rendering context.');
+    Engine.RaiseError('Unable to activate OpenGL rendering context.');
     Exit;
   End;
 
@@ -889,13 +889,13 @@ Begin
   // context that is used by the rendering context.
   If (Not wglMakeCurrent(_hDC,0)) Then
   Begin
-    RaiseError('Release of DC and RC failed.');
+    Engine.RaiseError('Release of DC and RC failed.');
   End;
 
   // Attempts to delete the rendering context
   If (Not wglDeleteContext(_hRC)) Then
   Begin
-    RaiseError('Release of rendering context failed.');
+    Engine.RaiseError('Release of rendering context failed.');
     _hRC:=0;
   End;
 
@@ -1241,7 +1241,7 @@ Begin
 
   If _CurrentSource = Nil Then
   Begin
-    RaiseError('Please call Renderer.SetVertexSize() before drawing anything!');
+    Engine.RaiseError('Please call Renderer.SetVertexSize() before drawing anything!');
     Exit;
   End;
 
@@ -1287,7 +1287,7 @@ Begin
       glTexCoordPointer(Count, Format, _CurrentSource.Size, AttributeSource);
     End Else
     Begin
-      RaiseError('Unknown attribute: '+Name);
+      Engine.RaiseError('Unknown attribute: '+Name);
     End;
 
     Exit;
@@ -1314,7 +1314,7 @@ Begin
     If Not _CurrentSource.Bind(True) Then
       Exit;
   End Else
-    RaiseError('Cannot draw null buffer!');
+    Engine.RaiseError('Cannot draw null buffer!');
 
   {$IFDEF DEBUG_GRAPHICS}
   Log(logDebug, 'Renderer', 'glDrawArrays: '+IntToString(Count));
@@ -1342,7 +1342,7 @@ Begin
   If Assigned(_CurrentSource) Then
     _CurrentSource.Bind(True)
   Else
-    RaiseError('Cannot draw null buffer!');
+    Engine.RaiseError('Cannot draw null buffer!');
 
   {$IFDEF DEBUG_GRAPHICS}
   Log(logDebug, 'Renderer', 'glDrawElements: '+IntToString(Count));

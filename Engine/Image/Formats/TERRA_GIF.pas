@@ -37,7 +37,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_EngineManager, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_Color;
+Uses TERRA_Error, TERRA_Engine, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_Color;
 
 Type
   GIFHeader=Packed Record
@@ -442,7 +442,7 @@ Begin
   Source.Read(@GIFHeader,SizeOf(GIFHeader));
   If (GIFHeader.Signature<>'GIF') Then
   Begin
-    RaiseError('Invalid header.');
+    Engine.RaiseError('Invalid header.');
     Exit;
   End;
 

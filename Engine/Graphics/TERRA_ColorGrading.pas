@@ -26,7 +26,7 @@ Unit TERRA_ColorGrading;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Texture, TERRA_Color, TERRA_Image, TERRA_Vector3D, TERRA_Renderer;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Texture, TERRA_Color, TERRA_Image, TERRA_Vector3D, TERRA_Renderer;
 
 Const
   ColorTableUniformName = 'color_table_texture';
@@ -42,7 +42,7 @@ Type
   Function ColorTableBind(ColorTableTex:TERRATexture; Slot:Integer):Boolean;
 
 Implementation
-Uses TERRA_OS, TERRA_GraphicsManager, TERRA_Log, TERRA_EngineManager;
+Uses TERRA_OS, TERRA_GraphicsManager, TERRA_Log, TERRA_Engine;
 
 Function CreateColorTable(Size:Integer; Transform:ColorTransform; Userdata:Pointer):TERRAImage;
 Var

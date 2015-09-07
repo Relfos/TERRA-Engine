@@ -29,7 +29,7 @@ var
 implementation
 Uses TERRA_Utils, TERRA_Object, TERRA_Application, TERRA_VCLApplication, TERRA_OS, TERRA_Scene, TERRA_Texture,
   TERRA_Viewport, TERRA_FileManager, TERRA_Sprite, TERRA_PNG,
-  TERRA_EngineManager, TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color;
+  TERRA_Engine, TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color;
 
 {$R *.dfm}
 

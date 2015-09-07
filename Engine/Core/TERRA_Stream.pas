@@ -132,7 +132,7 @@ Type
      End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_EngineManager, TERRA_FileFormat;
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Engine, TERRA_FileFormat;
 
 // Stream Object
 
@@ -224,7 +224,7 @@ Begin
 
     If A=0 Then
     Begin
-      RaiseError('Buffer too small.');
+      Engine.RaiseError('Buffer too small.');
       Exit;
     End;
 
@@ -384,11 +384,12 @@ Begin
   If S = '' Then
     Exit;
 
-  StringCreateIterator(S, It);
+  It := StringCreateIterator(S);
   While It.HasNext() Do
   Begin
     Self.WriteChar(It.GetNext());
   End;
+  ReleaseObject(It);
 End;
 
 Procedure TERRAStream.WriteLine(Const S:TERRAString);
@@ -790,7 +791,7 @@ Begin
 
   encodingUTF8:
     Begin
-      RaiseError('Write.Unicode: UTF8 support not implemented!');
+      Engine.RaiseError('Write.Unicode: UTF8 support not implemented!');
     End;
 
   encodingUCS2LE:
@@ -809,7 +810,7 @@ Begin
 
   Else
     Begin
-      RaiseError('Write.Unicode: Not supported encoding!');
+      Engine.RaiseError('Write.Unicode: Not supported encoding!');
     End;
   End;
 End;

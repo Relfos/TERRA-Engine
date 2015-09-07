@@ -30,7 +30,7 @@ Unit TERRA_FileUtils;
 {$ENDIF}
 
 Interface
-Uses TERRA_String;
+Uses TERRA_Object, TERRA_String;
 
 Type
   FileHeader = Array[1..4] Of AnsiChar;

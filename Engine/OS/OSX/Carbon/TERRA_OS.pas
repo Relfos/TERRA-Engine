@@ -128,7 +128,7 @@ Type
 
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_InputManager, TERRA_FileUtils, TERRA_Renderer, TERRA_EngineManager, TERRA_GLRenderer,
+Uses TERRA_Error, TERRA_Log, TERRA_InputManager, TERRA_FileUtils, TERRA_Renderer, TERRA_Engine, TERRA_GLRenderer,
      BaseUnix, machapi, machexc, dateutils, sysutils, ctypes, sysctl, TERRA_MIDI_IO, TERRA_MIDI;
 
 Var

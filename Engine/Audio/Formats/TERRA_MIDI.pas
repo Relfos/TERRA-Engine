@@ -550,7 +550,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_EngineManager, TERRA_FileManager, TERRA_MIDI_IO, TERRA_Log;
+Uses TERRA_Engine, TERRA_FileManager, TERRA_MIDI_IO, TERRA_Log;
 
 Const
   MIDIVolumeBoost = 1.0;
