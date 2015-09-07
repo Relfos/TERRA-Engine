@@ -91,12 +91,12 @@ Begin
   If Tex = Nil Then
     Exit;
 
-  S := View.SpriteRenderer.FetchSprite();
+  S := Engine.FetchSprite();
   S.SetTexture(Tex);
   S.Layer := Layer;
   S.SetColor(LineColor);
   S.AddLine(A, B, 0.0, LineWidth);
-  View.SpriteRenderer.QueueSprite(S);
+  Engine.Graphics.AddRenderable(View, S);
 End;
 
 Procedure DrawFilledRect(View:TERRAViewport; Const A,B:Vector2D; FillColor:ColorRGBA);
@@ -116,13 +116,14 @@ Begin
   MaxX := Trunc(FloatMax(A.X, B.X));
   MaxY := Trunc(FloatMax(A.Y, B.Y));
 
-  S := View.SpriteRenderer.FetchSprite();
+  S := Engine.FetchSprite();
   S.SetTexture(Tex);
   S.Layer := Layer;
   S.SetColor(FillColor);
   S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0,0), 0.0, Trunc(MaxX-MinX), Trunc(MaxY-MinY)); // colors
   S.Translate(MinX, MinY);
 
+  Engine.Graphics.AddRenderable(View, S);
 //  S.ClipRect := Clip;
 End;
 

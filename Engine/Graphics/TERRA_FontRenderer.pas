@@ -817,8 +817,9 @@ Begin
   Dest := Self.AllocSprite();
   Dest.Flags := Dest.Flags Or Sprite_Font;
   Result := DrawTextToSprite(View, X,Y,Layer, Text, Dest);
-  Dest.Flags := Dest.Flags Or Sprite_GUI; 
-  View.SpriteRenderer.QueueSprite(Dest);
+  Dest.Flags := Dest.Flags Or Sprite_GUI;
+
+  Engine.Graphics.AddRenderable(View, Dest);
 End;
 
 Function TERRAFontRenderer.DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):TERRAFontRenderer;
@@ -885,10 +886,10 @@ Begin
       DrawGlyph(View, TargetX, TargetY, I, DestSprite);
     End Else
     Begin
-      S := View.SpriteRenderer.FetchSprite();
+      S := Engine.FetchSprite();
       S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(TargetX, TargetY - _CharList[I].Height), 0.0, _CharList[I].Width, _CharList[I].Height);
       S.SetTexture(_StylesList[_CharList[I].StyleID].Texture);
-      View.SpriteRenderer.QueueSprite(S);
+      Engine.Graphics.AddRenderable(View, S);
     End;
 
   End;
@@ -965,22 +966,22 @@ Begin
 
   If (_StylesList[_CharList[CommandID].StyleID].Underline) Then
   Begin
-    S := View.SpriteRenderer.FetchSprite();
+    S := Engine.FetchSprite();
     S.SetUVs(Glyph.Item.U1, Glyph.Item.V1, Glyph.Item.U2, Glyph.Item.V2);
     S.SetColor(_StylesList[_CharList[CommandID].StyleID].Color);
     OfsY := 20 * FontInvScale *  _Scale;
     S.AddLine(Vector2D_Create(X, Y + OfsY), Vector2D_Create(X + _CharList[CommandID].Width * 2, Y + OfsY),  0.0, 3);
-    View.SpriteRenderer.QueueSprite(S);
+    Engine.Graphics.AddRenderable(View, S);
   End;
 
   If (_StylesList[_CharList[CommandID].StyleID].StrikeThrough) Then
   Begin
-    S := View.SpriteRenderer.FetchSprite();
+    S := Engine.FetchSprite();
     S.SetUVs(Glyph.Item.U1, Glyph.Item.V1, Glyph.Item.U2, Glyph.Item.V2);
     S.SetColor(_StylesList[_CharList[CommandID].StyleID].Color);
     OfsY := -8 * FontInvScale *  _Scale;
     S.AddLine(Vector2D_Create(X, Y + OfsY), Vector2D_Create(X + _CharList[CommandID].Width * 2, Y + OfsY),  0.0, 3);
-    View.SpriteRenderer.QueueSprite(S);
+    Engine.Graphics.AddRenderable(View, S);
   End;
 End;
 

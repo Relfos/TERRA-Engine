@@ -268,11 +268,11 @@ Type
 
       Procedure Update(View:TERRAViewport); Override;
 
-      Function GetRenderBucket:Cardinal; Override;
+      Procedure GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType); Override;
 
       Procedure Reset;
 
-      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
       Function GetBoundingBox:BoundingBox; Override;
 
       Property ActiveCount:Integer Read _ActiveCount;
@@ -547,7 +547,7 @@ Begin
   ReleaseObject(It);
 End;
 
-Procedure ParticleCollection.Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
+Procedure ParticleCollection.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
   I, RenderCount:Integer;
 //  Ratio:Single;
@@ -635,9 +635,11 @@ Begin
   Result := _Box;
 End;
 
-Function ParticleCollection.GetRenderBucket:Cardinal;
+Procedure ParticleCollection.GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType);
 Begin
-  Result := renderBucket_Translucent;
+  Depth := 0; {TODO}
+  AlphaType := Renderable_Blend;
+  Layer := RenderableLayer_Default;
 End;
 
 {Procedure ParticleCollection.SetCustomEmitter(Emitter: ParticleCustomEmitter; GenFlags:Cardinal; UserData: Pointer);

@@ -148,8 +148,6 @@ Type
 
       Procedure TestDebugKeys();
 
-      Function IsBoxVisible(View:TERRAViewport; Const Box:BoundingBox): Boolean;
-
 	    Procedure DrawFullscreenQuad(CustomShader:ShaderInterface; X1,Y1,X2,Y2:Single);
 
       Procedure SetWind(WindDirection:Vector3D; WindIntensity:Single);
@@ -643,8 +641,7 @@ Begin
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Particles.Render');{$ENDIF}
   Engine.Particles.Render(View);
 
-  _Renderables.RenderOverlays(View, renderStageDiffuse);
-  View.SpriteRenderer.Prepare();
+  //_Renderables.RenderOverlays(View, renderStageDiffuse);
 
   If (View.VR) Then
     SubViews := 1
@@ -721,8 +718,8 @@ Begin
     End;
 
     Target.BeginCapture();
-      _Renderables.RenderBuckets(View, Stage);
-      View.SpriteRenderer.Render(View.Camera.Projection, View.Camera.Transform, Stage);
+      _Renderables.Render(View, Stage);
+      //View.SpriteRenderer.Render(View.Camera.Projection, View.Camera.Transform, Stage);
     Target.EndCapture();
     Inc(Count);
 
@@ -751,7 +748,7 @@ Begin
     End;
   End;
 
-  View.SpriteRenderer.Clear();
+  //View.SpriteRenderer.Clear();
 
 
 
@@ -982,27 +979,6 @@ Begin
   If Assigned(P) Then
     P._Previous := MyRenderable;
 End;}
-
-Function GraphicsManager.IsBoxVisible(View:TERRAViewport; Const Box:BoundingBox):Boolean;
-(*Var
-  Occ:Occluder;*)
-Begin
-  Result := False;
-  If (Not View.Camera.Frustum.BoxVisible(Box)) Then
-    Exit;
-
-(*  // occlusion test
-  Occ := _Occluders;
-  While Assigned(Occ) Do
-  If (Occ.BoxOccluded(Box, View)) Then
-  Begin
-    Exit;
-  End Else
-    Occ := Occ._Next;*)
-
-  Result := True;
-End;
-
 
 
 Procedure GraphicsManager.SetFog(Value:Boolean); {$IFDEF FPC} Inline; {$ENDIF}

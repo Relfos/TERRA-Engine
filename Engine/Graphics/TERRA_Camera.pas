@@ -134,6 +134,8 @@ Type
       Procedure SetClipPlane(Point, Normal:Vector3D);
       Procedure RemoveClipPlane();
 
+      Function IsBoxVisible(Const Box:BoundingBox):Boolean; Virtual;
+
       Property Position:Vector3D Read GetPosition Write SetPosition;
 
       Property Transform:Matrix4x4 Read _Transform;
@@ -181,6 +183,8 @@ Type
       Procedure Rotate(RotX, RotY:Single);
 
       Procedure SetupUniforms; Override;
+
+      Function IsBoxVisible(Const Box:BoundingBox):Boolean; Override;
 
       Property View:Vector3D Read GetView Write SetView;
       Property Roll:Vector3D Read GetRoll Write SetRoll;
@@ -452,6 +456,11 @@ Begin
   _NeedsUpdate := True;
 End;
 
+Function TERRACamera.IsBoxVisible(const Box: BoundingBox): Boolean;
+Begin
+  Result := True;
+End;
+
 { PerspectiveCamera }
 Constructor PerspectiveCamera.Create(const Name: TERRAString);
 Begin
@@ -641,6 +650,20 @@ Begin
     End;
 
   End;
+End;
+
+Function PerspectiveCamera.IsBoxVisible(const Box: BoundingBox): Boolean;
+Begin
+  Result := Self.Frustum.BoxVisible(Box);
+
+(*  // occlusion test
+  Occ := _Occluders;
+  While Assigned(Occ) Do
+  If (Occ.BoxOccluded(Box, View)) Then
+  Begin
+    Exit;
+  End Else
+    Occ := Occ._Next;*)
 End;
 
 { OrthoCamera }

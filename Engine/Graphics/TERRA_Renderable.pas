@@ -17,26 +17,32 @@ Const
   renderFlagsSkipSorting  = 2;
   renderFlagsSkipReflections  = 4;
 
-  renderBucket_Opaque       = 1;
-  renderBucket_Translucent  = 2;
-  renderBucket_Sky          = 4;
-  renderBucket_Reflections  = 8;
-  renderBucket_Occluder     = 16;
-  renderBucket_Overlay      = 32;
-
 Type
   RenderableManager = Class;
 
+  RenderableLayer = (
+    RenderableLayer_Skybox,
+    RenderableLayer_Default,
+    RenderableLayer_Reflections
+  );
+
+  RenderableAlphaType = (
+    Renderable_Opaque,
+    Renderable_Blend,
+    Renderable_Additive,
+    Renderable_Subtractive
+  );
+
   { TERRARenderable }
   TERRARenderable = Class(TERRAObject)
+    Private
+      _RenderKey:Integer;
+    
     Protected
       _Manager:RenderableManager;
       _RenderFlags:Cardinal;
 
       _LastUpdate:Cardinal;
-
-      _Distance:Single;
-      //_WasVisible:Boolean;
 
 //      _IsReflection:Boolean;
     Public
@@ -49,11 +55,11 @@ Type
 
       Procedure Update(View:TERRAViewport); Virtual;
 
-      Function GetRenderBucket:Cardinal; Virtual;
+      Procedure GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType); Virtual;
 
       Function GetBoundingBox:BoundingBox; Virtual;
 
-      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Virtual; Abstract;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Virtual; Abstract;
 
       Procedure RenderLights(View:TERRAViewport); Virtual;
 
@@ -62,24 +68,37 @@ Type
       Property RenderFlags:Cardinal Read _RenderFlags;
   End;
 
+(*  TERRASpriteRenderer = Class(TERRAObject)
+    Protected
+      _SpriteList:Array Of TERRASprite;
+      _SpriteCount:Integer;
+
+      Procedure RenderSprite(Sprite:TERRASprite; Const ProjectionMatrix, TransformMatrix:Matrix4x4; Stage:RendererStage);
+
+   Public
+      Procedure InitBatches();
+      Procedure Release; Override;
+
+      Procedure Prepare;
+      Procedure Render(Const ProjectionMatrix, TransformMatrix:Matrix4x4; Stage:RendererStage);
+      Procedure Clear;
+
+      Procedure QueueSprite(S:TERRASprite);
+
+      { Fetches a temporary sprite that will be disposed in the next frame }
+      Function FetchSprite():TERRASprite; //Const Layer:Single; SpriteTexture:TERRATexture; ColorTable:TERRATexture = Nil; BlendMode:Integer = blendBlend;  Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; Shader:ShaderInterface = Nil):TERRASprite;
+  End;*)
+
   RenderableManager = Class(TERRAObject)
     Protected
-      _BucketSky:TERRAList;
-      _BucketOpaque:TERRAList;
-      _BucketAlpha:TERRAList;
-      {$IFDEF REFLECTIONS_WITH_STENCIL}
-      _BucketReflection:TERRAList;
-      {$ENDIF}
-      _BucketOverlay:TERRAList;
-
-      Procedure RenderList(View:TERRAViewport; RenderList:TERRAList; Const Stage:RendererStage; Const Bucket:Cardinal);
+      _Renderables:TERRAList;
 
     Public
+
       Constructor Create();
       Procedure Release(); Override;
 
-      Procedure RenderOverlays(View:TERRAViewport; Const Stage:RendererStage);
-      Procedure RenderBuckets(View:TERRAViewport; Const Stage:RendererStage);
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage);
       Procedure Clear();
 
       Function AddRenderable(View:TERRAViewport; Renderable:TERRARenderable):Boolean;
@@ -107,11 +126,6 @@ Begin
   // do nothing
 End;
 
-function TERRARenderable.GetRenderBucket: Cardinal;
-Begin
-  Result := 0;
-End;
-
 Function TERRARenderable.GetBoundingBox: BoundingBox;
 Begin
        FillChar(Result, SizeOf(Result), 0);
@@ -119,31 +133,30 @@ End;
 
 function TERRARenderable.SortID: Integer;
 Begin
-  Result := Trunc(Self._Distance);
+  Result := Self._RenderKey;
+End;
+
+Procedure TERRARenderable.GetBucketDetails(View: TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType);
+Begin
+  Depth := 0;
+  AlphaType := Renderable_Opaque;
+  Layer := RenderableLayer_Default;
 End;
 
 { RenderableManager }
 Constructor RenderableManager.Create();
 Begin
-  _BucketSky := TERRAList.Create(collection_Unsorted, coShared);
-  _BucketOpaque := TERRAList.Create(collection_Sorted_Ascending, coShared);
-  _BucketAlpha :=  TERRAList.Create(collection_Sorted_Descending, coShared);
-  _BucketOverlay := TERRAList.Create(collection_Unsorted, coShared);
-
-  {$IFDEF REFLECTIONS_WITH_STENCIL}
-  _BucketReflection := TERRAList.Create(coAppend);
-  {$ENDIF}
+  _Renderables := TERRAList.Create(collection_Sorted_Ascending, coShared);
 End;
 
-
-Procedure RenderableManager.RenderList(View:TERRAViewport; RenderList:TERRAList; Const Stage:RendererStage; Const Bucket:Cardinal);
+Procedure RenderableManager.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
   P:TERRACollectionObject;
   Renderable:TERRARenderable;
 Begin
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Rendering bucket'); {$ENDIF}
 
-  P := RenderList.First;
+  P := _Renderables.First;
   While (Assigned(P)) Do
   Begin
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Fetching next...');{$ENDIF}
@@ -153,27 +166,13 @@ Begin
     If (Assigned(Renderable)) Then
     Begin
       If (Not Engine.Graphics.ReflectionActive) Or (Renderable.RenderFlags And renderFlagsSkipReflections=0) Then
-        Renderable.Render(View, Stage, Bucket);
+        Renderable.Render(View, Stage);
     End;
 
     P := P.Next;
   End;
-End;
 
-Procedure RenderableManager.RenderBuckets(View:TERRAViewport; Const Stage:RendererStage);
-Begin
-  RenderList(View, _BucketSky, Stage, renderBucket_Sky);
-
-  {$IFNDEF DEBUG_REFLECTIONS}
-
-{$IFDEF ADVANCED_ALPHA_BLEND}
-  If Pass = captureTargetAlpha Then
-  Begin
-    RenderList(_BucketOpaque, False);
-    RenderList(_BucketAlpha, True)
-  End Else
-  Begin
-    RenderList(_BucketOpaque, False);
+  (*
 
     If (_RenderStage <> renderStageNormal) Then
     Begin
@@ -183,47 +182,18 @@ Begin
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderBillboards');{$ENDIF}
       BillboardManager.Instance.Render();
     End;
-  End;
-{$ELSE}
-    RenderList(View, _BucketOpaque, Stage, renderBucket_Opaque);
-
-    If (Stage <> renderStageNormal) Then
-    Begin
-(*      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderDecals');{$ENDIF}
-      DecalManager.Instance.Render(View);
-
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderBillboards');{$ENDIF}
-      BillboardManager.Instance.Render(View);*)
-    End;
-
-    {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderAlphaBucket');{$ENDIF}
-    RenderList(View, _BucketAlpha, Stage, renderBucket_Opaque);
-    {$ENDIF}
-{$ENDIF}
+*)  
 End;
 
-Procedure RenderableManager.RenderOverlays(View:TERRAViewport; Const Stage:RendererStage);
-Begin
-  RenderList(View, _BucketOverlay, Stage, renderBucket_Overlay);
-End;
 
 Procedure RenderableManager.DeleteRenderable(MyRenderable:TERRARenderable);
 Begin
-  _BucketSky.Remove(MyRenderable);
-  _BucketOpaque.Remove(MyRenderable);
-  _BucketAlpha.Remove(MyRenderable);
-  _BucketOverlay.Remove(MyRenderable);
-  {$IFDEF REFLECTIONS_WITH_STENCIL}
-  _BucketReflection.Remove(MyRenderable);
-  {$ENDIF}
+  _Renderables.Remove(MyRenderable);
 End;
 
 Procedure RenderableManager.Clear;
 Begin
-  _BucketSky.Clear();
-  _BucketOpaque.Clear();
-  _BucketAlpha.Clear();
-  _BucketOverlay.Clear();
+  _Renderables.Clear();
 End;
 
 
@@ -231,13 +201,15 @@ Function RenderableManager.AddRenderable(View:TERRAViewport; Renderable:TERRARen
 (*Const
   LODS:Array[0..MaxLODLevel] Of Single = (0.0, 0.4, 0.8, 1.0);*)
 Var
-  Box:BoundingBox;
   Pos:Vector3D;
   I:Integer;
   FarDist:Single;
   Unsorted:Boolean;
   Graphics:GraphicsManager;
-  Bucket:Cardinal;
+
+  Depth:Cardinal;
+  Layer:RenderableLayer;
+  AlphaType:RenderableAlphaType;
 Begin
   If Not Assigned(Renderable) Then
   Begin
@@ -246,7 +218,6 @@ Begin
   End;
 
   Unsorted := (Renderable.RenderFlags And renderFlagsSkipSorting<>0);
-  Bucket := Renderable.GetRenderBucket();
 
   Renderable._Manager := Self;
 
@@ -272,23 +243,12 @@ Begin
     Renderable.Update(View);
   End;
 
-  If (Bucket And renderBucket_Sky = 0)  And (Bucket And renderBucket_Overlay = 0) Then
+  // frustum test
+  If (Renderable.RenderFlags And renderFlagsSkipFrustum=0) And (Not View.Camera.IsBoxVisible(Renderable.GetBoundingBox)) Then
   Begin
-    // frustum test
-    Box := Renderable.GetBoundingBox;
-    If (Renderable.RenderFlags And renderFlagsSkipFrustum=0) And (Not Graphics.IsBoxVisible(View, Box)) Then
-    Begin
-      //MyTERRARenderable._WasVisible := False;
-      Result := False;
-      Exit;
-    End;
-
-    //MyTERRARenderable._WasVisible := True;
-
-    (*Pos := Vector3D_Add(Box.Center , Vector3D_Scale(View.Camera.View, -Box.Radius));
-    Renderable._Distance := Pos.Distance(View.Camera.Position);
-
-    FarDist := View.Camera.FarDistance;*)
+    Result := False;
+    Exit;
+  End;
 
     (*For I:=1 To MaxLODLevel Do
     If (MyTERRARenderable._Distance < LODS[I]*FarDist) Then
@@ -298,34 +258,20 @@ Begin
     End Else
     If (I >= MaxLODLevel) Then
       MyTERRARenderable._LOD := MaxLODLevel;*)
-  End;
 
   Graphics.Renderer.Stats.Update(RendererStat_Renderables);
 
-  If (Bucket And renderBucket_Translucent<>0) Then
-    _BucketAlpha.Add(Renderable);
+  Renderable.GetBucketDetails(View, Depth, Layer, AlphaType);
+  Renderable._RenderKey := Depth;
 
-  If (Bucket And renderBucket_Opaque<>0) Then
-    _BucketOpaque.Add(Renderable);
-
-  If (Bucket And renderBucket_Sky<>0) Then
-    _BucketSky.Add(Renderable);
-
-  If (Bucket And renderBucket_Overlay<>0) Then
-    _BucketOverlay.Add(Renderable);
+  _Renderables.Add(Renderable);
 
   Result := True;
 End;
 
 procedure RenderableManager.Release;
 begin
-  ReleaseObject(_BucketSky);
-  ReleaseObject(_BucketOpaque);
-  ReleaseObject(_BucketAlpha);
-  ReleaseObject(_BucketOverlay);
-  {$IFDEF REFLECTIONS_WITH_STENCIL}
-  ReleaseObject(_BucketReflection);
-  {$ENDIF}
+  ReleaseObject(_Renderables);
 End;
 
 

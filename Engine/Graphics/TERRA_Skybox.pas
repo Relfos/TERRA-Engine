@@ -59,9 +59,9 @@ Type
       Constructor Create(SkyTexture:TERRAString);
       Procedure Release; Override;
 
-      Function GetRenderBucket:Cardinal; Override;
+      Procedure GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType); Override;
 
-      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
 
       Property Color:ColorRGBA Read _Color Write _Color;
       //Property Texture:CubemapTexture Read _Cubemap;
@@ -107,9 +107,11 @@ Begin
   End;
 End;
 
-Function TERRASkybox.GetRenderBucket: Cardinal;
+Procedure TERRASkybox.GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType);
 Begin
-  Result := renderBucket_Sky;
+  Depth := 0;
+  Layer := RenderableLayer_Skybox;
+  AlphaType := Renderable_Blend;
 End;
 
 Procedure TERRASkybox.Release;
@@ -118,7 +120,7 @@ Begin
   ReleaseObject(_Cubemap);
 End;
 
-Procedure TERRASkyBox.Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
+Procedure TERRASkyBox.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
   I:Integer;
   CamVertices:BoundingBoxVertices;

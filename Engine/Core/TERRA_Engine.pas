@@ -6,6 +6,7 @@ Interface
 Uses TERRA_Object, TERRA_String, TERRA_Application, TERRA_Threads, TERRA_List,
   TERRA_GraphicsManager, TERRA_TextureManager, TERRA_MeshManager, TERRA_FontManager, TERRA_InputManager, TERRA_Pool,
   TERRA_PhysicsManager, TERRA_ParticleRenderer, TERRA_ShaderFactory, TERRA_MeshAnimation, TERRA_Lights, TERRA_UICursor,
+  TERRA_Sprite, 
   TERRA_FileManager, TERRA_SoundManager, TERRA_FileFormat, TERRA_MusicManager, TERRA_MIDI, TERRA_Localization,
   TERRA_Callstack, TERRA_Error, TERRA_Network, TERRA_NetDownloader
   {$IFDEF PC}, TERRA_Steam{$ENDIF};
@@ -65,6 +66,8 @@ Type
       Procedure RaiseError(Const Desc:TERRAString);
 
       Function CreateObject(Const KeyName, ObjectType:TERRAString):TERRAObject;
+
+      Function FetchSprite():TERRASprite;
 
       Property Textures:TextureManager Read _Textures;
       Property Meshes:MeshManager Read _Meshes;
@@ -299,6 +302,21 @@ Procedure EngineManager.SetError(Value:TERRAError);
 Begin
   ReleaseObject(_Error);
   _Error := Value;
+End;
+
+Function EngineManager.FetchSprite():TERRASprite;
+Begin
+  Result := TERRASprite(Engine.Pool.Fetch(TERRASprite));
+  If (Result = Nil) Then
+    Result := TERRASprite.Create();
+
+(*  {$IFDEF WINDOWS}
+  If (Layer<0) Then
+    DebugBreak;
+  {$ENDIF}*)
+
+  Result.Clear();
+  Result.Reset();
 End;
 
 End.

@@ -74,13 +74,13 @@ Begin
 
   For I:=0 To Pred(Limit) Do
   Begin
-    S := View.SpriteRenderer.FetchSprite();
+    S := Engine.FetchSprite();
     S.Layer := Pos[I].Z;
     S.SetTexture(Tex);
     S.Translate(Pos[I].X, Pos[I].Y);
     S.Mirror := Odd(I);    // Each odd sprite in line will be reflected
     S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
-    View.SpriteRenderer.QueueSprite(S);
+    Engine.Graphics.AddRenderable(View, S);
 
     Pos[I].X := Pos[I].X + Dir[I].X;
     Pos[I].Y := Pos[I].Y + Dir[I].Y;

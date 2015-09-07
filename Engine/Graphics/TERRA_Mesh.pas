@@ -314,7 +314,7 @@ Type
 
       Function IsReady():Boolean;
 
-      Function GetRenderBucket:Cardinal; Override;
+      Procedure GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType); Override;
 
       Procedure RenderLights(View:TERRAViewport); Override;
 
@@ -437,7 +437,7 @@ Type
       Procedure Release(); Override;
 
       Function GetBoundingBox:BoundingBox; Override;
-      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
 
       Function GetAttach(Index:Integer):PMeshAttach;
 
@@ -904,7 +904,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_Application, TERRA_Log, TERRA_ShaderFactory, TERRA_OS,
-  TERRA_Engine, TERRA_FileManager, TERRA_CRC32, TERRA_ColorGrading, TERRA_Solids;
+  TERRA_Camera, TERRA_Engine, TERRA_FileManager, TERRA_CRC32, TERRA_ColorGrading, TERRA_Solids;
 
 Type
   MeshDataBlockHandler = Function(Target:TERRAMesh; Size:Cardinal; Source:TERRAStream):Boolean;
@@ -2228,20 +2228,20 @@ Begin
         Transform := MyTransform;
     End;
 
-    If (CullGroups) Then
+    (*If (CullGroups) Then
     Begin
       Box := _Mesh._Groups[I]._BoundingBox;
       Box.Transform(Transform);
       If Not Engine.Graphics.IsBoxVisible(View, Box) Then
         Continue;
-    End;
+    End;*)
 
     If (IsGroupTranslucent(I) = TranslucentPass) Then
 	    _Mesh._Groups[I].Render(View, Stage, Transform, TranslucentPass, Self);
   End;
 End;
 
-Procedure MeshInstance.Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
+Procedure MeshInstance.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
   C:ColorRGBA;
   Time:Cardinal;
@@ -2255,7 +2255,7 @@ Begin
   If (_Mesh=Nil) Then
     Exit;
 
-  TranslucentPass := (Bucket And renderBucket_Translucent<>0);
+  TranslucentPass := False; //(Layer = Renderable_Something);
 
   Graphics := Engine.Graphics;
 
@@ -2449,15 +2449,29 @@ Begin
     Result := @_AttachList[Index];
 End;
 
-Function MeshInstance.GetRenderBucket:Cardinal;
+Procedure MeshInstance.GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType);
+Var
+  Pos:Vector3D;
+  Box:BoundingBox;
 Begin
-  If Self.IsOpaque Then
-    Result := renderBucket_Opaque
-  Else
-    Result := 0;
+  If (View.Camera Is PerspectiveCamera) Then
+  Begin
+    Box := Self.GetBoundingBox;
+    Pos := Vector3D_Add(Box.Center , Vector3D_Scale(PerspectiveCamera(View.Camera).View, -Box.Radius));
+    Depth := Trunc(Pos.Distance(View.Camera.Position))
+  End Else
+    Depth := 0;
 
-  If Self.IsTranslucent Then
+  If Self.IsOpaque Then
+    AlphaType := Renderable_Opaque
+  Else
+    AlphaType := Renderable_Blend;
+
+  (*If Self.IsTranslucent Then
     Result := Result Or renderBucket_Translucent;
+    *)
+
+  Layer := RenderableLayer_Default;
 End;
 
 Function MeshInstance.IsOpaque:Boolean;
