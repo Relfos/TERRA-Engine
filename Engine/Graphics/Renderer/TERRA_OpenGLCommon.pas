@@ -26,7 +26,7 @@ Type
 
       Procedure Invalidate; Override;
 
-      Function Generate(Vertices:VertexData; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean; Override;
+      Function Generate(Vertices:TERRAVertexBuffer; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean; Override;
 
       Function Update(Data:PByte):Boolean; Override;
   End;
@@ -101,7 +101,7 @@ Begin
 End;
 
 { OpenGLVBO }
-Function OpenGLVBO.Generate(Vertices:VertexData; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean;
+Function OpenGLVBO.Generate(Vertices:TERRAVertexBuffer; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean;
 Var
   Index:Single;
   I, N:Integer;

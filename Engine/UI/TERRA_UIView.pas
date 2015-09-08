@@ -237,7 +237,8 @@ End;
 Procedure UIView.Release;
 Begin
   ReleaseObject(_Camera);
-  ReleaseObject(_Viewport);
+  //Engine.Graphics.DeleteViewport(_Viewport);
+  //ReleaseObject(_Viewport);
 End;
 
 Function UIView.SupportDrag(Mode: UIDragMode): Boolean;
@@ -301,7 +302,7 @@ Procedure UIView.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
   Current, Temp:UIWidget;
   I, J:Integer;
-  It:Iterator;
+  It:TERRAIterator;
 Begin
   _Draw := False;
 

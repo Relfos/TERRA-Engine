@@ -162,7 +162,7 @@ End;
 
 Procedure FontManager.Update();
 Var
-  It:Iterator;
+  It:TERRAIterator;
   Fnt:TERRAFont;
 Begin
   If (Assigned(Self._DefaultFont)) And (Self._DefaultFont.NeedsRebuild) Then

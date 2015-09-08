@@ -52,12 +52,12 @@ Type
 
       Procedure Clear(); Override;
 
-      Function GetIterator:Iterator; Override;
+      Function GetIterator:TERRAIterator; Override;
 
       Property Items[Const Key:TERRAString]:TERRAObject Read GetItemByKey; Default;
   End;
 
-  HashMapIterator = Class(Iterator)
+  HashMapIterator = Class(TERRAIterator)
     Protected
       _CurrentTable:Integer;
       _Current:TERRACollectionObject;
@@ -289,16 +289,14 @@ Begin
   Self.Unlock();
 End;
 
-Function TERRAHashMap.GetIterator:Iterator;
+Function TERRAHashMap.GetIterator:TERRAIterator;
 Var
   MyIterator:HashMapIterator;
 Begin
   MyIterator := HashMapIterator(Engine.Pool.Fetch(HashMapIterator));
   If Assigned(MyIterator) Then
-  Begin
-    MyIterator.Init(Self);
-    MyIterator.Reset();
-  End Else
+    MyIterator.Create(Self)
+  Else
     MyIterator := HashMapIterator.Create(Self);
 
   Result := MyIterator;

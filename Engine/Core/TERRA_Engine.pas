@@ -315,6 +315,7 @@ Begin
     DebugBreak;
   {$ENDIF}*)
 
+  Result.Temporary := True;
   Result.Clear();
   Result.Reset();
 End;

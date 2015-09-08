@@ -468,7 +468,7 @@ End;
 
 Procedure LocalizationManager.RemoveGroup(GroupID: Integer);
 Var
-  It:Iterator;
+  It:TERRAIterator;
   Entry:LocalizationEntry;
 Begin
   It := _Strings.GetIterator();

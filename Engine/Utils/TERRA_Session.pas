@@ -274,7 +274,7 @@ Var
   OutBuff:Pointer;
   Ret, Rem:Integer;
   B:Byte;
-  It:Iterator;
+  It:TERRAIterator;
   J, N, Len:Integer;
   Dest, Temp:MemoryStream;
   Pref:TERRAStream;
@@ -484,7 +484,7 @@ End;
 
 Procedure Session.CopyKeys(Other: Session);
 Var
-  It:Iterator;
+  It:TERRAIterator;
   Entry:StringProperty;
 Begin
   If Other = Nil Then

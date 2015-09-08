@@ -82,7 +82,7 @@ Type
       Property Discarded:Boolean Read _Discarded;
   End;
 
-  Iterator = Class(TERRAObject)
+  TERRAIterator = Class(TERRAObject)
     Private
       _Value:TERRACollectionObject;
       _Index:Integer;
@@ -148,7 +148,7 @@ Type
     Public
       Procedure Release(); Override;
 
-      Function GetIterator:Iterator; Virtual;
+      Function GetIterator:TERRAIterator; Virtual;
 
       // removes all items
       Procedure Clear(); Virtual;
@@ -198,22 +198,21 @@ Type
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Engine, TERRA_FileStream, TERRA_Stream;
 
-{$IFDEF DEBUG_ITERATORS}
-Var
-  _Iterator_Count:Integer;
-{$ENDIF}
-
 { TERRACollectionObject }
 Constructor TERRACollectionObject.Create(Owner:TERRACollection; Item:TERRAObject);
 Begin
+  Self._Next := Nil;
   Self._Collection := Owner;
   Self._Item := Item;
+  Self._Discarded := False;
 End;
 
 Procedure TERRACollectionObject.Release();
 Begin
   If (Assigned(_Collection)) And (_Collection.Options And coShared = 0) Then
     ReleaseObject(_Item);
+
+  _Collection := Nil;
 End;
 
 Procedure TERRACollectionObject.Discard();
@@ -320,7 +319,7 @@ End;*)
 Function TERRACollection.Contains(Item:TERRAObject):Boolean;
 Var
   P:TERRAObject;
-  It:Iterator;
+  It:TERRAIterator;
 Begin
   Result := False;
   It := Self.GetIterator();
@@ -445,7 +444,7 @@ End;
 
 Function TERRACollection.GetItemByIndex(Index: Integer):TERRAObject;
 Var
-  It:Iterator;
+  It:TERRAIterator;
 Begin
   It := Self.GetIterator();
   It.Seek(Index);
@@ -453,14 +452,14 @@ Begin
   ReleaseObject(It);
 End;
 
-Function TERRACollection.GetIterator: Iterator;
+Function TERRACollection.GetIterator:TERRAIterator;
 Begin
   Result := Nil;
 End;
 
 Procedure TERRACollection.Clear;
 Var
-  It:Iterator;
+  It:TERRAIterator;
 Begin
   It := Self.GetIterator();
   While It.HasNext() Do
@@ -503,22 +502,18 @@ Function TERRACollection.NewItem(Content:TERRAObject): TERRACollectionObject;
 Begin
   Result := TERRACollectionObject(Engine.Pool.Fetch(TERRACollectionObject));
   If Assigned(Result) Then
-  Begin
-    Result._Item := Content;
-    Result._Discarded := False;
-    Exit;
-  End;
-
-  Result := TERRACollectionObject.Create(Self, Content);
+    Result.Create(Self, Content)
+  Else
+    Result := TERRACollectionObject.Create(Self, Content);
 End;
 
 { Iterator }
-Constructor Iterator.Create(Collection:TERRACollection);
+Constructor TERRAIterator.Create(Collection:TERRACollection);
 Begin
   Self.Init(Collection);
 End;
 
-Procedure Iterator.Init(Collection:TERRACollection);
+Procedure TERRAIterator.Init(Collection:TERRACollection);
 Begin
   _Collection := Collection;
 
@@ -528,38 +523,25 @@ Begin
     _Collection.Update();
   End;
 
-{$IFDEF DEBUG_ITERATORS}
-  Inc(_Iterator_Count);
-
-  If (_Iterator_Count>100) Then
-  Begin
-    DebugBreak;
-  End;
-{$ENDIF}
-
   Self.Seek(0);
 End;
 
-Function Iterator.GetValue():TERRAObject;
+Function TERRAIterator.GetValue():TERRAObject;
 Begin
   Result := _Value.Item;
 End;
 
-Procedure Iterator.Reset();
+Procedure TERRAIterator.Reset();
 Begin
   // do nothing
 End;
 
-Procedure Iterator.Release();
+Procedure TERRAIterator.Release();
 Begin
   If _Finished Then
     Exit;
 
   _Finished := True;
-
-{$IFDEF DEBUG_ITERATORS}
-  Dec(_Iterator_Count);
-{$ENDIF}
 
   If Assigned(_Collection) Then
   Begin
@@ -568,7 +550,7 @@ Begin
   End;
 End;
 
-Function Iterator.HasNext: Boolean;
+Function TERRAIterator.HasNext: Boolean;
 Begin
   _Value := Self.ObtainNext();
   Result := Assigned(_Value);
@@ -579,12 +561,12 @@ Begin
     Self.Release();
 End;
 
-Function Iterator.GetPosition():Integer;
+Function TERRAIterator.GetPosition():Integer;
 Begin
   Result := Pred(_Index);
 End;
 
-Function Iterator.Seek(Position: Integer):Boolean;
+Function TERRAIterator.Seek(Position: Integer):Boolean;
 Begin
   _Finished := False;
   _Value := Nil;
@@ -604,7 +586,7 @@ Begin
     Result := True;
 End;
 
-Procedure Iterator.JumpToIndex(Position: Integer);
+Procedure TERRAIterator.JumpToIndex(Position: Integer);
 Begin
   While (Self.Index<Position) Do
   Begin
@@ -613,13 +595,13 @@ Begin
   End;
 End;
 
-Procedure Iterator.Discard;
+Procedure TERRAIterator.Discard;
 Begin
   If Assigned(_Value) Then
     _Value.Discard();
 End;
 
-Class Function Iterator.CanBePooled: Boolean;
+Class Function TERRAIterator.CanBePooled: Boolean;
 Begin
   Result := True;
 End;

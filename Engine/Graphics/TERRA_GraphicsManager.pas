@@ -81,7 +81,7 @@ Type
 
       _ReflectionCamera:TERRACamera;
 
-      _FullScreenQuadVertices:VertexData;
+      _FullScreenQuadVertices:TERRAVertexBuffer;
 
       _FogEnable:Boolean;
       _CurrentBlendMode:Integer;
@@ -756,7 +756,7 @@ Begin
     Log(logWarning, 'GraphicsManager', 'Invalid viewport: '+View.Name);
 End;
 
-Procedure InitFullScreenQuad(FullscreenQuad:VertexData; X1,Y1,X2,Y2:Single; Orientation:TERRAOrientation);
+Procedure InitFullScreenQuad(FullscreenQuad:TERRAVertexBuffer; X1,Y1,X2,Y2:Single; Orientation:TERRAOrientation);
 Begin
   FullscreenQuad.SetVector3D(0, vertexPosition, Vector3D_Create(X1, Y2, 0.0));
   FullscreenQuad.SetVector3D(1, vertexPosition, Vector3D_Create(X2, Y2, 0.0));
@@ -831,7 +831,7 @@ Begin
   Y2 := 1.0 - Y2;
 
   If _FullScreenQuadVertices = Nil Then
-    _FullScreenQuadVertices := VertexData.Create([vertexFormatPosition, vertexFormatUV0], 6);
+    _FullScreenQuadVertices := TERRAVertexBuffer.Create([vertexFormatPosition, vertexFormatUV0], 6);
 
   {$IFNDEF DISABLEORIENTATIONANIMATIONS}
   Delta := Application.Instance.GetOrientationDelta();

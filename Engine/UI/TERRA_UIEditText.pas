@@ -99,7 +99,7 @@ Function UIEditText.OnHandleKeyPress(Key:TERRAChar):Boolean;
 Var
   I, Len:Integer;
   ChangedLine, Found:Boolean;
-  It:Iterator;
+  It:TERRAIterator;
   Wd:UIWidget;
   S:TERRAString;
 Begin

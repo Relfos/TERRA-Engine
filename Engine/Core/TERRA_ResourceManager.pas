@@ -263,7 +263,7 @@ End;
 
 Procedure ResourceManager.PurgeResources;
 Var
-  It:Iterator;
+  It:TERRAIterator;
   MyResource:TERRAResource;
 Begin
   If (Not AutoUnload) Then
@@ -357,7 +357,7 @@ End;
 
 Function ResourceManager.GetLoadedResourceCount:Integer;
 Var
-  It:Iterator;
+  It:TERRAIterator;
   MyResource:TERRAResource;
 Begin
   Result := 0;
@@ -377,7 +377,7 @@ End;
 
 Procedure ResourceManager.Clear;
 Var
-  It:Iterator;
+  It:TERRAIterator;
   N:Integer;
   MyResource:TERRAResource;
 Begin

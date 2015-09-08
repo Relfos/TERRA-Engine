@@ -48,7 +48,7 @@ Type
       _Color:ColorRGBA;           // Skybox color
       _Rotation:Single;
 
-      _Vertices:VertexData;
+      _Vertices:TERRAVertexBuffer;
 
 
       {$IFDEF PC}
@@ -87,7 +87,7 @@ Begin
   _RenderFlags := renderFlagsSkipFrustum Or renderFlagsSkipSorting;
 
 
-  _Vertices := VertexData.Create([vertexFormatPosition, vertexFormatNormal], 6);
+  _Vertices := TERRAVertexBuffer.Create([vertexFormatPosition, vertexFormatNormal], 6);
 
   If (Engine.Graphics.Renderer.Features.Shaders.Avaliable) Then
   Begin

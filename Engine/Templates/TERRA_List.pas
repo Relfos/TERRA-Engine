@@ -17,7 +17,7 @@ Type
       Constructor Create(SortOrder:CollectionSortOrder = collection_Unsorted; Options:Integer = 0);
 
       Procedure Clear(); Override;
-      Function GetIterator:Iterator; Override;
+      Function GetIterator:TERRAIterator; Override;
 
       Function GetItemByIndex(Index:Integer):TERRAObject; Override;
 
@@ -39,7 +39,7 @@ Type
       Property First:TERRACollectionObject Read _First;
   End;
 
-  ListIterator = Class(Iterator)
+  ListIterator = Class(TERRAIterator)
     Protected
       _Current:TERRACollectionObject;
 
@@ -127,7 +127,7 @@ End;
 
 Function TERRAList.Merge(C:TERRACollection):TERRAList;
 Var
-  I:Iterator;
+  I:TERRAIterator;
   Temp, N: TERRAObject;
 Begin
   Result := Self;
@@ -315,14 +315,12 @@ Begin
   Self.Unlock();
 End;*)
 
-Function TERRAList.GetIterator:Iterator;
+Function TERRAList.GetIterator:TERRAIterator;
 Begin
   Result := ListIterator(Engine.Pool.Fetch(ListIterator));
   If Assigned(Result) Then
-  Begin
-    Result.Init(Self);
-    ListIterator(Result).Reset();
-  End Else
+    Result.Create(Self)
+  Else
     Result := ListIterator.Create(Self);
 End;
 

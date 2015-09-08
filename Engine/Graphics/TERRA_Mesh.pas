@@ -509,8 +509,8 @@ Type
 
       _EmitterFX:TERRAString;
 
-      _Vertices:VertexData;
-      _ScratchVertices:VertexData;
+      _Vertices:TERRAVertexBuffer;
+      _ScratchVertices:TERRAVertexBuffer;
 
       _Triangles:Array Of Triangle;
       _Edges:Array Of TriangleEdgesState;
@@ -539,7 +539,7 @@ Type
       Procedure SetVertexCount(Count:Integer);
       Function GetTriangles:PTriangleArray;
 
-      Function GetVertices():VertexData;
+      Function GetVertices():TERRAVertexBuffer;
       Function GetVertexCount():Integer;
 
       Function GetHueShift: Single;
@@ -636,7 +636,7 @@ Type
 
       Procedure Optimize(VertexCacheSize:Integer);
 
-      Function LockVertices():VertexData;
+      Function LockVertices():TERRAVertexBuffer;
       Procedure UnlockVertices();
 
       Function AddVertexMorph(ID:Integer):Integer;
@@ -701,7 +701,7 @@ Type
       Property TriangleCount:Cardinal Read _TriangleCount Write SetTriangleCount;
 
       Property Triangles:PTriangleArray Read GetTriangles;
-      Property Vertices:VertexData Read GetVertices;
+      Property Vertices:TERRAVertexBuffer Read GetVertices;
 
       Property GetBoundingBox:TERRA_BoundingBox.BoundingBox Read _BoundingBox;
 
@@ -1181,7 +1181,7 @@ Var
   AttrKind, AttrType:Byte;
   PX,PY,PZ:SmallInt;
   P:Vector3D;
-  Temp:VertexData;
+  Temp:TERRAVertexBuffer;
   NewFormat:VertexFormat;
   Attribute:VertexFormatAttribute;
 Begin
@@ -3009,7 +3009,7 @@ Var
   Graphics:GraphicsManager;
   It:VertexIterator;
   V:MeshVertex;
-  Target:VertexData;
+  Target:TERRAVertexBuffer;
 Begin
   If (_CullGeometry) And (_VisibleTriangleCount>=_TriangleCount) Then
   Begin
@@ -4480,7 +4480,7 @@ End;
 }
 
 Type
-  OptimizeVertexData = Record
+  OptimizeTERRAVertexBuffer = Record
     score:Single;
     activeFaceListStart:Integer;
     activeFaceListSize:Integer;
@@ -4597,7 +4597,7 @@ Const
   kEvictedCacheIndex  = 65535;
 Var
   s_vertexScoresComputed:Boolean;
-  vertexDataList:Array Of OptimizeVertexData;
+  TERRAVertexBufferList:Array Of OptimizeTERRAVertexBuffer;
   activeFaceList:Array Of Integer;
   processedFaceList:Array Of Boolean;
   vertexCacheBuffer:Array[0..Pred((kMaxVertexCacheSize+3)*2)] Of Integer;
@@ -4615,7 +4615,7 @@ Var
 Begin
 (*  s_vertexScoresComputed := ComputeVertexScores();
 
-  SetLength(vertexDataList, _VertexCount);
+  SetLength(TERRAVertexBufferList, _VertexCount);
   SetLength(oldIndexList, _TriangleCount * 3);
 
   // compute face count per vertex
@@ -4628,7 +4628,7 @@ Begin
     For J:=0 To 2 Do
     Begin
       oldIndexList[I*3+J] := TT.Indices[J];
-      Inc(vertexDataList[TT.Indices[J]].activeFaceListSize);
+      Inc(TERRAVertexBufferList[TT.Indices[J]].activeFaceListSize);
     End;
   End;
 
@@ -4637,12 +4637,12 @@ Begin
   curActiveFaceListPos := 0;
   For I:=0 To Pred(_vertexCount) Do
   Begin
-    vertexDataList[i].cachePos0 := kEvictedCacheIndex;
-    vertexDataList[i].cachePos1 := kEvictedCacheIndex;
-    vertexDataList[i].activeFaceListStart := curActiveFaceListPos;
-    Inc(curActiveFaceListPos, vertexDataList[i].activeFaceListSize);
-    vertexDataList[i].score := FindVertexScore(vertexDataList[i].activeFaceListSize, vertexDataList[i].cachePos0, vertexCacheSize);
-    vertexDataList[i].activeFaceListSize := 0;
+    TERRAVertexBufferList[i].cachePos0 := kEvictedCacheIndex;
+    TERRAVertexBufferList[i].cachePos1 := kEvictedCacheIndex;
+    TERRAVertexBufferList[i].activeFaceListStart := curActiveFaceListPos;
+    Inc(curActiveFaceListPos, TERRAVertexBufferList[i].activeFaceListSize);
+    TERRAVertexBufferList[i].score := FindVertexScore(TERRAVertexBufferList[i].activeFaceListSize, TERRAVertexBufferList[i].cachePos0, vertexCacheSize);
+    TERRAVertexBufferList[i].activeFaceListSize := 0;
   End;
 
   SetLength(activeFaceList, curActiveFaceListPos);
@@ -4657,8 +4657,8 @@ Begin
     For J:=0 To 2 Do
     Begin
       Index := TT.Indices[J];
-      activeFaceList[vertexDataList[index].activeFaceListStart + vertexDataList[index].activeFaceListSize] := I;
-      Inc(vertexDataList[index].activeFaceListSize);
+      activeFaceList[TERRAVertexBufferList[index].activeFaceListStart + TERRAVertexBufferList[index].activeFaceListSize] := I;
+      Inc(TERRAVertexBufferList[index].activeFaceListSize);
     End;
   End;
 
@@ -4689,9 +4689,9 @@ Begin
           For K:=0 To 2 Do
           Begin
             index := oldIndexList[J*3 + K];
-              assert(vertexDataList[index].activeFaceListSize > 0);
-            assert(vertexDataList[index].cachePos0 >= vertexCacheSize);
-            faceScore := faceScore + vertexDataList[index].score;
+              assert(TERRAVertexBufferList[index].activeFaceListSize > 0);
+            assert(TERRAVertexBufferList[index].cachePos0 >= vertexCacheSize);
+            faceScore := faceScore + TERRAVertexBufferList[index].score;
           End;
 
           If (faceScore > bestScore) Then
@@ -4718,22 +4718,22 @@ Begin
         Index := oldIndexList[BestFace*3+V];
         _Triangles[I].Indices[V] := index;
 
-        If (vertexDataList[index].cachePos1 >= entriesInCache1) Then
+        If (TERRAVertexBufferList[index].cachePos1 >= entriesInCache1) Then
         Begin
-          vertexDataList[index].cachePos1 := entriesInCache1;
+          TERRAVertexBufferList[index].cachePos1 := entriesInCache1;
           cache1[entriesInCache1] := index;
           Inc(entriesInCache1);
 
-          If (vertexDataList[index].activeFaceListSize = 1) Then
+          If (TERRAVertexBufferList[index].activeFaceListSize = 1) Then
           Begin
-            Dec(vertexDataList[index].activeFaceListSize);
+            Dec(TERRAVertexBufferList[index].activeFaceListSize);
             Continue;
           End;
         End;
 
-        assert(vertexDataList[index].activeFaceListSize > 0);
+        assert(TERRAVertexBufferList[index].activeFaceListSize > 0);
         N := -1;
-        For K:=vertexDataList[index].activeFaceListStart To vertexDataList[index].activeFaceListStart + Pred(vertexDataList[index].activeFaceListSize) Do
+        For K:=TERRAVertexBufferList[index].activeFaceListStart To TERRAVertexBufferList[index].activeFaceListStart + Pred(TERRAVertexBufferList[index].activeFaceListSize) Do
         If (activeFaceList[K] = bestFace) Then
         Begin
           N := K;
@@ -4744,24 +4744,24 @@ Begin
           Exit;
 
         K := activeFaceList[N];
-        activeFaceList[N] := activeFaceList[Pred(vertexDataList[index].activeFaceListSize)];
-        activeFaceList[Pred(vertexDataList[index].activeFaceListSize)] := K;
+        activeFaceList[N] := activeFaceList[Pred(TERRAVertexBufferList[index].activeFaceListSize)];
+        activeFaceList[Pred(TERRAVertexBufferList[index].activeFaceListSize)] := K;
 
 
-        Dec(vertexDataList[index].activeFaceListSize);
-        vertexDataList[index].score := FindVertexScore(vertexDataList[index].activeFaceListSize, vertexDataList[index].cachePos1, vertexCacheSize);
+        Dec(TERRAVertexBufferList[index].activeFaceListSize);
+        TERRAVertexBufferList[index].score := FindVertexScore(TERRAVertexBufferList[index].activeFaceListSize, TERRAVertexBufferList[index].cachePos1, vertexCacheSize);
       End;
 
       // move the rest of the old verts in the cache down and compute their new scores
       For c0 := 0 To Pred(entriesInCache0) Do
       Begin
         index := cache0[c0];
-        If (vertexDataList[index].cachePos1 >= entriesInCache1) Then
+        If (TERRAVertexBufferList[index].cachePos1 >= entriesInCache1) Then
         Begin
-          vertexDataList[index].cachePos1 := entriesInCache1;
+          TERRAVertexBufferList[index].cachePos1 := entriesInCache1;
           cache1[entriesInCache1] := index;
           Inc(entriesInCache1);
-          vertexDataList[index].score := FindVertexScore(vertexDataList[index].activeFaceListSize, vertexDataList[index].cachePos1, vertexCacheSize);
+          TERRAVertexBufferList[index].score := FindVertexScore(TERRAVertexBufferList[index].activeFaceListSize, TERRAVertexBufferList[index].cachePos1, vertexCacheSize);
         End;
       End;
 
@@ -4770,14 +4770,14 @@ Begin
       For c1 := 0 To Pred(entriesInCache1) Do
       Begin
         index := cache1[c1];
-        vertexDataList[index].cachePos0 := vertexDataList[index].cachePos1;
-        vertexDataList[index].cachePos1 := kEvictedCacheIndex;
-        For J:=0 To Pred(vertexDataList[index].activeFaceListSize) Do
+        TERRAVertexBufferList[index].cachePos0 := TERRAVertexBufferList[index].cachePos1;
+        TERRAVertexBufferList[index].cachePos1 := kEvictedCacheIndex;
+        For J:=0 To Pred(TERRAVertexBufferList[index].activeFaceListSize) Do
         Begin
           faceScore := 0.0;
-          face := activeFaceList[vertexDataList[index].activeFaceListStart+j];
+          face := activeFaceList[TERRAVertexBufferList[index].activeFaceListStart+j];
           For V:=0 To 2 Do
-              faceScore := faceScore + vertexDataList[oldindexList[face * 3 + v]].score;
+              faceScore := faceScore + TERRAVertexBufferList[oldindexList[face * 3 + v]].score;
 
           If (faceScore > bestScore) Then
           Begin
@@ -5072,15 +5072,15 @@ Begin
   Self._Material.Reset();
   Self._Unique := False;
 
-  Self._Vertices := VertexData.Create(Format, 0);
+  Self._Vertices := TERRAVertexBuffer.Create(Format, 0);
 
   Self._GPUSkinning := Engine.Graphics.Renderer.Settings.VertexBufferObject.Enabled;
 End;
 
-Function MeshGroup.LockVertices():VertexData;
+Function MeshGroup.LockVertices():TERRAVertexBuffer;
 Var
   I:Integer;
-  P:VertexData;
+  P:TERRAVertexBuffer;
 Begin
   If (_Vertices = Nil) Or (_Vertices.Count<=0) Then
   Begin
@@ -5500,7 +5500,7 @@ Begin
   Result := Vertices.Count;
 End;
 
-Function MeshGroup.GetVertices:VertexData;
+Function MeshGroup.GetVertices:TERRAVertexBuffer;
 Begin
   If _Vertices = Nil Then
   Begin
@@ -5911,7 +5911,7 @@ Var
   S:TERRAString;
   B:MeshBone;
   P:Vector2D;
-  It:Iterator;
+  It:TERRAIterator;
   Group:MeshGroup;
   V:MeshVertex;
   Anim:Animation;
@@ -6532,7 +6532,7 @@ End;
 Procedure MeshMerger.MergeGroup(Source, Dest:MeshGroup; UpdateBox:Boolean = True);
 Var
   VOfs, TOfs:Cardinal;
-  DestVertex:VertexData;
+  DestVertex:TERRAVertexBuffer;
   SourceTriangle, DestTriangle:PTriangle;
   I, N:Integer;
   SrcIt, DestIt:VertexIterator;

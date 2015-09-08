@@ -858,7 +858,7 @@ End;*)
 Function UIWidget.GetDownControl():UIWidget;
 Var
   W:UIWidget;
-  It:Iterator;
+  It:TERRAIterator;
   Base:Vector2D;
   GroupID:Integer;
   Min, Dist, Y:Single;
@@ -894,7 +894,7 @@ End;
 Function UIWidget.GetUpControl():UIWidget;
 Var
   W:UIWidget;
-  It:Iterator;
+  It:TERRAIterator;
   P,Base:Vector2D;
   GroupID:Integer;
   Min, Dist, Y:Single;
@@ -927,7 +927,7 @@ End;
 Function UIWidget.GetRightControl():UIWidget;
 Var
   W:UIWidget;
-  It:Iterator;
+  It:TERRAIterator;
   Base:Vector2D;
   Min, Dist, X:Single;
   GroupID:Integer;
@@ -959,7 +959,7 @@ End;
 Function UIWidget.GetLeftControl():UIWidget;
 Var
   W:UIWidget;
-  It:Iterator;
+  It:TERRAIterator;
   P, Base:Vector2D;
   Min, Dist:Single;
   GroupID:Integer;
@@ -3246,7 +3246,7 @@ End;
 Function UITemplateList.GetTemplate(Const TemplateName: TERRAString): UIWidget;
 Var
   W:UIWidget;
-  It:Iterator;
+  It:TERRAIterator;
 Begin
   Result := Nil;
   If _Templates = Nil Then
@@ -3270,7 +3270,7 @@ End;
 Function UITemplateList.DeleteTemplate(Const TemplateName: TERRAString): Boolean;
 Var
   W:UIWidget;
-  It:Iterator;
+  It:TERRAIterator;
 Begin
   Result := False;
   If _Templates = Nil Then

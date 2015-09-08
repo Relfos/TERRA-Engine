@@ -102,7 +102,7 @@ End;
 Procedure DataSourceManager.AddFromSession(FileName: TERRAString);
 Var
   SaveData:Session;
-  It:Iterator;
+  It:TERRAIterator;
   Item, Row:StringProperty;
   Obj:TERRAList;
   S, S2, Tag:TERRAString;

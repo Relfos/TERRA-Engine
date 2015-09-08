@@ -49,6 +49,8 @@ Type
 {      ReflectionPoint:Vector3D;
       ReflectionNormal:Vector3D;}
 
+      Temporary:Boolean;
+
       Procedure Release; Override;
 
       Function SortID:Integer; Override;
@@ -151,26 +153,28 @@ End;
 
 Procedure RenderableManager.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
-  P:TERRACollectionObject;
+  It:TERRAIterator;
   Renderable:TERRARenderable;
 Begin
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Rendering bucket'); {$ENDIF}
 
-  P := _Renderables.First;
-  While (Assigned(P)) Do
+  It := _Renderables.GetIterator();
+  While (It.HasNext) Do
   Begin
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Fetching next...');{$ENDIF}
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', P.ToString());{$ENDIF}
 
-    Renderable := TERRARenderable(P.Item);
+    Renderable := TERRARenderable(It.Value);
     If (Assigned(Renderable)) Then
     Begin
       If (Not Engine.Graphics.ReflectionActive) Or (Renderable.RenderFlags And renderFlagsSkipReflections=0) Then
         Renderable.Render(View, Stage);
-    End;
 
-    P := P.Next;
+      (*If Renderable.Temporary Then
+        It.Discard();*)
+    End;
   End;
+  ReleaseObject(It);
 
   (*
 
@@ -182,7 +186,7 @@ Begin
       {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderBillboards');{$ENDIF}
       BillboardManager.Instance.Render();
     End;
-*)  
+*)
 End;
 
 
@@ -195,7 +199,6 @@ Procedure RenderableManager.Clear;
 Begin
   _Renderables.Clear();
 End;
-
 
 Function RenderableManager.AddRenderable(View:TERRAViewport; Renderable:TERRARenderable):Boolean;
 (*Const

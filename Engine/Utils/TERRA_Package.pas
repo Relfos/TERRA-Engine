@@ -170,7 +170,7 @@ End;
 //If not found returns nil
 Function TERRAPackage.FindResourceByName(Const ResourceName:TERRAString):ResourceInfo;
 Var
-  It:Iterator;
+  It:TERRAIterator;
   Res:ResourceInfo;
 Begin
   Result := Nil;

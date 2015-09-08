@@ -18,7 +18,7 @@
  *
  **********************************************************************************************************************
  * TERRA_Sprite
- * Implements the global sprite manager
+ * Implements the sprite class
  ***********************************************************************************************************************
 }
 Unit TERRA_Sprite;
@@ -27,7 +27,7 @@ Unit TERRA_Sprite;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Color, TERRA_Texture,
-  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ClipRect, TERRA_Renderer, TERRA_VertexFormat, TERRA_Renderable, TERRA_Viewport;
+  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ClipRect, TERRA_Renderer, TERRA_VertexFormat, TERRA_Renderable, TERRA_Geometry, TERRA_Viewport;
 
 Const
   Sprite_Font         = 1;
@@ -62,6 +62,8 @@ Type
 
   TERRASprite = Class(TERRARenderable)
     Protected
+      _Geometry:TERRAGeometry;
+
       {$IFNDEF DISABLECOLORGRADING}
       _ColorTable:TERRATexture;
       {$ENDIF}
@@ -77,10 +79,6 @@ Type
 
       _Pattern:TERRATexture;
 
-      _Vertices:VertexData;
-
-      _VertexOffset:Integer;
-      _IndexOffset:Integer;
 
       _Glow:ColorRGBA;
 
@@ -89,7 +87,6 @@ Type
 
       _CA, _CB, _CC, _CD:ColorRGBA;
 
-      _Indices:Array Of Word;
 
       _Flags:Cardinal;
 
@@ -136,14 +133,13 @@ Type
 
       Procedure SetTransform(Const Mat:Matrix3x3);
 
-      Function GetIndex(Index:Integer):Word;
-
       Procedure ConcatTransform(Const Mat:Matrix3x3);
       Procedure Translate(Const X,Y:Single);
       Procedure Rotate(Angle:Single);
       Procedure Scale(Const X, Y:Single); Overload;
       Procedure Scale(Const Value:Single); Overload;
 
+      Property Geometry:TERRAGeometry Read _Geometry;
 
       Property Texture:TERRATexture Read _Texture Write SetTexture;
       Property DissolveTexture:TERRATexture Read _DissolveTexture;
@@ -155,15 +151,10 @@ Type
       Property Pattern:TERRATexture Read _Pattern Write SetPattern;
       Property ColorTable:TERRATexture Read _ColorTable Write SetColorTable;
 
-      Property Vertices:VertexData Read _Vertices;
-      Property IndexCount:Integer Read _IndexOffset;
-
       Property Transform:Matrix3x3 Read _Transform Write SetTransform;
 
       Property Flags:Cardinal Read _Flags Write _Flags;
   End;
-
-Function CreateSpriteVertexData(Count:Integer):VertexData;
 
 Implementation
 Uses TERRA_ResourceManager, TERRA_ShaderManager, TERRA_Engine, TERRA_Log, TERRA_Image, TERRA_GraphicsManager, TERRA_OS, TERRA_Math
@@ -175,15 +166,6 @@ Const
 Var
   _SpriteShaders:Array[0..Pred(MaxSpriteShaders)] Of ShaderInterface;
 
-
-Function CreateSpriteVertexData(Count:Integer):VertexData;
-Const
-  SpriteVertexFormat = [vertexFormatPosition, vertexFormatColor, vertexFormatUV0, vertexFormatUV1, vertexFormatUV2];
-Begin
-  Result := VertexData.Create(SpriteVertexFormat, Count);
-  Result.SetAttributeFormat(vertexUV1, typeVector4D);
-  Result.SetAttributeFormat(vertexUV2, typeVector4D);
-End;
 
 { SpriteVertex }
 Procedure SpriteVertex.Load;
@@ -226,7 +208,7 @@ End;
 
 Procedure TERRASprite.Release();
 Begin
-  ReleaseObject(_Vertices);
+  ReleaseObject(_Geometry);
 End;
 
 Procedure TERRASprite.GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType);
@@ -283,38 +265,34 @@ End;
 Procedure TERRASprite.AddTriangle(Const PosA, PosB, PosC:Vector2D; LayerOffset:Single);
 Var
   U1, V1, U2, V2:Single;
+  IndexOffset, VertexOffset:Integer;
 Begin
   If (Self._CA.A = 0) And (Self._CB.A = 0) And (Self._CC.A=0) And (Self._CD.A=0) Then
     Exit;
 
-  If _Vertices = Nil Then
-    _Vertices := CreateSpriteVertexData(_VertexOffset + 3)
-  Else
-  If (_VertexOffset >= _Vertices.Count) Then
-    _Vertices.Resize(_VertexOffset + 3);
+  VertexOffset := Geometry.Vertices.Count;
+  IndexOffset := Geometry.Indices.Count;
 
-  If (Length(_Indices)< _IndexOffset + 3) Then
-    SetLength(_Indices, _IndexOffset + 3);
+  Geometry.Vertices.Resize(Geometry.Vertices.Count + 3);
+  Geometry.Indices.Resize(Geometry.Indices.Count + 3);
 
   LayerOffset := LayerOffset + Self.Layer;
 
-  _Vertices.SetColor(_VertexOffset + 0, vertexColor, _CA); //SampleColorAt(PX, PY)
-  _Vertices.SetVector3D(_VertexOffset + 0, vertexPosition, Vector3D_Create(PosA.X, PosA.Y, LayerOffset));
-  _Vertices.SetVector2D(_VertexOffset + 0, vertexUV0, Vector2D_Create(0.5, 0.5));
+  Geometry.Vertices.SetColor(VertexOffset + 0, vertexColor, _CA); //SampleColorAt(PX, PY)
+  Geometry.Vertices.SetVector3D(VertexOffset + 0, vertexPosition, Vector3D_Create(PosA.X, PosA.Y, LayerOffset));
+  Geometry.Vertices.SetVector2D(VertexOffset + 0, vertexUV0, Vector2D_Create(0.5, 0.5));
 
-  _Vertices.SetColor(_VertexOffset + 1, vertexColor, _CA); //SampleColorAt(PX, PY)
-  _Vertices.SetVector3D(_VertexOffset + 1, vertexPosition, Vector3D_Create(PosB.X, PosB.Y, LayerOffset));
-  _Vertices.SetVector2D(_VertexOffset + 1, vertexUV0, Vector2D_Create(0.5, 0.5));
+  Geometry.Vertices.SetColor(VertexOffset + 1, vertexColor, _CA); //SampleColorAt(PX, PY)
+  Geometry.Vertices.SetVector3D(VertexOffset + 1, vertexPosition, Vector3D_Create(PosB.X, PosB.Y, LayerOffset));
+  Geometry.Vertices.SetVector2D(VertexOffset + 1, vertexUV0, Vector2D_Create(0.5, 0.5));
 
-  _Vertices.SetColor(_VertexOffset + 2, vertexColor, _CA); //SampleColorAt(PX, PY)
-  _Vertices.SetVector3D(_VertexOffset + 2, vertexPosition, Vector3D_Create(PosC.X, PosC.Y, LayerOffset));
-  _Vertices.SetVector2D(_VertexOffset + 2, vertexUV0, Vector2D_Create(0.5, 0.5));
+  Geometry.Vertices.SetColor(VertexOffset + 2, vertexColor, _CA); //SampleColorAt(PX, PY)
+  Geometry.Vertices.SetVector3D(VertexOffset + 2, vertexPosition, Vector3D_Create(PosC.X, PosC.Y, LayerOffset));
+  Geometry.Vertices.SetVector2D(VertexOffset + 2, vertexUV0, Vector2D_Create(0.5, 0.5));
 
-  _Indices[_IndexOffset + 0] := _VertexOffset + 0;
-  _Indices[_IndexOffset + 1] := _VertexOffset + 1;
-  _Indices[_IndexOffset + 2] := _VertexOffset + 2;
-  Inc(_IndexOffset, 3);
-  Inc(_VertexOffset, 3);
+  Geometry.Indices.SetIndex(IndexOffset + 0, VertexOffset + 0);
+  Geometry.Indices.SetIndex(IndexOffset + 1, VertexOffset + 1);
+  Geometry.Indices.SetIndex(IndexOffset + 2, VertexOffset + 2);
 End;
 
 Procedure TERRASprite.AddEllipse(Const Anchor:SpriteAnchor; const Pos:Vector2D; LayerOffset:Single; Const RadiusX, RadiusY: Single);
@@ -325,18 +303,16 @@ Var
   I:Integer;
   U1, V1, U2, V2:Single;
   Delta, PX, PY:Single;
+  IndexOffset, VertexOffset:Integer;
 Begin
   If (Self._CA.A = 0) And (Self._CB.A = 0) And (Self._CC.A=0) And (Self._CD.A=0) Then
     Exit;
 
-  If _Vertices = Nil Then
-    _Vertices := CreateSpriteVertexData(_VertexOffset + Succ(SubDivs))
-  Else
-  If (_VertexOffset >= _Vertices.Count) Then
-    _Vertices.Resize(_VertexOffset + Succ(SubDivs));
+  VertexOffset := Geometry.Vertices.Count;
+  IndexOffset := Geometry.Indices.Count;
 
-  If (Length(_Indices)< _IndexOffset + 3 * SubDivs) Then
-    SetLength(_Indices, _IndexOffset + 3 * SubDivs);
+  Geometry.Vertices.Resize(Geometry.Vertices.Count + Succ(SubDivs));
+  Geometry.Indices.Resize(Geometry.Indices.Count + 3 * SubDivs);
 
   LayerOffset := LayerOffset + Self.Layer;
 
@@ -382,20 +358,18 @@ Begin
       PY := 0.5 + Sin(Delta) * 0.5;
     End;
 
-    _Vertices.SetColor(_VertexOffset + I, vertexColor, _CA); //SampleColorAt(PX, PY)
-    _Vertices.SetVector3D(_VertexOffset + I, vertexPosition, Vector3D_Create(Pos.X + RadiusX * PX, Pos.Y + + RadiusY * PY, LayerOffset));
-    _Vertices.SetVector2D(_VertexOffset + I, vertexUV0, Vector2D_Create(PX, PY));
+    Geometry.Vertices.SetColor(VertexOffset + I, vertexColor, _CA); //SampleColorAt(PX, PY)
+    Geometry.Vertices.SetVector3D(VertexOffset + I, vertexPosition, Vector3D_Create(Pos.X + RadiusX * PX, Pos.Y + + RadiusY * PY, LayerOffset));
+    Geometry.Vertices.SetVector2D(VertexOffset + I, vertexUV0, Vector2D_Create(PX, PY));
   End;
 
   For I:=0 To Pred(SubDivs) Do
   Begin
-    _Indices[_IndexOffset + 0] := _VertexOffset + SubDivs;
-    _Indices[_IndexOffset + 1] := _VertexOffset + I;
-    _Indices[_IndexOffset + 2] := _VertexOffset + ((I + 1) Mod SubDivs);
-    Inc(_IndexOffset, 3);
+    Geometry.Indices.SetIndex(IndexOffset + 0, VertexOffset + SubDivs);
+    Geometry.Indices.SetIndex(IndexOffset + 1, VertexOffset + I);
+    Geometry.Indices.SetIndex(IndexOffset + 2, VertexOffset + ((I + 1) Mod SubDivs));
+    Inc(IndexOffset, 3);
   End;
-
-  Inc(_VertexOffset, Succ(SubDivs));
 End;
 
 Procedure TERRASprite.AddCircle(const Anchor: SpriteAnchor; Const Pos:Vector2D; LayerOffset:Single; Const Radius:Single);
@@ -407,18 +381,16 @@ End;
 Procedure TERRASprite.AddQuad(Const Anchor:SpriteAnchor; Const Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single);
 Var
   U1, V1, U2, V2:Single;
+  IndexOffset, VertexOffset:Integer;
 Begin
   If (Self._CA.A = 0) And (Self._CB.A = 0) And (Self._CC.A=0) And (Self._CD.A=0) Then
     Exit;
 
-  If _Vertices = Nil Then
-    _Vertices := CreateSpriteVertexData(_VertexOffset + 4)
-  Else
-  If (_VertexOffset >= _Vertices.Count) Then
-    _Vertices.Resize(_VertexOffset + 4);
+  VertexOffset := Geometry.Vertices.Count;
+  IndexOffset := Geometry.Indices.Count;
 
-  If (Length(_Indices)< _IndexOffset + 6) Then
-    SetLength(_Indices, _IndexOffset + 6);
+  Geometry.Vertices.Resize(VertexOffset + 4);
+  Geometry.Indices.Resize(IndexOffset + 6);
 
   LayerOffset := LayerOffset + Self.Layer;
 
@@ -450,33 +422,30 @@ Begin
       Pos.Subtract(Vector2D_Create(Width * 0.5, -Height * 0.5));
   End;
 
-  _Vertices.SetColor(_VertexOffset + 0, vertexColor, _CC);
-  _Vertices.SetColor(_VertexOffset + 1, vertexColor, _CD);
-  _Vertices.SetColor(_VertexOffset + 2, vertexColor, _CB);
-  _Vertices.SetColor(_VertexOffset + 3, vertexColor, _CA);
+  Geometry.Vertices.SetColor(VertexOffset + 0, vertexColor, _CC);
+  Geometry.Vertices.SetColor(VertexOffset + 1, vertexColor, _CD);
+  Geometry.Vertices.SetColor(VertexOffset + 2, vertexColor, _CB);
+  Geometry.Vertices.SetColor(VertexOffset + 3, vertexColor, _CA);
 
-  _Vertices.SetVector3D(_VertexOffset + 0, vertexPosition, Vector3D_Create(Pos.X, Pos.Y + Height, LayerOffset));
-  _Vertices.SetVector2D(_VertexOffset + 0, vertexUV0, Vector2D_Create(U1, V2));
+  Geometry.Vertices.SetVector3D(VertexOffset + 0, vertexPosition, Vector3D_Create(Pos.X, Pos.Y + Height, LayerOffset));
+  Geometry.Vertices.SetVector2D(VertexOffset + 0, vertexUV0, Vector2D_Create(U1, V2));
 
-  _Vertices.SetVector3D(_VertexOffset + 1, vertexPosition, Vector3D_Create(Pos.X + Width, Pos.Y +Height, LayerOffset));
-  _Vertices.SetVector2D(_VertexOffset + 1, vertexUV0, Vector2D_Create(U2, V2));
+  Geometry.Vertices.SetVector3D(VertexOffset + 1, vertexPosition, Vector3D_Create(Pos.X + Width, Pos.Y +Height, LayerOffset));
+  Geometry.Vertices.SetVector2D(VertexOffset + 1, vertexUV0, Vector2D_Create(U2, V2));
 
-  _Vertices.SetVector3D(_VertexOffset + 2, vertexPosition, Vector3D_Create(Pos.X + Width + Skew, Pos.Y, LayerOffset));
-  _Vertices.SetVector2D(_VertexOffset + 2, vertexUV0, Vector2D_Create(U2, V1));
+  Geometry.Vertices.SetVector3D(VertexOffset + 2, vertexPosition, Vector3D_Create(Pos.X + Width + Skew, Pos.Y, LayerOffset));
+  Geometry.Vertices.SetVector2D(VertexOffset + 2, vertexUV0, Vector2D_Create(U2, V1));
 
-  _Vertices.SetVector3D(_VertexOffset + 3, vertexPosition, Vector3D_Create(Pos.X + Skew, Pos.Y, LayerOffset));
-  _Vertices.SetVector2D(_VertexOffset + 3, vertexUV0, Vector2D_Create(U1, V1));
+  Geometry.Vertices.SetVector3D(VertexOffset + 3, vertexPosition, Vector3D_Create(Pos.X + Skew, Pos.Y, LayerOffset));
+  Geometry.Vertices.SetVector2D(VertexOffset + 3, vertexUV0, Vector2D_Create(U1, V1));
 
-  _Indices[_IndexOffset + 0] := _VertexOffset + 0;
-  _Indices[_IndexOffset + 1] := _VertexOffset + 1;
-  _Indices[_IndexOffset + 2] := _VertexOffset + 2;
+  Geometry.Indices.SetIndex(IndexOffset + 0, VertexOffset + 0);
+  Geometry.Indices.SetIndex(IndexOffset + 1, VertexOffset + 1);
+  Geometry.Indices.SetIndex(IndexOffset + 2, VertexOffset + 2);
 
-  _Indices[_IndexOffset + 3] := _VertexOffset + 2;
-  _Indices[_IndexOffset + 4] := _VertexOffset + 3;
-  _Indices[_IndexOffset + 5] := _VertexOffset + 0;
-
-  Inc(_VertexOffset, 4);
-  Inc(_IndexOffset, 6);
+  Geometry.Indices.SetIndex(IndexOffset + 3, VertexOffset + 2);
+  Geometry.Indices.SetIndex(IndexOffset + 4, VertexOffset + 3);
+  Geometry.Indices.SetIndex(IndexOffset + 5, VertexOffset + 0);
 End;
 
 Procedure TERRASprite.AddPath(Const Positions:Array Of Vector2D; LayerOffset:Single; Width:Single);
@@ -485,6 +454,7 @@ Var
   U1, V1, U2, V2, TU:Single;
   Len, Mult:Single;
   I, A, B:Integer;
+  IndexOffset, VertexOffset:Integer;
 Begin
   If (Self._CA.A = 0) And (Self._CB.A = 0) And (Self._CC.A=0) And (Self._CD.A=0) Then
     Exit;
@@ -494,14 +464,11 @@ Begin
 
   Width := Width * 0.5;
 
-  If _Vertices = Nil Then
-    _Vertices := CreateSpriteVertexData(_VertexOffset + 2 * Length(Positions))
-  Else
-  If (_VertexOffset >= _Vertices.Count) Then
-    _Vertices.Resize(_VertexOffset + 2 * Length(Positions));
+  VertexOffset := Geometry.Vertices.Count;
+  IndexOffset := Geometry.Indices.Count;
 
-  If (Length(_Indices)< _IndexOffset + 6 * Length(Positions)) Then
-    SetLength(_Indices, _IndexOffset + 6 * Length(Positions));
+  Geometry.Vertices.Resize(VertexOffset + 2 * Length(Positions));
+  Geometry.Indices.Resize(IndexOffset + 6 * Length(Positions));
 
   LayerOffset := LayerOffset + Self.Layer;
 
@@ -547,34 +514,34 @@ Begin
 
     Mult := Len / (Width*2);
 
-    _Vertices.SetColor(_VertexOffset + 0, vertexColor, _CC);
-    _Vertices.SetColor(_VertexOffset + 1, vertexColor, _CC);
+    Geometry.Vertices.SetColor(VertexOffset + 0, vertexColor, _CC);
+    Geometry.Vertices.SetColor(VertexOffset + 1, vertexColor, _CC);
 
     If (Odd(I)) Then
       TU := U2
     Else
       TU := U1;
 
-    _Vertices.SetVector3D(_VertexOffset + 0, vertexPosition, Vector3D_Create(Trunc(Pos.X + Tangent.X * Width), Trunc(Pos.Y + Tangent.Y * Width), LayerOffset));
-    _Vertices.SetVector2D(_VertexOffset + 0, vertexUV0, Vector2D_Create(TU * Mult, V1));
+    Geometry.Vertices.SetVector3D(VertexOffset + 0, vertexPosition, Vector3D_Create(Trunc(Pos.X + Tangent.X * Width), Trunc(Pos.Y + Tangent.Y * Width), LayerOffset));
+    Geometry.Vertices.SetVector2D(VertexOffset + 0, vertexUV0, Vector2D_Create(TU * Mult, V1));
 
-    _Vertices.SetVector3D(_VertexOffset + 1, vertexPosition, Vector3D_Create(Trunc(Pos.X - Tangent.X * Width), Trunc(Pos.Y - Tangent.Y * Width), LayerOffset));
-    _Vertices.SetVector2D(_VertexOffset + 1, vertexUV0, Vector2D_Create(TU * Mult, V2));
+    Geometry.Vertices.SetVector3D(VertexOffset + 1, vertexPosition, Vector3D_Create(Trunc(Pos.X - Tangent.X * Width), Trunc(Pos.Y - Tangent.Y * Width), LayerOffset));
+    Geometry.Vertices.SetVector2D(VertexOffset + 1, vertexUV0, Vector2D_Create(TU * Mult, V2));
 
     If (I>Low(Positions)) Then
     Begin
-      _Indices[_IndexOffset + 0] := _VertexOffset + 0;
-      _Indices[_IndexOffset + 1] := _VertexOffset + 1;
-      _Indices[_IndexOffset + 2] := _VertexOffset - 1;
+      Geometry.Indices.SetIndex(IndexOffset + 0, VertexOffset + 0);
+      Geometry.Indices.SetIndex(IndexOffset + 1, VertexOffset + 1);
+      Geometry.Indices.SetIndex(IndexOffset + 2, VertexOffset - 1);
 
-      _Indices[_IndexOffset + 3] := _VertexOffset - 1;
-      _Indices[_IndexOffset + 4] := _VertexOffset - 2;
-      _Indices[_IndexOffset + 5] := _VertexOffset + 0;
+      Geometry.Indices.SetIndex(IndexOffset + 3, VertexOffset - 1);
+      Geometry.Indices.SetIndex(IndexOffset + 4, VertexOffset - 2);
+      Geometry.Indices.SetIndex(IndexOffset + 5, VertexOffset + 0);
 
-      Inc(_IndexOffset, 6);
+      Inc(IndexOffset, 6);
     End;
 
-    Inc(_VertexOffset, 2);
+    Inc(VertexOffset, 2);
   End;
 End;
 
@@ -618,11 +585,11 @@ End;
 
 Procedure TERRASprite.Clear;
 Begin
-  If Assigned(_Vertices) Then
-    _Vertices.Resize(0);
+  If Geometry = Nil Then
+    _Geometry := TERRAGeometry.Create();
+  Geometry.Vertices.Resize(0);
+  Geometry.Indices.Resize(0);
 
-  _VertexOffset := 0;
-  _IndexOffset := 0;
   _Flags := 0;
 End;
 
@@ -675,14 +642,6 @@ Begin
   _CD := StartColor;
 End;
 
-Function TERRASprite.GetIndex(Index: Integer): Word;
-Begin
-  If (Index<0) Or (Index>=_IndexOffset) Then
-    Result := 0
-  Else
-    Result := _Indices[Index];
-End;
-
 Procedure TERRASprite.SetDissolve(Mask:TERRATexture; Const Value:Single);
 Begin
   Self._DissolveValue := Value;
@@ -716,7 +675,7 @@ End;
 
 Procedure TERRASprite.MergeSprite(Other: TERRASprite);
 Var
-  I, BaseID:Integer;
+  I, BaseID, IndexOffset:Integer;
   CurrentClip:Vector4D;
   InIt, OutIt:VertexIterator;
   Src, Dest:SpriteVertex;
@@ -724,26 +683,25 @@ Var
 
   RequiredVertices, RequiredIndices:Integer;
 Begin
-  If (Other.ClipRect.Style = clipEverything) Or (Other.Vertices = Nil) Or (Other.Vertices.Count <= 0) Or (Other.IndexCount<=0) Then
+  If (Other.ClipRect.Style = clipEverything) Or (Other.Geometry.Indices.Count<=0) Then
     Exit;
 
-  BaseID := _Vertices.Count;
+  BaseID := Geometry.Vertices.Count;
+  IndexOffset := Geometry.Indices.Count;
 
-  RequiredVertices := _Vertices.Count + Other.Vertices.Count;
-  RequiredIndices := Self.IndexCount + Other.IndexCount;
+  RequiredVertices := Geometry.Vertices.Count + Other.Geometry.Vertices.Count;
+  RequiredIndices := Self.Geometry.Indices.Count + Other.Geometry.Indices.Count;
 
-  If (_Vertices.Count<RequiredVertices) Then
-    _Vertices.Resize(RequiredVertices);
-
-  SetLength(_Indices, RequiredIndices);
+  Geometry.Vertices.Resize(RequiredVertices);
+  Geometry.Indices.Resize(RequiredIndices);
 
   If (Other.ClipRect.Style = clipNothing) Then
     CurrentClip := Vector4D_Create(0, 0, 9999, 9999)
   Else
     CurrentClip := Vector4D_Create(Other.ClipRect.X1, Other.ClipRect.Y1, Other.ClipRect.X2, Other.ClipRect.Y2);
 
-  OutIt := _Vertices.GetIteratorForClass(SpriteVertex);
-  InIt := Other.Vertices.GetIteratorForClass(SpriteVertex);
+  OutIt := Geometry.Vertices.GetIteratorForClass(SpriteVertex);
+  InIt := Other.Geometry.Vertices.GetIteratorForClass(SpriteVertex);
   While (InIt.HasNext()) Do
   Begin
     If (Not OutIt.HasNext()) Then
@@ -776,10 +734,8 @@ Begin
   ReleaseObject(InIt);
   ReleaseObject(OutIt);
 
-  For I:=0 To Pred(Other.IndexCount) Do
-    _Indices[_IndexOffset + I] := Other.GetIndex(I) + BaseID;
-
-  Inc(_IndexOffset, Other.IndexCount);
+  For I:=0 To Pred(Other.Geometry.Indices.Count) Do
+    Geometry.Indices.SetIndex(IndexOffset + I, Other.Geometry.Indices.GetIndex(I) + BaseID);
 End;
 
 Procedure TERRASprite.Render(View:TERRAViewport; Const Stage:RendererStage);
@@ -790,10 +746,10 @@ Var
   OutIt:VertexIterator;
   Dest:SpriteVertex;
 Begin
-  If (Self.IndexCount <= 0) Or (Self.Texture = Nil) Then
+  If (Self.Geometry.Indices.Count <= 0) Or (Self.Texture = Nil) Then
     Exit;
 
-  OutIt := _Vertices.GetIteratorForClass(SpriteVertex);
+  OutIt := Geometry.Vertices.GetIteratorForClass(SpriteVertex);
   While (OutIt.HasNext()) Do
   Begin
     Dest := SpriteVertex(OutIt.Value);
@@ -814,12 +770,12 @@ Begin
   Graphics.Renderer.SetCullMode(cullNone);
 
 {  Graphics.Renderer.SetSourceVertexSize(SizeOf(SpriteVertex));
-  Graphics.Renderer.SetAttributeSource(TERRA_POSITION_ATTRIBUTE, typeVector3D,  @_Vertices[0].Position);
-  Graphics.Renderer.SetAttributeSource(TERRA_UV0_ATTRIBUTE, typeVector2D, @_Vertices[0].TexCoord);
-  Graphics.Renderer.SetAttributeSource(TERRA_COLOR_ATTRIBUTE, typeColor,  @_Vertices[0].Color);
+  Graphics.Renderer.SetAttributeSource(TERRA_POSITION_ATTRIBUTE, typeVector3D,  @Geometry.Vertices[0].Position);
+  Graphics.Renderer.SetAttributeSource(TERRA_UV0_ATTRIBUTE, typeVector2D, @Geometry.Vertices[0].TexCoord);
+  Graphics.Renderer.SetAttributeSource(TERRA_COLOR_ATTRIBUTE, typeColor,  @Geometry.Vertices[0].Color);
 
   If (_Saturation<1.0) Then
-    Graphics.Renderer.SetAttributeSource(TERRA_SATURATION_ATTRIBUTE, typeFloat, @_Vertices[0].Saturation);}
+    Graphics.Renderer.SetAttributeSource(TERRA_SATURATION_ATTRIBUTE, typeFloat, @Geometry.Vertices[0].Saturation);}
 
   If (_SpriteShaders[Self.Flags] = Nil) Then
   Begin
@@ -869,8 +825,7 @@ Begin
   Graphics.Renderer.SetBlendMode(Self.BlendMode);
 //  Ratio := UIManager.Instance.Ratio;
 
-  Graphics.Renderer.SetVertexSource(Self.Vertices);
-  Graphics.Renderer.DrawIndexedSource(renderTriangles, Self.IndexCount, @_Indices[0]);
+  _Geometry.Render();
 
 //  Graphics.Renderer.SetDepthTest(True);    //BIBI
   (*

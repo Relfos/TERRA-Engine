@@ -309,7 +309,7 @@ Type
   VertexBufferInterface = Class(GraphicInterface)
     Protected
       _Dynamic:Boolean;
-      _Vertices:VertexData;
+      _Vertices:TERRAVertexBuffer;
       _TriangleCount:Integer;
       _EdgeCount:Integer;
       _IndexList:PTriangleArray;
@@ -319,7 +319,7 @@ Type
       Procedure Submit(Wireframe:Boolean); Virtual;Abstract;
 
     Public
-      Function Generate(Vertices:VertexData; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean; Virtual;Abstract;
+      Function Generate(Vertices:TERRAVertexBuffer; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean; Virtual;Abstract;
       Procedure Release(); Override;
 
       //4, GL_UNSIGNED_BYTE, True
@@ -499,7 +499,7 @@ Type
 
       _ActiveShader:ShaderInterface;
 
-      _CurrentSource:VertexData;
+      _CurrentSource:TERRAVertexBuffer;
 
       _VSync:Boolean;
 
@@ -566,7 +566,7 @@ Type
       Procedure SetDiffuseColor(Const C:ColorRGBA); Virtual; Abstract;
       //Procedure SetBackgroundColor(Const C:Color);
 
-      Procedure SetVertexSource(Data:VertexData);
+      Procedure SetVertexSource(Data:TERRAVertexBuffer);
       Procedure SetAttributeSource(Const Name:TERRAString; AttributeKind:Cardinal; ElementType:DataFormat; AttributeSource:Pointer); Virtual; Abstract;
       Procedure DrawSource(Primitive:RenderPrimitive; Count:Integer); Virtual; Abstract;
       Procedure DrawIndexedSource(Primitive:RenderPrimitive; Count:Integer; Indices:PWord); Virtual; Abstract;
@@ -1117,7 +1117,7 @@ Begin
   Result := Surface.Bind(Slot);
 End;
 
-Procedure GraphicsRenderer.SetVertexSource(Data: VertexData);
+Procedure GraphicsRenderer.SetVertexSource(Data: TERRAVertexBuffer);
 Var
   I:Integer;
 Begin

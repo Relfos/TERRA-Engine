@@ -128,7 +128,7 @@ Type
       Function GetResolveTexture: TERRATexture;
 
       Procedure SetAutoResolve(const Value: Boolean);
-      
+
     Public
       OnRender:ViewportRenderEvent;
 

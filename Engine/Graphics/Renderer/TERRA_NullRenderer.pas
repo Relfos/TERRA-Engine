@@ -17,7 +17,7 @@ Type
       Procedure Submit(Wireframe:Boolean); Override;
 
     Public
-      Function Generate(Vertices:VertexData; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean; Override;
+      Function Generate(Vertices:TERRAVertexBuffer; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean; Override;
       Procedure Invalidate(); Override;
   End;
 
@@ -327,7 +327,7 @@ Begin
 End;
 
 { NullVBO }
-Function NullVBO.Generate(Vertices:VertexData; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean;
+Function NullVBO.Generate(Vertices:TERRAVertexBuffer; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean;
 Var
   Index:Single;
   I, N:Integer;

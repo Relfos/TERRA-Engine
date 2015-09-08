@@ -150,7 +150,7 @@ End;
 
 Function GetCallstack:TERRAString;
 Var
-  It:Iterator;
+  It:TERRAIterator;
 Begin
   Result := '';
   If (_Callstack = Nil) Then

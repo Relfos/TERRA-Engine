@@ -231,7 +231,7 @@ Type
       _Particles:Array Of Particle;
       _ParticleCount:Integer;
 
-      _Vertices:VertexData;
+      _Vertices:TERRAVertexBuffer;
 
       _BlendModes:Array Of Integer;
       _BlendModeCount:Integer;
@@ -326,15 +326,15 @@ Type
       Property Shader:ShaderInterface Read GetShader;
   End;
 
-Function CreateParticleVertexData(Count:Integer):VertexData;
+Function CreateParticleTERRAVertexBuffer(Count:Integer):TERRAVertexBuffer;
 
 Implementation
 Uses TERRA_Engine, TERRA_Error, TERRA_OS, TERRA_Log, TERRA_Camera, TERRA_Mesh, TERRA_FileStream, TERRA_FileUtils, TERRA_ShaderManager;
 
 
-Function CreateParticleVertexData(Count:Integer):VertexData;
+Function CreateParticleTERRAVertexBuffer(Count:Integer):TERRAVertexBuffer;
 Begin
-  Result := VertexData.Create(ParticleVertexFormat, Count);
+  Result := TERRAVertexBuffer.Create(ParticleVertexFormat, Count);
   Result.SetAttributeName(vertexOfs, 'terra_ofs');
   Result.SetAttributeName(vertexSize, 'terra_size');
   Result.SetAttributeName(vertexAngles, 'terra_angle');
@@ -380,7 +380,7 @@ Procedure ParticleCollection.Init;
 Var
   I,J:Integer;
 Begin
-  _Vertices := CreateParticleVertexData(_ParticleCount * 6);
+  _Vertices := CreateParticleTERRAVertexBuffer(_ParticleCount * 6);
 
   SetLength(_Particles, _ParticleCount);
   For I:=0 To Pred(_ParticleCount) Do

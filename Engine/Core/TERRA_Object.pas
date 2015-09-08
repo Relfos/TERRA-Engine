@@ -212,12 +212,12 @@ Type
   End;
 
 
-Procedure ReleaseObject(var Obj);
+Procedure ReleaseObject(var Obj; AllowReuse:Boolean = True);
 
 Implementation
 Uses TERRA_Log, TERRA_Utils, TERRA_Math, TERRA_OS, TERRA_String, TERRA_Engine;
 
-Procedure ReleaseObject(Var Obj);
+Procedure ReleaseObject(Var Obj; AllowReuse:Boolean);
 Var
   Temp:TObject;
 Begin
@@ -229,7 +229,7 @@ Begin
   Begin
     TERRAObject(Temp).Release();
 
-    If (TERRAObject(Temp).CanBePooled) And (Assigned(Engine())) Then
+    If (AllowReuse) And (TERRAObject(Temp).CanBePooled) And (Assigned(Engine())) Then
       Engine.Pool.Recycle(TERRAObject(Temp))
     Else
       TERRAObject(Temp).Destroy();

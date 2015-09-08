@@ -37,13 +37,15 @@ Procedure TERRAPool.Release;
 Var
   I:Integer;
 Begin
+  _Mutex.Lock();
   For I:=0 To Pred(_ObjectCount) Do
   If Assigned(_Objects[I]) Then
   Begin
-    ReleaseObject(_Objects[I]);
+    ReleaseObject(_Objects[I], False);
   End;
 
   _ObjectCount := 0;
+  _Mutex.Unlock();
 
   ReleaseObject(_Mutex);
 End;
