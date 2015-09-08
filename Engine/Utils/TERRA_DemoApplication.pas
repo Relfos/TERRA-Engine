@@ -53,7 +53,8 @@ Type
 
 			Procedure OnKeyDown(Key:Word); Override;
 			Procedure OnKeyUp(Key:Word); Override;
-			Procedure OnKeyPress(Key:TERRAChar); Override;
+
+			Procedure OnCharInput(Key:TERRAChar); Override;
 
       Property ShowFPS:Boolean Read _ShowFPS Write SetShowFPS;
 
@@ -215,7 +216,7 @@ Begin
     _GUI.OnKeyUp(Key);
 End;
 
-Procedure DemoApplication.OnKeyPress(Key: TERRAChar);
+Procedure DemoApplication.OnCharInput(Key: TERRAChar);
 Begin
   If Assigned(_GUI) Then
     _GUI.OnKeyPress(Key);

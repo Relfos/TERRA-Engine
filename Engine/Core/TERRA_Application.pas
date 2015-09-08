@@ -83,7 +83,7 @@ Const
   eventMouseDown = 1;
   eventMouseMove = 2;
   eventMouseWheel = 3;
-  eventKeyPress   = 4;
+  eventCharInput   = 4;
   eventKeyDown    = 5;
   eventKeyUp      = 6;
   eventWindowResize   = 7;
@@ -372,7 +372,7 @@ Type
 
 			Procedure OnKeyDown(Key:Word); Virtual;
 			Procedure OnKeyUp(Key:Word); Virtual;
-			Procedure OnKeyPress(Key:TERRAChar); Virtual;
+			Procedure OnCharInput(Key:TERRAChar); Virtual;
 
 			Procedure OnMouseDown(Const X,Y:Single; Const Button:Word); Virtual;
 			Procedure OnMouseUp(Const X,Y:Single; Const Button:Word); Virtual;
@@ -1238,7 +1238,7 @@ Begin
   eventMouseDown : Result := 'eventMouseDown';
   eventMouseMove : Result := 'eventMouseMove';
   eventMouseWheel : Result := 'eventMouseWheel';
-  eventKeyPress   : Result := 'eventKeyPress';
+  eventCharInput   : Result := 'evenCharInput';
   eventKeyDown    : Result := 'eventKeyDown';
   eventKeyUp      : Result := 'eventKeyUp';
   eventWindowResize   : Result := 'eventWindowResize';
@@ -1329,9 +1329,9 @@ Begin
         Self.OnMouseWheel(Input.Mouse.X, Input.Mouse.Y, _Events[I].X);
       End;
 
-    eventKeyPress:
+    eventCharInput:
       Begin
-        Self.OnKeyPress(TERRAChar(_Events[I].Value));
+        Self.OnCharInput(TERRAChar(_Events[I].Value));
       End;
 
     eventKeyDown:
@@ -1707,7 +1707,7 @@ Begin
     Application.Instance.Terminate;
 End;
 
-Procedure BaseApplication.OnKeyPress(Key:TERRAChar);
+Procedure BaseApplication.OnCharInput(Key:TERRAChar);
 Begin
 
 End;

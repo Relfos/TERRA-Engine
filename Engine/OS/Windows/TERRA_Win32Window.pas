@@ -213,12 +213,12 @@ Begin
                   It := StringCreateIterator(S, False);
                   While It.HasNext() Do
                   Begin
-                    App.AddValueEvent(eventKeyPress, Cardinal(It.GetNext()));
+                    App.AddValueEvent(eventCharInput, Cardinal(It.GetNext()));
                   End;
                   ReleaseObject(It);
                   
                 End Else
-                  App.AddValueEvent(eventKeyPress, wParam);
+                  App.AddValueEvent(eventCharInput, wParam);
               End;
 
     WM_LBUTTONDOWN: If (App.CanReceiveEvents) Then

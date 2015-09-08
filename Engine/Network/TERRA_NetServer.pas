@@ -30,7 +30,7 @@ Unit TERRA_NetServer;
 {-$DEFINE ALLOW_RESEND_ONFAIL}
 
 Interface
-Uses TERRA_String, TERRA_Application, TERRA_OS, TERRA_Stream, TERRA_Sockets, TERRA_Network,
+Uses TERRA_Object, TERRA_String, TERRA_Application, TERRA_OS, TERRA_Stream, TERRA_Sockets, TERRA_Network,
   TERRA_Threads, TERRA_Mutex, TERRA_Utils, TERRA_ObjectArray, TERRA_Collections
   {$IFDEF SAVEPACKETS},TERRA_NetLogger{$ENDIF};
 
@@ -45,7 +45,7 @@ Type
   NetServer = Class;
 
   // Client Info
-  ClientConnection = Class(CollectionObject)
+  ClientConnection = Class(TERRAObject)
     Protected
       _Socket:NetSocket;
       _Server:NetServer;
@@ -172,8 +172,7 @@ Type
     End;
 
 Implementation
-Uses TERRA_Log;
-
+Uses TERRA_Log, TERRA_Engine;
 
 { NetServer }
 //Creates a new server instance
@@ -184,7 +183,7 @@ Begin
   Inherited Create();
 
   _LocalId := 0;  //Servers always have a localID of zero
-  NetworkManager.Instance.AddObject(Self);
+  Engine.Network.AddObject(Self);
 
   _Port := Port;
   _WaitingCount := 0;
@@ -236,7 +235,7 @@ End;
 
 Procedure NetServer.ProcessJoinRequest(Msg:NetMessage; Sock:NetSocket);
 Var
-  It:Iterator;
+  It:TERRAIterator;
   K:Integer;
   Guid, Version:Word;
   UserName,Password, DeviceID:TERRAString;
@@ -344,7 +343,7 @@ End;
 // Handles messages
 Procedure NetServer.Update;
 Var
-  It:Iterator;
+  It:TERRAIterator;
   I, J:Integer;
   Msg:NetMessage;
   Rm:NetMessage;
@@ -368,7 +367,7 @@ Begin
     Client := ClientConnection(It.Value);
 
     If (Client.Deleted) Then
-      Client.Discard()
+      It.Discard()
     Else
       Client.Update();
   End;
@@ -408,7 +407,7 @@ End;
 Function NetServer.GetClientByUsername(Const Name:TERRAString):ClientConnection;
 Var
   I:Integer;
-  It:Iterator;
+  It:TERRAIterator;
   Client:ClientConnection;
 Begin
   Result := Nil;
@@ -436,7 +435,7 @@ End;
 Function NetServer.GetClientByID(ID:Cardinal):ClientConnection;
 Var
   I:Integer;
-  It:Iterator;
+  It:TERRAIterator;
   Client:ClientConnection;
 Begin
   Result := Nil;
@@ -503,7 +502,7 @@ End;
 
 Function NetServer.ValidateClient(UserName,Password, DeviceID:TERRAString; Var ErrorLog:TERRAString):Integer;
 Begin
-  Log(logDebug,'Network', Self.ClassName+'.Validate: User='+Username+' Pass='+Password+' DeviceID='+DeviceID);
+  Engine.Log.Write(logDebug,'Network', Self.ClassName+'.Validate: User='+Username+' Pass='+Password+' DeviceID='+DeviceID);
   Result := 0;
 End;
 
@@ -518,16 +517,16 @@ Begin
 
   Msg.Owner := Owner;
 
-  {$IFDEF DEBUG_NET}If Assigned(Client) Then Log(logDebug, 'Server', 'Client: '+CardinalToString(Client.ID)) Else Log(logDebug, 'Server', 'Client not found'); {$ENDIF}
+  {$IFDEF DEBUG_NET}If Assigned(Client) Then Engine.Log.Write(logDebug, 'Server', 'Client: '+CardinalToString(Client.ID)) Else Engine.Log.Write(logDebug, 'Server', 'Client not found'); {$ENDIF}
 
   If (Assigned(Client)) And (Assigned(Client.Socket)) Then
   Begin
-    {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'Sending packet'); {$ENDIF}
+    {$IFDEF DEBUG_NET}Engine.Log.Write(logDebug, 'Server', 'Sending packet'); {$ENDIF}
     Result := SendPacket(Client.Address, Client.Socket, Msg);
-    {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'Packet sent'); {$ENDIF}
+    {$IFDEF DEBUG_NET}Engine.Log.Write(logDebug, 'Server', 'Packet sent'); {$ENDIF}
   End Else
   Begin
-    Log(logWarning,'Network', Self.ClassName+'.SendMessage: Invalid client.['+CardinalToString(Client.ID)+']');
+    Engine.Log.Write(logWarning,'Network', Self.ClassName+'.SendMessage: Invalid client.['+CardinalToString(Client.ID)+']');
     Result := False;
   End;
 
@@ -539,7 +538,7 @@ End;
 Procedure NetServer.BroadcastMessage(Msg:NetMessage; Owner:Cardinal; AutoRelease:Boolean);
 Var
   I:Integer;
-  It:Iterator;
+  It:TERRAIterator;
   Client:ClientConnection;
 Begin
   If Msg = Nil Then
@@ -573,7 +572,7 @@ Procedure NetServer.Release();
 Var
   I:Integer;
   Client:ClientConnection;
-  It:Iterator;
+  It:TERRAIterator;
   Msg:NetMessage;
 Begin
   Msg := NetMessage.Create(nmServerShutdown);
@@ -630,7 +629,7 @@ Begin
   _PacketKeep := False;
   While (I<_PacketCount) Do
   Begin
-    {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'Sending delayed packet: opcode ' + IntToString(_Packets[I].Msg.Opcode));{$ENDIF}
+    {$IFDEF DEBUG_NET}Engine.Log.Write(logDebug, 'Server', 'Sending delayed packet: opcode ' + IntToString(_Packets[I].Msg.Opcode));{$ENDIF}
     If (_Packets[I].Sock=Nil) Or (GetTime() - _Packets[I].Time>1000*60) Or (Self.SendPacket(_Packets[I].Dest, _Packets[I].Sock, @_Packets[I].Msg)) Then
     Begin
       For J:=0 To _PacketCount-2 Do
@@ -660,10 +659,10 @@ Begin
   Begin
     Client := Self.GetClientByID(Msg.Owner);
 
-    {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Found handler, executing message '+IntToString(Msg.Opcode));{$ENDIF}
+    {$IFDEF DEBUG_NET}Engine.Log.Write(logDebug, 'Network', 'Found handler, executing message '+IntToString(Msg.Opcode));{$ENDIF}
     _OpcodeList[Msg.Opcode](Msg, Client);
 
-    {$IFDEF DEBUG_NET}Log(logDebug, 'Network', 'Executed message '+IntToString(Msg.Opcode));{$ENDIF}
+    {$IFDEF DEBUG_NET}Engine.Log.Write(logDebug, 'Network', 'Executed message '+IntToString(Msg.Opcode));{$ENDIF}
   End;
 
   {$IFDEF SAVEPACKETS}
@@ -729,7 +728,7 @@ Begin
   Msg.WriteWord(errKicked);
   Server.SendMessage(Msg, Self, 0);
   ReleaseObject(Msg);
-  Self.Discard();
+  //Self.Discard();
 End;
 
 Procedure ClientConnection.Release;
@@ -745,11 +744,11 @@ Begin
   If (_Deleted) Then
     Exit;
 
-  {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'Processing client: '+Self.Username);{$ENDIF}
+  {$IFDEF DEBUG_NET}Engine.Log.Write(logDebug, 'Server', 'Processing client: '+Self.Username);{$ENDIF}
 
   If (Socket.Closed) Then
   Begin
-    Log(logWarning,'Network', 'ClientID='+IntToString(Self._ID)+' is dead.');
+    Engine.Log.Write(logWarning,'Network', 'ClientID='+IntegerProperty.Stringify(Self._ID)+' is dead.');
     _Server.RemoveClient(Self);
     Exit;
   End;
@@ -758,7 +757,7 @@ Begin
   Begin
     Self._Time := Application.GetTime();
     Inc(_Frames);
-    {$IFDEF DEBUG_NET}Log(logDebug, 'Server', 'Packets received from '+CardinalToString(_ID));{$ENDIF}
+    {$IFDEF DEBUG_NET}Engine.Log.Write(logDebug, 'Server', 'Packets received from '+CardinalToString(_ID));{$ENDIF}
   End;
 End;
 

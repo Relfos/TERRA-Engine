@@ -39,7 +39,7 @@ Type
     Public
       Constructor Create(Options:Cardinal; ShareItemsWith:ObjectArray);
 
-      Function GetIterator:Iterator; Override;
+      Function GetIterator:TERRAIterator; Override;
 
       Procedure Clear(); Override;
 
@@ -51,10 +51,10 @@ Type
 
 
 Implementation
-Uses TERRA_Log;
+Uses TERRA_Log, TERRA_Engine;
 
 Type
-  ObjectArrayIterator = Class(Iterator)
+  ObjectArrayIterator = Class(TERRAIterator)
     Protected
       Function ObtainNext:TERRACollectionObject; Override;
   End;
@@ -78,7 +78,7 @@ Begin
     Exit;
   End;
 
-  Obj := TERRACollectionObject.Create(Self, Item);
+  Obj := Self.NewItem(Item);
 
   Self.Lock();
 
@@ -141,9 +141,13 @@ Begin
     Result := _Objects[Index].Item;
 End;
 
-Function ObjectArray.GetIterator: Iterator;
+Function ObjectArray.GetIterator: TERRAIterator;
 Begin
-  Result := ObjectArrayIterator.Create(Self);
+  Result := ObjectArrayIterator(Engine.Pool.Fetch(ObjectArrayIterator));
+  If Assigned(Result) Then
+    Result.Create(Self)
+  Else
+    Result := ObjectArrayIterator.Create(Self);
 End;
 
 { ObjectArrayIterator }
