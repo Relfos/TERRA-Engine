@@ -178,6 +178,4 @@ Begin
   Result := mti + GetCRC32(@mt[0], _N * Sizeof(Int64));
 End;
 
-Begin
-  Log(logDebug, 'Random', 'Initializing random generator');
 End.

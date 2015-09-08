@@ -85,6 +85,8 @@ Type
 
       Function HasNext():Boolean;
 
+      Procedure FillWithColor(Const Color:ColorRGBA);
+
       Property Value:ColorRGBA Read _Value Write _Value;
       Property X:Integer Read _X;
       Property Y:Integer Read _Y;
@@ -2015,6 +2017,14 @@ End;
 Function TERRAImage.Pixels(Flags:ImageProcessFlags; Const Mask:Cardinal): ImageIterator;
 Begin
   Result := FullImageIterator.Create(Self, Flags, Mask);
+End;
+
+Procedure ImageIterator.FillWithColor(const Color: ColorRGBA);
+Begin
+  While Self.HasNext() Do
+  Begin
+    Self.Value := Color;
+  End;
 End;
 
 { ImageFrame }

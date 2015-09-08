@@ -28,7 +28,7 @@ Type
 
       // Sorts package file table
       Procedure SortFileTable();
-      
+
     Public
       // Save package contents
       Function Save(Const FileName:TERRAString):Boolean;
@@ -41,7 +41,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_Utils, TERRA_CRC32, TERRA_Application, TERRA_OS, TERRA_Log, TERRA_ResourceManager,
-  TERRA_FileStream, TERRA_FileManager;
+  TERRA_Engine, TERRA_FileStream, TERRA_FileManager;
 
 Constructor ResourceBuilderInfo.Create(Const FileName:TERRAString; Owner:TERRAPackage);
 Begin
@@ -71,7 +71,7 @@ End;
 
 Procedure PackageBuilder.WriteTable(Dest:TERRAStream);
 Var
-  It:Iterator;
+  It:TERRAIterator;
   Resource:ResourceInfo;
 Begin
   SortFileTable();
@@ -92,7 +92,7 @@ Function PackageBuilder.Save(Const FileName:TERRAString):Boolean;
 Var
    Dest:TERRAStream;
 Begin
-  Log(logDebug,'Package', 'Creating package '+FileName);
+  Engine.Log.Write(logDebug,'Package', 'Creating package '+FileName);
 
   _Location := FileName;
   _Name := GetFileName(FileName, True);
@@ -153,7 +153,7 @@ Var
   Source:MemoryStream;
   Name:TERRAString;
 Begin 
-  Log(logDebug,'Package', 'Adding resource '+ResourceFileName);
+  Engine.Log.Write(logDebug,'Package', 'Adding resource '+ResourceFileName);
 
   Result := FindResourceByName(ResourceFileName);
   If Assigned(Result) Then
@@ -167,10 +167,10 @@ End;
 //Removes a resource from the package
 Procedure PackageBuilder.DeleteResource(Resource:ResourceInfo);
 Var
-  It:Iterator;
+  It:TERRAIterator;
   Res:ResourceInfo;
 Begin
-  Log(logDebug,'Package', 'Deleting resource '+Resource.FileName);
+  Engine.Log.Write(logDebug,'Package', 'Deleting resource '+Resource.FileName);
 
   It := Self.Resources.GetIterator();
   While It.HasNext() Do
@@ -184,7 +184,7 @@ End;
 
 Procedure PackageBuilder.WriteResources(Dest:TERRAStream);
 Var
-  It:Iterator;
+  It:TERRAIterator;
   Resource:ResourceBuilderInfo;
 Begin
   It := Self.Resources.GetIterator();
