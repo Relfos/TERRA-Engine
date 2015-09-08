@@ -551,7 +551,7 @@ Begin
     _Ratio := Vector2D_Create(W/Source.Width, H/Source.Height);
 
     If (W<>Source.Width) Or (H<>Source.Height) Then
-      Log(logDebug, 'Texture', self.Name+ ' needs resizing: '+ IntegerProperty.Stringify(W) +' ' + IntegerProperty.Stringify(H));
+      Engine.Log.Write(logDebug, 'Texture', self.Name+ ' needs resizing: '+ IntegerProperty.Stringify(W) +' ' + IntegerProperty.Stringify(H));
 
     Source.Resize(W,H);
   End Else

@@ -352,12 +352,12 @@ Begin
   If (FX = Nil) Then
     Exit;
 
-  Log(logDebug, 'Graphics', 'Adding FX to chain: '+FX.ClassName);
+  Engine.Log.Write(logDebug, 'Graphics', 'Adding FX to chain: '+FX.ClassName);
 
   For I:=0 To Pred(_FXCount) Do
   If (_FXs[I].ClassType = FX.ClassType) Then
   Begin
-    Log(logWarning, 'Graphics', 'Failed adding duplicated FX: '+FX.ClassName);
+    Engine.Log.Write(logWarning, 'Graphics', 'Failed adding duplicated FX: '+FX.ClassName);
     Exit;
   End;
 

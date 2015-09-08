@@ -62,7 +62,7 @@ Begin
 
   If GetTagType(S)<>xmlBeginTag Then
   Begin
-    Log(logError, 'XML', 'Invalid XML sintax!');
+    Engine.Log.Write(logError, 'XML', 'Invalid XML sintax!');
     Exit;
   End;
 

@@ -83,13 +83,47 @@ Type
     Handler:LogFilterHandler;
   End;
 
-Procedure Log(LogType:Integer; Const ModuleName, Description:TERRAString);
-Procedure AddLogFilter(LogType:Integer; Const Modules:TERRAString; Handler:LogFilterHandler);
+  TERRALog = Class(TERRAObject)
+    Protected
+      _Enabled:Boolean;
 
-Var
-  LoggingEnabled:Boolean = False;
-  LogFileName:TERRAString;
-  ForceLogFlush:Boolean;
+    {$IFDEF USE_LOGFILE}
+    {$IFNDEF USE_SYSLOG}
+      _File:FileStream;
+    {$ENDIF}
+    {$ENDIF}
+
+      _Active:Boolean;
+      _Started:Boolean;
+
+      _Filters:Array Of LogFilter;
+      _FilterCount:Integer;
+
+      {$IFDEF CONSOLEWINDOW}
+      _HasConsole:Boolean;
+      {$ENDIF}
+
+      _LastWrite:Cardinal;
+
+      _FileName:TERRAString;
+
+      Function IsReady():Boolean;
+      Procedure AddLine(Const S:TERRAString);
+
+      Procedure SetEnabled(Const Value:Boolean);
+
+    Public
+      ForceLogFlush:Boolean;
+
+      Constructor Create();
+      Procedure Release(); Override;
+
+      Procedure Write(LogType:Integer; Const ModuleName, Description:TERRAString);
+      Procedure AddFilter(LogType:Integer; Const Modules:TERRAString; Handler:LogFilterHandler);
+
+      Property Enabled:Boolean Read _Enabled Write SetEnabled;
+      Property FileName:TERRAString Read _FileName;
+  End;
 
 Implementation
 
@@ -111,29 +145,7 @@ Const
   ANDROID_LOG_SILENT=8;
 
 Function __android_log_write(prio:Integer; tag,text:PAnsiChar):Integer; cdecl; external 'liblog.so' name '__android_log_write';
-//function LOGI(prio:longint;tag,text:PAnsiChar):longint; cdecl; varargs; external 'liblog.so' name '__android_log_print';
 {$ENDIF}
-
-Var
-  _LogShutdown:Boolean;
-
-{$IFDEF USE_LOGFILE}
-  {$IFNDEF USE_SYSLOG}
-  _LogFile:FileStream;
-{$ENDIF}
-{$ENDIF}
-
-    _LogActive:Boolean;
-    _LogStarted:Boolean;
-
-  _Filters:Array Of LogFilter;
-  _FilterCount:Integer;
-
-  {$IFDEF CONSOLEWINDOW}
-  _LogHasConsole:Boolean;
-  {$ENDIF}
-
-  _LastWrite:Cardinal;
 
 Function LogFormatStr(LogType:Integer; ModuleName, Description:TERRAString):TERRAString;
 Begin
@@ -151,7 +163,7 @@ Begin
   Result := Description;
 End;
 
-Procedure AddLogFilter(LogType:Integer; Const Modules:TERRAString; Handler:LogFilterHandler);
+Procedure TERRALog.AddFilter(LogType:Integer; Const Modules:TERRAString; Handler:LogFilterHandler);
 Begin
   If (LogType<0) Or (LogType>=logFilterCount) Or (@Handler = Nil) Then
     Exit;
@@ -163,7 +175,7 @@ Begin
   _Filters[Pred(_FilterCount)].Handler := Handler;
 End;
 
-Procedure WriteToLog(Const S:TERRAString);
+Procedure TERRALog.AddLine(Const S:TERRAString);
 Var
   T:Cardinal;
 Begin
@@ -179,11 +191,11 @@ Begin
   {$IFDEF USE_SYSLOG}
     syslog(log_info, PAnsiChar(S), []);
   {$ELSE}
-  If Assigned(_LogFile) Then
+  If Assigned(_File) Then
   Begin
-    _LogFile.WriteLine(S);
+    _File.WriteLine(S);
     If (ForceLogFlush) Or (T-_LastWrite>2000) Then
-      _LogFile.Flush();
+      _File.Flush();
   End;
  {$ENDIF}
 
@@ -193,17 +205,10 @@ Begin
 {$ENDIF}
 End;
 
-{$IFNDEF OXYGENE}
-Procedure Log_Shutdown();
+Procedure TERRALog.Release();
 Begin
-  If _LogShutdown Then
-    Exit;
-
-  _LogShutdown := True;
-
   {$IFNDEF DISABLELOG}
-  If (_LogStarted) Then
-    WriteToLog('End of log session.');
+  AddLine('End of log session.');
 
   {$IFDEF CONSOLEWINDOW}
   {$IFDEF WINDOWS}
@@ -215,32 +220,30 @@ Begin
 
   {$ENDIF}
   {$ENDIF}
-  
-  {$IFDEF USE_LOGFILE}
+
+  {$IFDEF USE_File}
     {$IFDEF USE_SYSLOG}
     closelog();
     {$ELSE}
-    
-  ReleaseObject(_LogFile);
+
+  ReleaseObject(_File);
 	{$ENDIF}
   {$ENDIF}
   {$ENDIF}
-
 End;
-{$ENDIF}
 
-Function Log_Ready():Boolean;
+Function TERRALog.IsReady():Boolean;
 Var
   CurrentTime:TERRATime;
 Begin
-  If (_LogShutdown) Or (Not LoggingEnabled) Then
+  If (Not Enabled) Then
   Begin
     Result := False;
     Exit;
   End;
 
 {$IFNDEF DISABLELOG}
-  If _LogStarted Then
+  If _Started Then
   Begin
     Result := True;
     Exit;
@@ -253,21 +256,21 @@ Begin
     Exit;
   End;
 
-  LogFileName := Application.Instance.DocumentPath + PathSeparator+ 'terra.log';
+  _FileName := Application.Instance.DocumentPath + PathSeparator+ 'terra.log';
   {$ELSE}
-  LogFileName := GetFileName(ParamStr(0), True)+'.log';
+  _FileName := GetFileName(ParamStr(0), True)+'.log';
 
   {$IFDEF WINDOWS}
-  LogFileName := GetFilePath(ParamStr(0)) + LogFileName;
+  _FileName := GetFilePath(ParamStr(0)) + _FileName;
   {$ENDIF}
   {$ENDIF}
 
 
-{$IFDEF USE_LOGFILE}
+{$IFDEF USE_File}
   {$IFDEF USE_SYSLOG}
   openlog('TERRA',LOG_NOWAIT,LOG_DEBUG);
   {$ELSE}
-  _LogFile := FileStream.Create(LogFileName);
+  _File := FileStream.Create(_FileName);
   {$ENDIF}
 
   CurrentTime := Application.GetCurrentTime();
@@ -276,7 +279,7 @@ Begin
   WriteToLog('Engine: TERRA '+VersionToString(EngineVersion){$IFDEF FULLDEBUG}+' [Debug mode]'{$ENDIF});
 {$ENDIF}
 
-  _LogStarted := True;
+  _Started := True;
   Result := True;
 {$ENDIF}
 End;
@@ -285,19 +288,16 @@ End;
 {$IFNDEF OXYGENE}
 {$I-}
 {$ENDIF}
-Procedure Log(LogType:Integer; Const ModuleName, Description:TERRAString);
+Procedure TERRALog.Write(LogType:Integer; Const ModuleName, Description:TERRAString);
 Var
   I:Integer;
   S:TERRAString;
 Begin
-  If _LogShutdown Then
-    Exit;
-
 {$IFNDEF DISABLELOG}
   //WriteLn(Module,':',Desc);
 
   {$IFNDEF MOBILE}
-  If Not LoggingEnabled Then
+  If Not Enabled Then
     Exit;
   {$ENDIF}
 
@@ -350,34 +350,38 @@ Begin
   Exit;
 {$ENDIF}
 
-  If (_LogActive) Then
+  If (_Active) Then
     Exit;
 
-  _LogActive := True;
+  _Active := True;
 
-  If (Log_Ready()) Then
-    WriteToLog(S);
+  If (IsReady()) Then
+    AddLine(S);
 
-  _LogActive := False;
+  _Active := False;
 {$ENDIF}
 End;
 
-{$IFNDEF OXYGENE}
-Initialization
+Constructor TERRALog.Create();
+Begin
 {$IFDEF DEBUG_LOG}
-  LoggingEnabled := True;
+  _Enabled := True;
 {$ELSE}
-{$IFDEF PC}
-  LoggingEnabled := Application.GetOption('log') = '1';
-{$ELSE}
-{$IFDEF CRASH_REPORT}
-  LoggingEnabled := False;
-{$ELSE}
-  LoggingEnabled := True;
-{$ENDIF}  
+  {$IFDEF PC}
+    _Enabled := Application.GetOption('log') = '1';
+  {$ELSE}
+    {$IFDEF CRASH_REPORT}
+      _Enabled := False;
+    {$ELSE}
+      _Enabled := True;
+    {$ENDIF}
+  {$ENDIF}
 {$ENDIF}
-{$ENDIF}
-Finalization
-  Log_Shutdown();
-{$ENDIF}
+End;
+
+Procedure TERRALog.SetEnabled(const Value: Boolean);
+Begin
+  _Enabled := Value;
+End;
+
 End.

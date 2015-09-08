@@ -104,7 +104,7 @@ Begin
 
   If (Not _Enabled) Then
   Begin
-    Log(logDebug, 'Music', 'Cannot play '+SourceName+', music is disabled');
+    Engine.Log.Write(logDebug, 'Music', 'Cannot play '+SourceName+', music is disabled');
     Exit;
   End;
 
@@ -188,7 +188,7 @@ Begin
 
   If _CurrentTrack=Nil Then
   Begin
-    Log(logWarning, 'MusicManager', 'Cannot play track: '+SourceName);
+    Engine.Log.Write(logWarning, 'MusicManager', 'Cannot play track: '+SourceName);
     Exit;
   End;
 

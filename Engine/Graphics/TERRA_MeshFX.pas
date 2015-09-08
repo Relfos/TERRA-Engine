@@ -26,7 +26,7 @@ Unit TERRA_MeshFX;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Mesh, TERRA_MeshFilter, TERRA_Vector3D, TERRA_Vector2D,
+Uses TERRA_Object, TERRA_Utils, TERRA_Mesh, TERRA_MeshFilter, TERRA_Vector3D, TERRA_Vector2D,
   TERRA_Quaternion, TERRA_Matrix4x4, TERRA_Color, TERRA_VertexFormat;
 
 Type
@@ -80,7 +80,7 @@ Var
   Group:MeshGroup;
   P, OP:Vector3D;
   V:VertexIterator;
-  TempVertices:VertexData;
+  TempVertices:TERRAVertexBuffer;
   T:PTriangle;
   CurrentDebris:Integer;
 Begin
@@ -160,13 +160,13 @@ End;
 
 Procedure MeshExplosion.InitDebris(StartVertex, Index: Integer; Normal:Vector3D);
 Begin
-  _Debris[Index].Center := VectorZero;
+  _Debris[Index].Center := Vector3D_Zero;
   _Debris[Index].StartVertex := StartVertex;
 
-  _Debris[Index].Direction := VectorCreate(RandomFloat(-10, 10), RandomFloat(-10, 10), RandomFloat(-10, 10));
+  _Debris[Index].Direction := Vector3D_Create(RandomFloat(-10, 10), RandomFloat(-10, 10), RandomFloat(-10, 10));
   _Debris[Index].Direction.Normalize();
 
-  _Debris[Index].Direction := VectorInterpolate(Normal, _Debris[Index].Direction, RandomFloat(0.3, 0.8));
+  _Debris[Index].Direction := Vector3D_Interpolate(Normal, _Debris[Index].Direction, RandomFloat(0.3, 0.8));
   _Debris[Index].Direction.Normalize();
 
   _Debris[Index].Duration := RandomFloat(0.7, 1);
@@ -189,9 +189,9 @@ Var
   Q:Quaternion;
   M:Matrix4x4;
   It:VertexIterator;
-  Temp:VertexData;
+  Temp:TERRAVertexBuffer;
   V:MeshVertex;
-  P:PVector3D;
+  P:Vector3D;
 Begin
   If Target = Nil Then
   Begin
@@ -231,9 +231,9 @@ Begin
       Else
         PP := Delta/_Debris[DebrisIndex].Duration;
 
-      FinalPos := VectorAdd(_Debris[DebrisIndex].Center, VectorScale(_Debris[DebrisIndex].Direction, _Radius * _Debris[DebrisIndex].Strength));
+      FinalPos := Vector3D_Add(_Debris[DebrisIndex].Center, Vector3D_Scale(_Debris[DebrisIndex].Direction, _Radius * _Debris[DebrisIndex].Strength));
       FinalPos.Y := Abs(Sin(PP*180*RAD)) * _Radius * _Debris[DebrisIndex].Strength;
-      CurrentPosition := VectorInterpolate(_Debris[DebrisIndex].Center, FinalPos, PP);
+      CurrentPosition := Vector3D_Interpolate(_Debris[DebrisIndex].Center, FinalPos, PP);
 
       Q := QuaternionSlerp(QuaternionZero, _Debris[DebrisIndex].Rotation, Delta);
       M := QuaternionMatrix4x4(Q);

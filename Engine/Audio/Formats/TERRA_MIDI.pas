@@ -1025,7 +1025,7 @@ Begin
               midiEvent._data1 := _ChunkData[_chunkIndex]; inc(_chunkIndex);
             End;
         Else
-          Log(logWarning, 'MIDI', 'Unknown midi event: '+ IntegerProperty.Stringify(event));
+          Engine.Log.Write(logWarning, 'MIDI', 'Unknown midi event: '+ IntegerProperty.Stringify(event));
         End;
 
         _CurrentChannel.putEvent(midiEvent);

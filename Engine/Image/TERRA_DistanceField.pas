@@ -42,7 +42,7 @@ will be spread*scale_down.
 Function CreateDistanceField(Source:TERRAImage; Component, Scale:Cardinal; Spread:Single):TERRAImage;
 
 Implementation
-Uses TERRA_Log, TERRA_ImageDrawing;
+Uses TERRA_Log, TERRA_ImageDrawing, TERRA_Engine;
 
 
 Function SignedDistance(Source:PSingleArray; Component, W, H, cx, cy:Integer; clamp:Single):Single;
@@ -132,7 +132,7 @@ Var
   It:ImageIterator;
 Begin
   //Padding := Source.Width Div 10;
-  Log(logWarning, 'Application', 'Making distance field glyph...');
+  Engine.Log.Write(logWarning, 'Application', 'Making distance field glyph...');
 
   Result := TERRAImage.Create(Source.Width, Source.Height);
 

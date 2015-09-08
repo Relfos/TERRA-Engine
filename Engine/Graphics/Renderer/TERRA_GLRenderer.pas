@@ -512,7 +512,7 @@ Begin
   *)
   
   S := glGetExtensionString();
-  TERRA_Log.Log(logDebug, 'Renderer', 'Extensions: '+ S);
+  Engine.Log.Write(logDebug, 'Renderer', 'Extensions: '+ S);
 End;
 
 
@@ -945,7 +945,7 @@ Begin
     S := glGetString(GL_SHADING_LANGUAGE_VERSION);
     If (S<>'') Then
     Begin
-      Log(logDebug, 'GraphicsManager', 'Version: '+ S);
+      Engine.Log.Write(logDebug, 'GraphicsManager', 'Version: '+ S);
 
       I := Pos(' ', S);
       If (I>0) Then
@@ -953,7 +953,7 @@ Begin
       _DeviceVersion := StringToVersion(S);
     End;
 
-    Log(logDebug,'GraphicsManager','GLSL version:'+VersionToString(_DeviceVersion));
+    Engine.Log.Write(logDebug,'GraphicsManager','GLSL version:'+VersionToString(_DeviceVersion));
   End;
 
   Result := True;
@@ -1317,7 +1317,7 @@ Begin
     Engine.RaiseError('Cannot draw null buffer!');
 
   {$IFDEF DEBUG_GRAPHICS}
-  Log(logDebug, 'Renderer', 'glDrawArrays: '+IntToString(Count));
+  Engine.Log.Write(logDebug, 'Renderer', 'glDrawArrays: '+IntToString(Count));
   {$ENDIF}
 
   If Count > 0 Then
@@ -1345,7 +1345,7 @@ Begin
     Engine.RaiseError('Cannot draw null buffer!');
 
   {$IFDEF DEBUG_GRAPHICS}
-  Log(logDebug, 'Renderer', 'glDrawElements: '+IntToString(Count));
+  Engine.Log.Write(logDebug, 'Renderer', 'glDrawElements: '+IntToString(Count));
   {$ENDIF}
 
   glDrawElements(PrimitiveToGL(Primitive), Count, GL_UNSIGNED_SHORT, Indices);
@@ -1400,10 +1400,10 @@ End;
 
 Function OpenGLRenderer.GenerateFrameBuffer: Cardinal;
 Begin
-  Log(logDebug, 'GraphicsManager', 'Generating a new frame buffer...');
+  Engine.Log.Write(logDebug, 'GraphicsManager', 'Generating a new frame buffer...');
   Repeat
     glGenFramebuffers(1, @Result);
-    Log(logDebug, 'GraphicsManager', 'Got handle: '+ IntegerProperty.Stringify(Result));
+    Engine.Log.Write(logDebug, 'GraphicsManager', 'Got handle: '+ IntegerProperty.Stringify(Result));
   Until (Result>=MaxFrameBufferHandles) Or (Not _UsedFrameBuffers[Result]);
 
   If (Result<MaxFrameBufferHandles) Then
@@ -1412,10 +1412,10 @@ End;
 
 Function OpenGLRenderer.GenerateRenderBuffer: Cardinal;
 Begin
-  Log(logDebug, 'GraphicsManager', 'Generating a new render buffer...');
+  Engine.Log.Write(logDebug, 'GraphicsManager', 'Generating a new render buffer...');
   Repeat
     glGenRenderbuffers(1, @Result);
-    Log(logDebug, 'GraphicsManager', 'Got handle: '+ IntegerProperty.Stringify(Result));
+    Engine.Log.Write(logDebug, 'GraphicsManager', 'Got handle: '+ IntegerProperty.Stringify(Result));
   Until (Result>=MaxFrameBufferHandles) Or (Not _UsedRenderBuffers[Result]);
 
   If (Result<MaxFrameBufferHandles) Then
@@ -1424,10 +1424,10 @@ End;
 
 Function OpenGLRenderer.GenerateTexture: Cardinal;
 Begin
-  Log(logDebug, 'GraphicsManager', 'Generating a new texture...');
+  Engine.Log.Write(logDebug, 'GraphicsManager', 'Generating a new texture...');
   Repeat
     glGenTextures(1, @Result);
-    Log(logDebug, 'GraphicsManager', 'Got handle: '+ IntegerProperty.Stringify(Result));
+    Engine.Log.Write(logDebug, 'GraphicsManager', 'Got handle: '+ IntegerProperty.Stringify(Result));
   Until (Result>=MaxTextureHandles) Or (Not _UsedTextures[Result]);
 
   If (Result<MaxTextureHandles) Then
@@ -1484,7 +1484,7 @@ Begin
   If (Not Features.Shaders.Avaliable) Then
     MipMapped := False;
 
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Setting texture filtering');{$ENDIF}
+  {$IFDEF DEBUG_GRAPHICS}Engine.Log.Write(logDebug, 'Texture', 'Setting texture filtering');{$ENDIF}
 
   If (Filter = filterBilinear) Then
   Begin
@@ -1502,7 +1502,7 @@ Begin
     glTexParameteri(TextureKind, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   End;
 
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Generating mipmap');{$ENDIF}
+  {$IFDEF DEBUG_GRAPHICS}Engine.Log.Write(logDebug, 'Texture', 'Generating mipmap');{$ENDIF}
   If (MipMapped) And (ShouldGenMips) Then
   Begin
     glGenerateMipmap(TextureKind);
@@ -1514,7 +1514,7 @@ Begin
   If Handle = 0 Then
     Exit;
 
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Setting wrap mode');{$ENDIF}
+  {$IFDEF DEBUG_GRAPHICS}Engine.Log.Write(logDebug, 'Texture', 'Setting wrap mode');{$ENDIF}
 
   If ((Cardinal(WrapMode) And Cardinal(wrapHorizontal))<>0) Then
     glTexParameteri(TextureKind, GL_TEXTURE_WRAP_S, GL_REPEAT)
@@ -1754,7 +1754,7 @@ Begin
   _hasDepthBuffer := DepthBuffer;
   _HasStencilBuffer := StencilBuffer;
 
-  Log(logDebug,'Framebuffer', 'Creating Framebuffer with size: '+ IntegerProperty.Stringify(_Width)+' x '+ IntegerProperty.Stringify(_Height));
+  Engine.Log.Write(logDebug,'Framebuffer', 'Creating Framebuffer with size: '+ IntegerProperty.Stringify(_Width)+' x '+ IntegerProperty.Stringify(_Height));
 
   {$IFDEF PC}
 	If (_type = pixelSizeFloat) Then
@@ -1800,7 +1800,7 @@ Var
   I, Status:Integer;
   R:OpenGLRenderer;
 Begin
-  Log(logDebug, 'Framebuffer','Initializing framebuffer: '{+ Self.Name});
+  Engine.Log.Write(logDebug, 'Framebuffer','Initializing framebuffer: '{+ Self.Name});
 
   R := OpenGLRenderer(_Owner);
 
@@ -1866,7 +1866,7 @@ Begin
 		// initalize FrameBufferObject
     _Handle := R.GenerateFrameBuffer();
 		glBindFramebuffer(GL_FRAMEBUFFER, _Handle);
-    Log(logDebug,'Framebuffer', 'Created framebuffer with handle: '+ IntegerProperty.Stringify(_Handle));
+    Engine.Log.Write(logDebug,'Framebuffer', 'Created framebuffer with handle: '+ IntegerProperty.Stringify(_Handle));
 
 		// initialize color texture
     For I:=0 To Pred(_TargetCount) Do
@@ -1887,7 +1887,7 @@ Begin
       End;
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + I, GL_TEXTURE_2D, _Targets[I], 0);
 
-      Log(logDebug,'Framebuffer', 'Binding texture to framebuffer with handle: '+ IntegerProperty.Stringify(_Targets[I]));
+      Engine.Log.Write(logDebug,'Framebuffer', 'Binding texture to framebuffer with handle: '+ IntegerProperty.Stringify(_Targets[I]));
     End;
 
 		If (_HasDepthBuffer) Then
@@ -1912,7 +1912,7 @@ Begin
     Self.MipMapped := False;
     Self.SetFilter(filterBilinear);
   End Else
-    Log(logError, 'Framebuffer', GetErrorString(Status));
+    Engine.Log.Write(logError, 'Framebuffer', GetErrorString(Status));
 
   // set default framebuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1952,7 +1952,7 @@ Begin
 
   CurrentFBO := Self;
 
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Framebuffer','Begin framebuffer capture: W:'+ IntegerProperty.Stringify(_Width)+' H:'+ IntegerProperty.Stringify(_Height));{$ENDIF}
+  {$IFDEF DEBUG_GRAPHICS}Engine.Log.Write(logDebug, 'Framebuffer','Begin framebuffer capture: W:'+ IntegerProperty.Stringify(_Width)+' H:'+ IntegerProperty.Stringify(_Height));{$ENDIF}
 
 
 	If (_multisample) Then
@@ -1998,7 +1998,7 @@ Begin
 
   CurrentFBO  := Nil;
 
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Framebuffer','End framebuffer capture');{$ENDIF}
+  {$IFDEF DEBUG_GRAPHICS}Engine.Log.Write(logDebug, 'Framebuffer','End framebuffer capture');{$ENDIF}
 
   {$IFDEF PC}
 	If (_multisample) Then
@@ -2167,7 +2167,7 @@ Begin
 
 //  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Uploading texture frame...');{$ENDIF}
+  {$IFDEF DEBUG_GRAPHICS}Engine.Log.Write(logDebug, 'Texture', 'Uploading texture frame...');{$ENDIF}
   glTexImage2D(GL_TEXTURE_2D, 0, TextureColorFormatToGL(TargetFormat), Width, Height, 0, TextureColorFormatToGL(SourceFormat), ByteFormatToGL(ByteFormat), Pixels);
 
   //_Source.Save('debug\temp\pp'+ IntegerProperty.Stringify(I)+'.png');
@@ -2209,7 +2209,7 @@ End;
 
 Function OpenGLTexture.GetImage:TERRAImage;
 Begin
-  Log(logDebug, 'Texture', 'Getting image from texture '{+Self.Name});
+  Engine.Log.Write(logDebug, 'Texture', 'Getting image from texture '{+Self.Name});
 
   Result := TERRAImage.Create(_Width, _Height);
 

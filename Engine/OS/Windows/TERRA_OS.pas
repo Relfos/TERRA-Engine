@@ -649,7 +649,7 @@ Var
   VerValue: PVSFixedFileInfo;
   FileName:PAnsiChar;
 Begin
-  Log(logDebug, 'App', 'Getting build info');
+  Engine.Log.Write(logDebug, 'App', 'Getting build info');
 
   _BundleVersion := '';
 
@@ -664,7 +664,7 @@ Begin
           VerQueryValue(VerInfo, '\', Pointer(VerValue), VerValueSize);
           //V1 := dwFileVersionMS shr 16;
             _BundleVersion := CardinalToString(VerValue.dwFileVersionMS and $FFFF) + '.' + CardinalToString(VerValue.dwFileVersionLS shr 16) + '.'+ CardinalToString(VerValue.dwFileVersionLS and $FFFF);
-            Log(logDebug, 'App', 'Found '+_BundleVersion);
+            Engine.Log.Write(logDebug, 'App', 'Found '+_BundleVersion);
         End;
       finally
         FreeMem(VerInfo, VerInfoSize);
@@ -720,7 +720,7 @@ Begin
 
   GetSystemInfo(SystemInfo);
 
-  Log(logDebug, 'App', 'Getting cpu cores');
+  Engine.Log.Write(logDebug, 'App', 'Getting cpu cores');
   _CPUCores := 0;
   If GetProcessAffinityMask(GetCurrentProcess(), ProcessAffinityMask, SystemAffinityMask) Then
   Begin
@@ -734,7 +734,7 @@ Begin
 
   If (_CPUCores<=0) Then
     _CPUCores := SystemInfo.dwNumberOfProcessors;
-  Log(logDebug, 'App', 'Found '+ IntegerProperty.Stringify(_CPUCores)+' cores');
+  Engine.Log.Write(logDebug, 'App', 'Found '+ IntegerProperty.Stringify(_CPUCores)+' cores');
 
   Self.SetProcessorAffinity();
 

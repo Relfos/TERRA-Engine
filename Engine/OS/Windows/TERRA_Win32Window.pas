@@ -414,7 +414,7 @@ Begin
       InitIcon();
 
     If (Application.Instance.IsDebuggerPresent()) Then
-      ForceLogFlush := True;
+      Engine.Log.ForceLogFlush := True;
   End;
 
   UpdateWindow(_Handle);

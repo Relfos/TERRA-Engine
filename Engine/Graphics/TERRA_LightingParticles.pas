@@ -28,42 +28,42 @@ Unit TERRA_LightingParticles;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
     TERRA_Utils, TERRA_Math, TERRA_Vector3D, TERRA_BoundingBox, TERRA_GraphicsManager, TERRA_Texture,
-    TERRA_Color, TERRA_Matrix4x4, TERRA_VertexFormat;
+    TERRA_Color, TERRA_Matrix4x4, TERRA_VertexFormat, TERRA_Renderable, TERRA_Viewport, TERRA_Renderer;
 
 Type
-  LightingCollection = Class(Renderable)
+  LightingCollection = Class(TERRARenderable)
     Protected
       _A, _B:Vector3D;
       _Mid:Vector3D;
       _SparkCount:Integer;
       _Segments:Integer;
-      _Vertices:VertexData;
+      _Vertices:TERRAVertexBuffer;
       _Scale:Single;
       _Width:Integer;
       _Y:Array Of Single;
-      _Color:Color;
+      _Color:ColorRGBA;
       _BoundingBox:BoundingBox;
       _LastTime:Cardinal;
 
-      Procedure Update; Override;
+      Procedure Update(View:TERRAViewport); Override;
 
     Public
       Constructor Create(A,B:Vector3D; Scale:Single = 5.0; Width:Integer = 1);
 
       Function SetPoints(A,B:Vector3D):Boolean;
-      Procedure SetColor(MyColor:Color);
+      Procedure SetColor(Const Color:ColorRGBA);
 
-      Function IsOpaque():Boolean; Override;
-      Function IsTranslucent():Boolean; Override;
 
       Function GetBoundingBox:BoundingBox; Override;
-      Procedure Render(TranslucentPass:Boolean); Override;
 
-      Property Color:TERRA_Color.Color Read _Color Write SetColor;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
+      Procedure GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType); Override;
+
+      Property Color:ColorRGBA Read _Color Write SetColor;
   End;
 
 Implementation
-Uses TERRA_ResourceManager, TERRA_Application, TERRA_Renderer, TERRA_OS;
+Uses TERRA_Engine, TERRA_ResourceManager, TERRA_Camera, TERRA_OS;
 
 Var
   _LightingShader:ShaderInterface = Nil;
@@ -82,7 +82,7 @@ Begin
   Result := _BoundingBox;
 End;
 
-Procedure LightingCollection.Render(TranslucentPass:Boolean);
+Procedure LightingCollection.Render(View:TERRAViewport; Const Stage:RendererStage); 
 Var
   Rnd, Rnd2:Single;
   I,J,K:Integer;
@@ -90,19 +90,17 @@ Var
   Dx,Dy,Dz:Single;
   PosHandle:Integer;
   M:Matrix4x4;
+  Graphics:GraphicsManager;
   MyShader:ShaderInterface;
 Begin
-  I := GraphicsManager.Instance.RenderStage;
-  If (I <> renderStageDiffuse) And (I <> renderStageGlow) Then
+  If (Stage <> renderStageDiffuse) And (Stage <> renderStageGlow) Then
     Exit;
 
-  If (Not TranslucentPass) Then
-    Exit;
-
-  TextureManager.Instance.WhiteTexture.Bind(0);
+  Engine.Textures.WhiteTexture.Bind(0);
+  Graphics := Engine.Graphics;
 
   If (_Color.A<255) Then
-    GraphicsManager.Instance.Renderer.SetBlendMode(blendAdd);
+    Graphics.Renderer.SetBlendMode(blendAdd);
 
 (*  {$IFDEF PC}
   If (Not GraphicsManager.Instance.Features.Shaders.Avaliable) Then
@@ -126,8 +124,8 @@ Begin
 
   //glLineWidth(_Width);
 
-  MyShader := GraphicsManager.Instance.EnableColorShader(_Color, Matrix4x4Identity);
-  //PosHandle := MyShader.GetAttribute('terra_position');
+  Engine.RaiseError('TODO: lighting particles');
+  //MyShader := Graphics.EnableColorShader(_Color, Matrix4x4Identity);
 
   For I :=1 to _SparkCount Do
   Begin
@@ -144,8 +142,8 @@ Begin
       U.Y := U.Y + 0.02 * _Scale + _y[J] + rnd;
       V.Y := V.Y - 0.02 * _Scale + _y[J] + rnd;
 
-      _Vertices.SetVector3D(K, vertexPosition, VectorCreate(U.X, U.Y, U.Z)); Inc(K);
-      _Vertices.SetVector3D(K, vertexPosition, VectorCreate(V.X, V.Y, V.Z)); Inc(K);
+      _Vertices.SetVector3D(K, vertexPosition, Vector3D_Create(U.X, U.Y, U.Z)); Inc(K);
+      _Vertices.SetVector3D(K, vertexPosition, Vector3D_Create(V.X, V.Y, V.Z)); Inc(K);
     End;
 
 (*  {$IFDEF PC}
@@ -159,8 +157,8 @@ Begin
       glVertexAttribPointer(PosHandle, 3, GL_FLOAT, False, SizeOf(Vector3D), @(_Vertices[0]));*)
 
 
-    GraphicsManager.Instance.Renderer.SetVertexSource(_Vertices);
-    GraphicsManager.Instance.Renderer.DrawSource( renderLineStrip, K);
+    Graphics.Renderer.SetVertexSource(_Vertices);
+    Graphics.Renderer.DrawSource( renderLineStrip, K);
 
     //glDrawArrays(GL_LINE_STRIP, 0, K);
 
@@ -201,7 +199,7 @@ Begin
   _BoundingBox.Add(_B);
 
   If (_Vertices = Nil) Then
-    _Vertices := VertexData.Create([vertexFormatPosition], _Segments * 2)
+    _Vertices := TERRAVertexBuffer.Create([vertexFormatPosition], _Segments * 2)
   Else
   If (_Vertices.Count<_Segments * 2) Then
     _Vertices.Resize(_Segments * 2);
@@ -209,9 +207,9 @@ Begin
   Result := True;
 End;
 
-Procedure LightingCollection.SetColor(MyColor:Color);
+Procedure LightingCollection.SetColor(Const Color:ColorRGBA);
 Begin
-  _Color := MyColor;
+  _Color := Color;
 End;
 
 Procedure LightingCollection.Update;
@@ -242,14 +240,21 @@ Begin
   End;
 End;
 
-Function LightingCollection.IsOpaque: Boolean;
+Procedure LightingCollection.GetBucketDetails(View:TERRAViewport; out Depth:Cardinal; out Layer:RenderableLayer; out AlphaType:RenderableAlphaType);
+Var
+  Pos:Vector3D;
+  Box:BoundingBox;
 Begin
-  Result := False;
-End;
+  If (View.Camera Is PerspectiveCamera) Then
+  Begin
+    Box := Self.GetBoundingBox;
+    Pos := Vector3D_Add(Box.Center , Vector3D_Scale(PerspectiveCamera(View.Camera).View, -Box.Radius));
+    Depth := Trunc(Pos.Distance(View.Camera.Position))
+  End Else
+    Depth := 0;
 
-Function LightingCollection.IsTranslucent: Boolean;
-Begin
-  Result := True;
+  AlphaType := Renderable_Blend;
+  Layer := RenderableLayer_Default;
 End;
 
 End.

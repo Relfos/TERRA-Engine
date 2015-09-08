@@ -277,7 +277,7 @@ End;
 
 Procedure TERRAStream.Truncate;
 Begin
-  Log(logWarning,'IO','Method not supported in this TERRAStream.');
+  Engine.Log.Write(logWarning,'IO','Method not supported in this TERRAStream.');
 End;
 
 Function TERRAStream.Read(Data:Pointer; Length:Cardinal):Cardinal;
@@ -312,7 +312,7 @@ Begin
     ReadByte(Encoding);
     If (Encoding <> Byte(CurrentStringEncoding)) And (Encoding <> 1) Then
     Begin
-      Log(logError, 'IO', 'Unsupported binary string encoding in '+Self.Name);
+      Engine.Log.Write(logError, 'IO', 'Unsupported binary string encoding in '+Self.Name);
       Exit;
     End;
 
@@ -602,7 +602,7 @@ Begin
       If (B = 0) Or (C = 0) Or (D = 0) Then
       Begin
         Value := NullChar;
-        Log(logError, 'UTF8', 'Decoding error #1');
+        Engine.Log.Write(logError, 'UTF8', 'Decoding error #1');
         Exit;
       End;
 
@@ -615,7 +615,7 @@ Begin
       If (B = 0) Or (C = 0) Then
       Begin
         Value := NullChar;
-        Log(logError, 'UTF8', 'Decoding error #2');
+        Engine.Log.Write(logError, 'UTF8', 'Decoding error #2');
         Exit;
       End;
 
@@ -627,7 +627,7 @@ Begin
       If (B = 0) Then
       Begin
         Value := NullChar;
-        Log(logError, 'UTF8', 'Decoding error #3');
+        Engine.Log.Write(logError, 'UTF8', 'Decoding error #3');
         Exit;
       End;
 
@@ -635,7 +635,7 @@ Begin
     End Else
     Begin
       Value := TERRAChar(A);
-      Log(logError, 'UTF8', 'Decoding error #4');
+      Engine.Log.Write(logError, 'UTF8', 'Decoding error #4');
     End;
 
     Exit;

@@ -42,7 +42,7 @@ Type
 
 
 Implementation
-Uses TERRA_Log;
+Uses TERRA_Log, TERRA_Engine;
 
 { TERRAQueue }
 Constructor TERRAQueue.Create();
@@ -60,11 +60,11 @@ Begin
 
   If (Item = Nil) Or ((Options And coCheckReferencesOnAdd<>0) And (Self.Contains(Item))) Then
   Begin
-    Log(logWarning, Self.ClassName, 'Reference already inside collection: '+Item.GetBlob());
+    Engine.Log.Write(logWarning, Self.ClassName, 'Reference already inside collection: '+Item.GetBlob());
     Exit;
   End;
 
-  Obj := TERRACollectionObject.Create(Self, Item);
+  Obj := Self.NewItem(Item);
   Inc(_ItemCount);
   Result := True;
 

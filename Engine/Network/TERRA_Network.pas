@@ -220,7 +220,7 @@ Var
 Begin
   S:=Prefix+' "'+GetMsgDesc(Msg.Opcode)+'" Size='+IntegerProperty.Stringify(Msg.Length)+' ';
   S:=S+Postfix;
-  Log(logDebug,'Network', S);
+  Engine.Log.Write(logDebug,'Network', S);
 End;
 
 { NetObject }

@@ -106,13 +106,13 @@ Begin
   Begin
     Result := False;
 
-    Log(logError, 'Sound', 'Unknown sound format. ['+Source.Name+']');
+    Engine.Log.Write(logError, 'Sound', 'Unknown sound format. ['+Source.Name+']');
     SetStatus(rsInvalid);
 
     Exit;
   End;
 
-  Log(logDebug, 'Sound', 'Calling sound loader...');
+  Engine.Log.Write(logDebug, 'Sound', 'Calling sound loader...');
 
   Result := Format.LoadFromStream(Self, Source);
   SetStatus(rsReady);

@@ -65,7 +65,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_FileStream, TERRA_Application, TERRA_FileUtils, TERRA_Log, TERRA_ZLib;
+Uses TERRA_FileStream, TERRA_Engine, TERRA_Application, TERRA_FileUtils, TERRA_Log, TERRA_ZLib;
 
 Const
   SessionHeader:FileHeader = 'TES2';
@@ -157,7 +157,7 @@ Begin
   If (Source.Size<4) Then
   Begin
     Result := False;
-    Log(logError,'Session','Corrupted session file');
+    Engine.Log.Write(logError,'Session','Corrupted session file');
     Exit;
   End;
 
@@ -238,7 +238,7 @@ Begin
 
   _Read := True;
 
-  Log(logDebug,'Session','Loaded session file, '+ IntegerProperty.Stringify(_Data.Count)+' items found.');
+  Engine.Log.Write(logDebug,'Session','Loaded session file, '+ IntegerProperty.Stringify(_Data.Count)+' items found.');
   Result := True;
 End;
 
@@ -249,7 +249,7 @@ Begin
   If Not FileStream.Exists(SourceFile) Then
   Begin
     Result := False;
-    Log(logError,'Session','Could not load session file: '+SourceFile);
+    Engine.Log.Write(logError,'Session','Could not load session file: '+SourceFile);
     Exit;
   End;
 

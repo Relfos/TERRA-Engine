@@ -49,20 +49,20 @@ Procedure IAP_Callback_Purchase(ID:PAnsiChar); cdecl; export;
 //Procedure IAP_Callback_Info(ID, Title, Description, Price:PTERRAChar); cdecl; export;
 
 Implementation
-Uses TERRA_Log{$IFDEF STEAM},TERRA_Steam{$ENDIF};
+Uses TERRA_Engine, TERRA_Log{$IFDEF STEAM},TERRA_Steam{$ENDIF};
 
 Var
   _IAPCatalog_Instance:IAPCatalog = Nil;
 
 Procedure IAP_Callback_Canceled(ID:PAnsiChar); cdecl; export;
 Begin
-   Log(logDebug, 'IAP', 'Cancelled: '+ID);
+   Engine.Log.Write(logDebug, 'IAP', 'Cancelled: '+ID);
    Application.Instance.OnIAP_Error(IAP_PurchaseCanceled);
 End;
 
 Procedure IAP_Callback_Purchase(ID:PAnsiChar); cdecl; export;
 Begin
-  Log(logDebug, 'IAP', 'Purchased: '+ID);
+  Engine.Log.Write(logDebug, 'IAP', 'Purchased: '+ID);
 
   Application.Instance.OnIAP_Purchase(ID);
 End;
@@ -111,13 +111,13 @@ Begin
 {$IFDEF ANDROID}                                    
   Java_Begin(Frame);
   Utils := JavaClass.Create(ActivityClassPath, Frame);
-  Log(logDebug, 'App', 'Purchasing credits');
+  Engine.Log.Write(logDebug, 'App', 'Purchasing credits');
   Utils.CallStaticVoidMethod(Frame, 'purchaseCredits', Nil);
   ReleaseObject(Utils);
   Java_End(Frame);
   Exit;
 {$ELSE}
-  Log(logWarning, 'IAP', 'Purchasing credits not supported in this platform!');
+  Engine.Log.Write(logWarning, 'IAP', 'Purchasing credits not supported in this platform!');
 {$ENDIF}
 
   IAP_Callback_Canceled('credits');
@@ -136,21 +136,21 @@ Begin
   ReplaceText('.', '_', ID);
   {$ENDIF}
 
-  Log(logWarning, 'IAP', 'Trying purchase...');
+  Engine.Log.Write(logWarning, 'IAP', 'Trying purchase...');
 
   Java_Begin(Frame);
   Utils := JavaClass.Create(ActivityClassPath, Frame);
 
   If (Utils.CallStaticBoolMethod(Frame, 'canPurchase', Nil)) Then
   Begin
-    Log(logDebug, 'App', 'Purchasing '+ID);
+    Engine.Log.Write(logDebug, 'App', 'Purchasing '+ID);
     Params := JavaArguments.Create(Frame);
     Params.AddString(ID);
     Utils.CallStaticVoidMethod(Frame, 'purchase', Params);
     ReleaseObject(Params);
   End Else
   Begin
-    Log(logWarning, 'IAP', 'Purchases are disabled!');
+    Engine.Log.Write(logWarning, 'IAP', 'Purchases are disabled!');
     IAP_Callback_Canceled(PAnsiChar(ID));
   End;
 
@@ -169,7 +169,7 @@ Begin
 {$ENDIF}
 
 {$IFDEF STEAM}
-  Log(logWarning, 'IAP', 'Purchases not allowed in Steam!');
+  Engine.Log.Write(logWarning, 'IAP', 'Purchases not allowed in Steam!');
   IAP_Callback_Canceled(PAnsiChar(ID));
   //Application.Instance.Client.OnIAP_External(ID, UserData);
   Exit;
@@ -235,7 +235,7 @@ Begin
 End;
 
 Initialization
-  Log(logDebug, 'IAP', 'IAP Module started!');
+  Engine.Log.Write(logDebug, 'IAP', 'IAP Module started!');
 Finalization
   ReleaseObject(_IAPCatalog_Instance);
 End.

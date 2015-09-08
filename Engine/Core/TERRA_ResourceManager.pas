@@ -119,11 +119,11 @@ Begin
   If (Not Assigned(MyResource)) Or (MyResource.Status = rsReady) Then
     Exit;
 
-  Log(logDebug, 'ResourceManager', 'Obtaining manager for '+MyResource.Name);
+  Engine.Log.Write(logDebug, 'ResourceManager', 'Obtaining manager for '+MyResource.Name);
   Manager := ResourceManager(MyResource.GetManager());
   If (Manager = Nil) Then
   Begin
-    Log(logDebug, 'ResourceManager', 'Could not find a manager for '+MyResource.Name);
+    Engine.Log.Write(logDebug, 'ResourceManager', 'Could not find a manager for '+MyResource.Name);
     MyResource.Status := rsInvalid;
     Exit;
   End;
@@ -131,19 +131,19 @@ Begin
   Source := Engine.Files.OpenLocation(MyResource.Location);
   If (Source=Nil) Then
   Begin
-    Log(logDebug, 'ResourceManager', 'Could not open location...');
+    Engine.Log.Write(logDebug, 'ResourceManager', 'Could not open location...');
     MyResource.Status := rsInvalid;
     Exit;
   End;
 
   MyResource.Status := rsBusy;
 
-  Log(logDebug, 'Resources', 'Loading '+MyResource.Name);
+  Engine.Log.Write(logDebug, 'Resources', 'Loading '+MyResource.Name);
 
   If Source.Size = 0 Then
   Begin
     //Source := Engine.Files.OpenLocation(MyResource.Location);
-    Log(logWarning, 'Resources', 'Empty resource stream at '+MyResource.Name);
+    Engine.Log.Write(logWarning, 'Resources', 'Empty resource stream at '+MyResource.Name);
   End;
 
   Result := MyResource.Load(Source);
@@ -157,7 +157,7 @@ Begin
   End;
 
   MyResource.Time := Application.GetTime;
-  Log(logDebug, 'Resource', 'Loaded '+MyResource.Name);
+  Engine.Log.Write(logDebug, 'Resource', 'Loaded '+MyResource.Name);
 
   If (Manager.UseThreads) Then
   Begin
@@ -166,17 +166,17 @@ Begin
     Manager.Unlock;
   End Else
   Begin
-    Log(logDebug, 'Resource', 'Updating '+MyResource.Name);
+    Engine.Log.Write(logDebug, 'Resource', 'Updating '+MyResource.Name);
     MyResource.Update();
     MyResource.Status := rsReady;
   End;
 
-  Log(logDebug, 'Resource', 'Finished '+MyResource.Name);
+  Engine.Log.Write(logDebug, 'Resource', 'Finished '+MyResource.Name);
 End;
 
 Constructor ResourceManager.Create();
 Begin
-  Log(logDebug, 'Resource', 'Creating resource manager for class: '+Self.ClassName);
+  Engine.Log.Write(logDebug, 'Resource', 'Creating resource manager for class: '+Self.ClassName);
 
   _Resources := TERRAHashMap.Create(1024);
   _LastUpdate := 0;
@@ -190,7 +190,7 @@ Begin
 
   AutoUnload := False;
 
-  Log(logDebug, 'Resource', 'This resource manager is ready to go!');
+  Engine.Log.Write(logDebug, 'Resource', 'This resource manager is ready to go!');
 End;
 
 Procedure ResourceManager.Release;
@@ -232,9 +232,9 @@ Begin
   Result := TERRAResource(_Resources.Items[Temp]);
 
   {If Assigned(Result) Then
-    Log(logDebug, 'Resource', 'Searched for '+Name+': got '+Result.Name)
+    Engine.Log.Write(logDebug, 'Resource', 'Searched for '+Name+': got '+Result.Name)
   Else
-    Log(logDebug, 'Resource', 'Searched for '+Name+': got (NIL)');}
+    Engine.Log.Write(logDebug, 'Resource', 'Searched for '+Name+': got (NIL)');}
 End;
 
 Procedure ResourceManager.ReloadResource(Resource: TERRAResource; InBackground:Boolean=True);
@@ -246,9 +246,9 @@ Begin
   End;
 
   If InBackground Then
-    Log(logDebug, 'ResourceManager', 'Reloading '+Resource.Name+' in background')
+    Engine.Log.Write(logDebug, 'ResourceManager', 'Reloading '+Resource.Name+' in background')
   Else
-    Log(logDebug, 'ResourceManager', 'Reloading '+Resource.Name+' in foreground');
+    Engine.Log.Write(logDebug, 'ResourceManager', 'Reloading '+Resource.Name+' in foreground');
 
   Engine.Tasks.RunTask(ResourceLoader.Create(Resource), (InBackground And UseThreads), Nil, Resource.Priority);
 End;
@@ -287,7 +287,7 @@ Begin
     If (MyResource.ShouldUnload()) Then
     Begin
       MyResource.Status := rsBusy;
-      Log(logDebug,'Resource','Unloaded '+MyResource.Name);
+      Engine.Log.Write(logDebug,'Resource','Unloaded '+MyResource.Name);
       If MyResource.Unload Then
         MyResource.Status := rsUnloaded
       Else
@@ -381,7 +381,7 @@ Var
   N:Integer;
   MyResource:TERRAResource;
 Begin
-  Log(logDebug, Self.ClassName, 'Unloading all resources.');
+  Engine.Log.Write(logDebug, Self.ClassName, 'Unloading all resources.');
   N := 0;
   It := _Resources.GetIterator();
   While (It.HasNext) Do
@@ -389,7 +389,7 @@ Begin
     MyResource := TERRAResource(It.Value);
 
     MyResource.Status := rsBusy;
-   // Log(logDebug,'Resource','Unloaded '+MyResource.Name);
+   // Engine.Log.Write(logDebug,'Resource','Unloaded '+MyResource.Name);
     If MyResource.Unload Then
       MyResource.Status := rsUnloaded
     Else
@@ -397,7 +397,7 @@ Begin
     Inc(N);
   End;
 
-  Log(logDebug, 'Resources', 'Unloaded '+ IntegerProperty.Stringify(N) + ' resources.');
+  Engine.Log.Write(logDebug, 'Resources', 'Unloaded '+ IntegerProperty.Stringify(N) + ' resources.');
 
   _LastUpdate := Application.GetTime;
 End;
@@ -428,7 +428,7 @@ Begin
     MyResource := Resource(It.Value);
     If (MyResource.Status = rsReady) Then
     Begin
-      Log(logDebug, 'ResourceManager', 'Context lost: '+MyResource.Name);
+      Engine.Log.Write(logDebug, 'ResourceManager', 'Context lost: '+MyResource.Name);
       MyResource.OnContextLost();
     End;
   End;

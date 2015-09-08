@@ -740,21 +740,21 @@ End;
 
 Procedure RendererFeatures.WriteToLog();
 Begin
-  Log(logDebug, 'Renderer', 'Device: '+ _Owner._DeviceName);
-  Log(logDebug, 'Renderer', 'Vendor: '+ _Owner._DeviceVendor);
-  Log(logDebug, 'Renderer', 'Shaders: '+  BoolToString(Shaders.Avaliable));
-  Log(logDebug, 'Renderer', 'Max texture slots:' +  IntegerProperty.Stringify(_MaxTextureUnits));
-  Log(logDebug, 'Renderer', 'Max texture size:' +  IntegerProperty.Stringify(_MaxTextureSize));
-  Log(logDebug, 'Renderer', 'Max render targets:' +  IntegerProperty.Stringify(_maxRenderTargets));
-  Log(logDebug, 'Renderer', 'Texture compression: '+  BoolToString(TextureCompression.Avaliable));
-  Log(logDebug, 'Renderer', 'VertexBufferObject: '+  BoolToString(VertexBufferObject.Avaliable));
-  Log(logDebug, 'Renderer', 'FrameBufferObject: '+  BoolToString(FrameBufferObject.Avaliable));
-  Log(logDebug, 'Renderer', 'CubemapTexture: '+  BoolToString(CubemapTexture.Avaliable));
-  Log(logDebug, 'Renderer', 'FloatTexture: '+  BoolToString(FloatTexture.Avaliable));
-  Log(logDebug, 'Renderer', 'TextureArray: '+  BoolToString(TextureArray.Avaliable));
-  Log(logDebug, 'Renderer', 'SeparateBlends: '+  BoolToString(SeparateBlends.Avaliable));
-  Log(logDebug, 'Renderer', 'SeamlessCubeMap: '+  BoolToString(SeamlessCubeMap.Avaliable));
-  Log(logDebug, 'Renderer', 'NPOT: '+  BoolToString(NPOT.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'Device: '+ _Owner._DeviceName);
+  Engine.Log.Write(logDebug, 'Renderer', 'Vendor: '+ _Owner._DeviceVendor);
+  Engine.Log.Write(logDebug, 'Renderer', 'Shaders: '+  BoolToString(Shaders.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'Max texture slots:' +  IntegerProperty.Stringify(_MaxTextureUnits));
+  Engine.Log.Write(logDebug, 'Renderer', 'Max texture size:' +  IntegerProperty.Stringify(_MaxTextureSize));
+  Engine.Log.Write(logDebug, 'Renderer', 'Max render targets:' +  IntegerProperty.Stringify(_maxRenderTargets));
+  Engine.Log.Write(logDebug, 'Renderer', 'Texture compression: '+  BoolToString(TextureCompression.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'VertexBufferObject: '+  BoolToString(VertexBufferObject.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'FrameBufferObject: '+  BoolToString(FrameBufferObject.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'CubemapTexture: '+  BoolToString(CubemapTexture.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'FloatTexture: '+  BoolToString(FloatTexture.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'TextureArray: '+  BoolToString(TextureArray.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'SeparateBlends: '+  BoolToString(SeparateBlends.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'SeamlessCubeMap: '+  BoolToString(SeamlessCubeMap.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'NPOT: '+  BoolToString(NPOT.Avaliable));
 End;
 
 { GraphicInterface }
@@ -881,7 +881,7 @@ Begin
 //  typeInteger:  Size := Count * 4;
   {$ENDIF}
   Else
-    Log(logWarning, 'VBO', 'Invalid VBO attribute type ['+ IntegerProperty.Stringify(Integer(Format))+']');
+    Engine.Log.Write(logWarning, 'VBO', 'Invalid VBO attribute type ['+ IntegerProperty.Stringify(Integer(Format))+']');
   End;
 
   If (Not Skip) Then
@@ -1173,7 +1173,7 @@ Begin
   StringReplaceText('gl_Position', 'IGNORE',S);
   If (Pos('gl_', S)>0) Then
   Begin
-     Log(logWarning, 'Shader', 'The following shader has deprecated attributes: '{+ Self.Name});
+     Engine.Log.Write(logWarning, 'Shader', 'The following shader has deprecated attributes: '{+ Self.Name});
   End;
 
   Repeat
@@ -1196,7 +1196,7 @@ Begin
 
   If (_AttributeCount<=0) Then
   Begin
-    Log(logWarning, 'Shader', 'The following shader has no attributes: '{+ Self.Name});
+    Engine.Log.Write(logWarning, 'Shader', 'The following shader has no attributes: '{+ Self.Name});
   End;
 End;
 
@@ -1279,7 +1279,7 @@ Begin
     Format := Engine.Formats.FindLocationFromName(FileName+'_'+CubeFaceNames[I], TERRAImage, Location);
     If (Format = Nil) Then
     Begin
-      Log(logWarning, 'Cubemap', 'Could not load cubemap face '+CubeFaceNames[I]+' for '+FileName);
+      Engine.Log.Write(logWarning, 'Cubemap', 'Could not load cubemap face '+CubeFaceNames[I]+' for '+FileName);
       Continue;
     End;
 

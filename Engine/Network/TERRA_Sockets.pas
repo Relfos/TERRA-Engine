@@ -451,12 +451,12 @@ Begin
     Exit;
   End;
 
-  Log(logDebug, 'Sockets', 'Looking up host: '+ HostName);
+  Engine.Log.Write(logDebug, 'Sockets', 'Looking up host: '+ HostName);
   Host := PHostEntity(GetHostByName(PAnsiChar(HostName)));
   If (Not Assigned(Host)) Then
     Exit;
 
-  Log(logDebug, 'Sockets', 'Found '+IntegerProperty.Stringify(Host.Length));
+  Engine.Log.Write(logDebug, 'Sockets', 'Found '+IntegerProperty.Stringify(Host.Length));
   If (Host.Length <= 0) Then
     Exit;
 
@@ -464,7 +464,7 @@ Begin
                   IntegerProperty.Stringify(Byte(Host.AddressList^[1]))+'.'+
                   IntegerProperty.Stringify(Byte(Host.AddressList^[2]))+'.'+
                   IntegerProperty.Stringify(Byte(Host.AddressList^[3]));
-  Log(logDebug, 'Sockets', 'Result: '+Result);
+  Engine.Log.Write(logDebug, 'Sockets', 'Result: '+Result);
 End;
 {$ENDIF}
 {$ENDIF}
@@ -542,9 +542,9 @@ Begin
   {$ENDIF}
 
   If ErrorCode = 0 Then
-    Log(logDebug, 'Sockets', 'Changed socket blocking mode for handle '+IntegerProperty.Stringify(Handle)+' -> ' +IntegerProperty.Stringify(N))
+    Engine.Log.Write(logDebug, 'Sockets', 'Changed socket blocking mode for handle '+IntegerProperty.Stringify(Handle)+' -> ' +IntegerProperty.Stringify(N))
   Else
-    Log(logError, 'Sockets', 'Error changing blocking mode in socket '+IntegerProperty.Stringify(Handle));
+    Engine.Log.Write(logError, 'Sockets', 'Error changing blocking mode in socket '+IntegerProperty.Stringify(Handle));
 End;
 
 { Socket }
@@ -580,21 +580,21 @@ Begin
   IP := LookupHostAddress(Host);
   If (IP = '127.0.0.1') And (Host<>IP) And (Host<>'localhost') Then
   Begin
-    Log(logError, 'Sockets', 'Unable to resolve host address: '+Host);
+    Engine.Log.Write(logError, 'Sockets', 'Unable to resolve host address: '+Host);
     Exit;
   End;
 
   _NetType := GetSocketNetType(IP);
 
-  Log(logDebug, 'Sockets', 'Address found: '+IP);
+  Engine.Log.Write(logDebug, 'Sockets', 'Address found: '+IP);
 
-  Log(logDebug, 'Sockets', 'Creating a socket, port '+IntegerProperty.Stringify(Port));
+  Engine.Log.Write(logDebug, 'Sockets', 'Creating a socket, port '+IntegerProperty.Stringify(Port));
   _Handle := socket(_NetType, SOCK_STREAM, IPPROTO_TCP); //Create a network socket
 
   If _Handle = SOCKET_ERROR Then  //Check for errors
   Begin
     _Error := True;
-    Log(logError, 'Sockets', 'Unable to open a socket, host='+Host+' port='+IntegerProperty.Stringify(Port));
+    Engine.Log.Write(logError, 'Sockets', 'Unable to open a socket, host='+Host+' port='+IntegerProperty.Stringify(Port));
     Exit;
   End;
 
@@ -629,7 +629,7 @@ Begin
     TargetSize := SizeOf(Addr4);
   End;
 
-  Log(logDebug, 'Sockets', 'Connecting');
+  Engine.Log.Write(logDebug, 'Sockets', 'Connecting');
   N := TERRA_Sockets.connect(_Handle, TargetAddr, TargetSize);
 
   //Check for errors
@@ -637,14 +637,14 @@ Begin
   Begin
     _Error := True;
 
-    Log(logError, 'Sockets', 'Unable to connect to host: '+Host);
+    Engine.Log.Write(logError, 'Sockets', 'Unable to connect to host: '+Host);
     {$IFDEF WINDOWS}
-    Log(logError, 'Sockets', 'Sock error: '+IntegerProperty.Stringify(WSAGetLastError));
+    Engine.Log.Write(logError, 'Sockets', 'Sock error: '+IntegerProperty.Stringify(WSAGetLastError));
     {$ENDIF}
     Exit;
   End;
 
-  Log(logDebug, 'Sockets', 'Socket is ready');
+  Engine.Log.Write(logDebug, 'Sockets', 'Socket is ready');
   _Closed := False;
 End;
 
@@ -652,15 +652,15 @@ Procedure NetSocket.Release;
 Begin
   If (_Handle>0) Then
   Begin
-    Log(logDebug, 'Sockets', 'Shutting down socket '+IntegerProperty.Stringify(_Handle));
+    Engine.Log.Write(logDebug, 'Sockets', 'Shutting down socket '+IntegerProperty.Stringify(_Handle));
     Shutdown(_Handle, 2);
 
     {$IFNDEF LINUX}
-    Log(logDebug, 'Sockets', 'Closing down socket '+IntegerProperty.Stringify(_Handle));
+    Engine.Log.Write(logDebug, 'Sockets', 'Closing down socket '+IntegerProperty.Stringify(_Handle));
     CloseSocket(_Handle);
     {$ENDIF}
 
-    Log(logDebug, 'Sockets', 'Destroyed NetSocket... ');
+    Engine.Log.Write(logDebug, 'Sockets', 'Destroyed NetSocket... ');
 
     _Handle := 0;
   End;
@@ -681,9 +681,9 @@ Begin
 
   If setsockopt(_Handle, SOL_SOCKET, SO_RCVTIMEO, @tv, sizeof(TV)) = 0 Then
   Begin
-    Log(logDebug, 'Sockets', 'Changed socket time out for handle '+IntegerProperty.Stringify(_Handle)+' -> '+IntegerProperty.Stringify(Duration));
+    Engine.Log.Write(logDebug, 'Sockets', 'Changed socket time out for handle '+IntegerProperty.Stringify(_Handle)+' -> '+IntegerProperty.Stringify(Duration));
   End Else
-    Log(logWarning, 'Sockets', 'Unable to change socket time out for handle '+IntegerProperty.Stringify(_Handle));
+    Engine.Log.Write(logWarning, 'Sockets', 'Unable to change socket time out for handle '+IntegerProperty.Stringify(_Handle));
 End;
 
 Procedure NetSocket.SetDelay(Delay: Boolean);
@@ -699,18 +699,18 @@ Begin
 
   If setsockopt(_Handle, IPPROTO_TCP, TCP_NODELAY, @N, 4) = 0 Then
   Begin
-    Log(logDebug, 'Sockets', 'Change socket delay for handle '+IntegerProperty.Stringify(_Handle)+' -> ' +IntegerProperty.Stringify(N));
+    Engine.Log.Write(logDebug, 'Sockets', 'Change socket delay for handle '+IntegerProperty.Stringify(_Handle)+' -> ' +IntegerProperty.Stringify(N));
   End Else
-    Log(logWarning, 'Sockets', 'Unable to change socket delay for handle '+IntegerProperty.Stringify(_Handle));
+    Engine.Log.Write(logWarning, 'Sockets', 'Unable to change socket delay for handle '+IntegerProperty.Stringify(_Handle));
 End;
 
 Procedure NetSocket.SetBufferSize(Size:Integer);
 Begin
   If setsockopt(_Handle, SOL_Socket, SO_SNDBUF, @Size, 4) = 0 Then
   Begin
-    Log(logDebug, 'Sockets', 'Changed socket buffer size for handle '+IntegerProperty.Stringify(_Handle)+' -> '+IntegerProperty.Stringify(Size));
+    Engine.Log.Write(logDebug, 'Sockets', 'Changed socket buffer size for handle '+IntegerProperty.Stringify(_Handle)+' -> '+IntegerProperty.Stringify(Size));
   End Else
-    Log(logWarning, 'Sockets', 'Unable to change socket buffer size for handle '+IntegerProperty.Stringify(_Handle));
+    Engine.Log.Write(logWarning, 'Sockets', 'Unable to change socket buffer size for handle '+IntegerProperty.Stringify(_Handle));
 End;
 
 Procedure NetSocket.SetBlocking(Block:Boolean);
@@ -857,16 +857,16 @@ Begin
     WaitingList[ID].Port := Port;
     WaitingList[ID].Handle := Handle;
 
-    Log(logDebug, 'Sockets', 'Created listened socket with handle '+IntegerProperty.Stringify((Handle)));
+    Engine.Log.Write(logDebug, 'Sockets', 'Created listened socket with handle '+IntegerProperty.Stringify((Handle)));
 
     MakeNonBlocking(WaitingList[ID].Handle, False);
 
     Opv := 1;
     If (setsockOpt(WaitingList[ID].Handle, SOL_SOCKET, SO_REUSEADDR, @Opv, SizeOf(Opv)) = 0)Then
     Begin
-      Log(logDebug, 'Sockets', 'Reused socket address for handle '+IntegerProperty.Stringify((Handle)));
+      Engine.Log.Write(logDebug, 'Sockets', 'Reused socket address for handle '+IntegerProperty.Stringify((Handle)));
     End Else
-      Log(logWarning, 'Sockets', 'Unable to reuse socket address for handle '+IntegerProperty.Stringify((Handle)));
+      Engine.Log.Write(logWarning, 'Sockets', 'Unable to reuse socket address for handle '+IntegerProperty.Stringify((Handle)));
 
     FillChar(Addr, SizeOf(Addr), 0);
     Addr.Family := PF_INET;
@@ -878,7 +878,7 @@ Begin
       Exit;
     End;
 
-    Log(logDebug, 'Sockets', 'Listening for connections.');
+    Engine.Log.Write(logDebug, 'Sockets', 'Listening for connections.');
     Listen(WaitingList[ID].Handle, 5);
   End;
 
@@ -888,7 +888,7 @@ Begin
 
   If ClientSock<>-1 Then
   Begin
-    Log(logDebug, 'Sockets', 'Accepted socket connection with handle '+IntegerProperty.Stringify(ClientSock));
+    Engine.Log.Write(logDebug, 'Sockets', 'Accepted socket connection with handle '+IntegerProperty.Stringify(ClientSock));
     Result := NetSocket.Create(ClientSock);
     //Result._Address := ClientAddr.Address;
   End;
@@ -923,7 +923,7 @@ Initialization
   N := WSAStartup(SOCK_VER, Data);
   //Check for errors
   If N<>0 Then
-    Log(logError, 'Sockets', 'Unable to initialize Winsock session.');
+    Engine.Log.Write(logError, 'Sockets', 'Unable to initialize Winsock session.');
 
 {$ENDIF}
 {$IFDEF LINUX}

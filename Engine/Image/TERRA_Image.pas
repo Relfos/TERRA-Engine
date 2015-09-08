@@ -1117,23 +1117,23 @@ Var
 Begin
   If Source = Nil Then
   Begin
-    Log(logDebug, 'Image', 'Invalid image stream!');
+    Engine.Log.Write(logDebug, 'Image', 'Invalid image stream!');
     Exit;
   End;
 
-  Log(logDebug, 'Image', 'Searching formats');
+  Engine.Log.Write(logDebug, 'Image', 'Searching formats');
 
   Format := Engine.Formats.FindFormatFromStream(Source, TERRAImage);
   If Format = Nil Then
   Begin
     Self.New(4, 4);
-    Log(logDebug, 'Image', 'Unknown image format. ['+Source.Name+']');
+    Engine.Log.Write(logDebug, 'Image', 'Unknown image format. ['+Source.Name+']');
     Exit;
   End;
 
-  Log(logDebug, 'Image', 'Loading image from loader ');
+  Engine.Log.Write(logDebug, 'Image', 'Loading image from loader ');
   Format.LoadFromStream(Self, Source);
-  Log(logDebug, 'Image', 'Image loaded');
+  Engine.Log.Write(logDebug, 'Image', 'Image loaded');
 End;
 
 Function TERRAImage.Save(Dest:TERRAStream; Format:TERRAFileFormat; Depth:Integer):Boolean;
@@ -1145,7 +1145,7 @@ Begin
   Result := Format.SaveToSTream(Self, Dest);
   If Not Result Then
   Begin
-    Log(logError, 'Image', 'Cannot save image to '+Format.Extension+' format. ['+Dest.Name+']');
+    Engine.Log.Write(logError, 'Image', 'Cannot save image to '+Format.Extension+' format. ['+Dest.Name+']');
     Exit;
   End;
 End;

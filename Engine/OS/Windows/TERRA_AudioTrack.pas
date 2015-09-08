@@ -58,7 +58,7 @@ Begin
     strMsg := 'Unknown error code';
 
   Result := True;
-  Log(logError, 'Music', strMsg);
+  Engine.Log.Write(logError, 'Music', strMsg);
 End;
 
 (*Function MusicManager.mciLgthInSecs: integer;

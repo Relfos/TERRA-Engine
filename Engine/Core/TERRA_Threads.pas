@@ -214,7 +214,7 @@ Function InternalThreadDispatcher(P:Pointer):Integer; Cdecl;
 {$ENDIF}
 
 Implementation
-Uses TERRA_Error, TERRA_OS;
+Uses TERRA_Error, TERRA_Engine, TERRA_OS;
 
 {$IFDEF WINDOWS}
 { SyncEvent is an Event handle that is signaled every time a thread wishes to
@@ -236,10 +236,10 @@ Var
 Begin
   T := TERRAThread(P);
 
-  Log(logDebug, 'Threads', 'Running new thread...');
+  Engine.Log.Write(logDebug, 'Threads', 'Running new thread...');
   T.Execute();
 
-  Log(logDebug, 'Threads', 'Thread finished...');
+  Engine.Log.Write(logDebug, 'Threads', 'Thread finished...');
 
   T.Finish();
 
@@ -255,7 +255,7 @@ End;
 { Thread }
 Constructor TERRAThread.Create();
 Begin
-  Log(logDebug, 'Threads', 'Starting thread: '+Self.ClassName);
+  Engine.Log.Write(logDebug, 'Threads', 'Starting thread: '+Self.ClassName);
 {$IFDEF DISABLETHREADS}
   Self.Execute();
 {$ELSE}
@@ -285,7 +285,7 @@ End;
 
 Procedure TERRAThread.Finish;
 Begin
-  Log(logDebug, 'Thread','Terminating...');
+  Engine.Log.Write(logDebug, 'Thread','Terminating...');
 {$IFNDEF DISABLETHREADS}
   {$IFDEF ANDROID}
   Java_DetachThread();

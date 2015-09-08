@@ -111,7 +111,7 @@ End;
 
 Procedure TERRAResource.Release;
 Begin
-  Log(logDebug, 'Resource', 'Destroying resource '+Self.Name);
+  Engine.Log.Write(logDebug, 'Resource', 'Destroying resource '+Self.Name);
   {$IFNDEF ANDROID}
   Self.Unload();
   {$ENDIF}
@@ -126,7 +126,7 @@ Function TERRAResource.IsReady:Boolean;
 Var
   Manager:ResourceManager;
 Begin
-//  Log(logDebug, 'Resource', 'Calling isReady()...');
+//  Engine.Log.Write(logDebug, 'Resource', 'Calling isReady()...');
 
   If (Self = Nil) Then
   Begin
@@ -151,23 +151,23 @@ Begin
     Exit;
   End;*)
 
-  Log(logDebug, 'Resource', 'Obtaining manager for '+Self.Name);
+  Engine.Log.Write(logDebug, 'Resource', 'Obtaining manager for '+Self.Name);
   Manager := ResourceManager(Self.GetManager);
   If (Manager = Nil) Then
   Begin
-    Log(logDebug, 'Resource', 'Failed to obtain a manager...');
+    Engine.Log.Write(logDebug, 'Resource', 'Failed to obtain a manager...');
     Exit;
   End;
 
   If (Assigned(Self.Location)) Then
   Begin
     Self.SetStatus(rsBusy);
-    Log(logDebug, 'Resource', 'Loading the resource...');
+    Engine.Log.Write(logDebug, 'Resource', 'Loading the resource...');
     Manager.ReloadResource(Self, Manager.UseThreads);
     Result := (Status = rsReady);
   End Else
   Begin
-    Log(logDebug, 'Resource', 'Updating the resource...' + Self.ClassName);
+    Engine.Log.Write(logDebug, 'Resource', 'Updating the resource...' + Self.ClassName);
 
     Self.Rebuild();
 
@@ -180,12 +180,12 @@ Begin
   If (Self.Status<>rsUnloaded) Then
     Exit;
 
-  Log(logDebug, 'Resource', 'Prefetching '+ Self.Name);
+  Engine.Log.Write(logDebug, 'Resource', 'Prefetching '+ Self.Name);
 
   If Self.IsReady() Then
     Exit;
 
-  Log(logDebug, 'Resource', 'Prefetching '+Self.Name);
+  Engine.Log.Write(logDebug, 'Resource', 'Prefetching '+Self.Name);
 
   While (Not Self.IsReady) Do
   Begin
@@ -197,9 +197,9 @@ Begin
   End;
 
   If (Self.Status = rsInvalid) Then
-    Log(logError, 'Resource', 'Error prefetching resource')
+    Engine.Log.Write(logError, 'Resource', 'Error prefetching resource')
   Else
-    Log(logDebug, 'Resource', 'Prefetching for '+Self.Name+' is done!');
+    Engine.Log.Write(logDebug, 'Resource', 'Prefetching for '+Self.Name+' is done!');
 End;
 
 Function TERRAResource.GetBlob:TERRAString;
@@ -239,7 +239,7 @@ Begin
   Manager := ResourceManager(Self.GetManager);
   If (Manager = Nil) Then
   Begin
-    Log(logDebug, 'Resource', 'Failed to obtain a manager...');
+    Engine.Log.Write(logDebug, 'Resource', 'Failed to obtain a manager...');
     Exit;
   End;
 

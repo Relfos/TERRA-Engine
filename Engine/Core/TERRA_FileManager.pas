@@ -284,7 +284,7 @@ Begin
   {$IFDEF PC}
   If Not DirectoryExists(Path) Then
   Begin
-    Log(logWarning, 'FileManager', 'The following path is missing: '+Path);
+    Engine.Log.Write(logWarning, 'FileManager', 'The following path is missing: '+Path);
     Exit;
   End;
   {$ENDIF}
@@ -293,7 +293,7 @@ Begin
   If (_FolderList[I] = Path) Then
     Exit;
 
-  Log(logDebug, 'FileManager', 'Adding path: '+Path);
+  Engine.Log.Write(logDebug, 'FileManager', 'Adding path: '+Path);
   Inc(_FolderCount);
   SetLength(_FolderList, _FolderCount);
   _FolderList[Pred(_FolderCount)] := Path;
@@ -376,12 +376,12 @@ Var
   I, J:Integer;
   Resource:ResourceInfo;
 Begin
-  {$IFDEF DEBUG_FILECACHE}Log(logDebug, 'FileManager', 'Searching for file '+FileName+' in cache');{$ENDIF}
+  {$IFDEF DEBUG_FILECACHE}Engine.Log.Write(logDebug, 'FileManager', 'Searching for file '+FileName+' in cache');{$ENDIF}
   Result := Self.FindLocation(FileName);
 
   If Assigned(Result) Then
   Begin
-    {$IFDEF DEBUG_FILECACHE}Log(logDebug, 'FileManager', 'Was found in cache: '+Location.Path);{$ENDIF}
+    {$IFDEF DEBUG_FILECACHE}Engine.Log.Write(logDebug, 'FileManager', 'Was found in cache: '+Location.Path);{$ENDIF}
 
     If Result.Path = '' Then
       Result := Nil;
@@ -389,7 +389,7 @@ Begin
     Exit;
   End;
 
-  {$IFDEF DEBUG_FILECACHE}Log(logDebug, 'FileManager', 'Searching for file '+FileName+' in storage');{$ENDIF}
+  {$IFDEF DEBUG_FILECACHE}Engine.Log.Write(logDebug, 'FileManager', 'Searching for file '+FileName+' in storage');{$ENDIF}
 
   (*For I:=0 To Pred(_ProviderCount) Do
   Begin
@@ -411,7 +411,7 @@ Begin
   For J:=0 To Pred(_SourceCount) Do
   Begin
     If _SourceList[J]<>'' Then
-      Log(logDebug,'FileManager', 'Testing source: '+_SourceList[J]);
+      Engine.Log.Write(logDebug,'FileManager', 'Testing source: '+_SourceList[J]);
 
     For I:=0 To Pred(_FolderCount) Do
     Begin
@@ -499,7 +499,7 @@ End;
 {
   Mode := smRead;
 
-  Log(logDebug, 'FileManager', 'Searching providers for '+FileName);
+  Engine.Log.Write(logDebug, 'FileManager', 'Searching providers for '+FileName);
   For I:=0 To Pred(_ProviderCount) Do
   Begin
     If (_Providers[I].HasStream(FileName)) Then
@@ -540,7 +540,7 @@ End;
       Result := Nil
     Else
     Begin
-      Log(logDebug, 'FileManager', 'Opening file '+FileName);
+      Engine.Log.Write(logDebug, 'FileManager', 'Opening file '+FileName);
 
       If (IsPackageFileName(FileName)) Then
         Result := Self.OpenStream(FileName)
@@ -548,7 +548,7 @@ End;
         Result := MemoryStream.Create(FileName, Mode);
         //Result := FileStream.Open(FileName,Mode);
 
-    Log(logDebug, 'FileManager', 'Open size '+IntegerProperty.Stringify(Result.Size));
+    Engine.Log.Write(logDebug, 'FileManager', 'Open size '+IntegerProperty.Stringify(Result.Size));
     End;
   End;
 End;}
@@ -571,7 +571,7 @@ Procedure FileManager.AddSource(Source:TERRAString);
 Var
   I:Integer;
 Begin
-  Log(logDebug, 'FileManager', 'Adding source: '+Source);
+  Engine.Log.Write(logDebug, 'FileManager', 'Adding source: '+Source);
 
   RemoveSource(Source);
   Inc(_SourceCount);

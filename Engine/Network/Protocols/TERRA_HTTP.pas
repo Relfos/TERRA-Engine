@@ -359,13 +359,13 @@ Begin
 
   If (CachedFile<>'') Then
   Begin
-    Log(logDebug, 'HTTP', 'Cached: '+URL);
+    Engine.Log.Write(logDebug, 'HTTP', 'Cached: '+URL);
     _URL := 'file://' + CachedFile;
   End;
 
-  Log(logDebug, 'HTTP', 'Starting download to '+URL);
+  Engine.Log.Write(logDebug, 'HTTP', 'Starting download to '+URL);
   If Request.Cookie<>'' Then
-    Log(logDebug, 'HTTP', 'Cookie: '+ Request.Cookie);
+    Engine.Log.Write(logDebug, 'HTTP', 'Cookie: '+ Request.Cookie);
 
   _ErrorCode := httpOK;
   _Offset := Dest.Position;
@@ -381,7 +381,7 @@ Begin
 
   If (URL='') Or (Dest=Nil) Then
   Begin
-    Log(logError, 'HTTP', 'Invalid download arguments.');
+    Engine.Log.Write(logError, 'HTTP', 'Invalid download arguments.');
     _ErrorCode := httpInvalidURL;
     Exit;
   End;
@@ -402,7 +402,7 @@ Begin
   Begin
     If Not FileStream.Exists(URL) Then
     Begin
-      Log(logError, 'HTTP', 'File not found: '+_URL);
+      Engine.Log.Write(logError, 'HTTP', 'File not found: '+_URL);
       _ErrorCode := httpNotFound;
       Exit;
     End;
@@ -413,7 +413,7 @@ Begin
     _Downloading := (_Progress<100);
   End Else
   Begin
-    Log(logError, 'HTTP', 'Unknown protocol: '+ Request.Protocol);
+    Engine.Log.Write(logError, 'HTTP', 'Unknown protocol: '+ Request.Protocol);
     _ErrorCode := httpInvalidProtocol;
     Exit;
   End;
@@ -488,7 +488,7 @@ Begin
       Header := StringCopy(_Response, 1, Pred(I));
       _Response := StringCopy(_Response, (I+Length(Tag)), MaxInt);
 
-      Log(logDebug, 'HTTP', 'Full response: '+_Response);
+      Engine.Log.Write(logDebug, 'HTTP', 'Full response: '+_Response);
 
       Tag := StringGetNextSplit(Header, ' '); // HTTP/1.1
       Value := StringGetNextSplit(Header, ' ');
@@ -573,7 +573,7 @@ Begin
           If (StringEquals(Tag, 'content-length')) Then
           Begin
             _TotalSize := StringToInt(Value);
-            Log(logDebug, 'HTTP', 'Content-length '+IntegerProperty.Stringify(_TotalSize));
+            Engine.Log.Write(logDebug, 'HTTP', 'Content-length '+IntegerProperty.Stringify(_TotalSize));
           End;
 
           If (StringEquals(Tag, 'transfer-encoding')) Then
@@ -581,7 +581,7 @@ Begin
             If (StringEquals(Value, 'chunked')) Then
             Begin
               _ChunkedTransfer := True;
-              Log(logDebug, 'HTTP', 'This is a chunked transfer!');
+              Engine.Log.Write(logDebug, 'HTTP', 'This is a chunked transfer!');
             End;
           End;
         End;
@@ -593,7 +593,7 @@ Begin
 
   If (Source = Nil) Then
   Begin
-    Log(logWarning, 'HTTP', 'Connection source disappeared!');
+    Engine.Log.Write(logWarning, 'HTTP', 'Connection source disappeared!');
     _ErrorCode := httpBug;
     _Downloading := False;
     Exit;
@@ -602,10 +602,10 @@ Begin
   If (_TotalSize<0) And (Not _ChunkedTransfer) Then
   Begin
     _TotalSize := Length(_Response);
-    Log(logDebug, 'HTTP', 'Adjusting content length to '+IntegerProperty.Stringify(_TotalSize));
+    Engine.Log.Write(logDebug, 'HTTP', 'Adjusting content length to '+IntegerProperty.Stringify(_TotalSize));
   End;
 
-  Log(logDebug, 'HTTP', 'Response Remainder: '+_Response);
+  Engine.Log.Write(logDebug, 'HTTP', 'Response Remainder: '+_Response);
 
   If (Not Result) Then
   Begin
@@ -615,7 +615,7 @@ Begin
 
   If (_ChunkedTransfer) Then
   Begin
-    Log(logDebug, 'HTTP', 'Entering chunk mode...');
+    Engine.Log.Write(logDebug, 'HTTP', 'Entering chunk mode...');
     If (_Response = '') Then
     Begin
       //Log(logDebug, 'HTTP', 'Fetching more...');
@@ -654,7 +654,7 @@ End;
 
 Procedure HTTPDownloader.WriteLeftovers();
 Begin
-  Log(logDebug, 'HTTP', 'Writing leftovers: '+_Response);
+  Engine.Log.Write(logDebug, 'HTTP', 'Writing leftovers: '+_Response);
   If _Response<>'' Then
   Begin
     _Target.Write(@_Response[1], Length(_Response));
@@ -662,7 +662,7 @@ Begin
     _Response := '';
   End;
 
-  Log(logDebug, 'HTTP', 'Target position: '+IntegerProperty.Stringify(_Target.Position));
+  Engine.Log.Write(logDebug, 'HTTP', 'Target position: '+IntegerProperty.Stringify(_Target.Position));
 End;
 
 Procedure HTTPDownloader.ContinueTransfer(Count:Integer);
@@ -687,7 +687,7 @@ Begin
   Begin
     If (Source.EOF) Then
     Begin
-      Log(logWarning, 'HTTP', 'Connection closed!');
+      Engine.Log.Write(logWarning, 'HTTP', 'Connection closed!');
       _ErrorCode := httpConnectionReadError;
       _Downloading := False;
       Exit;
@@ -697,9 +697,9 @@ Begin
     If Count2>BufferSize Then
       Count2 := BufferSize;
 
-    Log(logDebug, 'HTTP', 'Reading '+IntegerProperty.Stringify(Count2));
+    Engine.Log.Write(logDebug, 'HTTP', 'Reading '+IntegerProperty.Stringify(Count2));
     Len := Source.Read(_Buffer, Count2);
-    Log(logDebug, 'HTTP', 'Got '+IntegerProperty.Stringify(Len));
+    Engine.Log.Write(logDebug, 'HTTP', 'Got '+IntegerProperty.Stringify(Len));
     If Len>0 Then
     Begin
       _UpdateTime := Application.GetTime;
@@ -776,14 +776,14 @@ End;
 
 Procedure HTTPDownloader.Release();
 Begin
-  Log(logDebug, 'HTTP', 'Invokating callback');
+  Engine.Log.Write(logDebug, 'HTTP', 'Invokating callback');
   Request._Callback(Self);
   Request._Callback := Nil;
 
   ReleaseObject(_Target);
   ReleaseObject(_Request);
 
-  Log(logDebug, 'HTTP', 'Releasing transfer: '+URL);
+  Engine.Log.Write(logDebug, 'HTTP', 'Releasing transfer: '+URL);
 
   If Assigned(_Buffer) Then
     FreeMem(_Buffer);
@@ -800,7 +800,7 @@ Begin
 
   If Assigned(_FileSource) Then
   Begin
-    Log(logDebug, 'HTTP', 'Releasing stream for '+URL);
+    Engine.Log.Write(logDebug, 'HTTP', 'Releasing stream for '+URL);
     ReleaseObject(_FileSource);
   End;
 End;
@@ -842,15 +842,15 @@ Begin
 
   If (Source.EOF) Then
   Begin
-    Log(logError, 'HTTP', 'Connection failed: '+URL);
+    Engine.Log.Write(logError, 'HTTP', 'Connection failed: '+URL);
     _ErrorCode := httpConnectionFailed;
     Exit;
   End;
 
-  Log(logDebug, 'HTTP', 'Sending request to '+URL);
+  Engine.Log.Write(logDebug, 'HTTP', 'Sending request to '+URL);
 
   Inc(_Connection._RequestCount);
-  Log(logDebug, 'HTTP', 'Request count: '+IntegerProperty.Stringify(_Connection._RequestCount));
+  Engine.Log.Write(logDebug, 'HTTP', 'Request count: '+IntegerProperty.Stringify(_Connection._RequestCount));
 
   S := Request.GetMethodString() +' '+ Request.FilePath+' HTTP/1.1'+#13#10;
   S := S + 'User-Agent: ' + Request.ClientName + #13#10;
@@ -896,7 +896,7 @@ Begin
       Self.RetryTransfer();
       Exit;
     End Else
-      Log(logDebug, 'HTTP', 'Download failed: '+URL);
+      Engine.Log.Write(logDebug, 'HTTP', 'Download failed: '+URL);
   End;
 End;
 
@@ -911,7 +911,7 @@ Begin
   ReleaseObject(_Connection);
   {$ENDIF}
 
-  Log(logDebug, 'HTTP', 'Retrying download: '+URL);
+  Engine.Log.Write(logDebug, 'HTTP', 'Retrying download: '+URL);
 
   _Connection := Engine.HTTP.GetConnection(Request.Hostname, Request.Port);
   Self.InitTransfer();
@@ -954,7 +954,7 @@ Begin
   _Target := Nil;
   _Alive := True;
 
-  Log(logDebug, 'HTTP', 'Opening connection to '+ _Host);
+  Engine.Log.Write(logDebug, 'HTTP', 'Opening connection to '+ _Host);
 
   _Socket := NetSocket.Create(_Host, Port);
   _Socket.SetBlocking(True);
@@ -964,10 +964,10 @@ End;
 
 Procedure HTTPConnection.Release;
 Begin
-  Log(logDebug, 'HTTP', 'Closing connection to '+ _Host);
+  Engine.Log.Write(logDebug, 'HTTP', 'Closing connection to '+ _Host);
 
   ReleaseObject(_Socket);
-  Log(logDebug, 'HTTP', 'Closed connection to '+ _Host);
+  Engine.Log.Write(logDebug, 'HTTP', 'Closed connection to '+ _Host);
 End;
 
 { HTTPRequest }

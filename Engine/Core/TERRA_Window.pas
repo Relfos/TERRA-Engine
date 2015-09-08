@@ -113,7 +113,7 @@ End;
 
 Function TERRAWindow.SetFullscreenMode(UseFullScreen: Boolean): Boolean;
 Begin
-  Log(logError, 'App','ToggleFullscreen not implemented!');
+  Engine.Log.Write(logError, 'App','ToggleFullscreen not implemented!');
   Result := False;
 End;
 

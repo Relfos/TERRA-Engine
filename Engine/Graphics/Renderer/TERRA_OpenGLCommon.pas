@@ -380,7 +380,7 @@ Begin
     Else
       PS := 'Fragment';
 
-    Log(logDebug, 'Shader', LogInfo + Name);
+    Engine.Log.Write(logDebug, 'Shader', LogInfo + Name);
   End Else
     LogInfo:='';
 
@@ -394,7 +394,7 @@ Begin
     StringReplaceText('ERROR:','@', LogInfo);
     StringReplaceText('@', StringFromChar(NewLineChar)+'ERROR:', LogInfo);
     //Delete(LogInfo, 1, Length(crLf));
-    Log(logDebug,'Shader', Source);
+    Engine.Log.Write(logDebug,'Shader', Source);
 
     //RaiseError(Name+'.'+PS+': ' + LogInfo);
     Result := False;
@@ -449,7 +449,7 @@ Begin
     Exit;
   End;
 
-//  Log(logError, 'Shader', 'Attribute '+Name+' not found in shader '+_Name);
+//  Engine.Log.Write(logError, 'Shader', 'Attribute '+Name+' not found in shader '+_Name);
   Result := -1;
 End;
 
@@ -482,7 +482,7 @@ End;
 Procedure OpenGLShader.UniformError(const Name: TERRAString);
 Begin
   {$IFDEF PC}
-//  Log(logWarning, 'Shader', 'Invalid uniform: '+Name+' in '+Self._Name);
+//  Engine.Log.Write(logWarning, 'Shader', 'Invalid uniform: '+Name+' in '+Self._Name);
   {$ENDIF}
 End;
 
@@ -649,7 +649,7 @@ Begin
   End;
 
   _Name := Name;
-  Log(logDebug, 'Shader', 'Creating shader from string: '+ Name);
+  Engine.Log.Write(logDebug, 'Shader', 'Creating shader from string: '+ Name);
 
   Compiler := GLSLShaderCompiler.Create();
   Result := Shader.GenerateCode(Shader.GetSubNodeAt(0), Compiler, _VertexCode, _FragmentCode);
@@ -657,7 +657,7 @@ Begin
   
   If Not Result Then
   Begin
-    Log(logError, 'Shader', 'Failed processing shader nodes for ' + _Name);
+    Engine.Log.Write(logError, 'Shader', 'Failed processing shader nodes for ' + _Name);
     Exit;
   End;
 
@@ -686,12 +686,12 @@ End;
 
 Function OpenGLShader.Load():Boolean;
 Begin
-  Log(logDebug, 'Shader', 'Compiling vertex code for ' + _Name);
+  Engine.Log.Write(logDebug, 'Shader', 'Compiling vertex code for ' + _Name);
 
   _Linked := False;
   Result := CompileShader(_Name, _VertexCode, GL_VERTEX_SHADER, _VertexShaderHandle);
 
-  Log(logDebug, 'Shader', 'Compiling fragment code for ' + _Name);
+  Engine.Log.Write(logDebug, 'Shader', 'Compiling fragment code for ' + _Name);
 
   If Result Then
   Begin
@@ -718,12 +718,12 @@ Begin
   If Not Result Then
     Exit;
 
-  Log(logDebug, 'Shader', 'Linking ' + _Name);
+  Engine.Log.Write(logDebug, 'Shader', 'Linking ' + _Name);
   Result := LinkProgram();
-  Log(logDebug, 'Shader', 'Finished linking ' +_Name+', result='+BoolToString(Result));
+  Engine.Log.Write(logDebug, 'Shader', 'Finished linking ' +_Name+', result='+BoolToString(Result));
 
   Self._Context := _Owner.CurrentContext;
-  Log(logDebug, 'Shader', 'Shader loaded ok!');
+  Engine.Log.Write(logDebug, 'Shader', 'Shader loaded ok!');
 End;
 
 

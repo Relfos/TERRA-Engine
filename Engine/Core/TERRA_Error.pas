@@ -50,7 +50,7 @@ Type
 Implementation
 
 {$IFNDEF OXYGENE}
-Uses TERRA_String, TERRA_Log;
+Uses TERRA_String, TERRA_Log, TERRA_Engine;
 {$ENDIF}
 
 Constructor TERRAError.Create(Const Desc:TERRAString; E:Exception);
@@ -64,10 +64,10 @@ Begin
   Inherited CreateFmt(Desc, []);
 
   {$IFNDEF OXYGENE}
-  ForceLogFlush := True;
+  Engine.Log.ForceLogFlush := True;
   {$ENDIF}
 
-  Log(logError, 'Engine', Desc);
+  Engine.Log.Write(logError, 'Engine', Desc);
 
   If E = Nil Then
     E := Self;

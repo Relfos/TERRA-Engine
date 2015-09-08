@@ -31,7 +31,7 @@ Make sure the paramter T is initialized to a very long number (eg: 9999)
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Vector3D, TERRA_GraphicsManager, TERRA_BoundingBox, TERRA_Ray, TERRA_Color;
+Uses TERRA_Object, TERRA_Utils, TERRA_Vector3D, TERRA_GraphicsManager, TERRA_BoundingBox, TERRA_Ray, TERRA_Color, TERRA_Viewport;
 
 Const
   MaxLevel = 6;
@@ -44,7 +44,7 @@ Type
       Procedure Release; Override;
 
       Procedure Render; Virtual;
-      Function Intersect(Const R:Ray; Var T:Single):Boolean; Virtual;
+      Function Intersect(Const R:Ray; Var T:Single; Out Normal:Vector3D):Boolean; Virtual;
   End;
 
   Octree = Class(TERRAObject)
@@ -67,13 +67,11 @@ Type
 
       Function Intersect(Const R:Ray; Var T:Single):OctreeElement;
 
-      Procedure Render;
+      Procedure Render(View:TERRAViewport);
   End;
 
 Implementation
-{$IFDEF PC}
-Uses TERRA_DebugDraw;
-{$ENDIF}
+Uses TERRA_DebugDraw, TERRA_Engine;
 
 { Octree }
 Constructor Octree.Create(Box:BoundingBox; Level:Integer);
@@ -112,41 +110,41 @@ Begin
   Center := _Size.Center;
   Case Index Of
   0 : Begin
-        Result.StartVertex := VectorCreate(_Size.StartVertex.X, _Size.StartVertex.Y, _Size.StartVertex.Z);
-        Result.EndVertex := VectorCreate(Center.X, Center.Y, Center.Z);
+        Result.StartVertex := Vector3D_Create(_Size.StartVertex.X, _Size.StartVertex.Y, _Size.StartVertex.Z);
+        Result.EndVertex := Vector3D_Create(Center.X, Center.Y, Center.Z);
       End;
   1 : Begin
-        Result.StartVertex := VectorCreate(_Size.StartVertex.X, _Size.StartVertex.Y, Center.Z);
-        Result.EndVertex := VectorCreate(Center.X, Center.Y, _Size.EndVertex.Z);
+        Result.StartVertex := Vector3D_Create(_Size.StartVertex.X, _Size.StartVertex.Y, Center.Z);
+        Result.EndVertex := Vector3D_Create(Center.X, Center.Y, _Size.EndVertex.Z);
       End;
   2 : Begin
-        Result.StartVertex := VectorCreate(Center.X, _Size.StartVertex.Y, _Size.StartVertex.Z);
-        Result.EndVertex := VectorCreate(_Size.EndVertex.X, Center.Y, Center.Z);
+        Result.StartVertex := Vector3D_Create(Center.X, _Size.StartVertex.Y, _Size.StartVertex.Z);
+        Result.EndVertex := Vector3D_Create(_Size.EndVertex.X, Center.Y, Center.Z);
       End;
   3 : Begin
-        Result.StartVertex := VectorCreate(Center.X, _Size.StartVertex.Y, Center.Z);
-        Result.EndVertex := VectorCreate(_Size.EndVertex.X, Center.Y, _Size.EndVertex.Z);
+        Result.StartVertex := Vector3D_Create(Center.X, _Size.StartVertex.Y, Center.Z);
+        Result.EndVertex := Vector3D_Create(_Size.EndVertex.X, Center.Y, _Size.EndVertex.Z);
       End;
 
   4 : Begin
-        Result.StartVertex := VectorCreate(_Size.StartVertex.X, Center.Y, _Size.StartVertex.Z);
-        Result.EndVertex := VectorCreate(Center.X, _Size.EndVertex.Y, Center.Z);
+        Result.StartVertex := Vector3D_Create(_Size.StartVertex.X, Center.Y, _Size.StartVertex.Z);
+        Result.EndVertex := Vector3D_Create(Center.X, _Size.EndVertex.Y, Center.Z);
       End;
   5 : Begin
-        Result.StartVertex := VectorCreate(_Size.StartVertex.X, Center.Y, Center.Z);
-        Result.EndVertex := VectorCreate(Center.X, _Size.EndVertex.Y, _Size.EndVertex.Z);
+        Result.StartVertex := Vector3D_Create(_Size.StartVertex.X, Center.Y, Center.Z);
+        Result.EndVertex := Vector3D_Create(Center.X, _Size.EndVertex.Y, _Size.EndVertex.Z);
       End;
   6 : Begin
-        Result.StartVertex := VectorCreate(Center.X, Center.Y, _Size.StartVertex.Z);
-        Result.EndVertex := VectorCreate(_Size.EndVertex.X, _Size.EndVertex.Y, Center.Z);
+        Result.StartVertex := Vector3D_Create(Center.X, Center.Y, _Size.StartVertex.Z);
+        Result.EndVertex := Vector3D_Create(_Size.EndVertex.X, _Size.EndVertex.Y, Center.Z);
       End;
   7 : Begin
-        Result.StartVertex := VectorCreate(Center.X, Center.Y, Center.Z);
-        Result.EndVertex := VectorCreate(_Size.EndVertex.X, _Size.EndVertex.Y, _Size.EndVertex.Z);
+        Result.StartVertex := Vector3D_Create(Center.X, Center.Y, Center.Z);
+        Result.EndVertex := Vector3D_Create(_Size.EndVertex.X, _Size.EndVertex.Y, _Size.EndVertex.Z);
       End;
   Else
   	Begin
-  		Result.StartVertex := VectorZero;
+  		Result.StartVertex := Vector3D_Zero;
   		FillChar(Result, SizeOf(Result), 0);
   	End;
   End;
@@ -190,14 +188,15 @@ Var
   I:Integer;
   Ok:Boolean;
   Obj:OctreeElement;
+  Normal:Vector3D;
 Begin
   Result := Nil;
   K := 99999;
-  If (R.Intersect(_Size, K)) Then
+  If (R.Intersect(_Size, K, Normal)) Then
   Begin
     For I:=0 To Pred(_ElementCount) Do
     Begin
-      Ok := _Elements[I].Intersect(R, K);
+      Ok := _Elements[I].Intersect(R, K, Normal);
       If (Ok) Then
       Begin
         If (K<T) Then
@@ -221,11 +220,11 @@ Begin
   End;
 End;
 
-Procedure Octree.Render;
+Procedure Octree.Render(View:TERRAViewport);
 Var
   I:Integer;
 Begin
-  If (Not GraphicsManager.Instance.ActiveViewport.Camera.Frustum.BoxVisible(_Size)) Then
+  If (Not View.Camera.IsBoxVisible(_Size)) Then
     Exit;
 
   For I:=0 To Pred(_ElementCount) Do
@@ -233,7 +232,7 @@ Begin
 
   For I:=0 To 7 Do
   If Assigned(_Children[I]) Then
-    _Children[I].Render;
+    _Children[I].Render(View);
 End;
 
 { OctreeElement }
@@ -242,9 +241,9 @@ Begin
   // do nothing
 End;
 
-Function OctreeElement.Intersect(const R: Ray; var T: Single): Boolean;
+Function OctreeElement.Intersect(const R: Ray; var T: Single; Out Normal:Vector3D): Boolean;
 Begin
-  Result := R.Intersect(Box, T);
+  Result := R.Intersect(Box, T, Normal);
 End;
 
 Procedure OctreeElement.Render;

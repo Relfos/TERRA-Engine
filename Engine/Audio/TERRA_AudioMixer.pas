@@ -82,7 +82,7 @@ Type
 
 Implementation
 
-Uses TERRA_Error, TERRA_Log, TERRA_OS
+Uses TERRA_Error, TERRA_Log, TERRA_Engine, TERRA_OS
 {$IFDEF WINDOWS}, TERRA_WinMMAudioDriver{$ENDIF}
 {$IFDEF OSX}, TERRA_CoreAudioDriver{$ENDIF}
 {$IFDEF LINUX}, TERRA_AlsaAudioDriver{$ENDIF}
@@ -100,7 +100,7 @@ Begin
 
   SetLength(_Sources, 8);
 
-	Log(logDebug, 'Audio','Opening sound device');
+	Engine.Log.Write(logDebug, 'Audio','Opening sound device');
 
   {$IFDEF WINDOWS}
   _Driver := WindowsAudioDriver.Create();
@@ -126,7 +126,7 @@ Begin
 
   If Not _Ready Then
   Begin
-	  Log(logWarning, 'Audio','Failed initializing sound device');
+	  Engine.Log.Write(logWarning, 'Audio','Failed initializing sound device');
     Exit;
   End;
 

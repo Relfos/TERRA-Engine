@@ -234,7 +234,7 @@ Begin
     Else
       TERRAObject(Temp).Destroy();
   End Else
-    Log(logWarning, 'App', Temp.ClassName +' is not a TERRA-Object!');
+    Engine.Log.Write(logWarning, 'App', Temp.ClassName +' is not a TERRA-Object!');
 
   Pointer(Obj) := Nil;
 End;
@@ -249,7 +249,7 @@ End;
 Procedure TERRAObject.Release;
 Begin
 {  S := Self.ClassName;
-  Log(logWarning, 'App', 'Destroying instance of '+S);}
+  Engine.Log.Write(logWarning, 'App', 'Destroying instance of '+S);}
 End;
 
 Destructor TERRAObject.Destroy();
@@ -322,7 +322,7 @@ Begin
   If Assigned(Result) Then
     Exit;
 
-  Log(logError, 'Application', 'Cannot unserialize object of type ' +ObjectType+' with name '+KeyName);
+  Engine.Log.Write(logError, 'Application', 'Cannot unserialize object of type ' +ObjectType+' with name '+KeyName);
 End;
 
 Function TERRAObject.FindPropertyWithPath(Path:TERRAString):TERRAObject;

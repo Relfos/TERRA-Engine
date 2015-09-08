@@ -289,8 +289,8 @@ Begin
 
   Source.Skip(Chunk.Size-SizeOf(PNG.Header));
 
-  Log(logDebug,'PNG', 'Width:' + IntegerProperty.Stringify(PNG.Header.Width));
-  Log(logDebug,'PNG', 'Height:' + IntegerProperty.Stringify(PNG.Header.Height));
+  Engine.Log.Write(logDebug,'PNG', 'Width:' + IntegerProperty.Stringify(PNG.Header.Width));
+  Engine.Log.Write(logDebug,'PNG', 'Height:' + IntegerProperty.Stringify(PNG.Header.Height));
 
   // Compression method must be 0 (inflate/deflate)
   If (PNG.Header.CompressionMethod<>0) then
@@ -876,9 +876,9 @@ Begin
   MyImage := TERRAImage(Target);
   
   {$IFDEF DEBUG_CORE}
-  Log(logDebug, 'PNG', 'Got PNG stream: '+Source.Name+' -> '+ IntegerProperty.Stringify(Source.Position)+' / '+ IntegerProperty.Stringify(Source.Size));
+  Engine.Log.Write(logDebug, 'PNG', 'Got PNG stream: '+Source.Name+' -> '+ IntegerProperty.Stringify(Source.Position)+' / '+ IntegerProperty.Stringify(Source.Size));
 
-  Log(logDebug, 'PNG', 'Reading header...');
+  Engine.Log.Write(logDebug, 'PNG', 'Reading header...');
   {$ENDIF}
   Source.Read(@Signature[0],8);
 
@@ -899,7 +899,7 @@ Begin
   // Load chunks
   Repeat
     {$IFDEF DEBUG_CORE}
-    Log(logDebug, 'PNG', 'Reading chunks...'+ IntegerProperty.Stringify(Source.Position));
+    Engine.Log.Write(logDebug, 'PNG', 'Reading chunks...'+ IntegerProperty.Stringify(Source.Position));
     {$ENDIF}
 
     Source.Read(@Chunk.Size, 4);
@@ -907,7 +907,7 @@ Begin
     Source.Read(@Chunk.Name[0], 4);
 
     {$IFDEF DEBUG_CORE}
-    Log(logDebug, 'PNG', 'Found chunk: '+Chunk.Name + ' , size: '+ IntegerProperty.Stringify(Chunk.Size));
+    Engine.Log.Write(logDebug, 'PNG', 'Found chunk: '+Chunk.Name + ' , size: '+ IntegerProperty.Stringify(Chunk.Size));
     {$ENDIF}
 
     //DisplayMessage('Chunk:' +Chunk.Name);
@@ -1171,9 +1171,7 @@ End;
 
 
 Initialization
-  Log(logDebug, 'PNG', 'Initializing');
   _PNGCRCTable := CRC32Table.Create(PNGPolynomial);
-
   Engine.Formats.Add(PNGFormat.Create(TERRAImage, 'png'));
 Finalization
   ReleaseObject(_PNGCRCTable);

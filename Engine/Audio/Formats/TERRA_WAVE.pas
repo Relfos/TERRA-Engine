@@ -102,13 +102,13 @@ Begin
 
   If (Chunk.ID<>RIFF_ID) Or (Id<> WAVE_ID) Then
   Begin
-    Log(logError, 'WAV', 'Invalid wave file.');
+    Engine.Log.Write(logError, 'WAV', 'Invalid wave file.');
     Exit;
   End;
 
   If Not FindChunk(Source, FMT_ID, Chunk ) Then
   Begin
-    Log(logError, 'WAV', 'Cannot find header chunk.');
+    Engine.Log.Write(logError, 'WAV', 'Cannot find header chunk.');
     Exit;
   End;
 
@@ -117,7 +117,7 @@ Begin
 
   If Header.Format<>PCM_FORMAT Then
   Begin
-    Log(logError, 'WAV', 'Wave format not supported.');
+    Engine.Log.Write(logError, 'WAV', 'Wave format not supported.');
     Exit;
   End;
 
@@ -125,13 +125,13 @@ Begin
 
   If Not FindChunk(Source, DATA_ID, Chunk ) Then
   Begin
-    Log(logError, 'WAV', 'Cannot find wave data chunk.');
+    Engine.Log.Write(logError, 'WAV', 'Cannot find wave data chunk.');
     Exit;
   End;
 
   If (Header.Bits <> 16) Then
   Begin
-    Log(logError, 'WAV', 'Only 16-bit audio can be loaded.');
+    Engine.Log.Write(logError, 'WAV', 'Only 16-bit audio can be loaded.');
     Exit;
   End;
 
@@ -145,7 +145,5 @@ Begin
 End;
 
 Begin
-  Log(logDebug, 'WAV', 'Initializing');
   Engine.Formats.Add(WAVFormat.Create(TERRASound, 'wav'));
-  Log(logDebug, 'WAV', 'WAVE sound format registered!');
 End.

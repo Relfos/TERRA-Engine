@@ -69,7 +69,7 @@ Begin
 
   Self.AutoUnload := True;
 
-	Log(logDebug, 'Audio','Initializing audio mixer');
+	Engine.Log.Write(logDebug, 'Audio','Initializing audio mixer');
   _Mixer := TERRAAudioMixer.Create(DefaultSampleFrequency, DefaultAudioSampleCount);
 
   _Enabled := True;
@@ -156,17 +156,17 @@ Begin
     Exit;
   End;
 
-  Log(logDebug, 'Sound', 'Playing '+Sound.Name);
+  Engine.Log.Write(logDebug, 'Sound', 'Playing '+Sound.Name);
 
   Sound.Prefetch();
 
   Result := ResourceSoundSource.Create(Sound);
 
-  Log(logDebug, 'Sound', 'Setting '+Sound.Name+' position');
+  Engine.Log.Write(logDebug, 'Sound', 'Setting '+Sound.Name+' position');
 
   Result.Position := Vector3D_Zero;
 
-  Log(logDebug, 'Sound', 'Registering sound in mixer');
+  Engine.Log.Write(logDebug, 'Sound', 'Registering sound in mixer');
   _Mixer.AddSource(Result);
 End;
 
@@ -190,7 +190,7 @@ Begin
   Else
     S := 'Disabling audio...';
 
-  Log(logDebug, 'Audio', S);
+  Engine.Log.Write(logDebug, 'Audio', S);
 End;
 
 End.

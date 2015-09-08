@@ -3,7 +3,7 @@ Unit TERRA_ConsoleApplication;
 {$I terra.inc}
 
 Interface
-Uses {$IFDEF WINDOWS}Windows, {$ENDIF} TERRA_OS, TERRA_String, TERRA_Window;
+Uses {$IFDEF WINDOWS}Windows, {$ENDIF} TERRA_Object, TERRA_OS, TERRA_String, TERRA_Window;
 
 Type
   ConsoleWindow = Class(TERRAWindow)

@@ -202,6 +202,12 @@ End;
 { TERRASprite }
 Constructor TERRASprite.Create;
 Begin
+  _Geometry := TERRAGeometry(Engine.Pool.Fetch(TERRAGeometry));
+  If Assigned(_Geometry) Then
+    _Geometry.Create() 
+  Else
+    _Geometry := TERRAGeometry.Create();
+
   Self.Clear();
   Self.Reset();
 End;
@@ -585,10 +591,11 @@ End;
 
 Procedure TERRASprite.Clear;
 Begin
-  If Geometry = Nil Then
-    _Geometry := TERRAGeometry.Create();
-  Geometry.Vertices.Resize(0);
-  Geometry.Indices.Resize(0);
+  If Assigned(Geometry) Then
+  Begin
+    Geometry.Vertices.Resize(0);
+    Geometry.Indices.Resize(0);
+  End;
 
   _Flags := 0;
 End;
@@ -706,7 +713,7 @@ Begin
   Begin
     If (Not OutIt.HasNext()) Then
     Begin
-      Log(logWarning, 'Sprite', 'Failed batch merge of sprite vertices...');
+      Engine.Log.Write(logWarning, 'Sprite', 'Failed batch merge of sprite vertices...');
       Break;
     End;
 

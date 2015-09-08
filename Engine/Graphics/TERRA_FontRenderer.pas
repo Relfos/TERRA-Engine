@@ -460,7 +460,7 @@ Begin
         Else
           _StylesList[Pred(_StyleCount)].Color := PopColor();
       End Else
-        Log(logWarning, 'Font', 'Unknown font effect tag: '+Tag);
+        Engine.Log.Write(logWarning, 'Font', 'Unknown font effect tag: '+Tag);
 
       Continue;
     End;

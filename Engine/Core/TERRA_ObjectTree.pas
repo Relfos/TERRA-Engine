@@ -405,7 +405,7 @@ Begin
       CurrentType := Prop.GetObjectType;
       If (Not StringEquals(CurrentType, TypeName)) Then
       Begin
-        Log(logWarning, 'Object', 'Unseralization mistmatch:' + CurrentType+ ' vs ' +TypeName);
+        Engine.Log.Write(logWarning, 'Object', 'Unseralization mistmatch:' + CurrentType+ ' vs ' +TypeName);
         Prop := Nil;
       End;
     End;

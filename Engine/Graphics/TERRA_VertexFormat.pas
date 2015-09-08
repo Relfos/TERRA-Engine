@@ -134,6 +134,8 @@ Type
       Constructor Create(Format:VertexFormat; VertexCount:Integer);
       Procedure Release(); Override;
 
+      Class Function CanBePooled:Boolean; Override;
+
       Procedure ConvertToFormat(NewFormat:VertexFormat);
 
       Procedure ReadAttribute(Attribute:VertexFormatAttribute; Format:DataFormat; Source:TERRAStream);
@@ -326,11 +328,7 @@ End;
 
 Procedure TERRAVertexBuffer.Release();
 Begin
-  If (Assigned(_Values)) Then
-  Begin
-    SetLength(_Values, 0);
-    _Values := Nil;
-  End;
+  _ItemCount := 0;
 End;
 
 
@@ -739,7 +737,7 @@ Begin
   Shader := Engine.Graphics.Renderer.ActiveShader;
   If Not Assigned(Shader) Then
   Begin
-    Log(logWarning, 'VBO', 'No shader!');
+    Engine.Log.Write(logWarning, 'VBO', 'No shader!');
     Exit;
   End;
 
@@ -750,7 +748,7 @@ Begin
   Begin
     _Attributes[I].Handle := Shader.GetAttributeHandle(_Attributes[I].Name);
     If (_Attributes[I].Handle<0) Then
-      Log(logDebug, 'VBO', 'Attribute '+_Attributes[I].Name+' is missing from the shader.');
+      Engine.Log.Write(logDebug, 'VBO', 'Attribute '+_Attributes[I].Name+' is missing from the shader.');
   End;}
 
   For I:=0 To Pred(MaxVertexAttributes) Do
@@ -973,6 +971,11 @@ End;
 Function TERRAVertexBuffer.GetVertexSizeInBytes():Cardinal;
 Begin
   Result := _VertexSize;
+End;
+
+Class Function TERRAVertexBuffer.CanBePooled: Boolean;
+Begin
+  Result := True;
 End;
 
 { VertexIterator }

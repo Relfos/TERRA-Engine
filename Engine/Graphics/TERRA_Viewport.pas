@@ -289,7 +289,7 @@ Begin
 
   _Camera := Camera;
 
-  Log(logDebug, 'Viewport', 'Created viewport '+Name+' with size '+ IntegerProperty.Stringify(_Width) +' x '+ IntegerProperty.Stringify(_Height)+' and scale = '+FloatProperty.Stringify(_Scale));
+  Engine.Log.Write(logDebug, 'Viewport', 'Created viewport '+Name+' with size '+ IntegerProperty.Stringify(_Width) +' x '+ IntegerProperty.Stringify(_Height)+' and scale = '+FloatProperty.Stringify(_Scale));
 End;
 
 
@@ -484,7 +484,7 @@ Begin
 
   If Enabled Then
   Begin
-    Log(logDebug, 'GraphicsManager', 'Initializing '+ IntegerProperty.Stringify(TargetValue)+' target for '+Self.Name);
+    Engine.Log.Write(logDebug, 'GraphicsManager', 'Initializing '+ IntegerProperty.Stringify(TargetValue)+' target for '+Self.Name);
 
     If (TargetValue<RenderCaptureTargets) Then
     Begin
@@ -507,7 +507,7 @@ Begin
 
   End Else
   Begin
-    Log(logDebug, 'GraphicsManager', 'Destroying '+ IntegerProperty.Stringify(TargetValue)+' target for '+Self.Name);
+    Engine.Log.Write(logDebug, 'GraphicsManager', 'Destroying '+ IntegerProperty.Stringify(TargetValue)+' target for '+Self.Name);
     If TargetValue<RenderCaptureTargets Then
       ReleaseObject(_RenderTextures[TargetValue]);
 
@@ -806,13 +806,13 @@ Procedure TERRAViewport.OnContextLost;
 Var
   I:Integer;
 Begin
-  Log(logDebug, 'Viewport', 'Context lost: '+Self.Name);
+  Engine.Log.Write(logDebug, 'Viewport', 'Context lost: '+Self.Name);
 
   For I:=0 To Pred(TotalCaptureTargets) Do
   Begin
     If (Assigned(_RenderBuffers[I])) Or (Assigned(_RenderTextures[I])) Then
     Begin
-      Log(logDebug, 'Viewport', 'Reseting '+ IntegerProperty.Stringify(I)+' target for '+Self.Name);
+      Engine.Log.Write(logDebug, 'Viewport', 'Reseting '+ IntegerProperty.Stringify(I)+' target for '+Self.Name);
       Self.SetRenderTargetState(RenderTargetType(I), False);
       Self.SetRenderTargetState(RenderTargetType(I), True);
     End;
@@ -862,7 +862,7 @@ Function TERRAViewport.GetFXChain: ScreenFXChain;
 Begin
   If Not Engine.Graphics.Renderer.Features.PostProcessing.Avaliable Then
   Begin
-    Log(logError, 'Viewport', 'Postprocessing not supported in this device!');
+    Engine.Log.Write(logError, 'Viewport', 'Postprocessing not supported in this device!');
     Result := Nil;
     Exit;
   End;

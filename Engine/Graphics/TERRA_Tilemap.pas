@@ -144,8 +144,8 @@ Type
 
       Function AddLayer(Width,Height:Integer; Name:TERRAString):TileLayer;
 
-      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
-      Function GetRenderBucket: Cardinal; Override;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
+      Procedure GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType); Override;
 
       Function GetTileAt(X, Y:Integer; Layer:Integer=-1; UsePalette:Boolean = False):Integer; Cdecl;
       Function GetTileProperty(ID:Integer; Key:TERRAString):TERRAString;
@@ -400,7 +400,7 @@ Begin
     Result := _Layers[I].Width;
 End;
 
-Procedure TileMap.Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
+Procedure TileMap.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
   I:Integer;
   N:Cardinal;
@@ -416,7 +416,7 @@ Begin
   If (_Layers[I].Visible) Then
   Begin
     _Layers[I].Layer := I * 0.1;
-    View.SpriteRenderer.QueueSprite(_Layers[I]);
+    _Layers[I].Render(View, Stage);
   End;
 End;
 
@@ -482,9 +482,11 @@ Begin
   Result := _TileSet;
 End;
 
-Function TileMap.GetRenderBucket: Cardinal;
+Procedure TileMap.GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType); 
 Begin
-  Result := renderBucket_Overlay;
+  Depth := 0;
+  Layer := RenderableLayer_Default;
+  AlphaType := Renderable_Opaque;
 End;
 
 { TileLayer }
@@ -579,7 +581,7 @@ Begin
 
   If (Source='') Then
   Begin
-    Log(logError, 'Tilemap', 'Error creating tile layer for map '+Map.Name);
+    Engine.Log.Write(logError, 'Tilemap', 'Error creating tile layer for map '+Map.Name);
     Exit;
   End;
 

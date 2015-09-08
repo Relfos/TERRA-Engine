@@ -248,11 +248,11 @@ End;
 
 Procedure UIView.Clear;
 Begin
-  Log(logError, 'UI', 'Clearing UI');
+  Engine.Log.Write(logError, 'UI', 'Clearing UI');
 
   Self.RemoveAllChildren();
 
-  Log(logError, 'UI', 'UI is now clear.');
+  Engine.Log.Write(logError, 'UI', 'UI is now clear.');
 End;
 
 Procedure UIView.SetFocus(Value:UIWidget);
@@ -429,16 +429,16 @@ End;
 Function UIView.OnKeyPress(Key:TERRAChar):UIWidget;
 Begin
   Result := Nil;
-  Log(logDebug, 'UI', 'keypress: '+ IntegerProperty.Stringify(Integer(Key)));
+  Engine.Log.Write(logDebug, 'UI', 'keypress: '+ IntegerProperty.Stringify(Integer(Key)));
 
 	If Assigned(_Focus) Then
   Begin
-    Log(logDebug, 'UI', 'focus is '+_Focus.Name);
+    Engine.Log.Write(logDebug, 'UI', 'focus is '+_Focus.Name);
 		_Focus.OnHandleKeyPress(Key);
     Result := _Focus;
   End;
 
-  Log(logDebug, 'UI', 'keypress done!');
+  Engine.Log.Write(logDebug, 'UI', 'keypress done!');
 End;
 
 Function UIView.PickWidget(X,Y:Integer; Const EventClass:WidgetEventClass; Ignore:UIWidget):UIWidget;

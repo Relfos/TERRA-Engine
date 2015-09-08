@@ -77,7 +77,7 @@ Begin
     Result.Priority := 90;
     Self.AddResource(Result);
   End Else
-    Log(logWarning, 'Font', 'Could not find font. ['+Name +']');
+    Engine.Log.Write(logWarning, 'Font', 'Could not find font. ['+Name +']');
 End;
 
 

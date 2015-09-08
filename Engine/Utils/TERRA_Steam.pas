@@ -108,11 +108,11 @@ Var
 Begin
   _LoggedOn := False;
 
-  Log(logDebug, 'Steam', 'Trying to load Steam library...');
+  Engine.Log.Write(logDebug, 'Steam', 'Trying to load Steam library...');
   _Loaded := LoadSteamAPI();
   If Not _Loaded Then
   Begin
-    Log(logWarning, 'Steam', 'Failed to hook into Steam...');
+    Engine.Log.Write(logWarning, 'Steam', 'Failed to hook into Steam...');
     _Running := False;
     Exit;
   End;
@@ -131,18 +131,18 @@ Begin
   End;
 
   _AppID := CardinalToString(CurrentAppID);
-  Log(logDebug, 'Steam', 'App ID: '+ _AppID);
+  Engine.Log.Write(logDebug, 'Steam', 'App ID: '+ _AppID);
 
   _SteamID := UInt64ToString(ISteamUser_GetSteamID());
-  Log(logDebug, 'Steam', 'User ID: '+ _SteamID);
+  Engine.Log.Write(logDebug, 'Steam', 'User ID: '+ _SteamID);
 
   _UserName := ISteamFriends_GetPersonaName();
-  Log(logDebug, 'Steam', 'Username: '+ _UserName);
+  Engine.Log.Write(logDebug, 'Steam', 'Username: '+ _UserName);
 
   _Language := ISteamApps_GetCurrentGameLanguage();
   If _Language = '' Then
     _Language := Application.Instance.Language;
-  Log(logDebug, 'Steam', 'Language: '+ _Language);
+  Engine.Log.Write(logDebug, 'Steam', 'Language: '+ _Language);
 
   //_LicenseResult := ISteamGameServer_UserHasLicenseForApp(steamID:SteamID; appID:SteamAppId):
 End;
@@ -216,7 +216,7 @@ Begin
   If GameID<> Self.AppID Then
     Exit;
 
-  Log(logDebug, 'Steam', 'Received stats, with return code '+CardinalToString(Info.Result));
+  Engine.Log.Write(logDebug, 'Steam', 'Received stats, with return code '+CardinalToString(Info.Result));
 
   // load achievements
 
@@ -248,7 +248,7 @@ Begin
     _Name := ISteamUserStats_GetAchievementDisplayAttribute(PAnsiChar(_ID), 'name');
 		_Description := ISteamUserStats_GetAchievementDisplayAttribute(PAnsiChar(_ID), 'desc');
   End Else
-    Log(logWarning, 'Steam', 'GetAchievement failed for Achievement ' + _ID);
+    Engine.Log.Write(logWarning, 'Steam', 'GetAchievement failed for Achievement ' + _ID);
 End;
 
 Function SteamAchievement.Unlock():Boolean;
@@ -352,7 +352,7 @@ End;
 Procedure SteamStat.Load;
 Begin
   ISteamUserStats_GetStatInt(PAnsiChar(_ID), _Value);
-  Log(logDebug, 'Steam', 'Stat '+_ID + ' = ' +  IntegerProperty.Stringify(_Value));
+  Engine.Log.Write(logDebug, 'Steam', 'Stat '+_ID + ' = ' +  IntegerProperty.Stringify(_Value));
 End;
 
 

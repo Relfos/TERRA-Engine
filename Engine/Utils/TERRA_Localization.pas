@@ -385,7 +385,7 @@ Begin
     Exit;
   End;
 
-  Log(logWarning, 'Strings', 'String value for ['+Key+'] not found!');
+  Engine.Log.Write(logWarning, 'Strings', 'String value for ['+Key+'] not found!');
   Result := Self.EmptyString;
 End;
 
@@ -398,13 +398,13 @@ Begin
   If (Source = Nil ) Then
     Exit;
 
-  Log(logDebug, 'Strings', 'Merging strings from '+Source.Name);
+  Engine.Log.Write(logDebug, 'Strings', 'Merging strings from '+Source.Name);
   Ofs := _Strings.Count;
 
   Source.ReadHeader(Header);
   If Not CompareFileHeader(Header, Translation_Header) Then
   Begin
-    Log(logError, 'Strings', 'Invalid  file header in '+Source.Name);
+    Engine.Log.Write(logError, 'Strings', 'Invalid  file header in '+Source.Name);
     Exit;
   End;
 
@@ -441,7 +441,7 @@ Begin
   Location := Engine.Files.Search('translation_'+ StringLower(Lang)+'.'+ Translation_Extension);
   If Location = Nil Then
   Begin
-    Log(logWarning, 'Strings', 'Could not find translation file for lang='+Lang);
+    Engine.Log.Write(logWarning, 'Strings', 'Could not find translation file for lang='+Lang);
 
     If (Lang<>language_English) Then
       SetLanguage(language_English);

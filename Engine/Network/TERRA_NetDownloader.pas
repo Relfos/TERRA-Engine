@@ -49,7 +49,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Log, TERRA_OS, TERRA_MemoryStream;
+Uses TERRA_Log, TERRA_Engine, TERRA_OS, TERRA_MemoryStream;
 
 { DownloadManager }
 Constructor DownloadManager.Create;
@@ -131,7 +131,7 @@ Begin
 
     If (_Downloads[I].ErrorCode<>httpOk) Then
     Begin
-      Log(logDebug, 'HTTP', 'Download error :'+_Downloads[i].URL+' -> error ' +IntegerProperty.Stringify(Integer(_Downloads[I].ErrorCode)));
+      Engine.Log.Write(logDebug, 'HTTP', 'Download error :'+_Downloads[i].URL+' -> error ' +IntegerProperty.Stringify(Integer(_Downloads[I].ErrorCode)));
       Remove := True;
     End Else
     If (Not _Downloads[I].InBackground) And (_Downloads[I].TotalSize<0) Then
@@ -154,16 +154,16 @@ Begin
       Begin
         Remove := True;
 
-        Log(logDebug, 'HTTP', 'Download finished :'+_Downloads[i].URL);
-        Log(logDebug, 'HTTP', 'Total size: '+IntegerProperty.Stringify(_Downloads[i].Target.Position));
+        Engine.Log.Write(logDebug, 'HTTP', 'Download finished :'+_Downloads[i].URL);
+        Engine.Log.Write(logDebug, 'HTTP', 'Total size: '+IntegerProperty.Stringify(_Downloads[i].Target.Position));
 
         If (_Downloads[I].Target Is MemoryStream) Then
         Begin
-          Log(logDebug, 'HTTP', 'Truncating memory stream');
+          Engine.Log.Write(logDebug, 'HTTP', 'Truncating memory stream');
           _Downloads[I].Target.Truncate();
         End;
 
-        Log(logDebug, 'HTTP', 'Seeking to zero');
+        Engine.Log.Write(logDebug, 'HTTP', 'Seeking to zero');
         _Downloads[I].Target.Seek(_Downloads[I].Offset);
       End;
     End;
@@ -205,7 +205,7 @@ Begin
   _Downloads[Pred(_DownloadCount)] := Result;
 
   _Mutex.Unlock();
-  Log(logDebug, 'HTTP', 'Download prepared.');
+  Engine.Log.Write(logDebug, 'HTTP', 'Download prepared.');
 End;
 
 Procedure DownloadManager.Flush;

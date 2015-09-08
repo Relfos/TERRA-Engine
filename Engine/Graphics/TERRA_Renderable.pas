@@ -196,7 +196,8 @@ End;
 
 Procedure RenderableManager.DeleteRenderable(MyRenderable:TERRARenderable);
 Begin
-  _Renderables.Remove(MyRenderable);
+  If Assigned(_Renderables) Then
+    _Renderables.Remove(MyRenderable);
 End;
 
 Procedure RenderableManager.Clear;
@@ -204,8 +205,6 @@ Var
   It:TERRAIterator;
   Renderable:TERRARenderable;
 Begin
-  It := _Renderables.GetIterator();
-
   It := _Renderables.GetIterator();
   While (It.HasNext) Do
   Begin

@@ -535,7 +535,7 @@ Var
   I:Integer;
   S:TERRAString;
 Begin
-  Log(logDebug, 'App', 'Initializing randomizer');
+  Engine.Log.Write(logDebug, 'App', 'Initializing randomizer');
 
   {$IFNDEF OXYGENE}
   System.Randomize;
@@ -547,7 +547,7 @@ Begin
   _TapjoyCredits := 0;
   {$ENDIF}
 
-  Log(logDebug, 'App', 'Creating critical section for input');
+  Engine.Log.Write(logDebug, 'App', 'Creating critical section for input');
 
   {$IFNDEF DISABLEINPUTMUTEX}
   _InputMutex := CriticalSection.Create({'app_input'});
@@ -555,7 +555,7 @@ Begin
 
   _CallbackMutex := CriticalSection.Create();
 
-  Log(logDebug, 'App', 'Initializing window');
+  Engine.Log.Write(logDebug, 'App', 'Initializing window');
 
   _Orientation := orientation_Portrait;
   _OrientationTime := 0;
@@ -563,7 +563,7 @@ Begin
 
   _BundleVersion := '0.0';
 
-  Log(logDebug, 'App', 'Initializing settings');
+  Engine.Log.Write(logDebug, 'App', 'Initializing settings');
   If (Not InitSettings()) Then
     Halt(0);
 
@@ -604,13 +604,10 @@ Begin
 
   Self.OnDestroy();
 
-  Log(logWarning, 'App', 'Shutting down all subsystems.');
+  Engine.Log.Write(logWarning, 'App', 'Application has shutdown.');
   ShutdownSystem;
-  Log(logWarning, 'App', 'All subsystems destroyed.');
 
   Self.Release();
-
-  Log(logWarning, 'App', 'Application has shutdown.');
 End;
 
 procedure BaseApplication.Terminate(ForceClose: Boolean);
@@ -649,7 +646,7 @@ Begin
   Result := True;
   If _Startup Then
   Begin
-    Log(logDebug, 'App', 'Initializing system');
+    Engine.Log.Write(logDebug, 'App', 'Initializing system');
 
     // Create window
     InitSystem();
@@ -674,13 +671,13 @@ Begin
   Try
   {$ENDIF}
 
-    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Processing messages');{$ENDIF}{$ENDIF}
+    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Processing messages');{$ENDIF}{$ENDIF}
     Self.ProcessMessages();
-    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'All messages processed');{$ENDIF}{$ENDIF}
+    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'All messages processed');{$ENDIF}{$ENDIF}
 
-    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Processing callbacks');{$ENDIF}{$ENDIF}
+    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Processing callbacks');{$ENDIF}{$ENDIF}
     Self.ProcessCallbacks();
-    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'All callbacks processed');{$ENDIF}{$ENDIF}
+    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'All callbacks processed');{$ENDIF}{$ENDIF}
 
       If (_InitApp) Then
       Begin
@@ -693,16 +690,16 @@ Begin
 
         If Assigned(Engine.Error) Then
         Begin
-          {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logWarning, 'App', 'Fatal error!!!!');{$ENDIF}{$ENDIF}
+          {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logWarning, 'App', 'Fatal error!!!!');{$ENDIF}{$ENDIF}
           If (Engine.Input.Keys.IsDown(keyEscape)) Then
             Self.Terminate(False);
         End Else
         Begin
-          {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Callind client.OnIdle()');{$ENDIF}{$ENDIF}
+          {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Callind client.OnIdle()');{$ENDIF}{$ENDIF}
           Self.OnIdle();
         End;
 
-        {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'client.OnIdle() finished');{$ENDIF}{$ENDIF}
+        {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'client.OnIdle() finished');{$ENDIF}{$ENDIF}
       End;
 
     If (_ContextWasLost) Then
@@ -714,12 +711,12 @@ Begin
 
       _FrameStart := Application.GetTime();
 
-    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Refreshing Components');{$ENDIF}{$ENDIF}
+    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Refreshing Components');{$ENDIF}{$ENDIF}
     If Not _Suspended Then
       Engine.Update();
 
 
-    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Swapping buffers');{$ENDIF}{$ENDIF}
+    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Swapping buffers');{$ENDIF}{$ENDIF}
     If Assigned(_Window) Then
       _Window.Update();
 
@@ -743,7 +740,7 @@ Begin
   {$ENDIF}
 End;
 
-  Log(logDebug, 'App', 'Application is finishing...');
+  Engine.Log.Write(logDebug, 'App', 'Application is finishing...');
 
   Self.Finish();
   Result := False;
@@ -794,12 +791,12 @@ End;
 
 procedure BaseApplication.SetState(State: Cardinal);
 Begin
- Log(logError, 'App','SetState not implemented!');
+ Engine.Log.Write(logError, 'App','SetState not implemented!');
 End;
 
 procedure BaseApplication.Yeld;
 Begin
- Log(logError, 'App','Yeld not implemented!');
+ Engine.Log.Write(logError, 'App','Yeld not implemented!');
 End;
 
 procedure BaseApplication.SetPause(Value: Boolean);
@@ -836,7 +833,7 @@ procedure BaseApplication.DisableAds; Begin End;
 
 Procedure BaseApplication.OpenURL(Const URL:TERRAString);
 Begin
-  Log(logError, 'App', 'Opening URLs is not supported in this platform.');
+  Engine.Log.Write(logError, 'App', 'Opening URLs is not supported in this platform.');
 End;
 
 Procedure BaseApplication.LogToConsole(const Text: TERRAString);
@@ -911,7 +908,7 @@ Begin
     Exit;
 
   _Suspended := Value;
-  Log(logDebug, 'App', 'Suspend state = '+BoolToString(Value));
+  Engine.Log.Write(logDebug, 'App', 'Suspend state = '+BoolToString(Value));
 
 (*  If (_Suspended) Then
     _ApplicationComponents[I].Instance.Suspend()
@@ -1060,7 +1057,7 @@ Begin
   For I:=0 To Pred(FrameCount) Do
     Result := Result + BackTraceStrFunc(Frames[i]) + CrLf;
 
-  Log(logError, 'App', Result);
+  Engine.Log.Write(logError, 'App', Result);
   Halt();
 End;
 {$ENDIF}
@@ -1074,18 +1071,18 @@ Begin
 
   If (IsInvalidOrientation(Value)) Then
     Begin
-        Log(logDebug, 'App', 'Invalid orientation change: '+ IntegerProperty.Stringify(Integer(Value)));
+        Engine.Log.Write(logDebug, 'App', 'Invalid orientation change: '+ IntegerProperty.Stringify(Integer(Value)));
         Exit;
     End;
 
   Delta := GetOrientationDelta();
   If (_Orientation = Value) {Or (Delta<1)} Then
   Begin
-    Log(logDebug, 'App', 'Failed orientation change (delta='+FloatProperty.Stringify(Delta)+')');
+    Engine.Log.Write(logDebug, 'App', 'Failed orientation change (delta='+FloatProperty.Stringify(Delta)+')');
     Exit;
   End;
 
-  Log(logDebug, 'App', 'Changing orientation to '+  IntegerProperty.Stringify(Integer(Value)));
+  Engine.Log.Write(logDebug, 'App', 'Changing orientation to '+  IntegerProperty.Stringify(Integer(Value)));
   _PreviousOrientation := _Orientation;
   _OrientationTime := Application.GetTime();
   _Orientation := Value;
@@ -1093,22 +1090,22 @@ Begin
     Case _Orientation Of
     orientation_LandscapeLeft:
     Begin
-        Log(logDebug, 'App', 'Changing orientation to landscape-left');
+        Engine.Log.Write(logDebug, 'App', 'Changing orientation to landscape-left');
     End;
 
     orientation_LandscapeRight:
     Begin
-        Log(logDebug, 'App', 'Changing orientation to landscape-right');
+        Engine.Log.Write(logDebug, 'App', 'Changing orientation to landscape-right');
     End;
 
     orientation_Portrait:
     Begin
-        Log(logDebug, 'App', 'Changing orientation to portrait');
+        Engine.Log.Write(logDebug, 'App', 'Changing orientation to portrait');
     End;
 
     orientation_PortraitInverted:
     Begin
-        Log(logDebug, 'App', 'Changing orientation to portrait-inverted');
+        Engine.Log.Write(logDebug, 'App', 'Changing orientation to portrait-inverted');
     End;
 End;
 
@@ -1174,7 +1171,7 @@ Begin
   If Not _CanReceiveEvents Then
     Exit;
 
-  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Locking event mutex');{$ENDIF}{$ENDIF}
+  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Locking event mutex');{$ENDIF}{$ENDIF}
 
   {$IFNDEF DISABLEINPUTMUTEX}
   _InputMutex.Lock();
@@ -1184,7 +1181,7 @@ Begin
   N := _EventCount;
   If N<Pred(EventBufferSize) Then
   Begin
-       {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Adding event with index '+ IntegerProperty.Stringify(N));{$ENDIF}{$ENDIF}
+       {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Adding event with index '+ IntegerProperty.Stringify(N));{$ENDIF}{$ENDIF}
        Inc(_EventCount);
       _Events[N].X := X;
       _Events[N].Y := Y;
@@ -1195,7 +1192,7 @@ Begin
       _Events[N].Value := Value;
       _Events[N].Action := Action;
   End;
-  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Unlocking event mutex');{$ENDIF}{$ENDIF}
+  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Unlocking event mutex');{$ENDIF}{$ENDIF}
 
   {$IFNDEF DISABLEINPUTMUTEX}
   _InputMutex.Unlock();
@@ -1274,7 +1271,7 @@ Begin
 
   Input := Engine.Input;
 
-  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Processing '+ IntegerProperty.Stringify(_EventCount)+ ' events.');{$ENDIF}{$ENDIF}
+  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Processing '+ IntegerProperty.Stringify(_EventCount)+ ' events.');{$ENDIF}{$ENDIF}
   For I:=0 To Pred(_EventCount) Do
   Begin
     If (_Events[I].HasCoords) Then
@@ -1288,7 +1285,7 @@ Begin
       Input.Mouse.Y := PY;
     End;
 
-    {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Events type: '+GetEventTypeName(_Events[I].Action));{$ENDIF}
+    {$IFDEF DEBUG_CORE}Engine.Log.Write(logDebug, 'App', 'Events type: '+GetEventTypeName(_Events[I].Action));{$ENDIF}
 
     Case _Events[I].Action Of
     eventQuit:
@@ -1299,13 +1296,13 @@ Begin
 
     eventMouseDown:
       Begin
-        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Mouse down, X:'+ IntegerProperty.Stringify(Input.Mouse.X)+ ' Y:'+ IntegerProperty.Stringify(Input.Mouse.Y));{$ENDIF}
+        {$IFDEF DEBUG_CORE}Engine.Log.Write(logDebug, 'App', 'Mouse down, X:'+ IntegerProperty.Stringify(Input.Mouse.X)+ ' Y:'+ IntegerProperty.Stringify(Input.Mouse.Y));{$ENDIF}
         Input.Keys.SetState(_Events[I].Value, True);
 
-        {Log(logDebug, 'App', 'Mouse down, X:'+ IntegerProperty.Stringify(Input.Mouse.X)+ ' Y:'+ IntegerProperty.Stringify(Input.Mouse.Y));
-        Log(logDebug, 'App', 'DeviceX1:'+ IntegerProperty.Stringify(_DeviceX1)+ ' DeviceY1:'+ IntegerProperty.Stringify(_DeviceY1));
-        Log(logDebug, 'App', 'DeviceX2:'+ IntegerProperty.Stringify(_DeviceX2)+ ' DeviceY2:'+ IntegerProperty.Stringify(_DeviceY2));
-        Log(logDebug, 'App', 'DeviceWidth:'+ IntegerProperty.Stringify(_DeviceWidth)+ ' DeviceHeight:'+ IntegerProperty.Stringify(_DeviceHeight));
+        {Engine.Log.Write(logDebug, 'App', 'Mouse down, X:'+ IntegerProperty.Stringify(Input.Mouse.X)+ ' Y:'+ IntegerProperty.Stringify(Input.Mouse.Y));
+        Engine.Log.Write(logDebug, 'App', 'DeviceX1:'+ IntegerProperty.Stringify(_DeviceX1)+ ' DeviceY1:'+ IntegerProperty.Stringify(_DeviceY1));
+        Engine.Log.Write(logDebug, 'App', 'DeviceX2:'+ IntegerProperty.Stringify(_DeviceX2)+ ' DeviceY2:'+ IntegerProperty.Stringify(_DeviceY2));
+        Engine.Log.Write(logDebug, 'App', 'DeviceWidth:'+ IntegerProperty.Stringify(_DeviceWidth)+ ' DeviceHeight:'+ IntegerProperty.Stringify(_DeviceHeight));
         }
 
         {If (_MouseOnAdArea) Then
@@ -1316,7 +1313,7 @@ Begin
 
     eventMouseUp:
       Begin
-        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Mouse up, X:'+ IntegerProperty.Stringify(Input.Mouse.X)+ ' Y:'+ IntegerProperty.Stringify(Input.Mouse.Y));{$ENDIF}
+        {$IFDEF DEBUG_CORE}Engine.Log.Write(logDebug, 'App', 'Mouse up, X:'+ IntegerProperty.Stringify(Input.Mouse.X)+ ' Y:'+ IntegerProperty.Stringify(Input.Mouse.Y));{$ENDIF}
 
         Input.Keys.SetState(_Events[I].Value, False);
         Self.OnMouseUp(Input.Mouse.X, Input.Mouse.Y, _Events[I].Value);
@@ -1389,45 +1386,45 @@ Begin
 
     eventContextLost:
       Begin
-        Log(logDebug, 'App', 'App context was lost...');
+        Engine.Log.Write(logDebug, 'App', 'App context was lost...');
         _ContextWasLost := True;
       End;
 
     eventOrientation:
       Begin
-        Log(logDebug, 'App', 'Orientation request: ' +  IntegerProperty.Stringify(_Events[I].Value));
+        Engine.Log.Write(logDebug, 'App', 'Orientation request: ' +  IntegerProperty.Stringify(_Events[I].Value));
         Self.OnOrientation(TERRAOrientation(_Events[I].Value));
       End;
 
     eventIAPPurchase:
       If _Events[I].S<>'' Then
       Begin
-        Log(logDebug, 'App', 'In-app-purchase: ' + _Events[I].S);
+        Engine.Log.Write(logDebug, 'App', 'In-app-purchase: ' + _Events[I].S);
         Self.OnIAP_Purchase(_Events[I].S);
       End Else
       Begin
         _Events[I].Value := IAP_PurchaseCanceled;
-        Log(logDebug, 'App', 'In-app-purchase error: ' +  IntegerProperty.Stringify(_Events[I].Value));
+        Engine.Log.Write(logDebug, 'App', 'In-app-purchase error: ' +  IntegerProperty.Stringify(_Events[I].Value));
         Self.OnIAP_Error(_Events[I].Value);
       End;
 
     eventIAPCredits:
       If (_Events[I].Value>0) Then
       Begin
-        Log(logDebug, 'App', 'In-app-purchase: ' +  IntegerProperty.Stringify(_Events[I].Value) + ' credits');
+        Engine.Log.Write(logDebug, 'App', 'In-app-purchase: ' +  IntegerProperty.Stringify(_Events[I].Value) + ' credits');
         Self.OnIAP_Purchase(_Events[I].Value);
       End;
 
     eventIAPError:
       Begin
-        Log(logDebug, 'App', 'In-app-purchase error: ' +  IntegerProperty.Stringify(_Events[I].Value));
+        Engine.Log.Write(logDebug, 'App', 'In-app-purchase error: ' +  IntegerProperty.Stringify(_Events[I].Value));
         Self.OnIAP_Error(_Events[I].Value);
       End;
 
     End;
   End;
 
-  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Events processed!');{$ENDIF}{$ENDIF}
+  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Events processed!');{$ENDIF}{$ENDIF}
   _EventCount := 0;
 
   {$IFNDEF DISABLEINPUTMUTEX}
@@ -1539,7 +1536,7 @@ Begin
 
     If (_Callbacks[I].Time <= Application.GetTime()) Then
     Begin
-      Log(logDebug, 'Game','Executing callback...');
+      Engine.Log.Write(logDebug, 'Game','Executing callback...');
 
       If _Callbacks[I].Run(_Callbacks[I].Arg) Then
       Begin
@@ -1586,7 +1583,7 @@ Var
   oa,na : PSigActionRec;
 {$ENDIF}
 Begin
-  Log(logDebug, 'App', 'Initializing app path');
+  Engine.Log.Write(logDebug, 'App', 'Initializing app path');
   {$IFDEF OXYGENE}
   _Path := System.IO.Directory.GetCurrentDirectory();
   {$ELSE}
@@ -1598,7 +1595,7 @@ Begin
   _DebuggerPresent := Self.IsDebuggerPresent();
 
 {$IFDEF INSTALL_SIGNAL}
-  Log(logDebug, 'App', 'Installing signals');
+  Engine.Log.Write(logDebug, 'App', 'Installing signals');
   new(na);
   new(oa);
   FillChar(Na^, SizeOf(Na), 0);
@@ -1686,17 +1683,17 @@ End;
 
 Procedure BaseApplication.OnIAP_Error(ErrorCode:Integer);
 Begin
-  Log(logWarning, 'Client', 'Please implement Self.OnIAP_Cancel, error code = '+ IntegerProperty.Stringify(ErrorCode));
+  Engine.Log.Write(logWarning, 'Client', 'Please implement Self.OnIAP_Cancel, error code = '+ IntegerProperty.Stringify(ErrorCode));
 End;
 
 Procedure BaseApplication.OnIAP_Purchase(Const ID:TERRAString);
 Begin
-  Log(logWarning, 'Client', 'Please implement Self.OnIAP_Purchase, product ID = '+ID);
+  Engine.Log.Write(logWarning, 'Client', 'Please implement Self.OnIAP_Purchase, product ID = '+ID);
 End;
 
 Procedure BaseApplication.OnIAP_Purchase(Credits: Integer);
 Begin
-  Log(logWarning, 'Client', 'Please implement Self.OnIAP_Purchase, credits  = '+ IntegerProperty.Stringify(Credits));
+  Engine.Log.Write(logWarning, 'Client', 'Please implement Self.OnIAP_Purchase, credits  = '+ IntegerProperty.Stringify(Credits));
 End;
 
 Procedure BaseApplication.OnIdle;
@@ -1874,12 +1871,12 @@ End;
 
 Procedure BaseApplication.OnGamepadConnect(Index: Integer);
 Begin
-  Log(logDebug, 'Client', 'Gamepad '+ IntegerProperty.Stringify(Index)+' was connected!');
+  Engine.Log.Write(logDebug, 'Client', 'Gamepad '+ IntegerProperty.Stringify(Index)+' was connected!');
 End;
 
 Procedure BaseApplication.OnGamepadDisconnect(Index: Integer);
 Begin
-  Log(logDebug, 'Client', 'Gamepad '+ IntegerProperty.Stringify(Index)+' was disconnected!');
+  Engine.Log.Write(logDebug, 'Client', 'Gamepad '+ IntegerProperty.Stringify(Index)+' was disconnected!');
 End;
 
 {$IFNDEF DISABLEVR}

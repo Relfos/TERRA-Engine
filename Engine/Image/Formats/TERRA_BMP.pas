@@ -129,7 +129,7 @@ Begin
 
   If (Header.ID<>19778)Or(Header.Planes<>1)Then
   Begin
-    Log(logError, 'BMP', 'Invalid bitmap file.');
+    Engine.Log.Write(logError, 'BMP', 'Invalid bitmap file.');
     Exit;
   End;
 
@@ -205,7 +205,7 @@ Begin
       End;
   Else
     Begin
-      Log(logError, 'BMP', 'Invalid bit depth.');
+      Engine.Log.Write(logError, 'BMP', 'Invalid bit depth.');
       Exit;
     End;
   End;

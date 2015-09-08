@@ -174,7 +174,7 @@ begin
 
   If (Source = Nil) then
   Begin
-    Log(logError, 'TTF', 'Null stream!');
+    Engine.Log.Write(logError, 'TTF', 'Null stream!');
     Exit;
   End;
 
@@ -193,7 +193,7 @@ begin
 
   If (cmap=0) or (loca=0) or (head=0) or (glyf=0) or (hhea=0) or (hmtx=0) then
   Begin
-    Log(logError, 'TTF', 'Invalid font file: '+ Source.Name);
+    Engine.Log.Write(logError, 'TTF', 'Invalid font file: '+ Source.Name);
     Exit;
   End;
 
@@ -227,7 +227,7 @@ begin
 
    If index_map = 0 then
    Begin
-    Log(logError, 'TTF', 'Could not find font index map: '+ Source.Name);
+    Engine.Log.Write(logError, 'TTF', 'Could not find font index map: '+ Source.Name);
     Exit;
    End;
 
@@ -1504,7 +1504,7 @@ Begin
 
   _Scale := Self.ScaleForPixelHeight(Size);
 
-  {$IFDEF DEBUG_FONTS}Log(logDebug,'Font','Rendering ttf '+IntToString(ID));{$ENDIF}
+  {$IFDEF DEBUG_FONTS}Engine.Log.Write(logDebug,'Font','Rendering ttf '+IntToString(ID));{$ENDIF}
 
   If (ID = #32) Then
   Begin

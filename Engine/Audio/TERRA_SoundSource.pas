@@ -107,7 +107,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_GraphicsManager, TERRA_SoundManager, TERRA_Log;
+Uses TERRA_GraphicsManager, TERRA_SoundManager, TERRA_Engine, TERRA_Log;
 
 { SoundSource }
 Constructor SoundSource.Create();
@@ -256,7 +256,7 @@ Begin
   If (Not Assigned(Sound)) Then
     Exit;
 
-  Log(logDebug, 'SoundSource', 'Binding '+ Sound.Name);
+  Engine.Log.Write(logDebug, 'SoundSource', 'Binding '+ Sound.Name);
 
   _Sound := Sound;
   _Status := soundSource_Playing;

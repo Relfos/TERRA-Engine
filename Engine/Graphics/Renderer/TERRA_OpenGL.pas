@@ -1903,7 +1903,7 @@ Begin
     If Alt<>'' Then
       Result := SearchOpenGLProc(Alt)
     Else
-      Log(logWarning,'GL', 'Function '+Proc+' not avaliable.');
+      Engine.Log.Write(logWarning,'GL', 'Function '+Proc+' not avaliable.');
 End;
 
 Procedure LoadOpenGL();
@@ -1920,7 +1920,7 @@ Begin
 
   LibName :=  OpenGLLibName + Application.Instance.GetOption('gllib');
 
-  Log(logDebug, 'GL', 'Loading openGL library from '+LibName);
+  Engine.Log.Write(logDebug, 'GL', 'Loading openGL library from '+LibName);
 
   {$IFDEF WINDOWS}
   OpenGLHandle := LoadLibraryA(PAnsiChar(LibName));
@@ -1937,7 +1937,7 @@ End;
 
 Procedure glLoadExtensions;
 Begin
-  Log(logDebug, 'OpenGL', 'Loading extensions');
+  Engine.Log.Write(logDebug, 'OpenGL', 'Loading extensions');
 
   // base OpenGL
 	glAccum := glGetProcAddress('glAccum');

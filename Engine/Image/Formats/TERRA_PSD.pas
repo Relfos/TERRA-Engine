@@ -92,7 +92,7 @@ Begin
   Source.Read(@ID, 4);
   If (ID <> '8BPS') Then   // "8BPS"
   Begin
-    Log(logError, 'PSD', 'Corrupt PSD image: '+ Source.Name);
+    Engine.Log.Write(logError, 'PSD', 'Corrupt PSD image: '+ Source.Name);
     Exit;
   End;
 
@@ -101,7 +101,7 @@ Begin
   ByteSwap16(Version);
   If (Version <> 1) Then
   Begin
-    Log(logError, 'PSD', 'Unsupported version of PSD image: '+ Source.Name + ', version= '+ IntegerProperty.Stringify(Version));
+    Engine.Log.Write(logError, 'PSD', 'Unsupported version of PSD image: '+ Source.Name + ', version= '+ IntegerProperty.Stringify(Version));
     Exit;
   End;
 
@@ -113,7 +113,7 @@ Begin
   ByteSwap16(ChannelCount);
   If (channelCount > 16) Then
   Begin
-    Log(logError, 'PSD', 'Unsupported number of channels in PSD: '+ Source.Name + ', channels= '+ IntegerProperty.Stringify(channelCount));
+    Engine.Log.Write(logError, 'PSD', 'Unsupported number of channels in PSD: '+ Source.Name + ', channels= '+ IntegerProperty.Stringify(channelCount));
     Exit;
   End;
 
@@ -128,7 +128,7 @@ Begin
   ByteSwap16(Depth);
   If (Depth <> 8) Then
   Begin
-    Log(logError, 'PSD', 'Unsupported bit depth in PSD: '+ Source.Name + ', bitdepth= '+ IntegerProperty.Stringify(Depth));
+    Engine.Log.Write(logError, 'PSD', 'Unsupported bit depth in PSD: '+ Source.Name + ', bitdepth= '+ IntegerProperty.Stringify(Depth));
     Exit;
   End;
 
@@ -146,7 +146,7 @@ Begin
   ByteSwap16(ColorMode);
   If (ColorMode <> 3) Then
   Begin
-    Log(logError, 'PSD', 'Wrong color format, PSD is not in RGB color format: '+ Source.Name + ', format= '+ IntegerProperty.Stringify(ColorMode));
+    Engine.Log.Write(logError, 'PSD', 'Wrong color format, PSD is not in RGB color format: '+ Source.Name + ', format= '+ IntegerProperty.Stringify(ColorMode));
     Exit;
   End;
 
@@ -174,7 +174,7 @@ Begin
 
   If (Compression > 1) Then
   Begin
-    Log(logError, 'PSD', 'PSD has an unknown compression format: '+ Source.Name + ', compression= '+ IntegerProperty.Stringify(Compression));
+    Engine.Log.Write(logError, 'PSD', 'PSD has an unknown compression format: '+ Source.Name + ', compression= '+ IntegerProperty.Stringify(Compression));
     Exit;
   End;
 
@@ -272,5 +272,4 @@ End;
 
 Begin
   Engine.Formats.Add(PSDFormat.Create(TERRAImage, 'psd'));
-
 End.

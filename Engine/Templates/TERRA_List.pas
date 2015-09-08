@@ -186,7 +186,7 @@ Begin
 
   If (Item = Nil) Or ((Options And coCheckReferencesOnAdd<>0) And (Self.Contains(Item))) Then
   Begin
-    Log(logWarning, Self.ClassName, 'Reference already inside collection: '+Item.GetBlob());
+    Engine.Log.Write(logWarning, Self.ClassName, 'Reference already inside collection: '+Item.GetBlob());
     Exit;
   End;
 
@@ -266,14 +266,14 @@ Begin
   Self.Lock();
   List := _First;
   Prev := Nil;
-  {$IFDEF DEBUG}Log(logDebug, 'List', 'Testing deletion...');{$ENDIF}
+  {$IFDEF DEBUG}Engine.Log.Write(logDebug, 'List', 'Testing deletion...');{$ENDIF}
 
   While Assigned(List) Do
   Begin
-    {$IFDEF DEBUG}Log(logDebug, 'List', 'Testing key contains '+HexStr(Cardinal(List)));{$ENDIF}
+    {$IFDEF DEBUG}Engine.Log.Write(logDebug, 'List', 'Testing key contains '+HexStr(Cardinal(List)));{$ENDIF}
     If List.Item = Item Then
     Begin
-      {$IFDEF DEBUG}Log(logDebug, 'List', 'Match found!');{$ENDIF}
+      {$IFDEF DEBUG}Engine.Log.Write(logDebug, 'List', 'Match found!');{$ENDIF}
 
       Next := List.Next;
 

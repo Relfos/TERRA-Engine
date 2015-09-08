@@ -120,7 +120,7 @@ End;
 {$IFDEF WINDOWS}
 Class Function FileStream.Exists(FileName:TERRAString): Boolean;
 Begin
-  Log(logDebug, 'File', 'Testing file '+FileName);
+  Engine.Log.Write(logDebug, 'File', 'Testing file '+FileName);
   FileMode := 0;
   FileName := GetOSIndependentFileName(FileName);
   Result:=(FileAge(FileName)<>-1);
@@ -128,7 +128,7 @@ End;
 {$ELSE}
 Class Function FileStream.Exists(FileName:TERRAString): Boolean;
 Begin
-  {$IFDEF DEBUG_FILECACHE}Log(logDebug, 'FileManager', 'Testing for file '+FileName);{$ENDIF}
+  {$IFDEF DEBUG_FILECACHE}Engine.Log.Write(logDebug, 'FileManager', 'Testing for file '+FileName);{$ENDIF}
 
   FileName := GetOSIndependentFileName(FileName);
   Result := FileExists(FileName);
@@ -147,7 +147,7 @@ Begin
   FileName := GetOSIndependentFileName(FileName);
   Engine.Files.RemoveFromCache(FileName);
 
-  Log(logDebug,'IO','Creating '+FileName);
+  Engine.Log.Write(logDebug,'IO','Creating '+FileName);
   If StreamMode=0 Then
     Engine.RaiseError('Invalid file mode.['+FileName+']')
   Else
@@ -191,7 +191,7 @@ Begin
 
     IOResult();
 
-  Log(logDebug,'IO','Opening '+FileName);
+  Engine.Log.Write(logDebug,'IO','Opening '+FileName);
     AssignFile(_File, _ObjectName);
     Reset(_File,1);
     _Size := FileSize(_File);
@@ -260,7 +260,7 @@ Begin
   Begin
     Result := 0;
     {$IFDEF PC}
-    Log(logWarning, 'IO', 'Cannot read from file: '+Self.Name+' ('+ IntegerProperty.Stringify(_Pos)+'/'+ IntegerProperty.Stringify(_Size)+')');
+    Engine.Log.Write(logWarning, 'IO', 'Cannot read from file: '+Self.Name+' ('+ IntegerProperty.Stringify(_Pos)+'/'+ IntegerProperty.Stringify(_Size)+')');
     {$ENDIF}
     FillChar(Data^, Length, 0);
     Exit;
@@ -284,7 +284,7 @@ End;
 Function FileStream.Write(Data:Pointer; Length:Cardinal):Cardinal;
 Begin
   {$IFDEF MOBILE}
-  Log(logDebug, 'App', 'Writing to file! ' + Self._Name);
+  Engine.Log.Write(logDebug, 'App', 'Writing to file! ' + Self._Name);
   {$ENDIF}
 
   Result := 0;

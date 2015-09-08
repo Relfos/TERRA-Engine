@@ -140,7 +140,6 @@ Begin
 End;
 
 Initialization
-  Log(logDebug, 'CRC', 'Initializing');
   _DefaultTable := CRC32Table.Create(TERRAPolynomial);
 Finalization
   ReleaseObject(_DefaultTable);

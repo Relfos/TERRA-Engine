@@ -401,7 +401,7 @@ Begin
     Result := MyAnimation
   Else
   Begin
-    Log(logWarning, 'Animation', 'Animation not found: '+Name);
+    Engine.Log.Write(logWarning, 'Animation', 'Animation not found: '+Name);
     Result := Nil;
   End;
 End;

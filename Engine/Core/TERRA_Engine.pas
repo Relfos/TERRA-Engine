@@ -6,7 +6,7 @@ Interface
 Uses TERRA_Object, TERRA_String, TERRA_Application, TERRA_Threads, TERRA_List,
   TERRA_GraphicsManager, TERRA_TextureManager, TERRA_MeshManager, TERRA_FontManager, TERRA_InputManager, TERRA_Pool,
   TERRA_PhysicsManager, TERRA_ParticleRenderer, TERRA_ShaderFactory, TERRA_MeshAnimation, TERRA_Lights, TERRA_UICursor,
-  TERRA_Sprite, 
+  TERRA_Sprite, TERRA_Log,
   TERRA_FileManager, TERRA_SoundManager, TERRA_FileFormat, TERRA_MusicManager, TERRA_MIDI, TERRA_Localization,
   TERRA_Callstack, TERRA_Error, TERRA_Network, TERRA_NetDownloader
   {$IFDEF PC}, TERRA_Steam{$ENDIF};
@@ -47,6 +47,8 @@ Type
       _HTTP:DownloadManager;
 
       _RendererList:TERRAList;
+
+      _Log:TERRALog;
 
       {$IFDEF PC}
       _Steam:SteamManager;
@@ -99,6 +101,8 @@ Type
       Property Network:NetworkManager Read _Network;
       Property HTTP:DownloadManager Read _HTTP;
 
+      Property Log:TERRALog Read _Log;
+
       Property Pool:TERRAPool Read _Pool;
 
       Property Error:TERRAError Read _Error Write SetError;
@@ -121,7 +125,7 @@ Function Engine():EngineManager;
 Begin
   If _EngineManager = Nil Then
   Begin
-    _EngineManager := EngineManager.Create();
+    EngineManager.Create();
     _EngineManager.Renderers.Add(NullRenderer.Create());
   End;
   
@@ -131,6 +135,8 @@ End;
 { EngineManager }
 Constructor EngineManager.Create;
 Begin
+  _EngineManager := Self;
+  _Log := TERRALog.Create();
   _Pool := TERRAPool.Create();
 
   _InputManager := InputManager.Create();
@@ -210,6 +216,8 @@ Begin
 
   ReleaseObject(_RendererList);
   ReleaseObject(_Pool);
+
+  ReleaseObject(_Log);
 End;
 
 Procedure EngineManager.Update;
@@ -307,17 +315,12 @@ End;
 Function EngineManager.FetchSprite():TERRASprite;
 Begin
   Result := TERRASprite(Engine.Pool.Fetch(TERRASprite));
-  If (Result = Nil) Then
+  If (Assigned(Result)) Then
+    Result.Create()
+  Else
     Result := TERRASprite.Create();
 
-(*  {$IFDEF WINDOWS}
-  If (Layer<0) Then
-    DebugBreak;
-  {$ENDIF}*)
-
   Result.Temporary := True;
-  Result.Clear();
-  Result.Reset();
 End;
 
 End.

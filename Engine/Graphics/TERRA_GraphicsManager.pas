@@ -211,7 +211,7 @@ Var
   S:TERRAString;
   RendererID:Integer;
 Begin
-  Log(logDebug, 'GraphicsManager', 'Initializing');
+  Engine.Log.Write(logDebug, 'GraphicsManager', 'Initializing');
 
   _CurrentViewport := Nil;
   _DeviceViewport := Nil;
@@ -235,11 +235,11 @@ Begin
     Exit;
   End;
 
-  Log(logDebug, 'GraphicsManager', 'Width='+ IntegerProperty.Stringify(Application.Instance.Window.Width)+' Height='+ IntegerProperty.Stringify(Application.Instance.Window.Width));
+  Engine.Log.Write(logDebug, 'GraphicsManager', 'Width='+ IntegerProperty.Stringify(Application.Instance.Window.Width)+' Height='+ IntegerProperty.Stringify(Application.Instance.Window.Width));
 
   ShowDebugTarget := captureTargetInvalid;
 
-  Log(logDebug, 'GraphicsManager', 'Device resolution: '+ IntegerProperty.Stringify(Application.Instance.Window.Width)+' x ' + IntegerProperty.Stringify(Application.Instance.Window.Width));
+  Engine.Log.Write(logDebug, 'GraphicsManager', 'Device resolution: '+ IntegerProperty.Stringify(Application.Instance.Window.Width)+' x ' + IntegerProperty.Stringify(Application.Instance.Window.Width));
 
   _DeviceViewport := TERRAViewport.Create('device', Nil, Application.Instance.Window.Width, Application.Instance.Window.Height);
 
@@ -548,7 +548,7 @@ Begin
     _StencilVolumeShader.Generate('stencilvolumes', GetShader_StencilVolumeShader()); 
   End;
 
-  Log(logDebug, 'Shadow', 'Drawing stencil shadows');
+  Engine.Log.Write(logDebug, 'Shadow', 'Drawing stencil shadows');
 
   Self.Renderer.BindShader(_StencilVolumeShader);
   _StencilVolumeShader.SetMat4Uniform('cameraMatrix', View.Camera.Transform); // BIBI
@@ -753,7 +753,7 @@ Begin
 
 
   If (Count<=0) Then
-    Log(logWarning, 'GraphicsManager', 'Invalid viewport: '+View.Name);
+    Engine.Log.Write(logWarning, 'GraphicsManager', 'Invalid viewport: '+View.Name);
 End;
 
 Procedure InitFullScreenQuad(FullscreenQuad:TERRAVertexBuffer; X1,Y1,X2,Y2:Single; Orientation:TERRAOrientation);
@@ -1000,7 +1000,7 @@ Var
   I:Integer;
 Begin
   _ShuttingDown := True;
-  Log(logDebug, 'GraphicsManager', 'Shutting down');
+  Engine.Log.Write(logDebug, 'GraphicsManager', 'Shutting down');
 
   For I:=0 To Pred(_ViewportCount) Do
     ReleaseObject(_Viewports[I]);
@@ -1124,7 +1124,7 @@ Begin
   If Assigned(_DeviceViewport) Then
     _DeviceViewport.Resize(Width, Height);
 
-  Log(logDebug, 'GraphicsManager', 'Resizing viewports');
+  Engine.Log.Write(logDebug, 'GraphicsManager', 'Resizing viewports');
 End;
 
 (*Procedure GraphicsManager.AddOccluder(View:TERRAViewport; MyOccluder: Occluder);
@@ -1163,7 +1163,7 @@ Begin
   If _Renderer = Nil Then
     Exit;
 
-  Log(logDebug, 'GraphicsManager', 'Initializing Renderer: '+_Renderer.Name);
+  Engine.Log.Write(logDebug, 'GraphicsManager', 'Initializing Renderer: '+_Renderer.Name);
   _Renderer.Reset();
 End;
 

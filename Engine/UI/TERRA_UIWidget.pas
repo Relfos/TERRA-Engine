@@ -3189,7 +3189,7 @@ Begin
     If (Not (Template Is UIInstancedWidget)) Then
     Begin
       S := Template.ClassName;
-      Log(logError, 'UI', 'Cannot instanciate template component of type '+S);
+      Engine.Log.Write(logError, 'UI', 'Cannot instanciate template component of type '+S);
       Exit;
     End;
   End;

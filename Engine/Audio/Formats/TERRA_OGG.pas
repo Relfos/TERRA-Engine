@@ -977,7 +977,7 @@ End;
 
 Function error(f: pvorb; e:STBVorbisError):Boolean;
 Begin
-  Log(logError, 'OGG', 'Decoding error occurred: ' +  IntegerProperty.Stringify(Integer(E)));
+  Engine.Log.Write(logError, 'OGG', 'Decoding error occurred: ' +  IntegerProperty.Stringify(Integer(E)));
 
   f.error := e;
   If (not f.eof) and (e<>VORBIS_need_more_data) then
@@ -5690,7 +5690,7 @@ Begin
 
       If (Q>OggBufferSize) Then
       Begin
-        Log(logWarning, 'OGG', 'Buffer too small!');
+        Engine.Log.Write(logWarning, 'OGG', 'Buffer too small!');
       End;
 
       _Source.Seek(Ofs);
@@ -5745,7 +5745,7 @@ Var
   ID:FileHeader;
 Begin
   Source.Read(@ID, 4);
-  Log(logDebug, 'Ogg', 'Got ID: '+ID);
+  Engine.Log.Write(logDebug, 'Ogg', 'Got ID: '+ID);
 
   Result := CompareFileHeader(ID, 'OggS');
 End;
@@ -5756,7 +5756,7 @@ Var
   ID:FileHeader;
 Begin
   Source.Read(@ID, 4);
-  Log(logDebug, 'Ogg', 'Got ID: '+ID);
+  Engine.Log.Write(logDebug, 'Ogg', 'Got ID: '+ID);
 
   Result := CompareFileHeader(ID, 'OggS');
 End;
@@ -5790,9 +5790,6 @@ Begin
 End;
 
 Initialization
-  Log(logDebug, 'OGG', 'Initializing');
   RegisterSoundStreamFormat(OggStreamer);
-
   Engine.Formats.Add(OGGFormat.Create(TERRASound, 'ogg'));
-  Log(logDebug, 'OGG', 'OGG Sound format ready!');
 End.

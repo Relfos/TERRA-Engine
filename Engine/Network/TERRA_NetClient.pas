@@ -176,7 +176,7 @@ Begin
       Begin
         Msg.Read(@Code, 2);
         Msg.ReadString(ErrorLog);
-        Log(logError,'Network','ErrorMessage: '+GetNetErrorDesc(Code));
+        Engine.Log.Write(logError,'Network','ErrorMessage: '+GetNetErrorDesc(Code));
 
         If (Code = errAlreadyConnected) And (Self.IsConnected) Then
         Begin
@@ -215,7 +215,7 @@ Begin
 
   _IsConnecting := True;
 
-  Log(logDebug,'Network', Self.ClassName+'.Connect: '+Server);
+  Engine.Log.Write(logDebug,'Network', Self.ClassName+'.Connect: '+Server);
 
   //Create a socket for sending/receiving messages
   _TCPSocket := NetSocket.Create(Server, _Port);
@@ -228,7 +228,7 @@ Begin
     _TCPSocket.SetDelay(False);
     _JoinTime := Application.GetTime();
 
-    Log(logDebug, 'Network', 'Sending join message');
+    Engine.Log.Write(logDebug, 'Network', 'Sending join message');
     JoinMsg := CreateJoinMessage(_UserName, _Password, Application.Instance.GetDeviceID(), _GUID);
     SendMessage(JoinMsg);  //Send the packet
     ReleaseObject(JoinMsg);
@@ -261,7 +261,7 @@ Begin
   If (Self._TCPSocket<>Nil) And (Self._TCPSocket.Closed) Then
   Begin
     {$IFNDEF STAYALIVE}
-    Log(logWarning,'Network', Self.ClassName+'.Update: Connection lost');
+    Engine.Log.Write(logWarning,'Network', Self.ClassName+'.Update: Connection lost');
     Disconnect(errConnectionLost); //Conection lost
     {$ENDIF}
   End;

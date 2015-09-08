@@ -1886,7 +1886,7 @@ Var
 Begin
   If (MyMesh = Nil) Then
   Begin
-    Log(logWarning, 'Mesh', 'Attemping to create instance from null mesh.');
+    Engine.Log.Write(logWarning, 'Mesh', 'Attemping to create instance from null mesh.');
     Exit;
   End;
 
@@ -3997,7 +3997,7 @@ Begin
   Begin
     If (_GPUSkinning) And (_Owner.Skeleton.BoneCount>MaxBones) Then
     Begin
-      Log(logWarning, 'Mesh', 'Bone limit reached, '+ IntegerProperty.Stringify(_Owner.Skeleton.BoneCount)+' bones'    + ', mesh name = "' + _Owner.Name + '"');
+      Engine.Log.Write(logWarning, 'Mesh', 'Bone limit reached, '+ IntegerProperty.Stringify(_Owner.Skeleton.BoneCount)+' bones'    + ', mesh name = "' + _Owner.Name + '"');
       _GPUSkinning := False;
       Exit;
     End;
@@ -5711,12 +5711,12 @@ Begin
   _GroupCount := 0;
 
   Result := False;
-  Log(logDebug, 'Mesh', 'Loading mesh: '+Self.Name);
+  Engine.Log.Write(logDebug, 'Mesh', 'Loading mesh: '+Self.Name);
 
   Source.Read(@Tag, 4);
   If (Tag<>tagMeshHeader) Then
   Begin
-    Log(logError, 'Mesh', 'Invalid mesh file! ['+Source.Name+']');
+    Engine.Log.Write(logError, 'Mesh', 'Invalid mesh file! ['+Source.Name+']');
     Exit;
   End;
 
@@ -5860,7 +5860,7 @@ Procedure TERRAMesh.UpdateBoundingBox;
 Var
 	I:Integer;
 Begin
-  Log(logDebug, 'Mesh', 'Begining updating bounding box for '+Self.Name);
+  Engine.Log.Write(logDebug, 'Mesh', 'Begining updating bounding box for '+Self.Name);
 
 	For I:=0 To Pred(_GroupCount) Do
 		_Groups[I].UpdateBoundingBox;
@@ -5876,7 +5876,7 @@ Begin
     _BoundingBox.EndVertex.z:=FloatMax(_BoundingBox.EndVertex.z, _Groups[I]._BoundingBox.EndVertex.z);
   End;
 
-  Log(logDebug, 'Mesh', 'Finished updating bounding box for '+Self.Name);
+  Engine.Log.Write(logDebug, 'Mesh', 'Finished updating bounding box for '+Self.Name);
 End;
 
 Function TERRAMesh.Update:Boolean;
@@ -5885,11 +5885,11 @@ Var
 Begin
   Inherited Update();
 
-  Log(logDebug, 'Mesh', 'Initializng groups');
+  Engine.Log.Write(logDebug, 'Mesh', 'Initializng groups');
 	For I:=0 To Pred(_GroupCount) Do
 		_Groups[I].Init;
 
-  Log(logDebug, 'Mesh', 'Initializng bround box');
+  Engine.Log.Write(logDebug, 'Mesh', 'Initializng bround box');
   UpdateBoundingBox();
   Result := True;
 End;
@@ -6477,7 +6477,7 @@ Begin
     Exit;
   End;
 
-  Log(logDebug, 'Mesh', 'Beginning merging '+Source.Name+' into '+Dest.Name);
+  Engine.Log.Write(logDebug, 'Mesh', 'Beginning merging '+Source.Name+' into '+Dest.Name);
 
   Source.Prefetch();
 
@@ -6525,8 +6525,8 @@ Begin
     Result.Add(Target._ID);
   End;
 
-  Log(logDebug, 'Mesh', 'Finished merging '+Source.Name+' into '+Dest.Name);
-  Log(logDebug, 'Mesh',  IntegerProperty.Stringify(Dest.PolyCount-Init)+' triangles added!');
+  Engine.Log.Write(logDebug, 'Mesh', 'Finished merging '+Source.Name+' into '+Dest.Name);
+  Engine.Log.Write(logDebug, 'Mesh',  IntegerProperty.Stringify(Dest.PolyCount-Init)+' triangles added!');
 End;
 
 Procedure MeshMerger.MergeGroup(Source, Dest:MeshGroup; UpdateBox:Boolean = True);
@@ -6546,7 +6546,7 @@ Begin
   If Assigned(Dest._Owner) Then
     Dest._Owner.Status := rsReady;
 
-  Log(logDebug, 'Mesh', 'Beginning group '+Source._Owner.Name+'.'+ Source.Name+' into '+Dest._Owner.Name+'.'+ Dest.Name);
+  Engine.Log.Write(logDebug, 'Mesh', 'Beginning group '+Source._Owner.Name+'.'+ Source.Name+' into '+Dest._Owner.Name+'.'+ Dest.Name);
 
   VOfs := Dest.VertexCount;
   TOfs := Dest._TriangleCount;
@@ -7033,8 +7033,6 @@ Begin
 End;
 
 Initialization
-  Log(logDebug, 'Mesh', 'Initializing');
-
   RegisterMeshDataHandler(tagMeshGroup, MeshReadGroup);
   RegisterMeshDataHandler(tagMeshSkeleton, MeshReadSkeleton);
   RegisterMeshDataHandler(tagMeshEmitter, MeshReadEmitter);

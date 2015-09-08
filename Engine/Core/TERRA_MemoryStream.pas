@@ -106,7 +106,7 @@ Begin
 
   Create(_Size, Nil, StreamMode);
 
-  Log(logDebug, 'IO', 'Loaded memory stream from '+FileName+', size = '+ IntegerProperty.Stringify(_Size));
+  Engine.Log.Write(logDebug, 'IO', 'Loaded memory stream from '+FileName+', size = '+ IntegerProperty.Stringify(_Size));
 
   F.Read(_Buffer, _Size);
   ReleaseObject(F);
@@ -153,7 +153,7 @@ Begin
   If (_Pos>=_Size) Then
   Begin
     {$IFDEF PC}
-    Log(logWarning, 'IO', 'Cannot read from memory in '+Self.Name+' ('+IntegerProperty.Stringify(_Pos) + '/'+ IntegerProperty.Stringify(_Size)+')');
+    Engine.Log.Write(logWarning, 'IO', 'Cannot read from memory in '+Self.Name+' ('+IntegerProperty.Stringify(_Pos) + '/'+ IntegerProperty.Stringify(_Size)+')');
     {$ENDIF}
     FillChar(Data^, Length, 0);
     Result := 0;

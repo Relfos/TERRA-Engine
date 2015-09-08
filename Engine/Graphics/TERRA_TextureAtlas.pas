@@ -163,7 +163,7 @@ Begin
   Inc(_ItemCount);
   SetLength(_ItemList, _ItemCount);
 
-  Log(logDebug, 'Game', 'Creating TextureAtlas item');
+  Engine.Log.Write(logDebug, 'Game', 'Creating TextureAtlas item');
   Result := TextureAtlasItem.Create;
   _ItemList[Pred(_ItemCount)] := Result;
   Result._Name := Name;
@@ -172,14 +172,14 @@ Begin
     Result.Buffer := Source
   Else
   Begin
-    Log(logDebug, 'Game', 'Creating image from source');
+    Engine.Log.Write(logDebug, 'Game', 'Creating image from source');
     Result.Buffer := TERRAImage.Create(Source);
   End;
 
   Result.ID := _RefCount;
   Result._Crop := Crop;
   Inc(_RefCount);
-  Log(logDebug, 'Game', 'TextureAtlas element added');
+  Engine.Log.Write(logDebug, 'Game', 'TextureAtlas element added');
 End;
 
 Procedure TextureAtlas.Delete(ID:Integer);
@@ -237,7 +237,7 @@ Var
   Packer:RectanglePacker;
   LastCount, Count:Integer;
 Begin
-  Log(logDebug, 'TextureAtlas', 'Updating');
+  Engine.Log.Write(logDebug, 'TextureAtlas', 'Updating');
 
   _PageCount := 0;
   For I:=0 To Pred(_ItemCount) Do
@@ -299,7 +299,7 @@ Begin
         _ItemList[I].PageID := Pred(_PageCount);
         _ItemList[I]._Packed := True;
       End Else
-        Log(logError, 'TextureAtlas', 'Could not pack '+_ItemList[I]._Name);
+        Engine.Log.Write(logError, 'TextureAtlas', 'Could not pack '+_ItemList[I]._Name);
     End;
 
     ReleaseObject(Packer);
@@ -309,7 +309,7 @@ Begin
     Self.RedoPage(I);
 
   Result := True;
-  Log(logDebug, 'TextureAtlas', 'TextureAtlas is now updated');
+  Engine.Log.Write(logDebug, 'TextureAtlas', 'TextureAtlas is now updated');
 End;
 
 Function TextureAtlas.GetTexture(PageID:Integer):TERRATexture;
@@ -358,7 +358,7 @@ Var
   S:TERRAString;
 Begin
   S := _Name+'_page' + IntegerProperty.Stringify(PageID);
-  Log(logDebug, 'TextureAtlas', 'Creating TextureAtlas texture: '+S);
+  Engine.Log.Write(logDebug, 'TextureAtlas', 'Creating TextureAtlas texture: '+S);
 
   ReleaseObject(_Textures[PageID]);
   Result := Self.AllocTexture(S);

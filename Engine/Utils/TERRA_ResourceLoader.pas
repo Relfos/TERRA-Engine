@@ -29,7 +29,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_ResourceManager, TERRA_Mesh, TERRA_Log;
+Uses TERRA_ResourceManager, TERRA_Mesh, TERRA_Log, TERRA_Engine;
 
 { ResourceLoader }
 Constructor ResourceLoader.Create;
@@ -53,7 +53,7 @@ Begin
   Inc(_ResourceCount);
   SetLength(_Resources, _ResourceCount);
   _Resources[Pred(_ResourceCount)] := Res;
-  Log(logDebug, 'Loader', 'Adding resource: '+Res.Name);
+  Engine.Log.Write(logDebug, 'Loader', 'Adding resource: '+Res.Name);
 End;
 
 Procedure ResourceLoader.Clear;

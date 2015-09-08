@@ -585,7 +585,7 @@ Var
 Begin
   _NeedsRebuild := False;
 
-  Log(logDebug,'Font', 'Updating font: '+ Self.Name);
+  Engine.Log.Write(logDebug,'Font', 'Updating font: '+ Self.Name);
 
   Self.SortGlyphs();
 
