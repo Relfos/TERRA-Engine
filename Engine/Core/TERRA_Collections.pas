@@ -89,11 +89,6 @@ Type
       _Collection:TERRACollection;
       _Finished:Boolean;
 
-      {$IFNDEF DISABLEALLOCOPTIMIZATIONS}
-      Class Function NewInstance:TObject; Override;
-      Procedure FreeInstance; Override;
-      {$ENDIF}
-
     Protected
 
       Function ObtainNext():TERRACollectionObject; Virtual; Abstract;
@@ -201,8 +196,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Engine, TERRA_FileStream, TERRA_Stream
-{$IFNDEF DISABLEALLOCOPTIMIZATIONS}, TERRA_StackObject{$ENDIF};
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Engine, TERRA_FileStream, TERRA_Stream;
 
 {$IFDEF DEBUG_ITERATORS}
 Var
@@ -545,21 +539,6 @@ Begin
 
   Self.Seek(0);
 End;
-
-{$IFNDEF DISABLEALLOCOPTIMIZATIONS}
-Class Function Iterator.NewInstance: TObject;
-Var
-  ObjSize, GlobalSize:Integer;
-Begin
-  ObjSize := InstanceSize();
-  Result := StackAlloc(ObjSize);
-  InitInstance(Result);
-End;
-
-Procedure Iterator.FreeInstance;
-Begin
-End;
-{$ENDIF}
 
 Function Iterator.GetValue():TERRAObject;
 Begin

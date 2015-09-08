@@ -27,7 +27,7 @@ Unit TERRA_Viewport;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Camera, TERRA_Renderer, TERRA_Resource, TERRA_BoundingBox,
-  TERRA_Ray, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Color, TERRA_Texture, TERRA_SpriteRenderer
+  TERRA_Ray, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Color, TERRA_Texture 
   {$IFDEF POSTPROCESSING},TERRA_ScreenFX{$ENDIF};
 
 Const
@@ -117,8 +117,6 @@ Type
       _FXChain:ScreenFXChain;
       {$ENDIF}
 
-      _SpriteRenderer:TERRASpriteRenderer;
-
       Function UnprojectVector(WX,WY,WZ:Single):Vector3D;
 
       {$IFDEF POSTPROCESSING}
@@ -197,8 +195,6 @@ Type
       Property TargetY2:Single Read _TargetY2;
 
       Property VR:Boolean Read _VR Write _VR;
-
-      Property SpriteRenderer:TERRASpriteRenderer Read _SpriteRenderer;
 
       Property ResolveTexture:TERRATexture Read GetResolveTexture;
 
@@ -289,7 +285,7 @@ Begin
 
   _BackgroundColor := ColorCreate(0, 0, 0, 255);
 
-  _SpriteRenderer := TERRASpriteRenderer.Create();
+  //_SpriteRenderer := TERRASpriteRenderer.Create();
 
   _Camera := Camera;
 
@@ -978,5 +974,6 @@ Begin
   _AutoResolve := Value;
 
 End;
+
 
 End.

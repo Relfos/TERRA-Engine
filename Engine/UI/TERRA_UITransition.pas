@@ -54,7 +54,7 @@ Type
       _EaseType:TweenEaseType;
       _Invert:Boolean;
 
-      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
 
     Public
       Constructor Create(Owner:UIView; Const Duration:Cardinal; Const Delay:Cardinal = 0; Const Invert:Boolean = False);
@@ -104,7 +104,7 @@ Begin
     Owner.Modal := Self;
 End;
 
-Procedure UITransition.Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
+Procedure UITransition.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
   Alpha:Single;
 Begin
@@ -159,7 +159,7 @@ Begin
 
   _TransitionValue := GetEase(Alpha, _EaseType);
 
-  Inherited Render(View, Stage, Bucket);
+  Inherited Render(View, Stage);
 End;
 
 { UIFade }

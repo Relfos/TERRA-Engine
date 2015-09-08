@@ -58,8 +58,6 @@ Begin
 
   Self.Pivot := Vector2D_Create(0, 0);
   Self.Anchor := Vector2D_Create(0, 0);
-
-  Self.AddDefaultAnimations();
 End;
 
 

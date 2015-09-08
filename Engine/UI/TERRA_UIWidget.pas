@@ -243,7 +243,7 @@ Type
 
       Procedure InitProperties(Const Name:TERRAString); Virtual;
 
-      Function GetRenderBucket: Cardinal; Override;
+      Procedure GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType); Override;
 
       Function GetUpControl():UIWidget;
       Function GetDownControl():UIWidget;
@@ -294,8 +294,6 @@ Type
 
       Procedure CopyAnimations(Other:UIWidget);
 
-      Procedure AddDefaultAnimations();
-
     Public
       Tag:Integer;
       DisableHighlights:Boolean;
@@ -322,7 +320,7 @@ Type
       Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
       Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
 
-      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
 
       Procedure UpdateRects; Virtual;
       Function UpdateTransform():Boolean; Virtual;
@@ -503,7 +501,7 @@ Type
     Public
       Constructor Create(Const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension{; Const TemplateName:TERRAString = ''});
 
-      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
 
       Property Layout:UILayout Read GetLayout Write SetLayout;
       Property Padding:UIDimension Read GetPadding Write SetPadding;
@@ -619,6 +617,12 @@ Begin
 
   If Assigned(Parent) Then
     Parent.AddChild(Self);
+
+  Self.AddAnimation(widget_Default, 'color', 'FFFFFFFF', easeLinear);
+  Self.AddAnimation(widget_Default, 'scale', '1.0', easeLinear);
+//  Self.AddAnimation(widget_Selected, 'color', '55FF55FF');
+//  Self.AddAnimation(widget_Highlighted, 'color', 'FF5555FF');
+  Self.AddAnimation(widget_Hidden, 'color', 'FFFFFF00', easeLinear);
 End;
 
 Procedure UIWidget.Release();
@@ -629,18 +633,6 @@ Begin
     ReleaseObject(Self._Properties[I].Prop);
 
   ReleaseObject(_Sprite);
-End;
-
-Procedure UIWidget.AddDefaultAnimations();
-Begin
-  Self.AddAnimation(widget_Default, 'color', 'FFFFFFFF', easeLinear);
-  Self.AddAnimation(widget_Default, 'scale', '1.0', easeLinear);
-
-//  Self.AddAnimation(widget_Selected, 'color', '55FF55FF');
-
-//  Self.AddAnimation(widget_Highlighted, 'color', 'FF5555FF');
-
-  Self.AddAnimation(widget_Hidden, 'color', 'FFFFFF00', easeLinear);
 End;
 
 Procedure UIWidget.InitProperties(Const Name:TERRAString);
@@ -1787,6 +1779,9 @@ Begin
 
     Exit;
   End;
+
+  For I:=0 To Pred(_ChildrenCount) Do
+    _ChildrenList[I].OnHandleMouseMove(X, Y);
 End;
 
 Procedure UIWidget.SetScrollOffset(Const Ofs:Vector2D);
@@ -2023,7 +2018,7 @@ Begin
     Inc(I);
 End;
 
-Procedure UIWidget.Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
+Procedure UIWidget.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
   I:Integer;
 Begin
@@ -2034,7 +2029,7 @@ Begin
 
   For I:=0 To Pred(_ChildrenCount) Do
   If (_ChildrenList[I].CanRender()) Then
-    _ChildrenList[I].Render(View, Stage, Bucket);
+    _ChildrenList[I].Render(View, Stage);
                                 
   Self.UpdateProperties();
   Self.UpdateRects();
@@ -2043,7 +2038,7 @@ Begin
 
   If Assigned(_Sprite) Then
   Begin
-    View.SpriteRenderer.QueueSprite(_Sprite);
+    Engine.Graphics.AddRenderable(View, _Sprite);
     //DrawClipRect(View, Self.ClipRect, ColorRed);
   End;
 
@@ -2737,9 +2732,11 @@ Begin
     Self.TriggerEvent(widgetEvent_FocusEnd);
 End;
 
-Function UIWidget.GetRenderBucket: Cardinal;
+Procedure UIWidget.GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType);
 Begin
-  Result := renderBucket_Overlay;
+  Depth := Trunc(Self.Layer);
+  AlphaType := Renderable_Blend;
+  Layer := RenderableLayer_Default;
 End;
 
 Function UIWidget.GetState: WidgetState;
@@ -3089,7 +3086,7 @@ Begin
   _Template.Value := Value;
 End;*)
 
-Procedure UIWidgetGroup.Render(View: TERRAViewport; Const Stage: RendererStage; const Bucket: Cardinal);
+Procedure UIWidgetGroup.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
   I:Integer;
 Begin

@@ -136,10 +136,7 @@ End;
 
 Function UILabel.ReactsToEventClass(const EventClass: WidgetEventClass): Boolean;
 Begin
-  If (EventClass = widgetEventClass_Hover) Then
-    Result := True
-  Else
-  If (EventClass = widgetEventClass_Click) And (_CurrentLink<>'') Then
+  If (_CurrentLink<>'') And ((EventClass = widgetEventClass_Hover) Or (EventClass = widgetEventClass_Click) ) Then
     Result := True
   Else
     Result := Inherited ReactsToEventClass(EventClass);

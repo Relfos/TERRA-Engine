@@ -73,8 +73,6 @@ Begin
   _FontRenderer := TERRAFontRenderer.Create();
 
   _Style := FontStyleProperty(Self.AddProperty(FontStyleProperty.Create('style'), False));
-
-  Self.AddDefaultAnimations();
 End;
 
 Procedure UIText.Release;

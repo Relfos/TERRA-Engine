@@ -103,7 +103,7 @@ Type
 
       Procedure Enable;
 
-      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
 
       Function GetKeyAdvance(Key:UIVirtualKeyboardKey):Single;
 
@@ -311,7 +311,7 @@ Begin
 End;
 
 
-Procedure UIVirtualKeyboard.Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
+Procedure UIVirtualKeyboard.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
   I,J:Integer;
 Begin
@@ -329,7 +329,7 @@ Begin
 
   Self._ColorTable := Engine.Textures.DefaultColorTable;
 
-  Inherited Render(View, Stage, Bucket);
+  Inherited Render(View, Stage);
 
 (*  For J:=0 To Pred(MaxKeyboardLines) Do
     For I:=0 To Pred(MaxKeyboardRows) Do

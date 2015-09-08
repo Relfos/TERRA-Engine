@@ -34,8 +34,6 @@ Type
     Function Transform(Const P:Vector2D):Vector2D; Overload;
     Function Transform(Const P:Vector3D):Vector3D; Overload;
 
-    Procedure Init(Const M:Matrix4x4);
-
     Procedure SetTranslation(Const P:Vector2D);
     Function GetTranslation():Vector2D;
   End;
@@ -69,24 +67,44 @@ Function Matrix3x3_Skew(TX, TY:Single):Matrix3x3;
 // Multiplys two matrices
 Function Matrix3x3_Multiply(Const A,B:Matrix3x3):Matrix3x3;
 
+
+Function Matrix3x3_CreateFromMatrix4x4(Const M:Matrix4x4):Matrix3x3;
+Function Matrix4x4_CreateFromMatrix3x3(Const M:Matrix3x3):Matrix4x4;
+
 Implementation
 Uses TERRA_Math{$IFDEF NEON_FPU},TERRA_NEON{$ENDIF};
 
-Procedure Matrix3x3.Init(Const M: Matrix4x4);
+Function Matrix3x3_CreateFromMatrix4x4(Const M:Matrix4x4):Matrix3x3;
 Begin
-  V[0] := M.V[0];
-  V[1] := M.V[1];
-  V[2] := M.V[2];
+  Result.V[0] := M.V[0];
+  Result.V[1] := M.V[1];
+  Result.V[2] := M.V[2];
 
-  V[3] := M.V[4];
-  V[4] := M.V[5];
-  V[5] := M.V[6];
+  Result.V[3] := M.V[4];
+  Result.V[4] := M.V[5];
+  Result.V[5] := M.V[6];
 
-  V[6] := M.V[8];
-  V[7] := M.V[9];
-  V[8] := M.V[10];
+  Result.V[6] := M.V[8];
+  Result.V[7] := M.V[9];
+  Result.V[8] := M.V[10];
 End;
 
+Function Matrix4x4_CreateFromMatrix3x3(Const M:Matrix3x3):Matrix4x4;
+Begin
+  Result := Matrix4x4_Identity;
+//  Result.SetTranslation(Vector3D_Create(M.V[6], M.V[7], 0));
+(*  Result.V[0] := M.V[0];
+  Result.V[1] := M.V[1];
+  Result.V[2] := M.V[2];
+
+  Result.V[3] := M.V[4];
+  Result.V[4] := M.V[5];
+  Result.V[5] := M.V[6];
+
+  Result.V[6] := M.V[8];
+  Result.V[7] := M.V[9];
+  Result.V[8] := M.V[10];^*)
+End;
 
 Function Matrix3x3_Translation(Const Translation:Vector2D):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
 Begin

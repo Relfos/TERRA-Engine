@@ -28,7 +28,7 @@ Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween, TERRA_Renderer,
-  TERRA_Sprite, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_Viewport, TERRA_Camera,
+  TERRA_Sprite, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_Viewport, TERRA_Camera, TERRA_Renderable,
   TERRA_UIDimension, TERRA_UIWidget, TERRA_UICursor, TERRA_BoundingBox, TERRA_ClipRect, TERRA_EnumProperty, TERRA_DataSource, TERRA_Hashmap;
 
 Const
@@ -75,7 +75,7 @@ Type
 
       Procedure Clear;
 
-      Procedure RenderCursor(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
+      Procedure RenderCursor(View:TERRAViewport; Const Stage:RendererStage);
 
       Function SupportDrag(Mode:UIDragMode):Boolean;
 
@@ -121,7 +121,7 @@ Type
 
       Procedure GetLocalCoords(Const X,Y:Single; Out PX, PY:Integer);
 
-      Procedure Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
 
       Procedure SetFocus(Value:UIWidget);
 
@@ -190,11 +190,9 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Stream, TERRA_XML, TERRA_Matrix4x4, TERRA_Engine,
-  TERRA_Log, TERRA_FileUtils, TERRA_FileManager, TERRA_FontManager, TERRA_InputManager(*,
-  TERRA_UIVirtualKeyboard, TERRA_UITabs, TERRA_UIScrollBar,
-   TERRA_UIButton, TERRA_UISprite, TERRA_UILabel, TERRA_UIWindow,
-  TERRA_UICheckbox, TERRA_UIEditText, TERRA_UIIcon*);
-
+  TERRA_Log, TERRA_FileUtils, TERRA_FileManager, TERRA_FontManager, TERRA_InputManager,
+  TERRA_UILabel;
+  
 { UIView }
 Constructor UIView.Create(Const Name:TERRAString; Width, Height:UIDimension; Layer:Single);
 Var
@@ -299,7 +297,7 @@ Begin
   End;
 End;
 
-Procedure UIView.Render(View:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
+Procedure UIView.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
   Current, Temp:UIWidget;
   I, J:Integer;
@@ -326,12 +324,12 @@ Begin
     Self.OnLanguageChange();
   End;
 
-  Inherited Render(View, Stage, Bucket);
+  Inherited Render(View, Stage);
 
-  Self.RenderCursor(View, Stage, Bucket);
+  Self.RenderCursor(View, Stage);
 End;
 
-Procedure UIView.RenderCursor(View: TERRAViewport;  const Stage:RendererStage; const Bucket:Cardinal);
+Procedure UIView.RenderCursor(View: TERRAViewport; Const Stage:RendererStage);
 Var
   S:TERRASprite;
   MousePos:Vector2D;
@@ -346,12 +344,12 @@ Begin
   MousePos := Engine.Input.Mouse;
   Self.GetLocalCoords(MousePos.X, MousePos.Y, MX, MY);
 
-  S := View.SpriteRenderer.FetchSprite();
+  S := Engine.FetchSprite();
   S.SetTexture(_CurrentCursor.Texture);
   S.Layer := 99;
   S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(-_CurrentCursor.OfsX, -_CurrentCursor.OfsY), 0, _CurrentCursor.Texture.Width, _CurrentCursor.Texture.Height);
   S.Translate(MX, MY);
-  View.SpriteRenderer.QueueSprite(S);
+  Engine.Graphics.AddRenderable(View, S);
 End;
 
 
@@ -569,6 +567,9 @@ Begin
 
   If (Assigned(Result)) Then
     Result.OnHandleMouseMove(TX, TY);
+
+  If (Result Is UILabel) Then
+    Result := Self.PickWidget(TX, TY, widgetEventClass_Hover);
 
   If (_LastOver <> Result) Then
   Begin

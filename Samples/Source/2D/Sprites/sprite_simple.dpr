@@ -69,40 +69,40 @@ Begin
   //        Sprites with lower layer values appear below the others
 
   // Create a simple fliped sprite
-  S := View.SpriteRenderer.FetchSprite();
+  S := Engine.FetchSprite();
   S.Layer := 50;
   S.SetTexture(Tex);
   S.Translate(620, 60);
   S.Flip := True;
   S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
-  View.SpriteRenderer.QueueSprite(S);
+  Engine.Graphics.AddRenderable(View, S);
 
   // An alpha blended sprite
-  S := View.SpriteRenderer.FetchSprite();
+  S := Engine.FetchSprite();
   S.Layer := 55;
   S.SetTexture(Tex);
   S.Translate(700, 60);
   S.SetColor(ColorCreate(255, 255, 255, 128));
   S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
-  View.SpriteRenderer.QueueSprite(S);
+  Engine.Graphics.AddRenderable(View, S);
 
   // Create a line of sprites
   For I:=0 To 8 Do
   Begin
-    S := View.SpriteRenderer.FetchSprite();
+    S := Engine.FetchSprite();
     S.Layer := 50;
     S.SetTexture(Tex);
     S.Translate(16 + Tex.Width * I, 10);
     S.Mirror := Odd(I);    // Each odd sprite in line will be reflected
 
     S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
-    View.SpriteRenderer.QueueSprite(S);
+    Engine.Graphics.AddRenderable(View, S);
   End;
 
   // Create a line of rotated sprites
   For I:=0 To 8 Do
   Begin
-    S := View.SpriteRenderer.FetchSprite();
+    S := Engine.FetchSprite();
     S.Layer := 50;
     S.SetTexture(Tex);
     // the order of transformations matter, apply rotation first, then scale, tehn translation always as the last step
@@ -113,38 +113,38 @@ Begin
 
     // notice how spriteAnchor_Center is used, to make sure the rotation is applyed to the center 
     S.AddQuad(spriteAnchor_Center, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
-    View.SpriteRenderer.QueueSprite(S);
+    Engine.Graphics.AddRenderable(View, S);
   End;
 
   // Some scaled sprites
-  S := View.SpriteRenderer.FetchSprite();
+  S := Engine.FetchSprite();
   S.Layer := 55;
   S.SetTexture(Tex);
   S.Scale(2.0);    // Double size
   S.Translate(10,120);
   S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
-  View.SpriteRenderer.QueueSprite(S);
+  Engine.Graphics.AddRenderable(View, S);
 
-  S := View.SpriteRenderer.FetchSprite();
+  S := Engine.FetchSprite();
   S.Layer := 55;
   S.SetTexture(Tex);
   S.Scale(1.5);    // 1.5 Size
   S.Translate(110,130);
   S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
-  View.SpriteRenderer.QueueSprite(S);
+  Engine.Graphics.AddRenderable(View, S);
 
-  S := View.SpriteRenderer.FetchSprite();
+  S := Engine.FetchSprite();
   S.Layer := 55;
   S.SetTexture(Tex);
   S.Scale(0.5);    // Half size
   S.Translate(180,145);
   S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
-  View.SpriteRenderer.QueueSprite(S);
+  Engine.Graphics.AddRenderable(View, S);
 
   // Some colored sprites
   For I:=0 To 4 Do
   Begin
-    S := View.SpriteRenderer.FetchSprite();
+    S := Engine.FetchSprite();
     S.Layer := 50;
     S.SetTexture(Tex);
     S.Translate(300 + Tex.Width * I, 120);
@@ -158,19 +158,19 @@ Begin
     End;
 
     S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
-    View.SpriteRenderer.QueueSprite(S);
+    Engine.Graphics.AddRenderable(View, S);
   End;
 
   // A rotating sprite in the bottom, with Scale = 2x
   Angle := RAD * ((Application.GetTime() Div 15) Mod 360);
-  S := View.SpriteRenderer.FetchSprite();
+  S := Engine.FetchSprite();
   S.Layer := 50;
   S.SetTexture(Tex);
   S.Rotate(Angle);
   S.Scale(2);
   S.Translate(300, 400);
   S.AddQuad(spriteAnchor_Center, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
-  View.SpriteRenderer.QueueSprite(S);
+  Engine.Graphics.AddRenderable(View, S);
 End;
 
 {$IFDEF IPHONE}

@@ -48,12 +48,6 @@ Type
 
 
 	TERRAVertex = Class(TERRACollectionObject)
-    Private
-      {$IFNDEF DISABLEALLOCOPTIMIZATIONS}
-      Class Function NewInstance:TObject; Override;
-      Procedure FreeInstance; Override;
-      {$ENDIF}
-
     Protected
       _Target:VertexData;
       _VertexID:Integer;
@@ -196,8 +190,7 @@ Type
   Function VertexFormatToFlags(Const Value:VertexFormat):Cardinal;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_GraphicsManager, TERRA_Engine, TERRA_Renderer
-{$IFNDEF DISABLEALLOCOPTIMIZATIONS}, TERRA_StackObject{$ENDIF};
+Uses TERRA_Error, TERRA_Log, TERRA_GraphicsManager, TERRA_Engine, TERRA_Renderer;
 
 Const
   DefaultAttributeNames:Array[0..Pred(MaxVertexAttributes)] Of TERRAString =
@@ -1134,23 +1127,6 @@ Begin
     _VertexID := -1;
   End;
 End;
-
-{$IFNDEF DISABLEALLOCOPTIMIZATIONS}
-Class Function TERRAVertex.NewInstance: TObject;
-Var
-  ObjSize, GlobalSize:Integer;
-Begin
-  ObjSize := InstanceSize();
-
-  Result := StackAlloc(ObjSize);
-
-  InitInstance(Result);
-End;
-
-Procedure TERRAVertex.FreeInstance;
-Begin
-End;
-{$ENDIF}
 
 Class Function TERRAVertex.CanBePooled: Boolean;
 Begin

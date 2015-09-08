@@ -27,7 +27,7 @@ Unit TERRA_Sprite;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Color, TERRA_Texture,
-  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ClipRect, TERRA_Renderer, TERRA_VertexFormat;
+  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ClipRect, TERRA_Renderer, TERRA_VertexFormat, TERRA_Renderable, TERRA_Viewport;
 
 Const
   Sprite_Font         = 1;
@@ -36,6 +36,8 @@ Const
   Sprite_Dissolve     = 8;
   Sprite_Pattern      = 16;
   Sprite_GUI          = 32;
+
+  MaxSpriteShaders = 64;
 
 Type
   SpriteAnchor = (
@@ -58,25 +60,7 @@ Type
       TexCoord:Vector2D;
   End;
 
-  TextureRect = Object
-    Public
-      Width:Integer;
-      Height:Integer;
-      U1,V1:Single;
-      U2,V2:Single;
-
-      Procedure ResizeWithWidth(W:Single);
-      Procedure ResizeWithHeight(H:Single);
-
-      Procedure TileRemap(X,Y, TilesPerX, TilesPerY:Integer; Tex:TERRATexture);
-      Procedure TileRemapByID(TileID, TilesPerRow, TileSize:Integer; Tex:TERRATexture);
-      Procedure PixelRemap(X1,Y1, X2, Y2:Integer; Tex:TERRATexture; W:Integer=0; H:Integer=0);
-      Procedure UVRemap(_U1,_V1, _U2, _V2:Single);
-
-      Procedure FullRemap();
-  End;
-
-  TERRASprite = Class(TERRAObject)
+  TERRASprite = Class(TERRARenderable)
     Protected
       {$IFNDEF DISABLECOLORGRADING}
       _ColorTable:TERRATexture;
@@ -116,15 +100,14 @@ Type
       BlendMode:Integer;
       Smoothing:Single; // for fonts only
 
-      Next:TERRASprite;
-      BatchID:Cardinal;
-
       Flip:Boolean;
       Mirror:Boolean;
 
       Constructor Create();
-
       Procedure Release; Override;
+
+      Procedure GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType); Override;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
 
       Procedure Clear();
       Procedure Reset();
@@ -145,6 +128,8 @@ Type
       Procedure AddLine(Const StartPos, EndPos:Vector2D; LayerOffset:Single; Width:Single);
       Procedure AddTriangle(Const PosA, PosB, PosC:Vector2D; LayerOffset:Single);
       Procedure AddArrow(Const StartPos, EndPos:Vector2D; LayerOffset:Single; LineWidth, ArrowLength:Single);
+
+      Procedure MergeSprite(Other:TERRASprite);
 
       Procedure SetTexture(Value: TERRATexture);
       Procedure SetDissolve(Mask:TERRATexture; Const Value:Single);
@@ -181,8 +166,14 @@ Type
 Function CreateSpriteVertexData(Count:Integer):VertexData;
 
 Implementation
-Uses TERRA_ResourceManager, TERRA_Engine, TERRA_Log, TERRA_Image, TERRA_OS, TERRA_Math
+Uses TERRA_ResourceManager, TERRA_ShaderManager, TERRA_Engine, TERRA_Log, TERRA_Image, TERRA_GraphicsManager, TERRA_OS, TERRA_Math
   {$IFNDEF DISABLECOLORGRADING},TERRA_ColorGrading {$ENDIF};
+
+Const
+  MaxVerticesPerBatch = 1024 * 32;
+
+Var
+  _SpriteShaders:Array[0..Pred(MaxSpriteShaders)] Of ShaderInterface;
 
 
 Function CreateSpriteVertexData(Count:Integer):VertexData;
@@ -236,6 +227,13 @@ End;
 Procedure TERRASprite.Release();
 Begin
   ReleaseObject(_Vertices);
+End;
+
+Procedure TERRASprite.GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType);
+Begin
+  Depth := Trunc(Self.Layer);
+  AlphaType := Renderable_Blend;
+  Layer := RenderableLayer_Default;
 End;
 
 Procedure TERRASprite.SetTexture(Value:TERRATexture);
@@ -637,7 +635,6 @@ Begin
   Self.BlendMode := blendBlend;
   Self.Layer := 50.0;
   Self.Outline := ColorNull;
-  Self.Next := Nil;
   Self.SetColor(ColorWhite);
   Self.Pattern := Nil;
   Self.SetUVs(0.0, 0.0, 1.0, 1.0);
@@ -717,119 +714,454 @@ Begin
   End;
 End;
 
+Procedure TERRASprite.MergeSprite(Other: TERRASprite);
+Var
+  I, BaseID:Integer;
+  CurrentClip:Vector4D;
+  InIt, OutIt:VertexIterator;
+  Src, Dest:SpriteVertex;
+  Pos:Vector3D;
 
-{ TextureRect }
-Procedure TextureRect.UVRemap(_U1, _V1, _U2, _V2:Single);
+  RequiredVertices, RequiredIndices:Integer;
 Begin
-  Self.U1 := _U1;
-  Self.V1 := _V1;
-  Self.U2 := _U2;
-  Self.V2 := _V2;
-End;
-
-Procedure TextureRect.FullRemap;
-Begin
-  Self.U1 := 0.0;
-  Self.V1 := 0.0;
-  Self.U2 := 1.0;
-  Self.V2 := 1.0;
-End;
-
-Procedure TextureRect.PixelRemap(X1, Y1, X2, Y2:Integer; Tex:TERRATexture;  W, H: Integer);
-Begin
-  If (Tex = Nil) Then
+  If (Other.ClipRect.Style = clipEverything) Or (Other.Vertices = Nil) Or (Other.Vertices.Count <= 0) Or (Other.IndexCount<=0) Then
     Exit;
 
-  Tex.Prefetch();
+  BaseID := _Vertices.Count;
 
-  U1 := (X1/Tex.Width * Tex.Ratio.X);
-  V1 := (Y1/Tex.Height * Tex.Ratio.Y);
-  U2 := (X2/Tex.Width * Tex.Ratio.X);
-  V2 := (Y2/Tex.Height * Tex.Ratio.Y);
+  RequiredVertices := _Vertices.Count + Other.Vertices.Count;
+  RequiredIndices := Self.IndexCount + Other.IndexCount;
 
-  If (W>0) Then
-    Self.Width := W
+  If (_Vertices.Count<RequiredVertices) Then
+    _Vertices.Resize(RequiredVertices);
+
+  SetLength(_Indices, RequiredIndices);
+
+  If (Other.ClipRect.Style = clipNothing) Then
+    CurrentClip := Vector4D_Create(0, 0, 9999, 9999)
   Else
-    Self.Width := IntMax(1, (Abs(X2-X1)));
+    CurrentClip := Vector4D_Create(Other.ClipRect.X1, Other.ClipRect.Y1, Other.ClipRect.X2, Other.ClipRect.Y2);
 
-  If (H>0) Then
-    Self.Height := H
-  Else
-    Self.Height := IntMax(1, (Abs(Y2-Y1)));
+  OutIt := _Vertices.GetIteratorForClass(SpriteVertex);
+  InIt := Other.Vertices.GetIteratorForClass(SpriteVertex);
+  While (InIt.HasNext()) Do
+  Begin
+    If (Not OutIt.HasNext()) Then
+    Begin
+      Log(logWarning, 'Sprite', 'Failed batch merge of sprite vertices...');
+      Break;
+    End;
+
+    Src := SpriteVertex(InIt.Value);
+    Dest := SpriteVertex(OutIt.Value);
+
+    Pos := Other.Transform.Transform(Src.Position);
+
+    //Pos.X := Trunc(Pos.X);
+    //Pos.Y := Trunc(Pos.Y);
+    //Pos.Z := Pos.Z + S.Layer;
+
+    Dest.Position := Pos;
+    Dest.Color := Src.Color;
+    Dest.Glow := Src.Glow;
+    Dest.Saturation := Src.Saturation;
+    Dest.ClipRect := CurrentClip;
+    Dest.TexCoord := Src.TexCoord;
+
+    (*  MinX := FloatMin(MinX, Pos.X);
+      MinY := FloatMin(MinY, Pos.Y);
+      MaxX := FloatMax(MaxX, Pos.X);
+      MaxY := FloatMax(MaxY, Pos.Y);*)
+  End;
+  ReleaseObject(InIt);
+  ReleaseObject(OutIt);
+
+  For I:=0 To Pred(Other.IndexCount) Do
+    _Indices[_IndexOffset + I] := Other.GetIndex(I) + BaseID;
+
+  Inc(_IndexOffset, Other.IndexCount);
 End;
 
-Procedure TextureRect.TileRemapByID(TileID, TilesPerRow, TileSize:Integer; Tex:TERRATexture);
+Procedure TERRASprite.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
-  TX, TY:Integer;
-  PX, PY:Single;
+  Graphics:GraphicsManager;
+  TargetShader:ShaderInterface;
+
+  OutIt:VertexIterator;
+  Dest:SpriteVertex;
 Begin
-  If (Tex = Nil) Then
+  If (Self.IndexCount <= 0) Or (Self.Texture = Nil) Then
     Exit;
 
-  Tex.Prefetch();
+  OutIt := _Vertices.GetIteratorForClass(SpriteVertex);
+  While (OutIt.HasNext()) Do
+  Begin
+    Dest := SpriteVertex(OutIt.Value);
 
-  PX := (1/(Tex.Width / Tex.Ratio.X));
-  PY := (1/(Tex.Height / Tex.Ratio.Y));
+    Dest.Position := _Transform.Transform(Dest.Position);
+    Dest.Saturation := Self.Saturation;
+    Dest.Glow := Self.Glow;
+    Dest.ClipRect := Vector4D_Create(0, 0, 9999, 9999);
+  End;
+  ReleaseObject(OutIt);
 
-  TX := (TileID Mod TilesPerRow);
-  TY := (TileID Div TilesPerRow);
-  U1 := (TX/TilesPerRow + PX) * Tex.Ratio.X;
-  U2 := (Succ(TX)/TilesPerRow - PX) * Tex.Ratio.X;
-  V1 := (TY/TilesPerRow + PY) * Tex.Ratio.Y;
-  V2 := (Succ(TY)/TilesPerRow - PY) * Tex.Ratio.Y;
 
-  Width := TileSize;
-  Height := TileSize;
+  Graphics := Engine.Graphics;
+  //glEnable(GL_DEPTH_TEST); {FIXME}
+  //
+  Graphics.Renderer.SetDepthFunction(compareLessOrEqual);
+
+  Graphics.Renderer.SetCullMode(cullNone);
+
+{  Graphics.Renderer.SetSourceVertexSize(SizeOf(SpriteVertex));
+  Graphics.Renderer.SetAttributeSource(TERRA_POSITION_ATTRIBUTE, typeVector3D,  @_Vertices[0].Position);
+  Graphics.Renderer.SetAttributeSource(TERRA_UV0_ATTRIBUTE, typeVector2D, @_Vertices[0].TexCoord);
+  Graphics.Renderer.SetAttributeSource(TERRA_COLOR_ATTRIBUTE, typeColor,  @_Vertices[0].Color);
+
+  If (_Saturation<1.0) Then
+    Graphics.Renderer.SetAttributeSource(TERRA_SATURATION_ATTRIBUTE, typeFloat, @_Vertices[0].Saturation);}
+
+  If (_SpriteShaders[Self.Flags] = Nil) Then
+  Begin
+    _SpriteShaders[Self.Flags] := Graphics.Renderer.CreateShader();
+    _SpriteShaders[Self.Flags].Generate('sprite_'+CardinalToString(Self.Flags), GetShader_Sprite(Self.Flags));
+  End;
+
+  TargetShader := _SpriteShaders[Self.Flags];
+  Graphics.Renderer.BindShader(TargetShader);
+
+  If (Self.Flags And Sprite_GUI = 0) Then
+    Graphics.Renderer.SetModelMatrix(View.Camera.Transform);
+
+  Graphics.Renderer.SetProjectionMatrix(View.Camera.Projection);
+
+  If (Self.Flags And Sprite_SolidColor = 0) Then
+  Begin
+    TargetShader.SetIntegerUniform('texture', 0);
+    Self.Texture.Bind(0);
+  End;
+
+  If (Self.Flags And Sprite_Dissolve<>0) Then
+  Begin
+    TargetShader.SetIntegerUniform('dissolve_texture', 1);
+    Self.DissolveTexture.WrapMode := wrapNothing;
+    Self.DissolveTexture.Filter := filterLinear;
+    Self.DissolveTexture.Bind(1);
+    TargetShader.SetFloatUniform('dissolve_value', Self.DissolveValue);
+  End;
+
+  If (Self.Flags And Sprite_Pattern<>0) Then
+  Begin
+    TargetShader.SetIntegerUniform('pattern_texture', 1);
+    Self.Pattern.Bind(1);
+  End;
+
+  If (Self.Flags And Sprite_Font<>0) Then
+  Begin
+    TargetShader.SetColorUniform('outlineColor', Self.Outline);
+    TargetShader.SetVec2Uniform('shadowOffset', Vector2D_Create(0.1, 0.1));
+    TargetShader.SetFloatUniform('smoothing', Self.Smoothing); //);
+  End Else
+  {$IFNDEF DISABLECOLORGRADING}
+    ColorTableBind(Self.ColorTable, 1);
+  {$ENDIF}
+
+  Graphics.Renderer.SetBlendMode(Self.BlendMode);
+//  Ratio := UIManager.Instance.Ratio;
+
+  Graphics.Renderer.SetVertexSource(Self.Vertices);
+  Graphics.Renderer.DrawIndexedSource(renderTriangles, Self.IndexCount, @_Indices[0]);
+
+//  Graphics.Renderer.SetDepthTest(True);    //BIBI
+  (*
+  If (Not Graphics.Renderer.Features.Shaders.Avaliable) Then
+  Begin
+    If (Slot>0) Then
+    Begin
+      Slot := Graphics.Renderer.Features.MaxTextureUnits;
+      For I:=Pred(Slot) DownTo 1 Do
+      Begin
+        glActiveTexture(GL_TEXTURE0 + I);
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        glDisable(GL_TEXTURE_2D);
+      End;
+    End;
+  End;
+  BIBI *)
 End;
 
-Procedure TextureRect.TileRemap(X, Y, TilesPerX, TilesPerY: Integer; Tex:TERRATexture);
+{ TERRASpriteRenderer }
+(*Procedure TERRASpriteRenderer.InitBatches;
 Var
-  SX, SY:Single;
-  TX,TY:Single;
+    I:Integer;
 Begin
-  If (Tex = Nil) Then
+  _SpriteCount := 0;
+  SetLength(_SpriteList, 64);
+End;
+
+Procedure TERRASpriteRenderer.Release;
+Var
+  I:Integer;
+Begin
+{  For I:=0 To Pred(_SpriteCount) Do
+    ReleaseObject(_Sprites[I]);
+    }
+  _SpriteCount := 0;
+
+  For I:=0 To Pred(MaxSpriteShaders) Do
+    ReleaseObject(_SpriteShaders[I]);
+End;
+
+Procedure TERRASpriteRenderer.QueueSprite(S:TERRASprite);
+Var
+  N, I:Integer;
+  TargetLayer:Single;
+  HasShaders, ResetBatch:Boolean;
+Begin
+  If (S = Nil) Then
     Exit;
 
-  Tex.Prefetch();
+  If (S.Texture = Nil) Or (S.BatchID>0) Or (S.IndexCount<=0) Then
+    Exit;
 
-  SX := (Tex.Width / Tex.Ratio.X) / TilesPerX;
-  SY := (Tex.Height / Tex.Ratio.Y) / TilesPerY;
-  TX := SX*X;
-  TY := SY*Y;
-  U1 := (TX/Tex.Width * Tex.Ratio.X);
-  V1 := (TY/Tex.Height * Tex.Ratio.Y);
-  U2 := (((TX+SX)-1)/Tex.Width * Tex.Ratio.X);
-  V2 := (((TY+SY)-1)/Tex.Height * Tex.Ratio.Y);
-  Self.Width := Trunc(SX);
-  Self.Height := Trunc(SY);
+{  If (_BatchCount<=0) Then
+    Self.InitBatches();
+
+  HasShaders := Engine.Graphics.Renderer.Features.Shaders.Avaliable;
+
+  ResetBatch := True;
+
+  TargetLayer := S.Layer * 0.01;
+  N := -1;
+
+  For I:=0 To Pred(_BatchCount) Do
+  If (_Batches[I]._Texture = S.Texture) And (_Batches[I]._Pattern = S.Pattern)
+  And (_Batches[I]._DissolveTexture = S.DissolveTexture) And (_Batches[I]._DissolveValue = S.DissolveValue) And (_Batches[I]._BlendMode = S.BlendMode)
+  {$IFNDEF DISABLECOLORGRADING}And (_Batches[I]._ColorTable = S.ColorTable){$ENDIF}
+  And (_Batches[I]._ShaderID = S.Flags)
+  And ( (HasShaders) Or (_Batches[I]._Saturation = S.Saturation))
+  And (Cardinal(_Batches[I]._Outline) = Cardinal(S.Outline))
+  And (_Batches[I]._RequiredVertices + S.Vertices.Count < MaxVerticesPerBatch)
+  And (_Batches[I]._Smoothing = S.Smoothing) And (_Batches[I]._Layer = TargetLayer) Then
+  Begin
+    N := I;
+    ResetBatch := False;
+    Break;
+  End;
+
+  If (N<0) Then
+  Begin
+    For I:=0 To Pred(_BatchCount) Do
+    If (_Batches[I]._SpriteCount <=0) Then
+    Begin
+      N := I;
+      Break;
+    End;
+  End;
+
+  If (N<0) Then
+  Begin
+    N := _BatchCount;
+    Inc(_BatchCount);
+    SetLength(_Batches, _BatchCount);
+  End;
+
+  If ResetBatch Then
+  Begin
+    _Batches[N]._SpriteCount := 0;
+    _Batches[N]._BlendMode := S.BlendMode;
+    _Batches[N]._Texture := S.Texture;
+    _Batches[N]._Pattern  := S.Pattern;
+    _Batches[N]._DissolveTexture  := S.DissolveTexture;
+    _Batches[N]._DissolveValue  := S.DissolveValue;
+    _Batches[N]._Layer := TargetLayer;
+    {$IFNDEF DISABLECOLORGRADING}
+    _Batches[N]._ColorTable := S.ColorTable;
+    {$ENDIF}
+    _Batches[N]._Saturation := S.Saturation;
+    _Batches[N]._Glow := S.Glow;
+    _Batches[N]._Smoothing := S.Smoothing;
+    _Batches[N]._ShaderID := S.Flags;
+    _Batches[N]._Outline := S.Outline;
+    _Batches[N]._First := Nil;
+    _Batches[N]._RequiredVertices := 0;
+    _Batches[N]._RequiredIndices := 0;
+  End;
+
+  _Batches[N].AddSprite(S);}
+
+  Inc(_SpriteCount);
+  If (Length(_SpriteList) < _SpriteCount) Then
+    SetLength(_SpriteList, _SpriteCount);
+
+  _SpriteList[Pred(_SpriteCount)] := S;
 End;
 
-Procedure TextureRect.ResizeWithWidth(W: Single);
+Procedure TERRASpriteRenderer.Prepare;
 Var
-  N:Single;
+  I:Integer;
+  Graphics:GraphicsManager;
 Begin
-  If (Height>0) Then
-    N := Width/Height
-  Else
-    N := 1;
+  Graphics := Engine.Graphics;
 
-  Width := Trunc(W);
-  Height := Trunc(Width * N);
+{  If (_SpriteShaderWithoutGrading = Nil) Then
+  Begin
+    _SpriteShaderWithoutGrading := Graphics.Renderer.CreateShader();
+    _SpriteShaderWithoutGrading.Generate('Sprite', GetShader_Sprite(False, False, False));
+  End;
+
+  If (_SpriteShaderSolid = Nil) Then
+  Begin
+    _SpriteShaderSolid := Graphics.Renderer.CreateShader();
+    _SpriteShaderSolid.Generate('SpriteSolid', GetShader_Sprite(False, False, True));
+  End;
+
+
+  {$IFNDEF DISABLECOLORGRADING}
+  If (_SpriteShaderWithGrading = Nil) Then
+  Begin
+    _SpriteShaderWithGrading := Graphics.Renderer.CreateShader();
+    _SpriteShaderWithGrading.Generate('SpriteGrading', GetShader_Sprite(True, False, False));
+  End;
+  {$ENDIF}
+
+  If (_FontShader = Nil) Then
+  Begin
+    _FontShader := Graphics.Renderer.CreateShader();
+    _FontShader.Generate('Font', GetShader_Sprite(False, True, False));
+  End;}
+
+  {
+  For I:=0 To Pred(_BatchCount) Do
+  Begin
+    _Batches[I].Prepare();
+  End;
+
+  _Index := -1;}
 End;
 
-Procedure TextureRect.ResizeWithHeight(H: Single);
+Procedure TERRASpriteRenderer.Clear;
 Var
-  N:Single;
+  I:Integer;
 Begin
-  If (Height>0) Then
-    N := Width/Height
-  Else
-    N := 1;
+{  For I:=0 To Pred(_BatchCount) Do
+  If (Assigned(_Batches[I]._First)) Then
+  Begin
+    _Batches[I].Clear();
+  End;}
 
-  Height := Trunc(H);
-  Width := Trunc(Height / N);
+  _SpriteCount := 0;
+End;
+
+Procedure TERRASpriteRenderer.Render(Const ProjectionMatrix, TransformMatrix:Matrix4x4; Stage:RendererStage);
+Var
+  I,K:Integer;
+  Min:Single;
+  Total, Index:Integer;
+  M:Matrix4x4;
+  Graphics:GraphicsManager;
+Begin
+  Graphics := Engine.Graphics;
+  Graphics.Renderer.SetBlendMode(blendNone);
+
+  //glEnable(GL_DEPTH_TEST); {FIXME}
+  Graphics.Renderer.SetDepthFunction(compareLessOrEqual);
+
+  Graphics.Renderer.SetCullMode(cullNone);
+//  Graphics.Renderer.SetColorMask(True, True, True, False);
+
+  {If (Not Graphics.Renderer.Features.Shaders.Avaliable) Then
+  Begin
+    Projection := Graphics.ProjectionMatrix;
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadMatrixf(@Projection);
+
+    M := Matrix4x4Identity;
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadMatrixf(@M);
+
+    glMatrixMode(GL_TEXTURE);
+    glLoadMatrixf(@M);
+
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+  End;
+  BIBI
+  }
+
+
+  Total := _SpriteCount;
+
+  While (Total>0) Do
+  Begin
+    Index := -1;
+    Min := 9999;
+
+    For I:=0 To Pred(_SpriteCount) Do
+    If (_SpriteList[I].Layer<Min) Then
+    Begin
+      Min := _SpriteList[I].Layer;
+      Index := I;
+    End;
+
+    If (Index>=0) Then
+    Begin
+      RenderSprite(_SpriteList[Index], ProjectionMatrix, TransformMatrix, Stage);
+      Dec(Total);
+    End Else
+      Break;
+  End;
+
+
+  Graphics.Renderer.SetDepthTest(True);    //BIBI
+
+  {If (Not Graphics.Renderer.Features.Shaders.Avaliable) Then
+  Begin
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  End;}
 End;
 
 
+Procedure SpriteBatch.Prepare();
+Var
+  I, J:Integer;
+  S:TERRASprite;
+  K:Single;
+  MaxX,MinX, MaxY,MinY:Single;
+  M:Matrix3x3;
+  C:ColorRGBA;
+  InIt, OutIt:VertexIterator;
+  Src, Dest:SpriteVertex;
+  FullyClipped:Boolean;
+  Ratio:Single;
+  BaseID:Integer;
+  Pos:Vector3D;
+  Graphics:GraphicsManager;
+  CurrentClip:Vector4D;
+Begin
+  If (_SpriteCount<=0) Then
+  Begin
+    _First := Nil;
+    Exit;
+  End;
+
+  _RequiredVertices := 0;
+  S := _First;
+  While Assigned(S) Do
+  Begin
+    Inc(_RequiredVertices, S.Vertices.Count);
+    S := S.Next;
+  End;
+
+  BaseID := 0;
+sds
+  _Ready := True;
+End;
+*)
 
 End.
