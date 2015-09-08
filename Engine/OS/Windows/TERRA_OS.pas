@@ -760,7 +760,7 @@ Var
 Begin
   _Running := False;
 
-  S := 'A fatal error has occurred.' + CrLf + Error.Description + CrLf+ Error.CrashLog + CrLf+ Error.Callstack.GetDescription();
+  S := 'A fatal error has occurred.' + CrLf + Error.Message + CrLf+ Error.CrashLog + CrLf+ Error.Callstack.GetDescription();
   Windows.MessageBoxA(0, PAnsiChar(S), PAnsiChar(GetProgramName()), MB_OK Or MB_ICONERROR);
 End;
 

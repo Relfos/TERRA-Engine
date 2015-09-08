@@ -26,6 +26,7 @@ Type
   End;
 
 Implementation
+Uses TERRA_Engine;
 
 { TERRAPool }
 Constructor TERRAPool.Create;
@@ -68,6 +69,12 @@ Var
   I:Integer;
 Begin
   Result := Nil;
+
+  If Not ObjType.CanBePooled Then
+  Begin
+    Engine.RaiseError(ObjType.ClassName + ' type cannot be pooled!');
+    Exit;
+  End;
 
   _Mutex.Lock();
   I := 0;

@@ -36,15 +36,12 @@ Uses SysUtils, TERRA_Object, TERRA_Callstack;
 
 Type
   TERRAError = Class(Exception)
-      _Desc:TERRAString;
       _CrashLog:TERRAString;
       _Callstack:TERRACallstack;
 
     Public
       Constructor Create(Const Desc:TERRAString; E:Exception);
       Destructor Destroy();
-
-      Property Description:TERRAString Read _Desc;
 
       Property CrashLog:TERRAString Read _CrashLog;
       Property Callstack:TERRACallstack Read _Callstack;
@@ -64,9 +61,9 @@ Var
   CallStack:TERRAString;
   {$ENDIF}
 Begin
-  _Desc := Desc;
+  Inherited CreateFmt(Desc, []);
 
-    {$IFNDEF OXYGENE}
+  {$IFNDEF OXYGENE}
   ForceLogFlush := True;
   {$ENDIF}
 

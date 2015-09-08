@@ -53,6 +53,8 @@ Type
 
       Procedure Release; Override;
 
+      Class Function CanBePooled:Boolean; Override;
+
       Function SortID:Integer; Override;
 
       Procedure Update(View:TERRAViewport); Virtual;
@@ -145,6 +147,11 @@ Begin
   Layer := RenderableLayer_Default;
 End;
 
+Class Function TERRARenderable.CanBePooled: Boolean;
+Begin
+  Result := True;
+End;
+
 { RenderableManager }
 Constructor RenderableManager.Create();
 Begin
@@ -169,9 +176,6 @@ Begin
     Begin
       If (Not Engine.Graphics.ReflectionActive) Or (Renderable.RenderFlags And renderFlagsSkipReflections=0) Then
         Renderable.Render(View, Stage);
-
-      (*If Renderable.Temporary Then
-        It.Discard();*)
     End;
   End;
   ReleaseObject(It);
@@ -196,7 +200,21 @@ Begin
 End;
 
 Procedure RenderableManager.Clear;
+Var
+  It:TERRAIterator;
+  Renderable:TERRARenderable;
 Begin
+  It := _Renderables.GetIterator();
+
+  It := _Renderables.GetIterator();
+  While (It.HasNext) Do
+  Begin
+    Renderable := TERRARenderable(It.Value);
+    If Renderable.Temporary Then
+      ReleaseObject(Renderable);
+  End;
+  ReleaseObject(It);
+
   _Renderables.Clear();
 End;
 
