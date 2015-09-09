@@ -84,8 +84,6 @@ Type
 
       _AutoWrap:Boolean;
 
-      _View:TERRAViewport;
-
       _CharLimit:Integer;
 
       _LastAllocFrame:Cardinal;
@@ -117,7 +115,7 @@ Type
 
       Function PopColor():ColorRGBA;
 
-      Function DrawGlyph(View:TERRAViewport; X,Y:Single; Const CommandID:Integer; Var DestSprite:FontSprite):Boolean;
+      Function DrawGlyph(X,Y:Single; Const CommandID:Integer; Var DestSprite:FontSprite):Boolean;
 
     Public
       Constructor Create();
@@ -156,7 +154,7 @@ Type
       Function Compile(Const S:TERRAString; X,Y:Single):Boolean;
 
       Function DrawText(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString):TERRAFontRenderer;
-      Function DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):TERRAFontRenderer;
+      Function DrawTextToSprite(X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):TERRAFontRenderer;
       //Function DrawTextToImage(Target:TERRAImage; X,Y:Integer; Const Text:TERRAString; ForceBlend:Boolean = True):TERRAFontRenderer;
 
       Function GetTextWidth(Const Text:TERRAString):Single;
@@ -816,13 +814,13 @@ Begin
 
   Dest := Self.AllocSprite();
   Dest.Flags := Dest.Flags Or Sprite_Font;
-  Result := DrawTextToSprite(View, X,Y,Layer, Text, Dest);
+  Result := DrawTextToSprite(X,Y,Layer, Text, Dest);
   Dest.Flags := Dest.Flags Or Sprite_GUI;
 
   Engine.Graphics.AddRenderable(View, Dest);
 End;
 
-Function TERRAFontRenderer.DrawTextToSprite(View:TERRAViewport; X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):TERRAFontRenderer;
+Function TERRAFontRenderer.DrawTextToSprite(X,Y,Layer:Single; Const Text:TERRAString; Var DestSprite:FontSprite):TERRAFontRenderer;
 Var
   I:Integer;
   Color:ColorRGBA;
@@ -842,8 +840,6 @@ Begin
     Exit;
 
   DestSprite.Clear();
-
-  Self._View := View;
 
   Y := Y - _FontOffset * FontInvScale;
 
@@ -883,13 +879,13 @@ Begin
 
     If (Assigned(_CharList[I].Glyph)) Then
     Begin
-      DrawGlyph(View, TargetX, TargetY, I, DestSprite);
+      DrawGlyph(TargetX, TargetY, I, DestSprite);
     End Else
     Begin
       S := Engine.FetchSprite();
       S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(TargetX, TargetY - _CharList[I].Height), 0.0, _CharList[I].Width, _CharList[I].Height);
       S.SetTexture(_StylesList[_CharList[I].StyleID].Texture);
-      Engine.Graphics.AddRenderable(View, S);
+      //Engine.Graphics.AddRenderable(View, S); {TODO FIXME}
     End;
 
   End;
@@ -897,7 +893,7 @@ Begin
   //DrawClipRect(View, _ClipRect, ColorYellow);
 End;
 
-Function TERRAFontRenderer.DrawGlyph(View:TERRAViewport; X,Y:Single; Const CommandID:Integer; Var DestSprite:FontSprite):Boolean;
+Function TERRAFontRenderer.DrawGlyph(X,Y:Single; Const CommandID:Integer; Var DestSprite:FontSprite):Boolean;
 Var
   Item:TextureAtlasItem;
   Target:FontSprite;
@@ -971,7 +967,7 @@ Begin
     S.SetColor(_StylesList[_CharList[CommandID].StyleID].Color);
     OfsY := 20 * FontInvScale *  _Scale;
     S.AddLine(Vector2D_Create(X, Y + OfsY), Vector2D_Create(X + _CharList[CommandID].Width * 2, Y + OfsY),  0.0, 3);
-    Engine.Graphics.AddRenderable(View, S);
+    //Engine.Graphics.AddRenderable(View, S); {TODO FIXME}
   End;
 
   If (_StylesList[_CharList[CommandID].StyleID].StrikeThrough) Then
@@ -981,7 +977,7 @@ Begin
     S.SetColor(_StylesList[_CharList[CommandID].StyleID].Color);
     OfsY := -8 * FontInvScale *  _Scale;
     S.AddLine(Vector2D_Create(X, Y + OfsY), Vector2D_Create(X + _CharList[CommandID].Width * 2, Y + OfsY),  0.0, 3);
-    Engine.Graphics.AddRenderable(View, S);
+    //Engine.Graphics.AddRenderable(View, S); {TODO FIXME}
   End;
 End;
 

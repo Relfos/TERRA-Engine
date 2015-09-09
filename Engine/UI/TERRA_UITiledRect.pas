@@ -14,7 +14,7 @@ Type
 
       Function GetTexture: TERRATexture;
 
-      Procedure UpdateSprite(View:TERRAViewport); Override;
+      Procedure UpdateSprite(); Override;
       Class Function GetObjectType:TERRAString; Override;
 
     Public
@@ -87,7 +87,7 @@ Begin
   Inherited;
 End;
 
-Procedure UITiledRect.UpdateSprite(View:TERRAViewport);
+Procedure UITiledRect.UpdateSprite();
 Var
   I,J:Integer;
   LeftX, LeftY:Integer;

@@ -16,7 +16,7 @@ Type
 
       Function GetTexture: TERRATexture;
 
-      Procedure UpdateSprite(View:TERRAViewport); Override;
+      Procedure UpdateSprite(); Override;
 
       Class Function GetObjectType:TERRAString; Override;
 
@@ -81,7 +81,7 @@ Begin
   _Texture.Value := Tex;
 End;
 
-Procedure UIImage.UpdateSprite(View:TERRAViewport);
+Procedure UIImage.UpdateSprite();
 Begin
   If (_Stretch.Value) Or (Self.Texture = Nil) Then
     _FullSize := CurrentSize

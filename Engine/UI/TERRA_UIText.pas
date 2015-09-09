@@ -43,7 +43,7 @@ Type
 
       _FontRenderer:TERRAFontRenderer;
 
-      Procedure UpdateSprite(View:TERRAViewport); Override;
+      Procedure UpdateSprite(); Override;
 
 
     Public
@@ -82,7 +82,7 @@ Begin
   ReleaseObject(_FontRenderer);
 End;
 
-Procedure UIText.UpdateSprite(View:TERRAViewport);
+Procedure UIText.UpdateSprite();
 Var
   FR:TERRAFontRenderer;
   TX, TY:Single;
@@ -136,7 +136,7 @@ Begin
     TY:=0;
   End;
 
-  FR.DrawTextToSprite(View, TX, TY, Self.GetLayer(), _Text, FontSprite(_Sprite));
+  FR.DrawTextToSprite(TX, TY, Self.GetLayer(), _Text, FontSprite(_Sprite));
 
   //DrawClipRect(View, Self.ClipRect, ColorRed);
   //DrawRectangle(View, Vector2D_Create(TX + Self.AbsolutePosition.X, TY + Self.AbsolutePosition.Y), Vector2D_Create(TX + Self.AbsolutePosition.X + Self.FullSize.X, TY + Self.AbsolutePosition.Y + Self.FullSize.Y), ColorGreen);

@@ -35,7 +35,7 @@ Type
 
       Function IsSelectable():Boolean; Override;
 
-      Procedure UpdateSprite(View:TERRAViewport); Override;
+      Procedure UpdateSprite(); Override;
 
       Procedure OnStateChange(); Override;
 
@@ -301,7 +301,7 @@ Begin
   _PasswordField.Value := Value;
 End;
 
-Procedure UIEditText.UpdateSprite(View: TERRAViewport);
+Procedure UIEditText.UpdateSprite();
 Begin
   If (Self._PasswordField.Value) Then
   Begin

@@ -84,9 +84,6 @@ Begin
   Self._ObjectName := 'skybox';
   _Color := ColorWhite;
 
-  _RenderFlags := renderFlagsSkipFrustum Or renderFlagsSkipSorting;
-
-
   _Vertices := TERRAVertexBuffer.Create([vertexFormatPosition, vertexFormatNormal], 6);
 
   If (Engine.Graphics.Renderer.Features.Shaders.Avaliable) Then

@@ -176,6 +176,7 @@ Type
       Function GetUIView: UIWidget;
 
       Function IsEnabled: Boolean;
+      Procedure SetEnabled(const Value: Boolean);
 
       Function GetClipRect: TERRAClipRect;
       Procedure SetSelected(const Value: Boolean);
@@ -187,8 +188,6 @@ Type
       Function IsScrollable: Boolean;
       Function CanResizeWidth: Boolean;
       Function CanResizeHeight: Boolean;
-
-
 
     Protected
       _Parent:UIWidget;
@@ -239,7 +238,7 @@ Type
 
       Function AddProperty(Prop:TERRAObject; IsCustom:Boolean):TERRAObject;
 
-      Procedure UpdateSprite(View:TERRAViewport); Virtual;
+      Procedure UpdateSprite(); Virtual;
 
       Procedure InitProperties(Const Name:TERRAString); Virtual;
 
@@ -321,6 +320,7 @@ Type
       Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
 
       Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
+      Procedure OnAddToList(View:TERRAViewport; Target:TERRAList); Override;
 
       Procedure UpdateRects; Virtual;
       Function UpdateTransform():Boolean; Virtual;
@@ -453,7 +453,7 @@ Type
 
       Property Center:Vector2D Read _Center Write _Center;
 
-      Property Enabled:Boolean  Read IsEnabled;
+      Property Enabled:Boolean Read IsEnabled Write SetEnabled;
 
       Property Selected:Boolean Read IsSelected Write SetSelected;
 
@@ -501,7 +501,7 @@ Type
     Public
       Constructor Create(Const Name:TERRAString; Parent:UIWidget; Const X,Y:UIDimension; Const Layer:Single; Const Width, Height:UIDimension{; Const TemplateName:TERRAString = ''});
 
-      Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
+      //Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
 
       Property Layout:UILayout Read GetLayout Write SetLayout;
       Property Padding:UIDimension Read GetPadding Write SetPadding;
@@ -592,8 +592,6 @@ Var
   I:WidgetState;
 Begin
   _ObjectName := Name;
-
-  _RenderFlags := renderFlagsSkipFrustum;
 
   //_Component := UIComponentImage.Create();
 
@@ -2019,6 +2017,12 @@ Begin
 End;
 
 Procedure UIWidget.Render(View:TERRAViewport; Const Stage:RendererStage);
+Begin
+  If Assigned(_Sprite) Then
+    _Sprite.Render(View, Stage);
+End;
+
+Procedure UIWidget.OnAddToList(View:TERRAViewport; Target:TERRAList);
 Var
   I:Integer;
 Begin
@@ -2029,16 +2033,19 @@ Begin
 
   For I:=0 To Pred(_ChildrenCount) Do
   If (_ChildrenList[I].CanRender()) Then
-    _ChildrenList[I].Render(View, Stage);
-                                
+    _ChildrenList[I].OnAddToList(View, Target);
+    //_ChildrenList[I].Render(View, Stage);
+
   Self.UpdateProperties();
   Self.UpdateRects();
   Self.UpdateTransform();
-  Self.UpdateSprite(View);
+  Self.UpdateSprite();
 
   If Assigned(_Sprite) Then
   Begin
-    Engine.Graphics.AddRenderable(View, _Sprite);
+    _Sprite.Name := Self.Name;
+    Inherited OnAddToList(View, Target);
+    //Engine.Graphics.AddRenderable(View, _Sprite);
     //DrawClipRect(View, Self.ClipRect, ColorRed);
   End;
 
@@ -2980,6 +2987,17 @@ Begin
   Result := True;
 End;
 
+Procedure UIWidget.SetEnabled(const Value: Boolean);
+Begin
+  If (Self.IsEnabled = Value) Then
+    Exit;
+    
+  If Value Then
+    Self.SetState(widget_Default)
+  Else
+    Self.SetState(widget_Disabled);
+End;
+
 { UIWidgetGroup }
 Constructor UIWidgetGroup.Create(Const Name:TERRAString; Parent:UIWidget;  Const X,Y:UIDimension; Const Layer:Single; const Width, Height: UIDimension);
 Begin
@@ -3086,16 +3104,16 @@ Begin
   _Template.Value := Value;
 End;*)
 
-Procedure UIWidgetGroup.Render(View:TERRAViewport; Const Stage:RendererStage);
+(*Procedure UIWidgetGroup.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
   I:Integer;
 Begin
-(*  If (Self.ChildrenCount<=0) And (Self.Template<>'') Then
+  If (Self.ChildrenCount<=0) And (Self.Template<>'') Then
   Begin
-  End;*)
+  End;
 
   Inherited;
-End;
+End;*)
 
 Function UIWidgetGroup.OnRegion(const X, Y: Single): Boolean;
 Begin

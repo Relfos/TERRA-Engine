@@ -67,7 +67,7 @@ Type
     Protected
       _FadeTexture:TERRATexture;
 
-      Procedure UpdateSprite(View:TERRAViewport); Override;
+      Procedure UpdateSprite(); Override;
 
     Public
       Constructor Create(View:UIView; FadeTexture:TERRATexture; Const Duration:Cardinal; Const Delay:Cardinal = 0; Const Invert:Boolean = False);
@@ -79,7 +79,7 @@ Type
       _Direction:Vector2D;
       _Texture:TERRATexture;
 
-      Procedure UpdateSprite(View:TERRAViewport); Override;
+      Procedure UpdateSprite(); Override;
 
     Public
       Constructor Create(View:UIView; TargetView:TERRAViewport; Direction:Vector2D; Duration, Delay:Cardinal);
@@ -181,7 +181,7 @@ Begin
   Color := ColorBlack;
 End;
 
-Procedure UIFade.UpdateSprite(View:TERRAViewport);
+Procedure UIFade.UpdateSprite();
 Var
   I:Integer;
   X,Y:Single;
@@ -303,7 +303,7 @@ Begin
   Inherited;
 End;
 
-Procedure UISlide.UpdateSprite(View:TERRAViewport);
+Procedure UISlide.UpdateSprite();
 Var
   X,Y, W, H:Single;
   _Shader:ShaderInterface;

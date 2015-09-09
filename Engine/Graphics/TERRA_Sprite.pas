@@ -126,6 +126,11 @@ Type
       Procedure AddTriangle(Const PosA, PosB, PosC:Vector2D; LayerOffset:Single);
       Procedure AddArrow(Const StartPos, EndPos:Vector2D; LayerOffset:Single; LineWidth, ArrowLength:Single);
 
+      Procedure TileRemap(X,Y, TilesPerX, TilesPerY:Integer);
+      Procedure TileRemapByID(TileID, TilesPerRow, TileSize:Integer);
+      Procedure PixelRemap(X1,Y1, X2, Y2:Integer; W:Integer=0; H:Integer=0);
+      Procedure FullRemapUV();
+
       Procedure MergeSprite(Other:TERRASprite);
 
       Procedure SetTexture(Value: TERRATexture);
@@ -680,6 +685,82 @@ Begin
   End;
 End;
 
+Procedure TERRASprite.FullRemapUV();
+Begin
+  Self._U1 := 0.0;
+  Self._V1 := 0.0;
+  Self._U2 := 1.0;
+  Self._V2 := 1.0;
+End;
+
+Procedure TERRASprite.PixelRemap(X1, Y1, X2, Y2:Integer; W, H: Integer);
+Begin
+  If (_Texture = Nil) Then
+    Exit;
+
+  _Texture.Prefetch();
+
+  _U1 := (X1/_Texture.Width * _Texture.Ratio.X);
+  _V1 := (Y1/_Texture.Height * _Texture.Ratio.Y);
+  _U2 := (X2/_Texture.Width * _Texture.Ratio.X);
+  _V2 := (Y2/_Texture.Height * _Texture.Ratio.Y);
+
+(*  If (W>0) Then
+    Self.Width := W
+  Else
+    Self.Width := IntMax(1, (Abs(X2-X1)));
+
+  If (H>0) Then
+    Self.Height := H
+  Else
+    Self.Height := IntMax(1, (Abs(Y2-Y1)));*)
+End;
+
+Procedure TERRASprite.TileRemapByID(TileID, TilesPerRow, TileSize:Integer);
+Var
+  TX, TY:Integer;
+  PX, PY:Single;
+Begin
+  If (_Texture = Nil) Then
+    Exit;
+
+  _Texture.Prefetch();
+
+  PX := (1/(_Texture.Width / _Texture.Ratio.X));
+  PY := (1/(_Texture.Height / _Texture.Ratio.Y));
+
+  TX := (TileID Mod TilesPerRow);
+  TY := (TileID Div TilesPerRow);
+  _U1 := (TX/TilesPerRow + PX) * _Texture.Ratio.X;
+  _U2 := (Succ(TX)/TilesPerRow - PX) * _Texture.Ratio.X;
+  _V1 := (TY/TilesPerRow + PY) * _Texture.Ratio.Y;
+  _V2 := (Succ(TY)/TilesPerRow - PY) * _Texture.Ratio.Y;
+
+  (*Width := TileSize;
+  Height := TileSize;*)
+End;
+
+Procedure TERRASprite.TileRemap(X, Y, TilesPerX, TilesPerY: Integer);
+Var
+  SX, SY:Single;
+  TX,TY:Single;
+Begin
+  If (_Texture = Nil) Then
+    Exit;
+
+  SX := (_Texture.Width / _Texture.Ratio.X) / TilesPerX;
+  SY := (_Texture.Height / _Texture.Ratio.Y) / TilesPerY;
+  TX := SX*X;
+  TY := SY*Y;
+
+  _U1 := (TX/_Texture.Width * _Texture.Ratio.X);
+  _V1 := (TY/_Texture.Height * _Texture.Ratio.Y);
+  _U2 := (((TX+SX)-1)/_Texture.Width * _Texture.Ratio.X);
+  _V2 := (((TY+SY)-1)/_Texture.Height * _Texture.Ratio.Y);
+(*  Self.Width := Trunc(SX);
+  Self.Height := Trunc(SY);*)
+End;
+
 Procedure TERRASprite.MergeSprite(Other: TERRASprite);
 Var
   I, BaseID, IndexOffset:Integer;
@@ -1126,4 +1207,31 @@ sds
 End;
 *)
 
+(*
+Procedure TextureRect.ResizeWithWidth(W: Single);
+Var
+  N:Single;
+Begin
+  If (Height>0) Then
+    N := Width/Height
+  Else
+    N := 1;
+
+  Width := Trunc(W);
+  Height := Trunc(Width * N);
+End;
+
+Procedure TextureRect.ResizeWithHeight(H: Single);
+Var
+  N:Single;
+Begin
+  If (Height>0) Then
+    N := Width/Height
+  Else
+    N := 1;
+
+  Height := Trunc(H);
+  Width := Trunc(Height / N);
+End;
+*)
 End.

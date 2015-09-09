@@ -205,7 +205,7 @@ Procedure UIVirtualKeyboard.OnBackKey(Src:UIWidget);
 Begin
   If Assigned(Application.Instance()) Then
   Begin
-    Application.Instance.OnKeyPress(TERRAChar(keyBackspace));
+    Application.Instance.OnCharInput(TERRAChar(keyBackspace));
 
     Self.UpdatePinyin();
   End;
@@ -213,7 +213,7 @@ End;
 
 Procedure UIVirtualKeyboard.OnEnterKey(Src:UIWidget);
 Begin
-  Application.Instance.OnKeyPress(TERRAChar(keyEnter));
+  Application.Instance.OnCharInput(TERRAChar(keyEnter));
 
   (*TODO
   If (Self.UI.Focus<>Nil) And (Self.UI.Focus Is UIEditText) And (UIEditText(Self.UI.Focus).LineCount=1) Then

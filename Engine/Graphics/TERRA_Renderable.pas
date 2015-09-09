@@ -37,10 +37,9 @@ Type
   TERRARenderable = Class(TERRAObject)
     Private
       _RenderKey:Integer;
-    
+
     Protected
       _Manager:RenderableManager;
-      _RenderFlags:Cardinal;
 
       _LastUpdate:Cardinal;
 
@@ -65,11 +64,9 @@ Type
 
       Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Virtual; Abstract;
 
+      Procedure OnAddToList(View:TERRAViewport; Target:TERRAList); Virtual;
+
       Procedure RenderLights(View:TERRAViewport); Virtual;
-
-      //Property WasVisible:Boolean Read _WasVisible;
-
-      Property RenderFlags:Cardinal Read _RenderFlags;
   End;
 
 (*  TERRASpriteRenderer = Class(TERRAObject)
@@ -152,6 +149,18 @@ Begin
   Result := True;
 End;
 
+Procedure TERRARenderable.OnAddToList(View:TERRAViewport; Target:TERRAList);
+Var
+  Depth:Cardinal;
+  Layer:RenderableLayer;
+  AlphaType:RenderableAlphaType;
+Begin
+  Self.GetBucketDetails(View, Depth, Layer, AlphaType);
+  Self._RenderKey := Depth;
+
+  Target.Add(Self);
+End;
+
 { RenderableManager }
 Constructor RenderableManager.Create();
 Begin
@@ -174,7 +183,7 @@ Begin
     Renderable := TERRARenderable(It.Value);
     If (Assigned(Renderable)) Then
     Begin
-      If (Not Engine.Graphics.ReflectionActive) Or (Renderable.RenderFlags And renderFlagsSkipReflections=0) Then
+      {If (Not Engine.Graphics.ReflectionActive) Or (Renderable.RenderFlags And renderFlagsSkipReflections=0) Then}
         Renderable.Render(View, Stage);
     End;
   End;
@@ -224,20 +233,13 @@ Var
   Pos:Vector3D;
   I:Integer;
   FarDist:Single;
-  Unsorted:Boolean;
   Graphics:GraphicsManager;
-
-  Depth:Cardinal;
-  Layer:RenderableLayer;
-  AlphaType:RenderableAlphaType;
 Begin
   If Not Assigned(Renderable) Then
   Begin
     Result := False;
     Exit;
   End;
-
-  Unsorted := (Renderable.RenderFlags And renderFlagsSkipSorting<>0);
 
   Renderable._Manager := Self;
 
@@ -264,7 +266,7 @@ Begin
   End;
 
   // frustum test
-  If (Renderable.RenderFlags And renderFlagsSkipFrustum=0) And (Not View.Camera.IsBoxVisible(Renderable.GetBoundingBox)) Then
+  If (Not View.Camera.IsBoxVisible(Renderable.GetBoundingBox)) Then
   Begin
     Result := False;
     Exit;
@@ -281,10 +283,7 @@ Begin
 
   Graphics.Renderer.Stats.Update(RendererStat_Renderables);
 
-  Renderable.GetBucketDetails(View, Depth, Layer, AlphaType);
-  Renderable._RenderKey := Depth;
-
-  _Renderables.Add(Renderable);
+  Renderable.OnAddToList(View, _Renderables);
 
   Result := True;
 End;

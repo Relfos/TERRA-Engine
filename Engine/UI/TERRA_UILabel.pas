@@ -18,7 +18,7 @@ Type
 
       Function GetLocalizationKey: TERRAString;
 
-      Procedure UpdateSprite(View:TERRAViewport); Override;
+      Procedure UpdateSprite(); Override;
 
       Procedure UpdateCaption();
 
@@ -71,7 +71,7 @@ Begin
   _NeedCaptionUpdate := True;
 End;
 
-Procedure UILabel.UpdateSprite(View:TERRAViewport);
+Procedure UILabel.UpdateSprite();
 Begin
 //  If (_NeedCaptionUpdate) Then
   Begin
@@ -81,7 +81,7 @@ Begin
 
   _ShouldStretch := _Stretch.Value;
 
-  Inherited UpdateSprite(View);
+  Inherited UpdateSprite();
 End;
 
 Function UILabel.SupportDrag(Mode: UIDragMode): Boolean;

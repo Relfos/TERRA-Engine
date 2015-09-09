@@ -28,7 +28,7 @@ Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Font, TERRA_Collections, TERRA_Image, TERRA_Utils, TERRA_TextureAtlas, TERRA_Application,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix3x3, TERRA_Color, TERRA_Texture, TERRA_Math, TERRA_Tween, TERRA_Renderer,
-  TERRA_Sprite, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_Viewport, TERRA_Camera, TERRA_Renderable,
+  TERRA_Sprite, TERRA_Vector4D, TERRA_GraphicsManager, TERRA_Viewport, TERRA_Camera, TERRA_Renderable, TERRA_List,
   TERRA_UIDimension, TERRA_UIWidget, TERRA_UICursor, TERRA_BoundingBox, TERRA_ClipRect, TERRA_EnumProperty, TERRA_DataSource, TERRA_Hashmap;
 
 Const
@@ -75,7 +75,7 @@ Type
 
       Procedure Clear;
 
-      Procedure RenderCursor(View:TERRAViewport; Const Stage:RendererStage);
+      Procedure RenderCursor(View:TERRAViewport; Target:TERRAList);
 
       Function SupportDrag(Mode:UIDragMode):Boolean;
 
@@ -121,7 +121,8 @@ Type
 
       Procedure GetLocalCoords(Const X,Y:Single; Out PX, PY:Integer);
 
-      Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
+      //Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
+      Procedure OnAddToList(View:TERRAViewport; Target:TERRAList); Override;
 
       Procedure SetFocus(Value:UIWidget);
 
@@ -298,7 +299,8 @@ Begin
   End;
 End;
 
-Procedure UIView.Render(View:TERRAViewport; Const Stage:RendererStage);
+//Procedure UIView.Render(View:TERRAViewport; Const Stage:RendererStage);
+Procedure UIView.OnAddToList(View:TERRAViewport; Target:TERRAList);
 Var
   Current, Temp:UIWidget;
   I, J:Integer;
@@ -325,12 +327,12 @@ Begin
     Self.OnLanguageChange();
   End;
 
-  Inherited Render(View, Stage);
+  Self.RenderCursor(View, Target);
 
-  Self.RenderCursor(View, Stage);
+  Inherited OnAddToList(View, Target);
 End;
 
-Procedure UIView.RenderCursor(View: TERRAViewport; Const Stage:RendererStage);
+Procedure UIView.RenderCursor(View:TERRAViewport; Target:TERRAList);
 Var
   S:TERRASprite;
   MousePos:Vector2D;
@@ -350,7 +352,8 @@ Begin
   S.Layer := 99;
   S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(-_CurrentCursor.OfsX, -_CurrentCursor.OfsY), 0, _CurrentCursor.Texture.Width, _CurrentCursor.Texture.Height);
   S.Translate(MX, MY);
-  Engine.Graphics.AddRenderable(View, S);
+
+  S.OnAddToList(View, Target);
 End;
 
 
