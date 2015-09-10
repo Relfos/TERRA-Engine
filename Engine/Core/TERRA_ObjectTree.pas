@@ -11,13 +11,11 @@ Type
     Protected
       _Value:TERRAString;
 
-      _Root:TERRAObjectNode;
       _Parent:TERRAObjectNode;
       _ChildList:Array Of TERRAObjectNode;
       _ChildCount:Integer;
 
       Function GetParentCount:Integer;
-      Function GetRoot: TERRAObjectNode;
 
     Public
       Constructor Create(Const Name:TERRAString = ''; Const Value:TERRAString = '');
@@ -52,7 +50,6 @@ Type
       Function AddVector3D(Const Name:TERRAString; Const Value:Vector3D):TERRAObjectNode;
       Function AddVector4D(Const Name:TERRAString; Const Value:Vector4D):TERRAObjectNode;
 
-      Property Root:TERRAObjectNode Read GetRoot;
       Property Parent:TERRAObjectNode Read _Parent;
       Property Value:TERRAString Read _Value Write _Value;
       Property ChildCount:Integer Read _ChildCount;
@@ -83,7 +80,7 @@ Begin
   Self._Value := Value;
 End;
 
-Function TERRAObjectNode.GetRoot: TERRAObjectNode;
+(*Function TERRAObjectNode.GetRoot: TERRAObjectNode;
 Begin
   If Assigned(_Root) Then
   Begin
@@ -95,7 +92,7 @@ Begin
     Result := _Parent.Root
   Else
     Result := Self;
-End;
+End;*)
 
 Function TERRAObjectNode.GetParentCount:Integer;
 Var

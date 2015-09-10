@@ -1428,7 +1428,7 @@ Begin
 
   While (Count>0) Do
   Begin
-    Dest^:=ColorBGR32To8(Source^);
+    Dest^ := ColorBGR32To8(Source^);
     Inc(Source);
     Inc(Dest);
     Dec(Count);

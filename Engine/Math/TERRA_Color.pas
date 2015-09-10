@@ -791,18 +791,18 @@ End;
 Function ColorBGR32To16(Source:ColorRGBA):Word;
 Begin
 	// Convert from 0..255 to 0..63 range
-	Source.R:=Source.R Shr 3;
+	Source.R:=Source.B Shr 3;
 	Source.G:=Source.G Shr 3;
-	Source.B:=Source.B Shr 3;
+	Source.B:=Source.R Shr 3;
 	Result:=Source.R + ((Source.G Shl 5) + (Source.B Shl 10));
 End;
 
 Function ColorBGR8To32(Source:Byte):ColorRGBA;
 Begin
-	Result.B:=Byte((((Source Shr 5) And $07) * 255 Div 7));
-	Result.G:=Byte(((Source Shr 2) And $07) * 255 Div 7);
-	Result.R:=Byte(((Source Shr 0) And $03) * 255 Div 3);
-	Result.A:=255;
+	Result.B := Byte((((Source Shr 5) And $07) * 255 Div 7));
+	Result.G := Byte(((Source Shr 2) And $07) * 255 Div 7);
+	Result.R := Byte(((Source Shr 0) And $03) * 255 Div 3);
+	Result.A :=255;
 End;
 
 Function ColorBGR32To8(Source:ColorRGBA):Byte;
@@ -814,15 +814,15 @@ Begin
 	End;
 
 	// Convert from 0..255 to 0..7 range
-	Source.R:=Source.R Shr 6;
+	Source.R:=Source.B Shr 6;
 	Source.G:=Source.G Shr 5;
-	Source.B:=Source.B Shr 5;
+	Source.B:=Source.R Shr 5;
 	Result:=Source.R + (Source.G Shl 2) + (Source.B Shl 5);
   If (Result=0) Then
     Result:=1;
 End;
 
-Function ColorAdd(Const A,B:ColorRGBA):ColorRGBA;  
+Function ColorAdd(Const A,B:ColorRGBA):ColorRGBA;
 Begin
   Result.R := IntMin(Integer(Trunc(Integer(A.R + B.R))), 255);
   Result.G := IntMin(Integer(Trunc(Integer(A.G + B.G))), 255);

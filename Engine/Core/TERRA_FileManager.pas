@@ -40,9 +40,8 @@ Type
     Protected
       _Path:TERRAString;
 
-      Function GetStream():TERRAStream; Virtual; Abstract;
     Public
-
+      Function GetStream():TERRAStream; Virtual; Abstract;
       Property Path:TERRAString Read _Path;
   End;
 

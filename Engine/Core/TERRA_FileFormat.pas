@@ -42,6 +42,7 @@ Type
 
       Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Virtual;
       Procedure LoadFromString(Target:TERRAObject; Const Data:TERRAString; Encoding:StringEncoding);
+      Procedure LoadFromLocation(Target:TERRAObject; Location:TERRALocation; Encoding:StringEncoding = encodingUnknown);
       Procedure LoadFromFile(Target:TERRAObject; Const FileName:TERRAString; Encoding:StringEncoding = encodingUnknown);
 
       Function SaveToStream(Target:TERRAObject; Dest:TERRAStream):Boolean; Virtual;
@@ -140,6 +141,17 @@ Begin
   ReleaseObject(Source);
 End;
 
+Procedure TERRAFileFormat.LoadFromLocation(Target: TERRAObject; Location: TERRALocation; Encoding: StringEncoding);
+Var
+  Source:TERRAStream;
+Begin
+  Source := Location.GetStream();
+  If Assigned(Source) Then
+  Begin
+    LoadFromStream(Target, Source);
+    ReleaseObject(Source);
+  End;
+End;
 
 { FormatManager }
 Procedure FormatManager.Add(Format:TERRAFileFormat);
