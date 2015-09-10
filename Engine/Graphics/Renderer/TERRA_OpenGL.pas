@@ -1923,7 +1923,7 @@ Begin
   Engine.Log.Write(logDebug, 'GL', 'Loading openGL library from '+LibName);
 
   {$IFDEF WINDOWS}
-  OpenGLHandle := LoadLibraryA(PAnsiChar(LibName));
+  OpenGLHandle := LoadLibrary(PChar(LibName));
   {$ELSE}
   OpenGLHandle := LoadLibrary(LibName);
   {$ENDIF}
