@@ -236,6 +236,7 @@ Begin
   _MIDI.Update();
 
   _Network.Update();
+  _HTTP.Update();
 
   {$IFDEF PC}
   _Steam.Update();

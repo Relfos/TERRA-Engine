@@ -168,7 +168,7 @@ Type
 
       Function GetIterator():TERRAIterator; Override;
       Function GetIteratorForClass(V:VertexClass):VertexIterator;
-      //Function GetVertex(V:VertexClass; Index:Integer):TERRAVertex;
+      Function GetVertex(V:VertexClass; Index:Integer):TERRAVertex;
 
       Function GetVertexSizeInBytes():Cardinal;
 
@@ -976,6 +976,19 @@ End;
 Class Function TERRAVertexBuffer.CanBePooled: Boolean;
 Begin
   Result := True;
+End;
+
+Function TERRAVertexBuffer.GetVertex(V:VertexClass; Index:Integer):TERRAVertex;
+Begin
+  Result := TERRAVertex(Engine.Pool.Fetch(V));
+  If Assigned(V) Then
+    Result.Create()
+  Else
+    Result := V.Create();
+    
+  Result._Target := Self;
+  Result._VertexID := Index;
+  Result.Load();
 End;
 
 { VertexIterator }

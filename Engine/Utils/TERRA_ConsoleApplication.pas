@@ -3,7 +3,7 @@ Unit TERRA_ConsoleApplication;
 {$I terra.inc}
 
 Interface
-Uses {$IFDEF WINDOWS}Windows, {$ENDIF} TERRA_Object, TERRA_OS, TERRA_String, TERRA_Window;
+Uses {$IFDEF WINDOWS}Windows, {$ENDIF} TERRA_Object, TERRA_OS, TERRA_String, TERRA_Error, TERRA_Window;
 
 Type
   ConsoleWindow = Class(TERRAWindow)
@@ -28,6 +28,8 @@ Type
       Function SelectRenderer():Integer; Override;
 
       Procedure LogToConsole(Const Text:TERRAString); Override;
+
+      Procedure OnFatalError(Error:TERRAError); Override;
 
       Function GetWidth:Word; Override;
       Function GetHeight:Word; Override;
@@ -69,6 +71,12 @@ Begin
   {$ELSE}
   WriteLn(Text);
   {$ENDIF}
+End;
+
+Procedure ConsoleApplication.OnFatalError(Error: TERRAError);
+Begin
+  Self.LogToConsole(Error.Message);
+  Self.Terminate();
 End;
 
 { ConsoleWindow }

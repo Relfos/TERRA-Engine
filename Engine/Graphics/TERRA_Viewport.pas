@@ -160,7 +160,7 @@ Type
       Function ProjectPoint(Const Pos:Vector3D):Vector3D;
       Function ProjectBoundingBox(Const Box:BoundingBox):BoundingBox;
 
-      Function GetPickRay(TX,TY:Integer):Ray;
+      Function GetPickRay(TX,TY:Single):Ray;
 
       Procedure SetBackgroundColor(BG:ColorRGBA);
 
@@ -416,7 +416,7 @@ Begin
   Result := Vector3D_Create(P.X/P.W, P.Y/P.W, P.Z/P.W);
 End;
 
-Function TERRAViewport.GetPickRay(TX, TY:Integer):Ray;
+Function TERRAViewport.GetPickRay(TX, TY:Single):Ray;
 Var
   N,F:Vector3D;
   Px, Py:Single;

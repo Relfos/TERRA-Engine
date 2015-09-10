@@ -233,7 +233,8 @@ Type
       Function GetBoneByName(Const Name:TERRAString):AnimationBoneState;
 
       Function Find(Name:TERRAString):Animation;
-      Function Play(MyAnimation:Animation; Rescale:Single=0):Boolean;
+      Function Play(MyAnimation:Animation; Rescale:Single=0):Boolean; Overload;
+      Function Play(Const Name:TERRAString; Rescale:Single=0):Boolean; Overload;
 
       Function Crossfade(Name:TERRAString; Duration:Cardinal = DefaultCrossfadeDuration):Boolean; Overload;
       Function Crossfade(MyAnimation:Animation; Duration:Cardinal = DefaultCrossfadeDuration):Boolean; Overload;
@@ -406,7 +407,12 @@ Begin
   End;
 End;
 
-Function AnimationState.Play(MyAnimation: Animation; Rescale:Single=0):Boolean;
+Function AnimationState.Play(Const Name:TERRAString; Rescale:Single=0):Boolean;
+Begin
+  Result := Self.Play(Self.Find(Name), Rescale);
+End;
+
+Function AnimationState.Play(MyAnimation:Animation; Rescale:Single=0):Boolean;
 Var
   Dur:Single;
 Begin
