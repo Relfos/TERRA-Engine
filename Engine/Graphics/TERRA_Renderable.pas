@@ -62,6 +62,8 @@ Type
 
       Function GetBoundingBox:BoundingBox; Virtual;
 
+      Function TestVisibility(View:TERRAViewport):Boolean; Virtual;
+
       Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Virtual; Abstract;
 
       Procedure OnAddToList(View:TERRAViewport; Target:TERRAList); Virtual;
@@ -159,6 +161,11 @@ Begin
   Self._RenderKey := Depth;
 
   Target.Add(Self);
+End;
+
+Function TERRARenderable.TestVisibility(View: TERRAViewport): Boolean;
+Begin
+  Result := View.Camera.IsBoxVisible(Self.GetBoundingBox);
 End;
 
 { RenderableManager }
@@ -266,7 +273,7 @@ Begin
   End;
 
   // frustum test
-  If (Not View.Camera.IsBoxVisible(Renderable.GetBoundingBox)) Then
+  If (Not Renderable.TestVisibility(View)) Then
   Begin
     Result := False;
     Exit;

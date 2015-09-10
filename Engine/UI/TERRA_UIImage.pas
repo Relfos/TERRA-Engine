@@ -8,6 +8,15 @@ Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_UIWidget, TERRA_Color,
 
 Type
   UIImage = Class(UIWidget)
+  private
+    function GetU1: Single;
+    function GetU2: Single;
+    function GetV1: Single;
+    function GetV2: Single;
+    procedure SetU1(const Value: Single);
+    procedure SetU2(const Value: Single);
+    procedure SetV1(const Value: Single);
+    procedure SetV2(const Value: Single);
     Protected
       _Texture:TextureProperty;
       _Stretch:BooleanProperty;
@@ -30,6 +39,12 @@ Type
       Procedure SetTexture(Tex:TERRATexture);
 
       Property Texture:TERRATexture Read GetTexture Write SetTexture;
+
+      Property U1:Single Read GetU1 Write SetU1;
+      Property V1:Single Read GetV1 Write SetV1;
+      Property U2:Single Read GetU2 Write SetU2;
+      Property V2:Single Read GetV2 Write SetV2;
+
   End;
 
 
@@ -71,6 +86,26 @@ Begin
   Result := _Texture.Value;
 End;
 
+Function UIImage.GetU1: Single;
+Begin
+  Result := _U1.Value;
+End;
+
+Function UIImage.GetU2: Single;
+Begin
+  Result := _U2.Value;
+End;
+
+Function UIImage.GetV1: Single;
+Begin
+  Result := _V1.Value;
+End;
+
+Function UIImage.GetV2: Single;
+Begin
+  Result := _V2.Value;
+End;
+
 Procedure UIImage.SetTexture(Tex: TERRATexture);
 Begin
   If Tex = Nil Then
@@ -80,6 +115,26 @@ Begin
 
   _Texture.Value := Tex;
 End;
+
+procedure UIImage.SetU1(const Value: Single);
+begin
+
+end;
+
+procedure UIImage.SetU2(const Value: Single);
+begin
+
+end;
+
+procedure UIImage.SetV1(const Value: Single);
+begin
+
+end;
+
+procedure UIImage.SetV2(const Value: Single);
+begin
+
+end;
 
 Procedure UIImage.UpdateSprite();
 Begin

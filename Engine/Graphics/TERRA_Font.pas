@@ -132,8 +132,8 @@ Type
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
 
-      Function AddGlyph(ID:TERRAChar; Source:TERRAImage; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; Overload;
-      Function AddGlyph(ID:TERRAChar; FileName:TERRAString; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; Overload;
+      Function AddGlyphFromImage(ID:TERRAChar; Source:TERRAImage; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph;
+      Function AddGlyphFromFile(ID:TERRAChar; FileName:TERRAString; XOfs,YOfs:SmallInt; XAdvance:SmallInt = -1):FontGlyph; 
       Function AddEmptyGlyph():FontGlyph;
       Function GetGlyph(ID:TERRAChar; CreatedIfNeeded:Boolean = True):FontGlyph;
       Procedure SortGlyphs();
@@ -486,7 +486,7 @@ Begin
   _Glyphs[Pred(_GlyphCount)] := Result;
 End;
 
-Function TERRAFont.AddGlyph(ID:TERRAChar; FileName:TERRAString; XOfs, YOfs, XAdvance: SmallInt):FontGlyph;
+Function TERRAFont.AddGlyphFromFile(ID:TERRAChar; FileName:TERRAString; XOfs, YOfs, XAdvance: SmallInt):FontGlyph;
 Var
   Source:TERRAImage;
 Begin
@@ -494,14 +494,14 @@ Begin
 
   Source := TERRAImage.Create(FileName);
   If (Source.Width>0) Then
-    Result := Self.AddGlyph(ID, Source, XOfs, YOfs, XAdvance)
+    Result := Self.AddGlyphFromImage(ID, Source, XOfs, YOfs, XAdvance)
   Else
     Result := Nil;
 
   ReleaseObject(Source);
 End;
 
-Function TERRAFont.AddGlyph(ID:TERRAChar; Source:TERRAImage; XOfs, YOfs, XAdvance:SmallInt):FontGlyph;
+Function TERRAFont.AddGlyphFromImage(ID:TERRAChar; Source:TERRAImage; XOfs, YOfs, XAdvance:SmallInt):FontGlyph;
 Var
   It:ImageIterator;
   C:ColorRGBA;

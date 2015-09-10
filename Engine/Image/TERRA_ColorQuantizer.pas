@@ -15,9 +15,9 @@ Type
 
     Public
 
-      Procedure Apply(Target:Image; DitherMode:Integer);
+      Procedure Apply(Target:TERRAImage; DitherMode:Integer);
 
-      Procedure LoadFromStream(Source:Stream);
+      Procedure LoadFromStream(Source:TERRAStream);
       Procedure LoadFromFile(Const FileName:TERRAString);
 
       Procedure GetNearestDitherIndices(Const C:ColorRGBA; Out First, Second:Integer);
@@ -26,7 +26,7 @@ Type
 
       Function GetColorByIndex(Const Index:Integer):ColorRGBA;
 
-      Function GetImage(Const Width, Height:Integer):Image;
+      Function GetImage(Const Width, Height:Integer):TERRAImage;
   End;
 
   ColorOctreeNode = Class;
@@ -66,7 +66,7 @@ Type
           Constructor Create(Const MaxColors:  Integer; Const ColorBits:  Integer);
           Procedure  Release();  Override;
 
-          Function GetColorTableFromImage(Target:Image):ColorTable;
+          Function GetColorTableFromImage(Target:TERRAImage):ColorTable;
 
           Property ColorCount:Integer Read _LeafCount;
       End;
@@ -244,7 +244,7 @@ Begin
   Dec(LeafCount, Children-1);
 End;
 
-Function ColorQuantizer.GetColorTableFromImage(Target:Image):ColorTable;
+Function ColorQuantizer.GetColorTableFromImage(Target:TERRAImage):ColorTable;
 Var
   i,Index:Integer;
   It:ImageIterator;
@@ -272,7 +272,7 @@ End;
 
 
 { ColorTable }
-Procedure ColorTable.Apply(Target:Image; DitherMode:Integer);
+Procedure ColorTable.Apply(Target:TERRAImage; DitherMode:Integer);
 Var
   First, Second, Alpha:Integer;
   It:ImageIterator;
@@ -455,11 +455,11 @@ Begin
     Result := ColorNull;
 End;
 
-Function ColorTable.GetImage(Const Width, Height:Integer):Image;
+Function ColorTable.GetImage(Const Width, Height:Integer):TERRAImage;
 Var
   I:Integer;
 Begin
-  Result := Image.Create(Width, Height);
+  Result := TERRAImage.Create(Width, Height);
   For I:=0 To Pred(_Size) Do
     Result.SetPixel(I Mod Width, I Div Width, _Palette[I]);
 End;
@@ -467,14 +467,14 @@ End;
 
 Procedure ColorTable.LoadFromFile(const FileName: TERRAString);
 Var
-  Src:Stream;
+  Src:TERRAStream;
 Begin
   Src := FileStream.Open(FileName);
   Self.LoadFromStream(Src);
   ReleaseObject(Src);
 End;
 
-Procedure ColorTable.LoadFromStream(Source: Stream);
+Procedure ColorTable.LoadFromStream(Source: TERRAStream);
 Var
   S:TERRAString;
   I, R, G, B:Integer;
@@ -492,9 +492,9 @@ Begin
   Begin
     Source.ReadLine(S);
 
-    R := StringToInt(StringGetNextSplit(S, Ord(' ')));
-    G := StringToInt(StringGetNextSplit(S, Ord(' ')));
-    B := StringToInt(StringGetNextSplit(S, Ord(' ')));
+    R := StringToInt(StringGetNextSplit(S, ' '));
+    G := StringToInt(StringGetNextSplit(S, ' '));
+    B := StringToInt(StringGetNextSplit(S, ' '));
     Self._Palette[I] := ColorCreate(R, G, B);
   End;
 End;

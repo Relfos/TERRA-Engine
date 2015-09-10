@@ -63,6 +63,8 @@ Type
 
       Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
 
+      Function TestVisibility(View:TERRAViewport):Boolean; Override;
+
       Property Color:ColorRGBA Read _Color Write _Color;
       //Property Texture:CubemapTexture Read _Cubemap;
       Property Rotation:Single Read _Rotation Write _Rotation;
@@ -328,5 +330,10 @@ Begin
 End;
 {$ENDIF}
 
+
+Function TERRASkybox.TestVisibility(View: TERRAViewport): Boolean;
+Begin
+  Result := True; // always visible
+End;
 
 End.

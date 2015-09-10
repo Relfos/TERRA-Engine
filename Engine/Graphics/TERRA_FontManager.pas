@@ -131,7 +131,7 @@ Begin
 
     If Assigned(SubImg) Then
     Begin
-      Glyph := Result.AddGlyph(ID, SubImg, 0, 0);
+      Glyph := Result.AddGlyphFromImage(ID, SubImg, 0, 0);
       ReleaseObject(SubImg);
     End;
 

@@ -19,7 +19,7 @@ uses
   TERRA_ScreenFX,
   TERRA_DebugDraw,
   TERRA_Renderer,
-  TERRA_EngineManager,
+  TERRA_Engine,
   TERRA_FileManager,
   TERRA_MeshSkeleton, TERRA_MeshAnimation, TERRA_MeshAnimationNodes
 //  TERRA_Assimp,
@@ -35,6 +35,7 @@ Type
 
       Procedure OnIdle; Override;
 
+      Procedure OnRender2D(V:TERRAViewport); Override;
       Procedure OnRender3D(V:TERRAViewport); Override;
   End;
 
@@ -56,6 +57,8 @@ Begin
 
   Self.MainViewport.Visible := True;
   Self.Floor.SetPosition(Vector3D_Zero);
+
+  Self.GUI.Viewport.Visible := True;
 
 //  Engine.Graphics.Renderer.Settings.PostProcessing.SetValue(True);
 
@@ -92,8 +95,6 @@ Begin
 
  //Milkshape3DModel.Save('output.ms3d', MyFilter);
 
-  Self.MainViewport.Camera.SetView(Vector3D_Create(0, -0.25, -0.75));
-  Self.MainViewport.Camera.SetPosition(Vector3D_Create(0, 20, 50));
 //  Self._Scene.MainViewport.Camera.SetPosition(VectorCreate(0, 10, 25));
 End;
 
@@ -111,23 +112,29 @@ Procedure MyDemo.OnIdle;
 Begin
   inherited;
 
+  If (Engine.Input.Keys.WasPressed(keyB)) Then
+    Solid.Animation.Crossfade(Solid.Animation.Find('jump'), 500);
+
   If (Engine.Input.Keys.WasPressed(keyN)) Then
     Solid.Animation.Crossfade(Solid.Animation.Find('run'), 500);
 
   If (Engine.Input.Keys.WasPressed(keyM)) Then
     Solid.Animation.Crossfade(Solid.Animation.Find('idle'), 500);
 
-  If (Engine.Input.Keys.WasPressed(keyM)) Then
-    Solid.Animation.Crossfade(Solid.Animation.Find('jump'), 500);
+End;
 
+Procedure MyDemo.OnRender2D(V: TERRAViewport);
+Begin
+  Inherited;
+
+//  DrawSkeleton(V, Solid.Geometry.Skeleton, Solid.Animation, Solid.Transform, ColorGreen, 1.0);
+//  DrawBoundingBox(V, Solid.GetBoundingBox(), ColorBlue);
 End;
 
 Procedure MyDemo.OnRender3D(V: TERRAViewport);
 Begin
   Inherited;
 
-  DrawSkeleton(V, Solid.Geometry.Skeleton, Solid.Animation, Solid.Transform, ColorGreen, 1.0);
-  DrawBoundingBox(V, Solid.GetBoundingBox(), ColorBlue);
   Engine.Graphics.AddRenderable(V, Solid);
 End;
 

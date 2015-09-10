@@ -1513,7 +1513,7 @@ Begin
     ReleaseObject(Img);
     Img := TERRAImage.Create(4,4);
     stbtt_GetCodepointHMetrics(OpID, XAdv, lsb);
-    Result := Font.AddGlyph(ID, Img, XOfs, YOfs, Trunc(XAdv*_Scale));
+    Result := Font.AddGlyphFromImage(ID, Img, XOfs, YOfs, Trunc(XAdv*_Scale));
     ReleaseObject(Img);
     Exit;
   End;
@@ -1529,7 +1529,7 @@ Begin
 
   stbtt_GetCodepointHMetrics(CharValue(ID), XAdv, lsb);
 
-  Result := Font.AddGlyph(ID, Img, XOfs, YOfs, Trunc(XAdv*_Scale));
+  Result := Font.AddGlyphFromImage(ID, Img, XOfs, YOfs, Trunc(XAdv*_Scale));
 
   //Img.Save('glyphs\g'+IntToString(ID)+'.png');
 
