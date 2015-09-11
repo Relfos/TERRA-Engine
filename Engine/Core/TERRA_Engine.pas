@@ -136,8 +136,9 @@ End;
 Constructor EngineManager.Create;
 Begin
   _EngineManager := Self;
-  _Log := TERRALog.Create();
+
   _Pool := TERRAPool.Create();
+  _Log := TERRALog.Create();
 
   _InputManager := InputManager.Create();
   _FileManager := FileManager.Create();
