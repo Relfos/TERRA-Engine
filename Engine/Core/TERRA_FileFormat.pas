@@ -27,9 +27,18 @@ Unit TERRA_FileFormat;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Stream, TERRA_FileManager;
+Uses TERRA_Object, TERRA_String, TERRA_Stream;
 
 Type
+  TERRALocation = Class(TERRAObject)
+    Protected
+      _Path:TERRAString;
+
+    Public
+      Function GetStream():TERRAStream; Virtual; Abstract;
+      Property Path:TERRAString Read _Path;
+  End;
+
   TERRAFileFormat = Class(TERRAObject)
     Protected
       _Extension:TERRAString;
@@ -41,14 +50,14 @@ Type
       Constructor Create(Const Kind:TERRAObjectType; Const Extension:TERRAString);
 
       Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Virtual;
-      Procedure LoadFromString(Target:TERRAObject; Const Data:TERRAString; Encoding:StringEncoding);
-      Procedure LoadFromLocation(Target:TERRAObject; Location:TERRALocation; Encoding:StringEncoding = encodingUnknown);
-      Procedure LoadFromFile(Target:TERRAObject; Const FileName:TERRAString; Encoding:StringEncoding = encodingUnknown);
-
       Function SaveToStream(Target:TERRAObject; Dest:TERRAStream):Boolean; Virtual;
+
+      Procedure LoadFromFile(Target:TERRAObject; Const FileName:TERRAString);
+      Procedure LoadFromString(Target:TERRAObject; Const Data:TERRAString);
+      Procedure LoadFromLocation(Target: TERRAObject; Location: TERRALocation);
+
       Procedure SaveToFile(Target:TERRAObject; Const FileName:TERRAString);
       Function SaveToString(Target:TERRAObject; Encoding:StringEncoding):TERRAString;
-
 
       Property Extension:TERRAString Read _Extension;
       Property Kind:TERRAObjectType Read _Kind;
@@ -74,7 +83,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Engine, TERRA_FileUtils, TERRA_FileStream, TERRA_MemoryStream;
+Uses TERRA_Engine, TERRA_FileUtils, TERRA_FileStream, TERRA_MemoryStream, TERRA_FileManager;
 
 { TERRAFileFormat }
 Constructor TERRAFileFormat.Create(Const Kind:TERRAObjectType; Const Extension:TERRAString);
@@ -118,30 +127,25 @@ Begin
   ReleaseObject(Dest);
 End;
 
-Procedure TERRAFileFormat.LoadFromFile(Target:TERRAObject; Const FileName:TERRAString; Encoding:StringEncoding);
+Procedure TERRAFileFormat.LoadFromFile(Target:TERRAObject; Const FileName:TERRAString);
 Var
   Source:FileStream;
 Begin
   Source := FileStream.Open(FileName);
-
-  If Encoding <> encodingUnknown Then
-    Source.Encoding := Encoding;
-
   LoadFromStream(Target, Source);
   ReleaseObject(Source);
 End;
 
-Procedure TERRAFileFormat.LoadFromString(Target:TERRAObject; Const Data:TERRAString; Encoding:StringEncoding);
+Procedure TERRAFileFormat.LoadFromString(Target:TERRAObject; Const Data:TERRAString);
 Var
   Source:MemoryStream;
 Begin
   Source := MemoryStream.Create(Length(Data), @Data[1]);
-  Source.Encoding := Encoding;
   LoadFromStream(Target, Source);
   ReleaseObject(Source);
 End;
 
-Procedure TERRAFileFormat.LoadFromLocation(Target: TERRAObject; Location: TERRALocation; Encoding: StringEncoding);
+Procedure TERRAFileFormat.LoadFromLocation(Target: TERRAObject; Location: TERRALocation);
 Var
   Source:TERRAStream;
 Begin

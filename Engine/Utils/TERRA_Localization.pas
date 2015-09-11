@@ -100,7 +100,7 @@ Function GetCurrencyForCountry(Const Country:TERRAString):TERRAString;
 Function GetLanguageDescription(Lang:TERRAString):TERRAString;
 
 Implementation
-Uses TERRA_Engine, TERRA_FileManager, TERRA_Log, TERRA_OS;
+Uses TERRA_Engine, TERRA_FileManager, TERRA_FileFormat, TERRA_Log, TERRA_OS;
 
 
 Function IsSupportedLanguage(Const Lang:TERRAString):Boolean;

@@ -4,7 +4,7 @@ Unit TERRA_ObjectTree;
 
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Collections,
-  TERRA_Color, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D;
+  TERRA_Color, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Stream;
 
 Type
   TERRAObjectNode = Class(TERRAObject)
@@ -23,9 +23,8 @@ Type
 
       Function GetPath():TERRAString;
 
+      Procedure LoadFromObject(Source:TERRAObject);
       Function SaveToObject(Target:TERRAObject; Owner:TERRAObject = Nil):TERRAObject;
-
-      Procedure LoadFromObject(Source:TERRAObject); Virtual;
 
       Function GetInteger(Const Name:TERRAString; Var Dest:Integer; Default:Integer = 0):Boolean;
       Function GetCardinal(Const Name:TERRAString; Var Dest:Cardinal; Default:Cardinal = 0):Boolean;
@@ -58,7 +57,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Log, TERRA_MemoryStream, TERRA_FileStream, TERRA_Engine, TERRA_XML, TERRA_OS;
+Uses TERRA_Log, TERRA_MemoryStream, TERRA_FileStream, TERRA_Engine, TERRA_OS, TERRA_FileFormat;
 
 (*Procedure DumpObjectTree(Node:TERRAObjectNode; Dest:TERRAStream; Level:Integer);
 Var
@@ -435,6 +434,7 @@ Begin
       P.SaveToObject(Result, Target);
   End;
 End;
+
 
 
 End.

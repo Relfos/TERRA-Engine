@@ -329,7 +329,8 @@ Type
 Function CreateParticleTERRAVertexBuffer(Count:Integer):TERRAVertexBuffer;
 
 Implementation
-Uses TERRA_Engine, TERRA_Error, TERRA_OS, TERRA_Log, TERRA_Camera, TERRA_Mesh, TERRA_FileStream, TERRA_FileUtils, TERRA_ShaderManager;
+Uses TERRA_Engine, TERRA_Error, TERRA_OS, TERRA_Log, TERRA_Camera, TERRA_Mesh, TERRA_FileStream, TERRA_FileUtils,
+  TERRA_FileFormat, TERRA_ShaderManager;
 
 
 Function CreateParticleTERRAVertexBuffer(Count:Integer):TERRAVertexBuffer;

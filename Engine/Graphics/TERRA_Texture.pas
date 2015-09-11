@@ -27,7 +27,7 @@ Unit TERRA_Texture;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Object, TERRA_Image, TERRA_Stream, TERRA_Color, TERRA_Vector2D, TERRA_Math,
-  TERRA_Resource, TERRA_ResourceManager, TERRA_Renderer, TERRA_FileManager;
+  TERRA_Resource, TERRA_ResourceManager, TERRA_Renderer, TERRA_FileManager, TERRA_FileFormat;
 
 {$IFDEF MOBILE}
 {-$DEFINE TEXTURES16BIT}

@@ -161,7 +161,8 @@ Function TimeToFrame(Time, FPS:Single):Integer;
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_Application, TERRA_OS, TERRA_FileManager,  TERRA_Mesh,
-  TERRA_Engine, TERRA_GraphicsManager, TERRA_FileStream, TERRA_FileUtils, TERRA_MeshAnimationNodes;
+  TERRA_Engine, TERRA_GraphicsManager, TERRA_FileStream, TERRA_FileUtils, TERRA_MeshAnimationNodes,
+  TERRA_FileFormat;
 
 Function FrameToTime(Frame, FPS:Single):Single;
 Begin

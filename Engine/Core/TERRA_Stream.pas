@@ -38,7 +38,7 @@ Unit TERRA_Stream;
 Interface
 
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Object, TERRA_ObjectTree, TERRA_Utils, TERRA_FileUtils, TERRA_String;
+  TERRA_Object, TERRA_Utils, TERRA_FileUtils, TERRA_String;
 
 Const
  // Stream access/permission flags
@@ -93,7 +93,6 @@ Type
       Function ReadCardinal(Out Value:Cardinal):Boolean; Virtual;
       Function ReadSingle(Out Value:Single):Boolean; Virtual;
       Function ReadBoolean(Out Value:Boolean):Boolean;
-      Function ReadObject():TERRAObjectNode;
 
       Procedure ReadString(Out S:TERRAString; NullTerminated:Boolean = False);Virtual;
       Procedure WriteString(Const S:TERRAString; NullTerminated:Boolean = False);Virtual;
@@ -848,17 +847,5 @@ Begin
   Self.Read(@S[1], Self.Size);
 End;
 
-Function TERRAStream.ReadObject():TERRAObjectNode;
-Var
-  Format:TERRAFileFormat;
-Begin
-  Format := Engine.Formats.FindFormatFromStream(Self, TERRAObjectNode);
-  If Assigned(Format) Then
-  Begin
-    Result := TERRAObjectNode.Create();
-    Format.LoadFromStream(Result, Self);
-  End Else
-    Result := Nil;
-End;
 
 End.

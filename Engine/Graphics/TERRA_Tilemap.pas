@@ -175,7 +175,7 @@ Type
 
 Implementation
 Uses TERRA_OS, TERRA_Engine, TERRA_FileManager, TERRA_MemoryStream,
-  TERRA_Log, TERRA_Base64, TERRA_XML;
+  TERRA_Log, TERRA_Base64, TERRA_XML, TERRA_FileFormat;
 
 { TileMap }
 Constructor TileMap.Create(TileWidth, TileHeight: Integer);
@@ -191,7 +191,6 @@ Var
   P, PP, PPP, PX:TERRAObjectNode;
   Name:TERRAString;
   I, J, K, N, W, H:Integer;
-  Src:TERRAStream;
 
   S:TERRAString;
 
@@ -204,9 +203,7 @@ Begin
   If Location = Nil Then
     Exit;
 
-  Src := Engine.Files.OpenLocation(Location);
-  SourceData := Src.ReadObject();
-  ReleaseObject(Src);
+  SourceData := TERRAObjectNode(Engine.Files.LoadFromLocation(Location, TERRAObjectNode));
 
 (*  If S='' Then
   Begin

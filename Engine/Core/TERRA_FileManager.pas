@@ -28,21 +28,12 @@ Unit TERRA_FileManager;
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
     TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Collections, TERRA_Stream, TERRA_FileStream,
-    TERRA_Application, TERRA_Hashmap, TERRA_Package;
+    TERRA_Application, TERRA_Hashmap, TERRA_Package, TERRA_FileFormat;
 
 Type
   ResourceProvider = Class(TERRAObject)
     Function GetStream(Const Name:TERRAString):TERRAStream; Virtual; Abstract;
     Function HasStream(Const Name:TERRAString):Boolean; Virtual; Abstract;
-  End;
-
-  TERRALocation = Class(TERRAObject)
-    Protected
-      _Path:TERRAString;
-
-    Public
-      Function GetStream():TERRAStream; Virtual; Abstract;
-      Property Path:TERRAString Read _Path;
   End;
 
   FileManager = Class(TERRAObject)
@@ -95,6 +86,15 @@ Type
 
       Function OpenLocation(Location:TERRALocation):TERRAStream;
       Function OpenFile(Const FileName:TERRAString):TERRAStream;
+
+      Function LoadFromStream(Source:TERRAStream; ObjectType:TERRAObjectType):TERRAObject;
+      Function LoadFromLocation(Location:TERRALocation; ObjectType:TERRAObjectType):TERRAObject;
+      Function LoadFromString(Const Data:TERRAString; ObjectType:TERRAObjectType):TERRAObject;
+      Function LoadFromFile(Const FileName:TERRAString; ObjectType:TERRAObjectType):TERRAObject;
+
+      Function SaveToStream(Obj:TERRAObject; Dest:TERRAStream; Format:TERRAFileFormat):Boolean;
+      Function SaveToFile(Obj:TERRAObject; Const FileName:TERRAString; Format:TERRAFileFormat):Boolean;
+      //Function SaveToString(Obj:TERRAObject; Encoding:StringEncoding):TERRAString;
 
      // Function OpenPackages(FileName:TERRAString):Boolean;
       Property PathCount:Integer Read _FolderCount;
@@ -610,6 +610,73 @@ Begin
 
   RegisterLocation(Location);
 End;
+
+Function FileManager.LoadFromStream(Source:TERRAStream; ObjectType:TERRAObjectType):TERRAObject;
+Var
+  Format:TERRAFileFormat;
+Begin
+  Format := Engine.Formats.FindFormatFromStream(Source, ObjectType);
+  If Assigned(Format) Then
+  Begin
+    Result := ObjectType.Create();
+    Format.LoadFromStream(Result, Source);
+  End Else
+    Result := Nil;
+End;
+
+Function FileManager.LoadFromLocation(Location:TERRALocation; ObjectType:TERRAObjectType):TERRAObject;
+Var
+  Src:TERRAStream;
+Begin
+  If Assigned(Location) Then
+  Begin
+    Src := Location.GetStream();
+    Result := LoadFromStream(Src, ObjectType);
+    ReleaseObject(Src);
+  End Else
+    Result := Nil;
+End;
+
+Function FileManager.LoadFromFile(Const FileName:TERRAString; ObjectType:TERRAObjectType):TERRAObject;
+Var
+  Src:FileStream;
+Begin
+  Src := FileStream.Open(FileName);
+  Result := LoadFromStream(Src, ObjectType);
+  ReleaseObject(Src);
+End;
+
+Function FileManager.LoadFromString(Const Data:TERRAString; ObjectType:TERRAObjectType):TERRAObject;
+Var
+  Source:MemoryStream;
+Begin
+  Source := MemoryStream.Create(Length(Data), @Data[1]);
+  Result := LoadFromStream(Source, ObjectType);
+  ReleaseObject(Source);
+End;
+
+Function FileManager.SaveToStream(Obj:TERRAObject; Dest:TERRAStream; Format:TERRAFileFormat):Boolean;
+Begin
+  If Assigned(Format) Then
+  Begin
+    Result := Format.SaveToStream(Obj, Dest);
+  End Else
+    Result := False;
+End;
+
+Function FileManager.SaveToFile(Obj:TERRAObject; Const FileName:TERRAString; Format:TERRAFileFormat):Boolean;
+Var
+  Dest:FileStream;
+Begin
+  Dest := FileStream.Create(FileName);
+  Result := SaveToStream(Obj, Dest, Format);
+  ReleaseObject(Dest);
+End;
+
+(*Function FileManager.SaveToString(Encoding:StringEncoding):TERRAString;
+Begin
+
+End;*)
 
 { TERRAFileLocation }
 Constructor TERRAFileLocation.Create(Const Name, Path:TERRAString);

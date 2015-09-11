@@ -16,6 +16,8 @@ Type
       _TempBuffer:TERRAString;
       _InitTag:TERRAString;
 
+      Procedure Clear();
+
       Function ReadString(Source:TERRAStream):TERRAString;
       Function GetTagType(Const S:TERRAString):XMLTagType;
       Function GetTagName(Const S:TERRAString):TERRAString;
@@ -321,7 +323,16 @@ Function XMLFormat.LoadFromStream(Target: TERRAObject; Source: TERRAStream): Boo
 Begin
   Result := (Target Is TERRAObjectNode);
   If Result Then
+  Begin
+    Self.Clear();
     Self.ReadNode(Source, TERRAObjectNode(Target));
+  End;
+End;
+
+Procedure XMLFormat.Clear;
+Begin
+  _TempBuffer := '';
+  _InitTag := '';
 End;
 
 Initialization
