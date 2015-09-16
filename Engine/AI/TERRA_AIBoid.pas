@@ -3,7 +3,7 @@ Unit TERRA_AIBoid;
 {$I terra.inc}
 Interface
 
-Uses TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix4x4, TERRA_Color, TERRA_Mesh;
+Uses TERRA_Object, TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix4x4, TERRA_Color, TERRA_Mesh, TERRA_Viewport;
 
 Const
    BoidSpeed = 20;
@@ -26,7 +26,7 @@ Type
       _width:Single;
 
       _TeamCount:Integer;                                  // Number of teams.
-      _Teams:Array Of Mesh;
+      _Teams:Array Of TERRAMesh;
 
       procedure checkBounds( boid : BoidAgent);
       procedure addToMomentum( b : BoidAgent);
@@ -41,7 +41,7 @@ Type
       Procedure Release; Override;
 
 
-      Procedure AddTeam(MyMesh:Mesh);
+      Procedure AddTeam(Mesh:TERRAMesh);
 
       procedure Update;
 
@@ -67,10 +67,10 @@ Type
                         retreatC: Single;
                         TeamIndex: integer);
 
-      procedure remove( b : BoidAgent);
+      procedure Remove(b:BoidAgent);
       //function elements : TList;
 
-      procedure Render();
+      procedure Render(View:TERRAViewport);
 
 
       Property MemberCount:Integer Read _MemberCount;
@@ -201,7 +201,7 @@ Type
     constructor Create (direction, magnitude, xPos, yPos, heightOfs, maxSpeed, minSpeed,
                             angle, accel, sensor, death, deathC, attackC, retreatC,
                             collision : Single;
-                            Color : Color ;
+                            Color : ColorRGBA;
                             gaggle : BoidFlock); overload;
 
     constructor Create (b : BoidGene); overload;
@@ -267,12 +267,12 @@ Type
   End;
 
 implementation
-Uses TERRA_GraphicsManager, TERRA_Math;
+Uses TERRA_GraphicsManager, TERRA_Math, TERRA_Engine;
 
 { BoidAgent }
 Constructor BoidAgent.Create(direction, magnitude, xPos, yPos, heightOfs, maxSpeed,
   minSpeed, angle, accel, sensor, death, deathC, attackC, retreatC,
-  collision: Single; Color: Color; gaggle: BoidFlock);
+  collision: Single; Color: ColorRGBA; gaggle: BoidFlock);
 Begin
   _heightOfs := heightOfs;
   _X := xPos;
@@ -342,8 +342,8 @@ end;
 //  Move the Boid                                                   
 procedure BoidAgent.move;
 begin
-  _X := _X + Self.Speed * Cos(Self.Heading) * GraphicsManager.Instance.ElapsedTime * BoidSpeed;
-  _Y := _Y + Self.Speed * Sin(Self.Heading) * GraphicsManager.Instance.ElapsedTime * BoidSpeed;
+  _X := _X + Self.Speed * Cos(Self.Heading) * Engine.Graphics.ElapsedTime * BoidSpeed;
+  _Y := _Y + Self.Speed * Sin(Self.Heading) * Engine.Graphics.ElapsedTime * BoidSpeed;
 end;
 
 // Slow Down (Never less than min speed)
@@ -1108,8 +1108,8 @@ begin
 {  FDestX := FSourceX - 50;
   FDestY := FSourceY;}
 
-  SourcePoint := VectorCreate2D(FSourceX, FSourceY);
-  DestPoint   := VectorCreate2D(FDestX, FDestY);
+  SourcePoint := Vector2D_Create(FSourceX, FSourceY);
+  DestPoint   := Vector2D_Create(FDestX, FDestY);
 
   N := DestPoint;
   N.Subtract(SourcePoint);
@@ -1120,7 +1120,7 @@ begin
 end;
 
 //  Render the flock                                                 
-procedure BoidFlock.Render();
+Procedure BoidFlock.Render(View:TERRAViewport);
 var i : integer;
     tempBoid : BoidAgent;
     xPoints : array [0..2] of single;
@@ -1140,7 +1140,7 @@ begin
     If tempBoid._Instance = Nil Then
     Begin
       tempBoid._Instance := MeshInstance.Create(_Teams[tempBoid.TeamIndex]);
-      tempBoid._Instance.Animation.Play('idle');
+      tempBoid._Instance.Animation.Play(tempBoid._Instance.Animation.Find('idle'));
     End;
 
     xPoints[0] := (tempBoid.X+20.0*cos(tempBoid.Heading));
@@ -1154,13 +1154,13 @@ begin
     LocalX := tempBoid.X;
     LocalY := tempBoid.Y;
 
-    tempBoid._Instance.SetPosition(VectorCreate(LocalX, tempBoid._heightOfs, LocalY));
+    tempBoid._Instance.SetPosition(Vector3D_Create(LocalX, tempBoid._heightOfs, LocalY));
 
     rotangle := FindAngle(LocalX, LocalY, xPoints[0], yPoints[0]);
 
-    tempBoid._Instance.SetRotation(VectorCreate(0, rotAngle, 0));
+    tempBoid._Instance.SetRotation(Vector3D_Create(0, rotAngle, 0));
 
-    GraphicsManager.Instance.AddRenderable(tempBoid._Instance);
+    Engine.Graphics.AddRenderable(View, tempBoid._Instance);
 
     {if ShowLines then
     begin
@@ -1237,14 +1237,14 @@ Begin
 end;
 
 
-procedure BoidFlock.AddTeam(MyMesh: Mesh);
+procedure BoidFlock.AddTeam(Mesh:TERRAMesh);
 begin
-  If MyMesh = Nil Then
+  If Mesh = Nil Then
     Exit;
 
   Inc(_TeamCount);
   SetLength(_teams, _TeamCount);
-  _teams[Pred(_TeamCount)] := MyMesh;
+  _teams[Pred(_TeamCount)] := Mesh;
 end;
 
 end.

@@ -3,7 +3,7 @@ Unit TERRA_TestString;
 {$I terra.inc}
 
 Interface
-Uses TERRA_TestSuite;
+Uses TERRA_TestSuite, TERRA_Object;
 
 Type
   TERRAString_TestIterator = class(TestCase)
@@ -50,9 +50,9 @@ Type
     Procedure Run; Override;
    End;
 
-   TERRAString_TestWordExtract = class(TestCase)
+(*   TERRAString_TestWordExtract = class(TestCase)
     Procedure Run; Override;
-   End;
+   End;*)
 
    TERRAString_TestPad = class(TestCase)
     Procedure Run; Override;
@@ -81,22 +81,22 @@ Uses TERRA_String, TERRA_Utils;
 Function GetCatInCyrillic():TERRAString;
 Begin
   Result := '';
-  StringAppendChar(Result, 1082);
-  StringAppendChar(Result, 1086);
-  StringAppendChar(Result, 1096);
-  StringAppendChar(Result, 1082);
-  StringAppendChar(Result, 1072);
+  StringAppendChar(Result, #1082);
+  StringAppendChar(Result, #1086);
+  StringAppendChar(Result, #1096);
+  StringAppendChar(Result, #1082);
+  StringAppendChar(Result, #1072);
 End;
 
 Function GetDogInCyrillic():TERRAString;
 Begin
   Result := '';
-  StringAppendChar(Result, 1089);
-  StringAppendChar(Result, 1086);
-  StringAppendChar(Result, 1073);
-  StringAppendChar(Result, 1072);
-  StringAppendChar(Result, 1082);
-  StringAppendChar(Result, 1072);
+  StringAppendChar(Result, #1089);
+  StringAppendChar(Result, #1086);
+  StringAppendChar(Result, #1073);
+  StringAppendChar(Result, #1072);
+  StringAppendChar(Result, #1082);
+  StringAppendChar(Result, #1072);
 End;
 
 Procedure TERRAString_TestIterator.Run();
@@ -111,17 +111,17 @@ Var
   Begin
     Inc(N);
     B := It.GetNext();
-    Check(B = C, 'Expected char "'+ Chr(C) + '" at position '+IntToString(N)+' got "'+Chr(B)+'"');
+    Check(B = C, 'Expected char "'+ C + '" at position '+IntegerProperty.Stringify(N)+' got "'+ B +'"');
   End;
 Begin
   S := 'TEST1';
   N := 0;
   StringCreateIterator(S, It);
-  Expect(Ord('T'));
-  Expect(Ord('E'));
-  Expect(Ord('S'));
-  Expect(Ord('T'));
-  Expect(Ord('1'));
+  Expect('T');
+  Expect('E');
+  Expect('S');
+  Expect('T');
+  Expect('1');
   Check(It.HasNext = False, 'End of string expected!');
 End;
 
@@ -137,17 +137,17 @@ Var
   Begin
     Inc(N);
     B := It.GetNext();
-    Check(B = C, 'Expected char "'+ Chr(C) + '" at position '+IntToString(N)+' got "'+Chr(B)+'"');
+    Check(B = C, 'Expected char "'+ C + '" at position '+IntegerProperty.Stringify(N)+' got "'+ B +'"');
   End;
 Begin
   S := 'ABCX3';
   N := 0;
   StringCreateReverseIterator(S, It);
-  Expect(Ord('3'));
-  Expect(Ord('X'));
-  Expect(Ord('C'));
-  Expect(Ord('B'));
-  Expect(Ord('A'));
+  Expect('3');
+  Expect('X');
+  Expect('C');
+  Expect('B');
+  Expect('A');
   Check(It.HasNext = False, 'End of string expected!');
 End;
 
@@ -163,18 +163,18 @@ Var
   Begin
     Inc(N);
     B := It.GetNext();
-    Check(B = C, 'Expected char "'+ StringFromChar(C) + '" at position '+IntToString(N)+' got "'+StringFromChar(B)+'"');
+    Check(B = C, 'Expected char "'+ StringFromChar(C) + '" at position '+IntegerProperty.Stringify(N)+' got "'+StringFromChar(B)+'"');
   End;
 Begin
   S := GetCatInCyrillic();
 
   N := 0;
   StringCreateIterator(S, It);
-  Expect(1082);
-  Expect(1086);
-  Expect(1096);
-  Expect(1082);
-  Expect(1072);
+  Expect(#1082);
+  Expect(#1086);
+  Expect(#1096);
+  Expect(#1082);
+  Expect(#1072);
   Check(It.HasNext = False, 'End of string expected!');
 End;
 
@@ -190,19 +190,19 @@ Var
   Begin
     Inc(N);
     B := It.GetNext();
-    Check(B = C, 'Expected char "'+ StringFromChar(C) + '" at position '+IntToString(N)+' got "'+StringFromChar(B)+'"');
+    Check(B = C, 'Expected char "'+ StringFromChar(C) + '" at position '+IntegerProperty.Stringify(N)+' got "'+StringFromChar(B)+'"');
   End;
 Begin
   S := GetDogInCyrillic();
 
   N := 0;
   StringCreateReverseIterator(S, It);
-  Expect(1072);
-  Expect(1082);
-  Expect(1072);
-  Expect(1073);
-  Expect(1086);
-  Expect(1089);
+  Expect(#1072);
+  Expect(#1082);
+  Expect(#1072);
+  Expect(#1073);
+  Expect(#1086);
+  Expect(#1089);
   Check(It.HasNext = False, 'End of string expected!');
 End;
 
@@ -215,15 +215,15 @@ Var
     B:TERRAChar;
   Begin
     B := StringGetChar(S, N);
-    Check(B = C, 'Expected char "'+ Chr(C) + '" at position '+IntToString(N)+' got "'+Chr(B)+'"');
+    Check(B = C, 'Expected char "'+ C + '" at position '+IntegerProperty.Stringify(N)+' got "'+ B +'"');
   End;
 Begin
   S := 'PIPO5';
 
-  Expect(Ord('P'), 3);
-  Expect(Ord('O'), 4);
-  Expect(Ord('I'), -4);
-  Expect(Ord('5'), 5);
+  Expect('P', 3);
+  Expect('O', 4);
+  Expect('I', -4);
+  Expect('5', 5);
 End;
 
 Procedure TERRAString_TestRegex.Run();
@@ -231,16 +231,18 @@ Var
   A, B:TERRAString;
 
 
-  Procedure ExpectMatch(Const S, Expr:String; Value:Boolean);
+  Procedure ExpectMatch(Const S, Expr:TERRAString; Value:Boolean);
   Var
     S2:String;
+    Result:Boolean;
   Begin
     If Value Then
       S2 := 'match'
     Else
       S2 := 'fail';
 
-    Check(StringMatchRegex(S, Expr) = Value, 'Expected "'+ S + '" to '+S2+' expression '+Expr);
+    Result := StringMatchRegex(S, Expr);
+    Check(Result = Value, 'Expected "'+ S + '" to '+S2+' expression '+Expr);
   End;
 Begin
   A := 'leaf.png';
@@ -270,7 +272,7 @@ Var
     P:Integer;
   Begin
     P := StringPos(SubStr, S, IgnoreCase);
-    Check(P = N, 'Expected "'+ SubStr + '" at position '+IntToString(N)+' but found in '+IntToString(P));
+    Check(P = N, 'Expected "'+ SubStr + '" at position '+IntegerProperty.Stringify(N)+' but found in '+IntegerProperty.Stringify(P));
   End;
 
   Procedure ExpectReverse(Const SubStr:TERRAString; N:Integer; IgnoreCase:Boolean);
@@ -278,7 +280,7 @@ Var
     P:Integer;
   Begin
     P := StringPosReverse(SubStr, S, IgnoreCase);
-    Check(P = N, 'Expected "'+ SubStr + '" at position '+IntToString(N)+' but found in '+IntToString(P));
+    Check(P = N, 'Expected "'+ SubStr + '" at position '+IntegerProperty.Stringify(N)+' but found in '+IntegerProperty.Stringify(P));
   End;
 Begin
   S := 'GELLY4LYFE';
@@ -298,7 +300,7 @@ Var
     P:Integer;
   Begin
     P := StringCharPos(C, S, IgnoreCase);
-    Check(P = N, 'Expected "'+ StringFromChar(C) + '" at position '+IntToString(N)+' but found in '+IntToString(P));
+    Check(P = N, 'Expected "'+ StringFromChar(C) + '" at position '+IntegerProperty.Stringify(N)+' but found in '+IntegerProperty.Stringify(P));
   End;
 
   Procedure ExpectReverse(Const C:TERRAChar; N:Integer; IgnoreCase:Boolean);
@@ -306,15 +308,15 @@ Var
     P:Integer;
   Begin
     P := StringCharPosReverse(C, S, IgnoreCase);
-    Check(P = N, 'Expected "'+ StringFromChar(C) + '" at position '+IntToString(N)+' but found in '+IntToString(P));
+    Check(P = N, 'Expected "'+ StringFromChar(C) + '" at position '+IntegerProperty.Stringify(N)+' but found in '+IntegerProperty.Stringify(P));
   End;
 Begin
   S := 'TEST6BATt3rY';
 
-  Expect(Ord('t'), 1, True);
-  ExpectReverse(Ord('B'), 6, False);
-  Expect(Ord('3'), 10, False);
-  Expect(Ord('t'), 9, False);
+  Expect('t', 1, True);
+  ExpectReverse('B', 6, False);
+  Expect('3', 10, False);
+  Expect('t', 9, False);
 End;
 
 Procedure TERRAString_TestCopy.Run;
@@ -365,11 +367,11 @@ Var
 
 Begin
   A := 'hello|world|again';
-  StringSplitByChar(A, B, C, Ord('|'));
+  StringSplitByChar(A, B, C, '|');
 
   Expect(B, 'hello');
 
-  StringSplitByChar(C, D, E, Ord('|'));
+  StringSplitByChar(C, D, E, '|');
 
   Expect(D, 'world');
   Expect(E, 'again');
@@ -378,20 +380,20 @@ Begin
   Dog := GetDogInCyrillic();
   A := Cat + ',lion,'+Dog;
 
-  StringSplitByChar(A, B, C, Ord(','));
+  StringSplitByChar(A, B, C, ',');
 
   Expect(B, Cat);
 
-  StringSplitByChar(C, D, E, Ord(','));
+  StringSplitByChar(C, D, E, ',');
 
   Expect(D, 'lion');
   Expect(E, Dog);
 
   A := 'oranges,apples,pears';
 
-  Expect(StringGetNextSplit(A, Ord(',')), 'oranges');
-  Expect(StringGetNextSplit(A, Ord(',')), 'apples');
-  Expect(StringGetNextSplit(A, Ord(',')), 'pears');
+  Expect(StringGetNextSplit(A, ','), 'oranges');
+  Expect(StringGetNextSplit(A, ','), 'apples');
+  Expect(StringGetNextSplit(A, ','), 'pears');
   Expect(A, '');
 End;
 
@@ -415,7 +417,7 @@ Begin
   Expect(StringPosIterator(':->', S, It), 'integer', 'string');
 End;
 
-Procedure TERRAString_TestWordExtract.Run;
+(*Procedure TERRAString_TestWordExtract.Run;
 Var
   Dog, Cat, S:TERRAString;
 
@@ -435,17 +437,17 @@ Begin
 
   S := 'hello, '+Dog+' again! Got '+Cat+' in blue?';
 
-  Expect('hello', Ord(','));
-  Expect('', Ord(' '));
-  Expect(Dog, Ord(' '));
-  Expect('again', Ord('!'));
-  Expect('', Ord(' '));
-  Expect('Got', Ord(' '));
-  Expect(Cat, Ord(' '));
-  Expect('in', Ord(' '));
-  Expect('blue', Ord('?'));
+  Expect('hello', ',');
+  Expect('', ' ');
+  Expect(Dog, ' ');
+  Expect('again', '!');
+  Expect('', ' ');
+  Expect('Got', ' ');
+  Expect(Cat, ' ');
+  Expect('in', ' ');
+  Expect('blue', '?');
   Check(S = '', 'End of string expected!');
-End;
+End;*)
 
 Procedure TERRAString_TestPad.Run;
   Procedure Expect(Const X, Y: TERRAString);
@@ -454,10 +456,10 @@ Procedure TERRAString_TestPad.Run;
   End;
 
 Begin
-  Expect(StringPadLeft(IntToString(2), 2, Ord('x')), 'x2');
-  Expect(StringPadLeft(IntToString(2), 4, Ord('0')), '0002');
-  Expect(StringPadLeft(IntToString(2), 1, Ord('0')), '2');
-  Expect(StringPadRight(IntToString(2), 3, Ord(' ')), '2  ');
+  Expect(StringPadLeft(IntegerProperty.Stringify(2), 2, 'x'), 'x2');
+  Expect(StringPadLeft(IntegerProperty.Stringify(2), 4, '0'), '0002');
+  Expect(StringPadLeft(IntegerProperty.Stringify(2), 1, '0'), '2');
+  Expect(StringPadRight(IntegerProperty.Stringify(2), 3,' '), '2  ');
 End;
 
 
@@ -484,8 +486,8 @@ Begin
   Expect(S, Cat+' and another '+Cat);
 
   S := 'X and Y';
-  StringReplaceChar(Ord('X'), Ord('3'), S);
-  StringReplaceChar(Ord('y'), Ord('4'), S);
+  StringReplaceChar('X', '3', S);
+  StringReplaceChar('y', '4', S);
   Expect(S, '3 and 4');
 End;
 
@@ -530,21 +532,21 @@ Procedure TERRAString_TestConversions.Run;
   End;
 
 Begin
-  Expect(FloatToString(3.14159, 4), '3.1415');
-  Expect(FloatToString(3.14159, 5), '3.14159');
-  Expect(FloatToString(3.14159, 6), '3.141590');
+  Expect(FloatProperty.Stringify(3.14159, 4), '3.1415');
+  Expect(FloatProperty.Stringify(3.14159, 5), '3.14159');
+  Expect(FloatProperty.Stringify(3.14159, 6), '3.141590');
 
-  Expect(FloatToString(-7.85679, 4), '-7.8567');
-  Expect(FloatToString(-7.85679, 5), '-7.85679');
-  Expect(FloatToString(-7.85679, 6), '-7.856790');
+  Expect(FloatProperty.Stringify(-7.85679, 4), '-7.8567');
+  Expect(FloatProperty.Stringify(-7.85679, 5), '-7.85679');
+  Expect(FloatProperty.Stringify(-7.85679, 6), '-7.856790');
 
-  Expect(FloatToString(-0.6632), '-0.6632');
+  Expect(FloatProperty.Stringify(-0.6632), '-0.66320');
 
-  Expect(FloatToString(0.0156), '0.0156');
+  Expect(FloatProperty.Stringify(0.0156), '0.01560');
 
-  Expect(FloatToString(0.00123, 4), '0.0012');
-  Expect(FloatToString(0.00123, 5), '0.00123');
-  Expect(FloatToString(0.00123, 6), '0.001230');
+  Expect(FloatProperty.Stringify(0.00123, 4), '0.0012');
+  Expect(FloatProperty.Stringify(0.00123, 5), '0.00123');
+  Expect(FloatProperty.Stringify(0.00123, 6), '0.001230');
 End;
 
 End.

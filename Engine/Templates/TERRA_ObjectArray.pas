@@ -27,36 +27,36 @@ Unit TERRA_ObjectArray;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Collections;
+Uses TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Collections;
 
 Type
-  ObjectArray = Class(Collection)
+  ObjectArray = Class(TERRACollection)
     Protected
-      _Objects:Array Of CollectionObject;
+      _Objects:Array Of TERRACollectionObject;
 
       Procedure RemoveDiscardedItems(); Override;
 
     Public
       Constructor Create(Options:Cardinal; ShareItemsWith:ObjectArray);
 
-      Function GetIterator:Iterator; Override;
+      Function GetIterator:TERRAIterator; Override;
 
       Procedure Clear(); Override;
 
-      Function Add(Item:CollectionObject):Boolean;
-      Function Delete(Item:CollectionObject):Boolean;
+      Function Add(Item:TERRAObject):Boolean;
+      Function Delete(Item:TERRAObject):Boolean;
 
-      Function GetItemByIndex(Index:Integer):CollectionObject; Override;
+      Function GetItemByIndex(Index:Integer):TERRAObject; Override;
   End;
 
 
 Implementation
-Uses TERRA_Log;
+Uses TERRA_Log, TERRA_Engine;
 
 Type
-  ObjectArrayIterator = Class(Iterator)
+  ObjectArrayIterator = Class(TERRAIterator)
     Protected
-      Function ObtainNext:CollectionObject; Override;
+      Function ObtainNext:TERRACollectionObject; Override;
   End;
 
 { ObjectArray }
@@ -68,7 +68,9 @@ Begin
   Self.Init(Options, ShareItemsWith);
 End;
 
-Function ObjectArray.Add(Item: CollectionObject): Boolean;
+Function ObjectArray.Add(Item:TERRAObject): Boolean;
+Var
+  Obj:TERRACollectionObject;
 Begin
   If Item = Nil Then
   Begin
@@ -76,19 +78,19 @@ Begin
     Exit;
   End;
 
-  Self.Lock();
+  Obj := Self.NewItem(Item);
 
-  Item.Link(Self);
+  Self.Lock();
 
   Inc(_ItemCount);
   SetLength(_Objects, _ItemCount);
-  _Objects[Pred(_ItemCount)] := Item;
+  _Objects[Pred(_ItemCount)] := Obj;
   Self.Unlock();
 
   Result := True;
 End;
 
-Function ObjectArray.Delete(Item: CollectionObject): Boolean;
+Function ObjectArray.Delete(Item:TERRAObject): Boolean;
 Var
   I:Integer;
 Begin
@@ -97,18 +99,11 @@ Begin
     Exit;
 
   Self.Lock();
-{  For I:=0 To Pred(_ItemCount) Do
-  If (_Objects[I] = Item) Then
-  Begin
-    _Objects[I].Discard();
-    Result := True;
-    Break;
-  End;}
-
   I := 0;
   While I<_ItemCount Do
-  If (_Objects[I] = Item) Then
+  If (_Objects[I].Item = Item) Then
   Begin
+    ReleaseObject(_Objects[I]);
     _Objects[I] := _Objects[Pred(_ItemCount)];
     Dec(_ItemCount);
   End Else
@@ -138,21 +133,25 @@ Begin
   Self.Unlock();
 End;
 
-Function ObjectArray.GetItemByIndex(Index: Integer): CollectionObject;
+Function ObjectArray.GetItemByIndex(Index: Integer):TERRAObject;
 Begin
   If (Index<0) Or (Index>=_ItemCount) Then
     Result := Nil
   Else
-    Result := _Objects[Index];
+    Result := _Objects[Index].Item;
 End;
 
-Function ObjectArray.GetIterator: Iterator;
+Function ObjectArray.GetIterator: TERRAIterator;
 Begin
-  Result := ObjectArrayIterator.Create(Self);
+  Result := ObjectArrayIterator(Engine.Pool.Fetch(ObjectArrayIterator));
+  If Assigned(Result) Then
+    Result.Create(Self)
+  Else
+    Result := ObjectArrayIterator.Create(Self);
 End;
 
 { ObjectArrayIterator }
-Function ObjectArrayIterator.ObtainNext: CollectionObject;
+Function ObjectArrayIterator.ObtainNext:TERRACollectionObject;
 Begin
   If (Self.Index< Self.Collection.Count) Then
     Result := ObjectArray(Self.Collection)._Objects[Self.Index]

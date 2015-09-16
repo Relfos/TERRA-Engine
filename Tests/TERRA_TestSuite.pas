@@ -3,7 +3,7 @@ Unit TERRA_TestSuite;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils;
+Uses TERRA_Object, TERRA_String, TERRA_Utils;
 
 Type
   TestCaseClass = Class Of TestCase;
@@ -93,18 +93,18 @@ Begin
 
   WriteLn('');
   WriteLn('Test Results:');
-  WriteLn(StringPadLeft('Run:', Pad, Ord(' '))+IntToString(_TestCount));
-  WriteLn(StringPadLeft('Success:', Pad, Ord(' ')) +IntToString(Sucess));
-  WriteLn(StringPadLeft('Failures:', Pad, Ord(' '))+IntToString(Failures));
-  WriteLn(StringPadLeft('Errors:', Pad, Ord(' '))+IntToString(Result));
+  WriteLn(StringPadLeft('Run:', Pad, ' ')+ IntegerProperty.Stringify(_TestCount));
+  WriteLn(StringPadLeft('Success:', Pad, ' ') +IntegerProperty.Stringify(Sucess));
+  WriteLn(StringPadLeft('Failures:', Pad, ' ')+IntegerProperty.Stringify(Failures));
+  WriteLn(StringPadLeft('Errors:', Pad, ' ')+IntegerProperty.Stringify(Result));
   If (Result>0) Then
   Begin
-    WriteLn('There were '+IntToString(Result)+' failures:');
+    WriteLn('There were '+IntegerProperty.Stringify(Result)+' failures:');
     For I:=0 To Pred(_TestCount) Do
     If (_TestCases[I]._FailureCount>0) Then
     Begin
       WriteLn('');
-      WriteLn(_TestCases[I].GetName+ ' had '+IntToString(_TestCases[I]._FailureCount)+' failures.');
+      WriteLn(_TestCases[I].GetName+ ' had '+IntegerProperty.Stringify(_TestCases[I]._FailureCount)+' failures.');
       For J:=0 To Pred(_TestCases[I]._FailureCount) Do
         WriteLn(_TestCases[I]._Failures[J]);
     End;

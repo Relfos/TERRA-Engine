@@ -4,7 +4,7 @@ Unit TERRA_FileStream;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Error, TERRA_String, TERRA_Stream, TERRA_MemoryStream, TERRA_FileUtils, TERRA_Java;
+Uses TERRA_Object, TERRA_Error, TERRA_String, TERRA_Stream, TERRA_MemoryStream, TERRA_FileUtils, TERRA_Java;
 
 Const
   FileIOClassPath = 'com.pascal.terra.TERRAFileIO';

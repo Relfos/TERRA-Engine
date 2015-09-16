@@ -29,319 +29,27 @@ Unit TERRA_OGG;
 {$RANGECHECKS OFF}
 {$OVERFLOWCHECKS OFF}
 
-{$IFDEF MOBILE}
-{-$DEFINE USELIBVORBIS}
-{$ENDIF}
-
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_SoundStreamer, TERRA_Sound, TERRA_Log;
-
-
-{$IFDEF USELIBVORBIS}
-Const
-{$IFDEF WIN32}
-  OggLib = 'libogg.dll';
-  VorbisLib = 'libvorbis.dll';
-  VorbisFileLib = 'libvorbisfile.dll';
-  {$IFDEF FPC}
-    {$PACKRECORDS C}
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF LINUX}
-  OggLib = 'libogg.so';
-  VorbisLib = 'libvorbis.so';
-  VorbisFileLib = 'libvorbisfile.so';
-{$ENDIF}
-
-{$IFDEF MACOS}
-  OggLib = 'ogg';
-  VorbisLib = 'vorbis';
-  VorbisFileLib = 'vorbis';
-  {$LINKFRAMEWORK OGG}
-  {$LINKFRAMEWORK VORBIS}
-{$ENDIF}
-
-{$IFDEF IPHONE}
-  OggLib = 'ogg';
-  VorbisLib = 'vorbis';
-  VorbisFileLib = 'vorbis';
-  {$LINKFRAMEWORK OGG}
-  {$LINKFRAMEWORK VORBIS}
-{$ENDIF}
-
-// Vorbis error/return codes
-  OV_FALSE      = -1;
-  OV_EOF        = -2;
-  OV_HOLE       = -3;
-
-  OV_EREAD      = -128;
-  OV_EFAULT     = -129;
-  OV_EIMPL      = -130;
-  OV_EINVAL     = -131;
-  OV_ENOTVORBIS = -132;
-  OV_EBADHEADER = -133;
-  OV_EVERSION   = -134;
-  OV_ENOTAUDIO  = -135;
-  OV_EBADPACKET = -136;
-  OV_EBADLINK   = -137;
-  OV_ENOSEEK    = -138;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_SoundStreamer, TERRA_Sound, TERRA_FileFormat, TERRA_Log;
 
 Type
-// Array types
-  p_PTERRAChar_array = ^t_PTERRAChar_array;
-  t_PTERRAChar_array = packed array[0..maxint div SizeOf(PTERRAChar)-1] Of PTERRAChar;
+  OGGFormat = Class(TERRAFileFormat)
+    Protected
+      Function Identify(Source:TERRAStream):Boolean; Override;
 
-  p_int_array = ^t_int_array;
-  t_int_array = packed array[0..maxint div SizeOf(Integer)-1] Of Integer;
-
-  p_float_array = ^t_float_array;
-  t_float_array = packed array[0..maxint div SizeOf(Single)-1] Of Single;
-
-  p_p_float_p_float_array = ^p_float_p_float_array;
-  p_float_p_float_array = ^t_float_p_float_array;
-  t_float_p_float_array = packed array[0..maxint div SizeOf(p_float_array)-1] of p_float_array;
-
-
-(* ogg_stream_state contains the current encode/decode state of a logical
-   Ogg bitstream **********************************************************)
-
-  POggStreamState=^TOggStreamState;
-  TOggStreamState=Record
-      BodyData: PTERRAChar;          // bytes from packet bodies
-      BodyStorage:Integer;      // storage elements allocated
-      BodyFill:Integer;         // elements stored; fill mark
-      BodyReturned:Integer;     // elements of fill returned
-
-      LacingValues:p_int_array; // The values that will go to the segment table
-      GranuleValues:Pointer;    // granulepos values for headers.
-
-      LacingStorage:Integer;
-      LacingFill: Integer;
-      LacingPacket: Integer;
-      LacingReturned: Integer;
-
-      Header:Array[0..282] Of TERRAChar;   // working space for header encode
-      HeaderFill:Integer;
-      EOS:Integer;                    // set when we have buffered the last packet in the logical bitstream
-      BOS:Integer;                    // set after we've written the initial page of a logical bitstream
-
-      SerialNo:Integer;
-      PageNo:Integer;
-      PacketNo:int64;           // sequence number for decode
-
-      GranulePos:int64;
-    End;
-
-
-  POggSyncState=^TOggSyncState;
-  TOggSyncState=Record
-    Data:PTERRAChar;
-    Storage:Integer;
-    Fill:Integer;
-    Returned:Integer;
-
-    Unsynced:Integer;
-    HeaderBytes:Integer;
-    BodyBytes:Integer;
+    Public
+      Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
   End;
 
-  PVorbisInfo=^TVorbisInfo;
-  TVorbisInfo=Record
-      Version:Integer;
-      Channels:Integer;
-      Rate:Integer;
-      BitRate:Record
-                Upper:Integer;
-                Nominal:Integer;
-                Lower:Integer;
-                Window:Integer;
-              End;
-      CodecSetup:Pointer;
-  End;
-
-  PVorbisDspState=^TVorbisDspState;
-  TVorbisDspState=Record
-    Analysisp:Integer;
-    vi:PVorbisInfo;
-    PCM:p_float_p_float_array;
-    PCMRet:p_float_p_float_array;
-    PCMStorage:Integer;
-    PCMCurrent:Integer;
-    PCMReturned:Integer;
-    PreExtrapolate:Integer;
-    EOFFlag:Integer;
-    lW:Integer;
-    W:Integer;
-    nW:Integer;
-    centerW:Integer;
-    GranulePos:int64;
-    Sequence:int64;
-    GlueBits:int64;
-    TimeBits:int64;
-    FloorBits:int64;
-    ResBits:int64;
-    BackendState:Pointer;
-  End;
-
-  PAllocChain=^TAllocChain;
-  TAllocChain=Record
-    Ptr:Pointer;
-    Next:PAllocChain;
-  End;
-
-  POggPackBuffer=^TOggpackBuffer;
-  TOggPackBuffer=Record
-    EndByte:Integer;
-    EndBit:Integer;
-    Buffer:PTERRAChar;
-    Ptr:PTERRAChar;
-    Storage:Integer;
-  End;
-
-  PVorbisBlock=^TVorbisBlock;
-  TVorbisBlock=Record
-    PCM:p_float_p_float_array; // this is a pointer into local storage
-    opb:TOggPackBuffer;
-    lW:Integer;
-    W:Integer;
-    nW:Integer;
-    pcmend:Integer;
-    mode:Integer;
-
-    eofflag:Integer;
-    granulepos: int64;
-    sequence: int64;
-    vd: PVorbisDspState; // For read-only access of configuration
-
-    LocalStore:Pointer;
-    LocalTop:Integer;
-    LocalAlloc:Integer;
-    TotalUse:Integer;
-    Reap:PAllocChain;
-
-    // bitmetrics for the frame
-    GlueBits:Integer;
-    TimeBits:Integer;
-    FloorBits:Integer;
-    ResBits:Integer;
-
-    Internal:Pointer;
-  End;
-
-  PVorbisComment=^TVorbisComment;
-  TVorbisComment=Record
-    UserComments:p_PTERRAChar_array;
-    CommentLengths: p_int_array;
-    Comments:Integer;
-    Vendor:PTERRAChar;
-  End;
-
-
-  // Callback functions
-  OggReadFunction  = Function(Var Ptr; Size,nmemb:Cardinal; Const DataSource):Cardinal; CDecl;
-  OggSeekFunction  = Function(Const Datasource; Offset: int64; Whence:Integer):Integer; CDecl;
-  OggCloseFunction = Function(Const DataSource):Integer; CDecl;
-  OggTellFunction  = Function(Const DataSource):Integer; CDecl;
-
-  POggCallbacks=^TOggCallbacks;
-  TOggCallbacks=Record
-    ReadFunction:OggReadFunction;
-    SeekFunction:OggSeekFunction;
-    CloseFunction:OggCloseFunction;
-    TellFunction:OggTellFunction;
-  End;
-
-  POggVorbisFile=^TOggVorbisFile;
-  TOggVorbisFile=Record
-      DataSource:Pointer; // Pointer to a FILE *, etc.
-      Seekable:Integer;
-      Offset:int64;
-      EndF:int64;
-      SyncState:TOggSyncState;
-
-      // If the FILE handle isn't seekable (eg, a pipe), only the current stream appears
-      Links:Integer;
-      Offsets:Pointer;
-      DataOffsets:Pointer;
-      SerialNos:Pointer;
-      PCMLengths:Pointer;
-      Info:PVorbisInfo;
-      Comments:PvorbisComment;
-
-      // Decoding working state local storage
-      PCMOffset:int64;
-      ReadyState:Integer;
-      CurrentSerialNo:Integer;
-      CurrentLink:Integer;
-
-      BitTrack:Double;
-      SampTrack:Double;
-
-      State:TOggStreamState;    // take physical pages, weld into a logical stream of packets
-      DSPState:TVorbisDspState; // central working state for the packet->PCM decoder *)
-      Block:TVorbisBlock;       // local working space for packet->PCM decode *)
-
-      Callbacks:TOggCallbacks;
-    End;
-
-Function ov_clear(var vf: TOggVorbisFile):Integer; cdecl; external VorbisfileLib;
-Function ov_open_callbacks(const datasource; var vf: TOggVorbisFile; initial: PTERRAChar; ibytes: Integer; callbacks: TOggCallbacks):Integer; cdecl; external VorbisfileLib;
- {
-Function ov_bitrate(var vf: TOggVorbisFile; i:Integer): Integer; cdecl; external VorbisfileLib;
-Function ov_bitrate_instant(var vf: TOggVorbisFile): Integer; cdecl; external VorbisfileLib;
-Function ov_streams(var vf: TOggVorbisFile): Integer; cdecl; external VorbisfileLib;
-Function ov_seekable(var vf: TOggVorbisFile): Integer; cdecl; external VorbisfileLib;
-Function ov_serialnumber(var vf: TOggVorbisFile; i:Integer): Integer; cdecl; external VorbisfileLib;
-
-Function ov_raw_total(var vf: TOggVorbisFile; i:Integer): int64; cdecl; external VorbisfileLib;
-Function ov_pcm_total(var vf: TOggVorbisFile; i:Integer): int64; cdecl; external VorbisfileLib;}
-
-Function ov_time_total(var vf: TOggVorbisFile; i:Integer): double; cdecl; external VorbisfileLib;
-
-Function ov_raw_seek(var vf: TOggVorbisFile; pos: int64):Integer; cdecl; external VorbisfileLib;
-{Function ov_pcm_seek(var vf: TOggVorbisFile; pos: int64):Integer; cdecl; external VorbisfileLib;
-Function ov_pcm_seek_page(var vf: TOggVorbisFile; pos: int64):Integer; cdecl; external VorbisfileLib;
-Function ov_time_seek(var vf: TOggVorbisFile; pos: double):Integer; cdecl; external VorbisfileLib;
-Function ov_time_seek_page(var vf: TOggVorbisFile; pos: double):Integer; cdecl; external VorbisfileLib;
-
-Function ov_raw_tell(var vf: TOggVorbisFile): int64; cdecl; external VorbisfileLib;
-Function ov_pcm_tell(var vf: TOggVorbisFile): int64; cdecl; external VorbisfileLib;
-Function ov_time_tell(var vf: TOggVorbisFile): double; cdecl; external VorbisfileLib;
-}
-
-Function ov_info(var vf: TOggVorbisFile; link:Integer): PVorbisInfo; cdecl; external VorbisfileLib;
-//Function ov_comment(var vf: TOggVorbisFile; link:Integer): PVorbisComment; cdecl; external VorbisfileLib;
-
-
-Function ov_read(var vf: TOggVorbisFile; buffer:PByte; length:Integer; bigendianp:Integer; word:Integer; sgned:Integer; bitstream: PInteger):Integer; cdecl; external VorbisfileLib;
-{$ELSE}
-
-{$IFDEF STB_VORBIS_NO_CRT}
-{$IFNDEF STB_VORBIS_NO_STDIO}
-{$DEFINE STB_VORBIS_NO_STDIO}
-{$ENDIF}
-{$ENDIF}
-
-const   
+Const
    // global configuration settings (e.g. set these in the project/makefile),
    // or just set them in this file at the top (although ideally the first few
    // should be visible when the header file is compiled too, although it's not
    // crucial)
-   
-   // STB_VORBIS_NO_PUSHDATA_API
-   //     does not compile the code for the various stb_vorbis_*_pushdata()
-   //     functions
-   // {$DEFINE STB_VORBIS_NO_PUSHDATA_API}
 
    // STB_VORBIS_NO_PULLDATA_API
    //     does not compile the code for the non-pushdata APIs
    // {$DEFINE STB_VORBIS_NO_PULLDATA_API}
-
-   // STB_VORBIS_NO_STDIO
-   //     does not compile the code for the APIs that use FILE *s internally
-   //     or externally (implied by STB_VORBIS_NO_PULLDATA_API)
-   // {$DEFINE STB_VORBIS_NO_STDIO}
 
    // STB_VORBIS_NO_INTEGER_CONVERSION
    //     does not compile the code for converting audio sample data from
@@ -450,13 +158,9 @@ const
 
    {$IFDEF STB_VORBIS_NO_PULLDATA_API}
    {$DEFINE STB_VORBIS_NO_INTEGER_CONVERSION}
-   {$DEFINE STB_VORBIS_NO_STDIO}
    {$ENDIF}
 
    {$IFDEF STB_VORBIS_NO_CRT}
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   {$DEFINE STB_VORBIS_NO_STDIO}
-   {$ENDIF}
    {$ENDIF}
 
    {$IFNDEF STB_VORBIS_NO_INTEGER_CONVERSION}
@@ -474,7 +178,7 @@ const
    MAX_BLOCKSIZE_LOG =  13;   // from specification
    MAX_BLOCKSIZE = 1 shl MAX_BLOCKSIZE_LOG;
 
-   // @NOTE
+   // NOTE
    //
    // Some arrays below are tagged "//varies", which means it's actually
    // a variable-sized piece of data, but rather than malloc I assume it's
@@ -519,7 +223,7 @@ const
       4.8260743e-07, 5.1396998e-07, 5.4737065e-07, 5.8294187e-07,
       6.2082472e-07, 6.6116941e-07, 7.0413592e-07, 7.4989464e-07, 
       7.9862701e-07, 8.5052630e-07, 9.0579828e-07, 9.6466216e-07,
-      1.0273513e-06, 1.0941144e-06, 1.1652161e-06, 1.2409384e-06, 
+      1.0273513e-06, 1.0941144e-06, 1.1652161e-06, 1.2409384e-06,
       1.3215816e-06, 1.4074654e-06, 1.4989305e-06, 1.5963394e-06, 
       1.7000785e-06, 1.8105592e-06, 1.9282195e-06, 2.0535261e-06,
       2.1869758e-06, 2.3290978e-06, 2.4804557e-06, 2.6416497e-06,
@@ -842,14 +546,6 @@ type
       setup_temp_memory_required: Cardinal;
 
       // input config
-      {$IFNDEF STB_VORBIS_NO_STDIO}
-      f:TFileHandle;
-      f_len:LongInt;
-      f_pos:LongInt;
-      f_start: Cardinal;
-      close_on_free: boolean;
-      {$ENDIF}
-
       stream: pByte;
       stream_start: pByte;
       stream_end: pByte;
@@ -934,9 +630,8 @@ type
 
       // push mode scanning
       page_crc_tests: Integer; // only in push_mode: number of tests active; -1 if not searching
-      {$IFNDEF STB_VORBIS_NO_PUSHDATA_API}
+
       scan: array [0..STB_VORBIS_PUSHDATA_CRC_COUNT-1] of CRCscan;
-      {$ENDIF}
 
       // sample-access
       channel_buffer_start: Integer;
@@ -984,7 +679,6 @@ type
    procedure stb_vorbis_close(f:pvorb);
 
    ///////////   PUSHDATA API
-   {$IFNDEF STB_VORBIS_NO_PUSHDATA_API}
    // this API allows you to get blocks of data from any source and hand
    // them to stb_vorbis. you have to buffer them; stb_vorbis will tell
    // you how much it used, and you have to give it the rest next time;
@@ -1051,10 +745,8 @@ type
    // call stb_vorbis_flush_pushdata(), then start calling decoding, then once
    // decoding is returning you data, call stb_vorbis_get_sample_offset, and
    // if you don't like the result, seek your file again and repeat.
-   {$ENDIF}
-   
+
    //////////   PULLING INPUT API
-   {$IFNDEF STB_VORBIS_NO_PULLDATA_API}
    // This API assumes stb_vorbis is allowed to pull data from a source--
    // either a block of memory containing the _entire_ vorbis stream, or a
    // FILE * that you or it create, or possibly some other reading mechanism
@@ -1063,11 +755,6 @@ type
    // just want to go ahead and use pushdata.)
 
 
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   {$IFNDEF STB_VORBIS_NO_INTEGER_CONVERSION}
-   function stb_vorbis_decode_filename(filename:TERRAString; var channels:integer; var output:pSmallInt):integer;
-   {$ENDIF}
-   {$ENDIF}
    function stb_vorbis_decode_memory(mem:pByte; len:integer; var channels, SampleRate:integer; var output:pSmallInt):Integer;
    // decode an entire file and output the data interleaved into a malloc()ed
    // buffer stored in *output. The return value is the number of samples
@@ -1077,30 +764,6 @@ type
    function stb_vorbis_open_memory(data: pByte; len: Cardinal; var _error: STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
    // create an ogg vorbis decoder from an ogg vorbis stream in memory (note
    // this must be the entire stream!). on failure, returns NULL and sets *error
-
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   function stb_vorbis_open_filename(filename:TERRAString; var _error:STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
-   // create an ogg vorbis decoder from a filename via fopen(). on failure,
-   // returns NULL and sets *error (possibly to VORBIS_file_open_failure).
-
-   function stb_vorbis_open_file(var _file:TFileHandle; close_on_free:boolean;
-            var _error: STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
-   // create an ogg vorbis decoder from an open FILE *, looking for a stream at
-   // the _current_ seek point (ftell). on failure, returns NULL and sets *error.
-   // note that stb_vorbis must "own" this stream; if you seek it in between
-   // calls to stb_vorbis, it will become confused. Morever, if you attempt to
-   // perform stb_vorbis_seek_*() operations on this file, it will assume it
-   // owns the _entire_ rest of the file after the start point. Use the next
-   // function, stb_vorbis_open_file_section(), to limit it.
-
-   function stb_vorbis_open_file_section(var _file: TFileHandle; close_on_free:boolean;
-            var _error:STBVorbisError; alloc: pstb_vorbis_alloc; length:Cardinal):pvorb;
-   // create an ogg vorbis decoder from an open FILE *, looking for a stream at
-   // the _current_ seek point (ftell); the stream will be of length 'len' bytes.
-   // on failure, returns NULL and sets *error. note that stb_vorbis must "own"
-   // this stream; if you seek it in between calls to stb_vorbis, it will become
-   // confused.
-   {$ENDIF}
 
    function stb_vorbis_seek_frame(f:pvorb; sample_number:Cardinal):Boolean;
    function stb_vorbis_seek(f:pvorb; sample_number:Cardinal):Boolean;
@@ -1174,25 +837,11 @@ type
    // it may be less than requested at the end of the file. If there are no more
    // samples in the file, returns 0.
 
-   {$ENDIF}
-
-function IncPointer(p:PShortInt; i:integer):PShortInt; overload;
-function IncPointer(p:PByte; i:integer):PByte; overload;
-function IncPointer(p:PSmallInt; i:integer):PSmallInt; overload;
-function IncPointer(p:PYTYPE; i:integer):PYTYPE; overload;
-function IncPointer(p:PWord; i:integer):PWord; overload;
-function IncPointer(p:PInteger; i:integer):PInteger; overload;
-function IncPointer(p:PSingle; i:integer):PSingle; overload;
-function IncPointer(p:PFPArray; i:integer):PFPArray; overload;
-
-{$ENDIF}
 
 Implementation
-Uses TERRA_FileUtils, TERRA_Error{$IFNDEF USELIBVORBIS},Sysutils{$ENDIF}, TERRA_CRC32, TERRA_Math;
+Uses TERRA_FileUtils, TERRA_Error, TERRA_CRC32, TERRA_Math, TERRA_Engine, TERRA_AudioBuffer, TERRA_AudioMixer, Sysutils;
 
-{$IFNDEF USELIBVORBIS}
-var
-   crc_table: array [0..256-1] of Cardinal;
+Var
 {$IFNDEF STB_VORBIS_DIVIDES_IN_RESIDUE}
    part_classdata: BBBArray;
 {$ELSE}
@@ -1321,21 +970,14 @@ begin
 end;
 {$ENDIF}
 
-function IS_PUSH_MODE(f:pvorb) : Boolean;
-begin
-   {$IFDEF STB_VORBIS_NO_PUSHDATA_API}
-   Result := FALSE;
-   {$ENDIF}
-   {$IFDEF STB_VORBIS_NO_PULLDATA_API}
-   Result := TRUE;
-   {$ELSE}
-   Result := f.push_mode;
-   {$ENDIF}
-end;
+Function IS_PUSH_MODE(f:pvorb) : Boolean;
+Begin
+  Result := f.push_mode;
+End;
 
 Function error(f: pvorb; e:STBVorbisError):Boolean;
 Begin
-  Log(logError, 'OGG', 'Decoding error occurred: ' + IntToString(Integer(E)));
+  Engine.Log.Write(logError, 'OGG', 'Decoding error occurred: ' +  IntegerProperty.Stringify(Integer(E)));
 
   f.error := e;
   If (not f.eof) and (e<>VORBIS_need_more_data) then
@@ -1425,26 +1067,6 @@ begin
    FreeMem(p);
 end;
 
-{procedure crc32_init;
-var
-   i,j: integer;
-   s: Cardinal;
-begin
-   for i:=0 to 255 do begin
-      s:=i shl 24;
-      for j:=0 to 7 do begin
-         //         s = (s << 1) ^ (s >= (1<<31) ? CRC32_POLY : 0);
-         if (s>=PtrUInt(1 shl 31)) then s:=(s shl 1) xor CRC32_POLY else s:=(s shl 1) xor 0;
-      end;
-      crc_table[i] := s;
-   end;
-end;
-
-function crc32_update(crc:Cardinal; byte:Byte):Cardinal;
-begin
-   Result :=  (crc shl 8) xor crc_table[byte xor (crc shr 24)];
-end;}
-
 // used in setup, and for huffman that doesn't go fast path
 function  bit_reverse(n:Cardinal):Cardinal;
 begin
@@ -1457,7 +1079,7 @@ end;
 
 // this is a weird definition of log2() for which log2(1) = 1, log2(2) = 2, log2(4) = 3
 // as required by the specification. fast(?) implementation from stb.h
-// @OPTIMIZE: called multiple times per-packet with "constants"; move to setup
+// OPTIMIZE: called multiple times per-packet with "constants"; move to setup
 function ilog(n:Integer):Integer;
    const log2_4: array [0..15] of Byte = ( 0,1,2,2,3,3,3,3,4,4,4,4,4,4,4,4 );
    var one:Cardinal;
@@ -1681,7 +1303,7 @@ Var
   r:Integer;
   N:Single;
 Begin
-//  Log(logDebug, 'OGG', 'l1 '+IntToString(entries)+' / ' +IntToString(Dim));
+//  Log(logDebug, 'OGG', 'l1 '+ IntegerProperty.Stringify(entries)+' / ' + IntegerProperty.Stringify(Dim));
 //  Log(logDebug, 'OGG', 'l1a');
   N := lnXP1(entries-1);
 
@@ -1698,7 +1320,7 @@ Begin
 //  Log(logDebug, 'OGG', 'l3');
   If (power(r+1, dim)<=entries) Or (floor(power(r,dim))>entries) Then // (int),floor() as above
   Begin
-    RaiseError('Assertion failed while decoding stream.');
+    Engine.RaiseError('Assertion failed while decoding stream.');
   End;
 
 //  Log(logDebug, 'OGG', 'l4');
@@ -1781,36 +1403,20 @@ begin
    else Result:=1;
 end;
 
-//
 /////////////////////// END LEAF SETUP FUNCTIONS //////////////////////////
-
-
-function USE_MEMORY(z:pvorb):Boolean;
-begin
-{$IFDEF STB_VORBIS_NO_STDIO}
-   REsult:=true;
-{$ELSE}
-   Result:=z.stream<>nil;
-{$ENDIF}
-end;
-
-function get8(z:pvorb):Byte;
-begin
+Function get8(z:pvorb):Byte;
+Begin
    Result:=0;
-   if USE_MEMORY(z) then begin
-      if PtrUInt(z.stream) >= PtrUInt(z.stream_end) then begin  z.eof:=true; Exit; end;
-      Result:=z.stream^;
-      Inc(z.stream);
-      Exit;
-   end;
 
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   begin
-      if z.f_pos = z.f_len then begin z.eof:=true; Exit; end;
-      Inc(z.f_pos, FileRead(z.f, Result, SizeOf(Result)));
-   end;
-   {$ENDIF}
-end;
+   if PtrUInt(z.stream) >= PtrUInt(z.stream_end) Then
+    begin
+      z.eof:=true;
+      Exit;
+    end;
+
+    Result:=z.stream^;
+    Inc(z.stream);
+End;
 
 function get32(f:pvorb):Cardinal;
 begin
@@ -1820,77 +1426,48 @@ begin
    Result := Result+(get8(f) shl 24);
 end;
 
-function getn(z:pvorb; var data:array of Byte; n:integer):Boolean;
-var nread,i:integer;
-begin
-   Result:=false;
-   if USE_MEMORY(z) then begin
-      if (PtrUInt(z.stream)+n>PtrUInt(z.stream_end)) then begin z.eof:=true; Exit; end;
-      for i:=0 to n-1 do data[i]:=(IncPointer(z.stream,i))^;
-      //Move(z.stream,data,n);//!!not working for unknown reason
-      z.stream := IncPointer(z.stream,n);
-      Result:=true;
-      Exit;
-   end;
+Function getn(z:pvorb; var data:array of Byte; n:integer):Boolean;
+Var
+  nread,i:integer;
+Begin
+  Result := False;
 
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   nread := FileRead(z.f, data, n);
-   Inc(z.f_pos, nread);
-   if nread=n then begin Result:=true; Exit; end
-   else z.eof:=true;
-   {$ENDIF}
-end;
+  If (PtrUInt(z.stream)+n > PtrUInt(z.stream_end)) Then
+  Begin
+    z.eof := True;
+    Exit;
+  End;
 
-procedure skip(z:pvorb; n:integer);
-begin
-   if USE_MEMORY(z) then begin
-      z.stream := IncPointer(z.stream,n);
-      if PtrUInt(z.stream)>=PtrUInt(z.stream_end) then z.eof:=true;
-      Exit;
-   end;
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   begin
-      z.f_pos := FileSeek(z.f, n, 1);
-      z.eof := (z.f_pos = -1) or (z.f_pos >= z.f_len);
-   end;
-   {$ENDIF}
-end;
+  For i:=0 to n-1 Do
+    data[i] := (IncPointer(z.stream,i))^;
 
-function set_file_offset(f:pvorb; loc:Cardinal):boolean;
-begin
-   Result:=false;
-   {$IFNDEF STB_VORBIS_NO_PUSHDATA_API}
-   if f.push_mode then Exit;;
-   {$ENDIF}
-   f.eof := false;
-   if USE_MEMORY(f) then begin
-      if (PtrUInt(f.stream_start)+loc>=PtrUInt(f.stream_end)) or
-         (PtrUInt(f.stream_start)+loc<PtrUInt(f.stream_start)) then begin
-         f.stream := f.stream_end;
-         f.eof := true;
-         Exit;
-      end else begin
-         f.stream := IncPointer(f.stream_start, loc);
-         Result := true;
-         Exit;
-      end;
-   end;
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   if (loc+f.f_start<loc) or (loc>=$80000000) then begin
-      loc := $7fffffff;
-      f.eof := true;
-   end else begin
-      loc := loc+f.f_start;
-   end;
-   try
-      Result:= FileSeek(f.f, loc, 0) <> -1;
-   except
-      f.eof := true;
-      FileSeek(f.f, 0, 2);
-      Result:=false;
-   end;
-   {$ENDIF}
-end;
+  //Move(z.stream,data,n);//!!not working for unknown reason
+  z.stream := IncPointer(z.stream,n);
+  Result := true;
+End;
+
+Procedure skip(z:pvorb; n:integer);
+Begin
+  z.stream := IncPointer(z.stream,n);
+  If PtrUInt(z.stream) >= PtrUInt(z.stream_end) Then
+    z.eof:=true;
+End;
+
+Function set_file_offset(f:pvorb; loc:Cardinal):boolean;
+Begin
+  Result := False;
+  f.eof := false;
+
+  If (PtrUInt(f.stream_start)+loc>=PtrUInt(f.stream_end)) or (PtrUInt(f.stream_start)+loc<PtrUInt(f.stream_start)) Then
+  Begin
+    f.stream := f.stream_end;
+    f.eof := true;
+  End Else
+  Begin
+    f.stream := IncPointer(f.stream_start, loc);
+    Result := true;
+  End;
+End;
 
 function capture_pattern(f:pvorb):Boolean;
 begin
@@ -1915,7 +1492,7 @@ begin
    // absolute granule position
    loc0 := get32(f); 
    loc1 := get32(f);
-   // @TODO: validate loc0,loc1 as valid positions?
+   // TODO: validate loc0,loc1 as valid positions?
    // stream serial number -- vorbis doesn't interleave, so discard
    get32(f);
    //if (f->serial != get32(f)) return error(f, VORBIS_incorrect_stream_serial_number);
@@ -2059,7 +1636,7 @@ begin
    while get8_packet_raw(f) <> EOP do;
 end;
 
-// @OPTIMIZE: this is the secondary bit decoder, so it's probably not as important
+// OPTIMIZE: this is the secondary bit decoder, so it's probably not as important
 // as the huffman decoder?
 function get_bits(f:pvorb; n:integer):Cardinal;
 var 
@@ -2104,7 +1681,7 @@ begin
    Result:=z;
 end;
 
-// @OPTIMIZE: primary accumulator for huffman
+// OPTIMIZE: primary accumulator for huffman
 // expand the buffer to as many bits as possible without reading off end of packet
 // it might be nice to allow f->valid_bits and f->acc to be stored in registers,
 // e.g. cache them locally and decode locally
@@ -2548,13 +2125,13 @@ var dy,adx,err,off:integer;
 begin
    dy := y1 - y0;
    adx := x1 - x0;
-   // @OPTIMIZE: force int division to round in the right direction... is this necessary on x86?
+   // OPTIMIZE: force int division to round in the right direction... is this necessary on x86?
    err := abs(dy) * (x - x0);
    off := err div adx;
    if dy<0 then Result:=y0-off else Result:=y0+off;
 end;
 
-// @OPTIMIZE: if you want to replace this bresenham line-drawing routine,
+// OPTIMIZE: if you want to replace this bresenham line-drawing routine,
 // note that you must produce bit-identical output to decode correctly;
 // this specific sequence of operations is specified in the spec (it's
 // drawing integer-quantized frequency-space lines that the encoder
@@ -3151,7 +2728,7 @@ begin
    n4 := n shr 2;
    n8 := n shr 3;
    //n3_4 := n - n4;
-   // @OPTIMIZE: reduce register pressure by using fewer variables?
+   // OPTIMIZE: reduce register pressure by using fewer variables?
    save_point := temp_alloc_save(f);
    //float *buf2 = (float *) temp_alloc(f, n2 * sizeof(*buf2));
    setlength(buffer2,n2);
@@ -3871,7 +3448,7 @@ begin
    // last half of this data becomes previous window
    f.previous_length := len - right;
 
-   // @OPTIMIZE: could avoid this copy by double-buffering the
+   // OPTIMIZE: could avoid this copy by double-buffering the
    // output (flipping previous_window with channel_buffers), but
    // then previous_window would have to be 2x as large, and
    // channel_buffers couldn't be temp mem (although they're NOT
@@ -3910,7 +3487,6 @@ begin
       vorbis_finish_frame(f, len, left, right);
 end;
 
-{$IFNDEF STB_VORBIS_NO_PUSHDATA_API}
 function is_whole_packet_present(f:pvorb; end_page: Boolean):Boolean;
 var
    s,n: integer;
@@ -4003,7 +3579,6 @@ begin
    end;
    Result:=true;
 end;
-{$ENDIF} // !STB_VORBIS_NO_PUSHDATA_API
 
 function start_decoder(f:pvorb):Boolean;
 label _skip;
@@ -4147,18 +3722,6 @@ begin
    // third packet!
    if not start_packet(f) then begin Result:=false; Exit; end;
 
-   {$IFNDEF STB_VORBIS_NO_PUSHDATA_API}
-   if IS_PUSH_MODE(f) then begin
-      if not is_whole_packet_present(f, TRUE) then begin
-         // convert error in ogg header to write type
-         if f.error = VORBIS_invalid_stream then
-            f.error := VORBIS_invalid_setup;
-         Result:=false;
-         Exit;
-      end;
-   end;
-   {$ENDIF}
-
    //crc32_init(); // always init it, to avoid multithread race conditions
 
    if get8_packet(f)<>VORBIS_packet_setup then begin
@@ -4185,7 +3748,7 @@ begin
       total:=0;
       cb := @f.codebooks[i];
 
-//      Log(logDebug, 'OGG', 'X '+IntToString(I)+' / ' +IntToString(Pred(f.codebook_count)));
+//      Log(logDebug, 'OGG', 'X '+ IntegerProperty.Stringify(I)+' / ' + IntegerProperty.Stringify(Pred(f.codebook_count)));
 
       x := get_bits(f, 8); if (x <> $42) then begin Result:=error(f, VORBIS_invalid_setup); Exit; end;
       x := get_bits(f, 8); if (x <> $43) then begin Result:=error(f, VORBIS_invalid_setup); Exit; end;
@@ -4588,8 +4151,8 @@ _skip:
             if m.chan[j].mux >= m.submaps then begin result:=error(f, VORBIS_invalid_setup); exit; end;
          end;
       end else
-         // @SPECIFICATION: this case is missing from the spec
-         for j:=0 to f.channels-1 do 
+         // SPECIFICATION: this case is missing from the spec
+         for j:=0 to f.channels-1 do
             m.chan[j].mux := 0;
 
       for j:=0 to m.submaps-1 do begin
@@ -4730,12 +4293,7 @@ begin
       SetLength(p.window[i],0);
       SetLength(p.bit_reverse[i],0);
    End;
-
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   if p.close_on_free then
-    FileClose(p.f);
-   {$ENDIF}
-end;
+End;
 
 procedure stb_vorbis_close(f:pvorb);
 begin
@@ -4764,11 +4322,6 @@ begin
    p.stream := nil;
    setlength(p.codebooks,0);
    p.page_crc_tests := -1;
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   p.close_on_free := false;
-   p.push_mode := false;
-      //p.f := nil;
-   {$ENDIF}
 end;
 
 function stb_vorbis_get_sample_offset(f:pvorb):integer;
@@ -4800,8 +4353,6 @@ begin
    New(Result);
    FillChar(Result^, SizeOf(vorb), 0);
 end;
-
-{$IFNDEF STB_VORBIS_NO_PUSHDATA_API}
 
 procedure stb_vorbis_flush_pushdata(f:pvorb);
 begin
@@ -5024,26 +4575,14 @@ begin
    data_used := PtrUInt(f.stream) - PtrUInt(data);//@data[0];
    _error := VORBIS__no_error;
 end;
-{$ENDIF} // STB_VORBIS_NO_PUSHDATA_API
 
-function stb_vorbis_get_file_offset(f:pvorb):Cardinal;
-begin
-   result:=0;
-   {$IFNDEF STB_VORBIS_NO_PUSHDATA_API}
-   if f.push_mode then begin result:=0; exit; end;
-   {$ENDIF}
-   if USE_MEMORY(f) then begin result:=PtrUInt(f.stream)-PtrUInt(f.stream_start); exit; end;
-   {$IFNDEF STB_VORBIS_NO_STDIO}
-   result:=FileSeek(f.f,0,1) - f.f_start;
-   {$ENDIF}
-end;
+Function stb_vorbis_get_file_offset(f:pvorb):Cardinal;
+Begin
+   result := PtrUInt(f.stream) - PtrUInt(f.stream_start);
+End;
 
-{$IFNDEF STB_VORBIS_NO_PULLDATA_API}
-//
 // DATA-PULLING API
-//
-
-function vorbis_find_page(f:pvorb; var _end,last: Cardinal):Boolean;
+Function vorbis_find_page(f:pvorb; var _end,last: Cardinal):Boolean;
 label invalid;
 var
    n,i,s: integer;
@@ -5591,61 +5130,6 @@ begin
    result:=len;
 end;
 
-{$IFNDEF STB_VORBIS_NO_STDIO}
-
-function stb_vorbis_open_file_section(var _file: TFileHandle; close_on_free:boolean;
-         var _error:STBVorbisError; alloc: pstb_vorbis_alloc; length:Cardinal):pvorb;
-
-var f: pvorb;
-begin
-   result := vorbis_alloc;
-   if result=nil then exit;
-   f:=result;
-   vorbis_init(f, alloc);
-
-   f.f := _file;
-   f.f_len := FileSeek(_file, 0, 2);
-   f.f_start := FileSeek(_file, 0, 1);
-   f.f_pos := f.f_start;
-   FileSeek(_file, f.f_start, 0);
-   f.stream_len   := length;
-   f.close_on_free := close_on_free;
-   if start_decoder(f) then begin
-      vorbis_pump_first_frame(f);
-      Exit;
-   end;
-   _error := f.error;
-   stb_vorbis_close(f);
-   result:=nil;
-end;
-
-function stb_vorbis_open_file(var _file:TFileHandle; close_on_free:boolean;
-         var _error: STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
-var
-   len: Cardinal;
-   cp:LongInt;
-begin
-   cp := FileSeek(_file, 0, 1);
-   len := FileSeek(_file, 0, 2);
-   FileSeek(_file,cp, 0);
-   result:=stb_vorbis_open_file_section(_file, close_on_free, _error, alloc, len);
-end;
-
-function stb_vorbis_open_filename(filename:TERRAString; var _error:STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
-var f: TFileHandle;
-begin
-   f := FileOpen(filename, fmOpenRead or fmShareDenyNone);
-   if f>0 then begin
-      result:=stb_vorbis_open_file(f, true, _error, alloc);
-      Exit;
-   end;
-   _error := VORBIS_file_open_failure;
-   FileClose(f);
-   Result := nil;
-end;
-
-{$ENDIF} // STB_VORBIS_NO_STDIO
-
 function stb_vorbis_open_memory(data: pByte; len: Cardinal; var _error: STBVorbisError; alloc: pstb_vorbis_alloc):pvorb;
 Var
   f:pvorb;
@@ -5680,8 +5164,6 @@ end;
 
 {$IFNDEF STB_VORBIS_NO_INTEGER_CONVERSION}
 
-
-
 {$IFNDEF STB_VORBIS_NO_FAST_SCALED_FLOAT}
 //   typedef union {
 //      float f;
@@ -5689,20 +5171,20 @@ end;
 //   } float_conv;
 //   typedef char stb_vorbis_float_size_test[sizeof(float)==4 && sizeof(int) == 4];
 //   #define FASTDEF(x) float_conv x
-   
+
 // add (1<<23) to convert to int, then divide by 2^SHIFT, then add 0.5/2^SHIFT to round
 //#define MAGIC(SHIFT) (1.5f * (1 << (23-SHIFT)) + 0.5f/(1 << SHIFT))
 function MAGIC(SHIFT:integer):single;
 begin
    result := 1.5 * (1 shl (23-SHIFT)) + 0.5/(1 shl SHIFT);
 end;
-   
+
 //#define ADDEND(SHIFT) (((150-SHIFT) << 23) + (1 << 22))
 function ADDEND(SHIFT:Integer):longint;
 begin
    result := ((150-SHIFT) shl 23) + (1 shl 22);
-end;   
-   
+end;
+
 //#define FAST_SCALED_FLOAT_TO_INT(temp,x,s) (temp.f = (x) + MAGIC(s), temp.i - ADDEND(s))
 
 function FAST_SCALED_FLOAT_TO_INT(x:Single; s:Integer) : Integer;
@@ -5713,7 +5195,7 @@ type
          1:(i:Integer);
 //         1:(i:SmallInt);
       end;
-var 
+var
    temp: float_conv;
 begin
    temp.f := x + MAGIC(s);
@@ -5944,36 +5426,6 @@ begin
    result:=n;
 end;
 
-{$IFNDEF STB_VORBIS_NO_STDIO}
-function stb_vorbis_decode_filename(filename:TERRAString; var channels:integer; var output:pSmallInt):integer;
-var
-   data_len,n,offset,total,limit: Cardinal;
-   _error: STBVorbisError;
-   //data: array of SmallInt;
-   v: pvorb;
-begin
-   v := stb_vorbis_open_filename(filename, _error, nil);
-   if v=nil then begin result:=-1; exit; end;
-   limit := v.channels * 4096;
-   channels := v.channels;
-   offset := 0;
-   data_len := 0;
-   total := limit;
-   getMem(output, total*sizeof(SmallInt));
-   while true do begin
-      n := stb_vorbis_get_frame_short_interleaved(v, v.channels, IncPointer(output,offset), total-offset);
-      if n=0 then break;
-      data_len := data_len + n;
-      offset := offset+ n*v.channels;
-      if offset+limit > total then begin
-         total := total * 2;
-         output:=reallocMem(output,total*sizeof(SmallInt));
-      end;
-   end;
-   result:=data_len;
-end;
-{$ENDIF} // NO_STDIO
-
 function stb_vorbis_decode_memory(mem:pByte; len:integer; var channels, SampleRate:integer; var output:pSmallInt):Integer;
 Var
   data_len,offset,total,limit,n: integer;
@@ -6091,263 +5543,44 @@ begin
    result:=n;
 end;*)
 
-{$ENDIF} // STB_VORBIS_NO_PULLDATA_API
-
-{$ENDIF}
-
 Const
-  BufferSize = 1024 * 8;
+  OggBufferSize = 1024 * 8;
+  OggSamplesBufferSize = 1024 * 32;
+  OggMaxLeftovers = 1024;
 
 Type
-  OggStreamer=Class(SoundStream)
+  OggStreamer = Class(SoundStream)
     Protected
-      {$IFDEF USELIBVORBIS}
-      _StreamSize:Cardinal;
-      _StreamPosition:Cardinal;
-      _VorbisInfo:TVorbisInfo;
-      _OggStream:TOGGVorbisFile;
-
-      Function ReadBuffer(Buffer:PByte; BufferSize:Integer; Var Change:Integer):Cardinal;
-      {$ELSE}
       _Vorbis:Pvorb;
       _Info:stb_vorbis_info;
       _Error:STBVorbisError;
       _BaseOffset:Integer;
       _TargetSampleRate:Integer;
-      _Temp:Array[0..Pred(BufferSize)] Of Byte;
+      _Temp:Array[0..Pred(OggBufferSize)] Of Byte;
+
+      _LeftOversBuffer:TERRAAudioBuffer;
+      _LeftOversTotal:Integer;
 
       Function ResampleSound(left, right:PSingle; Offset, Length:Integer):Integer;
       Function FillBuffer(Offset:Integer):Integer;
-      {$ENDIF}
 
       Procedure InitStream; Override;
-      Procedure Stream(Target:Cardinal); Override;
-      Class Function Validate(Source:Stream):Boolean; Override;
+      Procedure RequestMoreSamples(); Override;
+
+
+      Class Function Validate(Source:TERRAStream):Boolean; Override;
 
     Public
       Procedure Release; Override;
-
   End;
-
-   
-Function ValidateOGG(Source:Stream):Boolean;
-Var
-  ID:FileHeader;
-Begin
-  Source.Read(@ID, 4);
-  Log(logDebug, 'Ogg', 'Got ID: '+ID);
-
-  Result := CompareFileHeader(ID, 'OggS');
-End;
-
-Function OGGLoad(Source:Stream; MySound:Sound):Boolean;
-Var
-  Mem:Array Of Byte;
-  Samples, Channels, SampleRate, Size:Integer;
-  Output:pSmallInt;
-Begin
-  Result := False;
-
-  SetLength(Mem, Source.Size);
-  Source.Seek(0);
-
-  Source.Read(@Mem[0], Source.Size);
-
-  Samples := stb_vorbis_decode_memory(@Mem[0], Source.Size, Channels, SampleRate, output);
-
-  If (Samples<0) Then
-    Exit;
-
-  Size := Samples * Channels * 2;
-  MySound.New(Size, Channels, 16, SampleRate);
-  Move(Output^, MySound.Data^, Size);
-
-  FreeMem(Output);
-  
-  Result := True;
-End;
-
-{$IFDEF USELIBVORBIS}
-Const
-  // Seek constants
-  SEEK_SET = 0;
-  SEEK_CUR = 1;
-  SEEK_END = 2;
-
-Function OggTERRAReadFunction(Var Dest; Size,nmemb:Cardinal; Const DataSource):Cardinal;CDecl;
-Begin
-  If (Size=0) Or (nmemb=0) Then
-  Begin
-    Result:=0;
-    Exit;
-  End;
-
-  If (Stream(DataSource).Position >= Stream(DataSource).Size) Then
-  Begin
-    Result:=0;
-    Exit;
-  End;
-
-  Result := Cardinal(Stream(DataSource).Read(Dest,Size*nmemb));
-End;
-
-Function OggTERRASeekFunction(Const DataSource; Offset:int64; SeekMode:Integer):Integer;CDecl;
-Begin
-    Case SeekMode Of
-      SEEK_CUR: Begin
-                  If (Stream(DataSource).Position+Offset > Stream(DataSource).Size) Then
-                  Begin
-                    Result := -1;
-                    Exit;
-                  End;
-                  Stream(DataSource).Skip(offset);
-                End;
-      SEEK_END: Begin
-                  If (Stream(DataSource).Size+Offset > Stream(DataSource).Size) Then
-                  Begin
-                    Result:=-1;
-                    Exit;
-                  End;
-                  Stream(DataSource).Seek(Stream(datasource).Size+Offset);
-                End;
-      SEEK_SET: Begin
-                  If (Offset>Stream(DataSource).Size) Then
-                  Begin
-                    Result:=-1;
-                    Exit;
-                  End;
-                  Stream(DataSource).Seek(Offset);
-                End;
-    End;
-
-  Result:=0;
-End;
-
-Function OggTERRACloseFunction(Const DataSource):Integer;CDecl;
-Begin
-  Result := 0;
-End;
-
-Function OggTERRATellFunction(Const DataSource):Integer;CDecl;
-Begin
-  Result := Stream(DataSource).Position;
-End;
-
-Function GetVorbisErrorName(ErrorCode:Integer):TERRAString;
-Begin
-  Case ErrorCode of
-    OV_FALSE:      Result:='OV_FALSE';
-    OV_EOF:        Result:='OV_EOF';
-    OV_HOLE:       Result:='OV_HOLE';
-    OV_EREAD:      Result:='OV_EREAD';
-    OV_EFAULT:     Result:='OV_EFAULT';
-    OV_EIMPL:      Result:='OV_EIMPL';
-    OV_EINVAL:     Result:='OV_EINVAL';
-    OV_ENOTVORBIS: Result:='OV_ENOTVORBIS';
-    OV_EBADHEADER: Result:='OV_EBADHEADER';
-    OV_EVERSION:   Result:='OV_EVERSION';
-    OV_ENOTAUDIO:  Result:='OV_ENOTAUDIO';
-    OV_EBADPACKET: Result:='OV_EBADPACKET';
-    OV_EBADLINK:   Result:='OV_EBADLINK';
-    OV_ENOSEEK:    Result:='OV_ENOSEEK';
-  Else
-    Result := 'Unknown';
-  End;
-End;
-
-// LOgg
-
-Function OggStreamer.ReadBuffer(Buffer:PByte; BufferSize:Integer; Var Change:Integer):Cardinal;
-Var
-  BytesRead:Integer;
-Begin
-  BytesRead := 0;
-  If Not Assigned(Buffer) Then
-    Exit;
-
-  { ov_read usually does not fill the entire buffer, because it decodes one
-    vorbis packet at most which is uncompressed probably smaller than our
-    buffer, so call ov_read repeatedly to fill the entire buffer }
-  Repeat
-    Change := ov_read(_OggStream, Buffer, BufferSize - BytesRead, 0, 2, 1, Nil);
-
-    If (Change=OV_HOLE) Or (Change=OV_EOF) Then
-    Begin
-      Break;
-    End;
-
-    If (Change<0) Then
-    Begin
-      RaiseError('Error while decoding stream. ['+GetVorbisErrorName(Change)+']');
-      Result:=0;
-      Exit;
-    End Else
-    Begin
-      BytesRead := BytesRead + Change;
-      Inc(Buffer, Change);
-    End;
-
-  Until (Change=0) Or (BytesRead>=BufferSize);
-
-  Result := BytesRead;
-End;
-
-Procedure OggStreamer.InitStream;
-Var
-  N:Integer;
-  Size,Change:Integer;
-  Callbacks:TOggCallbacks;
-Begin
-  Callbacks.ReadFunction := OggTERRAReadFunction;
-  Callbacks.SeekFunction := OggTERRASeekFunction;
-  Callbacks.CloseFunction := OggTERRACloseFunction;
-  Callbacks.TellFunction := OggTERRATellFunction;
-
-  N := ov_open_callbacks(_Source, _OggStream, Nil, 0, Callbacks);
-  If N<>0 Then
-  Begin
-    RaiseError('Could not open Ogg stream. ['+GetVorbisErrorName(N)+']');
-    Exit;
-  End;
-
-  _VorbisInfo := ov_info(_OggStream, -1)^;
-
-  Size := Round(ov_time_total(_OggStream, -1));
-  Self.AllocBuffer(_VorbisInfo.Channels, 16, _VorbisInfo.Rate);
-End;
-
-Procedure OggStreamer.Stream(Target:Cardinal);
-Var
-  ErrorCode, Change:Integer;
-Begin
-   _BufferSize := ReadBuffer(_Data, StreamBufferSize, Change);
-
-  _StreamSize := _OggStream.EndF;
-  _StreamPosition := _OggStream.Offset;
-
-  If _StreamPosition>=_StreamSize Then
-  Begin
-    ErrorCode := ov_raw_seek(_OggStream, 0);
-    If ErrorCode<>0 Then
-      RaiseError('Ogg.Seek: '+GetVorbisErrorName(ErrorCode));
-  End;
-
-  Inherited;
-End;
-
-Procedure OggStreamer.Release;
-Begin
-  ov_clear(_OggStream);
-  Inherited;
-End;
-
-{$ELSE}
 
 Procedure OggStreamer.InitStream;
 Var
   Q, N, Used:Integer;
   Data:Pointer;
 Begin
+  Self._Loop := True;
+
   Q := 4096;
   Repeat
     GetMem(Data, Q);
@@ -6365,7 +5598,7 @@ Begin
         Continue;
       End;
 
-      RaiseError('Cannot load '+_Source.Name+ ', error code: '+IntToString(Integer(_Error)));
+      Engine.RaiseError('Cannot load '+_Source.Name+ ', error code: '+ IntegerProperty.Stringify(Integer(_Error)));
       Exit;
     End;
 
@@ -6377,54 +5610,64 @@ Begin
   _Info := stb_vorbis_get_info(_Vorbis);
   _TargetSampleRate := _Info.sample_rate; // 44100;
 
-  Self.AllocBuffer(_Info.Channels, 16, _TargetSampleRate);
-
+  Self._Buffer := TERRAAudioBuffer.Create(OggSamplesBufferSize, _TargetSampleRate, True);
+  Self._LeftOversBuffer := TERRAAudioBuffer.Create(OggMaxLeftovers, _TargetSampleRate, True);
 End;
 
-Function stb_clamp(I,min,max:Integer):Integer;
-begin
-  if (i<min) then i := min;
-  if (i>max) Then i := max;
-  result := I;
+Procedure OggStreamer.Release();
+Begin
+  Inherited;
+
+  ReleaseObject(_LeftoversBuffer);
+  stb_vorbis_close(_Vorbis);
 End;
 
 Function OggStreamer.ResampleSound(left, right:PSingle; Offset, Length:Integer):Integer;
-Type
-  PSample = ^Sample;
-  Sample = Record
-    Left, Right:Word;
-  End;
 Const
-  scale:Single = 32768.0;
+  Scale = 32767;
 Var
   fs:Single;
-  j, newsamples:Cardinal;
+  I, J, newsamples:Cardinal;
   index:Cardinal;
-  S:PSample;
+  InSample:MixingAudioSample;
+  OutSample:PAudioSample;
 Begin
   fs := _TargetSampleRate / _Info.sample_rate;
 
-  newsamples := Trunc(Length * fs);
-  Result := newsamples;
+  NewSamples := Trunc(Length * fs);
+  Result := NewSamples;
 
-  for j:=0 to pred(newsamples) do
+  For j:=0 to pred(newsamples) do
   Begin
-    index := trunc(j/fs);
-    S := PSample(_Data);
-    Inc(S, Index+Offset);
-    S.left := trunc( stb_clamp(trunc((scale * IncPointer(left,+index)^)), -32768, 32767));
-    S.right := trunc( stb_clamp(trunc((scale * IncPointer(right,+index)^)), -32768, 32767));
+    Index := Trunc(j/fs);
+
+    InSample.Left := IncPointer(Left ,+index)^;
+    InSample.Right := IncPointer(Right ,+index)^;
+
+    I := Index + Offset;
+
+    If (I<_Buffer.SampleCount) Then
+    Begin
+      OutSample := _Buffer.GetSampleAt(I, 0);
+    End Else
+    Begin
+      _LeftOversTotal := Succ(I - _Buffer.SampleCount);
+      OutSample := _LeftOversBuffer.GetSampleAt(_LeftOversTotal - 1, 0);
+    End;
+
+    OutSample^ := Trunc(FloatClamp(InSample.Left, -1, 1.0) * 32767);
+    Inc(OutSample);
+    OutSample^ := Trunc(FloatClamp(InSample.Right, -1, 1.0) * 32767);
   End;
 End;
 
-
-Function OggStreamer.FillBuffer(Offset: Integer): Integer;
+Function OggStreamer.FillBuffer(Offset:Integer): Integer;
 Label retry3;
 Var
   Q:Integer;
   outputs:TOutput;
   left, right:PSingle;
-  N, num_c:Integer;
+  SamplesToRender, ChannelCount:Integer;
   Ofs, Used:Integer;
 Begin
   Result := 0;
@@ -6435,7 +5678,7 @@ Begin
       q := _Source.Size - _Source.Position;
 
     _Source.Read(@_Temp[0], Q);
-    Used := stb_vorbis_decode_frame_pushdata(_Vorbis, @(_Temp[0]), q, num_c, @outputs, n);
+    Used := stb_vorbis_decode_frame_pushdata(_Vorbis, @(_Temp[0]), q, ChannelCount, @outputs, SamplesToRender);
     If (Used = 0) Then
     Begin
       If (_Source.Position + q >= _Source.Size) Then
@@ -6445,64 +5688,108 @@ Begin
         q := 128;
       q := q * 2;
 
-      If (Q>BufferSize) Then
+      If (Q>OggBufferSize) Then
       Begin
-        Log(logWarning, 'OGG', 'Buffer too small!');
+        Engine.Log.Write(logWarning, 'OGG', 'Buffer too small!');
       End;
 
       _Source.Seek(Ofs);
       Goto retry3;
     End;
 
-    If (Ofs + Used>= _Source.Position) Then
-      _Source.Seek(_BaseOffset)
-    Else
-      _Source.Seek(Ofs + Used);
+  If (Ofs + Used>= _Source.Position) Then
+    _Source.Seek(_BaseOffset)
+  Else
+    _Source.Seek(Ofs + Used);
 
-    If (n = 0) Then
-      Exit; // seek/error recovery
+  If (SamplesToRender = 0) Then
+    Exit; // seek/error recovery
 
-    left := outputs[0];
-    If (num_c > 1) Then
-      right := outputs[1]
-    else
-      right := outputs[0];
+  Left := outputs[0];
+  If (ChannelCount > 1) Then
+    Right := outputs[1]
+  Else
+    Right := outputs[0];
 
-
-    Result := ResampleSound(left, right, Offset, n);
+  Result := ResampleSound(Left, Right, Offset, SamplesToRender);
 End;
 
-Procedure OggStreamer.Stream(Target:Cardinal);
+Procedure OggStreamer.RequestMoreSamples();
 Var
-  Ofs, Count:Integer;
+  Ofs, Count, Total:Integer;
 Begin
-  _BufferSize := 0;
+  _CurrentSample := 0;
 
-  Ofs := 0;
-  Repeat
+  Total := _Buffer.SampleCount;
+
+  If (_LeftOversTotal>0) Then
+  Begin
+    Move(_LeftOversBuffer.Samples^, _Buffer.Samples^, SizeOf(AudioSample) * _LeftOversTotal * 2);
+    Dec(Total, _LeftOversTotal);
+    Ofs := _LeftOversTotal;
+    _LeftOversTotal := 0;
+  End Else
+    Ofs := 0;
+
+  While Total>0 Do
+  Begin
     Count := FillBuffer(Ofs);
     Inc(Ofs, Count);
-    Inc(_BufferSize, Count * 4);
-  Until (_BufferSize>=StreamBufferSize Div 2);
-
-  Inherited;
+    Dec(Total, Count);
+  End;
 End;
 
-Procedure OggStreamer.Release;
-Begin
-  stb_vorbis_close(_Vorbis);
-  Inherited;
-End;
-{$ENDIF}
 
-Class Function OggStreamer.Validate(Source:Stream):Boolean;
+Class Function OggStreamer.Validate(Source:TERRAStream):Boolean;
+Var
+  ID:FileHeader;
 Begin
-  Result := ValidateOGG(Source);
+  Source.Read(@ID, 4);
+  Engine.Log.Write(logDebug, 'Ogg', 'Got ID: '+ID);
+
+  Result := CompareFileHeader(ID, 'OggS');
+End;
+
+{ OGGFormat }
+Function OGGFormat.Identify(Source: TERRAStream): Boolean;
+Var
+  ID:FileHeader;
+Begin
+  Source.Read(@ID, 4);
+  Engine.Log.Write(logDebug, 'Ogg', 'Got ID: '+ID);
+
+  Result := CompareFileHeader(ID, 'OggS');
+End;
+
+Function OGGFormat.LoadFromStream(Target:TERRAObject; Source:TERRAStream): Boolean;
+Var
+  Mem:Array Of Byte;
+  Samples, Channels, SampleRate, Size:Integer;
+  Output:pSmallInt;
+  Sound:TERRASound;
+Begin
+  Result := False;
+
+  SetLength(Mem, Source.Size);
+  Source.Seek(0);
+
+  Source.Read(@Mem[0], Source.Size);
+
+  Samples := stb_vorbis_decode_memory(@Mem[0], Source.Size, Channels, SampleRate, output);
+
+  If (Samples<0) Then
+    Exit;
+
+  Size := Samples * Channels * 2;
+  Sound := TERRASound(Target);
+  Sound.SamplesFromBuffer(Samples, SampleRate, Channels>1, Output);
+
+  FreeMem(Output);
+
+  Result := True;
 End;
 
 Initialization
-  Log(logDebug, 'OGG', 'Initializing');
   RegisterSoundStreamFormat(OggStreamer);
-  RegisterSoundFormat('OGG',ValidateOGG,OGGLoad);
-  Log(logDebug, 'OGG', 'OGG Sound format ready!');
+  Engine.Formats.Add(OGGFormat.Create(TERRASound, 'ogg'));
 End.

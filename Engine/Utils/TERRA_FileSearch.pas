@@ -33,25 +33,20 @@ Unit TERRA_FileSearch;
 {$ENDIF}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Collections
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Collections, TERRA_List
 {$IFDEF USEJAVA},TERRA_Java{$ENDIF}
 {$IFDEF NDS}{$IFDEF GBFS},TERRA_GBFS{$ENDIF}{$IFDEF LIBFAT}Fat, CTypes{$ENDIF}
 {$ELSE}, SysUtils{$ENDIF};
 
 Type
-  FileInfo = Class(CollectionObject)
+  FileInfo = Class(TERRAObject)
     Public
       Name:TERRAString;
       Path:TERRAString;
       Level:Integer;
       Size:Integer;
 
-      Function ToString():TERRAString; Override;
-
     Protected
-      Procedure CopyValue(Other:CollectionObject); Override;
-      Function Sort(Other:CollectionObject):Integer; Override;
-
     Public
       Function FullPath():TERRAString;
   End;
@@ -68,31 +63,17 @@ Type
 {$ENDIF}
 
 Implementation
-Uses TERRA_OS, TERRA_Stream, TERRA_FileStream, TERRA_FileUtils, TERRA_CollectionObjects;
-
-Function FileInfo.ToString():TERRAString;
-Begin
-  Result := Self.FullPath();
-End;
+Uses TERRA_OS, TERRA_Stream, TERRA_FileStream, TERRA_FileUtils;
 
 Function FileInfo.FullPath():TERRAString;
 Begin
   Result := Path + PathSeparator + Name;
 End;
 
-
-Procedure FileInfo.CopyValue(Other:CollectionObject);
-Begin
-  Self.Name := FileInfo(Other).Name;
-  Self.Path := FileInfo(Other).Path;
-  Self.Level := FileInfo(Other).Level;
-  Self.Size := FileInfo(Other).Size;
-End;
-
-Function FileInfo.Sort(Other:CollectionObject):Integer;
+(*Function FileInfo.Sort(Other:CollectionObject):Integer;
 Begin
   Result := GetStringSort(Self.ToString(), FileInfo(Other).ToString());
-End;
+End;*)
 
 {$UNDEF HAS_IMPLEMENTATION}
 
@@ -302,7 +283,7 @@ Begin
 
       If (Sr.Attr And faDirectory<>0) Then
       Begin
-        Result.Add(StringObject.Create(Sr.Name));
+        Result.Add(StringProperty.Create('folder', Sr.Name));
       End;
     Until FindNext(Sr)<>0;
     FindClose(sr);

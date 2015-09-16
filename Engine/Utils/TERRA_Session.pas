@@ -3,7 +3,7 @@ Unit TERRA_Session;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_MemoryStream, TERRA_OS, TERRA_ProgressNotifier,
+Uses TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Stream, TERRA_MemoryStream, TERRA_OS, TERRA_ProgressNotifier,
   TERRA_Collections, TERRA_Hashmap;
 
 {-$DEFINE ALLOWBACKUPS}
@@ -12,28 +12,18 @@ Const
   DefaultSessionFileName = 'session';
 
 Type
-  SessionKeyValue = Class(HashMapObject)
-    Protected
-      _Value:TERRAString;
-
-    Public
-      Constructor Create(Const Key, Value:TERRAString);
-
-      Property Value:TERRAString Read _Value Write _Value;
-  End;
-
   Session = Class(TERRAObject)
     Protected
       _Path:TERRAString;
       _FileName:TERRAString;
 
-      _Data:Hashmap;
+      _Data:TERRAHashmap;
 
       _Read:Boolean;
 
       _Backup:Boolean;
 
-      Function GetData: Hashmap;
+      Function GetData: TERRAHashmap;
 
       Function GetDefaultFilePath():TERRAString;
 
@@ -64,18 +54,18 @@ Type
 
       Procedure CopyKeys(Other:Session);
 
-      Function Save(Target:Stream = Nil; Callback:ProgressNotifier = Nil):Boolean;
+      Function Save(Target:TERRAStream = Nil; Callback:ProgressNotifier = Nil):Boolean;
 
       Function Restore():Boolean;
 
-      Property Data:Hashmap Read GetData;
+      Property Data:TERRAHashmap Read GetData;
 
-      Property Path:TERRAString Read _Path;
+      Property Path:TERRAString Read _Path Write _Path;
       Property FileName:TERRAString Read _FileName;
   End;
 
 Implementation
-Uses TERRA_FileStream, TERRA_Application, TERRA_FileUtils, TERRA_Log, TERRA_ZLib;
+Uses TERRA_FileStream, TERRA_Engine, TERRA_Application, TERRA_FileUtils, TERRA_Log, TERRA_ZLib;
 
 Const
   SessionHeader:FileHeader = 'TES2';
@@ -88,7 +78,7 @@ Begin
   For I:=1 To Length(S) Do
   If (S[I]>='0') And (S[I]<='9') Then
   Begin
-    IntToString(1);
+     IntegerProperty.Stringify(1);
   End Else
   Begin
     Result := False;
@@ -112,16 +102,17 @@ Var
   It:StringIterator;
   C:TERRAChar;
 Begin
-  StringCreateIterator(S, It);
+  It := StringCreateIterator(S);
   While It.HasNext() Do
   Begin
     C := It.GetNext();
-    If (C<Ord(' ')) Then
+    If (C<' ') Then
     Begin
       Result := True;
       Exit;
     End;
   End;
+  ReleaseObject(It);
 
   Result := False;
 End;
@@ -166,7 +157,7 @@ Begin
   If (Source.Size<4) Then
   Begin
     Result := False;
-    Log(logError,'Session','Corrupted session file');
+    Engine.Log.Write(logError,'Session','Corrupted session file');
     Exit;
   End;
 
@@ -232,13 +223,13 @@ Begin
         Data[J] := 0;
       S2 := '';
       For J:=0 To Pred(Count) Do
-        S2 := S2 + IntToString(Data[J]);
+        S2 := S2 +  IntegerProperty.Stringify(Data[J]);
     End;
 
     If (Key = '') Or (InvalidString(Key)) Or (InvalidString(S2)) Then
       Continue;
 
-    _Data.Add(SessionKeyValue.Create(Key, S2));
+    _Data.Add(StringProperty.Create(Key, S2));
     //Log(logDebug,'Session','Session: '+_Data[I].Key+'='+_Data[I].Value);
   End;
 
@@ -247,7 +238,7 @@ Begin
 
   _Read := True;
 
-  Log(logDebug,'Session','Loaded session file, '+IntToString(_Data.Count)+' items found.');
+  Engine.Log.Write(logDebug,'Session','Loaded session file, '+ IntegerProperty.Stringify(_Data.Count)+' items found.');
   Result := True;
 End;
 
@@ -258,7 +249,7 @@ Begin
   If Not FileStream.Exists(SourceFile) Then
   Begin
     Result := False;
-    Log(logError,'Session','Could not load session file: '+SourceFile);
+    Engine.Log.Write(logError,'Session','Could not load session file: '+SourceFile);
     Exit;
   End;
 
@@ -277,20 +268,20 @@ Begin
   Result := S + _FileName;
 End;
 
-Function Session.Save(Target:Stream = Nil; Callback:ProgressNotifier = Nil):Boolean;
+Function Session.Save(Target:TERRAStream = Nil; Callback:ProgressNotifier = Nil):Boolean;
 Var
   ZLIB:z_stream;
   OutBuff:Pointer;
   Ret, Rem:Integer;
   B:Byte;
-  It:Iterator;
+  It:TERRAIterator;
   J, N, Len:Integer;
   Dest, Temp:MemoryStream;
-  Pref:Stream;
+  Pref:TERRAStream;
   Key, S, S2, S3:TERRAString;
   FileName:TERRAString;
   Header:FileHeader;
-  Entry:SessionKeyValue;
+  Entry:StringProperty;
 Begin
   FileName := Self.GetSaveFileName();
 
@@ -309,13 +300,13 @@ Begin
   It := Data.GetIterator();
   While It.HasNext() Do
   Begin
-    Entry := SessionKeyValue(It.Value);
+    Entry := StringProperty(It.Value);
 
     If Assigned(Callback) Then
       Callback.Notify(It.Position / Pred(Data.Count));
 
-    Dest.WriteString(Entry._Key);
-    Dest.WriteString(Entry._Value);
+    Dest.WriteString(Entry.Name);
+    Dest.WriteString(Entry.Value);
   End;
 
   If Assigned(Callback) Then
@@ -397,22 +388,22 @@ End;
 
 Procedure Session.SetValue(Const Key,Value:TERRAString);
 Var
-  Entry:SessionKeyValue;
+  Entry:StringProperty;
 Begin
-  Entry := SessionKeyValue(Data.GetItemByKey(Key));
+  Entry := StringProperty(Data.GetItemByKey(Key));
   If Assigned(Entry) Then
   Begin
-    Entry._Value := Value;
+    Entry.Value := Value;
   End Else
   Begin
-    Entry := SessionKeyValue.Create(Key, Value);
+    Entry := StringProperty.Create(Key, Value);
     Data.Add(Entry);
   End;
 End;
 
 Function Session.GetValue(Const Key:TERRAString):TERRAString;
 Var
-  Entry:SessionKeyValue;
+  Entry:StringProperty;
   S:TERRAString;
 Begin
   If (Not _Read) Then
@@ -421,9 +412,9 @@ Begin
     LoadFromFile(S);
   End;
 
-  Entry := SessionKeyValue(Data.GetItemByKey(Key));
+  Entry := StringProperty(Data.GetItemByKey(Key));
   If Assigned(Entry) Then
-    Result := Entry._Value
+    Result := Entry.Value
   Else
     Result := '';
 End;
@@ -471,7 +462,7 @@ Begin
   If (FileName = '') Then
     FileName := DefaultSessionFileName;
 
-  _Data := HashMap.Create(1024);
+  _Data := TERRAHashMap.Create(1024);
 
   _Backup := Backup;
 
@@ -493,8 +484,8 @@ End;
 
 Procedure Session.CopyKeys(Other: Session);
 Var
-  It:Iterator;
-  Entry:SessionKeyValue;
+  It:TERRAIterator;
+  Entry:StringProperty;
 Begin
   If Other = Nil Then
     Exit;
@@ -504,8 +495,8 @@ Begin
   It := Other.Data.GetIterator();
   While It.HasNext() Do
   Begin
-    Entry := SessionKeyValue(It.Value);
-    Self.Data.Add(SessionKeyValue.Create(Entry._Key, Entry._Value));
+    Entry := StringProperty(It.Value);
+    Self.Data.Add(StringProperty.Create(Entry.Name, Entry.Value));
   End;
 End;
 
@@ -521,7 +512,7 @@ Begin
   _Read := False;
 End;
 
-Function Session.GetData: Hashmap;
+Function Session.GetData: TERRAHashmap;
 Begin
   If (Not _Read) Then
   Begin
@@ -536,12 +527,6 @@ Begin
   Result := Assigned(Data.GetItemByKey(Key));
 End;
 
-{ SessionKeyValue }
-Constructor SessionKeyValue.Create(const Key, Value: TERRAString);
-Begin
-  Self._Key := Key;
-  Self._Value := Value;
-End;
 
 Initialization
 Finalization

@@ -3,20 +3,32 @@ Unit TERRA_VCLApplication;
 {$I terra.inc}
 Interface
 Uses Classes, Forms, ExtCtrls, Graphics, TERRA_String, TERRA_Utils, TERRA_Application,
-  TERRA_GraphicsManager, TERRA_Viewport, TERRA_Image, TERRA_Color, TERRA_OS, TERRA_Renderer;
+  TERRA_Object, TERRA_GraphicsManager, TERRA_Viewport, TERRA_Image, TERRA_Color, TERRA_OS, TERRA_Renderer,
+  TERRA_UIView, TERRA_UIDimension
+  {$IFDEF OSX}, MacOSAll, CarbonDef{$ENDIF};
 
 Type
-  VCLCanvasViewport = Class(TERRAObject)
+  TERRAVCLViewport = Class(TERRAObject)
     Protected
-      _Source:Viewport;
-      _Target:TCanvas;
+      _Target:TImage;
+
+      _GUI:UIView;
+
+      _Dest:TBitmap;
+      _BufferA:TBitmap;
+      _BufferB:TBitmap;
 
       Procedure Update();
 
+      Function GetViewport: TERRAViewport;
     Public
-      Constructor Create(Source:Viewport; Target:TCanvas);
+      Constructor Create(Target:TImage);
       Procedure Release; Override;
+
+      Property Viewport:TERRAViewport Read GetViewport;
   End;
+
+  { VCLApplication }
 
   VCLApplication = Class(Application)
       Protected
@@ -26,8 +38,10 @@ Type
 
         _Target:TComponent;
 
-        _Viewports:Array Of VCLCanvasViewport;
+        _Viewports:Array Of TERRAVCLViewport;
         _ViewportCount:Integer;
+
+        _GUI:UIView;
 
         Procedure TimerTick(Sender: TObject);
         Procedure UpdateSize();
@@ -36,23 +50,42 @@ Type
 	  		Function InitWindow:Boolean; Override;
   			Procedure CloseWindow; Override;
 
+        Function GetViewport: TERRAViewport;
+        Function GetGUI: UIView;
 
       Public
         Constructor Create(Target:TComponent);
-        Procedure Release; Override;
+        Procedure OnDestroy; Override;
 
         Function GetWidth:Word; Override;
         Function GetHeight:Word; Override;
 
         Function GetTitle:TERRAString; Override;
 
-        Procedure AddViewport(V:VCLCanvasViewport);
+        Procedure AddRenderTarget(V:TERRAVCLViewport);
+
+        Property GUI:UIView Read GetGUI;
+        Property Viewport:TERRAViewport Read GetViewport;
   End;
+
+Function TERRAColorUnpack(Const C:ColorRGBA):TColor;
+Function TERRAColorPack(Const C:TColor):ColorRGBA;
 
 Implementation
 
+Function TERRAColorUnpack(Const C:ColorRGBA):TColor;
+Begin
+  Result := C.R + C.G Shl 8 + C.B Shl 16;
+End;
+
+Function TERRAColorPack(Const C:TColor):ColorRGBA;
+Begin
+  Result := ColorRGBA(ColorToRGB(C));
+  Result.A := 255;
+End;
+
 { VCLApplication }
-Constructor VCLApplication.Create(Target:TComponent);
+constructor VCLApplication.Create(Target: TComponent);
 Begin
   _Target := Target;
   _Timer := TTimer.Create(Target);
@@ -60,11 +93,19 @@ Begin
   _Timer.Enabled := True;
   _Timer.OnTimer := TimerTick;
 
+  {$IFDEF OSX}
+  If (_Target Is TForm) Then
+    _Handle :=WindowPtr(TCarbonWidget(TForm(_Target).Handle).Widget)
+  Else
+  If (_Target Is TPanel) Then
+   _Handle :=WindowPtr(TCarbonWidget(TPanel(_Target).Handle).Widget)
+  {$ELSE}
   If (_Target Is TForm) Then
     _Handle := TForm(_Target).Handle
   Else
   If (_Target Is TPanel) Then
     _Handle := TPanel(_Target).Handle
+  {$ENDIF}
   Else
     _Handle := 0;
 
@@ -72,39 +113,45 @@ Begin
   Inherited Create();
 End;
 
-Procedure VCLApplication.Release;
+procedure VCLApplication.OnDestroy;
 Begin
+  Inherited;
+
   _Timer.Enabled := False;
   _Timer.Free();
-
-  Inherited;
 End;
 
-Procedure VCLApplication.TimerTick(Sender: TObject);
+procedure VCLApplication.TimerTick(Sender: TObject);
 Begin
   Self.UpdateSize();
   Application.Instance.Run();
   Self.UpdateViewports();
 End;
 
-Procedure VCLApplication.UpdateSize;
+procedure VCLApplication.UpdateSize;
 Begin
+  If Not Self.CanReceiveEvents Then
+    Exit;
+
   If (_CurrentWidth<>Self.GetWidth()) Or (_CurrentHeight<>Self.GetHeight()) Then
   Begin
     _CurrentWidth := GetWidth();
     _CurrentHeight := GetHeight();
     Application.Instance.AddRectEvent(eventWindowResize, _CurrentWidth, _CurrentHeight, 0, 0);
   End;
+
+  If Assigned(_GUI) Then
+    _GUI.AutoResize();
 End;
 
-Procedure VCLApplication.AddViewport(V: VCLCanvasViewport);
+procedure VCLApplication.AddRenderTarget(V: TERRAVCLViewport);
 Begin
   Inc(_ViewportCount);
   SetLength(_Viewports, _ViewportCount);
   _Viewports[Pred(_ViewportCount)] := V;
 End;
 
-Procedure VCLApplication.UpdateViewports;
+procedure VCLApplication.UpdateViewports;
 Var
   I:Integer;
 Begin
@@ -112,7 +159,7 @@ Begin
     _Viewports[I].Update();
 End;
 
-Function VCLApplication.GetTitle: TERRAString;
+function VCLApplication.GetTitle: TERRAString;
 Begin
   If (_Target Is TForm) Then
     Result := TForm(_Target).Caption
@@ -123,69 +170,112 @@ Begin
     Result := '';
 End;
 
-Function VCLApplication.GetWidth: Word;
+function VCLApplication.GetWidth: Word;
 Begin
   If (_Target Is TForm) Then
     Result := TForm(_Target).ClientWidth
   Else
   If (_Target Is TPanel) Then
-    Result := TPanel(_Target).Width
+    Result := TPanel(_Target).ClientWidth
   Else
     Result := 0;
 End;
 
-Function VCLApplication.GetHeight: Word;
+function VCLApplication.GetHeight: Word;
 Begin
   If (_Target Is TForm) Then
     Result := TForm(_Target).ClientHeight
   Else
   If (_Target Is TPanel) Then
-    Result := TPanel(_Target).Height
+    Result := TPanel(_Target).ClientHeight
   Else
     Result := 0;
 End;
 
-Function VCLApplication.InitWindow: Boolean;
+function VCLApplication.InitWindow: Boolean;
 Begin
   Result := True;
 End;
 
-Procedure VCLApplication.CloseWindow;
+procedure VCLApplication.CloseWindow;
 Begin
   // do nothing
 End;
 
-{ VCLCanvasViewport }
-Constructor VCLCanvasViewport.Create(Source:Viewport; Target: TCanvas);
+function VCLApplication.GetViewport: TERRAViewport;
 Begin
-  Self._Source := Source;
+  Result := Self.GUI.Viewport;
+End;
+
+function VCLApplication.GetGUI: UIView;
+Begin
+  If (_GUI = Nil) Then
+  Begin
+    _GUI := UIView.Create('gui', UIPercent(100), UIPercent(100));
+  End;
+
+  Result := _GUI;
+End;
+
+{ TERRAVCLViewport }
+Constructor TERRAVCLViewport.Create(Target:TImage);
+Begin
   Self._Target := Target;
+  _GUI := UIView.Create('gui', UIPixels(Target.ClientWidth), UIPixels(Target.ClientHeight));
+
+  _Dest := TBitmap.Create();
+  _Dest.Width := _GUI.Viewport.Width;
+  _Dest.Height := _GUI.Viewport.Height;
+  _Dest.PixelFormat := pf32bit;
 End;
 
-Procedure VCLCanvasViewport.Release;
+Function TERRAVCLViewport.GetViewport: TERRAViewport;
 Begin
-
+  If Assigned(_GUI) Then
+    Result := _GUI.Viewport
+  Else
+    Result := Nil;
 End;
+
+Procedure TERRAVCLViewport.Release;
+Begin
+  ReleaseObject(_GUI);
+  _Dest.Destroy();
+End;
+
 
 // this is slow!!!! just experimental test
-Procedure VCLCanvasViewport.Update;
+Procedure TERRAVCLViewport.Update;
 Var
-  Temp:Image;
+  Temp:TERRAImage;
+  It:ImageIterator;
   I, J:Integer;
-  C:Color;
+  C:ColorRGBA;
+  Scanline:PByte;
 Begin
-  Temp := Self._Source.GetRenderTarget(captureTargetColor).GetImage();
+  Temp := Self._GUI.Viewport.GetRenderTarget(captureTargetColor).GetImage();
 
-  _Target.Lock();
-  For I:=0 To Pred(Temp.Width) Do
-    For J:=0 To Pred(Temp.Height) Do
+  For J:=0 To Pred(_Dest.Height) Do
+  Begin
+    Scanline := _Dest.ScanLine[J];
+
+    For I:=0 To Pred(_Dest.Width) Do
     Begin
       C := Temp.GetPixel(I, J);
-      _Target.Pixels[I,J] := C.R + C.G Shl 8 + C.B Shl 16;
+
+      Scanline^ := C.B; Inc(Scanline);
+      Scanline^ := C.G; Inc(Scanline);
+      Scanline^ := C.R; Inc(Scanline);
+      Scanline^ := C.A; Inc(Scanline);
+
+      //Dest.Pixels[I,J] := TERRAColorUnpack(C);
     End;
-  _Target.Unlock();
+  End;
 
   ReleaseObject(Temp);
+
+  //_Target.Picture.Bitmap := _Dest;
+  _Target.Canvas.Draw(0, 0, _Dest);
 End;
 
 End.

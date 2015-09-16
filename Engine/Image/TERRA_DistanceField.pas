@@ -26,7 +26,7 @@ Unit TERRA_DistanceField;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Image, TERRA_Color;
+Uses TERRA_Utils, TERRA_Object, TERRA_Image, TERRA_Color;
 
 { Computes a distance field transform of a high resolution binary source channel
 and returns the result as a low resolution channel.
@@ -39,36 +39,31 @@ is specified in units of the destination image. The spread in the source image
 will be spread*scale_down.
 }
 
-Function CreateDistanceField(Source:Image; Component, Scale:Cardinal; Spread:Single):Image;
+Function CreateDistanceField(Source:TERRAImage; Component, Scale:Cardinal; Spread:Single):TERRAImage;
 
 Implementation
-Uses TERRA_Log;
+Uses TERRA_Log, TERRA_ImageDrawing, TERRA_Engine;
 
-Function SignedDistance(Source:Image; Component, cx, cy:Integer; clamp:Single):Single;
+
+Function SignedDistance(Source:PSingleArray; Component, W, H, cx, cy:Integer; clamp:Single):Single;
 Var
-  w, h, dx, dy:Integer;
+  dx, dy:Integer;
   x, y1, y2:Integer;
   min_x, max_x:Integer;
   d, d2:Single;
   cd, distance:Single;
-  c:Single;
 Begin
-  w := Source.Width;
-  h := Source.Height;
-
-  If (CX<0) Or (CY<0) Or (CX>=Source.Width) Or (CY>=Source.Height) Then
-    C := 0
-  Else
-    c := Source.GetComponent(cx, cy, component)/255.0;
-    
-  cd := c - 0.5;
+  cd := Source[CX + CY*W];
 
   min_x := cx - Trunc(clamp) - 1;
-  if (min_x < 0) Then min_x := 0;
-  max_x := cx + Trunc(clamp) + 1;
-  if (max_x >= w) Then max_x := w-1;
+  If (min_x < 0) Then
+    min_x := 0;
 
-  distance := clamp;
+  max_x := cx + Trunc(clamp) + 1;
+  If (max_x >= w) Then
+    max_x := w-1;
+
+  Distance := clamp;
   For dy :=0 To Pred(Trunc(clamp) + 1) Do
   Begin
     If (dy > distance) Then
@@ -82,12 +77,11 @@ Begin
         If (x - cx > distance) Then
           Continue;
 
-        c := Source.GetComponent(x, y1, component)/255.0;
-        d := c - 0.5;
+        d := Source[X + Y1 *W];
         If (cd*d<0) Then
         Begin
           d2 := (y1 - cy)*(y1 - cy) + (x-cx)*(x-cx);
-          If (d2 < distance*distance) Then
+          If (d2 < Sqr(distance)) Then
             distance := Sqrt(d2);
         End;
       End;
@@ -96,51 +90,60 @@ Begin
     If (dy <> 0) And (cy+dy < h) Then
     Begin
       y2 := cy + dy;
+
       For x:=min_x To max_x Do
       Begin
         If (x - cx > distance) Then
           Continue;
 
-        c := Source.GetComponent(x, y2, component)/255.0;
-        d := c - 0.5;
+        d := Source[X + Y2 *W];
         If (cd*d<0) Then
         Begin
           d2 := (y2 - cy)*(y2 - cy) + (x-cx)*(x-cx);
-          If (d2 < distance*distance) Then
+          If (d2 < Sqr(Distance)) Then
             distance := Sqrt(d2);
         End;
       End;
     End;
+
+    (*If (Distance<=0) Then
+      Break;*)
+
   End;
 
   If (cd > 0) Then
-    Result := -Distance
+    Result := Distance
   Else
-    Result := distance;
+    Result := -Distance;
 End;
 
-Function CreateDistanceField(Source:Image; Component, Scale:Cardinal; Spread:Single):Image;
+Const
+  RescaleFactor = 1.0 / 255.0;
+
+Function CreateDistanceField(Source:TERRAImage; Component, Scale:Cardinal; Spread:Single):TERRAImage;
 Var
-  x,y:Integer;
-  Padding:Integer;
+  X,Y:Integer;
   PX, PY:Integer;
   sd:Single;
   n:Single;
   c:Byte;
 
-  Temp:Image;
+  Values:Array Of Single;
+  It:ImageIterator;
 Begin
-  Padding := Source.Width Div 10;
+  //Padding := Source.Width Div 10;
+  Engine.Log.Write(logWarning, 'Application', 'Making distance field glyph...');
 
-  Log(logWarning, 'Application', 'Making distance field glyph...');
+  Result := TERRAImage.Create(Source.Width, Source.Height);
 
-  Temp := Image.Create(Source);
-  Temp.Resize(Source.Width - Padding * 2, Source.Height - Padding * 2);
+  //Result.Save('test.png');
 
-  Source := Image.Create(Source.Width, Source.Height);
-  Source.Blit(Padding, Padding, 0, 0, Temp.Width, Temp.Height, Temp);
-
-  Result := Image.Create(Source.Width, Source.Height);
+  SetLength(Values, Source.Width * Source.Height);
+  It := Source.Pixels([image_Read]);
+  While It.HasNext() Do
+  Begin
+    Values[It.X + It.Y * Source.Width] := (It.Value.A * RescaleFactor) - 0.5;
+  End;
 
   For Y:=0 To Pred(Result.Height) Do
     For X:=0 To Pred(Result.Width) Do
@@ -148,25 +151,12 @@ Begin
       PX := X;
       PY := Y;
 
-      sd := SignedDistance(Source, Component, PX, PY, Spread);
+      sd := SignedDistance(@Values[0], Component, Source.Width, Source.Height, PX, PY, Spread);
       n := (sd + Spread) / (Spread*2);
 
       C := Trunc(N*255);
       Result.SetPixel(X, Y, ColorGrey(C, C));
     End;
-
-  ReleaseObject(Temp);
-  ReleaseObject(Source);
-
-(*  While (Scale>1) Do
-  Begin
-    Temp := Result;
-    Result := Temp.MipMap();
-
-    ReleaseObject(Temp);
-
-    Scale := Scale Shr 1;
-  End;*)
 End;
 
 

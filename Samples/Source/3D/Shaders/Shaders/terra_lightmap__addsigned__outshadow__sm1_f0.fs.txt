@@ -1,0 +1,29 @@
+varying highp vec4 world_position;
+varying highp vec4 local_position;
+varying highp vec4 clip_position;
+varying lowp vec4 vertex_color;
+varying highp vec4 texCoord0;
+varying highp vec4 lightCoord;
+varying mediump vec3 vertex_normal;
+  uniform lowp sampler2D diffuseMap;
+  uniform lowp sampler2D lightMap;
+  uniform lowp vec4 sunColor;
+  uniform lowp vec4 diffuse_color;
+  uniform highp vec3 cameraPosition;
+  uniform highp vec3 cameraView;
+  uniform highp float zFar;
+  uniform highp float zNear;
+  lowp vec4 diffuse;
+  lowp vec4 color;
+  lowp vec4 specular;
+  mediump vec3 normal;
+void main()	{
+  mediump vec3 screen_position = clip_position.xyz / clip_position.w;
+  screen_position *= vec3(0.5);
+  screen_position += vec3(0.5);
+highp vec2 localUV = texCoord0.st;
+  normal = normalize(vertex_normal);
+  diffuse = texture2D(diffuseMap, localUV);
+  color = texture2D(lightMap, lightCoord.st);
+  color.a = diffuse.a;
+  gl_FragColor = color;}

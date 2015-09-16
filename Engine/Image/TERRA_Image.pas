@@ -26,20 +26,9 @@ Unit TERRA_Image;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Color;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Color, TERRA_FileFormat, TERRA_FileManager;
 
 Const
-  // Image processing flags
-  IMP_SwapChannels          = 1;
-  IMP_FillColor             = 2;
-  IMP_FillAlpha             = 4;
-  IMP_SetColorKey           = 8;
-  IMP_SetAlphaFromLuminance = 16;
-  IMP_SetGreyscale          = 32;
-  IMP_FlipVertical          = 64;
-  IMP_FlipHorizontal        = 128;
-  IMP_ScaleColor            = 256;
-
   componentRed    = 0;
   componentGreen  = 1;
   componentBlue   = 2;
@@ -59,14 +48,51 @@ Type
 
   ImageFrame = Class(TERRAObject)
     Protected
-      _Data:Array Of Color;
+      _Data:Array Of ColorRGBA;
     Public
       Constructor Create(Width, Height:Integer);
       Procedure Release; Override;
 
   End;
 
-  Image = Class(TERRAObject)
+  TERRAImage = Class;
+
+  ImageProcessFlags = Set Of (image_Read, image_Write, image_Fill, image_Kernel);
+
+  ImageKernel = Array[0..8] Of Single;
+
+  ImageIterator = Class(TERRAObject)
+    Private
+      _Value:ColorRGBA;
+      _Current:PColorRGBA;
+
+    Protected
+      _X:Integer;
+      _Y:Integer;
+
+      _Clone:TERRAImage;
+      _Target:TERRAImage;
+      _Flags:ImageProcessFlags;
+      _Mask:Cardinal;
+
+      Function ObtainNext():Boolean; Virtual; Abstract;
+
+    Public
+      Constructor Create(Target:TERRAImage; Flags:ImageProcessFlags; Const Mask:Cardinal);
+      Procedure Release; Override;
+
+      Function ApplyKernel(Const Kernel:ImageKernel):ColorRGBA;
+
+      Function HasNext():Boolean;
+
+      Procedure FillWithColor(Const Color:ColorRGBA);
+
+      Property Value:ColorRGBA Read _Value Write _Value;
+      Property X:Integer Read _X;
+      Property Y:Integer Read _Y;
+  End;
+
+  TERRAImage = Class(TERRAObject)
     Protected
       _Frames:Array Of ImageFrame;
       _FrameCount:Cardinal;
@@ -75,6 +101,7 @@ Type
 
       _Width:Cardinal;
       _Height:Cardinal;
+      _Pitch:Cardinal;
       _Size:Cardinal;
 
       _CurrentFrame:Cardinal;
@@ -82,27 +109,28 @@ Type
       _TransparencyType:ImageTransparencyType;
 
       Procedure Discard;
-      Procedure FillAlpha(AlphaValue:Byte=255);
 
       Function GetPixelCount:Cardinal;
-      Function GetPixels:PColor;
+      Function GetPixels:PColorRGBA;
 
       Function GetImageTransparencyType:ImageTransparencyType;
 
     Public
       Constructor Create(Width, Height:Integer);Overload;
-      Constructor Create(Source:Stream);Overload;
+      Constructor Create(Source:TERRAStream);Overload;
+      Constructor Create(Location:TERRALocation);Overload;
       Constructor Create(FileName:TERRAString);Overload;
-      Constructor Create(Source:Image);Overload;
+      Constructor Create(Source:TERRAImage);Overload;
       Procedure Release; Override;
 
-      Procedure Load(Source:Stream);Overload;
+      Procedure Load(Source:TERRAStream);Overload;
+      Procedure Load(Location:TERRALocation);Overload;
       Procedure Load(FileName:TERRAString);Overload;
 
-      Procedure Save(Dest:Stream; Format:TERRAString; Options:TERRAString='');Overload;
-      Procedure Save(Filename:TERRAString; Format:TERRAString=''; Options:TERRAString='');Overload;
+      Function Save(Dest:TERRAStream; Format:TERRAFileFormat; Depth:Integer = 32):Boolean; Overload;
+      Function Save(Filename:TERRAString; Format:TERRAFileFormat = Nil; Depth:Integer = 32):Boolean; Overload;
 
-      Procedure Copy(Source:Image);
+      Procedure Copy(Source:TERRAImage);
       Procedure Resize(Const NewWidth,NewHeight:Cardinal);
 
       Procedure LinearResize(Const NewWidth,NewHeight:Cardinal);
@@ -114,55 +142,51 @@ Type
 
       {$IFDEF NDS}Function AutoTile:Cardinal;{$ENDIF}
 
-      Procedure Process(Flags:Cardinal; Color:Color); Overload;
-      Procedure Process(Flags:Cardinal); Overload;
+      Procedure BlitByUV(Const U,V,U1,V1,U2,V2:Single; Const Source:TERRAImage);
+      Procedure Blit(X,Y,X1,Y1,X2,Y2:Integer; Const Source:TERRAImage);
 
-      Procedure BlitByUV(Const U,V,U1,V1,U2,V2:Single; Const Source:Image);
-      Procedure Blit(X,Y,X1,Y1,X2,Y2:Integer; Const Source:Image);
+      Procedure BlitAlphaMapByUV(Const U,V,U1,V1,U2,V2,AU1,AV1,AU2,AV2:Single; Const Source,AlphaMap:TERRAImage);
+      Procedure BlitAlphaMap(X,Y,X1,Y1,X2,Y2,AX1,AY1,AX2,AY2:Integer; Const Source,AlphaMap:TERRAImage);
 
-      Procedure BlitAlphaMapByUV(Const U,V,U1,V1,U2,V2,AU1,AV1,AU2,AV2:Single; Const Source,AlphaMap:Image);
-      Procedure BlitAlphaMap(X,Y,X1,Y1,X2,Y2,AX1,AY1,AX2,AY2:Integer; Const Source,AlphaMap:Image);
+      Procedure BlitWithAlphaByUV(Const U,V,U1,V1,U2,V2:Single; Const Source:TERRAImage; ForceBlend:Boolean = True);
+      Procedure BlitWithAlpha(X,Y,X1,Y1,X2,Y2:Integer; Const Source:TERRAImage; ForceBlend:Boolean = True);
 
-      Procedure BlitWithAlphaByUV(Const U,V,U1,V1,U2,V2:Single; Const Source:Image; ForceBlend:Boolean = True);
-      Procedure BlitWithAlpha(X,Y,X1,Y1,X2,Y2:Integer; Const Source:Image; ForceBlend:Boolean = True);
+      Procedure BlitWithMaskByUV(Const U,V,U1,V1,U2,V2:Single; Const Color:ColorRGBA; Const Source:TERRAImage);
+      Procedure BlitWithMask(X,Y,X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA; Const Source:TERRAImage);
 
-      Procedure BlitWithMaskByUV(Const U,V,U1,V1,U2,V2:Single; Const Color:Color; Const Source:Image);
-      Procedure BlitWithMask(X,Y,X1,Y1,X2,Y2:Integer; Const Color:Color; Const Source:Image);
+      Function Crop(X1,Y1,X2,Y2:Integer):TERRAImage;
 
-      Function SubImage(X1,Y1,X2,Y2:Integer):Image;
+      Procedure FlipHorizontal();
+      Procedure FlipVertical();
 
-      Function Combine(Layer:Image; Alpha:Single; Mode:ColorCombineMode; Mask:Cardinal):Boolean;
+      Procedure SwapChannels();
 
-      Procedure ShiftHue(ShiftAmmount:Integer);
+      Function Combine(Layer:TERRAImage; Alpha:Single; Mode:ColorCombineMode; Const Mask:Cardinal = maskRGBA):Boolean;
 
-      Procedure LineByUV(Const U1,V1,U2,V2:Single; Const Color:Color);
-      Procedure Line(X1,Y1,X2,Y2:Integer; Const Color:Color);
-      Procedure LineAlpha(X1,Y1,X2,Y2:Integer; Const Color:Color);
+      Function LineByUV(Const U1,V1,U2,V2:Single; Flags:ImageProcessFlags; Const Mask:Cardinal = maskRGBA):ImageIterator;
+      Function Line(X1,Y1,X2,Y2:Integer; Flags:ImageProcessFlags; Const Mask:Cardinal = maskRGBA):ImageIterator;
 
-      Procedure DrawRectangleByUV(Const U1,V1,U2,V2:Single; Const Color:Color);
-      Procedure DrawRectangle(X1,Y1,X2,Y2:Integer; Const Color:Color);
+      Function RectangleByUV(Const U1,V1,U2,V2:Single; Flags:ImageProcessFlags; Const Mask:Cardinal = maskRGBA):ImageIterator;
+      Function Rectangle(X1,Y1,X2,Y2:Integer; Flags:ImageProcessFlags; Const Mask:Cardinal = maskRGBA):ImageIterator;
 
-      Procedure FillRectangleByUV(Const U1,V1,U2,V2:Single; Const Color:Color);
-      Procedure FillRectangle(X1,Y1,X2,Y2:Integer; Const Color:Color);
+      Function CircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Flags:ImageProcessFlags; Const Mask:Cardinal = maskRGBA):ImageIterator;
+      Function Circle(xCenter,yCenter:Integer; Const Radius:Integer; Flags:ImageProcessFlags; Const Mask:Cardinal = maskRGBA):ImageIterator;
 
-      Procedure DrawCircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Const Color:Color);
-      Procedure DrawCircle(xCenter,yCenter:Integer; Const Radius:Integer; Const Color:Color);
+      Function Pixels(Flags:ImageProcessFlags; Const Mask:Cardinal = maskRGBA):ImageIterator;
 
-      Procedure FillCircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Const Color:Color);
-      Procedure FillCircle(xCenter,yCenter:Integer; Const Radius:Integer; Const Color:Color);
+      Procedure ClearWithColor(Const Color:ColorRGBA; Mask:Cardinal = maskRGBA);
 
-      Function GetPixel(X,Y:Integer):Color; {$IFDEF FPC}Inline;{$ENDIF}
-      Function GetPixelByUV(Const U,V:Single):Color; {$IFDEF FPC}Inline;{$ENDIF}
+      Function GetPixel(X,Y:Integer):ColorRGBA; {$IFDEF FPC}Inline;{$ENDIF}
+      Function GetPixelByUV(Const U,V:Single):ColorRGBA; {$IFDEF FPC}Inline;{$ENDIF}
       Function GetComponent(X,Y,Component:Integer):Byte; {$IFDEF FPC}Inline;{$ENDIF}
 
-      Procedure SetPixelByOffset(Ofs:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
-      Procedure SetPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
-      Procedure SetPixelByUV(Const U,V:Single; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
+      Procedure SetPixel(X,Y:Integer; Const Color:ColorRGBA); {$IFDEF FPC}Inline;{$ENDIF}
+      Procedure SetPixelByUV(Const U,V:Single; Const Color:ColorRGBA); {$IFDEF FPC}Inline;{$ENDIF}
 
       //Procedure AddPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
-      Procedure MixPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
+      Procedure MixPixel(X,Y:Integer; Const Color:ColorRGBA); {$IFDEF FPC}Inline;{$ENDIF}
 
-      Function MipMap():Image;
+      Function MipMap():TERRAImage;
 
       Procedure LineDecodeRGBPalette4(Buffer, Palette:Pointer; Line:Cardinal);
       Procedure LineDecodeRGBPalette8(Buffer, Palette:Pointer; Line:Cardinal);
@@ -178,14 +202,14 @@ Type
       Procedure LineDecodeBGR24(Buffer:Pointer; Line:Cardinal);
       Procedure LineDecodeBGR32(Buffer:Pointer; Line:Cardinal);
 
-      Function GetPixelOffset(X,Y:Integer):PColor;
-      Function GetLineOffset(Y:Integer):PColor;
+      Function GetPixelOffset(X,Y:Integer):PColorRGBA;
+      Function GetLineOffset(Y:Integer):PColorRGBA;
 
       Property Width:Cardinal Read _Width;
       Property Height:Cardinal Read _Height;
       Property PixelCount:Cardinal Read GetPixelCount;
       Property Size:Cardinal Read _Size;
-      Property Pixels:PColor Read GetPixels;
+      Property RawPixels:PColorRGBA Read GetPixels;
 
       Property CurrentFrame:Cardinal Read _CurrentFrame Write SetCurrentFrame;
       Property FrameCount:Cardinal Read _FrameCount;
@@ -193,138 +217,143 @@ Type
       Property TransparencyType:ImageTransparencyType Read GetImageTransparencyType;
   End;
 
+Implementation
+Uses TERRA_Engine, TERRA_FileStream, TERRA_FileUtils, TERRA_Math, TERRA_Log, TERRA_Vector4D, TERRA_ImageDrawing;
 
-  ImageStreamValidateFunction = Function(Source:Stream):Boolean;
-  ImageLoader = Procedure(Source:Stream; Image:Image);
-  ImageSaver = Procedure(Source:Stream; Image:Image; Const Options:TERRAString='');
+{ ImageIterator }
+Constructor ImageIterator.Create(Target:TERRAImage; Flags:ImageProcessFlags; Const Mask:Cardinal);
+Begin
+  Self._Flags := Flags;
+  Self._Mask := Mask;
+  Self._Target := Target;
 
-  ImageClassInfo = Record
-    Name:TERRAString;
-    Validate:ImageStreamValidateFunction;
-    Loader:ImageLoader;
-    Saver:ImageSaver;
+  If (image_Kernel In _Flags) Then
+  Begin
+    _Clone := TERRAImage.Create(Target);
+  End;
+End;
+
+Function ImageIterator.ApplyKernel(Const Kernel:ImageKernel):ColorRGBA;
+Var
+  I,J:Integer;
+  Denominator, K:Single;
+  PR,PG,PB,PA:Integer;
+  P:PColorRGBA;
+Begin
+  If {(_X<=0) Or (_Y<=0) Or (_X>=Pred(_Target.Width)) Or (_Y>=Pred(_Target.Height)) Or }(_Clone = Nil) Then
+  Begin
+    Result := _Value;
+    Exit;
   End;
 
-  Function GetImageLoader(Source:Stream):ImageLoader;
-  Function GetImageSaver(Const Format:TERRAString):ImageSaver;
-  Procedure RegisterImageFormat(Name:TERRAString;
-                                Validate:ImageStreamValidateFunction;
-                                Loader:ImageLoader;
-                                Saver:ImageSaver=Nil);
+  PR := 0;
+  PG := 0;
+  PB := 0;
+  PA := 0;
 
-  Function GetImageExtensionCount():Integer;
-  Function GetImageExtension(Index:Integer):ImageClassInfo;
-
-Implementation
-Uses TERRA_FileStream, TERRA_FileUtils, TERRA_FileManager, TERRA_Math, TERRA_Log;
-
-Var
-  _ImageExtensions:Array Of ImageClassInfo;
-  _ImageExtensionCount:Integer;
-
-Function GetImageExtensionCount():Integer;
-Begin
-  Result := _ImageExtensionCount;
-End;
-
-Function GetImageExtension(Index:Integer):ImageClassInfo;
-Begin
-  If (Index>=0) And (Index<_ImageExtensionCount) Then
-    Result := _ImageExtensions[Index]
-  Else
-  	FillChar(Result, SizeOf(Result), 0);
-End;
-
-Function GetImageLoader(Source:Stream):ImageLoader;
-Var
-  Pos:Cardinal;
-  I:Integer;
-Begin
-  Result := Nil;
-  If Not Assigned(Source) Then
-    Exit;
-
-  Pos := Source.Position;
-
-  For I:=0 To Pred(_ImageExtensionCount) Do
-  Begin
-    Source.Seek(Pos);
-    If _ImageExtensions[I].Validate(Source) Then
+  Denominator := 0.0;
+  For J:=-1 To 1 Do
+    For I:=-1 To 1 Do
     Begin
-      Log(logDebug, 'Image', 'Found '+_ImageExtensions[I].Name);
-      Result := _ImageExtensions[I].Loader;
-      Break;
+      P := _Clone.GetPixelOffset(_X+I, _Y+J);
+
+      K := Kernel[Succ(I) + Succ(J)*3];
+      Denominator := Denominator + K;
+
+      PR := PR + Trunc(P.R * K);
+      PG := PG + Trunc(P.G * K);
+      PB := PB + Trunc(P.B * K);
+      PA := PA + Trunc(P.A * K);
+    End;
+
+  If (Denominator <> 0.0) Then
+    Denominator := 1.0 / Denominator
+  Else
+    Denominator := 1.0;
+
+  Result := ColorCreate(
+    Trunc(FloatMax(0.0, FloatMin(255.0, PR * Denominator))),
+    Trunc(FloatMax(0.0, FloatMin(255.0, PG * Denominator))),
+    Trunc(FloatMax(0.0, FloatMin(255.0, PB * Denominator))),
+    Trunc(FloatMax(0.0, FloatMin(255.0, PA * Denominator)))
+  );
+End;
+
+Function ImageIterator.HasNext: Boolean;
+Begin
+  If (Assigned(_Current)) And (image_Write In _Flags) Then
+  Begin
+    If (_Mask  = maskRGBA) Then
+    Begin
+      _Current^ := _Value;
+    End Else
+    Begin
+      If (_Mask And maskRed<>0) Then
+        _Current.R := _Value.R;
+
+      If (_Mask And maskGreen<>0) Then
+        _Current.G := _Value.G;
+
+      If (_Mask And maskBlue<>0) Then
+        _Current.B := _Value.B;
+
+      If (_Mask And maskAlpha<>0) Then
+        _Current.A := _Value.A;
     End;
   End;
 
-  Source.Seek(Pos);
-End;
+  Result := Self.ObtainNext();
 
-Function GetImageSaver(Const Format:TERRAString):ImageSaver;
-Var
-  I:Integer;
-Begin
-  Result := Nil;
-
-  For I:=0 To Pred(_ImageExtensionCount) Do
-  If StringEquals(_ImageExtensions[I].Name, Format) Then
+  If Result Then
   Begin
-    Result := _ImageExtensions[I].Saver;
-    Exit;
+    _Current := _Target.GetPixelOffset(_X, _Y);
+
+    If (image_Read In _Flags) Then
+    Begin
+        _Value := _Current^;
+    End;
   End;
 End;
 
-Procedure RegisterImageFormat(Name:TERRAString;
-                              Validate:ImageStreamValidateFunction;
-                              Loader:ImageLoader;
-                              Saver:ImageSaver=Nil);
-Var
-  I,N:Integer;
+Procedure ImageIterator.Release;
 Begin
-  Name := StringLower(Name);
-
-  For I:=0 To Pred(_ImageExtensionCount) Do
-  If (_ImageExtensions[I].Name = Name) Then
-    Exit;
-
-  N := _ImageExtensionCount;
-  Inc(_ImageExtensionCount);
-  SetLength(_ImageExtensions, _ImageExtensionCount);
-  _ImageExtensions[N].Name := Name;
-  _ImageExtensions[N].Validate :=Validate;
-  _ImageExtensions[N].Loader := Loader;
-  _ImageExtensions[N].Saver := Saver;
+  ReleaseObject(_Clone);
 End;
 
 { Image }
-Constructor Image.Create(Width, Height:Integer);
+Constructor TERRAImage.Create(Width, Height:Integer);
 Begin
   _CurrentFrame := 0;
   _FrameCount := 0;
   New(Width, Height);
 End;
 
-Constructor Image.Create(Source:Stream);
+Constructor TERRAImage.Create(Source:TERRAStream);
 Begin
   Load(Source);
 End;
 
-Constructor Image.Create(FileName:TERRAString);
+Constructor TERRAImage.Create(Location:TERRALocation);
+Begin
+  Load(Location);
+End;
+
+Constructor TERRAImage.Create(FileName:TERRAString);
 Begin
   Load(FileName);
 End;
 
-Constructor Image.Create(Source:Image);
+Constructor TERRAImage.Create(Source:TERRAImage);
 Begin
   Copy(Source);
 End;
 
-Procedure Image.Release;
+Procedure TERRAImage.Release;
 Begin
   Discard;
 End;
 
-Procedure Image.New(Const Width,Height:Cardinal);
+Procedure TERRAImage.New(Const Width,Height:Cardinal);
 Begin
   Discard();
 
@@ -339,7 +368,7 @@ Begin
   Self.AddFrame();
 End;
 
-Function Image.AddFrame():ImageFrame;
+Function TERRAImage.AddFrame():ImageFrame;
 Var
   K:Integer;
 Begin
@@ -352,17 +381,20 @@ Begin
   SetCurrentFrame(K);
 End;
 
-Function Image.GetPixelCount:Cardinal;
+Function TERRAImage.GetPixelCount:Cardinal;
 Begin
   Result := Width * Height;
 End;
 
-Function Image.GetPixels:PColor;
+Function TERRAImage.GetPixels:PColorRGBA;
 Begin
-  Result := @_Pixels._Data[0];
+  If Assigned(_Pixels._Data) Then
+    Result := @_Pixels._Data[0]
+  Else
+    Result := Nil;
 End;
 
-Procedure Image.Copy(Source:Image);
+Procedure TERRAImage.Copy(Source:TERRAImage);
 Var
   I:Cardinal;
 Begin
@@ -386,7 +418,7 @@ Begin
   _TransparencyType := Source._TransparencyType;
 End;
 
-Procedure Image.Resize(Const NewWidth,NewHeight:Cardinal);
+Procedure TERRAImage.Resize(Const NewWidth,NewHeight:Cardinal);
 Const
   FixedPointBits = 12;
 Var
@@ -397,9 +429,9 @@ Var
   OneMinusU, OneMinusV, oneMinusUOneMinusV:Single;
   uOneMinusV, vOneMinusU:Single;
   srcX, srcY, srcXStep, srcYStep:Single;
-  pSrcPixelA, pSrcPixelB, pSrcPixelC, pSrcPixelD:Color;
+  pSrcPixelA, pSrcPixelB, pSrcPixelC, pSrcPixelD:ColorRGBA;
   Dest:ImageFrame;
-  Pixel:Color;
+  Pixel:ColorRGBA;
 Begin
   If (NewWidth=Width) And (NewHeight=Height) Then
     Exit;
@@ -509,7 +541,7 @@ Begin
   SetCurrentFrame(0);
 End;
 
-Procedure Image.LinearResize(Const NewWidth,NewHeight:Cardinal);
+Procedure TERRAImage.LinearResize(Const NewWidth,NewHeight:Cardinal);
 Const
   FixedPointBits = 12;
 Var
@@ -518,7 +550,7 @@ Var
   NX,NY:Cardinal;
   PX,PY:Cardinal;
   Buffer:ImageFrame;
-  Dest:PColor;
+  Dest:PColorRGBA;
 Begin
   If (NewWidth=Width)And(NewHeight=Height) Then
     Exit;
@@ -567,7 +599,7 @@ Begin
   SetCurrentFrame(0);
 End;
 
-Procedure Image.SetCurrentFrame(ID:Cardinal);
+Procedure TERRAImage.SetCurrentFrame(ID:Cardinal);
 Begin
   If (ID>=_FrameCount) Then
     ID:=0;
@@ -579,14 +611,14 @@ Begin
   _Pixels := _Frames[ID];
 End;
 
-Procedure Image.NextFrame(Skip:Cardinal=1);
+Procedure TERRAImage.NextFrame(Skip:Cardinal=1);
 Begin
   If Skip<=0 Then
     Exit;
   SetCurrentFrame((_CurrentFrame+Skip) Mod _FrameCount);
 End;
 
-Procedure Image.Discard;
+Procedure TERRAImage.Discard;
 Var
   I:Integer;
 Begin
@@ -604,159 +636,81 @@ Begin
   _Pixels := Nil;
 End;
 
-Procedure Image.FillAlpha(AlphaValue:Byte=255);
-Var
-  Color:PColor;
-  I,J:Integer;
-Begin
-  Color:=Pixels;
-  For J:=0 To Pred(Height) Do
-    For I:=0 To Pred(Width) Do
-    Begin
-      Color.A:=AlphaValue;
-      Inc(Color);
-    End;
-End;
-
-Procedure Image.Process(Flags:Cardinal);
-Begin
-  Process(Flags, ColorWhite);
-End;
-
-Procedure Image.Process(Flags:Cardinal; Color:Color);
+Procedure TERRAImage.FlipVertical();
 Var
   N:Cardinal;
   I,J,K:Cardinal;
-  Source,Dest:PColor;
-
-  SwapChannels, SetColorKey, ScaleColor:Boolean;
-  FilColor,FillAlpha:Boolean;
-  SetGreyscale,SetAlphaFromLuminance:Boolean;
-  FlipHorizontal,FlipVertical:Boolean;
+  Temp:ColorRGBA;
+  Source,Dest:PColorRGBA;
 Begin
-  SetAlphaFromLuminance := (Flags And IMP_SetAlphaFromLuminance<>0);
-  SetGreyscale := (Flags And IMP_SetGreyscale<>0);
-  SwapChannels := (Flags And IMP_SwapChannels<>0);
-  SetColorKey := (Flags And IMP_SetColorKey<>0);
-  FillAlpha := (Flags And IMP_FillAlpha<>0);
-  FilColor := (Flags And IMP_FillColor<>0);
-  FlipHorizontal := (Flags And IMP_FlipHorizontal<>0);
-  FlipVertical := (Flags And IMP_FlipVertical<>0);
-  ScaleColor := (Flags And IMP_ScaleColor<>0);
-
   If (_Width = 0) Or (_Height = 0) Then
     Exit;
 
-  If (FillAlpha) And (Color.A = 0) Then
-    _TransparencyType := imageTransparent;
-
   For K:=0 To Pred(_FrameCount) Do
   Begin
-    Source := @_Frames[K]._Data[0];
-    For J:=0 To Pred(Height) Do
-      For I:=0 To Pred(Width) Do
-      Begin
-        If (FillAlpha) And (FilColor) Then
-          Source^:=Color
-        Else
-        If (FilColor) Then
-        Begin
-          Source.R := Color.R;
-          Source.G := Color.G;
-          Source.B := Color.B;
-        End;
+    Source := RawPixels;
+    N := _Height Shr 1;
+    If (Not Odd(_Height)) Then
+      Dec(N);
 
-        If (FillAlpha)And(Not FilColor) Then
-        Begin
-          Source.A:=Color.A;
-        End Else
-        If (SetAlphaFromLuminance) Then
-        Begin
-          N:=Source.R+Source.G+Source.B;
-          Source.A:=(N Shl 1)+N;
-        End;
-
-        If (SetGreyscale) Then
-        Begin
-          Source^ := ColorGrey(ColorLuminance(Source^), Source.A);
-        End;
-
-        If (ScaleColor) Then
-        Begin
-          Source^ := ColorMultiply(Source^, Color);
-        End;
-
-        If (SetColorKey) And (Cardinal(Source^)=Cardinal(Color)) Then
-        Begin
-          Cardinal(Source^) := 0;
-          _TransparencyType := imageTransparent;
-        End;
-
-        If (SwapChannels) Then
-        Begin
-          N:=Source.R;
-          Source.R:=Source.B;
-          Source.B:=N;
-        End;
-
-        Inc(Source);
-      End;
-
-    If (FlipHorizontal) Then
+    For J:=0 To N Do
+    For I:=0 To Pred(_Width) Do
     Begin
-      N := _Width Shr 1;
-      If (Not Odd(_Width)) Then
-        Dec(N);
+      Dest := @_Frames[K]._Data[((Pred(Height)-J)*_Width+I)];
 
-      For J:=0 To Pred(_Height) Do
-      Begin
-        Source := @_Frames[K]._Data[(J*_Width)];
-        Dest := @_Frames[K]._Data[(J*_Width+Pred(_Width))];
+      Temp := Source^;
+      Source^ := Dest^;
+      Dest^ := Temp;
 
-        For I:=0 To N Do
-        Begin
-          Color := Source^;
-          Source ^ := Dest^;
-          Dest^ := Color;
-
-          Inc(Source);
-          Dec(Dest);
-        End;
-
-        Inc(Source, N);
-      End;
-    End;
-
-    If (FlipVertical) Then
-    Begin
-      Source := Pixels;
-      N := _Height Shr 1;
-      If (Not Odd(_Height)) Then
-        Dec(N);
-
-      For J:=0 To N Do
-        For I:=0 To Pred(_Width) Do
-        Begin
-          Dest := @_Frames[K]._Data[((Pred(Height)-J)*_Width+I)];
-
-          Color := Source^;
-          Source^ := Dest^;
-          Dest^ := Color;
-
-          Inc(Source);
-        End;
+      Inc(Source);
     End;
   End;
 End;
 
-Procedure Image.BlitByUV(Const U,V,U1,V1,U2,V2:Single; Const Source:Image);
+Procedure TERRAImage.FlipHorizontal();
+Var
+  N:Cardinal;
+  Temp:ColorRGBA;
+  I,J,K:Cardinal;
+  Source,Dest:PColorRGBA;
+Begin
+  If (_Width = 0) Or (_Height = 0) Then
+    Exit;
+
+  For K:=0 To Pred(_FrameCount) Do
+  Begin
+    N := _Width Shr 1;
+    If (Not Odd(_Width)) Then
+      Dec(N);
+
+    For J:=0 To Pred(_Height) Do
+    Begin
+      Source := @_Frames[K]._Data[(J*_Width)];
+      Dest := @_Frames[K]._Data[(J*_Width+Pred(_Width))];
+
+      For I:=0 To N Do
+      Begin
+        Temp := Source^;
+        Source^ := Dest^;
+        Dest^ := Temp;
+
+        Inc(Source);
+        Dec(Dest);
+      End;
+
+      Inc(Source, N);
+    End;
+  End;
+End;
+
+Procedure TERRAImage.BlitByUV(Const U,V,U1,V1,U2,V2:Single; Const Source:TERRAImage);
 Begin
   Blit(Integer(Round(U*Width)), Integer(Round(V*Height)),
        Integer(Round(U1*Source.Width)), Integer(Round(V1*Source.Height)),
        Integer(Round(U2*Source.Width)), Integer(Round(V2*Source.Height)), Source);
 End;
 
-Procedure Image.BlitAlphaMapByUV(Const U,V,U1,V1,U2,V2,AU1,AV1,AU2,AV2:Single; Const Source,AlphaMap:Image);
+Procedure TERRAImage.BlitAlphaMapByUV(Const U,V,U1,V1,U2,V2,AU1,AV1,AU2,AV2:Single; Const Source,AlphaMap:TERRAImage);
 Begin
   BlitAlphaMap(Integer(Round(U*Width)), Integer(Round(V*Height)),
               Integer(Round(U1*Source.Width)), Integer(Round(V1*Source.Height)),
@@ -766,7 +720,7 @@ Begin
               Source,AlphaMap);
 End;
 
-Procedure Image.BlitWithAlphaByUV(Const U,V,U1,V1,U2,V2:Single; Const Source:Image; ForceBlend:Boolean);
+Procedure TERRAImage.BlitWithAlphaByUV(Const U,V,U1,V1,U2,V2:Single; Const Source:TERRAImage; ForceBlend:Boolean);
 Begin
   BlitWithAlpha(Integer(Round(U*Width)), Integer(Round(V*Height)),
                   Integer(Round(U1*Source.Width)), Integer(Round(V1*Source.Height)),
@@ -775,7 +729,7 @@ Begin
 End;
 
 
-Procedure Image.BlitWithMaskByUV(Const U,V,U1,V1,U2,V2:Single; Const Color:Color; Const Source:Image);
+Procedure TERRAImage.BlitWithMaskByUV(Const U,V,U1,V1,U2,V2:Single; Const Color:ColorRGBA; Const Source:TERRAImage);
 Begin
   BlitWithMask(Integer(Round(U*Width)), Integer(Round(V*Height)),
                   Integer(Round(U1*Source.Width)), Integer(Round(V1*Source.Height)),
@@ -783,15 +737,14 @@ Begin
                   Color, Source);
 End;
 
-Procedure Image.LineByUV(Const U1,V1,U2,V2:Single; Const Color:Color);
+Function TERRAImage.LineByUV(Const U1,V1,U2,V2:Single; Flags:ImageProcessFlags; Const Mask:Cardinal):ImageIterator;
 Begin
-  Line(Integer(Trunc(U1*Width)), Integer(Trunc(V1*Height)),
-       Integer(Trunc(U2*Width)), Integer(Trunc(V2*Height)), Color);
+  Result := Line(Integer(Trunc(U1*Width)), Integer(Trunc(V1*Height)), Integer(Trunc(U2*Width)), Integer(Trunc(V2*Height)), Flags, Mask);
 End;
 
-Procedure Image.Blit(X,Y, X1,Y1,X2,Y2:Integer; Const Source:Image);
+Procedure TERRAImage.Blit(X,Y, X1,Y1,X2,Y2:Integer; Const Source:TERRAImage);
 Var
-  Dest, Data:PColor;
+  Dest, Data:PColorRGBA;
   I,J:Integer;
   BlitSize,BlitHeight:Integer;
 Begin
@@ -841,12 +794,12 @@ Begin
   End;}
 End;
 
-Procedure Image.BlitAlphaMap(X,Y,X1,Y1,X2,Y2,AX1,AY1,AX2,AY2:Integer; Const Source,AlphaMap:Image);
+Procedure TERRAImage.BlitAlphaMap(X,Y,X1,Y1,X2,Y2,AX1,AY1,AX2,AY2:Integer; Const Source,AlphaMap:TERRAImage);
 Var
   I,J:Integer;
   BlitSize,BlitHeight:Integer;
   AX,AY,ADX,ADY:Single;
-  A,B,C:Color;
+  A,B,C:ColorRGBA;
   Alpha:Cardinal;
 Begin
   If (X>=_Width) Or (Y>=_Height) Then
@@ -902,10 +855,10 @@ Begin
   End;
 End;
 
-Procedure Image.BlitWithAlpha(X,Y,X1,Y1,X2,Y2:Integer; Const Source:Image; ForceBlend:Boolean);
+Procedure TERRAImage.BlitWithAlpha(X,Y,X1,Y1,X2,Y2:Integer; Const Source:TERRAImage; ForceBlend:Boolean);
 Var
   I,J,BlitSize,BlitHeight:Integer;
-  Data,Dest:PColor;
+  Data,Dest:PColorRGBA;
 Begin
   X1:=IntMax(X1,0);
   X2:=IntMin(X2,Integer(Source.Width));
@@ -955,8 +908,9 @@ Begin
       End Else
       If (Data.A>0) Then
       Begin
-        Data.A := Dest.A;
-        Dest^ := ColorScale(Data^, 1.3);
+        //Data.A := Dest.A;
+        //Dest^ := ColorScale(Data^, 1.3);
+        Dest^ := Data^;
       End;
 
       Inc(Dest);
@@ -969,10 +923,10 @@ Begin
   End;
 End;
 
-Procedure Image.BlitWithMask(X,Y,X1,Y1,X2,Y2:Integer; Const Color:Color; Const Source:Image);
+Procedure TERRAImage.BlitWithMask(X,Y,X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA; Const Source:TERRAImage);
 Var
   I,BlitSize,BlitHeight:Integer;
-  Data,Dest:PColor;
+  Data,Dest:PColorRGBA;
 Begin
   X1:=IntMax(X1,0);
   X2:=IntMin(X2,Integer(Pred(Source.Width)));
@@ -1004,269 +958,32 @@ Begin
   End;
 End;
 
-// Bresenham's line algorithm
-Procedure Image.Line(X1,Y1,X2,Y2:Integer; Const Color:Color);
-Var
-  I,DeltaX,DeltaY,NumPixels:Integer;
-  D,Dinc1,Dinc2:Integer;
-  X,XInc1,XInc2:Integer;
-  Y,YInc1,YInc2:Integer;
+Function TERRAImage.Line(X1,Y1,X2,Y2:Integer; Flags:ImageProcessFlags; Const Mask:Cardinal):ImageIterator;
 Begin
-  //calculate deltaX and deltaY
-  DeltaX:=Abs(x2-x1);
-  DeltaY:=Abs(y2-y1);
-  //initialize
-  If (DeltaX>=DeltaY) Then
-  Begin
-    //If x is independent variable
-    NumPixels:=Succ(DeltaX);
-    D:=(2*DeltaY)-DeltaX;
-    DInc1:=DeltaY Shl 1;
-    DInc2:=(DeltaY-DeltaX) Shl 1;
-    XInc1:=1;
-    XInc2:=1;
-    YInc1:=0;
-    YInc2:=1;
-  End Else
-  Begin
-    //if y is independent variable
-    NumPixels:=Succ(DeltaY);
-    D:=(2*DeltaX)-DeltaY;
-    DInc1:=DeltaX Shl 1;
-    DInc2:=(DeltaX-DeltaY) Shl 1;
-    xinc1:=0;
-    xinc2:=1;
-    yinc1:=1;
-    yinc2:=1;
-  End;
-  //move in the right direction
-  If (X1>X2) Then
-  Begin
-    XInc1:=-XInc1;
-    XInc2:=-Xinc2;
-  End;
-  If (Y1>Y2) Then
-  Begin
-    YInc1:=-YInc1;
-    YInc2:=-YInc2;
-  End;
-
-  x:=x1;
-  y:=y1;
-  //draw the pixels
-  For i:=1 To Pred(numpixels) Do
-  Begin
-    SetPixel(x,y,Color);
-    If (d<0) Then
-    Begin
-      Inc(D,DInc1);
-      Inc(X,XInc1);
-      Inc(Y,YInc1);
-    End Else
-    Begin
-      Inc(D,DInc2);
-      Inc(X,XInc2);
-      Inc(Y,YInc2);
-    End;
-  End;
+  Result := LineImageIterator.Create(Self, X1, Y1, X2, Y2, Flags, Mask);
 End;
 
-Procedure Image.LineAlpha(X1,Y1,X2,Y2:Integer; Const Color:Color);
-Var
-  I,DeltaX,DeltaY,NumPixels:Integer;
-  D,Dinc1,Dinc2:Integer;
-  X,XInc1,XInc2:Integer;
-  Y,YInc1,YInc2:Integer;
+Function TERRAImage.RectangleByUV(Const U1,V1,U2,V2:Single; Flags:ImageProcessFlags; Const Mask:Cardinal):ImageIterator;
 Begin
-  //calculate deltaX and deltaY
-  DeltaX:=Abs(x2-x1);
-  DeltaY:=Abs(y2-y1);
-  //initialize
-  If (DeltaX>=DeltaY) Then
-  Begin
-    //If x is independent variable
-    NumPixels:=Succ(DeltaX);
-    D:=(2*DeltaY)-DeltaX;
-    DInc1:=DeltaY Shl 1;
-    DInc2:=(DeltaY-DeltaX) Shl 1;
-    XInc1:=1;
-    XInc2:=1;
-    YInc1:=0;
-    YInc2:=1;
-  End Else
-  Begin
-    //if y is independent variable
-    NumPixels:=Succ(DeltaY);
-    D:=(2*DeltaX)-DeltaY;
-    DInc1:=DeltaX Shl 1;
-    DInc2:=(DeltaX-DeltaY) Shl 1;
-    xinc1:=0;
-    xinc2:=1;
-    yinc1:=1;
-    yinc2:=1;
-  End;
-  //move in the right direction
-  If (X1>X2) Then
-  Begin
-    XInc1:=-XInc1;
-    XInc2:=-Xinc2;
-  End;
-  If (Y1>Y2) Then
-  Begin
-    YInc1:=-YInc1;
-    YInc2:=-YInc2;
-  End;
-
-  x:=x1;
-  y:=y1;
-  //draw the pixels
-  For i:=1 To Pred(numpixels) Do
-  Begin
-    MixPixel(x,y,Color);
-    If (d<0) Then
-    Begin
-      Inc(D,DInc1);
-      Inc(X,XInc1);
-      Inc(Y,YInc1);
-    End Else
-    Begin
-      Inc(D,DInc2);
-      Inc(X,XInc2);
-      Inc(Y,YInc2);
-    End;
-  End;
+  Result := Rectangle(Integer(Trunc(U1*Width)), Integer(Trunc(V1*Height)), Integer(Trunc(U2*Width)), Integer(Trunc(V2*Height)), Flags, Mask);
 End;
 
-Procedure Image.DrawRectangleByUV(Const U1,V1,U2,V2:Single; Const Color:Color);
+Function TERRAImage.Rectangle(X1,Y1,X2,Y2:Integer; Flags:ImageProcessFlags; Const Mask:Cardinal):ImageIterator;
 Begin
-  DrawRectangle(Integer(Trunc(U1*Width)), Integer(Trunc(V1*Height)),
-                Integer(Trunc(U2*Width)), Integer(Trunc(V2*Height)), Color);
+  Result := RectImageIterator.Create(Self, X1, Y1, X2, Y2, Flags, Mask);
 End;
 
-Procedure Image.FillRectangleByUV(Const U1,V1,U2,V2:Single; Const Color:Color);
+Function TERRAImage.CircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Flags:ImageProcessFlags; Const Mask:Cardinal):ImageIterator;
 Begin
-  FillRectangle(Integer(Trunc(U1*Width)), Integer(Trunc(V1*Height)),
-                Integer(Trunc(U2*Width)), Integer(Trunc(V2*Height)), Color);
+  Result := Self.Circle(Integer(Round(xCenter*Width)),Integer(Round(yCenter*Height)), Radius, Flags, Mask);
 End;
 
-// Fast rectangle draw
-Procedure Image.DrawRectangle(X1,Y1,X2,Y2:Integer; Const Color:Color);
-Var
-  J,LineSize,LineSkip:Integer;
-  Dest:PColor;
+Function TERRAImage.Circle(xCenter,yCenter:Integer; Const Radius:Integer; Flags:ImageProcessFlags; Const Mask:Cardinal):ImageIterator;
 Begin
-  X1 := IntMax(X1,0);
-  X2 := IntMin(X2,Integer(Pred(Width)));
-
-  Y1 := IntMax(Y1,0);
-  Y2 := IntMin(Y2,Integer(Pred(Height)));
-
-  LineSize := (X2-X1);
-  If (LineSize <= 0) Then
-    Exit;
-
-  LineSkip := Succ(Integer(Width) - LineSize);
-
-  Dest := @_Pixels._Data[Y1*Width + X1 ];
-
-  // Fill top line
-  FillLong(Dest^, LineSize, Cardinal(Color));
-
-  Inc(Dest,Width);
-  // Fill lateral lines
-  For J:=Succ(Y1) To Pred(Y2) Do
-  Begin
-    Dest^ := Color;
-    Inc(Dest, Pred(LineSize));
-    Dest^ := Color;
-    Inc(Dest, LineSkip);
-  End;
-
-  // Fill bottom line
-  FillLong(Dest^, LineSize, Cardinal(Color));
+  Result := CircleImageIterator.Create(Self, xCenter, yCenter, Radius, Flags, Mask);
 End;
 
-// Fast rectangle fill
-Procedure Image.FillRectangle(X1,Y1,X2,Y2:Integer; Const Color:Color);
-Var
-  J,LineSize:Integer;
-  Dest:PColor;
-Begin
-  X1:=IntMax(X1,0);
-  X2:=IntMin(X2,Integer(Pred(Width)));
-
-  Y1:=IntMax(Y1,0);
-  Y2:=IntMin(Y2,Integer(Pred(Height)));
-
-  LineSize:=Succ(X2-X1);
-  If (LineSize<=0) Then
-    Exit;
-
-  Dest := @_Pixels._Data[Y1*Width + X1 ];
-  For J:=Y1 To Y2 Do
-  Begin
-    FillLong(Dest^,LineSize,Cardinal(Color));
-    Inc(Dest,Width);
-  End;
-End;
-
-Procedure Image.DrawCircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Const Color:Color);
-Begin
-  DrawCircle(Integer(Round(xCenter*Width)),Integer(Round(yCenter*Height)), Radius, Color);
-End;
-
-Procedure Image.FillCircleByUV(Const xCenter,yCenter:Single; Const Radius:Integer; Const Color:Color);
-Begin
-  FillCircle(Integer(Round(xCenter*Width)),Integer(Round(yCenter*Height)), Radius, Color);
-End;
-
-// Bresenham's circle algorithm
-Procedure Image.DrawCircle(xCenter,yCenter:Integer; Const Radius:Integer; Const Color:Color);
-Var
-  X,Y,P:Integer;
-Begin
-  x:=0;
-  Y:=Radius;
-  P:=3-Radius*2;
-  While (X<=Y) Do
-  Begin
-    SetPixel(xCenter + x, yCenter + y, Color);
-    SetPixel(xCenter - x, yCenter + y, Color);
-    SetPixel(xCenter + x, yCenter - y, Color);
-    SetPixel(xCenter - x, yCenter - y, Color);
-    SetPixel(xCenter + y, yCenter + x, Color);
-    SetPixel(xCenter - y, yCenter + x, Color);
-    SetPixel(xCenter + y, yCenter - x, Color);
-    SetPixel(xCenter - y, yCenter - x, Color);
-    If (P<0) Then
-    Begin
-      Inc(X);
-      Inc(P,4 *X + 6);
-    End Else
-    Begin
-      Inc(X);
-      Dec(Y);
-      Inc(P, 4*(X-Y)+10);
-    End;
-  End;
-End;
-
-Procedure Image.FillCircle(xCenter,yCenter:Integer; Const Radius:Integer; Const Color:Color);
-Var
-  A,B,I:Integer;
-Begin
-  For A:=0 To Pred(Radius) Do
-  Begin
-    B := Trunc(Sqrt((Sqr(Radius) - Sqr(A))));
-    For I:=-B To B Do
-    Begin
-      SetPixel(xCenter+I,yCenter-Pred(A), Color);
-      SetPixel(xCenter+I,yCenter+Pred(A), Color);
-    End;
-  End;
-End;
-
-Function Image.GetLineOffset(Y:Integer):PColor;
+Function TERRAImage.GetLineOffset(Y:Integer):PColorRGBA;
 Begin
   If (_Height<=0) Then
   Begin
@@ -1283,13 +1000,19 @@ Begin
   Result := @_Pixels._Data[Y * Width];
 End;
 
-Function Image.GetPixelOffset(X,Y:Integer):PColor;
+Function TERRAImage.GetPixelOffset(X,Y:Integer):PColorRGBA;
 Begin
-  If (X<0) Then
-    X := 0;
+  While (X<0) Do
+    X := X + Width;
 
-  If (Y<0) Then
-    Y := 0;
+  If (X>=Width) Then
+    X := X Mod Width;
+
+  While (Y<0) Do
+    Y := Y + Height;
+
+  If (Y>=Height) Then
+    Y := Y Mod Height;
 
   If (_Pixels._Data = Nil) Then
     Result := Nil
@@ -1297,40 +1020,35 @@ Begin
     Result := @_Pixels._Data[Y * Width + X];
 End;
 
-Function Image.GetPixelByUV(Const U,V:Single):Color; {$IFDEF FPC}Inline;{$ENDIF}
+Function TERRAImage.GetPixelByUV(Const U,V:Single):ColorRGBA; {$IFDEF FPC}Inline;{$ENDIF}
 Var
   X,Y:Integer;
 Begin
-  X := Trunc(U*Width) Mod Width;
-  Y := Trunc(V*Height) Mod Height;
+  X := Trunc(U*Width);
+  Y := Trunc(V*Height);
   Result := GetPixel(X,Y);
 End;
 
-Function Image.GetPixel(X,Y:Integer):Color; {$IFDEF FPC}Inline;{$ENDIF}
+Function TERRAImage.GetPixel(X,Y:Integer):ColorRGBA; {$IFDEF FPC}Inline;{$ENDIF}
 Begin
-  If (Pixels = Nil) Or (Width<=0) Or (Height<=0)Then
+  If (RawPixels = Nil) Or (Width<=0) Or (Height<=0)Then
   Begin
     Result := ColorNull;
     Exit;
   End;
 
-  If (X<0) Then X := 0;
-  If (Y<0) Then Y := 0;
-  If (X>=Width) Then X := Pred(Width);
-  If (Y>=Height) Then Y := Pred(Height);
-
   Result := GetPixelOffset(X,Y)^;
 End;
 
-Function Image.GetComponent(X,Y,Component:Integer):Byte; {$IFDEF FPC}Inline;{$ENDIF}
+Function TERRAImage.GetComponent(X,Y,Component:Integer):Byte; {$IFDEF FPC}Inline;{$ENDIF}
 Var
-  P:Color;
+  P:ColorRGBA;
 Begin
   P := GetPixel(X,Y);
   Result := PByteArray(@P)[Component];
 End;
 
-Procedure Image.SetPixelByUV(Const U,V:Single; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
+Procedure TERRAImage.SetPixelByUV(Const U,V:Single; Const Color:ColorRGBA); {$IFDEF FPC}Inline;{$ENDIF}
 Var
   X,Y:Integer;
 Begin
@@ -1339,27 +1057,17 @@ Begin
   SetPixel(X,Y,Color);
 End;
 
-Procedure Image.SetPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
+Procedure TERRAImage.SetPixel(X,Y:Integer; Const Color:ColorRGBA); {$IFDEF FPC}Inline;{$ENDIF}
+Var
+  Dest:PColorRGBA;
 Begin
-  If (X<0) Or (Y<0) Or (X>=Integer(Width)) Or (Y>=Integer(Height)) Then
-    Exit;
-
-  SetPixelByOffset(Y*Width+X, Color);
+  Dest := Self.GetPixelOffset(X, Y);
+  Dest^ := Color;
 End;
 
-Procedure Image.SetPixelByOffset(Ofs:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
+Procedure TERRAImage.MixPixel(X,Y:Integer; Const Color:ColorRGBA); {$IFDEF FPC}Inline;{$ENDIF}
 Var
-  Dest:PColor;
-Begin
-  If (Ofs<0) Or (Ofs >= Width*Height) Then
-    Exit;
-
-  _Pixels._Data[Ofs] := Color;
-End;
-
-Procedure Image.MixPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
-Var
-  Dest:PColor;
+  Dest:PColorRGBA;
 Begin
   If (X<0) Then X:=0;
   If (Y<0) Then Y:=0;
@@ -1370,7 +1078,7 @@ Begin
   Dest^ := ColorBlend(Color, Dest^);
 End;
 
-(*Procedure Image.AddPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
+(*Procedure TERRAImage.AddPixel(X,Y:Integer; Const Color:Color); {$IFDEF FPC}Inline;{$ENDIF}
 Var
   Dest:PColor;
 Begin
@@ -1385,11 +1093,19 @@ Begin
   {$ENDIF}
 End;*)
 
-Procedure Image.Load(FileName:TERRAString);
+Procedure TERRAImage.Load(FileName:TERRAString);
 Var
-  Source:Stream;
+  Location:TERRALocation;
 Begin
-  Source := FileManager.Instance.OpenStream(FileName);
+  Location := Engine.Files.Search(FileName);
+  Load(Location);
+End;
+
+Procedure TERRAImage.Load(Location:TERRALocation);
+Var
+  Source:TERRAStream;
+Begin
+  Source := Engine.Files.OpenLocation(Location);
   If Assigned(Source) Then
   Begin
     Load(Source);
@@ -1397,63 +1113,60 @@ Begin
   End;
 End;
 
-Procedure Image.Load(Source:Stream);
+Procedure TERRAImage.Load(Source:TERRAStream);
 Var
-  Loader:ImageLoader;
+  Format:TERRAFileFormat;
 Begin
   If Source = Nil Then
   Begin
-    Log(logDebug, 'Image', 'Invalid image stream!');
+    Engine.Log.Write(logDebug, 'Image', 'Invalid image stream!');
     Exit;
   End;
 
-  Log(logDebug, 'Image', 'Searching formats');
-  Loader := GetImageLoader(Source);
-  If Not Assigned(Loader) Then
+  Engine.Log.Write(logDebug, 'Image', 'Searching formats');
+
+  Format := Engine.Formats.FindFormatFromStream(Source, TERRAImage);
+  If Format = Nil Then
   Begin
     Self.New(4, 4);
-    Log(logDebug, 'Image', 'Unknown image format. ['+Source.Name+']');
+    Engine.Log.Write(logDebug, 'Image', 'Unknown image format. ['+Source.Name+']');
     Exit;
   End;
 
-  Log(logDebug, 'Image', 'Loading image from loader ');
-  Loader(Source, Self);
-  Log(logDebug, 'Image', 'Image loaded');
+  Engine.Log.Write(logDebug, 'Image', 'Loading image from loader ');
+  Format.LoadFromStream(Self, Source);
+  Engine.Log.Write(logDebug, 'Image', 'Image loaded');
 End;
 
-Procedure Image.Save(Dest:Stream; Format:TERRAString; Options:TERRAString='');
-Var
-  Saver:ImageSaver;
+Function TERRAImage.Save(Dest:TERRAStream; Format:TERRAFileFormat; Depth:Integer):Boolean;
 Begin
-  If (_Pixels = Nil) Then
+  Result := False;
+  If (_Pixels = Nil) Or (Format = Nil) Then
     Exit;
 
-  Saver := GetImageSaver(Format);
-  If Not Assigned(Saver) Then
+  Result := Format.SaveToSTream(Self, Dest);
+  If Not Result Then
   Begin
-    Log(logError, 'Image', 'Cannot save image to '+Format+' format. ['+Dest.Name+']');
+    Engine.Log.Write(logError, 'Image', 'Cannot save image to '+Format.Extension+' format. ['+Dest.Name+']');
     Exit;
   End;
-
-  Log(logDebug, 'Image', 'Saving image in '+Format+' format');
-  Saver(Dest, Self, Options);
 End;
 
-Procedure Image.Save(Filename:TERRAString; Format:TERRAString=''; Options:TERRAString='');
+Function TERRAImage.Save(Filename:TERRAString; Format:TERRAFileFormat; Depth:Integer):Boolean;
 Var
-  Dest:Stream;
+  Dest:TERRAStream;
 Begin
-  If Format='' Then
-    Format := GetFileExtension(FileName);
+  If Format = Nil Then
+    Format := Engine.Formats.FindFormatFromExtension(GetFileExtension(FileName));
 
   Dest := FileStream.Create(FileName);
-  Save(Dest, Format, Options);
+  Result := Save(Dest, Format, Depth);
   ReleaseObject(Dest);
 End;
 
 
 {$IFDEF PIXEL8}
-Procedure Image.LineDecodeRGB8(Buffer: Pointer; Line: Cardinal);
+Procedure TERRAImage.LineDecodeRGB8(Buffer: Pointer; Line: Cardinal);
 Var
   Dest:PByte;
 Begin
@@ -1465,7 +1178,7 @@ fsdfs
   Move(Buffer^, Dest^, _Width);
 End;
 
-Procedure Image.LineDecodeRGB16(Buffer: Pointer; Line: Cardinal);
+Procedure TERRAImage.LineDecodeRGB16(Buffer: Pointer; Line: Cardinal);
 Var
   Source:PWord;
   Dest:PByte;
@@ -1487,7 +1200,7 @@ sfds
   End;
 End;
 
-Procedure Image.LineDecodeRGB24(Buffer: Pointer; Line: Cardinal);
+Procedure TERRAImage.LineDecodeRGB24(Buffer: Pointer; Line: Cardinal);
 Var
   Source:PByte;
   Dest:PByte;
@@ -1520,7 +1233,7 @@ Begin
   End;
 End;
 
-Procedure Image.LineDecodeRGB32(Buffer: Pointer; Line: Cardinal);
+Procedure TERRAImage.LineDecodeRGB32(Buffer: Pointer; Line: Cardinal);
 Var
   Source:PColor;
   Dest:PByte;
@@ -1542,7 +1255,7 @@ Begin
   End;
 End;
 
-Procedure Image.LineDecodeRGBPalette4(Buffer, Palette: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeRGBPalette4(Buffer, Palette: Pointer; Line:Cardinal);
 Var
   Source, ColorTable:PByte;
   Dest:PByte;
@@ -1597,7 +1310,7 @@ Begin
   End;
 End;
 
-Procedure Image.LineDecodeRGBPalette8(Buffer, Palette: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeRGBPalette8(Buffer, Palette: Pointer; Line:Cardinal);
 Var
   Source, ColorTable:PByte;
   Dest:PByte;
@@ -1634,7 +1347,7 @@ Begin
   End;
 End;
 
-Procedure Image.LineDecodeBGR8(Buffer: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeBGR8(Buffer: Pointer; Line:Cardinal);
 Var
   Dest:PByte;
 Begin
@@ -1645,7 +1358,7 @@ Begin
   Move(Buffer^, Dest^, _Width);
 End;
 
-Procedure Image.LineDecodeBGR16(Buffer: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeBGR16(Buffer: Pointer; Line:Cardinal);
 Var
   Source:PWord;
   Dest:PByte;
@@ -1667,7 +1380,7 @@ Begin
   End;
 End;
 
-Procedure Image.LineDecodeBGR24(Buffer: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeBGR24(Buffer: Pointer; Line:Cardinal);
 Var
   Source:PByte;
   Dest:PByte;
@@ -1700,7 +1413,7 @@ Begin
   End;
 End;
 
-Procedure Image.LineDecodeBGR32(Buffer: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeBGR32(Buffer: Pointer; Line:Cardinal);
 Var
   Source:PColor;
   Dest:PByte;
@@ -1715,14 +1428,14 @@ Begin
 
   While (Count>0) Do
   Begin
-    Dest^:=ColorBGR32To8(Source^);
+    Dest^ := ColorBGR32To8(Source^);
     Inc(Source);
     Inc(Dest);
     Dec(Count);
   End;
 End;
 
-Procedure Image.LineDecodeBGRPalette4(Buffer, Palette: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeBGRPalette4(Buffer, Palette: Pointer; Line:Cardinal);
 Var
   Source, ColorTable:PByte;
   Dest:PByte;
@@ -1777,7 +1490,7 @@ Begin
   End;
 End;
 
-Procedure Image.LineDecodeBGRPalette8(Buffer, Palette: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeBGRPalette8(Buffer, Palette: Pointer; Line:Cardinal);
 Var
   Source, ColorTable:PByte;
   Dest:PByte;
@@ -1817,10 +1530,10 @@ End;
 {$ENDIF}
 
 {$IFDEF PIXEL32}
-Procedure Image.LineDecodeRGB8(Buffer: Pointer; Line: Cardinal);
+Procedure TERRAImage.LineDecodeRGB8(Buffer: Pointer; Line: Cardinal);
 Var
   Source:PByte;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
 Begin
   Dest := Self.GetLineOffset(Line);
@@ -1839,10 +1552,10 @@ Begin
   End;
 End;
 
-Procedure Image.LineDecodeRGB16(Buffer: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeRGB16(Buffer: Pointer; Line:Cardinal);
 Var
   Source:PWord;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
 Begin
   Dest := Self.GetLineOffset(Line);
@@ -1861,10 +1574,10 @@ Begin
   End;
 End;
 
-Procedure Image.LineDecodeRGB24(Buffer: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeRGB24(Buffer: Pointer; Line:Cardinal);
 Var
   Source:PByte;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
 Begin
   Dest := Self.GetLineOffset(Line);
@@ -1891,9 +1604,9 @@ Begin
   End;
 End;
 
-Procedure Image.LineDecodeRGB32(Buffer: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeRGB32(Buffer: Pointer; Line:Cardinal);
 Var
-  Dest:PColor;
+  Dest:PColorRGBA;
 Begin
   Dest := Self.GetLineOffset(Line);
   If (Dest =  Nil) Then
@@ -1902,10 +1615,10 @@ Begin
   Move(Buffer^, Dest^, _Width*PixelSize);
 End;
 
-Procedure Image.LineDecodeRGBPalette4(Buffer, Palette: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeRGBPalette4(Buffer, Palette: Pointer; Line:Cardinal);
 Var
   Source:PByte;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
   A,B:Byte;
 Begin
@@ -1931,10 +1644,10 @@ Begin
   End;
 End;
 
-Procedure Image.LineDecodeRGBPalette8(Buffer, Palette: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeRGBPalette8(Buffer, Palette: Pointer; Line:Cardinal);
 Var
   Source:PByte;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
 Begin
   Dest := Self.GetLineOffset(Line);
@@ -1952,10 +1665,10 @@ Begin
   End;
 End;
 
-Procedure Image.LineDecodeBGR8(Buffer: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeBGR8(Buffer: Pointer; Line:Cardinal);
 Var
   Source:PByte;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
 Begin
   Dest := Self.GetLineOffset(Line);
@@ -1973,10 +1686,10 @@ Begin
   End;
 End;
 
-Procedure Image.LineDecodeBGR16(Buffer: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeBGR16(Buffer: Pointer; Line:Cardinal);
 Var
   Source:PWord;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
 Begin
   Dest := Self.GetLineOffset(Line);
@@ -1995,10 +1708,10 @@ Begin
   End;
 End;
 
-Procedure Image.LineDecodeBGR24(Buffer: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeBGR24(Buffer: Pointer; Line:Cardinal);
 Var
   Source:PByte;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
 Begin
   If (Line>=_Height) Or (Buffer = Nil) Then
@@ -2029,9 +1742,9 @@ Begin
   End;
 End;
 
-Procedure Image.LineDecodeBGR32(Buffer: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeBGR32(Buffer: Pointer; Line:Cardinal);
 Var
-  Dest:PColor;
+  Dest:PColorRGBA;
 Begin
   Dest := Self.GetLineOffset(Line);
   If (Dest =  Nil) Then
@@ -2040,10 +1753,10 @@ Begin
   Move(Buffer^, Dest^, _Width*PixelSize);
 End;
 
-Procedure Image.LineDecodeBGRPalette4(Buffer, Palette: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeBGRPalette4(Buffer, Palette: Pointer; Line:Cardinal);
 Var
   Source:PByte;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
   A,B:Byte;
 Begin
@@ -2069,10 +1782,10 @@ Begin
   End;
 End;
 
-Procedure Image.LineDecodeBGRPalette8(Buffer, Palette: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeBGRPalette8(Buffer, Palette: Pointer; Line:Cardinal);
 Var
   Source:PByte;
-  Dest:PColor;
+  Dest:PColorRGBA;
   Count:Integer;
 Begin
   Dest := Self.GetLineOffset(Line);
@@ -2093,7 +1806,7 @@ End;
 {$ENDIF}
 
 {$IFDEF NDS}
-Function Image.AutoTile:Cardinal;
+Function TERRAImage.AutoTile:Cardinal;
 Var
 	TileCount:Integer;
 	Start, Dest, Temp:PByte;
@@ -2127,7 +1840,7 @@ Begin
 End;
 {$ENDIF}
 
-Function Image.SubImage(X1,Y1,X2,Y2:Integer):Image;
+Function TERRAImage.Crop(X1,Y1,X2,Y2:Integer):TERRAImage;
 Var
   W,H:Integer;
   I,J:Integer;
@@ -2140,7 +1853,7 @@ Begin
     Exit;
   End;
 
-  Result := Image.Create(W, H);
+  Result := TERRAImage.Create(W, H);
   For J:=0 To Pred(H) Do
     For I:=0 To Pred(W) Do
     Begin
@@ -2148,10 +1861,10 @@ Begin
     End;
 End;
 
-Function Image.Combine(Layer:Image; Alpha:Single; Mode:ColorCombineMode; Mask:Cardinal):Boolean;
+Function TERRAImage.Combine(Layer:TERRAImage; Alpha:Single; Mode:ColorCombineMode; Const Mask:Cardinal):Boolean;
 Var
-  A,B:PColor;
-  C:Color;
+  A,B:PColorRGBA;
+  C:ColorRGBA;
   InvAlpha:Single;
   Count:Integer;
 Begin
@@ -2163,8 +1876,8 @@ Begin
   If (Layer.Width<>Self.Width) Or (Layer.Height<>Self.Height) Then
     Exit;
 
-  A := Self.Pixels;
-  B := Layer.Pixels;
+  A := Self.RawPixels;
+  B := Layer.RawPixels;
 
   Count := Self.Width * Self.Height;
 
@@ -2204,13 +1917,13 @@ Begin
   Result := True;
 End;
 
-Function Image.MipMap(): Image;
+Function TERRAImage.MipMap():TERRAImage;
 Var
   I,J:Integer;
   PX, PY:Single;
-  A, B, C, D, F:Color;
+  A, B, C, D, F:ColorRGBA;
 Begin
-  Result := Image.Create(Self.Width Shr 1, Self.Height Shr 1);
+  Result := TERRAImage.Create(Self.Width Shr 1, Self.Height Shr 1);
 
   For I:=0 To Pred(Result.Width) Do
     For J:=0 To Pred(Result.Height) Do
@@ -2232,39 +1945,14 @@ Begin
     End;
 End;
 
-Procedure Image.ShiftHue(ShiftAmmount:Integer);
+Function TERRAImage.GetImageTransparencyType:ImageTransparencyType;
 Var
-  P:PColor;
-  Count:Integer;
-  Temp:ColorHSL;
-  Hue:Integer;
-  C:Color;
-Begin
-  Count := Self.Width * Self.Height;
-  P := Self.Pixels;
-  While Count>0 Do
-  Begin
-    Temp := ColorRGBToHSL(P^);
-
-    Hue := Temp.H + ShiftAmmount;
-
-    Temp.H := Byte(Hue);
-
-    P^ := ColorHSLToRGB(Temp);
-
-    Inc(P);
-    Dec(Count);
-  End;
-End;
-
-Function Image.GetImageTransparencyType:ImageTransparencyType;
-Var
-  P:PColor;
+  P:PColorRGBA;
   Count:Integer;
 Begin
   If _TransparencyType = imageUnknown Then
   Begin
-    P := Self.Pixels;
+    P := Self.RawPixels;
     Count := Self.Width * Self.Height;
 
     _TransparencyType := imageOpaque;
@@ -2288,6 +1976,57 @@ Begin
   Result := _TransparencyType;
 End;
 
+Procedure TERRAImage.ClearWithColor(Const Color:ColorRGBA; Mask:Cardinal);
+Var
+  Count:Integer;
+  P:PColorRGBA;
+Begin
+  P := Self.RawPixels;
+  Count := Width * Height;
+
+  If (Mask = maskRGBA) Then
+  Begin
+    While (Count>0) Do
+    Begin
+      P^ := Color;
+      Inc(P);
+      Dec(Count);
+    End;
+  End Else
+  Begin
+    While (Count>0) Do
+    Begin
+      If (Mask And maskRed<>0) Then
+        P.R := Color.R;
+
+      If (Mask And maskGreen<>0) Then
+        P.G := Color.G;
+
+      If (Mask And maskBlue<>0) Then
+        P.B := Color.B;
+
+      If (Mask And maskAlpha<>0) Then
+        P.A := Color.A;
+
+      Inc(P);
+      Dec(Count);
+    End;
+  End;
+End;
+
+Function TERRAImage.Pixels(Flags:ImageProcessFlags; Const Mask:Cardinal): ImageIterator;
+Begin
+  Result := FullImageIterator.Create(Self, Flags, Mask);
+End;
+
+Procedure ImageIterator.FillWithColor(const Color: ColorRGBA);
+Begin
+  While Self.HasNext() Do
+  Begin
+    Self.Value := Color;
+  End;
+End;
+
 { ImageFrame }
 Constructor ImageFrame.Create(Width, Height:Integer);
 Begin
@@ -2301,4 +2040,17 @@ Begin
   SetLength(_Data, 0);
 End;
 
+Procedure TERRAImage.SwapChannels;
+Var
+  It:ImageIterator;
+Begin
+  It := Self.Pixels([image_Read, image_Write]);
+  While It.HasNext() Do
+  Begin
+    It.Value := ColorCreate(It.Value.B, It.Value.G, It.Value.R, It.Value.A);
+  End;
+  ReleaseObject(It);
+End;
+
 End.
+

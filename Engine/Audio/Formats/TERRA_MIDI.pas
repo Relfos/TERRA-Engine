@@ -26,7 +26,7 @@ Unit TERRA_MIDI;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_OS, TERRA_Application, TERRA_MusicTrack;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_OS, TERRA_Application, TERRA_MusicTrack;
 
 Type
   ChunkType = (MIDI_illegal, MIDI_header, MIDI_track);
@@ -134,9 +134,9 @@ Type
 
     Procedure ProcessMidiEvent(Event:PMidiEvent; Channel:Integer);
 
-    procedure ReadChunkHeader(Source:Stream);
-    procedure ReadChunkContent(Source:Stream);
-    procedure ReadChunk(Source:Stream);
+    procedure ReadChunkHeader(Source:TERRAStream);
+    procedure ReadChunkContent(Source:TERRAStream);
+    procedure ReadChunk(Source:TERRAStream);
     procedure ProcessHeaderChunk;
     procedure ProcessTrackChunk;
     function ReadVarLength: integer;
@@ -520,7 +520,7 @@ Type
       Procedure Stop();
   End;
 
-  MidiManager = Class(ApplicationComponent)
+  MidiManager = Class(TERRAObject)
     Protected
       _Notes:Array Of MidiNoteEvent;
       _NoteCount:Integer;
@@ -535,9 +535,7 @@ Type
       Procedure FlushNotes(Channel, Note:Byte);
 
     Public
-      Procedure Update; Override;
-
-      Class Function Instance:MidiManager;
+      Procedure Update; 
 
       // play a midi note with a certain duration and volume
       Function PlayNote(Channel, Note:Byte; Duration:Cardinal; Volume:Single = 0.8; Delay:Cardinal = 0):Boolean;
@@ -552,16 +550,13 @@ Type
   End;
 
 Implementation
-Uses TERRA_FileManager, TERRA_MIDI_IO, TERRA_Log;
+Uses TERRA_Engine, TERRA_FileManager, TERRA_MIDI_IO, TERRA_Log;
 
 Const
   MIDIVolumeBoost = 1.0;
   MaxMIDIVolume = 127;
   DefaultMIDIVolume = 127;
   DefaultMIDIPanning = 127;
-
-Var
-  _MidiManager_Instance:ApplicationObject;
 
 Function MIDIEvent_SetVolume(Channel, Volume:Byte):Cardinal;
 Begin
@@ -752,14 +747,14 @@ End;
 
 Procedure MidiTrack.Init();
 Var
-   Src:Stream;
+   Src:TERRAStream;
 Begin
   Clear();
   _ChunkType := midi_Illegal;
   _usPerTick := 1042;
   _BPM := 120;
 
-  Src := FileManager.Instance.OpenStream(_FileName);
+  Src := Engine.Files.OpenFile(_FileName);
   If Src = Nil Then
      Exit;
 
@@ -785,7 +780,7 @@ Var
   I:Integer;
   Manager:MidiManager;
 Begin
-  Manager := MidiManager.Instance();
+  Manager := Engine.MIDI;
 
   For I:=0 To MaxMIDIChannels Do
   Begin
@@ -866,7 +861,7 @@ Begin
   _LastTime := _CurrentTime;
 End;
 
-procedure MidiTrack.ReadChunkHeader(Source:Stream);
+procedure MidiTrack.ReadChunkHeader(Source:TERRAStream);
 var
   data: array[0..7] of byte;
 Begin
@@ -888,7 +883,7 @@ Begin
   _chunkLength := data[7] + data[6] * $100 + data[5] * $10000 + data[4] * $1000000;
 End;
 
-procedure MidiTrack.ReadChunkContent(Source:Stream);
+procedure MidiTrack.ReadChunkContent(Source:TERRAStream);
 Begin
   SetLength(_chunkData, _chunkLength + 10);
   Source.Read(@(_chunkData[0]), _chunkLength);
@@ -896,7 +891,7 @@ Begin
   _chunkEnd := Pred(_chunkLength);
 end;
 
-procedure MidiTrack.ReadChunk(Source:Stream);
+procedure MidiTrack.ReadChunk(Source:TERRAStream);
 Begin
   ReadChunkHeader(Source);
   ReadChunkContent(Source);
@@ -1030,7 +1025,7 @@ Begin
               midiEvent._data1 := _ChunkData[_chunkIndex]; inc(_chunkIndex);
             End;
         Else
-          Log(logWarning, 'MIDI', 'Unknown midi event: '+IntToString(event));
+          Engine.Log.Write(logWarning, 'MIDI', 'Unknown midi event: '+ IntegerProperty.Stringify(event));
         End;
 
         _CurrentChannel.putEvent(midiEvent);
@@ -1057,14 +1052,14 @@ Begin
   result := i;
 end;
 
-Function MidiTrack.ReadString(l: integer):TERRAString;
+Function MidiTrack.ReadString(L:Integer):TERRAString;
 Var
   I:Integer;
 Begin
-  SetLength(Result, L);
+  Result := '';
   For I := 1 to L Do
   Begin
-    Result[i] := AnsiChar(_ChunkData[_chunkIndex]);
+    StringAppendChar(Result, TERRAChar(_ChunkData[_chunkIndex]));
     Inc(_chunkIndex);
   End;
 End;
@@ -1107,7 +1102,7 @@ Var
   Velocity:Integer;
   Manager:MidiManager;
 Begin
-  Manager := MidiManager.Instance();
+  Manager := Engine.MIDI;
 
   Case Event._Opcode of
     MidiMessage_ProgramChange:
@@ -1177,7 +1172,7 @@ Var
   I, Velocity:Integer;
   Manager:MidiManager;
 Begin
-  Manager := MidiManager.Instance;
+  Manager := Engine.MIDI;
   For I:=0 To MaxMIDIChannels Do
   Begin
     Velocity := Trunc(Manager._Channels[I].Volume * (_Volume * MIDIVolumeBoost));
@@ -1219,14 +1214,6 @@ Procedure MidiManager.Release;
 Begin
   Self.Clear();
   Inherited;
-End;
-
-Class Function MidiManager.Instance:MidiManager;
-Begin
-  If _MidiManager_Instance = Nil Then
-    _MidiManager_Instance := InitializeApplicationComponent(MidiManager, Nil);
-
-  Result := MidiManager(_MidiManager_Instance.Instance);
 End;
 
 Procedure MidiManager.Clear;
@@ -1392,7 +1379,7 @@ Function MidiNoteEvent.Start(): Boolean;
 Begin
   Result := (MIDI_Out(MIDIEvent_NoteOn(_Channel, _Note, _Volume)));
 
-//  WriteLn('Starting Note '+IntToString(_Note));
+//  WriteLn('Starting Note '+ IntegerProperty.Stringify(_Note));
 
   _State := notePlaying;
 End;
@@ -1407,7 +1394,7 @@ Begin
   MuteEvent := MIDIEvent_NoteOff(_Channel, _Note, _Volume);
   MIDI_Out(MuteEvent);
 
-  //WriteLn('Stopping Note '+IntToString(_Note));
+  //WriteLn('Stopping Note '+ IntegerProperty.Stringify(_Note));
 
   _State := noteFinished;
 End;

@@ -14,9 +14,6 @@ Uses TERRA_String, TERRA_Utils, TERRA_Stream;
   than 64k bytes at a time (needed on systems with 16-bit int). }
 
 {- $DEFINE MAXSEG_64K}
-{$IFDEF VER70}
-  {$DEFINE MAXSEG_64K}
-{$ENDIF}
 {$IFNDEF WIN32}
   {$DEFINE UNALIGNED_OK}  { requires SizeOf(ush) = 2 ! }
 {$ENDIF}
@@ -37,17 +34,8 @@ type
 
   Long   = longint;
 
-  ptr2int = PtrUInt;
-{ a pointer to integer casting is used to do pointer arithmetic.
-  ptr2int must be an integer type and sizeof(ptr2int) must be less
-  than sizeof(pointer) - Nomssi }
-
-const
-  {$IFDEF MAXSEG_64K}
-  MaxMemBlock = $FFFF;
-  {$ELSE}
+Const
   MaxMemBlock = MaxInt;
-  {$ENDIF}
 
 type
   zByteArray = array[0..(MaxMemBlock div SizeOf(Byte))-1] of Byte;
@@ -81,21 +69,9 @@ type
   pushfArray = ^zushfArray;
 
 { Maximum value for memLevel in deflateInit2 }
-{$ifdef MAXSEG_64K}
-  {$IFDEF VER70}
-  const
-    MAX_MEM_LEVEL = 7;
-    DEF_MEM_LEVEL = MAX_MEM_LEVEL;  { default memLevel }
-  {$ELSE}
-  const
-    MAX_MEM_LEVEL = 8;
-    DEF_MEM_LEVEL = MAX_MEM_LEVEL;  { default memLevel }
-  {$ENDIF}
-{$else}
 const
   MAX_MEM_LEVEL = 9;
   DEF_MEM_LEVEL = 8; { if MAX_MEM_LEVEL > 8 }
-{$endif}
 
 { Maximum value for windowBits in deflateInit2 and inflateInit2 }
 const
@@ -416,7 +392,7 @@ function zlibVersion :AnsiString;
   not compatible with the zlib.h header file used by the application.
   This check is automatically made by deflateInit and inflateInit. }
 
-Function zUncompress(source, dest:Stream):Integer;
+Function zUncompress(source, dest:TERRAStream):Integer;
 
 function zError(err : int) :AnsiString;
 
@@ -1063,7 +1039,7 @@ begin
       { Find the block that has enough space }
       prev := PFreeRec(@freeList);
       free := prev^.next;
-      while (free <> heapptr) and (ptr2int(free^.size) < size) do
+      while (free <> heapptr) and (PtrUInt(free^.size) < size) do
       begin
         prev := free;
         free := prev^.next;
@@ -1356,10 +1332,10 @@ begin
   q := s.read;
 
   { compute number of bytes to copy as far as end of window }
-  if ptr2int(q) <= ptr2int(s.write) then
-    n := Cardinal(ptr2int(s.write) - ptr2int(q))
+  if PtrUInt(q) <= PtrUInt(s.write) then
+    n := Cardinal(PtrUInt(s.write) - PtrUInt(q))
   else
-    n := Cardinal(ptr2int(s.zend) - ptr2int(q));
+    n := Cardinal(PtrUInt(s.zend) - PtrUInt(q));
   if (n > z.avail_out) then
     n := z.avail_out;
   if (n <> 0) and (r = Z_BUF_ERROR) then
@@ -1391,7 +1367,7 @@ begin
       s.write := s.window;
 
     { compute bytes to copy }
-    n := Cardinal(ptr2int(s.write) - ptr2int(q));
+    n := Cardinal(PtrUInt(s.write) - PtrUInt(q));
     if (n > z.avail_out) then
       n := z.avail_out;
     if (n <> 0) and (r = Z_BUF_ERROR) then
@@ -1451,10 +1427,10 @@ begin
   b := s.bitb;
   k := s.bitk;
   q := s.write;
-  if ptr2int(q) < ptr2int(s.read) then
-    m := Cardinal(ptr2int(s.read)-ptr2int(q)-1)
+  if PtrUInt(q) < PtrUInt(s.read) then
+    m := Cardinal(PtrUInt(s.read)-PtrUInt(q)-1)
   else
-    m := Cardinal(ptr2int(s.zend)-ptr2int(q));
+    m := Cardinal(PtrUInt(s.zend)-PtrUInt(q));
 
   { initialize masks }
   ml := inflate_mask[bl];
@@ -1535,7 +1511,7 @@ begin
 
             { do the copy }
             Dec(m, c);
-            if (Cardinal(ptr2int(q) - ptr2int(s.window)) >= d) then     { offset before dest }
+            if (Cardinal(PtrUInt(q) - PtrUInt(s.window)) >= d) then     { offset before dest }
             begin                                  {  just copy }
               r := q;
               Dec(r, d);
@@ -1544,7 +1520,7 @@ begin
             end
             else                        { else offset after destination }
             begin
-              e := d - Cardinal(ptr2int(q) - ptr2int(s.window)); { bytes from offset to end }
+              e := d - Cardinal(PtrUInt(q) - PtrUInt(s.window)); { bytes from offset to end }
               r := s.zend;
               Dec(r, e);                  { pointer to offset }
               if (c > e) then             { if source crosses, }
@@ -1587,7 +1563,7 @@ begin
             s.bitb := b;
             s.bitk := k;
             z.avail_in := n;
-            Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+            Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
             z.next_in := p;
             s.write := q;
 
@@ -1630,7 +1606,7 @@ begin
           s.bitb := b;
           s.bitk := k;
           z.avail_in := n;
-          Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+          Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
           z.next_in := p;
           s.write := q;
           inflate_fast := Z_STREAM_END;
@@ -1650,7 +1626,7 @@ begin
           s.bitb := b;
           s.bitk := k;
           z.avail_in := n;
-          Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+          Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
           z.next_in := p;
           s.write := q;
           inflate_fast := Z_DATA_ERROR;
@@ -1671,7 +1647,7 @@ begin
   s.bitb := b;
   s.bitk := k;
   z.avail_in := n;
-  Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+  Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
   z.next_in := p;
   s.write := q;
   inflate_fast := Z_OK;
@@ -1987,7 +1963,7 @@ Begin
           r.exop := Byte(j);     { bits in this table }
           j := i shr (w - l);
           {r.base := Cardinal( q - u[h-1] -j);}   { offset to this table }
-          r.base := (ptr2int(q) - ptr2int(u[h-1]) ) div sizeof(q^) - j;
+          r.base := (PtrUInt(q) - PtrUInt(u[h-1]) ) div sizeof(q^) - j;
           huft_Ptr(u[h-1])^[j] := r;  { connect to last table }
         end
         else
@@ -1999,7 +1975,7 @@ Begin
 
       { C-code: if (p >= v + n) - see ZUTIL.PAS for comments }
 
-      if ptr2int(p)>=ptr2int(@(v[n])) then  { also works under DPMI ?? }
+      if PtrUInt(p)>=PtrUInt(@(v[n])) then  { also works under DPMI ?? }
         r.exop := 128 + 64                  { out of values--invalid code }
       else
         if (p^ < s) then
@@ -2494,10 +2470,10 @@ begin
   b := s.bitb;
   k := s.bitk;
   q := s.write;
-  if ptr2int(q) < ptr2int(s.read) then
-    m := Cardinal(ptr2int(s.read)-ptr2int(q)-1)
+  if PtrUInt(q) < PtrUInt(s.read) then
+    m := Cardinal(PtrUInt(s.read)-PtrUInt(q)-1)
   else
-    m := Cardinal(ptr2int(s.zend)-ptr2int(q));
+    m := Cardinal(PtrUInt(s.zend)-PtrUInt(q));
 
   { process input and output based on current state }
   while True do
@@ -2512,7 +2488,7 @@ begin
         s.bitb := b;
         s.bitk := k;
         z.avail_in := n;
-        Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+        Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
         z.next_in := p;
         s.write := q;
 
@@ -2523,10 +2499,10 @@ begin
         b := s.bitb;
         k := s.bitk;
         q := s.write;
-        if ptr2int(q) < ptr2int(s.read) then
-          m := Cardinal(ptr2int(s.read)-ptr2int(q)-1)
+        if PtrUInt(q) < PtrUInt(s.read) then
+          m := Cardinal(PtrUInt(s.read)-PtrUInt(q)-1)
         else
-          m := Cardinal(ptr2int(s.zend)-ptr2int(q));
+          m := Cardinal(PtrUInt(s.zend)-PtrUInt(q));
 
         if (r <> Z_OK) then
         begin
@@ -2557,7 +2533,7 @@ begin
           s.bitb := b;
           s.bitk := k;
           z.avail_in := n;
-          Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+          Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
           z.next_in := p;
           s.write := q;
           inflate_codes := inflate_flush(s,z,r);
@@ -2606,7 +2582,7 @@ begin
       s.bitb := b;
       s.bitk := k;
       z.avail_in := n;
-      Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+      Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
       z.next_in := p;
       s.write := q;
       inflate_codes := inflate_flush(s,z,r);
@@ -2627,7 +2603,7 @@ begin
           s.bitb := b;
           s.bitk := k;
           z.avail_in := n;
-          Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+          Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
           z.next_in := p;
           s.write := q;
           inflate_codes := inflate_flush(s,z,r);
@@ -2663,7 +2639,7 @@ begin
           s.bitb := b;
           s.bitk := k;
           z.avail_in := n;
-          Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+          Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
           z.next_in := p;
           s.write := q;
           inflate_codes := inflate_flush(s,z,r);
@@ -2700,7 +2676,7 @@ begin
       s.bitb := b;
       s.bitk := k;
       z.avail_in := n;
-      Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+      Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
       z.next_in := p;
       s.write := q;
       inflate_codes := inflate_flush(s,z,r);
@@ -2721,7 +2697,7 @@ begin
           s.bitb := b;
           s.bitk := k;
           z.avail_in := n;
-          Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+          Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
           z.next_in := p;
           s.write := q;
           inflate_codes := inflate_flush(s,z,r);
@@ -2743,10 +2719,10 @@ begin
     begin
       f := q;
       Dec(f, c^.sub.copy.dist);
-      if (Cardinal(ptr2int(q) - ptr2int(s.window)) < c^.sub.copy.dist) then
+      if (Cardinal(PtrUInt(q) - PtrUInt(s.window)) < c^.sub.copy.dist) then
       begin
         f := s.zend;
-        Dec(f, c^.sub.copy.dist - Cardinal(ptr2int(q) - ptr2int(s.window)));
+        Dec(f, c^.sub.copy.dist - Cardinal(PtrUInt(q) - PtrUInt(s.window)));
       end;
 
       while (c^.len <> 0) do
@@ -2758,10 +2734,10 @@ begin
           if (q = s.zend) and (s.read <> s.window) then
           begin
             q := s.window;
-            if ptr2int(q) < ptr2int(s.read) then
-              m := Cardinal(ptr2int(s.read)-ptr2int(q)-1)
+            if PtrUInt(q) < PtrUInt(s.read) then
+              m := Cardinal(PtrUInt(s.read)-PtrUInt(q)-1)
             else
-              m := Cardinal(ptr2int(s.zend)-ptr2int(q));
+              m := Cardinal(PtrUInt(s.zend)-PtrUInt(q));
           end;
 
           if (m = 0) then
@@ -2770,19 +2746,19 @@ begin
             s.write := q;
             r := inflate_flush(s,z,r);
             q := s.write;
-            if ptr2int(q) < ptr2int(s.read) then
-              m := Cardinal(ptr2int(s.read)-ptr2int(q)-1)
+            if PtrUInt(q) < PtrUInt(s.read) then
+              m := Cardinal(PtrUInt(s.read)-PtrUInt(q)-1)
             else
-              m := Cardinal(ptr2int(s.zend)-ptr2int(q));
+              m := Cardinal(PtrUInt(s.zend)-PtrUInt(q));
 
             {WRAP}
             if (q = s.zend) and (s.read <> s.window) then
             begin
               q := s.window;
-              if ptr2int(q) < ptr2int(s.read) then
-                m := Cardinal(ptr2int(s.read)-ptr2int(q)-1)
+              if PtrUInt(q) < PtrUInt(s.read) then
+                m := Cardinal(PtrUInt(s.read)-PtrUInt(q)-1)
               else
-                m := Cardinal(ptr2int(s.zend)-ptr2int(q));
+                m := Cardinal(PtrUInt(s.zend)-PtrUInt(q));
             end;
 
             if (m = 0) then
@@ -2791,7 +2767,7 @@ begin
               s.bitb := b;
               s.bitk := k;
               z.avail_in := n;
-              Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+              Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
               z.next_in := p;
               s.write := q;
               inflate_codes := inflate_flush(s,z,r);
@@ -2823,10 +2799,10 @@ begin
         if (q = s.zend) and (s.read <> s.window) then
         begin
           q := s.window;
-          if ptr2int(q) < ptr2int(s.read) then
-            m := Cardinal(ptr2int(s.read)-ptr2int(q)-1)
+          if PtrUInt(q) < PtrUInt(s.read) then
+            m := Cardinal(PtrUInt(s.read)-PtrUInt(q)-1)
           else
-            m := Cardinal(ptr2int(s.zend)-ptr2int(q));
+            m := Cardinal(PtrUInt(s.zend)-PtrUInt(q));
         end;
 
         if (m = 0) then
@@ -2835,19 +2811,19 @@ begin
           s.write := q;
           r := inflate_flush(s,z,r);
           q := s.write;
-          if ptr2int(q) < ptr2int(s.read) then
-            m := Cardinal(ptr2int(s.read)-ptr2int(q)-1)
+          if PtrUInt(q) < PtrUInt(s.read) then
+            m := Cardinal(PtrUInt(s.read)-PtrUInt(q)-1)
           else
-            m := Cardinal(ptr2int(s.zend)-ptr2int(q));
+            m := Cardinal(PtrUInt(s.zend)-PtrUInt(q));
 
           {WRAP}
           if (q = s.zend) and (s.read <> s.window) then
           begin
             q := s.window;
-            if ptr2int(q) < ptr2int(s.read) then
-              m := Cardinal(ptr2int(s.read)-ptr2int(q)-1)
+            if PtrUInt(q) < PtrUInt(s.read) then
+              m := Cardinal(PtrUInt(s.read)-PtrUInt(q)-1)
             else
-              m := Cardinal(ptr2int(s.zend)-ptr2int(q));
+              m := Cardinal(PtrUInt(s.zend)-PtrUInt(q));
           end;
 
           if (m = 0) then
@@ -2856,7 +2832,7 @@ begin
             s.bitb := b;
             s.bitk := k;
             z.avail_in := n;
-            Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+            Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
             z.next_in := p;
             s.write := q;
             inflate_codes := inflate_flush(s,z,r);
@@ -2888,10 +2864,10 @@ begin
       s.write := q;
       r := inflate_flush(s,z,r);
       q := s.write;
-      if ptr2int(q) < ptr2int(s.read) then
-        m := Cardinal(ptr2int(s.read)-ptr2int(q)-1)
+      if PtrUInt(q) < PtrUInt(s.read) then
+        m := Cardinal(PtrUInt(s.read)-PtrUInt(q)-1)
       else
-        m := Cardinal(ptr2int(s.zend)-ptr2int(q));
+        m := Cardinal(PtrUInt(s.zend)-PtrUInt(q));
 
       if (s.read <> s.write) then
       begin
@@ -2899,7 +2875,7 @@ begin
         s.bitb := b;
         s.bitk := k;
         z.avail_in := n;
-        Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+        Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
         z.next_in := p;
         s.write := q;
         inflate_codes := inflate_flush(s,z,r);
@@ -2916,7 +2892,7 @@ begin
       s.bitb := b;
       s.bitk := k;
       z.avail_in := n;
-      Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+      Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
       z.next_in := p;
       s.write := q;
       inflate_codes := inflate_flush(s,z,r);
@@ -2929,7 +2905,7 @@ begin
       s.bitb := b;
       s.bitk := k;
       z.avail_in := n;
-      Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+      Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
       z.next_in := p;
       s.write := q;
       inflate_codes := inflate_flush(s,z,r);
@@ -2942,7 +2918,7 @@ begin
       s.bitb := b;
       s.bitk := k;
       z.avail_in := n;
-      Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+      Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
       z.next_in := p;
       s.write := q;
       inflate_codes := inflate_flush(s,z,r);
@@ -3056,10 +3032,10 @@ begin
   b := s.bitb;
   k := s.bitk;
   q := s.write;
-  if ptr2int(q) < ptr2int(s.read) then
-    m := Cardinal(ptr2int(s.read)-ptr2int(q)-1)
+  if PtrUInt(q) < PtrUInt(s.read) then
+    m := Cardinal(PtrUInt(s.read)-PtrUInt(q)-1)
   else
-    m := Cardinal(ptr2int(s.zend)-ptr2int(q));
+    m := Cardinal(PtrUInt(s.zend)-PtrUInt(q));
 
 { decompress an inflated block }
 
@@ -3081,7 +3057,7 @@ begin
             s.bitb := b;
             s.bitk := k;
             z.avail_in := n;
-            Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+            Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
             z.next_in := p;
             s.write := q;
             inflate_blocks := inflate_flush(s,z,r);
@@ -3121,7 +3097,7 @@ begin
                   s.bitb := b;
                   s.bitk := k;
                   z.avail_in := n;
-                  Inc(z.total_in, ptr2int(p) - ptr2int(z.next_in));
+                  Inc(z.total_in, PtrUInt(p) - PtrUInt(z.next_in));
                   z.next_in := p;
                   s.write := q;
                   inflate_blocks := inflate_flush(s,z,r);
@@ -3155,7 +3131,7 @@ begin
               s.bitb := b;
               s.bitk := k;
               z.avail_in := n;
-              Inc(z.total_in, ptr2int(p) - ptr2int(z.next_in));
+              Inc(z.total_in, PtrUInt(p) - PtrUInt(z.next_in));
               z.next_in := p;
               s.write := q;
               inflate_blocks := inflate_flush(s,z,r);
@@ -3177,7 +3153,7 @@ begin
             s.bitb := b;
             s.bitk := k;
             z.avail_in := n;
-            Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+            Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
             z.next_in := p;
             s.write := q;
             inflate_blocks := inflate_flush(s,z,r);
@@ -3198,7 +3174,7 @@ begin
           s.bitb := b;
           s.bitk := k;
           z.avail_in := n;
-          Inc(z.total_in, ptr2int(p) - ptr2int(z.next_in));
+          Inc(z.total_in, PtrUInt(p) - PtrUInt(z.next_in));
           z.next_in := p;
           s.write := q;
           inflate_blocks := inflate_flush(s,z,r);
@@ -3223,7 +3199,7 @@ begin
           s.bitb := b;
           s.bitk := k;
           z.avail_in := n;
-          Inc(z.total_in, ptr2int(p) - ptr2int(z.next_in));
+          Inc(z.total_in, PtrUInt(p) - PtrUInt(z.next_in));
           z.next_in := p;
           s.write := q;
           inflate_blocks := inflate_flush(s,z,r);
@@ -3236,10 +3212,10 @@ begin
           if (q = s.zend) and (s.read <> s.window) then
           begin
             q := s.window;
-            if ptr2int(q) < ptr2int(s.read) then
-              m := Cardinal(ptr2int(s.read)-ptr2int(q)-1)
+            if PtrUInt(q) < PtrUInt(s.read) then
+              m := Cardinal(PtrUInt(s.read)-PtrUInt(q)-1)
             else
-              m := Cardinal(ptr2int(s.zend)-ptr2int(q));
+              m := Cardinal(PtrUInt(s.zend)-PtrUInt(q));
           end;
 
           if (m = 0) then
@@ -3248,19 +3224,19 @@ begin
             s.write := q;
             r := inflate_flush(s,z,r);
             q := s.write;
-            if ptr2int(q) < ptr2int(s.read) then
-              m := Cardinal(ptr2int(s.read)-ptr2int(q)-1)
+            if PtrUInt(q) < PtrUInt(s.read) then
+              m := Cardinal(PtrUInt(s.read)-PtrUInt(q)-1)
             else
-              m := Cardinal(ptr2int(s.zend)-ptr2int(q));
+              m := Cardinal(PtrUInt(s.zend)-PtrUInt(q));
 
             {WRAP}
             if (q = s.zend) and (s.read <> s.window) then
             begin
               q := s.window;
-              if ptr2int(q) < ptr2int(s.read) then
-                m := Cardinal(ptr2int(s.read)-ptr2int(q)-1)
+              if PtrUInt(q) < PtrUInt(s.read) then
+                m := Cardinal(PtrUInt(s.read)-PtrUInt(q)-1)
               else
-                m := Cardinal(ptr2int(s.zend)-ptr2int(q));
+                m := Cardinal(PtrUInt(s.zend)-PtrUInt(q));
             end;
 
             if (m = 0) then
@@ -3269,7 +3245,7 @@ begin
               s.bitb := b;
               s.bitk := k;
               z.avail_in := n;
-              Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+              Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
               z.next_in := p;
               s.write := q;
               inflate_blocks := inflate_flush(s,z,r);
@@ -3310,7 +3286,7 @@ begin
             s.bitb := b;
             s.bitk := k;
             z.avail_in := n;
-            Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+            Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
             z.next_in := p;
             s.write := q;
             inflate_blocks := inflate_flush(s,z,r);
@@ -3334,7 +3310,7 @@ begin
           s.bitb := b;
           s.bitk := k;
           z.avail_in := n;
-          Inc(z.total_in, ptr2int(p) - ptr2int(z.next_in));
+          Inc(z.total_in, PtrUInt(p) - PtrUInt(z.next_in));
           z.next_in := p;
           s.write := q;
           inflate_blocks := inflate_flush(s,z,r);
@@ -3350,7 +3326,7 @@ begin
           s.bitb := b;
           s.bitk := k;
           z.avail_in := n;
-          Inc(z.total_in, ptr2int(p) - ptr2int(z.next_in));
+          Inc(z.total_in, PtrUInt(p) - PtrUInt(z.next_in));
           z.next_in := p;
           s.write := q;
           inflate_blocks := inflate_flush(s,z,r);
@@ -3383,7 +3359,7 @@ begin
               s.bitb := b;
               s.bitk := k;
               z.avail_in := n;
-              Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+              Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
               z.next_in := p;
               s.write := q;
               inflate_blocks := inflate_flush(s,z,r);
@@ -3418,7 +3394,7 @@ begin
           s.bitb := b;
           s.bitk := k;
           z.avail_in := n;
-          Inc(z.total_in, ptr2int(p) - ptr2int(z.next_in));
+          Inc(z.total_in, PtrUInt(p) - PtrUInt(z.next_in));
           z.next_in := p;
           s.write := q;
           inflate_blocks := inflate_flush(s,z,r);
@@ -3451,7 +3427,7 @@ begin
               s.bitb := b;
               s.bitk := k;
               z.avail_in := n;
-              Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+              Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
               z.next_in := p;
               s.write := q;
               inflate_blocks := inflate_flush(s,z,r);
@@ -3501,7 +3477,7 @@ begin
                 s.bitb := b;
                 s.bitk := k;
                 z.avail_in := n;
-                Inc(z.total_in, ptr2int(p)-ptr2int(z.next_in));
+                Inc(z.total_in, PtrUInt(p)-PtrUInt(z.next_in));
                 z.next_in := p;
                 s.write := q;
                 inflate_blocks := inflate_flush(s,z,r);
@@ -3535,7 +3511,7 @@ begin
               s.bitb := b;
               s.bitk := k;
               z.avail_in := n;
-              Inc(z.total_in, ptr2int(p) - ptr2int(z.next_in));
+              Inc(z.total_in, PtrUInt(p) - PtrUInt(z.next_in));
               z.next_in := p;
               s.write := q;
               inflate_blocks := inflate_flush(s,z,r);
@@ -3571,7 +3547,7 @@ begin
             s.bitb := b;
             s.bitk := k;
             z.avail_in := n;
-            Inc(z.total_in, ptr2int(p) - ptr2int(z.next_in));
+            Inc(z.total_in, PtrUInt(p) - PtrUInt(z.next_in));
             z.next_in := p;
             s.write := q;
             inflate_blocks := inflate_flush(s,z,r);
@@ -3586,7 +3562,7 @@ begin
             s.bitb := b;
             s.bitk := k;
             z.avail_in := n;
-            Inc(z.total_in, ptr2int(p) - ptr2int(z.next_in));
+            Inc(z.total_in, PtrUInt(p) - PtrUInt(z.next_in));
             z.next_in := p;
             s.write := q;
             inflate_blocks := inflate_flush(s,z,r);
@@ -3605,7 +3581,7 @@ begin
         s.bitb := b;
         s.bitk := k;
         z.avail_in := n;
-        Inc(z.total_in, ptr2int(p) - ptr2int(z.next_in));
+        Inc(z.total_in, PtrUInt(p) - PtrUInt(z.next_in));
         z.next_in := p;
         s.write := q;
 
@@ -3623,10 +3599,10 @@ begin
         b := s.bitb;
         k := s.bitk;
         q := s.write;
-        if ptr2int(q) < ptr2int(s.read) then
-          m := Cardinal(ptr2int(s.read)-ptr2int(q)-1)
+        if PtrUInt(q) < PtrUInt(s.read) then
+          m := Cardinal(PtrUInt(s.read)-PtrUInt(q)-1)
         else
-          m := Cardinal(ptr2int(s.zend)-ptr2int(q));
+          m := Cardinal(PtrUInt(s.zend)-PtrUInt(q));
 
         if (not s.last) then
         begin
@@ -3654,10 +3630,10 @@ begin
         q := s.write;
 
         { not needed anymore, we are done:
-        if ptr2int(q) < ptr2int(s.read) then
-          m := Cardinal(ptr2int(s.read)-ptr2int(q)-1)
+        if PtrUInt(q) < PtrUInt(s.read) then
+          m := Cardinal(PtrUInt(s.read)-PtrUInt(q)-1)
         else
-          m := Cardinal(ptr2int(s.zend)-ptr2int(q));
+          m := Cardinal(PtrUInt(s.zend)-PtrUInt(q));
         }
 
         if (s.read <> s.write) then
@@ -3666,7 +3642,7 @@ begin
           s.bitb := b;
           s.bitk := k;
           z.avail_in := n;
-          Inc(z.total_in, ptr2int(p) - ptr2int(z.next_in));
+          Inc(z.total_in, PtrUInt(p) - PtrUInt(z.next_in));
           z.next_in := p;
           s.write := q;
           inflate_blocks := inflate_flush(s,z,r);
@@ -3683,7 +3659,7 @@ begin
         s.bitb := b;
         s.bitk := k;
         z.avail_in := n;
-        Inc(z.total_in, ptr2int(p) - ptr2int(z.next_in));
+        Inc(z.total_in, PtrUInt(p) - PtrUInt(z.next_in));
         z.next_in := p;
         s.write := q;
         inflate_blocks := inflate_flush(s,z,r);
@@ -3696,7 +3672,7 @@ begin
         s.bitb := b;
         s.bitk := k;
         z.avail_in := n;
-        Inc(z.total_in, ptr2int(p) - ptr2int(z.next_in));
+        Inc(z.total_in, PtrUInt(p) - PtrUInt(z.next_in));
         z.next_in := p;
         s.write := q;
         inflate_blocks := inflate_flush(s,z,r);
@@ -3709,7 +3685,7 @@ begin
       s.bitb := b;
       s.bitk := k;
       z.avail_in := n;
-      Inc(z.total_in, ptr2int(p) - ptr2int(z.next_in));
+      Inc(z.total_in, PtrUInt(p) - PtrUInt(z.next_in));
       z.next_in := p;
       s.write := q;
       inflate_blocks := inflate_flush(s,z,r);
@@ -4291,7 +4267,7 @@ begin
   end;
 
   { restore }
-  Inc(z.total_in, ptr2int(p) - ptr2int(z.next_in));
+  Inc(z.total_in, PtrUInt(p) - PtrUInt(z.next_in));
   z.next_in := p;
   z.avail_in := n;
   z.state^.sub.marker := m;
@@ -7001,18 +6977,11 @@ end;
 
 { ========================================================================= }
 function deflateCopy (dest, source : z_streamp) : int;
-{$ifndef MAXSEG_64K}
 var
   ds : deflate_state_ptr;
   ss : deflate_state_ptr;
   overlay : pushfArray;
-{$endif}
 begin
-{$ifdef MAXSEG_64K}
-  deflateCopy := Z_STREAM_ERROR;
-  exit;
-{$else}
-
   if (source = Z_NULL) or (dest = Z_NULL) or (source^.state = Z_NULL) then
   begin
     deflateCopy := Z_STREAM_ERROR;
@@ -7050,7 +7019,7 @@ begin
   zmemcpy(pByte(ds^.head), pByte(ss^.head), ds^.hash_size * sizeof(Pos));
   zmemcpy(pByte(ds^.pending_buf), pByte(ss^.pending_buf), Cardinal(ds^.pending_buf_size));
 
-  ds^.pending_out := @ds^.pending_buf^[ptr2int(ss^.pending_out) - ptr2int(ss^.pending_buf)];
+  ds^.pending_out := @ds^.pending_buf^[PtrUInt(ss^.pending_out) - PtrUInt(ss^.pending_buf)];
   ds^.d_buf := pushfArray (@overlay^[ds^.lit_bufsize div sizeof(ush)] );
   ds^.l_buf := puchfArray (@ds^.pending_buf^[(1+sizeof(ush))*ds^.lit_bufsize]);
 
@@ -7059,7 +7028,6 @@ begin
   ds^.bl_desc.dyn_tree := tree_ptr(@ds^.bl_tree);
 
   deflateCopy := Z_OK;
-{$endif}
 end;
 
 
@@ -7264,14 +7232,14 @@ distances are limited to MAX_DIST instead of WSIZE. }
           Inc(scan,2); Inc(match,2); if (pushf(scan)^<>pushf(match)^) then break;
           Inc(scan,2); Inc(match,2); if (pushf(scan)^<>pushf(match)^) then break;
           Inc(scan,2); Inc(match,2); if (pushf(scan)^<>pushf(match)^) then break;
-        until (ptr2int(scan) >= ptr2int(strend));
+        until (PtrUInt(scan) >= PtrUInt(strend));
         { The funny "do while" generates better code on most compilers }
 
         { Here, scan <= window+strstart+257 }
         if (scan^ = match^) then
           Inc(scan);
 
-        len := (MAX_MATCH - 1) - int(ptr2int(strend)) + int(ptr2int(scan));
+        len := (MAX_MATCH - 1) - int(PtrUInt(strend)) + int(PtrUInt(scan));
         scan := strend;
         Dec(scan, (MAX_MATCH-1));
 
@@ -7308,9 +7276,9 @@ distances are limited to MAX_DIST instead of WSIZE. }
           Inc(scan); Inc(match); if (scan^ <> match^) then break;
           Inc(scan); Inc(match); if (scan^ <> match^) then break;
           Inc(scan); Inc(match); if (scan^ <> match^) then break;
-        until (ptr2int(scan) >= ptr2int(strend));
+        until (PtrUInt(scan) >= PtrUInt(strend));
 
-        len := MAX_MATCH - int(ptr2int(strend) - ptr2int(scan));
+        len := MAX_MATCH - int(PtrUInt(strend) - PtrUInt(scan));
         scan := strend;
         Dec(scan, MAX_MATCH);
 
@@ -7395,7 +7363,7 @@ begin
       Inc(scan); Inc(match); if scan^<>match^ then break;
       Inc(scan); Inc(match); if scan^<>match^ then break;
       Inc(scan); Inc(match); if scan^<>match^ then break;
-    until (ptr2int(scan) >= ptr2int(strend));
+    until (PtrUInt(scan) >= PtrUInt(strend));
 
     Assert(scan <= s.window+unsigned(s.window_size-1), 'wild scan');
 
@@ -7967,7 +7935,7 @@ end;
    invalid or incomplete, Z_VERSION_ERROR if the version of zlib.h and
    the version of the library linked do not match, or Z_ERRNO if there
    is an error reading or writing the files. *)
-Function zUncompress(source, dest:Stream):Integer;
+Function zUncompress(source, dest:TERRAStream):Integer;
 Const
   CHUNK = 1024;
 Var

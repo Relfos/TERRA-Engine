@@ -43,7 +43,7 @@ Unit TERRA_Application;
 
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Mutex;
+Uses TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Window, TERRA_Mutex, TERRA_Error;
 
 Const
 	// Operating System Class
@@ -79,21 +79,11 @@ Const
 
   OrientationAnimationDuration = 1000;
 
-	// Window state
-	wsNormal    = 0;
-	wsMinimized = 1;
-	wsMaximized = 2;
-
-  orientationPortrait =  0;
-  orientationLandscapeLeft =  1;
-  orientationLandscapeRight =  2;
-  orientationPortraitInverted =  3;
-
   eventMouseUp   = 0;
   eventMouseDown = 1;
   eventMouseMove = 2;
   eventMouseWheel = 3;
-  eventKeyPress   = 4;
+  eventCharInput   = 4;
   eventKeyDown    = 5;
   eventKeyUp      = 6;
   eventWindowResize   = 7;
@@ -102,10 +92,11 @@ Const
   eventCompass        = 10;
   eventContextLost    = 11;
   eventOrientation    = 12;
-  eventViewport       = 13;
+  eventJoystick       = 13;
   eventIAPPurchase    = 14;
   eventIAPCredits     = 15;
   eventIAPError       = 16;
+  eventQuit           = 17;
 
   EventBufferSize = 512;
   CallbackBufferSize = 64;
@@ -133,7 +124,7 @@ Const
   tapjoyVideoUnvailable    = 35;
   tapjoyVideoSuccess       = 36;
   tapjoyOfferSuccess       = 37;
-  
+
 Type
   ApplicationEvent = Record
     X,Y,Z,W:Single;
@@ -158,41 +149,6 @@ Type
     Arg:TERRAObject;
   End;
 
-  ApplicationComponentClass = Class Of ApplicationComponent;
-
-  ApplicationComponent = Class(TERRAObject)
-    Protected
-      Procedure OnAppResize; Virtual;
-      Procedure Suspend; Virtual;
-      Procedure Resume; Virtual;
-      Procedure OnLanguageChange; Virtual;
-      Procedure OnOrientationChange; Virtual;
-      Procedure OnContextLost; Virtual;
-      Procedure OnViewportChange(X1, Y1, X2, Y2:Integer); Virtual;
-
-    Public
-      Constructor Create();
-
-      Procedure Init; Virtual;
-      Procedure Update; Virtual;
-
-      Procedure Release; Override;
-  End;
-
-  ApplicationObject = Class(TERRAObject)
-    Protected
-      _Component:ApplicationComponentClass;
-      _Dependency:ApplicationComponentClass;
-      _Instance:ApplicationComponent;
-
-    Public
-      Procedure Release(); Override;
-
-      Property Component:ApplicationComponentClass Read _Component;
-      Property Dependency:ApplicationComponentClass Read _Dependency;
-      Property Instance:ApplicationComponent Read _Instance;
-  End;
-
   AssetWatchNotifier = Procedure(Const FileName:TERRAString); Cdecl;
 
 (*  FolderManager = Class(ApplicationComponent)
@@ -210,19 +166,22 @@ Type
       Procedure AddWatcher(Notifier:AssetWatchNotifier);
   End;*)
 
+  TERRAOrientation = (
+    orientation_Portrait,
+    orientation_LandscapeLeft,
+    orientation_LandscapeRight,
+    orientation_PortraitInverted
+  );
+  
  BaseApplication = Class(TERRAObject)
 		Protected
+      _Window:TERRAWindow;
 			_Running:Boolean;
-      _Ready:Boolean;
-      _Hidden:Boolean;
 			_CanReceiveEvents:Boolean;
       _Suspended:Boolean;
 			_Startup:Boolean;
       _StartTime:Cardinal;
-			_Title:TERRAString;
-			_State:Cardinal;
 			_Path:TERRAString;
-      _Managed:Boolean;
 
       _Screen:ApplicationScreenDimensions;
 
@@ -242,42 +201,21 @@ Type
 
       _InitApp:Boolean;
 
-      _Width:Integer;
-      _Height:Integer;
-
-      _AspectRatio:Single;
-      _AntialiasSamples:Integer;
-			_FullScreen:Boolean;
-      _IgnoreCursor:Boolean;
-
       _PauseStart:Cardinal;
       _PauseCounter:Cardinal;
       _Paused:Boolean;
 
       _ContextWasLost:Boolean;
 
-      _DeviceX1:Integer;
-      _DeviceY1:Integer;
-      _DeviceX2:Integer;
-      _DeviceY2:Integer;
-      _DeviceWidth:Integer;
-      _DeviceHeight:Integer;
-      _DeviceScaleX:Single;
-      _DeviceScaleY:Single;
-
       _BundleVersion:TERRAString;
 
       _CurrentUser:TERRAString;
 
-      _ChangeToFullScreen:Boolean;
-
       _Terminated:Boolean;
 
-      _Orientation:Integer;
-      _PreviousOrientation:Integer;
+      _Orientation:TERRAOrientation;
+      _PreviousOrientation:TERRAOrientation;
       _OrientationTime:Integer;
-
-      _MouseOnAdArea:Boolean;
 
       _CPUCores:Integer;
 
@@ -300,8 +238,7 @@ Type
       //_InputThread:Thread;
       {$ENDIF}
 
-			Function InitWindow:Boolean; Virtual; Abstract;
-			Procedure CloseWindow; Virtual; Abstract;
+      Function CreateWindow():TERRAWindow; Virtual; Abstract;
 
       Procedure OnShutdown; Virtual;
 
@@ -320,9 +257,7 @@ Type
 
       Procedure SetPause(Value:Boolean);
 
-      Procedure UpdateContextLost;
-
-      Procedure ConvertCoords(Var X,Y:Integer);
+      Procedure ConvertCoords(Var X,Y:Single);
 
       Function GetAspectRatio: Single;
 
@@ -340,31 +275,32 @@ Type
 
 			Function Run:Boolean; Virtual;
 
+      Function GetClipboard():TERRAString; Virtual;
+      Function SetClipboard(Const Value:TERRAString):Boolean; Virtual;
+
 			Procedure Terminate(ForceClose:Boolean = False);Virtual;
 
-      Procedure SetViewport(X1, Y1, X2, Y2:Integer);
-                                              Procedure AddRectEvent(Action:Integer; X1,Y1,X2,Y2:Single); Overload;
+      Procedure AddRectEvent(Action:Integer; X1,Y1,X2,Y2:Single); Overload;
       Procedure AddVectorEvent(Action:Integer; X,Y,Z:Single); Overload;
       Procedure AddCoordEvent(Action:Integer; X,Y, Value:Integer); Overload;
+      Procedure AddFloatEvent(Action:Integer; Const Value:Single); Overload;
       Procedure AddValueEvent(Action:Integer; Value:Integer); Overload;
       Procedure AddStringEvent(Action:Integer; S:TERRAString); Overload;
 
-      Function SetOrientation(Value:Integer):Boolean; Virtual;
+      Function SetOrientation(Const Value:TERRAOrientation):Boolean; Virtual;
 
 			Procedure SetState(State:Cardinal); Virtual;
       Procedure Yeld; Virtual;
 
       Class Procedure Sleep(Time:Cardinal);
 
-      Function SetFullscreenMode(UseFullScreen:Boolean):Boolean; Virtual;
-      Procedure ToggleFullscreen;
-
       // ads
       Procedure EnableAds; Virtual;
       Procedure DisableAds; Virtual;
       Procedure ShowFullscreenAd; Virtual;
 
-      Procedure OpenAppStore(AppID:TERRAString); Virtual;
+      Procedure OpenURL(Const URL:TERRAString); Virtual;
+
       Procedure SendEmail(DestEmail, Subject, Body:TERRAString); Virtual;
 
       Function SaveToCloud():Boolean; Virtual;
@@ -373,7 +309,6 @@ Type
 
       Function HasInternet:Boolean; Virtual;
 
-      Function HasFatalError:Boolean;
       Function GetCrashLog():TERRAString; Virtual;
 
       Function PostCallback(Callback:ApplicationCallback; Arg:TERRAObject = Nil; Const Delay:Cardinal = 0):Boolean;
@@ -401,16 +336,11 @@ Type
 
       Procedure LogToConsole(Const Text:TERRAString); Virtual;
 
-      Procedure Resize(Width, Height:Integer);
-
       Procedure SetSuspend(Value:Boolean);
-
-      Procedure SetTitle(Const Name:TERRAString); Virtual;
 
       Procedure SetLanguage(Language:TERRAString);
 
       Procedure ProcessEvents;
-      Procedure RefreshComponents();
 
       Function GetDeviceID():TERRAString; Virtual;
 
@@ -439,23 +369,22 @@ Type
       Function GetOrientationDelta:Single;
 
       Function SelectRenderer():Integer; Virtual;
-      Procedure SelectResolution3D(Var Width, Height:Integer); Virtual;
-      Procedure SelectResolution2D(Var Width, Height:Integer; Var Scale:Single); Virtual;
 
 			Procedure OnKeyDown(Key:Word); Virtual;
 			Procedure OnKeyUp(Key:Word); Virtual;
-			Procedure OnKeyPress(Key:Word); Virtual;
+			Procedure OnCharInput(Key:TERRAChar); Virtual;
 
-			Procedure OnMouseDown(X,Y:Integer;Button:Word); Virtual;
-			Procedure OnMouseUp(X,Y:Integer;Button:Word); Virtual;
-			Procedure OnMouseMove(X,Y:Integer); Virtual;
-			Procedure OnMouseWheel(X,Y:Integer; Delta:Integer); Virtual;
+			Procedure OnMouseDown(Const X,Y:Single; Const Button:Word); Virtual;
+			Procedure OnMouseUp(Const X,Y:Single; Const Button:Word); Virtual;
+			Procedure OnMouseMove(Const X,Y:Single); Virtual;
+			Procedure OnMouseWheel(Const X,Y:Single; Const Delta:Single); Virtual;
 
 			Procedure OnAccelerometer(X,Y,Z:Single); Virtual;
 			Procedure OnGyroscope(X,Y,Z:Single); Virtual;
 			Procedure OnCompass(Heading, Pitch, Roll:Single); Virtual;
+      Procedure OnJoystick(Const X,Y:Single; Const PadID, StickID:Integer); Virtual;
 
-      Procedure OnOrientation(Orientation:Integer); Virtual;
+      Procedure OnOrientation(Const Orientation:TERRAOrientation); Virtual;
 
       Procedure OnIAP_Error(ErrorCode:Integer); Virtual;
       Procedure OnIAP_Purchase(Const ID:TERRAString); Overload; Virtual;
@@ -467,14 +396,14 @@ Type
 
       Procedure OnAPIResult(API, Code:Integer); Virtual;
 
-      Procedure OnFatalError(Const ErrorMsg, CrashLog, Callstack:TERRAString); Virtual;
+      Procedure OnFatalError(Error:TERRAError); Virtual;
 
       Procedure OnContextLost(); Virtual;
 
 			Procedure OnCreate; Virtual;
 			Procedure OnDestroy; Virtual;
 			Procedure OnIdle; Virtual;
-			Procedure OnStateChange(State:Integer); Virtual;
+			Procedure OnStateChange(Const State:TERRAWindowState); Virtual;
 
       Procedure OnGesture(StartX, StartY, EndX, EndY, GestureType:Integer; Delta:Single); Virtual;
 
@@ -482,14 +411,13 @@ Type
         Function GetVRProjectionMatrix(Eye:Integer; FOV, Ratio, zNear, zFar:Single):Matrix4x4; Virtual;
       {$ENDIF}
 
+      Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
+
+
       Function GetTitle:TERRAString; Virtual;
       Function GetWidth:Word; Virtual;
       Function GetHeight:Word; Virtual;
       Function GetFullScreen:Boolean; Virtual;
-      Function GetIgnoreCursor:Boolean; Virtual;
-      Function GetHidden:Boolean; Virtual;
-      Function GetAntialiasSamples:Integer; Virtual;
-      Function GetLogging:Boolean; Virtual;
 
       Function GetAppID:TERRAString; Virtual;
 
@@ -516,17 +444,13 @@ Type
 
       Property CPUCores:Integer Read _CPUCores;
 
-			Property OS:Cardinal Read GetPlatform;
-			Property CurrentPath:TERRAString Read _Path;
+      Property OS:Cardinal Read GetPlatform;
+      Property CurrentPath:TERRAString Read _Path;
       Property TempPath:TERRAString Read GetTempPath;
       Property StoragePath:TERRAString Read GetStoragePath;
       Property DocumentPath:TERRAString Read GetDocumentPath;
       Property FontPath:TERRAString Read _FontPath;
 
-			Property Title:TERRAString Read _Title;
-			Property Width:Integer Read _Width;
-			Property Height:Integer Read _Height;
-			Property FullScreen:Boolean Read _Fullscreen;
       Property Language:TERRAString Read _Language Write SetLanguage;
       Property Country:TERRAString Read _Country;
       Property BundleVersion:TERRAString Read _BundleVersion;
@@ -539,20 +463,17 @@ Type
 
       Property TapjoyCredits:Integer Read _TapjoyCredits;
 
-      Property Orientation:Integer Read _Orientation;
-      Property PreviousOrientation:Integer Read _PreviousOrientation;
+      Property Orientation:TERRAOrientation Read _Orientation;
+      //Property PreviousOrientation:TERRAOrientation Read _PreviousOrientation;
 
       Property AspectRatio:Single Read GetAspectRatio;
 
       Property Screen:ApplicationScreenDimensions Read _Screen;
+      Property Window:TERRAWindow Read _Window;
 
       Property DebuggerPresent:Boolean Read _DebuggerPresent;
 	End;
 
-Var
-  _Prefetching:Boolean;
-
-Function InitializeApplicationComponent(TargetClass, DestroyBefore:ApplicationComponentClass):ApplicationObject;
 
 Function Blink(Period:Cardinal):Boolean;
 
@@ -560,159 +481,41 @@ Function GetOSName(OS:Integer=0):TERRAString;
 Function GetCPUName(CPUType:Integer=0):TERRAString;
 Function GetProgramName():TERRAString;
 
-Function IsLandscapeOrientation(Orientation:Integer):Boolean;
-Function IsPortraitOrientation(Orientation:Integer):Boolean;
-Function IsInvalidOrientation(Orientation:Integer):Boolean;
+Function IsLandscapeOrientation(Const Orientation:TERRAOrientation):Boolean;
+Function IsPortraitOrientation(Const Orientation:TERRAOrientation):Boolean;
+Function IsInvalidOrientation(Const Orientation:TERRAOrientation):Boolean;
 
 Implementation
 
-Uses SysUtils, TERRA_Error, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
+Uses SysUtils, {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   {$IFNDEF WINDOWS}BaseUnix, {$ENDIF}
-  TERRA_GraphicsManager, TERRA_Callstack,
+  TERRA_GraphicsManager, TERRA_Engine, TERRA_Callstack, TERRA_Collections, TERRA_List,
   TERRA_Log, TERRA_OS, TERRA_IAP, TERRA_Localization, TERRA_FileUtils, TERRA_FileManager, TERRA_InputManager
   {$IFDEF PC}, TERRA_Steam{$ENDIF};
 
 Var
   _Application_Ready:Boolean;
 
-  _ApplicationComponents:Array Of ApplicationObject;
-  _ApplicationComponentCount:Integer;
-
-  _RefreshingComponents:Boolean = False;
-
-Function IsInvalidOrientation(Orientation:Integer):Boolean;
+Function IsInvalidOrientation(Const Orientation:TERRAOrientation):Boolean;
 Begin
-    Result := (Orientation<0) Or (Orientation>=4);
+    Result := (Integer(Orientation)<0) Or (Integer(Orientation)>=4);
 End;
 
-Function IsLandscapeOrientation(Orientation:Integer): Boolean;
+Function IsLandscapeOrientation(Const Orientation:TERRAOrientation): Boolean;
 Begin
-  Result := (Orientation = orientationLandscapeLeft) Or (Orientation = orientationLandscapeRight);
+  Result := (Orientation = orientation_LandscapeLeft) Or (Orientation = orientation_LandscapeRight);
 End;
 
-Function IsPortraitOrientation(Orientation:Integer): Boolean;
+Function IsPortraitOrientation(Const Orientation:TERRAOrientation): Boolean;
 Begin
-  Result := (Orientation = orientationPortrait) Or (Orientation = orientationPortraitInverted);
+  Result := (Orientation = orientation_Portrait) Or (Orientation = orientation_PortraitInverted);
 End;
-
-Var
-  _ShuttingDown:Boolean = False;
-
-{ Component }
-Function InitializeApplicationComponent(TargetClass, DestroyBefore:ApplicationComponentClass):ApplicationObject;
-Var
-  I:Integer;
-  S:TERRAString;
-Begin
-  If TargetClass = Nil Then
-  Begin
-    Result := Nil;
-    Exit;
-  End;
-
-  For I:=0 To Pred(_ApplicationComponentCount) Do
-  If (_ApplicationComponents[I]._Component = TargetClass) Then
-  Begin
-    Result := _ApplicationComponents[I];
-    Exit;
-  End;
-
-{$IFDEF OXYGENE}
-  S := Target.GetType().Name;
-{$ELSE}
-  S := TargetClass.ClassName;
-{$ENDIF}
-  Log(logDebug, 'Application', 'Registering component: '+ S);
-
-  Result := ApplicationObject.Create();
-
-  Result._Component := TargetClass;
-  Result._Dependency := DestroyBefore;
-
-  Inc(_ApplicationComponentCount);
-  {$IFDEF OXYGENE}
-  _ApplicationComponents += Entry;
-  {$ELSE}
-  SetLength(_ApplicationComponents, _ApplicationComponentCount);
-  _ApplicationComponents[Pred(_ApplicationComponentCount)] := Result;
-  {$ENDIF}
-
-  Result._Instance := TargetClass.Create();
-
-  If (_ShuttingDown) Then
-  Begin
-    Log(logDebug,'App', S+ ' has wrong dependencies...');
-  End;
-
-{  For I:=0 To Pred(_ApplicationComponentCount) Do
-  Log(logDebug,'App', IntToString(I)+ ' '+_ApplicationComponents[I].Component.ClassName);}
-End;
-
-{$IFDEF HASTHREADS}
-(*Function InputThread(Arg:Pointer):Integer;
-Var
-  App:Application;
-Begin
-  App := Application(Arg);
-  App.InitWindow;
-
-  While (App._Ready) Do
-  Begin
-    App.ProcessMessages;
-    App.Yeld;
-  End;
-
-  App.CloseWindow;
-  Result := 0;
-End;*)
-{$ENDIF}
 
 { BaseApplication }
-Procedure ShutdownComponents;
-Var
-  I:Integer;
-  S:TERRAString;
-
-  Function GetDependencyCount(T:ApplicationComponentClass):Integer;
-  Var
-    J:Integer;
-    S3,S2:TERRAString;
-  Begin
-    Result := 0;
-    For J:=0 To (_ApplicationComponentCount-1) Do
-    If (_ApplicationComponents[J].Dependency<>Nil) And (_ApplicationComponents[J].Dependency = T) Then
-    Begin
-      Inc(Result);
-      S3 := T.ClassName;
-      S2 := _ApplicationComponents[J].Component.ClassName;
-      Log(logDebug, 'App', S2+' still has dependency on '+S3);
-    End;
-  End;
+Procedure BaseApplication.ShutdownSystem;
 Begin
-  _ShuttingDown := True;
-  Repeat
-    I:=0;
-    While (I<_ApplicationComponentCount) Do
-    Begin
-      If (GetDependencyCount(_ApplicationComponents[I].Component)>0) Then
-        Inc(I)
-      Else
-      Begin
-        ReleaseObject(_ApplicationComponents[I]);
-        
-        _ApplicationComponents[I] := _ApplicationComponents[Pred(_ApplicationComponentCount)];
-        Dec(_ApplicationComponentCount);
-        Break;
-      End;
-    End;
-  Until _ApplicationComponentCount<=0;
-End;
+  Engine.Release();
 
-procedure BaseApplication.ShutdownSystem;
-Begin
-  ShutdownComponents;
-
-  _Ready := False;
   _CanReceiveEvents := False;
 
   {$IFNDEF DISABLEINPUTMUTEX}
@@ -721,11 +524,7 @@ Begin
 
   ReleaseObject(_CallbackMutex);
 
-
-  If (Not _Managed) Then
-  Begin
-    CloseWindow;
-  End;
+  ReleaseObject(_Window);
 
   Self.OnShutdown;
 End;
@@ -736,7 +535,7 @@ Var
   I:Integer;
   S:TERRAString;
 Begin
-  Log(logDebug, 'App', 'Initializing randomizer');
+  Engine.Log.Write(logDebug, 'App', 'Initializing randomizer');
 
   {$IFNDEF OXYGENE}
   System.Randomize;
@@ -748,7 +547,7 @@ Begin
   _TapjoyCredits := 0;
   {$ENDIF}
 
-  Log(logDebug, 'App', 'Creating critical section for input');
+  Engine.Log.Write(logDebug, 'App', 'Creating critical section for input');
 
   {$IFNDEF DISABLEINPUTMUTEX}
   _InputMutex := CriticalSection.Create({'app_input'});
@@ -756,58 +555,33 @@ Begin
 
   _CallbackMutex := CriticalSection.Create();
 
-  Log(logDebug, 'App', 'Initializing window');
+  Engine.Log.Write(logDebug, 'App', 'Initializing window');
 
-  _Orientation := orientationPortrait;
+  _Orientation := orientation_Portrait;
   _OrientationTime := 0;
   _PreviousOrientation := _Orientation;
 
-  _Ready := False;
-
   _BundleVersion := '0.0';
 
-  Log(logDebug, 'App', 'Initializing settings');
+  Engine.Log.Write(logDebug, 'App', 'Initializing settings');
   If (Not InitSettings()) Then
     Halt(0);
 
-  _Title := Self.GetTitle();
-  _Width := Self.GetWidth();
-  _Height := Self.GetHeight();
-  _Fullscreen := Self.GetFullscreen();
-  _AntialiasSamples := Self.GetAntialiasSamples();
-
   {$IFDEF PC}
-  If (SteamManager.Instance.Enabled) And (IsSupportedLanguage(SteamManager.Instance.Language)) Then
-    _Language := SteamManager.Instance.Language;
+  If (Engine.Steam.Enabled) And (IsSupportedLanguage(Engine.Steam.Language)) Then
+    _Language := Engine.Steam.Language;
   {$ENDIF}
 
-  {$IFNDEF MOBILE}
-  If (Not _Managed) Then
-  {$ENDIF}
-    InitWindow;
+  _Window := Self.CreateWindow();
+  _CanReceiveEvents := True;
 
-  Log(logDebug, 'App', 'Found ' + IntToString(_ApplicationComponentCount)+' Components!');
-  For I:=0 To Pred(_ApplicationComponentCount) Do
-  Begin
-    {$IFDEF OXYGENE}
-      S := _ApplicationComponents[I].Component.GetType().Name;
-    {$ELSE}
-      S := _ApplicationComponents[I].Component.ClassName;
-    {$ENDIF}
-    Log(logDebug, 'App', 'Starting '+S);
-  End;
-
-  FileManager.Instance.AddPath(Application.Instance.DocumentPath);
+  Engine.Files.AddFolder(Application.Instance.DocumentPath);
 End;
 
 Constructor BaseApplication.Create();
 Begin
   _Startup := True;
   _CanReceiveEvents := False;
-  _Hidden := Self.GetHidden();
-  _State := wsNormal;
-
-  _IgnoreCursor := Self.GetIgnoreCursor();
 
 {  _UsesAccelerometer := ApplicationSettings.UsesAccelerometer;
   _UsesGyroscope := ApplicationSettings.UsesGyroscope;
@@ -820,7 +594,6 @@ Begin
 
   _PauseCounter := 0;
 
-  _FatalError := '';
   _Application_Ready := True;
   Self.Run();
 End;
@@ -831,18 +604,10 @@ Begin
 
   Self.OnDestroy();
 
-  Log(logWarning, 'App', 'Shutting down all subsystems.');
+  Engine.Log.Write(logWarning, 'App', 'Application has shutdown.');
   ShutdownSystem;
-  Log(logWarning, 'App', 'All subsystems destroyed.');
 
-  {$IFNDEF OXYGENE}
-  If (Not _Managed) Then
-  Begin
-    Self.Release;
-  End;
-  {$ENDIF}
-
-  Log(logWarning, 'App', 'Application has shutdown.');
+  Self.Release();
 End;
 
 procedure BaseApplication.Terminate(ForceClose: Boolean);
@@ -862,50 +627,6 @@ Begin
   {$ENDIF}
 End;
 
-procedure BaseApplication.Resize(Width, Height: Integer);
-Var
-  I:Integer;
-Begin
-  If (Width=0) Or (Height=0) Then
-    Exit;
-
-  _Width := Width;
-  _Height := Height;
-
-  Self.SetViewport(0, 0, _Width, _Height);
-
-  For I:=0 To (_ApplicationComponentCount-1) Do
-  Begin
-    If Assigned(_ApplicationComponents[I].Instance) Then
-      _ApplicationComponents[I].Instance.OnAppResize();
-  End;
-End;
-
-procedure BaseApplication.SetViewport(X1, Y1, X2, Y2: Integer);
-Var
-  I:Integer;
-Begin
-  If (Width=0) Or (Height=0) Then
-    Exit;
-
-  _DeviceX1 := X1;
-  _DeviceY1 := Y1;
-  _DeviceX2 := X2;
-  _DeviceY2 := Y2;
-
-  _DeviceWidth := (X2-X1);
-  _DeviceHeight := (Y2-Y1);
-
-  _DeviceScaleX := 1 / _DeviceWidth;
-  _DeviceScaleY := 1 / _DeviceHeight;
-
-  For I:=0 To Pred(_ApplicationComponentCount) Do
-  Begin
-    If Assigned(_ApplicationComponents[I].Instance) Then
-      _ApplicationComponents[I].Instance.OnViewportChange(X1, Y1, X2, Y2);
-  End;
-End;
-
 Function BaseApplication.Run: Boolean;
 Begin
   If (_Terminated) Then
@@ -915,9 +636,9 @@ Begin
     Exit;
   End;
 
-  If (Not _Managed) And (_Running) Then
+  If (_Running) And (Assigned(_Window)) And (Not _Window.Managed) Then
   Begin
-    RaiseError('Application is already running.');
+    Engine.RaiseError('Application is already running.');
     Result := False;
     Exit;
   End;
@@ -925,7 +646,7 @@ Begin
   Result := True;
   If _Startup Then
   Begin
-    Log(logDebug, 'App', 'Initializing system');
+    Engine.Log.Write(logDebug, 'App', 'Initializing system');
 
     // Create window
     InitSystem();
@@ -933,8 +654,11 @@ Begin
     _InitApp := True;
     _StartTime := GetElapsedTime();
 
+    Engine.Init();
+
     _Startup := False;
-    If (_Managed) Or (_Hidden) Then
+
+    If (Window.Managed) Then
       Exit;
   End;
 
@@ -947,13 +671,13 @@ Begin
   Try
   {$ENDIF}
 
-    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Processing messages');{$ENDIF}{$ENDIF}
+    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Processing messages');{$ENDIF}{$ENDIF}
     Self.ProcessMessages();
-    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'All messages processed');{$ENDIF}{$ENDIF}
+    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'All messages processed');{$ENDIF}{$ENDIF}
 
-    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Processing callbacks');{$ENDIF}{$ENDIF}
+    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Processing callbacks');{$ENDIF}{$ENDIF}
     Self.ProcessCallbacks();
-    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'All callbacks processed');{$ENDIF}{$ENDIF}
+    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'All callbacks processed');{$ENDIF}{$ENDIF}
 
       If (_InitApp) Then
       Begin
@@ -964,59 +688,59 @@ Begin
       Begin
         Self.ProcessEvents();
 
-        If _FatalError<>'' Then
+        If Assigned(Engine.Error) Then
         Begin
-          {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logWarning, 'App', 'Fatal error!!!!');{$ENDIF}{$ENDIF}
-          If (InputManager.Instance.Keys.IsDown(keyEscape)) Then
+          {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logWarning, 'App', 'Fatal error!!!!');{$ENDIF}{$ENDIF}
+          If (Engine.Input.Keys.IsDown(keyEscape)) Then
             Self.Terminate(False);
         End Else
         Begin
-          {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Callind client.OnIdle()');{$ENDIF}{$ENDIF}
+          {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Callind client.OnIdle()');{$ENDIF}{$ENDIF}
           Self.OnIdle();
         End;
 
-        {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'client.OnIdle() finished');{$ENDIF}{$ENDIF}
+        {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'client.OnIdle() finished');{$ENDIF}{$ENDIF}
       End;
 
     If (_ContextWasLost) Then
     Begin
       _ContextWasLost := False;
-      Self.UpdateContextLost();
+      Engine.OnContextLost();
+      Self.OnContextLost();
     End;
 
       _FrameStart := Application.GetTime();
 
-    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Refreshing Components');{$ENDIF}{$ENDIF}
+    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Refreshing Components');{$ENDIF}{$ENDIF}
     If Not _Suspended Then
-      Self.RefreshComponents();
+      Engine.Update();
 
 
-    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Swapping buffers');{$ENDIF}{$ENDIF}
-    If (_ChangeToFullScreen) Then
-    Begin
-	    _ChangeToFullScreen := False;
-	    ToggleFullScreen();
-    End;
+    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Swapping buffers');{$ENDIF}{$ENDIF}
+    If Assigned(_Window) Then
+      _Window.Update();
 
     Self.OnFrameEnd();
 
-    If (_Managed) Then
+    If (Window.Managed) Then
       Exit;
 
   {$IFDEF CRASH_REPORT}
   Except
     On E : Exception do
     Begin
-      //FillCallStack(St, 0);
-      Log(logError, 'Application', 'Exception: '+E.ClassName +' '+E.Message);
-      Self.OnFatalError(CrLf+E.Message, Self.GetCrashLog(), DumpExceptionCallStack(E));
+      If Not (E Is TERRAError) Then
+        Engine.Error := TERRAError.Create(E.ClassName +' '+E.Message, E);
+
+      If Assigned(Engine.Error) Then
+        Self.OnFatalError(Engine.Error);
       Exit;
     End;
   End;
   {$ENDIF}
 End;
 
-  Log(logDebug, 'App', 'Application is finishing...');
+  Engine.Log.Write(logDebug, 'App', 'Application is finishing...');
 
   Self.Finish();
   Result := False;
@@ -1065,29 +789,14 @@ Begin
   End;
 End;
 
-function BaseApplication.SetFullscreenMode(UseFullScreen: Boolean): Boolean;
-Begin
-  Log(logError, 'App','ToggleFullscreen not implemented!');
-  Result := False;
-End;
-
-procedure BaseApplication.ToggleFullscreen;
-Var
-   NewMode:Boolean;
-Begin
-  NewMode := Not Self._Fullscreen;
-  If SetFullscreenMode(NewMode) Then
-    Self._Fullscreen := NewMode;
-End;
-
 procedure BaseApplication.SetState(State: Cardinal);
 Begin
- Log(logError, 'App','SetState not implemented!');
+ Engine.Log.Write(logError, 'App','SetState not implemented!');
 End;
 
 procedure BaseApplication.Yeld;
 Begin
- Log(logError, 'App','Yeld not implemented!');
+ Engine.Log.Write(logError, 'App','Yeld not implemented!');
 End;
 
 procedure BaseApplication.SetPause(Value: Boolean);
@@ -1122,7 +831,10 @@ End;
 procedure BaseApplication.EnableAds; Begin End;
 procedure BaseApplication.DisableAds; Begin End;
 
-procedure BaseApplication.OpenAppStore(AppID: TERRAString); Begin End;
+Procedure BaseApplication.OpenURL(Const URL:TERRAString);
+Begin
+  Engine.Log.Write(logError, 'App', 'Opening URLs is not supported in this platform.');
+End;
 
 Procedure BaseApplication.LogToConsole(const Text: TERRAString);
 Begin
@@ -1134,9 +846,9 @@ Begin
   Result :=
     'OS: '+GetOSName() + CrLf +
     'CPU: '+GetCPUName() + CrLf +
-    'Cores: '+IntToString(Self.CPUCores) + CrLf +
-    'Width: '+IntToString(Self.Width) + CrLf +
-    'Height: '+IntToString(Self.Height) + CrLf +
+    'Cores: '+ IntegerProperty.Stringify(Self.CPUCores) + CrLf +
+    'Width: '+ IntegerProperty.Stringify(Self.Window.Width) + CrLf +
+    'Height: '+ IntegerProperty.Stringify(Self.Window.Height) + CrLf +
     'Lang: '+ Self.Language + CrLf +
     'Country: '+ Self.Country + CrLf +
     'Bundle: '+ Self.BundleVersion + CrLf;
@@ -1152,43 +864,6 @@ Begin
   // do nothing
 End;
 
-{ ApplicationObject }
-Procedure ApplicationObject.Release;
-Var
-  S:TERRAString;
-Begin
-  If Assigned(_Instance) Then
-  Begin
-    S := _Instance.ClassName;
-    Log(logDebug, 'App', 'Shutting down '+S);
-  End;
-
-  ReleaseObject(_Instance);
-End;
-
-{ ApplicationComponent }
-Constructor ApplicationComponent.Create;
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(_ApplicationComponentCount) Do
-  If (_ApplicationComponents[I].Component = Self.ClassType) Then
-  Begin
-    _ApplicationComponents[I]._Instance := Self;
-  End;
-
-  Self.Init();
-End;
-
-Procedure ApplicationComponent.Init; Begin End;
-Procedure ApplicationComponent.OnAppResize;  Begin End;
-Procedure ApplicationComponent.Update;  Begin End;
-Procedure ApplicationComponent.Resume;  Begin End;
-Procedure ApplicationComponent.Suspend; Begin End;
-Procedure ApplicationComponent.OnLanguageChange; Begin End;
-Procedure ApplicationComponent.OnContextLost; Begin End;
-Procedure ApplicationComponent.OnOrientationChange; Begin End;
-Procedure ApplicationComponent.OnViewportChange(X1, Y1, X2, Y2:Integer); Begin End;
 
 procedure BaseApplication.SendAnalytics(EventName: TERRAString; Parameters: TERRAString); Begin End;
 procedure BaseApplication.UnlockAchievement(AchievementID: TERRAString); Begin End;
@@ -1210,13 +885,6 @@ Begin
     {$ENDIF}
 End;
 
-{$IFNDEF OXYGENE}
-Procedure ApplicationComponent.Release;
-Begin
-  // FPC hack
-End;
-{$ENDIF}
-
 procedure BaseApplication.OnShutdown;
 Begin
 
@@ -1232,14 +900,6 @@ Begin
   Self.OnAPIResult(apiFacebook, facebookLikeError);
 End;
 
-procedure BaseApplication.SetTitle(const Name: TERRAString);
-Begin
-	If (Name = _Title) Or (Name='') Then
-		Exit;
-		
-	_Title := Name;
-End;
-
 procedure BaseApplication.SetSuspend(Value: Boolean);
 Var
   I:Integer;
@@ -1248,50 +908,17 @@ Begin
     Exit;
 
   _Suspended := Value;
-  Log(logDebug, 'App', 'Suspend state = '+BoolToString(Value));
+  Engine.Log.Write(logDebug, 'App', 'Suspend state = '+BoolToString(Value));
 
-  For I:=0 To (_ApplicationComponentCount-1) Do
-  Begin
-    If Not Assigned(_ApplicationComponents[I].Instance) Then
-      Continue;
-
-    If (_Suspended) Then
-      _ApplicationComponents[I].Instance.Suspend()
-    Else
-      _ApplicationComponents[I].Instance.Resume();
-  End;
+(*  If (_Suspended) Then
+    _ApplicationComponents[I].Instance.Suspend()
+  Else
+    _ApplicationComponents[I].Instance.Resume();*)
 End;
 
 function BaseApplication.CanHandleEvents: Boolean;
 Begin
   Result := _CanReceiveEvents;
-End;
-
-procedure BaseApplication.RefreshComponents;
-Var
-  I:Integer;
-Begin
-  {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'RefreshComponents');{$ENDIF}
-
-//  Log(logDebug, 'Application', 'Orientation: ' + IntToString(_Orientation));
-
-  _RefreshingComponents := True;
-  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'Running', 'Components: ' + IntToString(_ApplicationComponentCount));{$ENDIF}{$ENDIF}
-  For I:=0 To (_ApplicationComponentCount-1) Do
-  Begin
-    {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'Running', _ApplicationComponents[I].Component.ClassName);{$ENDIF}{$ENDIF}
-
-    If Assigned(_ApplicationComponents[I].Instance) Then
-      _ApplicationComponents[I].Instance.Update();
-
-    If Not _Running Then
-      Break;
-  End;
-  _RefreshingComponents := False;
-
-  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'Running', 'Finished refreshing components!');{$ENDIF}{$ENDIF}
-  
-  {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 
 Class Procedure BaseApplication.Sleep(Time:Cardinal);
@@ -1408,18 +1035,11 @@ Begin
 End;
 
 procedure BaseApplication.SetLanguage(Language: TERRAString);
-Var
-  I:Integer;
 Begin
   If (Language = Self._Language) Then
     Exit;
 
   Self._Language := Language;
-  For I:=0 To (_ApplicationComponentCount-1) Do
-  Begin
-    If Assigned(_ApplicationComponents[I].Instance) Then
-      _ApplicationComponents[I].Instance.OnLanguageChange();
-  End;
 End;
 
 {$IFDEF FPC}
@@ -1437,35 +1057,12 @@ Begin
   For I:=0 To Pred(FrameCount) Do
     Result := Result + BackTraceStrFunc(Frames[i]) + CrLf;
 
-  Log(logError, 'App', Result);
+  Engine.Log.Write(logError, 'App', Result);
   Halt();
 End;
 {$ENDIF}
 
-Function BaseApplication.HasFatalError: Boolean;
-Begin
-  Result := _FatalError<>'';
-End;
-
-procedure BaseApplication.UpdateContextLost;
-Var
-  I:Integer;
-Begin
-  {$IFDEF DEBUG_CALLSTACK}PushCallStack(Self.ClassType, 'OnContextLost');{$ENDIF}
-
-  For I:=0 To (_ApplicationComponentCount-1) Do
-  Begin
-    Log(logDebug, 'App', 'Context lost: '+ _ApplicationComponents[I].Component.ClassName);
-    If Assigned(_ApplicationComponents[I].Instance) Then
-      _ApplicationComponents[I].Instance.OnContextLost();
-  End;
-
-  Self.OnContextLost();
-
-  {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
-End;
-
-function BaseApplication.SetOrientation(Value: Integer): Boolean;
+function BaseApplication.SetOrientation(Const Value:TERRAOrientation): Boolean;
 Var
   Delta:Single;
   I:Integer;
@@ -1474,52 +1071,47 @@ Begin
 
   If (IsInvalidOrientation(Value)) Then
     Begin
-        Log(logDebug, 'App', 'Invalid orientation change: '+IntToString(Value));
+        Engine.Log.Write(logDebug, 'App', 'Invalid orientation change: '+ IntegerProperty.Stringify(Integer(Value)));
         Exit;
     End;
 
   Delta := GetOrientationDelta();
-If (_Orientation = Value) {Or (Delta<1)} Then
+  If (_Orientation = Value) {Or (Delta<1)} Then
   Begin
-    Log(logDebug, 'App', 'Failed orientation change (delta='+FloatToString(Delta)+')');
+    Engine.Log.Write(logDebug, 'App', 'Failed orientation change (delta='+FloatProperty.Stringify(Delta)+')');
     Exit;
   End;
 
-  Log(logDebug, 'App', 'Changing orientation to '+ IntToString(Value));
+  Engine.Log.Write(logDebug, 'App', 'Changing orientation to '+  IntegerProperty.Stringify(Integer(Value)));
   _PreviousOrientation := _Orientation;
   _OrientationTime := Application.GetTime();
   _Orientation := Value;
 
     Case _Orientation Of
-    orientationLandscapeLeft:
+    orientation_LandscapeLeft:
     Begin
-        Log(logDebug, 'App', 'Changing orientation to landscape-left');
+        Engine.Log.Write(logDebug, 'App', 'Changing orientation to landscape-left');
     End;
 
-    orientationLandscapeRight:
+    orientation_LandscapeRight:
     Begin
-        Log(logDebug, 'App', 'Changing orientation to landscape-right');
+        Engine.Log.Write(logDebug, 'App', 'Changing orientation to landscape-right');
     End;
 
-    orientationPortrait:
+    orientation_Portrait:
     Begin
-        Log(logDebug, 'App', 'Changing orientation to portrait');
+        Engine.Log.Write(logDebug, 'App', 'Changing orientation to portrait');
     End;
 
-    orientationPortraitInverted:
+    orientation_PortraitInverted:
     Begin
-        Log(logDebug, 'App', 'Changing orientation to portrait-inverted');
+        Engine.Log.Write(logDebug, 'App', 'Changing orientation to portrait-inverted');
     End;
 End;
 
 
-  For I:=0 To (_ApplicationComponentCount-1) Do
-  Begin
-    Log(logDebug, 'App', 'OnOrientationChange: ' + _ApplicationComponents[I].Component.ClassName);
-
-    If Assigned(_ApplicationComponents[I].Instance) Then
-      _ApplicationComponents[I].Instance.OnOrientationChange();
-  End;
+(*      _ApplicationComponents[I].Instance.OnOrientationChange();
+*)
 
   Result := True;
 End;
@@ -1535,63 +1127,40 @@ Begin
     Result := 0;
 End;
 
-procedure BaseApplication.ConvertCoords(var X, Y: Integer);
+procedure BaseApplication.ConvertCoords(var X, Y:Single);
 Var
   PX, PY:Single;
   SX, SY:Single;
-  Temp:Integer;
+  Temp:Single;
 Begin
-//  Log(logDebug, 'App', 'PRE1 X'+IntToString(X)+' Y:'+IntToString(Y));
-
-  X := (X - Self._DeviceX1);
-  Y := (Y - Self._DeviceY1);
-
-//  Log(logDebug, 'App', 'PRE2 X'+IntToString(X)+' Y:'+IntToString(Y));
-
   Case _Orientation Of
-  orientationLandscapeLeft:
+  orientation_LandscapeLeft:
     Begin
       Temp := X;
       X := Y;
-      Y := _DeviceWidth - Temp;
+      Y := Self.Window.Height - Temp;
     End;
 
-  orientationLandscapeRight:
+  orientation_LandscapeRight:
     Begin
       Temp := X;
-      X := _DeviceHeight - Y;
+      X := Self.Window.Height - Y;
       Y := Temp;
     End;
 
-  orientationPortrait:
+  orientation_Portrait:
     Begin
     End;
 
-  orientationPortraitInverted:
+  orientation_PortraitInverted:
     Begin
-      X := _DeviceWidth - X;
-      Y := _DeviceHeight - Y;
+      X := Self.Window.Width - X;
+      Y := Self.Window.Height - Y;
     End;
   End;
 
-//  Log(logDebug, 'App', 'PRE3 X'+IntToString(X)+' Y:'+IntToString(Y));
-
-  If (IsLandscapeOrientation(Self.Orientation)) Then
-  Begin
-    PX := (X * _DeviceScaleY);
-    PY := (Y * _DeviceScaleX);
-  End Else
-  Begin
-    PX := (X * _DeviceScaleX);
-    PY := (Y * _DeviceScaleY);
-  End;
-
-  _MouseOnAdArea := (PX<0) Or (PX>1) Or (PY<0) Or (PY>1);
-
-  X := Trunc( PX * GraphicsManager.Instance.UI_Width );
-  Y := Trunc( PY * GraphicsManager.Instance.UI_Height);
-
-//  Log(logDebug, 'App', 'PRE4 X'+IntToString(X)+' Y:'+IntToString(Y));
+  X := X / Self.Window.Width;
+  Y := Y / Self.Window.Height;
 End;
 
 procedure BaseApplication.AddEventToQueue(Action: Integer; X, Y, Z, W: Single;
@@ -1602,7 +1171,7 @@ Begin
   If Not _CanReceiveEvents Then
     Exit;
 
-  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Locking event mutex');{$ENDIF}{$ENDIF}
+  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Locking event mutex');{$ENDIF}{$ENDIF}
 
   {$IFNDEF DISABLEINPUTMUTEX}
   _InputMutex.Lock();
@@ -1612,7 +1181,7 @@ Begin
   N := _EventCount;
   If N<Pred(EventBufferSize) Then
   Begin
-       {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Adding event with index '+IntToString(N));{$ENDIF}{$ENDIF}
+       {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Adding event with index '+ IntegerProperty.Stringify(N));{$ENDIF}{$ENDIF}
        Inc(_EventCount);
       _Events[N].X := X;
       _Events[N].Y := Y;
@@ -1623,7 +1192,7 @@ Begin
       _Events[N].Value := Value;
       _Events[N].Action := Action;
   End;
-  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Unlocking event mutex');{$ENDIF}{$ENDIF}
+  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Unlocking event mutex');{$ENDIF}{$ENDIF}
 
   {$IFNDEF DISABLEINPUTMUTEX}
   _InputMutex.Unlock();
@@ -1646,6 +1215,11 @@ Begin
   Self.AddEventToQueue(Action, X, Y, 0, 0, Value, '', True);
 End;
 
+procedure BaseApplication.AddFloatEvent(Action:Integer; Const Value:Single);
+Begin
+  Self.AddEventToQueue(Action, Value, 0, 0, 0, 0, '', False);
+End;
+
 procedure BaseApplication.AddValueEvent(Action: Integer; Value: Integer);
 Begin
   Self.AddEventToQueue(Action, 0, 0, 0, 0, Value, '', False);
@@ -1664,7 +1238,7 @@ Begin
   eventMouseDown : Result := 'eventMouseDown';
   eventMouseMove : Result := 'eventMouseMove';
   eventMouseWheel : Result := 'eventMouseWheel';
-  eventKeyPress   : Result := 'eventKeyPress';
+  eventCharInput   : Result := 'evenCharInput';
   eventKeyDown    : Result := 'eventKeyDown';
   eventKeyUp      : Result := 'eventKeyUp';
   eventWindowResize   : Result := 'eventWindowResize';
@@ -1677,8 +1251,9 @@ Begin
   eventIAPPurchase    : Result := 'eventIAPPurchase';
   eventIAPCredits     : Result := 'eventIAPCredits';
   eventIAPError       : Result := 'eventIAPError';
+  eventQuit           : Result := 'eventQuit';          
   Else
-    Result := '#'+IntToString(N);
+    Result := '#'+ IntegerProperty.Stringify(N);
   End;
 End;
 {$ENDIF}
@@ -1686,7 +1261,7 @@ End;
 procedure BaseApplication.ProcessEvents;
 Var
   I:Integer;
-  PX,PY:Integer;
+  PX,PY:Single;
   NewW, NewH:Integer;
   Input:InputManager;
 Begin
@@ -1694,15 +1269,15 @@ Begin
   _InputMutex.Lock();
   {$ENDIF}
 
-  Input := InputManager.Instance;
+  Input := Engine.Input;
 
-  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Processing '+IntToString(_EventCount)+ ' events.');{$ENDIF}{$ENDIF}
+  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Processing '+ IntegerProperty.Stringify(_EventCount)+ ' events.');{$ENDIF}{$ENDIF}
   For I:=0 To Pred(_EventCount) Do
   Begin
     If (_Events[I].HasCoords) Then
     Begin
-      PX := Trunc(_Events[I].X);
-      PY := Trunc(_Events[I].Y);
+      PX := _Events[I].X;
+      PY := _Events[I].Y;
 
       Self.ConvertCoords(PX, PY);
 
@@ -1710,18 +1285,24 @@ Begin
       Input.Mouse.Y := PY;
     End;
 
-    {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Events type: '+GetEventTypeName(_Events[I].Action));{$ENDIF}
+    {$IFDEF DEBUG_CORE}Engine.Log.Write(logDebug, 'App', 'Events type: '+GetEventTypeName(_Events[I].Action));{$ENDIF}
 
     Case _Events[I].Action Of
+    eventQuit:
+      Begin
+        _Running := False;
+        _CanReceiveEvents := False;
+      End;
+
     eventMouseDown:
       Begin
-        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Mouse down, X:'+IntToString(Input.Mouse.X)+ ' Y:'+IntToString(Input.Mouse.Y));{$ENDIF}
+        {$IFDEF DEBUG_CORE}Engine.Log.Write(logDebug, 'App', 'Mouse down, X:'+ IntegerProperty.Stringify(Input.Mouse.X)+ ' Y:'+ IntegerProperty.Stringify(Input.Mouse.Y));{$ENDIF}
         Input.Keys.SetState(_Events[I].Value, True);
 
-        {Log(logDebug, 'App', 'Mouse down, X:'+IntToString(Input.Mouse.X)+ ' Y:'+IntToString(Input.Mouse.Y));
-        Log(logDebug, 'App', 'DeviceX1:'+IntToString(_DeviceX1)+ ' DeviceY1:'+IntToString(_DeviceY1));
-        Log(logDebug, 'App', 'DeviceX2:'+IntToString(_DeviceX2)+ ' DeviceY2:'+IntToString(_DeviceY2));
-        Log(logDebug, 'App', 'DeviceWidth:'+IntToString(_DeviceWidth)+ ' DeviceHeight:'+IntToString(_DeviceHeight));
+        {Engine.Log.Write(logDebug, 'App', 'Mouse down, X:'+ IntegerProperty.Stringify(Input.Mouse.X)+ ' Y:'+ IntegerProperty.Stringify(Input.Mouse.Y));
+        Engine.Log.Write(logDebug, 'App', 'DeviceX1:'+ IntegerProperty.Stringify(_DeviceX1)+ ' DeviceY1:'+ IntegerProperty.Stringify(_DeviceY1));
+        Engine.Log.Write(logDebug, 'App', 'DeviceX2:'+ IntegerProperty.Stringify(_DeviceX2)+ ' DeviceY2:'+ IntegerProperty.Stringify(_DeviceY2));
+        Engine.Log.Write(logDebug, 'App', 'DeviceWidth:'+ IntegerProperty.Stringify(_DeviceWidth)+ ' DeviceHeight:'+ IntegerProperty.Stringify(_DeviceHeight));
         }
 
         {If (_MouseOnAdArea) Then
@@ -1732,11 +1313,10 @@ Begin
 
     eventMouseUp:
       Begin
-        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Mouse up, X:'+IntToString(Input.Mouse.X)+ ' Y:'+IntToString(Input.Mouse.Y));{$ENDIF}
+        {$IFDEF DEBUG_CORE}Engine.Log.Write(logDebug, 'App', 'Mouse up, X:'+ IntegerProperty.Stringify(Input.Mouse.X)+ ' Y:'+ IntegerProperty.Stringify(Input.Mouse.Y));{$ENDIF}
 
         Input.Keys.SetState(_Events[I].Value, False);
-        If (Not _MouseOnAdArea) Then
-          Self.OnMouseUp(Input.Mouse.X, Input.Mouse.Y, _Events[I].Value);
+        Self.OnMouseUp(Input.Mouse.X, Input.Mouse.Y, _Events[I].Value);
       End;
 
     eventMouseMove:
@@ -1746,12 +1326,12 @@ Begin
 
     eventMouseWheel:
       Begin
-        Self.OnMouseWheel(Input.Mouse.X, Input.Mouse.Y, _Events[I].Value);
+        Self.OnMouseWheel(Input.Mouse.X, Input.Mouse.Y, _Events[I].X);
       End;
 
-    eventKeyPress:
+    eventCharInput:
       Begin
-        Self.OnKeyPress(_Events[I].Value);
+        Self.OnCharInput(TERRAChar(_Events[I].Value));
       End;
 
     eventKeyDown:
@@ -1766,14 +1346,7 @@ Begin
 
     eventWindowResize:
       Begin
-        Self.Resize(Trunc(_Events[I].X), Trunc(_Events[I].Y));
-      End;
-
-    eventViewport:
-      Begin
-        Log(logDebug, 'App', 'Device viewport, X1:'+IntToString(Trunc(_Events[I].X))+ ' Y1:'+IntToString(Trunc(_Events[I].Y))+
-        ' X2:'+IntToString(Trunc(_Events[I].Z))+ ' Y2:'+IntToString(Trunc(_Events[I].W)));
-        //Self.SetViewport(Trunc(_Events[I].X), Trunc(_Events[I].Y), Trunc(_Events[I].Z), Trunc(_Events[I].W));
+        Self.Window.Resize(Trunc(_Events[I].X), Trunc(_Events[I].Y));
       End;
 
     eventAccelerometer:
@@ -1803,47 +1376,55 @@ Begin
         Self.OnCompass(Input.Compass.X, Input.Compass.Y, Input.Compass.Z);
       End;
 
+    eventJoystick:
+      Begin
+        Input.Mouse.X := _Events[I].X;
+        Input.Mouse.Y := _Events[I].Y;
+
+        Self.OnJoystick(Input.Mouse.X, Input.Mouse.Y, -1, 0);
+      End;
+
     eventContextLost:
       Begin
-        Log(logDebug, 'App', 'App context was lost...');
+        Engine.Log.Write(logDebug, 'App', 'App context was lost...');
         _ContextWasLost := True;
       End;
 
     eventOrientation:
       Begin
-        Log(logDebug, 'App', 'Orientation request: ' + IntToString(_Events[I].Value));
-        Self.OnOrientation(_Events[I].Value);
+        Engine.Log.Write(logDebug, 'App', 'Orientation request: ' +  IntegerProperty.Stringify(_Events[I].Value));
+        Self.OnOrientation(TERRAOrientation(_Events[I].Value));
       End;
 
     eventIAPPurchase:
       If _Events[I].S<>'' Then
       Begin
-        Log(logDebug, 'App', 'In-app-purchase: ' + _Events[I].S);
+        Engine.Log.Write(logDebug, 'App', 'In-app-purchase: ' + _Events[I].S);
         Self.OnIAP_Purchase(_Events[I].S);
       End Else
       Begin
         _Events[I].Value := IAP_PurchaseCanceled;
-        Log(logDebug, 'App', 'In-app-purchase error: ' + IntToString(_Events[I].Value));
+        Engine.Log.Write(logDebug, 'App', 'In-app-purchase error: ' +  IntegerProperty.Stringify(_Events[I].Value));
         Self.OnIAP_Error(_Events[I].Value);
       End;
 
     eventIAPCredits:
       If (_Events[I].Value>0) Then
       Begin
-        Log(logDebug, 'App', 'In-app-purchase: ' + IntToString(_Events[I].Value) + ' credits');
+        Engine.Log.Write(logDebug, 'App', 'In-app-purchase: ' +  IntegerProperty.Stringify(_Events[I].Value) + ' credits');
         Self.OnIAP_Purchase(_Events[I].Value);
       End;
 
     eventIAPError:
       Begin
-        Log(logDebug, 'App', 'In-app-purchase error: ' + IntToString(_Events[I].Value));
+        Engine.Log.Write(logDebug, 'App', 'In-app-purchase error: ' +  IntegerProperty.Stringify(_Events[I].Value));
         Self.OnIAP_Error(_Events[I].Value);
       End;
 
     End;
   End;
 
-  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Log(logDebug, 'App', 'Events processed!');{$ENDIF}{$ENDIF}
+  {$IFDEF DEBUG_CORE}{$IFDEF EXTENDED_DEBUG}Engine.Log.Write(logDebug, 'App', 'Events processed!');{$ENDIF}{$ENDIF}
   _EventCount := 0;
 
   {$IFNDEF DISABLEINPUTMUTEX}
@@ -1866,9 +1447,9 @@ Begin
      Result := False;
 End;
 
-function BaseApplication.GetRecommendedSettings: Integer;
+Function BaseApplication.GetRecommendedSettings: Integer;
 Begin
-  If (Self.Width<480) Or (Self.Height<480) Then
+  If (Self.Window.Width<480) Or (Self.Window.Height<480) Then
     Result := settingsHintLow
   Else
     Result := settingsHintMedium;
@@ -1920,7 +1501,7 @@ End;
 
 Function BaseApplication.GetAspectRatio: Single;
 Begin
-  Result := SafeDiv(_Height, _Width, 1.0);
+  Result := SafeDiv(Window.Height, Window.Width, 1.0);
 End;
 
 Function BaseApplication.PostCallback(Callback:ApplicationCallback; Arg:TERRAObject; Const Delay:Cardinal):Boolean;
@@ -1955,7 +1536,7 @@ Begin
 
     If (_Callbacks[I].Time <= Application.GetTime()) Then
     Begin
-      Log(logDebug, 'Game','Executing callback...');
+      Engine.Log.Write(logDebug, 'Game','Executing callback...');
 
       If _Callbacks[I].Run(_Callbacks[I].Arg) Then
       Begin
@@ -2002,7 +1583,7 @@ Var
   oa,na : PSigActionRec;
 {$ENDIF}
 Begin
-  Log(logDebug, 'App', 'Initializing app path');
+  Engine.Log.Write(logDebug, 'App', 'Initializing app path');
   {$IFDEF OXYGENE}
   _Path := System.IO.Directory.GetCurrentDirectory();
   {$ELSE}
@@ -2010,8 +1591,11 @@ Begin
   {$ENDIF}
   _Language := 'EN';
 
+
+  _DebuggerPresent := Self.IsDebuggerPresent();
+
 {$IFDEF INSTALL_SIGNAL}
-  Log(logDebug, 'App', 'Installing signals');
+  Engine.Log.Write(logDebug, 'App', 'Installing signals');
   new(na);
   new(oa);
   FillChar(Na^, SizeOf(Na), 0);
@@ -2022,8 +1606,6 @@ Begin
 {$ENDIF}
 
   _CPUCores := 1;
-
-  _DebuggerPresent := Self.IsDebuggerPresent();
 
   Result := True;
 End;
@@ -2037,10 +1619,10 @@ Begin
   For I:=1 To ParamCount Do
   Begin
     S := ParamStr(I);
-    If Not StringFirstChar(S) = Ord('-') Then
+    If (StringFirstChar(S) <> '-') Then
       Continue;
 
-    S2 := StringGetNextSplit(S, Ord('='));
+    S2 := StringGetNextSplit(S, '=');
     If StringEquals(S2, '-'+OptName) Then
     Begin
       Result := True;
@@ -2061,10 +1643,10 @@ Begin
   For I:=1 To ParamCount Do
   Begin
     S := ParamStr(I);
-    If Not StringFirstChar(S) = Ord('-') Then
+    If (StringFirstChar(S) <> '-') Then
       Continue;
 
-    S2 := StringGetNextSplit(S, Ord('='));
+    S2 := StringGetNextSplit(S, '=');
     If StringEquals(S2, '-'+OptName) Then
     Begin
       Result := S;
@@ -2101,17 +1683,17 @@ End;
 
 Procedure BaseApplication.OnIAP_Error(ErrorCode:Integer);
 Begin
-  Log(logWarning, 'Client', 'Please implement Self.OnIAP_Cancel, error code = '+IntToString(ErrorCode));
+  Engine.Log.Write(logWarning, 'Client', 'Please implement Self.OnIAP_Cancel, error code = '+ IntegerProperty.Stringify(ErrorCode));
 End;
 
 Procedure BaseApplication.OnIAP_Purchase(Const ID:TERRAString);
 Begin
-  Log(logWarning, 'Client', 'Please implement Self.OnIAP_Purchase, product ID = '+ID);
+  Engine.Log.Write(logWarning, 'Client', 'Please implement Self.OnIAP_Purchase, product ID = '+ID);
 End;
 
 Procedure BaseApplication.OnIAP_Purchase(Credits: Integer);
 Begin
-  Log(logWarning, 'Client', 'Please implement Self.OnIAP_Purchase, credits  = '+IntToString(Credits));
+  Engine.Log.Write(logWarning, 'Client', 'Please implement Self.OnIAP_Purchase, credits  = '+ IntegerProperty.Stringify(Credits));
 End;
 
 Procedure BaseApplication.OnIdle;
@@ -2125,7 +1707,7 @@ Begin
     Application.Instance.Terminate;
 End;
 
-Procedure BaseApplication.OnKeyPress(Key:Word);
+Procedure BaseApplication.OnCharInput(Key:TERRAChar);
 Begin
 
 End;
@@ -2140,32 +1722,36 @@ Begin
   // Do nothing
 End;
 
-Procedure BaseApplication.OnMouseDown(X, Y: Integer; Button: Word);
+Procedure BaseApplication.OnMouseDown(Const X,Y:Single; Const Button:Word);
 Begin
 //  UI.Instance.OnMouseDown(X, Y, Button);
 End;
 
-Procedure BaseApplication.OnMouseMove(X, Y: Integer);
+Procedure BaseApplication.OnMouseMove(Const X,Y:Single);
 Begin
 //  UI.Instance.OnMouseMove(X, Y);
 End;
 
-Procedure BaseApplication.OnMouseUp(X, Y: Integer; Button: Word);
+Procedure BaseApplication.OnMouseUp(Const X,Y:Single; Const Button: Word);
 Begin
 //  UI.Instance.OnMouseUp(X, Y, Button);
 End;
 
-Procedure BaseApplication.OnMouseWheel(X,Y:Integer; Delta: Integer);
+Procedure BaseApplication.OnMouseWheel(Const X,Y:Single; Const Delta: Single);
 Begin
 //  UI.Instance.OnMouseWheel(Delta);
 End;
 
-Procedure BaseApplication.OnStateChange(State: Integer);
+Procedure BaseApplication.OnStateChange(Const State:TERRAWindowState);
 Begin
-
+  // do nothing
 End;
 
 Procedure BaseApplication.OnCompass(Heading, Pitch, Roll: Single);
+Begin
+End;
+
+Procedure BaseApplication.OnJoystick(const X, Y: Single; const PadID, StickID: Integer);
 Begin
 End;
 
@@ -2173,22 +1759,9 @@ Procedure BaseApplication.OnGyroscope(X, Y, Z: Single);
 Begin
 End;
 
-Procedure BaseApplication.SelectResolution3D(var Width, Height: Integer);
-Begin
-End;
-
-Procedure BaseApplication.SelectResolution2D(var Width, Height: Integer; Var Scale:Single);
-Begin
-End;
-
-Procedure BaseApplication.OnOrientation(Orientation: Integer);
+Procedure BaseApplication.OnOrientation(Const Orientation:TERRAOrientation);
 Begin
   Application.Instance.SetOrientation(Orientation);
-End;
-
-Function BaseApplication.GetAntialiasSamples: Integer;
-Begin
-  Result := 0;
 End;
 
 Function BaseApplication.GetAppID:TERRAString;
@@ -2226,18 +1799,7 @@ Begin
   Result := 640;
 End;
 
-Function BaseApplication.GetHidden: Boolean;
-Begin
-  Result := False;
-End;
-
-Function BaseApplication.GetIgnoreCursor: Boolean;
-Begin
-  Result := True;
-End;
-
-
-Procedure BaseApplication.OnFatalError(Const ErrorMsg, CrashLog, Callstack:TERRAString); 
+Procedure BaseApplication.OnFatalError(Error:TERRAError); 
 Begin
   _Running := False;
 End;
@@ -2255,11 +1817,6 @@ End;
 Function BaseApplication.GetAdMobInterstitialID:TERRAString;
 Begin
   Result := '';
-End;
-
-Function BaseApplication.GetLogging: Boolean;
-Begin
-  Result := True;
 End;
 
 Function BaseApplication.GetFortumoID:TERRAString;
@@ -2314,12 +1871,12 @@ End;
 
 Procedure BaseApplication.OnGamepadConnect(Index: Integer);
 Begin
-  Log(logDebug, 'Client', 'Gamepad '+IntToString(Index)+' was connected!');
+  Engine.Log.Write(logDebug, 'Client', 'Gamepad '+ IntegerProperty.Stringify(Index)+' was connected!');
 End;
 
 Procedure BaseApplication.OnGamepadDisconnect(Index: Integer);
 Begin
-  Log(logDebug, 'Client', 'Gamepad '+IntToString(Index)+' was disconnected!');
+  Engine.Log.Write(logDebug, 'Client', 'Gamepad '+ IntegerProperty.Stringify(Index)+' was disconnected!');
 End;
 
 {$IFNDEF DISABLEVR}
@@ -2364,6 +1921,23 @@ Begin
   // do nothing
   Result := False;
 End;*)
+
+
+Function BaseApplication.CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject;
+Begin
+  Result := Engine.CreateObject(KeyName, ObjectType);
+End;
+
+Function BaseApplication.GetClipboard: TERRAString;
+Begin
+  Result := '';
+End;
+
+Function BaseApplication.SetClipboard(const Value: TERRAString): Boolean;
+Begin
+  Result := False;
+End;
+
 
 Initialization
   {$IFDEF FPC}

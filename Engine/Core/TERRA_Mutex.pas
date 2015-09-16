@@ -24,7 +24,7 @@ Unit TERRA_Mutex;
 
 {$I terra.inc}
 Interface
-Uses TERRA_String, TERRA_Utils,
+Uses TERRA_Object, TERRA_String, TERRA_Utils,
 {$IFDEF DEBUG_LOCKS} TERRA_Log, {$ENDIF}
 {$IFDEF WINDOWS}Windows
 {$ELSE}cmem, {ctypes,baseunix,}unixtype{$ENDIF};

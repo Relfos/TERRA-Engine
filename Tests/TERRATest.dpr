@@ -24,6 +24,7 @@ Begin
   	Tests.RegisterTest(TERRACore_TestHashMap);
     Tests.RegisterTest(TERRACore_TestObjectArray);
   	Tests.RegisterTest(TERRACore_TestSort);
+  	Tests.RegisterTest(TERRACore_TestRadixSort);
 
   	Tests.RegisterTest(TERRAImage_TestColorBlend);
   	Tests.RegisterTest(TERRAImage_TestColorBlendWithSeparateAlpha);
@@ -43,7 +44,7 @@ Begin
     Tests.RegisterTest(TERRAString_TestCopy);
     Tests.RegisterTest(TERRAString_TestSplits);
     Tests.RegisterTest(TERRAString_TestIteratorSplits);
-    Tests.RegisterTest(TERRAString_TestWordExtract);
+//    Tests.RegisterTest(TERRAString_TestWordExtract);
     Tests.RegisterTest(TERRAString_TestPad);
     Tests.RegisterTest(TERRAString_TestReplace);
     Tests.RegisterTest(TERRAString_TestReverse);

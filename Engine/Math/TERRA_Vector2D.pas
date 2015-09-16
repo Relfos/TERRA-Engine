@@ -29,7 +29,7 @@ Unit TERRA_Vector2D;
 {$ENDIF}
 
 Interface
-Uses TERRA_Vector3D, TERRA_Math;
+Uses TERRA_Object, TERRA_Vector3D, TERRA_Math, TERRA_String, TERRA_Utils, TERRA_Tween;
 
 Type
   {$IFDEF OXYGENE}
@@ -59,10 +59,9 @@ Type
 
     Procedure Normalize;
 
-    Function Length:Single;
+    Function Length():Single;
+    Function LengthSquared():Single;
     Function Distance(Const N:Vector2D):Single;
-
-    Function Dot(B:Vector2D):Single;
 
     {$IFDEF BENCHMARK}
     Function LengthSSE:Single;
@@ -70,26 +69,80 @@ Type
     {$ENDIF}
   End;
 
-Function VectorCreate2D(Const X,Y:Single):Vector2D; 
-Function VectorCross2D(Const A,B:Vector2D):Single;
+  Vector2DProperty = Class(TweenableProperty)
+    Protected
+      _X:FloatProperty;
+      _Y:FloatProperty;
 
-Function VectorAdd2D(Const A,B:Vector2D):Vector2D;
-Function VectorSubtract2D(Const A,B:Vector2D):Vector2D;
+      Function GetVectorValue:Vector2D;
+      Procedure SetVectorValue(const NewValue:Vector2D);
 
+      Procedure UpdateTweens(); Override;
 
-Function VectorAngle3D(Const A,B:Vector3D):Single;
-Function VectorAngle2D(Const A,B:Vector2D):Single;
+    Public
+      Constructor Create(Const Name:TERRAString; Const InitValue:Vector2D);
+      Procedure Release(); Override;
+
+      Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
+      Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Vector2D; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
+
+      Class Function GetObjectType:TERRAString; Override;
+
+      Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
+
+      Function Stringify(Const Val:Vector2D):TERRAString;
+
+      Property X:FloatProperty Read _X;
+      Property Y:FloatProperty Read _Y;
+
+      Property Value:Vector2D Read GetVectorValue Write SetVectorValue;
+  End;
+  
+Function StringToVector2D(S:TERRAString):Vector2D;
+Function Vector2D_Create(Const X,Y:Single):Vector2D;
+
+Function Vector2D_Dot(Const A,B:Vector2D):Single;
+Function Vector2D_Cross(Const A,B:Vector2D):Single;
+
+Function Vector2D_Add(Const A,B:Vector2D):Vector2D;
+Function Vector2D_Subtract(Const A,B:Vector2D):Vector2D;
+
+Function Vector2D_Scale(Const A:Vector2D; Const S:Single):Vector2D;
+Function Vector2D_Lerp(Const A, B:Vector2D; Const Delta:Single):Vector2D;
+
+Function Vector2D_Angle3D(Const A,B:Vector3D):Single;
+Function Vector2D_Angle2D(Const A,B:Vector2D):Single;
+
+Const
+  Vector2D_Zero:  Vector2D = (X:0.0; Y:0.0);
+  Vector2D_One:  Vector2D = (X:1.0; Y:1.0);
+  Vector2D_Up:   Vector2D = (X:0.0; Y:1.0);
 
 Implementation
 {$IFDEF NEON_FPU}Uses TERRA_NEON;{$ENDIF}
 
-Function VectorCreate2D(Const X,Y:Single):Vector2D; {$IFDEF FPC} Inline;{$ENDIF}
+Function StringToVector2D(S:TERRAString):Vector2D;
+Begin
+  Result.X := StringToFloat(StringGetNextSplit(S, '/'));
+  Result.Y := StringToFloat(StringGetNextSplit(S, '/'));
+End;
+
+Function Vector2D_Create(Const X,Y:Single):Vector2D; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result.X := X;
   Result.Y := Y;
 End;
 
-Function VectorCross2D(Const A,B:Vector2D):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Function Vector2D_Dot(Const A,B:Vector2D):Single; {$IFDEF FPC} Inline;{$ENDIF}
+Begin
+  {$IFDEF NEON_FPU}
+  Result := dot2_neon_hfp(@A, @B);
+  {$ELSE}
+  Result := (A.X * B.X) + (A.Y * B.Y);
+  {$ENDIF}
+End;
+
+Function Vector2D_Cross(Const A,B:Vector2D):Single; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result := (A.X * B.Y) - (A.Y * B.X);
 End;
@@ -99,23 +152,35 @@ Begin
   Result := (Self.X = B.X) And (Self.Y = B.Y);
 End;
 
-Function VectorAdd2D(Const A,B:Vector2D):Vector2D;
+Function Vector2D_Add(Const A,B:Vector2D):Vector2D;
 Begin
   Result.X := A.X + B.X;
   Result.Y := A.Y + B.Y;
 End;
 
-Function VectorSubtract2D(Const A,B:Vector2D):Vector2D;
+Function Vector2D_Subtract(Const A,B:Vector2D):Vector2D;
 Begin
   Result.X := A.X - B.X;
   Result.Y := A.Y - B.Y;
+End;
+
+Function Vector2D_Scale(Const A:Vector2D; Const S:Single):Vector2D;
+Begin
+  Result.X := A.X * S;
+  Result.Y := A.Y * S;
+End;
+
+Function Vector2D_Lerp(Const A, B:Vector2D; Const Delta:Single):Vector2D;
+Begin
+  Result.X := A.X + Delta * (B.X - A.X);
+  Result.Y := A.Y + Delta * (B.Y - A.Y);
 End;
 
 Procedure Vector2D.Project(Const V:Vector2D);
 Var
   thisDotV:Single;
 Begin
-  thisDotV := Self.Dot(V);
+  thisDotV := Vector2D_Dot(Self, V);
   Self.X := V.X * thisDotV;
   Self.Y := V.Y * thisDotV;
 End;
@@ -211,12 +276,17 @@ End;
 {$IFDEF BENCHMARK} {$UNDEF SSE} {$ENDIF}
 
 {$IFNDEF SSE}
+Function Vector2D.LengthSquared:Single;
+Begin
+  Result := Sqr(X)+Sqr(Y);
+End;
+
 Function Vector2D.Length:Single;
 Begin
     {$IFDEF OXYGENE}
-  Result := System.Math.Sqrt((X*X)+(Y*Y));
+  Result := System.Math.Sqrt(Self.LengthSquared);
     {$ELSE}
-  Result := Sqrt(Sqr(X)+Sqr(Y));
+  Result := Sqrt(Self.LengthSquared);
     {$ENDIF}
 End;
 
@@ -241,18 +311,9 @@ Begin
   K := Length;
   If (K<=1.0) Then
     Exit;
-    
+
   X := X / K;
   Y := Y / K;
-End;
-
-Function Vector2D.Dot(B:Vector2D):Single;
-Begin
-  {$IFDEF NEON_FPU}
-  Result := dot2_neon_hfp(@Self,@B);
-  {$ELSE}
-  Result := (Self.X * B.X) + (Self.Y * B.Y);
-  {$ENDIF}
 End;
 
 {$IFDEF OXYGENE}
@@ -263,7 +324,7 @@ Begin
 End;
 {$ENDIF}
 
-Function VectorAngle2D(Const A,B:Vector2D):Single;
+Function Vector2D_Angle2D(Const A,B:Vector2D):Single;
 Var
   XDiff, YDiff: Single;
   fpAngle: Single;
@@ -277,13 +338,92 @@ begin
   Result := fpAngle + 90*RAD;
 End;
 
-Function VectorAngle3D(Const A,B:Vector3D):Single;
+Function Vector2D_Angle3D(Const A,B:Vector3D):Single;
 Var
   PA, PB:Vector2D;
 Begin
-  PA := VectorCreate2D(A.X, A.Z);
-  PB   := VectorCreate2D(B.X, B.Z);
-  Result := VectorAngle2D(PA, PB);
+  PA := Vector2D_Create(A.X, A.Z);
+  PB   := Vector2D_Create(B.X, B.Z);
+  Result := Vector2D_Angle2D(PA, PB);
 End;
+
+
+{ Vector2DProperty }
+Constructor Vector2DProperty.Create(Const Name:TERRAString; const InitValue: Vector2D);
+Begin
+  _ObjectName := Name;
+  _X := FloatProperty.Create('x', InitValue.X);
+  _Y := FloatProperty.Create('y', InitValue.Y);
+End;
+
+Procedure Vector2DProperty.Release;
+Begin
+  ReleaseObject(_X);
+  ReleaseObject(_Y);
+End;
+
+(*Function Vector2DProperty.GetBlob: TERRAString;
+Begin
+  Result := X.GetBlob() + '/'+ Y.GetBlob();
+End;
+
+Procedure Vector2DProperty.SetBlob(const Blob: TERRAString);
+Var
+  S:TERRAString;
+Begin
+  S := Blob;
+  X.SetBlob(StringGetNextSplit(S, Ord('/')));
+  Y.SetBlob(StringGetNextSplit(S, Ord('/')));
+End;*)
+
+Function Vector2DProperty.GetVectorValue: Vector2D;
+Begin
+  Result.X := X.Value;
+  Result.Y := Y.Value;
+End;
+
+Procedure Vector2DProperty.SetVectorValue(const NewValue: Vector2D);
+Begin
+  X.Value := NewValue.X;
+  Y.Value := NewValue.Y;
+End;
+
+Class Function Vector2DProperty.GetObjectType: TERRAString;
+Begin
+  Result := 'vec2';
+End;
+
+Procedure Vector2DProperty.AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
+Begin
+  Self.AddTween(Ease, StringToVector2D(StartValue), StringToVector2D(TargetValue), Duration, Delay, Callback, CallTarget);
+End;
+
+Procedure Vector2DProperty.AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:Vector2D; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
+Begin
+  Self.X.AddTween(Ease, StartValue.X, TargetValue.X, Duration, Delay, Callback, CallTarget);
+  Self.Y.AddTween(Ease, StartValue.Y, TargetValue.Y, Duration, Delay, Nil);
+End;
+
+Function Vector2DProperty.GetPropertyByIndex(Index: Integer): TERRAObject;
+Begin
+  Case Index Of
+  0:  Result := X;
+  1:  Result := Y;
+  Else
+    Result := Nil;
+  End;
+End;
+
+Procedure Vector2DProperty.UpdateTweens;
+Begin
+  X.UpdateTweens();
+  Y.UpdateTweens();
+End;
+
+Function Vector2DProperty.Stringify(Const Val:Vector2D):TERRAString;
+Begin
+  Result := FloatProperty.Stringify(Val.X) + '/'+ FloatProperty.Stringify(Val.Y);
+End;
+
 
 End.

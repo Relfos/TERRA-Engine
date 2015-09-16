@@ -2,7 +2,7 @@ Unit TERRA_Steam;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Application, SteamAPI, SteamCallback;
+Uses TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Math, TERRA_Application, SteamAPI, SteamCallback;
 
 Type
   SteamAchievement = Class(TERRAObject)
@@ -50,7 +50,7 @@ Type
       Procedure Post(Const Value:Integer);
   End;
 
-  SteamManager = Class(ApplicationComponent)
+  SteamManager = Class(TERRAObject)
     Protected
       _Loaded:Boolean;
       _Running:Boolean;
@@ -58,8 +58,6 @@ Type
 
       _StatsRequested:Boolean;
       _StoreStats:Boolean;
-
-      _HasController:Boolean;
 
       _SteamID:TERRAString;
       _AppID:TERRAString;
@@ -78,10 +76,8 @@ Type
       Procedure OnUserStats(P:Pointer);
 
     Public
-      Class Function Instance:SteamManager;
-
-      Procedure Update; Override;
-      Procedure Init; Override;
+      Constructor Create();
+      Procedure Update;
 
       Function GetAchievement(Const AchID:TERRAString):SteamAchievement;
       Function AddAchievement(Const AchID:TERRAString):SteamAchievement;
@@ -103,33 +99,20 @@ Type
 
 
 Implementation
-Uses TERRA_OS, TERRA_Log, TERRA_GraphicsManager, TERRA_FileManager;
-
-Var
-  _Steam_Instance:ApplicationObject = Nil;
-
+Uses TERRA_OS, TERRA_Log, TERRA_Engine, TERRA_GraphicsManager, TERRA_FileManager;
 
 { Steam }
-Class Function SteamManager.Instance:SteamManager;
-Begin
-  If _Steam_Instance = Nil Then
-    _Steam_Instance := InitializeApplicationComponent(SteamManager, Nil);
-
-  Result := SteamManager(_Steam_Instance.Instance);
-End;
-
-Procedure SteamManager.Init;
+Constructor SteamManager.Create();
 Var
-   ControllerPath:TERRAString;
    CurrentAppID:Cardinal;
 Begin
   _LoggedOn := False;
 
-  Log(logDebug, 'Steam', 'Trying to load Steam library...');
+  Engine.Log.Write(logDebug, 'Steam', 'Trying to load Steam library...');
   _Loaded := LoadSteamAPI();
   If Not _Loaded Then
   Begin
-    Log(logWarning, 'Steam', 'Failed to hook into Steam...');
+    Engine.Log.Write(logWarning, 'Steam', 'Failed to hook into Steam...');
     _Running := False;
     Exit;
   End;
@@ -148,26 +131,18 @@ Begin
   End;
 
   _AppID := CardinalToString(CurrentAppID);
-  Log(logDebug, 'Steam', 'App ID: '+ _AppID);
+  Engine.Log.Write(logDebug, 'Steam', 'App ID: '+ _AppID);
 
   _SteamID := UInt64ToString(ISteamUser_GetSteamID());
-  Log(logDebug, 'Steam', 'User ID: '+ _SteamID);
+  Engine.Log.Write(logDebug, 'Steam', 'User ID: '+ _SteamID);
 
   _UserName := ISteamFriends_GetPersonaName();
-  Log(logDebug, 'Steam', 'Username: '+ _UserName);
+  Engine.Log.Write(logDebug, 'Steam', 'Username: '+ _UserName);
 
   _Language := ISteamApps_GetCurrentGameLanguage();
   If _Language = '' Then
     _Language := Application.Instance.Language;
-  Log(logDebug, 'Steam', 'Language: '+ _Language);
-
-
-  ControllerPath := FileManager.Instance.SearchResourceFile('controller.vdf');
-  _HasController := (ControllerPath<>'');
-  If (_HasController) Then
-  Begin
-       _HasController := ISteamController_Init(PAnsiChar(ControllerPath));
-  End;
+  Engine.Log.Write(logDebug, 'Steam', 'Language: '+ _Language);
 
   //_LicenseResult := ISteamGameServer_UserHasLicenseForApp(steamID:SteamID; appID:SteamAppId):
 End;
@@ -178,11 +153,6 @@ Var
 Begin
   If _Running Then
   Begin
-    If (_HasController) Then
-    Begin
-         ISteamController_Shutdown();
-    End;
-
     _Running := False;
     SteamAPI_Shutdown();
   End;
@@ -193,8 +163,6 @@ Begin
 
   For I:=0 To Pred(_StatCount) Do
     ReleaseObject(_Stats[I]);
-
-  _Steam_Instance := Nil;
 End;
 
 Procedure SteamManager.Update;
@@ -248,7 +216,7 @@ Begin
   If GameID<> Self.AppID Then
     Exit;
 
-  Log(logDebug, 'Steam', 'Received stats, with return code '+CardinalToString(Info.Result));
+  Engine.Log.Write(logDebug, 'Steam', 'Received stats, with return code '+CardinalToString(Info.Result));
 
   // load achievements
 
@@ -280,12 +248,12 @@ Begin
     _Name := ISteamUserStats_GetAchievementDisplayAttribute(PAnsiChar(_ID), 'name');
 		_Description := ISteamUserStats_GetAchievementDisplayAttribute(PAnsiChar(_ID), 'desc');
   End Else
-    Log(logWarning, 'Steam', 'GetAchievement failed for Achievement ' + _ID);
+    Engine.Log.Write(logWarning, 'Steam', 'GetAchievement failed for Achievement ' + _ID);
 End;
 
 Function SteamAchievement.Unlock():Boolean;
 Begin
-  If (_Achieved) Or (Not SteamManager.Instance._LoggedOn) Then
+  If (_Achieved) Or (Not Engine.Steam._LoggedOn) Then
   Begin
     Result := False;
     Exit;
@@ -300,7 +268,7 @@ Begin
   ISteamUserStats_SetAchievement(PAnsiChar(ID));
 
  // Store stats end of frame
-  SteamManager.Instance._StoreStats := True;
+  Engine.Steam._StoreStats := True;
 
   Result := True;
 End;
@@ -384,7 +352,7 @@ End;
 Procedure SteamStat.Load;
 Begin
   ISteamUserStats_GetStatInt(PAnsiChar(_ID), _Value);
-  Log(logDebug, 'Steam', 'Stat '+_ID + ' = ' + IntToString(_Value));
+  Engine.Log.Write(logDebug, 'Steam', 'Stat '+_ID + ' = ' +  IntegerProperty.Stringify(_Value));
 End;
 
 
@@ -392,11 +360,11 @@ Procedure SteamStat.SetValue(const Val: Integer);
 Begin  
   _Value := Val;
 
-  If (Not SteamManager.Instance._LoggedOn) Then
+  If (Not Engine.Steam._LoggedOn) Then
     Exit;
 
   ISteamUserStats_SetStatInt(PAnsiChar(_ID), _Value);
-  SteamManager.Instance._StoreStats := True;
+  Engine.Steam._StoreStats := True;
 End;
 
 { SteamLeaderboard }

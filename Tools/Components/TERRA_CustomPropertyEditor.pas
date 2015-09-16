@@ -1,18 +1,27 @@
 unit TERRA_CustomPropertyEditor;
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
 interface
 
-uses SysUtils, Classes, Messages, ExtCtrls, Controls, StdCtrls,
+uses
+{$IFnDEF FPC}
+  Windows,
+{$ELSE}
+  LCLIntf, LCLType, LMessages,
+{$ENDIF}
+  SysUtils, Classes, Messages, ExtCtrls, Controls, StdCtrls,
   Dialogs, Graphics, Buttons,
-  TERRA_String, TERRA_Object, TERRA_Utils, TERRA_OS, TERRA_Color, TERRA_VCLApplication;
+  TERRA_String, TERRA_Object, TERRA_Utils, TERRA_OS, TERRA_Color, TERRA_VCLApplication,
+  TERRA_EngineManager, TERRA_FileManager, TERRA_FileUtils, TERRA_EnumProperty, TERRA_DataSource, TERRA_Math;
 
 Const
-  MarginTop = 10;
+  MarginTop = 30;
   MarginSide = 10;
   ExpandSize = 15;
   CellHeight = 25;
-  MarginColor = TColor($DDDDDD);
-
 
 type
   TCustomPropertyEditor = Class;
@@ -27,7 +36,7 @@ type
 
       _Label:TLabel;
       _Editor:TControl;
-      _Expand:TSpeedButton;
+      _Expand:TPanel;
 
       Function CreateEditor():TControl; Virtual; Abstract;
       Procedure Update(); Virtual; Abstract;
@@ -41,6 +50,8 @@ type
       Procedure Release(); Override;
 
       Procedure SetVisible(Value:Boolean);
+
+      Property Prop:TERRAObject Read _Prop;
   End;
 
   TPropertyCellType = Class Of TPropertyCell;
@@ -50,10 +61,18 @@ type
       _Edit:TEdit;
 
       Function CreateEditor():TControl; Override;
-      Procedure Update(); Override;
 
-      Procedure OnKeyDown(Sender:TObject; var Key: Word; Shift: TShiftState);
-      Procedure OnChange(Sender:TObject);
+      //Procedure OnKeyDown(Sender:TObject; var Key: Word; Shift: TShiftState);
+      Procedure OnChange(Sender:TObject); Virtual;
+
+    Public
+      Procedure Update(); Override;
+  End;
+
+  TAngleCell = Class(TTextCell)
+    Protected
+      Procedure Update(); Override;
+      Procedure OnChange(Sender:TObject); Override;
   End;
 
   TColorCell = Class(TPropertyCell)
@@ -62,9 +81,10 @@ type
       _Dialog:TColorDialog;
 
       Function CreateEditor():TControl; Override;
-      Procedure Update(); Override;
-
       Procedure OnMouseDown(Sender: TObject; Button: TMouseButton; Shift:TShiftState; X, Y: Integer);
+
+    Public
+      Procedure Update(); Override;
   End;
 
   TBooleanCell = Class(TPropertyCell)
@@ -72,9 +92,48 @@ type
       _Check:TCheckbox;
 
       Function CreateEditor():TControl; Override;
-      Procedure Update(); Override;
 
       Procedure OnClick(Sender: TObject);
+
+    Public
+      Procedure Update(); Override;
+  End;
+
+  TTextureCell = Class(TPropertyCell)
+    Protected
+      _Name:TLabel;
+      _Dialog:TOpenDialog;
+
+      Function CreateEditor():TControl; Override;
+
+      Procedure OnClick(Sender: TObject);
+
+    Public
+      Procedure Update(); Override;
+  End;
+
+  TEnumCell = Class(TPropertyCell)
+    Protected
+      _List:TComboBox;
+
+      Function CreateEditor():TControl; Override;
+
+      Procedure OnClick(Sender: TObject);
+
+    Public
+      Procedure Update(); Override;
+  End;
+
+  TDataSourceCell = Class(TPropertyCell)
+    Protected
+      _Name:TLabel;
+
+      Function CreateEditor():TControl; Override;
+
+      Procedure OnClick(Sender: TObject);
+
+    Public
+      Procedure Update(); Override;
   End;
 
   TCustomPropertyEditor = class(TPanel)
@@ -85,7 +144,18 @@ type
       _Cells:Array Of TPropertyCell;
       _CellCount:Integer;
 
+      _MarginColor:TColor;
+      _EditColor:TColor;
+
+      _ScrollRow:Integer;
+
+//      _Scroll:TScrollBar;
+
       procedure SetTarget(Target: TERRAObject);
+      procedure SetMarginColor(const Value: TColor);
+      procedure SetEditColor(const Value: TColor);
+
+      Procedure HideRecursive(Prop:TERRAObject; Value:Boolean);
 
     protected
 
@@ -108,6 +178,8 @@ type
 
       Procedure RequestUpdate();
 
+      Function DoMouseWheelDown(Shift: TShiftState; MousePos: TPoint): Boolean; override;
+      Function DoMouseWheelUp(Shift: TShiftState; MousePos: TPoint): Boolean; override;
 
       Property Target:TERRAObject Read _Target Write SetTarget;
 
@@ -125,7 +197,13 @@ type
     property Caption;
     property Color;
     property Constraints;
+    {$IFNDEF FPC}
     property Ctl3D;
+    property Locked;
+    property ParentBackground;
+    property ParentCtl3D;
+    property OnCanResize;
+    {$ENDIF}
     property UseDockManager default True;
     property DockSite;
     property DragCursor;
@@ -133,12 +211,13 @@ type
     property DragMode;
     property Enabled;
     property FullRepaint;
+
     property Font;
-    property Locked;
+
     property ParentBiDiMode;
-    property ParentBackground;
+
     property ParentColor;
-    property ParentCtl3D;
+
     property ParentFont;
     property ParentShowHint;
     property PopupMenu;
@@ -146,7 +225,7 @@ type
     property TabOrder;
     property TabStop;
     property Visible;
-    property OnCanResize;
+
     property OnClick;
     property OnConstrainedResize;
     property OnContextPopup;
@@ -167,6 +246,10 @@ type
     property OnStartDock;
     property OnStartDrag;
     property OnUnDock;
+
+      Property MarginColor:TColor Read _MarginColor Write SetMarginColor;
+      Property EditColor:TColor Read _EditColor Write SetEditColor;
+
 //    property OnValidate: TOnValidateEvent read FOnValidate write FOnValidate;
   end;
 
@@ -174,7 +257,7 @@ type
 procedure Register;
 
 implementation
-uses Forms, TypInfo, Variants, Consts;
+uses Forms, TypInfo, Variants, {$IFNDEF FPC}Consts,{$ENDIF} DataSourceBrowser;
 
 
 procedure Register;
@@ -190,12 +273,18 @@ begin
   Width := 306;
   Height := 300;
 
+(*  _Scroll := TScrollBar.Create(Self);
+  _Scroll.Align := alClient;
+  _Scroll.Kind := sbVertical;*)
+
+  (*
   _Bevel := TBevel.Create(Self);
   _Bevel.Parent := Self;
   _Bevel.Width := 20;
   _Bevel.Height := Height;
   _Bevel.Top := 10;
-  _Bevel.Left := Width Div 2;
+  _Bevel.Left := Width Div 2;*)
+
  // _Bevel.Shape := bsLeftLine;
 end;
 
@@ -211,16 +300,14 @@ Begin
     If Prop = Nil Then
       Break;
 
-    S := Prop.GetBlob();
+    (*S := Prop.GetBlob();
     If S<>'' Then
     Begin
       Self.InsertRow(Parent, Prop);
-    End;
+    End;*)
 
-    If Not Prop.IsValueObject() Then
-    Begin
-      AddPropertiesFromObject(Prop, Prop);
-    End;
+    Self.InsertRow(Parent, Prop);
+    AddPropertiesFromObject(Prop, Prop);
 
     Inc(Index);
   Until False;
@@ -232,10 +319,10 @@ Begin
     Self.Clear();
 
   _Target := Target;
-  If Target = Nil Then
-    Exit;
+  If Assigned(Target) Then
+    AddPropertiesFromObject(Nil, Target);
 
-  AddPropertiesFromObject(Nil, Target);
+  Self.Repaint();
 End;
 
 Procedure TCustomPropertyEditor.InsertRow(Parent, Prop: TERRAObject);
@@ -251,6 +338,18 @@ Begin
   Else
   If StringEquals(S, 'bool') Then
     CellType := TBooleanCell
+  Else
+  If StringEquals(S, 'texture') Then
+    CellType := TTextureCell
+  Else
+  If StringEquals(S, 'angle') Then
+    CellType := TAngleCell
+  Else
+  If StringEquals(S, 'datasource') Then
+    CellType := TDataSourceCell
+  Else
+  If StringEquals(S, 'enum') Then
+    CellType := TEnumCell
   Else
     CellType := TTextCell;
 
@@ -269,44 +368,59 @@ begin
     ReleaseObject(_Cells[I]);
 
   _CellCount := 0;
-
-  Self.Repaint();
+  _ScrollRow := 0;
 end;
 
 procedure TCustomPropertyEditor.Paint;
 Var
-  I, N, MidW, H:Integer;
+  I, N, MidW, TW, H, FY:Integer;
+  S:TERRAString;
 begin
-  inherited;
-
-  If _CellCount<=0 Then
-    Exit;
+//  inherited;
 
   MidW := GetMiddle();
 
+  Canvas.Brush.Style := bsSolid;
+  Canvas.Brush.Color := Self.Color;
+  Canvas.Rectangle(0, 0, Self.Width, Self.Height);
+
   Canvas.Pen.Style := psDash;
   Canvas.Pen.Color := MarginColor;
-  Canvas.Pen.Width := 2;
-
-  Canvas.MoveTo(MidW, 0);
-  Canvas.LineTo(MidW, Self.Height);
 
   //Canvas.Pen.Style := psDot;
   Canvas.Pen.Width := 1;
 
-  N := 0;
+  N := -_ScrollRow;
   For I:=0 To Pred(_CellCount) Do
   Begin
     If Not _Cells[I]._Visible Then
       Continue;
 
-    H := (MarginTop Shr 1) + Succ(N) * CellHeight;
+    H := MarginTop + N * CellHeight - (CellHeight Shr 2);
     Canvas.MoveTo(0, H);
     Canvas.LineTo(Self.Width, H);
-
     Inc(N);
+
+    If I = 0 Then
+      FY := H;
   End;
-end;
+
+  H := MarginTop + N * CellHeight - (CellHeight Shr 2);
+  Canvas.MoveTo(0, H);
+  Canvas.LineTo(Self.Width, H);
+
+  Canvas.Pen.Width := 2;
+  Canvas.MoveTo(MidW, FY);
+  Canvas.LineTo(MidW, Self.Height);
+
+  If (Assigned(_Target)) And (_ScrollRow=0) Then
+  Begin
+    Canvas.Font.Color := Self.Font.Color;
+    S := _Target.Name + ' ('+_Target.GetObjectType()+')';
+    TW := Canvas.TextWidth(S);
+    Canvas.TextOut(MidW -  (TW Shr 1), 5, S);
+  End;
+End;
 
 function TCustomPropertyEditor.GetMiddle: Integer;
 begin
@@ -331,8 +445,16 @@ procedure TCustomPropertyEditor.RequestUpdate;
 Var
   I:Integer;
 begin
+(*  _Scroll.Width := 50;
+  _Scroll.Height := Self.Height;
+  _Scroll.Left := Self.Left;
+  _Scroll.Top := Self.Top;
+  _Scroll.Visible := True;*)
+
   For I:=0 To Pred(_CellCount) Do
     _Cells[I].Update();
+
+  Self.Repaint();
 end;
 
 function TCustomPropertyEditor.FindCell(Prop: TERRAObject): TPropertyCell;
@@ -347,6 +469,76 @@ begin
   End;
   Result := Nil;
 end;
+
+procedure TCustomPropertyEditor.SetMarginColor(const Value: TColor);
+begin
+  _MarginColor := Value;
+  Self.Repaint();
+end;
+
+procedure TCustomPropertyEditor.SetEditColor(const Value: TColor);
+begin
+  _EditColor := Value;
+  Self.Repaint();
+end;
+
+function TCustomPropertyEditor.DoMouseWheelDown(Shift: TShiftState; MousePos: TPoint): Boolean;
+begin
+  Result := inherited DoMouseWheelDown(Shift, MousePos);
+  if not Result then
+  begin
+    if _ScrollRow < Pred(Self._CellCount) then
+    Begin
+      Inc(_ScrollRow);
+      Self.Resize();
+      Self.Repaint();
+    End;
+
+    Result := True;
+  end;
+end;
+
+function TCustomPropertyEditor.DoMouseWheelUp(Shift: TShiftState; MousePos: TPoint): Boolean;
+begin
+  Result := inherited DoMouseWheelUp(Shift, MousePos);
+  if not Result then
+  begin
+    if _ScrollRow > 0 then
+    Begin
+      Dec(_ScrollRow);
+      Self.Resize();
+      Self.Repaint();
+    End;
+
+    Result := True;
+  end;
+end;
+
+procedure TCustomPropertyEditor.HideRecursive(Prop: TERRAObject; Value:Boolean);
+Var
+  I:Integer;
+  SubProp:TERRAObject;
+Begin
+  For I:=0 To Pred(_CellCount) Do
+  If (_Cells[I]._Parent = Prop) Then
+  Begin
+    _Cells[I].SetVisible(Value);
+  End;
+
+  If Value Then
+    Exit;
+
+  I := 0;
+  Repeat
+    SubProp := Prop.GetPropertyByIndex(I);
+    If (SubProp = Nil) Then
+      Break;
+
+    Self.HideRecursive(SubProp, Value);
+
+    Inc(I);
+  Until False;
+End;
 
 { TPropertyCell }
 Constructor TPropertyCell.Create(Owner:TCustomPropertyEditor; Parent, Prop: TERRAObject);
@@ -365,20 +557,26 @@ Begin
 
   _Label := TLabel.Create(Owner);
   _Label.Parent := Owner;
-  _Label.Caption := Prop.ObjectName;
+  _Label.Caption := Prop.Name;
+  _Label.Transparent := True;
 
   _Editor := Self.CreateEditor();
   _Editor.Parent := _Owner;
   // Chk.Anchors :=  [akLeft, akTop, akRight, akBottom];
 
-  If (Not _Prop.IsValueObject()) Then
+  If (Assigned(_Prop.GetPropertyByIndex(1))) Then
   Begin
-    _Expand := TSpeedButton.Create(_Owner);
+    _Expand := TPanel.Create(_Owner);
     _Expand.Parent := _Owner;
     _Expand.Width := ExpandSize;
     _Expand.Height := _Expand.Width;
     _Expand.Caption := '+';
+    _Expand.Color := _Owner.Color;
+    {$IFNDEF FPC}
+    _Expand.Ctl3D := False;
+    {$ENDIF}
     _Expand.OnMouseDown := ExpandProps;
+    _Expand.Cursor := crHandPoint;
   End Else
     _Expand := Nil;
 
@@ -400,11 +598,7 @@ Begin
   Else
     _Expand.Caption := '+';
 
-  For I:=0 To Pred(_Owner._CellCount) Do
-  If (_Owner._Cells[I]._Parent = Self._Prop) Then
-  Begin
-    _Owner._Cells[I].SetVisible(Value);
-  End;
+  _Owner.HideRecursive(Self._Prop, Value);
 
   _Owner.RequestUpdate();
   _Owner.Resize();
@@ -420,7 +614,7 @@ End;
 procedure TPropertyCell.Resize;
 begin
   _Label.Left := 10;
-  _Label.Top := MarginTop + _Index * CellHeight;
+  _Label.Top := MarginTop + (_Index - _Owner._ScrollRow) * CellHeight;
 
   _Editor.Top := _Label.Top;
   _Editor.Left := _Owner.GetMiddle() + MarginSide;
@@ -452,7 +646,10 @@ Function TTextCell.CreateEditor: TControl;
 Begin
   _Edit := TEdit.Create(_Owner);
   //_Edit.OnKeyDown := Self.OnKeyDown;
+  _Edit.Color := _Owner.EditColor;
+  _Edit.Font.Color := clWhite;
   _Edit.OnChange := Self.OnChange;
+  _Edit.Cursor := crIBeam;
   Result := _Edit;
 End;
 
@@ -461,17 +658,32 @@ begin
   _Prop.SetBlob(_Edit.Text);
 end;
 
-procedure TTextCell.OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+(*procedure TTextCell.OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
   If Key<>keyEnter Then
     Exit;
 
   _Prop.SetBlob(_Edit.Text);
-end;
+end;*)
 
 Procedure TTextCell.Update;
 Begin
   _Edit.Text := _Prop.GetBlob();
+End;
+
+
+{ TAngleCell }
+Procedure TAngleCell.OnChange(Sender: TObject);
+Begin
+  _Prop.SetBlob(FloatProperty.Stringify(StringToFloat(_Edit.Text) * RAD));
+End;
+
+Procedure TAngleCell.Update;
+Var
+  Angle:Single;
+Begin
+  Angle := Round(StringToFloat(_Prop.GetBlob()) * DEG * 100) Div 100;
+  _Edit.Text := FloatProperty.Stringify(Angle);
 End;
 
 { TColorCell }
@@ -482,12 +694,14 @@ Begin
   _Shape.Width := CellHeight - 10;
   _Shape.Height := _Shape.Width;
   _Shape.OnMouseDown := Self.OnMouseDown;
+  _Shape.Cursor := crHandPoint;
+
   Result := _Shape;
 End;
 
 procedure TColorCell.OnMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 Var
-  C:Color;
+  C:ColorRGBA;
 begin
   If _Dialog = Nil Then
   Begin
@@ -498,7 +712,7 @@ begin
   If _Dialog.Execute Then
   Begin
     C := TERRAColorPack(_Dialog.Color);
-    _Prop.SetBlob(TERRA_Color.ColorToString(C));
+    _Prop.SetBlob(ColorProperty.Stringify(C));
     _Owner.RequestUpdate();
   End;
 end;
@@ -516,6 +730,8 @@ Function TBooleanCell.CreateEditor: TControl;
 Begin
   _Check := TCheckbox.Create(_Owner);
   _Check.OnClick := OnClick;
+  _Check.Caption := '';
+  _Check.Color := _Owner.Color;
   Result := _Check;
 End;
 
@@ -529,4 +745,93 @@ begin
   _Prop.SetBlob(BoolToString(_Check.Checked));
 end;
 
+{ TTextureCell }
+Function TTextureCell.CreateEditor: TControl;
+Begin
+  _Name := TLabel.Create(_Owner);
+  _Name.OnClick := Self.OnClick;
+  _Name.Color := _Owner.EditColor;
+  _Name.Font.Color := clWhite;
+  _Name.Cursor := crHandPoint;
+  Result := _Name;
+End;
+
+Procedure TTextureCell.OnClick(Sender: TObject);
+Begin
+  If _Dialog = Nil Then
+  Begin
+    _Dialog := TOpenDialog.Create(_Owner);
+    _Dialog.Options := [ofNoChangeDir, ofPathMustExist, ofFileMustExist];
+  End;
+
+  //_Dialog.Color :=
+  If _Dialog.Execute Then
+  Begin
+    Engine.Files.AddFolder(GetFilePath(_Dialog.FileName));
+    _Prop.SetBlob(_Dialog.FileName);
+    _Owner.RequestUpdate();
+  End;
+End;
+
+Procedure TTextureCell.Update;
+Begin
+  _Name.Caption := _Prop.GetBlob();
+End;
+
+{ TEnumCell }
+Function TEnumCell.CreateEditor: TControl;
+Begin
+  _List := TComboBox.Create(_Owner);
+  _List.OnClick := Self.OnClick;
+  _List.Color := _Owner.EditColor;
+  _List.Style := csDropDownList;
+  _List.Font.Color := clWhite;
+  _List.Cursor := crHandPoint;
+  Result := _List;
+End;
+
+Procedure TEnumCell.Update;
+Var
+  I:Integer;
+  Enum:EnumProperty;
+Begin
+  If (_List.Items.Count<=0) Then
+  Begin
+    Enum := EnumProperty(Self._Prop);
+    For I:=0 To Pred(Enum.Collection.Count) Do
+      _List.Items.Add(Enum.Collection.GetByIndex(I));
+
+    _List.ItemIndex := Enum.Collection.GetByName(_Prop.GetBlob());
+  End;
+End;
+
+Procedure TEnumCell.OnClick(Sender: TObject);
+Begin
+  _Prop.SetBlob(_List.Items[_List.ItemIndex]);
+End;
+
+{ TDataSourceCell }
+Function TDataSourceCell.CreateEditor: TControl;
+Begin
+  _Name := TLabel.Create(_Owner);
+  _Name.OnClick := Self.OnClick;
+  _Name.Color := _Owner.EditColor;
+  _Name.Font.Color := clWhite;
+  _Name.Cursor := crHandPoint;
+
+  Result := Self._Name;
+End;
+
+Procedure TDataSourceCell.OnClick(Sender: TObject);
+Begin
+  DataSourceBrowserForm.ShowWithTarget(Self);
+End;
+
+Procedure TDataSourceCell.Update;
+Begin
+  _Name.Caption := _Prop.GetBlob();
+End;
+
+
 end.
+

@@ -27,7 +27,7 @@ Unit TERRA_ParticleEmitters;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_ParticleRenderer;
+Uses TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Stream, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_ParticleRenderer;
 
 Const
   particleEmitterSphere   = 0;
@@ -101,7 +101,7 @@ Type
 
       Procedure SetGroupPercent(Const ID, Value:Integer);
 
-      Procedure Load(Source:Stream);
+      Procedure Load(Source:TERRAStream);
 
       Procedure Emit(Target:Particle); Override;
       Function GetParticleCount: Integer; Override;
@@ -110,7 +110,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_OS, TERRA_Math, TERRA_GraphicsManager, TERRA_Renderer, TERRA_FileManager, TERRA_INI;
+Uses TERRA_OS, TERRA_Math, TERRA_GraphicsManager, TERRA_Engine, TERRA_Renderer, TERRA_FileManager;
 
 { ParticleSettingsEmitter }
 Procedure ParticleSettingsEmitter.Copy(Source: ParticleSettingsEmitter);
@@ -135,14 +135,14 @@ End;
 Constructor ParticleSettingsEmitter.Create(Const FXName:TERRAString; Position:Vector3D);
 Var
   S:TERRAString;
-  Source:Stream;
+  Source:TERRAStream;
 Begin
   _Position := Position;
   _GroupCount := 0;
   _NeedsShuffle := True;
 
   S := FXName + '.fx';
-  Source := FileManager.Instance.OpenStream(S);
+  Source := Engine.Files.OpenFile(S);
   If Assigned(Source) Then
   Begin
     Self.Load(Source);
@@ -159,7 +159,7 @@ Begin
     Inc(Result, _Groups[I].GetParticleCount);
 End;
 
-Procedure ParticleSettingsEmitter.Load(Source: Stream);
+Procedure ParticleSettingsEmitter.Load(Source:TERRAStream);
 Var
   I:Integer;
   S, S2:TERRAString;
@@ -175,12 +175,12 @@ Begin
   _GroupCount := 0;
   While S<>'' Do
   Begin
-    I := StringCharPos(Ord('{'), S);
+    I := StringCharPos('{', S);
     If (I<=0) Then
       Break;
 
     S := StringCopy(S, I + 1, MaxInt);
-    I := StringCharPos(Ord('}'), S);
+    I := StringCharPos('}', S);
     If (I<=0) Then
       I := Succ(StringLength(S));
 
@@ -255,7 +255,7 @@ Var
   Dir:Vector3D;
   Pos, DestPos:Vector3D;
   LinearSpeed:Single;
-  C:Color;
+  C:ColorRGBA;
 Begin
   Group := @(Self._Groups[GetRandomGroup()]);
 
@@ -266,10 +266,10 @@ Begin
 
   Case Group.EmitterMode Of
     particleEmitterCylinder:
-      Pos := VectorScale(VectorCreate(RandomFloat(-1.0, 1.0), 0, RandomFloat(-1.0, 1.0)), Group.SpawnRange);
+      Pos := Vector3D_Scale(Vector3D_Create(RandomFloat(-1.0, 1.0), 0, RandomFloat(-1.0, 1.0)), Group.SpawnRange);
 
     Else
-      Pos := VectorScale(VectorCreate(RandomFloat(-1.0, 1.0), RandomFloat(-1.0, 1.0), RandomFloat(-1.0, 1.0)), Group.SpawnRange);
+      Pos := Vector3D_Scale(Vector3D_Create(RandomFloat(-1.0, 1.0), RandomFloat(-1.0, 1.0), RandomFloat(-1.0, 1.0)), Group.SpawnRange);
   End;
 
   Pos.Add(Self.Position);
@@ -292,7 +292,7 @@ Begin
 
   Target.LinearSpeed.MakeConstant(LinearSpeed);
   {$ELSE}
-  DestPos := VectorAdd(Pos, VectorScale(Dir, Target.Life * LinearSpeed * 0.5));
+  DestPos := Vector3D_Add(Pos, Vector3D_Scale(Dir, Target.Life * LinearSpeed * 0.5));
 
   Target.PosX.AddGraph(Pos.X, DestPos.X, 1.0);
   Target.PosY.AddGraph(Pos.Y, DestPos.Y, 1.0);
@@ -387,8 +387,8 @@ Begin
   MinAlpha := 0.5;
   MaxAlpha := 1.0;
 
-  MinDirection := VectorConstant(-1.0);
-  MaxDirection := VectorConstant(1.0);
+  MinDirection := Vector3D_Constant(-1.0);
+  MaxDirection := Vector3D_Constant(1.0);
 
   MinSpeed := 0.8;
   MaxSpeed := 1.2;
@@ -403,9 +403,8 @@ End;
 Procedure ParticleSettingsEmitterGroup.Load(S:TERRAString);
 Var
   Tex:TERRAString;
-  Parser:INIParser;
 Begin
-  Reset();
+(*  Reset();
   StringReplaceText(#9, '', S);
   Parser := INIParser.Create;
   Parser.AddToken('spawnrange', tkFloat, @SpawnRange);
@@ -473,7 +472,7 @@ Begin
   If (MinAlpha>1.0) Then
     MinAlpha := MinAlpha / 255.0;
   If (MaxAlpha>1.0) Then
-    MaxAlpha := MaxAlpha / 255.0;
+    MaxAlpha := MaxAlpha / 255.0;*)
 End;
 
 Function ParticleSettingsEmitterGroup.GetParticleCount: Integer;

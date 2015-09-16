@@ -46,7 +46,7 @@ Unit TERRA_Threads;
 {$ENDIF}
 
 Interface
-Uses TERRA_Utils, TERRA_Log, TERRA_Application, TERRA_Mutex
+Uses TERRA_Object, TERRA_Utils, TERRA_Log, TERRA_Application, TERRA_Mutex
 {$IFNDEF DISABLETHREADS}
 {$IFDEF WINDOWS},Windows{$ENDIF}
 {$IFDEF ANDROID},TERRA_Java{$ENDIF}
@@ -93,11 +93,11 @@ Const
   DefaultPriority = 0;
 
 Type
-  Task = Class;
+  TERRATask = Class;
 
   TaskGroup = Class(TERRAObject)
     Protected
-      _Tasks:Array Of Task;
+      _Tasks:Array Of TERRATask;
       _TaskCount:Integer;
 
       Function GetProgress():Integer;
@@ -111,7 +111,7 @@ Type
       Property Progress:Integer Read GetProgress;
   End;
 
-  Task = Class(TERRAObject)
+  TERRATask = Class(TERRAObject)
     Protected
 	    _Time:Cardinal;
 	    _Priority:Integer;
@@ -165,15 +165,15 @@ Type
       Procedure Execute; Override;
   End;
 
-  ThreadPool = Class(ApplicationComponent)
+  ThreadPool = Class(TERRAObject)
 	  Protected
 		  _Threads:Array Of TaskDispatcher;
       _MaxThreads:Integer;
 
-		  _PendingTaskList:Array Of Task;
+		  _PendingTaskList:Array Of TERRATask;
       _PendingTaskCount:Integer;
 
-		  _RunningTaskList:Array Of Task;
+		  _RunningTaskList:Array Of TERRATask;
       _RunningTaskCount:Integer;
 
 		  _Active:Boolean;
@@ -186,21 +186,20 @@ Type
       _CriticalSection:CriticalSection;
       _Semaphore:Semaphore;
 
-      Procedure KillTask(MyTask:Task);
+      Procedure KillTask(MyTask:TERRATask);
 
       {$IFNDEF DISABLETHREADS}
       Function AddThreadToPool(MyTask:TERRAObject):Boolean;
       {$ENDIF}
 
 	  Public
-		  Procedure Init; Override;
-
+		  Constructor Create();
 		  Procedure Release; Override;
 
-		  Function GetNextTask:Task;
+		  Function GetNextTask:TERRATask;
 		  Property Active:Boolean Read _Active;
 
-		  Procedure RunTask(MyTask:Task; InBackGround:Boolean = True; Group:TaskGroup = Nil; Priority:Integer = DefaultPriority);
+		  Procedure RunTask(MyTask:TERRATask; InBackGround:Boolean = True; Group:TaskGroup = Nil; Priority:Integer = DefaultPriority);
 		  Function TasksPending:Integer;
 
 		  Procedure CancelTasks;
@@ -208,8 +207,6 @@ Type
       {$IFNDEF DISABLETHREADS}
       Property MainThread:PtrUInt Read _MainThread;
       {$ENDIF}
-
-		  Class Function Instance:ThreadPool;
     End;
 
 {$IFDEF ANDROID}
@@ -217,10 +214,7 @@ Function InternalThreadDispatcher(P:Pointer):Integer; Cdecl;
 {$ENDIF}
 
 Implementation
-Uses TERRA_Error, TERRA_OS;
-
-Var
-  _ThreadPool_Instance:ApplicationObject  = Nil;
+Uses TERRA_Error, TERRA_Engine, TERRA_OS;
 
 {$IFDEF WINDOWS}
 { SyncEvent is an Event handle that is signaled every time a thread wishes to
@@ -242,10 +236,10 @@ Var
 Begin
   T := TERRAThread(P);
 
-  Log(logDebug, 'Threads', 'Running new thread...');
+  Engine.Log.Write(logDebug, 'Threads', 'Running new thread...');
   T.Execute();
 
-  Log(logDebug, 'Threads', 'Thread finished...');
+  Engine.Log.Write(logDebug, 'Threads', 'Thread finished...');
 
   T.Finish();
 
@@ -261,7 +255,7 @@ End;
 { Thread }
 Constructor TERRAThread.Create();
 Begin
-  Log(logDebug, 'Threads', 'Starting thread: '+Self.ClassName);
+  Engine.Log.Write(logDebug, 'Threads', 'Starting thread: '+Self.ClassName);
 {$IFDEF DISABLETHREADS}
   Self.Execute();
 {$ELSE}
@@ -280,10 +274,6 @@ Begin
 {$ENDIF}
 {$ENDIF}
 {$ENDIF}
-
-// SetThreadPriority(_Handle, THREAD_PRIORITY_TIME_CRITICAL);
-//self.Priority := tpTimeCritical;
-
 End;
 
 {$IFDEF USEPASCALTHREADS}
@@ -295,7 +285,7 @@ End;
 
 Procedure TERRAThread.Finish;
 Begin
-  Log(logDebug, 'Thread','Terminating...');
+  Engine.Log.Write(logDebug, 'Thread','Terminating...');
 {$IFNDEF DISABLETHREADS}
   {$IFDEF ANDROID}
   Java_DetachThread();
@@ -329,17 +319,7 @@ Begin
 {$ENDIF}
 End;
 
-Class Function ThreadPool.Instance;
-Begin
-  If (Not Assigned(_ThreadPool_Instance)) Then
-  Begin
-      Log(logDebug, 'ThreadPool','Creating thread pool!');
-    _ThreadPool_Instance := InitializeApplicationComponent(ThreadPool, Nil);
-  End;
-
-  Result := ThreadPool(_ThreadPool_Instance.Instance);
-End;
-
+{ ThreadPool }
 Constructor TaskDispatcher.Create(Parent:ThreadPool);
 Begin
   Self._Pool := Parent;
@@ -349,7 +329,7 @@ End;
 
 Procedure TaskDispatcher.Execute();
 Var
-  MyTask:Task;
+  MyTask:TERRATask;
 Begin
   Repeat
     _Pool._CriticalSection.Lock();
@@ -370,134 +350,7 @@ Begin
   Self.Finish();
 End;
 
-Function ThreadPool.TasksPending:Integer;
-Begin
-	Result := _PendingTaskCount;
-End;
-
-{Function ThreadPool.HasTask(Data:Pointer):Boolean;
-Var
-  I:Integer;
-Begin
-  Result := False;
-  For I:=0 To Pred(Length(_TaskList)) Do
-  If (_TaskList[I].Data = Data) Then
-  Begin
-    Result := True;
-    Exit;
-  End;
-End;
-}
-Procedure ThreadPool.RunTask(MyTask:Task; InBackGround:Boolean; Group:TaskGroup; Priority:Integer);
-Begin
-  If MyTask = Nil Then
-    Exit;
-
-	MyTask._Time := Application.GetTime();
-	MyTask._Priority := Priority;
-
-  {$IFDEF DISABLETHREADS}
-    MyTask.Execute();
-    If Group = Nil Then
-      ReleaseObject(MyTask);
-    Exit;
-  {$ENDIF}
-
-  If Assigned(Group) Then
-  Begin
-    MyTask._Group := Group;
-    Inc(Group._TaskCount);
-    SetLength(Group._Tasks, Group._TaskCount);
-    Group._Tasks[Pred(Group._TaskCount)] := MyTask;
-  End;
-
-  If (Not InBackGround) Then
-  Begin
-    MyTask.Execute();
-    If Group = Nil Then
-      ReleaseObject(MyTask);
-    Exit;
-  End;
-
-  {$IFNDEF DISABLETHREADS}
-  If PtrUInt(GetCurrentThreadId()) <> _MainThread Then
-    Application.Instance.PostCallback(AddThreadToPool, MyTask)
-  Else
-    AddThreadToPool(MyTask);
-  {$ENDIF}
-End;
-
-{$IFNDEF DISABLETHREADS}
-Function ThreadPool.AddThreadToPool(MyTask:TERRAObject):Boolean;
-Begin
-  _CriticalSection.Lock();
-	If (_ThreadCount<_MaxThreads) Then
-	Begin
-		_Threads[_ThreadCount] := TaskDispatcher.Create(Self);
-		Inc(_ThreadCount);
-	End;
-
-  Inc(_PendingTaskCount);
-
-  If (_PendingTaskCount>Length(_PendingTaskList)) Then
-	  SetLength(_PendingTaskList, _PendingTaskCount);
-
-  _PendingTaskList[Pred(_PendingTaskCount)] := Task(MyTask);
-
-	_CriticalSection.Unlock();
-
-  _Semaphore.Signal();
-
-  Result := False;
-End;
-{$ENDIF}
-
-Function ThreadPool.GetNextTask:Task;
-Var
-  HP,k:Cardinal;
-	I, Next:Integer;
-  Temp:Task;
-Begin
-  If (_PendingTaskCount<=0) Then
-  Begin
-    Result := Nil;
-    Exit;
-  End;
-
-	HP := 0;
-	Next := -1;
-	For I:=0 To Pred(_PendingTaskCount) Do
-	Begin
-		k := _PendingTaskList[i]._Time; // - _PendingTaskList[i]._Priority;
-		If (next<0) Or (k<HP) Then
-		Begin
-			HP := k;
-			next := i;
-		End;
-	End;
-
-	If (Next>=0) Then
-	Begin
-    Temp := _PendingTaskList[Next];
-   _PendingTaskList[0] := Temp;
-    _PendingTaskList[Next] := Temp;
-
-		Result := _PendingTaskList[0];
-    For I:=0 To _PendingTaskCount - 2 Do
-		  _PendingTaskList[I] := _PendingTaskList[I+1];
-
-    Inc(_RunningTaskCount);
-    If _RunningTaskCount>Length(_RunningTaskList) Then
-      SetLength(_RunningTaskList, _RunningTaskCount);
-
-    _RunningTaskList[Pred(_RunningTaskCount)] := Result;
-
-    Dec(_PendingTaskCount);
-	End Else
-		Result := Nil;
-End;
-
-Procedure ThreadPool.Init;
+Constructor ThreadPool.Create();
 Var
   I:Integer;
 Begin
@@ -569,11 +422,137 @@ Begin
 
   ReleaseObject(_CriticalSection);
   ReleaseObject(_Semaphore);
-
-  _ThreadPool_Instance := Nil;
 End;
 
-Procedure ThreadPool.KillTask(MyTask: Task);
+Function ThreadPool.TasksPending:Integer;
+Begin
+	Result := _PendingTaskCount;
+End;
+
+{Function ThreadPool.HasTask(Data:Pointer):Boolean;
+Var
+  I:Integer;
+Begin
+  Result := False;
+  For I:=0 To Pred(Length(_TaskList)) Do
+  If (_TaskList[I].Data = Data) Then
+  Begin
+    Result := True;
+    Exit;
+  End;
+End;
+}
+Procedure ThreadPool.RunTask(MyTask:TERRATask; InBackGround:Boolean; Group:TaskGroup; Priority:Integer);
+Begin
+  If MyTask = Nil Then
+    Exit;
+
+	MyTask._Time := Application.GetTime();
+	MyTask._Priority := Priority;
+
+  {$IFDEF DISABLETHREADS}
+    MyTask.Execute();
+    If Group = Nil Then
+      ReleaseObject(MyTask);
+    Exit;
+  {$ENDIF}
+
+  If Assigned(Group) Then
+  Begin
+    MyTask._Group := Group;
+    Inc(Group._TaskCount);
+    SetLength(Group._Tasks, Group._TaskCount);
+    Group._Tasks[Pred(Group._TaskCount)] := MyTask;
+  End;
+
+  If (Not InBackGround) Then
+  Begin
+    MyTask.Execute();
+    If Group = Nil Then
+      ReleaseObject(MyTask);
+    Exit;
+  End;
+
+  {$IFNDEF DISABLETHREADS}
+  If PtrUInt(GetCurrentThreadId()) <> _MainThread Then
+    Application.Instance.PostCallback(AddThreadToPool, MyTask)
+  Else
+    AddThreadToPool(MyTask);
+  {$ENDIF}
+End;
+
+{$IFNDEF DISABLETHREADS}
+Function ThreadPool.AddThreadToPool(MyTask:TERRAObject):Boolean;
+Begin
+  _CriticalSection.Lock();
+	If (_ThreadCount<_MaxThreads) Then
+	Begin
+		_Threads[_ThreadCount] := TaskDispatcher.Create(Self);
+		Inc(_ThreadCount);
+	End;
+
+  Inc(_PendingTaskCount);
+
+  If (_PendingTaskCount>Length(_PendingTaskList)) Then
+	  SetLength(_PendingTaskList, _PendingTaskCount);
+
+  _PendingTaskList[Pred(_PendingTaskCount)] := TERRATask(MyTask);
+
+	_CriticalSection.Unlock();
+
+  _Semaphore.Signal();
+
+  Result := False;
+End;
+{$ENDIF}
+
+Function ThreadPool.GetNextTask:TERRATask;
+Var
+  HP,k:Cardinal;
+	I, Next:Integer;
+  Temp:TERRATask;
+Begin
+  If (_PendingTaskCount<=0) Then
+  Begin
+    Result := Nil;
+    Exit;
+  End;
+
+	HP := 0;
+	Next := -1;
+	For I:=0 To Pred(_PendingTaskCount) Do
+	Begin
+		k := _PendingTaskList[i]._Time; // - _PendingTaskList[i]._Priority;
+		If (next<0) Or (k<HP) Then
+		Begin
+			HP := k;
+			next := i;
+		End;
+	End;
+
+	If (Next>=0) Then
+	Begin
+    Temp := _PendingTaskList[Next];
+   _PendingTaskList[0] := Temp;
+    _PendingTaskList[Next] := Temp;
+
+		Result := _PendingTaskList[0];
+    For I:=0 To _PendingTaskCount - 2 Do
+		  _PendingTaskList[I] := _PendingTaskList[I+1];
+
+    Inc(_RunningTaskCount);
+    If _RunningTaskCount>Length(_RunningTaskList) Then
+      SetLength(_RunningTaskList, _RunningTaskCount);
+
+    _RunningTaskList[Pred(_RunningTaskCount)] := Result;
+
+    Dec(_PendingTaskCount);
+	End Else
+		Result := Nil;
+End;
+
+
+Procedure ThreadPool.KillTask(MyTask: TERRATask);
 Var
   I,N:Integer;
 Begin
@@ -603,13 +582,13 @@ Begin
 End;
 
 { Task }
-Procedure Task.Execute;
+Procedure TERRATask.Execute;
 Begin
   // do nothing
 End;
 
 
-Function Task.GetProgress: Integer;
+Function TERRATask.GetProgress: Integer;
 Begin
   Result := _Progress;
   If (Result<0) Then

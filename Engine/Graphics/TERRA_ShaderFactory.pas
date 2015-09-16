@@ -34,8 +34,8 @@ Unit TERRA_ShaderFactory;
 {-$DEFINE DEBUG_LIGHTMAP}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Renderer, TERRA_Application,
-  TERRA_Lights, TERRA_BoundingBox, TERRA_Vector4D, TERRA_Color;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Renderer, TERRA_Application,
+  TERRA_Lights, TERRA_BoundingBox, TERRA_Vector4D, TERRA_Color, TERRA_Renderable;
 
 Const
   NormalMapUniformName = 'normalMap';
@@ -140,21 +140,21 @@ Type
       Procedure Bind(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch); Virtual;
 
     Public
-      Function Emit(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch):TERRAString;
+      Procedure Emit(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch; Out VertexCode, FragmentCode:TERRAString);
   End;
 
-  ShaderFactory = Class(ApplicationComponent)
+  TERRAShaderFactory = Class(TERRAObject)
     Protected
       _Shaders:Array Of ShaderEntry;
       _ShaderCount:Integer;
       _Emitter:ShaderEmitter;
 
     Public
-      Class Function Instance:ShaderFactory;
+      Constructor Create;
       Procedure Release; Override;
 
-      Procedure Init; Override;
-      Procedure OnContextLost; Override;
+      // !!!
+      Procedure OnContextLost; 
 
       Procedure Clear;
 
@@ -165,10 +165,7 @@ Type
 
 Implementation
 
-Uses TERRA_Log, TERRA_Mesh, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_OS;
-
-Var
-  _ShaderFactory_Instance:ApplicationObject;
+Uses TERRA_Log, TERRA_Mesh, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_OS, TERRA_Engine, TERRA_ShaderNode, TERRA_ShaderCompiler;
 
 { ShaderEmitter }
 Procedure ShaderEmitter.Line(S2:TERRAString);
@@ -293,7 +290,7 @@ Begin
     Line('  uniform mediump float outlineScale;');
 
   If (FxFlags and shaderSkinning<>0) Then
-    Line('uniform vec4 boneVectors['+IntToString(Succ(MaxBones)*3)+'];');
+    Line('uniform vec4 boneVectors['+ IntegerProperty.Stringify(Succ(MaxBones)*3)+'];');
 
   //If (FxFlags and shaderNormalMap<>0) Or (FxFlags and shaderGhost<>0) Or (FxFlags and shaderSphereMap<>0) Or (FxFlags and shaderFresnelTerm<>0) Then
   Begin
@@ -475,7 +472,7 @@ Begin
   End;
 End;
 
-Function ShaderEmitter.Emit(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch):TERRAString;
+Procedure ShaderEmitter.Emit(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch; Out VertexCode, FragmentCode:TERRAString);
 Var
   N, I:Integer;
   S2:TERRAString;
@@ -521,10 +518,6 @@ Begin
   Result := _Buffer;
   Exit;*)
 
-{$IFDEF PC}
-  Line('version { 120 }');
-{$ENDIF}
-  Line('vertex {');
 	Line('attribute highp vec4 terra_position;');
   Line('  attribute lowp vec4 terra_color;');
 
@@ -539,7 +532,10 @@ Begin
   Line('attribute mediump vec3 terra_normal;');
 
   If (FxFlags and shaderNormalMap<>0) Then
+  Begin
 	  Line('attribute mediump vec4 terra_tangent;');
+//	  Line('attribute mediump vec4 terra_binormal;');
+  End;
 
   If (FxFlags and shaderSkinning<>0) Then
   	Line('attribute highp float terra_bone;');
@@ -674,13 +670,13 @@ Begin
     Line('  fogFactor = min(distanceFactor + heightFactor + boxFactor, 1.0);');
   End;
 
-  If GraphicsManager.Instance.Renderer.Settings.SurfaceProjection<>surfacePlanar Then
+  If Engine.Graphics.Renderer.Settings.SurfaceProjection<>surfacePlanar Then
   Begin
     Line(' highp vec4 cyofs = world_position;');
     Line('  cyofs.xyz -= cameraPosition.xyz;');
     Line('  highp float curvatureAmmount = -0.001;');
 
-    If GraphicsManager.Instance.Renderer.Settings.SurfaceProjection = surfaceSpherical Then
+    If Engine.Graphics.Renderer.Settings.SurfaceProjection = surfaceSpherical Then
       Line('  cyofs = vec4( 0.0, ((cyofs.x * cyofs.x) + (cyofs.z * cyofs.z)) * curvatureAmmount, 0.0, 0.0);')
     Else
       Line('  cyofs = vec4( 0.0, (cyofs.z * cyofs.z) * curvatureAmmount, 0.0, 0.0);');
@@ -764,20 +760,10 @@ Begin
   Self.VertexPass(FxFlags, OutFlags, FogFlags);
 
   Line('	}');
-  Line('}');
+  VertexCode := _Buffer;
+  _Buffer := '';
 
-(*	Line('fragment	{ ');
-  	Line('varying mediump vec3 vertex_normal;');
-  Line('void main()	{ ');
-  Line('  gl_FragColor = vec4(vertex_normal * 0.5 + 0.5, 1.0);}}');
-  Result := _Buffer;
 
-  Log(logDebug, 'Shader', _Buffer);
-  Exit;
-  //-----------------
-*)
-
-  Line('fragment {');
   Self.Varyings(FxFlags, OutFlags, FogFlags);
   Self.FragmentUniforms(FxFlags, OutFlags, FogFlags);
 
@@ -799,8 +785,7 @@ Begin
     End;
 
     Line('  gl_FragColor = color;}');
-    Line('}');
-    Result := _Buffer;
+    FragmentCode := _Buffer;
     Exit;
   End;
 
@@ -808,8 +793,7 @@ Begin
   Begin
   	Line('void main()	{');
     Line('  gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);}');
-    Line('}');
-    Result := _Buffer;
+    FragmentCode := _Buffer;
     Exit;
   End;
 
@@ -927,27 +911,27 @@ Begin
 
     For I:=1 To Lights.DirectionalLightCount Do
     Begin
- 	    Line('  uniform highp vec3 dlightDirection'+IntToString(I)+';');
-  	  Line('  uniform lowp vec4 dlightColor'+IntToString(I)+';');
+ 	    Line('  uniform highp vec3 dlightDirection'+ IntegerProperty.Stringify(I)+';');
+  	  Line('  uniform lowp vec4 dlightColor'+ IntegerProperty.Stringify(I)+';');
     End;
 
     For I:=1 To Lights.PointLightCount Do
     Begin
-   	  Line('  uniform highp vec3 plightPosition'+IntToString(I)+';');
-	    Line('  uniform lowp vec4 plightColor'+IntToString(I)+';');
-  	  Line('  uniform highp float plightRadius'+IntToString(I)+';');
+   	  Line('  uniform highp vec3 plightPosition'+ IntegerProperty.Stringify(I)+';');
+	    Line('  uniform lowp vec4 plightColor'+ IntegerProperty.Stringify(I)+';');
+  	  Line('  uniform highp float plightRadius'+ IntegerProperty.Stringify(I)+';');
     End;
 
     For I:=1 To Lights.SpotLightCount Do
     Begin
-   	  Line('  uniform highp vec3 slightPosition'+IntToString(I)+';');
-   	  Line('  uniform mediump vec3 slightDirection'+IntToString(I)+';');
-   	  Line('  uniform mediump vec3 slightCross'+IntToString(I)+';');
-	    Line('  uniform lowp vec4 slightColor'+IntToString(I)+';');
-  	  Line('  uniform highp float slightCosInnerAngle'+IntToString(I)+';');
-  	  Line('  uniform mediump float slightCosOuterAngle'+IntToString(I)+';');
-      Line('  uniform lowp sampler2D slightCookie'+IntToString(I)+';');
-      Line('  uniform highp mat4 slightMatrix'+IntToString(I)+';');
+   	  Line('  uniform highp vec3 slightPosition'+ IntegerProperty.Stringify(I)+';');
+   	  Line('  uniform mediump vec3 slightDirection'+ IntegerProperty.Stringify(I)+';');
+   	  Line('  uniform mediump vec3 slightCross'+ IntegerProperty.Stringify(I)+';');
+	    Line('  uniform lowp vec4 slightColor'+ IntegerProperty.Stringify(I)+';');
+  	  Line('  uniform highp float slightCosInnerAngle'+ IntegerProperty.Stringify(I)+';');
+  	  Line('  uniform mediump float slightCosOuterAngle'+ IntegerProperty.Stringify(I)+';');
+      Line('  uniform lowp sampler2D slightCookie'+ IntegerProperty.Stringify(I)+';');
+      Line('  uniform highp mat4 slightMatrix'+ IntegerProperty.Stringify(I)+';');
     End;
 
     If (Lights.SpotLightCount>0) Then
@@ -1092,7 +1076,7 @@ Begin
     Line('  screen_position *= vec3(0.5);');
     Line('  screen_position += vec3(0.5);');
   End;
-  
+
   {$IFDEF SIMPLESHADER}
   Line('  gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);}');
   {$ELSE}
@@ -1190,7 +1174,7 @@ Begin
 
         Line('diffuse *= diffuse_color;');
         If (FxFlags and shaderAlphaTest<>0) Then
-          Line('  if (diffuse.a<'+FloatToString(AlphaReference)+') discard;');
+          Line('  if (diffuse.a<'+FloatProperty.Stringify(AlphaReference)+') discard;');
 //    Line('  color.rgb = diffuse.rgb * 0.333;');
         Line('  color = outlineColor;');
 
@@ -1207,7 +1191,7 @@ Begin
        Line('  diffuse *= vertex_color; ');
 
     If (FxFlags and shaderAlphaTest<>0) Then
-      Line('  if (diffuse.a<'+FloatToString(AlphaReference)+') discard;');
+      Line('  if (diffuse.a<'+FloatProperty.Stringify(AlphaReference)+') discard;');
 
     Line('  color.a = 1.0;'); // refraction ammount
   End Else
@@ -1221,7 +1205,7 @@ Begin
        Line('  diffuse *= vertex_color; ');
 
     If (FxFlags and shaderAlphaTest<>0) Then
-      Line('  if (diffuse.a<'+FloatToString(AlphaReference)+') discard;');
+      Line('  if (diffuse.a<'+FloatProperty.Stringify(AlphaReference)+') discard;');
 
     Line('  highp float zz = screen_position.z;');
     Line('  zz = (2.0 * zNear) / (zFar + zNear - zz * (zFar - zNear));');
@@ -1238,7 +1222,7 @@ Begin
     Line('  diffuse = texture2D(diffuseMap, localUV);');
 
     If (FxFlags and shaderAlphaTest<>0) Then
-      Line('  if (diffuse.a<'+FloatToString(AlphaReference)+') discard;');
+      Line('  if (diffuse.a<'+FloatProperty.Stringify(AlphaReference)+') discard;');
     
     If (FxFlags and shaderLightmap<>0) Then
     Begin
@@ -1308,7 +1292,7 @@ Begin
     End;
 
     If (FxFlags and shaderAlphaTest<>0) Then
-      Line('  if (diffuse.a<'+FloatToString(AlphaReference)+') discard;');
+      Line('  if (diffuse.a<'+FloatProperty.Stringify(AlphaReference)+') discard;');
 
     If (FxFlags and shaderSpecular<>0) Then
       Line('  specular = texture2D('+SpecularMapUniformName+', localUV);');
@@ -1364,7 +1348,7 @@ Begin
       End;
 
       If Lights.DirectionalLightCount>0 Then
-        Line('  color = directionalLight(dlightDirection'+IntToString(I)+', dlightColor'+IntToString(I)+', localUV, colorIndex);');
+        Line('  color = directionalLight(dlightDirection'+ IntegerProperty.Stringify(I)+', dlightColor'+ IntegerProperty.Stringify(I)+', localUV, colorIndex);');
     End Else*)
     If (FxFlags And shaderSelfIllumn<>0) Then
     Begin
@@ -1377,13 +1361,13 @@ Begin
       Line('lowp vec4 lightAccum = vec4(0.0);');
 
       For I:=1 To Lights.DirectionalLightCount Do
-        Line('  lightAccum += directionalLight(dlightDirection'+IntToString(I)+', dlightColor'+IntToString(I)+');');
+        Line('  lightAccum += directionalLight(dlightDirection'+ IntegerProperty.Stringify(I)+', dlightColor'+ IntegerProperty.Stringify(I)+');');
 
       For I:=1 To Lights.PointLightCount Do
-        Line('  lightAccum += pointLight(plightPosition'+IntToString(I)+', plightColor'+IntToString(I)+', plightRadius'+IntToString(I)+');');
+        Line('  lightAccum += pointLight(plightPosition'+ IntegerProperty.Stringify(I)+', plightColor'+ IntegerProperty.Stringify(I)+', plightRadius'+ IntegerProperty.Stringify(I)+');');
 
       For I:=1 To Lights.SpotLightCount Do
-        Line('  lightAccum += spotLight(slightPosition'+IntToString(I)+', slightColor'+IntToString(I)+', slightDirection'+IntToString(I)+', slightCosInnerAngle'+IntToString(I)+', slightCosOuterAngle'+IntToString(I)+', slightMatrix'+IntToString(I)+', slightCookie'+IntToString(I)+');');
+        Line('  lightAccum += spotLight(slightPosition'+ IntegerProperty.Stringify(I)+', slightColor'+ IntegerProperty.Stringify(I)+', slightDirection'+ IntegerProperty.Stringify(I)+', slightCosInnerAngle'+ IntegerProperty.Stringify(I)+', slightCosOuterAngle'+ IntegerProperty.Stringify(I)+', slightMatrix'+ IntegerProperty.Stringify(I)+', slightCookie'+ IntegerProperty.Stringify(I)+');');
 
         If (FxFlags And shaderCartoonHue<>0) Then
           Line('  color = cartoonHueAdjust(diffuse * shadow, lightAccum * shadow);')
@@ -1487,8 +1471,8 @@ Begin
   Line('  gl_FragColor = color;}');
   End;
   {$ENDIF}
-  Line('}');
-  Result := _Buffer;
+
+  FragmentCode := _Buffer;
 End;
 
 Procedure ShaderEmitter.FinalPass(FxFlags, OutFlags,FogFlags:Cardinal);
@@ -1512,8 +1496,22 @@ Begin
   // do nothing
 End;
 
-{ ShaderFactory }
-Procedure ShaderFactory.Clear;
+{ TERRAShaderFactory }
+Constructor TERRAShaderFactory.Create;
+Begin
+  _Emitter := ShaderEmitter.Create();
+  _Emitter.Init();
+End;
+
+Procedure TERRAShaderFactory.Release;
+Begin
+  ReleaseObject(_Emitter);
+
+  Self.Clear;
+End;
+
+
+Procedure TERRAShaderFactory.Clear;
 Var
   I:Integer;
 Begin
@@ -1523,26 +1521,18 @@ Begin
   _ShaderCount := 0;
 End;
 
-Procedure ShaderFactory.Init;
-Begin
-  _Emitter := ShaderEmitter.Create();
-  _Emitter.Init();
-End;
-
-Procedure ShaderFactory.Release;
-Begin
-  ReleaseObject(_Emitter);
-
-  Self.Clear;
-  _ShaderFactory_Instance := Nil;
-End;
-
-Function ShaderFactory.GetShader(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch):ShaderInterface;
+Function TERRAShaderFactory.GetShader(FxFlags, OutFlags, FogFlags:Cardinal; Const Lights:LightBatch):ShaderInterface;
 Var
   I:Integer;
   S:ShaderEntry;
   Location:TERRAString;
-  SS, Name:TERRAString;
+  Name:TERRAString;
+
+  Graph:TERRAShaderGroup;
+  OutColor:ShaderOutputNode;
+
+  VertexCode, FragmentCode:TERRAString;
+
 //  BlendMode:ColorCombineMode;
 Begin
 {  If GraphicsManager.Instance.Renderer.ActiveBlendMode Then
@@ -1551,7 +1541,7 @@ Begin
     BlendMode := combineNone;}
 
   {$IFDEF DEBUG_GRAPHICS}
-  Log(logDebug, 'ShaderFactory', 'Searching for shader with flags '+CardinalToString(FXFlags));
+  Log(logDebug, 'TERRAShaderFactory', 'Searching for shader with flags '+CardinalToString(FXFlags));
   {$ENDIF}
 
   For I:=0 To Pred(_ShaderCount) Do
@@ -1564,7 +1554,7 @@ Begin
     And (S.SpotLightCount = Lights.SpotLightCount) Then
     Begin
     {$IFDEF DEBUG_GRAPHICS}
-    Log(logDebug, 'ShaderFactory', 'Found, binding... ');
+    Log(logDebug, 'TERRAShaderFactory', 'Found, binding... ');
     {$ENDIF}
 
       Result := S.Shader;
@@ -1576,7 +1566,7 @@ Begin
   End;
 
   {$IFDEF DEBUG_GRAPHICS}
-  Log(logDebug, 'ShaderFactory', 'Not found, creating new shader...');
+  Log(logDebug, 'TERRAShaderFactory', 'Not found, creating new shader...');
   {$ENDIF}
 
   S := ShaderEntry.Create();
@@ -1688,14 +1678,14 @@ Begin
   If (FxFlags and shaderReflectiveMap<>0) Then
     name := name + '_REFMAP;';
 
-  Name := Name + ';F'+IntToString(FogFlags)+';';
+  Name := Name + ';F'+ IntegerProperty.Stringify(FogFlags)+';';
 
   If Lights.DirectionalLightCount>0 Then
-    name := name + 'DL'+IntToString(Lights.DirectionalLightCount)+';';
+    name := name + 'DL'+ IntegerProperty.Stringify(Lights.DirectionalLightCount)+';';
   If Lights.PointLightCount>0 Then
-    name := name + 'PL'+IntToString(Lights.PointLightCount)+';';
+    name := name + 'PL'+ IntegerProperty.Stringify(Lights.PointLightCount)+';';
   If Lights.SpotLightCount>0 Then
-    name := name + 'SL'+IntToString(Lights.SpotLightCount)+';';
+    name := name + 'SL'+ IntegerProperty.Stringify(Lights.SpotLightCount)+';';
 
   Name := StringLower(Name);
   StringReplaceText(';', '_', Name);
@@ -1704,30 +1694,34 @@ Begin
     StringDropChars(Name, -1);
 
   {$IFDEF DEBUG_GRAPHICS}
-  Log(logDebug, 'ShaderFactory', 'Preparing shader '+Name);
+  Log(logDebug, 'TERRAShaderFactory', 'Preparing shader '+Name);
   {$ENDIF}
 
-  SS := _Emitter.Emit(FxFlags, OutFlags, FogFlags, Lights);
+  _Emitter.Emit(FxFlags, OutFlags, FogFlags, Lights, VertexCode, FragmentCode);
 
   {$IFDEF DEBUG_GRAPHICS}
-  Log(logDebug, 'ShaderFactory', 'Got shader code, compiling');
+  Log(logDebug, 'TERRAShaderFactory', 'Got shader code, compiling');
   {$ENDIF}
 
-  S.Shader := GraphicsManager.Instance.Renderer.CreateShader();
-  S.Shader.Generate(Name, SS);
+  Graph := TERRAShaderGroup.Create;
+  Graph.XVertexCode := VertexCode;
+  Graph.XFragmentCode := FragmentCode;
+
+  (*Graph := ShaderGroup.Create();
+  OutColor := ShaderOutputNode.Create(shaderOutput_Diffuse);
+  OutColor.Input := ShaderVec4Constant.Create(Vector4D_Create(1.0, 0.0, 0.0, 1.0));
+  Graph.AddNode(OutColor);*)
+
+  S.Shader := Engine.Graphics.Renderer.CreateShader();
+  S.Shader.Generate(Name, Graph);
   Result := S.Shader;
+
+  ReleaseObject(Graph);
+
   _Emitter.Bind(FxFlags, OutFlags, FogFlags, Lights);
 End;
 
-Class Function ShaderFactory.Instance: ShaderFactory;
-Begin
-  If Not Assigned(_ShaderFactory_Instance) Then
-    _ShaderFactory_Instance := InitializeApplicationComponent(ShaderFactory, GraphicsManager);
-
-  Result := ShaderFactory(_ShaderFactory_Instance.Instance);
-End;
-
-Procedure ShaderFactory.OnContextLost;
+Procedure TERRAShaderFactory.OnContextLost;
 Var
   I:Integer;
 Begin
@@ -1736,7 +1730,7 @@ Begin
     _Shaders[I].Shader.Invalidate();
 End;
 
-Procedure ShaderFactory.SetShaderEmitter(Emitter: ShaderEmitter);
+Procedure TERRAShaderFactory.SetShaderEmitter(Emitter: ShaderEmitter);
 Begin
   ReleaseObject(_Emitter);
   Self._Emitter := Emitter;

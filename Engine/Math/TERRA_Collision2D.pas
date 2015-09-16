@@ -97,7 +97,7 @@ End;
 
 Function CircleCreate(X,Y:Single; Radius:Single):Circle;
 Begin
-  Result := CircleCreate(VectorCreate2D(X,Y), Radius);
+  Result := CircleCreate(Vector2D_Create(X,Y), Radius);
 End;
 
 Function LineCreate2D(P1,P2:Vector2D):Line2D;
@@ -108,8 +108,8 @@ End;
 
 Function LineCreate2D(X1,Y1,X2,Y2:Single):Line2D;
 Begin
-  Result.P1 := VectorCreate2D(X1,Y1);
-  Result.P2 := VectorCreate2D(X2,Y2);
+  Result.P1 := Vector2D_Create(X1,Y1);
+  Result.P2 := Vector2D_Create(X2,Y2);
 End;
 
 
@@ -139,7 +139,7 @@ Begin
   Diff := C.Center;
   Diff.Subtract(P1);
 
-  T := Diff.Dot(Dir) / Dir.Dot(Dir);
+  T := Vector2D_Dot(Diff, Dir) / Vector2D_Dot(Dir, Dir);
 
   If (T < 0.0) Then
     T := 0.0;
@@ -154,7 +154,7 @@ Begin
   D := C.Center;
   D.Subtract(Closest);
 
-  Distsqr := D.Dot(D);
+  Distsqr := Vector2D_Dot(D, D);
   If Assigned(Distance) Then
     Distance^ := Sqrt(Distsqr);
 
@@ -220,7 +220,7 @@ End;
 { Polygon2D }
 Procedure Polygon2D.AddVertex(X, Y:Single);
 Begin
-  Self.AddVertex(VectorCreate2D(X,Y));
+  Self.AddVertex(Vector2D_Create(X,Y));
 End;
 
 Procedure Polygon2D.AddVertex(P:Vector2D);

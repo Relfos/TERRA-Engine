@@ -1,0 +1,38 @@
+varying mediump vec2 texCoord;
+  varying lowp vec4 color;
+  varying lowp float saturation;
+  uniform sampler2D texture;
+  const lowp vec3 LumCoeff = vec3(0.2125, 0.7154, 0.0721);
+  const lowp float middleGray = 0.5;
+lowp vec3 AdjustSaturation(lowp vec3 color, lowp float saturation)	{
+  lowp vec3 AvgLumin = vec3(0.5);
+  lowp vec3 intensity = vec3(dot(color, LumCoeff));
+  lowp vec3 satColor = mix(intensity, color, saturation);
+return satColor;	}
+
+  uniform sampler2D color_table_texture;
+  uniform highp float color_table_elements;
+  uniform highp float color_table_width;
+  uniform highp float color_table_scale;
+  uniform highp float color_table_clamp;
+lowp vec3 ColorTableLookup(highp vec3 color)	{
+  color *= color_table_elements;
+  mediump float delta = fract(color.b);
+  highp float red = color.r;
+  highp float green = color.g;
+  highp float blue = floor(color.b);
+  blue = min(blue, color_table_elements - 1.0);
+  red = 0.5 + red * color_table_clamp;
+  highp float px = (color_table_elements * blue + red);
+  highp float py = green * color_table_scale;
+  mediump vec2 ofs = vec2(px* color_table_width, py);
+  mediump vec3 temp1 = texture2D(color_table_texture, ofs).rgb;
+  ofs.x += color_table_elements * color_table_width;
+  mediump vec3 temp2 = texture2D(color_table_texture, ofs).rgb;
+return mix(temp1, temp2, delta);	}
+
+  void main()	{
+    lowp vec4 c = color * texture2D(texture, texCoord.st);
+    c.rgb = ColorTableLookup(c.rgb);
+    c.rgb = AdjustSaturation(c.rgb, saturation); 
+    gl_FragColor = c;}

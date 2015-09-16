@@ -30,7 +30,7 @@ Unit TERRA_FileUtils;
 {$ENDIF}
 
 Interface
-Uses TERRA_String;
+Uses TERRA_Object, TERRA_String;
 
 Type
   FileHeader = Array[1..4] Of AnsiChar;
@@ -59,7 +59,7 @@ Var
   I:Integer;
   S:TERRAString;
 Begin
-  I := StringCharPos(Ord(PathSeparator), FileName);
+  I := StringCharPos(PathSeparator, FileName);
   S := '';
   While I>=1 Do
   Begin
@@ -106,14 +106,14 @@ Var
   I:Integer;
   List:StringArray;
 Begin
-  I := StringCharPos(Ord(':'), FileName);
+  I := StringCharPos(':', FileName);
   If I>=1 Then
     Result := StringCopy(FileName, (I+1), MaxInt)
   Else
     Result :=  FileName;
 
 
-  I := StringCharPosReverse(Ord(PathSeparator), Result);
+  I := StringCharPosReverse(PathSeparator, Result);
   If (I>0) Then
   Begin
     Result := StringCopy(Result, Succ(I), MaxInt);
@@ -121,7 +121,7 @@ Begin
 
   If RemoveExt Then
   Begin
-    I := StringCharPosReverse(Ord('.'), Result);
+    I := StringCharPosReverse('.', Result);
     If I>0 Then
       Result := StringCopy(Result, 1, Pred(I));
   End;

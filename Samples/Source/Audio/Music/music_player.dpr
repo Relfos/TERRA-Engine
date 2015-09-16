@@ -1,76 +1,63 @@
 {$I terra.inc}
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
-Uses TERRA_Application, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
-  TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_UI, TERRA_Viewport, TERRA_Texture,
-  TERRA_PNG, TERRA_Lights, TERRA_ShaderFactory, TERRA_SpriteManager, TERRA_Vector2D, TERRA_TTF,
-  TERRA_FileManager, TERRA_Scene, TERRA_Mesh, TERRA_Skybox, TERRA_Color, TERRA_FileUtils, TERRA_OGG,
-  TERRA_MusicManager, TERRA_FontRenderer, TERRA_InputManager;
+Uses TERRA_Object, TERRA_DemoApplication, TERRA_Utils, TERRA_OS, TERRA_Viewport, TERRA_FileUtils,
+  TERRA_Engine, TERRA_MusicManager;
 
 Type
-  MyScene = Class(Scene)
-      Procedure RenderSprites(V:Viewport); Override;
-  End;
-
-  Demo = Class(Application)
+  Demo = Class(DemoApplication)
     Public
-      _Scene:MyScene;
 			Procedure OnCreate; Override;
 			Procedure OnDestroy; Override;
 			Procedure OnIdle; Override;
-  End;
 
-Var
-  Fnt:FontRenderer;
+      Procedure OnRender2D(View:TERRAViewport); Override;
+  End;
 
 { Demo }
 Procedure Demo.OnCreate;
 Begin
-  _Scene := MyScene.Create;
+  Inherited;
 
-  FileManager.Instance.AddPath('Assets');
-  Fnt := FontRenderer.Create();
-  Fnt.SetFont(FontManager.Instance.GetFont('droid'));
+  // Enable 2d rendering viewport
+  Self.GUI.Visible := True; 
 
-  GraphicsManager.Instance.Scene := _Scene;
-  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlue;
-
-  MusicManager.Instance.Play('mar');
+  //Engine.Music.Play('mar');
+  Engine.Music.Play('nox');
 End;
 
 Procedure Demo.OnDestroy;
 Begin
-  MusicManager.Instance.Stop();
-  ReleaseObject(_Scene);
+  Engine.Music.Stop();
+
+  Inherited;
 End;
 
 Procedure Demo.OnIdle;
 Begin
-  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
-    Application.Instance.Terminate;
+  Inherited;
 
-  If (InputManager.Instance.Keys.WasPressed(keyLeft)) Then
-    MusicManager.Instance.SetVolume(MusicManager.Instance.Volume - 0.1)
+  If (Engine.Input.Keys.WasPressed(keyLeft)) Then
+    Engine.Music.SetVolume(Engine.Music.Volume - 0.1)
   Else
-  If (InputManager.Instance.Keys.WasPressed(keyRight)) Then
-    MusicManager.Instance.SetVolume(MusicManager.Instance.Volume + 0.1);
+  If (Engine.Input.Keys.WasPressed(keyRight)) Then
+    Engine.Music.SetVolume(Engine.Music.Volume + 0.1);
 End;
 
 
-{ MyScene }
-Procedure MyScene.RenderSprites;
-Var
-  S:Sprite;
+Procedure Demo.OnRender2D(View:TERRAViewport);
 Begin
-  If Not Assigned(Fnt.Font) Then
+  Inherited;
+  
+  If Not Assigned(Self.Font) Then
     Exit;
 
-  Fnt.DrawText(5, 60, 5, 'Volume: '+IntToString(Trunc(MusicManager.Instance.Volume * 100))+'%');
+  Self.FontRenderer.DrawText(View, 5, 60, 5, 'Volume: '+IntegerProperty.Stringify(Trunc(Engine.Music.Volume * 100))+'%');
 
-  If Assigned(MusicManager.Instance.CurrentTrack) Then
+  If Assigned(Engine.Music.CurrentTrack) Then
   Begin
-    Fnt.DrawText(5, 80, 5, 'Title: '+ GetFileName(MusicManager.Instance.CurrentTrack.FileName, False));
-    Fnt.DrawText(5, 100, 5, 'Type: '+ MusicManager.Instance.CurrentTrack.ClassName);
+    Self.FontRenderer.DrawText(View, 5, 80, 5, 'Title: '+ GetFileName(Engine.Music.CurrentTrack.FileName, False));
+    Self.FontRenderer.DrawText(View, 5, 100, 5, 'Type: '+ Engine.Music.CurrentTrack.ClassName);
   End;
 End;
 

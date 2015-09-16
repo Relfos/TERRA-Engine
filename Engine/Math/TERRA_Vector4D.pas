@@ -25,11 +25,10 @@ Unit TERRA_Vector4D;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Math, TERRA_Vector3D, TERRA_Matrix4x4;
+Uses TERRA_Vector3D, TERRA_Matrix4x4;
 
 Type
-  PVector4D = ^Vector4D;
-  Vector4D=Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  Vector4D = Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     X:Single;
     Y:Single;
     Z:Single;
@@ -57,26 +56,26 @@ Type
   Color4F = Vector4D;
 
 Const
-  Vector4DOne:Vector4D=(X:1.0; Y:1.0; Z:1.0; W:1.0);
-  Vector4DZero:Vector4D=(X:0.0; Y:0.0; Z:0.0; W:0.0);
+  Vector4D_One:Vector4D=(X:1.0; Y:1.0; Z:1.0; W:1.0);
+  Vector4D_Zero:Vector4D=(X:0.0; Y:0.0; Z:0.0; W:0.0);
 
-Function VectorCreate4D(Const X,Y,Z,W:Single):Vector4D;Overload;
-Function VectorCreate4D(Const V:Vector3D):Vector4D;Overload;
+Function Vector4D_Create(Const X,Y,Z,W:Single):Vector4D;Overload;
+Function Vector4D_Create(Const V:Vector3D):Vector4D;Overload;
 
 // Multiplies two Vector4Ds
-Function Vector4DMultiply(Const A,B:Vector4D):Vector4D;
+Function Vector4D_Multiply(Const A,B:Vector4D):Vector4D;
 
-Function Vector4DAdd(Const A,B:Vector4D):Vector4D;
+Function Vector4D_Add(Const A,B:Vector4D):Vector4D;
 
-Function Vector4DScale(Const A:Vector4D; Const Value:Single):Vector4D;
+Function Vector4D_Scale(Const A:Vector4D; Const Value:Single):Vector4D;
 
 // Returns the dot product between two vectors
-Function Vector4DDot(Const A,B:Vector4D):Single; {$IFDEF FPC}Inline;{$ENDIF}
+Function Vector4D_Dot(Const A,B:Vector4D):Single; {$IFDEF FPC}Inline;{$ENDIF}
 
 Implementation
-Uses Math{$IFDEF SSE},TERRA_SSE{$ENDIF}{$IFDEF NEON_FPU},TERRA_NEON{$ENDIF};
+Uses TERRA_Math{$IFDEF SSE},TERRA_SSE{$ENDIF}{$IFDEF NEON_FPU},TERRA_NEON{$ENDIF};
 
-Function VectorCreate4D(Const X,Y,Z,W:Single):Vector4D;
+Function Vector4D_Create(Const X,Y,Z,W:Single):Vector4D;
 Begin
   Result.X := X;
   Result.Y := Y;
@@ -84,7 +83,7 @@ Begin
   Result.W := W;
 End;
 
-Function VectorCreate4D(Const V:Vector3D):Vector4D;
+Function Vector4D_Create(Const V:Vector3D):Vector4D;
 Begin
   Result.X := V.X;
   Result.Y := V.Y;
@@ -102,7 +101,7 @@ Begin
   Result := (Self.X=B.X) And (Self.Y=B.Y) And(Self.Z=B.Z) And(Self.W=B.W);
 End;
 
-Function Vector4DDot(Const A,B:Vector4D):Single; {$IFDEF FPC}Inline;{$ENDIF}
+Function Vector4D_Dot(Const A,B:Vector4D):Single; {$IFDEF FPC}Inline;{$ENDIF}
 Begin
   {$IFDEF NEON_FPU}
   Result := dot4_neon_hfp(@A,@B);
@@ -111,7 +110,7 @@ Begin
   {$ENDIF}
 End;
 
-Function Vector4DMultiply(Const A,B:Vector4D):Vector4D;
+Function Vector4D_Multiply(Const A,B:Vector4D):Vector4D;
 Begin
   Result.X := A.X * B.X;
   Result.Y := A.Y * B.Y;
@@ -208,7 +207,7 @@ Begin
   W := W * V;
 End;
 
-Function Vector4DAdd(Const A,B:Vector4D):Vector4D;
+Function Vector4D_Add(Const A,B:Vector4D):Vector4D;
 Begin
   With Result Do
   Begin
@@ -219,7 +218,7 @@ Begin
   End;
 End;
 
-Function Vector4DScale(Const A:Vector4D; Const Value:Single):Vector4D;
+Function Vector4D_Scale(Const A:Vector4D; Const Value:Single):Vector4D;
 Begin
   With Result Do
   Begin

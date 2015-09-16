@@ -12,109 +12,60 @@ Type
     clipEverything = 2
   );
 
-  ClipRect = Object
+  TERRAClipRect = Object
     Protected
       _Style:ClipRectStyle;
-      _X, _Y:Single;
-      _Width, _Height:Single;
+      _X1, _Y1:Single;
+      _X2, _Y2:Single;
 
     Public
-      Procedure SetHeight(const Value: Single);
-      Procedure SetWidth(const Value: Single);
-      Procedure SetX(const Value: Single);
-      Procedure SetY(const Value: Single);
-      Procedure SetStyle(Const ClipStyle:ClipRectStyle);
-
-      Procedure GetRealRect(Out X1, Y1, X2, Y2:Single{; Landscape:Boolean});
+      Procedure SetArea(Const PX1, PY1, PX2, PY2:Single);
 
       Procedure Transform(Const M:Matrix3x3);
 
-      Procedure Merge(Const Other:ClipRect);
+      Procedure Merge(Const Other:TERRAClipRect);
 
-      Property X:Single Read _X Write SetX;
-      Property Y:Single Read _Y Write SetY;
+      Property X1:Single Read _X1;
+      Property Y1:Single Read _Y1;
 
-      Property Style:ClipRectStyle Read _Style Write SetStyle;
+      Property X2:Single Read _X2;
+      Property Y2:Single Read _Y2;
 
-      Property Width:Single Read _Width Write SetWidth;
-      Property Height:Single Read _Height Write SetHeight;
+      Property Style:ClipRectStyle Read _Style Write _Style;
   End;
 
-Function ClipRectCreate(X,Y, Width, Height:Single):ClipRect;
+Function ClipRectCreate(Const X1,Y1, X2, Y2:Single):TERRAClipRect;
 
 
 Implementation
 
-{ ClipRect }
-Procedure ClipRect.GetRealRect(Out X1, Y1, X2, Y2: Single{; Landscape:Boolean});
-Var
-  UIWidth, UIHeight:Integer;
+{ TERRAClipRect }
+Procedure TERRAClipRect.SetArea(Const PX1, PY1, PX2, PY2:Single);
 Begin
-{  If (Landscape) Then
-  Begin
-    UIWidth := GraphicsManager.Instance.UIViewport.Width;
-    UIHeight := GraphicsManager.Instance.UIViewport.Height;
-    X2 := UIWidth - (Self.Y);
-    X1 := UIWidth - (X2 + Self.Height);
-    Y2 := UIHeight - (Self.X);
-    Y1 := UIHeight - (Y2 + Self.Width);
-  End Else}
-  Begin
-    X1 := Self.X;
-    X2 := X1 + Self.Width;
-    Y1 := Self.Y;
-    Y2 := Y1 + Self.Height;
-  End;
+  _X1 := PX1;
+  _Y1 := PY1;
+  _X2 := PX2;
+  _Y2 := PY2;
 End;
 
-Procedure ClipRect.SetStyle(Const ClipStyle:ClipRectStyle);
-Begin
-  _Style := ClipStyle;
-End;
-
-
-Procedure ClipRect.SetHeight(const Value: Single);
-Begin
-  _Height := Value;
-  _Style := clipSomething;
-End;
-
-Procedure ClipRect.SetWidth(const Value: Single);
-Begin
-  _Width := Value;
-  _Style := clipSomething;
-End;
-
-Procedure ClipRect.SetX(const Value: Single);
-Begin
-  _X := Value;
-  _Style := clipSomething;
-End;
-
-Procedure ClipRect.SetY(const Value: Single);
-Begin
-  _Y := Value;
-  _Style := clipSomething;
-End;
-
-Procedure ClipRect.Transform(const M: Matrix3x3);
+Procedure TERRAClipRect.Transform(const M: Matrix3x3);
 Var
   I:Integer;
   P:Array[0..3] Of Vector2D;
   T:Vector2D;
   MinX, MinY, MaxX, MaxY:Single;
 Begin
-  P[0].X := _X;
-  P[0].Y := _Y;
+  P[0].X := _X1;
+  P[0].Y := _Y1;
 
-  P[1].X := _X + _Width;
-  P[1].Y := _Y;
+  P[1].X := _X2;
+  P[1].Y := _Y1;
 
-  P[2].X := _X + _Width;
-  P[2].Y := _Y + _Height;
+  P[2].X := _X2;
+  P[2].Y := _Y2;
 
-  P[3].X := _X;
-  P[3].Y := _Y + _Height;
+  P[3].X := _X1;
+  P[3].Y := _Y2;
 
   MaxX := -9999;
   MaxY := -9999;
@@ -139,18 +90,14 @@ Begin
       MinY := T.Y;
   End;
 
-  Self.X := MinX;
-  Self.Y := MinY;
+  Self._X1 := MinX;
+  Self._Y1 := MinY;
 
-  Self.Width := MaxX - MinX;
-  Self.Height := MaxY - MinY;
+  Self._X2 := MaxX;
+  Self._Y2 := MaxY;
 End;
 
-Procedure ClipRect.Merge(const Other: ClipRect);
-Var
-  Diff:Single;
-  X1, Y1, X2, Y2: Single;
-  PX1, PY1, PX2, PY2: Single;
+Procedure TERRAClipRect.Merge(const Other: TERRAClipRect);
 Begin
   If (_Style = clipEverything) Or (Other._Style = clipNothing) Then
   Begin
@@ -159,43 +106,31 @@ Begin
 
   If (_Style = clipNothing) Then
   Begin
-    _X := Other._X;
-    _Y := Other._Y;
-    _Width := Other._Width;
-    _Height := Other._Height;
+    _X1 := Other._X1;
+    _Y1 := Other._Y1;
+    _X2 := Other._X2;
+    _Y2 := Other._Y2;
     _Style := Other._Style;
     Exit;
   End;
 
-  Self.GetRealRect(X1, Y1, X2, Y2);
-  Other.GetRealRect(PX1, PY1, PX2, PY2);
+  If (Other.X1>_X1) Then
+    _X1 := Other.X1;
 
-  If (PX1>X1) Then
-    X1 := PX1;
+  If (Other.Y1>_Y1) Then
+    _Y1 := Other.Y1;
 
-  If (PY1>Y1) Then
-    Y1 := PY1;
+  If (Other.X2<_X2) Then
+    _X2 := Other.X2;
 
-  If (PX2<X2) Then
-    X2 := PX2;
-
-  If (PY2>Y2) Then
-    Y2 := PY2;
-
-
-  _X := X1;
-  _Y := Y1;
-  _Width := X2-X1;
-  _Height := Y2-Y1;
+  If (Other.Y2<_Y2) Then
+    _Y2 := Other.Y2;
 End;
 
-Function ClipRectCreate(X,Y, Width, Height:Single):ClipRect;
+Function ClipRectCreate(Const X1,Y1, X2, Y2:Single):TERRAClipRect;
 Begin
-  Result._Style := clipSomething;
-  Result._X := X;
-  Result._Y := Y;
-  Result._Width := Width;
-  Result._Height := Height;
+  Result.Style := clipSomething;
+  Result.SetArea(X1, Y1, X2, Y2);
 End;
 
 End.

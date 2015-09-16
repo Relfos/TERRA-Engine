@@ -26,8 +26,9 @@ Unit TERRA_Decals;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Color, TERRA_Vector2D, TERRA_Vector3D, TERRA_TextureAtlas, TERRA_Texture, TERRA_Renderer,
-  TERRA_Matrix4x4, TERRA_MeshFilter, TERRA_Lights, TERRA_VertexFormat;
+  TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_Color, TERRA_Vector2D, TERRA_Vector3D,
+  TERRA_TextureAtlas, TERRA_Texture, TERRA_Renderer, TERRA_Matrix4x4, TERRA_MeshFilter, TERRA_Lights,
+  TERRA_Viewport, TERRA_VertexFormat;
 
 Const
   DecalDecayDuration = 2000;
@@ -38,7 +39,7 @@ Type
     Normal:Vector3D;
     Size:Single;
     Rotation:Single;
-    Color:TERRA_Color.Color;
+    Color:ColorRGBA;
     Time:Cardinal;
     Life:Cardinal;
     Item:TextureAtlasItem;
@@ -69,26 +70,26 @@ Type
       Class Function Instance:DecalManager;
 
 
-      Function AddDecal(Const TextureName:TERRAString; Position, Normal:Vector3D; DecalColor:Color; Size:Single; Rotation:Single = 0; Duration:Integer=20000):Boolean;
+      Function AddDecal(Const TextureName:TERRAString; Position, Normal:Vector3D; DecalColor:ColorRGBA; Size:Single; Rotation:Single = 0; Duration:Integer=20000):Boolean;
 
-      Procedure Render;
+      Procedure Render(View:TERRAViewport);
   End;
 
 Implementation
-Uses TERRA_OS, TERRA_Stream, TERRA_FileStream, TERRA_FileUtils, TERRA_BoundingBox,
+Uses TERRA_OS, TERRA_Engine, TERRA_TextureManager, TERRA_Stream, TERRA_FileStream, TERRA_FileUtils, TERRA_BoundingBox,
   TERRA_Image, TERRA_GraphicsManager, TERRA_ShaderFactory, TERRA_Log, TERRA_FileManager;
 
 Var
   _DecalInstance:ApplicationObject;
 
 { DecalManager }
-Function DecalManager.AddDecal(Const TextureName:TERRAString; Position,Normal:Vector3D; DecalColor:Color; Size:Single; Rotation:Single; Duration:Integer):Boolean;
+Function DecalManager.AddDecal(Const TextureName:TERRAString; Position,Normal:Vector3D; DecalColor:ColorRGBA; Size:Single; Rotation:Single; Duration:Integer):Boolean;
 Var
   N:Integer;
   S, Name:TERRAString;
   Src:Stream;
   I:Integer;
-  Img:Image;
+  Img:TERRAImage;
   Info:ImageClassInfo;
   Item:TextureAtlasItem;
 Begin
@@ -102,7 +103,7 @@ Begin
     While (S='') And (I<GetImageExtensionCount()) Do
     Begin
       Info := GetImageExtension(I);
-      S := FileManager.Instance.SearchResourceFile(Name+'.'+Info.Name);
+      S := Engine.Files.SearchResourceFile(Name+'.'+Info.Name);
       Inc(I);
     End;
 
@@ -111,7 +112,7 @@ Begin
       Log(logDebug, 'Game', 'Got '+S);
 
       Src := FileStream.Open(S);
-      Img := Image.Create(Src);
+      Img := TERRAImage.Create(Src);
       ReleaseObject(Src);
       Item := _TextureAtlas.Add(Img, S);
       _NeedTextureAtlasRebuild := True;
@@ -224,8 +225,7 @@ Begin
   Result := DecalManager(_DecalInstance.Instance);
 End;
 
-
-Procedure DecalManager.Render;
+Procedure DecalManager.Render(View:TERRAViewport);
 Var
   I:Integer;
   T, OutFlags, FxFlags:Cardinal;
@@ -242,7 +242,7 @@ Begin
   I := 0;
   T := Application.GetTime;
 
-  Center := GraphicsManager.Instance.ActiveViewport.Camera.Position;
+  Center := View.Camera.Position;
   Box.StartVertex := VectorAdd(Center, VectorCreate(-100, -100, -100));
   Box.EndVertex := VectorAdd(Center, VectorCreate(100, 100, 100));
 
@@ -299,7 +299,7 @@ Begin
     _NeedGeometryRebuild := False;
   End;
 
-  Graphics.ActiveViewport.Camera.SetupUniforms;
+  View.Camera.SetupUniforms;
 
   _Shader.SetIntegerUniform('texture0', 0);
 

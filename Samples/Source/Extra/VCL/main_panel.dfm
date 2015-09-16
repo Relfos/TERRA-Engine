@@ -20,6 +20,7 @@ object Form1: TForm1
     Top = 104
     Width = 256
     Height = 256
+    Transparent = True
   end
   object Panel1: TPanel
     Left = 24

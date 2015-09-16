@@ -32,8 +32,18 @@ Unit TERRA_MIDI_IO;
 
 Interface
 
-Uses TERRA_Utils,
-  {$IFDEF USE_COREMIDI}MIDIServices {$ELSE} CoreAudio {$ENDIF};
+Uses TERRA_Object, TERRA_Utils
+  {$IFDEF USE_COREMIDI} ,MIDIServices;
+  {$ELSE};
+  {$LINKFRAMEWORK AudioToolbox}
+  {$LINKFRAMEWORK AudioUnit}
+
+Const
+   libAudioToolbox = '/System/Library/Frameworks/AudioToolbox.framework/AudioToolbox';
+   libAudioUnit = '/System/Library/Frameworks/AudioUnit.framework/AudioUnit';
+
+  {$ENDIF}
+
 
 Function MIDI_Out(Event:Cardinal):Boolean;
 
@@ -64,14 +74,14 @@ Begin
      Status := MIDIClientCreate(CFSTR('MIDI client'), Nil, Nil, @_midiClient);
      If (Status != noErr) Then
      Begin
-          Log(logError, 'MIDI', 'Error creating MIDI client ' + IntToString(status));
+          Log(logError, 'MIDI', 'Error creating MIDI client ' + IntegerProperty.Stringify(status));
           Result := False;
      End;
 
      Status := MIDIOutputPortCreate(_midiClient, CFSTR('MIDI Output'), _midiOut);
      If (Status != noErr) Then
      Begin
-          Log(logError, 'MIDI', 'Error creating MIDI output port ' + IntToString(status));
+          Log(logError, 'MIDI', 'Error creating MIDI output port ' + IntegerProperty.Stringify(status));
           Result := False;
      End;
 
@@ -101,6 +111,53 @@ Begin
 End;
 {$ELSE}
 
+Type
+ AUGraph = Pointer;
+ AUNode = Integer;
+
+const
+ kAUGraphErr_NodeNotFound = -10860;
+ kAUGraphErr_InvalidConnection = -10861;
+ kAUGraphErr_OutputNodeErr = -10862;
+ kAUGraphErr_CannotDoInCurrentContext = -10863;
+ kAUGraphErr_InvalidAudioUnit = -10864;
+
+Type
+    AudioComponentDescriptionRef = ^AudioComponentDescription;
+
+Function NewAUGraph(out  outGraph: AUGraph):OSStatus; cdecl; external libAudioToolbox name  'NewAUGraph';
+
+Function AUGraphAddNode(inGraph: AUGraph;
+		inDescription: AudioComponentDescriptionRef;
+		out  outNode: AUNode):OSStatus; cdecl; external libAudioToolbox name 'AUGraphAddNode';
+Function AUGraphRemoveNode(inGraph: AUGraph;
+		inNode: AUNode):OSStatus; cdecl; external libAudioToolbox name 'AUGraphRemoveNode';
+Function AUGraphGetNodeCount(inGraph: AUGraph;
+		out  outNumberOfNodes: Cardinal):OSStatus; cdecl; external libAudioToolbox name 'AUGraphGetNodeCount';
+
+Function AUGraphOpen(inGraph: AUGraph):OSStatus; cdecl; external libAudioToolbox name 'AUGraphOpen';
+Function AUGraphClose(inGraph: AUGraph):OSStatus; cdecl; external libAudioToolbox name 'AUGraphClose';
+Function AUGraphInitialize(inGraph: AUGraph):OSStatus; cdecl; external libAudioToolbox name 'AUGraphInitialize';
+Function AUGraphUninitialize(inGraph: AUGraph):OSStatus; cdecl; external libAudioToolbox name 'AUGraphUninitialize';
+Function AUGraphStart(inGraph: AUGraph):OSStatus; cdecl; external libAudioToolbox name 'AUGraphStart';
+Function AUGraphStop(inGraph: AUGraph):OSStatus; cdecl; external libAudioToolbox name 'AUGraphStop';
+
+Function AUGraphNodeInfo(inGraph: AUGraph;
+		inNode: AUNode;
+		out  outDescription: AudioComponentDescription;
+		out  outAudioUnit: AudioUnit):OSStatus; cdecl; external libAudioToolbox name  'AUGraphNodeInfo';
+
+Function AUGraphConnectNodeInput(inGraph: AUGraph;
+		inSourceNode: AUNode;
+		inSourceOutputNumber: UInt32;
+		inDestNode: AUNode;
+		inDestInputNumber: UInt32):OSStatus; cdecl; external libAudioToolbox name 'AUGraphConnectNodeInput';
+
+Function MusicDeviceMIDIEvent(inUnit: MusicDeviceComponent;
+		inStatus: UInt32;
+		inData1: UInt32;
+		inData2: UInt32;
+		inOffsetSampleFrame: UInt32):OSStatus; cdecl; external libAudioUnit name  'MusicDeviceMIDIEvent';
 
 Var
    _outGraph:AUGraph;
@@ -120,7 +177,7 @@ Begin
      Status := NewAUGraph(_outGraph);
      If (Status <> noErr) Then
      Begin
-          Log(logError, 'MIDI', 'Error creating audio graph: ' + IntToString(status));
+          Log(logError, 'MIDI', 'Error creating audio graph: ' + IntegerProperty.Stringify(status));
           Result := False;
           Exit;
      End;
@@ -131,7 +188,7 @@ Begin
      Status := AUGraphAddNode(_outGraph, @cd, synthNode);
      If (Status <> noErr) Then
      Begin
-          Log(logError, 'MIDI', 'Error adding DLS node to audio graph: ' + IntToString(status));
+          Log(logError, 'MIDI', 'Error adding DLS node to audio graph: ' + IntegerProperty.Stringify(status));
           Result := False;
           Exit;
      End;
@@ -142,7 +199,7 @@ Begin
      Status := AUGraphAddNode(_outGraph, @cd, limiterNode);
      If (Status <> noErr) Then
      Begin
-          Log(logError, 'MIDI', 'Error adding effect node to audio graph: ' + IntToString(status));
+          Log(logError, 'MIDI', 'Error adding effect node to audio graph: ' + IntegerProperty.Stringify(status));
           Result := False;
           Exit;
      End;
@@ -152,7 +209,7 @@ Begin
     Status := AUGraphAddNode(_outGraph, @cd, &outNode);
     If (Status <> noErr) Then
     Begin
-         Log(logError, 'MIDI', 'Error adding output node to audio graph: ' + IntToString(status));
+         Log(logError, 'MIDI', 'Error adding output node to audio graph: ' + IntegerProperty.Stringify(status));
          Result := False;
          Exit;
     End;
@@ -160,7 +217,7 @@ Begin
     Status := AUGraphOpen(_outGraph);
     If (Status <> noErr) Then
     Begin
-         Log(logError, 'MIDI', 'Error opening audio graph: ' + IntToString(status));
+         Log(logError, 'MIDI', 'Error opening audio graph: ' + IntegerProperty.Stringify(status));
          Result := False;
          Exit;
     End;
@@ -168,7 +225,7 @@ Begin
     Status := AUGraphConnectNodeInput(_outGraph, synthNode, 0, limiterNode, 0);
     If (Status <> noErr) Then
     Begin
-         Log(logError, 'MIDI', 'Error conneting synth graph node for input: ' + IntToString(status));
+         Log(logError, 'MIDI', 'Error conneting synth graph node for input: ' + IntegerProperty.Stringify(status));
          Result := False;
          Exit;
     End;
@@ -176,7 +233,7 @@ Begin
     Status := AUGraphConnectNodeInput(_outGraph, limiterNode, 0, outNode, 0);
     If (Status <> noErr) Then
     Begin
-         Log(logError, 'MIDI', 'Error connecting effect graph node : ' + IntToString(status));
+         Log(logError, 'MIDI', 'Error connecting effect graph node : ' + IntegerProperty.Stringify(status));
          Result := False;
          Exit;
     End;
@@ -185,7 +242,7 @@ Begin
     Status := AUGraphNodeInfo(_outGraph, synthNode, outDesc, _outSynth);
     If (Status <> noErr) Then
     Begin
-         Log(logError, 'MIDI', 'Error getting graph node info: ' + IntToString(status));
+         Log(logError, 'MIDI', 'Error getting graph node info: ' + IntegerProperty.Stringify(status));
          Result := False;
          Exit;
     End;
@@ -193,7 +250,7 @@ Begin
     Status := AUGraphInitialize(_outGraph);
     If (Status <> noErr) Then
     Begin
-         Log(logError, 'MIDI', 'Error initializting graph: ' + IntToString(status));
+         Log(logError, 'MIDI', 'Error initializting graph: ' + IntegerProperty.Stringify(status));
          Result := False;
          Exit;
     End;
@@ -212,7 +269,7 @@ Begin
     Status := AUGraphStart(_outGraph);
     If (Status <> noErr) Then
     Begin
-         Log(logError, 'MIDI', 'Error starting graph: ' + IntToString(status));
+         Log(logError, 'MIDI', 'Error starting graph: ' + IntegerProperty.Stringify(status));
          Result := False;
          Exit;
     End;

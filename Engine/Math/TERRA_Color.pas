@@ -25,13 +25,13 @@ Unit TERRA_Color;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Vector3D;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Tween;
 
 {$R-}
 
 Type
-  PColor = ^Color;
-  Color = Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  PColorRGBA = ^ColorRGBA;
+  ColorRGBA = Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
   {$IFDEF BGR}
     B:Byte;
     G:Byte;
@@ -52,94 +52,123 @@ Type
     A:Byte;
   End;
 
-  PColorArray = ^ColorArray;
-  ColorArray=Array[0..0] Of Color;
+  ColorProperty = Class(TweenableProperty)
+    Protected
+      _Red:ByteProperty;
+      _Green:ByteProperty;
+      _Blue:ByteProperty;
+      _Alpha:ByteProperty;
+
+      Function GetColorValue:ColorRGBA;
+      Procedure SetColorValue(const NewValue:ColorRGBA);
+
+      Procedure UpdateTweens(); Override;
+
+    Public
+      Constructor Create(Const Name:TERRAString; Const InitValue:ColorRGBA);
+      Procedure Release(); Override;
+
+      Procedure AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil); Override;
+      Procedure AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:ColorRGBA; Duration:Cardinal; Delay:Cardinal = 0; Callback:TweenCallback = Nil; CallTarget:TERRAObject = Nil);
+
+      Function GetBlob():TERRAString; Override;
+      Procedure SetBlob(Const Blob:TERRAString); Override;
+
+      Class Function GetObjectType:TERRAString; Override;
+
+      Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
+
+      Class Function Stringify(Const N:ColorRGBA):TERRAString;
+
+      Property Red:ByteProperty Read _Red;
+      Property Green:ByteProperty Read _Green;
+      Property Blue:ByteProperty Read _Blue;
+      Property Alpha:ByteProperty Read _Alpha;
+
+      Property Value:ColorRGBA Read GetColorValue Write SetColorValue;
+  End;
 
   PColorPalette = ^ColorPalette;
-  ColorPalette = Array[0..255] Of Color;
+  ColorPalette = Array[0..255] Of ColorRGBA;
 
 Const
 // Color constants
   {$IFDEF BGR}
-  ColorWhite:Color=(B:255; G:255; R:255; A:255);
-  ColorBlack:Color=(B:0; G:0; R:0; A:255);
-  ColorNull:Color=(B:0; G:0; R:0; A:0);
+  ColorWhite:ColorRGBA=(B:255; G:255; R:255; A:255);
+  ColorBlack:ColorRGBA=(B:0; G:0; R:0; A:255);
+  ColorNull:ColorRGBA=(B:0; G:0; R:0; A:0);
   {$ELSE}
-  ColorWhite:Color=(R:255; G:255; B:255; A:255);
-  ColorBlack:Color=(R:0; G:0; B:0; A:255);
-  ColorNull:Color=(R:0; G:0; B:0; A:0);
+  ColorWhite:ColorRGBA=(R:255; G:255; B:255; A:255);
+  ColorBlack:ColorRGBA=(R:0; G:0; B:0; A:255);
+  ColorNull:ColorRGBA=(R:0; G:0; B:0; A:0);
   {$ENDIF}
 
   {$IFDEF BGR}
-  ColorRed:Color=(B:0; G:0; R:255; A:255);
-  ColorBlue:Color=(B:255; G:0; R:0; A:255);
-  ColorGreen:Color=(B:0; G:255; R:0; A:255);
-  ColorYellow:Color=(B:0; G:255; R:255; A:255);
+  ColorRed:ColorRGBA=(B:0; G:0; R:255; A:255);
+  ColorBlue:ColorRGBA=(B:255; G:0; R:0; A:255);
+  ColorGreen:ColorRGBA=(B:0; G:255; R:0; A:255);
+  ColorYellow:ColorRGBA=(B:0; G:255; R:255; A:255);
   {$ELSE}
-  ColorRed:Color=(R:255; G:0; B:0; A:255);
-  ColorBlue:Color=(R:0; G:0; B:255; A:255);
-  ColorGreen:Color=(R:0; G:255; B:0; A:255);
-  ColorYellow:Color=(R:255; G:255; B:0; A:255);
+  ColorRed:ColorRGBA=(R:255; G:0; B:0; A:255);
+  ColorBlue:ColorRGBA=(R:0; G:0; B:255; A:255);
+  ColorGreen:ColorRGBA=(R:0; G:255; B:0; A:255);
+  ColorYellow:ColorRGBA=(R:255; G:255; B:0; A:255);
   {$ENDIF}
 
-//#####################
-//#  Color functions  #
-//#####################
 
-Function ColorToString(Const N:Color):TERRAString;
-
-Function ColorCreate(Const R,G,B:Byte;A:Byte=255):Color;
-Function ColorCreateFromString(HexValue:TERRAString):Color;
-Function ColorCreateFromFloat(Const R,G,B:Single; A:Single=1.0):Color;
-Function ColorCreateFromVector3D(Const V:Vector3D; A:Single=1.0):Color;
+Function ColorCreate(Const R,G,B:Byte;A:Byte=255):ColorRGBA;
+Function ColorCreateFromString(Const Value:TERRAString):ColorRGBA;
+Function ColorCreateFromFloat(Const R,G,B:Single; A:Single=1.0):ColorRGBA;
+Function ColorCreateFromVector3D(Const V:Vector3D; A:Single=1.0):ColorRGBA;
+Function ColorCreateFromNormal(Const N:Vector3D; A:Single=1.0):ColorRGBA;
 
 Function ColorHSLCreate(Const H,S,L:Byte; A:Byte=255):ColorHSL;
 
 // Mixes colors
-Function ColorMix(Const A,B:Color; Const Cur:Single):Color;Overload;
-Function ColorMix(Const A,B,C:Color; Const U,V:Single):Color;Overload;
+Function ColorMix(Const A,B:ColorRGBA; Const Cur:Single):ColorRGBA;Overload;
+Function ColorMix(Const A,B,C:ColorRGBA; Const U,V:Single):ColorRGBA;Overload;
 
 // blends A with B, using A alpha
-Function ColorBlend(Const Src,Dest:Color):Color; Overload;
-Function ColorBlend(Const Src,Dest:Color; A:Cardinal):Color; Overload;
+Function ColorBlend(Const Src,Dest:ColorRGBA):ColorRGBA; Overload;
+Function ColorBlend(Const Src,Dest:ColorRGBA; A:Cardinal):ColorRGBA; Overload;
 
 // Scale color
-Function ColorScale(Const A:Color; B:Single):Color;
+Function ColorScale(Const A:ColorRGBA; B:Single):ColorRGBA;
 
 // Color lerp
-Function ColorLerp(Const A,B,C:Color):Color;
+Function ColorLerp(Const A,B,C:ColorRGBA):ColorRGBA;
 
 // Swap color channels
-Function ColorSwap(Color:Color):Color;
+Function ColorSwap(Color:ColorRGBA):ColorRGBA;
 
-Function ColorNegative(Color:Color):Color;
+Function ColorNegative(Color:ColorRGBA):ColorRGBA;
 
 // Color conversion routines
-Function ColorRGB15Decode(Source:Word):Color;
-Function ColorRGB15Encode(Source:Color):Word;
+Function ColorRGB15Decode(Source:Word):ColorRGBA;
+Function ColorRGB15Encode(Source:ColorRGBA):Word;
 
-Function ColorRGB8Decode(Source:Byte):Color;
-Function ColorRGB8Encode(Source:Color):Byte;
+Function ColorRGB8Decode(Source:Byte):ColorRGBA;
+Function ColorRGB8Encode(Source:ColorRGBA):Byte;
 
-Function ColorLuminance(Source:Color):Byte;
-Function ColorHue(Source:Color):Byte;
-Function ColorSaturation(Source:Color):Byte;  
+Function ColorLuminance(Source:ColorRGBA):Byte;
+Function ColorHue(Source:ColorRGBA):Byte;
+Function ColorSaturation(Source:ColorRGBA):Byte;  
 
-Function ColorGrey(GreyLevel:Byte; Alpha:Byte=255):Color;
+Function ColorGrey(GreyLevel:Byte; Alpha:Byte=255):ColorRGBA;
 
-Function ColorRGBToHSL(Const Input:Color):ColorHSL;
-Function ColorHSLToRGB(Const Input:ColorHSL):Color;
+Function ColorRGBToHSL(Const Input:ColorRGBA):ColorHSL;
+Function ColorHSLToRGB(Const Input:ColorHSL):ColorRGBA;
 
   // Color conversion
-  Function ColorRGB16To32(Source:Word):Color;
-  Function ColorRGB32To16(Source:Color):Word;
-  Function ColorRGB32To8(Source:Color):Byte;
-  Function ColorRGB8To32(Source:Byte):Color;
+  Function ColorRGB16To32(Source:Word):ColorRGBA;
+  Function ColorRGB32To16(Source:ColorRGBA):Word;
+  Function ColorRGB32To8(Source:ColorRGBA):Byte;
+  Function ColorRGB8To32(Source:Byte):ColorRGBA;
 
-  Function ColorBGR16To32(Source:Word):Color;
-  Function ColorBGR32To16(Source:Color):Word;
-  Function ColorBGR32To8(Source:Color):Byte;
-  Function ColorBGR8To32(Source:Byte):Color;
+  Function ColorBGR16To32(Source:Word):ColorRGBA;
+  Function ColorBGR32To16(Source:ColorRGBA):Word;
+  Function ColorBGR32To8(Source:ColorRGBA):Byte;
+  Function ColorBGR8To32(Source:Byte):ColorRGBA;
 
 
 Type
@@ -164,60 +193,87 @@ Type
     combineLuminosity
     );
 
-Function ColorCombine(Const A, B:Color; Mode:ColorCombineMode):Color;
+Function ColorCombine(Const A, B:ColorRGBA; Mode:ColorCombineMode):ColorRGBA;
 
-Function ColorAdd(Const A,B:Color):Color;
-Function ColorMultiply(Const A,B:Color):Color;
-Function ColorSubtract(Const A,B:Color):Color;
-Function ColorDifference(Const A,B:Color):Color;
-Function ColorScreen(Const A,B:Color):Color;
-Function ColorOverlay(Const A,B:Color):Color;
-Function ColorHardLight(Const A,B:Color):Color;
-Function ColorSoftLight(Const A,B:Color):Color;
-Function ColorDarken(Const A,B:Color):Color;
-Function ColorLighten(Const A,B:Color):Color;
-Function ColorDodge(Const A,B:Color):Color;
-Function ColorBurn(Const A,B:Color):Color;
-Function ColorCombineColor(Const A,B:Color):Color;
-Function ColorCombineHue(Const A,B:Color):Color;
-Function ColorCombineSaturation(Const A,B:Color):Color;
-Function ColorCombineLuminosity(Const A,B:Color):Color;
+Function ColorAdd(Const A,B:ColorRGBA):ColorRGBA;
+Function ColorMultiply(Const A,B:ColorRGBA):ColorRGBA;
+Function ColorSubtract(Const A,B:ColorRGBA):ColorRGBA;
+Function ColorDifference(Const A,B:ColorRGBA):ColorRGBA;
+Function ColorScreen(Const A,B:ColorRGBA):ColorRGBA;
+Function ColorOverlay(Const A,B:ColorRGBA):ColorRGBA;
+Function ColorHardLight(Const A,B:ColorRGBA):ColorRGBA;
+Function ColorSoftLight(Const A,B:ColorRGBA):ColorRGBA;
+Function ColorDarken(Const A,B:ColorRGBA):ColorRGBA;
+Function ColorLighten(Const A,B:ColorRGBA):ColorRGBA;
+Function ColorDodge(Const A,B:ColorRGBA):ColorRGBA;
+Function ColorBurn(Const A,B:ColorRGBA):ColorRGBA;
+Function ColorCombineColor(Const A,B:ColorRGBA):ColorRGBA;
+Function ColorCombineHue(Const A,B:ColorRGBA):ColorRGBA;
+Function ColorCombineSaturation(Const A,B:ColorRGBA):ColorRGBA;
+Function ColorCombineLuminosity(Const A,B:ColorRGBA):ColorRGBA;
 
 Implementation
-Uses TERRA_Math;
+Uses TERRA_Math, TERRA_ColorNames;
 
 // Color functions
-Function ColorToString(Const N:Color):TERRAString;
-Begin
-  Result := '#'+HexStr(N.R)+HexStr(N.G)+HexStr(N.B)+HexStr(N.A);
-End;
-
-Function ColorCreateFromString(HexValue:TERRAString):Color;
-  Function H(C:AnsiChar):Byte;
+Function ColorCreateFromString(Const Value:TERRAString):ColorRGBA;
+  Function H(C:TERRAChar):Byte;
   Begin
-    C := UpCase(C);
+    C := CharUpper(C);
     If (C>='0') And (C<='9') Then
-      Result := Ord(C)-Ord('0')
+      Result := Byte(Ord(C) - Ord('0'))
     Else
-      Result := Ord(C)-Ord('A')+10;
+      Result := Byte(Ord(C) - Ord('A') + 10);
   End;
+
+Var
+  It:StringIterator;
+  Init:TERRAChar;
+  A,B:Byte;
 Begin
-  If (Length(HexValue)<6) Then
+  It := StringCreateIterator(Value);
+
+  Init := It.GetNext();
+  If (Init = '#') Then
   Begin
-  	Result := ColorNull;
-    Exit;
+    A := H(It.GetNext());
+  End Else
+  Begin
+    Result := CreateColorFromName(Value);
+    If Result.A>0 Then
+    Begin
+      ReleaseObject(It);
+      Exit;
+    End;
+
+    A := H(Init);
   End;
 
-  If (HexValue[1]='#') Then
-    HexValue := Copy(HexValue, 2, MaxInt);
+  B := H(It.GetNext());
 
-  Result.R := H(HexValue[1])*16+H(HexValue[2]);
-  Result.G := H(HexValue[3])*16+H(HexValue[4]);
-  Result.B := H(HexValue[5])*16+H(HexValue[6]);
-  Result.A := 255;
+  Result.R := A Shl 4 + B;
+
+  A := H(It.GetNext());
+  B := H(It.GetNext());
+  Result.G := A Shl 4 + B;
+
+
+  A := H(It.GetNext());
+  B := H(It.GetNext());
+  Result.B := A Shl 4 + B;
+
+  If (It.HasNext()) Then
+  Begin
+    A := H(It.GetNext());
+    B := H(It.GetNext());
+    Result.A := A Shl 4 + B;
+  End Else
+    Result.A := 255;
+
+  ReleaseObject(It);
 End;
 
-Function ColorCreate(Const R,G,B:Byte;A:Byte=255):Color;  {$IFDEF FPC} Inline;{$ENDIF}
+Function ColorCreate(Const R,G,B:Byte;A:Byte=255):ColorRGBA;  {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result.R := R;
   Result.G := G;
@@ -225,7 +281,7 @@ Begin
   Result.A := A;
 End;
 
-Function ColorCreateFromFloat(Const R,G,B:Single;A:Single=1.0):Color; {$IFDEF FPC} Inline;{$ENDIF}
+Function ColorCreateFromFloat(Const R,G,B:Single;A:Single=1.0):ColorRGBA; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result.R := Byte(Trunc(R*255));
   Result.G := Byte(Trunc(G*255));
@@ -233,9 +289,14 @@ Begin
   Result.A := Byte(Trunc(A*255));
 End;
 
-Function ColorCreateFromVector3D(Const V:Vector3D; A:Single=1.0):Color;
+Function ColorCreateFromVector3D(Const V:Vector3D; A:Single=1.0):ColorRGBA;
 Begin
   Result := ColorCreateFromFloat(V.X, V.Y, V.Z, A);
+End;
+
+Function ColorCreateFromNormal(Const N:Vector3D; A:Single=1.0):ColorRGBA;
+Begin
+  Result := ColorCreateFromFloat(N.X*0.5 + 0.5, N.Y*0.5 + 0.5, N.Z*0.5 + 0.5, A);
 End;
 
 Function ColorHSLCreate(Const H,S,L:Byte; A:Byte=255):ColorHSL;
@@ -248,7 +309,7 @@ End;
 
 {$OverFlowChecks Off}
 
-Function ColorBlend(Const Src,Dest:Color; A:Cardinal):Color;{$IFDEF FPC} Inline;{$ENDIF}
+Function ColorBlend(Const Src,Dest:ColorRGBA; A:Cardinal):ColorRGBA;{$IFDEF FPC} Inline;{$ENDIF}
 (*Var
 	A,B:Single;
 Begin
@@ -283,10 +344,10 @@ Begin
 	rb  := (drb + dstrb) And $00FF00FF;
 	ag  := ((dag + dstag) Shl 8) And $FF00FF00;
 
-	Result := Color(Cardinal(rb Or ag));
+	Result := ColorRGBA(Cardinal(rb Or ag));
 End;
 
-Function ColorBlend(Const Src,Dest:Color):Color;{$IFDEF FPC} Inline;{$ENDIF}
+Function ColorBlend(Const Src,Dest:ColorRGBA):ColorRGBA;{$IFDEF FPC} Inline;{$ENDIF}
 Var
 	a:Cardinal;
 	srcrb, srcg:Cardinal;
@@ -315,12 +376,12 @@ Begin
 
   A := Cardinal(Dest) And $FF000000;
 
-	Result := Color(Cardinal(rb Or g Or A));
+	Result := ColorRGBA(Cardinal(rb Or g Or A));
 
     //Result.A := IntMax(Result.A, Src.A);
 End;
 
-Function ColorMix(Const A,B:Color; Const Cur:Single):Color; {$IFDEF FPC} Inline;{$ENDIF}
+Function ColorMix(Const A,B:ColorRGBA; Const Cur:Single):ColorRGBA; {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result.R:=Trunc(A.R*Cur+B.R*(1-Cur));
   Result.G:=Trunc(A.G*Cur+B.G*(1-Cur));
@@ -328,7 +389,7 @@ Begin
   Result.A:=Trunc(A.A*Cur+B.A*(1-Cur));
 End;
 
-Function ColorMix(Const A,B,C:Color; Const U,V:Single):Color; {$IFDEF FPC} Inline;{$ENDIF}
+Function ColorMix(Const A,B,C:ColorRGBA; Const U,V:Single):ColorRGBA; {$IFDEF FPC} Inline;{$ENDIF}
 Var
   W:Single;
 Begin
@@ -339,7 +400,7 @@ Begin
   Result.A:=255;
 End;
 
-Function ColorScale(Const A:Color; B:Single):Color;
+Function ColorScale(Const A:ColorRGBA; B:Single):ColorRGBA;
 Var
   X,Y,Z:Single;
 Begin
@@ -355,7 +416,7 @@ Begin
   Result.A := A.A;
 End;
 
-Function ColorLerp(Const A,B,C:Color):Color;  {$IFDEF FPC} Inline;{$ENDIF}
+Function ColorLerp(Const A,B,C:ColorRGBA):ColorRGBA;  {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result.R:=Trunc((A.R/255)*(B.R/255)+((255-A.R)/255)*(C.R/255));
   Result.G:=Trunc((A.G/255)*(B.G/255)+((255-A.G)/255)*(C.G/255));
@@ -363,7 +424,7 @@ Begin
   Result.A:=Trunc((A.A/255)*(B.A/255)+((255-A.A)/255)*(C.A/255));
 End;
 
-Function ColorNegative(Color:Color):Color;
+Function ColorNegative(Color:ColorRGBA):ColorRGBA;
 Begin
   Result.R:=255-Color.R;
   Result.G:=255-Color.G;
@@ -371,7 +432,7 @@ Begin
   Result.A:=Color.A;
 End;
 
-Function ColorSwap(Color:Color):Color;
+Function ColorSwap(Color:ColorRGBA):ColorRGBA;
 Var
   N:Byte;
 Begin
@@ -381,7 +442,7 @@ Begin
   Result:=Color;
 End;
 
-Function ColorRGB15Decode(Source:Word):Color;
+Function ColorRGB15Decode(Source:Word):ColorRGBA;
 Var
   Temp:Word;
 Begin
@@ -405,7 +466,7 @@ Begin
   End;
 End;
 
-Function ColorRGB8Decode(Source:Byte):Color;
+Function ColorRGB8Decode(Source:Byte):ColorRGBA;
 Begin
 	Result.R := Byte((((Source Shr 5) And $07) * 255 Div 7));
 	Result.G := Byte(((Source Shr 2) And $07) * 255 Div 7);
@@ -413,7 +474,7 @@ Begin
 	Result.A := 255;
 End;
 
-Function ColorRGB8Encode(Source:Color):Byte;
+Function ColorRGB8Encode(Source:ColorRGBA):Byte;
 Begin
 	If Source.A=0 Then
 	Begin
@@ -431,7 +492,7 @@ Begin
     Result := 1;
 End;
 
-Function ColorRGB15Encode(Source:Color):Word;
+Function ColorRGB15Encode(Source:ColorRGBA):Word;
 Begin
   // Convert from 0..255 to 0..63 range
   Source.R:=Source.R Shr 3;
@@ -440,22 +501,22 @@ Begin
   Result:=Source.R + ((Source.G Shl 5) + (Source.B Shl 10));
 End;
 
-Function ColorHue(Source:Color):Byte;  {$IFDEF FPC} Inline;{$ENDIF}
+Function ColorHue(Source:ColorRGBA):Byte;  {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result := ColorRGBToHSL(Source).H;
 End;
 
-Function ColorSaturation(Source:Color):Byte;  {$IFDEF FPC} Inline;{$ENDIF}
+Function ColorSaturation(Source:ColorRGBA):Byte;  {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result := ColorRGBToHSL(Source).S;
 End;
 
-Function ColorLuminance(Source:Color):Byte;  {$IFDEF FPC} Inline;{$ENDIF}
+Function ColorLuminance(Source:ColorRGBA):Byte;  {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result := Trunc(Source.R*0.3+Source.G*0.59+Source.B*0.11);
 End;
 
-Function ColorGrey(GreyLevel:Byte; Alpha:Byte=255):Color;  {$IFDEF FPC} Inline;{$ENDIF}
+Function ColorGrey(GreyLevel:Byte; Alpha:Byte=255):ColorRGBA;  {$IFDEF FPC} Inline;{$ENDIF}
 Begin
   Result.R := GreyLevel;
   Result.G := GreyLevel;
@@ -463,7 +524,7 @@ Begin
   Result.A := Alpha;
 End;
 
-Function ColorHSLToRGB(Const Input:ColorHSL):Color;
+Function ColorHSLToRGB(Const Input:ColorHSL):ColorRGBA;
 Var
 	v,r,g,b:Single;
   H,Sl,L:Single;
@@ -567,7 +628,7 @@ End;
 
 // Given a Color (RGB Struct) in range of 0-255
 // Return H,S,L in range of 0-1
-Function ColorRGBToHSL(Const Input:Color):ColorHSL;
+Function ColorRGBToHSL(Const Input:ColorRGBA):ColorHSL;
 Var
   h,s,l, r,g,b:Single;
   v, m, vm, r2, g2, b2:Single;
@@ -648,7 +709,7 @@ Begin
 End;
 
 // color format conversions
-Function ColorRGB16To32(Source:Word):Color;
+Function ColorRGB16To32(Source:Word):ColorRGBA;
 Var
 	Temp:Word;
 Begin
@@ -670,7 +731,7 @@ Begin
   End;
 End;
 
-Function ColorRGB32To16(Source:Color):Word;
+Function ColorRGB32To16(Source:ColorRGBA):Word;
 Begin
 	// Convert from 0..255 to 0..63 range
 	Source.R:=Source.R Shr 3;
@@ -679,7 +740,7 @@ Begin
 	Result:=Source.R + ((Source.G Shl 5) + (Source.B Shl 10));
 End;
 
-Function ColorRGB8To32(Source:Byte):Color;
+Function ColorRGB8To32(Source:Byte):ColorRGBA;
 Begin
 	Result.R:=Byte((((Source Shr 5) And $07) * 255 Div 7));
 	Result.G:=Byte(((Source Shr 2) And $07) * 255 Div 7);
@@ -687,7 +748,7 @@ Begin
 	Result.A:=255;
 End;
 
-Function ColorRGB32To8(Source:Color):Byte;
+Function ColorRGB32To8(Source:ColorRGBA):Byte;
 Begin
 	If Source.A<200 Then
 	Begin
@@ -705,7 +766,7 @@ Begin
     Result:=1;}
 End;
 
-Function ColorBGR16To32(Source:Word):Color;
+Function ColorBGR16To32(Source:Word):ColorRGBA;
 Var
 	Temp:Word;
 Begin
@@ -727,24 +788,24 @@ Begin
   End;
 End;
 
-Function ColorBGR32To16(Source:Color):Word;
+Function ColorBGR32To16(Source:ColorRGBA):Word;
 Begin
 	// Convert from 0..255 to 0..63 range
-	Source.R:=Source.R Shr 3;
+	Source.R:=Source.B Shr 3;
 	Source.G:=Source.G Shr 3;
-	Source.B:=Source.B Shr 3;
+	Source.B:=Source.R Shr 3;
 	Result:=Source.R + ((Source.G Shl 5) + (Source.B Shl 10));
 End;
 
-Function ColorBGR8To32(Source:Byte):Color;
+Function ColorBGR8To32(Source:Byte):ColorRGBA;
 Begin
-	Result.B:=Byte((((Source Shr 5) And $07) * 255 Div 7));
-	Result.G:=Byte(((Source Shr 2) And $07) * 255 Div 7);
-	Result.R:=Byte(((Source Shr 0) And $03) * 255 Div 3);
-	Result.A:=255;
+	Result.B := Byte((((Source Shr 5) And $07) * 255 Div 7));
+	Result.G := Byte(((Source Shr 2) And $07) * 255 Div 7);
+	Result.R := Byte(((Source Shr 0) And $03) * 255 Div 3);
+	Result.A :=255;
 End;
 
-Function ColorBGR32To8(Source:Color):Byte;
+Function ColorBGR32To8(Source:ColorRGBA):Byte;
 Begin
 	If Source.A=0 Then
 	Begin
@@ -753,15 +814,15 @@ Begin
 	End;
 
 	// Convert from 0..255 to 0..7 range
-	Source.R:=Source.R Shr 6;
+	Source.R:=Source.B Shr 6;
 	Source.G:=Source.G Shr 5;
-	Source.B:=Source.B Shr 5;
+	Source.B:=Source.R Shr 5;
 	Result:=Source.R + (Source.G Shl 2) + (Source.B Shl 5);
   If (Result=0) Then
     Result:=1;
 End;
 
-Function ColorAdd(Const A,B:Color):Color;  
+Function ColorAdd(Const A,B:ColorRGBA):ColorRGBA;
 Begin
   Result.R := IntMin(Integer(Trunc(Integer(A.R + B.R))), 255);
   Result.G := IntMin(Integer(Trunc(Integer(A.G + B.G))), 255);
@@ -769,7 +830,7 @@ Begin
   Result.A := IntMin(Integer(Trunc(Integer(A.A + B.A))), 255);
 End;
 
-Function ColorMultiply(Const A,B:Color):Color; 
+Function ColorMultiply(Const A,B:ColorRGBA):ColorRGBA; 
 Begin
   Result.R:= Trunc((A.R/255)*(B.R/255)*255);
   Result.G:= Trunc((A.G/255)*(B.G/255)*255);
@@ -778,7 +839,7 @@ Begin
 End;
 
 
-Function ColorSubtract(Const A,B:Color):Color; 
+Function ColorSubtract(Const A,B:ColorRGBA):ColorRGBA; 
 Begin
   Result.R := IntMax(Integer(Trunc(A.R - B.R)), 0);
   Result.G := IntMax(Integer(Trunc(A.G - B.G)), 0);
@@ -786,7 +847,7 @@ Begin
   Result.A := IntMax(Integer(Trunc(A.A - B.A)), 0);
 End;
 
-Function ColorDifference(Const A,B:Color):Color;
+Function ColorDifference(Const A,B:ColorRGBA):ColorRGBA;
 Begin
   Result.R := Abs(Integer(A.R - B.R));
   Result.G := Abs(Integer(A.G - B.G));
@@ -794,7 +855,7 @@ Begin
   Result.A := Abs(Integer(A.A - B.A));
 End;
 
-Function ColorScreen(Const A,B:Color):Color;
+Function ColorScreen(Const A,B:ColorRGBA):ColorRGBA;
   Function Screen(X,Y:Byte):Byte;
   Var
     A, B, F:Single;
@@ -813,7 +874,7 @@ Begin
   Result.A := Screen(A.A, B.A);
 End;
 
-Function ColorOverlay(Const A,B:Color):Color;
+Function ColorOverlay(Const A,B:ColorRGBA):ColorRGBA;
   Function Overlay(X,Y:Byte):Byte;
   Var
     A, B, F:Single;
@@ -837,7 +898,7 @@ End;
 
 { Hard Light combines Multiply and Screen blend modes.
   Equivalent to Overlay, but with the bottom and top images swapped. }
-Function ColorHardLight(Const A,B:Color):Color;
+Function ColorHardLight(Const A,B:ColorRGBA):ColorRGBA;
   Function HardLight(Y,X:Byte):Byte;
   Var
     A, B, F:Single;
@@ -859,7 +920,7 @@ Begin
   Result.A := HardLight(A.A, B.A);
 End;
 
-Function ColorSoftLight(Const A,B:Color):Color;
+Function ColorSoftLight(Const A,B:ColorRGBA):ColorRGBA;
   Function SoftLight(Y,X:Byte):Byte;
   Var
     A, B, F:Single;
@@ -879,7 +940,7 @@ Begin
   Result.A := SoftLight(A.A, B.A);
 End;
 
-Function ColorDarken(Const A,B:Color):Color;
+Function ColorDarken(Const A,B:ColorRGBA):ColorRGBA;
   Function Darken(X,Y:Byte):Byte;
   Begin
     If X<Y Then
@@ -894,7 +955,7 @@ Begin
   Result.A := Darken(A.A, B.A);
 End;
 
-Function ColorLighten(Const A,B:Color):Color;
+Function ColorLighten(Const A,B:ColorRGBA):ColorRGBA;
   Function Lighten(X,Y:Byte):Byte;
   Begin
     If X>Y Then
@@ -909,7 +970,7 @@ Begin
   Result.A := Lighten(A.A, B.A);
 End;
 
-Function ColorDodge(Const A,B:Color):Color;
+Function ColorDodge(Const A,B:ColorRGBA):ColorRGBA;
   Function Dodge(X,Y:Byte):Byte;
   Var
     A, B, F:Single;
@@ -932,7 +993,7 @@ Begin
   Result.A := Dodge(A.A, B.A);
 End;
 
-Function ColorBurn(Const A,B:Color):Color;
+Function ColorBurn(Const A,B:ColorRGBA):ColorRGBA;
   Function Burn(X,Y:Byte):Byte;
   Var
     A, B, F:Single;
@@ -955,7 +1016,7 @@ Begin
   Result.A := Burn(A.A, B.A);
 End;
 
-Function ColorCombineColor(Const A,B:Color):Color;
+Function ColorCombineColor(Const A,B:ColorRGBA):ColorRGBA;
 Var
   X,Y:ColorHSL;
 Begin
@@ -968,7 +1029,7 @@ Begin
   Result := ColorHSLToRGB(X);
 End;
 
-Function ColorCombineHue(Const A,B:Color):Color;
+Function ColorCombineHue(Const A,B:ColorRGBA):ColorRGBA;
 Var
   X,Y:ColorHSL;
 Begin
@@ -980,7 +1041,7 @@ Begin
   Result := ColorHSLToRGB(X);
 End;
 
-Function ColorCombineSaturation(Const A,B:Color):Color;
+Function ColorCombineSaturation(Const A,B:ColorRGBA):ColorRGBA;
 Var
   X,Y:ColorHSL;
 Begin
@@ -992,7 +1053,7 @@ Begin
   Result := ColorHSLToRGB(X);
 End;
 
-Function ColorCombineLuminosity(Const A,B:Color):Color;
+Function ColorCombineLuminosity(Const A,B:ColorRGBA):ColorRGBA;
 Var
   X,Y:ColorHSL;
 Begin
@@ -1004,7 +1065,7 @@ Begin
   Result := ColorHSLToRGB(X);
 End;
 
-Function ColorCombine(Const A, B:Color; Mode:ColorCombineMode):Color;
+Function ColorCombine(Const A, B:ColorRGBA; Mode:ColorCombineMode):ColorRGBA;
 Begin
   Case Mode Of
     combineBlend:
@@ -1095,6 +1156,94 @@ Begin
     Else
       Result := A;
   End;
+End;
+
+{ ColorProperty }
+Constructor ColorProperty.Create(Const Name:TERRAString; const InitValue:ColorRGBA);
+Begin
+  _ObjectName := Name;
+  _Red := ByteProperty.Create('r', InitValue.R);
+  _Green := ByteProperty.Create('g', InitValue.G);
+  _Blue := ByteProperty.Create('b', InitValue.B);
+  _Alpha := ByteProperty.Create('a', InitValue.A);
+End;
+
+Procedure ColorProperty.Release;
+Begin
+  ReleaseObject(_Red);
+  ReleaseObject(_Green);
+  ReleaseObject(_Blue);
+  ReleaseObject(_Alpha);
+End;
+
+Procedure ColorProperty.SetColorValue(const NewValue:ColorRGBA);
+Begin
+  Red.Value := NewValue.R;
+  Green.Value := NewValue.G;
+  Blue.Value := NewValue.B;
+  Alpha.Value := NewValue.A;
+End;
+
+Function ColorProperty.GetColorValue:ColorRGBA;
+Begin
+  Result.R := Red.Value;
+  Result.G := Green.Value;
+  Result.B := Blue.Value;
+  Result.A := Alpha.Value;
+End;
+
+Class Function ColorProperty.GetObjectType: TERRAString;
+Begin
+  Result := 'color';
+End;
+
+Procedure ColorProperty.AddTweenFromBlob(Const Ease:TweenEaseType; Const StartValue, TargetValue:TERRAString; Duration:Cardinal; Delay:Cardinal; Callback:TweenCallback; CallTarget:TERRAObject);
+Begin
+  Self.AddTween(Ease, ColorCreateFromString(StartValue), ColorCreateFromString(TargetValue), Duration, Delay, Callback, CallTarget);
+End;
+
+Procedure ColorProperty.AddTween(Const Ease:TweenEaseType; Const StartValue, TargetValue:ColorRGBA; Duration, Delay:Cardinal; Callback: TweenCallback; CallTarget:TERRAObject);
+Begin
+  Self.Red.AddTween(Ease, StartValue.R, TargetValue.R, Duration, Delay, Callback, CallTarget);
+  Self.Green.AddTween(Ease, StartValue.G, TargetValue.G, Duration, Delay, Nil);
+  Self.Blue.AddTween(Ease, StartValue.B, TargetValue.B, Duration, Delay, Nil);
+  Self.Alpha.AddTween(Ease, StartValue.A, TargetValue.A, Duration, Delay, Nil);
+End;
+
+Function ColorProperty.GetPropertyByIndex(Index: Integer): TERRAObject;
+Begin
+  Case Index Of
+  0:  Result := Red;
+  1:  Result := Green;
+  2:  Result := Blue;
+  3:  Result := Alpha;
+  Else
+    Result := Nil;
+  End;
+End;
+
+Function ColorProperty.GetBlob: TERRAString;
+Begin
+  Result := ColorProperty.Stringify(Self.GetColorValue());
+End;
+
+Procedure ColorProperty.SetBlob(const Blob: TERRAString);
+Begin
+  Self.SetColorValue(ColorCreateFromString(Blob));
+End;
+
+Procedure ColorProperty.UpdateTweens;
+Begin
+  Red.UpdateTweens();
+  Green.UpdateTweens();
+  Blue.UpdateTweens();
+  Alpha.UpdateTweens();
+End;
+
+
+Class Function ColorProperty.Stringify(Const N:ColorRGBA):TERRAString;
+Begin
+  Result := '#'+HexStr(N.R)+HexStr(N.G)+ HexStr(N.B)+ HexStr(N.A);
 End;
 
 End.

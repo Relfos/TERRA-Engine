@@ -28,14 +28,18 @@ Unit TERRA_PNG;
 {-$DEFINE LOGGING}
 
 Interface
-Uses TERRA_String, TERRA_Stream, TERRA_Image;
+Uses TERRA_Object, TERRA_String, TERRA_Stream, TERRA_Image, TERRA_FileFormat;
 
-Function ValidatePNG(Source:Stream):Boolean;
-Procedure PNGLoad(Source:Stream; MyImage:Image);
-Procedure PNGSave(Dest:Stream; MyImage:Image; Const Options:TERRAString='');
+Type
+  PNGFormat = Class(TERRAFileFormat)
+    Public
+      Function Identify(Source:TERRAStream):Boolean; Override;
+      Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
+      Function SaveToStream(Target:TERRAObject; Dest:TERRAStream):Boolean; Override;
+  End;
 
 Implementation
-Uses TERRA_Error, TERRA_Utils, TERRA_CRC32, TERRA_INI, TERRA_Color, TERRA_Log, TERRA_ZLib;
+Uses TERRA_Error, TERRA_Engine, TERRA_Utils, TERRA_FileUtils, TERRA_CRC32, TERRA_Color, TERRA_Log, TERRA_ZLib;
 
 Type
   RGBQuad=Packed Record
@@ -46,7 +50,7 @@ Type
   ZStreamRec2=Packed Record
     ZLIB:z_stream;   // From ZLIB
     Data:Pointer;       // Additional info
-    Source:Stream;
+    Source:TERRAStream;
   End;
 
   PNGHeader=Packed Record
@@ -61,7 +65,7 @@ Type
 
   PNGLoader = Class(TERRAObject)
     Protected
-      Buffer:Image;
+      Buffer:TERRAImage;
       Header:PNGHeader;
       BytesPerRow:Cardinal;
       Offset:Cardinal;
@@ -82,26 +86,26 @@ Type
 	    Procedure CopyNonInterlacedGrayscale16(Src,Dest:PByte);
   End;
 
-  LPNGChunkName=Array[0..3] Of AnsiChar;
+  PNGChunkName=Array[0..3] Of AnsiChar;
 
-  PPNGChunk=^LPNGChunk;
-  LPNGChunk=Record
-    Name:LPNGChunkName;
+  PPNGChunk = ^PNGChunk;
+  PNGChunk = Record
+    Name:PNGChunkName;
     Size:Integer;
   End;
 
-  LPNGChunkHandler=Procedure(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);
+  PNGChunkHandler=Procedure(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream);
 
-  LPNGChunkRec=Record
-    Name:LPNGChunkName;
-    Handler:LPNGChunkHandler;
+  PNGChunkRec=Record
+    Name:PNGChunkName;
+    Handler:PNGChunkHandler;
   End;
 
-  Procedure SkipChunk(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);Forward;
-  Procedure Process_IHDR(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);Forward;
-  Procedure Process_PLTE(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);Forward;
-  Procedure Process_IDAT(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);Forward;
-  Procedure Process_TRNS(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);Forward;
+  Procedure SkipChunk(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream); Forward;
+  Procedure Process_IHDR(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream); Forward;
+  Procedure Process_PLTE(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream); Forward;
+  Procedure Process_IDAT(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream); Forward;
+  Procedure Process_TRNS(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream); Forward;
 
 Const
   PNGSignature:Array[0..7] Of AnsiChar = (#137, #80, #78, #71, #13, #10, #26, #10);
@@ -137,7 +141,7 @@ Const
   COLOR_RGBALPHA       = 6;
 
   ChunkListSize=4{16};
-  ChunkList:Array[0..Pred(ChunkListSize)] Of LPNGChunkRec=
+  ChunkList:Array[0..Pred(ChunkListSize)] Of PNGChunkRec=
         ((Name:'IHDR'; Handler:Process_IHDR),
          (Name:'PLTE'; Handler:Process_PLTE),
          (Name:'IDAT'; Handler:Process_IDAT),
@@ -208,7 +212,7 @@ Const
   ZLIBAllocate = High(Word);
 
 // Initializes ZLIB for decompression
-Function ZLIBInitInflate(Source:Stream):ZStreamRec2;
+Function ZLIBInitInflate(Source:TERRAStream):ZStreamRec2;
 Begin
   // Fill record
   FillChar(Result, SizeOf(ZStreamRec2),0);
@@ -231,7 +235,7 @@ Begin
 End;
 
 // Initializes ZLIB for compression
-Function ZLIBInitDeflate(Source:Stream):ZStreamRec2;
+Function ZLIBInitDeflate(Source:TERRAStream):ZStreamRec2;
 Begin
   // Fill record
   FillChar(Result,SizeOf(ZStreamRec2),0);
@@ -256,19 +260,19 @@ Begin
   FreeMem(ZLIBStream.Data);
 End;
 
-Procedure SkipChunk(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);
+Procedure SkipChunk(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream);
 Begin
   Source.Skip(Chunk.Size);
 End;
 
 // Process header
-Procedure Process_IHDR(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);
+Procedure Process_IHDR(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream);
 Var
   I:Integer;
 Begin
   If Chunk.Size<SizeOf(PNG.Header) Then
   Begin
-    RaiseError('Invalid header size');
+    Engine.RaiseError('Invalid header size');
     Exit;
   End;
 
@@ -285,20 +289,20 @@ Begin
 
   Source.Skip(Chunk.Size-SizeOf(PNG.Header));
 
-  Log(logDebug,'PNG', 'Width:' +IntToString(PNG.Header.Width));
-  Log(logDebug,'PNG', 'Height:' +IntToString(PNG.Header.Height));
+  Engine.Log.Write(logDebug,'PNG', 'Width:' + IntegerProperty.Stringify(PNG.Header.Width));
+  Engine.Log.Write(logDebug,'PNG', 'Height:' + IntegerProperty.Stringify(PNG.Header.Height));
 
   // Compression method must be 0 (inflate/deflate)
   If (PNG.Header.CompressionMethod<>0) then
   Begin
-    RaiseError('Invalid compression method');
+    Engine.RaiseError('Invalid compression method');
     Exit;
   End;
 
   If  (PNG.Header.InterlaceMethod<>imNone)
   And (PNG.Header.InterlaceMethod<>imAdam7) then
   Begin
-    RaiseError('Invalid interlace method');
+    Engine.RaiseError('Invalid interlace method');
     Exit;
   End;
 
@@ -316,7 +320,7 @@ Begin
   End;
 End;
 
-Procedure Process_PLTE(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);
+Procedure Process_PLTE(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream);
 Begin
   Source.Read(@PNG.Palette, Chunk.Size);
 End;
@@ -327,7 +331,7 @@ Function IDATZlibRead(Var ZLIBStream:ZStreamRec2;
                       Count:Cardinal;
                       Var EndPos:Integer):Integer;
 Var
-  IDATHeader:LPNGChunkName;
+  IDATHeader:PNGChunkName;
 Begin
   Result:=-1;
   With ZLIBStream,ZLIBStream.ZLIB Do
@@ -354,7 +358,7 @@ Begin
         // PNG specification says that multiple IDAT chunks must be consecutive
         If IDATHeader<>'IDAT' Then
         Begin
-          RaiseError('IDAT chunk expected.');
+          Engine.RaiseError('IDAT chunk expected.');
           Exit;
         End;
 
@@ -388,7 +392,7 @@ Begin
       // In case the result was not sucessfull
       If (Result<0) Then
       Begin
-        RaiseError('ZLib error.'+zliberrors[Result]);
+        Engine.RaiseError('ZLib error.'+zliberrors[Result]);
         Exit;
       End Else
         Result := Avail_In;
@@ -396,7 +400,7 @@ Begin
   End;
 End;
 
-Function WriteChunkHeader(Source:Stream; ChunkName:LPNGChunkName; ChunkSize:Integer):Cardinal;
+Function WriteChunkHeader(Source:TERRAStream; ChunkName:PNGChunkName; ChunkSize:Integer):Cardinal;
 Begin
   ByteSwap32(Cardinal(ChunkSize));
   Source.Write(@ChunkSize, 4);
@@ -404,7 +408,7 @@ Begin
   Source.Write(@ChunkName, 4);
 End;
 
-Procedure WriteIDAT(Dest:Stream; Data:Pointer; Const Length:Cardinal);
+Procedure WriteIDAT(Dest:TERRAStream; Data:Pointer; Const Length:Cardinal);
 Var
   OP,CRC:Cardinal;
 Begin
@@ -435,7 +439,7 @@ Begin
       // In case the result was not sucessfull
       If (Result<>Z_OK) Then
       Begin
-        RaiseError('ZLib error.'+zliberrors[Result]);
+        Engine.RaiseError('ZLib error.'+zliberrors[Result]);
         Exit;
       End Else
         Result:=Avail_Out;
@@ -478,7 +482,7 @@ begin
   end {with ZLIBStream, ZLIBStream.ZLIB};
 end;
 
-Procedure Process_TRNS(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);
+Procedure Process_TRNS(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream);
 Begin
   If (PNG.Header.ColorType<>COLOR_PALETTE) Then
   Begin
@@ -489,7 +493,7 @@ Begin
   Source.Read(@PNG.PaletteAlpha, Chunk.Size);
 End;
 
-Procedure Process_IDAT(PNG:PNGLoader; Chunk:PPNGChunk; Source:Stream);
+Procedure Process_IDAT(PNG:PNGLoader; Chunk:PPNGChunk; Source:TERRAStream);
 Var
   ZLIBStream: ZStreamRec2;
 Begin
@@ -509,7 +513,7 @@ Begin
   Case PNG.Header.InterlaceMethod of
     imNone:  PNG.DecodeNonInterlaced(ZLIBStream);
     Else
-      RaiseError('Interlace method not supported in '+Source.Name);
+      Engine.RaiseError('Interlace method not supported in '+Source.Name);
 //    imAdam7: DecodeInterlacedAdam7(stream, ZLIBStream, size, crcfile);
   End;
 
@@ -529,14 +533,14 @@ Var
   Temp:Color;
   {$ENDIF}
   {$IFDEF PIXEL32}
-  Color:PColor;
+  Color:PColorRGBA;
   {$ENDIF}
 Begin
   {$IFDEF PIXEL8}
   Temp.A := 255;
   {$ENDIF}
   {$IFDEF PIXEL32}
-  Color := PColor(Dest);
+  Color := PColorRGBA(Dest);
   {$ENDIF}
   With Buffer Do
   For I:=0 To Pred(Width) Do
@@ -576,7 +580,7 @@ Var
   Color:PByte;
   {$ENDIF}
   {$IFDEF PIXEL32}
-  Color:PColor;
+  Color:PColorRGBA;
   {$ENDIF}
 Begin
   Color := Pointer(Dest);
@@ -664,7 +668,7 @@ Var
   Temp:TERRA_Color.Color;
   {$ENDIF}
   {$IFDEF PIXEL32}
-  Color:PColor;
+  Color:PColorRGBA;
   {$ENDIF}
 Begin
   Color:=Pointer(Dest);
@@ -695,7 +699,7 @@ Procedure PNGLoader.CopyNonInterlacedGrayscale16(Src,Dest:PByte);
 Var
   I:Integer;
   A,B:Byte;
-  Color:PColor;
+  Color:PColorRGBA;
 Begin
   Color:=Pointer(Dest);
   With Buffer Do
@@ -712,7 +716,7 @@ End;
 Procedure PNGLoader.DecodeNonInterlaced(Var ZLIBStream:ZStreamRec2);
 Var
   J:Cardinal;
-  Data:PColor;
+  Data:PColorRGBA;
   CopyProc:Procedure(Src,Dest:PByte) Of Object;
 Begin
   CopyProc:=Nil;
@@ -721,13 +725,13 @@ Begin
    COLOR_RGB:
        Case Header.BitDepth Of
         8:  CopyProc := CopyNonInterlacedRGB;
-        16: RaiseError('Decoder.NonInterlacedRGB16 not implemented!');
+        16: Engine.RaiseError('Decoder.NonInterlacedRGB16 not implemented!');
        End;
     COLOR_PALETTE, COLOR_GRAYSCALE:
        Case Header.BitDepth Of
         1, 2, 4, 8:
           CopyProc := CopyNonInterlacedPalette;
-        16: RaiseError('Decoder.CopyNonInterlacedGrayscale16 not implemented!');
+        16: Engine.RaiseError('Decoder.CopyNonInterlacedGrayscale16 not implemented!');
        End;
    COLOR_RGBALPHA:
       Case Header.BitDepth of
@@ -737,12 +741,12 @@ Begin
   COLOR_GRAYSCALEALPHA:
       Case Header.BitDepth of
         8  : CopyProc := CopyNonInterlacedGrayscaleAlpha;
-       16  : RaiseError('Decoder.CopyNonInterlacedGrayscaleAlpha16 not implemented!');
+       16  : Engine.RaiseError('Decoder.CopyNonInterlacedGrayscaleAlpha16 not implemented!');
       End;
   End;
 
   // Get the image data pointer
-  Data := Buffer.Pixels;
+  Data := Buffer.RawPixels;
 
   // Reads each line
   With Buffer Do
@@ -830,25 +834,57 @@ Begin
   End;
 End;
 
-Procedure PNGLoad(Source:Stream; MyImage:Image);
+Procedure EncodeNonInterlacedRGB(Src:PColorRGBA; Dest:PByte; Width:Integer);
 Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(Width) Do
+  Begin
+    Dest^ := Src.R; Inc(Dest);
+    Dest^ := Src.G; Inc(Dest);
+    Dest^ := Src.B; Inc(Dest);
+    Inc(Src);
+  End;
+End;
+
+Procedure EncodeNonInterlacedRGBA(Src:PColorRGBA; Dest:PByte; Width:Integer);
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(Width) Do
+  Begin
+    Dest^ := Src.R; Inc(Dest);
+    Dest^ := Src.G; Inc(Dest);
+    Dest^ := Src.B; Inc(Dest);
+    Dest^ := Src.A; Inc(Dest);
+    Inc(Src);
+  End;
+End;
+
+{ PNGFormat }
+Function PNGFormat.LoadFromStream(Target:TERRAObject; Source: TERRAStream): Boolean;
+Var
+  MyImage:TERRAImage;
   I,J:Integer;
   Signature:Array[0..7] Of AnsiChar;
   HasIDAT:Boolean;
-  Chunk:LPNGChunk;
-  ChunkHandler:LPNGChunkHandler;
+  Chunk:PNGChunk;
+  ChunkHandler:PNGChunkHandler;
   Loader:PNGLoader;
 Begin
+  Result := False;
+  MyImage := TERRAImage(Target);
+  
   {$IFDEF DEBUG_CORE}
-  Log(logDebug, 'PNG', 'Got PNG stream: '+Source.Name+' -> '+IntToString(Source.Position)+' / '+IntToString(Source.Size));
+  Engine.Log.Write(logDebug, 'PNG', 'Got PNG stream: '+Source.Name+' -> '+ IntegerProperty.Stringify(Source.Position)+' / '+ IntegerProperty.Stringify(Source.Size));
 
-  Log(logDebug, 'PNG', 'Reading header...');
+  Engine.Log.Write(logDebug, 'PNG', 'Reading header...');
   {$ENDIF}
   Source.Read(@Signature[0],8);
 
   If Signature<>PNGSignature then
   Begin
-    RaiseError('Invalid header.');
+    Engine.RaiseError('Invalid header.');
     Exit;
   End;
 
@@ -863,7 +899,7 @@ Begin
   // Load chunks
   Repeat
     {$IFDEF DEBUG_CORE}
-    Log(logDebug, 'PNG', 'Reading chunks...'+IntToString(Source.Position));
+    Engine.Log.Write(logDebug, 'PNG', 'Reading chunks...'+ IntegerProperty.Stringify(Source.Position));
     {$ENDIF}
 
     Source.Read(@Chunk.Size, 4);
@@ -871,14 +907,14 @@ Begin
     Source.Read(@Chunk.Name[0], 4);
 
     {$IFDEF DEBUG_CORE}
-    Log(logDebug, 'PNG', 'Found chunk: '+Chunk.Name + ' , size: '+IntToString(Chunk.Size));
+    Engine.Log.Write(logDebug, 'PNG', 'Found chunk: '+Chunk.Name + ' , size: '+ IntegerProperty.Stringify(Chunk.Size));
     {$ENDIF}
 
     //DisplayMessage('Chunk:' +Chunk.Name);
     // The first chunk need to be a header chunk
     If (Not Assigned(ChunkHandler))And(Chunk.Name <> 'IHDR') then
     Begin
-      RaiseError('Header not found.');
+      Engine.RaiseError('Header not found.');
       Exit;
     End;
 
@@ -919,7 +955,7 @@ Begin
   // Check if there is data
   If Not HasIDAT Then
   Begin
-    RaiseError('Image data not found.');
+    Engine.RaiseError('Image data not found.');
     Exit;
   End;
 
@@ -932,39 +968,15 @@ Begin
   End;}
 
   ReleaseObject(Loader);
+
+  Result := True;
 End;
 
-Procedure EncodeNonInterlacedRGB(Src:PColor; Dest:PByte; Width:Integer);
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(Width) Do
-  Begin
-    Dest^ := Src.R; Inc(Dest);
-    Dest^ := Src.G; Inc(Dest);
-    Dest^ := Src.B; Inc(Dest);
-    Inc(Src);
-  End;
-End;
-
-Procedure EncodeNonInterlacedRGBA(Src:PColor; Dest:PByte; Width:Integer);
-Var
-  I:Integer;
-Begin
-  For I:=0 To Pred(Width) Do
-  Begin
-    Dest^ := Src.R; Inc(Dest);
-    Dest^ := Src.G; Inc(Dest);
-    Dest^ := Src.B; Inc(Dest);
-    Dest^ := Src.A; Inc(Dest);
-    Inc(Src);
-  End;
-End;
-
-Procedure PNGSave(Dest:Stream; MyImage:Image; Const Options:TERRAString='');
+Function PNGFormat.SaveToStream(Target: TERRAObject; Dest: TERRAStream): Boolean;
 Const
   BUFFER = 5;
 Var
+  MyImage:TERRAImage;
   ZLIBStream:ZStreamRec2;
   Encode_Buffer: Array[0..5] of PByteArray;
   LineSize,Offset:Cardinal;
@@ -1052,8 +1064,8 @@ Procedure EncodeNonInterlaced(Var ZLIBStream:ZStreamRec2);
 Var
   J:Cardinal;
   Filter:Byte;
-  Pixels:PColor;
-  CopyProc: procedure(Src:PColor; Dest:PByte; Width:Integer);
+  Pixels:PColorRGBA;
+  CopyProc: procedure(Src:PColorRGBA; Dest:PByte; Width:Integer);
 Begin
   CopyProc := Nil;
   Case Header.ColorType of
@@ -1061,7 +1073,7 @@ Begin
     COLOR_RGBALPHA: CopyProc := EncodeNonInterlacedRGBA;
   End;
 
-  Pixels := MyImage.Pixels;
+  Pixels := MyImage.RawPixels;
   For J:=0 To Pred(MyImage.Height) Do
   Begin
     CopyProc(Pixels, @Encode_Buffer[BUFFER][0], MyImage.Width);
@@ -1103,9 +1115,10 @@ End;
 Var
   Signature:Array[0..7] Of TERRAChar;
   OP,CRC:Cardinal;
-  Depth:Integer;
-  Parser:INIParser;
 Begin
+  Result := False;
+  
+  MyImage := TERRAImage(Target);
   Move(PNGSignature, Signature, 8);
   Dest.Write(@Signature[0], 8);
 
@@ -1116,20 +1129,10 @@ Begin
   Header.CompressionMethod:=0;
   Header.FilterMethod:=0;
 
-  Depth := 32;
-  If Options<>'' Then
-  Begin
-    Parser := INIParser.Create;
-    Parser.ParseCommas := True;
-    Parser.AddToken('Depth',tkInteger,@Depth);
-    Parser.LoadFromString(Options);
-    ReleaseObject(Parser);
-  End;
-
-  If Depth=32 Then
-    Header.ColorType:=COLOR_RGBAlpha
-  Else
-    Header.ColorType:=COLOR_RGB;
+(*  If Depth=24 Then
+    Header.ColorType:=COLOR_RGB
+  Else*)
+    Header.ColorType:=COLOR_RGBAlpha;
 
   OP:=WriteChunkHeader(Dest, 'IHDR', SizeOf(Header));
   ByteSwap32(Cardinal(Header.Width));
@@ -1153,22 +1156,23 @@ Begin
   CRC:= GetCRC32('IEND', _PNGCRCTable);
   ByteSwap32(Cardinal(CRC));
   Dest.Write(@CRC, 4);
+
+  Result := True;
 End;
 
-Function ValidatePNG(Source:Stream):Boolean;
+Function PNGFormat.Identify(Source: TERRAStream): Boolean;
 Var
   ID:Array[1..3] Of AnsiChar;
 Begin
   Source.Skip(1);
   Source.Read(@ID,3);
-  Result:=(ID='PNG');
+  Result := (ID='PNG');
 End;
 
+
 Initialization
-  Log(logDebug, 'PNG', 'Initializing');
   _PNGCRCTable := CRC32Table.Create(PNGPolynomial);
-  
-  RegisterImageFormat('PNG', ValidatePNG, PNGLoad, PNGSave);
+  Engine.Formats.Add(PNGFormat.Create(TERRAImage, 'png'));
 Finalization
   ReleaseObject(_PNGCRCTable);
 End.

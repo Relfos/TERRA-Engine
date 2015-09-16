@@ -26,13 +26,13 @@ Unit TERRA_MusicManager;
 {$I terra.inc}
 Interface
 
-Uses TERRA_String, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_MusicTrack;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_MusicTrack;
 
 Const
   DefaultMusicCrossFadeDuration = 6000;
 
 Type
-  MusicManager = Class(ApplicationComponent)
+  MusicManager = Class(TERRAObject)
     Protected
       _Enabled:Boolean;
 
@@ -54,13 +54,11 @@ Type
       Procedure InitTrack(Const SourceName:TERRAString);
 
     Public
-      Class Function Instance:MusicManager;
-
+      Constructor Create();
       Procedure Release; Override;
 
 
-      Procedure Init; Override;
-      Procedure Update; Override;
+      Procedure Update;
 
       Procedure Play(SourceName:TERRAString; CrossFadeDuration:Integer = DefaultMusicCrossFadeDuration);
       Procedure Stop;
@@ -78,25 +76,12 @@ Type
   End;
 
 Implementation
-Uses TERRA_FileManager, TERRA_SoundManager, TERRA_Log, TERRA_OS, TERRA_Stream, TERRA_Math
+Uses TERRA_FileManager, TERRA_Engine, TERRA_SoundManager, TERRA_Log, TERRA_OS, TERRA_Stream, TERRA_FileFormat, TERRA_Math
 {$IFDEF HAS_MIDI}, TERRA_MIDI{$ENDIF}
 {$IFDEF HAS_AUDIOTRACK}, TERRA_AudioTrack{$ENDIF};
 
-Var
-  _MusicManager_Instance:ApplicationObject;
-
-Class Function MusicManager.Instance:MusicManager;
+Constructor MusicManager.Create();
 Begin
-  If Not Assigned(_MusicManager_Instance) Then
-    _MusicManager_Instance := InitializeApplicationComponent(MusicManager, {$IFDEF USE_OPENAL}SoundManager{$ELSE}Nil{$ENDIF});
-
-  Result := MusicManager(_MusicManager_Instance.Instance);
-End;
-
-Procedure MusicManager.Init;
-Begin
-  SoundManager.Instance(); // load open AL
-
   // set initial values
   _Volume := 0.8;
   _Enabled := True;
@@ -119,7 +104,7 @@ Begin
 
   If (Not _Enabled) Then
   Begin
-    Log(logDebug, 'Music', 'Cannot play '+SourceName+', music is disabled');
+    Engine.Log.Write(logDebug, 'Music', 'Cannot play '+SourceName+', music is disabled');
     Exit;
   End;
 
@@ -140,13 +125,14 @@ End;
 
 Procedure MusicManager.InitTrack(Const SourceName:TERRAString);
 Var
-  S, Ext:TERRAString;
+  Location:TERRALocation;
+  Ext:TERRAString;
   Procedure TryExtension(Ext:TERRAString);
   Begin
-    If S<>'' Then
+    If Assigned(Location) Then
       Exit;
 
-    S := FileManager.Instance.SearchResourceFile(SourceName+'.'+Ext);
+    Location := Engine.Files.Search(SourceName + '.' + Ext);
   End;
 
   Procedure TryClass(C:MusicTrackClass);
@@ -155,7 +141,7 @@ Var
       Exit;
 
     If (C.Supports(Ext)) Then
-      _CurrentTrack := C.Create(S, Self._Volume);
+      _CurrentTrack := C.Create(Location.Path, Self._Volume);
   End;
 Begin
   If (SourceName='') Then
@@ -177,16 +163,16 @@ Begin
     _PreviousTrackName := SourceName;
   End;
 
-  S := '';
+  Location := Nil;
   TryExtension('ogg');
   TryExtension('mid');
   TryExtension('mp3');
   TryExtension('mod');
 
-  If (S='') Then
+  If (Location = Nil) Then
     Exit;
 
-  Ext := GetFileExtension(S);
+  Ext := GetFileExtension(Location.Path);
 
   _CurrentTrack := Nil;
 
@@ -202,7 +188,7 @@ Begin
 
   If _CurrentTrack=Nil Then
   Begin
-    Log(logWarning, 'MusicManager', 'Cannot play track: '+SourceName);
+    Engine.Log.Write(logWarning, 'MusicManager', 'Cannot play track: '+SourceName);
     Exit;
   End;
 
@@ -221,7 +207,6 @@ Begin
     ReleaseObject(_CurrentTrack);
   End;
 
-  _MusicManager_Instance := Nil;
 End;
 
 Procedure MusicManager.SetVolume(Volume:Single);

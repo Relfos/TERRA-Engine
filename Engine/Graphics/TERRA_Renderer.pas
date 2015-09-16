@@ -28,9 +28,9 @@ Unit TERRA_Renderer;
 // combine shader.setintuniform and texture.bind into one call!!!
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_OS, TERRA_Collections, TERRA_Image, TERRA_VertexFormat,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_OS, TERRA_Collections, TERRA_Image, TERRA_VertexFormat,
   TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Matrix3x3, TERRA_Matrix4x4,
-  TERRA_Plane, TERRA_BoundingBox, TERRA_Color;
+  TERRA_Plane, TERRA_BoundingBox, TERRA_Color, TERRA_ShaderNode, TERRA_List, TERRA_RendererStats;
 
 Const
   MaxTextureHandles = 2048;
@@ -85,12 +85,21 @@ Type
     effectTargetEdge  = 10
   );
 
-Type
+
+  RendererStage = (
+    renderStageDiffuse      = 1,
+    renderStageNormal       = 2,
+    renderStageGlow         = 4,
+    renderStageRefraction   = 8,
+    renderStageOutline      = 16,
+    renderStageReflection   = 32,
+    renderStageShadow       = 64
+//    renderStageAlpha        = 128
+  );
+
   GraphicsRenderer = Class;
 
   RendererQuality = (qualityDisabled, qualityLow, qualityMedium, qualityHigh);
-
-  StatType = (statTriangles, statShaders, statRenderables, statLights, statOccluders);
 
   CullMode = (cullNone, cullFront, cullBack);
 
@@ -106,7 +115,7 @@ Type
 
   TextureFilterMode = (filterLinear, filterBilinear);
   TextureWrapMode = (wrapNothing = 0, wrapVertical = 1, wrapHorizontal  = 2, wrapAll = 3);
-  TextureColorFormat = (colorRGB, colorRGBA, colorBGR, colorBGRA, colorAlpha);
+  TextureColorFormat = (textureFormat_RGB, textureFormat_RGBA, textureFormat_BGR, textureFormat_BGRA, textureFormat_Alpha);
 
   SurfaceProjectionMode = (surfacePlanar, surfaceCylindrical, surfaceSpherical);
 
@@ -141,7 +150,7 @@ Type
     Protected
       _Owner:GraphicsRenderer;
       _Context:Integer;
-      _Size:Cardinal;
+      _SizeInBytes:Cardinal;
 
       Procedure Initialize(); Virtual;
 
@@ -155,7 +164,7 @@ Type
 
       Procedure Invalidate(); Virtual; Abstract;
 
-      Property Size:Cardinal Read _Size;
+      Property SizeInBytes:Cardinal Read _SizeInBytes;
       Property Owner:GraphicsRenderer Read _Owner;
       Property Valid:Boolean Read IsValid;
   End;
@@ -171,11 +180,11 @@ Type
 
       Function GetOrigin:SurfaceOrigin; Virtual;
 
+    Public
       Function Bind(Slot:Integer):Boolean; Virtual; Abstract;
 
-    Public
-      Function GetImage():Image; Virtual;
-      Function GetPixel(X,Y:Integer):Color; Virtual;
+      Function GetImage():TERRAImage; Virtual;
+      Function GetPixel(X,Y:Integer):ColorRGBA; Virtual;
 
       Procedure SetFilter(Value:TextureFilterMode); Virtual;
       Procedure SetWrapMode(Value:TextureWrapMode); Virtual;
@@ -202,7 +211,7 @@ Type
 
   RenderTargetInterface = Class(SurfaceInterface)
     Protected
-      _BackgroundColor:Color;
+      _BackgroundColor:ColorRGBA;
 
       _HasDepthBuffer:Boolean;
       _HasStencilBuffer:Boolean;
@@ -216,11 +225,11 @@ Type
 	    Procedure BeginCapture(Flags:Cardinal = clearAll); Virtual; Abstract;
 	    Procedure EndCapture; Virtual; Abstract;
 
-      Procedure SetBackgroundColor(Const Value:Color); Virtual;
+      Procedure SetBackgroundColor(Const Value:ColorRGBA); Virtual;
 
       Procedure Resize(NewWidth, NewHeight:Integer); Virtual; Abstract;
 
-      Property BackgroundColor:Color Read _BackgroundColor Write SetBackgroundColor;
+      Property BackgroundColor:ColorRGBA Read _BackgroundColor Write SetBackgroundColor;
 
       Property PixelSize:PixelSizeType Read _PixelSize;
   End;
@@ -258,7 +267,7 @@ Type
 
 
     Public
-      Function Generate(Const Name:TERRAString; ShaderCode:TERRAString):Boolean; Virtual; Abstract;
+      Function Generate(Const Name:TERRAString; Shader:TERRAShaderGroup):Boolean; Virtual; Abstract;
 
       Function IsReady():Boolean; Virtual; Abstract;
 
@@ -269,9 +278,9 @@ Type
 			Procedure SetVec4Uniform(Const Name:TERRAString; const Value:Vector4D); Virtual; Abstract;
       Procedure SetMat3Uniform(Const Name:TERRAString; Value:Matrix3x3); Virtual; Abstract;
       Procedure SetMat4Uniform(Const Name:TERRAString; Value:Matrix4x4); Virtual; Abstract;
-      Procedure SetVec4ArrayUniform(Const Name:TERRAString; Count:Integer; Values:PVector4D); Virtual; Abstract;
+      Procedure SetVec4ArrayUniform(Const Name:TERRAString; Count:Integer; Values:Array Of Vector4D); Virtual; Abstract;
 
-			Procedure SetColorUniform(Const Name:TERRAString; Const Value:Color);
+			Procedure SetColorUniform(Const Name:TERRAString; Const Value:ColorRGBA);
 			Procedure SetPlaneUniform(Const Name:TERRAString; Const Value:Plane);
 
       Function HasUniform(Const Name:TERRAString):Boolean; Virtual; 
@@ -300,7 +309,7 @@ Type
   VertexBufferInterface = Class(GraphicInterface)
     Protected
       _Dynamic:Boolean;
-      _Vertices:VertexData;
+      _Vertices:TERRAVertexBuffer;
       _TriangleCount:Integer;
       _EdgeCount:Integer;
       _IndexList:PTriangleArray;
@@ -310,7 +319,7 @@ Type
       Procedure Submit(Wireframe:Boolean); Virtual;Abstract;
 
     Public
-      Function Generate(Vertices:VertexData; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean; Virtual;Abstract;
+      Function Generate(Vertices:TERRAVertexBuffer; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean; Virtual;Abstract;
       Procedure Release(); Override;
 
       //4, GL_UNSIGNED_BYTE, True
@@ -435,13 +444,13 @@ Type
       Outlines:RendererSetting;
 
       CartoonHues:RendererSetting;
-      CartoonHueGreen:Color;
-      CartoonHueYellow:Color;
-      CartoonHuePurple:Color;
-      CartoonHueBlack:Color;
+      CartoonHueGreen:ColorRGBA;
+      CartoonHueYellow:ColorRGBA;
+      CartoonHuePurple:ColorRGBA;
+      CartoonHueBlack:ColorRGBA;
 
       FogMode:Integer;
-      FogColor:Color;
+      FogColor:ColorRGBA;
       FogDistanceStart:Single;
       FogDistanceEnd:Single;
       FogHeightStart:Single;
@@ -463,21 +472,7 @@ Type
       Property Changed:Boolean Read _Changed;
 	End;
 
-  RendererStats = Class(TERRAObject)
-    Protected
-      Procedure Reset;
-
-    Public
-      TriangleCount:Integer;
-      ShaderSwitches:Integer;
-      DrawCalls:Integer;
-      LightCount:Integer;
-      OccluderCount:Integer;
-      RenderableCount:Integer;
-      FramesPerSecond:Integer;
-  End;
-
-  GraphicsRenderer = Class(CollectionObject)
+  GraphicsRenderer = Class(TERRAObject)
     Protected
       _Name:TERRAString;
 
@@ -495,7 +490,7 @@ Type
       _TextureMatrix:Matrix4x4;
 
       //_BackgroundColor:Color;
-      _DiffuseColor:Color;
+      _DiffuseColor:ColorRGBA;
 
       _Stats:RendererStats;
       _PrevStats:RendererStats;
@@ -504,7 +499,7 @@ Type
 
       _ActiveShader:ShaderInterface;
 
-      _CurrentSource:VertexData;
+      _CurrentSource:TERRAVertexBuffer;
 
       _VSync:Boolean;
 
@@ -538,9 +533,7 @@ Type
       Function BindShader(Shader:ShaderInterface):Boolean;
       Function BindSurface(Surface:SurfaceInterface; Slot:Integer):Boolean;
 
-      Procedure InternalStat(Stat:StatType; Count:Integer = 1);
-
-      Procedure SetClearColor(Const ClearColor:Color); Virtual; Abstract;
+      Procedure SetClearColor(Const ClearColor:ColorRGBA); Virtual; Abstract;
       Procedure ClearBuffer(Color, Depth, Stencil:Boolean); Virtual; Abstract;
 
       Procedure SetStencilTest(Enable:Boolean); Virtual; Abstract;
@@ -559,7 +552,7 @@ Type
 
       Procedure OnSettingsChange();
 
-      Function GetScreenshot():Image; Virtual;
+      Function GetScreenshot():TERRAImage; Virtual;
 
       Procedure SetProjectionMatrix(Const Mat:Matrix4x4); Virtual; Abstract;
       Procedure SetModelMatrix(Const Mat:Matrix4x4); Virtual; Abstract;
@@ -570,10 +563,10 @@ Type
       Procedure SetScissorState(Enabled:Boolean); Virtual; Abstract;
       Procedure SetScissorArea(X,Y, Width, Height:Integer); Virtual; Abstract;
 
-      Procedure SetDiffuseColor(Const C:Color); Virtual; Abstract;
+      Procedure SetDiffuseColor(Const C:ColorRGBA); Virtual; Abstract;
       //Procedure SetBackgroundColor(Const C:Color);
 
-      Procedure SetVertexSource(Data:VertexData);
+      Procedure SetVertexSource(Data:TERRAVertexBuffer);
       Procedure SetAttributeSource(Const Name:TERRAString; AttributeKind:Cardinal; ElementType:DataFormat; AttributeSource:Pointer); Virtual; Abstract;
       Procedure DrawSource(Primitive:RenderPrimitive; Count:Integer); Virtual; Abstract;
       Procedure DrawIndexedSource(Primitive:RenderPrimitive; Count:Integer; Indices:PWord); Virtual; Abstract;
@@ -585,7 +578,7 @@ Type
 
       Property CurrentContext:Integer Read _CurrentContext;
 
-      Property DiffuseColor:Color Read _DiffuseColor Write SetDiffuseColor;
+      Property DiffuseColor:ColorRGBA Read _DiffuseColor Write SetDiffuseColor;
       //Property BackgroundColor:Color Read _BackgroundColor Write SetBackgroundColor;
 
       Property Name:TERRAString Read _Name;
@@ -604,25 +597,10 @@ Type
       Property DeviceVersion:TERRAVersion Read _DeviceVersion;
   End;
 
-  Function Renderers():List;
-
 Implementation
-Uses TERRA_Error, TERRA_FileManager, TERRA_Lights, TERRA_Math, TERRA_Log,
-  TERRA_Texture, TERRA_NullRenderer;
+Uses TERRA_Error, TERRA_Engine, TERRA_FileManager, TERRA_Lights, TERRA_Math, TERRA_Log,
+  TERRA_Texture, TERRA_FileFormat, TERRA_NullRenderer;
 
-Var
-  _RendererList:List = Nil;
-
-Function Renderers():List;
-Begin
-  If _RendererList = Nil Then
-  Begin
-    _RendererList := List.Create();
-    _RendererList.Add(NullRenderer.Create());
-  End;
-
-  Result := _RendererList;
-End;
 
 { RendererSettings }
 Constructor RendererSettings.Create(Owner: GraphicsRenderer);
@@ -762,21 +740,21 @@ End;
 
 Procedure RendererFeatures.WriteToLog();
 Begin
-  Log(logDebug, 'Renderer', 'Device: '+ _Owner._DeviceName);
-  Log(logDebug, 'Renderer', 'Vendor: '+ _Owner._DeviceVendor);
-  Log(logDebug, 'Renderer', 'Shaders: '+  BoolToString(Shaders.Avaliable));
-  Log(logDebug, 'Renderer', 'Max texture slots:' + IntToString(_MaxTextureUnits));
-  Log(logDebug, 'Renderer', 'Max texture size:' + IntToString(_MaxTextureSize));
-  Log(logDebug, 'Renderer', 'Max render targets:' + IntToString(_maxRenderTargets));
-  Log(logDebug, 'Renderer', 'Texture compression: '+  BoolToString(TextureCompression.Avaliable));
-  Log(logDebug, 'Renderer', 'VertexBufferObject: '+  BoolToString(VertexBufferObject.Avaliable));
-  Log(logDebug, 'Renderer', 'FrameBufferObject: '+  BoolToString(FrameBufferObject.Avaliable));
-  Log(logDebug, 'Renderer', 'CubemapTexture: '+  BoolToString(CubemapTexture.Avaliable));
-  Log(logDebug, 'Renderer', 'FloatTexture: '+  BoolToString(FloatTexture.Avaliable));
-  Log(logDebug, 'Renderer', 'TextureArray: '+  BoolToString(TextureArray.Avaliable));
-  Log(logDebug, 'Renderer', 'SeparateBlends: '+  BoolToString(SeparateBlends.Avaliable));
-  Log(logDebug, 'Renderer', 'SeamlessCubeMap: '+  BoolToString(SeamlessCubeMap.Avaliable));
-  Log(logDebug, 'Renderer', 'NPOT: '+  BoolToString(NPOT.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'Device: '+ _Owner._DeviceName);
+  Engine.Log.Write(logDebug, 'Renderer', 'Vendor: '+ _Owner._DeviceVendor);
+  Engine.Log.Write(logDebug, 'Renderer', 'Shaders: '+  BoolToString(Shaders.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'Max texture slots:' +  IntegerProperty.Stringify(_MaxTextureUnits));
+  Engine.Log.Write(logDebug, 'Renderer', 'Max texture size:' +  IntegerProperty.Stringify(_MaxTextureSize));
+  Engine.Log.Write(logDebug, 'Renderer', 'Max render targets:' +  IntegerProperty.Stringify(_maxRenderTargets));
+  Engine.Log.Write(logDebug, 'Renderer', 'Texture compression: '+  BoolToString(TextureCompression.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'VertexBufferObject: '+  BoolToString(VertexBufferObject.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'FrameBufferObject: '+  BoolToString(FrameBufferObject.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'CubemapTexture: '+  BoolToString(CubemapTexture.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'FloatTexture: '+  BoolToString(FloatTexture.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'TextureArray: '+  BoolToString(TextureArray.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'SeparateBlends: '+  BoolToString(SeparateBlends.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'SeamlessCubeMap: '+  BoolToString(SeamlessCubeMap.Avaliable));
+  Engine.Log.Write(logDebug, 'Renderer', 'NPOT: '+  BoolToString(NPOT.Avaliable));
 End;
 
 { GraphicInterface }
@@ -837,52 +815,21 @@ Begin
     Settings.VertexBufferObject.SetValue(False);
 End;
 
-Procedure GraphicsRenderer.InternalStat(Stat: StatType; Count: Integer);
-Begin
-  Case Stat Of
-  statTriangles:
-    Begin
-      Inc(_Stats.TriangleCount, Count);
-      Inc(_Stats.DrawCalls);
-    End;
-
-  statShaders:
-    Begin
-      Inc(_Stats.ShaderSwitches, Count);
-    End;
-
-  statRenderables:
-    Begin
-      Inc(_Stats.RenderableCount, Count);
-    End;
-
-  statLights:
-    Begin
-      Inc(_Stats.LightCount, Count);
-    End;
-
-  statOccluders:
-    Begin
-      Inc(_Stats.OccluderCount, Count);
-    End;
-
-  End;
-End;
 
 Procedure GraphicsRenderer.BeginFrame;
 Var
   Temp:RendererStats;
 Begin
-  _Stats.LightCount := LightManager.Instance.LightCount;
+  _Stats.Update(RendererStat_Lights, Engine.Lights.LightCount);
 
   Temp := _Stats;
   _Stats := _PrevStats;
   _PrevStats := Temp;
 
   _Stats.Reset();
-  _Stats.FramesPerSecond := _PrevStats.FramesPerSecond;
+  _Stats.Update(RendererStat_Frames, _PrevStats.FramesPerSecond);
 
-  //Application.Instance.SetTitle(IntToString(N));
+  //Application.Instance.SetTitle( IntegerProperty.Stringify(N));
 End;
 
 { VertexBufferInterface }
@@ -934,7 +881,7 @@ Begin
 //  typeInteger:  Size := Count * 4;
   {$ENDIF}
   Else
-    Log(logWarning, 'VBO', 'Invalid VBO attribute type ['+IntToString(Integer(Format))+']');
+    Engine.Log.Write(logWarning, 'VBO', 'Invalid VBO attribute type ['+ IntegerProperty.Stringify(Integer(Format))+']');
   End;
 
   If (Not Skip) Then
@@ -1015,7 +962,7 @@ End;
 
 Procedure GraphicsRenderer.UpdateFrameCounter();
 Begin
-  _Stats.FramesPerSecond := _Frames;
+  _Stats.Update(RendererStat_Frames, _Frames);
   _Frames := 1;
 End;
 
@@ -1092,7 +1039,7 @@ Begin
   Begin
     If (Not CreateContext()) Then
     Begin
-      RaiseError('Cannot create renderer context!');
+      Engine.RaiseError('Cannot create renderer context!');
       Exit;
     End;
 
@@ -1100,7 +1047,7 @@ Begin
       _Features.WriteToLog()
     Else
     Begin
-      RaiseError('Renderer failed to initialize!');
+      Engine.RaiseError('Renderer failed to initialize!');
       Exit;
     End;
 
@@ -1143,7 +1090,7 @@ Function GraphicsRenderer.BindShader(Shader:ShaderInterface):Boolean;
 Begin
   If Shader = Nil Then
   Begin
-    RaiseError('Cannot bind null shader!');
+    Engine.RaiseError('Cannot bind null shader!');
     Result := False;
     Exit;
   End;
@@ -1161,7 +1108,7 @@ Function GraphicsRenderer.BindSurface(Surface:SurfaceInterface; Slot:Integer):Bo
 Begin
   If (Surface = Nil) Then
   Begin
-    TextureManager.Instance.NullTexture.Bind(Slot);
+    Engine.Textures.NullTexture.Bind(Slot);
     //RaiseError('Cannot bind null surface!');
     Result := False;
     Exit;
@@ -1170,7 +1117,7 @@ Begin
   Result := Surface.Bind(Slot);
 End;
 
-Procedure GraphicsRenderer.SetVertexSource(Data: VertexData);
+Procedure GraphicsRenderer.SetVertexSource(Data: TERRAVertexBuffer);
 Var
   I:Integer;
 Begin
@@ -1196,7 +1143,7 @@ Begin
   // do nothing
 End;
 
-Function GraphicsRenderer.GetScreenshot: Image;
+Function GraphicsRenderer.GetScreenshot:TERRAImage;
 Begin
   Result := Nil;
 End;
@@ -1226,7 +1173,7 @@ Begin
   StringReplaceText('gl_Position', 'IGNORE',S);
   If (Pos('gl_', S)>0) Then
   Begin
-     Log(logWarning, 'Shader', 'The following shader has deprecated attributes: '{+ Self.Name});
+     Engine.Log.Write(logWarning, 'Shader', 'The following shader has deprecated attributes: '{+ Self.Name});
   End;
 
   Repeat
@@ -1235,11 +1182,11 @@ Begin
       Break;
 
     Source := Copy(Source, I + 10, MaxInt);
-    S := StringGetNextSplit(Source, Ord(' '));      // type
+    S := StringGetNextSplit(Source, ' ');      // type
     S := StringUpper(S);
     If (S='HIGHP') Or (S='LOWP') Or (S='MEDIUMP') Then
-      S := StringGetNextSplit(Source, Ord(' '));      // type
-    S2 := StringGetNextSplit(Source, Ord(';'));      // name
+      S := StringGetNextSplit(Source, ' ');      // type
+    S2 := StringGetNextSplit(Source, ';');      // name
 
     Inc(_AttributeCount);
     SetLength(_Attributes, _AttributeCount);
@@ -1249,18 +1196,18 @@ Begin
 
   If (_AttributeCount<=0) Then
   Begin
-    Log(logWarning, 'Shader', 'The following shader has no attributes: '{+ Self.Name});
+    Engine.Log.Write(logWarning, 'Shader', 'The following shader has no attributes: '{+ Self.Name});
   End;
 End;
 
-Procedure ShaderInterface.SetColorUniform(Const Name:TERRAString; Const Value: Color);
+Procedure ShaderInterface.SetColorUniform(Const Name:TERRAString; Const Value:ColorRGBA);
 Begin
-  Self.SetVec4Uniform(Name, VectorCreate4D(Value.R / 255.0, Value.G / 255.0, Value.B / 255.0, Value.A / 255.0));
+  Self.SetVec4Uniform(Name, Vector4D_Create(Value.R / 255.0, Value.G / 255.0, Value.B / 255.0, Value.A / 255.0));
 End;
 
-Procedure ShaderInterface.SetPlaneUniform(const Name: AnsiString; Const Value: Plane);
+Procedure ShaderInterface.SetPlaneUniform(const Name:TERRAString; Const Value: Plane);
 Begin
-  Self.SetVec4Uniform(Name, VectorCreate4D(Value.A, Value.B, Value.C, Value.D));
+  Self.SetVec4Uniform(Name, Vector4D_Create(Value.A, Value.B, Value.C, Value.D));
 End;
 
 Function ShaderInterface.HasUniform(const Name: TERRAString): Boolean;
@@ -1269,12 +1216,12 @@ Begin
 End;
 
 { RenderTargetInterface }
-Procedure RenderTargetInterface.SetBackgroundColor(const Value: Color);
+Procedure RenderTargetInterface.SetBackgroundColor(const Value:ColorRGBA);
 Begin
   Self._BackgroundColor := Value;
 End;
 
-Function SurfaceInterface.GetImage: Image;
+Function SurfaceInterface.GetImage:TERRAImage;
 Begin
   Result := Nil;
 End;
@@ -1284,7 +1231,7 @@ Begin
   Result := surfaceTopLeft;
 End;
 
-Function SurfaceInterface.GetPixel(X, Y: Integer): Color;
+Function SurfaceInterface.GetPixel(X, Y: Integer):ColorRGBA;
 Begin
   Result := ColorBlack;
 End;
@@ -1317,37 +1264,30 @@ End;
 
 Function CubeMapInterface.LoadFromFile(Const FileName: TERRAString): Boolean;
 Var
-  W,H, N:Integer;
-  Img:Image;
-  S, Ext:TERRAString;
+  W,H:Integer;
+  Img:TERRAImage;
   Waiting:Boolean;
-  Info:ImageClassInfo;
+
+  Format:TERRAFileFormat;
+  Location:TERRALocation;
 Begin
   W := 0;
   H := 0;
   Waiting := True;
   For I:=0 To 5 Do
   Begin
-    N := 0;
-    S := '';
-    While (S='') And (N<GetImageExtensionCount()) Do
+    Format := Engine.Formats.FindLocationFromName(FileName+'_'+CubeFaceNames[I], TERRAImage, Location);
+    If (Format = Nil) Then
     Begin
-      Info := GetImageExtension(N);
-      S := FileManager.Instance.SearchResourceFile(FileName + '_' + CubeFaceNames[I] + '.' + Info.Name);
-      Inc(N);
-    End;
-
-    If (S='') Then
-    Begin
-      Log(logWarning, 'Cubemap', 'Could not load cubemap face '+CubeFaceNames[I]+' for '+FileName);
+      Engine.Log.Write(logWarning, 'Cubemap', 'Could not load cubemap face '+CubeFaceNames[I]+' for '+FileName);
       Continue;
     End;
 
-    Img := Image.Create(S);
+    Img := TERRAImage.Create(Location.Path);
     If (Img.Width<=0) Then
     Begin
       ReleaseObject(Img);
-      Img := Image.Create(W, H);
+      Img := TERRAImage.Create(W, H);
     End Else
     Begin
       W := Img.Width;
@@ -1359,11 +1299,11 @@ Begin
 
     If Waiting Then
     Begin
-      Self.Generate(W, H, colorRGBA, colorRGBA, pixelSizeByte);
+      Self.Generate(W, H, textureFormat_RGBA, textureFormat_RGBA, pixelSizeByte);
       Waiting := False;
     End;
 
-    Self.UpdateFace(I, Img.Pixels, 0, 0, Img.Width, Img.Height);
+    Self.UpdateFace(I, Img.RawPixels, 0, 0, Img.Width, Img.Height);
     ReleaseObject(Img);
   End;
 
@@ -1375,17 +1315,6 @@ Begin
   Result := False;
 End;
 
-{ RendererStats }
-Procedure RendererStats.Reset;
-Begin
-  TriangleCount := 0;
-  ShaderSwitches := 0;
-  DrawCalls := 0;
-  LightCount := 0;
-  OccluderCount := 0;
-  RenderableCount := 0;
-  FramesPerSecond := 0;
-End;
 
 { TextureInterface }
 Function TextureInterface.Update(Pixels: Pointer; X, Y, Width,  Height: Integer):Boolean;
@@ -1397,8 +1326,4 @@ Begin
   Result := False;
 End;
 
-
-Initialization
-Finalization
-  ReleaseObject(_RendererList);
 End.

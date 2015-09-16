@@ -78,7 +78,7 @@ Function XGetControllerState(ControllerID:Integer):TXInputGamepad;
 Function XIsControllerConnected(ControllerID:Integer):Boolean;
 
 Implementation
-Uses TERRA_Log, TERRA_Application, Windows;
+Uses TERRA_Log, TERRA_Application, TERRA_Engine, Windows;
 
 Var
   XLibHandle:THandle=0;
@@ -95,7 +95,7 @@ Begin
   XLibHandle := LoadLibrary(XINPUT_DLL);
   If XLibHandle=0 Then
   Begin
-    Log(logWarning, 'Input', 'Error loading XInput from '+XINPUT_DLL);
+    Engine.Log.Write(logWarning, 'Input', 'Error loading XInput from '+XINPUT_DLL);
     HasLib := False;
     Exit;
   End;

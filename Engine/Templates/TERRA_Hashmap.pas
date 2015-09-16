@@ -27,67 +27,75 @@ Unit TERRA_Hashmap;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Collections;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Collections, TERRA_List;
 
 Type
-  HashMapObject = Class(CollectionObject)
+  TERRAHashMap = Class(TERRACollection)
     Protected
-      _Key:TERRAString;
-
-    Public
-      Property Key:TERRAString Read _Key;
-  End;
-
-  HashMap = Class(Collection)
-    Protected
-      _Table:Array Of List;
+      _Table:Array Of TERRAList;
       _TableSize:Word;
 
     Public
       Constructor Create(TableSize:Word = 1024);
 
       // Returns true if insertion was sucessful
-      Function Add(Item:HashMapObject):Boolean;Virtual;
+      Function Add(Item:TERRAObject):Boolean;Virtual;
+
       // Returns true if deletion was sucessful
-      Function Delete(Item:HashMapObject):Boolean; Virtual;
+      Function Remove(Item:TERRAObject):Boolean; Override;
 
-      Function ContainsReference(Item:CollectionObject):Boolean; Override;
-      Function ContainsDuplicate(Item:CollectionObject):Boolean; Override;
+      Function Contains(Item:TERRAObject):Boolean; Override;
 
-      Function GetItemByIndex(Index:Integer):CollectionObject; Override;
+      Function GetItemByIndex(Index:Integer):TERRAObject; Override;
 
-      Function GetItemByKey(Const Key:TERRAString):CollectionObject;
-
-      Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):CollectionObject; Override;
-      Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Override;
-      Function Filter(Visitor:CollectionVisitor; UserData:Pointer = Nil):List;
+      Function GetItemByKey(Const Key:TERRAString):TERRAObject;
 
       Procedure Clear(); Override;
 
-      Procedure Reindex(Item:HashMapObject);
+      Function GetIterator:TERRAIterator; Override;
 
-      Function GetIterator:Iterator; Override;
-
-      Property Items[Const Key:TERRAString]:CollectionObject Read GetItemByKey; Default;
+      Property Items[Const Key:TERRAString]:TERRAObject Read GetItemByKey; Default;
   End;
 
-  HashMapIterator = Class(Iterator)
+  HashMapIterator = Class(TERRAIterator)
     Protected
       _CurrentTable:Integer;
-      _Current:CollectionObject;
+      _Current:TERRACollectionObject;
 
-      Function FindNextItem():CollectionObject;
-      Function ObtainNext:CollectionObject; Override;
+      Function FindNextItem():TERRACollectionObject;
+      Function ObtainNext:TERRACollectionObject; Override;
 
     Public
       Procedure Reset(); Override;
   End;
 
+Function LoadKeypairList(SourceFile:TERRAString):TERRAHashMap;
+
 Implementation
-Uses TERRA_Log, TERRA_MurmurHash;
+Uses TERRA_Engine, TERRA_Log, TERRA_Stream, TERRA_FileStream, TERRA_MurmurHash;
+
+Function LoadKeypairList(SourceFile:TERRAString):TERRAHashMap;
+Var
+  Source:TERRAStream;
+  S,S2:TERRAString;
+Begin
+  S := '';
+  Result := TERRAHashMap.Create();
+  If  (SourceFile<>'') And (FileStream.Exists(SourceFile)) Then
+  Begin
+    Source :=  FileStream.Open(SourceFile);
+    While Not Source.EOF Do
+    Begin
+      Source.ReadLine(S);
+      S2 := StringGetNextSplit(S, ',');
+      Result.Add(StringProperty.Create(S2,S));
+    End;
+    ReleaseObject(Source);
+  End;
+End;
 
 { HashMap }
-Constructor HashMap.Create(TableSize:Word);
+Constructor TERRAHashMap.Create(TableSize:Word);
 Begin
   _SortOrder := collection_Unsorted;
   _ItemCount := 0;
@@ -97,7 +105,7 @@ Begin
   Self.Init(0, Nil);
 End;
 
-Function HashMap.GetItemByIndex(Index: Integer): CollectionObject;
+Function TERRAHashMap.GetItemByIndex(Index: Integer): TERRAObject;
 Var
   I, K, Count:Integer;
 Begin
@@ -124,7 +132,7 @@ Begin
   Result := Nil;
 End;
 
-Function HashMap.Search(Visitor: CollectionVisitor; UserData:Pointer = Nil): CollectionObject;
+(*Function HashMap.Search(Visitor:CollectionVisitor; Target:TERRAObject):TERRACollectionObject;
 Var
   I:Integer;
 Begin
@@ -133,41 +141,41 @@ Begin
   For I:=0 To Pred(_TableSize) Do
     If Assigned(_Table[I]) Then
     Begin
-      Result := _Table[I].Search(Visitor, UserData);
+      Result := _Table[I].Search(Visitor, Target);
       If Assigned(Result) Then
         Exit;
     End;
 End;
 
-Procedure HashMap.Visit(Visitor: CollectionVisitor; UserData:Pointer = Nil);
+Procedure HashMap.Visit(Visitor:CollectionVisitor; Target:TERRAObject);
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_TableSize) Do
   If Assigned(_Table[I]) Then
-    _Table[I].Visit(Visitor, UserData);
+    _Table[I].Visit(Visitor, Target);
 End;
 
-Function HashMap.Filter(Visitor: CollectionVisitor; UserData: Pointer):List;
+Function HashMap.Filter(Visitor:CollectionVisitor; Target:TERRAObject):List;
 Var
   It:Iterator;
-  A,B:CollectionObject;
+  A,B:TERRAObject;
 Begin
   Result := List.Create(collection_Unsorted);
   It := Self.GetIterator();
   While It.HasNext Do
   Begin
     A := It.Value;
-    If (Visitor(A, UserData)) Then
+    If (Visitor(A, Target)) Then
     Begin
-      B := CollectionObject(A.ClassType.Create());
-      B.CopyValue(A);
+      B := TERRAObject(A.ClassType.Create());
+      B.CopyProperties(A);
       Result.Add(B);
     End;
   End;
-End;
+End;*)
 
-Function HashMap.Add(Item:HashMapObject):Boolean;
+Function TERRAHashMap.Add(Item:TERRAObject):Boolean;
 Var
   Key:HashKey;
 Begin
@@ -177,7 +185,7 @@ Begin
     Exit;
 
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Obtaining an hash for this item...');{$ENDIF}
-  Key := Murmur2(Item.Key);
+  Key := Murmur2(Item.Name);
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Got hash index: '+HexStr(Key));{$ENDIF}
 
   Key := Key Mod _TableSize;
@@ -185,7 +193,7 @@ Begin
   If Not Assigned(_Table[Key]) Then
   Begin
     {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Allocating a new table...');{$ENDIF}
-    _Table[Key] := List.Create(collection_Unsorted);
+    _Table[Key] := TERRAList.Create(collection_Unsorted);
   End;
 
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Adding item to table...');{$ENDIF}
@@ -195,7 +203,7 @@ Begin
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Insertion was ok!');{$ENDIF}
 End;
 
-Function HashMap.Delete(Item:HashMapObject):Boolean;
+Function TERRAHashMap.Remove(Item:TERRAObject):Boolean;
 Var
   Key:HashKey;
 Begin
@@ -205,7 +213,7 @@ Begin
     Exit;
 
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Obtaining an hash for this item...');{$ENDIF}
-  Key := Murmur2(Item.Key);
+  Key := Murmur2(Item.Name);
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Got hash index: '+HexStr(Key));{$ENDIF}
 
   Key := Key Mod _TableSize;
@@ -214,12 +222,12 @@ Begin
     Exit;
 
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Removing item from table...');{$ENDIF}
-  Result := (_Table[Key].Delete(Item));
+  Result := (_Table[Key].Remove(Item));
   If Result Then
     Dec(_ItemCount);
 End;
 
-Function HashMap.ContainsReference(Item:CollectionObject):Boolean;
+Function TERRAHashMap.Contains(Item:TERRAObject):Boolean;
 Var
   Key:HashKey;
 Begin
@@ -229,7 +237,7 @@ Begin
     Exit;
 
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Obtaining an hash for this item...');{$ENDIF}
-  Key := Murmur2(HashMapObject(Item).Key);
+  Key := Murmur2(Item.Name);
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Got hash index: '+HexStr(Key));{$ENDIF}
 
   Key := Key Mod _TableSize;
@@ -238,32 +246,10 @@ Begin
     Exit;
 
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Searching item in table...');{$ENDIF}
-  Result := (_Table[Key].ContainsReference(Item));
+  Result := (_Table[Key].Contains(Item));
 End;
 
-Function HashMap.ContainsDuplicate(Item:CollectionObject):Boolean;
-Var
-  Key:HashKey;
-Begin
-  Result := False;
-
-  If (Item = Nil) Then
-    Exit;
-
-  {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Obtaining an hash for this item...');{$ENDIF}
-  Key := Murmur2(HashMapObject(Item).Key);
-  {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Got hash index: '+HexStr(Key));{$ENDIF}
-
-  Key := Key Mod _TableSize;
-
-  If Not Assigned(_Table[Key]) Then
-    Exit;
-
-  {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Searching item in table...');{$ENDIF}
-  Result := (_Table[Key].ContainsDuplicate(Item));
-End;
-
-Procedure HashMap.Clear();
+Procedure TERRAHashMap.Clear();
 Var
   I:Integer;
 Begin
@@ -275,11 +261,11 @@ Begin
     End;
 End;
 
-Function HashMap.GetItemByKey(const Key: TERRAString): CollectionObject;
+Function TERRAHashMap.GetItemByKey(Const Key: TERRAString):TERRAObject;
 Var
   K:HashKey;
   Index:Integer;
-  P:HashMapObject;
+  P:TERRACollectionObject;
 Begin
   K := Murmur2(Key);
   Index := K Mod _TableSize;
@@ -290,30 +276,30 @@ Begin
 
   If Assigned(_Table[Index]) Then
   Begin
-    P := HashMapObject(_Table[Index].First);
+    P := _Table[Index].First;
     While Assigned(P) Do
-    If (StringEquals(Key, P.Key)) Then
+    If (StringEquals(Key, P.Item.Name)) Then
     Begin
-      Result := P;
+      Result := P.Item;
       Break;
     End Else
-      P := HashMapObject(P.Next);
+      P := P.Next;
   End;
 
   Self.Unlock();
 End;
 
-Function HashMap.GetIterator:Iterator;
+Function TERRAHashMap.GetIterator:TERRAIterator;
 Var
   MyIterator:HashMapIterator;
 Begin
-  MyIterator := HashMapIterator.Create(Self);
-  Result := MyIterator;
-End;
+  MyIterator := HashMapIterator(Engine.Pool.Fetch(HashMapIterator));
+  If Assigned(MyIterator) Then
+    MyIterator.Create(Self)
+  Else
+    MyIterator := HashMapIterator.Create(Self);
 
-Procedure HashMap.Reindex(Item: HashMapObject);
-Begin
-  DebugBreak;
+  Result := MyIterator;
 End;
 
 { HashMapIterator }
@@ -324,12 +310,12 @@ Begin
   _Current := Nil;
 End;
 
-Function HashMapIterator.FindNextItem():CollectionObject;
+Function HashMapIterator.FindNextItem():TERRACollectionObject;
 Var
   I:Integer;
-  Table:HashMap;
+  Table:TERRAHashMap;
 Begin
-  Table := HashMap(Self.Collection);
+  Table := TERRAHashMap(Self.Collection);
   For I := Succ(_CurrentTable) To Pred(Table._TableSize) Do
   If Assigned(Table._Table[I]) Then
   Begin
@@ -341,7 +327,7 @@ Begin
   Result := Nil;
 End;
 
-Function HashMapIterator.ObtainNext:CollectionObject;
+Function HashMapIterator.ObtainNext:TERRACollectionObject;
 Begin
   If (_Current = Nil) And (Self.Index<Self.Collection.Count) Then
   Begin

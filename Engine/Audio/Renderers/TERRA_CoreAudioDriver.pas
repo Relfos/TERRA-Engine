@@ -2,7 +2,7 @@ Unit TERRA_CoreAudioDriver;
 
 Interface
 
-Uses TERRA_Error, TERRA_String, TERRA_AudioMixer, MacOSAll, CoreAudio;
+Uses TERRA_Error, TERRA_Utils, TERRA_String, TERRA_AudioMixer, TERRA_AudioBuffer, MacOSAll, CoreAudio;
 
 Const
   kAudioUnitSubType_RemoteIO =  kAudioUnitSubType_DefaultOutput;
@@ -15,12 +15,12 @@ Type
 
       mixer_desc:AudioComponentDescription;
       output_desc:AudioComponentDescription; *)
-       outputUnit:AudioUnit;
 
-      sinPhase:Single;
+      _OutputUnit:AudioUnit;
 
     Public
-      Function Reset(AFrequency, MaxSamples:Cardinal; Mixer:TERRAAudioMixer):Boolean; Override;
+
+      Function Reset(Mixer:TERRAAudioMixer):Boolean; Override;
       Procedure Release; Override;
 
       Procedure Update(); Override;
@@ -33,66 +33,16 @@ Implementation
 Function renderInput(inRefCon:Pointer; Var ioActionFlags:AudioUnitRenderActionFlags; Var inTimeStamp:AudioTimeStamp; inBusNumber, inNumberFrames:Cardinal; ioData:PAudioBufferList):OSStatus; CDecl;
 Var
   Driver:CoreAudioDriver;
-  outA:PSmallInt;
-  sinSignal:Single;
-  Sample:SmallInt;
-  Freq, Phase, phaseIncrement:Single;
-  I:Integer;
 Begin
 	// Get a reference to the object that was passed with the callback
 	// In this case, the AudioController passed itself so that you can access its data.
 	Driver := CoreAudioDriver(inRefCon);
-
-
-
-        Driver._Mixer.RequestSamples(PAudioSample(ioData.mBuffers[0].mData), inNumberFrames);
-        Result := noErr;
-        Exit;
-
-	// Get a pointer to the dataBuffer of the AudioBufferList
-	outA := PSmallInt(ioData.mBuffers[0].mData);
-
-	// Calculations to produce a 600 Hz sinewave
-	// A constant frequency value, you can pass in a reference vary this.
-	freq := 600;
-	// The amount the phase changes in  single sample
-	phaseIncrement := PI * freq / 44100.0;
-	// Pass in a reference to the phase value, you have to keep track of this
-	// so that the sin resumes right where the last call left off
-	phase := Driver.sinPhase;
-
-	// Loop through the callback buffer, generating samples
-  For I:=0 To Pred(inNumberFrames) Do
-  Begin
-    // calculate the next sample
-    sinSignal := sin(phase);
-    //Sample := Trunc(0.5 + (sinSignal * 0.5) * 65535);
-    Sample := Trunc(sinSignal * 32767);
-    //Sample := SinSignal;
-    //WriteLn(Sample);
-    outA^ := Sample;
-    Inc(outA);
-
-    // other side
-    outA^ := Sample;
-    Inc(outA);
-
-    // calculate the phase for the next sample
-    Phase := Phase + phaseIncrement;
-
-    // Reset the phase value to prevent the float from overflowing
-    If (phase >=  PI * freq) Then
-		  phase := phase - PI * freq;
-    End;
-
-	// Store the phase for the next callback.
-	Driver.sinPhase := phase;
-
-	Result := noErr;
+  Driver._Mixer.RequestSamples(ioData.mBuffers[0].mData, inNumberFrames);
+  Result := noErr;
 End;
 
 { CoreAudioDriver }
-Function CoreAudioDriver.Reset(AFrequency, InitBufferSize:Cardinal; Mixer:TERRAAudioMixer):Boolean;
+Function CoreAudioDriver.Reset(Mixer:TERRAAudioMixer):Boolean;
 Var
   I:Integer;
   Status:OSStatus;
@@ -113,9 +63,6 @@ Var
   streamFormat:AudioStreamBasicDescription;
 Begin
   Self._Mixer := Mixer;
-  Self._Frequency := AFrequency;
-  Self._OutputBufferSize := InitBufferSize;
-
 
   //  10.6 and later: generate description that will match out output device (speakers)
   FillChar(outputcd, SizeOf(Outputcd), 0); // 10.6 version
@@ -123,14 +70,14 @@ Begin
   outputcd.componentSubType := kAudioUnitSubType_DefaultOutput;
   outputcd.componentManufacturer := kAudioUnitManufacturer_Apple;
 
-  comp := AudioComponentFindNext(Nil, &outputcd);
+  comp := AudioComponentFindNext(Nil, OutputCd);
   If (comp = Nil) Then
   Begin
     RaiseError('could not find audio component');
     Exit;
   End;
 
-  Status := AudioComponentInstanceNew(comp, &outputUnit);
+  Status := AudioComponentInstanceNew(comp, _OutputUnit);
   If Status <> noErr Then
   Begin
     RaiseError('Couldnt open component for outputUnit');
@@ -139,40 +86,33 @@ Begin
 
   // set audio stream format
 
-  streamFormat.mSampleRate := _Frequency;
+  streamFormat.mSampleRate := _Mixer.Buffer.Frequency;
   streamFormat.mFormatID := kAudioFormatLinearPCM;
-  //streamFormat.mFormatFlags :=(* kAudioFormatFlagIsSignedInteger Or*) kAudioFormatFlagIsPacked;
- streamFormat.mFormatFlags := kAudioFormatFlagIsSignedInteger; //kAudioFormatFlagIsFloat;
+  streamFormat.mFormatFlags := kAudioFormatFlagIsSignedInteger Or kAudioFormatFlagIsPacked; //kAudioFormatFlagIsFloat;
   streamFormat.mFramesPerPacket := 1;
   streamFormat.mChannelsPerFrame := 2;
   streamFormat.mBitsPerChannel := 16;
   streamFormat.mBytesPerFrame := ( streamFormat.mBitsPerChannel Div 8 ) * streamFormat.mChannelsPerFrame;
   streamFormat.mBytesPerPacket := streamFormat.mBytesPerFrame * streamFormat.mFramesPerPacket;
 
-  Status := AudioUnitSetProperty (outputUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0, @streamFormat, sizeof(streamFormat));
+  Status := AudioUnitSetProperty (_OutputUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0, @streamFormat, sizeof(streamFormat));
   If Status<>NoErr Then
-  Begin
       RaiseError('Failed to set audio unit input property.');
- End;
 
   // register render callback
   input.inputProc := renderInput;
   input.inputProcRefCon := Self;
-  Status := AudioUnitSetProperty(outputUnit,
-  									kAudioUnitProperty_SetRenderCallback,
-  									kAudioUnitScope_Input,
-  									0,
-  									@input,
-  									sizeof(input));
+  Status := AudioUnitSetProperty(_OutputUnit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input,  0, @input, sizeof(input));
+
   If Status <> NoErr Then
-  RaiseError('AudioUnitSetProperty failed');
+     RaiseError('AudioUnitSetProperty failed');
 
   	// initialize unit
-  Status := AudioUnitInitialize(outputUnit);
+  Status := AudioUnitInitialize(_OutputUnit);
   If Status<>NoERr Then
      RAiseError('Couldnt initialize output unit');
 
-  Status := AudioOutputUnitStart(outputUnit);
+  Status := AudioOutputUnitStart(_OutputUnit);
   If Status<>NoErr Then
      RaiseError('Couldnt start output unit');
 
@@ -303,25 +243,10 @@ Begin
 End;
 
 Procedure CoreAudioDriver.Release;
-Var
-  I:Integer;
-  isRunning:Boolean;
-  Status:OSStatus;
 Begin
-  isRunning := False;
-
-  AudioOutputUnitStop(outputUnit);
-  	AudioUnitUninitialize(outputUnit);
-  	AudioComponentInstanceDispose(outputUnit);
-(*
-// Check to see if the graph is running.
-  Status := AUGraphIsRunning(mGraph, isRunning);
-  // If the graph is running, stop it.
-  If (isRunning) Then
-    Status := AUGraphStop(mGraph);
-
-  DisposeAUGraph(mGraph);  *)
-
+  AudioOutputUnitStop(_OutputUnit);
+  AudioUnitUninitialize(_OutputUnit);
+  AudioComponentInstanceDispose(_OutputUnit);
 End;
 
 Procedure CoreAudioDriver.Update();

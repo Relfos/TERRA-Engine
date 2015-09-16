@@ -25,7 +25,7 @@ Unit TERRA_Resource;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Collections, TERRA_Hashmap, TERRA_Stream;
+Uses TERRA_String, TERRA_Object, TERRA_Collections, TERRA_Hashmap, TERRA_Stream, TERRA_FileManager, TERRA_FileFormat;
 
 Type
   ResourceStatus = (
@@ -41,20 +41,15 @@ Type
     rtDynamic   = 2
   );
 
-  ResourceClass = Class Of Resource;
-
-  Resource = Class(HashMapObject)
+  TERRAResource = Class(TERRAObject)
     Private
       _Status:ResourceStatus;
       _Kind:ResourceType;
 
     Protected
       _Time:Cardinal;
-      _Location:TERRAString;
-      _Size:Integer;
-
-      Procedure CopyValue(Other:CollectionObject); Override;
-      Function Sort(Other:CollectionObject):Integer; Override;
+      _Location:TERRALocation;
+      _SizeInBytes:Cardinal;
 
       Procedure SetStatus(const Value:ResourceStatus);
 
@@ -63,83 +58,75 @@ Type
     Public
       Priority:Integer;
 
-      Constructor Create(Kind:ResourceType; Location:TERRAString);
+      Constructor Create(Kind:ResourceType; Location:TERRALocation = Nil);
       Procedure Release; Override;
 
-      Procedure Touch; 
+      Procedure Touch;
 
       Function IsReady:Boolean;
 
-      Class Function GetManager:Pointer; Virtual;
+      Class Function GetManager:TERRAObject; Virtual;
 
-      Function Load(MyStream:Stream):Boolean; Virtual;Abstract;
+      Function Load(MyStream:TERRAStream):Boolean; Virtual;Abstract;
       Function Unload:Boolean; Virtual;
       Function Update:Boolean; Virtual;
 
       Procedure Rebuild();
 
-      Function ToString():TERRAString; Override;
+      Function GetBlob():TERRAString; Override;
 
       Procedure Prefetch;
 
       Function ShouldUnload():Boolean;
 
-      Property Name:TERRAString Read _Key;
-      Property Location:TERRAString Read _Location;
+      Property Name:TERRAString Read _ObjectName;
+      Property Location:TERRALocation Read _Location;
       Property Time:Cardinal Read _Time Write _Time;
       Property Status:ResourceStatus Read _Status Write SetStatus;
       Property Kind:ResourceType Read _Kind;
-      Property Size:Integer Read _Size;
+      Property SizeInBytes:Cardinal Read _SizeInBytes;
   End;
+
+  ResourceClass = Class Of TERRAResource;
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Utils, TERRA_ResourceManager, TERRA_FileStream, TERRA_GraphicsManager,
-  TERRA_FileUtils, TERRA_Application, TERRA_FileManager;
+  TERRA_Engine, TERRA_FileUtils, TERRA_Application;
 
-Procedure Resource.CopyValue(Other: CollectionObject);
-Begin
-  RaiseError('Not implemented!');
-End;
-
-Constructor Resource.Create(Kind:ResourceType; Location:TERRAString);
+Constructor TERRAResource.Create(Kind:ResourceType; Location:TERRALocation);
 Var
   I:Integer;
 Begin
   Self._Kind := Kind;
 
-  If Kind = rtDynamic Then
-  Begin
-    Self._Key := Location;
-    Self._Location := '';
-  End Else
-  Begin
-    Self._Key := GetFileName(Location,True);
-    Self._Location := Location;
-  End;
+  If Assigned(Location) Then
+    Self._ObjectName := GetFileName(Location.Path, True);
 
-  Self._Size := 0;
+  Self._Location := Location;
+
+  Self._SizeInBytes := 0;
   Self.SetStatus(rsUnloaded);
   Self.Priority := 50;
 End;
 
-Procedure Resource.Release;
+Procedure TERRAResource.Release;
 Begin
-  Log(logDebug, 'Resource', 'Destroying resource '+Self.Name);
+  Engine.Log.Write(logDebug, 'Resource', 'Destroying resource '+Self.Name);
   {$IFNDEF ANDROID}
   Self.Unload();
   {$ENDIF}
 End;
 
-Class Function Resource.GetManager: Pointer;
+Class Function TERRAResource.GetManager:TERRAObject;
 Begin
   Result := Nil;
 End;
 
-Function Resource.IsReady:Boolean;
+Function TERRAResource.IsReady:Boolean;
 Var
   Manager:ResourceManager;
 Begin
-//  Log(logDebug, 'Resource', 'Calling isReady()...');
+//  Engine.Log.Write(logDebug, 'Resource', 'Calling isReady()...');
 
   If (Self = Nil) Then
   Begin
@@ -164,26 +151,23 @@ Begin
     Exit;
   End;*)
 
-  If Self.Name = '' Then
-    IntToString(2);
-
-  Log(logDebug, 'Resource', 'Obtaining manager for '+Self.Name);
-  Manager := Self.GetManager;
+  Engine.Log.Write(logDebug, 'Resource', 'Obtaining manager for '+Self.Name);
+  Manager := ResourceManager(Self.GetManager);
   If (Manager = Nil) Then
   Begin
-    Log(logDebug, 'Resource', 'Failed to obtain a manager...');
+    Engine.Log.Write(logDebug, 'Resource', 'Failed to obtain a manager...');
     Exit;
   End;
 
-  If (Self.Location<>'') Then
+  If (Assigned(Self.Location)) Then
   Begin
     Self.SetStatus(rsBusy);
-    Log(logDebug, 'Resource', 'Loading the resource...');
+    Engine.Log.Write(logDebug, 'Resource', 'Loading the resource...');
     Manager.ReloadResource(Self, Manager.UseThreads);
     Result := (Status = rsReady);
   End Else
   Begin
-    Log(logDebug, 'Resource', 'Updating the resource...' + Self.ClassName);
+    Engine.Log.Write(logDebug, 'Resource', 'Updating the resource...' + Self.ClassName);
 
     Self.Rebuild();
 
@@ -191,83 +175,71 @@ Begin
   End;
 End;
 
-Procedure Resource.Prefetch;
+Procedure TERRAResource.Prefetch;
 Begin
   If (Self.Status<>rsUnloaded) Then
     Exit;
 
-  Log(logDebug, 'Resource', 'Prefetching '+ Self.Name);
+  Engine.Log.Write(logDebug, 'Resource', 'Prefetching '+ Self.Name);
 
   If Self.IsReady() Then
     Exit;
 
-  If _Prefetching Then
-  Begin
-    Log(logDebug, 'Resource', 'Prefetch overflow!');
-    Exit;
-  End;
+  Engine.Log.Write(logDebug, 'Resource', 'Prefetching '+Self.Name);
 
-  Log(logDebug, 'Resource', 'Prefetching '+Self.Name);
-  _Prefetching := True;
   While (Not Self.IsReady) Do
   Begin
-    Application.Instance.RefreshComponents();
+    Engine.Update();
 
     If (Self.Status = rsInvalid) Then
       Break;
 
   End;
-  _Prefetching := False;
 
   If (Self.Status = rsInvalid) Then
-    Log(logError, 'Resource', 'Error prefetching resource')
+    Engine.Log.Write(logError, 'Resource', 'Error prefetching resource')
   Else
-    Log(logDebug, 'Resource', 'Prefetching for '+Self.Name+' is done!');
+    Engine.Log.Write(logDebug, 'Resource', 'Prefetching for '+Self.Name+' is done!');
 End;
 
-Function Resource.Sort(Other: CollectionObject): Integer;
-Begin
-  Result := GetStringSort(Self.Name, Resource(Other).Name);
-End;
-
-Function Resource.ToString:TERRAString;
+Function TERRAResource.GetBlob:TERRAString;
 Begin
   Result := Self.Name;
 End;
 
-Function Resource.Unload:Boolean;
+Function TERRAResource.Unload:Boolean;
 Begin
   SetStatus(rsUnloaded);
   Result := True;
 End;
 
-Function Resource.Update:Boolean;
+Function TERRAResource.Update:Boolean;
 Begin
   Result := True;
 End;
 
-Function Resource.ShouldUnload: Boolean;
+Function TERRAResource.ShouldUnload: Boolean;
 Begin
   Result := (Application.GetTime() - Self.Time > ResourceDiscardTime);
 End;
 
-Procedure Resource.SetStatus(const Value:ResourceStatus);
+Procedure TERRAResource.SetStatus(const Value:ResourceStatus);
 Var
   Manager:ResourceManager;
 Begin
   {If Value<>rsUnloaded Then
     StringToInt(Self._Key);}
 
-  If (_Location = '') Then
+  If (_Location = Nil) Then
   Begin
     _Status := Value;
     Exit;
   End;
 
-  Manager := Self.GetManager;
+  Manager := ResourceManager(Self.GetManager);
   If (Manager = Nil) Then
   Begin
-    Log(logDebug, 'Resource', 'Failed to obtain a manager...');
+    Engine.Log.Write(logDebug, 'Resource', 'Failed to obtain a manager...');
     Exit;
   End;
 
@@ -276,12 +248,12 @@ Begin
   Manager.Unlock();
 End;
 
-Function Resource.Build: Boolean;
+Function TERRAResource.Build: Boolean;
 Begin
   Result := False;
 End;
 
-Procedure Resource.Rebuild;
+Procedure TERRAResource.Rebuild;
 Begin
   Self.SetStatus(rsBusy);
   If Self.Build() Then
@@ -292,9 +264,10 @@ Begin
     Self.SetStatus(rsUnloaded);
 End;
 
-Procedure Resource.Touch;
+Procedure TERRAResource.Touch;
 Begin
   _Time := Application.GetTime();
 End;
+
 
 End.

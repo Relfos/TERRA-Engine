@@ -2,30 +2,34 @@ Unit TERRA_VertexFormat;
 
 {$I terra.inc}
 
+{-$DEFINE DEBUG_VERTEX_FORMAT}
+
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Collections, TERRA_Stream,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Collections, TERRA_Stream,
   TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Color;
 
 Const
   vertexPosition  = 0;
   vertexNormal    = 1;
   vertexTangent   = 2;
-  vertexBone      = 3;
-  vertexColor     = 4;
-  vertexHue       = 5;
-  vertexUV0       = 6;
-  vertexUV1       = 7;
-  vertexUV2       = 8;
-  vertexUV3       = 9;
-  vertexUV4       = 10;
+  vertexBiTangent = 3;
+  vertexBone      = 4;
+  vertexColor     = 5;
+  vertexHue       = 6;
+  vertexUV0       = 7;
+  vertexUV1       = 8;
+  vertexUV2       = 9;
+  vertexUV3       = 10;
+  vertexUV4       = 11;
 
-  MaxVertexAttributes = 11;
+  MaxVertexAttributes = 12;
 
 Type
   VertexFormatAttribute = (
     vertexFormatPosition,
     vertexFormatNormal,
     vertexFormatTangent,
+    vertexFormatBiTangent,
     vertexFormatBone,
     vertexFormatHue,
     vertexFormatColor,
@@ -40,30 +44,22 @@ Type
 
   DataFormat = (typeNull, typeFloat, typeByte, typeVector2D, typeVector3D, typeVector4D, typeColor);
 
-  VertexData = Class;
+  TERRAVertexBuffer = Class;
 
 
-	Vertex = Class(CollectionObject)
-    Private
-      {$IFNDEF DISABLEALLOCOPTIMIZATIONS}
-      Class Function NewInstance:TObject; Override;
-      Procedure FreeInstance; Override;
-      {$ENDIF}
-
+	TERRAVertex = Class(TERRACollectionObject)
     Protected
-      _Target:VertexData;
+      _Target:TERRAVertexBuffer;
       _VertexID:Integer;
 
-      Procedure Release(); Override;
-
       Procedure GetFloat(Attribute:Cardinal; Out Value:Single);
-      Procedure GetColor(Attribute:Cardinal; Out Value:Color);
+      Procedure GetColor(Attribute:Cardinal; Out Value:ColorRGBA);
       Procedure GetVector2D(Attribute:Cardinal; Out Value:Vector2D);
       Procedure GetVector3D(Attribute:Cardinal; Out Value:Vector3D);
       Procedure GetVector4D(Attribute:Cardinal; Out Value:Vector4D);
 
       Procedure SetFloat(Attribute:Cardinal; Const Value:Single);
-      Procedure SetColor(Attribute:Cardinal; Const Value:Color);
+      Procedure SetColor(Attribute:Cardinal; Const Value:ColorRGBA);
       Procedure SetVector2D(Attribute:Cardinal; Const Value:Vector2D);
       Procedure SetVector3D(Attribute:Cardinal; Const Value:Vector3D);
       Procedure SetVector4D(Attribute:Cardinal; Const Value:Vector4D);
@@ -73,10 +69,14 @@ Type
 
     Public
       Constructor Create();
-      Function HasAttribute(Attribute:Cardinal):Boolean;
-	End;
+      Procedure Release(); Override;
 
-  SimpleVertex = Class(Vertex)
+      Function HasAttribute(Attribute:Cardinal):Boolean;
+
+      Class Function CanBePooled: Boolean;
+    End;
+
+  SimpleVertex = Class(TERRAVertex)
     Protected
       Procedure Load(); Override;
       Procedure Save(); Override;
@@ -85,17 +85,17 @@ Type
       Position:Vector3D;
   End;
 
-  VertexClass = Class Of Vertex;
+  VertexClass = Class Of TERRAVertex;
 
-  VertexIterator = Class(Iterator)
+  VertexIterator = Class(TERRAIterator)
     Protected
-      _Target:VertexData;
+      _Target:TERRAVertexBuffer;
       _LastIndex:Integer;
-      _CurrentVertex:Vertex;
+      _CurrentVertex:TERRAVertex;
 
-      Procedure Init(Target:VertexData; V:VertexClass);
+      Procedure Setup(Target:TERRAVertexBuffer; V:VertexClass);
 
-      Function ObtainNext():CollectionObject; Override;
+      Function ObtainNext():TERRACollectionObject; Override;
 
       Procedure Release(); Override;
       Procedure JumpToIndex(Position: Integer); Override;
@@ -104,7 +104,7 @@ Type
       Procedure Reset(); Override;
   End;
 
-  VertexData = Class(Collection)
+  TERRAVertexBuffer = Class(TERRACollection)
     Protected
       _Values:Array Of Single;
       _Format:VertexFormat;
@@ -121,10 +121,12 @@ Type
       Function GetAttributeSizeInBytes(Attribute:Cardinal):Integer;
       Function GetAttributeSizeInFloats(Attribute:Cardinal):Integer;
 
-      Function GetAttributePosition(Index, Attribute:Cardinal):Integer;
+      Function GetAttributePosition(Const Index, Attribute:Cardinal):Integer;
       Function GetVertexPosition(Index:Cardinal):Integer;
 
+      {$IFDEF DEBUG_VERTEX_FORMAT}
       Procedure ExpectAttributeFormat(Attribute:Cardinal; Format:DataFormat);
+      {$ENDIF}
 
       Function GetBuffer:Pointer;
 
@@ -132,10 +134,12 @@ Type
       Constructor Create(Format:VertexFormat; VertexCount:Integer);
       Procedure Release(); Override;
 
+      Class Function CanBePooled:Boolean; Override;
+
       Procedure ConvertToFormat(NewFormat:VertexFormat);
 
-      Procedure Read(Source:Stream);
-      Procedure Write(Dest:Stream);
+      Procedure ReadAttribute(Attribute:VertexFormatAttribute; Format:DataFormat; Source:TERRAStream);
+      Procedure Write(Dest:TERRAStream);
 
       Function HasAttribute(Attribute:Cardinal):Boolean;
       Function HasAttributeWithName(Const Name:TERRAString):Boolean;
@@ -148,26 +152,28 @@ Type
 
       Function Bind(AbsoluteOffsets:Boolean):Boolean;
 
-      Function Clone():VertexData;
+      Function Clone():TERRAVertexBuffer;
 
       Procedure GetFloat(Index:Integer; Attribute:Cardinal; Out Value:Single);
-      Procedure GetColor(Index:Integer; Attribute:Cardinal; Out Value:Color);
+      Procedure GetColor(Index:Integer; Attribute:Cardinal; Out Value:ColorRGBA);
       Procedure GetVector2D(Index:Integer; Attribute:Cardinal; Out Value:Vector2D);
       Procedure GetVector3D(Index:Integer; Attribute:Cardinal; Out Value:Vector3D);
       Procedure GetVector4D(Index:Integer; Attribute:Cardinal; Out Value:Vector4D);
 
       Procedure SetFloat(Index:Integer; Attribute:Cardinal; Const Value:Single);
-      Procedure SetColor(Index:Integer; Attribute:Cardinal; Const Value:Color);
+      Procedure SetColor(Index:Integer; Attribute:Cardinal; Const Value:ColorRGBA);
       Procedure SetVector2D(Index:Integer; Attribute:Cardinal; Const Value:Vector2D);
       Procedure SetVector3D(Index:Integer; Attribute:Cardinal; Const Value:Vector3D);
       Procedure SetVector4D(Index:Integer; Attribute:Cardinal; Const Value:Vector4D);
 
-      Function GetIterator():Iterator; Override;
+      Function GetIterator():TERRAIterator; Override;
       Function GetIteratorForClass(V:VertexClass):VertexIterator;
-      Function GetVertex(V:VertexClass; Index:Integer):Vertex;
+      Function GetVertex(V:VertexClass; Index:Integer):TERRAVertex;
 
-      Procedure CopyBuffer(Other:VertexData);
-      Procedure CopyVertex(SourceIndex, DestIndex:Cardinal; SourceData:VertexData = Nil);
+      Function GetVertexSizeInBytes():Cardinal;
+
+      Procedure CopyBuffer(Other:TERRAVertexBuffer);
+      Procedure CopyVertex(SourceIndex, DestIndex:Cardinal; SourceData:TERRAVertexBuffer = Nil);
 
       Procedure Resize(NewSize:Cardinal);
 
@@ -178,7 +184,7 @@ Type
       Procedure SetVector4D(Index, Attribute:Cardinal; Const Value:Vector4D);}
 
       Property Format:VertexFormat Read _Format;
-      Property Size:Cardinal Read _VertexSize;
+      Property Size:Cardinal Read GetVertexSizeInBytes;
       Property Buffer:Pointer Read GetBuffer;
   End;
 
@@ -186,14 +192,14 @@ Type
   Function VertexFormatToFlags(Const Value:VertexFormat):Cardinal;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_GraphicsManager, TERRA_Renderer
-{$IFNDEF DISABLEALLOCOPTIMIZATIONS}, TERRA_StackObject{$ENDIF};
+Uses TERRA_Error, TERRA_Log, TERRA_GraphicsManager, TERRA_Engine, TERRA_Renderer;
 
 Const
   DefaultAttributeNames:Array[0..Pred(MaxVertexAttributes)] Of TERRAString =
       ('terra_position',
       'terra_normal',
       'terra_tangent',
+      'terra_bitangent',
       'terra_bone',
       'terra_color',
       'terra_hue',
@@ -222,6 +228,7 @@ Begin
     vertexFormatPosition: Result := vertexPosition;
     vertexFormatNormal:   Result := vertexNormal;
     vertexFormatTangent:  Result := vertexTangent;
+    vertexFormatBiTangent:  Result := vertexBiTangent;
     vertexFormatBone:     Result := vertexBone;
     vertexFormatHue:      Result := vertexHue;
     vertexFormatColor:    Result := vertexColor;
@@ -242,7 +249,7 @@ Begin
   typeVector3D: Result := SizeOf(Vector3D);
   typeVector4D: Result := SizeOf(Vector4D);
   typeFloat: Result := SizeOf(Single);
-  typeColor: Result := SizeOf(Color);
+  typeColor: Result := SizeOf(ColorRGBA);
   typeByte: Result := SizeOf(Byte);
   Else
       Result := 0;
@@ -264,23 +271,28 @@ End;
 Function GetDefaultAttributeFormat(Attribute:Cardinal):DataFormat;
 Begin
   Case Attribute Of
-    vertexPosition: Result := typeVector3D;
-    vertexNormal: Result := typeVector3D;
-    vertexTangent: Result := typeVector4D;
-    vertexColor: Result := typeColor;
+    vertexPosition,
+    vertexNormal,
+    vertexTangent,
+    vertexBiTangent:
+      Result := typeVector3D;
+
+    vertexColor:
+      Result := typeColor;
 
     vertexUV0,
     vertexUV1,
     vertexUV2,
     vertexUV3,
-    vertexUV4: Result := typeVector2D;
+    vertexUV4:
+      Result := typeVector2D;
   Else
     Result := typeFloat;
   End;
 End;
 
-{ VertexData }
-Constructor VertexData.Create(Format:VertexFormat; VertexCount:Integer);
+{ TERRAVertexBuffer }
+Constructor TERRAVertexBuffer.Create(Format:VertexFormat; VertexCount:Integer);
 Var
   I:Integer;
   VF:VertexFormatAttribute;
@@ -309,46 +321,63 @@ Begin
     End;
   End;
 
-
   Self._ItemCount := 0;
 
   Self.Resize(VertexCount);
 End;
 
-Procedure VertexData.Release();
+Procedure TERRAVertexBuffer.Release();
 Begin
-  If (Assigned(_Values)) Then
-  Begin
-    SetLength(_Values, 0);
-    _Values := Nil;
-  End;
+  _ItemCount := 0;
 End;
 
 
-Procedure VertexData.ExpectAttributeFormat(Attribute: Cardinal; Format: DataFormat);
+{$IFDEF DEBUG_VERTEX_FORMAT}
+Procedure TERRAVertexBuffer.ExpectAttributeFormat(Attribute: Cardinal; Format: DataFormat);
 Begin
-  {$IFDEF PC}
   If (Attribute<MaxVertexAttributes)Then
   Begin
     If (_Formats[Attribute] <> Format) And (_Formats[Attribute] <> typeNull) Then
       RaiseError('Trying to access attribute '+DefaultAttributeNames[Attribute]+' using invalid format!');
   End;
-  {$ENDIF}
 End;
+{$ENDIF}
 
-Procedure VertexData.SetAttributeFormat(Attribute:Cardinal; Value:DataFormat);
+Procedure TERRAVertexBuffer.SetAttributeFormat(Attribute:Cardinal; Value:DataFormat);
+Var
+  I, Diff:Integer;
+  OldFormat:DataFormat;
 Begin
-  If (Attribute<MaxVertexAttributes)Then
-    _Formats[Attribute] := Value;
+  If (Attribute>=MaxVertexAttributes)Then
+    Exit;
+
+  OldFormat := _Formats[Attribute];
+  If (OldFormat = Value) Then
+    Exit;
+
+  _Formats[Attribute] := Value;
+
+  Diff := GetFormatSizeInFloats(Value) - GetFormatSizeInFloats(OldFormat);
+  If Diff = 0 Then
+    Exit;
+
+  Inc(_ElementsPerVertex, Diff);
+  Inc(_VertexSize, Diff * 4);
+
+  For I:=Succ(Attribute) To vertexUV4 Do
+  If (_Offsets[I]>=0) Then
+    Inc(_Offsets[I], Diff);
+
+  Self.Resize(Self._ItemCount);
 End;
 
-Procedure VertexData.SetAttributeName(Attribute: Cardinal; const Value:TERRAString);
+Procedure TERRAVertexBuffer.SetAttributeName(Attribute: Cardinal; const Value:TERRAString);
 Begin
   If (Attribute<MaxVertexAttributes)Then
     _Names[Attribute] := Value;
 End;
 
-Function VertexData.HasAttributeWithName(Const Name:TERRAString):Boolean;
+Function TERRAVertexBuffer.HasAttributeWithName(Const Name:TERRAString):Boolean;
 Var
   I:Integer;
 Begin
@@ -365,13 +394,13 @@ Begin
 End;
 
 
-Function VertexData.HasAttribute(Attribute: Cardinal): Boolean;
+Function TERRAVertexBuffer.HasAttribute(Attribute: Cardinal): Boolean;
 Begin
   Result := (GetAttributeOffsetInFloats(Attribute)>=0);
 End;
 
 
-Procedure VertexData.AddAttribute(Attribute:VertexFormatAttribute);
+Procedure TERRAVertexBuffer.AddAttribute(Attribute:VertexFormatAttribute);
 Var
   NewFormat:VertexFormat;
 Begin
@@ -384,7 +413,7 @@ Begin
   Self.ConvertToFormat(NewFormat);
 End;
 
-Function VertexData.GetAttributeOffsetInFloats(Attribute: Cardinal): Integer;
+Function TERRAVertexBuffer.GetAttributeOffsetInFloats(Attribute: Cardinal): Integer;
 Begin
   If (Attribute<MaxVertexAttributes)Then
     Result := _Offsets[Attribute]
@@ -392,34 +421,34 @@ Begin
     Result := -1;
 End;
 
-Function VertexData.GetAttributeOffsetInBytes(Attribute: Cardinal): Integer;
+Function TERRAVertexBuffer.GetAttributeOffsetInBytes(Attribute: Cardinal): Integer;
 Begin
   Result := GetAttributeOffsetInFloats(Attribute) * 4;
 End;
 
-Function VertexData.GetAttributeSizeInFloats(Attribute: Cardinal): Integer;
+Function TERRAVertexBuffer.GetAttributeSizeInFloats(Attribute: Cardinal): Integer;
 Begin
   If (Attribute<MaxVertexAttributes)Then
     Result := GetFormatSizeInFloats(_Formats[Attribute])
   Else
     Begin
       Result := 0;
-      RaiseError('Invalid attribute: '+CardinalToString(Attribute));
+      Engine.RaiseError('Invalid attribute: '+CardinalToString(Attribute));
     End;
 End;
 
-Function VertexData.GetAttributeSizeInBytes(Attribute: Cardinal): Integer;
+Function TERRAVertexBuffer.GetAttributeSizeInBytes(Attribute: Cardinal): Integer;
 Begin
   If (Attribute<MaxVertexAttributes)Then
     Result := GetFormatSizeInBytes(_Formats[Attribute])
   Else
   Begin
     Result := 0;
-    RaiseError('Invalid attribute: '+CardinalToString(Attribute));
+    Engine.RaiseError('Invalid attribute: '+CardinalToString(Attribute));
   End;
 End;
 
-Function VertexData.GetAttributePosition(Index, Attribute: Cardinal):Integer;
+Function TERRAVertexBuffer.GetAttributePosition(Const Index, Attribute: Cardinal):Integer;
 Var
   Ofs:Cardinal;
 Begin
@@ -441,24 +470,40 @@ Begin
   //RaiseError('Attribute '+GetDefaultAttributeName(Attribute) +' does not exist in this buffer!');
 End;
 
-Procedure VertexData.Read(Source:Stream);
+Procedure TERRAVertexBuffer.ReadAttribute(Attribute:VertexFormatAttribute; Format:DataFormat; Source:TERRAStream);
 Var
-  NewSize:Integer;
+  I:Integer;
+  Ofs, AttrSize, BlockSize:Integer;
+  AttrID:Cardinal;
+  Dest:PByte;
 Begin
-  Source.ReadInteger(NewSize);
-  Self.Resize(NewSize);
-  If Self.Count>0 Then
-    Source.Read(@_Values[0], Self._VertexSize * Self.Count);
+  Self.AddAttribute(Attribute);
+  AttrID := VertexFormatAttributeValue(Attribute);
+
+  Self.SetAttributeFormat(AttrID, Format);
+
+  AttrSize := Self.GetAttributeSizeInBytes(AttrID);
+  Ofs := Self.GetAttributeOffsetInBytes(AttrID);
+  BlockSize := Self.GetVertexSizeInBytes();
+
+  Dest := Self.GetBuffer();
+  Inc(Dest, Ofs);
+
+  For I:=0 To Pred(Self.Count) Do
+  Begin
+    Source.Read(Dest, AttrSize);
+    Inc(Dest, BlockSize);
+  End;
 End;
 
-Procedure VertexData.Write(Dest:Stream);
+Procedure TERRAVertexBuffer.Write(Dest:TERRAStream);
 Begin
   Dest.WriteInteger(Self.Count);
   If Self.Count>0 Then
     Dest.Write(@_Values[0], Self._VertexSize * Self.Count);
 End;
 
-Function VertexData.GetVertexPosition(Index: Cardinal):Integer;
+Function TERRAVertexBuffer.GetVertexPosition(Index: Cardinal):Integer;
 Begin
   If Index>=_ItemCount Then
     Result := -1
@@ -466,7 +511,7 @@ Begin
     Result := Index * _ElementsPerVertex;
 End;
 
-Procedure VertexData.GetFloat(Index:Integer; Attribute:Cardinal; Out Value:Single);
+Procedure TERRAVertexBuffer.GetFloat(Index:Integer; Attribute:Cardinal; Out Value:Single);
 Var
   Pos:Integer;
 Begin
@@ -477,7 +522,7 @@ Begin
     Value := 0.0;
 End;
 
-Procedure VertexData.SetFloat(Index:Integer; Attribute:Cardinal; Const Value:Single);
+Procedure TERRAVertexBuffer.SetFloat(Index:Integer; Attribute:Cardinal; Const Value:Single);
 Var
   Pos:Integer;
 Begin
@@ -486,28 +531,34 @@ Begin
     _Values[Pos] := Value;
 End;
 
-Procedure VertexData.GetColor(Index:Integer; Attribute:Cardinal; Out Value:Color);
+Procedure TERRAVertexBuffer.GetColor(Index:Integer; Attribute:Cardinal; Out Value:ColorRGBA);
 Begin
-//  ExpectAttributeFormat(Attribute, typeColor);
+  {$IFDEF DEBUG_VERTEX_FORMAT}
+  ExpectAttributeFormat(Attribute, typeColor);
+  {$ENDIF}
   Self.GetFloat(Index, Attribute, Single(Value));
 End;
 
-Procedure VertexData.SetColor(Index:Integer; Attribute:Cardinal; Const Value:Color);
+Procedure TERRAVertexBuffer.SetColor(Index:Integer; Attribute:Cardinal; Const Value:ColorRGBA);
 Begin
-//  ExpectAttributeFormat(Attribute, typeColor);
+  {$IFDEF DEBUG_VERTEX_FORMAT}
+  ExpectAttributeFormat(Attribute, typeColor);
+  {$ENDIF}
   Self.SetFloat(Index, Attribute, Single(Value));
 End;
 
-Procedure VertexData.GetVector2D(Index:Integer; Attribute:Cardinal; Out Value:Vector2D);
+Procedure TERRAVertexBuffer.GetVector2D(Index:Integer; Attribute:Cardinal; Out Value:Vector2D);
 Var
   Pos:Integer;
 Begin
-//  ExpectAttributeFormat(Attribute, typeVector2D);
+  {$IFDEF DEBUG_VERTEX_FORMAT}
+  ExpectAttributeFormat(Attribute, typeVector2D);
+  {$ENDIF}
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
   Begin
-    Value := VectorCreate2D(0.0, 0.0);
+    Value := Vector2D_Create(0.0, 0.0);
     Exit;
   End;
 
@@ -523,11 +574,13 @@ Begin
     Value.Y := 0.0;
 End;
 
-Procedure VertexData.SetVector2D(Index:Integer; Attribute:Cardinal; Const Value:Vector2D);
+Procedure TERRAVertexBuffer.SetVector2D(Index:Integer; Attribute:Cardinal; Const Value:Vector2D);
 Var
   Pos:Integer;
 Begin
-//  ExpectAttributeFormat(Attribute, typeVector2D);
+  {$IFDEF DEBUG_VERTEX_FORMAT}
+  ExpectAttributeFormat(Attribute, typeVector2D);
+  {$ENDIF}
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
@@ -541,16 +594,18 @@ Begin
     _Values[Pos] := Value.Y;
 End;
 
-Procedure VertexData.GetVector3D(Index:Integer; Attribute:Cardinal; Out Value:Vector3D);
+Procedure TERRAVertexBuffer.GetVector3D(Index:Integer; Attribute:Cardinal; Out Value:Vector3D);
 Var
   Pos:Integer;
 Begin
-//  ExpectAttributeFormat(Attribute, typeVector3D);
+  {$IFDEF DEBUG_VERTEX_FORMAT}
+  ExpectAttributeFormat(Attribute, typeVector3D);
+  {$ENDIF}
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
   Begin
-    Value := VectorCreate(0.0, 0.0, 0.0);
+    Value := Vector3D_Create(0.0, 0.0, 0.0);
     Exit;
   End;
 
@@ -572,11 +627,13 @@ Begin
     Value.Z := 0.0;
 End;
 
-Procedure VertexData.SetVector3D(Index:Integer; Attribute:Cardinal; Const Value:Vector3D);
+Procedure TERRAVertexBuffer.SetVector3D(Index:Integer; Attribute:Cardinal; Const Value:Vector3D);
 Var
   Pos:Integer;
 Begin
-//  ExpectAttributeFormat(Attribute, typeVector3D);
+  {$IFDEF DEBUG_VERTEX_FORMAT}
+  ExpectAttributeFormat(Attribute, typeVector3D);
+  {$ENDIF}
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
@@ -595,16 +652,18 @@ Begin
 End;
 
 
-Procedure VertexData.GetVector4D(Index:Integer; Attribute:Cardinal; Out Value:Vector4D);
+Procedure TERRAVertexBuffer.GetVector4D(Index:Integer; Attribute:Cardinal; Out Value:Vector4D);
 Var
   Pos:Integer;
 Begin
-//  ExpectAttributeFormat(Attribute, typeVector4D);
+  {$IFDEF DEBUG_VERTEX_FORMAT}
+  ExpectAttributeFormat(Attribute, typeVector4D);
+  {$ENDIF}
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
   Begin
-    Value := VectorCreate4D(0.0, 0.0, 0.0, 1.0);
+    Value := Vector4D_Create(0.0, 0.0, 0.0, 1.0);
     Exit;
   End;
 
@@ -632,11 +691,13 @@ Begin
     Value.W := 1.0;
 End;
 
-Procedure VertexData.SetVector4D(Index:Integer; Attribute:Cardinal; Const Value:Vector4D);
+Procedure TERRAVertexBuffer.SetVector4D(Index:Integer; Attribute:Cardinal; Const Value:Vector4D);
 Var
   Pos:Integer;
 Begin
-//  ExpectAttributeFormat(Attribute, typeVector4D);
+  {$IFDEF DEBUG_VERTEX_FORMAT}
+  ExpectAttributeFormat(Attribute, typeVector4D);
+  {$ENDIF}
 
   Pos := Self.GetAttributePosition(Index, Attribute);
   If Pos<0 Then
@@ -658,7 +719,7 @@ Begin
     _Values[Pos] := Value.W;
 End;
 
-Function VertexData.Bind(AbsoluteOffsets:Boolean):Boolean;
+Function TERRAVertexBuffer.Bind(AbsoluteOffsets:Boolean):Boolean;
 Var
   I:Integer;
   BaseOfs:PtrUInt;
@@ -671,12 +732,12 @@ Begin
   If Self._Values = Nil Then
     Exit;
 
-  GraphicsManager.Instance.Renderer.SetVertexSource(Self);
+  Engine.Graphics.Renderer.SetVertexSource(Self);
 
-  Shader := GraphicsManager.Instance.Renderer.ActiveShader;
+  Shader := Engine.Graphics.Renderer.ActiveShader;
   If Not Assigned(Shader) Then
   Begin
-    Log(logWarning, 'VBO', 'No shader!');
+    Engine.Log.Write(logWarning, 'VBO', 'No shader!');
     Exit;
   End;
 
@@ -687,7 +748,7 @@ Begin
   Begin
     _Attributes[I].Handle := Shader.GetAttributeHandle(_Attributes[I].Name);
     If (_Attributes[I].Handle<0) Then
-      Log(logDebug, 'VBO', 'Attribute '+_Attributes[I].Name+' is missing from the shader.');
+      Engine.Log.Write(logDebug, 'VBO', 'Attribute '+_Attributes[I].Name+' is missing from the shader.');
   End;}
 
   For I:=0 To Pred(MaxVertexAttributes) Do
@@ -707,17 +768,17 @@ Begin
     Else
       AttrOfs := Pointer(BaseOfs);
 
-    GraphicsManager.Instance.Renderer.SetAttributeSource(Name, I, _Formats[I], AttrOfs);
+    Engine.Graphics.Renderer.SetAttributeSource(Name, I, _Formats[I], AttrOfs);
   End;
 
   Result := True;
 End;                   
 
-Function VertexData.Clone: VertexData;
+Function TERRAVertexBuffer.Clone: TERRAVertexBuffer;
 Var
   I:Integer;
 Begin
-  Result := VertexData.Create(Self._Format, Self._ItemCount);
+  Result := TERRAVertexBuffer.Create(Self._Format, Self._ItemCount);
   If Assigned(_Values) Then
     Move(_Values[0], Result._Values[0], Self._ItemCount * Self._VertexSize);
 
@@ -729,27 +790,33 @@ Begin
   End;
 End;
 
-Function VertexData.GetIteratorForClass(V:VertexClass):VertexIterator;
+Function TERRAVertexBuffer.GetIteratorForClass(V:VertexClass):VertexIterator;
 Begin
-  Result := VertexIterator.Create(Self);
-  Result.Init(Self, V);
+  Result := VertexIterator(Engine.Pool.Fetch(VertexIterator));
+  If Assigned(Result) Then
+    Result.Create(Self)
+  Else
+    Result := VertexIterator.Create(Self);
+
+  Result.Setup(Self, V);
 End;
 
-Function VertexData.GetIterator():Iterator;
+Function TERRAVertexBuffer.GetIterator():TERRAIterator;
 Begin
   Result := Self.GetIteratorForClass(SimpleVertex);
 End;
 
-Procedure VertexData.Resize(NewSize: Cardinal);
+Procedure TERRAVertexBuffer.Resize(NewSize: Cardinal);
 Var
-  NewLen, ExpectedLen:Integer;
+  NewLen, CurrentLen, ExpectedLen:Integer;
 Begin
-  If _ItemCount = NewSize Then
-    Exit;
+  ExpectedLen := NewSize * _ElementsPerVertex;
 
   _ItemCount := NewSize;
 
-  ExpectedLen := _ItemCount * _ElementsPerVertex;
+  CurrentLen := Length(_Values);
+  If ExpectedLen <= CurrentLen Then
+    Exit;
 
   If (_Values = Nil) Then
     SetLength(_Values, ExpectedLen)
@@ -761,17 +828,17 @@ Begin
       Repeat
         SetLength(_Values, NewLen * 2);
         NewLen := Length(_Values);
-      Until (NewLen >= ExpectedLen) Or (NewLen>65500);
+      Until (NewLen >= ExpectedLen);
     End;
   End;
 End;
 
-Procedure VertexData.CopyBuffer(Other: VertexData);
+Procedure TERRAVertexBuffer.CopyBuffer(Other: TERRAVertexBuffer);
 Begin
   Move(Other._Values[0], Self._Values[0], _VertexSize * _ItemCount);
 End;
 
-Procedure VertexData.CopyVertex(SourceIndex, DestIndex:Cardinal; SourceData:VertexData);
+Procedure TERRAVertexBuffer.CopyVertex(SourceIndex, DestIndex:Cardinal; SourceData:TERRAVertexBuffer);
 Var
   I:Integer;
   A:Single;
@@ -821,15 +888,7 @@ Begin
   End;
 End;
 
-Function VertexData.GetVertex(V: VertexClass; Index: Integer): Vertex;
-Begin
-  Result := V.Create();
-  Result._Target := Self;
-  Result._VertexID := Index;
-  Result.Load();
-End;
-
-Function VertexData.GetBuffer: Pointer;
+Function TERRAVertexBuffer.GetBuffer: Pointer;
 Begin
   If Assigned(_Values) Then
     Result := @(_Values[0])
@@ -837,20 +896,20 @@ Begin
     Result := Nil;
 End;
 
-Procedure VertexData.ConvertToFormat(NewFormat: VertexFormat);
+Procedure TERRAVertexBuffer.ConvertToFormat(NewFormat: VertexFormat);
 Var
-  Temp:VertexData;
+  Temp:TERRAVertexBuffer;
   I,J:Integer;
   A:Single;
   B:Vector2D;
   C:Vector3D;
   D:Vector4D;
-  E:Color;
+  E:ColorRGBA;
 Begin
   If NewFormat = Self.Format Then
     Exit;
 
-  Temp := VertexData.Create(NewFormat, Self.Count);
+  Temp := TERRAVertexBuffer.Create(NewFormat, Self.Count);
   For I:=0 To Pred(Self.Count) Do
   Begin
     For J:=0 To Pred(MaxVertexAttributes) Do
@@ -909,18 +968,47 @@ Begin
   ReleaseObject(Temp);
 End;
 
+Function TERRAVertexBuffer.GetVertexSizeInBytes():Cardinal;
+Begin
+  Result := _VertexSize;
+End;
+
+Class Function TERRAVertexBuffer.CanBePooled: Boolean;
+Begin
+  Result := True;
+End;
+
+Function TERRAVertexBuffer.GetVertex(V:VertexClass; Index:Integer):TERRAVertex;
+Begin
+  Result := TERRAVertex(Engine.Pool.Fetch(V));
+  If Assigned(V) Then
+    Result.Create()
+  Else
+    Result := V.Create();
+    
+  Result._Target := Self;
+  Result._VertexID := Index;
+  Result.Load();
+End;
+
 { VertexIterator }
-Procedure VertexIterator.Init(Target:VertexData; V:VertexClass);
+Procedure VertexIterator.Setup(Target:TERRAVertexBuffer; V:VertexClass);
 Begin
   Self._Target := Target;
   Self._LastIndex := 0;
 
-  Self._CurrentVertex := V.Create();
+  Self._CurrentVertex := TERRAVertex(Engine.Pool.Fetch(V));
+  If Self._CurrentVertex = Nil Then
+    Self._CurrentVertex := V.Create()
+  Else
+    Self._CurrentVertex.Create();
+
+
   Self._CurrentVertex._Target := Target;
   Self.JumpToIndex(0);
 End;
 
-Function VertexIterator.ObtainNext:CollectionObject;
+Function VertexIterator.ObtainNext:TERRACollectionObject;
 Begin
   If (Self.Index<_Target.Count) Then
   Begin
@@ -936,7 +1024,7 @@ Var
 Begin
   If _CurrentVertex = Nil then
   Begin
-    IntToString(2);
+     IntegerProperty.Stringify(2);
     Exit;
   End;
     
@@ -954,7 +1042,7 @@ Begin
     Self._CurrentVertex._VertexID := Position;
     If Position>=0 Then
       Self._CurrentVertex.Load();
-      
+
     _LastIndex := Position;
   End;
 //  _CurrentVertex := Pointer(PtrUInt(_Target._Data) + VertexIndex * _Target._VertexSize);
@@ -972,68 +1060,69 @@ Begin
   Inherited Release();
 End;
 
-{ Vertex }
-Constructor Vertex.Create;
+{ TERRAVertex }
+Constructor TERRAVertex.Create;
 Begin
   Self._VertexID := -1;
+  Self._Item := Self;
 End;
 
-Procedure Vertex.GetColor(Attribute:Cardinal; Out Value:Color);
+Procedure TERRAVertex.GetColor(Attribute:Cardinal; Out Value:ColorRGBA);
 Begin
   _Target.GetColor(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.SetColor(Attribute:Cardinal; Const Value:Color);
+Procedure TERRAVertex.SetColor(Attribute:Cardinal; Const Value:ColorRGBA);
 Begin
   _Target.SetColor(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.GetFloat(Attribute:Cardinal; Out Value:Single);
+Procedure TERRAVertex.GetFloat(Attribute:Cardinal; Out Value:Single);
 Begin
   _Target.GetFloat(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.SetFloat(Attribute:Cardinal; Const Value:Single);
+Procedure TERRAVertex.SetFloat(Attribute:Cardinal; Const Value:Single);
 Begin
   _Target.SetFloat(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.GetVector2D(Attribute:Cardinal; Out Value:Vector2D);
+Procedure TERRAVertex.GetVector2D(Attribute:Cardinal; Out Value:Vector2D);
 Begin
   _Target.GetVector2D(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.SetVector2D(Attribute:Cardinal; Const Value:Vector2D);
+Procedure TERRAVertex.SetVector2D(Attribute:Cardinal; Const Value:Vector2D);
 Begin
   _Target.SetVector2D(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.GetVector3D(Attribute:Cardinal; Out Value:Vector3D);
+Procedure TERRAVertex.GetVector3D(Attribute:Cardinal; Out Value:Vector3D);
 Begin
   _Target.GetVector3D(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.SetVector3D(Attribute:Cardinal; Const Value:Vector3D);
+Procedure TERRAVertex.SetVector3D(Attribute:Cardinal; Const Value:Vector3D);
 Begin
   _Target.SetVector3D(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.GetVector4D(Attribute:Cardinal; Out Value:Vector4D);
+Procedure TERRAVertex.GetVector4D(Attribute:Cardinal; Out Value:Vector4D);
 Begin
   _Target.GetVector4D(Self._VertexID, Attribute, Value);
 End;
 
-Procedure Vertex.SetVector4D(Attribute:Cardinal; Const Value:Vector4D);
+Procedure TERRAVertex.SetVector4D(Attribute:Cardinal; Const Value:Vector4D);
 Begin
   _Target.SetVector4D(Self._VertexID, Attribute, Value);
 End;
 
-Function Vertex.HasAttribute(Attribute: Cardinal): Boolean;
+Function TERRAVertex.HasAttribute(Attribute: Cardinal): Boolean;
 Begin
   Result := _Target.HasAttribute(Attribute);
 End;
 
-Procedure Vertex.Release;
+Procedure TERRAVertex.Release;
 Begin
   If (Self._VertexID>=0) Then
   Begin
@@ -1042,22 +1131,10 @@ Begin
   End;
 End;
 
-{$IFNDEF DISABLEALLOCOPTIMIZATIONS}
-Class Function Vertex.NewInstance: TObject;
-Var
-  ObjSize, GlobalSize:Integer;
+Class Function TERRAVertex.CanBePooled: Boolean;
 Begin
-  ObjSize := InstanceSize();
-
-  Result := StackAlloc(ObjSize);
-
-  InitInstance(Result);
+  Result := True;
 End;
-
-Procedure Vertex.FreeInstance;
-Begin
-End;
-{$ENDIF}
 
 { SimpleVertex }
 Procedure SimpleVertex.Load;

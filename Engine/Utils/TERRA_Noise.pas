@@ -4,7 +4,7 @@ Unit TERRA_Noise;
 
 Interface
 
-Uses TERRA_Utils, TERRA_Image, TERRA_Vector3D;
+Uses TERRA_Utils, TERRA_Object, TERRA_Image, TERRA_Vector3D;
 
 Const
   GradientTableSize = 256;
@@ -19,7 +19,7 @@ Type
       Function Noise(X,Y,Z:Single):Single; Virtual; Abstract;
       //Function TiledNoise(X,Y,Z:Single; W, H:Single):Single;
 
-      Procedure SaveToImage(Target:Image; Layer:Single; ColorMask:Cardinal);
+      Procedure SaveToImage(Target:TERRAImage; Layer:Single; ColorMask:Cardinal);
     End;
 
   PerlinNoiseGenerator = Class(NoiseGenerator)
@@ -92,7 +92,7 @@ Begin
   Result := Result / (w * h);
 End;*)
 
-Procedure NoiseGenerator.SaveToImage(Target:Image; Layer:Single; ColorMask:Cardinal);
+Procedure NoiseGenerator.SaveToImage(Target:TERRAImage; Layer:Single; ColorMask:Cardinal);
 Const
   BorderSize = 0.25;
   BorderLeft = BorderSize;
@@ -110,7 +110,7 @@ Var
 
   A, B :Single;
 
-  P:Color;
+  P:ColorRGBA;
 Begin
   W := Pred(Target.Width);
   H := Pred(Target.Height);
@@ -330,7 +330,7 @@ Begin
     For J:=0 To Pred(CellGridSize) Do
       For I:=0 To Pred(CellGridSize) Do
       Begin
-        _Points[I,J,K] := VectorCreate(RandomFloat, RandomFloat, RandomFloat);
+        _Points[I,J,K] := Vector3D_Create(RandomFloat, RandomFloat, RandomFloat);
       End;
 End;
 
@@ -370,8 +370,8 @@ Begin
         CY := (TY+J);
         CZ := (TZ+K);
 
-        P.Add(VectorCreate(CX, CY, CZ));
-        R := P.Distance(VectorCreate(X,Y,Z));
+        P.Add(Vector3D_Create(CX, CY, CZ));
+        R := P.Distance(Vector3D_Create(X,Y,Z));
         If (R<Dist) Then
           Dist := R;
       End;

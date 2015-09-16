@@ -3,13 +3,18 @@ Unit TERRA_OculusRift;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Application, TERRA_OS, TERRA_Renderer,
-  TERRA_Vector3D, TERRA_Matrix4x4, libovr;
+Uses TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_OS, TERRA_Renderer,
+  TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Camera, libovr;
 
 Type
+  OculusCamera = Class(PerspectiveCamera)
+    Protected
+      Procedure CalculateProjection(Const Eye:Integer; Out Result:Matrix4x4); Override;
+    Public
+  End;
+
   OculusApplication = Class(Application)
     Protected
-      _hmd:ovrHmd;
       _Initialized:Boolean;
       _Windowed:Boolean;
 
@@ -33,14 +38,14 @@ Type
       Procedure OnFrameBegin(); Override;
       Procedure OnFrameEnd(); Override;
 
-      Function GetVRProjectionMatrix(Eye:Integer; FOV, Ratio, zNear, zFar:Single):Matrix4x4; Override;
-
       Procedure Release; Override;
   End;
 
 Implementation
-Uses TERRA_Log, TERRA_GraphicsManager, TERRA_GLRenderer;
+Uses TERRA_Log, TERRA_GraphicsManager, TERRA_Engine, TERRA_GLRenderer;
 
+Var
+  _hmd:ovrHmd;
 
 { OculusApplication }
 Procedure OculusApplication.InitHMD;
@@ -88,7 +93,7 @@ Begin
   cfg.Header.BackBufferSize.h := _HMD.Resolution.h;
   cfg.Header.Multisample := 0;
   cfg.Window := Handle;
-  cfg.DC := OpenGLRenderer(GraphicsManager.Instance.Renderer).HDC;
+  cfg.DC := OpenGLRenderer(Engine.Graphics.Renderer).HDC;
 
   Caps := ovrDistortionCap_Chromatic Or ovrDistortionCap_Vignette Or ovrDistortionCap_TimeWarp Or ovrDistortionCap_Overdrive;
 
@@ -103,7 +108,7 @@ Begin
   For Eye:=0 To 1 Do
   Begin
     idealSize := ovrSizei(ovrHmd_GetFovTextureSize(_HMD, ovrEyeType(eye), _HMD.DefaultEyeFov[eye], 1.0));
-    _EyeBuffers[Eye] := GraphicsManager.Instance.Renderer.CreateRenderTarget();
+    _EyeBuffers[Eye] := Engine.Graphics.Renderer.CreateRenderTarget();
     _EyeBuffers[Eye].Generate(idealSize.w, idealSize.h, False, pixelSizeByte, 1, True, True);
     _EyeSize[Eye] := IdealSize;
     _EyeViewport[Eye].Pos.x := 0;
@@ -134,7 +139,6 @@ Begin
   If _HMD = Nil Then
     Exit;
 
-  GraphicsManager.Instance.MainViewport.VR := True;
  // GraphicsManager.Instance.MainViewport.Camera.Near := _HMD.CameraFrustumNearZInMeters * 10;
 //  GraphicsManager.Instance.MainViewport.Camera.Far := _HMD.CameraFrustumFarZInMeters * 10;
 
@@ -218,12 +222,6 @@ Begin
     Result.V[15] := 0.0;
 End;
 
-Function OculusApplication.GetVRProjectionMatrix(Eye: Integer; FOV, Ratio, zNear, zFar: Single): Matrix4x4;
-Begin
-  //Result := Matrix4x4(ovrMatrix4f_Projection({_EyeRenderDesc[Eye].Fov}_HMD.DefaultEyeFov[Eye], zNear, zFar, False));
-  Result := CreateOculusProjection({_EyeRenderDesc[Eye].Fov}_HMD.DefaultEyeFov[Eye], zNear, zFar, True);
-End;
-
 Function OculusApplication.GetFullScreen: Boolean;
 Begin
   Result := Not Self._Windowed;
@@ -246,6 +244,13 @@ Begin
     Result := _HMD.Resolution.h
   Else
     Result := 480;
+End;
+
+{ OculusCamera }
+Procedure OculusCamera.CalculateProjection(Const Eye:Integer; out Result:Matrix4x4);
+Begin
+  //Result := Matrix4x4(ovrMatrix4f_Projection({_EyeRenderDesc[Eye].Fov}_HMD.DefaultEyeFov[Eye], zNear, zFar, False));
+  Result := CreateOculusProjection({_EyeRenderDesc[Eye].Fov}_HMD.DefaultEyeFov[Eye], Self.NearDistance, Self.FarDistance, True);
 End;
 
 End.

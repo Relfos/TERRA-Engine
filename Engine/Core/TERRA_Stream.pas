@@ -38,7 +38,7 @@ Unit TERRA_Stream;
 Interface
 
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_FileUtils, TERRA_String;
+  TERRA_Object, TERRA_Utils, TERRA_FileUtils, TERRA_String;
 
 Const
  // Stream access/permission flags
@@ -54,12 +54,11 @@ Const
   EOL_Windows = 1;
 
 Type
-  Stream = Class(TERRAObject)
+  TERRAStream = Class(TERRAObject)
      Protected
       _Pos:Cardinal;
       _Size:Cardinal;
       _Mode:Integer;
-      _Name:TERRAString;
       _Encoding:StringEncoding;
       _EOL:Integer;
 
@@ -93,7 +92,7 @@ Type
       Function ReadInteger(Out Value:Integer):Boolean; Virtual;
       Function ReadCardinal(Out Value:Cardinal):Boolean; Virtual;
       Function ReadSingle(Out Value:Single):Boolean; Virtual;
-      Function ReadBoolean(Out Value:Boolean):Boolean; Virtual;
+      Function ReadBoolean(Out Value:Boolean):Boolean;
 
       Procedure ReadString(Out S:TERRAString; NullTerminated:Boolean = False);Virtual;
       Procedure WriteString(Const S:TERRAString; NullTerminated:Boolean = False);Virtual;
@@ -111,8 +110,8 @@ Type
 
       Procedure WriteBOM(Encoding:StringEncoding);
 
-      Procedure Copy(Dest:Stream);Overload;
-      Procedure Copy(Dest:Stream;Offset,Count:Integer);Overload;
+      Procedure Copy(Dest:TERRAStream);Overload;
+      Procedure Copy(Dest:TERRAStream; Offset,Count:Integer);Overload;
       //Procedure CopyText(Dest:Stream);
 
       Procedure Seek(NewPosition:Cardinal);Virtual;
@@ -128,30 +127,29 @@ Type
 
       Property EOL:Integer Read _EOL Write _EOL;
 
-      Property Name:TERRAString Read _Name Write _Name;
       Property Encoding:StringEncoding Read _Encoding Write _Encoding;
      End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_OS;
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Engine, TERRA_FileFormat;
 
 // Stream Object
 
-Constructor Stream.Create(StreamMode:Integer=smDefault);
+Constructor TERRAStream.Create(StreamMode:Integer=smDefault);
 Begin
-  _Name := '';
+  _ObjectName := '';
   _Mode := StreamMode;
   _Pos := 0;
   _Encoding := encodingUnknown;
   _EOL := EOL_Unix;
 End;
 
-Procedure Stream.Release;
+Procedure TERRAStream.Release;
 Begin
   // do nothing
 End;
 
-Procedure Stream.Copy(Dest:Stream);
+Procedure TERRAStream.Copy(Dest:TERRAStream);
 Var
  Count,BytesRead:Integer;
  Buffer:PByte;
@@ -196,7 +194,7 @@ Begin
   {$ENDIF}
 End;
 
-Procedure Stream.Copy(Dest:Stream;Offset,Count:Integer);
+Procedure TERRAStream.Copy(Dest:TERRAStream;Offset,Count:Integer);
 Var
   BytesRead:Integer;
   Buffer:PByteArray;
@@ -225,7 +223,7 @@ Begin
 
     If A=0 Then
     Begin
-      RaiseError('Buffer too small.');
+      Engine.RaiseError('Buffer too small.');
       Exit;
     End;
 
@@ -247,7 +245,7 @@ Begin
 {$ENDIF}
 End;
 
-{Procedure Stream.CopyText(Dest:Stream);
+{Procedure TERRAStream.CopyText(Dest:Stream);
 Var
   C:TERRAChar;
   S:TERRAString;
@@ -263,12 +261,12 @@ Begin
   End;
 End;}
 
-Procedure Stream.Seek(NewPosition:Cardinal);
+Procedure TERRAStream.Seek(NewPosition:Cardinal);
 Begin
   _Pos := NewPosition;
 End;
 
-Procedure Stream.Skip(Size:Integer);
+Procedure TERRAStream.Skip(Size:Integer);
 Begin
   If Size=0 Then
     Exit;
@@ -276,23 +274,23 @@ Begin
   Seek(_Pos+Size);
 End;
 
-Procedure Stream.Truncate;
+Procedure TERRAStream.Truncate;
 Begin
-  Log(logWarning,'IO','Method not supported in this stream.');
+  Engine.Log.Write(logWarning,'IO','Method not supported in this TERRAStream.');
 End;
 
-Function Stream.Read(Data:Pointer; Length:Cardinal):Cardinal;
-Begin
-  Result := 0;
-End;
-
-Function Stream.Write(Data:Pointer; Length:Cardinal):Cardinal;
+Function TERRAStream.Read(Data:Pointer; Length:Cardinal):Cardinal;
 Begin
   Result := 0;
 End;
 
+Function TERRAStream.Write(Data:Pointer; Length:Cardinal):Cardinal;
+Begin
+  Result := 0;
+End;
 
-Procedure Stream.ReadString(Out S:TERRAString; NullTerminated:Boolean = False);
+
+Procedure TERRAStream.ReadString(Out S:TERRAString; NullTerminated:Boolean = False);
 Var
 {$IFDEF OXYGENE}
   C:TERRAChar;
@@ -311,9 +309,9 @@ Begin
       Exit;
 
     ReadByte(Encoding);
-    If Encoding <> Byte(CurrentStringEncoding) Then
+    If (Encoding <> Byte(CurrentStringEncoding)) And (Encoding <> 1) Then
     Begin
-      Log(logError, 'IO', 'Unsupported binary string encoding in '+Self.Name);
+      Engine.Log.Write(logError, 'IO', 'Unsupported binary string encoding in '+Self.Name);
       Exit;
     End;
 
@@ -345,7 +343,7 @@ Begin
   End;
 End;
 
-Procedure Stream.WriteString(Const S:TERRAString; NullTerminated:Boolean = False);
+Procedure TERRAStream.WriteString(Const S:TERRAString; NullTerminated:Boolean = False);
 Var
   Len:Word;
 {$IFDEF OXYGENE}
@@ -378,21 +376,22 @@ Begin
     WriteByte(0);
 End;
 
-Procedure Stream.WriteChars(Const S:TERRAString);
+Procedure TERRAStream.WriteChars(Const S:TERRAString);
 Var
   It:StringIterator;
 Begin
   If S = '' Then
     Exit;
 
-  StringCreateIterator(S, It);
+  It := StringCreateIterator(S);
   While It.HasNext() Do
   Begin
     Self.WriteChar(It.GetNext());
   End;
+  ReleaseObject(It);
 End;
 
-Procedure Stream.WriteLine(Const S:TERRAString);
+Procedure TERRAStream.WriteLine(Const S:TERRAString);
 Begin
   WriteChars(S);
 
@@ -402,7 +401,7 @@ Begin
     WriteChar(NewLineChar);
 End;
 
-Procedure Stream.ReadLine(Var S:TERRAString);
+Procedure TERRAStream.ReadLine(Var S:TERRAString);
 Var
   C:TERRAChar;
   Temp:Cardinal;
@@ -421,12 +420,12 @@ Begin
   End;
 End;
 
-Function Stream.GetEOF:Boolean;
+Function TERRAStream.GetEOF:Boolean;
 Begin
   Result:=Position>=Size;
 End;
 
-Procedure Stream.ReadLines(Var S:TERRAString);
+Procedure TERRAStream.ReadLines(Var S:TERRAString);
 Var
   S2:TERRAString;
 Begin
@@ -439,13 +438,13 @@ Begin
   End;
 End;
 
-{Procedure Stream.WriteUnicodeLine(Const S:TERRAString; Encoding: Integer);
+{Procedure TERRAStream.WriteUnicodeLine(Const S:TERRAString; Encoding: Integer);
 Begin
   WriteUnicodeChars(S, Encoding);
   WriteUnicodeChars(#13#10, Encoding);
 End;
 
-Procedure Stream.WriteUnicodeChars(Const S:TERRAString; Encoding: Integer);
+Procedure TERRAStream.WriteUnicodeChars(Const S:TERRAString; Encoding: Integer);
 Var
   It:StringIterator;
   C:TERRAChar;
@@ -458,7 +457,7 @@ Begin
   End;
 End;
 
-Procedure Stream.ReadUnicodeLine(Var S:TERRAString);
+Procedure TERRAStream.ReadUnicodeLine(Var S:TERRAString);
 Var
   C:TERRAChar;
 Begin
@@ -475,7 +474,7 @@ Begin
   End;
 End;}
 
-Procedure Stream.WriteBOM(Encoding:StringEncoding);
+Procedure TERRAStream.WriteBOM(Encoding:StringEncoding);
 Begin
   _Encoding := Encoding;
   Case  _Encoding Of
@@ -500,7 +499,7 @@ Begin
   End;
 End;
 
-Procedure Stream.ReadBOM();
+Procedure TERRAStream.ReadBOM();
 Var
   Temp:Cardinal;
   A, B, C:Byte;
@@ -529,7 +528,7 @@ Begin
     Self.Seek(Temp);
 End;
 
-Function Stream.ReadChar(Out Value: TERRAChar): Boolean;
+Function TERRAStream.ReadChar(Out Value: TERRAChar): Boolean;
 Var
   W:Word;
   A,B,C,D:Byte;
@@ -561,7 +560,7 @@ Begin
   If _Encoding = encodingASCII Then
   Begin
     Self.ReadByte(A);
-    If (A = NewLineChar) Then
+    If (A = Ord(NewLineChar)) Then
     Begin
       If (Not Self.EOF) Then
       Begin
@@ -576,7 +575,7 @@ Begin
     Begin
       Value := NewLineChar;
     End Else
-      Value := A;
+      Value := TERRAChar(A);
 
     Exit;
   End;
@@ -590,11 +589,11 @@ Begin
 
     If (A<$80) Then
     Begin
-      Value := A;
+      Value := TERRAChar(A);
       Exit;
     End;
 
-    If ((A And $F0)=$F0) Then
+(*    If ((A And $F0)=$F0) Then
     Begin
       ReadByte(B);
       ReadByte(C);
@@ -602,12 +601,12 @@ Begin
       If (B = 0) Or (C = 0) Or (D = 0) Then
       Begin
         Value := NullChar;
-        Log(logError, 'UTF8', 'Decoding error #1');
+        Engine.Log.Write(logError, 'UTF8', 'Decoding error #1');
         Exit;
       End;
 
-      Value := ((A And $0F) Shl 24) Or ((B And $0F) Shl 12) Or ((C And $3F) Shl 6) Or (D And $3F);
-    End Else
+      Value := TERRAChar(((A And $0F) Shl 24) Or ((B And $0F) Shl 12) Or ((C And $3F) Shl 6) Or (D And $3F));
+    End Else*)
     If ((A And $E0)=$E0) Then
     Begin
       ReadByte(B);
@@ -615,11 +614,11 @@ Begin
       If (B = 0) Or (C = 0) Then
       Begin
         Value := NullChar;
-        Log(logError, 'UTF8', 'Decoding error #2');
+        Engine.Log.Write(logError, 'UTF8', 'Decoding error #2');
         Exit;
       End;
 
-      Value := ((A And $0F) Shl 12) Or ((B And $3F) Shl 6) Or (C And $3F);
+      Value := TERRAChar(((A And $0F) Shl 12) Or ((B And $3F) Shl 6) Or (C And $3F));
     End Else
     If ((A And $C0)=$C0) Then
     Begin
@@ -627,15 +626,15 @@ Begin
       If (B = 0) Then
       Begin
         Value := NullChar;
-        Log(logError, 'UTF8', 'Decoding error #3');
+        Engine.Log.Write(logError, 'UTF8', 'Decoding error #3');
         Exit;
       End;
 
-      Value := ((A And $1F) Shl 6) Or (B And $3F);
+      Value := TERRAChar(((A And $1F) Shl 6) Or (B And $3F));
     End Else
     Begin
-      Value := A;
-      Log(logError, 'UTF8', 'Decoding error #4');
+      Value := TERRAChar(A);
+      Engine.Log.Write(logError, 'UTF8', 'Decoding error #4');
     End;
 
     Exit;
@@ -671,7 +670,7 @@ Begin
     End Else
     If (A=0) Then
     Begin
-      Value := B;
+      Value := TERRAChar(B);
     End Else
     Begin
       Value := BytesToChar(A, B);
@@ -683,95 +682,94 @@ Begin
   Result := False;
 End;
 
-Function Stream.ReadByte(Out Value:Byte):Boolean;
+Function TERRAStream.ReadByte(Out Value:Byte):Boolean;
 Begin
   Value := 0;
   Result := Self.Read(@Value, 1)>0;
 End;
 
-Function Stream.ReadWord(Out Value: Word):Boolean;
+Function TERRAStream.ReadWord(Out Value: Word):Boolean;
 Begin
   Value := 0;
   Result := Self.Read(@Value, 2)>0;
 End;
 
-Function Stream.ReadCardinal(Out Value: Cardinal):Boolean;
+Function TERRAStream.ReadCardinal(Out Value: Cardinal):Boolean;
 Begin
   Value := 0;
   Result := Self.Read(@Value, 4)>0;
 End;
 
-Function Stream.ReadShortInt(Out Value: ShortInt):Boolean;
+Function TERRAStream.ReadShortInt(Out Value: ShortInt):Boolean;
 Begin
   Value := 0;
   Result := Self.Read(@Value, 1)>0;
 End;
 
-Function Stream.ReadSmallInt(Out Value: SmallInt):Boolean;
+Function TERRAStream.ReadSmallInt(Out Value: SmallInt):Boolean;
 Begin
   Value := 0;
   Result := Self.Read(@Value, 2)>0;
 End;
 
-Function Stream.ReadInteger(Out Value: Integer):Boolean;
+Function TERRAStream.ReadInteger(Out Value: Integer):Boolean;
 Begin
   Value := 0;
   Result := Self.Read(@Value, 4)>0;
 End;
 
-Function Stream.ReadSingle(Out Value: Single):Boolean;
+Function TERRAStream.ReadSingle(Out Value: Single):Boolean;
 Begin
   Value := 0.0;
   Result := Self.Read(@Value, 4)>0;
 End;
 
-Function Stream.ReadBoolean(Out Value: Boolean):Boolean;
+Function TERRAStream.ReadBoolean(Out Value: Boolean):Boolean;
 Begin
-  Value := False;
-  Result := Self.Read(@Value, 1)>0;
+  Result := Self.ReadByte(Byte(Value));
 End;
 
-Function Stream.WriteByte(const Value: Byte): Boolean;
-Begin
-  Result := Self.Write(@Value, 1)>0;
-End;
-
-Function Stream.WriteCardinal(const Value: Cardinal): Boolean;
-Begin
-  Result := Self.Write(@Value, 4)>0;
-End;
-
-Function Stream.WriteInteger(const Value: Integer): Boolean;
-Begin
-  Result := Self.Write(@Value, 4)>0;
-End;
-
-Function Stream.WriteShortInt(const Value: ShortInt): Boolean;
+Function TERRAStream.WriteByte(const Value: Byte): Boolean;
 Begin
   Result := Self.Write(@Value, 1)>0;
 End;
 
-Function Stream.WriteSingle(const Value: Single): Boolean;
+Function TERRAStream.WriteCardinal(const Value: Cardinal): Boolean;
 Begin
   Result := Self.Write(@Value, 4)>0;
 End;
 
-Function Stream.WriteSmallInt(const Value: SmallInt): Boolean;
+Function TERRAStream.WriteInteger(const Value: Integer): Boolean;
+Begin
+  Result := Self.Write(@Value, 4)>0;
+End;
+
+Function TERRAStream.WriteShortInt(const Value: ShortInt): Boolean;
+Begin
+  Result := Self.Write(@Value, 1)>0;
+End;
+
+Function TERRAStream.WriteSingle(const Value: Single): Boolean;
+Begin
+  Result := Self.Write(@Value, 4)>0;
+End;
+
+Function TERRAStream.WriteSmallInt(const Value: SmallInt): Boolean;
 Begin
   Result := Self.Write(@Value, 2)>0;
 End;
 
-Function Stream.WriteWord(const Value: Word): Boolean;
+Function TERRAStream.WriteWord(const Value: Word): Boolean;
 Begin
   Result := Self.Write(@Value, 2)>0;
 End;
 
-Function Stream.WriteBoolean(const Value: Boolean): Boolean;
+Function TERRAStream.WriteBoolean(const Value: Boolean): Boolean;
 Begin
   Result := Self.Write(@Value, 1)>0;
 End;
 
-Function Stream.WriteChar(const Value: TERRAChar): Boolean;
+Function TERRAStream.WriteChar(const Value: TERRAChar): Boolean;
 Var
   A,B, C:Byte;
   W:Word;
@@ -792,7 +790,7 @@ Begin
 
   encodingUTF8:
     Begin
-      RaiseError('Write.Unicode: UTF8 support not implemented!');
+      Engine.RaiseError('Write.Unicode: UTF8 support not implemented!');
     End;
 
   encodingUCS2LE:
@@ -811,12 +809,12 @@ Begin
 
   Else
     Begin
-      RaiseError('Write.Unicode: Not supported encoding!');
+      Engine.RaiseError('Write.Unicode: Not supported encoding!');
     End;
   End;
 End;
 
-Function Stream.ReadHeader(out S:FileHeader): Boolean;
+Function TERRAStream.ReadHeader(out S:FileHeader): Boolean;
 Var
   I:Integer;
 Begin
@@ -828,7 +826,7 @@ Begin
   End;
 End;
 
-Function Stream.WriteHeader(const S:FileHeader): Boolean;
+Function TERRAStream.WriteHeader(const S:FileHeader): Boolean;
 Var
   I:Integer;
 Begin
@@ -841,12 +839,13 @@ Begin
 End;
 
 
-Procedure Stream.ReadContent(Out S:TERRAString);
+Procedure TERRAStream.ReadContent(Out S:TERRAString);
 Begin
   S := '';
   SetLength(S, Self.Size);
   Self.Seek(0);
   Self.Read(@S[1], Self.Size);
 End;
+
 
 End.

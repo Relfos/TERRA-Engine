@@ -4,7 +4,7 @@ Unit TERRA_Package;
 {-$DEFINE ALLOWEXTERNAL}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_FileUtils, TERRA_Stream, TERRA_Collections, TERRA_Resource;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_FileUtils, TERRA_Stream, TERRA_Collections, TERRA_List;
 
 Const
   terraHeader:FileHeader = 'TePK';
@@ -13,11 +13,11 @@ Const
   resEncrypted  = 2;
 
 Type
-  Package = Class;
+  TERRAPackage = Class;
 
-  ResourceInfo = Class(CollectionObject)
+  ResourceInfo = Class(TERRAObject)
     Protected
-      _Owner:Package;
+      _Owner:TERRAPackage;
       _FileName:TERRAString;                // Resource name
 
       _Offset:Cardinal;            // Offset of the resource
@@ -27,7 +27,7 @@ Type
       _ExternalPath:TERRAString;        // External path/override
 
     Public
-      Constructor Create(Owner:Package; Source:Stream);
+      Constructor Create(Owner:TERRAPackage; Source:TERRAStream);
 
       Function GetLocation:TERRAString;
 
@@ -37,14 +37,14 @@ Type
       Property CRC:Cardinal Read _CRC;
   End;
 
-  Package = Class(TERRAObject)
+  TERRAPackage = Class(TERRAObject)
     Protected
       _Name:TERRAString;
       _Location:TERRAString;
       _TableOffset:Cardinal; // Table position in the file
       _CRC:Cardinal;
 
-      _Resources:List; // List of all resources within the file
+      _Resources:TERRAList; // List of all resources within the file
 
       Function GetCRC():Cardinal;
 
@@ -71,18 +71,18 @@ Type
       // Loads a resource into a stream
       // Note: If resource file is found in search path the is loaded from there
       // This can be used for patches/mods
-      Function LoadResource(Resource:ResourceInfo):Stream;
+      Function LoadResource(Resource:ResourceInfo):TERRAStream;
 
       // Package name
       Property Name:TERRAString Read _Name;
-      Property Resources:List Read _Resources;
+      Property Resources:TERRAList Read _Resources;
     End;
 
 Implementation
 Uses TERRA_Error, TERRA_CRC32, TERRA_Application, TERRA_OS, TERRA_Log, TERRA_ResourceManager,
-  TERRA_FileStream, TERRA_FileManager, TERRA_MemoryStream;
+  TERRA_Engine, TERRA_FileStream, TERRA_FileManager, TERRA_MemoryStream;
 
-Constructor ResourceInfo.Create(Owner:Package; Source:Stream);
+Constructor ResourceInfo.Create(Owner:TERRAPackage; Source:TERRAStream);
 Begin
   _Owner := Owner;
 
@@ -98,38 +98,38 @@ Begin
 End;
 
 
-{ Package }
-Constructor Package.Create(FileName:TERRAString);
+{ TERRAPackage }
+Constructor TERRAPackage.Create(FileName:TERRAString);
 Begin
   _Location := FileName;
   _Name := GetFileName(FileName, True);
   _Resources := Nil;
 End;
 
-Procedure Package.Release;
+Procedure TERRAPackage.Release;
 Begin
   Unload();
 End;
 
-Function Package.FindResourceByIndex(Index:Integer):ResourceInfo;
+Function TERRAPackage.FindResourceByIndex(Index:Integer):ResourceInfo;
 Begin
   Result := ResourceInfo(_Resources.GetItemByIndex(Index));
 End;
 
-Function Package.Unload:Boolean;
+Function TERRAPackage.Unload:Boolean;
 Begin
   ReleaseObject(_Resources);
   Result := True;
 End;
 
-Function Package.Load():Boolean;
+Function TERRAPackage.Load():Boolean;
 Var
   I,J:Integer;
   ResCount:Integer;
   S:TERRAString;
   Header:FileHeader;
   Resource:ResourceInfo;
-  Source:Stream;
+  Source:TERRAStream;
 Begin
   Self.Unload();
 
@@ -140,7 +140,7 @@ Begin
   Source.ReadHeader(Header);
   If Header<>TERRAHeader Then
   Begin
-    RaiseError('Invalid header. ['+Source.Name+']');
+    Engine.RaiseError('Invalid header. ['+Source.Name+']');
     ReleaseObject(Source);
     Exit;
   End;
@@ -149,7 +149,7 @@ Begin
   Source.ReadCardinal(_TableOffset);
   Source.Seek(_TableOffset);
 
-  _Resources := List.Create(collection_Unsorted);
+  _Resources := TERRAList.Create(collection_Unsorted);
   For I:=1 To ResCount Do
   Begin
     Resource := ResourceInfo.Create(Self, Source);
@@ -168,9 +168,9 @@ End;
 
 //Searches for a resource within the file table
 //If not found returns nil
-Function Package.FindResourceByName(Const ResourceName:TERRAString):ResourceInfo;
+Function TERRAPackage.FindResourceByName(Const ResourceName:TERRAString):ResourceInfo;
 Var
-  It:Iterator;
+  It:TERRAIterator;
   Res:ResourceInfo;
 Begin
   Result := Nil;
@@ -194,15 +194,15 @@ Begin
 End;
 
 //Loads a resource from the package into a stream
-Function Package.LoadResource(Resource:ResourceInfo):Stream;
+Function TERRAPackage.LoadResource(Resource:ResourceInfo):TERRAStream;
 Var
-  Source:Stream;
+  Source:TERRAStream;
 Begin
      Result := Nil;
-	
+
   If Not Assigned(Resource) Then
   Begin
-    RaiseError('Package.LoadResource(): Null resource');
+    Engine.RaiseError('Package.LoadResource(): Null resource');
     Exit;
   End;
 
@@ -217,20 +217,20 @@ Begin
 
   Result := MemoryStream.Create(Resource._Size);
   Result.Name := Resource.GetLocation();
-  
+
   Source := FileStream.Open(_Location, smRead);
   Source.Copy(Result, Resource._Offset, Resource._Size);
   Result.Seek(0);
   ReleaseObject(Source);
 End;
 
-Function Package.GetCRC:Cardinal;
+Function TERRAPackage.GetCRC:Cardinal;
 Var
-  Source:Stream;
+  Source:TERRAStream;
 Begin
   If _CRC=0 Then
   Begin
-    Source := FileManager.Instance.OpenStream(_Location);
+    Source := Engine.Files.OpenFile(_Location);
     _CRC := GetCRC32(Source);
     ReleaseObject(Source);
   End;

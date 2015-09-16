@@ -2,7 +2,7 @@ Unit TERRA_AudioTrack;
 {$I terra.inc}
 Interface
 
-Uses TERRA_Utils, TERRA_String, TERRA_FileUtils, TERRA_Application, TERRA_MusicTrack, TERRA_MusicManager, TERRA_Java;
+Uses TERRA_Object, TERRA_Utils, TERRA_String, TERRA_FileUtils, TERRA_Application, TERRA_MusicTrack, TERRA_MusicManager, TERRA_Java;
 
 Type
   AudioMusicTrack = Class(MusicTrack)

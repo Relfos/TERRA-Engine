@@ -25,8 +25,8 @@ Unit TERRA_ScreenFX;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_OS, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Matrix4x4, TERRA_Color,
-  TERRA_Resource, TERRA_Texture, TERRA_Renderer, TERRA_Noise;
+Uses TERRA_String, TERRA_Object, TERRA_Utils, TERRA_OS, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Matrix4x4, TERRA_Color,
+  TERRA_Resource, TERRA_Texture, TERRA_Renderer, TERRA_Noise, TERRA_ShaderNode;
 
 Const
   MaxVignetteScale = 20.0;
@@ -69,7 +69,7 @@ Type
     Name:TERRAString;
     Kind:UniformType;
     Value:Vector4D;
-    Tex:Texture;
+    Tex:TERRATexture;
     Initialized:Boolean;
   End;
 
@@ -98,15 +98,15 @@ Type
       Function AddUniform(Const Name:TERRAString; Kind:UniformType):Integer;
 
     Public
-      Procedure SetTexture(Index:Integer; Value:Texture);
-      Procedure SetColor(Index:Integer; Const Value:Color);
+      Procedure SetTexture(Index:Integer; Value:TERRATexture);
+      Procedure SetColor(Index:Integer; Const Value:ColorRGBA);
       Procedure SetFloat(Index:Integer; Const Value:Single);
       Procedure SetVec2(Index:Integer; Const Value:Vector2D);
       Procedure SetVec3(Index:Integer; Const Value:Vector3D);
       Procedure SetVec4(Index:Integer; Const Value:Vector4D);
 
-      Procedure GetTexture(Index:Integer; Out Value:Texture);
-      Procedure GetColor(Index:Integer; Out Value:Color);
+      Procedure GetTexture(Index:Integer; Out Value:TERRATexture);
+      Procedure GetColor(Index:Integer; Out Value:ColorRGBA);
       Procedure GetFloat(Index:Integer; Out Value:Single);
       Procedure GetVec2(Index:Integer; Out Value:Vector2D);
       Procedure GetVec3(Index:Integer; Out Value:Vector3D);
@@ -202,14 +202,14 @@ Type
 
     Public
 
-      Constructor Create(Palette:Texture);
+      Constructor Create(Palette:TERRATexture);
       Procedure GenerateCode(); Override;
   End;
 
   VibranceFX = Class(ScreenFX)
     Protected
       _Strength:Integer;
-      _Ramp:Texture;
+      _Ramp:TERRATexture;
 
       Function RequiresFunction(FXFunction:ScreenFXFunctionType):Boolean; Override;
 
@@ -271,7 +271,7 @@ Type
 
     Public
 
-      Constructor Create(Strength:Single);
+      Constructor Create(Strength:Single = 1.0);
 
       Procedure GenerateCode(); Override;
 
@@ -287,7 +287,7 @@ Type
 
     Public
 
-      Constructor Create(Pattern, Palette:Texture);
+      Constructor Create(Pattern, Palette:TERRATexture);
 
       Procedure GenerateCode(); Override;
       Procedure GenerateFunctions(); Override;
@@ -320,7 +320,7 @@ Type
       Function GetStrength():Single;
 
     Public
-      Constructor Create(CausticsTex:Texture; Strength:Single = 0.02);
+      Constructor Create(CausticsTex:TERRATexture; Strength:Single = 0.02);
 
       Procedure GenerateCode(); Override;
 
@@ -328,7 +328,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Log, TERRA_Error, TERRA_Math, TERRA_Image, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_Viewport;
+Uses TERRA_Log, TERRA_Engine, TERRA_Error, TERRA_Math, TERRA_Image, TERRA_GraphicsManager, TERRA_ColorGrading, TERRA_Viewport;
 
 { ScreenFXChain }
 Constructor ScreenFXChain.Create;
@@ -352,12 +352,12 @@ Begin
   If (FX = Nil) Then
     Exit;
 
-  Log(logDebug, 'Graphics', 'Adding FX to chain: '+FX.ClassName);
+  Engine.Log.Write(logDebug, 'Graphics', 'Adding FX to chain: '+FX.ClassName);
 
   For I:=0 To Pred(_FXCount) Do
   If (_FXs[I].ClassType = FX.ClassType) Then
   Begin
-    Log(logWarning, 'Graphics', 'Failed adding duplicated FX: '+FX.ClassName);
+    Engine.Log.Write(logWarning, 'Graphics', 'Failed adding duplicated FX: '+FX.ClassName);
     Exit;
   End;
 
@@ -416,6 +416,9 @@ Function ScreenFXChain.GetShader:ShaderInterface;
 Var
   S:TERRAString;
   I, J:Integer;
+
+  Shader:TERRAShaderGroup;
+
   Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
   If (_NeedsUpdate) Then
@@ -453,9 +456,11 @@ Begin
     Self._NeedTarget[Integer(captureTargetAlpha)] := True;
     {$ENDIF}
 
+    Shader := TERRAShaderGroup.Create();
+
     S := '';
-    Line('version { 110 }');
-    Line('vertex {');
+//    Line('version { 110 }');
+
     Line('  uniform mat4 projectionMatrix;');
     Line('	varying mediump vec4 texCoord;');
     Line('  attribute highp vec4 terra_position;');
@@ -487,8 +492,9 @@ Begin
     End;
 
     Line('  gl_Position = projectionMatrix * terra_position;}');
-    Line('}');
-    Line('fragment {');
+
+    Shader.XVertexCode := S;
+    S := '';
 
     //Line('  uniform mat4 inverseProjectionMatrix;');
     Line('	varying mediump vec4 texCoord;');
@@ -645,13 +651,15 @@ Begin
     Begin
       Line('  output_color.rgb = pow(output_color.rgb, vec3(2.2));');
     End;
-    
+
     //Line('    gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);}');
     Line('    gl_FragColor = output_color;}');
-    Line('}');
+    Shader.XFragmentCode := S;
 
-    _Shader := GraphicsManager.Instance.Renderer.CreateShader();
-    _Shader.Generate(Self.GetShaderName(), S);
+    _Shader := Engine.Graphics.Renderer.CreateShader();
+    _Shader.Generate(Self.GetShaderName(), Shader);
+
+    ReleaseObject(Shader);
     _NeedsUpdate := False;
   End;
 
@@ -663,13 +671,13 @@ Var
   _SH:ShaderInterface;
   I:Integer;
   M:Matrix4x4;
-  Tex:Texture;
+  Tex:TERRATexture;
   Slot:Integer;
-  View:Viewport;
+  View:TERRAViewport;
 Begin
   _SH := Self.GetShader();
 
-  GraphicsManager.Instance.Renderer.BindShader(_SH);
+  Engine.Graphics.Renderer.BindShader(_SH);
 
   {M := GraphicsManager.Instance.ActiveViewport.Projection;
   M := MatrixInverse(M);
@@ -677,7 +685,7 @@ Begin
   }
 
   Slot := 0;
-  View := Viewport(Target);
+  View := TERRAViewport(Target);
 
   For I:=0 To Pred(TotalCaptureTargets) Do
   If (Self._NeedTarget[I]) Then
@@ -685,7 +693,10 @@ Begin
     View.SetRenderTargetState(RenderTargetType(I), True);
 
     Tex := View.GetRenderTexture(RenderTargetType(I));
-    Tex.Filter := filterBilinear;
+    If Assigned(Tex) Then
+      Tex.Filter := filterBilinear
+    Else
+      Tex := Engine.Textures.BlackTexture;
     Tex.Bind(Slot);
 
     _SH.SetIntegerUniform(TargetTextureNames[I], Slot);
@@ -694,7 +705,7 @@ Begin
 
   //If Self.AntiAlias Then
   Begin
-    _Sh.SetVec2Uniform('screenResolution', VectorCreate2D(View.Width, View.Height));
+    _Sh.SetVec2Uniform('screenResolution', Vector2D_Create(View.Width, View.Height));
     _Sh.SetFloatUniform('globalTime', Application.Instance.GetTime() / 1000);
   End;
 
@@ -703,13 +714,20 @@ Begin
 
   If (Self._NeedFunction[Integer(fxCellularNoise)]) Then
   Begin
-    TextureManager.Instance.CellNoise.Bind(Slot);
+    Engine.Textures.CellNoise.Bind(Slot);
     _Sh.SetIntegerUniform('cellNoiseTex', Slot);
     Inc(Slot);
   End;
-    
-  GraphicsManager.Instance.Renderer.SetBlendMode(blendNone);
-  GraphicsManager.Instance.DrawFullscreenQuad(_SH, X1,Y1,X2,Y2);
+
+  Engine.Graphics.Renderer.SetBlendMode(blendBlend);
+  Engine.Graphics.DrawFullscreenQuad(_SH, X1,Y1,X2,Y2);
+
+  Tex := Engine.Textures.WhiteTexture;
+  For I:=0 To Slot Do
+  Begin
+    Tex.Bind(I);
+  End;
+
 End;
 
 Procedure ScreenFXChain.OnContextLost;
@@ -747,7 +765,7 @@ Begin
   _Buffer := '';
 End;
 
-Procedure ScreenFX.GetColor(Index: Integer; out Value: Color);
+Procedure ScreenFX.GetColor(Index:Integer; Out Value:ColorRGBA);
 Begin
   If (Index<0) Or (Index>=_UniformCount) Then
     Value := ColorNull
@@ -763,7 +781,7 @@ Begin
     Value := _Uniforms[Index].Value.X;
 End;
 
-Procedure ScreenFX.GetTexture(Index: Integer; out Value: Texture);
+Procedure ScreenFX.GetTexture(Index: Integer; out Value: TERRATexture);
 Begin
   If (Index<0) Or (Index>=_UniformCount) Then
     Value := Nil
@@ -774,33 +792,33 @@ End;
 Procedure ScreenFX.GetVec2(Index: Integer; out Value: Vector2D);
 Begin
   If (Index<0) Or (Index>=_UniformCount) Then
-    Value := VectorCreate2D(0.0, 0.0)
+    Value := Vector2D_Create(0.0, 0.0)
   Else
-    Value := VectorCreate2D(_Uniforms[Index].Value.X, _Uniforms[Index].Value.Y);
+    Value := Vector2D_Create(_Uniforms[Index].Value.X, _Uniforms[Index].Value.Y);
 End;
 
 Procedure ScreenFX.GetVec3(Index: Integer; out Value: Vector3D);
 Begin
   If (Index<0) Or (Index>=_UniformCount) Then
-    Value := VectorCreate(0.0, 0.0, 0.0)
+    Value := Vector3D_Create(0.0, 0.0, 0.0)
   Else
-    Value := VectorCreate(_Uniforms[Index].Value.X, _Uniforms[Index].Value.Y, _Uniforms[Index].Value.Z);
+    Value := Vector3D_Create(_Uniforms[Index].Value.X, _Uniforms[Index].Value.Y, _Uniforms[Index].Value.Z);
 End;
 
 Procedure ScreenFX.GetVec4(Index: Integer; out Value: Vector4D);
 Begin
   If (Index<0) Or (Index>=_UniformCount) Then
-    Value := VectorCreate4D(0.0, 0.0, 0.0, 0.0)
+    Value := Vector4D_Create(0.0, 0.0, 0.0, 0.0)
   Else
-    Value := VectorCreate4D(_Uniforms[Index].Value.X, _Uniforms[Index].Value.Y, _Uniforms[Index].Value.Z, _Uniforms[Index].Value.W);
+    Value := Vector4D_Create(_Uniforms[Index].Value.X, _Uniforms[Index].Value.Y, _Uniforms[Index].Value.Z, _Uniforms[Index].Value.W);
 End;
 
-Procedure ScreenFX.SetColor(Index: Integer; const Value: Color);
+Procedure ScreenFX.SetColor(Index:Integer; Const Value:ColorRGBA);
 Begin
   If (Index>=0) And (Index<_UniformCount) Then
   Begin
     _Uniforms[Index].Initialized := True;
-    _Uniforms[Index].Value := VectorCreate4D(Value.R/255, Value.G/255, Value.B/255, Value.A/255);
+    _Uniforms[Index].Value := Vector4D_Create(Value.R/255, Value.G/255, Value.B/255, Value.A/255);
   End;
 End;
 
@@ -813,7 +831,7 @@ Begin
   End;
 End;
 
-Procedure ScreenFX.SetTexture(Index: Integer; Value: Texture);
+Procedure ScreenFX.SetTexture(Index: Integer; Value: TERRATexture);
 Begin
   If (Index>=0) And (Index<_UniformCount) Then
   Begin
@@ -827,7 +845,7 @@ Begin
   If (Index>=0) And (Index<_UniformCount) Then
   Begin
     _Uniforms[Index].Initialized := True;
-    _Uniforms[Index].Value := VectorCreate4D(Value.X, Value.Y, 0.0, 0.0);
+    _Uniforms[Index].Value := Vector4D_Create(Value.X, Value.Y, 0.0, 0.0);
   End;
 End;
 
@@ -836,7 +854,7 @@ Begin
   If (Index>=0) And (Index<_UniformCount) Then
   Begin
     _Uniforms[Index].Initialized := True;
-    _Uniforms[Index].Value := VectorCreate4D(Value.X, Value.Y, Value.Z, 0.0);
+    _Uniforms[Index].Value := Vector4D_Create(Value.X, Value.Y, Value.Z, 0.0);
   End;
 End;
 
@@ -845,7 +863,7 @@ Begin
   If (Index>=0) And (Index<_UniformCount) Then
   Begin
     _Uniforms[Index].Initialized := True;
-    _Uniforms[Index].Value := VectorCreate4D(Value.X, Value.Y, Value.Z, Value.W);
+    _Uniforms[Index].Value := Vector4D_Create(Value.X, Value.Y, Value.Z, Value.W);
   End;
 End;
 
@@ -913,21 +931,21 @@ Begin
   Begin
     If Not _Uniforms[I].Initialized Then
     Begin
-      RaiseError('Uniform '+_Uniforms[I].Name+ ' is not initialized in '+Self.ClassName);
+      Engine.RaiseError('Uniform '+_Uniforms[I].Name+ ' is not initialized in '+Self.ClassName);
       Exit;
     End;
 
     Case _Uniforms[I].Kind Of
     uniformFloat:   Sh.SetFloatUniform(_Uniforms[I].Name, _Uniforms[I].Value.X);
-    uniformVec2:   Sh.SetVec2Uniform(_Uniforms[I].Name, VectorCreate2D(_Uniforms[I].Value.X, _Uniforms[I].Value.Y));
-    uniformVec3:   Sh.SetVec3Uniform(_Uniforms[I].Name, VectorCreate(_Uniforms[I].Value.X, _Uniforms[I].Value.Y, _Uniforms[I].Value.Z));
+    uniformVec2:   Sh.SetVec2Uniform(_Uniforms[I].Name, Vector2D_Create(_Uniforms[I].Value.X, _Uniforms[I].Value.Y));
+    uniformVec3:   Sh.SetVec3Uniform(_Uniforms[I].Name, Vector3D_Create(_Uniforms[I].Value.X, _Uniforms[I].Value.Y, _Uniforms[I].Value.Z));
     uniformVec4:   Sh.SetVec4Uniform(_Uniforms[I].Name, _Uniforms[I].Value);
     uniformColor:   Sh.SetVec4Uniform(_Uniforms[I].Name, _Uniforms[I].Value);
 
     uniformTexture:
       Begin
         If _Uniforms[I].Tex = Nil Then
-          _Uniforms[I].Tex := TextureManager.Instance.WhiteTexture;
+          _Uniforms[I].Tex := Engine.Textures.WhiteTexture;
 
         _Uniforms[I].Tex.Bind(TextureSlot);
 
@@ -938,7 +956,7 @@ Begin
     uniformPalette:
       Begin
         If _Uniforms[I].Tex = Nil Then
-          _Uniforms[I].Tex := TextureManager.Instance.DefaultColorTable;
+          _Uniforms[I].Tex := Engine.Textures.DefaultColorTable;
 
         ColorTableBind(_Uniforms[I].Tex, TextureSlot);
         Inc(TextureSlot);
@@ -1047,11 +1065,11 @@ End;
 { VibranceFX }
 Constructor VibranceFX.Create(Strength: Single);
 Var
-  Exp:Image;
-  C:Color;
+  Exp:TERRAImage;
+  C:ColorRGBA;
   I:Integer;
 Begin
-  Exp := Image.Create(256, 1);
+  Exp := TERRAImage.Create(256, 1);
   For I:=0 To 255 Do
   Begin
     C := ColorGrey(Trunc(SmoothCurveWithOffset(I/255, 0.5) * 255));
@@ -1061,7 +1079,7 @@ Begin
   Exp.Resize(256, 2);
   //Exp.Save('satramp.png');
 
-  _Ramp := Texture.Create(rtDynamic, 'vibranceramp');
+  _Ramp := TERRATexture.Create(rtDynamic{, 'vibranceramp'});
   _Ramp.InitFromImage(Exp);
 
   ReleaseObject(Exp);
@@ -1110,10 +1128,11 @@ Begin
 End;
 
 { VignetteFX }
-Constructor VignetteFX.Create;
+Constructor VignetteFX.Create(InitScale:Single = 10.0);
 Begin
   Self._FXType := FXColor;
   _Scale := Self.AddUniform('vignetteScale', uniformFloat);
+  Self.SetScale(InitScale);
 End;
 
 Procedure VignetteFX.GenerateCode;
@@ -1209,7 +1228,7 @@ Begin
 End;
 
 { UnderwaterFX }
-Constructor UnderwaterFX.Create(CausticsTex:Texture; Strength:Single);
+Constructor UnderwaterFX.Create(CausticsTex:TERRATexture; Strength:Single);
 Begin
   Self._FXType := FXOffset;
 
@@ -1237,7 +1256,7 @@ Begin
 End;
 
 { DitherFX }
-Constructor DitherFX.Create(Pattern, Palette: Texture);
+Constructor DitherFX.Create(Pattern, Palette: TERRATexture);
 Begin
   _Pattern := Self.AddUniform('dither_pattern', uniformTexture);
   _Palette := Self.AddUniform('dither_palette', uniformTexture);
@@ -1288,7 +1307,6 @@ End;
 
 Procedure BloomFX.GenerateCode;
 Begin
-  //Line('  output_color.rgb += bloom_strength * texture2D(bloom_texture, output_uv).rgb;');
   Line('  lowp vec3 bloom_color = bloom_strength *texture2D(bloom_texture, output_uv).rgb;');
   Line('  output_color.rgb = 1.0 - ((1.0 - output_color.rgb) * (1.0 - bloom_color));');
 End;
@@ -1309,7 +1327,7 @@ Begin
 End;
 
 { ColorGradingFX }
-Constructor ColorGradingFX.Create(Palette: Texture);
+Constructor ColorGradingFX.Create(Palette: TERRATexture);
 Begin
   _Palette := Self.AddUniform(ColorTableUniformName, uniformPalette);
   Self.SetTexture(_Palette, Palette);

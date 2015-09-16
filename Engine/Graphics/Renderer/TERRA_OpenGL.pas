@@ -19,7 +19,7 @@ Uses
   {$IFDEF FPC}Math,DynLibs,{$ENDIF}
   {$IFDEF LINUX}GLX,{$ENDIF}
   {$IFDEF OSX}TERRA_AGL,{$ENDIF}
-  TERRA_String, TERRA_Log, TERRA_Matrix4x4, TERRA_Math;
+  TERRA_Object, TERRA_String, TERRA_Log, TERRA_Matrix4x4, TERRA_Math;
 
 Type
   TLibHandle = Cardinal;
@@ -1846,7 +1846,7 @@ Var
 
 Implementation
 
-Uses TERRA_OS, TERRA_Error;
+Uses TERRA_OS, TERRA_Engine, TERRA_Error;
 
 Function glGetExtensionString():AnsiString;
 Begin
@@ -1903,7 +1903,7 @@ Begin
     If Alt<>'' Then
       Result := SearchOpenGLProc(Alt)
     Else
-      Log(logWarning,'GL', 'Function '+Proc+' not avaliable.');
+      Engine.Log.Write(logWarning,'GL', 'Function '+Proc+' not avaliable.');
 End;
 
 Procedure LoadOpenGL();
@@ -1920,24 +1920,24 @@ Begin
 
   LibName :=  OpenGLLibName + Application.Instance.GetOption('gllib');
 
-  Log(logDebug, 'GL', 'Loading openGL library from '+LibName);
+  Engine.Log.Write(logDebug, 'GL', 'Loading openGL library from '+LibName);
 
   {$IFDEF WINDOWS}
-  OpenGLHandle := LoadLibraryA(PAnsiChar(LibName));
+  OpenGLHandle := LoadLibrary(PChar(LibName));
   {$ELSE}
   OpenGLHandle := LoadLibrary(LibName);
   {$ENDIF}
 
   If OpenGLHandle=0 Then
   Begin
-    RaiseError('Error loading OpenGL');
+    Engine.RaiseError('Error loading OpenGL');
     Exit;
   End;
 End;
 
 Procedure glLoadExtensions;
 Begin
-  Log(logDebug, 'OpenGL', 'Loading extensions');
+  Engine.Log.Write(logDebug, 'OpenGL', 'Loading extensions');
 
   // base OpenGL
 	glAccum := glGetProcAddress('glAccum');

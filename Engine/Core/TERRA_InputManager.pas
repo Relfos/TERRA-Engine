@@ -26,7 +26,7 @@ Unit TERRA_InputManager;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Application, TERRA_Collections;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Vector3D, TERRA_Collections;
 
 Const
   keyGamepadIndex   = 255;
@@ -63,6 +63,8 @@ Const
   MaxKeys = 512;
   MaximumFrameDelay = 10;
 
+  DoubleTimeWindowDuration = 200;
+
 Type
   GamePadKind = (
     gamepadUnknown = 0,
@@ -82,13 +84,9 @@ Type
     State:Boolean;
     Pressed:Boolean;
     Released:Boolean;
+    DoubleTap:Boolean;
+    LastTime:Cardinal;
   End;
-
-	PCursor=^MouseCursor;
-	MouseCursor=Record
-		X:SmallInt;
-		Y:SmallInt;
-	End;
 
 	InputState = Class(TERRAObject)
     Protected
@@ -99,6 +97,8 @@ Type
 
       Function IsDown(Key:Word):Boolean;
       Function IsUp(Key:Word):Boolean;
+
+      Function WasDoubleTapped(Key:Word):Boolean;
 
       Function WasPressed(Key:Word):Boolean;
       Function WasReleased(Key:Word):Boolean;
@@ -135,7 +135,7 @@ Type
       Property Name:TERRAString Read _Name;
   End;
 
-  InputManager = Class(ApplicationComponent)
+  InputManager = Class(TERRAObject)
     Protected
   		_Keys:InputState; //Keyboard/mouse/gamepad state
 
@@ -145,19 +145,18 @@ Type
 
 
     Public
-  		Mouse:MouseCursor;
+  		Mouse:Vector2D;
       Accelerometer:Vector3D;
       Gyroscope:Vector3D;
       Compass:Vector3D; // (heading, pitch, roll)
 
-      Procedure Update; Override;
-      Procedure Init; Override;
+      Constructor Create();
       Procedure Release; Override;
+
+      Procedure Update; 
 
       Procedure AddGamePad(Pad:GamePad);
       Function GetGamePad(PadID:Integer):GamePad;
-
-      Class Function Instance:InputManager;
 
       Property Keys:InputState Read _Keys;
 
@@ -177,10 +176,7 @@ Function GetKeyByName(Const KeyName:TERRAString):Integer;
 Function GetKeyName(Key:Integer):TERRAString;
 
 Implementation
-Uses TERRA_GraphicsManager, TERRA_OS;
-
-Var
-  _InputManager_Instance:ApplicationObject = Nil;
+Uses TERRA_GraphicsManager, TERRA_Engine, TERRA_OS;
 
 Function IsMouseInput(Key:Integer):Boolean;
 Begin
@@ -255,10 +251,10 @@ Begin
       keyGamepadDPadDown_Offset:     Result:='DPadDown';
 
       Else
-        Result := 'Button' +IntToString(Key);
+        Result := 'Button' + IntegerProperty.Stringify(Key);
     End;
 
-    Result := 'Gamepad' + Result + IntToString(Succ(GamePadID));
+    Result := 'Gamepad' + Result +  IntegerProperty.Stringify(Succ(GamePadID));
     Exit;
   End;
 
@@ -332,7 +328,7 @@ Begin
   keyZ: Result := 'Z';
 
     Else
-        Result:= 'Key #'+IntToString(Key);
+        Result:= 'Key #'+ IntegerProperty.Stringify(Key);
   End;
 End;
 
@@ -363,6 +359,8 @@ Begin
 End;
 
 Function InputState.SetState(Key: Word; Value: Boolean):Boolean;
+Var
+  T:Cardinal;
 Begin
   Result := False;
 
@@ -375,11 +373,15 @@ Begin
   _Keys[Key].State := Value;
 
   If Value Then
-    _Keys[Key].Pressed := True
-  Else
+  Begin
+    _Keys[Key].Pressed := True;
+    T := Application.GetTime();
+    _Keys[Key].DoubleTap := (T - _Keys[Key].LastTime < DoubleTimeWindowDuration);
+    _Keys[Key].LastTime := T;
+  End Else
     _Keys[Key].Released := True;
 
-  _Keys[Key].Frame := GraphicsManager.Instance.FrameID;
+  _Keys[Key].Frame := Engine.Graphics.FrameID;
 
   If (Value) Then
     Application.Instance.OnKeyDown(Key)
@@ -405,6 +407,25 @@ Begin
     Result := Not _Keys[Key].State;
 End;
 
+Function InputState.WasDoubleTapped(Key: Word): Boolean;
+Var
+  Delta:Integer;
+Begin
+  If (Key>=MaxKeys) Then
+    Result := False
+  Else
+  Begin
+    Result := (_Keys[Key].DoubleTap);
+
+    If Result Then
+    Begin
+      Delta := Engine.Graphics.FrameID - _Keys[Key].Frame;
+      Result := (Delta<=MaximumFrameDelay);
+      _Keys[Key].DoubleTap := False;
+    End;
+  End;
+End;
+
 Function InputState.WasPressed(Key: Word): Boolean;
 Var
   Delta:Integer;
@@ -417,7 +438,7 @@ Begin
 
     If Result Then
     Begin
-      Delta := GraphicsManager.Instance.FrameID - _Keys[Key].Frame;
+      Delta := Engine.Graphics.FrameID - _Keys[Key].Frame;
       Result := (Delta<=MaximumFrameDelay);
       _Keys[Key].Pressed := False;
     End;
@@ -436,7 +457,7 @@ Begin
 
     If Result Then
     Begin
-      Delta := GraphicsManager.Instance.FrameID - _Keys[Key].Frame;
+      Delta := Engine.Graphics.FrameID - _Keys[Key].Frame;
       Result := (Delta<=MaximumFrameDelay);
       _Keys[Key].Released := False;
     End;
@@ -449,15 +470,7 @@ Begin
 End;
 
 { InputManager }
-Class Function InputManager.Instance: InputManager;
-Begin
-  If _InputManager_Instance = Nil Then
-    _InputManager_Instance := InitializeApplicationComponent(InputManager, GraphicsManager);
-
-  Result := InputManager(_InputManager_Instance.Instance);
-End;
-
-Procedure InputManager.Init;
+Constructor InputManager.Create();
 Begin
   _Keys := InputState.Create();
 End;
@@ -517,21 +530,18 @@ End;
 //https://github.com/adamdruppe/arsd/blob/master/joystick.d
 Procedure GamePad.Connnect;
 Var
-  Input:InputManager;
   N, I:Integer;
 Begin
   If _Active Then
     Exit;
 
-  Input := InputManager.Instance();
-
   _Active := True;
 
   N := -1;
   For I:=0 To Pred(MaxGamePads) Do
-  If (Assigned(Input._GamePads[I])) And (Input._GamePads[I]._LocalID>=N) Then
+  If (Assigned(Engine.Input._GamePads[I])) And (Engine.Input._GamePads[I]._LocalID>=N) Then
   Begin
-    N := Input._GamePads[I]._LocalID;
+    N := Engine.Input._GamePads[I]._LocalID;
   End;
 
   _LocalID := Succ(N);

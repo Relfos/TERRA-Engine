@@ -44,84 +44,83 @@ Type
     Procedure SetValue(I,J:Integer; Value:Single);
 
     Function Get(I,J:Integer):Single;
+
+    Procedure SetTranslation(Const P:Vector3D);
     Function GetTranslation:Vector3D;
 
     Function GetColumns:MatrixColumns;
   End;
 
-
-  PMatrix4x4Array=^Matrix4x4Array;
-  Matrix4x4Array=Array[0..255] Of Matrix4x4;
-
 Const
- Matrix4x4Identity:Matrix4x4= (V:(1.0, 0.0, 0.0, 0.0,
-                            0.0, 1.0, 0.0, 0.0,
-                            0.0, 0.0, 1.0, 0.0,
-                            0.0, 0.0, 0.0, 1.0));
+ Matrix4x4_Identity:Matrix4x4 = (V:
+ (1.0, 0.0, 0.0, 0.0,
+  0.0, 1.0, 0.0, 0.0,
+  0.0, 0.0, 1.0, 0.0,
+  0.0, 0.0, 0.0, 1.0));
 
-// Returns a rotation Matrix4x4
-Function Matrix4x4Rotation(Const Rotation:Vector3D):Matrix4x4; Overload; {$IFDEF FPC}Inline;{$ENDIF}
-Function Matrix4x4Rotation(Const X,Y,Z:Single):Matrix4x4; Overload; {$IFDEF FPC}Inline;{$ENDIF}
+// Returns a rotation Matrix4x4_
+Function Matrix4x4_Rotation(Const Rotation:Vector3D):Matrix4x4; Overload; {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix4x4_Rotation(Const X,Y,Z:Single):Matrix4x4; Overload; {$IFDEF FPC}Inline;{$ENDIF}
 
-Function Matrix4x4Rotation(Const Axis:Vector3D; Const Angle:Single):Matrix4x4; Overload;
+Function Matrix4x4_Rotation(Const Axis:Vector3D; Const Angle:Single):Matrix4x4; Overload;
 
-// Returns a translation Matrix4x4
-Function Matrix4x4Translation(Const Translation:Vector3D):Matrix4x4;Overload; {$IFDEF FPC}Inline;{$ENDIF}
-Function Matrix4x4Translation(Const X,Y,Z:Single):Matrix4x4;Overload; {$IFDEF FPC}Inline;{$ENDIF}
+// Returns a translation Matrix4x4_
+Function Matrix4x4_Translation(Const Translation:Vector3D):Matrix4x4;Overload; {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix4x4_Translation(Const X,Y,Z:Single):Matrix4x4;Overload; {$IFDEF FPC}Inline;{$ENDIF}
 
-Function Matrix4x4Transform(Const Position,Rotation,Scale:Vector3D):Matrix4x4;
+Function Matrix4x4_Transform(Const Position,Rotation,Scale:Vector3D):Matrix4x4;
 
-Function Matrix4x4Orientation(Const Position,Direction,Up,Scale:Vector3D):Matrix4x4;
+Function Matrix4x4_Orientation(Const Position,Direction,Up,Scale:Vector3D):Matrix4x4;
 
-Function Matrix4x4Lerp(Const A,B:Matrix4x4; Const S:Single):Matrix4x4;
+Function Matrix4x4_Lerp(Const A,B:Matrix4x4; Const S:Single):Matrix4x4;
 
-// Inverts a Matrix4x4
-Function Matrix4x4Inverse(Const A:Matrix4x4):Matrix4x4;
+// Inverts a Matrix4x4_
+Function Matrix4x4_Inverse(Const A:Matrix4x4):Matrix4x4;
 
-Function Matrix4x4Scale(Const Scale:Vector3D):Matrix4x4;Overload; {$IFDEF FPC}Inline;{$ENDIF}
-Function Matrix4x4Scale(Const X,Y,Z:Single):Matrix4x4;Overload;   {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix4x4_Scale(Const Scale:Vector3D):Matrix4x4;Overload; {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix4x4_Scale(Const X,Y,Z:Single):Matrix4x4;Overload;   {$IFDEF FPC}Inline;{$ENDIF}
 
-// Returns a reflection Matrix4x4
-Function Matrix4x4Reflection(Const P:Plane):Matrix4x4;
-Function Matrix4x4Mirror(Const Source,Normal:Vector3D):Matrix4x4;
+// Returns a reflection Matrix4x4_
+Function Matrix4x4_Reflection(Const P:Plane):Matrix4x4;
+Function Matrix4x4_Mirror(Const Source,Normal:Vector3D):Matrix4x4;
 
-Function Matrix4x4Transpose(Const Source:Matrix4x4):Matrix4x4;
+Function Matrix4x4_Transpose(Const Source:Matrix4x4):Matrix4x4;
 
 // Multiplys two matrices
-Function Matrix4x4Multiply4x3(Const A,B:Matrix4x4):Matrix4x4;
-Function Matrix4x4Multiply4x4(Const A,B:Matrix4x4):Matrix4x4;
+Function Matrix4x4_Multiply4x3(Const A,B:Matrix4x4):Matrix4x4;
+Function Matrix4x4_Multiply4x4(Const A,B:Matrix4x4):Matrix4x4;
 
 {$IFDEF BENCHMARK}
-Function Matrix4x4Multiply4x3SSE(Const A,B:Matrix4x4):Matrix4x4;
-Function Matrix4x4Multiply4x4SSE(Const A,B:Matrix4x4):Matrix4x4;
+Function Matrix4x4_Multiply4x3SSE(Const A,B:Matrix4x4):Matrix4x4;
+Function Matrix4x4_Multiply4x4SSE(Const A,B:Matrix4x4):Matrix4x4;
 {$ENDIF}
 
-Function Matrix4x4Perspective(FOV, AspectRatio, zNear, zFar:Single):Matrix4x4;
-Function Matrix4x4LookAt(Eye, LookAt, Roll:Vector3D):Matrix4x4;
-Function Matrix4x4Ortho(left, right,  bottom,  top,  nearVal,  farVal:Single):Matrix4x4;
+Function Matrix4x4_Perspective(FOV, AspectRatio, zNear, zFar:Single):Matrix4x4;
+Function Matrix4x4_LookAt(Eye, LookAt, Roll:Vector3D):Matrix4x4;
+Function Matrix4x4_Ortho(left, right,  bottom,  top,  nearVal,  farVal:Single):Matrix4x4;
 
-//Function Matrix4x4Isometric(X,Y, Height:Single):Matrix4x4;
+//Function Matrix4x4_Isometric(X,Y, Height:Single):Matrix4x4;
 
-// modifies projection Matrix4x4 in place
+// modifies projection Matrix4x4_ in place
 // clipPlane is in camera space
-Procedure CalculateObliqueMatrix4x4ClipPlane(Var projection:Matrix4x4; {Const Transform:Matrix4x4;} clipPlane:Plane);
+Procedure CalculateObliqueMatrix4x4_ClipPlane(Var projection:Matrix4x4; {Const Transform:Matrix4x4;} clipPlane:Plane);
 
 Implementation
 Uses TERRA_Vector4D, Math{$IFDEF NEON_FPU},TERRA_NEON{$ENDIF};
 
-// modifies projection Matrix4x4 in place
+// modifies projection Matrix4x4_ in place
 // clipPlane is in camera space
-Procedure CalculateObliqueMatrix4x4ClipPlane(Var projection:Matrix4x4; clipPlane:Plane);
+Procedure CalculateObliqueMatrix4x4_ClipPlane(Var projection:Matrix4x4; clipPlane:Plane);
 Var
   Q,C:Vector4D;
   D:Single;
 Begin
-  C := VectorCreate4D(clipPlane.A, clipPlane.B, clipPlane.C, clipPlane.D);
+  C := Vector4D_Create(clipPlane.A, clipPlane.B, clipPlane.C, clipPlane.D);
 
     // Calculate the clip-space corner point opposite the clipping plane
     // as (sgn(clipPlane.x), sgn(clipPlane.y), 1, 1) and
     // transform it into camera space by multiplying it
-    // by the inverse of the projection Matrix4x4
+    // by the inverse of the projection Matrix4x4_
 
     q.x := (sgn(C.x)-Projection.V[8]) / Projection.V[0];
     q.y := (sgn(C.y)-Projection.V[9]) / Projection.V[5];
@@ -129,10 +128,10 @@ Begin
     q.w := (1.0 + Projection.V[10]) / Projection.V[14];
 
     // Calculate the scaled plane vector
-    D := 2.0 / Vector4DDot(C, Q);
-    C := Vector4DScale(C, D);
+    D := 2.0 / Vector4D_Dot(C, Q);
+    C := Vector4D_Scale(C, D);
 
-    // Replace the third row of the projection Matrix4x4
+    // Replace the third row of the projection Matrix4x4_
     Projection.V[2] := c.x;
     Projection.V[6] := c.y;
     Projection.V[10] := c.z + 1.0;
@@ -147,7 +146,7 @@ Begin
     D := 2.0 / Vector4DDot(C, Q);
     C := Vector4DScale(C, D);
 
-    // Replace the third row of the projection Matrix4x4
+    // Replace the third row of the projection Matrix4x4_
     Projection.V[2] := c.x - Projection.V[3];
     Projection.V[6] := c.y - Projection.V[7];
     Projection.V[10] := c.z - Projection.V[11];
@@ -177,11 +176,11 @@ Begin
   Normal.Normalize();
   P := VectorScale(Normal, clipPlane.D);
 
-  M := Matrix4x4Multiply4x4(Projection, Transform);
+  M := Matrix4x4_Multiply4x4(Projection, Transform);
   //M := Projection;
   //M := Transform;
-  M := Matrix4x4Inverse(M);
-  M := Matrix4x4Transpose(M);
+  M := Matrix4x4_Inverse(M);
+  M := Matrix4x4_Transpose(M);
   P := M.Transform(P);
 
   D := -VectorDot(P, Normal);
@@ -192,7 +191,7 @@ Begin
 
   C.Transform(M);
 
-  {Inverse := Matrix4x4Inverse(Projection);
+  {Inverse := Matrix4x4_Inverse(Projection);
   C.Transform(Inverse);}
 
 
@@ -215,7 +214,7 @@ Begin
     Projection.V[14] := c.w;
 End;*)
 
-Function Matrix4x4Reflection(Const P:Plane):Matrix4x4;
+Function Matrix4x4_Reflection(Const P:Plane):Matrix4x4;
 Begin
   P.Normalize();
 
@@ -240,7 +239,7 @@ Begin
   Result.V[15] := 1;
 End;
 
-(*Function Matrix4x4Isometric(X,Y, Height:Single):Matrix4x4;
+(*Function Matrix4x4_Isometric(X,Y, Height:Single):Matrix4x4;
 Begin
 //http://toxicdump.org/blog/view/7/Haunted-Mansion-DevBlog-_02---Oblique-vs-Isometric-perspective-and-perfect-depth-sorting
 //http://www.xnaresources.com/default.asp?page=Tutorial:TileEngineSeries:4
@@ -250,7 +249,7 @@ Begin
 //glTranslatef(-x, -m_cameraheight, -z);
 End;*)
 
-Function Matrix4x4Transpose(Const Source:Matrix4x4):Matrix4x4;
+Function Matrix4x4_Transpose(Const Source:Matrix4x4):Matrix4x4;
 Begin
   Result.V[0] := Source.V[0];
   Result.V[1] := Source.V[4];
@@ -273,7 +272,7 @@ Begin
   Result.V[15] := Source.V[15];
 End;
 
-Function Matrix4x4Ortho(left, right,  bottom,  top,  nearVal,  farVal:Single):Matrix4x4;
+Function Matrix4x4_Ortho(left, right,  bottom,  top,  nearVal,  farVal:Single):Matrix4x4;
 Var
   N:Single;
   Tx, Ty, Tz:Single;
@@ -331,9 +330,9 @@ End;
 
 Function Matrix4x4.GetColumns: MatrixColumns;
 Begin
-	Result[0] := VectorCreate(V[0], V[4], V[8]);
-	Result[1] := VectorCreate(V[1], V[5], V[9]);
-	Result[2] := VectorCreate(V[2], V[6], V[10]);
+	Result[0] := Vector3D_Create(V[0], V[4], V[8]);
+	Result[1] := Vector3D_Create(V[1], V[5], V[9]);
+	Result[2] := Vector3D_Create(V[2], V[6], V[10]);
 End;
 
 Function Matrix4x4.GetEulerAngles:Vector3D;
@@ -364,6 +363,13 @@ Begin
 	Result.Z  := atan2(sinRoll, cosRoll);
 End;
 
+Procedure Matrix4x4.SetTranslation(Const P:Vector3D);
+Begin
+  V[12] := P.X;
+  V[13] := P.Y;
+  V[14] := P.Z;
+End;
+
 Function Matrix4x4.GetTranslation:Vector3D;
 Begin
   Result.X := V[12];
@@ -381,8 +387,8 @@ Begin
 End;
 Begin
 exit;
-// Algorithm uses Gram-Schmidt orthogonalization. If 'this' Matrix4x4 is
-// M = [m0|m1|m2], then orthonormal output Matrix4x4 is Q = [q0|q1|q2],
+// Algorithm uses Gram-Schmidt orthogonalization. If 'this' Matrix4x4_ is
+// M = [m0|m1|m2], then orthonormal output Matrix4x4_ is Q = [q0|q1|q2],
 //
 // q0 = m0/|m0|
 // q1 = (m1-(q0*m1)q0)/|m1-(q0*m1)q0|
@@ -445,7 +451,7 @@ Begin
   Result.Z := P.X*V[2] + P.Y*V[6] + P.Z*V[10];
 End;
 
-Function Matrix4x4Transform(Const Position,Rotation,Scale:Vector3D):Matrix4x4;
+Function Matrix4x4_Transform(Const Position,Rotation,Scale:Vector3D):Matrix4x4;
 Var
   CosRx,CosRy,CosRz:Single;
   SinRx,SinRy,SinRz:Single;
@@ -478,13 +484,13 @@ Begin
   Result.V[15] := 1.0;
 End;
 
-Function Matrix4x4Orientation(Const Position,Direction,Up,Scale:Vector3D):Matrix4x4;
+Function Matrix4x4_Orientation(Const Position,Direction,Up,Scale:Vector3D):Matrix4x4;
 Var
   TX,TZ:Vector3D;
 Begin
-  TZ := VectorCross(Direction, Up);
+  TZ := Vector3D_Cross(Direction, Up);
   TZ.Normalize;
-  TX := VectorCross(Up, TZ);
+  TX := Vector3D_Cross(Up, TZ);
   TX.Normalize;
 
   Result.V[0] := TX.X * Scale.X;
@@ -508,7 +514,7 @@ Begin
   Result.V[15] := 1.0;
 End;
 
-Function Matrix4x4Rotation(Const Axis:Vector3D; Const Angle:Single):Matrix4x4;
+Function Matrix4x4_Rotation(Const Axis:Vector3D; Const Angle:Single):Matrix4x4;
 Var
   C,S,T:Single;
   X,Y,Z:Single;
@@ -541,12 +547,12 @@ Begin
   Result.V[15] := 1.0;
 End;
 
-Function Matrix4x4Rotation(Const Rotation:Vector3D):Matrix4x4;  {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix4x4_Rotation(Const Rotation:Vector3D):Matrix4x4;  {$IFDEF FPC}Inline;{$ENDIF}
 Begin
-  Result := Matrix4x4Rotation(Rotation.X, Rotation.Y, Rotation.Z);
+  Result := Matrix4x4_Rotation(Rotation.X, Rotation.Y, Rotation.Z);
 End;
 
-Function Matrix4x4Rotation(Const X,Y,Z:Single):Matrix4x4;  {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix4x4_Rotation(Const X,Y,Z:Single):Matrix4x4;  {$IFDEF FPC}Inline;{$ENDIF}
 Var
   Cr,Sr,Cp,Sp,Cy,Sy,Srsp,Crsp:Single;
 Begin
@@ -583,12 +589,12 @@ Begin
   Result.V[15] := 1.0;
 End;
 
-Function Matrix4x4Translation(Const Translation:Vector3D):Matrix4x4;  {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix4x4_Translation(Const Translation:Vector3D):Matrix4x4;  {$IFDEF FPC}Inline;{$ENDIF}
 Begin
-  Result := Matrix4x4Translation(Translation.X,Translation.Y,Translation.Z);
+  Result := Matrix4x4_Translation(Translation.X,Translation.Y,Translation.Z);
 End;
 
-Function Matrix4x4Translation(Const X,Y,Z:Single):Matrix4x4;  {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix4x4_Translation(Const X,Y,Z:Single):Matrix4x4;  {$IFDEF FPC}Inline;{$ENDIF}
 Begin
   Result.V[0] := 1.0;
   Result.V[1] := 0.0;
@@ -608,12 +614,12 @@ Begin
   Result.V[15] := 1.0;
 End;
 
-Function Matrix4x4Scale(Const Scale:Vector3D):Matrix4x4;  {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix4x4_Scale(Const Scale:Vector3D):Matrix4x4;  {$IFDEF FPC}Inline;{$ENDIF}
 Begin
-  Result := Matrix4x4Scale(Scale.X,Scale.Y,Scale.Z);
+  Result := Matrix4x4_Scale(Scale.X,Scale.Y,Scale.Z);
 End;
 
-Function Matrix4x4Scale(Const X,Y,Z:Single):Matrix4x4;  {$IFDEF FPC}Inline;{$ENDIF}
+Function Matrix4x4_Scale(Const X,Y,Z:Single):Matrix4x4;  {$IFDEF FPC}Inline;{$ENDIF}
 Begin
   Result.V[0] := X;
   Result.V[1] := 0.0;
@@ -633,7 +639,7 @@ Begin
   Result.V[15] := 1.0;
 End;
 
-Function Matrix4x4Perspective(FOV, aspectRatio, znear, zfar:Single):Matrix4x4;
+Function Matrix4x4_Perspective(FOV, aspectRatio, znear, zfar:Single):Matrix4x4;
 Var
   left, right, bottom, top:Single;
   ymax, xmax:Single;
@@ -669,22 +675,22 @@ Begin
   Result.V[15] := 0.0;
 End;
 
-Function Matrix4x4LookAt(Eye, LookAt, Roll:Vector3D):Matrix4x4;
+Function Matrix4x4_LookAt(Eye, LookAt, Roll:Vector3D):Matrix4x4;
 Var
   xaxis, yaxis, zaxis:Vector3D;
 Begin
-  zaxis := VectorSubtract(Eye, lookAt);
+  zaxis := Vector3D_Subtract(Eye, lookAt);
   zaxis.Normalize();
-  xaxis := VectorCross(Roll, zaxis);
+  xaxis := Vector3D_Cross(Roll, zaxis);
   xaxis.Normalize();
   If (xaxis.LengthSquared()<=0) Then
   Begin
-    Roll := VectorCreate(-Roll.Z, -Roll.X, -Roll.Y);
-    xaxis := VectorCross(Roll, zaxis);
+    Roll := Vector3D_Create(-Roll.Z, -Roll.X, -Roll.Y);
+    xaxis := Vector3D_Cross(Roll, zaxis);
     xaxis.Normalize();
   End;
 
-  yaxis := VectorCross(zaxis, xaxis);
+  yaxis := Vector3D_Cross(zaxis, xaxis);
 
   Result.V[0] := xaxis.x;
   Result.V[1] := yaxis.x;
@@ -704,11 +710,11 @@ Begin
   Result.V[15] := 1.0;
 End;
 
-Function Matrix4x4Mirror(Const Source,Normal:Vector3D):Matrix4x4;
+Function Matrix4x4_Mirror(Const Source,Normal:Vector3D):Matrix4x4;
 Var
   Dot:Single;
 Begin
-  Dot := VectorDot(Source,Normal);
+  Dot := Vector3D_Dot(Source,Normal);
 
   Result.V[0] := 1.0 - (2.0 *Normal.X * Normal.X);
   Result.V[1] := - (2.0 * Normal.Y * Normal.X);
@@ -731,23 +737,23 @@ Begin
   Result.V[15]:= 1.0;
 End;
 
-Function Matrix4x4GetTranslation(Const A:Matrix4x4):Vector3D;
+Function Matrix4x4_GetTranslation(Const A:Matrix4x4):Vector3D;
 Begin
   Result.X := A.V[12];
   Result.Y := A.V[13];
   Result.Z := A.V[14];
 End;
 
-Function Matrix4x4GetScale(Const A:Matrix4x4):Vector3D;
+Function Matrix4x4_GetScale(Const A:Matrix4x4):Vector3D;
 Begin
   Result.X := A.V[0];
   Result.Y := A.V[5];
   Result.Z := A.V[10];
 End;
 
-// 4x4 Matrix4x4 inverse using Gauss-Jordan algorithm with row pivoting
+// 4x4 Matrix4x4_ inverse using Gauss-Jordan algorithm with row pivoting
 // originally written by Nathan Reed, now released into the public domain.
-Function Matrix4x4Inverse(Const A:Matrix4x4):Matrix4x4;
+Function Matrix4x4_Inverse(Const A:Matrix4x4):Matrix4x4;
 Var
   I:Integer;
   a0, a1, a2, a3, a4, a5: Single;
@@ -794,7 +800,7 @@ Begin
     FillChar(Result, SizeOf(Result), 0);
 End;
 
-Function Matrix4x4Lerp(Const A,B:Matrix4x4; Const S:Single):Matrix4x4;
+Function Matrix4x4_Lerp(Const A,B:Matrix4x4; Const S:Single):Matrix4x4;
 Var
   I:Integer;
 Begin
@@ -887,7 +893,7 @@ movaps [ecx+$30], xmm2
 
 {$IFDEF BENCHMARK}{$UNDEF SSE}{$ENDIF}
 {$IFNDEF SSE}
-Function Matrix4x4Multiply4x4(Const A,B:Matrix4x4):Matrix4x4;
+Function Matrix4x4_Multiply4x4(Const A,B:Matrix4x4):Matrix4x4;
 Begin
 {$IFDEF NEON_FPU}
   matmul4_neon(@A,@B,@Result);
@@ -914,7 +920,7 @@ Begin
 {$ENDIF}
 End;
 
-Function Matrix4x4Multiply4x3(Const A,B:Matrix4x4):Matrix4x4;
+Function Matrix4x4_Multiply4x3(Const A,B:Matrix4x4):Matrix4x4;
 Begin
 {$IFDEF NEON_FPU}
   matmul4_neon(@A,@B,@Result);
@@ -945,7 +951,7 @@ End;
 {$IFDEF BENCHMARK}{$DEFINE SSE}{$ENDIF}
 
 {$IFDEF SSE}
-Procedure MultMatrix4x4_SSE(A, B, Dest: Pointer);Register;
+Procedure MultMatrix4x4__SSE(A, B, Dest: Pointer);Register;
 Asm
     push esi
     push edi
@@ -1015,9 +1021,9 @@ Var
 }
 
 {$IFDEF BENCHMARK}
-Function Matrix4x4Multiply4x3SSE(Const A,B:Matrix4x4):Matrix4x4;
+Function Matrix4x4_Multiply4x3SSE(Const A,B:Matrix4x4):Matrix4x4;
 {$ELSE}
-Function Matrix4x4Multiply4x3(Const A,B:Matrix4x4):Matrix4x4;
+Function Matrix4x4_Multiply4x3(Const A,B:Matrix4x4):Matrix4x4;
 {$ENDIF}
 Asm
 	movss xmm0, dword ptr [edx]
@@ -1094,14 +1100,14 @@ Asm
 {Begin
   Move(A, _AlignedA^, SizeOf(Matrix4x4));
   Move(B, _AlignedB^, SizeOf(Matrix4x4));
-  MultMatrix4x4_SSE(_AlignedA, _AlignedB, _AlignedC);
+  MultMatrix4x4__SSE(_AlignedA, _AlignedB, _AlignedC);
   Move(_AlignedC^, Result, SizeOf(Matrix4x4));}
 End;
 
 {$IFDEF BENCHMARK}
-Function Matrix4x4Multiply4x4SSE(Const A,B:Matrix4x4):Matrix4x4;
+Function Matrix4x4_Multiply4x4SSE(Const A,B:Matrix4x4):Matrix4x4;
 {$ELSE}
-Function Matrix4x4Multiply4x4(Const A,B:Matrix4x4):Matrix4x4;
+Function Matrix4x4_Multiply4x4(Const A,B:Matrix4x4):Matrix4x4;
 {$ENDIF}
 Asm
 	movss xmm0, dword ptr [edx]
@@ -1181,11 +1187,11 @@ End;
 Initialization
 {$IFDEF SSE}
   GetMem(_P1, SizeOf(Matrix4x4) + 15);
-  _AlignedA := PMatrix4x4((Cardinal(_P1) + $0F) and $FFFFFFF0);
+  _AlignedA := PMatrix4x4_((Cardinal(_P1) + $0F) and $FFFFFFF0);
   GetMem(_P2, SizeOf(Matrix4x4) + 15);
-  _AlignedB := PMatrix4x4((Cardinal(_P2) + $0F) and $FFFFFFF0);
+  _AlignedB := PMatrix4x4_((Cardinal(_P2) + $0F) and $FFFFFFF0);
   GetMem(_P3, SizeOf(Matrix4x4) + 15);
-  _AlignedC := PMatrix4x4((Cardinal(_P3) + $0F) and $FFFFFFF0);
+  _AlignedC := PMatrix4x4_((Cardinal(_P3) + $0F) and $FFFFFFF0);
 Finalization
   FreeMem(_P1);
   FreeMem(_P2);

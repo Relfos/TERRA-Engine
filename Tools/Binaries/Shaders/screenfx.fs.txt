@@ -1,0 +1,7 @@
+varying mediump vec4 texCoord;
+uniform sampler2D diffuse_texture;
+	void main()	{
+    lowp vec4 output_color; 
+    lowp vec2 output_uv = texCoord.xy; 
+    output_color = texture2D(diffuse_texture, output_uv);
+    gl_FragColor = output_color;}

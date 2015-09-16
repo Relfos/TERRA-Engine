@@ -1,108 +1,153 @@
 {$I terra.inc}
-{$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} BasicSample;
+{$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
-Uses TERRA_Application, TERRA_Scene, TERRA_GraphicsManager, TERRA_Viewport,
-  TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_PNG,
-  TERRA_SpriteManager, TERRA_FileManager, TERRA_Math, TERRA_Vector3D, TERRA_Vector2D,
-  TERRA_Renderer, TERRA_InputManager;
-
+uses
+  TERRA_Object,
+  TERRA_MemoryManager,
+  TERRA_Application,
+  TERRA_DemoApplication,
+  TERRA_Renderer,
+  TERRA_Utils,
+  TERRA_ResourceManager,
+  TERRA_GraphicsManager,
+  TERRA_OS,
+  TERRA_Vector2D,
+  TERRA_Font,
+  TERRA_Texture,
+  TERRA_FileManager,
+  TERRA_InputManager,
+  TERRA_Collections,
+  TERRA_Viewport,
+  TERRA_Engine,
+  TERRA_Matrix3x3,
+  TERRA_Math,
+  TERRA_Color,
+  TERRA_String,
+  TERRA_Sprite;
 
 Type
-  // A client is used to process application events
-  Demo = Class(Application)
-    Protected
-      _Scene:Scene;
-
+  MyDemo = Class(DemoApplication)
+    Public
 			Procedure OnCreate; Override;
-			Procedure OnIdle; Override;
-  End;
-
-  // A scene is used to render objects
-  MyScene = Class(Scene)
-      Procedure RenderSprites(V:Viewport); Override;
+      Procedure OnRender2D(View:TERRAViewport); Override;
   End;
 
 Var
-  Tex:Texture = Nil;
+  Tex:TERRATExture;
 
 { Game }
-Procedure Demo.OnCreate;
+Procedure MyDemo.OnCreate;
 Begin
-  // Added Asset folder to search path
-  FileManager.Instance.AddPath('assets');
+  Inherited;
 
-  // Load a Tex
-  Tex := TextureManager.Instance['ghost'];
+  // Enable 2D viewport for rendering
+  Self.GUI.Viewport.Visible := True;
 
-  // Create a scene and set it as the current scene
-  _Scene := MyScene.Create;
-  GraphicsManager.Instance.SetScene(_Scene);
-
-  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlue;
+  // load and cache a texture called ghost.png (located in the samples/binaries/assets/ folder
+  Tex := Engine.Textures['ghost'];
 End;
 
-// OnIdle is called once per frame, put your game logic here
-Procedure Demo.OnIdle;
-Begin
-  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
-    Application.Instance.Terminate;
-End;
-
-{ MyScene }
-Procedure MyScene.RenderSprites;
+Procedure MyDemo.OnRender2D(View: TERRAViewport);
 Var
   I:Integer;
   Angle:Single;
-  S:QuadSprite;
+  S:TERRASprite;
 Begin
+  Inherited;
+
   If (Tex = Nil) Then
     Exit;
+
+  Tex.WrapMode := wrapNothing;
 
   // This is how sprite rendering works with TERRA.
   // 1st we ask the Renderer to create a new sprite, using a Tex and position.
   // Note that this sprite instance is only valid during the frame its created.
   // If needed we can configure the sprite properties.
 
-  // Note - The third argument of VectorCreate is the sprite Layer, should be a value between 0 and 100
-  //        Sprites with higher layer values appear below the others
+  // Note - The first argument of VectorCreate is the sprite Layer, should be a value between 0 and 100
+  //        Sprites with lower layer values appear below the others
 
   // Create a simple fliped sprite
-  S := SpriteManager.Instance.DrawSprite(620, 60, 50, Tex);
+  S := Engine.FetchSprite();
+  S.Layer := 50;
+  S.SetTexture(Tex);
+  S.Translate(620, 60);
   S.Flip := True;
-
+  S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
+  Engine.Graphics.AddRenderable(View, S);
 
   // An alpha blended sprite
-  S := SpriteManager.Instance.DrawSprite(700, 60, 55, Tex);
+  S := Engine.FetchSprite();
+  S.Layer := 55;
+  S.SetTexture(Tex);
+  S.Translate(700, 60);
   S.SetColor(ColorCreate(255, 255, 255, 128));
+  S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
+  Engine.Graphics.AddRenderable(View, S);
 
   // Create a line of sprites
   For I:=0 To 8 Do
   Begin
-    S := SpriteManager.Instance.DrawSprite(16 + Tex.Width * I, 10, 50, Tex);
+    S := Engine.FetchSprite();
+    S.Layer := 50;
+    S.SetTexture(Tex);
+    S.Translate(16 + Tex.Width * I, 10);
     S.Mirror := Odd(I);    // Each odd sprite in line will be reflected
+
+    S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
+    Engine.Graphics.AddRenderable(View, S);
   End;
 
   // Create a line of rotated sprites
   For I:=0 To 8 Do
   Begin
-    S := SpriteManager.Instance.DrawSprite(16 + Tex.Width * I, 300, 50, Tex);
-    S.SetScaleAndRotationRelative(VectorCreate2D(0.5, 0.5), 1, RAD * (I*360 Div 8));
+    S := Engine.FetchSprite();
+    S.Layer := 50;
+    S.SetTexture(Tex);
+    // the order of transformations matter, apply rotation first, then scale, tehn translation always as the last step
+    S.Rotate(RAD * (I*360 Div 8));
+    S.Scale(1.5);
+    // after we rotate and scale, now we can finally apply a translation
+    S.Translate(64 + Tex.Width * I * 1.5, 300);
+
+    // notice how spriteAnchor_Center is used, to make sure the rotation is applyed to the center 
+    S.AddQuad(spriteAnchor_Center, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
+    Engine.Graphics.AddRenderable(View, S);
   End;
 
   // Some scaled sprites
-  S := SpriteManager.Instance.DrawSprite(10,120,55, Tex);
-  S.SetScale(2.0);    // Double size
+  S := Engine.FetchSprite();
+  S.Layer := 55;
+  S.SetTexture(Tex);
+  S.Scale(2.0);    // Double size
+  S.Translate(10,120);
+  S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
+  Engine.Graphics.AddRenderable(View, S);
 
-  S := SpriteManager.Instance.DrawSprite(110,130,55, Tex);
-  S.SetScale(1.5);    // 1.5 Size
+  S := Engine.FetchSprite();
+  S.Layer := 55;
+  S.SetTexture(Tex);
+  S.Scale(1.5);    // 1.5 Size
+  S.Translate(110,130);
+  S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
+  Engine.Graphics.AddRenderable(View, S);
 
-  S := SpriteManager.Instance.DrawSprite(180,145,55, Tex);
-  S.SetScale(0.5);    // Half size
+  S := Engine.FetchSprite();
+  S.Layer := 55;
+  S.SetTexture(Tex);
+  S.Scale(0.5);    // Half size
+  S.Translate(180,145);
+  S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
+  Engine.Graphics.AddRenderable(View, S);
 
   // Some colored sprites
   For I:=0 To 4 Do
   Begin
-    S := SpriteManager.Instance.DrawSprite(300 + Tex.Width * I,120,50, Tex);
+    S := Engine.FetchSprite();
+    S.Layer := 50;
+    S.SetTexture(Tex);
+    S.Translate(300 + Tex.Width * I, 120);
 
     Case I Of
     0:  S.SetColor(ColorCreate(255,128,255)); // Purple tint
@@ -111,15 +156,35 @@ Begin
     3:  S.SetColor(ColorCreate(128,128,255)); // Blue tint
     4:  S.SetColor(ColorCreate(255,255,128)); // Yellow tint
     End;
+
+    S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
+    Engine.Graphics.AddRenderable(View, S);
   End;
 
   // A rotating sprite in the bottom, with Scale = 2x
   Angle := RAD * ((Application.GetTime() Div 15) Mod 360);
-  S := SpriteManager.Instance.DrawSprite(300, 400, 50, Tex);
-  S.SetScaleAndRotationRelative(VectorCreate2D(0.5, 0.5), 2.0, Angle);  // Calculate rotation, in degrees, from current time
+  S := Engine.FetchSprite();
+  S.Layer := 50;
+  S.SetTexture(Tex);
+  S.Rotate(Angle);
+  S.Scale(2);
+  S.Translate(300, 400);
+  S.AddQuad(spriteAnchor_Center, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
+  Engine.Graphics.AddRenderable(View, S);
 End;
 
+{$IFDEF IPHONE}
+Procedure StartGame; cdecl; export;
+{$ENDIF}
 Begin
-  // Start the application
-  Demo.Create();
+  MyDemo.Create();
+{$IFDEF IPHONE}
+End;
+{$ENDIF}
+
+
 End.
+
+
+
+

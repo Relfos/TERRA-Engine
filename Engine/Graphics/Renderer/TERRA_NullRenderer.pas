@@ -2,9 +2,9 @@ Unit TERRA_NullRenderer;
 
 {$I terra.inc}
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Renderer, TERRA_VertexFormat,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Renderer, TERRA_VertexFormat,
   TERRA_Color, TERRA_Image, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D,
-  TERRA_Matrix3x3, TERRA_Matrix4x4;
+  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_ShaderNode;
 
 Type
   NullFeatures = Class(RendererFeatures)
@@ -17,7 +17,7 @@ Type
       Procedure Submit(Wireframe:Boolean); Override;
 
     Public
-      Function Generate(Vertices:VertexData; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean; Override;
+      Function Generate(Vertices:TERRAVertexBuffer; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean; Override;
       Procedure Invalidate(); Override;
   End;
 
@@ -30,7 +30,7 @@ Type
 
       Function Bind(Slot:Integer):Boolean; Override;
 
-      Function GetImage():Image; Override;
+      Function GetImage():TERRAImage; Override;
 
       Procedure Invalidate(); Override;
   End;
@@ -58,8 +58,8 @@ Type
 
       Procedure Resize(NewWidth, NewHeight:Integer); Override;
 
-      Function GetImage():Image; Override;
-      Function GetPixel(X,Y:Integer):Color; Override;
+      Function GetImage():TERRAImage; Override;
+      Function GetPixel(X,Y:Integer):ColorRGBA; Override;
 
       Procedure Invalidate(); Override;
   End;
@@ -86,7 +86,7 @@ Type
 
 
     Public
-      Function Generate(Const Name:TERRAString; ShaderCode:TERRAString):Boolean; Override;
+      Function Generate(Const Name:TERRAString; Shader:TERRAShaderGroup):Boolean; Override;
 
       Function IsReady():Boolean; Override;
 
@@ -100,7 +100,7 @@ Type
 			Procedure SetVec4Uniform(Const Name:TERRAString; const Value:Vector4D); Override;
       Procedure SetMat3Uniform(Const Name:TERRAString; Value:Matrix3x3); Override;
       Procedure SetMat4Uniform(Const Name:TERRAString; Value:Matrix4x4); Override;
-      Procedure SetVec4ArrayUniform(Const Name:TERRAString; Count:Integer; Values:PVector4D); Override;
+      Procedure SetVec4ArrayUniform(Const Name:TERRAString; Count:Integer; Values:Array Of Vector4D); Override;
 
       Function GetUniform(Name:TERRAString):Integer; Override;
       Function GetAttributeHandle(Const Name:TERRAString):Integer; Override;
@@ -122,7 +122,7 @@ Type
       Function CreateRenderTarget():RenderTargetInterface; Override;
 
       Procedure ClearBuffer(Color, Depth, Stencil:Boolean); Override;
-      Procedure SetClearColor(Const ClearColor:Color); Override;
+      Procedure SetClearColor(Const ClearColor:ColorRGBA); Override;
 
       Procedure SetStencilTest(Enable:Boolean); Override;
       Procedure SetStencilOp(fail, zfail, zpass:StencilOperation); Override;
@@ -147,9 +147,9 @@ Type
 
       Procedure SetViewport(X,Y, Width, Height:Integer); Override;
 
-      Procedure SetAttributeSource(Const Name:AnsiString; AttributeKind:Cardinal; ElementType:DataFormat; AttributeSource:Pointer); Override;
+      Procedure SetAttributeSource(Const Name:TERRAString; AttributeKind:Cardinal; ElementType:DataFormat; AttributeSource:Pointer); Override;
 
-      Procedure SetDiffuseColor(Const C:Color); Override;
+      Procedure SetDiffuseColor(Const C:ColorRGBA); Override;
 
       Procedure DrawSource(Primitive:RenderPrimitive; Count:Integer); Override;
       Procedure DrawIndexedSource(Primitive:RenderPrimitive; Count:Integer; Indices:System.PWord); Override;
@@ -204,7 +204,7 @@ Procedure NullRenderer.ClearBuffer(Color, Depth, Stencil:Boolean);
 Begin
 End;
 
-Procedure NullRenderer.SetClearColor(const ClearColor: Color);
+Procedure NullRenderer.SetClearColor(const ClearColor:ColorRGBA);
 Begin
 End;
 
@@ -268,11 +268,11 @@ Procedure NullRenderer.SetTextureMatrix(Const Mat: Matrix4x4);
 Begin
 End;
 
-Procedure NullRenderer.SetDiffuseColor(Const C: Color);
+Procedure NullRenderer.SetDiffuseColor(Const C:ColorRGBA);
 Begin
 End;
 
-Procedure NullRenderer.SetAttributeSource(Const Name:AnsiString; AttributeKind:Cardinal; ElementType:DataFormat; AttributeSource:Pointer);
+Procedure NullRenderer.SetAttributeSource(Const Name:TERRAString; AttributeKind:Cardinal; ElementType:DataFormat; AttributeSource:Pointer);
 Begin
 End;
 
@@ -327,7 +327,7 @@ Begin
 End;
 
 { NullVBO }
-Function NullVBO.Generate(Vertices:VertexData; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean;
+Function NullVBO.Generate(Vertices:TERRAVertexBuffer; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean;
 Var
   Index:Single;
   I, N:Integer;
@@ -377,7 +377,7 @@ End;
 { NullFBO }
 Function NullFBO.Generate(Width, Height:Integer; MultiSample:Boolean; PixelSize:PixelSizeType; TargetCount:Integer; DepthBuffer,StencilBuffer:Boolean):Boolean;
 Begin
-  Self._Size := Width * Height * 4 * 2;
+  Self._SizeInBytes := Width * Height * 4 * 2;
 
   _BackgroundColor := ColorCreate(Byte(0), Byte(0), Byte(0), Byte(0));
 
@@ -391,7 +391,7 @@ End;
 
 Procedure NullFBO.BeginCapture(Flags: Cardinal);
 Begin
-  GraphicsManager.Instance.ActiveViewport.SetViewArea(0, 0, _Width, _Height);
+
 End;
 
 Procedure NullFBO.EndCapture;
@@ -409,12 +409,12 @@ Begin
   Result := True;
 End;
 
-Function NullFBO.GetImage():Image;
+Function NullFBO.GetImage():TERRAImage;
 Begin
-  Result := Image.Create(_Width, _Height);
+  Result := TERRAImage.Create(_Width, _Height);
 End;
 
-Function NullFBO.GetPixel(X,Y:Integer):Color;
+Function NullFBO.GetPixel(X,Y:Integer):ColorRGBA;
 Begin
   Result := ColorNull;
 End;
@@ -433,13 +433,13 @@ Function NullTexture.Generate(Pixels: Pointer; Width, Height:Integer; SourceForm
 Begin
   _Width := Width;
   _Height := Height;
-  _Size := Trunc(4 * _Width * _Height);
+  _SizeInBytes := Trunc(4 * _Width * _Height);
   Result := True;
 End;
 
-Function NullTexture.GetImage:Image;
+Function NullTexture.GetImage:TERRAImage;
 Begin
-  Result := Image.Create(_Width, _Height);
+  Result := TERRAImage.Create(_Width, _Height);
 End;
 
 
@@ -508,11 +508,11 @@ Procedure NullShader.SetVec4Uniform(const Name: TERRAString; const Value:Vector4
 Begin
 End;
 
-Procedure NullShader.SetVec4ArrayUniform(const Name: TERRAString; Count:Integer; Values: PVector4D);
+Procedure NullShader.SetVec4ArrayUniform(const Name: TERRAString; Count:Integer; Values: Array Of Vector4D);
 Begin
 End;
 
-Function NullShader.Generate(const Name: TERRAString; ShaderCode: TERRAString): Boolean;
+Function NullShader.Generate(const Name: TERRAString; Shader:TERRAShaderGroup): Boolean;
 Begin
   Result := True;
 End;

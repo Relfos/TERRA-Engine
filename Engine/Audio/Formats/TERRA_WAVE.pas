@@ -25,13 +25,19 @@
 Unit TERRA_WAVE;
 {$I terra.inc}
 Interface
-Uses TERRA_Stream, TERRA_Sound;
+Uses TERRA_Object, TERRA_Stream, TERRA_Sound, TERRA_FileFormat;
 
-Function ValidateWAV(Source:Stream):Boolean;
-Function WAVLoad(Source:Stream; MySound:Sound):Boolean;
+Type
+  WAVFormat = Class(TERRAFileFormat)
+    Protected
+      Function Identify(Source:TERRAStream):Boolean; Virtual;
+
+    Public
+      Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
+  End;
 
 Implementation
-Uses TERRA_Error, TERRA_Utils, TERRA_FileStream, TERRA_FileUtils, TERRA_Log, TERRA_Application;
+Uses TERRA_Error, TERRA_Utils, TERRA_FileStream, TERRA_FileUtils, TERRA_Log, TERRA_Application, TERRA_Engine;
 
 Const
   PCM_FORMAT =  1;
@@ -56,7 +62,7 @@ Type
                 Size:Cardinal;
               End;
 
-Function FindChunk(Source:Stream; ID:Cardinal; Var Chunk:TWaveChunk):Boolean;
+Function FindChunk(Source:TERRAStream; ID:Cardinal; Var Chunk:TWaveChunk):Boolean;
 Var
   Pos:Cardinal;
 Begin
@@ -73,12 +79,22 @@ Begin
   Until (Result) Or (Source.Position>=Source.Size);
 End;
 
-Function WAVLoad(Source:Stream; MySound:Sound):Boolean;
+{ WAVFormat }
+Function WAVFormat.Identify(Source: TERRAStream): Boolean;
+Var
+  ID:FileHeader;
+Begin
+  Source.Read(@ID,4);
+  Result := CompareFileHeader(ID, 'RIFF');
+End;
+
+Function WAVFormat.LoadFromStream(Target: TERRAObject; Source: TERRAStream): Boolean;
 Var
   Chunk:TWaveChunk;
   Header:TWaveHeader;
   Pos,Id :Cardinal;
-  Size:Cardinal;
+  Size, SampleCount:Cardinal;
+  MySound:TERRASound;
 Begin
   Result := False;
   Source.Read(@Chunk, SizeOf(Chunk));
@@ -86,13 +102,13 @@ Begin
 
   If (Chunk.ID<>RIFF_ID) Or (Id<> WAVE_ID) Then
   Begin
-    RaiseError('Invalid wave file.');
+    Engine.Log.Write(logError, 'WAV', 'Invalid wave file.');
     Exit;
   End;
 
   If Not FindChunk(Source, FMT_ID, Chunk ) Then
   Begin
-    RaiseError('Cannot find header chunk.');
+    Engine.Log.Write(logError, 'WAV', 'Cannot find header chunk.');
     Exit;
   End;
 
@@ -101,7 +117,7 @@ Begin
 
   If Header.Format<>PCM_FORMAT Then
   Begin
-    RaiseError('Wave format not supported.');
+    Engine.Log.Write(logError, 'WAV', 'Wave format not supported.');
     Exit;
   End;
 
@@ -109,27 +125,25 @@ Begin
 
   If Not FindChunk(Source, DATA_ID, Chunk ) Then
   Begin
-    RaiseError('Cannot find wave data chunk.');
+    Engine.Log.Write(logError, 'WAV', 'Cannot find wave data chunk.');
     Exit;
   End;
 
-  MySound.New(Chunk.Size, Header.Channels, Header.Bits, Header.Frequency);
-  Source.Read(MySound.Data, Chunk.Size);
+  If (Header.Bits <> 16) Then
+  Begin
+    Engine.Log.Write(logError, 'WAV', 'Only 16-bit audio can be loaded.');
+    Exit;
+  End;
+
+
+  SampleCount := (Chunk.Size Div (Header.Channels * 2));
+
+  MySound := TERRASound(Target);
+  MySound.SamplesFromStream(SampleCount, Header.Frequency, Header.Channels>1, Source);
+
   Result := True;
 End;
 
-Function ValidateWAV(Source:Stream):Boolean;
-Var
-  ID:FileHeader;
 Begin
-  Source.Read(@ID,4);
-  Result := CompareFileHeader(ID, 'RIFF');
-End;
-
-Begin
-  Log(logDebug, 'WAV', 'Initializing');
-
-  RegisterSoundFormat('WAV',ValidateWAV,WAVLoad);
-
-  Log(logDebug, 'WAV', 'WAVE sound format registered!');
+  Engine.Formats.Add(WAVFormat.Create(TERRASound, 'wav'));
 End.

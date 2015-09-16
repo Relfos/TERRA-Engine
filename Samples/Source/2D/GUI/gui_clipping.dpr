@@ -1,133 +1,129 @@
 {$I terra.inc}
 {$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
-Uses
-  {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
-  TERRA_Application, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
-  TERRA_OS, TERRA_Vector2D, TERRA_Font, TERRA_Texture,
-  TERRA_UI, TERRA_FileManager, TERRA_InputManager, TERRA_TTF,
-  TERRA_PNG, TERRA_Scene, TERRA_SpriteManager, TERRA_ClipRect, TERRA_Color, TERRA_Matrix4x4,
-  TERRA_UIWindow, TERRA_UISprite;
+uses
+  MemCheck,
+  TERRA_Object,
+  TERRA_MemoryManager,
+  TERRA_Application,
+  TERRA_DemoApplication,
+  TERRA_Engine,
+  TERRA_Utils,
+  TERRA_ResourceManager,
+  TERRA_GraphicsManager,
+  TERRA_OS,
+  TERRA_Vector2D,
+  TERRA_Font,
+  TERRA_Texture,
+  TERRA_FileManager,
+  TERRA_InputManager,
+  TERRA_Collections,
+  TERRA_Viewport,
+  TERRA_Color,
+  TERRA_String,
+  TERRA_DebugDraw,
+  TERRA_Matrix4x4,
+  TERRA_ClipRect,
+  TERRA_UIView,
+  TERRA_UIWidget,
+  TERRA_UITemplates,
+  TERRA_UIImage,
+  TERRA_UITiledRect,
+  TERRA_UIDimension;
 
 Type
-  Game = Class(Application)
-    Protected
-      _Scene:Scene;
-
+  MyDemo = Class(DemoApplication)
     Public
 			Procedure OnCreate; Override;
-			Procedure OnDestroy; Override;
-			Procedure OnMouseDown(X,Y:Integer; Button:Word); Override;
-			Procedure OnMouseUp(X,Y:Integer; Button:Word); Override;
-			Procedure OnMouseMove(X,Y:Integer); Override;
-			Procedure OnIdle; Override;
+      Procedure OnIdle; Override;
+
+      Procedure OnRender2D(V:TERRAViewport); Override;
   End;
 
-  MyScene = Class(Scene)
-      Constructor Create;
-      Procedure Release; Override;
+
+  DemoUIController = Class(UIController)
+    Public
+      Constructor Create();
+
+      Procedure OnMyButtonClick(Src:UIWidget);
   End;
 
 Var
-  Fnt:Font;
-  MyUI:UI;
-  MyWnd:UIWindow;
-  Background:UISprite;
-
-  Clip:ClipRect;
+  MyWnd, MyBtn:UIWidget;
+  MyController:UIController;
 
 { Game }
-Procedure Game.OnCreate;
-Var
-  MyTex:Texture;
+Procedure MyDemo.OnCreate;
 Begin
-  FileManager.Instance.AddPath('Assets');
+  Inherited;
 
-  // Load a font
-  Fnt := FontManager.Instance.GetFont('droid');
+  UITemplates.AddTemplate(UIWindowTemplate.Create('wnd_template', Engine.Textures.GetItem('ui_window'), 45, 28, 147, 98));
+  UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', Engine.Textures.GetItem('ui_button2'), 25, 10, 220, 37));
 
-  // Create a new UI
-  MyUI := UI.Create;
+  MyController := DemoUIController.Create();
 
-  // Register the font with the UI
-  MyUI.DefaultFont := Fnt;
-
-  // Load a GUI skin
-  MyUI.LoadSkin('ui_sample_skin');
-
-  // Get background texture
-  MyTex := TextureManager.Instance.GetTexture('background');
-
-  // Create a UI background
-  If Assigned(MyTex) Then
-  Begin
-    Background := UISprite.Create('mybg', MyUI,  0, 0, 0);
-
-    Background.SetTexture(MyTex);
-    Background.Width := UIPixels(UIManager.Instance.Width);
-    Background.Height := UIPixels(UIManager.Instance.Height);
-
-    Background.U2 := 2;
-    Background.V2 := 2;
-     //VectorCreate2D(1,0.5), 0.1, VectorCreate2D(2.0, 2.0)
-  End;
-
-  // Create a empty scene
-  _Scene := MyScene.Create;
-  GraphicsManager.Instance.Scene := _Scene;
-End;
-
-Procedure Game.OnDestroy;
-Begin
-  ReleaseObject(_Scene);
-End;
-
-Procedure Game.OnIdle;
-Begin
-  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
-    Application.Instance.Terminate;
-
-  Clip := ClipRectCreate(InputManager.Instance.Mouse.X - 150, InputManager.Instance.Mouse.Y - 150, 300, 300);
-
-  //MyWnd.ClipRect := Clip;
-  MyUI.ClipRect := Clip;
-End;
-
-
-Procedure Game.OnMouseDown(X, Y: Integer; Button: Word);
-Begin
-  MyUI.OnMouseDown(X, Y, Button);
-End;
-
-Procedure Game.OnMouseMove(X, Y: Integer);
-Begin
-  MyUI.OnMouseMove(X, Y);
-End;
-
-Procedure Game.OnMouseUp(X, Y: Integer; Button: Word);
-Begin
-  MyUI.OnMouseUp(X, Y, Button);
-End;
-
-{ MyScene }
-Constructor MyScene.Create;
-Begin
-  MyWnd := UIWindow.Create('mywnd', MyUI, 10, 10, 10, UIPixels(500), UIPixels(400), 'window');
+  MyWnd := UIInstancedWidget.Create('mywnd', Self.GUI, 0, 0, 10, UIPixels(643), UIPixels(231), 'wnd_template');
   MyWnd.Draggable := True;
   MyWnd.Align := waCenter;
+//  MyWnd.Rotation := 45*RAD;
+  MyWnd.Controller := MyController;
+
+  MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, 0, 0, 1, UIPixels(250), UIPixels(50), 'btn_template');
+  MyBtn.Align := waCenter;
+  MyBtn.Controller := MyController;
+//  MyBtn.Draggable := True;
+
+//  MyBtn.SetPropertyValue('caption', 'custom caption!');
+//  MyBtn.Rotation := 45*RAD;
 End;
 
-Procedure MyScene.Release;
+
+Procedure MyDemo.OnRender2D(V: TERRAViewport);
 Begin
+  Inherited;
+
+  DrawClipRect(V, Self.GUI.ClipRect, ColorWhite);
+End;
+
+Procedure MyDemo.OnIdle;
+Const
+  ClipDistance = 150;
+Var
+  ClipCenter:Vector2D;
+  TX, TY:Integer;
+Begin
+  Inherited;
+
+  ClipCenter := Engine.Input.Mouse;
+  Self.GUI.GetLocalCoords(ClipCenter.X, ClipCenter.Y, TX, TY);
+  Self.GUI.ClipRect := ClipRectCreate(TX - ClipDistance, TY - ClipDistance, TX + ClipDistance, TY + ClipDistance);
+End;
+
+
+// GUI event handlers
+// All event handlers must be procedures that receive a Widget as argument
+// The Widget argument provides the widget that called this event handler
+Constructor DemoUIController.Create;
+Begin
+  Self._ObjectName := 'demo';
+  SetHandler(widgetEvent_MouseDown, OnMyButtonClick); // Assign a onClick event handler
+End;
+
+Procedure DemoUIController.OnMyButtonClick(Src:UIWidget);
+Begin
+ // MyUI.MessageBox('You clicked the button!');
 End;
 
 {$IFDEF IPHONE}
 Procedure StartGame; cdecl; export;
 {$ENDIF}
 Begin
-  Game.Create();
+  MyDemo.Create();
 {$IFDEF IPHONE}
 End;
 {$ENDIF}
+
+
 End.
+
 

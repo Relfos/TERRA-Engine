@@ -2,7 +2,7 @@ Unit TERRA_CRC32;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream;
 
 Const
   TERRAPolynomial = $04c11db7;
@@ -17,8 +17,8 @@ Type
       Constructor Create(Polynomial:Cardinal);
   End;
 
-Function GetCRC32(Source:Stream; Table:CRC32Table = Nil):Cardinal;Overload;
-Function GetCRC32(Source:Stream; Start,Length:Integer; Table:CRC32Table = Nil):Cardinal;Overload;
+Function GetCRC32(Source:TERRAStream; Table:CRC32Table = Nil):Cardinal;Overload;
+Function GetCRC32(Source:TERRAStream; Start,Length:Integer; Table:CRC32Table = Nil):Cardinal;Overload;
 Function GetCRC32(Const Source:TERRAString; Table:CRC32Table = Nil):Cardinal;Overload;
 Function GetCRC32(Source:Pointer; Size:Integer; Table:CRC32Table = Nil):Cardinal;Overload;
 
@@ -38,12 +38,12 @@ Begin
   CRc :=  (CRC Shl 8) Xor Table._Values[Value Xor (CRC Shr 24)];
 End;
 
-Function GetCRC32(Source:Stream; Table:CRC32Table = Nil):Cardinal;
+Function GetCRC32(Source:TERRAStream; Table:CRC32Table = Nil):Cardinal;
 Begin
   Result := GetCRC32(Source, 0, Source.Size, Table);
 End;
 
-Function GetCRC32(Source:Stream; Start,Length:Integer; Table:CRC32Table = Nil):Cardinal;
+Function GetCRC32(Source:TERRAStream; Start,Length:Integer; Table:CRC32Table = Nil):Cardinal;
 Const
   BufferSize=1024*32;
 Var
@@ -140,7 +140,6 @@ Begin
 End;
 
 Initialization
-  Log(logDebug, 'CRC', 'Initializing');
   _DefaultTable := CRC32Table.Create(TERRAPolynomial);
 Finalization
   ReleaseObject(_DefaultTable);

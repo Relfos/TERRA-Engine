@@ -1,0 +1,20 @@
+uniform mat4 projectionMatrix;
+	varying mediump vec4 texCoord;
+  attribute highp vec4 terra_position;
+  attribute mediump vec4 terra_UV0;
+	varying mediump vec2 v_rgbNW;
+	varying mediump vec2 v_rgbNE;
+	varying mediump vec2 v_rgbSW;
+	varying mediump vec2 v_rgbSE;
+	varying mediump vec2 v_rgbM;
+	uniform vec2 resolution;
+  void main()	{
+  texCoord = terra_UV0;
+  mediump vec2 inverseVP = vec2(1.0 / resolution.x, 1.0 / resolution.y);
+  mediump vec2 fragCoord = texCoord.xy * resolution;
+  v_rgbNW = (fragCoord + vec2(-1.0, -1.0)) * inverseVP;
+  v_rgbNE = (fragCoord + vec2(1.0, -1.0)) * inverseVP;
+  v_rgbSW = (fragCoord + vec2(-1.0, 1.0)) * inverseVP;
+  v_rgbSE = (fragCoord + vec2(1.0, 1.0)) * inverseVP;
+  v_rgbM = vec2(fragCoord * inverseVP);
+  gl_Position = projectionMatrix * terra_position;}

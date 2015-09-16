@@ -1,85 +1,80 @@
 {$I terra.inc}
-{$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} BasicSample;
+{$IFDEF MOBILE}Library{$ELSE}Program{$ENDIF} MaterialDemo;
 
-Uses TERRA_Application, TERRA_Scene, TERRA_GraphicsManager, TERRA_Viewport,
-  TERRA_ResourceManager, TERRA_Color, TERRA_Texture, TERRA_OS, TERRA_PNG, TERRA_Vector2D,
-  TERRA_SpriteManager, TERRA_FileManager, TERRA_Math, TERRA_Vector3D, TERRA_Utils,
-  TERRA_InputManager, TERRA_UI;
+uses
+  TERRA_Object,
+  TERRA_MemoryManager,
+  TERRA_DemoApplication,
+  TERRA_Utils,
+  TERRA_Engine, 
+  TERRA_OS,
+  TERRA_Vector2D,
+  TERRA_Vector3D,
+  TERRA_Math,
+  TERRA_Texture,
+  TERRA_Collections,
+  TERRA_Viewport,
+  TERRA_UIView,
+  TERRA_Color,
+  TERRA_Profiler,
+  TERRA_String,
+  TERRA_Sprite;
 
 Type
-  // A client is used to process application events
-  Demo = Class(Application)
-    Protected
-      _Scene:Scene;
-
+  MyDemo = Class(DemoApplication)
+    Public
 			Procedure OnCreate; Override;
-			Procedure OnIdle; Override;
-  End;
-
-  // A scene is used to render objects
-  MyScene = Class(Scene)
-      Procedure RenderSprites(V:Viewport); Override;
+      Procedure OnRender2D(View:TERRAViewport); Override;
   End;
 
 Const
   Limit = 500;
 
 Var
-  Tex:Texture = Nil;
+  Tex:TERRATexture = Nil;
 
   Pos:Array[0..Pred(Limit)]Of Vector3D;
   Dir:Array[0..Pred(Limit)]Of Vector2D;
 
 { Game }
-Procedure Demo.OnCreate;
+Procedure MyDemo.OnCreate;
 Var
   I:Integer;
   W,H:Single;
 Begin
-  // Added Asset folder to search path
-  FileManager.Instance.AddPath('assets');
-
-  // Create a scene and set it as the current scene
-  _Scene := MyScene.Create;
-  GraphicsManager.Instance.SetScene(_Scene);
+  Inherited;
 
   // Load a Tex
-  Tex := TextureManager.Instance.GetTexture('ghost');
+  Tex := Engine.Textures['ghost'];
 
-  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorBlue;
-
-  W := UIManager.Instance.Width;
-  H := UIManager.Instance.Height;
+  W := Self.GUI.Viewport.Width;
+  H := Self.GUI.Viewport.Height;
 
   For I:=0 To Pred(Limit) Do
   Begin
-    Pos[I] := VectorCreate(RandomFloat(0, W), RandomFloat(0, H), Trunc(RandomFloat(20, 40)));
-    Dir[I] := VectorCreate2D(RandomFloat(-1, 1), RandomFloat(-1, 1));
+    Pos[I] := Vector3D_Create(RandomFloat(0, W), RandomFloat(0, H), Trunc(RandomFloat(20, 40)));
+    Dir[I] := Vector2D_Create(RandomFloat(-1, 1), RandomFloat(-1, 1));
   End;
 End;
 
-// OnIdle is called once per frame, put your game logic here
-Procedure Demo.OnIdle;
-Begin
-  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
-    Application.Instance.Terminate;
-End;
-
-{ MyScene }
-Procedure MyScene.RenderSprites;
+Procedure MyDemo.OnRender2D(View: TERRAViewport);
 Var
   I:Integer;
   W,H,Z:Single;
-  S:QuadSprite;
+  S:TERRASprite;
 Begin
-  W := UIManager.Instance.Width;
-  H := UIManager.Instance.Height;
+  W := Self.GUI.Viewport.Width;
+  H := Self.GUI.Viewport.Height;
 
   For I:=0 To Pred(Limit) Do
   Begin
-    S := SpriteManager.Instance.DrawSprite(Pos[I].X, Pos[I].Y, Pos[I].Z, Tex);
+    S := Engine.FetchSprite();
+    S.Layer := Pos[I].Z;
+    S.SetTexture(Tex);
+    S.Translate(Pos[I].X, Pos[I].Y);
     S.Mirror := Odd(I);    // Each odd sprite in line will be reflected
-    //S.SetScaleAndRotation(1, RAD * (I*360 Div 8));
+    S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, Tex.Width, Tex.Height);
+    Engine.Graphics.AddRenderable(View, S);
 
     Pos[I].X := Pos[I].X + Dir[I].X;
     Pos[I].Y := Pos[I].Y + Dir[I].Y;
@@ -107,13 +102,24 @@ Begin
       Pos[I].Y := 0;
       Dir[I].Y := -Dir[I].Y;
     End;
-
   End;
 
-  Application.Instance.SetTitle(IntToString(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
+  //Application.Instance.SetTitle(IntToString(GraphicsManager.Instance.Renderer.Stats.FramesPerSecond));
+
+  Inherited;
 End;
 
+
+{$IFDEF IPHONE}
+Procedure StartGame; cdecl; export;
+{$ENDIF}
 Begin
-  // Start the application
-  Demo.Create();
+  MyDemo.Create();
+{$IFDEF IPHONE}
+End;
+{$ENDIF}
+
+
 End.
+
+

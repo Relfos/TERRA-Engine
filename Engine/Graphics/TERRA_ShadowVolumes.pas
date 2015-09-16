@@ -29,7 +29,7 @@ Unit TERRA_ShadowVolumes;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Vector3D, TERRA_BoundingBox, TERRA_Math, TERRA_Stream, TERRA_VertexFormat;
+  TERRA_Object, TERRA_Utils, TERRA_Vector3D, TERRA_BoundingBox, TERRA_Math, TERRA_Stream, TERRA_VertexFormat;
 
 Const
   MinShadowAngle = 0.5;
@@ -60,15 +60,12 @@ Type
 
       Procedure Translate(Ofs:Vector3D);
 
-      Procedure Load(Source:Stream);
-      Procedure Save(Dest:Stream);
-
       Property BoundingBox:TERRA_BoundingBox.BoundingBox Read _BoundingBox;
       Property Time:Cardinal Read _LastTime;
     End;
 
 Implementation
-Uses TERRA_OS, TERRA_GraphicsManager, TERRA_Lights, TERRA_Mesh, TERRA_Renderer, TERRA_MeshFilter, TERRA_Log, TERRA_Matrix4x4;
+Uses TERRA_OS, TERRA_Engine, TERRA_GraphicsManager, TERRA_Lights, TERRA_Mesh, TERRA_Renderer, TERRA_MeshFilter, TERRA_Log, TERRA_Matrix4x4;
 
 Type
   GroupVertex = Record
@@ -139,7 +136,7 @@ Var
 
   T:Triangle;
   Group:MeshGroup;
-  MyMesh:Mesh;
+  MyMesh:TERRAMesh;
 Begin
   MyMesh := MeshPtr;
   Result := True;
@@ -150,7 +147,7 @@ Begin
 
   EdgeCount:=0;
 
-  L := LightManager.Instance.GetDefaultDirection();
+  L := Engine.Lights.GetDefaultDirection();
   //L.Scale(-1.0);
   {If L.Y<0 Then
     L.Y := - L.Y;
@@ -185,9 +182,9 @@ Begin
         K := Trunc(BoneIndex);
         If (Instance.Animation = Nil) Or (Instance.Animation.Root = Nil) Then
           //TM := (MyMesh.Skeleton.BindPose[K])
-          TM := Matrix4x4Identity
+          TM := Matrix4x4_Identity
         Else
-          TM := (Instance.Animation.Transforms[K]);
+          TM := Instance.Animation.GetAbsoluteMatrix(K);
 
         V := TM.Transform(V);
       End;
@@ -229,20 +226,20 @@ Begin
     End;
   End;
 
-  VS := VectorScale(L, ExtrusionValue);
-  VX := VectorScale(L, BiasExtrusionValue);
+  VS := Vector3D_Scale(L, ExtrusionValue);
+  VX := Vector3D_Scale(L, BiasExtrusionValue);
 
   SetLength(_ExtrudedVertices, _ExtrudedVertexCount+EdgeCount*6);
   For I:=0 To Pred(EdgeCount) Do
   Begin
-    V1:=VertexBuffer[Edges[I].A.GroupID, Edges[I].A.VertexID];
-    V2:=VertexBuffer[Edges[I].B.GroupID, Edges[I].B.VertexID];
+    V1 := VertexBuffer[Edges[I].A.GroupID, Edges[I].A.VertexID];
+    V2 := VertexBuffer[Edges[I].B.GroupID, Edges[I].B.VertexID];
 
-    V1:=VectorSubtract(V1,VX);
-    V2:=VectorSubtract(V2,VX);
+    V1 := Vector3D_Subtract(V1,VX);
+    V2 := Vector3D_Subtract(V2,VX);
 
-    V3:=VectorSubtract(V1,VS);
-    V4:=VectorSubtract(V2,VS);
+    V3 := Vector3D_Subtract(V1,VS);
+    V4 := Vector3D_Subtract(V2,VS);
 
     // Add a quad to the vertex list
     _ExtrudedVertices[_ExtrudedVertexCount]:=V3; Inc(_ExtrudedVertexCount);
@@ -311,8 +308,8 @@ Begin
     Exit;
   End;
 
-  _BoundingBox.StartVertex := VectorConstant(ExtrusionValue*2);
-  _BoundingBox.EndVertex := VectorConstant(-ExtrusionValue*2);
+  _BoundingBox.StartVertex := Vector3D_Constant(ExtrusionValue*2);
+  _BoundingBox.EndVertex := Vector3D_Constant(-ExtrusionValue*2);
 
   For I:=0 To Pred(_ExtrudedVertexCount) Do
   With _ExtrudedVertices[I] Do
@@ -346,9 +343,9 @@ Begin
   If (_ExtrudedVertexCount<=0) Or (Length(_ExtrudedVertices)<=0) Then
 	  Exit;
 
-  Log(logDebug, 'Shadow', 'Drawing shadow volume: '+IntToSTring(_ExtrudedVertexCount));
+  Engine.Log.Write(logDebug, 'Shadow', 'Drawing shadow volume: '+ IntegerProperty.Stringify(_ExtrudedVertexCount));
 
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
   {Graphics.Renderer.SetSourceVertexSize(SizeOf(Vector3D));
   Graphics.Renderer.SetAttributeSource('terra_position', vertexPosition, typeVector3D, @(_ExtrudedVertices[0]));}
@@ -444,21 +441,6 @@ Begin
   For I:=0 To Pred(_CappingVertexCount) Do
     _CappingVertices[I].Add(Ofs);
 {$ENDIF}
-End;
-
-Procedure ShadowVolume.Load(Source: Stream);
-Begin
-  Source.Read(@_ExtrudedVertexCount, 4);
-  SetLength(_ExtrudedVertices, _ExtrudedVertexCount);
-  If (_ExtrudedVertexCount>0) Then
-    Source.Read(@_ExtrudedVertices[0], _ExtrudedVertexCount * SizeOf(Vector3D));
-End;
-
-Procedure ShadowVolume.Save(Dest: Stream);
-Begin
-  Dest.Write(@_ExtrudedVertexCount, 4);
-  If (_ExtrudedVertexCount>0) Then
-    Dest.Write(@_ExtrudedVertices[0], _ExtrudedVertexCount * SizeOf(Vector3D));
 End;
 
 End.

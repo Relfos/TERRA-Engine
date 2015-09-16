@@ -31,7 +31,7 @@ Uses cmem;
 {$ENDIF}
 
 {$IFNDEF FPC}
-Uses {FastMM4, }Windows;
+Uses {FastMM4, }TERRA_DebugInfo;
 
 {.$DEFINE USE_MSVCTR}
 {$ENDIF}
@@ -53,7 +53,7 @@ Type
 
   PMemoryAllocStats = ^MemoryAllocStats;
   MemoryAllocStats = Record
-    Name:^String;
+    Routine:TERRARoutineInfo;
     Line:Cardinal;
     AllocCount:Cardinal;
     AllocSize:SizeType;
@@ -75,7 +75,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Callstack, TERRA_Error, TERRA_Log;
+Uses TERRA_Callstack, TERRA_Object, TERRA_Engine, TERRA_Error;
 
 {$IFDEF USE_MSVCTR}
 Const
@@ -104,6 +104,8 @@ Var
   _PrevAllocStats:Array[0..Pred(MaxAllocStats)] Of MemoryAllocStats;
   _PrevAllocStatsCount:Integer;
 
+  _Callstack:TERRACallstack;
+
 Function TERRA_GetMem(Size: SizeType): Pointer;{$IFDEF FPC} {$IFNDEF PC}{$IFNDEF CPU64}Stdcall;{$ENDIF} {$ELSE}Register;{$ENDIF}{$ENDIF}
 Var
   I,N:Integer;
@@ -118,8 +120,7 @@ Begin
 
   If (Size>0) And (Result = Nil) Then
   Begin
-    Log(logError, 'App', 'Out of memory!');
-    Halt(0);
+    Engine.RaiseError('Out of memory!');
     Exit;
   End;
 
@@ -138,16 +139,16 @@ Begin
   If (_AllocStatsCount>=MaxAllocStats) Then
     Exit;
 
-  If (Info.Name=Nil)  Then
+  If (Info.Routine = Nil)  Then
     Exit;
 
   Temp := _AllocStatsEnabled;
   _AllocStatsEnabled := False;
-  GetCurrentCall(Info);
+  _Callstack.GetCurrentCall(Info);
 
   N := -1;
   For I:=0 To Pred(_AllocStatsCount) Do
-  If (Cardinal(_AllocStats[I].Name) = Cardinal(Info.Name)) Then
+  If (_AllocStats[I].Routine = Info.Routine) Then
   Begin
     N := I;
     Break;
@@ -158,7 +159,7 @@ Begin
     N := _AllocStatsCount;
     Inc(_AllocStatsCount);
 
-    Cardinal(_AllocStats[N].Name) := Cardinal(Info.Name);
+    _AllocStats[N].Routine := Info.Routine;
     _AllocStats[N].Line := Info.Line;
     _AllocStats[N].AllocCount := 0;
     _AllocStats[N].AllocSize := 0;
@@ -207,7 +208,7 @@ Begin
 
   If (Size>0) And (Result = Nil) Then
   Begin
-    RaiseError('Out of memory!');
+    Engine.RaiseError('Out of memory!');
     Exit;
   End;
 End;
@@ -290,6 +291,7 @@ Var
 {$ENDIF}
 
 Initialization
+  _Callstack := TERRACallstack.Create();
   GetMemoryManager(PrevManager);
 
   {$IFNDEF DEBUG_LEAKS}
@@ -304,4 +306,8 @@ Initialization
   //MemoryManager.Instance();
   {$ENDIF}
   {$ENDIF}
+
+Finalization
+  SetMemoryManager(PrevManager);
+  ReleaseObject(_Callstack);
 End.

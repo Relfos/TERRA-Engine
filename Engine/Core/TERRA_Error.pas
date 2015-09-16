@@ -21,27 +21,39 @@
  * Implements a generic engine error exception
  ***********************************************************************************************************************
 }
-Unit TERRA_Error;
 
+{$IFDEF OXYGENE}
+namespace TERRA;
+
+{$ELSE}
+Unit TERRA_Error;
 {$I terra.inc}
+{$ENDIF}
+
 
 Interface
-Uses SysUtils, TERRA_String;
-
-Var
-  _FatalError:TERRAString = '';
-
-Procedure RaiseError(Const Desc:TERRAString);
-
-Implementation
-Uses TERRA_Log;
-
+Uses SysUtils, TERRA_Object, TERRA_Callstack;
 
 Type
-  TERRAException = Class(Exception)
+  TERRAError = Class(Exception)
+      _CrashLog:TERRAString;
+      _Callstack:TERRACallstack;
+
+    Public
+      Constructor Create(Const Desc:TERRAString; E:Exception);
+      Destructor Destroy();
+
+      Property CrashLog:TERRAString Read _CrashLog;
+      Property Callstack:TERRACallstack Read _Callstack;
   End;
 
-Procedure RaiseError(Const Desc:TERRAString);
+Implementation
+
+{$IFNDEF OXYGENE}
+Uses TERRA_String, TERRA_Log, TERRA_Engine;
+{$ENDIF}
+
+Constructor TERRAError.Create(Const Desc:TERRAString; E:Exception);
 Var
   S:TERRAString;
   {$IFDEF CALLSTACKINFO}
@@ -49,19 +61,24 @@ Var
   CallStack:TERRAString;
   {$ENDIF}
 Begin
-  If _FatalError<>'' Then
-    Exit;
+  Inherited CreateFmt(Desc, []);
 
-  _FatalError := Desc;
+  {$IFNDEF OXYGENE}
+  Engine.Log.ForceLogFlush := True;
+  {$ENDIF}
 
-  ForceLogFlush := True;
+  Engine.Log.Write(logError, 'Engine', Desc);
 
-  Log(logError, 'Application', Desc);
+  If E = Nil Then
+    E := Self;
 
-  Raise TERRAException.Create(Desc);
+  _Callstack := TERRACallstack.Create();
+  _Callstack.FillExceptionCallStack(E);
 End;
 
-//    DiscardWhiteSpace = WhiteSpace -> { };
-  //  Comment = '{' A '}' -> { A.Discard(); };
+Destructor TERRAError.Destroy;
+Begin
+  ReleaseObject(_Callstack);
+End;
 
 End.

@@ -44,7 +44,7 @@ Function PlaneCreate(PA,PB,PC,PD:Single):Plane;Overload;
 Function PlaneCreate(V1,V2,V3:Vector3D):Plane;Overload;
 Function PlaneCreate(Source, Normal: Vector3D):Plane;Overload;
 
-Function GetQuadHeight(A,B,C,D, Position:Vector3D; Normal:PVector3D=Nil):Single;
+Function GetQuadHeight(A,B,C,D, Position:Vector3D; Out Normal:Vector3D):Single;
 
 Implementation
 
@@ -80,7 +80,7 @@ Begin
   Result.A := Normal.X;
   Result.B := Normal.Y;
   Result.C := Normal.Z;
-  Result.D := -VectorDot(Source, Normal);
+  Result.D := -Vector3D_Dot(Source, Normal);
 End;
 
 {
@@ -120,7 +120,7 @@ A----B
 |    |
 C----D
 }
-Function GetQuadHeight(A,B,C,D, Position:Vector3D; Normal:PVector3D=Nil):Single;
+Function GetQuadHeight(A,B,C,D, Position:Vector3D; Out Normal:Vector3D):Single;
 Var
   P:Plane;
   coefX, coefZ:Single;
@@ -136,11 +136,8 @@ Begin
 
   Result := (-position.x * P.a - position.z * P.c - P.d) / P.b;
 
-  If Assigned(Normal) Then
-  Begin
-    Normal^ := VectorCreate(-P.A, -P.B, -P.C);
-    Normal.Normalize();
-  End;
+  Normal := Vector3D_Create(-P.A, -P.B, -P.C);
+  Normal.Normalize();
 End;
 
 Function Plane.Normal: Vector3D;

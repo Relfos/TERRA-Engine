@@ -25,8 +25,9 @@ Unit TERRA_MeshAnimation;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Resource, TERRA_Vector3D, TERRA_Math,
-  TERRA_Matrix4x4, TERRA_Vector2D, TERRA_Color, TERRA_Quaternion, TERRA_ResourceManager, TERRA_MeshSkeleton;
+Uses TERRA_String, TERRA_Utils, TERRA_Object, TERRA_Stream, TERRA_Resource, TERRA_Vector3D, TERRA_Math,
+  TERRA_Matrix4x4, TERRA_Vector2D, TERRA_Vector4D, TERRA_Color, TERRA_Quaternion, TERRA_ResourceManager,
+  TERRA_MeshFilter, TERRA_MeshSkeleton;
 
 Const
   TimeCompressionLimit = 20000;
@@ -36,17 +37,14 @@ Const
 Type
   BoneAnimation = Class;
 
-  VectorKeyFrame=Record
-    Time:Single;
-    Value:Vector3D;
-  End;
-
   VectorKeyframeArray = Class(TERRAObject)
     Protected
       _Owner:BoneAnimation;
 
+      Procedure AddValueKey(Time:Single; Const Value:Vector4D);
+
     Public
-      Keyframes:Array Of VectorKeyFrame;
+      KeyFrames:Array Of MeshAnimationKeyframe;
       Count:Integer;
 
       Constructor Create(Owner:BoneAnimation);
@@ -54,30 +52,33 @@ Type
       Procedure Clone(Other:VectorKeyframeArray);
 
       Function GetKey(Time:Single):Integer;
-      Procedure AddKey(Time:Single; Value:Vector3D);
+
+      Procedure AddVector3DKey(Const Time:Single; Const Value:Vector3D);
+      Procedure AddQuaternionKey(Const Time:Single; Const Value:Quaternion);
+      Procedure AddColorKey(Const Time:Single; Const Value:ColorRGBA);
 
       Function GetExactKey(Time:Single):Integer;
 
-      Procedure Load(Source:Stream);
-      Procedure Save(Dest:Stream);
+      Procedure Load(Source:TERRAStream);
+      Procedure Save(Dest:TERRAStream);
 
       Function GetLength():Single;
 
       Procedure Crop(Time:Single);
       Procedure CloseLoop();
-      
+
       Procedure Clear();
 
       Property Owner:BoneAnimation Read _Owner;
       Property Length:Single Read GetLength;
-    End;
+  End;
 
   Animation = Class;
 
   AnimationTransformBlock = Object
     Translation:Vector3D;
-    Scale:Vector3D;
     Rotation:Quaternion;
+    Scale:Vector3D;
   End;
 
   BoneAnimation = Class(TERRAObject)
@@ -92,8 +93,8 @@ Type
       Constructor Create(ID:Integer; Owner:Animation);
       Procedure Release; Override;
 
-      Procedure Load(Source:Stream);
-      Procedure Save(Dest:Stream);
+      Procedure Load(Source:TERRAStream);
+      Procedure Save(Dest:TERRAStream);
 
       Function GetLength():Single;
 
@@ -105,12 +106,15 @@ Type
       Property Length:Single Read GetLength;
   End;
 
-
-  Animation = Class(Resource)
+  Animation = Class(TERRAResource)
     Protected
       _BoneCount:Integer;
       _Bones:Array Of BoneAnimation;
       _Duration:Single; // max * last key
+
+      //Procedure computeTransforms(targetBone:MeshBone; sourceSkeleton, targetSkeleton:MeshSkeleton; frameId, animLength:Integer; Const ratio:Vector3D);
+
+      Procedure RetargetBone(SourceBone, TargetBone:MeshBone; SourceAnimation, TargetAnimation:BoneAnimation);
 
     Public
       FPS:Single;
@@ -120,13 +124,16 @@ Type
 
       Next:TERRAString;
 
-      Procedure Clone(Other:Animation);
+      Procedure InitFromFilter(Const AnimationID:Integer; Source:MeshFilter);
 
-      Function Load(Source:Stream):Boolean; Override;
-      Procedure Save(Dest:Stream); Overload;
+      Procedure Clone(Other:Animation);
+      Function Retarget(SourceSkeleton, TargetSkeleton:MeshSkeleton):Animation;
+
+      Function Load(Source:TERRAStream):Boolean; Override;
+      Procedure Save(Dest:TERRAStream); Overload;
       Procedure Save(FileName:TERRAString); Overload;
 
-      Class Function GetManager:Pointer; Override;
+      Class Function GetManager:TERRAObject; Override;
 
       Function GetLength:Single;
 
@@ -146,9 +153,6 @@ Type
 
   AnimationManager = Class(ResourceManager)
     Public
-      Procedure Release; Override;
-      Class Function Instance:AnimationManager;
-
       Function GetAnimation(Name:TERRAString; ValidateError:Boolean = True):Animation;
    End;
 
@@ -157,10 +161,8 @@ Function TimeToFrame(Time, FPS:Single):Integer;
 
 Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_Application, TERRA_OS, TERRA_FileManager,  TERRA_Mesh,
-  TERRA_GraphicsManager, TERRA_FileStream, TERRA_FileUtils;
-
-Var
-  _AnimationManager:ApplicationObject;
+  TERRA_Engine, TERRA_GraphicsManager, TERRA_FileStream, TERRA_FileUtils, TERRA_MeshAnimationNodes,
+  TERRA_FileFormat;
 
 Function FrameToTime(Frame, FPS:Single):Single;
 Begin
@@ -179,47 +181,30 @@ Begin
 End;
 
 { AnimationManager }
-Class Function AnimationManager.Instance:AnimationManager;
-Begin
-  If _AnimationManager = Nil Then
-  Begin
-    _AnimationManager := InitializeApplicationComponent(AnimationManager, Nil);
-    AnimationManager(_AnimationManager.Instance).AutoUnload := False;
-  End;
-  Result := AnimationManager(_AnimationManager.Instance);
-End;
-
-
-Procedure AnimationManager.Release;
-Begin
-  Inherited;
-  _AnimationManager := Nil;
-End;
-
 Function AnimationManager.GetAnimation(Name:TERRAString; ValidateError:Boolean):Animation;
 Var
-  S:TERRAString;
+  Location:TERRALocation;
 Begin
   Result := Nil;
   Name := StringTrim(Name);
   If (Name='') Then
     Exit;
 
-  If (StringFirstChar(Name) = Ord('@')) Then
+  If (StringFirstChar(Name) = '@') Then
     Name := StringCopy(Name, 2, MaxInt);
 
   Result := Animation(GetResource(Name));
   If (Not Assigned(Result)) Then
   Begin
-    S := FileManager.Instance.SearchResourceFile(Name+'.anim');
-    If S<>'' Then
+    Location := Engine.Files.Search(Name+'.anim');
+    If Assigned(Location) Then
     Begin
-      Result := Animation.Create(rtLoaded, S);
+      Result := Animation.Create(rtLoaded, Location);
       Result.Priority := 70;
       Self.AddResource(Result);
     End Else
     If ValidateError Then
-      RaiseError('Could not find animation. ['+Name +']');
+      Engine.RaiseError('Could not find animation. ['+Name +']');
   End;
 End;
 
@@ -261,7 +246,7 @@ Begin
   End;
 End;
 
-Procedure VectorKeyframeArray.AddKey(Time:Single; Value:Vector3D);
+Procedure VectorKeyframeArray.AddValueKey(Time:Single; Const Value:Vector4D);
 Var
   I, N:Integer;
 Begin
@@ -289,95 +274,59 @@ Begin
   KeyFrames[N].Value := Value;
 End;
 
-Procedure VectorKeyframeArray.Load(Source:Stream);
+Procedure VectorKeyframeArray.AddVector3DKey(Const Time:Single; Const Value:Vector3D);
+Begin
+  Self.AddValueKey(Time, Vector4D_Create(Value.X, Value.Y, Value.Z, 1.0));
+End;
+
+Procedure VectorKeyframeArray.AddQuaternionKey(Const Time:Single; Const Value:Quaternion);
+Begin
+  Self.AddValueKey(Time, Vector4D_Create(Value.X, Value.Y, Value.Z, Value.Z));
+End;
+
+Procedure VectorKeyframeArray.AddColorKey(Const Time:Single; Const Value:ColorRGBA);
+Begin
+  Self.AddValueKey(Time, Vector4D_Create(Value.R/255, Value.G/255, Value.B/255, Value.A/255));
+End;
+
+
+Procedure VectorKeyframeArray.Load(Source:TERRAStream);
 Var
   I:Integer;
-  Time:Word;
+  Time:Single;
   Range:Vector3D;
   MaxTime:Single;
   PX,PY,PZ:SmallInt;
   SX,SY,SZ:ShortInt;
 Begin
-  Source.Read(@Count, 4);
-  Source.Read(@Range, SizeOf(Vector3D));
-  Source.Read(@MaxTime, 4);
-
+  Source.ReadInteger(Count);
  { If (StringLower(_Owner.Owner.Name)='monster084_idle') Then
     IntToString(2);}
 
   SetLength(KeyFrames, Count);
   For I:=0 To Pred(Count) Do
   Begin
-    Source.Read(@Time, 2);
-
-    KeyFrames[I].Time := (Time/TimeCompressionLimit) * MaxTime;
-    If (KeyFrames[I].Time>MaxTime) Then
-      IntToString(TRunc(KeyFrames[I].Time+MaxTime));
-
-    {Source.Read(@PX, 2);
-    Source.Read(@PY, 2);
-    Source.Read(@PZ, 2);
-    KeyFrames[I].Value.X := (PX/CompressionLimit2)* Range.X;
-    KeyFrames[I].Value.Y := (PY/CompressionLimit2)* Range.Y;
-    KeyFrames[I].Value.Z := (PZ/CompressionLimit2)* Range.Z;}
-
-    Source.Read(@SX, 1);
-    Source.Read(@SY, 1);
-    Source.Read(@SZ, 1);
-    KeyFrames[I].Value.X := (SX/CompressionLimit1)* Range.X;
-    KeyFrames[I].Value.Y := (SY/CompressionLimit1)* Range.Y;
-    KeyFrames[I].Value.Z := (SZ/CompressionLimit1)* Range.Z;
-
-    //Source.Read(@KeyFrames[I].Value, SizeOf(Vector3D));
+    Source.ReadSingle(KeyFrames[I].Time);
+    Source.ReadSingle(KeyFrames[I].Value.X);
+    Source.ReadSingle(KeyFrames[I].Value.Y);
+    Source.ReadSingle(KeyFrames[I].Value.Z);
+    Source.ReadSingle(KeyFrames[I].Value.W);
   End;
 End;
 
-Procedure VectorKeyframeArray.Save(Dest:Stream);
+Procedure VectorKeyframeArray.Save(Dest:TERRAStream);
 Var
   I:Integer;
-  Time:Word;
-  MaxTime:Single;
-  PX,PY,PZ:SmallInt;
-  SX,SY,SZ:ShortInt;
-  Range:Vector3D;
 Begin
-  Range := VectorZero;
-  MaxTime := 0;
-  For I:=0 To Pred(Count) Do
-  Begin
-    Range.X := FloatMax(Range.X, Abs(KeyFrames[I].Value.X));
-    Range.Y := FloatMax(Range.Y, Abs(KeyFrames[I].Value.Y));
-    Range.Z := FloatMax(Range.Z, Abs(KeyFrames[I].Value.Z));
-    MaxTime := FloatMax(MaxTime, KeyFrames[I].Time);
-  End;
-
-  If Range.Length<=0 Then
-    Count := 0;
-
-  Dest.Write(@Count, 4);
-  Dest.Write(@Range, SizeOf(Vector3D));
-  Dest.Write(@MaxTime, 4);
+  Dest.WriteInteger(Count);
 
   For I:=0 To Pred(Count) Do
   Begin
-    Time := Trunc(SafeDiv(KeyFrames[I].Time, MaxTime)*TimeCompressionLimit);
-    Dest.Write(@Time, 2);
-
-    SX := Trunc(SafeDiv(KeyFrames[I].Value.X,Range.X)*CompressionLimit1);
-    SY := Trunc(SafeDiv(KeyFrames[I].Value.Y,Range.Y)*CompressionLimit1);
-    SZ := Trunc(SafeDiv(KeyFrames[I].Value.Z,Range.Z)*CompressionLimit1);
-    Dest.Write(@SX, 1);
-    Dest.Write(@SY, 1);
-    Dest.Write(@SZ, 1);
-
-    {PX := Trunc((KeyFrames[I].Value.X/Range.X)*CompressionLimit2);
-    PY := Trunc((KeyFrames[I].Value.Y/Range.Y)*CompressionLimit2);
-    PZ := Trunc((KeyFrames[I].Value.Z/Range.Z)*CompressionLimit2);
-    Dest.Write(@PX, 2);
-    Dest.Write(@PY, 2);
-    Dest.Write(@PZ, 2);}
-
-//  Dest.Write(@KeyFrames[I].Value, SizeOf(Vector3D));
+    Dest.WriteSingle(KeyFrames[I].Time);
+    Dest.WriteSingle(KeyFrames[I].Value.X);
+    Dest.WriteSingle(KeyFrames[I].Value.Y);
+    Dest.WriteSingle(KeyFrames[I].Value.Z);
+    Dest.WriteSingle(KeyFrames[I].Value.W);
   End;
 End;
 
@@ -425,7 +374,7 @@ Begin
   Result := FloatMax(Self.Positions.Length, FloatMax(Self.Rotations.Length, Self.Scales.Length));
 End;
 
-Procedure BoneAnimation.Load(Source:Stream);
+Procedure BoneAnimation.Load(Source:TERRAStream);
 Begin
   Source.ReadString(Name);
   Positions.Load(Source);
@@ -433,7 +382,7 @@ Begin
   Scales.Load(Source);
 End;
 
-Procedure BoneAnimation.Save(Dest:Stream);
+Procedure BoneAnimation.Save(Dest:TERRAStream);
 Var
   I:Integer;
 Begin
@@ -475,9 +424,9 @@ Begin
   	Block.Translation.Z := Positions.KeyFrames[LastKey].Value.Z + fraction * (Positions.KeyFrames[Key].Value.Z - Positions.KeyFrames[LastKey].Value.Z);
   End Else
   If (Key=0) And (Positions.Count>0) Then
- 	  Block.Translation := Positions.KeyFrames[Key].Value
+ 	  Block.Translation := Positions.KeyFrames[Key].GetVector3D()
   Else
-    Block.Translation := VectorZero;
+    Block.Translation := Vector3D_Zero;
 
 	// Rotation
   // Find appropriate rotation key frame
@@ -497,18 +446,19 @@ Begin
     If (Fraction>1.0) Then
       Fraction := 1.0;
 
-   	Q1 := QuaternionRotation(Rotations.Keyframes[LastKey].Value);
-	  Q2 := QuaternionRotation(Rotations.Keyframes[Key].Value);
-  	Block.Rotation := QuaternionSlerp(Q1,Q2, Fraction);
+   	Q1 := Rotations.Keyframes[LastKey].GetQuaternion();
+	  Q2 := Rotations.Keyframes[Key].GetQuaternion();
+  	Block.Rotation := QuaternionSlerp(Q1, Q2, Fraction);
+    Block.Rotation.Normalize();
   End Else
   If (Key=0) And (Rotations.Count>0) Then
   Begin
-    Block.Rotation := QuaternionRotation(Rotations.Keyframes[Key].Value);
+    Block.Rotation := Rotations.Keyframes[Key].GetQuaternion();
   End Else
-    Block.Rotation := QuaternionRotation(VectorZero);
+    Block.Rotation := QuaternionZero;
 
     //TODO
-  Block.Scale := VectorOne;
+  Block.Scale := Vector3D_One;
 End;
 
 
@@ -558,12 +508,12 @@ Begin
 End;
 
 { Animation }
-Class Function Animation.GetManager: Pointer;
+Class Function Animation.GetManager:TERRAObject;
 Begin
-  Result := AnimationManager.Instance;
+  Result := Engine.Animations;
 End;
 
-Function Animation.Load(Source:Stream):Boolean;
+Function Animation.Load(Source:TERRAStream):Boolean;
 Var
   Header:FileHeader;
   I, J, Count:Integer;
@@ -577,13 +527,15 @@ Begin
     Exit;
   End;
 
-  Source.Read(@FPS, 4);
-  Source.Read(@Loop, 1);
-  Source.Read(@LoopPoint, 4);
-  Source.Read(@Speed, 4);
+  Source.ReadSingle(FPS);
+  Source.ReadBoolean(Loop);
+  Source.ReadSingle(LoopPoint);
+  Source.ReadSingle(Speed);
   Source.ReadString(Next);
 
-  Source.Read(@Count, 4);
+//  Speed := 0.1;
+
+  Source.ReadInteger(Count);
   For I:=0 To Pred(Count) Do
   Begin
     Bone := Self.AddBone('');
@@ -603,7 +555,7 @@ Begin
   ReleaseObject(Stream);
 End;
 
-Procedure Animation.Save(Dest:Stream);
+Procedure Animation.Save(Dest:TERRAStream);
 Var
   Header:FileHeader;
   I:Integer;
@@ -611,13 +563,13 @@ Begin
   Header := 'ANIM';
   Dest.Write(@Header, 4);
 
-  Dest.Write(@FPS, 4);
-  Dest.Write(@Loop, 1);
-  Dest.Write(@LoopPoint, 4);
-  Dest.Write(@Speed, 4);
+  Dest.WriteSingle(FPS);
+  Dest.WriteBoolean(Loop);
+  Dest.WriteSingle(LoopPoint);
+  Dest.WriteSingle(Speed);
   Dest.WriteString(Next);
 
-  Dest.Write(@_BoneCount, 4);
+  Dest.WriteInteger(_BoneCount);
   For I:=0 To Pred(_BoneCount) Do
     _Bones[I].Save(Dest);
 End;
@@ -699,6 +651,35 @@ Begin
     Result := _Bones[Index];
 End;
 
+Function Animation.GetLength: Single;
+Var
+  I:Integer;
+Begin
+  Result := 0;
+
+  If (System.Length(_Bones)<Self.BoneCount) Then
+    Exit;
+
+  For I:=0 To Pred(Self.BoneCount) Do
+    Result := FloatMax(Result, _Bones[I].GetLength());
+End;
+
+Procedure Animation.Crop(Time: Single);
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(Self.BoneCount) Do
+    _Bones[I].Crop(Time);
+End;
+
+Procedure Animation.CloseLoop;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(Self.BoneCount) Do
+    _Bones[I].CloseLoop();
+End;
+
 Procedure Animation.Clone(Other: Animation);
 Var
   I,J:Integer;
@@ -730,34 +711,140 @@ Begin
   Self.Next := Other.Next;
 End;
 
-Function Animation.GetLength: Single;
+{this method recursively computes the transforms for each bone for a given frame, from a given sourceSkeleton (with bones updated to that frame)
+the Bind transforms are the transforms of the bone when it's in the rest pose (aka T pose).
+Wrongly called worldBindRotation in Bone implementation, those transforms are expressed in model space
+the Model space transforms are the transforms of the bone in model space once the frame transforms has been applied}
+
+Procedure Animation.RetargetBone(SourceBone, TargetBone:MeshBone; SourceAnimation, TargetAnimation:BoneAnimation);
+Procedure CalcMatrices(Bone:MeshBone; Const FrameRotation:Vector3D; Out Bind, Frame:Matrix4x4);
+Var
+  T:Vector3D;
+  Q:Quaternion;
+Begin
+(*  Q := SourceBone.Orientation;
+  T := SourceBone.Translation;
+  Bind := Matrix4x4Multiply4x3(Matrix4x4Translation(T), QuaternionMatrix4x4(Q));
+
+  // Add the animation state to the rest position
+  Q := QuaternionMultiply(SourceBone.Orientation, QuaternionRotation(FrameRotation));
+  T := VectorAdd(SourceBone.Translation, {Block.Translation} VectorZero);
+  Frame := Matrix4x4Multiply4x3(Matrix4x4Translation(T), QuaternionMatrix4x4(Q));*)
+End;
+
 Var
   I:Integer;
-Begin
-  Result := 0;
+  SourceParent, TargetParent:MeshBone;
 
-  If (System.Length(_Bones)<Self.BoneCount) Then
+  CrossResult, BindPos, FramePos, ParentPos:Vector3D;
+
+  turnAngle, cosAngle:Single;
+  Q:Quaternion;
+
+  BindMatrix, FrameMatrix:Matrix4x4;
+
+  SourceAxis, TargetAxis, Direction:Vector3D;
+
+Begin
+  SourceParent := SourceBone.Parent;
+  TargetParent := TargetBone.Parent;
+
+  TargetAnimation.Positions.Count := 0;
+  TargetAnimation.Scales.count := 0;
+
+  If SourceParent = Nil Then
+  Begin
+    TargetAnimation.Rotations.Count := 0;
+
     Exit;
+  End;
 
-  For I:=0 To Pred(Self.BoneCount) Do
-    Result := FloatMax(Result, _Bones[I].GetLength());
+(*  For I:=0 To Pred(TargetAnimation.Rotations.Count) Do
+    Begin
+      CalcMatrices(SourceBone, TargetAnimation.Rotations.KeyFrames[I].Value, BindMatrix, FrameMatrix);
+
+      BindPos := BindMatrix.Transform(SourceBone.AbsolutePosition);
+      FramePos := FrameMatrix.Transform(SourceBone.AbsolutePosition);
+
+      TargetAxis := VectorSubtract(FramePos, BindPos);
+      TargetAxis.Normalize();
+
+      SourceAxis := TargetBone.Normal;
+
+      cosAngle := VectorDot(TargetAxis, SourceAxis);
+
+      CrossResult := VectorCross(TargetAxis, SourceAxis);
+      CrossResult.Normalize();
+
+      turnAngle := arccos(cosAngle);	// GET THE ANGLE
+
+      //  turnAngle := 45*RAD;  CrossResult := VectorUp;
+
+      Q := QuaternionFromAxisAngle(crossResult, turnAngle);
+
+
+      TargetAnimation.Rotations.KeyFrames[I].Value := QuaternionToEuler(Q);
+    End;*)
 End;
 
-Procedure Animation.Crop(Time: Single);
+Function Animation.Retarget(SourceSkeleton, TargetSkeleton: MeshSkeleton): Animation;
 Var
-  I:Integer;
+  I,J, K:Integer;
+  Rots:VectorKeyframeArray;
+
+  SourceBone, TargetBone:MeshBone;
+
+  BonePos, ParentPos, U, V, W:Vector3D;
+
+  inverseTargetParentModelRot:Quaternion;
+  targetLocalRot, targetInverseBindRotation, twist:Quaternion;
+
+  M:Matrix4x4;
 Begin
-  For I:=0 To Pred(Self.BoneCount) Do
-    _Bones[I].Crop(Time);
+Exit;
+  TargetSkeleton.NormalizeJoints();
+
+  Result := Animation.Create(rtDynamic);
+  Result.Clone(Self);
+
+  For I:=0 To Pred(_BoneCount) Do
+  Begin
+    SourceBone := SourceSkeleton.GetBoneByName(_Bones[I].Name);
+    TargetBone := TargetSkeleton.GetBoneByName(_Bones[I].Name);
+
+    Self.RetargetBone(SourceBone, TargetBone, Self._Bones[I], Result._Bones[I]);
+  End;
 End;
 
-Procedure Animation.CloseLoop;
+Procedure Animation.InitFromFilter(Const AnimationID:Integer; Source: MeshFilter);
 Var
-  I:Integer;
+  I, J:Integer;
+  Bone:BoneAnimation;
 Begin
-  For I:=0 To Pred(Self.BoneCount) Do
-    _Bones[I].CloseLoop();
-End;
+  _BoneCount := 0;
+  Self.FPS := Source.GetAnimationFrameRate(AnimationID);
+  Self.Loop := Source.GetAnimationLoop(AnimationID);
+  Self.Speed := 1;
 
+  For I:=0 To Pred(Source.GetBoneCount()) Do
+  Begin
+    Bone := Self.AddBone(Source.GetBoneName(I));
+
+    Bone.Positions.Count := Source.GetPositionKeyCount(AnimationID, I);
+    SetLength(Bone.Positions.Keyframes, Bone.Positions.Count);
+    For J:=0 To Pred(Bone.Positions.Count) Do
+      Bone.Positions.Keyframes[J] := Source.GetPositionKey(AnimationID, I, J);
+
+    Bone.Rotations.Count := Source.GetRotationKeyCount(AnimationID, I);
+    SetLength(Bone.Rotations.Keyframes, Bone.Rotations.Count);
+    For J:=0 To Pred(Bone.Rotations.Count) Do
+      Bone.Rotations.Keyframes[J] := Source.GetRotationKey(AnimationID, I, J);
+
+    Bone.Scales.Count := Source.GetScaleKeyCount(AnimationID, I);
+    SetLength(Bone.Scales.Keyframes, Bone.Scales.Count);
+    For J:=0 To Pred(Bone.Scales.Count) Do
+      Bone.Scales.Keyframes[J] := Source.GetScaleKey(AnimationID, I, J);
+  End;
+End;
 
 End.

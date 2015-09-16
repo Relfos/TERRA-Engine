@@ -25,30 +25,40 @@ Unit TERRA_BMP;
 {$I terra.inc}
 
 Interface
-
-Implementation
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Image, TERRA_Error, TERRA_INI, TERRA_Application, TERRA_Color;
+Uses TERRA_Object, TERRA_Color, TERRA_Utils, TERRA_String, TERRA_Stream, TERRA_Image, TERRA_FileFormat;
 
 Type
- LBitmapFileHeader=Packed Record
-                    ID:Word;
-                    FileSize:Cardinal;
-                    Reserved:Cardinal;
-                    Offbits:Cardinal;
-                    HeaderSize:Cardinal;
-                    Width:Cardinal;
-                    Height:Cardinal;
-                    Planes:Word;
-                    BitCount:Word;
-                    Compression:Cardinal;
-                    SizeImage:Cardinal;
-                    XPelsPerMeter:Cardinal;
-                    YPelsPerMeter:Cardinal;
-                    ColorsUsed:Cardinal;
-                    ColorsImportant:Cardinal;
-                  End;
+  BMPFormat = Class(TERRAFileFormat)
+    Public
+      Function Identify(Source:TERRAStream):Boolean; Override;
+      Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
+      Function SaveToStream(Target:TERRAObject; Dest:TERRAStream):Boolean; Override;
+  End;
 
-  LRasterLine=Array[0..5096] Of Byte;
+
+Implementation
+Uses TERRA_Log, TERRA_Engine;
+
+Type
+  BitmapFileHeader = Packed Record
+    ID:Word;
+    FileSize:Cardinal;
+    Reserved:Cardinal;
+    Offbits:Cardinal;
+    HeaderSize:Cardinal;
+    Width:Cardinal;
+    Height:Cardinal;
+    Planes:Word;
+    BitCount:Word;
+    Compression:Cardinal;
+    SizeImage:Cardinal;
+    XPelsPerMeter:Cardinal;
+    YPelsPerMeter:Cardinal;
+    ColorsUsed:Cardinal;
+    ColorsImportant:Cardinal;
+  End;
+
+  BitmapRasterLine = Array[0..5096] Of Byte;
 
 Const
   // constants for the biCompression field
@@ -57,7 +67,7 @@ Const
   BI_RLE4 = 2;
   BI_BITFIELDS = 3;
 
-Procedure DecompressLine(Source:Stream; Buffer:PByteArray;Width:Word);
+Procedure DecompressLine(Source:TERRAStream; Buffer:PByteArray; Width:Word);
 Var
   X,N:Word;
   First,Second:Byte;
@@ -88,24 +98,38 @@ Begin
   Until (N>=Pred(Width));
 End;
 
-Procedure BMPLoad(Source:Stream; Image:Image);
+{ BMPFormat }
+Function BMPFormat.Identify(Source: TERRAStream): Boolean;
 Var
-  Header:LBitmapFileHeader;
+  ID:Array[1..2] Of AnsiChar;
+Begin
+  Source.Read(@ID,2);
+  Result := (ID='BM');
+End;
+
+Function BMPFormat.LoadFromStream(Target: TERRAObject; Source: TERRAStream): Boolean;
+Var
+  Header:BitmapFileHeader;
   Palette:ColorPalette;
   PaletteLength:Cardinal;
   Buffer:PByte;
-  Line:LRasterLine;
-  Color:TERRA_Color.Color;
+  Line:BitmapRasterLine;
+  Color:ColorRGBA;
   Index:Byte;
   I,J:Integer;
   Pad, Temp:Integer;
+  Image:TERRAImage;
+  It:ImageIterator;
 Begin
+  Result := False;
+  Image := TERRAImage(Target);
+
   // Get header information
-  Source.Read(@Header,SizeOf(LBitmapFileHeader));
+  Source.Read(@Header,SizeOf(BitmapFileHeader));
 
   If (Header.ID<>19778)Or(Header.Planes<>1)Then
   Begin
-    RaiseError('Invalid bitmap file.');
+    Engine.Log.Write(logError, 'BMP', 'Invalid bitmap file.');
     Exit;
   End;
 
@@ -181,41 +205,34 @@ Begin
       End;
   Else
     Begin
-      RaiseError('Invalid bit depth.');
+      Engine.Log.Write(logError, 'BMP', 'Invalid bit depth.');
       Exit;
     End;
   End;
 
-  Image.Process(IMP_SwapChannels);
+  Image.SwapChannels();
+  
+  Result := True;
 End;
 
-Procedure BMPSave(Dest:Stream; Image:Image; Const Options:TERRAString);
+Function BMPFormat.SaveToStream(Target: TERRAObject; Dest: TERRAStream): Boolean;
 Var
-  Header:LBitmapFileHeader;
+  Header:BitmapFileHeader;
   SizeImage:Cardinal;
   I,J:Integer;
   Pad:Integer;
-  Parser:INIParser;
   SkipHeader:Boolean;
-  Pixel:Color;
+  Pixel:ColorRGBA;
+  Image:TERRAImage;
 Begin
-  If Not Assigned(Image.Pixels) Then
-  Begin
-    RaiseError('Null data');
+  Result := False;
+  Image := TERRAImage(Target);
+
+  If Not Assigned(Image.RawPixels) Then
     Exit;
-  End;
 
   SkipHeader := False;
-  If Options<>'' Then
-  Begin
-    Parser := INIParser.Create;
-    Parser.ParseCommas := True;
-    Parser.AddToken('SkipHeader',tkBoolean,@SkipHeader);
-    Parser.LoadFromString(Options);
-    ReleaseObject(Parser);
-  End;
 
-  Image.Process(IMP_SwapChannels);
   SizeImage:=(Image.Width*Image.Height*4);
   Pad:=(4 - ((Image.Width * 3) Mod 4));
   If Pad=4 Then
@@ -258,21 +275,13 @@ Begin
   	For I:=0 To Pred(Image.Width) Do
   	Begin
 	  	Pixel := Image.GetPixel(I,J);
+
+      Pixel := ColorCreate(Pixel.B, Pixel.G, Pixel.R, Pixel.A);
     	Dest.Write(@Pixel, 4);
     End;
 	End;
-	
-  Image.Process(IMP_SwapChannels);
-End;
-
-Function ValidateBMP(Stream:Stream):Boolean;
-Var
-  ID:Array[1..2] Of AnsiChar;
-Begin
-  Stream.Read(@ID,2);
-  Result:=(ID='BM');
-End;
+End;
 
 Begin
-  RegisterImageFormat('BMP',ValidateBMP,BMPLoad,BMPSave);
+  Engine.Formats.Add(BMPFormat.Create(TERRAImage, 'bmp'));
 End.

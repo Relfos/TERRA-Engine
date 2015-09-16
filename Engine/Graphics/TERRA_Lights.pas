@@ -27,8 +27,8 @@ Unit TERRA_Lights;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Utils, TERRA_Math, TERRA_Texture, TERRA_Matrix4x4, TERRA_Renderer,
-  TERRA_Vector3D, TERRA_Color, TERRA_Application, TERRA_BoundingBox;
+  TERRA_Object, TERRA_Utils, TERRA_Math, TERRA_Texture, TERRA_Matrix4x4, TERRA_Renderer,
+  TERRA_Vector3D, TERRA_Color, TERRA_Application, TERRA_BoundingBox, TERRA_Viewport;
 
 Const
   {$IFDEF MOBILE}
@@ -52,7 +52,7 @@ Type
   { Light }
   Light = Class(TERRAObject)
     Protected
-      _Color:Color;
+      _Color:ColorRGBA;
       _Distance:Single;
       _Static:Boolean;
       _Priority:Integer;
@@ -71,12 +71,10 @@ Type
     Public
       Enabled:Boolean;
 
-      Procedure Release; Override;
-
       Function GetPosition():Vector3D; Virtual; Abstract;
-      Function IsOccluded():Boolean; Virtual; Abstract;
+      Function IsOccluded(View:TERRAViewport):Boolean; Virtual; Abstract;
 
-      Property Color:TERRA_Color.Color Read _Color Write _Color;
+      Property Color:ColorRGBA Read _Color Write _Color;
       Property Static:Boolean Read _Static Write _Static;
       Property Priority:Integer Read _Priority Write _Priority;
       Property Intensity:Single Read _Intensity Write SetIntensity;
@@ -93,7 +91,7 @@ Type
 
       Procedure SetDirection(Dir:Vector3D);
 
-      Function IsOccluded():Boolean; Override;
+      Function IsOccluded(View:TERRAViewport):Boolean; Override;
 
       Function GetPosition():Vector3D; Override;
 
@@ -124,7 +122,7 @@ Type
       Procedure SetRadius(R:Single);
 
       Function GetPosition():Vector3D; Override;
-      Function IsOccluded():Boolean; Override;
+      Function IsOccluded(View:TERRAViewport):Boolean; Override;
 
       Property Radius:Single Read _Radius Write _Radius;
   End;
@@ -142,7 +140,7 @@ Type
       Procedure UpdateDistance(Target:Vector3D); Override;
 
     Public
-      Cookie:Texture;
+      Cookie:TERRATexture;
 
       Constructor Create(P, Dir:Vector3D; InnerAngle, OuterAngle:Single);
 
@@ -150,7 +148,7 @@ Type
       Procedure SetPosition(Pos:Vector3D); Override;
 
       Function GetPosition():Vector3D; Override;
-      Function IsOccluded():Boolean; Override;
+      Function IsOccluded(View:TERRAViewport):Boolean; Override;
 
       Property InnerAngle:Single Read _InnerAngle Write _InnerAngle;
       Property OuterAngle:Single Read _OuterAngle Write _OuterAngle;
@@ -159,7 +157,7 @@ Type
 
   PLightBatch = ^LightBatch;
   LightBatch = Object
-    AmbientColor:Color;
+    AmbientColor:ColorRGBA;
 
     DirectionalLights:Array[0..Pred(MaxLightsPerMesh)] Of DirectionalLight;
     DirectionalLightCount:Integer;
@@ -173,25 +171,25 @@ Type
     Procedure Reset();
   End;
 
-  LightManager = Class(ApplicationComponent)
+  LightManager = Class(TERRAObject)
     Protected
       _FirstLight:Light;
       _CurrentFrame:Integer;
       _LightCount:Integer;
       
-      _AmbientColor:Color;
+      _AmbientColor:ColorRGBA;
 
 
-      Procedure SetAmbientColor(Value:Color);
+      Procedure SetAmbientColor(Value:ColorRGBA);
 
     Public
-      Procedure Init; Override;
+      Constructor Create; 
 
       Procedure Release; Override;
 
       Procedure Clear;
 
-      Procedure AddLight(Source:Light);
+      Procedure AddLight(View:TERRAViewport; Source:Light);
 
       Procedure SortLights(Target:Vector3D; Box:BoundingBox; Out Result:LightBatch);
       Procedure SetupUniforms(Batch:PLightBatch; Var TextureSlot:Integer);
@@ -200,33 +198,14 @@ Type
 
       Property LightCount:Integer Read _LightCount;
 
-      Property AmbientColor:Color Read _AmbientColor Write SetAmbientColor;
-
-      Class Function Instance:LightManager;
+      Property AmbientColor:ColorRGBA Read _AmbientColor Write SetAmbientColor;
   End;
 
 Implementation
-Uses TERRA_GraphicsManager;
-
-Var
-  _LightManager_Instance:ApplicationObject = Nil;
-
-{ Light }
-procedure Light.Release;
-Begin
-  // do nothing
-End;
+Uses TERRA_Engine, TERRA_GraphicsManager;
 
 { LightManager }
-Class Function LightManager.Instance:LightManager;
-Begin
-  If Not Assigned(_LightManager_Instance) Then
-    _LightManager_Instance := InitializeApplicationComponent(LightManager, GraphicsManager);
-
-  Result := LightManager(_LightManager_Instance.Instance);
-End;
-
-Procedure LightManager.Init;
+Constructor LightManager.Create();
 Begin
   AmbientColor := ColorNull;
   _LightCount := 0;
@@ -236,7 +215,6 @@ End;
 Procedure LightManager.Release;
 Begin
   Clear;
-  _LightManager_Instance := Nil;
 End;
 
 Procedure LightManager.Clear;
@@ -246,17 +224,17 @@ Begin
   Inc(_CurrentFrame);
 End;
 
-Procedure LightManager.AddLight(Source:Light);
+Procedure LightManager.AddLight(View:TERRAViewport; Source:Light);
 Begin
   If (Source=Nil) Or (Source._Frame = Self._CurrentFrame) Or (Source.Intensity<=0.0) Then
     Exit;
 
-  If (Not GraphicsManager.Instance.Renderer.Settings.DynamicLights.Enabled) Then
+  If (Not Engine.Graphics.Renderer.Settings.DynamicLights.Enabled) Then
     Exit;
 
   Source._Frame := Self._CurrentFrame;
 
-  If (Source.IsOccluded()) Then
+  If (Source.IsOccluded(View)) Then
     Exit;
 
   Source._Next := _FirstLight;
@@ -274,7 +252,7 @@ Var
 Begin
   Result.Reset();
 
-  If (Not GraphicsManager.Instance.Renderer.Settings.DynamicLights.Enabled) Then
+  If (Not Engine.Graphics.Renderer.Settings.DynamicLights.Enabled) Then
     Exit;
 
   For I:=0 To Pred(MaxLightsPerMesh) Do
@@ -369,7 +347,7 @@ Begin
   End;
 End;
 
-Procedure LightManager.SetAmbientColor(Value: Color);
+Procedure LightManager.SetAmbientColor(Value:ColorRGBA);
 Begin
   _AmbientColor := Value;
 End;
@@ -398,22 +376,22 @@ Procedure PointLight.SetupUniforms(Index:Integer; Var TextureSlot:Integer);
 Var
   _Shader:ShaderInterface;
 Begin
-  _Shader := GraphicsManager.Instance.Renderer.ActiveShader;
+  _Shader := Engine.Graphics.Renderer.ActiveShader;
   If _Shader = Nil Then
     Exit;
 
-  _Shader.SetVec3Uniform('plightPosition'+IntToString(Index), _Position);
-  _Shader.SetFloatUniform('plightRadius'+IntToString(Index), 1/_Radius);
-  _Shader.SetColorUniform('plightColor'+IntToString(Index), ColorScale(_Color, Intensity));
+  _Shader.SetVec3Uniform('plightPosition'+ IntegerProperty.Stringify(Index), _Position);
+  _Shader.SetFloatUniform('plightRadius'+ IntegerProperty.Stringify(Index), 1/_Radius);
+  _Shader.SetColorUniform('plightColor'+ IntegerProperty.Stringify(Index), ColorScale(_Color, Intensity));
 End;
 
-Function PointLight.IsOccluded: Boolean;
+Function PointLight.IsOccluded(View:TERRAViewport): Boolean;
 Var
   Sphere:BoundingSphere;
 Begin
   Sphere.Center := _Position;
   Sphere.Radius := _Radius;
-  Result := Not GraphicsManager.Instance.ActiveViewport.Camera.Frustum.SphereVisible(Sphere);
+  Result := Not View.Camera.Frustum.SphereVisible(Sphere);
 End;
 
 Procedure PointLight.SetRadius(R: Single);
@@ -425,10 +403,10 @@ Procedure PointLight.UpdateDistance(Target: Vector3D);
 Var
   N:Vector3D;
 Begin
-  N := VectorSubtract(Target, _Position);
+  N := Vector3D_Subtract(Target, _Position);
   N.Normalize();
 
-  N := VectorAdd(_Position, VectorScale(N, Self._Radius));
+  N := Vector3D_Add(_Position, Vector3D_Scale(N, Self._Radius));
 
   _Distance := N.Distance(Target);
 End;
@@ -446,10 +424,10 @@ Function DirectionalLight.GetPosition: Vector3D;
 Begin
   Result := Self.Direction;
   Result.Scale(1000);
-  Result.Add(GraphicsManager.Instance.ActiveViewport.Camera.Position);
+  //Result.Add(GraphicsManager.Instance.ActiveViewport.Camera.Position);
 End;
 
-Function DirectionalLight.IsOccluded: Boolean;
+Function DirectionalLight.IsOccluded(View:TERRAViewport): Boolean;
 Begin
   Result := False;
 End;
@@ -463,12 +441,12 @@ Procedure DirectionalLight.SetupUniforms(Index: Integer; Var TextureSlot:Integer
 Var
   _Shader:ShaderInterface;
 Begin
-  _Shader := GraphicsManager.Instance.Renderer.ActiveShader;
+  _Shader := Engine.Graphics.Renderer.ActiveShader;
   If _Shader = Nil Then
     Exit;
 
-  _Shader.SetVec3Uniform('dlightDirection'+IntToString(Index), _Direction);
-  _Shader.SetColorUniform('dlightColor'+IntToString(Index), ColorScale(_Color, Intensity));
+  _Shader.SetVec3Uniform('dlightDirection' + IntegerProperty.Stringify(Index), _Direction);
+  _Shader.SetColorUniform('dlightColor' + IntegerProperty.Stringify(Index), ColorScale(_Color, Intensity));
 End;
 
 Procedure LightManager.SetupUniforms(Batch: PLightBatch; Var TextureSlot:Integer);
@@ -476,7 +454,7 @@ Var
   I:Integer;
   _Shader:ShaderInterface;
 Begin
-  _Shader := GraphicsManager.Instance.Renderer.ActiveShader;
+  _Shader := Engine.Graphics.Renderer.ActiveShader;
 
   For I:=0 To Pred(Batch.DirectionalLightCount) Do
     Batch.DirectionalLights[I].SetupUniforms(Succ(I), TextureSlot);
@@ -492,7 +470,7 @@ Function LightManager.GetDefaultDirection: Vector3D;
 Var
   MyLight:Light;
 Begin
-  Result := VectorCreate(-0.25, 0.75, 0.0);
+  Result := Vector3D_Create(-0.25, 0.75, 0.0);
 
   MyLight := _FirstLight;
   While Assigned(MyLight) Do
@@ -512,7 +490,7 @@ Begin
   Self._InnerAngle := InnerAngle;
   Self._OuterAngle := OuterAngle;
   Self.Intensity := 1.0;
-  Self.Cookie := TextureManager.Instance.WhiteTexture;
+  Self.Cookie := Engine.Textures.WhiteTexture;
   SetDirection(Dir);
   SetPosition(P);
 End;
@@ -522,7 +500,7 @@ Begin
   Result := _Position;
 End;
 
-Function SpotLight.IsOccluded: Boolean;
+Function SpotLight.IsOccluded(View:TERRAViewport): Boolean;
 Begin
   Result := False;
 End;
@@ -543,23 +521,23 @@ Procedure SpotLight.SetupUniforms(Index: Integer; Var TextureSlot:Integer);
 Var
   _Shader:ShaderInterface;
 Begin
-  _Shader := GraphicsManager.Instance.Renderer.ActiveShader;
+  _Shader := Engine.Graphics.Renderer.ActiveShader;
   If _Shader = Nil Then
     Exit;
 
-  _Shader.SetVec3Uniform('slightPosition'+IntToString(Index), _Position);
-  _Shader.SetVec3Uniform('slightDirection'+IntToString(Index), _Direction);
-  _Shader.SetFloatUniform('slightCosInnerAngle'+IntToString(Index), Cos(_InnerAngle));
-  _Shader.SetFloatUniform('slightCosOuterAngle'+IntToString(Index), Cos(_OuterAngle));
-  _Shader.SetColorUniform('slightColor'+IntToString(Index), ColorScale(_Color, Intensity));
-  _Shader.SetMat4Uniform('slightMatrix'+IntToString(Index), _ProjectionMatrix4x4);
-  _Shader.SetIntegerUniform('slightCookie'+IntToString(Index), TextureSlot);
+  _Shader.SetVec3Uniform('slightPosition'+ IntegerProperty.Stringify(Index), _Position);
+  _Shader.SetVec3Uniform('slightDirection'+ IntegerProperty.Stringify(Index), _Direction);
+  _Shader.SetFloatUniform('slightCosInnerAngle'+ IntegerProperty.Stringify(Index), Cos(_InnerAngle));
+  _Shader.SetFloatUniform('slightCosOuterAngle'+ IntegerProperty.Stringify(Index), Cos(_OuterAngle));
+  _Shader.SetColorUniform('slightColor'+ IntegerProperty.Stringify(Index), ColorScale(_Color, Intensity));
+  _Shader.SetMat4Uniform('slightMatrix'+ IntegerProperty.Stringify(Index), _ProjectionMatrix4x4);
+  _Shader.SetIntegerUniform('slightCookie'+ IntegerProperty.Stringify(Index), TextureSlot);
 
   If Assigned(Cookie) Then
   Begin
     Cookie.Bind(TextureSlot);
   End Else
-    TextureManager.Instance.WhiteTexture.Bind(TextureSlot);
+    Engine.Textures.WhiteTexture.Bind(TextureSlot);
 
   Inc(TextureSlot);
 End;
@@ -582,13 +560,13 @@ Var
   M, M2:Matrix4x4;
 Begin
   If (Abs(_Direction.Y)>=0.999) Then
-    Roll := VectorCreate(0, 0, 1)
+    Roll := Vector3D_Create(0, 0, 1)
   Else
-    Roll := VectorUp;
+    Roll := Vector3D_Up;
 
-  M := Matrix4x4LookAt(_Position, VectorAdd(_Position, VectorScale(_Direction, 50)), Roll);
-  M2 := Matrix4x4Perspective(DEG*_OuterAngle, 1.0, 0.1, 1000);
-  _ProjectionMatrix4x4 := Matrix4x4Multiply4x4(M2, M);
+  M := Matrix4x4_LookAt(_Position, Vector3D_Add(_Position, Vector3D_Scale(_Direction, 50)), Roll);
+  M2 := Matrix4x4_Perspective(DEG*_OuterAngle, 1.0, 0.1, 1000);
+  _ProjectionMatrix4x4 := Matrix4x4_Multiply4x4(M2, M);
 
   {$IFDEF DRAWVOLUMES}
   Inst := _Instance;
@@ -622,7 +600,7 @@ End;
 { LightBatch }
 Procedure LightBatch.Reset;
 Begin
-  AmbientColor := LightManager.Instance.AmbientColor;
+  AmbientColor := Engine.Lights.AmbientColor;
   DirectionalLightCount := 0;
   PointLightCount := 0;
   SpotLightCount := 0;

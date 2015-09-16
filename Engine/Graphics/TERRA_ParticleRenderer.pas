@@ -26,10 +26,10 @@ Unit TERRA_ParticleRenderer;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_GraphicsManager, TERRA_Texture, TERRA_Application, TERRA_Resource,
-  TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_Stream, TERRA_Plane, TERRA_Matrix4x4,
+  TERRA_String, TERRA_Utils, TERRA_Object, TERRA_GraphicsManager, TERRA_Texture, TERRA_Application,
+  TERRA_Resource, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color, TERRA_Stream, TERRA_Plane, TERRA_Matrix4x4,
   TERRA_Math, TERRA_TextureAtlas, TERRA_BoundingBox,
-  TERRA_UI, TERRA_Image, TERRA_Renderer, TERRA_FileManager, TERRA_VertexFormat;
+  TERRA_Image, TERRA_Renderer, TERRA_FileManager, TERRA_VertexFormat, TERRA_Renderable, TERRA_Viewport;
 
 Const
   vertexOfs  = vertexUV1;
@@ -43,14 +43,14 @@ Const
   ParticleVertexFormat = [vertexFormatPosition, vertexFormatColor, vertexFormatUV0, vertexFormatOfs, vertexFormatSize, vertexFormatAngles];
 
 Type
-  ParticleVertex = Class(Vertex)
+  ParticleVertex = Class(TERRAVertex)
     Protected
       Procedure Load(); Override;
       Procedure Save(); Override;
 
     Public
   		Position:Vector3D;
-      Color:TERRA_Color.Color;
+      Color:ColorRGBA;
       UV0:Vector2D;
 	  	Ofs:Vector2D;
       Size:Vector2D;
@@ -223,7 +223,7 @@ Type
       Property Position:Vector3D Read _Position Write _Position;
   End;
 
-  ParticleCollection = Class(Renderable)
+  ParticleCollection = Class(TERRARenderable)
     Protected
       _Box:BoundingBox;
       _Init:Boolean;
@@ -231,7 +231,7 @@ Type
       _Particles:Array Of Particle;
       _ParticleCount:Integer;
 
-      _Vertices:VertexData;
+      _Vertices:TERRAVertexBuffer;
 
       _BlendModes:Array Of Integer;
       _BlendModeCount:Integer;
@@ -252,10 +252,10 @@ Type
       //_GenFlags:Cardinal;
 
       Procedure AddBlendMode(Mode:Integer);
-      Procedure UpdateBlendModes();
+      Procedure UpdateBlendModes(Const Stage:RendererStage);
 
       // returns how many vertices processed
-      Function UpdateBatch(BlendMode:Integer; Const Landscape:Boolean):Integer;
+      Function UpdateBatch(BlendMode:Integer; Const Stage:RendererStage; Const Landscape:Boolean):Integer;
 
       Procedure Init;
 
@@ -266,14 +266,13 @@ Type
       Constructor Create(Emitter:ParticleEmitter{; Pos:Vector3D});
       Procedure Release; Override;
 
-      Procedure Update; Override;
+      Procedure Update(View:TERRAViewport); Override;
 
-      Function IsOpaque():Boolean; Override;
-      Function IsTranslucent():Boolean; Override;
+      Procedure GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType); Override;
 
       Procedure Reset;
 
-      Procedure Render(TranslucentPass:Boolean); Override;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
       Function GetBoundingBox:BoundingBox; Override;
 
       Property ActiveCount:Integer Read _ActiveCount;
@@ -283,19 +282,19 @@ Type
       //Property Position:Vector3D Read _Position Write _Position;
   End;
 
-  ParticleManager = Class(ApplicationComponent)
+  ParticleManager = Class(TERRAObject)
     Protected
       _Instance:ParticleManager;
       _TextureAtlas:TextureAtlas;
 
-      _NormalTexture:Texture;
-      _NormalImage:Image;
+      _NormalTexture:TERRATexture;
+      _NormalImage:TERRAImage;
 
-      _GlowTexture:Texture;
-      _GlowImage:Image;
+      _GlowTexture:TERRATexture;
+      _GlowImage:TERRAImage;
 
-      _RefractionTexture:Texture;
-      _RefractionImage:Image;
+      _RefractionTexture:TERRATexture;
+      _RefractionImage:TERRAImage;
 
       _Types:Array Of ParticleType;
       _TypeCount:Integer;
@@ -310,15 +309,11 @@ Type
       Function GetShader:ShaderInterface;
 
     Public
-      Class Function Instance:ParticleManager;
-
+      Constructor Create(); 
       Procedure Release; Override;
 
-      Procedure Init; Override;
-      //Procedure Update; Override;
-
       Procedure Clear;
-      Procedure Render;
+      Procedure Render(View:TERRAViewport);
 
       Function GetParticleType(Name:TERRAString):ParticleType;
 
@@ -326,72 +321,21 @@ Type
       //Procedure Spawn(Name:TERRAString; Position:Vector3D);
       Procedure Spawn(Emitter:ParticleEmitter);
 
-      Function GetTexture(Target:ParticleCollection):Texture;
+      Function GetTexture(Const Stage:RendererStage; Target:ParticleCollection):TERRATexture;
 
       Property Shader:ShaderInterface Read GetShader;
   End;
 
-Function CreateParticleVertexData(Count:Integer):VertexData;
-  
+Function CreateParticleTERRAVertexBuffer(Count:Integer):TERRAVertexBuffer;
+
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_Camera, TERRA_Mesh,
-  TERRA_INI, TERRA_FileStream, TERRA_FileUtils;
+Uses TERRA_Engine, TERRA_Error, TERRA_OS, TERRA_Log, TERRA_Camera, TERRA_Mesh, TERRA_FileStream, TERRA_FileUtils,
+  TERRA_FileFormat, TERRA_ShaderManager;
 
-Var
-  _ParticleManager_Instance:ApplicationObject = Nil;
 
-Function GetShader_Particles():TERRAString;
-Var
-  S:TERRAString;
-Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
+Function CreateParticleTERRAVertexBuffer(Count:Integer):TERRAVertexBuffer;
 Begin
-  S := '';
-  Line('version { 120 }');
-  Line('vertex {');
-  Line('	varying mediump vec4 texCoord;');
-  Line('	varying lowp vec4 diffuse;');
-  Line('	uniform highp vec3 cameraPosition;');
-  Line('  attribute highp vec4 terra_position;');
-  Line('  attribute mediump vec4 terra_UV0;');
-  Line('  attribute mediump vec2 terra_ofs;');
-  Line('  attribute lowp vec4 terra_color;');
-  Line('  attribute mediump vec2 terra_size;');
-  Line('  attribute mediump vec2 terra_angle;');
-  Line('	uniform mat4 cameraMatrix;');
-  Line('	uniform mat4 projectionMatrix;');
-  Line('  uniform mat4 reflectionMatrix;');
-  Line('	uniform mediump vec3 cameraRight;');
-  Line('	uniform mediump vec3 cameraUp;');
-//  Line('	uniform highp float ratio;');
-  Line('	void main()	{');
-  Line('		texCoord = terra_UV0;');
-  Line('		diffuse = terra_color;	');
-  Line('		highp vec4 world_position = terra_position;');
-  Line('    world_position = reflectionMatrix * world_position;');
-  Line('    highp vec2 pp = terra_size * terra_ofs;');
-  Line('    pp = vec2(pp.x * terra_angle.x - pp.y * terra_angle.y, pp.x * terra_angle.y + pp.y * terra_angle.x);');
-  Line('		world_position.xyz += (pp.x * cameraRight + pp.y * cameraUp);');//  Line('		world_position.xyz += (ratio * pp.x * cameraRight + pp.y * cameraUp);');
-  Line('		gl_Position = projectionMatrix * cameraMatrix * world_position;}');
-  Line('}');
-  Line('fragment {');
-  Line('	uniform sampler2D texture0;');
-  Line('	uniform highp vec3 cameraPosition;');
-  Line('	uniform lowp vec4 sunColor;');
-  Line('	varying mediump vec4 texCoord;');
-  Line('	varying lowp vec4 diffuse;');
-  Line('	void main()	{');
-  Line('	  lowp vec4 color = texture2D(texture0, texCoord.st) * diffuse;');
-  Line('    if (color.a<0.1) discard;');
-  Line('    color *= sunColor;');
-  Line('		gl_FragColor = color;}');
-  Line('}');
-  Result := S;
-End;
-
-
-Function CreateParticleVertexData(Count:Integer):VertexData;
-Begin
-  Result := VertexData.Create(ParticleVertexFormat, Count);
+  Result := TERRAVertexBuffer.Create(ParticleVertexFormat, Count);
   Result.SetAttributeName(vertexOfs, 'terra_ofs');
   Result.SetAttributeName(vertexSize, 'terra_size');
   Result.SetAttributeName(vertexAngles, 'terra_angle');
@@ -402,7 +346,7 @@ Constructor ParticleCollection.Create(Emitter:ParticleEmitter);
 Var
   Count:Integer;
 Begin
-  _Shader := ParticleManager.Instance.Shader;
+  _Shader := Engine.Particles.Shader;
 
   {_SettingsTemplate := ParticleManager.Instance.GetSettings(SettingName);
   Settings := ParticleSettings.Create;
@@ -437,7 +381,7 @@ Procedure ParticleCollection.Init;
 Var
   I,J:Integer;
 Begin
-  _Vertices := CreateParticleVertexData(_ParticleCount * 6);
+  _Vertices := CreateParticleTERRAVertexBuffer(_ParticleCount * 6);
 
   SetLength(_Particles, _ParticleCount);
   For I:=0 To Pred(_ParticleCount) Do
@@ -550,24 +494,21 @@ Begin
   End;
 End;
 
-Function ParticleCollection.UpdateBatch(BlendMode: Integer; Const Landscape:Boolean): Integer;
+Function ParticleCollection.UpdateBatch(BlendMode:Integer; Const Stage:RendererStage; Const Landscape:Boolean): Integer;
 Var
   It:VertexIterator;
   I, J, N:Integer;
-  CC:Color;
-  RenderStage:Integer;
+  CC:ColorRGBA;
   Angles:Vector2D;
   P:ParticleVertex;
 Begin
   Result := 0;
   N := 0;
 
-  RenderStage := GraphicsManager.Instance.RenderStage;
-
   It := Self._Vertices.GetIteratorForClass(ParticleVertex);
   While N<_ParticleCount Do
   Begin
-    If (_Particles[N].Life > 0.0) And ((RenderStage<>renderStageDiffuse) Or (_Particles[N].BlendMode = BlendMode)) Then
+    If (_Particles[N].Life > 0.0) And ((Stage<>renderStageDiffuse) Or (_Particles[N].BlendMode = BlendMode)) Then
     Begin
       CC.R := Trunc(_Particles[N].Red.CurrentValue);
       CC.G := Trunc(_Particles[N].Green.CurrentValue);
@@ -607,7 +548,7 @@ Begin
   ReleaseObject(It);
 End;
 
-Procedure ParticleCollection.Render(TranslucentPass:Boolean);
+Procedure ParticleCollection.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
   I, RenderCount:Integer;
 //  Ratio:Single;
@@ -615,10 +556,7 @@ Var
   Landscape:Boolean;
   Graphics:GraphicsManager;
 Begin
-  If (Not TranslucentPass) Then
-    Exit;
-
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
   {If (_Init) Then
     Self.Update;}
@@ -632,8 +570,8 @@ Begin
     Up.Scale(-1.0);
   End Else}
   Begin
-    Right := Graphics.ActiveViewport.Camera.Right;
-    Up := Graphics.ActiveViewport.Camera.Up;
+    Right := View.Camera.Right;
+    Up := View.Camera.Up;
   End;
 
   //Ratio := Graphics.ActiveViewport.Height / Graphics.ActiveViewport.Width;
@@ -641,7 +579,7 @@ Begin
 
   Graphics.Renderer.BindShader(_Shader);
 
-  Graphics.ActiveViewport.Camera.SetupUniforms;
+  View.Camera.SetupUniforms;
 
   _Shader.SetColorUniform('sunColor', ColorWhite);
   _Shader.SetVec3Uniform('cameraUp', Up);
@@ -650,17 +588,17 @@ Begin
 //  _Shader.SetFloatUniform('ratio', Ratio);
   _Shader.SetMat4Uniform('reflectionMatrix', Graphics.ReflectionMatrix);
 
-  Self.UpdateBlendModes();
+  Self.UpdateBlendModes(Stage);
 
 
   For I:=0 To Pred(_BlendModeCount) Do
   Begin
-    RenderCount := Self.UpdateBatch(_BlendModes[I], Landscape);
+    RenderCount := Self.UpdateBatch(_BlendModes[I], Stage, Landscape);
 
     If (I=0) Then
     Begin
       Graphics.Renderer.SetDepthMask(False);
-      ParticleManager.Instance.GetTexture(Self).Bind(0);
+      Engine.Particles.GetTexture(Stage, Self).Bind(0);
     End;
 
     If (RenderCount>0) Then
@@ -698,16 +636,12 @@ Begin
   Result := _Box;
 End;
 
-Function ParticleCollection.IsOpaque: Boolean;
+Procedure ParticleCollection.GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType);
 Begin
-  Result := False;
+  Depth := 0; {TODO}
+  AlphaType := Renderable_Blend;
+  Layer := RenderableLayer_Default;
 End;
-
-Function ParticleCollection.IsTranslucent: Boolean;
-Begin
-  Result := True;
-End;
-
 
 {Procedure ParticleCollection.SetCustomEmitter(Emitter: ParticleCustomEmitter; GenFlags:Cardinal; UserData: Pointer);
 Begin
@@ -736,7 +670,7 @@ Begin
   _BlendModes[Pred(_BlendModeCount)] := Mode;
 End;
 
-Procedure ParticleCollection.UpdateBlendModes;
+Procedure ParticleCollection.UpdateBlendModes(Const Stage:RendererStage);
 Var
   I:Integer;
 Begin
@@ -744,9 +678,9 @@ Begin
 
   FillChar(_BlendModeHashes, SizeOf(_BlendModeHashes), 0);
 
-  If (GraphicsManager.Instance.RenderStage <> renderStageDiffuse) Then
+  If (Stage <> renderStageDiffuse) Then
   Begin
-    If (GraphicsManager.Instance.RenderStage = renderStageRefraction) Then
+    If (Stage = renderStageRefraction) Then
       AddBlendMode(blendBlend)
     Else
       AddBlendMode(blendNone);
@@ -788,13 +722,13 @@ Begin
   _ParticleCollectionCount := 0;
 End;
 
-Procedure ParticleManager.Init;
+Constructor ParticleManager.Create();
 Begin
   _NeedsRebuild := False;
   _TextureAtlas := TextureAtlas.Create('particle', 512, 512);
-  _NormalImage := Image.Create(_TextureAtlas.Width, _TextureAtlas.Height);
-  _GlowImage := Image.Create(_TextureAtlas.Width, _TextureAtlas.Height);
-  _RefractionImage := Image.Create(_TextureAtlas.Width, _TextureAtlas.Height);
+  _NormalImage := TERRAImage.Create(_TextureAtlas.Width, _TextureAtlas.Height);
+  _GlowImage := TERRAImage.Create(_TextureAtlas.Width, _TextureAtlas.Height);
+  _RefractionImage := TERRAImage.Create(_TextureAtlas.Width, _TextureAtlas.Height);
 End;
 
 Procedure ParticleManager.Release;
@@ -814,15 +748,13 @@ Begin
   ReleaseObject(_GlowImage);
   ReleaseObject(_RefractionTexture);
   ReleaseObject(_RefractionImage);
-
-  _ParticleManager_Instance := Nil;
 End;
 
 Function ParticleManager.GetParticleType(Name:TERRAString): ParticleType;
 Var
   I:Integer;
-  S:TERRAString;
-  Source:Image;
+  Location:TERRALocation;
+  Source:TERRAImage;
 Begin
   If (Name='') Then
   Begin
@@ -851,11 +783,11 @@ Begin
 
   If Not Assigned(Result.Item) Then
   Begin
-    S := FileManager.Instance.SearchResourceFile(Name);
-    If S<>'' Then
-      Source := Image.Create(S)
+    Location := Engine.Files.Search(Name);
+    If Assigned(Location) Then
+      Source := TERRAImage.Create(Location)
     Else
-      Source := Image.Create(32, 32);
+      Source := TERRAImage.Create(32, 32);
 
     Result.Item := _TextureAtlas.Add(Source, Name);
     _NeedsRebuild := True;
@@ -906,19 +838,19 @@ Function ParticleManager.GetShader: ShaderInterface;
 Begin
   If (_Shader = Nil) Then
   Begin
-    _Shader := GraphicsManager.Instance.Renderer.CreateShader();
+    _Shader := Engine.Graphics.Renderer.CreateShader();
     _Shader.Generate('particles', GetShader_Particles());
   End;
 
   Result := _Shader;
 End;
 
-Function ParticleManager.GetTexture(Target:ParticleCollection): Texture;
+Function ParticleManager.GetTexture(Const Stage:RendererStage; Target:ParticleCollection): TERRATexture;
 Var
   I:Integer;
-  Source:Image;
+  Source:TERRAImage;
   Item:TextureAtlasItem;
-  S:TERRAString;
+  Location:TERRALocation;
 Begin
   If Not Assigned(_TextureAtlas) Then
   Begin
@@ -935,38 +867,35 @@ Begin
     Begin
       Item := _TextureAtlas.Get(I);
 
-      S := StringLower(GetFileName(Item.Name, True))+'_normal.png';
-      S := FileManager.Instance.SearchResourceFile(S);
-      If S<>'' Then
-        Source := Image.Create(S)
+      Location := Engine.Files.Search(StringLower(GetFileName(Item.Name, True))+'_normal.png');
+      If Assigned(Location) Then
+        Source := TERRAImage.Create(Location)
       Else
       Begin
-        Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
-        Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
+        Source := TERRAImage.Create(Item.Buffer.Width, Item.Buffer.Height);
+        Source.ClearWithColor(ColorNull, maskRGBA);
       End;
       _NormalImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
       ReleaseObject(Source);
 
-      S := StringLower(GetFileName(Item.Name, True))+'_glow.png';
-      S := FileManager.Instance.SearchResourceFile(S);
-      If S<>'' Then
-        Source := Image.Create(S)
+      Location := Engine.Files.Search(StringLower(GetFileName(Item.Name, True))+'_glow.png');
+      If Assigned(Location) Then
+        Source := TERRAImage.Create(Location)
       Else
       Begin
-        Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
-        Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
+        Source := TERRAImage.Create(Item.Buffer.Width, Item.Buffer.Height);
+        Source.ClearWithColor(ColorNull, maskRGBA);
       End;
       _GlowImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
       ReleaseObject(Source);
 
-      S := StringLower(GetFileName(Item.Name, True))+'_refraction.png';
-      S := FileManager.Instance.SearchResourceFile(S);
-      If S<>'' Then
-        Source := Image.Create(S)
+      Location := Engine.Files.Search(StringLower(GetFileName(Item.Name, True))+'_refraction.png');
+      If Assigned(Location) Then
+        Source := TERRAImage.Create(Location)
       Else
       Begin
-        Source := Image.Create(Item.Buffer.Width, Item.Buffer.Height);
-        Source.FillRectangleByUV(0, 0, 1, 1, ColorNull);
+        Source := TERRAImage.Create(Item.Buffer.Width, Item.Buffer.Height);
+        Source.ClearWithColor(ColorNull, maskRGBA);
       End;
       _RefractionImage.Blit(Trunc(Item.U1*_TextureAtlas.Width), Trunc(Item.V1*_TextureAtlas.Height), 0, 0, Pred(Source.Width), Pred(Source.Height), Source);
       ReleaseObject(Source);
@@ -974,7 +903,7 @@ Begin
 
     If (_NormalTexture = Nil) Then
     Begin
-      _NormalTexture := Texture.Create(rtDynamic, 'particles_normal');
+      _NormalTexture := TERRATexture.Create(rtDynamic);
       _NormalTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height, ColorCreate(0, 0, 255));
       _NormalTexture.Update;
     End;
@@ -982,7 +911,7 @@ Begin
 
     If (_GlowTexture = Nil) Then
     Begin
-      _GlowTexture := Texture.Create(rtDynamic, 'particles_glow');
+      _GlowTexture := TERRATexture.Create(rtDynamic);
       _GlowTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height, ColorNull);
       _GlowTexture.Update;
     End;
@@ -990,7 +919,7 @@ Begin
 
     If (_RefractionTexture = Nil) Then
     Begin
-      _RefractionTexture := Texture.Create(rtDynamic, 'particles_refraction');
+      _RefractionTexture := TERRATexture.Create(rtDynamic);
       _RefractionTexture.InitFromSize(_TextureAtlas.Width, _TextureAtlas.Height, ColorNull);
       _RefractionTexture.Update();
     End;
@@ -1010,13 +939,13 @@ Begin
     End;
   End;
 
-  If (GraphicsManager.Instance.RenderStage = renderStageRefraction) Then
+  If (Stage = renderStageRefraction) Then
     Result := _RefractionTexture
   Else
-  If (GraphicsManager.Instance.RenderStage = renderStageNormal) Then
+  If (Stage = renderStageNormal) Then
     Result := _NormalTexture
   Else
-  If (GraphicsManager.Instance.RenderStage = renderStageGlow) Then
+  If (Stage = renderStageGlow) Then
     Result := _GlowTexture
   Else
     Result := _TextureAtlas.GetTexture(0);
@@ -1026,27 +955,10 @@ Begin
     Result.Filter := filterLinear;
     Result.MipMapped := False;
   End Else
-    Result := TextureManager.Instance.WhiteTexture; 
+    Result := Engine.Textures.WhiteTexture;
 End;
 
-Class function ParticleManager.Instance: ParticleManager;
-Begin
-  If Not Assigned(_ParticleManager_Instance) Then
-    _ParticleManager_Instance := InitializeApplicationComponent(ParticleManager, GraphicsManager);
-
-  Result := ParticleManager(_ParticleManager_Instance.Instance);
-End;
-
-
-(*Procedure ParticleManager.Update;
-Var
-  I:Integer;
-Begin
-  {For I:=0 To Pred(_ParticleCollectionCount) Do
-    _ParticleCollections[I].Update;}
-End;*)
-
-Procedure ParticleManager.Render;
+Procedure ParticleManager.Render(View:TERRAViewport);
 Var
   I:Integer;
 Begin
@@ -1060,7 +972,7 @@ Begin
       Dec(_ParticleCollectionCount);
     End Else
     Begin
-      GraphicsManager.Instance.AddRenderable(_ParticleCollections[I]);
+      Engine.Graphics.AddRenderable(View, _ParticleCollections[I]);
       Inc(I);
     End;
   End;
@@ -1236,9 +1148,9 @@ Var
   UD,UW:Single;
   U1,U2,V1,V2:Single;
 Begin
-  P.Position := VectorCreate(Self.PosX.CurrentValue,  Self.PosY.CurrentValue, Self.PosZ.CurrentValue);
-  P.Size := VectorCreate2D(Self.Size.CurrentValue, Self.Size.CurrentValue);
-  P.Ofs := VectorCreate2D(ParticleQuadOffsets[SubIndex].X, ParticleQuadOffsets[SubIndex].Y);
+  P.Position := Vector3D_Create(Self.PosX.CurrentValue,  Self.PosY.CurrentValue, Self.PosZ.CurrentValue);
+  P.Size := Vector2D_Create(Self.Size.CurrentValue, Self.Size.CurrentValue);
+  P.Ofs := Vector2D_Create(ParticleQuadOffsets[SubIndex].X, ParticleQuadOffsets[SubIndex].Y);
 
   If Assigned(Self.Texture) Then
   Begin
@@ -1261,18 +1173,18 @@ Begin
     If (Landscape) Then
     Begin
       Case SubIndex Of
-      0: P.UV0 := VectorCreate2D(U1, V2);
-      1: P.UV0 := VectorCreate2D(U2, V2);
-      2: P.UV0 := VectorCreate2D(U2, V1);
-      3: P.UV0 := VectorCreate2D(U1, V1);
+      0: P.UV0 := Vector2D_Create(U1, V2);
+      1: P.UV0 := Vector2D_Create(U2, V2);
+      2: P.UV0 := Vector2D_Create(U2, V1);
+      3: P.UV0 := Vector2D_Create(U1, V1);
       End;
     End Else
     Begin
       Case SubIndex Of
-      0: P.UV0 := VectorCreate2D(U1, V1);
-      1: P.UV0 := VectorCreate2D(U2, V1);
-      2: P.UV0 := VectorCreate2D(U2, V2);
-      3: P.UV0 := VectorCreate2D(U1, V2);
+      0: P.UV0 := Vector2D_Create(U1, V1);
+      1: P.UV0 := Vector2D_Create(U2, V1);
+      2: P.UV0 := Vector2D_Create(U2, V2);
+      3: P.UV0 := Vector2D_Create(U1, V2);
       End;
     End;
   End;

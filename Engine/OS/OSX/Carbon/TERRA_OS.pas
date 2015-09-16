@@ -5,7 +5,7 @@ Unit TERRA_OS;
 {$LINKFRAMEWORK Carbon}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Application, MacOSAll, TERRA_AGL;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Application, MacOSAll, TERRA_AGL;
 
 Const
 	PathSeparator = '/';
@@ -81,7 +81,7 @@ Type
   { CarbonApplication }
   CarbonApplication = Class(BaseApplication)
     Protected
-      _Window:WindowRef;
+      _Handle:WindowRef;
       _Rect: MacOSAll.Rect;
       _InitRect: MacOSAll.Rect;
       _ScreenRect:MacOSAll.Rect;
@@ -103,7 +103,7 @@ Type
 
       Procedure MoveToBundleFolder(); Virtual;
 
-      Function IsDebuggerPresent():Boolean; Override;
+      //Function IsDebuggerPresent():Boolean; Override;
    Public
       Constructor Create();
       
@@ -119,7 +119,7 @@ Type
 
       Class Function Instance:CarbonApplication;
 
-      Property Handle:WindowRef Read _Window;
+      Property Handle:WindowRef Read _Handle;
 
       Property InitRect: MacOSAll.Rect Read _InitRect;
   End;
@@ -128,7 +128,7 @@ Type
 
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_InputManager, TERRA_FileUtils, TERRA_Renderer, TERRA_GLRenderer,
+Uses TERRA_Error, TERRA_Log, TERRA_InputManager, TERRA_FileUtils, TERRA_Renderer, TERRA_Engine, TERRA_GLRenderer,
      BaseUnix, machapi, machexc, dateutils, sysutils, ctypes, sysctl, TERRA_MIDI_IO, TERRA_MIDI;
 
 Var
@@ -315,8 +315,8 @@ Begin
   If Not Assigned(App) Then
     Exit;
 
-  SizeWindow(App._Window, Width, Height, True);
-  GetWindowBounds(App._Window, kWindowContentRgn, ClientRect);
+  SizeWindow(App._Handle, Width, Height, True);
+  GetWindowBounds(App._Handle, kWindowContentRgn, ClientRect);
 
   App.AddCoordEvent(eventWindowResize, clientRect.Right - clientRect.Left, clientRect.Bottom - clientRect.Top, 0);
 End;
@@ -342,7 +342,7 @@ Begin
   kEventWindowExpanded,
   kEventWindowZoomed:
     Begin
-      Fullscreen := IsWindowInStandardState(App._Window, Nil, Nil);
+      Fullscreen := IsWindowInStandardState(App._Handle, Nil, Nil);
       //LCLSendSizeMsg(AWidget.LCLObject, WidgetBounds.Right - WidgetBounds.Left, idgetBounds.Bottom - WidgetBounds.Top, Size_SourceIsInterface or Kind);
     End Else
       TERRA_Log.Log(logDebug, 'App','CarbonWindow_ShowWindow invalid event kind');
@@ -428,7 +428,7 @@ Begin
       End;
   Else
     Begin
-      TERRA_Log.Log(logError, 'App', 'Invalid mouse event: '+IntToString(EventKind));
+      TERRA_Log.Log(logError, 'App', 'Invalid mouse event: '+IntegerProperty.Stringify(EventKind));
       Exit;
     End;
   End;
@@ -462,7 +462,7 @@ Var
   Begin
     GetEventParameter(AEvent, kEventParamKeyModifiers, typeUInt32, nil, SizeOf(CurMod), nil, @CurMod);
 
-    {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got key modifier: '+IntToString(CurMod));{$ENDIF}
+    {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got key modifier: '+IntegerProperty.Stringify(CurMod));{$ENDIF}
 
     //see what changed. we only care of bits 8 through 12
     diff := (PrevKeyModifiers xor CurMod) and $1F00;
@@ -510,7 +510,7 @@ Var
     //for these keys, only send keydown/keyup (not char or UTF8KeyPress)
     GetEventParameter(AEvent, kEventParamKeyCode, typeUInt32, nil, Sizeof(VKKeyCode), nil, @VKKeyCode);
 
-    {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got keycode: '+IntToString(VKKeyCode));{$ENDIF}
+    {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got keycode: '+IntegerProperty.Stringify(VKKeyCode));{$ENDIF}
 
     // get untranslated key (key without modifiers)
     KLGetCurrentKeyboardLayout(KeyboardLayout);
@@ -525,25 +525,25 @@ Var
     Begin
       UCKeyTranslate(Layout^, VKKeyCode, kUCKeyActionDisplay, CurrentKeyModifiers, LMGetKbdType, kUCKeyTranslateNoDeadKeysMask, DeadKeys, 6, TextLen, @WideBuf[1]);
 
-      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called UCKeyTranslate: '+IntToString(TextLen));{$ENDIF}
+      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called UCKeyTranslate: '+IntegerProperty.Stringify(TextLen));{$ENDIF}
 
       If TextLen>0 Then
       Begin
-        CharPress := Word(WideBuf[1]);
+        CharPress := TERRAChar(WideBuf[1]);
 
         {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got Unicode: '+CardinalToString(VKKeyCode));{$ENDIF}
 
-        If (CharPress>127) Then //not ascii, get the Mac character.
+        If (CharPress>#127) Then //not ascii, get the Mac character.
         Begin
           GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TemPAnsiChar), nil, @TemPAnsiChar);
           VKKeyCode := Ord(TemPAnsiChar);
         End Else
-        If (CharPress>=Ord('a')) And (CharPress<=Ord('z')) Then
-           VKKeyCode := CharPress - 32
+        If (CharPress>='a') And (CharPress<='z') Then
+           VKKeyCode := CharValue(CharPress) - 32
         Else
-            VKKeyCode := CharPress;
+            VKKeyCode := CharValue(CharPress);
 
-        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Final key result: '+IntToString(VKKeyCode));{$ENDIF}
+        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Final key result: '+IntegerProperty.Stringify(VKKeyCode));{$ENDIF}
         Exit;
       End;
 
@@ -554,7 +554,7 @@ Var
         DeadKeys := 0;
         UCKeyTranslate(Layout^, VKKeyCode, kUCKeyActionDisplay, CurrentKeyModifiers, LMGetKbdType,
             kUCKeyTranslateNoDeadKeysMask, DeadKeys, 6, TextLen, @WideBuf[1]);
-      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called UCKeyTranslate (syskey): '+IntToString(TextLen));{$ENDIF}
+      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called UCKeyTranslate (syskey): '+IntegerProperty.Stringify(TextLen));{$ENDIF}
       End;
 
       Exit;
@@ -565,7 +565,7 @@ Var
       VKKeyCode := KeyTranslate(Layout, VKKeyCode, DeadKeys) And 255;
       // TODO: workaround for Command modifier suppressing shift?
 
-      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called KeyTranslate (nolayout): '+IntToString(VkKeyCode));{$ENDIF}
+      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called KeyTranslate (nolayout): '+IntegerProperty.Stringify(VkKeyCode));{$ENDIF}
       Exit;
     End;
 
@@ -573,20 +573,20 @@ Var
     If TextLen = 0 Then
     Begin
       GetEventParameter(AEvent, kEventParamKeyUnicodes, typeUnicodeText, nil, 6, @TextLen, @WideBuf[1]);
-      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called GetEventParameter: '+IntToString(TextLen));{$ENDIF}
+      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Called GetEventParameter: '+IntegerProperty.Stringify(TextLen));{$ENDIF}
 
       If TextLen>0 Then
       Begin
-        CharPress := Word(WideBuf[1]);
+        CharPress := TERRAChar(WideBuf[1]);
 
-        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got Unicode2: '+IntToString(VKKeyCode));{$ENDIF}
+        {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Got Unicode2: '+IntegerProperty.Stringify(VKKeyCode));{$ENDIF}
 
-        If (CharPress>127) Then  //not ascii, get the Mac character.
+        If (CharPress>#127) Then  //not ascii, get the Mac character.
         Begin
           GetEventParameter(AEvent, kEventParamKeyMacCharCodes, typeChar, nil, Sizeof(TemPAnsiChar), nil, @TemPAnsiChar);
           VKKeyCode := Ord(TemPAnsiChar);
         End Else
-            VKKeyCode := CharPress;
+            VKKeyCode := CharValue(CharPress);
 
         // the VKKeyCode is independent of the modifier
         // => use the VKKeyChar instead of the KeyChar
@@ -603,7 +603,7 @@ Begin
   	Exit;
 
   VKKeyCode := 0;
-  CharPress := 0;
+  CharPress := NullChar;
 
   EventKind := GetEventKind(AEvent);
   If EventKind = kEventRawKeyModifiersChanged Then
@@ -611,33 +611,33 @@ Begin
   Else
       TranslateMacKeyCode();
 
-  If (VKKeyCode=0) And (CharPress=0) Then
+  If (VKKeyCode=0) And (CharPress=NullChar) Then
     Exit;  
 
   Case EventKind of
     kEventRawKeyDown,
     kEventRawKeyRepeat:
     Begin
-      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Keyevent: '+IntToString(VKKeycode));{$ENDIF}
+      {$IFDEF DEBUG_CORE}Log(logDebug, 'App', 'Keyevent: '+IntegerProperty.Stringify(VKKeycode));{$ENDIF}
 
       // clipboard paste
-      If (CharPress = 118) And (InputManager.Instance.Keys.IsDown(keyCommand)) Then
+      If (CharPress = #118) And (Engine.Input.Keys.IsDown(keyCommand)) Then
       Begin
            S := App.GetClipboardContent();
            StringCreateIterator(S, It);
            While It.HasNext() Do
            Begin
-               App.AddValueEvent(eventKeyPress,  It.GetNext());
+               App.AddValueEvent(eventKeyPress,  CharValue(It.GetNext()));
            End;
       End Else
       // full screen
-      If (VKKeyCode = keyEnter) And (InputManager.Instance.Keys.IsDown(keyAlt)) Then
+      If (VKKeyCode = keyEnter) And (Engine.Input.Keys.IsDown(keyAlt)) Then
       Begin
          App._ChangeToFullScreen := True;
       End Else
       Begin
-           If CharPress>0 Then
-              App.AddValueEvent(eventKeyPress, CharPress);
+           If CharPress>#0 Then
+              App.AddValueEvent(eventKeyPress, CharValue(CharPress));
 
            If (VKKeyCode<256) Then
               App.AddValueEvent(eventKeyDown, VKKeyCode);
@@ -717,8 +717,10 @@ Begin
   CFRelease(pathCFStr);
 
   pathMedia := pathStr + BundleResourceFolder;
-  ChDir(PathMedia);
-
+  If (DirectoryExists(PathMedia)) Then
+  Begin
+       ChDir(PathMedia);
+  End;
 End;
 
 function CarbonApplication.InitSettings: Boolean;
@@ -769,7 +771,7 @@ Begin
 
   Log(logDebug,'App', 'Getting cpu core count...');
   _CPUCores := sysconf(_SC_NPROCESSORS_ONLN);
-  Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
+  Log(logDebug, 'App', 'Found '+IntegerProperty.Stringify(_CPUCores)+' cores');
 
   // get current resolution
   Log(logDebug,'App', 'Getting screen resolution...');
@@ -819,7 +821,7 @@ Begin
 
   Log(logDebug,'App', 'Calling createwindow()');
 
-  If CreateNewWindow(NewWindowClass, Attributes, _InitRect, _Window)<>noErr Then
+  If CreateNewWindow(NewWindowClass, Attributes, _InitRect, _Handle)<>noErr Then
   Begin
     RaiseError('Unable to create a window!');
     Exit;
@@ -827,8 +829,8 @@ Begin
 
  Log(logDebug,'App', 'Changing title');
 
-  SetWTitle(_Window, _Title); // Set the windows title
-  SetWindowGroup(_Window, GetWindowGroupOfClass(GroupClass));
+  SetWTitle(_Handle, _Title); // Set the windows title
+  SetWindowGroup(_Handle, GetWindowGroupOfClass(GroupClass));
 
 
   Log(logDebug,'App', 'Installing closewindow event');
@@ -836,7 +838,7 @@ Begin
   // Window Events
   TmpSpec.eventClass := kEventClassWindow;
   TmpSpec.eventKind := kEventWindowClosed;
-  InstallEventHandler(GetWindowEventTarget(_Window), NewEventHandlerUPP(Carbon_CloseWindow), 1, @TmpSpec, Pointer(Self), nil);
+  InstallEventHandler(GetWindowEventTarget(_Handle), NewEventHandlerUPP(Carbon_CloseWindow), 1, @TmpSpec, Pointer(Self), nil);
 
 
   Log(logDebug,'App', 'Installing mouse events');
@@ -854,7 +856,7 @@ Begin
   MouseSpec[5].eventKind := kEventMouseExited;
   MouseSpec[6].eventClass := kEventClassMouse;
   MouseSpec[6].eventKind := kEventMouseWheelMoved;
-  InstallEventHandler(GetWindowEventTarget(_Window), NewEventHandlerUPP(CarbonWindow_MouseProc), 7, @MouseSpec[0], Pointer(Self), nil);
+  InstallEventHandler(GetWindowEventTarget(_Handle), NewEventHandlerUPP(CarbonWindow_MouseProc), 7, @MouseSpec[0], Pointer(Self), nil);
 
 
   Log(logDebug,'App', 'Installing key events');
@@ -866,7 +868,7 @@ Begin
   KeySpecs[2].eventKind := kEventRawKeyUp;
   KeySpecs[3].eventClass := kEventClassKeyboard;
   KeySpecs[3].eventKind := kEventRawKeyModifiersChanged;
-  InstallEventHandler(GetWindowEventTarget(_Window), NewEventHandlerUPP(CarbonWindow_KeyboardProc), 4, @KeySpecs[0], Pointer(Self), nil);
+  InstallEventHandler(GetWindowEventTarget(_Handle), NewEventHandlerUPP(CarbonWindow_KeyboardProc), 4, @KeySpecs[0], Pointer(Self), nil);
 
 
   Log(logDebug,'App', 'Installing window events');
@@ -876,7 +878,7 @@ Begin
   ShowWindowSpecs[1].eventKind := kEventWindowExpanded;
   ShowWindowSpecs[2].eventClass := kEventClassWindow;
   ShowWindowSpecs[2].eventKind := kEventWindowZoomed;
-  InstallEventHandler(GetWindowEventTarget(_Window), NewEventHandlerUPP(CarbonWindow_ShowWindow), 3, @ShowWindowSpecs[0], Pointer(Self), nil);
+  InstallEventHandler(GetWindowEventTarget(_Handle), NewEventHandlerUPP(CarbonWindow_ShowWindow), 3, @ShowWindowSpecs[0], Pointer(Self), nil);
 
 (*eventType.eventClass = kEventClassWindow;
 eventType.eventKind = kEventWindowActivated;
@@ -888,7 +890,7 @@ eventType.eventKind = kEventWindowDeactivated;
   Log(logDebug,'App', 'Installing command events');
   TmpSpec.eventClass := kEventClassCommand;
   TmpSpec.eventKind := kEventCommandProcess;
-  InstallEventHandler(GetWindowEventTarget(_Window), Carbon_HandleCommand, 1, @TmpSpec, Pointer(Self), nil);
+  InstallEventHandler(GetWindowEventTarget(_Handle), Carbon_HandleCommand, 1, @TmpSpec, Pointer(Self), nil);
 
   QuitAEHandler := NewAEEventHandlerUPP(AEEventHandlerProcPtr(Pointer(@Carbon_QuitEventHandler)));
   AEInstallEventHandler(kCoreEventClass, kAEQuitApplication, QuitAEHandler, 0, False);
@@ -896,10 +898,10 @@ eventType.eventKind = kEventWindowDeactivated;
   Log(logDebug,'App', 'Installing resize events');
   TmpSpec.eventClass := kEventClassWindow;
   TmpSpec.eventKind := kEventWindowBoundsChanged;
-  InstallEventHandler(GetWindowEventTarget(_Window), Carbon_ResizeWindow, 1, @TmpSpec, Pointer(Self), nil);
+  InstallEventHandler(GetWindowEventTarget(_Handle), Carbon_ResizeWindow, 1, @TmpSpec, Pointer(Self), nil);
 
-  GetWindowBounds(_Window, kWindowStructureRgn, WndRect);
-  GetWindowBounds(_Window, kWindowContentRgn, ClientRect);
+  GetWindowBounds(_Handle, kWindowStructureRgn, WndRect);
+  GetWindowBounds(_Handle, kWindowContentRgn, ClientRect);
 
   _Rect.Left := ClientRect.Left - WndRect.Left;
   _Rect.Top := ClientRect.Top - WndRect.Top;
@@ -916,7 +918,7 @@ eventType.eventKind = kEventWindowDeactivated;
   kUTTypeUTF16PlainText := CFSTR('public.utf16-plain-text');
 
   Log(logDebug,'App', 'OK!');
-  ShowWindow(_Window);
+  ShowWindow(_Handle);
 
   UpdateScreenSize();
 
@@ -939,10 +941,10 @@ Begin
 
   Log(logDebug,'App', 'Destroying window');
 
-  If Assigned(_Window) Then
+  If Assigned(_Handle) Then
   Begin
-    DisposeWindow(_Window);
-    _Window := Nil;
+    DisposeWindow(_Handle);
+    _Handle := Nil;
   End;
 
 	Log(logDebug,'App', 'Ok');
@@ -971,7 +973,7 @@ Begin
 
         _Rect := _ScreenRect;
 
-        HIWindowChangeAttributes(_Window, @clearAttr[0], @setAttr[0]);
+        HIWindowChangeAttributes(_Handle, @clearAttr[0], @setAttr[0]);
   End Else
   Begin
     ShowMenuBar();
@@ -979,7 +981,7 @@ Begin
 
     _Rect := _InitRect;
 
-    HIWindowChangeAttributes(_Window, @setAttr[0], @clearAttr[0]);
+    HIWindowChangeAttributes(_Handle, @setAttr[0], @clearAttr[0]);
   End;
 
 
@@ -987,14 +989,14 @@ Begin
   _Height := _Rect.Bottom - _Rect.Top;
    Self.AddCoordEvent(eventWindowResize, _Width, _Height, 0);
    *)
-   SetWindowBounds(_Window, kWindowContentRgn, _Rect);
+   SetWindowBounds(_Handle, kWindowContentRgn, _Rect);
 
 
   Result := True;
 End;
 
 //http://stackoverflow.com/questions/2200277/detecting-debugger-on-mac-os-x
-function CarbonApplication.IsDebuggerPresent: Boolean;
+(*function CarbonApplication.IsDebuggerPresent: Boolean;
 Var
    count:mach_msg_type_number_t;
    masks:TException_Mask_array;
@@ -1020,7 +1022,7 @@ Begin
         End;
   End;
   Result := False;
-End;
+End; *)
 
 
 procedure CarbonApplication.ProcessMessages;
@@ -1120,7 +1122,7 @@ begin
   MinSize.height := 240;
   MaxSize.width := _ScreenRect.Right - _ScreenRect.Left;
   MaxSize.height := _ScreenRect.Bottom - _ScreenRect.Top;
-  SetWindowResizeLimits(_Window, @MinSize, @MaxSize);
+  SetWindowResizeLimits(_Handle, @MinSize, @MaxSize);
 end;
 
 Procedure CarbonApplication.OnFatalError(const ErrorMsg, CrashLog, Callstack: TERRAString);

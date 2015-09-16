@@ -443,7 +443,7 @@ Var
 Procedure LoadMultimedia();
 
 Implementation
-Uses TERRA_Log;
+Uses TERRA_Log, TERRA_Engine;
 
 Var
   LibHandle:THandle;
@@ -559,7 +559,7 @@ End;
 
 Procedure LoadMultimedia();
 Begin
-  Log(logDebug, 'Multimedia', 'Loading Windows Multimedia librar');
+  Engine.Log.Write(logDebug, 'Multimedia', 'Loading Windows Multimedia librar');
 
   LibHandle := LoadLibrary(MMLib);
 

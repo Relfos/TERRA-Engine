@@ -26,8 +26,8 @@ Unit TERRA_Milkshape;
 
 {$I terra.inc}
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Stream, TERRA_INI, TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix4x4,
-  TERRA_Color, TERRA_FileStream, TERRA_FileUtils, TERRA_Vector4D, TERRA_MeshFilter, TERRA_VertexFormat;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Stream, TERRA_Vector3D, TERRA_Vector2D, TERRA_Matrix4x4,
+  TERRA_Color, TERRA_FileStream, TERRA_FileUtils, TERRA_Vector4D, TERRA_MeshFilter, TERRA_VertexFormat, TERRA_MeshAnimation;
 
 Const
   MS3D_HEADER='MS3D000000';
@@ -158,8 +158,8 @@ Type
 
     Procedure Clear();
 
-    Function Load(Source:Stream):Boolean;
-    Function Save(Dest:Stream):Boolean;
+    Function Load(Source:TERRAStream):Boolean;
+    Function Save(Dest:TERRAStream):Boolean;
 
     Function GetParentOf(Child:Integer):Integer;
     Function IsChildOf(Child, Parent:Integer):Boolean;
@@ -198,8 +198,8 @@ Type
       Function GetMaterial(GroupID:Integer):PMilkshape3DMaterial;
 
     Public
-      Function Load(Source:Stream):Boolean; Override;
-      Class Function Save(Dest:Stream; MyMesh:MeshFilter):Boolean; Override;
+      Function Load(Source:TERRAStream):Boolean; Override;
+      Class Function Save(Dest:TERRAStream; MyMesh:MeshFilter):Boolean; Override;
 
       Function GetGroupCount:Integer; Override;
       Function GetGroupName(GroupID:Integer):AnsiString; Override;
@@ -214,9 +214,9 @@ Type
       Function GetVertexPosition(GroupID, Index:Integer):Vector3D; Override;
       Function GetVertexNormal(GroupID, Index:Integer):Vector3D; Override;
       Function GetVertexBone(GroupID, Index:Integer):Integer; Override;
-      Function GetVertexUV(GroupID, Index:Integer):Vector2D; Override;
+      Function GetVertexUV(GroupID, Index, Channel:Integer):Vector2D; Override;
 
-      Function GetDiffuseColor(GroupID:Integer):Color; Override;
+      Function GetDiffuseColor(GroupID:Integer):ColorRGBA; Override;
 
       Function GetDiffuseMapName(GroupID:Integer):AnsiString; Override;
       Function GetSpecularMapName(GroupID:Integer):AnsiString; Override;
@@ -227,8 +227,7 @@ Type
 
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_TextureAtlas, TERRA_Image, TERRA_Application, TERRA_ResourceManager,
-  Math;
+Uses TERRA_Error, TERRA_Log, TERRA_Engine, TERRA_TextureAtlas, TERRA_Image, TERRA_Application, TERRA_ResourceManager;
 
 { Milkshape3DObject }
 Function Milkshape3DObject.GetMaterialFile(MaterialIndex:Integer; SourceFile:AnsiString):AnsiString;
@@ -257,7 +256,7 @@ End;
 
 
 
-Function Milkshape3DObject.Load(Source:Stream):Boolean;
+Function Milkshape3DObject.Load(Source:TERRAStream):Boolean;
 Var
   I,J,Index:Integer;
   Dest:FileStream;
@@ -270,7 +269,7 @@ Begin
   Source.Read(@Header, SizeOf(Header));
   If Header.Id<>MS3D_Header Then
   Begin
-    RaiseError('LoadMS3D: Invalid MS3D model.');
+    Engine.RaiseError('LoadMS3D: Invalid MS3D model.');
     Exit;
   End;
 
@@ -387,8 +386,8 @@ Begin
   //Dest := FileStream.Create('d:\code\minimonhd\trunk\output\bones.txt');
   For I:=0 To Pred(NumJoints) Do
   Begin
-    Joints[I].AbsolutePosition := Joints[I].AbsoluteMatrix.Transform(VectorZero);
-    Joints[I].RelativePosition := Joints[I].RelativeMatrix.Transform(VectorZero);
+    Joints[I].AbsolutePosition := Joints[I].AbsoluteMatrix.Transform(Vector3D_Zero);
+    Joints[I].RelativePosition := Joints[I].RelativeMatrix.Transform(Vector3D_Zero);
 
     {If Assigned(Joints[I].Parent) Then
       VectorSubtract(Joints[I].Parent.TargetPosition);
@@ -407,7 +406,7 @@ Begin
   Result := True;
 End;
 
-Function Milkshape3DObject.Save(Dest:Stream):Boolean;
+Function Milkshape3DObject.Save(Dest:TERRAStream):Boolean;
 Var
   I,J,Index:Integer;
 Begin
@@ -515,8 +514,8 @@ Var
   S:AnsiString;
   MyTextureAtlas:TextureAtlas;
   CW,CH:Integer;
-  Img:Image;
-  Textures:Array Of Image;
+  Img:TERRAImage;
+  Textures:Array Of TERRAImage;
   CI:Array Of TextureAtlasItem;
 
   UOffset,UScale:Single;
@@ -531,7 +530,7 @@ Begin
     S := GetMaterialFile(I, FileName);
     If (S='') Then
       Continue;
-    Textures[I] := Image.Create(S);
+    Textures[I] := TERRAImage.Create(S);
     If (Textures[I].Width>CW) Then
       CW := Textures[I].Width;
     If (Textures[I].Height>CH) Then
@@ -540,8 +539,8 @@ Begin
 
   SetLength(CI,NumMaterials);
 
-  CW := NearestPowerOfTwo(CW);
-  CH := NearestPowerOfTwo(CH);
+  CW := PreviousPowerOfTwo(CW);
+  CH := PreviousPowerOfTwo(CH);
 
   Repeat
     MyTextureAtlas := TextureAtlas.Create('ms3d', CW, CH);
@@ -719,7 +718,7 @@ Begin
 End;
 
 
-Function Milkshape3DModel.Load(Source: Stream): Boolean;
+Function Milkshape3DModel.Load(Source:TERRAStream): Boolean;
 Var
   I,J,K:Integer;
   N,W,Z:Integer;
@@ -773,7 +772,7 @@ Begin
   Result := True;
 End;
 
-Class Function Milkshape3DModel.Save(Dest:Stream; MyMesh:MeshFilter):Boolean;
+Class Function Milkshape3DModel.Save(Dest:TERRAStream; MyMesh:MeshFilter):Boolean;
 Var
   I,J,K, N:Integer;
   AnimID:Integer;
@@ -783,15 +782,16 @@ Var
   T:Triangle;
   UV:Vector2D;
   VOfs, TOfs:Integer;
-  Key:MeshVectorKey;
+  Key:MeshAnimationKeyframe;
   Ratio:Single;
+  BoneMat:Matrix4x4;
 
   Function ClampTime(T:Single):Single;
   Begin
     Result := Round(T * MS3D.AnimationFPS  * Ratio) / MS3D.AnimationFPS;
   End;
 
-  Function NewColor(C:Color):Milkshape3DColor;
+  Function NewColor(C:ColorRGBA):Milkshape3DColor;
   Begin
     Result.R := C.R / 255;
     Result.G := C.G / 255;
@@ -816,7 +816,7 @@ Var
     N := MS3D.NumMaterials;
     Inc(MS3D.NumMaterials);
     SetLength(MS3D.Materials, MS3D.NumMaterials);
-    S := 'mat'+IntToString(N);
+    S := 'mat'+IntegerProperty.Stringify(N);
     Move(S[1], MS3D.Materials[N].Name[1], Length(S));
     MS3D.Materials[N].Name[Succ(Length(S))] := #0;
     MS3D.Materials[N].Ambient := NewColor(ColorBlack);
@@ -877,7 +877,7 @@ Begin
       MS3D.Triangles[TOfs + I].Flags := MS3D.Groups[N].Flags;
       For J:=0 To 2 Do
       Begin
-        UV := MyMesh.GetVertexUV(N, T.Indices[J]);
+        UV := MyMesh.GetVertexUV(N, T.Indices[J], 0);
         MS3D.Triangles[TOfs + I].VertexIndices[Succ(J)] := T.Indices[J] + VOfs;
         MS3D.Triangles[TOfs + I].VertexNormals[Succ(J)] := MyMesh.GetVertexNormal(N, T.Indices[J]);
         MS3D.Triangles[TOfs + I].S[Succ(J)] := UV.X;
@@ -915,7 +915,7 @@ Begin
   If (MS3D.TotalFrames>0) Then
   Begin
     MS3D.NumModelComments := 1;
-    MS3D.Comment := 'Name='+MyMEsh.GetAnimationName(AnimID)+', Start=1, End='+IntToString(MS3D.TotalFrames)+', Loop='+BoolToString(MyMesh.GetAnimationLoop(AnimID))+#0;
+    MS3D.Comment := 'Name='+MyMEsh.GetAnimationName(AnimID)+', Start=1, End='+IntegerProperty.Stringify(MS3D.TotalFrames)+', Loop='+BoolToString(MyMesh.GetAnimationLoop(AnimID))+#0;
     MS3D.Comment := StringLower(MS3D.Comment);
   End;
   
@@ -945,8 +945,9 @@ Begin
 
       MS3D.Joints[I].NumKeyFramesTrans := MyMesh.GetPositionKeyCount(AnimID, I);
       MS3D.Joints[I].NumKeyFramesRot := MyMesh.GetRotationKeyCount(AnimID, I);
-      MS3D.Joints[I].Position := MyMesh.GetBonePosition(I);
-      MS3D.Joints[I].Rotation := MyMesh.GetBoneRotation(I);
+      BoneMat := MyMesh.GetBoneOffsetMatrix(I);
+      MS3D.Joints[I].Position := BoneMat.GetTranslation();
+      MS3D.Joints[I].Rotation := BoneMat.GetEulerAngles();
       MS3D.Joints[I].Flags := 0;
 
       SetLength(MS3D.Joints[I].KeyFramesTrans, MS3D.Joints[I].NumKeyFramesTrans);
@@ -954,7 +955,7 @@ Begin
       Begin
         Key := MyMesh.GetPositionKey(AnimID, I, J);
         MS3D.Joints[I].KeyFramesTrans[J].Time := ClampTime(Key.Time);
-        MS3D.Joints[I].KeyFramesTrans[J].Vector := Key.Value;
+        MS3D.Joints[I].KeyFramesTrans[J].Vector := Key.GetVector3D();
       End;
 
       MS3D.Joints[I].NumKeyFramesRot := MyMesh.GetRotationKeyCount(AnimID, I);
@@ -963,14 +964,14 @@ Begin
       Begin
         Key := MyMesh.GetRotationKey(AnimID, I, J);
         MS3D.Joints[I].KeyFramesRot[J].Time := ClampTime(Key.Time);
-        MS3D.Joints[I].KeyFramesRot[J].Vector := Key.Value;
+        MS3D.Joints[I].KeyFramesRot[J].Vector := Key.GetVector3D();
       End;
   End;
 
   MS3D.Save(Dest);
 End;
 
-Function GetColor(C:Milkshape3DColor):Color;
+Function GetColor(C:Milkshape3DColor):ColorRGBA;
 Begin
   Result.R := Trunc(C.R*255);
   Result.G := Trunc(C.G*255);
@@ -978,7 +979,7 @@ Begin
   Result.A := Trunc(C.A*255);
 End;
 
-Function Milkshape3DModel.GetDiffuseColor(GroupID:Integer):Color;
+Function Milkshape3DModel.GetDiffuseColor(GroupID:Integer):ColorRGBA;
 Var
   Mat:PMilkshape3DMaterial;
 Begin
@@ -1128,7 +1129,7 @@ Begin
   Result := _Groups[GroupID].Vertices[Index].Position;
 End;
 
-Function Milkshape3DModel.GetVertexUV(GroupID, Index: Integer): Vector2D;
+Function Milkshape3DModel.GetVertexUV(GroupID, Index, Channel:Integer): Vector2D;
 Begin
   Result := _Groups[GroupID].Vertices[Index].TexCoords;
 End;
@@ -1143,7 +1144,7 @@ Begin
   If (Assigned(Parent)) And (Not Parent.Ready) Then
     Parent.Init;
 
-  RelativeMatrix := Matrix4x4Multiply4x3(Matrix4x4Translation(Position), Matrix4x4Rotation(Rotation));
+  RelativeMatrix := Matrix4x4_Multiply4x3(Matrix4x4_Translation(Position), Matrix4x4_Rotation(Rotation));
 
 	// Each bone's final matrix is its relative matrix concatenated onto its
 	// parent's final matrix (which in turn is ....)
@@ -1154,7 +1155,7 @@ Begin
   End Else									// not the root node
 	Begin
 		// m_final := parent's m_final * m_rel (matrix concatenation)
-    AbsoluteMatrix := Matrix4x4Multiply4x3(Parent.AbsoluteMatrix, RelativeMatrix);
+    AbsoluteMatrix := Matrix4x4_Multiply4x3(Parent.AbsoluteMatrix, RelativeMatrix);
 	End;
 
   Ready := True;

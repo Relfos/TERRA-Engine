@@ -1,4 +1,4 @@
-{***********************************************************************************************************************
+  {***********************************************************************************************************************
  *
  * TERRA Game Engine
  * ==========================================
@@ -26,8 +26,8 @@ Unit TERRA_Viewport;
 
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_Camera, TERRA_Renderer, TERRA_Downsampler, TERRA_Resource,
-  TERRA_Ray, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Color, TERRA_Texture
+  TERRA_String, TERRA_Object, TERRA_Utils, TERRA_Camera, TERRA_Renderer, TERRA_Resource, TERRA_BoundingBox,
+  TERRA_Ray, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Color, TERRA_Texture 
   {$IFDEF POSTPROCESSING},TERRA_ScreenFX{$ENDIF};
 
 Const
@@ -35,10 +35,50 @@ Const
   vpPositionY   = 2;
 
 Type
-  Viewport = Class(TERRAObject)
+  TERRAViewport = Class;
+
+  ViewportRenderEvent = Procedure (V:TERRAViewport) Of Object;
+
+  RenderTargetSampler = Class(TERRAObject)
+    Protected
+      _Name:TERRAString;
+
+	    _Targets:Array Of RenderTargetInterface;
+      _Textures:Array Of TERRATexture;
+      _TargetCount:Integer;
+
+      _ResultIndex:Integer;
+
+    	Procedure Init(Width, Height:Integer; PixelSize:PixelSizeType); Virtual; Abstract;
+
+    	// Free memory
+	    Procedure Clear();
+
+    Public
+	    Constructor Create(Const Name:TERRAString; Width, Height:Integer; PixelSize:PixelSizeType);
+
+	    Procedure Release; Override;
+
+	    Procedure Update(View:TERRAViewport; Source:TERRATexture; DownsamplerShader:ShaderInterface; First, Count:Integer); Virtual; Abstract;
+
+	    // Number of render texture used
+      Property TextureCount:Integer Read _TargetCount;
+
+      // Get a downsampled render texture
+      Function GetRenderTexture(Index:Integer):TERRATexture;
+
+      Function GetResult():TERRATexture;
+  End;
+
+
+  TERRAViewport = Class(TERRAObject)
     Protected
       _Name:TERRAString;
       _Visible:Boolean;
+
+      _FrameID:Cardinal;
+
+      _Layer:Single;
 
       _OfsX:Integer;
       _OfsY:Integer;
@@ -47,11 +87,12 @@ Type
       _Height:Integer;
       _Scale:Single;
 
-      _Camera:Camera;
+      _Camera:TERRACamera;
 
-      _BackgroundColor:Color;
+      _BackgroundColor:ColorRGBA;
 
-      _Target:Viewport;
+      _AutoResolve:Boolean;
+
       _TargetX1:Single;
       _TargetX2:Single;
       _TargetY1:Single;
@@ -63,13 +104,11 @@ Type
       _ViewHeight:Integer;
 
       _ResolveBuffer:RenderTargetInterface;
-      _ResolveTexture:Texture;
+      _ResolveTexture:TERRATexture;
 
       _RenderBuffers:Array[0..Pred(TotalCaptureTargets)] Of RenderTargetInterface;
-      _RenderTextures:Array[0..Pred(TotalCaptureTargets)] Of Texture;
+      _RenderTextures:Array[0..Pred(TotalCaptureTargets)] Of TERRATexture;
       _RenderSamplers:Array[0..Pred(TotalCaptureTargets)] Of RenderTargetSampler;
-
-      _DrawSky:Boolean;
 
       _VR:Boolean;
       _CurrentSubView:Integer;
@@ -86,12 +125,15 @@ Type
       Procedure UpdateEffectTargets();
       {$ENDIF}
 
-      Function GetResolveTexture: Texture;
+      Function GetResolveTexture: TERRATexture;
+
+      Procedure SetAutoResolve(const Value: Boolean);
 
     Public
-      AutoResolve:Boolean;
+      OnRender:ViewportRenderEvent;
 
-      Constructor Create(Name:TERRAString; Width,Height:Integer; Scale:Single = 1.0);
+
+      Constructor Create(Name:TERRAString; Camera:TERRACamera; Width,Height:Integer; Scale:Single = 1.0);
 
       Procedure Release; Override;
 
@@ -107,34 +149,30 @@ Type
       Function IsDirectDrawing():Boolean;
 
       Function GetRenderTarget(TargetType:RenderTargetType):RenderTargetInterface;
-      Function GetRenderTexture(TargetType:RenderTargetType):Texture;
-
-      Function ResolveToTexture():Texture;
+      Function GetRenderTexture(TargetType:RenderTargetType):TERRATexture;
 
       Procedure SetViewArea(X,Y,Width,Height:Integer);
 
       Procedure SetPostProcessingState(Enabled:Boolean);
 
-      Procedure SetTarget(Target:Viewport; X1,Y1,X2,Y2:Single);
-      Procedure SetTargetInPixels(Target:Viewport; X1,Y1,X2,Y2:Integer);
+      Procedure SetTargetArea(X1,Y1,X2,Y2:Single);
 
-      Function ProjectPoint(Pos:Vector3D):Vector3D;
+      Function ProjectPoint(Const Pos:Vector3D):Vector3D;
+      Function ProjectBoundingBox(Const Box:BoundingBox):BoundingBox;
 
-      Function GetPickRay(TX,TY:Integer):Ray;
+      Function GetPickRay(TX,TY:Single):Ray;
 
-      Procedure SetBackgroundColor(BG:Color);
+      Procedure SetBackgroundColor(BG:ColorRGBA);
 
       Procedure EnableDefaultTargets();
 
       Function HasPostProcessing():Boolean;
 
-      Procedure DrawToTarget(ProcessEffects:Boolean);
+      Procedure DrawToTarget(Target:TERRAViewport);
 
-      Property BackgroundColor:Color Read _BackgroundColor Write SetBackgroundColor;
+      Property BackgroundColor:ColorRGBA Read _BackgroundColor Write SetBackgroundColor;
 
-      Property Camera:TERRA_Camera.Camera Read _Camera;
-
-      Property DrawSky:Boolean Read _DrawSky Write _DrawSky;
+      Property Camera:TERRACamera Read _Camera;
 
       Property Visible:Boolean Read _Visible Write _Visible;
 
@@ -151,7 +189,6 @@ Type
       Property OffsetX:Integer Read _OfsX Write _OfsX;
       Property OffsetY:Integer Read _OfsY Write _OfsY;
 
-      Property Target:Viewport Read _Target;
       Property TargetX1:Single Read _TargetX1;
       Property TargetX2:Single Read _TargetX2;
       Property TargetY1:Single Read _TargetY1;
@@ -159,11 +196,19 @@ Type
 
       Property VR:Boolean Read _VR Write _VR;
 
-      Property ResolveTexture:Texture Read GetResolveTexture;
+      Property ResolveTexture:TERRATexture Read GetResolveTexture;
+
+      Property Layer:Single Read _Layer Write _Layer;
+
+
+      Property FrameID:Cardinal Read _FrameID;
+
+      Property AutoResolve:Boolean Read _AutoResolve Write SetAutoResolve;
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_GraphicsManager, TERRA_Application, TERRA_Log, TERRA_OS, TERRA_Vector4D;
+Uses TERRA_Error, TERRA_Engine, TERRA_GraphicsManager, TERRA_Application, TERRA_Log, TERRA_OS, TERRA_Vector4D,
+  TERRA_Downsampler, TERRA_ShaderManager;
 
 {$IFDEF POSTPROCESSING}
 Var
@@ -172,214 +217,62 @@ Var
   _DistanceFieldShader:ShaderInterface;
 {$ENDIF}
 
-Function GetShader_Blur():TERRAString;
-Var
-  S:TERRAString;
-Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
+{ RenderTargetSampler }
+Constructor RenderTargetSampler.Create(Const Name:TERRAString; Width, Height:Integer; PixelSize:PixelSizeType);
 Begin
-  S := '';
-  Line('version { 110 }');
-  Line('vertex {');
-  Line('  uniform mat4 projectionMatrix;');
-  Line('  varying highp vec2 texCoord;');
-  Line('  attribute highp vec4 terra_position;');
-  Line('  attribute highp vec2 terra_UV0;');
-	Line('  void main()	{');
-  Line('    texCoord = terra_UV0;');
-  Line('    gl_Position = projectionMatrix * terra_position;}');
-  Line('}');
-  Line('fragment {');
-  Line('varying highp vec2 texCoord;');
-  Line('uniform highp float dx, dy;');
-  Line('uniform sampler2D texture;');
-	Line('void main()	{');
-  Line('lowp vec2 st = texCoord.st;');
+  Self._Name := Name;
+  Self.Init(Width, Height, PixelSize); // {$IFDEF FRAMEBUFFEROBJECTS}FBO_COLOR8{$ELSE}0{$ENDIF}); BIBI
+End;
 
-  // Apply 3x3 gaussian filter
-	Line('lowp vec4 color	= texture2D(texture, st);');
-  Line('lowp float alpha = color.a;');
-  Line('color *= 4.0;');
-  Line('lowp vec4 temp = texture2D(texture, st + vec2(+dx, 0.0));');
-  Line('alpha = max(alpha, temp.a);');
-  Line('color		+= 2.0 * temp;');
-  Line('temp = texture2D(texture, st + vec2(-dx, 0.0));;');
-  Line('alpha = max(alpha, temp.a);');
-  Line('color		+= 2.0 * temp;');
-  Line('temp = texture2D(texture, st + vec2(0.0, +dy));');
-  Line('alpha = max(alpha, temp.a);');
-  Line('color		+= 2.0 * temp;');
-  Line('temp = texture2D(texture, st + vec2(0.0, -dy));');
-  Line('alpha = max(alpha, temp.a);');
-  Line('color		+= 2.0 * temp;');
-  Line('temp = texture2D(texture, st + vec2(+dx, +dy));');
-  Line('alpha = max(alpha, temp.a);');
-  Line('color		+= temp;');
-  Line('temp = texture2D(texture, st + vec2(-dx, +dy));;');
-  Line('alpha = max(alpha, temp.a);');
-  Line('color		+= temp;');
-  Line('temp = texture2D(texture, st + vec2(-dx, -dy));;');
-  Line('alpha = max(alpha, temp.a);');
-  Line('color		+= temp;');
-  Line('temp = texture2D(texture, st + vec2(+dx, -dy));');
-  Line('alpha = max(alpha, temp.a);');
-  Line('color		+= temp;');
+Function RenderTargetSampler.GetRenderTexture(Index:Integer):TERRATexture;
+Begin
+  If (Index<0) Or (Index>=_TargetCount) Then
+    Result := Nil
+  Else
+  Begin
+    If (_Textures[Index] = Nil) Then
+    Begin
+      _Textures[Index] := TERRATexture.Create(rtDynamic{, Self._Name + '_rt'+ IntegerProperty.Stringify(Index)});
+      _Textures[Index].InitFromSurface(_Targets[Index]);
+      _Textures[Index].WrapMode := wrapNothing;
+    End;
 
-  Line('color = color / 16.0;');
-  Line('color.a = alpha;');
-  Line('gl_FragColor = color;');
-  Line('}}');
-  Result := S;
+    Result := _Textures[Index];
+  End;
+End;
+
+Procedure RenderTargetSampler.Release();
+Begin
+  Self.Clear();
 End;
 
 
-(*	Line('float sobelFilter(vec2 texCoord){');
-	Line('	vec3 s00 = texture2D(normal_texture, texCoord + vec2(-offX, -offY)).rgb;');
-	Line('	vec3 s01 = texture2D(normal_texture, texCoord + vec2( 0,   -offY)).rgb;');
-	Line('	vec3 s02 = texture2D(normal_texture, texCoord + vec2( offX, -offY)).rgb;');
-
-	Line('	vec3 s10 = texture2D(normal_texture, texCoord + vec2(-offX,  0)).rgb;');
-	Line('	vec3 s12 = texture2D(normal_texture, texCoord + vec2( offX,  0)).rgb;');
-
-	Line('	vec3 s20 = texture2D(normal_texture, texCoord + vec2(-offX,  offY)).rgb;');
-	Line('	vec3 s21 = texture2D(normal_texture, texCoord + vec2( 0,    offY)).rgb;');
-	Line('	vec3 s22 = texture2D(normal_texture, texCoord + vec2( offX,  offY)).rgb;');
-
-	Line('	vec3 sobelX = s00 + 2.0 * s10 + s20 - s02 - 2.0 * s12 - s22;');
-	Line('	vec3 sobelY = s00 + 2.0 * s01 + s02 - s20 - 2.0 * s21 - s22;');
-
-	Line('	vec3 edgeSqr = sobelX * sobelX + sobelY * sobelY;');
-  Line('  vec4 px = texture2D(normal_texture, texCoord).rgba;');
-	Line('	float p = dot(edgeSqr, edgeSqr);');
-
-
-//  Line('	return px.a;	}');
-
-	//Line('	return p * 0.3 + 0.7;	}');*)
-
-Function GetShader_Edge():TERRAString;
+Procedure RenderTargetSampler.Clear();
 Var
-  S:TERRAString;
-Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
+  I:Integer;
 Begin
-  S := '';
-  Line('version { 110 }');
-  Line('vertex {');
-  Line('  uniform mat4 projectionMatrix;');
-  Line('  varying highp vec2 texCoord;');
-  Line('  attribute highp vec4 terra_position;');
-  Line('  attribute mediump vec2 terra_UV0;');
-	Line('  void main()	{');
-  Line('    texCoord = terra_UV0;');
-  Line('    gl_Position = projectionMatrix * terra_position;}');
-  Line('}');
-  Line('fragment {');
+  For I:=0 To Pred(_TargetCount) Do
+  Begin
+    ReleaseObject(_Textures[I]);
+    ReleaseObject(_Targets[I]);
+  End;
 
-  Line('varying highp vec2 texCoord;');
-  Line('uniform highp float dx, dy;');
-  Line('uniform sampler2D texture;');
-
-	Line('void main()	{');
-	Line('lowp float offX = dx;');
-  Line('lowp float offY = dy;');
-
-  // Apply sobel filter
-
-  Line('mediump vec3 sample;');
-  //Line('lowp float depth = texture2D(normal_texture, texCoord).a;');
-
-  //Line(' depth = (1.0 - depth) * 0.5;');
-  Line(' mediump float kox = offX; ');
-  Line(' mediump float koy = offY; ');
-
-// fetch the 3x3 neighbourhood and use the RGB vector's length as intensity value
-  Line('  lowp float spv0;');
-  Line('  lowp float spv1;');
-  Line('  lowp float spv2;');
-  Line(' spv0 = length(texture2D(texture, texCoord + vec2(-kox,-koy)).rgb);');
-  Line(' spv1 = length(texture2D(texture, texCoord + vec2(-kox, 0.0)).rgb);');
-  Line(' spv2 = length(texture2D(texture, texCoord + vec2(-kox, koy)).rgb);');
-  Line(' lowp vec3 sample0 = vec3(spv0, spv1, spv2);');
-  Line(' spv0 = length(texture2D(texture, texCoord + vec2(0.0, -koy)).rgb);');
-  Line(' spv1 = length(texture2D(texture, texCoord).rgb);');
-  Line(' spv2 = length(texture2D(texture, texCoord + vec2(0.0, koy)).rgb);');
-  Line(' lowp vec3 sample1 = vec3(spv0, spv1, spv2);');
-  Line(' spv0 = length(texture2D(texture, texCoord + vec2(kox,-koy)).rgb);');
-  Line(' spv1 = length(texture2D(texture, texCoord + vec2(kox, 0.0)).rgb);');
-  Line(' spv2 = length(texture2D(texture, texCoord + vec2(kox, koy)).rgb);');
-  Line(' lowp vec3 sample2 = vec3(spv0, spv1, spv2);');
-
-// calculate the convolution values for all the masks
-	// calculate the convolution values for all the masks
-  Line('lowp float conv0;');
-  Line('lowp float conv1;');
-  Line('mediump float dp3;');
-  Line(' mediump vec3 gk0_0 = vec3(1.0, 2.0, 1.0); ');
-  Line(' mediump vec3 gk0_2 = vec3(-1.0, -2.0, -1.0); ');
-  Line(' mediump vec3 gk1_0 = vec3(1.0, 0.0, -1.0); ');
-  Line(' mediump vec3 gk1_1 = vec3(2.0, 0.0, -2.0); ');
-  Line(' mediump vec3 gk1_2 = vec3(1.0, 0.0, -1.0); ');
-  Line(' dp3 =  dot(gk0_0, sample0) +  dot(gk0_2, sample2) ;');
-  Line(' conv0 = dp3 * dp3;	');
-  Line(' dp3 =  dot(gk1_0, sample0)  +  dot(gk1_1, sample1)  +  dot(gk1_2, sample2) ;');
-  Line(' conv1 = dp3 * dp3;	');
-  Line(' mediump float pp = sqrt(conv0*conv0+conv1*conv1);');
-
-  Line('	pp = 1.0 - min(1.0, pp);');
-
-//  Line('  pp = pp * 0.3 + 0.7;');
-  //Line('	if (pp<0.99) return 0.0;  else return 1.0; 	}');
-
-  Line('gl_FragColor = vec4(pp, pp, pp, 1.0);');
-
-  //Line('gl_FragColor = texture2D(texture, texCoord);');
-  Line('}}');
-  Result := S;
+  _TargetCount := 0;
+  SetLength(_Targets, 0);
+  SetLength(_Textures, 0);
 End;
 
-Function GetShader_DistanceField():TERRAString;
-Var
-  S:TERRAString;
-Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
+Function RenderTargetSampler.GetResult: TERRATexture;
 Begin
-  S := '';
-  Line('version { 110 }');
-  Line('vertex {');
-  Line('  uniform mat4 projectionMatrix;');
-  Line('  varying highp vec2 texCoord;');
-  Line('  attribute highp vec4 terra_position;');
-  Line('  attribute highp vec2 terra_UV0;');
-	Line('  void main()	{');
-  Line('    texCoord = terra_UV0;');
-  Line('    gl_Position = projectionMatrix * terra_position;}');
-  Line('}');
-  Line('fragment {');
-  Line('varying highp vec2 texCoord;');
-  Line('uniform highp float dx, dy;');
-  Line('uniform sampler2D texture;');
-
-  Line('highp float minDist;');
-
-  Line('void measurePixel(lowp ofst)	{');
-  Line('lowp vec4 pB = texture2D(texture, st + vec2(dx, 0.0));');
-  Line('}');
-
-	Line('void main()	{');
-  Line('lowp vec2 st = texCoord.st;');
-  Line('  minDist = 9999.0;');
-
-	Line('lowp vec4 pA	= texture2D(texture, st);');
-  Line('lowp vec4 pB = texture2D(texture, st + vec2(dx, 0.0));');
-  Line('lowp vec4 color = (pA + pB) * 0.5;');
-  Line('gl_FragColor = color;');
-  Line('}}');
-  Result := S;
+  Result := Self.GetRenderTexture(_ResultIndex);
 End;
-                                    
-Constructor Viewport.Create(Name:TERRAString; Width,Height:Integer; Scale:Single);
+
+
+{ TERRAViewport }
+Constructor TERRAViewport.Create(Name:TERRAString; Camera:TERRACamera; Width,Height:Integer; Scale:Single);
 Begin
   _Name := Name;
   _Visible := True;
-  _DrawSky := False;
 
   _Width := Width;
   _Height := Height;
@@ -392,13 +285,15 @@ Begin
 
   _BackgroundColor := ColorCreate(0, 0, 0, 255);
 
-  _Camera := TERRA_Camera.Camera.Create(Name);
+  //_SpriteRenderer := TERRASpriteRenderer.Create();
 
-  Log(logDebug, 'Viewport', 'Created viewport '+Name+' with size '+IntToString(_Width) +' x '+IntToString(_Height)+' and scale = '+FloatToString(_Scale));
+  _Camera := Camera;
+
+  Engine.Log.Write(logDebug, 'Viewport', 'Created viewport '+Name+' with size '+ IntegerProperty.Stringify(_Width) +' x '+ IntegerProperty.Stringify(_Height)+' and scale = '+FloatProperty.Stringify(_Scale));
 End;
 
 
-Procedure Viewport.Resize(Width, Height:Integer);
+Procedure TERRAViewport.Resize(Width, Height:Integer);
 Begin
   Self._Width := Width;
   Self._Height := Height;
@@ -409,7 +304,7 @@ Begin
     Camera.Refresh();
 End;
 
-Procedure Viewport.Restore(Clear:Boolean);
+Procedure TERRAViewport.Restore(Clear:Boolean);
 Begin
   Self.SetViewArea(_OfsX, _OfsY, _Width, _Height);
 
@@ -417,7 +312,7 @@ Begin
     Self.Clear();
 End;
 
-Procedure Viewport.Release;
+Procedure TERRAViewport.Release;
 Var
   I:Integer;
 Begin
@@ -434,14 +329,12 @@ Begin
   ReleaseObject(_ResolveBuffer);
   ReleaseObject(_ResolveTexture);
 
-  ReleaseObject(_Camera);
-
   {$IFDEF POSTPROCESSING}
   ReleaseObject(_FXChain);
   {$ENDIF}
 End;
 
-Function Viewport.ProjectPoint(Pos:Vector3D):Vector3D;
+Function TERRAViewport.ProjectPoint(Const Pos:Vector3D):Vector3D;
 Var
   modelview:Matrix4x4;
   temp:Array[0..7] Of Single;
@@ -475,12 +368,13 @@ Begin
   End;
 
   Temp[7] := 1.0 / Temp[7];
-  If Not Camera.Ortho Then
+  //If Not Camera.Ortho Then
   Begin  //Perspective division
     Temp[4] := Temp[4] * Temp[7];
     Temp[5] := Temp[5] * Temp[7];
     Temp[6] := Temp[6] * Temp[7];
   End;
+
   //Window coordinates
   //Map x, y to range 0-1
   Temp[4] := (Temp[4] *0.5 + 0.5);
@@ -495,21 +389,21 @@ Begin
 End;
 
 
-Function Viewport.UnprojectVector(WX,WY,WZ:Single):Vector3D;
+Function TERRAViewport.UnprojectVector(WX,WY,WZ:Single):Vector3D;
 Var
   M:Matrix4x4;
   P:Vector4D;
 Begin
   If _Camera = Nil Then
   Begin
-    Result := VectorCreate(WX, WY, WZ);
+    Result := Vector3D_Create(WX, WY, WZ);
     Exit;
   End;
 
   //Calculation for inverting a matrix, compute projection x modelview and store in A
-  M := Matrix4x4Multiply4x4(Camera.Projection, Camera.Transform);
+  M := Matrix4x4_Multiply4x4(Camera.Projection, Camera.Transform);
   //Now compute the inverse of matrix A
-  M := Matrix4x4Inverse(M);
+  M := Matrix4x4_Inverse(M);
 
   //Transformation of normalized coordinates between -1 and 1
   P.X := ((WX/_Width) *2.0) - 1.0;
@@ -519,10 +413,10 @@ Begin
 
   //Objects coordinates
   P.Transform(M);
-  Result := VectorCreate(P.X/P.W, P.Y/P.W, P.Z/P.W);
+  Result := Vector3D_Create(P.X/P.W, P.Y/P.W, P.Z/P.W);
 End;
 
-Function Viewport.GetPickRay(TX, TY:Integer):Ray;
+Function TERRAViewport.GetPickRay(TX, TY:Single):Ray;
 Var
   N,F:Vector3D;
   Px, Py:Single;
@@ -540,8 +434,8 @@ Begin
   End Else}
   Begin
     TY := _Height - TY;
-  	Px := TX * (GraphicsManager.Instance.Width/_Width);
-	  Py := TY * (GraphicsManager.Instance.Height/_Height);
+  	Px := TX * (Application.Instance.Window.Width/_Width);
+	  Py := TY * (Application.Instance.Window.Height/_Height);
   End;
 
   Px := TX;
@@ -549,13 +443,13 @@ Begin
   N := UnprojectVector(px, py, 0.0);
 	F := UnprojectVector(px, py, 1.0);
 
-  Result.Direction := VectorSubtract(F, N);
+  Result.Direction := Vector3D_Subtract(F, N);
   Result.Direction.Normalize;
   Result.Origin := N;
 End;
 
 
-Procedure Viewport.Bind(Subview:Integer);
+Procedure TERRAViewport.Bind(Subview:Integer);
 Begin
 	//glMatrixMode(GL_PROJECTION);
 	//glLoadMatrixf(@_ProjectionMatrix);
@@ -567,7 +461,7 @@ Begin
 End;
 
 
-Procedure Viewport.SetRenderTargetState(TargetType:RenderTargetType; Enabled: Boolean);
+Procedure TERRAViewport.SetRenderTargetState(TargetType:RenderTargetType; Enabled: Boolean);
 Var
   TargetValue:Integer;
   Graphics:GraphicsManager;
@@ -578,7 +472,7 @@ Begin
   If (TargetValue < 0) Or (TargetValue >= TotalCaptureTargets) Then
     Exit;
 
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
   {If (TargetType = captureTargetEmission) And (Enabled) And (Not Graphics.Renderer.Features.FrameBufferObject.Avaliable) Then
     Enabled := False;}
@@ -590,7 +484,7 @@ Begin
 
   If Enabled Then
   Begin
-    Log(logDebug, 'GraphicsManager', 'Initializing '+IntToString(TargetValue)+' target for '+Self.Name);
+    Engine.Log.Write(logDebug, 'GraphicsManager', 'Initializing '+ IntegerProperty.Stringify(TargetValue)+' target for '+Self.Name);
 
     If (TargetValue<RenderCaptureTargets) Then
     Begin
@@ -613,7 +507,7 @@ Begin
 
   End Else
   Begin
-    Log(logDebug, 'GraphicsManager', 'Destroying '+IntToString(TargetValue)+' target for '+Self.Name);
+    Engine.Log.Write(logDebug, 'GraphicsManager', 'Destroying '+ IntegerProperty.Stringify(TargetValue)+' target for '+Self.Name);
     If TargetValue<RenderCaptureTargets Then
       ReleaseObject(_RenderTextures[TargetValue]);
 
@@ -624,7 +518,7 @@ Begin
   {$IFDEF DEBUG_CALLSTACK}PopCallStack();{$ENDIF}
 End;
 
-Function Viewport.IsRenderTargetEnabled(TargetType:RenderTargetType):Boolean;
+Function TERRAViewport.IsRenderTargetEnabled(TargetType:RenderTargetType):Boolean;
 Var
   TargetValue:Integer;
 Begin
@@ -639,7 +533,7 @@ Begin
     Result := Assigned(_RenderSamplers[TargetValue]);
 End;
 
-Function Viewport.GetRenderTarget(TargetType:RenderTargetType):RenderTargetInterface;
+Function TERRAViewport.GetRenderTarget(TargetType:RenderTargetType):RenderTargetInterface;
 Var
   TargetValue:Integer;
 Begin
@@ -659,7 +553,7 @@ Begin
   End;
 End;
 
-Function Viewport.GetRenderTexture(TargetType:RenderTargetType):Texture;
+Function TERRAViewport.GetRenderTexture(TargetType:RenderTargetType):TERRATexture;
 Var
   TargetValue:Integer;
 Begin
@@ -672,9 +566,9 @@ Begin
     If (Not Self.IsRenderTargetEnabled(TargetType)) Then
       Self.SetRenderTargetState(TargetType, True);
 
-    If _RenderTextures[TargetValue] = Nil Then
+    If (_RenderTextures[TargetValue] = Nil) {And (TargetValue<RenderCaptureTargets)} Then
     Begin
-      _RenderTextures[TargetValue] := Texture.Create(rtDynamic, _Name+'_rt'+IntToString(TargetValue));
+      _RenderTextures[TargetValue] := TERRATexture.Create(rtDynamic{, _Name+'_rt'+ IntegerProperty.Stringify(TargetValue)});
       _RenderTextures[TargetValue].InitFromSurface(Self.GetRenderTarget(TargetType));
     End;
 
@@ -682,91 +576,69 @@ Begin
   End;
 End;
 
-Function Viewport.ResolveToTexture():Texture;
-Var
-  TempTarget:Viewport;
-Begin
-  If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
-  Begin
-    Result := Self.GetResolveTexture();
-    Exit;
-  End;
-
-  If (_ResolveBuffer = Nil) Then
-  Begin
-    _ResolveBuffer := GraphicsManager.Instance.Renderer.CreateRenderTarget();
-    _ResolveBuffer.Generate(_Width, _Height, False, pixelSizeByte, 1, False, False);
-  End;
-
-  If _ResolveTexture = Nil Then
-  Begin
-    _ResolveTexture := Texture.Create(rtDynamic, _Name+'_resolve');
-    _ResolveTexture.InitFromSurface(_ResolveBuffer);
-  End;
-
-  Self._Target := Self;
-  Self._TargetX1 := 0;
-  Self._TargetY1 := 0;
-  Self._TargetX2 := 1.0;
-  Self._TargetY2 := 1.0;
-
-
-//  GraphicsManager.Instance.ShowDebugTarget := captureTargetColor;
-
-  {$IFDEF POSTPROCESSING}
-  If (Self.HasPostProcessing) Then
-    UpdateEffectTargets();
-	{$ENDIF}
-
-  _ResolveBuffer.BackgroundColor := ColorNull;
-  _ResolveBuffer.BeginCapture();
-  Self.DrawToTarget(False);
-  _ResolveBuffer.EndCapture();
-
-  GraphicsManager.Instance.ShowDebugTarget := captureTargetInvalid;
-
-  Self._Target := Nil;
-
-  Result := _ResolveTexture;
-End;
-
-Procedure Viewport.DrawToTarget(ProcessEffects:Boolean);
+Procedure TERRAViewport.DrawToTarget(Target:TERRAViewport);
 Var
   MyShader:ShaderInterface;
   I:Integer;
   ShowID:RenderTargetType;
-  TempColor:Color;
+  TempColor:ColorRGBA;
+  View:TERRAViewport;
 Begin
-  If (Target = Nil) Then
-  Begin
-    If AutoResolve Then
-    Begin
-      Self.ResolveToTexture();
-    End;
-
-    Exit;
-  End;
-
+  _FrameID := Engine.Graphics.FrameID;
+  
   {$IFDEF POSTPROCESSING}
   {$IFDEF FRAMEBUFFEROBJECTS}
-  If (ProcessEffects) And (Self.HasPostProcessing) Then
+  If (Self.HasPostProcessing) And (Target <> Self) Then
     UpdateEffectTargets();
   {$ENDIF}
   {$ENDIF}
 
-  TempColor := Target.BackgroundColor;
+  If (Target = Nil) Then
+  Begin
+    Self._TargetX1 := 0;
+    Self._TargetY1 := 0;
+    Self._TargetX2 := 1.0;
+    Self._TargetY2 := 1.0;
+
+    If (_ResolveBuffer = Nil) Then
+    Begin
+      _ResolveBuffer := Engine.Graphics.Renderer.CreateRenderTarget();
+    _ResolveBuffer.Generate(_Width, _Height, False, pixelSizeByte, 1, False, False);
+    End;
+
+    If _ResolveTexture = Nil Then
+    Begin
+      _ResolveTexture := TERRATexture.Create(rtDynamic{, _Name+'_resolve'});
+      _ResolveTexture.InitFromSurface(_ResolveBuffer);
+    End;
+
+    If (GetRenderTexture(captureTargetColor) = Nil) Then
+      Exit;
+
+    _ResolveBuffer.BackgroundColor := ColorNull;
+    Self.SetViewArea(0, 0, _ResolveBuffer.Width, _ResolveBuffer.Height);
+
+    _ResolveBuffer.BeginCapture();
+    Self.DrawToTarget(Self);
+    _ResolveBuffer.EndCapture();
+
+    Exit;
+  End;
+
+  Target.Restore(False);
+(*  TempColor := Target.BackgroundColor;
   Target.BackgroundColor := Self.BackgroundColor;
   Target.Restore(True);
-  Target.BackgroundColor := TempColor;
+  Target.BackgroundColor := TempColor;*)
 
   {$IFDEF POSTPROCESSING}
-  ShowID := GraphicsManager.Instance.ShowDebugTarget;
+  ShowID := Engine.Graphics.ShowDebugTarget;
   If (Integer(ShowID) >= TotalCaptureTargets) Then
     ShowID := captureTargetColor;
 
   If (Assigned(_FXChain)) And (ShowID = captureTargetInvalid) Then
   Begin
-    If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
+    If (Not Engine.Graphics.Renderer.Settings.PostProcessing.Enabled) Then
     Begin
       For I:=0 To Pred(TotalCaptureTargets) Do
         Self.SetRenderTargetState(RenderTargetType(I), False);
@@ -783,38 +655,41 @@ Begin
     End;
   End;
 
-
   If (ShowID = captureTargetInvalid) Then
     ShowID := captureTargetColor;
   {$ELSE}
   ShowID := captureTargetColor;
   {$ENDIF}
 
-  If (GraphicsManager.Instance.Renderer.Features.Shaders.Avaliable) Then
+  If (Engine.Graphics.Renderer.Features.Shaders.Avaliable) Then
   Begin
-    MyShader := GraphicsManager.Instance.GetDefaultFullScreenShader();
-    GraphicsManager.Instance.Renderer.BindShader(MyShader);
+    MyShader := Engine.Graphics.GetDefaultFullScreenShader();
+    Engine.Graphics.Renderer.BindShader(MyShader);
     MyShader.SetIntegerUniform('texture', 0);
-    MyShader.SetColorUniform('color', ColorWhite); //BIBI
   End Else
     MyShader := Nil;
 
   If (_RenderBuffers[Integer(ShowID)] = Nil) Then
     Self.SetRenderTargetState(ShowID, True);
 
+
+    {If ( Target = self ) And (InputManager.Instance.Keys.WasPressed(KeyJ)) Then
+      Self.GetRenderTexture(ShowID).GetImage().Save('frame.png');
+      }
+
   Self.GetRenderTexture(ShowID).Bind(0);
   //GraphicsManager.Instance.Renderer.BindSurface(_RenderBuffers[Integer(ShowID)], 0);
   //_Buffers[ShowID].BilinearFilter := False;
 
-  GraphicsManager.Instance.Renderer.SetBlendMode(blendNone);
+  Engine.Graphics.Renderer.SetBlendMode(blendNone);
 
-  If (Integer(GraphicsManager.Instance.ShowDebugTarget) <=0) Then
-    GraphicsManager.Instance.Renderer.SetBlendMode(blendBlend);
+  If (Integer(Engine.Graphics.ShowDebugTarget) <=0) Then
+    Engine.Graphics.Renderer.SetBlendMode(blendBlend);
 
-  GraphicsManager.Instance.DrawFullscreenQuad(MyShader, _TargetX1, _TargetY1, _TargetX2, _TargetY2);
+  Engine.Graphics.DrawFullscreenQuad(MyShader, _TargetX1, _TargetY1, _TargetX2, _TargetY2);
 End;
 
-(*Procedure Viewport.BindStageTexture(Stage:RenderTargetType; Slot:Integer);
+(*Procedure TERRAViewport.BindStageTexture(Stage:RenderTargetType; Slot:Integer);
 Begin
 {$IFDEF POSTPROCESSING}
   If Assigned(_Buffers[Integer(Stage)]) Then
@@ -824,9 +699,9 @@ Begin
   TextureManager.Instance.BlackTexture.Bind(Slot);
 End;*)
 
-Procedure Viewport.SetPostProcessingState(Enabled: Boolean);
+Procedure TERRAViewport.SetPostProcessingState(Enabled: Boolean);
 Begin
-  If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
+  If (Not Engine.Graphics.Renderer.Settings.PostProcessing.Enabled) Then
     Enabled := False;
 
   {$IFDEF POSTPROCESSING}
@@ -840,7 +715,7 @@ Begin
   {$ENDIF}
 End;
 
-Function Viewport.IsDirectDrawing: Boolean;
+Function TERRAViewport.IsDirectDrawing: Boolean;
 Var
   I:Integer;
 Begin
@@ -854,34 +729,34 @@ Begin
   Result := True;
 End;
 
-Procedure Viewport.Clear;
+Procedure TERRAViewport.Clear;
 Var
   UseScissors:Boolean;
   Flags:Integer;
 Begin
-  UseScissors := (Trunc(_Width*_Scale)<GraphicsManager.Instance.Width) Or (Trunc(_Height*_Scale)<GraphicsManager.Instance.Height);
+  UseScissors := (Trunc(_Width*_Scale)< Application.Instance.Window.Width) Or (Trunc(_Height*_Scale)< Application.Instance.Window.Height);
 
   If (UseScissors) Then
   Begin
-    GraphicsManager.Instance.Renderer.SetScissorArea(0, 0, Trunc(_Width*_Scale), Trunc(_Height*_Scale));
-    GraphicsManager.Instance.Renderer.SetScissorState(True);
+    Engine.Graphics.Renderer.SetScissorArea(0, 0, Trunc(_Width*_Scale), Trunc(_Height*_Scale));
+    Engine.Graphics.Renderer.SetScissorState(True);
   End;
 
   If Self.IsDirectDrawing()  Then
-    GraphicsManager.Instance.Renderer.SetClearColor(_BackgroundColor);
+    Engine.Graphics.Renderer.SetClearColor(_BackgroundColor);
 
-  GraphicsManager.Instance.Renderer.ClearBuffer((Not Self.IsDirectDrawing()) Or (_BackgroundColor.A>=255), True, True);
+  Engine.Graphics.Renderer.ClearBuffer((Not Self.IsDirectDrawing()) Or (_BackgroundColor.A>=255), True, True);
 
   If UseScissors Then
-    GraphicsManager.Instance.Renderer.SetScissorState(False);
+    Engine.Graphics.Renderer.SetScissorState(False);
 End;
 
-Procedure Viewport.SetBackgroundColor(BG: Color);
+Procedure TERRAViewport.SetBackgroundColor(BG:ColorRGBA);
 Begin
   _BackgroundColor := BG;
 End;
 
-Procedure Viewport.EnableDefaultTargets();
+Procedure TERRAViewport.EnableDefaultTargets();
 Begin
   Self.SetRenderTargetState(captureTargetColor, True);
   {$IFDEF ADVANCED_ALPHA_BLEND}
@@ -889,30 +764,15 @@ Begin
   {$ENDIF}
 End;
 
-Procedure Viewport.SetTarget(Target: Viewport; X1, Y1, X2, Y2: Single);
+Procedure TERRAViewport.SetTargetArea(X1, Y1, X2, Y2: Single);
 Begin
-  If (Self._Target = Target) Then
-    Exit;
-
-  Self._Target := Target;
   Self._TargetX1 := X1;
   Self._TargetX2 := X2;
   Self._TargetY1 := Y1;
   Self._TargetY2 := Y2;
 End;
 
-Procedure Viewport.SetTargetInPixels(Target: Viewport; X1, Y1, X2, Y2:Integer);
-Begin
-  If (Self._Target = Target) Then
-    Exit;
-
-  If (Assigned(Target)) Then
-    SetTarget(Target, SafeDiv(X1, Target.Width), SafeDiv(Y1, Target.Height), SafeDiv(X2, Target.Width), SafeDiv(Y2, Target.Height))
-  Else
-    SetTarget(Nil, 0.0, 0.0, 1.0, 1.0);
-End;
-
-Procedure Viewport.SetViewArea(X, Y, Width, Height: Integer);
+Procedure TERRAViewport.SetViewArea(X, Y, Width, Height: Integer);
 Begin
   _ViewX := X;
   _ViewY := Y;
@@ -932,27 +792,27 @@ Begin
     Width := Trunc(Width * _Scale);
   End;
 
-  GraphicsManager.Instance.Renderer.SetViewport(X, Y, Width, Height);
+  Engine.Graphics.Renderer.SetViewport(X, Y, Width, Height);
   If (_VR) Then
   Begin
-    GraphicsManager.Instance.Renderer.SetScissorState(True);
-    GraphicsManager.Instance.Renderer.SetScissorArea(X, Y, Width, Height);
+    Engine.Graphics.Renderer.SetScissorState(True);
+    Engine.Graphics.Renderer.SetScissorArea(X, Y, Width, Height);
   End Else
-    GraphicsManager.Instance.Renderer.SetScissorState(False);
+    Engine.Graphics.Renderer.SetScissorState(False);
 End;
 
 
-Procedure Viewport.OnContextLost;
+Procedure TERRAViewport.OnContextLost;
 Var
   I:Integer;
 Begin
-  Log(logDebug, 'Viewport', 'Context lost: '+Self.Name);
+  Engine.Log.Write(logDebug, 'Viewport', 'Context lost: '+Self.Name);
 
   For I:=0 To Pred(TotalCaptureTargets) Do
   Begin
     If (Assigned(_RenderBuffers[I])) Or (Assigned(_RenderTextures[I])) Then
     Begin
-      Log(logDebug, 'Viewport', 'Reseting '+IntToString(I)+' target for '+Self.Name);
+      Engine.Log.Write(logDebug, 'Viewport', 'Reseting '+ IntegerProperty.Stringify(I)+' target for '+Self.Name);
       Self.SetRenderTargetState(RenderTargetType(I), False);
       Self.SetRenderTargetState(RenderTargetType(I), True);
     End;
@@ -967,27 +827,28 @@ Begin
   {$ENDIF}
 End;
 
-Function Viewport.GetResolveTexture: Texture;
+Function TERRAViewport.GetResolveTexture: TERRATexture;
 Var
   ShowID:RenderTargetType;
 Begin
-  ShowID := GraphicsManager.Instance.ShowDebugTarget;
+  ShowID := Engine.Graphics.ShowDebugTarget;
   If (ShowID = captureTargetInvalid) Then
   Begin
-    If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
+    Self.SetAutoResolve(True);
+
+    If (Not Engine.Graphics.Renderer.Settings.PostProcessing.Enabled) Then
       Result := Self.GetRenderTexture(captureTargetColor)
     Else
       Result := Self._ResolveTexture;
-
-    Self.AutoResolve := True;
   End Else
   Begin
-    Self.AutoResolve := False;
+    Self.SetAutoResolve(False);
+
     Result := Self.GetRenderTexture(ShowID);
   End;
 End;
 
-Function Viewport.HasPostProcessing: Boolean;
+Function TERRAViewport.HasPostProcessing: Boolean;
 Begin
 {$IFDEF POSTPROCESSING}
   Result := Assigned(_FXChain);
@@ -997,11 +858,11 @@ Begin
 End;
 
 {$IFDEF POSTPROCESSING}
-Function Viewport.GetFXChain: ScreenFXChain;
+Function TERRAViewport.GetFXChain: ScreenFXChain;
 Begin
-  If Not GraphicsManager.Instance.Renderer.Features.PostProcessing.Avaliable Then
+  If Not Engine.Graphics.Renderer.Features.PostProcessing.Avaliable Then
   Begin
-    Log(logError, 'Viewport', 'Postprocessing not supported in this device!');
+    Engine.Log.Write(logError, 'Viewport', 'Postprocessing not supported in this device!');
     Result := Nil;
     Exit;
   End;
@@ -1012,14 +873,14 @@ Begin
   Result := _FXChain;
 End;
 
-Procedure Viewport.UpdateEffectTargets;
+Procedure TERRAViewport.UpdateEffectTargets;
 Var
   Sampler:RenderTargetSampler;
   I, Count:Integer;
   SrcType:RenderTargetType;
   Graphics:GraphicsManager;
 Begin
-  Graphics := GraphicsManager.Instance;
+  Graphics := Engine.Graphics;
 
   For I:=RenderCaptureTargets To Pred(TotalCaptureTargets) Do
   Begin
@@ -1050,7 +911,7 @@ Begin
           Count := 4;
         End;
 
-        Sampler.Update(Self.GetRenderTexture(SrcType), _BlurShader, 0, Count);
+        Sampler.Update(Self, Self.GetRenderTexture(SrcType), _BlurShader, 0, Count);
       End;
 
     effectTargetEdge:
@@ -1069,8 +930,7 @@ Begin
           _DistanceFieldShader.Generate('DistanceField', GetShader_DistanceField());
         End;*)
 
-        Sampler.Update(Self.GetRenderTexture(captureTargetNormal), _EdgeShader, 0, 1);
-        //Sampler.Update(Sampler.GetResult(), _DistanceFieldShader, 0, 256);
+        Sampler.Update(Self, Self.GetRenderTexture(captureTargetNormal), _EdgeShader, 0, 1);
       End;
 
     End;
@@ -1080,6 +940,40 @@ Begin
 End;
 
 {$ENDIF}
+
+Function TERRAViewport.ProjectBoundingBox(Const Box:BoundingBox):BoundingBox;
+Var
+  I:Integer;
+  Vertices:BoundingBoxVertices;
+Begin
+  Box.GetVertices(Vertices);
+  For I:=1 To 8 Do
+  Begin
+    Vertices[I] := ProjectPoint(Vertices[I]);
+
+    If I=1 Then
+    Begin
+      Result.StartVertex := Vertices[1];
+      Result.EndVertex := Vertices[1];
+    End Else
+    Begin
+      Result.StartVertex := Vector3D_Min(Vertices[I],Result.StartVertex);
+      Result.EndVertex := Vector3D_Max(Vertices[I],Result.EndVertex);
+    End;
+  End;
+End;
+
+Procedure TERRAViewport.SetAutoResolve(const Value: Boolean);
+Begin
+  (*If (Not GraphicsManager.Instance.Renderer.Settings.PostProcessing.Enabled) Then
+    Value := False;*)
+
+  If Self._AutoResolve = Value Then
+    Exit;
+
+  _AutoResolve := Value;
+
+End;
 
 
 End.

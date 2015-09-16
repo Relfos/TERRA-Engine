@@ -1,0 +1,16 @@
+varying mediump vec2 texCoord;
+  varying lowp vec4 color;
+  varying lowp float saturation;
+  uniform sampler2D texture;
+  const lowp vec3 LumCoeff = vec3(0.2125, 0.7154, 0.0721);
+  const lowp float middleGray = 0.5;
+lowp vec3 AdjustSaturation(lowp vec3 color, lowp float saturation)	{
+  lowp vec3 AvgLumin = vec3(0.5);
+  lowp vec3 intensity = vec3(dot(color, LumCoeff));
+  lowp vec3 satColor = mix(intensity, color, saturation);
+return satColor;	}
+
+  void main()	{
+    lowp vec4 c = color * texture2D(texture, texCoord.st);
+    c.rgb = AdjustSaturation(c.rgb, saturation); 
+    gl_FragColor = c;}

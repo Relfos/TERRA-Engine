@@ -26,7 +26,7 @@ Unit TERRA_Camera;
 {$I terra.inc}
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_String, TERRA_Utils, TERRA_Frustum, TERRA_BoundingBox, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Math, TERRA_Plane;
+  TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Frustum, TERRA_BoundingBox, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Math, TERRA_Plane;
 
 Const
   MoveSpeed = 0.05;
@@ -39,35 +39,37 @@ Const
   MinZoom = 60;
   MaxZoom = 120;
 
-  camDirForward   = 0;
-  camDirBackward  = 1;
-  camDirLeft      = 2;
-  camDirRight     = 3;
-
 Type
+  TERRACameraMovement = (
+    CameraMove_Forward,
+    CameraMove_Backward,
+    CameraMove_Left,
+    CameraMove_Right,
+    CameraMove_Up,
+    CameraMove_Down
+  );
 
-  { Camera }
+  TERRACamera = Class;
 
-  Camera = Class(TERRAObject)
+  TERRACameraController = Class(TERRAObject)
     Protected
-      _Name:TERRAString;
+      _Target:TERRACamera;
 
-      _View:Vector3D;
-      _Position:Vector3D;
-      _Roll:Vector3D;
-      _Speed:Single;
+    Public
+      Procedure Update(); Virtual; Abstract;
+
+      Property Target:TERRACamera Read _Target;
+  End;
+
+  { TERRACamera }
+  TERRACamera = Class(TERRAObject)
+    Protected
+      _Position:Vector3DProperty;
+      _Offset:Vector3D;
 
       _Transform:Matrix4x4;
-      _ScreenMatrix4x4:Matrix4x4;
 
 			_ProjectionMatrix4x4:Matrix4x4;
-      _Ortho:Boolean;
-
-      _OrthoX1:Single;
-      _OrthoX2:Single;
-      _OrthoY1:Single;
-      _OrthoY2:Single;
-      _OrthoScale:Single;
 
       _NeedsUpdate:Boolean;
       _LastOrientation:Single;
@@ -77,8 +79,6 @@ Type
       _Near:Single;
       _Far:Single;
       _FOV:Single;
-
-      _Ratio:Single;
 
       _CurrentEye:Integer;
 
@@ -93,62 +93,56 @@ Type
 
       _Focus:Vector3D;
 
+      _Controller:TERRACameraController;
+
+      _Shaking:Boolean;
+      _ShakeTime:Cardinal;
+
       Procedure UpdateMatrix4x4(Eye:Integer);
+
+      Procedure CalculateProjection(Const Eye:Integer; Out Result:Matrix4x4); Virtual; Abstract;
+      Procedure CalculateTransform(Out Result:Matrix4x4); Virtual; Abstract;
 
       Function ConvertPlaneWorldToCameraSpace(Point, Normal:Vector3D):Plane;
 
+      Procedure SetController(const Value: TERRACameraController);
+
+      Function GetPosition: Vector3D;
+
     Public
-      Constructor Create(Name:TERRAString);
+      Constructor Create(Const Name:TERRAString);
       Procedure Release; Override;
 
       Procedure Update(Width, Height, Eye:Integer);
 
       Procedure Refresh();
 
-      Procedure SetupUniforms;
-
-      Procedure FreeCam;
-      Procedure Rotate(rotX, rotY:Single);
+      Procedure SetupUniforms; Virtual; Abstract;
 
       Procedure SetFocusPoint(Const P:Vector3D);
 
-      Procedure SetView(NewView:Vector3D);
-      Procedure SetPosition(NewPos:Vector3D);
-      Procedure SetRoll(NewRoll:Vector3D);
-
-      Procedure SetOrthoMode(Enabled:Boolean; X1,Y1,X2,Y2:Single);
-      Procedure SetOrthoScale(Value:Single);
+      Procedure SetPosition(Const Value:Vector3D);
 
       Procedure SetNear(Value:Single);
       Procedure SetFar(Value:Single);
       Procedure SetFOV(Value:Single);
 
-      Procedure SetRatio(Value:Single);
+      Procedure Move(Const Dir:TERRACameraMovement; Speed:Single); Virtual; Abstract;
 
-      Procedure LookAt(P:Vector3D);
-
-      Procedure Move(Dir:Integer; Speed:Single);
-
-      Procedure AdjustToFit(Box:BoundingBox);
+      Procedure Shake(Const Duration:Cardinal);
 
       Procedure SetClipPlane(Point, Normal:Vector3D);
       Procedure RemoveClipPlane();
 
-      Property Position:Vector3D Read _Position Write SetPosition;
-      Property View:Vector3D Read _View  Write SetView;
-      Property Roll:Vector3D Read _Roll Write _Roll;
+      Function IsBoxVisible(Const Box:BoundingBox):Boolean; Virtual;
 
-      Property Ortho:Boolean Read _Ortho;
-      Property OrthoScale:Single Read _OrthoScale Write SetOrthoScale;
+      Property Position:Vector3D Read GetPosition Write SetPosition;
 
       Property Transform:Matrix4x4 Read _Transform;
       Property Projection:Matrix4x4 Read _ProjectionMatrix4x4;
 
-      Property ScreenMatrix4x4:Matrix4x4 Read _ScreenMatrix4x4;
-      Property Speed:Single Read _Speed Write _Speed;
-
-      Property Near:Single Read _Near Write SetNear;
-      Property Far:Single Read _Far Write SetFar;
+      Property NearDistance:Single Read _Near Write SetNear;
+      Property FarDistance:Single Read _Far Write SetFar;
       Property FOV:Single  Read _FOV Write SetFOV;
 
       Property Frustum:TERRA_Frustum.Frustum Read _Frustum;
@@ -156,111 +150,108 @@ Type
       Property Up:Vector3D Read _Up;
       Property Right:Vector3D Read _Right;
 
-      Property Name:TERRAString Read _Name Write _Name;
-
-      Property Ratio:Single Read _Ratio Write SetRatio;
-
       Property UseClipPlane:Boolean Read _UseClipPlane;
+
+      Property Controller:TERRACameraController Read _Controller Write SetController;
 
       Property FocusPoint:Vector3D Read _Focus Write SetFocusPoint;
   End;
 
+  PerspectiveCamera = Class(TERRACamera)
+    Protected
+      _View:Vector3DProperty;
+      _Roll:Vector3DProperty;
+
+      _Ratio:Single;
+
+      Procedure CalculateProjection(Const Eye:Integer; Out Result:Matrix4x4); Override;
+      Procedure CalculateTransform(Out Result:Matrix4x4); Override;
+
+      Function GetView: Vector3D;
+      Function GetRoll: Vector3D;
+
+    Public
+      Constructor Create(Const Name:TERRAString);
+      Procedure Move(Const Dir:TERRACameraMovement; Speed:Single); Override;
+
+      Procedure AdjustToFit(Const Box:BoundingBox);
+
+      Procedure SetView(Const Value:Vector3D);
+      Procedure SetRoll(Const Value:Vector3D);
+
+      Procedure LookAt(Const Target:Vector3D);
+      Procedure Rotate(RotX, RotY:Single);
+
+      Procedure SetupUniforms; Override;
+
+      Function IsBoxVisible(Const Box:BoundingBox):Boolean; Override;
+
+      Property View:Vector3D Read GetView Write SetView;
+      Property Roll:Vector3D Read GetRoll Write SetRoll;
+
+      Property Ratio:Single Read _Ratio;
+  End;
+
+  OrthoCamera = Class(TERRACamera)
+    Protected
+      _OrthoX1:Single;
+      _OrthoX2:Single;
+      _OrthoY1:Single;
+      _OrthoY2:Single;
+      _OrthoScale:Single;
+
+      Procedure CalculateProjection(Const Eye:Integer; Out Result:Matrix4x4); Override;
+      Procedure CalculateTransform(Out Result:Matrix4x4); Override;
+
+    Public
+      Constructor Create(Const Name:TERRAString);
+
+      Procedure Move(Const Dir:TERRACameraMovement; Speed:Single); Override;
+
+      Procedure SetArea(X1,Y1,X2,Y2:Single);
+      Procedure SetScale(Value:Single);
+  End;
+
 Implementation
-Uses TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsManager, TERRA_Renderer,  TERRA_InputManager, TERRA_Log, Math;
+Uses TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsManager, TERRA_Renderer,  TERRA_InputManager, TERRA_Log,
+  TERRA_Engine, TERRA_Renderable;
 
-// Camera
-
-constructor Camera.Create(Name: TERRAString);
+{ TERRACamera}
+Constructor TERRACamera.Create(Const Name:TERRAString);
 Begin
-  _Name := Name;
-  _Roll := VectorUp;
+  Self._ObjectName := Name;
   _FOV := 45.0;
   _LastOrientation := -1;
-  _Position := VectorCreate(0.0, 0.0, 1.0);
-  _View := VectorCreate(0.0, 0.0, -1.0);
+
   _Near := 1.0;
   _Far := 300.0;
-  _Speed := 4.0;// * GL_WORLD_SCALE;
 
-  _Ortho := False;
-  _OrthoScale := 1.0;
+  _Position := Vector3DProperty.Create('position', Vector3D_Create(0.0, 0.0, 1.0));
+  _Offset := Vector3D_Zero;
 
   _NeedsUpdate := True;
 End;
 
-procedure Camera.SetPosition(NewPos: Vector3D);
+Procedure TERRACamera.Release();
 Begin
-  _Position:= NewPos;
-  _NeedsUpdate := True;
+  ReleaseObject(_Position);
 End;
 
-procedure Camera.SetView(NewView: Vector3D);
+Procedure TERRACamera.SetPosition(Const Value:Vector3D);
 Begin
-//  NewView := VectorCreate(0,-1,0);
-  _View := NewView;
+  If (_Position.Value.X = Value.X) And (_Position.Value.Y = Value.Y) And (_Position.Value.Z = Value.Z) Then
+    Exit;
+
+  _Position.Value := Value;
   _NeedsUpdate := True;
 End;
 
-procedure Camera.SetRoll(NewRoll: Vector3D);
-Begin
-  _Roll:= NewRoll;
-  _NeedsUpdate := True;
-End;
-
-procedure Camera.UpdateMatrix4x4(Eye: Integer);
-Const
-  ZoomFactor = 1;
-Var
-  P:Vector3D;
-  Zoom:Single;
-  Proj:Matrix4x4;
+procedure TERRACamera.UpdateMatrix4x4(Eye: Integer);
 Begin
   _NeedsUpdate := False;
 
-{$IFDEF EMULATED_LANDSCAPE}
- // If (Application.Instance.IsLandscape()) And (_Target<>Nil) Then
-    _Ratio := SafeDiv(_Height, _Width, 1.0) * SafeDiv(GraphicsManager.Instance.Height, GraphicsManager.Instance.Width, 1.0);
-{$ELSE}
-    _Ratio := SafeDiv(_Width, _Height, 1.0);
-{$ENDIF}
-
-
-  If (_Ortho) Then
-    _ProjectionMatrix4x4 := Matrix4x4Ortho(Ratio*_OrthoX1*_OrthoScale, Ratio*_OrthoX2*_OrthoScale,
-                                       _OrthoY1*_OrthoScale, _OrthoY2*_OrthoScale, _Near, _Far)
-  Else
-  {$IFDEF DISABLEVR}
-    _ProjectionMatrix4x4 := Matrix4x4Perspective(FOV, Ratio, _Near, _Far);
-  {$ELSE}
-    _ProjectionMatrix4x4 := Application.Instance.GetVRProjectionMatrix(Eye, FOV, Ratio, _Near, _Far);
-  {$ENDIF}
-
-//Log(logDebug, 'Viewport', 'X:'+IntToString(Trunc(_X)) +' Y:'+IntToString(Trunc(_Y)));
-//  Log(logDebug, 'Viewport', 'W:'+IntToString(Trunc(_Width)) +' W:'+IntToString(Trunc(_Height)));
-
-  P := _Position;
-{  If GraphicsManager.Instance.LandscapeOrientation Then
-    _Up := VectorCreate(_Roll.Y, _Roll.X, _Roll.Z)
-  Else}
-
-  _Transform := Matrix4x4LookAt(P, VectorAdd(_Position, _View), _Roll);
-  _ScreenMatrix4x4 := _Transform;
-
-  _Up := _Roll;
-{  If (Abs(_Up.Dot(_View))>=0.9) Then
-  Begin
-    _Up.Y := _Roll.Z;
-    _Up.Z := _Roll.Y;
-    _Right := VectorCross(_Up, _View);
-    _Up := VectorCross(_View, _Right);
-  End Else}
-  Begin
-    _Right := VectorCross(_Up, _View);
-    _Up := VectorCross(_View, _Right);
-  End;
-
-  //_Right.Normalize;
-  //_Up.Normalize;
+  CalculateProjection(Eye, _ProjectionMatrix4x4);
+  CalculateTransform(_Transform);
 
   {If Self._UseClipPlane Then
     CalculateObliqueMatrix4x4ClipPlane(_ProjectionMatrix4x4, _Transform, _ClipPlane);}
@@ -268,33 +259,22 @@ Begin
 	_Frustum.Update(_ProjectionMatrix4x4, Self._Transform);
 End;
 
-procedure Camera.SetOrthoScale(Value: Single);
-Begin
-  If (_OrthoScale = Value) Then
-    Exit;
-
-  _OrthoScale := Value;
-  _NeedsUpdate := True;
-End;
-
-procedure Camera.SetOrthoMode(Enabled: Boolean; X1, Y1, X2, Y2: Single);
-Begin
-  If (Ortho = Enabled) Then
-    Exit;
-
-  _Ortho := Enabled;
-  _NeedsUpdate := True;
-
-  _OrthoX1 := X1;
-  _OrthoX2 := X2;
-  _OrthoY1 := Y1;
-  _OrthoY2 := Y2;
-End;
-
-procedure Camera.Update(Width, Height, Eye: Integer);
+Procedure TERRACamera.Update(Width, Height, Eye: Integer);
 Begin
   _Width := Width;
   _Height := Height;
+
+  If (_Shaking) Then
+  Begin
+    _Offset := Vector3D_Create(RandomFloat(-1, 1), RandomFloat(-1, 1), RandomFloat(-1, 1));
+    _NeedsUpdate := True;
+
+    If (Application.GetTime() > _ShakeTime) Then
+      _Shaking := False;
+  End;
+
+  If Assigned(_Controller) Then
+    _Controller.Update();
 
   If (Eye <> _CurrentEye) Then
   Begin
@@ -306,77 +286,13 @@ Begin
     UpdateMatrix4x4(Eye);
 End;
 
-procedure Camera.Rotate(rotX, rotY: Single);
-Var
-  rot_axis:Vector3D;
-Begin
-  rotX := rotX * (Speed * GraphicsManager.Instance.ElapsedTime) * 0.5;
-  rotY := rotY * (Speed * GraphicsManager.Instance.ElapsedTime) * 0.5;
-
-	_view.Rotate(VectorUp, rotX);
-	rot_axis := VectorCreate(-_view.z, 0.0, _view.x);
-  rot_axis.Normalize;
-	_view.Rotate(rot_axis, rotY);
-  _view.Normalize;
-
-  _NeedsUpdate := True;
-End;
-
-Procedure Camera.SetFocusPoint(const P: Vector3D);
+Procedure TERRACamera.SetFocusPoint(const P: Vector3D);
 Begin
   _Focus := P;
 End;
 
-procedure Camera.SetupUniforms;
-Var
-  _Shader:ShaderInterface;
-  P:Vector3D;
-  A,B,C, Delta:Single;
-Begin
-  _Shader := GraphicsManager.Instance.Renderer.ActiveShader;
-  If (_Shader=Nil) Then
-    Exit;
 
-  _Shader.SetVec3Uniform('cameraPosition', _Position);
-  _Shader.SetVec3Uniform('cameraView', _View);
-  _Shader.SetMat4Uniform('cameraMatrix', _Transform);
-  _Shader.SetMat4Uniform('projectionMatrix', _ProjectionMatrix4x4);
-  _Shader.SetFloatUniform('zNear', _Near);
-  _Shader.SetFloatUniform('zFar', _Far);
-
-  If (_UseClipPlane) Then
-    _Shader.SetPlaneUniform('clipPlane', _ClipPlane);
-
-  If (GraphicsManager.Instance.Renderer.Settings.FogMode<>0) Then
-  Begin
-    _Shader.SetColorUniform('fogColor', GraphicsManager.Instance.Renderer.Settings.FogColor);
-
-    If (GraphicsManager.Instance.Renderer.Settings.FogMode And fogDistance<>0) Then
-    Begin
-      A := GraphicsManager.Instance.Renderer.Settings.FogDistanceStart;
-      B := GraphicsManager.Instance.Renderer.Settings.FogDistanceEnd;
-      C := (B-A) * 0.5;
-      _Shader.SetFloatUniform('fogDistanceCenter', C + A);
-      _Shader.SetFloatUniform('fogDistanceSize', C);
-    End;
-
-    If (GraphicsManager.Instance.Renderer.Settings.FogMode And fogHeight<>0) Then
-    Begin
-      _Shader.SetFloatUniform('fogHeightStart', GraphicsManager.Instance.Renderer.Settings.FogHeightStart);
-      _Shader.SetFloatUniform('fogHeightEnd', GraphicsManager.Instance.Renderer.Settings.FogHeightEnd);
-    End;
-
-    If (GraphicsManager.Instance.Renderer.Settings.FogMode And fogBox<>0) Then
-    Begin
-      _Shader.SetVec3Uniform('fogBoxAreaStart', GraphicsManager.Instance.Renderer.Settings.FogBoxArea.StartVertex);
-      _Shader.SetVec3Uniform('fogBoxAreaEnd', GraphicsManager.Instance.Renderer.Settings.FogBoxArea.EndVertex);
-      _Shader.SetFloatUniform('fogBoxSize', GraphicsManager.Instance.Renderer.Settings.FogBoxSize);
-    End;
-
-  End;
-End;
-
-procedure Camera.SetFOV(Value: Single);
+procedure TERRACamera.SetFOV(Value: Single);
 Begin
   If (Value = _FOV) Then
     Exit;
@@ -385,7 +301,7 @@ Begin
   _NeedsUpdate := True;
 End;
 
-procedure Camera.SetFar(Value: Single);
+procedure TERRACamera.SetFar(Value: Single);
 Begin
   If (Value = _Far) Then
     Exit;
@@ -394,7 +310,7 @@ Begin
   _NeedsUpdate := True;
 End;
 
-procedure Camera.SetNear(Value: Single);
+procedure TERRACamera.SetNear(Value: Single);
 Begin
   If (Value = _Near) Then
     Exit;
@@ -403,123 +319,21 @@ Begin
   _NeedsUpdate := True;
 End;
 
-procedure Camera.AdjustToFit(Box: BoundingBox);
-Var
-  oneOverSine:Single;
-  distanceToCenter:Single;
-  offset, Center:Vector3D;
-  p,N:Vector3D;
-Begin
-  Center := Box.Center;
-  offset := VectorSubtract(Box.EndVertex, Center); // Radius of bounding sphere
-
-  P := center;
-  oneOverSine := 1.0 / Tan(_FOV *RAD / 4.0); // 1 / sin = adjacent / opposite
-  distanceToCenter := Offset.Length * oneOverSine; // (adjacent / opposite) * opposite = adjacent
-
-  N := VectorConstant(1);
-  N.Normalize;
-  P.Add( VectorScale(N, distanceToCenter));
-  SetPosition(P);
-  P.Subtract(Center);
-  P.Normalize;
-  P.Scale(-1);
-  SetView(P);
-End;
-
-procedure Camera.LookAt(P: Vector3D);
-Begin
-  P := VectorSubtract(P, _Position);
-  P.Normalize;
-  SetView(P);
-End;
-
-procedure Camera.FreeCam;
-Var
-  Walk_speed:Single;
-  Rot:Single;
-  Input:InputManager;
-Begin
-  Walk_Speed := GraphicsManager.Instance.ElapsedTime * Speed * 3.0;
-
-  Input := InputManager.Instance;
-
-	If (Input.Keys.IsDown(keyShift)) Then
-    Walk_speed := Walk_speed * 8;
-
-	If (Input.Keys.IsDown(keyW)) Then
-    Move(camDirForward, Walk_Speed);
-
-	If (Input.Keys.IsDown(keyS)) Then
-    Move(camDirBackward, Walk_Speed);
-
-	If (Input.Keys.IsDown(keyA)) Then
-    Move(camDirLeft, Walk_Speed);
-
-	If (Input.Keys.IsDown(keyD)) Then
-    Move(camDirRight, Walk_Speed);
-
-	If (Input.Keys.IsDown(keyQ)) Then
-		_position.y := _position.y -walk_speed;
-
-	If (Input.Keys.IsDown(keyE)) Then
-		_position.y := _position.y + walk_speed;
-
-  {$IFDEF MOBILE}
-  Rot := 0.125;
-  {$ELSE}
-  Rot := 0.5;
-  {$ENDIF}
-
-  If (Input.Keys.IsDown(keyLEFT)) Then
-    Self.Rotate(Rot, 0.0);
-
-  If (Input.Keys.IsDown(keyRight)) Then
-    Self.Rotate(-Rot, 0.0);
-
-  If (Input.Keys.IsDown(keyUp)) Then
-    Self.Rotate(0.0, Rot);
-
-  If (Input.Keys.IsDown(keyDown)) Then
-    Self.Rotate(0.0, -Rot);
-
-  _NeedsUpdate := True;
-End;
-
-procedure Camera.Move(Dir: Integer; Speed: Single);
-Begin
-  Case Dir Of
-    camdirForward:   _position := VectorAdd(_position, VectorScale(_view, Speed));
-    camdirBackward:  _position := VectorAdd(_position, VectorScale(_view, -Speed));
-    camdirLeft:
-      Begin
-    		_position.x := _position.x + (_view.z * Speed);
-    		_position.z := _position.z - (_view.x * Speed);
-    	End;
-
-    camdirRight:
-    Begin
-	  	_position.x := _position.x -( _view.z * Speed);
-  		_position.z := _position.z + (_view.x * Speed);
-  	End;
-  End;
-
-  _NeedsUpdate := True;
-End;
-
-
-function Camera.ConvertPlaneWorldToCameraSpace(Point, Normal: Vector3D): Plane;
+function TERRACamera.ConvertPlaneWorldToCameraSpace(Point, Normal: Vector3D): Plane;
 Var
   A,B,C,N:Single;
   pX, pY, pZ, pW:Single; //transformed point
   nX, nY, nZ, nW, inverse_normal_length:Single; //transformed normal
+  Pos:Vector3D;
 Begin
   A := Point.X;
   B := Point.Y;
   C := Point.Z;
 
+  Pos := Self.Position;
+
   Result := PlaneCreate(Point, Normal);
-  N := (_Position.X * Result.A) + (_Position.Y * Result.B) + (_Position.Z * Result.C) + (1 * Result.D);
+  N := (Pos.X * Result.A) + (Pos.Y * Result.B) + (Pos.Z * Result.C) + (1 * Result.D);
 
   pX := A*_Transform.V[0] +  B*_Transform.V[4] +  C*_Transform.V[8] +  _Transform.V[12];
   pY := A*_Transform.V[1] +  B*_Transform.V[5] +  C*_Transform.V[9] +  _Transform.V[13];
@@ -558,7 +372,7 @@ Begin
   End;
 End;
 
-procedure Camera.SetClipPlane(Point, Normal: Vector3D);
+procedure TERRACamera.SetClipPlane(Point, Normal: Vector3D);
 {$IFDEF PC}
 Var
   Clip:Array[0..4] Of Double;
@@ -588,7 +402,7 @@ Begin
   UpdateMatrix4x4(0);
 End;
 
-procedure Camera.RemoveClipPlane;
+procedure TERRACamera.RemoveClipPlane;
 Begin
   If Not _UseClipPlane Then
     Exit;
@@ -607,23 +421,313 @@ Begin
   UpdateMatrix4x4(0);
 End;
 
-procedure Camera.SetRatio(Value: Single);
+procedure TERRACamera.Refresh;
 Begin
-  If (_Ratio = Value) Then
+  _NeedsUpdate := True;
+End;
+
+Function TERRACamera.GetPosition: Vector3D;
+Begin
+  Result := _Position.Value;
+End;
+
+Procedure TERRACamera.SetController(const Value: TERRACameraController);
+Begin
+  If (Value = _Controller) Then
     Exit;
 
-  _Ratio := Value;
+  ReleaseObject(_Controller);
+
+  _Controller := Value;
+
+  If Assigned(_Controller) Then
+  Begin
+    If (Assigned(_Controller.Target)) And (_Controller.Target<> Self) Then
+      _Controller.Target.SetController(Nil);
+
+    _Controller._Target := Self;
+  End;
+End;
+
+Procedure TERRACamera.Shake(Const Duration:Cardinal);
+Begin
+  _ShakeTime := Application.GetTime() + Duration;
+  _Shaking := True;
   _NeedsUpdate := True;
 End;
 
-procedure Camera.Refresh;
+Function TERRACamera.IsBoxVisible(const Box: BoundingBox): Boolean;
 Begin
+  Result := True;
+End;
+
+{ PerspectiveCamera }
+Constructor PerspectiveCamera.Create(const Name: TERRAString);
+Begin
+  Inherited Create(Name);
+
+  _View := Vector3DProperty.Create('view', Vector3D_Create(0.0, 0.0, -1.0));
+  _Roll := Vector3DProperty.Create('roll', Vector3D_Up);
+End;
+
+Procedure PerspectiveCamera.SetView(Const Value:Vector3D);
+Begin
+  If (_View.Value.X = Value.X) And (_View.Value.Y = Value.Y) And (_View.Value.Z = Value.Z) Then
+    Exit;
+
+  _View.Value := Value;
   _NeedsUpdate := True;
 End;
 
-procedure Camera.Release;
+Procedure PerspectiveCamera.SetRoll(Const Value:Vector3D);
 Begin
-  // do nothing
+  If (_Roll.Value.X = Value.X) And (_Roll.Value.Y = Value.Y) And (_Roll.Value.Z = Value.Z) Then
+    Exit;
+
+  _Roll.Value := Value;
+  _NeedsUpdate := True;
+End;
+
+
+Procedure PerspectiveCamera.CalculateProjection(Const Eye:Integer; Out Result:Matrix4x4);
+Begin
+{$IFDEF EMULATED_LANDSCAPE}
+ // If (Application.Instance.IsLandscape()) And (_Target<>Nil) Then
+    _Ratio := SafeDiv(_Height, _Width, 1.0) * SafeDiv(GraphicsManager.Instance.Height, GraphicsManager.Instance.Width, 1.0);
+{$ELSE}
+    _Ratio := SafeDiv(_Width, _Height, 1.0);
+{$ENDIF}
+
+  {$IFDEF DISABLEVR}
+  Result := Matrix4x4_Perspective(FOV, Ratio, _Near, _Far);
+  {$ELSE}
+  Result := Application.Instance.GetVRProjectionMatrix(Eye, FOV, Ratio, _Near, _Far);
+  {$ENDIF}
+End;
+
+Procedure PerspectiveCamera.CalculateTransform(out Result: Matrix4x4);
+Var
+  P, V, R:Vector3D;
+Begin
+  P := Self.Position;
+  V := Self.View;
+  R := Self.Roll;
+
+  P.Add(Vector3D_Scale(_Offset, 0.25));
+
+  _Transform := Matrix4x4_LookAt(P, Vector3D_Add(P, V), R);
+
+  _Up := R;
+  _Right := Vector3D_Cross(_Up, V);
+  _Up := Vector3D_Cross(V, _Right);
+
+  //_Right.Normalize;
+  //_Up.Normalize;
+End;
+
+Procedure PerspectiveCamera.Move(Const Dir:TERRACameraMovement; Speed: Single);
+Begin
+  Speed := Speed * Engine.Graphics.ElapsedTime;
+
+  Case Dir Of
+    CameraMove_Forward:   SetPosition(Vector3D_Add(Self.Position, Vector3D_Scale(Self.View, Speed)));
+    CameraMove_Backward:  SetPosition(Vector3D_Add(Self.Position, Vector3D_Scale(Self.View, -Speed)));
+
+    CameraMove_Up:    SetPosition(Vector3D_Add(Self.Position, Vector3D_Scale(Self.Up, Speed)));
+    CameraMove_Down:  SetPosition(Vector3D_Add(Self.Position, Vector3D_Scale(Self.Up, -Speed)));
+
+    CameraMove_Left:  SetPosition(Vector3D_Add(Self.Position, Vector3D_Scale(Self.Right, Speed)));
+    CameraMove_Right: SetPosition(Vector3D_Add(Self.Position, Vector3D_Scale(Self.Right, -Speed)));
+  End;
+End;
+
+Procedure PerspectiveCamera.AdjustToFit(Const Box:BoundingBox);
+Var
+  oneOverSine:Single;
+  distanceToCenter:Single;
+  offset, Center:Vector3D;
+  p,N:Vector3D;
+Begin
+  Center := Box.Center;
+  offset := Vector3D_Subtract(Box.EndVertex, Center); // Radius of bounding sphere
+
+  P := center;
+  oneOverSine := 1.0 / Tan(_FOV *RAD / 4.0); // 1 / sin = adjacent / opposite
+  distanceToCenter := Offset.Length * oneOverSine; // (adjacent / opposite) * opposite = adjacent
+
+  N := Vector3D_Constant(1.0);
+  N.Normalize;
+  P.Add( Vector3D_Scale(N, distanceToCenter));
+  SetPosition(P);
+  P.Subtract(Center);
+  P.Normalize;
+  P.Scale(-1);
+  SetView(P);
+End;
+
+Procedure PerspectiveCamera.LookAt(Const Target:Vector3D);
+Var
+  P:Vector3D;
+Begin
+  P := Vector3D_Subtract(Target, Self.Position);
+  P.Normalize;
+  SetView(P);
+End;
+
+Procedure PerspectiveCamera.Rotate(RotX, RotY: Single);
+Var
+  V, Axis:Vector3D;
+Begin
+  rotX := rotX * Engine.Graphics.ElapsedTime * 2.0;
+  rotY := rotY * Engine.Graphics.ElapsedTime * 2.0;
+
+	V := _view.Value;
+  V.Rotate(Vector3D_Up, rotX);
+	Axis := Vector3D_Create(-V.Z, 0.0, V.X);
+  Axis.Normalize();
+	V.Rotate(Axis, rotY);
+  V.Normalize();
+  _View.Value := V;
+
+  _NeedsUpdate := True;
+End;
+
+
+Function PerspectiveCamera.GetView: Vector3D;
+Begin
+  Result := _View.Value;
+End;
+
+Function PerspectiveCamera.GetRoll: Vector3D;
+Begin
+  Result := _Roll.Value;
+End;
+
+Procedure PerspectiveCamera.SetupUniforms;
+Var
+  _Shader:ShaderInterface;
+  P:Vector3D;
+  A,B,C, Delta:Single;
+Begin
+  _Shader := Engine.Graphics.Renderer.ActiveShader;
+  If (_Shader=Nil) Then
+    Exit;
+
+  _Shader.SetVec3Uniform('cameraPosition', _Position.Value);
+  _Shader.SetVec3Uniform('cameraView', _View.Value);
+  _Shader.SetMat4Uniform('cameraMatrix', _Transform);
+  _Shader.SetMat4Uniform('projectionMatrix', _ProjectionMatrix4x4);
+  _Shader.SetFloatUniform('zNear', _Near);
+  _Shader.SetFloatUniform('zFar', _Far);
+
+  If (_UseClipPlane) Then
+    _Shader.SetPlaneUniform('clipPlane', _ClipPlane);
+
+  If (Engine.Graphics.Renderer.Settings.FogMode<>0) Then
+  Begin
+    _Shader.SetColorUniform('fogColor', Engine.Graphics.Renderer.Settings.FogColor);
+
+    If (Engine.Graphics.Renderer.Settings.FogMode And fogDistance<>0) Then
+    Begin
+      A := Engine.Graphics.Renderer.Settings.FogDistanceStart;
+      B := Engine.Graphics.Renderer.Settings.FogDistanceEnd;
+      C := (B-A) * 0.5;
+      _Shader.SetFloatUniform('fogDistanceCenter', C + A);
+      _Shader.SetFloatUniform('fogDistanceSize', C);
+    End;
+
+    If (Engine.Graphics.Renderer.Settings.FogMode And fogHeight<>0) Then
+    Begin
+      _Shader.SetFloatUniform('fogHeightStart', Engine.Graphics.Renderer.Settings.FogHeightStart);
+      _Shader.SetFloatUniform('fogHeightEnd', Engine.Graphics.Renderer.Settings.FogHeightEnd);
+    End;
+
+    If (Engine.Graphics.Renderer.Settings.FogMode And fogBox<>0) Then
+    Begin
+      _Shader.SetVec3Uniform('fogBoxAreaStart', Engine.Graphics.Renderer.Settings.FogBoxArea.StartVertex);
+      _Shader.SetVec3Uniform('fogBoxAreaEnd', Engine.Graphics.Renderer.Settings.FogBoxArea.EndVertex);
+      _Shader.SetFloatUniform('fogBoxSize', Engine.Graphics.Renderer.Settings.FogBoxSize);
+    End;
+
+  End;
+End;
+
+Function PerspectiveCamera.IsBoxVisible(const Box: BoundingBox): Boolean;
+Begin
+  Result := Self.Frustum.BoxVisible(Box);
+
+(*  // occlusion test
+  Occ := _Occluders;
+  While Assigned(Occ) Do
+  If (Occ.BoxOccluded(Box, View)) Then
+  Begin
+    Exit;
+  End Else
+    Occ := Occ._Next;*)
+End;
+
+{ OrthoCamera }
+Constructor OrthoCamera.Create(Const Name:TERRAString);
+Begin
+  Inherited Create(Name);
+
+  _OrthoScale := 1.0;
+  _Near := 0.0;
+  _Far := 100;
+
+  Self.SetArea(-100, -100, 100, 100);
+End;
+
+Procedure OrthoCamera.CalculateProjection(Const Eye:Integer; Out Result:Matrix4x4);
+Begin
+  Result := Matrix4x4_Ortho(_OrthoX1 * _OrthoScale, _OrthoX2 *_OrthoScale, _OrthoY2 * _OrthoScale, _OrthoY1 *_OrthoScale, _Near, _Far);
+  Result := Matrix4x4_Multiply4x4(Result, Matrix4x4_Translation(0.375, 0.375, 0.0)); // apply "pixel-perfect" correction
+End;
+
+Procedure OrthoCamera.CalculateTransform(out Result: Matrix4x4);
+Var
+  P:Vector3D;
+Begin
+  P := Self.Position;
+  P.Add(Vector3D_Scale(_Offset, 5.0));
+  P.Z := 0.0;
+  
+  Result := Matrix4x4_Translation(P);
+End;
+
+Procedure OrthoCamera.SetArea(X1, Y1, X2, Y2: Single);
+Begin
+  _NeedsUpdate := True;
+
+  _OrthoX1 := X1;
+  _OrthoY1 := Y1;
+
+  _OrthoX2 := X2;
+  _OrthoY2 := Y2;
+End;
+
+Procedure OrthoCamera.SetScale(Value: Single);
+Begin
+  If (_OrthoScale = Value) Then
+    Exit;
+
+  _OrthoScale := Value;
+  _NeedsUpdate := True;
+End;
+
+Procedure OrthoCamera.Move(const Dir: TERRACameraMovement; Speed: Single);
+Begin
+  Speed := Speed * Engine.Graphics.ElapsedTime;
+
+  Case Dir Of
+    CameraMove_Left:  SetPosition(Vector3D_Create(Self.Position.X + Speed, Self.Position.Y, Self.Position.Z));
+    CameraMove_Right: SetPosition(Vector3D_Create(Self.Position.X - Speed, Self.Position.Y, Self.Position.Z));
+
+    CameraMove_Up:    SetPosition(Vector3D_Create(Self.Position.X, Self.Position.Y + Speed, Self.Position.Z));
+    CameraMove_Down:  SetPosition(Vector3D_Create(Self.Position.X, Position.Y - Speed, Self.Position.Z));
+    Else
+      Exit;
+  End;
 End;
 
 End.

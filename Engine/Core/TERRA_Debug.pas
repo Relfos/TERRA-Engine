@@ -22,13 +22,12 @@
  ***********************************************************************************************************************
 }
 Unit TERRA_Debug;
-                     
+
 {$I terra.inc}
 Interface
-Uses TERRA_String, TERRA_Callstack;
+Uses TERRA_Object, TERRA_String, TERRA_Callstack;
 
 //Procedure DebugStack(S:TERRAString);
-Procedure DebugOpenAL;
 
 Procedure PushCallstack(ClassType:TClass; S:TERRAString);
 Procedure PopCallstack();
@@ -38,28 +37,24 @@ Function GetCallstack:TERRAString;
 Implementation
 
 Uses {$IFDEF WINDOWS}Windows,{$ENDIF}
-  {$IFDEF FPC}lineinfo, {$ENDIF}
-  SysUtils, TERRA_Utils, TERRA_Application, TERRA_OS, TERRA_Stack, TERRA_CollectionObjects,
-  TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_OpenGL{$ENDIF}, TERRA_AL
+  SysUtils, TERRA_Utils, TERRA_Application, TERRA_Error, TERRA_OS, TERRA_Stack, TERRA_Collections,
+  TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_OpenGL{$ENDIF}
 {$IFDEF ANDROID}
-  android_log
+  ,android_log
 {$ENDIF};
 
 Var
-  _Callstack:Stack;
+  _Callstack:TERRAStack;
 
 Procedure PushCallstack(ClassType:TClass; S:TERRAString);
 Begin
   If (_Callstack = Nil) Then
-    _Callstack := Stack.Create();
+    _Callstack := TERRAStack.Create();
 
   If (ClassType <> Nil) Then
     S := ClassType.ClassName + '.' + S;
 
-  If Pos('(',S)>0 Then
-    IntToString(2);
-
-  _Callstack.Push(StringObject.Create(S));
+  _Callstack.Push(StringProperty.Create('call', S));
 End;
 
 Procedure PopCallstack();
@@ -149,54 +144,32 @@ Procedure TERRADump(S:TERRAString);
 Begin
   DebugStack('');
   RaiseError(S);
-        While (True) Do;
+  While (True) Do;
 End;
 {$ENDIF}
 
 Function GetCallstack:TERRAString;
 Var
-  P:StringObject;
+  It:TERRAIterator;
 Begin
   Result := '';
   If (_Callstack = Nil) Then
     Exit;
 
-  P := StringObject(_Callstack.First);
-  While P<>Nil Do
+  It := _Callstack.GetIterator();
+  While It.HasNext() Do
   Begin
-    Result := Result + P.Value + crLf;
-    P := StringObject(P.Next);
+    Result := Result + StringProperty(It.Value).Value + crLf;
   End;
+  ReleaseObject(It);
 End;
 
-
-Procedure DebugOpenAL;
-Var
-  ErrorCode:Cardinal;
-  S:TERRAString;
-Begin
-  ErrorCode := alGetError;
-  If ErrorCode = GL_NO_ERROR Then
-    Exit;
-
-  Case ErrorCode Of
-  AL_INVALID_NAME: S := 'Invalid Name paramater passed to AL call.';
-  AL_INVALID_ENUM: S := 'Invalid parameter passed to AL call.';
-  AL_INVALID_VALUE: S := 'Invalid enum parameter value.';
-  AL_INVALID_OPERATION: S:= 'Invalid operation';
-  Else
-    S := 'Unknown AL error.';
-  End;
-
-  S := 'OpenAL Error ['+S+']';
-  TERRADump(S);
-End;
 
 {$IFDEF WINDOWS}
 
 Procedure InitExceptionLogging;
 Begin
-  oldRTLUnwindProc := RTLUnwindProc;
+//  oldRTLUnwindProc := RTLUnwindProc;
 //  RTLUnwindProc := @MyRtlUnwind;
 End;
 

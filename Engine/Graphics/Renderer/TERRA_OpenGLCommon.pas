@@ -9,10 +9,10 @@ Unit TERRA_OpenGLCommon;
 
 Interface
 Uses
-  TERRA_String, TERRA_Utils, TERRA_Renderer, TERRA_VertexFormat,
+  TERRA_String, TERRA_Utils, TERRA_Object, TERRA_Renderer, TERRA_VertexFormat,
   {$IFDEF MOBILE}TERRA_OpenGLES{$ELSE}TERRA_OpenGL{$ENDIF}, 
   TERRA_Color, TERRA_Image, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D,
-  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_Stream, SysUtils;
+  TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_Stream, TERRA_ShaderNode, TERRA_GLSLCompiler;
 
 Type
   OpenGLVBO = Class(VertexBufferInterface)
@@ -26,7 +26,7 @@ Type
 
       Procedure Invalidate; Override;
 
-      Function Generate(Vertices:VertexData; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean; Override;
+      Function Generate(Vertices:TERRAVertexBuffer; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean; Override;
 
       Function Update(Data:PByte):Boolean; Override;
   End;
@@ -56,7 +56,7 @@ Type
       Function Unbind():Boolean; Override;
 
     Public
-      Function Generate(Const Name:TERRAString; ShaderCode:TERRAString):Boolean; Override;
+      Function Generate(Const Name:TERRAString; Shader:TERRAShaderGroup):Boolean; Override;
 
       Function IsReady():Boolean; Override;
 
@@ -69,7 +69,7 @@ Type
 			Procedure SetVec4Uniform(Const Name:TERRAString; const Value:Vector4D); Override;
       Procedure SetMat3Uniform(Const Name:TERRAString; Value:Matrix3x3); Override;
       Procedure SetMat4Uniform(Const Name:TERRAString; Value:Matrix4x4); Override;
-      Procedure SetVec4ArrayUniform(Const Name:TERRAString; Count:Integer; Values:PVector4D); Override;
+      Procedure SetVec4ArrayUniform(Const Name:TERRAString; Count:Integer; Values:Array Of Vector4D); Override;
 
       Function HasUniform(Const Name:TERRAString):Boolean; Override;
 
@@ -82,7 +82,7 @@ Type
 Function CompareToGL(Mode:CompareMode):Integer;
   
 Implementation
-Uses TERRA_Error, TERRA_OS, TERRA_Log, TERRA_GraphicsManager, TERRA_FileManager, TERRA_FileUtils, TERRA_FileStream;
+Uses TERRA_Error, TERRA_Engine, TERRA_OS, TERRA_Log, TERRA_GraphicsManager, TERRA_FileManager, TERRA_FileUtils, TERRA_FileStream, SysUtils;
 
 Function CompareToGL(Mode:CompareMode):Integer;
 Begin
@@ -101,7 +101,7 @@ Begin
 End;
 
 { OpenGLVBO }
-Function OpenGLVBO.Generate(Vertices:VertexData; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean;
+Function OpenGLVBO.Generate(Vertices:TERRAVertexBuffer; IndexData, EdgeData:Pointer; TriangleCount:Integer; DynamicUsage:Boolean):Boolean;
 Var
   Index:Single;
   I, N:Integer;
@@ -376,10 +376,11 @@ Begin
     LogInfo := StringTrimRight(LogInfo);
 
     If ShaderType=GL_VERTEX_SHADER Then
-      PS:='Vertex'
+      PS := 'Vertex'
     Else
-      PS:='Fragment';
-    Log(logDebug,'Shader', LogInfo);
+      PS := 'Fragment';
+
+    Engine.Log.Write(logDebug, 'Shader', LogInfo + Name);
   End Else
     LogInfo:='';
 
@@ -393,7 +394,7 @@ Begin
     StringReplaceText('ERROR:','@', LogInfo);
     StringReplaceText('@', StringFromChar(NewLineChar)+'ERROR:', LogInfo);
     //Delete(LogInfo, 1, Length(crLf));
-    Log(logDebug,'Shader', Source);
+    Engine.Log.Write(logDebug,'Shader', Source);
 
     //RaiseError(Name+'.'+PS+': ' + LogInfo);
     Result := False;
@@ -430,7 +431,7 @@ Begin
   _Linked := (LinkStatus=1);
   If Not _Linked Then
   Begin
-    RaiseError('Shader Linking failed.['+_Name+']'+StringFromChar(NewLineChar)+LogInfo);
+    Engine.RaiseError('Shader Linking failed.['+_Name+']'+StringFromChar(NewLineChar)+LogInfo);
     Exit;
   End;
 
@@ -448,7 +449,7 @@ Begin
     Exit;
   End;
 
-//  Log(logError, 'Shader', 'Attribute '+Name+' not found in shader '+_Name);
+//  Engine.Log.Write(logError, 'Shader', 'Attribute '+Name+' not found in shader '+_Name);
   Result := -1;
 End;
 
@@ -481,7 +482,7 @@ End;
 Procedure OpenGLShader.UniformError(const Name: TERRAString);
 Begin
   {$IFDEF PC}
-//  Log(logWarning, 'Shader', 'Invalid uniform: '+Name+' in '+Self._Name);
+//  Engine.Log.Write(logWarning, 'Shader', 'Invalid uniform: '+Name+' in '+Self._Name);
   {$ENDIF}
 End;
 
@@ -542,7 +543,7 @@ Begin
 	ID := GetUniform(Name);
   If (ID>=0) Then
   Begin
-    If (GraphicsManager.Instance().RenderStage = renderStageReflection) Then
+    (*If (Stage = renderStageReflection) Then
     Begin
       IsModelMatrix := False;
 
@@ -554,7 +555,7 @@ Begin
 
       If IsModelMatrix Then
         Value := Matrix4x4Multiply4x3(GraphicsManager.Instance().ReflectionMatrix, Value);
-    End; 
+    End;*) 
       
 
     glUniformMatrix4fv(Id, 1, False, @(Value.V[0]));
@@ -607,7 +608,7 @@ Begin
     UniformError(Name);
 End;
 
-Procedure OpenGLShader.SetVec4ArrayUniform(const Name: TERRAString; Count:Integer; Values: PVector4D);
+Procedure OpenGLShader.SetVec4ArrayUniform(const Name: TERRAString; Count:Integer; Values: Array Of Vector4D);
 Var
   ID:Integer;
 Begin
@@ -617,7 +618,7 @@ Begin
 	ID := GetUniform(Name);
   If (ID>=0) Then
   Begin
-    glUniform4fv(Id, Count, Pointer(Values));
+    glUniform4fv(Id, Count, Pointer(@Values[Low(Values)]));
   End Else
     UniformError(Name);
 End;
@@ -626,7 +627,7 @@ End;
 Procedure SaveShader(Const Code, Name, Prefix:TERRAString);
 Var
   FileName:TERRAString;
-  Dest:Stream;
+  Dest:TERRAStream;
 Begin
   FileName := 'Shaders'+PathSeparator + Name+'.'+Prefix+'.txt';
 
@@ -637,78 +638,28 @@ Begin
 End;
 {$ENDIF}
 
-Function OpenGLShader.Generate(const Name: TERRAString; ShaderCode: TERRAString): Boolean;
+Function OpenGLShader.Generate(const Name: TERRAString; Shader:TERRAShaderGroup): Boolean;
 Var
-  I:Integer;
-
-Function ReadBlock(Name:TERRAString):TERRAString;
-Var
-  S2:TERRAString;
-  I:Integer;
-  N:Integer;
+  Version:TERRAString;    //'#version 120'+StringFromChar(NewLineChar);
+  Compiler:GLSLShaderCompiler;
 Begin
-  I := Pos(StringUpper(Name), StringUpper(ShaderCode));
-  If (I>0) Then
+  If Shader = Nil Then
   Begin
-    S2 := Copy(ShaderCode, I +1, MaxInt);
-    I := Pos('{', S2);
-    S2 := Copy(S2, I+1, MaxInt);
-    I := 1;
-    N := 0;
-    Repeat
-      If (S2[I]='}') Then
-      Begin
-        If (N=0) Then
-          Break
-        Else
-          Dec(N);
-      End Else
-      If (S2[I]='{') Then
-        Inc(N);
-      Inc(I);
-    Until (I>=Length(S2));
+    DebugBreak;
+  End;
 
-    ShaderCode := Copy(S2, I + 1, MaxInt);
-    S2 := Copy(S2, 1, I-1);
-    Result := S2;
-  End Else
-    Result := '';
-
-  Result := StringTrim(Result);
-End;
-
-Var
-  Version:TERRAString;
-Begin
   _Name := Name;
-  Log(logDebug, 'Shader', 'Creating shader from string: '+ Name);
+  Engine.Log.Write(logDebug, 'Shader', 'Creating shader from string: '+ Name);
 
-{  Version := Version + '#define ' + _Owner.Vendor + StringFromChar(NewLineChar);
-  If (HasGLSL120) Then
-    Version := Version + '#define MATRIX_CAST' + StringFromChar(NewLineChar);
-
-  If (_Owner.Features.PostProcessing.Avaliable) Then
-    Version := Version + '#define POSTPROCESSING' + StringFromChar(NewLineChar);
-
-  If (_Owner.Settings.NormalMapping.Enabled) Then
-    Version := Version + '#define NORMAL_MAPPING' + StringFromChar(NewLineChar);
-
-{  If (_Owner.Features.FloatTexture.Avaliable) Then
-    Version := Version + '#define FLOATBUFFERS' + StringFromChar(NewLineChar);
-
-  If (_Owner.Settings.DepthOfField.Enabled) Then
-    Version := Version + '#define DEPTHOFFIELD' + StringFromChar(NewLineChar);
-
-  If (_Owner.Settings.ShadowSplitCount>1) Then
-    Version := Version + '#define SHADOWSPLIT1' + StringFromChar(NewLineChar);
-  If (_Owner.Settings.ShadowSplitCount>2) Then
-    Version := Version + '#define SHADOWSPLIT2' + StringFromChar(NewLineChar);
-  If (_Owner.Settings.ShadowSplitCount>3) Then
-    Version := Version + '#define SHADOWSPLIT3' + StringFromChar(NewLineChar);}
-
-  Version := ''; //'#version 120'+StringFromChar(NewLineChar);
-	_VertexCode := Version + ReadBlock('vertex');
-	_FragmentCode := Version + ReadBlock('fragment');
+  Compiler := GLSLShaderCompiler.Create();
+  Result := Shader.GenerateCode(Shader.GetSubNodeAt(0), Compiler, _VertexCode, _FragmentCode);
+  ReleaseObject(Compiler);
+  
+  If Not Result Then
+  Begin
+    Engine.Log.Write(logError, 'Shader', 'Failed processing shader nodes for ' + _Name);
+    Exit;
+  End;
 
   _MRT := Pos('gl_FragData', _FragmentCode)>0;
 
@@ -735,12 +686,12 @@ End;
 
 Function OpenGLShader.Load():Boolean;
 Begin
-  Log(logDebug, 'Shader', 'Compiling vertex code for ' + _Name);
+  Engine.Log.Write(logDebug, 'Shader', 'Compiling vertex code for ' + _Name);
 
   _Linked := False;
   Result := CompileShader(_Name, _VertexCode, GL_VERTEX_SHADER, _VertexShaderHandle);
 
-  Log(logDebug, 'Shader', 'Compiling fragment code for ' + _Name);
+  Engine.Log.Write(logDebug, 'Shader', 'Compiling fragment code for ' + _Name);
 
   If Result Then
   Begin
@@ -767,12 +718,12 @@ Begin
   If Not Result Then
     Exit;
 
-  Log(logDebug, 'Shader', 'Linking ' + _Name);
+  Engine.Log.Write(logDebug, 'Shader', 'Linking ' + _Name);
   Result := LinkProgram();
-  Log(logDebug, 'Shader', 'Finished linking ' +_Name+', result='+BoolToString(Result));
+  Engine.Log.Write(logDebug, 'Shader', 'Finished linking ' +_Name+', result='+BoolToString(Result));
 
   Self._Context := _Owner.CurrentContext;
-  Log(logDebug, 'Shader', 'Shader loaded ok!');
+  Engine.Log.Write(logDebug, 'Shader', 'Shader loaded ok!');
 End;
 
 

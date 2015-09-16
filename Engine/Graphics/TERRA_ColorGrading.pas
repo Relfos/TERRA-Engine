@@ -26,31 +26,31 @@ Unit TERRA_ColorGrading;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Texture, TERRA_Color, TERRA_Image, TERRA_Vector3D, TERRA_Renderer;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Texture, TERRA_Color, TERRA_Image, TERRA_Vector3D, TERRA_Renderer;
 
 Const
   ColorTableUniformName = 'color_table_texture';
 
 Type
-  ColorTransform = Function (N:Color; Userdata:Pointer):Color; Cdecl;
+  ColorTransform = Function (N:ColorRGBA; Userdata:Pointer):ColorRGBA; Cdecl;
 
-  Function CreateColorTable(Size:Integer; Transform:ColorTransform = Nil; Userdata:Pointer = Nil):Image;
-  Function ColorTableLookUp(ColorTable:Image; Source:Color):Color;
-  Procedure ColorTableTransform(Dest, ColorTable:Image);
+  Function CreateColorTable(Size:Integer; Transform:ColorTransform = Nil; Userdata:Pointer = Nil):TERRAImage;
+  Function ColorTableLookUp(ColorTable:TERRAImage; Const Source:ColorRGBA):ColorRGBA;
+  Procedure ColorTableTransform(Dest, ColorTable:TERRAImage);
 
   Function GetColorTableShaderCode():TERRAString;
-  Function ColorTableBind(ColorTableTex:Texture; Slot:Integer):Boolean;
+  Function ColorTableBind(ColorTableTex:TERRATexture; Slot:Integer):Boolean;
 
 Implementation
-Uses TERRA_OS, TERRA_GraphicsManager, TERRA_Log;
+Uses TERRA_OS, TERRA_GraphicsManager, TERRA_Log, TERRA_Engine;
 
-Function CreateColorTable(Size:Integer; Transform:ColorTransform; Userdata:Pointer):Image;
+Function CreateColorTable(Size:Integer; Transform:ColorTransform; Userdata:Pointer):TERRAImage;
 Var
   Scale:Single;
   R,G,B:Integer;
-  Temp:Color;
+  Temp:ColorRGBA;
 Begin
-  Result := Image.Create(Size * Size, Size);
+  Result := TERRAImage.Create(Size * Size, Size);
   Scale := 255/Pred(Size);
   For R:=0 To Pred(Size) Do
     For G:=0 To Pred(Size) Do
@@ -64,10 +64,10 @@ Begin
       End;
 End;
 
-Procedure ColorTableTransform(Dest, ColorTable:Image);
+Procedure ColorTableTransform(Dest, ColorTable:TERRAImage);
 Var
   I,J:Integer;
-  P:Color;
+  P:ColorRGBA;
 Begin
   For J:=0 To Pred(Dest.Height) Do
     For I:=0 To Pred(Dest.Width) Do
@@ -78,7 +78,7 @@ Begin
     End;
 End;
 
-Function ColorTableLookUp(ColorTable:Image; Source:Color):Color;
+Function ColorTableLookUp(ColorTable:TERRAImage; Const Source:ColorRGBA):ColorRGBA;
 Var
   R1,G1,B1:Single;
   R2,G2,B2:Single;
@@ -108,7 +108,7 @@ Begin
   Result := ColorTable.GetPixel(Trunc(R1*(1.0-DR) + R2*DR) + Trunc(B1*(1.0-DB) + B2*DB) * ColorTable.Height, Trunc(G1*(1.0-DG) + G2*DG));
 End;
 
-Function ColorTableBind(ColorTableTex:Texture; Slot:Integer):Boolean;
+Function ColorTableBind(ColorTableTex:TERRATexture; Slot:Integer):Boolean;
 Var
   MyShader:ShaderInterface;
   Scale:Single;
@@ -117,7 +117,7 @@ Var
 Begin
   Result := False;
 
-  MyShader := GraphicsManager.Instance.Renderer.ActiveShader;
+  MyShader := Engine.Graphics.Renderer.ActiveShader;
   If (MyShader = Nil) Then
     Exit;
 
@@ -126,8 +126,8 @@ Begin
 
   If (ColorTableTex = Nil) Or (Not ColorTableTex.IsReady()) Then
   Begin
-    If (ColorTableTex<>TextureManager.Instance.DefaultColorTable) Then
-      ColorTableBind(TextureManager.Instance.DefaultColorTable, Slot);
+    If (ColorTableTex<>Engine.Textures.DefaultColorTable) Then
+      ColorTableBind(Engine.Textures.DefaultColorTable, Slot);
     Exit;
   End;
 

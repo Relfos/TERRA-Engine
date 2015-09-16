@@ -2,7 +2,7 @@ Unit TERRA_Localization;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Application, TERRA_Utils, TERRA_Stream, TERRA_FileUtils,
+Uses TERRA_Object, TERRA_String, TERRA_Application, TERRA_Utils, TERRA_Stream, TERRA_FileUtils,
   TERRA_Collections, TERRA_Hashmap;
 
 Const
@@ -25,7 +25,7 @@ Const
   MaxPinyinSuggestions = 64;
 
 Type
-  StringEntry = Class(HashMapObject)
+  LocalizationEntry = Class(TERRAObject)
     Protected
       _Value:TERRAString;
       _Group:Integer;
@@ -34,18 +34,17 @@ Type
       Constructor Create(Const Key, Value:TERRAString; Group:Integer);
   End;
 
-  LocalizationManager = Class(ApplicationComponent)
+  LocalizationManager = Class(TERRAObject)
     Protected
       _Lang:TERRAString;
-      _Strings:Hashmap;
+      _Strings:TERRAHashmap;
 
       Function GetLang:TERRAString;
 
     Public
-      Procedure Init; Override;
+      Constructor Create();
       Procedure Release; Override;
 
-      Class Function Instance:LocalizationManager;
       Procedure SetLanguage(Lang:TERRAString);
 
       Function GetString(Const Key:TERRAString):TERRAString;
@@ -56,7 +55,7 @@ Type
       Procedure Reload();
 
       Procedure RemoveGroup(GroupID:Integer);
-      Procedure MergeGroup(Source:Stream; GroupID:Integer; Const Prefix:TERRAString);
+      Procedure MergeGroup(Source:TERRAStream; GroupID:Integer; Const Prefix:TERRAString);
 
 
       Property Language:TERRAString Read GetLang Write SetLanguage;
@@ -101,10 +100,8 @@ Function GetCurrencyForCountry(Const Country:TERRAString):TERRAString;
 Function GetLanguageDescription(Lang:TERRAString):TERRAString;
 
 Implementation
-Uses TERRA_FileManager, TERRA_Log, TERRA_OS;
+Uses TERRA_Engine, TERRA_FileManager, TERRA_FileFormat, TERRA_Log, TERRA_OS;
 
-Var
-  _LocalizationManager_Instance:ApplicationObject = Nil;
 
 Function IsSupportedLanguage(Const Lang:TERRAString):Boolean;
 Begin
@@ -197,25 +194,25 @@ End;
 Function GetKoreanInitialJamo(N:TERRAChar):Integer;
 Begin
   Case N Of
-	12593: Result := 0;
-	12594: Result := 1;
-	12596: Result := 2;
-	12599: Result := 3;
-	12600: Result := 4;
-	12601: Result := 5;
-	12609: Result := 6;
-	12610: Result := 7;
-	12611: Result := 8;
-	12613: Result := 9;
-	12614: Result := 10;
-	12615: Result := 11;
-	12616: Result := 12;
-	12617: Result := 13;
-	12618: Result := 14;
-	12619: Result := 15;
-	12620: Result := 16;
-	12621: Result := 17;
-	12622: Result := 18;
+	#12593: Result := 0;
+	#12594: Result := 1;
+	#12596: Result := 2;
+	#12599: Result := 3;
+	#12600: Result := 4;
+	#12601: Result := 5;
+	#12609: Result := 6;
+	#12610: Result := 7;
+	#12611: Result := 8;
+	#12613: Result := 9;
+	#12614: Result := 10;
+	#12615: Result := 11;
+	#12616: Result := 12;
+	#12617: Result := 13;
+	#12618: Result := 14;
+	#12619: Result := 15;
+	#12620: Result := 16;
+	#12621: Result := 17;
+	#12622: Result := 18;
   Else
     Result := -1;
   End;
@@ -224,27 +221,27 @@ End;
 Function GetKoreanMedialJamo(N:TERRAChar):Integer;
 Begin
   Case N Of
-	12623: Result := 0;
-	12624: Result := 1;
-	12625: Result := 2;
-	12626: Result := 3;
-	12627: Result := 4;
-	12628: Result := 5;
-	12629: Result := 6;
-	12630: Result := 7;
-	12631: Result := 8;
-	12632: Result := 9;
-	12633: Result := 10;
-	12634: Result := 11;
-	12635: Result := 12;
-	12636: Result := 13;
-	12637: Result := 14;
-	12638: Result := 15;
-	12639: Result := 16;
-	12640: Result := 17;
-	12641: Result := 18;
-	12642: Result := 19;
-	12643: Result := 20;
+	#12623: Result := 0;
+	#12624: Result := 1;
+	#12625: Result := 2;
+	#12626: Result := 3;
+	#12627: Result := 4;
+	#12628: Result := 5;
+	#12629: Result := 6;
+	#12630: Result := 7;
+	#12631: Result := 8;
+	#12632: Result := 9;
+	#12633: Result := 10;
+	#12634: Result := 11;
+	#12635: Result := 12;
+	#12636: Result := 13;
+	#12637: Result := 14;
+	#12638: Result := 15;
+	#12639: Result := 16;
+	#12640: Result := 17;
+	#12641: Result := 18;
+	#12642: Result := 19;
+	#12643: Result := 20;
   Else
     Result := -1;
   End;
@@ -253,33 +250,33 @@ End;
 Function GetKoreanFinalJamo(N:TERRAChar):Integer;
 Begin
   Case N Of
-	12593: Result := 1;
-	12594: Result := 2;
-	12595: Result := 3;
-	12596: Result := 4;
-	12597: Result := 5;
-	12598: Result := 6;
-	12599: Result := 7;
-	12601: Result := 8;
-	12602: Result := 9;
-	12603: Result := 10;
-	12604: Result := 11;
-	12605: Result := 12;
-	12606: Result := 13;
-	12607: Result := 14;
-	12608: Result := 15;
-	12609: Result := 16;
-	12610: Result := 17;
-	12612: Result := 18;
-	12613: Result := 19;
-	12614: Result := 20;
-	12615: Result := 21;
-	12616: Result := 22;
-	12618: Result := 23;
-	12619: Result := 24;
-	12620: Result := 25;
-	12621: Result := 26;
-	12622: Result := 27;
+	#12593: Result := 1;
+	#12594: Result := 2;
+	#12595: Result := 3;
+	#12596: Result := 4;
+	#12597: Result := 5;
+	#12598: Result := 6;
+	#12599: Result := 7;
+	#12601: Result := 8;
+	#12602: Result := 9;
+	#12603: Result := 10;
+	#12604: Result := 11;
+	#12605: Result := 12;
+	#12606: Result := 13;
+	#12607: Result := 14;
+	#12608: Result := 15;
+	#12609: Result := 16;
+	#12610: Result := 17;
+	#12612: Result := 18;
+	#12613: Result := 19;
+	#12614: Result := 20;
+	#12615: Result := 21;
+	#12616: Result := 22;
+	#12618: Result := 23;
+	#12619: Result := 24;
+	#12620: Result := 25;
+	#12621: Result := 26;
+	#12622: Result := 27;
   Else
     Result := -1;
   End;
@@ -319,29 +316,24 @@ Begin
     Ext:=#0;
   End;
 
-  Result:=IntToString(Int);
+  Result:= IntegerProperty.Stringify(Int);
   If Rem>0 Then
-  Result:=Result+'.'+IntToString(Rem);
+  Result:=Result+'.'+ IntegerProperty.Stringify(Rem);
   Result:=Result+' ';
   If Ext<>#0 Then
     Result:=Result+Ext;
 
   If (Application.Instance.Language = language_Russian) Then
-    StringAppendChar(Result, 1073)
+    StringAppendChar(Result, #1073)
   Else
     Result := Result + 'b';
 End;
 
 { LocalizationManager }
-Procedure LocalizationManager.Init();
+Constructor LocalizationManager.Create();
 Begin
   _Lang := '';
-  _Strings := HashMap.Create(1024);
-
-  If Assigned(Application.Instance()) Then
-    SetLanguage(Application.Instance.Language)
-  Else
-    SetLanguage('EN');
+  _Strings := TERRAHashMap.Create(1024);
 End;
 
 Procedure LocalizationManager.Release();
@@ -365,9 +357,9 @@ End;
 Procedure LocalizationManager.SetString(Const Key, Value:TERRAString; Group:Integer = -1);
 Var
   I:Integer;
-  Entry:StringEntry;
+  Entry:LocalizationEntry;
 Begin
-  Entry := StringEntry(_Strings.GetItemByKey(Key));
+  Entry := LocalizationEntry(_Strings.GetItemByKey(Key));
   If Assigned(Entry) Then
   Begin
     Entry._Value := Value;
@@ -375,37 +367,29 @@ Begin
     Exit;
   End;
 
-  Entry := StringEntry.Create(Key, Value, Group);
+  Entry := LocalizationEntry.Create(Key, Value, Group);
   _Strings.Add(Entry);
 End;
 
 Function LocalizationManager.GetString(Const Key:TERRAString):TERRAString;
 Var
-  Entry:StringEntry;
+  Entry:LocalizationEntry;
 Begin
   If (_Lang ='') And (Assigned(Application.Instance())) Then
     SetLanguage(Application.Instance.Language);
 
-  Entry := StringEntry(_Strings.GetItemByKey(Key));
+  Entry := LocalizationEntry(_Strings.GetItemByKey(Key));
   If Assigned(Entry) Then
   Begin
     Result := Entry._Value;
     Exit;
   End;
 
-  Log(logWarning, 'Strings', 'String value for ['+Key+'] not found!');
+  Engine.Log.Write(logWarning, 'Strings', 'String value for ['+Key+'] not found!');
   Result := Self.EmptyString;
 End;
 
-Class Function LocalizationManager.Instance:LocalizationManager;
-Begin
-  If _LocalizationManager_Instance = Nil Then
-    _LocalizationManager_Instance := InitializeApplicationComponent(LocalizationManager, Nil);
-
-  Result := LocalizationManager(_LocalizationManager_Instance.Instance);
-End;
-
-Procedure LocalizationManager.MergeGroup(Source: Stream; GroupID:Integer; Const Prefix:TERRAString);
+Procedure LocalizationManager.MergeGroup(Source: TERRAStream; GroupID:Integer; Const Prefix:TERRAString);
 Var
   Ofs, Count, I:Integer;
   Header:FileHeader;
@@ -414,13 +398,13 @@ Begin
   If (Source = Nil ) Then
     Exit;
 
-  Log(logDebug, 'Strings', 'Merging strings from '+Source.Name);
+  Engine.Log.Write(logDebug, 'Strings', 'Merging strings from '+Source.Name);
   Ofs := _Strings.Count;
 
   Source.ReadHeader(Header);
   If Not CompareFileHeader(Header, Translation_Header) Then
   Begin
-    Log(logError, 'Strings', 'Invalid  file header in '+Source.Name);
+    Engine.Log.Write(logError, 'Strings', 'Invalid  file header in '+Source.Name);
     Exit;
   End;
 
@@ -441,9 +425,9 @@ End;
 
 Procedure LocalizationManager.SetLanguage(Lang:TERRAString);
 Var
-  S, S2:TERRAString;
-  Source:Stream;
+  Source:TERRAStream;
   I:Integer;
+  Location:TERRALocation;
 Begin
   Lang := StringUpper(Lang);
   If (Lang = 'CH') Or (Lang='CN') Then
@@ -454,11 +438,10 @@ Begin
   If (_Lang = Lang) Then
     Exit;
 
-  S := 'translation_'+ StringLower(Lang)+'.'+ Translation_Extension;
-  S := FileManager.Instance.SearchResourceFile(S);
-  If S='' Then
+  Location := Engine.Files.Search('translation_'+ StringLower(Lang)+'.'+ Translation_Extension);
+  If Location = Nil Then
   Begin
-    Log(logWarning, 'Strings', 'Could not find translation file for lang='+Lang);
+    Engine.Log.Write(logWarning, 'Strings', 'Could not find translation file for lang='+Lang);
 
     If (Lang<>language_English) Then
       SetLanguage(language_English);
@@ -467,7 +450,7 @@ Begin
   End;
 
   _Strings.Clear();
-  Source := FileManager.Instance.OpenStream(S);
+  Source := Engine.Files.OpenLocation(Location);
   _Lang := Lang;
   Self.MergeGroup(Source, -1, '');
   ReleaseObject(Source);
@@ -485,23 +468,23 @@ End;
 
 Procedure LocalizationManager.RemoveGroup(GroupID: Integer);
 Var
-  It:Iterator;
-  Entry:StringEntry;
+  It:TERRAIterator;
+  Entry:LocalizationEntry;
 Begin
   It := _Strings.GetIterator();
   While (It.HasNext) Do
   Begin
-    Entry := StringEntry(It.Value);
+    Entry := LocalizationEntry(It.Value);
     If (Entry._Group = GroupID) Then
-      Entry.Discard();
+      It.Discard();
   End;
 End;
 
 Function LocalizationManager.HasString(Const Key:TERRAString): Boolean;
 Var
-  Temp:StringEntry;
+  Temp:LocalizationEntry;
 Begin
-  Temp := StringEntry(_Strings.GetItemByKey(Key));
+  Temp := LocalizationEntry(_Strings.GetItemByKey(Key));
   Result := (Assigned(Temp)) And (Temp._Value<>'');
 End;
      
@@ -518,13 +501,13 @@ Var
 { PinyinConverter }
 Constructor PinyinConverter.Create;
 Var
-  Src:Stream;
+  Src:TERRAStream;
   I:Integer;
 Begin
   If (_PinyinCount>0) Then
     Exit;
 
-  Src := FileManager.Instance.OpenStream('pinyin.dat');
+  Src := Engine.Files.OpenFile('pinyin.dat');
   If Src = Nil Then
     Exit;
 
@@ -552,16 +535,17 @@ Begin
   _SuggestionCount :=0 ;
 
   N := -1;
-  StringCreateIterator(Text, It);
+  It := StringCreateIterator(Text);
   While It.HasNext() Do
   Begin
     C := It.GetNext();
-    If (C>255) Then
+    If (C>#255) Then
     Begin
       N := It.Position + 1;
       Break;
     End;
   End;
+  ReleaseObject(It);
 
   If (N>0) Then
     Text := StringCopy(Text, N, MaxInt);
@@ -629,7 +613,7 @@ Begin
   S2 := Copy(Text, I+Length(_Suggestions[Index].Text), MaxInt);
 
   Text := S;
-  StringAppendChar(Text, _Suggestions[Index].ID);
+  StringAppendChar(Text, TERRAChar(_Suggestions[Index].ID));
   Text := Text + S2;
 
   Result := True;
@@ -646,36 +630,36 @@ Begin
     Result := 'Deutsch'
   Else
   If Lang = language_Spanish Then
-    Result := 'Espa'+StringFromChar(Ord('ñ'))+'ol'
+    Result := 'Espa'+StringFromChar('ñ')+'ol'
   Else
   If Lang = language_Portuguese Then
-    Result := 'Portugu'+StringFromChar(Ord('ê'))+'s'
+    Result := 'Portugu'+StringFromChar('ê')+'s'
   Else
   If Lang = language_French Then
-    Result := 'Fran'+StringFromChar(Ord('ç'))+'ais'
+    Result := 'Fran'+StringFromChar('ç')+'ais'
   Else
   If Lang = language_Italian Then
     Result := 'Italiano'
   Else
   If Lang = language_Russian Then
-    Result := StringFromChar(1056)+ StringFromChar(1091) + StringFromChar(1089) + StringFromChar(1089) + StringFromChar(1082) + StringFromChar(1080) + StringFromChar(1081)
+    Result := StringFromChar(#1056)+ StringFromChar(#1091) + StringFromChar(#1089) + StringFromChar(#1089) + StringFromChar(#1082) + StringFromChar(#1080) + StringFromChar(#1081)
   Else
   If Lang = language_Korean Then
-    Result := StringFromChar(54620) + StringFromChar(44544)
+    Result := StringFromChar(#54620) + StringFromChar(#44544)
   Else
   If Lang = language_Japanese Then
-    Result := StringFromChar(26085) + StringFromChar(26412) + StringFromChar(35486)
+    Result := StringFromChar(#26085) + StringFromChar(#26412) + StringFromChar(#35486)
   Else
   If Lang = language_Chinese Then
-    Result := StringFromChar(20013) + StringFromChar(22269)
+    Result := StringFromChar(#20013) + StringFromChar(#22269)
   Else
     Result := invalidString;
 End;
 
-{ StringEntry }
-Constructor StringEntry.Create(const Key, Value: TERRAString; Group: Integer);
+{ LocalizationEntry }
+Constructor LocalizationEntry.Create(const Key, Value: TERRAString; Group: Integer);
 Begin
-  Self._Key := Key;
+  Self._ObjectName := Key;
   Self._Value := Value;
   Self._Group := Group;
 End;

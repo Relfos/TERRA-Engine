@@ -2,7 +2,7 @@
 Unit TERRA_Java;
                
 Interface
-Uses TERRA_String, TERRA_Utils, JNI;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, JNI;
 
 Const
   ExceptionJavaClass = 'java/lang/Exception';

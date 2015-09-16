@@ -1,0 +1,27 @@
+varying mediump vec4 texCoord;
+uniform sampler2D diffuse_texture;
+uniform highp float mod_vibrance;
+uniform highp sampler2D vibrance_ramp;
+lowp vec3 rgb2hsv(vec3 c){
+lowp vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+lowp vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+lowp vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+lowp float d = q.x - min(q.w, q.y);
+lowp float e = 1.0e-10;
+return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);}
+  const lowp vec3 LumCoeff = vec3(0.2125, 0.7154, 0.0721);
+  lowp vec3 greyScale(lowp vec3 color) {
+  return vec3(dot(color, LumCoeff)); }
+lowp vec3 AdjustVibrance(lowp vec3 color, lowp float strength)	{
+  lowp vec3 AvgLumin = vec3(0.5);
+  lowp vec3 intensity = greyScale(color);
+  lowp float saturation = rgb2hsv(color).y;
+  lowp float vibranceScale = texture2D(vibrance_ramp, vec2(saturation, 0.5)).r;
+  lowp vec3 satColor = mix(intensity, color, strength * vibranceScale);
+return satColor;	}
+	void main()	{
+    lowp vec4 output_color; 
+    lowp vec2 output_uv = texCoord.xy; 
+    output_color = texture2D(diffuse_texture, output_uv);
+  output_color.rgb = AdjustVibrance(output_color.rgb, mod_vibrance);
+    gl_FragColor = output_color;}

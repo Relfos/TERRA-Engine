@@ -3,7 +3,7 @@ Unit TERRA_AIGridPath;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Stream, TERRA_Collections;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector2D, TERRA_Stream, TERRA_Collections;
 
 Const
   //  Search flags

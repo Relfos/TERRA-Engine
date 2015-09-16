@@ -5,7 +5,7 @@ Unit TERRA_OS;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Application, unix, baseunix, dateutils,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Application, unix, baseunix, dateutils,
   GLX,X,Xlib,Xutil,Keysym;
 
 Const

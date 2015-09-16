@@ -18,7 +18,7 @@
  *
  **********************************************************************************************************************
  * TERRA_Queue
- * Implements a generic thread safe queue 
+ * Implements a generic thread safe queue
  ***********************************************************************************************************************
 }
 
@@ -27,100 +27,50 @@ Unit TERRA_Queue;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Collections;
+Uses TERRA_String, TERRA_Utils, TERRA_Object, TERRA_List, TERRA_Collections;
 
 Type
-  Queue = Class(Collection)
-    Protected
-      _First:CollectionObject;
-
+  TERRAQueue = Class(TERRAList)
     Public
       Constructor Create();
 
-      Function GetIterator:Iterator; Override;
+      Function Push(Item:TERRAObject):Boolean; Virtual;
+      Function Pop():TERRAObject; Virtual;
 
-      Procedure Clear(); Override;
-
-      Function Push(Item:CollectionObject):Boolean; Virtual;
-      Function Pop():CollectionObject; Virtual;
-
-      Function GetItemByIndex(Index:Integer):CollectionObject; Override;
-
-      Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):CollectionObject; Override;
-      Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Override;
-
-      Function ContainsReference(Item:CollectionObject):Boolean; Override;
-      Function ContainsDuplicate(Item:CollectionObject):Boolean; Override;
-
-      Property First:CollectionObject Read _First;
+      Function CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject; Override;
   End;
 
 
 Implementation
-Uses TERRA_Log;
+Uses TERRA_Log, TERRA_Engine;
 
-{ Queue }
-Function Queue.Search(Visitor: CollectionVisitor; UserData:Pointer = Nil): CollectionObject;
-Var
-  P:CollectionObject;
+{ TERRAQueue }
+Constructor TERRAQueue.Create();
 Begin
-  Result := Nil;
-  P := _First;
-  While (Assigned(P)) Do
-  Begin
-    If (Visitor(P, UserData)) Then
-    Begin
-      Result := P;
-      Exit;
-    End;
-
-    P := P.Next;
-  End;
+  _SortOrder := collection_Unsorted;
+  _Options := 0;
+  _First := Nil;
 End;
 
-Procedure Queue.Visit(Visitor: CollectionVisitor; UserData:Pointer = Nil);
+Function TERRAQueue.Push(Item: TERRAObject): Boolean;
 Var
-  P:CollectionObject;
-Begin
-  P := _First;
-  While (Assigned(P)) Do
-  Begin
-    Visitor(P, UserData);
-    P := P.Next;
-  End;
-End;
-
-Function Queue.Push(Item: CollectionObject): Boolean;
-Var
-  P:CollectionObject;
+  Obj, P:TERRACollectionObject;
 Begin
   Result := False;
 
-  If (Item = Nil) Or ((Options And coCheckReferencesOnAdd<>0) And (Self.ContainsReference(Item))) Then
+  If (Item = Nil) Or ((Options And coCheckReferencesOnAdd<>0) And (Self.Contains(Item))) Then
   Begin
-    Log(logWarning, Self.ClassName, 'Reference already inside collection: '+Item.ToString());
+    Engine.Log.Write(logWarning, Self.ClassName, 'Reference already inside collection: '+Item.GetBlob());
     Exit;
   End;
 
-  If ((Options And coNoDuplicates<>0) And (Self.ContainsDuplicate(Item))) Then
-  Begin
-    Log(logWarning, Self.ClassName, 'Item duplicated in collection: '+Item.ToString());
-    Exit;
-  End;
-
-  If (Item.Collection<>Nil) Then
-  Begin
-    Log(logWarning, Self.ClassName, 'Item already belongs to a collection: '+Item.ToString());
-    Exit;
-  End;
-
-  Item.Link(Self);
+  Obj := Self.NewItem(Item);
   Inc(_ItemCount);
   Result := True;
 
   If (Not Assigned(_First)) Then
   Begin
-    _First := Item;
+    _First := Obj;
     _First.Next := Nil;
     Exit;
   End;
@@ -130,7 +80,7 @@ Begin
     If (Not Assigned(P.Next)) Then
     Begin
 
-      P.Next := Item;
+      P.Next := Obj;
       P := P.Next;
       P.Next := Nil;
       Exit;
@@ -140,92 +90,9 @@ Begin
   Until (Not Assigned(P));
 End;
 
-Procedure Queue.Clear();
+Function TERRAQueue.Pop:TERRAObject;
 Var
-  Temp:CollectionObject;
-Begin
-  While (Assigned(_First)) Do
-  Begin
-    Temp := Self.Pop();
-
-    ReleaseObject(Temp);
-  End;
-End;
-
-Function Queue.ContainsReference(Item: CollectionObject): Boolean;
-Var
-  P:CollectionObject;
-Begin
-  Result := True;
-  P := _First;
-  While (Assigned(P)) Do
-  Begin
-    If (Item = P) Then
-      Exit;
-
-    P := P.Next;
-  End;
-  Result := False;
-End;
-
-Function Queue.ContainsDuplicate(Item: CollectionObject): Boolean;
-Var
-  P:CollectionObject;
-Begin
-  Result := True;
-  P := _First;
-  While (Assigned(P)) Do
-  Begin
-    If (Item.Sort(P) = 0) Then
-      Exit;
-
-    P := P.Next;
-  End;
-  Result := False;
-End;
-
-Constructor Queue.Create;
-Begin
-  _SortOrder := collection_Unsorted;
-  _Options := 0;
-  _First := Nil;
-End;
-
-Function Queue.GetIterator: Iterator;
-Begin
-  Result := Nil;
-End;
-
-Function Queue.GetItemByIndex(Index:Integer):CollectionObject;
-Var
-  I:Integer;
-Begin
-  If (Index<0) Or (Index>=Self.Count) Then
-  Begin
-    Result := Nil;
-    Exit;
-  End;
-
-  Result := _First;
-  If (Index = 0) Then
-    Exit;
-
-  I := 0;
-  While (Result<>Nil) Do
-  Begin
-    Result := Result.Next;
-    Inc(I);
-
-    If (I = Index) Then
-      Exit;
-  End;
-
-  Result := Nil;
-End;
-
-Function Queue.Pop:CollectionObject;
-Var
-  P:CollectionObject;
+  P:TERRACollectionObject;
 Begin
   If (_First = Nil) Then
   Begin
@@ -237,7 +104,18 @@ Begin
   _First := _First.Next;
   Dec(_ItemCount);
 
-  Result := P;
+  Result := P.Item;
+  ReleaseObject(P);
+End;
+
+Function TERRAQueue.CreateProperty(const KeyName, ObjectType: TERRAString): TERRAObject;
+Begin
+  Result := Inherited CreateProperty(KeyName, ObjectType);
+
+  If (Assigned(Result)) Then
+  Begin
+    Self.Push(Result);
+  End;
 End;
 
 End.

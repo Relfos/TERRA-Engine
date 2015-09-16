@@ -2,7 +2,7 @@ Unit TERRA_MusicManager;
 {$I terra.inc}
 Interface
 
-Uses TERRA_String, TERRA_Error, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_Java, TERRA_OS, TERRA_FileManager;
+Uses TERRA_Object, TERRA_String, TERRA_Error, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_Java, TERRA_OS, TERRA_FileManager;
 
 Const
   JavaMusicPlayerClassName = 'com.pascal.terra.TERRAMusicPlayer';

@@ -2,7 +2,7 @@ Unit TERRA_PackageBuilder;
 {$I terra.inc}
 
 Interface
-Uses TERRA_String, TERRA_FileUtils, TERRA_Stream, TERRA_MemoryStream, TERRA_Collections,
+Uses TERRA_Object, TERRA_String, TERRA_FileUtils, TERRA_Stream, TERRA_MemoryStream, TERRA_Collections,
   TERRA_Resource, TERRA_Package;
 
 Type
@@ -11,24 +11,24 @@ Type
       _Data:MemoryStream;
 
     Public
-      Constructor Create(Const FileName:TERRAString; Owner:Package);
+      Constructor Create(Const FileName:TERRAString; Owner:TERRAPackage);
       Procedure Release(); Override;
   End;
 
-  PackageBuilder = Class(Package)
+  PackageBuilder = Class(TERRAPackage)
     Private
       // Writes the package header to the file
-      Procedure WriteHeader(Dest:Stream);
+      Procedure WriteHeader(Dest:TERRAStream);
 
       // Rebuild internal file table
-      Procedure WriteTable(Dest:Stream);
+      Procedure WriteTable(Dest:TERRAStream);
 
       // Writes resources to package file
-      Procedure WriteResources(Dest:Stream);
+      Procedure WriteResources(Dest:TERRAStream);
 
       // Sorts package file table
       Procedure SortFileTable();
-      
+
     Public
       // Save package contents
       Function Save(Const FileName:TERRAString):Boolean;
@@ -41,9 +41,9 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_Utils, TERRA_CRC32, TERRA_Application, TERRA_OS, TERRA_Log, TERRA_ResourceManager,
-  TERRA_FileStream, TERRA_FileManager;
+  TERRA_Engine, TERRA_FileStream, TERRA_FileManager;
 
-Constructor ResourceBuilderInfo.Create(Const FileName:TERRAString; Owner:Package);
+Constructor ResourceBuilderInfo.Create(Const FileName:TERRAString; Owner:TERRAPackage);
 Begin
   _Owner := Owner;
   _Data := MemoryStream.Create(FileName);
@@ -58,7 +58,7 @@ Begin
   ReleaseObject(_Data);
 End;
 
-Procedure PackageBuilder.WriteHeader(Dest:Stream);
+Procedure PackageBuilder.WriteHeader(Dest:TERRAStream);
 Var
   Header:FileHeader;
 Begin
@@ -69,9 +69,9 @@ Begin
   Dest.WriteCardinal(_TableOffset); //Write table offset
 End;
 
-Procedure PackageBuilder.WriteTable(Dest:Stream);
+Procedure PackageBuilder.WriteTable(Dest:TERRAStream);
 Var
-  It:Iterator;
+  It:TERRAIterator;
   Resource:ResourceInfo;
 Begin
   SortFileTable();
@@ -90,9 +90,9 @@ End;
 
 Function PackageBuilder.Save(Const FileName:TERRAString):Boolean;
 Var
-   Dest:Stream;
+   Dest:TERRAStream;
 Begin
-  Log(logDebug,'Package', 'Creating package '+FileName);
+  Engine.Log.Write(logDebug,'Package', 'Creating package '+FileName);
 
   _Location := FileName;
   _Name := GetFileName(FileName, True);
@@ -153,7 +153,7 @@ Var
   Source:MemoryStream;
   Name:TERRAString;
 Begin 
-  Log(logDebug,'Package', 'Adding resource '+ResourceFileName);
+  Engine.Log.Write(logDebug,'Package', 'Adding resource '+ResourceFileName);
 
   Result := FindResourceByName(ResourceFileName);
   If Assigned(Result) Then
@@ -167,24 +167,24 @@ End;
 //Removes a resource from the package
 Procedure PackageBuilder.DeleteResource(Resource:ResourceInfo);
 Var
-  It:Iterator;
+  It:TERRAIterator;
   Res:ResourceInfo;
 Begin
-  Log(logDebug,'Package', 'Deleting resource '+Resource.FileName);
+  Engine.Log.Write(logDebug,'Package', 'Deleting resource '+Resource.FileName);
 
   It := Self.Resources.GetIterator();
   While It.HasNext() Do
   Begin
     Res := ResourceInfo(It.Value);
     If StringEquals(Res.FileName, Resource.FileName) Then
-      Res.Discard();
+      It.Discard();
   End;
   ReleaseObject(It);
 End;
 
-Procedure PackageBuilder.WriteResources(Dest: Stream);
+Procedure PackageBuilder.WriteResources(Dest:TERRAStream);
 Var
-  It:Iterator;
+  It:TERRAIterator;
   Resource:ResourceBuilderInfo;
 Begin
   It := Self.Resources.GetIterator();

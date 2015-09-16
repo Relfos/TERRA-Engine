@@ -69,12 +69,12 @@ Unit TERRA_FileStream;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Stream, TERRA_FileUtils, TERRA_String;
+Uses TERRA_Stream, TERRA_Object, TERRA_FileUtils, TERRA_String;
 
 Type
-  FilePointer=File;
+  FilePointer = File;
 
-  FileStream=Class(Stream)
+  FileStream = Class(TERRAStream)
      Protected
         _File:FilePointer;
         _Open:Boolean;
@@ -97,7 +97,7 @@ Type
      End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Application, TERRA_Utils, TERRA_FileManager, TERRA_MemoryStream, SysUtils;
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Application, TERRA_Utils, TERRA_Engine, TERRA_FileManager, TERRA_MemoryStream, SysUtils;
 
 {$I-}
 
@@ -120,7 +120,7 @@ End;
 {$IFDEF WINDOWS}
 Class Function FileStream.Exists(FileName:TERRAString): Boolean;
 Begin
-  Log(logDebug, 'File', 'Testing file '+FileName);
+  Engine.Log.Write(logDebug, 'File', 'Testing file '+FileName);
   FileMode := 0;
   FileName := GetOSIndependentFileName(FileName);
   Result:=(FileAge(FileName)<>-1);
@@ -128,7 +128,7 @@ End;
 {$ELSE}
 Class Function FileStream.Exists(FileName:TERRAString): Boolean;
 Begin
-  {$IFDEF DEBUG_FILECACHE}Log(logDebug, 'FileManager', 'Testing for file '+FileName);{$ENDIF}
+  {$IFDEF DEBUG_FILECACHE}Engine.Log.Write(logDebug, 'FileManager', 'Testing for file '+FileName);{$ENDIF}
 
   FileName := GetOSIndependentFileName(FileName);
   Result := FileExists(FileName);
@@ -145,18 +145,18 @@ Begin
   Inherited Create(StreamMode);
 
   FileName := GetOSIndependentFileName(FileName);
-  FileManager.Instance.RemoveFromCache(FileName);
+  Engine.Files.RemoveFromCache(FileName);
 
-  Log(logDebug,'IO','Creating '+FileName);
+  Engine.Log.Write(logDebug,'IO','Creating '+FileName);
   If StreamMode=0 Then
-    RaiseError('Invalid file mode.['+FileName+']')
+    Engine.RaiseError('Invalid file mode.['+FileName+']')
   Else
   Begin
-    _Name:=FileName;
+    _ObjectName := FileName;
     _Size:=0;
     FileMode := 2;
 
-    AssignFile(_File,_Name);
+    AssignFile(_File, _ObjectName);
     Rewrite(_File,1);
 
     _Open:=True;
@@ -170,19 +170,17 @@ Begin
   FileName := GetOSIndependentFileName(FileName);
 
   _Open := False;
-  _Name := FileName;
+  _ObjectName := FileName;
 
-  {$IFNDEF NDS}
   If Not FileExists(PAnsiChar(FileName)) Then
   Begin
-    RaiseError('File not found. ['+FileName+']');
+    Engine.RaiseError('File not found. ['+FileName+']');
     Exit;
   End;
-  {$ENDIF}
 
   If StreamMode=0 Then
   Begin
-    RaiseError('Invalid file mode. ['+FileName+']');
+    Engine.RaiseError('Invalid file mode. ['+FileName+']');
     Exit;
   End Else
   Begin
@@ -193,8 +191,8 @@ Begin
 
     IOResult();
 
-  Log(logDebug,'IO','Opening '+FileName);
-    AssignFile(_File,_Name);
+  Engine.Log.Write(logDebug,'IO','Opening '+FileName);
+    AssignFile(_File, _ObjectName);
     Reset(_File,1);
     _Size := FileSize(_File);
 
@@ -239,11 +237,11 @@ Begin
 {$IFNDEF PC}
   RaiseError('File.Rename() not implemented!');
 {$ELSE}
-  _Name:=NewName;
+  _ObjectName := NewName;
   CloseFile(_File);
   Erase(_File);
-  FileRename(_File,_Name);
-  AssignFile(_File,_Name);
+  FileRename(_File, _ObjectName);
+  AssignFile(_File, _ObjectName);
   Reset(_File,1);
 
   Seek(Position);
@@ -262,7 +260,7 @@ Begin
   Begin
     Result := 0;
     {$IFDEF PC}
-    Log(logWarning, 'IO', 'Cannot read from file: '+Self._Name+' ('+IntToString(_Pos)+'/'+IntToString(_Size)+')');
+    Engine.Log.Write(logWarning, 'IO', 'Cannot read from file: '+Self.Name+' ('+ IntegerProperty.Stringify(_Pos)+'/'+ IntegerProperty.Stringify(_Size)+')');
     {$ENDIF}
     FillChar(Data^, Length, 0);
     Exit;
@@ -286,7 +284,7 @@ End;
 Function FileStream.Write(Data:Pointer; Length:Cardinal):Cardinal;
 Begin
   {$IFDEF MOBILE}
-  Log(logDebug, 'App', 'Writing to file! ' + Self._Name);
+  Engine.Log.Write(logDebug, 'App', 'Writing to file! ' + Self._Name);
   {$ENDIF}
 
   Result := 0;
@@ -295,13 +293,13 @@ Begin
 
   If (_Mode And smWrite=0)Then
   Begin
-    RaiseError('File is write protected.['+_Name+']');
+    Engine.RaiseError('File is write protected.['+Name+']');
     Exit;
   End;
 
   If (_Pos+Length>_Size)And(_Mode And smDynamic=0) Then
   Begin
-    RaiseError('Cannot write to file.['+_Name+']');
+    Engine.RaiseError('Cannot write to file.['+Name+']');
     Exit;
   End;
 
@@ -318,7 +316,7 @@ Procedure FileStream.Seek(NewPosition:Cardinal);
 Begin
   If _Pos>_Size Then
   Begin
-    RaiseError('Cannot seek in file.['+_Name+']');
+    Engine.RaiseError('Cannot seek in file.['+Name+']');
     Exit;
   End;
   _Pos := NewPosition;
@@ -328,7 +326,7 @@ End;
 
 Class procedure FileStream.CopyFile(SourceName, DestName:TERRAString);
 Var
-  Source, Dest:Stream;
+  Source, Dest:TERRAStream;
 Begin
   Source := MemoryStream.Create(SourceName);
   Dest := FileStream.Create(DestName);
@@ -341,7 +339,7 @@ Procedure FileStream.Flush;
 Begin
   CloseFile(_File);
   FileMode := 2;
-  AssignFile(_File,_Name);
+  AssignFile(_File, _ObjectName);
   Reset(_File,1);
   FileSeek(_File, _Pos);
 End;

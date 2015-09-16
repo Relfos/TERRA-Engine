@@ -27,9 +27,17 @@ Unit TERRA_GIF;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Error, TERRA_Utils, TERRA_Application, TERRA_Stream, TERRA_Image, TERRA_Math, TERRA_Color;
+Uses TERRA_Object, TERRA_String, TERRA_Stream, TERRA_Image, TERRA_FileFormat;
+
+Type
+  GIFFormat = Class(TERRAFileFormat)
+    Public
+      Function Identify(Source:TERRAStream):Boolean; Override;
+      Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
+  End;
 
 Implementation
+Uses TERRA_Error, TERRA_Engine, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_Color;
 
 Type
   GIFHeader=Packed Record
@@ -68,21 +76,21 @@ Const
 
 Type
   PPalette=^GIFPalette;
-  GIFPalette=Array[0..255] Of Color;
+  GIFPalette=Array[0..255] Of ColorRGBA;
 
   GIFLoader = Class(TERRAObject)
     Protected
-      MyImage:Image;
+      Image:TERRAImage;
       TransparencyColor:Integer;
 
-      Procedure DecodeGIFLZW(Source:Stream; FrameBuffer:Image; Palette:PPalette; Interlaced:Boolean);
-      Procedure CopyFrame(FrameBuffer:Image; X,Y,FrameWidth,FrameHeight:Word);
+      Procedure DecodeGIFLZW(Source:TERRAStream; FrameBuffer:TERRAImage; Palette:PPalette; Interlaced:Boolean);
+      Procedure CopyFrame(FrameBuffer:TERRAImage; X,Y,FrameWidth,FrameHeight:Word);
       Procedure MaskFrame;
 
-      Procedure Load(Source:Stream);
+      Procedure Load(Source:TERRAStream);
   End;
 
-Procedure DumpData(Source:Stream);
+Procedure DumpData(Source:TERRAStream);
 Var
   Count:Byte;
 Begin
@@ -94,30 +102,30 @@ End;
 
 Procedure GIFLoader.MaskFrame();
 Var
-  Src,Dest:PColor;
+  Src,Dest:PColorRGBA;
   I,J:Cardinal;
   CurrentFrame:Integer;
 Begin
 Exit;
-  CurrentFrame := MyImage.CurrentFrame;
+  CurrentFrame := Image.CurrentFrame;
   If CurrentFrame<=0 Then
     Exit;
 
-  For J:=0 To Pred(MyImage.Height) Do
-    For I:=0 To Pred(MyImage.Width) Do
+  For J:=0 To Pred(Image.Height) Do
+    For I:=0 To Pred(Image.Width) Do
     Begin
-      MyImage.SetCurrentFrame(Pred(CurrentFrame));
-      Src := MyImage.GetPixelOffset(I, J);
+      Image.SetCurrentFrame(Pred(CurrentFrame));
+      Src := Image.GetPixelOffset(I, J);
 
-      MyImage.SetCurrentFrame(CurrentFrame);
-      Dest := MyImage.GetPixelOffset(I, J);
+      Image.SetCurrentFrame(CurrentFrame);
+      Dest := Image.GetPixelOffset(I, J);
 
       If (Dest.A=0) And (Src.A=255) Then
         Dest^ := Src^;
     End;
 End;
 
-Procedure GIFLoader.CopyFrame(FrameBuffer:Image; X,Y,FrameWidth,FrameHeight:Word);
+Procedure GIFLoader.CopyFrame(FrameBuffer:TERRAImage; X,Y,FrameWidth,FrameHeight:Word);
 Var
   J:Cardinal;
   PrevFrame:Pointer;
@@ -126,26 +134,26 @@ Var
   Src, Dest:PByte;
   {$ENDIF}
   {$IFDEF PIXEL32}
-  Src, Dest:PColor;
+  Src, Dest:PColorRGBA;
   {$ENDIF}
 Begin
-  If MyImage.CurrentFrame<=0 Then
+(*  If Image.CurrentFrame<=0 Then
   Begin
-    MyImage.Copy(FrameBuffer);
+    Image.Copy(FrameBuffer);
     Exit;
-  End;
+  End;*)
 
   {MyImage.SetCurrentFrame(Pred(MyImage.CurrentFrame));
   PrevFrame := MyImage.Pixels;
   MyImage.SetCurrentFrame(Succ(MyImage.CurrentFrame));
   Move(PrevFrame^, MyImage.Pixels^, MyImage.Size);}
 
-  Move(FrameBuffer.Pixels^, MyImage.Pixels^, MyImage.Size);
+  Move(FrameBuffer.RawPixels^, Image.RawPixels^, Image.Size);
   Exit;
 
   For J:=0 To Pred(FrameHeight) Do
   Begin
-    Src := MyImage.GetPixelOffset(X, Y + J);
+    Src := Image.GetPixelOffset(X, Y + J);
     Dest := FrameBuffer.GetPixelOffset(X, Y + J);
 
     {$IFDEF PIXEL8}
@@ -157,7 +165,7 @@ Begin
   End;
 End;
 
-Procedure GIFLoader.DecodeGIFLZW(Source:Stream; FrameBuffer:Image; Palette:PPalette; Interlaced:Boolean);
+Procedure GIFLoader.DecodeGIFLZW(Source:TERRAStream; FrameBuffer:TERRAImage; Palette:PPalette; Interlaced:Boolean);
 Var
   xd,yd:Cardinal;
 Const
@@ -183,7 +191,7 @@ Var
   BytInBuf,BytBufIdx:Byte;
   EndOfSrc:Boolean;
   xcnt,ycnt,pcnt,ystep,pass:Cardinal;
-  Dest:PColor;
+  Dest:PColorRGBA;
 
   Procedure InitStringTable;
   Var
@@ -337,8 +345,8 @@ Var
 
   Begin
     EndOfSrc:=False;
-    xd := MyImage.Width;
-    yd := MyImage.Height;
+    xd := Image.Width;
+    yd := Image.Height;
     xcnt:=0;
     pcnt:=0;
     If Interlaced Then
@@ -407,10 +415,10 @@ Var
   End;
 
 
-Procedure GIFLoader.Load(Source:Stream);
+Procedure GIFLoader.Load(Source:TERRAStream);
 var
   GIFHeader:TERRA_GIF.GIFHeader;
-  GIFBlockID:AnsiChar;
+  GIFBlockID:Byte;
   GIFImageDescriptor:TERRA_GIF.GIFImageDescriptor;
   GIFExtensionBlock:TERRA_GIF.GIFExtensionBlock;
   GIFGraphicControlExtension:TERRA_GIF.GIFGraphicControlExtension;
@@ -424,7 +432,7 @@ var
 
   Interlaced:Boolean;
 
-  FrameBuffer:Image;
+  FrameBuffer:TERRAImage;
 Begin
   TransparencyColor:=-1;
   Frame:=0;
@@ -434,7 +442,7 @@ Begin
   Source.Read(@GIFHeader,SizeOf(GIFHeader));
   If (GIFHeader.Signature<>'GIF') Then
   Begin
-    RaiseError('Invalid header.');
+    Engine.RaiseError('Invalid header.');
     Exit;
   End;
 
@@ -445,16 +453,9 @@ Begin
     For I:=0 To Pred(K) Do
     Begin
       Source.Read(@rgb,3);
-      {$IFDEF RGB}
       GlobalPalette[i].R := RGB.Red;
       GlobalPalette[i].G := RGB.Green;
       GlobalPalette[i].B := RGB.Blue;
-      {$ENDIF}
-      {$IFDEF BGR}
-      GlobalPalette[i].B := RGB.Red;
-      GlobalPalette[i].G := RGB.Green;
-      GlobalPalette[i].R := RGB.Blue;
-      {$ENDIF}
       GlobalPalette[i].A := 255;
     End;
 
@@ -463,12 +464,15 @@ Begin
   End;
 
   Repeat
-    Source.Read(@GIFBlockID,1);
+    Source.ReadByte(GIFBlockID);
     Case GIFBlockID Of
-    ';':Begin
+    Ord(';'):
+        Begin
+          Break;
         End;
 
-    ',':Begin //image separator
+    Ord(','):
+        Begin //image separator
           Palette := @GlobalPalette;
           Source.Read(@GIFImageDescriptor,SizeOf(GIFImageDescriptor));
           If (GIFImageDescriptor.Flags And $80<>0) Then
@@ -493,17 +497,10 @@ Begin
 
           If Frame=0 Then
           Begin
-            MyImage.New(xd, yd);
+            Image.New(xd, yd);
             FrameBuffer := Image.Create(xd, yd);
           End Else
-            MyImage.AddFrame();
-
-          Case Frame Mod 4 Of
-          0:  FrameBuffer.FillRectangleByUV(0, 0, 1, 1, ColorRed);
-          1:  FrameBuffer.FillRectangleByUV(0, 0, 1, 1, ColorBlue);
-          2:  FrameBuffer.FillRectangleByUV(0, 0, 1, 1, ColorGreen);
-          3:  FrameBuffer.FillRectangleByUV(0, 0, 1, 1, ColorYellow);
-          End;
+            Image.AddFrame();
 
           Interlaced := (GIFImageDescriptor.flags AND $40=$40);
 
@@ -521,7 +518,8 @@ Begin
           Inc(Frame);
         End;
 
-    '!':Begin
+    Ord('!'):
+        Begin
           Source.Read(@GIFExtensionBlock, SizeOf(GIFExtensionBlock));
 
           Case GIFExtensionBlock.FunctionCode Of
@@ -536,34 +534,33 @@ Begin
           End;
         End;
     Else
-      Exit;
+      Break;
     End;
-  Until (GIFBlockID=';') Or (Source.EOF);
+  Until (Source.EOF);
 
-  ReleaseObject(FrameBuffer);
-  MyImage.SetCurrentFrame(0);
+  Image.SetCurrentFrame(0);
 End;
 
-Procedure GIFLoad(Source:Stream; MyImage:Image);
+{ GIFFormat }
+Function GIFFormat.Identify(Source: TERRAStream): Boolean;
+Var
+  ID:Array[1..3] Of AnsiChar;
+Begin
+  Source.Read(@ID,3);
+  Result := (ID='GIF');
+End;
+
+Function GIFFormat.LoadFromStream(Target: TERRAObject; Source: TERRAStream): Boolean;
 Var
   Loader:GIFLoader;
 Begin
   Loader := GIFLoader.Create;
-  Loader.MyImage := MyImage;
+  Loader.Image := TERRAImage(Target);
   Loader.Load(Source);
   ReleaseObject(Loader);
-
-  MyImage.Process(IMP_SetColorKey, ColorCreate(255,0, 255, 255));
-End;
-
-Function ValidateGIF(Stream:Stream):Boolean;
-Var
-  ID:Array[1..3] Of AnsiChar;
-Begin
-  Stream.Read(@ID,3);
-  Result:=(ID='GIF');
+  Result := True;
 End;
 
 Begin
-  RegisterImageFormat('GIF', ValidateGIF, GIFLoad);
+  Engine.Formats.Add(GIFFormat.Create(TERRAImage, 'gif'));
 End.

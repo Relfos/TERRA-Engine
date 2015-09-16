@@ -2,7 +2,7 @@ Unit TERRA_AudioTrack;
 {$I terra.inc}
 Interface
 
-Uses Windows, TERRA_String, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_MusicTrack, TERRA_Multimedia;
+Uses Windows, TERRA_Object, TERRA_String, TERRA_Utils, TERRA_FileUtils, TERRA_Application, TERRA_MusicTrack, TERRA_Multimedia;
 
 Type
   AudioMusicTrack = Class(MusicTrack)
@@ -24,7 +24,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_FileManager, TERRA_FileStream, TERRA_Stream, TERRA_Math;
+Uses TERRA_Engine, TERRA_Error, TERRA_Log, TERRA_OS, TERRA_FileManager, TERRA_FileStream, TERRA_Stream, TERRA_Math;
 
 Const
   mpNotReady = 0;
@@ -58,7 +58,7 @@ Begin
     strMsg := 'Unknown error code';
 
   Result := True;
-  Log(logError, 'Music', strMsg);
+  Engine.Log.Write(logError, 'Music', strMsg);
 End;
 
 (*Function MusicManager.mciLgthInSecs: integer;
@@ -194,13 +194,13 @@ Begin
   If (_DeviceID = 0 ) Or (_IsMIDI) Then
     Exit;
 
-  intError := mciSendString(PAnsiChar('setaudio '+_FileName+' volume to '+IntToString(Trunc(_Volume*1000))), Nil, 0, Application.Instance().Handle);
+  intError := mciSendString(PAnsiChar('setaudio '+_FileName+' volume to '+ IntegerProperty.Stringify(Trunc(_Volume*1000))), Nil, 0, Application.Instance.Window.Handle);
   CheckError( intError );
 End;
 
 Procedure AudioMusicTrack.Init();
 Var
-  Src, Dest:Stream;
+  Src, Dest:TERRAStream;
   OpenParm:MCI_OPEN_PARAMS;
   lMode :Integer;
   intFlags:Integer;
@@ -216,7 +216,7 @@ Begin
     // extract from package if necessary
     If IsPackageFileName(FileName) Then
     Begin
-      Src := FileManager.Instance.OpenStream(FileName);
+      Src := Engine.Files.OpenFile(FileName);
       If Not Assigned(Src) Then
         Exit;
 
@@ -266,12 +266,12 @@ Begin
   If (_DeviceID = 0 ) Then
     Exit;
 
-  intError := mciSendString(PAnsiChar('seek '+FileName+' to 0'), Nil, 0, Application.Instance().Handle);
+  intError := mciSendString(PAnsiChar('seek '+FileName+' to 0'), Nil, 0, Application.Instance.Window.Handle);
   CheckError( intError );
 
   intFlags := mci_Notify;
-  PlayParm.dwCallback := Application.Instance().Handle;
-  intError := mciSendString(PAnsiChar('Play '+FileName+' notify'), Nil, 0, Application.Instance().Handle);
+  PlayParm.dwCallback := Application.Instance.Window.Handle;
+  intError := mciSendString(PAnsiChar('Play '+FileName+' notify'), Nil, 0, Application.Instance.Window.Handle);
   //intError := mciSendCommand(_DeviceID, mci_Play,intFlags,Longint( @PlayParm ) );
   CheckError( intError );
 

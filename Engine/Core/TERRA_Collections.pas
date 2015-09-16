@@ -27,22 +27,22 @@ Unit TERRA_Collections;
 {-$DEFINE DEBUG}
 
 Interface
-Uses TERRA_String, TERRA_Utils
+Uses TERRA_Object, TERRA_String, TERRA_Utils
 {$IFNDEF DISABLETHREADS}, TERRA_Mutex{$ENDIF};
 
-Function GetStringSort(Const A,B:TERRAString):Integer;
-
 Const
-  { Checks that the collection contains no duplicate values }
-  coNoDuplicates    = 2;
   { Insert fails if object already added }
-  coCheckReferencesOnAdd    = 4;
-  coCheckReferencesOnDelete = 8;
+  coCheckReferencesOnAdd    = 2;
+  coCheckReferencesOnDelete = 4;
+
+  { Items are not deleted from memory when Clear() or Release() is called on a collection }
+  coShared = 8;
+
   { The collection will be thread-safe, meaning adds, deletes and iterators will be protected by a critical section. }
   coThreadSafe      = 32;
 
 Type
-  Collection = Class;
+  TERRACollection = Class;
 
   CollectionSortOrder = (
     { The collection is unsorted. Add() does a very fast insertion without sorting.}
@@ -56,54 +56,42 @@ Type
   );
 
   // must implement at least copy value and sort
-  CollectionObject = Class(TERRAObject)
+  TERRACollectionObject = Class(TERRAObject)
     Protected
-      _Collection:Collection;
-      _Next:CollectionObject;
+      _Collection:TERRACollection;
+      _Next:TERRACollectionObject;
       _Discarded:Boolean;
 
-      Function IsCompatible(Other:CollectionObject):Boolean;
-      Procedure Internal_Copy(Other:CollectionObject);
-      Function Internal_Sort(Other:CollectionObject):Integer;
+      _Item:TERRAObject;
 
     Public
+      { Creates and links this object to a specific collection. }
+      Constructor Create(Owner:TERRACollection; Item:TERRAObject);
+
       { Release this object }
       Procedure Release(); Override;
 
       { Mark this object for release. It will be auto-released as soon as possible.}
-      Procedure Discard(); 
+      Procedure Discard();
 
-      { Links this object to a specific collection. Internal use. }
-      Procedure Link(Col:Collection);
+      Class Function CanBePooled:Boolean; Override;
 
-      { Clones this object. }
-      Procedure CopyValue(Other:CollectionObject); Virtual;
-
-      Function ToString():TERRAString; {$IFDEF FPC}Reintroduce;{$ENDIF}  Virtual;
-
-      { Compares this object with a similar object. If not implemented, no sorting will happen. }
-      Function Sort(Other:CollectionObject):Integer; Virtual;
-
-      Property Collection:Collection Read _Collection;
-      Property Next:CollectionObject Read _Next Write _Next; // FIXME should not have write acess
+      Property Collection:TERRACollection Read _Collection;
+      Property Next:TERRACollectionObject Read _Next Write _Next; // FIXME should not have write acess
+      Property Item:TERRAObject Read _Item;
       Property Discarded:Boolean Read _Discarded;
   End;
 
-  Iterator = Class(TERRAObject)
+  TERRAIterator = Class(TERRAObject)
     Private
-      _Value:CollectionObject;
+      _Value:TERRACollectionObject;
       _Index:Integer;
-      _Collection:Collection;
+      _Collection:TERRACollection;
       _Finished:Boolean;
-
-      {$IFNDEF DISABLEALLOCOPTIMIZATIONS}
-      Class Function NewInstance:TObject; Override;
-      Procedure FreeInstance; Override;
-      {$ENDIF}
 
     Protected
 
-      Function ObtainNext():CollectionObject; Virtual; Abstract;
+      Function ObtainNext():TERRACollectionObject; Virtual; Abstract;
 
       Procedure Reset(); Virtual;
       Procedure JumpToIndex(Position: Integer); Virtual;
@@ -112,29 +100,35 @@ Type
 
       Function GetPosition():Integer;
 
+      Function GetValue():TERRAObject;
+
       Property Index:Integer Read _Index;
 
     Public
-      Constructor Create(Col:Collection);
+      Constructor Create(Collection:TERRACollection);
+
+      Procedure Init(Collection:TERRACollection);
 
       Function HasNext():Boolean;
 
       Function Seek(Position:Integer):Boolean;
 
-      Property Value:CollectionObject Read _Value;
+      Procedure Discard();
+
+      Class Function CanBePooled:Boolean; Override;
+
+      Property Value:TERRAObject Read GetValue;
       Property Position:Integer Read GetPosition;
-      Property Collection:TERRA_Collections.Collection Read _Collection;
+      Property Collection:TERRACollection Read _Collection;
   End;
 
-  CollectionVisitor = Function(Item:CollectionObject; UserData:Pointer):Boolean; CDecl;
-
-  Collection = Class(TERRAObject)
+  TERRACollection = Class(TERRAObject)
     Protected
       _ItemCount:Integer;
       _Options:Cardinal;
 
       _SortOrder:CollectionSortOrder;
-      _Share:Collection;
+      _Share:TERRACollection;
 
       {$IFNDEF DISABLETHREADS}
       _Mutex:CriticalSection;
@@ -142,35 +136,42 @@ Type
 
       _HasDiscards:Boolean;
 
-      Procedure Init(Options:Integer; Share:Collection);
+      Procedure Init(Options:Integer; Share:TERRACollection);
 
       Procedure Update();
       Procedure RemoveDiscardedItems(); Virtual;
 
+      Function NewItem(Content:TERRAObject):TERRACollectionObject;
+
+      Function CompareItems(A,B:TERRACollectionObject):Integer;
+
     Public
       Procedure Release(); Override;
 
-      Function GetIterator:Iterator; Virtual;
+      Function GetIterator:TERRAIterator; Virtual;
 
       // removes all items
-      Procedure Clear(); Virtual; 
+      Procedure Clear(); Virtual;
 
       Procedure Lock;
       Procedure Unlock;
 
-
-      Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):CollectionObject; Virtual;
-      Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Virtual; 
+      Function GetPropertyByIndex(Index:Integer):TERRAObject; Override;
 
       // Should return True if Item contains Key
-      Function ContainsReference(Item:CollectionObject):Boolean; Virtual;
-      Function ContainsDuplicate(Item:CollectionObject):Boolean; Virtual;
+      Function Contains(Item:TERRAObject):Boolean; Virtual;
 
-      Function GetItemByIndex(Index:Integer):CollectionObject; Virtual;
+      // Returns true if deletion was sucessful
+      Function Delete(Item:TERRAObject):Boolean;
+
+      // Returns true if removal was sucessful
+      Function Remove(Item:TERRAObject):Boolean; Virtual;
+
+      Function GetItemByIndex(Index:Integer):TERRAObject; Virtual;
 
 //      Function FindByValue(Const Value:TERRAString):CollectionObject; Virtual;
 
-      Property Objects[Index: Integer]:CollectionObject Read GetItemByIndex; Default;
+      Property Items[Index: Integer]:TERRAObject Read GetItemByIndex; Default;
 
       Property Count:Integer Read _ItemCount;
       Property Options:Cardinal Read _Options;
@@ -178,46 +179,6 @@ Type
       Property SortOrder:CollectionSortOrder Read _SortOrder;
   End;
 
-  List = Class(Collection)
-    Protected
-      _First:CollectionObject;
-      _Last:CollectionObject;
-
-      Procedure RemoveDiscardedItems(); Override;
-
-    Public
-      Constructor Create(SortOrder:CollectionSortOrder = collection_Unsorted; Options:Integer = 0);
-
-      Procedure Clear(); Override;
-      Function GetIterator:Iterator; Override;
-
-      Function GetItemByIndex(Index:Integer):CollectionObject; Override;
-
-      // adds copies of items, not references!
-      Function Merge(C:Collection):List;
-
-      // Returns true if insertion was sucessful
-      Function Add(Item:CollectionObject):Boolean;Virtual;
-      // Returns true if deletion was sucessful
-      Function Delete(Item:CollectionObject):Boolean; Virtual;
-
-      Function ContainsReference(Item:CollectionObject):Boolean; Override;
-
-      Function Search(Visitor:CollectionVisitor; UserData:Pointer = Nil):CollectionObject; Override;
-      Procedure Visit(Visitor:CollectionVisitor; UserData:Pointer = Nil); Override;
-
-      Property First:CollectionObject Read _First;
-  End;
-
-  ListIterator = Class(Iterator)
-    Protected
-      _Current:CollectionObject;
-
-      Function ObtainNext:CollectionObject; Override;
-      Procedure Reset(); Override;
-
-    Public
-  End;
 
   IntegerArrayObject = Object
     Items:Array Of Integer;
@@ -235,27 +196,41 @@ Type
   End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_FileStream, TERRA_Stream
-{$IFNDEF DISABLEALLOCOPTIMIZATIONS}, TERRA_StackObject{$ENDIF};
+Uses TERRA_Error, TERRA_Log, TERRA_OS, TERRA_Engine, TERRA_FileStream, TERRA_Stream;
 
-{$IFDEF DEBUG_ITERATORS}
-Var
-  _Iterator_Count:Integer;
-{$ENDIF}
-
-Function GetStringSort(Const A,B:TERRAString):Integer;
+{ TERRACollectionObject }
+Constructor TERRACollectionObject.Create(Owner:TERRACollection; Item:TERRAObject);
 Begin
-  If (A<B) Then
-    Result := 1
-  Else
-  If (A>B) Then
-    Result := -1
-  Else
-    Result := 0;
+  Self._Next := Nil;
+  Self._Collection := Owner;
+  Self._Item := Item;
+  Self._Discarded := False;
 End;
 
-{ Collection }
-Procedure Collection.Release();
+Procedure TERRACollectionObject.Release();
+Begin
+  If (Assigned(_Collection)) And (_Collection.Options And coShared = 0) Then
+    ReleaseObject(_Item);
+
+  _Collection := Nil;
+End;
+
+Procedure TERRACollectionObject.Discard();
+Begin
+  Self._Discarded := True;
+  If Assigned(Self._Collection) Then
+    Self._Collection._HasDiscards := True
+  Else
+    DebugBreak;
+End;
+
+Class Function TERRACollectionObject.CanBePooled: Boolean;
+Begin
+  Result := True;
+End;
+
+{ TERRACollection }
+Procedure TERRACollection.Release();
 Begin
   Self.Clear();
 
@@ -264,7 +239,7 @@ Begin
   {$ENDIF}
 End;
 
-Procedure Collection.Lock();
+Procedure TERRACollection.Lock();
 Begin
   {$IFNDEF DISABLETHREADS}
   If Assigned(_Share) Then
@@ -278,7 +253,7 @@ Begin
   {$ENDIF}
 End;
 
-Procedure Collection.Unlock();
+Procedure TERRACollection.Unlock();
 Begin
   {$IFNDEF DISABLETHREADS}
   If Assigned(_Share) Then
@@ -290,7 +265,7 @@ Begin
   {$ENDIF}
 End;
 
-Procedure Collection.Init(Options:Integer; Share:Collection);
+Procedure TERRACollection.Init(Options:Integer; Share:TERRACollection);
 Begin
   {$IFNDEF DISABLETHREADS}
   If (Assigned(Share)) Then
@@ -310,7 +285,7 @@ Begin
   _Options := Options;
 End;
 
-Function Collection.Search(Visitor: CollectionVisitor; UserData:Pointer = Nil): CollectionObject;
+(*Function TERRACollection.Search(Visitor: CollectionVisitor; UserData:Pointer = Nil): CollectionObject;
 Var
   It:Iterator;
   P:CollectionObject;
@@ -330,7 +305,7 @@ Begin
   ReleaseObject(It);
 End;
 
-Procedure Collection.Visit(Visitor: CollectionVisitor; UserData:Pointer = Nil);
+Procedure TERRACollection.Visit(Visitor: CollectionVisitor; UserData:Pointer = Nil);
 Var
   It:Iterator;
 Begin
@@ -339,12 +314,12 @@ Begin
   Begin
     Visitor(It.Value, UserData);
   End;
-End;
+End;*)
 
-Function Collection.ContainsReference(Item:CollectionObject):Boolean;
+Function TERRACollection.Contains(Item:TERRAObject):Boolean;
 Var
-  P:CollectionObject;
-  It:Iterator;
+  P:TERRAObject;
+  It:TERRAIterator;
 Begin
   Result := False;
   It := Self.GetIterator();
@@ -359,25 +334,15 @@ Begin
   ReleaseObject(It);
 End;
 
-Function Collection.ContainsDuplicate(Item:CollectionObject):Boolean;
-Var
-  P:CollectionObject;
-  It:Iterator;
+Function TERRACollection.Delete(Item:TERRAObject):Boolean;
 Begin
-  Result := False;
-  It := Self.GetIterator();
-  While (It.HasNext()) Do
-  Begin
-    If (StringEquals(It.Value.ToString(), Item.ToString())) Then
-    Begin
-      Result := True;
-      Break;
-    End;
-  End;
-  ReleaseObject(It);
+  Result := Self.Remove(Item);
+  
+  If Result Then
+    ReleaseObject(Item);
 End;
 
-{Function Collection.FindByValue(Const Value:TERRAString): CollectionObject;
+{Function TERRACollection.FindByValue(Const Value:TERRAString): CollectionObject;
 Var
   It:Iterator;
   P:CollectionObject;
@@ -396,12 +361,12 @@ Begin
   ReleaseObject(It);
 End;}
 
-Procedure Collection.RemoveDiscardedItems;
+Procedure TERRACollection.RemoveDiscardedItems;
 Begin
   // dummy
 End;
 
-Procedure Collection.Update;
+Procedure TERRACollection.Update;
 Begin
   If Not _HasDiscards Then
     Exit;
@@ -477,9 +442,9 @@ Begin
   SetLength(Items, Count);
 End;
 
-Function Collection.GetItemByIndex(Index: Integer): CollectionObject;
+Function TERRACollection.GetItemByIndex(Index: Integer):TERRAObject;
 Var
-  It:Iterator;
+  It:TERRAIterator;
 Begin
   It := Self.GetIterator();
   It.Seek(Index);
@@ -487,27 +452,70 @@ Begin
   ReleaseObject(It);
 End;
 
-Function Collection.GetIterator: Iterator;
+Function TERRACollection.GetIterator:TERRAIterator;
 Begin
   Result := Nil;
 End;
 
-Procedure Collection.Clear;
+Procedure TERRACollection.Clear;
 Var
-  It:Iterator;
+  It:TERRAIterator;
 Begin
   It := Self.GetIterator();
   While It.HasNext() Do
   Begin
-    It.Value.Discard();
+    It.Discard();
   End;
   ReleaseObject(It);
 End;
 
-{ Iterator }
-Constructor Iterator.Create(Col: Collection);
+Function TERRACollection.GetPropertyByIndex(Index: Integer): TERRAObject;
 Begin
-  _Collection := Col;
+  If (Index<Self.Count) Then
+    Result := Self.GetItemByIndex(Index)
+  Else
+    Result := Nil;
+End;
+
+Function TERRACollection.CompareItems(A, B: TERRACollectionObject): Integer;
+Var
+  VA, VB:Integer;
+Begin
+  VA := A.Item.SortID();
+  VB := B.Item.SortID();
+
+  If (VA>VB) Then
+    Result := 1
+  Else
+  If (VA<VB) Then
+    Result := -1
+  Else
+    Result := 0;
+End;
+
+Function TERRACollection.Remove(Item: TERRAObject): Boolean;
+Begin
+  Result := False;
+End;
+
+Function TERRACollection.NewItem(Content:TERRAObject): TERRACollectionObject;
+Begin
+  Result := TERRACollectionObject(Engine.Pool.Fetch(TERRACollectionObject));
+  If Assigned(Result) Then
+    Result.Create(Self, Content)
+  Else
+    Result := TERRACollectionObject.Create(Self, Content);
+End;
+
+{ Iterator }
+Constructor TERRAIterator.Create(Collection:TERRACollection);
+Begin
+  Self.Init(Collection);
+End;
+
+Procedure TERRAIterator.Init(Collection:TERRACollection);
+Begin
+  _Collection := Collection;
 
   If Assigned(_Collection) Then
   Begin
@@ -515,48 +523,25 @@ Begin
     _Collection.Update();
   End;
 
-{$IFDEF DEBUG_ITERATORS}
-  Inc(_Iterator_Count);
-
-  If (_Iterator_Count>100) Then
-  Begin
-    DebugBreak;
-  End;
-{$ENDIF}
-
   Self.Seek(0);
 End;
 
-{$IFNDEF DISABLEALLOCOPTIMIZATIONS}
-Class Function Iterator.NewInstance: TObject;
-Var
-  ObjSize, GlobalSize:Integer;
+Function TERRAIterator.GetValue():TERRAObject;
 Begin
-  ObjSize := InstanceSize();
-  Result := StackAlloc(ObjSize);
-  InitInstance(Result);
+  Result := _Value.Item;
 End;
 
-Procedure Iterator.FreeInstance;
-Begin
-End;
-{$ENDIF}
-
-Procedure Iterator.Reset();
+Procedure TERRAIterator.Reset();
 Begin
   // do nothing
 End;
 
-Procedure Iterator.Release();
+Procedure TERRAIterator.Release();
 Begin
   If _Finished Then
     Exit;
 
   _Finished := True;
-
-{$IFDEF DEBUG_ITERATORS}
-  Dec(_Iterator_Count);
-{$ENDIF}
 
   If Assigned(_Collection) Then
   Begin
@@ -565,7 +550,7 @@ Begin
   End;
 End;
 
-Function Iterator.HasNext: Boolean;
+Function TERRAIterator.HasNext: Boolean;
 Begin
   _Value := Self.ObtainNext();
   Result := Assigned(_Value);
@@ -576,12 +561,12 @@ Begin
     Self.Release();
 End;
 
-Function Iterator.GetPosition():Integer;
+Function TERRAIterator.GetPosition():Integer;
 Begin
   Result := Pred(_Index);
 End;
 
-Function Iterator.Seek(Position: Integer):Boolean;
+Function TERRAIterator.Seek(Position: Integer):Boolean;
 Begin
   _Finished := False;
   _Value := Nil;
@@ -601,7 +586,7 @@ Begin
     Result := True;
 End;
 
-Procedure Iterator.JumpToIndex(Position: Integer);
+Procedure TERRAIterator.JumpToIndex(Position: Integer);
 Begin
   While (Self.Index<Position) Do
   Begin
@@ -610,410 +595,17 @@ Begin
   End;
 End;
 
-{ CollectionObject }
-Procedure CollectionObject.CopyValue(Other: CollectionObject);
+Procedure TERRAIterator.Discard;
 Begin
-  // do nothing
+  If Assigned(_Value) Then
+    _Value.Discard();
 End;
 
-Procedure CollectionObject.Release();
+Class Function TERRAIterator.CanBePooled: Boolean;
 Begin
-  // do nothing
-End;
-
-Procedure CollectionObject.Internal_Copy(Other: CollectionObject);
-Begin
-  If (IsCompatible(Other)) Then
-    Self.CopyValue(Other);
-End;
-
-Function CollectionObject.Internal_Sort(Other: CollectionObject): Integer;
-Begin
-  If (IsCompatible(Other)) Then
-    Result := Self.Sort(Other)
-  Else
-    Result := 0;
-End;
-
-Function CollectionObject.IsCompatible(Other: CollectionObject): Boolean;
-Begin
-  Result := (Self Is Other.ClassType);
-  If Not Result Then
-    RaiseError('Cannot copy list objects, '+Self.ClassName +' and '+ Other.ClassName+' are not compatible!');
-End;
-
-Function CollectionObject.Sort(Other: CollectionObject): Integer;
-Begin
-  If (Other<>Nil) Then
-    Result := 0
-  Else
-    Result := 1;
-End;
-
-Function CollectionObject.ToString:TERRAString;
-Begin
-  Result := Self.ClassName+'@'+HexStr(Cardinal(Self));
-End;
-
-Procedure CollectionObject.Discard();
-Begin
-  Self._Discarded := True;
-  If Assigned(Self._Collection) Then
-    Self._Collection._HasDiscards := True
-  Else
-    DebugBreak;
-End;
-
-
-Procedure CollectionObject.Link(Col: Collection);
-Begin
-  _Collection := Col;
-End;
-
-{ List }
-Constructor List.Create(SortOrder:CollectionSortOrder; Options:Integer);
-Begin
-  _SortOrder := SortOrder;
-  _First := Nil;
-  _ItemCount := 0;
-  Self.Init(Options, Nil);
-End;
-
-Procedure List.RemoveDiscardedItems();
-Var
-  P, Prev:CollectionObject;
-Begin
-  Prev := Nil;
-
-  P := _First;
-  While (Assigned(P)) Do
-  Begin
-    If P._Discarded Then
-    Begin
-      If Assigned(Prev) Then
-      Begin
-        Prev._Next := P.Next;
-        ReleaseObject(P);
-        Dec(_ItemCount);
-        P := Prev.Next;
-      End Else
-      Begin
-        _First := P.Next;
-        ReleaseObject(P);
-        P := _First;
-      End;
-    End Else
-    Begin
-      Prev := P;
-      P := P.Next;
-    End;
-  End;
-End;
-
-Function List.GetItemByIndex(Index:Integer):CollectionObject;
-Var
-  I:Integer;
-Begin
-  If (Index<0) Or (Index>=Self.Count) Then
-  Begin
-    Result := Nil;
-    Exit;
-  End;
-
-  If (Index=0) Then
-  Begin
-    Result := _First;
-    Exit;
-  End;
-
-  Self.Lock();
-  Result := Self._First;
-  I := 0;
-  While (Result<>Nil) Do
-  Begin
-    Result := Result.Next;
-    Inc(I);
-
-    If (I = Index) Then
-      Break;
-  End;
-  Self.Unlock();
-End;
-
-Function List.Merge(C:Collection):List;
-Var
-  I:Iterator;
-  Temp, N:CollectionObject;
-Begin
-  Result := Self;
-
-  If (C = Self) Then
-    Exit;
-
-  Self.Update();
-
-  I := C.GetIterator();
-  While I.HasNext Do
-  Begin
-    Temp := I.Value;
-    N := CollectionObject(Temp.ClassType.Create());
-    N.CopyValue(Temp);
-    Self.Add(N);
-  End;
-  ReleaseObject(C);
-End;
-
-Function List.Search(Visitor: CollectionVisitor; UserData:Pointer = Nil): CollectionObject;
-Var
-  P:CollectionObject;
-Begin
-  Result := Nil;
-
-  Self.Lock();
-  P := _First;
-  While (Assigned(P)) Do
-  Begin
-    If (Visitor(P, UserData)) Then
-    Begin
-      Result := P;
-      Break;
-    End;
-
-    P := P.Next;
-  End;
-
-  Self.Unlock();
-End;
-
-Procedure List.Visit(Visitor: CollectionVisitor; UserData:Pointer = Nil);
-Var
-  P:CollectionObject;
-Begin
-  Self.Lock();
-  P := _First;
-  While (Assigned(P)) Do
-  Begin
-    Visitor(P, UserData);
-    P := P.Next;
-  End;
-  Self.Unlock();
-End;
-
-Procedure List.Clear();
-Var
-  List,Next:CollectionObject;
-Begin
-  Self.Lock();
-
-  List := _First;
-  While Assigned(List)Do
-  Begin
-    Next := List.Next;
-    ReleaseObject(List);
-    List := Next;
-  End;
-
-  _First := Nil;
-  _ItemCount := 0;
-
-  Self.Unlock();
-End;
-
-Function List.Add(Item:CollectionObject):Boolean;
-Var
-  N:Integer;
-  P, Prev:CollectionObject;
-  Inserted:Boolean;
-Begin
-  Result := False;
-
-  If (Item = Nil) Or ((Options And coCheckReferencesOnAdd<>0) And (Self.ContainsReference(Item))) Then
-  Begin
-    Log(logWarning, Self.ClassName, 'Reference already inside collection: '+Item.ToString());
-    Exit;
-  End;
-
-  If ((Options And coNoDuplicates<>0) And (Self.ContainsDuplicate(Item))) Then
-  Begin
-    Log(logWarning, Self.ClassName, 'Item duplicated in collection: '+Item.ToString());
-    Exit;
-  End;
-
-  If (Item.Collection<>Nil) Then
-  Begin
-    Log(logWarning, Self.ClassName, 'Item already belongs to a collection: '+Item.ToString());
-    Exit;
-  End;
-
   Result := True;
-  Item._Collection := Self;
-
-  Self.Update();
-
-  Self.Lock();
-  If Assigned(_First) Then
-  Begin
-    If (_SortOrder = collection_Unsorted) Then
-    Begin
-      _Last._Next := Item;
-      Item._Next := Nil;
-      _Last := Item;
-    End Else
-    {If (_SortOrder = collection_Unsorted) Then
-    Begin
-      P := _First;
-      _First := Item;
-      Item._Next := P;
-    End Else}
-    Begin
-      Inserted := False;
-      P := _First;
-      Prev := Nil;
-      While Assigned(P) Do
-      Begin
-        N := P.Sort(Item);
-        If ((_SortOrder = collection_Sorted_Ascending) And (N>=0)) Or ((_SortOrder = collection_Sorted_Descending) And (N<=0)) Then
-        Begin
-          If Assigned(Prev) Then
-          Begin
-            Prev._Next := Item;
-            Item._Next := P;
-          End Else
-          Begin
-            _First := Item;
-            Item._Next := P;
-          End;
-
-          Inserted := True;
-          Break;
-        End;
-
-        Prev := P;
-        P := P.Next;
-      End;
-
-      If Not Inserted Then
-      Begin
-        Prev._Next := Item;
-        Item._Next := Nil;
-      End;
-    End;
-
-  End Else
-  Begin
-    _First := Item;
-    _Last := _First;
-    Item._Next := Nil;
-  End;
-
-  Inc(_ItemCount);
-
-  Self.Unlock();
-
-  {P := _First;
-  PRev := Nil;
-  While P<>Nil Do
-  Begin
-    S := S + P.ToString() + ',';
-    Prev := P;
-    P := P.Next;
-  End;
-  IF (Prev<>_Last) Then
-  Begin
-    S := Item.ToString();
-    IntToSTring(2+Length(S));
-  End;}
 End;
-
-Function List.Delete(Item:CollectionObject):Boolean;
-Var
-  List,Prev, Next:CollectionObject;
-Begin
-  Result := False;
-
-  Self.Lock();
-  List := _First;
-  Prev := Nil;
-  {$IFDEF DEBUG}Log(logDebug, 'List', 'Testing deletion...');{$ENDIF}
-
-  While Assigned(List) Do
-  Begin
-    {$IFDEF DEBUG}Log(logDebug, 'List', 'Testing key contains '+HexStr(Cardinal(List)));{$ENDIF}
-    If List = Item Then
-    Begin
-      {$IFDEF DEBUG}Log(logDebug, 'List', 'Match found!');{$ENDIF}
-
-      Next := Item.Next;
-
-      ReleaseObject(Item);
-      {$IFDEF DEBUG}Log(logDebug, 'List', 'Discarded item!');{$ENDIF}
-      
-      If Assigned(Prev) Then
-        Prev._Next := Next
-      Else
-        _First := Next;
-
-      Dec(_ItemCount);
-      Result := True;
-      Break;
-    End;
-
-    Prev := List;
-    List := List.Next;
-  End;
-
-  Self.Unlock();
-End;
-
-Function List.ContainsReference(Item:CollectionObject):Boolean;
-Var
-  P:CollectionObject;
-Begin
-  Result := False;
-
-  Self.Lock();
-  P := _First;
-  While (P<>Nil) Do
-  Begin
-    If (P = Item) Then
-    Begin
-      Result := True;
-      Break;
-    End;
-
-    P := P.Next;
-  End;
-  Self.Unlock();
-End;
-
-Function List.GetIterator:Iterator;
-Begin
-  Result := ListIterator.Create(Self);
-End;
-
-Procedure ListIterator.Reset;
-Begin
-  Inherited;
-
-  _Current := List(_Collection)._First;
-End;
-
-Function ListIterator.ObtainNext:CollectionObject;
-Begin
-  If Assigned(_Current) Then
-  Begin
-    Result := _Current;
-
-    _Current := _Current.Next;
-  End Else
-    Result := Nil;
-End;
-
 
 End.
-
-
-
-
 
 

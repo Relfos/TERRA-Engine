@@ -25,7 +25,7 @@ Unit TERRA_Splines;
 
 {$I terra.inc}
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Vector3D, TERRA_Color,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Math, TERRA_Vector3D, TERRA_Color,
   TERRA_Quaternion, TERRA_Stream, TERRA_BoundingBox;
 
 Type
@@ -77,9 +77,9 @@ Type
 
       Procedure Synchronize(OtherSpline:Spline);
 
-      Procedure Load(Source:Stream); Overload;
+      Procedure Load(Source:TERRAStream); Overload;
       Procedure Load(Const FileName:TERRAString); Overload;
-      Procedure Save(Dest:Stream); Overload;
+      Procedure Save(Dest:TERRAStream); Overload;
       Procedure Save(FileName:TERRAString); Overload;
 
       Property Speed:Single Read _Speed Write _Speed;
@@ -92,7 +92,7 @@ Type
     End;
 
 Implementation
-Uses TERRA_Error, TERRA_Application, TERRA_FileStream, TERRA_OS;
+Uses TERRA_Error, TERRA_Application, TERRA_FileStream, TERRA_Engine, TERRA_OS;
 
 { Spline }
 Constructor Spline.Create;
@@ -165,7 +165,7 @@ Begin
 
   If (_PointCount<2) Then
   Begin
-    Result := VectorZero;
+    Result := Vector3D_Zero;
     Exit;
   End;
 
@@ -186,7 +186,7 @@ Var
 Begin
   If (OtherSpline._PointCount <> Self._PointCount) Then
   Begin
-    RaiseError('Spline.Synchronize: Failed');
+    Engine.RaiseError('Spline.Synchronize: Failed');
     Exit;
   End;
 
@@ -252,7 +252,7 @@ Begin
     Build;
 End;
 
-Procedure Spline.Load(Source:Stream);
+Procedure Spline.Load(Source:TERRAStream);
 Var
   I:Integer;
 Begin
@@ -263,7 +263,7 @@ Begin
   _NeedsBuild := True;
 End;
 
-Procedure Spline.Save(Dest:Stream);
+Procedure Spline.Save(Dest:TERRAStream);
 Var
   I:Integer;
 Begin
@@ -274,7 +274,7 @@ End;
 
 Procedure Spline.Save(FileName:TERRAString);
 Var
-  Dest:Stream;
+  Dest:TERRAStream;
 Begin
   Dest := FileStream.Create(FileName);
   Save(Dest);
@@ -283,7 +283,7 @@ End;
 
 Procedure Spline.Load(Const FileName:TERRAString);
 Var
-  Source:Stream;
+  Source:TERRAStream;
 Begin
   Source := FileStream.Open(FileName);
   Load(Source);
@@ -325,7 +325,7 @@ End;
 Function Spline.GetPointByIndex(Index: Integer): Vector3D;
 Begin
   If (Index<0) Or (Index>=_PointCount) Then
-    Result := VectorZero
+    Result := Vector3D_Zero
   Else
     Result := _Points[Index].Position;
 End;
@@ -348,7 +348,7 @@ Begin
   A := _Points[PrevIndex].Position;
   B := _Points[Index].Position;
 
-  V := VectorSubtract(B, A);
+  V := Vector3D_Subtract(B, A);
   V.Normalize();
 
   //V := VectorCross(V, VectorUp);
@@ -375,7 +375,7 @@ Begin
   V.Y := CatmullRomInterpolate(T0.Y, T1.Y, T2.Y, T3.Y, Delta);
   V.Z := CatmullRomInterpolate(T0.Z, T1.Z, T2.Z, T3.Z, Delta);
 
-  Result := QuaternionLookRotation(V, VectorUp);
+  Result := QuaternionLookRotation(V, Vector3D_Up);
 End;
 
 

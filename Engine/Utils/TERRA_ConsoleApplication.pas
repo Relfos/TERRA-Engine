@@ -3,33 +3,33 @@ Unit TERRA_ConsoleApplication;
 {$I terra.inc}
 
 Interface
-Uses {$IFDEF WINDOWS}Windows, {$ENDIF} TERRA_OS, TERRA_String;
+Uses {$IFDEF WINDOWS}Windows, {$ENDIF} TERRA_Object, TERRA_OS, TERRA_String, TERRA_Error, TERRA_Window;
 
 Type
+  ConsoleWindow = Class(TERRAWindow)
+    Protected
+      Function SetFullscreenMode(UseFullScreen:Boolean):Boolean; Override;
+
+    Public
+      Constructor Create();
+      Procedure Update; Override;
+  End;
+
   ConsoleApplication = Class(Application)
     Protected
     {$IFDEF WINDOWS}
 //      _StdHandle:THandle;
     {$ENDIF}
 
-      Function InitWindow:Boolean; Override;
-  		Procedure CloseWindow; Override;
+      Function CreateWindow:TERRAWindow; Override;
 
-      Function SetFullscreenMode(UseFullScreen:Boolean):Boolean; Override;
-
-
-      {$IFDEF OSX}
-      Procedure MoveToBundleFolder(); Override;
-      {$ENDIF}
 
     Public
-      Constructor Create();
-
-      Procedure OnIdle; Override;
-
       Function SelectRenderer():Integer; Override;
 
       Procedure LogToConsole(Const Text:TERRAString); Override;
+
+      Procedure OnFatalError(Error:TERRAError); Override;
 
       Function GetWidth:Word; Override;
       Function GetHeight:Word; Override;
@@ -40,9 +40,51 @@ Implementation
 Uses TERRA_Application, TERRA_InputManager;
 
 { ConsoleApplication }
-Constructor ConsoleApplication.Create;
+Function ConsoleApplication.GetWidth: Word;
+Begin
+  Result := 0;
+End;
+
+Function ConsoleApplication.GetHeight: Word;
+Begin
+  Result := 0;
+End;
+
+Function ConsoleApplication.CreateWindow:TERRAWindow;
+Begin
+  Result := ConsoleWindow.Create();
+End;
+
+Function ConsoleApplication.SelectRenderer: Integer;
+Begin
+  Result := 0; // select null renderer
+End;
+
+Procedure ConsoleApplication.LogToConsole(const Text: TERRAString);
+Var
+  S:WideString;
+  Written:Cardinal;
+Begin
+  {$IFDEF WINDOWS}
+  S := StringToWideString(Text) + #13#10;
+  WriteConsoleW(Window.Handle, PWideChar(S), Length(S), Written, Nil);
+  {$ELSE}
+  WriteLn(Text);
+  {$ENDIF}
+End;
+
+Procedure ConsoleApplication.OnFatalError(Error: TERRAError);
+Begin
+  Self.LogToConsole(Error.Message);
+  Self.Terminate();
+End;
+
+{ ConsoleWindow }
+
+Constructor ConsoleWindow.Create;
 Begin
   _Managed := True;
+
   {$IFDEF WINDOWS}
   //get the console handle
   _Handle := GetStdHandle(STD_OUTPUT_HANDLE);
@@ -54,21 +96,14 @@ Begin
 
   SetConsoleOutputCP(CP_UTF8);
   {$ENDIF}
-
-  Inherited;
 End;
 
-Function ConsoleApplication.GetWidth: Word;
+Function ConsoleWindow.SetFullscreenMode(UseFullScreen: Boolean): Boolean;
 Begin
-  Result := 0;
+  Result := False;
 End;
 
-Function ConsoleApplication.GetHeight: Word;
-Begin
-  Result := 0;
-End;
-
-Procedure ConsoleApplication.OnIdle;
+Procedure ConsoleWindow.Update;
 {$IFDEF WINDOWS}
 Var
   NumberOfEventsRead, EventCount:Cardinal;
@@ -99,49 +134,7 @@ Begin
       FlushConsoleInputBuffer(_Handle);//flush the buffer
     End;
   End;
-
 {$ENDIF}
-End;
-
-Function ConsoleApplication.InitWindow: Boolean;
-Begin
-  Result := True;
-End;
-
-Procedure ConsoleApplication.CloseWindow;
-Begin
-
-End;
-
-
-Function ConsoleApplication.SetFullscreenMode( UseFullScreen: Boolean): Boolean;
-Begin
-  Result := False;
-End;
-
-Function ConsoleApplication.SelectRenderer: Integer;
-Begin
-  Result := 0; // select null renderer
-End;
-
-{$IFDEF OSX}
-Procedure ConsoleApplication.MoveToBundleFolder();
-Begin
- // do nothing
-End;
-{$ENDIF}
-
-Procedure ConsoleApplication.LogToConsole(const Text: TERRAString);
-Var
-  S:WideString;
-  Written:Cardinal;
-Begin
-  {$IFDEF WINDOWS}
-  S := StringToWideString(Text) + #13#10;
-  WriteConsoleW(_Handle, PWideChar(S), Length(S), Written, Nil);
-  {$ELSE}
-  WriteLn(Text);
-  {$ENDIF}
 End;
 
 End.

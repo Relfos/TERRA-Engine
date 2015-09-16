@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <Version Value="9"/>
+    <BuildModes Active="Default"/>
+    <Units Count="23">
+      <Unit0>
+        <Filename Value="UIEditor.dpr"/>
+        <IsPartOfProject Value="True"/>
+        <CursorPos Y="23"/>
+        <UsageCount Value="22"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="Main.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="UIEditForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Main"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="602"/>
+        <CursorPos X="36" Y="629"/>
+        <UsageCount Value="22"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="FormProjectSettings.pas"/>
+        <IsPartOfProject Value="True"/>
+        <HasResources Value="True"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="17" Y="6"/>
+        <UsageCount Value="22"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="FormListEdit.pas"/>
+        <IsPartOfProject Value="True"/>
+        <HasResources Value="True"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="22"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="DataSourceBrowser.pas"/>
+        <IsPartOfProject Value="True"/>
+        <HasResources Value="True"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="22"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="../Components/TERRA_CustomPropertyEditor.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="560"/>
+        <CursorPos X="19" Y="575"/>
+        <UsageCount Value="22"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="../../Engine/Core/TERRA_Debug.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="21"/>
+        <CursorPos X="58" Y="41"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="../../Engine/OS/OSX/Carbon/TERRA_MIDI_IO.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="247"/>
+        <CursorPos X="84" Y="272"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="../../Engine/Graphics/Renderer/TERRA_GLRenderer.pas"/>
+        <UnitName Value="TERRA_GLRenderer"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="793"/>
+        <CursorPos X="16" Y="811"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="../../Engine/OS/OSX/Carbon/AGL.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="12"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="../../Engine/OS/OSX/Carbon/TERRA_OS.pas"/>
+        <UnitName Value="TERRA_OS"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="78"/>
+        <CursorPos X="61" Y="104"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="../../Engine/Utils/TERRA_VCLApplication.pas"/>
+        <UnitName Value="TERRA_VCLApplication"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="85"/>
+        <CursorPos X="45" Y="105"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="../../Engine/UI/TERRA_UIWidget.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="365"/>
+        <CursorPos X="49" Y="381"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="../../Engine/Graphics/TERRA_MeshManager.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="117"/>
+        <CursorPos X="21" Y="117"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit13>
+      <Unit14>
+        <Filename Value="../../Engine/Image/Formats/TERRA_JPG.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3500"/>
+        <CursorPos X="51" Y="3516"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit14>
+      <Unit15>
+        <Filename Value="../../../Minimon/Source/Minimon.dpr"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit15>
+      <Unit16>
+        <Filename Value="/Developer/lazarus/lcl/lclclasses.pp"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="15" Y="8"/>
+        <UsageCount Value="10"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="../../Engine/Graphics/TERRA_Renderable.pas"/>
+        <UnitName Value="TERRA_Renderable"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="246"/>
+        <CursorPos X="77" Y="275"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit17>
+      <Unit18>
+        <Filename Value="../../Engine/Graphics/TERRA_GraphicsManager.pas"/>
+        <UnitName Value="TERRA_GraphicsManager"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1387"/>
+        <CursorPos X="18" Y="1389"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit18>
+      <Unit19>
+        <Filename Value="/Developer/lazarus/lcl/interfaces/carbon/carbonobject.inc"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="15"/>
+        <UsageCount Value="10"/>
+      </Unit19>
+      <Unit20>
+        <Filename Value="../../Engine/Graphics/Renderer/TERRA_OpenGL.pas"/>
+        <UnitName Value="TERRA_OpenGL"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="5"/>
+        <CursorPos X="14" Y="21"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit20>
+      <Unit21>
+        <Filename Value="../../Engine/OS/OSX/Carbon/TERRA_Gamepad.pas"/>
+        <UnitName Value="TERRA_Gamepad"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit21>
+      <Unit22>
+        <Filename Value="../../Engine/Graphics/TERRA_Renderer.pas"/>
+        <UnitName Value="TERRA_Renderer"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="1088"/>
+        <CursorPos Y="1104"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit22>
+    </Units>
+    <JumpHistory Count="27" HistoryIndex="26">
+      <Position1>
+        <Filename Value="../../Engine/Utils/TERRA_VCLApplication.pas"/>
+        <Caret Line="105" Column="37" TopLine="99"/>
+      </Position1>
+      <Position2>
+        <Filename Value="../../Engine/Utils/TERRA_VCLApplication.pas"/>
+        <Caret Line="102" Column="26" TopLine="86"/>
+      </Position2>
+      <Position3>
+        <Filename Value="../../Engine/Utils/TERRA_VCLApplication.pas"/>
+      </Position3>
+      <Position4>
+        <Filename Value="../../Engine/Utils/TERRA_VCLApplication.pas"/>
+        <Caret Line="8" Column="28"/>
+      </Position4>
+      <Position5>
+        <Filename Value="../../Engine/Utils/TERRA_VCLApplication.pas"/>
+        <Caret Line="105" Column="25" TopLine="89"/>
+      </Position5>
+      <Position6>
+        <Filename Value="../../Engine/Utils/TERRA_VCLApplication.pas"/>
+        <Caret Line="8" Column="36"/>
+      </Position6>
+      <Position7>
+        <Filename Value="../../Engine/Utils/TERRA_VCLApplication.pas"/>
+        <Caret Line="100" Column="15" TopLine="86"/>
+      </Position7>
+      <Position8>
+        <Filename Value="../../Engine/Utils/TERRA_VCLApplication.pas"/>
+        <Caret Line="110" TopLine="94"/>
+      </Position8>
+      <Position9>
+        <Filename Value="../../Engine/Graphics/Renderer/TERRA_GLRenderer.pas"/>
+        <Caret Line="344" Column="5" TopLine="318"/>
+      </Position9>
+      <Position10>
+        <Filename Value="../../Engine/Graphics/Renderer/TERRA_GLRenderer.pas"/>
+        <Caret Line="667" Column="5" TopLine="637"/>
+      </Position10>
+      <Position11>
+        <Filename Value="../../Engine/Graphics/Renderer/TERRA_GLRenderer.pas"/>
+        <Caret Line="758" TopLine="742"/>
+      </Position11>
+      <Position12>
+        <Filename Value="../../Engine/Graphics/TERRA_Renderer.pas"/>
+        <Caret Line="1104" TopLine="1088"/>
+      </Position12>
+      <Position13>
+        <Filename Value="../../Engine/Graphics/Renderer/TERRA_GLRenderer.pas"/>
+        <Caret Line="760" Column="55" TopLine="742"/>
+      </Position13>
+      <Position14>
+        <Filename Value="../../Engine/Graphics/Renderer/TERRA_GLRenderer.pas"/>
+        <Caret Line="767" Column="64" TopLine="742"/>
+      </Position14>
+      <Position15>
+        <Filename Value="../../Engine/Graphics/Renderer/TERRA_GLRenderer.pas"/>
+        <Caret Line="759" TopLine="742"/>
+      </Position15>
+      <Position16>
+        <Filename Value="../../Engine/Graphics/TERRA_Renderer.pas"/>
+        <Caret Line="1104" TopLine="1088"/>
+      </Position16>
+      <Position17>
+        <Filename Value="../../Engine/Graphics/Renderer/TERRA_GLRenderer.pas"/>
+        <Caret Line="789" Column="26" TopLine="764"/>
+      </Position17>
+      <Position18>
+        <Filename Value="../../Engine/Graphics/TERRA_Renderer.pas"/>
+        <Caret Line="1104" TopLine="1088"/>
+      </Position18>
+      <Position19>
+        <Filename Value="../../Engine/Graphics/Renderer/TERRA_GLRenderer.pas"/>
+        <Caret Line="799" Column="28" TopLine="779"/>
+      </Position19>
+      <Position20>
+        <Filename Value="../../Engine/Graphics/Renderer/TERRA_GLRenderer.pas"/>
+        <Caret Line="801" TopLine="793"/>
+      </Position20>
+      <Position21>
+        <Filename Value="../../Engine/Utils/TERRA_VCLApplication.pas"/>
+        <Caret Line="101" Column="53" TopLine="97"/>
+      </Position21>
+      <Position22>
+        <Filename Value="Main.pas"/>
+        <Caret Line="484" TopLine="461"/>
+      </Position22>
+      <Position23>
+        <Filename Value="Main.pas"/>
+      </Position23>
+      <Position24>
+        <Filename Value="Main.pas"/>
+        <Caret Line="167" Column="15" TopLine="142"/>
+      </Position24>
+      <Position25>
+        <Filename Value="Main.pas"/>
+        <Caret Line="174" Column="26" TopLine="149"/>
+      </Position25>
+      <Position26>
+        <Filename Value="Main.pas"/>
+        <Caret Line="177" Column="26" TopLine="152"/>
+      </Position26>
+      <Position27>
+        <Filename Value="Main.pas"/>
+        <Caret Line="179" Column="26" TopLine="154"/>
+      </Position27>
+    </JumpHistory>
+  </ProjectSession>
+</CONFIG>
