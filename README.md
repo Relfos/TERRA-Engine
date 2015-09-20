@@ -14,6 +14,17 @@ Does not require any external library or framework (except linking to OpenGL and
 
 [![Support via Paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=MQ7UQ6V92PZ8L)
 
+## Build Status
+
+| windows-vs-x86            | linux-gcc-x86_64            |
+|---------------------------|-----------------------------|
+| [![windows-vs-x86][1]][2] | [![linux-gcc-x86_64][3]][4] |
+
+[1]: https://ci.appveyor.com/api/projects/status/l82ckmepv9isa439?svg=true
+[2]: https://ci.appveyor.com/project/Relfos/terra-engine/branch/master
+[3]: https://travis-ci.org/Relfos/terra-engine.svg?branch=master
+[4]: https://travis-ci.org/Relfos/terra-engine
+
 What is supported?
 ----------------
 
