@@ -20,7 +20,8 @@ Function GenerateCompileCommand(Const BasePath, SrcMain:String):String;
 Var
   I:Integer;
 Begin
-  Result := 'fpc -Sew -Mdelphi -Fi'+BasePath+'\Core ';
+  Result := 'fpc -Sew -Mdelphi ';
+  Result := Result +'-Fi'+BasePath+'\Core -Fi'+BasePath+'\Utils ';
                           
   For I:=0 To Pred(PathCount) Do
     Result := Result + '-Fu'+BasePath+Paths[I] + ' ';
@@ -49,6 +50,7 @@ Begin
   RegisterPath('AI');
   RegisterPath('Audio');
   RegisterPath('Audio\Formats');
+  RegisterPath('Audio\Renderers');
   RegisterPath('Network');
   RegisterPath('Libs\Steamworks\headers');
   RegisterPath('Network');
