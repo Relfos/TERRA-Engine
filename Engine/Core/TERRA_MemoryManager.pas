@@ -30,9 +30,9 @@ Interface
 Uses cmem;
 {$ENDIF}
 
-{$IFNDEF FPC}
 Uses {FastMM4, }TERRA_DebugInfo;
 
+{$IFNDEF FPC}
 {.$DEFINE USE_MSVCTR}
 {$ENDIF}
 
@@ -193,7 +193,7 @@ Begin
 
   If (Size>0) And (Result = Nil) Then
   Begin
-    RaiseError('Out of memory!');
+    Engine.RaiseError('Out of memory!');
     Exit;
   End;
 End;
@@ -310,4 +310,4 @@ Initialization
 Finalization
   SetMemoryManager(PrevManager);
   ReleaseObject(_Callstack);
-End.
+End.

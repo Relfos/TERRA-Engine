@@ -41,7 +41,7 @@ Type
 
     Public
       Constructor Create(Const Desc:TERRAString; E:Exception);
-      Destructor Destroy();
+      Destructor Destroy(); Override;
 
       Property CrashLog:TERRAString Read _CrashLog;
       Property Callstack:TERRACallstack Read _Callstack;

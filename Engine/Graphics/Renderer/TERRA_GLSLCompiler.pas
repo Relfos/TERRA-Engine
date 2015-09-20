@@ -196,6 +196,8 @@ Begin
   End;
 
   Self.AddLine(FragmentShader, '}');
+
+  Result := True;
 End;
 
 Function GLSLShaderCompiler.CreateFloatConstant(Const N: Single): ShaderBlock;
@@ -255,7 +257,7 @@ End;
 
 Function GLSLShaderCompiler.CreateUniform(const Name: TERRAString; Kind: ShaderNodeType): ShaderBlock;
 Begin
-
+     Result := Nil; //FIXME
 End;
 
 { GLSLFloatConstantBlock }

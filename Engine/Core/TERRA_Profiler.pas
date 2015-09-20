@@ -33,6 +33,7 @@ Var
   TargetContext:_CONTEXT;
   Routine:TERRARoutineInfo;
 Begin
+  {$IFNDEF FPC}
   TargetContext.ContextFlags := CONTEXT_FULL;
   If SuspendThread(TargetThread) = -1 then
     Exit;
@@ -44,6 +45,7 @@ Begin
 
   If ResumeThread(TargetThread) = -1 Then
     Exit;
+  {$ENDIF}
 End;
 
 End.

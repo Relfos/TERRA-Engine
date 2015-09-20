@@ -19,7 +19,9 @@ Type
   TERRAShaderNode = Class;
   TERRAShaderGroup = Class;
 
-	TERRAShaderNode = Class(TERRAObject)
+        { TERRAShaderNode }
+
+ TERRAShaderNode = Class(TERRAObject)
 		Protected
       _Block:ShaderBlock;
 
@@ -32,7 +34,7 @@ Type
       
 		Public
       // should return type of output (or invalid if problems found)
-			Function GetType():ShaderNodeType; Virtual; Abstract;
+      Function GetType():ShaderNodeType; Virtual;
 
       // should return false if there are problems with inputs, otherwise returns true
       Function Validate():Boolean; Virtual;
@@ -291,45 +293,50 @@ Type
 Implementation
 
 { TERRAShaderNode }
-Function TERRAShaderNode.GetSubGraph:TERRAShaderGroup;
+function TERRAShaderNode.GetSubGraph: TERRAShaderGroup;
 Begin
   Result := Nil;
 End;
 
-Function TERRAShaderNode.IsMatrix(T: ShaderNodeType): Boolean;
+function TERRAShaderNode.IsMatrix(T: ShaderNodeType): Boolean;
 Begin
   Result := (T = ShaderNode_Matrix3x3) Or (T = ShaderNode_Matrix4x4);
 End;
 
-Function TERRAShaderNode.IsSampler(T: ShaderNodeType): Boolean;
+function TERRAShaderNode.IsSampler(T: ShaderNodeType): Boolean;
 Begin
   Result := (T = ShaderNode_Texture2D) Or (T = ShaderNode_Cubemap);
 End;
 
-Function TERRAShaderNode.IsVector(T: ShaderNodeType): Boolean;
+function TERRAShaderNode.IsVector(T: ShaderNodeType): Boolean;
 Begin
   Result := (T = ShaderNode_Vector2D) Or (T = ShaderNode_Vector3D) Or (T = ShaderNode_Vector4D);
 End;
 
-Function TERRAShaderNode.Validate: Boolean;
+function TERRAShaderNode.Validate: Boolean;
 Begin
   Result := True;
 End;
 
-Function TERRAShaderNode.GetSubNodeAt(Index:Integer):TERRAShaderNode;
+function TERRAShaderNode.GetSubNodeAt(Index: Integer): TERRAShaderNode;
 Begin
   Result := Nil;
 End;
 
-Function TERRAShaderNode.GetSubNodeCount():Integer;
+function TERRAShaderNode.GetSubNodeCount: Integer;
 Begin
   Result := 0;
 End;
 
-Function TERRAShaderNode.Compile(Target: ShaderCompiler): Boolean;
+function TERRAShaderNode.Compile(Target: ShaderCompiler): Boolean;
 Begin
   Result := False;
 End;
+
+function TERRAShaderNode.GetType: ShaderNodeType;
+begin
+  Result := ShaderNode_Invalid;
+end;
 
 { ShaderFloatConstant }
 Function ShaderFloatConstant.Compile(Target: ShaderCompiler): Boolean;

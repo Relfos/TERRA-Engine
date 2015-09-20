@@ -77,7 +77,7 @@ Type
 
       Procedure RenderCursor(View:TERRAViewport; Target:TERRAList);
 
-      Function SupportDrag(Mode:UIDragMode):Boolean;
+      Function SupportDrag(Mode:UIDragMode):Boolean; Override;
 
     Public
       CloseButton:UIWidget;

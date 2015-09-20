@@ -46,7 +46,7 @@ Var
   Inside, Found:Boolean;
   ShortTag:Boolean;
   Node:TERRAObjectNode;
-  Temp:TERRAString;
+  //Temp:TERRAString;
 Begin
   Target.Value := '';
 
@@ -117,7 +117,7 @@ Begin
         ReleaseObject(It);
 
         Value := StringTrim(Value);
-        Temp := VAlue;
+        //Temp := VAlue;
         Value := StringCopy(Value, 2, -2);
 
         If VAlue = 'base64' Then
@@ -280,8 +280,6 @@ Begin
     Count := 0;
 
     //If ((SaveFlags And xmlSaveCompact)<>0) Then
-    If True Then
-    Begin
       For I:=0 To Pred(Target.ChildCount) Do
       If (Target.Children[I].ChildCount<=0) Then
       Begin
@@ -291,8 +289,6 @@ Begin
 
       If Count>=Target.ChildCount Then
         S := S + '/';
-    End Else
-      S := '';
 
     Dest.WriteLine(Tabs+'<'+ Target.Name + S+'>');
 
@@ -310,7 +306,8 @@ End;
 Function XMLFormat.SaveToStream(Target:TERRAObject; Dest:TERRAStream): Boolean;
 Begin
   Dest.WriteLine('<?xml version="1.0" encoding="UTF-8"?>');
-  If (Target Is TERRAObjectNode) Then
+  Result := (Target Is TERRAObjectNode);
+  If Result Then
     Self.WriteNode(Dest, TERRAObjectNode(Target), 0);
 End;
 

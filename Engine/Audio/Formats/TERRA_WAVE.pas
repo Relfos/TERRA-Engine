@@ -30,7 +30,7 @@ Uses TERRA_Object, TERRA_Stream, TERRA_Sound, TERRA_FileFormat;
 Type
   WAVFormat = Class(TERRAFileFormat)
     Protected
-      Function Identify(Source:TERRAStream):Boolean; Virtual;
+      Function Identify(Source:TERRAStream):Boolean; Override;
 
     Public
       Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Override;

@@ -841,7 +841,10 @@ Begin
         *)
 
 
-  CurrentClip := Vector4D_Create(Self.ClipRect.X1, Self.ClipRect.Y1, Self.ClipRect.X2, Self.ClipRect.Y2);
+  If (Self.ClipRect.Style = clipNothing) Then
+    CurrentClip := Vector4D_Create(0, 0, 9999, 9999)
+  Else
+    CurrentClip := Vector4D_Create(Self.ClipRect.X1, Self.ClipRect.Y1, Self.ClipRect.X2, Self.ClipRect.Y2);
 
   OutIt := Geometry.Vertices.GetIteratorForClass(SpriteVertex);
   While (OutIt.HasNext()) Do

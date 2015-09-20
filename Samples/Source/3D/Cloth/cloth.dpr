@@ -84,12 +84,12 @@ Begin
   Begin
     Spheres[I] := MeshInstance.Create(Engine.Meshes.SphereMesh);
     Spheres[I].SetDiffuseMap(0, DiffuseTex);
-    Spheres[I].SetPosition(VectorCreate(-3 + Cos(I*60*RAD) * SphereRadius * 2, 0, 1.5 + Sin(I*60*RAD) * SphereRadius * 2));
-    Spheres[I].SetScale(VectorConstant(SphereRadius * 2));
+    Spheres[I].SetPosition(Vector3D_Create(-3 + Cos(I*60*RAD) * SphereRadius * 2, 0, 1.5 + Sin(I*60*RAD) * SphereRadius * 2));
+    Spheres[I].SetScale(Vector3D_Constant(SphereRadius * 2));
     Clothes.SetCollider(I, Spheres[I].Position, SphereRadius);
   End;
 
-  Self.Floor.SetPosition(VectorCreate(0, -SphereRadius, 0));
+  Self.Floor.SetPosition(Vector3D_Create(0, -SphereRadius, 0));
 End;
 
 Procedure MyDemo.OnDestroy;

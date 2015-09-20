@@ -45,6 +45,8 @@ Type
 
 	CallStackArray = Array[0..StoredCallStackDepth] of Pointer;
 
+  { TERRACallstack }
+
   TERRACallstack = Class(TERRAObject)
     Protected
       _CurrentCallstack:CallStackArray;
@@ -204,11 +206,16 @@ End;
 
 Procedure GetCurrentCall(Var Info:CallInfo);
 Begin
-	Info.Name := Nil;
-  Info.Line := 0;
+     Info.Routine := Nil;
+     Info.Line := 0;
 End;
 
-Procedure TERRACallstack.FillCurrentCallStack();
+procedure TERRACallstack.FillCallStackFromAddress(StackStart, StackMax: Pointer);
+begin
+
+end;
+
+procedure TERRACallstack.FillCurrentCallStack;
 Var
   I:Integer;
   prevbp: Pointer;
@@ -248,11 +255,22 @@ Begin
    End;
 End;
 
+procedure TERRACallstack.FillExceptionCallStack(E: Exception);
+begin
+
+end;
+
+procedure TERRACallstack.GetCurrentCall(out Info: CallInfo);
+begin
+
+end;
+
 Procedure FillExceptionCallStack(E:Exception);
 Var
   I:Integer;
   Frames: PPointer;
 Begin
+  (*FIXME
   _CurrentCallstack[0] := ExceptAddr;
 
   Frames := ExceptFrames;
@@ -268,10 +286,11 @@ Begin
   {$ENDIF}
 
   _CurrentCallstackSize := Succ(I);
+  *)
 End;
 {$ENDIF}
 
-Function TERRACallstack.GetDescription():TERRAString;
+function TERRACallstack.GetDescription: TERRAString;
 Var
   I:Integer;
 Begin

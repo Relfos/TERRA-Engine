@@ -13,7 +13,9 @@ Type
 		  Constructor Create(const AAddress, ALine: Cardinal);
 	  End;
 
-	TERRAUnitInfo = Class
+        { TERRAUnitInfo }
+
+ TERRAUnitInfo = Class
     Protected
   		_Name:String;
 	  	_Addresses:Array Of AddressToLine;
@@ -101,7 +103,8 @@ Begin
     Dec(Cardinal(_CurrentCallstack[I]), BaseAddr);
 End;*)
 
-Constructor TERRAUnitInfo.Create(Const UnitName:String; Const LineCount:Cardinal);
+constructor TERRAUnitInfo.Create(const UnitName: String;
+  const LineCount: Cardinal);
 Begin
 	_Name := UnitName;
   _ShowOnCallstack := {(Pos('TERRA_', AName)>0) And} (Pos('Callstack', UnitName)<=0) And (Pos('MemoryManager', UnitName)<=0);
@@ -130,6 +133,7 @@ begin
 	Line := ALine
 end;
 
+{$IFNDEF FPC}
 function TERRAUnitInfo.FindLineWithAddress(const Address: Cardinal):Integer;
 Var
 	Start, Finish, Pivot: Cardinal;
@@ -599,5 +603,27 @@ Begin
       End;
   End;
 End;
+
+{$ELSE}
+function TERRAUnitInfo.FindLineWithAddress(const Address: Cardinal): Integer;
+begin
+  Result := 0;
+end;
+
+Function FindUnitWithAddress(Const Address:Cardinal):TERRAUnitInfo;
+Begin
+  Result := Nil;
+End;
+
+Function FindRoutineWithAddress(Const Address:Cardinal):TERRARoutineInfo;
+Begin
+  Result := Nil;
+End;
+
+Procedure InitProjectInfos();
+Begin
+End;
+
+{$ENDIF}
 
 End.

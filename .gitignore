@@ -1,0 +1,9 @@
+*.dcu
+*.ppu
+*.dof
+*.bak
+*.compiled
+*.cfg
+*.exe
+Samples/Source/2D/GUI/Shaders/
+Samples/Binaries/Shaders/

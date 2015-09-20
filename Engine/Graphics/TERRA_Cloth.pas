@@ -222,7 +222,7 @@ Begin
     For I:=1 To Pred(gridSize) Do
 		Begin
       BallID := J*gridSize+I;
-      _Group.Vertices.SetVector2D(BallID, vertexUV0, VectorCreate2D(I/GridSize, J/GridSize));
+      _Group.Vertices.SetVector2D(BallID, vertexUV0, Vector2D_Create(I/GridSize, J/GridSize));
       _Group.Vertices.SetColor(BallID, vertexColor, ColorWhite);
     End;
 End;
@@ -244,13 +244,13 @@ Begin
       V := (J/Pred(gridSize)) - 0.5;
 
       BallID := J*gridSize+I;
-			_Particles[BallID].CurrentPosition := VectorCreate(ClothScale * U, 8.5, ClothScale * V);
-			_Particles[BallID].CurrentVelocity := VectorZero;
+			_Particles[BallID].CurrentPosition := Vector3D_Create(ClothScale * U, 8.5, ClothScale * V);
+			_Particles[BallID].CurrentVelocity := Vector3D_Zero;
 
 			_Particles[BallID]._InverseMass := 1 / Mass;
 			_Particles[BallID]._Fixed := False;
 
-      _Particles[BallID]._Tension := VectorZero;
+      _Particles[BallID]._Tension := Vector3D_Zero;
 		End;
 
   NaturalLength := _Particles[0].CurrentPosition.Distance(_Particles[1].CurrentPosition);
@@ -332,7 +332,7 @@ Var
   I, J, BallID, Index, X, Y:Integer;
   normal:Vector3D;
 
-  Vertices:VertexData;
+  Vertices:TERRAVertexBuffer;
 Begin
   _Group.CalculateTriangleNormals();
 
@@ -343,7 +343,7 @@ Begin
     For I:=0 To Pred(gridSize) Do
     Begin
       BallID := J*gridSize+I;
-      Normal := VectorZero;
+      Normal := Vector3D_Zero;
       For Y:=0 To 1 Do
         For X:=0 To 1 Do
         If (X+I<GridSize) And (Y+J<GridSize) Then
@@ -410,7 +410,7 @@ Begin
 		//Calculate the tensions in the springs
 		For I:=0 To Pred(_SpringCount) Do
 		Begin
-      TensionDirection :=	VectorSubtract(_Particles[_Springs[i].P1].CurrentPosition, _Particles[_Springs[i].P2].CurrentPosition);
+      TensionDirection :=	Vector3D_Subtract(_Particles[_Springs[i].P1].CurrentPosition, _Particles[_Springs[i].P2].CurrentPosition);
 
 			springLength := TensionDirection.Length();
 			extension := springLength - _Springs[i]._naturalLength;
@@ -434,20 +434,20 @@ Begin
 			If (_Particles[i]._Fixed) Then
 			Begin
 				_Particles[i].NextPosition := _Particles[i].CurrentPosition;
-				_Particles[i].NextVelocity := VectorZero;
+				_Particles[i].NextVelocity := Vector3D_Zero;
         (*If MoveCloth Then
           _Particles[i].NextPosition.Add(VectorCreate(0, 2 * timePassedInSeconds, 5 * timePassedInSeconds));*)
         Continue;
 			End;
 
       //Calculate the force on this ball
-      Force := VectorAdd(_Gravity, _Particles[I]._Tension);
+      Force := Vector3D_Add(_Gravity, _Particles[I]._Tension);
 
 			//Calculate the acceleration
-			Acceleration := VectorScale(force, _Particles[i]._InverseMass);
+			Acceleration := Vector3D_Scale(force, _Particles[i]._InverseMass);
 
 			//Update velocity
-			_Particles[i].NextVelocity := VectorAdd(_Particles[i].CurrentVelocity, VectorScale(acceleration, timePassedInSeconds));
+			_Particles[i].NextVelocity := Vector3D_Add(_Particles[i].CurrentVelocity, Vector3D_Scale(acceleration, timePassedInSeconds));
 
 			//Damp the velocity
 			_Particles[i].NextVelocity.Scale(dampFactor);
@@ -457,7 +457,7 @@ Begin
        Force := _Particles[i].NextVelocity;
 
        Force.Scale(timePassedInSeconds);
-			_Particles[i].NextPosition := VectorAdd(_Particles[i].CurrentPosition, Force);
+			_Particles[i].NextPosition := Vector3D_Add(_Particles[i].CurrentPosition, Force);
 
 			//Check against floor
 (*			If(_Particles[i].NextPosition.y <= -sphereRadius * 0.92) Then
@@ -470,13 +470,13 @@ Begin
 			//Check against sphere (at origin)
       For J:=0 To Pred(_ColliderCount) Do
       Begin
-        P := VectorSubtract(_Particles[i].NextPosition, _Colliders[J].Position);
+        P := Vector3D_Subtract(_Particles[i].NextPosition, _Colliders[J].Position);
   			If (P.LengthSquared < Sqr(_Colliders[J].Radius*1.08)) Then
         Begin
 		  	  P.Normalize();
           P.Scale(_Colliders[J].Radius * 1.08);
-          _Particles[i].NextPosition := VectorAdd(P, _Colliders[J].Position);
-          _Particles[i].NextVelocity := VectorZero;
+          _Particles[i].NextPosition := Vector3D_Add(P, _Colliders[J].Position);
+          _Particles[i].NextVelocity := Vector3D_Zero;
           Break;
         End;
       End;
@@ -487,7 +487,7 @@ Begin
     Begin
       _Particles[i].CurrentPosition := _Particles[i].NextPosition;
 			_Particles[i].CurrentVelocity := _Particles[i].NextVelocity;
-      _Particles[i]._Tension := VectorZero;
+      _Particles[i]._Tension := Vector3D_Zero;
     End;
 	End;
 

@@ -131,7 +131,8 @@ End;
 
 Function TERRARenderable.GetBoundingBox: BoundingBox;
 Begin
-       FillChar(Result, SizeOf(Result), 0);
+     Result.StartVertex := Vector3D_Zero;
+     Result.EndVertex := Vector3D_Zero;
 End;
 
 function TERRARenderable.SortID: Integer;

@@ -47,7 +47,9 @@ Type
   TERRAVertexBuffer = Class;
 
 
-	TERRAVertex = Class(TERRACollectionObject)
+        { TERRAVertex }
+
+ TERRAVertex = Class(TERRACollectionObject)
     Protected
       _Target:TERRAVertexBuffer;
       _VertexID:Integer;
@@ -64,8 +66,8 @@ Type
       Procedure SetVector3D(Attribute:Cardinal; Const Value:Vector3D);
       Procedure SetVector4D(Attribute:Cardinal; Const Value:Vector4D);
 
-      Procedure Load(); Virtual; Abstract;
-      Procedure Save(); Virtual; Abstract;
+      Procedure Load(); Virtual;
+      Procedure Save(); Virtual;
 
     Public
       Constructor Create();
@@ -73,7 +75,7 @@ Type
 
       Function HasAttribute(Attribute:Cardinal):Boolean;
 
-      Class Function CanBePooled: Boolean;
+      Class Function CanBePooled: Boolean; Override;
     End;
 
   SimpleVertex = Class(TERRAVertex)
@@ -1061,68 +1063,78 @@ Begin
 End;
 
 { TERRAVertex }
-Constructor TERRAVertex.Create;
+constructor TERRAVertex.Create;
 Begin
   Self._VertexID := -1;
   Self._Item := Self;
 End;
 
-Procedure TERRAVertex.GetColor(Attribute:Cardinal; Out Value:ColorRGBA);
+procedure TERRAVertex.GetColor(Attribute: Cardinal; out Value: ColorRGBA);
 Begin
   _Target.GetColor(Self._VertexID, Attribute, Value);
 End;
 
-Procedure TERRAVertex.SetColor(Attribute:Cardinal; Const Value:ColorRGBA);
+procedure TERRAVertex.SetColor(Attribute: Cardinal; const Value: ColorRGBA);
 Begin
   _Target.SetColor(Self._VertexID, Attribute, Value);
 End;
 
-Procedure TERRAVertex.GetFloat(Attribute:Cardinal; Out Value:Single);
+procedure TERRAVertex.GetFloat(Attribute: Cardinal; out Value: Single);
 Begin
   _Target.GetFloat(Self._VertexID, Attribute, Value);
 End;
 
-Procedure TERRAVertex.SetFloat(Attribute:Cardinal; Const Value:Single);
+procedure TERRAVertex.SetFloat(Attribute: Cardinal; const Value: Single);
 Begin
   _Target.SetFloat(Self._VertexID, Attribute, Value);
 End;
 
-Procedure TERRAVertex.GetVector2D(Attribute:Cardinal; Out Value:Vector2D);
+procedure TERRAVertex.GetVector2D(Attribute: Cardinal; out Value: Vector2D);
 Begin
   _Target.GetVector2D(Self._VertexID, Attribute, Value);
 End;
 
-Procedure TERRAVertex.SetVector2D(Attribute:Cardinal; Const Value:Vector2D);
+procedure TERRAVertex.SetVector2D(Attribute: Cardinal; const Value: Vector2D);
 Begin
   _Target.SetVector2D(Self._VertexID, Attribute, Value);
 End;
 
-Procedure TERRAVertex.GetVector3D(Attribute:Cardinal; Out Value:Vector3D);
+procedure TERRAVertex.GetVector3D(Attribute: Cardinal; out Value: Vector3D);
 Begin
   _Target.GetVector3D(Self._VertexID, Attribute, Value);
 End;
 
-Procedure TERRAVertex.SetVector3D(Attribute:Cardinal; Const Value:Vector3D);
+procedure TERRAVertex.SetVector3D(Attribute: Cardinal; const Value: Vector3D);
 Begin
   _Target.SetVector3D(Self._VertexID, Attribute, Value);
 End;
 
-Procedure TERRAVertex.GetVector4D(Attribute:Cardinal; Out Value:Vector4D);
+procedure TERRAVertex.GetVector4D(Attribute: Cardinal; out Value: Vector4D);
 Begin
   _Target.GetVector4D(Self._VertexID, Attribute, Value);
 End;
 
-Procedure TERRAVertex.SetVector4D(Attribute:Cardinal; Const Value:Vector4D);
+procedure TERRAVertex.SetVector4D(Attribute: Cardinal; const Value: Vector4D);
 Begin
   _Target.SetVector4D(Self._VertexID, Attribute, Value);
 End;
 
-Function TERRAVertex.HasAttribute(Attribute: Cardinal): Boolean;
+procedure TERRAVertex.Load;
+begin
+  // do nothing
+end;
+
+procedure TERRAVertex.Save;
+begin
+  // do nothing
+end;
+
+function TERRAVertex.HasAttribute(Attribute: Cardinal): Boolean;
 Begin
   Result := _Target.HasAttribute(Attribute);
 End;
 
-Procedure TERRAVertex.Release;
+procedure TERRAVertex.Release;
 Begin
   If (Self._VertexID>=0) Then
   Begin
@@ -1131,7 +1143,7 @@ Begin
   End;
 End;
 
-Class Function TERRAVertex.CanBePooled: Boolean;
+class function TERRAVertex.CanBePooled: Boolean;
 Begin
   Result := True;
 End;

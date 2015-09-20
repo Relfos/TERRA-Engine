@@ -117,7 +117,7 @@ Type
 
       Procedure Refresh();
 
-      Procedure SetupUniforms; Virtual; Abstract;
+      Procedure SetupUniforms; Virtual;
 
       Procedure SetFocusPoint(Const P:Vector3D);
 
@@ -217,7 +217,7 @@ Uses TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsManager, TERRA_Ren
   TERRA_Engine, TERRA_Renderable;
 
 { TERRACamera}
-Constructor TERRACamera.Create(Const Name:TERRAString);
+constructor TERRACamera.Create(const Name: TERRAString);
 Begin
   Self._ObjectName := Name;
   _FOV := 45.0;
@@ -232,12 +232,12 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Procedure TERRACamera.Release();
+procedure TERRACamera.Release;
 Begin
   ReleaseObject(_Position);
 End;
 
-Procedure TERRACamera.SetPosition(Const Value:Vector3D);
+procedure TERRACamera.SetPosition(const Value: Vector3D);
 Begin
   If (_Position.Value.X = Value.X) And (_Position.Value.Y = Value.Y) And (_Position.Value.Z = Value.Z) Then
     Exit;
@@ -259,7 +259,7 @@ Begin
 	_Frustum.Update(_ProjectionMatrix4x4, Self._Transform);
 End;
 
-Procedure TERRACamera.Update(Width, Height, Eye: Integer);
+procedure TERRACamera.Update(Width, Height, Eye: Integer);
 Begin
   _Width := Width;
   _Height := Height;
@@ -286,7 +286,7 @@ Begin
     UpdateMatrix4x4(Eye);
 End;
 
-Procedure TERRACamera.SetFocusPoint(const P: Vector3D);
+procedure TERRACamera.SetFocusPoint(const P: Vector3D);
 Begin
   _Focus := P;
 End;
@@ -426,12 +426,17 @@ Begin
   _NeedsUpdate := True;
 End;
 
-Function TERRACamera.GetPosition: Vector3D;
+procedure TERRACamera.SetupUniforms;
+begin
+  // do nothing
+end;
+
+function TERRACamera.GetPosition: Vector3D;
 Begin
   Result := _Position.Value;
 End;
 
-Procedure TERRACamera.SetController(const Value: TERRACameraController);
+procedure TERRACamera.SetController(const Value: TERRACameraController);
 Begin
   If (Value = _Controller) Then
     Exit;
@@ -449,14 +454,14 @@ Begin
   End;
 End;
 
-Procedure TERRACamera.Shake(Const Duration:Cardinal);
+procedure TERRACamera.Shake(const Duration: Cardinal);
 Begin
   _ShakeTime := Application.GetTime() + Duration;
   _Shaking := True;
   _NeedsUpdate := True;
 End;
 
-Function TERRACamera.IsBoxVisible(const Box: BoundingBox): Boolean;
+function TERRACamera.IsBoxVisible(const Box: BoundingBox): Boolean;
 Begin
   Result := True;
 End;

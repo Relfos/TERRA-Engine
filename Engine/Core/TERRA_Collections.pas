@@ -82,6 +82,8 @@ Type
       Property Discarded:Boolean Read _Discarded;
   End;
 
+  { TERRAIterator }
+
   TERRAIterator = Class(TERRAObject)
     Private
       _Value:TERRACollectionObject;
@@ -91,7 +93,7 @@ Type
 
     Protected
 
-      Function ObtainNext():TERRACollectionObject; Virtual; Abstract;
+      Function ObtainNext():TERRACollectionObject; Virtual;
 
       Procedure Reset(); Virtual;
       Procedure JumpToIndex(Position: Integer); Virtual;
@@ -508,12 +510,12 @@ Begin
 End;
 
 { Iterator }
-Constructor TERRAIterator.Create(Collection:TERRACollection);
+constructor TERRAIterator.Create(Collection: TERRACollection);
 Begin
   Self.Init(Collection);
 End;
 
-Procedure TERRAIterator.Init(Collection:TERRACollection);
+procedure TERRAIterator.Init(Collection: TERRACollection);
 Begin
   _Collection := Collection;
 
@@ -526,17 +528,22 @@ Begin
   Self.Seek(0);
 End;
 
-Function TERRAIterator.GetValue():TERRAObject;
+function TERRAIterator.GetValue: TERRAObject;
 Begin
   Result := _Value.Item;
 End;
 
-Procedure TERRAIterator.Reset();
+function TERRAIterator.ObtainNext: TERRACollectionObject;
+begin
+  Result := Nil;
+end;
+
+procedure TERRAIterator.Reset;
 Begin
   // do nothing
 End;
 
-Procedure TERRAIterator.Release();
+procedure TERRAIterator.Release;
 Begin
   If _Finished Then
     Exit;
@@ -550,7 +557,7 @@ Begin
   End;
 End;
 
-Function TERRAIterator.HasNext: Boolean;
+function TERRAIterator.HasNext: Boolean;
 Begin
   _Value := Self.ObtainNext();
   Result := Assigned(_Value);
@@ -561,12 +568,12 @@ Begin
     Self.Release();
 End;
 
-Function TERRAIterator.GetPosition():Integer;
+function TERRAIterator.GetPosition: Integer;
 Begin
   Result := Pred(_Index);
 End;
 
-Function TERRAIterator.Seek(Position: Integer):Boolean;
+function TERRAIterator.Seek(Position: Integer): Boolean;
 Begin
   _Finished := False;
   _Value := Nil;
@@ -586,7 +593,7 @@ Begin
     Result := True;
 End;
 
-Procedure TERRAIterator.JumpToIndex(Position: Integer);
+procedure TERRAIterator.JumpToIndex(Position: Integer);
 Begin
   While (Self.Index<Position) Do
   Begin
@@ -595,13 +602,13 @@ Begin
   End;
 End;
 
-Procedure TERRAIterator.Discard;
+procedure TERRAIterator.Discard;
 Begin
   If Assigned(_Value) Then
     _Value.Discard();
 End;
 
-Class Function TERRAIterator.CanBePooled: Boolean;
+class function TERRAIterator.CanBePooled: Boolean;
 Begin
   Result := True;
 End;

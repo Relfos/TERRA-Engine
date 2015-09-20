@@ -429,7 +429,6 @@ Begin
           ImgName := '';
 
           N := _CharCount;
-          X := X + TargetWidth;
 
           TargetWidth := StringToInt(StringGetNextSplit(Arg, 'x'));
           TargetHeight := StringToInt(Arg);
@@ -443,6 +442,8 @@ Begin
           QueueChar('!', X, Y, TargetWidth, TargetHeight);
           _CharList[N].Glyph := Nil;
           _CharList[N].StyleID := Pred(_StyleCount);
+
+          X := X + TargetWidth;
         End Else
         Begin
           _StylesList[Pred(_StyleCount)].Texture := Engine.Textures.GetItem(ImgName);

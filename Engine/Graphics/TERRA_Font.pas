@@ -169,7 +169,7 @@ Type
 Implementation
 Uses TERRA_Error, TERRA_OS, TERRA_Application, TERRA_Sort, TERRA_TextureManager,
   TERRA_Log, TERRA_FileUtils, TERRA_MemoryStream, TERRA_ImageDrawing, TERRA_Engine,
-  TERRA_GraphicsManager, TERRA_FileManager, TERRA_Packer, TERRA_DistanceField, TERRA_FontManager;
+  TERRA_GraphicsManager, TERRA_FileManager, TERRA_Packer, TERRA_DistanceField;
 
 Type
   GlyphSort = Class(Sort)
