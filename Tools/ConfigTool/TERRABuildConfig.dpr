@@ -4,7 +4,7 @@ program TERRABuildConfig;
 
 uses
   TERRA_Object, TERRA_Stream, TERRA_FileStream;
-
+  
 Var
   Paths:Array Of String;
   PathCount:Integer;
@@ -64,6 +64,6 @@ Begin
   RegisterPath('Network\Protocols');
 
   Dest := FileStream.Create('compile_tests.bat');
-  Dest.WriteLine(GenerateCompileCommand('d:\code\TERRA-Engine\Engine\','..\Tests\TERRATest.dpr', '.\TERRATest.exe'));
+  Dest.WriteLine(GenerateCompileCommand('d:\code\TERRA-Engine\Engine\','%ENGINE_PATH%\..\Tests\TERRATest.dpr', '.\TERRATest.exe'));
   ReleaseObject(Dest);
 End.

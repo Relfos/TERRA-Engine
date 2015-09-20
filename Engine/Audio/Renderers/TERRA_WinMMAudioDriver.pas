@@ -2,7 +2,7 @@ Unit TERRA_WinMMAudioDriver;
 
 Interface
 
-Uses Windows, Messages, MMSystem, TERRA_Utils, TERRA_Sound, TERRA_AudioMixer, TERRA_AudioBuffer;
+Uses Windows, Messages, TERRA_Multimedia, TERRA_Utils, TERRA_Sound, TERRA_AudioMixer, TERRA_AudioBuffer;
 
 Const
   WaveBufferCount = 4;
