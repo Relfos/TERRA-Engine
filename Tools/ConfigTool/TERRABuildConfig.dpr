@@ -19,12 +19,16 @@ End;
 Function GenerateCompileCommand(Const BasePath, SrcMain, OutputName:String):String;
 Var
   I:Integer;
+  EnginePathVar:String;
 Begin
+  EnginePathVar := '%ENGINE_PATH%';
+//  BasePath;
+
   Result := 'fpc -Sew -Mdelphi ';
-  Result := Result +' -Fi'+BasePath+'\Core -Fi'+BasePath+'\Utils ';
+  Result := Result +' -Fi'+EnginePathVar+'Core -Fi'+EnginePathVar+'Utils ';
 
   For I:=0 To Pred(PathCount) Do
-    Result := Result + '-Fu'+BasePath+Paths[I] + ' ';
+    Result := Result + '-Fu'+EnginePathVar+Paths[I] + ' ';
 
   If OutputName<>'' Then
     Result := Result + '-o'+OutputName+' ';

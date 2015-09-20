@@ -33,7 +33,7 @@ environment:
   ENGINE_PATH: '%APPVEYOR_BUILD_FOLDER%\Engine\'
   BUILD_PATH: '%APPVEYOR_BUILD_FOLDER%\build\'
   FPC_PATH: '%APPVEYOR_BUILD_FOLDER%\fpc\'
-  COMPILER_PATH: '%FPC_PATH%\bin\i386-win32\fpc.exe'
+  COMPILER_PATH: '%FPC_PATH%\bin\i386-win32\'
 
 install:
   - appveyor DownloadFile https://dl.dropboxusercontent.com/u/194502/dev/fpc-win32-2.6.4.7z
@@ -41,6 +41,7 @@ install:
 
 build_script:
   - Build\compile_tests.bat
+  - SET PATH=%PATH%;%COMPILER_PATH%
   - TERRATest.exe
 
 #---------------------------------#
