@@ -40,8 +40,9 @@ install:
   - 7z x fpc-win32-2.6.4.7z -o%FPC_PATH% -y
 
 build_script:
-  - Build\compile_tests.bat
   - SET PATH=%PATH%;%COMPILER_PATH%
+  - echo %PATH%
+  - Build\compile_tests.bat
   - TERRATest.exe
 
 #---------------------------------#
