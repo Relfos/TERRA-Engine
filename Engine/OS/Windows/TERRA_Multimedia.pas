@@ -120,6 +120,29 @@ Const
   JOYCAPS_POVCTS		= $0040;
 
 Type
+  PWaveFormatEx = ^WaveFormatEx;
+  WaveFormatEx = packed record
+    wFormatTag: Word;         { format type }
+    nChannels: Word;          { number of channels (i.e. mono, stereo, etc.) }
+    nSamplesPerSec: Cardinal;  { sample rate }
+    nAvgBytesPerSec: Cardinal; { for buffer estimation }
+    nBlockAlign: Word;      { block size of data }
+    wBitsPerSample: Word;   { number of bits per sample of mono data }
+    cbSize: Word;           { the count in bytes of the size of }
+  end;
+
+  PWaveHeader = ^WaveHeader;
+  WaveHeader = record
+    lpData: PAnsiChar;              { pointer to locked data buffer }
+    dwBufferLength: Cardinal;      { length of data buffer }
+    dwBytesRecorded: Cardinal;     { used for input only }
+    dwUser: Cardinal;              { for client's use }
+    dwFlags: Cardinal;             { assorted flags (see defines) }
+    dwLoops: Cardinal;             { loop control counter }
+    lpNext: PWaveHeader;             { reserved for driver }
+    reserved: Cardinal;            { reserved for driver }
+  end;
+
   GamepadInfo = Packed Record
     wXpos: Cardinal;                 { x position }
     wYpos: Cardinal;                 { y position }
@@ -172,6 +195,15 @@ Type
 
 
 Const
+  WAVE_FORMAT_PCM     = 1;
+  WAVE_MAPPER     = Cardinal(-1);
+
+  WHDR_DONE       = $00000001;  { done bit }
+  WHDR_PREPARED   = $00000002;  { set if this header has been prepared }
+  WHDR_BEGINLOOP  = $00000004;  { loop start block }
+  WHDR_ENDLOOP    = $00000008;  { loop end block }
+  WHDR_INQUEUE    = $00000010;  { reserved for driver }
+
   DRVCNF_CANCEL           = $0000;
   DRVCNF_OK               = $0001;
   DRVCNF_RESTART          = $0002;
@@ -407,6 +439,10 @@ Type
   HMIDIIN = Integer;
   HMIDIOUT = Integer;
 
+
+  HWAVEOUT = Integer;
+  PHWAVEOUT = ^HWAVEOUT;
+
 Const
   CALLBACK_TYPEMASK   = $00070000;    { callback type mask }
   CALLBACK_NULL       = $00000000;    { no callback }
@@ -415,6 +451,12 @@ Const
   CALLBACK_FUNCTION   = $00030000;    { dwCallback is a FARPROC }
   CALLBACK_THREAD     = CALLBACK_TASK;{ thread ID replaces 16 bit task }
   CALLBACK_EVENT      = $00050000;    { dwCallback is an EVENT Handle }
+
+  WAVERR_BADFORMAT      = WAVERR_BASE + 0;    { unsupported wave format }
+  WAVERR_STILLPLAYING   = WAVERR_BASE + 1;    { still something playing }
+  WAVERR_UNPREPARED     = WAVERR_BASE + 2;    { header not prepared }
+  WAVERR_SYNC           = WAVERR_BASE + 3;    { device is synchronous }
+  WAVERR_LASTERROR      = WAVERR_BASE + 3;    { last error in range }
 
 Var
   timeGetTime:Function:Cardinal; stdcall;
@@ -439,6 +481,12 @@ Var
   midiOutClose:Function(hMidiOut: HMIDIOUT):Integer; stdcall;
   midiOutShortMsg:Function(hMidiOut: HMIDIOUT; dwMsg: Cardinal): Integer; stdcall;
 
+  waveOutOpen:Function(lphWaveOut: PHWaveOut; uDeviceID:Cardinal; lpFormat:PWaveFormatEx; dwCallback, dwInstance, dwFlags:Cardinal):Integer; stdcall;
+  waveOutClose:Function(hWaveOut: HWAVEOUT):Integer; stdcall;
+  waveOutPrepareHeader:Function(hWaveOut: HWAVEOUT; lpWaveOutHdr: PWaveHeader; uSize: Cardinal): Integer; stdcall;
+  waveOutUnprepareHeader:Function(hWaveOut: HWAVEOUT; lpWaveOutHdr: PWaveHeader;uSize: Cardinal): Integer; stdcall;
+  waveOutWrite:Function(hWaveOut: HWAVEOUT; lpWaveOutHdr: PWaveHeader; uSize: Cardinal): Integer; stdcall;
+  waveOutReset:Function(hWaveOut: HWAVEOUT): Integer; stdcall;
 
 Procedure LoadMultimedia();
 
@@ -446,7 +494,7 @@ Implementation
 Uses TERRA_Log, TERRA_Engine;
 
 Var
-  LibHandle:THandle;
+  LibHandle:THandle = 0; 
 
 Function _timeGetTime:Cardinal; stdcall;
 Begin
@@ -557,8 +605,41 @@ Begin
   Result := 0;
 End;
 
+Function _waveOutOpen(lphWaveOut: PHWaveOut; uDeviceID:Cardinal; lpFormat:PWaveFormatEx; dwCallback, dwInstance, dwFlags:Cardinal):Integer; stdcall;
+Begin
+  Result := 0;
+End;
+
+Function _waveOutClose(hWaveOut: HWAVEOUT):Integer; stdcall;
+Begin
+  Result := 0;
+End;
+
+Function _waveOutPrepareHeader(hWaveOut: HWAVEOUT; lpWaveOutHdr: PWaveHeader; uSize: Cardinal): Integer; stdcall;
+Begin
+  Result := 0;
+End;
+
+Function _waveOutUnprepareHeader(hWaveOut: HWAVEOUT; lpWaveOutHdr: PWaveHeader;uSize: Cardinal): Integer; stdcall;
+Begin
+  Result := 0;
+End;
+
+Function _waveOutWrite(hWaveOut: HWAVEOUT; lpWaveOutHdr: PWaveHeader; uSize: Cardinal): Integer; stdcall;
+Begin
+  Result := 0;
+End;
+
+Function _waveOutReset(hWaveOut: HWAVEOUT): Integer; stdcall;
+Begin
+  Result := 0;
+End;
+
 Procedure LoadMultimedia();
 Begin
+  If (LibHandle<>0) Then
+    Exit;
+
   Engine.Log.Write(logDebug, 'Multimedia', 'Loading Windows Multimedia librar');
 
   LibHandle := LoadLibrary(MMLib);
@@ -582,6 +663,16 @@ Begin
   midiOutOpen := LoadFunction('midiOutOpen', @_midiOutOpen);
   midiOutClose := LoadFunction('midiOutClose', @_midiOutClose);
   midiOutShortMsg := LoadFunction('midiOutShortMsg', @_midiOutShortMsg);
+
+  waveOutOpen := LoadFunction('waveOutOpen', @_waveOutOpen);
+  waveOutClose := LoadFunction('waveOutClose', @_waveOutClose);
+  waveOutPrepareHeader := LoadFunction('waveOutPrepareHeader', @_waveOutPrepareHeader);
+  waveOutUnprepareHeader := LoadFunction('waveOutUnprepareHeader', @_waveOutUnprepareHeader);
+  waveOutWrite := LoadFunction('waveOutWrite', @_waveOutWrite);
+  waveOutReset := LoadFunction('waveOutReset', @_waveOutReset);
 End;
 
+Initialization
+  LoadMultimedia();
 End.
+

@@ -11,10 +11,10 @@ Const
 Type
   WindowsAudioDriver = Class(TERRAAudioDriver)
     Protected
-       _WaveFormat:TWaveFormatEx;
+       _WaveFormat:WaveFormatEx;
        _WaveHandle:Cardinal;
        _WaveOutHandle:Cardinal;
-       _WaveHandler:Array[0..Pred(WaveBufferCount)] Of TWAVEHDR;
+       _WaveHandler:Array[0..Pred(WaveBufferCount)] Of WaveHeader;
        _WaveBufferSize:Cardinal;
 
        Function QueueBuffer():Boolean;
@@ -34,6 +34,8 @@ Function WindowsAudioDriver.Reset(Mixer:TERRAAudioMixer):Boolean;
 Var
   I:Integer;
 Begin
+  LoadMultimedia();
+  
   Self._Mixer := Mixer;
 
   _WaveFormat.wFormatTag := WAVE_FORMAT_PCM;
@@ -60,7 +62,7 @@ Begin
     _WaveHandler[I].dwLoops := 0;
 
 
-    waveOutPrepareHeader(_WaveOutHandle, @_WaveHandler[I], SizeOf(TWAVEHDR));
+    waveOutPrepareHeader(_WaveOutHandle, @_WaveHandler[I], SizeOf(WAVEHeader));
     _WaveHandler[I].dwFlags := _WaveHandler[I].dwFlags Or WHDR_DONE;
   End;
 
@@ -77,7 +79,7 @@ Begin
   waveOutReset(_WaveOutHandle);
   For I:=0 To Pred(WaveBufferCount) Do
   Begin
-    While waveOutUnprepareHeader(_WaveOutHandle, @_WaveHandler[I], SIZEOF(TWAVEHDR))=WAVERR_STILLPLAYING Do
+    While waveOutUnprepareHeader(_WaveOutHandle, @_WaveHandler[I], SIZEOF(WAVEHEADER))=WAVERR_STILLPLAYING Do
     Begin
      Sleep(25);
     End;
@@ -114,7 +116,7 @@ Begin
       _Mixer.RequestSamples(PAudioSample(_WaveHandler[I].lpData), InternalBufferSampleCount);
 
       //waveOutPrepareHeader(_WaveOutHandle, _WaveHandler[I], SizeOf(TWAVEHDR));
-      waveOutWrite(_WaveOutHandle, @_WaveHandler[I], SizeOf(TWAVEHDR));
+      waveOutWrite(_WaveOutHandle, @_WaveHandler[I], SizeOf(WAVEHEADER));
 
       Result := True;
       Exit;
