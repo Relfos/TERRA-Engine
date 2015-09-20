@@ -28,7 +28,7 @@ Type
 
 
 Const
-  Content =  'This is a [i]link[/i] [color=darkviolet]example[/color], try clicking here:'+CrLf+'[url=www.pascalgameengine.com]Linky![/url]'+CrLf+CrLf+'[w]Wavy[/w], yes?';
+  Content =  'This is a [i]link[/i] [color=darkviolet]example[/color], try clicking here:'+CrLf+'[url=www.pascalgameengine.com]Linky![/url]'+CrLf+CrLf+'[w]Wavy[/w] text test!';
 Var
   MyWnd, MyText:UIWidget;
 

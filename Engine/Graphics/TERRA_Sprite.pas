@@ -764,7 +764,6 @@ End;
 Procedure TERRASprite.MergeSprite(Other: TERRASprite);
 Var
   I, BaseID, IndexOffset:Integer;
-  CurrentClip:Vector4D;
   InIt, OutIt:VertexIterator;
   Src, Dest:SpriteVertex;
   Pos:Vector3D;
@@ -783,10 +782,6 @@ Begin
   Geometry.Vertices.Resize(RequiredVertices);
   Geometry.Indices.Resize(RequiredIndices);
 
-  If (Other.ClipRect.Style = clipNothing) Then
-    CurrentClip := Vector4D_Create(0, 0, 9999, 9999)
-  Else
-    CurrentClip := Vector4D_Create(Other.ClipRect.X1, Other.ClipRect.Y1, Other.ClipRect.X2, Other.ClipRect.Y2);
 
   OutIt := Geometry.Vertices.GetIteratorForClass(SpriteVertex);
   InIt := Other.Geometry.Vertices.GetIteratorForClass(SpriteVertex);
@@ -811,7 +806,7 @@ Begin
     Dest.Color := Src.Color;
     Dest.Glow := Src.Glow;
     Dest.Saturation := Src.Saturation;
-    Dest.ClipRect := CurrentClip;
+    Dest.ClipRect := Src.ClipRect;
     Dest.TexCoord := Src.TexCoord;
 
     (*  MinX := FloatMin(MinX, Pos.X);
@@ -831,11 +826,22 @@ Var
   Graphics:GraphicsManager;
   TargetShader:ShaderInterface;
 
+  CurrentClip:Vector4D;
+
   OutIt:VertexIterator;
   Dest:SpriteVertex;
 Begin
   If (Self.Geometry.Indices.Count <= 0) Or (Self.Texture = Nil) Then
     Exit;
+
+(*  If (Other.ClipRect.Style = clipNothing) Then
+    CurrentClip := Vector4D_Create(0, 0, 9999, 9999)
+  Else
+    CurrentClip := Vector4D_Create(Other.ClipRect.X1, Other.ClipRect.Y1, Other.ClipRect.X2, Other.ClipRect.Y2);
+        *)
+
+
+  CurrentClip := Vector4D_Create(Self.ClipRect.X1, Self.ClipRect.Y1, Self.ClipRect.X2, Self.ClipRect.Y2);
 
   OutIt := Geometry.Vertices.GetIteratorForClass(SpriteVertex);
   While (OutIt.HasNext()) Do
@@ -845,7 +851,7 @@ Begin
     Dest.Position := _Transform.Transform(Dest.Position);
     Dest.Saturation := Self.Saturation;
     Dest.Glow := Self.Glow;
-    Dest.ClipRect := Vector4D_Create(0, 0, 9999, 9999);
+    Dest.ClipRect := CurrentClip; //Vector4D_Create(0, 0, 9999, 9999);
   End;
   ReleaseObject(OutIt);
 

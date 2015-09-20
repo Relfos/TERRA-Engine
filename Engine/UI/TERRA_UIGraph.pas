@@ -14,7 +14,7 @@ Type
 
       _MaximumRange:Single;
 
-      Procedure UpdateSprite(View:TERRAViewport); Override;
+      Procedure UpdateSprite(); Override;
 
       Class Function GetObjectType:TERRAString; Override;
 
@@ -31,7 +31,7 @@ Type
       _SampleCount:Cardinal;
       _LastSampleUpdate:Cardinal;
 
-      Procedure UpdateSprite(View:TERRAViewport); Override;
+      Procedure UpdateSprite(); Override;
 
     Public
       Target:TERRAObject; // can be any numberic property
@@ -79,7 +79,7 @@ Begin
   _Values[ID] := Value;
 End;
 
-Procedure UIGraph.UpdateSprite(View:TERRAViewport);
+Procedure UIGraph.UpdateSprite();
 Var
   I:Integer;
   StartPos, EndPos:Vector2D;
@@ -173,7 +173,7 @@ Begin
   Inc(_SampleCount);
 End;
 
-Procedure UISampledGraph.UpdateSprite(View: TERRAViewport);
+Procedure UISampledGraph.UpdateSprite();
 Var
   S:TERRAString;
 Begin
