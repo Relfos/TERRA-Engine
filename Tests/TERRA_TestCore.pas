@@ -174,7 +174,7 @@ Begin
     radix_sort(@Items[0], Count);
     TB := Application.GetTime() - TS;
 
-    System.WriteLn(TA, '        ', TB);
+    //System.WriteLn(TA, '        ', TB);
 
     For I:=1 To Pred(Count) Do
     Begin

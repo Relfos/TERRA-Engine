@@ -16,15 +16,18 @@ Begin
   Paths[Pred(PathCount)] := Value;
 End;
 
-Function GenerateCompileCommand(Const BasePath, SrcMain:String):String;
+Function GenerateCompileCommand(Const BasePath, SrcMain, OutputName:String):String;
 Var
   I:Integer;
 Begin
   Result := 'fpc -Sew -Mdelphi ';
-  Result := Result +'-Fi'+BasePath+'\Core -Fi'+BasePath+'\Utils ';
-                          
+  Result := Result +' -Fi'+BasePath+'\Core -Fi'+BasePath+'\Utils ';
+
   For I:=0 To Pred(PathCount) Do
     Result := Result + '-Fu'+BasePath+Paths[I] + ' ';
+
+  If OutputName<>'' Then
+    Result := Result + '-o'+OutputName+' ';
 
   Result := Result + SrcMain;
 End;
@@ -57,6 +60,6 @@ Begin
   RegisterPath('Network\Protocols');
 
   Dest := FileStream.Create('compile_tests.bat');
-  Dest.WriteLine(GenerateCompileCommand('d:\code\TERRA-Engine\Engine\','..\Tests\TERRATest.dpr'));
+  Dest.WriteLine(GenerateCompileCommand('d:\code\TERRA-Engine\Engine\','..\Tests\TERRATest.dpr', '.\TERRATest.exe'));
   ReleaseObject(Dest);
 End.

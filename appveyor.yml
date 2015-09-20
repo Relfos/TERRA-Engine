@@ -1,0 +1,59 @@
+# Reference: http://www.appveyor.com/docs/appveyor-yml
+# Notes:
+#   - Indent each level of configuration with 2 spaces. Do not use tabs!
+
+#---------------------------------#
+#      general configuration      #
+#---------------------------------#
+
+version: 1.0.{build}
+
+branches:
+  only:
+    - master
+  except:
+    - gh-pages
+
+#---------------------------------#
+#    environment configuration    #
+#---------------------------------#
+
+shallow_clone: true
+
+matrix:
+  fast_finish: true
+
+platform:
+  - x86
+
+configuration:
+  - Release
+
+environment:
+  ENGINE_PATH: '%APPVEYOR_BUILD_FOLDER%\Engine\'
+  BUILD_PATH: '%APPVEYOR_BUILD_FOLDER%\build\'
+  FPC_PATH: '%APPVEYOR_BUILD_FOLDER%\fpc\'
+  COMPILER_PATH: '%FPC_PATH%\bin\i386-win32\fpc.exe'
+
+install:
+  - appveyor DownloadFile https://dl.dropboxusercontent.com/u/194502/dev/fpc-win32-2.6.4.7z
+  - 7z x fpc-win32-2.6.4.7z -o%FPC_PATH% -y
+
+build_script:
+  - Build\compile_tests.bat
+  - TERRATest.exe
+
+#---------------------------------#
+#      artifacts configuration    #
+#---------------------------------#
+
+artifacts:
+  - path: '%BUILD_PATH%\lib'
+    type: zip
+
+#---------------------------------#
+#     deployment configuration    #
+#---------------------------------#
+
+deploy: off
+

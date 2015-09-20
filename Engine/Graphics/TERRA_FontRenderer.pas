@@ -863,8 +863,9 @@ Begin
   XOfs := 0;
   While (I<_CharCount) And (_CharList[I].Glyph = Nil) Do
     Inc(I);
-  XOfs := _CharList[I].Glyph.XOfs * FontInvScale * _Scale; // HACK!!!!
-
+  XOfs := _CharList[I].Glyph.XOfs{ * _Scale}; // HACK!!!!
+    
+    
   For I:=0 To Pred(_CharCount) Do
   If (_CharList[I].Value <> #32) Then
   Begin

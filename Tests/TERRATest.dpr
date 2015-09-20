@@ -1,10 +1,8 @@
 Program TERRATest;
 
 {$I terra.inc}
-
-{$IFDEF WINDOWS}
+                   
 {$APPTYPE CONSOLE}
-{$ENDIF}
 
 Uses TERRA_MemoryManager, TERRA_OS, TERRA_Engine, TERRA_String, TERRA_Application, TERRA_ConsoleApplication, TERRA_Log, TERRA_Utils,
   TERRA_TestSuite, TERRA_TestCore, TERRA_TestImage, TERRA_TestMath, TERRA_TestString, TERRA_TestXML;
@@ -58,8 +56,8 @@ Begin
 
   	Tests.Release();
 
-    If Application.Instance.DebuggerPresent Then
+   (* If Application.Instance.DebuggerPresent Then
       ReadLn;
-
+     *)
     Halt(Errors);
 End.
