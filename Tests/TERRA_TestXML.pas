@@ -41,7 +41,7 @@ Begin
   S := '<note><header><to>Tove</to><from>Jani</from><subject>Reminder</subject></header><body>Don''t forget me this weekend!</body></note>';
   Doc := XMLFormat.Create(TERRAObjectNode, 'xml');
   Root := TERRAObjectNode.Create();
-  Doc.LoadFromString(Root, S, encodingUTF8);
+  Doc.LoadFromString(Root, S);
   ReleaseObject(Doc);
 
   Header := Expect(Root, 'header', '');
@@ -78,7 +78,7 @@ Begin
   S := '<test x="100" y="200" />';
   Doc := XMLFormat.Create(TERRAObjectNode, 'xml');
   Root := TERRAObjectNode.Create();
-  Doc.LoadFromString(Root, S, encodingUTF8);
+  Doc.LoadFromString(Root, S{, encodingUTF8});
   ReleaseObject(Doc);
 
   Node := Expect(Root, 'x', '100');

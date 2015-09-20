@@ -45,7 +45,7 @@ Type
    End;
 
 Implementation
-Uses TERRA_Log;
+Uses TERRA_Log, TERRA_Engine;
 
 Procedure TestSuite.Clear;
 Var
@@ -140,7 +140,7 @@ End;
 
 Procedure TestSuite.WriteLn(S:String);
 Begin
-  Log(logConsole, 'Tests', S);
+  Engine.Log.Write(logConsole, 'Tests', S);
 End;
 
 Constructor TestSuite.Create;

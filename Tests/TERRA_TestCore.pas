@@ -189,7 +189,7 @@ Procedure TERRACore_TestList.Run;
 Var
   L:TERRAList;
   I,J,N, Prev, Count:Integer;
-  It:Iterator;
+  It:TERRAIterator;
   Int:IntegerProperty;
   Table:TERRAHashMap;
 begin
@@ -287,7 +287,7 @@ Procedure TERRACore_TestHashMap.Run();
 Var
   I,J,N, Count:Integer;
   Item:StringProperty;
-  It:Iterator;
+  It:TERRAIterator;
   Table:TERRAHashMap;
 Begin
   For J:=1 To 5 Do
@@ -337,7 +337,7 @@ Procedure TERRACore_TestObjectArray.Run();
 Var
   I,J,N, Count:Integer;
   Item:IntegerProperty;
-  It:Iterator;
+  It:TERRAIterator;
   V:ObjectArray;
 Begin
   V := ObjectArray.Create(0, Nil);

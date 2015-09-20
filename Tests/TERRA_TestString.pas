@@ -116,13 +116,14 @@ Var
 Begin
   S := 'TEST1';
   N := 0;
-  StringCreateIterator(S, It);
+  It := StringCreateIterator(S);
   Expect('T');
   Expect('E');
   Expect('S');
   Expect('T');
   Expect('1');
   Check(It.HasNext = False, 'End of string expected!');
+  ReleaseObject(It);
 End;
 
 Procedure TERRAString_TestReverseIterator.Run();
@@ -142,13 +143,14 @@ Var
 Begin
   S := 'ABCX3';
   N := 0;
-  StringCreateReverseIterator(S, It);
+  It := StringCreateReverseIterator(S);
   Expect('3');
   Expect('X');
   Expect('C');
   Expect('B');
   Expect('A');
   Check(It.HasNext = False, 'End of string expected!');
+  ReleaseObject(It);
 End;
 
 Procedure TERRAString_TestUnicodeIterator.Run();
@@ -169,13 +171,14 @@ Begin
   S := GetCatInCyrillic();
 
   N := 0;
-  StringCreateIterator(S, It);
+  It := StringCreateIterator(S);
   Expect(#1082);
   Expect(#1086);
   Expect(#1096);
   Expect(#1082);
   Expect(#1072);
   Check(It.HasNext = False, 'End of string expected!');
+  ReleaseObject(It);
 End;
 
 Procedure TERRAString_TestUnicodeReverseIterator.Run();
@@ -196,7 +199,7 @@ Begin
   S := GetDogInCyrillic();
 
   N := 0;
-  StringCreateReverseIterator(S, It);
+  It := StringCreateReverseIterator(S);
   Expect(#1072);
   Expect(#1082);
   Expect(#1072);
@@ -204,6 +207,7 @@ Begin
   Expect(#1086);
   Expect(#1089);
   Check(It.HasNext = False, 'End of string expected!');
+  ReleaseObject(It);
 End;
 
 Procedure TERRAString_TestGetChar.Run();
@@ -414,7 +418,9 @@ Var
 
 Begin
   S := 'integer:->string';
-  Expect(StringPosIterator(':->', S, It), 'integer', 'string');
+  It := StringPosIterator(':->', S);
+  Expect(Assigned(It), 'integer', 'string');
+  ReleaseObject(It);
 End;
 
 (*Procedure TERRAString_TestWordExtract.Run;

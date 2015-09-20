@@ -6,7 +6,7 @@ Program TERRATest;
 {$APPTYPE CONSOLE}
 {$ENDIF}
 
-Uses TERRA_MemoryManager, TERRA_OS, TERRA_String, TERRA_Application, TERRA_ConsoleApplication, TERRA_Log, TERRA_Utils,
+Uses TERRA_MemoryManager, TERRA_OS, TERRA_Engine, TERRA_String, TERRA_Application, TERRA_ConsoleApplication, TERRA_Log, TERRA_Utils,
   TERRA_TestSuite, TERRA_TestCore, TERRA_TestImage, TERRA_TestMath, TERRA_TestString, TERRA_TestXML;
 
 Var
@@ -15,7 +15,7 @@ Var
 Begin
 	WriteLn('Testing TERRA engine: v'+VersionToString(EngineVersion));
 
-  LoggingEnabled := True;
+  Engine.Log.Enabled := True;
 
   ConsoleApplication.Create();
 
