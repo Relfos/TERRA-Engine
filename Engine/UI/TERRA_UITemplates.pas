@@ -114,14 +114,14 @@ Begin
   TileRect := UITiledRect.Create('button', Self, UIPixels(0), UIPixels(0), 0, UIPercent(100), UIPercent(100), X1, Y1, X2, Y2);
   TileRect.Texture := Tex;
 
-  EditGroup := UIWidgetGroup.Create('edit_margin', Self, UIPixels(0), UIPixels(0), 0, UIPercent(100), UIPercent(100));
+  EditGroup := UIWidgetGroup.Create('edit_margin', Self, UIPixels(0), UIPixels(0), 1, UIPercent(100), UIPercent(100));
   EditGroup.Margin.Left := UIPixels(10);
   EditGroup.Margin.Right := UIPixels(10);
   EditGroup.Margin.Top := UIPixels(5);
   EditGroup.Margin.Bottom := UIPixels(5);
 
 
-  EditText := UIEditText.Create('edit', EditGroup, UIPixels(0), UIPixels(0), 0.1, UIPercent(100), UIPercent(100),
+  EditText := UIEditText.Create('edit', EditGroup, UIPixels(0), UIPixels(0), 0.0, UIPercent(100), UIPercent(100),
   //'dsafsdfdsjkasdakjdaskjdadfsfsfsfsdfgdgd'
   //'test 12345 12345 12345 12345 12345 2'
   'test 12345'
