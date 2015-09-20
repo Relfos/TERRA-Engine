@@ -16,9 +16,9 @@ Does not require any external library or framework (except linking to OpenGL and
 
 ## Build Status
 
-| windows-vs-x86            | linux-gcc-x86_64            |
-|---------------------------|-----------------------------|
-| [![windows-vs-x86][1]][2] | [![linux-gcc-x86_64][3]][4] |
+| windows-fpc-x86           | linux-fpc-x86_64           |
+|---------------------------|----------------------------|
+| [![windows-fpc-x86][1]][2]| [![linux-fpc-x86_64][3]][4]|
 
 [1]: https://ci.appveyor.com/api/projects/status/l82ckmepv9isa439?svg=true
 [2]: https://ci.appveyor.com/project/Relfos/terra-engine/branch/master
