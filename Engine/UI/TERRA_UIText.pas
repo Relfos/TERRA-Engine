@@ -54,7 +54,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Localization, TERRA_FontManager, TERRA_Engine, TERRA_Math;
+Uses TERRA_Localization, TERRA_FontManager, TERRA_Engine, TERRA_Math, TERRA_UIView;
 
 Var
   _AlignEnums:EnumCollection;
@@ -138,7 +138,7 @@ Begin
 
   FR.DrawTextToSprite(TX, TY, Self.GetLayer(), _Text, FontSprite(_Sprite));
 
-  //DrawClipRect(View, Self.ClipRect, ColorRed);
+  //DrawClipRect(UIView(View).Viewport, Self.ClipRect, ColorRed);
   //DrawRectangle(View, Vector2D_Create(TX + Self.AbsolutePosition.X, TY + Self.AbsolutePosition.Y), Vector2D_Create(TX + Self.AbsolutePosition.X + Self.FullSize.X, TY + Self.AbsolutePosition.Y + Self.FullSize.Y), ColorGreen);
   //DrawRectangle(View, Vector2D_Create(Self.AbsolutePosition.X, Self.AbsolutePosition.Y), Vector2D_Create(Self.AbsolutePosition.X + Self.CurrentSize.X, Self.AbsolutePosition.Y + Self.CurrentSize.Y), ColorGreen);
 End;

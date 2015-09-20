@@ -7,3 +7,4 @@
 *.exe
 Samples/Source/2D/GUI/Shaders/
 Samples/Binaries/Shaders/
+*.o
