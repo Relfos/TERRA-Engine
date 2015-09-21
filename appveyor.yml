@@ -41,7 +41,8 @@ install:
 
 build_script:
   - SET PATH=%PATH%;%COMPILER_PATH%
-  - Build\compile_tests.bat
+  - cd Build
+  - compile_tests.bat
   - TERRATest.exe
 
 #---------------------------------#

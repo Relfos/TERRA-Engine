@@ -131,6 +131,6 @@ Begin
   RegisterPath('Network\Protocols');
 
 
-  GenerateCompileFile(FPC_WINDOWS_BATCH, 'compile_tests.bat', '$TESTS_PATH\TERRATest.dpr', '.\TERRATest.exe');
-  GenerateCompileFile(FPC_LINUX_BATCH, 'compile_tests.sh', '$TESTS_PATH\TERRATest.dpr', '.\TERRATest');
+  GenerateCompileFile(FPC_WINDOWS_BATCH, 'compile_tests.bat', 'TERRATest.dpr', '.\TERRATest.exe');
+  GenerateCompileFile(FPC_LINUX_BATCH, 'compile_tests.sh', 'TERRATest.dpr', '.\TERRATest');
 End.
