@@ -12,7 +12,6 @@ Var
   Errors:Integer;
 Begin
 	WriteLn('Testing TERRA engine: v'+VersionToString(EngineVersion));
-
   Engine.Log.Enabled := True;
 
   ConsoleApplication.Create();

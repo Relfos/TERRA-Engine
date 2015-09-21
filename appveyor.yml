@@ -31,7 +31,8 @@ configuration:
 
 environment:
   ENGINE_PATH: '%APPVEYOR_BUILD_FOLDER%\Engine\'
-  BUILD_PATH: '%APPVEYOR_BUILD_FOLDER%\build\'
+  BUILD_PATH: '%APPVEYOR_BUILD_FOLDER%\Build\'
+  TESTS_PATH: '%APPVEYOR_BUILD_FOLDER%\Tests\'
   FPC_PATH: '%APPVEYOR_BUILD_FOLDER%\fpc\'
   COMPILER_PATH: '%FPC_PATH%\bin\i386-win32\'
 
@@ -50,8 +51,8 @@ build_script:
 #---------------------------------#
 
 artifacts:
-  - path: '%BUILD_PATH%\lib'
-    type: zip
+  - path: '%BUILD_PATH%\'
+    type: exe
 
 #---------------------------------#
 #     deployment configuration    #
