@@ -37,16 +37,15 @@ Var
 Begin
   // A rotating sprite in the bottom, with Scale = 4x
   Angle := RAD * ((Application.GetTime() Div 15) Mod 360);
-  S := V.SpriteRenderer.FetchSprite();
+  S := Engine.FetchSprite();
   S.SetTexture(_Tex);
   S.Layer := 50;
   S.Rotate(Angle);
-  S.SetTransform(MatrixTransformAroundPoint2D(VectorCreate2D(_Tex.Width * 0.5, _Tex.Height * 0.5), S.Transform));
-  S.Scale(4);
+  S.Scale(3);
   S.Translate(100, 100);
 
-  S.MakeQuad(VectorCreate2D(0, 0), 0.0, _Tex.Width, _Tex.Height);
-  V.SpriteRenderer.QueueSprite(S);
+  S.AddQuad(SpriteAnchor_Center, Vector2D_Zero, 0.0, _Tex.Width, _Tex.Height);
+  Engine.Graphics.AddRenderable(V, S);
 
   Inherited;
 End;
@@ -61,13 +60,10 @@ Begin
   VCLEngineApp.Viewport.OnRender := Self.RenderViewport;
 
   // Added Asset folder to search path
-  FileManager.Instance.AddPath('assets');
+  Engine.Files.AddFolder('assets');
 
   // Load a Tex
   _Tex := Engine.Textures['ghost'];
-
-  // set background color
-  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorGreen;
 End;
 
 

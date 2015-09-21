@@ -118,9 +118,9 @@ Type
       Procedure SetColorTable(const Value: TERRATexture);
       Procedure SetPattern(const Value: TERRATexture);
 
-      Procedure AddQuad(Const Anchor:SpriteAnchor; Const Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single = 0.0);
-      Procedure AddEllipse(Const Anchor:SpriteAnchor; Const Pos:Vector2D; LayerOffset:Single; Const RadiusX, RadiusY:Single);
-      Procedure AddCircle(Const Anchor:SpriteAnchor; Const Pos:Vector2D; LayerOffset:Single; Const Radius:Single);
+      Procedure AddQuad(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single = 0.0);
+      Procedure AddEllipse(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const RadiusX, RadiusY:Single);
+      Procedure AddCircle(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const Radius:Single);
       Procedure AddPath(Const Positions:Array Of Vector2D; LayerOffset:Single; Width:Single);
       Procedure AddLine(Const StartPos, EndPos:Vector2D; LayerOffset:Single; Width:Single);
       Procedure AddTriangle(Const PosA, PosB, PosC:Vector2D; LayerOffset:Single);
@@ -143,6 +143,8 @@ Type
       Procedure Rotate(Angle:Single);
       Procedure Scale(Const X, Y:Single); Overload;
       Procedure Scale(Const Value:Single); Overload;
+
+      Procedure Update(View:TERRAViewport); Override;
 
       Property Geometry:TERRAGeometry Read _Geometry;
 
@@ -306,7 +308,7 @@ Begin
   Geometry.Indices.SetIndex(IndexOffset + 2, VertexOffset + 2);
 End;
 
-Procedure TERRASprite.AddEllipse(Const Anchor:SpriteAnchor; const Pos:Vector2D; LayerOffset:Single; Const RadiusX, RadiusY: Single);
+Procedure TERRASprite.AddEllipse(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const RadiusX, RadiusY: Single);
 Const
   SubDivs = 32;
 
@@ -383,13 +385,13 @@ Begin
   End;
 End;
 
-Procedure TERRASprite.AddCircle(const Anchor: SpriteAnchor; Const Pos:Vector2D; LayerOffset:Single; Const Radius:Single);
+Procedure TERRASprite.AddCircle(const Anchor: SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const Radius:Single);
 Begin
   Self.AddEllipse(Anchor, Pos, LayerOffset, Radius, Radius);
 End;
 
 
-Procedure TERRASprite.AddQuad(Const Anchor:SpriteAnchor; Const Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single);
+Procedure TERRASprite.AddQuad(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single);
 Var
   U1, V1, U2, V2:Single;
   IndexOffset, VertexOffset:Integer;
@@ -821,19 +823,13 @@ Begin
     Geometry.Indices.SetIndex(IndexOffset + I, Other.Geometry.Indices.GetIndex(I) + BaseID);
 End;
 
-Procedure TERRASprite.Render(View:TERRAViewport; Const Stage:RendererStage);
+Procedure TERRASprite.Update(View:TERRAViewport);
 Var
-  Graphics:GraphicsManager;
-  TargetShader:ShaderInterface;
-
   CurrentClip:Vector4D;
 
   OutIt:VertexIterator;
   Dest:SpriteVertex;
 Begin
-  If (Self.Geometry.Indices.Count <= 0) Or (Self.Texture = Nil) Then
-    Exit;
-
 (*  If (Other.ClipRect.Style = clipNothing) Then
     CurrentClip := Vector4D_Create(0, 0, 9999, 9999)
   Else
@@ -858,6 +854,15 @@ Begin
   End;
   ReleaseObject(OutIt);
 
+End;
+
+Procedure TERRASprite.Render(View:TERRAViewport; Const Stage:RendererStage);
+Var
+  Graphics:GraphicsManager;
+  TargetShader:ShaderInterface;
+Begin
+  If (Self.Geometry.Indices.Count <= 0) Or (Self.Texture = Nil) Then
+    Exit;
 
   Graphics := Engine.Graphics;
   //glEnable(GL_DEPTH_TEST); {FIXME}
@@ -1243,4 +1248,6 @@ Begin
   Width := Trunc(Height / N);
 End;
 *)
+
+
 End.

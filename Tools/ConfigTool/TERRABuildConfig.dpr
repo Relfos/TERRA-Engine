@@ -24,7 +24,7 @@ Begin
   EnginePathVar := '%ENGINE_PATH%';
 //  BasePath;
 
-  Result := 'fpc -Sew -Mdelphi ';
+  Result := 'fpc -Sew -Mdelphi -dUSE_CONSOLE ';
   Result := Result +' -Fi'+EnginePathVar+'Core -Fi'+EnginePathVar+'Utils ';
 
   For I:=0 To Pred(PathCount) Do

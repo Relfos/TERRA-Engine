@@ -2,12 +2,19 @@ Unit TERRA_VCLApplication;
 
 {$I terra.inc}
 Interface
-Uses Classes, Forms, ExtCtrls, Graphics, TERRA_String, TERRA_Utils, TERRA_Application,
+Uses Classes, Forms, ExtCtrls, Graphics, TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Vector2D,
   TERRA_Object, TERRA_GraphicsManager, TERRA_Viewport, TERRA_Image, TERRA_Color, TERRA_OS, TERRA_Renderer,
-  TERRA_UIView, TERRA_UIDimension
+  TERRA_Window, TERRA_UIView, TERRA_UIDimension
   {$IFDEF OSX}, MacOSAll, CarbonDef{$ENDIF};
 
 Type
+  TERRAVCLWindow = Class(TERRAWindow)
+    Protected
+      _Target:TComponent;
+
+      Constructor Create(Target:TComponent);
+  End;
+
   TERRAVCLViewport = Class(TERRAObject)
     Protected
       _Target:TImage;
@@ -32,11 +39,11 @@ Type
 
   VCLApplication = Class(Application)
       Protected
+        _Target:TComponent;
+
         _Timer:TTimer;
         _CurrentWidth:Integer;
         _CurrentHeight:Integer;
-
-        _Target:TComponent;
 
         _Viewports:Array Of TERRAVCLViewport;
         _ViewportCount:Integer;
@@ -47,8 +54,7 @@ Type
         Procedure UpdateSize();
         Procedure UpdateViewports();
 
-	  		Function InitWindow:Boolean; Override;
-  			Procedure CloseWindow; Override;
+	  		Function CreateWindow():TERRAWindow; Override;
 
         Function GetViewport: TERRAViewport;
         Function GetGUI: UIView;
@@ -85,7 +91,7 @@ Begin
 End;
 
 { VCLApplication }
-constructor VCLApplication.Create(Target: TComponent);
+Constructor VCLApplication.Create(Target: TComponent);
 Begin
   _Target := Target;
   _Timer := TTimer.Create(Target);
@@ -93,23 +99,6 @@ Begin
   _Timer.Enabled := True;
   _Timer.OnTimer := TimerTick;
 
-  {$IFDEF OSX}
-  If (_Target Is TForm) Then
-    _Handle :=WindowPtr(TCarbonWidget(TForm(_Target).Handle).Widget)
-  Else
-  If (_Target Is TPanel) Then
-   _Handle :=WindowPtr(TCarbonWidget(TPanel(_Target).Handle).Widget)
-  {$ELSE}
-  If (_Target Is TForm) Then
-    _Handle := TForm(_Target).Handle
-  Else
-  If (_Target Is TPanel) Then
-    _Handle := TPanel(_Target).Handle
-  {$ENDIF}
-  Else
-    _Handle := 0;
-
-  _Managed := True;
   Inherited Create();
 End;
 
@@ -192,14 +181,9 @@ Begin
     Result := 0;
 End;
 
-function VCLApplication.InitWindow: Boolean;
+Function VCLApplication.CreateWindow():TERRAWindow;
 Begin
-  Result := True;
-End;
-
-procedure VCLApplication.CloseWindow;
-Begin
-  // do nothing
+  Result := TERRAVCLWindow.Create(_Target);
 End;
 
 function VCLApplication.GetViewport: TERRAViewport;
@@ -211,7 +195,7 @@ function VCLApplication.GetGUI: UIView;
 Begin
   If (_GUI = Nil) Then
   Begin
-    _GUI := UIView.Create('gui', UIPercent(100), UIPercent(100));
+    _GUI := UIView.Create('gui', UIPercent(100), UIPercent(100), 0.0);
   End;
 
   Result := _GUI;
@@ -221,7 +205,7 @@ End;
 Constructor TERRAVCLViewport.Create(Target:TImage);
 Begin
   Self._Target := Target;
-  _GUI := UIView.Create('gui', UIPixels(Target.ClientWidth), UIPixels(Target.ClientHeight));
+  _GUI := UIView.Create('gui', UIPixels(Target.ClientWidth), UIPixels(Target.ClientHeight), 0.0);
 
   _Dest := TBitmap.Create();
   _Dest.Width := _GUI.Viewport.Width;
@@ -277,5 +261,31 @@ Begin
   //_Target.Picture.Bitmap := _Dest;
   _Target.Canvas.Draw(0, 0, _Dest);
 End;
+
+{ TERRAVCLWindow }
+
+Constructor TERRAVCLWindow.Create(Target: TComponent);
+Begin
+  _Target := Target;
+  _Managed := True;
+  
+  {$IFDEF OSX}
+  If (_Target Is TForm) Then
+    _Handle :=WindowPtr(TCarbonWidget(TForm(_Target).Handle).Widget)
+  Else
+  If (_Target Is TPanel) Then
+   _Handle :=WindowPtr(TCarbonWidget(TPanel(_Target).Handle).Widget)
+  {$ELSE}
+  If (_Target Is TForm) Then
+    _Handle := TForm(_Target).Handle
+  Else
+  If (_Target Is TPanel) Then
+    _Handle := TPanel(_Target).Handle
+  {$ENDIF}
+  Else
+    _Handle := 0;
+End;
+
+
 
 End.
