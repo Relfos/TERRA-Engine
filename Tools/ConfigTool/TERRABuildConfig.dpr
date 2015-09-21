@@ -22,18 +22,35 @@ Begin
   Paths[Pred(PathCount)] := Value;
 End;
 
-Procedure GenerateCompileFile(BuildType:Build_Compile_Type; Const CompileFileName, BasePath, SrcMain, OutputName:TERRAString);
+Procedure GenerateCompileFile(BuildType:Build_Compile_Type; CompileFileName, SrcMain, OutputName:TERRAString);
 Var
   Dest:TERRAStream;
   I:Integer;
   IsWindows:Boolean;
-  Result, EnginePathVar, TempPath, TargetOS:TERRAString;
+  EnginePathVar, TestsPathVar:TERRAString;
+  Result, TempPath, TargetOS:TERRAString;
   Sep:TERRAString;
+
+  Procedure PrepareString(Var S:TERRAString);
+  Begin
+    StringReplaceText('$TARGET_OS', TargetOS, TempPath);
+    StringReplaceText('$ENGINE_PATH', EnginePathVar, S);
+    StringReplaceText('$TESTS_PATH', TestsPathVar, S);
+    If Not IsWindows Then
+      StringReplaceText('\', '/', S);
+  End;
 Begin
   Case BuildType Of
-    FPC_WINDOWS_BATCH: EnginePathVar := '%ENGINE_PATH%';
+    FPC_WINDOWS_BATCH:
+      Begin
+        EnginePathVar := '%ENGINE_PATH%';
+        TestsPathVar := '%TESTS_PATH%';
+      End;
     Else
-      EnginePathVar := '$ENGINE_PATH';
+      Begin
+        EnginePathVar := '$ENGINE_PATH';
+        TestsPathVar := '$TESTS_PATH';
+      End;
   End;
 
   Case BuildType Of
@@ -54,8 +71,6 @@ Begin
   Else
     Sep := '/';
 
-//  BasePath;
-
   Result := 'fpc -Sew -Mdelphi -dUSE_CONSOLE ';
   Result := Result +' -Fi'+EnginePathVar+Sep+'Core -Fi'+EnginePathVar+Sep+'Utils ';
 
@@ -63,16 +78,17 @@ Begin
   Begin
     TempPath := Paths[I];
 
-    If Not IsWindows Then
-      StringReplaceText('\', '/', TempPath);
-
-    StringReplaceText('$TARGET_OS', TargetOS, TempPath);
+    PrepareString(TempPath);
     Result := Result + '-Fu'+EnginePathVar+Sep+TempPath + ' ';
   End;
 
   If OutputName<>'' Then
+  Begin
+    PrepareString(OutputName);
     Result := Result + '-o'+OutputName+' ';
+  End;
 
+  PrepareString(SrcMain);
   Result := Result + SrcMain;
 
   Dest := FileStream.Create(CompileFileName);
@@ -82,8 +98,8 @@ Begin
     Dest.EOL := EOL_Windows;
   End Else
   Begin
-    Dest.WriteLine('#!/bin/bash');
     Dest.EOL := EOL_Unix;
+    Dest.WriteLine('#!/bin/bash');
   End;
 
   Dest.WriteLine(Result);
@@ -115,6 +131,6 @@ Begin
   RegisterPath('Network\Protocols');
 
 
-  GenerateCompileFile(FPC_WINDOWS_BATCH, 'compile_tests.bat', 'd:\code\TERRA-Engine\Engine\','%ENGINE_PATH%\..\Tests\TERRATest.dpr', '.\TERRATest.exe');
-  GenerateCompileFile(FPC_LINUX_BATCH, 'compile_tests.sh', 'd:\code\TERRA-Engine\Engine\','%ENGINE_PATH%\..\Tests\TERRATest.dpr', '.\TERRATest');
+  GenerateCompileFile(FPC_WINDOWS_BATCH, 'compile_tests.bat', '$TESTS_PATH\TERRATest.dpr', '.\TERRATest.exe');
+  GenerateCompileFile(FPC_LINUX_BATCH, 'compile_tests.sh', '$TESTS_PATH\TERRATest.dpr', '.\TERRATest');
 End.
