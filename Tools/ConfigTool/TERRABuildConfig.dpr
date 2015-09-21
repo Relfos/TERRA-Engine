@@ -53,8 +53,6 @@ Begin
       End;
   End;
 
-  EnginePathVar := '..'+Sep+'Engine';
-
   Case BuildType Of
     FPC_WINDOWS_BATCH:
       Begin
@@ -72,6 +70,8 @@ Begin
     Sep := '\'
   Else
     Sep := '/';
+
+  EnginePathVar := '..'+Sep+'Engine';
 
   Result := 'fpc -Sew -Mdelphi -dUSE_CONSOLE ';
   Result := Result +' -Fi'+EnginePathVar+Sep+'Core -Fi'+EnginePathVar+Sep+'Utils ';
