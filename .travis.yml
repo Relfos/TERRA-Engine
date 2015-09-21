@@ -5,9 +5,11 @@ os:
 
 install:
   - sudo apt-get update -qq
-  - sudo apt-get install -y fpc
+  - sudo apt-get install -y fpc 
+  - sudo apt-get install -y xvfb
 
 script:
+  - xvfb-run rspec
   - cd Build
   - ENGINE_PATH="../Engine"
   - chmod +x compile_tests.sh
