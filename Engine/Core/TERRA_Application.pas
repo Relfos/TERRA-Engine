@@ -1042,7 +1042,7 @@ Begin
   Self._Language := Language;
 End;
 
-{$IFDEF FPC}
+(*{$IFDEF FPC}
 Procedure CatchUnhandledException(Obj: TObject; Addr: Pointer; FrameCount: Longint; Frames: PPointer);
 Var
   Result:TERRAString;
@@ -1061,6 +1061,7 @@ Begin
   Halt();
 End;
 {$ENDIF}
+*)
 
 function BaseApplication.SetOrientation(Const Value:TERRAOrientation): Boolean;
 Var
@@ -1939,11 +1940,12 @@ Begin
 End;
 
 
-Initialization
+(*Initialization
   {$IFDEF FPC}
   ExceptProc := CatchUnhandledException;
   {$ENDIF}
 
 Finalization
   //ShutdownComponents;
+ *)
 End.
