@@ -9,7 +9,7 @@ install:
 
 script:
   - cd Build
-  - ENGINE_PATH=../Engine
+  - ENGINE_PATH="../Engine"
   - chmod +x compile_tests.sh
   - ./compile_tests.sh
   - ./TERRATest
