@@ -30,10 +30,9 @@ configuration:
   - Release
 
 environment:
-  ENGINE_PATH: '%APPVEYOR_BUILD_FOLDER%\Engine\'
-  BUILD_PATH: '%APPVEYOR_BUILD_FOLDER%\Build\'
-  TESTS_PATH: '%APPVEYOR_BUILD_FOLDER%\Tests\'
-  FPC_PATH: '%APPVEYOR_BUILD_FOLDER%\fpc\'
+  ENGINE_PATH: '%APPVEYOR_BUILD_FOLDER%\Engine'
+  TESTS_PATH: '%APPVEYOR_BUILD_FOLDER%\Tests'
+  FPC_PATH: '%APPVEYOR_BUILD_FOLDER%\fpc'
   COMPILER_PATH: '%FPC_PATH%\bin\i386-win32\'
 
 install:
@@ -44,14 +43,6 @@ build_script:
   - SET PATH=%PATH%;%COMPILER_PATH%
   - Build\compile_tests.bat
   - TERRATest.exe
-
-#---------------------------------#
-#      artifacts configuration    #
-#---------------------------------#
-
-artifacts:
-  - path: '%BUILD_PATH%\'
-    type: exe
 
 #---------------------------------#
 #     deployment configuration    #

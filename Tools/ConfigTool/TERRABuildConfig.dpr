@@ -1,43 +1,94 @@
 program TERRABuildConfig;
 
 {$APPTYPE CONSOLE}
-terra_viewport
+
 uses
-  TERRA_Object, TERRA_Stream, TERRA_FileStream;
-  
+  TERRA_Object, TERRA_Stream, TERRA_FileStream, TERRA_String;
+
+Type
+  Build_Compile_Type = (
+    FPC_WINDOWS_BATCH,
+    FPC_LINUX_BATCH
+  );
+
 Var
-  Paths:Array Of String;
+  Paths:Array Of TERRAString;
   PathCount:Integer;
 
-Procedure RegisterPath(Const Value:String);
+Procedure RegisterPath(Const Value:TERRAString);
 Begin
   Inc(PathCount);
   SetLength(Paths, PathCount);
   Paths[Pred(PathCount)] := Value;
 End;
 
-Function GenerateCompileCommand(Const BasePath, SrcMain, OutputName:String):String;
+Procedure GenerateCompileFile(BuildType:Build_Compile_Type; Const CompileFileName, BasePath, SrcMain, OutputName:TERRAString);
 Var
+  Dest:TERRAStream;
   I:Integer;
-  EnginePathVar:String;
+  IsWindows:Boolean;
+  Result, EnginePathVar, TempPath, TargetOS:TERRAString;
+  Sep:TERRAString;
 Begin
-  EnginePathVar := '%ENGINE_PATH%';
+  Case BuildType Of
+    FPC_WINDOWS_BATCH: EnginePathVar := '%ENGINE_PATH%';
+    Else
+      EnginePathVar := '$ENGINE_PATH';
+  End;
+
+  Case BuildType Of
+    FPC_WINDOWS_BATCH:
+      Begin
+        IsWindows := True;
+        TargetOS := 'Windows';
+      End;
+    Else
+      Begin
+        IsWindows := False;
+        TargetOS := 'Linux';
+      End;
+  End;
+
+  If IsWindows Then
+    Sep := '\'
+  Else
+    Sep := '/';
+
 //  BasePath;
 
   Result := 'fpc -Sew -Mdelphi -dUSE_CONSOLE ';
-  Result := Result +' -Fi'+EnginePathVar+'Core -Fi'+EnginePathVar+'Utils ';
+  Result := Result +' -Fi'+EnginePathVar+Sep+'Core -Fi'+EnginePathVar+Sep+'Utils ';
 
   For I:=0 To Pred(PathCount) Do
-    Result := Result + '-Fu'+EnginePathVar+Paths[I] + ' ';
+  Begin
+    TempPath := Paths[I];
+
+    If Not IsWindows Then
+      StringReplaceText('\', '/', TempPath);
+
+    StringReplaceText('$TARGET_OS', TargetOS, TempPath);
+    Result := Result + '-Fu'+EnginePathVar+Sep+TempPath + ' ';
+  End;
 
   If OutputName<>'' Then
     Result := Result + '-o'+OutputName+' ';
 
   Result := Result + SrcMain;
-End;
 
-Var
-  Dest:TERRAStream;
+  Dest := FileStream.Create(CompileFileName);
+
+  If IsWindows Then
+  Begin
+    Dest.EOL := EOL_Windows;
+  End Else
+  Begin
+    Dest.WriteLine('#!/bin/bash');
+    Dest.EOL := EOL_Unix;
+  End;
+
+  Dest.WriteLine(Result);
+  ReleaseObject(Dest);
+End;
 
 //$(PkgDir)
 Begin
@@ -52,7 +103,7 @@ Begin
   RegisterPath('Physics');
   RegisterPath('Image');
   RegisterPath('Image\Formats');
-  RegisterPath('OS\Windows');
+  RegisterPath('OS\$TARGET_OS');
   RegisterPath('UI');
   RegisterPath('AI');
   RegisterPath('Audio');
@@ -63,7 +114,7 @@ Begin
   RegisterPath('Network');
   RegisterPath('Network\Protocols');
 
-  Dest := FileStream.Create('compile_tests.bat');
-  Dest.WriteLine(GenerateCompileCommand('d:\code\TERRA-Engine\Engine\','%ENGINE_PATH%\..\Tests\TERRATest.dpr', '.\TERRATest.exe'));
-  ReleaseObject(Dest);
+
+  GenerateCompileFile(FPC_WINDOWS_BATCH, 'compile_tests.bat', 'd:\code\TERRA-Engine\Engine\','%ENGINE_PATH%\..\Tests\TERRATest.dpr', '.\TERRATest.exe');
+  GenerateCompileFile(FPC_LINUX_BATCH, 'compile_tests.sh', 'd:\code\TERRA-Engine\Engine\','%ENGINE_PATH%\..\Tests\TERRATest.dpr', '.\TERRATest');
 End.
