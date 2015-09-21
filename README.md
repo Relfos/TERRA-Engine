@@ -4,7 +4,7 @@ TERRA Game Engine
 _TERRA_ is a cross platform game engine written in Object Pascal.
 While compatible with Lazarus and Delphi, it does not use visual components.
 The engine was developed with focus on performance and optimized to run on mobile devices.
-Does not require any external library or framework (except linking to OpenGL and OpenAL).
+Does not require any external library or framework besides linking to OpenGL and system libraries.
 
 * Author: [Sérgio Flores](https://github.com/relfos)
 * License: [APACHE](http://opensource.org/licenses/Apache-2.0)
@@ -13,6 +13,7 @@ Does not require any external library or framework (except linking to OpenGL and
 * If you require some specific feature please contact for a quote.
 
 [![Support via Paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=MQ7UQ6V92PZ8L)
+
 
 ## Build Status
 
@@ -126,7 +127,7 @@ GUI Features
 * Optimized batched rendering
 * Standard widgets (buttons, labels, images, comboboxes, etc)
 * Widget animation (colors, opacity, size, rotation, etc)
-* Custom virtual keyboard (supports Russian, Korean, Japonese and Chinese)
+* Custom virtual keyboard (supports Russian, Korean, Japanese and Chinese)
 * Transition effects (fade out, slides, etc)
 
 Artificial Inteligence
