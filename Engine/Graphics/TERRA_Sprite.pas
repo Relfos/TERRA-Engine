@@ -144,8 +144,6 @@ Type
       Procedure Scale(Const X, Y:Single); Overload;
       Procedure Scale(Const Value:Single); Overload;
 
-      Procedure Update(View:TERRAViewport); Override;
-
       Property Geometry:TERRAGeometry Read _Geometry;
 
       Property Texture:TERRATexture Read _Texture Write SetTexture;
@@ -823,19 +821,17 @@ Begin
     Geometry.Indices.SetIndex(IndexOffset + I, Other.Geometry.Indices.GetIndex(I) + BaseID);
 End;
 
-Procedure TERRASprite.Update(View:TERRAViewport);
+Procedure TERRASprite.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
+  Graphics:GraphicsManager;
+  TargetShader:ShaderInterface;
   CurrentClip:Vector4D;
 
   OutIt:VertexIterator;
   Dest:SpriteVertex;
 Begin
-(*  If (Other.ClipRect.Style = clipNothing) Then
-    CurrentClip := Vector4D_Create(0, 0, 9999, 9999)
-  Else
-    CurrentClip := Vector4D_Create(Other.ClipRect.X1, Other.ClipRect.Y1, Other.ClipRect.X2, Other.ClipRect.Y2);
-        *)
-
+  If (Self.Geometry.Indices.Count <= 0) Or (Self.Texture = Nil) Then
+    Exit;
 
   If (Self.ClipRect.Style = clipNothing) Then
     CurrentClip := Vector4D_Create(0, 0, 9999, 9999)
@@ -853,16 +849,6 @@ Begin
     Dest.ClipRect := CurrentClip; //Vector4D_Create(0, 0, 9999, 9999);
   End;
   ReleaseObject(OutIt);
-
-End;
-
-Procedure TERRASprite.Render(View:TERRAViewport; Const Stage:RendererStage);
-Var
-  Graphics:GraphicsManager;
-  TargetShader:ShaderInterface;
-Begin
-  If (Self.Geometry.Indices.Count <= 0) Or (Self.Texture = Nil) Then
-    Exit;
 
   Graphics := Engine.Graphics;
   //glEnable(GL_DEPTH_TEST); {FIXME}
