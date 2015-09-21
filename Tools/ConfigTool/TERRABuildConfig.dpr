@@ -129,6 +129,7 @@ Begin
   RegisterPath('Libs\Steamworks\headers');
   RegisterPath('Network');
   RegisterPath('Network\Protocols');
+  RegisterPath('..\Tests');
 
 
   GenerateCompileFile(FPC_WINDOWS_BATCH, 'compile_tests.bat', 'TERRATest.dpr', '.\TERRATest.exe');

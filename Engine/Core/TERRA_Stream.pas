@@ -398,7 +398,7 @@ Begin
   If _EOL = EOL_Windows Then
     WriteChars(#13#10)
   Else
-    WriteChar(NewLineChar);
+    WriteChar(#10);
 End;
 
 Procedure TERRAStream.ReadLine(Var S:TERRAString);
