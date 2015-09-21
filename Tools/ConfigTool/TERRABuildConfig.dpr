@@ -1,7 +1,7 @@
 program TERRABuildConfig;
 
 {$APPTYPE CONSOLE}
-
+terra_viewport
 uses
   TERRA_Object, TERRA_Stream, TERRA_FileStream;
   

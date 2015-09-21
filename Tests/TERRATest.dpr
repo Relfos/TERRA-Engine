@@ -14,8 +14,10 @@ Begin
 	WriteLn('Testing TERRA engine: v'+VersionToString(EngineVersion));
   Engine.Log.Enabled := True;
 
+  WriteLn('Creating console app');
   ConsoleApplication.Create();
 
+  WriteLn('Creating test suite');
 	Tests := TestSuite.Create();
   	Tests.RegisterTest(TERRACore_TestList);
   	Tests.RegisterTest(TERRACore_TestHashMap);
@@ -58,5 +60,6 @@ Begin
    (* If Application.Instance.DebuggerPresent Then
       ReadLn;
      *)
+  WriteLn('Finished');
     Halt(Errors);
 End.
