@@ -4,6 +4,8 @@
 Unit TERRA_OS;
 {$I terra.inc}
 
+{$LINKLIB rt}
+
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Window, TERRA_XWindow,
 unix, baseunix, dateutils, GLX,X,Xlib,Xutil,Keysym;
