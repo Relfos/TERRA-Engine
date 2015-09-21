@@ -77,7 +77,7 @@ Begin
   Begin
     If (_LastConnect=0) Or (Application.GetTime()-_LastConnect>=1000) Then
     Begin
-         _Input := FpOpen('/dev/input/js'+IntToString(_DeviceID), O_RDONLY Or O_NONBLOCK);
+         _Input := FpOpen('/dev/input/js'+IntegerProperty.Stringify(_DeviceID), O_RDONLY Or O_NONBLOCK);
          _LastConnect := Application.GetTime();
     End;
   End;

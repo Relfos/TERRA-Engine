@@ -133,7 +133,7 @@ Interface
 Uses
   {$IFDEF WINDOWS}Windows, {$ENDIF}
   {$IFDEF OSX}MacOSAll, TERRA_AGL, {$ENDIF}
-  {$IFDEF LINUX}GLX,X,Xlib,Xutil,{$ENDIF}
+  {$IFDEF LINUX}GLX,X,Xlib,Xutil, TERRA_XWindow, {$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Renderer, TERRA_VertexFormat,
   {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_OpenGL{$ENDIF},
   TERRA_Color, TERRA_Image, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D,
@@ -651,7 +651,7 @@ Begin
   End Else
     Attr[6] := None;
 
-  Result := glXChooseVisual(Application.Instance.Display, Application.Instance.ScreenHandle, @Attr);
+  Result := glXChooseVisual(Application.Instance.Display, LinuxWindow(Application.Instance.Window).ScreenHandle, @Attr);
 End;
 {$ENDIF}
 {$IFDEF OSX}
@@ -826,7 +826,7 @@ Begin
 
   If (Not Assigned(VI)) Then
   Begin
-    RaiseError('CreateWindow: glXChooseVisual failed.');
+    Engine.RaiseError('CreateWindow: glXChooseVisual failed.');
     Exit;
   End;
 
@@ -838,8 +838,8 @@ Begin
   Depth := 32;
 
   // connect the glx-context to the window
-  glXMakeCurrent(App.Display, App.Handle, _Ctx);
-  XGetGeometry(App.Display, App.Handle, @winDummy, @X, @Y, @Width, @Height, @borderDummy, @Depth);
+  glXMakeCurrent(App.Display, App.Window.Handle, _Ctx);
+  XGetGeometry(App.Display, App.Window.Handle, @winDummy, @X, @Y, @Width, @Height, @borderDummy, @Depth);
 
   Application.Instance.AddCoordEvent(eventWindowResize, Width, Height, 0);
   {$ENDIf}
@@ -905,7 +905,7 @@ Begin
   {$IFDEF LINUX}
   If (Not glXMakeCurrent(Application.Instance.Display, None, Nil)) Then
   Begin
-    RaiseError('Could not release drawing context.');
+    Engine.RaiseError('Could not release drawing context.');
   End;
 
   glXDestroyContext(Application.Instance.Display, _Ctx);
@@ -1573,7 +1573,7 @@ Begin
   {$ENDIF}
 
   {$IFDEF LINUX}
-    glXSwapBuffers(Application.Instance.Display, Application.Instance.Handle);
+    glXSwapBuffers(Application.Instance.Display, Application.Instance.Window.Handle);
   {$ENDIF}
 
   {$IFDEF OSX}

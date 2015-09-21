@@ -550,7 +550,8 @@ Type
   End;
 
 Implementation
-Uses TERRA_Engine, TERRA_FileManager, TERRA_MIDI_IO, TERRA_Log;
+Uses TERRA_Engine, TERRA_FileManager, TERRA_Log
+  {$IFDEF HAS_MIDI},TERRA_MIDI_IO{$ENDIF};
 
 Const
   MIDIVolumeBoost = 1.0;
@@ -1128,7 +1129,9 @@ Begin
 
         Manager._Channels[Event._Channel].Volume := Event._Data2;
 
+        {$IFDEF HAS_MIDI}
         MIDI_Out(MIDIEvent_SetVolume(Event._Channel, Velocity));
+        {$ENDIF}
       End Else
       If (Event._Data1 = MidiControl_Pan) Then
       Begin
@@ -1138,7 +1141,9 @@ Begin
 
         Manager._Channels[Event._Channel].Panning := Event._Data2;
 
+        {$IFDEF HAS_MIDI}
         MIDI_Out(MIDIEvent_SetPanning(Event._Channel, Event._Data2));
+        {$ENDIF}
       End;
 
     MidiMessage_NoteOn: // note on
@@ -1162,7 +1167,9 @@ Begin
 
     Else  // raw events
         Begin
+          {$IFDEF HAS_MIDI}
           MIDI_Out(Event._Channel + Event._Opcode + Event._Data1 Shl 8 + Event._Data2 Shl 16);
+          {$ENDIF}
         End;
   End;
 End;
@@ -1180,7 +1187,9 @@ Begin
     If (Velocity>MaxMIDIVolume) Then
       Velocity := MaxMIDIVolume;
 
+    {$IFDEF HAS_MIDI}
     MIDI_Out(MIDIEvent_SetVolume(I, Velocity));
+    {$ENDIF}
   End;
 End;
 
@@ -1323,23 +1332,35 @@ Var
   PanData:Byte;
 Begin
   PanData := Byte(Trunc(Pan * DefaultMIDIPanning) + DefaultMIDIPanning);
+  {$IFDEF HAS_MIDI}
   Result := MIDI_Out(MIDIEvent_SetPanning(Channel, PanData));
   If Result Then
     _Channels[Channel].Panning := PanData;
+  {$ELSE}
+  Result := False;
+  {$ENDIF}
 End;
 
 Function MidiManager.SetVolume(Channel, Volume: Byte): Boolean;
 Begin
+  {$IFDEF HAS_MIDI}
   Result := MIDI_Out(MIDIEvent_SetVolume(Channel, Volume));
   If Result Then
     _Channels[Channel].Volume := Volume;
+  {$ELSE}
+  Result := False;
+  {$ENDIF}
 End;
 
 Function MidiManager.SetInstrument(Channel, Instrument: Byte): Boolean;
 Begin
+  {$IFDEF HAS_MIDI}
   Result := MIDI_Out(MIDIEvent_SetInstrument(Channel, Instrument));
   If Result Then
     _Channels[Channel].Instrument := Instrument;
+  {$ELSE}
+  Result := False;
+  {$ENDIF}
 End;
 
 Procedure MidiManager.FlushNotes(Channel, Note: Byte);
@@ -1377,7 +1398,11 @@ End;
 
 Function MidiNoteEvent.Start(): Boolean;
 Begin
+  {$IFDEF HAS_MIDI}
   Result := (MIDI_Out(MIDIEvent_NoteOn(_Channel, _Note, _Volume)));
+  {$ELSE}
+  Result := False;
+  {$ENDIF}
 
 //  WriteLn('Starting Note '+ IntegerProperty.Stringify(_Note));
 
@@ -1392,7 +1417,10 @@ Begin
     Exit;
 
   MuteEvent := MIDIEvent_NoteOff(_Channel, _Note, _Volume);
+
+  {$IFDEF HAS_MIDI}
   MIDI_Out(MuteEvent);
+  {$ENDIF}
 
   //WriteLn('Stopping Note '+ IntegerProperty.Stringify(_Note));
 

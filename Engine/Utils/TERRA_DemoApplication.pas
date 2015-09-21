@@ -86,9 +86,6 @@ Begin
     _FontRenderer.SetFont(_Font);
   End;
 
-  _Sun := DirectionalLight.Create(Vector3D_Create(-0.25, 0.75, 0.0));
-  _Sky := TERRASkybox.Create('sky');
-
   Engine.Cursors.SetCursor(cursor_Default, Engine.Textures['cursor_normal'], 0, 0);
   Engine.Cursors.SetCursor(cursor_Busy, Engine.Textures['cursor_busy'], 13, 14);
   Engine.Cursors.SetCursor(cursor_Precision, Engine.Textures['cursor_precision'], 15, 15);
@@ -181,6 +178,9 @@ End;
 
 Function DemoApplication.CreateMainViewport(Const Name:TERRAString; Width, Height:Integer):TERRAViewport;
 Begin
+  _Sun := DirectionalLight.Create(Vector3D_Create(-0.25, 0.75, 0.0));
+  _Sky := TERRASkybox.Create('sky');
+
   {$IFDEF USE_OCULUS_RIFT}
   _Camera := OculusCamera.Create('main');
   {$ELSE}

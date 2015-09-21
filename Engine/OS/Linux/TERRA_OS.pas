@@ -5,8 +5,8 @@ Unit TERRA_OS;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Application, unix, baseunix, dateutils,
-  GLX,X,Xlib,Xutil,Keysym;
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Application, TERRA_Window, TERRA_XWindow,
+unix, baseunix, dateutils, GLX,X,Xlib,Xutil,Keysym;
 
 Const
 	PathSeparator = '/';
@@ -77,19 +77,19 @@ Const
   keyZ = Ord('Z');
 
 Type
+
+  { LinuxApplication }
+
   LinuxApplication = Class(BaseApplication)
     Protected
-        _Display:PDisplay;
-      	_ScreenHandle:Integer;
-      	_Window:TWindow;
-      	_Attr:TXSetWindowAttributes;
         _ComposeStatus:TXComposeStatus;
 
       Function InitSettings:Boolean; Override;
 
-      Function InitWindow:Boolean; Override;
-      Procedure CloseWindow; Override;
+      Function CreateWindow():TERRAWindow; Override;
       Procedure ProcessMessages; Override;
+
+      Function GetDisplay: PDisplay;
 
     Public
       Constructor Create();
@@ -102,32 +102,31 @@ Type
 
       Class Function Instance:LinuxApplication;
 
-      Property Handle:TWindow Read _Window;
-      Property ScreenHandle:Integer Read _ScreenHandle;
-      Property Display:PDisplay Read _Display;
+
+      Property Display:PDisplay Read GetDisplay;
   End;
 
   Application = LinuxApplication;
 
 Implementation
 Uses sysutils, ctypes, xrandr, xkblib,
-  TERRA_InputManager, TERRA_Gamepad, TERRA_Error, TERRA_Log, TERRA_Renderer, TERRA_GLRenderer;
+  TERRA_Engine, TERRA_InputManager, TERRA_Gamepad, TERRA_Error, TERRA_Log, TERRA_Renderer, TERRA_GLRenderer;
 
 Var
   _Application_Instance:LinuxApplication;
 
-Constructor LinuxApplication.Create();
+constructor LinuxApplication.Create;
 Begin
   _Application_Instance := Self;
   Inherited Create();
 End;
 
-Class Function LinuxApplication.Instance:LinuxApplication;
+class function LinuxApplication.Instance: LinuxApplication;
 Begin
   Result := _Application_Instance;
 End;
 
-Class Function LinuxApplication.GetCurrentTime:TERRATime;
+class function LinuxApplication.GetCurrentTime: TERRATime;
 Var
  Datetime:Tdatetime;
 Begin
@@ -138,7 +137,7 @@ Begin
  Result.MiliSecond  := millisecondof( datetime );
 End;
 
-Class Function LinuxApplication.GetCurrentDate:TERRADate;
+class function LinuxApplication.GetCurrentDate: TERRADate;
 Var
  Datetime:Tdatetime;
 Begin
@@ -155,7 +154,7 @@ Type
 Function clock_gettime(clkid:Integer; t:PtTimeSpec):Integer; cdecl; external;
 Const CLOCK_MONOTONIC = 1;
 
-Class Function LinuxApplication.GetTime:Cardinal;
+class function LinuxApplication.GetTime: Cardinal;
 var
   ts: TTimeSpec;
   i: Int64;
@@ -1046,7 +1045,7 @@ Begin
    // also check for directly encoded 24-bit UCS characters
    If ((keysym And $ff000000) = $01000000) Then
    Begin
-	  Result := keysym And $00ffffff;
+	  Result := CharFromValue(keysym And $00ffffff);
     Exit;
    End;
 
@@ -1061,13 +1060,13 @@ Begin
 	      max := mid - 1
 	    Else
       Begin //found it
-	      Result := keysymtab[mid, 1];
+	      Result := CharFromValue(keysymtab[mid, 1]);
         Exit;
       End;
     End;
 
     // no matching Unicode value found
-    Result := 0;
+    Result := NullChar;
 End;
 
 
@@ -1076,83 +1075,17 @@ Const
 
 Function sysconf(i:Integer):CLong; CDecl; External Name 'sysconf';
 
-Function LinuxApplication.InitWindow:Boolean;
-Var
-//  CMap:TColorMap;
-  wmDelete:TAtom;
-
-  Root:TWindow;
-  Cursor:TCursor;
-  CursorMask:TPixmap;
-  DummyColor:TXColor;
+function LinuxApplication.CreateWindow: TERRAWindow;
 Begin
-  Result := False;
-
-  _Display := XOpenDisplay(Nil);
-  If (Not Assigned(_Display)) Then
-  Begin
-    RaiseError('CreateWindow: Cannot connect to X server.');
-    Exit;
-  End; 
-
-  _ScreenHandle := DefaultScreen(_Display);
-
-  //Root := RootWindow(_Display, Vi.Screen);
-  Root := RootWindow(_Display, _ScreenHandle);
-
-{  // create a color map
-  CMap := XCreateColormap(_Display, Root, Vi.visual, AllocNone);
-  _Attr.Colormap:=CMap;}
-  _Attr.border_pixel := 0;
-
-  // create a window in window mode
-  _Attr.Event_mask := ExposureMask Or StructureNotifyMask Or PointerMotionMask;
-  _Attr.Event_mask := _Attr.Event_mask Or KeyPressMask Or KeyReleaseMask;
-  _Attr.Event_mask := _Attr.Event_mask Or ButtonPressMask Or ButtonReleaseMask;
-  _Attr.Event_mask := _Attr.Event_mask Or ExposureMask;
-
-  _Window := XCreateWindow(_Display, Root, 0, 0, _Width, _Height,
-                         0, CopyFromParent, InputOutput, {Vi.visual}Nil,
-                         CWBorderPixel {Or CWColormap} Or CWEventMask,
-                         @_Attr);
-
-  // only set window title and handle wm_delete_events if in windowed mode
-  wmDelete := XInternAtom(_Display, 'WM_DELETE_WINDOW', True);
-  XSetWMProtocols(_Display, _Window, @wmDelete, 1);
-  XSetStandardProperties(_Display, _Window, PAnsiChar(Title), PAnsiChar(Title),
-                         None, Nil, 0, Nil);
-
-  XMapRaised(_Display, _Window);
-
-  // Hide cursor
-  If (Not _IgnoreCursor) Then
-  Begin
-    CursorMask := XCreatePixmap(_Display, Root, 1, 1, 1);
-    DummyColor.Pixel:=0;
-    DummyColor.Red:=0;
-    DummyColor.Flags := 4;
-
-    Cursor:=XCreatePixmapCursor(_Display, CursorMask, CursorMask, @DummyColor, @DummyColor, 0, 0);
-
-    XFreePixmap(_Display, Cursormask);
-    XDefineCursor(_Display, _Window, Cursor);
-  End;
-
-  _Ready := True;
-  Result:=True;
+     Result := LinuxWindow.Create(Self.GetTitle(), Self.GetWidth(), Self.GetHeight(), Self.GetFullscreen());
 End;
 
-Procedure LinuxApplication.CloseWindow;
-Begin
-  XDestroyWindow(_Display, _Window);
-End;
-
-Procedure LinuxApplication.SetState(State:Cardinal);
+procedure LinuxApplication.SetState(State: Cardinal);
 Begin
   // TODO
 End;
 
-Procedure LinuxApplication.ProcessMessages;
+procedure LinuxApplication.ProcessMessages;
 Var
   Event:TXEvent;
   Key:Cardinal;
@@ -1162,12 +1095,12 @@ Var
   N:Integer;
   WA:TXWindowAttributes;
 Begin
-  If _Display = Nil Then
+  If Self.Display = Nil Then
      Exit;
 
-    While (XPending(_Display)> 0) Do
+    While (XPending(Self.Display)> 0) Do
     Begin
-      XNextEvent(_Display, @Event);
+      XNextEvent(Self.Display, @Event);
 
       Case (Event._type) Of
       ButtonPress:  Case Event.xbutton.button Of
@@ -1184,7 +1117,7 @@ Begin
 
       KeyPress:
         Begin
-          Key := XKeycodeToKeysym(_Display, Event.xkey.keycode, 0);
+          Key := XKeycodeToKeysym(Self.Display, Event.xkey.keycode, 0);
           //Key := XkbKeycodeToKeysym (_Display, Event.xkey.keycode, 0, 0);
           Key := KeyLookUp(Key);
 
@@ -1192,39 +1125,42 @@ Begin
 
           If (N<=0) Then
           Begin
-            C := keysym2ucs(C);
+            C := keysym2ucs(CharValue(C));
           End Else
           Begin
-            C := 0;
+            C := NullChar;
             Move(Buf[0], C, N);
           End;
 
           If Key>0 Then
 	     AddValueEvent(eventKeyDown, Key);
 
-          If (C>0) Then
-             AddValueEvent(eventKeyPress, C);
+          If (C<>NullChar) Then
+             AddValueEvent(eventCharInput, CharValue(C));
         End;
 
       KeyRelease:
                  Begin
-                      Key := XKeycodeToKeysym(_Display, Event.xkey.keycode, 0);
-                      //Key := XkbKeycodeToKeysym (_Display, Event.xkey.keycode, 0, 0);
+                      Key := XKeycodeToKeysym(Self.Display, Event.xkey.keycode, 0);
+                      //Key := XkbKeycodeToKeysym (Self.Display, Event.xkey.keycode, 0, 0);
                       Key := KeyLookUp(Key);
 
                       If Key>0 Then
 		         AddValueEvent(eventKeyUp, Key);
                  End;
 
-      MotionNotify: AddCoordEvent(eventMouseMove, event.xmotion.X, event.xmotion.Y, 0);
+      MotionNotify:
+        Begin
+          AddCoordEvent(eventMouseMove, event.xmotion.X, event.xmotion.Y, 0);
+        End;
 
       Expose:	Begin
-			XGetWindowAttributes(_Display, _Window, @WA);
+			XGetWindowAttributes(Self.Display, Self.Window.Handle, @WA);
 			AddCoordEvent(eventWindowResize, WA.width, WA.height, 0);
 	End;
 
       ClientMessage:  Begin
-                        AtomName:=XGetAtomName(_Display, event.xClient.message_type);
+                        AtomName:=XGetAtomName(Self.Display, event.xClient.message_type);
                         If (AtomName='WM_PROTOCOLS') Then
                           _Running:=False;
                       End;
@@ -1236,8 +1172,16 @@ Type
   PXRRScreenSizeArray = ^XRRScreenSizeArray;
   XRRScreenSizeArray = Array[0..128] Of TXRRScreenSize;
 
+Function LinuxApplication.GetDisplay: PDisplay;
+Begin
+  If Assigned(Window) Then
+    Result := LinuxWindow(Self.Window).Display
+  Else
+    Result := Nil;
+End;
+
 //http://www.blitzbasic.com/Community/posts.php?topic=86911
-Function LinuxApplication.InitSettings: Boolean;
+function LinuxApplication.InitSettings: Boolean;
 Var
   I:Integer;
   Lang:TERRAString;
@@ -1248,13 +1192,14 @@ Var
   original_size_id:TSizeID;
   conf:PXRRScreenConfiguration;
   current_rate:Integer;
+  TempDisplay:PDisplay;
 Begin
   Inherited InitSettings;
 
-  Log(logDebug,'App', 'Getting user locale...');
+  Engine.Log.Write(logDebug,'App', 'Getting user locale...');
   lang := GetEnvironmentVariable('LANG');
-  _Language := StringGetNextSplit(Lang, Ord('_'));
-  _Country := StringGetNextSplit(Lang, Ord('.'));
+  _Language := StringGetNextSplit(Lang, '_');
+  _Country := StringGetNextSplit(Lang, '.');
 
   If (_Country='') Then
     _Country := _Language;
@@ -1265,51 +1210,51 @@ Begin
   _Language := StringUpper(_Language);
   _Country := StringUpper(_Country);
 
-  Log(logDebug, 'App', 'Country: '+_Country);
-  Log(logDebug, 'App', 'Language: '+_Language);
+  Engine.Log.Write(logDebug, 'App', 'Country: '+_Country);
+  Engine.Log.Write(logDebug, 'App', 'Language: '+_Language);
 
 
-  Log(logDebug,'App', 'Getting cpu core count...');
+  Engine.Log.Write(logDebug,'App', 'Getting cpu core count...');
   _CPUCores := sysconf(_SC_NPROCESSORS_ONLN);
-  Log(logDebug, 'App', 'Found '+IntToString(_CPUCores)+' cores');
+  Engine.Log.Write(logDebug, 'App', 'Found '+IntegerProperty.Stringify(_CPUCores)+' cores');
 
-  Log(logDebug,'App', 'Getting screen resolution...');
+  Engine.Log.Write(logDebug,'App', 'Getting screen resolution...');
 
-  _Display := XOpenDisplay(Nil);
-  If (Not Assigned(_Display)) Then
+  TempDisplay := XOpenDisplay(Nil);
+  If (Not Assigned(TempDisplay)) Then
   Begin
-    RaiseError('CreateWindow: Cannot connect to X server.');
+    Engine.RaiseError('CreateWindow: Cannot connect to X server.');
     Exit;
   End;
 
   original_rotation := Nil;
 
-  Root := RootWindow(_Display, 0);
+  Root := RootWindow(TempDisplay, 0);
 
-  xrrs := PXRRScreenSizeArray(XRRSizes(_Display, 0, @num_sizes));
+  xrrs := PXRRScreenSizeArray(XRRSizes(TempDisplay, 0, @num_sizes));
   If Assigned(xrrs) Then
   Begin
-    conf := XRRGetScreenInfo(_Display, Root);
+    conf := XRRGetScreenInfo(TempDisplay, Root);
     current_rate := XRRConfigCurrentRate(conf);
     original_size_id := XRRConfigCurrentConfiguration(conf, @original_rotation);
     _Screen.Width := xrrs[original_size_id].width;
     _Screen.Height := xrrs[original_size_id].height;
   End;
 
-  Renderers.Add(OpenGLRenderer.Create());
+  Engine.Renderers.Add(OpenGLRenderer.Create());
 
-  XCloseDisplay(_Display);
-  _Display := Nil;
+  XCloseDisplay(TempDisplay);
 
   // Initialize joysticks/gamepads
   //For I:=0 To 3 Do
   For I:=0 To 3 Do
-    InputManager.Instance.AddGamePad(LinuxGamePad.Create(I));
+    Engine.Input.AddGamePad(LinuxGamePad.Create(I));
 
   Result := True;
 End;
 
+
 Initialization
 Finalization
   ReleaseObject(_Application_Instance);
-End.
+End.

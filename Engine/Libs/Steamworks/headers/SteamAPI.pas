@@ -1792,7 +1792,7 @@ Function LoadSteamAPI():Boolean;
 
 
 Implementation
-Uses TERRA_String, TERRA_Log;
+Uses TERRA_Object, TERRA_String, TERRA_Engine, TERRA_Log;
 
 Var
   SteamHandle:{$IFDEF MSWINDOWS}THandle{$ELSE}TLibHandle{$ENDIF};
@@ -1818,7 +1818,7 @@ Begin
   Begin
     {$IFNDEF MSWINDOWS}
     ErrorMsg := dlerror();
-    Log(logDebug, 'Steam', ErrorMsg);
+    Engine.Log.Write(logDebug, 'Steam', ErrorMsg);
     {$ENDIF}
     Result := False;
     Exit;

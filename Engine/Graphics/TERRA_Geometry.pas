@@ -93,7 +93,7 @@ End;
 
 Function TERRAIndexBuffer.GetIndex(Const Index:Cardinal):Word;
 Begin
-  If (Index<0) Or (Index>=_Count) Then
+  If (Index>=_Count) Then
     Result := 0
   Else
     Result := _List[Index];

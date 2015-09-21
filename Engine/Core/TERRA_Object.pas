@@ -3,7 +3,8 @@ Unit TERRA_Object;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Tween;
+Uses {$IFNDEF WINDOWS}cmem, cthreads,{$ENDIF}
+  TERRA_Tween;
 
 Type
   {$IFDEF OXYGENE}

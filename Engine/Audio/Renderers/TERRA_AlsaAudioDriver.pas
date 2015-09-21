@@ -2,7 +2,7 @@ Unit TERRA_AlsaAudioDriver;
 
 Interface
 
-Uses TERRA_Error, TERRA_Utils, TERRA_String, TERRA_AudioMixer, TERRA_AudioBuffer, Alsa;
+Uses TERRA_Object, TERRA_Error, TERRA_Utils, TERRA_String, TERRA_AudioMixer, TERRA_AudioBuffer, Alsa;
 
 Const
   DefaultAlsaPeriods = 4;
@@ -27,7 +27,7 @@ Type
     End;
 
 Implementation
-Uses TERRA_Log;
+Uses TERRA_Engine, TERRA_Log;
 
 Var
    _Driver:AlsaAudioDriver;
@@ -39,7 +39,7 @@ Begin
         Exit;
 
      ErrorMsg := ErrorMsg+ ' ' + snd_strerror(Status);
-     Log(logError, 'ALSA', ErrorMsg);
+     Engine.Log.Write(logError, 'ALSA', ErrorMsg);
 End;
 
 
@@ -63,6 +63,8 @@ Begin
   Result := False;
   Self._Mixer := Mixer;
   _Driver := Self;
+
+  LoadAlsa();
 
   If Not CheckStatus( snd_pcm_open(_Handle, 'default', SND_PCM_STREAM_PLAYBACK, SND_PCM_ASYNC), 'Cannot open sound device...') Then
     Exit;

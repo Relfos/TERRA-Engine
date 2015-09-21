@@ -37,7 +37,7 @@ Function GetCallstack:TERRAString;
 Implementation
 
 Uses {$IFDEF WINDOWS}Windows,{$ENDIF}
-  SysUtils, TERRA_Utils, TERRA_Application, TERRA_Error, TERRA_OS, TERRA_Stack, TERRA_Collections,
+  SysUtils, TERRA_Engine, TERRA_Utils, TERRA_Application, TERRA_Error, TERRA_OS, TERRA_Stack, TERRA_Collections,
   TERRA_Log, {$IFDEF DEBUG_GL}TERRA_DebugGL{$ELSE}TERRA_OpenGL{$ENDIF}
 {$IFDEF ANDROID}
   ,android_log
@@ -137,13 +137,13 @@ Begin
   Frames:=ExceptFrames;
   For I:=0 To Pred(ExceptFrameCount) Do
     S := S + BackTraceStrFunc(Frames) + crLf;
-  Log(logError,'Callstack', S);
+  Engine.Log.Write(logError,'Callstack', S);
 End;
 
 Procedure TERRADump(S:TERRAString);
 Begin
   DebugStack('');
-  RaiseError(S);
+  Engine.RaiseError(S);
   While (True) Do;
 End;
 {$ENDIF}

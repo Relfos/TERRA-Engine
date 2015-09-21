@@ -1573,7 +1573,7 @@ End;
 {$IFNDEF WINDOWS}
 Procedure DoSig(sig:Integer); cdecl;
 Begin
-   RaiseError('Segmentation fault');
+   Engine.RaiseError('Segmentation fault');
 End;
 {$ENDIF}
 

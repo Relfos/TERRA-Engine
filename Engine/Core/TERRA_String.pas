@@ -159,6 +159,7 @@ Function BytesToChar(A, B:Byte):TERRAChar;
 Function CharToByte(Const Value:TERRAChar):Byte;
 Procedure CharToBytes(Const Value:TERRAChar; Out A,B:Byte);
 Function CharValue(Const Value:TERRAChar):Cardinal;
+Function CharFromValue(Const Value:Cardinal):TERRAChar;
 
 Function CharUpper(Const C:TERRAChar):TERRAChar;
 Function CharLower(Const C:TERRAChar):TERRAChar;
@@ -477,6 +478,11 @@ Procedure CharToBytes(Const Value:TERRAChar; Out A,B:Byte);
 Begin
   A := (Word(Value) Shr 8) And $FF;
   B := (Word(Value)) And $FF;
+End;
+
+Function CharFromValue(Const Value:Cardinal):TERRAChar;
+Begin
+  Result := TERRAChar(Value);
 End;
 
 Function CharValue(Const Value:TERRAChar):Cardinal;

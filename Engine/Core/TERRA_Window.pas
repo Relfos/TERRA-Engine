@@ -15,7 +15,7 @@ Type
     Protected
       _Handle:Cardinal;
       _Managed:Boolean;
-    
+
 			_Title:TERRAString;
 			_State:TERRAWindowState;
 
