@@ -8,3 +8,10 @@
 Samples/Source/2D/GUI/Shaders/
 Samples/Binaries/Shaders/
 *.o
+Engine/Libs/OpenVR/samples/
+Engine/UI/old/
+Engine/Libs/OpenVR/lib/
+Engine/Libs/OpenVR/bin/
+*.orig
+Engine/Image/JPG/
+Engine/Image/SVG/
