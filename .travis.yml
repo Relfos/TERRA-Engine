@@ -8,8 +8,8 @@ install:
   - sudo apt-get install -y fpc
 
 script:
-  - ENGINE_PATH=Engine
   - cd Build
+  - ENGINE_PATH=../Engine
   - chmod +x compile_tests.sh
   - ./compile_tests.sh
   - ./TERRATest
