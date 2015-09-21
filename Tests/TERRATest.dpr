@@ -53,6 +53,7 @@ Begin
     Tests.RegisterTest(TERRAXML_TestSimple);
     Tests.RegisterTest(TERRAXML_TestShortcuts);
 
+    WriteLn('Tests installed: ', Tests.TestCount);
   	Errors := Tests.Run();
 
   	Tests.Release();

@@ -42,6 +42,8 @@ Type
 
       Procedure RegisterTest(T:TestCaseClass);
       Function Run():Integer;
+
+      Property TestCount:Integer Read _TestCount;
    End;
 
 Implementation
