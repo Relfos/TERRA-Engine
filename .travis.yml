@@ -6,8 +6,8 @@ os:
 install:
   - ENGINE_PATH=Engine
   - TESTS_PATH=Tests
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get update -qq; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install -y fpc; fi
+  - sudo apt-get update -qq
+  - sudo apt-get install -y fpc
 
 script:
   - chmod +x Build/compile_tests.sh
