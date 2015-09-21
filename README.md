@@ -22,8 +22,8 @@ Does not require any external library or framework (except linking to OpenGL and
 
 [1]: https://ci.appveyor.com/api/projects/status/l82ckmepv9isa439?svg=true
 [2]: https://ci.appveyor.com/project/Relfos/terra-engine/branch/master
-[3]: https://travis-ci.org/Relfos/terra-engine.svg?branch=master
-[4]: https://travis-ci.org/Relfos/terra-engine
+[3]: https://travis-ci.org/Relfos/TERRA-Engine.svg?branch=master
+[4]: https://travis-ci.org/Relfos/TERRA-Engine
 
 What is supported?
 ----------------

@@ -15,3 +15,6 @@ Engine/Libs/OpenVR/bin/
 *.orig
 Engine/Image/JPG/
 Engine/Image/SVG/
+Engine/Image/*.rar
+*.lps
+Tools/Binaries/Shaders/
