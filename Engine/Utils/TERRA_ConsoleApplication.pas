@@ -65,7 +65,7 @@ Var
   S:WideString;
   Written:Cardinal;
 Begin
-  {$IFDEF WINDOWS}
+  {$IFNDEF FPC}
   S := StringToWideString(Text) + #13#10;
   WriteConsoleW(Window.Handle, PWideChar(S), Length(S), Written, Nil);
   {$ELSE}

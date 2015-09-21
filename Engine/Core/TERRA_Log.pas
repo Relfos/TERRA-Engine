@@ -96,9 +96,6 @@ Type
       _Active:Boolean;
       _Started:Boolean;
 
-      _Filters:Array Of LogFilter;
-      _FilterCount:Integer;
-
       {$IFDEF CONSOLEWINDOW}
       _HasConsole:Boolean;
       {$ENDIF}
@@ -119,7 +116,6 @@ Type
       Procedure Release(); Override;
 
       Procedure Write(LogType:Integer; Const ModuleName, Description:TERRAString);
-      Procedure AddFilter(LogType:Integer; Const Modules:TERRAString; Handler:LogFilterHandler);
 
       Property Enabled:Boolean Read _Enabled Write SetEnabled;
       Property FileName:TERRAString Read _FileName;
@@ -161,18 +157,6 @@ Begin
   End;
 
   Result := Description;
-End;
-
-Procedure TERRALog.AddFilter(LogType:Integer; Const Modules:TERRAString; Handler:LogFilterHandler);
-Begin
-  If (LogType<0) Or (LogType>=logFilterCount) Or (@Handler = Nil) Then
-    Exit;
-
-  Inc(_FilterCount);
-  SetLength(_Filters, _FilterCount);
-  _Filters[Pred(_FilterCount)].FilterType := LogType;
-  _Filters[Pred(_FilterCount)].Modules := StringLower(Modules);
-  _Filters[Pred(_FilterCount)].Handler := Handler;
 End;
 
 Procedure TERRALog.AddLine(Const S:TERRAString);
@@ -332,13 +316,6 @@ Begin
   If Not LoggingEnabled Then
     Exit;
   {$ENDIF}
-
-  For I:=0 To Pred(_FilterCount) Do
-  If (_Filters[I].FilterType = LogType) And ((_Filters[I].Modules='') Or (StringContains(ModuleName, _Filters[I].Modules))) Then
-  Begin
-    _Filters[I].Handler(ModuleName, Description);
-    Exit;
-  End;
 
   If (LogType = logConsole) Then
   Begin
