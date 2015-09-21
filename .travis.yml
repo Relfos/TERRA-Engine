@@ -11,4 +11,5 @@ install:
 
 script:
   - ./Build/compile_tests.sh
+  - chmod +x TERRATest
   - ./TERRATest
