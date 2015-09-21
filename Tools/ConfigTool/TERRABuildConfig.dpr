@@ -53,6 +53,8 @@ Begin
       End;
   End;
 
+  EnginePathVar := '..'+Sep+'Engine';
+
   Case BuildType Of
     FPC_WINDOWS_BATCH:
       Begin
@@ -79,7 +81,7 @@ Begin
     TempPath := Paths[I];
 
     PrepareString(TempPath);
-    Result := Result + '-Fu'+EnginePathVar+Sep+TempPath + ' ';
+    Result := Result + '-Fu'+TempPath + ' ';
   End;
 
   If OutputName<>'' Then
@@ -108,27 +110,27 @@ End;
 
 //$(PkgDir)
 Begin
-  RegisterPath('Core');
-  RegisterPath('Math');
-  RegisterPath('Utils');
-  RegisterPath('Core\FileIO');
-  RegisterPath('Graphics');
-  RegisterPath('Graphics\Renderer');
-  RegisterPath('Templates');
-  RegisterPath('Image');
-  RegisterPath('Physics');
-  RegisterPath('Image');
-  RegisterPath('Image\Formats');
-  RegisterPath('OS\$TARGET_OS');
-  RegisterPath('UI');
-  RegisterPath('AI');
-  RegisterPath('Audio');
-  RegisterPath('Audio\Formats');
-  RegisterPath('Audio\Renderers');
-  RegisterPath('Network');
-  RegisterPath('Libs\Steamworks\headers');
-  RegisterPath('Network');
-  RegisterPath('Network\Protocols');
+  RegisterPath('$ENGINE_PATH\Core');
+  RegisterPath('$ENGINE_PATH\Math');
+  RegisterPath('$ENGINE_PATH\Utils');
+  RegisterPath('$ENGINE_PATH\Core\FileIO');
+  RegisterPath('$ENGINE_PATH\Graphics');
+  RegisterPath('$ENGINE_PATH\Graphics\Renderer');
+  RegisterPath('$ENGINE_PATH\Templates');
+  RegisterPath('$ENGINE_PATH\Image');
+  RegisterPath('$ENGINE_PATH\Physics');
+  RegisterPath('$ENGINE_PATH\Image');
+  RegisterPath('$ENGINE_PATH\Image\Formats');
+  RegisterPath('$ENGINE_PATH\OS\$TARGET_OS');
+  RegisterPath('$ENGINE_PATH\UI');
+  RegisterPath('$ENGINE_PATH\AI');
+  RegisterPath('$ENGINE_PATH\Audio');
+  RegisterPath('$ENGINE_PATH\Audio\Formats');
+  RegisterPath('$ENGINE_PATH\Audio\Renderers');
+  RegisterPath('$ENGINE_PATH\Network');
+  RegisterPath('$ENGINE_PATH\Libs\Steamworks\headers');
+  RegisterPath('$ENGINE_PATH\Network');
+  RegisterPath('$ENGINE_PATH\Network\Protocols');
   RegisterPath('..\Tests');
 
 
