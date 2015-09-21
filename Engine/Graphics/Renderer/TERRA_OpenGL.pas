@@ -17,7 +17,6 @@ Interface
 Uses
   {$IFDEF WINDOWS}Windows,{$ENDIF}
   {$IFDEF FPC}Math,DynLibs,{$ENDIF}
-  {$IFDEF LINUX}GLX,{$ENDIF}
   {$IFDEF OSX}TERRA_AGL,{$ENDIF}
   TERRA_Object, TERRA_String, TERRA_Log, TERRA_Matrix4x4, TERRA_Math;
 
@@ -1875,6 +1874,12 @@ End;
 Function wglGetProcAddress(proc:PAnsiChar):Pointer; stdcall; external 'OpenGL32.dll';
 {$ENDIF}
 
+{$IFDEF LINUX}
+Var
+  glXGetProcAddress: function(procname: PChar): Pointer; cdecl;
+  glXGetProcAddressARB: function(procname: PChar): Pointer; cdecl;
+{$ENDIF}
+
 Function SearchOpenGLProc(Const ProcName:TERRAString):Pointer;
 Begin
   Result := Nil;
@@ -1884,8 +1889,11 @@ Begin
   {$ENDIF}
 
   {$IFDEF LINUX}
-  If (Application.Instance.GetOption('glx')='1') Then
+  If Assigned(glxGetProcAddress) Then
     Result := glxGetProcAddress(PAnsiChar(ProcName));
+
+   If (Assigned(glXGetProcAddressARB)) And (Result = Nil) Then
+    Result := glXGetProcAddressARB(PAnsiChar(ProcName));
   {$ENDIF}
 
 
@@ -1938,6 +1946,18 @@ End;
 Procedure glLoadExtensions;
 Begin
   Engine.Log.Write(logDebug, 'OpenGL', 'Loading extensions');
+
+  {$IFDEF LINUX}
+  If (Application.Instance.GetOption('glx')='1') Then
+  Begin
+    glXGetProcAddress := GetProcAddress(OpenGLHandle, 'glXGetProcAddress'); // GLX 1.4 and later
+    glXGetProcAddressARB := GetProcAddress(OpenGLHandle, 'glXGetProcAddressARB'); // Extensions
+  End Else
+  Begin
+    glXGetProcAddress := Nil;
+    glXGetProcAddressARB := Nil;
+  End;
+  {$ENDIF}
 
   // base OpenGL
 	glAccum := glGetProcAddress('glAccum');
