@@ -249,6 +249,7 @@ Begin
     AdjustRatio(Source);
     Self.InitFromSize(Source.Width, Source.Height, ColorWhite);
     Self.UpdateRect(Source);
+    _Source.Copy(Source);
   End;
 End;
 
