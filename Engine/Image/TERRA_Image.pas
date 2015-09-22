@@ -1744,13 +1744,26 @@ End;
 
 Procedure TERRAImage.LineDecodeBGR32(Buffer: Pointer; Line:Cardinal);
 Var
-  Dest:PColorRGBA;
+  Source, Dest:PColorRGBA;
+  Count:Integer;
 Begin
+  If (Line>=_Height) Or (Buffer = Nil) Then
+    Exit;
+
   Dest := Self.GetLineOffset(Line);
   If (Dest =  Nil) Then
     Exit;
 
-  Move(Buffer^, Dest^, _Width*PixelSize);
+  Count := _Width;
+  Source := Buffer;
+
+  While (Count>0) Do
+  Begin
+    Dest^ := ColorSwap(Source^);
+    Inc(Source);
+    Inc(Dest);
+    Dec(Count);
+  End;
 End;
 
 Procedure TERRAImage.LineDecodeBGRPalette4(Buffer, Palette: Pointer; Line:Cardinal);
