@@ -92,7 +92,7 @@ End;
 Function Matrix4x4_CreateFromMatrix3x3(Const M:Matrix3x3):Matrix4x4;
 Begin
   Result := Matrix4x4_Identity;
-//  Result.SetTranslation(Vector3D_Create(M.V[6], M.V[7], 0));
+  Result.SetTranslation(Vector3D_Create(M.V[6], M.V[7], 0));
 (*  Result.V[0] := M.V[0];
   Result.V[1] := M.V[1];
   Result.V[2] := M.V[2];

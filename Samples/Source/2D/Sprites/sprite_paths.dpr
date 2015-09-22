@@ -60,18 +60,18 @@ Begin
   If (Tex = Nil) Then
     Exit;
 
-  Pos[0] := VectorCreate2D(0, 0);
-  Pos[1] := VectorCreate2D(200, 200);
-  Pos[2] := VectorCreate2D(300, Engine.Input.Mouse.Y * View.Height);
-  Pos[3] := VectorCreate2D(Engine.Input.Mouse.X * View.Width, Engine.Input.Mouse.Y * View.Height);
+  Pos[0] := Vector2D_Create(0, 0);
+  Pos[1] := Vector2D_Create(200, 200);
+  Pos[2] := Vector2D_Create(300, Engine.Input.Mouse.Y * View.Height);
+  Pos[3] := Vector2D_Create(Engine.Input.Mouse.X * View.Width, Engine.Input.Mouse.Y * View.Height);
 
-  S := View.SpriteRenderer.FetchSprite();
+  S := Engine.FetchSprite();
   S.Layer := 50;
   S.SetTexture(Tex);
   S.SetLineColor(ColorRed, ColorBlue);
-  S.AddArrow(VectorCreate2D(200, 200), VectorCreate2D(Engine.Input.Mouse.X * View.Width, Engine.Input.Mouse.Y * View.Height), 0.0, 14, 40);
+  S.AddArrow(Vector2D_Create(200, 200), Vector2D_Create(Engine.Input.Mouse.X * View.Width, Engine.Input.Mouse.Y * View.Height), 0.0, 14, 40);
   //S.AddPath(Pos, 0.0, 8);
-  View.SpriteRenderer.QueueSprite(S);
+  Engine.Graphics.AddRenderable(View, S);
 End;
 
 {$IFDEF IPHONE}

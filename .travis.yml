@@ -9,6 +9,7 @@ install:
   - sudo apt-get install -y xvfb
 
 script:  
+  - cp Tests/TERRATest.dpr Build/TERRATest.dpr
   - cd Build
   - ENGINE_PATH="../Engine"
   - chmod +x compile_tests.sh

@@ -3,28 +3,18 @@
 
 Uses
 {$IFDEF DEBUG_LEAKS}MemCheck,{$ELSE}  TERRA_MemoryManager,{$ENDIF}
-  TERRA_String, TERRA_Application, TERRA_Utils, TERRA_ResourceManager, TERRA_GraphicsManager,
-  TERRA_OS, TERRA_Vector3D, TERRA_Font, TERRA_UI, TERRA_Lights, TERRA_Image, TERRA_Viewport,
-  TERRA_PNG, TERRA_Texture, TERRA_Renderer, TERRA_Mesh, TERRA_ShaderFactory, TERRA_Resource,
-  TERRA_FileManager, TERRA_Scene,  TERRA_Skybox, TERRA_Color, TERRA_Math, TERRA_Matrix4x4,
-  TERRA_ScreenFX, TERRA_SpriteManager, TERRA_VertexFormat, TERRA_InputManager;
+  TERRA_Object, TERRA_String, TERRA_Application, TERRA_Utils, TERRA_DemoApplication, TERRA_Color, TERRA_Texture, TERRA_Image, TERRA_Viewport,
+  TERRA_Resource, TERRA_Renderer, TERRA_Sprite, TERRA_Vector2D, TERRA_Engine;
 
 Type
-  MyScene = Class(Scene)
-      Procedure RenderSprites(V:Viewport); Override;
-  End;
-
-  Game = Class(Application)
-    Protected
-      _Scene:MyScene;
-
+  Game = Class(DemoApplication)
     Public
-
 			Procedure OnCreate; Override;
 			Procedure OnDestroy; Override;
-			Procedure OnIdle; Override;
 
-      Procedure OnMouseDown(X,Y:Integer;Button:Word); Override;
+      Procedure OnRender2D(V:TERRAViewport); Override;
+
+      Procedure OnMouseDown(Const X,Y:Single; Const Button:Word); Override;
   End;
 
 
@@ -34,17 +24,17 @@ Const
   SpriteScale = 32;
 
 Var
-  PaletteTex:Texture;
+  PaletteTex:TERRATexture;
 
-Function MakeTexture(Hues, Shades:Integer):Texture;
+Function MakeTexture(Hues, Shades:Integer):TERRATexture;
 Var
-  Img, Dest:Image;
+  Img, Dest:TERRAImage;
   I, J, M, N:Integer;
   K:Single;
   T:ColorHSL;
-  C, B:Color;
+  C, B:ColorRGBA;
 Begin
-  Dest := Image.Create(Shades, Hues);
+  Dest := TERRAImage.Create(Shades, Hues);
 
   M := (Shades Shr 1);
   For J:=0 To Pred(Hues) Do
@@ -77,7 +67,7 @@ Begin
     End;
   End;
 
-  Result := Texture.Create(rtDynamic, '');
+  Result := TERRATexture.Create(rtDynamic);
   Result.InitFromImage(Dest);
   Result.Filter := filterBilinear;
   Result.WrapMode := wrapNothing;
@@ -89,49 +79,56 @@ End;
 { Game }
 Procedure Game.OnCreate;
 Begin
-  PaletteTex := MakeTexture(16, 8);
+  Inherited;
 
-  _Scene := MyScene.Create();
-  GraphicsManager.Instance.SetScene(_Scene);
+
+  Self.GUI.Viewport.Visible := True;
+
+  PaletteTex := MakeTexture(16, 8);
 End;
 
 Procedure Game.OnDestroy;
 Begin
-  ReleaseObject(_Scene);
   ReleaseObject(PaletteTex);
+
+  Inherited;
 End;
 
-Procedure Game.OnIdle;
+procedure Game.OnMouseDown(Const X,Y:Single; Const Button:Word);
+Var
+  PickedColor:ColorRGBA;
+  PX, PY:Integer;
 Begin
-  If InputManager.Instance.Keys.WasPressed(keyEscape) Then
-    Application.Instance.Terminate();
+  PX := Trunc(Self.GUI.Viewport.Width * X);
+  PY := Trunc(Self.GUI.Viewport.Height * Y);
 
-  GraphicsManager.Instance.TestDebugKeys();
-End;
+  Dec(PX, SpriteX);
+  Dec(PY, SpriteY);
 
+  PX := Trunc(PX / SpriteScale);
+  PY := Trunc(PY / SpriteScale);
 
-procedure Game.OnMouseDown(X, Y: Integer; Button: Word);
-Begin
-  Dec(X, SpriteX);
-  Dec(Y, SpriteY);
-
-  X := Trunc(X / SpriteScale);
-  Y := Trunc(Y / SpriteScale);
-
-  If (X>=PaletteTex.Width) Or (Y>=PaletteTex.Height) Then
+  If (PX<0) Or (PY<0) Or (PX>=PaletteTex.Width) Or (PY>=PaletteTex.Height) Then
     Exit;
 
-  GraphicsManager.Instance.DeviceViewport.BackgroundColor := PaletteTex.GetPixel(X, Y);
+  PickedColor := PaletteTex.GetPixel(PX, PY);
+  Engine.Graphics.DeviceViewport.BackgroundColor := PickedColor;
 End;
 
-{ MyScene }
-Procedure MyScene.RenderSprites;
+Procedure Game.OnRender2D(V:TERRAViewport);
 Var
-  PaletteSprite:QuadSprite;
+  PaletteSprite:TERRASprite;
 Begin
-  PaletteSprite := SpriteManager.Instance.DrawSprite(SpriteX, SpriteY, 20, PaletteTex);
-  PaletteSprite.Rect.Width := PaletteTex.Width * SpriteScale;
-  PaletteSprite.Rect.Height := PaletteTex.Height * SpriteScale;
+  PaletteSprite := Engine.FetchSprite();
+  PaletteSprite.Translate(SpriteX, SpriteY);
+  PaletteSprite.Layer := 20;
+  PaletteSprite.SetTexture(PaletteTex);
+
+  PaletteSprite.AddQuad(SpriteAnchor_TopLeft, Vector2D_Zero, 0.0, PaletteTex.Width * SpriteScale, PaletteTex.Height * SpriteScale);
+
+  Engine.Graphics.AddRenderable(V, PaletteSprite);
+
+  Inherited;
 End;
 
 Begin

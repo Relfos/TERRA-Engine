@@ -90,6 +90,10 @@ Type
 
       _Flags:Cardinal;
 
+      Procedure SetDefaultVertexValues(StartOfs:Integer);
+
+      Function GetShader():ShaderInterface;
+
     Public
       Layer:Single;
       ClipRect:TERRAClipRect;
@@ -104,6 +108,7 @@ Type
       Procedure Release; Override;
 
       Procedure GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType); Override;
+      Procedure GetMaterialDetails(Out Shader:ShaderInterface; Out Texture:TERRATexture); Override;
       Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
 
       Procedure Clear();
@@ -131,8 +136,6 @@ Type
       Procedure PixelRemap(X1,Y1, X2, Y2:Integer; W:Integer=0; H:Integer=0);
       Procedure FullRemapUV();
 
-      Procedure MergeSprite(Other:TERRASprite);
-
       Procedure SetTexture(Value: TERRATexture);
       Procedure SetDissolve(Mask:TERRATexture; Const Value:Single);
 
@@ -159,6 +162,8 @@ Type
       Property Transform:Matrix3x3 Read _Transform Write SetTransform;
 
       Property Flags:Cardinal Read _Flags Write _Flags;
+
+      Property Shader:ShaderInterface Read GetShader;
   End;
 
 Implementation
@@ -381,13 +386,14 @@ Begin
     Geometry.Indices.SetIndex(IndexOffset + 2, VertexOffset + ((I + 1) Mod SubDivs));
     Inc(IndexOffset, 3);
   End;
+
+  SetDefaultVertexValues(VertexOffset);
 End;
 
 Procedure TERRASprite.AddCircle(const Anchor: SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const Radius:Single);
 Begin
   Self.AddEllipse(Anchor, Pos, LayerOffset, Radius, Radius);
 End;
-
 
 Procedure TERRASprite.AddQuad(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single);
 Var
@@ -457,6 +463,8 @@ Begin
   Geometry.Indices.SetIndex(IndexOffset + 3, VertexOffset + 2);
   Geometry.Indices.SetIndex(IndexOffset + 4, VertexOffset + 3);
   Geometry.Indices.SetIndex(IndexOffset + 5, VertexOffset + 0);
+
+  SetDefaultVertexValues(VertexOffset);
 End;
 
 Procedure TERRASprite.AddPath(Const Positions:Array Of Vector2D; LayerOffset:Single; Width:Single);
@@ -465,7 +473,7 @@ Var
   U1, V1, U2, V2, TU:Single;
   Len, Mult:Single;
   I, A, B:Integer;
-  IndexOffset, VertexOffset:Integer;
+  IndexOffset, VertexOffset, BaseVertexOffset:Integer;
 Begin
   If (Self._CA.A = 0) And (Self._CB.A = 0) And (Self._CC.A=0) And (Self._CD.A=0) Then
     Exit;
@@ -477,6 +485,7 @@ Begin
 
   VertexOffset := Geometry.Vertices.Count;
   IndexOffset := Geometry.Indices.Count;
+  BaseVertexOffset := VertexOffset;
 
   Geometry.Vertices.Resize(VertexOffset + 2 * Length(Positions));
   Geometry.Indices.Resize(IndexOffset + 6 * Length(Positions));
@@ -554,6 +563,8 @@ Begin
 
     Inc(VertexOffset, 2);
   End;
+
+  SetDefaultVertexValues(BaseVertexOffset);
 End;
 
 Procedure TERRASprite.AddLine(Const StartPos, EndPos:Vector2D; LayerOffset:Single; Width:Single);
@@ -761,94 +772,39 @@ Begin
   Self.Height := Trunc(SY);*)
 End;
 
-Procedure TERRASprite.MergeSprite(Other: TERRASprite);
-Var
-  I, BaseID, IndexOffset:Integer;
-  InIt, OutIt:VertexIterator;
-  Src, Dest:SpriteVertex;
-  Pos:Vector3D;
-
-  RequiredVertices, RequiredIndices:Integer;
+Function TERRASprite.GetShader():ShaderInterface;
 Begin
-  If (Other.ClipRect.Style = clipEverything) Or (Other.Geometry.Indices.Count<=0) Then
-    Exit;
-
-  BaseID := Geometry.Vertices.Count;
-  IndexOffset := Geometry.Indices.Count;
-
-  RequiredVertices := Geometry.Vertices.Count + Other.Geometry.Vertices.Count;
-  RequiredIndices := Self.Geometry.Indices.Count + Other.Geometry.Indices.Count;
-
-  Geometry.Vertices.Resize(RequiredVertices);
-  Geometry.Indices.Resize(RequiredIndices);
-
-
-  OutIt := Geometry.Vertices.GetIteratorForClass(SpriteVertex);
-  InIt := Other.Geometry.Vertices.GetIteratorForClass(SpriteVertex);
-  While (InIt.HasNext()) Do
+  If (_SpriteShaders[Self.Flags] = Nil) Then
   Begin
-    If (Not OutIt.HasNext()) Then
-    Begin
-      Engine.Log.Write(logWarning, 'Sprite', 'Failed batch merge of sprite vertices...');
-      Break;
-    End;
-
-    Src := SpriteVertex(InIt.Value);
-    Dest := SpriteVertex(OutIt.Value);
-
-    Pos := Other.Transform.Transform(Src.Position);
-
-    //Pos.X := Trunc(Pos.X);
-    //Pos.Y := Trunc(Pos.Y);
-    //Pos.Z := Pos.Z + S.Layer;
-
-    Dest.Position := Pos;
-    Dest.Color := Src.Color;
-    Dest.Glow := Src.Glow;
-    Dest.Saturation := Src.Saturation;
-    Dest.ClipRect := Src.ClipRect;
-    Dest.TexCoord := Src.TexCoord;
-
-    (*  MinX := FloatMin(MinX, Pos.X);
-      MinY := FloatMin(MinY, Pos.Y);
-      MaxX := FloatMax(MaxX, Pos.X);
-      MaxY := FloatMax(MaxY, Pos.Y);*)
+    _SpriteShaders[Self.Flags] := Engine.Graphics.Renderer.CreateShader();
+    _SpriteShaders[Self.Flags].Generate('sprite_'+CardinalToString(Self.Flags), GetShader_Sprite(Self.Flags));
   End;
-  ReleaseObject(InIt);
-  ReleaseObject(OutIt);
 
-  For I:=0 To Pred(Other.Geometry.Indices.Count) Do
-    Geometry.Indices.SetIndex(IndexOffset + I, Other.Geometry.Indices.GetIndex(I) + BaseID);
+  Result := _SpriteShaders[Self.Flags];
 End;
 
 Procedure TERRASprite.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
   Graphics:GraphicsManager;
   TargetShader:ShaderInterface;
-  CurrentClip:Vector4D;
 
   OutIt:VertexIterator;
   Dest:SpriteVertex;
+
+  ModelTransform:Matrix4x4;
 Begin
   If (Self.Geometry.Indices.Count <= 0) Or (Self.Texture = Nil) Then
     Exit;
 
-  If (Self.ClipRect.Style = clipNothing) Then
-    CurrentClip := Vector4D_Create(0, 0, 9999, 9999)
-  Else
-    CurrentClip := Vector4D_Create(Self.ClipRect.X1, Self.ClipRect.Y1, Self.ClipRect.X2, Self.ClipRect.Y2);
-
-  OutIt := Geometry.Vertices.GetIteratorForClass(SpriteVertex);
+(*  OutIt := Geometry.Vertices.GetIteratorForClass(SpriteVertex);
   While (OutIt.HasNext()) Do
   Begin
     Dest := SpriteVertex(OutIt.Value);
-
     Dest.Position := _Transform.Transform(Dest.Position);
-    Dest.Saturation := Self.Saturation;
-    Dest.Glow := Self.Glow;
-    Dest.ClipRect := CurrentClip; //Vector4D_Create(0, 0, 9999, 9999);
   End;
-  ReleaseObject(OutIt);
+  ReleaseObject(OutIt);*)
+
+  ModelTransform := Matrix4x4_CreateFromMatrix3x3(Self.Transform);
 
   Graphics := Engine.Graphics;
   //glEnable(GL_DEPTH_TEST); {FIXME}
@@ -865,17 +821,13 @@ Begin
   If (_Saturation<1.0) Then
     Graphics.Renderer.SetAttributeSource(TERRA_SATURATION_ATTRIBUTE, typeFloat, @Geometry.Vertices[0].Saturation);}
 
-  If (_SpriteShaders[Self.Flags] = Nil) Then
-  Begin
-    _SpriteShaders[Self.Flags] := Graphics.Renderer.CreateShader();
-    _SpriteShaders[Self.Flags].Generate('sprite_'+CardinalToString(Self.Flags), GetShader_Sprite(Self.Flags));
-  End;
-
-  TargetShader := _SpriteShaders[Self.Flags];
+  TargetShader := Self.Shader;
   Graphics.Renderer.BindShader(TargetShader);
 
   If (Self.Flags And Sprite_GUI = 0) Then
-    Graphics.Renderer.SetModelMatrix(View.Camera.Transform);
+    ModelTransform := Matrix4x4_Multiply4x4(ModelTransform, View.Camera.Transform);
+
+  Graphics.Renderer.SetModelMatrix(ModelTransform);
 
   Graphics.Renderer.SetProjectionMatrix(View.Camera.Projection);
 
@@ -1170,44 +1122,6 @@ Begin
 End;
 
 
-Procedure SpriteBatch.Prepare();
-Var
-  I, J:Integer;
-  S:TERRASprite;
-  K:Single;
-  MaxX,MinX, MaxY,MinY:Single;
-  M:Matrix3x3;
-  C:ColorRGBA;
-  InIt, OutIt:VertexIterator;
-  Src, Dest:SpriteVertex;
-  FullyClipped:Boolean;
-  Ratio:Single;
-  BaseID:Integer;
-  Pos:Vector3D;
-  Graphics:GraphicsManager;
-  CurrentClip:Vector4D;
-Begin
-  If (_SpriteCount<=0) Then
-  Begin
-    _First := Nil;
-    Exit;
-  End;
-
-  _RequiredVertices := 0;
-  S := _First;
-  While Assigned(S) Do
-  Begin
-    Inc(_RequiredVertices, S.Vertices.Count);
-    S := S.Next;
-  End;
-
-  BaseID := 0;
-sds
-  _Ready := True;
-End;
-*)
-
-(*
 Procedure TextureRect.ResizeWithWidth(W: Single);
 Var
   N:Single;
@@ -1235,5 +1149,33 @@ Begin
 End;
 *)
 
+Procedure TERRASprite.SetDefaultVertexValues(StartOfs: Integer);
+Var
+  CurrentClip:Vector4D;
+  OutIt:VertexIterator;
+  Dest:SpriteVertex;
+Begin
+  If (Self.ClipRect.Style = clipNothing) Then
+    CurrentClip := Vector4D_Create(0, 0, 9999, 9999)
+  Else
+    CurrentClip := Vector4D_Create(Self.ClipRect.X1, Self.ClipRect.Y1, Self.ClipRect.X2, Self.ClipRect.Y2);
+
+  OutIt := Geometry.Vertices.GetIteratorForClass(SpriteVertex);
+  OutIt.Seek(StartOfs);
+  While (OutIt.HasNext()) Do
+  Begin
+    Dest := SpriteVertex(OutIt.Value);
+    Dest.Saturation := Self.Saturation;
+    Dest.Glow := Self.Glow;
+    Dest.ClipRect := CurrentClip; //Vector4D_Create(0, 0, 9999, 9999);
+  End;
+  ReleaseObject(OutIt);
+End;
+
+Procedure TERRASprite.GetMaterialDetails(out Shader: ShaderInterface; out Texture: TERRATexture);
+Begin
+  Texture := Self.Texture;
+  Shader := Self.Shader;
+End;
 
 End.

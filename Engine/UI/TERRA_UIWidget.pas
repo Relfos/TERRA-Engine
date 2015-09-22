@@ -320,7 +320,7 @@ Type
       Function CreateProperty(Const KeyName, ObjectType:TERRAString):TERRAObject; Override;
 
       Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
-      Procedure OnAddToList(View:TERRAViewport; Target:TERRAList); Override;
+      Procedure OnAddToList(View:TERRAViewport; Target:RenderableManager); Override;
 
       Procedure UpdateRects; Virtual;
       Function UpdateTransform():Boolean; Virtual;
@@ -2022,7 +2022,7 @@ Begin
     _Sprite.Render(View, Stage);
 End;
 
-Procedure UIWidget.OnAddToList(View:TERRAViewport; Target:TERRAList);
+Procedure UIWidget.OnAddToList(View:TERRAViewport; Target:RenderableManager);
 Var
   I:Integer;
 Begin

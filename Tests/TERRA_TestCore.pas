@@ -18,16 +18,16 @@ Type
     Procedure Run; Override;
    End;
 
-  TERRACore_TestRadixSort = class(TestCase)
+(*  TERRACore_TestRadixSort = class(TestCase)
     Procedure Run; Override;
-   End;
+   End;*)
 
    TERRACore_TestObjectArray = class(TestCase)
     Procedure Run; Override;
    End;
 
 Implementation
-Uses TERRA_OS, TERRA_Utils, TERRA_Sort, TERRA_RadixSort, TERRA_Collections,
+Uses TERRA_OS, TERRA_Utils, TERRA_Sort, TERRA_Collections,
   TERRA_HashMap, TERRA_ObjectArray, TERRA_List, TERRA_Stack;
 
 Type
@@ -149,7 +149,7 @@ Begin
   End;
 End;
 
-Procedure TERRACore_TestRadixSort.Run();
+(*Procedure TERRACore_TestRadixSort.Run();
 Var
   I, J, Count:Integer;
 
@@ -184,6 +184,7 @@ Begin
     End;
   End;
 End;
+*)
 
 Procedure TERRACore_TestList.Run;
 Var

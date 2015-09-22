@@ -75,7 +75,7 @@ Type
 
       Procedure Clear;
 
-      Procedure RenderCursor(View:TERRAViewport; Target:TERRAList);
+      Procedure RenderCursor(View:TERRAViewport; Target:RenderableManager);
 
       Function SupportDrag(Mode:UIDragMode):Boolean; Override;
 
@@ -122,7 +122,7 @@ Type
       Procedure GetLocalCoords(Const X,Y:Single; Out PX, PY:Integer);
 
       //Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
-      Procedure OnAddToList(View:TERRAViewport; Target:TERRAList); Override;
+      Procedure OnAddToList(View:TERRAViewport; Target:RenderableManager); Override;
 
       Procedure SetFocus(Value:UIWidget);
 
@@ -300,7 +300,7 @@ Begin
 End;
 
 //Procedure UIView.Render(View:TERRAViewport; Const Stage:RendererStage);
-Procedure UIView.OnAddToList(View:TERRAViewport; Target:TERRAList);
+Procedure UIView.OnAddToList(View:TERRAViewport; Target:RenderableManager);
 Var
   Current, Temp:UIWidget;
   I, J:Integer;
@@ -332,7 +332,7 @@ Begin
   Inherited OnAddToList(View, Target);
 End;
 
-Procedure UIView.RenderCursor(View:TERRAViewport; Target:TERRAList);
+Procedure UIView.RenderCursor(View:TERRAViewport; Target:RenderableManager);
 Var
   S:TERRASprite;
   MousePos:Vector2D;

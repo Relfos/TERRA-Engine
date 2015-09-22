@@ -794,7 +794,10 @@ End;
 
 Function TERRATexture.GetPixel(X, Y: Integer):ColorRGBA;
 Begin
-  Result := Self.Current.GetPixel(X, Y);
+  If Assigned(Self._Source) Then
+    Result := _Source.GetPixel(X, Y)
+  Else
+    Result := Self.Current.GetPixel(X, Y);
 End;
 
 Function TERRATexture.GetOrigin: SurfaceOrigin;

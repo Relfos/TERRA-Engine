@@ -251,7 +251,7 @@ Begin
   If (Assigned(_FontRenderer)) And (_ShowFPS) Then
   Begin
     _FontRenderer.Reset();
-//    _FontRenderer.DrawText(V, 5, 25, 90, 'FPS: '+ IntegerProperty.Stringify(Engine.Graphics.Renderer.Stats.FramesPerSecond));
+    _FontRenderer.DrawText(V, 5, 25, 90, 'FPS: '+ IntegerProperty.Stringify(Engine.Graphics.Renderer.Stats.FramesPerSecond));
   End;
 
   Engine.Graphics.AddRenderable(V, _GUI);

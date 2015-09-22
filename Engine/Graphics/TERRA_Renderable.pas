@@ -4,7 +4,7 @@ Unit TERRA_Renderable;
 
 Interface
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_BoundingBox, TERRA_Renderer,
-  TERRA_Viewport, TERRA_Collections, TERRA_List, TERRA_RadixSort;
+  TERRA_Viewport, TERRA_Collections, TERRA_List, TERRA_Texture, TERRA_HashMap;
 
 Const
   //FogMode
@@ -35,12 +35,7 @@ Type
 
   { TERRARenderable }
   TERRARenderable = Class(TERRAObject)
-    Private
-      _RenderKey:Integer;
-
     Protected
-      _Manager:RenderableManager;
-
       _LastUpdate:Cardinal;
 
 //      _IsReflection:Boolean;
@@ -50,51 +45,52 @@ Type
 
       Temporary:Boolean;
 
-      Procedure Release; Override;
-
       Class Function CanBePooled:Boolean; Override;
-
-      Function SortID:Integer; Override;
 
       Procedure Update(View:TERRAViewport); Virtual;
 
       Procedure GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType); Virtual;
+      Procedure GetMaterialDetails(Out Shader:ShaderInterface; Out Texture:TERRATexture); Virtual;
 
       Function GetBoundingBox:BoundingBox; Virtual;
 
       Function TestVisibility(View:TERRAViewport):Boolean; Virtual;
 
+      Function IsCompatibleWith(Other:TERRARenderable):Boolean;
+
       Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Virtual; Abstract;
 
-      Procedure OnAddToList(View:TERRAViewport; Target:TERRAList); Virtual;
+      Procedure OnAddToList(View:TERRAViewport; Target:RenderableManager); Virtual;
 
       Procedure RenderLights(View:TERRAViewport); Virtual;
   End;
 
-(*  TERRASpriteRenderer = Class(TERRAObject)
-    Protected
-      _SpriteList:Array Of TERRASprite;
-      _SpriteCount:Integer;
+  RenderableItem = Record
+    SortKey:Cardinal;
+    Renderable:TERRARenderable;
+  End;
 
-      Procedure RenderSprite(Sprite:TERRASprite; Const ProjectionMatrix, TransformMatrix:Matrix4x4; Stage:RendererStage);
+  RenderableArray = Array Of RenderableItem;
 
-   Public
-      Procedure InitBatches();
-      Procedure Release; Override;
+  RenderableList = Object
+    Count:Cardinal;
+    Items:RenderableArray;
+    Temp:RenderableArray;
 
-      Procedure Prepare;
-      Procedure Render(Const ProjectionMatrix, TransformMatrix:Matrix4x4; Stage:RendererStage);
-      Procedure Clear;
+    Procedure Init(Size:Cardinal);
+    Procedure Push(View:TERRAViewport; Renderable:TERRARenderable);
 
-      Procedure QueueSprite(S:TERRASprite);
+    Procedure Grow();
 
-      { Fetches a temporary sprite that will be disposed in the next frame }
-      Function FetchSprite():TERRASprite; //Const Layer:Single; SpriteTexture:TERRATexture; ColorTable:TERRATexture = Nil; BlendMode:Integer = blendBlend;  Saturation:Single = 1.0; Filter:TextureFilterMode = filterLinear; Shader:ShaderInterface = Nil):TERRASprite;
-  End;*)
+    Procedure ByteRadixSort(Var Dest, Source:RenderableArray; ShiftCount:integer);
+    Procedure Sort();
+  End;
 
   RenderableManager = Class(TERRAObject)
     Protected
-      _Renderables:TERRAList;
+      _Batches:TERRAHashMap;
+
+      _Renderables:RenderableList;
 
     Public
 
@@ -105,20 +101,14 @@ Type
       Procedure Clear();
 
       Function AddRenderable(View:TERRAViewport; Renderable:TERRARenderable):Boolean;
-      Procedure DeleteRenderable(MyRenderable:TERRARenderable);
+      Procedure DeleteRenderable(Renderable:TERRARenderable);
   End;
 
 
 Implementation
-Uses TERRA_Engine, TERRA_GraphicsManager, TERRA_RendererStats;
+Uses TERRA_Engine, TERRA_GraphicsManager, TERRA_RendererStats, TERRA_GeometryBatching;
 
 { TERRARenderable }
-procedure TERRARenderable.Release;
-Begin
-  If Assigned(_Manager) Then
-    _Manager.DeleteRenderable(Self);
-End;
-
 procedure TERRARenderable.RenderLights(View: TERRAViewport);
 Begin
   // do nothing
@@ -131,13 +121,8 @@ End;
 
 Function TERRARenderable.GetBoundingBox: BoundingBox;
 Begin
-     Result.StartVertex := Vector3D_Zero;
-     Result.EndVertex := Vector3D_Zero;
-End;
-
-function TERRARenderable.SortID: Integer;
-Begin
-  Result := Self._RenderKey;
+  Result.StartVertex := Vector3D_Zero;
+  Result.EndVertex := Vector3D_Zero;
 End;
 
 Procedure TERRARenderable.GetBucketDetails(View: TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType);
@@ -152,16 +137,50 @@ Begin
   Result := True;
 End;
 
-Procedure TERRARenderable.OnAddToList(View:TERRAViewport; Target:TERRAList);
+Procedure TERRARenderable.OnAddToList(View:TERRAViewport; Target:RenderableManager);
 Var
-  Depth:Cardinal;
-  Layer:RenderableLayer;
-  AlphaType:RenderableAlphaType;
-Begin
-  Self.GetBucketDetails(View, Depth, Layer, AlphaType);
-  Self._RenderKey := Depth;
+  It:TERRAIterator;
+  Other:TERRARenderable;
+  Batch:TERRAGeometryBatch;
 
-  Target.Add(Self);
+  BatchKey:TERRAString;
+  Shader: ShaderInterface;
+  Texture: TERRATexture;
+Begin
+(*  Self.GetMaterialDetails(Shader, Texture);
+  BatchKey := Shader.Name +'_'+Texture.Name;
+
+//  s
+
+(*  It := Target.GetIterator();
+  While It.HasNext Do
+  Begin
+    Other := TERRARenderable(It.Value);
+
+    If (Self.IsCompatibleWith(Other)) Then
+    Begin
+
+      If (Other Is TERRAGeometryBatch) Then
+      Begin
+        Batch := TERRAGeometryBatch(Other);
+        If Batch.MergeRenderable(Self) Then
+        Begin
+          ReleaseObject(It);
+          Exit;
+        End;
+
+      End Else
+      Begin
+
+      End;
+
+      Break;
+    End;
+  End;
+  ReleaseObject(It);
+*)
+
+  Target._Renderables.Push(View, Self);
 End;
 
 Function TERRARenderable.TestVisibility(View: TERRAViewport): Boolean;
@@ -169,69 +188,77 @@ Begin
   Result := View.Camera.IsBoxVisible(Self.GetBoundingBox);
 End;
 
+Function TERRARenderable.IsCompatibleWith(Other: TERRARenderable): Boolean;
+Begin
+  Result := (Other.ClassType = Self.ClassType);
+End;
+
+Procedure TERRARenderable.GetMaterialDetails(out Shader: ShaderInterface; out Texture: TERRATexture);
+Begin
+  Shader := Nil;
+  Texture := Nil;
+End;
+
 { RenderableManager }
 Constructor RenderableManager.Create();
 Begin
-  _Renderables := TERRAList.Create(collection_Sorted_Ascending, coShared);
+  _Renderables.Init(1024);
+//  _Batches := TERRAHashMap.Create();
+End;
+
+Procedure RenderableManager.Release;
+Begin
+//  ReleaseObject(_Renderables);
+//  ReleaseObject(_Batches);
 End;
 
 Procedure RenderableManager.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
-  It:TERRAIterator;
+  I:Integer;
   Renderable:TERRARenderable;
 Begin
+  If (Stage = renderStageDiffuse) Then
+    _Renderables.Sort();
+
   {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Rendering bucket'); {$ENDIF}
 
-  It := _Renderables.GetIterator();
-  While (It.HasNext) Do
+  For I:=0 To Pred(_Renderables.Count) Do
   Begin
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Fetching next...');{$ENDIF}
     {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', P.ToString());{$ENDIF}
 
-    Renderable := TERRARenderable(It.Value);
+    Renderable := _Renderables.Items[I].Renderable;
     If (Assigned(Renderable)) Then
     Begin
       {If (Not Engine.Graphics.ReflectionActive) Or (Renderable.RenderFlags And renderFlagsSkipReflections=0) Then}
         Renderable.Render(View, Stage);
     End;
   End;
-  ReleaseObject(It);
-
-  (*
-
-    If (_RenderStage <> renderStageNormal) Then
-    Begin
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderDecals');{$ENDIF}
-      DecalManager.Instance.Render();
-
-      {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'GraphicsManager', 'Scene.RenderBillboards');{$ENDIF}
-      BillboardManager.Instance.Render();
-    End;
-*)
 End;
 
 
-Procedure RenderableManager.DeleteRenderable(MyRenderable:TERRARenderable);
+Procedure RenderableManager.DeleteRenderable(Renderable:TERRARenderable);
+Var
+  I:Integer;
+  Temp:TERRARenderable;
 Begin
-  If Assigned(_Renderables) Then
-    _Renderables.Remove(MyRenderable);
+  For I:=0 To Pred(_Renderables.Count) Do
+  Begin
+    Temp := _Renderables.Items[I].Renderable;
+    If (Temp = Renderable) Then
+      _Renderables.Items[I].Renderable := Nil;
+  End;
 End;
 
 Procedure RenderableManager.Clear;
 Var
-  It:TERRAIterator;
-  Renderable:TERRARenderable;
+  I:Integer;
 Begin
-  It := _Renderables.GetIterator();
-  While (It.HasNext) Do
-  Begin
-    Renderable := TERRARenderable(It.Value);
-    If Renderable.Temporary Then
-      ReleaseObject(Renderable);
-  End;
-  ReleaseObject(It);
+  For I:=0 To Pred(_Renderables.Count) Do
+  If (Assigned(_Renderables.Items[I].Renderable)) And (_Renderables.Items[I].Renderable.Temporary) Then
+    ReleaseObject(_Renderables.Items[I].Renderable);
 
-  _Renderables.Clear();
+  _Renderables.Count := 0;
 End;
 
 Function RenderableManager.AddRenderable(View:TERRAViewport; Renderable:TERRARenderable):Boolean;
@@ -248,8 +275,6 @@ Begin
     Result := False;
     Exit;
   End;
-
-  Renderable._Manager := Self;
 
   {$IFDEF REFLECTIONS_WITH_STENCIL}
   If (_RenderStage = renderStageReflection) Then
@@ -291,15 +316,97 @@ Begin
 
   Graphics.Renderer.Stats.Update(RendererStat_Renderables);
 
-  Renderable.OnAddToList(View, _Renderables);
+  Renderable.OnAddToList(View, Self);
 
   Result := True;
 End;
 
-procedure RenderableManager.Release;
-begin
-  ReleaseObject(_Renderables);
+
+{ RenderableList }
+Procedure RenderableList.ByteRadixSort(var Dest, Source: RenderableArray; ShiftCount: integer);
+Var
+  Histogram : array [0..255] of integer;
+  OffsetTable : array [0..255] of integer;
+  Index : integer;
+  Swap:RenderableItem;
+  Value, ValueToIndex :Cardinal;
+Begin
+  // biuld the histogram
+  fillchar(Histogram[0], sizeof(Histogram), 0 );
+  For index := 0 to Pred(Count) Do
+  begin
+    Value := Source[index].SortKey;
+    ValueToIndex := ( Value shr ShiftCount ) and $FF;
+    inc( Histogram[ ValueToIndex ] );
+  end;
+
+  // biuld the offsettable
+  OffsetTable[0] := 0;
+  for index := 1 to 255 do
+  OffsetTable[index] := OffsetTable[index-1] + Histogram[index-1];
+
+  // do the inner loop of the radix sort
+  for index := 0 to Pred(Count) do
+  begin
+    Swap := Source[index];
+    Value := Swap.SortKey;
+    ValueToIndex := ( value shr ShiftCount ) and $FF;
+    Dest[OffsetTable[ ValueToIndex ] ] := Swap;
+    inc( OffsetTable[ ValueToIndex ] );
+  end;
 End;
 
+Procedure RenderableList.Sort;
+Begin
+  // sort based on the 1st byte
+  byteRadixSort(Temp, Items, 0);
+
+  // sort based on the 2nd byte
+  byteRadixSort(Items, Temp, 8);
+
+  // sort based on the 3rd byte
+  byteRadixSort(Temp, Items, 16);
+
+  // sort based on the 4th byte
+  byteRadixSort(Items, Temp, 24);
+End;
+
+Procedure RenderableList.Init(Size: Cardinal);
+Begin
+  SetLength(Items, Size);
+  SetLength(Temp, Size);
+  Count := 0;
+End;
+
+Procedure RenderableList.Push(View:TERRAViewport; Renderable:TERRARenderable);
+Var
+  Depth:Cardinal;
+  Layer:RenderableLayer;
+  AlphaType:RenderableAlphaType;
+Begin
+  If Renderable = Nil Then
+    Exit;
+
+  Renderable.GetBucketDetails(View, Depth, Layer, AlphaType);
+
+  Self.Grow();
+
+  Items[Pred(Count)].Renderable := Renderable;
+  Items[Pred(Count)].SortKey := Depth;
+End;
+
+Procedure RenderableList.Grow;
+Var
+  NewLen:Integer;
+Begin
+  Inc(Count);
+
+  While (Length(Items)<Count) Do
+  Begin
+    NewLen := Length(Items) * 2;
+    SetLength(Items, NewLen);
+    SetLength(Temp, NewLen);
+  End;
+End;
 
 End.

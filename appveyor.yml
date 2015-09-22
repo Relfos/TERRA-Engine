@@ -41,6 +41,7 @@ install:
 
 build_script:
   - SET PATH=%PATH%;%COMPILER_PATH%
+  - copy Tests/TERRATest.dpr Build/TERRATest.dpr
   - cd Build
   - compile_tests.bat
   - TERRATest.exe
