@@ -27,64 +27,89 @@ var
   Form1: TForm1;
 
 implementation
-Uses TERRA_Utils, TERRA_Object, TERRA_Application, TERRA_VCLApplication, TERRA_OS, TERRA_Scene, TERRA_Texture,
+Uses TERRA_Utils, TERRA_Object, TERRA_Application, TERRA_VCLApplication, TERRA_OS, TERRA_Texture,
   TERRA_Viewport, TERRA_FileManager, TERRA_Sprite, TERRA_PNG,
   TERRA_Engine, TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color;
 
 {$R *.dfm}
 
 Type
-  MyScene = Class(TERRAScene)
-    Procedure RenderViewport(V:TERRAViewport); Override;
+  MyVCLApp = Class(VCLApplication)
+    Public
+      Procedure RenderMainViewport(V:TERRAViewport);
+      Procedure RenderSideViewport(V:TERRAViewport);
   End;
 
 Var
   _Tex:TERRATexture = Nil;
-  _Scene:MyScene;
   _ExtraView:TERRAVCLViewport;
 
-  _MyApp:VCLApplication;
+  _MyApp:MyVCLApp;
 
-{ MyScene }
-Procedure MyScene.RenderViewport(V: TERRAViewport);
+Procedure MyVCLApp.RenderMainViewport(V: TERRAViewport);
 Var
-  S:QuadSprite;
+  S:TERRASprite;
   Angle:Single;
 Begin
-  If (V<>_ExtraView.Viewport) Then
-    Exit;
-
   // A rotating sprite in the bottom, with Scale = 4x
   Angle := RAD * ((Application.GetTime() Div 15) Mod 360);
-  S := V.SpriteRenderer.DrawSprite(100, 100, 50, _Tex);
-  S.SetScaleAndRotationRelative(VectorCreate2D(0.5, 0.5), 4.0, Angle);  // Calculate rotation, in degrees, from current time
+  S := Engine.FetchSprite();
+  S.SetTexture(_Tex);
+  S.Layer := 50;
+  S.Rotate(Angle);
+  S.Scale(3);
+  S.Translate(100, 100);
+
+  S.AddQuad(SpriteAnchor_Center, Vector2D_Zero, 0.0, _Tex.Width, _Tex.Height);
+  Engine.Graphics.AddRenderable(V, S);
+
+  Inherited;
+End;
+
+Procedure MyVCLApp.RenderSideViewport(V: TERRAViewport);
+Var
+  S:TERRASprite;
+  Scale:Single;
+Begin
+  // A rotating sprite in the bottom, with Scale = 4x
+  Scale := 2 * Abs(Cos(RAD * ((Application.GetTime() Div 15) Mod 360))) + 0.25;
+  S := Engine.FetchSprite();
+  S.SetTexture(_Tex);
+  S.Layer := 50;
+  S.Scale(Scale);
+  S.Translate(100, 100);
+
+  S.AddQuad(SpriteAnchor_Center, Vector2D_Zero, 0.0, _Tex.Width, _Tex.Height);
+  Engine.Graphics.AddRenderable(V, S);
+
+  Inherited;
 End;
 
 Procedure TForm1.FormCreate(Sender: TObject);
 Begin
-  _MyApp := VCLApplication.Create(Panel1);
+  _MyApp := MyVCLApp.Create(Panel1);
+  _MyApp.Viewport.OnRender := _MyApp.RenderMainViewport;
+  _MyApp.Viewport.BackgroundColor := ColorRed;
+
+  _ExtraView := TERRAVCLViewport.Create(Image1);
+  _MyApp.AddRenderTarget(_ExtraView);
+
+  _ExtraView.Viewport.OnRender := _MyApp.RenderSideViewport;
+  _ExtraView.Viewport.BackgroundColor := ColorBlue;
 
   // Added Asset folder to search path
-  FileManager.Instance.AddPath('assets');
+  Engine.Files.AddFolder('assets');
 
   // Load a Tex
   _Tex := Engine.Textures['ghost'];
 
-  // Create a scene and set it as the current scene
-  _Scene := MyScene.Create;
-  GraphicsManager.Instance.SetScene(_Scene);
-
   // set background color
-  GraphicsManager.Instance.DeviceViewport.BackgroundColor := ColorGreen;
-
-  _ExtraView := TERRAVCLViewport.Create(Image1);
-  _MyApp.AddRenderTarget(_ExtraView);
+  Engine.Graphics.DeviceViewport.BackgroundColor := ColorGreen;
 End;
 
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
-  ReleaseObject(_Scene);
   Application.Instance.Terminate();
 end;
 

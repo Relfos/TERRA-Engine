@@ -135,6 +135,7 @@ End;
 
 procedure VCLApplication.AddRenderTarget(V: TERRAVCLViewport);
 Begin
+  V.Viewport.AutoResolve := True;
   Inc(_ViewportCount);
   SetLength(_Viewports, _ViewportCount);
   _Viewports[Pred(_ViewportCount)] := V;
