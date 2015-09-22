@@ -136,7 +136,7 @@ Begin
     TY:=0;
   End;
 
-  FR.DrawTextToSprite(TX, TY, Self.GetLayer(), _Text, FontSprite(_Sprite));
+  FR.DrawTextToSprite(UIView(View).Viewport,  TX, TY, Self.GetLayer(), _Text, FontSprite(_Sprite));
 
   //DrawClipRect(UIView(View).Viewport, Self.ClipRect, ColorRed);
   //DrawRectangle(View, Vector2D_Create(TX + Self.AbsolutePosition.X, TY + Self.AbsolutePosition.Y), Vector2D_Create(TX + Self.AbsolutePosition.X + Self.FullSize.X, TY + Self.AbsolutePosition.Y + Self.FullSize.Y), ColorGreen);

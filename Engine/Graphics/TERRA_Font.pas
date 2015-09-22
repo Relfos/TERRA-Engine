@@ -673,7 +673,7 @@ Begin
   Self.Flags := Self.Flags Or Sprite_Font;
   Self.SetUVs(Item.U1, Item.V1, Item.U2, Item.V2);
   Self.SetCornerColors(A, B, C, D);
-  Self.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(X , Y + Glyph.YOfs * FontInvScale * _Scale), 0.0, Width *FontInvScale, Height* FontInvScale, Skew);
+  Self.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(X, Y + Glyph.YOfs * FontInvScale * _Scale), 0.0, Width *FontInvScale, Height* FontInvScale, Skew);
 End;
 
 
