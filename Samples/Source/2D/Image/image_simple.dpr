@@ -3,7 +3,6 @@
 
 uses
   TERRA_Application,
-  TERRA_Scene,
   TERRA_GraphicsManager,
   TERRA_Viewport,
   TERRA_DemoApplication,
@@ -12,6 +11,7 @@ uses
   TERRA_Utils,
   TERRA_Object,
   TERRA_OS,
+  TERRA_Engine,
   TERRA_PNG,
   TERRA_Sprite,
   TERRA_FileManager,
@@ -29,7 +29,7 @@ Type
   Demo = Class(DemoApplication)
     Protected
 			Procedure OnCreate; Override;
-			Procedure OnRender(V:TERRAViewport); Override;
+			Procedure OnRender2D(V:TERRAViewport); Override;
   End;
 
 
@@ -40,7 +40,7 @@ Var
 Procedure Demo.OnCreate;
 Var
   I:Integer;
-  Img:Image;
+  Img:TERRAImage;
   It:ImageIterator;
 
   U, V:Single;
@@ -48,8 +48,10 @@ Var
 Begin
   Inherited;
 
+  Self.GUI.Viewport.Visible := True;
+
   // create a image at run-time
-  Img := Image.Create(256, 256);
+  Img := TERRAImage.Create(256, 256);
 
   // fill with red color
   It := Img.RectangleByUV(0, 0, 1, 1, [image_Write, image_Fill]);
@@ -83,17 +85,24 @@ Begin
   End;
 
   // Create a texture from a image
-  Tex := TERRATexture.Create(rtDynamic, '');
+  Tex := TERRATexture.Create(rtDynamic);
   Tex.InitFromImage(Img);
 
   ReleaseObject(Img);
 End;
 
-Procedure Demo.OnRender(V:TERRAViewport);
+Procedure Demo.OnRender2D(V:TERRAViewport);
 Var
-  S:QuadSprite;
+  S:TERRASprite;
 Begin
-  S := V.SpriteRenderer.DrawSprite(20, 20, 50, Tex);
+  S := Engine.FetchSprite();
+  S.SetTexture(Tex);
+  S.Layer := 50;
+  S.Translate(20, 20);
+  S.AddQuad(SpriteAnchor_TopLeft, Vector2D_Zero, 0, Tex.Width, Tex.Height);
+  Engine.Graphics.AddRenderable(V, S);
+
+  Inherited;
 End;
 
 Begin
