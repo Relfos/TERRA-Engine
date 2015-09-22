@@ -49,14 +49,14 @@ Begin
   Else
     Visual := BodyTex;
 
-  S := V.SpriteRenderer.FetchSprite();
+  S := Engine.FetchSprite();
   S.Layer := 10;
   S.SetTexture(Visual);
 
   S.AddQuad(spriteAnchor_Center, Vector2D_Create(0.0, 0.0), 0.0, SnakeSize, SnakeSize);
   S.SetTransform(Mat);
 
-  V.SpriteRenderer.QueueSprite(S);
+  Engine.Graphics.AddRenderable(V, S);
 
   If Assigned(Bone.Child) Then
     DrawBone(Bone.Child, V);

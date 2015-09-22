@@ -3,26 +3,26 @@
 
 uses
   TERRA_Application,
-  TERRA_Scene,
   TERRA_GraphicsManager,
   TERRA_Viewport,
   TERRA_DemoApplication,
   TERRA_ResourceManager,
   TERRA_Texture,
-  TERRA_String,
   TERRA_Utils,
   TERRA_Object,
   TERRA_OS,
+  TERRA_Engine,
   TERRA_PNG,
   TERRA_Sprite,
   TERRA_FileManager,
   TERRA_Math,
+  TERRA_String,
   TERRA_Image,
   TERRA_Color,
+  TERRA_LineDrawing,
   TERRA_Resource,
   TERRA_Vector3D,
   TERRA_Vector2D,
-  TERRA_LineDrawing,
   TERRA_Renderer,
   TERRA_InputManager;
 
@@ -31,7 +31,7 @@ Type
   Demo = Class(DemoApplication)
     Protected
 			Procedure OnCreate; Override;
-			Procedure OnRender(V:TERRAViewport); Override;
+			Procedure OnRender2D(V:TERRAViewport); Override;
   End;
 
 
@@ -41,7 +41,7 @@ Var
 { Game }
 Procedure Demo.OnCreate;
 Var
-  Img:Image;
+  Img:TERRAImage;
   S:TERRAString;
   Count:Integer;
   I,W,H:Integer;
@@ -56,17 +56,18 @@ Var
 
   Function Hershey(C:TERRAChar):Integer;
   Begin
-    Result := C - Ord('R');
+    Result := Ord(C) - Ord('R');
   End;
 Begin
   Inherited;
 
-  FileManager.Instance.AddPath('assets');
+  Self.GUI.Viewport.Visible := True;
+
 
   // create a image at run-time
   W := 50;
   H := 50;
-  Img := Image.Create(W*2, H*2);
+  Img := TERRAImage.Create(W*2, H*2);
 
   S := '    8  9MWOMOV RUMUV ROQUQ';
   //S := '   34 20MXRMPNOPOSPURVSVUUVSVPUNSMRM RQQTR RTQQR';
@@ -77,9 +78,9 @@ S := '607 23I\XMX]W`VaTbQbOa RXPVNTMQMONMPLSLUMXOZQ[T[VZXX';
 
   Scale := 4;
 
-  ID := StringToCardinal(StringGetNextSplit(S, 32));
+  ID := StringToCardinal(StringGetNextSplit(S, ' '));
   CA := StringGetChar(S, 2);
-  If (CA>=Ord('0')) And (CA<=Ord('9')) Then
+  If (CA>='0') And (CA<='9') Then
     I := 2
   Else
     I := 1;
@@ -101,7 +102,7 @@ S := '607 23I\XMX]W`VaTbQbOa RXPVNTMQMONMPLSLUMXOZQ[T[VZXX';
     CB := StringGetChar(S, 2);
     S := StringCopy(S, 3, MaxInt);
 
-    If (CA=32) And (CB=Ord('R')) Then
+    If (CA=' ') And (CB='R') Then
     Begin
       Moving := True;
       Continue;
@@ -139,22 +140,30 @@ S := '607 23I\XMX]W`VaTbQbOa RXPVNTMQMONMPLSLUMXOZQ[T[VZXX';
 
 
   // Create a texture from a image
-  Tex := TERRATexture.Create(rtDynamic, '');
+  Tex := TERRATexture.Create(rtDynamic);
   Tex.InitFromImage(Img);
 
   ReleaseObject(Img);
 End;
 
-Procedure Demo.OnRender(V:TERRAViewport);
+Procedure Demo.OnRender2D(V:TERRAViewport);
 Var
-  S:QuadSprite;
+  S:TERRASprite;
 Begin
-  S := V.SpriteRenderer.DrawSprite(20, 20, 50, Tex);
+  S := Engine.FetchSprite();
+  S.SetTexture(Tex);
+  S.Layer := 50;
+  S.Translate(20, 20);
+  S.AddQuad(SpriteAnchor_TopLeft, Vector2D_Zero, 0, Tex.Width, Tex.Height);
+  Engine.Graphics.AddRenderable(V, S);
+
+  Inherited;
 End;
 
 Begin
   // Start the application
   Demo.Create();
 End.
+
 
 

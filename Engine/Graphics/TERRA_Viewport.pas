@@ -160,7 +160,7 @@ Type
       Function ProjectPoint(Const Pos:Vector3D):Vector3D;
       Function ProjectBoundingBox(Const Box:BoundingBox):BoundingBox;
 
-      Function GetPickRay(TX,TY:Single):Ray;
+      Function GetPickRay(TX,TY:Single):TERRARay;
 
       Procedure SetBackgroundColor(BG:ColorRGBA);
 
@@ -416,32 +416,19 @@ Begin
   Result := Vector3D_Create(P.X/P.W, P.Y/P.W, P.Z/P.W);
 End;
 
-Function TERRAViewport.GetPickRay(TX, TY:Single):Ray;
+Function TERRAViewport.GetPickRay(TX, TY:Single):TERRARay;
 Var
   N,F:Vector3D;
-  Px, Py:Single;
 Begin
-  TX := Trunc(TX);
-  TY := Trunc(TY);
+  TY := 1.0 - TY;
 
-  {If (IsLandscapeOrientation(Application.Instance.Orientation)) Then
-  Begin
-    TY := _Width - TY;
-    TX := _Height - TX;
+  TX := TX;
+  TY := TY;
 
-  	PY := TX * (GraphicsManager.Instance.Width/_Width);
-	  PX := TY * (GraphicsManager.Instance.Height/_Height);
-  End Else}
-  Begin
-    TY := _Height - TY;
-  	Px := TX * (Application.Instance.Window.Width/_Width);
-	  Py := TY * (Application.Instance.Window.Height/_Height);
-  End;
-
-  Px := TX;
-  Py := TY;
-  N := UnprojectVector(px, py, 0.0);
-	F := UnprojectVector(px, py, 1.0);
+  TX := TX * Self.Width;
+  TY := TY * Self.Height;
+  N := UnprojectVector(TX, TY, 0.0);
+	F := UnprojectVector(Tx, TY, 1.0);
 
   Result.Direction := Vector3D_Subtract(F, N);
   Result.Direction.Normalize;

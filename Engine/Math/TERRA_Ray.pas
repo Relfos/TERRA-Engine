@@ -28,8 +28,7 @@ Interface
 Uses TERRA_Math, TERRA_BoundingBox, TERRA_Vector3D, TERRA_Plane;
 
 Type
-  PRay=^Ray;
-  Ray = Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
+  TERRARay = Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
     Public
       Origin:Vector3D;
       Direction:Vector3D;
@@ -44,17 +43,17 @@ Type
       Function IntersectionPoint(Const T:Single):Vector3D;
   End;
 
-Function RayCreate(Origin, Direction:Vector3D):Ray;
+Function RayCreate(Origin, Direction:Vector3D):TERRARay;
 
 Implementation
 
-Function RayCreate(Origin, Direction:Vector3D):Ray;
+Function RayCreate(Origin, Direction:Vector3D):TERRARay;
 Begin
   Result.Origin := Origin;
   Result.Direction := Direction;
 End;
 
-Function Ray.TriangleIntersect(Const V0,V1,V2:Vector3D;  Var T,U,V:Single):Boolean;
+Function TERRARay.TriangleIntersect(Const V0,V1,V2:Vector3D;  Var T,U,V:Single):Boolean;
 Var
   Edge1,Edge2:Vector3D;
   PVec,TVec,QVec:Vector3D;
@@ -103,7 +102,7 @@ Begin
   Result := (T>=0.0);
 End;
 
-Function Ray.Intersect(Const P:Plane; Var T:Single):Boolean;
+Function TERRARay.Intersect(Const P:Plane; Var T:Single):Boolean;
 Begin
   T := -(P.A * Origin.X + P.B * Origin.Y + P.C * Origin.Z + P.D) / (P.A * Direction.X + P.B * Direction.Y + P.C * Direction.Z);
 
@@ -116,7 +115,7 @@ Begin
   Result := True;
 End;
 
-Function Ray.SphereIntersect(Const Position:Vector3D; Const Radius:Single; Var T:Single):Boolean;
+Function TERRARay.SphereIntersect(Const Position:Vector3D; Const Radius:Single; Var T:Single):Boolean;
 Var
   Dest:Vector3D;
   B,C,D:Single;
@@ -133,7 +132,7 @@ Begin
   End;
 End;
 
-Function Ray.Intersect(Const A:BoundingBox; Var T:Single; Out Normal:Vector3D):Boolean;
+Function TERRARay.Intersect(Const A:BoundingBox; Var T:Single; Out Normal:Vector3D):Boolean;
 Const
   Normals:Array[0..5] Of Vector3D = ((X:1; Y:0; Z:0), (X:0; Y:1; Z:0), (X:0; Y:0; Z:1), (X:-1; Y:0; Z:0), (X:0; Y:-1; Z:0), (X:0; Y:0; Z:-1));
 Var
@@ -315,7 +314,8 @@ Begin
 	Result := Hit;
 End;
 *)
-Function Ray.IntersectionPoint(Const T:Single):Vector3D;
+
+Function TERRARay.IntersectionPoint(Const T:Single):Vector3D;
 Begin
   Result := Vector3D_Add(Origin, Vector3D_Scale(Direction, T));
 End;

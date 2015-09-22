@@ -439,6 +439,8 @@ Type
       Function GetBoundingBox:BoundingBox; Override;
       Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
 
+      Function Intersect(const R:TERRARay; var T:Single): Boolean;
+
       Function GetAttach(Index:Integer):PMeshAttach;
 
       Procedure SetLightState(Index:Integer; Enabled:Boolean);
@@ -689,7 +691,7 @@ Type
 
       //Function DuplicateVertex(Index:Integer):Integer;
 
-      Function Intersect(Const R:Ray; Var T:Single; Const Transform:Matrix4x4):Boolean;
+      Function Intersect(Const R:TERRARay; Var T:Single; Const Transform:Matrix4x4):Boolean;
 
       Procedure SetTriangle(Const T:Triangle; Index:Integer);
       Function GetTriangle(Index:Integer):Triangle;
@@ -814,7 +816,7 @@ Type
 
       Procedure Clone(Source:TERRAMesh);
 
-      Function Intersect(Const R:Ray; Var T:Single; Const Transform:Matrix4x4):Boolean;
+      Function Intersect(Const R:TERRARay; Var T:Single; Const Transform:Matrix4x4):Boolean;
 
 			Property BoundingBox:BoundingBox Read _BoundingBox;
 
@@ -2960,6 +2962,14 @@ Begin
   _Lights[Index].Enabled := Enabled;
 End;
 
+Function MeshInstance.Intersect(const R: TERRARay; var T: Single): Boolean;
+Begin
+  If Assigned(Self.Geometry) Then
+    Result := Self.Geometry.Intersect(R, T, Self.Transform)
+  Else
+    Result := False;
+End;
+
 { MeshGroup }
 Procedure MeshGroup.Release;
 Begin
@@ -3841,7 +3851,7 @@ Begin
   ReleaseObject(It);
 End;
 
-Function MeshGroup.Intersect(const R: Ray; var T: Single; Const Transform:Matrix4x4): Boolean;
+Function MeshGroup.Intersect(const R:TERRARay; var T: Single; Const Transform:Matrix4x4): Boolean;
 Var
   I:Integer;
   V0,V1,V2:Vector3D;
@@ -5835,7 +5845,7 @@ Begin
   Result := True;
 End;
 
-Function TERRAMesh.Intersect(const R: Ray; var T:Single; Const Transform:Matrix4x4): Boolean;
+Function TERRAMesh.Intersect(const R:TERRARay; var T:Single; Const Transform:Matrix4x4): Boolean;
 Var
   I:Integer;
 Begin

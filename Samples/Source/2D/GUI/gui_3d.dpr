@@ -39,14 +39,8 @@ Type
     Public
 			Procedure OnCreate; Override;
       Procedure OnDestroy; Override;
-      Procedure OnRender2D(V: TERRAViewport); Override;
+
       Procedure OnRender3D(V: TERRAViewport); Override;
-  End;
-
-
-  DemoUIController = Class(UIController)
-    Public
-      Constructor Create();
 
       Procedure OnMyButtonClick(Src:UIWidget);
   End;
@@ -59,7 +53,6 @@ Var
   MyUIProxy:UIPerspectiveView;
 
   MyWnd, MyBtn:UIWidget;
-  MyController:UIController;
 
 Procedure MyDemo.OnCreate;
 Begin
@@ -72,26 +65,21 @@ Begin
   UITemplates.AddTemplate(UIWindowTemplate.Create('wnd_template', Engine.Textures.GetItem('ui_window'), 45, 28, 147, 98));
   UITemplates.AddTemplate(UIButtonTemplate.Create('btn_template', Engine.Textures.GetItem('ui_button2'), 25, 10, 220, 37));
 
-  MyController := DemoUIController.Create();
-
-  MyUI := UIView.Create('demo3dgui', UIPixels(960), UIPixels(640));
+  MyUI := UIView.Create('demo3dgui', UIPixels(960), UIPixels(640), 0.0);
   MyUI.Viewport.BackgroundColor := ColorBlue;
-  MyUI.Viewport.AutoResolve := True;
-  MyUI.Viewport.FXChain.AddEffect(VignetteFX.Create());
+//  MyUI.Viewport.FXChain.AddEffect(VignetteFX.Create());
 
   MyUIProxy := UIPerspectiveView.Create('proxy', MyUI);
   MyUIProxy.SetScale(Vector3D_Constant(4));
   MyUIProxy.SetPosition(Vector3D_Create(0, 4, -4.1));
   MyUIProxy.SetRotation(Vector3D_Create(-90*RAD, 0, 0));
 
-  MyWnd := UIInstancedWidget.Create('mywnd', MyUI, 0, 0, 10, UIPixels(643), UIPixels(231), 'wnd_template');
+  MyWnd := UIInstancedWidget.Create('mywnd', MyUI, UIPixels(0), UIPixels(0), 10, UIPixels(643), UIPixels(231), 'wnd_template');
   MyWnd.Draggable := True;
-  MyWnd.Align := waCenter;
-  MyWnd.Controller := MyController;
+  MyWnd.Align := UIAlign_Center;
 
-  MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, 0, 0, 1, UIPixels(250), UIPixels(50), 'btn_template');
-  MyBtn.Align := waCenter;
-  MyBtn.Controller := MyController;
+  MyBtn := UIInstancedWidget.Create('mybtn', MyWnd, UIPixels(0), UIPixels(0), 1, UIPixels(250), UIPixels(50), 'btn_template');
+  MyBtn.Align := UIAlign_Center;
 //  MyBtn.SetPropertyValue('caption', 'custom caption!');
 
   DiffuseTex := Engine.Textures.GetItem('metal_diffuse');
@@ -108,30 +96,15 @@ Begin
   Inherited;
 End;
 
-Procedure MyDemo.OnRender2D(V: TERRAViewport);
-Begin
-  Engine.Graphics.AddRenderable(V, MyUI);
-
-  Inherited;
-End;
-
 Procedure MyDemo.OnRender3D(V: TERRAViewport);
 Begin
   Inherited;
+
   Engine.Graphics.AddRenderable(V, Solid);
   Engine.Graphics.AddRenderable(V, MyUIProxy);
 End;
 
-// GUI event handlers
-// All event handlers must be procedures that receive a Widget as argument
-// The Widget argument provides the widget that called this event handler
-Constructor DemoUIController.Create;
-Begin
-  Self._ObjectName := 'demo';
-  SetHandler(widgetEvent_MouseDown, OnMyButtonClick); // Assign a onClick event handler
-End;
-
-Procedure DemoUIController.OnMyButtonClick(Src:UIWidget);
+Procedure MyDemo.OnMyButtonClick(Src:UIWidget);
 Begin
  // MyUI.MessageBox('You clicked the button!');
 End;

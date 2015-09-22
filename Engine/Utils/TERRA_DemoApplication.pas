@@ -259,7 +259,7 @@ End;
 
 Procedure DemoApplication.OnRender3D(V: TERRAViewport);
 Var
-  R:Ray;
+  R:TERRARay;
   Dir:Vector3D;
 Begin
   R := V.GetPickRay(Trunc(Engine.Input.Mouse.X), Trunc(Engine.Input.Mouse.Y));

@@ -23,7 +23,7 @@ Uses TERRA_Math;
   end;
 
 
-Procedure WuLine(Target:Image; x1, y1, x2, y2:Integer);
+Procedure WuLine(Target:TERRAImage; x1, y1, x2, y2:Integer);
 var
   a, a_new:Byte;
   gradient, iy: Single;

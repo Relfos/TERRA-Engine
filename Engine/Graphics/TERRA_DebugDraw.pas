@@ -42,7 +42,7 @@ Procedure DrawClipRect(View:TERRAViewport; Const Rect:TERRAClipRect; LineColor:C
 // 3d drawing
 Procedure DrawPoint3D(View:TERRAViewport; Const P:Vector3D; FillColor:ColorRGBA; Radius:Single = 2.0);
 Procedure DrawLine3D(View:TERRAViewport; Const A,B:Vector3D; LineColor:ColorRGBA; LineWidth:Single = 1.0);
-Procedure DrawRay(View:TERRAViewport; Const R:Ray; LineColor:ColorRGBA; LineWidth:Single = 1.0; Length:Single =0);
+Procedure DrawRay(View:TERRAViewport; Const R:TERRARay; LineColor:ColorRGBA; LineWidth:Single = 1.0; Length:Single =0);
 Procedure DrawBoundingBox(View:TERRAViewport; Const MyBox:BoundingBox; LineColor:ColorRGBA; LineWidth:Single = 1.0);
 Procedure DrawSpline(View:TERRAViewport; S:Spline; LineColor:ColorRGBA; LineWidth:Single = 1.0);
 Procedure DrawAxis(V:TERRAViewport; Const Origin, Normal:Vector3D; LineWidth:Single = 1.0);
@@ -215,7 +215,7 @@ Begin
   DrawLine2D(View, ConvertTo2D(View, A), ConvertTo2D(View, B), LineColor, LineWidth);
 End;
 
-Procedure DrawRay(View:TERRAViewport; Const R:Ray; LineColor:ColorRGBA; LineWidth:Single = 1.0; Length:Single =0);
+Procedure DrawRay(View:TERRAViewport; Const R:TERRARay; LineColor:ColorRGBA; LineWidth:Single = 1.0; Length:Single =0);
 Var
   P:Vector3D;
 Begin
