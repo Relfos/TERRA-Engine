@@ -456,7 +456,7 @@ Begin
     Self._NeedTarget[Integer(captureTargetAlpha)] := True;
     {$ENDIF}
 
-    Shader := TERRAShaderGroup.Create();
+    Shader := TERRAShaderGroup.Create('screenfx');
 
     S := '';
 //    Line('version { 110 }');

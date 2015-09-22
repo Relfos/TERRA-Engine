@@ -77,6 +77,9 @@ Type
     Items:RenderableArray;
     Temp:RenderableArray;
 
+    Histogram:Array[0..255] Of Integer;
+    OffsetTable:Array[0..255] Of integer;
+
     Procedure Init(Size:Cardinal);
     Procedure Push(View:TERRAViewport; Renderable:TERRARenderable);
 
@@ -92,6 +95,10 @@ Type
 
       _Renderables:RenderableList;
 
+      Procedure Batch(View:TERRAViewport; Renderable:TERRARenderable);
+
+      Procedure DisposeRenderableAtIndex(I:Integer);
+
     Public
 
       Constructor Create();
@@ -106,7 +113,7 @@ Type
 
 
 Implementation
-Uses TERRA_Engine, TERRA_GraphicsManager, TERRA_RendererStats, TERRA_GeometryBatching;
+Uses TERRA_Engine, TERRA_GraphicsManager, TERRA_RendererStats, TERRA_GeometryBatching, TERRA_Sprite;
 
 { TERRARenderable }
 procedure TERRARenderable.RenderLights(View: TERRAViewport);
@@ -141,15 +148,7 @@ Procedure TERRARenderable.OnAddToList(View:TERRAViewport; Target:RenderableManag
 Var
   It:TERRAIterator;
   Other:TERRARenderable;
-  Batch:TERRAGeometryBatch;
-
-  BatchKey:TERRAString;
-  Shader: ShaderInterface;
-  Texture: TERRATexture;
 Begin
-(*  Self.GetMaterialDetails(Shader, Texture);
-  BatchKey := Shader.Name +'_'+Texture.Name;
-
 //  s
 
 (*  It := Target.GetIterator();
@@ -180,7 +179,7 @@ Begin
   ReleaseObject(It);
 *)
 
-  Target._Renderables.Push(View, Self);
+  Target.Batch(View, Self);
 End;
 
 Function TERRARenderable.TestVisibility(View: TERRAViewport): Boolean;
@@ -191,6 +190,9 @@ End;
 Function TERRARenderable.IsCompatibleWith(Other: TERRARenderable): Boolean;
 Begin
   Result := (Other.ClassType = Self.ClassType);
+
+  If Result Then
+    Result := (TERRASprite(Other).Texture = TERRASprite(Self).Texture);
 End;
 
 Procedure TERRARenderable.GetMaterialDetails(out Shader: ShaderInterface; out Texture: TERRATexture);
@@ -203,13 +205,13 @@ End;
 Constructor RenderableManager.Create();
 Begin
   _Renderables.Init(1024);
-//  _Batches := TERRAHashMap.Create();
+  _Batches := TERRAHashMap.Create();
 End;
 
 Procedure RenderableManager.Release;
 Begin
-//  ReleaseObject(_Renderables);
-//  ReleaseObject(_Batches);
+//  ReleaseObject(_Renderables); no longer a class!
+  ReleaseObject(_Batches);
 End;
 
 Procedure RenderableManager.Render(View:TERRAViewport; Const Stage:RendererStage);
@@ -250,13 +252,24 @@ Begin
   End;
 End;
 
+Procedure RenderableManager.DisposeRenderableAtIndex(I:Integer);
+Var
+  Temp:TERRARenderable;
+Begin
+  Temp := _Renderables.Items[I].Renderable;
+  If (Assigned(Temp)) And (Temp.Temporary) Then
+  Begin
+    ReleaseObject(Temp);
+    _Renderables.Items[I].Renderable := Nil;
+  End;
+End;
+
 Procedure RenderableManager.Clear;
 Var
   I:Integer;
 Begin
   For I:=0 To Pred(_Renderables.Count) Do
-  If (Assigned(_Renderables.Items[I].Renderable)) And (_Renderables.Items[I].Renderable.Temporary) Then
-    ReleaseObject(_Renderables.Items[I].Renderable);
+    DisposeRenderableAtIndex(I);
 
   _Renderables.Count := 0;
 End;
@@ -321,54 +334,98 @@ Begin
   Result := True;
 End;
 
+Procedure RenderableManager.Batch(View:TERRAViewport; Renderable:TERRARenderable);
+Var
+  I:Integer;
+  Other:TERRARenderable;
+  Batch:TERRAGeometryBatch;
+
+  BatchKey:TERRAString;
+  Shader: ShaderInterface;
+  Texture: TERRATexture;
+Begin
+(*  Renderable.GetMaterialDetails(Shader, Texture);
+  BatchKey := Shader.Name +'_'+Texture.Name;
+
+  Batch := TERRAGeometryBatch(_Batches.GetItemByKey(BatchKey));
+  If Assigned(Batch) Then
+  Begin
+    If Batch.MergeRenderable(Renderable) Then
+      Exit;
+  End Else
+  For I:=0 To Pred(_Renderables.Count) Do
+  Begin
+    Other := _Renderables.Items[I].Renderable;
+    If (Assigned(Other)) And (Renderable.IsCompatibleWith(Other)) And (Not (Other Is TERRAGeometryBatch)) Then
+    Begin
+      Batch := TERRAGeometryBatch.Create(Other);
+      Batch.MergeRenderable(Renderable);
+      Batch.Name := BatchKey;
+      _Batches.Add(Batch);
+
+      DisposeRenderableAtIndex(I);
+      _Renderables.Items[I].Renderable := Batch;
+
+      Break;
+    End;
+  End;
+
+  *)
+
+  _Renderables.Push(View, Renderable);
+End;
 
 { RenderableList }
 Procedure RenderableList.ByteRadixSort(var Dest, Source: RenderableArray; ShiftCount: integer);
 Var
-  Histogram : array [0..255] of integer;
-  OffsetTable : array [0..255] of integer;
-  Index : integer;
+  I, Index:Integer;
   Swap:RenderableItem;
   Value, ValueToIndex :Cardinal;
 Begin
   // biuld the histogram
-  fillchar(Histogram[0], sizeof(Histogram), 0 );
-  For index := 0 to Pred(Count) Do
-  begin
-    Value := Source[index].SortKey;
-    ValueToIndex := ( Value shr ShiftCount ) and $FF;
-    inc( Histogram[ ValueToIndex ] );
-  end;
+  For I:=0 To 255 Do
+    Histogram[I] := 0;
+
+  Index := 0;
+  While (Index<Count) Do
+  Begin
+    Value := Source[Index].SortKey;
+    ValueToIndex := (Value Shr ShiftCount) And $FF;
+    Inc(Histogram[ValueToIndex]);
+    Inc(Index);
+  End;
 
   // biuld the offsettable
   OffsetTable[0] := 0;
-  for index := 1 to 255 do
-  OffsetTable[index] := OffsetTable[index-1] + Histogram[index-1];
+  for Index := 1 To 255 Do
+    OffsetTable[index] := OffsetTable[index-1] + Histogram[index-1];
 
   // do the inner loop of the radix sort
-  for index := 0 to Pred(Count) do
-  begin
+  Index := 0;
+  While (Index<Count) Do
+  Begin
     Swap := Source[index];
     Value := Swap.SortKey;
-    ValueToIndex := ( value shr ShiftCount ) and $FF;
-    Dest[OffsetTable[ ValueToIndex ] ] := Swap;
-    inc( OffsetTable[ ValueToIndex ] );
-  end;
+    ValueToIndex := (Value Shr ShiftCount) And $FF;
+    Dest[OffsetTable[ValueToIndex]] := Swap;
+    Inc(OffsetTable[ValueToIndex]);
+    Inc(Index);
+  End;
 End;
 
 Procedure RenderableList.Sort;
 Begin
   // sort based on the 1st byte
-  byteRadixSort(Temp, Items, 0);
+  ByteRadixSort(Temp, Items, 0);
 
   // sort based on the 2nd byte
-  byteRadixSort(Items, Temp, 8);
+  ByteRadixSort(Items, Temp, 8);
 
   // sort based on the 3rd byte
-  byteRadixSort(Temp, Items, 16);
+  ByteRadixSort(Temp, Items, 16);
 
   // sort based on the 4th byte
-  byteRadixSort(Items, Temp, 24);
+  ByteRadixSort(Items, Temp, 24);
 End;
 
 Procedure RenderableList.Init(Size: Cardinal);

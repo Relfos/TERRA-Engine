@@ -1703,7 +1703,7 @@ Begin
   Log(logDebug, 'TERRAShaderFactory', 'Got shader code, compiling');
   {$ENDIF}
 
-  Graph := TERRAShaderGroup.Create;
+  Graph := TERRAShaderGroup.Create(Name);
   Graph.XVertexCode := VertexCode;
   Graph.XFragmentCode := FragmentCode;
 

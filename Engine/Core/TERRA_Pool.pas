@@ -79,7 +79,7 @@ Begin
   _Mutex.Lock();
   I := 0;
   While (I<_ObjectCount) Do
-  If (_Objects[I] Is ObjType) Then
+  If (_Objects[I].ClassType = ObjType) Then
   Begin
     Result := _Objects[I];
     _Objects[I] := _Objects[Pred(_ObjectCount)];

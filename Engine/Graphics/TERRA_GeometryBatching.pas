@@ -9,13 +9,17 @@ Type
       Constructor Create(Other:TERRARenderable);
       Function MergeRenderable(Other:TERRARenderable):Boolean;
   End;
-
+                                       
 Implementation
 Uses TERRA_Engine, TERRA_Log, TERRA_VertexFormat, TERRA_ClipRect;
 
 Constructor TERRAGeometryBatch.Create(Other: TERRARenderable);
 Begin
   Inherited Create;
+
+  Self.SetTexture(TERRASprite(Other).Texture);
+  Self._Flags := TERRASprite(Other).Flags;
+  Self.Layer := TERRASprite(Other).Layer;
 
   Self.MergeRenderable(Other);
 End;
@@ -33,13 +37,13 @@ Var
 Begin
   Result := False;
 
-  If (Self.Geometry.Indices.Count > (1024 * 32)) Then
-    Exit;
-
   If (Not (Other Is TERRASprite)) Then
     Exit;
 
   OtherSprite := TERRASprite(Other);
+
+  If (Self.Geometry.Indices.Count + OtherSprite.Geometry.Indices.Count > (1024 * 60)) Then
+    Exit;
 
   If (OtherSprite.ClipRect.Style = clipEverything) Or (OtherSprite.Geometry.Indices.Count<=0) Then
     Exit;
@@ -52,7 +56,6 @@ Begin
 
   Geometry.Vertices.Resize(RequiredVertices);
   Geometry.Indices.Resize(RequiredIndices);
-
 
   OutIt := Geometry.Vertices.GetIteratorForClass(SpriteVertex);
   InIt := OtherSprite.Geometry.Vertices.GetIteratorForClass(SpriteVertex);

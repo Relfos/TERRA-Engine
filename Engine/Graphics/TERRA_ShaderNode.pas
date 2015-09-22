@@ -55,6 +55,8 @@ Type
       XVertexCode:TERRAString;
       XFragmentCode:TERRAString;
 
+      Constructor Create(Const Name:TERRAString);
+
       Procedure AddNode(Node:TERRAShaderNode);
 
       Function GenerateCode(Target:TERRAShaderNode; Compiler:ShaderCompiler; Out VertexShader, FragmentShader:TERRAString):Boolean;
@@ -619,6 +621,12 @@ Begin
   Inc(_NodeCount);
   SetLength(_Nodes, _NodeCount);
   _Nodes[Pred(_NodeCount)] := Node;
+End;
+
+Constructor TERRAShaderGroup.Create(const Name: TERRAString);
+Begin
+  Inherited Create();
+  Self._ObjectName := Name;
 End;
 
 Function TERRAShaderGroup.GenerateCode(Target:TERRAShaderNode; Compiler:ShaderCompiler; Out VertexShader, FragmentShader:TERRAString):Boolean;

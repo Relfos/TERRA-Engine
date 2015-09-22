@@ -3,7 +3,7 @@ Unit TERRA_ShaderManager;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Object, TERRA_String, TERRA_Renderer, TERRA_ShaderNode;
+Uses TERRA_Object, TERRA_Utils, TERRA_String, TERRA_Renderer, TERRA_ShaderNode;
 
 Function Get_SkyboxDiffuseShader():ShaderInterface;
 Function Get_SkyboxNormalShader():ShaderInterface;
@@ -32,7 +32,7 @@ Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
-  Result := TERRAShaderGroup.Create();
+  Result := TERRAShaderGroup.Create('skybox');
 
   S := '';
   Line('varying highp vec3 normal;');
@@ -112,7 +112,7 @@ Var
   DoColorGrading, IsFont, IsSolid, IsDissolve, IsGUI, HasPattern:Boolean;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
-  Result := TERRAShaderGroup.Create();
+  Result := TERRAShaderGroup.Create('sprite_'+CardinalToString(SpriteFlags));
 
   DoColorGrading := (SpriteFlags And Sprite_ColorGrading)<>0;
   IsFont := (SpriteFlags And Sprite_Font)<>0;
@@ -273,7 +273,7 @@ Begin
 
     Line('  c.a *= alphaCut;');
 
-    //Line('    if (c.a<0.1) discard;');
+    Line('    if (c.a<0.1) discard;');
     Line('    gl_FragColor = c;}');
   End;
 
@@ -285,7 +285,7 @@ Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
-  Result := TERRAShaderGroup.Create();
+  Result := TERRAShaderGroup.Create('particles');
 
   S := '';
   Line('	varying mediump vec4 texCoord;');
@@ -358,7 +358,7 @@ Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
-  Result := TERRAShaderGroup.Create();
+  Result := TERRAShaderGroup.Create('stencil_shadows');
 
   S := '';
 	Line('  uniform mat4 cameraMatrix;');
@@ -379,7 +379,7 @@ Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
-  Result := TERRAShaderGroup.Create();
+  Result := TERRAShaderGroup.Create('fullscreen_color');
 
   S := '';
   Line('vertex {');
@@ -401,7 +401,7 @@ Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
-  Result := TERRAShaderGroup.Create();
+  Result := TERRAShaderGroup.Create('fullscreen_quad');
 
   S := '';
 	Line('  varying mediump vec2 texCoord;');
@@ -432,7 +432,7 @@ Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
-  Result := TERRAShaderGroup.Create();
+  Result := TERRAShaderGroup.Create('fullscreen_blur');
 
   S := '';
   Line('  uniform mat4 projectionMatrix;');
@@ -517,7 +517,7 @@ Var
   S:TERRAString;
 Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
-  Result := TERRAShaderGroup.Create();
+  Result := TERRAShaderGroup.Create('fullscreen_edge');
 
   S := '';
   Line('  uniform mat4 projectionMatrix;');
