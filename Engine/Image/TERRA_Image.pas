@@ -388,7 +388,7 @@ End;
 
 Function TERRAImage.GetPixels:PColorRGBA;
 Begin
-  If Assigned(_Pixels._Data) Then
+  If (Assigned(_Pixels)) And (Assigned(_Pixels._Data)) Then
     Result := @_Pixels._Data[0]
   Else
     Result := Nil;

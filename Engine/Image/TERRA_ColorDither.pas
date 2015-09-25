@@ -58,7 +58,7 @@ Function ColorDither8x8(X,Y:Integer; Const Value:Single):Integer;
 Var
   Limit:Single;
 Begin
-  Limit := Succ(Dither8x8[(X Mod 8)+ (Y Mod 8)*4]) / 64.0;
+  Limit := Succ(Dither8x8[(X Mod 8)+ (Y Mod 8)*8]) / 64.0;
 
   If (Value>=Limit) Then
     Result := 1
