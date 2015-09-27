@@ -51,15 +51,15 @@ Type
       Function FullPath():TERRAString;
   End;
 
-  Function SearchFiles(Path:TERRAString; Filter:TERRAString; SearchSubDirectories:Boolean):List;
-  Function SearchFolders(Path:TERRAString):List;
+  Function SearchFiles(Path:TERRAString; Filter:TERRAString; SearchSubDirectories:Boolean):TERRAList;
+  Function SearchFolders(Path:TERRAString):TERRAList;
 
 {$IFDEF USEJAVA}
   Var
     IsFolderMode:Boolean;
     CurrentPath:TERRAString;
     CurrentLevel:Integer;
-    CurrentFileDir:List;
+    CurrentFileDir:TERRAList;
 {$ENDIF}
 
 Implementation
@@ -167,12 +167,12 @@ Begin
   Java_End(Frame);
 End;
 
-Function Search(Path:TERRAString; Filter:TERRAString; SearchSubDirectories:Boolean; Level:Integer):List;
+Function Search(Path:TERRAString; Filter:TERRAString; SearchSubDirectories:Boolean; Level:Integer):TERRAList;
 Var
-  Folders, Temp:List;
+  Folders, Temp:TERRAList;
   It:CollectionObject;
 Begin
-  Result := List.Create();
+  Result := TERRAList.Create();
 
   IsFolderMode := False;
   CurrentPath := Path;
@@ -198,9 +198,9 @@ Begin
   End;
 End;
 
-Function SearchFolders(Path:TERRAString):List;
+Function SearchFolders(Path:TERRAString):TERRAList;
 Begin
-  Result := List.Create();
+  Result := TERRAList.Create();
   IsFolderMode := True;
   CurrentPath := Path;
   CurrentLevel := 0;
@@ -212,13 +212,13 @@ End;
 {$ENDIF}
 
 {$IFNDEF HAS_IMPLEMENTATION}
-Function Search(Path:TERRAString; Filter:TERRAString; SearchSubDirectories:Boolean; Level:Integer):List;
+Function Search(Path:TERRAString; Filter:TERRAString; SearchSubDirectories:Boolean; Level:Integer):TERRAList;
 Var
   Sr:TSearchRec;
   P:FileInfo;
-  Temp:List;
+  Temp:TERRAList;
 Begin
-  Result := List.Create();
+  Result := TERRAList.Create();
 
 // WriteLn('Searching: ',Path+PathSeparator+Filter);
   If FindFirst(Path+PathSeparator+Filter, faAnyFile, Sr)=0 Then
@@ -267,12 +267,12 @@ Begin
   End;
 End;
 
-Function SearchFolders(Path:TERRAString):List;
+Function SearchFolders(Path:TERRAString):TERRAList;
 Var
   Sr:TSearchRec;
   FileAttrs:Integer;
 Begin
-  Result := List.Create();
+  Result := TERRAList.Create();
 
   FileAttrs := faDirectory;
   If FindFirst(Path+PathSeparator+'*',FileAttrs,Sr)=0 Then
@@ -291,7 +291,7 @@ Begin
 End;
 {$ENDIF}
 
-Function SearchFiles(Path:TERRAString; Filter:TERRAString; SearchSubDirectories:Boolean):List;
+Function SearchFiles(Path:TERRAString; Filter:TERRAString; SearchSubDirectories:Boolean):TERRAList;
 Begin
   If (Path<>'') Then
     Path := GetOSIndependentFilePath(Path)

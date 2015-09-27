@@ -1567,7 +1567,7 @@ Begin
 
   While (Count>0) Do
   Begin
-    Dest^:=ColorRGB16To32(Source^);
+    Dest^ := ColorRGB16To32(Source^);
     Inc(Source);
     Inc(Dest);
     Dec(Count);

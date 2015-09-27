@@ -135,7 +135,7 @@ Begin
 
   Image.New(Header.Width,Header.Height);
 
-  If Header.BitCount<24 Then
+  If Header.BitCount<=8 Then
   Begin
     PaletteLength:=Header.ColorsUsed;
     If PaletteLength=0 Then
@@ -145,9 +145,9 @@ Begin
     Source.Seek(Header.OffBits);
   End;
 
-  Pad:=(4 - ((Image.Width * 3) Mod 4));
-  If Pad=4 Then
-    Pad:=0;
+  Pad := (4 - ((Image.Width * 3) Mod 4));
+  If Pad = 4 Then
+    Pad := 0;
 
   Case Header.BitCount Of
   4:  Begin
@@ -161,8 +161,8 @@ Begin
         End;
 
         FreeMem(Buffer);
-
       End;
+
   8:  Begin
         GetMem(Buffer, Image.Width);
 
@@ -178,6 +178,20 @@ Begin
 
         FreeMem(Buffer);
       End;
+
+  16:  Begin
+        GetMem(Buffer, Image.Width * 2);
+        // Get the actual pixel data
+        For J:=Pred(Image.Height) DownTo 0 Do
+        Begin
+          Source.Read(Buffer, Image.Width * 2);
+          Source.Read(@Temp, Pad);
+          Image.LineDecodeRGB16(Buffer, J);
+        End;
+
+        FreeMem(Buffer);
+      End;
+
   24: Begin
         GetMem(Buffer, Image.Width * 3);
         // Get the actual pixel data
@@ -190,6 +204,7 @@ Begin
 
         FreeMem(Buffer);
       End;
+
  32:  Begin
         // Get the actual pixel data, including alpha
         GetMem(Buffer, Image.Width * 4);

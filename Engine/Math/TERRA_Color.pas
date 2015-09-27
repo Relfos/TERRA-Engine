@@ -709,25 +709,17 @@ Begin
 End;
 
 // color format conversions
+//http://www.cprogramdevelop.com/3556267/
 Function ColorRGB16To32(Source:Word):ColorRGBA;
 Var
 	Temp:Word;
 Begin
   With Result Do
   Begin
-    Temp:=Word(Source Shl 11);
-    Temp:=Word(Temp Shr 11);
-    R:=Temp Shl 3;
-
-    Temp:=Word(Source Shr 5);
-    Temp:=Word(Temp Shl 11);
-    Temp:=Word(Temp Shr 11);
-    G:=Temp Shl 3;
-
-    Temp:=Word(Source Shr 10);
-    Temp:=Word(Temp Shl 11);
-    Temp:=Word(Temp Shr 11);
-    B:=Temp Shl 3;
+    R := (Source Shl 3);
+    G := (Source Shl 5) Or ((Source Shr 3) And $1C);
+    B := (Source And $F8);
+    A := 255;
   End;
 End;
 
