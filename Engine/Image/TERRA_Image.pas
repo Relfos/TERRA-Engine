@@ -191,7 +191,8 @@ Type
       Procedure LineDecodeRGBPalette4(Buffer, Palette:Pointer; Line:Cardinal);
       Procedure LineDecodeRGBPalette8(Buffer, Palette:Pointer; Line:Cardinal);
       Procedure LineDecodeRGB8(Buffer:Pointer; Line:Cardinal);
-      Procedure LineDecodeRGB16(Buffer:Pointer; Line:Cardinal);
+      Procedure LineDecodeRGB565(Buffer:Pointer; Line:Cardinal);
+      Procedure LineDecodeRGB555(Buffer:Pointer; Line:Cardinal);
       Procedure LineDecodeRGB24(Buffer:Pointer; Line:Cardinal);
       Procedure LineDecodeRGB32(Buffer:Pointer; Line:Cardinal);
 
@@ -1193,7 +1194,29 @@ sfds
 
   While (Count>0) Do
   Begin
-//    Dest^:=ColorRGB16To8(Source^);
+    Dest^ := ColorRGB16To8(Source^);
+    Inc(Source);
+    Inc(Dest);
+    Dec(Count);
+  End;
+End;
+
+Procedure TERRAImage.LineDecodeRGB16(Buffer: Pointer; Line: Cardinal);
+Var
+  Source:PWord;
+  Dest:PByte;
+  Count:Integer;
+Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+sfds
+  Count:=_Width;
+  Source:=Buffer;
+
+  While (Count>0) Do
+  Begin
+    Dest^:=ColorRGB16To8(Source^);
     Inc(Source);
     Inc(Dest);
     Dec(Count);
@@ -1552,7 +1575,7 @@ Begin
   End;
 End;
 
-Procedure TERRAImage.LineDecodeRGB16(Buffer: Pointer; Line:Cardinal);
+Procedure TERRAImage.LineDecodeRGB555(Buffer: Pointer; Line:Cardinal);
 Var
   Source:PWord;
   Dest:PColorRGBA;
@@ -1567,7 +1590,29 @@ Begin
 
   While (Count>0) Do
   Begin
-    Dest^ := ColorRGB16To32(Source^);
+    Dest^ := ColorRGB555To32(Source^);
+    Inc(Source);
+    Inc(Dest);
+    Dec(Count);
+  End;
+End;
+
+Procedure TERRAImage.LineDecodeRGB565(Buffer: Pointer; Line:Cardinal);
+Var
+  Source:PWord;
+  Dest:PColorRGBA;
+  Count:Integer;
+Begin
+  Dest := Self.GetLineOffset(Line);
+  If (Dest =  Nil) Then
+    Exit;
+
+  Count:=_Width;
+  Source:=Buffer;
+
+  While (Count>0) Do
+  Begin
+    Dest^ := ColorRGB565To32(Source^);
     Inc(Source);
     Inc(Dest);
     Dec(Count);

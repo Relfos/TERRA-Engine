@@ -179,6 +179,7 @@ Begin
         FreeMem(Buffer);
       End;
 
+  //http://www.virtualdub.org/blog/pivot/entry.php?id=177
   16:  Begin
         GetMem(Buffer, Image.Width * 2);
         // Get the actual pixel data
@@ -186,7 +187,11 @@ Begin
         Begin
           Source.Read(Buffer, Image.Width * 2);
           Source.Read(@Temp, Pad);
-          Image.LineDecodeRGB16(Buffer, J);
+
+          If (Header.Compression = 0) Then
+            Image.LineDecodeRGB555(Buffer, J)
+          Else
+            Image.LineDecodeRGB565(Buffer, J);
         End;
 
         FreeMem(Buffer);
