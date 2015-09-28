@@ -140,7 +140,11 @@ Begin
 
 	Line('void main()	{');
   Line('  vec4 local_position = vec4(terra_position.x, terra_position.y, terra_position.z, 1.0);');
-  Line('  screen_position = local_position.xy;');
+
+  If IsGUI Then
+    Line('  screen_position = local_position.xy;')
+  Else
+    Line('  screen_position = (modelMatrix * local_position).xy;');
 
   If IsGUI Then
     Line('  gl_Position =  projectionMatrix * local_position;')

@@ -92,18 +92,18 @@ End;
 Function Matrix4x4_CreateFromMatrix3x3(Const M:Matrix3x3):Matrix4x4;
 Begin
   Result := Matrix4x4_Identity;
-  Result.SetTranslation(Vector3D_Create(M.V[6], M.V[7], 0));
-(*  Result.V[0] := M.V[0];
+//  Result.SetTranslation(Vector3D_Create(M.V[6], M.V[7], 0));
+  Result.V[0] := M.V[0];
   Result.V[1] := M.V[1];
-  Result.V[2] := M.V[2];
+  Result.V[2] := 0.0;
 
-  Result.V[3] := M.V[4];
-  Result.V[4] := M.V[5];
-  Result.V[5] := M.V[6];
+  Result.V[4] := M.V[3];
+  Result.V[5] := M.V[4];
+  Result.V[6] := 0.0;
 
-  Result.V[6] := M.V[8];
-  Result.V[7] := M.V[9];
-  Result.V[8] := M.V[10];^*)
+  Result.V[12] := M.V[6];
+  Result.V[13] := M.V[7];
+  Result.V[14] := 0.0;
 End;
 
 Function Matrix3x3_Translation(Const Translation:Vector2D):Matrix3x3;  {$IFDEF FPC}Inline;{$ENDIF}
