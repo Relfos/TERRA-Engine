@@ -225,9 +225,14 @@ Type
       Property Data:Milkshape3DObject Read _MS3D;
   End;
 
+  MS3DFormat = Class(MeshFilterFormat)
+    Protected
+      Function Identify(Source:TERRAStream):Boolean; Override;
+      Function CreateFilter():MeshFilter; Override;
+  End;
 
 Implementation
-Uses TERRA_Error, TERRA_Log, TERRA_Engine, TERRA_TextureAtlas, TERRA_Image, TERRA_Application, TERRA_ResourceManager;
+Uses TERRA_Error, TERRA_Log, TERRA_Engine, TERRA_TextureAtlas, TERRA_Image, TERRA_Application, TERRA_ResourceManager, TERRA_Mesh;
 
 { Milkshape3DObject }
 Function Milkshape3DObject.GetMaterialFile(MaterialIndex:Integer; SourceFile:AnsiString):AnsiString;
@@ -1161,6 +1166,21 @@ Begin
   Ready := True;
 End;
 
+{ MS3DFormat }
+
+Function MS3DFormat.CreateFilter: MeshFilter;
+Begin
+  Result := Milkshape3DModel.Create();
+End;
+
+Function MS3DFormat.Identify(Source: TERRAStream): Boolean;
+Var
+  Header:Milkshape3DHeader;
+Begin
+  Source.Read(@Header, SizeOf(Milkshape3DHeader));
+  Result := (Header.Id = MS3D_Header);
+End;
+
 Initialization
-  RegisterMeshFilter(Milkshape3DModel, 'MS3D');
+  Engine.Formats.Add(MS3DFormat.Create(TERRAMesh, 'ms3d'));
 End.

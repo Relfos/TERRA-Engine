@@ -26,6 +26,8 @@ Type
       Procedure SetObjectName(const Value: TERRAString); Virtual;
 
     Public
+      Constructor Create();
+
       Class Function GetObjectType:TERRAString; Virtual;
       Class Function CanBePooled:Boolean; Virtual;
 
@@ -230,7 +232,7 @@ Begin
   Begin
     TERRAObject(Temp).Release();
 
-    If (AllowReuse) And (TERRAObject(Temp).CanBePooled) And (Assigned(Engine())) Then
+    If (AllowReuse) And (TERRAObject(Temp).CanBePooled) {And (Assigned(Engine()))} Then
       Engine.Pool.Recycle(TERRAObject(Temp))
     Else
       TERRAObject(Temp).Destroy();
@@ -389,6 +391,11 @@ End;
 Class Function TERRAObject.CanBePooled: Boolean;
 Begin
   Result := False;
+End;
+
+Constructor TERRAObject.Create;
+Begin
+  Self._ObjectName := Self.ClassName;
 End;
 
 { TweenableProperty }

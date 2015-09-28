@@ -30,6 +30,8 @@ Uses TERRA_InputManager, TERRA_Engine, TERRA_OS;
 { FPSCameraController }
 Constructor FPSCameraController.Create();
 Begin
+  Inherited Create();
+  
   _Heading := -45.0 * RAD;
   _Tilt := -30.0 * RAD;
 

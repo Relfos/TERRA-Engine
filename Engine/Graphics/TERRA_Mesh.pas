@@ -761,7 +761,6 @@ Type
       Procedure RemoveGroups;
 
 		Public
-      Constructor CreateFromFilter(Source:MeshFilter);
       Procedure Release; Override;
 
       Function Load(Source:TERRAStream):Boolean; Override;
@@ -769,6 +768,8 @@ Type
 
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
+
+      Procedure LoadFromFilter(Source:MeshFilter);
 
       Property Filter:MeshFilter Read GetMeshFilter;
 
@@ -906,7 +907,7 @@ Type
 
 Implementation
 Uses TERRA_Error, TERRA_Application, TERRA_Log, TERRA_ShaderFactory, TERRA_OS,
-  TERRA_Camera, TERRA_Engine, TERRA_FileManager, TERRA_CRC32, TERRA_ColorGrading, TERRA_Solids;
+  TERRA_Camera, TERRA_Engine, TERRA_FileManager, TERRA_CRC32, TERRA_ColorGrading, TERRA_Solids, TERRA_FileFormat;
 
 Type
   MeshDataBlockHandler = Function(Target:TERRAMesh; Size:Cardinal; Source:TERRAStream):Boolean;
@@ -1873,6 +1874,8 @@ Begin
   _Scale := Vector3D_One;
   _NeedsTransformUpdate := True;
   _NeedsShadowUpdate := True;
+
+  _Transform := Matrix4x4_Identity;
 
   Self.Diffuse := ColorWhite;
 
@@ -5717,7 +5720,17 @@ Var
   Size:Cardinal;
   Tag:FileHeader;
   Handler:MeshDataBlockHandler;
+  Format:TERRAFileFormat;
 Begin
+  Clean();
+
+  Format := Engine.Formats.FindFormatFromStream(Source, TERRAMesh);
+  If Assigned(Format) Then
+  Begin
+    Result := Format.LoadFromStream(Self, Source);
+    Exit;
+  End;
+
   _GroupCount := 0;
 
   Result := False;
@@ -5914,7 +5927,7 @@ Begin
     Inc(Result, _Groups[I].TriangleCount);
 End;
 
-Constructor TERRAMesh.CreateFromFilter(Source:MeshFilter);
+Procedure TERRAMesh.LoadFromFilter(Source:MeshFilter);
 Var
   I, J, N:Integer;
   Format:VertexFormat;
@@ -5925,14 +5938,14 @@ Var
   Group:MeshGroup;
   V:MeshVertex;
   Anim:Animation;
+  TotalGroups:Integer;
 Begin
-  Self.Create(rtDynamic);
-
   Self.Clean();
   If Source = Nil Then
     Exit;
 
-  For N:=0 To Pred(Source.GetGroupCount) Do
+  TotalGroups := Source.GetGroupCount;
+  For N:=0 To Pred(TotalGroups) Do
   Begin
     Format := Source.GetVertexFormat(N);
 

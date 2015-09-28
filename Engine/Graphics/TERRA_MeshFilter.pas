@@ -28,7 +28,7 @@ Unit TERRA_MeshFilter;
 Interface
 
 Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Vector2D, TERRA_Vector4D,
-  TERRA_Quaternion, TERRA_Color, TERRA_Matrix4x4, TERRA_Stream, TERRA_VertexFormat;
+  TERRA_Quaternion, TERRA_Color, TERRA_Matrix4x4, TERRA_Stream, TERRA_VertexFormat, TERRA_FileFormat;
 
 Const
   meshGroupHidden       = 1 Shl 0;  // Group is hidden
@@ -143,51 +143,16 @@ Type
       Class Function Save(FileName:TERRAString; MyMesh:MeshFilter):Boolean; Overload;
     End;
 
-  MeshFilterClass = Class Of MeshFilter;
-  MeshFilterType = Record
-    Filter:MeshFilterClass;
-    Extension:TERRAString;
+  MeshFilterFormat = Class(TERRAFileFormat)
+    Protected
+      Function CreateFilter():MeshFilter; Virtual; Abstract;
+
+    Public
+      Function LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean; Override;
   End;
-
-  Procedure RegisterMeshFilter(Filter:MeshFilterClass; Extension:TERRAString);
-  Function CreateMeshFilter(FileName:TERRAString):MeshFilter;
-
-Var
-  MeshFilterList:Array Of MeshFilterType;
-  MeshFilterCount:Integer = 0;
 
 Implementation
-Uses TERRA_FileStream, TERRA_FileUtils, TERRA_MemoryStream, TERRA_GraphicsManager, TERRA_Renderer;
-
-Procedure RegisterMeshFilter(Filter:MeshFilterClass; Extension:TERRAString);
-Begin
-  Inc(MeshFilterCount);
-  SetLength(MeshFilterList, MeshFilterCount);
-  MeshFilterList[Pred(MeshFilterCount)].Filter := Filter;
-  MeshFilterList[Pred(MeshFilterCount)].Extension := Extension;
-End;
-
-Function CreateMeshFilter(FileName:TERRAString):MeshFilter;
-Var
-  Ext:TERRAString;
-  Src:TERRAStream;
-  I:Integer;
-Begin
-  Result := Nil;
-  If Not FileStream.Exists(FileName) Then
-    Exit;
-
-  Ext := GetFileExtension(FileName);
-  For I:=0 To Pred(MeshFilterCount) Do
-  If (StringEquals(MeshFilterList[I].Extension, Ext)) Then
-  Begin
-    Src := MemoryStream.Create(FileName);
-    Result := MeshFilterList[I].Filter.Create;
-    Result.Load(Src);
-    ReleaseObject(Src);
-    Exit;
-  End;
-End;
+Uses TERRA_FileStream, TERRA_FileUtils, TERRA_MemoryStream, TERRA_GraphicsManager, TERRA_Renderer, TERRA_Mesh;
 
 { MeshFilter }
 Function MeshFilter.GetDiffuseColor(GroupID: Integer):ColorRGBA;
@@ -444,5 +409,17 @@ function MeshAnimationKeyframe.GetVector3D: Vector3D;
 Begin
   Result := Vector3D_Create(Value.X, Value.Y, Value.Z);
 End;
+
+{ MeshFilterFormat }
+Function MeshFilterFormat.LoadFromStream(Target:TERRAObject; Source:TERRAStream):Boolean;
+Var
+  Filter:MeshFilter;
+Begin
+  Filter := Self.CreateFilter();
+  Filter.Load(Source);
+  TERRAMesh(Target).LoadFromFilter(Filter);
+  ReleaseObject(Filter);
+End;
+
 
 End.

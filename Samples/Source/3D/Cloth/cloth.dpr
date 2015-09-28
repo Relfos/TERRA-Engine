@@ -96,11 +96,12 @@ Procedure MyDemo.OnDestroy;
 Var
   I:Integer;
 Begin
-  For I:=0 To Pred(SphereCount) Do
+(*  For I:=0 To Pred(SphereCount) Do
     ReleaseObject(Spheres[I]);
 
   ReleaseObject(Clothes);
   ReleaseObject(ClothInstance);
+*)
 
   Inherited;
 End;

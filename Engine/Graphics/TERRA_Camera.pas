@@ -54,11 +54,14 @@ Type
   TERRACameraController = Class(TERRAObject)
     Protected
       _Target:TERRACamera;
+      _Enabled:Boolean;
 
     Public
+      Constructor Create();
       Procedure Update(); Virtual; Abstract;
 
       Property Target:TERRACamera Read _Target;
+      Property Enabled:Boolean Read _Enabled Write _Enabled;
   End;
 
   { TERRACamera }
@@ -216,6 +219,12 @@ Implementation
 Uses TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsManager, TERRA_Renderer,  TERRA_InputManager, TERRA_Log,
   TERRA_Engine, TERRA_Renderable;
 
+{ TERRACameraController }
+Constructor TERRACameraController.Create;
+Begin
+  _Enabled := True;
+End;
+
 { TERRACamera}
 constructor TERRACamera.Create(const Name: TERRAString);
 Begin
@@ -273,7 +282,7 @@ Begin
       _Shaking := False;
   End;
 
-  If Assigned(_Controller) Then
+  If (Assigned(_Controller)) And (_Controller.Enabled) Then
     _Controller.Update();
 
   If (Eye <> _CurrentEye) Then
@@ -734,6 +743,7 @@ Begin
       Exit;
   End;
 End;
+
 
 End.
 
