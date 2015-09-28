@@ -417,7 +417,7 @@ Var
 Begin
   Filter := Self.CreateFilter();
   Filter.Load(Source);
-  TERRAMesh(Target).LoadFromFilter(Filter);
+  Result := TERRAMesh(Target).LoadFromFilter(Filter);
   ReleaseObject(Filter);
 End;
 

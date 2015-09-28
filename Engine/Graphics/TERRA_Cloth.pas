@@ -54,8 +54,6 @@ Const
   gridSize = 13* SimScale; //13;
   
 Type
-  ClothSystem = Class;
-
   ClothSpring = Object
     Protected
     	//Indices of the Particles at either end of the spring
@@ -67,11 +65,6 @@ Type
       _Stiffness:Double;
       
     Procedure Init(PID1, PID2: Integer; Len, Stiffness:Double);
-  End;
-
-  ClothSpringLink = Record
-    SpringIndex:Integer;
-    ParticleIndex:Integer;
   End;
 
   ClothParticle = Object
@@ -92,6 +85,16 @@ Type
   ClothCollider = Record
     Position:Vector3D;
     Radius:Single;
+  End;
+
+  ClothPatch = Class(TERRAObject)
+    Public
+      Left:ClothPatch;
+      Right:ClothPatch;
+      Up:ClothPatch;
+      Down:ClothPatch;
+
+      Indices:Array[0..3] Of Integer;
   End;
 
   ClothSystem = Class(TERRAObject)

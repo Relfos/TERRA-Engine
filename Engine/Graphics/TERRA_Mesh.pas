@@ -769,7 +769,7 @@ Type
       Function Unload:Boolean; Override;
       Function Update:Boolean; Override;
 
-      Procedure LoadFromFilter(Source:MeshFilter);
+      Function LoadFromFilter(Source:MeshFilter):Boolean;
 
       Property Filter:MeshFilter Read GetMeshFilter;
 
@@ -5927,7 +5927,7 @@ Begin
     Inc(Result, _Groups[I].TriangleCount);
 End;
 
-Procedure TERRAMesh.LoadFromFilter(Source:MeshFilter);
+Function TERRAMesh.LoadFromFilter(Source:MeshFilter):Boolean;
 Var
   I, J, N:Integer;
   Format:VertexFormat;
@@ -5940,6 +5940,7 @@ Var
   Anim:Animation;
   TotalGroups:Integer;
 Begin
+ Result := False;
   Self.Clean();
   If Source = Nil Then
     Exit;
@@ -6015,6 +6016,7 @@ Begin
   End;
 
   Self.Update;
+  Result := True;
 End;
 
 Function TERRAMesh.GetEmitter(Index:Integer):MeshEmitter;

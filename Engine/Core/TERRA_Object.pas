@@ -244,9 +244,9 @@ End;
 
 
 { TERRAObject }
-Function TERRAObject.SortID: Integer;
+Constructor TERRAObject.Create;
 Begin
-  Result := 0;
+//  Self._ObjectName := Self.ClassName;
 End;
 
 Procedure TERRAObject.Release;
@@ -254,6 +254,12 @@ Begin
 {  S := Self.ClassName;
   Engine.Log.Write(logWarning, 'App', 'Destroying instance of '+S);}
 End;
+
+Function TERRAObject.SortID: Integer;
+Begin
+  Result := 0;
+End;
+
 
 Destructor TERRAObject.Destroy();
 Begin
@@ -391,11 +397,6 @@ End;
 Class Function TERRAObject.CanBePooled: Boolean;
 Begin
   Result := False;
-End;
-
-Constructor TERRAObject.Create;
-Begin
-  Self._ObjectName := Self.ClassName;
 End;
 
 { TweenableProperty }
