@@ -40,6 +40,7 @@ Type
 			Procedure OnDestroy; Override;
 			Procedure OnIdle; Override;
 
+      Procedure OnRender2D(V:TERRAViewport); Override;
       Procedure OnRender3D(V:TERRAViewport); Override;
   End;
 
@@ -160,7 +161,7 @@ Var
   I:Integer;
 Begin
   Inherited;
-  
+
   If Assigned(ClothInstance) Then
     ClothInstance.SetWireframeMode(0, drawSprings);
 
@@ -168,10 +169,12 @@ Begin
     Engine.Graphics.AddRenderable(V, Spheres[I]);
 
   Engine.Graphics.AddRenderable(V, ClothInstance);
-
-  //DrawBoundingBox(V, ClothInstance.GetBoundingBox, ColorBlue);
 End;
 
+Procedure MyDemo.OnRender2D(V:TERRAViewport);
+Begin
+  DrawBoundingBox(Self.MainViewport, V, ClothInstance.GetBoundingBox, ColorBlue);
+End;
 
 (*  Text.DrawText(10, 10, 10, 'FPS :'+IntToString(Engine.Graphics.Renderer.Stats.FramesPerSecond));
   Text.DrawText(10, 30, 10, 'Vertices :'+IntToString(Clothes._ParticleCount));

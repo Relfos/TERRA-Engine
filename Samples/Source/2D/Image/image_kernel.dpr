@@ -58,7 +58,7 @@ Begin
   While It.HasNext() Do
   Begin
     C := It.ApplyKernel(Kernel_EdgeDetect);
-    It.Value := C;
+    It.DestColor := C;
   End;
   ReleaseObject(It);
 

@@ -57,7 +57,7 @@ Begin
   It := Img.RectangleByUV(0, 0, 1, 1, [image_Write, image_Fill]);
   While It.HasNext() Do
   Begin
-    It.Value := ColorRed;
+    It.DestColor := ColorRed;
   End;
   ReleaseObject(It);
 
@@ -68,17 +68,19 @@ Begin
     V := RandomFloat(0, 1);
     R := 50;
 
-    It := Img.CircleByUV(U, V, R, [image_Write, image_Fill]);
+    // Image_Read is necessary when doing alpha blending 
+    It := Img.CircleByUV(U, V, R, [image_Read, image_Write, image_Fill]);
+    It.BlendMode := combineBlend;
     While It.HasNext() Do
     Begin
-      It.Value := ColorWhite;
+      It.DestColor := ColorGrey(255, 128);
     End;
     ReleaseObject(It);
 
     It := Img.CircleByUV(U, V, R, [image_Write]);
     While It.HasNext() Do
     Begin
-      It.Value := ColorBlack;
+      It.DestColor := ColorBlack;
     End;
     ReleaseObject(It);
 

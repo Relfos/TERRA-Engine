@@ -17,9 +17,10 @@ Type
       _Heading:Single;
       _Tilt:Single;
 
+      Procedure OnChangeState(); Override;
+
     Public
       Constructor Create();
-      Procedure Release(); Override;
       Procedure Update(); Override;
   End;
 
@@ -31,16 +32,14 @@ Uses TERRA_InputManager, TERRA_Engine, TERRA_OS;
 Constructor FPSCameraController.Create();
 Begin
   Inherited Create();
-  
+
   _Heading := -45.0 * RAD;
   _Tilt := -30.0 * RAD;
-
-  Application.Instance.Window.LockedCursor := True;
 End;
 
-Procedure FPSCameraController.Release;
+Procedure FPSCameraController.OnChangeState;
 Begin
-  Application.Instance.Window.LockedCursor := False;
+  Application.Instance.Window.LockedCursor := _Enabled;
 End;
 
 Procedure FPSCameraController.Update;

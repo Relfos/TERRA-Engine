@@ -37,7 +37,7 @@ Unit TERRA_Rasterizer;
 }
 
 Interface
-Uses TERRA_Utils, TERRA_Image, TERRA_Color, TERRA_Vector3D;
+Uses TERRA_Object, TERRA_Utils, TERRA_Image, TERRA_Color, TERRA_Vector3D;
 
 Const
   rasterX   = 0;
@@ -53,88 +53,141 @@ Const
 Type
   InterpolatorValues = Array[0..2] Of Single;
 
-  Rasterizer = Class(TERRAObject)
+  RasterizerTriangle = Class(TERRAObject)
+    Protected
+      _Interpolators:Array Of InterpolatorValues;
+      _InterpolatorCount:Integer;
+
+      _Target:TERRAImage;
+
+    Public
+      Constructor Create(Target:TERRAImage);
+
+      // all coordinates are in normalized space (0.0 to 1.0)
+      Procedure SetInterpolatorValues(Index:Integer; A,B,C:Single; Normalized:Boolean=True); Overload;
+  End;
+
+  TERRARasterizer = Class(ImageIterator)
     Protected
       _MinY, _MaxY:Integer;
       _IL, _IR:Array Of Array Of Single;
 
-      _Target:Image;
+      _Target:TERRAImage;
 
       _Value, _Add:Array Of Single;
-      _Interpolators:Array Of InterpolatorValues;
-      _InterpolatorCount:Integer;
 
-      Procedure SetColor(Values:PSingleArray; Dest:PColor); Virtual;
+      _Triangles:Array Of RasterizerTriangle;
+      _TriangleCount:Integer;
 
-      Procedure DoLine(Y:Integer);
+      _CurrentTriangle:RasterizerTriangle;
+      _TriangleIndex:Integer;
+
+      _CurrentY:Integer;
+      _BufferInitialized:Boolean;
+      _PixelCount:Integer;
+      _Dest:PColorRGBA;
+
+      Function GetTarget: TERRAImage;
+
+      Function DoPixel():Boolean;
       Procedure DoSide(A,B:Integer);
 
       Procedure InitBuffers;
+      Function InitLine():Boolean;
+
+      Function ObtainNext():Boolean; Override;
 
     Public
-      // all coordinates are in normalized space (0.0 to 1.0)
-      Procedure SetInterpolatorValues(Index:Integer; A,B,C:Single; Normalized:Boolean=True); Overload;
-      Procedure Rasterize;
+      Procedure AddTriangle(Tri:RasterizerTriangle);
 
-      Property Target:Image Read _Target Write _Target;
+      Function GetRasterValue(Index:Integer):Single;
+
+      Property Target:TERRAImage Read GetTarget;
   End;
 
-  ColorRasterizer = Class(Rasterizer)
-    Protected
-      Procedure SetColor(Values:PSingleArray; Dest:PColor); Override;
-    Public
-      FillColor:Color;
-  End;
-
-
-Procedure FillGutter(Target, GutterMask:Image; Levels:Integer);
+Procedure FillGutter(Target, GutterMask:TERRAImage; Levels:Integer);
 
 Implementation
 Uses TERRA_Log;
 
-Procedure Rasterizer.DoLine(Y:Integer);
+Function TERRARasterizer.DoPixel:Boolean;
+Var
+  I:Integer;
+Begin
+  If (_PixelCount<=0) Then
+  Begin
+    Inc(_CurrentY);
+    Result := InitLine();
+    If Result Then
+    Begin
+      Result := Self.InitLine();
+    End;
+
+    If Not Result Then
+      Exit;
+  End;
+
+  _X := Trunc(_Value[rasterX]);
+  _Y := Trunc(_Value[rasterY]);
+
+  Inc(_Dest);
+
+  For I:=0 To Pred(_CurrentTriangle._InterpolatorCount) Do
+    _Value[I] := _Value[I] + _Add[I];
+
+  Dec(_PixelCount);
+  Result := True;
+End;
+
+Function TERRARasterizer.InitLine():Boolean;
 Var
   I,D:Integer;
   O:Word;
-  Dest:PColor;
   U,V,Ux,Vx:Single;
-  Count:Integer;
   X1,X2:Integer;
+  Y:Integer;
 Begin
-  For I:=0 To Pred(_InterpolatorCount) Do
+  If (_CurrentY>_MaxY) Then
+  Begin
+    Result := False;
+    Exit;
+  End;
+
+  Y := _CurrentY;
+
+  For I:=0 To Pred(_CurrentTriangle._InterpolatorCount) Do
     _Value[I] := _IL[Y, I];
 
   X1 := Trunc(_IL[Y, rasterX]);
   X2 := Trunc(_IR[Y, rasterX]);
 
-  Count := (X2 - X1);
-  If Count<=0 Then
-  For I:=0 To Pred(_InterpolatorCount) Do
-    _Add[I] := 0
-  Else
-  For I:=0 To Pred(_InterpolatorCount) Do
-    _Add[I] := (_IR[Y,I] - _IL[Y,I])/Count;
+  _PixelCount := (X2 - X1);
 
-  Dest := _Target.GetPixelOffset(X1,Y);
-  While (Count>0) Do
+  If _PixelCount<=0 Then
   Begin
-    Self.SetColor(@_Value[0], Dest);
-    Inc(Dest);
-    Dec(Count);
+    For I:=0 To Pred(_CurrentTriangle._InterpolatorCount) Do
+      _Add[I] := 0;
 
-    For I:=0 To Pred(_InterpolatorCount) Do
-      _Value[I] := _Value[I] + _Add[I];
+    Inc(_CurrentY);
+    Result := Self.InitLine();
+    Exit;
   End;
+
+  For I:=0 To Pred(_CurrentTriangle._InterpolatorCount) Do
+    _Add[I] := (_IR[Y,I] - _IL[Y,I]) / _PixelCount;
+
+  _Dest := _Target.GetPixelOffset(X1,Y);
+  Result := True;
 End;
 
-Procedure Rasterizer.DoSide(A,B:Integer);
+Procedure TERRARasterizer.DoSide(A,B:Integer);
 Var
   I:Integer;
   Y1,Y2:Integer;
   Temp,Y:Integer;
 Begin
-  Y1 := Trunc(_Interpolators[rasterY, A]);
-  Y2 := Trunc(_Interpolators[rasterY, B]);
+  Y1 := Trunc(_CurrentTriangle._Interpolators[rasterY, A]);
+  Y2 := Trunc(_CurrentTriangle._Interpolators[rasterY, B]);
 
   If (Y1=Y2) Then
     Exit;
@@ -145,10 +198,10 @@ Begin
     Exit;
  End;
 
-  For I:=0 To Pred(_InterpolatorCount) Do
+  For I:=0 To Pred(_CurrentTriangle._InterpolatorCount) Do
   Begin
-    _Value[I] := _Interpolators[I, A];
-    _Add[I] := (_Interpolators[I, B] - _Interpolators[I, A]) /(Y2-Y1);
+    _Value[I] := _CurrentTriangle._Interpolators[I, A];
+    _Add[I] := (_CurrentTriangle._Interpolators[I, B] - _CurrentTriangle._Interpolators[I, A]) /(Y2-Y1);
   End;
 
   For Y:=Y1 To Y2 Do
@@ -165,31 +218,34 @@ Begin
     Begin
       If _Value[rasterX]<_IL[Y, rasterX] Then
       Begin
-        For I:=0 To Pred(_InterpolatorCount) Do
+        For I:=0 To Pred(_CurrentTriangle._InterpolatorCount) Do
           _IL[Y, I] := _Value[I];
       End;
 
       If _Value[rasterX]>_IR[Y, rasterX] Then
       Begin
-        For I:=0 To Pred(_InterpolatorCount) Do
+        For I:=0 To Pred(_CurrentTriangle._InterpolatorCount) Do
           _IR[Y, I] := _Value[I];
       End;
     End;
 
-    For I:=0 To Pred(_InterpolatorCount) Do
+    For I:=0 To Pred(_CurrentTriangle._InterpolatorCount) Do
       _Value[I] := _Value[I] + _Add[I];
  End;
 End;
 
-Procedure Rasterizer.InitBuffers;
+Procedure TERRARasterizer.InitBuffers;
 Var
   I:Integer;
 Begin
-  SetLength(_IL, _Target.Height, _InterpolatorCount);
-  SetLength(_IR, _Target.Height, _InterpolatorCount);
+  _CurrentTriangle := _Triangles[_TriangleIndex];
+  _Target := Self.GetTarget();
 
-  SetLength(_Value, _InterpolatorCount);
-  SetLength(_Add, _InterpolatorCount);
+  SetLength(_IL, _Target.Height, _CurrentTriangle._InterpolatorCount);
+  SetLength(_IR, _Target.Height, _CurrentTriangle._InterpolatorCount);
+
+  SetLength(_Value, _CurrentTriangle._InterpolatorCount);
+  SetLength(_Add, _CurrentTriangle._InterpolatorCount);
 
   For I:=0 To Pred(_Target.Height) Do
   Begin
@@ -200,30 +256,63 @@ Begin
   _MinY := _Target.Height;
   _MaxY := 0;
 
+  _CurrentY := 0;
+
   DoSide(0, 1);
   DoSide(1, 2);
   DoSide(2, 0);
 End;
 
-Procedure Rasterizer.Rasterize;
-Var
-  I:Integer;
+Function TERRARasterizer.ObtainNext: Boolean;
 Begin
-  Self.InitBuffers;
+  If (_TriangleCount<=0) Then
+  Begin
+    Result := False;
+    Exit;
+  End;
 
-  For I:=_MinY To _MaxY Do
-  If (I<0) Then
-    Continue
+  If (Not _BufferInitialized) Then
+  Begin
+    Self.InitBuffers();
+    _BufferInitialized := True;
+  End;
+
+  Result := DoPixel();
+
+  If (Not Result) And (_TriangleIndex<Pred(_TriangleCount)) Then
+  Begin
+    ReleaseObject(_Triangles[_TriangleIndex]);
+    Inc(_TriangleIndex);
+
+    _BufferInitialized := False;
+
+    Result := Self.ObtainNext();
+  End;
+End;
+
+Procedure TERRARasterizer.AddTriangle(Tri: RasterizerTriangle);
+Begin
+  Inc(_TriangleCount);
+  SetLength(_Triangles, _TriangleCount);
+
+  _Triangles[Pred(_TriangleCount)] := Tri;
+End;
+
+Function TERRARasterizer.GetTarget: TERRAImage;
+Begin
+  If Assigned(_CurrentTriangle) Then
+    Result := _CurrentTriangle._Target
   Else
-    Self.DoLine(I);
+    Result := Nil;
 End;
 
-Procedure Rasterizer.SetColor(Values: PSingleArray; Dest:PColor);
+{ RasterizerTriangle }
+Constructor RasterizerTriangle.Create(Target: TERRAImage);
 Begin
-  Dest^ := ColorBlack;
+  Self._Target := Target;
 End;
 
-Procedure Rasterizer.SetInterpolatorValues(Index:Integer; A,B,C:Single; Normalized:Boolean=True);
+Procedure RasterizerTriangle.SetInterpolatorValues(Index:Integer; A,B,C:Single; Normalized:Boolean=True);
 Begin
   If (Index>Pred(_InterpolatorCount)) Then
   Begin
@@ -250,12 +339,11 @@ Begin
   _Interpolators[Index, 2] := C;
 End;
 
-{ ColorRasterizer }
-Procedure ColorRasterizer.SetColor(Values: PSingleArray; Dest: PColor);
-Begin
-  Dest^ := FillColor;
-End;
 
+Function TERRARasterizer.GetRasterValue(Index: Integer): Single;
+Begin
+  Result := _Value[Index];
+End;
 
 Type
   GutterTexel = Record
@@ -263,20 +351,20 @@ Type
     PX,PY:Integer;
   End;
 
-Procedure FillGutter(Target, GutterMask:Image; Levels:Integer);
+Procedure FillGutter(Target, GutterMask:TERRAImage; Levels:Integer);
 Var
   _GutterTexels:Array Of GutterTexel;
   _GutterCount:Integer;
-  P:Color;
+  P:ColorRGBA;
   I,J,K:Integer;
-  Mask:Image;
+  Mask:TERRAImage;
 
 Function FindGutter(Var Texel:GutterTexel):Boolean;
 Const
   GX:Array[0..7] Of Integer = (-1,1,-1,0,1,-1,0,1);
   GY:Array[0..7] Of Integer = (0, 0, -1,-1,-1, 1,1 ,1);
 Var
-  P:Color;
+  P:ColorRGBA;
   I,J:Integer;
   PX,PY:Integer;
 Begin
@@ -304,17 +392,17 @@ End;
 Begin
   _GutterCount := 0;
   If Assigned(GutterMask) Then
-    Mask := Image.Create(GutterMask)
+    Mask := TERRAImage.Create(GutterMask)
   Else
-    Mask := Image.Create(Target);
+    Mask := TERRAImage.Create(Target);
 
   For K:=1 To Levels Do
   Begin
     For J:=0 To Pred(Mask.Height) Do
       For I:=0 To Pred(Mask.Width) Do
       Begin
-        If (I=18) And (J=0) Then
-          IntToString(2);
+        (*If (I=18) And (J=0) Then
+          IntToString(2);*)
 
         P := Mask.GetPixel(I,J);
         If (P.A=0) Then
@@ -341,6 +429,8 @@ Begin
     Target.SetPixel(_GutterTexels[I].X, _GutterTexels[I].Y, P);
   End;
 End;
+
+
 
 End.
 

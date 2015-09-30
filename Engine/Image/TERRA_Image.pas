@@ -63,7 +63,8 @@ Type
 
   ImageIterator = Class(TERRAObject)
     Private
-      _Value:ColorRGBA;
+      _SrcValue:ColorRGBA;
+      _DestValue:ColorRGBA;
       _Current:PColorRGBA;
 
     Protected
@@ -78,6 +79,8 @@ Type
       Function ObtainNext():Boolean; Virtual; Abstract;
 
     Public
+      BlendMode:ColorCombineMode;
+
       Constructor Create(Target:TERRAImage; Flags:ImageProcessFlags; Const Mask:Cardinal);
       Procedure Release; Override;
 
@@ -87,7 +90,9 @@ Type
 
       Procedure FillWithColor(Const Color:ColorRGBA);
 
-      Property Value:ColorRGBA Read _Value Write _Value;
+      Property SourceColor:ColorRGBA Read _SrcValue;
+      Property DestColor:ColorRGBA Read _DestValue Write _DestValue ;
+
       Property X:Integer Read _X;
       Property Y:Integer Read _Y;
   End;
@@ -142,6 +147,7 @@ Type
 
       {$IFDEF NDS}Function AutoTile:Cardinal;{$ENDIF}
 
+
       Procedure BlitByUV(Const U,V,U1,V1,U2,V2:Single; Const Source:TERRAImage);
       Procedure Blit(X,Y,X1,Y1,X2,Y2:Integer; Const Source:TERRAImage);
 
@@ -154,6 +160,9 @@ Type
       Procedure BlitWithMaskByUV(Const U,V,U1,V1,U2,V2:Single; Const Color:ColorRGBA; Const Source:TERRAImage);
       Procedure BlitWithMask(X,Y,X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA; Const Source:TERRAImage);
 
+      Function BlithWithRotationAndScale(X, Y:Integer; Source:TERRAimage; Angle, Scale:Single):ImageIterator;
+      Function BlitRect(Const X1, Y1, X2, Y2, X3, Y3, X4, Y4:Single; Const Source:TERRAImage):ImageIterator;
+
       Function Crop(X1,Y1,X2,Y2:Integer):TERRAImage;
 
       Procedure FlipHorizontal();
@@ -162,6 +171,7 @@ Type
       Procedure SwapChannels();
 
       Function Combine(Layer:TERRAImage; Alpha:Single; Mode:ColorCombineMode; Const Mask:Cardinal = maskRGBA):Boolean;
+
 
       Function LineByUV(Const U1,V1,U2,V2:Single; Flags:ImageProcessFlags; Const Mask:Cardinal = maskRGBA):ImageIterator;
       Function Line(X1,Y1,X2,Y2:Integer; Flags:ImageProcessFlags; Const Mask:Cardinal = maskRGBA):ImageIterator;
@@ -219,7 +229,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Engine, TERRA_FileStream, TERRA_FileUtils, TERRA_Math, TERRA_Log, TERRA_Vector4D, TERRA_ImageDrawing;
+Uses TERRA_Engine, TERRA_FileStream, TERRA_FileUtils, TERRA_Math, TERRA_Log, TERRA_Vector4D, TERRA_ImageDrawing, TERRA_Rasterizer;
 
 { ImageIterator }
 Constructor ImageIterator.Create(Target:TERRAImage; Flags:ImageProcessFlags; Const Mask:Cardinal);
@@ -227,6 +237,7 @@ Begin
   Self._Flags := Flags;
   Self._Mask := Mask;
   Self._Target := Target;
+  Self.BlendMode := combineFirst;
 
   If (image_Kernel In _Flags) Then
   Begin
@@ -243,7 +254,7 @@ Var
 Begin
   If {(_X<=0) Or (_Y<=0) Or (_X>=Pred(_Target.Width)) Or (_Y>=Pred(_Target.Height)) Or }(_Clone = Nil) Then
   Begin
-    Result := _Value;
+    Result := Self.SourceColor;
     Exit;
   End;
 
@@ -284,22 +295,24 @@ Function ImageIterator.HasNext: Boolean;
 Begin
   If (Assigned(_Current)) And (image_Write In _Flags) Then
   Begin
+    _DestValue := ColorCombine(_DestValue, _SrcValue, BlendMode);
+
     If (_Mask  = maskRGBA) Then
     Begin
-      _Current^ := _Value;
+      _Current^ := _DestValue;
     End Else
     Begin
       If (_Mask And maskRed<>0) Then
-        _Current.R := _Value.R;
+        _Current.R := _DestValue.R;
 
       If (_Mask And maskGreen<>0) Then
-        _Current.G := _Value.G;
+        _Current.G := _DestValue.G;
 
       If (_Mask And maskBlue<>0) Then
-        _Current.B := _Value.B;
+        _Current.B := _DestValue.B;
 
       If (_Mask And maskAlpha<>0) Then
-        _Current.A := _Value.A;
+        _Current.A := _DestValue.A;
     End;
   End;
 
@@ -311,7 +324,7 @@ Begin
 
     If (image_Read In _Flags) Then
     Begin
-        _Value := _Current^;
+        _SrcValue := _Current^;
     End;
   End;
 End;
@@ -2081,7 +2094,7 @@ Procedure ImageIterator.FillWithColor(const Color: ColorRGBA);
 Begin
   While Self.HasNext() Do
   Begin
-    Self.Value := Color;
+    Self.DestColor := Color;
   End;
 End;
 
@@ -2105,9 +2118,71 @@ Begin
   It := Self.Pixels([image_Read, image_Write]);
   While It.HasNext() Do
   Begin
-    It.Value := ColorCreate(It.Value.B, It.Value.G, It.Value.R, It.Value.A);
+    It.DestColor := ColorSwap(It.SourceColor);
   End;
   ReleaseObject(It);
+End;
+
+Function TERRAImage.BlitRect(Const X1, Y1, X2, Y2, X3, Y3, X4, Y4:Single; Const Source:TERRAImage):ImageIterator;
+Var
+  Tri:RasterizerTriangle;
+  Rasterizer:TERRARasterizer;
+Begin
+  Rasterizer := TERRARasterizer.Create(Self, [Image_Read, Image_Write], maskRGBA );
+  //Rasterizer.Source := Source;
+
+  Tri := RasterizerTriangle.Create(Self);
+  Tri.SetInterpolatorValues(rasterX, X1, X2, X3, False);
+  Tri.SetInterpolatorValues(rasterY, Y1, Y2, Y3, False);
+  Tri.SetInterpolatorValues(2, 0, 1, 1);
+  Tri.SetInterpolatorValues(3, 0, 0, 1);
+  Rasterizer.AddTriangle(Tri);
+
+  Tri := RasterizerTriangle.Create(Self);
+  Tri.SetInterpolatorValues(rasterX, X1, X3, X4, False);
+  Tri.SetInterpolatorValues(rasterY, Y1, Y3, Y4, False);
+  Tri.SetInterpolatorValues(2, 0, 1, 0);
+  Tri.SetInterpolatorValues(3, 0, 1, 1);
+  Rasterizer.AddTriangle(Tri);
+
+  Result := Rasterizer;
+End;
+
+Function TERRAImage.BlithWithRotationAndScale(X, Y: Integer; Source: TERRAimage; Angle, Scale: Single):ImageIterator;
+Var
+  PX, PY:Array[1..4] Of Single;
+  I:Integer;
+  TX, TY:Single;
+  Dx, Dy:Single;
+Begin
+  PX[1] := -0.5;
+  PY[1] := -0.5;
+
+  PX[2] := 0.5;
+  PY[2] := -0.5;
+
+  PX[3] := PX[2];
+  PY[3] := 0.5;
+
+  PX[4] := -0.5;
+  PY[4] := PY[3];
+
+  Dx := Cos(Angle);
+  Dy := Sin(Angle);
+
+  For I:=1 To 4 Do
+  Begin
+    TX := PX[I];
+    TY := PY[I];
+
+    PX[I] := TX * Dx - TY * Dy;
+    PY[I] := TX * Dy + TY * Dx;
+
+    PX[I] := X + PX[I] * Source.Width * Scale;
+    PY[I] := Y + PY[I] * Source.Height * Scale;
+  End;
+
+  Result := Self.BlitRect(PX[1], PY[1], PX[2], PY[2], PX[3], PY[3], PX[4], PY[4], Source);
 End;
 
 End.

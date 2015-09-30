@@ -26,7 +26,7 @@ Unit TERRA_LightMapper;
 {$I terra.inc}
 
 Interface
-Uses TERRA_Utils, TERRA_Mesh, TERRA_Vector3D, TERRA_Matrix, TERRA_Color, TERRA_Ray, TERRA_Math, TERRA_Image;
+Uses TERRA_Object, TERRA_Utils, TERRA_Mesh, TERRA_Vector3D, TERRA_Matrix4x4, TERRA_Color, TERRA_Ray, TERRA_Math, TERRA_Image;
 
 {$DEFINE OCCLUSION}
 {$DEFINE SHADOWS}
@@ -40,7 +40,7 @@ Type
   LightPixel = Record
     Position:Vector3D;
     Normal:Vector3D;
-    Color:TERRA_Color.Color;
+    Color:ColorRGBA;
     Working:Boolean;
     GID:Integer;
     TID:Integer;
@@ -53,9 +53,9 @@ Type
 
   Lightmapper = Class(TERRAObject)
     Protected
-      _Target:Mesh;
+      _Target:TERRAMesh;
       _Pixels:Array Of Array Of LightPixel;
-      _Dest:Image;
+      _Dest:TERRAImage;
 
       _GID:Integer;
       _TID:Integer;
@@ -67,12 +67,12 @@ Type
 
     Public
 
-      Procedure AddLight(P:Vector3D; C:Color);
+      Procedure AddLight(P:Vector3D; C:ColorRGBA);
 
-      Constructor Create(Target:Mesh);
+      Constructor Create(Target:TERRAMesh);
 
-      Procedure UnwrapMesh(Callback:ProgressCallback=Nil);
-      Procedure GenerateMap(Callback:ProgressCallback=Nil);
+      Procedure UnwrapMesh();
+      Procedure GenerateMap();
   End;
 
 Implementation

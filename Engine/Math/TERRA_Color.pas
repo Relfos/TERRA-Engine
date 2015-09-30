@@ -174,7 +174,8 @@ Function ColorHSLToRGB(Const Input:ColorHSL):ColorRGBA;
 
 Type
   ColorCombineMode = (
-    combineNone,
+    combineFirst,
+    combineSecond,
     combineBlend,
     combineMultiply,
     combineAdd,
@@ -437,9 +438,9 @@ Function ColorSwap(Color:ColorRGBA):ColorRGBA;
 Var
   N:Byte;
 Begin
-  N:=Color.R;
-  Color.R:=Color.B;
-  Color.B:=N;
+  N := Color.R;
+  Color.R := Color.B;
+  Color.B := N;
   Result:=Color;
 End;
 
@@ -1074,9 +1075,21 @@ End;
 Function ColorCombine(Const A, B:ColorRGBA; Mode:ColorCombineMode):ColorRGBA;
 Begin
   Case Mode Of
-    combineBlend:
+    combineFirst:
+      Begin
+        Result := A;
+        Exit;
+      End;
+
+    combineSecond:
       Begin
         Result := B;
+        Exit;
+      End;
+
+    combineBlend:
+      Begin
+        Result := A;
       End;
 
     combineMultiply:
@@ -1162,6 +1175,9 @@ Begin
     Else
       Result := A;
   End;
+
+  Result := ColorMix(Result, B, Result.A/255);
+  Result.A := 255;
 End;
 
 { ColorProperty }

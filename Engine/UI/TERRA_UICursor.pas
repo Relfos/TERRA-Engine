@@ -74,7 +74,7 @@ End;
 
 Function CursorManager.SetCursor(CursorType: TERRACursorType; Texture:TERRATexture; const OfsX, OfsY: Integer): TERRACursor;
 Begin
-     Result := _Cursors[CursorType];
+  Result := _Cursors[CursorType];
   Result.Texture := Texture;
   Result.OfsX := OfsX;
   Result.OfsY := OfsY;

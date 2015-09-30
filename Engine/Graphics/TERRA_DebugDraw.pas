@@ -31,26 +31,26 @@ Uses TERRA_Object, TERRA_String, TERRA_GraphicsManager, TERRA_Renderer, TERRA_Co
   TERRA_MeshSkeleton, TERRA_MeshAnimationNodes, TERRA_Collision2D, TERRA_Splines, TERRA_ClipRect, TERRA_Viewport;
 
 // 2d drawing
-Procedure DrawPoint2D(View:TERRAViewport; Const P:Vector2D; FillColor:ColorRGBA; Radius:Single = 2.0);
-Procedure DrawLine2D(View:TERRAViewport; Const A,B:Vector2D; LineColor:ColorRGBA; LineWidth:Single = 1.0);
-Procedure DrawCircle(View:TERRAViewport; Const P:Vector2D; Radius:Single; LineColor:ColorRGBA; LineWidth:Single = 1.0);
-Procedure DrawRectangle(View:TERRAViewport; Const A,B:Vector2D; LineColor:ColorRGBA; LineWidth:Single = 1.0);
-Procedure DrawFilledRect(View:TERRAViewport; Const A,B:Vector2D; FillColor:ColorRGBA);
-Procedure DrawPolygon2D(View:TERRAViewport; Poly:Polygon2D; LineColor:ColorRGBA; LineWidth:Single = 1.0);
-Procedure DrawClipRect(View:TERRAViewport; Const Rect:TERRAClipRect; LineColor:ColorRGBA; LineWidth:Single = 1.0);
+Procedure DrawPoint2D(SourceView, TargetView:TERRAViewport; Const P:Vector2D; FillColor:ColorRGBA; Radius:Single = 2.0);
+Procedure DrawLine2D(SourceView, TargetView:TERRAViewport; Const A,B:Vector2D; LineColor:ColorRGBA; LineWidth:Single = 1.0);
+Procedure DrawCircle(SourceView, TargetView:TERRAViewport; Const P:Vector2D; Radius:Single; LineColor:ColorRGBA; LineWidth:Single = 1.0);
+Procedure DrawRectangle(SourceView, TargetView:TERRAViewport; Const A,B:Vector2D; LineColor:ColorRGBA; LineWidth:Single = 1.0);
+Procedure DrawFilledRect(SourceView, TargetView:TERRAViewport; Const A,B:Vector2D; FillColor:ColorRGBA);
+Procedure DrawPolygon2D(SourceView, TargetView:TERRAViewport; Poly:Polygon2D; LineColor:ColorRGBA; LineWidth:Single = 1.0);
+Procedure DrawClipRect(SourceView, TargetView:TERRAViewport; Const Rect:TERRAClipRect; LineColor:ColorRGBA; LineWidth:Single = 1.0);
 
 // 3d drawing
-Procedure DrawPoint3D(View:TERRAViewport; Const P:Vector3D; FillColor:ColorRGBA; Radius:Single = 2.0);
-Procedure DrawLine3D(View:TERRAViewport; Const A,B:Vector3D; LineColor:ColorRGBA; LineWidth:Single = 1.0);
-Procedure DrawRay(View:TERRAViewport; Const R:TERRARay; LineColor:ColorRGBA; LineWidth:Single = 1.0; Length:Single =0);
-Procedure DrawBoundingBox(View:TERRAViewport; Const MyBox:BoundingBox; LineColor:ColorRGBA; LineWidth:Single = 1.0);
-Procedure DrawSpline(View:TERRAViewport; S:Spline; LineColor:ColorRGBA; LineWidth:Single = 1.0);
-Procedure DrawAxis(V:TERRAViewport; Const Origin, Normal:Vector3D; LineWidth:Single = 1.0);
+Procedure DrawPoint3D(SourceView, TargetView:TERRAViewport; Const P:Vector3D; FillColor:ColorRGBA; Radius:Single = 2.0);
+Procedure DrawLine3D(SourceView, TargetView:TERRAViewport; Const A,B:Vector3D; LineColor:ColorRGBA; LineWidth:Single = 1.0);
+Procedure DrawRay(SourceView, TargetView:TERRAViewport; Const R:TERRARay; LineColor:ColorRGBA; LineWidth:Single = 1.0; Length:Single =0);
+Procedure DrawBoundingBox(SourceView, TargetView:TERRAViewport; Const MyBox:BoundingBox; LineColor:ColorRGBA; LineWidth:Single = 1.0);
+Procedure DrawSpline(SourceView, TargetView:TERRAViewport; S:Spline; LineColor:ColorRGBA; LineWidth:Single = 1.0);
+Procedure DrawAxis(SourceView,  TargetView:TERRAViewport; Const Origin, Normal:Vector3D; LineWidth:Single = 1.0);
 
-Procedure DrawFrustum(View:TERRAViewport; F:Frustum; LineColor:ColorRGBA; LineWidth:Single = 1.0);
+Procedure DrawFrustum(SourceView, TargetView:TERRAViewport; F:Frustum; LineColor:ColorRGBA; LineWidth:Single = 1.0);
 
-Procedure DrawBone(View:TERRAViewport; Bone:MeshBone; State:AnimationState; Const Transform:Matrix4x4; LineColor:ColorRGBA; LineWidth:Single);
-Procedure DrawSkeleton(View:TERRAViewport; Skeleton:MeshSkeleton; State:AnimationState; Const Transform:Matrix4x4; LineColor:ColorRGBA; LineWidth:Single);
+Procedure DrawBone(SourceView, TargetView:TERRAViewport; Bone:MeshBone; State:AnimationState; Const Transform:Matrix4x4; LineColor:ColorRGBA; LineWidth:Single);
+Procedure DrawSkeleton(SourceView, TargetView:TERRAViewport; Skeleton:MeshSkeleton; State:AnimationState; Const Transform:Matrix4x4; LineColor:ColorRGBA; LineWidth:Single);
 
 (*Procedure DrawFrustum(Const MyFrustum:Frustum; Color:TERRA_Color.Color);
 Procedure DrawPlane(Const Position, Normal:Vector3D; Scale:Single; Color:TERRA_Color.Color);
@@ -63,13 +63,13 @@ Uses TERRA_OS, TERRA_Engine, TERRA_Math, TERRA_Texture;
 Const
   Layer = 99;
 
-Function ConvertTo2D(View:TERRAViewport; P:Vector3D):Vector2D;
+Function ConvertTo2D(SourceView:TERRAViewport; P:Vector3D):Vector2D;
 Begin
-  P := View.ProjectPoint(P);
+  P := SourceView.ProjectPoint(P);
   Result := Vector2D_Create(P.X, P.Y);
 End;
 
-Procedure DrawPoint2D(View:TERRAViewport; Const P:Vector2D; FillColor:ColorRGBA; Radius:Single = 2.0);
+Procedure DrawPoint2D(SourceView, TargetView:TERRAViewport; Const P:Vector2D; FillColor:ColorRGBA; Radius:Single = 2.0);
 Var
   A,B:Vector2D;
 Begin
@@ -79,10 +79,10 @@ Begin
   B.X := P.X + Radius;
   B.Y := P.Y + Radius;
 
-  DrawFilledRect(View, A, B, FillColor);
+  DrawFilledRect(SourceView, TargetView, A, B, FillColor);
 End;
 
-Procedure DrawLine2D(View:TERRAViewport; Const A,B:Vector2D; LineColor:ColorRGBA; LineWidth:Single);
+Procedure DrawLine2D(SourceView, TargetView:TERRAViewport; Const A,B:Vector2D; LineColor:ColorRGBA; LineWidth:Single);
 Var
   Tex:TERRATexture;
   S:TERRASprite;
@@ -96,10 +96,10 @@ Begin
   S.Layer := Layer;
   S.SetColor(LineColor);
   S.AddLine(A, B, 0.0, LineWidth);
-  Engine.Graphics.AddRenderable(View, S);
+  Engine.Graphics.AddRenderable(TargetView, S);
 End;
 
-Procedure DrawFilledRect(View:TERRAViewport; Const A,B:Vector2D; FillColor:ColorRGBA);
+Procedure DrawFilledRect(SourceView, TargetView:TERRAViewport; Const A,B:Vector2D; FillColor:ColorRGBA);
 Var
   I:Integer;
   Tex:TERRATexture;
@@ -123,11 +123,11 @@ Begin
   S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0,0), 0.0, Trunc(MaxX-MinX), Trunc(MaxY-MinY)); // colors
   S.Translate(MinX, MinY);
 
-  Engine.Graphics.AddRenderable(View, S);
+  Engine.Graphics.AddRenderable(TargetView, S);
 //  S.ClipRect := Clip;
 End;
 
-Procedure DrawRectangle(View:TERRAViewport; Const A,B:Vector2D; LineColor:ColorRGBA; LineWidth:Single = 1.0);
+Procedure DrawRectangle(SourceView, TargetView:TERRAViewport; Const A,B:Vector2D; LineColor:ColorRGBA; LineWidth:Single = 1.0);
 Var
   I:Integer;
   Tex:TERRATexture;
@@ -147,30 +147,30 @@ Begin
   If (MinX = MaxX) Then
   Begin
     If (MinY = MaxY) Then
-      DrawPoint2D(View, A, LineColor, LineWidth)
+      DrawPoint2D(SourceView, TargetView, A, LineColor, LineWidth)
     Else
-      DrawLine2D(View, A, B, LineColor, LineWidth);
+      DrawLine2D(SourceView, TargetView, A, B, LineColor, LineWidth);
 
     Exit;
   End Else
   If (MinY = MaxY) Then
   Begin
-    DrawLine2D(View, A, B, LineColor, LineWidth);
+    DrawLine2D(SourceView, TargetView, A, B, LineColor, LineWidth);
     Exit;
   End;
 
-  DrawLine2D(View, Vector2D_Create(MinX, MinY), Vector2D_Create(MaxX, MinY), LineColor, LineWidth);
-  DrawLine2D(View, Vector2D_Create(MaxX, MinY), Vector2D_Create(MaxX, MaxY), LineColor, LineWidth);
-  DrawLine2D(View, Vector2D_Create(MaxX, MaxY), Vector2D_Create(MinX, MaxY), LineColor, LineWidth);
-  DrawLine2D(View, Vector2D_Create(MinX, MaxY), Vector2D_Create(MinX, MinY), LineColor, LineWidth);
+  DrawLine2D(SourceView,  TargetView, Vector2D_Create(MinX, MinY), Vector2D_Create(MaxX, MinY), LineColor, LineWidth);
+  DrawLine2D(SourceView,  TargetView, Vector2D_Create(MaxX, MinY), Vector2D_Create(MaxX, MaxY), LineColor, LineWidth);
+  DrawLine2D(SourceView,  TargetView, Vector2D_Create(MaxX, MaxY), Vector2D_Create(MinX, MaxY), LineColor, LineWidth);
+  DrawLine2D(SourceView,  TargetView, Vector2D_Create(MinX, MaxY), Vector2D_Create(MinX, MinY), LineColor, LineWidth);
 End;
 
-Procedure DrawClipRect(View:TERRAViewport; Const Rect:TERRAClipRect; LineColor:ColorRGBA; LineWidth:Single = 1.0);
+Procedure DrawClipRect(SourceView, TargetView:TERRAViewport; Const Rect:TERRAClipRect; LineColor:ColorRGBA; LineWidth:Single = 1.0);
 Begin
-  DrawRectangle(View, Vector2D_Create(Rect.X1, Rect.Y1), Vector2D_Create(Rect.X2, Rect.Y2), LineColor, LineWidth);
+  DrawRectangle(SourceView,  TargetView, Vector2D_Create(Rect.X1, Rect.Y1), Vector2D_Create(Rect.X2, Rect.Y2), LineColor, LineWidth);
 End;
 
-Procedure DrawCircle(View:TERRAViewport; Const P:Vector2D; Radius:Single; LineColor:ColorRGBA; LineWidth:Single = 1.0);
+Procedure DrawCircle(SourceView, TargetView:TERRAViewport; Const P:Vector2D; Radius:Single; LineColor:ColorRGBA; LineWidth:Single = 1.0);
 Const
   SubDivs = 32;
 Var
@@ -190,11 +190,11 @@ Begin
     DY := Sin(Angle);
     B := Vector2D_Create(P.X + DX * Radius, P.Y + DY * Radius);
 
-    DrawLine2D(View, A, B, LineColor, LineWidth);
+    DrawLine2D(SourceView, TargetView, A, B, LineColor, LineWidth);
   End;
 End;
 
-Procedure DrawPolygon2D(View:TERRAViewport; Poly:Polygon2D; LineColor:ColorRGBA; LineWidth:Single);
+Procedure DrawPolygon2D(SourceView, TargetView:TERRAViewport; Poly:Polygon2D; LineColor:ColorRGBA; LineWidth:Single);
 Var
   I:Integer;
 Begin
@@ -202,20 +202,20 @@ Begin
     Exit;
 
   For I:=0 To Pred(Poly.VertexCount) Do
-    DrawLine2D(View, Poly.Vertices[I], Poly.Vertices[Succ(I) Mod Poly.VertexCount], LineColor, LineWidth);
+    DrawLine2D(SourceView,  TargetView, Poly.Vertices[I], Poly.Vertices[Succ(I) Mod Poly.VertexCount], LineColor, LineWidth);
 End;
 
-Procedure DrawPoint3D(View:TERRAViewport; Const P:Vector3D; FillColor:ColorRGBA; Radius:Single);
+Procedure DrawPoint3D(SourceView, TargetView:TERRAViewport; Const P:Vector3D; FillColor:ColorRGBA; Radius:Single);
 Begin
-  DrawPoint2D(View, ConvertTo2D(View, P), FillColor, Radius);
+  DrawPoint2D(SourceView,  TargetView, ConvertTo2D(SourceView, P), FillColor, Radius);
 End;
 
-Procedure DrawLine3D(View:TERRAViewport; Const A,B:Vector3D; LineColor:ColorRGBA; LineWidth:Single);
+Procedure DrawLine3D(SourceView, TargetView:TERRAViewport; Const A,B:Vector3D; LineColor:ColorRGBA; LineWidth:Single);
 Begin
-  DrawLine2D(View, ConvertTo2D(View, A), ConvertTo2D(View, B), LineColor, LineWidth);
+  DrawLine2D(SourceView,  TargetView, ConvertTo2D(SourceView, A), ConvertTo2D(SourceView, B), LineColor, LineWidth);
 End;
 
-Procedure DrawRay(View:TERRAViewport; Const R:TERRARay; LineColor:ColorRGBA; LineWidth:Single = 1.0; Length:Single =0);
+Procedure DrawRay(SourceView, TargetView:TERRAViewport; Const R:TERRARay; LineColor:ColorRGBA; LineWidth:Single = 1.0; Length:Single =0);
 Var
   P:Vector3D;
 Begin
@@ -224,10 +224,10 @@ Begin
 
   P := Vector3D_Add(R.Origin, Vector3D_Scale(R.Direction, Length));
 
-  DrawLine3D(View, R.Origin, P, LineColor, LineWidth);
+  DrawLine3D(SourceView,  TargetView, R.Origin, P, LineColor, LineWidth);
 End;
 
-Procedure DrawBoundingBox(View:TERRAViewport; Const MyBox:BoundingBox; LineColor:ColorRGBA; LineWidth:Single);
+Procedure DrawBoundingBox(SourceView, TargetView:TERRAViewport; Const MyBox:BoundingBox; LineColor:ColorRGBA; LineWidth:Single);
 Var
   Min, Max:Vector3D;
   Points:Array[0..7] Of Vector3D;
@@ -245,21 +245,21 @@ Begin
   Points[6] := Vector3D_Create(Min.X, Max.Y, Max.Z);
   Points[7] := Vector3D_Create(Max.X, Max.Y, Max.Z);
 
-  DrawLine3D(View, Points[0], Points[1], LineColor, LineWidth);
-  DrawLine3D(View, Points[0], Points[2], LineColor, LineWidth);
-  DrawLine3D(View, Points[1], Points[3], LineColor, LineWidth);
-  DrawLine3D(View, Points[2], Points[3], LineColor, LineWidth);
-  DrawLine3D(View, Points[4], Points[5], LineColor, LineWidth);
-  DrawLine3D(View, Points[4], Points[6], LineColor, LineWidth);
-  DrawLine3D(View, Points[5], Points[7], LineColor, LineWidth);
-  DrawLine3D(View, Points[6], Points[7], LineColor, LineWidth);
-  DrawLine3D(View, Points[0], Points[4], LineColor, LineWidth);
-  DrawLine3D(View, Points[1], Points[5], LineColor, LineWidth);
-  DrawLine3D(View, Points[2], Points[6], LineColor, LineWidth);
-  DrawLine3D(View, Points[3], Points[7], LineColor, LineWidth);
+  DrawLine3D(SourceView,  TargetView, Points[0], Points[1], LineColor, LineWidth);
+  DrawLine3D(SourceView,  TargetView, Points[0], Points[2], LineColor, LineWidth);
+  DrawLine3D(SourceView,  TargetView, Points[1], Points[3], LineColor, LineWidth);
+  DrawLine3D(SourceView,  TargetView, Points[2], Points[3], LineColor, LineWidth);
+  DrawLine3D(SourceView,  TargetView, Points[4], Points[5], LineColor, LineWidth);
+  DrawLine3D(SourceView,  TargetView, Points[4], Points[6], LineColor, LineWidth);
+  DrawLine3D(SourceView,  TargetView, Points[5], Points[7], LineColor, LineWidth);
+  DrawLine3D(SourceView,  TargetView, Points[6], Points[7], LineColor, LineWidth);
+  DrawLine3D(SourceView,  TargetView, Points[0], Points[4], LineColor, LineWidth);
+  DrawLine3D(SourceView,  TargetView, Points[1], Points[5], LineColor, LineWidth);
+  DrawLine3D(SourceView,  TargetView, Points[2], Points[6], LineColor, LineWidth);
+  DrawLine3D(SourceView,  TargetView, Points[3], Points[7], LineColor, LineWidth);
 End;
 
-Procedure DrawSpline(View:TERRAViewport; S:Spline; LineColor:ColorRGBA; LineWidth:Single = 1.0);
+Procedure DrawSpline(SourceView, TargetView:TERRAViewport; S:Spline; LineColor:ColorRGBA; LineWidth:Single = 1.0);
 Const
   SubDivs = 50;
 Var
@@ -276,11 +276,11 @@ Begin
     A := S.GetPosition(((I-1)/SubDivs));
     B := S.GetPosition((I/SubDivs));
 
-    DrawLine3D(View, A, B, LineColor, LineWidth);
+    DrawLine3D(SourceView, TargetView, A, B, LineColor, LineWidth);
   End;
 End;
 
-Procedure DrawBone(View:TERRAViewport; Bone:MeshBone; State:AnimationState; Const Transform:Matrix4x4; LineColor:ColorRGBA; LineWidth:Single);
+Procedure DrawBone(SourceView, TargetView:TERRAViewport; Bone:MeshBone; State:AnimationState; Const Transform:Matrix4x4; LineColor:ColorRGBA; LineWidth:Single);
 Var
   A,B:Vector3D;
   M:Matrix4x4;
@@ -302,10 +302,10 @@ Begin
     
   B := M.Transform(Vector3D_Zero);
 
-  DrawLine3D(View, A, B, LineColor, LineWidth);
+  DrawLine3D(SourceView, TargetView, A, B, LineColor, LineWidth);
 End;
 
-Procedure DrawSkeleton(View:TERRAViewport; Skeleton:MeshSkeleton; State:AnimationState; Const Transform:Matrix4x4; LineColor:ColorRGBA; LineWidth:Single);
+Procedure DrawSkeleton(SourceView, TargetView:TERRAViewport; Skeleton:MeshSkeleton; State:AnimationState; Const Transform:Matrix4x4; LineColor:ColorRGBA; LineWidth:Single);
 Var
   I:Integer;
 Begin
@@ -313,10 +313,10 @@ Begin
     Exit;
 
   For I:=1 To Pred(Skeleton.BoneCount) Do
-    DrawBone(View, Skeleton.GetBoneByIndex(I), State, Transform, LineColor, LineWidth);
+    DrawBone(SourceView,  TargetView, Skeleton.GetBoneByIndex(I), State, Transform, LineColor, LineWidth);
 End;
 
-Procedure DrawFrustum(View:TERRAViewport; F:Frustum; LineColor:ColorRGBA; LineWidth:Single);
+Procedure DrawFrustum(SourceView, TargetView:TERRAViewport; F:Frustum; LineColor:ColorRGBA; LineWidth:Single);
 Var
   V:BoundingBoxVertices;
   P:Array[0..3] Of Vector3D;
@@ -329,31 +329,31 @@ Begin
   P[2] := Vector3D_Create(V[3].X, V[3].Y, V[3].z);
   P[3] := Vector3D_Create(V[4].X, V[4].Y, V[4].z);
 	For I:=1 To 3 Do
-    DrawLine3D(View, P[I-1], P[I], LineColor, LineWidth);
+    DrawLine3D(SourceView,  TargetView, P[I-1], P[I], LineColor, LineWidth);
 
 	P[0] := Vector3D_Create(V[6].X, V[6].Y, V[6].z);
 	P[1] := Vector3D_Create(V[5].X, V[5].Y, V[5].z);
   P[2] := Vector3D_Create(V[7].X, V[7].Y, V[7].z);
   P[3] := Vector3D_Create(V[8].X, V[8].Y, V[8].z);
 	For I:=1 To 3 Do
-    DrawLine3D(View, P[I-1], P[I], LineColor, LineWidth);
+    DrawLine3D(SourceView,  TargetView, P[I-1], P[I], LineColor, LineWidth);
 
 	P[0] := Vector3D_Create(V[1].X, V[1].Y, V[1].z);
 	P[1] := Vector3D_Create(V[3].X, V[3].Y, V[3].z);
   P[2] := Vector3D_Create(V[7].X, V[7].Y, V[7].z);
   P[3] := Vector3D_Create(V[5].X, V[5].Y, V[5].z);
 	For I:=1 To 3 Do
-    DrawLine3D(View, P[I-1], P[I], LineColor, LineWidth);
+    DrawLine3D(SourceView,  TargetView, P[I-1], P[I], LineColor, LineWidth);
 
 	P[0] := Vector3D_Create(V[2].X, V[2].Y, V[2].z);
 	P[1] := Vector3D_Create(V[4].X, V[4].Y, V[4].z);
   P[2] := Vector3D_Create(V[8].X, V[8].Y, V[8].z);
   P[3] := Vector3D_Create(V[6].X, V[6].Y, V[6].z);
 	For I:=1 To 3 Do
-    DrawLine3D(View, P[I-1], P[I], LineColor, LineWidth);
+    DrawLine3D(SourceView,  TargetView, P[I-1], P[I], LineColor, LineWidth);
 End;
 
-Procedure DrawAxis(V:TERRAViewport; Const Origin, Normal:Vector3D; LineWidth:Single);
+Procedure DrawAxis(SourceView,  TargetView:TERRAViewport; Const Origin, Normal:Vector3D; LineWidth:Single);
 Var
   Tangent, BiTangent:Vector3D;
   M:Matrix4x4;
@@ -361,9 +361,9 @@ Begin
   Tangent := Vector3D_Cross(Normal, Vector3D_Up);
   BiTangent := Vector3D_Cross(Normal, Tangent);
 
-  DrawRay(V, RayCreate(Origin, Normal), ColorRed, LineWidth, 5);
-  DrawRay(V, RayCreate(Origin, Tangent), ColorBlue, LineWidth, 5);
-  DrawRay(V, RayCreate(Origin, BiTangent), ColorGreen, LineWidth, 5);
+  DrawRay(SourceView,  TargetView, RayCreate(Origin, Normal), ColorRed, LineWidth, 5);
+  DrawRay(SourceView,  TargetView, RayCreate(Origin, Tangent), ColorBlue, LineWidth, 5);
+  DrawRay(SourceView,  TargetView, RayCreate(Origin, BiTangent), ColorGreen, LineWidth, 5);
 End;
 (*
 Procedure DrawPointCloud(Cloud:PointCloud2D; MyColor:ColorRGBA; Layer:Single);

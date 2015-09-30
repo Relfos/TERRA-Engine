@@ -56,12 +56,19 @@ Type
       _Target:TERRACamera;
       _Enabled:Boolean;
 
+      Procedure SetEnabled(const Value: Boolean);
+
+      Procedure OnChangeState(); Virtual;
+
     Public
       Constructor Create();
+      Procedure Release(); Override;
+
+
       Procedure Update(); Virtual; Abstract;
 
       Property Target:TERRACamera Read _Target;
-      Property Enabled:Boolean Read _Enabled Write _Enabled;
+      Property Enabled:Boolean Read _Enabled Write SetEnabled;
   End;
 
   { TERRACamera }
@@ -222,7 +229,28 @@ Uses TERRA_OS, TERRA_Application, TERRA_Lights, TERRA_GraphicsManager, TERRA_Ren
 { TERRACameraController }
 Constructor TERRACameraController.Create;
 Begin
-  _Enabled := True;
+  _Enabled := False;
+
+  Self.SetEnabled(True);
+End;
+
+Procedure TERRACameraController.OnChangeState;
+Begin
+  // do nothing
+End;
+
+Procedure TERRACameraController.Release;
+Begin
+  Self.SetEnabled(False);
+End;
+
+Procedure TERRACameraController.SetEnabled(const Value: Boolean);
+Begin
+  If (Value = _Enabled) Then
+    Exit;
+
+  _Enabled := Value;
+  Self.OnChangeState();
 End;
 
 { TERRACamera}

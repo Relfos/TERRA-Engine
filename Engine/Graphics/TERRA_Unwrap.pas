@@ -36,7 +36,7 @@ Unit TERRA_Unwrap;
 
 Interface
 
-Uses TERRA_Utils, TERRA_Collections, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color,
+Uses TERRA_Object, TERRA_Utils, TERRA_Collections, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color,
   TERRA_Image, TERRA_Log, TERRA_MeshFilter, TERRA_Mesh;
 
 Const
@@ -116,7 +116,7 @@ Type
 
       _HasAdjacency:Boolean;
 
-      _Target:Mesh;
+      _Target:TERRAMesh;
 
       Procedure AddTriangle(GroupID, A, B, C:Integer; Normal:Vector3D);
       Function GetTriangle2D(GroupID, Index:Integer; Scale:Single):UnwrapTriangle2D;
@@ -130,9 +130,9 @@ Type
       Procedure DuplicateVertex(Cluster:PUnwrapCluster; Index:Integer);
 
     Public
-      Function Unwrap(Target:Mesh; Callback:ProgressNotifier=Nil):Boolean;
+      Function Unwrap(Target:TERRAMesh):Boolean;
 
-      Function GetTemplate(Size:Cardinal = 1024):Image;
+      Function GetTemplate(Size:Cardinal = 1024):TERRAImage;
 
       Function GetCluster(Index:Integer):PUnwrapCluster;
   End;
@@ -176,7 +176,7 @@ Begin
   G._TriangleList[Index].Index[2] := C;
   G._TriangleList[Index].Orientation := Orientation;
   G._TriangleList[Index].Cluster := Nil;
-  G._TriangleList[Index].Adjacency.Count := 0;
+  //G._TriangleList[Index].Adjacency.Count := 0;
 End;
 
 Function Unwrapper.GetTriangle2D(GroupID, Index:Integer; Scale:Single):UnwrapTriangle2D;
@@ -187,24 +187,24 @@ Begin
   For I:=0 To 2 Do
   Begin
     P := _Groups[GroupID]._VertexList[_Groups[GroupID]._TriangleList[Index].Index[I]].Vertex.Position;
-    P := VectorScale(P, Scale);
+    P := Vector3D_Scale(P, Scale);
     Case _Groups[GroupID]._TriangleList[Index].Orientation Of
     PLANE_XPOSITIVE,
     PLANE_XNEGATIVE:
       Begin
-        Result.Vertex[I] := VectorCreate2D(P.Z, P.Y);
+        Result.Vertex[I] := Vector2D_Create(P.Z, P.Y);
       End;
 
     PLANE_YPOSITIVE,
     PLANE_YNEGATIVE:
       Begin
-        Result.Vertex[I] := VectorCreate2D(P.X, P.Z);
+        Result.Vertex[I] := Vector2D_Create(P.X, P.Z);
       End;
 
     PLANE_ZPOSITIVE,
     PLANE_ZNEGATIVE:
       Begin
-        Result.Vertex[I] := VectorCreate2D(P.X, P.Y);
+        Result.Vertex[I] := Vector2D_Create(P.X, P.Y);
       End;
     End;
   End;
@@ -435,8 +435,8 @@ Begin
       For J:=0 To Pred(Cluster.TriangleList.Count) Do
         Cluster._Triangles[J] := GetTriangle2D(Cluster.GroupID, Cluster.TriangleList.Items[J], Scale);
 
-      Cluster._Min := VectorCreate2D(9999, 9999);
-      Cluster._Max := VectorCreate2D(-9999, -9999);
+      Cluster._Min := Vector2D_Create(9999, 9999);
+      Cluster._Max := Vector2D_Create(-9999, -9999);
       For J:=0 To Pred(Cluster.TriangleList.Count) Do
         For K := 0 To 2 Do
         Begin

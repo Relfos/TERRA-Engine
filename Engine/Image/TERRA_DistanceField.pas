@@ -142,7 +142,7 @@ Begin
   It := Source.Pixels([image_Read]);
   While It.HasNext() Do
   Begin
-    Values[It.X + It.Y * Source.Width] := (It.Value.A * RescaleFactor) - 0.5;
+    Values[It.X + It.Y * Source.Width] := (It.SourceColor.A * RescaleFactor) - 0.5;
   End;
 
   For Y:=0 To Pred(Result.Height) Do
