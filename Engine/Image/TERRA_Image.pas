@@ -160,8 +160,8 @@ Type
       Procedure BlitWithMaskByUV(Const U,V,U1,V1,U2,V2:Single; Const Color:ColorRGBA; Const Source:TERRAImage);
       Procedure BlitWithMask(X,Y,X1,Y1,X2,Y2:Integer; Const Color:ColorRGBA; Const Source:TERRAImage);
 
-      Function BlithWithRotationAndScale(X, Y:Integer; Source:TERRAimage; Angle, Scale:Single):ImageIterator;
-      Function BlitRect(Const X1, Y1, X2, Y2, X3, Y3, X4, Y4:Single; Const Source:TERRAImage):ImageIterator;
+      Function BlithWithRotationAndScale(X, Y, Width, Height:Integer; Angle, Scale:Single):ImageIterator;
+      Function BlitRect(Const X1, Y1, X2, Y2, X3, Y3, X4, Y4:Single):ImageIterator;
 
       Function Crop(X1,Y1,X2,Y2:Integer):TERRAImage;
 
@@ -2123,7 +2123,7 @@ Begin
   ReleaseObject(It);
 End;
 
-Function TERRAImage.BlitRect(Const X1, Y1, X2, Y2, X3, Y3, X4, Y4:Single; Const Source:TERRAImage):ImageIterator;
+Function TERRAImage.BlitRect(Const X1, Y1, X2, Y2, X3, Y3, X4, Y4:Single):ImageIterator;
 Var
   Tri:RasterizerTriangle;
   Rasterizer:TERRARasterizer;
@@ -2131,16 +2131,16 @@ Begin
   Rasterizer := TERRARasterizer.Create(Self, [Image_Read, Image_Write], maskRGBA );
   //Rasterizer.Source := Source;
 
-  Tri := RasterizerTriangle.Create(Self);
-  Tri.SetInterpolatorValues(rasterX, X1, X2, X3, False);
-  Tri.SetInterpolatorValues(rasterY, Y1, Y2, Y3, False);
+  Tri := RasterizerTriangle.Create();
+  Tri.SetInterpolatorValues(rasterX, X1, X2, X3);
+  Tri.SetInterpolatorValues(rasterY, Y1, Y2, Y3);
   Tri.SetInterpolatorValues(2, 0, 1, 1);
   Tri.SetInterpolatorValues(3, 0, 0, 1);
   Rasterizer.AddTriangle(Tri);
 
-  Tri := RasterizerTriangle.Create(Self);
-  Tri.SetInterpolatorValues(rasterX, X1, X3, X4, False);
-  Tri.SetInterpolatorValues(rasterY, Y1, Y3, Y4, False);
+  Tri := RasterizerTriangle.Create();
+  Tri.SetInterpolatorValues(rasterX, X1, X3, X4);
+  Tri.SetInterpolatorValues(rasterY, Y1, Y3, Y4);
   Tri.SetInterpolatorValues(2, 0, 1, 0);
   Tri.SetInterpolatorValues(3, 0, 1, 1);
   Rasterizer.AddTriangle(Tri);
@@ -2148,7 +2148,7 @@ Begin
   Result := Rasterizer;
 End;
 
-Function TERRAImage.BlithWithRotationAndScale(X, Y: Integer; Source: TERRAimage; Angle, Scale: Single):ImageIterator;
+Function TERRAImage.BlithWithRotationAndScale(X, Y, Width, Height: Integer; Angle, Scale: Single):ImageIterator;
 Var
   PX, PY:Array[1..4] Of Single;
   I:Integer;
@@ -2178,11 +2178,11 @@ Begin
     PX[I] := TX * Dx - TY * Dy;
     PY[I] := TX * Dy + TY * Dx;
 
-    PX[I] := X + PX[I] * Source.Width * Scale;
-    PY[I] := Y + PY[I] * Source.Height * Scale;
+    PX[I] := X + PX[I] * Width * Scale;
+    PY[I] := Y + PY[I] * Height * Scale;
   End;
 
-  Result := Self.BlitRect(PX[1], PY[1], PX[2], PY[2], PX[3], PY[3], PX[4], PY[4], Source);
+  Result := Self.BlitRect(PX[1], PY[1], PX[2], PY[2], PX[3], PY[3], PX[4], PY[4]);
 End;
 
 End.

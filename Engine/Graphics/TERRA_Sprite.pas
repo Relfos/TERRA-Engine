@@ -123,7 +123,7 @@ Type
       Procedure SetColorTable(const Value: TERRATexture);
       Procedure SetPattern(const Value: TERRATexture);
 
-      Procedure AddQuad(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single = 0.0);
+      Procedure AddQuad(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single = 0.0; Const Angle:Single = 0.0);
       Procedure AddEllipse(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const RadiusX, RadiusY:Single);
       Procedure AddCircle(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const Radius:Single);
       Procedure AddPath(Const Positions:Array Of Vector2D; LayerOffset:Single; Width:Single);
@@ -395,9 +395,13 @@ Begin
   Self.AddEllipse(Anchor, Pos, LayerOffset, Radius, Radius);
 End;
 
-Procedure TERRASprite.AddQuad(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single);
+Procedure TERRASprite.AddQuad(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single; Const Angle:Single);
 Var
+  I:Integer;
   U1, V1, U2, V2:Single;
+  PX, PY:Array[1..4] Of Single;
+  TX, TY:Single;
+  DX, DY:Single;
   IndexOffset, VertexOffset:Integer;
 Begin
   If (Self._CA.A = 0) And (Self._CB.A = 0) And (Self._CC.A=0) And (Self._CD.A=0) Then
@@ -431,12 +435,45 @@ Begin
     V2 := _V2;
   End;
 
-  Case Anchor Of
-    spriteAnchor_Center:
-      Pos.Subtract(Vector2D_Create(Width * 0.5, Height * 0.5));
+  PX[1] := 0;
+  PY[1] := 1;
 
-    spriteAnchor_BottomMiddle:
-      Pos.Subtract(Vector2D_Create(Width * 0.5, -Height * 0.5));
+  PX[2] := 1;
+  PY[2] := 1;
+
+  PX[3] := 1 + Skew;
+  PY[3] := 0;
+
+  PX[4] := 0 + Skew;
+  PY[4] := 0;
+
+  Dx := Cos(Angle);
+  Dy := Sin(Angle);
+
+  For I:=1 To 4 Do
+  Begin
+    TX := PX[I];
+    TY := PY[I];
+
+    Case Anchor Of
+      spriteAnchor_Center:
+        Begin
+          TX := TX - 0.5;
+          TY := TY - 0.5;
+        End;
+
+      spriteAnchor_BottomMiddle:
+        Begin
+          TX := TX - 0.5;
+        End;
+    End;
+
+
+    PX[I] := TX * Dx - TY * Dy;
+    PY[I] := TX * Dy + TY * Dx;
+
+    PX[I] := Pos.X + PX[I] * Width;
+    PY[I] := Pos.Y + PY[I] * Height;
   End;
 
   Geometry.Vertices.SetColor(VertexOffset + 0, vertexColor, _CC);
@@ -444,16 +481,16 @@ Begin
   Geometry.Vertices.SetColor(VertexOffset + 2, vertexColor, _CB);
   Geometry.Vertices.SetColor(VertexOffset + 3, vertexColor, _CA);
 
-  Geometry.Vertices.SetVector3D(VertexOffset + 0, vertexPosition, Vector3D_Create(Pos.X, Pos.Y + Height, LayerOffset));
+  Geometry.Vertices.SetVector3D(VertexOffset + 0, vertexPosition, Vector3D_Create(PX[1], PY[1], LayerOffset));
   Geometry.Vertices.SetVector2D(VertexOffset + 0, vertexUV0, Vector2D_Create(U1, V2));
 
-  Geometry.Vertices.SetVector3D(VertexOffset + 1, vertexPosition, Vector3D_Create(Pos.X + Width, Pos.Y +Height, LayerOffset));
+  Geometry.Vertices.SetVector3D(VertexOffset + 1, vertexPosition, Vector3D_Create(PX[2], PY[2], LayerOffset));
   Geometry.Vertices.SetVector2D(VertexOffset + 1, vertexUV0, Vector2D_Create(U2, V2));
 
-  Geometry.Vertices.SetVector3D(VertexOffset + 2, vertexPosition, Vector3D_Create(Pos.X + Width + Skew, Pos.Y, LayerOffset));
+  Geometry.Vertices.SetVector3D(VertexOffset + 2, vertexPosition, Vector3D_Create(PX[3], PY[3], LayerOffset));
   Geometry.Vertices.SetVector2D(VertexOffset + 2, vertexUV0, Vector2D_Create(U2, V1));
 
-  Geometry.Vertices.SetVector3D(VertexOffset + 3, vertexPosition, Vector3D_Create(Pos.X + Skew, Pos.Y, LayerOffset));
+  Geometry.Vertices.SetVector3D(VertexOffset + 3, vertexPosition, Vector3D_Create(PX[4], PY[4], LayerOffset));
   Geometry.Vertices.SetVector2D(VertexOffset + 3, vertexUV0, Vector2D_Create(U1, V1));
 
   Geometry.Indices.SetIndex(IndexOffset + 0, VertexOffset + 0);
