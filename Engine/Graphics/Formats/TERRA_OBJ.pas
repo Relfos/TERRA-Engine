@@ -26,17 +26,17 @@ Unit TERRA_OBJ;
 
 {$I terra.inc}
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Color, TERRA_Vector3D, TERRA_Vector2D, TERRA_Texture,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Stream, TERRA_Color, TERRA_Vector3D, TERRA_Vector2D, TERRA_Texture,
   TERRA_Math, TERRA_Mesh, TERRA_Resource, TERRA_MeshFilter, TERRA_OS, TERRA_FileUtils,
-  TERRA_FileManager, TERRA_FileStream, TERRA_MemoryStream, TERRA_Renderer, TERRA_VertexFormat;
+  TERRA_FileManager, TERRA_FileStream, TERRA_MemoryStream, TERRA_Renderer, TERRA_VertexFormat, TERRA_FileFormat;
 
 Type
   POBJMaterial=^OBJMaterial;
   OBJMaterial=Record        // Material Structure
     Name:AnsiString;
-    Ambient:Color;
-    Diffuse:Color;
-    Specular:Color;
+    Ambient:ColorRGBA;
+    Diffuse:ColorRGBA;
+    Specular:ColorRGBA;
     Shininess:Single;
     DiffuseTexture:AnsiString;
     SpecularTexture:AnsiString;
@@ -103,8 +103,8 @@ Type
       Function GetMaterial(Index:Integer): POBJMaterial;
 
     Public
-      Function Load(Source:Stream):Boolean; Override;
-      Class Function Save(Dest:Stream; MyMesh:MeshFilter):Boolean; Override;
+      Function Load(Source:TERRAStream):Boolean; Override;
+      Class Function Save(Dest:TERRAStream; MyMesh:MeshFilter):Boolean; Override;
 
       Function GetGroupCount:Integer; Override;
       Function GetGroupName(GroupID:Integer):AnsiString; Override;
@@ -117,17 +117,23 @@ Type
       Function GetVertexFormat(GroupID:Integer):VertexFormat; Override;
       Function GetVertexPosition(GroupID, Index:Integer):Vector3D; Override;
       Function GetVertexNormal(GroupID, Index:Integer):Vector3D; Override;
-      Function GetVertexUV(GroupID, Index:Integer):Vector2D; Override;
+      Function GetVertexUV(GroupID, Index, Channel:Integer):Vector2D; Override;
 
-      Function GetDiffuseColor(GroupID:Integer):Color; Override;
+      Function GetDiffuseColor(GroupID:Integer):ColorRGBA; Override;
 
       Function GetDiffuseMapName(GroupID:Integer):AnsiString; Override;
       Function GetSpecularMapName(GroupID:Integer):AnsiString; Override;
       Function GetEmissiveMapName(GroupID:Integer):AnsiString; Override;
   End;
 
+  OBJFormat = Class(MeshFilterFormat)
+    Protected
+      Function Identify(Source:TERRAStream):Boolean; Override;
+      Function CreateFilter():MeshFilter; Override;
+  End;
+
 Implementation
-Uses TERRA_Log, TERRA_ResourceManager, TERRA_GraphicsManager, SysUtils, StrUtils;
+Uses TERRA_Log, TERRA_Engine, TERRA_ResourceManager, TERRA_GraphicsManager, SysUtils, StrUtils;
 
 //  Gets the X, Y, Z coordinates from a String
 Function GetVector(S:AnsiString):Vector3D;
@@ -207,7 +213,7 @@ Begin
   Begin
     Inc(_GroupCount);
     SetLength(_GroupList, _GroupCount);
-    _GroupList[Pred(_GroupCount)].Name := 'group'+IntToString(_GroupCount);
+    _GroupList[Pred(_GroupCount)].Name := 'group'+IntegerProperty.Stringify(_GroupCount);
   End;
 
   Group := @(_GroupList[Pred(_GroupCount)]);
@@ -215,15 +221,15 @@ Begin
   Index:=0;
   While (Length(S)>0) Do
   begin
-    S2 := StringGetNextSplit(S, Ord(' '));
+    S2 := StringGetNextSplit(S, ' ');
 
     Inc(Index);
-    S3 := StringGetNextSplit(S2, Ord('/'));
+    S3 := StringGetNextSplit(S2, '/');
     VertexIndices[Pred(Index)] := Pred(StringToInt(S3));
 
-    S3 := StringGetNextSplit(S2, Ord('/'));
+    S3 := StringGetNextSplit(S2, '/');
     If (S3<>'') Then
-      UVIndices[Pred(Index)] := Pred(StringToInt(S3)) 
+      UVIndices[Pred(Index)] := Pred(StringToInt(S3))
     Else
       UVIndices[Pred(Index)] := -1;
 
@@ -297,7 +303,7 @@ End;
 //  Get Material Color values
 Procedure OBJModel.ReadMaterial(S:AnsiString);
 Var
-  MyColor:Color;
+  MyColor:ColorRGBA;
   P,P2:Integer;
   Ch:AnsiChar;
   Material:POBJMaterial;
@@ -351,7 +357,8 @@ Procedure OBJModel.LoadMaterials(S:AnsiString);
 Var
   P:Integer;
   Filename:AnsiString;
-  F:Stream;
+  Location:TERRALocation;
+  F:TERRAStream;
 Begin
   If Copy(S, 1, 6) <> 'MTLLIB' Then
     Exit;  // false call
@@ -359,15 +366,15 @@ Begin
   P := Pos(' ', S);
   FileName := Copy(S, P+1, length(S));
 
-  S := FileManager.Instance.SearchResourceFile(FileName);
+  Location := Engine.Files.Search(FileName);
 
-  If S='' Then
+  If Location = Nil Then
   Begin
-    Log(logWarning, 'OBJ','LoadMaterials: Cannot find the material file.['+FileName+']');
+    Engine.Log.Write(logWarning, 'OBJ','LoadMaterials: Cannot find the material file.['+FileName+']');
     Exit;
   End;
 
-  F := MemoryStream.Create(S);
+  F := Location.GetStream();
   While Not(F.EOF) Do
   Begin
     F.ReadLine(S);
@@ -395,7 +402,7 @@ Begin
     Result := Nil;
 End;
 
-Function OBJModel.Load(Source:Stream):Boolean;
+Function OBJModel.Load(Source:TERRAStream):Boolean;
 Var
   S,S2:AnsiString;
   Index:Integer;
@@ -454,7 +461,7 @@ Begin
   _GroupCount := 0;
   _MaterialCount := 0;
 
-  FileManager.Instance.AddPath(GetFilePath(Source.Name));
+  Engine.Files.AddFolder(GetFilePath(Source.Name));
 
   While Not Source.EOF Do
   Begin
@@ -524,7 +531,7 @@ Begin
 End;
 
 
-Class Function OBJModel.Save(Dest:Stream; MyMesh:MeshFilter):Boolean;
+Class Function OBJModel.Save(Dest:TERRAStream; MyMesh:MeshFilter):Boolean;
 Var
   I,J,K, N:Integer;
   Count:Integer;
@@ -534,7 +541,7 @@ Var
   UV:Vector2D;
   T:Triangle;
   F:Single;
-  C:Color;
+  C:ColorRGBA;
   Group:MeshGroup;
   Ofs:Integer;
 Begin
@@ -588,7 +595,7 @@ Begin
     Count := MyMesh.GetVertexCount(I);
     For J:=0 To Pred(Count) Do
     Begin
-      UV := MyMesh.GetVertexUV(I, J);
+      UV := MyMesh.GetVertexUV(0, I, J);
       S := Format('vt %8.6f %8.6f', [UV.X, 1.0-UV.Y]);
       StringReplaceText(',', '.', S);
       Dest.WriteLine(S);
@@ -598,13 +605,13 @@ Begin
   Dest.WriteLine('#faces');
   For I:=0 To Pred(MyMesh.GetGroupCount) Do
   Begin
-    Dest.WriteLine('g group'+IntToString(Succ(I)));
+    Dest.WriteLine('g group'+IntegerProperty.Stringify(Succ(I)));
 
     If (Dest Is FileStream) Then
       Dest.WriteLine('usemtl '+MyMesh.GetGroupName(I));
 
   If Pos('poly',MyMesh.GetGroupName(I))>0 then
-    IntToString(2);
+    IntegerProperty.Stringify(2);
 
 
     Dest.WriteLine('s 1');
@@ -661,8 +668,8 @@ Begin
       If S<>'' Then
       Begin
         S := GetFileName(S, True)+'.png';
-        If (FileManager.Instance.SearchResourceFile(S)='') Then
-          S := GetFileName(S, True)+'.jpg';
+        {If (Engine.Files.SearchResourceFile(S)='') Then
+          S := GetFileName(S, True)+'.jpg';}
         Dest.WriteLine('map_Kd '+ S);
       End;
 
@@ -675,7 +682,7 @@ Begin
   End;
 End;
 
-Function OBJModel.GetDiffuseColor(GroupID: Integer): Color;
+Function OBJModel.GetDiffuseColor(GroupID: Integer): ColorRGBA;
 Var
   Mat:POBJMaterial;
 Begin
@@ -780,11 +787,23 @@ Begin
   Result := _GroupList[GroupID].Vertices[Index].Position;
 End;
 
-Function OBJModel.GetVertexUV(GroupID, Index: Integer): Vector2D;
+Function OBJModel.GetVertexUV(GroupID, Index, Channel: Integer): Vector2D;
 Begin
   Result := _GroupList[GroupID].Vertices[Index].TextureCoords;
 End;
 
+{ OBJFormat }
+
+Function OBJFormat.CreateFilter: MeshFilter;
+Begin
+  Result := OBJModel.Create();
+End;
+
+Function OBJFormat.Identify(Source: TERRAStream): Boolean;
+Begin
+  Result := (StringContains('.obj', Source.Name));
+End;
+
 Initialization
-  RegisterMeshFilter(OBJModel, 'OBJ');
+  Engine.Formats.Add(OBJFormat.Create(TERRAMesh, 'obj'));
 End.

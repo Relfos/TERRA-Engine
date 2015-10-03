@@ -38,7 +38,8 @@ Unit TERRA_Stream;
 Interface
 
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
-  TERRA_Object, TERRA_Utils, TERRA_FileUtils, TERRA_String;
+  TERRA_Object, TERRA_Utils, TERRA_FileUtils, TERRA_String,
+  TERRA_Vector2D, TERRA_Vector3D, TERRA_Color;
 
 Const
  // Stream access/permission flags
@@ -83,6 +84,10 @@ Type
       Function WriteSingle(Const Value:Single):Boolean; Virtual;
       Function WriteBoolean(Const Value:Boolean):Boolean; Virtual;
       //Function WriteDouble(Const Value:Double):Boolean; Virtual;
+
+      Function WriteColor(Const Value:ColorRGBA):Boolean; Virtual;
+      Function WriteVector2D(Const Value:Vector2D):Boolean; Virtual;
+      Function WriteVector3D(Const Value:Vector3D):Boolean; Virtual;
 
       Function ReadShortInt(Out Value:ShortInt):Boolean; Virtual;
       Function ReadByte(Out Value:Byte):Boolean; Virtual;
@@ -767,6 +772,21 @@ End;
 Function TERRAStream.WriteBoolean(const Value: Boolean): Boolean;
 Begin
   Result := Self.Write(@Value, 1)>0;
+End;
+
+Function TERRAStream.WriteColor(const Value: ColorRGBA): Boolean;
+Begin
+  Result := WriteCardinal(Cardinal(Value));
+End;
+
+Function TERRAStream.WriteVector2D(const Value: Vector2D): Boolean;
+Begin
+  Result := (WriteSingle(Value.X)) And (WriteSingle(Value.Y));
+End;
+
+Function TERRAStream.WriteVector3D(const Value: Vector3D): Boolean;
+Begin
+  Result := (WriteSingle(Value.X)) And (WriteSingle(Value.Y)) And (WriteSingle(Value.Z));
 End;
 
 Function TERRAStream.WriteChar(const Value: TERRAChar): Boolean;

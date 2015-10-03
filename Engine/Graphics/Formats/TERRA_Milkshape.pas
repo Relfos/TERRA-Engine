@@ -169,6 +169,8 @@ Type
 
     Function ConvertTexturesToTextureAtlas(FileName:AnsiString):Boolean;
 
+    Procedure CenterOnOrigin();
+
     Function GetMaterialFile(MaterialIndex:Integer; SourceFile:AnsiString):AnsiString;
   End;
 
@@ -235,6 +237,54 @@ Implementation
 Uses TERRA_Error, TERRA_Log, TERRA_Engine, TERRA_TextureAtlas, TERRA_Image, TERRA_Application, TERRA_ResourceManager, TERRA_Mesh;
 
 { Milkshape3DObject }
+Procedure Milkshape3DObject.CenterOnOrigin;
+Var
+  I,J:Integer;
+  Min, Max, Center, V:Vector3D;
+Begin
+    Min.X := 9999;
+    Min.Y := 9999;
+    Min.Z := 9999;
+
+    Max.X := -9999;
+    Max.Y := -9999;
+    Max.Z := -9999;
+
+  For I:=0 To Pred(Self.NumVertices) Do
+  Begin
+    V := Self.Vertices[I].Vertex;
+
+    If V.X>Max.X Then
+      Max.X := V.X;
+
+    If V.X<Min.X Then
+      Min.X := V.X;
+
+
+    If V.Y>Max.Y Then
+      Max.Y := V.Y;
+
+    If V.Y<Min.Y Then
+      Min.Y := V.Y;
+
+
+    If V.Z>Max.Z Then
+      Max.Z := V.Z;
+
+    If V.Z<Min.Z Then
+      Min.Z := V.Z;
+  End;
+
+  Center.X := (Max.X - Min.X) * 0.5 + Min.X;
+  Center.Y := (Max.Y - Min.Y) * 0.5 + Min.Y;
+  Center.Z := (Max.Z - Min.Z) * 0.5 + Min.Z;
+
+  For I:=0 To Pred(Self.NumVertices) Do
+  Begin
+    Self.Vertices[I].Vertex.Subtract(Vector3D_Create(Center.X, Min.Y, Center.Z));
+  End;
+End;
+
 Function Milkshape3DObject.GetMaterialFile(MaterialIndex:Integer; SourceFile:AnsiString):AnsiString;
 Begin
   If (MaterialIndex=-1) Or (Materials[MaterialIndex].Texture[1]=#0) Then
@@ -1138,6 +1188,7 @@ Function Milkshape3DModel.GetVertexUV(GroupID, Index, Channel:Integer): Vector2D
 Begin
   Result := _Groups[GroupID].Vertices[Index].TexCoords;
 End;
+
 
 
 { Milkshape3DJoint }
