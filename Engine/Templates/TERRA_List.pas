@@ -156,15 +156,20 @@ Begin
 
   If _ItemCount>0 Then
   Begin
+    {$IFNDEF DISABLEMEMORYPOOL}
     Engine.Pool.Grow(Engine.Pool.Count + Self.Count);
+    {$ENDIF}
 
     List := _First;
     While Assigned(List)Do
     Begin
       Next := List.Next;
-      //ReleaseObject(List);
 
+      {$IFDEF DISABLEMEMORYPOOL}
+      ReleaseObject(List);
+      {$ELSE}
       Engine.Pool.Recycle(List);
+      {$ENDIF}
 
       List := Next;
     End;

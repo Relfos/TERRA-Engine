@@ -7,7 +7,7 @@ Uses
   TERRA_ResourceManager, TERRA_Color, TERRA_OS,
   TERRA_Engine, TERRA_ScreenFX,       
   TERRA_Viewport, TERRA_Localization, TERRA_DemoApplication;
-
+                        
 Type
   // A client is used to process application events
   SampleApp = Class(DemoApplication)

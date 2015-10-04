@@ -218,7 +218,7 @@ Begin
   Else
     _Geometry := TERRAGeometry.Create();
 
-  Self.Clear();
+  Self.Clear();        
   Self.Reset();
 End;
 
@@ -446,10 +446,10 @@ Begin
   PX[2] := 1;
   PY[2] := 1;
 
-  PX[3] := 1 + Skew;
+  PX[3] := 1;
   PY[3] := 0;
 
-  PX[4] := 0 + Skew;
+  PX[4] := 0;
   PY[4] := 0;
 
   Dx := Cos(Angle);
@@ -480,6 +480,9 @@ Begin
     PX[I] := Pos.X + PX[I] * Width * Scale;
     PY[I] := Pos.Y + PY[I] * Height * Scale;
   End;
+
+  PX[3] := PX[3] + Skew;
+  PX[4] := PX[4] + Skew;
 
   Geometry.Vertices.SetColor(VertexOffset + 0, vertexColor, _CC);
   Geometry.Vertices.SetColor(VertexOffset + 1, vertexColor, _CD);

@@ -8,10 +8,12 @@ Uses TERRA_Object, TERRA_Mutex;
 Type
   TERRAPool = Class(TERRAObject)
     Protected
+      {$IFNDEF DISABLEMEMORYPOOL}
       _Objects:Array Of TERRAObject;
       _ObjectCount:Integer;
 
       _Mutex:CriticalSection;
+      {$ENDIF}
 
     Public
       Constructor Create();
@@ -22,7 +24,9 @@ Type
       Function Fetch(ObjType:TERRAObjectType):TERRAObject;
       Procedure Recycle(Obj:TERRAObject);
 
+      {$IFNDEF DISABLEMEMORYPOOL}
       Property Count:Integer Read _ObjectCount;
+      {$ENDIF}
   End;
 
 Implementation
@@ -31,13 +35,18 @@ Uses TERRA_Engine;
 { TERRAPool }
 Constructor TERRAPool.Create;
 Begin
+  {$IFNDEF DISABLEMEMORYPOOL}
   _Mutex := CriticalSection.Create();
+
+  SetLength(_Objects, 16);
+  {$ENDIF}
 End;
 
 Procedure TERRAPool.Release;
 Var
   I:Integer;
 Begin
+  {$IFNDEF DISABLEMEMORYPOOL}
   _Mutex.Lock();
   For I:=0 To Pred(_ObjectCount) Do
   If Assigned(_Objects[I]) Then
@@ -49,10 +58,12 @@ Begin
   _Mutex.Unlock();
 
   ReleaseObject(_Mutex);
+  {$ENDIF}
 End;
 
 Procedure TERRAPool.Recycle(Obj: TERRAObject);
 Begin
+  {$IFNDEF DISABLEMEMORYPOOL}
   _Mutex.Lock();
   Inc(_ObjectCount);
 
@@ -62,6 +73,7 @@ Begin
   _Objects[Pred(_ObjectCount)] := Obj;
 
   _Mutex.Unlock();
+  {$ENDIF}
 End;
 
 Function TERRAPool.Fetch(ObjType:TERRAObjectType):TERRAObject;
@@ -70,6 +82,7 @@ Var
 Begin
   Result := Nil;
 
+  {$IFNDEF DISABLEMEMORYPOOL}
   If Not ObjType.CanBePooled Then
   Begin
     Engine.RaiseError(ObjType.ClassName + ' type cannot be pooled!');
@@ -89,16 +102,19 @@ Begin
     Inc(I);
 
   _Mutex.Unlock();
+  {$ENDIF}
 End;
 
 Procedure TERRAPool.Grow(Size: Integer);
 Begin
+  {$IFNDEF DISABLEMEMORYPOOL}
   _Mutex.Lock();
 
-  If (Length(_Objects)<Size) Then
-    SetLength(_Objects, Size);
+  While (Length(_Objects)<Size) Do
+    SetLength(_Objects, Length(_Objects) * 2);
 
   _Mutex.Unlock();
+  {$ENDIF}
 End;
 
 
