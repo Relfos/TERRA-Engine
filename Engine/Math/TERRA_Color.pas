@@ -38,10 +38,14 @@ Type
     R:Byte;
     A:Byte;
   {$ELSE}
-    R:Byte;
-    G:Byte;
-    B:Byte;
-    A:Byte;
+    case Integer of
+     0: (
+        R:Byte;
+        G:Byte;
+        B:Byte;
+        A:Byte);
+     1:
+     (Col: LongWord);
   {$ENDIF}
   End;
 
@@ -159,17 +163,20 @@ Function ColorGrey(GreyLevel:Byte; Alpha:Byte=255):ColorRGBA;
 Function ColorRGBToHSL(Const Input:ColorRGBA):ColorHSL;
 Function ColorHSLToRGB(Const Input:ColorHSL):ColorRGBA;
 
-  // Color conversion
-  Function ColorRGB555To32(Source:Word):ColorRGBA;
-  Function ColorRGB565To32(Source:Word):ColorRGBA;
-  Function ColorRGB32To16(Source:ColorRGBA):Word;
-  Function ColorRGB32To8(Source:ColorRGBA):Byte;
-  Function ColorRGB8To32(Source:Byte):ColorRGBA;
+// Color conversion
+Function ColorRGBA444To32(Source:Word):ColorRGBA;
+Function ColorRGB555To32(Source:Word):ColorRGBA;
+Function ColorRGBA555To32(Source:Word):ColorRGBA;
+Function ColorRGB565To32(Source:Word):ColorRGBA;
 
-  Function ColorBGR16To32(Source:Word):ColorRGBA;
-  Function ColorBGR32To16(Source:ColorRGBA):Word;
-  Function ColorBGR32To8(Source:ColorRGBA):Byte;
-  Function ColorBGR8To32(Source:Byte):ColorRGBA;
+Function ColorRGB32To16(Source:ColorRGBA):Word;
+Function ColorRGB32To8(Source:ColorRGBA):Byte;
+Function ColorRGB8To32(Source:Byte):ColorRGBA;
+
+Function ColorBGR16To32(Source:Word):ColorRGBA;
+Function ColorBGR32To16(Source:ColorRGBA):Word;
+Function ColorBGR32To8(Source:ColorRGBA):Byte;
+Function ColorBGR8To32(Source:Byte):ColorRGBA;
 
 
 Type
@@ -711,30 +718,48 @@ Begin
 End;
 
 // color format conversions
-//http://www.cprogramdevelop.com/3556267/
 Function ColorRGB565To32(Source:Word):ColorRGBA;
-Var
-	Temp:Word;
 Begin
   With Result Do
   Begin
-    R := (Source Shl 3);
-    G := (Source Shl 5) Or ((Source Shr 3) And $1C);
-    B := (Source And $F8);
-    A := 255;
+    R := (Source and $F800) shr 8;
+    G := (Source and $7E0) shr 3;
+    B := (Source and $1F) shl 3;
+    A := $FF;
+  End;
+End;
+
+Function ColorRGBA555To32(Source:Word):ColorRGBA;
+Begin
+  With Result Do
+  Begin
+    R := (Source and $7C00) shr 7;
+    G := (Source and $3E0) shr 2;
+    B := (Source and $1F) shl 3;
+    // If you can not show the "and $FF" error analysis for "or $FF"
+    A := ((Source and $8000) shr 15) and $FF;
   End;
 End;
 
 Function ColorRGB555To32(Source:Word):ColorRGBA;
-Var
-	Temp:Word;
 Begin
   With Result Do
   Begin
-    R := (Source Shl 3);
-    G := (Source Shl 6) Or ((Source Shr 2) And $38);
-    B := (Source And $F8);
-    A := 255;
+    R := (Source and $7C00) shr 7;
+    G := (Source and $3E0) shr 2;
+    B := (Source and $1F) shl 3;
+    A := $FF;
+  End;
+End;
+
+Function ColorRGBA444To32(Source:Word):ColorRGBA;
+Begin
+  With Result Do
+  Begin
+    R := (Source and $F00) shr 4;
+    G := Source and $F0;
+    B := (Source and $F) shl 4;
+    A := (Source and $F000) shr 8;
   End;
 End;
 
