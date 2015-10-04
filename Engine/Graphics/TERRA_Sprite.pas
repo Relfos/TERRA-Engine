@@ -123,7 +123,7 @@ Type
       Procedure SetColorTable(const Value: TERRATexture);
       Procedure SetPattern(const Value: TERRATexture);
 
-      Procedure AddQuad(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single = 0.0; Const Angle:Single = 0.0);
+      Procedure AddQuad(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single = 0.0; Const Angle:Single = 0.0; Const Scale:Single = 1.0);
       Procedure AddEllipse(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const RadiusX, RadiusY:Single);
       Procedure AddCircle(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const Radius:Single);
       Procedure AddPath(Const Positions:Array Of Vector2D; LayerOffset:Single; Width:Single);
@@ -140,7 +140,7 @@ Type
       Procedure SetDissolve(Mask:TERRATexture; Const Value:Single);
 
       Procedure SetTransform(Const Mat:Matrix3x3);
-
+      Procedure ResetTransform();
       Procedure ConcatTransform(Const Mat:Matrix3x3);
       Procedure Translate(Const X,Y:Single);
       Procedure Rotate(Angle:Single);
@@ -256,6 +256,11 @@ End;
 Procedure TERRASprite.ConcatTransform(const Mat: Matrix3x3);
 Begin
   _Transform := Matrix3x3_Multiply(Mat, _Transform);
+End;
+
+Procedure TERRASprite.ResetTransform();
+Begin
+  _Transform := Matrix3x3_Identity;
 End;
 
 Procedure TERRASprite.Translate(const X, Y: Single);
@@ -395,7 +400,7 @@ Begin
   Self.AddEllipse(Anchor, Pos, LayerOffset, Radius, Radius);
 End;
 
-Procedure TERRASprite.AddQuad(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single; Const Angle:Single);
+Procedure TERRASprite.AddQuad(Const Anchor:SpriteAnchor; Pos:Vector2D; LayerOffset:Single; Const Width, Height:Single; Const Skew:Single; Const Angle:Single; Const Scale:Single);
 Var
   I:Integer;
   U1, V1, U2, V2:Single;
@@ -472,8 +477,8 @@ Begin
     PX[I] := TX * Dx - TY * Dy;
     PY[I] := TX * Dy + TY * Dx;
 
-    PX[I] := Pos.X + PX[I] * Width;
-    PY[I] := Pos.Y + PY[I] * Height;
+    PX[I] := Pos.X + PX[I] * Width * Scale;
+    PY[I] := Pos.Y + PY[I] * Height * Scale;
   End;
 
   Geometry.Vertices.SetColor(VertexOffset + 0, vertexColor, _CC);
@@ -667,7 +672,7 @@ Begin
   Self.SetUVs(0.0, 0.0, 1.0, 1.0);
   Self.Glow := ColorBlack;
 
-  Self.SetTransform(Matrix3x3_Identity);
+  ResetTransform();
 End;
 
 Procedure TERRASprite.SetUVs(const U1, V1, U2, V2: Single);

@@ -131,8 +131,10 @@ Var
   Values:Array Of Single;
   It:ImageIterator;
 Begin
+  //REsult := TERRAImage.create(Source);  Exit;
+
   //Padding := Source.Width Div 10;
-  Engine.Log.Write(logWarning, 'Application', 'Making distance field glyph...');
+  //Engine.Log.Write(logWarning, 'Application', 'Making distance field glyph...');
 
   Result := TERRAImage.Create(Source.Width, Source.Height);
 
