@@ -31,13 +31,14 @@ Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Vector3D, TERRA_Tween;
 
 Type
   PColorRGBA = ^ColorRGBA;
-  ColorRGBA = Packed {$IFDEF USE_OLD_OBJECTS}Object{$ELSE}Record{$ENDIF}
-  {$IFDEF BGR}
-    B:Byte;
-    G:Byte;
-    R:Byte;
-    A:Byte;
+  {$IFDEF USE_OLD_OBJECTS}
+  ColorRGBA = Packed Object
+        R:Byte;
+        G:Byte;
+        B:Byte;
+        A:Byte;
   {$ELSE}
+  ColorRGBA = Record
     case Integer of
      0: (
         R:Byte;
