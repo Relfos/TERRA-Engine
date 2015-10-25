@@ -44,7 +44,7 @@ Type
       Procedure Release; Override;
 
       Procedure Render; Virtual;
-      Function Intersect(Const R:Ray; Var T:Single; Out Normal:Vector3D):Boolean; Virtual;
+      Function Intersect(Const R:TERRARay; Var T:Single; Out Normal:Vector3D):Boolean; Virtual;
   End;
 
   Octree = Class(TERRAObject)
@@ -65,7 +65,7 @@ Type
       Procedure AddElement(Element:OctreeElement);
       Procedure RemoveElement(Element:OctreeElement);
 
-      Function Intersect(Const R:Ray; Var T:Single):OctreeElement;
+      Function Intersect(Const R:TERRARay; Var T:Single):OctreeElement;
 
       Procedure Render(View:TERRAViewport);
   End;
@@ -182,7 +182,7 @@ Begin
     ReleaseObject(_Children[I]);
 End;
 
-Function Octree.Intersect(Const R: Ray; Var T:Single):OctreeElement;
+Function Octree.Intersect(Const R: TERRARay; Var T:Single):OctreeElement;
 Var
   K:Single;
   I:Integer;
@@ -241,7 +241,7 @@ Begin
   // do nothing
 End;
 
-Function OctreeElement.Intersect(const R: Ray; var T: Single; Out Normal:Vector3D): Boolean;
+Function OctreeElement.Intersect(const R: TERRARay; var T: Single; Out Normal:Vector3D): Boolean;
 Begin
   Result := R.Intersect(Box, T, Normal);
 End;
