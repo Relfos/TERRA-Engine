@@ -24,6 +24,10 @@
 Unit TERRA_Mesh;
 {$I terra.inc}
 
+{$IFNDEF ANDROID}
+{$DEFINE HAS_HUESHIFT}
+{$ENDIF}
+
 Interface
 Uses {$IFDEF USEDEBUGUNIT}TERRA_Debug,{$ENDIF}
   TERRA_String, TERRA_Utils, TERRA_Texture, TERRA_Image, TERRA_Stream, TERRA_Resource,
@@ -7064,12 +7068,14 @@ Begin
       FxFlags := FxFlags Or shaderWireframe;
 
     //DestMaterial.HueShift := 0.0;
+    {$IFDEF HAS_HUESHIFT}
     If ((DestMaterial.HueShift<>0.0) Or (Group.Flags And meshGroupHueShift<>0)) Then
     Begin
       Group.Vertices.AddAttribute(vertexFormatHue);
       Group.ReleaseBuffer();
       FxFlags := FxFlags Or shaderHueChange;
     End;
+    {$ENDIF}
 
     If (DestMaterial.ReflectiveMap <> Nil) Then
       FxFlags := FxFlags Or shaderSphereMap Or shaderReflectiveMap;
