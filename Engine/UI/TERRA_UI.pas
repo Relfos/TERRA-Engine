@@ -232,6 +232,7 @@ Type
 
       Function CanRender():Boolean;
 
+      Procedure RenderChildren();
 
       Procedure ResetClipRect();
 
@@ -1946,17 +1947,22 @@ Begin
 End;
 
 Procedure Widget.Render;
-Var
-  I:Integer;
 Begin
   If (Not Self.Visible) Then
     Exit;
 
+
+  RenderChildren();
+End;
+
+Procedure Widget.RenderChildren();
+Var
+  I:Integer;
+Begin
   For I:=0 To Pred(_ChildrenCount) Do
   If (_ChildrenList[I].Visible) And (_ChildrenList[I].CanRender()) Then
     _ChildrenList[I].Render();
 End;
-
 
 Procedure Widget.OnHighlight(Prev: Widget);
 Begin
