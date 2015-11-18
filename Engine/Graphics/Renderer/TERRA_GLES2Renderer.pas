@@ -351,7 +351,7 @@ End;
 
 Function OpenGLES2Renderer.CreateContext: Boolean;
 Begin
-  Result:=False;
+  Result := False;
 
   LoadOpenGL();
 
