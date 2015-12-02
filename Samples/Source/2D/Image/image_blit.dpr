@@ -72,7 +72,7 @@ Begin
 
     //Dest.BlitWithAlphaByUV(U, V, 0, 0, 1, 1, Src);
 
-    It := Dest.BlithWithRotationAndScale(128, 128, Src.Width, Src.Height, 45*RAD, 1);
+    It := Dest.BlithWithRotationAndScale(Trunc(U * Dest.Width), Trunc(V * Dest.Height), Src.Width, Src.Height, 45*RAD, 1);
     It.BlendMode := combineBlend;
     While It.HasNext() Do
     Begin
@@ -82,7 +82,6 @@ Begin
       It.DestColor := Src.GetPixelByUV(U, V);
     End;
     ReleaseObject(It);
-    Break;
 
     (*It := Dest.CircleByUV(U, V, R, [image_Write]);
     While It.HasNext() Do
@@ -108,7 +107,7 @@ Begin
   S.SetTexture(Tex);
   S.Layer := 50;
   S.Translate(300, 200);
-  S.AddQuad(SpriteAnchor_Center, Vector2D_Zero, 0, Tex.Width, Tex.Height, 0, Cos(Application.GetTime()/1000)*180  *RAD);
+  S.AddQuad(SpriteAnchor_Center, Vector2D_Zero, 0, Tex.Width, Tex.Height, 0{, Cos(Application.GetTime()/1000)*180  *RAD});
   Engine.Graphics.AddRenderable(V, S);
 
   Inherited;

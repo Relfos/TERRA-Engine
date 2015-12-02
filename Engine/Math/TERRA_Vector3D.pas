@@ -57,6 +57,8 @@ Type
     Function Get(Index:Integer):Single;
     Procedure SetValue(Index:Integer; Value:Single);
 
+    Function Abs():Vector3D;
+
     // Normalizes the vector
     Procedure Normalize;
     Function Length:Single;
@@ -175,6 +177,13 @@ Begin
   Else
       Result := 0;
   End;
+End;
+
+Function Vector3D.Abs():Vector3D;
+Begin
+  Result.X := System.Abs(Self.X);
+  Result.Y := System.Abs(Self.Y);
+  Result.Z := System.Abs(Self.Z);
 End;
 
 Procedure Vector3D.SetValue(Index:Integer; Value:Single);

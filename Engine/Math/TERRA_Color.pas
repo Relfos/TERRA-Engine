@@ -118,6 +118,8 @@ Const
   ColorBlue:ColorRGBA=(R:0; G:0; B:255; A:255);
   ColorGreen:ColorRGBA=(R:0; G:255; B:0; A:255);
   ColorYellow:ColorRGBA=(R:255; G:255; B:0; A:255);
+  ColorMagenta:ColorRGBA=(R:255; G:0; B:255; A:255);
+  ColorCyan:ColorRGBA=(R:0; G:255; B:255; A:255);
   {$ENDIF}
 
 
@@ -126,6 +128,8 @@ Function ColorCreateFromString(Const Value:TERRAString):ColorRGBA;
 Function ColorCreateFromFloat(Const R,G,B:Single; A:Single=1.0):ColorRGBA;
 Function ColorCreateFromVector3D(Const V:Vector3D; A:Single=1.0):ColorRGBA;
 Function ColorCreateFromNormal(Const N:Vector3D; A:Single=1.0):ColorRGBA;
+
+Function ColorToVector3D(Const C:ColorRGBA):Vector3D;
 
 Function ColorHSLCreate(Const H,S,L:Byte; A:Byte=255):ColorHSL;
 
@@ -297,6 +301,13 @@ Begin
   Result.G := Byte(Trunc(G*255));
   Result.B := Byte(Trunc(B*255));
   Result.A := Byte(Trunc(A*255));
+End;
+
+Function ColorToVector3D(Const C:ColorRGBA):Vector3D;
+Begin
+  Result.X := C.R / 255;
+  Result.Y := C.G / 255;
+  Result.Z := C.B / 255;
 End;
 
 Function ColorCreateFromVector3D(Const V:Vector3D; A:Single=1.0):ColorRGBA;
