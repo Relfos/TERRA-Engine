@@ -142,6 +142,7 @@ Type
 
     function GetItems(Index: integer): TsdHuffmanTable;
   public
+    Procedure Release; Override;
     Procedure Clear;
     property Items[Index: integer]: TsdHuffmanTable read GetItems; default;
     Property Count:Integer Read _Count;
@@ -165,6 +166,8 @@ Type
 
     function GetItems(Index: integer): TsdQuantizationTable;
   public
+    Procedure Release; Override;
+
     Procedure Clear();
     property Items[Index: integer]: TsdQuantizationTable read GetItems; default;
     Property Count:Integer Read _Count;
@@ -190,6 +193,8 @@ Type
 
     function GetItems(Index: integer): TsdFrameComponent;
   public
+    Procedure Release; Override;
+
     Procedure Clear();
 
     property Items[Index: integer]: TsdFrameComponent read GetItems; default;
@@ -216,6 +221,8 @@ Type
 
     function GetItems(Index: integer): TsdScanComponent;
   public
+    Procedure Release; Override;
+
     Procedure Clear();
     property Items[Index: integer]: TsdScanComponent read GetItems; default;
     Property Count:Integer Read _Count;
@@ -274,10 +281,11 @@ Type
     // Height of a tile in pixels during TileMode
     FTileHeight: integer;
     //
-    constructor Create; virtual;
-    destructor Destroy; override;
-    procedure Clear;
-  end;
+
+    Constructor Create; virtual;
+    Procedure Release; Override;
+    Procedure Clear;
+  End;
 
   TsdIteratorMethod = (
     imReaderX,    // From x=0  , y=0   to x=W-1, y=0  , then to x=0  , y=1   and on
@@ -684,8 +692,9 @@ Type
     procedure StoreData(S: TERRAStream; Size: integer);
 
   public
-    constructor Create(ACodingInfo: TsdJpegInfo; ATag: byte); virtual;
-    destructor Destroy; override;
+    Constructor Create(ACodingInfo: TsdJpegInfo; ATag: byte); virtual;
+    Procedure Release; Override;
+
     class function GetByte(S: TERRAStream): byte;
     class function GetWord(S: TERRAStream): word;
     class procedure PutByte(S: TERRAStream; B: byte);
@@ -1123,7 +1132,8 @@ Type
 
   public
     constructor Create();
-    destructor Destroy; override;
+    Procedure Release; Override;
+
     // Clear the jpeg format: all data (coder and markers) and the bitmap
     procedure Clear;
     // Save info in the bitmap iterator to the Jpeg stream, aka compress the image.
@@ -1302,15 +1312,17 @@ Type
   end;
 
   TsdBlockMapList = class(TERRAObject)
-  private
+  Private
     _Maps:Array Of TsdJpegBlockMap;
     _Count:Integer;
 
     function GetItems(Index: integer): TsdJpegBlockMap;
-  public
+  Public
+    Procedure Release; Override;
+
     property Items[Index: integer]: TsdJpegBlockMap read GetItems; default;
     Property Count:Integer Read _Count;
-  end;
+  End;
 
   // Common ancestor for blockbased jpeg codecs like baseline and progressive. It
   // contains a list of blockmaps, which contain DCT coefficients and raw samples
@@ -1334,7 +1346,8 @@ Type
     procedure SetupMaps(SpecialSize: boolean; AHorzMcuCount, AVertMcuCount: integer);
   public
     constructor Create(AOwner: TERRAObject; AInfo: TsdJpegInfo); override;
-    destructor Destroy; override;
+    Procedure Release; Override;
+    
     procedure Clear; override;
     procedure SamplesFromImage(AImage: TsdMapIterator; ATransform: TsdColorTransform); override;
     procedure SamplesToImage(AImage: TsdMapIterator; ATransform: TsdColorTransform); override;
@@ -1556,7 +1569,7 @@ Type
     FB0: TsdHuffmanNode;
     FB1: TsdHuffmanNode;
   public
-    destructor Destroy; override;
+    Procedure Release; Override;
     property BitCount: integer read FBitCount write FBitCount;
     property Count: integer read FCount write FCount;
     property Code: PsdHuffmanCode read FCode write FCode;
@@ -1582,7 +1595,7 @@ Type
     function GetHistogram: Psd8bitHuffmanHistogram;
   public
     constructor Create; override;
-    destructor Destroy; override;
+    Procedure Release; Override;
     procedure GenerateCodeTable(ATable: TsdHuffmanTable); override;
     procedure OptimiseHuffmanFromHistogram(var Item: TsdDHTMarkerInfo);
     property Histogram: Psd8bitHuffmanHistogram read GetHistogram;
@@ -1689,7 +1702,8 @@ Type
     procedure ResizeVerticalMcu(NewVertMcuCount: integer); virtual;
   public
     constructor Create(AOwner: TERRAObject; AInfo: TsdJpegInfo); override;
-    destructor Destroy; override;
+    Procedure Release; Override;
+    
     procedure Clear; override;
     procedure Initialize(AScale: TsdJpegScale); override;
     procedure Decode(S: TERRAStream; Iteration: cardinal); override;
@@ -2276,7 +2290,11 @@ end;
 
 { TsdHuffmanTableList }
 procedure TsdHuffmanTableList.Clear;
+Var
+  I:Integer;
 begin
+  For I:=0 To Pred(_Count) Do
+    ReleaseObject(_Tables[I]);
   _Count := 0;
 end;
 
@@ -2291,6 +2309,12 @@ begin
     _Tables[Index] := Result;
   End Else
     Result := _Tables[Index];
+end;
+
+procedure TsdHuffmanTableList.Release;
+begin
+  Clear;
+  inherited;
 end;
 
 { TsdQuantizationTable }
@@ -2313,7 +2337,12 @@ end;
 
 { TsdQuantizationTableList }
 procedure TsdQuantizationTableList.Clear;
+Var
+  I:Integer;
 begin
+  For I:=0 To Pred(_Count) Do
+    ReleaseObject(_Tables[I]);
+
   _Count := 0;
 end;
 
@@ -2330,9 +2359,20 @@ begin
     Result := _Tables[Index];
 end;
 
+procedure TsdQuantizationTableList.Release;
+begin
+  Clear;
+  Inherited;
+end;
+
 { TsdFrameComponentList }
 procedure TsdFrameComponentList.Clear;
+Var
+  I:Integer;
 begin
+  For I:=0 To Pred(_Count) Do
+    ReleaseObject(_Frames[I]);
+
   _Count := 0;
 end;
 
@@ -2349,9 +2389,19 @@ begin
     Result := _Frames[Index];
 end;
 
+procedure TsdFrameComponentList.Release;
+begin
+  Clear;
+  inherited;
+end;
+
 { TsdScanComponentList }
 procedure TsdScanComponentList.Clear;
+Var
+  I:Integer;
 begin
+  For I:=0 To Pred(_Count) Do
+    ReleaseObject(_Scans[I]);
   _Count := 0;
 end;
 
@@ -2366,6 +2416,13 @@ begin
     _Scans[Index] := Result;
   End Else
     Result := _Scans[Index];
+end;
+
+procedure TsdScanComponentList.Release;
+begin
+  Clear;
+  inherited;
+
 end;
 
 { TsdJpegInfo }
@@ -2404,15 +2461,15 @@ begin
   FScans := TsdScanComponentList.Create;
 end;
 
-destructor TsdJpegInfo.Destroy;
-begin
+Procedure TsdJpegInfo.Release;
+Begin
   ReleaseObject(FDCHuffmanTables);
   ReleaseObject(FACHuffmanTables);
   ReleaseObject(FQuantizationTables);
   ReleaseObject(FFrames);
   ReleaseObject(FScans);
   inherited;
-end;
+End;
 
 { TsdMapIterator }
 procedure TsdMapIterator.Assign(Source:TERRAObject);
@@ -2633,7 +2690,7 @@ begin
   FStream := MemoryStream.Create();
 end;
 
-destructor TsdJpegMarker.Destroy;
+Procedure TsdJpegMarker.Release;
 begin
   ReleaseObject(FStream);
   inherited;
@@ -4062,7 +4119,7 @@ begin
   FDctCodingMethod := dmAccurate;
 end;
 
-destructor TsdJpegImage.Destroy;
+Procedure TsdJpegImage.Release;
 begin
   ReleaseObject(FSaveOptions);
   ReleaseObject(FCoder);
@@ -7040,6 +7097,18 @@ begin
     Result := _Maps[Index];
 end;
 
+procedure TsdBlockMapList.Release;
+Var
+  I:Integer;
+Begin
+  For I:=0 To Pred(_Count) Do
+    ReleaseObject(_Maps[I]);
+
+  _Count := 0;
+
+  inherited;
+End;
+
 { TsdJpegBlockCoder }
 
 function TsdJpegBlockCoder.BlockstrideForScale(AScale: TsdJpegScale): integer;
@@ -7090,7 +7159,7 @@ begin
   FMaps := TsdBlockMapList.Create;
 end;
 
-destructor TsdJpegBlockCoder.Destroy;
+Procedure TsdJpegBlockCoder.Release;
 begin
   ReleaseObject(FMaps);
   inherited;
@@ -7851,7 +7920,7 @@ begin
   end;
 end;
 
-destructor TsdJpegBaselineCoder.Destroy;
+Procedure TsdJpegBaselineCoder.Release;
 begin
   ReleaseObject(FDCCoders);
   ReleaseObject(FACCoders);
@@ -9294,8 +9363,7 @@ begin
 end;
 
 { TsdHuffmanNode }
-
-destructor TsdHuffmanNode.Destroy;
+Procedure TsdHuffmanNode.Release;
 begin
   ReleaseObject(FB0);
   ReleaseObject(FB1);
@@ -9335,7 +9403,7 @@ begin
   FNodes := TsdHuffmanNodeList.Create(False);
 end;
 
-destructor Tsd8bitHuffmanEncoder.Destroy;
+Procedure Tsd8bitHuffmanEncoder.Release;
 begin
   ReleaseObject(FNodes);
   inherited;

@@ -357,7 +357,7 @@ Begin
   If (Application.Instance<>Nil) Then
     _MaxThreads := Application.Instance.CPUCores
   Else
-    _MaxThreads := 2;
+    _MaxThreads := 12;
 
   _CriticalSection := CriticalSection.Create({Self.ClassName});
   _Semaphore := Semaphore.Create(_MaxThreads);

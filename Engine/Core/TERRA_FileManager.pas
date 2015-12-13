@@ -52,6 +52,8 @@ Type
 
       _Locations:TERRAHashMap;
 
+      _HasCache:Boolean;
+
       Function FindLocation(FileName:TERRAString):TERRALocation;
       Function RegisterLocation(Location:TERRALocation):TERRALocation;
 
@@ -95,6 +97,8 @@ Type
       Function SaveToStream(Obj:TERRAObject; Dest:TERRAStream; Format:TERRAFileFormat):Boolean;
       Function SaveToFile(Obj:TERRAObject; Const FileName:TERRAString; Format:TERRAFileFormat):Boolean;
       //Function SaveToString(Obj:TERRAObject; Encoding:StringEncoding):TERRAString;
+
+      Procedure DisableCache();
 
      // Function OpenPackages(FileName:TERRAString):Boolean;
       Property PathCount:Integer Read _FolderCount;
@@ -155,8 +159,14 @@ End;
 { FileManager }
 Constructor FileManager.Create();
 Begin
+  _HasCache := True;
   _Locations := TERRAHashMap.Create(256);
   Self.AddSource('');
+End;
+
+Procedure FileManager.DisableCache();
+Begin
+  _HasCache := False;
 End;
 
 Procedure FileManager.RemoveFromCache(FileName:TERRAString);
@@ -353,7 +363,11 @@ End;
 Function FileManager.RegisterLocation(Location:TERRALocation):TERRALocation;
 Begin
   Result := Location;
-  _Locations.Add(Result);
+
+  If _HasCache Then
+  Begin
+    _Locations.Add(Result);
+  End;
 End;
 
 Function FileManager.FindLocation(FileName:TERRAString):TERRALocation;

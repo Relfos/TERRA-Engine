@@ -140,6 +140,8 @@ Begin
   _Pool := TERRAPool.Create();
   _Log := TERRALog.Create();
 
+  _Tasks := ThreadPool.Create();
+
   _InputManager := InputManager.Create();
   _FileManager := FileManager.Create();
   _Formats := FormatManager.Create();
