@@ -56,7 +56,7 @@ Type
 
   StringArray = Array Of TERRAString;
 
-  StringEncoding = (encodingUnknown, encodingASCII,  encodingUCS2LE, encodingUCS2BE, encodingUTF8);
+  StringEncoding = (encodingUnknown = 0, encodingASCII = 1,  encodingUCS2LE = 2, encodingUCS2BE = 3, encodingUTF8 = 4);
 
   StringIteratorState = Record
     Position:Integer; // logical position (note: in reverse iterators, this is the position counting from end)

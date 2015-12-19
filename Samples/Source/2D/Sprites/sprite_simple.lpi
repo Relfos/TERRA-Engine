@@ -35,7 +35,7 @@
     </RunParams>
     <RequiredPackages Count="1">
       <Item1>
-        <PackageName Value="LEAF3_PACKAGE_WINDOWS"/>
+        <PackageName Value="TERRA_PACKAGE_WINDOWS"/>
       </Item1>
     </RequiredPackages>
     <Units Count="1">

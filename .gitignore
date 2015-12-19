@@ -1,0 +1,5 @@
+*.dcu
+*.o
+*.ppu
+Samples/Source/2D/Fonts/Units/
+Samples/Binaries/Shaders/
