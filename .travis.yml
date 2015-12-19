@@ -3,6 +3,10 @@ language: cpp
 os:
   - linux
 
+branches:
+  except:
+    - old_master
+  
 install:
   - sudo apt-get update -qq
   - sudo apt-get install -y fpc 

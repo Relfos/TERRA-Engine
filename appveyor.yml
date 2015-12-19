@@ -12,6 +12,7 @@ branches:
   only:
     - master
   except:
+    - old_master
     - gh-pages
 
 #---------------------------------#
