@@ -1,0 +1,21 @@
+language: cpp
+
+os:
+  - linux
+
+branches:
+  except:
+    - old_master
+  
+install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -y fpc 
+  - sudo apt-get install -y xvfb
+
+script:  
+  - cp Tests/TERRATest.dpr Build/TERRATest.dpr
+  - cd Build
+  - ENGINE_PATH="../Engine"
+  - chmod +x compile_tests.sh
+  - ./compile_tests.sh
+  - xvfb-run --server-args="-screen 0, 1024x768x24" ./TERRATest
