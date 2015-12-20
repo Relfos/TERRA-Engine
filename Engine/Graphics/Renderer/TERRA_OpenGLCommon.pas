@@ -10,7 +10,7 @@ Unit TERRA_OpenGLCommon;
 Interface
 Uses
   TERRA_String, TERRA_Utils, TERRA_Object, TERRA_Renderer, TERRA_VertexFormat,
-  {$IFDEF MOBILE}TERRA_OpenGLES{$ELSE}TERRA_OpenGL{$ENDIF}, 
+  {$IFDEF HAS_OPENGLES}TERRA_OpenGLES{$ELSE}TERRA_OpenGL{$ENDIF}, 
   TERRA_Color, TERRA_Image, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D,
   TERRA_Matrix3x3, TERRA_Matrix4x4, TERRA_Stream, TERRA_ShaderNode, TERRA_GLSLCompiler;
 
@@ -348,12 +348,13 @@ Begin
 
 
   {$IFDEF PC}
+  {$IFNDEF HAS_OPENGLES}
   Source := '#version 120'+CrLf + Source;
 
   StringReplaceText('highp', '', Source);
   StringReplaceText('lowp', '', Source);
   StringReplaceText('mediump', '', Source);
-
+  {$ENDIF}
   {$ELSE}
   Source := 'precision highp float;'+ Source;
   {$ENDIF}

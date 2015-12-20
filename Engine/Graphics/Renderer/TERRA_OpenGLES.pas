@@ -16,12 +16,13 @@ Unit TERRA_OpenGLES;
 {$ENDIF}
 
 Interface
-Uses TERRA_String, TERRA_Utils, TERRA_Log, Math,
+Uses TERRA_Object, TERRA_String, TERRA_Utils, TERRA_Log, Math,
 {$IFDEF FPC}DynLibs {$ELSE} Windows{$ENDIF};
 
 Const
   {$IFDEF WINDOWS} OpenGLLibName = 'libGLESv2.dll'; {$ENDIF}
   {$IFDEF ANDROID} OpenGLLibName = 'libGLESv2.so'; {$ENDIF}
+  {$IFDEF PANDORA} OpenGLLibName = 'libGLESv2.so'; {$ENDIF}
 
   {$IFDEF IOS}
   {$DEFINE STATIC_LINKING}
@@ -496,167 +497,167 @@ Const
 Var
 {$ENDIF}
 
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glActiveTexture{$IFNDEF STATIC_LINKING}:Procedure{$ENDIF}(texture:Integer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glAttachShader{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(programname, shader:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBindAttribLocation{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program:Integer; index:Integer; name:PAnsiChar); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBindBuffer{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, buffer:Integer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBindFramebuffer{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, framebuffer:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBindRenderbuffer{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, renderbuffer:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBindTexture{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, texture:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBlendColor{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(red, green, blue, alpha:Single); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBlendEquation{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}( mode:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBlendEquationSeparate{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(modeRGB, modeAlpha:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBlendFunc{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(sfactor, dfactor:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBlendFuncSeparate{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(srcRGB, dstRGB, srcAlpha, dstAlpha:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBufferData {$IFNDEF STATIC_LINKING}:Procedure{$ENDIF}(target, size:Cardinal; data:Pointer; usage:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBufferSubData{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, offset, size:Cardinal; data:Pointer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Function{$ENDIF} glCheckFramebufferStatus{$IFNDEF STATIC_LINKING}:Function{$ENDIF} (target:Integer):Integer; cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glClear{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(mask:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glClearColor{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(red, green, blue, alpha:Single); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glClearDepthf{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(depth:Single); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glClearStencil{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(s:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glColorMask{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(red, green, blue, alpha:Boolean); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glCompileShader{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(shader:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glCompressedTexImage2D{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, level, internalformat, width, height, border, imageSize:Cardinal; data:Pointer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glCompressedTexSubImage2D{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, level, xoffset, yoffset, width, height, format, imageSize:Cardinal; data:Pointer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glCopyTexImage2D{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, level, internalformat, x, y, width, height, border:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glCopyTexSubImage2D{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, level, xoffset, yoffset, x, y, width,height:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Function{$ENDIF} glCreateProgram{$IFNDEF STATIC_LINKING}:Function{$ENDIF}():Integer; cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Function{$ENDIF} glCreateShader{$IFNDEF STATIC_LINKING}:Function{$ENDIF} (shadertype:Integer):Integer; cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glCullFace{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(mode:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDeleteBuffers{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal;  buffers:PCardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDeleteFramebuffers{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal; framebuffers:PCardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDeleteProgram{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDeleteRenderbuffers{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal; renderbuffers:PCardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDeleteShader{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(shader:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDeleteTextures{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal; textures:PCardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDepthFunc{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(func:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDepthMask{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(flag:Boolean); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDepthRange{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(zNear, zFar:Single); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDetachShader{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program, shader:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDisable{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(cap:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDisableVertexAttribArray{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(index:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDrawArrays{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(mode, first, count:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDrawElements{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(mode, count, _type:Cardinal; indices:Pointer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glEnable{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(cap:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glEnableVertexAttribArray{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(index:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glFinish{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glFlush{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glFramebufferRenderbuffer{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, attachment, renderbuffertarget, renderbuffer:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glFramebufferTexture2D{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, attachment, textarget, texture, level:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glFrontFace{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(mode:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGenBuffers{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal; buffers:PCardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGenerateMipmap{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGenFramebuffers{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal; framebuffers:PCardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGenRenderbuffers{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal; renderbuffers:PCardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGenTextures{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal; textures:PCardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetActiveAttrib{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program, index, bufsize:Cardinal; Var length, size, _type:Integer; name:PAnsiChar); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetActiveUniform{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program, index, bufsize:Cardinal; Var length, size, _type:Integer; name:PAnsiChar); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetAttachedShaders{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program, maxcount:Cardinal; Var count:Integer; shaders:PCardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Function{$ENDIF} glGetAttribLocation{$IFNDEF STATIC_LINKING}:Function{$ENDIF} (_program:Cardinal; name:PAnsiChar):Integer; cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetBooleanv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(pname:Cardinal; params:PBoolean); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetBufferParameteriv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, pname:Cardinal; params:PInteger); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Function{$ENDIF} glGetError{$IFNDEF STATIC_LINKING}:Function{$ENDIF} ():Integer; cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetFloatv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(pname:Cardinal; params:PSingle); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetFramebufferAttachmentParameteriv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, attachment, pname:Cardinal; params:PInteger); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetIntegerv {$IFNDEF STATIC_LINKING}:Procedure{$ENDIF}(pname:Cardinal; params:PInteger); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetProgramiv {$IFNDEF STATIC_LINKING}:Procedure{$ENDIF}(_program,pname:Cardinal; params:PInteger); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetProgramInfoLog{$IFNDEF STATIC_LINKING}:procedure{$ENDIF}(_program: Cardinal; bufSize: Integer; length: PInteger; infoLog: PAnsiChar); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetRenderbufferParameteriv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, pname:Cardinal; params:PInteger); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetShaderiv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(shader, pname:Cardinal; params:PInteger); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetShaderInfoLog{$IFNDEF STATIC_LINKING}: procedure{$ENDIF}(shader: Cardinal; bufSize: Integer; length: PInteger; infoLog: PAnsiChar); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetShaderPrecisionFormat{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(shadertype, precisiontype:Cardinal; Var range, precision:Integer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetShaderSource{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(shader, bufsize:Cardinal; Var length:Integer; source:PAnsiChar); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Function{$ENDIF} glGetString{$IFNDEF STATIC_LINKING}:Function{$ENDIF} (name:Cardinal):PAnsiChar; cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glGetTexParameterfv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, pname:Cardinal; params:PSingle); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glGetTexParameteriv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, pname:Cardinal; params:PInteger); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glGetUniformfv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program, location:Cardinal;  params:PSingle); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glGetUniformiv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program, location:Cardinal; params:PInteger); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Function{$ENDIF}glGetUniformLocation{$IFNDEF STATIC_LINKING}:Function{$ENDIF}(_program:Cardinal; name:PAnsiChar):Integer; cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glGetVertexAttribfv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(index, pname:Cardinal; params:PSingle); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glGetVertexAttribiv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(index, pname:Cardinal; params:PInteger); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glGetVertexAttribPointerv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(index, pname:Cardinal; pointer:PPointer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glHint{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, mode:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Function{$ENDIF}glIsBuffer{$IFNDEF STATIC_LINKING}:Function{$ENDIF} (buffer:Cardinal):Boolean; cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Function{$ENDIF}glIsEnabled{$IFNDEF STATIC_LINKING}:Function{$ENDIF} (cap:Cardinal):Boolean; cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Function{$ENDIF}glIsFramebuffer{$IFNDEF STATIC_LINKING}:Function{$ENDIF} (framebuffer:Cardinal):Boolean; cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Function{$ENDIF}glIsProgram{$IFNDEF STATIC_LINKING}:Function{$ENDIF} (_program:Cardinal):Boolean; cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Function{$ENDIF}glIsRenderbuffer{$IFNDEF STATIC_LINKING}:Function {$ENDIF}(renderbuffer:Cardinal):Boolean; cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Function{$ENDIF}glIsShader{$IFNDEF STATIC_LINKING}:Function {$ENDIF} (shader:Cardinal):Boolean; cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Function{$ENDIF}glIsTexture{$IFNDEF STATIC_LINKING}:Function {$ENDIF}(texture:Cardinal):Boolean; cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glLineWidth{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(width:Single); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glLinkProgram{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glPixelStorei{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(pname:Cardinal; param:Integer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glPolygonOffset{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(factor, units:Single); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glReadPixels{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(x, y, width, height, format, _type:Cardinal; pixels:Pointer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glReleaseShaderCompiler {$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glRenderbufferStorage{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, internalformat, width, height:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glSampleCoverage{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(value:Single; invert:Boolean); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glScissor{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(x, y, width, height:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glShaderBinary{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal; shaders:PCardinal; binaryformat:Cardinal; binary:Pointer; length:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glShaderSource{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(shader: Cardinal; count: Integer; const _string: PAnsiChar; const length: PInteger); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glStencilFunc{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(func, ref, mask:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glStencilFuncSeparate{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(face, func, ref, mask:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glStencilMask {$IFNDEF STATIC_LINKING}:Procedure{$ENDIF}(mask:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glStencilMaskSeparate{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(face, mask:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glStencilOp{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(fail, zfail, zpass:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glStencilOpSeparate{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(face, fail, zfail, zpass:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glTexImage2D {$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, level, internalformat, width, height, border, format, _type:Cardinal; pixels:Pointer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glTexParameterf{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, pname:Cardinal; param:Single); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glTexParameterfv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, pname:Cardinal; params:PSingle); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glTexParameteri{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, pname:Cardinal; param:Integer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glTexParameteriv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, pname:Cardinal; params:PInteger); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glTexSubImage2D{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, level, xoffset, yoffset, width, height, format, _type:Cardinal; pixels:Pointer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glActiveTexture{$IFNDEF STATIC_LINKING}:Procedure{$ENDIF}(texture:Integer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glAttachShader{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(programname, shader:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBindAttribLocation{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program:Integer; index:Integer; name:PAnsiChar); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBindBuffer{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, buffer:Integer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBindFramebuffer{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, framebuffer:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBindRenderbuffer{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, renderbuffer:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBindTexture{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, texture:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBlendColor{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(red, green, blue, alpha:Single); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBlendEquation{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}( mode:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBlendEquationSeparate{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(modeRGB, modeAlpha:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBlendFunc{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(sfactor, dfactor:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBlendFuncSeparate{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(srcRGB, dstRGB, srcAlpha, dstAlpha:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBufferData {$IFNDEF STATIC_LINKING}:Procedure{$ENDIF}(target, size:Cardinal; data:Pointer; usage:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glBufferSubData{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, offset, size:Cardinal; data:Pointer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Function{$ENDIF}  glCheckFramebufferStatus{$IFNDEF STATIC_LINKING}:Function{$ENDIF} (target:Integer):Integer; {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glClear{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(mask:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glClearColor{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(red, green, blue, alpha:Single); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glClearDepthf{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(depth:Single); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glClearStencil{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(s:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glColorMask{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(red, green, blue, alpha:Boolean); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glCompileShader{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(shader:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glCompressedTexImage2D{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, level, internalformat, width, height, border, imageSize:Cardinal; data:Pointer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glCompressedTexSubImage2D{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, level, xoffset, yoffset, width, height, format, imageSize:Cardinal; data:Pointer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glCopyTexImage2D{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, level, internalformat, x, y, width, height, border:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glCopyTexSubImage2D{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, level, xoffset, yoffset, x, y, width,height:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Function{$ENDIF}  glCreateProgram{$IFNDEF STATIC_LINKING}:Function{$ENDIF}():Integer; {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Function{$ENDIF}  glCreateShader{$IFNDEF STATIC_LINKING}:Function{$ENDIF} (shadertype:Integer):Integer; {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glCullFace{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(mode:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDeleteBuffers{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal;  buffers:PCardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDeleteFramebuffers{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal; framebuffers:PCardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDeleteProgram{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDeleteRenderbuffers{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal; renderbuffers:PCardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDeleteShader{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(shader:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDeleteTextures{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal; textures:PCardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDepthFunc{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(func:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDepthMask{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(flag:Boolean); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDepthRange{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(zNear, zFar:Single); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDetachShader{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program, shader:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDisable{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(cap:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDisableVertexAttribArray{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(index:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDrawArrays{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(mode, first, count:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glDrawElements{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(mode, count, _type:Cardinal; indices:Pointer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glEnable{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(cap:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glEnableVertexAttribArray{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(index:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glFinish{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glFlush{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glFramebufferRenderbuffer{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, attachment, renderbuffertarget, renderbuffer:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glFramebufferTexture2D{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, attachment, textarget, texture, level:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glFrontFace{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(mode:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGenBuffers{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal; buffers:PCardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGenerateMipmap{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGenFramebuffers{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal; framebuffers:PCardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGenRenderbuffers{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal; renderbuffers:PCardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGenTextures{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal; textures:PCardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetActiveAttrib{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program, index, bufsize:Cardinal; Var length, size, _type:Integer; name:PAnsiChar); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetActiveUniform{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program, index, bufsize:Cardinal; Var length, size, _type:Integer; name:PAnsiChar); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetAttachedShaders{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program, maxcount:Cardinal; Var count:Integer; shaders:PCardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Function{$ENDIF} glGetAttribLocation{$IFNDEF STATIC_LINKING}:Function{$ENDIF} (_program:Cardinal; name:PAnsiChar):Integer; {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetBooleanv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(pname:Cardinal; params:PBoolean); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetBufferParameteriv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, pname:Cardinal; params:PInteger); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Function{$ENDIF} glGetError{$IFNDEF STATIC_LINKING}:Function{$ENDIF} ():Integer; {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetFloatv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(pname:Cardinal; params:PSingle); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetFramebufferAttachmentParameteriv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, attachment, pname:Cardinal; params:PInteger); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetIntegerv {$IFNDEF STATIC_LINKING}:Procedure{$ENDIF}(pname:Cardinal; params:PInteger); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetProgramiv {$IFNDEF STATIC_LINKING}:Procedure{$ENDIF}(_program,pname:Cardinal; params:PInteger); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetProgramInfoLog{$IFNDEF STATIC_LINKING}:procedure{$ENDIF}(_program: Cardinal; bufSize: Integer; length: PInteger; infoLog: PAnsiChar); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetRenderbufferParameteriv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, pname:Cardinal; params:PInteger); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetShaderiv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(shader, pname:Cardinal; params:PInteger); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetShaderInfoLog{$IFNDEF STATIC_LINKING}: procedure{$ENDIF}(shader: Cardinal; bufSize: Integer; length: PInteger; infoLog: PAnsiChar); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetShaderPrecisionFormat{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(shadertype, precisiontype:Cardinal; Var range, precision:Integer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF} glGetShaderSource{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(shader, bufsize:Cardinal; Var length:Integer; source:PAnsiChar); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Function{$ENDIF} glGetString{$IFNDEF STATIC_LINKING}:Function{$ENDIF} (name:Cardinal):PAnsiChar; {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glGetTexParameterfv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, pname:Cardinal; params:PSingle); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glGetTexParameteriv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, pname:Cardinal; params:PInteger); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glGetUniformfv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program, location:Cardinal;  params:PSingle); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glGetUniformiv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program, location:Cardinal; params:PInteger); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Function{$ENDIF}glGetUniformLocation{$IFNDEF STATIC_LINKING}:Function{$ENDIF}(_program:Cardinal; name:PAnsiChar):Integer; {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glGetVertexAttribfv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(index, pname:Cardinal; params:PSingle); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glGetVertexAttribiv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(index, pname:Cardinal; params:PInteger); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glGetVertexAttribPointerv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(index, pname:Cardinal; pointer:PPointer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glHint{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, mode:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Function{$ENDIF}glIsBuffer{$IFNDEF STATIC_LINKING}:Function{$ENDIF} (buffer:Cardinal):Boolean; {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Function{$ENDIF}glIsEnabled{$IFNDEF STATIC_LINKING}:Function{$ENDIF} (cap:Cardinal):Boolean; {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Function{$ENDIF}glIsFramebuffer{$IFNDEF STATIC_LINKING}:Function{$ENDIF} (framebuffer:Cardinal):Boolean; {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Function{$ENDIF}glIsProgram{$IFNDEF STATIC_LINKING}:Function{$ENDIF} (_program:Cardinal):Boolean; {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Function{$ENDIF}glIsRenderbuffer{$IFNDEF STATIC_LINKING}:Function {$ENDIF}(renderbuffer:Cardinal):Boolean; {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Function{$ENDIF}glIsShader{$IFNDEF STATIC_LINKING}:Function {$ENDIF} (shader:Cardinal):Boolean; {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Function{$ENDIF}glIsTexture{$IFNDEF STATIC_LINKING}:Function {$ENDIF}(texture:Cardinal):Boolean; {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glLineWidth{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(width:Single); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glLinkProgram{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glPixelStorei{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(pname:Cardinal; param:Integer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glPolygonOffset{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(factor, units:Single); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glReadPixels{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(x, y, width, height, format, _type:Cardinal; pixels:Pointer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glReleaseShaderCompiler {$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glRenderbufferStorage{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, internalformat, width, height:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glSampleCoverage{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(value:Single; invert:Boolean); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glScissor{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(x, y, width, height:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glShaderBinary{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(n:Cardinal; shaders:PCardinal; binaryformat:Cardinal; binary:Pointer; length:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glShaderSource{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(shader: Cardinal; count: Integer; const _string: PAnsiChar; const length: PInteger); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glStencilFunc{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(func, ref, mask:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glStencilFuncSeparate{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(face, func, ref, mask:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glStencilMask {$IFNDEF STATIC_LINKING}:Procedure{$ENDIF}(mask:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glStencilMaskSeparate{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(face, mask:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glStencilOp{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(fail, zfail, zpass:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glStencilOpSeparate{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(face, fail, zfail, zpass:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glTexImage2D {$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, level, internalformat, width, height, border, format, _type:Cardinal; pixels:Pointer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glTexParameterf{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, pname:Cardinal; param:Single); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glTexParameterfv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, pname:Cardinal; params:PSingle); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glTexParameteri{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, pname:Cardinal; param:Integer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glTexParameteriv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, pname:Cardinal; params:PInteger); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glTexSubImage2D{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, level, xoffset, yoffset, width, height, format, _type:Cardinal; pixels:Pointer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
 
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform1f{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; v0: Single); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform2f{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; v0: Single; v1: Single); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform3f{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; v0: Single; v1: Single; v2: Single); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform4f{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; v0: Single; v1: Single; v2: Single; v3: Single); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform1i{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; v0: Integer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform2i{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; v0: Integer; v1: Integer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform3i{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; v0: Integer; v1: Integer; v2: Integer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform4i{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; v0: Integer; v1: Integer; v2: Integer; v3: Integer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform1fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; const value: PSingle); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform2fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; const value: PSingle); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform3fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; const value: PSingle); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform4fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; const value: PSingle); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform1iv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; const value: PInteger); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform2iv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; const value: PInteger); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform3iv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; const value: PInteger); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform4iv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; const value: PInteger); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniformMatrix2fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; transpose: Boolean; const value: PSingle); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniformMatrix3fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; transpose: Boolean; const value: PSingle); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniformMatrix4fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; transpose: Boolean; const value: PSingle); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform1f{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; v0: Single); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform2f{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; v0: Single; v1: Single); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform3f{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; v0: Single; v1: Single; v2: Single); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform4f{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; v0: Single; v1: Single; v2: Single; v3: Single); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform1i{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; v0: Integer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform2i{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; v0: Integer; v1: Integer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform3i{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; v0: Integer; v1: Integer; v2: Integer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform4i{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; v0: Integer; v1: Integer; v2: Integer; v3: Integer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform1fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; const value: PSingle); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform2fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; const value: PSingle); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform3fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; const value: PSingle); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform4fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; const value: PSingle); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform1iv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; const value: PInteger); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform2iv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; const value: PInteger); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform3iv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; const value: PInteger); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniform4iv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; const value: PInteger); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniformMatrix2fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; transpose: Boolean; const value: PSingle); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniformMatrix3fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; transpose: Boolean; const value: PSingle); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUniformMatrix4fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(location: Integer; count: Integer; transpose: Boolean; const value: PSingle); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
 
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUseProgram{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glValidateProgram{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glVertexAttrib1f{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(indx:Cardinal; x:Single); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glVertexAttrib1fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(indx:Cardinal; values:PSingle); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glVertexAttrib2f{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(indx:Cardinal; x, y:Single); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glVertexAttrib2fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(indx:Cardinal; values:PSingle); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glVertexAttrib3f{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(indx:Cardinal; x, y, z:Single); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}  glVertexAttrib3fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(indx:Cardinal; values:PSingle); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glVertexAttrib4f{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(indx:Cardinal; x, y, z, w:Single); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glVertexAttrib4fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(indx:Cardinal; values:PSingle); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glVertexAttribPointer{$IFNDEF STATIC_LINKING}:procedure{$ENDIF}(index: Cardinal; size: Integer; _type: Cardinal; normalized: Boolean; stride: Integer; const pointer: Pointer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glViewport{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(x, y, width, height:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glUseProgram{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glValidateProgram{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(_program:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glVertexAttrib1f{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(indx:Cardinal; x:Single); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glVertexAttrib1fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(indx:Cardinal; values:PSingle); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glVertexAttrib2f{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(indx:Cardinal; x, y:Single); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glVertexAttrib2fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(indx:Cardinal; values:PSingle); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glVertexAttrib3f{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(indx:Cardinal; x, y, z:Single); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}  glVertexAttrib3fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(indx:Cardinal; values:PSingle); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glVertexAttrib4f{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(indx:Cardinal; x, y, z, w:Single); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glVertexAttrib4fv{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(indx:Cardinal; values:PSingle); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glVertexAttribPointer{$IFNDEF STATIC_LINKING}:procedure{$ENDIF}(index: Cardinal; size: Integer; _type: Cardinal; normalized: Boolean; stride: Integer; const pointer: Pointer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glViewport{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(x, y, width, height:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
 
   // Extensions
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glRenderbufferStorageMultisample{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, samples, internalformat, width, height:Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glResolveMultisampleFramebuffer{$IFNDEF STATIC_LINKING}:Procedure{$ENDIF}(); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glDiscardFramebuffer{$IFNDEF STATIC_LINKING}:Procedure{$ENDIF}(target, count:Integer; attachments:PInteger); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glRenderbufferStorageMultisample{$IFNDEF STATIC_LINKING}:Procedure {$ENDIF}(target, samples, internalformat, width, height:Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glResolveMultisampleFramebuffer{$IFNDEF STATIC_LINKING}:Procedure{$ENDIF}(); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  {$IFDEF STATIC_LINKING}Procedure{$ENDIF}glDiscardFramebuffer{$IFNDEF STATIC_LINKING}:Procedure{$ENDIF}(target, count:Integer; attachments:PInteger); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
 
   // GL ES1
   {$IFDEF LEGACY_GLES}
-  glAlphaFunc:Procedure (func: Cardinal; ref: Single); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  glEnableClientState: Procedure(aarray: Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  glDisableClientState: Procedure(aarray: Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  glVertexPointer:Procedure (size: Integer; atype: Cardinal; stride: Integer; const pointer: Pointer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  glTexCoordPointer:Procedure (size: Integer; atype: Cardinal; stride: Integer; const pointer: Pointer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  glColorPointer:Procedure (size: Integer; atype: Cardinal; stride: Integer; const pointer: Pointer); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  glColor4f:Procedure (red, green, blue, alpha: Single); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  glMatrixMode:Procedure (mode: Cardinal); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
-  glLoadMatrixf:Procedure (const m: PSingle); cdecl; {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  glAlphaFunc:Procedure (func: Cardinal; ref: Single); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  glEnableClientState: Procedure(aarray: Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  glDisableClientState: Procedure(aarray: Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  glVertexPointer:Procedure (size: Integer; atype: Cardinal; stride: Integer; const pointer: Pointer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  glTexCoordPointer:Procedure (size: Integer; atype: Cardinal; stride: Integer; const pointer: Pointer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  glColorPointer:Procedure (size: Integer; atype: Cardinal; stride: Integer; const pointer: Pointer); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  glColor4f:Procedure (red, green, blue, alpha: Single); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  glMatrixMode:Procedure (mode: Cardinal); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
+  glLoadMatrixf:Procedure (const m: PSingle); {$ifdef WIN32}stdcall;{$else}cdecl;{$endif} {$IFDEF STATIC_LINKING}External; {$ENDIF}
   {$ENDIF}
 
 Procedure glClearDepth(depth:Single);
@@ -667,7 +668,7 @@ Function glGetExtensionString():TERRAString;
 Procedure LoadOpenGL();
 
 Implementation
-Uses TERRA_Error, TERRA_Application;
+Uses TERRA_Engine, TERRA_Error, TERRA_Application;
 
 {$IFNDEF STATIC_LINKING}
 Type
@@ -705,20 +706,21 @@ Begin
     Result := GetProcAddress(OpenGLHandle, PAnsiChar(Proc+'EXT'));
 
   If Not Assigned(Result) Then
-    Log(logWarning,'GL', 'Function '+Proc+' not avaliable.');
+    Engine.Log.Write(logWarning,'GL', 'Function '+Proc+' not avaliable.');
 End;
 {$ENDIF}
 
 Procedure LoadOpenGL();
 Begin
 {$IFNDEF STATIC_LINKING}
-	TERRA_Log.Log(logDebug, 'GL', 'loading openGL');
-  Log(logDebug, 'OpenGL', 'Loading library');
+  Engine.Log.Write(logDebug, 'GL', 'loading openGL');
+
+  Engine.Log.Write(logDebug, 'OpenGL', 'Loading library');
 
   OpenGLHandle := LoadLibrary(PAnsiChar(OpenGLLibName));
   If OpenGLHandle=0 Then
   Begin
-    RaiseError('Error loading OpenGL from '+OpenGLLibName);
+    Engine.RaiseError('Error loading OpenGL from '+OpenGLLibName);
     Exit;
   End;
 
@@ -912,7 +914,9 @@ Begin
 End;
 
 Initialization
+
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
+
 Finalization
 {$IFNDEF STATIC_LINKING}
   FreeOpenGL;

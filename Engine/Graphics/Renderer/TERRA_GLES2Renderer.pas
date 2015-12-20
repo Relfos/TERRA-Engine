@@ -3,7 +3,7 @@ Unit TERRA_GLES2Renderer;
 {$I terra.inc}
 Interface
 
-Uses
+Uses TERRA_Object, 
   TERRA_String, TERRA_Utils, TERRA_Renderer, TERRA_VertexFormat,
   TERRA_OpenGLES, 
   TERRA_Color, TERRA_Image, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D,
@@ -35,7 +35,7 @@ Type
 
       Function Update(Pixels:Pointer; X,Y, Width, Height:Integer):Boolean; Override;
 
-      Function GetImage():Image; Override;
+      Function GetImage():TERRAImage; Override;
 
       Procedure Invalidate(); Override;
   End;
@@ -106,8 +106,8 @@ Type
 
       Procedure Resize(NewWidth, NewHeight:Integer); Override;
 
-      Function GetImage():Image; Override;
-      Function GetPixel(X,Y:Integer):Color; Override;
+      Function GetImage():TERRAImage; Override;
+      Function GetPixel(X,Y:Integer) : ColorRGBA; Override;
 
       Procedure Invalidate(); Override;
   End;
@@ -146,7 +146,7 @@ Type
       Function CreateRenderTarget():RenderTargetInterface; Override;
 
       Procedure ClearBuffer(Color, Depth, Stencil:Boolean); Override;
-      Procedure SetClearColor(Const ClearColor:Color); Override;
+      Procedure SetClearColor(Const ClearColor:ColorRGBA); Override;
 
       Procedure SetStencilTest(Enable:Boolean); Override;
       Procedure SetStencilFunction(Mode:CompareMode; StencilID, Mask:Cardinal); Override;
@@ -173,7 +173,7 @@ Type
 
       Procedure SetAttributeSource(Const Name:AnsiString; AttributeKind:Cardinal; ElementType:DataFormat; AttributeSource:Pointer); Override;
 
-      Procedure SetDiffuseColor(Const C:Color); Override;
+      Procedure SetDiffuseColor(Const C:ColorRGBA); Override;
 
       Procedure DrawSource(Primitive:RenderPrimitive; Count:Integer); Override;
       Procedure DrawIndexedSource(Primitive:RenderPrimitive; Count:Integer; Indices:System.PWord); Override;
@@ -182,8 +182,19 @@ Type
   End;
 
 Implementation
-Uses TERRA_Log, TERRA_Application, TERRA_GraphicsManager, TERRA_FileManager, TERRA_FileUtils, 
-  TERRA_Error, TERRA_OS;
+
+Uses SysUtils,
+
+     TERRA_Engine,
+     TERRA_Log,
+     TERRA_Application,
+     TERRA_GraphicsManager,
+     TERRA_Error,
+     TERRA_OS,
+     TERRA_Texture,
+     TERRA_RendererStats;
+
+//TERRA_FileManager, TERRA_FileUtils;
 
 { OpenGLES2Features }
 Constructor OpenGLES2Features.Create(Owner:GraphicsRenderer);
@@ -218,7 +229,7 @@ Begin
 
   Shaders.Avaliable := HasShaders;
 
-	VertexBufferObject.Avaliable := True; //glExtensionSupported('GL_ARB_vertex_buffer_object');
+  VertexBufferObject.Avaliable := True; //glExtensionSupported('GL_ARB_vertex_buffer_object');
 
   {$IFDEF FRAMEBUFFEROBJECTS}
   FrameBufferObject.Avaliable := True;
@@ -256,7 +267,7 @@ Begin
   StencilBuffer.Avaliable := PackedStencil.Avaliable Or glExtensionSupported('GL_OES_stencil8');
 
   S := glGetExtensionString();
-  TERRA_Log.Log(logDebug, 'Renderer', 'Extensions: '+ S);
+  Engine.Log.Write(logDebug, 'Renderer', 'Extensions: '+ S);
 End;
 
 
@@ -287,11 +298,11 @@ End;
 Function TextureColorFormatToGL(Format:TextureColorFormat):Integer;
 Begin
   Case Format Of
-  colorRGB:   Result := GL_RGB;
-  colorRGBA:  Result := GL_RGBA;
-  colorBGR:   Result := GL_RGB;
-  colorBGRA:   Result := GL_RGBA;
-  colorAlpha: Result := GL_ALPHA; //GL_LUMINANCE;
+  textureFormat_RGB:   Result := GL_RGB;
+  textureFormat_RGBA:  Result := GL_RGBA;
+  textureFormat_BGR:   Result := GL_RGB;
+  textureFormat_BGRA:   Result := GL_RGBA;
+  textureFormat_Alpha: Result := GL_ALPHA; //GL_LUMINANCE;
   End;
 End;
 
@@ -344,7 +355,7 @@ Begin
     glClear(Flags);
 End;
 
-Procedure OpenGLES2Renderer.SetClearColor(const ClearColor: Color);
+Procedure OpenGLES2Renderer.SetClearColor(const ClearColor: ColorRGBA);
 Begin
   glClearColor(ClearColor.R/255, ClearColor.G/255, ClearColor.B/255, ClearColor.A/255);
 End;
@@ -367,11 +378,8 @@ Var
   I:Integer;
   S:AnsiString;
 Begin
-  Result := CreateContext();
-
-  If Not Result Then
-    Exit;
-
+  Result := False;
+  
   _Features := OpenGLES2Features.Create(Self);
 
   _DeviceName := glGetString(GL_RENDERER);
@@ -514,7 +522,7 @@ Begin
     Self.ActiveShader.SetMat4Uniform('textureMatrix', Mat);
 End;
 
-Procedure OpenGLES2Renderer.SetDiffuseColor(Const C: Color);
+Procedure OpenGLES2Renderer.SetDiffuseColor(Const C: ColorRGBA);
 Begin
   _DiffuseColor := C;
 
@@ -572,7 +580,7 @@ Begin
 
   If _CurrentSource = Nil Then
   Begin
-    RaiseError('Please call GraphicsRenderer.SetVertexSize() before drawing anything!');
+    Engine.RaiseError('Please call GraphicsRenderer.SetVertexSize() before drawing anything!');
     Exit;
   End;
 
@@ -595,14 +603,18 @@ Begin
   If Assigned(_CurrentSource) Then
     _CurrentSource.Bind(True)
   Else
-    RaiseError('Cannot draw null buffer!');
+    Engine.RaiseError('Cannot draw null buffer!');
 
   {$IFDEF DEBUG_GRAPHICS}
-  Log(logDebug, 'Renderer', 'glDrawArrays: '+IntToString(Count));
+  Engine.Log.Write(logDebug, 'Renderer', 'glDrawArrays: '+IntToString(Count));
   {$ENDIF}
 
-  glDrawArrays(PrimitiveToGL(Primitive), 0, Count);
-  Inc(_Stats.TriangleCount, Count Div 3);
+  If Count > 0 Then
+  Begin
+    glDrawArrays(PrimitiveToGL(Primitive), 0, Count);
+    _Stats.Update(RendererStat_Triangles, Count Div 3);
+    // Inc(_Stats.TriangleCount, Count Div 3);
+  end;
 
 {  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
   glDisableClientState(GL_COLOR_ARRAY);
@@ -620,15 +632,15 @@ Begin
   If Assigned(_CurrentSource) Then
     _CurrentSource.Bind(True)
   Else
-    RaiseError('Cannot draw null buffer!');
+    Engine.RaiseError('Cannot draw null buffer!');
 
   {$IFDEF DEBUG_GRAPHICS}
-  Log(logDebug, 'Renderer', 'glDrawElements: '+IntToString(Count));
+  Engine.Log.Write(logDebug, 'Renderer', 'glDrawElements: '+IntToString(Count));
   {$ENDIF}
 
   glDrawElements(PrimitiveToGL(Primitive), Count, GL_UNSIGNED_SHORT, Indices);
 
-  Inc(_Stats.TriangleCount, Count Div 3);
+  _Stats.Update(RendererStat_Triangles, Count Div 3);
 End;
 
 Procedure OpenGLES2Renderer.SetViewport(X, Y, Width, Height:Integer);
@@ -638,11 +650,11 @@ End;
 
 Procedure OpenGLES2Renderer.ResetState();
 Begin
-	glEnable(GL_CULL_FACE);
+  glEnable(GL_CULL_FACE);
 
   glEnable(GL_DEPTH_TEST);
-	//glDisable(GL_FOG);
-	//glEnable(GL_LIGHTING);
+  //glDisable(GL_FOG);
+  //glEnable(GL_LIGHTING);
 
   //glDisable(GL_ALPHA_TEST);
   //glDisable(GL_LINE_SMOOTH);
@@ -652,13 +664,14 @@ Begin
   glDepthFunc(GL_LEQUAL);
 End;
 
-
 Function OpenGLES2Renderer.GenerateFrameBuffer: Cardinal;
 Begin
-  Log(logDebug, 'GraphicsManager', 'Generating a new frame buffer...');
+  Engine.Log.Write(logDebug, 'GraphicsManager', 'Generating a new frame buffer...');
   Repeat
     glGenFramebuffers(1, @Result);
-    Log(logDebug, 'GraphicsManager', 'Got handle: '+IntToString(Result));
+    {$IFDEF DEBUG_GRAPHICS}
+    Engine.Log.Write(logDebug, 'GraphicsManager', 'Got handle: '+IntToString(Result));
+    {$ENDIF}
   Until (Result>=MaxFrameBufferHandles) Or (Not _UsedFrameBuffers[Result]);
 
   If (Result<MaxFrameBufferHandles) Then
@@ -667,10 +680,12 @@ End;
 
 Function OpenGLES2Renderer.GenerateRenderBuffer: Cardinal;
 Begin
-  Log(logDebug, 'GraphicsManager', 'Generating a new render buffer...');
+  Engine.Log.Write(logDebug, 'GraphicsManager', 'Generating a new render buffer...');
   Repeat
     glGenRenderbuffers(1, @Result);
-    Log(logDebug, 'GraphicsManager', 'Got handle: '+IntToString(Result));
+    {$IFDEF DEBUG_GRAPHICS}
+    Engine.Log.Write(logDebug, 'GraphicsManager', 'Got handle: '+IntToString(Result));
+    {$ENDIF}
   Until (Result>=MaxFrameBufferHandles) Or (Not _UsedRenderBuffers[Result]);
 
   If (Result<MaxFrameBufferHandles) Then
@@ -679,10 +694,12 @@ End;
 
 Function OpenGLES2Renderer.GenerateTexture: Cardinal;
 Begin
-  Log(logDebug, 'GraphicsManager', 'Generating a new texture...');
+  Engine.Log.Write(logDebug, 'GraphicsManager', 'Generating a new texture...');
   Repeat
     glGenTextures(1, @Result);
-    Log(logDebug, 'GraphicsManager', 'Got handle: '+IntToString(Result));
+    {$IFDEF DEBUG_GRAPHICS}
+    Engine.Log.Write(logDebug, 'GraphicsManager', 'Got handle: '+IntToString(Result));
+    {$ENDIF}
   Until (Result>=MaxTextureHandles) Or (Not _UsedTextures[Result]);
 
   If (Result<MaxTextureHandles) Then
@@ -743,7 +760,7 @@ Begin
   If Handle = 0 Then
     Exit;
 
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Setting texture filtering');{$ENDIF}
+  {$IFDEF DEBUG_GRAPHICS}Engine.Log.Write(logDebug, 'Texture', 'Setting texture filtering');{$ENDIF}
 
   If (Filter = filterBilinear) Then
   Begin
@@ -761,7 +778,7 @@ Begin
     glTexParameteri(TextureKind, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   End;
 
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Generating mipmap');{$ENDIF}
+  {$IFDEF DEBUG_GRAPHICS}Engine.Log.Write(logDebug, 'Texture', 'Generating mipmap');{$ENDIF}
   If (MipMapped) And (ShouldGenMips) Then
   Begin
     glGenerateMipmap(TextureKind);
@@ -773,7 +790,7 @@ Begin
   If Handle = 0 Then
     Exit;
 
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Setting wrap mode');{$ENDIF}
+  {$IFDEF DEBUG_GRAPHICS}Engine.Log.Write(logDebug, 'Texture', 'Setting wrap mode');{$ENDIF}
 
   If ((Cardinal(WrapMode) And Cardinal(wrapHorizontal))<>0) Then
     glTexParameteri(TextureKind, GL_TEXTURE_WRAP_S, GL_REPEAT)
@@ -907,7 +924,7 @@ Function OpenGLES2FBO.Generate(Width, Height:Integer; MultiSample:Boolean; Pixel
 Var
   I:Integer;
 Begin
-  Self._Size := Width * Height * 4 * 2;
+  Self._SizeInBytes := Width * Height * 4 * 2;
 
   _BackgroundColor := ColorCreate(Byte(0), Byte(0), Byte(0), Byte(0));
 
@@ -940,7 +957,9 @@ Begin
   _hasDepthBuffer := DepthBuffer;
   _HasStencilBuffer := StencilBuffer;
 
-  Log(logDebug,'Framebuffer', 'Creating Framebuffer with size: '+IntToString(_Width)+' x '+IntToString(_Height));
+  {$IFDEF DEBUG_GRAPHICS}
+  Engine.Log.Write(logDebug,'Framebuffer', 'Creating Framebuffer with size: '+IntToString(_Width)+' x '+IntToString(_Height));
+  {$ENDIF}
 
   _internalformat := GL_RGBA8;
 
@@ -981,7 +1000,7 @@ Var
   I, Status:Integer;
   R:OpenGLES2Renderer;
 Begin
-  Log(logDebug, 'Framebuffer','Initializing framebuffer: '{+ Self.Name});
+  Engine.Log.Write(logDebug, 'Framebuffer','Initializing framebuffer: '{+ Self.Name});
 
   R := OpenGLES2Renderer(_Owner);
   
@@ -1076,7 +1095,9 @@ Begin
     // Create a framebuffer and renderbuffer
     _Handle := R.GenerateFrameBuffer();
     _depth_rb := R.GenerateRenderBuffer();
-    Log(logDebug,'Framebuffer', 'Created framebuffer with handle: '+IntToString(_Handle));
+    {$IFDEF DEBUG_GRAPHICS}
+    Engine.Log.Write(logDebug,'Framebuffer', 'Created framebuffer with handle: '+IntToString(_Handle));
+    {$ENDIF}
 
     // Create a texture to hold the frame buffer
     _Targets[0] := R.GenerateTexture();
@@ -1086,26 +1107,32 @@ Begin
   	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Width, _Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, Nil);
-    Log(logDebug,'Framebuffer', 'Framebuffer size: W: '+IntToString(_Width)+' H: '+IntToString(_Height));
+    {$IFDEF DEBUG_GRAPHICS}
+    Engine.Log.Write(logDebug,'Framebuffer', 'Framebuffer size: W: '+IntToString(_Width)+' H: '+IntToString(_Height));
+    {$ENDIF}
 
     If _Owner.Features.PackedStencil.Avaliable Then
     Begin
       I := GL_DEPTH24_STENCIL8_OES;
-      Log(logDebug,'Framebuffer', 'Packed stencil supported, using it!');
+      Engine.Log.Write(logDebug,'Framebuffer', 'Packed stencil supported, using it!');
     End Else
       I := GL_DEPTH_COMPONENT16;
 
     //bind renderbuffer
     glBindRenderbuffer(GL_RENDERBUFFER, _depth_rb);
     glRenderbufferStorage(GL_RENDERBUFFER, I, _Width, _Height);
-    Log(logDebug,'Framebuffer', 'Binding depth renderbuffer to framebuffer with handle: '+IntToString(_depth_rb));
+    {$IFDEF DEBUG_GRAPHICS}
+    Engine.Log.Write(logDebug,'Framebuffer', 'Binding depth renderbuffer to framebuffer with handle: '+IntToString(_depth_rb));
+    {$ENDIF}
 
     // bind the framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, _Handle);
 
     // specify texture as color attachment
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _Targets[0], 0);
-    Log(logDebug,'Framebuffer', 'Binding texture to framebuffer with handle: '+IntToString(_Targets[0]));
+    {$IFDEF DEBUG_GRAPHICS}
+    Engine.Log.Write(logDebug,'Framebuffer', 'Binding texture to framebuffer with handle: '+IntToString(_Targets[0]));
+    {$ENDIF}
 
     // specify depth_renderbufer as depth attachment
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depth_Rb);
@@ -1119,7 +1146,7 @@ Begin
   _Complete := (Status = GL_FRAMEBUFFER_COMPLETE);
 
   If Not _Complete Then
-    Log(logError, 'Framebuffer', GetErrorString(Status));
+    Engine.Log.Write(logError, 'Framebuffer', GetErrorString(Status));
 
   // set default framebuffer
 	Self.EndCapture();
@@ -1147,7 +1174,9 @@ Begin
   If (_Handle = 0) Then
     Self.Init();
 
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Framebuffer','Begin framebuffer capture: W:'+IntToString(_Width)+' H:'+IntToString(_Height));{$ENDIF}
+  {$IFDEF DEBUG_GRAPHICS}
+  Engine.Log.Write(logDebug, 'Framebuffer','Begin framebuffer capture: W:'+IntToString(_Width)+' H:'+IntToString(_Height));
+  {$ENDIF}
 
 	If (_multisample) Then
   Begin
@@ -1157,7 +1186,7 @@ Begin
 		glBindFramebuffer(GL_FRAMEBUFFER, _Handle);
   End;
 
-  GraphicsManager.Instance.ActiveViewport.SetViewArea(0, 0, _Width, _Height);
+  //GraphicsManager.Instance.ActiveViewport.SetViewArea(0, 0, _Width, _Height);
 
   If (Flags<>0) Then
   Begin
@@ -1184,7 +1213,7 @@ End;
 
 Procedure OpenGLES2FBO.EndCapture;
 Begin
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Framebuffer','End framebuffer capture');{$ENDIF}
+  {$IFDEF DEBUG_GRAPHICS}Engine.Log.Write(logDebug, 'Framebuffer','End framebuffer capture');{$ENDIF}
 
  {$IFDEF IPHONE}
  startScreenDrawing(); 
@@ -1247,22 +1276,22 @@ Begin
   R.DeleteFrameBuffer(_Handle);
 End;
 
-Function OpenGLES2FBO.GetImage():Image;
+Function OpenGLES2FBO.GetImage():TERRAImage;
 Begin
-  Result := Image.Create(_Width, _Height);
+  Result := TERRAImage.Create(_Width, _Height);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, _Handle);
+  glBindFramebuffer(GL_FRAMEBUFFER, _Handle);
 
-	glReadPixels(0,0, _Width, _Height, GL_RGBA, GL_UNSIGNED_BYTE, Result.Pixels);
-	
-	Self.EndCapture();
-	
-	Result.Process(IMP_FlipVertical);
+  glReadPixels(0,0, _Width, _Height, GL_RGBA, GL_UNSIGNED_BYTE, Result.RawPixels);
+
+  Self.EndCapture();
+
+  Result.FlipVertical;
 End;
 
-Function OpenGLES2FBO.GetPixel(X,Y:Integer):Color;
+Function OpenGLES2FBO.GetPixel(X,Y:Integer):ColorRGBA;
 Var
-  P:Color;
+  P:ColorRGBA;
 Begin
   Y := _Height - Y;
   P := ColorNull;
@@ -1319,7 +1348,9 @@ Begin
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, _Handle);
 
-  {$IFDEF DEBUG_GRAPHICS}Log(logDebug, 'Texture', 'Uploading texture frame...');{$ENDIF}
+  {$IFDEF DEBUG_GRAPHICS}
+  Engine.Log.Write(logDebug, 'Texture', 'Uploading texture frame...');
+  {$ENDIF}
   glTexImage2D(GL_TEXTURE_2D, 0, TextureColorFormatToGL(TargetFormat), Width, Height, 0, TextureColorFormatToGL(SourceFormat), ByteFormatToGL(ByteFormat), Pixels);
 
   //_Source.Save('debug\temp\pp'+IntTOString(I)+'.png');
@@ -1343,18 +1374,18 @@ Begin
     Mult := 4.0;
   End;
 
-  _Size := Trunc(Mult * _Width * _Height);
+  _SizeInBytes := Trunc(Mult * _Width * _Height);
 
   _ShouldGenMips := True;
   
   Result := True;
 End;
 
-Function OpenGLES2Texture.GetImage:Image;
+Function OpenGLES2Texture.GetImage:TERRAImage;
 Begin
-  Log(logDebug, 'Texture', 'Getting image from texture '{+Self.Name});
+  Engine.Log.Write(logDebug, 'Texture', 'Getting image from texture '{+Self.Name});
 
-  Result := Image.Create(_Width, _Height);
+  Result := TerraImage.Create(_Width, _Height);
 End;
 
 Procedure OpenGLES2Texture.Invalidate;
