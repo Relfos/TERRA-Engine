@@ -254,10 +254,10 @@ Begin
   It := Target.Pixels([image_Read, image_Write]);
   While It.HasNext Do
   Begin
-    If It.Value.A<=0 Then
+    If It.SourceColor.A<=0 Then
       Continue;
 
-    AddColor(_Tree, It.Value, _ColorBits, 0, _LeafCount, _ReducibleNodes);
+    AddColor(_Tree, It.SourceColor, _ColorBits, 0, _LeafCount, _ReducibleNodes);
 
     While _LeafCount > _MaxColors DO
       ReduceTree(_Colorbits, _LeafCount, _ReducibleNodes);
@@ -283,16 +283,16 @@ Begin
   It := Target.Pixels([image_Read, image_Write]);
   While It.HasNext Do
   Begin
-    If It.Value.A<=0 Then
+    If It.SourceColor.A<=0 Then
       Continue;
 
     If (DitherMode<=1) Then
     Begin
-      It.Value := GetNearestPaletteColor(Current);
+      It.DestColor := GetNearestPaletteColor(Current);
       Continue;
     End;
 
-    Current := It.Value;
+    Current := It.SourceColor;
 
     Alpha := Current.A;
 
@@ -328,7 +328,7 @@ Begin
 
     //Current := ColorGrey(255 * DitherVal);
 
-    It.Value := Current;
+    It.DestColor := Current;
   End;
 
   ReleaseObject(It);
