@@ -19,7 +19,7 @@ uses
   Dialogs, ExtCtrls, StdCtrls, Menus, Grids, ValEdit, ComCtrls,
   TERRA_Object, TERRA_Utils, TERRA_Application, TERRA_VCLApplication, TERRA_OS, TERRA_Renderer,
   TERRA_String, TERRA_Texture, TERRA_Font, TERRA_TTF, TERRA_DebugDraw, TERRA_Renderable,
-  TERRA_Viewport, TERRA_FileManager, TERRA_FileUtils, TERRA_Sprite, TERRA_EngineManager,
+  TERRA_Viewport, TERRA_FileManager, TERRA_FileUtils, TERRA_Sprite, TERRA_Engine,
   TERRA_PNG, TERRA_JPG,
   TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color,
   TERRA_XML, TERRA_Collections, TERRA_List, TERRA_UIView, TERRA_UIWidget, TERRA_CustomPropertyEditor;
@@ -63,8 +63,8 @@ Type
       _GridSize:Single;
 
     Public
-      Function GetRenderBucket:Cardinal; Override;
-      Procedure Render(V:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal); Override;
+      Procedure GetBucketDetails(View:TERRAViewport; Out Depth:Cardinal; Out Layer:RenderableLayer; Out AlphaType:RenderableAlphaType); Virtual;
+      Procedure Render(View:TERRAViewport; Const Stage:RendererStage); Override;
   End;
 
   UIEditableView = Class(TERRAObject)
@@ -269,12 +269,14 @@ Uses TERRA_UIDimension, TERRA_UITemplates, TERRA_UIImage, TERRA_UITiledRect, TER
 
 {$R *.dfm}
 
-Function UIGrid.GetRenderBucket:Cardinal;
+Procedure UIGrid.GetBucketDetails(View: TERRAViewport; out Depth: Cardinal; out Layer: RenderableLayer; out AlphaType: RenderableAlphaType);
 Begin
-  Result := renderBucket_Overlay;
+  Depth := 0;
+  AlphaType := Renderable_Blend;
+  Layer := RenderableLayer_Default; // renderBucket_Overlay
 End;
 
-Procedure UIGrid.Render(V:TERRAViewport; Const Stage:RendererStage; Const Bucket:Cardinal);
+Procedure UIGrid.Render(View:TERRAViewport; Const Stage:RendererStage);
 Var
   X,Y, Width:Single;
   I:Integer;
@@ -287,28 +289,28 @@ Begin
 
   X := 0;
   I := 0;
-  While X<V.Width Do
+  While X<View.Width Do
   Begin
     Inc(I);
-    If (I Mod 5 = 0) Then           
+    If (I Mod 5 = 0) Then
       Width := 2.0
     Else
       Width := 1.0;
 
-    DrawLine2D(V, Vector2D_Create(X, 0), Vector2D_Create(X, V.Height),  GridColor, Width);
+    DrawLine2D(View, View, Vector2D_Create(X, 0), Vector2D_Create(X, View.Height),  GridColor, Width);
     X := X + _GridSize;
   End;
 
   Y := 0;
   I := 0;
-  While Y<V.Height Do
+  While Y<View.Height Do
   Begin
     Inc(I);
     Width := 1.0;
     If (I Mod 5 = 0) Then
       Width := Width * 2;
 
-    DrawLine2D(V, Vector2D_Create(0, Y), Vector2D_Create(V.Width, Y),  GridColor, Width);
+    DrawLine2D(View, View, Vector2D_Create(0, Y), Vector2D_Create(View.Width, Y),  GridColor, Width);
     Y := Y + _GridSize;
   End;
 End;
@@ -335,7 +337,7 @@ End;
 
 Procedure UIEditScene.Clear();
 Var
-  It:Iterator;
+  It:TERRAIterator;
 Begin
   UIEditForm.TabList.Tabs.Clear();
   UIEditForm.PropertyList.Target := Nil;

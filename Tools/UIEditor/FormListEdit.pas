@@ -46,7 +46,7 @@ Uses TERRA_DataSource, TERRA_FileManager;
 
 Procedure LoadDataSources(Target:TERRAList);
 Var
-  It:Iterator;
+  It:TERRAIterator;
   S:StringProperty;
 Begin
   DataSourceManager.Instance.Clear;

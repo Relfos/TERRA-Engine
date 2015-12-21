@@ -15,7 +15,7 @@ uses
   SysUtils, Classes, Messages, ExtCtrls, Controls, StdCtrls,
   Dialogs, Graphics, Buttons,
   TERRA_String, TERRA_Object, TERRA_Utils, TERRA_OS, TERRA_Color, TERRA_VCLApplication,
-  TERRA_EngineManager, TERRA_FileManager, TERRA_FileUtils, TERRA_EnumProperty, TERRA_DataSource, TERRA_Math;
+  TERRA_Engine, TERRA_FileManager, TERRA_FileUtils, TERRA_EnumProperty, TERRA_DataSource, TERRA_Math;
 
 Const
   MarginTop = 30;
