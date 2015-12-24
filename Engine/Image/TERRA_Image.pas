@@ -120,6 +120,8 @@ Type
 
       Function GetImageTransparencyType:ImageTransparencyType;
 
+      Procedure FloodFillInternal(X,Y:Integer; BaseColor,FillColor:ColorRGBA; Threshold:Byte);
+
     Public
       Constructor Create(Width, Height:Integer);Overload;
       Constructor Create(Source:TERRAStream);Overload;
@@ -218,6 +220,8 @@ Type
 
       Function GetPixelOffset(X,Y:Integer):PColorRGBA;
       Function GetLineOffset(Y:Integer):PColorRGBA;
+
+      Procedure FloodFill(X,Y:Integer; Color:ColorRGBA; Threshold:Byte);
 
       Property Width:Cardinal Read _Width;
       Property Height:Cardinal Read _Height;
@@ -2230,6 +2234,39 @@ Begin
   End;
 
   Result := Self.BlitRect(PX[1], PY[1], PX[2], PY[2], PX[3], PY[3], PX[4], PY[4]);
+End;
+
+Procedure TERRAImage.FloodFillInternal(X,Y:Integer; BaseColor,FillColor:ColorRGBA; Threshold:Byte);
+Var
+  C:ColorRGBA;
+  Dist:Integer;
+Begin
+  If (X<0) Or (Y<0) Or (X>=Width) Or (Y>=Height) Then
+    Exit;
+
+  C := Self.GetPixel(X, Y);
+  If (Cardinal(C) = Cardinal(FillColor)) Then
+    Exit;
+
+  Dist := Abs(ColorLuminance(C) - ColorLuminance(BaseColor));
+
+  If (Dist>Threshold) Then
+    Exit;
+
+  Self.SetPixel(X, Y, FillColor);
+
+  FloodFillInternal(X-1, Y, BaseColor,FillColor, Threshold);
+  FloodFillInternal(X, Y-1, BaseColor,FillColor, Threshold);
+  FloodFillInternal(X+1, Y, BaseColor,FillColor, Threshold);
+  FloodFillInternal(X, Y+1, BaseColor,FillColor, Threshold);
+End;
+
+Procedure TERRAImage.FloodFill(X,Y:Integer; Color:ColorRGBA; Threshold:Byte);
+Var
+  BaseColor:ColorRGBA;
+Begin
+  BaseColor := Self.GetPixel(X, Y);
+  FloodFillInternal(X, Y, BaseColor, Color, Threshold);
 End;
 
 End.
