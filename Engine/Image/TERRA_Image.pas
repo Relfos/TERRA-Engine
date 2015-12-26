@@ -120,7 +120,7 @@ Type
 
       Function GetImageTransparencyType:ImageTransparencyType;
 
-      Procedure FloodFillInternal(X,Y:Integer; BaseColor,FillColor:ColorRGBA; Threshold:Byte);
+      Function FloodFillInternal(X,Y:Integer; BaseColor,FillColor:ColorRGBA; Threshold:Byte; Span:PByteArray; Count:Integer):Integer;
 
     Public
       Constructor Create(Width, Height:Integer);Overload;
@@ -2236,37 +2236,100 @@ Begin
   Result := Self.BlitRect(PX[1], PY[1], PX[2], PY[2], PX[3], PY[3], PX[4], PY[4]);
 End;
 
-Procedure TERRAImage.FloodFillInternal(X,Y:Integer; BaseColor,FillColor:ColorRGBA; Threshold:Byte);
+Function TERRAImage.FloodFillInternal(X,Y:Integer; BaseColor,FillColor:ColorRGBA; Threshold:Byte; Span:PByteArray; Count:Integer):Integer;
 Var
   C:ColorRGBA;
-  Dist:Integer;
+  ID:Integer;
 Begin
-  If (X<0) Or (Y<0) Or (X>=Width) Or (Y>=Height) Then
+  ID := X + Y * Self.Width;
+  If (Span[ID]<>1) Then
     Exit;
 
-  C := Self.GetPixel(X, Y);
-  If (Cardinal(C) = Cardinal(FillColor)) Then
+  Inc(Count);
+  If (Count>2000) Then
+  Begin
+    Result := ID;
     Exit;
+  End;
 
-  Dist := Abs(ColorLuminance(C) - ColorLuminance(BaseColor));
 
-  If (Dist>Threshold) Then
-    Exit;
+  Span[ID] := 2;
 
-  Self.SetPixel(X, Y, FillColor);
 
-  FloodFillInternal(X-1, Y, BaseColor,FillColor, Threshold);
-  FloodFillInternal(X, Y-1, BaseColor,FillColor, Threshold);
-  FloodFillInternal(X+1, Y, BaseColor,FillColor, Threshold);
-  FloodFillInternal(X, Y+1, BaseColor,FillColor, Threshold);
+  If (X>0) And (Span[(X-1)+Y*Width]=1) Then
+  Begin
+    Result := FloodFillInternal(X-1, Y, BaseColor,FillColor, Threshold, Span, Count);
+    If Result>=0 Then
+      Exit;
+  End;
+
+  If (Y>0) And (Span[X+(Y-1)*Width]=1) Then
+  Begin
+    Result := FloodFillInternal(X, Y-1, BaseColor,FillColor, Threshold, Span, Count);
+    If Result>=0 Then
+      Exit;
+  End;
+
+  If (X<Pred(Width)) And (Span[(X+1)+Y*Width]=1) Then
+  Begin
+    Result := FloodFillInternal(X+1, Y, BaseColor,FillColor, Threshold, Span, Count);
+    If Result>=0 Then
+      Exit;
+  End;
+
+  If (Y<Pred(Height)) And (Span[X+(Y+1)*Width]=1) Then
+  Begin
+    Result := FloodFillInternal(X, Y+1, BaseColor,FillColor, Threshold, Span, Count);
+    If Result>=0 Then
+      Exit;
+  End;
+
+  Result := -1;
 End;
 
 Procedure TERRAImage.FloodFill(X,Y:Integer; Color:ColorRGBA; Threshold:Byte);
 Var
-  BaseColor:ColorRGBA;
+  C, BaseColor:ColorRGBA;
+  Span:Array Of Byte;
+  I,J, N, Dist:Integer;
 Begin
   BaseColor := Self.GetPixel(X, Y);
-  FloodFillInternal(X, Y, BaseColor, Color, Threshold);
+
+  SetLength(Span, Width * Height);
+
+  For J:=0 To Pred(Height) Do
+    For I:=0 To Pred(Width) Do
+    Begin
+      C := GetPixel(I, J);
+
+      //Dist := Abs(ColorLuminance(C) - ColorLuminance(BaseColor));
+      Dist := Abs(C.R - BaseColor.R);
+
+      If (Dist>Threshold) Then
+        N := 0
+      Else
+        N := 1;
+
+      Span[I + J * Width] := N;
+    End;
+
+  Repeat
+    N := FloodFillInternal(X, Y, BaseColor, Color, Threshold, @Span[0], 0);
+    If (N<0) Then
+      Break;
+
+    X := N Mod Width;
+    Y := N Div Width;
+  Until (False);
+
+  For J:=0 To Pred(Height) Do
+    For I:=0 To Pred(Width) Do
+    If (Span[I + J * Width]=2) Then
+    Begin
+      Self.SetPixel(I, J, Color);
+    End;
+
+  SetLength(Span, 0);
 End;
 
 End.
