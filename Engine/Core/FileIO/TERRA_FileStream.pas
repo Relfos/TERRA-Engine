@@ -235,7 +235,7 @@ Begin
     Exit;
 
 {$IFNDEF PC}
-  RaiseError('File.Rename() not implemented!');
+  Engine.RaiseError('File.Rename() not implemented!');
 {$ELSE}
   _ObjectName := NewName;
   CloseFile(_File);
