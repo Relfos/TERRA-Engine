@@ -179,7 +179,7 @@ Begin
     LoopFrame := StartFrame;
 
     Begin
-      Anim := Animation.Create(TargetName);
+      Anim := Animation.Create(rtDynamic);
       Anim.FPS := 24;
       BaseTime := StartFrame/Anim.FPS;
       Anim.Loop := LoopAnimation;

@@ -29,10 +29,10 @@ Uses TERRA_Application, TERRA_Milkshape, TERRA_MeshAnimation, TERRA_Utils, TERRA
 
 implementation
 
-Uses TERRA_String, TERRA_Mesh, TERRA_INI, TERRA_Stream, TERRA_Matrix4x4, TERRA_ResourceManager,
+Uses TERRA_String, TERRA_Mesh, TERRA_INI, TERRA_Stream, TERRA_Matrix4x4, TERRA_ResourceManager, TERRA_Resource,
   TERRA_Vector3D, TERRA_Vector2D, TERRA_Math, TERRA_Color, TERRA_Log, TERRA_Lights,
   SysUtils, TERRA_MeshFilter, TERRA_FileImport, TERRA_FileStream, TERRA_MemoryStream,
-  TERRA_FileUtils, TERRA_Texture, TERRA_FileManager, TERRA_GraphicsManager, TERRA_Image,
+  TERRA_FileUtils, TERRA_Texture, TERRA_FileManager, TERRA_GraphicsManager, TERRA_Image, TERRA_MeshSkeleton,
   TERRA_VertexFormat;
 
 
@@ -99,7 +99,7 @@ Begin
         LoopFrame:=StartFrame;
 
       TargetName := StringLower(Prefix+'_'+ActionName);
-      Anim := Animation.Create(TargetName);
+      Anim := Animation.Create(rtDynamic, '');
       WriteLn('Importing animation: ', TargetName);
       Anim.FPS := MS3D.AnimationFPS;
 
@@ -409,7 +409,7 @@ Begin
   PinJointCount:=0;
   EmitterJointCount:=0;
 
-  MyMesh := Mesh.Create('');
+  MyMesh := Mesh.Create(rtDynamic, '');
 
   I:=0;
   While I<MS3D.NumJoints Do
@@ -684,8 +684,8 @@ Begin
 	  	SetFlag(Group.Flags, meshGroupVegetation, Vegetation);
 //	  	SetFlag(Group.Flags, mgCollision, Collision);
 	  	SetFlag(Group.Flags, meshGroupSphereMap, SphereMap);
-	  	SetFlag(Group.Flags, meshGroupAlphaTest, AlphaTest);
-		  SetFlag(Group.Flags, meshGroupTransparency, Transparency);
+	  	//SetFlag(Group.Flags, meshGroupAlphaTest, AlphaTest);
+		  //SetFlag(Group.Flags, meshGroupTransparency, Transparency);
       SetFlag(Group.Flags, meshGroupLinked, Link);
 		  SetFlag(Group.Flags, meshGroupTriplanar, Triplanar);
 		  //SetFlag(Group.Flags, mgOverrideMaterial, OverrideMaterial);
@@ -777,7 +777,7 @@ Begin
             Vp_Color := ColorMultiply(Vp_Color, LMCC);
           End;
 
-          It := Group.Vertices.GetIterator(MeshVertex);
+          It := Group.Vertices.GetIteratorForClass(MeshVertex);
           While It.HasNext() Do
           Begin
             V := MeshVertex(It.Value);
@@ -785,7 +785,7 @@ Begin
   			    If (V.Position.Distance(VP_Position)<=0.001)
             And (V.Normal.Distance(VP_Normal)<=0.001)
 	  		    And (V.UV0.Distance(VP_TextureCoords)<=0.001)
-            And (Cardinal(V.Color) = Cardinal(VP_Color))
+            And (Cardinal(V.BaseColor) = Cardinal(VP_Color))
             And (V.BoneIndex = VP_BoneIndex) Then
 		  	    Begin
               If (LMFile='') Or (V.UV1.Distance(VP_TextureCoords2)<=0.001) Then
@@ -842,7 +842,7 @@ Begin
 		    For I:=0 To Pred(PinJointCount) Do
 		    Begin
 			      Min := 9999;
-            It := Group.Vertices.GetIterator(MeshVertex);
+            It := Group.Vertices.GetIteratorForClass(MeshVertex);
             While It.HasNext() Do
 			      Begin
               V := MeshVertex(It.Value);
@@ -917,13 +917,13 @@ Begin
       End;
 
       //Log(logConsole, 'Import', 'Found '+IntToString(TargetVertex)+' in '+IntToString(TargetGroup));
-      Group.SetVertexLink(I, TargetGroup, TargetVertex);
+      (*Group.SetVertexLink(I, TargetGroup, TargetVertex);
       If (TargetGroup>=0) Then
       Begin
         Group.Vertices.GetVector3D(I, vertexPosition, P);
         P.Subtract(TargetPos);
         Group.Vertices.SetVector3D(I, vertexPosition, P);
-      End;
+      End;*)
     End;
   End;
 
