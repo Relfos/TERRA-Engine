@@ -225,6 +225,7 @@ Uses TERRA_Error, TERRA_Engine, TERRA_OS;
   Synchronize to return.
 }
 {$IFNDEF USEPASCALTHREADS}
+Var
   SyncEvent: THandle;
 {$ENDIF}
 {$ENDIF}

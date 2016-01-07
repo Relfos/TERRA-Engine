@@ -70,6 +70,8 @@ Begin
   Self.AutoUnload := True;
 
 	Engine.Log.Write(logDebug, 'Audio','Initializing audio mixer');
+
+
   _Mixer := TERRAAudioMixer.Create(DefaultSampleFrequency, DefaultAudioSampleCount);
 
   _Enabled := True;

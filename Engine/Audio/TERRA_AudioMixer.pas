@@ -145,7 +145,9 @@ Begin
     _ThreadTerminated := True;
     Self.Leave();
 
+    {$IFNDEF DISABLETHREADS}
     _Thread.Terminate();
+    {$ENDIF}
     ReleaseObject(_Thread);
     ReleaseObject(_Mutex);
   End;

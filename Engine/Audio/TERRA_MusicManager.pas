@@ -90,7 +90,7 @@ End;
 Procedure MusicManager.Play(SourceName:TERRAString; CrossFadeDuration:Integer);
 Begin
   {$IFDEF DISABLEMUSIC}
-  Log(logDebug, 'Music', 'Cannot play '+SourceName+', music is disabled');
+  Engine.Log.Write(logDebug, 'Music', 'Cannot play '+SourceName+', music is disabled');
   Exit;
   {$ENDIF}
 

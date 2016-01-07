@@ -149,9 +149,15 @@ Begin
   _Physics := PhysicsManager.Create();
   _Animations := AnimationManager.Create();
 
+{$IFNDEF DISABLETHREADS}
+{$IFNDEF DISABLESOUND}
   _Audio := SoundManager.Create();
+{$IFNDEF DISABLEMUSIC}
   _Music := MusicManager.Create();
   _MIDI := MidiManager.Create();
+{$ENDIF}
+{$ENDIF}
+{$ENDIF}
 
   _Cursors := CursorManager.Create();
 
@@ -200,9 +206,13 @@ Begin
 
   ReleaseObject(_Cursors);
 
+{$IFNDEF DISABLESOUND}
+{$IFNDEF DISABLEMUSIC}
   ReleaseObject(_MIDI);
   ReleaseObject(_Music);
+{$ENDIF}
   ReleaseObject(_Audio);
+{$ENDIF}
 
   ReleaseObject(_Localization);
 
@@ -234,9 +244,14 @@ Begin
 
   _InputManager.Update();
 
-  _Audio.Update();
+{$IFNDEF DISABLESOUND}
+{$IFNDEF DISABLEMUSIC}
   _Music.Update();
   _MIDI.Update();
+{$ENDIF}
+  _Audio.Update();
+{$ENDIF}
+
 
   _Network.Update();
   _HTTP.Update();
