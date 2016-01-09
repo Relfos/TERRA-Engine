@@ -60,10 +60,11 @@ Begin
   VCLEngineApp.Viewport.OnRender := Self.RenderViewport;
 
   // Added Asset folder to search path
-  Engine.Files.AddFolder('assets');
+  Engine.Files.DisableCache();
+  Engine.Files.AddFolder('refs');
 
   // Load a Tex
-  _Tex := Engine.Textures['ghost'];
+  _Tex := Engine.Textures['back021'];
 End;
 
 

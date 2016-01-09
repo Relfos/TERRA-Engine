@@ -98,6 +98,14 @@ Begin
 
   If (Msg=WM_SYSKEYDOWN) And (wParam = (VK_MENU)) Then
   Begin
+    App.AddValueEvent(eventKeyDown, keyAlt);
+    Result := 0;
+    Exit;
+  End;
+
+  If (Msg=WM_SYSKEYUP) And (wParam = (VK_MENU)) Then
+  Begin
+    App.AddValueEvent(eventKeyUp, keyAlt);
     Result := 0;
     Exit;
   End;
