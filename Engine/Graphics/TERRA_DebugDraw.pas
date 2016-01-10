@@ -33,6 +33,7 @@ Uses TERRA_Object, TERRA_String, TERRA_GraphicsManager, TERRA_Renderer, TERRA_Co
 
 Var
   DrawLayer:Single = 99;
+  DebugClipRect:TERRAClipRect;
 
 // 2d drawing
 Procedure DrawPoint2D(SourceView, TargetView:TERRAViewport; Const P:Vector2D; FillColor:ColorRGBA; Radius:Single = 2.0);
@@ -93,6 +94,7 @@ Begin
     Exit;
 
   S := Engine.FetchSprite();
+  S.ClipRect := DebugClipRect;
   S.SetTexture(Tex);
   S.Layer := DrawLayer;
   S.SetColor(LineColor);
@@ -118,6 +120,7 @@ Begin
   MaxY := Trunc(FloatMax(A.Y, B.Y));
 
   S := Engine.FetchSprite();
+//  S.ClipRect := DebugClipRect;
   S.SetTexture(Tex);
   S.Layer := DrawLayer;
   S.SetColor(FillColor);
@@ -125,7 +128,6 @@ Begin
   S.Translate(MinX, MinY);
 
   Engine.Graphics.AddRenderable(TargetView, S);
-//  S.ClipRect := Clip;
 End;
 
 Procedure DrawRectangle(SourceView, TargetView:TERRAViewport; Const A,B:Vector2D; LineColor:ColorRGBA; LineWidth:Single = 1.0);

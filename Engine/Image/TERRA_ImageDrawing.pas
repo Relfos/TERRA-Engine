@@ -106,7 +106,7 @@ Begin
 
   If (image_Fill In Flags) Then
   Begin
-    _PX := -Radius;
+    _PX := -(Radius+1);
     _PY := 0;
     _PR := Radius;
   End Else
@@ -132,7 +132,7 @@ Begin
       _PY := -_PH;
     End;
 
-    If (_PX>=_PR) Then
+    If (_PX>_PR) Then
     Begin
       Result := False;
       Exit;
@@ -227,7 +227,7 @@ Begin
   Self._Y1 := IntMax(Y1,0);
   Self._Y2 := IntMin(Y2,Integer(Pred(Target.Height)));
 
-  _PX := Pred(X1);
+  _PX := X1;
   _PY := Y1;
 End;
 
@@ -311,7 +311,7 @@ Begin
   _PY := Y1;
   _Sub := 0;
 
-  Dec(_NumPixels, 2);
+  //Dec(_NumPixels, 2);
 End;
 
 // Bresenham's line algorithm

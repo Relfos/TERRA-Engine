@@ -116,7 +116,7 @@ Function Engine():EngineManager;
 
 Implementation
 Uses TERRA_NullRenderer, TERRA_UIView, TERRA_UIDimension, TERRA_Color, TERRA_Vector2D, TERRA_Vector3D, TERRA_Vector4D, TERRA_Quaternion,
-  TERRA_Texture, TERRA_Font;
+  TERRA_Texture, TERRA_Font, TERRA_DebugDraw, TERRA_ClipRect;
 
 Var
   _EngineManager:EngineManager = Nil;
@@ -128,7 +128,7 @@ Begin
     EngineManager.Create();
     _EngineManager.Renderers.Add(NullRenderer.Create());
   End;
-  
+
   Result := _EngineManager;
 End;
 
@@ -136,6 +136,8 @@ End;
 Constructor EngineManager.Create;
 Begin
   _EngineManager := Self;
+
+  DebugClipRect.Style := clipNothing;
 
   _Pool := TERRAPool.Create();
   _Log := TERRALog.Create();
