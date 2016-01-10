@@ -131,6 +131,8 @@ Function ColorCreateFromNormal(Const N:Vector3D; A:Single=1.0):ColorRGBA;
 
 Function ColorToVector3D(Const C:ColorRGBA):Vector3D;
 
+Function ColorDistance(Const A,B:ColorRGBA):Single;
+
 Function ColorHSLCreate(Const H,S,L:Byte; A:Byte=255):ColorHSL;
 
 // Mixes colors
@@ -864,6 +866,11 @@ Begin
 	Result := Source.R + (Source.G Shl 2) + (Source.B Shl 5);
   If (Result=0) Then
     Result:=1;
+End;
+
+Function ColorDistance(Const A,B:ColorRGBA):Single;
+Begin
+  Result := Trunc(Sqrt(Sqr(A.R - B.R) + Sqr(A.G - B.G) + Sqr(A.B - B.B) + Sqr(A.A - B.A) ));
 End;
 
 Function ColorAdd(Const A,B:ColorRGBA):ColorRGBA;

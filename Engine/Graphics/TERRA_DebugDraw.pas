@@ -26,9 +26,13 @@ Unit TERRA_DebugDraw;
 {$I terra.inc}
 Interface
 
+
 Uses TERRA_Object, TERRA_String, TERRA_GraphicsManager, TERRA_Renderer, TERRA_Color, TERRA_BoundingBox, TERRA_Frustum,
   TERRA_Ray, TERRA_Matrix4x4, TERRA_Vector3D, TERRA_Vector2D, TERRA_Utils, TERRA_Sprite,
   TERRA_MeshSkeleton, TERRA_MeshAnimationNodes, TERRA_Collision2D, TERRA_Splines, TERRA_ClipRect, TERRA_Viewport;
+
+Var
+  DrawLayer:Single = 99;
 
 // 2d drawing
 Procedure DrawPoint2D(SourceView, TargetView:TERRAViewport; Const P:Vector2D; FillColor:ColorRGBA; Radius:Single = 2.0);
@@ -60,9 +64,6 @@ Procedure DrawPointCloud(Cloud:PointCloud2D; MyColor:ColorRGBA; Layer:Single);
 Implementation
 Uses TERRA_OS, TERRA_Engine, TERRA_Math, TERRA_Texture;
 
-Const
-  Layer = 99;
-
 Function ConvertTo2D(SourceView:TERRAViewport; P:Vector3D):Vector2D;
 Begin
   P := SourceView.ProjectPoint(P);
@@ -93,7 +94,7 @@ Begin
 
   S := Engine.FetchSprite();
   S.SetTexture(Tex);
-  S.Layer := Layer;
+  S.Layer := DrawLayer;
   S.SetColor(LineColor);
   S.AddLine(A, B, 0.0, LineWidth);
   Engine.Graphics.AddRenderable(TargetView, S);
@@ -118,7 +119,7 @@ Begin
 
   S := Engine.FetchSprite();
   S.SetTexture(Tex);
-  S.Layer := Layer;
+  S.Layer := DrawLayer;
   S.SetColor(FillColor);
   S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0,0), 0.0, Trunc(MaxX-MinX), Trunc(MaxY-MinY)); // colors
   S.Translate(MinX, MinY);

@@ -2302,7 +2302,7 @@ Begin
     Begin
       C := GetPixel(I, J);
 
-      Dist := Trunc(Sqrt(Sqr(C.R - BaseColor.R) + Sqr(C.G - BaseColor.G) + Sqr(C.B - BaseColor.B) + Sqr(C.A - BaseColor.A) ));
+      Dist := Trunc(ColorDistance(C, BaseColor));
       //Dist := Abs(ColorLuminance(C) - ColorLuminance(BaseColor));
       //Dist := Abs(C.R - BaseColor.R);
 

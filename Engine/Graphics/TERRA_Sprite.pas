@@ -1212,7 +1212,7 @@ Begin
     Dest := SpriteVertex(OutIt.Value);
     Dest.Saturation := Self.Saturation;
     Dest.Glow := Self.Glow;
-    Dest.ClipRect := Vector4D_Create(0, 0, 9999, 9999);
+    Dest.ClipRect := CurrentClip;
   End;
   ReleaseObject(OutIt);
 End;

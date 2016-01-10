@@ -72,7 +72,7 @@ Procedure MyDemo.OnRender2D(V: TERRAViewport);
 Begin
   Inherited;
 
-  DrawClipRect(V, Self.GUI.ClipRect, ColorWhite);
+  DrawClipRect(V, V, Self.GUI.ClipRect, ColorWhite);
 End;
 
 Procedure MyDemo.OnIdle;
