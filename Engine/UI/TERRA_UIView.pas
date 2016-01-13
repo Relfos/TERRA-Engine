@@ -137,6 +137,8 @@ Type
 
       Property DefaultFont:TERRAFont Read _DefaultFont Write SetDefaultFont;
       Property Modal:UIWidget Read GetModal Write _Modal;
+
+      Property Cursor:TERRACursor Read _CurrentCursor Write _CurrentCursor;
     End;
 
 (*  UIManager = Class(TERRAObject)

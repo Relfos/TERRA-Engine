@@ -2,12 +2,35 @@ Unit TERRA_ColorDither;
 
 Interface
 
+Type
+  DitherMode =
+  (
+    dither_None,
+    dither_2x2,
+    dither_4x4,
+    dither_8x8
+  );
+
 // all dither functions return either 1 or 0 only
 Function ColorDither2x2(X,Y:Integer; Const Value:Single):Integer;
 Function ColorDither4x4(X,Y:Integer; Const Value:Single):Integer;
 Function ColorDither8x8(X,Y:Integer; Const Value:Single):Integer;
 
+Function ColorDither(Mode:DitherMode; X,Y:Integer; Const Value:Single):Integer;
+
 Implementation
+
+Function ColorDither(Mode:DitherMode; X,Y:Integer; Const Value:Single):Integer;
+Begin
+  Case Mode Of
+    dither_2x2: Result := ColorDither2x2(X, Y, Value);
+    dither_4x4: Result := ColorDither4x4(X, Y, Value);
+    dither_8x8: Result := ColorDither8x8(X, Y, Value);
+
+    Else
+      Result := 1;
+  End;
+End;
 
 Const
   Dither2x2:Array[0..3] Of Single = (0.25, 0.75, 1.0, 0.5);

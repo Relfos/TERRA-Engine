@@ -128,7 +128,7 @@ Begin
     If (_PH<=0) Or (_PY>=_PH) Then
     Begin
       Inc(_PX);
-      _PH := Trunc(Sqrt((Sqr(_PR) - Sqr(_PX))));
+      _PH := Trunc(Sqrt((Sqr(_PR) - Sqr(_PX))))+1;
       _PY := -_PH;
     End;
 
