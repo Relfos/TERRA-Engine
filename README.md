@@ -31,14 +31,14 @@ What is supported?
 
 Compilers:
 * FPC 2.6.2 and up
-* Delphi 7
+* Delphi 7, Delphi XE2, Delphi XE3, Delphi XE10.
 
 Platforms:
 * Windows
 * Linux
-* OSX
-* iOS
-* Android
+* OSX using FreePascal or Delphi 
+* iOS using FreePascal or Delphi 
+* Android using FreePascal or Delphi 
 * OUYA
 
 Renderers:
