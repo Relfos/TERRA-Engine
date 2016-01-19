@@ -1,3 +1,8 @@
+{$IF DCC}
+{$LONGSTRINGS OFF}
+{$H-}
+{$ENDIF}
+
 {-$DEFINE FULLDEBUG}  // Compile debug version, slower but with more error checking
 {-$DEFINE FIXEDPOINT} // Enable fixed point math (faster)
 {-$DEFINE CATCHALL} // Catch and ignore all exceptions

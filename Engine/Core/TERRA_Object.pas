@@ -11,8 +11,15 @@ Type
   TERRAString = String;
   TERRAChar = Char;
   {$ELSE}
-  TERRAString = String;
-  TERRAChar = WideChar;
+  
+  {$IFDEF DCC}
+    TERRAString = AnsiString; // Delphi XE2 and above
+    TERRAChar = WideChar;
+  {$ELSE}
+    TERRAString = String;
+    TERRAChar = WideChar;
+  {$ENDIF}
+  
   {$ENDIF}
 
   StringArray = Array Of TERRAString;

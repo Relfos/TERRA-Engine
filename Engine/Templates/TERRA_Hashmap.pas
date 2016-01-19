@@ -184,23 +184,33 @@ Begin
   If Item = Nil Then
     Exit;
 
+  {$IFNDEF DCC}
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Obtaining an hash for this item...');{$ENDIF}
+  {$ENDIF}
   Key := Murmur2(Item.Name);
+  {$IFNDEF DCC}
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Got hash index: '+HexStr(Key));{$ENDIF}
+  {$ENDIF}
 
   Key := Key Mod _TableSize;
 
   If Not Assigned(_Table[Key]) Then
   Begin
+  {$IFNDEF DCC}
     {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Allocating a new table...');{$ENDIF}
+  {$ENDIF}
     _Table[Key] := TERRAList.Create(collection_Unsorted);
   End;
 
+  {$IFNDEF DCC}
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Adding item to table...');{$ENDIF}
+  {$ENDIF}
   Result := _Table[Key].Add(Item);
   Inc(_ItemCount);
 
+  {$IFNDEF DCC}
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Insertion was ok!');{$ENDIF}
+  {$ENDIF}
 End;
 
 Function TERRAHashMap.Remove(Item:TERRAObject):Boolean;
@@ -212,16 +222,22 @@ Begin
   If (Item = Nil) Then
     Exit;
 
+  {$IFNDEF DCC}
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Obtaining an hash for this item...');{$ENDIF}
+  {$ENDIF}
   Key := Murmur2(Item.Name);
+  {$IFNDEF DCC}
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Got hash index: '+HexStr(Key));{$ENDIF}
+  {$ENDIF}
 
   Key := Key Mod _TableSize;
 
   If Not Assigned(_Table[Key]) Then
     Exit;
 
+  {$IFNDEF DCC}
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Removing item from table...');{$ENDIF}
+  {$ENDIF}
   Result := (_Table[Key].Remove(Item));
   If Result Then
     Dec(_ItemCount);
@@ -236,16 +252,22 @@ Begin
   If (Item = Nil) Then
     Exit;
 
+  {$IFNDEF DCC}
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Obtaining an hash for this item...');{$ENDIF}
+  {$ENDIF}
   Key := Murmur2(Item.Name);
+  {$IFNDEF DCC}
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Got hash index: '+HexStr(Key));{$ENDIF}
+  {$ENDIF}
 
   Key := Key Mod _TableSize;
 
   If Not Assigned(_Table[Key]) Then
     Exit;
 
+  {$IFNDEF DCC}
   {$IFDEF DEBUG}Log(logDebug, 'HashMap', 'Searching item in table...');{$ENDIF}
+  {$ENDIF}
   Result := (_Table[Key].Contains(Item));
 End;
 
