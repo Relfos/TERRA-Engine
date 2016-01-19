@@ -654,12 +654,20 @@ Begin
   _BundleVersion := '';
 
   FileName := PAnsiChar(ParamStr(0));
+{$IFDEF DCC}
+  VerInfoSize := GetFileVersionInfoSizeA(FileName, Dummy);
+{$ELSE}
   VerInfoSize := GetFileVersionInfoSize(FileName, Dummy);
+{$ENDIF}
   if VerInfoSize > 0 then
   begin
       GetMem(VerInfo, VerInfoSize);
       Try
+{$IFDEF DCC}
+        If GetFileVersionInfoA(FileName, 0, VerInfoSize, VerInfo) then
+{$ELSE}
         If GetFileVersionInfo(FileName, 0, VerInfoSize, VerInfo) then
+{$ENDIF}
         Begin
           VerQueryValue(VerInfo, '\', Pointer(VerValue), VerValueSize);
           //V1 := dwFileVersionMS shr 16;
