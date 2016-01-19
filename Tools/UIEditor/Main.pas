@@ -22,6 +22,7 @@ uses
   TERRA_Viewport, TERRA_FileManager, TERRA_FileUtils, TERRA_Sprite, TERRA_Engine,
   TERRA_PNG, TERRA_JPG,
   TERRA_GraphicsManager, TERRA_Math, TERRA_Vector2D, TERRA_Color,
+  TERRA_ObjectTree, TERRA_FileFormat,
   TERRA_XML, TERRA_Collections, TERRA_List, TERRA_UIView, TERRA_UIWidget, TERRA_CustomPropertyEditor;
 
 Const
@@ -509,7 +510,7 @@ End;
 
 Procedure UIEditScene.Open(FileName: TERRAString);
 Var
-  Root:XMLNode;
+  Root:TERRAObjectNode;
 Begin
   Self.Clear();
 
@@ -520,8 +521,7 @@ Begin
   Engine.Files.Reset();
   Engine.Files.AddFolder(GetFilePath(FileName));
 
-  Root := XMLNode.Create();
-  Root.LoadFromFile(FileName);
+  Engine.Formats.Formats['xml'].LoadFromFile(Root, FileName);
   Root.SaveToObject(Self);
   ReleaseObject(Root);
 
@@ -535,11 +535,11 @@ End;
 
 procedure UIEditScene.Save(FileName: TERRAString);
 Var
-  Root:XMLNode;
+  Root:TERRAObjectNode;
 Begin
-  Root := XMLNode.Create();
+  Root := TERRAObjectNode.Create();
   Root.LoadFromObject(Self);
-  Root.SaveToFile(FileName, xmlSaveCompact);
+  Engine.Formats.Formats['xml'].SaveToFile(Root, FileName);
   ReleaseObject(Root);
 End;
 
@@ -583,7 +583,7 @@ Begin
   Self._Owner := Owner;
 
   // Create a new UI
-  _Target := UIView.Create('ui', UIPercent(100), UIPercent(100));
+  _Target := UIView.Create('ui', UIPercent(100), UIPercent(100), 0);
   _Target.Viewport.OnRender := _Owner.RenderViewport2D;
 
   // Register the font with the UI
