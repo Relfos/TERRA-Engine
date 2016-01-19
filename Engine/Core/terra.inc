@@ -1,4 +1,4 @@
-{$IF DCC}
+{$IFDEF DCC}
 {$LONGSTRINGS OFF}
 {$H-}
 {$ENDIF}
