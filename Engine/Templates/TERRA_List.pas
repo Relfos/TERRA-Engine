@@ -271,14 +271,20 @@ Begin
   Self.Lock();
   List := _First;
   Prev := Nil;
+  {$IFNDEF DCC}
   {$IFDEF DEBUG}Engine.Log.Write(logDebug, 'List', 'Testing deletion...');{$ENDIF}
+  {$ENDIF}
 
   While Assigned(List) Do
   Begin
+  {$IFNDEF DCC}
     {$IFDEF DEBUG}Engine.Log.Write(logDebug, 'List', 'Testing key contains '+HexStr(Cardinal(List)));{$ENDIF}
+  {$ENDIF}
     If List.Item = Item Then
     Begin
+  {$IFNDEF DCC}
       {$IFDEF DEBUG}Engine.Log.Write(logDebug, 'List', 'Match found!');{$ENDIF}
+  {$ENDIF}
 
       Next := List.Next;
 
