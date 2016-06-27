@@ -193,13 +193,13 @@ Begin
     Begin
       TX := N Mod 5;
       TY := N Div 5;
-      S := View.SpriteRenderer.FetchSprite();
+      S := Engine.FetchSprite();
       S.Layer := 20;
       S.SetTexture(_ExplosionTex);
       S.SetUVs((92*TX) / _ExplosionTex.Width, (92*TY) / _ExplosionTex.Height, (Succ(TX)*92) / _ExplosionTex.Width, (Succ(TY)*92) / _ExplosionTex.Height);
       S.Translate(_Explosions[I].X, _Explosions[I].Y);
       S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0), 0.0, 64, 64);
-      View.SpriteRenderer.QueueSprite(S);
+      Engine.Graphics.AddRenderable(View, S);
 
       Inc(I);
     End Else
@@ -217,7 +217,7 @@ Begin
       Delta := (Application.GetTime() - _Ships[I].LastUpdate);
       Delta := Delta/20;
 
-      S := View.SpriteRenderer.FetchSprite();
+      S := Engine.FetchSprite();
       S.Layer := 20;
       S.SetTexture(_ShipTex);
       S.SetUVs(64/_ShipTex.Width, 0, 112/_ShipTex.Width, 32/_ShipTex.Height);
@@ -227,7 +227,8 @@ Begin
       S.Translate(_Ships[I].X, _Ships[I].Y);
 
       S.AddQuad(spriteAnchor_Center, Vector2D_Create(0, 0), 0.0, 64, 64);
-      View.SpriteRenderer.QueueSprite(S);
+      Engine.Graphics.AddRenderable(View, S);
+
 
       If (Delta>=1) Then
       Begin

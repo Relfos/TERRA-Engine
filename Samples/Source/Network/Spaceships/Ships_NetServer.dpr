@@ -17,6 +17,7 @@ Uses
   Ships_Opcodes,
   TERRA_Utils,
   TERRA_Sockets,
+  TERRA_Object,
   TERRA_MultiThreadedServer,
   TERRA_NetServer,
   TERRA_Network;

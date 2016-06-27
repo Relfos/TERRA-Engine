@@ -32,7 +32,7 @@ Uses TERRA_Utils, TERRA_OS, TERRA_Network, TERRA_NetServer, TERRA_Sockets, TERRA
   {$IFDEF WINDOWS},Windows{$ENDIF};
 
 Type
-  ServerThread = Class (Thread)
+  ServerThread = Class (TERRAThread)
     Protected
       _Client:ClientConnection;
 
@@ -70,7 +70,7 @@ Type
   End;
 
 Implementation
-Uses TERRA_Log;
+Uses TERRA_Log, TERRA_Object, TERRA_Engine;
 
 Var
   _ServerInstance:NetMultithreadedServer;
@@ -107,7 +107,7 @@ Begin
   Until (False);
 
    {$IFDEF DEBUGMODE}Log(logDebug, 'MT', '-------------->Player '+IntToString(_PlayerID)+' exited gracefully!');{$ENDIF}
-   IntToString(2);
+   
   //_ServerInstance.RemoveClient(Client);
 End;
 
@@ -155,9 +155,9 @@ End;
 Procedure NetMultithreadedServer.DispatchNewPlayer(Sock:NetSocket);
 Var
   Client, Target:ClientConnection;
-  It:Iterator;
+  It:TERRAIterator;
   Hours,Minutes:Integer;
-  ClientThread:Thread;
+  ClientThread:TERRAThread;
 Begin
   Target := Nil;
 
@@ -183,7 +183,7 @@ Begin
   Hours := (Application.GetTime()-_StartTime) Div 1000;
   Minutes := (Hours Mod 3600) Div 60;
   Hours := Hours Div 3600;
-  Log(logDebug, 'Server', 'New player ID'+IntToString(Target.ID)+' at '+IntToString(Hours)+'h'+IntToString(Minutes));
+  Engine.Log.Write(logDebug, 'Server', 'New player ID'+ IntegerProperty.Stringify(Target.ID)+' at '+ IntegerProperty.Stringify(Hours)+'h'+ IntegerProperty.Stringify(Minutes));
 
   AllocThread(Client);
 End;
