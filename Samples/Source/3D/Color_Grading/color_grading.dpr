@@ -61,21 +61,21 @@ Begin
   If Not Assigned(Tex) Then
     Exit;
 
-  S := V.SpriteRenderer.FetchSprite();
+  S := Engine.FetchSprite();
   S.Layer := 50;
   S.SetTexture(Tex);
-  S.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(0, 0) , 0.0, V.Width, V.Height);
-  V.SpriteRenderer.QueueSprite(S);
+  S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0) , 0.0, V.Width, V.Height);
+  Engine.Graphics.AddRenderable(V, S);
 
   If (Percent>0) Then
   Begin
-    S := V.SpriteRenderer.FetchSprite();
+    S := Engine.FetchSprite();
     S.Layer := 55;
     S.SetTexture(Tex);
     S.ColorTable := CurrentGrad;
     S.SetUVs(0.0, 0.0, Percent, 1.0);
-    S.AddQuad(spriteAnchor_TopLeft, VectorCreate2D(0, 0) , 0.0, V.Width * Percent, V.Height);
-    V.SpriteRenderer.QueueSprite(S);
+    S.AddQuad(spriteAnchor_TopLeft, Vector2D_Create(0, 0) , 0.0, V.Width * Percent, V.Height);
+    Engine.Graphics.AddRenderable(V, S);
   End;
 End;
 
