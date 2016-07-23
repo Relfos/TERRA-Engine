@@ -45,6 +45,8 @@ Type
       Procedure AddVertex(X, Y:Single); Overload;
       Procedure AddVertex(P:Vector2D); Overload;
 
+      Procedure RemoveVertex(Index:Integer);
+
       // test if point P is inside this poly
       Function PointInside(P:Vector2D):Boolean;
       // test if poly P is inside this poly
@@ -228,6 +230,15 @@ Begin
   Inc(VertexCount);
   SetLength(Vertices, VertexCount);
   Vertices[Pred(VertexCount)] := P;
+End;
+
+Procedure Polygon2D.RemoveVertex(Index: Integer);
+Var
+  I:Integer;
+Begin
+  For I:=Index To Pred(VertexCount-1) Do
+    Vertices[I] := Vertices[I+1];
+  Dec(VertexCount);
 End;
 
 Function Polygon2D.Intersect(C:Circle; Hit:PVector2D = Nil):Boolean;
@@ -464,5 +475,6 @@ Function Circle.PointInside(P: Vector2D): Boolean;
 Begin
   Result := (P.Distance(Center)<=Radius);
 End;
+
 
 End.

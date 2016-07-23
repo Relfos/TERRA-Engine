@@ -45,7 +45,7 @@ Implementation
 Uses TERRA_Log, TERRA_ImageDrawing, TERRA_Engine;
 
 
-Function SignedDistance(Source:PSingleArray; Component, W, H, cx, cy:Integer; clamp:Single):Single;
+Function SignedDistance(Source:PSingleArray; W, H, cx, cy:Integer; clamp:Single):Single;
 Var
   dx, dy:Integer;
   x, y1, y2:Integer;
@@ -142,9 +142,30 @@ Begin
 
   SetLength(Values, Source.Width * Source.Height);
   It := Source.Pixels([image_Read]);
-  While It.HasNext() Do
-  Begin
-    Values[It.X + It.Y * Source.Width] := (It.SourceColor.A * RescaleFactor) - 0.5;
+  Case Component Of
+  componentRed:
+    While It.HasNext() Do
+    Begin
+      Values[It.X + It.Y * Source.Width] := (It.SourceColor.R * RescaleFactor) - 0.5;
+    End;
+
+  componentGreen:
+    While It.HasNext() Do
+    Begin
+      Values[It.X + It.Y * Source.Width] := (It.SourceColor.G * RescaleFactor) - 0.5;
+    End;
+
+  componentBlue:
+    While It.HasNext() Do
+    Begin
+      Values[It.X + It.Y * Source.Width] := (It.SourceColor.B * RescaleFactor) - 0.5;
+    End;
+
+  componentAlpha:
+    While It.HasNext() Do
+    Begin
+      Values[It.X + It.Y * Source.Width] := (It.SourceColor.A * RescaleFactor) - 0.5;
+    End;
   End;
 
   For Y:=0 To Pred(Result.Height) Do
@@ -153,7 +174,7 @@ Begin
       PX := X;
       PY := Y;
 
-      sd := SignedDistance(@Values[0], Component, Source.Width, Source.Height, PX, PY, Spread);
+      sd := SignedDistance(@Values[0], Source.Width, Source.Height, PX, PY, Spread);
       n := (sd + Spread) / (Spread*2);
 
       C := Trunc(N*255);

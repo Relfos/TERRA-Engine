@@ -43,6 +43,7 @@ Procedure DrawRectangle(SourceView, TargetView:TERRAViewport; Const A,B:Vector2D
 Procedure DrawFilledRect(SourceView, TargetView:TERRAViewport; Const A,B:Vector2D; FillColor:ColorRGBA);
 Procedure DrawPolygon2D(SourceView, TargetView:TERRAViewport; Poly:Polygon2D; LineColor:ColorRGBA; LineWidth:Single = 1.0);
 Procedure DrawClipRect(SourceView, TargetView:TERRAViewport; Const Rect:TERRAClipRect; LineColor:ColorRGBA; LineWidth:Single = 1.0);
+Procedure DrawPointCloud(SourceView, TargetView:TERRAViewport; Cloud:PointCloud2D; Color:ColorRGBA);
 
 // 3d drawing
 Procedure DrawPoint3D(SourceView, TargetView:TERRAViewport; Const P:Vector3D; FillColor:ColorRGBA; Radius:Single = 2.0);
@@ -59,7 +60,6 @@ Procedure DrawSkeleton(SourceView, TargetView:TERRAViewport; Skeleton:MeshSkelet
 
 (*Procedure DrawFrustum(Const MyFrustum:Frustum; Color:TERRA_Color.Color);
 Procedure DrawPlane(Const Position, Normal:Vector3D; Scale:Single; Color:TERRA_Color.Color);
-Procedure DrawPointCloud(Cloud:PointCloud2D; MyColor:ColorRGBA; Layer:Single);
 *)
 
 Implementation
@@ -101,6 +101,7 @@ Begin
   S.AddLine(A, B, 0.0, LineWidth);
   Engine.Graphics.AddRenderable(TargetView, S);
 End;
+
 
 Procedure DrawFilledRect(SourceView, TargetView:TERRAViewport; Const A,B:Vector2D; FillColor:ColorRGBA);
 Var
@@ -368,22 +369,18 @@ Begin
   DrawRay(SourceView,  TargetView, RayCreate(Origin, Tangent), ColorBlue, LineWidth, 5);
   DrawRay(SourceView,  TargetView, RayCreate(Origin, BiTangent), ColorGreen, LineWidth, 5);
 End;
-(*
-Procedure DrawPointCloud(Cloud:PointCloud2D; MyColor:ColorRGBA; Layer:Single);
+
+Procedure DrawPointCloud(SourceView, TargetView:TERRAViewport; Cloud:PointCloud2D; Color:ColorRGBA);
 Var
   I:Integer;
 Begin
-  glPointSize(3.0);
-
-  glBegin(GL_POINTS);
-  glColor4ub(MyColor.R, MyColor.G, MyColor.B, MyColor.A);
   For I:=0 To Pred(Cloud.PointCount) Do
   Begin
-    glVertex3f(Cloud.Points[I].X, Cloud.Points[I].Y, -Layer);
+    DrawPoint2d(SourceView, TargetView, Cloud.Points[I], Color);
   End;
-  glEnd();
 End;
 
+(*
 Procedure DrawPlane(Const Position, Normal:Vector3D; Scale:Single; Color:TERRA_Color.Color);
 Var
   U,V:Vector3D;
