@@ -123,6 +123,8 @@ Type
       Function FloodFillInternal(X,Y:Integer; BaseColor,FillColor:ColorRGBA; Threshold:Byte; Span:PByteArray; Count:Integer):Integer;
 
     Public
+      Wrap:Boolean;
+      
       Constructor Create(Width, Height:Integer);Overload;
       Constructor Create(Source:TERRAStream);Overload;
       Constructor Create(Location:TERRALocation);Overload;
@@ -381,6 +383,8 @@ Begin
   _TransparencyType := imageUnknown;
   _CurrentFrame := MaxInt;
 
+  Self.Wrap := True;
+  
   _Width := Width;
   _Height := Height;
   _Size := Width * Height * PixelSize;
@@ -1023,17 +1027,27 @@ End;
 
 Function TERRAImage.GetPixelOffset(X,Y:Integer):PColorRGBA;
 Begin
-  While (X<0) Do
-    X := X + Width;
+  If (Wrap) Then
+  Begin
+    While (X<0) Do
+      X := X + Width;
 
-  If (X>=Width) Then
-    X := X Mod Width;
+    If (X>=Width) Then
+      X := X Mod Width;
 
-  While (Y<0) Do
-    Y := Y + Height;
+    While (Y<0) Do
+      Y := Y + Height;
 
-  If (Y>=Height) Then
-    Y := Y Mod Height;
+    If (Y>=Height) Then
+      Y := Y Mod Height;
+  End Else
+  Begin
+    If (X<0) Then X := 0;
+    If (Y<0) Then Y := 0;
+
+    If (X>=Width) Then X := Pred(Width);
+    If (Y>=Height) Then Y := Pred(Height);
+  End;
 
   If (_Pixels._Data = Nil) Then
     Result := Nil
