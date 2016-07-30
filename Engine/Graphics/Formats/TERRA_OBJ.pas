@@ -124,6 +124,10 @@ Type
       Function GetDiffuseMapName(GroupID:Integer):AnsiString; Override;
       Function GetSpecularMapName(GroupID:Integer):AnsiString; Override;
       Function GetEmissiveMapName(GroupID:Integer):AnsiString; Override;
+
+      Procedure SetDiffuseMapName(GroupID:Integer; Val:AnsiString);
+      Procedure SetVertexPosition(GroupID, Index:Integer; Pos:Vector3D);
+      Procedure SetVertexUV(GroupID, Index:Integer; UV:Vector2D);
   End;
 
 Implementation
@@ -780,10 +784,20 @@ Begin
   Result := _GroupList[GroupID].Vertices[Index].Position;
 End;
 
+Procedure OBJModel.SetVertexPosition(GroupID, Index:Integer; Pos:Vector3D);
+Begin
+  _GroupList[GroupID].Vertices[Index].Position := Pos;
+End;
+
 Function OBJModel.GetVertexUV(GroupID, Index: Integer): Vector2D;
 Begin
   Result := _GroupList[GroupID].Vertices[Index].TextureCoords;
 End;
+
+procedure OBJModel.SetVertexUV(GroupID, Index: Integer; UV: Vector2D);
+begin
+  _GroupList[GroupID].Vertices[Index].TextureCoords := UV;
+end;
 
 Initialization
   RegisterMeshFilter(OBJModel, 'OBJ');
