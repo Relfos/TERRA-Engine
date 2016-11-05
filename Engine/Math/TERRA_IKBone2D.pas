@@ -51,7 +51,7 @@ Type
       Function GetChainSize: Integer;
 
     Public
-      Constructor Create(ChainSize:Integer; Parent:IKBone2D = Nil);
+      Constructor Create(ChainSize:Integer; Parent:IKBone2D = Nil; DOF:Single = 40);
       Procedure Release(); Override;
 
       Function GetRelativeMatrix:Matrix3x3;
@@ -82,7 +82,7 @@ Const
   IK_POS_THRESH	= 1.0;	// angle thresold for sucess
 
 { IKBone2D }
-Constructor IKBone2D.Create(ChainSize:Integer; Parent:IKBone2D = Nil);
+Constructor IKBone2D.Create(ChainSize:Integer; Parent:IKBone2D = Nil; DOF:Single = 40);
 Begin
   If (Parent = Nil) Then
     Dec(ChainSize);
@@ -98,8 +98,8 @@ Begin
   _DampWidth := 5.0 * RAD;
 
   // default DOF restrictions
-  _MinRot := -30 * RAD;
-  _MaxRot := 30 * RAD;
+  _MinRot := -DOF * RAD;
+  _MaxRot := DOF * RAD;
 End;
 
 Procedure IKBone2D.Release;

@@ -79,20 +79,22 @@ Begin
 	SnakeRoot := IKBone2D.Create(SnakeJointCount);
 
   For I:=1 To Pred(SnakeJointCount) Do
-	  SnakeRoot.GetChainBone(I).Position := Vector2D_Create(0, SnakeSize - 20);
+	  SnakeRoot.GetChainBone(I).Position := Vector2D_Create(0, -(SnakeSize - 20));
 End;
 
 Procedure MyDemo.OnDestroy;
 Begin
   ReleaseObject(SnakeRoot);
-  
+
   Inherited;
 End;
 
 
 Procedure MyDemo.OnRender2D(V:TERRAViewport);
 Begin
-  SnakeRoot.Position := Vector2D_Create(V.Width  * 0.5,  2* SnakeSize * 0.5);
+  //SnakeRoot.Position := Vector2D_Create(V.Width  * 0.5,  2* SnakeSize * 0.5);
+
+  SnakeRoot.Position := Vector2D_Create(V.Width  * 0.5,  V.Height - SnakeSize * 0.5);
   DrawBone(SnakeRoot, V);
 
   Inherited;
