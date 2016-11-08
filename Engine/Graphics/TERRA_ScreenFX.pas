@@ -143,7 +143,7 @@ Type
 
       Procedure OnContextLost;
 
-      Procedure DrawScreen(X1,Y1,X2,Y2:Single; Target:TERRAObject);
+      Function DrawScreen(X1,Y1,X2,Y2:Single; Target:TERRAObject):Boolean;
 
       Function AddEffect(FX:ScreenFX):ScreenFX;
       Procedure RemoveEffect(FX:ScreenFX);
@@ -407,14 +407,14 @@ Begin
   Result := 'screenfx';
   If Self.AntiAlias Then
     Result := Result + '_AA';
-    
+
   For I:=0 To Pred(_FXCount) Do
     Result := Result + '_'+_FXs[I].ClassName;
 End;
 
 Function ScreenFXChain.GetShader:ShaderInterface;
 Var
-  S:TERRAString;
+  S, SName:TERRAString;
   I, J:Integer;
   Procedure Line(S2:TERRAString); Begin S := S + S2 + crLf; End;
 Begin
@@ -647,18 +647,19 @@ Begin
     End;
     
     //Line('    gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);}');
-    Line('    gl_FragColor = output_color;}');
+    Line('  gl_FragColor = output_color;}');
     Line('}');
 
+    SName := Self.GetShaderName();
     _Shader := GraphicsManager.Instance.Renderer.CreateShader();
-    _Shader.Generate(Self.GetShaderName(), S);
+    _Shader.Generate(SName, S);
     _NeedsUpdate := False;
   End;
 
   Result := _Shader;
 End;
 
-Procedure ScreenFXChain.DrawScreen(X1,Y1,X2,Y2:Single; Target:TERRAObject);
+Function ScreenFXChain.DrawScreen(X1,Y1,X2,Y2:Single; Target:TERRAObject):Boolean;
 Var
   _SH:ShaderInterface;
   I:Integer;
@@ -668,6 +669,11 @@ Var
   View:Viewport;
 Begin
   _SH := Self.GetShader();
+  If (_SH = Nil) Or (Not _SH.Compiled) Then
+  Begin
+    Result := False;
+    Exit;
+  End;
 
   GraphicsManager.Instance.Renderer.BindShader(_SH);
 
@@ -707,9 +713,11 @@ Begin
     _Sh.SetIntegerUniform('cellNoiseTex', Slot);
     Inc(Slot);
   End;
-    
+
   GraphicsManager.Instance.Renderer.SetBlendMode(blendNone);
   GraphicsManager.Instance.DrawFullscreenQuad(_SH, X1,Y1,X2,Y2);
+
+  Result := True;
 End;
 
 Procedure ScreenFXChain.OnContextLost;

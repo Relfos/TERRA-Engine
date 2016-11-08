@@ -738,15 +738,15 @@ Begin
   Log(logDebug, 'Shader', 'Compiling vertex code for ' + _Name);
 
   _Linked := False;
-  Result := CompileShader(_Name, _VertexCode, GL_VERTEX_SHADER, _VertexShaderHandle);
+  _Compiled := CompileShader(_Name, _VertexCode, GL_VERTEX_SHADER, _VertexShaderHandle);
 
   Log(logDebug, 'Shader', 'Compiling fragment code for ' + _Name);
 
-  If Result Then
+  If _Compiled Then
   Begin
-    Result := CompileShader(_Name, _FragmentCode, GL_FRAGMENT_SHADER, _FragmentShaderHandle);
+    _Compiled := CompileShader(_Name, _FragmentCode, GL_FRAGMENT_SHADER, _FragmentShaderHandle);
 
-    If Not Result Then
+    If Not _Compiled Then
     Begin
       Result := CompileShader(_Name, FallbackFragmentSource, GL_FRAGMENT_SHADER, _FragmentShaderHandle);
       If Not Result Then
@@ -819,6 +819,7 @@ Begin
   Self.Unload();
   Result := Self.Load();
 End;
+
 Procedure OpenGLShader.Release;
 Begin
   Self.Unload();

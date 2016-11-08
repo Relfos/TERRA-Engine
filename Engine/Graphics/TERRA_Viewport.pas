@@ -776,9 +776,8 @@ Begin
       ReleaseObject(_FXChain);
     End;
 
-    If (Assigned(_FXChain)) And (ShowID = captureTargetInvalid) Then
+    If (Assigned(_FXChain)) And (ShowID = captureTargetInvalid) And (_FXChain.DrawScreen(_TargetX1, _TargetY1, _TargetX2, _TargetY2, Self)) Then
     Begin
-      _FXChain.DrawScreen(_TargetX1, _TargetY1, _TargetX2, _TargetY2, Self);
       Exit;
     End;
   End;

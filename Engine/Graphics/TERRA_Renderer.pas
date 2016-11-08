@@ -247,6 +247,7 @@ Type
   ShaderInterface = Class(GraphicInterface)
     Protected
       _Name:TERRAString;
+      _Compiled:Boolean;
 
       _Attributes:Array Of ShaderAttribute;
       _AttributeCount:Integer;
@@ -274,10 +275,12 @@ Type
 			Procedure SetColorUniform(Const Name:TERRAString; Const Value:Color);
 			Procedure SetPlaneUniform(Const Name:TERRAString; Const Value:Plane);
 
-      Function HasUniform(Const Name:TERRAString):Boolean; Virtual; 
+      Function HasUniform(Const Name:TERRAString):Boolean; Virtual;
 
       Function GetUniform(Name:TERRAString):Integer; Virtual; Abstract;
       Function GetAttributeHandle(Const Name:TERRAString):Integer; Virtual; Abstract;
+
+      Property Compiled:Boolean Read _Compiled;
   End;
 
   TriangleEdgesState = Record
