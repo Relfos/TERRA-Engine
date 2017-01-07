@@ -854,6 +854,7 @@ Begin
   Graphics := Engine.Graphics;
   //glEnable(GL_DEPTH_TEST); {FIXME}
   //
+  Graphics.Renderer.SetDepthTest(True);
   Graphics.Renderer.SetDepthFunction(compareLessOrEqual);
 
   Graphics.Renderer.SetCullMode(cullNone);

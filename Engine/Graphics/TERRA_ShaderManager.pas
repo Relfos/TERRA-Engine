@@ -240,6 +240,7 @@ Begin
 
   Line('  alpha *=  color.a;');
   Line('  alpha *= alphaCut;');
+  Line('    if (alpha <0.5) discard;');
   Line('    gl_FragColor = vec4( baseColor.rgb, baseColor.a * alpha);}');
 
   {$ELSE}
@@ -261,6 +262,7 @@ Begin
 
   Line('    baseColor.rgb = AdjustSaturation(baseColor.rgb, fillColor.a); ');
 //  Line('    baseColor.rgb = mix(baseColor.rgb, outlineColor.rgb, mask.r); ');
+
   Line('    gl_FragColor = vec4(baseColor.r, baseColor.g, baseColor.b, alpha * color.a);}');
 
   //Line('    gl_FragColor = vec4(mask.r);');
