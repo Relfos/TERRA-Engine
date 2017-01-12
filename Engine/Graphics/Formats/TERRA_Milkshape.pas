@@ -911,6 +911,10 @@ Begin
   For N:=0 To Pred(MS3D.NumGroups) Do
   Begin
     S := MyMesh.GetGroupName(N);
+
+    If (Length(S)>31) Then
+      SetLength(S, 31);
+
     If S<>'' Then
       Move(S[1], MS3D.Groups[N].Name[1], Length(S));
     MS3D.Groups[N].Name[Succ(Length(S))] := #0;
