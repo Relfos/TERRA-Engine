@@ -37,7 +37,7 @@ Unit TERRA_Unwrap;
 Interface
 
 Uses TERRA_Object, TERRA_Utils, TERRA_Collections, TERRA_Vector3D, TERRA_Vector2D, TERRA_Color,
-  TERRA_Image, TERRA_Log, TERRA_MeshFilter, TERRA_Mesh;
+  TERRA_Image, TERRA_Log, TERRA_MeshFilter, TERRA_Mesh, TERRA_VertexFormat;
 
 Const
   PLANE_XPOSITIVE = 0;
@@ -51,7 +51,9 @@ Type
   PUnwrapCluster = ^UnwrapCluster;
 
   UnwrapVertex = Record
-    Vertex:MeshVertex;
+    Position:Vector3D;
+    Normal:Vector3D;
+    TexCoord:Vector2D;
     Cluster:PUnwrapCluster;
   End;
 
@@ -72,7 +74,7 @@ Type
       GroupID:Integer;
 
     Protected
-      TriangleList:IntegerArray;
+      TriangleList:IntegerArrayObject;
       Orientation:Integer;
       Normal:Vector3D;
 
@@ -91,7 +93,7 @@ Type
       Index:Array[0..2] Of Integer;
       Normal:Vector3D;
       Orientation:Integer;
-      Adjacency:IntegerArray;
+      Adjacency:IntegerArrayObject;
   End;
 
   UnwrapGroup = Record
@@ -101,7 +103,7 @@ Type
     _VertexList:Array Of UnwrapVertex;
     _VertexCount:Integer;
 
-    _EdgeTable:Array Of IntegerArray;
+    _EdgeTable:Array Of IntegerArrayObject;
     _EdgeList:Array Of UnwrapEdge;
     _EdgeCount:Integer;
   End;
@@ -132,13 +134,13 @@ Type
     Public
       Function Unwrap(Target:TERRAMesh):Boolean;
 
-      Function GetTemplate(Size:Cardinal = 1024):TERRAImage;
+      //Function GetTemplate(Size:Cardinal = 1024):TERRAImage;
 
       Function GetCluster(Index:Integer):PUnwrapCluster;
   End;
 
 Implementation
-Uses TERRA_Packer, TERRA_Math, TERRA_Rasterizer;
+Uses TERRA_Packer, TERRA_Math, TERRA_Rasterizer, TERRA_Engine;
 
 Procedure Unwrapper.AddTriangle(GroupID, A, B, C:Integer; Normal:Vector3D);
 Var
@@ -186,7 +188,7 @@ Var
 Begin
   For I:=0 To 2 Do
   Begin
-    P := _Groups[GroupID]._VertexList[_Groups[GroupID]._TriangleList[Index].Index[I]].Vertex.Position;
+    P := _Groups[GroupID]._VertexList[_Groups[GroupID]._TriangleList[Index].Index[I]].Position;
     P := Vector3D_Scale(P, Scale);
     Case _Groups[GroupID]._TriangleList[Index].Orientation Of
     PLANE_XPOSITIVE,
@@ -269,7 +271,7 @@ Begin
   End;
 
   Result := -1;
-  Log(logError,'Unwrap', 'edge not found!');
+  Engine.Log.Write(logError,'Unwrap', 'edge not found!');
 End;
 
 Procedure Unwrapper.BuildEdgeList(GroupID:Integer);
@@ -318,10 +320,10 @@ Begin
     End;
 End;
 
-Function Unwrapper.Unwrap(Target:Mesh; Callback:ProgressNotifier=Nil):Boolean;
+Function Unwrapper.Unwrap(Target:TERRAMesh):Boolean;
 Var
   I,J,K,W,N:Integer;
-  Queue:IntegerArray;
+  Queue:IntegerArrayObject;
   Cluster:^UnwrapCluster;
   Found:Boolean;
   Count:Integer;
@@ -334,8 +336,9 @@ Var
   Group:MeshGroup;
   G:^UnwrapGroup;
   T:Triangle;
-  Normal:Vector3D;
+  P, Normal:Vector3D;
   P1,P2,P3:Vector3D;
+  UV:Vector2D;
 Begin
   _Target := Target;
   _ClusterCount := 0;
@@ -350,19 +353,30 @@ Begin
     SetLength(_Groups[N]._VertexList, Group.VertexCount);
     For J:=0 To Pred(Group.VertexCount) Do
     Begin
-      _Groups[N]._VertexList[J].Vertex := Group.GetVertex(J);
+      Group.Vertices.GetVector3D(J, vertexPosition, P);
+      _Groups[N]._VertexList[J].Position := P;
+
+      Group.Vertices.GetVector3D(J, vertexNormal, P);
+      _Groups[N]._VertexList[J].Normal := P;
+
+      Group.Vertices.GetVector2D(J, vertexUV0, UV);
+      _Groups[N]._VertexList[J].TexCoord := UV;
+
       _Groups[N]._VertexList[J].Cluster := Nil;
     End;
 
     _Groups[N]._TriangleCount := 0;
+    _Groups[N]._TriangleList := Nil;
     SetLength(_Groups[N]._TriangleList, Group.TriangleCount);
 
     For J:=0 To Pred(Group.TriangleCount) Do
     Begin
       T := Group.GetTriangle(J);
-      P1 := Group.GetVertex(T.Indices[0]).Position;
-      P2 := Group.GetVertex(T.Indices[1]).Position;
-      P3 := Group.GetVertex(T.Indices[2]).Position;
+
+      Group.Vertices.GetVector3D(T.Indices[0], vertexPosition, P1);
+      Group.Vertices.GetVector3D(T.Indices[1], vertexPosition, P2);
+      Group.Vertices.GetVector3D(T.Indices[2], vertexPosition, P3);
+
       Normal := Group.GetTriangleNormal(J);
       AddTriangle(N, T.Indices[0], T.Indices[1], T.Indices[2], Normal);
     End;
@@ -375,9 +389,6 @@ Begin
 
     While Queue.Count > 0 Do
     Begin
-      If Assigned(Callback) Then
-        Callback.Notify(Queue.Count/_Groups[N]._TriangleCount);
-
       // get first triangle in queue
       K := Queue.Pop;
 
@@ -463,14 +474,14 @@ Begin
     For I:=0 To Pred(_ClusterCount) Do
       Packer.AddRect(_Clusters[I].Width, _Clusters[I].Height, I);
     // try to pack all clusters
-    Count := Packer.Pack(MW, MH, Callback);
+    Count := Packer.Pack(MW, MH);
     If (Count>0) Then
     Begin
       // failed, increase space, to try again
       If (MW<=MH) Then
-        MW := Trunc(MW * 1.5)
+        MW := Trunc(MW * 2)
       Else
-        MH := Trunc(MH * 1.5);
+        MH := Trunc(MH * 2);
       ReleaseObject(Packer);
     End Else
       Found := True;
@@ -510,9 +521,8 @@ Begin
           DuplicateVertex(Cluster, G._TriangleList[Cluster.TriangleList.Items[J]].Index[K]);
         End;
 
-        // store UVs (packed in normal, because normals are not used during lightmapping)
-        G._VertexList[G._TriangleList[Cluster.TriangleList.Items[J]].Index[K]].Vertex.Normal.X := U;
-        G._VertexList[G._TriangleList[Cluster.TriangleList.Items[J]].Index[K]].Vertex.Normal.Y := V;
+        G._VertexList[G._TriangleList[Cluster.TriangleList.Items[J]].Index[K]].TexCoord.X := U;
+        G._VertexList[G._TriangleList[Cluster.TriangleList.Items[J]].Index[K]].TexCoord.Y := V;
       End;
     End;
   End;
@@ -526,7 +536,11 @@ Begin
     Group.VertexCount := _Groups[K]._VertexCount;
     Group.TriangleCount := _Groups[K]._TriangleCount;
     For J:=0 To Pred(_Groups[K]._VertexCount) Do
-      Group.Vertices[J] := _Groups[K]._VertexList[J].Vertex;
+    Begin
+      Group.Vertices.SetVector3D(J, vertexPosition, _Groups[K]._VertexList[J].Position);
+      Group.Vertices.SetVector3D(J, vertexNormal, _Groups[K]._VertexList[J].Normal);
+      Group.Vertices.SetVector2D(J, vertexUV0, _Groups[K]._VertexList[J].TexCoord);
+    End;
 
     For J:=0 To Pred(_Groups[K]._TriangleCount) Do
     Begin
@@ -544,7 +558,9 @@ Begin
   N := _Groups[Cluster.GroupID]._VertexCount;
   Inc(_Groups[Cluster.GroupID]._VertexCount);
   SetLength(_Groups[Cluster.GroupID]._VertexList, _Groups[Cluster.GroupID]._VertexCount);
-  _Groups[Cluster.GroupID]._VertexList[N].Vertex := _Groups[Cluster.GroupID]._VertexList[Index].Vertex;
+  _Groups[Cluster.GroupID]._VertexList[N].Position := _Groups[Cluster.GroupID]._VertexList[Index].Position;
+  _Groups[Cluster.GroupID]._VertexList[N].Normal := _Groups[Cluster.GroupID]._VertexList[Index].Normal;
+  _Groups[Cluster.GroupID]._VertexList[N].TexCoord := _Groups[Cluster.GroupID]._VertexList[Index].TexCoord;
   _Groups[Cluster.GroupID]._VertexList[N].Cluster := Cluster;
   For I:=0 To Pred(Cluster.TriangleList.Count) Do
     For J:=0 To 2 Do
@@ -554,10 +570,10 @@ Begin
     End;
 End;
 
-Function Unwrapper.GetTemplate(Size:Cardinal): Image;
+(*Function Unwrapper.GetTemplate(Size:Cardinal): TERRAImage;
 Var
   Cluster:^UnwrapCluster;
-  Color:TERRA_Color.Color;
+  Color:ColorRGBA;
   I,J,K,W:Integer;
   Rasterizer:ColorRasterizer;
 Begin
@@ -609,5 +625,6 @@ Begin
 
   ReleaseObject(Rasterizer);
 End;
+*)
 
 End.

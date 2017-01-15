@@ -3186,6 +3186,11 @@ End;
 
 Function MeshGroup.GetTriangleNormal(Index:Integer):Vector3D;  {$IFDEF FPC} Inline;{$ENDIF}
 Begin
+  If (_TriangleNormals = Nil) Then
+  Begin
+    CalculateTriangleNormals();
+  End;
+  
   Result := _TriangleNormals[Index];
 End;
 
@@ -5087,7 +5092,10 @@ Begin
 
   Self._Vertices := TERRAVertexBuffer.Create(Format, 0);
 
-  Self._GPUSkinning := Engine.Graphics.Renderer.Settings.VertexBufferObject.Enabled;
+  If (Engine.Graphics <> Nil) Then
+  Begin
+    Self._GPUSkinning := Engine.Graphics.Renderer.Settings.VertexBufferObject.Enabled;
+  End;
 End;
 
 Function MeshGroup.LockVertices():TERRAVertexBuffer;
