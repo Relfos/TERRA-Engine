@@ -3,7 +3,7 @@
  * TERRA Game Engine
  * ==========================================
  *
- * Copyright (C) 2003, 2014 by Sérgio Flores (relfos@gmail.com)
+ * Copyright (C) 2003, 2014 by Sérgio Flores 
  *
  ***********************************************************************************************************************
  *
@@ -24,7 +24,7 @@
 
 {
 @abstract(File and Memory Streams)
-@author(Sergio Flores <relfos@gmail.com>)
+@author(Sergio Flores <>)
 @created(March 15, 2005)
 @lastmod(January 4, 2006)
 The IO unit provides stream classes for reading/writing data.

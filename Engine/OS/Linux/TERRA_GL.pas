@@ -1,6 +1,6 @@
 {
 @abstract(OpenGL)
-@author(Sergio Flores <relfos@gmail.com>)
+@author(Sergio Flores <>)
 @created(February 25, 2006)
 @lastmod(March 1, 2006)
 The GL unit provides a cross-plataform OpenGL interface.

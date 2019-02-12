@@ -1,6 +1,6 @@
 {
 @abstract(SMTP Mail)
-@author(Sergio Flores <relfos@gmail.com>)
+@author(Sergio Flores <>)
 @created(February 3, 2006)
 @lastmod(February 25, 2006)
 The SMTP unit provides a Mail class that allows user to send emails.
